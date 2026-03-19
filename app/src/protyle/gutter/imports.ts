@@ -75,6 +75,16 @@ export { path };
 /** 导出移动端兼容性工具 */
 export { openByMobile };
 
+/**
+ * 用途：导出图片功能入口
+ * 使用范围：块菜单等需要复用现有导出图片弹窗与流程的场景
+ * 解耦评估：导出图片已在 protyle/export 模块集中实现，通过 imports.ts 转发可避免 gutter 层新增直接父级耦合
+ */
+import { exportImage } from "../export/util";
+
+/** 导出图片功能入口 */
+export { exportImage };
+
 // ============ AI功能 ============
 
 /**

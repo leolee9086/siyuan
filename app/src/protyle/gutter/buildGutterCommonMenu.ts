@@ -32,6 +32,7 @@ import { showMobileAppearance } from "./showMobileAppearance";
 import { openFileById } from "../../editor/utils.openFileById";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
+import { exportImage } from "./imports";
 
 /**
  * 通用操作菜单构建上下文
@@ -273,6 +274,18 @@ const 创建时间戳菜单项 = (ctx: IGutterCommonMenuContext): IMenu => {
 };
 
 /**
+ * 创建导出图片菜单项
+ */
+const 创建导出图片菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+    id: "exportImage",
+    label: siyuanI18n.exportAsImage,
+    icon: "iconImage",
+    click() {
+        exportImage(ctx.id);
+    }
+});
+
+/**
  * 检查是否应该显示微信提醒菜单
  */
 const 应该显示微信提醒 = (ctx: IGutterCommonMenuContext): boolean => {
@@ -380,6 +393,7 @@ export const buildGutterCommonMenu = (ctx: IGutterCommonMenuContext): IMenu[] =>
     menuItems.push(创建跳转菜单(ctx));
     menuItems.push({ id: "separator_3", type: "separator" });
     添加视图菜单(ctx, menuItems);
+    menuItems.push(创建导出图片菜单项(ctx));
     menuItems.push({ id: "separator_4", type: "separator" });
     添加扩展菜单(ctx, menuItems);
     menuItems.push(创建时间戳菜单项(ctx));

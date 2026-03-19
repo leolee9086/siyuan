@@ -12,6 +12,8 @@ import {showMessage} from "./imports";
 import {siyuanI18n} from "./imports";
 /** 用途：导出图片配置读取；使用范围：初始化 keepFold/watermark 默认状态；解耦评估：配置读取职责已独立模块化。 */
 import {getExportImageStorage} from "./exportImage.storage";
+/** 用途：导出比例选项 HTML；使用范围：弹窗模板渲染；解耦评估：比例配置集中维护优于模板内硬编码。 */
+import {buildExportImageRatioOptionsHtml} from "./exportImage.ratio";
 /** 用途：导出图片上下文类型；使用范围：上下文创建返回值约束；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 /** 用途：导出图片存储类型；使用范围：模板构建参数；解耦评估：类型依赖不引入运行时耦合。 */
@@ -39,6 +41,10 @@ const buildDialogContent = (storage: IExportImageStorage): string => {
         <input id="watermark" class="b3-switch fn__flex-center" type="checkbox" ${storage.watermark ? "checked" : ""}>
     </label>
     <span class="fn__flex-1 export-img__space"></span>
+    <select id="ratio" class="b3-select fn__flex-center fn__size200" aria-label="导出比例" title="导出比例">
+        ${buildExportImageRatioOptionsHtml(storage.ratio)}
+    </select>
+    <div class="fn__space"></div>
     <button disabled class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
     <button disabled class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>
@@ -69,12 +75,13 @@ export const createExportImageContext = async (id: string, dialogKey: string): P
     const watermarkPreviewElement = dialog.element.querySelector<HTMLElement>(".export-img__watermark");
     const keepFoldElement = dialog.element.querySelector<HTMLInputElement>("#keepFold");
     const watermarkElement = dialog.element.querySelector<HTMLInputElement>("#watermark");
+    const ratioElement = dialog.element.querySelector<HTMLSelectElement>("#ratio");
     const buttons = dialog.element.querySelectorAll<HTMLButtonElement>(".b3-button");
     const cancelButton = buttons.item(0);
     const confirmButton = buttons.item(1);
 
     // 关键节点缺失时流程无法安全继续，必须中止并提示失败。
-    if (!previewElement || !contentElement || !containerElement || !exportImageElement || !watermarkPreviewElement || !keepFoldElement || !watermarkElement || !cancelButton || !confirmButton) {
+    if (!previewElement || !contentElement || !containerElement || !exportImageElement || !watermarkPreviewElement || !keepFoldElement || !watermarkElement || !ratioElement || !cancelButton || !confirmButton) {
         dialog.destroy();
         showMessage(siyuanI18n._kernel[14], 3000, "error");
         return;
@@ -91,6 +98,7 @@ export const createExportImageContext = async (id: string, dialogKey: string): P
         watermarkPreviewElement,
         keepFoldElement,
         watermarkElement,
+        ratioElement,
         cancelButton,
         confirmButton,
     };

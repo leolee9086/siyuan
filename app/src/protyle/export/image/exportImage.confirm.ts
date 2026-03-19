@@ -22,6 +22,8 @@ import {setStorageVal} from "./imports";
 import {showMessage} from "./imports";
 /** 用途：国际化文案；使用范围：导出消息文本；解耦评估：全局 i18n 服务直接依赖符合项目约束。 */
 import {siyuanI18n} from "./imports";
+/** 用途：比例分页导出；使用范围：选择具体比例时生成多张图片；解耦评估：截图分页逻辑独立模块更利于后续扩展。 */
+import {exportImageBlobsByRatio} from "./exportImage.ratio";
 /** 用途：导出图片上下文类型；使用范围：确认导出流程参数；解耦评估：类型依赖无运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 
@@ -49,6 +51,25 @@ const normalizeLineNumber = (previewElement: HTMLElement): void => {
         lineElement.textContent = `${lineNumber}`;
         lineNumber += 1;
     }
+};
+
+/**
+ * 作用：上传导出的图片文件并触发打开。
+ * 意图：把表单构造与上传副作用封装成 Promise，便于多图顺序导出。
+ * 调用时机：截图 blob 生成完成后。
+ * 问题/改进：当前后端接口只返回单文件 URL，后续可扩展批量上传接口减少往返次数。
+ */
+const uploadExportImageBlob = async (blob: Blob, fileName: string): Promise<void> => {
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+    formData.append("type", "image/png");
+
+    await new Promise<void>((resolve) => {
+        fetchPost("/api/export/exportAsFile", formData, (response) => {
+            openByMobile(response.data.file);
+            resolve();
+        });
+    });
 };
 
 /**
@@ -80,19 +101,22 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
         return;
     }
 
-    let blob = await htmlToImage.toBlob(ctx.contentElement);
     // iPhone/Safari 首次截图偶现不完整，需预热渲染管线。
     if (isIPhone() || isSafari()) {
         await htmlToImage.toBlob(ctx.contentElement);
         await htmlToImage.toBlob(ctx.contentElement);
         await htmlToImage.toBlob(ctx.contentElement);
-        blob = await htmlToImage.toBlob(ctx.contentElement);
     }
 
-    const formData = new FormData();
-    formData.append("file", blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
-    formData.append("type", "image/png");
-    fetchPost("/api/export/exportAsFile", formData, (response) => openByMobile(response.data.file));
+    const ratioFiles = await exportImageBlobsByRatio(ctx, htmlToImage);
+    if (0 < ratioFiles.length) {
+        for (const file of ratioFiles) {
+            await uploadExportImageBlob(file.blob, file.fileName);
+        }
+    } else {
+        const blob = await htmlToImage.toBlob(ctx.contentElement);
+        await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
+    }
 
     hideMessage(msgId);
     ctx.dialog.destroy();

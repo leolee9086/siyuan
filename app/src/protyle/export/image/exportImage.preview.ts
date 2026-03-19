@@ -6,6 +6,8 @@ import {highlightRender} from "./imports";
 import {contentRendererRegistry} from "./imports";
 /** 用途：导出图片水印刷新；使用范围：预览更新后同步水印层；解耦评估：通过独立模块保持单一职责。 */
 import {updateExportImageWatermark} from "./exportImage.watermark";
+/** 用途：导出比例预览刷新；使用范围：预览内容更新后同步最小画布比例；解耦评估：比例逻辑独立模块更便于复用。 */
+import {applyExportImageRatioPreview} from "./exportImage.ratio";
 /** 用途：导出图片上下文类型；使用范围：请求与渲染链路参数约束；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 
@@ -76,6 +78,7 @@ const renderPreview = async (ctx: IExportImageContext, response: IWebSocketData)
     contentRendererRegistry.renderBatch(ctx.previewElement);
     highlightRender(ctx.previewElement);
     scaleWideTables(ctx.previewElement);
+    applyExportImageRatioPreview(ctx);
     await updateExportImageWatermark(ctx);
 };
 

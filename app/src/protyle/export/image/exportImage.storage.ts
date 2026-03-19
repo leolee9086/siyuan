@@ -4,6 +4,8 @@ import {Constants} from "./imports";
 import {getSiyuanStorage} from "./imports";
 /** 用途：导出图片存储类型；使用范围：返回值与默认值约束；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageStorage} from "./exportImage.types";
+/** 用途：导出比例规范化；使用范围：修复历史存储中的 ratio 字段；解耦评估：比例规则集中维护优于在存储层重复硬编码。 */
+import {normalizeExportImageRatio} from "./exportImage.ratio";
 
 /**
  * 作用：生成导出图片配置默认值。
@@ -11,7 +13,7 @@ import type {IExportImageStorage} from "./exportImage.types";
  * 调用时机：存储不存在或字段无效时。
  * 问题/改进：新增配置字段时需同步扩展默认值。
  */
-const createDefaultStorage = (): IExportImageStorage => ({keepFold: false, watermark: false});
+const createDefaultStorage = (): IExportImageStorage => ({keepFold: false, watermark: false, ratio: "auto"});
 
 /**
  * 作用：把未知值规范为布尔值。
@@ -58,9 +60,11 @@ export const getExportImageStorage = async (): Promise<IExportImageStorage> => {
     const defaultStorage = createDefaultStorage();
     const keepFold = rawValue ? Reflect.get(rawValue, "keepFold") : undefined;
     const watermark = rawValue ? Reflect.get(rawValue, "watermark") : undefined;
+    const ratio = rawValue ? Reflect.get(rawValue, "ratio") : undefined;
     const normalizedStorage: IExportImageStorage = {
         keepFold: normalizeBoolean(keepFold, defaultStorage.keepFold),
         watermark: normalizeBoolean(watermark, defaultStorage.watermark),
+        ratio: normalizeExportImageRatio(ratio, defaultStorage.ratio),
     };
     storage[Constants.LOCAL_EXPORTIMG] = normalizedStorage;
     return normalizedStorage;

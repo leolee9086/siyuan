@@ -5,11 +5,12 @@ import type {Dialog} from "./imports";
  * 用途：导出图片开关配置的数据结构。
  * 使用场景：读取/更新 `Constants.LOCAL_EXPORTIMG` 本地存储时使用。
  * 关联类型：`IExportImageContext` 会持有该结构以驱动 UI 状态。
- * 问题/改进：目前仅包含 keepFold/watermark，若后续加入导出比例等选项需同步扩展。
+ * 问题/改进：后续若加入“按分割线/按标题”等导出模式，可继续在此扩展。
  */
 export interface IExportImageStorage {
     keepFold: boolean;
     watermark: boolean;
+    ratio: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export interface IExportImageContext {
     watermarkPreviewElement: HTMLElement;
     keepFoldElement: HTMLInputElement;
     watermarkElement: HTMLInputElement;
+    ratioElement: HTMLSelectElement;
     cancelButton: HTMLButtonElement;
     confirmButton: HTMLButtonElement;
 }

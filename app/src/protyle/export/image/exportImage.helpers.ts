@@ -6,6 +6,8 @@ import {requestExportImagePreview} from "./exportImage.preview";
 import {handleConfirmExport} from "./exportImage.confirm";
 /** 用途：水印刷新函数；使用范围：水印开关变更与预览刷新后；解耦评估：水印逻辑独立后可单独替换策略。 */
 import {updateExportImageWatermark} from "./exportImage.watermark";
+/** 用途：导出比例预览函数；使用范围：比例切换后更新导出画布最小高度；解耦评估：比例逻辑独立后可单独扩展分页策略。 */
+import {applyExportImageRatioPreview} from "./exportImage.ratio";
 /** 用途：导出图片上下文类型；使用范围：事件处理回调参数；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 
@@ -28,6 +30,18 @@ const handleKeepFoldChange = async (ctx: IExportImageContext): Promise<void> => 
  */
 const handleWatermarkChange = async (ctx: IExportImageContext): Promise<void> => {
     ctx.storage.watermark = ctx.watermarkElement.checked;
+    await updateExportImageWatermark(ctx);
+};
+
+/**
+ * 作用：处理导出比例切换并刷新预览画布高度。
+ * 意图：将比例状态同步和 UI 更新收敛到单点，避免在事件绑定处散落逻辑。
+ * 调用时机：ratio 下拉框 change 事件。
+ * 问题/改进：当前仅更新最小高度预览，后续可扩展为更完整的分页预估信息。
+ */
+const handleRatioChange = async (ctx: IExportImageContext): Promise<void> => {
+    ctx.storage.ratio = ctx.ratioElement.value;
+    applyExportImageRatioPreview(ctx);
     await updateExportImageWatermark(ctx);
 };
 
@@ -55,6 +69,9 @@ export const runExportImageFlow = async (id: string, dialogKey: string): Promise
     });
     ctx.watermarkElement.addEventListener("change", () => {
          handleWatermarkChange(ctx);
+    });
+    ctx.ratioElement.addEventListener("change", () => {
+         handleRatioChange(ctx);
     });
 
     await requestExportImagePreview(ctx, (response) => {
