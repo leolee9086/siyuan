@@ -1,4 +1,5 @@
-import { cancelSB, genEmptyElement } from "../../../block/util";
+import { genEmptyElement } from "../../../block/util";
+import { cancelSB } from "../../../block/util.cancelSB";
 import { getTopAloneElement } from "../../wysiwyg/getBlock";
 import { getAllEditor } from "../../../layout/getAll";
 import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";

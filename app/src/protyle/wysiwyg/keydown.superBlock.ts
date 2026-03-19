@@ -1,6 +1,6 @@
 
 import { matchHotKey } from "../util/hotKey";
-import { cancelSB } from "../../block/util";
+import { cancelSB } from "../../block/util.cancelSB";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
 import { focusByWbr } from "../util/selection";
 import * as dayjs from "dayjs";

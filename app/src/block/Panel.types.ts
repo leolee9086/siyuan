@@ -1,4 +1,4 @@
-import { App } from "../index";
+import type { App } from "../index";
 
 /**
  * 执行图标操作的参数

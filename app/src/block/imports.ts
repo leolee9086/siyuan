@@ -42,6 +42,55 @@ import { incrementSiyuanZIndex } from "../util/siyuanEnvironments/getSiyuanConfi
 import type { App } from "../index";
 // 用途：Protyle 编辑器类型定义；使用范围：Panel.ts 和 Panel.observer.types.ts 中编辑器实例类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
 import type { Protyle } from "../protyle";
+/*
+ * 用途：生成列表项块元素。
+ * 使用范围：block/util.createNewBlockElement.ts 的列表项插入分支。
+ * 解耦评估：可通过工厂函数参数注入解耦，但该能力属于块构建核心语义，
+ * 集中转发更便于统一维护。
+ */
+import { genListItemElement } from "../protyle/wysiwyg/list";
+/*
+ * 用途：在超级块取消时获取可编辑区域节点。
+ * 使用范围：block/util.cancelSB.ts 光标回填分支。
+ * 解耦评估：可通过参数传入目标元素解耦，但调用方统一基于块节点处理，
+ * 由 block 模块集中转发可降低重复依赖声明。
+ */
+import { getContenteditableElement } from "../ai/imports";
+/*
+ * 用途：在嵌入块需要重建面包屑时触发块渲染。
+ * 使用范围：block/util.cancelSB.ts 处理 NodeBlockQueryEmbed 分支。
+ * 解耦评估：可通过事件发射触发渲染解耦，但当前渲染依赖 protyle 上下文，
+ * 直接复用核心渲染函数可避免事件链路额外开销。
+ */
+import { blockRender } from "../ai/imports";
+/*
+ * 用途：在超级块结构变更后重新渲染数学公式。
+ * 使用范围：block/util.cancelSB.ts 完成节点移动后统一重绘。
+ * 解耦评估：可通过渲染调度器注入解耦，但数学渲染是编辑器基础能力，
+ * 集中转发可保持调用路径稳定。
+ */
+import { mathRender } from "../plugin/imports";
+/*
+ * 用途：在插入 wbr 锚点后恢复光标位置。
+ * 使用范围：block/util.cancelSB.ts 子块提升流程中的焦点回填。
+ * 解耦评估：可通过调用方传入聚焦策略解耦，但焦点恢复规则与编辑器实现强相关，
+ * 保持直接依赖可降低行为偏差风险。
+ */
+import { focusByWbr } from "../protyle/util/selection.range";
+/*
+ * 用途：解析当前块的父级块节点。
+ * 使用范围：block/util.cancelSB.ts 计算 move 操作 parentID。
+ * 解耦评估：可通过参数传入父级 ID 解耦，但该信息与 DOM 结构同步变化，
+ * 由函数内部实时解析更能保证一致性。
+ */
+import { getParentBlock } from "../protyle/wysiwyg/getBlock";
+/*
+ * 用途：在特殊视图下查询块的兄弟与父级 ID。
+ * 使用范围：block/util.cancelSB.ts showAll/反链模式下兜底定位。
+ * 解耦评估：可通过调用方预取后注入解耦，但会扩散网络编排职责，
+ * 当前集中在 block 工具层调用可保持边界清晰。
+ */
+import { fetchSyncPost } from "../window/imports";
 
 // 窗口管理工具导出
 export { openNewWindowById };
@@ -77,3 +126,17 @@ export { incrementSiyuanZIndex };
 export type { App };
 // Protyle 编辑器类型导出
 export type { Protyle };
+// 列表项元素构建工具导出
+export { genListItemElement };
+// 可编辑区域解析工具导出
+export { getContenteditableElement };
+// 块渲染工具导出
+export { blockRender };
+// 数学渲染工具导出
+export { mathRender };
+// 光标恢复工具导出
+export { focusByWbr };
+// 父块解析工具导出
+export { getParentBlock };
+// 同步请求工具导出
+export { fetchSyncPost };

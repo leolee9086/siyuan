@@ -1,110 +1,16 @@
 import { focusByWbr, getEditorRange } from "../protyle/util/selection";
-import { getContenteditableElement, getParentBlock } from "../protyle/wysiwyg/getBlock";
 import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "../protyle/wysiwyg/transaction";
 import { scrollCenter } from "../util/DOM/highlightById";
 import { Constants } from "../constants";
-import { blockRender } from "../protyle/render/blockRender";
-import { fetchPost, fetchSyncPost } from "../util/network/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { openFileById } from "../editor/utils.openFileById";
 import { openMobileFileById } from "../mobile/editor";
-import { mathRender } from "../protyle/render/mathRender";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../platform";
 import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
 import { createNewBlockElement } from "./util.createNewBlockElement";
-export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: Range) => {
-    const doOperations: IOperation[] = [];
-    const undoOperations: IOperation[] = [];
-    let previousId = nodeElement.previousElementSibling ? nodeElement.previousElementSibling.getAttribute("data-node-id") : undefined;
-    nodeElement.classList.remove("protyle-wysiwyg--select");
-    nodeElement.removeAttribute("select-start");
-    nodeElement.removeAttribute("select-end");
-    const id = nodeElement.getAttribute("data-node-id");
-    if (!id) {
-        return {
-            doOperations, undoOperations, previousId
-        };
-    }
-    const sbElement = nodeElement.cloneNode() as HTMLElement;
-    sbElement.innerHTML = nodeElement.lastElementChild.outerHTML;
-    let parentID = getParentBlock(nodeElement)?.getAttribute("data-node-id");
-    // 缩放和反链需要接口获取
-    if (!previousId && !parentID && (protyle.block.showAll || protyle.options.backlinkData)) {
-        const idData = await fetchSyncPost("/api/block/getBlockSiblingID", { id });
-        previousId = idData.data.previous;
-        parentID = idData.data.parent;
-    } else if (!previousId && !parentID) {
-        parentID = protyle.block.rootID;
-    }
-    undoOperations.push({
-        action: "insert",
-        id,
-        data: sbElement.outerHTML,
-        previousID: previousId,
-        parentID,
-    });
-    const children = Array.from(nodeElement.children);
-    const blockChildren = children.filter((item) => item.getAttribute("data-node-id"));
-    for (const item of blockChildren) {
-        const itemId = item.getAttribute("data-node-id");
-        if (!itemId) {
-            continue;
-        }
-        doOperations.push({
-            action: "move",
-            id: itemId,
-            previousID: previousId,
-            parentID,
-        });
-        undoOperations.push({
-            action: "move",
-            id: itemId,
-            previousID: item.previousElementSibling ? (item.previousElementSibling.getAttribute("data-node-id") || undefined) : undefined,
-            parentID: id
-        });
-        previousId = itemId;
-    }
-    if (blockChildren.length > 0) {
-        doOperations.push({
-            action: "delete",
-            id,
-        });
-        const editableElement = range ? getContenteditableElement(nodeElement) : undefined;
-        if (editableElement) {
-            editableElement.insertAdjacentHTML("afterbegin", "<wbr>");
-        }
-        nodeElement.lastElementChild?.remove();
-        nodeElement.replaceWith(...blockChildren);
-        if (editableElement && range) {
-            focusByWbr(protyle.wysiwyg.element, range);
-        }
-    } else {
-        doOperations.push({
-            action: "delete",
-            id,
-        });
-        nodeElement.remove();
-    }
-    mathRender(protyle.wysiwyg.element);
-    // 超级块内嵌入块无面包屑，需重新渲染 https://github.com/siyuan-note/siyuan/issues/7574
-    // 超级块内嵌入块无面包屑，需重新渲染 https://github.com/siyuan-note/siyuan/issues/7574
-    for (const item of doOperations) {
-        if (!protyle.wysiwyg?.element) {
-            continue;
-        }
-        const element = protyle.wysiwyg.element.querySelector(`[data-node-id="${item.id}"]`);
-        if (element && element.getAttribute("data-type") === "NodeBlockQueryEmbed") {
-            element.removeAttribute("data-render");
-            blockRender(protyle, element);
-        }
-    }
-    return {
-        doOperations, undoOperations, previousId
-    };
-};
-
 export const genSBElement = (layout: string, id?: string, attrHTML?: string) => {
     const sbElement = document.createElement("div");
     sbElement.setAttribute("data-node-id", id || Lute.NewNodeID());

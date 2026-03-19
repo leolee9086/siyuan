@@ -12,7 +12,15 @@ import {useShell} from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isElectron } from "../../platform";
 
-export const afterExport = (exportPath: string, msgId: string) => {
+/**
+ * 导出后处理：展示导出成功提示，并在 Electron 环境中绑定“在文件夹中显示”按钮。
+ *
+ * 作用：统一处理导出完成后的用户反馈与后续交互。
+ * 意图：将导出结果提示与平台能力（Electron Shell）解耦在单点函数中，避免调用方重复拼装消息与绑定事件。
+ * 调用时机：由导出流程在文件成功生成后调用，入参为导出路径与消息 ID。
+ * 问题/改进：当前依赖消息 DOM 结构与选择器，若消息模板变更需同步调整；后续可将按钮事件注册下沉到消息组件以降低耦合。
+ */
+export const afterExport = async (exportPath: string, msgId: string) => {
     // 仅 Electron 环境下显示导出成功消息和打开文件夹按钮
     if (!isElectron) {
         return;
@@ -21,7 +29,11 @@ export const afterExport = (exportPath: string, msgId: string) => {
     showMessage(`${siyuanI18n.exported} ${escapeHtml(exportPath)}
 <div class="fn__space"></div>
 <button class="b3-button b3-button--white">${siyuanI18n.showInFolder}</button>`, 6000, "info", msgId);
-    document.querySelector(`#message [data-id="${msgId}"] button`).addEventListener("click", () => {
+    const showInFolderButton = document.querySelector(`#message [data-id="${msgId}"] button`);
+    if (!showInFolderButton) {
+        return;
+    }
+    showInFolderButton.addEventListener("click", () => {
         useShell("showItemInFolder", path.join(exportPath));
         hideMessage(msgId);
     });

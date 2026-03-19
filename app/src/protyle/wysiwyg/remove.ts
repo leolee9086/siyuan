@@ -11,7 +11,8 @@ import {
     hasPreviousSibling
 } from "./getBlock";
 import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
-import { cancelSB, genEmptyElement } from "../../block/util";
+import { genEmptyElement } from "../../block/util";
+import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../../menus/protyle";
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";

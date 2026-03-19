@@ -4,7 +4,7 @@
  */
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { cancelSB } from "../../block/util";
+import { cancelSB } from "../../block/util.cancelSB";
 import { transaction, updateTransaction } from "../wysiwyg/transaction";
 import { focusBlock, focusByRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";

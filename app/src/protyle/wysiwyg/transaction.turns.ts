@@ -7,7 +7,8 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../../menus/protyle";
 import {avRender} from "../render/av/render";
-import {cancelSB, genSBElement} from "../../block/util";
+import {genSBElement} from "../../block/util";
+import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
 import {transaction, updateTransaction} from "./transaction";
 
