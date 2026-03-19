@@ -1,12 +1,10 @@
 import { focusByWbr, getEditorRange } from "../protyle/util/selection";
-import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
-import { getContenteditableElement, getParentBlock, getTopAloneElement } from "../protyle/wysiwyg/getBlock";
+import { getContenteditableElement, getParentBlock } from "../protyle/wysiwyg/getBlock";
 import { genListItemElement } from "../protyle/wysiwyg/list";
 import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "../protyle/wysiwyg/transaction";
 import { scrollCenter } from "../util/DOM/highlightById";
 import { Constants } from "../constants";
-import { hideElements } from "../protyle/ui/hideElements";
 import { blockRender } from "../protyle/render/blockRender";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { openFileById } from "../editor/utils.openFileById";
@@ -15,6 +13,7 @@ import { mathRender } from "../protyle/render/mathRender";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../platform";
+import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
 export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: Range) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
@@ -135,42 +134,6 @@ export const jumpToParent = (protyle: IProtyle, nodeElement: Element, type: "par
         });
     };
     fetchPost("/api/block/getBlockSiblingID", { id: nodeElement.getAttribute("data-node-id") }, handleResponse);
-};
-
-const getInsertTargetBlock = (protyle: IProtyle, id?: string, position?: InsertPosition): HTMLElement | null => {
-    if (!protyle.wysiwyg?.element) {
-        return null;
-    }
-    if (id) {
-        return protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) as HTMLElement;
-    }
-    const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-    if (selectElements.length > 0) {
-        const blockElement = position === "beforebegin" ? selectElements[0] : selectElements[selectElements.length - 1];
-        hideElements(["select"], protyle);
-        return blockElement as HTMLElement;
-    }
-    const range = getEditorRange(protyle.wysiwyg.element);
-    const closest = hasClosestBlock(range.startContainer);
-    if (!closest || !(closest instanceof HTMLElement)) {
-        return null;
-    }
-    let blockElement = closest;
-    blockElement = getTopAloneElement(blockElement);
-    // https://github.com/siyuan-note/siyuan/issues/14720#issuecomment-2840665326
-    if (blockElement.classList.contains("list")) {
-        const liElement = hasClosestByClassName(range.startContainer, "li");
-        if (liElement && liElement instanceof HTMLElement) {
-            return liElement;
-        }
-    }
-    if (blockElement.classList.contains("bq") || blockElement.classList.contains("callout")) {
-        const innerBlock = hasClosestBlock(range.startContainer);
-        if (innerBlock && innerBlock instanceof HTMLElement) {
-            return innerBlock;
-        }
-    }
-    return blockElement;
 };
 
 const createNewBlockElement = (blockElement: Element, position: InsertPosition): { newElement: HTMLElement, orderIndex: number } => {
