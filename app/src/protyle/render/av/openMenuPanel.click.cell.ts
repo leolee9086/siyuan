@@ -10,7 +10,7 @@ import { pathPosix } from "../../../util/file/pathName";
 import { isMobile } from "../../../platform";
 import { openLink } from "../../../editor/openLink";
 import { previewAttrViewImages } from "../../preview/image";
-import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
+import { assetMenu } from "../../../menus/protyleMenus/assetMenu/protyle.asset";
 import { escapeAttr } from "../../../util/DOM/escape";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openInNewWindow } from "../../../util/siyuanEnvironments/window.environment";

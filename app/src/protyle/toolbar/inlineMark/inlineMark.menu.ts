@@ -4,7 +4,7 @@
  */
 
 import { Constants } from "../../../constants";
-import { linkMenu } from "../../../menus/protyleMenus/protyle.linkMenu";
+import { linkMenu } from "../../../menus/protyleMenus/linkMenu/protyle.linkMenu";
 import { mathRender } from "../../render/mathRender";
 import { isHTMLElement } from "./inlineMark.guard";
 

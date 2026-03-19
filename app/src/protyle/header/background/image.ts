@@ -3,7 +3,7 @@ import { getRandom } from "../../../util/platform/functions";
 import { fetchPost } from "../../../util/network/fetch";
 import { Dialog } from "../../../dialog";
 import { Constants } from "../../../constants";
-import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
+import { assetMenu } from "../../../menus/protyleMenus/assetMenu/protyle.asset";
 import { previewImages } from "../../preview/image";
 import { bgs } from "../../../util/assets/backgrounds.ts";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

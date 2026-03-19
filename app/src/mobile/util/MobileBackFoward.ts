@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { setEditMode } from "../../protyle/util/setEditMode";
 import { fetchPost } from "../../util/network/fetch";
-import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../../protyle/render/highlightRender";
 import { blockRender } from "../../protyle/render/blockRender";

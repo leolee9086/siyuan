@@ -1,0 +1,352 @@
+/** 用途：生成更新时间字符串；使用范围：标签内容变更后写入 updated；解耦评估：通过 refMenu/imports.ts 转发，避免业务直接依赖第三方包。 */
+import { dayjs } from "./imports";
+/** 用途：聚焦指定 Range；使用范围：标签输入确认后恢复编辑光标；解耦评估：选区能力由工具层封装，业务侧只表达聚焦意图。 */
+import { focusByRange } from "./imports";
+/** 用途：读取菜单与编辑常量；使用范围：菜单 data-name、ZWSP 拼接；解耦评估：常量集中维护，避免业务散落魔法值。 */
+import { Constants } from "./imports";
+/** 用途：判断是否移动端；使用范围：菜单显示方式与搜索分支；解耦评估：平台判断集中在平台层，业务层只消费结果。 */
+import { isMobile } from "./imports";
+/** 用途：打开移动端搜索面板；使用范围：标签菜单“搜索”在移动端分支；解耦评估：搜索能力独立封装，业务侧只传查询参数。 */
+import { popSearch } from "./imports";
+/** 用途：触发插件扩展菜单事件；使用范围：标签菜单末尾挂载插件项；解耦评估：事件总线统一扩展入口。 */
+import { emitOpenMenu } from "./imports";
+/** 用途：隐藏干扰浮层；使用范围：标签菜单打开前隐藏 util/toolbar/hint；解耦评估：UI 协作逻辑集中在工具层。 */
+import { hideElements } from "./imports";
+/** 用途：处理 Electron 撤销快捷键；使用范围：标签输入框 keydown 事件；解耦评估：平台差异逻辑封装在 undo 工具。 */
+import { electronUndo } from "./imports";
+/** 用途：查找标签所在块节点；使用范围：读取 node-id 与 outerHTML 事务更新；解耦评估：DOM 查找工具复用。 */
+import { hasClosestBlock } from "./imports";
+/** 用途：查找顶层 popover 祖先；使用范围：设置菜单 data-from 来源；解耦评估：DOM 工具复用，降低路径耦合。 */
+import { hasTopClosestByClassName } from "./imports";
+/** 用途：通过 wbr 恢复光标；使用范围：删除标签后恢复编辑位置；解耦评估：选区能力封装在工具层。 */
+import { focusByWbr } from "./imports";
+/** 用途：提交文档事务；使用范围：标签编辑、删除、转换后的更新提交；解耦评估：事务能力稳定，业务只提供前后 HTML。 */
+import { updateTransaction } from "./imports";
+/** 用途：打开桌面端全局搜索；使用范围：标签菜单“搜索”在桌面端分支；解耦评估：搜索入口独立封装。 */
+import { openGlobalSearch } from "./imports";
+/** 用途：重命名标签；使用范围：标签菜单“重命名”动作；解耦评估：重命名逻辑在平台函数层维护。 */
+import { renameTag } from "./imports";
+/** 用途：读取全局菜单实例；使用范围：append/popup/fullscreen/remove 操作；解耦评估：菜单单例由环境层维护。 */
+import { getSiyuanGlobalMenusMenu } from "./imports";
+/** 用途：读取国际化文案；使用范围：标签菜单文案和占位符；解耦评估：i18n 来源统一。 */
+import { siyuanI18n } from "./imports";
+/** 用途：菜单项构造器；使用范围：标签菜单各动作项创建；解耦评估：组件能力集中维护，业务层只拼装配置。 */
+import { MenuItem } from "./imports";
+
+/**
+ * 作用：把输入框值安全写回标签节点。
+ * 意图：集中处理 ZWSP 与 HTML 转义，避免逻辑散落。
+ * 调用时机：输入框 composition/input 事件。
+ * 问题/改进：依赖 `Lute.EscapeHTMLStr` 全局对象，后续可评估显式注入。
+ */
+const 更新标签文本 = (tagElement: HTMLElement, inputElement: HTMLInputElement): void => {
+    tagElement.innerHTML = Constants.ZWSP + Lute.EscapeHTMLStr(inputElement.value || "");
+};
+
+/**
+ * 作用：提交标签节点事务并更新 htmlState。
+ * 意图：统一事务提交流程，避免每个动作重复写模板代码。
+ * 调用时机：标签变更动作执行后。
+ * 问题/改进：`id` 仍可能为空字符串，后续可补更严格的 ID 校验。
+ */
+const 提交标签事务 = (
+    protyle: IProtyle,
+    id: string | null,
+    nodeElement: HTMLElement,
+    htmlState: { value: string }
+): void => {
+    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.value);
+    htmlState.value = nodeElement.outerHTML;
+};
+
+/**
+ * 作用：删除标签并恢复光标位置。
+ * 意图：集中封装删除后的统一行为（插入 wbr、写 updated、提交事务、恢复焦点）。
+ * 调用时机：标签菜单 remove、输入确认空值分支。
+ * 问题/改进：删除后焦点依赖 toolbar.range，后续可评估更稳妥的选区回退策略。
+ */
+const 删除标签并恢复光标 = (
+    protyle: IProtyle,
+    id: string | null,
+    nodeElement: HTMLElement,
+    tagElement: HTMLElement
+): void => {
+    const oldHTML = nodeElement.outerHTML;
+    tagElement.insertAdjacentHTML("afterend", "<wbr>");
+    tagElement.remove();
+    nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+    updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+    const toolbarRange = protyle.toolbar?.range;
+    if (toolbarRange) {
+        focusByWbr(nodeElement, toolbarRange);
+    }
+};
+
+/**
+ * 作用：处理输入框 keydown。
+ * 意图：统一 Enter/Escape 确认逻辑，并兼容 Electron 撤销。
+ * 调用时机：标签输入框 keydown 事件。
+ * 问题/改进：目前只处理 Enter/Escape，后续可按需要扩展快捷键映射。
+ */
+const 处理标签输入按键 = (
+    protyle: IProtyle,
+    id: string | null,
+    nodeElement: HTMLElement,
+    tagElement: HTMLElement,
+    inputElement: HTMLInputElement,
+    event: KeyboardEvent
+): void => {
+    if (event.isComposing) {
+        return;
+    }
+
+    const isConfirmKey = event.key === "Enter" || event.key === "Escape";
+    if (!isConfirmKey) {
+        electronUndo(event);
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const toolbarRange = protyle.toolbar?.range;
+    // 确认输入且工具栏选区可用时，先把光标定位到当前标签末尾，再关闭菜单。
+    if (inputElement.value && toolbarRange) {
+        toolbarRange.selectNodeContents(tagElement);
+        toolbarRange.collapse(false);
+        focusByRange(toolbarRange);
+    }
+    if (inputElement.value) {
+        getSiyuanGlobalMenusMenu().remove();
+        return;
+    }
+
+    删除标签并恢复光标(protyle, id, nodeElement, tagElement);
+    getSiyuanGlobalMenusMenu().remove();
+};
+
+/**
+ * 作用：绑定标签输入框事件并初始化值。
+ * 意图：把输入框行为集中，减轻菜单构建函数复杂度。
+ * 调用时机：标签编辑菜单项 bind 回调中。
+ * 问题/改进：输入行为依赖 DOM 事件，后续可评估抽离为可测试的状态层。
+ */
+const 绑定标签输入框 = (
+    protyle: IProtyle,
+    id: string | null,
+    nodeElement: HTMLElement,
+    htmlState: { value: string },
+    tagElement: HTMLElement,
+    menuItemElement: HTMLElement
+): void => {
+    const inputElement = menuItemElement.querySelector("input");
+    if (!(inputElement instanceof HTMLInputElement)) {
+        return;
+    }
+
+    inputElement.value = tagElement.textContent.replace(Constants.ZWSP, "");
+    inputElement.addEventListener("change", 提交标签事务.bind(null, protyle, id, nodeElement, htmlState));
+    inputElement.addEventListener("compositionend", 更新标签文本.bind(null, tagElement, inputElement));
+    inputElement.addEventListener("input", 更新标签文本.bind(null, tagElement, inputElement));
+    inputElement.addEventListener("keydown", 处理标签输入按键.bind(
+        null,
+        protyle,
+        id,
+        nodeElement,
+        tagElement,
+        inputElement
+    ));
+};
+
+/**
+ * 作用：执行复制或剪切命令。
+ * 意图：复用 copy/cut 的公共选区逻辑。
+ * 调用时机：标签菜单 copy/cut 点击。
+ * 问题/改进：仍依赖 `execCommand`，后续可评估 Clipboard API 替代。
+ */
+const 执行复制或剪切 = (tagElement: HTMLElement, command: "copy" | "cut"): void => {
+    const range = document.createRange();
+    range.selectNode(tagElement);
+    focusByRange(range);
+    document.execCommand(command);
+};
+
+/**
+ * 作用：执行标签搜索动作。
+ * 意图：统一移动端与桌面端搜索分支。
+ * 调用时机：标签菜单 search 点击。
+ * 问题/改进：目前分支由 isMobile 判断，后续可考虑策略映射。
+ */
+const 执行标签搜索 = (protyle: IProtyle, tagElement: HTMLElement): void => {
+    if (!isMobile) {
+        openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, false, { method: 0 });
+        return;
+    }
+
+    popSearch(protyle.app, {
+        hasReplace: false,
+        method: 0,
+        hPath: "",
+        idPath: [],
+        k: `#${tagElement.textContent}#`,
+        r: "",
+        page: 1,
+    });
+};
+
+/**
+ * 作用：触发插件扩展菜单。
+ * 意图：保持标签菜单可被插件扩展。
+ * 调用时机：标签菜单基础项构建完成后。
+ * 问题/改进：依赖运行时插件列表，后续可增加空插件时的监控日志。
+ */
+const 触发插件扩展菜单 = (protyle: IProtyle, tagElement: HTMLElement): void => {
+    if (!protyle?.app?.plugins) {
+        return;
+    }
+    emitOpenMenu({
+        plugins: protyle.app.plugins,
+        type: "open-menu-tag",
+        detail: {
+            protyle,
+            element: tagElement,
+        },
+        separatorPosition: "top",
+    });
+};
+
+/**
+ * 作用：根据端类型展示菜单。
+ * 意图：移动端全屏，桌面端锚点弹出，保持历史交互一致。
+ * 调用时机：菜单项构建后。
+ * 问题/改进：桌面端偏移值 26 为历史常量，后续可提取配置。
+ */
+const 展示标签菜单 = (protyle: IProtyle, tagElement: HTMLElement): void => {
+    if (isMobile) {
+        getSiyuanGlobalMenusMenu().fullscreen();
+    }
+
+    if (!isMobile) {
+        const rect = tagElement.getBoundingClientRect();
+        getSiyuanGlobalMenusMenu().popup({
+            x: rect.left,
+            y: rect.top + 26,
+            h: 26
+        });
+    }
+
+    const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
+    getSiyuanGlobalMenusMenu().element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+};
+
+/**
+ * 作用：把标签转换为纯文本行内标记。
+ * 意图：复用 turnIntoText 的点击逻辑，避免内联长回调。
+ * 调用时机：标签菜单 turnIntoText 点击。
+ * 问题/改进：依赖 toolbar.range，后续可评估更明确的范围参数传递。
+ */
+const 执行转换为文本 = (protyle: IProtyle, tagElement: HTMLElement): void => {
+    const toolbar = protyle.toolbar;
+    if (!toolbar) {
+        return;
+    }
+    if (!tagElement.firstChild || !tagElement.lastChild) {
+        return;
+    }
+    toolbar.range.setStart(tagElement.firstChild, 0);
+    toolbar.range.setEnd(tagElement.lastChild, tagElement.lastChild.textContent?.length ?? 0);
+    toolbar.setInlineMark(protyle, "tag", "range");
+};
+
+/**
+ * 作用：追加标签菜单动作项。
+ * 意图：将菜单项构建从主流程中拆出，降低主函数长度与复杂度。
+ * 调用时机：tagMenu 在创建输入项后调用。
+ * 问题/改进：目前动作顺序仍为硬编码，后续可抽象为配置驱动。
+ */
+const 追加标签菜单动作项 = (
+    protyle: IProtyle,
+    id: string | null,
+    nodeElement: HTMLElement,
+    tagElement: HTMLElement
+): void => {
+    getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_1", type: "separator" }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "search",
+        label: siyuanI18n.search,
+        accelerator: siyuanI18n.click,
+        icon: "iconSearch",
+        click: 执行标签搜索.bind(null, protyle, tagElement)
+    }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "rename",
+        label: siyuanI18n.rename,
+        icon: "iconEdit",
+        click: renameTag.bind(null, tagElement.textContent.replace(Constants.ZWSP, ""))
+    }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_2", type: "separator" }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "turnIntoText",
+        label: `${siyuanI18n.turnInto} <b>${siyuanI18n.text}</b>`,
+        icon: "iconRefresh",
+        click: 执行转换为文本.bind(null, protyle, tagElement)
+    }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "copy",
+        label: siyuanI18n.copy,
+        icon: "iconCopy",
+        click: 执行复制或剪切.bind(null, tagElement, "copy")
+    }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "cut",
+        label: siyuanI18n.cut,
+        icon: "iconCut",
+        click: 执行复制或剪切.bind(null, tagElement, "cut")
+    }).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "remove",
+        icon: "iconTrashcan",
+        label: siyuanI18n.remove,
+        click: 删除标签并恢复光标.bind(null, protyle, id, nodeElement, tagElement)
+    }).element);
+};
+
+/**
+ * 作用：构建并弹出标签上下文菜单。
+ * 意图：把标签编辑、搜索、转换、复制剪切删除动作集中在统一入口。
+ * 调用时机：用户在标签节点触发上下文菜单时。
+ * 问题/改进：仍有少量历史行为依赖 `toolbar.range`，后续可继续收敛。
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 */
+export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
+    getSiyuanGlobalMenusMenu().remove();
+    getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_INLINE_TAG);
+
+    const nodeElement = hasClosestBlock(tagElement);
+    if (!nodeElement) {
+        return;
+    }
+
+    hideElements(["util", "toolbar", "hint"], protyle);
+    const id = nodeElement.getAttribute("data-node-id");
+    const htmlState = { value: nodeElement.outerHTML };
+
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        id: "tag",
+        iconHTML: "",
+        type: "readonly",
+        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">`,
+        bind: 绑定标签输入框.bind(null, protyle, id, nodeElement, htmlState, tagElement)
+    }).element);
+
+    追加标签菜单动作项(protyle, id, nodeElement, tagElement);
+
+    触发插件扩展菜单(protyle, tagElement);
+    展示标签菜单(protyle, tagElement);
+
+    const inputElement = getSiyuanGlobalMenusMenu().element.querySelector("input");
+    // 只有输入项存在时才执行 select，避免运行时空节点错误。
+    if (inputElement instanceof HTMLInputElement) {
+        inputElement.select();
+    }
+};

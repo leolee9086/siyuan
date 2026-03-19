@@ -7,7 +7,7 @@ import {
     isInEmbedBlock
 } from "../util/hasClosest";
 import { setFold } from "../../menus/protyle";
-import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";

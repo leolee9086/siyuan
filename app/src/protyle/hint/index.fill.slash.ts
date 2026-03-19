@@ -11,7 +11,7 @@ import {insertHTML} from "../util/insertHTML";
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../../menus/protyle";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
-import {assetMenu} from "../../menus/protyleMenus/protyle.asset";
+import {assetMenu} from "../../menus/protyleMenus/assetMenu/protyle.asset";
 import {fetchPost} from "../../util/network/fetch";
 import {getDisplayName, pathPosix} from "../../util/file/pathName";
 import {blockRender} from "../render/blockRender";

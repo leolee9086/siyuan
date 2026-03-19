@@ -9,8 +9,8 @@
 import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
 import { setFold } from "../../menus/protyle";
-import { enterBack } from "../../menus/protyleMenus/protyle.enterBack";
-import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
+import { enterBack } from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
+import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openWechatNotify } from "../../menus/commonMenuItem/commonMenuItem.openWechatNotify";
 import { updateHotkeyAfterTip, updateHotkeyTip } from "../util/compatibility";

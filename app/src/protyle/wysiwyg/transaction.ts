@@ -1,7 +1,7 @@
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { blockRender } from "../render/blockRender";
-import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { genEmptyElement } from "../../block/util";
 import { getTopAloneElement } from "./getBlock";
 import { processFold } from "./transaction.fold";

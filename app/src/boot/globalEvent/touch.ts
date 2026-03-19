@@ -6,11 +6,11 @@ import {
     isInEmbedBlock
 } from "../../protyle/util/hasClosest";
 import { initFileMenu, initNavigationMenu } from "../../menus/navigation";
-import { inlineMathMenu } from "../../menus/protyleMenus/protyle.inlineMathMenu";
-import { tagMenu } from "../../menus/protyleMenus/protyle.tagMenu";
-import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
-import { refMenu } from "../../menus/protyleMenus/protyle.refMenu";
-import { fileAnnotationRefMenu } from "../../menus/protyleMenus/protyle.fileAnnotationRefMenu";
+import { inlineMathMenu } from "../../menus/protyleMenus/editorMenu/protyle.inlineMathMenu";
+import { tagMenu } from "../../menus/protyleMenus/refMenu/protyle.tagMenu";
+import { linkMenu } from "../../menus/protyleMenus/linkMenu/protyle.linkMenu";
+import { refMenu } from "../../menus/protyleMenus/refMenu/protyle.refMenu";
+import { fileAnnotationRefMenu } from "../../menus/protyleMenus/refMenu/protyle.fileAnnotationRefMenu";
 import { App } from "../../index";
 import { Protyle } from "../../protyle";
 import { getCurrentEditor } from "../../mobile/editor";

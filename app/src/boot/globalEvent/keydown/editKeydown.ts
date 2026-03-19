@@ -10,7 +10,7 @@ import { openBacklink, openGraph, openOutline } from "../../../layout/dock/util"
 import { getAllModels } from "../../../layout/getAll";
 import { getActiveTab } from "../../../layout/tabUtil";
 import { saveLayout } from "../../../layout/util";
-import { zoomOut } from "../../../menus/protyleMenus/protyle.zoomOut";
+import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { copyPNGByLink } from "../../../menus/util";
 import { fullscreen } from "../../../protyle/breadcrumb/action";
 import { duplicateCompletely } from "../../../protyle/render/av/action";

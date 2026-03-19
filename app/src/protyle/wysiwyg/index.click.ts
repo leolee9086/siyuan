@@ -17,9 +17,9 @@ import {
 import {Constants} from "../../constants";
 import {isMobile} from "../../util/platform/functions";
 import {setFold} from "../../menus/protyle";
-import {enterBack} from "../../menus/protyleMenus/protyle.enterBack";
+import {enterBack} from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
-import {zoomOut} from "../../menus/protyleMenus/protyle.zoomOut";
+import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import {openAttr} from "../../menus/commonMenuItem";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";

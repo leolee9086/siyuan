@@ -33,21 +33,21 @@ import { Dialog } from "../dialog";
 // ==================== 从拆分文件重新导出 ====================
 
 // 从根目录拆分文件导出
-export { refMenu } from "./protyleMenus/protyle.refMenu";
-export { tagMenu } from "./protyleMenus/protyle.tagMenu";
-export { inlineMathMenu } from "./protyleMenus/protyle.inlineMathMenu";
-export { genImageWidthMenu } from "./protyleMenus/imageMenu/protyle.genImageWidthMenu";
-export { genImageHeightMenu } from "./protyleMenus/imageMenu/protyle.genImageHeightMenu";
+export { refMenu } from "./protyleMenus/refMenu/protyle.refMenu";
+export { tagMenu } from "./protyleMenus/refMenu/protyle.tagMenu";
+export { inlineMathMenu } from "./protyleMenus/editorMenu/protyle.inlineMathMenu";
+export { genImageWidthMenu } from "./protyleMenus/imageMenu/sizeMenu/protyle.genImageWidthMenu";
+export { genImageHeightMenu } from "./protyleMenus/imageMenu/sizeMenu/protyle.genImageHeightMenu";
 export { iframeMenu } from "./protyleMenus/iframeMenu/iframeMenu";
-export { zoomOut } from "./protyleMenus/protyle.zoomOut";
+export { zoomOut } from "./protyleMenus/editorMenu/protyle.zoomOut";
 
 // 从 protyleMenus/ 子目录导出
-export { assetMenu, renderAssetList } from "./protyleMenus/protyle.asset";
-export { contentMenu } from "./protyleMenus/protyle.contentMenu";
-export { enterBack } from "./protyleMenus/protyle.enterBack";
-export { fileAnnotationRefMenu } from "./protyleMenus/protyle.fileAnnotationRefMenu";
+export { assetMenu, renderAssetList } from "./protyleMenus/assetMenu/protyle.asset";
+export { contentMenu } from "./protyleMenus/contentMenu/protyle.contentMenu";
+export { enterBack } from "./protyleMenus/editorMenu/protyle.enterBack";
+export { fileAnnotationRefMenu } from "./protyleMenus/refMenu/protyle.fileAnnotationRefMenu";
 export { imgMenu } from "./protyleMenus/imageMenu/protyle.imgMenu";
-export { linkMenu } from "./protyleMenus/protyle.linkMenu";
+export { linkMenu } from "./protyleMenus/linkMenu/protyle.linkMenu";
 
 /**
  * 表格菜单

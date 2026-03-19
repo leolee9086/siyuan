@@ -1,10 +1,10 @@
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { removeSearchMark } from "../toolbar/util";
-import { refMenu } from "../../menus/protyleMenus/protyle.refMenu";
-import { fileAnnotationRefMenu } from "../../menus/protyleMenus/protyle.fileAnnotationRefMenu";
-import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
-import { tagMenu } from "../../menus/protyleMenus/protyle.tagMenu";
-import { inlineMathMenu } from "../../menus/protyleMenus/protyle.inlineMathMenu";
+import { refMenu } from "../../menus/protyleMenus/refMenu/protyle.refMenu";
+import { fileAnnotationRefMenu } from "../../menus/protyleMenus/refMenu/protyle.fileAnnotationRefMenu";
+import { linkMenu } from "../../menus/protyleMenus/linkMenu/protyle.linkMenu";
+import { tagMenu } from "../../menus/protyleMenus/refMenu/protyle.tagMenu";
+import { inlineMathMenu } from "../../menus/protyleMenus/editorMenu/protyle.inlineMathMenu";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { hasPreviousSibling } from "./getBlock";
 import { matchHotKey } from "../util/hotKey";
