@@ -194,9 +194,9 @@ func IsNodeOCRed(node *ast.Node) (ret bool) {
 }
 
 func GetNodeSrcTokens(n *ast.Node) (ret string) {
-	if index := bytes.Index(n.Tokens, []byte("src=\"")); 0 < index {
+	if index := bytes.Index(n.Tokens, []byte("src=\"")); 0 <= index {
 		src := n.Tokens[index+len("src=\""):]
-		if index = bytes.Index(src, []byte("\"")); 0 < index {
+		if index = bytes.Index(src, []byte("\"")); 0 <= index {
 			src = src[:bytes.Index(src, []byte("\""))]
 			ret = strings.TrimSpace(string(src))
 			return
