@@ -21,6 +21,7 @@ export const bindBazaarEvent = (bazaar: IBazaar, app: App) => {
     bindSearchInputEvent(bazaar, app);
     bindSelectChangeEvent(bazaar);
     bindKeywordClickEvent(bazaar);
+    bindLocalPackageInstallEvent(bazaar, app);
 };
 
 const bindTrustEvent = (bazaar: IBazaar, app: App) => {
@@ -269,5 +270,65 @@ const bindKeywordClickEvent = (bazaar: IBazaar) => {
     // 使用事件委托处理关键词点击事件
     bazaar.element?.addEventListener("click", (event: MouseEvent) => {
         handleKeywordClick(bazaar, event);
+    });
+};
+
+const getDownloadedCurrentPackageType = (bazaar: IBazaar): TBazaarType => {
+    const activeBtn = bazaar.element?.querySelector('.config-bazaar__panel[data-type="downloaded"] .config-bazaar__title .b3-button:not(.b3-button--outline)') as HTMLElement;
+    const currentType = activeBtn?.getAttribute("data-type");
+    switch (currentType) {
+        case "myTheme":
+            return "themes";
+        case "myIcon":
+            return "icons";
+        case "myTemplate":
+            return "templates";
+        case "myWidget":
+            return "widgets";
+        default:
+            return "plugins";
+    }
+};
+
+const bindLocalPackageInstallEvent = (bazaar: IBazaar, app: App) => {
+    const installBtn = bazaar.element?.querySelector('[data-type="install-local-package"]') as HTMLButtonElement;
+    const fileInput = bazaar.element?.querySelector("#bazaarLocalPackageInput") as HTMLInputElement;
+    if (!installBtn || !fileInput) {
+        return;
+    }
+
+    installBtn.addEventListener("click", () => {
+        fileInput.value = "";
+        fileInput.click();
+    });
+
+    fileInput.addEventListener("change", () => {
+        if (!fileInput.files || !fileInput.files[0]) {
+            return;
+        }
+
+        const currentPackageType = getDownloadedCurrentPackageType(bazaar);
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        formData.append("themeMode", String(getSiyuanConfig().appearance.mode || 0));
+        formData.append("frontend", getFrontend());
+
+        const keywordInput = bazaar.element?.querySelector(".config-bazaar__panel:not(.fn__none) .b3-form__icon-input") as HTMLInputElement;
+        if (keywordInput?.value) {
+            formData.append("keyword", keywordInput.value);
+        }
+
+        fetchPost("/api/s-forge/bazaar/installPackageLocal", formData, (response) => {
+            if (response.code !== 0) {
+                return;
+            }
+
+            const packageType = (response.data?.packageType || currentPackageType) as TBazaarType;
+            if (response.data?.appearance) {
+                window.siyuan.config.appearance = response.data.appearance;
+            }
+            bazaar._onBazaar(response, packageType);
+            bazaar._genMyHTML(packageType, app);
+        });
     });
 };

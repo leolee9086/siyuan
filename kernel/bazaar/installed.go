@@ -231,6 +231,11 @@ func setPackageInstallTime(pkgType, pkgName string, installTime time.Time) {
 	saveBazaarInfo()
 }
 
+// SetPackageInstallTime 设置集市包安装时间。
+func SetPackageInstallTime(pkgType, pkgName string, installTime time.Time) {
+	setPackageInstallTime(pkgType, pkgName, installTime)
+}
+
 // getPackageHInstallDate 获取集市包的安装日期
 func getPackageHInstallDate(pkgType, pkgName, installPath string) string {
 	getBazaarInfo()

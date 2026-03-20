@@ -396,6 +396,9 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: App, u
     <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${isBrowser() ? " fn__none" : ""}" data-type="open" aria-label="${siyuanI18n.showInFolder}">
         <svg><use xlink:href="#iconFolder"></use></svg>
     </span>
+    <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show" data-type="export-local-package" aria-label="${siyuanI18n.export}">
+        <svg><use xlink:href="#iconUpload"></use></svg>
+    </span>
     <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${siyuanI18n.use}">
         <svg><use xlink:href="#iconSelect"></use></svg>
     </span>

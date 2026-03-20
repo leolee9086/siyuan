@@ -597,4 +597,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
 	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/messages", magiMessages)
+
+	// S-Forge Bazaar 本地包扩展接口
+	ginServer.Handle("POST", "/api/s-forge/bazaar/exportPackage", model.CheckAuth, model.CheckAdminRole, exportBazaarPackage)
+	ginServer.Handle("POST", "/api/s-forge/bazaar/installPackageLocal", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, installBazaarPackageLocal)
 }

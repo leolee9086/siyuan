@@ -10,6 +10,7 @@ import { uninstall } from "../../plugin/uninstall";
 import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { saveLayout } from "../../layout/util";
+import { openByMobile } from "../../protyle/util/compatibility";
 
 export const handleSwitch = (dataObj: any, bazaar: any, app: App) => {
     const bazaarType = dataObj.bazaarType as TBazaarType;
@@ -218,6 +219,21 @@ export const handlePluginsEnable = (target: HTMLInputElement, bazaar: any, app: 
     });
 };
 
+export const handleExportLocalPackage = (dataObj: any) => {
+    if (!dataObj?.name || !dataObj?.bazaarType) {
+        return;
+    }
+    fetchPost("/api/s-forge/bazaar/exportPackage", {
+        packageType: dataObj.bazaarType,
+        packageName: dataObj.name
+    }, (response) => {
+        if (response.code !== 0 || !response.data?.zip) {
+            return;
+        }
+        openByMobile(response.data.zip);
+    });
+};
+
 export const handleBazaarInstallClick = (type: string, target: HTMLElement, dataObj: any, bazaar: any, app: App, event: MouseEvent): boolean => {
     if (type === "install") {
         handleInstall(target, dataObj, bazaar, app, false);
@@ -262,6 +278,11 @@ export const handleBazaarInstallClick = (type: string, target: HTMLElement, data
         return true;
     } else if (type === "plugin-enable") {
         handlePluginEnable(target as HTMLInputElement, dataObj, app);
+        event.stopPropagation();
+        return true;
+    } else if (type === "export-local-package") {
+        handleExportLocalPackage(dataObj);
+        event.preventDefault();
         event.stopPropagation();
         return true;
     }

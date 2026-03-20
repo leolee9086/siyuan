@@ -236,6 +236,11 @@ const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petal
             <div class="fn__space"></div>
             <button data-type="myWidget" class="b3-button b3-button--outline">${siyuanI18n.widget}</button>
             <div class="fn__space"></div>
+            <button data-type="install-local-package" class="b3-button b3-button--outline">
+                <svg><use xlink:href="#iconDownload"></use></svg>${siyuanI18n.import}
+            </button>
+            <input id="bazaarLocalPackageInput" class="fn__none" type="file" accept=".plugin.zip,.theme.zip,.icon.zip,.template.zip,.widget.zip,.zip">
+            <div class="fn__space"></div>
             <div class="b3-form__icon">
                 <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${siyuanI18n.enterKey} ${siyuanI18n.search}">

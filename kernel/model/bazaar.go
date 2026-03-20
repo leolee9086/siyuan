@@ -337,7 +337,14 @@ func InstallBazaarPackage(pkgType, repoURL, repoHash, packageName string, themeM
 	if err != nil {
 		return fmt.Errorf(Conf.Language(46), packageName, err)
 	}
+	if _, err = validateInstalledBazaarPackage(pkgType, installPath, packageName); err != nil {
+		return fmt.Errorf(Conf.Language(46), packageName, err)
+	}
+	afterInstallBazaarPackage(pkgType, packageName, update, themeMode)
+	return nil
+}
 
+func afterInstallBazaarPackage(pkgType, packageName string, update bool, themeMode int) {
 	switch pkgType {
 	case "plugins":
 		if update {
@@ -373,7 +380,6 @@ func InstallBazaarPackage(pkgType, repoURL, repoHash, packageName string, themeM
 		InitAppearance()
 		util.BroadcastByType("main", "setAppearance", 0, "", Conf.Appearance)
 	}
-	return nil
 }
 
 func UninstallPackage(pkgType, packageName string) error {

@@ -18,6 +18,9 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
@@ -658,4 +661,132 @@ func getBazaarKeywords(c *gin.Context) {
 	ret.Data = map[string]interface{}{
 		"keywords": keywords,
 	}
+}
+
+func exportBazaarPackage(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	var packageType, packageName string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("packageType", true, &packageType),
+		util.BindJsonArg("packageName", true, &packageName),
+	) {
+		return
+	}
+
+	name, zipPath, err := model.ExportBazaarPackage(packageType, packageName)
+	if nil != err {
+		ret.Code = 1
+		ret.Msg = err.Error()
+		return
+	}
+
+	ret.Data = map[string]any{
+		"name":        name,
+		"zip":         zipPath,
+		"packageType": packageType,
+		"packageName": packageName,
+	}
+}
+
+func installBazaarPackageLocal(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	form, err := c.MultipartForm()
+	if nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	files := form.File["file"]
+	if 1 != len(files) {
+		ret.Code = -1
+		ret.Msg = "invalid upload file"
+		return
+	}
+	file := files[0]
+
+	importDir := filepath.Join(util.TempDir, "import", "bazaar")
+	if err = os.MkdirAll(importDir, 0755); nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	tmpName := util.FilterFileName(file.Filename)
+	if "" == tmpName {
+		tmpName = gulu.Rand.String(7) + ".zip"
+	}
+	tmpZipPath := filepath.Join(importDir, gulu.Rand.String(7)+"-"+tmpName)
+	if err = c.SaveUploadedFile(file, tmpZipPath); nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	defer os.Remove(tmpZipPath)
+
+	packageType := ""
+	if packageTypes := form.Value["packageType"]; 0 < len(packageTypes) {
+		packageType = packageTypes[0]
+	}
+
+	themeMode := 0
+	rawThemeMode := ""
+	if modes := form.Value["themeMode"]; 0 < len(modes) {
+		rawThemeMode = modes[0]
+	} else if modes := form.Value["mode"]; 0 < len(modes) {
+		rawThemeMode = modes[0]
+	}
+	if "" != rawThemeMode {
+		if parsed, parseErr := strconv.Atoi(rawThemeMode); nil == parseErr {
+			themeMode = parsed
+		}
+	}
+
+	installedType, packageName, err := model.InstallBazaarPackageFromLocalZip(tmpZipPath, file.Filename, packageType, themeMode)
+	if nil != err {
+		ret.Code = 1
+		ret.Msg = err.Error()
+		return
+	}
+
+	// TODO 安装新主题之后，不应该始终取消外观模式“跟随系统” https://github.com/siyuan-note/siyuan/issues/16990
+	// 安装集市主题后不跟随系统切换外观模式
+	if "themes" == installedType {
+		model.Conf.Appearance.ModeOS = false
+		model.Conf.Save()
+	}
+
+	frontend := ""
+	if frontends := form.Value["frontend"]; 0 < len(frontends) {
+		frontend = frontends[0]
+	}
+	keyword := ""
+	if keywords := form.Value["keyword"]; 0 < len(keywords) {
+		keyword = keywords[0]
+	}
+
+	packages := model.GetBazaarPackages(installedType, "", keyword)
+	if "plugins" == installedType {
+		packages = model.GetBazaarPackages(installedType, frontend, keyword)
+	}
+
+	data := map[string]any{
+		"packageType": installedType,
+		"packageName": packageName,
+		"packages":    packages,
+	}
+	if "themes" == installedType || "icons" == installedType {
+		data["appearance"] = model.Conf.Appearance
+	}
+	ret.Data = data
+	util.PushMsg(model.Conf.Language(69), 3000)
 }

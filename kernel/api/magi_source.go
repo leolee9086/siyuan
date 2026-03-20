@@ -202,6 +202,9 @@ func buildRequestSourceContext(
 		"req-"+gulu.Rand.String(12),
 	)
 
+	// trust/risk 只允许在策略画像基线内收敛：
+	// 1) 缺失字段 -> 使用画像默认值（默认已是最低可信度）；
+	// 2) 提交冲突值 -> 记录冲突并坚持画像默认值，防止请求伪造抬升可信度。
 	trustBase, trustConflict := resolveTrustLevel(profile.TrustBase, sourcePayload, "trustBase", "trust_base")
 	riskLevel, riskConflict := resolveTrustLevel(profile.RiskLevel, sourcePayload, "riskLevel", "risk_level")
 	sourceSessionKey := buildSourceSessionKey(channel, principalID, interfaceID, conversationID)
@@ -256,9 +259,11 @@ func buildRequestSourceContext(
 	}, nil
 }
 
+// buildArmorSourceProfile 将 MAGI armor 声明映射为来源策略画像。
+// 安全基线：当无法获得更高等级鉴权信号时，默认落到最低可信度（Trust=low, Risk=high）。
 func buildArmorSourceProfile(claims *magiArmorClaimsV1, identityRecord *magiIdentityRecord) *sourceKeyProfile {
-	defaultTrust := types.TrustLevelMedium
-	defaultRisk := types.TrustLevelMedium
+	defaultTrust := types.TrustLevelLow
+	defaultRisk := types.TrustLevelHigh
 	if identityRecord != nil && identityRecord.RouteClass == magiRouteClassGuardian {
 		defaultTrust = types.TrustLevelHigh
 		defaultRisk = types.TrustLevelLow
@@ -393,9 +398,12 @@ func parseTrustLevel(raw string) (types.TrustLevel, bool) {
 		return "", false
 	}
 }
+
+// resolveTrustLevel 解析来源信号中的 trust/risk 字段。
+// 当字段缺失或无效时，必须回退到调用方给定默认值；若默认值为空，降级为 low（最低可信度）。
 func resolveTrustLevel(defaultLevel types.TrustLevel, sourcePayload map[string]string, keys ...string) (types.TrustLevel, string) {
 	if defaultLevel == "" {
-		defaultLevel = types.TrustLevelMedium
+		defaultLevel = types.TrustLevelLow
 	}
 	for _, key := range keys {
 		value := strings.TrimSpace(sourcePayload[key])
