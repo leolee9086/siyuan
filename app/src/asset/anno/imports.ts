@@ -31,14 +31,14 @@ import { getWindowSelection } from "../../util/siyuanEnvironments/windowStandard
  * 使用范围：processPageSelection中处理选区矩形时合并相邻矩形
  * 解耦评估：纯几何计算工具函数，理论上可通过参数传递，但作为通用DOM工具，直接导入更符合职责分离原则
  */
-import { mergeRects } from "../../util/DOM/mergeRects";
+import { mergeRects } from "../../util/DOM/selection/mergeRects";
 
 /**
  * 用途：处理Range内容，提取选中的文本内容
  * 使用范围：getHightlightCoordsByRange中获取用户选中的文本作为注释内容
  * 解耦评估：纯DOM Range处理工具，理论上可通过参数传递，但作为通用工具直接导入更清晰
  */
-import { processRangeContents } from "../../util/DOM/rangeOperations";
+import { processRangeContents } from "../../util/DOM/selection/rangeOperations";
 
 // 导出AI模块功能
 export { focusByRange };

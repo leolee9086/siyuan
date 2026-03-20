@@ -1,7 +1,7 @@
 import { setTitle } from "../../dialog/processSystem";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { saveLayout } from "../util";
-import { removeAllClass } from "../../util/DOM/removeAllClass";
+import { removeAllClass } from "../../util/DOM/helpers/removeAllClass";
 /**
  * 设置窗口为激活状态
  *

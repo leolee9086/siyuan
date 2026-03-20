@@ -33,8 +33,8 @@ export { setLastNodeRange } from "../protyle/util/selection";
 export { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // DOM工具相关导入
-export { switchFnNoneByFlag } from "../util/DOM/fnClasses";
-export { createBlockMasks } from "../util/DOM/blockDecorations";
+export { switchFnNoneByFlag } from "../util/DOM/helpers/fnClasses";
+export { createBlockMasks } from "../util/DOM/helpers/blockDecorations";
 
 // 工具函数相关导入
 export { isMobile } from "../util/platform/functions";
@@ -60,7 +60,7 @@ export { fetchPost } from "../util/network/fetch";
 export { focusByRange } from "../protyle/util/selection";
 export { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/DOM/escape";
 export { upDownHint } from "../util/DOM/upDownHint";
-export { getElementsBlockId } from "../util/DOM/blockLikeElements";
+export { getElementsBlockId } from "../util/DOM/helpers/blockLikeElements";
 
 /**
  * 用途：提交ModelScope文生图任务

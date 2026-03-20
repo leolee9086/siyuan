@@ -207,7 +207,7 @@ export { getSiyuanConfig };
  * 使用范围：复制纯文本时获取选中内容
  * 解耦评估：DOM 全局能力通过转发层接入，降低跨层耦合
  */
-import { getSelection } from "../../../util/DOM/range.global";
+import { getSelection } from "../../../util/DOM/selection/range.global";
 /** 导出 getSelection 供内容菜单读取选区 */
 export { getSelection };
 

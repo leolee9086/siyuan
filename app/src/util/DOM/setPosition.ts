@@ -1,110 +1,117 @@
-import { Constants } from "../../constants";
-import { getWindowWidth, getWindowHeight } from "../siyuanEnvironments/getWindowSize.environment";
+/** 用途：读取定位计算需要的工具栏高度常量；使用范围：`setPosition` 的边界裁剪；解耦评估：常量属于全局配置边界，通过本目录网关依赖最稳定。 */
+import { Constants } from "./imports";
+/** 用途：读取当前视口高度；使用范围：`setPosition` 的纵向越界判断；解耦评估：窗口访问已在 environment 封装，通过网关访问可避免直接触碰全局对象。 */
+import { getWindowHeight } from "./imports";
+/** 用途：读取当前视口宽度；使用范围：`setPosition` 的横向越界判断；解耦评估：窗口访问已在 environment 封装，通过网关访问可避免直接触碰全局对象。 */
+import { getWindowWidth } from "./imports";
+
+/** @简洁函数 */
+const getViewportSize = (): { width: number; height: number } => ({ width: getWindowWidth(), height: getWindowHeight() });
 
 /**
- * @AIDONE 严格分离计算和DOM操作,包括DOM元素获取和window对象访问等等
+ * 计算垂直方向的最终 top 值，把弹层限制在工具栏和视口范围内。
+ * 调用时机：`calculatePosition` 在检测到可能越界时同步调用。
+ * 问题/改进：当前策略优先维持元素完整显示，若未来需要跟随不同菜单样式可继续细化。
  */
-
-// ========== 纯计算函数 ==========
-
-interface 视口尺寸 {
-    宽度: number;
-    高度: number;
-}
-
-interface 位置计算输入 {
-    x: number;
-    y: number;
-    元素宽度: number;
-    元素高度: number;
-    元素顶部: number;
-    元素底部: number;
-    元素左边: number;
-    元素右边: number;
-    目标高度: number;
-    目标左偏移: number;
-    视口: 视口尺寸;
-}
-
-interface 位置计算结果 {
-    top?: string;
-    left?: string;
-}
-
-/** 计算元素的最终位置（纯计算，不访问DOM） */
-const 计算位置 = (输入: 位置计算输入): 位置计算结果 => {
-    const 结果: 位置计算结果 = {};
-    const { y, 元素宽度, 元素高度, 元素顶部, 元素底部, 元素左边, 元素右边, 目标高度, 目标左偏移, 视口 } = 输入;
-
-    // S-forge: 上游改进 (#15401) - 优化垂直位置调整逻辑顺序
-    // 先检查顶部接触，再检查底部超出
-    if (元素顶部 < Constants.SIZE_TOOLBAR_HEIGHT) {
-        // 如果元素接触顶栏，向下移
-        结果.top = Constants.SIZE_TOOLBAR_HEIGHT + "px";
-    } else if (元素底部 > 视口.高度) {
-        // 如果元素底部超出窗口（下方空间不够），尝试向上移
-        const 向上移动后的top = y - 元素高度 - 目标高度;
-        if (向上移动后的top > Constants.SIZE_TOOLBAR_HEIGHT && (向上移动后的top + 元素高度) < 视口.高度) {
-            // 向上移动后有足够空间
-            结果.top = 向上移动后的top + "px";
-        } else {
-            // 如果上下空间都不够，向上移，但尽量靠底部
-            结果.top = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, 视口.高度 - 元素高度) + "px";
-        }
+const resolveTopPosition = (
+    y: number,
+    elementHeight: number,
+    elementTop: number,
+    elementBottom: number,
+    targetHeight: number,
+    viewportHeight: number
+): string | undefined => {
+    const touchesToolbar = elementTop < Constants.SIZE_TOOLBAR_HEIGHT;
+    if (touchesToolbar) {
+        return `${Constants.SIZE_TOOLBAR_HEIGHT}px`;
     }
-
-    // 右边超出视口，展现在左侧
-    if (元素右边 > 视口.宽度) {
-        结果.left = `${视口.宽度 - 元素宽度 - 目标左偏移}px`;
-        return 结果;
+    const exceedsViewportBottom = elementBottom > viewportHeight;
+    if (!exceedsViewportBottom) {
+        return undefined;
     }
-
-    // 左边超出视口，位置右移
-    if (元素左边 < 0) {
-        结果.left = "0";
+    const shiftedTop = y - elementHeight - targetHeight;
+    const staysBelowToolbar = shiftedTop > Constants.SIZE_TOOLBAR_HEIGHT;
+    const fitsAfterShift = shiftedTop + elementHeight < viewportHeight;
+    const canMoveAboveTarget = staysBelowToolbar && fitsAfterShift;
+    if (canMoveAboveTarget) {
+        return `${shiftedTop}px`;
     }
-
-    return 结果;
+    const clampedTop = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, viewportHeight - elementHeight);
+    return `${clampedTop}px`;
 };
 
-// ========== DOM操作函数 ==========
+/**
+ * 计算弹层在当前视口中的修正位置，只负责几何结果，不直接操作 DOM。
+ * 调用时机：`setPosition` 在写入初始坐标后立即调用。
+ * 问题/改进：当前返回轻量字符串结果，若未来需要更多诊断信息可扩展返回结构。
+ */
+const calculatePosition = (input: {
+    y: number;
+    elementWidth: number;
+    elementHeight: number;
+    elementTop: number;
+    elementBottom: number;
+    elementLeft: number;
+    elementRight: number;
+    targetHeight: number;
+    targetLeft: number;
+    viewport: { width: number; height: number };
+}): { top?: string; left?: string } => {
+    const position: { top?: string; left?: string } = {};
+    const nextTop = resolveTopPosition(
+        input.y,
+        input.elementHeight,
+        input.elementTop,
+        input.elementBottom,
+        input.targetHeight,
+        input.viewport.height
+    );
+    const hasTopAdjustment = nextTop !== undefined;
+    if (hasTopAdjustment) {
+        position.top = nextTop;
+    }
+    const exceedsViewportRight = input.elementRight > input.viewport.width;
+    if (exceedsViewportRight) {
+        position.left = `${input.viewport.width - input.elementWidth - input.targetLeft}px`;
+        return position;
+    }
+    const exceedsViewportLeft = input.elementLeft < 0;
+    if (exceedsViewportLeft) {
+        position.left = "0";
+    }
+    return position;
+};
 
-/** 获取当前视口尺寸 */
-const 获取视口尺寸 = (): 视口尺寸 => ({
-    宽度: getWindowWidth(),
-    高度: getWindowHeight()
-});
-
-/** 设置元素位置（包含DOM操作） */
-export const setPosition = (element: HTMLElement, x: number, y: number, targetHeight = 0, targetLeft = 0) => {
-    // 先设置初始位置
-    element.style.top = y + "px";
-    element.style.left = x + "px";
-
-    // 获取DOM信息
+/**
+ * 设置弹层的最终位置，先写入期望坐标，再按视口边界同步回调到可见范围内。
+ * 调用时机：菜单、面板、提示层渲染完成并拿到尺寸后立即调用。
+ * 问题/改进：当前依赖同步布局读取，如果未来能提前拿到尺寸可减少一次回流。
+ * @同步豁免: 需要绝对同步的DOM访问
+ */
+export const setPosition = (element: HTMLElement, x: number, y: number, targetHeight = 0, targetLeft = 0): void => {
+    element.style.top = `${y}px`;
+    element.style.left = `${x}px`;
     const rect = element.getBoundingClientRect();
-    const 视口 = 获取视口尺寸();
-
-    // 纯计算
-    const 调整结果 = 计算位置({
-        x,
+    const viewport = getViewportSize();
+    const nextPosition = calculatePosition({
         y,
-        元素宽度: rect.width,
-        元素高度: rect.height,
-        元素顶部: rect.top,
-        元素底部: rect.bottom,
-        元素左边: rect.left,
-        元素右边: rect.right,
-        目标高度: targetHeight,
-        目标左偏移: targetLeft,
-        视口
+        elementWidth: rect.width,
+        elementHeight: rect.height,
+        elementTop: rect.top,
+        elementBottom: rect.bottom,
+        elementLeft: rect.left,
+        elementRight: rect.right,
+        targetHeight,
+        targetLeft,
+        viewport
     });
-
-    // 应用计算结果到DOM
-    if (调整结果.top !== undefined) {
-        element.style.top = 调整结果.top;
+    const nextTop = nextPosition.top;
+    if (nextTop !== undefined) {
+        element.style.top = nextTop;
     }
-    if (调整结果.left !== undefined) {
-        element.style.left = 调整结果.left;
+    const nextLeft = nextPosition.left;
+    if (nextLeft === undefined) {
+        return;
     }
+    element.style.left = nextLeft;
 };

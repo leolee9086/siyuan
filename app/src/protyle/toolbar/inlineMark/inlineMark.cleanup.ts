@@ -1,5 +1,5 @@
 import { Constants } from "../../../constants";
-import { mergeNodes } from "../../../util/DOM/rangeOperations";
+import { mergeNodes } from "../../../util/DOM/selection/rangeOperations";
 import { isHTMLElement } from "./inlineMark.guard";
 
 const removeEmptyNode = (range: Range) => {

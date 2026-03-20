@@ -511,7 +511,7 @@ import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { onMounted, ref } from "vue";
 import { nextTick } from "vue";
 import { genThemedColorList } from "../appearance/colorList";
-import { horizontalScroll } from "../util/DOM/scroll";
+import { horizontalScroll } from "../util/DOM/helpers/scroll";
 
 const props = defineProps([
     "controller"

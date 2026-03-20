@@ -3,7 +3,7 @@ import { isElectron } from "../platform";
 import { exportLayout, resetLayout } from "../layout/util";
 import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
-import { genLangOptions, genOptions } from "../util/DOM/genOptions";
+import { genLangOptions, genOptions } from "../util/DOM/helpers/genOptions";
 import { openSnippets } from "./util/snippets";
 import { loadAssets } from "../util/assets/assets";
 import { resetFloatDockSize } from "../layout/dock/util";
