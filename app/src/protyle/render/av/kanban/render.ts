@@ -4,37 +4,18 @@ import {fetchSyncPost} from "../../../../util/network/fetch";
 import {Constants} from "../../../../constants";
 import {avRender, genTabHeaderHTML} from "../render";
 import {afterRenderGallery, renderGallery} from "../gallery/render";
-import {escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
+import {escapeAttr} from "../../../../util/DOM/escape";
 import {getCompressURL} from "../../../../util/assets/image";
 import {cellValueIsEmpty, renderCell} from "../cell";
 import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
 import {unicode2Emoji} from "../../../../emoji";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getKanbanTitleHTML } from "./getKanbanTitleHTML";
 
 interface IIds {
     groupId: string,
     fieldId: string,
 }
-
-const getKanbanTitleHTML = (group: IAVView, counter: number) => {
-    let nameHTML = "";
-    if (["mSelect", "select"].includes(group.groupValue.type)) {
-        group.groupValue.mSelect.forEach((item) => {
-            nameHTML += `<span class="b3-chip" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
-        });
-    } else if (group.groupValue.type === "checkbox") {
-        nameHTML = `<svg style="width:calc(1.625em - 12px);height:calc(1.625em - 12px);margin: 4px 0;float: left;"><use xlink:href="#icon${group.groupValue.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
-    } else {
-        nameHTML = group.name;
-    }
-    // av__group-name 为第三方需求，本应用内没有使用，但不能移除 https://github.com/siyuan-note/siyuan/issues/15736
-    return `<div class="av__group-title">
-    <span class="av__group-name fn__ellipsis" style="white-space: nowrap;">${nameHTML}</span>
-    ${(!counter || counter === 0) ? '<span class="fn__space"></span>' : `<span aria-label="${siyuanI18n.entryNum}" data-position="north" class="av__group-counter ariaLabel">${counter}</span>`}
-    <span class="fn__flex-1"></span>
-    <span class="av__group-icon av__group-icon--hover ariaLabel" data-type="av-add-top" data-position="north" aria-label="${siyuanI18n.newRow}"><svg><use xlink:href="#iconAdd"></use></svg></span>
-</div>`;
-};
 
 const getKanbanHTML = (data: IAVKanban) => {
     let galleryHTML = "";
