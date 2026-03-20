@@ -89,6 +89,8 @@ const (
 	SpeakInternalStopToolName = "speak_internal_stop"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
+	// NoteKeywordSearchToolName 三贤人笔记关键词查询工具名（词法查询）。
+	NoteKeywordSearchToolName = "search_notes_by_keywords"
 )
 
 // BuildWannaSpeakToolDef 构建三贤人 wanna_speak 工具定义。
@@ -158,6 +160,33 @@ func BuildWannaSpeakStopToolDef() ToolDef {
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildNoteKeywordSearchToolDef 构建三贤人笔记关键词查询工具定义（词法查询）。
+func BuildNoteKeywordSearchToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        NoteKeywordSearchToolName,
+			Description: "按关键词查询笔记内容块（词法查询，不写入数据）。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{
+						"type":        "string",
+						"description": "查询关键词或短句",
+					},
+					"limit": map[string]interface{}{
+						"type":        "integer",
+						"description": "返回结果数量，最大 50",
+						"minimum":     1,
+						"maximum":     50,
+					},
+				},
+				"required": []string{"query"},
 			},
 		},
 	}

@@ -163,6 +163,7 @@ func defaultMelchiorConfig() AgentConfig {
 			BuildWannaSpeakStartToolDef(),
 			BuildWannaSpeakContinueToolDef(),
 			BuildWannaSpeakStopToolDef(),
+			BuildNoteKeywordSearchToolDef(),
 		},
 	}
 }
@@ -186,6 +187,7 @@ func defaultBalthazarConfig() AgentConfig {
 			BuildWannaSpeakStartToolDef(),
 			BuildWannaSpeakContinueToolDef(),
 			BuildWannaSpeakStopToolDef(),
+			BuildNoteKeywordSearchToolDef(),
 		},
 	}
 }
@@ -209,6 +211,7 @@ func defaultCasperConfig() AgentConfig {
 			BuildWannaSpeakStartToolDef(),
 			BuildWannaSpeakContinueToolDef(),
 			BuildWannaSpeakStopToolDef(),
+			BuildNoteKeywordSearchToolDef(),
 		},
 	}
 }
@@ -282,24 +285,27 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 		return
 	}
 
-	// 当前阶段三贤人与 Trinity 均使用 start/continue/stop 状态转移工具。
+	// 当前阶段三贤人与 Trinity 均使用状态转移工具；三贤人额外具备笔记关键词查询工具。
 	cfg.Melchior.Tools = ensureExclusiveTools(
 		cfg.Melchior.Tools,
 		BuildWannaSpeakStartToolDef(),
 		BuildWannaSpeakContinueToolDef(),
 		BuildWannaSpeakStopToolDef(),
+		BuildNoteKeywordSearchToolDef(),
 	)
 	cfg.Balthazar.Tools = ensureExclusiveTools(
 		cfg.Balthazar.Tools,
 		BuildWannaSpeakStartToolDef(),
 		BuildWannaSpeakContinueToolDef(),
 		BuildWannaSpeakStopToolDef(),
+		BuildNoteKeywordSearchToolDef(),
 	)
 	cfg.Casper.Tools = ensureExclusiveTools(
 		cfg.Casper.Tools,
 		BuildWannaSpeakStartToolDef(),
 		BuildWannaSpeakContinueToolDef(),
 		BuildWannaSpeakStopToolDef(),
+		BuildNoteKeywordSearchToolDef(),
 	)
 	cfg.Trinity.Tools = ensureExclusiveTools(
 		cfg.Trinity.Tools,

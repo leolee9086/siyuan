@@ -16,7 +16,7 @@ func BuildSourceAwareUserInput(userMessage string, sourcePayload map[string]inte
 // 约定信封顺序：
 // 1. runtime_clock（可选）
 // 2. workspace_snapshot（可选）
-// 3. request_source（必选，序列化失败则回退原始 userMessage）
+// 3. request_source（必选，序列化失败直接 panic）
 // 4. source=user_message（必选）
 func BuildSourceAwareUserInputWithRuntime(
 	userMessage string,
@@ -35,7 +35,7 @@ func BuildSourceAwareUserInputWithRuntime(
 
 	raw, err := json.Marshal(sourcePayload)
 	if err != nil {
-		return userMessage
+		panic(fmt.Errorf("request_source is required and must be JSON serializable: %w", err))
 	}
 
 	blocks = append(blocks, fmt.Sprintf("<request_source>%s</request_source>", string(raw)))

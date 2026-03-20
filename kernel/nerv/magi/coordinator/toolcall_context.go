@@ -21,6 +21,8 @@ type ToolCallEventCallback func(
 	detectedTime int64,
 )
 
+type ToolCallResultExecutor func(toolCall types.ToolCall) (result string, handled bool, err error)
+
 type streamedToolCallCollector struct {
 	byIndex           map[int]*types.ToolCall
 	firstDetectedTime map[int]int64
@@ -140,6 +142,17 @@ func appendTurnToolCallsToContext(
 	toolCalls []types.ToolCall,
 	ackBuilder func(toolName string) string,
 ) {
+	appendTurnToolCallsToContextWithExecutor(sessionID, sage, assistantContent, toolCalls, nil, ackBuilder)
+}
+
+func appendTurnToolCallsToContextWithExecutor(
+	sessionID string,
+	sage *sages.Sage,
+	assistantContent string,
+	toolCalls []types.ToolCall,
+	resultExecutor ToolCallResultExecutor,
+	ackBuilder func(toolName string) string,
+) {
 	if sage == nil || len(toolCalls) == 0 {
 		return
 	}
@@ -156,7 +169,26 @@ func appendTurnToolCallsToContext(
 
 	for _, call := range toolCalls {
 		toolResult := `{"ok":true}`
-		if ackBuilder != nil {
+		if resultExecutor != nil {
+			if result, handled, execErr := resultExecutor(call); handled {
+				if execErr != nil {
+					if payload, marshalErr := json.Marshal(map[string]interface{}{
+						"ok":    false,
+						"error": execErr.Error(),
+					}); marshalErr == nil {
+						toolResult = string(payload)
+					} else {
+						toolResult = `{"ok":false}`
+					}
+				} else if parsed := strings.TrimSpace(result); parsed != "" {
+					toolResult = parsed
+				}
+			} else if ackBuilder != nil {
+				if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
+					toolResult = ack
+				}
+			}
+		} else if ackBuilder != nil {
 			if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
 				toolResult = ack
 			}

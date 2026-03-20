@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -170,5 +171,62 @@ func TestDefaultContextStrategy_TrinityMatchesCoreSages(t *testing.T) {
 	}
 	if trinity.Percent != 0.8 {
 		t.Fatalf("期望 trinity percent=0.8，实际=%v", trinity.Percent)
+	}
+}
+
+func TestBuildNoteKeywordSearchToolDef_Structure(t *testing.T) {
+	tool := BuildNoteKeywordSearchToolDef()
+	if tool.Type != "function" {
+		t.Fatalf("期望工具 Type=function，实际=%s", tool.Type)
+	}
+	if tool.Function.Name != NoteKeywordSearchToolName {
+		t.Fatalf("期望工具名=%s，实际=%s", NoteKeywordSearchToolName, tool.Function.Name)
+	}
+
+	params, ok := tool.Function.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Parameters 缺少 properties")
+	}
+	if _, ok := params["query"]; !ok {
+		t.Fatal("Parameters 缺少 query")
+	}
+	limit, ok := params["limit"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Parameters 缺少 limit")
+	}
+	if limit["maximum"] != 50 {
+		t.Fatalf("期望 limit.maximum=50，实际=%v", limit["maximum"])
+	}
+}
+
+func TestCoreSagesShareSameNoteKeywordSearchTool(t *testing.T) {
+	melchior := defaultMelchiorConfig()
+	balthazar := defaultBalthazarConfig()
+	casper := defaultCasperConfig()
+
+	getNoteTool := func(tools []ToolDef) (ToolDef, bool) {
+		for _, tool := range tools {
+			if tool.Function.Name == NoteKeywordSearchToolName {
+				return tool, true
+			}
+		}
+		return ToolDef{}, false
+	}
+
+	mTool, ok := getNoteTool(melchior.Tools)
+	if !ok {
+		t.Fatal("Melchior 缺少笔记关键词查询工具")
+	}
+	bTool, ok := getNoteTool(balthazar.Tools)
+	if !ok {
+		t.Fatal("Balthazar 缺少笔记关键词查询工具")
+	}
+	cTool, ok := getNoteTool(casper.Tools)
+	if !ok {
+		t.Fatal("Casper 缺少笔记关键词查询工具")
+	}
+
+	if !reflect.DeepEqual(mTool, bTool) || !reflect.DeepEqual(bTool, cTool) {
+		t.Fatal("三贤人的笔记关键词查询工具定义不一致")
 	}
 }

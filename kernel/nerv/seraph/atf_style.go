@@ -23,18 +23,15 @@ func initSegmenter() {
 }
 
 // ComputeStyleMetrics 计算文本的文体风格指纹
-func ComputeStyleMetrics(text string) StyleMetrics {
+func ComputeStyleMetrics(text string) (StyleMetrics, error) {
 	// 初始化分词器
 	initSegmenter()
-
-	var tokens []string
 	if segInitErr != nil {
-		// 降级策略：使用简单的字符级分词
-		tokens = fallbackTokenize(text)
-	} else {
-		// 使用gse分词
-		tokens = seg.Cut(text, true)
+		return StyleMetrics{}, segInitErr
 	}
+
+	// 使用gse分词
+	tokens := seg.Cut(text, true)
 
 	// 句子分割
 	sentences := splitSentences(text)
@@ -53,7 +50,7 @@ func ComputeStyleMetrics(text string) StyleMetrics {
 		AvgSentenceLength:  avgSentenceLength,
 		SentenceLengthStd:  sentenceLengthStd,
 		PunctuationEntropy: punctuationEntropy,
-	}
+	}, nil
 }
 
 // splitSentences 按句子分割
@@ -162,27 +159,4 @@ func ComputeStyleSimilarity(s1, s2 StyleMetrics) float64 {
 	similarity := 1.0 - math.Min(distance/maxDistance, 1.0)
 
 	return 2.0*similarity - 1.0
-}
-
-// fallbackTokenize 降级分词策略：按空格和标点分割
-func fallbackTokenize(text string) []string {
-	var tokens []string
-	var current strings.Builder
-
-	for _, r := range text {
-		if unicode.IsSpace(r) || unicode.IsPunct(r) {
-			if current.Len() > 0 {
-				tokens = append(tokens, current.String())
-				current.Reset()
-			}
-		} else {
-			current.WriteRune(r)
-		}
-	}
-
-	if current.Len() > 0 {
-		tokens = append(tokens, current.String())
-	}
-
-	return tokens
 }

@@ -83,7 +83,11 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 		styles := make(map[ATFEntity]StyleMetrics)
 		for _, entity := range monitoredEntities {
 			result := answers[entity]
-			styles[entity] = ComputeStyleMetrics(result.Reflection)
+			styleMetrics, err := ComputeStyleMetrics(result.Reflection)
+			if err != nil {
+				return nil, fmt.Errorf("round %d entity %s style metrics failed: %w", round, entity, err)
+			}
+			styles[entity] = styleMetrics
 
 			partialBase, err := buildPartialPersonaBase(result.Answers, result.Questions)
 			if err != nil {

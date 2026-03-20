@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -40,16 +39,6 @@ type sourceKeyProfile struct {
 	TrustBase            types.TrustLevel
 	RiskLevel            types.TrustLevel
 	AuthStrength         types.AuthStrength
-}
-
-type sourceKeyClaimsV1 struct {
-	Principal     string   `json:"principal"`
-	Channels      []string `json:"channels"`
-	Models        []string `json:"models"`
-	InterfaceKind string   `json:"interfaceKind"`
-	TrustBase     string   `json:"trustBase"`
-	RiskLevel     string   `json:"riskLevel"`
-	AuthStrength  string   `json:"authStrength"`
 }
 
 type interfaceIdentity struct {
@@ -302,59 +291,6 @@ func buildArmorSourceProfile(claims *magiArmorClaimsV1, identityRecord *magiIden
 	}
 }
 
-func extractMagiSourceKey(c *gin.Context) string {
-	headerCandidates := []string{
-		"X-MAGI-Source-Key",
-		"X-API-Key",
-	}
-	for _, header := range headerCandidates {
-		if value := strings.TrimSpace(c.GetHeader(header)); value != "" {
-			return value
-		}
-	}
-	return ""
-}
-
-func resolveSourceKeyProfile(sourceKey string) (*sourceKeyProfile, *magiSourceAuthError) {
-	sourceKey = strings.TrimSpace(sourceKey)
-	if sourceKey == "" {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_missing",
-			Message:    "missing MAGI source key",
-		}
-	}
-
-	apiToken := workspaceAPIToken()
-	if apiToken != "" && sourceKey == apiToken {
-		return &sourceKeyProfile{
-			KeyID:                shortKeyHash(sourceKey),
-			PrincipalID:          "workspace-admin",
-			AllowedChannels:      sourceChannelsSet(types.SourceChannelGuardian, types.SourceChannelExternalAgent, types.SourceChannelSystemCron, types.SourceChannelUnknown),
-			DefaultChannel:       types.SourceChannelGuardian,
-			AllowedModelPrefixes: []string{"*"},
-			DefaultInterfaceKind: "magi-main-ui",
-			TrustBase:            types.TrustLevelHigh,
-			RiskLevel:            types.TrustLevelLow,
-			AuthStrength:         types.AuthStrengthMedium,
-		}, nil
-	}
-
-	if strings.HasPrefix(sourceKey, "magi_sk_v1_") {
-		return resolveV1SourceKeyProfile(sourceKey)
-	}
-
-	if strings.HasPrefix(sourceKey, "magi.") {
-		return resolveLegacySourceKeyProfile(sourceKey)
-	}
-
-	return nil, &magiSourceAuthError{
-		StatusCode: http.StatusUnauthorized,
-		Code:       "magi_source_key_invalid",
-		Message:    "invalid MAGI source key",
-	}
-}
-
 func workspaceAPIToken() string {
 	if model.Conf == nil || model.Conf.Api == nil {
 		return ""
@@ -367,124 +303,6 @@ func defaultMagiModelName() string {
 		return ""
 	}
 	return strings.TrimSpace(model.Conf.AI.OpenAI.APIModel)
-}
-
-func resolveV1SourceKeyProfile(sourceKey string) (*sourceKeyProfile, *magiSourceAuthError) {
-	encoded := strings.TrimPrefix(sourceKey, "magi_sk_v1_")
-	decoded, err := base64.RawURLEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_decode_failed",
-			Message:    "failed to decode MAGI source key",
-		}
-	}
-
-	var claims sourceKeyClaimsV1
-	if err = json.Unmarshal(decoded, &claims); err != nil {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_parse_failed",
-			Message:    "failed to parse MAGI source key claims",
-		}
-	}
-
-	allowedChannels := make(map[types.SourceChannel]struct{})
-	defaultChannel := types.SourceChannelUnknown
-	for _, rawChannel := range claims.Channels {
-		if channel, ok := parseSourceChannel(rawChannel); ok {
-			allowedChannels[channel] = struct{}{}
-			if defaultChannel == types.SourceChannelUnknown {
-				defaultChannel = channel
-			}
-		}
-	}
-	if len(allowedChannels) == 0 {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_channel_missing",
-			Message:    "MAGI source key has no valid channel claims",
-		}
-	}
-
-	trust := parseTrustLevelWithFallback(claims.TrustBase, types.TrustLevelMedium)
-	risk := parseTrustLevelWithFallback(claims.RiskLevel, types.TrustLevelMedium)
-	authStrength := parseAuthStrengthWithFallback(claims.AuthStrength, types.AuthStrengthStrong)
-	interfaceKind := strings.TrimSpace(claims.InterfaceKind)
-	if interfaceKind == "" {
-		interfaceKind = "sdk-client"
-	}
-	principalID := strings.TrimSpace(claims.Principal)
-	if principalID == "" {
-		principalID = "unknown-principal"
-	}
-
-	modelPrefixes := claims.Models
-	if len(modelPrefixes) == 0 {
-		modelPrefixes = []string{"*"}
-	}
-
-	return &sourceKeyProfile{
-		KeyID:                shortKeyHash(sourceKey),
-		PrincipalID:          principalID,
-		AllowedChannels:      allowedChannels,
-		DefaultChannel:       defaultChannel,
-		AllowedModelPrefixes: modelPrefixes,
-		DefaultInterfaceKind: interfaceKind,
-		TrustBase:            trust,
-		RiskLevel:            risk,
-		AuthStrength:         authStrength,
-	}, nil
-}
-
-func resolveLegacySourceKeyProfile(sourceKey string) (*sourceKeyProfile, *magiSourceAuthError) {
-	parts := strings.Split(sourceKey, ".")
-	if len(parts) < 3 {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_legacy_invalid",
-			Message:    "legacy MAGI source key format is invalid",
-		}
-	}
-
-	channel, ok := parseSourceChannel(parts[1])
-	if !ok {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_channel_invalid",
-			Message:    "legacy MAGI source key channel is invalid",
-		}
-	}
-	principal := strings.TrimSpace(parts[2])
-	if principal == "" {
-		principal = "unknown-principal"
-	}
-
-	interfaceKind := defaultInterfaceKindForChannel(channel)
-	if len(parts) >= 4 {
-		if customKind := strings.TrimSpace(parts[3]); customKind != "" {
-			interfaceKind = customKind
-		}
-	}
-
-	trustBase := types.TrustLevelMedium
-	riskLevel := types.TrustLevelMedium
-	if channel == types.SourceChannelGuardian {
-		trustBase = types.TrustLevelHigh
-		riskLevel = types.TrustLevelLow
-	}
-
-	return &sourceKeyProfile{
-		KeyID:                shortKeyHash(sourceKey),
-		PrincipalID:          principal,
-		AllowedChannels:      sourceChannelsSet(channel),
-		DefaultChannel:       channel,
-		AllowedModelPrefixes: []string{"*"},
-		DefaultInterfaceKind: interfaceKind,
-		TrustBase:            trustBase,
-		RiskLevel:            riskLevel,
-		AuthStrength:         types.AuthStrengthStrong,
-	}, nil
 }
 
 func resolveSourceChannel(profile *sourceKeyProfile, sourcePayload map[string]string) (types.SourceChannel, *magiSourceAuthError) {
@@ -548,26 +366,6 @@ func isAllowedChannel(profile *sourceKeyProfile, channel types.SourceChannel) bo
 	return ok
 }
 
-func isModelAllowed(profile *sourceKeyProfile, modelName string) bool {
-	if profile == nil {
-		return false
-	}
-	modelName = strings.ToLower(strings.TrimSpace(modelName))
-	if modelName == "" {
-		return false
-	}
-	for _, prefix := range profile.AllowedModelPrefixes {
-		prefix = strings.ToLower(strings.TrimSpace(prefix))
-		if prefix == "*" {
-			return true
-		}
-		if prefix != "" && strings.HasPrefix(modelName, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
 func parseSourceChannel(raw string) (types.SourceChannel, bool) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "guardian":
@@ -583,13 +381,6 @@ func parseSourceChannel(raw string) (types.SourceChannel, bool) {
 	}
 }
 
-func parseTrustLevelWithFallback(raw string, fallback types.TrustLevel) types.TrustLevel {
-	if level, ok := parseTrustLevel(raw); ok {
-		return level
-	}
-	return fallback
-}
-
 func parseTrustLevel(raw string) (types.TrustLevel, bool) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "high":
@@ -602,20 +393,6 @@ func parseTrustLevel(raw string) (types.TrustLevel, bool) {
 		return "", false
 	}
 }
-
-func parseAuthStrengthWithFallback(raw string, fallback types.AuthStrength) types.AuthStrength {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "strong":
-		return types.AuthStrengthStrong
-	case "medium":
-		return types.AuthStrengthMedium
-	case "weak":
-		return types.AuthStrengthWeak
-	default:
-		return fallback
-	}
-}
-
 func resolveTrustLevel(defaultLevel types.TrustLevel, sourcePayload map[string]string, keys ...string) (types.TrustLevel, string) {
 	if defaultLevel == "" {
 		defaultLevel = types.TrustLevelMedium
@@ -877,24 +654,6 @@ func deriveInterfaceKindFromSourcePayload(sourcePayload map[string]string) strin
 	return ""
 }
 
-func isSourceSimulationPayload(sourcePayload map[string]string) bool {
-	if sourcePayload == nil {
-		return false
-	}
-	if tag := firstNonEmpty(sourcePayload["__sourceTag"]); tag == "magi_request_source" {
-		return true
-	}
-	if firstNonEmpty(
-		sourcePayload["sourcePanelId"],
-		sourcePayload["source_panel_id"],
-		sourcePayload["profileId"],
-		sourcePayload["profile_id"],
-	) != "" {
-		return true
-	}
-	return false
-}
-
 func mapRequestChannelToSourceChannel(requestChannel, routeClass string) types.SourceChannel {
 	switch requestChannel {
 	case magiRequestChannelSystemCron:
@@ -963,27 +722,6 @@ func resolveModelIntent(modelName string) string {
 func shortKeyHash(sourceKey string) string {
 	sum := sha256.Sum256([]byte(sourceKey))
 	return fmt.Sprintf("%x", sum[:6])
-}
-
-func sourceChannelsSet(channels ...types.SourceChannel) map[types.SourceChannel]struct{} {
-	result := make(map[types.SourceChannel]struct{}, len(channels))
-	for _, channel := range channels {
-		result[channel] = struct{}{}
-	}
-	return result
-}
-
-func defaultInterfaceKindForChannel(channel types.SourceChannel) string {
-	switch channel {
-	case types.SourceChannelGuardian:
-		return "magi-main-ui"
-	case types.SourceChannelExternalAgent:
-		return "siyuan-note-upstream"
-	case types.SourceChannelSystemCron:
-		return "system-cron-job"
-	default:
-		return "sdk-client"
-	}
 }
 
 func firstNonEmpty(candidates ...string) string {

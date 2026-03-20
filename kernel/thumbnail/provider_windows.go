@@ -52,7 +52,7 @@ func (p *WindowsProvider) Generate(filePath string, width, height int) (data []b
 		return data, nil
 	}
 
-	// 回退：使用 ExtractAssociatedIcon 获取系统图标
+	// 使用 ExtractAssociatedIcon 获取系统图标
 	data, err = p.getIconViaExtractAssociatedIcon(filePath)
 	if err == nil && len(data) > 0 {
 		return data, nil

@@ -7,7 +7,10 @@ import (
 
 func TestComputeStyleMetrics(t *testing.T) {
 	text := "这是一个测试文本。它包含多个句子！用于测试文体指纹计算？"
-	metrics := ComputeStyleMetrics(text)
+	metrics, err := ComputeStyleMetrics(text)
+	if err != nil {
+		t.Fatalf("ComputeStyleMetrics 返回错误: %v", err)
+	}
 
 	if metrics.TypeTokenRatio <= 0 || metrics.TypeTokenRatio > 1 {
 		t.Errorf("TypeTokenRatio超出范围: %f", metrics.TypeTokenRatio)

@@ -33,14 +33,25 @@ func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
 	}
 }
 
-func TestBuildSourceAwareUserInputWithRuntimeFallsBackToUserMessage(t *testing.T) {
+func TestBuildSourceAwareUserInputWithRuntimePanicsWhenRequestSourceMissing(t *testing.T) {
 	userMessage := "原始消息"
 	sourcePayload := map[string]interface{}{
 		"bad": func() {},
 	}
 
-	got := BuildSourceAwareUserInputWithRuntime(userMessage, sourcePayload, nil, nil)
-	if got != userMessage {
-		t.Fatalf("expected fallback to raw user message, got: %s", got)
-	}
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatal("expected panic when request_source payload cannot be marshaled")
+		}
+		err, ok := recovered.(error)
+		if !ok {
+			t.Fatalf("expected panic error, got: %T", recovered)
+		}
+		if !strings.Contains(err.Error(), "request_source is required") {
+			t.Fatalf("unexpected panic error: %v", err)
+		}
+	}()
+
+	_ = BuildSourceAwareUserInputWithRuntime(userMessage, sourcePayload, nil, nil)
 }

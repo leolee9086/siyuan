@@ -4,6 +4,7 @@ package coordinator
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -138,6 +139,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 	processor := utilstream.NewProcessor()
 	wannaSpeakTracker := &wannaSpeakStateTracker{}
+	toolResultExecutor := rc.buildToolResultExecutor(sage)
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
@@ -194,14 +196,14 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 				}
-				return nil, fmt.Errorf(errMsg)
+				return nil, errors.New(errMsg)
 			case <-ctx.Done():
 				errMsg := fmt.Sprintf("贤者 %s 上下文已取消: %v [会话:%s 轮次:%s]",
 					sage.GetDisplayName(), ctx.Err(), sessionId, roundId)
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 				}
-				return nil, fmt.Errorf(errMsg)
+				return nil, errors.New(errMsg)
 			case chunk, ok := <-streamCh:
 				if !ok {
 					goto TurnComplete
@@ -267,11 +269,12 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 		if wannaSpeakTracker.IsCompletedPair() {
 			if len(turnToolCalls) > 0 {
-				appendTurnToolCallsToContext(
+				appendTurnToolCallsToContextWithExecutor(
 					sessionId,
 					sage,
 					turnContent.String(),
 					turnToolCalls,
+					toolResultExecutor,
 					buildWannaSpeakToolAck,
 				)
 			}
@@ -308,11 +311,12 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		if len(turnToolCalls) > 0 {
-			appendTurnToolCallsToContext(
+			appendTurnToolCallsToContextWithExecutor(
 				sessionId,
 				sage,
 				turnContent.String(),
 				turnToolCalls,
+				toolResultExecutor,
 				buildWannaSpeakToolAck,
 			)
 		} else if strings.TrimSpace(turnContent.String()) != "" {
@@ -414,6 +418,17 @@ func (rc *ResponseCollector) buildSageResponse(
 	sage.AddToContextWithSession(sessionId, assistantMsg)
 
 	return response, nil
+}
+
+func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage) ToolCallResultExecutor {
+	if !sageHasAllFunctionTools(sage, config.NoteKeywordSearchToolName) {
+		return nil
+	}
+
+	noteExecutor := newNoteKeywordToolResultExecutor()
+	return func(toolCall types.ToolCall) (string, bool, error) {
+		return noteExecutor.ExecuteToolCall(toolCall)
+	}
 }
 
 func parseWannaSpeakToolContent(
