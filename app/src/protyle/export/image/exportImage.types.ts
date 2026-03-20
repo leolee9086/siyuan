@@ -8,6 +8,7 @@ export interface IExportImageStorage {
     keepFold: boolean;
     watermark: boolean;
     ratio: string;
+    background: string;
 }
 
 /**
@@ -47,6 +48,10 @@ export interface IExportImageContext {
     watermarkPreviewElement: HTMLElement;
     keepFoldElement: HTMLInputElement;
     watermarkElement: HTMLInputElement;
+    backgroundButton: HTMLButtonElement;
+    backgroundPreviewElement: HTMLElement;
+    backgroundUploadInputElement: HTMLInputElement;
+    clearBackgroundButton: HTMLButtonElement;
     ratioElement: HTMLSelectElement;
     cancelButton: HTMLButtonElement;
     confirmButton: HTMLButtonElement;

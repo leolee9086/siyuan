@@ -500,7 +500,9 @@ export const getLocalStorage = (cb: () => void) => {
         };
         defaultStorage[Constants.LOCAL_EXPORTIMG] = {
             keepFold: false,
-            watermark: false
+            watermark: false,
+            ratio: "auto",
+            background: ""
         };
         defaultStorage[Constants.LOCAL_DOCINFO] = {
             id: "",

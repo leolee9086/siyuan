@@ -52,7 +52,7 @@ const createExportStage = (ctx: Pick<IExportImageContext, "contentElement" | "ex
     stageCloneNode.style.width = `${width}px`;
     stageCloneNode.style.maxWidth = `${width}px`;
     stageCloneNode.style.boxSizing = "border-box";
-    stageCloneNode.style.backgroundColor = getComputedStyle(ctx.contentElement).backgroundColor;
+    stageCloneNode.style.backgroundColor = getComputedStyle(ctx.exportImageElement).backgroundColor;
     stageWrapperElement.appendChild(stageCloneNode);
     document.body.appendChild(stageWrapperElement);
     return {stageWrapperElement, stageElement: stageCloneNode, stagePreviewElement};

@@ -47,7 +47,6 @@ const scaleWideTables = (previewElement: HTMLElement): void => {
         if (tableElement.clientWidth <= parentElement.clientWidth) {
             continue;
         }
-
         const scale = parentElement.clientWidth / tableElement.clientWidth;
         const marginBottom = parentElement.clientWidth * tableElement.clientHeight / tableElement.clientWidth - parentElement.clientHeight + 1;
         tableElement.setAttribute("style", `margin-bottom:${marginBottom}px;transform: scale(${scale});transform-origin: top left;`);

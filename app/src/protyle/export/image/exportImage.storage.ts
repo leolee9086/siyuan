@@ -13,7 +13,7 @@ import {normalizeExportImageRatio} from "./exportImage.ratio";
  * 调用时机：存储不存在或字段无效时。
  * 问题/改进：新增配置字段时需同步扩展默认值。
  */
-const createDefaultStorage = (): IExportImageStorage => ({keepFold: false, watermark: false, ratio: "auto"});
+const createDefaultStorage = (): IExportImageStorage => ({keepFold: false, watermark: false, ratio: "auto", background: ""});
 
 /**
  * 作用：把未知值规范为布尔值。
@@ -44,6 +44,15 @@ const normalizeBoolean = (value: unknown, fallback: boolean): boolean => {
 };
 
 /**
+ * 作用：把未知值规范为字符串。
+ * 意图：兼容历史脏数据并统一背景样式字段语义。
+ * 调用时机：解析 LOCAL_EXPORTIMG 字段时。
+ */
+const normalizeString = (value: unknown, fallback: string): string => {
+    return typeof value === "string" ? value : fallback;
+};
+
+/**
  * 作用：读取并规范化导出图片配置。
  * 意图：彻底消除配置格式漂移风险，避免“只校验部分字段”的技术债。
  * 调用时机：导出图片上下文初始化前。
@@ -61,10 +70,12 @@ export const getExportImageStorage = async (): Promise<IExportImageStorage> => {
     const keepFold = rawValue ? Reflect.get(rawValue, "keepFold") : undefined;
     const watermark = rawValue ? Reflect.get(rawValue, "watermark") : undefined;
     const ratio = rawValue ? Reflect.get(rawValue, "ratio") : undefined;
+    const background = rawValue ? Reflect.get(rawValue, "background") : undefined;
     const normalizedStorage: IExportImageStorage = {
         keepFold: normalizeBoolean(keepFold, defaultStorage.keepFold),
         watermark: normalizeBoolean(watermark, defaultStorage.watermark),
         ratio: await normalizeExportImageRatio(ratio, defaultStorage.ratio),
+        background: normalizeString(background, defaultStorage.background),
     };
     storage[Constants.LOCAL_EXPORTIMG] = normalizedStorage;
     return normalizedStorage;

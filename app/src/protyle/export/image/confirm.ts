@@ -101,11 +101,12 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
         return;
     }
 
+    // 预热同样需要针对最终导出节点执行，避免背景图只出现在预览里却未进入截图管线。
     // iPhone/Safari 首次截图偶现不完整，需预热渲染管线。
     if (isIPhone() || isSafari()) {
-        await htmlToImage.toBlob(ctx.contentElement);
-        await htmlToImage.toBlob(ctx.contentElement);
-        await htmlToImage.toBlob(ctx.contentElement);
+        await htmlToImage.toBlob(ctx.exportImageElement);
+        await htmlToImage.toBlob(ctx.exportImageElement);
+        await htmlToImage.toBlob(ctx.exportImageElement);
     }
 
     const ratioFiles = await exportImageBlobsByRatio(ctx, htmlToImage);
@@ -119,7 +120,8 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
         return;
     }
 
-    const blob = await htmlToImage.toBlob(ctx.contentElement);
+    // 自动比例导出也必须截图带背景的画布节点，而不是外围内容容器。
+    const blob = await htmlToImage.toBlob(ctx.exportImageElement);
     await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
 
     hideMessage(msgId);
