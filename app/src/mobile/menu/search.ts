@@ -240,6 +240,7 @@ const goAsset = () => {
     addClearButton({
         inputElement,
         className: "toolbar__icon",
+        clearAriaLabel: siyuanI18n.clear,
         clearCB() {
             assetInputEvent(assetsElement, localSearch);
         }

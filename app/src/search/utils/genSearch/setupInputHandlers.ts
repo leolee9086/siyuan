@@ -9,6 +9,7 @@ import { electronUndo } from "../../../protyle/undo";
 import { addClearButton } from "../../../util/DOM/addClearButton";
 import { inputEvent } from "../../inputEvent";
 import { saveKeyList } from "../../toggleHistory";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 设置输入框事件处理
@@ -121,6 +122,7 @@ function initClearButtons(
         inputElement: searchInputElement,
         right: 8,
         height: searchInputElement.clientHeight,
+        clearAriaLabel: siyuanI18n.clear,
         clearCB() {
             config.page = 1;
             inputEvent(element, config, edit);
@@ -134,5 +136,6 @@ function initClearButtons(
         right: 8,
         inputElement: replaceInputElement,
         height: searchInputElement.clientHeight,
+        clearAriaLabel: siyuanI18n.clear,
     });
 }

@@ -356,6 +356,7 @@ export const afterRenderTable = (options: ITableOptions) => {
         right: 0,
         width: "1em",
         height: searchInputElement.clientHeight,
+        clearAriaLabel: siyuanI18n.clear,
         clearCB() {
             viewsElement.classList.remove("av__views--show");
             searchInputElement.style.width = "0";

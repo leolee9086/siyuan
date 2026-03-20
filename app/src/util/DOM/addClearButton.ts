@@ -1,6 +1,3 @@
-/** 用途：读取清空按钮文案；使用范围：`addClearButton` 构造 aria-label；解耦评估：国际化服务属于全局依赖，通过本目录网关读取比逐层透传更清晰。 */
-import { siyuanI18n } from "./imports";
-
 /**
  * 读取输入控件当前文本，兼容 input、textarea 和 contenteditable 场景。
  * 调用时机：清空按钮初始化与输入变化时同步调用。
@@ -105,7 +102,7 @@ const buildButtonStyle = (options: {
     }
     const hasWidth = !!options.width;
     if (hasWidth) {
-        style += `width:${options.width}`;
+        style += `width:${options.width};`;
     }
     return style;
 };
@@ -132,7 +129,7 @@ const handleClearButtonClick = (
  * 调用时机：搜索框、关系筛选框等需要即时清空交互的输入区域初始化时调用。
  * 问题/改进：当前通过插入相邻 SVG 的方式保持兼容，后续若统一表单组件可迁移到组件层。
  * @同步豁免: 需要绝对同步的DOM访问
- * @AITODO 文案应该改为由参数传递而不是直接依赖国际化模块
+ * @AIDONE 文案改为由参数传递，不再直接依赖国际化模块
  */
 export const addClearButton = (options: {
     inputElement: HTMLElement;
@@ -141,13 +138,18 @@ export const addClearButton = (options: {
     width?: string;
     height?: number;
     className?: string;
+    clearAriaLabel?: string;
 }): void => {
     options.inputElement.dataset.oldPaddingRight = options.inputElement.style.paddingRight;
     const className = options.className || "b3-form__icon-clear";
     const style = buildButtonStyle(options);
+    const clearAriaLabel = options.clearAriaLabel;
+    if(!clearAriaLabel) {
+        throw new Error("addClearButton: 未提供清除按钮的 aria-label。");
+    }
     options.inputElement.insertAdjacentHTML(
         "afterend",
-        `<svg class="${className} ariaLabel" aria-label="${siyuanI18n.clear}" style="${style}"><use xlink:href="#iconCloseRound"></use></svg>`
+        `<svg class="${className} ariaLabel" aria-label="${clearAriaLabel}" style="${style}"><use xlink:href="#iconCloseRound"></use></svg>`
     );
     const clearElement = options.inputElement.nextElementSibling;
     const hasClearElement = !!clearElement;

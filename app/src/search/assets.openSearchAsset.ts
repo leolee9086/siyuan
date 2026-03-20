@@ -97,6 +97,7 @@ const 初始化搜索输入框 = (element: HTMLElement, localSearch: ISearchAsse
         right: 8,
         height: searchInputElement.clientHeight,
         inputElement: searchInputElement,
+        clearAriaLabel: siyuanI18n.clear,
         clearCB() {
             assetInputEvent(element, localSearch);
         }

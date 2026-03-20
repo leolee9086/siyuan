@@ -66,6 +66,7 @@ export const initSearchEvent = (
     addClearButton({
         inputElement: searchInputElement,
         className: "toolbar__icon",
+        clearAriaLabel: siyuanI18n.clear,
         clearCB() {
             config.page = 1;
             updateSearchResult(config, element);
@@ -76,6 +77,7 @@ export const initSearchEvent = (
     addClearButton({
         inputElement: replaceInputElement,
         className: "toolbar__icon",
+        clearAriaLabel: siyuanI18n.clear,
     });
     const criteriaData: Config.IUILayoutTabSearchConfig[] = [];
     initCriteriaMenu(element.querySelector("#criteria"), criteriaData, config);
