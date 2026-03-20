@@ -90,6 +90,15 @@ import { Dialog } from "../../../dialog";
 // 导出对话框类
 export { Dialog };
 
+/**
+ * 用途：转义 HTML 属性值
+ * 使用范围：块背景外链输入框与定位预览图片地址安全回填
+ * 解耦评估：属于纯函数工具，可通过参数传递解耦，但当前在菜单 UI 构建中直接复用成本最低
+ */
+import { escapeAttr } from "../../../util/DOM/escape";
+// 导出属性值转义工具
+export { escapeAttr };
+
 // ============ 网络与资源 ============
 
 /**
@@ -100,6 +109,42 @@ export { Dialog };
 import { fetchPost } from "../../../util/network/fetch";
 // 导出HTTP POST请求函数
 export { fetchPost };
+
+/**
+ * 用途：图片资源上传入口
+ * 使用范围：块背景菜单选择本地图片后上传并回填块属性
+ * 解耦评估：可通过上层回调注入解耦，但该模块本身就是 protyle 侧交互编排层，直接依赖上传模块更贴近现有架构
+ */
+import { uploadFiles } from "../../upload";
+// 导出资源上传函数
+export { uploadFiles };
+
+/**
+ * 用途：全局资源选择对话框
+ * 使用范围：块背景菜单从资源库中选择图片作为背景
+ * 解耦评估：可通过依赖注入解耦，但当前全局单例对话框已是标准资源选择入口，直接复用更稳定
+ */
+import { openAssetDialog } from "../../../asset/assetDialog";
+// 导出资源选择对话框
+export { openAssetDialog };
+
+/**
+ * 用途：背景内联样式清理工具
+ * 使用范围：块背景切换时清空旧背景相关样式，避免与宽度、对齐等其他样式互相覆盖
+ * 解耦评估：属于通用 DOM 工具，可通过参数传递解耦，但通过 imports.ts 转发更符合本目录网关约束
+ */
+import { clearElementBackgroundStyle } from "../../../util/DOM/style/clearInlineStyleProperties";
+// 导出背景样式清理工具
+export { clearElementBackgroundStyle };
+
+/**
+ * 用途：内置背景样式数据集
+ * 使用范围：块背景菜单中的内置背景与随机背景来源
+ * 解耦评估：属于共享静态数据，直接复用比重复维护副本更合理
+ */
+import { bgs } from "../../../util/assets/backgrounds.ts";
+// 导出内置背景数据
+export { bgs };
 
 /**
  * 用途：生成资源HTML
@@ -216,6 +261,17 @@ export type { ModelScopeAuthData };
 import { showMessage } from "../../../dialog/message";
 // 导出消息提示函数
 export { showMessage };
+
+// ============ 平台能力 ============
+
+/**
+ * 用途：移动端运行时判断
+ * 使用范围：块背景菜单与对话框尺寸、是否展示拖拽定位入口等平台分支
+ * 解耦评估：运行时平台判断属于环境能力，若通过参数层层透传会增加调用复杂度，直接转发更符合现有项目模式
+ */
+import { isMobile } from "../../../platform";
+// 导出移动端判断
+export { isMobile };
 
 /**
  * 用途：生成块内容图片核心函数

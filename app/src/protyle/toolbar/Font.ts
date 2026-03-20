@@ -258,7 +258,16 @@ export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: str
                 e.style.webkitTextFillColor = "";
                 e.style.webkitTextStroke = "";
                 e.style.textShadow = "";
+                e.style.background = "";
                 e.style.backgroundColor = "";
+                e.style.backgroundImage = "";
+                e.style.backgroundPosition = "";
+                e.style.backgroundSize = "";
+                e.style.backgroundRepeat = "";
+                e.style.backgroundOrigin = "";
+                e.style.backgroundClip = "";
+                e.style.backgroundAttachment = "";
+                e.style.backgroundBlendMode = "";
                 e.style.fontSize = "";
                 e.style.removeProperty("--b3-parent-background");
             } else if (type === "style1") {
@@ -402,6 +411,10 @@ export const hasSameTextStyle = (currentElement: HTMLElement, sideElement: HTMLE
             sideElement.style.webkitTextStroke === currentElement.style.webkitTextStroke &&
             sideElement.style.textShadow === currentElement.style.textShadow &&
             sideElement.style.backgroundColor === currentElement.style.backgroundColor &&
+            sideElement.style.backgroundImage === currentElement.style.backgroundImage &&
+            sideElement.style.backgroundPosition === currentElement.style.backgroundPosition &&
+            sideElement.style.backgroundSize === currentElement.style.backgroundSize &&
+            sideElement.style.backgroundRepeat === currentElement.style.backgroundRepeat &&
             sideElement.style.fontSize === currentElement.style.fontSize) {
             return true;
         }
@@ -416,7 +429,11 @@ export const hasSameTextStyle = (currentElement: HTMLElement, sideElement: HTMLE
                 !sideElement.style.webkitTextStroke &&
                 !sideElement.style.textShadow &&
                 !sideElement.style.fontSize &&
-                !sideElement.style.backgroundColor;
+                !sideElement.style.backgroundColor &&
+                !sideElement.style.backgroundImage &&
+                !sideElement.style.backgroundPosition &&
+                !sideElement.style.backgroundSize &&
+                !sideElement.style.backgroundRepeat;
         }
         if (textObj.type === "color") {
             return textObj.color === sideElement.style.color;

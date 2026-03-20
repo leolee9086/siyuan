@@ -33,6 +33,7 @@ import { openFileById } from "../../editor/utils.openFileById";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 import { exportImage } from "./imports";
+import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 
 /**
  * 通用操作菜单构建上下文
@@ -345,6 +346,10 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
         menuItems.push(创建属性菜单项(ctx));
     }
     if (!ctx.protyle.disabled) {
+        const backgroundMenu = buildGutterBackgroundMenu([ctx.nodeElement], ctx.protyle);
+        if (backgroundMenu) {
+            menuItems.push(backgroundMenu);
+        }
         menuItems.push(创建外观菜单(ctx));
         menuItems.push(buildGutterAlignMenu([ctx.nodeElement], ctx.protyle));
         menuItems.push(buildGutterWidthsMenu([ctx.nodeElement], ctx.protyle));

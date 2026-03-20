@@ -15,6 +15,7 @@ import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleM
 import { showMobileAppearance } from "./showMobileAppearance";
 import { Constants } from "../../constants";
 import { buildMultiAiMenu } from "./menus/buildGutterAiMenu";
+import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 
 /**
  * 构建AI菜单（多块选择时）
@@ -37,6 +38,11 @@ export const 构建外观菜单 = (protyle: IProtyle, selectsElement: Element[])
     }
 
     getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_appearance", type: "separator" }).element);
+
+    const backgroundMenu = buildGutterBackgroundMenu(selectsElement, protyle);
+    if (backgroundMenu) {
+        getSiyuanGlobalMenus().menu.append(new MenuItem(backgroundMenu).element);
+    }
 
     const appearanceElement = new MenuItem({
         id: "appearance",
