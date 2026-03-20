@@ -39,6 +39,12 @@ export const highlightById = (
         bgFade(nodeElement);
         return nodeElement;
     }
+    if(!protyle.options.render) {
+        throw new Error("highlightById: protyle.options.render 未定义，无法判断是否可高亮标题。");
+    }
+    if(!protyle.title || !protyle.title.editElement) {
+        throw new Error("highlightById: protyle.title.editElement 未定义，无法高亮标题。");
+    }
     const shouldHighlightTitle = id === protyle.block.rootID && protyle.options.render.title && !!protyle.title.editElement;
     if (!shouldHighlightTitle) {
         return undefined;
