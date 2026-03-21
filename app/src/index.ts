@@ -35,6 +35,8 @@ import { loadPlugins, reloadPlugin } from "./plugin/loader";
 import "./assets/scss/base.scss";
 // 注册导出预览页签类型（需要在布局恢复前完成注册）
 import "./export-preview/register";
+// 注册集市广场/发布设置页签类型
+import "./bazaar-hub/register";
 import { isBrowser, isBrowserDesktop } from "./platform";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";

@@ -23,7 +23,7 @@ export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar, app: App) 
         if (type && dataObj && handleBazaarInstallClick(type, target, dataObj, bazaar, app, event)) {
             break;
         }
-        if (handleBazaarUIInteraction(target, type, bazaar, event)) {
+        if (handleBazaarUIInteraction(target, type, bazaar, app, event)) {
             break;
         }
         target = target.parentElement as HTMLElement;

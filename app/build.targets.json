@@ -59,6 +59,15 @@
             { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/mobile/index.tpl" }
         ]
     },
+    "bazaar-source": {
+        "platform": "web",
+        "entry": { "main": "./src/bazaar-source/index.ts" },
+        "outputDir": "stage/build/bazaar-source",
+        "publicPath": "/api/s-forge/bazaar/public/source/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/bazaar-source/index.tpl" }
+        ]
+    },
     "export": {
         "platform": "web",
         "entry": { "protyle-method": "./src/protyle/method.ts" },

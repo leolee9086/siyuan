@@ -8,6 +8,7 @@ import { getAllModels } from "../getAll";
 import { resizeTabs } from "../tabUtil";
 import { adjustLayout } from "../util";
 import { Wnd } from "../Wnd";
+import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./iframeInteractionLock";
 
 
 /**
@@ -124,6 +125,7 @@ const handleResizeMouseUp = (
     previousElement: HTMLElement,
     nextElement: HTMLElement
 ) => {
+    releaseIframeInteractionLock();
     documentSelf.onmousemove = null;
     documentSelf.onmouseup = null;
     documentSelf.ondragstart = null;
@@ -170,6 +172,7 @@ const onResizeMouseDown = (event: MouseEvent, resizeElement: HTMLElement, direct
     if (!nextElement || !previousElement || !(nextElement instanceof HTMLElement) || !(previousElement instanceof HTMLElement)) {
         return;
     }
+    acquireIframeInteractionLock();
     nextElement.style.overflow = "auto"; // 拖动时 layout__resize 会出现 https://github.com/siyuan-note/siyuan/issues/6221
     previousElement.style.overflow = "auto";
     nextElement.style.transition = "none";

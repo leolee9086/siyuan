@@ -8,6 +8,7 @@ import { getFrontend } from "../../util/platform/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isElectron } from "../../platform";
+import { openBazaarHubTab, openBazaarPublishTab } from "../../bazaar-hub/open";
 
 import { IBazaar, IBazaarDataObj } from "./types";
 
@@ -150,7 +151,7 @@ const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar, event: Mous
     }
 };
 
-export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar, event: MouseEvent): boolean => {
+export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar, app: App, event: MouseEvent): boolean => {
     if (target.classList.contains("b3-card")) {
         handleBazaarCardClick(target, bazaar, event);
         event.preventDefault();
@@ -165,6 +166,18 @@ export const handleBazaarUIInteraction = (target: HTMLElement, type: string | nu
     }
     if (target.classList.contains("item__preview")) {
         target.classList.toggle("item__preview--fullscreen");
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+    }
+    if (type === "open-bazaar-hub") {
+        void openBazaarHubTab({ app });
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+    }
+    if (type === "open-bazaar-publish") {
+        void openBazaarPublishTab({ app });
         event.preventDefault();
         event.stopPropagation();
         return true;

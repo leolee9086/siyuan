@@ -446,6 +446,7 @@ func InitConf() {
 	if nil == Conf.Bazaar {
 		Conf.Bazaar = conf.NewBazaar()
 	}
+	Conf.Bazaar.Normalize()
 
 	if nil == Conf.Publish {
 		Conf.Publish = conf.NewPublish()

@@ -17,6 +17,7 @@
 package model
 
 import (
+	"archive/zip"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,6 +66,13 @@ var orderedBazaarPackageTypes = []string{
 	"templates",
 	"widgets",
 }
+
+const (
+	bazaarArchiveMaxBytes           int64 = 200 * 1024 * 1024
+	bazaarArchiveMaxEntries               = 4096
+	bazaarArchiveMaxSingleFileBytes int64 = 64 * 1024 * 1024
+	bazaarArchiveMaxUnzipBytes      int64 = 600 * 1024 * 1024
+)
 
 func getBazaarPackageSpec(pkgType string) (ret bazaarPackageSpec, ok bool) {
 	ret, ok = bazaarPackageSpecs[pkgType]
@@ -129,6 +137,45 @@ func normalizeBazaarExportName(name string) string {
 		name = "bazaar-package"
 	}
 	return name
+}
+
+func validateBazaarZipSafety(zipPath string) error {
+	stat, err := os.Stat(zipPath)
+	if nil != err {
+		return err
+	}
+	if stat.Size() > bazaarArchiveMaxBytes {
+		return fmt.Errorf("bazaar package archive exceeds limit [%d bytes]", bazaarArchiveMaxBytes)
+	}
+
+	reader, err := zip.OpenReader(zipPath)
+	if nil != err {
+		return err
+	}
+	defer reader.Close()
+
+	if 1 > len(reader.File) {
+		return fmt.Errorf("invalid bazaar package: no file found")
+	}
+	if len(reader.File) > bazaarArchiveMaxEntries {
+		return fmt.Errorf("bazaar package archive has too many files [%d > %d]", len(reader.File), bazaarArchiveMaxEntries)
+	}
+
+	var totalUnzipBytes int64
+	for _, file := range reader.File {
+		if nil == file || file.FileInfo().IsDir() {
+			continue
+		}
+		fileBytes := int64(file.UncompressedSize64)
+		if fileBytes > bazaarArchiveMaxSingleFileBytes {
+			return fmt.Errorf("bazaar package file [%s] exceeds limit [%d bytes]", file.Name, bazaarArchiveMaxSingleFileBytes)
+		}
+		totalUnzipBytes += fileBytes
+		if totalUnzipBytes > bazaarArchiveMaxUnzipBytes {
+			return fmt.Errorf("bazaar package unzip size exceeds limit [%d bytes]", bazaarArchiveMaxUnzipBytes)
+		}
+	}
+	return nil
 }
 
 func validateBazaarPackageDirectory(pkgType, packageRoot string) (ret *bazaar.Package, err error) {
@@ -257,6 +304,10 @@ func InstallBazaarPackageFromLocalZip(zipPath, originalFilename, packageType str
 		return "", "", err
 	}
 	defer os.RemoveAll(tmpExtractDir)
+
+	if err = validateBazaarZipSafety(zipPath); nil != err {
+		return "", "", err
+	}
 
 	if err = gulu.Zip.Unzip(zipPath, tmpExtractDir); err != nil {
 		return "", "", fmt.Errorf("extract bazaar package failed: %w", err)

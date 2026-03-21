@@ -1,0 +1,207 @@
+:root {
+  --bazaar-bg: var(--b3-theme-background, #f7f8fa);
+  --bazaar-surface: var(--b3-theme-surface, #ffffff);
+  --bazaar-text: var(--b3-theme-on-background, #1f232b);
+  --bazaar-muted: var(--b3-theme-on-surface, #6b7280);
+  --bazaar-border: var(--b3-border-color, #e5e7eb);
+  --bazaar-primary: rgb(var(--b3-theme-primary, 47, 111, 237));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bazaar-bg);
+  color: var(--bazaar-text);
+  font-family: var(--b3-font-family, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif);
+}
+
+.bazaar-source {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px;
+
+  &__auth {
+    max-width: 460px;
+    margin: 10vh auto 0;
+    border: 1px solid var(--bazaar-border);
+    border-radius: 14px;
+    background: var(--bazaar-surface);
+    padding: 18px;
+  }
+
+  &__auth-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  &__auth-sub {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--bazaar-muted);
+    line-height: 1.5;
+  }
+
+  &__auth-form {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__auth-input {
+    flex: 1 1 220px;
+    border: 1px solid var(--bazaar-border);
+    background: var(--bazaar-surface);
+    color: var(--bazaar-text);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  &__auth-btn {
+    border: 1px solid var(--bazaar-primary);
+    background: var(--bazaar-primary);
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  &__auth-error {
+    margin-top: 8px;
+    min-height: 18px;
+    color: var(--b3-theme-error, #d04747);
+    font-size: 13px;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  &__sub {
+    color: var(--bazaar-muted);
+    margin-top: 2px;
+    font-size: 13px;
+  }
+
+  &__search {
+    width: min(360px, 100%);
+    border: 1px solid var(--bazaar-border);
+    background: var(--bazaar-surface);
+    color: var(--bazaar-text);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  &__meta {
+    margin-bottom: 12px;
+    border: 1px solid var(--bazaar-border);
+    background: var(--bazaar-surface);
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: var(--bazaar-muted);
+    font-size: 13px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  &__card {
+    border: 1px solid var(--bazaar-border);
+    border-radius: 12px;
+    background: var(--bazaar-surface);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  &__pkg {
+    color: var(--bazaar-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    word-break: break-all;
+  }
+
+  &__desc {
+    line-height: 1.5;
+    min-height: 38px;
+  }
+
+  &__tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  &__tag {
+    border: 1px solid var(--bazaar-border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: var(--bazaar-muted);
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--bazaar-muted);
+    flex-wrap: wrap;
+  }
+
+  &__download {
+    border: 1px solid var(--bazaar-primary);
+    background: var(--bazaar-primary);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  &__empty {
+    border: 1px dashed var(--bazaar-border);
+    border-radius: 12px;
+    background: var(--bazaar-surface);
+    color: var(--bazaar-muted);
+    text-align: center;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bazaar-source {
+    padding: 12px;
+  }
+}

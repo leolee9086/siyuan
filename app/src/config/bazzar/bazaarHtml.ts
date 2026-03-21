@@ -239,6 +239,14 @@ const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petal
             <button data-type="install-local-package" class="b3-button b3-button--outline">
                 <svg><use xlink:href="#iconDownload"></use></svg>${siyuanI18n.import}
             </button>
+            <div class="fn__space"></div>
+            <button data-type="open-bazaar-hub" class="b3-button b3-button--outline">
+                <svg><use xlink:href="#iconBazaar"></use></svg>${siyuanI18n.bazaar} Hub
+            </button>
+            <div class="fn__space"></div>
+            <button data-type="open-bazaar-publish" class="b3-button b3-button--outline">
+                <svg><use xlink:href="#iconUpload"></use></svg>${siyuanI18n.publish}
+            </button>
             <input id="bazaarLocalPackageInput" class="fn__none" type="file" accept=".plugin.zip,.theme.zip,.icon.zip,.template.zip,.widget.zip,.zip">
             <div class="fn__space"></div>
             <div class="b3-form__icon">

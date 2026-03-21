@@ -13,6 +13,7 @@ import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { layoutToJSON, saveLayout } from "./util";
+import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./utils/iframeInteractionLock";
 
 export class Tab {
     public parent: Wnd;
@@ -97,12 +98,14 @@ export class Tab {
                     event.dataTransfer.dropEffect = "move";
                     tabElement.style.opacity = "0.38";
                     window.siyuan.dragElement = this.headElement;
+                    acquireIframeInteractionLock();
                 }
                 if (isElectron) {
                     ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "removeRegionStyle" });
                 }
             });
             this.headElement.addEventListener("dragend", (event: DragEvent & { target: HTMLElement }) => {
+                releaseIframeInteractionLock();
                 const tabElement = hasClosestByTag(event.target, "LI");
                 if (tabElement) {
                     tabElement.style.opacity = "1";

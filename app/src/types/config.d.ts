@@ -306,6 +306,75 @@ declare namespace Config {
          * Whether to trust (enable) the resources for the bazaar
          */
         trust: boolean;
+        /**
+         * Connected third-party bazaar sources
+         */
+        sources: IBazaarSource[];
+        /**
+         * Bazaar package publish settings
+         */
+        publish: IBazaarPublish;
+        /**
+         * Request guard settings for bazaar public endpoints
+         */
+        security: IBazaarSecurity;
+        /**
+         * Hub page preference
+         */
+        hub: IBazaarHubPreference;
+    }
+
+    export interface IBazaarSource {
+        id: string;
+        name: string;
+        url: string;
+        token: string;
+        enabled: boolean;
+        allowInstall: boolean;
+        openInTab: boolean;
+        createdAt: number;
+        updatedAt: number;
+    }
+
+    export interface IBazaarPublish {
+        enabled: boolean;
+        requireAuth: boolean;
+        authToken: string;
+        minExpose: boolean;
+        allowOfficialNameCollision: boolean;
+        rules: IBazaarPublishRule[];
+        records: IBazaarPublishRecord[];
+    }
+
+    export interface IBazaarPublishRule {
+        packageType: string;
+        packageName: string;
+        enabled: boolean;
+    }
+
+    export interface IBazaarPublishRecord {
+        packageType: string;
+        packageName: string;
+        version: string;
+        artifactId: string;
+        publishedAt: number;
+        checksumSHA: string;
+        displayName: string;
+        description: string;
+        author: string;
+        officialName: boolean;
+    }
+
+    export interface IBazaarSecurity {
+        enableRateLimit: boolean;
+        requestsPerMinute: number;
+        burst: number;
+        windowSeconds: number;
+    }
+
+    export interface IBazaarHubPreference {
+        defaultSourceID: string;
+        showOfficial: boolean;
     }
 
     /**

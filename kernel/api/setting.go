@@ -149,12 +149,18 @@ func setBazaar(c *gin.Context) {
 		return
 	}
 
-	bazaar := &conf.Bazaar{}
+	bazaar := conf.NewBazaar()
+	if nil != model.Conf.Bazaar {
+		if existingData, marshalErr := gulu.JSON.MarshalJSON(model.Conf.Bazaar); nil == marshalErr {
+			_ = gulu.JSON.UnmarshalJSON(existingData, bazaar)
+		}
+	}
 	if err = gulu.JSON.UnmarshalJSON(param, bazaar); err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
 		return
 	}
+	bazaar.Normalize()
 
 	model.Conf.Bazaar = bazaar
 	model.Conf.Save()

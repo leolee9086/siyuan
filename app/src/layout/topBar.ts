@@ -25,6 +25,7 @@ import {exportLayout} from "./util";
 import {commandPanel} from "../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../plugin/openTopBarMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openBazaarHubTab } from "../bazaar-hub/open";
 
 export const initBar = (app: App) => {
     const toolbarElement = document.getElementById("toolbar");
@@ -52,6 +53,9 @@ export const initBar = (app: App) => {
 </div>
 <div id="barSearch" class="toolbar__item ariaLabel" aria-label="${siyuanI18n.globalSearch} ${updateHotkeyTip(window.siyuan.config.keymap.general.globalSearch.custom)}">
     <svg><use xlink:href="#iconSearch"></use></svg>
+</div>
+<div id="barBazaar" class="toolbar__item ariaLabel" aria-label="${siyuanI18n.bazaar} Hub">
+    <svg><use xlink:href="#iconBazaar"></use></svg>
 </div>
 <div id="barZoom" class="toolbar__item ariaLabel${(window.siyuan.storage[Constants.LOCAL_ZOOM] === 1 || isBrowser()) ? " fn__none" : ""}" aria-label="${siyuanI18n.zoom}">
     <svg><use xlink:href="#iconZoom${window.siyuan.storage[Constants.LOCAL_ZOOM] > 1 ? "In" : "Out"}"></use></svg>
@@ -184,6 +188,10 @@ export const initBar = (app: App) => {
                     app,
                     hotkey: Constants.DIALOG_GLOBALSEARCH
                 });
+                event.stopPropagation();
+                break;
+            } else if (targetId === "barBazaar") {
+                void openBazaarHubTab({ app });
                 event.stopPropagation();
                 break;
             } else if (targetId === "barPlugins") {

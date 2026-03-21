@@ -35,6 +35,7 @@ import {openRecentDocs} from "../business/openRecentDocs";
 import * as dayjs from "dayjs";
 import {upDownHint} from "../util/DOM/upDownHint";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openBazaarHubTab, openBazaarPublishTab } from "../bazaar-hub/open";
 
 const editLayout = (layoutName?: string) => {
     const dialog = new Dialog({
@@ -161,6 +162,24 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
                 accelerator: window.siyuan.config.keymap.general.config.custom,
                 click: () => {
                     openSetting(app);
+                }
+            }).element);
+        }
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "bazaarHub",
+            label: `${siyuanI18n.bazaar} Hub`,
+            icon: "iconBazaar",
+            click: () => {
+                void openBazaarHubTab({ app });
+            }
+        }).element);
+        if (!window.siyuan.config.readonly) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "bazaarPublish",
+                label: `${siyuanI18n.publish} · ${siyuanI18n.bazaar}`,
+                icon: "iconUpload",
+                click: () => {
+                    void openBazaarPublishTab({ app });
                 }
             }).element);
         }
