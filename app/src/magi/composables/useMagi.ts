@@ -7,7 +7,7 @@
 
 // [TASK] T2.2 迁移composables和工具函数 - useMagi
 
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 import type {
     ConnectionStatus,
     SendUserMessageOptions,
@@ -18,21 +18,21 @@ import type {
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
+import { createMessage } from "../utils/messageFactory";
 import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
-import {
-    appendConsensusMessage,
-} from "./useMagi.consensus";
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
 import { createMagiEventBus } from "../events/magiEventBus";
 import { bindMagiProjector } from "../events/magiProjector";
-import {
-    createMagiWebSocketSessionId,
-} from "../events/magiWebSocketBridge";
 import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBridge";
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
 import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
+import { useMagiIdentitySessionState } from "../service/magiIdentitySession";
+import {
+    buildRuntimeMainInterfaceIdentity,
+    buildRuntimeMainMonitorSessionId,
+} from "../adapters/magiStandardLLMAdapter.backend";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 
@@ -54,14 +54,65 @@ function buildSourceSimulationSystemMessage(
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
     seels: WrappedSeel[],
-    messages: MagiMessage[],
+    consensusMessages: MagiMessage[],
+    mainPanelMessages: MagiMessage[],
     clearMessages = true,
 ): Promise<void> {
     seels.splice(0, seels.length);
     // 需要保留对话消息时仅重置贤者实例，不清空消息数组。
     if (clearMessages) {
-        messages.splice(0, messages.length);
+        consensusMessages.splice(0, consensusMessages.length);
+        mainPanelMessages.splice(0, mainPanelMessages.length);
     }
+}
+
+function toMainPanelChatMessage(
+    message: MagiMessage,
+): ChatRequestParams["messages"][number] | null {
+    const content = String(message.content ?? "").trim();
+    if (!content) {
+        return null;
+    }
+    switch (message.type) {
+    case "user":
+        return { role: "user", content };
+    case "assistant":
+        return { role: "assistant", content };
+    case "system":
+        return { role: "system", content };
+    default:
+        return null;
+    }
+}
+
+function buildMainPanelRequestMessages(
+    mainPanelMessages: MagiMessage[],
+    options?: SendUserMessageOptions,
+): ChatRequestParams["messages"] {
+    const messages: ChatRequestParams["messages"] = [];
+    const sourceSystemMessage = buildSourceSimulationSystemMessage(options);
+    if (sourceSystemMessage) {
+        messages.push(sourceSystemMessage);
+    }
+    for (const message of mainPanelMessages) {
+        const mapped = toMainPanelChatMessage(message);
+        if (mapped) {
+            messages.push(mapped);
+        }
+    }
+    return messages;
+}
+
+async function appendMainPanelMessage(
+    messages: MagiMessage[],
+    type: string,
+    content: string,
+    status: string,
+): Promise<MagiMessage> {
+    const message = await createMessage(type, content);
+    message.status = status;
+    messages.push(message);
+    return message;
 }
 
 /** 将底层 MockMessage 规范化为 UI 所需的 MagiMessage */
@@ -247,17 +298,47 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
 export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
     const connectionStatus = ref<ConnectionStatus>("disconnected");
+    const isMainPanelRequestPending = ref(false);
+    const mainPanelMessages: MagiMessage[] = reactive([]);
     const consensusMessages: MagiMessage[] = reactive([]);
-    const isAnySeelLoading = computed(() => seels.some((seel) => seel.loading));
+    const isAnySeelLoading = computed(() =>
+        isMainPanelRequestPending.value || seels.some((seel) => seel.loading),
+    );
     const eventBus = await createMagiEventBus();
-    const sessionId = createMagiWebSocketSessionId();
+    const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
+    const identityState = useMagiIdentitySessionState();
     const stopProjector = await bindMagiProjector(eventBus, {
         seels,
         consensusMessages,
     });
-    const stopWebSocketBridge = bindMagiWebSocketEventBridge(eventBus, { sessionId });
+    let activeMonitorBridge: ReturnType<typeof bindMagiWebSocketEventBridge> | null = null;
+    let activeMonitorSessionId = "";
+    const bindMainMonitorBridge = () => {
+        const nextSessionId = buildRuntimeMainMonitorSessionId(
+            runtimeMainInterfaceIdentity,
+            identityState.activeSession,
+        );
+        if (nextSessionId === activeMonitorSessionId) {
+            return;
+        }
+        activeMonitorBridge?.disconnect();
+        activeMonitorBridge = null;
+        activeMonitorSessionId = nextSessionId;
+        if (!nextSessionId) {
+            return;
+        }
+        activeMonitorBridge = bindMagiWebSocketEventBridge(eventBus, { sessionId: nextSessionId });
+    };
+    watch(
+        () => [
+            identityState.activeSession?.identityId ?? "",
+            identityState.activeSession?.routeClass ?? "",
+            String(identityState.activeSession?.expiresAt ?? 0),
+        ].join("::"),
+        bindMainMonitorBridge,
+        { immediate: true },
+    );
     void stopProjector;
-    void stopWebSocketBridge;
 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     const runtimePersonaName = await resolvePersonaNameForInit();
@@ -268,17 +349,18 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         consensusMessages,
         seels,
         eventBus,
-        sessionId,
+        mainInterfaceIdentity: runtimeMainInterfaceIdentity,
     });
 
     return {
         seels,
         connectionStatus,
+        mainPanelMessages,
         consensusMessages,
         isAnySeelLoading,
         /**
-         * 作用：把 UI 输入文本接入完整共识链路。
-         * 意图：对外暴露稳定入口，避免上层组件感知内部实现细节。
+         * 作用：把主面板输入作为标准 HTTP 聊天请求发送，并在本地维护 user/assistant 历史。
+         * 意图：主面板必须像普通 LLM chat panel 一样工作；前端只发送标准消息历史，不承担历史清洗或后端特判职责。
          * 调用时机：`MagiMainPanel` 的 `submit-input` 事件上抛到容器后调用。
          */
         sendUserMessage: async (text: string, options?: SendUserMessageOptions) => {
@@ -286,19 +368,38 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
             if (!userInput) {
                 return "";
             }
-            const sourceSystemMessage = buildSourceSimulationSystemMessage(options);
-            const messages: ChatRequestParams["messages"] = [];
-            if (sourceSystemMessage) {
-                messages.push(sourceSystemMessage);
-            }
-            messages.push({ role: "user", content: userInput });
+            bindMainMonitorBridge();
+            await appendMainPanelMessage(mainPanelMessages, "user", userInput, "success");
+            const messages = buildMainPanelRequestMessages(mainPanelMessages, options);
+            const pendingAssistant = await appendMainPanelMessage(
+                mainPanelMessages,
+                "assistant",
+                "Waiting response...",
+                "loading",
+            );
             const request: ChatRequestParams = {
                 model: "magi-trinity",
                 messages,
                 stream: false,
             };
-            const response = await llmAdapter.createChatCompletion(request);
-            return response.choices?.[0]?.message?.content ?? "";
+            isMainPanelRequestPending.value = true;
+            try {
+                const response = await llmAdapter.createChatCompletion(request);
+                const reply = response.choices?.[0]?.message?.content ?? "";
+                pendingAssistant.content = reply || "[empty response]";
+                pendingAssistant.status = "success";
+                pendingAssistant.timestamp = Date.now();
+                return reply;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                pendingAssistant.type = "error";
+                pendingAssistant.content = message;
+                pendingAssistant.status = "error";
+                pendingAssistant.timestamp = Date.now();
+                throw error;
+            } finally {
+                isMainPanelRequestPending.value = false;
+            }
         },
         /**
          * 作用：重新初始化 MAGI 实例并清空消息。
@@ -306,7 +407,13 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
          * 调用时机：用户主动触发重连或上层容器请求重置时。
          */
         initializeMAGI: async (options) => {
-            await reinitializeMAGI(seels, connectionStatus, consensusMessages, options);
+            await reinitializeMAGI(
+                seels,
+                connectionStatus,
+                consensusMessages,
+                mainPanelMessages,
+                options,
+            );
         },
     };
 }
@@ -322,6 +429,7 @@ async function reinitializeMAGI(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
     consensusMessages: MagiMessage[],
+    mainPanelMessages: MagiMessage[],
     options?: {
         promptInjections?: MagiPromptSet;
         preserveConsensusMessages?: boolean;
@@ -330,7 +438,12 @@ async function reinitializeMAGI(
     try {
         connectionStatus.value = "connecting";
         const shouldClearMessages = !options?.preserveConsensusMessages;
-        await clearReactiveArrays(seels, consensusMessages, shouldClearMessages);
+        await clearReactiveArrays(
+            seels,
+            consensusMessages,
+            mainPanelMessages,
+            shouldClearMessages,
+        );
         const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
         const runtimePersonaName = await resolvePersonaNameForInit();
         await initializeWrappedSeels(

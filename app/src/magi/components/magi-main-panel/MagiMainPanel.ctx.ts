@@ -31,8 +31,10 @@ const ALIGN_MAP: Record<string, string> = {
 /** 消息类型到显示标签的映射 */
 const TYPE_LABEL_MAP: Record<string, string> = {
     consensus: "MAGI CONSENSUS",
+    assistant: "MAGI",
     user: "USER INPUT",
     system: "SYSTEM PROCESS",
+    error: "ERROR",
 };
 
 /** 投票结论到图标的映射 */

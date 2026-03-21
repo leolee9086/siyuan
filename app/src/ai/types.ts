@@ -43,6 +43,7 @@ export interface ChatRequestParams {
         role: "user" | "assistant" | "system";
         content: string;
     }>;
+    user?: string;
     model?: string;
     temperature?: number;
     max_tokens?: number;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"net/http"
 	"strings"
 	"sync"
@@ -48,9 +49,12 @@ type magiPersonaRuntimeStatus struct {
 }
 
 const (
-	MagiTaskSourceGuardian = "Guardian"
-	MagiTaskTypeChat       = "Chat"
-	MagiTaskPriorityP0     = "P0"
+	MagiTaskSourceGuardian   = "Guardian"
+	MagiTaskTypeChat         = "Chat"
+	MagiTaskPriorityP0       = "P0"
+	maxClaimedRecentHistory  = 8
+	maxMagiMonitorSessionID  = 120
+	magiMonitorSessionPrefix = "magi-route-"
 )
 
 var (
@@ -285,7 +289,7 @@ func writeMagiTaskError(c *gin.Context, err error) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
 		return
 	}
-	if err.Error() == "no user message found" {
+	if err.Error() == "no chat messages found" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -309,11 +313,11 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 		return MagiTaskResult{Err: errors.New("MAGI system not initialized: " + magiInitErr.Error())}
 	}
 
-	// 提取用户消息
-	userMessage := extractUserMessage(req.Messages)
-	if userMessage == "" {
-		return MagiTaskResult{Err: errors.New("no user message found")}
+	claimedRecentHistory := extractClaimedRecentHistory(req.Messages)
+	if len(claimedRecentHistory) == 0 {
+		return MagiTaskResult{Err: errors.New("no chat messages found")}
 	}
+	userMessage := buildClaimedUserMessagePreview(claimedRecentHistory)
 
 	// 调用 Coordinator 执行决策
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -328,6 +332,7 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 		magiTrinity,
 		userMessage,
 		task.SourceCtx,
+		claimedRecentHistory,
 	)
 
 	if err != nil {
@@ -336,21 +341,48 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 	return MagiTaskResult{ConsensusMsg: consensusMsg}
 }
 
-// extractUserMessage 从消息列表中提取用户消息
-func extractUserMessage(messages []openai.ChatCompletionMessage) string {
+func extractClaimedRecentHistory(messages []openai.ChatCompletionMessage) []types.ClaimedHistoryMessage {
 	if len(messages) == 0 {
-		return ""
+		return nil
 	}
 
-	// 取最后一条 role=user 的消息
-	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Role == openai.ChatMessageRoleUser {
-			return messages[i].Content
+	history := make([]types.ClaimedHistoryMessage, 0, len(messages))
+	for _, message := range messages {
+		role := strings.TrimSpace(message.Role)
+		content := strings.TrimSpace(message.Content)
+		if role == "" || content == "" {
+			continue
+		}
+		switch role {
+		case openai.ChatMessageRoleUser, openai.ChatMessageRoleAssistant:
+		case openai.ChatMessageRoleSystem:
+			if _, ok := extractSourcePayloadFromText(content); ok {
+				continue
+			}
+		default:
+			continue
+		}
+		history = append(history, types.ClaimedHistoryMessage{
+			Role:    role,
+			Content: content,
+		})
+	}
+	if len(history) > maxClaimedRecentHistory {
+		history = history[len(history)-maxClaimedRecentHistory:]
+	}
+	return history
+}
+
+func buildClaimedUserMessagePreview(history []types.ClaimedHistoryMessage) string {
+	for i := len(history) - 1; i >= 0; i-- {
+		if strings.TrimSpace(history[i].Role) == openai.ChatMessageRoleUser {
+			return history[i].Content
 		}
 	}
-
-	// 没有找到用户消息，返回空字符串让上层报错
-	return ""
+	if len(history) == 0 {
+		return ""
+	}
+	return history[len(history)-1].Content
 }
 
 // getOrCreateSession 获取或创建会话ID
@@ -388,18 +420,48 @@ func getOrCreateSession(c *gin.Context, sourceCtx *types.RequestSourceContext) s
 			}
 			magiSourceSID.Delete(sourceCtx.SourceSessionKey)
 		}
+
+		deterministicID := buildDeterministicMagiMonitorSessionID(sourceCtx.SourceSessionKey)
+		if deterministicID != "" {
+			if _, ok := magiSessionMgr.GetSession(deterministicID); ok {
+				magiSessionMgr.UpdateActivity(deterministicID)
+				magiSourceSID.Store(sourceCtx.SourceSessionKey, deterministicID)
+				return deterministicID
+			}
+			session := magiSessionMgr.CreateSessionWithID(deterministicID, userIDFromSourceCtx(sourceCtx))
+			magiSourceSID.Store(sourceCtx.SourceSessionKey, session.ID)
+			return session.ID
+		}
 	}
 
 	// 创建新会话
-	userID := "default-user"
-	if sourceCtx != nil && sourceCtx.PrincipalID != "" {
-		userID = sourceCtx.PrincipalID
-	}
+	userID := userIDFromSourceCtx(sourceCtx)
 	session := magiSessionMgr.CreateSession(userID)
 	if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
 		magiSourceSID.Store(sourceCtx.SourceSessionKey, session.ID)
 	}
 	return session.ID
+}
+
+func userIDFromSourceCtx(sourceCtx *types.RequestSourceContext) string {
+	if sourceCtx != nil && sourceCtx.PrincipalID != "" {
+		return sourceCtx.PrincipalID
+	}
+	return "default-user"
+}
+
+func buildDeterministicMagiMonitorSessionID(sourceSessionKey string) string {
+	normalized := strings.TrimSpace(sourceSessionKey)
+	if normalized == "" {
+		return ""
+	}
+	rawSessionID := magiMonitorSessionPrefix + normalized
+	if len(rawSessionID) <= maxMagiMonitorSessionID {
+		return rawSessionID
+	}
+	hasher := fnv.New64a()
+	_, _ = hasher.Write([]byte(normalized))
+	return fmt.Sprintf("%s%016x", magiMonitorSessionPrefix, hasher.Sum64())
 }
 
 func sanitizeMagiSessionID(raw string) string {

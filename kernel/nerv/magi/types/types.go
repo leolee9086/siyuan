@@ -238,3 +238,10 @@ type RequestSourceContext struct {
 	ModelIntent           string            `json:"modelIntent,omitempty"`
 	RawAttributes         map[string]string `json:"rawAttributes,omitempty"`
 }
+
+// ClaimedHistoryMessage 前端随请求提交的“渠道宣称最近历史”条目。
+// 这类历史只能视为某个来源的声明，不可直接当作可信事实。
+type ClaimedHistoryMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}

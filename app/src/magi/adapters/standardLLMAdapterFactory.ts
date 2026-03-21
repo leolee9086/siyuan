@@ -3,6 +3,7 @@ import { createMagiStandardLLMAdapter } from "./magiStandardLLMAdapter";
 import type { MagiEventBus } from "../events/magiEventBus.types";
 import type { StandardLLMAdapter } from "../types/llmAdapter.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
+import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 
 /**
  * 标准 LLM 适配器工厂参数
@@ -16,7 +17,7 @@ export interface StandardLLMAdapterFactoryParams {
     consensusMessages: MagiMessage[];
     seels: WrappedSeel[];
     eventBus?: MagiEventBus;
-    sessionId?: string;
+    mainInterfaceIdentity?: MagiInterfaceIdentity;
 }
 
 /**
@@ -35,6 +36,6 @@ export async function createStandardLLMAdapter(
         consensusMessages: params.consensusMessages,
         seels: params.seels,
         eventBus: params.eventBus,
-        sessionId: params.sessionId,
+        mainInterfaceIdentity: params.mainInterfaceIdentity,
     });
 }

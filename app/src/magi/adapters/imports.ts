@@ -42,12 +42,14 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
  * 解耦评估：可通过依赖注入解耦，但当前实现为全局会话管理，重构成本较高
  */
 import { getActiveMagiArmorToken } from "../service/magiIdentitySession";
+import { getActiveMagiArmorSession } from "../service/magiIdentitySession";
 /**
  * 用途：MAGI身份认证事件常量，用于触发身份认证流程
  * 使用范围：当缺少认证令牌时触发此事件通知用户登录
  * 解耦评估：事件常量无法解耦，必须保持一致性
  */
 import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
+import type { MagiArmorSession } from "../service/magiIdentitySession";
 
 // ============================================================================
 // MAGI 核心运行时 - Avatar运行时和核心类型定义
@@ -174,8 +176,10 @@ export { getSiyuanConfig };
 
 // 导出MAGI装甲令牌获取函数
 export { getActiveMagiArmorToken };
+export { getActiveMagiArmorSession };
 // 导出MAGI身份认证事件常量
 export { MAGI_IDENTITY_REQUIRED_EVENT };
+export type { MagiArmorSession };
 
 // 导出Avatar运行时创建函数
 export { createAvatarRuntime };

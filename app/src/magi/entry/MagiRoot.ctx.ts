@@ -218,7 +218,7 @@ function buildSourceSimulationContext(
  * 处理输入栏提交事件
  *
  * 作用：转发用户输入到 `useMagi.sendUserMessage` 并在成功后清空输入框。
- * 意图：保持输入处理入口统一，避免组件模板直接耦合业务流程。
+ * 意图：保持主面板作为标准 HTTP chat panel 的提交入口统一。
  * 调用时机：`MagiMainPanel` 触发 `submit-input` 事件时调用。
  */
 async function handleSubmitInput(
@@ -236,17 +236,8 @@ async function handleSubmitInput(
     try {
         await magiState.value.sendUserMessage(value);
         inputValue.value = "";
-    } catch (error) {
-        const rawMessage = error instanceof Error ? error.message : String(error);
-        const isIdentityMissing = rawMessage.toLowerCase().includes("identity session missing");
-        const message = isIdentityMissing
-            ? "MAGI 身份会话缺失，请在 Identity Access Control 面板登录后重试。"
-            : `请求失败: ${rawMessage}`;
-        await appendConsensusMessage(
-            magiState.value.consensusMessages,
-            "error",
-            message,
-        );
+    } catch {
+        // sendUserMessage 已把失败状态写回主面板的待回复消息，这里保留输入内容即可。
     }
 }
 
@@ -923,7 +914,7 @@ function createMagiRootComputed(
             connected: seel.connected,
         })),
     );
-    const consensusMessages = computed(() => magiState.value?.consensusMessages ?? []);
+    const mainPanelMessages = computed(() => magiState.value?.mainPanelMessages ?? []);
     const sageSeels = computed(() =>
         seels.value.filter((seel) => !isTrinitySeel(seel.config.name)),
     );
@@ -941,9 +932,7 @@ function createMagiRootComputed(
     );
     const displayMessages = computed<MagiMainPanelMessageView[]>(() => !showMessages.value
         ? []
-        : showSeels.value
-            ? consensusMessages.value.filter((message) => !(message.type === "consensus" && Reflect.get(message.meta ?? {}, "type") === "sage-response"))
-            : consensusMessages.value);
+        : mainPanelMessages.value);
     const workspaceAIMainNotebookStatus = computed<WorkspaceAIMainNotebookStatus | null>(() =>
         workspaceAIMainNotebookState.value?.status ?? null,
     );

@@ -1,0 +1,75 @@
+package api
+
+import (
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/session"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+)
+
+func TestExtractClaimedRecentHistory_TrimsAndSkipsTransportMessages(t *testing.T) {
+	messages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: `<magi_request_source>{"source":"guardian","requestId":"req-1"}</magi_request_source>`,
+		},
+		{Role: openai.ChatMessageRoleUser, Content: "第1条"},
+		{Role: openai.ChatMessageRoleAssistant, Content: "第2条"},
+		{Role: openai.ChatMessageRoleUser, Content: "第3条"},
+		{Role: openai.ChatMessageRoleAssistant, Content: "第4条"},
+		{Role: openai.ChatMessageRoleUser, Content: "第5条"},
+		{Role: openai.ChatMessageRoleAssistant, Content: "第6条"},
+		{Role: openai.ChatMessageRoleUser, Content: "第7条"},
+		{Role: openai.ChatMessageRoleAssistant, Content: "第8条"},
+		{Role: openai.ChatMessageRoleUser, Content: "第9条"},
+	}
+
+	got := extractClaimedRecentHistory(messages)
+	if len(got) != maxClaimedRecentHistory {
+		t.Fatalf("expected %d history items, got %d", maxClaimedRecentHistory, len(got))
+	}
+	if got[0].Content != "第2条" {
+		t.Fatalf("expected oldest kept item to be 第2条, got %s", got[0].Content)
+	}
+	if got[len(got)-1].Content != "第9条" {
+		t.Fatalf("expected latest kept item to be 第9条, got %s", got[len(got)-1].Content)
+	}
+	for _, item := range got {
+		if item.Role == openai.ChatMessageRoleSystem {
+			t.Fatalf("transport system message should not leak into claimed history: %+v", item)
+		}
+	}
+}
+
+func TestGetOrCreateSession_UsesDeterministicSourceSessionKeyWithoutHeader(t *testing.T) {
+	oldMgr := magiSessionMgr
+	oldSourceSID := magiSourceSID
+	defer func() {
+		magiSessionMgr = oldMgr
+		magiSourceSID = oldSourceSID
+	}()
+
+	magiSessionMgr = session.NewSessionManager(time.Minute)
+	magiSourceSID = sync.Map{}
+
+	sourceCtx := &types.RequestSourceContext{
+		PrincipalID:      "principal-a",
+		SourceSessionKey: "guardian:principal-a:main-1:conv-1",
+	}
+
+	firstContext := newTestGinContext()
+	firstSessionID := getOrCreateSession(firstContext, sourceCtx)
+	expectedSessionID := buildDeterministicMagiMonitorSessionID(sourceCtx.SourceSessionKey)
+	if firstSessionID != expectedSessionID {
+		t.Fatalf("expected deterministic session id %s, got %s", expectedSessionID, firstSessionID)
+	}
+
+	secondContext := newTestGinContext()
+	secondSessionID := getOrCreateSession(secondContext, sourceCtx)
+	if secondSessionID != firstSessionID {
+		t.Fatalf("expected reused session id %s, got %s", firstSessionID, secondSessionID)
+	}
+}

@@ -63,6 +63,7 @@ func (c *Coordinator) CoordinateDecision(
 	melchior, balthazar, casper, trinity *sages.Sage,
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
+	claimedRecentHistory []types.ClaimedHistoryMessage,
 ) (*types.Message, error) {
 	// 生成roundId
 	roundId := util.RandString(16)
@@ -72,7 +73,12 @@ func (c *Coordinator) CoordinateDecision(
 		logging.LogWarnf("推送轮次开始失败: %v", err)
 	}
 
-	sourceAwareUserInput := c.buildSourceAwareUserInput(sessionId, userMessage, sourceCtx)
+	sourceAwareUserInput := c.buildSourceAwareUserInput(
+		sessionId,
+		userMessage,
+		sourceCtx,
+		claimedRecentHistory,
+	)
 
 	// 非绝对可信来源优先走 Avatar 路径：若无绑定则创建，有绑定则复用直答。
 	if sourceCtx != nil && !sourceCtx.DirectResponseAllowed {
@@ -311,19 +317,22 @@ func (c *Coordinator) buildConsensusMessage(
 	}
 }
 
-func (c *Coordinator) buildSourceAwareUserInput(sessionID, userMessage string, sourceCtx *types.RequestSourceContext) string {
+func (c *Coordinator) buildSourceAwareUserInput(
+	sessionID, userMessage string,
+	sourceCtx *types.RequestSourceContext,
+	claimedRecentHistory []types.ClaimedHistoryMessage,
+) string {
 	if sourceCtx == nil {
 		return userMessage
 	}
 
 	roundOrdinal := c.nextRoundOrdinal(sessionID)
-	identityID := strings.TrimSpace(sourceCtx.IdentityID)
-	if identityID == "" {
-		identityID = strings.TrimSpace(sourceCtx.PrincipalID)
-	}
 	nickname := strings.TrimSpace(sourceCtx.Nickname)
+	loginIdentity := resolveSourceLoginIdentity(sourceCtx)
+	speakerLabel := resolveClaimedHistorySpeaker(sourceCtx)
+	permissions := buildSourcePermissionEnvelope(sourceCtx)
 	if nickname == "" {
-		nickname = identityID
+		nickname = speakerLabel
 	}
 
 	payload := map[string]interface{}{
@@ -332,15 +341,91 @@ func (c *Coordinator) buildSourceAwareUserInput(sessionID, userMessage string, s
 		"trustBase":     sourceCtx.TrustBase,
 		"riskLevel":     sourceCtx.RiskLevel,
 		"principal":     sourceCtx.PrincipalID,
-		"identityId":    identityID,
+		"identityId":    loginIdentity,
 		"nickname":      nickname,
+		"speaker":       speakerLabel,
+		"loginIdentity": loginIdentity,
+		"permissions":   permissions,
 		"interface":     sourceCtx.InterfaceID,
 		"interfaceKind": sourceCtx.InterfaceKind,
+		"conversation":  sourceCtx.ConversationID,
+		"authStrength":  sourceCtx.AuthStrength,
 	}
 
+	claimedHistoryPayload := map[string]interface{}{
+		"channel":       sourceCtx.Channel,
+		"trustBase":     sourceCtx.TrustBase,
+		"riskLevel":     sourceCtx.RiskLevel,
+		"speaker":       speakerLabel,
+		"loginIdentity": loginIdentity,
+		"permissions":   permissions,
+		"messages":      claimedRecentHistory,
+	}
 	runtimeClock := c.buildRuntimeClockPayload(roundOrdinal)
 	workspaceSnapshot := c.buildWorkspaceSnapshotPayload(roundOrdinal, sourceCtx)
-	return prompts.BuildSourceAwareUserInputWithRuntime(userMessage, payload, runtimeClock, workspaceSnapshot)
+	return prompts.BuildSourceAwareUserInputWithRuntime(
+		buildClaimedHistoryInstruction(speakerLabel),
+		payload,
+		claimedHistoryPayload,
+		runtimeClock,
+		workspaceSnapshot,
+	)
+}
+
+func resolveSourceLoginIdentity(sourceCtx *types.RequestSourceContext) string {
+	if sourceCtx == nil {
+		return "身份不明"
+	}
+	identityID := strings.TrimSpace(sourceCtx.IdentityID)
+	if identityID == "" {
+		identityID = strings.TrimSpace(sourceCtx.PrincipalID)
+	}
+	if identityID == "" {
+		return "身份不明"
+	}
+	return identityID
+}
+
+func resolveClaimedHistorySpeaker(sourceCtx *types.RequestSourceContext) string {
+	if sourceCtx == nil {
+		return "身份不明"
+	}
+	nickname := strings.TrimSpace(sourceCtx.Nickname)
+	if nickname != "" {
+		return nickname
+	}
+	return "身份不明"
+}
+
+func buildSourcePermissionEnvelope(sourceCtx *types.RequestSourceContext) map[string]interface{} {
+	if sourceCtx == nil {
+		return map[string]interface{}{
+			"routeClass":            "unknown",
+			"authStrength":          "unknown",
+			"directResponseAllowed": false,
+		}
+	}
+	routeClass := "unknown"
+	if sourceCtx.RawAttributes != nil {
+		if raw := strings.TrimSpace(sourceCtx.RawAttributes["routeClass"]); raw != "" {
+			routeClass = raw
+		}
+	}
+	return map[string]interface{}{
+		"routeClass":            routeClass,
+		"authStrength":          sourceCtx.AuthStrength,
+		"directResponseAllowed": sourceCtx.DirectResponseAllowed,
+	}
+}
+
+func buildClaimedHistoryInstruction(speakerLabel string) string {
+	if strings.TrimSpace(speakerLabel) == "" {
+		speakerLabel = "身份不明"
+	}
+	return fmt.Sprintf(
+		"这是某个渠道宣称最新的消息历史。你要结合 request_source 与 claimed_recent_history，自行理解和判断这段消息历史中<%s>在表达什么，然后继续回应。",
+		speakerLabel,
+	)
 }
 
 func (c *Coordinator) nextRoundOrdinal(sessionID string) uint64 {

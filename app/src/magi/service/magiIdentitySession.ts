@@ -269,16 +269,20 @@ export function clearActiveMagiArmorSession(): void {
     magiIdentitySessionState.activeSession = null;
 }
 
-export function getActiveMagiArmorToken(): string {
+export function getActiveMagiArmorSession(): MagiArmorSession | null {
     const activeSession = magiIdentitySessionState.activeSession;
     if (!activeSession) {
-        return "";
+        return null;
     }
     if (activeSession.expiresAt <= Date.now()) {
         magiIdentitySessionState.activeSession = null;
-        return "";
+        return null;
     }
-    return activeSession.armorToken;
+    return activeSession;
+}
+
+export function getActiveMagiArmorToken(): string {
+    return getActiveMagiArmorSession()?.armorToken ?? "";
 }
 
 export function useMagiIdentitySessionState() {

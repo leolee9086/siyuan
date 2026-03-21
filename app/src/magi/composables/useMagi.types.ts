@@ -132,6 +132,8 @@ export interface UseMagiReturn {
     seels: WrappedSeel[];
     /** 连接状态 */
     connectionStatus: Ref<ConnectionStatus>;
+    /** 主聊天面板本地消息列表（HTTP 请求/响应） */
+    mainPanelMessages: MagiMessage[];
     /** 共识消息列表 */
     consensusMessages: MagiMessage[];
     /** 是否存在任一贤者正在响应 */

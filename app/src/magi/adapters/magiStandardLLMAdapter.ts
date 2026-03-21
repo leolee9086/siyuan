@@ -59,12 +59,6 @@ import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
  */
 import { extractLatestUserInput } from "./magiStandardLLMAdapter.helpers";
 /**
- * 用途：导入buildConsensusRequestContext函数用于构建请求上下文
- * 使用范围：createMagiChatCompletion函数中调用
- * 解耦评估：辅助函数可通过模块化解耦
- */
-import { buildConsensusRequestContext } from "./magiStandardLLMAdapter.helpers";
-/**
  * 用途：导入buildOpenAICompatibleResponse函数用于构建响应
  * 使用范围：createMagiChatCompletion函数中调用
  * 解耦评估：辅助函数可通过模块化解耦
@@ -123,11 +117,10 @@ export async function createMagiStandardLLMAdapter(params: {
     consensusMessages: MagiMessage[];
     seels: WrappedSeel[];
     eventBus?: MagiEventBus;
-    sessionId?: string;
+    mainInterfaceIdentity?: MagiInterfaceIdentity;
 }): Promise<StandardLLMAdapter> {
     const model = params.model ?? "magi-trinity";
-    const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
-    const sessionId = typeof params.sessionId === "string" ? params.sessionId.trim() : "";
+    const runtimeMainInterfaceIdentity = params.mainInterfaceIdentity ?? buildRuntimeMainInterfaceIdentity();
 
     return {
         /**
@@ -138,7 +131,7 @@ export async function createMagiStandardLLMAdapter(params: {
          * 调用时机：上层需要获取完整响应时调用
          */
         createChatCompletion: async (request) =>
-            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, sessionId),
+            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity),
         /**
          * 流式聊天完成
          *
@@ -152,7 +145,6 @@ export async function createMagiStandardLLMAdapter(params: {
                 callbacks,
                 model,
                 runtimeMainInterfaceIdentity,
-                sessionId,
             ),
     };
 }
@@ -167,26 +159,21 @@ export async function createMagiStandardLLMAdapter(params: {
  * @param request - 聊天请求参数
  * @param model - 模型名称
  * @param runtimeMainInterfaceIdentity - 运行时主接口身份
- * @param sessionId - 会话ID
  * @returns 聊天响应数据
  */
 async function createMagiChatCompletion(
     request: ChatRequestParams,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
-    sessionId: string,
 ): Promise<ChatResponseData> {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
         return buildOpenAICompatibleResponse("", request.model ?? model, "stop");
     }
-    const requestContext = buildConsensusRequestContext(request.messages);
     const backendResult = await tryForwardMagiRequestToBackend(
         request,
         request.model ?? model,
-        requestContext,
         runtimeMainInterfaceIdentity,
-        sessionId,
     );
     // 后端成功返回响应，直接返回
     if (backendResult.response) {
@@ -212,14 +199,12 @@ async function createMagiChatCompletion(
  * @param callbacks - 流式回调函数
  * @param model - 模型名称
  * @param runtimeMainInterfaceIdentity - 运行时主接口身份
- * @param sessionId - 会话ID
  */
 async function streamMagiChatCompletion(
     request: ChatRequestParams,
     callbacks: StandardLLMStreamCallbacks,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
-    sessionId: string,
 ): Promise<void> {
     callbacks.onStart?.();
     try {
@@ -227,7 +212,6 @@ async function streamMagiChatCompletion(
             request,
             model,
             runtimeMainInterfaceIdentity,
-            sessionId,
         );
         const firstChoice = response.choices?.[0];
         const content = firstChoice?.message?.content ?? "";

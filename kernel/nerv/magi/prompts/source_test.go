@@ -6,9 +6,15 @@ import (
 )
 
 func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
-	userMessage := "你好"
+	userMessage := "请你自行判断这段历史里<alice>在表达什么。"
 	sourcePayload := map[string]interface{}{
 		"channel": "guardian",
+	}
+	claimedRecentHistory := map[string]interface{}{
+		"speaker": "alice",
+		"messages": []map[string]string{
+			{"role": "user", "content": "你好"},
+		},
 	}
 	runtimeClock := map[string]interface{}{
 		"today": "2026-03-09",
@@ -17,7 +23,13 @@ func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
 		"name": "SiYuan",
 	}
 
-	got := BuildSourceAwareUserInputWithRuntime(userMessage, sourcePayload, runtimeClock, workspaceSnapshot)
+	got := BuildSourceAwareUserInputWithRuntime(
+		userMessage,
+		sourcePayload,
+		claimedRecentHistory,
+		runtimeClock,
+		workspaceSnapshot,
+	)
 
 	if !strings.Contains(got, "<runtime_clock>") {
 		t.Fatal("expected runtime_clock envelope")
@@ -27,6 +39,9 @@ func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
 	}
 	if !strings.Contains(got, "<request_source>") {
 		t.Fatal("expected request_source envelope")
+	}
+	if !strings.Contains(got, "<claimed_recent_history>") {
+		t.Fatal("expected claimed_recent_history envelope")
 	}
 	if !strings.Contains(got, "<source=user_message>") {
 		t.Fatal("expected source=user_message envelope")
@@ -53,5 +68,5 @@ func TestBuildSourceAwareUserInputWithRuntimePanicsWhenRequestSourceMissing(t *t
 		}
 	}()
 
-	_ = BuildSourceAwareUserInputWithRuntime(userMessage, sourcePayload, nil, nil)
+	_ = BuildSourceAwareUserInputWithRuntime(userMessage, sourcePayload, nil, nil, nil)
 }

@@ -3,7 +3,7 @@
     <div ref="container" class="main-message-container">
       <MessageBubble
         v-for="(msg, i) in messages"
-        :key="`consensus-${i}`"
+        :key="msg.id || `message-${i}`"
         :type="msg.type"
         :type-label="getTypeLabel(msg.type)"
         :timestamp="msg.timestamp"

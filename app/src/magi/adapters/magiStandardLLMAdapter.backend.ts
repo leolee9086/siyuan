@@ -28,6 +28,8 @@ import { getAIConfigFromSiyuan } from "./imports";
  * 解耦评估：可通过依赖注入解耦，但当前实现为全局会话管理
  */
 import { getActiveMagiArmorToken } from "./imports";
+import { getActiveMagiArmorSession } from "./imports";
+import type { MagiArmorSession } from "./imports";
 /**
  * 用途：导入getSiyuanConfig函数用于获取思源配置
  * 使用范围：resolveMagiTargetLabel函数中获取magi.target配置
@@ -48,6 +50,9 @@ import type { BackendForwardResult } from "./magiStandardLLMAdapter.types";
 import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 
 const SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH = "/api/s-forge/magi/v1/chat/completions";
+const MAGI_MONITOR_SESSION_PREFIX = "magi-route-";
+const FNV_OFFSET_BASIS_64 = 0xcbf29ce484222325n;
+const FNV_PRIME_64 = 0x100000001b3n;
 
 /**
  * 构建随机身份段
@@ -154,6 +159,76 @@ export function buildRequestInterfaceIdentity(
     };
 }
 
+function buildMainRequestIdentityPayload(
+    mainIdentity: MagiInterfaceIdentity,
+    activeSession: MagiArmorSession | null,
+): Record<string, string> {
+    return {
+        ...(activeSession?.identityId
+            ? { principal: activeSession.identityId }
+            : {}),
+        interface: mainIdentity.interfaceId,
+        kind: mainIdentity.interfaceKind,
+        conversation: mainIdentity.conversationId,
+    };
+}
+
+function hashTextFNV1a64(input: string): string {
+    const bytes = new TextEncoder().encode(input);
+    let hash = FNV_OFFSET_BASIS_64;
+    for (const byte of bytes) {
+        hash ^= BigInt(byte);
+        hash = BigInt.asUintN(64, hash * FNV_PRIME_64);
+    }
+    return hash.toString(16).padStart(16, "0");
+}
+
+function resolveMainSourceChannel(routeClass: string): "guardian" | "external-agent" {
+    return routeClass === "guardian" ? "guardian" : "external-agent";
+}
+
+export function buildRuntimeMainRequestUser(mainIdentity: MagiInterfaceIdentity): string {
+    const activeSession = getActiveMagiArmorSession();
+    return JSON.stringify(buildMainRequestIdentityPayload(mainIdentity, activeSession));
+}
+
+export function buildDeterministicMagiMonitorSessionId(sourceSessionKey: string): string {
+    const normalized = String(sourceSessionKey ?? "").trim();
+    if (!normalized) {
+        return "";
+    }
+    const rawSessionId = `${MAGI_MONITOR_SESSION_PREFIX}${normalized}`;
+    if (rawSessionId.length <= 120) {
+        return rawSessionId;
+    }
+    return `${MAGI_MONITOR_SESSION_PREFIX}${hashTextFNV1a64(normalized)}`;
+}
+
+export function buildRuntimeMainSourceSessionKey(
+    mainIdentity: MagiInterfaceIdentity,
+    activeSession: MagiArmorSession | null = getActiveMagiArmorSession(),
+): string {
+    if (!activeSession) {
+        return "";
+    }
+    const channel = resolveMainSourceChannel(activeSession.routeClass);
+    return [
+        channel,
+        activeSession.identityId,
+        mainIdentity.interfaceId,
+        mainIdentity.conversationId,
+    ].join(":");
+}
+
+export function buildRuntimeMainMonitorSessionId(
+    mainIdentity: MagiInterfaceIdentity,
+    activeSession: MagiArmorSession | null = getActiveMagiArmorSession(),
+): string {
+    return buildDeterministicMagiMonitorSessionId(
+        buildRuntimeMainSourceSessionKey(mainIdentity, activeSession),
+    );
+}
+
 /**
  * 构建MAGI后端请求体
  * 
@@ -166,6 +241,9 @@ export function buildMagiBackendRequestBody(
     return {
         model: request.model ?? fallbackModel,
         messages: request.messages,
+        ...(typeof request.user === "string" && request.user.trim()
+            ? { user: request.user.trim() }
+            : {}),
         temperature: request.temperature,
         max_tokens: request.max_tokens,
         ...(Array.isArray(request.tools) ? { tools: request.tools } : {}),
@@ -179,11 +257,10 @@ export function buildMagiBackendRequestBody(
  * 
  * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
  */
-export function buildMagiBackendHeaders(armorToken: string, sessionId: string): Record<string, string> {
+export function buildMagiBackendHeaders(armorToken: string): Record<string, string> {
     return {
         "Content-Type": "application/json",
         Authorization: `Bearer ${armorToken}`,
-        ...(sessionId ? { "X-MAGI-Session-ID": sessionId } : {}),
     };
 }
 
@@ -197,9 +274,7 @@ export function buildMagiBackendHeaders(armorToken: string, sessionId: string): 
 export async function tryForwardMagiRequestToBackend(
     request: ChatRequestParams,
     fallbackModel: string,
-    requestContext: ConsensusRequestContext,
     mainIdentity: MagiInterfaceIdentity,
-    sessionId: string,
 ): Promise<BackendForwardResult> {
     const armorToken = getActiveMagiArmorToken();
     if (!armorToken) {
@@ -213,14 +288,20 @@ export async function tryForwardMagiRequestToBackend(
         // baseURL 缺失时回退到相对路径，仍可在同源场景命中后端
     }
     const endpoint = buildSourceSimulationBackendEndpoint(apiBaseURL);
-    buildRequestInterfaceIdentity(requestContext, mainIdentity);
-    const requestBody = buildMagiBackendRequestBody(request, fallbackModel);
+    const requestBody = buildMagiBackendRequestBody({
+        ...request,
+        /**
+         * 主面板必须像普通 LLM 客户端一样，通过标准 OpenAI `user` 字段
+         * 提供会话身份镜像；前端不依赖 MAGI/NERV 私有 header。
+         */
+        user: request.user ?? buildRuntimeMainRequestUser(mainIdentity),
+    }, fallbackModel);
 
     try {
         const response = await fetch(endpoint, {
             method: "POST",
             credentials: "include",
-            headers: buildMagiBackendHeaders(armorToken, sessionId),
+            headers: buildMagiBackendHeaders(armorToken),
             body: JSON.stringify(requestBody),
         });
         if (!response.ok) {

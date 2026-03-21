@@ -402,7 +402,11 @@ func TestBuildSourceAwareUserInput(t *testing.T) {
 		RiskLevel:     types.TrustLevelLow,
 	}
 
-	got := c.buildSourceAwareUserInput("session-source-aware", "你好", sourceCtx)
+	claimedRecentHistory := []types.ClaimedHistoryMessage{
+		{Role: "user", Content: "你好"},
+		{Role: "assistant", Content: "你好，我在。"},
+	}
+	got := c.buildSourceAwareUserInput("session-source-aware", "你好", sourceCtx, claimedRecentHistory)
 	if got == "你好" {
 		t.Fatal("source-aware input should include request_source envelope")
 	}
@@ -415,11 +419,17 @@ func TestBuildSourceAwareUserInput(t *testing.T) {
 	if !strings.Contains(got, "<request_source>") {
 		t.Fatal("source-aware input should include request_source envelope")
 	}
+	if !strings.Contains(got, "<claimed_recent_history>") {
+		t.Fatal("source-aware input should include claimed_recent_history envelope")
+	}
 	if !strings.Contains(got, `"identityId":"principal-a"`) {
 		t.Fatalf("source-aware input should include identityId, got: %s", got)
 	}
 	if !strings.Contains(got, `"nickname":"alice"`) {
 		t.Fatalf("source-aware input should include nickname, got: %s", got)
+	}
+	if !strings.Contains(got, `"speaker":"alice"`) {
+		t.Fatalf("source-aware input should include speaker label, got: %s", got)
 	}
 }
 
@@ -445,7 +455,12 @@ func TestBuildSourceAwareUserInputInjectsWorkspaceSnapshotEveryNrounds(t *testin
 	}
 
 	for i := 1; i <= int(defaultWorkspaceSnapshotInterval); i++ {
-		got := c.buildSourceAwareUserInput("session-workspace", "你好", sourceCtx)
+		got := c.buildSourceAwareUserInput(
+			"session-workspace",
+			"你好",
+			sourceCtx,
+			[]types.ClaimedHistoryMessage{{Role: "user", Content: "你好"}},
+		)
 		hasWorkspace := strings.Contains(got, "<workspace_snapshot>")
 		if i == int(defaultWorkspaceSnapshotInterval) {
 			if !hasWorkspace {
@@ -494,6 +509,7 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 		trinity,
 		"测试消息",
 		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "测试消息"}},
 	)
 	if err != nil {
 		t.Fatalf("expected avatar dispatch success for non-direct source, got err: %v", err)
@@ -522,6 +538,7 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 		trinity,
 		"第二次请求",
 		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "第二次请求"}},
 	)
 	if err != nil {
 		t.Fatalf("expected second avatar dispatch success, got err: %v", err)
@@ -561,7 +578,17 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
 
-	firstMsg, err := c.CoordinateDecision(context.Background(), "session-heartbeat", melchior, balthazar, casper, trinity, "请求1", sourceCtx)
+	firstMsg, err := c.CoordinateDecision(
+		context.Background(),
+		"session-heartbeat",
+		melchior,
+		balthazar,
+		casper,
+		trinity,
+		"请求1",
+		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求1"}},
+	)
 	if err != nil {
 		t.Fatalf("request1 expected success, got err: %v", err)
 	}
@@ -570,24 +597,64 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		t.Fatalf("request1 expected avatarRoleId, got: %v", firstMsg.Meta["avatarRoleId"])
 	}
 
-	_, err = c.CoordinateDecision(context.Background(), "session-heartbeat", melchior, balthazar, casper, trinity, "请求2", sourceCtx)
+	_, err = c.CoordinateDecision(
+		context.Background(),
+		"session-heartbeat",
+		melchior,
+		balthazar,
+		casper,
+		trinity,
+		"请求2",
+		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求2"}},
+	)
 	if err != nil {
 		t.Fatalf("request2 expected success, got err: %v", err)
 	}
 
-	_, err = c.CoordinateDecision(context.Background(), "session-heartbeat", melchior, balthazar, casper, trinity, "请求3", sourceCtx)
+	_, err = c.CoordinateDecision(
+		context.Background(),
+		"session-heartbeat",
+		melchior,
+		balthazar,
+		casper,
+		trinity,
+		"请求3",
+		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求3"}},
+	)
 	if err == nil || !IsAvatarUnavailable(err) {
 		t.Fatalf("request3 expected avatar unavailable(404) due heartbeat timeout, got err: %v", err)
 	}
 
-	_, err = c.CoordinateDecision(context.Background(), "session-heartbeat", melchior, balthazar, casper, trinity, "请求4", sourceCtx)
+	_, err = c.CoordinateDecision(
+		context.Background(),
+		"session-heartbeat",
+		melchior,
+		balthazar,
+		casper,
+		trinity,
+		"请求4",
+		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求4"}},
+	)
 	if err == nil || !IsAvatarUnavailable(err) {
 		t.Fatalf("request4 expected avatar unavailable(404) while rewriting, got err: %v", err)
 	}
 
 	time.Sleep(avatarRebuildDelay + 300*time.Millisecond)
 
-	afterRewriteMsg, err := c.CoordinateDecision(context.Background(), "session-heartbeat", melchior, balthazar, casper, trinity, "请求5", sourceCtx)
+	afterRewriteMsg, err := c.CoordinateDecision(
+		context.Background(),
+		"session-heartbeat",
+		melchior,
+		balthazar,
+		casper,
+		trinity,
+		"请求5",
+		sourceCtx,
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求5"}},
+	)
 	if err != nil {
 		t.Fatalf("request5 expected success after rewrite, got err: %v", err)
 	}
