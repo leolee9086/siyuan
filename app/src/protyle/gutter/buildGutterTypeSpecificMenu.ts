@@ -163,6 +163,7 @@ export function buildGutterTypeSpecificMenu(context: ITypeSpecificMenuContext): 
         "NodeVideo": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeAudio": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeIFrame": () => handleMediaMenu(protyle, nodeElement, type),
+        "NodeWidget": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeHTMLBlock": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeBlockQueryEmbed": () => handleEmbedMenu(protyle, nodeElement, id),
         "NodeHeading": () => handleHeadingMenu(protyle, nodeElement, id, subType),

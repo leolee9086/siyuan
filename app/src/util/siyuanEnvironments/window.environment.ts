@@ -67,6 +67,30 @@ export function openInNewWindow(url: string): void {
 }
 
 /**
+ * 向当前窗口派发自定义事件。
+ *
+ * 作用：封装 `window.dispatchEvent`，统一窗口级自定义事件发送入口。
+ * 意图：避免业务文件直接访问 `window`，符合环境层封装约束。
+ * 调用时机：需要在主窗口广播自定义事件时。
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - dispatchEvent 为同步 DOM API */
+export function dispatchWindowCustomEvent<TDetail>(type: string, detail: TDetail): void {
+    window.dispatchEvent(new CustomEvent(type, { detail }));
+}
+
+/**
+ * 向指定事件目标派发自定义事件。
+ *
+ * 作用：封装 `EventTarget.dispatchEvent`，用于 iframe 窗口等目标的事件广播。
+ * 意图：统一事件派发写法，减少业务侧重复样板代码。
+ * 调用时机：需要向非当前窗口事件目标发送自定义事件时。
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - dispatchEvent 为同步 DOM API */
+export function dispatchCustomEvent<TDetail>(target: EventTarget, type: string, detail: TDetail): void {
+    target.dispatchEvent(new CustomEvent(type, { detail }));
+}
+
+/**
  * 重新加载当前页面
  *
  * 作用：封装 window.location.reload，避免直接访问 window 全局对象

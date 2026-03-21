@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clock Gutter Demo</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="clock-card" aria-live="polite">
+    <header class="clock-card__header">
+      <h1>Clock Gutter Demo</h1>
+      <span class="clock-card__mode" id="modeLabel">--</span>
+    </header>
+
+    <section class="clock-card__time">
+      <p class="clock-card__date" id="dateLabel">--</p>
+      <p class="clock-card__clock" id="timeLabel">--:--:--</p>
+    </section>
+
+    <section class="clock-card__meta">
+      <p><strong>Widget ID:</strong> <span id="widgetIdLabel">(未检测到)</span></p>
+      <p><strong>Source:</strong> <span id="sourceLabel">/widgets/clock-gutter-demo/</span></p>
+    </section>
+
+    <div class="clock-card__actions">
+      <button id="copyNowButton" type="button">复制当前时间</button>
+      <button id="openStandaloneButton" type="button">在新页签打开当前挂件</button>
+    </div>
+
+    <p class="clock-card__hint">提示：右键挂件块的 gutter 菜单，可看到此挂件通过事件机制注入的自定义菜单项。</p>
+  </main>
+
+  <script src="./main.js"></script>
+</body>
+</html>

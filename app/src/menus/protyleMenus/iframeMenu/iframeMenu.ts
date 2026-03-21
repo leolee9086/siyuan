@@ -17,11 +17,17 @@ import { getSearch } from "./imports";
  */
 import { siyuanI18n } from "./imports";
 /**
- * 用途：生成打开方式子菜单
- * 使用范围：iframeMenu 函数中追加打开选项
- * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ * 用途：生成 iframe 打开动作菜单
+ * 使用范围：iframeMenu 函数中追加“在浏览器中查看/在新页签中打开”
+ * 解耦评估：打开动作逻辑已拆分到独立模块，通过直接导入可降低菜单主流程复杂度
  */
-import { openMenu } from "./imports";
+import { buildIframeOpenMenus } from "./iframeMenu.open";
+/**
+ * 用途：规范化 iframe 打开链接
+ * 使用范围：iframeMenu 构建打开动作前处理 src
+ * 解耦评估：打开链接规范化逻辑已独立封装，直接导入可减少重复实现
+ */
+import { normalizeIframeOpenURL } from "./iframeMenu.open";
 
 /**
  * 为 iframe 块生成菜单。
@@ -70,8 +76,8 @@ export const iframeMenu = (protyle: IProtyle, nodeElement: Element) => {
     subMenus.push({
         type: "separator"
     });
-    const menus = openMenu(protyle.app, iframeSrc, true, false);
-    if (menus && Array.isArray(menus)) {
+    const menus = buildIframeOpenMenus(protyle.app, normalizeIframeOpenURL(iframeSrc));
+    if (menus.length > 0) {
         return subMenus.concat(menus);
     }
     return subMenus;

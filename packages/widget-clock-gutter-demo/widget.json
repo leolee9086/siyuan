@@ -1,0 +1,34 @@
+{
+  "name": "clock-gutter-demo",
+  "author": "s-forge",
+  "url": "https://github.com/siyuan-note/siyuan",
+  "version": "0.1.0",
+  "minAppVersion": "3.6.0",
+  "frontends": [
+    "desktop",
+    "desktop-window",
+    "mobile",
+    "browser-desktop"
+  ],
+  "backends": [
+    "all"
+  ],
+  "displayName": {
+    "default": "Clock Gutter Demo",
+    "zh_CN": "时钟挂件菜单演示"
+  },
+  "description": {
+    "default": "Clock widget demo for widget gutter event and open-in-browser/new-tab behavior.",
+    "zh_CN": "用于验证挂件 gutter 事件扩展与浏览器/新页签打开行为的时钟挂件。"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh_CN": "README.md"
+  },
+  "keywords": [
+    "widget",
+    "clock",
+    "gutter",
+    "demo"
+  ]
+}

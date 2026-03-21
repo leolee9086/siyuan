@@ -6,6 +6,7 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { videoMenu } from "../../menus/protyleMenus/videoMenu/protyle.videoMenu";
 import { iframeMenu } from "../../menus/protyleMenus/iframeMenu/iframeMenu";
+import { widgetMenu } from "../../menus/protyleMenus/iframeMenu/widgetMenu";
 
 /**
  * 构建 HTML/Media 相关菜单
@@ -30,6 +31,15 @@ export const buildGutterMediaMenu = (protyle: IProtyle, nodeElement: Element, ty
             icon: "iconLanguage",
             label: siyuanI18n.assets,
             submenu: iframeMenu(protyle, nodeElement)
+        });
+    } else if (type === "NodeWidget" && !protyle.disabled) {
+        menus.push({ id: "separator_Widget", type: "separator" });
+        menus.push({
+            id: "assetWidget",
+            type: "submenu",
+            icon: "iconBoth",
+            label: siyuanI18n.assets,
+            submenu: widgetMenu(protyle, nodeElement)
         });
     } else if (type === "NodeHTMLBlock" && !protyle.disabled) {
         menus.push({ id: "separator_html", type: "separator" });

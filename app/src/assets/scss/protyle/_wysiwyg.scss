@@ -523,6 +523,16 @@
         }
       }
 
+      body.layout--iframe-interaction-lock & {
+        .iframe-content::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          pointer-events: auto;
+        }
+      }
+
       &--drag {
         .iframe-content::after {
           content: "";

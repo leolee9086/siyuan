@@ -34,12 +34,76 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 /** 导出 siyuanI18n 用于国际化文本 */
 export { siyuanI18n };
 
-// ============ 菜单功能导入 ============
+// ============ 打开动作能力导入 ============
 /**
- * 用途：生成"打开方式"子菜单，提供多种打开 iframe 链接的选项
- * 使用范围：iframeMenu 函数中，当 iframe 有有效 src 时追加打开方式菜单
- * 解耦评估：通用菜单组件，已模块化封装。可通过依赖注入解耦，但考虑到这是菜单模块间的协作，当前直接导入是合理的。若未来需要支持自定义菜单提供者，可考虑使用策略模式或插件机制
+ * 用途：判断是否 Electron 环境
+ * 使用范围：iframeMenu.open.ts 的浏览器打开动作
+ * 解耦评估：平台能力属于外部依赖，适合在 imports.ts 转发
  */
-import { openMenu } from "../../commonMenuItem/openMenu";
-/** 导出 openMenu 用于生成打开方式菜单 */
-export { openMenu };
+import { isElectron } from "../../../platform";
+/** 导出 isElectron */
+export { isElectron };
+
+/**
+ * 用途：Electron 外链打开能力
+ * 使用范围：iframeMenu.open.ts 的浏览器打开动作
+ * 解耦评估：平台能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { openExternal } from "../../../platform/electron/shell";
+/** 导出 openExternal */
+export { openExternal };
+
+/**
+ * 用途：移动端/浏览器打开能力
+ * 使用范围：iframeMenu.open.ts 的浏览器打开动作
+ * 解耦评估：兼容层能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { openByMobile } from "../../../protyle/util/compatibility";
+/** 导出 openByMobile */
+export { openByMobile };
+
+/**
+ * 用途：在应用内打开第三方源页签
+ * 使用范围：iframeMenu.open.ts 的“在新页签中打开”动作（应用内 Tab）
+ * 解耦评估：业务能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { openBazaarSourceTab } from "../../../bazaar-hub/open";
+/** 导出 openBazaarSourceTab */
+export { openBazaarSourceTab };
+
+/**
+ * 用途：向当前窗口派发自定义事件
+ * 使用范围：widgetMenu.ts 触发挂件菜单扩展事件
+ * 解耦评估：事件派发能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { dispatchWindowCustomEvent } from "../../../util/siyuanEnvironments/window.environment";
+/** 导出 dispatchWindowCustomEvent */
+export { dispatchWindowCustomEvent };
+
+/**
+ * 用途：向指定事件目标派发自定义事件
+ * 使用范围：widgetMenu.ts 向挂件 iframe 窗口派发扩展事件
+ * 解耦评估：事件派发能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { dispatchCustomEvent } from "../../../util/siyuanEnvironments/window.environment";
+/** 导出 dispatchCustomEvent */
+export { dispatchCustomEvent };
+
+/**
+ * 用途：读取当前页面 origin
+ * 使用范围：iframeMenu.open.ts 中补全相对地址
+ * 解耦评估：location 环境能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { getLocationOrigin } from "../../../util/siyuanEnvironments/windowLocation.environment";
+/** 导出 getLocationOrigin */
+export { getLocationOrigin };
+
+/**
+ * 用途：显示消息提示
+ * 使用范围：iframeMenu.open.ts 的错误提示
+ * 解耦评估：UI 能力属于外部依赖，适合在 imports.ts 转发
+ */
+import { showMessage } from "../../../dialog/message";
+/** 导出 showMessage */
+export { showMessage };
+

@@ -1,0 +1,117 @@
+:root {
+  --bg: #0c1324;
+  --surface: #141f36;
+  --text: #ecf2ff;
+  --muted: #a3b5d9;
+  --accent: #4ac9ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "JetBrains Mono", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top right, #233e78 0%, #0c1324 40%), var(--bg);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.clock-card {
+  width: min(560px, 100%);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.clock-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.clock-card__header h1 {
+  margin: 0;
+  font-size: clamp(18px, 3vw, 24px);
+}
+
+.clock-card__mode {
+  font-size: 12px;
+  color: var(--accent);
+  border: 1px solid rgba(74, 201, 255, 0.5);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.clock-card__time {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.clock-card__date {
+  margin: 0;
+  color: var(--muted);
+}
+
+.clock-card__clock {
+  margin: 8px 0 0;
+  font-size: clamp(34px, 8vw, 72px);
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.clock-card__meta {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.clock-card__meta p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.clock-card__actions {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #1d3d77;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2753a0;
+}
+
+.clock-card__hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .clock-card {
+    padding: 12px;
+  }
+
+  .clock-card__actions {
+    grid-template-columns: 1fr;
+  }
+}
