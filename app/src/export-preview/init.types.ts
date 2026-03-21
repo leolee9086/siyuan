@@ -1,5 +1,5 @@
 /** 导出预览页签支持的预览类型 */
-export type TExportPreviewType = "default" | "image";
+export type TExportPreviewType = "default" | "image" | "mp-wechat" | "zhihu" | "yuque";
 
 /**
  * 导出预览页签类型定义

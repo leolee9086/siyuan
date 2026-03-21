@@ -7,6 +7,8 @@ import { focusByRange } from "../util/selection";
 import { link2online } from "./link2online";
 import { processPreviewElementsZhihuTable, processPreviewElementZhihuBlockquote } from "./zhihuAdapter";
 
+export type TCopyTargetPlatform = "mp-wechat" | "zhihu" | "yuque";
+
 /**
  * 处理微信公众号的HTML预处理
  * @param copyElement 需要预处理的HTML元素
@@ -104,31 +106,49 @@ const processZhihuHTML = async (copyElement: HTMLElement): Promise<void> => {
     processPreviewElementsZhihuTable(copyElement);
 };
 
-export const copyPreviewHTMLToX = async (
-    element: HTMLElement,
+export const preparePreviewHTMLForX = async (
     copyElement: HTMLElement,
-    id: string,
-    targetPlatform?: string,
-) => {
-    // fix math render
+    targetPlatform: Exclude<TCopyTargetPlatform, "yuque">,
+): Promise<void> => {
     if (targetPlatform === "mp-wechat") {
         await processWeChatHTML(copyElement);
-        await executeCopyOperation(element, copyElement, targetPlatform);
-    } else if (targetPlatform === "zhihu") {
-        await processZhihuHTML(copyElement);
-        await executeCopyOperation(element, copyElement, targetPlatform);
-    } else if (targetPlatform === "yuque") {
+        return;
+    }
+    await processZhihuHTML(copyElement);
+};
+
+export const requestYuqueMarkdown = (id: string): Promise<string> => {
+    return new Promise((resolve) => {
         fetchPost("/api/lute/copyStdMarkdown", {
             id,
             assetsDestSpace2Underscore: true,
             fillCSSVar: true,
             adjustHeadingLevel: true,
         }, (response) => {
-            writeText(response.data);
-            showMessage(`${siyuanI18n.pasteToYuque}`);
+            resolve(response.data || "");
         });
+    });
+};
+
+export const copyPreviewHTMLToX = async (
+    element: HTMLElement,
+    copyElement: HTMLElement,
+    id: string,
+    targetPlatform?: TCopyTargetPlatform,
+): Promise<void> => {
+    if (!targetPlatform) {
         return;
     }
+
+    if (targetPlatform === "yuque") {
+        const markdown = await requestYuqueMarkdown(id);
+        writeText(markdown);
+        showMessage(`${siyuanI18n.pasteToYuque}`);
+        return;
+    }
+
+    await preparePreviewHTMLForX(copyElement, targetPlatform);
+    executeCopyOperation(element, copyElement, targetPlatform);
 };
 /**
  * 执行HTML复制操作

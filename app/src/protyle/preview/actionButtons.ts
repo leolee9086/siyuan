@@ -15,9 +15,9 @@ export const addActionButtons = (actions: Array<IPreviewAction | IPreviewActionC
         "desktop": `<button type="button" class="protyle-preview__action--current" data-group="device" data-type="desktop">${siyuanI18n.desktop}</button>`,
         "tablet": `<button type="button" data-group="device" data-type="tablet">${siyuanI18n.tablet}</button>`,
         "mobile": `<button type="button" data-group="device" data-type="mobile">${siyuanI18n.mobile}</button>`,
-        "mp-wechat": `<button type="button" data-type="mp-wechat" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToWechatMP}"><svg><use xlink:href="#iconMp"></use></svg></button>`,
-        "zhihu": `<button type="button" data-type="zhihu" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToZhihu}"><svg><use xlink:href="#iconZhihu"></use></svg></button>`,
-        "yuque": `<button type="button" data-type="yuque" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToYuque}"><svg><use xlink:href="#iconYuque"></use></svg></button>`,
+        "mp-wechat": `<button type="button" data-group="preview-type" data-type="mp-wechat" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToWechatMP}"><svg><use xlink:href="#iconMp"></use></svg></button>`,
+        "zhihu": `<button type="button" data-group="preview-type" data-type="zhihu" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToZhihu}"><svg><use xlink:href="#iconZhihu"></use></svg></button>`,
+        "yuque": `<button type="button" data-group="preview-type" data-type="yuque" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.copyToYuque}"><svg><use xlink:href="#iconYuque"></use></svg></button>`,
         "image": `<button type="button" data-group="preview-type" data-type="image" class="b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.exportAsImage}"><svg><use xlink:href="#iconImage"></use></svg></button>`,
     };
 
