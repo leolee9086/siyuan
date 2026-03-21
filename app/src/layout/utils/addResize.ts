@@ -44,10 +44,10 @@ const setSize = (item: HTMLElement, direction: string) => {
     }
     if (direction === "lr") {
         item.style.width = item.clientWidth + "px";
+        item.classList.remove("fn__flex-1");
         return;
     }
     item.style.height = item.clientHeight + "px";
-
     item.classList.remove("fn__flex-1");
 
 };

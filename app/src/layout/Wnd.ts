@@ -229,6 +229,7 @@ export class Wnd {
                         movedWnd.element.style.height = "";
                         movedWnd.element.classList.add("fn__flex-1");
                     }
+                    fixWndFlex1(layout);
                     return true;
                 }
             });
