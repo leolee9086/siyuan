@@ -1,6 +1,10 @@
 import type { ComputedRef, InjectionKey, Ref } from "vue";
 import type { WrappedSeel, UseMagiReturn } from "../composables/useMagi.types";
 import type {
+    WorkspaceAIMainNotebookState,
+    WorkspaceAIMainNotebookStatus,
+} from "../service/aiMainNotebook.types";
+import type {
     MagiMainPanelMessageView,
     MagiMainPanelSeelView,
     MagiSeelPanelView,
@@ -22,6 +26,11 @@ export interface MagiRootContext {
     showSeels: Ref<boolean>;
     showTrinity: Ref<boolean>;
     showQuestionnairePanel: Ref<boolean>;
+    workspaceAIMainNotebookState: Ref<WorkspaceAIMainNotebookState | null>;
+    workspaceAIMainNotebookStatus: ComputedRef<WorkspaceAIMainNotebookStatus | null>;
+    workspaceAIMainNotebookLoading: Ref<boolean>;
+    workspaceAIMainNotebookActionLoading: Ref<boolean>;
+    workspaceAIMainNotebookError: Ref<string | null>;
     showWindowControls: ComputedRef<boolean>;
     sourceSimulationProfiles: Ref<SourceSimulationProfileView[]>;
     sourceSimulationPanels: Ref<SourceSimulationPanelView[]>;
@@ -37,6 +46,9 @@ export interface MagiRootContext {
     onShowQuestionnaire: () => Promise<void>;
     onCloseQuestionnaire: () => void;
     onQuestionnaireSaved: (saved: PersonaSeedSavedEvent) => Promise<void>;
+    onRefreshWorkspaceAIMainNotebookState: () => Promise<boolean>;
+    onCreateWorkspaceAIMainNotebook: (name?: string) => Promise<void>;
+    onResolveWorkspaceAIMainNotebook: (keepNotebook: string) => Promise<void>;
     onReconnect: () => Promise<void>;
     onExportSessionRecord: () => Promise<void>;
     onOpenConsole: () => Promise<void>;

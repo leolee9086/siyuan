@@ -28,6 +28,141 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
+func getWorkspaceAIMainNotebookState(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	state, err := model.GetWorkspaceAIMainNotebookState()
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	ret.Data = map[string]interface{}{
+		"state": state,
+	}
+}
+
+func createWorkspaceAIMainNotebook(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	name := ""
+	if rawName, exists := arg["name"]; exists && rawName != nil {
+		if parsedName, castOK := rawName.(string); castOK {
+			name = parsedName
+		}
+	}
+
+	box, existed, err := model.CreateWorkspaceAIMainNotebook(name)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	evt := util.NewCmdResult("createnotebook", 0, util.PushModeBroadcast)
+	evt.Data = map[string]interface{}{
+		"box":     box,
+		"existed": existed,
+	}
+	util.PushEvent(evt)
+
+	state, stateErr := model.GetWorkspaceAIMainNotebookState()
+	if stateErr != nil {
+		ret.Code = -1
+		ret.Msg = stateErr.Error()
+		return
+	}
+
+	ret.Data = map[string]interface{}{
+		"notebook": box,
+		"state":    state,
+	}
+}
+
+func resolveWorkspaceAIMainNotebookConflict(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	keepNotebook := arg["keepNotebook"].(string)
+	if util.InvalidIDPattern(keepNotebook, ret) {
+		return
+	}
+
+	state, err := model.GetWorkspaceAIMainNotebookState()
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	var keepBox *model.Box
+	for _, notebook := range state.Notebooks {
+		if notebook != nil && notebook.ID == keepNotebook {
+			keepBox = notebook
+			break
+		}
+	}
+	if keepBox == nil {
+		ret.Code = -1
+		ret.Msg = "ai main notebook not found"
+		return
+	}
+
+	var closedNotebookIDs []string
+	for _, notebook := range state.OpenNotebooks {
+		if notebook == nil || notebook.ID == keepNotebook {
+			continue
+		}
+		model.Unmount(notebook.ID)
+		closedNotebookIDs = append(closedNotebookIDs, notebook.ID)
+	}
+
+	keptNotebook := model.Conf.GetBox(keepNotebook)
+	if keptNotebook == nil || keptNotebook.Closed {
+		alreadyMount, mountErr := model.Mount(keepNotebook)
+		if mountErr != nil {
+			ret.Code = -1
+			ret.Msg = mountErr.Error()
+			return
+		}
+		keptNotebook = model.Conf.Box(keepNotebook)
+		if keptNotebook != nil {
+			evt := util.NewCmdResult("mount", 0, util.PushModeBroadcast)
+			evt.Data = map[string]interface{}{
+				"box":     keptNotebook,
+				"existed": alreadyMount,
+			}
+			util.PushEvent(evt)
+		}
+	}
+
+	nextState, stateErr := model.GetWorkspaceAIMainNotebookState()
+	if stateErr != nil {
+		ret.Code = -1
+		ret.Msg = stateErr.Error()
+		return
+	}
+
+	ret.Data = map[string]interface{}{
+		"keptNotebook":      keptNotebook,
+		"closedNotebookIDs": closedNotebookIDs,
+		"state":             nextState,
+	}
+}
+
 func getNotebookInfo(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)

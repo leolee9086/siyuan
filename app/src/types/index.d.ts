@@ -522,6 +522,7 @@ interface INotebook {
     closed: boolean;
     icon: string;
     sort: number;
+    aiMainNotebook?: boolean;
     dueFlashcardCount?: string;
     newFlashcardCount?: string;
     flashcardCount?: string;

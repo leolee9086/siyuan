@@ -49,12 +49,13 @@ import (
 
 // Box 笔记本。
 type Box struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Icon     string `json:"icon"`
-	Sort     int    `json:"sort"`
-	SortMode int    `json:"sortMode"`
-	Closed   bool   `json:"closed"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Icon           string `json:"icon"`
+	Sort           int    `json:"sort"`
+	SortMode       int    `json:"sortMode"`
+	Closed         bool   `json:"closed"`
+	AIMainNotebook bool   `json:"aiMainNotebook"`
 
 	NewFlashcardCount int `json:"newFlashcardCount"`
 	DueFlashcardCount int `json:"dueFlashcardCount"`
@@ -138,12 +139,13 @@ func ListNotebooks() (ret []*Box, err error) {
 		}
 
 		box := &Box{
-			ID:       id,
-			Name:     boxConf.Name,
-			Icon:     icon,
-			Sort:     boxConf.Sort,
-			SortMode: boxConf.SortMode,
-			Closed:   boxConf.Closed,
+			ID:             id,
+			Name:           boxConf.Name,
+			Icon:           icon,
+			Sort:           boxConf.Sort,
+			SortMode:       boxConf.SortMode,
+			Closed:         boxConf.Closed,
+			AIMainNotebook: boxConf.AIMainNotebook,
 		}
 
 		if !isExistConf {

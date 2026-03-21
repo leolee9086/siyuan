@@ -39,6 +39,10 @@ body,
   overflow: hidden;
 }
 
+.magi-titlebar--guard {
+  justify-content: space-between;
+}
+
 .magi-title {
   font-family: "MS Gothic", monospace;
   letter-spacing: 0.18em;
@@ -58,12 +62,24 @@ body,
   -webkit-app-region: no-drag;
 }
 
+.magi-titlebar-content--guard {
+  justify-content: flex-end;
+}
+
 .magi-titlebar-content::-webkit-scrollbar {
   height: 4px;
 }
 
 .magi-titlebar-content::-webkit-scrollbar-thumb {
   background: rgba(0, 210, 210, 0.45);
+}
+
+.magi-titlebar-guard-label {
+  color: rgba(157, 239, 242, 0.72);
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
 }
 
 .magi-status-strip {
@@ -259,6 +275,151 @@ body,
 
 .magi-error {
   color: #ff8f8f;
+}
+
+.magi-guard {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.magi-guard-panel {
+  width: min(720px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(0, 255, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(0, 25, 30, 0.92), rgba(0, 10, 14, 0.9)),
+    radial-gradient(circle at top, rgba(21, 255, 86, 0.08), transparent 55%);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 255, 0.08) inset,
+    0 24px 80px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.magi-guard-kicker {
+  color: #15ff56;
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.magi-guard-title {
+  margin: 0;
+  color: #d8fbff;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.2;
+}
+
+.magi-guard-description,
+.magi-guard-note {
+  margin: 0;
+  color: rgba(157, 239, 242, 0.86);
+  line-height: 1.7;
+}
+
+.magi-guard-error,
+.magi-guard-empty {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 87, 117, 0.38);
+  background: rgba(76, 8, 18, 0.48);
+  color: #ff9db0;
+  font-family: "MS Gothic", monospace;
+}
+
+.magi-guard-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.magi-guard-button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(21, 255, 86, 0.62);
+  background: rgba(0, 64, 22, 0.44);
+  color: #d9ffe5;
+  font-family: "MS Gothic", monospace;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.magi-guard-button:hover:not(:disabled) {
+  border-color: rgba(111, 255, 155, 0.88);
+  background: rgba(0, 92, 32, 0.5);
+}
+
+.magi-guard-button--secondary {
+  border-color: rgba(0, 255, 255, 0.44);
+  background: rgba(0, 48, 58, 0.34);
+  color: #9deff2;
+}
+
+.magi-guard-button--secondary:hover:not(:disabled) {
+  border-color: rgba(126, 255, 255, 0.75);
+  background: rgba(0, 88, 88, 0.28);
+}
+
+.magi-guard-button:disabled,
+.magi-guard-choice:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.magi-guard-choice-list {
+  display: grid;
+  gap: 12px;
+}
+
+.magi-guard-choice {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(0, 255, 255, 0.24);
+  background: rgba(0, 24, 31, 0.72);
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.magi-guard-choice:hover:not(:disabled) {
+  border-color: rgba(111, 251, 255, 0.72);
+  background: rgba(0, 44, 58, 0.62);
+}
+
+.magi-guard-choice-name {
+  color: #d8fbff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.magi-guard-choice-meta {
+  color: rgba(157, 239, 242, 0.7);
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+}
+
+.magi-guard-choice-badge {
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 230, 120, 0.52);
+  color: #ffe76e;
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.magi-guard-choice-badge.active {
+  border-color: rgba(21, 255, 86, 0.58);
+  color: #15ff56;
 }
 
 .magi-workspace-shell {
@@ -582,5 +743,13 @@ body,
 
   .magi-main-pane--identity {
     padding: 6px;
+  }
+
+  .magi-guard {
+    padding: 16px;
+  }
+
+  .magi-guard-panel {
+    padding: 20px;
   }
 }

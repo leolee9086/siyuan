@@ -948,7 +948,15 @@ func (conf *AppConf) GetBoxes() (ret []*Box) {
 		id := notebook.ID
 		name := notebook.Name
 		closed := notebook.Closed
-		box := &Box{ID: id, Name: name, Closed: closed}
+		box := &Box{
+			ID:             id,
+			Name:           name,
+			Icon:           notebook.Icon,
+			Sort:           notebook.Sort,
+			SortMode:       notebook.SortMode,
+			Closed:         closed,
+			AIMainNotebook: notebook.AIMainNotebook,
+		}
 		ret = append(ret, box)
 	}
 	return

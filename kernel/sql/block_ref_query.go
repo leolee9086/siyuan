@@ -450,6 +450,24 @@ func QueryRefsByDefIDRefID(defBlockID, refBlockID string) (ret []*Ref) {
 	return
 }
 
+func QueryDefRootIDsByRefBox(boxID string) (ret []string) {
+	rows, err := query("SELECT DISTINCT def_block_root_id FROM refs WHERE box = ? AND def_block_root_id != ''", boxID)
+	if err != nil {
+		logging.LogErrorf("sql query failed: %s", err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			logging.LogErrorf("query scan field failed: %s", err)
+			return
+		}
+		ret = append(ret, id)
+	}
+	return
+}
+
 func DefRefs(condition string, limit int) (ret []map[*Block]*Block) {
 	ret = []map[*Block]*Block{}
 	stmt := "SELECT ref.*, r.block_id || '@' || r.def_block_id AS rel FROM blocks AS ref, refs AS r WHERE ref.id = r.block_id"

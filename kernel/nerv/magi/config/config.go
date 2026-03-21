@@ -171,7 +171,7 @@ func BuildNoteKeywordSearchToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        NoteKeywordSearchToolName,
-			Description: "按关键词查询笔记内容块（词法查询，不写入数据）。",
+			Description: "按关键词查询当前工作空间的AI主笔记本内容块；若命中超出AI主笔记本及其直接ID引用/嵌入范围，仅返回文档ID，此时应向用户请求阅读权限。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

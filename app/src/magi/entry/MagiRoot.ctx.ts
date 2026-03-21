@@ -23,6 +23,14 @@ import { isElectron, isMobile } from "../../platform";
 import { ipcSend, ipcInvoke } from "../../platform/electron/ipcRenderer";
 import { Constants } from "../../constants";
 import { createQuestionnaireSavedHandler } from "../composables/root/MagiRoot.questionnaire";
+import {
+    createWorkspaceAIMainNotebook,
+    fetchWorkspaceAIMainNotebookState,
+    openWorkspaceAIMainNotebook,
+    resolveWorkspaceAIMainNotebookConflict,
+} from "../service/aiMainNotebook";
+import type { WorkspaceAIMainNotebookState } from "../service/aiMainNotebook.types";
+import type { WorkspaceAIMainNotebookStatus } from "../service/aiMainNotebook.types";
 
 const DEFAULT_SOURCE_SIMULATION_PROFILES: SourceSimulationProfileView[] = [
     {
@@ -61,6 +69,75 @@ const DEFAULT_SOURCE_SIMULATION_PROFILES: SourceSimulationProfileView[] = [
 
 function createSourceSimulationProfileOptions(): SourceSimulationProfileView[] {
     return DEFAULT_SOURCE_SIMULATION_PROFILES.map((profile) => ({ ...profile }));
+}
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function notifyWorkspaceAIMainNotebookConflict(status: WorkspaceAIMainNotebookStatus): void {
+    if (status !== "conflict" || typeof window === "undefined" || typeof window.showMessage !== "function") {
+        return;
+    }
+    window.showMessage(
+        "同一工作空间同一时间只能有一个 AI 主笔记本处于打开状态，请选择一个保持打开。",
+        7000,
+        "info",
+    );
+}
+
+function setWorkspaceAIMainNotebookState(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookError: { value: string | null },
+    nextState: WorkspaceAIMainNotebookState,
+): void {
+    const previousStatus = workspaceAIMainNotebookState.value?.status ?? null;
+    workspaceAIMainNotebookState.value = nextState;
+    workspaceAIMainNotebookError.value = null;
+    if (previousStatus !== nextState.status) {
+        notifyWorkspaceAIMainNotebookConflict(nextState.status);
+    }
+}
+
+async function refreshWorkspaceAIMainNotebookState(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+): Promise<WorkspaceAIMainNotebookState | null> {
+    workspaceAIMainNotebookLoading.value = true;
+    workspaceAIMainNotebookError.value = null;
+
+    try {
+        let nextState = await fetchWorkspaceAIMainNotebookState();
+        if (nextState.status === "ready" && nextState.activeNotebook?.closed) {
+            await openWorkspaceAIMainNotebook(nextState.activeNotebook.id);
+            nextState = await fetchWorkspaceAIMainNotebookState();
+        }
+        setWorkspaceAIMainNotebookState(
+            workspaceAIMainNotebookState,
+            workspaceAIMainNotebookError,
+            nextState,
+        );
+        return nextState;
+    } catch (error) {
+        workspaceAIMainNotebookError.value = getErrorMessage(error);
+        return null;
+    } finally {
+        workspaceAIMainNotebookLoading.value = false;
+    }
+}
+
+async function ensureWorkspaceAIMainNotebookReady(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+): Promise<boolean> {
+    const nextState = await refreshWorkspaceAIMainNotebookState(
+        workspaceAIMainNotebookState,
+        workspaceAIMainNotebookLoading,
+        workspaceAIMainNotebookError,
+    );
+    return nextState?.status === "ready";
 }
 
 function createSourcePanelId(): string {
@@ -147,9 +224,13 @@ function buildSourceSimulationContext(
 async function handleSubmitInput(
     magiState: { value: UseMagiReturn | null },
     inputValue: { value: string },
+    ensureWorkspaceReady: () => Promise<boolean>,
     value: string,
 ): Promise<void> {
     if (!magiState.value) {
+        return;
+    }
+    if (!await ensureWorkspaceReady()) {
         return;
     }
     try {
@@ -191,8 +272,12 @@ async function handleShowQuestionnaire(
  */
 async function handleReconnect(
     magiState: { value: UseMagiReturn | null },
+    ensureWorkspaceReady: () => Promise<boolean>,
 ): Promise<void> {
     if (!magiState.value) {
+        return;
+    }
+    if (!await ensureWorkspaceReady()) {
         return;
     }
     await magiState.value.initializeMAGI();
@@ -436,8 +521,14 @@ async function handleSubmitSourceSimulationPanel(
 function createSubmitInputHandler(
     magiState: { value: UseMagiReturn | null },
     inputValue: { value: string },
+    ensureWorkspaceReady: () => Promise<boolean>,
 ): (value: string) => Promise<void> {
-    return async (value: string) => handleSubmitInput(magiState, inputValue, value);
+    return async (value: string) => handleSubmitInput(
+        magiState,
+        inputValue,
+        ensureWorkspaceReady,
+        value,
+    );
 }
 
 /**
@@ -471,8 +562,9 @@ function createCloseQuestionnaireHandler(
  */
 function createReconnectHandler(
     magiState: { value: UseMagiReturn | null },
+    ensureWorkspaceReady: () => Promise<boolean>,
 ): () => Promise<void> {
-    return async () => handleReconnect(magiState);
+    return async () => handleReconnect(magiState, ensureWorkspaceReady);
 }
 
 /** 创建详细记录导出处理器 */
@@ -480,6 +572,105 @@ function createExportSessionRecordHandler(
     magiState: { value: UseMagiReturn | null },
 ): () => Promise<void> {
     return async () => handleExportSessionRecord(magiState);
+}
+
+function createRefreshWorkspaceAIMainNotebookStateHandler(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookLoading: { value: boolean },
+    workspaceAIMainNotebookActionLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+    magiState: { value: UseMagiReturn | null },
+    ready: { value: boolean },
+    bootError: { value: string | null },
+): () => Promise<boolean> {
+    return async () => {
+        if (workspaceAIMainNotebookActionLoading.value) {
+            return false;
+        }
+
+        const nextState = await refreshWorkspaceAIMainNotebookState(
+            workspaceAIMainNotebookState,
+            workspaceAIMainNotebookLoading,
+            workspaceAIMainNotebookError,
+        );
+        if (!nextState) {
+            return false;
+        }
+
+        bootError.value = null;
+        if (nextState.status === "ready" && (!ready.value || !magiState.value)) {
+            await bootstrapMagiState(magiState, ready, bootError);
+        }
+        return nextState.status === "ready";
+    };
+}
+
+function createWorkspaceAIMainNotebookCreateHandler(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookActionLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+    magiState: { value: UseMagiReturn | null },
+    ready: { value: boolean },
+    bootError: { value: string | null },
+): (name?: string) => Promise<void> {
+    return async (name?: string) => {
+        if (workspaceAIMainNotebookActionLoading.value) {
+            return;
+        }
+
+        workspaceAIMainNotebookActionLoading.value = true;
+        workspaceAIMainNotebookError.value = null;
+        try {
+            const nextState = await createWorkspaceAIMainNotebook(name);
+            setWorkspaceAIMainNotebookState(
+                workspaceAIMainNotebookState,
+                workspaceAIMainNotebookError,
+                nextState,
+            );
+            bootError.value = null;
+            if (nextState.status === "ready" && (!ready.value || !magiState.value)) {
+                await bootstrapMagiState(magiState, ready, bootError);
+            }
+        } catch (error) {
+            workspaceAIMainNotebookError.value = getErrorMessage(error);
+        } finally {
+            workspaceAIMainNotebookActionLoading.value = false;
+        }
+    };
+}
+
+function createWorkspaceAIMainNotebookResolveHandler(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookActionLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+    magiState: { value: UseMagiReturn | null },
+    ready: { value: boolean },
+    bootError: { value: string | null },
+): (keepNotebook: string) => Promise<void> {
+    return async (keepNotebook: string) => {
+        if (workspaceAIMainNotebookActionLoading.value) {
+            return;
+        }
+
+        workspaceAIMainNotebookActionLoading.value = true;
+        workspaceAIMainNotebookError.value = null;
+        try {
+            const nextState = await resolveWorkspaceAIMainNotebookConflict(keepNotebook);
+            setWorkspaceAIMainNotebookState(
+                workspaceAIMainNotebookState,
+                workspaceAIMainNotebookError,
+                nextState,
+            );
+            bootError.value = null;
+            if (nextState.status === "ready" && (!ready.value || !magiState.value)) {
+                await bootstrapMagiState(magiState, ready, bootError);
+            }
+        } catch (error) {
+            workspaceAIMainNotebookError.value = getErrorMessage(error);
+        } finally {
+            workspaceAIMainNotebookActionLoading.value = false;
+        }
+    };
 }
 
 function createSourceSimulationPanelCreateHandler(
@@ -635,12 +826,48 @@ async function bootstrapMagiState(
     ready: { value: boolean },
     bootError: { value: string | null },
 ): Promise<void> {
+    if (magiState.value) {
+        ready.value = true;
+        bootError.value = null;
+        return;
+    }
+
+    bootError.value = null;
     try {
         magiState.value = await useMagi();
         ready.value = true;
     } catch (error) {
-        bootError.value = error instanceof Error ? error.message : String(error);
+        ready.value = false;
+        bootError.value = getErrorMessage(error);
     }
+}
+
+async function bootstrapWorkspaceAIMainNotebookGuard(
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
+    magiState: { value: UseMagiReturn | null },
+    ready: { value: boolean },
+    bootError: { value: string | null },
+): Promise<void> {
+    ready.value = false;
+    bootError.value = null;
+
+    const nextState = await refreshWorkspaceAIMainNotebookState(
+        workspaceAIMainNotebookState,
+        workspaceAIMainNotebookLoading,
+        workspaceAIMainNotebookError,
+    );
+    if (!nextState) {
+        bootError.value = workspaceAIMainNotebookError.value;
+        return;
+    }
+
+    if (nextState.status !== "ready") {
+        return;
+    }
+
+    await bootstrapMagiState(magiState, ready, bootError);
 }
 
 /** @同步豁免: UI构建 — setup 阶段需同步初始化响应式状态容器 */
@@ -663,6 +890,10 @@ function createMagiRootState() {
         showSeels: ref(true),
         showTrinity: ref(true),
         showQuestionnairePanel: ref(false),
+        workspaceAIMainNotebookState: ref<WorkspaceAIMainNotebookState | null>(null),
+        workspaceAIMainNotebookLoading: ref(true),
+        workspaceAIMainNotebookActionLoading: ref(false),
+        workspaceAIMainNotebookError: ref<string | null>(null),
         sourceSimulationProfiles,
         sourceSimulationPanels,
         magiState: ref<UseMagiReturn | null>(null),
@@ -679,6 +910,7 @@ function createMagiRootComputed(
     magiState: { value: UseMagiReturn | null },
     showMessages: { value: boolean },
     showSeels: { value: boolean },
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
 ) {
     const seels = computed(() => magiState.value?.seels ?? []);
     const mainPanelSeels = computed<MagiMainPanelSeelView[]>(() =>
@@ -712,6 +944,9 @@ function createMagiRootComputed(
         : showSeels.value
             ? consensusMessages.value.filter((message) => !(message.type === "consensus" && Reflect.get(message.meta ?? {}, "type") === "sage-response"))
             : consensusMessages.value);
+    const workspaceAIMainNotebookStatus = computed<WorkspaceAIMainNotebookStatus | null>(() =>
+        workspaceAIMainNotebookState.value?.status ?? null,
+    );
     return {
         seels,
         mainPanelSeels,
@@ -721,6 +956,7 @@ function createMagiRootComputed(
         trinitySeelView,
         isAnySeelLoading,
         displayMessages,
+        workspaceAIMainNotebookStatus,
     };
 }
 
@@ -731,18 +967,55 @@ function createMagiRootComputed(
  * 调用时机：`useMagiRootContext` 内部调用。
  */
 function createMagiRootHandlers(
+    ready: { value: boolean },
+    bootError: { value: string | null },
     magiState: { value: UseMagiReturn | null },
     inputValue: { value: string },
     showQuestionnairePanel: { value: boolean },
+    workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
+    workspaceAIMainNotebookLoading: { value: boolean },
+    workspaceAIMainNotebookActionLoading: { value: boolean },
+    workspaceAIMainNotebookError: { value: string | null },
     sourceSimulationPanels: { value: SourceSimulationPanelView[] },
     sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
 ) {
+    const ensureWorkspaceReady = async () => ensureWorkspaceAIMainNotebookReady(
+        workspaceAIMainNotebookState,
+        workspaceAIMainNotebookLoading,
+        workspaceAIMainNotebookError,
+    );
+
     return {
-        onSubmitInput: createSubmitInputHandler(magiState, inputValue),
+        onSubmitInput: createSubmitInputHandler(magiState, inputValue, ensureWorkspaceReady),
         onShowQuestionnaire: createShowQuestionnaireHandler(showQuestionnairePanel),
         onCloseQuestionnaire: createCloseQuestionnaireHandler(showQuestionnairePanel),
         onQuestionnaireSaved: createQuestionnaireSavedHandler(magiState),
-        onReconnect: createReconnectHandler(magiState),
+        onRefreshWorkspaceAIMainNotebookState: createRefreshWorkspaceAIMainNotebookStateHandler(
+            workspaceAIMainNotebookState,
+            workspaceAIMainNotebookLoading,
+            workspaceAIMainNotebookActionLoading,
+            workspaceAIMainNotebookError,
+            magiState,
+            ready,
+            bootError,
+        ),
+        onCreateWorkspaceAIMainNotebook: createWorkspaceAIMainNotebookCreateHandler(
+            workspaceAIMainNotebookState,
+            workspaceAIMainNotebookActionLoading,
+            workspaceAIMainNotebookError,
+            magiState,
+            ready,
+            bootError,
+        ),
+        onResolveWorkspaceAIMainNotebook: createWorkspaceAIMainNotebookResolveHandler(
+            workspaceAIMainNotebookState,
+            workspaceAIMainNotebookActionLoading,
+            workspaceAIMainNotebookError,
+            magiState,
+            ready,
+            bootError,
+        ),
+        onReconnect: createReconnectHandler(magiState, ensureWorkspaceReady),
         onExportSessionRecord: createExportSessionRecordHandler(magiState),
         onOpenConsole: createOpenConsoleHandler(),
         onMinimizeWindow: createMinimizeWindowHandler(),
@@ -789,16 +1062,34 @@ function createStopInputHandler(): () => void {
 /** @同步豁免: UI构建 — Vue setup 必须同步返回可用上下文 */
 export function useMagiRootContext(): MagiRootContext {
     const state = createMagiRootState();
-    const computedState = createMagiRootComputed(state.magiState, state.showMessages, state.showSeels);
+    const computedState = createMagiRootComputed(
+        state.magiState,
+        state.showMessages,
+        state.showSeels,
+        state.workspaceAIMainNotebookState,
+    );
     const handlers = createMagiRootHandlers(
+        state.ready,
+        state.bootError,
         state.magiState,
         state.inputValue,
         state.showQuestionnairePanel,
+        state.workspaceAIMainNotebookState,
+        state.workspaceAIMainNotebookLoading,
+        state.workspaceAIMainNotebookActionLoading,
+        state.workspaceAIMainNotebookError,
         state.sourceSimulationPanels,
         state.sourceSimulationProfiles,
     );
 
-    void bootstrapMagiState(state.magiState, state.ready, state.bootError);
+    void bootstrapWorkspaceAIMainNotebookGuard(
+        state.workspaceAIMainNotebookState,
+        state.workspaceAIMainNotebookLoading,
+        state.workspaceAIMainNotebookError,
+        state.magiState,
+        state.ready,
+        state.bootError,
+    );
 
     return {
         ready: state.ready,
@@ -808,6 +1099,11 @@ export function useMagiRootContext(): MagiRootContext {
         showSeels: state.showSeels,
         showTrinity: state.showTrinity,
         showQuestionnairePanel: state.showQuestionnairePanel,
+        workspaceAIMainNotebookState: state.workspaceAIMainNotebookState,
+        workspaceAIMainNotebookStatus: computedState.workspaceAIMainNotebookStatus,
+        workspaceAIMainNotebookLoading: state.workspaceAIMainNotebookLoading,
+        workspaceAIMainNotebookActionLoading: state.workspaceAIMainNotebookActionLoading,
+        workspaceAIMainNotebookError: state.workspaceAIMainNotebookError,
         sourceSimulationProfiles: state.sourceSimulationProfiles,
         sourceSimulationPanels: state.sourceSimulationPanels,
         seels: computedState.seels,
@@ -823,6 +1119,9 @@ export function useMagiRootContext(): MagiRootContext {
         onShowQuestionnaire: handlers.onShowQuestionnaire,
         onCloseQuestionnaire: handlers.onCloseQuestionnaire,
         onQuestionnaireSaved: handlers.onQuestionnaireSaved,
+        onRefreshWorkspaceAIMainNotebookState: handlers.onRefreshWorkspaceAIMainNotebookState,
+        onCreateWorkspaceAIMainNotebook: handlers.onCreateWorkspaceAIMainNotebook,
+        onResolveWorkspaceAIMainNotebook: handlers.onResolveWorkspaceAIMainNotebook,
         onReconnect: handlers.onReconnect,
         onExportSessionRecord: handlers.onExportSessionRecord,
         onOpenConsole: handlers.onOpenConsole,

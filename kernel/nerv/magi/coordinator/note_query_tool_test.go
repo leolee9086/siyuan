@@ -32,19 +32,36 @@ func TestBuildLexicalQuery(t *testing.T) {
 
 func TestExecuteNoteKeywordSearch_ReRankAndLimitClamp(t *testing.T) {
 	originalSearchFn := runNoteKeywordFullTextSearch
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
 	defer func() {
 		runNoteKeywordFullTextSearch = originalSearchFn
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
 	}()
 
 	var gotQuery string
 	var gotLimit int
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status:         model.WorkspaceAIMainNotebookStatusReady,
+				ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			},
+			ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			AccessibleRootIDs: map[string]struct{}{
+				"r1": {},
+				"r2": {},
+				"r3": {},
+			},
+			ReferencedRootIDs: map[string]struct{}{},
+		}, nil
+	}
 	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
 		gotQuery = query
 		gotLimit = limit
 		return []*model.Block{
-			{ID: "b1", Content: "alpha"},
-			{ID: "b2", Content: "alpha beta beta"},
-			{ID: "b3", Content: "gamma"},
+			{ID: "b1", RootID: "r1", Content: "alpha"},
+			{ID: "b2", RootID: "r2", Content: "alpha beta beta"},
+			{ID: "b3", RootID: "r3", Content: "gamma"},
 		}, 3, 2, 1, false
 	}
 
@@ -78,6 +95,120 @@ func TestExecuteNoteKeywordSearch_ReRankAndLimitClamp(t *testing.T) {
 	}
 	if payload.Blocks[0].ID != "b2" {
 		t.Fatalf("期望重排后首条为b2，实际=%s", payload.Blocks[0].ID)
+	}
+}
+
+func TestExecuteNoteKeywordSearch_FiltersRestrictedDocsToIDs(t *testing.T) {
+	originalSearchFn := runNoteKeywordFullTextSearch
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
+	defer func() {
+		runNoteKeywordFullTextSearch = originalSearchFn
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
+	}()
+
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status:         model.WorkspaceAIMainNotebookStatusReady,
+				ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			},
+			ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			AccessibleRootIDs: map[string]struct{}{
+				"doc-visible": {},
+			},
+			ReferencedRootIDs: map[string]struct{}{},
+		}, nil
+	}
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		return []*model.Block{
+			{ID: "b1", RootID: "doc-hidden", Content: "outside"},
+			{ID: "b2", RootID: "doc-visible", Content: "inside"},
+			{ID: "b3", RootID: "doc-hidden", Content: "outside again"},
+		}, 3, 2, 1, false
+	}
+
+	result, err := executeNoteKeywordSearch(`{"query":"inside","limit":10}`)
+	if err != nil {
+		t.Fatalf("期望执行成功，实际错误: %v", err)
+	}
+
+	var payload struct {
+		Blocks []struct {
+			ID string `json:"id"`
+		} `json:"blocks"`
+		RestrictedDocumentIDs []string `json:"restrictedDocumentIDs"`
+		PermissionHint        string   `json:"permissionHint"`
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果JSON失败: %v", err)
+	}
+
+	if len(payload.Blocks) != 1 || payload.Blocks[0].ID != "b2" {
+		t.Fatalf("期望仅保留可直接读取块 b2，实际=%+v", payload.Blocks)
+	}
+	if len(payload.RestrictedDocumentIDs) != 1 || payload.RestrictedDocumentIDs[0] != "doc-hidden" {
+		t.Fatalf("期望仅返回受限文档ID doc-hidden，实际=%v", payload.RestrictedDocumentIDs)
+	}
+	if payload.PermissionHint == "" {
+		t.Fatal("期望存在阅读权限提示")
+	}
+}
+
+func TestExecuteNoteKeywordSearch_ReturnsScopeMessageWhenConflict(t *testing.T) {
+	originalSearchFn := runNoteKeywordFullTextSearch
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
+	defer func() {
+		runNoteKeywordFullTextSearch = originalSearchFn
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
+	}()
+
+	searchCalled := false
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status: model.WorkspaceAIMainNotebookStatusConflict,
+				Notebooks: []*model.Box{
+					{ID: "ai-1", Name: "AI-1"},
+					{ID: "ai-2", Name: "AI-2"},
+				},
+				OpenNotebooks: []*model.Box{
+					{ID: "ai-1", Name: "AI-1"},
+					{ID: "ai-2", Name: "AI-2"},
+				},
+			},
+		}, model.ErrWorkspaceAIMainNotebookConflict
+	}
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		searchCalled = true
+		return nil, 0, 0, 0, false
+	}
+
+	result, err := executeNoteKeywordSearch(`{"query":"inside","limit":10}`)
+	if err != nil {
+		t.Fatalf("期望执行成功，实际错误: %v", err)
+	}
+	if searchCalled {
+		t.Fatal("冲突状态下不应执行全文检索")
+	}
+
+	var payload struct {
+		Blocks         []struct{} `json:"blocks"`
+		PermissionHint string     `json:"permissionHint"`
+		Scope          struct {
+			Status string `json:"status"`
+		} `json:"scope"`
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果JSON失败: %v", err)
+	}
+	if payload.Scope.Status != model.WorkspaceAIMainNotebookStatusConflict {
+		t.Fatalf("期望scope.status=%s，实际=%s", model.WorkspaceAIMainNotebookStatusConflict, payload.Scope.Status)
+	}
+	if payload.PermissionHint == "" {
+		t.Fatal("期望冲突状态下返回操作提示")
+	}
+	if len(payload.Blocks) != 0 {
+		t.Fatalf("冲突状态下不应返回块结果，实际=%d", len(payload.Blocks))
 	}
 }
 

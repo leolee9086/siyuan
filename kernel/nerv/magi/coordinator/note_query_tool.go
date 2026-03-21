@@ -45,6 +45,10 @@ var runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block
 	)
 }
 
+var resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+	return model.ResolveWorkspaceAIMainNotebookAccessScope()
+}
+
 type noteKeywordSearchToolArgs struct {
 	Query string `json:"query"`
 	Limit int    `json:"limit,omitempty"`
@@ -94,6 +98,25 @@ func executeNoteKeywordSearch(rawArgs string) (string, error) {
 	}
 
 	limit := normalizeNoteKeywordSearchLimit(args.Limit)
+	accessScope, accessErr := resolveWorkspaceAIMainNotebookAccessScope()
+	if accessErr != nil {
+		payload := map[string]interface{}{
+			"blocks":                []interface{}{},
+			"restrictedDocumentIDs": []string{},
+			"matchedBlockCount":     0,
+			"matchedRootCount":      0,
+			"pageCount":             0,
+			"docMode":               false,
+			"scope":                 buildNoteKeywordScopePayload(accessScope, accessErr),
+			"permissionHint":        buildNoteKeywordScopeMessage(accessScope, accessErr),
+		}
+		resultBytes, err := json.Marshal(payload)
+		if err != nil {
+			return "", fmt.Errorf("%s 结果序列化失败: %w", config.NoteKeywordSearchToolName, err)
+		}
+		return string(resultBytes), nil
+	}
+
 	queryTokens := buildQueryTokens(query)
 	lexicalQuery := buildLexicalQuery(query, queryTokens)
 
@@ -102,13 +125,19 @@ func executeNoteKeywordSearch(rawArgs string) (string, error) {
 	if len(blocks) > limit {
 		blocks = blocks[:limit]
 	}
+	visibleBlocks, restrictedDocumentIDs := filterNoteKeywordBlocksByAIMainAccess(blocks, accessScope)
 
 	payload := map[string]interface{}{
-		"blocks":            blocks,
-		"matchedBlockCount": matchedBlockCount,
-		"matchedRootCount":  matchedRootCount,
-		"pageCount":         pageCount,
-		"docMode":           docMode,
+		"blocks":                visibleBlocks,
+		"restrictedDocumentIDs": restrictedDocumentIDs,
+		"matchedBlockCount":     matchedBlockCount,
+		"matchedRootCount":      matchedRootCount,
+		"pageCount":             pageCount,
+		"docMode":               docMode,
+		"scope":                 buildNoteKeywordScopePayload(accessScope, nil),
+	}
+	if len(restrictedDocumentIDs) > 0 {
+		payload["permissionHint"] = "部分命中超出当前AI主笔记本的直接读取范围，结果中已仅保留文档ID。若需要详情，请先向用户请求阅读权限。"
 	}
 	resultBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -125,6 +154,112 @@ func normalizeNoteKeywordSearchLimit(limit int) int {
 		return maxNoteKeywordSearchLimit
 	}
 	return limit
+}
+
+func filterNoteKeywordBlocksByAIMainAccess(
+	blocks []*model.Block,
+	accessScope *model.WorkspaceAIMainNotebookAccessScope,
+) ([]*model.Block, []string) {
+	if len(blocks) == 0 {
+		return []*model.Block{}, []string{}
+	}
+	accessibleRootIDs := map[string]struct{}{}
+	if accessScope != nil && accessScope.AccessibleRootIDs != nil {
+		accessibleRootIDs = accessScope.AccessibleRootIDs
+	}
+
+	visibleBlocks := make([]*model.Block, 0, len(blocks))
+	restrictedDocumentIDs := make([]string, 0)
+	restrictedSeen := map[string]struct{}{}
+	for _, block := range blocks {
+		if block == nil {
+			continue
+		}
+		rootID := resolveNoteKeywordBlockRootID(block)
+		if _, ok := accessibleRootIDs[rootID]; ok {
+			visibleBlocks = append(visibleBlocks, block)
+			continue
+		}
+		if rootID == "" {
+			continue
+		}
+		if _, ok := restrictedSeen[rootID]; ok {
+			continue
+		}
+		restrictedSeen[rootID] = struct{}{}
+		restrictedDocumentIDs = append(restrictedDocumentIDs, rootID)
+	}
+	return visibleBlocks, restrictedDocumentIDs
+}
+
+func resolveNoteKeywordBlockRootID(block *model.Block) string {
+	if block == nil {
+		return ""
+	}
+	rootID := strings.TrimSpace(block.RootID)
+	if rootID != "" {
+		return rootID
+	}
+	return strings.TrimSpace(block.ID)
+}
+
+func buildNoteKeywordScopePayload(
+	accessScope *model.WorkspaceAIMainNotebookAccessScope,
+	scopeErr error,
+) map[string]interface{} {
+	status := model.WorkspaceAIMainNotebookStatusMissing
+	payload := map[string]interface{}{}
+	if accessScope != nil && accessScope.State != nil && strings.TrimSpace(accessScope.State.Status) != "" {
+		status = accessScope.State.Status
+	}
+	payload["status"] = status
+	if accessScope != nil && accessScope.ActiveNotebook != nil {
+		payload["activeNotebook"] = map[string]interface{}{
+			"id":     accessScope.ActiveNotebook.ID,
+			"name":   accessScope.ActiveNotebook.Name,
+			"closed": accessScope.ActiveNotebook.Closed,
+		}
+	}
+	if accessScope != nil && accessScope.State != nil {
+		payload["aiMainNotebookIDs"] = noteKeywordNotebookIDs(accessScope.State.Notebooks)
+		payload["openAIMainNotebookIDs"] = noteKeywordNotebookIDs(accessScope.State.OpenNotebooks)
+	}
+	if scopeErr != nil {
+		payload["message"] = buildNoteKeywordScopeMessage(accessScope, scopeErr)
+	}
+	return payload
+}
+
+func noteKeywordNotebookIDs(notebooks []*model.Box) []string {
+	ret := make([]string, 0, len(notebooks))
+	for _, notebook := range notebooks {
+		if notebook == nil {
+			continue
+		}
+		ret = append(ret, notebook.ID)
+	}
+	return ret
+}
+
+func buildNoteKeywordScopeMessage(
+	accessScope *model.WorkspaceAIMainNotebookAccessScope,
+	scopeErr error,
+) string {
+	if scopeErr == nil {
+		return ""
+	}
+	status := model.WorkspaceAIMainNotebookStatusMissing
+	if accessScope != nil && accessScope.State != nil && strings.TrimSpace(accessScope.State.Status) != "" {
+		status = accessScope.State.Status
+	}
+	switch status {
+	case model.WorkspaceAIMainNotebookStatusConflict:
+		return "当前工作空间有多个AI主笔记本同时处于打开状态。请先选择一个保留打开，其余关闭后再继续查询。"
+	case model.WorkspaceAIMainNotebookStatusInactive:
+		return "当前工作空间存在多个AI主笔记本，但没有唯一的活动主笔记本。请先打开一个作为当前AI主笔记本。"
+	default:
+		return "当前工作空间还没有AI主笔记本，无法直接查询笔记。请先创建AI主笔记本。"
+	}
 }
 
 func buildQueryTokens(query string) []string {
