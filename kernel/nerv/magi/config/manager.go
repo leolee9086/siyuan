@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // ContextStrategy 上下文管理策略
@@ -145,6 +146,24 @@ func defaultMAGIConfig() *MAGIConfig {
 	}
 }
 
+func buildDefaultCoreSageTools() []ToolDef {
+	tools := []ToolDef{
+		BuildWannaSpeakStartToolDef(),
+		BuildWannaSpeakContinueToolDef(),
+		BuildWannaSpeakStopToolDef(),
+		BuildNoteKeywordSearchToolDef(),
+	}
+	if util.IsForgeMode() {
+		tools = append(
+			tools,
+			BuildForgeDevRepoListToolDef(),
+			BuildForgeDevRepoReadToolDef(),
+			BuildForgeDevRepoSearchToolDef(),
+		)
+	}
+	return tools
+}
+
 // defaultMelchiorConfig 返回Melchior默认配置
 func defaultMelchiorConfig() AgentConfig {
 	return AgentConfig{
@@ -159,12 +178,7 @@ func defaultMelchiorConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.MelchiorSystemPrompt,
-		Tools: []ToolDef{
-			BuildWannaSpeakStartToolDef(),
-			BuildWannaSpeakContinueToolDef(),
-			BuildWannaSpeakStopToolDef(),
-			BuildNoteKeywordSearchToolDef(),
-		},
+		Tools:          buildDefaultCoreSageTools(),
 	}
 }
 
@@ -183,12 +197,7 @@ func defaultBalthazarConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.BalthazarSystemPrompt,
-		Tools: []ToolDef{
-			BuildWannaSpeakStartToolDef(),
-			BuildWannaSpeakContinueToolDef(),
-			BuildWannaSpeakStopToolDef(),
-			BuildNoteKeywordSearchToolDef(),
-		},
+		Tools:          buildDefaultCoreSageTools(),
 	}
 }
 
@@ -207,12 +216,7 @@ func defaultCasperConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.CasperSystemPrompt,
-		Tools: []ToolDef{
-			BuildWannaSpeakStartToolDef(),
-			BuildWannaSpeakContinueToolDef(),
-			BuildWannaSpeakStopToolDef(),
-			BuildNoteKeywordSearchToolDef(),
-		},
+		Tools:          buildDefaultCoreSageTools(),
 	}
 }
 
@@ -286,26 +290,18 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 	}
 
 	// 当前阶段三贤人与 Trinity 均使用状态转移工具；三贤人额外具备笔记关键词查询工具。
+	// forge 模式下再附加开发仓库只读查看工具，避免普通模式暴露无意义的仓库入口。
 	cfg.Melchior.Tools = ensureExclusiveTools(
 		cfg.Melchior.Tools,
-		BuildWannaSpeakStartToolDef(),
-		BuildWannaSpeakContinueToolDef(),
-		BuildWannaSpeakStopToolDef(),
-		BuildNoteKeywordSearchToolDef(),
+		buildDefaultCoreSageTools()...,
 	)
 	cfg.Balthazar.Tools = ensureExclusiveTools(
 		cfg.Balthazar.Tools,
-		BuildWannaSpeakStartToolDef(),
-		BuildWannaSpeakContinueToolDef(),
-		BuildWannaSpeakStopToolDef(),
-		BuildNoteKeywordSearchToolDef(),
+		buildDefaultCoreSageTools()...,
 	)
 	cfg.Casper.Tools = ensureExclusiveTools(
 		cfg.Casper.Tools,
-		BuildWannaSpeakStartToolDef(),
-		BuildWannaSpeakContinueToolDef(),
-		BuildWannaSpeakStopToolDef(),
-		BuildNoteKeywordSearchToolDef(),
+		buildDefaultCoreSageTools()...,
 	)
 	cfg.Trinity.Tools = ensureExclusiveTools(
 		cfg.Trinity.Tools,

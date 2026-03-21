@@ -3,6 +3,8 @@ package config
 import (
 	"reflect"
 	"testing"
+
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // TestDefaultMelchiorConfig_HasWannaSpeakTransitionTools 验证默认 Melchior 配置包含成对表达工具。
@@ -229,4 +231,105 @@ func TestCoreSagesShareSameNoteKeywordSearchTool(t *testing.T) {
 	if !reflect.DeepEqual(mTool, bTool) || !reflect.DeepEqual(bTool, cTool) {
 		t.Fatal("三贤人的笔记关键词查询工具定义不一致")
 	}
+}
+
+func TestBuildForgeDevRepoToolDefs_Structure(t *testing.T) {
+	tools := []ToolDef{
+		BuildForgeDevRepoListToolDef(),
+		BuildForgeDevRepoReadToolDef(),
+		BuildForgeDevRepoSearchToolDef(),
+	}
+	expectedNames := []string{
+		ForgeDevRepoListToolName,
+		ForgeDevRepoReadToolName,
+		ForgeDevRepoSearchToolName,
+	}
+
+	for idx, tool := range tools {
+		if tool.Type != "function" {
+			t.Fatalf("工具[%d] Type 期望=function，实际=%s", idx, tool.Type)
+		}
+		if tool.Function.Name != expectedNames[idx] {
+			t.Fatalf("工具[%d] Name 期望=%s，实际=%s", idx, expectedNames[idx], tool.Function.Name)
+		}
+
+		params, ok := tool.Function.Parameters["properties"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("工具[%d] Parameters 缺少 properties", idx)
+		}
+		if _, ok := params["input"]; !ok {
+			t.Fatalf("工具[%d] Parameters 缺少 input", idx)
+		}
+	}
+}
+
+func TestBuildDefaultCoreSageTools_ForgeOnlyRepoTools(t *testing.T) {
+	originalMode := util.Mode
+	defer func() {
+		util.Mode = originalMode
+	}()
+
+	util.Mode = util.ModeProd
+	prodTools := buildDefaultCoreSageTools()
+	for _, toolName := range []string{
+		ForgeDevRepoListToolName,
+		ForgeDevRepoReadToolName,
+		ForgeDevRepoSearchToolName,
+	} {
+		if hasToolDef(prodTools, toolName) {
+			t.Fatalf("prod 模式下不应包含 forge 仓库工具: %s", toolName)
+		}
+	}
+
+	util.Mode = util.ModeForge
+	forgeTools := buildDefaultCoreSageTools()
+	for _, toolName := range []string{
+		ForgeDevRepoListToolName,
+		ForgeDevRepoReadToolName,
+		ForgeDevRepoSearchToolName,
+	} {
+		if !hasToolDef(forgeTools, toolName) {
+			t.Fatalf("forge 模式下缺少仓库工具: %s", toolName)
+		}
+	}
+}
+
+func TestApplyRequiredAvatarTools_StripsForgeRepoToolsOutsideForge(t *testing.T) {
+	originalMode := util.Mode
+	defer func() {
+		util.Mode = originalMode
+	}()
+	util.Mode = util.ModeProd
+
+	cfg := &MAGIConfig{
+		Melchior: AgentConfig{
+			Name: "melchior",
+			Tools: []ToolDef{
+				BuildForgeDevRepoListToolDef(),
+				BuildForgeDevRepoReadToolDef(),
+				BuildForgeDevRepoSearchToolDef(),
+			},
+		},
+	}
+
+	applyRequiredAvatarTools(cfg)
+
+	for _, toolName := range []string{
+		ForgeDevRepoListToolName,
+		ForgeDevRepoReadToolName,
+		ForgeDevRepoSearchToolName,
+	} {
+		if hasToolDef(cfg.Melchior.Tools, toolName) {
+			t.Fatalf("prod 模式标准化后仍残留 forge 仓库工具: %s", toolName)
+		}
+	}
+}
+
+func hasToolDef(tools []ToolDef, toolName string) bool {
+	for _, tool := range tools {
+		if tool.Function.Name == toolName {
+			return true
+		}
+	}
+	return false
 }

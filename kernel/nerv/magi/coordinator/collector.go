@@ -421,13 +421,36 @@ func (rc *ResponseCollector) buildSageResponse(
 }
 
 func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage) ToolCallResultExecutor {
-	if !sageHasAllFunctionTools(sage, config.NoteKeywordSearchToolName) {
+	if sage == nil {
 		return nil
 	}
 
-	noteExecutor := newNoteKeywordToolResultExecutor()
+	var executors []ToolCallResultExecutor
+	if sageHasAllFunctionTools(sage, config.NoteKeywordSearchToolName) {
+		noteExecutor := newNoteKeywordToolResultExecutor()
+		executors = append(executors, noteExecutor.ExecuteToolCall)
+	}
+	if sageHasAllFunctionTools(
+		sage,
+		config.ForgeDevRepoListToolName,
+		config.ForgeDevRepoReadToolName,
+		config.ForgeDevRepoSearchToolName,
+	) {
+		forgeExecutor := newForgeDevRepoToolResultExecutor()
+		executors = append(executors, forgeExecutor.ExecuteToolCall)
+	}
+	if len(executors) == 0 {
+		return nil
+	}
+
 	return func(toolCall types.ToolCall) (string, bool, error) {
-		return noteExecutor.ExecuteToolCall(toolCall)
+		for _, executor := range executors {
+			result, handled, err := executor(toolCall)
+			if handled {
+				return result, true, err
+			}
+		}
+		return "", false, nil
 	}
 }
 

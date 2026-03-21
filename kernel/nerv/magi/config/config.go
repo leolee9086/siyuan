@@ -91,6 +91,12 @@ const (
 	DeliberationSignalToolName = "deliberation_signal"
 	// NoteKeywordSearchToolName 三贤人笔记关键词查询工具名（词法查询）。
 	NoteKeywordSearchToolName = "search_notes_by_keywords"
+	// ForgeDevRepoListToolName forge 模式开发仓库目录查看工具名。
+	ForgeDevRepoListToolName = "forge_dev_repo_list"
+	// ForgeDevRepoReadToolName forge 模式开发仓库文件读取工具名。
+	ForgeDevRepoReadToolName = "forge_dev_repo_read"
+	// ForgeDevRepoSearchToolName forge 模式开发仓库文本搜索工具名。
+	ForgeDevRepoSearchToolName = "forge_dev_repo_search"
 )
 
 // BuildWannaSpeakToolDef 构建三贤人 wanna_speak 工具定义。
@@ -187,6 +193,69 @@ func BuildNoteKeywordSearchToolDef() ToolDef {
 					},
 				},
 				"required": []string{"query"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoListToolDef 构建 forge 模式开发仓库目录查看工具定义。
+func BuildForgeDevRepoListToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ForgeDevRepoListToolName,
+			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi 或 path=kernel\\nlimit=200。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"input": map[string]interface{}{
+						"type":        "string",
+						"description": "纯文本参数，支持 path=<相对路径>、limit=<数量>",
+					},
+				},
+				"required": []string{"input"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoReadToolDef 构建 forge 模式开发仓库文件读取工具定义。
+func BuildForgeDevRepoReadToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ForgeDevRepoReadToolName,
+			Description: "仅在 forge 模式可用。只读读取开发代码仓库中的文本文件。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi/coordinator/coordinator.go 或 path=kernel/nerv/magi/coordinator/coordinator.go\\nstart=1\\nlimit=120。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"input": map[string]interface{}{
+						"type":        "string",
+						"description": "纯文本参数，支持 path=<相对路径>、start=<起始行号>、limit=<行数>",
+					},
+				},
+				"required": []string{"input"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoSearchToolDef 构建 forge 模式开发仓库文本搜索工具定义。
+func BuildForgeDevRepoSearchToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ForgeDevRepoSearchToolName,
+			Description: "仅在 forge 模式可用。只读按字面文本搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20，支持 ignoreCase=true。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"input": map[string]interface{}{
+						"type":        "string",
+						"description": "纯文本参数，支持 pattern=<文本>、path=<相对路径>、limit=<数量>、ignoreCase=<true|false>",
+					},
+				},
+				"required": []string{"input"},
 			},
 		},
 	}
