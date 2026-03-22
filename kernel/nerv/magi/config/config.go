@@ -67,6 +67,8 @@ const (
 	WannaSpeakContinueToolName = "wanna_speak_continue"
 	// WannaSpeakStopToolName 三贤人表达状态结束工具名。
 	WannaSpeakStopToolName = "wanna_speak_stop"
+	// WannaSleepToolName 三贤人心跳轮次休眠工具名。
+	WannaSleepToolName = "wanna_sleep"
 	// AvatarBuildToolName Avatar 原型创建工具名。
 	AvatarBuildToolName = "buildAvatar"
 	// AvatarModifyToolName Avatar 原型修改工具名。
@@ -166,6 +168,27 @@ func BuildWannaSpeakStopToolDef() ToolDef {
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildWannaSleepToolDef 构建三贤人心跳轮次 wanna_sleep 工具定义。
+func BuildWannaSleepToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSleepToolName,
+			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。summary 必须说明这次醒来做了什么。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"summary": map[string]interface{}{
+						"type":        "string",
+						"description": "本次醒来期间已经完成的检查、思考或处理摘要",
+					},
+				},
+				"required": []string{"summary"},
 			},
 		},
 	}

@@ -1,4 +1,5 @@
 import { getSafeSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import type { MagiRuntimeStatus } from "../composables/useMagi.types";
 
 const MAGI_PERSONA_STATUS_ENDPOINT = "/api/s-forge/magi/v1/persona/status";
 
@@ -8,6 +9,7 @@ export interface MagiPersonaStatus {
     isComplete: boolean;
     usingPreset: boolean;
     presetName: string;
+    runtimeStatus: MagiRuntimeStatus | null;
 }
 
 function resolveWorkspaceAPIToken(): string {
@@ -33,6 +35,7 @@ function normalizeMagiPersonaStatus(raw: unknown): MagiPersonaStatus | null {
     const isComplete = Boolean(Reflect.get(raw, "is_complete"));
     const usingPreset = Boolean(Reflect.get(raw, "using_preset"));
     const presetName = String(Reflect.get(raw, "preset_name") ?? "").trim();
+    const runtimeStatus = normalizeRuntimeStatus(Reflect.get(raw, "runtime"));
 
     return {
         subjectName,
@@ -40,7 +43,43 @@ function normalizeMagiPersonaStatus(raw: unknown): MagiPersonaStatus | null {
         isComplete,
         usingPreset,
         presetName,
+        runtimeStatus,
     };
+}
+
+function normalizeRuntimeStatus(raw: unknown): MagiRuntimeStatus | null {
+    if (!raw || typeof raw !== "object") {
+        return null;
+    }
+
+    const state = String(Reflect.get(raw, "state") ?? "").trim();
+    if (state !== "sleeping" && state !== "heartbeat" && state !== "external") {
+        return null;
+    }
+
+    return {
+        state,
+        awake: Boolean(Reflect.get(raw, "awake")),
+        wakeSource: readOptionalString(raw, "wakeSource"),
+        reason: readOptionalString(raw, "reason"),
+        currentRoundId: readOptionalString(raw, "currentRoundId"),
+        currentTask: readOptionalString(raw, "currentTask"),
+        lastHeartbeatAt: readOptionalNumber(raw, "lastHeartbeatAt"),
+        lastWakeAt: readOptionalNumber(raw, "lastWakeAt"),
+        lastSleepAt: readOptionalNumber(raw, "lastSleepAt"),
+        lastSleepSummary: readOptionalString(raw, "lastSleepSummary"),
+        updatedAt: readOptionalNumber(raw, "updatedAt"),
+    };
+}
+
+function readOptionalString(raw: object, key: string): string | undefined {
+    const value = String(Reflect.get(raw, key) ?? "").trim();
+    return value || undefined;
+}
+
+function readOptionalNumber(raw: object, key: string): number | undefined {
+    const value = Reflect.get(raw, key);
+    return typeof value === "number" ? value : undefined;
 }
 
 export async function fetchMagiPersonaStatus(): Promise<MagiPersonaStatus | null> {

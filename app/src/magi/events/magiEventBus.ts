@@ -120,6 +120,20 @@ export const magiEventDefines = {
         strategyCount: z.number().int().nonnegative().optional(),
         strategyPercent: z.number().nonnegative().optional(),
     },
+    RUNTIME_STATUS_UPDATED: {
+        ...baseEventShape,
+        state: z.enum(["sleeping", "heartbeat", "external"]),
+        awake: z.boolean(),
+        wakeSource: z.string().optional(),
+        reason: z.string().optional(),
+        currentRoundId: z.string().optional(),
+        currentTask: z.string().optional(),
+        lastHeartbeatAt: z.number().int().nonnegative().optional(),
+        lastWakeAt: z.number().int().nonnegative().optional(),
+        lastSleepAt: z.number().int().nonnegative().optional(),
+        lastSleepSummary: z.string().optional(),
+        updatedAt: z.number().int().nonnegative().optional(),
+    },
 } as const;
 
 let roundCounter = 0;

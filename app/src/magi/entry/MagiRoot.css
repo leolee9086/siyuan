@@ -96,6 +96,49 @@ body,
   gap: 6px;
 }
 
+.magi-runtime-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid rgba(0, 255, 255, 0.28);
+  background: rgba(0, 32, 32, 0.42);
+  font-family: "MS Gothic", monospace;
+  letter-spacing: 0.08em;
+}
+
+.magi-runtime-indicator-label {
+  color: rgba(157, 239, 242, 0.68);
+  font-size: 11px;
+}
+
+.magi-runtime-indicator-state {
+  font-size: 12px;
+}
+
+.magi-runtime-indicator.sleeping {
+  border-color: rgba(116, 201, 255, 0.34);
+  color: #8fd8ff;
+}
+
+.magi-runtime-indicator.heartbeat {
+  border-color: rgba(255, 229, 120, 0.48);
+  color: #ffe76e;
+  box-shadow: 0 0 10px rgba(255, 231, 110, 0.18);
+}
+
+.magi-runtime-indicator.external {
+  border-color: rgba(21, 255, 86, 0.45);
+  color: #15ff56;
+  box-shadow: 0 0 10px rgba(21, 255, 86, 0.16);
+}
+
+.magi-runtime-indicator.unknown {
+  border-color: rgba(255, 87, 117, 0.35);
+  color: #ff8ea1;
+}
+
 .magi-status-name {
   color: #19f16e;
   font-family: "MS Gothic", monospace;

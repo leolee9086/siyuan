@@ -9,6 +9,10 @@
               <span class="magi-status-name">{{ status.name }}</span>
               <span class="magi-status-led" :class="status.class"></span>
             </div>
+            <div class="magi-runtime-indicator" :class="runtimeIndicatorClass" :title="runtimeIndicatorTitle">
+              <span class="magi-runtime-indicator-label">MAGI</span>
+              <span class="magi-runtime-indicator-state">{{ runtimeIndicatorText }}</span>
+            </div>
             <div class="magi-sync-rate">{{ syncRateText }}: {{ syncRate }}%</div>
           </div>
 
@@ -180,6 +184,7 @@ const {
     showQuestionnairePanel,
     showWindowControls,
     mainPanelSeels,
+    runtimeStatus,
     workspaceAIMainNotebookState,
     workspaceAIMainNotebookStatus,
     workspaceAIMainNotebookLoading,
@@ -215,6 +220,47 @@ const syncRate = computed<number>(() => {
     }
     const connectedCount = mainPanelSeels.value.filter((seel) => seel.connected).length;
     return Math.round((connectedCount / mainPanelSeels.value.length) * 100);
+});
+
+const runtimeIndicatorText = computed<string>(() => {
+    switch (runtimeStatus.value?.state) {
+        case "heartbeat":
+            return "HEARTBEAT";
+        case "external":
+            return "AWAKE";
+        case "sleeping":
+            return "SLEEP";
+        default:
+            return "UNKNOWN";
+    }
+});
+
+const runtimeIndicatorClass = computed<string>(() => {
+    switch (runtimeStatus.value?.state) {
+        case "heartbeat":
+            return "heartbeat";
+        case "external":
+            return "external";
+        case "sleeping":
+            return "sleeping";
+        default:
+            return "unknown";
+    }
+});
+
+const runtimeIndicatorTitle = computed<string>(() => {
+    const status = runtimeStatus.value;
+    if (!status) {
+        return "MAGI runtime status unavailable";
+    }
+
+    const details = [
+        `state=${status.state}`,
+        status.reason ? `reason=${status.reason}` : "",
+        status.currentTask ? `task=${status.currentTask}` : "",
+        status.lastSleepSummary ? `lastSleep=${status.lastSleepSummary}` : "",
+    ].filter(Boolean);
+    return details.join("\n");
 });
 
 const showWorkspaceAIMainNotebookGuard = computed<boolean>(() =>

@@ -15,7 +15,8 @@ export type MagiEventName =
     | "ROUND_FAILED"
     | "TOOL_CALL_DETECTED"
     | "DELIBERATION_SIGNAL_RAISED"
-    | "CONTEXT_HISTORY_TRIMMED";
+    | "CONTEXT_HISTORY_TRIMMED"
+    | "RUNTIME_STATUS_UPDATED";
 
 /** 事件公共字段。 */
 export interface MagiEventBase {
@@ -131,6 +132,21 @@ export interface MagiContextHistoryTrimmedEvent extends MagiEventBase {
     strategyPercent?: number;
 }
 
+/** MAGI 全局运行态更新事件。 */
+export interface MagiRuntimeStatusUpdatedEvent extends MagiEventBase {
+    state: "sleeping" | "heartbeat" | "external";
+    awake: boolean;
+    wakeSource?: string;
+    reason?: string;
+    currentRoundId?: string;
+    currentTask?: string;
+    lastHeartbeatAt?: number;
+    lastWakeAt?: number;
+    lastSleepAt?: number;
+    lastSleepSummary?: string;
+    updatedAt?: number;
+}
+
 /** MAGI 事件载荷映射。 */
 export interface MagiEventPayloadMap {
     ROUND_STARTED: MagiRoundStartedEvent;
@@ -146,6 +162,7 @@ export interface MagiEventPayloadMap {
     TOOL_CALL_DETECTED: MagiToolCallDetectedEvent;
     DELIBERATION_SIGNAL_RAISED: MagiDeliberationSignalRaisedEvent;
     CONTEXT_HISTORY_TRIMMED: MagiContextHistoryTrimmedEvent;
+    RUNTIME_STATUS_UPDATED: MagiRuntimeStatusUpdatedEvent;
 }
 
 /**

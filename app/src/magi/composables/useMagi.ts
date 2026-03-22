@@ -10,6 +10,7 @@
 import { ref, reactive, computed, watch } from "vue";
 import type {
     ConnectionStatus,
+    MagiRuntimeStatus,
     SendUserMessageOptions,
     WrappedSeel,
     UseMagiOptions,
@@ -32,6 +33,7 @@ import { useMagiIdentitySessionState } from "../service/magiIdentitySession";
 import {
     buildRuntimeMainInterfaceIdentity,
     buildRuntimeMainMonitorSessionId,
+    MAGI_RUNTIME_MONITOR_SESSION_ID,
 } from "../adapters/magiStandardLLMAdapter.backend";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
@@ -203,13 +205,16 @@ async function resolvePromptInjectionsForInit(
     return activeSeed?.promptInjections;
 }
 
-async function resolvePersonaNameForInit(): Promise<string | undefined> {
-    const status = await fetchMagiPersonaStatus();
+function resolvePersonaNameFromStatus(status: Awaited<ReturnType<typeof fetchMagiPersonaStatus>>): string | undefined {
     if (!status) {
         return undefined;
     }
     const subjectName = status.subjectName.trim();
     return subjectName || undefined;
+}
+
+function cloneRuntimeStatus(status: MagiRuntimeStatus): MagiRuntimeStatus {
+    return { ...status };
 }
 
 /**
@@ -301,12 +306,29 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     const isMainPanelRequestPending = ref(false);
     const mainPanelMessages: MagiMessage[] = reactive([]);
     const consensusMessages: MagiMessage[] = reactive([]);
+    const runtimeStatus = ref<MagiRuntimeStatus | null>(null);
     const isAnySeelLoading = computed(() =>
         isMainPanelRequestPending.value || seels.some((seel) => seel.loading),
     );
     const eventBus = await createMagiEventBus();
+    bindMagiWebSocketEventBridge(eventBus, { sessionId: MAGI_RUNTIME_MONITOR_SESSION_ID });
     const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
     const identityState = useMagiIdentitySessionState();
+    eventBus.subscribe("RUNTIME_STATUS_UPDATED", (payload) => {
+        runtimeStatus.value = {
+            state: payload.state,
+            awake: payload.awake,
+            ...(payload.wakeSource ? { wakeSource: payload.wakeSource } : {}),
+            ...(payload.reason ? { reason: payload.reason } : {}),
+            ...(payload.currentRoundId ? { currentRoundId: payload.currentRoundId } : {}),
+            ...(payload.currentTask ? { currentTask: payload.currentTask } : {}),
+            ...(typeof payload.lastHeartbeatAt === "number" ? { lastHeartbeatAt: payload.lastHeartbeatAt } : {}),
+            ...(typeof payload.lastWakeAt === "number" ? { lastWakeAt: payload.lastWakeAt } : {}),
+            ...(typeof payload.lastSleepAt === "number" ? { lastSleepAt: payload.lastSleepAt } : {}),
+            ...(payload.lastSleepSummary ? { lastSleepSummary: payload.lastSleepSummary } : {}),
+            ...(typeof payload.updatedAt === "number" ? { updatedAt: payload.updatedAt } : {}),
+        };
+    });
     const stopProjector = await bindMagiProjector(eventBus, {
         seels,
         consensusMessages,
@@ -340,8 +362,12 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     );
     void stopProjector;
 
+    const initialPersonaStatus = await fetchMagiPersonaStatus();
+    if (initialPersonaStatus?.runtimeStatus) {
+        runtimeStatus.value = cloneRuntimeStatus(initialPersonaStatus.runtimeStatus);
+    }
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-    const runtimePersonaName = await resolvePersonaNameForInit();
+    const runtimePersonaName = resolvePersonaNameFromStatus(initialPersonaStatus);
     await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections, runtimePersonaName);
     const llmAdapter = await createStandardLLMAdapter({
         model: "magi-trinity",
@@ -358,6 +384,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         mainPanelMessages,
         consensusMessages,
         isAnySeelLoading,
+        runtimeStatus,
         /**
          * 作用：把主面板输入作为标准 HTTP 聊天请求发送，并在本地维护 user/assistant 历史。
          * 意图：主面板必须像普通 LLM chat panel 一样工作；前端只发送标准消息历史，不承担历史清洗或后端特判职责。
@@ -445,7 +472,7 @@ async function reinitializeMAGI(
             shouldClearMessages,
         );
         const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-        const runtimePersonaName = await resolvePersonaNameForInit();
+        const runtimePersonaName = resolvePersonaNameFromStatus(await fetchMagiPersonaStatus());
         await initializeWrappedSeels(
             seels,
             connectionStatus,

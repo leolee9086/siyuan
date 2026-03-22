@@ -1,5 +1,9 @@
 import type { ComputedRef, InjectionKey, Ref } from "vue";
-import type { WrappedSeel, UseMagiReturn } from "../composables/useMagi.types";
+import type {
+    MagiRuntimeStatus,
+    WrappedSeel,
+    UseMagiReturn,
+} from "../composables/useMagi.types";
 import type {
     WorkspaceAIMainNotebookState,
     WorkspaceAIMainNotebookStatus,
@@ -42,6 +46,7 @@ export interface MagiRootContext {
     trinitySeelView: ComputedRef<MagiSeelPanelView | null>;
     displayMessages: ComputedRef<MagiMainPanelMessageView[]>;
     isAnySeelLoading: ComputedRef<boolean>;
+    runtimeStatus: ComputedRef<MagiRuntimeStatus | null>;
     onSubmitInput: (value: string) => Promise<void>;
     onShowQuestionnaire: () => Promise<void>;
     onCloseQuestionnaire: () => void;

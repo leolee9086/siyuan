@@ -159,7 +159,7 @@ func (r *AvatarRuntime) DispatchForSource(
 		logging.LogWarnf("推送Avatar开始响应失败: %v", err)
 	}
 
-	resp, err := collector.collectSingleSageResponse(ctx, sessionID, roundID, binding.Agent, sourceAwareInput)
+	resp, err := collector.collectSingleSageResponse(ctx, sessionID, roundID, binding.Agent, sourceAwareInput, CollectResponsesOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("avatar dispatch failed: %w", err)
 	}

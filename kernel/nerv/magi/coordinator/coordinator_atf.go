@@ -64,7 +64,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), inputs.MelchiorInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
-		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, melchior, inputs.MelchiorInput)
+		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, melchior, inputs.MelchiorInput, CollectResponsesOptions{})
 		if err != nil {
 			errCh <- fmt.Errorf("melchior响应失败: %w", err)
 			return
@@ -88,7 +88,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), inputs.BalthazarInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
-		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, inputs.BalthazarInput)
+		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, inputs.BalthazarInput, CollectResponsesOptions{})
 		if err != nil {
 			errCh <- fmt.Errorf("balthazar响应失败: %w", err)
 			return
@@ -112,7 +112,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), inputs.CasperInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
-		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, casper, inputs.CasperInput)
+		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, casper, inputs.CasperInput, CollectResponsesOptions{})
 		if err != nil {
 			errCh <- fmt.Errorf("casper响应失败: %w", err)
 			return

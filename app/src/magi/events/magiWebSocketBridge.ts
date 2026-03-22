@@ -18,6 +18,7 @@ const MAGI_EVENT_NAMES: MagiEventName[] = [
     "TOOL_CALL_DETECTED",
     "DELIBERATION_SIGNAL_RAISED",
     "CONTEXT_HISTORY_TRIMMED",
+    "RUNTIME_STATUS_UPDATED",
 ];
 
 interface MagiEventEnvelope {

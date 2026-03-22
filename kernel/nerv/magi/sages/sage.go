@@ -76,18 +76,41 @@ func NewSage(name string, cfg *config.AgentConfig, client llm.Client, strategy *
 
 // SendMessage 发送消息并返回流式响应
 func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput string) (<-chan types.StreamChunk, error) {
-	return s.sendMessageInternal(ctx, sessionId, roundId, userInput, true)
+	return s.sendMessageInternal(ctx, sessionId, roundId, userInput, true, nil, nil, false)
 }
 
 // SendContinuation 基于当前上下文继续对话（不追加新的 user 消息）。
 func (s *Sage) SendContinuation(ctx context.Context, sessionId, roundId string) (<-chan types.StreamChunk, error) {
-	return s.sendMessageInternal(ctx, sessionId, roundId, "", false)
+	return s.sendMessageInternal(ctx, sessionId, roundId, "", false, nil, nil, false)
+}
+
+// SendMessageWithRuntimeTools 使用临时工具集发送消息。
+func (s *Sage) SendMessageWithRuntimeTools(
+	ctx context.Context,
+	sessionId, roundId, userInput string,
+	runtimeTools []openai.Tool,
+	runtimeToolChoice any,
+) (<-chan types.StreamChunk, error) {
+	return s.sendMessageInternal(ctx, sessionId, roundId, userInput, true, runtimeTools, runtimeToolChoice, true)
+}
+
+// SendContinuationWithRuntimeTools 使用临时工具集继续对话。
+func (s *Sage) SendContinuationWithRuntimeTools(
+	ctx context.Context,
+	sessionId, roundId string,
+	runtimeTools []openai.Tool,
+	runtimeToolChoice any,
+) (<-chan types.StreamChunk, error) {
+	return s.sendMessageInternal(ctx, sessionId, roundId, "", false, runtimeTools, runtimeToolChoice, true)
 }
 
 func (s *Sage) sendMessageInternal(
 	ctx context.Context,
 	sessionId, roundId, userInput string,
 	appendUserInput bool,
+	runtimeTools []openai.Tool,
+	runtimeToolChoice any,
+	overrideRuntimeTools bool,
 ) (<-chan types.StreamChunk, error) {
 	s.mu.Lock()
 
@@ -110,17 +133,23 @@ func (s *Sage) sendMessageInternal(
 
 	messages = s.contextManager.GetMessagesForSession(sessionId)
 	requestMessages := s.buildRequestMessages(messages)
+	requestTools := s.tools
+	requestToolChoice := s.toolChoice
+	if overrideRuntimeTools {
+		requestTools = append([]openai.Tool(nil), runtimeTools...)
+		requestToolChoice = runtimeToolChoice
+	}
 	s.mu.Unlock()
 
 	// 推送LLM请求事件
 	if sessionId != "" && roundId != "" {
 		model := s.llmClient.GetModel()
-		toolCount := len(s.tools)
+		toolCount := len(requestTools)
 		_ = websocket.PushLLMRequestSent(sessionId, roundId, s.name, s.displayName, model, requestMessages, toolCount)
 	}
 
 	// 发送请求
-	return s.llmClient.SendChatRequest(ctx, requestMessages, s.tools, s.toolChoice)
+	return s.llmClient.SendChatRequest(ctx, requestMessages, requestTools, requestToolChoice)
 }
 
 // AddToContext 添加消息到上下文（向后兼容，使用空sessionId）

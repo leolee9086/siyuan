@@ -69,6 +69,7 @@ var (
 	magiBalthazar   *sages.Sage
 	magiCasper      *sages.Sage
 	magiTrinity     *sages.Sage
+	magiRuntimeMgr  = newMagiRuntimeManager(defaultMagiHeartbeatInterval)
 	magiInitErr     error
 	magiPersonaMu   sync.RWMutex
 	magiPersonaInfo = magiPersonaRuntimeStatus{
@@ -119,7 +120,16 @@ func initMagiCron() {
 			magiInitErr = err
 		}
 		go magiDispatcher()
+		if magiInitErr == nil {
+			magiRuntimeMgr.Start()
+		}
 	})
+}
+
+// BootstrapMagiRuntimeAsync 在内核启动阶段后台预热 MAGI 运行时。
+// 这样心跳循环不会依赖首次 MAGI API/UI 访问才开始。
+func BootstrapMagiRuntimeAsync() {
+	go initMagiCron()
 }
 
 // initMagiComponents 初始化MAGI核心组件
@@ -192,6 +202,7 @@ func magiPersonaStatus(c *gin.Context) {
 		"is_complete":  info.IsComplete,
 		"using_preset": info.UsingPreset,
 		"preset_name":  info.PresetName,
+		"runtime":      magiRuntimeMgr.GetStatus(),
 	})
 }
 
@@ -250,6 +261,8 @@ func magiChat(c *gin.Context) {
 }
 
 func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx *types.RequestSourceContext) (*types.Message, error) {
+	magiRuntimeMgr.InterruptHeartbeat()
+
 	task := &MagiRequest{
 		Req:        req,
 		SessionID:  getOrCreateSession(c, sourceCtx),
@@ -301,7 +314,7 @@ func writeMagiTaskError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
-func handleMagiTask(task *MagiRequest) MagiTaskResult {
+func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
 	req := task.Req
 
 	// 检查初始化错误
@@ -314,6 +327,10 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 		return MagiTaskResult{Err: errors.New("no chat messages found")}
 	}
 	userMessage := buildClaimedUserMessagePreview(claimedRecentHistory)
+	magiRuntimeMgr.BeginForeground(userMessage)
+	defer func() {
+		magiRuntimeMgr.FinishForeground(result.Err)
+	}()
 
 	// 调用 Coordinator 执行决策。使用请求上下文承载取消信号，避免给整轮流程附加共享 deadline。
 	ctx := task.RequestCtx
@@ -334,9 +351,11 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 	)
 
 	if err != nil {
-		return MagiTaskResult{Err: err}
+		result = MagiTaskResult{Err: err}
+		return
 	}
-	return MagiTaskResult{ConsensusMsg: consensusMsg}
+	result = MagiTaskResult{ConsensusMsg: consensusMsg}
+	return
 }
 
 func extractClaimedRecentHistory(messages []openai.ChatCompletionMessage) []types.ClaimedHistoryMessage {

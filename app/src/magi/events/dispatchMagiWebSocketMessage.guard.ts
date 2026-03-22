@@ -169,6 +169,13 @@ function isContextHistoryTrimmedPayload(payload: Record<string, unknown>): boole
     );
 }
 
+function isRuntimeStatusUpdatedPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.state === "string" &&
+        typeof payload.awake === "boolean"
+    );
+}
+
 /**
  * 事件类型到验证函数的映射表。
  */
@@ -186,6 +193,7 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     TOOL_CALL_DETECTED: isToolCallDetectedPayload,
     DELIBERATION_SIGNAL_RAISED: isDeliberationSignalRaisedPayload,
     CONTEXT_HISTORY_TRIMMED: isContextHistoryTrimmedPayload,
+    RUNTIME_STATUS_UPDATED: isRuntimeStatusUpdatedPayload,
 };
 
 /**

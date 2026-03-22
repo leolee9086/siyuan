@@ -19,6 +19,21 @@ import type { ContextMessage, ReplyOptions } from "../core/core.types";
  */
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
+/** MAGI 全局运行态。 */
+export interface MagiRuntimeStatus {
+    state: "sleeping" | "heartbeat" | "external";
+    awake: boolean;
+    wakeSource?: string;
+    reason?: string;
+    currentRoundId?: string;
+    currentTask?: string;
+    lastHeartbeatAt?: number;
+    lastWakeAt?: number;
+    lastSleepAt?: number;
+    lastSleepSummary?: string;
+    updatedAt?: number;
+}
+
 /** MAGI 会话导出模式 */
 export type MagiSessionExportMode = "raw" | "sanitized";
 
@@ -138,6 +153,8 @@ export interface UseMagiReturn {
     consensusMessages: MagiMessage[];
     /** 是否存在任一贤者正在响应 */
     isAnySeelLoading: Ref<boolean>;
+    /** MAGI 全局运行态 */
+    runtimeStatus: Ref<MagiRuntimeStatus | null>;
     /** 发送用户消息并触发三贤者并行响应 */
     sendUserMessage: (text: string, options?: SendUserMessageOptions) => Promise<string>;
     /** 初始化MAGI系统 */

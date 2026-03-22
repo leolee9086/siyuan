@@ -132,6 +132,32 @@ func TestBuildWannaSpeakTransitionToolDef_Structure(t *testing.T) {
 	}
 }
 
+func TestBuildWannaSleepToolDef_Structure(t *testing.T) {
+	tool := BuildWannaSleepToolDef()
+	if tool.Type != "function" {
+		t.Fatalf("期望 Type=function，实际=%s", tool.Type)
+	}
+	if tool.Function.Name != WannaSleepToolName {
+		t.Fatalf("期望 Name=%s，实际=%s", WannaSleepToolName, tool.Function.Name)
+	}
+
+	properties, ok := tool.Function.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Parameters 缺少 properties")
+	}
+	if _, ok := properties["summary"]; !ok {
+		t.Fatal("Parameters 缺少 summary")
+	}
+
+	required, ok := tool.Function.Parameters["required"].([]string)
+	if !ok {
+		t.Fatal("Parameters 缺少 required")
+	}
+	if len(required) != 1 || required[0] != "summary" {
+		t.Fatalf("期望 required=[summary]，实际=%v", required)
+	}
+}
+
 // TestBuildDeliberationSignalToolDef_Structure 验证 deliberation_signal 工具定义结构
 func TestBuildDeliberationSignalToolDef_Structure(t *testing.T) {
 	tool := BuildDeliberationSignalToolDef()

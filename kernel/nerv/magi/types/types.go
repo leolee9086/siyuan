@@ -80,6 +80,9 @@ type SageResponse struct {
 	ProposedAction       string              `json:"proposedAction,omitempty"`       // 建议的行动提案
 	ToolCallNames        []string            `json:"toolCallNames,omitempty"`        // 工具名称列表
 	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`  // 按工具名聚合参数
+	WantsSleep           bool                `json:"wantsSleep,omitempty"`           // 心跳轮次是否请求休眠
+	SleepSummary         string              `json:"sleepSummary,omitempty"`         // 心跳轮次本次醒来工作摘要
+	SkipAssistantMemory  bool                `json:"skipAssistantMemory,omitempty"`  // 工具调用已完整入历史时，跳过额外assistant文本写回
 }
 
 // VoteDecision 投票决定
@@ -185,6 +188,11 @@ type WannaSpeakTool struct {
 	Content string `json:"content"`
 }
 
+// WannaSleepTool 三贤人心跳轮次休眠工具参数
+type WannaSleepTool struct {
+	Summary string `json:"summary"`
+}
+
 // TrinitySpeakTool Trinity speak工具参数
 type TrinitySpeakTool struct {
 	Content string `json:"content"`
@@ -244,4 +252,28 @@ type RequestSourceContext struct {
 type ClaimedHistoryMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+// RuntimeState MAGI 运行态
+type RuntimeState string
+
+const (
+	RuntimeStateSleeping  RuntimeState = "sleeping"
+	RuntimeStateHeartbeat RuntimeState = "heartbeat"
+	RuntimeStateExternal  RuntimeState = "external"
+)
+
+// RuntimeStatus MAGI 全局运行时状态
+type RuntimeStatus struct {
+	State            RuntimeState `json:"state"`
+	Awake            bool         `json:"awake"`
+	WakeSource       string       `json:"wakeSource,omitempty"`
+	Reason           string       `json:"reason,omitempty"`
+	CurrentRoundID   string       `json:"currentRoundId,omitempty"`
+	CurrentTask      string       `json:"currentTask,omitempty"`
+	LastHeartbeatAt  int64        `json:"lastHeartbeatAt,omitempty"`
+	LastWakeAt       int64        `json:"lastWakeAt,omitempty"`
+	LastSleepAt      int64        `json:"lastSleepAt,omitempty"`
+	LastSleepSummary string       `json:"lastSleepSummary,omitempty"`
+	UpdatedAt        int64        `json:"updatedAt"`
 }

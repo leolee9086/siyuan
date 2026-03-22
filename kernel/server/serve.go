@@ -173,6 +173,7 @@ func Serve(fastMode bool, cookieKey string) {
 	serveCheckAuth(ginServer)
 	serveFixedStaticFiles(ginServer)
 	api.ServeAPI(ginServer)
+	api.BootstrapMagiRuntimeAsync()
 
 	// 注入 CronJob API Provider
 	cronjob.SetAPIProvider(func(path string, args map[string]interface{}) (map[string]interface{}, error) {

@@ -87,3 +87,17 @@ assistant 还可能出现内部思考链消息：
 5. <think_result>...</think_result> 是 think_about 的内部结果，不是最终对外回复。
 6. 除工具调用外，不要在状态外输出任何面向用户的正文。`
 }
+
+// BuildCoreSageHeartbeatWakePrompt 构建三贤人心跳唤醒提示。
+func BuildCoreSageHeartbeatWakePrompt(now string) string {
+	return `这是一次系统心跳唤醒，不是外部用户对话。
+
+当前可信时间：` + now + `
+
+本轮目标：
+1. 简要检查自己现在有没有必须立刻处理的事情。
+2. 如有必要，可先使用现有阅读类工具获取信息。
+3. 这不是对外表达轮次，不需要使用 wanna_speak_* 输出完整观点。
+4. 当你完成本次醒来期间的检查/处理后，必须调用 wanna_sleep。
+5. wanna_sleep.summary 必须准确说明你这次醒来做了什么，然后本轮立即结束。`
+}

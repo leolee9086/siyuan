@@ -18,6 +18,7 @@ package websocket
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -40,6 +41,7 @@ const (
 	EventToolCallDetected          = "TOOL_CALL_DETECTED"
 	EventDeliberationSignalRaised  = "DELIBERATION_SIGNAL_RAISED"
 	EventContextHistoryTrimmed     = "CONTEXT_HISTORY_TRIMMED"
+	EventRuntimeStatusUpdated      = "RUNTIME_STATUS_UPDATED"
 )
 
 var (
@@ -255,6 +257,33 @@ func PushRoundFailed(sessionId, roundId, errorMsg string) error {
 		"error":     errorMsg,
 	}
 	return globalPusher.Push(sessionId, EventRoundFailed, data)
+}
+
+// PushRuntimeStatusUpdated 推送 MAGI 全局运行态更新事件。
+func PushRuntimeStatusUpdated(sessionId string, status types.RuntimeStatus) error {
+	eventId, seq := generateEventID()
+	roundID := strings.TrimSpace(status.CurrentRoundID)
+	if roundID == "" {
+		roundID = "runtime-status"
+	}
+	data := map[string]interface{}{
+		"eventId":          eventId,
+		"seq":              seq,
+		"roundId":          roundID,
+		"timestamp":        time.Now().UnixMilli(),
+		"state":            status.State,
+		"awake":            status.Awake,
+		"wakeSource":       status.WakeSource,
+		"reason":           status.Reason,
+		"currentRoundId":   status.CurrentRoundID,
+		"currentTask":      status.CurrentTask,
+		"lastHeartbeatAt":  status.LastHeartbeatAt,
+		"lastWakeAt":       status.LastWakeAt,
+		"lastSleepAt":      status.LastSleepAt,
+		"lastSleepSummary": status.LastSleepSummary,
+		"updatedAt":        status.UpdatedAt,
+	}
+	return globalPusher.Push(sessionId, EventRuntimeStatusUpdated, data)
 }
 
 // PushToolCallDetected 推送通用工具调用检测事件（支持增量参数）

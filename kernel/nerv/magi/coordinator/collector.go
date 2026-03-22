@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -21,6 +22,20 @@ import (
 // ResponseCollector 响应收集器
 type ResponseCollector struct {
 	timeout time.Duration
+}
+
+type CollectResponsesOptions struct {
+	AllowWannaSleep   bool
+	StopOnWannaSleep  bool
+	RuntimeTools      []openai.Tool
+	RuntimeToolChoice any
+}
+
+type HeartbeatCollectionResult struct {
+	Responses    []types.SageResponse
+	Sleeping     bool
+	Sleeper      string
+	SleepSummary string
 }
 
 // NewResponseCollector 创建响应收集器
@@ -39,6 +54,61 @@ func (rc *ResponseCollector) CollectResponses(
 	userMessage string,
 	modelInput string,
 ) ([]types.SageResponse, error) {
+	result, err := rc.collectResponsesWithOptions(
+		ctx,
+		sessionId,
+		roundId,
+		melchior,
+		balthazar,
+		casper,
+		userMessage,
+		modelInput,
+		CollectResponsesOptions{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return result.Responses, nil
+}
+
+func (rc *ResponseCollector) CollectHeartbeatResponses(
+	ctx context.Context,
+	sessionId, roundId string,
+	melchior, balthazar, casper *sages.Sage,
+	userMessage string,
+	modelInput string,
+	runtimeTools []openai.Tool,
+	runtimeToolChoice any,
+) (*HeartbeatCollectionResult, error) {
+	return rc.collectResponsesWithOptions(
+		ctx,
+		sessionId,
+		roundId,
+		melchior,
+		balthazar,
+		casper,
+		userMessage,
+		modelInput,
+		CollectResponsesOptions{
+			AllowWannaSleep:   true,
+			StopOnWannaSleep:  true,
+			RuntimeTools:      runtimeTools,
+			RuntimeToolChoice: runtimeToolChoice,
+		},
+	)
+}
+
+func (rc *ResponseCollector) collectResponsesWithOptions(
+	ctx context.Context,
+	sessionId, roundId string,
+	melchior, balthazar, casper *sages.Sage,
+	userMessage string,
+	modelInput string,
+	options CollectResponsesOptions,
+) (*HeartbeatCollectionResult, error) {
+	derivedCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// 结果channel
 	type result struct {
 		response *types.SageResponse
@@ -59,7 +129,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, melchior, modelInput)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, melchior, modelInput, options)
 		resultCh <- result{response: resp, err: err, sageName: "melchior"}
 	}()
 
@@ -71,7 +141,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, modelInput)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, balthazar, modelInput, options)
 		resultCh <- result{response: resp, err: err, sageName: "balthazar"}
 	}()
 
@@ -83,7 +153,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, casper, modelInput)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, casper, modelInput, options)
 		resultCh <- result{response: resp, err: err, sageName: "casper"}
 	}()
 
@@ -96,23 +166,41 @@ func (rc *ResponseCollector) CollectResponses(
 	// 收集结果
 	var responses []types.SageResponse
 	var successCount int
-	var errors []string
+	var errMessages []string
+	heartbeatResult := &HeartbeatCollectionResult{}
 
 	for res := range resultCh {
+		if res.response != nil {
+			if options.StopOnWannaSleep && res.response.WantsSleep && !heartbeatResult.Sleeping {
+				heartbeatResult.Sleeping = true
+				heartbeatResult.Sleeper = res.response.Seel
+				heartbeatResult.SleepSummary = strings.TrimSpace(res.response.SleepSummary)
+				cancel()
+			}
+		}
 		if res.err != nil {
-			errors = append(errors, fmt.Sprintf("%s: %v", res.sageName, res.err))
+			if heartbeatResult.Sleeping && errors.Is(res.err, context.Canceled) {
+				continue
+			}
+			errMessages = append(errMessages, fmt.Sprintf("%s: %v", res.sageName, res.err))
 		} else if res.response != nil {
 			responses = append(responses, *res.response)
 			successCount++
 		}
 	}
 
-	// 检查是否至少有2个成功
-	if successCount < 2 {
-		return nil, fmt.Errorf("至少需要2个贤者成功响应，实际成功: %d, 错误: %v", successCount, errors)
+	heartbeatResult.Responses = responses
+
+	if heartbeatResult.Sleeping {
+		return heartbeatResult, nil
 	}
 
-	return responses, nil
+	// 检查是否至少有2个成功
+	if successCount < 2 {
+		return nil, fmt.Errorf("至少需要2个贤者成功响应，实际成功: %d, 错误: %v", successCount, errMessages)
+	}
+
+	return heartbeatResult, nil
 }
 
 func buildSeelStreamMessage(roundId string, sage *sages.Sage) *types.Message {
@@ -131,6 +219,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	sessionId, roundId string,
 	sage *sages.Sage,
 	modelInput string,
+	options CollectResponsesOptions,
 ) (*types.SageResponse, error) {
 	const (
 		toolIndexStride               = 1000
@@ -150,9 +239,30 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			err      error
 		)
 		if turn == 0 {
-			streamCh, err = sage.SendMessage(ctx, sessionId, roundId, modelInput)
+			if len(options.RuntimeTools) > 0 {
+				streamCh, err = sage.SendMessageWithRuntimeTools(
+					ctx,
+					sessionId,
+					roundId,
+					modelInput,
+					options.RuntimeTools,
+					options.RuntimeToolChoice,
+				)
+			} else {
+				streamCh, err = sage.SendMessage(ctx, sessionId, roundId, modelInput)
+			}
 		} else {
-			streamCh, err = sage.SendContinuation(ctx, sessionId, roundId)
+			if len(options.RuntimeTools) > 0 {
+				streamCh, err = sage.SendContinuationWithRuntimeTools(
+					ctx,
+					sessionId,
+					roundId,
+					options.RuntimeTools,
+					options.RuntimeToolChoice,
+				)
+			} else {
+				streamCh, err = sage.SendContinuation(ctx, sessionId, roundId)
+			}
 		}
 		if err != nil {
 			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
@@ -198,7 +308,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 				}
-				return nil, errors.New(errMsg)
+				return nil, fmt.Errorf("%s: %w", errMsg, ctx.Err())
 			case chunk, ok := <-streamCh:
 				if !ok {
 					goto TurnComplete
@@ -260,6 +370,49 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 		indexOffset += toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
+		if options.AllowWannaSleep {
+			if sleepSummary, hasSleep, sleepErr := parseWannaSleepToolContent(turnToolCalls); sleepErr != nil {
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), sleepErr.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, sleepErr
+			} else if hasSleep {
+				if len(turnToolCalls) > 0 {
+					appendTurnToolCallsToContextWithExecutor(
+						sessionId,
+						sage,
+						turnContent.String(),
+						turnToolCalls,
+						toolResultExecutor,
+						buildCoreSageToolAck,
+					)
+				}
+				response := &types.SageResponse{
+					Seel:                sage.GetName(),
+					DisplayName:         sage.GetDisplayName(),
+					UsedToolCall:        true,
+					ToolCallNames:       collectToolCallNames(turnToolCalls),
+					ToolArgumentsByName: collectToolArgumentsByName(turnToolCalls),
+					WantsSleep:          true,
+					SleepSummary:        sleepSummary,
+					SkipAssistantMemory: true,
+				}
+				msg := &types.Message{
+					ID:        streamMessageID,
+					Type:      types.TypeSystem,
+					Content:   sleepSummary,
+					Status:    types.StatusSuccess,
+					Timestamp: time.Now().UnixMilli(),
+					Meta: map[string]interface{}{
+						"type": "wanna-sleep",
+					},
+				}
+				if pushErr := websocket.PushSeelReplyCompleted(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), msg); pushErr != nil {
+					logging.LogWarnf("推送%s响应完成失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return response, nil
+			}
+		}
 		turnMadeProgress, turnStateErr := wannaSpeakTracker.ApplyTurnToolCalls(turnToolCalls)
 		if turnStateErr != nil {
 			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), turnStateErr.Error()); pushErr != nil {
@@ -482,6 +635,66 @@ func parseWannaSpeakToolContent(
 	return content, true, nil
 }
 
+func parseWannaSleepToolContent(toolCalls []types.ToolCall) (summary string, hasSleep bool, err error) {
+	if len(toolCalls) == 0 {
+		return "", false, nil
+	}
+
+	sleepArgs := make([]string, 0, 1)
+	for _, call := range toolCalls {
+		if strings.TrimSpace(call.Function.Name) != config.WannaSleepToolName {
+			continue
+		}
+		sleepArgs = append(sleepArgs, call.Function.Arguments)
+	}
+	if len(sleepArgs) == 0 {
+		return "", false, nil
+	}
+	if len(sleepArgs) > 1 {
+		return "", true, fmt.Errorf("%s 每轮最多调用一次", config.WannaSleepToolName)
+	}
+
+	var payload types.WannaSleepTool
+	if err := json.Unmarshal([]byte(sleepArgs[0]), &payload); err != nil {
+		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.WannaSleepToolName, err)
+	}
+	summary = strings.TrimSpace(payload.Summary)
+	if summary == "" {
+		return "", true, fmt.Errorf("%s 的 summary 不能为空", config.WannaSleepToolName)
+	}
+	return summary, true, nil
+}
+
+func collectToolCallNames(toolCalls []types.ToolCall) []string {
+	if len(toolCalls) == 0 {
+		return nil
+	}
+	ret := make([]string, 0, len(toolCalls))
+	for _, call := range toolCalls {
+		name := strings.TrimSpace(call.Function.Name)
+		if name == "" {
+			continue
+		}
+		ret = append(ret, name)
+	}
+	return ret
+}
+
+func collectToolArgumentsByName(toolCalls []types.ToolCall) map[string][]string {
+	if len(toolCalls) == 0 {
+		return nil
+	}
+	ret := map[string][]string{}
+	for _, call := range toolCalls {
+		name := strings.TrimSpace(call.Function.Name)
+		if name == "" {
+			continue
+		}
+		ret[name] = append(ret[name], call.Function.Arguments)
+	}
+	return ret
+}
+
 func extractToolContentSegments(args []string, toolName string) ([]string, error) {
 	if len(args) == 0 {
 		return nil, nil
@@ -698,6 +911,15 @@ func buildWannaSpeakToolAck(toolName string) string {
 		return `{"ok":true,"state":"stopped"}`
 	default:
 		return `{"ok":true}`
+	}
+}
+
+func buildCoreSageToolAck(toolName string) string {
+	switch strings.TrimSpace(toolName) {
+	case config.WannaSleepToolName:
+		return `{"ok":true,"state":"sleeping"}`
+	default:
+		return buildWannaSpeakToolAck(toolName)
 	}
 }
 

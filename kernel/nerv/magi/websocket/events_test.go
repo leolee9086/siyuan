@@ -161,8 +161,8 @@ func TestPushContextHistoryTrimmed(t *testing.T) {
 }
 
 func TestEventIDGeneration(t *testing.T) {
-	id1 := generateEventID()
-	id2 := generateEventID()
+	id1, _ := generateEventID()
+	id2, _ := generateEventID()
 	if id1 == id2 {
 		t.Error("generateEventID() should generate unique IDs")
 	}

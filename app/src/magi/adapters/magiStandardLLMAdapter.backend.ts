@@ -51,6 +51,7 @@ import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 
 const SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH = "/api/s-forge/magi/v1/chat/completions";
 const MAGI_MONITOR_SESSION_PREFIX = "magi-route-";
+export const MAGI_RUNTIME_MONITOR_SESSION_ID = "magi-main-runtime";
 const FNV_OFFSET_BASIS_64 = 0xcbf29ce484222325n;
 const FNV_PRIME_64 = 0x100000001b3n;
 

@@ -3,6 +3,7 @@ import { useMagi } from "../composables/useMagi";
 import { appendConsensusMessage } from "../composables/useMagi.consensus";
 import { exportMagiSessionRecord } from "../composables/useMagi.export";
 import type {
+    MagiRuntimeStatus,
     SourceSimulationContext,
     UseMagiReturn,
     WrappedSeel,
@@ -930,6 +931,9 @@ function createMagiRootComputed(
     const isAnySeelLoading = computed(
         () => magiState.value?.isAnySeelLoading.value ?? false,
     );
+    const runtimeStatus = computed<MagiRuntimeStatus | null>(
+        () => magiState.value?.runtimeStatus.value ?? null,
+    );
     const displayMessages = computed<MagiMainPanelMessageView[]>(() => !showMessages.value
         ? []
         : mainPanelMessages.value);
@@ -944,6 +948,7 @@ function createMagiRootComputed(
         sageSeelViews,
         trinitySeelView,
         isAnySeelLoading,
+        runtimeStatus,
         displayMessages,
         workspaceAIMainNotebookStatus,
     };
@@ -1103,6 +1108,7 @@ export function useMagiRootContext(): MagiRootContext {
         trinitySeelView: computedState.trinitySeelView,
         displayMessages: computedState.displayMessages,
         isAnySeelLoading: computedState.isAnySeelLoading,
+        runtimeStatus: computedState.runtimeStatus,
         showWindowControls: computed(() => isElectron && !isMobile),
         onSubmitInput: handlers.onSubmitInput,
         onShowQuestionnaire: handlers.onShowQuestionnaire,

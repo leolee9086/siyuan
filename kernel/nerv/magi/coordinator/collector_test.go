@@ -184,6 +184,18 @@ func (m *mockLLMClient) GetModel() string {
 }
 
 func createMockSage(name, displayName, content string, shouldFail bool, delay time.Duration) *sages.Sage {
+	client := &mockLLMClient{
+		responseContent: content,
+		shouldFail:      shouldFail,
+		delay:           delay,
+	}
+	if !shouldFail && content != "" {
+		client.scriptedTurns = []mockTurn{completedSpeakTurn(content)}
+	}
+	return createMockSageWithClient(name, displayName, client)
+}
+
+func createMockSageWithClient(name, displayName string, client *mockLLMClient) *sages.Sage {
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{
 			Name: displayName,
@@ -193,15 +205,6 @@ func createMockSage(name, displayName, content string, shouldFail bool, delay ti
 	strategy := &config.ContextStrategy{
 		Type:  "message_count",
 		Count: 7,
-	}
-
-	client := &mockLLMClient{
-		responseContent: content,
-		shouldFail:      shouldFail,
-		delay:           delay,
-	}
-	if !shouldFail && content != "" {
-		client.scriptedTurns = []mockTurn{completedSpeakTurn(content)}
 	}
 
 	return sages.NewSage(name, cfg, client, strategy)
@@ -304,7 +307,7 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
 	ctx := context.Background()
-	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息", CollectResponsesOptions{})
 
 	if err != nil {
 		t.Fatalf("期望成功，但得到错误: %v", err)
@@ -355,7 +358,7 @@ func TestCollectSingleSageResponse_WithInvalidToolArgs(t *testing.T) {
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
 	ctx := context.Background()
-	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息", CollectResponsesOptions{})
 
 	if err != nil {
 		t.Fatalf("期望成功（解析失败不应导致整体失败），但得到错误: %v", err)
@@ -399,7 +402,7 @@ func TestCollectSingleSageResponse_WithoutToolCallsFails(t *testing.T) {
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
 	ctx := context.Background()
-	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息", CollectResponsesOptions{})
 
 	if err == nil {
 		t.Fatalf("期望因为缺少 speak 状态转移而失败，但返回了响应: %+v", response)
@@ -526,5 +529,81 @@ func TestWannaSpeakTracker_RejectsReadingAfterSpeakStart(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("进入表达状态后再调用阅读工具应报错")
+	}
+}
+
+func TestCollectHeartbeatResponses_WannaSleepStopsOtherSages(t *testing.T) {
+	collector := NewResponseCollector(5 * time.Second)
+
+	sleepClient := &mockLLMClient{
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, config.WannaSleepToolName, `{"summary":"检查了待办并确认暂时无事可做"}`),
+				},
+			},
+		},
+	}
+	melchior := createMockSageWithClient("melchior", "Melchior", sleepClient)
+	balthazar := createMockSageWithClient("balthazar", "Balthazar", &mockLLMClient{
+		delay:         2 * time.Second,
+		scriptedTurns: []mockTurn{completedSpeakTurn("仍在分析")},
+	})
+	casper := createMockSageWithClient("casper", "Casper", &mockLLMClient{
+		delay:         2 * time.Second,
+		scriptedTurns: []mockTurn{completedSpeakTurn("仍在分析")},
+	})
+
+	runtimeTools := []openai.Tool{
+		{
+			Type: openai.ToolTypeFunction,
+			Function: &openai.FunctionDefinition{
+				Name:        config.WannaSleepToolName,
+				Description: "sleep",
+			},
+		},
+	}
+
+	result, err := collector.CollectHeartbeatResponses(
+		context.Background(),
+		"heartbeat-session",
+		"heartbeat-round",
+		melchior,
+		balthazar,
+		casper,
+		"heartbeat",
+		"heartbeat",
+		runtimeTools,
+		"required",
+	)
+	if err != nil {
+		t.Fatalf("心跳收集不应报错: %v", err)
+	}
+	if result == nil || !result.Sleeping {
+		t.Fatal("期望心跳轮次被 wanna_sleep 收束")
+	}
+	if result.Sleeper != "melchior" {
+		t.Fatalf("期望 Melchior 发起休眠，实际=%s", result.Sleeper)
+	}
+	if !strings.Contains(result.SleepSummary, "无事可做") {
+		t.Fatalf("期望休眠摘要被保留，实际=%s", result.SleepSummary)
+	}
+
+	contextMessages := melchior.GetContextForSession("heartbeat-session")
+	foundToolCall := false
+	foundToolResult := false
+	for _, msg := range contextMessages {
+		if len(msg.ToolCalls) > 0 && msg.ToolCalls[0].Function.Name == config.WannaSleepToolName {
+			foundToolCall = true
+		}
+		if msg.Role == types.RoleTool && strings.Contains(msg.Content, `"state":"sleeping"`) {
+			foundToolResult = true
+		}
+	}
+	if !foundToolCall {
+		t.Fatal("wanna_sleep 工具调用应写入贤者记忆")
+	}
+	if !foundToolResult {
+		t.Fatal("wanna_sleep 工具结果应写入贤者记忆")
 	}
 }
