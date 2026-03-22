@@ -172,6 +172,45 @@ func TestSageClearContext(t *testing.T) {
 	}
 }
 
+func TestSageCloneWithFreshContext(t *testing.T) {
+	cfg := &config.AgentConfig{
+		Name: "test",
+		SEELConfig: config.SEELConfig{
+			Name: "TestSage",
+		},
+		SystemPrompt: "You are a test sage",
+	}
+
+	strategy := &config.ContextStrategy{
+		Type:  "message_count",
+		Count: 5,
+	}
+
+	client := &mockLLMClient{}
+	sage := NewSage("test", cfg, client, strategy)
+	sage.AddToContext(types.ContextMessage{
+		Role:    types.RoleUser,
+		Content: "persisted history",
+	})
+
+	cloned := sage.CloneWithFreshContext()
+	if cloned == nil {
+		t.Fatal("CloneWithFreshContext returned nil")
+	}
+	if cloned == sage {
+		t.Fatal("expected a different sage instance")
+	}
+	if cloned.GetName() != sage.GetName() {
+		t.Fatalf("expected cloned name %s, got %s", sage.GetName(), cloned.GetName())
+	}
+	if len(cloned.GetContext()) != 0 {
+		t.Fatalf("expected cloned sage to start with empty context, got %d messages", len(cloned.GetContext()))
+	}
+	if len(sage.GetContext()) != 1 {
+		t.Fatalf("expected original sage context to remain intact, got %d messages", len(sage.GetContext()))
+	}
+}
+
 // TestSageSendMessage 测试发送消息
 func TestSageSendMessage(t *testing.T) {
 	cfg := &config.AgentConfig{

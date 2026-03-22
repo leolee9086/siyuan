@@ -50,15 +50,21 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 	if len(validResponses) == 0 {
 		return &TrinityResult{Success: false}, nil
 	}
+	if trinity == nil {
+		return nil, fmt.Errorf("trinity is nil")
+	}
+
+	// Trinity 作为统合器必须跨轮次无状态；每次统合都在全新的临时实例上完成。
+	workingTrinity := trinity.CloneWithFreshContext()
 
 	// 构建内省输入
 	introspection := tc.buildIntrospectionInput(validResponses)
 
 	// 确保system prompt在上下文中（修复问题4：防止system prompt被绕过）
-	tc.ensureSystemPrompt(sessionId, trinity)
+	tc.ensureSystemPrompt(sessionId, workingTrinity)
 
 	// 保存初始上下文快照（用于重试恢复）
-	initialContext := trinity.GetContextForSession(sessionId)
+	initialContext := workingTrinity.GetContextForSession(sessionId)
 
 	// 指数退避重试调用Trinity
 	var lastErr error
@@ -67,11 +73,11 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 	for attempt := 1; attempt <= tc.maxRetries; attempt++ {
 		// 每次尝试前恢复初始上下文并重新注入内省输入
 		if attempt > 1 {
-			tc.restoreContext(sessionId, trinity, initialContext)
+			tc.restoreContext(sessionId, workingTrinity, initialContext)
 		}
-		tc.injectIntrospection(sessionId, trinity, introspection, userMessage)
+		tc.injectIntrospection(sessionId, workingTrinity, introspection, userMessage)
 
-		result, err := tc.callTrinity(ctx, sessionId, roundId, trinity, userMessage, attempt)
+		result, err := tc.callTrinity(ctx, sessionId, roundId, workingTrinity, userMessage, attempt)
 		if err == nil && result.Success {
 			// 推送Trinity统合完成
 			if pushErr := websocket.PushTrinitySynthesisCompleted(sessionId, roundId, result.Content); pushErr != nil {

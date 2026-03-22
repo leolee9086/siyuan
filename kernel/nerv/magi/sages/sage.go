@@ -180,6 +180,40 @@ func (s *Sage) GetSystemPrompt() string {
 	return s.systemPrompt
 }
 
+// CloneWithFreshContext 基于当前 Sage 配置创建一个不携带历史的新实例。
+// 用于像 Trinity 这类需要跨调用保持无状态、但单次调用内部仍需要临时上下文的场景。
+func (s *Sage) CloneWithFreshContext() *Sage {
+	if s == nil {
+		return nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var clonedContextManager ContextManager
+	switch s.contextManager.(type) {
+	case *multiSessionContextManager:
+		clonedContextManager = newMultiSessionContextManager(s.contextStrategy)
+	default:
+		clonedContextManager = newContextManager(s.contextStrategy)
+	}
+
+	clonedTools := append([]openai.Tool(nil), s.tools...)
+
+	return &Sage{
+		name:            s.name,
+		displayName:     s.displayName,
+		config:          s.config,
+		llmClient:       s.llmClient,
+		contextManager:  clonedContextManager,
+		systemPrompt:    s.systemPrompt,
+		tools:           clonedTools,
+		toolChoice:      s.toolChoice,
+		contextStrategy: s.contextStrategy,
+		profile:         s.profile,
+	}
+}
+
 // GetTools 获取工具列表
 func (s *Sage) GetTools() []openai.Tool {
 	s.mu.RLock()

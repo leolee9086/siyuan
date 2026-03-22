@@ -549,7 +549,12 @@ func collectTrinitySynthesizeAvatar(
 	trinity *sages.Sage,
 	task string,
 ) (*trinitySynthesizeAvatar, error) {
-	rawArgs, err := runSageToolCall(ctx, trinity, task, avatarSynthesizeToolName)
+	if trinity == nil {
+		return nil, fmt.Errorf("trinity is nil")
+	}
+
+	// Avatar 合成阶段同样不应复用 Trinity 的历史状态。
+	rawArgs, err := runSageToolCall(ctx, trinity.CloneWithFreshContext(), task, avatarSynthesizeToolName)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,8 @@ package coordinator
 
 import (
 	"context"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +13,49 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
+func toolCall(name string) types.ToolCall {
+	return types.ToolCall{
+		ID:    "test-call-" + name,
+		Type:  "function",
+		Index: 0,
+		Function: types.ToolCallFunction{
+			Name:      name,
+			Arguments: "{}",
+		},
+	}
+}
+
+func toolCallDelta(index int, name, args string) types.ToolCallDelta {
+	if args == "" {
+		args = "{}"
+	}
+	return types.ToolCallDelta{
+		Index: index,
+		ID:    "test-delta-" + name,
+		Type:  "function",
+		Function: &types.ToolCallFunctionDelta{
+			Name:      name,
+			Arguments: args,
+		},
+	}
+}
+
+type mockTurn struct {
+	content   string
+	toolCalls []types.ToolCallDelta
+	object    string
+}
+
+func completedSpeakTurn(content string) mockTurn {
+	return mockTurn{
+		toolCalls: []types.ToolCallDelta{
+			toolCallDelta(0, config.WannaSpeakStartToolName, `{}`),
+			toolCallDelta(1, config.WannaSpeakContinueToolName, `{"content":"`+content+`"}`),
+			toolCallDelta(2, config.WannaSpeakStopToolName, `{}`),
+		},
+	}
+}
+
 // mockLLMClient 模拟LLM客户端
 type mockLLMClient struct {
 	responseContent string
@@ -18,6 +63,9 @@ type mockLLMClient struct {
 	delay           time.Duration
 	hasToolCall     bool
 	toolCallArgs    string
+	scriptedTurns   []mockTurn
+	mu              sync.Mutex
+	turnIndex       int
 }
 
 func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
@@ -36,6 +84,39 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 
 		if m.shouldFail {
 			// 失败情况：不发送任何chunk，直接关闭
+			return
+		}
+
+		if turn, ok := m.nextTurn(); ok {
+			if turn.object != "" {
+				ch <- types.StreamChunk{
+					ID:     turn.object,
+					Object: turn.object,
+				}
+				return
+			}
+			if turn.content != "" {
+				ch <- types.StreamChunk{
+					Choices: []types.ChunkChoice{
+						{
+							Delta: types.ChunkDelta{
+								Content: turn.content,
+							},
+						},
+					},
+				}
+			}
+			if len(turn.toolCalls) > 0 {
+				ch <- types.StreamChunk{
+					Choices: []types.ChunkChoice{
+						{
+							Delta: types.ChunkDelta{
+								ToolCalls: turn.toolCalls,
+							},
+						},
+					},
+				}
+			}
 			return
 		}
 
@@ -77,6 +158,23 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 	return ch, nil
 }
 
+func (m *mockLLMClient) nextTurn() (mockTurn, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if len(m.scriptedTurns) == 0 {
+		return mockTurn{}, false
+	}
+	if m.turnIndex >= len(m.scriptedTurns) {
+		m.turnIndex++
+		return mockTurn{}, true
+	}
+
+	turn := m.scriptedTurns[m.turnIndex]
+	m.turnIndex++
+	return turn, true
+}
+
 func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	return m.responseContent, nil
 }
@@ -101,6 +199,9 @@ func createMockSage(name, displayName, content string, shouldFail bool, delay ti
 		responseContent: content,
 		shouldFail:      shouldFail,
 		delay:           delay,
+	}
+	if !shouldFail && content != "" {
+		client.scriptedTurns = []mockTurn{completedSpeakTurn(content)}
 	}
 
 	return sages.NewSage(name, cfg, client, strategy)
@@ -189,9 +290,16 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 		Count: 7,
 	}
 	client := &mockLLMClient{
-		responseContent: "需要投票",
-		hasToolCall:     true,
-		toolCallArgs:    `{"requires_deliberation":true,"reason":"测试原因"}`,
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, "deliberation_signal", `{"requires_deliberation":true,"reason":"测试原因"}`),
+					toolCallDelta(1, config.WannaSpeakStartToolName, `{}`),
+					toolCallDelta(2, config.WannaSpeakContinueToolName, `{"content":"整理后的内部结论"}`),
+					toolCallDelta(3, config.WannaSpeakStopToolName, `{}`),
+				},
+			},
+		},
 	}
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
@@ -213,6 +321,10 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 	if response.DeliberationReason != "测试原因" {
 		t.Fatalf("期望DeliberationReason为'测试原因'，得到 '%s'", response.DeliberationReason)
 	}
+
+	if response.Content != "整理后的内部结论" {
+		t.Fatalf("期望Content为整理后的内部结论，得到 '%s'", response.Content)
+	}
 }
 
 // TestCollectSingleSageResponse_WithInvalidToolArgs 测试工具调用参数非法
@@ -229,9 +341,16 @@ func TestCollectSingleSageResponse_WithInvalidToolArgs(t *testing.T) {
 		Count: 7,
 	}
 	client := &mockLLMClient{
-		responseContent: "分析内容",
-		hasToolCall:     true,
-		toolCallArgs:    `{invalid json}`, // 非法JSON
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, "deliberation_signal", `{invalid json}`),
+					toolCallDelta(1, config.WannaSpeakStartToolName, `{}`),
+					toolCallDelta(2, config.WannaSpeakContinueToolName, `{"content":"分析内容"}`),
+					toolCallDelta(3, config.WannaSpeakStopToolName, `{}`),
+				},
+			},
+		},
 	}
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
@@ -254,10 +373,14 @@ func TestCollectSingleSageResponse_WithInvalidToolArgs(t *testing.T) {
 	if response.DeliberationReason != "" {
 		t.Fatalf("期望DeliberationReason为空（解析失败），得到 '%s'", response.DeliberationReason)
 	}
+
+	if response.Content != "分析内容" {
+		t.Fatalf("期望Content为分析内容，得到 '%s'", response.Content)
+	}
 }
 
-// TestCollectSingleSageResponse_WithoutToolCalls 测试未调用工具
-func TestCollectSingleSageResponse_WithoutToolCalls(t *testing.T) {
+// TestCollectSingleSageResponse_WithoutToolCallsFails 测试未调用 speak 工具时会失败
+func TestCollectSingleSageResponse_WithoutToolCallsFails(t *testing.T) {
 	collector := NewResponseCollector(5 * time.Second)
 
 	cfg := &config.AgentConfig{
@@ -278,19 +401,130 @@ func TestCollectSingleSageResponse_WithoutToolCalls(t *testing.T) {
 	ctx := context.Background()
 	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
 
+	if err == nil {
+		t.Fatalf("期望因为缺少 speak 状态转移而失败，但返回了响应: %+v", response)
+	}
+	if !strings.Contains(err.Error(), "工具状态转移连续失败次数达到上限") {
+		t.Fatalf("期望得到状态转移失败错误，实际为: %v", err)
+	}
+}
+
+func TestWannaSpeakTracker_ReadingTurnCountsAsProgress(t *testing.T) {
+	tracker := newWannaSpeakStateTracker()
+
+	madeProgress, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+		toolCall(config.NoteKeywordSearchToolName),
+	})
 	if err != nil {
-		t.Fatalf("期望成功，但得到错误: %v", err)
+		t.Fatalf("阅读阶段不应报错: %v", err)
+	}
+	if !madeProgress {
+		t.Fatal("阅读阶段的工具调用应计为有效进展")
+	}
+	if tracker.ShouldInjectContinuationPrompt() {
+		t.Fatal("尚未进入表达状态时不应注入 continuation prompt")
+	}
+}
+
+func TestWannaSpeakTracker_AllowsReadingBeforeSpeakInSameTurn(t *testing.T) {
+	tracker := newWannaSpeakStateTracker()
+
+	madeProgress, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+		toolCall(config.NoteKeywordSearchToolName),
+		toolCall(config.WannaSpeakStartToolName),
+		{
+			ID:    "continue-call",
+			Type:  "function",
+			Index: 2,
+			Function: types.ToolCallFunction{
+				Name:      config.WannaSpeakContinueToolName,
+				Arguments: `{"content":"形成后的内部想法"}`,
+			},
+		},
+		toolCall(config.WannaSpeakStopToolName),
+	})
+	if err != nil {
+		t.Fatalf("阅读后进入表达并完成时不应报错: %v", err)
+	}
+	if !madeProgress {
+		t.Fatal("同轮完成阅读并表达应计为有效进展")
+	}
+	if !tracker.IsCompletedPair() {
+		t.Fatal("期望状态转移已经完整闭合")
+	}
+}
+
+func TestWannaSpeakTracker_AllowsSpeakingAcrossTurns(t *testing.T) {
+	tracker := newWannaSpeakStateTracker()
+
+	madeProgress, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+		toolCall(config.WannaSpeakStartToolName),
+		{
+			ID:    "continue-call-1",
+			Type:  "function",
+			Index: 1,
+			Function: types.ToolCallFunction{
+				Name:      config.WannaSpeakContinueToolName,
+				Arguments: `{"content":"第一段想法"}`,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("开始表达的首轮不应报错: %v", err)
+	}
+	if !madeProgress {
+		t.Fatal("开始表达的首轮应计为有效进展")
+	}
+	if !tracker.ShouldInjectContinuationPrompt() {
+		t.Fatal("表达未结束时应继续注入 continuation prompt")
 	}
 
-	if response.UsedToolCall {
-		t.Fatal("期望UsedToolCall为false（未调用工具），但为true")
+	madeProgress, err = tracker.ApplyTurnToolCalls([]types.ToolCall{
+		{
+			ID:    "continue-call-2",
+			Type:  "function",
+			Index: 2,
+			Function: types.ToolCallFunction{
+				Name:      config.WannaSpeakContinueToolName,
+				Arguments: `{"content":"第二段想法"}`,
+			},
+		},
+		toolCall(config.WannaSpeakStopToolName),
+	})
+	if err != nil {
+		t.Fatalf("跨轮补全表达时不应报错: %v", err)
 	}
-
-	if response.RequiresDeliberation {
-		t.Fatal("期望RequiresDeliberation为false（未调用工具），但为true")
+	if !madeProgress {
+		t.Fatal("补全表达的次轮应计为有效进展")
 	}
+	if !tracker.IsCompletedPair() {
+		t.Fatal("跨轮表达完成后应处于闭合状态")
+	}
+	if tracker.ShouldInjectContinuationPrompt() {
+		t.Fatal("表达完成后不应继续注入 continuation prompt")
+	}
+}
 
-	if response.DeliberationReason != "" {
-		t.Fatalf("期望DeliberationReason为空（未调用工具），得到 '%s'", response.DeliberationReason)
+func TestWannaSpeakTracker_RejectsDuplicateStart(t *testing.T) {
+	tracker := newWannaSpeakStateTracker()
+
+	_, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+		toolCall(config.WannaSpeakStartToolName),
+		toolCall(config.WannaSpeakStartToolName),
+	})
+	if err == nil {
+		t.Fatal("表达未结束时重复调用 wanna_speak_start 应报错")
+	}
+}
+
+func TestWannaSpeakTracker_RejectsReadingAfterSpeakStart(t *testing.T) {
+	tracker := newWannaSpeakStateTracker()
+
+	_, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+		toolCall(config.WannaSpeakStartToolName),
+		toolCall(config.ForgeDevRepoReadToolName),
+	})
+	if err == nil {
+		t.Fatal("进入表达状态后再调用阅读工具应报错")
 	}
 }

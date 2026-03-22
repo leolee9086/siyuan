@@ -411,3 +411,35 @@ func TestHandleTrinitySummaryRejectsPlainTextWithoutSpeakTools(t *testing.T) {
 		t.Fatal("期望Success为false")
 	}
 }
+
+func TestHandleTrinitySummaryKeepsSourceTrinityStateless(t *testing.T) {
+	tc := NewTrinityCoordinator()
+	trinity := createMockTrinity("综合结论", []string{"内部消息1"}, false, 0)
+	trinity.AddToContextWithSession("test-session", types.ContextMessage{
+		Role:    types.RoleAssistant,
+		Content: "stale history should not leak",
+	})
+
+	responses := []types.SageResponse{
+		{Seel: "melchior", Content: "逻辑分析"},
+		{Seel: "balthazar", Content: "情绪感知"},
+		{Seel: "casper", Content: "直觉判断"},
+	}
+
+	ctx := context.Background()
+	result, err := tc.HandleTrinitySummary(ctx, "test-session", "test-round", trinity, responses, "test user message")
+	if err != nil {
+		t.Fatalf("Trinity统合失败: %v", err)
+	}
+	if result == nil || !result.Success {
+		t.Fatal("期望Trinity统合成功")
+	}
+
+	originalContext := trinity.GetContextForSession("test-session")
+	if len(originalContext) != 1 {
+		t.Fatalf("期望原始Trinity上下文保持不变，实际消息数=%d", len(originalContext))
+	}
+	if originalContext[0].Content != "stale history should not leak" {
+		t.Fatalf("期望原始Trinity历史未被覆盖，实际=%q", originalContext[0].Content)
+	}
+}

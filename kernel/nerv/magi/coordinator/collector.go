@@ -138,18 +138,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	)
 
 	processor := utilstream.NewProcessor()
-	wannaSpeakTracker := &wannaSpeakStateTracker{}
+	wannaSpeakTracker := newWannaSpeakStateTracker()
 	toolResultExecutor := rc.buildToolResultExecutor(sage)
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
 
 	for turn := 0; ; turn++ {
-		prevStartCount := wannaSpeakTracker.startCount
-		prevContinueCount := wannaSpeakTracker.continueCount
-		prevStopCount := wannaSpeakTracker.stopCount
-		prevErrorCount := len(wannaSpeakTracker.transitionErrors)
-
 		var (
 			streamCh <-chan types.StreamChunk
 			err      error
@@ -230,7 +225,6 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 				choice := chunk.Choices[0]
 				if len(choice.Delta.ToolCalls) > 0 {
-					wannaSpeakTracker.TrackToolCalls(choice.Delta.ToolCalls)
 					turnCollector.Merge(choice.Delta.ToolCalls)
 
 					shifted := withToolCallIndexOffset(choice.Delta.ToolCalls, indexOffset)
@@ -266,6 +260,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 		indexOffset += toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
+		turnMadeProgress, turnStateErr := wannaSpeakTracker.ApplyTurnToolCalls(turnToolCalls)
+		if turnStateErr != nil {
+			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), turnStateErr.Error()); pushErr != nil {
+				logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+			}
+			return nil, turnStateErr
+		}
 
 		if wannaSpeakTracker.IsCompletedPair() {
 			if len(turnToolCalls) > 0 {
@@ -280,11 +281,11 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 
 			if !wannaSpeakTracker.HasCapturedContent() {
-				sage.AddToContextWithSession(sessionId, types.ContextMessage{
-					Role:    types.RoleSystem,
-					Content: wannaSpeakTracker.BuildContinuationPrompt(),
-				})
-				continue
+				err := fmt.Errorf("%s 已完成状态转移但缺少有效内容", config.WannaSpeakContinueToolName)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, err
 			}
 
 			result := processor.GetResult(true)
@@ -326,17 +327,14 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			})
 		}
 
-		sage.AddToContextWithSession(sessionId, types.ContextMessage{
-			Role:    types.RoleSystem,
-			Content: wannaSpeakTracker.BuildContinuationPrompt(),
-		})
+		if wannaSpeakTracker.ShouldInjectContinuationPrompt() {
+			sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: wannaSpeakTracker.BuildContinuationPrompt(),
+			})
+		}
 
-		madeProgress := wannaSpeakTracker.startCount > prevStartCount ||
-			wannaSpeakTracker.continueCount > prevContinueCount ||
-			wannaSpeakTracker.stopCount > prevStopCount
-		hasNewTransitionError := len(wannaSpeakTracker.transitionErrors) > prevErrorCount
-		transitionFailed := !madeProgress || hasNewTransitionError
-		if transitionFailed {
+		if !turnMadeProgress {
 			consecutiveTransitionFailures++
 		} else {
 			consecutiveTransitionFailures = 0
@@ -509,6 +507,7 @@ func extractToolContentSegments(args []string, toolName string) ([]string, error
 }
 
 type wannaSpeakStateTracker struct {
+	phase            coreSageDeliberationPhase
 	capturing        bool
 	startCount       int
 	continueCount    int
@@ -516,45 +515,88 @@ type wannaSpeakStateTracker struct {
 	transitionErrors []string
 }
 
-func (t *wannaSpeakStateTracker) TrackToolCalls(toolCalls []types.ToolCallDelta) {
+type coreSageDeliberationPhase string
+
+const (
+	coreSagePhaseReadThink coreSageDeliberationPhase = "read_think"
+	coreSagePhaseSpeaking  coreSageDeliberationPhase = "speaking"
+	coreSagePhaseCompleted coreSageDeliberationPhase = "completed"
+)
+
+func newWannaSpeakStateTracker() *wannaSpeakStateTracker {
+	return &wannaSpeakStateTracker{phase: coreSagePhaseReadThink}
+}
+
+func (t *wannaSpeakStateTracker) ApplyTurnToolCalls(toolCalls []types.ToolCall) (bool, error) {
+	if len(toolCalls) == 0 {
+		return false, nil
+	}
+
+	madeProgress := false
 	for _, tc := range toolCalls {
-		if tc.Function == nil {
-			continue
-		}
 		toolName := strings.TrimSpace(tc.Function.Name)
 		if toolName == "" {
 			continue
 		}
+
+		if t.phase == coreSagePhaseCompleted {
+			return madeProgress, t.appendTransitionError(
+				fmt.Sprintf("表达已结束，不能继续调用 %s", toolName),
+			)
+		}
+
 		switch toolName {
 		case config.WannaSpeakStartToolName:
 			if t.capturing {
-				// 已在表达状态时重复 start 视为幂等，不额外计数，避免伪不配对。
-				continue
+				return madeProgress, t.appendTransitionError(
+					fmt.Sprintf("%s 不能在当前表达未结束时重复调用", config.WannaSpeakStartToolName),
+				)
 			}
+			t.phase = coreSagePhaseSpeaking
 			t.startCount++
 			t.capturing = true
+			madeProgress = true
 		case config.WannaSpeakContinueToolName:
 			if !t.capturing {
-				t.transitionErrors = append(
-					t.transitionErrors,
+				return madeProgress, t.appendTransitionError(
 					fmt.Sprintf("%s 必须在 %s 与 %s 之间调用", config.WannaSpeakContinueToolName, config.WannaSpeakStartToolName, config.WannaSpeakStopToolName),
 				)
-				continue
 			}
 			t.continueCount++
+			madeProgress = true
 		case config.WannaSpeakStopToolName:
 			if !t.capturing {
-				// 可能是补齐历史遗留状态，忽略孤立 stop，避免跨轮噪声放大。
-				continue
+				return madeProgress, t.appendTransitionError(
+					fmt.Sprintf("%s 必须在 %s 之后调用", config.WannaSpeakStopToolName, config.WannaSpeakStartToolName),
+				)
 			}
 			t.stopCount++
 			t.capturing = false
+			madeProgress = true
+			if t.startCount == t.stopCount {
+				if t.continueCount == 0 {
+					return madeProgress, t.appendTransitionError(
+						fmt.Sprintf("%s 已调用但缺少 %s", config.WannaSpeakStartToolName, config.WannaSpeakContinueToolName),
+					)
+				}
+				t.phase = coreSagePhaseCompleted
+			}
+		default:
+			if t.phase == coreSagePhaseSpeaking || t.capturing {
+				return madeProgress, t.appendTransitionError(
+					fmt.Sprintf("进入表达状态后不能再调用 %s", toolName),
+				)
+			}
+			madeProgress = true
 		}
 	}
+
+	return madeProgress, nil
 }
 
-func (t *wannaSpeakStateTracker) TrackContent(content string) {
-	// 正文改由 wanna_speak_continue 的 content 参数承载，不再记录纯文本。
+func (t *wannaSpeakStateTracker) appendTransitionError(message string) error {
+	t.transitionErrors = append(t.transitionErrors, message)
+	return fmt.Errorf("%s", message)
 }
 
 func (t *wannaSpeakStateTracker) ValidatePairedState() error {
@@ -602,10 +644,14 @@ func (t *wannaSpeakStateTracker) HasCapturedContent() bool {
 	return t.continueCount > 0
 }
 
+func (t *wannaSpeakStateTracker) ShouldInjectContinuationPrompt() bool {
+	return t.phase == coreSagePhaseSpeaking && t.capturing
+}
+
 func (t *wannaSpeakStateTracker) BuildContinuationPrompt() string {
 	if len(t.transitionErrors) > 0 {
 		return fmt.Sprintf(
-			"上一次工具状态转移不合法：%s。请重新按顺序执行：先调用 %s，再调用 %s 追加正文，最后调用 %s。",
+			"上一次状态转移不合法：%s。请重新按顺序执行：先调用 %s，再调用 %s 追加内容，最后调用 %s。",
 			strings.Join(t.transitionErrors, "; "),
 			config.WannaSpeakStartToolName,
 			config.WannaSpeakContinueToolName,
@@ -614,7 +660,7 @@ func (t *wannaSpeakStateTracker) BuildContinuationPrompt() string {
 	}
 	if t.startCount > 0 && t.startCount == t.stopCount && t.continueCount == 0 {
 		return fmt.Sprintf(
-			"你已经调用了 %s 与 %s，但没有调用 %s。请重新调用 %s，再调用 %s 追加至少一段正文，最后调用 %s。",
+			"你已经调用了 %s 与 %s，但没有调用 %s。请重新调用 %s，再调用 %s 追加至少一段内容，最后调用 %s。",
 			config.WannaSpeakStartToolName,
 			config.WannaSpeakStopToolName,
 			config.WannaSpeakContinueToolName,
@@ -625,14 +671,13 @@ func (t *wannaSpeakStateTracker) BuildContinuationPrompt() string {
 	}
 	if t.capturing || t.startCount > t.stopCount {
 		return fmt.Sprintf(
-			"你已调用 %s 并进入表达状态。请继续调用 %s 追加正文，结束时必须调用 %s。",
-			config.WannaSpeakStartToolName,
+			"你已进入内部表达状态。请继续调用 %s 追加内容，结束时必须调用 %s。",
 			config.WannaSpeakContinueToolName,
 			config.WannaSpeakStopToolName,
 		)
 	}
 	return fmt.Sprintf(
-		"你的纯文本输出不会被采纳。请使用状态工具：先调用 %s，再调用 %s 追加正文，最后调用 %s。",
+		"不要在状态外直接输出最终内容。请先调用 %s，再调用 %s 追加内容，最后调用 %s。",
 		config.WannaSpeakStartToolName,
 		config.WannaSpeakContinueToolName,
 		config.WannaSpeakStopToolName,
@@ -643,7 +688,7 @@ func buildWannaSpeakToolAck(toolName string) string {
 	switch strings.TrimSpace(toolName) {
 	case config.WannaSpeakStartToolName:
 		return fmt.Sprintf(
-			`{"ok":true,"state":"speaking","instruction":"继续调用 %s 追加正文，结束时调用 %s"}`,
+			`{"ok":true,"state":"speaking","instruction":"继续调用 %s 追加内容，结束时调用 %s"}`,
 			config.WannaSpeakContinueToolName,
 			config.WannaSpeakStopToolName,
 		)

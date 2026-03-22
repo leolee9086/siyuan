@@ -105,13 +105,13 @@ func BuildWannaSpeakToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakToolName,
-			Description: "提交本贤者希望对 Trinity 表达的观点内容。",
+			Description: "提交当前已经形成的内部想法内容。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"content": map[string]interface{}{
 						"type":        "string",
-						"description": "希望表达给 Trinity 的观点内容",
+						"description": "当前已经形成的内部想法内容",
 					},
 				},
 				"required": []string{"content"},
@@ -126,7 +126,7 @@ func BuildWannaSpeakStartToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakStartToolName,
-			Description: "进入表达状态。进入后通过 wanna_speak_continue 追加正文，结束时调用 wanna_speak_stop。",
+			Description: "进入内部表达状态。形成完整想法后再进入；进入后通过 wanna_speak_continue 追加内容，结束时调用 wanna_speak_stop。",
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
@@ -141,13 +141,13 @@ func BuildWannaSpeakContinueToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakContinueToolName,
-			Description: "在表达状态中追加一段正文。可多次调用。",
+			Description: "在内部表达状态中追加一段内容。可多次调用。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"content": map[string]interface{}{
 						"type":        "string",
-						"description": "本次追加的正文片段",
+						"description": "本次追加的内容片段",
 					},
 				},
 				"required": []string{"content"},
@@ -162,7 +162,7 @@ func BuildWannaSpeakStopToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakStopToolName,
-			Description: "结束表达状态。wanna_speak_start 与 wanna_speak_stop 必须成对出现。",
+			Description: "结束内部表达状态。wanna_speak_start 与 wanna_speak_stop 必须成对出现。",
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
