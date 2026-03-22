@@ -380,6 +380,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if len(turnToolCalls) > 0 {
 					appendTurnToolCallsToContextWithExecutor(
 						sessionId,
+						roundId,
 						sage,
 						turnContent.String(),
 						turnToolCalls,
@@ -425,6 +426,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			if len(turnToolCalls) > 0 {
 				appendTurnToolCallsToContextWithExecutor(
 					sessionId,
+					roundId,
 					sage,
 					turnContent.String(),
 					turnToolCalls,
@@ -467,6 +469,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		if len(turnToolCalls) > 0 {
 			appendTurnToolCallsToContextWithExecutor(
 				sessionId,
+				roundId,
 				sage,
 				turnContent.String(),
 				turnToolCalls,

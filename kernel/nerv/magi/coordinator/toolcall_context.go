@@ -137,16 +137,18 @@ func (c *streamedToolCallCollector) BuildSorted() []types.ToolCall {
 
 func appendTurnToolCallsToContext(
 	sessionID string,
+	roundID string,
 	sage *sages.Sage,
 	assistantContent string,
 	toolCalls []types.ToolCall,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutor(sessionID, sage, assistantContent, toolCalls, nil, ackBuilder)
+	appendTurnToolCallsToContextWithExecutor(sessionID, roundID, sage, assistantContent, toolCalls, nil, ackBuilder)
 }
 
 func appendTurnToolCallsToContextWithExecutor(
 	sessionID string,
+	roundID string,
 	sage *sages.Sage,
 	assistantContent string,
 	toolCalls []types.ToolCall,
@@ -181,7 +183,7 @@ func appendTurnToolCallsToContextWithExecutor(
 						toolResult = `{"ok":false}`
 					}
 				} else if parsed := strings.TrimSpace(result); parsed != "" {
-					toolResult = parsed
+					toolResult = materializeToolResultForContext(sessionID, roundID, sage, assistantContent, call, parsed)
 				}
 			} else if ackBuilder != nil {
 				if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {

@@ -1,0 +1,515 @@
+package coordinator
+
+import (
+	"encoding/json"
+	"fmt"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
+	"github.com/siyuan-note/siyuan/kernel/util"
+)
+
+const (
+	magiQueryArchiveDocRootHPath = "/MAGI查询结果"
+	magiQueryArchiveDocAttr      = "custom-magi-query-archive-doc"
+	magiQueryArchiveBlockAttr    = "custom-magi-query-archive"
+	magiToolCallIDAttr           = "custom-magi-tool-call-id"
+	magiToolNameAttr             = "custom-magi-tool-name"
+	magiRoundIDAttr              = "custom-magi-round-id"
+	magiSessionIDAttr            = "custom-magi-session-id"
+	magiSageAttr                 = "custom-magi-sage"
+	magiPurposeAttr              = "custom-magi-purpose"
+)
+
+type queryToolArchiveLocation struct {
+	BlockID  string
+	DocID    string
+	DocHPath string
+}
+
+var persistQueryToolResultToNotebook = persistDetailedQueryToolResultToNotebook
+
+func materializeToolResultForContext(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	assistantContent string,
+	toolCall types.ToolCall,
+	detailedResult string,
+) string {
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	if !isArchivedQueryTool(toolName) {
+		return detailedResult
+	}
+
+	archiveLocation, err := persistQueryToolResultToNotebook(
+		sessionID,
+		roundID,
+		sage,
+		toolCall,
+		assistantContent,
+		detailedResult,
+	)
+	if err != nil {
+		logging.LogWarnf("归档查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, err)
+	}
+
+	if sage != nil && sage.GetName() == "melchior" {
+		return detailedResult
+	}
+
+	summary, err := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
+	if err != nil {
+		logging.LogWarnf("构建查询工具历史摘要失败 [%s/%s]: %v", toolName, toolCall.ID, err)
+		return detailedResult
+	}
+	return summary
+}
+
+func isArchivedQueryTool(toolName string) bool {
+	switch strings.TrimSpace(toolName) {
+	case config.NoteKeywordSearchToolName,
+		config.ForgeDevRepoListToolName,
+		config.ForgeDevRepoReadToolName,
+		config.ForgeDevRepoSearchToolName:
+		return true
+	default:
+		return false
+	}
+}
+
+func persistDetailedQueryToolResultToNotebook(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	toolCall types.ToolCall,
+	assistantContent string,
+	detailedResult string,
+) (*queryToolArchiveLocation, error) {
+	accessScope, _ := resolveWorkspaceAIMainNotebookAccessScope()
+	if accessScope == nil || accessScope.ActiveNotebook == nil || strings.TrimSpace(accessScope.ActiveNotebook.ID) == "" {
+		return nil, nil
+	}
+
+	now := time.Now()
+	docID, docHPath, err := ensureMagiQueryArchiveDoc(accessScope.ActiveNotebook.ID, now)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(docID) == "" {
+		return nil, fmt.Errorf("未能定位查询结果归档文档")
+	}
+
+	record := buildDetailedQueryArchiveRecord(
+		sessionID,
+		roundID,
+		sage,
+		toolCall,
+		assistantContent,
+		detailedResult,
+		now,
+	)
+	recordJSON, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("序列化查询结果归档记录失败: %w", err)
+	}
+
+	markdown := "```json\n" + string(recordJSON) + "\n```"
+	blockID, err := appendMarkdownBlock(docID, markdown)
+	if err != nil {
+		return nil, err
+	}
+
+	attrs := map[string]string{
+		magiQueryArchiveBlockAttr: "true",
+		magiToolNameAttr:          strings.TrimSpace(toolCall.Function.Name),
+	}
+	if strings.TrimSpace(toolCall.ID) != "" {
+		attrs[magiToolCallIDAttr] = strings.TrimSpace(toolCall.ID)
+	}
+	if strings.TrimSpace(roundID) != "" {
+		attrs[magiRoundIDAttr] = strings.TrimSpace(roundID)
+	}
+	if strings.TrimSpace(sessionID) != "" {
+		attrs[magiSessionIDAttr] = strings.TrimSpace(sessionID)
+	}
+	if sage != nil && strings.TrimSpace(sage.GetName()) != "" {
+		attrs[magiSageAttr] = strings.TrimSpace(sage.GetName())
+	}
+	if purpose := truncatePurpose(inferToolCallPurpose(toolCall.Function.Name, assistantContent)); purpose != "" {
+		attrs[magiPurposeAttr] = purpose
+	}
+	if err := model.SetBlockAttrs(blockID, attrs); err != nil {
+		return nil, fmt.Errorf("设置查询结果归档块属性失败: %w", err)
+	}
+
+	return &queryToolArchiveLocation{
+		BlockID:  blockID,
+		DocID:    docID,
+		DocHPath: docHPath,
+	}, nil
+}
+
+func ensureMagiQueryArchiveDoc(boxID string, now time.Time) (docID, docHPath string, err error) {
+	docHPath = path.Join(magiQueryArchiveDocRootHPath, now.Format("2006-01-02"))
+	if root := treenode.GetBlockTreeRootByHPath(boxID, docHPath); root != nil {
+		return root.ID, docHPath, nil
+	}
+
+	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "")
+	if err != nil {
+		return "", docHPath, fmt.Errorf("创建查询结果归档文档失败: %w", err)
+	}
+	if strings.TrimSpace(docID) == "" {
+		if root := treenode.GetBlockTreeRootByHPath(boxID, docHPath); root != nil {
+			docID = root.ID
+		}
+	}
+	if strings.TrimSpace(docID) == "" {
+		return "", docHPath, fmt.Errorf("创建查询结果归档文档后未拿到文档ID")
+	}
+	if err := model.SetBlockAttrs(docID, map[string]string{magiQueryArchiveDocAttr: "true"}); err != nil {
+		logging.LogWarnf("设置查询结果归档文档属性失败 [%s]: %v", docID, err)
+	}
+	return docID, docHPath, nil
+}
+
+func appendMarkdownBlock(parentID string, markdown string) (string, error) {
+	parentID = strings.TrimSpace(parentID)
+	if parentID == "" {
+		return "", fmt.Errorf("归档父块ID不能为空")
+	}
+	dom := util.NewLute().Md2BlockDOM(markdown, false)
+	transactions := []*model.Transaction{
+		{
+			DoOperations: []*model.Operation{
+				{
+					Action:   "appendInsert",
+					Data:     dom,
+					ParentID: parentID,
+				},
+			},
+		},
+	}
+	model.PerformTransactions(&transactions)
+	model.FlushTxQueue()
+
+	if len(transactions) == 0 || len(transactions[0].DoOperations) == 0 {
+		return "", fmt.Errorf("归档查询结果时未生成事务")
+	}
+	blockID := strings.TrimSpace(transactions[0].DoOperations[0].ID)
+	if blockID == "" {
+		return "", fmt.Errorf("归档查询结果后未拿到块ID")
+	}
+	return blockID, nil
+}
+
+func buildDetailedQueryArchiveRecord(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	toolCall types.ToolCall,
+	assistantContent string,
+	detailedResult string,
+	now time.Time,
+) map[string]interface{} {
+	record := map[string]interface{}{
+		"toolCallId": strings.TrimSpace(toolCall.ID),
+		"toolName":   strings.TrimSpace(toolCall.Function.Name),
+		"purpose":    inferToolCallPurpose(toolCall.Function.Name, assistantContent),
+		"storedAt":   now.Format(time.RFC3339),
+		"arguments":  decodeJSONOrString(toolCall.Function.Arguments),
+		"result":     decodeJSONOrString(detailedResult),
+	}
+	if strings.TrimSpace(sessionID) != "" {
+		record["sessionId"] = strings.TrimSpace(sessionID)
+	}
+	if strings.TrimSpace(roundID) != "" {
+		record["roundId"] = strings.TrimSpace(roundID)
+	}
+	if sage != nil {
+		record["sage"] = map[string]interface{}{
+			"name":        sage.GetName(),
+			"displayName": sage.GetDisplayName(),
+		}
+	}
+	return record
+}
+
+func buildCompactToolHistorySummary(
+	toolCall types.ToolCall,
+	assistantContent string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) (string, error) {
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	purpose := inferToolCallPurpose(toolName, assistantContent)
+	var summary map[string]interface{}
+
+	switch toolName {
+	case config.NoteKeywordSearchToolName:
+		summary = buildNoteQueryHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.ForgeDevRepoListToolName:
+		summary = buildForgeListHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.ForgeDevRepoReadToolName:
+		summary = buildForgeReadHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.ForgeDevRepoSearchToolName:
+		summary = buildForgeSearchHistorySummary(toolCall, purpose, detailedResult, location)
+	default:
+		return detailedResult, nil
+	}
+
+	summaryBytes, err := json.Marshal(summary)
+	if err != nil {
+		return "", err
+	}
+	return string(summaryBytes), nil
+}
+
+func buildNoteQueryHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	var args noteKeywordSearchToolArgs
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	var payload struct {
+		Blocks []struct {
+			ID     string `json:"id"`
+			RootID string `json:"rootID"`
+		} `json:"blocks"`
+		RestrictedDocumentIDs []string `json:"restrictedDocumentIDs"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	noteIDs := make([]string, 0, len(payload.Blocks)+len(payload.RestrictedDocumentIDs))
+	seen := map[string]struct{}{}
+	for _, block := range payload.Blocks {
+		noteID := strings.TrimSpace(block.RootID)
+		if noteID == "" {
+			noteID = strings.TrimSpace(block.ID)
+		}
+		if noteID == "" {
+			continue
+		}
+		if _, ok := seen[noteID]; ok {
+			continue
+		}
+		seen[noteID] = struct{}{}
+		noteIDs = append(noteIDs, noteID)
+	}
+	for _, noteID := range payload.RestrictedDocumentIDs {
+		noteID = strings.TrimSpace(noteID)
+		if noteID == "" {
+			continue
+		}
+		if _, ok := seen[noteID]; ok {
+			continue
+		}
+		seen[noteID] = struct{}{}
+		noteIDs = append(noteIDs, noteID)
+	}
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"query": strings.TrimSpace(args.Query),
+			"limit": normalizeNoteKeywordSearchLimit(args.Limit),
+		},
+		"noteIDs": noteIDs,
+	}
+	_ = location
+	return summary
+}
+
+func buildForgeListHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	input, _ := parseForgeDevRepoPlainInput(toolCall.Function.Arguments)
+	queryPath := "."
+	limit := defaultForgeDevRepoListLimit
+	if input != nil {
+		queryPath = input.primary("path", ".")
+		if parsedLimit, err := input.intValue("limit", defaultForgeDevRepoListLimit, maxForgeDevRepoListLimit); err == nil {
+			limit = parsedLimit
+		}
+	}
+
+	var payload forgeDevRepoListPayload
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	paths := make([]string, 0, len(payload.Entries))
+	for _, entry := range payload.Entries {
+		entryPath := strings.TrimSpace(entry.Name)
+		if payload.Path != "" && payload.Path != "." {
+			entryPath = path.Join(payload.Path, entryPath)
+		}
+		paths = append(paths, entryPath)
+	}
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"path":  queryPath,
+			"limit": limit,
+		},
+		"paths": dedupeStrings(paths),
+	}
+	_ = location
+	return summary
+}
+
+func buildForgeReadHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	input, _ := parseForgeDevRepoPlainInput(toolCall.Function.Arguments)
+	queryPath := ""
+	start := defaultForgeDevRepoReadStart
+	limit := defaultForgeDevRepoReadLimit
+	if input != nil {
+		queryPath = input.primary("path", "")
+		if parsedStart, err := input.intValue("start", defaultForgeDevRepoReadStart, 0); err == nil {
+			start = parsedStart
+		}
+		if parsedLimit, err := input.intValue("limit", defaultForgeDevRepoReadLimit, maxForgeDevRepoReadLimit); err == nil {
+			limit = parsedLimit
+		}
+	}
+
+	var payload forgeDevRepoReadPayload
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	readPath := strings.TrimSpace(payload.Path)
+	if readPath == "" {
+		readPath = queryPath
+	}
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"path":  queryPath,
+			"start": start,
+			"limit": limit,
+		},
+		"paths": dedupeStrings([]string{readPath}),
+	}
+	_ = location
+	return summary
+}
+
+func buildForgeSearchHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	input, _ := parseForgeDevRepoPlainInput(toolCall.Function.Arguments)
+	queryPath := "."
+	pattern := ""
+	limit := defaultForgeDevRepoSearchLimit
+	ignoreCase := false
+	if input != nil {
+		queryPath = input.primary("path", ".")
+		pattern = input.primary("pattern", "")
+		if parsedLimit, err := input.intValue("limit", defaultForgeDevRepoSearchLimit, maxForgeDevRepoSearchLimit); err == nil {
+			limit = parsedLimit
+		}
+		if parsedIgnoreCase, err := input.boolValue("ignorecase", false); err == nil {
+			ignoreCase = parsedIgnoreCase
+		}
+	}
+
+	var payload forgeDevRepoSearchPayload
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	paths := make([]string, 0, len(payload.Matches))
+	for _, match := range payload.Matches {
+		paths = append(paths, strings.TrimSpace(match.Path))
+	}
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"path":       queryPath,
+			"pattern":    pattern,
+			"limit":      limit,
+			"ignoreCase": ignoreCase,
+		},
+		"paths": dedupeStrings(paths),
+	}
+	_ = location
+	return summary
+}
+
+func inferToolCallPurpose(toolName string, assistantContent string) string {
+	compact := strings.TrimSpace(strings.Join(strings.Fields(assistantContent), " "))
+	if compact != "" {
+		return truncatePurpose(compact)
+	}
+
+	switch strings.TrimSpace(toolName) {
+	case config.NoteKeywordSearchToolName:
+		return "检索相关笔记以支撑当前判断"
+	case config.ForgeDevRepoListToolName:
+		return "查看目录结构以定位相关文件"
+	case config.ForgeDevRepoReadToolName:
+		return "读取文件内容以提取实现细节"
+	case config.ForgeDevRepoSearchToolName:
+		return "搜索仓库文本以定位相关实现"
+	default:
+		return "支撑当前分析"
+	}
+}
+
+func truncatePurpose(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= 120 {
+		return text
+	}
+	return string(runes[:120]) + "..."
+}
+
+func decodeJSONOrString(raw string) interface{} {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	var decoded interface{}
+	if err := json.Unmarshal([]byte(trimmed), &decoded); err == nil {
+		return decoded
+	}
+	return trimmed
+}
+
+func dedupeStrings(values []string) []string {
+	ret := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		ret = append(ret, value)
+	}
+	return ret
+}

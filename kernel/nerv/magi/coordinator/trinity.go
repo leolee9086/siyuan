@@ -305,7 +305,7 @@ func (tc *TrinityCoordinator) callTrinity(
 
 		if speakHandler.IsPublicPairCompleted() {
 			if len(turnToolCalls) > 0 {
-				appendTurnToolCallsToContext(sessionId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
+				appendTurnToolCallsToContext(sessionId, roundId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
 			}
 			result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor, speakHandler)
 			if parseErr != nil {
@@ -328,7 +328,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		}
 
 		if len(turnToolCalls) > 0 {
-			appendTurnToolCallsToContext(sessionId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
+			appendTurnToolCallsToContext(sessionId, roundId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
 		} else if strings.TrimSpace(turnContent.String()) != "" {
 			trinity.AddToContextWithSession(sessionId, types.ContextMessage{
 				Role:    types.RoleAssistant,
