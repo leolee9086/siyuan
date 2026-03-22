@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,6 +188,47 @@ func (m *mockTrinityPlainTextClient) SendChatRequestSync(ctx context.Context, me
 }
 
 func (m *mockTrinityPlainTextClient) GetModel() string {
+	return "gpt-4"
+}
+
+type mockTrinityDelayedClient struct {
+	delay time.Duration
+}
+
+func (m *mockTrinityDelayedClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
+	ch := make(chan types.StreamChunk, 1)
+	go func() {
+		defer close(ch)
+		select {
+		case <-time.After(m.delay):
+		case <-ctx.Done():
+			return
+		}
+		ch <- types.StreamChunk{
+			Choices: []types.ChunkChoice{
+				{
+					Delta: types.ChunkDelta{
+						ToolCalls: []types.ToolCallDelta{
+							{
+								Index: 0,
+								Function: &types.ToolCallFunctionDelta{
+									Name: stream.TrinitySpeakStartToolName,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}()
+	return ch, nil
+}
+
+func (m *mockTrinityDelayedClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
+	return "", nil
+}
+
+func (m *mockTrinityDelayedClient) GetModel() string {
 	return "gpt-4"
 }
 
@@ -441,5 +483,34 @@ func TestHandleTrinitySummaryKeepsSourceTrinityStateless(t *testing.T) {
 	}
 	if originalContext[0].Content != "stale history should not leak" {
 		t.Fatalf("期望原始Trinity历史未被覆盖，实际=%q", originalContext[0].Content)
+	}
+}
+
+func TestHandleTrinitySummaryIdleTimeout(t *testing.T) {
+	tc := NewTrinityCoordinator(20 * time.Millisecond)
+	tc.maxRetries = 1
+
+	cfg := &config.AgentConfig{
+		SEELConfig: config.SEELConfig{
+			Name: "Trinity",
+		},
+	}
+	strategy := &config.ContextStrategy{
+		Type:  "message_count",
+		Count: 3,
+	}
+	trinity := sages.NewSage("trinity", cfg, &mockTrinityDelayedClient{delay: 60 * time.Millisecond}, strategy)
+
+	responses := []types.SageResponse{
+		{Seel: "melchior", Content: "逻辑分析"},
+		{Seel: "balthazar", Content: "情绪感知"},
+	}
+
+	_, err := tc.HandleTrinitySummary(context.Background(), "test-session", "test-round", trinity, responses, "test user message")
+	if err == nil {
+		t.Fatal("期望返回空闲超时错误，实际成功")
+	}
+	if !strings.Contains(err.Error(), "空闲超时") {
+		t.Fatalf("期望错误包含空闲超时，实际=%v", err)
 	}
 }

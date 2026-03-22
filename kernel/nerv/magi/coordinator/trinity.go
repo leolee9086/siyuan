@@ -28,13 +28,19 @@ type TrinityResult struct {
 type TrinityCoordinator struct {
 	maxRetries     int
 	initialBackoff time.Duration
+	idleTimeout    time.Duration
 }
 
 // NewTrinityCoordinator 创建Trinity统合协调器
-func NewTrinityCoordinator() *TrinityCoordinator {
+func NewTrinityCoordinator(idleTimeout ...time.Duration) *TrinityCoordinator {
+	timeout := 30 * time.Second
+	if len(idleTimeout) > 0 && idleTimeout[0] > 0 {
+		timeout = idleTimeout[0]
+	}
 	return &TrinityCoordinator{
 		maxRetries:     10,
 		initialBackoff: 1 * time.Second,
+		idleTimeout:    timeout,
 	}
 }
 
@@ -226,9 +232,16 @@ func (tc *TrinityCoordinator) callTrinity(
 
 		turnCollector := newStreamedToolCallCollector()
 		turnContent := strings.Builder{}
+		idleTimer := time.NewTimer(tc.idleTimeout)
 
 		for {
 			select {
+			case <-idleTimer.C:
+				err := fmt.Errorf("Trinity 空闲超时（%v 内未收到响应chunk）[会话:%s 轮次:%s]", tc.idleTimeout, sessionId, roundId)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
+				}
+				return nil, err
 			case <-ctx.Done():
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), ctx.Err().Error()); pushErr != nil {
 					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
@@ -238,6 +251,13 @@ func (tc *TrinityCoordinator) callTrinity(
 				if !ok {
 					goto TurnComplete
 				}
+				if !idleTimer.Stop() {
+					select {
+					case <-idleTimer.C:
+					default:
+					}
+				}
+				idleTimer.Reset(tc.idleTimeout)
 				if chunk.Object == "error" {
 					streamErr := fmt.Errorf("Trinity流式响应错误: %s", chunk.ID)
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), streamErr.Error()); pushErr != nil {
@@ -274,6 +294,12 @@ func (tc *TrinityCoordinator) callTrinity(
 		}
 
 	TurnComplete:
+		if !idleTimer.Stop() {
+			select {
+			case <-idleTimer.C:
+			default:
+			}
+		}
 		indexOffset += toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
 

@@ -31,6 +31,7 @@ type MagiRequest struct {
 	Req        openai.ChatCompletionRequest
 	SessionID  string
 	SourceCtx  *types.RequestSourceContext
+	RequestCtx context.Context
 	ResultChan chan MagiTaskResult
 }
 
@@ -253,6 +254,7 @@ func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx 
 		Req:        req,
 		SessionID:  getOrCreateSession(c, sourceCtx),
 		SourceCtx:  sourceCtx,
+		RequestCtx: c.Request.Context(),
 		ResultChan: make(chan MagiTaskResult, 1),
 	}
 
@@ -269,8 +271,6 @@ func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx 
 		return result.ConsensusMsg, result.Err
 	case <-c.Request.Context().Done():
 		return nil, c.Request.Context().Err()
-	case <-time.After(120 * time.Second):
-		return nil, errors.New("magi task wait timeout")
 	}
 }
 
@@ -297,10 +297,6 @@ func writeMagiTaskError(c *gin.Context, err error) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
 		return
 	}
-	if err.Error() == "magi task wait timeout" {
-		c.JSON(http.StatusGatewayTimeout, gin.H{"error": err.Error()})
-		return
-	}
 	logging.LogErrorf("MAGI任务处理失败: %v", err)
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
@@ -319,9 +315,11 @@ func handleMagiTask(task *MagiRequest) MagiTaskResult {
 	}
 	userMessage := buildClaimedUserMessagePreview(claimedRecentHistory)
 
-	// 调用 Coordinator 执行决策
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
+	// 调用 Coordinator 执行决策。使用请求上下文承载取消信号，避免给整轮流程附加共享 deadline。
+	ctx := task.RequestCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	consensusMsg, err := magiCoordinator.CoordinateDecision(
 		ctx,

@@ -43,7 +43,7 @@ type Coordinator struct {
 func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 	return &Coordinator{
 		collector: NewResponseCollector(collectionTimeout),
-		trinity:   NewTrinityCoordinator(),
+		trinity:   NewTrinityCoordinator(collectionTimeout),
 		avatar:    NewAvatarRuntime(),
 
 		roundBySession:            map[string]uint64{},
