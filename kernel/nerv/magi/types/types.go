@@ -82,7 +82,10 @@ type SageResponse struct {
 	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`  // 按工具名聚合参数
 	WantsSleep           bool                `json:"wantsSleep,omitempty"`           // 心跳轮次是否请求休眠
 	SleepSummary         string              `json:"sleepSummary,omitempty"`         // 心跳轮次本次醒来工作摘要
+	SleepNote            *WannaSleepTool     `json:"sleepNote,omitempty"`            // 心跳轮次结构化睡前笔记
 	SkipAssistantMemory  bool                `json:"skipAssistantMemory,omitempty"`  // 工具调用已完整入历史时，跳过额外assistant文本写回
+	SleepAssistantDraft  string              `json:"-"`                              // wanna_sleep 轮次暂存的 assistant 内容
+	SleepToolCall        *ToolCall           `json:"-"`                              // wanna_sleep 轮次暂存的工具调用
 }
 
 // VoteDecision 投票决定
@@ -190,7 +193,9 @@ type WannaSpeakTool struct {
 
 // WannaSleepTool 三贤人心跳轮次休眠工具参数
 type WannaSleepTool struct {
-	Summary string `json:"summary"`
+	Summary      string `json:"summary"`
+	NextStepPlan string `json:"nextStepPlan,omitempty"`
+	DreamScene   string `json:"dreamScene,omitempty"`
 }
 
 // TrinitySpeakTool Trinity speak工具参数

@@ -133,43 +133,74 @@ func TestBuildWannaSpeakTransitionToolDef_Structure(t *testing.T) {
 	}
 }
 
-func TestBuildWannaSleepToolDef_Structure(t *testing.T) {
-	tool := BuildWannaSleepToolDef()
-	if tool.Type != "function" {
-		t.Fatalf("期望 Type=function，实际=%s", tool.Type)
-	}
-	if tool.Function.Name != WannaSleepToolName {
-		t.Fatalf("期望 Name=%s，实际=%s", WannaSleepToolName, tool.Function.Name)
-	}
-	if !strings.Contains(tool.Function.Description, "当前心情") {
-		t.Fatalf("期望工具描述提示记录当前心情，实际=%s", tool.Function.Description)
-	}
-	if !strings.Contains(tool.Function.Description, "系统会自动保存") {
-		t.Fatalf("期望工具描述提示系统状态会自动保存，实际=%s", tool.Function.Description)
+func TestBuildWannaSleepToolDefs_Structure(t *testing.T) {
+	tests := []struct {
+		name         string
+		tool         ToolDef
+		wantName     string
+		wantRequired []string
+		wantField    string
+		wantDesc     string
+	}{
+		{
+			name:         "record",
+			tool:         BuildWannaSleepRecordToolDef(),
+			wantName:     WannaSleepRecordToolName,
+			wantRequired: []string{"summary"},
+			wantField:    "summary",
+			wantDesc:     "当前心情",
+		},
+		{
+			name:         "plan",
+			tool:         BuildWannaSleepPlanToolDef(),
+			wantName:     WannaSleepPlanToolName,
+			wantRequired: []string{"summary", "nextStepPlan"},
+			wantField:    "nextStepPlan",
+			wantDesc:     "下一步",
+		},
+		{
+			name:         "dream",
+			tool:         BuildWannaSleepDreamToolDef(),
+			wantName:     WannaSleepDreamToolName,
+			wantRequired: []string{"summary", "dreamScene"},
+			wantField:    "dreamScene",
+			wantDesc:     "文生图",
+		},
 	}
 
-	properties, ok := tool.Function.Parameters["properties"].(map[string]interface{})
-	if !ok {
-		t.Fatal("Parameters 缺少 properties")
-	}
-	summaryDef, ok := properties["summary"].(map[string]interface{})
-	if !ok {
-		t.Fatal("Parameters 缺少 summary")
-	}
-	description, _ := summaryDef["description"].(string)
-	if !strings.Contains(description, "当前心情") {
-		t.Fatalf("期望 summary 描述提示记录当前心情，实际=%s", description)
-	}
-	if !strings.Contains(description, "系统会自动记录") {
-		t.Fatalf("期望 summary 描述提示系统状态会自动记录，实际=%s", description)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.tool.Type != "function" {
+				t.Fatalf("期望 Type=function，实际=%s", tt.tool.Type)
+			}
+			if tt.tool.Function.Name != tt.wantName {
+				t.Fatalf("期望 Name=%s，实际=%s", tt.wantName, tt.tool.Function.Name)
+			}
+			if !strings.Contains(tt.tool.Function.Description, tt.wantDesc) {
+				t.Fatalf("期望工具描述包含 %q，实际=%s", tt.wantDesc, tt.tool.Function.Description)
+			}
 
-	required, ok := tool.Function.Parameters["required"].([]string)
-	if !ok {
-		t.Fatal("Parameters 缺少 required")
-	}
-	if len(required) != 1 || required[0] != "summary" {
-		t.Fatalf("期望 required=[summary]，实际=%v", required)
+			properties, ok := tt.tool.Function.Parameters["properties"].(map[string]interface{})
+			if !ok {
+				t.Fatal("Parameters 缺少 properties")
+			}
+			if _, ok := properties[tt.wantField]; !ok {
+				t.Fatalf("Parameters 缺少 %s", tt.wantField)
+			}
+
+			required, ok := tt.tool.Function.Parameters["required"].([]string)
+			if !ok {
+				t.Fatal("Parameters 缺少 required")
+			}
+			if len(required) != len(tt.wantRequired) {
+				t.Fatalf("required 数量不符，实际=%v", required)
+			}
+			for i, want := range tt.wantRequired {
+				if required[i] != want {
+					t.Fatalf("required[%d] 期望=%s，实际=%s", i, want, required[i])
+				}
+			}
+		})
 	}
 }
 

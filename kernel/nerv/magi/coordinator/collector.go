@@ -25,10 +25,11 @@ type ResponseCollector struct {
 }
 
 type CollectResponsesOptions struct {
-	AllowWannaSleep   bool
-	StopOnWannaSleep  bool
-	RuntimeTools      []openai.Tool
-	RuntimeToolChoice any
+	AllowWannaSleep         bool
+	RuntimeTools            []openai.Tool
+	RuntimeToolChoice       any
+	RuntimeToolsBySage      map[string][]openai.Tool
+	RuntimeToolChoiceBySage map[string]any
 }
 
 type HeartbeatCollectionResult struct {
@@ -77,8 +78,8 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
 	modelInput string,
-	runtimeTools []openai.Tool,
-	runtimeToolChoice any,
+	runtimeToolsBySage map[string][]openai.Tool,
+	runtimeToolChoiceBySage map[string]any,
 ) (*HeartbeatCollectionResult, error) {
 	return rc.collectResponsesWithOptions(
 		ctx,
@@ -90,12 +91,28 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 		userMessage,
 		modelInput,
 		CollectResponsesOptions{
-			AllowWannaSleep:   true,
-			StopOnWannaSleep:  true,
-			RuntimeTools:      runtimeTools,
-			RuntimeToolChoice: runtimeToolChoice,
+			AllowWannaSleep:         true,
+			RuntimeToolsBySage:      runtimeToolsBySage,
+			RuntimeToolChoiceBySage: runtimeToolChoiceBySage,
 		},
 	)
+}
+
+func (options CollectResponsesOptions) forSage(sage *sages.Sage) CollectResponsesOptions {
+	if sage == nil {
+		return options
+	}
+
+	cloned := options
+	if tools, ok := options.RuntimeToolsBySage[strings.TrimSpace(sage.GetName())]; ok {
+		cloned.RuntimeTools = tools
+	}
+	if choice, ok := options.RuntimeToolChoiceBySage[strings.TrimSpace(sage.GetName())]; ok {
+		cloned.RuntimeToolChoice = choice
+	}
+	cloned.RuntimeToolsBySage = nil
+	cloned.RuntimeToolChoiceBySage = nil
+	return cloned
 }
 
 func (rc *ResponseCollector) collectResponsesWithOptions(
@@ -129,7 +146,7 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, melchior, modelInput, options)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, melchior, modelInput, options.forSage(melchior))
 		resultCh <- result{response: resp, err: err, sageName: "melchior"}
 	}()
 
@@ -141,7 +158,7 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, balthazar, modelInput, options)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, balthazar, modelInput, options.forSage(balthazar))
 		resultCh <- result{response: resp, err: err, sageName: "balthazar"}
 	}()
 
@@ -153,7 +170,7 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, casper, modelInput, options)
+		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, casper, modelInput, options.forSage(casper))
 		resultCh <- result{response: resp, err: err, sageName: "casper"}
 	}()
 
@@ -170,18 +187,7 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 	heartbeatResult := &HeartbeatCollectionResult{}
 
 	for res := range resultCh {
-		if res.response != nil {
-			if options.StopOnWannaSleep && res.response.WantsSleep && !heartbeatResult.Sleeping {
-				heartbeatResult.Sleeping = true
-				heartbeatResult.Sleeper = res.response.Seel
-				heartbeatResult.SleepSummary = strings.TrimSpace(res.response.SleepSummary)
-				cancel()
-			}
-		}
 		if res.err != nil {
-			if heartbeatResult.Sleeping && errors.Is(res.err, context.Canceled) {
-				continue
-			}
 			errMessages = append(errMessages, fmt.Sprintf("%s: %v", res.sageName, res.err))
 		} else if res.response != nil {
 			responses = append(responses, *res.response)
@@ -190,8 +196,9 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 	}
 
 	heartbeatResult.Responses = responses
-
+	heartbeatResult.Sleeping = successCount == 3 && countSleepingResponses(responses) == 3
 	if heartbeatResult.Sleeping {
+		heartbeatResult.Sleeper = "all"
 		return heartbeatResult, nil
 	}
 
@@ -371,23 +378,12 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		indexOffset += toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
 		if options.AllowWannaSleep {
-			if sleepSummary, hasSleep, sleepErr := parseWannaSleepToolContent(turnToolCalls); sleepErr != nil {
+			if sleepNote, hasSleep, sleepErr := parseWannaSleepToolContent(turnToolCalls); sleepErr != nil {
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), sleepErr.Error()); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 				}
 				return nil, sleepErr
 			} else if hasSleep {
-				if len(turnToolCalls) > 0 {
-					appendTurnToolCallsToContextWithExecutor(
-						sessionId,
-						roundId,
-						sage,
-						turnContent.String(),
-						turnToolCalls,
-						toolResultExecutor,
-						buildCoreSageToolAck,
-					)
-				}
 				response := &types.SageResponse{
 					Seel:                sage.GetName(),
 					DisplayName:         sage.GetDisplayName(),
@@ -395,13 +391,16 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					ToolCallNames:       collectToolCallNames(turnToolCalls),
 					ToolArgumentsByName: collectToolArgumentsByName(turnToolCalls),
 					WantsSleep:          true,
-					SleepSummary:        sleepSummary,
+					SleepSummary:        strings.TrimSpace(sleepNote.Summary),
+					SleepNote:           sleepNote,
 					SkipAssistantMemory: true,
+					SleepAssistantDraft: turnContent.String(),
+					SleepToolCall:       cloneWannaSleepToolCall(turnToolCalls),
 				}
 				msg := &types.Message{
 					ID:        streamMessageID,
 					Type:      types.TypeSystem,
-					Content:   sleepSummary,
+					Content:   buildHeartbeatSleepPreview(sage.GetName(), sleepNote),
 					Status:    types.StatusSuccess,
 					Timestamp: time.Now().UnixMilli(),
 					Meta: map[string]interface{}{
@@ -638,34 +637,88 @@ func parseWannaSpeakToolContent(
 	return content, true, nil
 }
 
-func parseWannaSleepToolContent(toolCalls []types.ToolCall) (summary string, hasSleep bool, err error) {
+func parseWannaSleepToolContent(toolCalls []types.ToolCall) (note *types.WannaSleepTool, hasSleep bool, err error) {
 	if len(toolCalls) == 0 {
-		return "", false, nil
+		return nil, false, nil
 	}
 
-	sleepArgs := make([]string, 0, 1)
+	var sleepCall *types.ToolCall
 	for _, call := range toolCalls {
-		if strings.TrimSpace(call.Function.Name) != config.WannaSleepToolName {
+		if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
 			continue
 		}
-		sleepArgs = append(sleepArgs, call.Function.Arguments)
+		if sleepCall != nil {
+			return nil, true, fmt.Errorf("睡前记录工具每轮最多调用一次")
+		}
+		cloned := call
+		sleepCall = &cloned
 	}
-	if len(sleepArgs) == 0 {
-		return "", false, nil
-	}
-	if len(sleepArgs) > 1 {
-		return "", true, fmt.Errorf("%s 每轮最多调用一次", config.WannaSleepToolName)
+	if sleepCall == nil {
+		return nil, false, nil
 	}
 
 	var payload types.WannaSleepTool
-	if err := json.Unmarshal([]byte(sleepArgs[0]), &payload); err != nil {
-		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.WannaSleepToolName, err)
+	toolName := strings.TrimSpace(sleepCall.Function.Name)
+	if err := json.Unmarshal([]byte(sleepCall.Function.Arguments), &payload); err != nil {
+		return nil, true, fmt.Errorf("%s 参数解析失败: %w", toolName, err)
 	}
-	summary = strings.TrimSpace(payload.Summary)
-	if summary == "" {
-		return "", true, fmt.Errorf("%s 的 summary 不能为空", config.WannaSleepToolName)
+	payload.Summary = strings.TrimSpace(payload.Summary)
+	payload.NextStepPlan = strings.TrimSpace(payload.NextStepPlan)
+	payload.DreamScene = strings.TrimSpace(payload.DreamScene)
+	if payload.Summary == "" {
+		return nil, true, fmt.Errorf("%s 的 summary 不能为空", toolName)
 	}
-	return summary, true, nil
+
+	switch toolName {
+	case config.WannaSleepPlanToolName:
+		if payload.NextStepPlan == "" {
+			return nil, true, fmt.Errorf("%s 必须填写 nextStepPlan", toolName)
+		}
+	case config.WannaSleepDreamToolName:
+		if payload.DreamScene == "" {
+			return nil, true, fmt.Errorf("%s 必须填写 dreamScene", toolName)
+		}
+	}
+	return &payload, true, nil
+}
+
+func cloneWannaSleepToolCall(toolCalls []types.ToolCall) *types.ToolCall {
+	for _, call := range toolCalls {
+		if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
+			continue
+		}
+		cloned := call
+		return &cloned
+	}
+	return nil
+}
+
+func countSleepingResponses(responses []types.SageResponse) int {
+	count := 0
+	for _, response := range responses {
+		if response.WantsSleep {
+			count++
+		}
+	}
+	return count
+}
+
+func buildHeartbeatSleepPreview(sageName string, note *types.WannaSleepTool) string {
+	if note == nil {
+		return ""
+	}
+	parts := []string{strings.TrimSpace(note.Summary)}
+	switch strings.TrimSpace(sageName) {
+	case "melchior":
+		if note.NextStepPlan != "" {
+			parts = append(parts, "下一步计划："+note.NextStepPlan)
+		}
+	case "balthazar":
+		if note.DreamScene != "" {
+			parts = append(parts, "画面描述："+note.DreamScene)
+		}
+	}
+	return strings.TrimSpace(strings.Join(parts, "\n"))
 }
 
 func collectToolCallNames(toolCalls []types.ToolCall) []string {
@@ -919,7 +972,7 @@ func buildWannaSpeakToolAck(toolName string) string {
 
 func buildCoreSageToolAck(toolName string) string {
 	switch strings.TrimSpace(toolName) {
-	case config.WannaSleepToolName:
+	case config.WannaSleepRecordToolName, config.WannaSleepPlanToolName, config.WannaSleepDreamToolName:
 		return `{"ok":true,"state":"sleeping"}`
 	default:
 		return buildWannaSpeakToolAck(toolName)

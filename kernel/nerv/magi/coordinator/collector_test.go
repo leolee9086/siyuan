@@ -532,37 +532,39 @@ func TestWannaSpeakTracker_RejectsReadingAfterSpeakStart(t *testing.T) {
 	}
 }
 
-func TestCollectHeartbeatResponses_WannaSleepStopsOtherSages(t *testing.T) {
+func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 	collector := NewResponseCollector(5 * time.Second)
 
 	sleepClient := &mockLLMClient{
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepToolName, `{"summary":"检查了待办并确认暂时无事可做"}`),
+					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"检查了待办并确认暂时无事可做","nextStepPlan":"明早先确认新的调度信号"}`),
 				},
 			},
 		},
 	}
 	melchior := createMockSageWithClient("melchior", "Melchior", sleepClient)
 	balthazar := createMockSageWithClient("balthazar", "Balthazar", &mockLLMClient{
-		delay:         2 * time.Second,
-		scriptedTurns: []mockTurn{completedSpeakTurn("仍在分析")},
-	})
-	casper := createMockSageWithClient("casper", "Casper", &mockLLMClient{
-		delay:         2 * time.Second,
-		scriptedTurns: []mockTurn{completedSpeakTurn("仍在分析")},
-	})
-
-	runtimeTools := []openai.Tool{
-		{
-			Type: openai.ToolTypeFunction,
-			Function: &openai.FunctionDefinition{
-				Name:        config.WannaSleepToolName,
-				Description: "sleep",
+		delay: 2 * time.Second,
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, config.WannaSleepDreamToolName, `{"summary":"我把今天残留的感受收起来了","dreamScene":"夜色中的工作台，屏幕映着雨后的窗，手边摊着未合上的笔记本，空气安静而清醒"}`),
+				},
 			},
 		},
-	}
+	})
+	casper := createMockSageWithClient("casper", "Casper", &mockLLMClient{
+		delay: 2 * time.Second,
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"目前没有必须立刻处理的新事，先把这一轮看到的细节记下来"}`),
+				},
+			},
+		},
+	})
 
 	result, err := collector.CollectHeartbeatResponses(
 		context.Background(),
@@ -573,37 +575,136 @@ func TestCollectHeartbeatResponses_WannaSleepStopsOtherSages(t *testing.T) {
 		casper,
 		"heartbeat",
 		"heartbeat",
-		runtimeTools,
-		"required",
+		buildHeartbeatRuntimeToolsBySage(),
+		buildHeartbeatRuntimeToolChoiceBySage(),
 	)
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)
 	}
 	if result == nil || !result.Sleeping {
-		t.Fatal("期望心跳轮次被 wanna_sleep 收束")
+		t.Fatal("期望三贤人全部 wanna_sleep 后心跳轮次进入休眠")
 	}
-	if result.Sleeper != "melchior" {
-		t.Fatalf("期望 Melchior 发起休眠，实际=%s", result.Sleeper)
+	if result.Sleeper != "all" {
+		t.Fatalf("期望所有贤者完成休眠，实际=%s", result.Sleeper)
 	}
-	if !strings.Contains(result.SleepSummary, "无事可做") {
-		t.Fatalf("期望休眠摘要被保留，实际=%s", result.SleepSummary)
+	if len(result.Responses) != 3 {
+		t.Fatalf("期望收集到3个休眠响应，实际=%d", len(result.Responses))
 	}
 
-	contextMessages := melchior.GetContextForSession("heartbeat-session")
-	foundToolCall := false
-	foundToolResult := false
-	for _, msg := range contextMessages {
-		if len(msg.ToolCalls) > 0 && msg.ToolCalls[0].Function.Name == config.WannaSleepToolName {
-			foundToolCall = true
-		}
-		if msg.Role == types.RoleTool && strings.Contains(msg.Content, `"state":"sleeping"`) {
-			foundToolResult = true
-		}
+	respBySeel := map[string]types.SageResponse{}
+	for _, resp := range result.Responses {
+		respBySeel[resp.Seel] = resp
 	}
-	if !foundToolCall {
-		t.Fatal("wanna_sleep 工具调用应写入贤者记忆")
+	if respBySeel["melchior"].SleepNote == nil || respBySeel["melchior"].SleepNote.NextStepPlan == "" {
+		t.Fatal("期望 Melchior 的睡前笔记携带下一步计划")
 	}
-	if !foundToolResult {
-		t.Fatal("wanna_sleep 工具结果应写入贤者记忆")
+	if respBySeel["balthazar"].SleepNote == nil || respBySeel["balthazar"].SleepNote.DreamScene == "" {
+		t.Fatal("期望 Balthazar 的睡前笔记携带梦境画面描述")
+	}
+	if respBySeel["casper"].SleepNote == nil || !strings.Contains(respBySeel["casper"].SleepNote.Summary, "细节") {
+		t.Fatal("期望 Casper 的睡前笔记保留当前记录")
+	}
+}
+
+func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testing.T) {
+	collector := NewResponseCollector(5 * time.Second)
+
+	melchior := createMockSageWithClient("melchior", "Melchior", &mockLLMClient{
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"先记录检查结果","nextStepPlan":"继续观察队列变化"}`),
+				},
+			},
+		},
+	})
+	balthazar := createMockSageWithClient("balthazar", "Balthazar", &mockLLMClient{
+		scriptedTurns: []mockTurn{completedSpeakTurn("我还在想这件事的情绪余波，先不睡")},
+	})
+	casper := createMockSageWithClient("casper", "Casper", &mockLLMClient{
+		scriptedTurns: []mockTurn{
+			{
+				toolCalls: []types.ToolCallDelta{
+					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"当前没有新的异常，先把线索记下"}`),
+				},
+			},
+		},
+	})
+
+	result, err := collector.CollectHeartbeatResponses(
+		context.Background(),
+		"heartbeat-session-2",
+		"heartbeat-round-2",
+		melchior,
+		balthazar,
+		casper,
+		"heartbeat",
+		"heartbeat",
+		buildHeartbeatRuntimeToolsBySage(),
+		buildHeartbeatRuntimeToolChoiceBySage(),
+	)
+	if err != nil {
+		t.Fatalf("心跳收集不应报错: %v", err)
+	}
+	if result == nil {
+		t.Fatal("期望返回心跳结果")
+	}
+	if result.Sleeping {
+		t.Fatal("只要有一位没有通过 wanna_sleep 结束，本轮就不应进入 sleeping")
+	}
+}
+
+func TestParseWannaSleepToolContent_ValidatesToolSpecificFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		toolName string
+		rawArgs  string
+		wantErr  string
+	}{
+		{
+			name:     "plan requires nextStepPlan",
+			toolName: config.WannaSleepPlanToolName,
+			rawArgs:  `{"summary":"做完检查了"}`,
+			wantErr:  "nextStepPlan",
+		},
+		{
+			name:     "dream requires scene",
+			toolName: config.WannaSleepDreamToolName,
+			rawArgs:  `{"summary":"我把感受记下来了"}`,
+			wantErr:  "dreamScene",
+		},
+		{
+			name:     "record keeps summary only",
+			toolName: config.WannaSleepRecordToolName,
+			rawArgs:  `{"summary":"当前一切平稳"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			note, hasSleep, err := parseWannaSleepToolContent([]types.ToolCall{
+				{
+					ID:   "sleep-call",
+					Type: "function",
+					Function: types.ToolCallFunction{
+						Name:      tt.toolName,
+						Arguments: tt.rawArgs,
+					},
+				},
+			})
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("期望错误包含 %q，实际=%v", tt.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("不期望报错: %v", err)
+			}
+			if !hasSleep || note == nil || strings.TrimSpace(note.Summary) == "" {
+				t.Fatal("期望成功解析 wanna_sleep 笔记")
+			}
+		})
 	}
 }

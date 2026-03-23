@@ -298,7 +298,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnn
 			ID:   "sleep-call-1",
 			Type: "function",
 			Function: types.ToolCallFunction{
-				Name:      config.WannaSleepToolName,
+				Name:      config.WannaSleepRecordToolName,
 				Arguments: `{"summary":"检查了定时心跳、没有新任务，决定休眠"}`,
 			},
 		},
@@ -377,7 +377,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_WannaSleepPersistenceFailureSt
 			ID:   "sleep-call-2",
 			Type: "function",
 			Function: types.ToolCallFunction{
-				Name:      config.WannaSleepToolName,
+				Name:      config.WannaSleepRecordToolName,
 				Arguments: `{"summary":"检查完待办，没有进一步动作"}`,
 			},
 		},

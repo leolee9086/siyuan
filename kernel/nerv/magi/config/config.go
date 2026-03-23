@@ -67,8 +67,14 @@ const (
 	WannaSpeakContinueToolName = "wanna_speak_continue"
 	// WannaSpeakStopToolName 三贤人表达状态结束工具名。
 	WannaSpeakStopToolName = "wanna_speak_stop"
-	// WannaSleepToolName 三贤人心跳轮次休眠工具名。
-	WannaSleepToolName = "wanna_sleep"
+	// WannaSleepRecordToolName 心跳轮次当前记录工具名。
+	WannaSleepRecordToolName = "wanna_sleep_record"
+	// WannaSleepPlanToolName 心跳轮次下一步计划工具名。
+	WannaSleepPlanToolName = "wanna_sleep_plan"
+	// WannaSleepDreamToolName 心跳轮次画面描述工具名。
+	WannaSleepDreamToolName = "wanna_sleep_dream"
+	// WannaSleepMergedRecordName 心跳轮次合并笔记记录名。
+	WannaSleepMergedRecordName = "wanna_sleep_merged"
 	// AvatarBuildToolName Avatar 原型创建工具名。
 	AvatarBuildToolName = "buildAvatar"
 	// AvatarModifyToolName Avatar 原型修改工具名。
@@ -173,13 +179,13 @@ func BuildWannaSpeakStopToolDef() ToolDef {
 	}
 }
 
-// BuildWannaSleepToolDef 构建三贤人心跳轮次 wanna_sleep 工具定义。
-func BuildWannaSleepToolDef() ToolDef {
+// BuildWannaSleepRecordToolDef 构建“当前记录”型心跳休眠工具定义。
+func BuildWannaSleepRecordToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
-			Name:        WannaSleepToolName,
-			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。summary 必须说明这次醒来做了什么；如果没有必须处理的任务，也要顺手记录当前心情和最近刚做了什么，避免之后忘记。不要重复记录时间、系统状态或轮次等系统会自动保存的信息。",
+			Name:        WannaSleepRecordToolName,
+			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。你需要记录这次醒来做了什么、在想什么；如果没有必须处理的任务，也要顺手记下当前心情和最近刚做了什么。不要重复记录时间、系统状态或轮次等系统会自动保存的信息。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -191,6 +197,78 @@ func BuildWannaSleepToolDef() ToolDef {
 				"required": []string{"summary"},
 			},
 		},
+	}
+}
+
+// BuildWannaSleepPlanToolDef 构建“下一步计划”型心跳休眠工具定义。
+func BuildWannaSleepPlanToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSleepPlanToolName,
+			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。你需要记录这次醒来做了什么，以及下一步最值得推进的计划。不要重复记录时间、系统状态或轮次等系统会自动保存的信息。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"summary": map[string]interface{}{
+						"type":        "string",
+						"description": "本次醒来期间已经完成的检查、思考或处理摘要。",
+					},
+					"nextStepPlan": map[string]interface{}{
+						"type":        "string",
+						"description": "接下来最值得推进的步骤、顺序或检查计划。",
+					},
+				},
+				"required": []string{"summary", "nextStepPlan"},
+			},
+		},
+	}
+}
+
+// BuildWannaSleepDreamToolDef 构建“画面描述”型心跳休眠工具定义。
+func BuildWannaSleepDreamToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSleepDreamToolName,
+			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。你需要记录这次醒来做了什么，并且用你认为最相关的画面和联想表现它,画面应该是一段具体而生动的描述,可以让人看到就能够理解其中蕴含的情绪和线索。不要重复记录时间、系统状态或轮次等系统会自动保存的信息。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"summary": map[string]interface{}{
+						"type":        "string",
+						"description": "本次醒来期间已经完成的检查、思考或处理摘要。",
+					},
+					"dreamScene": map[string]interface{}{
+						"type":        "string",
+						"description": "可直接交给文生图接口的画面描述，具体,生动,用意向和场景表达你的情绪和联想,注意因为其他人可能并不知道你长什么样,所以如果画面中出现你自己,用具体的形象而不是简单地说'我'。",
+					},
+				},
+				"required": []string{"summary", "dreamScene"},
+			},
+		},
+	}
+}
+
+func IsWannaSleepToolName(name string) bool {
+	switch name {
+	case WannaSleepRecordToolName, WannaSleepPlanToolName, WannaSleepDreamToolName:
+		return true
+	default:
+		return false
+	}
+}
+
+func ResolveWannaSleepToolNameForSage(sageName string) string {
+	switch sageName {
+	case "melchior":
+		return WannaSleepPlanToolName
+	case "balthazar":
+		return WannaSleepDreamToolName
+	case "casper":
+		return WannaSleepRecordToolName
+	default:
+		return ""
 	}
 }
 

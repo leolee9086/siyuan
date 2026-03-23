@@ -24,7 +24,7 @@ type HeartbeatDecisionResult struct {
 func (c *Coordinator) CoordinateHeartbeat(
 	ctx context.Context,
 	sessionID string,
-	melchior, balthazar, casper *sages.Sage,
+	melchior, balthazar, casper, trinity *sages.Sage,
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
 ) (*HeartbeatDecisionResult, error) {
@@ -59,8 +59,8 @@ func (c *Coordinator) CoordinateHeartbeat(
 		casper,
 		userMessage,
 		sourceAwareUserInput,
-		buildHeartbeatRuntimeTools(),
-		"required",
+		buildHeartbeatRuntimeToolsBySage(),
+		buildHeartbeatRuntimeToolChoiceBySage(),
 	)
 	if err != nil {
 		if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
@@ -69,25 +69,51 @@ func (c *Coordinator) CoordinateHeartbeat(
 		return nil, err
 	}
 
+	sleepSummary := ""
+	sleeper := collection.Sleeper
+	if collection.Sleeping {
+		sleepSummary, err = c.finalizeHeartbeatSleepRound(ctx, sessionID, roundID, melchior, balthazar, casper, trinity, collection.Responses)
+		if err != nil {
+			if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
+				logging.LogWarnf("推送心跳轮次失败事件失败: %v", pushErr)
+			}
+			return nil, err
+		}
+		sleeper = "all"
+	}
+
 	return &HeartbeatDecisionResult{
 		RoundID:      roundID,
 		Sleeping:     collection.Sleeping,
-		Sleeper:      collection.Sleeper,
-		SleepSummary: collection.SleepSummary,
+		Sleeper:      sleeper,
+		SleepSummary: sleepSummary,
 		Responses:    collection.Responses,
 	}, nil
 }
 
-func buildHeartbeatRuntimeTools() []openai.Tool {
-	toolDef := config.BuildWannaSleepToolDef()
-	return []openai.Tool{
-		{
-			Type: openai.ToolType(toolDef.Type),
-			Function: &openai.FunctionDefinition{
-				Name:        toolDef.Function.Name,
-				Description: toolDef.Function.Description,
-				Parameters:  toolDef.Function.Parameters,
-			},
+func buildHeartbeatRuntimeToolsBySage() map[string][]openai.Tool {
+	return map[string][]openai.Tool{
+		"melchior":  {buildHeartbeatRuntimeTool(config.BuildWannaSleepPlanToolDef())},
+		"balthazar": {buildHeartbeatRuntimeTool(config.BuildWannaSleepDreamToolDef())},
+		"casper":    {buildHeartbeatRuntimeTool(config.BuildWannaSleepRecordToolDef())},
+	}
+}
+
+func buildHeartbeatRuntimeToolChoiceBySage() map[string]any {
+	return map[string]any{
+		"melchior":  "required",
+		"balthazar": "required",
+		"casper":    "required",
+	}
+}
+
+func buildHeartbeatRuntimeTool(toolDef config.ToolDef) openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolType(toolDef.Type),
+		Function: &openai.FunctionDefinition{
+			Name:        toolDef.Function.Name,
+			Description: toolDef.Function.Description,
+			Parameters:  toolDef.Function.Parameters,
 		},
 	}
 }

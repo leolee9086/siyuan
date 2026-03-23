@@ -57,7 +57,7 @@ func materializeToolResultForContext(
 	detailedResult string,
 ) string {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
-	if toolName == config.WannaSleepToolName {
+	if config.IsWannaSleepToolName(toolName) {
 		return materializeWannaSleepToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
 	}
 	if !isArchivedQueryTool(toolName) {
@@ -204,6 +204,12 @@ func materializeWannaSleepToolResultForContext(
 	if summary != "" {
 		payload["summary"] = summary
 	}
+	if plan := strings.TrimSpace(args.NextStepPlan); plan != "" {
+		payload["nextStepPlan"] = plan
+	}
+	if dreamScene := strings.TrimSpace(args.DreamScene); dreamScene != "" {
+		payload["dreamScene"] = dreamScene
+	}
 	payload["sleepAt"] = sleepAt.Format(time.RFC3339)
 
 	resultBytes, err := json.Marshal(payload)
@@ -248,7 +254,7 @@ func persistWannaSleepMemoryEntryToNotebook(
 
 	attrs := map[string]string{
 		magiMemoryBlockAttr: "true",
-		magiMemoryKindAttr:  config.WannaSleepToolName,
+		magiMemoryKindAttr:  strings.TrimSpace(toolCall.Function.Name),
 		magiToolNameAttr:    strings.TrimSpace(toolCall.Function.Name),
 		magiSleepAtAttr:     sleepAt.Format(time.RFC3339),
 	}

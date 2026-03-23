@@ -149,6 +149,7 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 			magiMelchior,
 			magiBalthazar,
 			magiCasper,
+			magiTrinity,
 			buildHeartbeatPrompt(now),
 			buildHeartbeatSourceContext(),
 		)
@@ -176,28 +177,32 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		return
 	}
 
-	m.status.State = types.RuntimeStateSleeping
-	m.status.Awake = false
-	m.status.WakeSource = ""
 	m.status.CurrentTask = ""
-	m.status.LastSleepAt = nowMillis
 	m.status.UpdatedAt = nowMillis
 	if result != nil {
 		m.status.CurrentRoundID = strings.TrimSpace(result.RoundID)
-		if result.Sleeping {
-			m.status.LastSleepSummary = strings.TrimSpace(result.SleepSummary)
-			m.status.Reason = "wanna-sleep"
-		}
 	}
 
 	switch {
 	case err != nil && errors.Is(err, context.Canceled):
+		m.status.State = types.RuntimeStateHeartbeat
+		m.status.Awake = true
 		m.status.Reason = "heartbeat-interrupted"
 	case err != nil:
+		m.status.State = types.RuntimeStateHeartbeat
+		m.status.Awake = true
 		m.status.Reason = "heartbeat-failed"
 	case result != nil && result.Sleeping:
+		m.status.State = types.RuntimeStateSleeping
+		m.status.Awake = false
+		m.status.WakeSource = ""
+		m.status.LastSleepAt = nowMillis
+		m.status.LastSleepSummary = strings.TrimSpace(result.SleepSummary)
+		m.status.Reason = "wanna-sleep"
 	default:
-		m.status.Reason = "heartbeat-completed"
+		m.status.State = types.RuntimeStateHeartbeat
+		m.status.Awake = true
+		m.status.Reason = "heartbeat-incomplete"
 	}
 
 	status := m.status
