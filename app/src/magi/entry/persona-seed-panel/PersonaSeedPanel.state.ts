@@ -40,17 +40,18 @@ function buildSubjectMeta(s: {
     readonly subjectId: { readonly value: string };
     readonly subjectName: { readonly value: string };
     readonly gender: { readonly value: string };
-    readonly age: { readonly value: number };
+    readonly age: { readonly value: number | null };
     readonly subjectType: { readonly value: SubjectType };
     readonly organization: { readonly value: string };
     readonly role: { readonly value: string };
     readonly careerGoal: { readonly value: string };
 }): IpipNeo120SubjectMeta {
+    const gender = s.gender.value.trim();
     return {
-        id: s.subjectId.value || "zhi",
-        name: s.subjectName.value || "zhi",
-        gender: s.gender.value.trim(),
-        age: Number.isInteger(s.age.value) ? s.age.value : 0,
+        id: s.subjectId.value.trim(),
+        name: s.subjectName.value.trim(),
+        ...(gender ? { gender } : {}),
+        ...(Number.isInteger(s.age.value) ? { age: s.age.value } : {}),
         type: s.subjectType.value,
         organization: s.organization.value,
         role: s.role.value,
@@ -96,10 +97,10 @@ function formatDescriptionProgress(s: {
  * 调用时机：usePersonaSeedPanelContext 内部调用一次。
  */
 export function createPanelState(): PanelState {
-    const subjectId = ref("zhi");
-    const subjectName = ref("ZHI");
+    const subjectId = ref("");
+    const subjectName = ref("");
     const gender = ref("");
-    const age = ref(0);
+    const age = ref<number | null>(null);
     const subjectType = ref<SubjectType>("ai_agent");
     const organization = ref("");
     const role = ref("");
@@ -117,6 +118,10 @@ export function createPanelState(): PanelState {
     const viewingSuggestionId = ref("");
     const ratingVersion = ref(0);
     const statusMessage = ref("");
+    const configLoadState = ref<PanelState["configLoadState"]["value"]>("loading");
+    const configLoadMessage = ref("正在读取当前主管AI配置...");
+    const activeProfilePath = ref("");
+    const activeSamplePath = ref("");
 
     const refs = {
         subjectId, subjectName, gender, age, subjectType,
@@ -141,6 +146,10 @@ export function createPanelState(): PanelState {
         viewingSuggestionId,
         ratingVersion,
         statusMessage,
+        configLoadState,
+        configLoadMessage,
+        activeProfilePath,
+        activeSamplePath,
         seedDescriptions,
         subjectMeta,
         pendingSuggestionCount,

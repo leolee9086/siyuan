@@ -14,7 +14,11 @@
     </label>
     <label>
       Age
-      <input :value="age" type="number" @input="$emit('update:age', Number.parseInt(($event.target as HTMLInputElement).value, 10) || 0)" />
+      <input
+        :value="age ?? ''"
+        type="number"
+        @input="$emit('update:age', ($event.target as HTMLInputElement).value === '' ? null : (Number.parseInt(($event.target as HTMLInputElement).value, 10) || 0))"
+      />
     </label>
     <label>
       Type
@@ -43,7 +47,7 @@ defineProps<{
   subjectId: string;
   subjectName: string;
   gender: string;
-  age: number;
+  age: number | null;
   subjectType: string;
   organization: string;
   role: string;
@@ -54,7 +58,7 @@ defineEmits<{
   (e: "update:subjectId", v: string): void;
   (e: "update:subjectName", v: string): void;
   (e: "update:gender", v: string): void;
-  (e: "update:age", v: number): void;
+  (e: "update:age", v: number | null): void;
   (e: "update:subjectType", v: string): void;
   (e: "update:organization", v: string): void;
   (e: "update:role", v: string): void;

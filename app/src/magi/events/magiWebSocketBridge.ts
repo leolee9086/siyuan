@@ -32,6 +32,9 @@ export interface MagiWebSocketBridgeOptions {
     reconnectDelayMs?: number;
     maxReconnectDelayMs?: number;
     websocketFactory?: (url: string) => WebSocket;
+    onConnecting?: () => void;
+    onOpen?: () => void;
+    onClose?: () => void;
 }
 
 export interface MagiWebSocketBridge {

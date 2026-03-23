@@ -5,6 +5,8 @@
  * 使用场景：MagiMainPanel/MagiRoot 等界面组件之间传递数据。
  */
 
+import type { ConnectionStatus } from "../composables/useMagi.types";
+
 /**
  * 通用消息视图
  */
@@ -32,6 +34,7 @@ export interface MagiMainPanelSeelView {
     };
     loading: boolean;
     connected: boolean;
+    connectionStatus: ConnectionStatus;
 }
 
 /**
@@ -56,4 +59,5 @@ export interface MagiSeelPanelView {
     messages: MagiSeelPanelMessageView[];
     loading: boolean;
     connected: boolean;
+    connectionStatus: ConnectionStatus;
 }

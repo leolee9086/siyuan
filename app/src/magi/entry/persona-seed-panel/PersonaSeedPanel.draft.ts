@@ -33,9 +33,12 @@ function assignDescriptions(s: PanelState, d: IpipPersonaSeedDescriptions): void
  * 调用时机：loadDraft 内部调用。
  */
 function resetPanelState(s: PanelState): void {
+    s.subjectId.value = "";
+    s.subjectName.value = "";
     s.answers.value = [];
     s.gender.value = "";
-    s.age.value = 0;
+    s.age.value = null;
+    s.subjectType.value = "ai_agent";
     s.organization.value = "";
     s.role.value = "";
     s.careerGoal.value = "";
@@ -52,8 +55,8 @@ function resetPanelState(s: PanelState): void {
 function saveDraft(s: PanelState): void {
     const payload: QuestionnaireDraft = {
         subject: {
-            id: s.subjectId.value || "zhi",
-            name: s.subjectName.value || "zhi",
+            id: s.subjectId.value,
+            name: s.subjectName.value,
             gender: s.gender.value,
             age: s.age.value,
             type: s.subjectType.value,
@@ -89,7 +92,7 @@ function loadDraft(s: PanelState, id: string): void {
     s.subjectName.value = draft.subject.name || s.subjectName.value;
     s.gender.value = draft.subject.gender;
     s.age.value = draft.subject.age;
-    s.subjectType.value = draft.subject.type || s.subjectType.value;
+    s.subjectType.value = draft.subject.type;
     s.organization.value = draft.subject.organization;
     s.role.value = draft.subject.role;
     s.careerGoal.value = draft.subject.careerGoal;

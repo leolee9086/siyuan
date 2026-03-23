@@ -29,10 +29,8 @@ import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBr
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
 import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
-import { useMagiIdentitySessionState } from "../service/magiIdentitySession";
 import {
     buildRuntimeMainInterfaceIdentity,
-    buildRuntimeMainMonitorSessionId,
     MAGI_RUNTIME_MONITOR_SESSION_ID,
 } from "../adapters/magiStandardLLMAdapter.backend";
 
@@ -139,12 +137,21 @@ async function syncWrappedSeelState(
     ai: MockWISE实例,
 ): Promise<void> {
     wrapped.loading = ai.loading;
-    wrapped.connected = ai.connected;
 
     const latestMessages = await Promise.all(
         ai.messages.map((message, index) => toMagiMessage(message, index)),
     );
     wrapped.messages.splice(0, wrapped.messages.length, ...latestMessages);
+}
+
+function syncWrappedSeelConnectionStatus(
+    seels: WrappedSeel[],
+    websocketConnectionStatus: ConnectionStatus,
+): void {
+    const connected = websocketConnectionStatus === "connected";
+    for (const seel of seels) {
+        seel.connected = connected;
+    }
 }
 
 /**
@@ -162,11 +169,9 @@ async function* createTTTStreamProxy(
     try {
         for await (const chunk of stream) {
             // TTT 过渡层：仅转发流式事件，不在 chunk 周期覆写消息数组。
-            wrapped.connected = ai.connected;
             yield chunk;
         }
     } finally {
-        wrapped.connected = ai.connected;
         wrapped.loading = ai.loading;
     }
 }
@@ -175,13 +180,13 @@ async function* createTTTStreamProxy(
 /** 初始化并写入 wrapped seels */
 async function initializeWrappedSeels(
     seels: WrappedSeel[],
-    connectionStatus: { value: ConnectionStatus },
+    websocketConnectionStatus: { value: ConnectionStatus },
     promptInjections?: MagiPromptSet,
     personaName?: string,
 ): Promise<void> {
     const rawSeels = await initMagi({
         delay: 800,
-        autoConnect: true,
+        autoConnect: false,
         memorySize: 7,
         ...(promptInjections ? { promptInjections } : {}),
         ...(personaName ? { personaName } : {}),
@@ -191,7 +196,7 @@ async function initializeWrappedSeels(
         rawSeels.map((ai) => wrapSeelInstance(ai)),
     );
     seels.push(...wrappedSeels);
-    connectionStatus.value = "connected";
+    syncWrappedSeelConnectionStatus(seels, websocketConnectionStatus.value);
 }
 
 /** 启动/重连时解析应使用的人格注入（显式参数优先，其次工作空间 active seed）。 */
@@ -215,6 +220,16 @@ function resolvePersonaNameFromStatus(status: Awaited<ReturnType<typeof fetchMag
 
 function cloneRuntimeStatus(status: MagiRuntimeStatus): MagiRuntimeStatus {
     return { ...status };
+}
+
+function resolveConnectionStatusFromPersonaStatus(
+    currentStatus: ConnectionStatus,
+    status: Awaited<ReturnType<typeof fetchMagiPersonaStatus>>,
+): ConnectionStatus {
+    if (status) {
+        return "connected";
+    }
+    return currentStatus === "connected" ? currentStatus : "disconnected";
 }
 
 /**
@@ -302,7 +317,8 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
  */
 export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
-    const connectionStatus = ref<ConnectionStatus>("disconnected");
+    const connectionStatus = ref<ConnectionStatus>("connecting");
+    const websocketConnectionStatus = ref<ConnectionStatus>("connecting");
     const isMainPanelRequestPending = ref(false);
     const mainPanelMessages: MagiMessage[] = reactive([]);
     const consensusMessages: MagiMessage[] = reactive([]);
@@ -311,9 +327,27 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         isMainPanelRequestPending.value || seels.some((seel) => seel.loading),
     );
     const eventBus = await createMagiEventBus();
-    bindMagiWebSocketEventBridge(eventBus, { sessionId: MAGI_RUNTIME_MONITOR_SESSION_ID });
+    watch(
+        websocketConnectionStatus,
+        (nextStatus) => {
+            syncWrappedSeelConnectionStatus(seels, nextStatus);
+        },
+        { immediate: true },
+    );
+    bindMagiWebSocketEventBridge(eventBus, {
+        sessionId: MAGI_RUNTIME_MONITOR_SESSION_ID,
+        onConnecting: () => {
+            websocketConnectionStatus.value = "connecting";
+        },
+        onOpen: () => {
+            websocketConnectionStatus.value = "connected";
+        },
+        onClose: () => {
+            runtimeStatus.value = null;
+            websocketConnectionStatus.value = "disconnected";
+        },
+    });
     const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
-    const identityState = useMagiIdentitySessionState();
     eventBus.subscribe("RUNTIME_STATUS_UPDATED", (payload) => {
         runtimeStatus.value = {
             state: payload.state,
@@ -333,42 +367,19 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         seels,
         consensusMessages,
     });
-    let activeMonitorBridge: ReturnType<typeof bindMagiWebSocketEventBridge> | null = null;
-    let activeMonitorSessionId = "";
-    const bindMainMonitorBridge = () => {
-        const nextSessionId = buildRuntimeMainMonitorSessionId(
-            runtimeMainInterfaceIdentity,
-            identityState.activeSession,
-        );
-        if (nextSessionId === activeMonitorSessionId) {
-            return;
-        }
-        activeMonitorBridge?.disconnect();
-        activeMonitorBridge = null;
-        activeMonitorSessionId = nextSessionId;
-        if (!nextSessionId) {
-            return;
-        }
-        activeMonitorBridge = bindMagiWebSocketEventBridge(eventBus, { sessionId: nextSessionId });
-    };
-    watch(
-        () => [
-            identityState.activeSession?.identityId ?? "",
-            identityState.activeSession?.routeClass ?? "",
-            String(identityState.activeSession?.expiresAt ?? 0),
-        ].join("::"),
-        bindMainMonitorBridge,
-        { immediate: true },
-    );
     void stopProjector;
 
     const initialPersonaStatus = await fetchMagiPersonaStatus();
     if (initialPersonaStatus?.runtimeStatus) {
         runtimeStatus.value = cloneRuntimeStatus(initialPersonaStatus.runtimeStatus);
     }
+    connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
+        connectionStatus.value,
+        initialPersonaStatus,
+    );
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     const runtimePersonaName = resolvePersonaNameFromStatus(initialPersonaStatus);
-    await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections, runtimePersonaName);
+    await initializeWrappedSeels(seels, websocketConnectionStatus, startupPromptInjections, runtimePersonaName);
     const llmAdapter = await createStandardLLMAdapter({
         model: "magi-trinity",
         connectionStatus,
@@ -381,6 +392,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     return {
         seels,
         connectionStatus,
+        websocketConnectionStatus,
         mainPanelMessages,
         consensusMessages,
         isAnySeelLoading,
@@ -395,7 +407,6 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
             if (!userInput) {
                 return "";
             }
-            bindMainMonitorBridge();
             await appendMainPanelMessage(mainPanelMessages, "user", userInput, "success");
             const messages = buildMainPanelRequestMessages(mainPanelMessages, options);
             const pendingAssistant = await appendMainPanelMessage(
@@ -437,6 +448,8 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
             await reinitializeMAGI(
                 seels,
                 connectionStatus,
+                websocketConnectionStatus,
+                runtimeStatus,
                 consensusMessages,
                 mainPanelMessages,
                 options,
@@ -455,6 +468,8 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
 async function reinitializeMAGI(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
+    websocketConnectionStatus: { value: ConnectionStatus },
+    runtimeStatus: { value: MagiRuntimeStatus | null },
     consensusMessages: MagiMessage[],
     mainPanelMessages: MagiMessage[],
     options?: {
@@ -463,7 +478,6 @@ async function reinitializeMAGI(
     },
 ): Promise<void> {
     try {
-        connectionStatus.value = "connecting";
         const shouldClearMessages = !options?.preserveConsensusMessages;
         await clearReactiveArrays(
             seels,
@@ -472,12 +486,20 @@ async function reinitializeMAGI(
             shouldClearMessages,
         );
         const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-        const runtimePersonaName = resolvePersonaNameFromStatus(await fetchMagiPersonaStatus());
+        const personaStatus = await fetchMagiPersonaStatus();
+        if (personaStatus?.runtimeStatus) {
+            runtimeStatus.value = cloneRuntimeStatus(personaStatus.runtimeStatus);
+        }
+        const runtimePersonaName = resolvePersonaNameFromStatus(personaStatus);
         await initializeWrappedSeels(
             seels,
-            connectionStatus,
+            websocketConnectionStatus,
             resolvedPromptInjections,
             runtimePersonaName,
+        );
+        connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
+            connectionStatus.value,
+            personaStatus,
         );
         await appendConsensusMessage(
             consensusMessages,

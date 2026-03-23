@@ -24,7 +24,7 @@ export interface QuestionnaireDraftSubject {
     readonly id: string;
     readonly name: string;
     readonly gender: string;
-    readonly age: number;
+    readonly age: number | null;
     readonly type: SubjectType;
     readonly organization: string;
     readonly role: string;

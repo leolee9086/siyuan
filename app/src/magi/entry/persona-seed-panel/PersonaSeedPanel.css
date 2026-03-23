@@ -46,6 +46,54 @@
   font-size: 12px;
 }
 
+.persona-seed-runtime-state {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 255, 255, 0.32);
+  background: rgba(0, 20, 24, 0.62);
+  color: #9ef4f7;
+}
+
+.persona-seed-runtime-state--loading {
+  border-color: rgba(0, 255, 255, 0.45);
+}
+
+.persona-seed-runtime-state--ready {
+  border-color: rgba(132, 245, 195, 0.55);
+  color: #a8ffe4;
+}
+
+.persona-seed-runtime-state--partial {
+  border-color: rgba(255, 197, 122, 0.55);
+  color: #ffd7a9;
+}
+
+.persona-seed-runtime-state--missing,
+.persona-seed-runtime-state--error {
+  border-color: rgba(255, 124, 124, 0.55);
+  color: #ffb7b7;
+}
+
+.persona-seed-runtime-state-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.82;
+}
+
+.persona-seed-runtime-state-message {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.persona-seed-runtime-state-path {
+  margin-top: 4px;
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.88;
+  word-break: break-all;
+}
+
 .persona-seed-close {
   height: 30px;
   border: 1px solid rgba(0, 255, 255, 0.6);

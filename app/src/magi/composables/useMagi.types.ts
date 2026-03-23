@@ -145,8 +145,10 @@ export interface WrappedSeel {
 export interface UseMagiReturn {
     /** 所有贤者实例列表（响应式） */
     seels: WrappedSeel[];
-    /** 连接状态 */
+    /** 后端可用性状态 */
     connectionStatus: Ref<ConnectionStatus>;
+    /** 监控 websocket 连接状态（用于贤者卡片指示） */
+    websocketConnectionStatus: Ref<ConnectionStatus>;
     /** 主聊天面板本地消息列表（HTTP 请求/响应） */
     mainPanelMessages: MagiMessage[];
     /** 共识消息列表 */

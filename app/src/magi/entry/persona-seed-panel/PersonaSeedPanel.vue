@@ -20,6 +20,16 @@
       <p class="persona-seed-policy-tip">
         规则说明：工作空间主管AI一旦完成构建，不可删除，仅可持续调整。
       </p>
+      <section class="persona-seed-runtime-state" :class="`persona-seed-runtime-state--${configLoadState}`">
+        <div class="persona-seed-runtime-state-title">ACTUAL CONFIG STATE</div>
+        <div class="persona-seed-runtime-state-message">{{ configLoadMessage }}</div>
+        <div v-if="activeProfilePath" class="persona-seed-runtime-state-path">
+          PROFILE: {{ activeProfilePath }}
+        </div>
+        <div v-if="activeSamplePath" class="persona-seed-runtime-state-path">
+          SAMPLE: {{ activeSamplePath }}
+        </div>
+      </section>
       <PersonaSeedSubjectForm v-model:subject-id="subjectId" v-model:subject-name="subjectName"
         v-model:gender="gender" v-model:age="age" v-model:subject-type="subjectType" v-model:organization="organization"
         v-model:role="role" v-model:career-goal="careerGoal" />
@@ -82,6 +92,7 @@ const {
   answers, convergenceSession,
   isGeneratingDescriptionToQuestionnaire, isGeneratingQuestionnaireToDescription,
   focusQuestionQ, focusQuestionRequestId, statusMessage,
+  configLoadState, configLoadMessage, activeProfilePath, activeSamplePath,
   ratingKey, questionBank, subjectMeta,
   pendingSuggestionCount, acceptedSuggestionCount, rejectedSuggestionCount,
   descriptionProgressText, pendingSuggestions, viewingSuggestionSummary, viewingDescriptionDiff,

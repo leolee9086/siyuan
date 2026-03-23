@@ -17,6 +17,7 @@ export function bindMagiWebSocketEventBridge(
     let disposed = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let currentDelay = reconnectDelay;
+    let bridgeOpen = false;
 
     const clearReconnectTimer = () => {
         if (!reconnectTimer) {
@@ -37,17 +38,40 @@ export function bindMagiWebSocketEventBridge(
         currentDelay = Math.min(currentDelay * 2, maxReconnectDelay);
     };
 
+    const markBridgeOpen = (socket: WebSocket): boolean => {
+        if (disposed || ws !== socket || bridgeOpen || socket.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+        bridgeOpen = true;
+        clearReconnectTimer();
+        currentDelay = reconnectDelay;
+        options.onOpen?.();
+        return true;
+    };
+
+    const markBridgeClosed = (socket: WebSocket): boolean => {
+        if (ws !== socket) {
+            return false;
+        }
+        bridgeOpen = false;
+        ws = null;
+        return true;
+    };
+
     const connect = () => {
         if (disposed) {
             return;
         }
+        bridgeOpen = false;
+        options.onConnecting?.();
         const nextSocket = createWebSocket(buildMagiWebSocketURL(sessionId));
         ws = nextSocket;
 
         nextSocket.onopen = () => {
-            currentDelay = reconnectDelay;
+            markBridgeOpen(nextSocket);
         };
         nextSocket.onmessage = (event) => {
+            markBridgeOpen(nextSocket);
             try {
                 const payload: unknown = JSON.parse(event.data);
                 dispatchMagiWebSocketMessage(eventBus, payload);
@@ -56,13 +80,18 @@ export function bindMagiWebSocketEventBridge(
             }
         };
         nextSocket.onclose = () => {
-            if (!disposed) {
-                scheduleReconnect();
+            const closedCurrentSocket = markBridgeClosed(nextSocket);
+            if (!closedCurrentSocket || disposed) {
+                return;
             }
+            options.onClose?.();
+            scheduleReconnect();
         };
         nextSocket.onerror = () => {
             // onclose 负责重连调度，这里仅保留占位避免浏览器默认报错中断。
         };
+
+        markBridgeOpen(nextSocket);
     };
 
     connect();
@@ -72,10 +101,12 @@ export function bindMagiWebSocketEventBridge(
         disconnect: () => {
             disposed = true;
             clearReconnectTimer();
-            if (ws && ws.readyState <= WebSocket.OPEN) {
-                ws.close();
-            }
+            const activeSocket = ws;
             ws = null;
+            if (activeSocket && activeSocket.readyState <= WebSocket.OPEN) {
+                activeSocket.close();
+            }
+            bridgeOpen = false;
         },
     };
 }

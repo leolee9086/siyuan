@@ -51,15 +51,15 @@ const VOTE_STATUS_ICON_MAP: Record<string, string> = {
 /**
  * 计算单个贤者连接状态
  *
- * 作用：把底层 loading/connected 状态映射为 UI class。
+ * 作用：把后端连接状态映射为 UI class。
  * 意图：收敛状态转换规则，避免模板中维护三元表达式。
  * 调用时机：计算连接状态列表时逐项调用。
  */
 function computeSeelStatusClass(seel: UseMagiMainPanelContextParams["seels"]["value"][number]): ConnectionStatusItem["class"] {
-    if (seel.loading) {
+    if (seel.connectionStatus === "connecting") {
         return "loading";
     }
-    return seel.connected ? "connected" : "disconnected";
+    return seel.connectionStatus === "connected" ? "connected" : "disconnected";
 }
 
 /**
@@ -210,7 +210,7 @@ function computeCurrentSyncRate(
     if (seels.length === 0) {
         return 0;
     }
-    const connectedCount = seels.filter((seel) => seel.connected).length;
+    const connectedCount = seels.filter((seel) => seel.connectionStatus === "connected").length;
     return Math.round((connectedCount / seels.length) * 100);
 }
 

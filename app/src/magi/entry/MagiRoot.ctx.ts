@@ -288,7 +288,7 @@ async function handleExportSessionRecord(
         const { filePath } = await exportMagiSessionRecord({
             seels: magiState.value.seels,
             consensusMessages: magiState.value.consensusMessages,
-            connectionStatus: magiState.value.connectionStatus.value,
+            connectionStatus: magiState.value.connectionStatus,
             mode: "sanitized",
         });
         await appendConsensusMessage(
@@ -782,7 +782,10 @@ function isTrinitySeel(name: string): boolean {
 }
 
 /** 将运行时贤者包装对象映射为 UI 专用 SeelPanel 视图 */
-function mapWrappedSeelToPanelView(seel: WrappedSeel): MagiSeelPanelView {
+function mapWrappedSeelToPanelView(
+    seel: WrappedSeel,
+    connectionStatus: UseMagiReturn["websocketConnectionStatus"]["value"],
+): MagiSeelPanelView {
     return {
         config: {
             name: seel.config.name,
@@ -802,7 +805,8 @@ function mapWrappedSeelToPanelView(seel: WrappedSeel): MagiSeelPanelView {
             ...(message.meta ? { meta: message.meta } : {}),
         })),
         loading: seel.loading,
-        connected: seel.connected,
+        connected: connectionStatus === "connected",
+        connectionStatus,
     };
 }
 
@@ -905,6 +909,9 @@ function createMagiRootComputed(
     workspaceAIMainNotebookState: { value: WorkspaceAIMainNotebookState | null },
 ) {
     const seels = computed(() => magiState.value?.seels ?? []);
+    const websocketConnectionStatus = computed(
+        () => magiState.value?.websocketConnectionStatus ?? "disconnected",
+    );
     const mainPanelSeels = computed<MagiMainPanelSeelView[]>(() =>
         seels.value.map((seel) => ({
             config: {
@@ -912,7 +919,8 @@ function createMagiRootComputed(
                 displayName: seel.config.displayName,
             },
             loading: seel.loading,
-            connected: seel.connected,
+            connected: websocketConnectionStatus.value === "connected",
+            connectionStatus: websocketConnectionStatus.value,
         })),
     );
     const mainPanelMessages = computed(() => magiState.value?.mainPanelMessages ?? []);
@@ -920,19 +928,19 @@ function createMagiRootComputed(
         seels.value.filter((seel) => !isTrinitySeel(seel.config.name)),
     );
     const sageSeelViews = computed<MagiSeelPanelView[]>(() =>
-        sageSeels.value.map((seel) => mapWrappedSeelToPanelView(seel)),
+        sageSeels.value.map((seel) => mapWrappedSeelToPanelView(seel, websocketConnectionStatus.value)),
     );
     const trinitySeel = computed(
         () => seels.value.find((seel) => isTrinitySeel(seel.config.name)) ?? null,
     );
     const trinitySeelView = computed<MagiSeelPanelView | null>(() =>
-        trinitySeel.value ? mapWrappedSeelToPanelView(trinitySeel.value) : null,
+        trinitySeel.value ? mapWrappedSeelToPanelView(trinitySeel.value, websocketConnectionStatus.value) : null,
     );
     const isAnySeelLoading = computed(
-        () => magiState.value?.isAnySeelLoading.value ?? false,
+        () => magiState.value?.isAnySeelLoading ?? false,
     );
     const runtimeStatus = computed<MagiRuntimeStatus | null>(
-        () => magiState.value?.runtimeStatus.value ?? null,
+        () => magiState.value?.runtimeStatus ?? null,
     );
     const displayMessages = computed<MagiMainPanelMessageView[]>(() => !showMessages.value
         ? []

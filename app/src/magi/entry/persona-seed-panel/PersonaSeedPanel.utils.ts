@@ -10,6 +10,7 @@ import type {
 } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
+import type { SubjectType } from "../../data/convergence/persona-seed-panel.types";
 import { persistActiveSeedProfilePath } from "../../prompts/personaRuntimePromptBuilder";
 import { isIpipPersonaProfile } from "../../prompts/personaRuntimePromptBuilder.guard";
 
@@ -27,7 +28,7 @@ const IPIP_SCHEMA_VERSION = "IPIP-NEO-120-v1";
  * 意图：统一草稿 key 格式，避免多处硬编码。
  * 调用时机：saveDraft / loadDraft 时调用。
  */
-export const getDraftKey = (id: string): string => `magi_questionnaire_draft_${id || "zhi"}`;
+export const getDraftKey = (id: string): string => `magi_questionnaire_draft_${id.trim() || "__empty__"}`;
 
 /** @同步豁免: UI构建 — Vue computed 同步求值路径中的数组查找 */
 /**
@@ -154,6 +155,8 @@ export const canGenerateTrinityDescriptionSuggestion = (
  * 调用时机：onSubmitIpip 提交前调用。
  */
 export const collectMissingFields = (
+    subjectId: string,
+    subjectName: string,
     gender: string,
     organization: string,
     role: string,
@@ -161,6 +164,12 @@ export const collectMissingFields = (
     descriptions: IpipPersonaSeedDescriptions,
 ): string[] => {
     const missing: string[] = [];
+    if (!subjectId.trim()) {
+        missing.push("Subject ID");
+    }
+    if (!subjectName.trim()) {
+        missing.push("Name");
+    }
     // 性别字段为空时加入缺失列表
     if (!gender.trim()) {
         missing.push("Gender");
@@ -445,7 +454,8 @@ export interface ImportedPersonaProfileResult {
     readonly subjectId: string;
     readonly subjectName: string;
     readonly gender: string;
-    readonly age: number;
+    readonly age: number | null;
+    readonly subjectType: SubjectType;
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
@@ -482,12 +492,13 @@ async function importPersonaProfileFile(
     await persistActiveSeedProfilePath(profilePath);
     return {
         source: "profile",
-        samplePath: profilePath,
+        samplePath: "",
         profilePath,
         subjectId,
         subjectName: profile.subject.name.trim(),
         gender: (profile.subject.gender || "").trim(),
-        age: Number.isInteger(profile.subject.age) ? profile.subject.age : 0,
+        age: Number.isInteger(profile.subject.age) ? profile.subject.age : null,
+        subjectType: "ai_agent",
         organization: (profile.subject.organization || "").trim(),
         role: (profile.subject.role || "").trim(),
         careerGoal: (profile.subject.careerGoal || "").trim(),
@@ -537,7 +548,8 @@ async function importSubmissionArchiveFile(
         subjectId,
         subjectName: submission.subject.name.trim(),
         gender: (submission.subject.gender || "").trim(),
-        age: Number.isInteger(submission.subject.age) ? submission.subject.age : 0,
+        age: Number.isInteger(submission.subject.age) ? submission.subject.age : null,
+        subjectType: submission.subject.type,
         organization: submission.subject.organization.trim(),
         role: submission.subject.role.trim(),
         careerGoal: submission.subject.careerGoal.trim(),

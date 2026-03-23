@@ -1,5 +1,6 @@
 import { ipipNeo120QuestionBank } from "../../../data/ipip-neo-120";
 import {
+    createEmptyConvergenceSession,
     countSuggestionsByStatus,
     setConvergenceSuggestions,
     transitionConvergenceState,
@@ -17,6 +18,27 @@ import {
     importPersonaProfileArchive,
     saveSubmissionPayload,
 } from "../PersonaSeedPanel.utils";
+
+function syncConfigStatusAfterSubmission(
+    s: PanelState,
+    samplePath: string,
+    profilePath: string,
+): void {
+    s.configLoadState.value = "ready";
+    s.configLoadMessage.value = "已保存并切换到当前主管AI配置。";
+    s.activeSamplePath.value = samplePath;
+    s.activeProfilePath.value = profilePath;
+}
+
+function syncConfigStatusAfterProfileImport(
+    s: PanelState,
+    profilePath: string,
+): void {
+    s.configLoadState.value = "partial";
+    s.configLoadMessage.value = "当前主管AI配置仅包含人格档案，未附带精确配对的问卷样本。";
+    s.activeSamplePath.value = "";
+    s.activeProfilePath.value = profilePath;
+}
 
 /**
  * 作用：基于四轨描述调用 LLM 生成问卷建议。
@@ -38,8 +60,8 @@ async function handleGenerateDescriptionToQuestionnaire(s: PanelState, saveDraft
     s.statusMessage.value = "正在基于描述生成问卷建议...";
     try {
         const suggestions = await generateDescriptionToQuestionnaireSuggestions({
-            subjectId: s.subjectId.value || "zhi",
-            subjectName: s.subjectName.value || "zhi",
+            subjectId: s.subjectId.value,
+            subjectName: s.subjectName.value,
             descriptions: s.seedDescriptions.value,
             answers: s.answers.value,
             questionBank: ipipNeo120QuestionBank,
@@ -133,6 +155,8 @@ async function handleSubmitIpip(
     payload: IpipNeo120SubmissionPayload,
 ): Promise<void> {
     const missingFields = collectMissingFields(
+        s.subjectId.value,
+        s.subjectName.value,
         s.gender.value,
         s.organization.value, s.role.value, s.careerGoal.value, s.seedDescriptions.value,
     );
@@ -150,6 +174,7 @@ async function handleSubmitIpip(
         s.statusMessage.value = "正在保存问卷与人格档案...";
         const { samplePath, profilePath } = await saveSubmissionPayload(enrichedPayload);
         saveDraft();
+        syncConfigStatusAfterSubmission(s, samplePath, profilePath);
         s.statusMessage.value = `问卷已保存: ${samplePath}; 人格档案已保存: ${profilePath}`;
         emitSaved({ source: "submission", samplePath, profilePath });
     } catch (error) {
@@ -171,26 +196,40 @@ async function handleImportPersonaProfile(
     s.statusMessage.value = "正在导入人格档案...";
     try {
         const imported = await importPersonaProfileArchive(file);
-        s.subjectId.value = imported.subjectId || s.subjectId.value;
-        s.subjectName.value = imported.subjectName || s.subjectName.value;
+        s.subjectId.value = imported.subjectId;
+        s.subjectName.value = imported.subjectName;
         s.gender.value = imported.gender;
         s.age.value = imported.age;
+        s.subjectType.value = imported.subjectType;
         s.organization.value = imported.organization;
         s.role.value = imported.role;
         s.careerGoal.value = imported.careerGoal;
+        s.convergenceSession.value = createEmptyConvergenceSession();
         if (imported.descriptions) {
             s.professionalDescription.value = imported.descriptions.professionalDescription;
             s.lifeDescription.value = imported.descriptions.lifeDescription;
             s.instinctNeedsDescription.value = imported.descriptions.instinctNeedsDescription;
             s.integratedDescription.value = imported.descriptions.integratedDescription;
+        } else {
+            s.professionalDescription.value = "";
+            s.lifeDescription.value = "";
+            s.instinctNeedsDescription.value = "";
+            s.integratedDescription.value = "";
         }
         if (imported.answers) {
             s.answers.value = imported.answers.map((answer) => ({
                 q: answer.q,
                 score: answer.score,
             }));
+        } else {
+            s.answers.value = [];
         }
         saveDraft();
+        if (imported.source === "submission") {
+            syncConfigStatusAfterSubmission(s, imported.samplePath, imported.profilePath);
+        } else {
+            syncConfigStatusAfterProfileImport(s, imported.profilePath);
+        }
         s.statusMessage.value = imported.source === "submission"
             ? `问卷样本已导入: ${imported.samplePath}; 人格档案已生成: ${imported.profilePath}`
             : `人格档案已导入: ${imported.profilePath}`;

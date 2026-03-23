@@ -131,7 +131,7 @@ export async function createMagiStandardLLMAdapter(params: {
          * 调用时机：上层需要获取完整响应时调用
          */
         createChatCompletion: async (request) =>
-            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity),
+            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, params.connectionStatus),
         /**
          * 流式聊天完成
          *
@@ -145,8 +145,52 @@ export async function createMagiStandardLLMAdapter(params: {
                 callbacks,
                 model,
                 runtimeMainInterfaceIdentity,
+                params.connectionStatus,
             ),
     };
+}
+
+/**
+ * 解析后端失败原因中的 HTTP 状态码。
+ *
+ * 作用：从 `backend-http-*` 形式的失败原因中提取状态码。
+ * 意图：区分“后端接口可达但请求无效”和“后端本身不可用”，避免把普通 4xx 误判成断连。
+ * 调用时机：`syncBackendConnectionStatus` 判断失败类型时调用。
+ */
+function readBackendHttpStatus(reason: string): number | null {
+    const prefix = "backend-http-";
+    if (!reason.startsWith(prefix)) {
+        return null;
+    }
+    const status = Number.parseInt(reason.slice(prefix.length), 10);
+    return Number.isFinite(status) ? status : null;
+}
+
+/**
+ * 根据后端请求结果同步前端连接状态。
+ *
+ * 作用：把后端成功响应、认证缺失、HTTP 失败、网络异常统一映射到 `connectionStatus`。
+ * 意图：让 MAGI 主界面只展示前端到 MAGI 后端接口的可达性，而不是底层 LLM 供应商状态。
+ * 调用时机：每次 `tryForwardMagiRequestToBackend` 返回后立即调用。
+ */
+function syncBackendConnectionStatus(
+    connectionStatus: { value: ConnectionStatus },
+    backendResult: { response: ChatResponseData | null; reason: string },
+): void {
+    if (backendResult.response) {
+        connectionStatus.value = "connected";
+        return;
+    }
+    if (backendResult.reason === "magi-armor-token-missing") {
+        return;
+    }
+    const httpStatus = readBackendHttpStatus(backendResult.reason);
+    // 4xx 表示后端已经返回响应，请求或认证有问题，但链路本身仍是通的。
+    if (httpStatus !== null && httpStatus < 500) {
+        connectionStatus.value = "connected";
+        return;
+    }
+    connectionStatus.value = "error";
 }
 
 /**
@@ -165,6 +209,7 @@ async function createMagiChatCompletion(
     request: ChatRequestParams,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
+    connectionStatus: { value: ConnectionStatus },
 ): Promise<ChatResponseData> {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
@@ -175,6 +220,7 @@ async function createMagiChatCompletion(
         request.model ?? model,
         runtimeMainInterfaceIdentity,
     );
+    syncBackendConnectionStatus(connectionStatus, backendResult);
     // 后端成功返回响应，直接返回
     if (backendResult.response) {
         return backendResult.response;
@@ -205,6 +251,7 @@ async function streamMagiChatCompletion(
     callbacks: StandardLLMStreamCallbacks,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
+    connectionStatus: { value: ConnectionStatus },
 ): Promise<void> {
     callbacks.onStart?.();
     try {
@@ -212,6 +259,7 @@ async function streamMagiChatCompletion(
             request,
             model,
             runtimeMainInterfaceIdentity,
+            connectionStatus,
         );
         const firstChoice = response.choices?.[0];
         const content = firstChoice?.message?.content ?? "";

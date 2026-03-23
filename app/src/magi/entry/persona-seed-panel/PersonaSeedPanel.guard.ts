@@ -12,6 +12,15 @@ function readOptionalNumber(record: Record<string, unknown>, key: string): numbe
     return Number.isInteger(value) ? value : Math.trunc(value);
 }
 
+/** @同步豁免: 草稿解析同步路径中的纯字段读取 */
+function readOptionalNullableNumber(record: Record<string, unknown>, key: string): number | null {
+    const value = Reflect.get(record, key);
+    if (value === null) {
+        return null;
+    }
+    return readOptionalNumber(record, key) ?? null;
+}
+
 /**
  * 从 localStorage 解析出的草稿中间结构。
  *
@@ -53,7 +62,7 @@ export function parseQuestionnaireDraft(value: unknown): ParsedQuestionnaireDraf
             id: readOptionalString(subject, "id") ?? "",
             name: readOptionalString(subject, "name") ?? "",
             gender: readOptionalString(subject, "gender") ?? "",
-            age: readOptionalNumber(subject, "age") ?? 0,
+            age: readOptionalNullableNumber(subject, "age"),
             type,
             organization: readOptionalString(subject, "organization") ?? "",
             role: readOptionalString(subject, "role") ?? "",

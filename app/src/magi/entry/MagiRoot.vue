@@ -5,10 +5,6 @@
       <div class="magi-titlebar-content" :class="{ 'magi-titlebar-content--guard': !showRuntimeChrome }">
         <template v-if="showRuntimeChrome">
           <div class="magi-status-strip">
-            <div v-for="status in connectionStatuses" :key="status.name" class="magi-status-item">
-              <span class="magi-status-name">{{ status.name }}</span>
-              <span class="magi-status-led" :class="status.class"></span>
-            </div>
             <div class="magi-runtime-indicator" :class="runtimeIndicatorClass" :title="runtimeIndicatorTitle">
               <span class="magi-runtime-indicator-label">MAGI</span>
               <span class="magi-runtime-indicator-state">{{ runtimeIndicatorText }}</span>
@@ -165,7 +161,6 @@
 
 <script setup lang="ts">
 import { computed, provide } from "vue";
-import type { ConnectionStatusItem } from "../components/magi-main-panel/MagiMainPanel.types";
 import { getMagiI18nText } from "../utils/magiI18n";
 import MagiWorkspace from "./MagiWorkspace.vue";
 import PersonaSeedPanel from "./persona-seed-panel/PersonaSeedPanel.vue";
@@ -207,18 +202,11 @@ const {
 const personaEntryText = getMagiI18nText("personaEntry");
 const syncRateText = getMagiI18nText("syncRate");
 
-const connectionStatuses = computed<ConnectionStatusItem[]>(() =>
-    mainPanelSeels.value.map((seel) => ({
-        name: seel.config.name,
-        class: seel.loading ? "loading" : seel.connected ? "connected" : "disconnected",
-    })),
-);
-
 const syncRate = computed<number>(() => {
     if (mainPanelSeels.value.length === 0) {
         return 0;
     }
-    const connectedCount = mainPanelSeels.value.filter((seel) => seel.connected).length;
+    const connectedCount = mainPanelSeels.value.filter((seel) => seel.connectionStatus === "connected").length;
     return Math.round((connectedCount / mainPanelSeels.value.length) * 100);
 });
 

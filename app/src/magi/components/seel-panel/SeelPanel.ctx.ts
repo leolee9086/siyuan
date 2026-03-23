@@ -46,28 +46,24 @@ export async function svgToPixels(
 
 /** 根据连接和加载状态返回CSS类名 */
 function resolveStatusClass(ai: SeelPanelProps["ai"]): string {
-    // 未连接时显示离线状态
-    if (!ai.connected) {
-        return "offline";
-    }
-    // 加载中显示loading状态
-    if (ai.loading) {
+    if (ai.connectionStatus === "connecting") {
         return "loading";
     }
-    return "online";
+    if (ai.connectionStatus === "connected") {
+        return "online";
+    }
+    return "offline";
 }
 
 /** 根据连接和加载状态返回显示文本 */
 function resolveStatusText(ai: SeelPanelProps["ai"]): string {
-    // 未连接时显示离线文本
-    if (!ai.connected) {
-        return "未连接";
+    if (ai.connectionStatus === "connecting") {
+        return "连接中";
     }
-    // 加载中显示同步文本
-    if (ai.loading) {
-        return "同步中";
+    if (ai.connectionStatus === "connected") {
+        return "已连接";
     }
-    return "已连接";
+    return "未连接";
 }
 
 /**

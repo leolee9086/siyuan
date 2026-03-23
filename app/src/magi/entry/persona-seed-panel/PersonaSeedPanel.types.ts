@@ -3,6 +3,7 @@ import type { IpipNeo120SubjectMeta, IpipPersonaSeedDescriptions } from "../../d
 import type { PersonaConvergenceSession } from "../../data/convergence/persona-seed-convergence.types";
 import type { SubjectType } from "../../data/convergence/persona-seed-panel.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
+import type { PersonaSeedConfigLoadState } from "./handlers/PersonaSeedPanel.loader";
 
 /**
  * PersonaSeedPanel 响应式状态集合。
@@ -15,7 +16,7 @@ export interface PanelState {
     readonly subjectId: Ref<string>;
     readonly subjectName: Ref<string>;
     readonly gender: Ref<string>;
-    readonly age: Ref<number>;
+    readonly age: Ref<number | null>;
     readonly subjectType: Ref<SubjectType>;
     readonly organization: Ref<string>;
     readonly role: Ref<string>;
@@ -33,6 +34,10 @@ export interface PanelState {
     readonly viewingSuggestionId: Ref<string>;
     readonly ratingVersion: Ref<number>;
     readonly statusMessage: Ref<string>;
+    readonly configLoadState: Ref<PersonaSeedConfigLoadState>;
+    readonly configLoadMessage: Ref<string>;
+    readonly activeProfilePath: Ref<string>;
+    readonly activeSamplePath: Ref<string>;
     readonly seedDescriptions: ComputedRef<IpipPersonaSeedDescriptions>;
     readonly subjectMeta: ComputedRef<IpipNeo120SubjectMeta>;
     readonly pendingSuggestionCount: ComputedRef<number>;
