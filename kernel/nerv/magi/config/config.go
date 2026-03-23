@@ -179,13 +179,13 @@ func BuildWannaSleepToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSleepToolName,
-			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。summary 必须说明这次醒来做了什么。",
+			Description: "仅在心跳唤醒轮次可用。表示本次醒来已完成阶段性检查/处理，准备休眠。summary 必须说明这次醒来做了什么；如果没有必须处理的任务，也要顺手记录当前心情和最近刚做了什么，避免之后忘记。不要重复记录时间、系统状态或轮次等系统会自动保存的信息。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"summary": map[string]interface{}{
 						"type":        "string",
-						"description": "本次醒来期间已经完成的检查、思考或处理摘要",
+						"description": "本次醒来期间已经完成的检查、思考或处理摘要；若暂无任务，可简要记录当前心情和最近做了什么。不要重复写系统状态，因为系统会自动记录。",
 					},
 				},
 				"required": []string{"summary"},

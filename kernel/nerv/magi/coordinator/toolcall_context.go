@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
@@ -187,12 +188,12 @@ func appendTurnToolCallsToContextWithExecutor(
 				}
 			} else if ackBuilder != nil {
 				if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
-					toolResult = ack
+					toolResult = maybeMaterializeAckToolResult(sessionID, roundID, sage, assistantContent, call, ack)
 				}
 			}
 		} else if ackBuilder != nil {
 			if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
-				toolResult = ack
+				toolResult = maybeMaterializeAckToolResult(sessionID, roundID, sage, assistantContent, call, ack)
 			}
 		}
 		sage.AddToContextWithSession(sessionID, types.ContextMessage{
@@ -201,6 +202,20 @@ func appendTurnToolCallsToContextWithExecutor(
 			ToolID:  call.ID,
 		})
 	}
+}
+
+func maybeMaterializeAckToolResult(
+	sessionID string,
+	roundID string,
+	sage *sages.Sage,
+	assistantContent string,
+	call types.ToolCall,
+	toolResult string,
+) string {
+	if strings.TrimSpace(call.Function.Name) != config.WannaSleepToolName {
+		return toolResult
+	}
+	return materializeToolResultForContext(sessionID, roundID, sage, assistantContent, call, toolResult)
 }
 
 func withToolCallIndexOffset(deltas []types.ToolCallDelta, offset int) []types.ToolCallDelta {

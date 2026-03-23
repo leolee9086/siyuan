@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -255,5 +256,163 @@ func TestAppendTurnToolCallsToContextWithExecutor_KeepsDetailedQueryResultForMel
 	}
 	if !strings.Contains(ctx[1].Content, `"content":"1 | package coordinator"`) {
 		t.Fatalf("Melchior历史应保留详细结果，实际=%s", ctx[1].Content)
+	}
+}
+
+func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnnotatesToolResult(t *testing.T) {
+	originalPersistFn := persistWannaSleepMemoryToNotebook
+	originalNowFn := toolResultMemoryNow
+	defer func() {
+		persistWannaSleepMemoryToNotebook = originalPersistFn
+		toolResultMemoryNow = originalNowFn
+	}()
+
+	fixedTime := time.Date(2026, 3, 22, 9, 30, 0, 0, time.FixedZone("CST", 8*60*60))
+	toolResultMemoryNow = func() time.Time {
+		return fixedTime
+	}
+
+	var persisted struct {
+		sessionID string
+		roundID   string
+		sageName  string
+		toolCall  string
+		summary   string
+		sleepAt   time.Time
+	}
+	persistWannaSleepMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*wannaSleepMemoryLocation, error) {
+		persisted.sessionID = sessionID
+		persisted.roundID = roundID
+		persisted.summary = summary
+		persisted.sleepAt = sleepAt
+		persisted.toolCall = toolCall.ID
+		if sage != nil {
+			persisted.sageName = sage.GetName()
+		}
+		return &wannaSleepMemoryLocation{BlockID: "memory-block-1"}, nil
+	}
+
+	sage := createMockSage("casper", "Casper", "测试", false, 0)
+	toolCalls := []types.ToolCall{
+		{
+			ID:   "sleep-call-1",
+			Type: "function",
+			Function: types.ToolCallFunction{
+				Name:      config.WannaSleepToolName,
+				Arguments: `{"summary":"检查了定时心跳、没有新任务，决定休眠"}`,
+			},
+		},
+	}
+
+	appendTurnToolCallsToContextWithExecutor(
+		"sleep-session",
+		"sleep-round",
+		sage,
+		"这次醒来主要检查后台状态",
+		toolCalls,
+		nil,
+		buildCoreSageToolAck,
+	)
+
+	if persisted.sessionID != "sleep-session" || persisted.roundID != "sleep-round" {
+		t.Fatalf("期望持久化收到会话和轮次信息，实际=%+v", persisted)
+	}
+	if persisted.sageName != "casper" {
+		t.Fatalf("期望持久化收到贤者名，实际=%s", persisted.sageName)
+	}
+	if persisted.toolCall != "sleep-call-1" {
+		t.Fatalf("期望持久化收到 tool call id，实际=%s", persisted.toolCall)
+	}
+	if persisted.summary != "检查了定时心跳、没有新任务，决定休眠" {
+		t.Fatalf("期望持久化收到 summary，实际=%s", persisted.summary)
+	}
+	if !persisted.sleepAt.Equal(fixedTime) {
+		t.Fatalf("期望持久化收到固定时间，实际=%s", persisted.sleepAt.Format(time.RFC3339))
+	}
+
+	ctx := sage.GetContextForSession("sleep-session")
+	if len(ctx) != 2 {
+		t.Fatalf("期望上下文有2条消息，实际=%d", len(ctx))
+	}
+
+	var payload struct {
+		OK      bool   `json:"ok"`
+		State   string `json:"state"`
+		Summary string `json:"summary"`
+		SleepAt string `json:"sleepAt"`
+	}
+	if err := json.Unmarshal([]byte(ctx[1].Content), &payload); err != nil {
+		t.Fatalf("期望 wanna_sleep 结果被写成 JSON，实际=%s, err=%v", ctx[1].Content, err)
+	}
+	if !payload.OK || payload.State != "sleeping" {
+		t.Fatalf("期望 wanna_sleep 结果包含 sleeping ack，实际=%+v", payload)
+	}
+	if payload.Summary != persisted.summary {
+		t.Fatalf("期望工具结果保留 summary，实际=%s", payload.Summary)
+	}
+	if payload.SleepAt != fixedTime.Format(time.RFC3339) {
+		t.Fatalf("期望工具结果保留 sleepAt，实际=%s", payload.SleepAt)
+	}
+}
+
+func TestAppendTurnToolCallsToContextWithExecutor_WannaSleepPersistenceFailureStillWritesToolResult(t *testing.T) {
+	originalPersistFn := persistWannaSleepMemoryToNotebook
+	originalNowFn := toolResultMemoryNow
+	defer func() {
+		persistWannaSleepMemoryToNotebook = originalPersistFn
+		toolResultMemoryNow = originalNowFn
+	}()
+
+	fixedTime := time.Date(2026, 3, 22, 10, 45, 0, 0, time.UTC)
+	toolResultMemoryNow = func() time.Time {
+		return fixedTime
+	}
+	persistWannaSleepMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*wannaSleepMemoryLocation, error) {
+		return nil, fmt.Errorf("write failed")
+	}
+
+	sage := createMockSage("melchior", "Melchior", "测试", false, 0)
+	toolCalls := []types.ToolCall{
+		{
+			ID:   "sleep-call-2",
+			Type: "function",
+			Function: types.ToolCallFunction{
+				Name:      config.WannaSleepToolName,
+				Arguments: `{"summary":"检查完待办，没有进一步动作"}`,
+			},
+		},
+	}
+
+	appendTurnToolCallsToContextWithExecutor(
+		"sleep-session-2",
+		"sleep-round-2",
+		sage,
+		"这次醒来重点检查是否需要继续行动",
+		toolCalls,
+		nil,
+		buildCoreSageToolAck,
+	)
+
+	ctx := sage.GetContextForSession("sleep-session-2")
+	if len(ctx) != 2 {
+		t.Fatalf("期望上下文有2条消息，实际=%d", len(ctx))
+	}
+
+	var payload struct {
+		State   string `json:"state"`
+		Summary string `json:"summary"`
+		SleepAt string `json:"sleepAt"`
+	}
+	if err := json.Unmarshal([]byte(ctx[1].Content), &payload); err != nil {
+		t.Fatalf("期望 want_sleep 失败兜底仍写入 JSON，实际=%s, err=%v", ctx[1].Content, err)
+	}
+	if payload.State != "sleeping" {
+		t.Fatalf("期望工具结果保留 sleeping 状态，实际=%s", payload.State)
+	}
+	if payload.Summary != "检查完待办，没有进一步动作" {
+		t.Fatalf("期望工具结果保留 summary，实际=%s", payload.Summary)
+	}
+	if payload.SleepAt != fixedTime.Format(time.RFC3339) {
+		t.Fatalf("期望工具结果保留 sleepAt，实际=%s", payload.SleepAt)
 	}
 }

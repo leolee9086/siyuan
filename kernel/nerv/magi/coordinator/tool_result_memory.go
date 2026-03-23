@@ -20,12 +20,17 @@ const (
 	magiQueryArchiveDocRootHPath = "/MAGI查询结果"
 	magiQueryArchiveDocAttr      = "custom-magi-query-archive-doc"
 	magiQueryArchiveBlockAttr    = "custom-magi-query-archive"
+	magiMemoryDocRootHPath       = "/MAGI记忆"
+	magiMemoryDocAttr            = "custom-magi-memory-doc"
+	magiMemoryBlockAttr          = "custom-magi-memory"
+	magiMemoryKindAttr           = "custom-magi-memory-kind"
 	magiToolCallIDAttr           = "custom-magi-tool-call-id"
 	magiToolNameAttr             = "custom-magi-tool-name"
 	magiRoundIDAttr              = "custom-magi-round-id"
 	magiSessionIDAttr            = "custom-magi-session-id"
 	magiSageAttr                 = "custom-magi-sage"
 	magiPurposeAttr              = "custom-magi-purpose"
+	magiSleepAtAttr              = "custom-magi-sleep-at"
 )
 
 type queryToolArchiveLocation struct {
@@ -34,7 +39,15 @@ type queryToolArchiveLocation struct {
 	DocHPath string
 }
 
+type wannaSleepMemoryLocation struct {
+	BlockID  string
+	DocID    string
+	DocHPath string
+}
+
 var persistQueryToolResultToNotebook = persistDetailedQueryToolResultToNotebook
+var persistWannaSleepMemoryToNotebook = persistWannaSleepMemoryEntryToNotebook
+var toolResultMemoryNow = time.Now
 
 func materializeToolResultForContext(
 	sessionID, roundID string,
@@ -44,6 +57,9 @@ func materializeToolResultForContext(
 	detailedResult string,
 ) string {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
+	if toolName == config.WannaSleepToolName {
+		return materializeWannaSleepToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
+	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult
 	}
@@ -96,7 +112,7 @@ func persistDetailedQueryToolResultToNotebook(
 		return nil, nil
 	}
 
-	now := time.Now()
+	now := toolResultMemoryNow()
 	docID, docHPath, err := ensureMagiQueryArchiveDoc(accessScope.ActiveNotebook.ID, now)
 	if err != nil {
 		return nil, err
@@ -155,6 +171,110 @@ func persistDetailedQueryToolResultToNotebook(
 	}, nil
 }
 
+func materializeWannaSleepToolResultForContext(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	toolCall types.ToolCall,
+	detailedResult string,
+) string {
+	sleepAt := toolResultMemoryNow()
+
+	var args types.WannaSleepTool
+	if err := json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args); err != nil {
+		logging.LogWarnf("解析 wanna_sleep 参数失败 [%s]: %v", toolCall.ID, err)
+	}
+	summary := strings.TrimSpace(args.Summary)
+
+	if summary != "" {
+		if _, err := persistWannaSleepMemoryToNotebook(sessionID, roundID, sage, toolCall, summary, sleepAt); err != nil {
+			logging.LogWarnf("归档 wanna_sleep 记忆失败 [%s/%s]: %v", toolCall.Function.Name, toolCall.ID, err)
+		}
+	}
+
+	payload := map[string]interface{}{}
+	if trimmed := strings.TrimSpace(detailedResult); trimmed != "" {
+		if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
+			payload = map[string]interface{}{}
+		}
+	}
+	if len(payload) == 0 {
+		payload["ok"] = true
+		payload["state"] = "sleeping"
+	}
+	if summary != "" {
+		payload["summary"] = summary
+	}
+	payload["sleepAt"] = sleepAt.Format(time.RFC3339)
+
+	resultBytes, err := json.Marshal(payload)
+	if err != nil {
+		logging.LogWarnf("序列化 wanna_sleep 工具结果失败 [%s]: %v", toolCall.ID, err)
+		return detailedResult
+	}
+	return string(resultBytes)
+}
+
+func persistWannaSleepMemoryEntryToNotebook(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	toolCall types.ToolCall,
+	summary string,
+	sleepAt time.Time,
+) (*wannaSleepMemoryLocation, error) {
+	accessScope, _ := resolveWorkspaceAIMainNotebookAccessScope()
+	if accessScope == nil || accessScope.ActiveNotebook == nil || strings.TrimSpace(accessScope.ActiveNotebook.ID) == "" {
+		return nil, nil
+	}
+
+	docID, docHPath, err := ensureMagiMemoryDoc(accessScope.ActiveNotebook.ID, sleepAt)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(docID) == "" {
+		return nil, fmt.Errorf("未能定位 MAGI 记忆文档")
+	}
+
+	record := buildWannaSleepMemoryRecord(sessionID, roundID, sage, toolCall, summary, sleepAt)
+	recordJSON, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("序列化 wanna_sleep 记忆失败: %w", err)
+	}
+
+	markdown := "```json\n" + string(recordJSON) + "\n```"
+	blockID, err := appendMarkdownBlock(docID, markdown)
+	if err != nil {
+		return nil, err
+	}
+
+	attrs := map[string]string{
+		magiMemoryBlockAttr: "true",
+		magiMemoryKindAttr:  config.WannaSleepToolName,
+		magiToolNameAttr:    strings.TrimSpace(toolCall.Function.Name),
+		magiSleepAtAttr:     sleepAt.Format(time.RFC3339),
+	}
+	if strings.TrimSpace(toolCall.ID) != "" {
+		attrs[magiToolCallIDAttr] = strings.TrimSpace(toolCall.ID)
+	}
+	if strings.TrimSpace(roundID) != "" {
+		attrs[magiRoundIDAttr] = strings.TrimSpace(roundID)
+	}
+	if strings.TrimSpace(sessionID) != "" {
+		attrs[magiSessionIDAttr] = strings.TrimSpace(sessionID)
+	}
+	if sage != nil && strings.TrimSpace(sage.GetName()) != "" {
+		attrs[magiSageAttr] = strings.TrimSpace(sage.GetName())
+	}
+	if err := model.SetBlockAttrs(blockID, attrs); err != nil {
+		return nil, fmt.Errorf("设置 wanna_sleep 记忆块属性失败: %w", err)
+	}
+
+	return &wannaSleepMemoryLocation{
+		BlockID:  blockID,
+		DocID:    docID,
+		DocHPath: docHPath,
+	}, nil
+}
+
 func ensureMagiQueryArchiveDoc(boxID string, now time.Time) (docID, docHPath string, err error) {
 	docHPath = path.Join(magiQueryArchiveDocRootHPath, now.Format("2006-01-02"))
 	if root := treenode.GetBlockTreeRootByHPath(boxID, docHPath); root != nil {
@@ -175,6 +295,30 @@ func ensureMagiQueryArchiveDoc(boxID string, now time.Time) (docID, docHPath str
 	}
 	if err := model.SetBlockAttrs(docID, map[string]string{magiQueryArchiveDocAttr: "true"}); err != nil {
 		logging.LogWarnf("设置查询结果归档文档属性失败 [%s]: %v", docID, err)
+	}
+	return docID, docHPath, nil
+}
+
+func ensureMagiMemoryDoc(boxID string, now time.Time) (docID, docHPath string, err error) {
+	docHPath = path.Join(magiMemoryDocRootHPath, now.Format("2006-01-02"))
+	if root := treenode.GetBlockTreeRootByHPath(boxID, docHPath); root != nil {
+		return root.ID, docHPath, nil
+	}
+
+	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "")
+	if err != nil {
+		return "", docHPath, fmt.Errorf("创建 MAGI 记忆文档失败: %w", err)
+	}
+	if strings.TrimSpace(docID) == "" {
+		if root := treenode.GetBlockTreeRootByHPath(boxID, docHPath); root != nil {
+			docID = root.ID
+		}
+	}
+	if strings.TrimSpace(docID) == "" {
+		return "", docHPath, fmt.Errorf("创建 MAGI 记忆文档后未拿到文档ID")
+	}
+	if err := model.SetBlockAttrs(docID, map[string]string{magiMemoryDocAttr: "true"}); err != nil {
+		logging.LogWarnf("设置 MAGI 记忆文档属性失败 [%s]: %v", docID, err)
 	}
 	return docID, docHPath, nil
 }
@@ -207,6 +351,35 @@ func appendMarkdownBlock(parentID string, markdown string) (string, error) {
 		return "", fmt.Errorf("归档查询结果后未拿到块ID")
 	}
 	return blockID, nil
+}
+
+func buildWannaSleepMemoryRecord(
+	sessionID, roundID string,
+	sage *sages.Sage,
+	toolCall types.ToolCall,
+	summary string,
+	sleepAt time.Time,
+) map[string]interface{} {
+	record := map[string]interface{}{
+		"toolCallId": strings.TrimSpace(toolCall.ID),
+		"toolName":   strings.TrimSpace(toolCall.Function.Name),
+		"summary":    summary,
+		"sleepAt":    sleepAt.Format(time.RFC3339),
+		"arguments":  decodeJSONOrString(toolCall.Function.Arguments),
+	}
+	if strings.TrimSpace(sessionID) != "" {
+		record["sessionId"] = strings.TrimSpace(sessionID)
+	}
+	if strings.TrimSpace(roundID) != "" {
+		record["roundId"] = strings.TrimSpace(roundID)
+	}
+	if sage != nil {
+		record["sage"] = map[string]interface{}{
+			"name":        sage.GetName(),
+			"displayName": sage.GetDisplayName(),
+		}
+	}
+	return record
 }
 
 func buildDetailedQueryArchiveRecord(

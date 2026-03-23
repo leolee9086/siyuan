@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -140,13 +141,27 @@ func TestBuildWannaSleepToolDef_Structure(t *testing.T) {
 	if tool.Function.Name != WannaSleepToolName {
 		t.Fatalf("期望 Name=%s，实际=%s", WannaSleepToolName, tool.Function.Name)
 	}
+	if !strings.Contains(tool.Function.Description, "当前心情") {
+		t.Fatalf("期望工具描述提示记录当前心情，实际=%s", tool.Function.Description)
+	}
+	if !strings.Contains(tool.Function.Description, "系统会自动保存") {
+		t.Fatalf("期望工具描述提示系统状态会自动保存，实际=%s", tool.Function.Description)
+	}
 
 	properties, ok := tool.Function.Parameters["properties"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Parameters 缺少 properties")
 	}
-	if _, ok := properties["summary"]; !ok {
+	summaryDef, ok := properties["summary"].(map[string]interface{})
+	if !ok {
 		t.Fatal("Parameters 缺少 summary")
+	}
+	description, _ := summaryDef["description"].(string)
+	if !strings.Contains(description, "当前心情") {
+		t.Fatalf("期望 summary 描述提示记录当前心情，实际=%s", description)
+	}
+	if !strings.Contains(description, "系统会自动记录") {
+		t.Fatalf("期望 summary 描述提示系统状态会自动记录，实际=%s", description)
 	}
 
 	required, ok := tool.Function.Parameters["required"].([]string)
