@@ -43,6 +43,8 @@ interface Props {
     scrollToOptions?: ScrollIntoViewOptions;
     mode?: "masonry" | "grid" | "justified" | "list";
     managedByProvider?: boolean;
+    followOutput?: boolean;
+    followThresholdPx?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -55,6 +57,8 @@ const props = withDefaults(defineProps<Props>(), {
     estimatedTotalCount: undefined,
     mode: "masonry",
     managedByProvider: false,
+    followOutput: false,
+    followThresholdPx: 96,
 });
 
 const emit = defineEmits<{
@@ -71,6 +75,7 @@ const totalHeight = ref(0); // @织: 提前定义
 const { scrollTop, isScrolling, scrollDirection, ignoreScrollEventsFor } = useScrollObserver({
     scrollContainer,
     onScroll: (currentScrollTop, direction) => {
+        syncStickToBottomState();
         // 将滚动事件抛出给父组件
         emit("scroll", currentScrollTop, direction);
     },
@@ -85,10 +90,12 @@ const { scrollTop, isScrolling, scrollDirection, ignoreScrollEventsFor } = useSc
 
 // 保存滚动位置相关的状态
 const savedScrollRatio = ref(-1);
+const shouldStickToBottom = ref(Boolean(props.followOutput));
 
 // --- 1. 布局引擎 (已重构为双缓存) ---
 const {
     allItems,
+    findVisibleItems,
     logicalScrollHeight,
     contentHeight,
     updateItemHeight,
@@ -139,6 +146,50 @@ const { thumbRef, trackRef } = useVirtualScrollbar({
     totalHeight: totalHeight,
 });
 
+const getBottomDistance = (container: HTMLElement): number => {
+    return Math.max(0, container.scrollHeight - container.clientHeight - container.scrollTop);
+};
+
+const isNearBottom = (container: HTMLElement | null = scrollContainer.value): boolean => {
+    if (!container) {
+        return true;
+    }
+    return getBottomDistance(container) <= props.followThresholdPx;
+};
+
+const syncStickToBottomState = () => {
+    if (!props.followOutput) {
+        return;
+    }
+    shouldStickToBottom.value = isNearBottom();
+};
+
+const scrollToBottom = async (force = false): Promise<void> => {
+    await nextTick();
+    const container = scrollContainer.value;
+    if (!container) {
+        return;
+    }
+    if (!force && props.followOutput && !shouldStickToBottom.value && !isNearBottom(container)) {
+        return;
+    }
+    ignoreScrollEventsFor(80);
+    container.scrollTop = container.scrollHeight;
+    scrollTop.value = container.scrollTop;
+    if (props.followOutput) {
+        shouldStickToBottom.value = true;
+    }
+};
+
+const refreshLayout = async (): Promise<void> => {
+    rebuildLayout();
+    forceVirtualizationUpdate();
+    await nextTick();
+    if (props.followOutput && shouldStickToBottom.value) {
+        await scrollToBottom(true);
+    }
+};
+
 // --- 2. 滚动观察者 ---
 // 设置是否启用过渡动画的方法
 const setTransitionEnabled = (enabled: boolean) => {
@@ -149,11 +200,15 @@ const setTransitionEnabled = (enabled: boolean) => {
 defineExpose({
     ignoreScrollEventsFor,
     setTransitionEnabled,
+    refreshLayout,
+    scrollToBottom,
+    isNearBottom,
 });
 
 // --- 3. 虚拟化计算器 (适配 allItems) ---
 const { visibleItems, forceUpdate: forceVirtualizationUpdate } = useVirtualization({
     allItems,
+    findVisibleItems,
     scrollTop,
     containerHeight,
     overscanBy: props.overscanBy,
@@ -166,7 +221,7 @@ const contentStyle = computed(() => {
 
     // @织: 计算实际内容宽度并居中
     // 只有在知道列数的情况下才能计算准确宽度
-    if (columnCount.value > 0) {
+    if (columnCount.value > 0 && props.mode !== "list") {
         const totalWidth = columnCount.value * props.columnWidth + (columnCount.value - 1) * props.gap;
         style.width = `${totalWidth}px`;
         style.margin = "0 auto";
@@ -174,6 +229,14 @@ const contentStyle = computed(() => {
 
     return style;
 });
+
+watch(logicalScrollHeight, (height) => {
+    totalHeight.value = height;
+}, { immediate: true });
+
+watch(() => props.followOutput, (enabled) => {
+    shouldStickToBottom.value = enabled ? isNearBottom() : false;
+}, { immediate: true });
 
 // @织: 记录上一次滚动停止的位置
 const lastSettledScrollTop = ref(-1);
@@ -295,12 +358,18 @@ return;
 // 我们监听这个变化，来强制触发虚拟化引擎的重新计算。
 watch(allItems, () => {
     forceVirtualizationUpdate();
+    if (props.followOutput && shouldStickToBottom.value) {
+        void scrollToBottom(true);
+    }
 });
 
 // @织: 当布局引擎完成动态高度的`update`后，它不会替换 allItems 数组，
 // 而是更新 layoutUpdateStamp。我们监听这个信号，同样强制触发虚拟化更新。
 watch(layoutUpdateStamp, () => {
     forceVirtualizationUpdate();
+    if (props.followOutput && shouldStickToBottom.value) {
+        void scrollToBottom(true);
+    }
 });
 
 // @织: props.items 的变化会由 useLayoutEngine 内部的 watch 自动处理，

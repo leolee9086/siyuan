@@ -15,62 +15,71 @@
     />
     <div class="panel-content">
       <transition name="panel-slide">
-        <div
+        <VirtualMasonryGrid
           v-show="showMessages"
-          ref="messageContainer"
+          ref="messageListRef"
           class="seel-message-container secondary-output"
+          :items="virtualItems"
+          id-key="virtualId"
+          mode="list"
+          :gap="9"
+          :overscan-by="1"
+          :item-height="estimateMessageHeight"
+          :managed-by-provider="true"
+          :follow-output="true"
         >
-          <MessageBubble
-            v-for="msg in ai.messages"
-            :key="msg.id"
-            :type="msg.type"
-            :status="msg.status"
-            :timestamp="msg.timestamp"
-            :msg="msg"
-            @cursor-update="handleCursorUpdate"
-          >
-            <SeelPanelVoteContent
-              v-if="msg.type === 'vote'"
-              :meta="msg.meta ?? {}"
-              :timestamp="msg.timestamp"
-            />
-            <template v-else-if="msg.type === 'sse_stream'">
-              <SeelSseInline :msg="msg" :color="ai.config.color" />
-            </template>
-            <template v-else-if="msg.meta?.type === 'tool-call'">
-              <div class="tool-call-block">
-                <div class="tool-call-header">{{ msg.content }}</div>
-                <details class="tool-call-args">
-                  <summary class="tool-call-args-summary">
-                    <span>参数</span>
-                    <span v-if="msg.meta.argumentsComplete" class="args-status complete">✓ 完整</span>
-                    <span v-else class="args-status building">⋯ 构建中</span>
-                  </summary>
-                  <pre class="tool-call-args-content">{{ formatToolCallArgs(msg.meta) }}</pre>
-                </details>
-              </div>
-            </template>
-            <template v-else-if="rawEventMessage(msg)">
-              <details class="seel-event-block">
-                <summary class="seel-event-summary" :title="eventSummaryTitle(msg)">
-                  <span class="seel-event-kind">EVENT</span>
-                  <span class="seel-event-name">{{ getRawEventType(msg) }}</span>
-                  <span class="seel-event-seq">#{{ getRawEventSeq(msg) }}</span>
-                </summary>
-                <div class="seel-event-meta">
-                  <span>eventId: {{ getRawEventId(msg) }}</span>
-                  <span>roundId: {{ getRawEventRoundId(msg) }}</span>
+          <template #default="{ item }">
+            <div v-if="item.kind === 'loading'" class="loading-animation">
+              <div class="pulse-dot" />
+              <div class="pulse-bar" />
+            </div>
+            <MessageBubble
+              v-else
+              :type="item.message.type"
+              :status="item.message.status"
+              :timestamp="item.message.timestamp"
+              :msg="item.message"
+              @cursor-update="handleCursorUpdate"
+            >
+              <SeelPanelVoteContent
+                v-if="item.message.type === 'vote'"
+                :meta="item.message.meta ?? {}"
+                :timestamp="item.message.timestamp"
+              />
+              <template v-else-if="item.message.type === 'sse_stream'">
+                <SeelSseInline :msg="item.message" :color="ai.config.color" />
+              </template>
+              <template v-else-if="item.message.meta?.type === 'tool-call'">
+                <div class="tool-call-block">
+                  <div class="tool-call-header">{{ item.message.content }}</div>
+                  <details class="tool-call-args">
+                    <summary class="tool-call-args-summary">
+                      <span>参数</span>
+                      <span v-if="item.message.meta?.argumentsComplete" class="args-status complete">✓ 完整</span>
+                      <span v-else class="args-status building">⋯ 构建中</span>
+                    </summary>
+                    <pre class="tool-call-args-content">{{ formatToolCallArgs(item.message.meta ?? {}) }}</pre>
+                  </details>
                 </div>
-                <pre class="seel-event-payload">{{ formatRawEventPayload(msg) }}</pre>
-              </details>
-            </template>
-            <template v-else>{{ msg.content }}</template>
-          </MessageBubble>
-          <div v-if="ai.loading" class="loading-animation">
-            <div class="pulse-dot" />
-            <div class="pulse-bar" />
-          </div>
-        </div>
+              </template>
+              <template v-else-if="rawEventMessage(item.message)">
+                <details class="seel-event-block">
+                  <summary class="seel-event-summary" :title="eventSummaryTitle(item.message)">
+                    <span class="seel-event-kind">EVENT</span>
+                    <span class="seel-event-name">{{ getRawEventType(item.message) }}</span>
+                    <span class="seel-event-seq">#{{ getRawEventSeq(item.message) }}</span>
+                  </summary>
+                  <div class="seel-event-meta">
+                    <span>eventId: {{ getRawEventId(item.message) }}</span>
+                    <span>roundId: {{ getRawEventRoundId(item.message) }}</span>
+                  </div>
+                  <pre class="seel-event-payload">{{ formatRawEventPayload(item.message) }}</pre>
+                </details>
+              </template>
+              <template v-else>{{ item.message.content }}</template>
+            </MessageBubble>
+          </template>
+        </VirtualMasonryGrid>
       </transition>
     </div>
   </div>
@@ -78,14 +87,29 @@
 
 <script setup lang="ts">
 import type { SeelPanelProps } from "./SeelPanel.types";
-import { useSeelPanelCtx, setupResizeObserver, scrollToBottom, getColor } from "./SeelPanel.ctx";
+import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
+import { useSeelPanelCtx, setupResizeObserver, getColor } from "./SeelPanel.ctx";
 import SeelPanelSvgFrame from "./SeelPanelSvgFrame.vue";
 import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
+import VirtualMasonryGrid from "../../../components/masonry/components/VirtualMasonryGrid.vue";
 import { computed, onUnmounted, ref, watch, type PropType } from "vue";
 import "./SeelPanel.css";
+
+interface SeelMessageListItem {
+    kind: "message";
+    virtualId: string;
+    message: MagiSeelPanelMessageView;
+}
+
+interface SeelLoadingListItem {
+    kind: "loading";
+    virtualId: string;
+}
+
+type SeelVirtualListItem = SeelMessageListItem | SeelLoadingListItem;
 
 const props = defineProps({
     ai: {
@@ -107,9 +131,24 @@ const props = defineProps({
 });
 
 const showFrame = computed<boolean>(() => props.showFrame !== false);
+const messageListRef = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
+const virtualItems = computed<SeelVirtualListItem[]>(() => {
+    const items = props.ai.messages.map<SeelMessageListItem>((message) => ({
+        kind: "message",
+        virtualId: message.id,
+        message,
+    }));
+    if (props.ai.loading) {
+        items.push({
+            kind: "loading",
+            virtualId: `${props.ai.config.name}-loading`,
+        });
+    }
+    return items;
+});
 
 const {
-    panelContainer, messageContainer, containerHeight,
+    panelContainer, containerHeight,
     statusClass, statusText, rootStyle,
 } = useSeelPanelCtx(props);
 
@@ -124,19 +163,30 @@ const colorValue = computed<string>(() => props.frameColor || getColor(props.ai.
 
 /** 流式消息更新时滚动到底部 */
 async function handleCursorUpdate() {
-    await scrollToBottom(messageContainer);
+    await messageListRef.value?.scrollToBottom();
 }
 
 /** 新消息（尤其是事件投影）进入时，始终跟随到最新一条。 */
 watch(
-    () => [props.showMessages, props.ai.messages.length],
-    ([showMessages]) => {
+    () => props.showMessages,
+    async (showMessages) => {
         if (!showMessages) {
             return;
         }
-        void scrollToBottom(messageContainer);
+        await messageListRef.value?.refreshLayout();
+        await messageListRef.value?.scrollToBottom();
     },
     { immediate: true },
+);
+
+watch(
+    () => virtualItems.value.length,
+    async () => {
+        if (!props.showMessages) {
+            return;
+        }
+        await messageListRef.value?.scrollToBottom();
+    },
 );
 
 watch(
@@ -232,6 +282,28 @@ function resolveLatestActivityToken(messages: SeelPanelProps["ai"]["messages"]):
         ].join(":");
     }
     return latestToken;
+}
+
+function estimateMessageHeight(item: SeelVirtualListItem): number {
+    if (item.kind === "loading") {
+        return 16;
+    }
+
+    const message = item.message;
+    const meta = asRecord(message.meta);
+    if (rawEventMessage(message)) {
+        return 180;
+    }
+    if (meta?.type === "tool-call") {
+        return 132;
+    }
+    if (message.type === "vote") {
+        return 96;
+    }
+    if (message.type === "sse_stream") {
+        return 120;
+    }
+    return 88;
 }
 
 function rawEventMessage(message: SeelPanelProps["ai"]["messages"][number]): boolean {

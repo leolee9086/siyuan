@@ -6,7 +6,7 @@
 
 // [TASK] T3.1 迁移基础UI组件 - SeelPanel逻辑提取
 
-import { computed, ref, onMounted, onUnmounted, nextTick, type Ref } from "vue";
+import { computed, ref, onMounted, onUnmounted, type Ref } from "vue";
 import type { SeelPanelProps } from "./SeelPanel.types";
 
 /** 颜色名称到CSS颜色值的映射 */
@@ -81,7 +81,6 @@ export function useSeelPanelCtx(
     props: SeelPanelProps,
 ) {
     const panelContainer = ref<HTMLElement | null>(null);
-    const messageContainer = ref<HTMLElement | null>(null);
     const containerHeight = ref(0);
 
     const statusClass = computed(() => resolveStatusClass(props.ai));
@@ -97,7 +96,6 @@ export function useSeelPanelCtx(
 
     return {
         panelContainer,
-        messageContainer,
         containerHeight,
         statusClass,
         statusText,
@@ -137,22 +135,5 @@ export function setupResizeObserver(
     });
 
     return observer;
-}
-
-/**
- * 滚动消息容器到底部
- *
- * 作用：流式消息更新时自动滚动到最新内容
- * 调用时机：cursor-update 事件触发时
- */
-export async function scrollToBottom(
-    messageContainer: Ref<HTMLElement | null>,
-): Promise<void> {
-    await nextTick();
-    const container = messageContainer.value;
-    // 容器存在时滚动到底部
-    if (container) {
-        container.scrollTop = container.scrollHeight;
-    }
 }
 

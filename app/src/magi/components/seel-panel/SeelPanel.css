@@ -170,12 +170,15 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  overflow: hidden;
+}
+
+.seel-message-container .virtual-masonry-grid-container {
   padding-right: 4px;
+}
+
+.seel-message-container .virtual-masonry-grid-item {
+  overflow: visible;
 }
 
 .seel-message-container .message-bubble {
@@ -183,17 +186,13 @@
   word-break: break-word;
 }
 
-.seel-message-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.seel-message-container::-webkit-scrollbar-track {
+.seel-message-container .scrollbar-track {
   background: rgba(0, 20, 20, 0.5);
+  opacity: 0.28;
 }
 
-.seel-message-container::-webkit-scrollbar-thumb {
+.seel-message-container .scrollbar-thumb {
   background: rgba(0, 255, 255, 0.7);
-  border-radius: 3px;
 }
 
 .loading-animation {

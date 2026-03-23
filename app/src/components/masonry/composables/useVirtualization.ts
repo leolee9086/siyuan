@@ -10,6 +10,7 @@ export interface UseVirtualizationOptions {
     scrollTop: Ref<number>;
     containerHeight: Ref<number>;
     overscanBy?: number;
+    findVisibleItems?: (viewport: { top: number; height: number }) => LayoutItem[];
 }
 
 /**
@@ -17,18 +18,29 @@ export interface UseVirtualizationOptions {
  * 它不执行任何 DOM 操作或事件监听，只根据输入的滚动位置和容器高度，
  * 计算出应该被渲染的可见项。
  */
-export function useVirtualization({ allItems, scrollTop, containerHeight, overscanBy = 2 }: UseVirtualizationOptions) {
+export function useVirtualization({
+    allItems,
+    scrollTop,
+    containerHeight,
+    overscanBy = 2,
+    findVisibleItems,
+}: UseVirtualizationOptions) {
     const visibleItems = ref<LayoutItem[]>([]);
 
     const overscan = computed(() => overscanBy * containerHeight.value);
 
     const computeVisibleItems = () => {
         const viewportTop = scrollTop.value - overscan.value;
-        const viewportBottom = scrollTop.value + containerHeight.value + overscan.value;
-
-        const newVisibleItems = allItems.value.filter(item => 
-            item.y + item.height > viewportTop && item.y < viewportBottom
-        );
+        const viewportHeight = containerHeight.value + overscan.value * 2;
+        const newVisibleItems = findVisibleItems
+            ? findVisibleItems({
+                top: viewportTop,
+                height: viewportHeight,
+            })
+            : allItems.value.filter(item =>
+                item.y + item.height > viewportTop
+                && item.y < viewportTop + viewportHeight
+            );
         
         visibleItems.value = newVisibleItems;
     };

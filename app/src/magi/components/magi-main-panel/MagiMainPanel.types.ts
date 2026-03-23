@@ -83,7 +83,6 @@ export interface MagiMainPanelTexts {
 export interface UseMagiMainPanelContextParams {
     seels: Ref<MagiMainPanelSeelView[]>;
     messages: Ref<MagiMainPanelMessageView[]>;
-    container: Ref<HTMLElement | null>;
     texts: MagiMainPanelTexts;
 }
 

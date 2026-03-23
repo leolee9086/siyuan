@@ -152,25 +152,24 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
+}
+
+.main-message-container .virtual-masonry-grid-container {
   padding: 0.8rem 1rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
 }
 
-.main-message-container::-webkit-scrollbar {
-  width: 6px;
+.main-message-container .virtual-masonry-grid-item {
+  overflow: visible;
 }
 
-.main-message-container::-webkit-scrollbar-track {
+.main-message-container .scrollbar-track {
   background: rgba(0, 20, 20, 0.5);
+  opacity: 0.28;
 }
 
-.main-message-container::-webkit-scrollbar-thumb {
+.main-message-container .scrollbar-thumb {
   background: #0ff;
-  border-radius: 3px;
 }
 
 .main-output .progress-container {

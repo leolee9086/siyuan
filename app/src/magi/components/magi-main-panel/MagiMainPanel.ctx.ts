@@ -6,7 +6,7 @@
 
 // [TASK] T3.2 迁移主面板组件 - MagiMainPanel上下文
 
-import { computed, nextTick, watch } from "vue";
+import { computed } from "vue";
 import type { MagiMainPanelMessageView } from "../../entry/magiView.types";
 import type {
     ConnectionStatusItem,
@@ -198,21 +198,6 @@ function getSystemProgress(msg: MagiMainPanelMessageView): number {
 }
 
 /**
- * 自动滚动到底部
- *
- * 作用：消息数量变化后将容器滚动到最新位置。
- * 意图：保证用户始终看到最新消息。
- * 调用时机：watch 监听消息数组长度变化后触发。
- */
-async function scrollToBottom(container: UseMagiMainPanelContextParams["container"]): Promise<void> {
-    await nextTick();
-    if (!container.value) {
-        return;
-    }
-    container.value.scrollTop = container.value.scrollHeight;
-}
-
-/**
  * 计算当前同步率
  *
  * 作用：从响应式 seels 中计算同步百分比。
@@ -247,13 +232,6 @@ export async function useMagiMainPanelContext(
     );
 
     const syncRate = computed(() => computeCurrentSyncRate(params.seels.value));
-
-    watch(
-        () => params.messages.value.length,
-        () => {
-            void scrollToBottom(params.container);
-        }
-    );
 
     return {
         connectionStatuses,

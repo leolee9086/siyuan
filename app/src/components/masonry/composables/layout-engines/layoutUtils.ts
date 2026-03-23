@@ -116,9 +116,15 @@ export function setupItemsWatch(
 ) {
     watch(items, (newItems, oldItems) => {
         if (newItems.length > oldItems.length) {
-            // 这是加载了更多数据
-            const itemsToAppend = newItems.slice(oldItems.length);
-            appendItems(itemsToAppend);
+            const isPureAppend = oldItems.every((item, index) => item[idKey] === newItems[index]?.[idKey]);
+            if (isPureAppend) {
+                // 这是加载了更多数据
+                const itemsToAppend = newItems.slice(oldItems.length);
+                appendItems(itemsToAppend);
+                return;
+            }
+            // 尾部占位项被真实数据顶替等场景会改变既有索引上的 id，此时必须整体重建，避免重复项残留。
+            rebuildLayout();
         } else if (newItems.length < oldItems.length || newItems.some((item, i) => item[idKey] !== oldItems[i]?.[idKey])) {
             // 这是一个全新的数据集，或者发生了排序/删除等复杂变化
             rebuildLayout();
