@@ -44,7 +44,7 @@
             d="M 94,0 L 100,6 M 0,6 L 6,0 M 0,94 L 6,100 M 94,100 L 100,94"
         />
         <line
-            x1="0" y1="28" x2="100" y2="28"
+            x1="0" :y1="headerDividerY" x2="100" :y2="headerDividerY"
             :stroke="color" stroke-width="0.5" stroke-opacity="0.3"
         />
     </svg>
@@ -58,7 +58,10 @@ withDefaults(defineProps<{
     color: string;
     /** 是否显示边框 */
     showFrame?: boolean;
+    /** 头部与内容区分隔线在 viewBox 中的 Y 坐标 */
+    headerDividerY?: number;
 }>(), {
     showFrame: true,
+    headerDividerY: 21.667,
 });
 </script>

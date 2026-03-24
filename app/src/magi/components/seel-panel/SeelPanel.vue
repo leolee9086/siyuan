@@ -5,7 +5,12 @@
     :class="{ 'seel-panel-event-active': isEventActive }"
     :style="rootStyle"
   >
-    <SeelPanelSvgFrame :config-name="ai.config.name" :color="colorValue" :show-frame="showFrame" />
+    <SeelPanelSvgFrame
+      :config-name="ai.config.name"
+      :color="colorValue"
+      :show-frame="showFrame"
+      :header-divider-y="headerDividerY"
+    />
     <SeelPanelHeader
       :icon="ai.config.icon"
       :config-name="ai.config.name"
@@ -149,7 +154,7 @@ const virtualItems = computed<SeelVirtualListItem[]>(() => {
 
 const {
     panelContainer, containerHeight,
-    statusClass, statusText, rootStyle,
+    statusClass, statusText, headerDividerY, rootStyle,
 } = useSeelPanelCtx(props);
 
 const EVENT_PULSE_DURATION_MS = 780;

@@ -19,6 +19,11 @@ const COLOR_MAP: Readonly<Record<string, string>> = {
 
 /** 默认颜色（蓝色） */
 const DEFAULT_COLOR = "#33ccff";
+const HEADER_HEIGHT_RATIO = 0.17;
+const MIN_HEADER_HEIGHT = 52;
+const MAX_HEADER_HEIGHT = 72;
+const DEFAULT_PANEL_HEIGHT = 240;
+const DEFAULT_HEADER_DIVIDER_Y = (MIN_HEADER_HEIGHT / DEFAULT_PANEL_HEIGHT) * 100;
 
 /**
  * 将颜色名称映射为CSS颜色值
@@ -82,8 +87,17 @@ export function useSeelPanelCtx(
     const statusClass = computed(() => resolveStatusClass(props.ai));
     const statusText = computed(() => resolveStatusText(props.ai));
 
-    const headerHeight = computed(() => containerHeight.value * 0.28);
-    const contentHeight = computed(() => containerHeight.value * 0.72);
+    const headerHeight = computed(() => {
+        const nextHeight = Math.round(containerHeight.value * HEADER_HEIGHT_RATIO);
+        return Math.max(MIN_HEADER_HEIGHT, Math.min(MAX_HEADER_HEIGHT, nextHeight));
+    });
+    const contentHeight = computed(() => Math.max(0, containerHeight.value - headerHeight.value));
+    const headerDividerY = computed(() => {
+        if (containerHeight.value <= 0) {
+            return DEFAULT_HEADER_DIVIDER_Y;
+        }
+        return Number(((headerHeight.value / containerHeight.value) * 100).toFixed(3));
+    });
 
     const rootStyle = computed(() => ({
         "--header-height": `${headerHeight.value}px`,
@@ -96,6 +110,7 @@ export function useSeelPanelCtx(
         statusClass,
         statusText,
         headerHeight,
+        headerDividerY,
         rootStyle,
     };
 }
