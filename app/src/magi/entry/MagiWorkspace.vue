@@ -156,12 +156,164 @@ const LAYOUT_CONFIG = {
     melchior: { x: 670, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "melchior" },
 } as const;
 
+type LayoutRect = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    key: string;
+};
+type ConnectionEdge = "top" | "right" | "bottom" | "left";
+
+interface ConnectionPoint {
+    x: number;
+    y: number;
+    angle: number;
+    rect: LayoutRect;
+    edge: ConnectionEdge;
+}
+
+interface RectEdgeDescriptor {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    edge: ConnectionEdge;
+}
+
+const GOLDEN_SECTION_RATIO = 0.38196601125;
+const DOUBLE_GOLDEN_SECTION_NEAR_ENDPOINT_RATIO = GOLDEN_SECTION_RATIO * GOLDEN_SECTION_RATIO;
+const MIN_CONNECTOR_STUB_LENGTH = 12;
+const SVG_PATH_PRECISION = 2;
+
 /**
  * 作用：计算矩形区域的中心点坐标。
  * 意图：为三角形连接线计算提供统一的中心点计算逻辑。
  */
 function getCenter(rect: { x: number; y: number; width: number; height: number }) {
     return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
+function buildRectEdges(rect: LayoutRect): RectEdgeDescriptor[] {
+    return [
+        { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y, edge: "top" },
+        {
+            x1: rect.x + rect.width,
+            y1: rect.y,
+            x2: rect.x + rect.width,
+            y2: rect.y + rect.height,
+            edge: "right",
+        },
+        {
+            x1: rect.x + rect.width,
+            y1: rect.y + rect.height,
+            x2: rect.x,
+            y2: rect.y + rect.height,
+            edge: "bottom",
+        },
+        { x1: rect.x, y1: rect.y + rect.height, x2: rect.x, y2: rect.y, edge: "left" },
+    ];
+}
+
+function formatSvgCoord(value: number): string {
+    return value.toFixed(SVG_PATH_PRECISION);
+}
+
+function formatSvgPoint(x: number, y: number): string {
+    return `${formatSvgCoord(x)},${formatSvgCoord(y)}`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+}
+
+function buildDiagonalBreakpoint(
+    endpoint: ConnectionPoint,
+    oppositePoint: ConnectionPoint,
+    totalLength: number,
+): { x: number; y: number } | null {
+    const breakpointDistance = totalLength * DOUBLE_GOLDEN_SECTION_NEAR_ENDPOINT_RATIO;
+    if (breakpointDistance <= MIN_CONNECTOR_STUB_LENGTH) {
+        return null;
+    }
+
+    const distanceRatio = breakpointDistance / totalLength;
+    return {
+        x: endpoint.x + (oppositePoint.x - endpoint.x) * distanceRatio,
+        y: endpoint.y + (oppositePoint.y - endpoint.y) * distanceRatio,
+    };
+}
+
+function projectPointToRectEdge(
+    point: { x: number; y: number },
+    endpoint: ConnectionPoint,
+): { x: number; y: number } {
+    switch (endpoint.edge) {
+        case "top":
+            return {
+                x: clamp(point.x, endpoint.rect.x, endpoint.rect.x + endpoint.rect.width),
+                y: endpoint.rect.y,
+            };
+        case "right":
+            return {
+                x: endpoint.rect.x + endpoint.rect.width,
+                y: clamp(point.y, endpoint.rect.y, endpoint.rect.y + endpoint.rect.height),
+            };
+        case "bottom":
+            return {
+                x: clamp(point.x, endpoint.rect.x, endpoint.rect.x + endpoint.rect.width),
+                y: endpoint.rect.y + endpoint.rect.height,
+            };
+        case "left":
+            return {
+                x: endpoint.rect.x,
+                y: clamp(point.y, endpoint.rect.y, endpoint.rect.y + endpoint.rect.height),
+            };
+    }
+}
+
+function buildConnectionSegmentPath(
+    startPoint: ConnectionPoint,
+    endPoint: ConnectionPoint,
+): string {
+    const dx = endPoint.x - startPoint.x;
+    const dy = endPoint.y - startPoint.y;
+    const totalLength = Math.hypot(dx, dy);
+    if (totalLength <= 0.001) {
+        return "";
+    }
+
+    const startBreakpoint = buildDiagonalBreakpoint(startPoint, endPoint, totalLength);
+    const endBreakpoint = buildDiagonalBreakpoint(endPoint, startPoint, totalLength);
+    if (!startBreakpoint || !endBreakpoint) {
+        return `M${formatSvgPoint(startPoint.x, startPoint.y)} L${formatSvgPoint(endPoint.x, endPoint.y)}`;
+    }
+
+    const startEdgePoint = projectPointToRectEdge(startBreakpoint, startPoint);
+    const endEdgePoint = projectPointToRectEdge(endBreakpoint, endPoint);
+
+    const rawPoints = [
+        startEdgePoint,
+        startBreakpoint,
+        endBreakpoint,
+        endEdgePoint,
+    ];
+
+    const points = rawPoints.filter((point, index) => {
+        if (index === 0) {
+            return true;
+        }
+        const previousPoint = rawPoints[index - 1];
+        return !!previousPoint && Math.hypot(point.x - previousPoint.x, point.y - previousPoint.y) > 0.001;
+    });
+
+    if (points.length < 2) {
+        return "";
+    }
+
+    return points
+        .map((point, index) => `${index === 0 ? "M" : "L"}${formatSvgPoint(point.x, point.y)}`)
+        .join(" ");
 }
 
 const ctx = inject(MAGI_ROOT_CTX_KEY);
@@ -295,22 +447,21 @@ const circleConnection = computed(() => {
 const connectionPath = computed(() => {
     const { cx, cy, r } = circleConnection.value;
     const rects = [balthasarLayout, casperLayout, melchiorLayout];
-    const allPoints: Array<{ x: number; y: number; angle: number }> = [];
+    const allPoints: ConnectionPoint[] = [];
     
     for (const rect of rects) {
-        // @内联数组
-        const edges = [
-            { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y },
-            { x1: rect.x + rect.width, y1: rect.y, x2: rect.x + rect.width, y2: rect.y + rect.height },
-            { x1: rect.x + rect.width, y1: rect.y + rect.height, x2: rect.x, y2: rect.y + rect.height },
-            { x1: rect.x, y1: rect.y + rect.height, x2: rect.x, y2: rect.y },
-        ];
+        const edges = buildRectEdges(rect);
         
         for (const edge of edges) {
             const points = getCircleLineIntersections(cx, cy, r, edge.x1, edge.y1, edge.x2, edge.y2);
             for (const p of points) {
                 const angle = Math.atan2(p.y - cy, p.x - cx);
-                allPoints.push({ ...p, angle });
+                allPoints.push({
+                    ...p,
+                    angle,
+                    rect,
+                    edge: edge.edge,
+                });
             }
         }
     }
@@ -337,8 +488,11 @@ const connectionPath = computed(() => {
             continue;
         }
         
-        pathSegments.push(`M${p1.x},${p1.y}`);
-        pathSegments.push(`L${p2.x},${p2.y}`);
+        const segmentPath = buildConnectionSegmentPath(p1, p2);
+        if (!segmentPath) {
+            continue;
+        }
+        pathSegments.push(segmentPath);
     }
     
     return pathSegments.join(" ");
