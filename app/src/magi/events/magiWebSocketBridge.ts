@@ -96,11 +96,6 @@ export function normalizeMagiEventEnvelope(raw: unknown): MagiEventEnvelope | nu
     };
 }
 
-export function createMagiWebSocketSessionId(): string {
-    const nonce = Math.random().toString(36).slice(2, 10);
-    return `magi-ui-${Date.now()}-${nonce}`;
-}
-
 export function buildMagiWebSocketURL(sessionId: string): string {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const encodedSessionId = encodeURIComponent(sessionId);

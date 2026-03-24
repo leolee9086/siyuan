@@ -17,24 +17,6 @@ import type { ChatResponseData } from "./imports";
  */
 import type { ConnectionStatus } from "./imports";
 /**
- * 用途：导入MagiMessage类型用于消息数组
- * 使用范围：createMagiStandardLLMAdapter函数的参数类型
- * 解耦评估：类型定义无法解耦
- */
-import type { MagiMessage } from "./imports";
-/**
- * 用途：导入WrappedSeel类型用于适配器参数
- * 使用范围：createMagiStandardLLMAdapter函数的参数类型
- * 解耦评估：类型定义无法解耦
- */
-import type { WrappedSeel } from "./imports";
-/**
- * 用途：导入MagiEventBus类型用于事件总线
- * 使用范围：createMagiStandardLLMAdapter函数的参数类型
- * 解耦评估：类型定义无法解耦
- */
-import type { MagiEventBus } from "./imports";
-/**
  * 用途：导入StandardLLMAdapter类型用于适配器返回值
  * 使用范围：createMagiStandardLLMAdapter函数的返回类型
  * 解耦评估：类型定义无法解耦
@@ -114,9 +96,6 @@ import { MAGI_IDENTITY_REQUIRED_EVENT } from "./imports";
 export async function createMagiStandardLLMAdapter(params: {
     model?: string;
     connectionStatus: { value: ConnectionStatus };
-    consensusMessages: MagiMessage[];
-    seels: WrappedSeel[];
-    eventBus?: MagiEventBus;
     mainInterfaceIdentity?: MagiInterfaceIdentity;
 }): Promise<StandardLLMAdapter> {
     const model = params.model ?? "magi-trinity";

@@ -1,8 +1,6 @@
-import type { ConnectionStatus, WrappedSeel } from "../composables/useMagi.types";
+import type { ConnectionStatus } from "../composables/useMagi.types";
 import { createMagiStandardLLMAdapter } from "./magiStandardLLMAdapter";
-import type { MagiEventBus } from "../events/magiEventBus.types";
 import type { StandardLLMAdapter } from "../types/llmAdapter.types";
-import type { MagiMessage } from "../utils/messageFactory.types";
 import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 
 /**
@@ -14,9 +12,6 @@ import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 export interface StandardLLMAdapterFactoryParams {
     model?: string;
     connectionStatus: { value: ConnectionStatus };
-    consensusMessages: MagiMessage[];
-    seels: WrappedSeel[];
-    eventBus?: MagiEventBus;
     mainInterfaceIdentity?: MagiInterfaceIdentity;
 }
 
@@ -33,9 +28,6 @@ export async function createStandardLLMAdapter(
     return createMagiStandardLLMAdapter({
         model: params.model,
         connectionStatus: params.connectionStatus,
-        consensusMessages: params.consensusMessages,
-        seels: params.seels,
-        eventBus: params.eventBus,
         mainInterfaceIdentity: params.mainInterfaceIdentity,
     });
 }

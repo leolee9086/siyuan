@@ -1,75 +1,76 @@
 /**
- * 用途：导入ChatRequestParams类型用于后端请求
- * 使用范围：buildMagiBackendRequestBody等函数的参数类型
- * 解耦评估：类型定义无法解耦
+ * 用途：导入 ChatRequestParams 类型用于后端请求体构造。
+ * 使用范围：buildMagiBackendRequestBody 与 tryForwardMagiRequestToBackend 的参数类型。
+ * 解耦评估：类型定义无法解耦。
  */
 import type { ChatRequestParams } from "./imports";
 /**
- * 用途：导入ChatResponseData类型用于后端响应
- * 使用范围：tryForwardMagiRequestToBackend函数的返回类型
- * 解耦评估：类型定义无法解耦
+ * 用途：导入 ChatResponseData 类型用于后端响应类型标注。
+ * 使用范围：tryForwardMagiRequestToBackend 的返回值结构。
+ * 解耦评估：类型定义无法解耦。
  */
 import type { ChatResponseData } from "./imports";
 /**
- * 用途：导入ConsensusRequestContext类型用于请求上下文
- * 使用范围：buildRequestInterfaceIdentity等函数的参数类型
- * 解耦评估：类型定义无法解耦
- */
-import type { ConsensusRequestContext } from "./imports";
-/**
- * 用途：导入getAIConfigFromSiyuan函数用于获取AI配置
- * 使用范围：tryForwardMagiRequestToBackend函数中获取apiBaseURL
- * 解耦评估：可通过依赖注入解耦，但当前实现为全局配置读取
+ * 用途：读取思源 AI 配置以推导 MAGI 后端目标地址。
+ * 使用范围：仅在 tryForwardMagiRequestToBackend 内部读取 apiBaseURL。
+ * 解耦评估：可通过依赖注入解耦，但当前 adapter 创建链路没有额外配置层，直接读取全局配置更符合现状。
  */
 import { getAIConfigFromSiyuan } from "./imports";
 /**
- * 用途：导入getActiveMagiArmorToken函数用于获取认证令牌
- * 使用范围：tryForwardMagiRequestToBackend函数中获取认证令牌
- * 解耦评估：可通过依赖注入解耦，但当前实现为全局会话管理
+ * 用途：读取当前 armor token 用于 MAGI 后端认证。
+ * 使用范围：tryForwardMagiRequestToBackend 发请求前附加 Bearer token。
+ * 解耦评估：可通过依赖注入解耦，但主聊天当前固定依赖全局身份会话。
  */
 import { getActiveMagiArmorToken } from "./imports";
+/**
+ * 用途：读取当前 armor 会话用于构建主聊天身份镜像。
+ * 使用范围：buildRuntimeMainRequestUser 在拼装 OpenAI `user` 字段时读取 identityId。
+ * 解耦评估：可通过依赖注入解耦，但主聊天当前没有独立于全局登录态的身份来源。
+ */
 import { getActiveMagiArmorSession } from "./imports";
+/**
+ * 用途：导入 armor 会话类型定义。
+ * 使用范围：buildMainRequestIdentityPayload 的参数类型。
+ * 解耦评估：类型定义无法解耦。
+ */
 import type { MagiArmorSession } from "./imports";
 /**
- * 用途：导入getSiyuanConfig函数用于获取思源配置
- * 使用范围：resolveMagiTargetLabel函数中获取magi.target配置
- * 解耦评估：可通过依赖注入解耦，但当前实现为全局配置读取
+ * 用途：读取思源运行时配置中的 MAGI 目标标识。
+ * 使用范围：buildRuntimeMainInterfaceIdentity 生成 interfaceLabel。
+ * 解耦评估：可通过依赖注入解耦，但当前仅在运行时身份构建处单点使用，保留直接读取更简洁。
  */
 import { getSiyuanConfig } from "./imports";
 /**
- * 用途：导入BackendForwardResult类型用于后端转发结果
- * 使用范围：tryForwardMagiRequestToBackend函数的返回类型
- * 解耦评估：类型定义无法解耦
+ * 用途：导入后端转发结果类型。
+ * 使用范围：tryForwardMagiRequestToBackend 返回统一的成功/失败结果。
+ * 解耦评估：类型定义无法解耦。
  */
 import type { BackendForwardResult } from "./magiStandardLLMAdapter.types";
 /**
- * 用途：导入MagiInterfaceIdentity类型用于接口身份标识
- * 使用范围：buildRuntimeMainInterfaceIdentity等函数的返回类型
- * 解耦评估：类型定义无法解耦
+ * 用途：导入 MAGI 接口身份类型。
+ * 使用范围：运行时主界面身份构建与主聊天 `user` 镜像拼装。
+ * 解耦评估：类型定义无法解耦。
  */
 import type { MagiInterfaceIdentity } from "./magiStandardLLMAdapter.types";
 
 const SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH = "/api/s-forge/magi/v1/chat/completions";
-const MAGI_MONITOR_SESSION_PREFIX = "magi-route-";
 export const MAGI_RUNTIME_MONITOR_SESSION_ID = "magi-main-runtime";
-const FNV_OFFSET_BASIS_64 = 0xcbf29ce484222325n;
-const FNV_PRIME_64 = 0x100000001b3n;
 
 /**
  * 构建随机身份段
- * 
- * @同步豁免: 性能考虑 - 简单的字符串生成，无需异步
+ *
+ * @同步豁免: 性能考虑 - 简单字符串生成，无需异步。
  */
-export function buildRandomIdentitySegment(): string {
+function buildRandomIdentitySegment(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /**
- * 解析MAGI目标标签
- * 
- * @同步豁免: 性能考虑 - 简单的配置读取，无需异步
+ * 解析 MAGI 目标标签
+ *
+ * @同步豁免: 性能考虑 - 简单配置读取，无需异步。
  */
-export function resolveMagiTargetLabel(): string {
+function resolveMagiTargetLabel(): string {
     try {
         const config = getSiyuanConfig();
         const magiConfig = config && typeof config === "object" ? Reflect.get(config, "magi") : undefined;
@@ -86,8 +87,10 @@ export function resolveMagiTargetLabel(): string {
 
 /**
  * 构建运行时主接口身份
- * 
- * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
+ *
+ * 作用：为主聊天面板生成本次会话的 interface/conversation 标识。
+ * 意图：让前端通过标准 OpenAI `user` 字段把调用端身份镜像传给后端，而不是依赖私有 header。
+ * 调用时机：`useMagi` 初始化适配器前与 `createMagiStandardLLMAdapter` 缺省参数回退时调用。
  */
 export function buildRuntimeMainInterfaceIdentity(): MagiInterfaceIdentity {
     const suffix = buildRandomIdentitySegment();
@@ -101,11 +104,11 @@ export function buildRuntimeMainInterfaceIdentity(): MagiInterfaceIdentity {
 }
 
 /**
- * 解析运行时origin
+ * 解析运行时 origin
  *
- * @同步豁免: 性能考虑 - 简单的全局变量读取，无需异步
+ * @同步豁免: 性能考虑 - 简单全局变量读取，无需异步。
  */
-export function resolveRuntimeOrigin(): string {
+function resolveRuntimeOrigin(): string {
     if (typeof location === "undefined") {
         return "";
     }
@@ -113,11 +116,13 @@ export function resolveRuntimeOrigin(): string {
 }
 
 /**
- * 构建源模拟后端端点
- * 
- * @同步豁免: 性能考虑 - URL解析和字符串拼接，无需异步
+ * 构建 MAGI 后端端点
+ *
+ * 作用：优先使用当前运行页 origin 命中同源 MAGI 后端，无法获取时再回退到 apiBaseURL 的 origin。
+ * 意图：让桌面/Web 入口都能复用同一条 `/api/s-forge/magi/v1/chat/completions` 转发链路。
+ * 调用时机：tryForwardMagiRequestToBackend 发请求前调用。
  */
-export function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string {
+function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string {
     const runtimeOrigin = resolveRuntimeOrigin();
     if (runtimeOrigin) {
         return `${runtimeOrigin}${SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH}`;
@@ -134,32 +139,6 @@ export function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string
     }
 }
 
-
-/**
- * 构建请求接口身份
- * 
- * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
- */
-export function buildRequestInterfaceIdentity(
-    requestContext: ConsensusRequestContext,
-    mainIdentity: MagiInterfaceIdentity,
-): MagiInterfaceIdentity {
-    const source = requestContext.sourceSimulation;
-    if (!source) {
-        return mainIdentity;
-    }
-    const panelId = String(source.sourcePanelId ?? "").trim();
-    const panelTitle = String(source.sourcePanelTitle ?? source.profileLabel ?? "").trim();
-    const conversationSeed = panelId || String(source.requestId ?? "").trim();
-    return {
-        principalId: String(source.callerId ?? "").trim() || mainIdentity.principalId,
-        interfaceId: panelId || `source-panel-${buildRandomIdentitySegment()}`,
-        interfaceKind: "magi-source-panel",
-        interfaceLabel: panelTitle || "source-panel",
-        conversationId: conversationSeed || `source-conv-${buildRandomIdentitySegment()}`,
-    };
-}
-
 function buildMainRequestIdentityPayload(
     mainIdentity: MagiInterfaceIdentity,
     activeSession: MagiArmorSession | null,
@@ -174,68 +153,17 @@ function buildMainRequestIdentityPayload(
     };
 }
 
-function hashTextFNV1a64(input: string): string {
-    const bytes = new TextEncoder().encode(input);
-    let hash = FNV_OFFSET_BASIS_64;
-    for (const byte of bytes) {
-        hash ^= BigInt(byte);
-        hash = BigInt.asUintN(64, hash * FNV_PRIME_64);
-    }
-    return hash.toString(16).padStart(16, "0");
-}
-
-function resolveMainSourceChannel(routeClass: string): "guardian" | "external-agent" {
-    return routeClass === "guardian" ? "guardian" : "external-agent";
-}
-
-export function buildRuntimeMainRequestUser(mainIdentity: MagiInterfaceIdentity): string {
+function buildRuntimeMainRequestUser(mainIdentity: MagiInterfaceIdentity): string {
     const activeSession = getActiveMagiArmorSession();
     return JSON.stringify(buildMainRequestIdentityPayload(mainIdentity, activeSession));
 }
 
-export function buildDeterministicMagiMonitorSessionId(sourceSessionKey: string): string {
-    const normalized = String(sourceSessionKey ?? "").trim();
-    if (!normalized) {
-        return "";
-    }
-    const rawSessionId = `${MAGI_MONITOR_SESSION_PREFIX}${normalized}`;
-    if (rawSessionId.length <= 120) {
-        return rawSessionId;
-    }
-    return `${MAGI_MONITOR_SESSION_PREFIX}${hashTextFNV1a64(normalized)}`;
-}
-
-export function buildRuntimeMainSourceSessionKey(
-    mainIdentity: MagiInterfaceIdentity,
-    activeSession: MagiArmorSession | null = getActiveMagiArmorSession(),
-): string {
-    if (!activeSession) {
-        return "";
-    }
-    const channel = resolveMainSourceChannel(activeSession.routeClass);
-    return [
-        channel,
-        activeSession.identityId,
-        mainIdentity.interfaceId,
-        mainIdentity.conversationId,
-    ].join(":");
-}
-
-export function buildRuntimeMainMonitorSessionId(
-    mainIdentity: MagiInterfaceIdentity,
-    activeSession: MagiArmorSession | null = getActiveMagiArmorSession(),
-): string {
-    return buildDeterministicMagiMonitorSessionId(
-        buildRuntimeMainSourceSessionKey(mainIdentity, activeSession),
-    );
-}
-
 /**
- * 构建MAGI后端请求体
- * 
- * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
+ * 构建 MAGI 后端请求体
+ *
+ * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步。
  */
-export function buildMagiBackendRequestBody(
+function buildMagiBackendRequestBody(
     request: ChatRequestParams,
     fallbackModel: string,
 ): Record<string, unknown> {
@@ -254,11 +182,11 @@ export function buildMagiBackendRequestBody(
 }
 
 /**
- * 构建MAGI后端请求头
- * 
- * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
+ * 构建 MAGI 后端请求头
+ *
+ * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步。
  */
-export function buildMagiBackendHeaders(armorToken: string): Record<string, string> {
+function buildMagiBackendHeaders(armorToken: string): Record<string, string> {
     return {
         "Content-Type": "application/json",
         Authorization: `Bearer ${armorToken}`,
@@ -266,11 +194,11 @@ export function buildMagiBackendHeaders(armorToken: string): Record<string, stri
 }
 
 /**
- * 尝试转发MAGI请求到后端
- * 
- * 作用：将请求转发到MAGI后端服务
- * 意图：支持后端处理MAGI请求
- * 调用时机：在createMagiChatCompletion函数中尝试转发请求
+ * 尝试转发 MAGI 请求到后端
+ *
+ * 作用：以标准 OpenAI-compatible body 调用 MAGI 后端统一聊天接口。
+ * 意图：当前前端只负责 UI 与身份镜像，不再在浏览器端执行本地共识/投票链路。
+ * 调用时机：createMagiChatCompletion 每次发起主聊天请求时调用。
  */
 export async function tryForwardMagiRequestToBackend(
     request: ChatRequestParams,

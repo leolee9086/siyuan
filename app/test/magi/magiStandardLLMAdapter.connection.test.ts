@@ -55,8 +55,6 @@ describe("magiStandardLLMAdapter backend connection status", () => {
 
         const adapter = await createMagiStandardLLMAdapter({
             connectionStatus,
-            consensusMessages: [],
-            seels: [],
             mainInterfaceIdentity: {
                 principalId: "workspace-admin",
                 interfaceId: "main-1",
@@ -82,8 +80,6 @@ describe("magiStandardLLMAdapter backend connection status", () => {
 
         const adapter = await createMagiStandardLLMAdapter({
             connectionStatus,
-            consensusMessages: [],
-            seels: [],
             mainInterfaceIdentity: {
                 principalId: "workspace-admin",
                 interfaceId: "main-1",

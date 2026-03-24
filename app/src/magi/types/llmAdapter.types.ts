@@ -44,11 +44,3 @@ export interface StandardLLMAdapter {
         callbacks: StandardLLMStreamCallbacks
     ): Promise<void>;
 }
-
-/**
- * 标准 LLM 适配器模式
- *
- * 用途：在不改 UI 代码的前提下切换底层实现。
- * 使用场景：MagiRoot / useMagi 初始化时选择 `magi` 或 `raw-openai`。
- */
-export type StandardLLMAdapterMode = "magi" | "raw-openai";

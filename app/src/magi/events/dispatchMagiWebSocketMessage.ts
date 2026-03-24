@@ -43,15 +43,6 @@ export function dispatchMagiWebSocketMessage(
         return false;
     }
 
-    // 调试：记录最终投票结果事件，检查审慎决策信息是否正确传递
-    if (envelope.eventType === "SEEL_VOTE_UPDATED" && envelope.payload.progress === 100) {
-        console.log("[DEBUG] Final vote result received:", {
-            deliberationInitiator: envelope.payload.deliberationInitiator,
-            deliberationReason: envelope.payload.deliberationReason,
-            details: envelope.payload.details
-        });
-    }
-
     try {
         return eventBus.emitWithMeta(
             envelope.eventType,

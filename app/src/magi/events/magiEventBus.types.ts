@@ -165,46 +165,14 @@ export interface MagiEventPayloadMap {
     RUNTIME_STATUS_UPDATED: MagiRuntimeStatusUpdatedEvent;
 }
 
-/**
- * 事件发布入参（去掉 eventId/seq，由总线统一生成）。
- *
- * 用途：对外暴露 emit/emitAsync 时约束调用方不手工拼接元字段。
- * 使用场景：MagiEventBus.emit/emitAsync 的 payload 参数。
- * 关联类型：由 MagiEventPayloadMap 派生。
- */
-export type MagiEventMetaStrippedPayload<K extends MagiEventName> =
-    Omit<MagiEventPayloadMap[K], "eventId" | "seq">;
-
 /** 对外暴露的 MAGI 事件总线接口。 */
 export interface MagiEventBus {
-    emit<K extends MagiEventName>(
-        event: K,
-        payload: MagiEventMetaStrippedPayload<K>,
-    ): boolean;
     emitWithMeta<K extends MagiEventName>(
         event: K,
         payload: MagiEventPayloadMap[K],
     ): boolean;
-    emitAsync<K extends MagiEventName>(
-        event: K,
-        payload: MagiEventMetaStrippedPayload<K>,
-    ): Promise<boolean>;
-    emitAsyncWithMeta<K extends MagiEventName>(
-        event: K,
-        payload: MagiEventPayloadMap[K],
-    ): Promise<boolean>;
     subscribe<K extends MagiEventName>(
         event: K,
         listener: (payload: MagiEventPayloadMap[K]) => void | Promise<void>,
     ): EventUnsubscribe;
-    subscribeOnce<K extends MagiEventName>(
-        event: K,
-        listener: (payload: MagiEventPayloadMap[K]) => void | Promise<void>,
-    ): EventUnsubscribe;
-}
-
-/** 单轮消息链路需要的事件上下文。 */
-export interface MagiRoundEventContext {
-    eventBus: MagiEventBus;
-    roundId: string;
 }

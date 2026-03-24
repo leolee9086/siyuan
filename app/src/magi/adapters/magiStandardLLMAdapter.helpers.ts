@@ -11,12 +11,6 @@ import type { ChatRequestParams } from "./imports";
  */
 import type { SourceSimulationContext } from "./imports";
 /**
- * 用途：导入ConsensusRequestContext类型用于共识请求上下文
- * 使用范围：buildConsensusRequestContext函数的返回类型
- * 解耦评估：类型定义无法解耦
- */
-import type { ConsensusRequestContext } from "./imports";
-/**
  * 用途：导入ChatResponseData类型用于响应构建
  * 使用范围：buildOpenAICompatibleResponse函数的返回类型
  * 解耦评估：类型定义无法解耦
@@ -189,30 +183,6 @@ export function parseSourceSimulationFromSystemMessages(
         }
     }
     return undefined;
-}
-
-/**
- * 构建请求ID
- * 
- * @同步豁免: 性能考虑 - 简单的字符串生成，无需异步
- */
-export function buildRequestId(): string {
-    return `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * 构建共识请求上下文
- * 
- * @同步豁免: 性能考虑 - 纯数据组装操作，无需异步
- */
-export function buildConsensusRequestContext(
-    messages: ChatRequestParams["messages"],
-): ConsensusRequestContext {
-    const sourceSimulation = parseSourceSimulationFromSystemMessages(messages);
-    return {
-        requestId: sourceSimulation?.requestId ?? buildRequestId(),
-        ...(sourceSimulation ? { sourceSimulation } : {}),
-    };
 }
 
 /**

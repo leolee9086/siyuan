@@ -383,9 +383,6 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     const llmAdapter = await createStandardLLMAdapter({
         model: "magi-trinity",
         connectionStatus,
-        consensusMessages,
-        seels,
-        eventBus,
         mainInterfaceIdentity: runtimeMainInterfaceIdentity,
     });
 
