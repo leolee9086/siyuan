@@ -13,6 +13,7 @@ import type {
     MagiSeelReplyFailedEvent,
     MagiSeelReplyStartedEvent,
     MagiSeelVoteUpdatedEvent,
+    MagiRuntimeStatusUpdatedEvent,
     MagiTrinitySynthesisCompletedEvent,
     MagiToolCallDetectedEvent,
 } from "./magiEventBus.types";
@@ -41,6 +42,11 @@ const SAGE_SEEL_NAMES = new Set(["MELCHIOR", "BALTHASAR", "CASPER"]);
 /** 返回三贤人（排除 TRINITY）。 */
 function listSageSeels(seels: WrappedSeel[]): WrappedSeel[] {
     return seels.filter((seel) => SAGE_SEEL_NAMES.has(normalizeSeelIdentity(seel.config.name)));
+}
+
+/** 返回 Trinity 监控节点。 */
+function findTrinitySeel(seels: WrappedSeel[]): WrappedSeel | null {
+    return seels.find((seel) => normalizeSeelIdentity(seel.config.name) === "TRINITY") ?? null;
 }
 
 /** 深拷贝事件载荷，确保消息元数据可稳定序列化。 */
@@ -218,6 +224,38 @@ function projectRawEventToSeelCards(
         };
         upsertMessage(target.messages, eventMessage);
     }
+    projectRawEventToTrinityMonitor(state, eventType, event, payload);
+}
+
+/** 将后端事件完整投影到 Trinity 监控卡片。 */
+function projectRawEventToTrinityMonitor(
+    state: MagiProjectorRuntimeState,
+    eventType: string,
+    event: MagiEventBase,
+    payload: Record<string, unknown> = cloneEventPayloadForMeta(event),
+): void {
+    const trinity = findTrinitySeel(state.target.seels);
+    if (!trinity) {
+        return;
+    }
+    const eventMessage: MagiMessage = {
+        id: buildProjectedMessageId(event.eventId, `event-${eventType}-TRINITY`),
+        type: "event",
+        content: eventType,
+        status: "success",
+        timestamp: event.timestamp,
+        meta: {
+            type: "raw-event",
+            eventType,
+            eventPayload: payload,
+            eventId: event.eventId,
+            seq: event.seq,
+            roundId: event.roundId,
+            targetSeel: trinity.config.name,
+            monitorScope: "trinity-runtime",
+        },
+    };
+    upsertMessage(trinity.messages, eventMessage);
 }
 
 /** 读取非空字符串，空值返回 undefined。 */
@@ -662,6 +700,17 @@ function projectContextHistoryTrimmed(
     ]);
 }
 
+/** 投影全局运行态更新事件到 Trinity 监控卡片。 */
+function projectRuntimeStatusUpdated(
+    state: MagiProjectorRuntimeState,
+    event: MagiRuntimeStatusUpdatedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToTrinityMonitor(state, "RUNTIME_STATUS_UPDATED", event);
+}
+
 /** 注册贤者事件订阅。 */
 function registerSeelSubscriptions(
     eventBus: MagiEventBus,
@@ -680,6 +729,7 @@ function registerSeelSubscriptions(
     subscriptions.push(eventBus.subscribe("DELIBERATION_SIGNAL_RAISED", projectDeliberationSignal.bind(null, state)));
     subscriptions.push(eventBus.subscribe("TOOL_CALL_DETECTED", projectToolCall.bind(null, state)));
     subscriptions.push(eventBus.subscribe("CONTEXT_HISTORY_TRIMMED", projectContextHistoryTrimmed.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("RUNTIME_STATUS_UPDATED", projectRuntimeStatusUpdated.bind(null, state)));
 }
 
 /** 构造统一取消订阅函数。 */

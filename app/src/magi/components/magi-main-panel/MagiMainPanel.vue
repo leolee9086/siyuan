@@ -37,7 +37,7 @@
     <div class="main-panel-input">
       <MagiInputBar
         :model-value="inputValue ?? ''"
-        :is-loading="isAnySeelLoading ?? seels.some((seel) => seel.loading)"
+        :is-loading="isRequestPending ?? false"
         @update:model-value="emit('update:inputValue', $event)"
         @submit="emit('submit-input', $event)"
         @stop="emit('stop-input')"

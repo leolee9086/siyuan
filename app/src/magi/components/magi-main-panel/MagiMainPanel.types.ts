@@ -32,8 +32,8 @@ export interface MagiMainPanelProps {
     showTrinity?: boolean;
     /** 面板层输入框绑定值（v-model） */
     inputValue?: string;
-    /** 外部汇总的任一贤者加载态（可选，未传时回退本地计算） */
-    isAnySeelLoading?: boolean;
+    /** 主聊天面板是否存在进行中的普通 LLM 请求 */
+    isRequestPending?: boolean;
 }
 
 /**

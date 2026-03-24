@@ -41,11 +41,20 @@
           >
             <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
               <SeelPanel
+                v-if="node.key !== 'trinity'"
                 :key="node.seel.config.name"
                 :ai="node.seel"
                 :show-messages="showMessages"
-                :show-frame="node.key !== 'trinity'"
+                :show-frame="true"
                 :frame-color="clusterAccentColor"
+              />
+              <TrinityMonitorPanel
+                v-else
+                :key="node.seel.config.name"
+                :ai="node.seel"
+                :runtime-status="runtimeStatus"
+                :show-messages="showMessages"
+                :accent-color="clusterAccentColor"
               />
             </div>
           </foreignObject>
@@ -107,7 +116,7 @@
               :messages="displayMessages"
               :seels="mainPanelSeels"
               :input-value="inputValue"
-              :is-any-seel-loading="isAnySeelLoading"
+              :is-request-pending="isMainPanelRequestPending"
               @update:inputValue="inputValue = $event"
               @submit-input="onSubmitInput"
               @stop-input="onStopInput"
@@ -125,6 +134,7 @@ import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPan
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
+import TrinityMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
 import { getColor } from "../components/seel-panel/SeelPanel.ctx";
 import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
@@ -135,11 +145,13 @@ import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
  */
 const SAGE_CARD_WIDTH = 330;
 const SAGE_CARD_HEIGHT = 420;
+const TRINITY_CARD_WIDTH = 330;
+const TRINITY_CARD_HEIGHT = 460;
 
 const LAYOUT_CONFIG = {
     // 外围三贤人使用统一尺寸，避免视觉不一致。
     balthasar: { x: 335, y: 20, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "balthasar" },
-    trinity: { x: 340, y: 430, width: 320, height: 260, key: "trinity" },
+    trinity: { x: 335, y: 430, width: TRINITY_CARD_WIDTH, height: TRINITY_CARD_HEIGHT, key: "trinity" },
     casper: { x: 0, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "casper" },
     melchior: { x: 670, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "melchior" },
 } as const;
@@ -166,7 +178,8 @@ const {
     sageSeelViews,
     trinitySeelView,
     displayMessages,
-    isAnySeelLoading,
+    isMainPanelRequestPending,
+    runtimeStatus,
     onSubmitInput,
     onStopInput,
     onCreateSourceSimulationPanel,

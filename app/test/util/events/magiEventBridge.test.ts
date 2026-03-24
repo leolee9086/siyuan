@@ -274,4 +274,51 @@ describe("MAGI Event Bridge - 事件投影", () => {
 
         stop();
     });
+
+    it("应将后端运行时事件投影到 Trinity 监控流", async () => {
+        const bus = await createMagiEventBus();
+        const trinity = createWrappedSeel("TRINITY-00", "TRINITY");
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [trinity, melchior], consensusMessages });
+
+        bus.emitWithMeta("RUNTIME_STATUS_UPDATED", {
+            eventId: "runtime-monitor-event-1",
+            seq: 1,
+            roundId: "round-monitor-1",
+            timestamp: Date.now(),
+            state: "heartbeat",
+            awake: true,
+            currentTask: "Waiting for synthesis",
+        });
+
+        bus.emitWithMeta("TOOL_CALL_DETECTED", {
+            eventId: "runtime-monitor-event-2",
+            seq: 2,
+            roundId: "round-monitor-1",
+            timestamp: Date.now(),
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            toolName: "deliberation_signal",
+            toolCallIndex: 0,
+            toolCallId: "tool-call-1",
+            rawArguments: "{\"reason\":\"需要审慎\"}",
+            argumentsComplete: true,
+            arguments: {
+                reason: "需要审慎",
+            },
+        });
+
+        const runtimeEvent = trinity.messages.find((message) => message.meta?.eventType === "RUNTIME_STATUS_UPDATED");
+        const toolEvent = trinity.messages.find((message) => message.meta?.eventType === "TOOL_CALL_DETECTED");
+
+        expect(runtimeEvent?.meta?.monitorScope).toBe("trinity-runtime");
+        expect(toolEvent?.meta?.monitorScope).toBe("trinity-runtime");
+        expect(toolEvent?.meta?.eventPayload).toMatchObject({
+            toolName: "deliberation_signal",
+            displayName: "MELCHIOR",
+        });
+
+        stop();
+    });
 });

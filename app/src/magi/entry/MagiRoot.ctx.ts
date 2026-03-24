@@ -936,6 +936,9 @@ function createMagiRootComputed(
     const trinitySeelView = computed<MagiSeelPanelView | null>(() =>
         trinitySeel.value ? mapWrappedSeelToPanelView(trinitySeel.value, websocketConnectionStatus.value) : null,
     );
+    const isMainPanelRequestPending = computed(
+        () => magiState.value?.isMainPanelRequestPending ?? false,
+    );
     const isAnySeelLoading = computed(
         () => magiState.value?.isAnySeelLoading ?? false,
     );
@@ -955,6 +958,7 @@ function createMagiRootComputed(
         trinitySeel,
         sageSeelViews,
         trinitySeelView,
+        isMainPanelRequestPending,
         isAnySeelLoading,
         runtimeStatus,
         displayMessages,
@@ -1115,6 +1119,7 @@ export function useMagiRootContext(): MagiRootContext {
         sageSeelViews: computedState.sageSeelViews,
         trinitySeelView: computedState.trinitySeelView,
         displayMessages: computedState.displayMessages,
+        isMainPanelRequestPending: computedState.isMainPanelRequestPending,
         isAnySeelLoading: computedState.isAnySeelLoading,
         runtimeStatus: computedState.runtimeStatus,
         showWindowControls: computed(() => isElectron && !isMobile),

@@ -45,6 +45,7 @@ export interface MagiRootContext {
     sageSeelViews: ComputedRef<MagiSeelPanelView[]>;
     trinitySeelView: ComputedRef<MagiSeelPanelView | null>;
     displayMessages: ComputedRef<MagiMainPanelMessageView[]>;
+    isMainPanelRequestPending: ComputedRef<boolean>;
     isAnySeelLoading: ComputedRef<boolean>;
     runtimeStatus: ComputedRef<MagiRuntimeStatus | null>;
     onSubmitInput: (value: string) => Promise<void>;

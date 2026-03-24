@@ -153,6 +153,8 @@ export interface UseMagiReturn {
     mainPanelMessages: MagiMessage[];
     /** 共识消息列表 */
     consensusMessages: MagiMessage[];
+    /** 主聊天面板是否存在进行中的普通 LLM 请求 */
+    isMainPanelRequestPending: Ref<boolean>;
     /** 是否存在任一贤者正在响应 */
     isAnySeelLoading: Ref<boolean>;
     /** MAGI 全局运行态 */

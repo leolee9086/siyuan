@@ -324,7 +324,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     const consensusMessages: MagiMessage[] = reactive([]);
     const runtimeStatus = ref<MagiRuntimeStatus | null>(null);
     const isAnySeelLoading = computed(() =>
-        isMainPanelRequestPending.value || seels.some((seel) => seel.loading),
+        seels.some((seel) => seel.loading),
     );
     const eventBus = await createMagiEventBus();
     watch(
@@ -392,6 +392,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         websocketConnectionStatus,
         mainPanelMessages,
         consensusMessages,
+        isMainPanelRequestPending,
         isAnySeelLoading,
         runtimeStatus,
         /**
