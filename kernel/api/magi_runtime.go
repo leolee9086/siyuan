@@ -20,7 +20,7 @@ import (
 const (
 	defaultMagiHeartbeatInterval     = 5 * time.Minute
 	defaultMagiHeartbeatInitialDelay = 30 * time.Second
-	magiRuntimeMonitorSessionID      = "magi-main-runtime"
+	magiRuntimeMonitorSessionID      = websocket.RuntimeMonitorSessionID
 	magiHeartbeatPrincipalID         = "system-cron"
 	magiHeartbeatInterfaceID         = "magi-heartbeat"
 	magiHeartbeatConversationID      = "heartbeat-loop"

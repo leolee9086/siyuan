@@ -44,6 +44,9 @@ const (
 	EventRuntimeStatusUpdated      = "RUNTIME_STATUS_UPDATED"
 )
 
+// RuntimeMonitorSessionID 是 MAGI 运行时事件监控的唯一 websocket session。
+const RuntimeMonitorSessionID = "magi-main-runtime"
+
 var (
 	globalSeq    int64 = 0
 	globalPusher       = NewPusher()

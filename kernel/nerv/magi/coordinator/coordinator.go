@@ -69,7 +69,7 @@ func (c *Coordinator) CoordinateDecision(
 	roundId := util.RandString(16)
 
 	// 推送轮次开始
-	if err := websocket.PushRoundStarted(sessionId, roundId, userMessage); err != nil {
+	if err := websocket.PushRoundStarted(websocket.RuntimeMonitorSessionID, roundId, userMessage); err != nil {
 		logging.LogWarnf("推送轮次开始失败: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func (c *Coordinator) CoordinateDecision(
 			trinity,
 		)
 		if err != nil {
-			if pushErr := websocket.PushRoundFailed(sessionId, roundId, err.Error()); pushErr != nil {
+			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 				logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 			}
 			if IsAvatarUnavailable(err) {
@@ -111,7 +111,7 @@ func (c *Coordinator) CoordinateDecision(
 				err,
 			)
 		}
-		if err := websocket.PushConsensusEmitted(sessionId, roundId, msg); err != nil {
+		if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
 			logging.LogWarnf("推送共识发出失败: %v", err)
 		}
 		return msg, nil
@@ -130,7 +130,7 @@ func (c *Coordinator) CoordinateDecision(
 	)
 	if err != nil {
 		// 推送轮次失败
-		if pushErr := websocket.PushRoundFailed(sessionId, roundId, err.Error()); pushErr != nil {
+		if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 			logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 		}
 		return nil, fmt.Errorf("收集贤者响应失败: %w", err)
@@ -146,7 +146,7 @@ func (c *Coordinator) CoordinateDecision(
 		voteResult, err = c.executeVoting(ctx, sessionId, roundId, melchior, balthazar, casper, responses, userMessage)
 		if err != nil {
 			// 推送轮次失败
-			if pushErr := websocket.PushRoundFailed(sessionId, roundId, err.Error()); pushErr != nil {
+			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 				logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 			}
 			return nil, fmt.Errorf("投票流程失败: %w", err)
@@ -156,7 +156,7 @@ func (c *Coordinator) CoordinateDecision(
 		if !voteResult.Passed {
 			msg := c.buildRejectionMessage()
 			// 推送共识发出
-			if err := websocket.PushConsensusEmitted(sessionId, roundId, msg); err != nil {
+			if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
 				logging.LogWarnf("推送共识发出失败: %v", err)
 			}
 			return msg, nil
@@ -167,7 +167,7 @@ func (c *Coordinator) CoordinateDecision(
 	trinityResult, err := c.trinity.HandleTrinitySummary(ctx, sessionId, roundId, trinity, responses, sourceAwareUserInput)
 	if err != nil {
 		// 推送轮次失败
-		if pushErr := websocket.PushRoundFailed(sessionId, roundId, err.Error()); pushErr != nil {
+		if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 			logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 		}
 		return nil, fmt.Errorf("Trinity统合失败: %w", err)
@@ -177,7 +177,7 @@ func (c *Coordinator) CoordinateDecision(
 	msg := c.buildConsensusMessage(trinityResult, requiresDeliberation, voteResult, sourceCtx)
 
 	// 推送共识发出
-	if err := websocket.PushConsensusEmitted(sessionId, roundId, msg); err != nil {
+	if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
 		logging.LogWarnf("推送共识发出失败: %v", err)
 	}
 

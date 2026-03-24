@@ -146,12 +146,12 @@ import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 const SAGE_CARD_WIDTH = 330;
 const SAGE_CARD_HEIGHT = 420;
 const TRINITY_CARD_WIDTH = 330;
-const TRINITY_CARD_HEIGHT = 460;
+const TRINITY_CARD_HEIGHT = 480;
 
 const LAYOUT_CONFIG = {
     // 外围三贤人使用统一尺寸，避免视觉不一致。
     balthasar: { x: 335, y: 20, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "balthasar" },
-    trinity: { x: 335, y: 430, width: TRINITY_CARD_WIDTH, height: TRINITY_CARD_HEIGHT, key: "trinity" },
+    trinity: { x: 335, y: 450, width: TRINITY_CARD_WIDTH, height: TRINITY_CARD_HEIGHT, key: "trinity" },
     casper: { x: 0, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "casper" },
     melchior: { x: 670, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "melchior" },
 } as const;

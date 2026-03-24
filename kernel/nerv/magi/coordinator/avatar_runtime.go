@@ -155,7 +155,7 @@ func (r *AvatarRuntime) DispatchForSource(
 	}
 	r.markBindingActive(bindingKey)
 
-	if err := websocket.PushSeelReplyStarted(sessionID, roundID, binding.Agent.GetName(), binding.DisplayName, userMessage, nil); err != nil {
+	if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundID, binding.Agent.GetName(), binding.DisplayName, userMessage, nil); err != nil {
 		logging.LogWarnf("推送Avatar开始响应失败: %v", err)
 	}
 

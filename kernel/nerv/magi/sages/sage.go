@@ -145,7 +145,7 @@ func (s *Sage) sendMessageInternal(
 	if sessionId != "" && roundId != "" {
 		model := s.llmClient.GetModel()
 		toolCount := len(requestTools)
-		_ = websocket.PushLLMRequestSent(sessionId, roundId, s.name, s.displayName, model, requestMessages, toolCount)
+		_ = websocket.PushLLMRequestSent(websocket.RuntimeMonitorSessionID, roundId, s.name, s.displayName, model, requestMessages, toolCount)
 	}
 
 	// 发送请求
@@ -309,7 +309,7 @@ func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.
 	}
 
 	if err := websocket.PushContextHistoryTrimmed(
-		sessionId,
+		websocket.RuntimeMonitorSessionID,
 		roundId,
 		s.name,
 		s.displayName,

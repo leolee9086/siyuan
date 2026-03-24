@@ -40,7 +40,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 	roundId := util.RandString(16)
 
 	// 推送轮次开始
-	if err := websocket.PushRoundStarted(sessionId, roundId, "ATF测试"); err != nil {
+	if err := websocket.PushRoundStarted(websocket.RuntimeMonitorSessionID, roundId, "ATF测试"); err != nil {
 		logging.LogWarnf("推送轮次开始失败: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 			Status:    types.StatusStreaming,
 			Timestamp: time.Now().UnixMilli(),
 		}
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), inputs.MelchiorInput, streamMessage); err != nil {
+		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, melchior.GetName(), melchior.GetDisplayName(), inputs.MelchiorInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, melchior, inputs.MelchiorInput, CollectResponsesOptions{})
@@ -85,7 +85,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 			Status:    types.StatusStreaming,
 			Timestamp: time.Now().UnixMilli(),
 		}
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), inputs.BalthazarInput, streamMessage); err != nil {
+		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, balthazar.GetName(), balthazar.GetDisplayName(), inputs.BalthazarInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, inputs.BalthazarInput, CollectResponsesOptions{})
@@ -109,7 +109,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 			Status:    types.StatusStreaming,
 			Timestamp: time.Now().UnixMilli(),
 		}
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), inputs.CasperInput, streamMessage); err != nil {
+		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, casper.GetName(), casper.GetDisplayName(), inputs.CasperInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, casper, inputs.CasperInput, CollectResponsesOptions{})
@@ -128,7 +128,7 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 	// 检查错误
 	for err := range errCh {
 		if err != nil {
-			if pushErr := websocket.PushRoundFailed(sessionId, roundId, err.Error()); pushErr != nil {
+			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 				logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 			}
 			return nil, err

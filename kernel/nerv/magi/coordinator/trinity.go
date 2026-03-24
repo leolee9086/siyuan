@@ -86,7 +86,7 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 		result, err := tc.callTrinity(ctx, sessionId, roundId, workingTrinity, userMessage, attempt)
 		if err == nil && result.Success {
 			// 推送Trinity统合完成
-			if pushErr := websocket.PushTrinitySynthesisCompleted(sessionId, roundId, result.Content); pushErr != nil {
+			if pushErr := websocket.PushTrinitySynthesisCompleted(websocket.RuntimeMonitorSessionID, roundId, result.Content); pushErr != nil {
 				logging.LogWarnf("推送Trinity统合完成失败: %v", pushErr)
 			}
 			return result, nil
@@ -204,7 +204,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		Status:    types.StatusStreaming,
 		Timestamp: time.Now().UnixMilli(),
 	}
-	if err := websocket.PushSeelReplyStarted(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), userMessage, streamMessage); err != nil {
+	if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), userMessage, streamMessage); err != nil {
 		logging.LogWarnf("推送Trinity开始响应失败: %v", err)
 	}
 
@@ -224,7 +224,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		// 不需要额外的 user 消息（用户输入已包含在 think_about 工具调用参数中）
 		streamCh, err = trinity.SendContinuation(ctx, sessionId, roundId)
 		if err != nil {
-			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+			if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
 				logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 			}
 			return nil, fmt.Errorf("发送Trinity消息失败: %w", err)
@@ -238,12 +238,12 @@ func (tc *TrinityCoordinator) callTrinity(
 			select {
 			case <-idleTimer.C:
 				err := fmt.Errorf("Trinity 空闲超时（%v 内未收到响应chunk）[会话:%s 轮次:%s]", tc.idleTimeout, sessionId, roundId)
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
 					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 				}
 				return nil, err
 			case <-ctx.Done():
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), ctx.Err().Error()); pushErr != nil {
+				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), ctx.Err().Error()); pushErr != nil {
 					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 				}
 				return nil, ctx.Err()
@@ -260,7 +260,7 @@ func (tc *TrinityCoordinator) callTrinity(
 				idleTimer.Reset(tc.idleTimeout)
 				if chunk.Object == "error" {
 					streamErr := fmt.Errorf("Trinity流式响应错误: %s", chunk.ID)
-					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), streamErr.Error()); pushErr != nil {
+					if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), streamErr.Error()); pushErr != nil {
 						logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 					}
 					return nil, streamErr
@@ -280,7 +280,7 @@ func (tc *TrinityCoordinator) callTrinity(
 						Status:    types.StatusStreaming,
 						Timestamp: time.Now().UnixMilli(),
 					}
-					if pushErr := websocket.PushSeelReplyChunk(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), chunkMessage); pushErr != nil {
+					if pushErr := websocket.PushSeelReplyChunk(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), chunkMessage); pushErr != nil {
 						logging.LogWarnf("推送Trinity流式chunk失败: %v", pushErr)
 					}
 				}
@@ -309,7 +309,7 @@ func (tc *TrinityCoordinator) callTrinity(
 			}
 			result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor, speakHandler)
 			if parseErr != nil {
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
+				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
 					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 				}
 				return nil, parseErr
@@ -321,7 +321,7 @@ func (tc *TrinityCoordinator) callTrinity(
 				Status:    types.StatusSuccess,
 				Timestamp: time.Now().UnixMilli(),
 			}
-			if pushErr := websocket.PushSeelReplyCompleted(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), completedMessage); pushErr != nil {
+			if pushErr := websocket.PushSeelReplyCompleted(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), completedMessage); pushErr != nil {
 				logging.LogWarnf("推送Trinity完成事件失败: %v", pushErr)
 			}
 			return result, nil
@@ -356,7 +356,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		}
 		if consecutiveTransitionFailures >= maxConsecutiveTransitionRetry {
 			err := fmt.Errorf("Trinity工具状态转移连续失败次数达到上限(%d)", maxConsecutiveTransitionRetry)
-			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+			if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
 				logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 			}
 			return nil, err

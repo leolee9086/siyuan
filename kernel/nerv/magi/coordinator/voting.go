@@ -53,7 +53,7 @@ func ProcessVoting(
 	deliberationInitiator, deliberationReason string,
 ) (*VoteResult, error) {
 	// 推送投票开始
-	if err := websocket.PushVotingStart(sessionId, roundId, proposedAction, 1); err != nil {
+	if err := websocket.PushVotingStart(websocket.RuntimeMonitorSessionID, roundId, proposedAction, 1); err != nil {
 		logging.LogWarnf("推送投票开始失败: %v", err)
 	}
 
@@ -78,7 +78,7 @@ func ProcessVoting(
 		// 推送投票进度
 		if balthazarErr == nil {
 			decision := types.VoteDecision(balthazarVote)
-			if err := websocket.PushVotingProgress(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), decision, progress); err != nil {
+			if err := websocket.PushVotingProgress(websocket.RuntimeMonitorSessionID, roundId, balthazar.GetName(), balthazar.GetDisplayName(), decision, progress); err != nil {
 				logging.LogWarnf("推送Balthazar投票进度失败: %v", err)
 			}
 		}
@@ -96,7 +96,7 @@ func ProcessVoting(
 		// 推送投票进度
 		if casperErr == nil {
 			decision := types.VoteDecision(casperVote)
-			if err := websocket.PushVotingProgress(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), decision, progress); err != nil {
+			if err := websocket.PushVotingProgress(websocket.RuntimeMonitorSessionID, roundId, casper.GetName(), casper.GetDisplayName(), decision, progress); err != nil {
 				logging.LogWarnf("推送Casper投票进度失败: %v", err)
 			}
 		}
@@ -131,7 +131,7 @@ func ProcessVoting(
 		{Name: "balthazar", Decision: result.Balthazar},
 		{Name: "casper", Decision: result.Casper},
 	}
-	if err := websocket.PushVotingResult(sessionId, roundId, details, deliberationInitiator, deliberationReason); err != nil {
+	if err := websocket.PushVotingResult(websocket.RuntimeMonitorSessionID, roundId, details, deliberationInitiator, deliberationReason); err != nil {
 		logging.LogWarnf("推送投票结果失败: %v", err)
 	}
 
