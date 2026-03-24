@@ -404,7 +404,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
     - 返回标准OpenAI响应格式（`openai.ChatCompletionResponse`）
     - 内部调用Coordinator.CoordinateDecision()执行MAGI决策
     - 通过WebSocket独立推送决策过程（不影响HTTP响应）
-    - 支持通过`X-MAGI-Session-ID`请求头传递会话ID
+    - 会话ID由请求来源上下文稳定派生，不依赖额外的 `X-MAGI-*` 特殊请求头
     - 编译测试通过
 
 - [ ] **T4.0.3: 实现配置加载逻辑**

@@ -403,29 +403,7 @@ func buildClaimedUserMessagePreview(history []types.ClaimedHistoryMessage) strin
 }
 
 // getOrCreateSession 获取或创建会话ID
-func getOrCreateSession(c *gin.Context, sourceCtx *types.RequestSourceContext) string {
-	// 尝试从请求头获取 session ID
-	sessionID := sanitizeMagiSessionID(c.GetHeader("X-MAGI-Session-ID"))
-	if sessionID != "" {
-		if _, ok := magiSessionMgr.GetSession(sessionID); ok {
-			magiSessionMgr.UpdateActivity(sessionID)
-			if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
-				magiSourceSID.Store(sourceCtx.SourceSessionKey, sessionID)
-			}
-			return sessionID
-		}
-		// 当前端已建立 websocket 订阅时，允许用该 ID 显式创建会话以确保事件可回投到同一连接。
-		userID := "default-user"
-		if sourceCtx != nil && sourceCtx.PrincipalID != "" {
-			userID = sourceCtx.PrincipalID
-		}
-		session := magiSessionMgr.CreateSessionWithID(sessionID, userID)
-		if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
-			magiSourceSID.Store(sourceCtx.SourceSessionKey, session.ID)
-		}
-		return session.ID
-	}
-
+func getOrCreateSession(_ *gin.Context, sourceCtx *types.RequestSourceContext) string {
 	// 尝试从来源会话键恢复固定会话
 	if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
 		if mappedID, ok := magiSourceSID.Load(sourceCtx.SourceSessionKey); ok {
@@ -479,24 +457,6 @@ func buildDeterministicMagiMonitorSessionID(sourceSessionKey string) string {
 	hasher := fnv.New64a()
 	_, _ = hasher.Write([]byte(normalized))
 	return fmt.Sprintf("%s%016x", magiMonitorSessionPrefix, hasher.Sum64())
-}
-
-func sanitizeMagiSessionID(raw string) string {
-	sessionID := strings.TrimSpace(raw)
-	if sessionID == "" || len(sessionID) > 128 {
-		return ""
-	}
-	for _, r := range sessionID {
-		switch {
-		case r >= 'a' && r <= 'z':
-		case r >= 'A' && r <= 'Z':
-		case r >= '0' && r <= '9':
-		case r == '-', r == '_', r == '.', r == ':':
-		default:
-			return ""
-		}
-	}
-	return sessionID
 }
 
 // sendSyncResponse 发送同步响应

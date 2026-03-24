@@ -73,3 +73,32 @@ func TestGetOrCreateSession_UsesDeterministicSourceSessionKeyWithoutHeader(t *te
 		t.Fatalf("expected reused session id %s, got %s", firstSessionID, secondSessionID)
 	}
 }
+
+func TestGetOrCreateSession_IgnoresLegacySessionHeader(t *testing.T) {
+	oldMgr := magiSessionMgr
+	oldSourceSID := magiSourceSID
+	defer func() {
+		magiSessionMgr = oldMgr
+		magiSourceSID = oldSourceSID
+	}()
+
+	magiSessionMgr = session.NewSessionManager(time.Minute)
+	magiSourceSID = sync.Map{}
+
+	sourceCtx := &types.RequestSourceContext{
+		PrincipalID:      "principal-a",
+		SourceSessionKey: "guardian:principal-a:main-1:conv-1",
+	}
+
+	contextWithLegacyHeader := newTestGinContext()
+	contextWithLegacyHeader.Request.Header.Set("X-MAGI-Session-ID", "legacy-session-123")
+
+	sessionID := getOrCreateSession(contextWithLegacyHeader, sourceCtx)
+	expectedSessionID := buildDeterministicMagiMonitorSessionID(sourceCtx.SourceSessionKey)
+	if sessionID != expectedSessionID {
+		t.Fatalf("expected deterministic session id %s, got %s", expectedSessionID, sessionID)
+	}
+	if sessionID == "legacy-session-123" {
+		t.Fatalf("legacy session header should be ignored, got %s", sessionID)
+	}
+}
