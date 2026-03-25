@@ -10,6 +10,7 @@ export type MagiEventName =
     | "SEEL_REPLY_COMPLETED"
     | "SEEL_REPLY_FAILED"
     | "SEEL_VOTE_UPDATED"
+    | "DOMINANT_SYNTHESIS_COMPLETED"
     | "TRINITY_SYNTHESIS_COMPLETED"
     | "CONSENSUS_EMITTED"
     | "ROUND_FAILED"
@@ -85,8 +86,8 @@ export interface MagiSeelVoteUpdatedEvent extends MagiEventBase {
     deliberationReason?: string;
 }
 
-/** Trinity 统合完成事件。 */
-export interface MagiTrinitySynthesisCompletedEvent extends MagiEventBase {
+/** 统合完成事件。 */
+export interface MagiSynthesisCompletedEvent extends MagiEventBase {
     content: string;
 }
 
@@ -159,7 +160,8 @@ export interface MagiEventPayloadMap {
     SEEL_REPLY_COMPLETED: MagiSeelReplyCompletedEvent;
     SEEL_REPLY_FAILED: MagiSeelReplyFailedEvent;
     SEEL_VOTE_UPDATED: MagiSeelVoteUpdatedEvent;
-    TRINITY_SYNTHESIS_COMPLETED: MagiTrinitySynthesisCompletedEvent;
+    DOMINANT_SYNTHESIS_COMPLETED: MagiSynthesisCompletedEvent;
+    TRINITY_SYNTHESIS_COMPLETED: MagiSynthesisCompletedEvent;
     CONSENSUS_EMITTED: MagiConsensusEmittedEvent;
     ROUND_FAILED: MagiRoundFailedEvent;
     TOOL_CALL_DETECTED: MagiToolCallDetectedEvent;

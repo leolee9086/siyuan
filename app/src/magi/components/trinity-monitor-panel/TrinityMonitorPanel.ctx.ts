@@ -66,20 +66,24 @@ function formatMonitorEventType(eventType: string): string {
     if (!eventType) {
         return "UNKNOWN_EVENT";
     }
-    return eventType.replace(/TRINITY/g, "MAGI");
+    if (eventType === "TRINITY_SYNTHESIS_COMPLETED") {
+        return "DOMINANT_SYNTHESIS_COMPLETED";
+    }
+    return eventType;
 }
 
 function resolveEventTone(
     eventType: string,
     payload: Record<string, unknown>,
 ): TrinityMonitorTone {
-    if (eventType === "ROUND_FAILED" || eventType === "SEEL_REPLY_FAILED") {
+    const normalizedEventType = formatMonitorEventType(eventType);
+    if (normalizedEventType === "ROUND_FAILED" || normalizedEventType === "SEEL_REPLY_FAILED") {
         return "danger";
     }
-    if (eventType === "TOOL_CALL_DETECTED" || eventType === "DELIBERATION_SIGNAL_RAISED") {
+    if (normalizedEventType === "TOOL_CALL_DETECTED" || normalizedEventType === "DELIBERATION_SIGNAL_RAISED") {
         return "warn";
     }
-    if (eventType === "RUNTIME_STATUS_UPDATED") {
+    if (normalizedEventType === "RUNTIME_STATUS_UPDATED") {
         const state = readNonEmptyString(Reflect.get(payload, "state"));
         if (state === "heartbeat" || state === "external") {
             return "good";
@@ -88,7 +92,11 @@ function resolveEventTone(
             return "muted";
         }
     }
-    if (eventType === "TRINITY_SYNTHESIS_COMPLETED" || eventType === "CONSENSUS_EMITTED" || eventType.endsWith("_COMPLETED")) {
+    if (
+        normalizedEventType === "DOMINANT_SYNTHESIS_COMPLETED"
+        || normalizedEventType === "CONSENSUS_EMITTED"
+        || normalizedEventType.endsWith("_COMPLETED")
+    ) {
         return "good";
     }
     return "accent";
@@ -98,7 +106,8 @@ function buildPayloadSummary(
     eventType: string,
     payload: Record<string, unknown>,
 ): string {
-    switch (eventType) {
+    const normalizedEventType = formatMonitorEventType(eventType);
+    switch (normalizedEventType) {
         case "RUNTIME_STATUS_UPDATED": {
             const parts = [
                 readNonEmptyString(Reflect.get(payload, "state")),
@@ -120,7 +129,7 @@ function buildPayloadSummary(
         case "SEEL_REPLY_STARTED":
             return truncateText(readNonEmptyString(Reflect.get(payload, "userInput")) ?? "Seel reply started", 120);
         case "SEEL_REPLY_COMPLETED":
-        case "TRINITY_SYNTHESIS_COMPLETED":
+        case "DOMINANT_SYNTHESIS_COMPLETED":
             return truncateText(readNonEmptyString(Reflect.get(payload, "content")) ?? "Reply completed", 120);
         case "SEEL_REPLY_FAILED":
         case "ROUND_FAILED":

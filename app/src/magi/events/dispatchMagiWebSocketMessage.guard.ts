@@ -107,9 +107,9 @@ function isSeelVoteUpdatedPayload(payload: Record<string, unknown>): boolean {
 }
 
 /**
- * 验证 TRINITY_SYNTHESIS_COMPLETED 事件的特定字段。
+ * 验证统合完成事件的特定字段。
  */
-function isTrinitySynthesisCompletedPayload(payload: Record<string, unknown>): boolean {
+function isSynthesisCompletedPayload(payload: Record<string, unknown>): boolean {
     return typeof payload.content === "string";
 }
 
@@ -187,7 +187,8 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     SEEL_REPLY_COMPLETED: isSeelReplyCompletedPayload,
     SEEL_REPLY_FAILED: isSeelReplyFailedPayload,
     SEEL_VOTE_UPDATED: isSeelVoteUpdatedPayload,
-    TRINITY_SYNTHESIS_COMPLETED: isTrinitySynthesisCompletedPayload,
+    DOMINANT_SYNTHESIS_COMPLETED: isSynthesisCompletedPayload,
+    TRINITY_SYNTHESIS_COMPLETED: isSynthesisCompletedPayload,
     CONSENSUS_EMITTED: isConsensusEmittedPayload,
     ROUND_FAILED: isRoundFailedPayload,
     TOOL_CALL_DETECTED: isToolCallDetectedPayload,

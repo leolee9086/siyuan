@@ -296,9 +296,9 @@
 
 ---
 
-### 7. TRINITY_SYNTHESIS_COMPLETED - Trinity统合完成
+### 7. DOMINANT_SYNTHESIS_COMPLETED - 主导者统合完成
 
-**触发时机**: Trinity完成三贤人观点的统合
+**触发时机**: 当轮主导者完成对三贤人观点的统合
 
 **数据结构**:
 ```json
@@ -307,12 +307,15 @@
   "seq": 20,
   "roundId": "round-1234567890-1",
   "timestamp": 1234567892000,
-  "content": "Trinity统合后的完整响应内容"
+  "content": "主导者统合后的完整响应内容"
 }
 ```
 
 **字段说明**:
-- `content` (string): Trinity统合的最终响应
+- `content` (string): 主导者统合的最终响应
+
+**兼容说明**:
+- 当前前端事件桥接同时兼容旧事件名 `TRINITY_SYNTHESIS_COMPLETED`，但后端主事件名已迁移为 `DOMINANT_SYNTHESIS_COMPLETED`。
 
 ---
 
@@ -363,7 +366,7 @@
 
 **常见失败原因**:
 - 少于2个贤人响应成功
-- Trinity统合失败（重试10次后）
+- 主导者统合失败（重试10次后）
 - 系统内部错误
 
 ---
@@ -492,7 +495,7 @@ graph LR
 9. SEEL_REPLY_COMPLETED (Balthazar)
 10. SEEL_REPLY_COMPLETED (Casper)
    ↓
-11. TRINITY_SYNTHESIS_COMPLETED
+11. DOMINANT_SYNTHESIS_COMPLETED
    ↓
 12. CONSENSUS_EMITTED
 ```
@@ -513,7 +516,7 @@ graph LR
    ↓
 15. SEEL_VOTE_UPDATED (投票结果)
    ↓
-16. TRINITY_SYNTHESIS_COMPLETED
+16. DOMINANT_SYNTHESIS_COMPLETED
    ↓
 17. CONSENSUS_EMITTED
 ```
@@ -531,7 +534,7 @@ graph LR
 9. SEEL_REPLY_COMPLETED (Balthazar)
 10. SEEL_REPLY_FAILED (Casper) - 超时
    ↓
-11. TRINITY_SYNTHESIS_COMPLETED (仅使用2个贤人的响应)
+11. DOMINANT_SYNTHESIS_COMPLETED (仅使用2个贤人的响应)
    ↓
 12. CONSENSUS_EMITTED
 ```
@@ -542,6 +545,7 @@ graph LR
 
 | 版本 | 日期 | 变更说明 |
 |------|------|----------|
+| v1.1.0 | 2026-03-25 | synthesis 事件主名迁移为 `DOMINANT_SYNTHESIS_COMPLETED`，前端兼容旧 `TRINITY_SYNTHESIS_COMPLETED` |
 | v1.0.0 | 2026-03-06 | 初始版本，定义基础协议 |
 
 ---

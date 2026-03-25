@@ -23,6 +23,10 @@ const voteDetailSchema = z.object({
 });
 
 const magiMessageSchema = z.custom<MagiEventPayloadMap["CONSENSUS_EMITTED"]["message"]>();
+const synthesisCompletedSchema = {
+    ...baseEventShape,
+    content: z.string(),
+} as const;
 
 export const magiEventDefines = {
     ROUND_STARTED: {
@@ -77,10 +81,8 @@ export const magiEventDefines = {
         deliberationInitiator: z.string().optional(),
         deliberationReason: z.string().optional(),
     },
-    TRINITY_SYNTHESIS_COMPLETED: {
-        ...baseEventShape,
-        content: z.string(),
-    },
+    DOMINANT_SYNTHESIS_COMPLETED: synthesisCompletedSchema,
+    TRINITY_SYNTHESIS_COMPLETED: synthesisCompletedSchema,
     CONSENSUS_EMITTED: {
         ...baseEventShape,
         message: magiMessageSchema,

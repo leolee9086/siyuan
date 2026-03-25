@@ -14,7 +14,7 @@ import type {
     MagiSeelReplyStartedEvent,
     MagiSeelVoteUpdatedEvent,
     MagiRuntimeStatusUpdatedEvent,
-    MagiTrinitySynthesisCompletedEvent,
+    MagiSynthesisCompletedEvent,
     MagiToolCallDetectedEvent,
 } from "./magiEventBus.types";
 import type {
@@ -44,8 +44,8 @@ function listSageSeels(seels: WrappedSeel[]): WrappedSeel[] {
     return seels.filter((seel) => SAGE_SEEL_NAMES.has(normalizeSeelIdentity(seel.config.name)));
 }
 
-/** 返回 Trinity 监控节点。 */
-function findTrinitySeel(seels: WrappedSeel[]): WrappedSeel | null {
+/** 返回运行时监控宿主节点（当前仍挂在 TRINITY-00 面板）。 */
+function findMonitorHostSeel(seels: WrappedSeel[]): WrappedSeel | null {
     return seels.find((seel) => normalizeSeelIdentity(seel.config.name) === "TRINITY") ?? null;
 }
 
@@ -224,22 +224,22 @@ function projectRawEventToSeelCards(
         };
         upsertMessage(target.messages, eventMessage);
     }
-    projectRawEventToTrinityMonitor(state, eventType, event, payload);
+    projectRawEventToMonitorHost(state, eventType, event, payload);
 }
 
-/** 将后端事件完整投影到 Trinity 监控卡片。 */
-function projectRawEventToTrinityMonitor(
+/** 将后端事件完整投影到运行时监控卡片。 */
+function projectRawEventToMonitorHost(
     state: MagiProjectorRuntimeState,
     eventType: string,
     event: MagiEventBase,
     payload: Record<string, unknown> = cloneEventPayloadForMeta(event),
 ): void {
-    const trinity = findTrinitySeel(state.target.seels);
-    if (!trinity) {
+    const monitorHost = findMonitorHostSeel(state.target.seels);
+    if (!monitorHost) {
         return;
     }
     const eventMessage: MagiMessage = {
-        id: buildProjectedMessageId(event.eventId, `event-${eventType}-TRINITY`),
+        id: buildProjectedMessageId(event.eventId, `event-${eventType}-MONITOR`),
         type: "event",
         content: eventType,
         status: "success",
@@ -251,11 +251,11 @@ function projectRawEventToTrinityMonitor(
             eventId: event.eventId,
             seq: event.seq,
             roundId: event.roundId,
-            targetSeel: trinity.config.name,
-            monitorScope: "trinity-runtime",
+            targetSeel: monitorHost.config.name,
+            monitorScope: "magi-monitor",
         },
     };
-    upsertMessage(trinity.messages, eventMessage);
+    upsertMessage(monitorHost.messages, eventMessage);
 }
 
 /** 读取非空字符串，空值返回 undefined。 */
@@ -665,15 +665,16 @@ function projectLLMRequestSent(
     ]);
 }
 
-/** 投影 TRINITY 统合事件到三贤人卡片。 */
-function projectTrinitySynthesisCompleted(
+/** 投影统合完成事件到三贤人卡片。 */
+function projectSynthesisCompleted(
     state: MagiProjectorRuntimeState,
-    event: MagiTrinitySynthesisCompletedEvent,
+    eventType: "DOMINANT_SYNTHESIS_COMPLETED" | "TRINITY_SYNTHESIS_COMPLETED",
+    event: MagiSynthesisCompletedEvent,
 ): void {
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    projectRawEventToSeelCards(state, "TRINITY_SYNTHESIS_COMPLETED", event, []);
+    projectRawEventToSeelCards(state, eventType, event, []);
 }
 
 /** 投影轮次失败事件到三贤人卡片。 */
@@ -700,7 +701,7 @@ function projectContextHistoryTrimmed(
     ]);
 }
 
-/** 投影全局运行态更新事件到 Trinity 监控卡片。 */
+/** 投影全局运行态更新事件到监控卡片。 */
 function projectRuntimeStatusUpdated(
     state: MagiProjectorRuntimeState,
     event: MagiRuntimeStatusUpdatedEvent,
@@ -708,7 +709,7 @@ function projectRuntimeStatusUpdated(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    projectRawEventToTrinityMonitor(state, "RUNTIME_STATUS_UPDATED", event);
+    projectRawEventToMonitorHost(state, "RUNTIME_STATUS_UPDATED", event);
 }
 
 /** 注册贤者事件订阅。 */
@@ -724,7 +725,8 @@ function registerSeelSubscriptions(
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_COMPLETED", projectSeelReplyCompleted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_FAILED", projectSeelReplyFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_VOTE_UPDATED", projectVoteUpdated.bind(null, state)));
-    subscriptions.push(eventBus.subscribe("TRINITY_SYNTHESIS_COMPLETED", projectTrinitySynthesisCompleted.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("DOMINANT_SYNTHESIS_COMPLETED", projectSynthesisCompleted.bind(null, state, "DOMINANT_SYNTHESIS_COMPLETED")));
+    subscriptions.push(eventBus.subscribe("TRINITY_SYNTHESIS_COMPLETED", projectSynthesisCompleted.bind(null, state, "TRINITY_SYNTHESIS_COMPLETED")));
     subscriptions.push(eventBus.subscribe("ROUND_FAILED", projectRoundFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("DELIBERATION_SIGNAL_RAISED", projectDeliberationSignal.bind(null, state)));
     subscriptions.push(eventBus.subscribe("TOOL_CALL_DETECTED", projectToolCall.bind(null, state)));

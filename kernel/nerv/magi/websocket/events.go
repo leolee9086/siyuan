@@ -28,20 +28,21 @@ import (
 
 // 事件类型常量
 const (
-	EventRoundStarted              = "ROUND_STARTED"
-	EventLLMRequestSent            = "LLM_REQUEST_SENT"
-	EventSeelReplyStarted          = "SEEL_REPLY_STARTED"
-	EventSeelReplyChunk            = "SEEL_REPLY_CHUNK"
-	EventSeelReplyCompleted        = "SEEL_REPLY_COMPLETED"
-	EventSeelReplyFailed           = "SEEL_REPLY_FAILED"
-	EventSeelVoteUpdated           = "SEEL_VOTE_UPDATED"
-	EventTrinitySynthesisCompleted = "TRINITY_SYNTHESIS_COMPLETED"
-	EventConsensusEmitted          = "CONSENSUS_EMITTED"
-	EventRoundFailed               = "ROUND_FAILED"
-	EventToolCallDetected          = "TOOL_CALL_DETECTED"
-	EventDeliberationSignalRaised  = "DELIBERATION_SIGNAL_RAISED"
-	EventContextHistoryTrimmed     = "CONTEXT_HISTORY_TRIMMED"
-	EventRuntimeStatusUpdated      = "RUNTIME_STATUS_UPDATED"
+	EventRoundStarted               = "ROUND_STARTED"
+	EventLLMRequestSent             = "LLM_REQUEST_SENT"
+	EventSeelReplyStarted           = "SEEL_REPLY_STARTED"
+	EventSeelReplyChunk             = "SEEL_REPLY_CHUNK"
+	EventSeelReplyCompleted         = "SEEL_REPLY_COMPLETED"
+	EventSeelReplyFailed            = "SEEL_REPLY_FAILED"
+	EventSeelVoteUpdated            = "SEEL_VOTE_UPDATED"
+	EventDominantSynthesisCompleted = "DOMINANT_SYNTHESIS_COMPLETED"
+	EventTrinitySynthesisCompleted  = "TRINITY_SYNTHESIS_COMPLETED"
+	EventConsensusEmitted           = "CONSENSUS_EMITTED"
+	EventRoundFailed                = "ROUND_FAILED"
+	EventToolCallDetected           = "TOOL_CALL_DETECTED"
+	EventDeliberationSignalRaised   = "DELIBERATION_SIGNAL_RAISED"
+	EventContextHistoryTrimmed      = "CONTEXT_HISTORY_TRIMMED"
+	EventRuntimeStatusUpdated       = "RUNTIME_STATUS_UPDATED"
 )
 
 // RuntimeMonitorSessionID 是 MAGI 运行时事件监控的唯一 websocket session。
@@ -223,8 +224,8 @@ func PushVotingFailed(sessionId, roundId, errorMsg string, progress int) error {
 	return globalPusher.Push(sessionId, EventSeelVoteUpdated, data)
 }
 
-// PushTrinitySynthesisCompleted 推送Trinity统合完成事件
-func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
+// PushDominantSynthesisCompleted 推送主导者统合完成事件。
+func PushDominantSynthesisCompleted(sessionId, roundId, content string) error {
 	eventId, seq := generateEventID()
 	data := map[string]interface{}{
 		"eventId":   eventId,
@@ -233,7 +234,12 @@ func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
 		"timestamp": time.Now().UnixMilli(),
 		"content":   content,
 	}
-	return globalPusher.Push(sessionId, EventTrinitySynthesisCompleted, data)
+	return globalPusher.Push(sessionId, EventDominantSynthesisCompleted, data)
+}
+
+// PushTrinitySynthesisCompleted 兼容旧调用点，实际发出主导者统合事件。
+func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
+	return PushDominantSynthesisCompleted(sessionId, roundId, content)
 }
 
 // PushConsensusEmitted 推送共识消息发出事件
@@ -270,24 +276,24 @@ func PushRuntimeStatusUpdated(sessionId string, status types.RuntimeStatus) erro
 		roundID = "runtime-status"
 	}
 	data := map[string]interface{}{
-		"eventId":          eventId,
-		"seq":              seq,
-		"roundId":          roundID,
-		"timestamp":        time.Now().UnixMilli(),
-		"state":            status.State,
-		"awake":            status.Awake,
-		"wakeSource":       status.WakeSource,
-		"reason":           status.Reason,
-		"dominantSeel":     status.DominantSeel,
-		"dominantStance":   status.DominantStance,
+		"eventId":           eventId,
+		"seq":               seq,
+		"roundId":           roundID,
+		"timestamp":         time.Now().UnixMilli(),
+		"state":             status.State,
+		"awake":             status.Awake,
+		"wakeSource":        status.WakeSource,
+		"reason":            status.Reason,
+		"dominantSeel":      status.DominantSeel,
+		"dominantStance":    status.DominantStance,
 		"dominantUpdatedAt": status.DominantUpdatedAt,
-		"currentRoundId":   status.CurrentRoundID,
-		"currentTask":      status.CurrentTask,
-		"lastHeartbeatAt":  status.LastHeartbeatAt,
-		"lastWakeAt":       status.LastWakeAt,
-		"lastSleepAt":      status.LastSleepAt,
-		"lastSleepSummary": status.LastSleepSummary,
-		"updatedAt":        status.UpdatedAt,
+		"currentRoundId":    status.CurrentRoundID,
+		"currentTask":       status.CurrentTask,
+		"lastHeartbeatAt":   status.LastHeartbeatAt,
+		"lastWakeAt":        status.LastWakeAt,
+		"lastSleepAt":       status.LastSleepAt,
+		"lastSleepSummary":  status.LastSleepSummary,
+		"updatedAt":         status.UpdatedAt,
 	}
 	return globalPusher.Push(sessionId, EventRuntimeStatusUpdated, data)
 }

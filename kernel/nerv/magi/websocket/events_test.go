@@ -114,6 +114,13 @@ func TestPushVotingFailed(t *testing.T) {
 	}
 }
 
+func TestPushDominantSynthesisCompleted(t *testing.T) {
+	err := PushDominantSynthesisCompleted("test-session", "round-1", "主导者统合内容")
+	if err != nil {
+		t.Errorf("PushDominantSynthesisCompleted() error = %v", err)
+	}
+}
+
 func TestPushTrinitySynthesisCompleted(t *testing.T) {
 	err := PushTrinitySynthesisCompleted("test-session", "round-1", "Trinity统合内容")
 	if err != nil {

@@ -90,4 +90,28 @@ describe("MAGI WebSocket Bridge", () => {
         expect(handled).toBe(true);
         expect(count).toBe(1);
     });
+
+    it("应转发 DOMINANT_SYNTHESIS_COMPLETED 事件", async () => {
+        const bus = await createMagiEventBus();
+        let content = "";
+        bus.subscribe("DOMINANT_SYNTHESIS_COMPLETED", (payload) => {
+            content = payload.content;
+        });
+
+        const handled = dispatchMagiWebSocketMessage(bus, {
+            cmd: "magiEvent",
+            data: {
+                eventType: "DOMINANT_SYNTHESIS_COMPLETED",
+                sessionId: "session-4",
+                eventId: "event-4",
+                seq: 4,
+                roundId: "round-4",
+                timestamp: Date.now(),
+                content: "dominant synthesis",
+            },
+        });
+
+        expect(handled).toBe(true);
+        expect(content).toBe("dominant synthesis");
+    });
 });

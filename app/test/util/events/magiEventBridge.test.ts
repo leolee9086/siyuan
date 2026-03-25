@@ -154,9 +154,11 @@ describe("MAGI Event Bridge - 事件投影", () => {
         });
 
         expect(consensusMessages.length).toBe(2);
-        expect(consensusMessages[0].id).toBe("consensus-1");
-        expect(consensusMessages[1].meta?.type).toBe("vote-status");
-        expect(consensusMessages[1].meta?.progress).toBe(45);
+        const consensusMessage = consensusMessages.find((message) => message.id === "consensus-1");
+        const voteStatusMessage = consensusMessages.find((message) => message.meta?.type === "vote-status");
+        expect(consensusMessage?.id).toBe("consensus-1");
+        expect(voteStatusMessage?.meta?.type).toBe("vote-status");
+        expect(voteStatusMessage?.meta?.progress).toBe(45);
 
         stop();
     });
@@ -295,7 +297,26 @@ describe("MAGI Event Bridge - 事件投影", () => {
         stop();
     });
 
-    it("应将后端运行时事件投影到 Trinity 监控流", async () => {
+    it("应兼容新的 DOMINANT_SYNTHESIS_COMPLETED 事件名", async () => {
+        const bus = await createMagiEventBus();
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const casper = createWrappedSeel("CASPER-03", "CASPER");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [melchior, casper], consensusMessages });
+
+        emitTestEvent(bus, "DOMINANT_SYNTHESIS_COMPLETED", {
+            roundId: "round-synthesis-1",
+            timestamp: Date.now(),
+            content: "由主导者完成统合",
+        });
+
+        const projected = melchior.messages.find((message) => message.meta?.eventType === "DOMINANT_SYNTHESIS_COMPLETED");
+        expect(projected?.content).toBe("DOMINANT_SYNTHESIS_COMPLETED");
+
+        stop();
+    });
+
+    it("应将后端运行时事件投影到 MAGI monitor 流", async () => {
         const bus = await createMagiEventBus();
         const trinity = createWrappedSeel("TRINITY-00", "TRINITY");
         const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
@@ -332,8 +353,8 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const runtimeEvent = trinity.messages.find((message) => message.meta?.eventType === "RUNTIME_STATUS_UPDATED");
         const toolEvent = trinity.messages.find((message) => message.meta?.eventType === "TOOL_CALL_DETECTED");
 
-        expect(runtimeEvent?.meta?.monitorScope).toBe("trinity-runtime");
-        expect(toolEvent?.meta?.monitorScope).toBe("trinity-runtime");
+        expect(runtimeEvent?.meta?.monitorScope).toBe("magi-monitor");
+        expect(toolEvent?.meta?.monitorScope).toBe("magi-monitor");
         expect(toolEvent?.meta?.eventPayload).toMatchObject({
             toolName: "deliberation_signal",
             displayName: "MELCHIOR",
