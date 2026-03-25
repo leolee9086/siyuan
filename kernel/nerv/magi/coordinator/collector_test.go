@@ -207,7 +207,9 @@ func createMockSageWithClient(name, displayName string, client *mockLLMClient) *
 		Count: 7,
 	}
 
-	return sages.NewSage(name, cfg, client, strategy)
+	sage := sages.NewSage(name, cfg, client, strategy)
+	sage.SetProfile(buildDominantReplyTestProfile())
+	return sage
 }
 
 func TestCollectResponses_AllSuccess(t *testing.T) {

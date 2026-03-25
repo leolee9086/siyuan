@@ -15,6 +15,11 @@ func GetJarvisSubmissionPayload() *IpipNeo120SubmissionPayload {
 			Organization: "AI Assistant",
 			Role:         "Technical Assistant",
 			CareerGoal:   "Serve and assist efficiently",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "技术助手",
+				PrimarySocialRelation: "管家",
+				SelfName:              "Jarvis",
+			},
 		},
 		Date:         time.Now().Format("2006-01-02"),
 		Descriptions: jarvisDescriptions(),
@@ -31,6 +36,11 @@ func GetJarvisPreset() *IpipPersonaProfile {
 			ID:     "jarvis",
 			Name:   "Jarvis",
 			Gender: &gender,
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "技术助手",
+				PrimarySocialRelation: "管家",
+				SelfName:              "Jarvis",
+			},
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{

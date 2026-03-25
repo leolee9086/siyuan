@@ -157,18 +157,19 @@ func buildWakeupIdentity(sageName string, fields wakeupProfileFields, descriptio
 }
 
 func selectWakeupDescriptionBySage(sageName string, descriptions marduk.IpipPersonaSeedDescriptions) string {
+	integrated := strings.TrimSpace(descriptions.IntegratedDescription)
 	lowerName := strings.ToLower(strings.TrimSpace(sageName))
 	switch lowerName {
 	case "melchior":
-		return descriptions.ProfessionalDescription
+		return joinWakeupDescriptions(integrated, descriptions.ProfessionalDescription)
 	case "balthazar":
-		return descriptions.InstinctNeedsDescription
+		return joinWakeupDescriptions(integrated, descriptions.InstinctNeedsDescription)
 	case "casper":
-		return descriptions.LifeDescription
+		return joinWakeupDescriptions(integrated, descriptions.LifeDescription)
 	case "trinity":
 		// Trinity包含整合描述和三个侧面描述
 		var parts []string
-		if desc := strings.TrimSpace(descriptions.IntegratedDescription); desc != "" {
+		if desc := integrated; desc != "" {
 			parts = append(parts, desc)
 		}
 		if desc := strings.TrimSpace(descriptions.ProfessionalDescription); desc != "" {
@@ -188,4 +189,14 @@ func selectWakeupDescriptionBySage(sageName string, descriptions marduk.IpipPers
 		// 只有三贤人和trinity，其他情况报错
 		panic(fmt.Sprintf("invalid sage name: %s", sageName))
 	}
+}
+
+func joinWakeupDescriptions(values ...string) string {
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	return strings.Join(parts, "\n\n")
 }

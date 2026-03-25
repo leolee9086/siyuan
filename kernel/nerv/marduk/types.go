@@ -29,6 +29,7 @@ type IpipNeo120SubjectMeta struct {
 	Organization string      `json:"organization"`
 	Role         string      `json:"role"`
 	CareerGoal   string      `json:"careerGoal"`
+	CognitiveStances *SubjectCognitiveStances `json:"cognitiveStances,omitempty"`
 }
 
 // IpipPersonaSeedDescriptions 人格种子四轨描述
@@ -63,6 +64,15 @@ type IpipSubjectProfile struct {
 	Organization *string `json:"organization,omitempty"`
 	Role         *string `json:"role,omitempty"`
 	CareerGoal   *string `json:"careerGoal,omitempty"`
+	CognitiveStances *SubjectCognitiveStances `json:"cognitiveStances,omitempty"`
+}
+
+// SubjectCognitiveStances AI 档案中的三元立场。
+// 三贤人的主导者选举必须只从这里读取，不允许运行期伪造默认值。
+type SubjectCognitiveStances struct {
+	Profession            string `json:"profession,omitempty"`
+	PrimarySocialRelation string `json:"primarySocialRelation,omitempty"`
+	SelfName              string `json:"selfName,omitempty"`
 }
 
 // IpipPersonaProfile 人格档案（计算后的完整档案）

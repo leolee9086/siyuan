@@ -46,7 +46,7 @@
                 :ai="node.seel"
                 :show-messages="showMessages"
                 :show-frame="true"
-                :frame-color="clusterAccentColor"
+                :frame-color="resolveNodeFrameColor(node.key)"
               />
               <TrinityMonitorPanel
                 v-else
@@ -147,6 +147,7 @@ const SAGE_CARD_WIDTH = 330;
 const SAGE_CARD_HEIGHT = 420;
 const TRINITY_CARD_WIDTH = 330;
 const TRINITY_CARD_HEIGHT = 480;
+const DOMINANT_FRAME_COLOR = "#ff8a1f";
 
 const LAYOUT_CONFIG = {
     // 外围三贤人使用统一尺寸，避免视觉不一致。
@@ -402,6 +403,21 @@ const clusterAccentColor = computed<string>(() =>
     getColor(balthasarSeelView.value?.config.color ?? "blue"),
 );
 
+const dominantNodeKey = computed<string | null>(() => {
+    const normalized = String(runtimeStatus.value?.dominantSeel ?? "").trim().toLowerCase();
+    switch (normalized) {
+    case "melchior":
+        return "melchior";
+    case "balthazar":
+    case "balthasar":
+        return "balthasar";
+    case "casper":
+        return "casper";
+    default:
+        return resolveActivelyReplyingNodeKey();
+    }
+});
+
 const svgNodes = computed(() => {
     const nodes = [];
     if (balthasarSeelView.value) {
@@ -561,5 +577,28 @@ function findSageByKeywords(keywords: readonly string[]) {
         const normalized = seel.config.name.toUpperCase();
         return keywords.some((keyword) => normalized.includes(keyword));
     }) ?? null;
+}
+
+function resolveNodeFrameColor(nodeKey: string): string {
+    if (nodeKey === dominantNodeKey.value) {
+        return DOMINANT_FRAME_COLOR;
+    }
+    return clusterAccentColor.value;
+}
+
+/**
+ * 作用：在运行态主导者尚未回写前，根据当前唯一活跃回复的贤者做即时高亮。
+ * 意图：主导者刚被选出并开始直答时，前端也能立即看到橙色边框，而不必等待轮次结束。
+ * 调用时机：dominantNodeKey 无法从 runtimeStatus 解析出主导者时作为兜底分支调用。
+ * 问题/改进：这是前端观测兜底，不替代后端真实主导状态；若后续后端能在选举完成瞬间推送 runtimeStatus，可移除此分支。
+ */
+function resolveActivelyReplyingNodeKey(): string | null {
+    const activeKeys = [
+        balthasarSeelView.value?.loading ? "balthasar" : null,
+        casperSeelView.value?.loading ? "casper" : null,
+        melchiorSeelView.value?.loading ? "melchior" : null,
+    ].filter((value): value is string => value !== null);
+
+    return activeKeys.length === 1 ? activeKeys[0] : null;
 }
 </script>

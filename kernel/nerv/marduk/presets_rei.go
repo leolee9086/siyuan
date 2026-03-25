@@ -16,6 +16,11 @@ func GetReiSubmissionPayload() *IpipNeo120SubmissionPayload {
 			Organization: "Research Institute",
 			Role:         "Specialist",
 			CareerGoal:   "完成使命",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "助手",
+				PrimarySocialRelation: "工具",
+				SelfName:              "凌波",
+			},
 		},
 		Date:         time.Now().Format("2006-01-02"),
 		Descriptions: reiDescriptions(),
@@ -30,6 +35,11 @@ func GetReiPreset() *IpipPersonaProfile {
 		Subject: IpipSubjectProfile{
 			ID:   "rei",
 			Name: "丽",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "助手",
+				PrimarySocialRelation: "工具",
+				SelfName:              "凌波",
+			},
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 )
 
@@ -85,6 +86,21 @@ func TestBuildWakeupIdentityUsesDifferentFacetBySage(t *testing.T) {
 	}
 	if !strings.Contains(trinity[7].Content, "我是一个高度理性、任务导向的个体") {
 		t.Fatalf("trinity should use IntegratedDescription, got: %s", trinity[7].Content)
+	}
+}
+
+func TestBuildWakeupIdentityExposesIntegratedDescriptionToAllSages(t *testing.T) {
+	dataDir := t.TempDir()
+	profile := marduk.GetShikinamiPreset()
+
+	melchior := BuildWakeupSequence(dataDir, "melchior", profile)
+	balthazar := BuildWakeupSequence(dataDir, "balthazar", profile)
+	casper := BuildWakeupSequence(dataDir, "casper", profile)
+
+	for _, seq := range [][]types.ContextMessage{melchior, balthazar, casper} {
+		if !strings.Contains(seq[7].Content, "我是一个复杂的矛盾体") {
+			t.Fatalf("expected integratedDescription to be visible to all sages, got: %s", seq[7].Content)
+		}
 	}
 }
 

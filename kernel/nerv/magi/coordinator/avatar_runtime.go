@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
@@ -115,11 +116,11 @@ func (r *AvatarRuntime) prepareBindingForDispatch(
 	bindingKey string,
 	sourceCtx *types.RequestSourceContext,
 	userMessage string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) (*avatarBinding, error) {
 	binding, ok := r.getBinding(bindingKey)
 	if !ok {
-		created, err := r.createBinding(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper, trinity)
+		created, err := r.createBinding(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +129,7 @@ func (r *AvatarRuntime) prepareBindingForDispatch(
 		return created, nil
 	}
 	if binding.State == avatarBindingStateRebuilding {
-		r.ensureRebuildInBackground(bindingKey, sourceCtx, userMessage, melchior, balthazar, casper, trinity)
+		r.ensureRebuildInBackground(bindingKey, sourceCtx, userMessage, melchior, balthazar, casper)
 		return nil, r.buildAvatarUnavailableError(bindingKey, binding.RoleID, "avatar-rebuilding-in-progress")
 	}
 	return binding, nil
@@ -142,14 +143,14 @@ func (r *AvatarRuntime) DispatchForSource(
 	sourceAwareInput string,
 	sourceCtx *types.RequestSourceContext,
 	collector *ResponseCollector,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) (*types.Message, error) {
 	if collector == nil {
 		return nil, fmt.Errorf("avatar collector is nil")
 	}
 
 	bindingKey := resolveAvatarBindingKey(sourceCtx)
-	binding, err := r.prepareBindingForDispatch(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper, trinity)
+	binding, err := r.prepareBindingForDispatch(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (r *AvatarRuntime) DispatchForSource(
 	if timedOut := r.markHeartbeatAndCheckTimeout(bindingKey, hasHeartbeat); timedOut {
 		reason := fmt.Sprintf("avatar-heartbeat-timeout role=%s key=%s", binding.RoleID, bindingKey)
 		logging.LogWarnf("Avatar心跳超时，触发重写: %s", reason)
-		r.ensureRebuildInBackground(bindingKey, sourceCtx, userMessage, melchior, balthazar, casper, trinity)
+		r.ensureRebuildInBackground(bindingKey, sourceCtx, userMessage, melchior, balthazar, casper)
 		return nil, r.buildAvatarUnavailableError(bindingKey, binding.RoleID, "avatar-heartbeat-timeout")
 	}
 
@@ -231,7 +232,7 @@ func (r *AvatarRuntime) createBinding(
 	bindingKey string,
 	sourceCtx *types.RequestSourceContext,
 	userMessage string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) (*avatarBinding, error) {
 	roleID, displayName := r.nextAvatarIdentity()
 	prototype, err := requestAvatarPrototypeByMAGI(
@@ -244,13 +245,12 @@ func (r *AvatarRuntime) createBinding(
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("request avatar prototype failed: %w", err)
 	}
 
-	llmClient, err := resolveAvatarLLMClient(melchior, balthazar, casper, trinity)
+	llmClient, err := resolveAvatarLLMClient(melchior, balthazar, casper)
 	if err != nil {
 		return nil, err
 	}
@@ -296,11 +296,8 @@ func (r *AvatarRuntime) createBinding(
 }
 
 func resolveAvatarLLMClient(
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) (llm.Client, error) {
-	if trinity != nil && trinity.GetLLMClient() != nil {
-		return trinity.GetLLMClient(), nil
-	}
 	if melchior != nil && melchior.GetLLMClient() != nil {
 		return melchior.GetLLMClient(), nil
 	}
@@ -358,7 +355,7 @@ type avatarCreationProposal struct {
 	Requirements         string
 }
 
-type trinitySynthesizeAvatar struct {
+type dominantSynthesizeAvatar struct {
 	FinalSystemPrompt string
 }
 
@@ -373,7 +370,7 @@ func requestAvatarPrototypeByMAGI(
 	bindingKey string,
 	sourceCtx *types.RequestSourceContext,
 	userMessage string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) (*avatarPrototype, error) {
 	if melchior == nil {
 		return nil, fmt.Errorf("melchior is nil")
@@ -383,9 +380,6 @@ func requestAvatarPrototypeByMAGI(
 	}
 	if casper == nil {
 		return nil, fmt.Errorf("casper is nil")
-	}
-	if trinity == nil {
-		return nil, fmt.Errorf("trinity is nil")
 	}
 
 	channel := "unknown"
@@ -482,17 +476,27 @@ func requestAvatarPrototypeByMAGI(
 	}
 
 	proposalsPayload := buildSageProposalPayload(proposals)
-	trinityTask := prompts.BuildTrinitySynthesizeAvatarTask(knowledgeBase, proposalsPayload)
-	trinitySynthesis, err := collectTrinitySynthesizeAvatar(ctx, trinity, trinityTask)
+	dominantSituation := buildAvatarDominantSituation(knowledgeBase, proposalsPayload)
+	dominantResult, err := electDominantSage(ctx, bindingKey, melchior, balthazar, casper, dominantSituation)
+	if err != nil {
+		return nil, fmt.Errorf("avatar dominant election failed: %w", err)
+	}
+	dominantSage, err := resolveDominantSage(dominantResult, melchior, balthazar, casper)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateSynthesizedAvatarPrompt(trinitySynthesis.FinalSystemPrompt, roleID, channel); err != nil {
+
+	dominantTask := prompts.BuildDominantSynthesizeAvatarTask(dominantResult.DominantStance, knowledgeBase, proposalsPayload)
+	dominantSynthesis, err := collectDominantSynthesizeAvatar(ctx, dominantSage, dominantTask)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateSynthesizedAvatarPrompt(dominantSynthesis.FinalSystemPrompt, roleID, channel); err != nil {
 		return nil, err
 	}
 
 	return &avatarPrototype{
-		SystemPrompt: strings.TrimSpace(trinitySynthesis.FinalSystemPrompt),
+		SystemPrompt: strings.TrimSpace(dominantSynthesis.FinalSystemPrompt),
 	}, nil
 }
 
@@ -544,21 +548,27 @@ func collectReviewerModifyAvatar(
 	return *proposal
 }
 
-func collectTrinitySynthesizeAvatar(
+func collectDominantSynthesizeAvatar(
 	ctx context.Context,
-	trinity *sages.Sage,
+	dominantSage *sages.Sage,
 	task string,
-) (*trinitySynthesizeAvatar, error) {
-	if trinity == nil {
-		return nil, fmt.Errorf("trinity is nil")
+) (*dominantSynthesizeAvatar, error) {
+	if dominantSage == nil {
+		return nil, fmt.Errorf("dominant sage is nil")
 	}
 
-	// Avatar 合成阶段同样不应复用 Trinity 的历史状态。
-	rawArgs, err := runSageToolCall(ctx, trinity.CloneWithFreshContext(), task, avatarSynthesizeToolName)
+	rawArgs, err := runSageToolCallWithRuntimeTools(
+		ctx,
+		dominantSage.CloneWithFreshContext(),
+		task,
+		avatarSynthesizeToolName,
+		[]openai.Tool{buildAvatarRuntimeTool(config.BuildAvatarSynthesizeToolDef())},
+		"required",
+	)
 	if err != nil {
 		return nil, err
 	}
-	return parseTrinitySynthesizeAvatar(rawArgs)
+	return parseDominantSynthesizeAvatar(rawArgs)
 }
 
 func runSageToolCall(
@@ -567,11 +577,30 @@ func runSageToolCall(
 	userInput string,
 	expectedToolName string,
 ) (string, error) {
+	return runSageToolCallWithRuntimeTools(ctx, sage, userInput, expectedToolName, nil, nil)
+}
+
+func runSageToolCallWithRuntimeTools(
+	ctx context.Context,
+	sage *sages.Sage,
+	userInput string,
+	expectedToolName string,
+	runtimeTools []openai.Tool,
+	runtimeToolChoice any,
+) (string, error) {
 	if sage == nil {
 		return "", fmt.Errorf("sage is nil for tool %s", expectedToolName)
 	}
 	//@todo avatar同样需要支持sessionId和roundId以便推送事件，目前Trinity调用时没有，后续可以改造为可选参数
-	streamCh, err := sage.SendMessage(ctx, "", "", userInput)
+	var (
+		streamCh <-chan types.StreamChunk
+		err      error
+	)
+	if len(runtimeTools) > 0 || runtimeToolChoice != nil {
+		streamCh, err = sage.SendMessageWithRuntimeTools(ctx, "", "", userInput, runtimeTools, runtimeToolChoice)
+	} else {
+		streamCh, err = sage.SendMessage(ctx, "", "", userInput)
+	}
 	if err != nil {
 		return "", fmt.Errorf("send tool call request failed for %s: %w", sage.GetName(), err)
 	}
@@ -606,6 +635,17 @@ func runSageToolCall(
 				processor.MergeToolCalls(utilToolCalls)
 			}
 		}
+	}
+}
+
+func buildAvatarRuntimeTool(toolDef config.ToolDef) openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolType(toolDef.Type),
+		Function: &openai.FunctionDefinition{
+			Name:        toolDef.Function.Name,
+			Description: toolDef.Function.Description,
+			Parameters:  toolDef.Function.Parameters,
+		},
 	}
 }
 
@@ -666,16 +706,16 @@ func parseReviewerModifyAvatar(rawArgs string) (*avatarCreationProposal, error) 
 	return result, nil
 }
 
-func parseTrinitySynthesizeAvatar(rawArgs string) (*trinitySynthesizeAvatar, error) {
+func parseDominantSynthesizeAvatar(rawArgs string) (*dominantSynthesizeAvatar, error) {
 	payload := map[string]interface{}{}
 	if err := json.Unmarshal([]byte(rawArgs), &payload); err != nil {
-		return nil, fmt.Errorf("parse trinity synthesizeAvatar args failed: %w", err)
+		return nil, fmt.Errorf("parse dominant synthesizeAvatar args failed: %w", err)
 	}
 	finalSystemPrompt := pickString(payload, "finalSystemPrompt", "systemPrompt", "system_prompt", "prompt", "content")
 	if strings.TrimSpace(finalSystemPrompt) == "" {
-		return nil, fmt.Errorf("trinity synthesizeAvatar missing finalSystemPrompt")
+		return nil, fmt.Errorf("dominant synthesizeAvatar missing finalSystemPrompt")
 	}
-	return &trinitySynthesizeAvatar{
+	return &dominantSynthesizeAvatar{
 		FinalSystemPrompt: strings.TrimSpace(finalSystemPrompt),
 	}, nil
 }
@@ -715,6 +755,15 @@ func buildSageProposalPayload(proposals []avatarCreationProposal) string {
 	}
 	raw, _ := json.Marshal(payload)
 	return string(raw)
+}
+
+func buildAvatarDominantSituation(knowledgeBase, proposalsPayload string) string {
+	return strings.TrimSpace(fmt.Sprintf(`当前需要为一个新的 Avatar 绑定来源并输出最终 system prompt。
+
+%s
+
+候选提案：
+%s`, knowledgeBase, proposalsPayload))
 }
 
 func validateSynthesizedAvatarPrompt(prompt, roleID, channel string) error {
@@ -924,7 +973,7 @@ func (r *AvatarRuntime) ensureRebuildInBackground(
 	bindingKey string,
 	sourceCtx *types.RequestSourceContext,
 	userMessage string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 ) {
 	r.mu.Lock()
 	binding, ok := r.bindings[bindingKey]
@@ -950,7 +999,7 @@ func (r *AvatarRuntime) ensureRebuildInBackground(
 		ctx, cancel := context.WithTimeout(context.Background(), avatarRebuildTimeout)
 		defer cancel()
 
-		created, err := r.createBinding(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper, trinity)
+		created, err := r.createBinding(ctx, bindingKey, sourceCtx, userMessage, melchior, balthazar, casper)
 
 		r.mu.Lock()
 		defer r.mu.Unlock()

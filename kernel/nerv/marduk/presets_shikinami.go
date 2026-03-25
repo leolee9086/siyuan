@@ -15,6 +15,11 @@ func GetShikinamiSubmissionPayload() *IpipNeo120SubmissionPayload {
 			Organization: "Research Institute",
 			Role:         "Specialist",
 			CareerGoal:   "证明自我价值",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "驾驶员",
+				PrimarySocialRelation: "专家和优等生",
+				SelfName:              "式波",
+			},
 		},
 		Date:         time.Now().Format("2006-01-02"),
 		Descriptions: shikinamiDescriptions(),
@@ -40,6 +45,11 @@ func GetShikinamiPreset() *IpipPersonaProfile {
 			Organization: &organization,
 			Role:         &role,
 			CareerGoal:   &careerGoal,
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "驾驶员",
+				PrimarySocialRelation: "专家和优等生",
+				SelfName:              "式波",
+			},
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{

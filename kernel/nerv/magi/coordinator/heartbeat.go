@@ -14,17 +14,19 @@ import (
 )
 
 type HeartbeatDecisionResult struct {
-	RoundID      string
-	Sleeping     bool
-	Sleeper      string
-	SleepSummary string
-	Responses    []types.SageResponse
+	RoundID        string
+	Sleeping       bool
+	Sleeper        string
+	SleepSummary   string
+	DominantSeel   string
+	DominantStance string
+	Responses      []types.SageResponse
 }
 
 func (c *Coordinator) CoordinateHeartbeat(
 	ctx context.Context,
 	sessionID string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
 ) (*HeartbeatDecisionResult, error) {
@@ -71,23 +73,40 @@ func (c *Coordinator) CoordinateHeartbeat(
 
 	sleepSummary := ""
 	sleeper := collection.Sleeper
+	dominantSeel := ""
+	dominantStance := ""
 	if collection.Sleeping {
-		sleepSummary, err = c.finalizeHeartbeatSleepRound(ctx, sessionID, roundID, melchior, balthazar, casper, trinity, collection.Responses)
+		var dominantResult *DominantElectionResult
+		sleepSummary, dominantResult, err = c.finalizeHeartbeatSleepRound(
+			ctx,
+			sessionID,
+			roundID,
+			melchior,
+			balthazar,
+			casper,
+			collection.Responses,
+		)
 		if err != nil {
 			if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
 				logging.LogWarnf("推送心跳轮次失败事件失败: %v", pushErr)
 			}
 			return nil, err
 		}
+		if dominantResult != nil {
+			dominantSeel = dominantResult.DominantSeelName
+			dominantStance = dominantResult.DominantStance
+		}
 		sleeper = "all"
 	}
 
 	return &HeartbeatDecisionResult{
-		RoundID:      roundID,
-		Sleeping:     collection.Sleeping,
-		Sleeper:      sleeper,
-		SleepSummary: sleepSummary,
-		Responses:    collection.Responses,
+		RoundID:        roundID,
+		Sleeping:       collection.Sleeping,
+		Sleeper:        sleeper,
+		SleepSummary:   sleepSummary,
+		DominantSeel:   dominantSeel,
+		DominantStance: dominantStance,
+		Responses:      collection.Responses,
 	}, nil
 }
 

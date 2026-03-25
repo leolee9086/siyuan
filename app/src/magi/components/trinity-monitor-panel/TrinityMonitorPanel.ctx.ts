@@ -102,6 +102,8 @@ function buildPayloadSummary(
         case "RUNTIME_STATUS_UPDATED": {
             const parts = [
                 readNonEmptyString(Reflect.get(payload, "state")),
+                readNonEmptyString(Reflect.get(payload, "dominantSeel")),
+                readNonEmptyString(Reflect.get(payload, "dominantStance")),
                 readNonEmptyString(Reflect.get(payload, "currentTask")),
                 readNonEmptyString(Reflect.get(payload, "reason")),
             ].filter((part): part is string => !!part);
@@ -319,9 +321,16 @@ export function buildTrinityMonitorFacts(
             value: runtimeStatus?.wakeSource?.trim() || "-",
         },
         {
+            label: "DOMINANT",
+            value: runtimeStatus?.dominantStance?.trim()
+                || runtimeStatus?.dominantSeel?.trim()
+                || "-",
+        },
+        {
             label: "UPDATED",
             value: formatMonitorTimestamp(
-                runtimeStatus?.updatedAt
+                runtimeStatus?.dominantUpdatedAt
+                ?? runtimeStatus?.updatedAt
                 ?? runtimeStatus?.lastHeartbeatAt
                 ?? runtimeStatus?.lastWakeAt
                 ?? runtimeStatus?.lastSleepAt,

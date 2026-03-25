@@ -202,6 +202,20 @@ func (s *Sage) GetLLMClient() llm.Client {
 	return s.llmClient
 }
 
+// GetProfile 返回当前贤者绑定的人格档案。
+func (s *Sage) GetProfile() *marduk.IpipPersonaProfile {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.profile
+}
+
+// SetProfile 绑定人格档案。
+func (s *Sage) SetProfile(profile *marduk.IpipPersonaProfile) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.profile = profile
+}
+
 // GetSystemPrompt 获取系统提示词
 func (s *Sage) GetSystemPrompt() string {
 	s.mu.RLock()
@@ -248,6 +262,19 @@ func (s *Sage) GetTools() []openai.Tool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.tools
+}
+
+// BuildRequestMessagesForSession 构建带唤醒前缀的当前会话请求消息快照。
+func (s *Sage) BuildRequestMessagesForSession(sessionId string, extraMessages ...types.ContextMessage) []types.ContextMessage {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	history := s.contextManager.GetMessagesForSession(sessionId)
+	requestMessages := s.buildRequestMessages(history)
+	result := make([]types.ContextMessage, 0, len(requestMessages)+len(extraMessages))
+	result = append(result, cloneContextMessages(requestMessages)...)
+	result = append(result, cloneContextMessages(extraMessages)...)
+	return result
 }
 
 // PrependToContext 在上下文开头插入消息
@@ -322,6 +349,29 @@ func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.
 	); err != nil {
 		logging.LogWarnf("推送上下文裁剪事件失败: %v", err)
 	}
+}
+
+func cloneContextMessages(messages []types.ContextMessage) []types.ContextMessage {
+	if len(messages) == 0 {
+		return nil
+	}
+
+	cloned := make([]types.ContextMessage, 0, len(messages))
+	for _, msg := range messages {
+		next := msg
+		if len(msg.ToolCalls) > 0 {
+			next.ToolCalls = append([]types.ToolCall(nil), msg.ToolCalls...)
+		}
+		if msg.Meta != nil {
+			metaCopy := make(map[string]interface{}, len(msg.Meta))
+			for key, value := range msg.Meta {
+				metaCopy[key] = value
+			}
+			next.Meta = metaCopy
+		}
+		cloned = append(cloned, next)
+	}
+	return cloned
 }
 
 // contextManagerImpl 上下文管理器实现

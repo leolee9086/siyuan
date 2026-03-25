@@ -31,7 +31,6 @@ func IsAvatarDispatchRequired(err error) bool {
 // Coordinator MAGI决策协调器
 type Coordinator struct {
 	collector *ResponseCollector
-	trinity   *TrinityCoordinator
 	avatar    *AvatarRuntime
 
 	runtimeMu                 sync.Mutex
@@ -43,7 +42,6 @@ type Coordinator struct {
 func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 	return &Coordinator{
 		collector: NewResponseCollector(collectionTimeout),
-		trinity:   NewTrinityCoordinator(collectionTimeout),
 		avatar:    NewAvatarRuntime(),
 
 		roundBySession:            map[string]uint64{},
@@ -55,12 +53,12 @@ func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 // 1. 收集三贤人响应
 // 2. 判断是否需要审慎决策（D-001: 严格只看Melchior工具调用）
 // 3. 如需投票：执行投票 → 根据结果决定是否继续
-// 4. Trinity统合
+// 4. 由主导者承担最终回复/统合职责
 // 5. 返回最终响应
 func (c *Coordinator) CoordinateDecision(
 	ctx context.Context,
 	sessionId string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
 	claimedRecentHistory []types.ClaimedHistoryMessage,
@@ -93,7 +91,6 @@ func (c *Coordinator) CoordinateDecision(
 			melchior,
 			balthazar,
 			casper,
-			trinity,
 		)
 		if err != nil {
 			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
@@ -117,8 +114,7 @@ func (c *Coordinator) CoordinateDecision(
 		return msg, nil
 	}
 
-	// 步骤1: 收集三贤人响应
-	responses, err := c.collector.CollectResponses(
+	msg, _, err := c.coordinateDominantDirectReply(
 		ctx,
 		sessionId,
 		roundId,
@@ -127,54 +123,14 @@ func (c *Coordinator) CoordinateDecision(
 		casper,
 		userMessage,
 		sourceAwareUserInput,
+		sourceCtx,
 	)
 	if err != nil {
-		// 推送轮次失败
 		if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
 			logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
 		}
-		return nil, fmt.Errorf("收集贤者响应失败: %w", err)
+		return nil, err
 	}
-
-	// 步骤2: 判断是否需要审慎决策（D-001: 只看Melchior的requiresDeliberation）
-	requiresDeliberation := c.checkDeliberationRequired(responses)
-
-	var voteResult *VoteResult
-
-	// 步骤3: 如需投票，执行投票流程
-	if requiresDeliberation {
-		voteResult, err = c.executeVoting(ctx, sessionId, roundId, melchior, balthazar, casper, responses, userMessage)
-		if err != nil {
-			// 推送轮次失败
-			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
-				logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
-			}
-			return nil, fmt.Errorf("投票流程失败: %w", err)
-		}
-
-		// 如果投票未通过，返回否决消息
-		if !voteResult.Passed {
-			msg := c.buildRejectionMessage()
-			// 推送共识发出
-			if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
-				logging.LogWarnf("推送共识发出失败: %v", err)
-			}
-			return msg, nil
-		}
-	}
-
-	// 步骤4: Trinity统合
-	trinityResult, err := c.trinity.HandleTrinitySummary(ctx, sessionId, roundId, trinity, responses, sourceAwareUserInput)
-	if err != nil {
-		// 推送轮次失败
-		if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
-			logging.LogWarnf("推送轮次失败事件失败: %v", pushErr)
-		}
-		return nil, fmt.Errorf("Trinity统合失败: %w", err)
-	}
-
-	// 步骤5: 构建最终响应
-	msg := c.buildConsensusMessage(trinityResult, requiresDeliberation, voteResult, sourceCtx)
 
 	// 推送共识发出
 	if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
@@ -505,9 +461,4 @@ func compactWorkspacePathHint(absPath string) string {
 		return segments[0]
 	}
 	return ".../" + segments[len(segments)-2] + "/" + segments[len(segments)-1]
-}
-
-// GetTrinityCoordinator 暴露Trinity协调器（用于ATF等特殊场景）
-func (c *Coordinator) GetTrinityCoordinator() *TrinityCoordinator {
-	return c.trinity
 }

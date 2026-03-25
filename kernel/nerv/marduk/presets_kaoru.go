@@ -15,6 +15,11 @@ func GetKaoruSubmissionPayload() *IpipNeo120SubmissionPayload {
 			Organization: "Research Institute",
 			Role:         "Consultant",
 			CareerGoal:   "理解人类",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "司令",
+				PrimarySocialRelation: "第一使徒",
+				SelfName:              "薰",
+			},
 		},
 		Date:         time.Now().Format("2006-01-02"),
 		Descriptions: kaoruDescriptions(),
@@ -29,6 +34,11 @@ func GetKaoruPreset() *IpipPersonaProfile {
 		Subject: IpipSubjectProfile{
 			ID:   "kaoru",
 			Name: "薰",
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "司令",
+				PrimarySocialRelation: "第一使徒",
+				SelfName:              "薰",
+			},
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{

@@ -149,7 +149,6 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 			magiMelchior,
 			magiBalthazar,
 			magiCasper,
-			magiTrinity,
 			buildHeartbeatPrompt(now),
 			buildHeartbeatSourceContext(),
 		)
@@ -181,6 +180,11 @@ func (m *magiRuntimeManager) finishHeartbeat(
 	m.status.UpdatedAt = nowMillis
 	if result != nil {
 		m.status.CurrentRoundID = strings.TrimSpace(result.RoundID)
+		if dominantSeel := strings.TrimSpace(result.DominantSeel); dominantSeel != "" {
+			m.status.DominantSeel = dominantSeel
+			m.status.DominantStance = strings.TrimSpace(result.DominantStance)
+			m.status.DominantUpdatedAt = nowMillis
+		}
 	}
 
 	switch {
@@ -246,6 +250,36 @@ func (m *magiRuntimeManager) BeginForeground(taskPreview string) {
 	m.status.CurrentTask = truncateRuntimeText(taskPreview, 160)
 	m.status.CurrentRoundID = ""
 	m.status.LastWakeAt = nowMillis
+	m.status.UpdatedAt = nowMillis
+	status := m.status
+	m.mu.Unlock()
+
+	m.pushStatus(status)
+}
+
+func (m *magiRuntimeManager) ApplyForegroundConsensus(message *types.Message) {
+	if m == nil || message == nil || len(message.Meta) == 0 {
+		return
+	}
+
+	dominantSeel := readConsensusMetaString(message.Meta, "dominantSeel")
+	dominantStance := readConsensusMetaString(message.Meta, "dominantStance")
+	roundID := readConsensusMetaString(message.Meta, "roundId")
+	if dominantSeel == "" && dominantStance == "" && roundID == "" {
+		return
+	}
+
+	nowMillis := time.Now().UnixMilli()
+
+	m.mu.Lock()
+	if roundID != "" {
+		m.status.CurrentRoundID = roundID
+	}
+	if dominantSeel != "" {
+		m.status.DominantSeel = dominantSeel
+		m.status.DominantStance = dominantStance
+		m.status.DominantUpdatedAt = nowMillis
+	}
 	m.status.UpdatedAt = nowMillis
 	status := m.status
 	m.mu.Unlock()
@@ -341,4 +375,20 @@ func truncateRuntimeText(text string, limit int) string {
 		return text
 	}
 	return text[:limit] + "..."
+}
+
+func readConsensusMetaString(meta map[string]interface{}, key string) string {
+	if len(meta) == 0 {
+		return ""
+	}
+	value, ok := meta[key]
+	if !ok || value == nil {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	default:
+		return strings.TrimSpace(fmt.Sprint(typed))
+	}
 }

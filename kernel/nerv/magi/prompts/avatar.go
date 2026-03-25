@@ -74,12 +74,13 @@ Melchior 发起结果：
 		knowledgeBase, melchiorProposal)
 }
 
-// BuildTrinitySynthesizeAvatarTask 构建 Trinity 的 synthesizeAvatar 工具任务输入。
-func BuildTrinitySynthesizeAvatarTask(
+// BuildDominantSynthesizeAvatarTask 构建由主导者承担的 synthesizeAvatar 工具任务输入。
+func BuildDominantSynthesizeAvatarTask(
+	string,
 	knowledgeBase string,
 	proposalsPayload string,
 ) string {
-	return fmt.Sprintf(`你负责综合 Avatar 修改提案并输出最终原型。
+	return fmt.Sprintf(`请根据给定材料输出最终 Avatar 原型。
 你必须调用工具 synthesizeAvatar，禁止输出普通文本。
 
 %s

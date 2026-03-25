@@ -17,6 +17,7 @@ import (
 type mockAvatarPipelineClient struct {
 	toolArgsByName map[string]string
 	defaultContent string
+	syncResponse   string
 }
 
 func (m *mockAvatarPipelineClient) SendChatRequest(
@@ -106,6 +107,9 @@ func (m *mockAvatarPipelineClient) SendChatRequestSync(
 	tools []openai.Tool,
 	toolChoice any,
 ) (string, error) {
+	if strings.TrimSpace(m.syncResponse) != "" {
+		return m.syncResponse, nil
+	}
 	return m.defaultContent, nil
 }
 
@@ -117,6 +121,7 @@ func createAvatarPipelineSage(
 	name,
 	displayName,
 	defaultContent string,
+	syncResponse string,
 	toolArgsByName map[string]string,
 ) *sages.Sage {
 	tools := make([]config.ToolDef, 0, len(toolArgsByName))
@@ -144,8 +149,11 @@ func createAvatarPipelineSage(
 	client := &mockAvatarPipelineClient{
 		toolArgsByName: toolArgsByName,
 		defaultContent: defaultContent,
+		syncResponse:   syncResponse,
 	}
-	return sages.NewSage(name, cfg, client, strategy)
+	sage := sages.NewSage(name, cfg, client, strategy)
+	sage.SetProfile(buildDominantReplyTestProfile())
+	return sage
 }
 
 func resolveAvatarToolArgsTemplate(template string, messages []types.ContextMessage) string {
@@ -487,17 +495,15 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 		RiskLevel:             types.TrustLevelMedium,
 	}
 
-	melchior := createAvatarPipelineSage("melchior", "Melchior", "", map[string]string{
+	melchior := createAvatarPipelineSage("melchior", "Melchior", "avatar-direct-reply", `{"scores":[{"candidate":"作为科学家的你","score":95},{"candidate":"作为母亲的你","score":35},{"candidate":"仅作为赤城直子本人的你","score":20}],"reason":"当前任务更适合专业侧主导"}`, map[string]string{
 		avatarBuildToolName: `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
+		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
-	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", map[string]string{
+	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", `{"scores":[{"candidate":"作为科学家的你","score":80},{"candidate":"作为母亲的你","score":45},{"candidate":"仅作为赤城直子本人的你","score":30}],"reason":"当前任务先保证结构稳定"}`, map[string]string{
 		avatarModifyToolName: `{"decision":"approved","reason":"review-ok","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。执行前先评估风险并调用 report_to_core。","requirements":"风险感知优先"}`,
 	})
-	casper := createAvatarPipelineSage("casper", "Casper", "", map[string]string{
+	casper := createAvatarPipelineSage("casper", "Casper", "", `{"scores":[{"candidate":"作为科学家的你","score":75},{"candidate":"作为母亲的你","score":40},{"candidate":"仅作为赤城直子本人的你","score":35}],"reason":"当前任务需要优先收敛方案"}`, map[string]string{
 		avatarModifyToolName: `{"decision":"approved","reason":"review-ok","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。保持高可用并调用 report_to_core。","requirements":"执行稳定优先"}`,
-	})
-	trinity := createAvatarPipelineSage("trinity", "Trinity", "avatar-direct-reply", map[string]string{
-		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
 
 	firstMsg, err := c.CoordinateDecision(
@@ -506,7 +512,6 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"测试消息",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "测试消息"}},
@@ -535,7 +540,6 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"第二次请求",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "第二次请求"}},
@@ -565,17 +569,15 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		RiskLevel:             types.TrustLevelMedium,
 	}
 
-	melchior := createAvatarPipelineSage("melchior", "Melchior", "", map[string]string{
+	melchior := createAvatarPipelineSage("melchior", "Melchior", "avatar-direct-reply", `{"scores":[{"candidate":"作为科学家的你","score":95},{"candidate":"作为母亲的你","score":35},{"candidate":"仅作为赤城直子本人的你","score":20}],"reason":"当前任务更适合专业侧主导"}`, map[string]string{
 		avatarBuildToolName: `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
+		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
-	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", map[string]string{
+	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", `{"scores":[{"candidate":"作为科学家的你","score":80},{"candidate":"作为母亲的你","score":45},{"candidate":"仅作为赤城直子本人的你","score":30}],"reason":"当前任务先保证结构稳定"}`, map[string]string{
 		avatarModifyToolName: `{"decision":"approved","reason":"review-ok","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。执行前先评估风险并调用 report_to_core。","requirements":"风险感知优先"}`,
 	})
-	casper := createAvatarPipelineSage("casper", "Casper", "", map[string]string{
+	casper := createAvatarPipelineSage("casper", "Casper", "", `{"scores":[{"candidate":"作为科学家的你","score":75},{"candidate":"作为母亲的你","score":40},{"candidate":"仅作为赤城直子本人的你","score":35}],"reason":"当前任务需要优先收敛方案"}`, map[string]string{
 		avatarModifyToolName: `{"decision":"approved","reason":"review-ok","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。保持高可用并调用 report_to_core。","requirements":"执行稳定优先"}`,
-	})
-	trinity := createAvatarPipelineSage("trinity", "Trinity", "avatar-direct-reply", map[string]string{
-		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
 
 	firstMsg, err := c.CoordinateDecision(
@@ -584,7 +586,6 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"请求1",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求1"}},
@@ -603,7 +604,6 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"请求2",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求2"}},
@@ -618,7 +618,6 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"请求3",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求3"}},
@@ -633,7 +632,6 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"请求4",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求4"}},
@@ -650,7 +648,6 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"请求5",
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: "请求5"}},

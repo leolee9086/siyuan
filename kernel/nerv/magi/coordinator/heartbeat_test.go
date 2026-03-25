@@ -75,15 +75,12 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 			},
 		},
 	})
-	trinity := createMockTrinity("三条笔记已经彼此扣上了：记录能为计划兜底，计划也给梦境画面一个明确的去处，醒来后可以沿着这条线继续推进。", nil, false, 0)
-
 	result, err := coordinator.CoordinateHeartbeat(
 		context.Background(),
 		"heartbeat-merge-session",
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"heartbeat",
 		nil,
 	)
@@ -105,7 +102,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 	if !strings.Contains(result.SleepSummary, "当前的记录") ||
 		!strings.Contains(result.SleepSummary, "下一步的计划") ||
 		!strings.Contains(result.SleepSummary, "画面式的描述") ||
-		!strings.Contains(result.SleepSummary, "Trinity的综合整合描述") {
+		!strings.Contains(result.SleepSummary, "补充整理描述") {
 		t.Fatalf("期望最终睡前笔记包含四个部分，实际=%s", result.SleepSummary)
 	}
 
@@ -132,7 +129,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 			}
 			if payload.State == "sleeping" && strings.TrimSpace(payload.Summary) == strings.TrimSpace(result.SleepSummary) {
 				found = true
-				if payload.Sections["nextStepPlan"] == "" || payload.Sections["dreamScene"] == "" || payload.Sections["trinity"] == "" {
+				if payload.Sections["nextStepPlan"] == "" || payload.Sections["dreamScene"] == "" || payload.Sections["supplementalSummary"] == "" {
 					t.Fatalf("%s 的合并睡前笔记缺少结构化分段: %+v", sage.name, payload.Sections)
 				}
 				break
@@ -167,15 +164,12 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 			},
 		},
 	})
-	trinity := createMockTrinity("这段内容不应被使用", nil, false, 0)
-
 	result, err := coordinator.CoordinateHeartbeat(
 		context.Background(),
 		"heartbeat-awake-session",
 		melchior,
 		balthazar,
 		casper,
-		trinity,
 		"heartbeat",
 		nil,
 	)

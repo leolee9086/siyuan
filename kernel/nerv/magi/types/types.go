@@ -274,6 +274,9 @@ type RuntimeStatus struct {
 	Awake            bool         `json:"awake"`
 	WakeSource       string       `json:"wakeSource,omitempty"`
 	Reason           string       `json:"reason,omitempty"`
+	DominantSeel     string       `json:"dominantSeel,omitempty"`
+	DominantStance   string       `json:"dominantStance,omitempty"`
+	DominantUpdatedAt int64       `json:"dominantUpdatedAt,omitempty"`
 	CurrentRoundID   string       `json:"currentRoundId,omitempty"`
 	CurrentTask      string       `json:"currentTask,omitempty"`
 	LastHeartbeatAt  int64        `json:"lastHeartbeatAt,omitempty"`

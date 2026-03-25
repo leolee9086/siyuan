@@ -110,3 +110,54 @@ func TestMagiRuntimeManagerFinishHeartbeat_KeepsAwakeOnHeartbeatFailure(t *testi
 		t.Fatalf("期望 reason=heartbeat-interrupted，实际=%s", status.Reason)
 	}
 }
+
+func TestMagiRuntimeManagerApplyForegroundConsensus_UpdatesDominantStatus(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.BeginForeground("外部请求")
+
+	manager.ApplyForegroundConsensus(&types.Message{
+		Meta: map[string]interface{}{
+			"roundId":        "external-round-1",
+			"dominantSeel":   "melchior",
+			"dominantStance": "科学家",
+		},
+	})
+
+	status := manager.GetStatus()
+	if status.State != types.RuntimeStateExternal || !status.Awake {
+		t.Fatalf("期望仍处于 external/awake，实际=%+v", status)
+	}
+	if status.CurrentRoundID != "external-round-1" {
+		t.Fatalf("期望写入 currentRoundId，实际=%s", status.CurrentRoundID)
+	}
+	if status.DominantSeel != "melchior" {
+		t.Fatalf("期望写入 dominantSeel，实际=%s", status.DominantSeel)
+	}
+	if status.DominantStance != "科学家" {
+		t.Fatalf("期望写入 dominantStance，实际=%s", status.DominantStance)
+	}
+	if status.DominantUpdatedAt == 0 {
+		t.Fatal("期望刷新 dominantUpdatedAt")
+	}
+}
+
+func TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.BeginForeground("外部请求")
+	manager.ApplyForegroundConsensus(&types.Message{
+		Meta: map[string]interface{}{
+			"dominantSeel":   "casper",
+			"dominantStance": "式波",
+		},
+	})
+
+	manager.FinishForeground(nil)
+
+	status := manager.GetStatus()
+	if status.State != types.RuntimeStateSleeping || status.Awake {
+		t.Fatalf("期望请求完成后进入 sleeping，实际=%+v", status)
+	}
+	if status.DominantSeel != "casper" || status.DominantStance != "式波" {
+		t.Fatalf("期望保留最近主导者信息，实际=%+v", status)
+	}
+}

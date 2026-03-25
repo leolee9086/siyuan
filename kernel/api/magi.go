@@ -68,7 +68,6 @@ var (
 	magiMelchior    *sages.Sage
 	magiBalthazar   *sages.Sage
 	magiCasper      *sages.Sage
-	magiTrinity     *sages.Sage
 	magiRuntimeMgr  = newMagiRuntimeManager(defaultMagiHeartbeatInterval)
 	magiInitErr     error
 	magiPersonaMu   sync.RWMutex
@@ -170,10 +169,6 @@ func initMagiComponents() error {
 		return err
 	}
 	magiCasper, err = sages.NewCasper(magiConfigMgr, llmClient)
-	if err != nil {
-		return err
-	}
-	magiTrinity, err = sages.NewTrinity(magiConfigMgr, llmClient)
 	if err != nil {
 		return err
 	}
@@ -344,7 +339,6 @@ func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
 		magiMelchior,
 		magiBalthazar,
 		magiCasper,
-		magiTrinity,
 		userMessage,
 		task.SourceCtx,
 		claimedRecentHistory,
@@ -354,6 +348,7 @@ func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
 		result = MagiTaskResult{Err: err}
 		return
 	}
+	magiRuntimeMgr.ApplyForegroundConsensus(consensusMsg)
 	result = MagiTaskResult{ConsensusMsg: consensusMsg}
 	return
 }

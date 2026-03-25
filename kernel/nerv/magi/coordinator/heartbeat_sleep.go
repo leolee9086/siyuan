@@ -13,6 +13,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 )
 
 var persistMergedWannaSleepMemoryToNotebook = persistMergedWannaSleepMemoryEntryToNotebook
@@ -20,62 +21,63 @@ var persistMergedWannaSleepMemoryToNotebook = persistMergedWannaSleepMemoryEntry
 func (c *Coordinator) finalizeHeartbeatSleepRound(
 	ctx context.Context,
 	sessionID, roundID string,
-	melchior, balthazar, casper, trinity *sages.Sage,
+	melchior, balthazar, casper *sages.Sage,
 	responses []types.SageResponse,
-) (string, error) {
+) (string, *DominantElectionResult, error) {
 	if c == nil {
-		return "", fmt.Errorf("coordinator is nil")
-	}
-	if trinity == nil {
-		return "", fmt.Errorf("trinity is nil")
+		return "", nil, fmt.Errorf("coordinator is nil")
 	}
 
 	melchiorResp, balthazarResp, casperResp, err := resolveHeartbeatSleepResponses(responses)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	trinityResult, err := c.trinity.HandleTrinitySummary(
+	dominantResult, err := electDominantSage(
 		ctx,
 		sessionID,
-		roundID,
-		trinity,
-		[]types.SageResponse{
-			{
-				Seel:    "melchior",
-				Content: buildHeartbeatSleepNoteForTrinity("melchior", melchiorResp.SleepNote),
-			},
-			{
-				Seel:    "balthazar",
-				Content: buildHeartbeatSleepNoteForTrinity("balthazar", balthazarResp.SleepNote),
-			},
-			{
-				Seel:    "casper",
-				Content: buildHeartbeatSleepNoteForTrinity("casper", casperResp.SleepNote),
-			},
-		},
-		prompts.BuildTrinityHeartbeatSleepTask(),
+		melchior,
+		balthazar,
+		casper,
+		buildHeartbeatSleepDominantSituation(
+			melchiorResp.SleepNote,
+			balthazarResp.SleepNote,
+			casperResp.SleepNote,
+		),
 	)
 	if err != nil {
-		return "", fmt.Errorf("Trinity 睡前笔记统合失败: %w", err)
+		return "", nil, fmt.Errorf("睡眠轮次主导者选举失败: %w", err)
 	}
 
-	trinitySummary := strings.TrimSpace(trinityResult.Content)
-	if trinitySummary == "" {
-		return "", fmt.Errorf("Trinity 睡前笔记统合为空")
+	dominantSage, err := resolveDominantSage(dominantResult, melchior, balthazar, casper)
+	if err != nil {
+		return "", nil, err
+	}
+
+	dominantSummary, err := synthesizeHeartbeatSleepWithDominant(
+		ctx,
+		sessionID,
+		dominantSage,
+		dominantResult,
+		melchiorResp.SleepNote,
+		balthazarResp.SleepNote,
+		casperResp.SleepNote,
+	)
+	if err != nil {
+		return "", nil, fmt.Errorf("主导者睡前笔记统合失败: %w", err)
 	}
 
 	finalNote := buildMergedHeartbeatSleepNote(
 		melchiorResp.SleepNote,
 		balthazarResp.SleepNote,
 		casperResp.SleepNote,
-		trinitySummary,
+		dominantSummary,
 	)
 	sections := buildMergedWannaSleepSections(
 		melchiorResp.SleepNote,
 		balthazarResp.SleepNote,
 		casperResp.SleepNote,
-		trinitySummary,
+		dominantSummary,
 	)
 	sleepAt := toolResultMemoryNow()
 
@@ -85,7 +87,7 @@ func (c *Coordinator) finalizeHeartbeatSleepRound(
 		melchiorResp.SleepNote,
 		balthazarResp.SleepNote,
 		casperResp.SleepNote,
-		trinitySummary,
+		dominantSummary,
 		finalNote,
 		sleepAt,
 	); err != nil {
@@ -96,7 +98,7 @@ func (c *Coordinator) finalizeHeartbeatSleepRound(
 	appendMergedWannaSleepHistory(sessionID, roundID, balthazar, balthazarResp, finalNote, sections, sleepAt)
 	appendMergedWannaSleepHistory(sessionID, roundID, casper, casperResp, finalNote, sections, sleepAt)
 
-	return finalNote, nil
+	return finalNote, dominantResult, nil
 }
 
 func resolveHeartbeatSleepResponses(responses []types.SageResponse) (melchior, balthazar, casper *types.SageResponse, err error) {
@@ -130,56 +132,89 @@ func resolveHeartbeatSleepResponses(responses []types.SageResponse) (melchior, b
 	}
 }
 
-func buildHeartbeatSleepNoteForTrinity(sageName string, note *types.WannaSleepTool) string {
-	if note == nil {
-		return ""
+func buildHeartbeatSleepDominantSituation(
+	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
+) string {
+	return strings.TrimSpace(strings.Join([]string{
+		"当前处于心跳轮次的睡眠整理阶段。",
+		"已有三则待连接的睡前笔记：",
+		"1. 当前记录：" + strings.TrimSpace(casperNote.Summary),
+		"2. 下一步计划：" + strings.TrimSpace(melchiorNote.NextStepPlan),
+		"3. 画面式描述：" + strings.TrimSpace(balthazarNote.DreamScene),
+	}, "\n"))
+}
+
+func synthesizeHeartbeatSleepWithDominant(
+	ctx context.Context,
+	sessionID string,
+	dominantSage *sages.Sage,
+	dominantResult *DominantElectionResult,
+	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
+) (string, error) {
+	if dominantSage == nil {
+		return "", fmt.Errorf("dominant sage is nil")
+	}
+	if dominantResult == nil {
+		return "", fmt.Errorf("dominant election result is nil")
 	}
 
-	parts := make([]string, 0, 2)
-	switch strings.TrimSpace(sageName) {
-	case "melchior":
-		if note.Summary != "" {
-			parts = append(parts, "本轮检查与思考："+strings.TrimSpace(note.Summary))
-		}
-		if note.NextStepPlan != "" {
-			parts = append(parts, "下一步计划："+strings.TrimSpace(note.NextStepPlan))
-		}
-	case "balthazar":
-		if note.Summary != "" {
-			parts = append(parts, "本轮感受与印象："+strings.TrimSpace(note.Summary))
-		}
-		if note.DreamScene != "" {
-			parts = append(parts, "画面式描述："+strings.TrimSpace(note.DreamScene))
-		}
-	default:
-		parts = append(parts, "当前记录："+strings.TrimSpace(note.Summary))
+	stances, err := marduk.ResolveCognitiveStances(dominantSage.GetProfile())
+	if err != nil {
+		return "", err
 	}
 
-	return strings.TrimSpace(strings.Join(parts, "\n"))
+	requestMessages := dominantSage.BuildRequestMessagesForSession(
+		sessionID,
+		types.ContextMessage{
+			Role:    types.RoleSystem,
+			Content: prompts.BuildDominantSleepSynthesisPrompt(dominantResult.DominantStance),
+		},
+		types.ContextMessage{
+			Role: types.RoleUser,
+			Content: prompts.BuildDominantSleepSynthesisInput(
+				buildDominantPromptLabel(marduk.CognitiveStanceProfession, stances.Profession),
+				buildDominantPromptLabel(marduk.CognitiveStancePrimarySocialRelation, stances.PrimarySocialRelation),
+				buildDominantPromptLabel(marduk.CognitiveStanceSelfName, stances.SelfName),
+				strings.TrimSpace(casperNote.Summary),
+				strings.TrimSpace(melchiorNote.NextStepPlan),
+				strings.TrimSpace(balthazarNote.DreamScene),
+			),
+		},
+	)
+
+	content, err := dominantSage.GetLLMClient().SendChatRequestSync(ctx, requestMessages, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return "", fmt.Errorf("dominant sleep synthesis is empty")
+	}
+	return content, nil
 }
 
 func buildMergedHeartbeatSleepNote(
 	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
-	trinitySummary string,
+	dominantSummary string,
 ) string {
-	sections := buildMergedWannaSleepSections(melchiorNote, balthazarNote, casperNote, trinitySummary)
+	sections := buildMergedWannaSleepSections(melchiorNote, balthazarNote, casperNote, dominantSummary)
 	return strings.TrimSpace(strings.Join([]string{
 		"当前的记录：\n" + sections["currentRecord"],
 		"下一步的计划：\n" + sections["nextStepPlan"],
 		"画面式的描述：\n" + sections["dreamScene"],
-		"Trinity的综合整合描述：\n" + sections["trinity"],
+		"补充整理描述：\n" + sections["supplementalSummary"],
 	}, "\n\n"))
 }
 
 func buildMergedWannaSleepSections(
 	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
-	trinitySummary string,
+	dominantSummary string,
 ) map[string]string {
 	return map[string]string{
-		"currentRecord": strings.TrimSpace(casperNote.Summary),
-		"nextStepPlan":  strings.TrimSpace(melchiorNote.NextStepPlan),
-		"dreamScene":    strings.TrimSpace(balthazarNote.DreamScene),
-		"trinity":       strings.TrimSpace(trinitySummary),
+		"currentRecord":       strings.TrimSpace(casperNote.Summary),
+		"nextStepPlan":        strings.TrimSpace(melchiorNote.NextStepPlan),
+		"dreamScene":          strings.TrimSpace(balthazarNote.DreamScene),
+		"supplementalSummary": strings.TrimSpace(dominantSummary),
 	}
 }
 
@@ -224,10 +259,10 @@ func buildMergedWannaSleepToolResult(
 		"summary": strings.TrimSpace(finalNote),
 		"sleepAt": sleepAt.Format(time.RFC3339),
 		"sections": map[string]interface{}{
-			"currentRecord": strings.TrimSpace(sections["currentRecord"]),
-			"nextStepPlan":  strings.TrimSpace(sections["nextStepPlan"]),
-			"dreamScene":    strings.TrimSpace(sections["dreamScene"]),
-			"trinity":       strings.TrimSpace(sections["trinity"]),
+			"currentRecord":       strings.TrimSpace(sections["currentRecord"]),
+			"nextStepPlan":        strings.TrimSpace(sections["nextStepPlan"]),
+			"dreamScene":          strings.TrimSpace(sections["dreamScene"]),
+			"supplementalSummary": strings.TrimSpace(sections["supplementalSummary"]),
 		},
 	}
 
@@ -266,7 +301,7 @@ func buildHeartbeatSleepHistoryToolCall(roundID string, response *types.SageResp
 func persistMergedWannaSleepMemoryEntryToNotebook(
 	sessionID, roundID string,
 	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
-	trinitySummary string,
+	dominantSummary string,
 	finalNote string,
 	sleepAt time.Time,
 ) (*wannaSleepMemoryLocation, error) {
@@ -289,7 +324,7 @@ func persistMergedWannaSleepMemoryEntryToNotebook(
 		melchiorNote,
 		balthazarNote,
 		casperNote,
-		trinitySummary,
+		dominantSummary,
 		finalNote,
 		sleepAt,
 	)
@@ -331,7 +366,7 @@ func persistMergedWannaSleepMemoryEntryToNotebook(
 func buildMergedWannaSleepMemoryRecord(
 	sessionID, roundID string,
 	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
-	trinitySummary string,
+	dominantSummary string,
 	finalNote string,
 	sleepAt time.Time,
 ) map[string]interface{} {
@@ -340,10 +375,10 @@ func buildMergedWannaSleepMemoryRecord(
 		"summary":  strings.TrimSpace(finalNote),
 		"sleepAt":  sleepAt.Format(time.RFC3339),
 		"sections": map[string]interface{}{
-			"currentRecord": strings.TrimSpace(casperNote.Summary),
-			"nextStepPlan":  strings.TrimSpace(melchiorNote.NextStepPlan),
-			"dreamScene":    strings.TrimSpace(balthazarNote.DreamScene),
-			"trinity":       strings.TrimSpace(trinitySummary),
+			"currentRecord":       strings.TrimSpace(casperNote.Summary),
+			"nextStepPlan":        strings.TrimSpace(melchiorNote.NextStepPlan),
+			"dreamScene":          strings.TrimSpace(balthazarNote.DreamScene),
+			"supplementalSummary": strings.TrimSpace(dominantSummary),
 		},
 		"rawNotes": map[string]interface{}{
 			"melchior":  melchiorNote,

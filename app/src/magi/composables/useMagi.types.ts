@@ -25,6 +25,9 @@ export interface MagiRuntimeStatus {
     awake: boolean;
     wakeSource?: string;
     reason?: string;
+    dominantSeel?: string;
+    dominantStance?: string;
+    dominantUpdatedAt?: number;
     currentRoundId?: string;
     currentTask?: string;
     lastHeartbeatAt?: number;

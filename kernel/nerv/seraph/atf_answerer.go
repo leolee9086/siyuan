@@ -25,18 +25,16 @@ type MAGIAnswerer struct {
 	melchior       *sages.Sage
 	balthazar      *sages.Sage
 	casper         *sages.Sage
-	trinity        *sages.Sage
 	baselineAvatar *dummysys.ATFBaselineAvatar
 	coordinator    *coordinator.Coordinator
 }
 
 // NewMAGIAnswerer 创建 MAGI 答卷器。
-func NewMAGIAnswerer(melchior, balthazar, casper, trinity *sages.Sage, baselineAvatar *dummysys.ATFBaselineAvatar, coord *coordinator.Coordinator) *MAGIAnswerer {
+func NewMAGIAnswerer(melchior, balthazar, casper *sages.Sage, baselineAvatar *dummysys.ATFBaselineAvatar, coord *coordinator.Coordinator) *MAGIAnswerer {
 	return &MAGIAnswerer{
 		melchior:       melchior,
 		balthazar:      balthazar,
 		casper:         casper,
-		trinity:        trinity,
 		baselineAvatar: baselineAvatar,
 		coordinator:    coord,
 	}
@@ -132,32 +130,30 @@ func (a *MAGIAnswerer) AnswerAllEntities(
 		}
 	}
 
-	// 步骤5：构建introspection内容（使用前端格式，不暴露任何MAGI系统信息）
-	var introspection strings.Builder
-	introspection.WriteString(fmt.Sprintf("逻辑告诉我：%s\n\n", wiseMenResult.Melchior.Content))
-	introspection.WriteString(fmt.Sprintf("情绪告诉我：%s\n\n", wiseMenResult.Balthazar.Content))
-	introspection.WriteString(fmt.Sprintf("直觉告诉我：%s", wiseMenResult.Casper.Content))
-
-	// 步骤6：构建用户输入（所有题目）
+	// 步骤5：构建用户输入（所有题目）
 	userInput := buildQuestionPrompt(subject, EntityTrinity, allQuestions)
 
-	// 步骤7：通过coordinator的Trinity统合机制获取答案
+	// 步骤6：由主导者承担统合作答
 	trinityResponses := []types.SageResponse{
 		*wiseMenResult.Melchior,
 		*wiseMenResult.Balthazar,
 		*wiseMenResult.Casper,
 	}
-
-	// 需要暴露GetTrinityCoordinator方法
-	trinityCoord := a.coordinator.GetTrinityCoordinator()
-	trinityResult, err := trinityCoord.HandleTrinitySummary(
-		ctx, sessionId, util.RandString(16), a.trinity, trinityResponses, userInput)
+	dominantSynthesis, err := a.coordinator.SynthesizeResponsesWithDominant(
+		ctx,
+		sessionId,
+		a.melchior,
+		a.balthazar,
+		a.casper,
+		userInput,
+		trinityResponses,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("trinity summary failed: %w", err)
+		return nil, fmt.Errorf("dominant synthesis failed: %w", err)
 	}
 
-	// 步骤8：解析答案
-	trinityAnswer, err := parseLikertAnswer(trinityResult.Content, allQuestions)
+	// 步骤7：解析答案
+	trinityAnswer, err := parseLikertAnswer(dominantSynthesis.Content, allQuestions)
 	if err != nil {
 		return nil, fmt.Errorf("parse trinity answer failed: %w", err)
 	}
