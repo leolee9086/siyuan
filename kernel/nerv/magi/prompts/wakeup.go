@@ -9,25 +9,23 @@ import (
 )
 
 const (
-	wakeupSeraphSource         = "seraph"
-	wakeupEchoSource           = "echo"
-	wakeupTriggerSource        = "trigger"
-	wakeupAskName              = "你的姓名是什么？"
-	wakeupAskRole              = "你的职业是什么？"
-	wakeupAskGender            = "你的性别是什么？"
-	wakeupAskIdentity          = "你是谁？请用第一人称回答。"
-	wakeupFinishedRequest      = "唤醒校准完成，请继续工作并响应当前任务。"
-	wakeupOutputTriggerRequest = "think stoped,action start"
-	wakeupDefaultName          = "丽"
-	wakeupDefaultGender        = "未说明"
-	wakeupDefaultRole          = "助手"
-	wakeupDefaultCareerGoal    = "完成当前任务"
+	wakeupSeraphSource      = "seraph"
+	wakeupEchoSource        = "echo"
+	wakeupAskName           = "你的姓名是什么？"
+	wakeupAskRole           = "你的职业是什么？"
+	wakeupAskGender         = "你的性别是什么？"
+	wakeupAskIdentity       = "你是谁？请用第一人称回答。"
+	wakeupFinishedRequest   = "唤醒校准完成，请继续工作并响应当前任务。"
+	wakeupDefaultName       = "丽"
+	wakeupDefaultGender     = "未说明"
+	wakeupDefaultRole       = "助手"
+	wakeupDefaultCareerGoal = "完成当前任务"
 )
 
-// 判断是否属于侧写角色或者trinity
+// IsCoreSage 判断是否属于三贤人核心角色。
 func IsCoreSage(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "melchior", "balthazar", "casper", "trinity":
+	case "melchior", "balthazar", "casper":
 		return true
 	default:
 		return false
@@ -75,12 +73,6 @@ func BuildWakeupSequence(dataDir, name string, profile *marduk.IpipPersonaProfil
 			Role:    types.RoleSystem,
 			Content: BuildSourcedMessageContent(wakeupSeraphSource, wakeupFinishedRequest),
 		},
-	}
-	if strings.EqualFold(strings.TrimSpace(name), "trinity") {
-		seq = append(seq, types.ContextMessage{
-			Role:    types.RoleSystem,
-			Content: BuildSourcedMessageContent(wakeupTriggerSource, wakeupOutputTriggerRequest),
-		})
 	}
 	return seq
 }
@@ -166,27 +158,8 @@ func selectWakeupDescriptionBySage(sageName string, descriptions marduk.IpipPers
 		return joinWakeupDescriptions(integrated, descriptions.InstinctNeedsDescription)
 	case "casper":
 		return joinWakeupDescriptions(integrated, descriptions.LifeDescription)
-	case "trinity":
-		// Trinity包含整合描述和三个侧面描述
-		var parts []string
-		if desc := integrated; desc != "" {
-			parts = append(parts, desc)
-		}
-		if desc := strings.TrimSpace(descriptions.ProfessionalDescription); desc != "" {
-			parts = append(parts, desc)
-		}
-		if desc := strings.TrimSpace(descriptions.InstinctNeedsDescription); desc != "" {
-			parts = append(parts, desc)
-		}
-		if desc := strings.TrimSpace(descriptions.LifeDescription); desc != "" {
-			parts = append(parts, desc)
-		}
-		if len(parts) > 0 {
-			return strings.Join(parts, "\n\n")
-		}
-		return ""
 	default:
-		// 只有三贤人和trinity，其他情况报错
+		// 只有三贤人，其他情况报错
 		panic(fmt.Sprintf("invalid sage name: %s", sageName))
 	}
 }

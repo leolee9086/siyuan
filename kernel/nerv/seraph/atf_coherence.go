@@ -1,9 +1,9 @@
 package seraph
 
 // ComputeInternalCoherence 计算内部一致性 C_int
-// 计算所有4个AI（Trinity + 3贤人）之间的平均相似度
+// 计算主导统合结果与三贤人内部关系的平均相似度
 func ComputeInternalCoherence(similarities map[string]float64) float64 {
-	// 6对组合: (T,m), (T,b), (T,c), (m,b), (m,c), (b,c)
+	// 6对组合: (I,m), (I,b), (I,c), (m,b), (m,c), (b,c)
 	if len(similarities) == 0 {
 		return 0
 	}
@@ -23,9 +23,9 @@ func ComputeInternalCoherence(similarities map[string]float64) float64 {
 }
 
 // ComputeExternalCoherence 计算外部一致性 C_ext
-// Trinity与参考基线的相似度
-func ComputeExternalCoherence(trinitySim float64) float64 {
-	return trinitySim
+// 主导统合结果与参考基线的相似度
+func ComputeExternalCoherence(integratedSim float64) float64 {
+	return integratedSim
 }
 
 // ComputeRawCoherence 计算原始一致性分数 C

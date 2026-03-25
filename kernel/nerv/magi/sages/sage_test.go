@@ -314,43 +314,6 @@ func TestSageSendMessageInjectsWakeupSequenceForCoreSage(t *testing.T) {
 	}
 }
 
-func TestSageSendMessageInjectsTriggerForTrinity(t *testing.T) {
-	cfg := &config.AgentConfig{
-		Name: "trinity",
-		SEELConfig: config.SEELConfig{
-			Name: "Trinity",
-		},
-		SystemPrompt: "system prompt",
-	}
-	strategy := &config.ContextStrategy{
-		Type:  "message_count",
-		Count: 20,
-	}
-
-	var capturedMessages []types.ContextMessage
-	client := &mockLLMClient{
-		sendChatRequestFunc: func(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
-			capturedMessages = messages
-			ch := make(chan types.StreamChunk, 1)
-			close(ch)
-			return ch, nil
-		},
-	}
-
-	sage := NewSage("trinity", cfg, client, strategy)
-	if _, err := sage.SendMessage(context.Background(), "", "", "hello"); err != nil {
-		t.Fatalf("SendMessage failed: %v", err)
-	}
-
-	joined := ""
-	for _, msg := range capturedMessages {
-		joined += msg.Content + "\n"
-	}
-	if !strings.Contains(joined, "<source=trigger>") {
-		t.Fatal("expected trigger sourced wakeup message for trinity")
-	}
-}
-
 // TestFactoryMethods 测试工厂方法
 func TestFactoryMethods(t *testing.T) {
 	cfgManager := config.NewConfigManager("")
@@ -370,9 +333,6 @@ func TestFactoryMethods(t *testing.T) {
 		{"Casper", func(cm *config.ConfigManager, c interface{}) (*Sage, error) {
 			return NewCasper(cm, c.(*mockLLMClient))
 		}, "casper"},
-		{"Trinity", func(cm *config.ConfigManager, c interface{}) (*Sage, error) {
-			return NewTrinity(cm, c.(*mockLLMClient))
-		}, "trinity"},
 	}
 
 	for _, tt := range tests {

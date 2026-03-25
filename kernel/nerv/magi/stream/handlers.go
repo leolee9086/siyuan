@@ -11,20 +11,20 @@ import (
 )
 
 const (
-	// TrinitySpeakToolName Trinity speak工具名称（兼容旧版，逐步废弃）。
-	TrinitySpeakToolName = config.SpeakToolName
-	// TrinitySpeakStartToolName Trinity 对外表达开始工具名称。
-	TrinitySpeakStartToolName = config.SpeakStartToolName
-	// TrinitySpeakContinueToolName Trinity 对外表达续写工具名称。
-	TrinitySpeakContinueToolName = config.SpeakContinueToolName
-	// TrinitySpeakStopToolName Trinity 对外表达结束工具名称。
-	TrinitySpeakStopToolName = config.SpeakStopToolName
-	// TrinitySpeakInternalStartToolName Trinity 内部表达开始工具名称。
-	TrinitySpeakInternalStartToolName = config.SpeakInternalStartToolName
-	// TrinitySpeakInternalContinueToolName Trinity 内部表达续写工具名称。
-	TrinitySpeakInternalContinueToolName = config.SpeakInternalContinueToolName
-	// TrinitySpeakInternalStopToolName Trinity 内部表达结束工具名称。
-	TrinitySpeakInternalStopToolName = config.SpeakInternalStopToolName
+	// SpeakToolName 旧版单次 speak 工具名称（兼容旧协议，逐步废弃）。
+	SpeakToolName = config.SpeakToolName
+	// SpeakStartToolName 对外表达开始工具名称。
+	SpeakStartToolName = config.SpeakStartToolName
+	// SpeakContinueToolName 对外表达续写工具名称。
+	SpeakContinueToolName = config.SpeakContinueToolName
+	// SpeakStopToolName 对外表达结束工具名称。
+	SpeakStopToolName = config.SpeakStopToolName
+	// SpeakInternalStartToolName 内部表达开始工具名称。
+	SpeakInternalStartToolName = config.SpeakInternalStartToolName
+	// SpeakInternalContinueToolName 内部表达续写工具名称。
+	SpeakInternalContinueToolName = config.SpeakInternalContinueToolName
+	// SpeakInternalStopToolName 内部表达结束工具名称。
+	SpeakInternalStopToolName = config.SpeakInternalStopToolName
 	// DeliberationSignalToolName 审慎决策信号工具名称
 	DeliberationSignalToolName = "deliberation_signal"
 )
@@ -139,26 +139,26 @@ func (h *SpeakToolHandler) ValidatePairedState() error {
 		return fmt.Errorf("%s", strings.Join(h.stateErrors, "; "))
 	}
 	if h.publicStarts == 0 {
-		return fmt.Errorf("%s 尚未被调用", TrinitySpeakStartToolName)
+		return fmt.Errorf("%s 尚未被调用", SpeakStartToolName)
 	}
 	if h.publicContinues == 0 {
-		return fmt.Errorf("%s 已调用但缺少 %s", TrinitySpeakStartToolName, TrinitySpeakContinueToolName)
+		return fmt.Errorf("%s 已调用但缺少 %s", SpeakStartToolName, SpeakContinueToolName)
 	}
 	if h.publicStarts != h.publicStops {
-		return fmt.Errorf("%s 与 %s 必须成对调用", TrinitySpeakStartToolName, TrinitySpeakStopToolName)
+		return fmt.Errorf("%s 与 %s 必须成对调用", SpeakStartToolName, SpeakStopToolName)
 	}
 	if h.internalStarts > 0 && h.internalContinues == 0 {
-		return fmt.Errorf("%s 已调用但缺少 %s", TrinitySpeakInternalStartToolName, TrinitySpeakInternalContinueToolName)
+		return fmt.Errorf("%s 已调用但缺少 %s", SpeakInternalStartToolName, SpeakInternalContinueToolName)
 	}
 	if h.internalStarts != h.internalStops {
-		return fmt.Errorf("%s 与 %s 必须成对调用", TrinitySpeakInternalStartToolName, TrinitySpeakInternalStopToolName)
+		return fmt.Errorf("%s 与 %s 必须成对调用", SpeakInternalStartToolName, SpeakInternalStopToolName)
 	}
 	if h.activeScope != "" {
 		switch h.activeScope {
 		case "public":
-			return fmt.Errorf("%s 已调用但缺少 %s", TrinitySpeakStartToolName, TrinitySpeakStopToolName)
+			return fmt.Errorf("%s 已调用但缺少 %s", SpeakStartToolName, SpeakStopToolName)
 		case "internal":
-			return fmt.Errorf("%s 已调用但缺少 %s", TrinitySpeakInternalStartToolName, TrinitySpeakInternalStopToolName)
+			return fmt.Errorf("%s 已调用但缺少 %s", SpeakInternalStartToolName, SpeakInternalStopToolName)
 		default:
 			return fmt.Errorf("存在未结束的表达状态")
 		}
@@ -177,62 +177,62 @@ func (h *SpeakToolHandler) BuildContinuationPrompt() string {
 	if h.publicStarts > 0 && h.publicContinues == 0 && h.publicStarts == h.publicStops {
 		return fmt.Sprintf(
 			"你已调用 %s 和 %s，但没有调用 %s。请重新执行：先 %s，再调用 %s 追加正文，最后调用 %s。",
-			TrinitySpeakStartToolName,
-			TrinitySpeakStopToolName,
-			TrinitySpeakContinueToolName,
-			TrinitySpeakStartToolName,
-			TrinitySpeakContinueToolName,
-			TrinitySpeakStopToolName,
+			SpeakStartToolName,
+			SpeakStopToolName,
+			SpeakContinueToolName,
+			SpeakStartToolName,
+			SpeakContinueToolName,
+			SpeakStopToolName,
 		)
 	}
 	if h.activeScope == "public" {
-		return fmt.Sprintf("你已调用 %s，请继续调用 %s 追加对外正文，结束时必须调用 %s。", TrinitySpeakStartToolName, TrinitySpeakContinueToolName, TrinitySpeakStopToolName)
+		return fmt.Sprintf("你已调用 %s，请继续调用 %s 追加对外正文，结束时必须调用 %s。", SpeakStartToolName, SpeakContinueToolName, SpeakStopToolName)
 	}
 	if h.activeScope == "internal" {
-		return fmt.Sprintf("你已调用 %s，请继续调用 %s 追加内部报告，结束时必须调用 %s。", TrinitySpeakInternalStartToolName, TrinitySpeakInternalContinueToolName, TrinitySpeakInternalStopToolName)
+		return fmt.Sprintf("你已调用 %s，请继续调用 %s 追加内部报告，结束时必须调用 %s。", SpeakInternalStartToolName, SpeakInternalContinueToolName, SpeakInternalStopToolName)
 	}
 	return fmt.Sprintf(
 		"请通过工具状态转移输出：先 %s，再调用 %s 追加对外正文，最后以 %s 结束。",
-		TrinitySpeakStartToolName,
-		TrinitySpeakContinueToolName,
-		TrinitySpeakStopToolName,
+		SpeakStartToolName,
+		SpeakContinueToolName,
+		SpeakStopToolName,
 	)
 }
 
 func (h *SpeakToolHandler) handleStateTransition(toolName string) {
 	switch toolName {
-	case TrinitySpeakStartToolName:
+	case SpeakStartToolName:
 		if h.activeScope == "public" {
 			return
 		}
 		h.publicStarts++
-		h.beginScope("public", TrinitySpeakStartToolName)
-	case TrinitySpeakContinueToolName:
+		h.beginScope("public", SpeakStartToolName)
+	case SpeakContinueToolName:
 		if h.activeScope != "public" {
-			h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 必须在 %s 与 %s 之间调用", TrinitySpeakContinueToolName, TrinitySpeakStartToolName, TrinitySpeakStopToolName))
+			h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 必须在 %s 与 %s 之间调用", SpeakContinueToolName, SpeakStartToolName, SpeakStopToolName))
 			return
 		}
 		h.publicContinues++
 		h.hasPublicSpeakCall = true
-	case TrinitySpeakStopToolName:
+	case SpeakStopToolName:
 		if h.activeScope != "public" {
 			return
 		}
 		h.publicStops++
 		h.endScope("public")
-	case TrinitySpeakInternalStartToolName:
+	case SpeakInternalStartToolName:
 		if h.activeScope == "internal" {
 			return
 		}
 		h.internalStarts++
-		h.beginScope("internal", TrinitySpeakInternalStartToolName)
-	case TrinitySpeakInternalContinueToolName:
+		h.beginScope("internal", SpeakInternalStartToolName)
+	case SpeakInternalContinueToolName:
 		if h.activeScope != "internal" {
-			h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 必须在 %s 与 %s 之间调用", TrinitySpeakInternalContinueToolName, TrinitySpeakInternalStartToolName, TrinitySpeakInternalStopToolName))
+			h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 必须在 %s 与 %s 之间调用", SpeakInternalContinueToolName, SpeakInternalStartToolName, SpeakInternalStopToolName))
 			return
 		}
 		h.internalContinues++
-	case TrinitySpeakInternalStopToolName:
+	case SpeakInternalStopToolName:
 		if h.activeScope != "internal" {
 			return
 		}
@@ -271,12 +271,12 @@ func (h *SpeakToolHandler) endScope(scope string) {
 
 func isSpeakTransitionTool(name string) bool {
 	switch strings.TrimSpace(name) {
-	case TrinitySpeakStartToolName,
-		TrinitySpeakContinueToolName,
-		TrinitySpeakStopToolName,
-		TrinitySpeakInternalStartToolName,
-		TrinitySpeakInternalContinueToolName,
-		TrinitySpeakInternalStopToolName:
+	case SpeakStartToolName,
+		SpeakContinueToolName,
+		SpeakStopToolName,
+		SpeakInternalStartToolName,
+		SpeakInternalContinueToolName,
+		SpeakInternalStopToolName:
 		return true
 	default:
 		return false
@@ -310,13 +310,13 @@ func (h *SpeakToolHandler) rebuildOutputsFromToolCalls() {
 		call := h.toolCallsByIndex[idx]
 		toolName := strings.TrimSpace(call.name)
 		switch toolName {
-		case TrinitySpeakStartToolName:
+		case SpeakStartToolName:
 			activeScope = "public"
 			scopeSegments = scopeSegments[:0]
-		case TrinitySpeakInternalStartToolName:
+		case SpeakInternalStartToolName:
 			activeScope = "internal"
 			scopeSegments = scopeSegments[:0]
-		case TrinitySpeakContinueToolName, TrinitySpeakInternalContinueToolName:
+		case SpeakContinueToolName, SpeakInternalContinueToolName:
 			content, err := extractContinueContent(call.arguments, toolName)
 			if err != nil {
 				h.stateErrors = append(h.stateErrors, err.Error())
@@ -326,16 +326,16 @@ func (h *SpeakToolHandler) rebuildOutputsFromToolCalls() {
 				h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 在未进入表达状态时被调用", toolName))
 				continue
 			}
-			if toolName == TrinitySpeakContinueToolName && activeScope != "public" {
+			if toolName == SpeakContinueToolName && activeScope != "public" {
 				h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 在 %s 状态下被调用", toolName, activeScope))
 				continue
 			}
-			if toolName == TrinitySpeakInternalContinueToolName && activeScope != "internal" {
+			if toolName == SpeakInternalContinueToolName && activeScope != "internal" {
 				h.stateErrors = append(h.stateErrors, fmt.Sprintf("%s 在 %s 状态下被调用", toolName, activeScope))
 				continue
 			}
 			scopeSegments = append(scopeSegments, content)
-		case TrinitySpeakStopToolName:
+		case SpeakStopToolName:
 			if activeScope == "public" {
 				merged := strings.TrimSpace(strings.Join(scopeSegments, ""))
 				if merged != "" {
@@ -349,7 +349,7 @@ func (h *SpeakToolHandler) rebuildOutputsFromToolCalls() {
 			}
 			activeScope = ""
 			scopeSegments = scopeSegments[:0]
-		case TrinitySpeakInternalStopToolName:
+		case SpeakInternalStopToolName:
 			if activeScope == "internal" {
 				merged := strings.TrimSpace(strings.Join(scopeSegments, ""))
 				if merged != "" {

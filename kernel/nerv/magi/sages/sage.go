@@ -224,7 +224,7 @@ func (s *Sage) GetSystemPrompt() string {
 }
 
 // CloneWithFreshContext 基于当前 Sage 配置创建一个不携带历史的新实例。
-// 用于像 Trinity 这类需要跨调用保持无状态、但单次调用内部仍需要临时上下文的场景。
+// 用于统合型临时执行体这类需要跨调用保持无状态、但单次调用内部仍需要临时上下文的场景。
 func (s *Sage) CloneWithFreshContext() *Sage {
 	if s == nil {
 		return nil
@@ -585,19 +585,6 @@ func NewCasper(cfgManager *config.ConfigManager, client llm.Client) (*Sage, erro
 
 	strategy := cfgManager.GetContextStrategy("casper")
 	sage := NewSage("casper", cfg, client, strategy)
-	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
-	return sage, nil
-}
-
-// NewTrinity 创建Trinity实例
-func NewTrinity(cfgManager *config.ConfigManager, client llm.Client) (*Sage, error) {
-	cfg, ok := cfgManager.GetAgentConfig("trinity")
-	if !ok {
-		return nil, fmt.Errorf("trinity config not found")
-	}
-
-	strategy := cfgManager.GetContextStrategy("trinity")
-	sage := NewSage("trinity", cfg, client, strategy)
 	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
 	return sage, nil
 }

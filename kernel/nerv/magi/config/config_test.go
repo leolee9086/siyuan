@@ -43,10 +43,6 @@ func TestApplyRequiredAvatarTools_EnsuresPairedSpeechTools(t *testing.T) {
 			Name:  "melchior",
 			Tools: []ToolDef{BuildAvatarBuildToolDef()},
 		},
-		Trinity: AgentConfig{
-			Name:  "trinity",
-			Tools: []ToolDef{BuildSpeakToolDef()},
-		},
 	}
 
 	applyRequiredAvatarTools(cfg)
@@ -73,40 +69,6 @@ func TestApplyRequiredAvatarTools_EnsuresPairedSpeechTools(t *testing.T) {
 		)
 	}
 
-	hasTrinityPublicStart := false
-	hasTrinityPublicContinue := false
-	hasTrinityPublicStop := false
-	hasTrinityInternalStart := false
-	hasTrinityInternalContinue := false
-	hasTrinityInternalStop := false
-	for _, tool := range cfg.Trinity.Tools {
-		switch tool.Function.Name {
-		case SpeakStartToolName:
-			hasTrinityPublicStart = true
-		case SpeakContinueToolName:
-			hasTrinityPublicContinue = true
-		case SpeakStopToolName:
-			hasTrinityPublicStop = true
-		case SpeakInternalStartToolName:
-			hasTrinityInternalStart = true
-		case SpeakInternalContinueToolName:
-			hasTrinityInternalContinue = true
-		case SpeakInternalStopToolName:
-			hasTrinityInternalStop = true
-		}
-	}
-	if !hasTrinityPublicStart || !hasTrinityPublicContinue || !hasTrinityPublicStop ||
-		!hasTrinityInternalStart || !hasTrinityInternalContinue || !hasTrinityInternalStop {
-		t.Fatalf(
-			"Trinity 工具未被标准化为状态工具: publicStart=%v publicContinue=%v publicStop=%v internalStart=%v internalContinue=%v internalStop=%v",
-			hasTrinityPublicStart,
-			hasTrinityPublicContinue,
-			hasTrinityPublicStop,
-			hasTrinityInternalStart,
-			hasTrinityInternalContinue,
-			hasTrinityInternalStop,
-		)
-	}
 }
 
 func TestBuildWannaSpeakTransitionToolDef_Structure(t *testing.T) {
@@ -164,7 +126,7 @@ func TestBuildWannaSleepToolDefs_Structure(t *testing.T) {
 			wantName:     WannaSleepDreamToolName,
 			wantRequired: []string{"summary", "dreamScene"},
 			wantField:    "dreamScene",
-			wantDesc:     "文生图",
+			wantDesc:     "画面",
 		},
 	}
 
@@ -233,18 +195,22 @@ func TestBuildDeliberationSignalToolDef_Structure(t *testing.T) {
 	}
 }
 
-func TestDefaultContextStrategy_TrinityMatchesCoreSages(t *testing.T) {
+func TestDefaultContextStrategy_CoversOnlyCoreSages(t *testing.T) {
 	strategies := defaultContextStrategy()
-	trinity, ok := strategies["trinity"]
-	if !ok || trinity == nil {
-		t.Fatal("缺少 trinity 默认上下文策略")
+	if len(strategies) != 3 {
+		t.Fatalf("期望仅保留三贤人的默认上下文策略，实际=%d", len(strategies))
 	}
-
-	if trinity.Type != "token_percent" {
-		t.Fatalf("期望 trinity 使用 token_percent，实际=%s", trinity.Type)
-	}
-	if trinity.Percent != 0.8 {
-		t.Fatalf("期望 trinity percent=0.8，实际=%v", trinity.Percent)
+	for _, key := range []string{"melchior", "balthazar", "casper"} {
+		strategy, ok := strategies[key]
+		if !ok || strategy == nil {
+			t.Fatalf("缺少 %s 默认上下文策略", key)
+		}
+		if strategy.Type != "token_percent" {
+			t.Fatalf("期望 %s 使用 token_percent，实际=%s", key, strategy.Type)
+		}
+		if strategy.Percent != 0.8 {
+			t.Fatalf("期望 %s percent=0.8，实际=%v", key, strategy.Percent)
+		}
 	}
 }
 

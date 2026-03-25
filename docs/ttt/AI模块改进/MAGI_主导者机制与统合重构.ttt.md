@@ -39,8 +39,8 @@
 - [x] 运行态/事件流/前端卡片能显示当前主导贤者。
 - [x] 主导贤者卡片边框为橙色，非主导者保持原视觉方案。
 - [x] 外部回复态与行动态的未完成部分在文档中明确标注，不以静默旧逻辑冒充新机制。
-- [ ] Trinity 已从配置、唤醒、Sage 工厂、ATF 实体建模、旧统合器与流式工具命名层彻底退出独立实体地位。
-- [ ] `kernel/nerv/magi/coordinator/trinity.go` 及其相关运行依赖已停用或删除。
+- [x] Trinity 已从配置、唤醒、Sage 工厂、ATF 实体建模、旧统合器与流式工具命名层彻底退出独立实体地位。
+- [x] `kernel/nerv/magi/coordinator/trinity.go` 及其相关运行依赖已停用或删除。
 
 ---
 
@@ -49,21 +49,22 @@
 1. **Phase 1 已完成**：`kernel/nerv/marduk/types.go` 与 `kernel/nerv/marduk/cognitive_stances.go` 已提供档案立场三元组和严格读取器；`presets_*.go` 已补齐自然档案值。
 2. **Phase 2 已完成**：`kernel/nerv/magi/coordinator/heartbeat_sleep.go` 已改为“三贤人完成睡前笔记 -> 主导者选举 -> 主导者执行综合连接”；旧 Trinity 睡前统合主路径已退出。
 3. **回复态主干已接入主导者**：`kernel/nerv/magi/coordinator/coordinator.go` 的 direct-response 路径已改走 `coordinateDominantDirectReply`，由主导者直答，并把回复及查询类工具清洗结果同步注入三贤人历史。
-4. **Avatar 原型综合与 ATF 统合作答已开始迁移到主导者**：当前代码里 `kernel/nerv/magi/coordinator/avatar_runtime.go` 已不再把 Avatar 最终原型交给独立 Trinity 综合；`kernel/nerv/seraph/atf_answerer.go` 也已改为通过主导者综合三贤人答卷。
+4. **Avatar 原型综合与 ATF 统合作答的后端主路径已迁移到主导者**：当前代码里 `kernel/nerv/magi/coordinator/avatar_runtime.go` 已不再把 Avatar 最终原型交给独立 Trinity 综合；`kernel/nerv/seraph/atf_answerer.go` 也已改为通过主导者综合三贤人答卷。
 5. **运行态与前端观测链已补齐**：`kernel/nerv/magi/types/types.go`、`kernel/nerv/magi/websocket/events.go`、`app/src/magi/composables/useMagi.ts`、`app/src/magi/entry/MagiWorkspace.vue` 均已接入 `dominantSeel / dominantStance`；外部回复态对运行态的主导者回写也已接通。
-6. **但“Trinity 作为独立实体已退场”目前不能宣称完成**：`kernel/nerv/magi/coordinator/trinity.go`、`kernel/nerv/magi/config/manager.go`、`kernel/nerv/magi/sages/sage.go`、`kernel/nerv/magi/prompts/wakeup.go`、`kernel/nerv/seraph/atf_types.go`、`kernel/nerv/seraph/atf_monitor.go`、`kernel/nerv/magi/stream/handlers.go` 等仍保留 Trinity 实体、命名或语义层角色。
-7. **仍未完成的核心范围**：行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地；同时还缺少一轮针对“Trinity 退场清理”的实体级收尾。
+6. **后端核心退场清理已完成一轮收口**：`kernel/nerv/magi/coordinator/trinity.go` 已删除；`config/sages/prompts/wakeup/stream/seraph` 中把 Trinity 作为独立实体保留的生产依赖与命名语义已完成清理；未使用的 Trinity 提示词模板也已移除。
+7. **仍未完成的核心范围已收窄到前端/事件命名层与后续机制阶段**：`kernel/nerv/magi/websocket/events.go`、`app/src/magi/events/magiProjector.ts`、`app/src/magi/components/trinity-monitor-panel/*`、`app/src/magi/core/wise/trinity.toolset.ts` 等仍保留 Trinity 事件或监控语义；此外，行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地。
 
 ---
 
 ## 最新验证 (2026-03-25)
 
 1. [x] `go test ./nerv/marduk -run 'TestResolveCognitiveStances'`
-2. [x] `go test ./nerv/magi/prompts -run 'TestBuildDominantElection|TestBuildWakeupSequence'`
+2. [x] `go test ./nerv/magi/prompts ./nerv/magi/config ./nerv/magi/sages ./nerv/seraph ./nerv/magi/stream`
 3. [x] `go test ./api -run 'TestGetOrCreateSession|TestSubmitMagiTask|TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
-4. [ ] `go test ./nerv/magi/coordinator -run 'TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory'` 仍未稳定通过；本轮复核时已确认至少 `TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory` 因旧测试夹具未适配主导者选举而失败。
-5. [x] `MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
-6. [ ] `pnpm exec webpack --mode development --env target=magi-app` 在当前仓库环境下 5 分钟超时，尚未拿到完整前端打包结果。
+4. [x] `go test ./nerv/magi/coordinator -run 'TestBuildRejectionMessage|TestBuildConsensusMessage|TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing'`
+5. [x] `pnpm exec vitest run test/util/events/magiEventBridge.test.ts`
+6. [x] `MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
+7. [ ] `pnpm exec webpack --mode development --env target=magi-app` 在当前仓库环境下 5 分钟超时，尚未拿到完整前端打包结果。
 
 ---
 
@@ -74,7 +75,7 @@
 3. **立场与贤者映射**: 当前实现阶段采用固定映射：`profession -> melchior`、`primarySocialRelation -> balthazar`、`selfName -> casper`。
 4. **无兜底口径**: 若档案缺少主导选举所需字段，应显式报错或停止该路径，不得自动补成“助手/未说明/默认名字”。
 5. **接口兼容边界**: 可新增内部元数据、运行态字段、WebSocket 事件字段；不得要求外部 HTTP 客户端增加请求字段，也不得改写返回结构主形态。
-6. **阶段边界**: 目前已完成 Phase 1/2，回复态主导直答主干已落地，Avatar/ATF 的综合迁移正在进行；但 Trinity 作为独立实体的配置层、唤醒层、旧统合器和监测语义层尚未清理完毕，不能口头视为“已退场”。
+6. **阶段边界**: 目前已完成 Phase 1/2，回复态主导直答主干与后端核心退场清理已落地；但 WebSocket 事件名、前端 Trinity 监控卡片与 mock/wise 命名层仍未清理完毕，因此还不能把“Trinity 作为独立实体已完全退场”视为全链路完成。
 
 ---
 
@@ -90,23 +91,24 @@
 
 ## 🟢 近期计划
 
-- [-] **Phase 3: 主导者迁移对表与 Trinity 实体退场清理 (P1)**
-  - **背景**: 当前代码已把睡眠主路径、外部直答主路径、Avatar 原型综合、ATF 统合作答迁到主导者，但 Trinity 实体仍在配置/唤醒/旧统合器/监测语义层残留。
+- [-] **Phase 3B: WebSocket / 前端监控 Trinity 命名退场收尾 (P1)**
+  - **背景**: `coordinator` 测试夹具、`config/sages/prompts/wakeup/stream/seraph` 与旧 `TrinityCoordinator` 的后端残留已完成收口，但 WebSocket 事件名、前端监控卡片与 mock/wise 命名层仍保留 Trinity 独立实体语义。
   - **行动**:
-    1. 修复当前分支的 `coordinator` 定向测试夹具，使其适配主导者选举后的真实运行方式。
-    2. 清理 `config/sages/prompts/wakeup/trinity.go/stream/seraph` 中仍把 Trinity 作为独立实体保留的运行依赖和命名语义。
-    3. 在真正删净实体级残留前，禁止在任何文档或说明中宣称“Trinity 已不再是单独实体”已经完成。
+    1. 清理 `kernel/nerv/magi/websocket/events.go` 与前端事件桥接中的 `TRINITY_SYNTHESIS_COMPLETED` 旧命名，并明确兼容迁移策略。
+    2. 评估并改造 `app/src/magi/events/magiProjector.ts`、`app/src/magi/components/trinity-monitor-panel/*`、`app/src/magi/core/wise/trinity.toolset.ts` 等监控/工具命名残留。
+    3. 完成改动后补齐前端事件桥接、监控面板与文档口径验证，避免“后端已退场”被误写成“全链路已退场”。
   - **验收标准**:
-    - 运行主路径不再实例化或依赖独立 Trinity Sage。
-    - 旧 `TrinityCoordinator` 不再承载生产路径。
-    - TTT、测试与代码中的完成度口径一致。
+    - WebSocket 与前端监控层不再把 Trinity 作为独立运行实体表达。
+    - 兼容迁移策略明确，旧事件名是否保留有文档与代码依据。
+    - TTT、测试与界面文案中的完成度口径一致。
 
 - [ ] **Phase 4: 行动态工具治理与失主导重选 (P1)**
   - **背景**: 行动态需要区分自由查询与受审议的行动型工具调用。
   - **行动**:
     1. 区分查询/思考型工具与行动型工具。
     2. 为行动型工具建立“主导者申请 -> 其它两者表决 -> 失败重提 -> 二次失败失主导”的状态机。
-    3. 仅为主导者暴露可写主笔记工具，暂不开放其它修改工具。
+    3. 仅为主导者暴露可写日记工具，暂不开放其它修改工具。日记工具的作用是以合适的call_out块的形式向AI主笔记本的日记中插入笔记
+    
   - **验收标准**:
     - 行动型工具必须先审议后执行。
     - 二次否决后会触发重新选主导者。
@@ -140,6 +142,34 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 3A: 后端核心退场清理与测试夹具对表 (P1)** [已完成 2026-03-25]
+  - **背景**: 主导者已接管睡眠统合、外部直答、Avatar 综合与 ATF 统合作答，但 `coordinator` 测试夹具、旧 `TrinityCoordinator`、以及 `config/sages/prompts/wakeup/stream/seraph` 中仍有 Trinity 独立实体残留，导致完成口径与代码现实不一致。
+  - **完成情况**:
+    1. 已修复 `kernel/nerv/magi/coordinator` 的定向测试夹具，使 Avatar 直答、睡眠笔记合并与主导者直答路径都适配 `wanna_speak_*` 状态机与主导者选举后的真实运行方式。
+    2. 已删除 `kernel/nerv/magi/coordinator/trinity.go`，并清理 `config/sages/prompts/wakeup/stream/seraph` 的 Trinity 实体依赖、流式工具命名残留及未使用 Trinity 提示词模板。
+    3. 已补齐 `app/test/util/events/magiEventBridge.test.ts` 的 `emitWithMeta` 事件夹具，保证前端事件桥接测试与当前事件总线接口对齐。
+  - **验证证据**:
+    - `go test ./nerv/magi/prompts ./nerv/magi/config ./nerv/magi/sages ./nerv/seraph ./nerv/magi/stream`
+    - `go test ./nerv/magi/coordinator -run 'TestBuildRejectionMessage|TestBuildConsensusMessage|TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing'`
+    - `pnpm exec vitest run test/util/events/magiEventBridge.test.ts`
+  - **成果文件**:
+    - `kernel/nerv/magi/coordinator/coordinator.go`
+    - `kernel/nerv/magi/coordinator/coordinator_test.go`
+    - `kernel/nerv/magi/coordinator/heartbeat_test.go`
+    - `kernel/nerv/magi/config/config.go`
+    - `kernel/nerv/magi/config/manager.go`
+    - `kernel/nerv/magi/prompts/core.go`
+    - `kernel/nerv/magi/prompts/wakeup.go`
+    - `kernel/nerv/magi/prompts/wakeup_test.go`
+    - `kernel/nerv/magi/stream/handlers.go`
+    - `kernel/nerv/magi/sages/sage.go`
+    - `kernel/nerv/magi/types/types.go`
+    - `kernel/nerv/seraph/atf_answerer.go`
+    - `kernel/nerv/seraph/atf_monitor.go`
+    - `app/src/magi/utils/messageFactory.types.ts`
+    - `app/test/util/events/magiEventBridge.test.ts`
+    - `docs/ttt/AI模块改进/MAGI_主导者机制与统合重构.ttt.md`
 
 - [x] **Hotfix: MAGI 初始化失败链路请求阻断与会话空指针防护 (P0)** [已完成 2026-03-25]
   - **背景**: 在“旧版人格档案缺字段阻断”热修后，`initMagiComponents()` 可能因人格档案校验失败而提前返回，导致 `magiSessionMgr` 未初始化；但 `/api/s-forge/magi/v1/chat/completions` 仍会继续进入 `submitMagiTask() -> getOrCreateSession()`，最终触发空指针 panic。

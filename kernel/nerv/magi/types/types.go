@@ -117,8 +117,8 @@ const (
 type ConsensusSource string
 
 const (
-	ConsensusSourceTrinitySynthesis ConsensusSource = "trinity-synthesis"
-	ConsensusSourceRuminationEntry  ConsensusSource = "rumination-entry"
+	ConsensusSourceDominantSynthesis ConsensusSource = "dominant-synthesis"
+	ConsensusSourceRuminationEntry   ConsensusSource = "rumination-entry"
 )
 
 // ConsensusMeta 共识元数据
@@ -198,8 +198,8 @@ type WannaSleepTool struct {
 	DreamScene   string `json:"dreamScene,omitempty"`
 }
 
-// TrinitySpeakTool Trinity speak工具参数
-type TrinitySpeakTool struct {
+// SynthesisSpeakTool 统合输出 speak 工具参数
+type SynthesisSpeakTool struct {
 	Content string `json:"content"`
 	Channel string `json:"channel,omitempty"` // "public" | "internal"
 }
@@ -270,18 +270,18 @@ const (
 
 // RuntimeStatus MAGI 全局运行时状态
 type RuntimeStatus struct {
-	State            RuntimeState `json:"state"`
-	Awake            bool         `json:"awake"`
-	WakeSource       string       `json:"wakeSource,omitempty"`
-	Reason           string       `json:"reason,omitempty"`
-	DominantSeel     string       `json:"dominantSeel,omitempty"`
-	DominantStance   string       `json:"dominantStance,omitempty"`
-	DominantUpdatedAt int64       `json:"dominantUpdatedAt,omitempty"`
-	CurrentRoundID   string       `json:"currentRoundId,omitempty"`
-	CurrentTask      string       `json:"currentTask,omitempty"`
-	LastHeartbeatAt  int64        `json:"lastHeartbeatAt,omitempty"`
-	LastWakeAt       int64        `json:"lastWakeAt,omitempty"`
-	LastSleepAt      int64        `json:"lastSleepAt,omitempty"`
-	LastSleepSummary string       `json:"lastSleepSummary,omitempty"`
-	UpdatedAt        int64        `json:"updatedAt"`
+	State             RuntimeState `json:"state"`
+	Awake             bool         `json:"awake"`
+	WakeSource        string       `json:"wakeSource,omitempty"`
+	Reason            string       `json:"reason,omitempty"`
+	DominantSeel      string       `json:"dominantSeel,omitempty"`
+	DominantStance    string       `json:"dominantStance,omitempty"`
+	DominantUpdatedAt int64        `json:"dominantUpdatedAt,omitempty"`
+	CurrentRoundID    string       `json:"currentRoundId,omitempty"`
+	CurrentTask       string       `json:"currentTask,omitempty"`
+	LastHeartbeatAt   int64        `json:"lastHeartbeatAt,omitempty"`
+	LastWakeAt        int64        `json:"lastWakeAt,omitempty"`
+	LastSleepAt       int64        `json:"lastSleepAt,omitempty"`
+	LastSleepSummary  string       `json:"lastSleepSummary,omitempty"`
+	UpdatedAt         int64        `json:"updatedAt"`
 }

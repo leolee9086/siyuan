@@ -1,20 +1,20 @@
 package seraph
 
-// ATFEntity 代表MAGI系统中的一个实体（Trinity或贤人）
+// ATFEntity 代表MAGI系统中的一个受测实体（三贤人、主导统合结果或基线 Avatar）。
 type ATFEntity string
 
 const (
-	EntityTrinity   ATFEntity = "trinity"
-	EntityMelchior  ATFEntity = "melchior"
-	EntityBalthazar ATFEntity = "balthazar"
-	EntityCasper    ATFEntity = "casper"
+	EntityIntegrated ATFEntity = "integrated"
+	EntityMelchior   ATFEntity = "melchior"
+	EntityBalthazar  ATFEntity = "balthazar"
+	EntityCasper     ATFEntity = "casper"
 )
 
 // StyleMetrics 文体风格指纹的统计特征
 type StyleMetrics struct {
-	TypeTokenRatio    float64 // 词汇丰度 (Type-Token Ratio)
-	AvgSentenceLength float64 // 平均句长
-	SentenceLengthStd float64 // 句长标准差
+	TypeTokenRatio     float64 // 词汇丰度 (Type-Token Ratio)
+	AvgSentenceLength  float64 // 平均句长
+	SentenceLengthStd  float64 // 句长标准差
 	PunctuationEntropy float64 // 标点熵
 }
 

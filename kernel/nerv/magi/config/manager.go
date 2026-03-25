@@ -21,9 +21,9 @@ type ContextStrategy struct {
 
 // TimeoutConfig 超时配置
 type TimeoutConfig struct {
-	VotingTimeout       time.Duration `json:"votingTimeout"`       // 投票超时（秒）
-	TrinityMaxRetries   int           `json:"trinityMaxRetries"`   // Trinity最大重试次数
-	TrinityInitialDelay time.Duration `json:"trinityInitialDelay"` // Trinity初始延迟（秒）
+	VotingTimeout     time.Duration `json:"votingTimeout"`     // 投票超时（秒）
+	ReplyMaxRetries   int           `json:"trinityMaxRetries"` // 沿用旧键名兼容历史配置
+	ReplyInitialDelay time.Duration `json:"trinityInitialDelay"`
 }
 
 // ConfigManager MAGI配置管理器
@@ -66,8 +66,6 @@ func (cm *ConfigManager) GetSEELConfig(name string) (*SEELConfig, bool) {
 		agent = &cm.magiConfig.Balthazar
 	case "casper":
 		agent = &cm.magiConfig.Casper
-	case "trinity":
-		agent = &cm.magiConfig.Trinity
 	default:
 		return nil, false
 	}
@@ -87,8 +85,6 @@ func (cm *ConfigManager) GetAgentConfig(name string) (*AgentConfig, bool) {
 		return &cm.magiConfig.Balthazar, true
 	case "casper":
 		return &cm.magiConfig.Casper, true
-	case "trinity":
-		return &cm.magiConfig.Trinity, true
 	default:
 		return nil, false
 	}
@@ -142,7 +138,6 @@ func defaultMAGIConfig() *MAGIConfig {
 		Melchior:  defaultMelchiorConfig(),
 		Balthazar: defaultBalthazarConfig(),
 		Casper:    defaultCasperConfig(),
-		Trinity:   defaultTrinityConfig(),
 	}
 }
 
@@ -220,38 +215,6 @@ func defaultCasperConfig() AgentConfig {
 	}
 }
 
-// buildTrinitySystemPrompt 构建Trinity完整系统提示词
-// 对齐前端 mockWise.prompts.ts:116-138 的 TRINITY_STITCH_SYSTEM_REQUIREMENTS
-func buildTrinitySystemPrompt() string {
-	return prompts.TrinitySystemPrompt()
-}
-
-// defaultTrinityConfig 返回Trinity默认配置
-func defaultTrinityConfig() AgentConfig {
-	return AgentConfig{
-		Name: "trinity",
-		SEELConfig: SEELConfig{
-			Name:         "Trinity",
-			Color:        "#9B59B6",
-			Icon:         "🟣",
-			ResponseType: "synthesis",
-			BaseWeight:   1.0,
-		},
-		MardukConfig: MardukConfig{},
-		MemorySize:   3,
-		SystemPrompt: buildTrinitySystemPrompt(),
-		Tools: []ToolDef{
-			BuildSpeakStartToolDef(),
-			BuildSpeakContinueToolDef(),
-			BuildSpeakStopToolDef(),
-			BuildSpeakInternalStartToolDef(),
-			BuildSpeakInternalContinueToolDef(),
-			BuildSpeakInternalStopToolDef(),
-		},
-		ToolChoice: "required", // 强制调用工具，确保行为可控
-	}
-}
-
 // defaultContextStrategy 返回默认上下文策略
 // 注意：三贤人统一使用80%上下文，认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
 func defaultContextStrategy() map[string]*ContextStrategy {
@@ -268,19 +231,15 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 			Type:    "token_percent",
 			Percent: 0.8,
 		},
-		"trinity": {
-			Type:    "token_percent",
-			Percent: 0.8,
-		},
 	}
 }
 
 // defaultTimeoutConfig 返回默认超时配置
 func defaultTimeoutConfig() *TimeoutConfig {
 	return &TimeoutConfig{
-		VotingTimeout:       30 * time.Second,
-		TrinityMaxRetries:   10,
-		TrinityInitialDelay: 1 * time.Second,
+		VotingTimeout:     30 * time.Second,
+		ReplyMaxRetries:   10,
+		ReplyInitialDelay: 1 * time.Second,
 	}
 }
 
@@ -289,7 +248,7 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 		return
 	}
 
-	// 当前阶段三贤人与 Trinity 均使用状态转移工具；三贤人额外具备笔记关键词查询工具。
+	// 当前阶段只有三贤人参与生产路径；它们统一使用状态转移工具，并共享只读查询工具。
 	// forge 模式下再附加开发仓库只读查看工具，避免普通模式暴露无意义的仓库入口。
 	cfg.Melchior.Tools = ensureExclusiveTools(
 		cfg.Melchior.Tools,
@@ -303,21 +262,11 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 		cfg.Casper.Tools,
 		buildDefaultCoreSageTools()...,
 	)
-	cfg.Trinity.Tools = ensureExclusiveTools(
-		cfg.Trinity.Tools,
-		BuildSpeakStartToolDef(),
-		BuildSpeakContinueToolDef(),
-		BuildSpeakStopToolDef(),
-		BuildSpeakInternalStartToolDef(),
-		BuildSpeakInternalContinueToolDef(),
-		BuildSpeakInternalStopToolDef(),
-	)
 
 	// 通过 continue 工具承载正文后，可强制工具调用，避免纯文本旁路。
 	cfg.Melchior.ToolChoice = "required"
 	cfg.Balthazar.ToolChoice = "required"
 	cfg.Casper.ToolChoice = "required"
-	cfg.Trinity.ToolChoice = "required"
 }
 
 func ensureExclusiveTools(existing []ToolDef, required ...ToolDef) []ToolDef {

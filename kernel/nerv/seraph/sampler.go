@@ -56,7 +56,7 @@ func NewQuestionSamplerWithSeed(seed int64) *QuestionSampler {
 }
 
 // SampleForEntity 为指定实体抽题。
-// 注意：Trinity 不独立抽题，而是对三贤人的题目集合进行统合作答。
+// 注意：主导统合结果不独立抽题，而是对三贤人的题目集合进行统合作答。
 func (s *QuestionSampler) SampleForEntity(entity ATFEntity, count int) []IpipNeo120Item {
 	switch entity {
 	case EntityAvatar:
@@ -67,15 +67,15 @@ func (s *QuestionSampler) SampleForEntity(entity ATFEntity, count int) []IpipNeo
 		return s.sampleTargeted(count, CategoryEmotional, 0.8)
 	case EntityCasper:
 		return s.sampleTargeted(count, CategoryInstinct, 0.8)
-	case EntityTrinity:
-		// Trinity 不独立抽题，返回空切片
+	case EntityIntegrated:
+		// 主导统合结果不独立抽题，返回空切片
 		return nil
 	default:
 		return s.sampleUniform(count)
 	}
 }
 
-// sampleUniform 全域随机抽题（Trinity/Avatar）。
+// sampleUniform 全域随机抽题（Avatar/兜底）。
 func (s *QuestionSampler) sampleUniform(count int) []IpipNeo120Item {
 	count = minInt(count, len(s.questionBank))
 	if count <= 0 {

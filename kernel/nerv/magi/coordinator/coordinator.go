@@ -203,7 +203,7 @@ func (c *Coordinator) buildRejectionMessage() *types.Message {
 		Timestamp: time.Now().UnixMilli(),
 		Meta: map[string]interface{}{
 			"mode":   types.ConsensusModeCritical,
-			"source": types.ConsensusSourceTrinitySynthesis,
+			"source": types.ConsensusSourceDominantSynthesis,
 			"vote": map[string]interface{}{
 				"passed": false,
 			},
@@ -213,7 +213,7 @@ func (c *Coordinator) buildRejectionMessage() *types.Message {
 
 // buildConsensusMessage 构建共识消息
 func (c *Coordinator) buildConsensusMessage(
-	trinityResult *TrinityResult,
+	content string,
 	requiresDeliberation bool,
 	voteResult *VoteResult,
 	sourceCtx *types.RequestSourceContext,
@@ -225,7 +225,7 @@ func (c *Coordinator) buildConsensusMessage(
 
 	meta := map[string]interface{}{
 		"mode":   mode,
-		"source": types.ConsensusSourceTrinitySynthesis,
+		"source": types.ConsensusSourceDominantSynthesis,
 	}
 
 	if voteResult != nil {
@@ -266,7 +266,7 @@ func (c *Coordinator) buildConsensusMessage(
 	return &types.Message{
 		ID:        "consensus-" + util.RandString(12),
 		Type:      types.TypeConsensus,
-		Content:   trinityResult.Content,
+		Content:   content,
 		Status:    types.StatusSuccess,
 		Timestamp: time.Now().UnixMilli(),
 		Meta:      meta,

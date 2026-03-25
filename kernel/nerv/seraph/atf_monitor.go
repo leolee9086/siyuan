@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sync"
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 )
 
 var monitoredEntities = []ATFEntity{
-	EntityTrinity,
+	EntityIntegrated,
 	EntityMelchior,
 	EntityBalthazar,
 	EntityCasper,
@@ -99,16 +98,16 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 
 		pairs := make(map[string]float64)
 		internalPairs := map[string]float64{
-			"T_m": 0,
-			"T_b": 0,
-			"T_c": 0,
+			"I_m": 0,
+			"I_b": 0,
+			"I_c": 0,
 			"m_b": 0,
 			"m_c": 0,
 			"b_c": 0,
 		}
-		internalPairs["T_m"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityTrinity, EntityMelchior, alpha, bigFiveWeight))
-		internalPairs["T_b"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityTrinity, EntityBalthazar, alpha, bigFiveWeight))
-		internalPairs["T_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityTrinity, EntityCasper, alpha, bigFiveWeight))
+		internalPairs["I_m"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityMelchior, alpha, bigFiveWeight))
+		internalPairs["I_b"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityBalthazar, alpha, bigFiveWeight))
+		internalPairs["I_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityCasper, alpha, bigFiveWeight))
 		internalPairs["m_b"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityMelchior, EntityBalthazar, alpha, bigFiveWeight))
 		internalPairs["m_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityMelchior, EntityCasper, alpha, bigFiveWeight))
 		internalPairs["b_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityBalthazar, EntityCasper, alpha, bigFiveWeight))
@@ -116,11 +115,11 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 			pairs[k] = v
 		}
 
-		trinityAvatarSim := toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityTrinity, EntityAvatar, alpha, bigFiveWeight))
-		pairs["T_avatar"] = trinityAvatarSim
+		integratedAvatarSim := toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityAvatar, alpha, bigFiveWeight))
+		pairs["I_avatar"] = integratedAvatarSim
 
 		cInt := ComputeInternalCoherence(internalPairs)
-		cExt := ComputeExternalCoherence(trinityAvatarSim)
+		cExt := ComputeExternalCoherence(integratedAvatarSim)
 		raw := ComputeRawCoherence(cInt, cExt, m.opts.Coherence.InternalWeight)
 		syncRate := ComputeSyncRate(raw)
 
@@ -151,72 +150,31 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 }
 
 func (m *ThreeBlindMonitor) collectRoundAnswers(ctx context.Context, subject MonitorSubject) (map[ATFEntity]*EntityAnswerResult, error) {
-	results := make(map[ATFEntity]*EntityAnswerResult)
+	melchiorQuestions := m.sampler.SampleForEntity(EntityMelchior, m.opts.QuestionsPerEntity)
+	balthazarQuestions := m.sampler.SampleForEntity(EntityBalthazar, m.opts.QuestionsPerEntity)
+	casperQuestions := m.sampler.SampleForEntity(EntityCasper, m.opts.QuestionsPerEntity)
 
-	// 阶段一：三贤人独立盲测（并行）
-	wiseMen := []ATFEntity{EntityMelchior, EntityBalthazar, EntityCasper}
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(wiseMen)+2) // wiseMen + Trinity + Avatar
-
-	for _, entity := range wiseMen {
-		entity := entity
-		questions := m.sampler.SampleForEntity(entity, m.opts.QuestionsPerEntity)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			result, err := m.answerer.Answer(ctx, subject, entity, questions)
-			if err != nil {
-				errCh <- fmt.Errorf("entity %s answer failed: %w", entity, err)
-				return
-			}
-			if result == nil {
-				errCh <- fmt.Errorf("entity %s answer is nil", entity)
-				return
-			}
-			mu.Lock()
-			results[entity] = result
-			mu.Unlock()
-		}()
+	results, err := m.answerer.AnswerAllEntities(
+		ctx,
+		subject,
+		melchiorQuestions,
+		balthazarQuestions,
+		casperQuestions,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("collect integrated MAGI answers failed: %w", err)
+	}
+	if results == nil {
+		return nil, fmt.Errorf("integrated MAGI answers are nil")
 	}
 
-	wg.Wait()
-
-	// 检查三贤人是否都成功作答
-	select {
-	case err := <-errCh:
-		if err != nil {
-			return nil, err
-		}
-	default:
-	}
-
-	// 阶段二：收集三贤人的所有题目，Trinity进行统合作答
-	trinityQuestions := make([]IpipNeo120Item, 0)
-	questionSet := make(map[int]IpipNeo120Item)
-	for _, entity := range wiseMen {
-		if result, ok := results[entity]; ok {
-			for _, q := range result.Questions {
-				if _, exists := questionSet[q.Q]; !exists {
-					questionSet[q.Q] = q
-					trinityQuestions = append(trinityQuestions, q)
-				}
-			}
+	for _, entity := range []ATFEntity{EntityMelchior, EntityBalthazar, EntityCasper, EntityIntegrated} {
+		if results[entity] == nil {
+			return nil, fmt.Errorf("entity %s answer is nil", entity)
 		}
 	}
 
-	if len(trinityQuestions) > 0 {
-		trinityResult, err := m.answerer.Answer(ctx, subject, EntityTrinity, trinityQuestions)
-		if err != nil {
-			return nil, fmt.Errorf("trinity answer failed: %w", err)
-		}
-		if trinityResult == nil {
-			return nil, fmt.Errorf("trinity answer is nil")
-		}
-		results[EntityTrinity] = trinityResult
-	}
-
-	// 阶段三：Avatar独立作答（参考基线）
+	// 阶段二：Avatar独立作答（参考基线）
 	avatarQuestions := m.sampler.SampleForEntity(EntityAvatar, m.opts.QuestionsPerEntity)
 	if len(avatarQuestions) > 0 {
 		avatarResult, err := m.answerer.Answer(ctx, subject, EntityAvatar, avatarQuestions)

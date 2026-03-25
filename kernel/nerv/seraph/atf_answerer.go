@@ -18,6 +18,11 @@ import (
 // ThreeBlindAnswerer 三盲测试答卷器抽象。
 type ThreeBlindAnswerer interface {
 	Answer(ctx context.Context, subject MonitorSubject, entity ATFEntity, questions []IpipNeo120Item) (*EntityAnswerResult, error)
+	AnswerAllEntities(
+		ctx context.Context,
+		subject MonitorSubject,
+		melchiorQuestions, balthazarQuestions, casperQuestions []IpipNeo120Item,
+	) (map[ATFEntity]*EntityAnswerResult, error)
 }
 
 // MAGIAnswerer 通过真实 MAGI 系统执行三盲测试。
@@ -46,9 +51,9 @@ func (a *MAGIAnswerer) Answer(ctx context.Context, subject MonitorSubject, entit
 	}
 
 	switch entity {
-	case EntityTrinity:
-		// Trinity不独立作答，由外部调用者传入三贤人的题目
-		return nil, fmt.Errorf("trinity should not be called directly in Answer, use answerWithTrinityForQuestions")
+	case EntityIntegrated:
+		// 主导统合结果不作为独立人格单独作答，只能由批量统合入口产生。
+		return nil, fmt.Errorf("integrated answer should not be called directly in Answer; use AnswerAllEntities")
 	case EntityMelchior, EntityBalthazar, EntityCasper:
 		// 三贤人通过coordinator接口作答（不直接调用sage）
 		return nil, fmt.Errorf("wise men should be answered through coordinator, not directly")
@@ -60,7 +65,7 @@ func (a *MAGIAnswerer) Answer(ctx context.Context, subject MonitorSubject, entit
 	}
 }
 
-// AnswerAllEntities 一次性完成三贤人盲测和Trinity统合（ATF测试的正确实现）
+// AnswerAllEntities 一次性完成三贤人盲测和主导统合（ATF测试的正确实现）
 func (a *MAGIAnswerer) AnswerAllEntities(
 	ctx context.Context,
 	subject MonitorSubject,
@@ -131,10 +136,10 @@ func (a *MAGIAnswerer) AnswerAllEntities(
 	}
 
 	// 步骤5：构建用户输入（所有题目）
-	userInput := buildQuestionPrompt(subject, EntityTrinity, allQuestions)
+	userInput := buildQuestionPrompt(subject, EntityIntegrated, allQuestions)
 
 	// 步骤6：由主导者承担统合作答
-	trinityResponses := []types.SageResponse{
+	sageResponses := []types.SageResponse{
 		*wiseMenResult.Melchior,
 		*wiseMenResult.Balthazar,
 		*wiseMenResult.Casper,
@@ -146,20 +151,20 @@ func (a *MAGIAnswerer) AnswerAllEntities(
 		a.balthazar,
 		a.casper,
 		userInput,
-		trinityResponses,
+		sageResponses,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("dominant synthesis failed: %w", err)
 	}
 
 	// 步骤7：解析答案
-	trinityAnswer, err := parseLikertAnswer(dominantSynthesis.Content, allQuestions)
+	integratedAnswer, err := parseLikertAnswer(dominantSynthesis.Content, allQuestions)
 	if err != nil {
-		return nil, fmt.Errorf("parse trinity answer failed: %w", err)
+		return nil, fmt.Errorf("parse integrated answer failed: %w", err)
 	}
-	trinityAnswer.Entity = EntityTrinity
-	trinityAnswer.Questions = allQuestions
-	results[EntityTrinity] = trinityAnswer
+	integratedAnswer.Entity = EntityIntegrated
+	integratedAnswer.Questions = allQuestions
+	results[EntityIntegrated] = integratedAnswer
 
 	return results, nil
 }

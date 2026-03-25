@@ -3,6 +3,22 @@ import type { WrappedSeel } from "../../../src/magi/composables/useMagi.types";
 import type { MagiMessage } from "../../../src/magi/utils/messageFactory.types";
 import { createMagiEventBus } from "../../../src/magi/events/magiEventBus";
 import { bindMagiProjector } from "../../../src/magi/events/magiProjector";
+import type { MagiEventBus, MagiEventName, MagiEventPayloadMap } from "../../../src/magi/events/magiEventBus.types";
+
+let testEventSeq = 0;
+
+function emitTestEvent<K extends MagiEventName>(
+    bus: MagiEventBus,
+    event: K,
+    payload: Omit<MagiEventPayloadMap[K], "eventId" | "seq">,
+): boolean {
+    testEventSeq += 1;
+    return bus.emitWithMeta(event, {
+        eventId: `test-event-${testEventSeq}`,
+        seq: testEventSeq,
+        ...payload,
+    } as MagiEventPayloadMap[K]);
+}
 
 function createWrappedSeel(name: string, displayName: string): WrappedSeel {
     return {
@@ -59,7 +75,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
             timestamp: Date.now(),
         };
 
-        bus.emit("SEEL_REPLY_STARTED", {
+        emitTestEvent(bus, "SEEL_REPLY_STARTED", {
             roundId: "round-1",
             timestamp: Date.now(),
             seelName: "MELCHIOR-01",
@@ -72,7 +88,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
         expect(seel.messages.some((message) => message.type === "user")).toBe(true);
         expect(seel.messages.some((message) => message.id === "stream-1")).toBe(true);
 
-        bus.emit("SEEL_REPLY_CHUNK", {
+        emitTestEvent(bus, "SEEL_REPLY_CHUNK", {
             roundId: "round-1",
             timestamp: Date.now(),
             seelName: "MELCHIOR-01",
@@ -85,7 +101,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
         });
         expect(seel.messages.find((message) => message.id === "stream-1")?.content).toBe("chunk");
 
-        bus.emit("SEEL_REPLY_COMPLETED", {
+        emitTestEvent(bus, "SEEL_REPLY_COMPLETED", {
             roundId: "round-1",
             timestamp: Date.now(),
             seelName: "MELCHIOR-01",
@@ -113,7 +129,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const consensusMessages: MagiMessage[] = [];
         const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
 
-        bus.emit("CONSENSUS_EMITTED", {
+        emitTestEvent(bus, "CONSENSUS_EMITTED", {
             roundId: "round-2",
             timestamp: Date.now(),
             message: {
@@ -122,11 +138,11 @@ describe("MAGI Event Bridge - 事件投影", () => {
                 content: "final consensus",
                 status: "success",
                 timestamp: Date.now(),
-                meta: { source: "trinity-synthesis" },
+                meta: { source: "dominant-synthesis" },
             },
         });
 
-        bus.emit("SEEL_VOTE_UPDATED", {
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
             roundId: "round-2",
             timestamp: Date.now(),
             progress: 45,
@@ -199,7 +215,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const consensusMessages: MagiMessage[] = [];
         const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
 
-        bus.emit("SEEL_VOTE_UPDATED", {
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
             roundId: "round-3",
             timestamp: Date.now(),
             seelName: "CASPER-03",
@@ -209,7 +225,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
             reason: "证据充分，可执行",
         });
 
-        bus.emit("SEEL_VOTE_UPDATED", {
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
             roundId: "round-3",
             timestamp: Date.now(),
             seelName: "CASPER-03",
@@ -232,12 +248,16 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const consensusMessages: MagiMessage[] = [];
         const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
 
-        bus.emit("TOOL_CALL_DETECTED", {
+        emitTestEvent(bus, "TOOL_CALL_DETECTED", {
             roundId: "round-4",
             timestamp: Date.now(),
             seelName: "MELCHIOR-01",
             displayName: "MELCHIOR",
             toolName: "deliberation_signal",
+            toolCallIndex: 0,
+            toolCallId: "tool-call-bridge-1",
+            rawArguments: "{\"requires_deliberation\":true,\"reason\":\"需要复核外部风险\"}",
+            argumentsComplete: true,
             arguments: {
                 requires_deliberation: true,
                 reason: "需要复核外部风险",
@@ -258,7 +278,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const consensusMessages: MagiMessage[] = [];
         const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
 
-        bus.emit("DELIBERATION_SIGNAL_RAISED", {
+        emitTestEvent(bus, "DELIBERATION_SIGNAL_RAISED", {
             roundId: "round-5",
             timestamp: Date.now(),
             initiator: "MELCHIOR-01",

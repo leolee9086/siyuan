@@ -12,20 +12,20 @@ func TestSpeakToolHandler_PublicChannelWithStateTransition(t *testing.T) {
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakStartToolName,
+			Name: SpeakStartToolName,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 1,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakContinueToolName,
+			Name:      SpeakContinueToolName,
 			Arguments: `{"content":"Hello World"}`,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 2,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakStopToolName,
+			Name: SpeakStopToolName,
 		},
 	})
 
@@ -49,20 +49,20 @@ func TestSpeakToolHandler_InternalChannelWithStateTransition(t *testing.T) {
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStartToolName,
+			Name: SpeakInternalStartToolName,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 1,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakInternalContinueToolName,
+			Name:      SpeakInternalContinueToolName,
 			Arguments: `{"content":"Internal message"}`,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 2,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStopToolName,
+			Name: SpeakInternalStopToolName,
 		},
 	})
 
@@ -90,60 +90,60 @@ func TestSpeakToolHandler_MixedChannelsWithStateTransition(t *testing.T) {
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStartToolName,
+			Name: SpeakInternalStartToolName,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 1,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakInternalContinueToolName,
+			Name:      SpeakInternalContinueToolName,
 			Arguments: `{"content":"Internal 1"}`,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 2,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStopToolName,
+			Name: SpeakInternalStopToolName,
 		},
 	})
 
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 3,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakStartToolName,
+			Name: SpeakStartToolName,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 4,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakContinueToolName,
+			Name:      SpeakContinueToolName,
 			Arguments: `{"content":"Public message"}`,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 5,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakStopToolName,
+			Name: SpeakStopToolName,
 		},
 	})
 
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 6,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStartToolName,
+			Name: SpeakInternalStartToolName,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 7,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakInternalContinueToolName,
+			Name:      SpeakInternalContinueToolName,
 			Arguments: `{"content":"Internal 2"}`,
 		},
 	})
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 8,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name: TrinitySpeakInternalStopToolName,
+			Name: SpeakInternalStopToolName,
 		},
 	})
 
@@ -171,7 +171,7 @@ func TestSpeakToolHandler_LegacySpeakDoesNotBypassStateTransition(t *testing.T) 
 	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
 		Function: &utilstream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
+			Name:      SpeakToolName,
 			Arguments: `{"content":"Legacy content","channel":"public"}`,
 		},
 	})

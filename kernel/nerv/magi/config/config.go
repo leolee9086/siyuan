@@ -35,7 +35,7 @@ type AgentConfig struct {
 	Name           string       `json:"name"`
 	SEELConfig     SEELConfig   `json:"seelConfig"`
 	MardukConfig   MardukConfig `json:"mardukConfig"`
-	MemorySize     int          `json:"memorySize"`     // 消息历史条数（Casper/Trinity）
+	MemorySize     int          `json:"memorySize"`     // 消息历史条数
 	ContextPercent float64      `json:"contextPercent"` // 上下文token占用百分比（Melchior/Balthazar）
 	SystemPrompt   string       `json:"systemPrompt"`
 	Tools          []ToolDef    `json:"tools,omitempty"`
@@ -81,19 +81,19 @@ const (
 	AvatarModifyToolName = "modifyAvatar"
 	// AvatarSynthesizeToolName Avatar 原型综合工具名。
 	AvatarSynthesizeToolName = "synthesizeAvatar"
-	// SpeakToolName Trinity 输出工具名（兼容旧版，逐步废弃）。
+	// SpeakToolName 统合输出工具名（兼容旧版，逐步废弃）。
 	SpeakToolName = "speak"
-	// SpeakStartToolName Trinity 对外表达状态开始工具名。
+	// SpeakStartToolName 统合输出的对外表达状态开始工具名。
 	SpeakStartToolName = "speak_start"
-	// SpeakContinueToolName Trinity 对外表达状态续写工具名。
+	// SpeakContinueToolName 统合输出的对外表达状态续写工具名。
 	SpeakContinueToolName = "speak_continue"
-	// SpeakStopToolName Trinity 对外表达状态结束工具名。
+	// SpeakStopToolName 统合输出的对外表达状态结束工具名。
 	SpeakStopToolName = "speak_stop"
-	// SpeakInternalStartToolName Trinity 内部表达状态开始工具名。
+	// SpeakInternalStartToolName 统合输出的内部表达状态开始工具名。
 	SpeakInternalStartToolName = "speak_internal_start"
-	// SpeakInternalContinueToolName Trinity 内部表达状态续写工具名。
+	// SpeakInternalContinueToolName 统合输出的内部表达状态续写工具名。
 	SpeakInternalContinueToolName = "speak_internal_continue"
-	// SpeakInternalStopToolName Trinity 内部表达状态结束工具名。
+	// SpeakInternalStopToolName 统合输出的内部表达状态结束工具名。
 	SpeakInternalStopToolName = "speak_internal_stop"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
@@ -441,7 +441,7 @@ func BuildAvatarSynthesizeToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakToolDef 构建 Trinity speak 工具定义。
+// BuildSpeakToolDef 构建统合输出 speak 工具定义。
 func BuildSpeakToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -467,7 +467,7 @@ func BuildSpeakToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakStartToolDef 构建 Trinity speak_start 工具定义。
+// BuildSpeakStartToolDef 构建统合输出 speak_start 工具定义。
 func BuildSpeakStartToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -482,7 +482,7 @@ func BuildSpeakStartToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakContinueToolDef 构建 Trinity speak_continue 工具定义。
+// BuildSpeakContinueToolDef 构建统合输出 speak_continue 工具定义。
 func BuildSpeakContinueToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -503,7 +503,7 @@ func BuildSpeakContinueToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakStopToolDef 构建 Trinity speak_stop 工具定义。
+// BuildSpeakStopToolDef 构建统合输出 speak_stop 工具定义。
 func BuildSpeakStopToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -518,7 +518,7 @@ func BuildSpeakStopToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakInternalStartToolDef 构建 Trinity speak_internal_start 工具定义。
+// BuildSpeakInternalStartToolDef 构建统合输出 speak_internal_start 工具定义。
 func BuildSpeakInternalStartToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -533,7 +533,7 @@ func BuildSpeakInternalStartToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakInternalContinueToolDef 构建 Trinity speak_internal_continue 工具定义。
+// BuildSpeakInternalContinueToolDef 构建统合输出 speak_internal_continue 工具定义。
 func BuildSpeakInternalContinueToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -554,7 +554,7 @@ func BuildSpeakInternalContinueToolDef() ToolDef {
 	}
 }
 
-// BuildSpeakInternalStopToolDef 构建 Trinity speak_internal_stop 工具定义。
+// BuildSpeakInternalStopToolDef 构建统合输出 speak_internal_stop 工具定义。
 func BuildSpeakInternalStopToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
@@ -603,5 +603,4 @@ type MAGIConfig struct {
 	Melchior  AgentConfig `json:"melchior"`
 	Balthazar AgentConfig `json:"balthazar"`
 	Casper    AgentConfig `json:"casper"`
-	Trinity   AgentConfig `json:"trinity"`
 }

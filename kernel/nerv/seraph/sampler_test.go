@@ -14,11 +14,11 @@ func TestQuestionSampler_SampleForEntity(t *testing.T) {
 		checkPrimary func([]IpipNeo120Item) bool
 	}{
 		{
-			name:   "Trinity全域随机",
-			entity: EntityTrinity,
+			name:   "统合结果不独立抽题",
+			entity: EntityIntegrated,
 			count:  5,
 			checkPrimary: func(items []IpipNeo120Item) bool {
-				return len(items) == 5
+				return len(items) == 0
 			},
 		},
 		{

@@ -105,7 +105,7 @@ export interface ConsensusMessage {
         /** 共识模式（普通统合/重要任务） */
         mode: "standard" | "critical";
         /** 来源（统合结果/反刍入口） */
-        source: "trinity-synthesis" | "rumination-entry";
+        source: "dominant-synthesis" | "rumination-entry";
         /** 重要任务模式下的三方表决结果 */
         vote?: VoteResult;
         /** Melchior 在该轮是否发起工具调用（实测） */

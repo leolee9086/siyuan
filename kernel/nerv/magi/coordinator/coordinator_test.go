@@ -92,7 +92,7 @@ func (m *mockAvatarPipelineClient) SendChatRequest(
 			Choices: []types.ChunkChoice{
 				{
 					Delta: types.ChunkDelta{
-						Content: m.defaultContent,
+						ToolCalls: completedSpeakTurn(m.defaultContent).toolCalls,
 					},
 				},
 			},
@@ -282,29 +282,23 @@ func TestBuildConsensusMessage(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		trinityResult        *TrinityResult
+		content              string
 		requiresDeliberation bool
 		voteResult           *VoteResult
 		wantMode             types.ConsensusMode
 		wantVote             bool
 	}{
 		{
-			name: "标准模式无投票",
-			trinityResult: &TrinityResult{
-				Content: "测试内容",
-				Success: true,
-			},
+			name:                 "标准模式无投票",
+			content:              "测试内容",
 			requiresDeliberation: false,
 			voteResult:           nil,
 			wantMode:             types.ConsensusModeStandard,
 			wantVote:             false,
 		},
 		{
-			name: "审慎模式有投票",
-			trinityResult: &TrinityResult{
-				Content: "测试内容",
-				Success: true,
-			},
+			name:                 "审慎模式有投票",
+			content:              "测试内容",
 			requiresDeliberation: true,
 			voteResult: &VoteResult{
 				Melchior:  "批准",
@@ -319,14 +313,14 @@ func TestBuildConsensusMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			msg := c.buildConsensusMessage(tt.trinityResult, tt.requiresDeliberation, tt.voteResult, nil)
+			msg := c.buildConsensusMessage(tt.content, tt.requiresDeliberation, tt.voteResult, nil)
 
 			if msg.Type != types.TypeConsensus {
 				t.Errorf("Type = %v, want %v", msg.Type, types.TypeConsensus)
 			}
 
-			if msg.Content != tt.trinityResult.Content {
-				t.Errorf("Content = %v, want %v", msg.Content, tt.trinityResult.Content)
+			if msg.Content != tt.content {
+				t.Errorf("Content = %v, want %v", msg.Content, tt.content)
 			}
 
 			mode, ok := msg.Meta["mode"]
@@ -496,7 +490,7 @@ func TestCoordinateDecision_DispatchesAvatarForNonDirectSource(t *testing.T) {
 	}
 
 	melchior := createAvatarPipelineSage("melchior", "Melchior", "avatar-direct-reply", `{"scores":[{"candidate":"作为科学家的你","score":95},{"candidate":"作为母亲的你","score":35},{"candidate":"仅作为赤城直子本人的你","score":20}],"reason":"当前任务更适合专业侧主导"}`, map[string]string{
-		avatarBuildToolName: `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
+		avatarBuildToolName:      `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
 		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
 	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", `{"scores":[{"candidate":"作为科学家的你","score":80},{"candidate":"作为母亲的你","score":45},{"candidate":"仅作为赤城直子本人的你","score":30}],"reason":"当前任务先保证结构稳定"}`, map[string]string{
@@ -570,7 +564,7 @@ func TestCoordinateDecision_AvatarHeartbeatTimeoutReturns404UntilRewriteDone(t *
 	}
 
 	melchior := createAvatarPipelineSage("melchior", "Melchior", "avatar-direct-reply", `{"scores":[{"candidate":"作为科学家的你","score":95},{"candidate":"作为母亲的你","score":35},{"candidate":"仅作为赤城直子本人的你","score":20}],"reason":"当前任务更适合专业侧主导"}`, map[string]string{
-		avatarBuildToolName: `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
+		avatarBuildToolName:      `{"initiate":true,"reason":"need-avatar","systemPromptProposal":"你是 %ROLE_ID%。channel=%CHANNEL%。必须调用 report_to_core(type=\"heartbeat\")。","requirements":"稳定执行来源请求"}`,
 		avatarSynthesizeToolName: `{"finalSystemPrompt":"你是 %ROLE_ID%。channel=%CHANNEL%。你只服务当前绑定来源。你必须调用 report_to_core(type=\"heartbeat\")。"} `,
 	})
 	balthazar := createAvatarPipelineSage("balthazar", "Balthazar", "", `{"scores":[{"candidate":"作为科学家的你","score":80},{"candidate":"作为母亲的你","score":45},{"candidate":"仅作为赤城直子本人的你","score":30}],"reason":"当前任务先保证结构稳定"}`, map[string]string{
