@@ -39,6 +39,22 @@
       Career Goal
       <input :value="careerGoal" type="text" @input="$emit('update:careerGoal', ($event.target as HTMLInputElement).value.trim())" />
     </label>
+    <label>
+      Profession
+      <input :value="profession" type="text" @input="$emit('update:profession', ($event.target as HTMLInputElement).value.trim())" />
+    </label>
+    <label>
+      Primary Social Relation
+      <input
+        :value="primarySocialRelation"
+        type="text"
+        @input="$emit('update:primarySocialRelation', ($event.target as HTMLInputElement).value.trim())"
+      />
+    </label>
+    <label>
+      Self Name
+      <input :value="selfName" type="text" @input="$emit('update:selfName', ($event.target as HTMLInputElement).value.trim())" />
+    </label>
   </div>
 </template>
 
@@ -52,6 +68,9 @@ defineProps<{
   organization: string;
   role: string;
   careerGoal: string;
+  profession: string;
+  primarySocialRelation: string;
+  selfName: string;
 }>();
 
 defineEmits<{
@@ -63,5 +82,8 @@ defineEmits<{
   (e: "update:organization", v: string): void;
   (e: "update:role", v: string): void;
   (e: "update:careerGoal", v: string): void;
+  (e: "update:profession", v: string): void;
+  (e: "update:primarySocialRelation", v: string): void;
+  (e: "update:selfName", v: string): void;
 }>();
 </script>

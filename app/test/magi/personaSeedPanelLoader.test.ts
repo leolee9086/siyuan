@@ -46,6 +46,11 @@ function buildCompleteProfile() {
             organization: "NERV",
             role: "Commander",
             careerGoal: "Maintain order",
+            cognitiveStances: {
+                profession: "Commander",
+                primarySocialRelation: "Crew",
+                selfName: "Supervisor",
+            },
         },
         personaBase: {
             traits: {
@@ -73,6 +78,11 @@ function buildSamplePayload() {
             organization: "NERV",
             role: "Commander",
             careerGoal: "Maintain order",
+            cognitiveStances: {
+                profession: "Commander",
+                primarySocialRelation: "Crew",
+                selfName: "Supervisor",
+            },
         },
         descriptions: {
             professionalDescription: "以结构化决策维持任务稳定。",
@@ -110,6 +120,9 @@ describe("PersonaSeedPanel.loader", () => {
         expect(loaded.subjectId).toBe("supervisor");
         expect(loaded.subjectName).toBe("Supervisor");
         expect(loaded.subjectType).toBe("ai_agent");
+        expect(loaded.profession).toBe("Commander");
+        expect(loaded.primarySocialRelation).toBe("Crew");
+        expect(loaded.selfName).toBe("Supervisor");
         expect(loaded.descriptions.professionalDescription).toContain("结构化决策");
         expect(loaded.answers).toEqual([
             { q: 1, score: 5 },
@@ -144,6 +157,7 @@ describe("PersonaSeedPanel.loader", () => {
         expect(loaded.subjectId).toBe("supervisor");
         expect(loaded.subjectName).toBe("Supervisor");
         expect(loaded.role).toBe("Commander");
+        expect(loaded.profession).toBe("");
         expect(loaded.descriptions).toEqual({
             professionalDescription: "",
             lifeDescription: "",
@@ -151,7 +165,8 @@ describe("PersonaSeedPanel.loader", () => {
             integratedDescription: "",
         });
         expect(loaded.answers).toEqual([]);
-        expect(loaded.message).toContain("人格档案结构不完整");
+        expect(loaded.message).toContain("主导者立场字段");
+        expect(loaded.message).toContain("Profession");
         expect(loaded.message).toContain("问卷样本");
     });
 

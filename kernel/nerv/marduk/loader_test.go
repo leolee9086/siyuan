@@ -2,6 +2,7 @@ package marduk
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -94,6 +95,11 @@ func TestLoadPersonaProfileWithGenderFallbackIgnoresInvalidTestPreset(t *testing
 			ID:     "custom-id",
 			Name:   "自定义用户",
 			Gender: stringPtr("男"),
+			CognitiveStances: &SubjectCognitiveStances{
+				Profession:            "工程师",
+				PrimarySocialRelation: "同伴",
+				SelfName:              "自定义用户",
+			},
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{
@@ -146,7 +152,7 @@ func TestAvailablePresetsIncludeShikinami(t *testing.T) {
 	}
 }
 
-func TestLoadPersonaProfileWithGenderFallbackUsesPresetHintFromSubjectID(t *testing.T) {
+func TestLoadPersonaProfileWithGenderFallbackRejectsIncompleteLegacyProfile(t *testing.T) {
 	dataDir := t.TempDir()
 	if err := writeLegacyActiveProfile(dataDir, &IpipPersonaProfile{
 		SchemaVersion: "IPIP-NEO-120-v1",
@@ -167,22 +173,64 @@ func TestLoadPersonaProfileWithGenderFallbackUsesPresetHintFromSubjectID(t *test
 		t.Fatal(err)
 	}
 
-	profile, isComplete, presetName, err := LoadPersonaProfileWithGenderFallback(dataDir)
-	if err != nil {
-		t.Fatalf("LoadPersonaProfileWithGenderFallback() error = %v", err)
+	_, _, _, err := LoadPersonaProfileWithGenderFallback(dataDir)
+	if err == nil {
+		t.Fatal("expected incomplete legacy profile to be rejected")
 	}
-	if isComplete {
-		t.Fatal("incomplete profile should use preset fallback")
+	var validationErr *PersonaProfileValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("expected PersonaProfileValidationError, got %T", err)
 	}
-	if presetName != "式波" {
-		t.Fatalf("presetName = %q, want %q", presetName, "式波")
+	if len(validationErr.MissingFields) == 0 {
+		t.Fatal("expected missing fields to be reported")
 	}
-	if profile == nil || profile.Subject.ID != "shikinami" {
-		gotID := ""
-		if profile != nil {
-			gotID = profile.Subject.ID
-		}
-		t.Fatalf("subject ID = %q, want %q", gotID, "shikinami")
+	if !containsString(validationErr.MissingFields, "personaBase.traits.E") {
+		t.Fatalf("missing fields = %v, want personaBase.traits.E", validationErr.MissingFields)
+	}
+	if !containsString(validationErr.MissingFields, "profession") {
+		t.Fatalf("missing fields = %v, want profession", validationErr.MissingFields)
+	}
+}
+
+func TestLoadPersonaProfileWithGenderFallbackRejectsLegacyProfileMissingCognitiveStances(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := writeLegacyActiveProfile(dataDir, &IpipPersonaProfile{
+		SchemaVersion: "IPIP-NEO-120-v1",
+		Subject: IpipSubjectProfile{
+			ID:     "custom-id",
+			Name:   "旧版用户",
+			Gender: stringPtr("女"),
+		},
+		PersonaBase: PersonaBase{
+			Traits: map[string]float64{
+				"O": 0.50,
+				"C": 0.60,
+				"E": 0.40,
+				"A": 0.55,
+				"N": 0.35,
+			},
+		},
+		GeneratedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, _, err := LoadPersonaProfileWithGenderFallback(dataDir)
+	if err == nil {
+		t.Fatal("expected legacy profile missing cognitive stances to be rejected")
+	}
+	var validationErr *PersonaProfileValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("expected PersonaProfileValidationError, got %T", err)
+	}
+	if !containsString(validationErr.MissingFields, "profession") {
+		t.Fatalf("missing fields = %v, want profession", validationErr.MissingFields)
+	}
+	if !containsString(validationErr.MissingFields, "primarySocialRelation") {
+		t.Fatalf("missing fields = %v, want primarySocialRelation", validationErr.MissingFields)
+	}
+	if !containsString(validationErr.MissingFields, "selfName") {
+		t.Fatalf("missing fields = %v, want selfName", validationErr.MissingFields)
 	}
 }
 
@@ -202,4 +250,13 @@ func writeLegacyActiveProfile(dataDir string, profile *IpipPersonaProfile) error
 
 func stringPtr(v string) *string {
 	return &v
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }

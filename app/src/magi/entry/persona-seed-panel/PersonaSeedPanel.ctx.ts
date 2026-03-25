@@ -117,6 +117,9 @@ function resetPanelForRuntimeLoad(s: PanelState): void {
     s.organization.value = "";
     s.role.value = "";
     s.careerGoal.value = "";
+    s.profession.value = "";
+    s.primarySocialRelation.value = "";
+    s.selfName.value = "";
     s.professionalDescription.value = "";
     s.lifeDescription.value = "";
     s.instinctNeedsDescription.value = "";
@@ -146,6 +149,9 @@ async function initializePanelFromRuntimeConfig(s: PanelState): Promise<void> {
         s.organization.value = loaded.organization;
         s.role.value = loaded.role;
         s.careerGoal.value = loaded.careerGoal;
+        s.profession.value = loaded.profession;
+        s.primarySocialRelation.value = loaded.primarySocialRelation;
+        s.selfName.value = loaded.selfName;
         s.professionalDescription.value = loaded.descriptions.professionalDescription;
         s.lifeDescription.value = loaded.descriptions.lifeDescription;
         s.instinctNeedsDescription.value = loaded.descriptions.instinctNeedsDescription;

@@ -159,6 +159,7 @@ async function handleSubmitIpip(
         s.subjectName.value,
         s.gender.value,
         s.organization.value, s.role.value, s.careerGoal.value, s.seedDescriptions.value,
+        s.profession.value, s.primarySocialRelation.value, s.selfName.value,
     );
     // 存在未填写字段时阻止提交并提示
     if (missingFields.length > 0) {
@@ -204,6 +205,9 @@ async function handleImportPersonaProfile(
         s.organization.value = imported.organization;
         s.role.value = imported.role;
         s.careerGoal.value = imported.careerGoal;
+        s.profession.value = imported.profession;
+        s.primarySocialRelation.value = imported.primarySocialRelation;
+        s.selfName.value = imported.selfName;
         s.convergenceSession.value = createEmptyConvergenceSession();
         if (imported.descriptions) {
             s.professionalDescription.value = imported.descriptions.professionalDescription;

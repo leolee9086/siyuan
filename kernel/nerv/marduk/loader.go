@@ -3,6 +3,7 @@ package marduk
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -13,6 +14,24 @@ import (
 
 	"github.com/siyuan-note/filelock"
 )
+
+var ErrActiveSeedPointerNotFound = errors.New("active seed pointer not found")
+
+// PersonaProfileValidationError 表示已保存人格档案缺少运行时必填字段。
+type PersonaProfileValidationError struct {
+	ProfilePath   string
+	MissingFields []string
+}
+
+func (e *PersonaProfileValidationError) Error() string {
+	if e == nil {
+		return "persona profile validation failed"
+	}
+	if len(e.MissingFields) == 0 {
+		return fmt.Sprintf("persona profile validation failed: %s", e.ProfilePath)
+	}
+	return fmt.Sprintf("persona profile validation failed at %s: missing %s", e.ProfilePath, strings.Join(e.MissingFields, ", "))
+}
 
 // PresetPersona 预设人格定义
 type PresetPersona struct {
@@ -64,6 +83,49 @@ func loadTestPresetOverride() (*IpipPersonaProfile, string, bool) {
 	return GetPresetByName(rawPreset)
 }
 
+func collectMissingPersonaProfileFields(profile *IpipPersonaProfile) []string {
+	missing := make([]string, 0, 10)
+	if profile == nil {
+		return []string{"profile"}
+	}
+
+	if strings.TrimSpace(profile.Subject.Name) == "" {
+		missing = append(missing, "name")
+	}
+	if profile.Subject.Gender == nil || strings.TrimSpace(*profile.Subject.Gender) == "" {
+		missing = append(missing, "gender")
+	}
+	requiredTraits := []string{"O", "C", "E", "A", "N"}
+	for _, trait := range requiredTraits {
+		if _, exists := profile.PersonaBase.Traits[trait]; !exists {
+			missing = append(missing, "personaBase.traits."+trait)
+		}
+	}
+
+	stances := profile.Subject.CognitiveStances.Normalized()
+	if stances.Profession == "" {
+		missing = append(missing, "profession")
+	}
+	if stances.PrimarySocialRelation == "" {
+		missing = append(missing, "primarySocialRelation")
+	}
+	if stances.SelfName == "" {
+		missing = append(missing, "selfName")
+	}
+	return missing
+}
+
+func validateLoadedPersonaProfile(profilePath string, profile *IpipPersonaProfile) error {
+	missing := collectMissingPersonaProfileFields(profile)
+	if len(missing) == 0 {
+		return nil
+	}
+	return &PersonaProfileValidationError{
+		ProfilePath:   profilePath,
+		MissingFields: missing,
+	}
+}
+
 func isGoTestProcess() bool {
 	binName := strings.ToLower(strings.TrimSpace(filepath.Base(os.Args[0])))
 	return strings.Contains(binName, ".test")
@@ -101,17 +163,10 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 	// 尝试加载用户档案
 	userProfile, err := loadUserProfile(dataDir)
 	if err == nil && userProfile != nil {
-		if userProfile.Subject.Gender != nil && *userProfile.Subject.Gender != "" {
-			// 有完整性别信息，档案完整
-			return userProfile, true, nil
-		}
-		// 缺少性别信息时，优先按档案中的预设提示字段（ID/姓名）匹配。
-		if hintedPreset, _, ok := resolvePresetFromProfileHint(userProfile); ok {
-			return hintedPreset, false, nil
-		}
-		// 有档案但缺少性别信息，随机选择预设
-		profile, _ := getRandomPreset()
-		return profile, false, nil
+		return userProfile, true, nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, false, err
 	}
 
 	// 没有用户档案，随机选择预设
@@ -119,9 +174,9 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 	return profile, false, nil
 }
 
-// LoadPersonaProfileWithGenderFallback 根据档案信息加载人格档案
-// 如果用户档案不完整，优先按档案中的预设提示字段（ID/姓名）匹配；
-// 若无提示字段，再根据性别选择预设（女->丽，男->薰）。
+// LoadPersonaProfileWithGenderFallback 根据档案信息加载人格档案。
+// 仅当工作空间中不存在用户档案时，才回退到预设人格。
+// 若已保存档案缺少运行时必填字段，则直接返回验证错误，不做任何兜底填充。
 func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, bool, string, error) {
 	// 测试专用：允许强制指定预设人格。
 	if profile, presetName, ok := loadTestPresetOverride(); ok {
@@ -131,29 +186,10 @@ func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, 
 	// 尝试加载用户档案
 	userProfile, err := loadUserProfile(dataDir)
 	if err == nil && userProfile != nil {
-		// 检查档案完整性
-		isComplete := isProfileComplete(userProfile)
-		if isComplete {
-			return userProfile, true, "", nil
-		}
-
-		// 档案不完整时，优先按档案中的预设提示字段（ID/姓名）匹配预设。
-		if hintedPreset, presetName, ok := resolvePresetFromProfileHint(userProfile); ok {
-			return hintedPreset, false, presetName, nil
-		}
-
-		// 档案不完整，根据性别选择预设
-		if userProfile.Subject.Gender != nil {
-			gender := *userProfile.Subject.Gender
-			if gender == "男" {
-				return GetKaoruPreset(), false, "薰", nil
-			}
-			return GetReiPreset(), false, "丽", nil
-		}
-
-		// 连性别都没有，随机选择预设
-		profile, name := getRandomPreset()
-		return profile, false, name, nil
+		return userProfile, true, "", nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, false, "", err
 	}
 
 	// 没有用户档案，随机选择预设
@@ -166,6 +202,8 @@ func loadUserProfile(dataDir string) (*IpipPersonaProfile, error) {
 	storage := NewStorage(dataDir)
 	if profile, err := loadUserProfileFromActiveSeed(storage); err == nil {
 		return profile, nil
+	} else if !errors.Is(err, ErrActiveSeedPointerNotFound) {
+		return nil, err
 	}
 	return loadUserProfileFromLegacyPath(dataDir)
 }
@@ -173,6 +211,9 @@ func loadUserProfile(dataDir string) (*IpipPersonaProfile, error) {
 func loadUserProfileFromActiveSeed(storage *Storage) (*IpipPersonaProfile, error) {
 	pointer, err := loadActiveSeedPointer(storage)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("%w: %v", ErrActiveSeedPointerNotFound, err)
+		}
 		return nil, err
 	}
 
@@ -181,19 +222,33 @@ func loadUserProfileFromActiveSeed(storage *Storage) (*IpipPersonaProfile, error
 		return nil, fmt.Errorf("active profile path is empty")
 	}
 	absoluteProfilePath := filepath.Clean(storage.resolveFullPath(profilePath))
-	return loadPersonaProfileWithoutValidation(absoluteProfilePath)
+	profile, err := loadPersonaProfileWithoutValidation(absoluteProfilePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateLoadedPersonaProfile(absoluteProfilePath, profile); err != nil {
+		return nil, err
+	}
+	return profile, nil
 }
 
 func loadUserProfileFromLegacyPath(dataDir string) (*IpipPersonaProfile, error) {
 	legacyProfilePath := filepath.Clean(filepath.Join(dataDir, "petal", "persona", "active_profile.json"))
-	return loadPersonaProfileWithoutValidation(legacyProfilePath)
+	profile, err := loadPersonaProfileWithoutValidation(legacyProfilePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateLoadedPersonaProfile(legacyProfilePath, profile); err != nil {
+		return nil, err
+	}
+	return profile, nil
 }
 
 func loadPersonaProfileWithoutValidation(profilePath string) (*IpipPersonaProfile, error) {
 	profileFile, err := filelock.OpenFile(profilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("profile not found: %s", profilePath)
+			return nil, fmt.Errorf("profile not found: %s: %w", profilePath, err)
 		}
 		return nil, fmt.Errorf("open profile failed: %w", err)
 	}
@@ -228,27 +283,5 @@ func isProfileComplete(profile *IpipPersonaProfile) bool {
 		return false
 	}
 
-	// 检查必要字段
-	if profile.Subject.Name == "" {
-		return false
-	}
-
-	if profile.Subject.Gender == nil || *profile.Subject.Gender == "" {
-		return false
-	}
-
-	// 检查PersonaBase是否有数据
-	if len(profile.PersonaBase.Traits) == 0 {
-		return false
-	}
-
-	// 检查五大特质是否都存在
-	requiredTraits := []string{"O", "C", "E", "A", "N"}
-	for _, trait := range requiredTraits {
-		if _, exists := profile.PersonaBase.Traits[trait]; !exists {
-			return false
-		}
-	}
-
-	return true
+	return len(collectMissingPersonaProfileFields(profile)) == 0
 }

@@ -96,6 +96,13 @@ export type SummaryPromptPersonaData = PersonaBase &
 /** 视角类型 */
 export type MagiPerspective = "trinity" | "melchior" | "balthazar" | "casper";
 
+/** 主导者选举依赖的三元立场。 */
+export interface SubjectCognitiveStances {
+    readonly profession: string;
+    readonly primarySocialRelation: string;
+    readonly selfName: string;
+}
+
 /** IPIP 输出中的被试信息 */
 export interface IpipSubjectProfile {
     readonly id: string;
@@ -105,6 +112,7 @@ export interface IpipSubjectProfile {
     readonly organization?: string;
     readonly role?: string;
     readonly careerGoal?: string;
+    readonly cognitiveStances?: SubjectCognitiveStances;
 }
 
 /** IPIP-NEO-120 原始答案条目（前端提交载荷） */
@@ -124,6 +132,7 @@ export interface IpipNeo120SubjectMeta {
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
+    readonly cognitiveStances?: SubjectCognitiveStances;
 }
 
 /** IPIP-NEO-120 人格种子四轨描述 */

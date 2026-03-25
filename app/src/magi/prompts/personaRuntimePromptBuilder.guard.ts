@@ -143,7 +143,24 @@ function hasCompleteSubject(value: unknown): value is IpipPersonaProfile["subjec
     if (!isNonEmptyText(value.id)) {
         return false;
     }
-    return isNonEmptyText(value.name);
+    if (!isNonEmptyText(value.name)) {
+        return false;
+    }
+    return hasCompleteSubjectCognitiveStances(value.cognitiveStances);
+}
+
+/** @同步豁免: 纯结构校验，无异步依赖 */
+function hasCompleteSubjectCognitiveStances(value: unknown): boolean {
+    if (!isRecordObject(value)) {
+        return false;
+    }
+    if (!isNonEmptyText(value.profession)) {
+        return false;
+    }
+    if (!isNonEmptyText(value.primarySocialRelation)) {
+        return false;
+    }
+    return isNonEmptyText(value.selfName);
 }
 
 /** @同步豁免: 纯结构校验，无异步依赖 */

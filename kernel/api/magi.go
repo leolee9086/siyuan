@@ -42,11 +42,14 @@ type MagiTaskResult struct {
 }
 
 type magiPersonaRuntimeStatus struct {
-	SubjectName string
-	SubjectID   string
-	IsComplete  bool
-	UsingPreset bool
-	PresetName  string
+	SubjectName   string
+	SubjectID     string
+	IsComplete    bool
+	UsingPreset   bool
+	PresetName    string
+	Blocked       bool
+	Message       string
+	MissingFields []string
 }
 
 const (
@@ -72,7 +75,7 @@ var (
 	magiInitErr     error
 	magiPersonaMu   sync.RWMutex
 	magiPersonaInfo = magiPersonaRuntimeStatus{
-		SubjectName: "ZHI",
+		SubjectName: "未配置",
 	}
 )
 
@@ -97,12 +100,43 @@ func setMagiPersonaRuntimeStatus(profile *marduk.IpipPersonaProfile, isComplete 
 	magiPersonaMu.Lock()
 	defer magiPersonaMu.Unlock()
 	magiPersonaInfo = magiPersonaRuntimeStatus{
-		SubjectName: subjectName,
-		SubjectID:   subjectID,
-		IsComplete:  isComplete,
-		UsingPreset: usingPreset,
-		PresetName:  normalizedPreset,
+		SubjectName:   subjectName,
+		SubjectID:     subjectID,
+		IsComplete:    isComplete,
+		UsingPreset:   usingPreset,
+		PresetName:    normalizedPreset,
+		Blocked:       false,
+		Message:       "",
+		MissingFields: nil,
 	}
+}
+
+func setMagiPersonaRuntimeBlockedStatus(err error) string {
+	message := strings.TrimSpace(err.Error())
+	missingFields := make([]string, 0)
+	var validationErr *marduk.PersonaProfileValidationError
+	if errors.As(err, &validationErr) {
+		missingFields = append(missingFields, validationErr.MissingFields...)
+		if len(missingFields) > 0 {
+			message = fmt.Sprintf(
+				"当前主管AI人格档案缺少必填字段：%s。请打开适格者 PERSONA 录入面板补充后重新保存。",
+				strings.Join(missingFields, ", "),
+			)
+		}
+	}
+
+	magiPersonaMu.Lock()
+	defer magiPersonaMu.Unlock()
+	magiPersonaInfo = magiPersonaRuntimeStatus{
+		SubjectName:   "未配置",
+		IsComplete:    false,
+		UsingPreset:   false,
+		PresetName:    "",
+		Blocked:       true,
+		Message:       message,
+		MissingFields: missingFields,
+	}
+	return message
 }
 
 func getMagiPersonaRuntimeStatus() magiPersonaRuntimeStatus {
@@ -139,6 +173,9 @@ func initMagiComponents() error {
 	// 从Marduk加载人格档案
 	profile, isComplete, presetName, err := marduk.InitializeMAGIWithPersona()
 	if err != nil {
+		if blockedMessage := setMagiPersonaRuntimeBlockedStatus(err); blockedMessage != "" {
+			util.PushErrMsg(blockedMessage, 10000)
+		}
 		return fmt.Errorf("加载Marduk人格档案失败: %w", err)
 	}
 
@@ -192,12 +229,15 @@ func magiPersonaStatus(c *gin.Context) {
 	initMagiCron()
 	info := getMagiPersonaRuntimeStatus()
 	c.JSON(http.StatusOK, gin.H{
-		"subject_name": info.SubjectName,
-		"subject_id":   info.SubjectID,
-		"is_complete":  info.IsComplete,
-		"using_preset": info.UsingPreset,
-		"preset_name":  info.PresetName,
-		"runtime":      magiRuntimeMgr.GetStatus(),
+		"subject_name":   info.SubjectName,
+		"subject_id":     info.SubjectID,
+		"is_complete":    info.IsComplete,
+		"using_preset":   info.UsingPreset,
+		"preset_name":    info.PresetName,
+		"blocked":        info.Blocked,
+		"message":        info.Message,
+		"missing_fields": info.MissingFields,
+		"runtime":        magiRuntimeMgr.GetStatus(),
 	})
 }
 
@@ -256,11 +296,22 @@ func magiChat(c *gin.Context) {
 }
 
 func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx *types.RequestSourceContext) (*types.Message, error) {
+	if magiInitErr != nil {
+		return nil, fmt.Errorf("MAGI system not initialized: %w", magiInitErr)
+	}
+	if magiSessionMgr == nil {
+		return nil, errors.New("MAGI session manager is not ready")
+	}
+
 	magiRuntimeMgr.InterruptHeartbeat()
+	sessionID := getOrCreateSession(c, sourceCtx)
+	if sessionID == "" {
+		return nil, errors.New("MAGI session manager is not ready")
+	}
 
 	task := &MagiRequest{
 		Req:        req,
-		SessionID:  getOrCreateSession(c, sourceCtx),
+		SessionID:  sessionID,
 		SourceCtx:  sourceCtx,
 		RequestCtx: c.Request.Context(),
 		ResultChan: make(chan MagiTaskResult, 1),
@@ -399,6 +450,10 @@ func buildClaimedUserMessagePreview(history []types.ClaimedHistoryMessage) strin
 
 // getOrCreateSession 获取或创建会话ID
 func getOrCreateSession(_ *gin.Context, sourceCtx *types.RequestSourceContext) string {
+	if magiSessionMgr == nil {
+		return ""
+	}
+
 	// 尝试从来源会话键恢复固定会话
 	if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
 		if mappedID, ok := magiSourceSID.Load(sourceCtx.SourceSessionKey); ok {

@@ -11,6 +11,11 @@ const runtimeProfile: IpipPersonaProfile = {
         organization: "NERV",
         role: "驾驶员",
         careerGoal: "构建稳定可控的人机协作流程",
+        cognitiveStances: {
+            profession: "驾驶员",
+            primarySocialRelation: "伙伴",
+            selfName: "织",
+        },
     },
     personaBase: {
         traits: {
@@ -46,4 +51,3 @@ async function shouldBuildAllRuntimePromptInjections(): Promise<void> {
 describe("personaRuntimePromptBuilder", () => {
     it("应基于 profile 生成四贤者运行时注入提示词", shouldBuildAllRuntimePromptInjections);
 });
-

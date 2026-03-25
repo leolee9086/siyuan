@@ -1,5 +1,5 @@
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
-import type { IpipPersonaSeedDescriptions } from "../questionnaire.types";
+import type { IpipPersonaSeedDescriptions, SubjectCognitiveStances } from "../questionnaire.types";
 import type { PersonaConvergenceSession } from "./persona-seed-convergence.types";
 
 /**
@@ -29,6 +29,7 @@ export interface QuestionnaireDraftSubject {
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
+    readonly cognitiveStances?: SubjectCognitiveStances;
 }
 
 /**

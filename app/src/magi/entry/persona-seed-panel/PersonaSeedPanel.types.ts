@@ -21,6 +21,9 @@ export interface PanelState {
     readonly organization: Ref<string>;
     readonly role: Ref<string>;
     readonly careerGoal: Ref<string>;
+    readonly profession: Ref<string>;
+    readonly primarySocialRelation: Ref<string>;
+    readonly selfName: Ref<string>;
     readonly professionalDescription: Ref<string>;
     readonly lifeDescription: Ref<string>;
     readonly instinctNeedsDescription: Ref<string>;

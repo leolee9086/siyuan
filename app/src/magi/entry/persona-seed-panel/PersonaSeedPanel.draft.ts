@@ -42,6 +42,9 @@ function resetPanelState(s: PanelState): void {
     s.organization.value = "";
     s.role.value = "";
     s.careerGoal.value = "";
+    s.profession.value = "";
+    s.primarySocialRelation.value = "";
+    s.selfName.value = "";
     assignDescriptions(s, EMPTY_DESCRIPTIONS);
     s.convergenceSession.value = createEmptyConvergenceSession();
     s.ratingVersion.value += 1;
@@ -63,6 +66,7 @@ function saveDraft(s: PanelState): void {
             organization: s.organization.value,
             role: s.role.value,
             careerGoal: s.careerGoal.value,
+            ...(s.subjectMeta.value.cognitiveStances ? { cognitiveStances: s.subjectMeta.value.cognitiveStances } : {}),
         },
         descriptions: s.seedDescriptions.value,
         answers: s.answers.value,
@@ -96,6 +100,9 @@ function loadDraft(s: PanelState, id: string): void {
     s.organization.value = draft.subject.organization;
     s.role.value = draft.subject.role;
     s.careerGoal.value = draft.subject.careerGoal;
+    s.profession.value = draft.subject.cognitiveStances?.profession ?? "";
+    s.primarySocialRelation.value = draft.subject.cognitiveStances?.primarySocialRelation ?? "";
+    s.selfName.value = draft.subject.cognitiveStances?.selfName ?? "";
     assignDescriptions(s, draft.descriptions);
     s.answers.value = draft.answers;
     s.convergenceSession.value = restoreConvergenceSession(draft.rawConvergence);

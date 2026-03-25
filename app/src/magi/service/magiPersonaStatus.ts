@@ -9,6 +9,9 @@ export interface MagiPersonaStatus {
     isComplete: boolean;
     usingPreset: boolean;
     presetName: string;
+    blocked: boolean;
+    message: string;
+    missingFields: string[];
     runtimeStatus: MagiRuntimeStatus | null;
 }
 
@@ -35,6 +38,9 @@ function normalizeMagiPersonaStatus(raw: unknown): MagiPersonaStatus | null {
     const isComplete = Boolean(Reflect.get(raw, "is_complete"));
     const usingPreset = Boolean(Reflect.get(raw, "using_preset"));
     const presetName = String(Reflect.get(raw, "preset_name") ?? "").trim();
+    const blocked = Boolean(Reflect.get(raw, "blocked"));
+    const message = String(Reflect.get(raw, "message") ?? "").trim();
+    const missingFields = normalizeStringArray(Reflect.get(raw, "missing_fields"));
     const runtimeStatus = normalizeRuntimeStatus(Reflect.get(raw, "runtime"));
 
     return {
@@ -43,6 +49,9 @@ function normalizeMagiPersonaStatus(raw: unknown): MagiPersonaStatus | null {
         isComplete,
         usingPreset,
         presetName,
+        blocked,
+        message,
+        missingFields,
         runtimeStatus,
     };
 }
@@ -83,6 +92,15 @@ function readOptionalString(raw: object, key: string): string | undefined {
 function readOptionalNumber(raw: object, key: string): number | undefined {
     const value = Reflect.get(raw, key);
     return typeof value === "number" ? value : undefined;
+}
+
+function normalizeStringArray(raw: unknown): string[] {
+    if (!Array.isArray(raw)) {
+        return [];
+    }
+    return raw
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => item.length > 0);
 }
 
 export async function fetchMagiPersonaStatus(): Promise<MagiPersonaStatus | null> {

@@ -11,12 +11,10 @@ import (
 // InitializeMAGIWithPersona 使用人格档案初始化MAGI
 // 返回：档案、是否完整、预设名称（如果使用预设）、错误
 func InitializeMAGIWithPersona() (*IpipPersonaProfile, bool, string, error) {
-	// 加载人格档案（根据性别选择预设）
+	// 加载人格档案；仅在完全没有用户档案时才允许使用预设人格。
 	profile, isComplete, presetName, err := LoadPersonaProfileWithGenderFallback(util.DataDir)
 	if err != nil {
-		profile, name := getRandomPreset()
-		logging.LogWarnf("加载人格档案失败，随机使用预设（%s）: %v", name, err)
-		return profile, false, name, nil
+		return nil, false, "", err
 	}
 
 	// 如果使用了预设，记录日志

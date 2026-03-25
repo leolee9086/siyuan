@@ -25,6 +25,9 @@ export interface LoadedPersonaSeedPanelData {
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
+    readonly profession: string;
+    readonly primarySocialRelation: string;
+    readonly selfName: string;
     readonly descriptions: IpipPersonaSeedDescriptions;
     readonly answers: ReadonlyArray<{ q: number; score: LikertScore }>;
 }
@@ -44,6 +47,9 @@ interface ExtractedSubject {
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
+    readonly profession: string;
+    readonly primarySocialRelation: string;
+    readonly selfName: string;
 }
 
 const EMPTY_DESCRIPTIONS: IpipPersonaSeedDescriptions = {
@@ -66,6 +72,9 @@ const EMPTY_LOAD_RESULT: LoadedPersonaSeedPanelData = {
     organization: "",
     role: "",
     careerGoal: "",
+    profession: "",
+    primarySocialRelation: "",
+    selfName: "",
     descriptions: EMPTY_DESCRIPTIONS,
     answers: [],
 };
@@ -166,6 +175,9 @@ function extractSubjectFromProfile(raw: unknown): ExtractedSubject {
             organization: "",
             role: "",
             careerGoal: "",
+            profession: "",
+            primarySocialRelation: "",
+            selfName: "",
         };
     }
     const subject = Reflect.get(raw, "subject");
@@ -179,8 +191,14 @@ function extractSubjectFromProfile(raw: unknown): ExtractedSubject {
             organization: "",
             role: "",
             careerGoal: "",
+            profession: "",
+            primarySocialRelation: "",
+            selfName: "",
         };
     }
+    const cognitiveStances = isRecordObject(Reflect.get(subject, "cognitiveStances"))
+        ? Reflect.get(subject, "cognitiveStances")
+        : null;
     return {
         subjectId: readOptionalString(subject, "id"),
         subjectName: readOptionalString(subject, "name"),
@@ -190,6 +208,9 @@ function extractSubjectFromProfile(raw: unknown): ExtractedSubject {
         organization: readOptionalString(subject, "organization"),
         role: readOptionalString(subject, "role"),
         careerGoal: readOptionalString(subject, "careerGoal"),
+        profession: cognitiveStances ? readOptionalString(cognitiveStances, "profession") : "",
+        primarySocialRelation: cognitiveStances ? readOptionalString(cognitiveStances, "primarySocialRelation") : "",
+        selfName: cognitiveStances ? readOptionalString(cognitiveStances, "selfName") : "",
     };
 }
 
@@ -220,6 +241,9 @@ function extractSubjectFromSample(raw: unknown): ExtractedSubject {
             organization: "",
             role: "",
             careerGoal: "",
+            profession: "",
+            primarySocialRelation: "",
+            selfName: "",
         };
     }
     const subject = Reflect.get(raw, "subject");
@@ -233,8 +257,14 @@ function extractSubjectFromSample(raw: unknown): ExtractedSubject {
             organization: "",
             role: "",
             careerGoal: "",
+            profession: "",
+            primarySocialRelation: "",
+            selfName: "",
         };
     }
+    const cognitiveStances = isRecordObject(Reflect.get(subject, "cognitiveStances"))
+        ? Reflect.get(subject, "cognitiveStances")
+        : null;
     return {
         subjectId: readOptionalString(subject, "id"),
         subjectName: readOptionalString(subject, "name"),
@@ -244,7 +274,36 @@ function extractSubjectFromSample(raw: unknown): ExtractedSubject {
         organization: readOptionalString(subject, "organization"),
         role: readOptionalString(subject, "role"),
         careerGoal: readOptionalString(subject, "careerGoal"),
+        profession: cognitiveStances ? readOptionalString(cognitiveStances, "profession") : "",
+        primarySocialRelation: cognitiveStances ? readOptionalString(cognitiveStances, "primarySocialRelation") : "",
+        selfName: cognitiveStances ? readOptionalString(cognitiveStances, "selfName") : "",
     };
+}
+
+function collectMissingCognitiveStanceFieldLabels(raw: unknown): string[] {
+    if (!isRecordObject(raw)) {
+        return ["Profession", "Primary Social Relation", "Self Name"];
+    }
+    const subject = Reflect.get(raw, "subject");
+    if (!isRecordObject(subject)) {
+        return ["Profession", "Primary Social Relation", "Self Name"];
+    }
+    const cognitiveStances = Reflect.get(subject, "cognitiveStances");
+    if (!isRecordObject(cognitiveStances)) {
+        return ["Profession", "Primary Social Relation", "Self Name"];
+    }
+
+    const missing: string[] = [];
+    if (!readOptionalString(cognitiveStances, "profession")) {
+        missing.push("Profession");
+    }
+    if (!readOptionalString(cognitiveStances, "primarySocialRelation")) {
+        missing.push("Primary Social Relation");
+    }
+    if (!readOptionalString(cognitiveStances, "selfName")) {
+        missing.push("Self Name");
+    }
+    return missing;
 }
 
 function extractAnswersFromSample(raw: unknown): {
@@ -304,6 +363,9 @@ function mergeSubjects(primary: ExtractedSubject, secondary: ExtractedSubject): 
         organization: primary.organization || secondary.organization,
         role: primary.role || secondary.role,
         careerGoal: primary.careerGoal || secondary.careerGoal,
+        profession: primary.profession || secondary.profession,
+        primarySocialRelation: primary.primarySocialRelation || secondary.primarySocialRelation,
+        selfName: primary.selfName || secondary.selfName,
     };
 }
 
@@ -352,7 +414,12 @@ export async function loadActivePersonaSeedPanelData(): Promise<LoadedPersonaSee
     const profileSubject = extractSubjectFromProfile(profileRead.payload);
     const issues: string[] = [];
     if (!isIpipPersonaProfile(profileRead.payload)) {
-        issues.push("人格档案结构不完整，仅展示文件中实际存在的字段");
+        const missingCognitiveStances = collectMissingCognitiveStanceFieldLabels(profileRead.payload);
+        if (missingCognitiveStances.length > 0) {
+            issues.push(`人格档案缺少主导者立场字段（${missingCognitiveStances.join(" / ")}），请在下方补充后重新保存`);
+        } else {
+            issues.push("人格档案结构不完整，仅展示文件中实际存在的字段");
+        }
     }
 
     const samplePath = deriveSamplePathFromProfilePath(profilePath);
@@ -366,6 +433,9 @@ export async function loadActivePersonaSeedPanelData(): Promise<LoadedPersonaSee
         organization: "",
         role: "",
         careerGoal: "",
+        profession: "",
+        primarySocialRelation: "",
+        selfName: "",
     };
     let descriptions = EMPTY_DESCRIPTIONS;
     let answers: ReadonlyArray<{ q: number; score: LikertScore }> = [];
@@ -402,6 +472,9 @@ export async function loadActivePersonaSeedPanelData(): Promise<LoadedPersonaSee
         organization: mergedSubject.organization,
         role: mergedSubject.role,
         careerGoal: mergedSubject.careerGoal,
+        profession: mergedSubject.profession,
+        primarySocialRelation: mergedSubject.primarySocialRelation,
+        selfName: mergedSubject.selfName,
         descriptions,
         answers,
     };

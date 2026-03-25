@@ -32,7 +32,8 @@
       </section>
       <PersonaSeedSubjectForm v-model:subject-id="subjectId" v-model:subject-name="subjectName"
         v-model:gender="gender" v-model:age="age" v-model:subject-type="subjectType" v-model:organization="organization"
-        v-model:role="role" v-model:career-goal="careerGoal" />
+        v-model:role="role" v-model:career-goal="careerGoal" v-model:profession="profession"
+        v-model:primary-social-relation="primarySocialRelation" v-model:self-name="selfName" />
       <PersonaSeedDescriptionsForm v-model:professional="professionalDescription" v-model:life="lifeDescription"
         v-model:instinct="instinctNeedsDescription" v-model:integrated="integratedDescription"
         :generating-questionnaire-to-description="isGeneratingQuestionnaireToDescription"
@@ -88,6 +89,7 @@ const emit = defineEmits<{
 
 const {
   subjectId, subjectName, gender, age, subjectType, organization, role, careerGoal,
+  profession, primarySocialRelation, selfName,
   professionalDescription, lifeDescription, instinctNeedsDescription, integratedDescription,
   answers, convergenceSession,
   isGeneratingDescriptionToQuestionnaire, isGeneratingQuestionnaireToDescription,

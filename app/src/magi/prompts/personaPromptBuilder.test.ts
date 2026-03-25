@@ -18,6 +18,11 @@ const baseProfile: IpipPersonaProfile = {
         gender: "女",
         organization: "NERV",
         role: "驾驶员",
+        cognitiveStances: {
+            profession: "驾驶员",
+            primarySocialRelation: "伙伴",
+            selfName: "织",
+        },
     },
     personaBase: {
         traits: {

@@ -48,6 +48,11 @@ function buildCompleteProfile(): IpipPersonaProfile {
             organization: "NERV",
             role: "Pilot",
             careerGoal: "Protect humanity",
+            cognitiveStances: {
+                profession: "Pilot",
+                primarySocialRelation: "伙伴",
+                selfName: "织",
+            },
         },
         personaBase: {
             traits: {
@@ -147,6 +152,22 @@ function shouldRejectProfileWhenGeneratedAtInvalid(): void {
     expect(isIpipPersonaProfile(invalidProfile)).toBe(false);
 }
 
+function shouldRejectProfileWhenCognitiveStancesMissing(): void {
+    const profile = buildCompleteProfile();
+    const invalidProfile = {
+        ...profile,
+        subject: {
+            ...profile.subject,
+            cognitiveStances: {
+                profession: "Pilot",
+                primarySocialRelation: "",
+                selfName: "织",
+            },
+        },
+    };
+    expect(isIpipPersonaProfile(invalidProfile)).toBe(false);
+}
+
 /**
  * 作用：断言 active seed 指针合法样本可通过守卫。
  * 意图：验证指针结构与关键字段约束生效。
@@ -200,6 +221,7 @@ function runPersonaRuntimeGuardSuite(): void {
     it("应拒绝越界 trait 的 profile", shouldRejectProfileWhenTraitOutOfRange);
     it("应拒绝缺失 facet 的 profile", shouldRejectProfileWhenFacetMissing);
     it("应拒绝非法 generatedAt 的 profile", shouldRejectProfileWhenGeneratedAtInvalid);
+    it("应拒绝缺失主导立场字段的 profile", shouldRejectProfileWhenCognitiveStancesMissing);
     it("应接受合法 active seed 指针", shouldAcceptValidActiveSeedPointer);
     it("应拒绝空路径 active seed 指针", shouldRejectPointerWhenPathEmpty);
     it("应拒绝非法 updatedAt 的 active seed 指针", shouldRejectPointerWhenUpdatedAtInvalid);

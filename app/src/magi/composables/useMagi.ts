@@ -29,6 +29,7 @@ import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBr
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
 import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
+import { appendConsensusMessage } from "./useMagi.consensus";
 import {
     buildRuntimeMainInterfaceIdentity,
     MAGI_RUNTIME_MONITOR_SESSION_ID,
@@ -226,10 +227,28 @@ function resolveConnectionStatusFromPersonaStatus(
     currentStatus: ConnectionStatus,
     status: Awaited<ReturnType<typeof fetchMagiPersonaStatus>>,
 ): ConnectionStatus {
+    if (status?.blocked) {
+        return "error";
+    }
     if (status) {
         return "connected";
     }
     return currentStatus === "connected" ? currentStatus : "disconnected";
+}
+
+async function appendBlockedPersonaMessageIfNeeded(
+    consensusMessages: MagiMessage[],
+    status: Awaited<ReturnType<typeof fetchMagiPersonaStatus>>,
+): Promise<void> {
+    if (!status?.blocked || !status.message) {
+        return;
+    }
+    await appendConsensusMessage(
+        consensusMessages,
+        "error",
+        status.message,
+        status.missingFields.length > 0 ? { missingFields: status.missingFields } : undefined,
+    );
 }
 
 /**
@@ -376,6 +395,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     if (initialPersonaStatus?.runtimeStatus) {
         runtimeStatus.value = cloneRuntimeStatus(initialPersonaStatus.runtimeStatus);
     }
+    await appendBlockedPersonaMessageIfNeeded(consensusMessages, initialPersonaStatus);
     connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
         connectionStatus.value,
         initialPersonaStatus,
@@ -491,6 +511,7 @@ async function reinitializeMAGI(
         if (personaStatus?.runtimeStatus) {
             runtimeStatus.value = cloneRuntimeStatus(personaStatus.runtimeStatus);
         }
+        await appendBlockedPersonaMessageIfNeeded(consensusMessages, personaStatus);
         const runtimePersonaName = resolvePersonaNameFromStatus(personaStatus);
         await initializeWrappedSeels(
             seels,

@@ -6,6 +6,7 @@ import {
 import type {
     IpipNeo120SubjectMeta,
     IpipPersonaSeedDescriptions,
+    SubjectCognitiveStances,
 } from "../../data/questionnaire.types";
 import type { PersonaConvergenceSession } from "../../data/convergence/persona-seed-convergence.types";
 import type { SubjectType } from "../../data/convergence/persona-seed-panel.types";
@@ -45,8 +46,12 @@ function buildSubjectMeta(s: {
     readonly organization: { readonly value: string };
     readonly role: { readonly value: string };
     readonly careerGoal: { readonly value: string };
+    readonly profession: { readonly value: string };
+    readonly primarySocialRelation: { readonly value: string };
+    readonly selfName: { readonly value: string };
 }): IpipNeo120SubjectMeta {
     const gender = s.gender.value.trim();
+    const cognitiveStances = buildSubjectCognitiveStances(s);
     return {
         id: s.subjectId.value.trim(),
         name: s.subjectName.value.trim(),
@@ -56,6 +61,26 @@ function buildSubjectMeta(s: {
         organization: s.organization.value,
         role: s.role.value,
         careerGoal: s.careerGoal.value,
+        ...(cognitiveStances ? { cognitiveStances } : {}),
+    };
+}
+
+/** @同步豁免: UI构建 — computed 回调中的纯字符串裁剪与对象拼装 */
+function buildSubjectCognitiveStances(s: {
+    readonly profession: { readonly value: string };
+    readonly primarySocialRelation: { readonly value: string };
+    readonly selfName: { readonly value: string };
+}): SubjectCognitiveStances | undefined {
+    const profession = s.profession.value.trim();
+    const primarySocialRelation = s.primarySocialRelation.value.trim();
+    const selfName = s.selfName.value.trim();
+    if (!profession && !primarySocialRelation && !selfName) {
+        return undefined;
+    }
+    return {
+        profession,
+        primarySocialRelation,
+        selfName,
     };
 }
 
@@ -105,6 +130,9 @@ export function createPanelState(): PanelState {
     const organization = ref("");
     const role = ref("");
     const careerGoal = ref("");
+    const profession = ref("");
+    const primarySocialRelation = ref("");
+    const selfName = ref("");
     const professionalDescription = ref("");
     const lifeDescription = ref("");
     const instinctNeedsDescription = ref("");
@@ -126,6 +154,7 @@ export function createPanelState(): PanelState {
     const refs = {
         subjectId, subjectName, gender, age, subjectType,
         organization, role, careerGoal,
+        profession, primarySocialRelation, selfName,
         professionalDescription, lifeDescription,
         instinctNeedsDescription, integratedDescription,
     };

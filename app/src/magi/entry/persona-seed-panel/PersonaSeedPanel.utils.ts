@@ -7,6 +7,7 @@ import type {
     IpipPersonaProfile,
     IpipSubjectProfile,
     IpipPersonaSeedDescriptions,
+    SubjectCognitiveStances,
 } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
@@ -162,6 +163,9 @@ export const collectMissingFields = (
     role: string,
     careerGoal: string,
     descriptions: IpipPersonaSeedDescriptions,
+    profession: string,
+    primarySocialRelation: string,
+    selfName: string,
 ): string[] => {
     const missing: string[] = [];
     if (!subjectId.trim()) {
@@ -186,6 +190,15 @@ export const collectMissingFields = (
     if (!careerGoal.trim()) {
         missing.push("Career Goal");
     }
+    if (!profession.trim()) {
+        missing.push("Profession");
+    }
+    if (!primarySocialRelation.trim()) {
+        missing.push("Primary Social Relation");
+    }
+    if (!selfName.trim()) {
+        missing.push("Self Name");
+    }
     // 职业描述为空时加入缺失列表
     if (!descriptions.professionalDescription.trim()) {
         missing.push("Professional Description");
@@ -205,6 +218,27 @@ export const collectMissingFields = (
     return missing;
 };
 
+/** @同步豁免: 纯字符串裁剪与对象拼装，无异步依赖 */
+export const buildSubjectCognitiveStances = (value: {
+    readonly cognitiveStances?: {
+        readonly profession?: string;
+        readonly primarySocialRelation?: string;
+        readonly selfName?: string;
+    };
+}): SubjectCognitiveStances | undefined => {
+    const profession = value.cognitiveStances?.profession?.trim() ?? "";
+    const primarySocialRelation = value.cognitiveStances?.primarySocialRelation?.trim() ?? "";
+    const selfName = value.cognitiveStances?.selfName?.trim() ?? "";
+    if (!profession && !primarySocialRelation && !selfName) {
+        return undefined;
+    }
+    return {
+        profession,
+        primarySocialRelation,
+        selfName,
+    };
+};
+
 /** @同步豁免: 性能考虑 — 纯对象字段映射，无 I/O 开销 */
 /**
  * 作用：从提交载荷中提取被试档案信息。
@@ -219,6 +253,7 @@ export const toProfileSubject = (payload: IpipNeo120SubmissionPayload): IpipSubj
     organization: payload.subject.organization,
     role: payload.subject.role,
     careerGoal: payload.subject.careerGoal,
+    cognitiveStances: buildSubjectCognitiveStances(payload.subject),
 });
 
 /**
@@ -354,6 +389,33 @@ function isLikertScore(value: unknown): value is IpipNeo120RawAnswer["score"] {
     return value <= 5;
 }
 
+/** @同步豁免: 纯结构读取与字符串裁剪，无异步依赖 */
+export const collectMissingCognitiveStanceFieldLabels = (subject: unknown): string[] => {
+    const missing: string[] = [];
+    const stances = isRecordObject(subject) && isRecordObject(Reflect.get(subject, "cognitiveStances"))
+        ? Reflect.get(subject, "cognitiveStances")
+        : null;
+    const profession = stances && isStringValue(Reflect.get(stances, "profession"))
+        ? String(Reflect.get(stances, "profession")).trim()
+        : "";
+    const primarySocialRelation = stances && isStringValue(Reflect.get(stances, "primarySocialRelation"))
+        ? String(Reflect.get(stances, "primarySocialRelation")).trim()
+        : "";
+    const selfName = stances && isStringValue(Reflect.get(stances, "selfName"))
+        ? String(Reflect.get(stances, "selfName")).trim()
+        : "";
+    if (!profession) {
+        missing.push("Profession");
+    }
+    if (!primarySocialRelation) {
+        missing.push("Primary Social Relation");
+    }
+    if (!selfName) {
+        missing.push("Self Name");
+    }
+    return missing;
+};
+
 /** @同步豁免: 纯结构校验，无异步依赖 */
 function hasSubmissionSubject(value: unknown): value is IpipNeo120SubmissionPayload["subject"] {
     if (!isRecordObject(value)) {
@@ -377,6 +439,9 @@ function hasSubmissionSubject(value: unknown): value is IpipNeo120SubmissionPayl
     if (!isStringValue(value.careerGoal)) {
         return false;
     }
+    if (value.cognitiveStances !== undefined && !isRecordObject(value.cognitiveStances)) {
+        return false;
+    }
     if (value.gender !== undefined && !isStringValue(value.gender)) {
         return false;
     }
@@ -386,6 +451,14 @@ function hasSubmissionSubject(value: unknown): value is IpipNeo120SubmissionPayl
         }
     }
     return true;
+}
+
+function assertSubjectHasCompleteCognitiveStances(subject: unknown, errorPrefix: string): void {
+    const missing = collectMissingCognitiveStanceFieldLabels(subject);
+    if (missing.length === 0) {
+        return;
+    }
+    throw new Error(`${errorPrefix}缺少主导者立场字段：${missing.join(" / ")}。请在人格录入面板补充后重新保存。`);
 }
 
 /** @同步豁免: 纯结构校验，无异步依赖 */
@@ -459,6 +532,9 @@ export interface ImportedPersonaProfileResult {
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
+    readonly profession: string;
+    readonly primarySocialRelation: string;
+    readonly selfName: string;
     readonly descriptions: IpipPersonaSeedDescriptions | null;
     readonly answers: ReadonlyArray<{ q: number; score: LikertScore }> | null;
 }
@@ -502,6 +578,9 @@ async function importPersonaProfileFile(
         organization: (profile.subject.organization || "").trim(),
         role: (profile.subject.role || "").trim(),
         careerGoal: (profile.subject.careerGoal || "").trim(),
+        profession: profile.subject.cognitiveStances?.profession?.trim() || "",
+        primarySocialRelation: profile.subject.cognitiveStances?.primarySocialRelation?.trim() || "",
+        selfName: profile.subject.cognitiveStances?.selfName?.trim() || "",
         descriptions: null,
         answers: null,
     };
@@ -516,6 +595,7 @@ async function importSubmissionArchiveFile(
     file: File,
     submission: IpipNeo120SubmissionPayload,
 ): Promise<ImportedPersonaProfileResult> {
+    assertSubjectHasCompleteCognitiveStances(submission.subject, "导入失败：问卷样本");
     const subjectId = sanitizeSubjectId(submission.subject.id);
     const paths = resolveImportedPaths(subjectId, file.name);
     let profile: IpipPersonaProfile;
@@ -529,6 +609,7 @@ async function importSubmissionArchiveFile(
                 organization: submission.subject.organization,
                 role: submission.subject.role,
                 careerGoal: submission.subject.careerGoal,
+                cognitiveStances: buildSubjectCognitiveStances(submission.subject),
             },
             answers: submission.answers,
             items: ipipNeo120QuestionBank,
@@ -553,6 +634,9 @@ async function importSubmissionArchiveFile(
         organization: submission.subject.organization.trim(),
         role: submission.subject.role.trim(),
         careerGoal: submission.subject.careerGoal.trim(),
+        profession: submission.subject.cognitiveStances?.profession?.trim() || "",
+        primarySocialRelation: submission.subject.cognitiveStances?.primarySocialRelation?.trim() || "",
+        selfName: submission.subject.cognitiveStances?.selfName?.trim() || "",
         descriptions: {
             professionalDescription: submission.descriptions.professionalDescription,
             lifeDescription: submission.descriptions.lifeDescription,
@@ -577,6 +661,9 @@ export const importPersonaProfileArchive = async (
     const rawText = await file.text();
     const parsed = parseJsonText(rawText);
     if (!isIpipPersonaProfile(parsed)) {
+        if (isRecordObject(parsed) && parsed.schemaVersion === IPIP_SCHEMA_VERSION) {
+            assertSubjectHasCompleteCognitiveStances(Reflect.get(parsed, "subject"), "导入失败：人格档案");
+        }
         if (isIpipNeo120SubmissionArchive(parsed)) {
             return importSubmissionArchiveFile(file, parsed);
         }

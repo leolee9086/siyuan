@@ -60,7 +60,7 @@
 
 1. [x] `go test ./nerv/marduk -run 'TestResolveCognitiveStances'`
 2. [x] `go test ./nerv/magi/prompts -run 'TestBuildDominantElection|TestBuildWakeupSequence'`
-3. [x] `go test ./api -run 'TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
+3. [x] `go test ./api -run 'TestGetOrCreateSession|TestSubmitMagiTask|TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
 4. [ ] `go test ./nerv/magi/coordinator -run 'TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory'` 仍未稳定通过；本轮复核时已确认至少 `TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory` 因旧测试夹具未适配主导者选举而失败。
 5. [x] `MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
 6. [ ] `pnpm exec webpack --mode development --env target=magi-app` 在当前仓库环境下 5 分钟超时，尚未拿到完整前端打包结果。
@@ -140,6 +140,40 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Hotfix: MAGI 初始化失败链路请求阻断与会话空指针防护 (P0)** [已完成 2026-03-25]
+  - **背景**: 在“旧版人格档案缺字段阻断”热修后，`initMagiComponents()` 可能因人格档案校验失败而提前返回，导致 `magiSessionMgr` 未初始化；但 `/api/s-forge/magi/v1/chat/completions` 仍会继续进入 `submitMagiTask() -> getOrCreateSession()`，最终触发空指针 panic。
+  - **完成情况**:
+    1. 已在 `kernel/api/magi.go` 的 `submitMagiTask()` 中增加 `magiInitErr` 与 `magiSessionMgr` 前置校验，初始化失败时会直接返回明确错误，不再继续入队或创建会话。
+    2. 已在 `kernel/api/magi.go` 的 `getOrCreateSession()` 中增加空 `SessionManager` 防护；异常路径下仅安全返回空串，不做任何兜底创建。
+    3. 已在 `kernel/api/magi_request_test.go` 中补充初始化失败与空 `SessionManager` 的回归测试，锁定这条 panic 链路。
+  - **验证证据**:
+    - `go test ./api -run 'TestGetOrCreateSession|TestSubmitMagiTask|TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
+    - `go test ./nerv/marduk -run 'TestLoadPersonaProfile|TestResolveCognitiveStances'`
+  - **成果文件**:
+    - `docs/ttt/AI模块改进/MAGI_主导者机制与统合重构.ttt.md`
+    - `kernel/api/magi.go`
+    - `kernel/api/magi_request_test.go`
+
+- [x] **Hotfix: 旧版人格档案缺字段阻断与前端补录闭环 (P0)** [已完成 2026-03-25]
+  - **背景**: 已保存的旧版人格档案缺少 `profession / primarySocialRelation / selfName` 时，后端加载链没有在入口处校验，导致旧档案被直接带入运行时，并在主导者选举阶段才报错；同时前端人格档案界面尚未暴露这三项必填字段，用户无法就地补录。
+  - **完成情况**:
+    1. 已在 `kernel/nerv/marduk/loader.go` 中为 active seed / legacy persona profile 增加严格校验；旧版缺字段档案会直接返回验证错误，并阻断 MAGI 初始化，不再回退到预设人格。
+    2. 已在 `kernel/api/magi.go` 与前端 `magiPersonaStatus` 消费链中暴露阻断态、错误消息和缺失字段列表，使主聊天界面可直接提示“请补充档案后重新保存”。
+    3. 已在 `app/src/magi/entry/persona-seed-panel` 的类型、表单、草稿、加载器、导入/保存链中补齐 `profession / primarySocialRelation / selfName`，并在读取旧版不完整档案时明确提示补录要求。
+  - **验证证据**:
+    - `go test ./nerv/marduk -run 'TestLoadPersonaProfile|TestResolveCognitiveStances'`
+    - `go test ./api -run 'TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
+    - `pnpm exec vitest run test/magi/personaSeedPanelLoader.test.ts src/magi/prompts/personaRuntimePromptBuilder.guard.test.ts src/magi/prompts/personaRuntimePromptBuilder.test.ts src/magi/prompts/personaPromptBuilder.test.ts`
+  - **成果文件**:
+    - `kernel/nerv/marduk/loader.go`
+    - `kernel/nerv/marduk/init.go`
+    - `kernel/api/magi.go`
+    - `app/src/magi/data/questionnaire.types.ts`
+    - `app/src/magi/entry/persona-seed-panel/PersonaSeedPanel.vue`
+    - `app/src/magi/entry/persona-seed-panel/components/PersonaSeedSubjectForm.vue`
+    - `app/src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts`
+    - `app/src/magi/service/magiPersonaStatus.ts`
 
 - [x] **立项：主导者机制与统合重构 TTT 创建** [已完成 2026-03-25]
   - **背景**: 需要先把“主导者替代 Trinity、档案立场真源、HTTP 兼容不动”的口径固化为动态执行文档。

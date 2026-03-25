@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -100,5 +102,49 @@ func TestGetOrCreateSession_IgnoresLegacySessionHeader(t *testing.T) {
 	}
 	if sessionID == "legacy-session-123" {
 		t.Fatalf("legacy session header should be ignored, got %s", sessionID)
+	}
+}
+
+func TestGetOrCreateSession_ReturnsEmptyWhenSessionManagerUnavailable(t *testing.T) {
+	oldMgr := magiSessionMgr
+	oldSourceSID := magiSourceSID
+	defer func() {
+		magiSessionMgr = oldMgr
+		magiSourceSID = oldSourceSID
+	}()
+
+	magiSessionMgr = nil
+	magiSourceSID = sync.Map{}
+
+	sessionID := getOrCreateSession(newTestGinContext(), &types.RequestSourceContext{
+		PrincipalID:      "principal-a",
+		SourceSessionKey: "guardian:principal-a:main-1:conv-1",
+	})
+	if sessionID != "" {
+		t.Fatalf("expected empty session id when session manager is unavailable, got %s", sessionID)
+	}
+}
+
+func TestSubmitMagiTask_ReturnsInitErrorBeforeSessionLookup(t *testing.T) {
+	oldInitErr := magiInitErr
+	oldMgr := magiSessionMgr
+	defer func() {
+		magiInitErr = oldInitErr
+		magiSessionMgr = oldMgr
+	}()
+
+	magiInitErr = errors.New("persona profile incomplete")
+	magiSessionMgr = nil
+
+	_, err := submitMagiTask(newTestGinContext(), openai.ChatCompletionRequest{
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleUser, Content: "现在感觉如何?"},
+		},
+	}, &types.RequestSourceContext{})
+	if err == nil {
+		t.Fatal("expected init error, got nil")
+	}
+	if !strings.Contains(err.Error(), "MAGI system not initialized: persona profile incomplete") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

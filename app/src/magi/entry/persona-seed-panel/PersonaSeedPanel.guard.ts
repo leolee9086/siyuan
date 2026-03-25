@@ -57,6 +57,7 @@ export function parseQuestionnaireDraft(value: unknown): ParsedQuestionnaireDraf
     }
     const descriptions = Reflect.get(value, "descriptions");
     const answers = Reflect.get(value, "answers");
+    const cognitiveStances = Reflect.get(subject, "cognitiveStances");
     return {
         subject: {
             id: readOptionalString(subject, "id") ?? "",
@@ -67,6 +68,15 @@ export function parseQuestionnaireDraft(value: unknown): ParsedQuestionnaireDraf
             organization: readOptionalString(subject, "organization") ?? "",
             role: readOptionalString(subject, "role") ?? "",
             careerGoal: readOptionalString(subject, "careerGoal") ?? "",
+            ...(isRecord(cognitiveStances)
+                ? {
+                    cognitiveStances: {
+                        profession: readOptionalString(cognitiveStances, "profession") ?? "",
+                        primarySocialRelation: readOptionalString(cognitiveStances, "primarySocialRelation") ?? "",
+                        selfName: readOptionalString(cognitiveStances, "selfName") ?? "",
+                    },
+                }
+                : {}),
         },
         descriptions: isRecord(descriptions)
             ? {
