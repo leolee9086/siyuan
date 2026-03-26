@@ -1,92 +1,92 @@
 <template>
-  <div class="trinity-monitor-panel" :style="rootStyle">
-    <div class="trinity-monitor-overlay">
-      <header class="trinity-monitor-header">
-        <div class="trinity-monitor-title-block">
-          <div class="trinity-monitor-title-row">
-            <span class="trinity-monitor-name">MAGI</span>
+  <div class="magi-monitor-panel" :style="rootStyle">
+    <div class="magi-monitor-overlay">
+      <header class="magi-monitor-header">
+        <div class="magi-monitor-title-block">
+          <div class="magi-monitor-title-row">
+            <span class="magi-monitor-name">MAGI</span>
           </div>
-          <div class="trinity-monitor-persona">{{ ai.config.persona }}</div>
+          <div class="magi-monitor-persona">{{ ai.config.persona }}</div>
         </div>
 
-        <div class="trinity-monitor-status" :class="`tone-${runtimeTone}`">
-          <span class="trinity-monitor-led" :class="`tone-${runtimeTone}`" />
-          <div class="trinity-monitor-status-copy">
-            <span class="trinity-monitor-status-main">{{ runtimeLabel }}</span>
-            <span class="trinity-monitor-status-sub">{{ connectionLabel }}</span>
+        <div class="magi-monitor-status" :class="`tone-${runtimeTone}`">
+          <span class="magi-monitor-led" :class="`tone-${runtimeTone}`" />
+          <div class="magi-monitor-status-copy">
+            <span class="magi-monitor-status-main">{{ runtimeLabel }}</span>
+            <span class="magi-monitor-status-sub">{{ connectionLabel }}</span>
           </div>
         </div>
       </header>
 
-      <section class="trinity-monitor-focus">
-        <span class="trinity-monitor-section-label">BACKEND FOCUS</span>
-        <span class="trinity-monitor-focus-value">{{ runtimeFocusText }}</span>
+      <section class="magi-monitor-focus">
+        <span class="magi-monitor-section-label">BACKEND FOCUS</span>
+        <span class="magi-monitor-focus-value">{{ runtimeFocusText }}</span>
       </section>
 
-      <section class="trinity-monitor-summary">
+      <section class="magi-monitor-summary">
         <div
           v-for="item in summaryStats"
           :key="item.label"
-          class="trinity-monitor-stat"
+          class="magi-monitor-stat"
           :class="`tone-${item.tone}`"
         >
-          <span class="trinity-monitor-stat-label">{{ item.label }}</span>
-          <span class="trinity-monitor-stat-value" :title="item.value">{{ item.value }}</span>
+          <span class="magi-monitor-stat-label">{{ item.label }}</span>
+          <span class="magi-monitor-stat-value" :title="item.value">{{ item.value }}</span>
         </div>
       </section>
 
-      <section class="trinity-monitor-runtime-grid">
-        <div v-for="fact in runtimeFacts" :key="fact.label" class="trinity-monitor-fact">
-          <span class="trinity-monitor-fact-label">{{ fact.label }}</span>
-          <span class="trinity-monitor-fact-value" :title="fact.value">{{ fact.value }}</span>
+      <section class="magi-monitor-runtime-grid">
+        <div v-for="fact in runtimeFacts" :key="fact.label" class="magi-monitor-fact">
+          <span class="magi-monitor-fact-label">{{ fact.label }}</span>
+          <span class="magi-monitor-fact-value" :title="fact.value">{{ fact.value }}</span>
         </div>
       </section>
 
-      <section v-if="showMessages" class="trinity-monitor-synthesis">
-        <div class="trinity-monitor-section-header">
-          <span class="trinity-monitor-section-label">LATEST SYNTHESIS</span>
-          <span class="trinity-monitor-section-meta">{{ latestSynthesisTimestamp }}</span>
+      <section v-if="showMessages" class="magi-monitor-synthesis">
+        <div class="magi-monitor-section-header">
+          <span class="magi-monitor-section-label">LATEST SYNTHESIS</span>
+          <span class="magi-monitor-section-meta">{{ latestSynthesisTimestamp }}</span>
         </div>
-        <div class="trinity-monitor-synthesis-body" :class="{ empty: !latestSynthesis }">
+        <div class="magi-monitor-synthesis-body" :class="{ empty: !latestSynthesis }">
           {{ latestSynthesis ? latestSynthesis.content : "Waiting for synthesis output..." }}
         </div>
       </section>
 
-      <section class="trinity-monitor-stream-panel">
-        <div class="trinity-monitor-section-header">
-          <span class="trinity-monitor-section-label">BACKEND EVENT STREAM</span>
-          <span class="trinity-monitor-section-meta">
+      <section class="magi-monitor-stream-panel">
+        <div class="magi-monitor-section-header">
+          <span class="magi-monitor-section-label">BACKEND EVENT STREAM</span>
+          <span class="magi-monitor-section-meta">
             {{ showMessages ? `${streamItems.length} EVENTS` : "OUTPUT HIDDEN" }}
           </span>
         </div>
 
-        <div v-if="showMessages" ref="eventStreamRef" class="trinity-monitor-stream">
+        <div v-if="showMessages" ref="eventStreamRef" class="magi-monitor-stream">
           <details
             v-for="item in streamItems"
             :key="item.id"
-            class="trinity-monitor-event"
+            class="magi-monitor-event"
             :class="`tone-${item.tone}`"
           >
-            <summary class="trinity-monitor-event-summary">
-              <span class="trinity-monitor-event-time">{{ item.timestampText }}</span>
-              <span class="trinity-monitor-event-type">{{ item.eventType }}</span>
-              <span class="trinity-monitor-event-source">{{ item.sourceLabel }}</span>
-              <span class="trinity-monitor-event-seq">{{ item.seqText }}</span>
+            <summary class="magi-monitor-event-summary">
+              <span class="magi-monitor-event-time">{{ item.timestampText }}</span>
+              <span class="magi-monitor-event-type">{{ item.eventType }}</span>
+              <span class="magi-monitor-event-source">{{ item.sourceLabel }}</span>
+              <span class="magi-monitor-event-seq">{{ item.seqText }}</span>
             </summary>
-            <div class="trinity-monitor-event-meta">
+            <div class="magi-monitor-event-meta">
               <span>ROUND {{ item.roundId }}</span>
               <span>{{ item.sourceLabel }}</span>
             </div>
-            <div class="trinity-monitor-event-preview">{{ item.summary }}</div>
-            <pre class="trinity-monitor-event-payload">{{ item.payloadText }}</pre>
+            <div class="magi-monitor-event-preview">{{ item.summary }}</div>
+            <pre class="magi-monitor-event-payload">{{ item.payloadText }}</pre>
           </details>
 
-          <div v-if="streamItems.length === 0" class="trinity-monitor-stream-empty">
+          <div v-if="streamItems.length === 0" class="magi-monitor-stream-empty">
             Waiting for backend monitor events...
           </div>
         </div>
 
-        <div v-else class="trinity-monitor-stream-empty">
+        <div v-else class="magi-monitor-stream-empty">
           Runtime status remains visible while MAGI output is hidden.
         </div>
       </section>
@@ -96,12 +96,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
-import type { TrinityMonitorPanelProps } from "./TrinityMonitorPanel.types";
+import type { MagiMonitorPanelProps } from "./TrinityMonitorPanel.types";
 import {
-    buildTrinityMonitorFacts,
-    buildTrinityMonitorStats,
-    buildTrinityMonitorStream,
-    extractLatestTrinitySynthesis,
+    buildMonitorFacts,
+    buildMonitorStats,
+    buildMonitorStream,
+    extractLatestMonitorSynthesis,
     formatConnectionStatus,
     formatMonitorTimestamp,
     formatRuntimeState,
@@ -109,7 +109,7 @@ import {
 } from "./TrinityMonitorPanel.ctx";
 import "./TrinityMonitorPanel.css";
 
-const props = withDefaults(defineProps<TrinityMonitorPanelProps>(), {
+const props = withDefaults(defineProps<MagiMonitorPanelProps>(), {
     showMessages: true,
     accentColor: "#31d7ff",
 });
@@ -127,22 +127,22 @@ const runtimeFocusText = computed<string>(() =>
     || "Awaiting runtime signal from MAGI backend",
 );
 const summaryStats = computed(() =>
-    buildTrinityMonitorStats(props.ai.messages, props.ai.connectionStatus, props.runtimeStatus ?? null),
+    buildMonitorStats(props.ai.messages, props.ai.connectionStatus, props.runtimeStatus ?? null),
 );
 const runtimeFacts = computed(() =>
-    buildTrinityMonitorFacts(props.runtimeStatus ?? null),
+    buildMonitorFacts(props.runtimeStatus ?? null),
 );
 const latestSynthesis = computed(() =>
-    extractLatestTrinitySynthesis(props.ai.messages),
+    extractLatestMonitorSynthesis(props.ai.messages),
 );
 const latestSynthesisTimestamp = computed<string>(() =>
     latestSynthesis.value ? formatMonitorTimestamp(latestSynthesis.value.timestamp) : "--:--:--",
 );
 const streamItems = computed(() =>
-    buildTrinityMonitorStream(props.ai.messages),
+    buildMonitorStream(props.ai.messages),
 );
 const rootStyle = computed<Record<string, string>>(() => ({
-    "--trinity-accent": props.accentColor,
+    "--magi-monitor-accent": props.accentColor,
 }));
 
 async function scrollEventStreamToBottom(): Promise<void> {

@@ -11,8 +11,8 @@
       <span class="toggle-text" :class="{ active: showSeels }" @click="emit('toggle-seels')">
         {{ showSeels ? "HIDE SEELS" : "SHOW SEELS" }}
       </span>
-      <span class="toggle-text" :class="{ active: showTrinity }" @click="emit('toggle-trinity')">
-        {{ showTrinity ? "HIDE TRINITY" : "SHOW TRINITY" }}
+      <span class="toggle-text" :class="{ active: showMonitor }" @click="emit('toggle-monitor')">
+        {{ showMonitor ? "HIDE MONITOR" : "SHOW MONITOR" }}
       </span>
       <div class="consensus-status">
         <span class="status-flag">SECURITY LEVEL: </span>
@@ -39,7 +39,7 @@ import type {
 const {
   showMessages,
   showSeels,
-  showTrinity,
+  showMonitor,
   personaEntryText,
   syncRateText,
   syncRate,

@@ -121,13 +121,6 @@ func TestPushDominantSynthesisCompleted(t *testing.T) {
 	}
 }
 
-func TestPushTrinitySynthesisCompleted(t *testing.T) {
-	err := PushTrinitySynthesisCompleted("test-session", "round-1", "Trinity统合内容")
-	if err != nil {
-		t.Errorf("PushTrinitySynthesisCompleted() error = %v", err)
-	}
-}
-
 func TestPushConsensusEmitted(t *testing.T) {
 	msg := &types.Message{
 		ID:        "consensus-123",

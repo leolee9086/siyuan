@@ -776,8 +776,8 @@ function createCloseWindowHandler(): () => void {
     };
 }
 
-/** 判断是否为 TRINITY 面板 */
-function isTrinitySeel(name: string): boolean {
+/** 判断是否为监控宿主面板 */
+function isMonitorHostSeel(name: string): boolean {
     return name === "TRINITY-00";
 }
 
@@ -884,7 +884,7 @@ function createMagiRootState() {
         inputValue: ref(""),
         showMessages: ref(true),
         showSeels: ref(true),
-        showTrinity: ref(true),
+        showMonitor: ref(true),
         showQuestionnairePanel: ref(false),
         workspaceAIMainNotebookState: ref<WorkspaceAIMainNotebookState | null>(null),
         workspaceAIMainNotebookLoading: ref(true),
@@ -925,16 +925,16 @@ function createMagiRootComputed(
     );
     const mainPanelMessages = computed(() => magiState.value?.mainPanelMessages ?? []);
     const sageSeels = computed(() =>
-        seels.value.filter((seel) => !isTrinitySeel(seel.config.name)),
+        seels.value.filter((seel) => !isMonitorHostSeel(seel.config.name)),
     );
     const sageSeelViews = computed<MagiSeelPanelView[]>(() =>
         sageSeels.value.map((seel) => mapWrappedSeelToPanelView(seel, websocketConnectionStatus.value)),
     );
-    const trinitySeel = computed(
-        () => seels.value.find((seel) => isTrinitySeel(seel.config.name)) ?? null,
+    const monitorHostSeel = computed(
+        () => seels.value.find((seel) => isMonitorHostSeel(seel.config.name)) ?? null,
     );
-    const trinitySeelView = computed<MagiSeelPanelView | null>(() =>
-        trinitySeel.value ? mapWrappedSeelToPanelView(trinitySeel.value, websocketConnectionStatus.value) : null,
+    const monitorSeelView = computed<MagiSeelPanelView | null>(() =>
+        monitorHostSeel.value ? mapWrappedSeelToPanelView(monitorHostSeel.value, websocketConnectionStatus.value) : null,
     );
     const isMainPanelRequestPending = computed(
         () => magiState.value?.isMainPanelRequestPending ?? false,
@@ -955,9 +955,9 @@ function createMagiRootComputed(
         seels,
         mainPanelSeels,
         sageSeels,
-        trinitySeel,
+        monitorHostSeel,
         sageSeelViews,
-        trinitySeelView,
+        monitorSeelView,
         isMainPanelRequestPending,
         isAnySeelLoading,
         runtimeStatus,
@@ -1103,7 +1103,7 @@ export function useMagiRootContext(): MagiRootContext {
         inputValue: state.inputValue,
         showMessages: state.showMessages,
         showSeels: state.showSeels,
-        showTrinity: state.showTrinity,
+        showMonitor: state.showMonitor,
         showQuestionnairePanel: state.showQuestionnairePanel,
         workspaceAIMainNotebookState: state.workspaceAIMainNotebookState,
         workspaceAIMainNotebookStatus: computedState.workspaceAIMainNotebookStatus,
@@ -1115,9 +1115,9 @@ export function useMagiRootContext(): MagiRootContext {
         seels: computedState.seels,
         mainPanelSeels: computedState.mainPanelSeels,
         sageSeels: computedState.sageSeels,
-        trinitySeel: computedState.trinitySeel,
+        monitorHostSeel: computedState.monitorHostSeel,
         sageSeelViews: computedState.sageSeelViews,
-        trinitySeelView: computedState.trinitySeelView,
+        monitorSeelView: computedState.monitorSeelView,
         displayMessages: computedState.displayMessages,
         isMainPanelRequestPending: computedState.isMainPanelRequestPending,
         isAnySeelLoading: computedState.isAnySeelLoading,

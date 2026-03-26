@@ -1,30 +1,30 @@
 import type { ConnectionStatus, MagiRuntimeStatus } from "../../composables/useMagi.types";
 import type { MagiSeelPanelMessageView, MagiSeelPanelView } from "../../entry/magiView.types";
 
-export interface TrinityMonitorPanelProps {
+export interface MagiMonitorPanelProps {
     ai: MagiSeelPanelView;
     runtimeStatus?: MagiRuntimeStatus | null;
     showMessages?: boolean;
     accentColor?: string;
 }
 
-export type TrinityMonitorTone = "accent" | "good" | "warn" | "danger" | "muted";
+export type MagiMonitorTone = "accent" | "good" | "warn" | "danger" | "muted";
 
-export interface TrinityMonitorStat {
+export interface MagiMonitorStat {
     label: string;
     value: string;
-    tone: TrinityMonitorTone;
+    tone: MagiMonitorTone;
 }
 
-export interface TrinityMonitorFact {
+export interface MagiMonitorFact {
     label: string;
     value: string;
 }
 
-export interface TrinityMonitorStreamItem {
+export interface MagiMonitorStreamItem {
     id: string;
     eventType: string;
-    tone: TrinityMonitorTone;
+    tone: MagiMonitorTone;
     timestampText: string;
     seqText: string;
     roundId: string;
@@ -33,5 +33,5 @@ export interface TrinityMonitorStreamItem {
     payloadText: string;
 }
 
-export type TrinityMonitorMessage = MagiSeelPanelMessageView;
-export type TrinityMonitorConnectionStatus = ConnectionStatus;
+export type MagiMonitorMessage = MagiSeelPanelMessageView;
+export type MagiMonitorConnectionStatus = ConnectionStatus;

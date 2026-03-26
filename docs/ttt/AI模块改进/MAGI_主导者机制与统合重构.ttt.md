@@ -52,8 +52,8 @@
 4. **Avatar 原型综合与 ATF 统合作答的后端主路径已迁移到主导者**：当前代码里 `kernel/nerv/magi/coordinator/avatar_runtime.go` 已不再把 Avatar 最终原型交给独立 Trinity 综合；`kernel/nerv/seraph/atf_answerer.go` 也已改为通过主导者综合三贤人答卷。
 5. **运行态与前端观测链已补齐**：`kernel/nerv/magi/types/types.go`、`kernel/nerv/magi/websocket/events.go`、`app/src/magi/composables/useMagi.ts`、`app/src/magi/entry/MagiWorkspace.vue` 均已接入 `dominantSeel / dominantStance`；外部回复态对运行态的主导者回写也已接通。
 6. **后端核心退场清理已完成一轮收口**：`kernel/nerv/magi/coordinator/trinity.go` 已删除；`config/sages/prompts/wakeup/stream/seraph` 中把 Trinity 作为独立实体保留的生产依赖与命名语义已完成清理；未使用的 Trinity 提示词模板也已移除。
-7. **Phase 3B 已完成第一轮事件名兼容迁移**：`kernel/nerv/magi/websocket/events.go` 已新增 `DOMINANT_SYNTHESIS_COMPLETED`，前端事件总线、WebSocket bridge、projector 与监控流已可同时兼容新旧 synthesis 事件名，并把 `trinity-runtime` 监控范围收敛为中性的 `magi-monitor`。
-8. **仍未完成的核心范围已收窄到前端组件/工具命名层与后续机制阶段**：`app/src/magi/components/trinity-monitor-panel/*`、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主命名等仍保留 Trinity 语义；此外，行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地。
+7. **Phase 3B 已完成 synthesis 事件名收口**：`kernel/nerv/magi/websocket/events.go`、前端事件总线、WebSocket bridge、projector 与监控流已统一只使用 `DOMINANT_SYNTHESIS_COMPLETED`；此前残留的 `TRINITY_SYNTHESIS_COMPLETED` 仅属同仓旧命名死代码，已确认不属于任何对外兼容面。同时，`trinity-runtime` 监控范围也已收敛为中性的 `magi-monitor`。
+8. **仍未完成的核心范围已进一步收窄到路径级/运行时命名残留与后续机制阶段**：前端监控宿主显式状态名、monitor panel 内部类型名、模板类名与界面文案已收口到 `monitor` / `magi-monitor` 口径；但 `app/src/magi/components/trinity-monitor-panel/*` 的文件路径/目录名、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主命名等仍保留 Trinity 语义。此外，行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地。
 
 ---
 
@@ -65,8 +65,8 @@
 4. [x] `go test ./nerv/magi/coordinator -run 'TestBuildRejectionMessage|TestBuildConsensusMessage|TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing'`
 5. [x] `go test ./nerv/magi/websocket`
 6. [x] `pnpm exec vitest run test/util/events/magiEventBridge.test.ts test/util/events/magiWebSocketBridge.test.ts`
-7. [x] `MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
-8. [ ] `pnpm exec webpack --mode development --env target=magi-app` 在当前仓库环境下 5 分钟超时，尚未拿到完整前端打包结果。
+7. [x] `TrinityMonitorPanel.vue`、`MagiMainPanel.vue`、`MagiMainPanelHeader.vue`、`MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
+8. [ ] `pnpm exec vue-tsc --noEmit` 当前仓库未安装 `vue-tsc`；`pnpm exec tsc --noEmit` 受现有 `./src/types` 类型库配置问题阻塞，尚未拿到完整前端 TS 全量校验结果。
 
 ---
 
@@ -77,7 +77,7 @@
 3. **立场与贤者映射**: 当前实现阶段采用固定映射：`profession -> melchior`、`primarySocialRelation -> balthazar`、`selfName -> casper`。
 4. **无兜底口径**: 若档案缺少主导选举所需字段，应显式报错或停止该路径，不得自动补成“助手/未说明/默认名字”。
 5. **接口兼容边界**: 可新增内部元数据、运行态字段、WebSocket 事件字段；不得要求外部 HTTP 客户端增加请求字段，也不得改写返回结构主形态。
-6. **阶段边界**: 目前已完成 Phase 1/2，回复态主导直答主干、后端核心退场清理，以及 synthesis 事件名兼容迁移已落地；但前端 Trinity 监控卡片、`TRINITY-00` 监控宿主与 mock/wise 命名层仍未清理完毕，因此还不能把“Trinity 作为独立实体已完全退场”视为全链路完成。
+6. **阶段边界**: 目前已完成 Phase 1/2，回复态主导直答主干、后端核心退场清理，以及 synthesis 事件名统一收口已落地；前端 monitor 宿主显式状态名与监控卡片内部命名也已开始收口，但 `trinity-monitor-panel` 路径级命名、`TRINITY-00` 监控宿主与 mock/wise 命名层仍未清理完毕，因此还不能把“Trinity 作为独立实体已完全退场”视为全链路完成。
 
 ---
 
@@ -94,14 +94,14 @@
 ## 🟢 近期计划
 
 - [-] **Phase 3B: WebSocket / 前端监控 Trinity 命名退场收尾 (P1)**
-  - **背景**: `coordinator` 测试夹具、`config/sages/prompts/wakeup/stream/seraph` 与旧 `TrinityCoordinator` 的后端残留已完成收口；本轮已完成 synthesis 事件名兼容迁移，但前端监控卡片与 mock/wise 命名层仍保留 Trinity 独立实体语义。
+  - **背景**: `coordinator` 测试夹具、`config/sages/prompts/wakeup/stream/seraph` 与旧 `TrinityCoordinator` 的后端残留已完成收口；本轮已完成 synthesis 事件名统一收口，以及前端 monitor 宿主显式状态名、监控卡片内部类型/样式/界面文案收口，但路径级命名与 mock/wise 命名层仍保留 Trinity 独立实体语义。
   - **行动**:
-    1. 继续清理 `app/src/magi/components/trinity-monitor-panel/*`、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主等仍直接暴露 Trinity 独立实体语义的残留。
-    2. 保留 `DOMINANT_SYNTHESIS_COMPLETED` 主事件名的同时，明确旧 `TRINITY_SYNTHESIS_COMPLETED` 的兼容窗口与退场时机。
+    1. 继续清理 `app/src/magi/components/trinity-monitor-panel/*` 的文件路径/目录名、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主等仍直接暴露 Trinity 独立实体语义的残留。
+    2. 移除旧 `TRINITY_SYNTHESIS_COMPLETED` 残留后，继续清查同类“内部死代码被误写成兼容层”的命名遗留。
     3. 完成改动后补齐前端事件桥接、监控面板与文档口径验证，避免“后端已退场”被误写成“全链路已退场”。
   - **验收标准**:
     - WebSocket 与前端监控层不再把 Trinity 作为独立运行实体表达。
-    - 兼容迁移策略明确，旧事件名是否保留有文档与代码依据。
+    - 旧 synthesis 事件名已从代码与文档中移除，不再把内部死代码表述成“兼容层”。
     - TTT、测试与界面文案中的完成度口径一致。
 
 - [ ] **Phase 4: 行动态工具治理与失主导重选 (P1)**

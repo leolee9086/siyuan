@@ -668,13 +668,12 @@ function projectLLMRequestSent(
 /** 投影统合完成事件到三贤人卡片。 */
 function projectSynthesisCompleted(
     state: MagiProjectorRuntimeState,
-    eventType: "DOMINANT_SYNTHESIS_COMPLETED" | "TRINITY_SYNTHESIS_COMPLETED",
     event: MagiSynthesisCompletedEvent,
 ): void {
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    projectRawEventToSeelCards(state, eventType, event, []);
+    projectRawEventToSeelCards(state, "DOMINANT_SYNTHESIS_COMPLETED", event, []);
 }
 
 /** 投影轮次失败事件到三贤人卡片。 */
@@ -725,8 +724,7 @@ function registerSeelSubscriptions(
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_COMPLETED", projectSeelReplyCompleted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_FAILED", projectSeelReplyFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_VOTE_UPDATED", projectVoteUpdated.bind(null, state)));
-    subscriptions.push(eventBus.subscribe("DOMINANT_SYNTHESIS_COMPLETED", projectSynthesisCompleted.bind(null, state, "DOMINANT_SYNTHESIS_COMPLETED")));
-    subscriptions.push(eventBus.subscribe("TRINITY_SYNTHESIS_COMPLETED", projectSynthesisCompleted.bind(null, state, "TRINITY_SYNTHESIS_COMPLETED")));
+    subscriptions.push(eventBus.subscribe("DOMINANT_SYNTHESIS_COMPLETED", projectSynthesisCompleted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("ROUND_FAILED", projectRoundFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("DELIBERATION_SIGNAL_RAISED", projectDeliberationSignal.bind(null, state)));
     subscriptions.push(eventBus.subscribe("TOOL_CALL_DETECTED", projectToolCall.bind(null, state)));

@@ -60,7 +60,7 @@ import "./MagiMainPanel.css";
 const props = withDefaults(defineProps<MagiMainPanelProps>(), {
   showMessages: true,
   showSeels: true,
-  showTrinity: false,
+  showMonitor: false,
 });
 
 const emit = defineEmits<MagiMainPanelEmits>();

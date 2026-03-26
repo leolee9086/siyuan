@@ -82,7 +82,6 @@ export const magiEventDefines = {
         deliberationReason: z.string().optional(),
     },
     DOMINANT_SYNTHESIS_COMPLETED: synthesisCompletedSchema,
-    TRINITY_SYNTHESIS_COMPLETED: synthesisCompletedSchema,
     CONSENSUS_EMITTED: {
         ...baseEventShape,
         message: magiMessageSchema,

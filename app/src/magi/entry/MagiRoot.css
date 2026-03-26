@@ -495,9 +495,9 @@ body,
   --magi-balthasar-top: 2%;
   --magi-balthasar-width: 34%;
   --magi-balthasar-height: 25%;
-  --magi-trinity-top: 34%;
-  --magi-trinity-width: 30%;
-  --magi-trinity-height: 33%;
+  --magi-monitor-top: 34%;
+  --magi-monitor-width: 30%;
+  --magi-monitor-height: 33%;
   --magi-side-top: 47%;
   --magi-side-width: 31%;
   --magi-side-height: 53%;
@@ -537,7 +537,7 @@ body,
 }
 
 .magi-seel-node-content .seel-panel,
-.magi-seel-node-content .trinity-monitor-panel {
+.magi-seel-node-content .magi-monitor-panel {
   flex: 1;
   width: 100%;
   height: 100%;
@@ -555,7 +555,7 @@ body,
 }
 
 .magi-seel-slot,
-.magi-trinity {
+.magi-monitor {
   position: absolute;
   min-height: 0;
   min-width: 0;
@@ -572,11 +572,11 @@ body,
   transform: translateX(-50%);
 }
 
-.magi-trinity {
-  top: var(--magi-trinity-top);
+.magi-monitor {
+  top: var(--magi-monitor-top);
   left: 50%;
-  width: var(--magi-trinity-width);
-  height: var(--magi-trinity-height);
+  width: var(--magi-monitor-width);
+  height: var(--magi-monitor-height);
   transform: translateX(-50%);
 }
 
@@ -605,9 +605,9 @@ body,
 }
 
 .magi-seel-cluster.sages-only .magi-seel-slot,
-.magi-seel-cluster.sages-only .magi-trinity,
-.magi-seel-cluster.trinity-only .magi-seel-slot,
-.magi-seel-cluster.trinity-only .magi-trinity {
+.magi-seel-cluster.sages-only .magi-monitor,
+.magi-seel-cluster.monitor-only .magi-seel-slot,
+.magi-seel-cluster.monitor-only .magi-monitor {
   position: relative;
   top: auto;
   right: auto;
@@ -634,24 +634,24 @@ body,
   display: none;
 }
 
-.magi-seel-cluster.trinity-only {
+.magi-seel-cluster.monitor-only {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
 }
 
-.magi-seel-cluster.trinity-only .magi-seel-slot {
+.magi-seel-cluster.monitor-only .magi-seel-slot {
   display: none;
 }
 
-.magi-seel-cluster.trinity-only .magi-seel-cluster-connectors {
+.magi-seel-cluster.monitor-only .magi-seel-cluster-connectors {
   display: none;
 }
 
 .magi-seel-slot .seel-panel,
-.magi-trinity .seel-panel,
-.magi-seel-slot .trinity-monitor-panel,
-.magi-trinity .trinity-monitor-panel {
+.magi-monitor .seel-panel,
+.magi-seel-slot .magi-monitor-panel,
+.magi-monitor .magi-monitor-panel {
   flex: 1;
   height: 100%;
   min-height: 180px;
@@ -743,7 +743,7 @@ body,
 
   .magi-seel-cluster,
   .magi-seel-cluster.sages-only,
-  .magi-seel-cluster.trinity-only {
+  .magi-seel-cluster.monitor-only {
     position: relative;
     display: grid;
     gap: 10px;
@@ -758,7 +758,7 @@ body,
   }
 
   .magi-seel-slot,
-  .magi-trinity {
+  .magi-monitor {
     position: relative;
     top: auto;
     right: auto;
@@ -770,9 +770,9 @@ body,
   }
 
   .magi-seel-slot .seel-panel,
-  .magi-trinity .seel-panel,
-  .magi-seel-slot .trinity-monitor-panel,
-  .magi-trinity .trinity-monitor-panel {
+  .magi-monitor .seel-panel,
+  .magi-seel-slot .magi-monitor-panel,
+  .magi-monitor .magi-monitor-panel {
     height: clamp(240px, 35vh, 360px);
   }
 

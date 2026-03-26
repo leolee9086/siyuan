@@ -9,8 +9,8 @@
         class="magi-seel-cluster"
         :class="{
           'svg-layout': useSvgClusterLayout,
-          'trinity-only': !showSeels && !!trinitySeelView,
-          'sages-only': showSeels && !trinitySeelView,
+          'monitor-only': !showSeels && !!monitorSeelView,
+          'sages-only': showSeels && !monitorSeelView,
         }"
       >
         <svg
@@ -41,14 +41,14 @@
           >
             <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
               <SeelPanel
-                v-if="node.key !== 'trinity'"
+                v-if="node.key !== 'monitor'"
                 :key="node.seel.config.name"
                 :ai="node.seel"
                 :show-messages="showMessages"
                 :show-frame="true"
                 :frame-color="resolveNodeFrameColor(node.key)"
               />
-              <TrinityMonitorPanel
+              <MagiMonitorPanel
                 v-else
                 :key="node.seel.config.name"
                 :ai="node.seel"
@@ -134,7 +134,7 @@ import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPan
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
-import TrinityMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
+import MagiMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
 import { getColor } from "../components/seel-panel/SeelPanel.ctx";
 import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
@@ -145,14 +145,14 @@ import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
  */
 const SAGE_CARD_WIDTH = 330;
 const SAGE_CARD_HEIGHT = 420;
-const TRINITY_CARD_WIDTH = 330;
-const TRINITY_CARD_HEIGHT = 480;
+const MONITOR_CARD_WIDTH = 330;
+const MONITOR_CARD_HEIGHT = 480;
 const DOMINANT_FRAME_COLOR = "#ff8a1f";
 
 const LAYOUT_CONFIG = {
     // 外围三贤人使用统一尺寸，避免视觉不一致。
     balthasar: { x: 335, y: 20, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "balthasar" },
-    trinity: { x: 335, y: 450, width: TRINITY_CARD_WIDTH, height: TRINITY_CARD_HEIGHT, key: "trinity" },
+    monitor: { x: 335, y: 450, width: MONITOR_CARD_WIDTH, height: MONITOR_CARD_HEIGHT, key: "monitor" },
     casper: { x: 0, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "casper" },
     melchior: { x: 670, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "melchior" },
 } as const;
@@ -329,7 +329,7 @@ const {
     sourceSimulationPanels,
     mainPanelSeels,
     sageSeelViews,
-    trinitySeelView,
+    monitorSeelView,
     displayMessages,
     isMainPanelRequestPending,
     runtimeStatus,
@@ -377,11 +377,11 @@ onBeforeUnmount(() => {
 
 const hasSeelCluster = computed<boolean>(() =>
     (showSeels.value && sageSeelViews.value.length > 0)
-    || !!trinitySeelView.value,
+    || !!monitorSeelView.value,
 );
 
 const balthasarLayout = LAYOUT_CONFIG.balthasar;
-const trinityLayout = LAYOUT_CONFIG.trinity;
+const monitorLayout = LAYOUT_CONFIG.monitor;
 const casperLayout = LAYOUT_CONFIG.casper;
 const melchiorLayout = LAYOUT_CONFIG.melchior;
 
@@ -423,8 +423,8 @@ const svgNodes = computed(() => {
     if (balthasarSeelView.value) {
         nodes.push({ key: "balthasar", seel: balthasarSeelView.value, layout: balthasarLayout });
     }
-    if (trinitySeelView.value) {
-        nodes.push({ key: "trinity", seel: trinitySeelView.value, layout: trinityLayout });
+    if (monitorSeelView.value) {
+        nodes.push({ key: "monitor", seel: monitorSeelView.value, layout: monitorLayout });
     }
     if (casperSeelView.value) {
         nodes.push({ key: "casper", seel: casperSeelView.value, layout: casperLayout });
@@ -436,7 +436,7 @@ const svgNodes = computed(() => {
 });
 
 const useSvgClusterLayout = computed<boolean>(() =>
-    !!trinitySeelView.value
+    !!monitorSeelView.value
     && !!balthasarSeelView.value
     && !!casperSeelView.value
     && !!melchiorSeelView.value

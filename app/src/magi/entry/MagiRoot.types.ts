@@ -28,7 +28,7 @@ export interface MagiRootContext {
     inputValue: Ref<string>;
     showMessages: Ref<boolean>;
     showSeels: Ref<boolean>;
-    showTrinity: Ref<boolean>;
+    showMonitor: Ref<boolean>;
     showQuestionnairePanel: Ref<boolean>;
     workspaceAIMainNotebookState: Ref<WorkspaceAIMainNotebookState | null>;
     workspaceAIMainNotebookStatus: ComputedRef<WorkspaceAIMainNotebookStatus | null>;
@@ -41,9 +41,9 @@ export interface MagiRootContext {
     seels: ComputedRef<WrappedSeel[]>;
     mainPanelSeels: ComputedRef<MagiMainPanelSeelView[]>;
     sageSeels: ComputedRef<WrappedSeel[]>;
-    trinitySeel: ComputedRef<WrappedSeel | null>;
+    monitorHostSeel: ComputedRef<WrappedSeel | null>;
     sageSeelViews: ComputedRef<MagiSeelPanelView[]>;
-    trinitySeelView: ComputedRef<MagiSeelPanelView | null>;
+    monitorSeelView: ComputedRef<MagiSeelPanelView | null>;
     displayMessages: ComputedRef<MagiMainPanelMessageView[]>;
     isMainPanelRequestPending: ComputedRef<boolean>;
     isAnySeelLoading: ComputedRef<boolean>;

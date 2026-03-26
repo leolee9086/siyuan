@@ -1,10 +1,10 @@
 import type { ConnectionStatus, MagiRuntimeStatus } from "../../composables/useMagi.types";
 import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
 import type {
-    TrinityMonitorFact,
-    TrinityMonitorStat,
-    TrinityMonitorStreamItem,
-    TrinityMonitorTone,
+    MagiMonitorFact,
+    MagiMonitorStat,
+    MagiMonitorStreamItem,
+    MagiMonitorTone,
 } from "./TrinityMonitorPanel.types";
 
 const MAX_MONITOR_STREAM_ITEMS = 180;
@@ -66,16 +66,13 @@ function formatMonitorEventType(eventType: string): string {
     if (!eventType) {
         return "UNKNOWN_EVENT";
     }
-    if (eventType === "TRINITY_SYNTHESIS_COMPLETED") {
-        return "DOMINANT_SYNTHESIS_COMPLETED";
-    }
     return eventType;
 }
 
 function resolveEventTone(
     eventType: string,
     payload: Record<string, unknown>,
-): TrinityMonitorTone {
+): MagiMonitorTone {
     const normalizedEventType = formatMonitorEventType(eventType);
     if (normalizedEventType === "ROUND_FAILED" || normalizedEventType === "SEEL_REPLY_FAILED") {
         return "danger";
@@ -219,7 +216,7 @@ export function formatConnectionStatus(status: ConnectionStatus): string {
 export function resolveRuntimeTone(
     status: MagiRuntimeStatus | null | undefined,
     connectionStatus: ConnectionStatus,
-): TrinityMonitorTone {
+): MagiMonitorTone {
     if (connectionStatus === "disconnected" || connectionStatus === "error") {
         return "danger";
     }
@@ -242,7 +239,7 @@ export function isRawEventMonitorMessage(message: MagiSeelPanelMessageView): boo
     return message.type === "event" && meta?.type === "raw-event";
 }
 
-export function extractLatestTrinitySynthesis(
+export function extractLatestMonitorSynthesis(
     messages: readonly MagiSeelPanelMessageView[],
 ): MagiSeelPanelMessageView | null {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -265,11 +262,11 @@ export function extractLatestTrinitySynthesis(
     return null;
 }
 
-export function buildTrinityMonitorStats(
+export function buildMonitorStats(
     messages: readonly MagiSeelPanelMessageView[],
     connectionStatus: ConnectionStatus,
     runtimeStatus: MagiRuntimeStatus | null | undefined,
-): TrinityMonitorStat[] {
+): MagiMonitorStat[] {
     const lastEvent = getLastRawEvent(messages);
     const lastRawEventType = lastEvent ? getRawEventType(lastEvent) : "";
     const lastEventType = lastEvent ? formatMonitorEventType(lastRawEventType) : "IDLE";
@@ -313,9 +310,9 @@ export function buildTrinityMonitorStats(
     ];
 }
 
-export function buildTrinityMonitorFacts(
+export function buildMonitorFacts(
     runtimeStatus: MagiRuntimeStatus | null | undefined,
-): TrinityMonitorFact[] {
+): MagiMonitorFact[] {
     return [
         {
             label: "TASK",
@@ -348,12 +345,12 @@ export function buildTrinityMonitorFacts(
     ];
 }
 
-export function buildTrinityMonitorStream(
+export function buildMonitorStream(
     messages: readonly MagiSeelPanelMessageView[],
-): TrinityMonitorStreamItem[] {
+): MagiMonitorStreamItem[] {
     const items = messages
         .filter(isRawEventMonitorMessage)
-        .map<TrinityMonitorStreamItem>((message) => {
+        .map<MagiMonitorStreamItem>((message) => {
             const payload = readRawEventPayload(message);
             const rawEventType = getRawEventType(message);
             const eventType = formatMonitorEventType(rawEventType);

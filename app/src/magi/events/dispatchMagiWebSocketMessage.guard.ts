@@ -188,7 +188,6 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     SEEL_REPLY_FAILED: isSeelReplyFailedPayload,
     SEEL_VOTE_UPDATED: isSeelVoteUpdatedPayload,
     DOMINANT_SYNTHESIS_COMPLETED: isSynthesisCompletedPayload,
-    TRINITY_SYNTHESIS_COMPLETED: isSynthesisCompletedPayload,
     CONSENSUS_EMITTED: isConsensusEmittedPayload,
     ROUND_FAILED: isRoundFailedPayload,
     TOOL_CALL_DETECTED: isToolCallDetectedPayload,

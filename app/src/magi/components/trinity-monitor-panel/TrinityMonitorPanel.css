@@ -1,4 +1,4 @@
-.trinity-monitor-panel {
+.magi-monitor-panel {
   position: relative;
   width: 100%;
   height: 100%;
@@ -10,7 +10,7 @@
     radial-gradient(circle at top, rgba(49, 215, 255, 0.08), transparent 58%);
 }
 
-.trinity-monitor-overlay {
+.magi-monitor-overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -19,40 +19,40 @@
   padding: 12px 14px 14px;
 }
 
-.trinity-monitor-header,
-.trinity-monitor-title-row,
-.trinity-monitor-status,
-.trinity-monitor-status-copy,
-.trinity-monitor-focus,
-.trinity-monitor-section-header,
-.trinity-monitor-event-summary,
-.trinity-monitor-event-meta {
+.magi-monitor-header,
+.magi-monitor-title-row,
+.magi-monitor-status,
+.magi-monitor-status-copy,
+.magi-monitor-focus,
+.magi-monitor-section-header,
+.magi-monitor-event-summary,
+.magi-monitor-event-meta {
   display: flex;
   align-items: center;
 }
 
-.trinity-monitor-header,
-.trinity-monitor-focus,
-.trinity-monitor-section-header {
+.magi-monitor-header,
+.magi-monitor-focus,
+.magi-monitor-section-header {
   justify-content: space-between;
 }
 
-.trinity-monitor-header {
+.magi-monitor-header {
   position: relative;
   gap: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(49, 215, 255, 0.18);
 }
 
-.trinity-monitor-title-block,
-.trinity-monitor-status-copy {
+.magi-monitor-title-block,
+.magi-monitor-status-copy {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.trinity-monitor-title-block {
+.magi-monitor-title-block {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -61,40 +61,40 @@
   width: min(100%, 280px);
 }
 
-.trinity-monitor-kicker,
-.trinity-monitor-section-label,
-.trinity-monitor-stat-label,
-.trinity-monitor-fact-label,
-.trinity-monitor-section-meta,
-.trinity-monitor-event-time,
-.trinity-monitor-event-seq,
-.trinity-monitor-event-meta {
+.magi-monitor-kicker,
+.magi-monitor-section-label,
+.magi-monitor-stat-label,
+.magi-monitor-fact-label,
+.magi-monitor-section-meta,
+.magi-monitor-event-time,
+.magi-monitor-event-seq,
+.magi-monitor-event-meta {
   font-family: "MS Gothic", monospace;
   letter-spacing: 0.08em;
 }
 
-.trinity-monitor-kicker,
-.trinity-monitor-section-label,
-.trinity-monitor-stat-label,
-.trinity-monitor-fact-label {
+.magi-monitor-kicker,
+.magi-monitor-section-label,
+.magi-monitor-stat-label,
+.magi-monitor-fact-label {
   color: rgba(157, 239, 242, 0.68);
   font-size: 0.68rem;
 }
 
-.trinity-monitor-title-row {
+.magi-monitor-title-row {
   justify-content: center;
   min-width: 0;
 }
 
-.trinity-monitor-name {
+.magi-monitor-name {
   font-family: "MS Gothic", monospace;
   font-size: 1.08rem;
   font-weight: 700;
-  color: var(--trinity-accent);
+  color: var(--magi-monitor-accent);
   letter-spacing: 0.06em;
 }
 
-.trinity-monitor-persona {
+.magi-monitor-persona {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -104,39 +104,39 @@
   font-size: 0.8rem;
 }
 
-.trinity-monitor-status {
+.magi-monitor-status {
   margin-left: auto;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.trinity-monitor-led {
+.magi-monitor-led {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: currentColor;
 }
 
-.trinity-monitor-status-main {
+.magi-monitor-status-main {
   color: #d9fcff;
   font-family: "MS Gothic", monospace;
   font-size: 0.82rem;
   letter-spacing: 0.08em;
 }
 
-.trinity-monitor-status-sub {
+.magi-monitor-status-sub {
   color: rgba(157, 239, 242, 0.72);
   font-family: "MS Gothic", monospace;
   font-size: 0.68rem;
 }
 
-.trinity-monitor-focus {
+.magi-monitor-focus {
   gap: 10px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(49, 215, 255, 0.1);
 }
 
-.trinity-monitor-focus-value {
+.magi-monitor-focus-value {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -147,15 +147,15 @@
   color: rgba(214, 251, 255, 0.92);
 }
 
-.trinity-monitor-summary,
-.trinity-monitor-runtime-grid {
+.magi-monitor-summary,
+.magi-monitor-runtime-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.trinity-monitor-stat,
-.trinity-monitor-fact {
+.magi-monitor-stat,
+.magi-monitor-fact {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -164,46 +164,46 @@
   border-bottom: 1px solid rgba(49, 215, 255, 0.14);
 }
 
-.trinity-monitor-stat-value,
-.trinity-monitor-fact-value,
-.trinity-monitor-event-type,
-.trinity-monitor-event-source,
-.trinity-monitor-event-preview,
-.trinity-monitor-synthesis-body {
+.magi-monitor-stat-value,
+.magi-monitor-fact-value,
+.magi-monitor-event-type,
+.magi-monitor-event-source,
+.magi-monitor-event-preview,
+.magi-monitor-synthesis-body {
   min-width: 0;
   font-family: "MS Gothic", monospace;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.trinity-monitor-stat-value,
-.trinity-monitor-fact-value {
+.magi-monitor-stat-value,
+.magi-monitor-fact-value {
   white-space: nowrap;
   font-size: 0.78rem;
 }
 
-.trinity-monitor-stat-value {
+.magi-monitor-stat-value {
   color: #dffcff;
 }
 
-.trinity-monitor-fact-value {
+.magi-monitor-fact-value {
   color: rgba(157, 239, 242, 0.9);
 }
 
-.trinity-monitor-synthesis,
-.trinity-monitor-stream-panel {
+.magi-monitor-synthesis,
+.magi-monitor-stream-panel {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-height: 0;
 }
 
-.trinity-monitor-section-meta {
+.magi-monitor-section-meta {
   color: rgba(157, 239, 242, 0.58);
   font-size: 0.66rem;
 }
 
-.trinity-monitor-synthesis-body {
+.magi-monitor-synthesis-body {
   max-height: 104px;
   overflow: auto;
   padding: 8px 0 0;
@@ -214,11 +214,11 @@
   border-top: 1px solid rgba(49, 215, 255, 0.12);
 }
 
-.trinity-monitor-synthesis-body.empty {
+.magi-monitor-synthesis-body.empty {
   color: rgba(157, 239, 242, 0.5);
 }
 
-.trinity-monitor-stream {
+.magi-monitor-stream {
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -228,29 +228,29 @@
   padding-right: 4px;
 }
 
-.trinity-monitor-event {
+.magi-monitor-event {
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(49, 215, 255, 0.14);
 }
 
-.trinity-monitor-event-summary {
+.magi-monitor-event-summary {
   gap: 8px;
   list-style: none;
   cursor: pointer;
 }
 
-.trinity-monitor-event-summary::-webkit-details-marker {
+.magi-monitor-event-summary::-webkit-details-marker {
   display: none;
 }
 
-.trinity-monitor-event-time,
-.trinity-monitor-event-seq {
+.magi-monitor-event-time,
+.magi-monitor-event-seq {
   flex-shrink: 0;
   font-size: 0.66rem;
   color: rgba(157, 239, 242, 0.6);
 }
 
-.trinity-monitor-event-type {
+.magi-monitor-event-type {
   flex: 1;
   min-width: 0;
   font-size: 0.72rem;
@@ -258,7 +258,7 @@
   white-space: nowrap;
 }
 
-.trinity-monitor-event-source {
+.magi-monitor-event-source {
   flex-shrink: 0;
   max-width: 28%;
   white-space: nowrap;
@@ -266,18 +266,18 @@
   color: rgba(157, 239, 242, 0.72);
 }
 
-.trinity-monitor-event-seq {
+.magi-monitor-event-seq {
   margin-left: auto;
 }
 
-.trinity-monitor-event-meta {
+.magi-monitor-event-meta {
   gap: 12px;
   margin-top: 6px;
   font-size: 0.62rem;
   color: rgba(157, 239, 242, 0.48);
 }
 
-.trinity-monitor-event-preview {
+.magi-monitor-event-preview {
   margin-top: 6px;
   font-size: 0.73rem;
   line-height: 1.45;
@@ -286,7 +286,7 @@
   word-break: break-word;
 }
 
-.trinity-monitor-event-payload {
+.magi-monitor-event-payload {
   margin: 8px 0 0;
   max-height: 180px;
   overflow: auto;
@@ -300,7 +300,7 @@
   word-break: break-word;
 }
 
-.trinity-monitor-stream-empty {
+.magi-monitor-stream-empty {
   padding-top: 8px;
   border-top: 1px solid rgba(49, 215, 255, 0.12);
   color: rgba(157, 239, 242, 0.52);
@@ -308,46 +308,46 @@
   font-size: 0.72rem;
 }
 
-.trinity-monitor-panel .tone-good {
+.magi-monitor-panel .tone-good {
   color: #25ff69;
 }
 
-.trinity-monitor-panel .tone-warn {
+.magi-monitor-panel .tone-warn {
   color: #ffd56b;
 }
 
-.trinity-monitor-panel .tone-danger {
+.magi-monitor-panel .tone-danger {
   color: #ff7c92;
 }
 
-.trinity-monitor-panel .tone-accent {
-  color: var(--trinity-accent);
+.magi-monitor-panel .tone-accent {
+  color: var(--magi-monitor-accent);
 }
 
-.trinity-monitor-panel .tone-muted {
+.magi-monitor-panel .tone-muted {
   color: rgba(157, 239, 242, 0.52);
 }
 
-.trinity-monitor-stream::-webkit-scrollbar,
-.trinity-monitor-synthesis-body::-webkit-scrollbar,
-.trinity-monitor-event-payload::-webkit-scrollbar {
+.magi-monitor-stream::-webkit-scrollbar,
+.magi-monitor-synthesis-body::-webkit-scrollbar,
+.magi-monitor-event-payload::-webkit-scrollbar {
   width: 4px;
 }
 
-.trinity-monitor-stream::-webkit-scrollbar-thumb,
-.trinity-monitor-synthesis-body::-webkit-scrollbar-thumb,
-.trinity-monitor-event-payload::-webkit-scrollbar-thumb {
+.magi-monitor-stream::-webkit-scrollbar-thumb,
+.magi-monitor-synthesis-body::-webkit-scrollbar-thumb,
+.magi-monitor-event-payload::-webkit-scrollbar-thumb {
   background: rgba(49, 215, 255, 0.28);
 }
 
 @media (max-width: 720px) {
-  .trinity-monitor-header,
-  .trinity-monitor-focus {
+  .magi-monitor-header,
+  .magi-monitor-focus {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .trinity-monitor-title-block {
+  .magi-monitor-title-block {
     position: static;
     left: auto;
     transform: none;
@@ -356,25 +356,25 @@
     text-align: left;
   }
 
-  .trinity-monitor-title-row {
+  .magi-monitor-title-row {
     justify-content: flex-start;
   }
 
-  .trinity-monitor-focus-value,
-  .trinity-monitor-status {
+  .magi-monitor-focus-value,
+  .magi-monitor-status {
     text-align: left;
   }
 
-  .trinity-monitor-summary,
-  .trinity-monitor-runtime-grid {
+  .magi-monitor-summary,
+  .magi-monitor-runtime-grid {
     grid-template-columns: 1fr;
   }
 
-  .trinity-monitor-event-summary {
+  .magi-monitor-event-summary {
     flex-wrap: wrap;
   }
 
-  .trinity-monitor-event-source {
+  .magi-monitor-event-source {
     max-width: none;
   }
 }

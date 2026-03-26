@@ -314,8 +314,8 @@
 **字段说明**:
 - `content` (string): 主导者统合的最终响应
 
-**兼容说明**:
-- 当前前端事件桥接同时兼容旧事件名 `TRINITY_SYNTHESIS_COMPLETED`，但后端主事件名已迁移为 `DOMINANT_SYNTHESIS_COMPLETED`。
+**说明**:
+- `DOMINANT_SYNTHESIS_COMPLETED` 是当前唯一的 synthesis 事件名；旧的 `TRINITY_SYNTHESIS_COMPLETED` 不再保留。
 
 ---
 
@@ -545,7 +545,8 @@ graph LR
 
 | 版本 | 日期 | 变更说明 |
 |------|------|----------|
-| v1.1.0 | 2026-03-25 | synthesis 事件主名迁移为 `DOMINANT_SYNTHESIS_COMPLETED`，前端兼容旧 `TRINITY_SYNTHESIS_COMPLETED` |
+| v1.1.1 | 2026-03-25 | synthesis 事件名统一为 `DOMINANT_SYNTHESIS_COMPLETED`，移除旧 `TRINITY_SYNTHESIS_COMPLETED` 残留 |
+| v1.1.0 | 2026-03-25 | synthesis 事件主名迁移为 `DOMINANT_SYNTHESIS_COMPLETED` |
 | v1.0.0 | 2026-03-06 | 初始版本，定义基础协议 |
 
 ---

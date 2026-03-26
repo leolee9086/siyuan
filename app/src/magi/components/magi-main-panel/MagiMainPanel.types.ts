@@ -28,8 +28,8 @@ export interface MagiMainPanelProps {
     showMessages?: boolean;
     /** 是否显示贤者面板 */
     showSeels?: boolean;
-    /** 是否显示 Trinity 面板 */
-    showTrinity?: boolean;
+    /** 是否显示监控宿主面板 */
+    showMonitor?: boolean;
     /** 面板层输入框绑定值（v-model） */
     inputValue?: string;
     /** 主聊天面板是否存在进行中的普通 LLM 请求 */
@@ -47,8 +47,8 @@ export interface MagiMainPanelEmits {
     (e: "toggle-messages"): void;
     /** 切换贤者面板显示 */
     (e: "toggle-seels"): void;
-    /** 切换 Trinity 面板显示 */
-    (e: "toggle-trinity"): void;
+    /** 切换监控宿主面板显示 */
+    (e: "toggle-monitor"): void;
     /** 显示适格者问卷 */
     (e: "show-questionnaire"): void;
     /** 输入框绑定值更新 */
@@ -105,7 +105,7 @@ export interface MagiMainPanelContext {
 export interface MagiMainPanelHeaderProps {
     showMessages: boolean;
     showSeels: boolean;
-    showTrinity: boolean;
+    showMonitor: boolean;
     personaEntryText: string;
     syncRateText: string;
     syncRate: number;
@@ -119,7 +119,7 @@ export interface MagiMainPanelHeaderEmits {
     (e: "show-questionnaire"): void;
     (e: "toggle-messages"): void;
     (e: "toggle-seels"): void;
-    (e: "toggle-trinity"): void;
+    (e: "toggle-monitor"): void;
 }
 
 /**

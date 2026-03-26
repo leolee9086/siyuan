@@ -36,7 +36,6 @@ const (
 	EventSeelReplyFailed            = "SEEL_REPLY_FAILED"
 	EventSeelVoteUpdated            = "SEEL_VOTE_UPDATED"
 	EventDominantSynthesisCompleted = "DOMINANT_SYNTHESIS_COMPLETED"
-	EventTrinitySynthesisCompleted  = "TRINITY_SYNTHESIS_COMPLETED"
 	EventConsensusEmitted           = "CONSENSUS_EMITTED"
 	EventRoundFailed                = "ROUND_FAILED"
 	EventToolCallDetected           = "TOOL_CALL_DETECTED"
@@ -235,11 +234,6 @@ func PushDominantSynthesisCompleted(sessionId, roundId, content string) error {
 		"content":   content,
 	}
 	return globalPusher.Push(sessionId, EventDominantSynthesisCompleted, data)
-}
-
-// PushTrinitySynthesisCompleted 兼容旧调用点，实际发出主导者统合事件。
-func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
-	return PushDominantSynthesisCompleted(sessionId, roundId, content)
 }
 
 // PushConsensusEmitted 推送共识消息发出事件
