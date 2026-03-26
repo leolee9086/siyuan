@@ -45,9 +45,10 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, err
 		}
 
+		c.notifyDominantSelected(roundID, election)
 		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
 		beforeContext := dominantSage.GetContextForSession(sessionID)
-		streamMessage := buildSeelStreamMessage(roundID, dominantSage)
+		streamMessage := buildSeelStreamMessageWithMeta(roundID, dominantSage, buildDominantRuntimeMeta(roundID, election))
 		if err := websocket.PushSeelReplyStarted(
 			websocket.RuntimeMonitorSessionID,
 			roundID,
@@ -111,6 +112,22 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	}
 
 	return nil, nil, fmt.Errorf("主导者在行动工具审议中连续失格，当前轮次无法继续")
+}
+
+func buildDominantRuntimeMeta(roundID string, election *DominantElectionResult) map[string]interface{} {
+	if election == nil {
+		return nil
+	}
+
+	meta := map[string]interface{}{
+		"dominantSeel":        strings.TrimSpace(election.DominantSeelName),
+		"dominantDisplayName": strings.TrimSpace(election.DominantDisplayName),
+		"dominantStance":      strings.TrimSpace(election.DominantStance),
+	}
+	if trimmedRoundID := strings.TrimSpace(roundID); trimmedRoundID != "" {
+		meta["roundId"] = trimmedRoundID
+	}
+	return meta
 }
 
 func buildDominantDirectReplyRuntimeTools(dominantSage *sages.Sage) []openai.Tool {

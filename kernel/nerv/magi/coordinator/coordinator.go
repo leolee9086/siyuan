@@ -28,12 +28,18 @@ func IsAvatarDispatchRequired(err error) bool {
 	return errors.Is(err, ErrAvatarDispatchRequired)
 }
 
+// DominantSelectionObserver 接收主导者选举完成通知。
+type DominantSelectionObserver interface {
+	NotifyDominantSelected(roundID string, election *DominantElectionResult)
+}
+
 // Coordinator MAGI决策协调器
 type Coordinator struct {
 	collector *ResponseCollector
 	avatar    *AvatarRuntime
 
 	runtimeMu                 sync.Mutex
+	dominantSelectionObserver DominantSelectionObserver
 	roundBySession            map[string]uint64
 	workspaceSnapshotInterval uint64
 }
@@ -47,6 +53,32 @@ func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 		roundBySession:            map[string]uint64{},
 		workspaceSnapshotInterval: defaultWorkspaceSnapshotInterval,
 	}
+}
+
+// SetDominantSelectionObserver 设置主导者选举监听器。
+func (c *Coordinator) SetDominantSelectionObserver(observer DominantSelectionObserver) {
+	if c == nil {
+		return
+	}
+
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+	c.dominantSelectionObserver = observer
+}
+
+func (c *Coordinator) notifyDominantSelected(roundID string, election *DominantElectionResult) {
+	if c == nil || election == nil {
+		return
+	}
+
+	c.runtimeMu.Lock()
+	observer := c.dominantSelectionObserver
+	c.runtimeMu.Unlock()
+	if observer == nil {
+		return
+	}
+
+	observer.NotifyDominantSelected(roundID, election)
 }
 
 // CoordinateDecision 协调完整决策流程

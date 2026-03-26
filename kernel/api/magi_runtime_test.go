@@ -141,7 +141,47 @@ func TestMagiRuntimeManagerApplyForegroundConsensus_UpdatesDominantStatus(t *tes
 	}
 }
 
-func TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant(t *testing.T) {
+func TestMagiRuntimeManagerNotifyDominantSelected_UpdatesDominantImmediately(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.BeginForeground("外部请求")
+
+	manager.NotifyDominantSelected("external-round-2", &coordinator.DominantElectionResult{
+		DominantSeelName:    "balthazar",
+		DominantDisplayName: "Balthazar",
+		DominantStance:      "母亲",
+	})
+
+	status := manager.GetStatus()
+	if status.CurrentRoundID != "external-round-2" {
+		t.Fatalf("期望即时写入 currentRoundId，实际=%s", status.CurrentRoundID)
+	}
+	if status.DominantSeel != "balthazar" || status.DominantStance != "母亲" {
+		t.Fatalf("期望即时写入主导者信息，实际=%+v", status)
+	}
+	if status.DominantUpdatedAt == 0 {
+		t.Fatal("期望即时刷新 dominantUpdatedAt")
+	}
+}
+
+func TestMagiRuntimeManagerBeginForeground_ClearsStaleDominant(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.status = types.RuntimeStatus{
+		State:             types.RuntimeStateSleeping,
+		Awake:             false,
+		DominantSeel:      "melchior",
+		DominantStance:    "科学家",
+		DominantUpdatedAt: time.Now().UnixMilli(),
+	}
+
+	manager.BeginForeground("新的外部请求")
+
+	status := manager.GetStatus()
+	if status.DominantSeel != "" || status.DominantStance != "" || status.DominantUpdatedAt != 0 {
+		t.Fatalf("期望开始前台请求时清空旧主导，实际=%+v", status)
+	}
+}
+
+func TestMagiRuntimeManagerFinishForeground_ClearsLatestDominant(t *testing.T) {
 	manager := newMagiRuntimeManager(time.Minute)
 	manager.BeginForeground("外部请求")
 	manager.ApplyForegroundConsensus(&types.Message{
@@ -157,7 +197,7 @@ func TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant(t *testing.T) 
 	if status.State != types.RuntimeStateSleeping || status.Awake {
 		t.Fatalf("期望请求完成后进入 sleeping，实际=%+v", status)
 	}
-	if status.DominantSeel != "casper" || status.DominantStance != "式波" {
-		t.Fatalf("期望保留最近主导者信息，实际=%+v", status)
+	if status.DominantSeel != "" || status.DominantStance != "" || status.DominantUpdatedAt != 0 {
+		t.Fatalf("期望请求完成后清空主导者信息，实际=%+v", status)
 	}
 }

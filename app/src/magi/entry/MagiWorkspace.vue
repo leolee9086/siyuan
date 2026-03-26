@@ -45,6 +45,7 @@
                 :key="node.seel.config.name"
                 :ai="node.seel"
                 :show-messages="showMessages"
+                :is-dominant="node.key === dominantNodeKey"
                 :show-frame="true"
                 :frame-color="resolveNodeFrameColor(node.key)"
               />
@@ -414,7 +415,7 @@ const dominantNodeKey = computed<string | null>(() => {
     case "casper":
         return "casper";
     default:
-        return resolveActivelyReplyingNodeKey();
+        return null;
     }
 });
 
@@ -584,21 +585,5 @@ function resolveNodeFrameColor(nodeKey: string): string {
         return DOMINANT_FRAME_COLOR;
     }
     return clusterAccentColor.value;
-}
-
-/**
- * 作用：在运行态主导者尚未回写前，根据当前唯一活跃回复的贤者做即时高亮。
- * 意图：主导者刚被选出并开始直答时，前端也能立即看到橙色边框，而不必等待轮次结束。
- * 调用时机：dominantNodeKey 无法从 runtimeStatus 解析出主导者时作为兜底分支调用。
- * 问题/改进：这是前端观测兜底，不替代后端真实主导状态；若后续后端能在选举完成瞬间推送 runtimeStatus，可移除此分支。
- */
-function resolveActivelyReplyingNodeKey(): string | null {
-    const activeKeys = [
-        balthasarSeelView.value?.loading ? "balthasar" : null,
-        casperSeelView.value?.loading ? "casper" : null,
-        melchiorSeelView.value?.loading ? "melchior" : null,
-    ].filter((value): value is string => value !== null);
-
-    return activeKeys.length === 1 ? activeKeys[0] : null;
 }
 </script>

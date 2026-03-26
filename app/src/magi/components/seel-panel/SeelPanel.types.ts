@@ -21,6 +21,8 @@ export interface SeelPanelProps {
     ai: MagiSeelPanelView;
     /** 是否显示消息列表 */
     showMessages?: boolean | undefined;
+    /** 当前是否为主导贤人 */
+    isDominant?: boolean | undefined;
     /** 是否显示边框 */
     showFrame?: boolean | undefined;
     /** 可选：覆盖边框颜色（CSS颜色值） */

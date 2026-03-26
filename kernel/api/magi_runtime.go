@@ -57,6 +57,15 @@ func newMagiRuntimeManager(interval time.Duration) *magiRuntimeManager {
 	}
 }
 
+func clearDominantRuntimeStatus(status *types.RuntimeStatus) {
+	if status == nil {
+		return
+	}
+	status.DominantSeel = ""
+	status.DominantStance = ""
+	status.DominantUpdatedAt = 0
+}
+
 func (m *magiRuntimeManager) Start() {
 	if m == nil {
 		return
@@ -132,6 +141,7 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 	m.status.Reason = "scheduled-heartbeat"
 	m.status.CurrentTask = buildHeartbeatTaskPreview(now)
 	m.status.CurrentRoundID = ""
+	clearDominantRuntimeStatus(&m.status)
 	m.status.LastHeartbeatAt = nowMillis
 	m.status.LastWakeAt = nowMillis
 	m.status.UpdatedAt = nowMillis
@@ -184,7 +194,11 @@ func (m *magiRuntimeManager) finishHeartbeat(
 			m.status.DominantSeel = dominantSeel
 			m.status.DominantStance = strings.TrimSpace(result.DominantStance)
 			m.status.DominantUpdatedAt = nowMillis
+		} else {
+			clearDominantRuntimeStatus(&m.status)
 		}
+	} else {
+		clearDominantRuntimeStatus(&m.status)
 	}
 
 	switch {
@@ -249,7 +263,31 @@ func (m *magiRuntimeManager) BeginForeground(taskPreview string) {
 	m.status.Reason = "external-request"
 	m.status.CurrentTask = truncateRuntimeText(taskPreview, 160)
 	m.status.CurrentRoundID = ""
+	clearDominantRuntimeStatus(&m.status)
 	m.status.LastWakeAt = nowMillis
+	m.status.UpdatedAt = nowMillis
+	status := m.status
+	m.mu.Unlock()
+
+	m.pushStatus(status)
+}
+
+func (m *magiRuntimeManager) NotifyDominantSelected(roundID string, election *coordinator.DominantElectionResult) {
+	if m == nil || election == nil {
+		return
+	}
+
+	nowMillis := time.Now().UnixMilli()
+
+	m.mu.Lock()
+	if trimmedRoundID := strings.TrimSpace(roundID); trimmedRoundID != "" {
+		m.status.CurrentRoundID = trimmedRoundID
+	}
+	if dominantSeel := strings.TrimSpace(election.DominantSeelName); dominantSeel != "" {
+		m.status.DominantSeel = dominantSeel
+		m.status.DominantStance = strings.TrimSpace(election.DominantStance)
+		m.status.DominantUpdatedAt = nowMillis
+	}
 	m.status.UpdatedAt = nowMillis
 	status := m.status
 	m.mu.Unlock()
@@ -301,6 +339,7 @@ func (m *magiRuntimeManager) FinishForeground(err error) {
 	m.status.WakeSource = ""
 	m.status.CurrentTask = ""
 	m.status.CurrentRoundID = ""
+	clearDominantRuntimeStatus(&m.status)
 	m.status.LastSleepAt = nowMillis
 	m.status.UpdatedAt = nowMillis
 	switch {

@@ -153,6 +153,29 @@ func createDominantReplyTestSage(
 	return createDominantReplyTestSageWithToolChoice(name, displayName, profile, client, toolDefs, nil)
 }
 
+type dominantSelectionSpy struct {
+	mu       sync.Mutex
+	roundIDs []string
+	seels    []string
+}
+
+func (s *dominantSelectionSpy) NotifyDominantSelected(roundID string, election *DominantElectionResult) {
+	if election == nil {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.roundIDs = append(s.roundIDs, roundID)
+	s.seels = append(s.seels, strings.TrimSpace(election.DominantSeelName))
+}
+
+func (s *dominantSelectionSpy) snapshot() ([]string, []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.roundIDs...), append([]string(nil), s.seels...)
+}
+
 func createDominantReplyTestSageWithToolChoice(
 	name,
 	displayName string,
@@ -329,6 +352,57 @@ func TestCoordinateDominantDirectReply_SharesDominantReplyToAllSages(t *testing.
 		if got := latestAssistantContent(contextMessages); got != "由主导者直接回复" {
 			t.Fatalf("%s should receive dominant reply in history, got %q", sage.GetName(), got)
 		}
+	}
+}
+
+func TestCoordinateDominantDirectReply_NotifiesDominantSelectionObserver(t *testing.T) {
+	coordinator := NewCoordinator(5 * time.Second)
+	observer := &dominantSelectionSpy{}
+	coordinator.SetDominantSelectionObserver(observer)
+	profile := buildDominantReplyTestProfile()
+
+	melchiorClient := &scriptedDominantClient{
+		streamTurns: []mockTurn{
+			completedSpeakTurn("由主导者直接回复"),
+		},
+	}
+	balthazarClient := &scriptedDominantClient{}
+	casperClient := &scriptedDominantClient{}
+
+	melchior := createDominantReplyTestSage("melchior", "Melchior", profile, melchiorClient, nil)
+	balthazar := createDominantReplyTestSage("balthazar", "Balthazar", profile, balthazarClient, nil)
+	casper := createDominantReplyTestSage("casper", "Casper", profile, casperClient, nil)
+
+	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates() error = %v", err)
+	}
+
+	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
+	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
+	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+
+	_, _, err = coordinator.coordinateDominantDirectReply(
+		context.Background(),
+		"session-dominant-observer",
+		"round-dominant-observer",
+		melchior,
+		balthazar,
+		casper,
+		"外部消息",
+		"外部消息",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("coordinateDominantDirectReply() error = %v", err)
+	}
+
+	roundIDs, seels := observer.snapshot()
+	if len(roundIDs) != 1 || roundIDs[0] != "round-dominant-observer" {
+		t.Fatalf("expected observer to receive round-dominant-observer, got %+v", roundIDs)
+	}
+	if len(seels) != 1 || seels[0] != "melchior" {
+		t.Fatalf("expected observer to receive melchior, got %+v", seels)
 	}
 }
 

@@ -125,6 +125,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    isDominant: {
+        type: Boolean,
+        default: false,
+    },
     showFrame: {
         type: Boolean,
         default: true,

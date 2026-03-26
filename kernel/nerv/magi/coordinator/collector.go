@@ -211,12 +211,25 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 }
 
 func buildSeelStreamMessage(roundId string, sage *sages.Sage) *types.Message {
+	return buildSeelStreamMessageWithMeta(roundId, sage, nil)
+}
+
+func buildSeelStreamMessageWithMeta(roundId string, sage *sages.Sage, meta map[string]interface{}) *types.Message {
+	var metaCopy map[string]interface{}
+	if len(meta) > 0 {
+		metaCopy = make(map[string]interface{}, len(meta))
+		for key, value := range meta {
+			metaCopy[key] = value
+		}
+	}
+
 	return &types.Message{
 		ID:        fmt.Sprintf("%s-%s-stream", roundId, sage.GetName()),
 		Type:      types.TypeAI,
 		Content:   "",
 		Status:    types.StatusStreaming,
 		Timestamp: time.Now().UnixMilli(),
+		Meta:      metaCopy,
 	}
 }
 

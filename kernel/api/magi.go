@@ -216,6 +216,7 @@ func initMagiComponents() error {
 
 	// 创建 Coordinator（30秒收集超时）
 	magiCoordinator = coordinator.NewCoordinator(30 * time.Second)
+	magiCoordinator.SetDominantSelectionObserver(magiRuntimeMgr)
 
 	logging.LogInfof("MAGI组件初始化完成")
 	return nil

@@ -61,12 +61,12 @@ function resolveStatusClass(ai: SeelPanelProps["ai"]): string {
 }
 
 /** 根据连接和加载状态返回显示文本 */
-function resolveStatusText(ai: SeelPanelProps["ai"]): string {
+function resolveStatusText(ai: SeelPanelProps["ai"], isDominant: boolean): string {
     if (ai.connectionStatus === "connecting") {
         return "连接中";
     }
     if (ai.connectionStatus === "connected") {
-        return "已连接";
+        return isDominant ? "已连接|主要" : "已连接|辅助";
     }
     return "未连接";
 }
@@ -85,7 +85,7 @@ export function useSeelPanelCtx(
     const containerHeight = ref(0);
 
     const statusClass = computed(() => resolveStatusClass(props.ai));
-    const statusText = computed(() => resolveStatusText(props.ai));
+    const statusText = computed(() => resolveStatusText(props.ai, props.isDominant === true));
 
     const headerHeight = computed(() => {
         const nextHeight = Math.round(containerHeight.value * HEADER_HEIGHT_RATIO);

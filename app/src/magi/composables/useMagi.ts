@@ -26,6 +26,10 @@ import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRu
 import { createMagiEventBus } from "../events/magiEventBus";
 import { bindMagiProjector } from "../events/magiProjector";
 import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBridge";
+import type {
+    MagiRuntimeStatusUpdatedEvent,
+    MagiSeelReplyStartedEvent,
+} from "../events/magiEventBus.types";
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
 import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
@@ -223,6 +227,64 @@ function cloneRuntimeStatus(status: MagiRuntimeStatus): MagiRuntimeStatus {
     return { ...status };
 }
 
+function buildRuntimeStatusFromEvent(payload: MagiRuntimeStatusUpdatedEvent): MagiRuntimeStatus {
+    return {
+        state: payload.state,
+        awake: payload.awake,
+        ...(payload.wakeSource ? { wakeSource: payload.wakeSource } : {}),
+        ...(payload.reason ? { reason: payload.reason } : {}),
+        ...(payload.dominantSeel ? { dominantSeel: payload.dominantSeel } : {}),
+        ...(payload.dominantStance ? { dominantStance: payload.dominantStance } : {}),
+        ...(typeof payload.dominantUpdatedAt === "number" ? { dominantUpdatedAt: payload.dominantUpdatedAt } : {}),
+        ...(payload.currentRoundId ? { currentRoundId: payload.currentRoundId } : {}),
+        ...(payload.currentTask ? { currentTask: payload.currentTask } : {}),
+        ...(typeof payload.lastHeartbeatAt === "number" ? { lastHeartbeatAt: payload.lastHeartbeatAt } : {}),
+        ...(typeof payload.lastWakeAt === "number" ? { lastWakeAt: payload.lastWakeAt } : {}),
+        ...(typeof payload.lastSleepAt === "number" ? { lastSleepAt: payload.lastSleepAt } : {}),
+        ...(payload.lastSleepSummary ? { lastSleepSummary: payload.lastSleepSummary } : {}),
+        ...(typeof payload.updatedAt === "number" ? { updatedAt: payload.updatedAt } : {}),
+    };
+}
+
+function readMessageMetaString(message: MagiMessage | null | undefined, key: string): string | undefined {
+    if (!message?.meta || typeof message.meta !== "object") {
+        return undefined;
+    }
+    const value = Reflect.get(message.meta, key);
+    return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function applyDominantRuntimeHintFromReplyStarted(
+    current: MagiRuntimeStatus | null,
+    payload: MagiSeelReplyStartedEvent,
+): MagiRuntimeStatus | null {
+    const dominantSeel = readMessageMetaString(payload.streamMessage, "dominantSeel");
+    if (!dominantSeel) {
+        return current;
+    }
+
+    const dominantStance = readMessageMetaString(payload.streamMessage, "dominantStance");
+    const next: MagiRuntimeStatus = current
+        ? { ...current }
+        : {
+            state: "external",
+            awake: true,
+        };
+
+    next.state = "external";
+    next.awake = true;
+    next.currentRoundId = payload.roundId;
+    next.dominantSeel = dominantSeel;
+    if (dominantStance) {
+        next.dominantStance = dominantStance;
+    } else {
+        delete next.dominantStance;
+    }
+    next.dominantUpdatedAt = payload.timestamp;
+    next.updatedAt = Math.max(next.updatedAt ?? 0, payload.timestamp);
+    return next;
+}
+
 function resolveConnectionStatusFromPersonaStatus(
     currentStatus: ConnectionStatus,
     status: Awaited<ReturnType<typeof fetchMagiPersonaStatus>>,
@@ -368,22 +430,10 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     });
     const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
     eventBus.subscribe("RUNTIME_STATUS_UPDATED", (payload) => {
-        runtimeStatus.value = {
-            state: payload.state,
-            awake: payload.awake,
-            ...(payload.wakeSource ? { wakeSource: payload.wakeSource } : {}),
-            ...(payload.reason ? { reason: payload.reason } : {}),
-            ...(payload.dominantSeel ? { dominantSeel: payload.dominantSeel } : {}),
-            ...(payload.dominantStance ? { dominantStance: payload.dominantStance } : {}),
-            ...(typeof payload.dominantUpdatedAt === "number" ? { dominantUpdatedAt: payload.dominantUpdatedAt } : {}),
-            ...(payload.currentRoundId ? { currentRoundId: payload.currentRoundId } : {}),
-            ...(payload.currentTask ? { currentTask: payload.currentTask } : {}),
-            ...(typeof payload.lastHeartbeatAt === "number" ? { lastHeartbeatAt: payload.lastHeartbeatAt } : {}),
-            ...(typeof payload.lastWakeAt === "number" ? { lastWakeAt: payload.lastWakeAt } : {}),
-            ...(typeof payload.lastSleepAt === "number" ? { lastSleepAt: payload.lastSleepAt } : {}),
-            ...(payload.lastSleepSummary ? { lastSleepSummary: payload.lastSleepSummary } : {}),
-            ...(typeof payload.updatedAt === "number" ? { updatedAt: payload.updatedAt } : {}),
-        };
+        runtimeStatus.value = buildRuntimeStatusFromEvent(payload);
+    });
+    eventBus.subscribe("SEEL_REPLY_STARTED", (payload) => {
+        runtimeStatus.value = applyDominantRuntimeHintFromReplyStarted(runtimeStatus.value, payload);
     });
     const stopProjector = await bindMagiProjector(eventBus, {
         seels,
