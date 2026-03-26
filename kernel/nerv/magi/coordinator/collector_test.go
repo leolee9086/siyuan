@@ -179,6 +179,10 @@ func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []type
 	return m.responseContent, nil
 }
 
+func (m *mockLLMClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
+	return &types.SyncChatResult{Content: m.responseContent}, nil
+}
+
 func (m *mockLLMClient) GetModel() string {
 	return "gpt-4"
 }

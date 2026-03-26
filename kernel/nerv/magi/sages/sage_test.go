@@ -35,6 +35,14 @@ func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []type
 	return "mock response", nil
 }
 
+func (m *mockLLMClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
+	content, err := m.SendChatRequestSync(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return nil, err
+	}
+	return &types.SyncChatResult{Content: content}, nil
+}
+
 func (m *mockLLMClient) GetModel() string {
 	if m.model != "" {
 		return m.model

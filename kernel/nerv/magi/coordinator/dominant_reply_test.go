@@ -18,11 +18,13 @@ import (
 )
 
 type scriptedDominantClient struct {
-	mu            sync.Mutex
-	syncResponses []string
-	streamTurns   []mockTurn
-	syncIndex     int
-	streamIndex   int
+	mu             sync.Mutex
+	syncResponses  []string
+	streamTurns    []mockTurn
+	syncIndex      int
+	streamIndex    int
+	lastTools      []openai.Tool
+	lastToolChoice any
 }
 
 func (m *scriptedDominantClient) SendChatRequest(
@@ -31,6 +33,11 @@ func (m *scriptedDominantClient) SendChatRequest(
 	tools []openai.Tool,
 	toolChoice any,
 ) (<-chan types.StreamChunk, error) {
+	m.mu.Lock()
+	m.lastTools = append([]openai.Tool(nil), tools...)
+	m.lastToolChoice = toolChoice
+	m.mu.Unlock()
+
 	ch := make(chan types.StreamChunk, 4)
 	go func() {
 		defer close(ch)
@@ -91,6 +98,35 @@ func (m *scriptedDominantClient) SendChatRequestSync(
 	return response, nil
 }
 
+func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
+	ctx context.Context,
+	messages []types.ContextMessage,
+	tools []openai.Tool,
+	toolChoice any,
+) (*types.SyncChatResult, error) {
+	content, err := m.SendChatRequestSync(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return nil, err
+	}
+	if len(tools) == 1 && tools[0].Function != nil && strings.TrimSpace(tools[0].Function.Name) != "" && strings.TrimSpace(content) != "" {
+		return &types.SyncChatResult{
+			ToolCalls: []types.ToolCall{
+				{
+					ID:    "scripted-sync-tool-call",
+					Type:  "function",
+					Index: 0,
+					Function: types.ToolCallFunction{
+						Name:      strings.TrimSpace(tools[0].Function.Name),
+						Arguments: content,
+					},
+				},
+			},
+			FinishReason: "tool_calls",
+		}, nil
+	}
+	return &types.SyncChatResult{Content: content}, nil
+}
+
 func (m *scriptedDominantClient) GetModel() string {
 	return "gpt-4"
 }
@@ -114,11 +150,23 @@ func createDominantReplyTestSage(
 	client *scriptedDominantClient,
 	toolDefs []config.ToolDef,
 ) *sages.Sage {
+	return createDominantReplyTestSageWithToolChoice(name, displayName, profile, client, toolDefs, nil)
+}
+
+func createDominantReplyTestSageWithToolChoice(
+	name,
+	displayName string,
+	profile *marduk.IpipPersonaProfile,
+	client *scriptedDominantClient,
+	toolDefs []config.ToolDef,
+	toolChoice any,
+) *sages.Sage {
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{
 			Name: displayName,
 		},
-		Tools: toolDefs,
+		Tools:      toolDefs,
+		ToolChoice: toolChoice,
 	}
 	strategy := &config.ContextStrategy{
 		Type:  "message_count",
@@ -153,12 +201,31 @@ func buildDominantVoteResponse(
 ) string {
 	t.Helper()
 
+	scoreByLabel := map[string]int{
+		candidates[0].PromptLabel: profession,
+		candidates[1].PromptLabel: socialRelation,
+		candidates[2].PromptLabel: selfName,
+	}
+	return buildDominantVoteResponseForLabels(t, candidates, scoreByLabel)
+}
+
+func buildDominantVoteResponseForLabels(
+	t *testing.T,
+	candidates []dominantCandidate,
+	scoreByLabel map[string]int,
+) string {
+	t.Helper()
+
+	scores := make([]dominantVoteScore, 0, len(candidates))
+	for _, candidate := range candidates {
+		scores = append(scores, dominantVoteScore{
+			Candidate: candidate.PromptLabel,
+			Score:     scoreByLabel[candidate.PromptLabel],
+		})
+	}
+
 	payload := dominantVotePayload{
-		Scores: []dominantVoteScore{
-			{Candidate: candidates[0].PromptLabel, Score: profession},
-			{Candidate: candidates[1].PromptLabel, Score: socialRelation},
-			{Candidate: candidates[2].PromptLabel, Score: selfName},
-		},
+		Scores: scores,
 		Reason: "当前情境下该侧面更适合主导",
 	}
 	result, err := json.Marshal(payload)
@@ -360,5 +427,272 @@ func TestCoordinateDominantDirectReply_SanitizesMelchiorQueryHistoryForPeers(t *
 		if !hasToolContentContaining(sharedContext, `"paths"`) {
 			t.Fatalf("%s should receive sanitized query summary, got %+v", sage.GetName(), sharedContext)
 		}
+	}
+}
+
+func TestCoordinateDominantDirectReply_InjectsDiaryToolIntoDominantRuntimeTools(t *testing.T) {
+	coordinator := NewCoordinator(5 * time.Second)
+	profile := buildDominantReplyTestProfile()
+
+	coreToolDefs := []config.ToolDef{
+		config.BuildWannaSpeakStartToolDef(),
+		config.BuildWannaSpeakContinueToolDef(),
+		config.BuildWannaSpeakStopToolDef(),
+	}
+
+	melchiorClient := &scriptedDominantClient{
+		streamTurns: []mockTurn{
+			completedSpeakTurn("主导者完成回复"),
+		},
+	}
+	balthazarClient := &scriptedDominantClient{}
+	casperClient := &scriptedDominantClient{}
+
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+
+	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates() error = %v", err)
+	}
+
+	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
+	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
+	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+
+	_, election, err := coordinator.coordinateDominantDirectReply(
+		context.Background(),
+		"session-dominant-diary",
+		"round-dominant-diary",
+		melchior,
+		balthazar,
+		casper,
+		"帮我回答一下",
+		"帮我回答一下",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("coordinateDominantDirectReply() error = %v", err)
+	}
+	if election == nil || election.DominantSeelName != "melchior" {
+		t.Fatalf("expected melchior to become dominant, got %+v", election)
+	}
+	if !hasOpenAITool(melchiorClient.lastTools, config.WriteDiaryToolName) {
+		t.Fatalf("期望主导者运行时工具集中包含 diary 工具，实际=%v", collectOpenAIToolNames(melchiorClient.lastTools))
+	}
+	if melchiorClient.lastToolChoice != "required" {
+		t.Fatalf("期望沿用 required toolChoice，实际=%v", melchiorClient.lastToolChoice)
+	}
+}
+
+func hasOpenAITool(tools []openai.Tool, toolName string) bool {
+	for _, tool := range tools {
+		if tool.Function != nil && strings.TrimSpace(tool.Function.Name) == strings.TrimSpace(toolName) {
+			return true
+		}
+	}
+	return false
+}
+
+func collectOpenAIToolNames(tools []openai.Tool) []string {
+	ret := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if tool.Function == nil {
+			continue
+		}
+		ret = append(ret, tool.Function.Name)
+	}
+	return ret
+}
+
+func buildDiaryToolTurn(markdown, calloutType, title string) mockTurn {
+	args := `{"markdown":"` + strings.ReplaceAll(strings.ReplaceAll(markdown, `\`, `\\`), `"`, `\"`) + `"`
+	if strings.TrimSpace(calloutType) != "" {
+		args += `,"calloutType":"` + strings.ReplaceAll(calloutType, `"`, `\"`) + `"`
+	}
+	if strings.TrimSpace(title) != "" {
+		args += `,"title":"` + strings.ReplaceAll(title, `"`, `\"`) + `"`
+	}
+	args += `}`
+	return mockTurn{
+		toolCalls: []types.ToolCallDelta{
+			toolCallDelta(0, config.WriteDiaryToolName, args),
+		},
+	}
+}
+
+func TestCoordinateDominantDirectReply_DiaryToolRejectedTwiceTriggersReelection(t *testing.T) {
+	coordinator := NewCoordinator(5 * time.Second)
+	profile := buildDominantReplyTestProfile()
+
+	coreToolDefs := []config.ToolDef{
+		config.BuildWannaSpeakStartToolDef(),
+		config.BuildWannaSpeakContinueToolDef(),
+		config.BuildWannaSpeakStopToolDef(),
+	}
+
+	melchiorClient := &scriptedDominantClient{
+		streamTurns: []mockTurn{
+			buildDiaryToolTurn("# 第一次申请", "NOTE", "行动记录"),
+			buildDiaryToolTurn("# 第二次申请", "NOTE", "行动记录"),
+		},
+	}
+	balthazarClient := &scriptedDominantClient{
+		streamTurns: []mockTurn{
+			completedSpeakTurn("由新主导者继续完成回复"),
+		},
+	}
+	casperClient := &scriptedDominantClient{}
+
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+
+	initialCandidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates() error = %v", err)
+	}
+	reelectionCandidates, err := buildDominantCandidatesWithExclusions(
+		melchior,
+		balthazar,
+		casper,
+		map[string]struct{}{"melchior": {}},
+	)
+	if err != nil {
+		t.Fatalf("buildDominantCandidatesWithExclusions() error = %v", err)
+	}
+
+	melchiorClient.syncResponses = []string{
+		buildDominantVoteResponse(t, initialCandidates, 95, 20, 10),
+		buildDominantVoteResponseForLabels(t, reelectionCandidates, map[string]int{
+			reelectionCandidates[0].PromptLabel: 88,
+			reelectionCandidates[1].PromptLabel: 25,
+		}),
+	}
+	balthazarClient.syncResponses = []string{
+		buildDominantVoteResponse(t, initialCandidates, 85, 40, 15),
+		`{"decision":"否决","reason":"先不要写入"}`,
+		`{"decision":"否决","reason":"仍然不通过"}`,
+		buildDominantVoteResponseForLabels(t, reelectionCandidates, map[string]int{
+			reelectionCandidates[0].PromptLabel: 92,
+			reelectionCandidates[1].PromptLabel: 35,
+		}),
+	}
+	casperClient.syncResponses = []string{
+		buildDominantVoteResponse(t, initialCandidates, 80, 35, 30),
+		`{"decision":"否决","reason":"暂不批准"}`,
+		`{"decision":"否决","reason":"再次否决"}`,
+		buildDominantVoteResponseForLabels(t, reelectionCandidates, map[string]int{
+			reelectionCandidates[0].PromptLabel: 90,
+			reelectionCandidates[1].PromptLabel: 45,
+		}),
+	}
+
+	msg, election, err := coordinator.coordinateDominantDirectReply(
+		context.Background(),
+		"session-diary-reelection",
+		"round-diary-reelection",
+		melchior,
+		balthazar,
+		casper,
+		"把这件事记下来并回复我",
+		"把这件事记下来并回复我",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("coordinateDominantDirectReply() error = %v", err)
+	}
+	if election == nil || election.DominantSeelName != "balthazar" {
+		t.Fatalf("expected balthazar to become dominant after reelection, got %+v", election)
+	}
+	if msg == nil || msg.Content != "由新主导者继续完成回复" {
+		t.Fatalf("expected reelected dominant reply, got %#v", msg)
+	}
+	if got := strings.TrimSpace(msg.Meta["dominantSeel"].(string)); got != "balthazar" {
+		t.Fatalf("expected dominantSeel=balthazar, got %s", got)
+	}
+}
+
+func TestCoordinateDominantDirectReply_DiaryToolRejectThenApproveKeepsDominance(t *testing.T) {
+	originalPersistFn := persistDiaryToolEntryToDailyNote
+	defer func() {
+		persistDiaryToolEntryToDailyNote = originalPersistFn
+	}()
+
+	var persistedCalls int
+	persistDiaryToolEntryToDailyNote = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, args *types.WriteDiaryTool) (*diaryToolEntryLocation, error) {
+		persistedCalls++
+		return &diaryToolEntryLocation{
+			BlockID: "diary-block-approve",
+			DocID:   "daily-doc-approve",
+			DocPath: "/daily note/2026/03/2026-03-26.sy",
+		}, nil
+	}
+
+	coordinator := NewCoordinator(5 * time.Second)
+	profile := buildDominantReplyTestProfile()
+
+	coreToolDefs := []config.ToolDef{
+		config.BuildWannaSpeakStartToolDef(),
+		config.BuildWannaSpeakContinueToolDef(),
+		config.BuildWannaSpeakStopToolDef(),
+	}
+
+	melchiorClient := &scriptedDominantClient{
+		streamTurns: []mockTurn{
+			buildDiaryToolTurn("# 第一次申请", "NOTE", "行动记录"),
+			buildDiaryToolTurn("# 第二次申请", "NOTE", "行动记录"),
+			completedSpeakTurn("主导者在获批后完成回复"),
+		},
+	}
+	balthazarClient := &scriptedDominantClient{}
+	casperClient := &scriptedDominantClient{}
+
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+
+	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates() error = %v", err)
+	}
+
+	melchiorClient.syncResponses = []string{
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+	}
+	balthazarClient.syncResponses = []string{
+		buildDominantVoteResponse(t, candidates, 85, 40, 15),
+		`{"decision":"否决","reason":"先再想想"}`,
+		`{"decision":"批准","reason":"调整后可行"}`,
+	}
+	casperClient.syncResponses = []string{
+		buildDominantVoteResponse(t, candidates, 80, 35, 30),
+		`{"decision":"否决","reason":"还不够稳"}`,
+		`{"decision":"批准","reason":"现在可以"}`,
+	}
+
+	msg, election, err := coordinator.coordinateDominantDirectReply(
+		context.Background(),
+		"session-diary-approve",
+		"round-diary-approve",
+		melchior,
+		balthazar,
+		casper,
+		"把这次进展记下来并回复我",
+		"把这次进展记下来并回复我",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("coordinateDominantDirectReply() error = %v", err)
+	}
+	if election == nil || election.DominantSeelName != "melchior" {
+		t.Fatalf("expected melchior to remain dominant, got %+v", election)
+	}
+	if msg == nil || msg.Content != "主导者在获批后完成回复" {
+		t.Fatalf("expected approved dominant reply, got %#v", msg)
+	}
+	if persistedCalls != 1 {
+		t.Fatalf("expected exactly one persisted diary entry after approval, got %d", persistedCalls)
 	}
 }

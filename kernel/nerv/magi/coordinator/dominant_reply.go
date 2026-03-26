@@ -2,11 +2,14 @@ package coordinator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
@@ -21,65 +24,105 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	sourceAwareUserInput string,
 	sourceCtx *types.RequestSourceContext,
 ) (*types.Message, *DominantElectionResult, error) {
-	election, err := electDominantSage(
-		ctx,
-		sessionID,
-		melchior,
-		balthazar,
-		casper,
-		sourceAwareUserInput,
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("主导者选举失败: %w", err)
-	}
+	excludedDominants := map[string]struct{}{}
 
-	dominantSage, err := resolveDominantSage(election, melchior, balthazar, casper)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	beforeContext := dominantSage.GetContextForSession(sessionID)
-	streamMessage := buildSeelStreamMessage(roundID, dominantSage)
-	if err := websocket.PushSeelReplyStarted(
-		websocket.RuntimeMonitorSessionID,
-		roundID,
-		dominantSage.GetName(),
-		dominantSage.GetDisplayName(),
-		userMessage,
-		streamMessage,
-	); err != nil {
-		logging.LogWarnf("推送主导者开始响应失败: %v", err)
-	}
-
-	response, err := c.collector.collectSingleSageResponse(
-		ctx,
-		sessionID,
-		roundID,
-		dominantSage,
-		sourceAwareUserInput,
-		CollectResponsesOptions{},
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("主导者直答失败: %w", err)
-	}
-	if response == nil {
-		return nil, nil, fmt.Errorf("主导者直答结果为空")
-	}
-
-	afterContext := dominantSage.GetContextForSession(sessionID)
-	deltaMessages := diffAppendedContextMessages(beforeContext, afterContext)
-	if len(deltaMessages) > 0 {
-		shareDominantContextDelta(
+	for retry := 0; retry < 3; retry++ {
+		election, err := electDominantSageWithExclusions(
+			ctx,
 			sessionID,
-			dominantSage.GetName(),
-			deltaMessages,
 			melchior,
 			balthazar,
 			casper,
+			sourceAwareUserInput,
+			excludedDominants,
 		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("主导者选举失败: %w", err)
+		}
+
+		dominantSage, err := resolveDominantSage(election, melchior, balthazar, casper)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
+		beforeContext := dominantSage.GetContextForSession(sessionID)
+		streamMessage := buildSeelStreamMessage(roundID, dominantSage)
+		if err := websocket.PushSeelReplyStarted(
+			websocket.RuntimeMonitorSessionID,
+			roundID,
+			dominantSage.GetName(),
+			dominantSage.GetDisplayName(),
+			userMessage,
+			streamMessage,
+		); err != nil {
+			logging.LogWarnf("推送主导者开始响应失败: %v", err)
+		}
+
+		response, collectErr := c.collector.collectSingleSageResponse(
+			ctx,
+			sessionID,
+			roundID,
+			dominantSage,
+			sourceAwareUserInput,
+			CollectResponsesOptions{
+				RuntimeTools:      buildDominantDirectReplyRuntimeTools(dominantSage),
+				RuntimeToolChoice: dominantSage.GetToolChoice(),
+			},
+		)
+
+		afterContext := dominantSage.GetContextForSession(sessionID)
+		deltaMessages := diffAppendedContextMessages(beforeContext, afterContext)
+		if len(deltaMessages) > 0 {
+			shareDominantContextDelta(
+				sessionID,
+				dominantSage.GetName(),
+				deltaMessages,
+				melchior,
+				balthazar,
+				casper,
+			)
+		}
+
+		if collectErr != nil {
+			var revokedErr *dominantActionRevokedError
+			if errors.As(collectErr, &revokedErr) {
+				excludedDominants[strings.TrimSpace(dominantSage.GetName())] = struct{}{}
+				dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+				appendDominanceRevokedHandoff(
+					sessionID,
+					buildDominanceRevokedHandoffPrompt(dominantSage.GetName(), config.WriteDiaryToolName),
+					melchior,
+					balthazar,
+					casper,
+				)
+				continue
+			}
+			dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+			return nil, nil, fmt.Errorf("主导者直答失败: %w", collectErr)
+		}
+		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+
+		if response == nil {
+			return nil, nil, fmt.Errorf("主导者直答结果为空")
+		}
+
+		return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
 	}
 
-	return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
+	return nil, nil, fmt.Errorf("主导者在行动工具审议中连续失格，当前轮次无法继续")
+}
+
+func buildDominantDirectReplyRuntimeTools(dominantSage *sages.Sage) []openai.Tool {
+	if dominantSage == nil {
+		return nil
+	}
+
+	baseTools := append([]openai.Tool(nil), dominantSage.GetTools()...)
+	if toolSetHasAllFunctionTools(baseTools, config.WriteDiaryToolName) {
+		return baseTools
+	}
+	return append(baseTools, buildRuntimeTool(config.BuildWriteDiaryToolDef()))
 }
 
 func buildDominantDirectReplyMessage(
@@ -254,6 +297,22 @@ func cloneCoordinatorContextMessages(messages []types.ContextMessage) []types.Co
 		cloned = append(cloned, next)
 	}
 	return cloned
+}
+
+func appendDominanceRevokedHandoff(sessionID string, prompt string, sagesToSync ...*sages.Sage) {
+	prompt = strings.TrimSpace(prompt)
+	if prompt == "" {
+		return
+	}
+	for _, sage := range sagesToSync {
+		if sage == nil {
+			continue
+		}
+		sage.AddToContextWithSession(sessionID, types.ContextMessage{
+			Role:    types.RoleSystem,
+			Content: prompt,
+		})
+	}
 }
 
 func contextMessageSlicesEqual(left []types.ContextMessage, right []types.ContextMessage) bool {

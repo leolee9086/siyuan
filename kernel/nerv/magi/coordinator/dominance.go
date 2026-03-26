@@ -56,17 +56,46 @@ func electDominantSage(
 	melchior, balthazar, casper *sages.Sage,
 	situation string,
 ) (*DominantElectionResult, error) {
-	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	return electDominantSageWithExclusions(ctx, sessionID, melchior, balthazar, casper, situation, nil)
+}
+
+func buildDominantCandidates(
+	melchior, balthazar, casper *sages.Sage,
+) ([]dominantCandidate, error) {
+	return buildDominantCandidatesWithExclusions(melchior, balthazar, casper, nil)
+}
+
+func electDominantSageWithExclusions(
+	ctx context.Context,
+	sessionID string,
+	melchior, balthazar, casper *sages.Sage,
+	situation string,
+	excludedSeels map[string]struct{},
+) (*DominantElectionResult, error) {
+	candidates, err := buildDominantCandidatesWithExclusions(melchior, balthazar, casper, excludedSeels)
 	if err != nil {
 		return nil, err
+	}
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("dominant election has no available candidates")
+	}
+	if len(candidates) == 1 {
+		winner := candidates[0]
+		return &DominantElectionResult{
+			DominantSeelName:    winner.SeelName,
+			DominantDisplayName: winner.DisplayName,
+			DominantStance:      winner.Stance,
+			AggregatedScores: map[string]int{
+				string(winner.Key): 100,
+			},
+		}, nil
 	}
 
 	voters := []*sages.Sage{melchior, balthazar, casper}
 	votes := make([]DominantElectionVote, 0, len(voters))
-	totals := map[string]int{
-		string(marduk.CognitiveStanceProfession):            0,
-		string(marduk.CognitiveStancePrimarySocialRelation): 0,
-		string(marduk.CognitiveStanceSelfName):              0,
+	totals := map[string]int{}
+	for _, candidate := range candidates {
+		totals[string(candidate.Key)] = 0
 	}
 
 	for _, voter := range voters {
@@ -79,9 +108,9 @@ func electDominantSage(
 			return nil, voteErr
 		}
 		votes = append(votes, *vote)
-		totals[string(marduk.CognitiveStanceProfession)] += vote.Profession
-		totals[string(marduk.CognitiveStancePrimarySocialRelation)] += vote.SocialRelation
-		totals[string(marduk.CognitiveStanceSelfName)] += vote.SelfName
+		for _, candidate := range candidates {
+			totals[string(candidate.Key)] += dominantVoteScoreForCandidate(*vote, candidate.Key)
+		}
 	}
 
 	winner := candidates[0]
@@ -103,8 +132,9 @@ func electDominantSage(
 	}, nil
 }
 
-func buildDominantCandidates(
+func buildDominantCandidatesWithExclusions(
 	melchior, balthazar, casper *sages.Sage,
+	excludedSeels map[string]struct{},
 ) ([]dominantCandidate, error) {
 	if melchior == nil || balthazar == nil || casper == nil {
 		return nil, fmt.Errorf("dominant candidates require melchior, balthazar and casper")
@@ -115,7 +145,7 @@ func buildDominantCandidates(
 		return nil, fmt.Errorf("resolve cognitive stances failed: %w", err)
 	}
 
-	return []dominantCandidate{
+	allCandidates := []dominantCandidate{
 		{
 			Key:         marduk.CognitiveStanceProfession,
 			SeelName:    melchior.GetName(),
@@ -137,7 +167,20 @@ func buildDominantCandidates(
 			Stance:      stances.LabelForKey(marduk.CognitiveStanceSelfName),
 			PromptLabel: buildDominantPromptLabel(marduk.CognitiveStanceSelfName, stances.LabelForKey(marduk.CognitiveStanceSelfName)),
 		},
-	}, nil
+	}
+
+	if len(excludedSeels) == 0 {
+		return allCandidates, nil
+	}
+
+	filtered := make([]dominantCandidate, 0, len(allCandidates))
+	for _, candidate := range allCandidates {
+		if _, excluded := excludedSeels[strings.TrimSpace(candidate.SeelName)]; excluded {
+			continue
+		}
+		filtered = append(filtered, candidate)
+	}
+	return filtered, nil
 }
 
 func scoreDominantCandidate(
@@ -150,8 +193,8 @@ func scoreDominantCandidate(
 	if voter == nil {
 		return nil, fmt.Errorf("dominant election voter is nil")
 	}
-	if len(candidates) != 3 {
-		return nil, fmt.Errorf("dominant election expects exactly 3 candidates, got %d", len(candidates))
+	if len(candidates) < 2 || len(candidates) > 3 {
+		return nil, fmt.Errorf("dominant election expects 2 or 3 candidates, got %d", len(candidates))
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, dominantElectionTimeout)
@@ -164,13 +207,8 @@ func scoreDominantCandidate(
 			Content: prompts.BuildDominantElectionSystemPrompt(voter.GetDisplayName()),
 		},
 		types.ContextMessage{
-			Role: types.RoleUser,
-			Content: prompts.BuildDominantElectionUserInput(
-				situation,
-				candidates[0].PromptLabel,
-				candidates[1].PromptLabel,
-				candidates[2].PromptLabel,
-			),
+			Role:    types.RoleUser,
+			Content: prompts.BuildDominantElectionUserInputForCandidates(situation, collectDominantPromptLabels(candidates)...),
 		},
 	)
 
@@ -281,4 +319,27 @@ func validateDominantVotePayload(
 	}
 
 	return resolved, nil
+}
+
+func dominantVoteScoreForCandidate(vote DominantElectionVote, key marduk.CognitiveStanceKey) int {
+	switch key {
+	case marduk.CognitiveStanceProfession:
+		return vote.Profession
+	case marduk.CognitiveStancePrimarySocialRelation:
+		return vote.SocialRelation
+	case marduk.CognitiveStanceSelfName:
+		return vote.SelfName
+	default:
+		return 0
+	}
+}
+
+func collectDominantPromptLabels(candidates []dominantCandidate) []string {
+	ret := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		if label := strings.TrimSpace(candidate.PromptLabel); label != "" {
+			ret = append(ret, label)
+		}
+	}
+	return ret
 }

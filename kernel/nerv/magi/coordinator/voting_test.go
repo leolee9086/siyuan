@@ -2,6 +2,8 @@ package coordinator
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -13,9 +15,11 @@ import (
 
 // mockVoteClient 模拟投票客户端
 type mockVoteClient struct {
-	response   string
-	shouldFail bool
-	delay      time.Duration
+	syncResult     *types.SyncChatResult
+	shouldFail     bool
+	delay          time.Duration
+	lastTools      []openai.Tool
+	lastToolChoice any
 }
 
 func (m *mockVoteClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
@@ -23,19 +27,36 @@ func (m *mockVoteClient) SendChatRequest(ctx context.Context, messages []types.C
 }
 
 func (m *mockVoteClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
+	result, err := m.SendChatRequestSyncDetailed(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return "", err
+	}
+	if result == nil {
+		return "", nil
+	}
+	return result.Content, nil
+}
+
+func (m *mockVoteClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
+	m.lastTools = append([]openai.Tool(nil), tools...)
+	m.lastToolChoice = toolChoice
+
 	if m.delay > 0 {
 		select {
 		case <-time.After(m.delay):
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return nil, ctx.Err()
 		}
 	}
 
 	if m.shouldFail {
-		return "", context.DeadlineExceeded
+		return nil, context.DeadlineExceeded
 	}
 
-	return m.response, nil
+	if m.syncResult == nil {
+		return &types.SyncChatResult{}, nil
+	}
+	return m.syncResult, nil
 }
 
 func (m *mockVoteClient) GetModel() string {
@@ -51,10 +72,31 @@ func createVoteMockSage(name string, client *mockVoteClient) *sages.Sage {
 	return sages.NewSage(name, cfg, client, nil)
 }
 
+func buildVoteSyncResult(decision, reason string) *types.SyncChatResult {
+	args, _ := json.Marshal(map[string]string{
+		"decision": decision,
+		"reason":   reason,
+	})
+	return &types.SyncChatResult{
+		ToolCalls: []types.ToolCall{
+			{
+				ID:    "vote-call-1",
+				Type:  "function",
+				Index: 0,
+				Function: types.ToolCallFunction{
+					Name:      config.VoteToolName,
+					Arguments: string(args),
+				},
+			},
+		},
+		FinishReason: "tool_calls",
+	}
+}
+
 // TestProcessVoting_BothApprove 测试两个贤者都批准
 func TestProcessVoting_BothApprove(t *testing.T) {
-	balthazarClient := &mockVoteClient{response: `{"decision":"批准","reason":"逻辑合理"}`}
-	casperClient := &mockVoteClient{response: `{"decision":"批准","reason":"直觉认同"}`}
+	balthazarClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "逻辑合理")}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "直觉认同")}
 
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 	casper := createVoteMockSage("Casper", casperClient)
@@ -86,12 +128,20 @@ func TestProcessVoting_BothApprove(t *testing.T) {
 	if !result.Passed {
 		t.Error("投票应该通过（3/3批准）")
 	}
+
+	expectedToolChoice := buildRequiredFunctionToolChoice(config.VoteToolName)
+	if len(balthazarClient.lastTools) != 1 || balthazarClient.lastTools[0].Function == nil || balthazarClient.lastTools[0].Function.Name != config.VoteToolName {
+		t.Fatalf("Balthazar 投票未收到强制 vote 工具")
+	}
+	if !reflect.DeepEqual(balthazarClient.lastToolChoice, expectedToolChoice) {
+		t.Fatalf("Balthazar toolChoice 不正确，实际=%#v", balthazarClient.lastToolChoice)
+	}
 }
 
 // TestProcessVoting_PartialApprove 测试部分批准（2/3通过）
 func TestProcessVoting_PartialApprove(t *testing.T) {
-	balthazarClient := &mockVoteClient{response: `{"decision":"批准","reason":"可以接受"}`}
-	casperClient := &mockVoteClient{response: `{"decision":"否决","reason":"有风险"}`}
+	balthazarClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "可以接受")}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteReject, "有风险")}
 
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 	casper := createVoteMockSage("Casper", casperClient)
@@ -124,8 +174,8 @@ func TestProcessVoting_PartialApprove(t *testing.T) {
 
 // TestProcessVoting_BothReject 测试两个贤者都否决
 func TestProcessVoting_BothReject(t *testing.T) {
-	balthazarClient := &mockVoteClient{response: `{"decision":"否决","reason":"逻辑不通"}`}
-	casperClient := &mockVoteClient{response: `{"decision":"否决","reason":"直觉反对"}`}
+	balthazarClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteReject, "逻辑不通")}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteReject, "直觉反对")}
 
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 	casper := createVoteMockSage("Casper", casperClient)
@@ -159,7 +209,7 @@ func TestProcessVoting_BothReject(t *testing.T) {
 // TestProcessVoting_Timeout 测试超时处理（D-005）
 func TestProcessVoting_Timeout(t *testing.T) {
 	balthazarClient := &mockVoteClient{delay: 35 * time.Second}
-	casperClient := &mockVoteClient{response: `{"decision":"批准","reason":"正常"}`}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "正常")}
 
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 	casper := createVoteMockSage("Casper", casperClient)
@@ -191,35 +241,36 @@ func TestProcessVoting_Timeout(t *testing.T) {
 	}
 }
 
-// TestParseDecision_JSONFormat 测试JSON格式解析
-func TestParseDecision_JSONFormat(t *testing.T) {
+// TestParseDecision_ToolCallFormat 测试 tool call 严格解析
+func TestParseDecision_ToolCallFormat(t *testing.T) {
 	tests := []struct {
 		name        string
-		content     string
+		result      *types.SyncChatResult
 		expected    string
 		shouldError bool
 	}{
-		{"批准JSON", `{"decision":"批准","reason":"测试"}`, voteApprove, false},
-		{"否决JSON", `{"decision":"否决","reason":"测试"}`, voteReject, false},
-		{"文本批准", "我认为应该批准这个提案", voteApprove, false},
-		{"文本否决", "我认为应该否决这个提案", voteReject, false},
-		{"无关键词", "这是一个测试", "", true},
-		{"空字符串", "", "", true},
+		{"批准工具调用", buildVoteSyncResult(voteApprove, "测试"), voteApprove, false},
+		{"否决工具调用", buildVoteSyncResult(voteReject, "测试"), voteReject, false},
+		{"纯文本响应", &types.SyncChatResult{Content: "我认为应该批准这个提案"}, "", true},
+		{"错误工具名", &types.SyncChatResult{ToolCalls: []types.ToolCall{{Function: types.ToolCallFunction{Name: "other", Arguments: `{"decision":"批准","reason":"测试"}`}}}}, "", true},
+		{"参数非法", &types.SyncChatResult{ToolCalls: []types.ToolCall{{Function: types.ToolCallFunction{Name: config.VoteToolName, Arguments: `not-json`}}}}, "", true},
+		{"缺少reason", &types.SyncChatResult{ToolCalls: []types.ToolCall{{Function: types.ToolCallFunction{Name: config.VoteToolName, Arguments: `{"decision":"批准"}`}}}}, "", true},
+		{"空响应", nil, "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseDecision(tt.content)
+			result, err := parseDecision(tt.result)
 			if tt.shouldError {
 				if err == nil {
-					t.Errorf("parseDecision(%q) 应该返回错误但没有", tt.content)
+					t.Fatalf("parseDecision(%#v) 应该返回错误但没有", tt.result)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("parseDecision(%q) 返回错误: %v", tt.content, err)
+					t.Fatalf("parseDecision(%#v) 返回错误: %v", tt.result, err)
 				}
 				if result != tt.expected {
-					t.Errorf("parseDecision(%q) = %q, 期望 %q", tt.content, result, tt.expected)
+					t.Errorf("parseDecision() = %q, 期望 %q", result, tt.expected)
 				}
 			}
 		})
@@ -259,8 +310,8 @@ func TestBuildVoteSystemPrompt(t *testing.T) {
 	if !contains(prompt, "批准") || !contains(prompt, "否决") {
 		t.Error("系统提示词应该包含投票选项")
 	}
-	if !contains(prompt, "JSON") {
-		t.Error("系统提示词应该要求JSON格式")
+	if !contains(prompt, config.VoteToolName) || !contains(prompt, "不要输出普通文本") {
+		t.Error("系统提示词应该要求调用 vote 工具且禁止正文输出")
 	}
 }
 
@@ -300,7 +351,7 @@ func findSubstring(s, substr string) bool {
 // TestProcessVoting_Failure 测试失败处理（D-005）
 func TestProcessVoting_Failure(t *testing.T) {
 	balthazarClient := &mockVoteClient{shouldFail: true}
-	casperClient := &mockVoteClient{response: `{"decision":"批准","reason":"正常"}`}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "正常")}
 
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 	casper := createVoteMockSage("Casper", casperClient)
@@ -329,5 +380,34 @@ func TestProcessVoting_Failure(t *testing.T) {
 	}
 	if !result.Passed {
 		t.Error("投票应该通过（2/3批准）")
+	}
+}
+
+func TestProcessVoting_ParseFailureRejects(t *testing.T) {
+	balthazarClient := &mockVoteClient{syncResult: &types.SyncChatResult{Content: "我认为应该批准这个提案"}}
+	casperClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "正常")}
+
+	balthazar := createVoteMockSage("Balthazar", balthazarClient)
+	casper := createVoteMockSage("Casper", casperClient)
+
+	result, err := ProcessVoting(
+		context.Background(),
+		"test-session",
+		"test-round",
+		balthazar,
+		casper,
+		"测试提案",
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
+	)
+	if err != nil {
+		t.Fatalf("ProcessVoting失败: %v", err)
+	}
+
+	if result.Balthazar != voteReject {
+		t.Errorf("解析失败应该视为否决，实际: %s", result.Balthazar)
+	}
+	if result.Casper != voteApprove {
+		t.Errorf("Casper应该批准，实际: %s", result.Casper)
 	}
 }

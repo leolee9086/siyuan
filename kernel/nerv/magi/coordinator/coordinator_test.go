@@ -113,6 +113,19 @@ func (m *mockAvatarPipelineClient) SendChatRequestSync(
 	return m.defaultContent, nil
 }
 
+func (m *mockAvatarPipelineClient) SendChatRequestSyncDetailed(
+	ctx context.Context,
+	messages []types.ContextMessage,
+	tools []openai.Tool,
+	toolChoice any,
+) (*types.SyncChatResult, error) {
+	content, err := m.SendChatRequestSync(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return nil, err
+	}
+	return &types.SyncChatResult{Content: content}, nil
+}
+
 func (m *mockAvatarPipelineClient) GetModel() string {
 	return "gpt-4"
 }

@@ -264,6 +264,13 @@ func (s *Sage) GetTools() []openai.Tool {
 	return s.tools
 }
 
+// GetToolChoice 获取当前工具调用策略。
+func (s *Sage) GetToolChoice() any {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.toolChoice
+}
+
 // BuildRequestMessagesForSession 构建带唤醒前缀的当前会话请求消息快照。
 func (s *Sage) BuildRequestMessagesForSession(sessionId string, extraMessages ...types.ContextMessage) []types.ContextMessage {
 	s.mu.RLock()

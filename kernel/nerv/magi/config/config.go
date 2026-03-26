@@ -1,7 +1,11 @@
 // Package config 定义MAGI配置相关类型
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
+)
 
 // SEELConfig SEEL基础配置（对应前端SEELConfiguration）
 type SEELConfig struct {
@@ -97,6 +101,8 @@ const (
 	SpeakInternalStopToolName = "speak_internal_stop"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
+	// VoteToolName 内部审批投票工具名。
+	VoteToolName = "vote"
 	// NoteKeywordSearchToolName 三贤人笔记关键词查询工具名（词法查询）。
 	NoteKeywordSearchToolName = "search_notes_by_keywords"
 	// ForgeDevRepoListToolName forge 模式开发仓库目录查看工具名。
@@ -105,6 +111,8 @@ const (
 	ForgeDevRepoReadToolName = "forge_dev_repo_read"
 	// ForgeDevRepoSearchToolName forge 模式开发仓库文本搜索工具名。
 	ForgeDevRepoSearchToolName = "forge_dev_repo_search"
+	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
+	WriteDiaryToolName = "write_diary_entry"
 )
 
 // BuildWannaSpeakToolDef 构建三贤人 wanna_speak 工具定义。
@@ -362,6 +370,35 @@ func BuildForgeDevRepoSearchToolDef() ToolDef {
 	}
 }
 
+// BuildWriteDiaryToolDef 构建向 AI 主笔记本日记写入 callout 容器条目的工具定义。
+func BuildWriteDiaryToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WriteDiaryToolName,
+			Description: "仅当前轮主导者可见的行动型工具。调用后会触发另外两位贤者表决；若连续两次未获批准，将失去当前轮次主导权。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"markdown": map[string]interface{}{
+						"type":        "string",
+						"description": "要写入 callout 容器内的 markdown 正文。支持标题、列表、代码块、表格等任意 markdown 子块。",
+					},
+					"calloutType": map[string]interface{}{
+						"type":        "string",
+						"description": "可选的 Callout 类型文本。留空时默认使用 NOTE，也支持自定义类型。",
+					},
+					"title": map[string]interface{}{
+						"type":        "string",
+						"description": "可选的 Callout 标题。留空时使用该类型的默认标题。",
+					},
+				},
+				"required": []string{"markdown"},
+			},
+		},
+	}
+}
+
 // BuildAvatarBuildToolDef 构建 Avatar 创建工具定义。
 func BuildAvatarBuildToolDef() ToolDef {
 	return ToolDef{
@@ -593,6 +630,31 @@ func BuildDeliberationSignalToolDef() ToolDef {
 					},
 				},
 				"required": []string{"requires_deliberation", "reason", "proposed_action"},
+			},
+		},
+	}
+}
+
+// BuildVoteToolDef 构建内部审批投票工具定义。
+func BuildVoteToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        VoteToolName,
+			Description: "对当前提案进行二元投票，只能在批准或否决之间二选一，并给出简短理由。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"decision": map[string]interface{}{
+						"type": "string",
+						"enum": []string{prompts.VoteApprove, prompts.VoteReject},
+					},
+					"reason": map[string]interface{}{
+						"type":        "string",
+						"description": "投票理由，简短说明判断依据。",
+					},
+				},
+				"required": []string{"decision", "reason"},
 			},
 		},
 	}

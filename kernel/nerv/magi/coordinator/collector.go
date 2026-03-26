@@ -235,7 +235,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 	processor := utilstream.NewProcessor()
 	wannaSpeakTracker := newWannaSpeakStateTracker()
-	toolResultExecutor := rc.buildToolResultExecutor(sage)
+	toolResultExecutor := rc.buildToolResultExecutor(sage, options.RuntimeTools)
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
@@ -422,8 +422,10 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		if wannaSpeakTracker.IsCompletedPair() {
+			appendResult := ToolContextAppendResult{}
 			if len(turnToolCalls) > 0 {
-				appendTurnToolCallsToContextWithExecutor(
+				appendResult = appendTurnToolCallsToContextWithExecutorContext(
+					ctx,
 					sessionId,
 					roundId,
 					sage,
@@ -432,6 +434,29 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					toolResultExecutor,
 					buildWannaSpeakToolAck,
 				)
+			}
+			if appendResult.LostDominance {
+				err := &dominantActionRevokedError{
+					DominantSeelName: sage.GetName(),
+					ToolName:         appendResult.GovernedToolName,
+					Reason:           "行动型工具连续两次未获批准",
+				}
+				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, err
+			}
+			if appendResult.RequiresGovernedRetry {
+				if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
+					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						Role:    types.RoleSystem,
+						Content: prompt,
+					})
+				}
+				processor = utilstream.NewProcessor()
+				wannaSpeakTracker = newWannaSpeakStateTracker()
+				consecutiveTransitionFailures = 0
+				continue
 			}
 
 			if !wannaSpeakTracker.HasCapturedContent() {
@@ -466,7 +491,8 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		if len(turnToolCalls) > 0 {
-			appendTurnToolCallsToContextWithExecutor(
+			appendResult := appendTurnToolCallsToContextWithExecutorContext(
+				ctx,
 				sessionId,
 				roundId,
 				sage,
@@ -475,6 +501,29 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				toolResultExecutor,
 				buildWannaSpeakToolAck,
 			)
+			if appendResult.LostDominance {
+				err := &dominantActionRevokedError{
+					DominantSeelName: sage.GetName(),
+					ToolName:         appendResult.GovernedToolName,
+					Reason:           "行动型工具连续两次未获批准",
+				}
+				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, err
+			}
+			if appendResult.RequiresGovernedRetry {
+				if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
+					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						Role:    types.RoleSystem,
+						Content: prompt,
+					})
+				}
+				processor = utilstream.NewProcessor()
+				wannaSpeakTracker = newWannaSpeakStateTracker()
+				consecutiveTransitionFailures = 0
+				continue
+			}
 		} else if strings.TrimSpace(turnContent.String()) != "" {
 			sage.AddToContextWithSession(sessionId, types.ContextMessage{
 				Role:    types.RoleAssistant,
@@ -573,24 +622,33 @@ func (rc *ResponseCollector) buildSageResponse(
 	return response, nil
 }
 
-func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage) ToolCallResultExecutor {
+func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTools []openai.Tool) ToolCallResultExecutor {
 	if sage == nil {
 		return nil
 	}
 
+	effectiveTools := sage.GetTools()
+	if len(runtimeTools) > 0 {
+		effectiveTools = runtimeTools
+	}
+
 	var executors []ToolCallResultExecutor
-	if sageHasAllFunctionTools(sage, config.NoteKeywordSearchToolName) {
+	if toolSetHasAllFunctionTools(effectiveTools, config.NoteKeywordSearchToolName) {
 		noteExecutor := newNoteKeywordToolResultExecutor()
 		executors = append(executors, noteExecutor.ExecuteToolCall)
 	}
-	if sageHasAllFunctionTools(
-		sage,
+	if toolSetHasAllFunctionTools(
+		effectiveTools,
 		config.ForgeDevRepoListToolName,
 		config.ForgeDevRepoReadToolName,
 		config.ForgeDevRepoSearchToolName,
 	) {
 		forgeExecutor := newForgeDevRepoToolResultExecutor()
 		executors = append(executors, forgeExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.WriteDiaryToolName) {
+		diaryExecutor := newDiaryToolResultExecutor()
+		executors = append(executors, diaryExecutor.ExecuteToolCall)
 	}
 	if len(executors) == 0 {
 		return nil

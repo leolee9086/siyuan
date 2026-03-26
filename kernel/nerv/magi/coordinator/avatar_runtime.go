@@ -562,7 +562,7 @@ func collectDominantSynthesizeAvatar(
 		dominantSage.CloneWithFreshContext(),
 		task,
 		avatarSynthesizeToolName,
-		[]openai.Tool{buildAvatarRuntimeTool(config.BuildAvatarSynthesizeToolDef())},
+		[]openai.Tool{buildRuntimeTool(config.BuildAvatarSynthesizeToolDef())},
 		"required",
 	)
 	if err != nil {
@@ -635,17 +635,6 @@ func runSageToolCallWithRuntimeTools(
 				processor.MergeToolCalls(utilToolCalls)
 			}
 		}
-	}
-}
-
-func buildAvatarRuntimeTool(toolDef config.ToolDef) openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolType(toolDef.Type),
-		Function: &openai.FunctionDefinition{
-			Name:        toolDef.Function.Name,
-			Description: toolDef.Function.Description,
-			Parameters:  toolDef.Function.Parameters,
-		},
 	}
 }
 

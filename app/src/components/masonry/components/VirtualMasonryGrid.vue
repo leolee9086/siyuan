@@ -119,7 +119,6 @@ const {
         if (scrollContainer.value && scrollContainer.value.scrollHeight > 0 && scrollContainer.value.scrollTop > 0) {
             // 保存滚动比例而不是绝对位置
             savedScrollRatio.value = scrollContainer.value.scrollTop / scrollContainer.value.scrollHeight;
-            console.log(`[VirtualMasonryGrid] 保存滚动比例: ${savedScrollRatio.value}`);
         }
     },
     onAfterRebuildLayout: () => {
@@ -131,7 +130,6 @@ const {
                     // 根据保存的比例计算新的滚动位置
                     const newScrollTop = savedScrollRatio.value * scrollContainer.value.scrollHeight;
                     scrollContainer.value.scrollTop = newScrollTop;
-                    console.log(`[VirtualMasonryGrid] 恢复滚动位置: ${newScrollTop}`);
                     // 重置保存的比例
                     savedScrollRatio.value = -1;
                 }

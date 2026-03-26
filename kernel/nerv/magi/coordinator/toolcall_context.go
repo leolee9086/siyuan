@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -23,6 +24,13 @@ type ToolCallEventCallback func(
 )
 
 type ToolCallResultExecutor func(toolCall types.ToolCall) (result string, handled bool, err error)
+
+type ToolContextAppendResult struct {
+	RequiresGovernedRetry bool
+	LostDominance         bool
+	GovernedToolName      string
+	GovernedInstruction   string
+}
 
 type streamedToolCallCollector struct {
 	byIndex           map[int]*types.ToolCall
@@ -144,7 +152,7 @@ func appendTurnToolCallsToContext(
 	toolCalls []types.ToolCall,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutor(sessionID, roundID, sage, assistantContent, toolCalls, nil, ackBuilder)
+	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, toolCalls, nil, ackBuilder)
 }
 
 func appendTurnToolCallsToContextWithExecutor(
@@ -156,8 +164,22 @@ func appendTurnToolCallsToContextWithExecutor(
 	resultExecutor ToolCallResultExecutor,
 	ackBuilder func(toolName string) string,
 ) {
+	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, toolCalls, resultExecutor, ackBuilder)
+}
+
+func appendTurnToolCallsToContextWithExecutorContext(
+	ctx context.Context,
+	sessionID string,
+	roundID string,
+	sage *sages.Sage,
+	assistantContent string,
+	toolCalls []types.ToolCall,
+	resultExecutor ToolCallResultExecutor,
+	ackBuilder func(toolName string) string,
+) ToolContextAppendResult {
+	var appendResult ToolContextAppendResult
 	if sage == nil || len(toolCalls) == 0 {
-		return
+		return appendResult
 	}
 
 	content := strings.TrimSpace(assistantContent)
@@ -184,16 +206,16 @@ func appendTurnToolCallsToContextWithExecutor(
 						toolResult = `{"ok":false}`
 					}
 				} else if parsed := strings.TrimSpace(result); parsed != "" {
-					toolResult = materializeToolResultForContext(sessionID, roundID, sage, assistantContent, call, parsed)
+					toolResult = materializeToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, call, parsed)
 				}
 			} else if ackBuilder != nil {
 				if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
-					toolResult = maybeMaterializeAckToolResult(sessionID, roundID, sage, assistantContent, call, ack)
+					toolResult = maybeMaterializeAckToolResult(ctx, sessionID, roundID, sage, assistantContent, call, ack)
 				}
 			}
 		} else if ackBuilder != nil {
 			if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
-				toolResult = maybeMaterializeAckToolResult(sessionID, roundID, sage, assistantContent, call, ack)
+				toolResult = maybeMaterializeAckToolResult(ctx, sessionID, roundID, sage, assistantContent, call, ack)
 			}
 		}
 		sage.AddToContextWithSession(sessionID, types.ContextMessage{
@@ -201,10 +223,26 @@ func appendTurnToolCallsToContextWithExecutor(
 			Content: toolResult,
 			ToolID:  call.ID,
 		})
+
+		control := parseGovernedActionToolControl(call.Function.Name, toolResult)
+		if control.RequiresGovernedRetry {
+			appendResult.RequiresGovernedRetry = true
+		}
+		if control.LostDominance {
+			appendResult.LostDominance = true
+		}
+		if appendResult.GovernedToolName == "" && control.ToolName != "" {
+			appendResult.GovernedToolName = control.ToolName
+		}
+		if appendResult.GovernedInstruction == "" && control.Instruction != "" {
+			appendResult.GovernedInstruction = control.Instruction
+		}
 	}
+	return appendResult
 }
 
 func maybeMaterializeAckToolResult(
+	ctx context.Context,
 	sessionID string,
 	roundID string,
 	sage *sages.Sage,
@@ -215,7 +253,41 @@ func maybeMaterializeAckToolResult(
 	if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
 		return toolResult
 	}
-	return materializeToolResultForContext(sessionID, roundID, sage, assistantContent, call, toolResult)
+	return materializeToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, call, toolResult)
+}
+
+type governedActionToolControl struct {
+	RequiresGovernedRetry bool
+	LostDominance         bool
+	Instruction           string
+	ToolName              string
+}
+
+func parseGovernedActionToolControl(toolName string, toolResult string) governedActionToolControl {
+	toolName = strings.TrimSpace(toolName)
+	if toolName != config.WriteDiaryToolName {
+		return governedActionToolControl{}
+	}
+
+	var payload struct {
+		State       string `json:"state"`
+		Instruction string `json:"instruction"`
+	}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(toolResult)), &payload); err != nil {
+		return governedActionToolControl{}
+	}
+
+	control := governedActionToolControl{
+		Instruction: strings.TrimSpace(payload.Instruction),
+		ToolName:    toolName,
+	}
+	switch strings.TrimSpace(payload.State) {
+	case "rejected":
+		control.RequiresGovernedRetry = true
+	case "dominance_revoked":
+		control.LostDominance = true
+	}
+	return control
 }
 
 func withToolCallIndexOffset(deltas []types.ToolCallDelta, offset int) []types.ToolCallDelta {
@@ -234,6 +306,14 @@ func sageHasAllFunctionTools(sage *sages.Sage, toolNames ...string) bool {
 	if sage == nil || len(toolNames) == 0 {
 		return false
 	}
+	return toolSetHasAllFunctionTools(sage.GetTools(), toolNames...)
+}
+
+func toolSetHasAllFunctionTools(tools []openai.Tool, toolNames ...string) bool {
+	if len(tools) == 0 || len(toolNames) == 0 {
+		return false
+	}
+
 	toolSet := make(map[string]struct{}, len(toolNames))
 	for _, name := range toolNames {
 		name = strings.TrimSpace(name)
@@ -246,7 +326,7 @@ func sageHasAllFunctionTools(sage *sages.Sage, toolNames ...string) bool {
 		return false
 	}
 
-	for _, tool := range sage.GetTools() {
+	for _, tool := range tools {
 		if tool.Type != openai.ToolTypeFunction || tool.Function == nil {
 			continue
 		}

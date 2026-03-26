@@ -112,9 +112,9 @@ func (c *Coordinator) CoordinateHeartbeat(
 
 func buildHeartbeatRuntimeToolsBySage() map[string][]openai.Tool {
 	return map[string][]openai.Tool{
-		"melchior":  {buildHeartbeatRuntimeTool(config.BuildWannaSleepPlanToolDef())},
-		"balthazar": {buildHeartbeatRuntimeTool(config.BuildWannaSleepDreamToolDef())},
-		"casper":    {buildHeartbeatRuntimeTool(config.BuildWannaSleepRecordToolDef())},
+		"melchior":  {buildRuntimeTool(config.BuildWannaSleepPlanToolDef())},
+		"balthazar": {buildRuntimeTool(config.BuildWannaSleepDreamToolDef())},
+		"casper":    {buildRuntimeTool(config.BuildWannaSleepRecordToolDef())},
 	}
 }
 
@@ -123,16 +123,5 @@ func buildHeartbeatRuntimeToolChoiceBySage() map[string]any {
 		"melchior":  "required",
 		"balthazar": "required",
 		"casper":    "required",
-	}
-}
-
-func buildHeartbeatRuntimeTool(toolDef config.ToolDef) openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolType(toolDef.Type),
-		Function: &openai.FunctionDefinition{
-			Name:        toolDef.Function.Name,
-			Description: toolDef.Function.Description,
-			Parameters:  toolDef.Function.Parameters,
-		},
 	}
 }

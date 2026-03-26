@@ -5,10 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -17,8 +20,10 @@ import (
 
 // VoteContext 投票上下文
 type VoteContext struct {
-	UserMessage        string // 用户原始输入
-	MelchiorConclusion string // Melchior关键判断
+	UserMessage         string // 用户原始输入
+	MelchiorConclusion  string // Melchior关键判断
+	ProposerDisplayName string
+	ProposerConclusion  string
 }
 
 // VoteResult 投票结果
@@ -27,6 +32,7 @@ type VoteResult struct {
 	Balthazar string // "批准" | "否决"
 	Casper    string // "批准" | "否决"
 	Passed    bool   // 是否通过（≥2/3）
+	Round     int    // 当前第几轮审议
 }
 
 // voteDecision 投票决策响应
@@ -52,75 +58,114 @@ func ProcessVoting(
 	voteCtx VoteContext,
 	deliberationInitiator, deliberationReason string,
 ) (*VoteResult, error) {
+	return ProcessPeerVoting(
+		ctx,
+		sessionId,
+		roundId,
+		"melchior",
+		"Melchior",
+		balthazar,
+		casper,
+		proposedAction,
+		voteCtx,
+		deliberationInitiator,
+		deliberationReason,
+		1,
+	)
+}
+
+func ProcessPeerVoting(
+	ctx context.Context,
+	sessionId, roundId string,
+	initiatorSeelName string,
+	initiatorDisplayName string,
+	firstPeer *sages.Sage,
+	secondPeer *sages.Sage,
+	proposedAction string,
+	voteCtx VoteContext,
+	deliberationInitiator, deliberationReason string,
+	round int,
+) (*VoteResult, error) {
+	if strings.TrimSpace(initiatorSeelName) == "" {
+		return nil, fmt.Errorf("投票缺少主导者名称")
+	}
+	if round <= 0 {
+		round = 1
+	}
+	if strings.TrimSpace(deliberationInitiator) == "" {
+		deliberationInitiator = initiatorSeelName
+	}
+
 	// 推送投票开始
-	if err := websocket.PushVotingStart(websocket.RuntimeMonitorSessionID, roundId, proposedAction, 1); err != nil {
+	if err := websocket.PushVotingStart(websocket.RuntimeMonitorSessionID, roundId, proposedAction, round); err != nil {
 		logging.LogWarnf("推送投票开始失败: %v", err)
 	}
 
-	// 并行调用Balthazar和Casper
 	var wg sync.WaitGroup
-	var balthazarVote, casperVote string
-	var balthazarErr, casperErr error
 	var mu sync.Mutex
 	progress := 0
+	result := &VoteResult{
+		Melchior:  voteReject,
+		Balthazar: voteReject,
+		Casper:    voteReject,
+		Round:     round,
+	}
+	setVoteDecision(result, initiatorSeelName, voteApprove)
 
-	wg.Add(2)
-
-	// Balthazar投票
-	go func() {
-		defer wg.Done()
-		balthazarVote, balthazarErr = getRealVote(ctx, balthazar, proposedAction, voteCtx)
-
-		mu.Lock()
-		progress += 50
-		mu.Unlock()
-
-		// 推送投票进度
-		if balthazarErr == nil {
-			decision := types.VoteDecision(balthazarVote)
-			if err := websocket.PushVotingProgress(websocket.RuntimeMonitorSessionID, roundId, balthazar.GetName(), balthazar.GetDisplayName(), decision, progress); err != nil {
-				logging.LogWarnf("推送Balthazar投票进度失败: %v", err)
-			}
+	peers := []*sages.Sage{firstPeer, secondPeer}
+	activePeers := 0
+	for _, peer := range peers {
+		if peer != nil {
+			activePeers++
 		}
-	}()
+	}
+	if activePeers == 0 {
+		result.Passed = computePassed(result)
+		return result, nil
+	}
 
-	// Casper投票
-	go func() {
-		defer wg.Done()
-		casperVote, casperErr = getRealVote(ctx, casper, proposedAction, voteCtx)
-
-		mu.Lock()
-		progress += 50
-		mu.Unlock()
-
-		// 推送投票进度
-		if casperErr == nil {
-			decision := types.VoteDecision(casperVote)
-			if err := websocket.PushVotingProgress(websocket.RuntimeMonitorSessionID, roundId, casper.GetName(), casper.GetDisplayName(), decision, progress); err != nil {
-				logging.LogWarnf("推送Casper投票进度失败: %v", err)
-			}
+	progressStep := 100 / activePeers
+	remainder := 100 % activePeers
+	for idx, peer := range peers {
+		if peer == nil {
+			continue
 		}
-	}()
+		wg.Add(1)
+		increment := progressStep
+		if remainder > 0 && idx < remainder {
+			increment++
+		}
+
+		go func(peer *sages.Sage, increment int) {
+			defer wg.Done()
+
+			vote := voteReject
+			if decision, err := getRealVote(ctx, peer, proposedAction, voteCtx); err != nil {
+				logging.LogWarnf("%s 投票失败，按否决处理: %v", peer.GetDisplayName(), err)
+			} else {
+				vote = decision
+			}
+
+			mu.Lock()
+			setVoteDecision(result, peer.GetName(), vote)
+			progress += increment
+			currentProgress := progress
+			mu.Unlock()
+
+			if err := websocket.PushVotingProgress(
+				websocket.RuntimeMonitorSessionID,
+				roundId,
+				peer.GetName(),
+				peer.GetDisplayName(),
+				types.VoteDecision(vote),
+				currentProgress,
+			); err != nil {
+				logging.LogWarnf("推送%s投票进度失败: %v", peer.GetDisplayName(), err)
+			}
+		}(peer, increment)
+	}
 
 	wg.Wait()
-
-	// 检查投票错误
-	if balthazarErr != nil && casperErr != nil {
-		return nil, fmt.Errorf("投票失败: Balthazar错误=%v, Casper错误=%v", balthazarErr, casperErr)
-	}
-	if balthazarErr != nil {
-		return nil, fmt.Errorf("Balthazar投票失败: %w", balthazarErr)
-	}
-	if casperErr != nil {
-		return nil, fmt.Errorf("Casper投票失败: %w", casperErr)
-	}
-
-	// 构建投票结果
-	result := &VoteResult{
-		Melchior:  voteApprove, // Melchior默认批准
-		Balthazar: balthazarVote,
-		Casper:    casperVote,
-	}
 
 	// 计算是否通过（≥2/3）
 	result.Passed = computePassed(result)
@@ -161,15 +206,20 @@ func getRealVote(
 	}
 
 	// 发送同步请求
-	content, err := sage.GetLLMClient().SendChatRequestSync(timeoutCtx, messages, nil, nil)
+	result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(
+		timeoutCtx,
+		messages,
+		[]openai.Tool{buildRuntimeTool(config.BuildVoteToolDef())},
+		buildRequiredFunctionToolChoice(config.VoteToolName),
+	)
 	if err != nil {
 		return "", fmt.Errorf("[%s] LLM请求失败: %w", sage.GetDisplayName(), err)
 	}
 
 	// 解析决策
-	decision, parseErr := parseDecision(content)
+	decision, parseErr := parseDecision(result)
 	if parseErr != nil {
-		return "", fmt.Errorf("[%s] 投票决策解析失败: %w | 原始内容: %s", sage.GetDisplayName(), parseErr, content)
+		return "", fmt.Errorf("[%s] 投票决策解析失败: %w | 原始响应: %s", sage.GetDisplayName(), parseErr, describeSyncChatResult(result))
 	}
 
 	return decision, nil
@@ -177,28 +227,67 @@ func getRealVote(
 
 // buildVoteSystemPrompt 创建评审系统提示词
 func buildVoteSystemPrompt(displayName string) string {
-	return prompts.BuildVoteSystemPrompt(displayName)
+	return prompts.BuildVoteSystemPrompt(displayName, config.VoteToolName)
 }
 
 // buildVoteUserInput 创建评审用户输入
 func buildVoteUserInput(proposedAction string, voteCtx VoteContext) string {
-	return prompts.BuildVoteUserInput(proposedAction, voteCtx.UserMessage, voteCtx.MelchiorConclusion)
+	proposerDisplayName := strings.TrimSpace(voteCtx.ProposerDisplayName)
+	if proposerDisplayName == "" {
+		proposerDisplayName = "Melchior"
+	}
+	proposerConclusion := strings.TrimSpace(voteCtx.ProposerConclusion)
+	if proposerConclusion == "" {
+		proposerConclusion = strings.TrimSpace(voteCtx.MelchiorConclusion)
+	}
+	return prompts.BuildVoteUserInput(proposedAction, voteCtx.UserMessage, proposerDisplayName, proposerConclusion)
 }
 
 // parseDecision 解析二元决策
-func parseDecision(content string) (string, error) {
-	// 尝试JSON解析
+func parseDecision(result *types.SyncChatResult) (string, error) {
+	if result == nil {
+		return "", fmt.Errorf("投票响应为空")
+	}
+
+	if len(result.ToolCalls) != 1 {
+		return "", fmt.Errorf("投票必须且只能调用一次 %s，实际=%d", config.VoteToolName, len(result.ToolCalls))
+	}
+
+	toolCall := result.ToolCalls[0]
+	if strings.TrimSpace(toolCall.Function.Name) != config.VoteToolName {
+		return "", fmt.Errorf("投票工具名无效: %s", toolCall.Function.Name)
+	}
+
+	rawArgs := strings.TrimSpace(toolCall.Function.Arguments)
+	if rawArgs == "" {
+		return "", fmt.Errorf("%s 缺少参数", config.VoteToolName)
+	}
+
 	var decision voteDecision
-	if err := json.Unmarshal([]byte(content), &decision); err != nil {
-		return "", fmt.Errorf("JSON解析失败: %w | 原始内容: %s", err, content)
+	if err := json.Unmarshal([]byte(rawArgs), &decision); err != nil {
+		return "", fmt.Errorf("%s 参数解析失败: %w", config.VoteToolName, err)
 	}
 
-	// 验证decision字段值
+	decision.Decision = strings.TrimSpace(decision.Decision)
+	decision.Reason = strings.TrimSpace(decision.Reason)
 	if decision.Decision != voteApprove && decision.Decision != voteReject {
-		return "", fmt.Errorf("decision字段值无效: %s (期望'批准'或'否决') | 原始内容: %s", decision.Decision, content)
+		return "", fmt.Errorf("decision字段值无效: %s (期望'批准'或'否决')", decision.Decision)
 	}
-
+	if decision.Reason == "" {
+		return "", fmt.Errorf("%s 的 reason 不能为空", config.VoteToolName)
+	}
 	return decision.Decision, nil
+}
+
+func describeSyncChatResult(result *types.SyncChatResult) string {
+	if result == nil {
+		return "<nil>"
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Sprintf("{content=%q toolCalls=%d}", result.Content, len(result.ToolCalls))
+	}
+	return string(data)
 }
 
 // computePassed 计算是否通过（≥2/3）
@@ -214,4 +303,19 @@ func computePassed(result *VoteResult) bool {
 		approveCount++
 	}
 	return approveCount >= 2
+}
+
+func setVoteDecision(result *VoteResult, seelName, decision string) {
+	if result == nil {
+		return
+	}
+
+	switch {
+	case strings.EqualFold(strings.TrimSpace(seelName), "melchior"):
+		result.Melchior = decision
+	case strings.EqualFold(strings.TrimSpace(seelName), "balthazar"):
+		result.Balthazar = decision
+	case strings.EqualFold(strings.TrimSpace(seelName), "casper"):
+		result.Casper = decision
+	}
 }

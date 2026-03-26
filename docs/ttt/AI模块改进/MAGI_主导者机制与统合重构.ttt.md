@@ -53,8 +53,9 @@
 5. **运行态与前端观测链已补齐**：`kernel/nerv/magi/types/types.go`、`kernel/nerv/magi/websocket/events.go`、`app/src/magi/composables/useMagi.ts`、`app/src/magi/entry/MagiWorkspace.vue` 均已接入 `dominantSeel / dominantStance`；外部回复态对运行态的主导者回写也已接通。
 6. **后端核心退场清理已完成一轮收口**：`kernel/nerv/magi/coordinator/trinity.go` 已删除；`config/sages/prompts/wakeup/stream/seraph` 中把 Trinity 作为独立实体保留的生产依赖与命名语义已完成清理；未使用的 Trinity 提示词模板也已移除。
 7. **Phase 3B 已完成 synthesis 事件名收口**：`kernel/nerv/magi/websocket/events.go`、前端事件总线、WebSocket bridge、projector 与监控流已统一只使用 `DOMINANT_SYNTHESIS_COMPLETED`；此前残留的 `TRINITY_SYNTHESIS_COMPLETED` 仅属同仓旧命名死代码，已确认不属于任何对外兼容面。同时，`trinity-runtime` 监控范围也已收敛为中性的 `magi-monitor`。
-8. **仍未完成的核心范围已进一步收窄到路径级/运行时命名残留与后续机制阶段**：前端监控宿主显式状态名、monitor panel 内部类型名、模板类名与界面文案已收口到 `monitor` / `magi-monitor` 口径；但 `app/src/magi/components/trinity-monitor-panel/*` 的文件路径/目录名、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主命名等仍保留 Trinity 语义。此外，行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地。
-9. **唤醒链路重复读盘热修已完成**：`wakeup -> persona seed descriptions` 热路径已改为“首次冷加载 + 运行期内存缓存 + 文件变更失效刷新”，并对同一 key 的并发冷加载做了合并处理；当前目标是只消除不必要的重复磁盘读取，不改变人格来源、回复语义、主导者结果或协议外形。
+8. **仍未完成的核心范围已进一步收窄到路径级/运行时命名残留与后续机制阶段**：前端监控宿主显式状态名、monitor panel 内部类型名、模板类名与界面文案已收口到 `monitor` / `magi-monitor` 口径；但 `app/src/magi/components/trinity-monitor-panel/*` 的文件路径/目录名、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主命名等仍保留 Trinity 语义。此外，“专家系统”式审慎决策、主导者历史共享与可回放审计仍未开始落地。
+9. **Phase 4 首批行动型工具治理已完成日记工具主干**：`write_diary_entry` 现仅对当前轮主导者暴露；调用后会触发另外两位贤者表决，未通过则向主导者返回结构化否决结果，连续两次否决会立即撤销当前主导资格并在同轮重新选举，再由新主导者继续完成回复。日记落盘形态固定为“一个原生 callout 容器 + 任意 markdown 子块”。
+10. **唤醒链路重复读盘热修已完成**：`wakeup -> persona seed descriptions` 热路径已改为“首次冷加载 + 运行期内存缓存 + 文件变更失效刷新”，并对同一 key 的并发冷加载做了合并处理；当前目标是只消除不必要的重复磁盘读取，不改变人格来源、回复语义、主导者结果或协议外形。
 
 ---
 
@@ -71,6 +72,9 @@
 9. [x] `pnpm exec vitest run test/util/events/magiEventBridge.test.ts test/util/events/magiWebSocketBridge.test.ts`
 10. [x] `TrinityMonitorPanel.vue`、`MagiMainPanel.vue`、`MagiMainPanelHeader.vue`、`MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
 11. [ ] `pnpm exec vue-tsc --noEmit` 当前仓库未安装 `vue-tsc`；`pnpm exec tsc --noEmit` 受现有 `./src/types` 类型库配置问题阻塞，尚未拿到完整前端 TS 全量校验结果。
+12. [x] `go test ./nerv/magi/config`
+13. [x] `go test ./nerv/magi/coordinator -run "Diary|Dominant|ToolCall|ToolResult"`
+14. [x] `go test ./nerv/magi/...`
 
 ---
 
@@ -108,18 +112,6 @@
     - 旧 synthesis 事件名已从代码与文档中移除，不再把内部死代码表述成“兼容层”。
     - TTT、测试与界面文案中的完成度口径一致。
 
-- [ ] **Phase 4: 行动态工具治理与失主导重选 (P1)**
-  - **背景**: 行动态需要区分自由查询与受审议的行动型工具调用。
-  - **行动**:
-    1. 区分查询/思考型工具与行动型工具。
-    2. 为行动型工具建立“主导者申请 -> 其它两者表决 -> 失败重提 -> 二次失败失主导”的状态机。
-    3. 仅为主导者暴露可写日记工具，暂不开放其它修改工具。日记工具的作用是以合适的call_out块的形式向AI主笔记本的日记中插入笔记
-    
-  - **验收标准**:
-    - 行动型工具必须先审议后执行。
-    - 二次否决后会触发重新选主导者。
-    - 只有主导者可见写入主笔记工具。
-
 ---
 
 ## 🟡 中期计划
@@ -148,6 +140,31 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 4: 行动态工具治理与失主导重选（首批日记工具） (P1)** [已完成 2026-03-26]
+  - **背景**: 行动态需要区分自由查询与受审议的行动型工具调用；首批只开放主导者专属日记工具，不开放其它修改型工具。
+  - **完成情况**:
+    1. 已把 `write_diary_entry` 接入主导者运行时工具集，并明确其为行动型工具；调用后会触发另外两位贤者同步表决，而不是直接写入。
+    2. 已落地“主导者申请 -> 其余两者表决 -> 首次否决返回结构化驳回结果 -> 二次否决撤销主导资格 -> 同轮重新选举 -> 新主导者继续回复”的状态机主干。
+    3. 已把日记工具写入形态固定为“一个原生 callout 容器 + 其中承载任意 markdown 子块”，并保持写入目标为 AI 主笔记本的当日日记。
+    4. 已把旧投票实现泛化到主导者行动工具审批，补齐超时/失败按否决处理和文本投票结果解析回退。
+  - **验证证据**:
+    - `go test ./nerv/magi/coordinator -run "DiaryToolRejectedTwice|DiaryToolRejectThenApprove|Voting|Dominant|Diary|ToolCall|ToolResult"`
+    - `go test ./nerv/magi/...`
+  - **成果文件**:
+    - `kernel/nerv/magi/coordinator/action_tool_governance.go`
+    - `kernel/nerv/magi/coordinator/diary_tool.go`
+    - `kernel/nerv/magi/coordinator/dominant_reply.go`
+    - `kernel/nerv/magi/coordinator/dominant_reply_test.go`
+    - `kernel/nerv/magi/coordinator/collector.go`
+    - `kernel/nerv/magi/coordinator/toolcall_context.go`
+    - `kernel/nerv/magi/coordinator/tool_result_memory.go`
+    - `kernel/nerv/magi/coordinator/voting.go`
+    - `kernel/nerv/magi/coordinator/dominance.go`
+    - `kernel/nerv/magi/prompts/voting.go`
+    - `kernel/nerv/magi/prompts/dominance.go`
+    - `kernel/nerv/magi/config/config.go`
+    - `docs/ttt/AI模块改进/MAGI_主导者机制与统合重构.ttt.md`
 
 - [x] **Hotfix: 唤醒链路重复读盘消除与热路径缓存 (P0)** [已完成 2026-03-26]
   - **背景**: 已确认 MAGI 当前卡顿主因不是决策逻辑本身，而是 `buildRequestMessages / BuildRequestMessagesForSession -> BuildWakeupSequence -> ResolvePersonaSeedDescriptions` 被放在热路径上，导致同一轮心跳或外部回复中反复同步读取 active seed 指针与人格样本 JSON；首次心跳还会叠加三贤人并发冷加载，放大卡顿。

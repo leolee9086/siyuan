@@ -179,6 +179,13 @@ type StreamResult struct {
 	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`
 }
 
+// SyncChatResult 同步请求的结构化响应结果。
+type SyncChatResult struct {
+	Content      string     `json:"content"`
+	ToolCalls    []ToolCall `json:"toolCalls,omitempty"`
+	FinishReason string     `json:"finishReason,omitempty"`
+}
+
 // DeliberationSignal 审慎决策信号（Melchior工具调用）
 type DeliberationSignal struct {
 	RequiresDeliberation bool   `json:"requires_deliberation"`
@@ -196,6 +203,13 @@ type WannaSleepTool struct {
 	Summary      string `json:"summary"`
 	NextStepPlan string `json:"nextStepPlan,omitempty"`
 	DreamScene   string `json:"dreamScene,omitempty"`
+}
+
+// WriteDiaryTool 主导者向 AI 主笔记本当日日记写入 callout 容器式条目的工具参数。
+type WriteDiaryTool struct {
+	Markdown    string `json:"markdown"`
+	CalloutType string `json:"calloutType,omitempty"`
+	Title       string `json:"title,omitempty"`
 }
 
 // SynthesisSpeakTool 统合输出 speak 工具参数

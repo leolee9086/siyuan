@@ -1,6 +1,9 @@
 package prompts
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // BuildDominantElectionSystemPrompt 构建主导者选举评分提示。
 func BuildDominantElectionSystemPrompt(displayName string) string {
@@ -31,6 +34,28 @@ func BuildDominantElectionUserInput(
 3. %s
 
 请给出三项 0-100 的评分，并说明一句理由。`, situation, professionLabel, socialRelationLabel, selfLabel)
+}
+
+// BuildDominantElectionUserInputForCandidates 构建可变候选人数的主导者选举用户输入。
+func BuildDominantElectionUserInputForCandidates(
+	situation string,
+	candidateLabels ...string,
+) string {
+	lines := make([]string, 0, len(candidateLabels))
+	for idx, label := range candidateLabels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%d. %s", idx+1, label))
+	}
+	return fmt.Sprintf(`当前情境：
+%s
+
+下面给出若干段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
+%s
+
+请给出对应数量的 0-100 评分，并说明一句理由。`, situation, strings.Join(lines, "\n"))
 }
 
 // BuildDominantSleepSynthesisPrompt 构建睡前整合提示。

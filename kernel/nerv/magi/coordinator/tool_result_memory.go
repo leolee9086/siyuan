@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -50,6 +51,7 @@ var persistWannaSleepMemoryToNotebook = persistWannaSleepMemoryEntryToNotebook
 var toolResultMemoryNow = time.Now
 
 func materializeToolResultForContext(
+	ctx context.Context,
 	sessionID, roundID string,
 	sage *sages.Sage,
 	assistantContent string,
@@ -59,6 +61,9 @@ func materializeToolResultForContext(
 	toolName := strings.TrimSpace(toolCall.Function.Name)
 	if config.IsWannaSleepToolName(toolName) {
 		return materializeWannaSleepToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
+	}
+	if toolName == config.WriteDiaryToolName {
+		return materializeDiaryToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult

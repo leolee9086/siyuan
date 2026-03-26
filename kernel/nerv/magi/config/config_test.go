@@ -301,6 +301,34 @@ func TestBuildForgeDevRepoToolDefs_Structure(t *testing.T) {
 	}
 }
 
+func TestBuildWriteDiaryToolDef_Structure(t *testing.T) {
+	tool := BuildWriteDiaryToolDef()
+	if tool.Type != "function" {
+		t.Fatalf("期望工具 Type=function，实际=%s", tool.Type)
+	}
+	if tool.Function.Name != WriteDiaryToolName {
+		t.Fatalf("期望工具名=%s，实际=%s", WriteDiaryToolName, tool.Function.Name)
+	}
+
+	params, ok := tool.Function.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Parameters 缺少 properties")
+	}
+	for _, field := range []string{"markdown", "calloutType", "title"} {
+		if _, ok := params[field]; !ok {
+			t.Fatalf("Parameters 缺少 %s", field)
+		}
+	}
+
+	required, ok := tool.Function.Parameters["required"].([]string)
+	if !ok {
+		t.Fatal("Parameters 缺少 required")
+	}
+	if len(required) != 1 || required[0] != "markdown" {
+		t.Fatalf("期望 required=[markdown]，实际=%v", required)
+	}
+}
+
 func TestBuildDefaultCoreSageTools_ForgeOnlyRepoTools(t *testing.T) {
 	originalMode := util.Mode
 	defer func() {

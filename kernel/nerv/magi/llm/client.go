@@ -25,6 +25,9 @@ type Client interface {
 	// SendChatRequestSync 发送聊天请求（同步）
 	SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error)
 
+	// SendChatRequestSyncDetailed 发送聊天请求（同步，返回结构化结果）
+	SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error)
+
 	// GetModel 获取模型名称
 	GetModel() string
 }
@@ -191,6 +194,17 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 }
 
 func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
+	result, err := c.SendChatRequestSyncDetailed(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return "", err
+	}
+	if result == nil {
+		return "", fmt.Errorf("sync chat result is nil")
+	}
+	return result.Content, nil
+}
+
+func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
 	req := openai.ChatCompletionRequest{
@@ -199,18 +213,25 @@ func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
 		Tools:               tools,
+		ToolChoice:          toolChoice,
 	}
 
 	resp, err := c.client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("create completion failed: %w", err)
+		return nil, fmt.Errorf("create completion failed: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("no response choices")
+		return nil, fmt.Errorf("no response choices")
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	choice := resp.Choices[0]
+	result := &types.SyncChatResult{
+		Content:      choice.Message.Content,
+		ToolCalls:    convertOpenAIToolCalls(choice.Message.ToolCalls),
+		FinishReason: string(choice.FinishReason),
+	}
+	return result, nil
 }
 
 func (c *openaiClient) GetModel() string {
@@ -227,20 +248,14 @@ func (c *claudeClient) SendChatRequest(ctx context.Context, messages []types.Con
 }
 
 func (c *claudeClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
-	reqMsgs := convertToOpenAIMessages(messages)
-
-	ret, _, err := util.CallClaudeChatCompletionMagi(
-		reqMsgs,
-		c.config.APIModel,
-		c.config.MaxTokens,
-		c.config.Temperature,
-		c.config.Timeout,
-		c.config.APIKey,
-		c.config.APIProxy,
-		c.config.APIBaseURL,
-	)
-
-	return ret, err
+	result, err := c.SendChatRequestSyncDetailed(ctx, messages, tools, toolChoice)
+	if err != nil {
+		return "", err
+	}
+	if result == nil {
+		return "", fmt.Errorf("sync chat result is nil")
+	}
+	return result.Content, nil
 }
 
 func (c *claudeClient) GetModel() string {
@@ -282,6 +297,26 @@ func convertToOpenAIMessages(messages []types.ContextMessage) []openai.ChatCompl
 	}
 
 	return result
+}
+
+func convertOpenAIToolCalls(toolCalls []openai.ToolCall) []types.ToolCall {
+	if len(toolCalls) == 0 {
+		return nil
+	}
+
+	converted := make([]types.ToolCall, 0, len(toolCalls))
+	for index, toolCall := range toolCalls {
+		converted = append(converted, types.ToolCall{
+			ID:    toolCall.ID,
+			Type:  string(toolCall.Type),
+			Index: index,
+			Function: types.ToolCallFunction{
+				Name:      toolCall.Function.Name,
+				Arguments: toolCall.Function.Arguments,
+			},
+		})
+	}
+	return converted
 }
 
 // SessionContext 会话级别的上下文管理器

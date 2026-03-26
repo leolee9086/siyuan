@@ -416,3 +416,92 @@ func TestAppendTurnToolCallsToContextWithExecutor_WannaSleepPersistenceFailureSt
 		t.Fatalf("期望工具结果保留 sleepAt，实际=%s", payload.SleepAt)
 	}
 }
+
+func TestAppendTurnToolCallsToContextWithExecutor_PersistsDiaryEntryAndAnnotatesToolResult(t *testing.T) {
+	originalPersistFn := persistDiaryToolEntryToDailyNote
+	defer func() {
+		persistDiaryToolEntryToDailyNote = originalPersistFn
+	}()
+
+	var persisted struct {
+		sessionID string
+		roundID   string
+		sageName  string
+		toolCall  string
+		args      *types.WriteDiaryTool
+	}
+	persistDiaryToolEntryToDailyNote = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, args *types.WriteDiaryTool) (*diaryToolEntryLocation, error) {
+		persisted.sessionID = sessionID
+		persisted.roundID = roundID
+		persisted.toolCall = toolCall.ID
+		persisted.args = args
+		if sage != nil {
+			persisted.sageName = sage.GetName()
+		}
+		return &diaryToolEntryLocation{
+			BlockID: "diary-block-1",
+			DocID:   "daily-doc-1",
+			DocPath: "/daily note/2026/03/2026-03-22.sy",
+		}, nil
+	}
+
+	sage := createMockSage("melchior", "Melchior", "测试", false, 0)
+	toolCalls := []types.ToolCall{
+		{
+			ID:   "diary-call-1",
+			Type: "function",
+			Function: types.ToolCallFunction{
+				Name:      config.WriteDiaryToolName,
+				Arguments: `{"markdown":"# 今日记录\n\n- 完成日记工具接线","calloutType":"NOTE","title":"行动日志"}`,
+			},
+		},
+	}
+
+	diaryExecutor := newDiaryToolResultExecutor()
+	appendTurnToolCallsToContextWithExecutor(
+		"diary-session",
+		"diary-round",
+		sage,
+		"准备把这次推进记入日记",
+		toolCalls,
+		diaryExecutor.ExecuteToolCall,
+		buildCoreSageToolAck,
+	)
+
+	if persisted.sessionID != "diary-session" || persisted.roundID != "diary-round" {
+		t.Fatalf("期望持久化收到会话和轮次信息，实际=%+v", persisted)
+	}
+	if persisted.sageName != "melchior" || persisted.toolCall != "diary-call-1" {
+		t.Fatalf("期望持久化收到贤者和 tool call 信息，实际=%+v", persisted)
+	}
+	if persisted.args == nil || !strings.Contains(persisted.args.Markdown, "完成日记工具接线") {
+		t.Fatalf("期望持久化收到 markdown 正文，实际=%+v", persisted.args)
+	}
+
+	ctx := sage.GetContextForSession("diary-session")
+	if len(ctx) != 2 {
+		t.Fatalf("期望上下文有2条消息，实际=%d", len(ctx))
+	}
+
+	var payload struct {
+		OK          bool   `json:"ok"`
+		State       string `json:"state"`
+		CalloutType string `json:"calloutType"`
+		Title       string `json:"title"`
+		BlockID     string `json:"blockId"`
+		DocID       string `json:"docId"`
+		DocPath     string `json:"docPath"`
+	}
+	if err := json.Unmarshal([]byte(ctx[1].Content), &payload); err != nil {
+		t.Fatalf("期望 diary 工具结果被写成 JSON，实际=%s, err=%v", ctx[1].Content, err)
+	}
+	if !payload.OK || payload.State != "written" {
+		t.Fatalf("期望 diary 工具结果为 written，实际=%+v", payload)
+	}
+	if payload.CalloutType != "NOTE" || payload.Title != "行动日志" {
+		t.Fatalf("期望工具结果保留 callout 信息，实际=%+v", payload)
+	}
+	if payload.BlockID != "diary-block-1" || payload.DocID != "daily-doc-1" {
+		t.Fatalf("期望工具结果保留落盘定位信息，实际=%+v", payload)
+	}
+}
