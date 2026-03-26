@@ -8,6 +8,8 @@ import (
 
 const sampleFileMarker = "_ipip120_sample_"
 
+var resolvePersonaSeedDescriptionsMissLoader = resolvePersonaSeedDescriptionsUncached
+
 // ResolvePersonaSeedDescriptions 解析人格种子四轨描述。
 // 描述源与人格档案分离：优先从原始问卷样本文件中加载描述。
 // 对于预设人格（丽/薰/式波/Jarvis），返回预设描述；对于非预设人格，尝试加载对应的样本文件。
@@ -34,17 +36,23 @@ func ResolvePersonaSeedDescriptions(dataDir string, profile *IpipPersonaProfile)
 		return GetJarvisSubmissionPayload().Descriptions
 	}
 
+	return resolvePersonaSeedDescriptionsCached(dataDir, id, func() IpipPersonaSeedDescriptions {
+		return resolvePersonaSeedDescriptionsMissLoader(dataDir, id)
+	})
+}
+
+func resolvePersonaSeedDescriptionsUncached(dataDir string, subjectID string) IpipPersonaSeedDescriptions {
 	storage := NewStorage(dataDir)
 
 	// 先按 active seed 指针定位当前生效样本。
-	if samplePath, ok := resolveSamplePathFromActiveSeed(storage, id); ok {
+	if samplePath, ok := resolveSamplePathFromActiveSeed(storage, subjectID); ok {
 		if descriptions, loaded := loadDescriptionsFromSamplePath(storage, samplePath); loaded {
 			return descriptions
 		}
 	}
 
 	// active seed 不可用时，回退到同 subject 的最新样本。
-	if samplePath, ok := resolveLatestSamplePathBySubjectID(dataDir, id); ok {
+	if samplePath, ok := resolveLatestSamplePathBySubjectID(dataDir, subjectID); ok {
 		if descriptions, loaded := loadDescriptionsFromSamplePath(storage, samplePath); loaded {
 			return descriptions
 		}

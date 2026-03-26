@@ -44,7 +44,7 @@
 
 ---
 
-## 现状评估 (2026-03-25)
+## 现状评估 (2026-03-26)
 
 1. **Phase 1 已完成**：`kernel/nerv/marduk/types.go` 与 `kernel/nerv/marduk/cognitive_stances.go` 已提供档案立场三元组和严格读取器；`presets_*.go` 已补齐自然档案值。
 2. **Phase 2 已完成**：`kernel/nerv/magi/coordinator/heartbeat_sleep.go` 已改为“三贤人完成睡前笔记 -> 主导者选举 -> 主导者执行综合连接”；旧 Trinity 睡前统合主路径已退出。
@@ -54,19 +54,23 @@
 6. **后端核心退场清理已完成一轮收口**：`kernel/nerv/magi/coordinator/trinity.go` 已删除；`config/sages/prompts/wakeup/stream/seraph` 中把 Trinity 作为独立实体保留的生产依赖与命名语义已完成清理；未使用的 Trinity 提示词模板也已移除。
 7. **Phase 3B 已完成 synthesis 事件名收口**：`kernel/nerv/magi/websocket/events.go`、前端事件总线、WebSocket bridge、projector 与监控流已统一只使用 `DOMINANT_SYNTHESIS_COMPLETED`；此前残留的 `TRINITY_SYNTHESIS_COMPLETED` 仅属同仓旧命名死代码，已确认不属于任何对外兼容面。同时，`trinity-runtime` 监控范围也已收敛为中性的 `magi-monitor`。
 8. **仍未完成的核心范围已进一步收窄到路径级/运行时命名残留与后续机制阶段**：前端监控宿主显式状态名、monitor panel 内部类型名、模板类名与界面文案已收口到 `monitor` / `magi-monitor` 口径；但 `app/src/magi/components/trinity-monitor-panel/*` 的文件路径/目录名、`app/src/magi/core/wise/trinity.toolset.ts`、`TRINITY-00` 监控宿主命名等仍保留 Trinity 语义。此外，行动态工具治理、二次否决失主导重选、“专家系统”式审慎决策、主导者专属可写工具开放策略仍未开始落地。
+9. **唤醒链路重复读盘热修已完成**：`wakeup -> persona seed descriptions` 热路径已改为“首次冷加载 + 运行期内存缓存 + 文件变更失效刷新”，并对同一 key 的并发冷加载做了合并处理；当前目标是只消除不必要的重复磁盘读取，不改变人格来源、回复语义、主导者结果或协议外形。
 
 ---
 
-## 最新验证 (2026-03-25)
+## 最新验证 (2026-03-26)
 
-1. [x] `go test ./nerv/marduk -run 'TestResolveCognitiveStances'`
-2. [x] `go test ./nerv/magi/prompts ./nerv/magi/config ./nerv/magi/sages ./nerv/seraph ./nerv/magi/stream`
-3. [x] `go test ./api -run 'TestGetOrCreateSession|TestSubmitMagiTask|TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
-4. [x] `go test ./nerv/magi/coordinator -run 'TestBuildRejectionMessage|TestBuildConsensusMessage|TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing'`
-5. [x] `go test ./nerv/magi/websocket`
-6. [x] `pnpm exec vitest run test/util/events/magiEventBridge.test.ts test/util/events/magiWebSocketBridge.test.ts`
-7. [x] `TrinityMonitorPanel.vue`、`MagiMainPanel.vue`、`MagiMainPanelHeader.vue`、`MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
-8. [ ] `pnpm exec vue-tsc --noEmit` 当前仓库未安装 `vue-tsc`；`pnpm exec tsc --noEmit` 受现有 `./src/types` 类型库配置问题阻塞，尚未拿到完整前端 TS 全量校验结果。
+1. [x] `go test ./nerv/marduk`
+2. [x] `go test ./nerv/magi/prompts ./nerv/magi/sages`
+3. [x] `go test ./nerv/magi/coordinator -run "TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing|TestCoordinateDominantDirectReply"`
+4. [x] `go test ./nerv/marduk -run 'TestResolveCognitiveStances'`
+5. [x] `go test ./nerv/magi/prompts ./nerv/magi/config ./nerv/magi/sages ./nerv/seraph ./nerv/magi/stream`
+6. [x] `go test ./api -run 'TestGetOrCreateSession|TestSubmitMagiTask|TestMagiRuntimeManagerApplyForegroundConsensus|TestMagiRuntimeManagerFinishForeground_RetainsLatestDominant'`
+7. [x] `go test ./nerv/magi/coordinator -run 'TestBuildRejectionMessage|TestBuildConsensusMessage|TestCoordinateDominantDirectReply|TestCoordinateDecision_DispatchesAvatarForNonDirectSource|TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing'`
+8. [x] `go test ./nerv/magi/websocket`
+9. [x] `pnpm exec vitest run test/util/events/magiEventBridge.test.ts test/util/events/magiWebSocketBridge.test.ts`
+10. [x] `TrinityMonitorPanel.vue`、`MagiMainPanel.vue`、`MagiMainPanelHeader.vue`、`MagiWorkspace.vue` 已通过 `@vue/compiler-sfc` 的 `parse + compileScript` 校验。
+11. [ ] `pnpm exec vue-tsc --noEmit` 当前仓库未安装 `vue-tsc`；`pnpm exec tsc --noEmit` 受现有 `./src/types` 类型库配置问题阻塞，尚未拿到完整前端 TS 全量校验结果。
 
 ---
 
@@ -144,6 +148,23 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Hotfix: 唤醒链路重复读盘消除与热路径缓存 (P0)** [已完成 2026-03-26]
+  - **背景**: 已确认 MAGI 当前卡顿主因不是决策逻辑本身，而是 `buildRequestMessages / BuildRequestMessagesForSession -> BuildWakeupSequence -> ResolvePersonaSeedDescriptions` 被放在热路径上，导致同一轮心跳或外部回复中反复同步读取 active seed 指针与人格样本 JSON；首次心跳还会叠加三贤人并发冷加载，放大卡顿。
+  - **完成情况**:
+    1. 已在 `kernel/nerv/marduk` 中加入 persona seed 描述缓存，缓存粒度收敛到 `dataDir + subjectID`，稳态请求不再重复读取同一组 seed 文件。
+    2. 已通过 `fsnotify` 监听 `data/private` 目录，在 active seed 指针或样本文件变化时失效缓存，保持运行期刷新能力，不引入固定 TTL 的陈旧窗口。
+    3. 已对同一 key 的并发冷加载增加合并处理，避免首次心跳或首轮外部回复中多个贤者并发把同一份指针/样本各读一遍。
+    4. 现有唤醒序列、人格来源、主导者选举输入与 HTTP/WebSocket 外形保持不变；本次仅收口热路径读盘。
+  - **验证证据**:
+    - `go test ./nerv/marduk`
+    - `go test ./nerv/magi/prompts ./nerv/magi/sages`
+    - `go test ./nerv/magi/coordinator -run "TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory|TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing|TestCoordinateDominantDirectReply"`
+  - **成果文件**:
+    - `kernel/nerv/marduk/descriptions_cache.go`
+    - `kernel/nerv/marduk/descriptions_resolver.go`
+    - `kernel/nerv/marduk/descriptions_resolver_test.go`
+    - `docs/ttt/AI模块改进/MAGI_主导者机制与统合重构.ttt.md`
 
 - [x] **Phase 3A: 后端核心退场清理与测试夹具对表 (P1)** [已完成 2026-03-25]
   - **背景**: 主导者已接管睡眠统合、外部直答、Avatar 综合与 ATF 统合作答，但 `coordinator` 测试夹具、旧 `TrinityCoordinator`、以及 `config/sages/prompts/wakeup/stream/seraph` 中仍有 Trinity 独立实体残留，导致完成口径与代码现实不一致。
