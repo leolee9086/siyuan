@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ type mockVoteClient struct {
 	delay          time.Duration
 	lastTools      []openai.Tool
 	lastToolChoice any
+	lastMessages   []types.ContextMessage
 }
 
 func (m *mockVoteClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
@@ -40,6 +42,7 @@ func (m *mockVoteClient) SendChatRequestSync(ctx context.Context, messages []typ
 func (m *mockVoteClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
 	m.lastTools = append([]openai.Tool(nil), tools...)
 	m.lastToolChoice = toolChoice
+	m.lastMessages = append([]types.ContextMessage(nil), messages...)
 
 	if m.delay > 0 {
 		select {
@@ -108,7 +111,7 @@ func TestProcessVoting_BothApprove(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 
@@ -153,7 +156,7 @@ func TestProcessVoting_PartialApprove(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 
@@ -187,7 +190,7 @@ func TestProcessVoting_BothReject(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 
@@ -221,7 +224,7 @@ func TestProcessVoting_Timeout(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 
@@ -320,9 +323,13 @@ func TestBuildVoteUserInput(t *testing.T) {
 	voteCtx := VoteContext{
 		UserMessage:        "用户测试输入",
 		MelchiorConclusion: "Melchior测试判断",
+		ProposerDisplayName: "Melchior",
 	}
 
-	input := buildVoteUserInput("测试提案", voteCtx)
+	input, err := buildVoteUserInput("测试提案", voteCtx)
+	if err != nil {
+		t.Fatalf("buildVoteUserInput() 返回错误: %v", err)
+	}
 
 	if !contains(input, "用户测试输入") {
 		t.Error("用户输入应该包含用户消息")
@@ -332,6 +339,93 @@ func TestBuildVoteUserInput(t *testing.T) {
 	}
 	if !contains(input, "测试提案") {
 		t.Error("用户输入应该包含提案内容")
+	}
+}
+
+func TestBuildVoteUserInput_MissingFieldsReturnsError(t *testing.T) {
+	_, err := buildVoteUserInput("", VoteContext{})
+	if err == nil {
+		t.Fatal("期望缺字段时直接报错")
+	}
+}
+
+func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *testing.T) {
+	balthazarClient := &mockVoteClient{syncResult: buildVoteSyncResult(voteApprove, "可以执行")}
+	balthazar := createVoteMockSage("Balthazar", balthazarClient)
+
+	sessionID := "governed-action-session"
+	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+		Role:    types.RoleSystem,
+		Content: "你是 Balthazar。",
+	})
+	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+		Role:    types.RoleUser,
+		Content: "把这次进展记下来。",
+	})
+	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+		Role:    types.RoleAssistant,
+		Content: "我准备先整理一下。",
+	})
+
+	pendingToolCall := types.ToolCall{
+		ID:   "governed-tool-call-1",
+		Type: "function",
+		Function: types.ToolCallFunction{
+			Name:      config.WriteDiaryToolName,
+			Arguments: `{"motivation":"记录当前推进","markdown":"# 进展\n\n- 已完成接线","calloutType":"NOTE","title":"行动日志"}`,
+		},
+	}
+
+	decision, err := getRealVote(
+		context.Background(),
+		sessionID,
+		balthazar,
+		config.WriteDiaryToolName,
+		VoteContext{
+			ProposerConclusion:     "准备写入日记。",
+			GovernedActionToolCall: &pendingToolCall,
+		},
+	)
+	if err != nil {
+		t.Fatalf("getRealVote() 返回错误: %v", err)
+	}
+	if decision.Decision != voteApprove {
+		t.Fatalf("期望批准，实际=%s", decision.Decision)
+	}
+
+	if len(balthazarClient.lastMessages) < 5 {
+		t.Fatalf("期望投票请求携带完整历史和待审核 tool call，实际消息=%+v", balthazarClient.lastMessages)
+	}
+
+	foundOriginalSystem := false
+	foundOriginalUser := false
+	foundReviewPayload := false
+	for _, message := range balthazarClient.lastMessages {
+		if message.Role == types.RoleAssistant && len(message.ToolCalls) > 0 {
+			t.Fatalf("行动审核请求不应再发送未完成的 assistant tool_calls，实际=%+v", balthazarClient.lastMessages)
+		}
+		if message.Role == types.RoleSystem && message.Content == "你是 Balthazar。" {
+			foundOriginalSystem = true
+		}
+		if message.Role == types.RoleUser && message.Content == "把这次进展记下来。" {
+			foundOriginalUser = true
+		}
+		if message.Role == types.RoleUser &&
+			strings.Contains(message.Content, `"type":"pending_action_review"`) &&
+			strings.Contains(message.Content, `"name":"write_diary_entry"`) &&
+			strings.Contains(message.Content, `"motivation":"记录当前推进"`) &&
+			strings.Contains(message.Content, `"instruction":"请基于你自己当前 session 中已有的完整上下文审核这次行动请求。发起动机以 arguments.motivation 为准，不要自行补写或改写。"`) {
+			foundReviewPayload = true
+		}
+	}
+	if !foundOriginalSystem {
+		t.Fatalf("期望保留原始系统历史，实际=%+v", balthazarClient.lastMessages)
+	}
+	if !foundOriginalUser {
+		t.Fatalf("期望保留原始用户历史，实际=%+v", balthazarClient.lastMessages)
+	}
+	if !foundReviewPayload {
+		t.Fatalf("期望投票请求包含原始待审核行动请求 JSON，实际=%+v", balthazarClient.lastMessages)
 	}
 }
 
@@ -363,7 +457,7 @@ func TestProcessVoting_Failure(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 
@@ -397,7 +491,7 @@ func TestProcessVoting_ParseFailureRejects(t *testing.T) {
 		balthazar,
 		casper,
 		"测试提案",
-		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
 	)
 	if err != nil {

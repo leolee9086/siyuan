@@ -376,10 +376,14 @@ func BuildWriteDiaryToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WriteDiaryToolName,
-			Description: "仅当前轮主导者可见的行动型工具。调用后会触发另外两位贤者表决；若连续两次未获批准，将失去当前轮次主导权。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。",
+			Description: "用于往你的日记本里面记录笔记,当你需要主动记录重要事情的时候都应该使用它。调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
+					"motivation": map[string]interface{}{
+						"type":        "string",
+						"description": "为什么现在要执行这次行动，以及它与当前任务的关系。用于行动工具复核。",
+					},
 					"markdown": map[string]interface{}{
 						"type":        "string",
 						"description": "要写入 callout 容器内的 markdown 正文。支持标题、列表、代码块、表格等任意 markdown 子块。",
@@ -393,7 +397,7 @@ func BuildWriteDiaryToolDef() ToolDef {
 						"description": "可选的 Callout 标题。留空时使用该类型的默认标题。",
 					},
 				},
-				"required": []string{"markdown"},
+				"required": []string{"motivation", "markdown"},
 			},
 		},
 	}

@@ -581,7 +581,7 @@ func collectOpenAIToolNames(tools []openai.Tool) []string {
 }
 
 func buildDiaryToolTurn(markdown, calloutType, title string) mockTurn {
-	args := `{"markdown":"` + strings.ReplaceAll(strings.ReplaceAll(markdown, `\`, `\\`), `"`, `\"`) + `"`
+	args := `{"motivation":"记录当前任务推进","markdown":"` + strings.ReplaceAll(strings.ReplaceAll(markdown, `\`, `\\`), `"`, `\"`) + `"`
 	if strings.TrimSpace(calloutType) != "" {
 		args += `,"calloutType":"` + strings.ReplaceAll(calloutType, `"`, `\"`) + `"`
 	}
@@ -685,6 +685,56 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectedTwiceTriggersReelection(
 	}
 	if got := strings.TrimSpace(msg.Meta["dominantSeel"].(string)); got != "balthazar" {
 		t.Fatalf("expected dominantSeel=balthazar, got %s", got)
+	}
+
+	melchiorContext := melchior.GetContextForSession("session-diary-reelection")
+	foundGovernedRejection := false
+	for _, message := range melchiorContext {
+		if message.Role != types.RoleTool {
+			continue
+		}
+		content := strings.TrimSpace(message.Content)
+		if !strings.Contains(content, `"reviewSummary":"该行动已被专家团队否决。`) {
+			continue
+		}
+		foundGovernedRejection = true
+		if !strings.Contains(content, `"id":"R1"`) || !strings.Contains(content, `"id":"R2"`) {
+			t.Fatalf("expected numbered rejection reasons, got %s", content)
+		}
+		if strings.Contains(strings.ToLower(content), "balthazar") || strings.Contains(strings.ToLower(content), "casper") {
+			t.Fatalf("rejection history should not expose peer identities, got %s", content)
+		}
+	}
+	if !foundGovernedRejection {
+		t.Fatalf("expected governed rejection history in melchior context, got %+v", melchiorContext)
+	}
+
+	balthazarContext := balthazar.GetContextForSession("session-diary-reelection")
+	foundHandoffPrompt := false
+	for _, message := range balthazarContext {
+		if message.Role != types.RoleSystem {
+			continue
+		}
+		content := strings.TrimSpace(message.Content)
+		if !strings.Contains(content, "以下是失败历史") {
+			continue
+		}
+		foundHandoffPrompt = true
+		if !strings.Contains(content, "1. 工具=write_diary_entry") || !strings.Contains(content, "2. 工具=write_diary_entry") {
+			t.Fatalf("expected handoff prompt to include failed attempts, got %s", content)
+		}
+		if !strings.Contains(content, "R1 先不要写入") || !strings.Contains(content, "R2 暂不批准") {
+			t.Fatalf("expected handoff prompt to include first failure reasons, got %s", content)
+		}
+		if !strings.Contains(content, "R1 仍然不通过") || !strings.Contains(content, "R2 再次否决") {
+			t.Fatalf("expected handoff prompt to include second failure reasons, got %s", content)
+		}
+		if strings.Contains(strings.ToLower(content), "melchior") {
+			t.Fatalf("handoff prompt should not expose previous dominant, got %s", content)
+		}
+	}
+	if !foundHandoffPrompt {
+		t.Fatalf("expected reelected dominant to receive failure-history handoff, got %+v", balthazarContext)
 	}
 }
 

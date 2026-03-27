@@ -207,6 +207,7 @@ type WannaSleepTool struct {
 
 // WriteDiaryTool 主导者向 AI 主笔记本当日日记写入 callout 容器式条目的工具参数。
 type WriteDiaryTool struct {
+	Motivation string `json:"motivation"`
 	Markdown    string `json:"markdown"`
 	CalloutType string `json:"calloutType,omitempty"`
 	Title       string `json:"title,omitempty"`

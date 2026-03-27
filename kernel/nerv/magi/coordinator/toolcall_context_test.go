@@ -452,7 +452,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsDiaryEntryAndAnnotates
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.WriteDiaryToolName,
-				Arguments: `{"markdown":"# 今日记录\n\n- 完成日记工具接线","calloutType":"NOTE","title":"行动日志"}`,
+				Arguments: `{"motivation":"沉淀当前进展","markdown":"# 今日记录\n\n- 完成日记工具接线","calloutType":"NOTE","title":"行动日志"}`,
 			},
 		},
 	}
@@ -486,6 +486,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsDiaryEntryAndAnnotates
 	var payload struct {
 		OK          bool   `json:"ok"`
 		State       string `json:"state"`
+		Motivation  string `json:"motivation"`
 		CalloutType string `json:"calloutType"`
 		Title       string `json:"title"`
 		BlockID     string `json:"blockId"`
@@ -498,10 +499,16 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsDiaryEntryAndAnnotates
 	if !payload.OK || payload.State != "written" {
 		t.Fatalf("期望 diary 工具结果为 written，实际=%+v", payload)
 	}
+	if payload.Motivation != "沉淀当前进展" {
+		t.Fatalf("期望工具结果保留 motivation，实际=%+v", payload)
+	}
 	if payload.CalloutType != "NOTE" || payload.Title != "行动日志" {
 		t.Fatalf("期望工具结果保留 callout 信息，实际=%+v", payload)
 	}
 	if payload.BlockID != "diary-block-1" || payload.DocID != "daily-doc-1" {
 		t.Fatalf("期望工具结果保留落盘定位信息，实际=%+v", payload)
+	}
+	if strings.Contains(ctx[1].Content, `"vote"`) || strings.Contains(ctx[1].Content, `"approvalRound"`) {
+		t.Fatalf("成功写入的历史中不应暴露投票细节，实际=%s", ctx[1].Content)
 	}
 }

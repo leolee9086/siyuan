@@ -265,7 +265,7 @@ type governedActionToolControl struct {
 
 func parseGovernedActionToolControl(toolName string, toolResult string) governedActionToolControl {
 	toolName = strings.TrimSpace(toolName)
-	if toolName != config.WriteDiaryToolName {
+	if !isGovernedActionToolName(toolName) {
 		return governedActionToolControl{}
 	}
 

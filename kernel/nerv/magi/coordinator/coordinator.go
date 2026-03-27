@@ -183,48 +183,6 @@ func (c *Coordinator) checkDeliberationRequired(responses []types.SageResponse) 
 	return false
 }
 
-// executeVoting 执行投票流程
-func (c *Coordinator) executeVoting(
-	ctx context.Context,
-	sessionId, roundId string,
-	melchior, balthazar, casper *sages.Sage,
-	responses []types.SageResponse,
-	userMessage string,
-) (*VoteResult, error) {
-	// 提取Melchior的结论和审慎决策信息
-	var melchiorConclusion string
-	var proposedAction string
-	var deliberationInitiator string
-	var deliberationReason string
-	for _, resp := range responses {
-		if resp.Seel == "melchior" {
-			melchiorConclusion = resp.Content
-			if resp.RequiresDeliberation {
-				deliberationInitiator = resp.Seel
-				deliberationReason = resp.DeliberationReason
-				proposedAction = resp.ProposedAction
-				logging.LogInfof("executeVoting: 检测到审慎决策 - 发起者=%s, 原因=%s, 提案=%s",
-					deliberationInitiator, deliberationReason, proposedAction)
-			}
-			break
-		}
-	}
-
-	// 如果 Melchior 没有提供提案，直接报错
-	if proposedAction == "" {
-		return nil, fmt.Errorf("Melchior 发起审慎决策但未提供行动提案（proposed_action 字段为空）")
-	}
-
-	// 构建投票上下文
-	voteCtx := VoteContext{
-		UserMessage:        userMessage,
-		MelchiorConclusion: melchiorConclusion,
-	}
-
-	// 执行投票
-	return ProcessVoting(ctx, sessionId, roundId, balthazar, casper, proposedAction, voteCtx, deliberationInitiator, deliberationReason)
-}
-
 // buildRejectionMessage 构建否决消息
 func (c *Coordinator) buildRejectionMessage() *types.Message {
 	return &types.Message{

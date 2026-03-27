@@ -73,7 +73,7 @@ func BuildDominantSleepSynthesisInput(
 	nextStepPlan string,
 	dreamScene string,
 ) string {
-	return fmt.Sprintf(`以下是三则睡前笔记：
+	return fmt.Sprintf(`这是你自己刚刚的一些胡思乱想：
 
 [ %s ]
 %s

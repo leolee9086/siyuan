@@ -49,6 +49,9 @@ func (e *diaryToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (resu
 		"state":       "pending_write",
 		"calloutType": normalizeDiaryCalloutType(args.CalloutType),
 	}
+	if motivation := normalizeGovernedActionMotivation(args.Motivation); motivation != "" {
+		payload["motivation"] = motivation
+	}
 	if title := normalizeDiaryTitle(args.Title); title != "" {
 		payload["title"] = title
 	}
@@ -70,10 +73,14 @@ func parseWriteDiaryToolArgs(rawArgs string) (*types.WriteDiaryTool, error) {
 		return nil, fmt.Errorf("%s 参数解析失败: %w", config.WriteDiaryToolName, err)
 	}
 
+	args.Motivation = normalizeGovernedActionMotivation(args.Motivation)
 	args.Markdown = normalizeDiaryMarkdown(args.Markdown)
 	args.CalloutType = normalizeDiaryCalloutType(args.CalloutType)
 	args.Title = normalizeDiaryTitle(args.Title)
 
+	if args.Motivation == "" {
+		return nil, fmt.Errorf("%s 的 motivation 不能为空", config.WriteDiaryToolName)
+	}
 	if strings.TrimSpace(args.Markdown) == "" {
 		return nil, fmt.Errorf("%s 的 markdown 不能为空", config.WriteDiaryToolName)
 	}
@@ -105,22 +112,18 @@ func materializeDiaryToolResultForContext(
 		payload["state"] = "pending_write"
 	}
 
-	if outcome, governed, voteErr := dominantActionToolGovernance.EvaluateDiaryEntryVote(
+	if outcome, governed, voteErr := dominantActionToolGovernance.EvaluateActionVote(
 		ctx,
 		sessionID,
 		roundID,
 		sage,
 		assistantContent,
-		args,
+		toolCall,
 	); voteErr != nil {
 		return marshalDiaryToolFailure(voteErr)
 	} else if governed {
-		if outcome != nil && outcome.VoteResult != nil {
-			payload["vote"] = buildDiaryToolVotePayload(outcome.VoteResult)
-			payload["approvalRound"] = outcome.ApprovalRound
-		}
 		if outcome != nil && outcome.Rejected {
-			return marshalDiaryToolGovernedRejection(args, payload, outcome)
+			return marshalGovernedActionToolRejection(toolCall.Function.Name, payload, outcome)
 		}
 	}
 
@@ -132,6 +135,7 @@ func materializeDiaryToolResultForContext(
 	payload["ok"] = true
 	payload["state"] = "written"
 	payload["calloutType"] = args.CalloutType
+	payload["motivation"] = args.Motivation
 	if args.Title != "" {
 		payload["title"] = args.Title
 	}
@@ -153,22 +157,8 @@ func materializeDiaryToolResultForContext(
 	}
 	return string(resultBytes)
 }
-
-func buildDiaryToolVotePayload(voteResult *VoteResult) map[string]interface{} {
-	if voteResult == nil {
-		return nil
-	}
-	return map[string]interface{}{
-		"melchior":  voteResult.Melchior,
-		"balthazar": voteResult.Balthazar,
-		"casper":    voteResult.Casper,
-		"passed":    voteResult.Passed,
-		"round":     voteResult.Round,
-	}
-}
-
-func marshalDiaryToolGovernedRejection(
-	args *types.WriteDiaryTool,
+func marshalGovernedActionToolRejection(
+	toolName string,
 	payload map[string]interface{},
 	outcome *governedActionVoteOutcome,
 ) string {
@@ -176,14 +166,15 @@ func marshalDiaryToolGovernedRejection(
 		payload = map[string]interface{}{}
 	}
 	payload["ok"] = false
-	payload["calloutType"] = normalizeDiaryCalloutType(args.CalloutType)
-	if title := normalizeDiaryTitle(args.Title); title != "" {
-		payload["title"] = title
+	payload["toolName"] = strings.TrimSpace(toolName)
+	payload["reviewSummary"] = "该行动已被专家团队否决。"
+	if outcome != nil && len(outcome.RejectionReasons) > 0 {
+		payload["rejectionReasons"] = outcome.RejectionReasons
 	}
 	if outcome != nil && outcome.LostDominance {
 		payload["state"] = "dominance_revoked"
 		payload["remainingAttempts"] = 0
-		payload["instruction"] = "连续两次未获批准，当前轮次将重新选举主导者。"
+		payload["instruction"] = "连续两次未获批准，当前轮次将改由其他处理路径继续。"
 	} else {
 		payload["state"] = "rejected"
 		payload["remainingAttempts"] = 1

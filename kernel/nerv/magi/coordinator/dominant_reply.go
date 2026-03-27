@@ -92,7 +92,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 				dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
 				appendDominanceRevokedHandoff(
 					sessionID,
-					buildDominanceRevokedHandoffPrompt(dominantSage.GetName(), config.WriteDiaryToolName),
+					buildDominanceRevokedHandoffPrompt(config.WriteDiaryToolName, dominantSage.GetContextForSession(sessionID)),
 					melchior,
 					balthazar,
 					casper,

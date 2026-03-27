@@ -314,7 +314,7 @@ func TestBuildWriteDiaryToolDef_Structure(t *testing.T) {
 	if !ok {
 		t.Fatal("Parameters 缺少 properties")
 	}
-	for _, field := range []string{"markdown", "calloutType", "title"} {
+	for _, field := range []string{"motivation", "markdown", "calloutType", "title"} {
 		if _, ok := params[field]; !ok {
 			t.Fatalf("Parameters 缺少 %s", field)
 		}
@@ -324,8 +324,8 @@ func TestBuildWriteDiaryToolDef_Structure(t *testing.T) {
 	if !ok {
 		t.Fatal("Parameters 缺少 required")
 	}
-	if len(required) != 1 || required[0] != "markdown" {
-		t.Fatalf("期望 required=[markdown]，实际=%v", required)
+	if len(required) != 2 || required[0] != "motivation" || required[1] != "markdown" {
+		t.Fatalf("期望 required=[motivation markdown]，实际=%v", required)
 	}
 }
 
