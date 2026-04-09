@@ -198,6 +198,103 @@
   min-height: 0;
 }
 
+.magi-monitor-vote-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 2px;
+  border-top: 1px solid rgba(49, 215, 255, 0.12);
+  border-bottom: 1px solid rgba(49, 215, 255, 0.12);
+}
+
+.magi-monitor-vote-status {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid currentColor;
+  font-family: "MS Gothic", monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.16em;
+  color: #dffcff;
+}
+
+.magi-monitor-vote-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.magi-monitor-vote-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.magi-monitor-vote-item--full {
+  grid-column: 1 / -1;
+}
+
+.magi-monitor-vote-value {
+  min-width: 0;
+  color: rgba(214, 251, 255, 0.96);
+  font-family: "MS Gothic", monospace;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.magi-monitor-vote-value--wrap {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.magi-monitor-vote-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.magi-monitor-vote-reason {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+  align-items: start;
+  padding-top: 6px;
+  border-top: 1px solid rgba(49, 215, 255, 0.12);
+}
+
+.magi-monitor-vote-reason-name,
+.magi-monitor-vote-reason-decision,
+.magi-monitor-vote-reason-text {
+  font-family: "MS Gothic", monospace;
+}
+
+.magi-monitor-vote-reason-name {
+  color: rgba(214, 251, 255, 0.9);
+  font-size: 0.72rem;
+}
+
+.magi-monitor-vote-reason-decision {
+  font-size: 0.72rem;
+}
+
+.magi-monitor-vote-reason.approved .magi-monitor-vote-reason-decision {
+  color: #25ff69;
+}
+
+.magi-monitor-vote-reason.rejected .magi-monitor-vote-reason-decision {
+  color: #ff7c92;
+}
+
+.magi-monitor-vote-reason-text {
+  min-width: 0;
+  color: rgba(157, 239, 242, 0.86);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 .magi-monitor-section-meta {
   color: rgba(157, 239, 242, 0.58);
   font-size: 0.66rem;
@@ -366,7 +463,12 @@
   }
 
   .magi-monitor-summary,
-  .magi-monitor-runtime-grid {
+  .magi-monitor-runtime-grid,
+  .magi-monitor-vote-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .magi-monitor-vote-reason {
     grid-template-columns: 1fr;
   }
 

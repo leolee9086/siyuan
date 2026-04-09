@@ -151,7 +151,11 @@ func PushSeelReplyFailed(sessionId, roundId, seelName, displayName, errorMsg str
 }
 
 // PushVotingStart 推送投票开始事件
-func PushVotingStart(sessionId, roundId, proposedAction string, round int) error {
+func PushVotingStart(
+	sessionId, roundId, proposedAction string,
+	round int,
+	deliberationInitiator, displayName, deliberationReason string,
+) error {
 	eventId, seq := generateEventID()
 	data := map[string]interface{}{
 		"eventId":        eventId,
@@ -162,11 +166,26 @@ func PushVotingStart(sessionId, roundId, proposedAction string, round int) error
 		"proposedAction": proposedAction,
 		"round":          round,
 	}
+	if deliberationInitiator != "" {
+		data["deliberationInitiator"] = deliberationInitiator
+	}
+	if displayName != "" {
+		data["displayName"] = displayName
+	}
+	if deliberationReason != "" {
+		data["deliberationReason"] = deliberationReason
+	}
 	return globalPusher.Push(sessionId, EventSeelVoteUpdated, data)
 }
 
 // PushVotingProgress 推送单个贤者投票完成事件
-func PushVotingProgress(sessionId, roundId, seelName, displayName string, decision types.VoteDecision, progress int) error {
+func PushVotingProgress(
+	sessionId, roundId, seelName, displayName string,
+	decision types.VoteDecision,
+	decisionReason string,
+	progress int,
+	round int,
+) error {
 	eventId, seq := generateEventID()
 	data := map[string]interface{}{
 		"eventId":     eventId,
@@ -177,6 +196,10 @@ func PushVotingProgress(sessionId, roundId, seelName, displayName string, decisi
 		"displayName": displayName,
 		"decision":    string(decision),
 		"progress":    progress,
+		"round":       round,
+	}
+	if decisionReason != "" {
+		data["decisionReason"] = decisionReason
 	}
 	return globalPusher.Push(sessionId, EventSeelVoteUpdated, data)
 }
@@ -185,10 +208,18 @@ func PushVotingProgress(sessionId, roundId, seelName, displayName string, decisi
 type VoteDetail struct {
 	Name     string `json:"name"`
 	Decision string `json:"decision"`
+	Reason   string `json:"reason,omitempty"`
 }
 
 // PushVotingResult 推送投票结果汇总事件
-func PushVotingResult(sessionId, roundId string, details []VoteDetail, deliberationInitiator, deliberationReason string) error {
+func PushVotingResult(
+	sessionId, roundId string,
+	details []VoteDetail,
+	passed bool,
+	proposedAction string,
+	round int,
+	deliberationInitiator, deliberationReason string,
+) error {
 	eventId, seq := generateEventID()
 	data := map[string]interface{}{
 		"eventId":   eventId,
@@ -197,6 +228,11 @@ func PushVotingResult(sessionId, roundId string, details []VoteDetail, deliberat
 		"timestamp": time.Now().UnixMilli(),
 		"progress":  100,
 		"details":   details,
+		"passed":    passed,
+		"round":     round,
+	}
+	if proposedAction != "" {
+		data["proposedAction"] = proposedAction
 	}
 	if deliberationInitiator != "" {
 		data["deliberationInitiator"] = deliberationInitiator

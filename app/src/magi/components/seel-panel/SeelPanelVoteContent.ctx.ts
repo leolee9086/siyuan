@@ -5,8 +5,14 @@
  */
 
 import { computed } from "vue";
+import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
 import { getMagiI18nText } from "../../utils/magiI18n";
-import type { VoteMeta } from "./SeelPanel.types";
+import type {
+    SeelVoteBadgeState,
+    SeelVoteDetailState,
+    SeelVoteRoundState,
+    VoteMeta,
+} from "./SeelPanel.types";
 
 /** 格式化时间戳为 HH:MM:SS */
 export async function formatVoteTime(ts: number): Promise<string> {
@@ -23,6 +29,222 @@ function resolveVoteReason(meta: VoteMeta): string {
         return meta.reason.trim();
     }
     return "";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeSeelIdentity(value: unknown): string {
+    const raw = readNonEmptyString(value);
+    if (!raw) {
+        return "";
+    }
+    const normalized = raw.toUpperCase();
+    if (normalized.includes("MELCHIOR")) {
+        return "MELCHIOR";
+    }
+    if (normalized.includes("BALTHASAR") || normalized.includes("BALTHAZAR")) {
+        return "BALTHASAR";
+    }
+    if (normalized.includes("CASPER")) {
+        return "CASPER";
+    }
+    return normalized.replace(/[^A-Z0-9]/g, "");
+}
+
+function isRawVoteEventMessage(message: MagiSeelPanelMessageView): boolean {
+    const meta = isRecord(message.meta) ? message.meta : null;
+    return message.type === "event"
+        && meta?.type === "raw-event"
+        && meta?.eventType === "SEEL_VOTE_UPDATED";
+}
+
+function readVoteEventPayload(message: MagiSeelPanelMessageView): Record<string, unknown> {
+    const meta = isRecord(message.meta) ? message.meta : null;
+    const payload = meta ? Reflect.get(meta, "eventPayload") : undefined;
+    return isRecord(payload) ? payload : {};
+}
+
+function readVoteRoundId(message: MagiSeelPanelMessageView): string {
+    const meta = isRecord(message.meta) ? message.meta : null;
+    return readNonEmptyString(meta ? Reflect.get(meta, "roundId") : undefined) ?? "";
+}
+
+function readVoteEventToken(message: MagiSeelPanelMessageView): string {
+    const meta = isRecord(message.meta) ? message.meta : null;
+    const eventId = readNonEmptyString(meta ? Reflect.get(meta, "eventId") : undefined) ?? message.id;
+    const seq = meta ? Reflect.get(meta, "seq") : undefined;
+    return `${eventId}:${typeof seq === "number" ? seq : "?"}`;
+}
+
+function upsertVoteDetail(
+    details: Map<string, SeelVoteDetailState>,
+    name: string,
+    decision: string,
+    reason?: string,
+): void {
+    const normalizedName = normalizeSeelIdentity(name);
+    if (!normalizedName) {
+        return;
+    }
+    details.set(normalizedName, {
+        name,
+        normalizedName,
+        decision,
+        ...(reason ? { reason } : {}),
+    });
+}
+
+function applyVoteEventToState(
+    state: SeelVoteRoundState,
+    payload: Record<string, unknown>,
+): void {
+    const proposedAction = readNonEmptyString(Reflect.get(payload, "proposedAction"));
+    if (proposedAction) {
+        state.proposedAction = proposedAction;
+    }
+
+    const deliberationInitiator = readNonEmptyString(Reflect.get(payload, "deliberationInitiator"));
+    if (deliberationInitiator) {
+        state.deliberationInitiator = deliberationInitiator;
+    }
+
+    const deliberationReason = readNonEmptyString(Reflect.get(payload, "deliberationReason"));
+    if (deliberationReason) {
+        state.deliberationReason = deliberationReason;
+    }
+
+    const details = Reflect.get(payload, "details");
+    if (Array.isArray(details)) {
+        for (const item of details) {
+            const detail = isRecord(item) ? item : null;
+            const name = readNonEmptyString(detail ? Reflect.get(detail, "name") : undefined);
+            const decision = readNonEmptyString(detail ? Reflect.get(detail, "decision") : undefined);
+            const reason = readNonEmptyString(detail ? Reflect.get(detail, "reason") : undefined);
+            if (!name || !decision) {
+                continue;
+            }
+            upsertVoteDetail(state.details, name, decision, reason);
+        }
+    }
+
+    const seelName = readNonEmptyString(Reflect.get(payload, "seelName"))
+        ?? readNonEmptyString(Reflect.get(payload, "displayName"));
+    const decision = readNonEmptyString(Reflect.get(payload, "decision"));
+    const reason = readNonEmptyString(Reflect.get(payload, "decisionReason"))
+        ?? readNonEmptyString(Reflect.get(payload, "reason"));
+    if (seelName && decision) {
+        upsertVoteDetail(state.details, seelName, decision, reason);
+    }
+}
+
+function collectLatestVoteRoundState(
+    messages: readonly MagiSeelPanelMessageView[],
+): SeelVoteRoundState | null {
+    let latestVoteEvent: MagiSeelPanelMessageView | null = null;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message && isRawVoteEventMessage(message)) {
+            latestVoteEvent = message;
+            break;
+        }
+    }
+    if (!latestVoteEvent) {
+        return null;
+    }
+
+    const roundId = readVoteRoundId(latestVoteEvent);
+    if (!roundId) {
+        return null;
+    }
+
+    const state: SeelVoteRoundState = {
+        token: readVoteEventToken(latestVoteEvent),
+        roundId,
+        details: new Map<string, SeelVoteDetailState>(),
+    };
+
+    for (const message of messages) {
+        if (!message || !isRawVoteEventMessage(message) || readVoteRoundId(message) !== roundId) {
+            continue;
+        }
+        applyVoteEventToState(state, readVoteEventPayload(message));
+    }
+    return state;
+}
+
+function buildVoteBadgeTooltip(
+    state: SeelVoteRoundState,
+    detail?: SeelVoteDetailState,
+): string {
+    const lines = [
+        `轮次: ${state.roundId}`,
+        state.proposedAction ? `动议: ${state.proposedAction}` : "",
+        state.deliberationReason ? `理由: ${state.deliberationReason}` : "",
+        detail?.reason ? `票据理由: ${detail.reason}` : "",
+    ].filter((line): line is string => line.length > 0);
+    return lines.join("\n");
+}
+
+export function resolveSeelVoteBadgeState(
+    messages: readonly MagiSeelPanelMessageView[],
+    seelName: string,
+): SeelVoteBadgeState | null {
+    const state = collectLatestVoteRoundState(messages);
+    if (!state) {
+        return null;
+    }
+
+    const normalizedSeelName = normalizeSeelIdentity(seelName);
+    if (!normalizedSeelName) {
+        return null;
+    }
+
+    if (normalizeSeelIdentity(state.deliberationInitiator) === normalizedSeelName) {
+        return {
+            token: state.token,
+            roundId: state.roundId,
+            label: "动议",
+            tone: "motion",
+            tooltip: buildVoteBadgeTooltip(state),
+        };
+    }
+
+    const detail = state.details.get(normalizedSeelName);
+    if (!detail) {
+        return null;
+    }
+
+    if (detail.decision === "批准") {
+        return {
+            token: state.token,
+            roundId: state.roundId,
+            label: "肯定",
+            tone: "approve",
+            tooltip: buildVoteBadgeTooltip(state, detail),
+        };
+    }
+
+    if (detail.decision === "否决") {
+        return {
+            token: state.token,
+            roundId: state.roundId,
+            label: "否决",
+            tone: "reject",
+            tooltip: buildVoteBadgeTooltip(state, detail),
+        };
+    }
+
+    return null;
 }
 
 /** 初始化投票内容组件的响应式状态 */

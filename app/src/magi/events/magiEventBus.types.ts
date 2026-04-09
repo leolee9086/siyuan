@@ -74,6 +74,7 @@ export interface MagiSeelVoteUpdatedEvent extends MagiEventBase {
     progress?: number;
     details?: Array<{ name: string; decision: string; reason?: string }>;
     proposedAction?: string;
+    passed?: boolean;
     seelName?: string;
     displayName?: string;
     decision?: "批准" | "否决";

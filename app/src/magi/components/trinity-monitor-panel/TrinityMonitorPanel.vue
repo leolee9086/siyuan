@@ -42,6 +42,58 @@
         </div>
       </section>
 
+      <section v-if="latestVoteSummary" class="magi-monitor-vote-panel" :class="`tone-${latestVoteSummary.tone}`">
+        <div class="magi-monitor-section-header">
+          <span class="magi-monitor-section-label">LATEST VOTE</span>
+          <span class="magi-monitor-section-meta">
+            {{ latestVoteSummary.updatedAt }} | {{ latestVoteSummary.progress }}%
+          </span>
+        </div>
+
+        <div class="magi-monitor-vote-status" :class="`tone-${latestVoteSummary.tone}`">
+          {{ latestVoteSummary.statusLabel }}
+        </div>
+
+        <div class="magi-monitor-vote-grid">
+          <div class="magi-monitor-vote-item">
+            <span class="magi-monitor-fact-label">动议</span>
+            <span class="magi-monitor-vote-value" :title="latestVoteSummary.proposedAction || '-'">
+              {{ latestVoteSummary.proposedAction || "-" }}
+            </span>
+          </div>
+          <div class="magi-monitor-vote-item">
+            <span class="magi-monitor-fact-label">发起者</span>
+            <span class="magi-monitor-vote-value" :title="latestVoteSummary.deliberationInitiator || '-'">
+              {{ latestVoteSummary.deliberationInitiator || "-" }}
+            </span>
+          </div>
+          <div class="magi-monitor-vote-item magi-monitor-vote-item--full">
+            <span class="magi-monitor-fact-label">动机 / 理由</span>
+            <span class="magi-monitor-vote-value magi-monitor-vote-value--wrap" :title="latestVoteSummary.deliberationReason || '-'">
+              {{ latestVoteSummary.deliberationReason || "-" }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="latestVoteSummary.details.length > 0" class="magi-monitor-vote-reasons">
+          <div
+            v-for="detail in latestVoteSummary.details"
+            :key="detail.key"
+            class="magi-monitor-vote-reason"
+            :class="{
+              approved: detail.decision === '批准',
+              rejected: detail.decision === '否决',
+            }"
+          >
+            <span class="magi-monitor-vote-reason-name">{{ detail.name }}</span>
+            <span class="magi-monitor-vote-reason-decision">{{ detail.decision }}</span>
+            <span class="magi-monitor-vote-reason-text" :title="detail.reason || '-'">
+              {{ detail.reason || "未附理由" }}
+            </span>
+          </div>
+        </div>
+      </section>
+
       <section v-if="showMessages" class="magi-monitor-synthesis">
         <div class="magi-monitor-section-header">
           <span class="magi-monitor-section-label">LATEST SYNTHESIS</span>
@@ -101,6 +153,7 @@ import {
     buildMonitorFacts,
     buildMonitorStats,
     buildMonitorStream,
+    extractLatestVoteSummary,
     extractLatestMonitorSynthesis,
     formatConnectionStatus,
     formatMonitorTimestamp,
@@ -134,6 +187,9 @@ const runtimeFacts = computed(() =>
 );
 const latestSynthesis = computed(() =>
     extractLatestMonitorSynthesis(props.ai.messages),
+);
+const latestVoteSummary = computed(() =>
+    extractLatestVoteSummary(props.ai.messages),
 );
 const latestSynthesisTimestamp = computed<string>(() =>
     latestSynthesis.value ? formatMonitorTimestamp(latestSynthesis.value.timestamp) : "--:--:--",

@@ -101,7 +101,15 @@ func ProcessPeerVoting(
 	}
 
 	// 推送投票开始
-	if err := websocket.PushVotingStart(websocket.RuntimeMonitorSessionID, roundId, proposedAction, round); err != nil {
+	if err := websocket.PushVotingStart(
+		websocket.RuntimeMonitorSessionID,
+		roundId,
+		proposedAction,
+		round,
+		initiatorSeelName,
+		initiatorDisplayName,
+		deliberationReason,
+	); err != nil {
 		logging.LogWarnf("推送投票开始失败: %v", err)
 	}
 
@@ -166,7 +174,9 @@ func ProcessPeerVoting(
 				peer.GetName(),
 				peer.GetDisplayName(),
 				types.VoteDecision(decision.Decision),
+				decision.Reason,
 				currentProgress,
+				round,
 			); err != nil {
 				logging.LogWarnf("推送%s投票进度失败: %v", peer.GetDisplayName(), err)
 			}
@@ -180,11 +190,20 @@ func ProcessPeerVoting(
 
 	// 推送投票结果
 	details := []websocket.VoteDetail{
-		{Name: "melchior", Decision: result.Melchior},
-		{Name: "balthazar", Decision: result.Balthazar},
-		{Name: "casper", Decision: result.Casper},
+		{Name: "Melchior", Decision: result.Melchior, Reason: strings.TrimSpace(result.MelchiorReason)},
+		{Name: "Balthazar", Decision: result.Balthazar, Reason: strings.TrimSpace(result.BalthazarReason)},
+		{Name: "Casper", Decision: result.Casper, Reason: strings.TrimSpace(result.CasperReason)},
 	}
-	if err := websocket.PushVotingResult(websocket.RuntimeMonitorSessionID, roundId, details, deliberationInitiator, deliberationReason); err != nil {
+	if err := websocket.PushVotingResult(
+		websocket.RuntimeMonitorSessionID,
+		roundId,
+		details,
+		result.Passed,
+		proposedAction,
+		round,
+		deliberationInitiator,
+		deliberationReason,
+	); err != nil {
 		logging.LogWarnf("推送投票结果失败: %v", err)
 	}
 

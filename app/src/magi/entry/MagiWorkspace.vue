@@ -48,6 +48,8 @@
                 :is-dominant="node.key === dominantNodeKey"
                 :show-frame="true"
                 :frame-color="resolveNodeFrameColor(node.key)"
+                :dismissed-vote-badge-token="dismissedSageVoteBadgeToken"
+                @dismiss-vote-badges="dismissSageVoteBadges"
               />
               <MagiMonitorPanel
                 v-else
@@ -353,9 +355,14 @@ const magiMainModes: Array<{ id: MagiMainMode; label: string }> = [
 ];
 
 const activeMainMode = ref<MagiMainMode>("chat");
+const dismissedSageVoteBadgeToken = ref("");
 
 function setMainMode(mode: MagiMainMode): void {
     activeMainMode.value = mode;
+}
+
+function dismissSageVoteBadges(token: string): void {
+    dismissedSageVoteBadgeToken.value = token;
 }
 
 function handleIdentityRequiredEvent(): void {

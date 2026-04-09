@@ -6,16 +6,7 @@
   overflow: hidden;
   color: #9deff2;
   --seel-frame-cut: 5%;
-}
-
-.seel-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(43, 194, 114, 0.34), rgba(11, 80, 49, 0.62));
-  clip-path: polygon(
+  --seel-panel-shape: polygon(
     var(--seel-frame-cut) 0%,
     calc(100% - var(--seel-frame-cut)) 0%,
     100% var(--seel-frame-cut),
@@ -25,6 +16,16 @@
     0% calc(100% - var(--seel-frame-cut)),
     0% var(--seel-frame-cut)
   );
+}
+
+.seel-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(43, 194, 114, 0.34), rgba(11, 80, 49, 0.62));
+  clip-path: var(--seel-panel-shape);
   opacity: 0;
   transition: opacity 0.24s ease;
 }
@@ -182,6 +183,134 @@
   padding: 4px 10px 8px;
   display: flex;
   overflow: hidden;
+}
+
+.seel-vote-badge {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  clip-path: var(--seel-panel-shape);
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.08), transparent 46%),
+    linear-gradient(180deg, rgba(33, 124, 72, 0.92), rgba(12, 52, 32, 0.9));
+  box-shadow:
+    inset 0 0 42px rgba(0, 0, 0, 0.18),
+    0 0 22px rgba(17, 255, 136, 0.18);
+}
+
+.seel-vote-badge.tone-motion {
+  background: linear-gradient(180deg, rgba(77, 168, 94, 0.9), rgba(16, 72, 42, 0.84));
+  box-shadow:
+    inset 0 0 28px rgba(255, 201, 107, 0.14),
+    inset 0 0 48px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 138, 31, 0.2);
+}
+
+.seel-vote-badge.tone-approve {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(198, 255, 214, 0.16), transparent 46%),
+    linear-gradient(180deg, rgba(44, 173, 96, 0.94), rgba(10, 68, 36, 0.88));
+  box-shadow:
+    inset 0 0 36px rgba(198, 255, 214, 0.12),
+    inset 0 0 48px rgba(0, 0, 0, 0.18),
+    0 0 20px rgba(71, 255, 173, 0.18);
+}
+
+.seel-vote-badge.tone-reject {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 196, 196, 0.14), transparent 44%),
+    linear-gradient(180deg, rgba(181, 36, 36, 0.92), rgba(92, 9, 9, 0.88));
+  box-shadow:
+    inset 0 0 30px rgba(255, 180, 180, 0.1),
+    inset 0 0 48px rgba(0, 0, 0, 0.18),
+    0 0 20px rgba(255, 106, 106, 0.18);
+}
+
+.seel-vote-badge-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.seel-vote-badge-stroke {
+  fill: none;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.seel-vote-badge-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 2.4vw, 18px);
+}
+
+.seel-vote-badge.tone-motion .seel-vote-badge-stroke {
+  stroke: #ff8a1f;
+  filter: drop-shadow(0 0 10px rgba(255, 138, 31, 0.26));
+}
+
+.seel-vote-badge.tone-approve .seel-vote-badge-stroke {
+  stroke: rgba(71, 255, 173, 0.96);
+  filter: drop-shadow(0 0 10px rgba(71, 255, 173, 0.24));
+}
+
+.seel-vote-badge.tone-reject .seel-vote-badge-stroke {
+  stroke: rgba(255, 106, 106, 0.96);
+  filter: drop-shadow(0 0 10px rgba(255, 106, 106, 0.24));
+}
+
+.seel-vote-badge-text {
+  font-family: "MS Gothic", monospace;
+  font-size: clamp(2.5rem, 6vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 0.96;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  user-select: none;
+}
+
+.seel-vote-badge.tone-motion .seel-vote-badge-text {
+  color: #c8ff9a;
+  text-shadow:
+    0 0 14px rgba(88, 158, 55, 0.38),
+    0 0 3px rgba(247, 255, 224, 0.22);
+}
+
+.seel-vote-badge.tone-approve .seel-vote-badge-text {
+  color: #b9ffd7;
+  text-shadow:
+    0 0 14px rgba(0, 107, 46, 0.42),
+    0 0 3px rgba(240, 255, 246, 0.2);
+}
+
+.seel-vote-badge.tone-reject .seel-vote-badge-text {
+  color: #ffc0c0;
+  text-shadow:
+    0 0 14px rgba(109, 0, 0, 0.42),
+    0 0 3px rgba(255, 236, 236, 0.18);
+}
+
+.seel-panel-vote-active .header-overlay,
+.seel-panel-vote-active .panel-content {
+  opacity: 0.22;
+  transition: opacity 0.16s ease;
+}
+
+.header-overlay,
+.panel-content {
+  transition: opacity 0.16s ease;
 }
 
 .seel-message-container {

@@ -438,6 +438,8 @@ function projectVoteProgress(
             roundId: event.roundId,
             progress: event.progress,
             details: event.details ?? [],
+            ...(typeof event.passed === "boolean" ? { passed: event.passed } : {}),
+            ...(typeof event.round === "number" ? { round: event.round } : {}),
             ...(event.proposedAction ? { proposedAction: event.proposedAction } : {}),
             ...(deliberationInitiator ? { deliberationInitiator } : {}),
             ...(deliberationReason ? { deliberationReason } : {}),
@@ -512,10 +514,8 @@ function projectVoteUpdated(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    projectRawEventToSeelCards(state, "SEEL_VOTE_UPDATED", event, [
-        { seelName: event.seelName, displayName: event.displayName },
-        { seelName: event.deliberationInitiator, displayName: event.deliberationInitiator },
-    ]);
+    // 投票状态属于全局决策过程，广播到全部贤者卡片，便于统一更新卡面状态。
+    projectRawEventToSeelCards(state, "SEEL_VOTE_UPDATED", event, []);
     projectVoteProgress(state, event);
     projectVoteDecision(state, event);
     projectVoteError(state, event);

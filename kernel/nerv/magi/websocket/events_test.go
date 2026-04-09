@@ -83,14 +83,14 @@ func TestPushSeelReplyFailed(t *testing.T) {
 }
 
 func TestPushVotingStart(t *testing.T) {
-	err := PushVotingStart("test-session", "round-1", "提议的行动方案", 1)
+	err := PushVotingStart("test-session", "round-1", "提议的行动方案", 1, "melchior", "Melchior", "需要进一步复核风险")
 	if err != nil {
 		t.Errorf("PushVotingStart() error = %v", err)
 	}
 }
 
 func TestPushVotingProgress(t *testing.T) {
-	err := PushVotingProgress("test-session", "round-1", "balthazar", "Balthazar", types.VoteApprove, 50)
+	err := PushVotingProgress("test-session", "round-1", "balthazar", "Balthazar", types.VoteApprove, "证据充分", 50, 1)
 	if err != nil {
 		t.Errorf("PushVotingProgress() error = %v", err)
 	}
@@ -98,10 +98,10 @@ func TestPushVotingProgress(t *testing.T) {
 
 func TestPushVotingResult(t *testing.T) {
 	details := []VoteDetail{
-		{Name: "Balthazar", Decision: "批准"},
-		{Name: "Casper", Decision: "批准"},
+		{Name: "Balthazar", Decision: "批准", Reason: "执行风险可控"},
+		{Name: "Casper", Decision: "批准", Reason: "直觉上可行"},
 	}
-	err := PushVotingResult("test-session", "round-1", details, "", "")
+	err := PushVotingResult("test-session", "round-1", details, true, "写入工作日志", 1, "melchior", "需要留痕")
 	if err != nil {
 		t.Errorf("PushVotingResult() error = %v", err)
 	}

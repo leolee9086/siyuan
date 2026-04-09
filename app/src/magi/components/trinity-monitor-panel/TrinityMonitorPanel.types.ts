@@ -33,5 +33,26 @@ export interface MagiMonitorStreamItem {
     payloadText: string;
 }
 
+export interface MagiMonitorVoteDetail {
+    key: string;
+    name: string;
+    decision: string;
+    reason: string;
+}
+
+export interface MagiMonitorVoteSummary {
+    token: string;
+    roundId: string;
+    round?: number;
+    progress: number;
+    tone: MagiMonitorTone;
+    statusLabel: string;
+    proposedAction: string;
+    deliberationInitiator: string;
+    deliberationReason: string;
+    updatedAt: string;
+    details: MagiMonitorVoteDetail[];
+}
+
 export type MagiMonitorMessage = MagiSeelPanelMessageView;
 export type MagiMonitorConnectionStatus = ConnectionStatus;

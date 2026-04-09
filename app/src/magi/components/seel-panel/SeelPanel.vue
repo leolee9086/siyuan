@@ -2,7 +2,10 @@
   <div
     ref="panelContainer"
     class="seel-panel"
-    :class="{ 'seel-panel-event-active': isEventActive }"
+    :class="{
+      'seel-panel-event-active': isEventActive,
+      'seel-panel-vote-active': !!visibleVoteBadge,
+    }"
     :style="rootStyle"
   >
     <SeelPanelSvgFrame
@@ -18,6 +21,20 @@
       :status-class="statusClass"
       :status-text="statusText"
     />
+    <div
+      v-if="visibleVoteBadge"
+      class="seel-vote-badge"
+      :class="`tone-${visibleVoteBadge.tone}`"
+      :title="visibleVoteBadge.tooltip"
+      @click.stop="dismissVoteBadges"
+    >
+      <svg class="seel-vote-badge-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path class="seel-vote-badge-stroke" d="M5,0 H95 L100,5 V95 L95,100 H5 L0,95 V5 L5,0 Z" />
+      </svg>
+      <div class="seel-vote-badge-content">
+        <span class="seel-vote-badge-text">{{ visibleVoteBadge.label }}</span>
+      </div>
+    </div>
     <div class="panel-content">
       <transition name="panel-slide">
         <VirtualMasonryGrid
@@ -93,7 +110,9 @@
 <script setup lang="ts">
 import type { SeelPanelProps } from "./SeelPanel.types";
 import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
+import type { SeelVoteBadgeState } from "./SeelPanel.types";
 import { useSeelPanelCtx, setupResizeObserver, getColor } from "./SeelPanel.ctx";
+import { resolveSeelVoteBadgeState } from "./SeelPanelVoteContent.ctx";
 import SeelPanelSvgFrame from "./SeelPanelSvgFrame.vue";
 import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
@@ -116,6 +135,10 @@ interface SeelLoadingListItem {
 
 type SeelVirtualListItem = SeelMessageListItem | SeelLoadingListItem;
 
+const emit = defineEmits<{
+    "dismiss-vote-badges": [token: string];
+}>();
+
 const props = defineProps({
     ai: {
         type: Object as PropType<SeelPanelProps["ai"]>,
@@ -134,6 +157,10 @@ const props = defineProps({
         default: true,
     },
     frameColor: {
+        type: String,
+        default: "",
+    },
+    dismissedVoteBadgeToken: {
         type: String,
         default: "",
     },
@@ -169,6 +196,16 @@ let eventPulseDeadline = 0;
 
 setupResizeObserver(panelContainer, containerHeight);
 const colorValue = computed<string>(() => props.frameColor || getColor(props.ai.config.color));
+const activeVoteBadge = computed<SeelVoteBadgeState | null>(() =>
+    resolveSeelVoteBadgeState(props.ai.messages, props.ai.config.name),
+);
+const visibleVoteBadge = computed<SeelVoteBadgeState | null>(() => {
+    const badge = activeVoteBadge.value;
+    if (!badge || badge.token === props.dismissedVoteBadgeToken) {
+        return null;
+    }
+    return badge;
+});
 
 /** 流式消息更新时滚动到底部 */
 async function handleCursorUpdate() {
@@ -245,6 +282,14 @@ function triggerEventPulse(): void {
         isEventActive.value = true;
     }
     scheduleEventPulseReset();
+}
+
+function dismissVoteBadges(): void {
+    const badge = activeVoteBadge.value;
+    if (!badge) {
+        return;
+    }
+    emit("dismiss-vote-badges", badge.token);
 }
 
 function resolveLatestActivityToken(messages: SeelPanelProps["ai"]["messages"]): string {

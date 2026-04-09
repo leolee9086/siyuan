@@ -71,6 +71,7 @@ export const magiEventDefines = {
         progress: z.number().int().nonnegative().max(100).optional(),
         details: z.array(voteDetailSchema).optional(),
         proposedAction: z.string().optional(),
+        passed: z.boolean().optional(),
         seelName: z.string().optional(),
         displayName: z.string().optional(),
         decision: z.enum(["批准", "否决"]).optional(),

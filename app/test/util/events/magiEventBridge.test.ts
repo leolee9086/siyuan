@@ -163,6 +163,73 @@ describe("MAGI Event Bridge - 事件投影", () => {
         stop();
     });
 
+    it("应把投票事件广播到全部贤者卡片并保留通过状态与理由", async () => {
+        const bus = await createMagiEventBus();
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const balthazar = createWrappedSeel("BALTHASAR-02", "BALTHASAR");
+        const casper = createWrappedSeel("CASPER-03", "CASPER");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, {
+            seels: [melchior, balthazar, casper],
+            consensusMessages,
+        });
+
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
+            roundId: "round-vote-1",
+            timestamp: Date.now(),
+            progress: 0,
+            round: 1,
+            proposedAction: "记录当前推进到工作日志",
+            deliberationInitiator: "MELCHIOR-01",
+            deliberationReason: "需要留下可追踪记录",
+        });
+
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
+            roundId: "round-vote-1",
+            timestamp: Date.now(),
+            seelName: "BALTHASAR-02",
+            displayName: "BALTHASAR",
+            decision: "批准",
+            decisionReason: "风险可控",
+            progress: 50,
+            round: 1,
+        });
+
+        emitTestEvent(bus, "SEEL_VOTE_UPDATED", {
+            roundId: "round-vote-1",
+            timestamp: Date.now(),
+            progress: 100,
+            passed: true,
+            round: 1,
+            proposedAction: "记录当前推进到工作日志",
+            deliberationInitiator: "MELCHIOR-01",
+            deliberationReason: "需要留下可追踪记录",
+            details: [
+                { name: "Melchior", decision: "批准", reason: "发起当前行动" },
+                { name: "Balthazar", decision: "批准", reason: "风险可控" },
+                { name: "Casper", decision: "否决", reason: "收益不够稳定" },
+            ],
+        });
+
+        for (const seel of [melchior, balthazar, casper]) {
+            const voteEvents = seel.messages.filter((message) => message.meta?.eventType === "SEEL_VOTE_UPDATED");
+            expect(voteEvents.length).toBe(3);
+        }
+
+        const voteStatusMessage = [...consensusMessages]
+            .reverse()
+            .find((message) => message.meta?.type === "vote-status" && message.meta?.passed === true);
+        expect(voteStatusMessage?.meta?.passed).toBe(true);
+        expect(voteStatusMessage?.meta?.proposedAction).toBe("记录当前推进到工作日志");
+        expect(voteStatusMessage?.meta?.details).toMatchObject([
+            { name: "Melchior", decision: "批准", reason: "发起当前行动" },
+            { name: "Balthazar", decision: "批准", reason: "风险可控" },
+            { name: "Casper", decision: "否决", reason: "收益不够稳定" },
+        ]);
+
+        stop();
+    });
+
     it("应兼容后端小写贤者名称并映射到前端编号卡片", async () => {
         const bus = await createMagiEventBus();
         const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");

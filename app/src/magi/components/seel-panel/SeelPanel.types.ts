@@ -27,6 +27,8 @@ export interface SeelPanelProps {
     showFrame?: boolean | undefined;
     /** 可选：覆盖边框颜色（CSS颜色值） */
     frameColor?: string | undefined;
+    /** 当前投票事件是否已在父级统一消隐 */
+    dismissedVoteBadgeToken?: string | undefined;
 }
 
 /**
@@ -46,4 +48,58 @@ export interface VoteMeta {
     deliberationInitiator?: string | undefined;
     /** 审慎决策理由 */
     deliberationReason?: string | undefined;
+}
+
+/**
+ * 贤者投票徽标色调
+ *
+ * 用途：描述卡片投票徽标的视觉状态。
+ * 使用场景：SeelPanel 根据最新投票事件决定显示动议/肯定/否决时使用。
+ * 关联类型：与 SeelVoteBadgeState 一起决定卡片投票覆盖层的样式。
+ */
+export type SeelVoteBadgeTone = "motion" | "approve" | "reject";
+
+/**
+ * 贤者投票徽标状态
+ *
+ * 用途：承载单张贤者卡片当前应显示的投票覆盖层信息。
+ * 使用场景：SeelPanel 在收到投票事件后渲染“动议 / 肯定 / 否决”字样，并支持按事件 token 进行点击消隐。
+ * 关联类型：由 resolveSeelVoteBadgeState 计算产出，tone 字段受 SeelVoteBadgeTone 约束。
+ */
+export interface SeelVoteBadgeState {
+    token: string;
+    roundId: string;
+    label: "动议" | "肯定" | "否决";
+    tone: SeelVoteBadgeTone;
+    tooltip: string;
+}
+
+/**
+ * 贤者投票明细状态
+ *
+ * 用途：表示当前投票轮次中某位贤者的决策及理由。
+ * 使用场景：SeelPanel 投票徽标解析过程按贤者归集最新投票明细。
+ * 关联类型：由 SeelVoteRoundState.details 持有，最终可映射为 SeelVoteBadgeState。
+ */
+export interface SeelVoteDetailState {
+    name: string;
+    normalizedName: string;
+    decision: string;
+    reason?: string;
+}
+
+/**
+ * 贤者投票轮次状态
+ *
+ * 用途：聚合某一轮投票事件中的发起者、动议和逐贤者投票结果。
+ * 使用场景：resolveSeelVoteBadgeState 会先汇总当前轮次，再为当前卡片裁剪出最终徽标。
+ * 关联类型：details 字段由 SeelVoteDetailState 构成，最终投影到 SeelVoteBadgeState。
+ */
+export interface SeelVoteRoundState {
+    token: string;
+    roundId: string;
+    proposedAction?: string;
+    deliberationInitiator?: string;
+    deliberationReason?: string;
+    details: Map<string, SeelVoteDetailState>;
 }
