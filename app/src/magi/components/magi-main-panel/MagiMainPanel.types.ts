@@ -122,18 +122,3 @@ export interface MagiMainPanelHeaderEmits {
     (e: "toggle-monitor"): void;
 }
 
-/**
- * 消息格式化选项
- */
-export interface FormatMessageOptions {
-    /** 是否为流式消息 */
-    isStream?: boolean;
-    /** 进度百分比 */
-    progress?: number;
-    /** 投票详情 */
-    voteDetails?: Array<{
-        name: string;
-        decision: string;
-        reason?: string;
-    }>;
-}

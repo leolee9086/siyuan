@@ -1,0 +1,236 @@
+Low Usage Types Report
+Generated At: 2026-04-11T11:01:44.344Z
+Usage Counts: 0, 1
+Strict Mode: false
+
+Stats:
+- Real TypeScript Files: 1509
+- Vue TS Blocks: 56
+- Vue Files Scanned: 56
+- Type Declarations Scanned: 824
+- Matched Types: 223
+
+Matches:
+- [0] interface StreamResponseConfig -> src/ai/session/session.types.ts:162:18 | exported=yes | refs=none
+- [0] interface ToolCallResult -> src/ai/session/toolCallExecutor.ts:7:18 | exported=yes | refs=none
+- [0] interface StreamRequestConfigWithAI -> src/ai/types.ts:130:18 | exported=yes | refs=none
+- [0] type AIProvider -> src/ai/types.ts:143:13 | exported=yes | refs=none
+- [0] interface IPagePosition -> src/asset/anno/anno.types.ts:221:18 | exported=yes | refs=none
+- [0] type AssetCardEmit -> src/asset/components/AssetCard.types.ts:19:13 | exported=yes | refs=none
+- [0] type check -> src/config/configSchemas/ai.schema.ts:75:6 | exported=no | refs=none
+- [0] type check -> src/config/configSchemas/uiLayout.schema.ts:236:6 | exported=no | refs=none
+- [0] interface MsgCallbackContext -> src/layout/dock/Files/msgCallbackHandlers.types.ts:14:18 | exported=yes | refs=none
+- [0] type LayoutContainer -> src/layout/layout-deserialization.types.ts:9:13 | exported=yes | refs=none
+- [0] type ChildLayout -> src/layout/layout-deserialization.types.ts:16:13 | exported=yes | refs=none
+- [0] interface IdZoomInResult -> src/layout/layout-deserialization.types.ts:25:18 | exported=yes | refs=none
+- [0] type ModelTypeChecker -> src/layout/layout-deserialization.types.ts:35:13 | exported=yes | refs=none
+- [0] type ModelHandler -> src/layout/layout-deserialization.types.ts:38:13 | exported=yes | refs=none
+- [0] type MagiMonitorMessage -> src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts:57:13 | exported=yes | refs=none
+- [0] type MagiMonitorConnectionStatus -> src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts:58:13 | exported=yes | refs=none
+- [0] interface SEELConfigurationMap -> src/magi/core/core.types.ts:53:18 | exported=yes | refs=none
+- [0] interface MAGISystemStatus -> src/magi/core/core.types.ts:125:18 | exported=yes | refs=none
+- [0] interface MAGISystemCallbacks -> src/magi/core/core.types.ts:141:18 | exported=yes | refs=none
+- [0] interface MockWISEInstance -> src/magi/core/core.types.ts:188:18 | exported=yes | refs=none
+- [0] interface FunctionCallOptions -> src/magi/core/core.types.ts:259:18 | exported=yes | refs=none
+- [0] interface FunctionCallResult -> src/magi/core/core.types.ts:271:18 | exported=yes | refs=none
+- [0] interface MelchiorInstance -> src/magi/core/core.types.ts:357:18 | exported=yes | refs=none
+- [0] interface BalthazarInstance -> src/magi/core/core.types.ts:363:18 | exported=yes | refs=none
+- [0] interface CasperInstance -> src/magi/core/core.types.ts:369:18 | exported=yes | refs=none
+- [0] interface NERVCallbacks -> src/magi/core/core.types.ts:375:18 | exported=yes | refs=none
+- [0] interface AI响应Chunk -> src/magi/core/wise/wise.types.ts:105:18 | exported=yes | refs=none
+- [0] interface StreamResponseHandlers -> src/magi/types/session.types.ts:16:18 | exported=yes | refs=none
+- [0] interface SageResponse -> src/magi/utils/messageFactory.types.ts:77:18 | exported=yes | refs=none
+- [0] interface ConsensusMessage -> src/magi/utils/messageFactory.types.ts:96:18 | exported=yes | refs=none
+- [0] type MessageType -> src/magi/utils/messageFormat.types.ts:16:13 | exported=yes | refs=none
+- [0] type StatusType -> src/magi/utils/messageFormat.types.ts:35:13 | exported=yes | refs=none
+- [0] type AlignmentType -> src/magi/utils/messageFormat.types.ts:50:13 | exported=yes | refs=none
+- [0] interface FileFilter -> src/platform/electron/electron.types.ts:20:18 | exported=yes | refs=none
+- [0] type TriggerMode -> src/registry/TriggerRegistry.types.ts:33:13 | exported=yes | refs=none
+- [0] type BrushState -> src/registry/TriggerRegistry.types.ts:252:13 | exported=yes | refs=none
+- [0] type 样式刷子参数 -> src/registry/TriggerRegistry.types.ts:293:13 | exported=yes | refs=none
+- [0] type TClickHandler -> src/search/utils/genSearch/SearchContext.types.ts:56:13 | exported=yes | refs=none
+- [0] interface ISmartToolboxPanelProps -> src/sforge/panel/SmartToolboxPanel.types.ts:26:18 | exported=yes | refs=none
+- [0] type ForgeI18nKeys -> src/types/forgeI18n.types.ts:129:13 | exported=yes | refs=none
+- [0] type ConfigManagerConfig -> src/util/lib/code/executor.types.ts:131:13 | exported=yes | refs=none
+- [0] type ModuleRedirectRule -> src/util/lib/code/executor.types.ts:134:13 | exported=yes | refs=none
+- [0] interface NetworkConfig -> src/util/lib/zodMethodDefinedClass/layer.ts:25:11 | exported=no | refs=none
+- [0] type TaskStatusType -> src/util/network/types.ts:186:13 | exported=yes | refs=none
+- [0] type TaskRuntimeInfo -> src/util/network/types.ts:189:13 | exported=yes | refs=none
+- [0] type ExecutionLog -> src/util/network/types.ts:192:13 | exported=yes | refs=none
+- [0] type CompileResult -> src/util/network/types.ts:195:13 | exported=yes | refs=none
+- [0] interface ICronjobAuthResponseMessage -> src/util/network/types.ts:216:18 | exported=yes | refs=none
+- [0] interface ParameterProcessor -> src/util/pathRouter/core/layerLike.types.ts:21:18 | exported=yes | refs=none
+- [0] type LayerLikeType -> src/util/pathRouter/core/layerLike.types.ts:72:13 | exported=yes | refs=none
+- [0] interface NetworkLayerLike -> src/util/pathRouter/core/layerLike.types.ts:80:18 | exported=yes | refs=none
+- [0] type RequestLike -> src/util/pathRouter/core/types.ts:292:13 | exported=yes | refs=none
+- [0] type ResponseLike -> src/util/pathRouter/core/types.ts:293:13 | exported=yes | refs=none
+- [0] type InferRequestLike -> src/util/pathRouter/core/types.ts:302:13 | exported=yes | refs=none
+- [0] type InferResponseLike -> src/util/pathRouter/core/types.ts:305:13 | exported=yes | refs=none
+- [0] type PrimitiveValue -> src/util/pathRouter/core/types.ts:314:13 | exported=yes | refs=none
+- [0] type ArrayValue -> src/util/pathRouter/core/types.ts:315:13 | exported=yes | refs=none
+- [0] type Value -> src/util/pathRouter/core/types.ts:316:13 | exported=yes | refs=none
+- [0] type HeaderValue -> src/util/pathRouter/core/types.ts:317:13 | exported=yes | refs=none
+- [0] type ResponseBodyTypes -> src/util/pathRouter/core/types.ts:319:13 | exported=yes | refs=none
+- [0] type ContextFunction -> src/util/pathRouter/core/types.ts:320:13 | exported=yes | refs=none
+- [0] type ResponseFunction -> src/util/pathRouter/core/types.ts:321:13 | exported=yes | refs=none
+- [0] interface IRouterStatic -> src/util/pathRouter/core/types.ts:353:18 | exported=yes | refs=none
+- [0] type ComponentName -> src/util/vue/wrapper/types.ts:8:13 | exported=yes | refs=none
+- [0] type ComponentProps -> src/util/vue/wrapper/types.ts:11:13 | exported=yes | refs=none
+- [0] type ComponentEmits -> src/util/vue/wrapper/types.ts:14:13 | exported=yes | refs=none
+- [0] type If -> src/util/vue/wrapper/types.ts:120:13 | exported=yes | refs=none
+- [0] type Extract -> src/util/vue/wrapper/types.ts:122:13 | exported=yes | refs=none
+- [0] type Exclude -> src/util/vue/wrapper/types.ts:124:13 | exported=yes | refs=none
+- [0] type MapProps -> src/util/vue/wrapper/types.ts:126:13 | exported=yes | refs=none
+- [0] type MapEmits -> src/util/vue/wrapper/types.ts:130:13 | exported=yes | refs=none
+- [0] type ValidateProps -> src/util/vue/wrapper/types.ts:134:13 | exported=yes | refs=none
+- [0] type ValidateEmits -> src/util/vue/wrapper/types.ts:136:13 | exported=yes | refs=none
+- [0] interface TestWrapperOptions -> src/util/vue/wrapper/types.ts:139:18 | exported=yes | refs=none
+- [0] interface TestWrapperResult -> src/util/vue/wrapper/types.ts:145:18 | exported=yes | refs=none
+- [1] interface RequestCompleteConfig -> src/ai/session/session.types.ts:175:18 | exported=yes | refs=src/ai/session/session.types.ts (1)
+- [1] interface RequestErrorConfig -> src/ai/session/session.types.ts:188:18 | exported=yes | refs=src/ai/session/session.types.ts (1)
+- [1] interface RequestAbortConfig -> src/ai/session/session.types.ts:202:18 | exported=yes | refs=src/ai/session/session.types.ts (1)
+- [1] type GenerationParams -> src/apis/modelscope/types.ts:123:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type TaskResponse -> src/apis/modelscope/types.ts:124:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type TaskStatusResponse -> src/apis/modelscope/types.ts:125:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type ApiError -> src/apis/modelscope/types.ts:126:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type SiyuanProxyData -> src/apis/modelscope/types.ts:127:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type SubmitGenerationTaskParams -> src/apis/modelscope/types.ts:128:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type GetTaskStatusParams -> src/apis/modelscope/types.ts:129:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type PollTaskParams -> src/apis/modelscope/types.ts:130:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] type FetchImageParams -> src/apis/modelscope/types.ts:131:13 | exported=yes | refs=src/apis/modelscope/index.ts (1)
+- [1] interface IEventContext -> src/asset/anno/click/guard.ts:5:18 | exported=yes | refs=src/asset/anno/click/guard.ts (1)
+- [1] interface IBazaarInstalledPackage -> src/bazaar-hub/types.ts:41:18 | exported=yes | refs=src/bazaar-hub/types.ts (1)
+- [1] interface IBazaarSecurityClientStats -> src/bazaar-hub/types.ts:107:18 | exported=yes | refs=src/bazaar-hub/types.ts (1)
+- [1] interface IBazaarPublishedItem -> src/bazaar-source/index.ts:3:11 | exported=no | refs=src/bazaar-source/index.ts (1)
+- [1] interface ImageStatsState -> src/components/composables/useImageProcessing.ts:15:11 | exported=no | refs=src/components/composables/useImageProcessing.ts (1)
+- [1] interface EnhancementOptions -> src/components/composables/useImageProcessing.ts:20:11 | exported=no | refs=src/components/composables/useImageProcessing.ts (1)
+- [1] interface AdaptiveOptions -> src/components/composables/useImageProcessing.ts:26:11 | exported=no | refs=src/components/composables/useImageProcessing.ts (1)
+- [1] interface EnhancementOptions -> src/components/composables/useProcessingParams.ts:9:11 | exported=no | refs=src/components/composables/useProcessingParams.ts (1)
+- [1] interface AdaptiveOptions -> src/components/composables/useProcessingParams.ts:16:11 | exported=no | refs=src/components/composables/useProcessingParams.ts (1)
+- [1] interface ProcessingParams -> src/components/composables/useProcessingParams.ts:23:11 | exported=no | refs=src/components/composables/useProcessingParams.ts (1)
+- [1] interface AtmosphericLight -> src/components/composables/useProcessingParams.ts:35:11 | exported=no | refs=src/components/composables/useProcessingParams.ts (1)
+- [1] type GridComponentProps -> src/components/masonry/components/VirtualMasonryDataProvider.types.ts:13:13 | exported=yes | refs=src/components/masonry/components/VirtualMasonryDataProvider.types.ts (1)
+- [1] type LayoutMode -> src/components/masonry/composables/layout-engines/index.ts:39:6 | exported=no | refs=src/components/masonry/composables/layout-engines/index.ts (1)
+- [1] interface LayoutColumn -> src/components/masonry/composables/useMasonryLayout.ts:29:18 | exported=yes | refs=src/components/masonry/composables/useMasonryLayout.ts (1)
+- [1] interface UseMasonryLayoutOptions -> src/components/masonry/composables/useMasonryLayout.ts:34:18 | exported=yes | refs=src/components/masonry/composables/useMasonryLayout.ts (1)
+- [1] interface UsePositionObserverOptions -> src/components/masonry/composables/usePositionObserver.ts:4:18 | exported=yes | refs=src/components/masonry/composables/usePositionObserver.ts (1)
+- [1] interface UseScrollObserverOptions -> src/components/masonry/composables/useScrollObserver.ts:4:18 | exported=yes | refs=src/components/masonry/composables/useScrollObserver.ts (1)
+- [1] interface UseSelectionBoxOptions -> src/components/masonry/composables/useSelectionBox.ts:21:18 | exported=yes | refs=src/components/masonry/composables/useSelectionBox.ts (1)
+- [1] interface UseSelectionObserverOptions -> src/components/masonry/composables/useSelectionObserver.ts:4:18 | exported=yes | refs=src/components/masonry/composables/useSelectionObserver.ts (1)
+- [1] interface SelectionState -> src/components/masonry/composables/useSelectionSystem.ts:7:18 | exported=yes | refs=src/components/masonry/composables/useSelectionSystem.ts (1)
+- [1] interface UseSelectionSystemOptions -> src/components/masonry/composables/useSelectionSystem.ts:23:18 | exported=yes | refs=src/components/masonry/composables/useSelectionSystem.ts (1)
+- [1] interface SelectionApi -> src/components/masonry/composables/useSelectionSystem.ts:30:18 | exported=yes | refs=src/components/masonry/composables/useSelectionSystem.ts (1)
+- [1] interface UseVirtualizationOptions -> src/components/masonry/composables/useVirtualization.ts:8:18 | exported=yes | refs=src/components/masonry/composables/useVirtualization.ts (1)
+- [1] interface UseVirtualScrollbarOptions -> src/components/masonry/composables/useVirtualScrollbar.ts:5:11 | exported=no | refs=src/components/masonry/composables/useVirtualScrollbar.ts (1)
+- [1] interface PositionedItem -> src/components/masonry/utils/binarySearch.ts:1:18 | exported=yes | refs=src/components/masonry/utils/binarySearch.ts (1)
+- [1] type CancelFn -> src/components/masonry/utils/createRafScheduler.ts:19:6 | exported=no | refs=src/components/masonry/utils/createRafScheduler.ts (1)
+- [1] interface SegmentTreeNode -> src/components/masonry/utils/createSegmentTree.ts:10:11 | exported=no | refs=src/components/masonry/utils/createSegmentTree.ts (1)
+- [1] type IsCompatible -> src/config/configSchemas/ai.schema.ts:70:6 | exported=no | refs=src/config/configSchemas/ai.schema.ts (1)
+- [1] type IsCompatible -> src/config/configSchemas/uiLayout.schema.ts:231:6 | exported=no | refs=src/config/configSchemas/uiLayout.schema.ts (1)
+- [1] type MimeTypes -> src/data/kernelAPI/mimeDb.ts:1:6 | exported=no | refs=src/data/kernelAPI/mimeDb.ts (1)
+- [1] type Palette -> src/data/kernelAPI/sforgeAssetMeta.types.ts:30:13 | exported=yes | refs=src/data/kernelAPI/sforgeAssetMeta.ts (1)
+- [1] type AssetMeta -> src/data/kernelAPI/sforgeAssetMeta.types.ts:67:13 | exported=yes | refs=src/data/kernelAPI/sforgeAssetMeta.ts (1)
+- [1] type BatchExtractResult -> src/data/kernelAPI/sforgeAssetMeta.types.ts:78:13 | exported=yes | refs=src/data/kernelAPI/sforgeAssetMeta.ts (1)
+- [1] type SetAssetMetaParams -> src/data/kernelAPI/sforgeAssetMeta.types.ts:97:13 | exported=yes | refs=src/data/kernelAPI/sforgeAssetMeta.ts (1)
+- [1] type SearchAssetMetaResponse -> src/data/kernelAPI/sforgeAssetMeta.types.ts:147:13 | exported=yes | refs=src/data/kernelAPI/sforgeAssetMeta.ts (1)
+- [1] interface LayoutConfig -> src/layout/dock/dock.layout.ts:9:11 | exported=no | refs=src/layout/dock/dock.layout.ts (1)
+- [1] interface IBlockQueryResult -> src/layout/dock/embeddingDock/embeddingDock.api.ts:233:18 | exported=yes | refs=src/layout/dock/embeddingDock/embeddingDock.api.ts (1)
+- [1] interface IForwardlinkTreeNode -> src/layout/dock/Forwardlink.types.ts:4:18 | exported=yes | refs=src/layout/dock/Forwardlink.types.ts (1)
+- [1] interface IForwardlinkStatusItem -> src/layout/dock/forwardlink/Forwardlink.types.ts:28:18 | exported=yes | refs=src/layout/dock/forwardlink/Forwardlink.types.ts (1)
+- [1] interface ILayoutWithDocks -> src/layout/getAll.guard.ts:14:18 | exported=yes | refs=src/layout/getAll.guard.ts (1)
+- [1] interface StandardLLMAdapterFactoryParams -> src/magi/adapters/standardLLMAdapterFactory.ts:12:18 | exported=yes | refs=src/magi/adapters/standardLLMAdapterFactory.ts (1)
+- [1] type MagiInputBarEmitFn -> src/magi/components/magi-main-panel/MagiInputBar.types.ts:38:13 | exported=yes | refs=src/magi/components/magi-main-panel/MagiInputBar.types.ts (1)
+- [1] interface SSEDelta -> src/magi/components/persona/SSETextDisplay.guard.ts:8:11 | exported=no | refs=src/magi/components/persona/SSETextDisplay.guard.ts (1)
+- [1] interface SSEChoice -> src/magi/components/persona/SSETextDisplay.guard.ts:13:11 | exported=no | refs=src/magi/components/persona/SSETextDisplay.guard.ts (1)
+- [1] type SeelVoteBadgeTone -> src/magi/components/seel-panel/SeelPanel.types.ts:60:13 | exported=yes | refs=src/magi/components/seel-panel/SeelPanel.types.ts (1)
+- [1] interface MagiSessionExportSageResponse -> src/magi/composables/useMagi.types.ts:44:18 | exported=yes | refs=src/magi/composables/useMagi.types.ts (1)
+- [1] interface MagiSessionExportVoteStatus -> src/magi/composables/useMagi.types.ts:53:18 | exported=yes | refs=src/magi/composables/useMagi.types.ts (1)
+- [1] type SourceTrustBase -> src/magi/composables/useMagi.types.ts:188:13 | exported=yes | refs=src/magi/composables/useMagi.types.ts (1)
+- [1] type SourceRiskLevel -> src/magi/composables/useMagi.types.ts:191:13 | exported=yes | refs=src/magi/composables/useMagi.types.ts (1)
+- [1] type SourceMessageChannel -> src/magi/composables/useMagi.types.ts:194:13 | exported=yes | refs=src/magi/composables/useMagi.types.ts (1)
+- [1] interface SEELInstance -> src/magi/core/core.types.ts:21:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface WISEApiPostParams -> src/magi/core/core.types.ts:67:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface SyncCheckResult -> src/magi/core/core.types.ts:118:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface VoteRecord -> src/magi/core/core.types.ts:133:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface FunctionCallParameterDef -> src/magi/core/core.types.ts:265:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface NERVSyncStatus -> src/magi/core/core.types.ts:314:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface NERVWorkflowResult -> src/magi/core/core.types.ts:322:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface ComplianceResult -> src/magi/core/core.types.ts:344:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface RiskMatrixItem -> src/magi/core/core.types.ts:351:18 | exported=yes | refs=src/magi/core/core.types.ts (1)
+- [1] interface 认知控制特征 -> src/magi/core/wise/promptTemplates/promptTemplate.types.ts:14:18 | exported=yes | refs=src/magi/core/wise/promptTemplates/promptTemplate.types.ts (1)
+- [1] interface 情感调节特征 -> src/magi/core/wise/promptTemplates/promptTemplate.types.ts:47:18 | exported=yes | refs=src/magi/core/wise/promptTemplates/promptTemplate.types.ts (1)
+- [1] interface TrinitySpeakPayload -> src/magi/core/wise/trinity.toolset.ts:13:18 | exported=yes | refs=src/magi/core/wise/trinity.toolset.ts (1)
+- [1] type PersonaConvergenceSuggestionSource -> src/magi/data/convergence/persona-seed-convergence.types.ts:12:13 | exported=yes | refs=src/magi/data/convergence/persona-seed-convergence.types.ts (1)
+- [1] interface PersonaConvergenceQuestionnairePayload -> src/magi/data/convergence/persona-seed-convergence.types.ts:50:18 | exported=yes | refs=src/magi/data/convergence/persona-seed-convergence.types.ts (1)
+- [1] interface PersonaConvergenceDescriptionPayload -> src/magi/data/convergence/persona-seed-convergence.types.ts:65:18 | exported=yes | refs=src/magi/data/convergence/persona-seed-convergence.types.ts (1)
+- [1] interface QuestionnaireSubQuestion -> src/magi/data/questionnaire.types.ts:8:18 | exported=yes | refs=src/magi/data/questionnaire.types.ts (1)
+- [1] interface SingleQuestion -> src/magi/data/questionnaire.types.ts:24:18 | exported=yes | refs=src/magi/data/questionnaire.types.ts (1)
+- [1] interface MultipleTextQuestion -> src/magi/data/questionnaire.types.ts:45:18 | exported=yes | refs=src/magi/data/questionnaire.types.ts (1)
+- [1] interface DecisionContext -> src/magi/data/questionnaire.types.ts:197:18 | exported=yes | refs=src/magi/data/questionnaire.types.ts (1)
+- [1] interface DecisionParameters -> src/magi/data/questionnaire.types.ts:206:18 | exported=yes | refs=src/magi/data/questionnaire.types.ts (1)
+- [1] interface KernelJsonReadResult -> src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts:35:11 | exported=no | refs=src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts (1)
+- [1] interface ParsedQuestionnaireDraft -> src/magi/entry/persona-seed-panel/PersonaSeedPanel.guard.ts:32:18 | exported=yes | refs=src/magi/entry/persona-seed-panel/PersonaSeedPanel.guard.ts (1)
+- [1] interface MagiEventEnvelope -> src/magi/events/magiWebSocketBridge.ts:24:11 | exported=no | refs=src/magi/events/magiWebSocketBridge.ts (1)
+- [1] interface ActiveSeedPointer -> src/magi/prompts/personaRuntimePromptBuilder.guard.ts:190:18 | exported=yes | refs=src/magi/prompts/personaRuntimePromptBuilder.guard.ts (1)
+- [1] interface MagiIdentitySessionState -> src/magi/service/magiIdentitySession.ts:35:11 | exported=no | refs=src/magi/service/magiIdentitySession.ts (1)
+- [1] type StreamProcessMode -> src/magi/types/streamProcessor.types.ts:14:13 | exported=yes | refs=src/magi/types/streamProcessor.types.ts (1)
+- [1] interface ChunkDelta -> src/magi/utils/streamProcessor.guard.ts:10:11 | exported=no | refs=src/magi/utils/streamProcessor.guard.ts (1)
+- [1] interface ToolbarActionDeps -> src/mobile/util/keyboardToolbar.action.ts:15:11 | exported=no | refs=src/mobile/util/keyboardToolbar.action.ts (1)
+- [1] interface IOpenTabDocOptions -> src/plugin/api/openTab.types.ts:20:18 | exported=yes | refs=src/plugin/api/openTab.types.ts (1)
+- [1] interface IOpenTabPdfOptions -> src/plugin/api/openTab.types.ts:34:18 | exported=yes | refs=src/plugin/api/openTab.types.ts (1)
+- [1] interface IOpenTabAssetOptions -> src/plugin/api/openTab.types.ts:48:18 | exported=yes | refs=src/plugin/api/openTab.types.ts (1)
+- [1] interface IOpenTabCardOptions -> src/plugin/api/openTab.types.ts:58:18 | exported=yes | refs=src/plugin/api/openTab.types.ts (1)
+- [1] interface IOpenTabCustomOptions -> src/plugin/api/openTab.types.ts:72:18 | exported=yes | refs=src/plugin/api/openTab.types.ts (1)
+- [1] interface IOpenWindowOptions -> src/plugin/api/openWindow.ts:5:18 | exported=yes | refs=src/plugin/api/openWindow.ts (1)
+- [1] interface IGutterChartMenuContext -> src/protyle/gutter/buildGutterChartMenu.ts:8:11 | exported=no | refs=src/protyle/gutter/buildGutterChartMenu.ts (1)
+- [1] interface IGutterHeadingMenuResult -> src/protyle/gutter/buildGutterHeadingMenu.ts:38:18 | exported=yes | refs=src/protyle/gutter/buildGutterHeadingMenu.ts (1)
+- [1] type TTurnIntoOne -> src/protyle/gutter/buildGutterListMenu.ts:5:6 | exported=no | refs=src/protyle/gutter/buildGutterListMenu.ts (1)
+- [1] type TTurnIntoOneSub -> src/protyle/gutter/buildGutterListMenu.ts:6:6 | exported=no | refs=src/protyle/gutter/buildGutterListMenu.ts (1)
+- [1] interface IGutterMultipleMenuContext -> src/protyle/gutter/buildGutterMultipleMenu.ts:14:18 | exported=yes | refs=src/protyle/gutter/buildGutterMultipleMenu.ts (1)
+- [1] interface ITypeSpecificMenuContext -> src/protyle/gutter/buildGutterTypeSpecificMenu.ts:19:11 | exported=no | refs=src/protyle/gutter/buildGutterTypeSpecificMenu.ts (1)
+- [1] type panelsItemType -> src/protyle/ui/hideElements.ts:18:6 | exported=no | refs=src/protyle/ui/hideElements.ts (1)
+- [1] type panelsType -> src/protyle/ui/hideElements.ts:25:6 | exported=no | refs=src/protyle/ui/hideElements.ts (1)
+- [1] interface FileWithPath -> src/protyle/upload/index.ts:24:11 | exported=no | refs=src/protyle/upload/index.ts (1)
+- [1] interface DragSelectContext -> src/protyle/wysiwyg/index.mousedown.dragSelect.ts:18:18 | exported=yes | refs=src/protyle/wysiwyg/index.mousedown.dragSelect.ts (1)
+- [1] interface TableCellMoveResult -> src/protyle/wysiwyg/index.mousedown.dragSelect.ts:97:11 | exported=no | refs=src/protyle/wysiwyg/index.mousedown.dragSelect.ts (1)
+- [1] interface BlockSelectResult -> src/protyle/wysiwyg/index.mousedown.dragSelect.ts:222:11 | exported=no | refs=src/protyle/wysiwyg/index.mousedown.dragSelect.ts (1)
+- [1] enum LogLevel -> src/protyle/wysiwyg/keydown.list/types.ts:13:13 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] interface CommandLogParams -> src/protyle/wysiwyg/keydown.list/types.ts:23:18 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] type CheckToggleState -> src/protyle/wysiwyg/keydown.list/types.ts:62:13 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] type OutdentState -> src/protyle/wysiwyg/keydown.list/types.ts:98:13 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] type IndentState -> src/protyle/wysiwyg/keydown.list/types.ts:137:13 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] type TransformState -> src/protyle/wysiwyg/keydown.list/types.ts:183:13 | exported=yes | refs=src/protyle/wysiwyg/keydown.list/index.ts (1)
+- [1] type 状态栏按钮位置 -> src/registry/StatusBarRegistry.ts:12:13 | exported=yes | refs=src/registry/StatusBarRegistry.ts (1)
+- [1] interface IBrushModeProperties -> src/registry/TriggerRegistry.types.ts:153:11 | exported=no | refs=src/registry/TriggerRegistry.types.ts (1)
+- [1] interface IImmediateModeProperties -> src/registry/TriggerRegistry.types.ts:175:11 | exported=no | refs=src/registry/TriggerRegistry.types.ts (1)
+- [1] interface IToggleModeProperties -> src/registry/TriggerRegistry.types.ts:185:11 | exported=no | refs=src/registry/TriggerRegistry.types.ts (1)
+- [1] interface HandleAssetSearchResponseParams -> src/search/assets.ts:17:11 | exported=no | refs=src/search/assets.ts (1)
+- [1] interface ISearchContext -> src/search/utils/genSearch/SearchContext.types.ts:12:18 | exported=yes | refs=src/search/utils/genSearch/SearchContext.types.ts (1)
+- [1] interface IClickHandlerResult -> src/search/utils/genSearch/SearchContext.types.ts:46:18 | exported=yes | refs=src/search/utils/genSearch/SearchContext.types.ts (1)
+- [1] interface EventMeta -> src/util/lib/events/eventEmitter.types.ts:42:18 | exported=yes | refs=src/util/lib/events/eventEmitter.types.ts (1)
+- [1] type StrictZodDeepRawSubset -> src/util/lib/zodMethodDefinedClass/deepRaw.ts:23:13 | exported=yes | refs=src/util/lib/zodMethodDefinedClass/deepRaw.ts (1)
+- [1] type HANDLERMETHOD -> src/util/lib/zodMethodDefinedClass/modeRouter.types.ts:15:13 | exported=yes | refs=src/util/lib/zodMethodDefinedClass/modeRouter.types.ts (1)
+- [1] type TYPE_FROM_SCHEMA -> src/util/lib/zodMethodDefinedClass/modeRouter.types.ts:24:13 | exported=yes | refs=src/util/lib/zodMethodDefinedClass/modeRouter.types.ts (1)
+- [1] type RouterMetaMethods -> src/util/lib/zodMethodDefinedClass/modeRouter.types.ts:60:13 | exported=yes | refs=src/util/lib/zodMethodDefinedClass/modeRouter.types.ts (1)
+- [1] interface IFetchRequestObject -> src/util/network/types.ts:14:18 | exported=yes | refs=src/util/network/types.ts (1)
+- [1] type ConfirmDialogPort -> src/util/network/types.ts:232:13 | exported=yes | refs=src/util/network/types.ts (1)
+- [1] type SendAuthResponsePort -> src/util/network/types.ts:246:13 | exported=yes | refs=src/util/network/types.ts (1)
+- [1] interface BaseLayerOptions -> src/util/pathRouter/core/layerLike.types.ts:6:18 | exported=yes | refs=src/util/pathRouter/core/layerLike.types.ts (1)
+- [1] interface LayerWithMethods -> src/util/pathRouter/core/layerLike.types.ts:75:18 | exported=yes | refs=src/util/pathRouter/core/layerLike.types.ts (1)
+- [1] type ExtendedContext -> src/util/pathRouter/core/router.execution.ts:15:8 | exported=no | refs=src/util/pathRouter/core/router.execution.ts (1)
+- [1] type RequestBodyTypes -> src/util/pathRouter/core/types.ts:318:13 | exported=yes | refs=test/util/pathRouter/router.functionRouting.test.ts (1)
+- [1] type MiddlewareType -> src/util/pathRouter/core/types.ts:373:13 | exported=yes | refs=src/util/pathRouter/core/types.ts (1)
+- [1] type SiyuanLayout -> src/util/siyuanEnvironments/getSiyuanConfig.guard.ts:2:6 | exported=no | refs=src/util/siyuanEnvironments/getSiyuanConfig.guard.ts (1)
+- [1] interface IPdfjsPixelsPerInch -> src/util/siyuanEnvironments/pdfjsLib.types.ts:8:18 | exported=yes | refs=src/util/siyuanEnvironments/pdfjsLib.types.ts (1)
+- [1] interface VueDialogConfig -> src/util/vue/createVueDialog.ts:8:18 | exported=yes | refs=src/util/vue/createVueDialog.ts (1)
+- [1] type InferProps -> src/util/vue/wrapper/types.ts:17:13 | exported=yes | refs=src/util/vue/wrapper/index.ts (1)
+- [1] type InferEmit -> src/util/vue/wrapper/types.ts:20:13 | exported=yes | refs=src/util/vue/wrapper/index.ts (1)
+- [1] type TransformedProps -> src/util/vue/wrapper/types.ts:100:13 | exported=yes | refs=src/util/vue/wrapper/index.ts (1)
+- [1] type TransformedEmit -> src/util/vue/wrapper/types.ts:109:13 | exported=yes | refs=src/util/vue/wrapper/index.ts (1)
+- [1] interface PerformanceResult -> src/util/vue/wrapper/types.ts:152:18 | exported=yes | refs=src/util/vue/wrapper/index.ts (1)
+- [1] type WindowCreator -> src/window/openNewWindow.types.ts:15:13 | exported=yes | refs=src/window/openNewWindow.types.ts (1)
+- [1] interface APIResponse -> test/util/embedding/collectionProtection.test.ts:8:11 | exported=no | refs=test/util/embedding/collectionProtection.test.ts (1)
+- [1] interface APIResponse -> test/util/embedding/embeddingApi.test.ts:6:11 | exported=no | refs=test/util/embedding/embeddingApi.test.ts (1)
+- [1] interface APIResponse -> test/util/embedding/frontendEmbedding.test.ts:37:11 | exported=no | refs=test/util/embedding/frontendEmbedding.test.ts (1)
+- [1] interface APIResponse -> test/util/embedding/vectorApi.performance.test.ts:27:11 | exported=no | refs=test/util/embedding/vectorApi.performance.test.ts (1)
+- [1] type TestBody -> test/util/pathRouter/router.functionRouting.test.ts:19:6 | exported=no | refs=test/util/pathRouter/router.functionRouting.test.ts (1)

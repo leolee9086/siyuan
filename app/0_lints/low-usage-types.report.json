@@ -1,0 +1,2987 @@
+{
+  "generatedAt": "2026-04-11T11:01:44.344Z",
+  "usageCounts": [
+    0,
+    1
+  ],
+  "strictMode": false,
+  "stats": {
+    "realTypeScriptFileCount": 1509,
+    "virtualVueBlockCount": 56,
+    "scannedVueFiles": 56,
+    "scannedTypeDeclarationCount": 824,
+    "matchedTypeCount": 223
+  },
+  "matches": [
+    {
+      "name": "StreamResponseConfig",
+      "kind": "interface",
+      "file": "src/ai/session/session.types.ts",
+      "line": 162,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ToolCallResult",
+      "kind": "interface",
+      "file": "src/ai/session/toolCallExecutor.ts",
+      "line": 7,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "StreamRequestConfigWithAI",
+      "kind": "interface",
+      "file": "src/ai/types.ts",
+      "line": 130,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "AIProvider",
+      "kind": "type",
+      "file": "src/ai/types.ts",
+      "line": 143,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "IPagePosition",
+      "kind": "interface",
+      "file": "src/asset/anno/anno.types.ts",
+      "line": 221,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "AssetCardEmit",
+      "kind": "type",
+      "file": "src/asset/components/AssetCard.types.ts",
+      "line": 19,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "check",
+      "kind": "type",
+      "file": "src/config/configSchemas/ai.schema.ts",
+      "line": 75,
+      "column": 6,
+      "exported": false,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "check",
+      "kind": "type",
+      "file": "src/config/configSchemas/uiLayout.schema.ts",
+      "line": 236,
+      "column": 6,
+      "exported": false,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MsgCallbackContext",
+      "kind": "interface",
+      "file": "src/layout/dock/Files/msgCallbackHandlers.types.ts",
+      "line": 14,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "LayoutContainer",
+      "kind": "type",
+      "file": "src/layout/layout-deserialization.types.ts",
+      "line": 9,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ChildLayout",
+      "kind": "type",
+      "file": "src/layout/layout-deserialization.types.ts",
+      "line": 16,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "IdZoomInResult",
+      "kind": "interface",
+      "file": "src/layout/layout-deserialization.types.ts",
+      "line": 25,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ModelTypeChecker",
+      "kind": "type",
+      "file": "src/layout/layout-deserialization.types.ts",
+      "line": 35,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ModelHandler",
+      "kind": "type",
+      "file": "src/layout/layout-deserialization.types.ts",
+      "line": 38,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MagiMonitorMessage",
+      "kind": "type",
+      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts",
+      "line": 57,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MagiMonitorConnectionStatus",
+      "kind": "type",
+      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts",
+      "line": 58,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "SEELConfigurationMap",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 53,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MAGISystemStatus",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 125,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MAGISystemCallbacks",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 141,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MockWISEInstance",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 188,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "FunctionCallOptions",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 259,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "FunctionCallResult",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 271,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MelchiorInstance",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 357,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "BalthazarInstance",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 363,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "CasperInstance",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 369,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "NERVCallbacks",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 375,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "AI响应Chunk",
+      "kind": "interface",
+      "file": "src/magi/core/wise/wise.types.ts",
+      "line": 105,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "StreamResponseHandlers",
+      "kind": "interface",
+      "file": "src/magi/types/session.types.ts",
+      "line": 16,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "SageResponse",
+      "kind": "interface",
+      "file": "src/magi/utils/messageFactory.types.ts",
+      "line": 77,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ConsensusMessage",
+      "kind": "interface",
+      "file": "src/magi/utils/messageFactory.types.ts",
+      "line": 96,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MessageType",
+      "kind": "type",
+      "file": "src/magi/utils/messageFormat.types.ts",
+      "line": 16,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "StatusType",
+      "kind": "type",
+      "file": "src/magi/utils/messageFormat.types.ts",
+      "line": 35,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "AlignmentType",
+      "kind": "type",
+      "file": "src/magi/utils/messageFormat.types.ts",
+      "line": 50,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "FileFilter",
+      "kind": "interface",
+      "file": "src/platform/electron/electron.types.ts",
+      "line": 20,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TriggerMode",
+      "kind": "type",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 33,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "BrushState",
+      "kind": "type",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 252,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "样式刷子参数",
+      "kind": "type",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 293,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TClickHandler",
+      "kind": "type",
+      "file": "src/search/utils/genSearch/SearchContext.types.ts",
+      "line": 56,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ISmartToolboxPanelProps",
+      "kind": "interface",
+      "file": "src/sforge/panel/SmartToolboxPanel.types.ts",
+      "line": 26,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ForgeI18nKeys",
+      "kind": "type",
+      "file": "src/types/forgeI18n.types.ts",
+      "line": 129,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ConfigManagerConfig",
+      "kind": "type",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 131,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ModuleRedirectRule",
+      "kind": "type",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 134,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "NetworkConfig",
+      "kind": "interface",
+      "file": "src/util/lib/zodMethodDefinedClass/layer.ts",
+      "line": 25,
+      "column": 11,
+      "exported": false,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TaskStatusType",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 186,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TaskRuntimeInfo",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 189,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ExecutionLog",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 192,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "CompileResult",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 195,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ICronjobAuthResponseMessage",
+      "kind": "interface",
+      "file": "src/util/network/types.ts",
+      "line": 216,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ParameterProcessor",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 21,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "LayerLikeType",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 72,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "NetworkLayerLike",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 80,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "RequestLike",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 292,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ResponseLike",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 293,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "InferRequestLike",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 302,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "InferResponseLike",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 305,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "PrimitiveValue",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 314,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ArrayValue",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 315,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "Value",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 316,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "HeaderValue",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 317,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ResponseBodyTypes",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 319,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ContextFunction",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 320,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ResponseFunction",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 321,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "IRouterStatic",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 353,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ComponentName",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 8,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ComponentProps",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 11,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ComponentEmits",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 14,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "If",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 120,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "Extract",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 122,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "Exclude",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 124,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MapProps",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 126,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "MapEmits",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 130,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ValidateProps",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 134,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "ValidateEmits",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 136,
+      "column": 13,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TestWrapperOptions",
+      "kind": "interface",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 139,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "TestWrapperResult",
+      "kind": "interface",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 145,
+      "column": 18,
+      "exported": true,
+      "usageCount": 0,
+      "referenceFiles": []
+    },
+    {
+      "name": "RequestCompleteConfig",
+      "kind": "interface",
+      "file": "src/ai/session/session.types.ts",
+      "line": 175,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/ai/session/session.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "RequestErrorConfig",
+      "kind": "interface",
+      "file": "src/ai/session/session.types.ts",
+      "line": 188,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/ai/session/session.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "RequestAbortConfig",
+      "kind": "interface",
+      "file": "src/ai/session/session.types.ts",
+      "line": 202,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/ai/session/session.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "GenerationParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 123,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TaskResponse",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 124,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TaskStatusResponse",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 125,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ApiError",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 126,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SiyuanProxyData",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 127,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SubmitGenerationTaskParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 128,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "GetTaskStatusParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 129,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PollTaskParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 130,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "FetchImageParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 131,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/apis/modelscope/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IEventContext",
+      "kind": "interface",
+      "file": "src/asset/anno/click/guard.ts",
+      "line": 5,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/asset/anno/click/guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IBazaarInstalledPackage",
+      "kind": "interface",
+      "file": "src/bazaar-hub/types.ts",
+      "line": 41,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/bazaar-hub/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IBazaarSecurityClientStats",
+      "kind": "interface",
+      "file": "src/bazaar-hub/types.ts",
+      "line": 107,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/bazaar-hub/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IBazaarPublishedItem",
+      "kind": "interface",
+      "file": "src/bazaar-source/index.ts",
+      "line": 3,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/bazaar-source/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ImageStatsState",
+      "kind": "interface",
+      "file": "src/components/composables/useImageProcessing.ts",
+      "line": 15,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useImageProcessing.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "EnhancementOptions",
+      "kind": "interface",
+      "file": "src/components/composables/useImageProcessing.ts",
+      "line": 20,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useImageProcessing.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "AdaptiveOptions",
+      "kind": "interface",
+      "file": "src/components/composables/useImageProcessing.ts",
+      "line": 26,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useImageProcessing.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "EnhancementOptions",
+      "kind": "interface",
+      "file": "src/components/composables/useProcessingParams.ts",
+      "line": 9,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useProcessingParams.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "AdaptiveOptions",
+      "kind": "interface",
+      "file": "src/components/composables/useProcessingParams.ts",
+      "line": 16,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useProcessingParams.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ProcessingParams",
+      "kind": "interface",
+      "file": "src/components/composables/useProcessingParams.ts",
+      "line": 23,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useProcessingParams.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "AtmosphericLight",
+      "kind": "interface",
+      "file": "src/components/composables/useProcessingParams.ts",
+      "line": 35,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/composables/useProcessingParams.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "GridComponentProps",
+      "kind": "type",
+      "file": "src/components/masonry/components/VirtualMasonryDataProvider.types.ts",
+      "line": 13,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/components/VirtualMasonryDataProvider.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "LayoutMode",
+      "kind": "type",
+      "file": "src/components/masonry/composables/layout-engines/index.ts",
+      "line": 39,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/layout-engines/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "LayoutColumn",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useMasonryLayout.ts",
+      "line": 29,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useMasonryLayout.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseMasonryLayoutOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useMasonryLayout.ts",
+      "line": 34,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useMasonryLayout.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UsePositionObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/usePositionObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/usePositionObserver.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseScrollObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useScrollObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useScrollObserver.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseSelectionBoxOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionBox.ts",
+      "line": 21,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useSelectionBox.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseSelectionObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useSelectionObserver.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SelectionState",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 7,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useSelectionSystem.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseSelectionSystemOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 23,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useSelectionSystem.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SelectionApi",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 30,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useSelectionSystem.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseVirtualizationOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useVirtualization.ts",
+      "line": 8,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useVirtualization.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "UseVirtualScrollbarOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useVirtualScrollbar.ts",
+      "line": 5,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/composables/useVirtualScrollbar.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PositionedItem",
+      "kind": "interface",
+      "file": "src/components/masonry/utils/binarySearch.ts",
+      "line": 1,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/utils/binarySearch.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "CancelFn",
+      "kind": "type",
+      "file": "src/components/masonry/utils/createRafScheduler.ts",
+      "line": 19,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/utils/createRafScheduler.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SegmentTreeNode",
+      "kind": "interface",
+      "file": "src/components/masonry/utils/createSegmentTree.ts",
+      "line": 10,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/components/masonry/utils/createSegmentTree.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IsCompatible",
+      "kind": "type",
+      "file": "src/config/configSchemas/ai.schema.ts",
+      "line": 70,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/config/configSchemas/ai.schema.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IsCompatible",
+      "kind": "type",
+      "file": "src/config/configSchemas/uiLayout.schema.ts",
+      "line": 231,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/config/configSchemas/uiLayout.schema.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MimeTypes",
+      "kind": "type",
+      "file": "src/data/kernelAPI/mimeDb.ts",
+      "line": 1,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/mimeDb.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Palette",
+      "kind": "type",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.types.ts",
+      "line": 30,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/sforgeAssetMeta.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "AssetMeta",
+      "kind": "type",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.types.ts",
+      "line": 67,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/sforgeAssetMeta.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "BatchExtractResult",
+      "kind": "type",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.types.ts",
+      "line": 78,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/sforgeAssetMeta.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SetAssetMetaParams",
+      "kind": "type",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.types.ts",
+      "line": 97,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/sforgeAssetMeta.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SearchAssetMetaResponse",
+      "kind": "type",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.types.ts",
+      "line": 147,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/data/kernelAPI/sforgeAssetMeta.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "LayoutConfig",
+      "kind": "interface",
+      "file": "src/layout/dock/dock.layout.ts",
+      "line": 9,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/layout/dock/dock.layout.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IBlockQueryResult",
+      "kind": "interface",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 233,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IForwardlinkTreeNode",
+      "kind": "interface",
+      "file": "src/layout/dock/Forwardlink.types.ts",
+      "line": 4,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/layout/dock/Forwardlink.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IForwardlinkStatusItem",
+      "kind": "interface",
+      "file": "src/layout/dock/forwardlink/Forwardlink.types.ts",
+      "line": 28,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/layout/dock/forwardlink/Forwardlink.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ILayoutWithDocks",
+      "kind": "interface",
+      "file": "src/layout/getAll.guard.ts",
+      "line": 14,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/layout/getAll.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "StandardLLMAdapterFactoryParams",
+      "kind": "interface",
+      "file": "src/magi/adapters/standardLLMAdapterFactory.ts",
+      "line": 12,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/adapters/standardLLMAdapterFactory.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MagiInputBarEmitFn",
+      "kind": "type",
+      "file": "src/magi/components/magi-main-panel/MagiInputBar.types.ts",
+      "line": 38,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/components/magi-main-panel/MagiInputBar.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SSEDelta",
+      "kind": "interface",
+      "file": "src/magi/components/persona/SSETextDisplay.guard.ts",
+      "line": 8,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/components/persona/SSETextDisplay.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SSEChoice",
+      "kind": "interface",
+      "file": "src/magi/components/persona/SSETextDisplay.guard.ts",
+      "line": 13,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/components/persona/SSETextDisplay.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SeelVoteBadgeTone",
+      "kind": "type",
+      "file": "src/magi/components/seel-panel/SeelPanel.types.ts",
+      "line": 60,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/components/seel-panel/SeelPanel.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MagiSessionExportSageResponse",
+      "kind": "interface",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 44,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/composables/useMagi.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MagiSessionExportVoteStatus",
+      "kind": "interface",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 53,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/composables/useMagi.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SourceTrustBase",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 188,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/composables/useMagi.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SourceRiskLevel",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 191,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/composables/useMagi.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SourceMessageChannel",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 194,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/composables/useMagi.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SEELInstance",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 21,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "WISEApiPostParams",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 67,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SyncCheckResult",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 118,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "VoteRecord",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 133,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "FunctionCallParameterDef",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 265,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "NERVSyncStatus",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 314,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "NERVWorkflowResult",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 322,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ComplianceResult",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 344,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "RiskMatrixItem",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 351,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/core.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "认知控制特征",
+      "kind": "interface",
+      "file": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+      "line": 14,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "情感调节特征",
+      "kind": "interface",
+      "file": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+      "line": 47,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TrinitySpeakPayload",
+      "kind": "interface",
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "line": 13,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/core/wise/trinity.toolset.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PersonaConvergenceSuggestionSource",
+      "kind": "type",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 12,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PersonaConvergenceQuestionnairePayload",
+      "kind": "interface",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 50,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PersonaConvergenceDescriptionPayload",
+      "kind": "interface",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 65,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "QuestionnaireSubQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 8,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/questionnaire.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SingleQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 24,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/questionnaire.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MultipleTextQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 45,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/questionnaire.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "DecisionContext",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 197,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/questionnaire.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "DecisionParameters",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 206,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/data/questionnaire.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "KernelJsonReadResult",
+      "kind": "interface",
+      "file": "src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts",
+      "line": 35,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ParsedQuestionnaireDraft",
+      "kind": "interface",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.guard.ts",
+      "line": 32,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MagiEventEnvelope",
+      "kind": "interface",
+      "file": "src/magi/events/magiWebSocketBridge.ts",
+      "line": 24,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/events/magiWebSocketBridge.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ActiveSeedPointer",
+      "kind": "interface",
+      "file": "src/magi/prompts/personaRuntimePromptBuilder.guard.ts",
+      "line": 190,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/prompts/personaRuntimePromptBuilder.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MagiIdentitySessionState",
+      "kind": "interface",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 35,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/service/magiIdentitySession.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "StreamProcessMode",
+      "kind": "type",
+      "file": "src/magi/types/streamProcessor.types.ts",
+      "line": 14,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/types/streamProcessor.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ChunkDelta",
+      "kind": "interface",
+      "file": "src/magi/utils/streamProcessor.guard.ts",
+      "line": 10,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/magi/utils/streamProcessor.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ToolbarActionDeps",
+      "kind": "interface",
+      "file": "src/mobile/util/keyboardToolbar.action.ts",
+      "line": 15,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/mobile/util/keyboardToolbar.action.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenTabDocOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 20,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openTab.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenTabPdfOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 34,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openTab.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenTabAssetOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 48,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openTab.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenTabCardOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 58,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openTab.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenTabCustomOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 72,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openTab.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IOpenWindowOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openWindow.ts",
+      "line": 5,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/plugin/api/openWindow.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IGutterChartMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterChartMenu.ts",
+      "line": 8,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterChartMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IGutterHeadingMenuResult",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterHeadingMenu.ts",
+      "line": 38,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterHeadingMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TTurnIntoOne",
+      "kind": "type",
+      "file": "src/protyle/gutter/buildGutterListMenu.ts",
+      "line": 5,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterListMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TTurnIntoOneSub",
+      "kind": "type",
+      "file": "src/protyle/gutter/buildGutterListMenu.ts",
+      "line": 6,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterListMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IGutterMultipleMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterMultipleMenu.ts",
+      "line": 14,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterMultipleMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ITypeSpecificMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterTypeSpecificMenu.ts",
+      "line": 19,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/gutter/buildGutterTypeSpecificMenu.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "panelsItemType",
+      "kind": "type",
+      "file": "src/protyle/ui/hideElements.ts",
+      "line": 18,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/ui/hideElements.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "panelsType",
+      "kind": "type",
+      "file": "src/protyle/ui/hideElements.ts",
+      "line": 25,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/ui/hideElements.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "FileWithPath",
+      "kind": "interface",
+      "file": "src/protyle/upload/index.ts",
+      "line": 24,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/upload/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "DragSelectContext",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+      "line": 18,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TableCellMoveResult",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+      "line": 97,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "BlockSelectResult",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+      "line": 222,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "LogLevel",
+      "kind": "enum",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 13,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "CommandLogParams",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 23,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "CheckToggleState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 62,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "OutdentState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 98,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IndentState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 137,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TransformState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 183,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/protyle/wysiwyg/keydown.list/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "状态栏按钮位置",
+      "kind": "type",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 12,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/registry/StatusBarRegistry.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IBrushModeProperties",
+      "kind": "interface",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 153,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/registry/TriggerRegistry.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IImmediateModeProperties",
+      "kind": "interface",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 175,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/registry/TriggerRegistry.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IToggleModeProperties",
+      "kind": "interface",
+      "file": "src/registry/TriggerRegistry.types.ts",
+      "line": 185,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/registry/TriggerRegistry.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "HandleAssetSearchResponseParams",
+      "kind": "interface",
+      "file": "src/search/assets.ts",
+      "line": 17,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/search/assets.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ISearchContext",
+      "kind": "interface",
+      "file": "src/search/utils/genSearch/SearchContext.types.ts",
+      "line": 12,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/search/utils/genSearch/SearchContext.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IClickHandlerResult",
+      "kind": "interface",
+      "file": "src/search/utils/genSearch/SearchContext.types.ts",
+      "line": 46,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/search/utils/genSearch/SearchContext.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "EventMeta",
+      "kind": "interface",
+      "file": "src/util/lib/events/eventEmitter.types.ts",
+      "line": 42,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/lib/events/eventEmitter.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "StrictZodDeepRawSubset",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "line": 23,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "HANDLERMETHOD",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 15,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TYPE_FROM_SCHEMA",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 24,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "RouterMetaMethods",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 60,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IFetchRequestObject",
+      "kind": "interface",
+      "file": "src/util/network/types.ts",
+      "line": 14,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/network/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ConfirmDialogPort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 232,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/network/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SendAuthResponsePort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 246,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/network/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "BaseLayerOptions",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 6,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/pathRouter/core/layerLike.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "LayerWithMethods",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 75,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/pathRouter/core/layerLike.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "ExtendedContext",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/router.execution.ts",
+      "line": 15,
+      "column": 8,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/pathRouter/core/router.execution.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "RequestBodyTypes",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 318,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/pathRouter/router.functionRouting.test.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "MiddlewareType",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 373,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/pathRouter/core/types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "SiyuanLayout",
+      "kind": "type",
+      "file": "src/util/siyuanEnvironments/getSiyuanConfig.guard.ts",
+      "line": 2,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/siyuanEnvironments/getSiyuanConfig.guard.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "IPdfjsPixelsPerInch",
+      "kind": "interface",
+      "file": "src/util/siyuanEnvironments/pdfjsLib.types.ts",
+      "line": 8,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/siyuanEnvironments/pdfjsLib.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "VueDialogConfig",
+      "kind": "interface",
+      "file": "src/util/vue/createVueDialog.ts",
+      "line": 8,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/createVueDialog.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "InferProps",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 17,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/wrapper/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "InferEmit",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 20,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/wrapper/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TransformedProps",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 100,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/wrapper/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TransformedEmit",
+      "kind": "type",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 109,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/wrapper/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "PerformanceResult",
+      "kind": "interface",
+      "file": "src/util/vue/wrapper/types.ts",
+      "line": 152,
+      "column": 18,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/util/vue/wrapper/index.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "WindowCreator",
+      "kind": "type",
+      "file": "src/window/openNewWindow.types.ts",
+      "line": 15,
+      "column": 13,
+      "exported": true,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "src/window/openNewWindow.types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "APIResponse",
+      "kind": "interface",
+      "file": "test/util/embedding/collectionProtection.test.ts",
+      "line": 8,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/embedding/collectionProtection.test.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "APIResponse",
+      "kind": "interface",
+      "file": "test/util/embedding/embeddingApi.test.ts",
+      "line": 6,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/embedding/embeddingApi.test.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "APIResponse",
+      "kind": "interface",
+      "file": "test/util/embedding/frontendEmbedding.test.ts",
+      "line": 37,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/embedding/frontendEmbedding.test.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "APIResponse",
+      "kind": "interface",
+      "file": "test/util/embedding/vectorApi.performance.test.ts",
+      "line": 27,
+      "column": 11,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/embedding/vectorApi.performance.test.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "TestBody",
+      "kind": "type",
+      "file": "test/util/pathRouter/router.functionRouting.test.ts",
+      "line": 19,
+      "column": 6,
+      "exported": false,
+      "usageCount": 1,
+      "referenceFiles": [
+        {
+          "filePath": "test/util/pathRouter/router.functionRouting.test.ts",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

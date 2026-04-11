@@ -54,13 +54,3 @@ export interface MessageBubbleProps {
     msg?: MagiMessageView | undefined;
 }
 
-/**
- * MessageBubble 组件 Emits
- *
- * 用途：定义消息气泡组件的事件类型
- * 使用场景：流式消息内容更新时通知父组件滚动
- */
-export interface MessageBubbleEmits {
-    /** 光标位置更新（流式消息内容变化时触发） */
-    (e: "cursor-update"): void;
-}

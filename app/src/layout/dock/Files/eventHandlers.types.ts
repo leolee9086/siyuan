@@ -48,42 +48,9 @@ export interface FilesEventContext {
     app: App;
 }
 
-/**
- * 点击处理结果
- * 用于指示点击事件是否被处理以及是否需要设置焦点
- */
-export interface ClickHandleResult {
-    /** 事件是否已被处理 */
-    handled: boolean;
-    /** 是否需要设置面板焦点 */
-    needFocus: boolean;
-}
 
-/**
- * Emoji 面板位置信息
- */
-export interface EmojiPanelRect {
-    x: number;
-    y: number;
-    h: number;
-    w: number;
-}
 
-/**
- * 文件打开选项
- */
-export interface FileOpenOptions {
-    /** 应用实例 */
-    app: App;
-    /** 文档 ID */
-    id: string;
-    /** 打开位置 */
-    position?: "right" | "bottom";
-    /** 是否移除当前标签页 */
-    removeCurrentTab?: boolean;
-    /** 打开后的回调 */
-    afterOpen?: () => void;
-}
+
 
 /**
  * 初始化面板元素引用结果

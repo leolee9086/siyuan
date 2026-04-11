@@ -12,11 +12,3 @@ export interface IForwardlinkTreeNode {
     children?: IForwardlinkTreeNode[];
 }
 
-/**
- * 正向链接状态
- */
-export interface IForwardlinkStatus {
-    sort: number;
-    scrollTop: number;
-    forwardlinkOpenIds: string[];
-}

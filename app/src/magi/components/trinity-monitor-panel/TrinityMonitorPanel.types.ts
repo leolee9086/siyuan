@@ -54,5 +54,3 @@ export interface MagiMonitorVoteSummary {
     details: MagiMonitorVoteDetail[];
 }
 
-export type MagiMonitorMessage = MagiSeelPanelMessageView;
-export type MagiMonitorConnectionStatus = ConnectionStatus;

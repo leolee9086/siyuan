@@ -137,12 +137,6 @@ export interface VoteRecord {
     weights: Record<string, number>;
 }
 
-/** MAGI系统事件回调 */
-export interface MAGISystemCallbacks {
-    onSystemReady?: () => void;
-    onSystemError?: (error: Error) => void;
-    onSeelError?: (data: { seel: SEELInstance; error: Error }) => void;
-}
 
 /** OpenAI兼容配置 */
 export interface OpenAICompatConfig {
@@ -184,25 +178,6 @@ export interface MockMessage {
     meta?: Record<string, unknown>;
 }
 
-/** MockWISE实例接口 */
-export interface MockWISEInstance {
-    readonly loading: boolean;
-    readonly connected: boolean;
-    readonly messages: MockMessage[];
-    readonly config: Required<MockWISEConfig> & { sseConfig: SSEConfig };
-    connect: () => Promise<{ status: string; message: string }>;
-    reply: (userInput: string, options?: ReplyOptions) => Promise<string | AsyncGenerator<string>>;
-    voteFor: (responses: string[]) => Promise<VoteForResult>;
-    getContextMessages: () => ContextMessage[];
-    streamResponse: (
-        prompt: string,
-        systemPromptForChat: string | null,
-        context?: ContextMessage[]
-    ) => AsyncGenerator<string>;
-    updateConfig: (newConfig: Partial<MockWISEConfig>) => void;
-    appendContextMessages: (messages: ContextMessage[]) => void;
-    replaceLatestAssistantContextMessage: (content: string) => void;
-}
 
 /** 上下文消息 */
 export interface ContextMessage {

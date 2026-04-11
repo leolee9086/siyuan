@@ -43,6 +43,7 @@
     "test:coverage": "vitest --coverage",
     "longest": "node ./scripts/checker/findLongestFile.js",
     "scan:oversized": "node ./scripts/checker/scanOversizedFiles.js",
+    "scan:types:low-usage": "node ./scripts/checker/scanLowUsageTypes.js",
     "scan:unused:frontend": "node ./scripts/checker/scanUnusedFrontend.js",
     "scan:unused:frontend:strict": "node ./scripts/checker/scanUnusedFrontend.js --strict",
     "genI18nTypes": "node ./scripts/i18n.generateTypes.js",
