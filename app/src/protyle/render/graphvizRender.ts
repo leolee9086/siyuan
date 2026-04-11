@@ -14,9 +14,9 @@ import {hasClosestByClassName} from "../util/hasClosest";
 function collectGraphvizElements(element: Element): Element[] {
     // 当元素本身就是 graphviz 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "graphviz") {
-        return [element];
+        return element.getAttribute("data-render") === "true" ? [] : [element];
     }
-    return Array.from(element.querySelectorAll('[data-subtype="graphviz"]'));
+    return Array.from(element.querySelectorAll('[data-subtype="graphviz"]:not([data-render="true"])'));
 }
 
 /**
@@ -60,15 +60,15 @@ const renderSingleGraphvizElement = async (
     if (!(renderElement instanceof HTMLElement)) {
         return;
     }
+    // 需置于异步渲染前，否则快速滚动会导致重复渲染
+    element.setAttribute("data-render", "true");
     const dataContent = element.getAttribute("data-content");
     // 无内容时仅保留占位符，不执行渲染
     if (!dataContent) {
         renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span>`;
-        element.setAttribute("data-render", "true");
         return;
     }
     await renderGraphvizSvg(renderElement, dataContent);
-    element.setAttribute("data-render", "true");
 };
 
 /**

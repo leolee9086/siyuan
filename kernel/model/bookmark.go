@@ -35,7 +35,7 @@ import (
 func RemoveBookmark(bookmark string) (err error) {
 	util.PushEndlessProgress(Conf.Language(116))
 
-	bookmarks := sql.QueryBookmarkBlocksByKeyword(bookmark)
+	bookmarks := sql.QueryBookmarkBlocks()
 	treeBlocks := map[string][]string{}
 	for _, tag := range bookmarks {
 		if blocks, ok := treeBlocks[tag.RootID]; !ok {
@@ -79,7 +79,7 @@ func RemoveBookmark(bookmark string) (err error) {
 
 func RenameBookmark(oldBookmark, newBookmark string) (err error) {
 	if invalidChar := treenode.ContainsMarker(newBookmark); "" != invalidChar {
-		return errors.New(fmt.Sprintf(Conf.Language(112), invalidChar))
+		return fmt.Errorf(Conf.Language(112), invalidChar)
 	}
 
 	newBookmark = strings.TrimSpace(newBookmark)
@@ -93,7 +93,7 @@ func RenameBookmark(oldBookmark, newBookmark string) (err error) {
 
 	util.PushEndlessProgress(Conf.Language(110))
 
-	bookmarks := sql.QueryBookmarkBlocksByKeyword(oldBookmark)
+	bookmarks := sql.QueryBookmarkBlocks()
 	treeBlocks := map[string][]string{}
 	for _, tag := range bookmarks {
 		if blocks, ok := treeBlocks[tag.RootID]; !ok {

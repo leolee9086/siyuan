@@ -125,6 +125,14 @@ export const editor = {
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
+        ${siyuanI18n.pasteURLAutoConvert}
+        <div class="b3-label__text">${siyuanI18n.pasteURLAutoConvertTip}</div>
+    </div>
+    <span class="fn__space"></span>
+    <input class="b3-switch fn__flex-center" id="pasteURLAutoConvert" type="checkbox"${window.siyuan.config.editor.pasteURLAutoConvert ? " checked" : ""}/>
+</label>
+<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
         ${siyuanI18n.md31}
         <div class="b3-label__text">${siyuanI18n.md32}</div>
     </div>
@@ -530,6 +538,7 @@ export const editor = {
                 spellcheck: (editor.element.querySelector("#spellcheck") as HTMLInputElement).checked,
                 spellcheckLanguages: spellcheckLanguagesValue,
                 onlySearchForDoc: (editor.element.querySelector("#onlySearchForDoc") as HTMLInputElement).checked,
+                pasteURLAutoConvert: (editor.element.querySelector("#pasteURLAutoConvert") as HTMLInputElement).checked,
                 floatWindowMode,
                 floatWindowDelay,
                 plantUMLServePath: (editor.element.querySelector("#plantUMLServePath") as HTMLInputElement).value,

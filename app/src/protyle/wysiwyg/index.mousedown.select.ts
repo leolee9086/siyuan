@@ -138,7 +138,7 @@ export function handleShiftSelect(
                 showMessage(siyuanI18n.crossKeepLazyLoad);
             }
             selectElements.forEach(item => {
-                if (!hasClosestByClassName(currentElement, "protyle-wysiwyg--select")) {
+                if (!hasClosestByClassName(item, "protyle-wysiwyg--select")) {
                     item.classList.add("protyle-wysiwyg--select");
                     ids.push(item.getAttribute("data-node-id"));
                     // 清除选中的子块 https://ld246.com/article/1667826582251

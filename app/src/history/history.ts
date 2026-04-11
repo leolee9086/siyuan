@@ -220,6 +220,407 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
             if (handleRepoClick(target, type, event, app, element, repoElement, repoSelectElement)) {
                 break;
             }
+            if (target.classList.contains("b3-list-item__action") && type === "rollback" && !window.siyuan.config.readonly) {
+                const dataType = target.parentElement.getAttribute("data-type");
+                let name = target.previousElementSibling.previousElementSibling.textContent.trim();
+                let time = dayjs(parseInt(target.parentElement.getAttribute("data-created")) * 1000).format("YYYY-MM-DD HH:mm:ss");
+                if (dataType === "notebook") {
+                    time = target.parentElement.parentElement.previousElementSibling.textContent.trim();
+                } else if (dataType === "repoitem") {
+                    name = window.siyuan.languages.workspaceData;
+                    time = (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim();
+                }
+                confirmDialog("⚠️ " + window.siyuan.languages.rollback,
+                    window.siyuan.languages.rollbackConfirm.replace("${name}", name).replace("${time}", time),
+                    () => {
+                        if (dataType === "assets") {
+                            fetchPost("/api/history/rollbackAssetsHistory", {
+                                historyPath: target.parentElement.getAttribute("data-path")
+                            });
+                        } else if (dataType === "doc") {
+                            fetchPost("/api/history/rollbackDocHistory", {
+                                notebook: target.parentElement.getAttribute("data-notebook-id"),
+                                historyPath: target.parentElement.getAttribute("data-path")
+                            });
+                        } else if (dataType === "av") {
+                            fetchPost("/api/history/rollbackAttributeViewHistory", {
+                                historyPath: target.parentElement.getAttribute("data-path")
+                            });
+                        } else if (dataType === "notebook") {
+                            fetchPost("/api/history/rollbackNotebookHistory", {
+                                historyPath: target.parentElement.getAttribute("data-path")
+                            });
+                        } else {
+                            fetchPost("/api/repo/checkoutRepo", {
+                                id: target.parentElement.getAttribute("data-id")
+                            });
+                        }
+                    });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "more") {
+                target.parentElement.parentElement.querySelectorAll(".b3-list-item__meta").forEach(item => {
+                    item.classList.toggle("fn__none");
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "toggle") {
+                const iconElement = target.firstElementChild.firstElementChild;
+                if (iconElement.classList.contains("b3-list-item__arrow--open")) {
+                    target.nextElementSibling.classList.add("fn__none");
+                    iconElement.classList.remove("b3-list-item__arrow--open");
+                } else {
+                    if (target.nextElementSibling && target.nextElementSibling.tagName === "UL") {
+                        target.nextElementSibling.classList.remove("fn__none");
+                        iconElement.classList.add("b3-list-item__arrow--open");
+                    } else {
+                        const inputElement = firstPanelElement.querySelector(".b3-text-field") as HTMLInputElement;
+                        const opElement = firstPanelElement.querySelector('.b3-select[data-type="opselect"]') as HTMLSelectElement;
+                        const typeElement = firstPanelElement.querySelector('.b3-select[data-type="typeselect"]') as HTMLSelectElement;
+                        const notebookElement = firstPanelElement.querySelector('.b3-select[data-type="notebookselect"]') as HTMLSelectElement;
+                        const created = target.getAttribute("data-created");
+                        fetchPost("/api/history/getHistoryItems", {
+                            notebook: notebookElement.value,
+                            query: inputElement.value,
+                            op: opElement.value,
+                            type: parseInt(typeElement.value),
+                            created
+                        }, (response) => {
+                            iconElement.classList.add("b3-list-item__arrow--open");
+                            let html = "";
+                            let ariaLabel = "";
+                            response.data.items.forEach((docItem: {
+                                title: string,
+                                path: string,
+                                op: string,
+                                notebook: string
+                            }) => {
+                                let chipClass = " b3-chip b3-chip--list ";
+                                if (docItem.op === "clean") {
+                                    chipClass += "b3-chip--primary ";
+                                    ariaLabel = window.siyuan.languages.historyClean;
+                                } else if (docItem.op === "update") {
+                                    chipClass += "b3-chip--info ";
+                                    ariaLabel = window.siyuan.languages.historyUpdate;
+                                } else if (docItem.op === "delete") {
+                                    chipClass += "b3-chip--error ";
+                                    ariaLabel = window.siyuan.languages.historyDelete;
+                                } else if (docItem.op === "format") {
+                                    chipClass += "b3-chip--pink ";
+                                    ariaLabel = window.siyuan.languages.historyFormat;
+                                } else if (docItem.op === "sync") {
+                                    chipClass += "b3-chip--success ";
+                                    ariaLabel = window.siyuan.languages.historySync;
+                                } else if (docItem.op === "replace") {
+                                    chipClass += "b3-chip--secondary ";
+                                    ariaLabel = window.siyuan.languages.historyReplace;
+                                } else if (docItem.op === "outline") {
+                                    chipClass += "b3-chip--warning ";
+                                    ariaLabel = window.siyuan.languages.historyOutline;
+                                }
+                                html += `<li data-notebook-id="${docItem.notebook}" data-created="${created}" data-type="${typeElement.value === "4" ? "av" : (typeElement.value === "2" ? "assets" : "doc")}" data-path="${docItem.path}" class="b3-list-item b3-list-item--hide-action" style="padding-left: 22px">
+    <span class="${opElement.value === "all" ? "" : "fn__none"}${chipClass}ariaLabel" data-position="6south" aria-label="${ariaLabel}">${docItem.op.substring(0, 1).toUpperCase()}</span>
+    <span class="b3-list-item__text" title="${escapeAttr(docItem.title)}">${escapeHtml(docItem.title)}</span>
+    <span class="fn__space"></span>
+    <span class="b3-list-item__action ariaLabel" data-type="rollback" data-position="6south" aria-label="${window.siyuan.languages.rollback}">
+        <svg><use xlink:href="#iconUndo"></use></svg>
+    </span>
+</li>`;
+                            });
+                            target.insertAdjacentHTML("afterend", `<ul>${html}</ul>`);
+                        });
+                    }
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "rmtoggle") {
+                target.nextElementSibling.classList.toggle("fn__none");
+                target.firstElementChild.firstElementChild.classList.toggle("b3-list-item__arrow--open");
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (target.classList.contains("b3-list-item") && type === "repoitem" &&
+                ["getRepoSnapshots", "getRepoTagSnapshots"].includes(repoSelectElement.value)) {
+                const btnElement = element.querySelector(".b3-button[data-type='compare']");
+                const idJSON = JSON.parse(btnElement.getAttribute("data-ids") || "[]");
+                const id = target.getAttribute("data-id");
+                if (target.classList.contains("b3-list-item--focus")) {
+                    target.classList.remove("b3-list-item--focus");
+                    idJSON.find((item: { id: string, time: string }, index: number) => {
+                        if (id === item.id) {
+                            idJSON.splice(index, 1);
+                            return true;
+                        }
+                    });
+                } else {
+                    target.classList.add("b3-list-item--focus");
+                    while (idJSON.length > 1) {
+                        if (idJSON[0].id !== id) {
+                            target.parentElement.querySelector(`.b3-list-item[data-id="${idJSON.splice(0, 1)[0].id}"]`)?.classList.remove("b3-list-item--focus");
+                        } else {
+                            idJSON.splice(0, 1);
+                        }
+                    }
+                    idJSON.push({id, time: target.querySelector('[data-type="hCreated"]').textContent});
+                }
+
+                if (idJSON.length === 2) {
+                    btnElement.removeAttribute("disabled");
+                } else {
+                    btnElement.setAttribute("disabled", "disabled");
+                }
+                btnElement.setAttribute("data-ids", JSON.stringify(idJSON));
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (target.classList.contains("b3-list-item") && ["assets", "doc", "av"].includes(type)) {
+                const dataPath = target.getAttribute("data-path");
+                if (type === "assets") {
+                    assetElement.classList.remove("fn__none");
+                    assetElement.innerHTML = renderAssetsPreview(dataPath);
+                } else if (type === "doc") {
+                    const k = (firstPanelElement.querySelector(".b3-text-field") as HTMLInputElement).value;
+                    fetchPost("/api/history/getDocHistoryContent", {
+                        historyPath: dataPath,
+                        highlight: !isSupportCSSHL(),
+                        k
+                    }, (response) => {
+                        if (response.data.isLargeDoc) {
+                            mdElement.value = response.data.content;
+                            mdElement.classList.remove("fn__none");
+                            docElement.classList.add("fn__none");
+                        } else {
+                            mdElement.classList.add("fn__none");
+                            docElement.classList.remove("fn__none");
+                            historyEditor.protyle.options.history.created = target.dataset.created;
+                            onGet({
+                                data: response,
+                                protyle: historyEditor.protyle,
+                                action: [Constants.CB_GET_HISTORY, Constants.CB_GET_HTML],
+                            });
+                            searchMarkRender(historyEditor.protyle, k.split(" "));
+                        }
+                    });
+                } else if (type === "av") {
+                    mdElement.classList.add("fn__none");
+                    docElement.classList.remove("fn__none");
+                    historyEditor.protyle.options.history.created = target.dataset.created;
+                    onGet({
+                        data: {
+                            data: {
+                                content: `<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${target.querySelector(".b3-list-item__text").textContent}" data-type="NodeAttributeView" data-av-type="table"><div spellcheck="true"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`,
+                                id: Lute.NewNodeID(),
+                                rootID: Lute.NewNodeID(),
+                            },
+                            msg: "",
+                            code: 0
+                        },
+                        protyle: historyEditor.protyle,
+                        action: [Constants.CB_GET_HISTORY, Constants.CB_GET_HTML],
+                    });
+                }
+                titleElement.classList.remove("fn__none");
+                titleElement.textContent = target.querySelector(".b3-list-item__text").textContent;
+                let currentItem = hasClosestByClassName(target, "b3-list") as HTMLElement;
+                if (currentItem) {
+                    currentItem = currentItem.querySelector(".b3-list-item--focus");
+                    if (currentItem) {
+                        currentItem.classList.remove("b3-list-item--focus");
+                    }
+                }
+                target.classList.add("b3-list-item--focus");
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "genRepo") {
+                const genRepoDialog = new Dialog({
+                    title: window.siyuan.languages.snapshotMemo,
+                    content: `<div class="b3-dialog__content">
+    <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.snapshotMemoTip}"></textarea>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+</div>`,
+                    width: isMobile() ? "92vw" : "520px",
+                });
+                genRepoDialog.element.setAttribute("data-key", Constants.DIALOG_SNAPSHOTMEMO);
+                const textareaElement = genRepoDialog.element.querySelector("textarea");
+                textareaElement.focus();
+                const btnsElement = genRepoDialog.element.querySelectorAll(".b3-button");
+                genRepoDialog.bindInput(textareaElement, () => {
+                    (btnsElement[1] as HTMLButtonElement).click();
+                });
+                btnsElement[0].addEventListener("click", () => {
+                    genRepoDialog.destroy();
+                });
+                btnsElement[1].addEventListener("click", () => {
+                    fetchPost("/api/repo/createSnapshot", {memo: textareaElement.value}, () => {
+                        renderRepo(repoElement, 1);
+                    });
+                    genRepoDialog.destroy();
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "removeRepoTagSnapshot" || type === "removeCloudRepoTagSnapshot") {
+                const tag = target.parentElement.getAttribute("data-tag");
+                confirmDialog(window.siyuan.languages.deleteOpConfirm, `${window.siyuan.languages.confirmDelete} <i>${tag}</i>?`, () => {
+                    fetchPost("/api/repo/" + type, {tag}, () => {
+                        renderRepo(repoElement, 1);
+                    });
+                }, undefined, true);
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "uploadSnapshot") {
+                fetchPost("/api/repo/uploadCloudSnapshot", {
+                    tag: target.parentElement.getAttribute("data-tag"),
+                    id: target.parentElement.getAttribute("data-id")
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "downloadSnapshot") {
+                fetchPost("/api/repo/downloadCloudSnapshot", {
+                    tag: target.parentElement.getAttribute("data-tag"),
+                    id: target.parentElement.getAttribute("data-id")
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "downloadRollback" && !window.siyuan.config.readonly) {
+                confirmDialog("⚠️ " + window.siyuan.languages.downloadRollback, window.siyuan.languages.rollbackConfirm.replace("${name}", window.siyuan.languages.workspaceData)
+                    .replace("${time}", (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim()), () => {
+                    const repoId = target.parentElement.getAttribute("data-id");
+                    fetchPost("/api/repo/downloadCloudSnapshot", {
+                        tag: target.parentElement.getAttribute("data-tag"),
+                        id: repoId
+                    }, () => {
+                        fetchPost("/api/repo/checkoutRepo", {
+                            id: repoId
+                        });
+                    });
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "genTag") {
+                const genTagDialog = new Dialog({
+                    title: window.siyuan.languages.tagSnapshot,
+                    content: `<div class="b3-dialog__content">
+    <input class="b3-text-field fn__block" value="${dayjs().format("YYYYMMDDHHmmss")}" placeholder="${window.siyuan.languages.tagSnapshotTip}">
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${window.siyuan.languages.tagSnapshot}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${window.siyuan.languages.tagSnapshotUpload}</button>
+</div>`,
+                    width: isMobile() ? "92vw" : "520px",
+                });
+                genTagDialog.element.setAttribute("data-key", Constants.DIALOG_SNAPSHOTTAG);
+                const inputElement = genTagDialog.element.querySelector(".b3-text-field") as HTMLInputElement;
+                inputElement.select();
+                const btnsElement = genTagDialog.element.querySelectorAll(".b3-button");
+                btnsElement[0].addEventListener("click", () => {
+                    genTagDialog.destroy();
+                });
+                btnsElement[2].addEventListener("click", () => {
+                    fetchPost("/api/repo/tagSnapshot", {
+                        id: target.parentElement.getAttribute("data-id"),
+                        name: inputElement.value
+                    }, () => {
+                        fetchPost("/api/repo/uploadCloudSnapshot", {
+                            tag: inputElement.value,
+                            id: target.parentElement.getAttribute("data-id")
+                        }, () => {
+                            renderRepo(repoElement, 1);
+                        });
+                    });
+                    genTagDialog.destroy();
+                });
+                btnsElement[1].addEventListener("click", () => {
+                    fetchPost("/api/repo/tagSnapshot", {
+                        id: target.parentElement.getAttribute("data-id"),
+                        name: inputElement.value
+                    }, () => {
+                        renderRepo(repoElement, 1);
+                    });
+                    genTagDialog.destroy();
+                });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if ((type === "previous" || type === "next") && target.getAttribute("disabled") !== "disabled") {
+                const currentPage = parseInt(repoElement.getAttribute("data-page"));
+                renderRepo(repoElement, type === "previous" ? currentPage - 1 : currentPage + 1);
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "jumpRepoPage") {
+                const currentPage = parseInt(repoElement.getAttribute("data-page"));
+                const totalPage = parseInt(target.getAttribute("data-totalpage") || "1");
+
+                if (totalPage > 1) {
+                    confirmDialog(
+                        window.siyuan.languages.jumpToPage.replace("${x}", totalPage),
+                        `<input class="b3-text-field fn__block" type="number" min="1" max="${totalPage}" value="${currentPage}">`,
+                        (confirmD) => {
+                            const inputElement = confirmD.element.querySelector(".b3-text-field") as HTMLInputElement;
+                            if (inputElement.value === "") {
+                                return;
+                            }
+                            let page = parseInt(inputElement.value);
+                            page = Math.max(1, Math.min(page, totalPage));
+                            renderRepo(repoElement, page);
+                        }
+                    );
+                }
+            } else if (type === "jumpHistoryPage") {
+                const currentPage = parseInt(historyElement.getAttribute("data-page"));
+                const totalPage = parseInt(target.getAttribute("data-totalpage") || "1");
+
+                if (totalPage > 1) {
+                    confirmDialog(
+                        window.siyuan.languages.jumpToPage.replace("${x}", totalPage),
+                        `<input class="b3-text-field fn__block" type="number" min="1" max="${totalPage}" value="${currentPage}">`,
+                        (confirmD) => {
+                            const inputElement = confirmD.element.querySelector(".b3-text-field") as HTMLInputElement;
+                            if (inputElement.value === "") {
+                                return;
+                            }
+                            let page = parseInt(inputElement.value);
+                            page = Math.max(1, Math.min(page, totalPage));
+                            renderDoc(firstPanelElement, page);
+                        }
+                    );
+                }
+            } else if ((type === "docprevious" || type === "docnext") && target.getAttribute("disabled") !== "disabled") {
+                const currentPage = parseInt(firstPanelElement.getAttribute("data-page"));
+                renderDoc(firstPanelElement, type === "docprevious" ? currentPage - 1 : currentPage + 1);
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "rebuildIndex") {
+                fetchPost("/api/history/reindexHistory");
+                if (dialog) {
+                    dialog.destroy();
+                } else {
+                    closeModel();
+                    historyEditor = undefined;
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "compare" && !target.getAttribute("disabled")) {
+                showDiff(app, JSON.parse(target.getAttribute("data-ids") || "[]"));
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            }
             target = target.parentElement;
         }
     });

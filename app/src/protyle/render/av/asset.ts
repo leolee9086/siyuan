@@ -7,7 +7,7 @@ import { uploadFiles } from "../../upload";
 import { pathPosix } from "../../../util/file/pathName";
 import { openMenu } from "../../../menus/commonMenuItem/openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";
-import { copyAsset, copyPNGByLink, exportAsset } from "../../../menus/util";
+import { writeAssetToClipboard, copyPNGByLink, exportAsset } from "../../../menus/util";
 import { setPosition } from "../../../util/DOM/setPosition";
 import { previewAttrViewImages } from "../../preview/image";
 import { genAVValueHTML } from "./blockAttr";
@@ -63,8 +63,8 @@ export const getAssetHTML = (cellElements: HTMLElement[]) => {
     genCellValueByElement("mAsset", cellElements[0]).mAsset.forEach((item, index) => {
         let contentHTML;
         if (item.type === "image") {
-            contentHTML = `<span data-type="openAssetItem" class="fn__flex-1 ariaLabel" aria-label="${item.content}">
-    <img style="max-height: 180px;max-width: 360px;border-radius: var(--b3-border-radius);margin: 4px 0;" src="${getCompressURL(item.content)}"/>
+            contentHTML = `<span data-type="openAssetItem" class="fn__flex-1 ariaLabel" aria-label="${escapeAttr(item.content)}">
+    <img style="max-height: 180px;max-width: 360px;border-radius: var(--b3-border-radius);margin: 4px 0;" src="${getCompressURL(encodeURI(item.content))}"/>
 </span>`;
         } else {
             contentHTML = `<span data-type="openAssetItem" class="fn__ellipsis b3-menu__label ariaLabel" aria-label="${escapeAttr(item.content)}" style="max-width: 360px">${item.name || item.content}</span>`;
@@ -306,7 +306,7 @@ export const editAssetItem = (options: {
             label: siyuanI18n.copy,
             icon: "iconCopy",
             click() {
-                writeText(`![](${linkAddress.replace(/%20/g, " ")})`);
+                writeText(`![](${textElements[0].value})`);
             }
         });
         menu.addItem({
@@ -314,7 +314,7 @@ export const editAssetItem = (options: {
             label: siyuanI18n.copyAsPNG,
             icon: "iconImage",
             click() {
-                copyPNGByLink(linkAddress);
+                copyPNGByLink(textElements[0].value);
             }
         });
     }
@@ -337,7 +337,7 @@ export const editAssetItem = (options: {
             label: siyuanI18n.rename,
             icon: "iconEdit",
             click() {
-                renameAsset(linkAddress);
+                renameAsset(decodeURI(linkAddress));
                 document.querySelector(".av__panel")?.remove();
             }
         });
@@ -371,9 +371,7 @@ export const editAssetItem = (options: {
     }
     if (linkAddress?.startsWith("assets/")) {
         window.siyuan.menus.menu.append(new MenuItem(exportAsset(linkAddress)).element);
-        if (!isBrowser && ["windows", "darwin"].includes(window.siyuan.config.system.os)) {
-            window.siyuan.menus.menu.append(new MenuItem(copyAsset(linkAddress)).element);
-        }
+        window.siyuan.menus.menu.append(new MenuItem(writeAssetToClipboard(linkAddress)).element);
     }
     const rect = options.rect;
     if (isMobile) {
@@ -388,7 +386,7 @@ export const editAssetItem = (options: {
         });
     }
     const textElements = menu.element.querySelectorAll("textarea");
-    textElements[0].value = linkAddress;
+    textElements[0].value = decodeURI(linkAddress);
     textElements[0].focus();
     textElements[0].select();
     if (textElements.length > 1) {

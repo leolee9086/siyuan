@@ -1,10 +1,11 @@
 {
+  "copyDoc": "Copiar todo o texto",
   "position": "Posição",
   "insertColumnLeft1": "Inserir ${x} colunas à esquerda",
   "insertColumnRight1": "Inserir ${x} colunas à direita",
   "noSplitScreenWhenOpenTab": "Não dividir a tela ao abrir abas",
   "noSplitScreenWhenOpenTabTip": "Não dividir automaticamente a tela ao abrir abas de pesquisa, PDF e outras",
-  "useChrome": "Suporta apenas navegadores baseados no mecanismo Chromium (por exemplo, Chrome/Edge), usar outros navegadores pode causar problemas de compatibilidade sem solução",
+  "useChrome": "Compatível apenas com o navegador Chrome, o uso de outros navegadores pode ocasionar problemas de compatibilidade sem solução",
   "clearAllAV": "Confirmar a limpeza de todos os bancos de dados não referenciados?",
   "unreferencedAV": "Banco de dados não referenciado",
   "includeSubDocs": "Incluir subdocumentos",
@@ -287,7 +288,7 @@
   "imported": "Importação concluída",
   "mirrorTip": "Espelhar banco de dados, todas as atualizações de dados serão sincronizadas para todos os outros espelhos",
   "includeTime": "Incluir hora",
-  "accountSupport1": "Desde seu primeiro lançamento público em 31 de agosto de 2020, o SiYuan foi lançado mais de 830 vezes, resolveu requisitos e feedbacks de usuários mais de 15000 vezes e cometeu código mais de 19800 vezes. Não teríamos alcançado isso sem seu apoio e feedback.",
+  "accountSupport1": "Desde seu primeiro lançamento público em 31 de agosto de 2020, o SiYuan foi lançado mais de 880 vezes, resolveu requisitos e feedbacks de usuários mais de 16000 vezes e cometeu código mais de 22000 vezes. Não teríamos alcançado isso sem seu apoio e feedback.",
   "accountSupport2": "Seu apoio e feedback tornarão o SiYuan melhor. Seremos sempre amigos dos usuários, trabalharemos duro para melhorar os produtos e fornecer uma melhor experiência de gerenciamento de conhecimento. Muito obrigado pelo seu apoio!",
   "goToTab1": "Ir para aba #1",
   "goToTab2": "Ir para aba #2",
@@ -463,6 +464,8 @@
   "switchDirect": "Alternar direção de comparação",
   "onlySearchForDoc": "<code class='fn__code'>[[</code> apenas pesquisa documentos",
   "onlySearchForDocTip": "Quando ativado, [[ ou 【【 para pesquisar referências de bloco apenas em nomes de documentos",
+  "pasteURLAutoConvert": "Converter automaticamente URL colada em link",
+  "pasteURLAutoConvertTip": "Quando ativado, colar uma URL que começa com http:// ou https:// a converte automaticamente em um link clicável",
   "ocrResult": "Texto do resultado OCR",
   "reOCR": "Refazer OCR",
   "continueReview1": "Continuar Revisão",
@@ -1181,7 +1184,7 @@
   "md29": "Número de espaços Tab",
   "md30": "Substitui por espaços apenas quando Tab é pressionado, não substitui tabs (Tab) na área de transferência por espaços",
   "md31": "Quebra de linha do bloco de código",
-  "md32": "Quando ativado, o conteúdo no bloco de código quebrará linha automaticamente",
+  "md32": "Quando ativado, o conteúdo que exceder a largura do bloco de código quebrará linha automaticamente",
   "md33": "Referência Virtual",
   "md34": "Quando ativado, identificará automaticamente a possível relação de referência de acordo com o nome, apelido e texto âncora da referência de bloco existente",
   "md35": "Lista de exclusão de palavras-chave de Referência Virtual",
@@ -1454,7 +1457,6 @@
     "task.database.index": "Executar índice do banco de dados",
     "task.database.index.commit": "Executar commit do índice do banco de dados",
     "task.database.index.ref": "Executar índice de referência do banco de dados",
-    "task.database.index.fix": "Executar correção do índice do banco de dados",
     "task.ocr.image": "Executar OCR de imagem para extrair texto",
     "task.history.generateFile": "Executar geração de documento do histórico do banco de dados",
     "task.history.database.index.full": "Executar reconstrução do índice do histórico do banco de dados",
@@ -1768,6 +1770,7 @@
     "282": "Fechar janela",
     "283": "Senha",
     "284": "Acesso negado",
-    "285": "A senha está incorreta"
+    "285": "A senha está incorreta",
+    "286": "[%s] já foi revertido"
   }
 }

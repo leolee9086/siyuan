@@ -22,6 +22,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -373,7 +374,7 @@ func Export2Liandi(id string) (err error) {
 		case 404:
 			foundArticle = false
 		default:
-			err = errors.New(fmt.Sprintf("get liandi article info failed [sc=%d]", resp.StatusCode))
+			err = fmt.Errorf("get liandi article info failed [sc=%d]", resp.StatusCode)
 			return
 		}
 	}
@@ -396,7 +397,7 @@ func Export2Liandi(id string) (err error) {
 	request = request.
 		SetSuccessResult(result).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
-		SetBody(map[string]interface{}{
+		SetBody(map[string]any{
 			"articleTitle":   title,
 			"articleTags":    tags,
 			"articleContent": content})
@@ -544,13 +545,13 @@ func ExportDataInFolder(exportFolder string) (name string, err error) {
 
 		_, _, tempExportFree := util.GetDiskUsage(util.TempDir)
 		if int64(tempExportFree) < dataSize*2 { // 压缩 zip 文件时需要 data 的两倍空间
-			err = errors.New(fmt.Sprintf(Conf.Language(242), humanize.BytesCustomCeil(tempExportFree, 2), humanize.BytesCustomCeil(uint64(dataSize)*2, 2)))
+			err = fmt.Errorf(Conf.Language(242), humanize.BytesCustomCeil(tempExportFree, 2), humanize.BytesCustomCeil(uint64(dataSize)*2, 2))
 			return
 		}
 
 		_, _, targetExportFree := util.GetDiskUsage(exportFolder)
 		if int64(targetExportFree) < dataSize { // 复制 zip 最多需要 data 一样的空间
-			err = errors.New(fmt.Sprintf(Conf.Language(242), humanize.BytesCustomCeil(targetExportFree, 2), humanize.BytesCustomCeil(uint64(dataSize), 2)))
+			err = fmt.Errorf(Conf.Language(242), humanize.BytesCustomCeil(targetExportFree, 2), humanize.BytesCustomCeil(uint64(dataSize), 2))
 			return
 		}
 	}
@@ -610,7 +611,7 @@ func exportData(exportFolder string) (zipPath string, err error) {
 	data := filepath.Join(util.WorkspaceDir, "data")
 	if err = filelock.Copy(data, exportFolder); err != nil {
 		logging.LogErrorf("copy data dir from [%s] to [%s] failed: %s", data, baseFolderName, err)
-		err = errors.New(fmt.Sprintf(Conf.Language(14), err.Error()))
+		err = fmt.Errorf(Conf.Language(14), err.Error())
 		return
 	}
 
@@ -816,7 +817,7 @@ func ExportDocx(id, savePath string, removeAssets, merge bool) (fullPath string,
 		argStr := strings.Join(args, " ")
 		msg := gulu.DecodeCmdOutput(output)
 		logging.LogErrorf("export docx [%s] failed: %s", argStr, msg)
-		err = errors.New(fmt.Sprintf(Conf.Language(14), msg))
+		err = fmt.Errorf(Conf.Language(14), msg)
 		return
 	}
 
@@ -824,14 +825,14 @@ func ExportDocx(id, savePath string, removeAssets, merge bool) (fullPath string,
 	fullPath = util.GetUniqueFilename(fullPath)
 	if err = filelock.Copy(tmpDocxPath, fullPath); err != nil {
 		logging.LogErrorf("export docx failed: %s", err)
-		err = errors.New(fmt.Sprintf(Conf.Language(14), err))
+		err = fmt.Errorf(Conf.Language(14), err)
 		return
 	}
 
 	if tmpAssets := filepath.Join(tmpDir, "assets"); !removeAssets && gulu.File.IsDir(tmpAssets) {
 		if err = filelock.Copy(tmpAssets, filepath.Join(savePath, "assets")); err != nil {
 			logging.LogErrorf("export docx failed: %s", err)
-			err = errors.New(fmt.Sprintf(Conf.Language(14), err))
+			err = fmt.Errorf(Conf.Language(14), err)
 			return
 		}
 	}
@@ -1012,7 +1013,7 @@ func ExportMarkdownHTML(id, savePath string, docx, merge bool) (name, dom string
 	return
 }
 
-func ExportHTML(id, savePath string, pdf, image, keepFold, merge bool) (name, dom string, node *ast.Node) {
+func ExportHTML(id, savePath string, pdf, keepFold, merge bool) (name, dom string, node *ast.Node) {
 	savePath = strings.TrimSpace(savePath)
 
 	bt := treenode.GetBlockTree(id)
@@ -1352,11 +1353,8 @@ func processPDFWatermark(pdfCtx *model.Context, watermark bool) {
 					builtInFontNames = append(builtInFontNames, f)
 				}
 
-				for _, font := range builtInFontNames {
-					if font == m["fontname"] {
-						useDefaultFont = false
-						break
-					}
+				if slices.Contains(builtInFontNames, m["fontname"]) {
+					useDefaultFont = false
 				}
 			}
 		}
@@ -1818,9 +1816,14 @@ func yfm(docIAL map[string]string) string {
 	buf.WriteString(updated)
 	buf.WriteString("\n")
 	if "" != tags {
-		buf.WriteString("tags: [")
-		buf.WriteString(tags)
-		buf.WriteString("]\n")
+		buf.WriteString("tags:\n")
+		tagLines := strings.Split(tags, ",")
+		for _, tag := range tagLines {
+			buf.WriteString("  - '")
+			tag = strings.ReplaceAll(tag, "'", "''")
+			buf.WriteString(tag)
+			buf.WriteString("'\n")
+		}
 	}
 	buf.WriteString("---\n\n")
 	return buf.String()
@@ -1947,9 +1950,7 @@ func exportSYZip(boxID, rootDirPath, baseFolderName string, docPaths []string) (
 	}
 
 	// 将引用树合并到选择树中，以便后面一次性导出资源文件
-	for treeID, tree := range refTrees {
-		trees[treeID] = tree
-	}
+	maps.Copy(trees, refTrees)
 
 	// 导出引用的资源文件
 	assetPathMap, err := allAssetAbsPaths()
@@ -3322,7 +3323,7 @@ func processFileAnnotationRef(refID string, n *ast.Node, fileAnnotationRefMode i
 		logging.LogErrorf("read file [%s] failed: %s", sya, err)
 		return ast.WalkSkipChildren
 	}
-	syaJSON := map[string]interface{}{}
+	syaJSON := map[string]any{}
 	if err = gulu.JSON.UnmarshalJSON(syaData, &syaJSON); err != nil {
 		logging.LogErrorf("unmarshal file [%s] failed: %s", sya, err)
 		return ast.WalkSkipChildren
@@ -3333,8 +3334,8 @@ func processFileAnnotationRef(refID string, n *ast.Node, fileAnnotationRefMode i
 		logging.LogErrorf("not found annotation [%s] in .sya", annotationID)
 		return ast.WalkSkipChildren
 	}
-	pages := annotationData.(map[string]interface{})["pages"].([]interface{})
-	page := int(pages[0].(map[string]interface{})["index"].(float64)) + 1
+	pages := annotationData.(map[string]any)["pages"].([]any)
+	page := int(pages[0].(map[string]any)["index"].(float64)) + 1
 	pageStr := strconv.Itoa(page)
 
 	refText := n.TextMarkTextContent

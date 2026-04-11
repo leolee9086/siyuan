@@ -2,6 +2,7 @@ type TPluginDockPosition = "LeftTop" | "LeftBottom" | "RightTop" | "RightBottom"
 type TDockPosition = "Left" | "Right" | "Bottom"
 type TWS = "main" | "filetree" | "protyle"
 type TDock = "file" | "outline" | "inbox" | "bookmark" | "tag" | "graph" | "globalGraph" | "backlink"
+type TTab = "Outline" | "Graph" | "Backlink" | "Asset" | "Editor" | "Search" | "siyuan-card"
 type TOperation =
     "insert"
     | "update"
@@ -167,7 +168,7 @@ interface ABCVisualObject {
 
 interface Window {
     DOMPurify: {
-        sanitize(dirty: string): string;
+        sanitize(dirty: string, options?: any): string;
     };
     echarts: {
         init(element: Element, theme?: string, options?: {

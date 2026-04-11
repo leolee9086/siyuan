@@ -17,11 +17,9 @@
 package util
 
 import (
-	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"github.com/88250/gulu"
 	figure "github.com/common-nighthawk/go-figure"
@@ -32,7 +30,6 @@ import (
 
 func BootMobile(container, appDir, workspaceBaseDir, lang string) {
 	IncBootProgress(3, "Booting kernel...")
-	rand.Seed(time.Now().UTC().UnixNano())
 	initMime()
 	initHttpClient()
 	ServerPort = FixedPort
@@ -64,7 +61,7 @@ func BootMobile(container, appDir, workspaceBaseDir, lang string) {
 
 	initPathDir()
 	bootBanner := figure.NewFigure("SiYuan", "", true)
-	logging.LogInfof("\n" + bootBanner.String())
+	logging.LogInfof("\n%s", bootBanner.String())
 	logBootInfo()
 }
 

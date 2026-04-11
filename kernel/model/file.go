@@ -279,7 +279,7 @@ func ListDocTree(boxID, listPath string, sortMode int, flashcard, showHidden boo
 	if err != nil {
 		return
 	}
-	elapsed := time.Now().Sub(start).Milliseconds()
+	elapsed := time.Since(start).Milliseconds()
 	if 100 < elapsed {
 		logging.LogWarnf("ls elapsed [%dms]", elapsed)
 	}
@@ -366,7 +366,7 @@ func ListDocTree(boxID, listPath string, sortMode int, flashcard, showHidden boo
 			}
 		}
 	}
-	elapsed = time.Now().Sub(start).Milliseconds()
+	elapsed = time.Since(start).Milliseconds()
 	if 500 < elapsed {
 		logging.LogWarnf("list doc tree [%s] build docs [%d] elapsed [%dms]", listPath, len(docs), elapsed)
 	}
@@ -378,7 +378,7 @@ func ListDocTree(boxID, listPath string, sortMode int, flashcard, showHidden boo
 			doc.Count = count
 		}
 	}
-	elapsed = time.Now().Sub(start).Milliseconds()
+	elapsed = time.Since(start).Milliseconds()
 	if 500 < elapsed {
 		logging.LogWarnf("query root block ref count elapsed [%dms]", elapsed)
 	}
@@ -449,7 +449,7 @@ func ListDocTree(boxID, listPath string, sortMode int, flashcard, showHidden boo
 	}
 	ret = ret[:]
 
-	elapsed = time.Now().Sub(start).Milliseconds()
+	elapsed = time.Since(start).Milliseconds()
 	if 200 < elapsed {
 		logging.LogInfof("sort docs elapsed [%dms]", elapsed)
 	}
@@ -468,7 +468,7 @@ func GetDoc(startID, endID, id string, index int, query string, queryTypes map[s
 	inputIndex := index
 	tree, err := LoadTreeByBlockID(id)
 	if err != nil {
-		if ErrBlockNotFound == err {
+		if errors.Is(err, ErrBlockNotFound) {
 			if 0 == mode {
 				err = ErrTreeNotFound // 初始化打开文档时如果找不到则关闭编辑器
 			}
@@ -754,7 +754,6 @@ func GetDoc(startID, endID, id string, index int, query string, queryTypes map[s
 		keywords[i] = keyword
 	}
 	keywords = gulu.Str.RemoveDuplicatedElem(keywords)
-
 	return
 }
 
@@ -1293,7 +1292,7 @@ func GetIDsByHPath(hpath, boxID string) (ret []string, err error) {
 	return
 }
 
-func MoveDocs(fromPaths []string, toBoxID, toPath string, callback interface{}) (err error) {
+func MoveDocs(fromPaths []string, toBoxID, toPath string, callback any) (err error) {
 	toBox := Conf.Box(toBoxID)
 	if nil == toBox {
 		err = errors.New(Conf.Language(0))
@@ -1372,7 +1371,7 @@ func countSubDocs(box, p string) (ret int) {
 	return
 }
 
-func moveDoc(fromBox *Box, fromPath string, toBox *Box, toPath string, luteEngine *lute.Lute, callback interface{}) (newPath string, err error) {
+func moveDoc(fromBox *Box, fromPath string, toBox *Box, toPath string, luteEngine *lute.Lute, callback any) (newPath string, err error) {
 	isSameBox := fromBox.ID == toBox.ID
 
 	if isSameBox {
@@ -1491,7 +1490,7 @@ func moveDoc(fromBox *Box, fromPath string, toBox *Box, toPath string, luteEngin
 			subToPath := path.Join(toFolder, relPath)
 
 			evt := util.NewCmdResult("moveDoc", 0, util.PushModeBroadcast)
-			evt.Data = map[string]interface{}{
+			evt.Data = map[string]any{
 				"fromNotebook": fromBox.ID,
 				"fromPath":     subFromPath,
 				"toNotebook":   toBox.ID,
@@ -1504,7 +1503,7 @@ func moveDoc(fromBox *Box, fromPath string, toBox *Box, toPath string, luteEngin
 	}
 
 	evt := util.NewCmdResult("moveDoc", 0, util.PushModeBroadcast)
-	evt.Data = map[string]interface{}{
+	evt.Data = map[string]any{
 		"fromNotebook": fromBox.ID,
 		"fromPath":     fromPath,
 		"toNotebook":   toBox.ID,
@@ -1630,8 +1629,12 @@ func removeDoc(box *Box, p string, luteEngine *lute.Lute) (ret *parse.Tree) {
 		}
 	}
 
+	treenode.RemoveBlockTreesByPathPrefix(childrenDir)
+	cache.RemoveDocIAL(ret.Path)
+	cache.RemoveTreeData(ret.ID)
+
 	evt := util.NewCmdResult("removeDoc", 0, util.PushModeBroadcast)
-	evt.Data = map[string]interface{}{
+	evt.Data = map[string]any{
 		"ids": removeIDs,
 	}
 	util.PushEvent(evt)
@@ -1647,10 +1650,7 @@ func removeDoc0(tree *parse.Tree, childrenDir string) {
 		task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, defID)
 	}
 
-	treenode.RemoveBlockTreesByPathPrefix(childrenDir)
 	sql.RemoveTreePathQueue(tree.Box, childrenDir)
-	cache.RemoveDocIAL(tree.Path)
-	cache.RemoveTreeData(tree.ID)
 	return
 }
 
@@ -1709,7 +1709,7 @@ func RenameDoc(boxID, p, title string) (err error) {
 
 		refText := getNodeRefText(tree.Root)
 		evt := util.NewCmdResult("rename", 0, util.PushModeBroadcast)
-		evt.Data = map[string]interface{}{
+		evt.Data = map[string]any{
 			"box":     boxID,
 			"id":      tree.Root.ID,
 			"path":    p,

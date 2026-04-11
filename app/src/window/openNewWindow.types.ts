@@ -5,6 +5,7 @@ export interface WindowCreationParams {
     position?: { x: number; y: number };
     width?: number;
     height?: number;
+    alwaysOnTop?: boolean;
     url: string;
 }
 
@@ -24,6 +25,7 @@ export interface WindowOptions {
     },
     width?: number,
     height?: number,
+    alwaysOnTop?: boolean,
     /**
      * 自定义窗口创建函数，用于替代默认的 IPC 实现
      * 如果不提供，将使用默认的 Electron IPC 通信

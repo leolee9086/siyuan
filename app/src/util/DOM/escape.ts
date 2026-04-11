@@ -62,3 +62,14 @@ export const escapeAriaLabel = (html: string): string => {
     escapedHtml = escapedHtml.replace(/&lt;/g, "&amp;lt;");
     return escapedHtml;
 };
+
+/**
+ * 将 HTML 实体反解码回纯文本。
+ * 调用时机：需要把 contenteditable 中的 innerHTML 还原为文本内容时调用。
+ * @同步豁免: 性能考虑
+ */
+export const decodeHTML = (html: string): string => {
+    const textAreaElement = document.createElement("textarea");
+    textAreaElement.innerHTML = html;
+    return textAreaElement.value;
+};

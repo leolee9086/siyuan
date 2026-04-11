@@ -24,7 +24,7 @@ export const genListItemElement = (listItemElement: Element, offset = 0, wbr = f
         const index = parseInt(listItemElement.getAttribute("data-marker") || "1") + offset;
         element.innerHTML = `<div data-marker="${index + 1}." data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div contenteditable="false" class="protyle-action protyle-action--order" draggable="true">${index + 1}.</div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else if (type === "t") {
-        element.innerHTML = `<div data-marker="*" data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
+        element.innerHTML = `<div data-task=" " data-marker="*" data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else {
         element.innerHTML = `<div data-marker="*" data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     }
@@ -89,16 +89,19 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
             item.setAttribute("data-subtype", subtype);
             const actionElement = item.querySelector(".protyle-action");
             if (subtype === "o") {
+                item.removeAttribute("data-task");
                 actionElement.classList.add("protyle-action--order");
                 actionElement.classList.remove("protyle-action--task");
                 lastPreviousElement.lastElementChild.before(item);
             } else if (subtype === "t") {
                 item.setAttribute("data-marker", "*");
+                item.setAttribute("data-task", " ");
                 actionElement.innerHTML = `<svg><use xlink:href="#icon${item.classList.contains("protyle-task--done") ? "Check" : "Uncheck"}"></use></svg>`;
                 actionElement.classList.remove("protyle-action--order");
                 actionElement.classList.add("protyle-action--task");
                 lastPreviousElement.lastElementChild.before(item);
             } else {
+                item.removeAttribute("data-task");
                 item.setAttribute("data-marker", "*");
                 actionElement.innerHTML = '<svg><use xlink:href="#iconDot"></use></svg>';
                 actionElement.classList.remove("protyle-action--order", "protyle-action--task");
@@ -626,6 +629,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.querySelector(".protyle-action").outerHTML = '<div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>';
             item.setAttribute("data-subtype", "u");
             item.setAttribute("data-marker", "*");
+            item.removeAttribute("data-task");
             item.classList.remove("protyle-task--done");
             doOperations.push({
                 action: "update",
@@ -642,6 +646,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.querySelector(".protyle-action").outerHTML = '<div contenteditable="false" draggable="true" class="protyle-action protyle-action--order">1.</div>';
             item.setAttribute("data-subtype", "o");
             item.setAttribute("data-marker", "1.");
+            item.removeAttribute("data-task");
             doOperations.push({
                 action: "update",
                 id: itemId,
@@ -657,6 +662,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.querySelector(".protyle-action").outerHTML = '<div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>';
             item.setAttribute("data-subtype", "t");
             item.setAttribute("data-marker", "*");
+            item.setAttribute("data-task", " ");
             doOperations.push({
                 action: "update",
                 id: itemId,
@@ -696,6 +702,11 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
                 nextElement.querySelector(".protyle-action").outerHTML = lastBlockElement.querySelector(".protyle-action").outerHTML;
                 nextElement.setAttribute("data-subtype", lastBlockElement.getAttribute("data-subtype"));
                 nextElement.setAttribute("data-marker", lastBlockElement.getAttribute("data-marker"));
+                if (lastBlockElement.hasAttribute("data-task")) {
+                    nextElement.setAttribute("data-task", lastBlockElement.getAttribute("data-task"));
+                } else {
+                    nextElement.removeAttribute("data-task");
+                }
                 doOperations.push({
                     action: "update",
                     id: nextId,

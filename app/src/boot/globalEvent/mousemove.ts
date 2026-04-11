@@ -2,17 +2,39 @@ import {getAllEditor, getAllModels} from "../../layout/getAll";
 import {isWindow} from "../../util/platform/functions";
 import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "../../protyle/util/hasClosest";
 import {getColIndex} from "../../protyle/util/table";
+import {getFirstBlock} from "../../protyle/wysiwyg/getBlock";
 
 const getRightBlock = (element: HTMLElement, x: number, y: number) => {
-    let index = 1;
+    let left = x + 34;
     let nodeElement = element;
     if (nodeElement && nodeElement.classList.contains("protyle-action")) {
         return nodeElement;
     }
-    while (nodeElement && (nodeElement.classList.contains("list") || nodeElement.classList.contains("li"))) {
-        nodeElement = document.elementFromPoint(x + 73 * index, y) as HTMLElement;
+    let lastNodeElement;
+    while (nodeElement && (
+        nodeElement.classList.contains("list") || nodeElement.classList.contains("li") ||
+        nodeElement.classList.contains("bq") || nodeElement.classList.contains("callout")
+    )) {
+        nodeElement = document.elementFromPoint(left, y) as HTMLElement;
+        const calloutInfoElement = hasClosestByClassName(nodeElement, "callout-info");
+        if (calloutInfoElement) {
+            nodeElement = calloutInfoElement;
+            break;
+        }
         nodeElement = hasClosestBlock(nodeElement) as HTMLElement;
-        index++;
+        if (lastNodeElement && lastNodeElement === nodeElement) {
+            break;
+        }
+        lastNodeElement = nodeElement;
+        if (nodeElement) {
+            if (nodeElement.classList.contains("bq") || nodeElement.classList.contains("callout")) {
+                left += 10;
+            } else {
+                left += 34;
+            }
+        } else {
+            left += 34;
+        }
     }
     return nodeElement;
 };
@@ -221,23 +243,26 @@ export const windowMouseMove = (event: MouseEvent, mouseIsEnter: boolean) => {
     if (blockElement && blockElement.style.cursor !== "col-resize" && !hasClosestByClassName(blockElement, "protyle-wysiwyg__embed")) {
         const cellElement = (hasClosestByTag(target, "TH") || hasClosestByTag(target, "TD")) as HTMLTableCellElement;
         const tableElement = blockElement.querySelector("table");
-        if (cellElement && tableElement && tableElement.getAttribute("contenteditable") === "true") {
-            const tableHeight = blockElement.querySelector("colgroup").clientHeight;
-            const captionElement = blockElement.querySelector("caption");
-            const captionHeight = (captionElement && captionElement.style.captionSide !== "bottom") ? captionElement.clientHeight : 0;
+        if (cellElement && tableElement) {
             const resizeElement = blockElement.querySelector(".table__resize");
             if (blockElement.style.textAlign === "center" || blockElement.style.textAlign === "right") {
                 resizeElement.parentElement.style.left = tableElement.offsetLeft + "px";
             } else {
                 resizeElement.parentElement.style.left = "";
             }
-            const rect = cellElement.getBoundingClientRect();
-            if (rect.right - event.clientX < 3 && rect.right - event.clientX > 0) {
-                resizeElement.setAttribute("data-col-index", (getColIndex(cellElement) + cellElement.colSpan - 1).toString());
-                resizeElement.setAttribute("style", `top:${captionHeight}px;height:${tableHeight}px;left: ${Math.round(cellElement.offsetWidth + cellElement.offsetLeft - blockElement.firstElementChild.scrollLeft - 3)}px;display:block`);
-            } else if (event.clientX - rect.left < 3 && event.clientX - rect.left > 0 && cellElement.previousElementSibling) {
-                resizeElement.setAttribute("data-col-index", (getColIndex(cellElement) - 1).toString());
-                resizeElement.setAttribute("style", `top:${captionHeight}px;height:${tableHeight}px;left: ${Math.round(cellElement.offsetLeft - blockElement.firstElementChild.scrollLeft - 3)}px;display:block`);
+
+            if (tableElement.getAttribute("contenteditable") === "true") {
+                const tableHeight = blockElement.querySelector("colgroup").clientHeight;
+                const captionElement = blockElement.querySelector("caption");
+                const captionHeight = (captionElement && captionElement.style.captionSide !== "bottom") ? captionElement.clientHeight : 0;
+                const rect = cellElement.getBoundingClientRect();
+                if (rect.right - event.clientX < 3 && rect.right - event.clientX > 0) {
+                    resizeElement.setAttribute("data-col-index", (getColIndex(cellElement) + cellElement.colSpan - 1).toString());
+                    resizeElement.setAttribute("style", `top:${captionHeight}px;height:${tableHeight}px;left: ${Math.round(cellElement.offsetWidth + cellElement.offsetLeft - blockElement.firstElementChild.scrollLeft - 3)}px;display:block`);
+                } else if (event.clientX - rect.left < 3 && event.clientX - rect.left > 0 && cellElement.previousElementSibling) {
+                    resizeElement.setAttribute("data-col-index", (getColIndex(cellElement) - 1).toString());
+                    resizeElement.setAttribute("style", `top:${captionHeight}px;height:${tableHeight}px;left: ${Math.round(cellElement.offsetLeft - blockElement.firstElementChild.scrollLeft - 3)}px;display:block`);
+                }
             }
         }
     }

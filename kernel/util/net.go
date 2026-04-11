@@ -17,7 +17,9 @@
 package util
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -169,13 +171,11 @@ func isOnline(checkURL string, skipTlsVerify bool, timeout int) (ret bool) {
 			return true
 		}
 
-		switch err.(type) {
-		case *url.Error:
-			if err.(*url.Error).URL != checkURL {
-				// DNS 重定向
-				logging.LogWarnf("network is online [DNS redirect, checkURL=%s, retURL=%s]", checkURL, err.(*url.Error).URL)
-				return true
-			}
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) && urlErr.URL != checkURL {
+			// DNS 重定向
+			logging.LogWarnf("network is online [DNS redirect, checkURL=%s, retURL=%s]", checkURL, urlErr.URL)
+			return true
 		}
 
 		ret = err == nil
@@ -202,11 +202,17 @@ func GetRemoteAddr(req *http.Request) string {
 	return strings.Split(ret, ",")[0]
 }
 
-func JsonArg(c *gin.Context, result *gulu.Result) (arg map[string]interface{}, ok bool) {
-	arg = map[string]interface{}{}
-	if err := c.BindJSON(&arg); err != nil {
+func JsonArg(c *gin.Context, result *gulu.Result) (arg map[string]any, ok bool) {
+	arg = map[string]any{}
+	if err := c.ShouldBindJSON(&arg); err != nil {
 		result.Code = -1
-		result.Msg = "parses request failed"
+		var detail string
+		if errors.Is(err, io.EOF) {
+			detail = "the request body is empty or truncated (EOF)"
+		} else {
+			detail = err.Error()
+		}
+		result.Msg = fmt.Sprintf("Parses request [%s] failed: %s", c.Request.URL.Path, detail)
 		return
 	}
 
@@ -215,15 +221,16 @@ func JsonArg(c *gin.Context, result *gulu.Result) (arg map[string]interface{}, o
 }
 
 // ParseJsonArg 使用泛型从 JSON 参数中提取指定键的值。
-//   - 如果 required 为 true 但参数缺失，则会在 ret.Msg 中写入 “[key] is required”
-//   - 如果参数存在但类型不匹配，则会在 ret.Msg 中写入 “[key] should be [T]”
-//   - 返回值 ok 为 false 时，表示提取失败或类型不匹配
-func ParseJsonArg[T any](key string, required bool, arg map[string]interface{}, ret *gulu.Result) (value T, ok bool) {
+//   - 如果 required 为 true 但参数缺失，则会在 ret.Msg 中说明需要传入的键
+//   - 如果 rejectEmpty 为 true 但参数值为空，则会在 ret.Msg 中说明该键必须不为空
+//   - 如果参数存在但类型不匹配，则会在 ret.Msg 中说明该键期望的类型
+//   - 返回值 ok 为 false 时，表示提取失败、类型不匹配或不满足非空约束
+func ParseJsonArg[T any](key string, arg map[string]any, ret *gulu.Result, required, rejectEmpty bool) (value T, ok bool) {
 	raw, exists := arg[key]
 	if !exists || raw == nil {
 		if required {
 			ret.Code = -1
-			ret.Msg = fmt.Sprintf("[%s] is required", key)
+			ret.Msg = fmt.Sprintf("Field [%s] is required", key)
 		} else {
 			ok = true
 		}
@@ -234,18 +241,56 @@ func ParseJsonArg[T any](key string, required bool, arg map[string]interface{}, 
 	if !ok {
 		var zero T
 		ret.Code = -1
-		ret.Msg = fmt.Sprintf("[%s] should be [%T]", key, zero)
+
+		// 返回对应的 JSON 类型
+		jsonType := ""
+		switch any(zero).(type) {
+		case string:
+			jsonType = "String"
+		case float64:
+			jsonType = "Number"
+		case bool:
+			jsonType = "Boolean"
+		case []any:
+			jsonType = "Array"
+		case map[string]any:
+			jsonType = "Object"
+		default:
+			jsonType = fmt.Sprintf("%T", zero)
+		}
+
+		ret.Msg = fmt.Sprintf("Field [%s] should be of type [%s]", key, jsonType)
+		return
+	}
+
+	if rejectEmpty {
+		var bad bool
+		switch x := any(value).(type) {
+		case string:
+			if t := strings.TrimSpace(x); t == "" {
+				bad = true
+			} else {
+				value = any(t).(T)
+			}
+		case []any:
+			bad = len(x) == 0
+		}
+		if bad {
+			ret.Code = -1
+			ret.Msg = fmt.Sprintf("Field [%s] must not be empty", key)
+			ok = false
+		}
 	}
 	return
 }
 
 // JsonArgParseFunc 为单次提取函数，用于 ParseJsonArgs 批量提取。
-type JsonArgParseFunc func(arg map[string]interface{}, ret *gulu.Result) bool
+type JsonArgParseFunc func(arg map[string]any, ret *gulu.Result) bool
 
 // BindJsonArg 创建一个提取函数：从 arg 取 key 并写入 dest，供 ParseJsonArgs 使用。
-func BindJsonArg[T any](key string, required bool, dest *T) JsonArgParseFunc {
-	return func(arg map[string]interface{}, ret *gulu.Result) bool {
-		v, ok := ParseJsonArg[T](key, required, arg, ret)
+func BindJsonArg[T any](key string, dest *T, required, rejectEmpty bool) JsonArgParseFunc {
+	return func(arg map[string]any, ret *gulu.Result) bool {
+		v, ok := ParseJsonArg[T](key, arg, ret, required, rejectEmpty)
 		if !ok {
 			return false
 		}
@@ -257,7 +302,7 @@ func BindJsonArg[T any](key string, required bool, dest *T) JsonArgParseFunc {
 // ParseJsonArgs 按顺序执行多个提取函数。
 //   - 任一失败返回 false 并在 ret 中写入错误信息
 //   - 全部成功返回 true
-func ParseJsonArgs(arg map[string]interface{}, ret *gulu.Result, extractors ...JsonArgParseFunc) bool {
+func ParseJsonArgs(arg map[string]any, ret *gulu.Result, extractors ...JsonArgParseFunc) bool {
 	for _, ext := range extractors {
 		if !ext(arg, ret) {
 			return false

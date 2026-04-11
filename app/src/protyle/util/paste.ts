@@ -20,6 +20,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { removeZWJ } from "./normalizeText";
 import { base64ToURL } from "../../util/assets/image";
 import { isElectron } from "../../platform";
+import { resolveLinkDest } from "../toolbar/util";
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     const dataType = blockElement.dataset.type;
@@ -585,7 +586,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                     return;
                 } else {
                     // https://github.com/siyuan-note/siyuan/issues/8475
-                    const linkDest = textPlain.startsWith("assets/") ? textPlain : protyle.lute.GetLinkDest(textPlain);
+                    const linkDest = resolveLinkDest(textPlain, protyle.lute);
                     if (linkDest) {
                         protyle.toolbar.setInlineMark(protyle, "a", "range", {
                             type: "a",
@@ -595,7 +596,12 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                     }
                 }
             }
-            let textPlainDom = protyle.lute.Md2BlockDOM(textPlain);
+            let textPlainDom: string;
+            if (window.siyuan.config.editor.pasteURLAutoConvert) {
+                textPlainDom = protyle.lute.Md2BlockDOMWithAutoLink(textPlain);
+            } else {
+                textPlainDom = protyle.lute.Md2BlockDOM(textPlain);
+            }
             if (textPlainDom && textPlainDom.indexOf("data:image/") > -1) {
                 const tempElement = document.createElement("template");
                 tempElement.innerHTML = textPlainDom;

@@ -350,10 +350,13 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
     });
 
     if (isWindow()) {
+        const isAlwaysOnTop = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+            cmd: "isAlwaysOnTop",
+        });
         document.body.insertAdjacentHTML("beforeend", `<div class="toolbar__window">
-<div class="toolbar__item ariaLabel" aria-label="${siyuanI18n.pin}" id="pinWindow">
+<div class="toolbar__item ariaLabel" aria-label="${siyuanI18n[isAlwaysOnTop ? "unpin" : "pin"]}" id="pinWindow">
     <svg>
-        <use xlink:href="#iconPin"></use>
+        <use xlink:href="#icon${isAlwaysOnTop ? "Unpin" : "Pin"}"></use>
     </svg>
 </div></div>`);
         const pinElement = document.getElementById("pinWindow");

@@ -1,3 +1,15 @@
+import { abcRender } from "../render/abcRender";
+import { chartRender } from "../render/chartRender";
+import { flowchartRender } from "../render/flowchartRender";
+import { graphvizRender } from "../render/graphvizRender";
+import { htmlRender } from "../render/htmlRender";
+import { mathRender } from "../render/mathRender";
+import { mermaidRender } from "../render/mermaidRender";
+import { mindmapRender } from "../render/mindmapRender";
+import { plantumlRender } from "../render/plantumlRender";
+import { Constants } from "../../constants";
+import { escapeHtml } from "../../util/DOM/escape";
+
 export const processPasteCode = (html: string, text: string, originalTextHTML: string, protyle: IProtyle) => {
     const tempElement = document.createElement("div");
     tempElement.innerHTML = html;
@@ -21,15 +33,40 @@ export const processPasteCode = (html: string, text: string, originalTextHTML: s
         isCode = true;
     }
     if (isCode) {
-        let code = text || html;
+        const code = text || html;
         if (/\n/.test(code)) {
             return protyle.lute?.Md2BlockDOM(code);
         } else {
-            // Paste code from IDE no longer escape `<` and `>` https://github.com/siyuan-note/siyuan/issues/8340
-            code = code.replace("<", "&lt;").replace(">", "&gt;");
-            return "`" + code + "`";
+            return `<span data-type="code" spellcheck="false">${Constants.ZWSP}${escapeHtml(code)}</span>`;
         }
     }
     return false;
+};
+
+const RENDER_MAP: Record<string, (previewPanel: Element) => void> = {
+    abc: abcRender,
+    plantuml: plantumlRender,
+    mermaid: mermaidRender,
+    flowchart: flowchartRender,
+    echarts: chartRender,
+    mindmap: mindmapRender,
+    graphviz: graphvizRender,
+    math: mathRender,
+};
+
+export const processRender = (previewPanel: Element) => {
+    const language = previewPanel.getAttribute("data-subtype");
+    if (language && RENDER_MAP[language]) {
+        RENDER_MAP[language](previewPanel);
+        return;
+    }
+    if (previewPanel.getAttribute("data-type") === "NodeHTMLBlock") {
+        htmlRender(previewPanel);
+        return;
+    }
+    for (const render of Object.values(RENDER_MAP)) {
+        render(previewPanel);
+    }
+    htmlRender(previewPanel);
 };
 

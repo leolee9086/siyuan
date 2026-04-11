@@ -120,7 +120,7 @@ func (b *BroadcastChannel) HandleRequest(c *gin.Context) {
 	if err := b.WebSocket.HandleRequestWithKeys(
 		c.Writer,
 		c.Request,
-		map[string]interface{}{
+		map[string]any{
 			"channel": b.Name,
 		},
 	); err != nil {
@@ -188,11 +188,8 @@ func (s *EventSourceServer) SendEvent(event *MessageEvent) bool {
 // Subscribe subscribes to specified broadcast channels
 func (s *EventSourceServer) Subscribe(c *gin.Context, retry uint, channels ...string) {
 	wg := sync.WaitGroup{}
-	wg.Add(len(channels))
 	for _, channel := range channels {
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			var broadcastChannel *BroadcastChannel
 			_broadcastChannel, exist := BroadcastChannels.Load(channel)
 			if exist { // channel exists, use it
@@ -201,7 +198,7 @@ func (s *EventSourceServer) Subscribe(c *gin.Context, retry uint, channels ...st
 				broadcastChannel = ConstructBroadcastChannel(channel)
 			}
 			broadcastChannel.Subscriber.Count++
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -376,7 +373,7 @@ type PublishResult struct {
 //	"ws://localhost:6806/ws/broadcast?channel=test"
 func broadcast(c *gin.Context) {
 	var (
-		channel          string = c.Query("channel")
+		channel          = c.Query("channel")
 		broadcastChannel *BroadcastChannel
 	)
 
@@ -687,7 +684,7 @@ func broadcastPublish(c *gin.Context) {
 		}
 	}
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"results": results,
 	}
 }
@@ -722,9 +719,16 @@ func postMessage(c *gin.Context) {
 		return
 	}
 
-	message := arg["message"].(string)
+	var message, channelName string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("message", &message, true, true),
+		util.BindJsonArg("channel", &channelName, true, true),
+	) {
+		return
+	}
+
 	channel := &ChannelInfo{
-		Name:  arg["channel"].(string),
+		Name:  channelName,
 		Count: 0,
 	}
 
@@ -741,7 +745,7 @@ func postMessage(c *gin.Context) {
 			return
 		}
 	}
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"channel": channel,
 	}
 }
@@ -775,8 +779,13 @@ func getChannelInfo(c *gin.Context) {
 		return
 	}
 
+	var name string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("name", &name, true, true)) {
+		return
+	}
+
 	channel := &ChannelInfo{
-		Name:  arg["name"].(string),
+		Name:  name,
 		Count: 0,
 	}
 
@@ -787,7 +796,7 @@ func getChannelInfo(c *gin.Context) {
 		channel.Count = broadcastChannel.SubscriberCount()
 	}
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"channel": channel,
 	}
 }
@@ -819,7 +828,7 @@ func getChannels(c *gin.Context) {
 		})
 		return true
 	})
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"channels": channels,
 	}
 }

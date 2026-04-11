@@ -1,5 +1,12 @@
 ## 功能:
 
+<p align="center">
+<b>English</b>
+| <a href="README_zh_CN.md">中文</a>
+| <a href="README_ja_JP.md">日本語</a>
+| <a href="README_tr_TR.md">Türkçe</a>
+</p>
+
 本仓库是我个人fork用于适应个人使用场景的仓库,所以代码有大量修改.
 
 ## 为什么不pr到原始仓库:

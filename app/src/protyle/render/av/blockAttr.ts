@@ -90,7 +90,7 @@ export const genAVValueHTML = (value: IAVCellValue) => {
         case "mAsset":
             value.mAsset?.forEach(item => {
                 if (item.type === "image") {
-                    html += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${item.content}" src="${getCompressURL(item.content)}">`;
+                    html += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAttr(item.content)}" src="${getCompressURL(encodeURI(item.content))}">`;
                 } else {
                     html += `<span class="b3-chip b3-chip--middle av__celltext--url ariaLabel" aria-label="${escapeAttr(item.content)}" data-name="${escapeAttr(item.name)}" data-url="${escapeAttr(item.content)}">${item.name || item.content}</span>`;
                 }
@@ -138,7 +138,7 @@ export const genAVValueHTML = (value: IAVCellValue) => {
                 if (item && item.block) {
                     const rowID = value.relation.blockIDs[index];
                     if (item?.isDetached) {
-                        html += `<span data-row-id="${rowID}" class="av__cell--relation"><span>➖<span class="fn__space--5"></span></span><span class="av__celltext">${Lute.EscapeHTMLStr(item.block.content || siyuanI18n.untitled)}</span></span>`;
+                        html += `<span data-row-id="${rowID}" class="av__cell--relation"><span><svg style="height: 26px"><use xlink:href="#iconLine"></use></svg><span class="fn__space--5"></span></span><span class="av__celltext">${Lute.EscapeHTMLStr(item.block.content || siyuanI18n.untitled)}</span></span>`;
                     } else {
                         // data-block-id 用于更新 emoji
                         html += `<span data-row-id="${rowID}" class="av__cell--relation" data-block-id="${item.block.id}"><span class="b3-menu__avemoji" data-unicode="${item.block.icon || ""}">${unicode2Emoji(item.block.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file)}</span><span data-type="block-ref" data-id="${item.block.id}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(item.block.content || siyuanI18n.untitled)}</span></span>`;

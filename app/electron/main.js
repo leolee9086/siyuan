@@ -53,8 +53,9 @@ const magiWindows = new Map();
 
 remote.initialize();
 
-app.setPath("userData", app.getPath("userData") + "-Electron"); // `~/.config` 下 Electron 相关文件夹名称改为 `SiYuan-Electron` https://github.com/siyuan-note/siyuan/issues/3349
-fs.rmSync(app.getPath("appData") + "/" + app.name, {recursive: true}); // 删除自动创建的应用目录 https://github.com/siyuan-note/siyuan/issues/13150
+// Electron 相关文件夹名称改为 `SiYuan-Electron` https://github.com/siyuan-note/siyuan/issues/3349
+// getPath("userData") 会创建空的 SiYuan 目录，改为 app.getPath("appData")
+app.setPath("userData", path.join(app.getPath("appData"), app.getName() + "-Electron"));
 
 if (process.platform === "win32") {
     // Windows 需要设置 AppUserModelId 才能正确显示应用名称和应用图标 https://github.com/siyuan-note/siyuan/issues/17022
@@ -70,8 +71,8 @@ if (process.platform === "linux") {
     // S-forge: 上游Wayland IME支持
     app.commandLine.appendSwitch("enable-wayland-ime");
     app.commandLine.appendSwitch("wayland-text-input-version", "3");
-    
-    // S-forge: 本地保留的中文OS X11兼容性处理
+
+    // S-forge: 本地保留的中文 OS X11 兼容性处理
     const desktop = (process.env.XDG_CURRENT_DESKTOP || "").toUpperCase();
     const isChineseOS = [
         "DDE",      // 统信
@@ -532,7 +533,6 @@ const initMainWindow = () => {
         }
         createOrShowMagiWindow(currentWindow);
     });
-
     // 菜单
     const productName = "SiYuan";
     const template = [{
@@ -563,6 +563,21 @@ const initMainWindow = () => {
     });
     workspaces.push({
         browserWindow: currentWindow,
+    });
+    ipcMain.once("siyuan-ready-to-show", () => {
+        if (isOpenAsHidden()) {
+            currentWindow.minimize();
+        } else {
+            currentWindow.show();
+            if (windowState.isMaximized) {
+                currentWindow.maximize();
+            } else {
+                currentWindow.unmaximize();
+            }
+        }
+        if (bootWindow && !bootWindow.isDestroyed()) {
+            bootWindow.destroy();
+        }
     });
 };
 
@@ -975,6 +990,13 @@ app.whenReady().then(() => {
         if (data.cmd === "getContentsId") {
             return event.sender.id;
         }
+        if (data.cmd === "isAlwaysOnTop") {
+            const wnd = getWindowByContentId(event.sender.id);
+            if (!wnd) {
+                return false;
+            }
+            return wnd.isAlwaysOnTop();
+        }
         if (data.cmd === "availableSpellCheckerLanguages") {
             return event.sender.session.availableSpellCheckerLanguages;
         }
@@ -1290,6 +1312,7 @@ app.whenReady().then(() => {
         } else {
             win.center();
         }
+        win.setAlwaysOnTop(data.alwaysOnTop);
         win.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + win.webContents.userAgent;
         win.webContents.session.setSpellCheckerLanguages(["en-US"]);
         win.loadURL(data.url);
@@ -1437,7 +1460,6 @@ app.whenReady().then(() => {
             args: data.openAsHidden ? ["--openAsHidden"] : ""
         });
     });
-
     if (firstOpen) {
         const firstOpenWindow = new BrowserWindow({
             width: Math.floor(screen.getPrimaryDisplay().size.width * 0.6),

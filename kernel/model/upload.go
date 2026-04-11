@@ -34,8 +34,8 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMap map[string]interface{}, err error) {
-	succMap = map[string]interface{}{}
+func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMap map[string]any, err error) {
+	succMap = map[string]any{}
 
 	bt := treenode.GetBlockTree(id)
 	if nil == bt {
@@ -67,7 +67,7 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 			continue
 		}
 
-		if util.IsSubPath(assetsDirPath, assetAbsPath) {
+		if gulu.File.IsSubPath(assetsDirPath, assetAbsPath) {
 			// 已经位于 assets 目录下的资源文件不处理
 			// Dragging a file from the assets folder into the editor causes the kernel to exit https://github.com/siyuan-note/siyuan/issues/15355
 			succMap[baseName] = "assets/" + fName
@@ -105,6 +105,7 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 
 		if "" != existAssetPath && !strings.HasPrefix(hash, "random_") {
 			succMap[baseName] = strings.TrimPrefix(existAssetPath, "/")
+			f.Close()
 		} else {
 			fName = util.AssetName(fName, ast.NewNodeID())
 			writePath := filepath.Join(assetsDirPath, fName)
@@ -170,7 +171,7 @@ func Upload(c *gin.Context) {
 	}
 
 	var errFiles []string
-	succMap := map[string]interface{}{}
+	succMap := map[string]any{}
 	files := form.File["file[]"]
 	skipIfDuplicated := false // 默认不跳过重复文件，但是有的场景需要跳过，比如上传 PDF 标注图片 https://github.com/siyuan-note/siyuan/issues/10666
 	if nil != form.Value["skipIfDuplicated"] {
@@ -226,6 +227,7 @@ func Upload(c *gin.Context) {
 
 		if "" != existAssetPath && !strings.HasPrefix(hash, "random_") {
 			succMap[baseName] = strings.TrimPrefix(existAssetPath, "/")
+			f.Close()
 		} else {
 			if skipIfDuplicated {
 				// 复制 PDF 矩形注解时不再重复插入图片 No longer upload image repeatedly when copying PDF rectangle annotation https://github.com/siyuan-note/siyuan/issues/10666
@@ -342,7 +344,7 @@ func Upload(c *gin.Context) {
 		}
 	}
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"errFiles": errFiles,
 		"succMap":  succMap,
 	}

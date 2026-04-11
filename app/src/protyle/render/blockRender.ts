@@ -176,10 +176,10 @@ const dispatchSearch = (protyle: IProtyle, item: HTMLElement, content: string, b
 
 export const blockRender = (protyle: IProtyle, element: Element, top?: number) => {
     // 默认：查询子元素中的嵌入块
-    let blockElements: Element[] = Array.from(element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]'));
+    let blockElements: Element[] = Array.from(element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]:not([data-render="true"])'));
     // 卫语句：如果元素本身就是嵌入块，则只处理它
     if (element.getAttribute("data-type") === "NodeBlockQueryEmbed") {
-        blockElements = [element];
+        blockElements = element.getAttribute("data-render") === "true" ? [] : [element];
     }
     if (blockElements.length === 0) {
         return;
@@ -190,9 +190,6 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number) =
             continue;
         }
         const item = itemElement;
-        if (item.getAttribute("data-render") === "true") {
-            continue;
-        }
         // 需置于请求返回前，否则快速滚动会导致重复加载 https://ld246.com/article/1666857862494?r=88250
         item.setAttribute("data-render", "true");
         genRenderFrame(item);

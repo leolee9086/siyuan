@@ -48,7 +48,7 @@ func getUniqueFilename(c *gin.Context) {
 	}
 
 	filePath := arg["path"].(string)
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"path": util.GetUniqueFilename(filePath),
 	}
 }
@@ -63,7 +63,7 @@ func globalCopyFiles(c *gin.Context) {
 	}
 
 	var srcs []string
-	srcsArg := arg["srcs"].([]interface{})
+	srcsArg := arg["srcs"].([]any)
 	for _, s := range srcsArg {
 		srcs = append(srcs, s.(string))
 	}
@@ -105,6 +105,104 @@ func globalCopyFiles(c *gin.Context) {
 	model.IncSync()
 }
 
+func workspaceCopyFiles(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	var srcsArg []any
+	var destDirArg string // 相对于工作空间的路径
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("srcs", &srcsArg, true, true),
+		util.BindJsonArg("destDir", &destDirArg, true, false),
+	) {
+		return
+	}
+
+	var relSrcs []string
+	for _, s := range srcsArg {
+		str, ok := s.(string) // 相对于工作空间的路径
+		if !ok {
+			ret.Code = -1
+			ret.Msg = "Field [srcs]: each element should be of type [String]"
+			return
+		}
+		str = strings.TrimSpace(str)
+		if str == "" {
+			ret.Code = -1
+			ret.Msg = "src path must not be empty"
+			return
+		}
+		relSrcs = append(relSrcs, str)
+	}
+
+	destDir, err := util.GetAbsPathInWorkspace(destDirArg)
+	if err != nil {
+		ret.Code = http.StatusForbidden
+		ret.Msg = err.Error()
+		return
+	}
+	if filelock.IsExist(destDir) {
+		destInfo, err := os.Stat(destDir)
+		if err != nil {
+			ret.Code = -1
+			ret.Msg = err.Error()
+			return
+		}
+		if !destInfo.IsDir() {
+			ret.Code = -1
+			ret.Msg = fmt.Sprintf("destDir [%s] is not a directory", destDirArg)
+			return
+		}
+	} else {
+		if err = os.MkdirAll(destDir, 0755); err != nil {
+			logging.LogErrorf("make dir [%s] failed: %s", destDir, err)
+			ret.Code = -1
+			ret.Msg = err.Error()
+			return
+		}
+	}
+
+	var absSrcs []string
+	for _, src := range relSrcs {
+		absSrc, err := util.GetAbsPathInWorkspace(src)
+		if err != nil {
+			ret.Code = http.StatusForbidden
+			ret.Msg = err.Error()
+			return
+		}
+		if !filelock.IsExist(absSrc) {
+			logging.LogErrorf("file [%s] does not exist", src)
+			ret.Code = -1
+			ret.Msg = fmt.Sprintf("file [%s] does not exist", src)
+			return
+		}
+		if util.IsSensitivePath(absSrc) {
+			logging.LogErrorf("refuse to copy sensitive file [%s]", src)
+			ret.Code = -2
+			ret.Msg = fmt.Sprintf("refuse to copy sensitive file [%s]", src)
+			return
+		}
+		absSrcs = append(absSrcs, absSrc)
+	}
+
+	for _, absSrc := range absSrcs {
+		dest := filepath.Join(destDir, filepath.Base(absSrc))
+		if err := filelock.Copy(absSrc, dest); err != nil {
+			logging.LogErrorf("copy file [%s] to [%s] failed: %s", absSrc, dest, err)
+			ret.Code = -1
+			ret.Msg = err.Error()
+			return
+		}
+	}
+
+	model.IncSync()
+}
+
 func copyFile(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -120,7 +218,7 @@ func copyFile(c *gin.Context) {
 		logging.LogErrorf("get asset [%s] abs path failed: %s", src, err)
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
 
@@ -129,14 +227,14 @@ func copyFile(c *gin.Context) {
 		logging.LogErrorf("stat [%s] failed: %s", src, err)
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
 
 	if info.IsDir() {
 		ret.Code = -1
 		ret.Msg = "file is a directory"
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
 
@@ -153,7 +251,7 @@ func copyFile(c *gin.Context) {
 		logging.LogErrorf("copy file [%s] to [%s] failed: %s", src, dest, err)
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
 
@@ -268,7 +366,7 @@ func refuseToAccess(c *gin.Context, fileAbsPath string, ret *gulu.Result) bool {
 
 	// 禁止访问 data/templates 目录
 	templatesBase := normalizeAndResolve(filepath.Join(util.DataDir, "templates"))
-	if util.IsSubPath(templatesBase, fileNorm) {
+	if gulu.File.IsSubPath(templatesBase, fileNorm) {
 		ret.Code = http.StatusForbidden
 		ret.Msg = http.StatusText(http.StatusForbidden)
 		c.JSON(http.StatusAccepted, ret)
@@ -356,7 +454,7 @@ func readDir(c *gin.Context) {
 		return
 	}
 
-	files := []map[string]interface{}{}
+	files := []map[string]any{}
 	for _, entry := range entries {
 		path := filepath.Join(dirAbsPath, entry.Name())
 		info, err = os.Stat(path)
@@ -366,7 +464,7 @@ func readDir(c *gin.Context) {
 			ret.Msg = err.Error()
 			return
 		}
-		files = append(files, map[string]interface{}{
+		files = append(files, map[string]any{
 			"name":      entry.Name(),
 			"isDir":     info.IsDir(),
 			"isSymlink": util.IsSymlink(entry),
@@ -387,7 +485,13 @@ func renameFile(c *gin.Context) {
 		return
 	}
 
-	srcPath := arg["path"].(string)
+	var srcPath string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("path", &srcPath, true, true),
+	) {
+		return
+	}
+
 	srcAbsPath, err := util.GetAbsPathInWorkspace(srcPath)
 	if err != nil {
 		ret.Code = http.StatusForbidden
@@ -434,7 +538,13 @@ func removeFile(c *gin.Context) {
 		return
 	}
 
-	filePath := arg["path"].(string)
+	var filePath string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("path", &filePath, true, true),
+	) {
+		return
+	}
+
 	fileAbsPath, err := util.GetAbsPathInWorkspace(filePath)
 	if err != nil {
 		ret.Code = http.StatusForbidden

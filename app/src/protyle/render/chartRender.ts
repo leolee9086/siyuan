@@ -119,6 +119,8 @@ const renderSingleChart = async (
     if (!(renderElement instanceof HTMLElement)) {
         return;
     }
+    // 需置于异步渲染前，否则快速滚动会导致重复渲染
+    e.setAttribute("data-render", "true");
     const dataContent = e.getAttribute("data-content");
     const defaultHeight = e.style.height || "420px";
 
@@ -137,7 +139,6 @@ const renderSingleChart = async (
     } catch (error) {
         renderChartError(renderElement, defaultHeight, error);
     }
-    e.setAttribute("data-render", "true");
 };
 
 /** 执行图表渲染循环 */
@@ -192,8 +193,8 @@ const loadEchartsAndRender = (
 export const chartRender = (element: Element, cdn = Constants.PROTYLE_CDN): void => {
     const isEchartsBlock = element.getAttribute("data-subtype") === "echarts";
     const echartsElements: Element[] = isEchartsBlock
-        ? [element]
-        : Array.from(element.querySelectorAll('[data-subtype="echarts"]'));
+        ? (element.getAttribute("data-render") === "true" ? [] : [element])
+        : Array.from(element.querySelectorAll('[data-subtype="echarts"]:not([data-render="true"])'));
 
     if (echartsElements.length === 0) {
         return;

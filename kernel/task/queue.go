@@ -35,26 +35,26 @@ var (
 type Task struct {
 	Action  string
 	Handler reflect.Value
-	Args    []interface{}
+	Args    []any
 	Created time.Time
 	Async   bool // 为 true 说明是异步任务，不会阻塞任务队列，满足 Delay 条件后立即执行
 	Delay   time.Duration
 	Timeout time.Duration
 }
 
-func AppendTask(action string, handler interface{}, args ...interface{}) {
+func AppendTask(action string, handler any, args ...any) {
 	appendTaskWithDelayTimeout(action, false, 0, 24*time.Hour, handler, args...)
 }
 
-func AppendAsyncTaskWithDelay(action string, delay time.Duration, handler interface{}, args ...interface{}) {
+func AppendAsyncTaskWithDelay(action string, delay time.Duration, handler any, args ...any) {
 	appendTaskWithDelayTimeout(action, true, delay, 24*time.Hour, handler, args...)
 }
 
-func AppendTaskWithTimeout(action string, timeout time.Duration, handler interface{}, args ...interface{}) {
+func AppendTaskWithTimeout(action string, timeout time.Duration, handler any, args ...any) {
 	appendTaskWithDelayTimeout(action, false, 0, timeout, handler, args...)
 }
 
-func appendTaskWithDelayTimeout(action string, async bool, delay, timeout time.Duration, handler interface{}, args ...interface{}) {
+func appendTaskWithDelayTimeout(action string, async bool, delay, timeout time.Duration, handler any, args ...any) {
 	if util.IsExiting.Load() {
 		//logging.LogWarnf("task queue is paused, action [%s] will be ignored", action)
 		return
@@ -101,7 +101,7 @@ func containTask(task *Task, tasks []*Task) bool {
 }
 
 // areArgsEqual 比较两个参数是否相等
-func areArgsEqual(a, b interface{}) bool {
+func areArgsEqual(a, b any) bool {
 
 	// 如果两个参数都为 nil
 	if a == nil && b == nil {
@@ -200,13 +200,13 @@ func getCurrentTasks() (ret []*Task) {
 }
 
 const (
-	RepoCheckout                    = "task.repo.checkout"                 // 从快照中检出
-	RepoAutoPurge                   = "task.repo.autoPurge"                // 自动清理数据仓库
-	DatabaseIndexFull               = "task.database.index.full"           // 重建索引
-	DatabaseIndex                   = "task.database.index"                // 数据库索引
-	DatabaseIndexCommit             = "task.database.index.commit"         // 数据库索引提交
-	DatabaseIndexRef                = "task.database.index.ref"            // 数据库索引引用
-	DatabaseIndexFix                = "task.database.index.fix"            // 数据库索引订正
+	RepoCheckout        = "task.repo.checkout"         // 从快照中检出
+	RepoAutoPurge       = "task.repo.autoPurge"        // 自动清理数据仓库
+	DatabaseIndexFull   = "task.database.index.full"   // 重建索引
+	DatabaseIndex       = "task.database.index"        // 数据库索引
+	DatabaseIndexCommit = "task.database.index.commit" // 数据库索引提交
+	DatabaseIndexRef    = "task.database.index.ref"    // 数据库索引引用
+
 	OCRImage                        = "task.ocr.image"                     // 图片 OCR 提取文本
 	HistoryGenerateFile             = "task.history.generateFile"          // 生成文件历史
 	HistoryDatabaseIndexFull        = "task.history.database.index.full"   // 历史数据库重建索引
@@ -258,7 +258,7 @@ func ContainIndexTask() bool {
 }
 
 func StatusJob() {
-	var items []map[string]interface{}
+	var items []map[string]any
 	count := map[string]int{}
 	actionLangs := util.TaskActionLangs[util.Lang]
 
@@ -283,7 +283,7 @@ func StatusJob() {
 			}
 		}
 
-		item := map[string]interface{}{"action": action}
+		item := map[string]any{"action": action}
 		items = append(items, item)
 	}
 	defer queueLock.Unlock()
@@ -291,15 +291,15 @@ func StatusJob() {
 	currentTaskLock.Lock()
 	if nil != currentTask && nil != actionLangs && !skipPushTaskAction(currentTask.Action) {
 		if label := actionLangs[currentTask.Action]; nil != label {
-			items = append([]map[string]interface{}{{"action": label.(string)}}, items...)
+			items = append([]map[string]any{{"action": label.(string)}}, items...)
 		}
 	}
 	currentTaskLock.Unlock()
 
 	if 1 > len(items) {
-		items = []map[string]interface{}{}
+		items = []map[string]any{}
 	}
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	data["tasks"] = items
 	util.PushBackgroundTask(data)
 }

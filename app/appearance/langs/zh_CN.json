@@ -1,10 +1,11 @@
 {
+  "copyDoc": "复制全文",
   "position": "位置",
   "insertColumnLeft1": "在左侧插入 ${x} 列",
   "insertColumnRight1": "在右侧插入 ${x} 列",
   "noSplitScreenWhenOpenTab": "打开页签时不分屏",
   "noSplitScreenWhenOpenTabTip": "打开搜索、PDF 等页签时不自动分屏",
-  "useChrome": "仅支持在基于 Chromium 内核的浏览器（比如 Chrome/Edge）中使用，使用其他浏览器会遇到无法解决的兼容性问题",
+  "useChrome": "仅支持在 Chrome 浏览器中使用，使用其他浏览器会遇到无法解决的兼容性问题",
   "clearAllAV": "确认清理所有未引用的数据库？",
   "unreferencedAV": "未引用的数据库",
   "includeSubDocs": "包含子文档",
@@ -287,7 +288,7 @@
   "imported": "导入完成",
   "mirrorTip": "镜像数据库，所有数据更新会同步到其他所有镜像中",
   "includeTime": "具体时间",
-  "accountSupport1": "自 2020 年 8 月 31 日第一次公开发版以来，思源笔记已累计发版超过 830 次，解决用户需求与反馈超过 15000 次，提交代码超过 19800 次，背后无数次的辛勤付出与长期坚持不懈的更新都离不开您的支持与反馈。",
+  "accountSupport1": "自 2020 年 8 月 31 日第一次公开发版以来，思源笔记已累计发版超过 880 次，解决用户需求与反馈超过 16000 次，提交代码超过 22000 次，背后无数次的辛勤付出与长期坚持不懈的更新都离不开您的支持与反馈。",
   "accountSupport2": "您的支持与反馈能够让思源笔记更好地开发与发展下去，我们会一直与用户做朋友，用心做好产品，为您提供更好的知识管理体验。非常感谢您的支持！",
   "goToTab1": "跳转到第一个页签",
   "goToTab2": "跳转到第二个页签",
@@ -463,6 +464,8 @@
   "switchDirect": "交换对比方向",
   "onlySearchForDoc": "<code class='fn__code'>[[</code> 仅搜索文档",
   "onlySearchForDocTip": "启用后使用 [[ 或 【【 搜索块引用时将只在文档名中搜索",
+  "pasteURLAutoConvert": "粘贴网址时自动转为链接",
+  "pasteURLAutoConvertTip": "启用后粘贴 http:// 或 https:// 开头的网址时将自动转为可点击的链接",
   "ocrResult": "OCR 结果文本",
   "reOCR": "重新 OCR",
   "continueReview1": "继续复习",
@@ -1181,7 +1184,7 @@
   "md29": "Tab 空格数",
   "md30": "仅在按下 Tab 时替换为空格，不会将剪切板中的制表符（Tab）替换为空格",
   "md31": "代码块换行",
-  "md32": "启用后代码块中的内容将自动换行",
+  "md32": "启用后超出代码块宽度的内容将自动换行",
   "md33": "虚拟引用",
   "md34": "启用后将自动根据已有块引的命名、别名和锚文本来标识出可能存在的引用关系",
   "md35": "虚拟引用关键字排除列表",
@@ -1454,7 +1457,6 @@
     "task.database.index": "执行数据库索引",
     "task.database.index.commit": "执行数据库索引提交",
     "task.database.index.ref": "执行数据库索引引用",
-    "task.database.index.fix": "执行数据库索引订正",
     "task.ocr.image": "执行图片 OCR 提取文本",
     "task.history.generateFile": "执行生成文件历史",
     "task.history.database.index.full": "执行历史数据库重建索引",
@@ -1768,6 +1770,7 @@
     "282": "关闭窗口",
     "283": "密码",
     "284": "禁止访问",
-    "285": "密码不正确"
+    "285": "密码不正确",
+    "286": "[%s] 已经回滚完毕"
   }
 }

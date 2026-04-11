@@ -23,16 +23,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/88250/lute/html"
 	"github.com/siyuan-note/logging"
 )
-
-func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
 
 func GetDuplicateName(master string) (ret string) {
 	if "" == master {
@@ -40,7 +35,7 @@ func GetDuplicateName(master string) (ret string) {
 	}
 
 	ret = master + " (1)"
-	r := regexp.MustCompile("^(.*) \\((\\d+)\\)$")
+	r := regexp.MustCompile(`^(.*) \((\d+)\)$`)
 	m := r.FindStringSubmatch(master)
 	if nil == m || 3 > len(m) {
 		return
@@ -216,21 +211,6 @@ func GetContainsSubStrs(s string, subStrs []string) (ret []string) {
 	return
 }
 
-func ReplaceStr(strs []string, old, new string) (ret []string, changed bool) {
-	if old == new {
-		return strs, false
-	}
-
-	for i, v := range strs {
-		if v == old {
-			strs[i] = new
-			changed = true
-		}
-	}
-	ret = strs
-	return
-}
-
 func SanitizeSVG(svgInput string) string {
 	// 1. 将字符串解析为节点树
 	doc, err := html.Parse(strings.NewReader(svgInput))
@@ -247,6 +227,9 @@ func SanitizeSVG(svgInput string) string {
 			next := c.NextSibling
 			if c.Type == html.ElementNode {
 				tag := strings.ToLower(c.Data)
+				if i := strings.LastIndex(tag, ":"); i >= 0 {
+					tag = tag[i+1:]
+				}
 				if tag == "script" || tag == "iframe" || tag == "object" || tag == "embed" || tag == "foreignobject" || "animate" == tag ||
 					"animatetransform" == tag || "animatecolor" == tag || "animatemotion" == tag || "set" == tag {
 					n.RemoveChild(c)
@@ -285,9 +268,13 @@ func SanitizeSVG(svgInput string) string {
 							if strings.HasPrefix(val, "javascript:") {
 								continue
 							}
-							// 对 data: 做保守处理，删除包含可执行内容的 data:text/html 或 data:image/svg+xml
+							// 对 data: 做保守处理，只允许常见安全的图片格式（png/jpeg/gif/webp）
 							if strings.HasPrefix(val, "data:") {
-								if strings.Contains(val, "text/html") || strings.Contains(val, "image/svg+xml") || strings.Contains(val, "application/xhtml+xml") {
+								safe := strings.HasPrefix(val, "data:image/png") ||
+									strings.HasPrefix(val, "data:image/jpeg") ||
+									strings.HasPrefix(val, "data:image/gif") ||
+									strings.HasPrefix(val, "data:image/webp")
+								if !safe {
 									continue
 								}
 							}

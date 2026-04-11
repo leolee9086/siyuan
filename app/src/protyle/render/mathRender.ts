@@ -23,9 +23,9 @@ import {genRenderFrame} from "./util";
 function collectMathElements(element: Element): Element[] {
     // 当元素本身就是数学公式块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "math") {
-        return [element];
+        return element.getAttribute("data-render") === "true" ? [] : [element];
     }
-    return Array.from(element.querySelectorAll('[data-subtype="math"]'));
+    return Array.from(element.querySelectorAll('[data-subtype="math"]:not([data-render="true"])'));
 }
 
 const EMPTY_MACROS: IObject = {};

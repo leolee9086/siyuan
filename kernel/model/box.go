@@ -582,7 +582,7 @@ func normalizeTree(tree *parse.Tree) (yfmRootID, yfmTitle, yfmUpdated string) {
 
 		if ast.NodeYamlFrontMatterContent == n.Type {
 			// Parsing YAML Front Matter as document custom attributes when importing Markdown files https://github.com/siyuan-note/siyuan/issues/10878
-			attrs := map[string]interface{}{}
+			attrs := map[string]any{}
 			parseErr := yaml.Unmarshal(n.Tokens, &attrs)
 			if parseErr != nil {
 				logging.LogWarnf("parse YAML front matter [%s] failed: %s", n.Tokens, parseErr)
@@ -798,7 +798,7 @@ func VacuumDataIndex() {
 	util.PushMsg(msg, 7000)
 }
 
-func FullReindex() {
+func FullReindex(needResetScroll bool) {
 	util.PushEndlessProgress(Conf.language(35))
 
 	cache.ClearTreeCache()
@@ -812,7 +812,11 @@ func FullReindex() {
 		ResetVirtualBlockRefCache()
 	}()
 	task.AppendTaskWithTimeout(task.DatabaseIndexEmbedBlock, 30*time.Second, autoIndexEmbedBlock)
-	task.AppendTask(task.ReloadUI, util.ReloadUI)
+	if needResetScroll {
+		task.AppendTask(task.ReloadUI, util.ReloadUIResetScroll)
+	} else {
+		task.AppendTask(task.ReloadUI, util.ReloadUI)
+	}
 }
 
 func fullReindex() {

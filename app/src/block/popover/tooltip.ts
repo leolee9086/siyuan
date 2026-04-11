@@ -233,9 +233,13 @@ export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement)
         tooltipClass = specificTooltip.tooltipClass;
     }
 
+    if (aElement.classList.contains("protyle-attr--memo")) {
+        tip = escapeHtml(tip);
+    }
+
     // 行级备注处理
     // 行级备注处理
-    const memoTip = !tip ? escapeHtml(aElement.getAttribute("data-inline-memo-content") || "") : "";
+    const memoTip = !tip ? window.DOMPurify.sanitize(aElement.getAttribute("data-inline-memo-content") || "") : "";
     // 检查是否存在行级备注内容，如果存在则显示备注
     if (memoTip) {
         tip = memoTip;
@@ -270,11 +274,20 @@ const handleStatAssetResponse = (response: IWebSocketData, tip: string, title: s
     let assetTip = tip;
     // 检查响应码是否为 1（错误），如果是则只显示基本信息
     if (response.code === 1) {
-        showTooltip(title ? assetTip + '<div class="fn__hr"></div><span>' + title + "</span>" : assetTip, aElement, tooltipClass);
+        assetTip = title ? assetTip + '<div class="fn__hr"></div><span>' + title + "</span>" : assetTip;
+        try {
+            showTooltip(decodeURIComponent(assetTip), aElement, tooltipClass);
+        } catch {
+            showTooltip(assetTip, aElement, tooltipClass);
+        }
         return;
     }
     assetTip += ` ${response.data.hSize}${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}<br>${siyuanI18n?.modifiedAt} ${response.data.hUpdated}<br>${siyuanI18n?.createdAt} ${response.data.hCreated}`;
-    showTooltip(assetTip, aElement, tooltipClass);
+    try {
+        showTooltip(decodeURIComponent(assetTip), aElement, tooltipClass);
+    } catch {
+        showTooltip(assetTip, aElement, tooltipClass);
+    }
 };
 
 /**

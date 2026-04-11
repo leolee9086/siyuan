@@ -52,14 +52,8 @@ func statAsset(c *gin.Context) {
 			return
 		}
 
-	} else if strings.HasPrefix(path, "file://") {
-		p = strings.TrimPrefix(path, "file://")
-		if strings.Contains(p, ":") {
-			p = strings.TrimPrefix(p, "/")
-		}
-		if strings.Contains(p, "?") {
-			p = p[:strings.Index(p, "?")]
-		}
+	} else if localPath := util.FileURLToLocalPath(path); localPath != "" {
+		p = localPath
 	} else {
 		ret.Code = 1
 		return
@@ -92,7 +86,7 @@ func statAsset(c *gin.Context) {
 		hCreated = t.BirthTime().Format("2006-01-02 15:04:05")
 	}
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"size":     info.Size(),
 		"hSize":    humanize.IBytesCustomCeil(uint64(info.Size()), 2),
 		"created":  created,
@@ -120,15 +114,15 @@ func getImageOCRText(c *gin.Context) {
 
 	var path string
 	if nil == arg["path"] {
-		ret.Data = map[string]interface{}{
+		ret.Data = map[string]any{
 			"text": "",
 		}
 		return
-	} else {
-		path = arg["path"].(string)
 	}
 
-	ret.Data = map[string]interface{}{
+	path = arg["path"].(string)
+
+	ret.Data = map[string]any{
 		"text": util.GetAssetText(path),
 	}
 }
@@ -170,11 +164,11 @@ func ocr(c *gin.Context) {
 	if nil != err {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 7000}
+		ret.Data = map[string]any{"closeTimeout": 7000}
 		return
 	}
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"text":    util.GetOcrJsonText(ocrJSON),
 		"ocrJSON": ocrJSON,
 	}
@@ -195,10 +189,10 @@ func renameAsset(c *gin.Context) {
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"newPath": newPath,
 	}
 }
@@ -299,7 +293,7 @@ func getFileAnnotation(c *gin.Context) {
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 5000}
+		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
 	}
 	if !filelock.IsExist(readPath) {
@@ -313,7 +307,7 @@ func getFileAnnotation(c *gin.Context) {
 		ret.Msg = err.Error()
 		return
 	}
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"data": string(data),
 	}
 }
@@ -341,7 +335,7 @@ func removeUnusedAsset(c *gin.Context) {
 
 	p := arg["path"].(string)
 	asset := model.RemoveUnusedAsset(p)
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"path": asset,
 	}
 }
@@ -351,7 +345,7 @@ func removeUnusedAssets(c *gin.Context) {
 	defer c.JSON(http.StatusOK, ret)
 
 	paths := model.RemoveUnusedAssets()
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"paths": paths,
 	}
 }
@@ -395,7 +389,7 @@ func resolveAssetPath(c *gin.Context) {
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 3000}
+		ret.Data = map[string]any{"closeTimeout": 3000}
 		return
 	}
 	ret.Data = p
@@ -421,7 +415,7 @@ func uploadCloud(c *gin.Context) {
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 3000}
+		ret.Data = map[string]any{"closeTimeout": 3000}
 		return
 	}
 
@@ -443,7 +437,7 @@ func uploadCloudByAssetsPaths(c *gin.Context) {
 		return
 	}
 
-	pathsArg := arg["paths"].([]interface{})
+	pathsArg := arg["paths"].([]any)
 	var assets []string
 	for _, pathArg := range pathsArg {
 		assets = append(assets, pathArg.(string))
@@ -458,7 +452,7 @@ func uploadCloudByAssetsPaths(c *gin.Context) {
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
-		ret.Data = map[string]interface{}{"closeTimeout": 3000}
+		ret.Data = map[string]any{"closeTimeout": 3000}
 		return
 	}
 
@@ -476,7 +470,7 @@ func insertLocalAssets(c *gin.Context) {
 		return
 	}
 
-	assetPathsArg := arg["assetPaths"].([]interface{})
+	assetPathsArg := arg["assetPaths"].([]any)
 	var assetPaths []string
 	for _, pathArg := range assetPathsArg {
 		assetPaths = append(assetPaths, pathArg.(string))
@@ -493,7 +487,7 @@ func insertLocalAssets(c *gin.Context) {
 		ret.Msg = err.Error()
 		return
 	}
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"succMap": succMap,
 	}
 }

@@ -18,8 +18,8 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 export const htmlRender = (element: Element) => {
     // 当元素自身即为 NodeHTMLBlock 时直接作为目标，否则在子树中查找所有 HTML 块
     const htmlElements: Element[] = element.getAttribute("data-type") === "NodeHTMLBlock"
-        ? [element]
-        : Array.from(element.querySelectorAll('[data-type="NodeHTMLBlock"]'));
+        ? (element.getAttribute("data-render") === "true" ? [] : [element])
+        : Array.from(element.querySelectorAll('[data-type="NodeHTMLBlock"]:not([data-render="true"])'));
 
     // 无匹配的 HTML 块节点时直接返回，避免无意义遍历
     if (htmlElements.length === 0) {
@@ -27,6 +27,7 @@ export const htmlRender = (element: Element) => {
     }
 
     for (const e of htmlElements) {
+        e.setAttribute("data-render", "true");
         // 跳过内部结构不完整的节点，防止空引用
         const firstChild = e.firstElementChild;
         if (!firstChild) {

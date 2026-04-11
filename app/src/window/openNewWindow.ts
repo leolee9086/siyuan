@@ -119,6 +119,9 @@ const buildWindowCreationParams = (options: WindowOptions, url: string): WindowC
     if (options.height !== undefined) {
         params.height = options.height;
     }
+    if (options.alwaysOnTop !== undefined) {
+        params.alwaysOnTop = options.alwaysOnTop;
+    }
     return params;
 };
 

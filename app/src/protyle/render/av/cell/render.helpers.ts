@@ -175,7 +175,7 @@ export const renderAssetCell = (cellValue: IAVCellValue): string => {
     for (const item of assets) {
         // 图片类型：渲染为img标签
         if (item.type === "image") {
-            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${item.content}" src="${getCompressURL(item.content)}">`;
+            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAttr(item.content)}" src="${getCompressURL(encodeURI(item.content))}">`;
             continue;
         }
         // 其他资源类型：渲染为链接chip
@@ -270,7 +270,7 @@ export const renderRelationCell = (cellValue: IAVCellValue, showIcon: boolean): 
         
         // detached状态：关联的block已被删除
         if (item.isDetached) {
-            text += `<span data-row-id="${rowID}" class="av__cell--relation"><span class="${showIcon ? "" : " fn__none"}">➖<span class="fn__space--5"></span></span><span class="av__celltext">${Lute.EscapeHTMLStr(content)}</span></span>`;
+            text += `<span data-row-id="${rowID}" class="av__cell--relation"><span${showIcon ? "" : ' class="fn__none"'}><svg><use xlink:href="#iconLine"></use></svg><span class="fn__space--5"></span></span><span class="av__celltext">${Lute.EscapeHTMLStr(content)}</span></span>`;
             continue;
         }
         

@@ -71,7 +71,8 @@ export class Graph extends Model {
                                 this.searchGraph(false);
                             }
                             break;
-                        case "unmount":
+                        case "closeBox":
+                        case "removeBox":
                             if (this.type === "local" && this.graphData && this.graphData.box === data.data.box) {
                                 this.parent.parent.removeTab(this.parent.id);
                             }
@@ -266,25 +267,23 @@ export class Graph extends Model {
 <button class="b3-button b3-button--small fn__block">${siyuanI18n.reset}</button>`;
         }
         this.element.innerHTML = `<div class="block__icons"> 
-    <div class="block__logo">
+    <div class="block__logo fn__flex-1">
         <svg class="block__logoicon"><use xlink:href="#icon${this.type === "global" ? "GlobalGraph" : "Graph"}"></use></svg>${this.type === "global" ? siyuanI18n.globalGraph : siyuanI18n.graphView}
     </div>
-    <span class="fn__flex-1"></span>
-    <span class="fn__space"></span>
     <input class="b3-text-field search__label fn__size200 fn__none" placeholder="${siyuanI18n.search}" />
-    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.search}"><svg><use xlink:href='#iconFilter'></use></svg></span>
+    <span data-type="search" class="block__icon ariaLabel" data-position="north" aria-label="${siyuanI18n.search}"><svg><use xlink:href='#iconFilter'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
+    <span data-type="refresh" class="block__icon ariaLabel" data-position="north" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
     <div class="fn__space"></div>
-    <div data-type="fullscreen" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${siyuanI18n.fullscreen}">
+    <div data-type="fullscreen" class="ariaLabel block__icon" data-position="north" aria-label="${siyuanI18n.fullscreen}">
         <svg><use xlink:href="#iconFullscreen"></use></svg>
     </div>
     <div class="fn__space"></div>
-    <div data-type="menu" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${siyuanI18n.more}">
+    <div data-type="menu" class="ariaLabel block__icon" data-position="north" aria-label="${siyuanI18n.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
     </div> 
     <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min"  class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
+    <span data-type="min"  class="${this.type === "local" ? "fn__none " : ""}block__icon ariaLabel" data-position="north" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="graph__panel">
     ${panelHTML}

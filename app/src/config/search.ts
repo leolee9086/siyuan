@@ -40,7 +40,7 @@ const buildConfigIndex = (): string[][] => {
         .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.table));
     // @内联数组: 索引顺序必须与标签页DOM顺序一致
     return [
-        getLang(EDITOR_KEYS),
+        getLang([...EDITOR_KEYS, "pasteURLAutoConvert", "pasteURLAutoConvertTip"]),
         getLang(FILE_TREE_KEYS),
         getLang(FLASHCARD_KEYS),
         ["AI"].concat(getLang(AI_KEYS)),

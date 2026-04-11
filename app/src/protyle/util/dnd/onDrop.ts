@@ -219,7 +219,7 @@ export const onDrop = async (
     }
     // 外部文件/HTML 拖拽：无 dragElement 且类型为 Files 或 text/html
     if (!getDragElement()
-        && (event.dataTransfer.types[0] === "Files"
+        && (event.dataTransfer.types.includes("Files")
             || event.dataTransfer.types.includes("text/html"))) {
         await handleExternalDrop(protyle, event);
     }

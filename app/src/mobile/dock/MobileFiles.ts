@@ -57,7 +57,8 @@ export class MobileFiles extends Model {
                                 });
                             });
                             break;
-                        case "unmount":
+                        case "closeBox":
+                        case "removeBox":
                         case "removeDoc":
                             onRemove(this, data);
                             break;
@@ -92,6 +93,7 @@ export class MobileFiles extends Model {
     <svg data-type="refresh" class="toolbar__icon"><use xlink:href="#iconRefresh"></use></svg>
     <svg data-type="focus" class="toolbar__icon"><use xlink:href="#iconFocus"></use></svg>
     <svg data-type="collapse" class="toolbar__icon"><use xlink:href="#iconContract"></use></svg>
+    <svg data-type="publish-access" class="toolbar__icon${window.siyuan.config.readonly || !window.siyuan.config.publish.enable ? " fn__none" : ""}"><use xlink:href="#iconEye"></use></svg>
     <svg data-type="sort" class="toolbar__icon${window.siyuan.config.readonly ? " fn__none" : ""}"><use xlink:href="#iconSort"></use></svg>
 </div>
 <div class="fn__flex-1"></div>
@@ -279,7 +281,8 @@ export class MobileFiles extends Model {
     }
 
     public refreshPublishAccessSwitch() {
-        if (window.siyuan.config.readonly || window.siyuan.isPublish) {
+        if (window.siyuan.config.readonly || window.siyuan.isPublish ||
+            !this.actionsElement.querySelector('[data-type="publish-access"]')?.classList.contains("block__icon--active")) {
             return;
         }
         const ids: string[] = [];

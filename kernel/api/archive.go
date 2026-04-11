@@ -34,15 +34,19 @@ func zip(c *gin.Context) {
 		return
 	}
 
-	entryPath := arg["path"].(string)
+	var entryPath, zipFilePath string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("path", &entryPath, true, false),
+		util.BindJsonArg("zipPath", &zipFilePath, true, false),
+	) {
+		return
+	}
 	entryAbsPath, err := util.GetAbsPathInWorkspace(entryPath)
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
 		return
 	}
-
-	zipFilePath := arg["zipPath"].(string)
 	zipAbsFilePath, err := util.GetAbsPathInWorkspace(zipFilePath)
 	if err != nil {
 		ret.Code = -1
@@ -85,15 +89,19 @@ func unzip(c *gin.Context) {
 		return
 	}
 
-	zipFilePath := arg["zipPath"].(string)
+	var zipFilePath, entryPath string
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("zipPath", &zipFilePath, true, false),
+		util.BindJsonArg("path", &entryPath, true, false),
+	) {
+		return
+	}
 	zipAbsFilePath, err := util.GetAbsPathInWorkspace(zipFilePath)
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
 		return
 	}
-
-	entryPath := arg["path"].(string)
 	entryAbsPath, err := util.GetAbsPathInWorkspace(entryPath)
 	if err != nil {
 		ret.Code = -1

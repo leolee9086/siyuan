@@ -255,6 +255,9 @@ export class Dock {
         if (custom instanceof Custom && custom.parent) {
             custom.parent.parent.removeTab(custom.parent.id);
         }
+        if (this.element.querySelectorAll(".dock__item").length === 1   ) {
+            this.element.classList.add("fn__none");
+        }
         delete this.data[key];
     }
 

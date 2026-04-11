@@ -5,18 +5,48 @@ import { deleteFile } from "../../editor/deleteFile";
 import { openDocHistory } from "../../history/doc";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../layout/dock/dock.environment";
+import { fetchSyncPost } from "../../util/network/fetch";
+import { showMessage } from "../../dialog/message";
+import { encodeBase64 } from "../util/compatibility";
 
 /**
  * 创建复制菜单项
  * @param protyle - 编辑器实例
  */
 export const createProtyleCopyMenu = (protyle: IProtyle) => {
+    const submenu = copySubMenu([protyle.block.rootID], true, undefined, protyle.block.showAll ? protyle.block.id : protyle.block.rootID);
+    submenu.push({
+        iconHTML: "",
+        label: siyuanI18n.copyDoc,
+        accelerator: undefined,
+        click: async () => {
+            const [responseHTML, responseText] = await Promise.all([
+                fetchSyncPost("/api/block/getBlockDOM", { id: protyle.block.rootID }),
+                fetchSyncPost("/api/export/exportMdContent", {
+                    id: protyle.block.rootID,
+                    refMode: 3,
+                    embedMode: 1,
+                    yfm: false,
+                    fillCSSVar: false,
+                    adjustHeadingLevel: false
+                })
+            ]);
+            const textHTML = `<!--data-siyuan='${encodeBase64(responseHTML.data.dom)}'-->${responseHTML.data.dom}`;
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    "text/plain": new Blob([responseText.data.content], { type: "text/plain" }),
+                    "text/html": new Blob([textHTML], { type: "text/html" }),
+                })
+            ]);
+            showMessage(siyuanI18n.copied);
+        }
+    });
     return new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,
         icon: "iconCopy",
         type: "submenu",
-        submenu: copySubMenu([protyle.block.rootID], true, undefined, protyle.block.showAll ? protyle.block.id : protyle.block.rootID)
+        submenu
     });
 };
 

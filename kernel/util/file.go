@@ -79,21 +79,27 @@ func GetUniqueFilename(filePath string) string {
 func GetMimeTypeByExt(filePath string) (ret string) {
 	ret = mime.TypeByExtension(filepath.Ext(filePath))
 	if "" == ret {
-		f, err := filelock.OpenFile(filePath, os.O_RDONLY, 0644)
-		if err != nil {
-			logging.LogErrorf("open file [%s] failed: %s", filePath, err)
-			return
-		}
-		defer filelock.CloseFile(f)
-		m, err := mimetype.DetectReader(f)
-		if err != nil {
-			logging.LogErrorf("detect mime type of [%s] failed: %s", filePath, err)
-			return
-		}
-		if nil != m {
+		if m, ok := GetMimeTypeByPath(filePath); ok {
 			ret = m.String()
 		}
 	}
+	return
+}
+
+func GetMimeTypeByPath(filePath string) (m *mimetype.MIME, ok bool) {
+	f, err := filelock.OpenFile(filePath, os.O_RDONLY, 0644)
+	if err != nil {
+		logging.LogErrorf("open file [%s] failed: %s", filePath, err)
+		return
+	}
+	defer filelock.CloseFile(f)
+
+	m, err = mimetype.DetectReader(f)
+	if nil != err {
+		logging.LogWarnf("detect file [%s] mimetype failed: %v", filePath, err)
+		return
+	}
+	ok = true
 	return
 }
 
@@ -198,13 +204,6 @@ func LastID(p string) (name, id string) {
 		id = id[len(id)-22:]
 	}
 	return
-}
-
-func IsCorruptedSYData(data []byte) bool {
-	if 64 > len(data) || '{' != data[0] {
-		return true
-	}
-	return false
 }
 
 func IsValidUploadFileName(name string) bool {
@@ -315,38 +314,10 @@ func FilterFileName(name string) string {
 	name = strings.ReplaceAll(name, "<", "_")
 	name = strings.ReplaceAll(name, ">", "_")
 	name = strings.ReplaceAll(name, "|", "_")
+	name = RemoveInvalid(name) // Remove invisible characters from file names when uploading assets https://github.com/siyuan-note/siyuan/issues/11683
 	name = strings.TrimSpace(name)
 	name = strings.TrimSuffix(name, ".")
-	name = RemoveInvalid(name) // Remove invisible characters from file names when uploading assets https://github.com/siyuan-note/siyuan/issues/11683
 	return name
-}
-
-func IsSubPath(absPath, toCheckPath string) bool {
-	if 1 > len(absPath) || 1 > len(toCheckPath) {
-		return false
-	}
-	if absPath == toCheckPath { // 相同路径时不认为是子路径
-		return false
-	}
-
-	if gulu.OS.IsWindows() {
-		if filepath.IsAbs(absPath) && filepath.IsAbs(toCheckPath) {
-			if strings.ToLower(absPath)[0] != strings.ToLower(toCheckPath)[0] {
-				// 不在一个盘
-				return false
-			}
-		}
-	}
-
-	up := ".." + string(os.PathSeparator)
-	rel, err := filepath.Rel(absPath, toCheckPath)
-	if err != nil {
-		return false
-	}
-	if !strings.HasPrefix(rel, up) && rel != ".." {
-		return true
-	}
-	return false
 }
 
 func IsCompressibleAssetImage(p string) bool {

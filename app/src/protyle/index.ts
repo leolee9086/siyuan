@@ -226,7 +226,8 @@ export class Protyle {
                                 this.protyle.notebookId = data.data.toNotebook;
                             }
                             break;
-                        case "unmount":
+                        case "closeBox":
+                        case "removeBox":
                             if (this.protyle.notebookId === data.data.box) {
                                 if (isMobile) {
                                     setEmpty(app);
@@ -291,6 +292,11 @@ export class Protyle {
             if (this.protyle.options.backlinkData && ["delete", "move"].includes(item.action)) {
                 // 只对特定情况刷新，否则展开、编辑等操作刷新会频繁
                 if (!isMobile) {
+                    if (2 === data.data[0].doOperations.length &&
+                        "insert" === data.data[0].doOperations[0].action &&
+                        "delete" === data.data[0].doOperations[1].action) {
+                        return true;
+                    }
                     getAllModels().backlink.find(backlinkItem => {
                         if (backlinkItem.element.contains(this.protyle.element)) {
                             backlinkItem.refresh();

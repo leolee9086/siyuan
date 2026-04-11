@@ -20,7 +20,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"math/rand"
 	"mime"
 	"net/http"
 	"net/url"
@@ -32,7 +31,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/88250/go-humanize"
 	"github.com/88250/gulu"
@@ -51,7 +49,7 @@ const (
 	ModeDev   = "dev"
 	ModeForge = "forge"
 
-	Ver       = "3.6.0"
+	Ver       = "3.6.3"
 	IsInsider = false
 )
 
@@ -104,7 +102,6 @@ func coalesceToEnvVar(fromCLI *string, envVarName string) *string {
 func Boot() {
 	initEnvVars()
 	IncBootProgress(3, "Booting kernel...")
-	rand.Seed(time.Now().UTC().UnixNano())
 	initMime()
 	initHttpClient()
 
@@ -137,8 +134,8 @@ func Boot() {
 	ReadOnly, _ = strconv.ParseBool(*readOnly)
 	NoBrowser = *noBrowser
 	AccessAuthCode = *accessAuthCode
-	AccessAuthCode = strings.TrimSpace(AccessAuthCode)
 	AccessAuthCode = RemoveInvalid(AccessAuthCode)
+	AccessAuthCode = strings.TrimSpace(AccessAuthCode)
 	Container = ContainerStd
 	if RunInContainer {
 		Container = ContainerDocker
@@ -190,7 +187,7 @@ func Boot() {
 	initPathDir()
 
 	bootBanner := figure.NewColorFigure("SiYuan", "isometric3", "green", true)
-	logging.LogInfof("\n" + bootBanner.String())
+	logging.LogInfof("\n%s", bootBanner.String())
 	logBootInfo()
 }
 
@@ -284,6 +281,9 @@ func initWorkspaceDir(workspaceArg string) {
 		if userProfile := os.Getenv("USERPROFILE"); "" != userProfile {
 			defaultWorkspaceDir = filepath.Join(userProfile, "SiYuan")
 		}
+	} else if gulu.OS.IsDarwin() {
+		// Change the initial workspace path to ~/Library/Application Support/SiYuan on macOS https://github.com/siyuan-note/siyuan/issues/17095
+		defaultWorkspaceDir = filepath.Join(HomeDir, "Library", "Application Support", "SiYuan")
 	}
 
 	// forge 模式使用独立的工作空间管理，不读写全局 workspace.json
@@ -365,14 +365,14 @@ func ReadWorkspacePaths() (ret []string, err error) {
 	data, err := os.ReadFile(workspaceConf)
 	if err != nil {
 		msg := fmt.Sprintf("read workspace conf [%s] failed: %s", workspaceConf, err)
-		logging.LogErrorf(msg)
+		logging.LogErrorf("%s", msg)
 		err = errors.New(msg)
 		return
 	}
 
 	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		msg := fmt.Sprintf("unmarshal workspace conf [%s] failed: %s", workspaceConf, err)
-		logging.LogErrorf(msg)
+		logging.LogErrorf("%s", msg)
 		err = errors.New(msg)
 		return
 	}
@@ -404,14 +404,14 @@ func WriteWorkspacePaths(workspacePaths []string) (err error) {
 	data, err := gulu.JSON.MarshalJSON(workspacePaths)
 	if err != nil {
 		msg := fmt.Sprintf("marshal workspace conf [%s] failed: %s", workspaceConf, err)
-		logging.LogErrorf(msg)
+		logging.LogErrorf("%s", msg)
 		err = errors.New(msg)
 		return
 	}
 
 	if err = filelock.WriteFile(workspaceConf, data); err != nil {
 		msg := fmt.Sprintf("write workspace conf [%s] failed: %s", workspaceConf, err)
-		logging.LogErrorf(msg)
+		logging.LogErrorf("%s", msg)
 		err = errors.New(msg)
 		return
 	}
@@ -636,5 +636,4 @@ func RemoveDatabaseFile(dbPath string) {
 			return
 		}
 	}
-	return
 }

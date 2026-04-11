@@ -213,7 +213,7 @@ func syncData(exit, byHand bool) {
 
 	if 1 == Conf.Sync.Mode && nil != webSocketConn && Conf.Sync.Perception && dataChanged {
 		// 如果处于自动同步模式且不是由 WS 触发的同步，则通知其他设备上的内核进行同步
-		request := map[string]interface{}{
+		request := map[string]any{
 			"cmd":    "synced",
 			"synced": Conf.Sync.Synced,
 		}
@@ -330,16 +330,14 @@ func upsertIndexes(upsertFilePaths []string) (upsertRootIDs []string) {
 		}
 
 		upsertFile = filepath.ToSlash(upsertFile)
-		if strings.HasPrefix(upsertFile, "/") {
-			upsertFile = upsertFile[1:]
-		}
-		idx := strings.Index(upsertFile, "/")
-		if 0 > idx {
+		upsertFile = strings.TrimPrefix(upsertFile, "/")
+
+		box, _, found := strings.Cut(upsertFile, "/")
+		if !found {
 			// .sy 直接出现在 data 文件夹下，没有出现在笔记本文件夹下的情况
 			continue
 		}
 
-		box := upsertFile[:idx]
 		p := strings.TrimPrefix(upsertFile, box)
 		msg := fmt.Sprintf(Conf.Language(40), util.GetTreeID(p))
 		util.IncBootProgress(bootProgressPart, msg)
@@ -386,13 +384,11 @@ func SetCloudSyncDir(name string) {
 func SetSyncGenerateConflictDoc(b bool) {
 	Conf.Sync.GenerateConflictDoc = b
 	Conf.Save()
-	return
 }
 
 func SetSyncEnable(b bool) {
 	Conf.Sync.Enabled = b
 	Conf.Save()
-	return
 }
 
 func SetSyncInterval(interval int) {
@@ -406,29 +402,27 @@ func SetSyncInterval(interval int) {
 	Conf.Sync.Interval = interval
 	Conf.Save()
 	planSyncAfter(time.Duration(interval) * time.Second)
-	return
 }
 
-func SetSyncPerception(b bool) {
+func SetSyncPerception(enabled bool) {
 	if util.ContainerDocker == util.Container {
-		b = false
+		enabled = false
 	}
 
-	Conf.Sync.Perception = b
+	Conf.Sync.Perception = enabled
 	Conf.Save()
 
-	if b {
+	if enabled {
 		connectSyncWebSocket()
-	} else {
-		closeSyncWebSocket()
+		return
 	}
-	return
+
+	closeSyncWebSocket()
 }
 
 func SetSyncMode(mode int) {
 	Conf.Sync.Mode = mode
 	Conf.Save()
-	return
 }
 
 func SetSyncProvider(provider int) (err error) {
@@ -446,11 +440,6 @@ func SetSyncProviderS3(s3 *conf.S3) (err error) {
 	s3.Region = strings.TrimSpace(s3.Region)
 	s3.Timeout = util.NormalizeTimeout(s3.Timeout)
 	s3.ConcurrentReqs = util.NormalizeConcurrentReqs(s3.ConcurrentReqs, conf.ProviderS3)
-
-	if !cloud.IsValidCloudDirName(s3.Bucket) {
-		util.PushErrMsg(Conf.Language(37), 5000)
-		return
-	}
 
 	Conf.Sync.S3 = s3
 	Conf.Save()
@@ -485,26 +474,26 @@ func SetSyncProviderLocal(local *conf.Local) (err error) {
 	if nil != err {
 		msg := fmt.Sprintf("get endpoint [%s] abs path failed: %s", local.Endpoint, err)
 		logging.LogErrorf(msg)
-		err = errors.New(fmt.Sprintf(Conf.Language(77), msg))
+		err = fmt.Errorf(Conf.Language(77), msg)
 		return
 	}
 	if !gulu.File.IsExist(absPath) {
 		msg := fmt.Sprintf("endpoint [%s] not exist", local.Endpoint)
 		logging.LogErrorf(msg)
-		err = errors.New(fmt.Sprintf(Conf.Language(77), msg))
+		err = fmt.Errorf(Conf.Language(77), msg)
 		return
 	}
 	if util.IsAbsPathInWorkspace(absPath) || filepath.Clean(absPath) == filepath.Clean(util.WorkspaceDir) {
 		msg := fmt.Sprintf("endpoint [%s] is in workspace", local.Endpoint)
 		logging.LogErrorf(msg)
-		err = errors.New(fmt.Sprintf(Conf.Language(77), msg))
+		err = fmt.Errorf(Conf.Language(77), msg)
 		return
 	}
 
-	if util.IsSubPath(absPath, util.WorkspaceDir) {
+	if gulu.File.IsSubPath(absPath, util.WorkspaceDir) {
 		msg := fmt.Sprintf("endpoint [%s] is parent of workspace", local.Endpoint)
 		logging.LogErrorf(msg)
-		err = errors.New(fmt.Sprintf(Conf.Language(77), msg))
+		err = fmt.Errorf(Conf.Language(77), msg)
 		return
 	}
 
@@ -530,7 +519,6 @@ func CreateCloudSyncDir(name string) (err error) {
 		return
 	}
 
-	name = strings.TrimSpace(name)
 	name = util.RemoveInvalid(name)
 	if !cloud.IsValidCloudDirName(name) {
 		return errors.New(Conf.Language(37))
@@ -559,10 +547,6 @@ func RemoveCloudSyncDir(name string) (err error) {
 	}
 
 	msgId := util.PushMsg(Conf.Language(116), 15000)
-
-	if "" == name {
-		return
-	}
 
 	repo, err := newRepository()
 	if err != nil {
@@ -730,27 +714,23 @@ func planSyncAfter(d time.Duration) {
 func isProviderOnline(byHand bool) (ret bool) {
 	var checkURL string
 	skipTlsVerify := false
-	timeout := 3000
 	switch Conf.Sync.Provider {
 	case conf.ProviderSiYuan:
 		checkURL = util.GetCloudSyncServer()
 	case conf.ProviderS3:
 		checkURL = Conf.Sync.S3.Endpoint
 		skipTlsVerify = Conf.Sync.S3.SkipTlsVerify
-		timeout = Conf.Sync.S3.Timeout * 1000
 	case conf.ProviderWebDAV:
 		checkURL = Conf.Sync.WebDAV.Endpoint
 		skipTlsVerify = Conf.Sync.WebDAV.SkipTlsVerify
-		timeout = Conf.Sync.WebDAV.Timeout * 1000
 	case conf.ProviderLocal:
 		checkURL = "file://" + Conf.Sync.Local.Endpoint
-		timeout = Conf.Sync.Local.Timeout * 1000
 	default:
 		logging.LogWarnf("unknown provider: %d", Conf.Sync.Provider)
 		return false
 	}
 
-	if ret = util.IsOnline(checkURL, skipTlsVerify, timeout); !ret {
+	if ret = util.IsOnline(checkURL, skipTlsVerify, 7000); !ret {
 		if 1 > autoSyncErrCount || byHand {
 			util.PushErrMsg(Conf.Language(76)+" (Provider: "+conf.ProviderToStr(Conf.Sync.Provider)+")", 5000)
 		}
@@ -882,7 +862,7 @@ func connectSyncWebSocket() {
 			}
 
 			logging.LogInfof("sync websocket message: %v", result)
-			data := result.Data.(map[string]interface{})
+			data := result.Data.(map[string]any)
 			switch data["cmd"].(string) {
 			case "synced":
 				// Improve data synchronization perception https://github.com/siyuan-note/siyuan/issues/13000
@@ -891,8 +871,8 @@ func connectSyncWebSocket() {
 				onlineKernelsLock.Lock()
 
 				onlineKernels = []*OnlineKernel{}
-				for _, kernel := range data["kernels"].([]interface{}) {
-					kernelMap := kernel.(map[string]interface{})
+				for _, kernel := range data["kernels"].([]any) {
+					kernelMap := kernel.(map[string]any)
 					onlineKernels = append(onlineKernels, &OnlineKernel{
 						ID:       kernelMap["id"].(string),
 						Hostname: kernelMap["hostname"].(string),

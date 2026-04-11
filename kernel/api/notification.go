@@ -18,7 +18,6 @@ package api
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
@@ -34,10 +33,8 @@ func pushMsg(c *gin.Context) {
 		return
 	}
 
-	msg := strings.TrimSpace(arg["msg"].(string))
-	if "" == msg {
-		ret.Code = -1
-		ret.Msg = "msg can't be empty"
+	var msg string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("msg", &msg, true, true)) {
 		return
 	}
 
@@ -47,7 +44,7 @@ func pushMsg(c *gin.Context) {
 	}
 	msgId := util.PushMsg(msg, timeout)
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"id": msgId,
 	}
 }
@@ -61,14 +58,18 @@ func pushErrMsg(c *gin.Context) {
 		return
 	}
 
-	msg := arg["msg"].(string)
+	var msg string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("msg", &msg, true, true)) {
+		return
+	}
+
 	timeout := 7000
 	if nil != arg["timeout"] {
 		timeout = int(arg["timeout"].(float64))
 	}
 	msgId := util.PushErrMsg(msg, timeout)
 
-	ret.Data = map[string]interface{}{
+	ret.Data = map[string]any{
 		"id": msgId,
 	}
 }

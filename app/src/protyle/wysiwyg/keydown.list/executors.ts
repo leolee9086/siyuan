@@ -30,11 +30,13 @@ const toggleTaskStatusDOM = (
     if (isDone) {
         useElement.setAttribute("xlink:href", "#iconUncheck");
         taskItemElement.classList.remove("protyle-task--done");
+        taskItemElement.setAttribute("data-task", " ");
         return false;
     }
     
     useElement.setAttribute("xlink:href", "#iconCheck");
     taskItemElement.classList.add("protyle-task--done");
+    taskItemElement.setAttribute("data-task", "X");
     return true;
 };
 

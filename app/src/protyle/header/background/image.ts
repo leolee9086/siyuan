@@ -114,11 +114,11 @@ export const clickShowRandom = (background: Background, protyle: IProtyle, event
     let html = "";
     for (let index = 0; index < bgs.length; index++) {
         const item = bgs[index];
-        html += `<div data-index="${index}" style="height: 128px;${item}" class="b3-card b3-card--wrap"></div>`;
+        html += `<div data-index="${index}" style="height: 128px;${item}" class="b3-card"></div>`;
     }
     const dialog = new Dialog({
         title: siyuanI18n.builtIn,
-        content: `<div class="b3-cards">${html}</div>`,
+        content: `<div class="b3-cards" style="padding: 16px">${html}</div>`,
         width: isMobile ? "92vw" : "912px",
         height: isMobile ? "80vh" : "70vh",
     });

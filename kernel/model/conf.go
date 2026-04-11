@@ -590,8 +590,8 @@ func InitConf() {
 	if "" != util.AccessAuthCode {
 		Conf.AccessAuthCode = util.AccessAuthCode
 	}
-	Conf.AccessAuthCode = strings.TrimSpace(Conf.AccessAuthCode)
 	Conf.AccessAuthCode = util.RemoveInvalid(Conf.AccessAuthCode)
+	Conf.AccessAuthCode = strings.TrimSpace(Conf.AccessAuthCode)
 
 	if 1 == Conf.DataIndexState {
 		// 上次未正常完成数据索引
@@ -676,7 +676,7 @@ func initLang() {
 			logging.LogErrorf("read language configuration [%s] failed: %s", jsonPath, err)
 			continue
 		}
-		langMap := map[string]interface{}{}
+		langMap := map[string]any{}
 		if err := gulu.JSON.UnmarshalJSON(data, &langMap); err != nil {
 			logging.LogErrorf("parse language configuration failed [%s] failed: %s", jsonPath, err)
 			continue
@@ -684,7 +684,7 @@ func initLang() {
 
 		kernelMap := map[int]string{}
 		label := langMap["_label"].(string)
-		kernelLangs := langMap["_kernel"].(map[string]interface{})
+		kernelLangs := langMap["_kernel"].(map[string]any)
 		for k, v := range kernelLangs {
 			num, convErr := strconv.Atoi(k)
 			if nil != convErr {
@@ -697,10 +697,10 @@ func initLang() {
 		name := langName[:strings.LastIndex(langName, ".")]
 		util.Langs[name] = kernelMap
 
-		util.TimeLangs[name] = langMap["_time"].(map[string]interface{})
-		util.TaskActionLangs[name] = langMap["_taskAction"].(map[string]interface{})
-		util.TrayMenuLangs[name] = langMap["_trayMenu"].(map[string]interface{})
-		util.AttrViewLangs[name] = langMap["_attrView"].(map[string]interface{})
+		util.TimeLangs[name] = langMap["_time"].(map[string]any)
+		util.TaskActionLangs[name] = langMap["_taskAction"].(map[string]any)
+		util.TrayMenuLangs[name] = langMap["_trayMenu"].(map[string]any)
+		util.AttrViewLangs[name] = langMap["_attrView"].(map[string]any)
 	}
 }
 
@@ -850,7 +850,7 @@ func NewLute() (ret *lute.Lute) {
 	ret.SetSpellcheck(Conf.Editor.Spellcheck)
 
 	customEmojiMap := map[string]string{}
-	customEmojis.Range(func(key, value interface{}) bool {
+	customEmojis.Range(func(key, value any) bool {
 		customEmojiMap[key.(string)] = value.(string)
 		return true
 	})
@@ -1259,31 +1259,21 @@ func closeUserGuide() {
 		}
 
 		msgId := util.PushMsg(Conf.language(233), 30000)
-		evt := util.NewCmdResult("unmount", 0, util.PushModeBroadcast)
-		evt.Data = map[string]interface{}{
-			"box": boxID,
-		}
-		util.PushEvent(evt)
 
 		unindex(boxID)
 
 		sql.FlushQueue()
 
-		if removeErr := filelock.Remove(boxDirPath); nil != removeErr {
-			logging.LogErrorf("remove corrupted user guide box [%s] failed: %s", boxDirPath, removeErr)
+		if removeErr := RemoveBox(boxID); nil == removeErr {
+			evt := util.NewCmdResult("removeBox", 0, util.PushModeBroadcast)
+			evt.Data = map[string]any{
+				"box": boxID,
+			}
+			util.PushEvent(evt)
+		} else {
+			logging.LogErrorf("close user guide box [%s] failed: %s", boxID, removeErr)
 			util.PushClearMsg(msgId)
 			continue
-		}
-
-		if avFiles, readAvErr := getUserGuideAVJSONFiles(boxID); nil == readAvErr {
-			for _, avName := range avFiles {
-				avFilePath := filepath.Join(util.DataDir, "storage", "av", avName)
-				if removeErr := filelock.Remove(avFilePath); nil != removeErr {
-					logging.LogErrorf("remove av file [%s] failed: %s", avFilePath, removeErr)
-				} else {
-					logging.LogInfof("removed av file [%s]", avFilePath)
-				}
-			}
 		}
 
 		util.PushClearMsg(msgId)

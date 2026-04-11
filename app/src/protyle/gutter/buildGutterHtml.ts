@@ -142,7 +142,7 @@ const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip
 
     // 处理引用块和标注块，增加缩进
     if (["NodeBlockquote", "NodeCallout"].includes(type || "")) {
-        state.space += 8;
+        state.space += 10;
     }
 };
 
@@ -270,7 +270,7 @@ const handleParentLogic = (nodeElement: Element, parentElement: Element | undefi
 
     // 如果父级元素是引用块或标注块，增加缩进
     if (shouldCheckParent && parentElement && ["NodeBlockquote", "NodeCallout"].includes(parentElement.getAttribute("data-type") || "")) {
-        space = 8;
+        space = 10;
     }
 
     return { hideParent, space, shouldReturn };
@@ -303,18 +303,18 @@ const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: strin
     }
 
     // 生成主按钮 HTML
-    const buttonHTML = `<button class="ariaLabel" data-position="parentW" aria-label="${currentGutterTip}"
+    const buttonHTML = type ? `<button class="ariaLabel" data-position="parentW" aria-label="${currentGutterTip}"
 data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" data-node-id="${dataNodeId}">
 <svg><use xlink:href="#${getIconByType(type || "", nodeElement.getAttribute("data-subtype") || undefined)}"></use></svg>
 <span ${popoverHTML} ${protyle.disabled ? "" : 'draggable="true"'}></span>
-</button>`;
+</button>` : "";
 
     // 生成折叠按钮 HTML（如果需要）
     let foldHTML = "";
     if (type === "NodeListItem" && nodeElement.childElementCount > 3 || type === "NodeHeading") {
         const fold = nodeElement.getAttribute("fold");
         foldHTML = `<button class="ariaLabel" data-position="parentW" aria-label="${siyuanI18n.fold}"
-data-type="fold" style="cursor:inherit;"><svg style="width: 10px${fold && fold === "1" ? "" : ";transform:rotate(90deg)"}"><use xlink:href="#iconPlay"></use></svg></button>`;
+data-type="fold" style="cursor:inherit;"><svg style="width: 10px;${fold && fold === "1" ? "" : "transform:rotate(90deg)"}"><use xlink:href="#iconPlay"></use></svg></button>`;
     }
 
     return { buttonHTML, foldHTML };

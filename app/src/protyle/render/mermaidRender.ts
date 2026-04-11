@@ -17,9 +17,9 @@ import {MermaidConfig} from "./mermaidRender.types";
 function collectMermaidElements(element: Element): Element[] {
     // 当元素本身就是 mermaid 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "mermaid") {
-        return [element];
+        return element.getAttribute("data-render") === "true" ? [] : [element];
     }
-    return Array.from(element.querySelectorAll('[data-subtype="mermaid"]'));
+    return Array.from(element.querySelectorAll('[data-subtype="mermaid"]:not([data-render="true"])'));
 }
 
 /**
@@ -135,6 +135,8 @@ async function renderSingleMermaidElement(
     if (!renderElement || !isHTMLElement(renderElement)) {
         return;
     }
+    // 需置于异步渲染前，否则快速滚动会导致重复渲染
+    item.setAttribute("data-render", "true");
     const dataContent = item.getAttribute("data-content");
     // 无内容时仅插入占位符
     if (!dataContent) {
@@ -147,7 +149,18 @@ async function renderSingleMermaidElement(
         const mermaidData = await getMermaidInstance().render(id, Lute.UnEscapeHTMLStr(dataContent));
         // renderElement.lastElementChild 是刚插入的 div[contenteditable="false"]
         if (renderElement.lastElementChild) {
-            renderElement.lastElementChild.innerHTML = mermaidData.svg;
+            let svg = mermaidData.svg.replace(
+                /(href|src|xlink:href)\s*=\s*["']\\\\/gi,
+                (_match, attrName) => `${attrName}="about:blank"`
+            );
+            svg = window.DOMPurify.sanitize(svg, {
+                USE_PROFILES: { svg: true, svgFilters: true },
+                ADD_TAGS: ["foreignObject", "use", "style"],
+                ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
+                // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
+                HTML_INTEGRATION_POINTS: { foreignobject: true }
+            });
+            renderElement.lastElementChild.innerHTML = svg;
         }
     } catch (e: unknown) {
         const errorElement = document.querySelector("#" + id);
@@ -158,7 +171,6 @@ async function renderSingleMermaidElement(
             errorElement.parentElement?.remove();
         }
     }
-    item.setAttribute("data-render", "true");
 }
 
 /**
@@ -206,7 +218,7 @@ function createIconLoader(cdn: string): () => Promise<Response> {
  * 调用时机：mermaidRender 确认存在待渲染元素后调用
  */
 async function loadAndInitMermaid(cdn: string): Promise<void> {
-    await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.12.0`, "protyleMermaidScript");
+    await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.13.0`, "protyleMermaidScript");
     await addScript(`${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.2`, "protyleMermaidZenumlScript");
 
     const mermaid = getMermaidInstance();

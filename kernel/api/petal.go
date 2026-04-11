@@ -35,8 +35,11 @@ func loadPetals(c *gin.Context) {
 		return
 	}
 
-	frontend := arg["frontend"].(string)
-	isPublish := model.IsReadOnlyRole(model.GetGinContextRole(c))
+	var frontend string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("frontend", &frontend, true, true)) {
+		return
+	}
+	isPublish := model.IsReadOnlyRoleContext(c)
 
 	ret.Data = model.LoadPetals(frontend, isPublish)
 }
@@ -50,10 +53,17 @@ func setPetalEnabled(c *gin.Context) {
 		return
 	}
 
-	packageName := arg["packageName"].(string)
-	enabled := arg["enabled"].(bool)
-	frontend := arg["frontend"].(string)
-	data, err := model.SetPetalEnabled(packageName, enabled, frontend)
+	var packageName, app string
+	var enabled bool
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("packageName", &packageName, true, true),
+		util.BindJsonArg("enabled", &enabled, true, false),
+		util.BindJsonArg("app", &app, false, false),
+	) {
+		return
+	}
+
+	data, err := model.SetPetalEnabled(packageName, enabled)
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
@@ -61,11 +71,6 @@ func setPetalEnabled(c *gin.Context) {
 	}
 
 	ret.Data = data
-
-	var app string
-	if nil != arg["app"] {
-		app = arg["app"].(string)
-	}
 	if enabled {
 		reloadPluginSet := hashset.New(packageName)
 		model.PushReloadPlugin(nil, nil, reloadPluginSet, nil, app)

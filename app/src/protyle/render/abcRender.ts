@@ -64,18 +64,18 @@ const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElem
     if (!renderElement) {
         return;
     }
+    // 需置于异步渲染前，否则快速滚动会导致重复渲染
+    element.setAttribute("data-render", "true");
     renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div contenteditable="false"></div>`;
     const dataContent = element.getAttribute("data-content");
     // 无内容时仅保留占位符
     if (!dataContent) {
-        element.setAttribute("data-render", "true");
         return;
     }
     const abcString = Lute.UnEscapeHTMLStr(dataContent);
     const lastElement = renderElement.lastElementChild;
     // lastElement 是刚插入的 div[contenteditable="false"]，理论上必定存在
     if (!lastElement) {
-        element.setAttribute("data-render", "true");
         return;
     }
     const abcjs = getAbcjsInstance();
@@ -83,16 +83,13 @@ const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElem
     const firstVisual = visualObj[0];
     // renderAbc 返回空数组时无法初始化音频
     if (!firstVisual) {
-        element.setAttribute("data-render", "true");
         return;
     }
     // 浏览器不支持 Web Audio API 时跳过音频控件初始化
     if (!abcjs.synth.supportsAudio()) {
-        element.setAttribute("data-render", "true");
         return;
     }
     await initAbcAudioControls(abcjs, renderElement, firstVisual);
-    element.setAttribute("data-render", "true");
 };
 
 /**
@@ -146,9 +143,9 @@ const initAbcAudioControls = async (
 function collectAbcElements(element: Element): Element[] {
     // 当元素本身就是 abc 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "abc") {
-        return [element];
+        return element.getAttribute("data-render") === "true" ? [] : [element];
     }
-    return Array.from(element.querySelectorAll('[data-subtype="abc"]'));
+    return Array.from(element.querySelectorAll('[data-subtype="abc"]:not([data-render="true"])'));
 }
 
 /**

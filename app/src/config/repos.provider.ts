@@ -1,5 +1,5 @@
 import {isPaidUser, needSubscribe} from "../util/platform/needSubscribe";
-import {fetchPost} from "../util/network/fetch";
+import {fetchPost, fetchSyncPost} from "../util/network/fetch";
 import {showMessage} from "../dialog/message";
 import {getCloudURL} from "./util/about";
 
@@ -329,9 +329,16 @@ export const bindProviderEvent = (element: Element) => {
                     timeout: timeout,
                     concurrentReqs: concurrentReqs,
                 };
-                fetchPost("/api/sync/setSyncProviderS3", {s3}, () => {
-                    window.siyuan.config.sync.s3 = s3;
-                });
+                fetchSyncPost("/api/sync/setSyncProviderS3", {s3})
+                    .then((response) => {
+                        if (response.code === 0 && response.data?.s3) {
+                            window.siyuan.config.sync.s3 = response.data.s3;
+                        }
+                    })
+                    .finally(() => {
+                        fillSyncProviderPanelValues(providerPanelElement);
+                    })
+                    .catch(() => {});
             } else if (window.siyuan.config.sync.provider === 3) {
                 let timeout = parseInt((providerPanelElement.querySelector("#timeout") as HTMLInputElement).value, 10);
                 if (7 > timeout) {
@@ -362,9 +369,16 @@ export const bindProviderEvent = (element: Element) => {
                     timeout: timeout,
                     concurrentReqs: concurrentReqs,
                 };
-                fetchPost("/api/sync/setSyncProviderWebDAV", {webdav}, () => {
-                    window.siyuan.config.sync.webdav = webdav;
-                });
+                fetchSyncPost("/api/sync/setSyncProviderWebDAV", {webdav})
+                    .then((response) => {
+                        if (response.code === 0 && response.data?.webdav) {
+                            window.siyuan.config.sync.webdav = response.data.webdav;
+                        }
+                    })
+                    .finally(() => {
+                        fillSyncProviderPanelValues(providerPanelElement);
+                    })
+                    .catch(() => {});
             } else if (window.siyuan.config.sync.provider === 4) {
                 let timeout = parseInt((providerPanelElement.querySelector("#timeout") as HTMLInputElement).value, 10);
                 if (7 > timeout) {
@@ -386,18 +400,16 @@ export const bindProviderEvent = (element: Element) => {
                     timeout: timeout,
                     concurrentReqs: concurrentReqs,
                 };
-                fetchPost("/api/sync/setSyncProviderLocal", {local}, (response) => {
-                    if (response.code === 0) {
-                        window.siyuan.config.sync.local = response.data.local;
-
-                        const endpoint = providerPanelElement.querySelector<HTMLInputElement>("#endpoint");
-                        if (endpoint) {
-                            endpoint.value = response.data.local.endpoint;
+                fetchSyncPost("/api/sync/setSyncProviderLocal", {local})
+                    .then((response) => {
+                        if (response.code === 0 && response.data?.local) {
+                            window.siyuan.config.sync.local = response.data.local;
                         }
-                    } else {
-                        window.siyuan.config.sync.local = local;
-                    }
-                });
+                    })
+                    .finally(() => {
+                        fillSyncProviderPanelValues(providerPanelElement);
+                    })
+                    .catch(() => {});
             }
         });
     });

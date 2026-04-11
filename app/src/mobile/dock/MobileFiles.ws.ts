@@ -145,17 +145,17 @@ export function onMove(files: MobileFiles, data: {
 /**
  * 作用：处理文档删除或笔记本卸载后的文件树 DOM 更新。
  * 意图：从文件树中移除对应节点，更新关闭笔记本计数器。
- * 调用时机：收到 WebSocket "unmount" 或 "removeDoc" 消息时。
+ * 调用时机：收到 WebSocket "closeBox"、"removeBox" 或 "removeDoc" 消息时。
  * @同步豁免: UI构建
  */
 export function onRemove(files: MobileFiles, data: IWebSocketData) {
     // "doc2heading" 后删除文件或挂载帮助文档前的 unmount
-    if (data.cmd === "unmount") {
+    if (data.cmd === "closeBox" || data.cmd === "removeBox") {
         setNoteBook((notebooks) => {
             const targetElement = files.element.querySelector(`ul[data-url="${data.data.box}"] li[data-path="${"/"}"]`);
             if (targetElement) {
                 targetElement.parentElement.remove();
-                if (Constants.CB_MOUNT_REMOVE !== data.callback) {
+                if (data.cmd === "closeBox") {
                     let closeHTML = "";
                     notebooks.find(item => {
                         if (item.closed) {
@@ -169,7 +169,7 @@ export function onRemove(files: MobileFiles, data: IWebSocketData) {
                 }
             }
         });
-        if (Constants.CB_MOUNT_REMOVE === data.callback) {
+        if (data.cmd === "removeBox") {
             const removeElement = files.closeElement.querySelector(`li[data-url="${data.data.box}"]`);
             if (removeElement) {
                 removeElement.remove();

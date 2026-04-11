@@ -1,10 +1,11 @@
 {
+  "copyDoc": "Gesamten Text kopieren",
   "position": "Position",
   "insertColumnLeft1": "Füge ${x} Spalten links ein",
   "insertColumnRight1": "Füge ${x} Spalten rechts ein",
   "noSplitScreenWhenOpenTab": "Beim Öffnen von Tabs nicht in den Splitscreen wechseln",
   "noSplitScreenWhenOpenTabTip": "Beim Öffnen von Such-, PDF- und ähnlichen Tabs nicht automatisch in den Splitscreen wechseln",
-  "useChrome": "Nur in Browsern mit Chromium-Engine (z. B. Chrome/Edge) unterstützt, die Verwendung anderer Browser kann zu nicht löschbaren Kompatibilitätsproblemen führen",
+  "useChrome": "Nur im Chrome-Browser unterstützt, die Verwendung anderer Browser kann zu nicht behebbaren Kompatibilitätsproblemen führen",
   "clearAllAV": "Bestätigen Sie das Löschen aller nicht referenzierten Datenbanken?",
   "unreferencedAV": "Nicht referenzierte Datenbank",
   "includeSubDocs": "Unterdokumente einbeziehen",
@@ -287,7 +288,7 @@
   "imported": "Import abgeschlossen",
   "mirrorTip": "Datenbank spiegeln, alle Datenaktualisierungen werden mit allen anderen Spiegeln synchronisiert",
   "includeTime": "Zeit einbeziehen",
-  "accountSupport1": "Seit seiner ersten öffentlichen Veröffentlichung am 31. August 2020 wurde SiYuan mehr als 830 Mal veröffentlicht, mehr als 15000 Benutzeranforderungen und -rückmeldungen bearbeitet und mehr als 19800 Codezeilen geschrieben. Ohne Ihre Unterstützung und Rückmeldungen könnten wir das nicht erreichen.",
+  "accountSupport1": "Seit seiner ersten öffentlichen Veröffentlichung am 31. August 2020 wurde SiYuan mehr als 880 Mal veröffentlicht, mehr als 16000 Benutzeranforderungen und -rückmeldungen bearbeitet und mehr als 22000 Codezeilen geschrieben. Ohne Ihre Unterstützung und Rückmeldungen könnten wir das nicht erreichen.",
   "accountSupport2": "Ihre Unterstützung und Rückmeldungen ermöglichen es SiYuan, sich besser zu entwickeln. Wir werden immer Freunde der Benutzer sein, hart daran arbeiten, die Produkte zu verbessern, und Ihnen eine bessere Erfahrung im Wissensmanagement bieten. Vielen Dank für Ihre Unterstützung!",
   "goToTab1": "Gehe zu Tab #1",
   "goToTab2": "Gehe zu Tab #2",
@@ -463,6 +464,8 @@
   "switchDirect": "Vergleichsrichtung wechseln",
   "onlySearchForDoc": "<code class='fn__code'>[[</code> nur Dokumente suchen",
   "onlySearchForDocTip": "Nach der Aktivierung wird [[ oder 【【 verwendet, um nach Blockreferenzen nur in Dokumentnamen zu suchen",
+  "pasteURLAutoConvert": "Eingefügte URLs automatisch in Links umwandeln",
+  "pasteURLAutoConvertTip": "Wenn aktiviert, werden URLs, die mit http:// oder https:// beginnen, beim Einfügen automatisch in klickbare Links umgewandelt",
   "ocrResult": "OCR-Ergebnistext",
   "reOCR": "Re OCR",
   "continueReview1": "Überprüfung fortsetzen",
@@ -1181,7 +1184,7 @@
   "md29": "Anzahl der Tabulatoren",
   "md30": "Ersetzt nur durch Leerzeichen, wenn Tab gedrückt wird, ersetzt keine Tabs (Tab) in der Zwischenablage durch Leerzeichen",
   "md31": "Codeblock-Wraps",
-  "md32": "Nach der Aktivierung wird der Inhalt im Codeblock automatisch umgebrochen",
+  "md32": "Nach der Aktivierung wird Inhalt, der die Breite des Codeblocks überschreitet, automatisch umgebrochen",
   "md33": "Virtuelle Referenz",
   "md34": "Nach der Aktivierung wird sie automatisch mögliche Referenzbeziehungen nach Name, Alias und Ankertext des bestehenden Blockrefs erkennen.",
   "md35": "Virtuelle Referenz-Stichwort-Ausschlussliste",
@@ -1454,7 +1457,6 @@
     "task.database.index": "Datenbankindex ausführen",
     "task.database.index.commit": "Datenbankindex-Bestätigung ausführen",
     "task.database.index.ref": "Datenbankindex-Referenz ausführen",
-    "task.database.index.fix": "Datenbankindex-Reparatur ausführen",
     "task.ocr.image": "Bild-OCR ausführen, um Text zu extrahieren",
     "task.history.generateFile": "Historie-Datenbank-Dokument erstellen ausführen",
     "task.history.database.index.full": "Historie-Datenbank-Index neu erstellen ausführen",
@@ -1768,6 +1770,7 @@
     "282": "Fenster schließen",
     "283": "Passwort",
     "284": "Zugriff verweigert",
-    "285": "Passwort ist falsch"
+    "285": "Passwort ist falsch",
+    "286": "[%s] wurde bereits zurückgesetzt"
   }
 }

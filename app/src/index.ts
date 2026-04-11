@@ -25,7 +25,7 @@ import {
     transactionError
 } from "./dialog/processSystem";
 import { initMessage, showMessage } from "./dialog/message";
-import { getAllTabs } from "./layout/getAll";
+import { getAllModels, getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { getSearch } from "./util/platform/functions";
@@ -38,6 +38,7 @@ import "./export-preview/register";
 // 注册集市广场/发布设置页签类型
 import "./bazaar-hub/register";
 import { isBrowser, isBrowserDesktop } from "./platform";
+import { ipcSend } from "./platform/electron/ipcRenderer";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
 import { setLocalShorthandCount } from "./util/platform/noRelyPCFunction";
@@ -135,6 +136,18 @@ export class App {
                                 window.siyuan.config = data.data;
                                 updateControlAlt();
                                 break;
+                            case "setPublish":
+                                window.siyuan.config.publish = data.data;
+                                if (!window.siyuan.config.publish.enable) {
+                                    getAllModels().files.forEach(item => {
+                                        item.element.classList.remove("file-tree__publish-access--active");
+                                        item.element.querySelectorAll(".b3-list-item__icon").forEach(iconItem => {
+                                            iconItem.classList.remove("fn__none");
+                                            iconItem.nextElementSibling.classList.add("fn__none");
+                                        });
+                                    });
+                                }
+                                break;
                             case "progress":
                                 progressLoading(data);
                                 break;
@@ -154,7 +167,8 @@ export class App {
                                     }
                                 });
                                 break;
-                            case "unmount":
+                            case "closeBox":
+                            case "removeBox":
                                 getAllTabs().forEach((tab) => {
                                     if (tab.headElement) {
                                         const initTab = tab.headElement.getAttribute("data-initdata");
@@ -286,5 +300,7 @@ if (isBrowser) {
         // 防止 Pad 端报错
     };
     window.processIOSPurchaseResponse = processIOSPurchaseResponse;
+} else {
+    ipcSend(Constants.SIYUAN_READY_TO_SHOW);
 }
 console.log(embeddingText("测试"));

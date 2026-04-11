@@ -37,7 +37,7 @@ const showViewer = (srcList: string[], currentSrc?: string) => {
         }
         const li = document.createElement("li");
         const img = document.createElement("img");
-        img.src = item;
+        img.src = encodeURI(item);
         li.appendChild(img);
         imagesElement.appendChild(li);
         if (currentSrc && initialViewIndex === -1 && (currentSrc.endsWith(encodeURI(item)) || currentSrc.endsWith(item))) {

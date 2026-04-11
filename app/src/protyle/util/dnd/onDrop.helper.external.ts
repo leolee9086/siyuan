@@ -62,14 +62,14 @@ export const handleExternalEditorDrop = async (
         return;
     }
     focusByRange(range);
-    const firstType = event.dataTransfer.types[0] ?? "";
+    const hasFiles = event.dataTransfer.types.includes("Files");
     // 本地文件拖入：上传文件（altKey 控制是否作为资源插入）
-    if (firstType === "Files" && !isBrowser()) {
+    if (hasFiles && !isBrowser()) {
         const files = collectFilePaths(event.dataTransfer);
         uploadLocalFiles(files, protyle, !event.altKey);
     }
     // HTML 内容拖入：走粘贴逻辑
-    if (firstType !== "Files" || isBrowser()) {
+    if (!hasFiles || isBrowser()) {
         paste(protyle, event);
     }
     // wysiwyg 可能未初始化
@@ -103,13 +103,13 @@ export const handleExternalAvCellDrop = async (
     if (!event.dataTransfer) {
         return;
     }
-    const firstType = event.dataTransfer.types[0] ?? "";
+    const hasFiles = event.dataTransfer.types.includes("Files");
     // 仅处理 mAsset 类型单元格的文件拖入
     if (getTypeByCellElement(cellElement) !== "mAsset") {
         return;
     }
     // 非文件类型，忽略
-    if (firstType !== "Files") {
+    if (!hasFiles) {
         return;
     }
     // Electron 环境：使用 dragUpload

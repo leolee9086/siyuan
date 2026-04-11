@@ -411,7 +411,7 @@ return;
             genUploadedLabel(responseText, protyle);
         }
     } else if (xhr.status === 0) {
-        showMessage(siyuanI18n.fileTypeError);
+        showMessage(window.siyuan.languages["_kernel"][28]);
     } else {
         if (protyle.options.upload?.error) {
             protyle.options.upload.error(xhr.responseText);

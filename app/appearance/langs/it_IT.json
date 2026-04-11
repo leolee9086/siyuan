@@ -1,10 +1,11 @@
 {
+  "copyDoc": "Copia tutto il testo",
   "position": "Posizione",
   "insertColumnLeft1": "Inserisci ${x} colonne a sinistra",
   "insertColumnRight1": "Inserisci ${x} colonne a destra",
   "noSplitScreenWhenOpenTab": "Non dividere lo schermo all'apertura della scheda",
   "noSplitScreenWhenOpenTabTip": "Non dividere automaticamente lo schermo all'apertura di schede come ricerca, PDF, ecc.",
-  "useChrome": "Supportato solo su browser basati sul motore Chromium (ad es. Chrome/Edge), l'uso di altri browser può causare problemi di compatibilità irrisolvibili",
+  "useChrome": "Supportato solo nel browser Chrome, l'uso di altri browser può causare problemi di compatibilità irrisolvibili",
   "clearAllAV": "Confermare la pulizia di tutti i database non referenziati?",
   "unreferencedAV": "Database non referenziato",
   "includeSubDocs": "Includi sottodocumenti",
@@ -287,7 +288,7 @@
   "imported": "Importazione completata",
   "mirrorTip": "Database specchio, tutti gli aggiornamenti dei dati verranno sincronizzati su tutti gli altri specchi",
   "includeTime": "Includi tempo",
-  "accountSupport1": "Dalla sua prima versione pubblica il 31 agosto 2020, SiYuan è stato rilasciato più di 830 volte, ha risolto più di 15000 richieste e feedback degli utenti, e ha effettuato più di 19800 commit di codice. Non possiamo fare a meno del vostro supporto e feedback.",
+  "accountSupport1": "Dalla sua prima versione pubblica il 31 agosto 2020, SiYuan è stato rilasciato più di 880 volte, ha risolto più di 16000 richieste e feedback degli utenti, e ha effettuato più di 22000 commit di codice. Non possiamo fare a meno del vostro supporto e feedback.",
   "accountSupport2": "Il vostro supporto e feedback consentiranno a SiYuan di svilupparsi meglio. Saremo sempre amici degli utenti, lavoreremo duramente per migliorare il prodotto e offrirvi una migliore esperienza di gestione della conoscenza. Grazie mille per il vostro supporto!",
   "goToTab1": "Vai alla scheda #1",
   "goToTab2": "Vai alla scheda #2",
@@ -463,6 +464,8 @@
   "switchDirect": "Cambia direzione di confronto",
   "onlySearchForDoc": "<code class='fn__code'>[[</code> cerca solo nei documenti",
   "onlySearchForDocTip": "Dopo l'abilitazione, [[ o 【【 per cercare riferimenti di blocchi solo nei nomi dei documenti",
+  "pasteURLAutoConvert": "Converti automaticamente URL incollato in link",
+  "pasteURLAutoConvertTip": "Quando abilitato, incollando un URL che inizia con http:// o https:// verrà automaticamente convertito in un link cliccabile",
   "ocrResult": "Risultato OCR",
   "reOCR": "Ripeti OCR",
   "continueReview1": "Continua la revisione",
@@ -1181,7 +1184,7 @@
   "md29": "Numero di spazi del Tab",
   "md30": "Sostituisce solo con spazi quando si preme Tab, non sostituisce le tabulazioni (Tab) negli appunti con spazi",
   "md31": "Riga a capo automatico nel blocco di codice",
-  "md32": "Dopo l'abilitazione, il contenuto nel blocco di codice verrà avvolto automaticamente",
+  "md32": "Dopo l'abilitazione, il contenuto che supera la larghezza del blocco di codice verrà avvolto automaticamente",
   "md33": "Riferimento virtuale",
   "md34": "Dopo l'abilitazione, identificherà automaticamente la possibile relazione di riferimento in base al nome, alias e testo di ancoraggio del riferimento al blocco esistente",
   "md35": "Lista di esclusione delle parole chiave di riferimento virtuale",
@@ -1454,7 +1457,6 @@
     "task.database.index": "Esegui indice database",
     "task.database.index.commit": "Esegui commit indice database",
     "task.database.index.ref": "Esegui indice riferimento database",
-    "task.database.index.fix": "Esegui correzione indice database",
     "task.ocr.image": "Esegui OCR immagine per estrarre testo",
     "task.history.generateFile": "Esegui generazione documento dal database cronologia",
     "task.history.database.index.full": "Esegui ricostruzione indice database cronologia",
@@ -1768,6 +1770,7 @@
     "282": "Chiudi finestra",
     "283": "Password",
     "284": "Accesso negato",
-    "285": "La password è errata"
+    "285": "La password è errata",
+    "286": "[%s] è già stato ripristinato"
   }
 }

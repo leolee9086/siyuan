@@ -34,6 +34,16 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
+func GetBoxByName(name string) (ret *Box) {
+	for _, box := range Conf.GetOpenedBoxes() {
+		if box.Name == name {
+			ret = box
+			return
+		}
+	}
+	return
+}
+
 func CreateBox(name string) (id string, err error) {
 	name = util.RemoveInvalid(name)
 	if 512 < utf8.RuneCountInString(name) {
@@ -110,7 +120,7 @@ func RemoveBox(boxID string) (err error) {
 	defer boxLock.Delete(boxID)
 
 	if util.IsReservedFilename(boxID) {
-		return errors.New(fmt.Sprintf("can not remove [%s] caused by it is a reserved file", boxID))
+		return fmt.Errorf("can not remove [%s] caused by it is a reserved file", boxID)
 	}
 
 	FlushTxQueue()
@@ -123,7 +133,7 @@ func RemoveBox(boxID string) (err error) {
 		return
 	}
 	if !gulu.File.IsDir(localPath) {
-		return errors.New(fmt.Sprintf("can not remove [%s] caused by it is not a dir", boxID))
+		return fmt.Errorf("can not remove [%s] caused by it is not a dir", boxID)
 	}
 
 	if !isUserGuide {
@@ -147,6 +157,20 @@ func RemoveBox(boxID string) (err error) {
 	if err = filelock.Remove(localPath); err != nil {
 		return
 	}
+
+	if isUserGuide {
+		if avFiles, readAvErr := getUserGuideAVJSONFiles(boxID); nil == readAvErr {
+			for _, avName := range avFiles {
+				avFilePath := filepath.Join(util.DataDir, "storage", "av", avName)
+				if removeErr := filelock.Remove(avFilePath); nil != removeErr {
+					logging.LogErrorf("remove av file [%s] failed: %s", avFilePath, removeErr)
+				} else {
+					logging.LogDebugf("removed av file [%s]", avFilePath)
+				}
+			}
+		}
+	}
+
 	IncSync()
 
 	logging.LogInfof("removed box [%s]", boxID)
@@ -157,8 +181,17 @@ func Unmount(boxID string) {
 	FlushTxQueue()
 
 	unmount0(boxID)
-	evt := util.NewCmdResult("unmount", 0, util.PushModeBroadcast)
-	evt.Data = map[string]interface{}{
+
+	cmdName := "closeBox"
+	if IsUserGuide(boxID) {
+		if err := RemoveBox(boxID); err == nil {
+			cmdName = "removeBox"
+		} else {
+			logging.LogErrorf("close user guide box [%s] failed, fallback to unmount: %s", boxID, err)
+		}
+	}
+	evt := util.NewCmdResult(cmdName, 0, util.PushModeBroadcast)
+	evt.Data = map[string]any{
 		"box": boxID,
 	}
 	util.PushEvent(evt)
