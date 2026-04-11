@@ -26,6 +26,7 @@ import { taskCheckerPlugin } from "./0_lints/task-checker.mjs";
 import { folderItemLimitPlugin } from "./0_lints/folder-item-limit.mjs";
 import { noLongSingleLineCommentPlugin } from "./0_lints/no-long-single-line-comment.mjs";
 import { noNestedFunctionPlugin } from "./0_lints/no-nested-function.mjs";
+import { explicitReturnTypeReasonPlugin } from "./0_lints/explicit-return-type-reason.mjs";
 import { FULL_FIX_REMINDER, 单文件检查提示 } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -225,6 +226,7 @@ const SHARED_PLUGINS = {
     "folder-item-limit": folderItemLimitPlugin,
     "comment-style": noLongSingleLineCommentPlugin,
     "no-nested-function": noNestedFunctionPlugin,
+    "explicit-return-type-reason": explicitReturnTypeReasonPlugin,
 };
 
 const SHARED_RULES = {
@@ -264,6 +266,10 @@ const SHARED_RULES = {
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
+    "explicit-return-type-reason/require-return-type-reason": ["error", {
+        tag: "@显式返回类型原因",
+        minReasonLength: 12,
+    }],
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-non-null-assertion": "error",
     "@typescript-eslint/no-require-imports": "off",
