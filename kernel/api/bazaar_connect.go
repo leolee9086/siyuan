@@ -231,7 +231,7 @@ func loginBazaarPublicAuth(c *gin.Context) {
 	}
 
 	var token string
-	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("token", true, &token)) {
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("token", &token, true, true)) {
 		return
 	}
 
@@ -485,7 +485,7 @@ func removeBazaarSource(c *gin.Context) {
 		return
 	}
 	var sourceID string
-	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("sourceID", true, &sourceID)) {
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("sourceID", &sourceID, true, true)) {
 		return
 	}
 	if err := model.RemoveBazaarSource(sourceID); nil != err {
@@ -508,9 +508,9 @@ func testBazaarSource(c *gin.Context) {
 	}
 	var sourceID, sourceURL, token string
 	if !util.ParseJsonArgs(arg, ret,
-		util.BindJsonArg("sourceID", false, &sourceID),
-		util.BindJsonArg("url", false, &sourceURL),
-		util.BindJsonArg("token", false, &token),
+		util.BindJsonArg("sourceID", &sourceID, false, false),
+		util.BindJsonArg("url", &sourceURL, false, false),
+		util.BindJsonArg("token", &token, false, false),
 	) {
 		return
 	}
@@ -548,7 +548,7 @@ func getBazaarSourcePackages(c *gin.Context) {
 		return
 	}
 	var sourceID string
-	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("sourceID", true, &sourceID)) {
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("sourceID", &sourceID, true, true)) {
 		return
 	}
 
@@ -571,8 +571,8 @@ func publishBazaarPackage(c *gin.Context) {
 	}
 	var packageType, packageName string
 	if !util.ParseJsonArgs(arg, ret,
-		util.BindJsonArg("packageType", true, &packageType),
-		util.BindJsonArg("packageName", true, &packageName),
+		util.BindJsonArg("packageType", &packageType, true, true),
+		util.BindJsonArg("packageName", &packageName, true, true),
 	) {
 		return
 	}
@@ -601,13 +601,13 @@ func installBazaarPackageFromSource(c *gin.Context) {
 	var sourceID, packageType, packageName, version, frontend, keyword string
 	var mode float64
 	if !util.ParseJsonArgs(arg, ret,
-		util.BindJsonArg("sourceID", true, &sourceID),
-		util.BindJsonArg("packageType", false, &packageType),
-		util.BindJsonArg("packageName", false, &packageName),
-		util.BindJsonArg("version", false, &version),
-		util.BindJsonArg("mode", false, &mode),
-		util.BindJsonArg("frontend", false, &frontend),
-		util.BindJsonArg("keyword", false, &keyword),
+		util.BindJsonArg("sourceID", &sourceID, true, true),
+		util.BindJsonArg("packageType", &packageType, false, false),
+		util.BindJsonArg("packageName", &packageName, false, false),
+		util.BindJsonArg("version", &version, false, false),
+		util.BindJsonArg("mode", &mode, false, false),
+		util.BindJsonArg("frontend", &frontend, false, false),
+		util.BindJsonArg("keyword", &keyword, false, false),
 	) {
 		return
 	}

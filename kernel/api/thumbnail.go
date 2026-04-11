@@ -52,7 +52,7 @@ var allowedStaticPrefixes = []struct {
 // 安全策略：
 //   - 仅允许访问静态文件伺服目录下的文件
 //   - 使用 model.GetAssetAbsPath（对于 assets）或路径验证（对于其他目录）
-//   - 所有路径都必须通过 util.IsSubPath 检查
+//   - 所有路径都必须通过 gulu.File.IsSubPath 检查
 //   - 与静态文件路由使用相同的安全策略
 //
 // 参数:
@@ -151,7 +151,7 @@ func resolveAndValidatePath(relativePath string) (string, error) {
 		absPath = filepath.Clean(absPath)
 
 		// 安全检查：必须是基础目录的子路径
-		if !util.IsSubPath(baseDir, absPath) {
+		if !gulu.File.IsSubPath(baseDir, absPath) {
 			return "", &pathError{msg: "path traversal detected", path: relativePath}
 		}
 

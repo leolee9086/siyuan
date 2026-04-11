@@ -665,8 +665,8 @@ func exportBazaarPackage(c *gin.Context) {
 
 	var packageType, packageName string
 	if !util.ParseJsonArgs(arg, ret,
-		util.BindJsonArg("packageType", true, &packageType),
-		util.BindJsonArg("packageName", true, &packageName),
+		util.BindJsonArg("packageType", &packageType, true, true),
+		util.BindJsonArg("packageName", &packageName, true, true),
 	) {
 		return
 	}

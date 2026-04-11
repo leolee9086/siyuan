@@ -27,9 +27,9 @@ function resolveDefaultLang(): string {
  * 调用时机：`bootstrapMagiSiyuan` 每次初始化时调用。
  */
 function getSiyuanRuntime() {
-    const value = Reflect.get(window, "siyuan");
+    const value = Reflect.get(window, "siyuan")||{};
     if (!value || typeof value !== "object") {
-       throw new Error("[magi-entry] window.siyuan is not defined or not an object");
+       console.warn("[magi-entry] window.siyuan is not defined or not an object");
     }
     return value ;
 }
