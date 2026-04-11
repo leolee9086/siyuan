@@ -23,14 +23,7 @@
  */
 export type 触发模式 = "immediate" | "brush" | "toggle";
 
-/**
- * TriggerMode - 触发模式的英文别名
- * 
- * 用途：为国际化场景提供英文类型名
- * 使用场景：英文代码库或对外 API
- * 关联类型：触发模式
- */
-export type TriggerMode = 触发模式;
+
 
 /**
  * 全局上下文接口 - 驱动工具箱智能化的核心数据结构
@@ -242,14 +235,6 @@ export type ITriggerRegistration =
  */
 export type 刷子状态 = "idle" | "active" | "applying";
 
-/**
- * BrushState - 刷子状态的英文别名
- * 
- * 用途：为国际化场景提供英文类型名
- * 使用场景：英文代码库或对外 API
- * 关联类型：刷子状态
- */
-export type BrushState = 刷子状态;
 
 /**
  * 刷子会话 - 刷子模式激活时的运行时状态
@@ -289,8 +274,6 @@ export interface IStyleBrushParameters {
     sourceBlockId?: string;
 }
 
-/** 样式刷子参数的中文别名 */
-export type 样式刷子参数 = IStyleBrushParameters;
 
 /** 样式刷子全局事件处理器集合 (用于避免模块与全局状态污染) */
 export interface IStyleBrushHandlers {

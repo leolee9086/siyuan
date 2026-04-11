@@ -6,58 +6,7 @@
 import type { App } from "../../..";
 import type { Protyle } from "../../../protyle";
 
-/**
- * 搜索上下文 - 在所有事件处理器之间共享的状态和引用
- */
-export interface ISearchContext {
-    /** 应用实例 */
-    app: App;
-    /** 搜索配置 */
-    config: Config.IUILayoutTabSearchConfig;
-    /** 根容器元素 */
-    element: HTMLElement;
-    /** 关闭回调 */
-    closeCB?: () => void;
-    /** 配置更新回调 */
-    updateCB?: (config: Config.IUILayoutTabSearchConfig) => void;
-    /** 搜索预览编辑器 */
-    edit: Protyle;
-    /** 无效引用预览编辑器 */
-    unRefEdit: Protyle;
-    /** 搜索条件数据 */
-    criteriaData: Config.IUILayoutTabSearchConfig[];
-    /** 搜索输入框 */
-    searchInputElement: HTMLInputElement;
-    /** 替换输入框 */
-    replaceInputElement: HTMLInputElement;
-    /** 搜索列表容器 */
-    searchPanelElement: Element;
-    /** 资源面板元素 */
-    assetsElement: HTMLElement;
-    /** 无效引用面板元素 */
-    unRefPanelElement: HTMLElement;
-    /** 本地搜索配置 */
-    localSearch: ISearchAssetOption;
-}
 
-/**
- * 点击事件处理器的返回值
- */
-export interface IClickHandlerResult {
-    /** 是否已处理该事件（true则停止冒泡） */
-    handled: boolean;
-    /** 是否需要更新config（需要传回更新后的config） */
-    updatedConfig?: Config.IUILayoutTabSearchConfig;
-}
-
-/**
- * 点击事件处理器函数类型
- */
-export type TClickHandler = (
-    ctx: ISearchContext,
-    target: HTMLElement,
-    event: MouseEvent
-) => IClickHandlerResult | void;
 
 /**
  * UI 元素引用

@@ -11,14 +11,3 @@ export interface AssetItem {
     path: string;
 }
 
-/**
- * AssetCard 组件的事件定义
- * 
- * @usage 定义 AssetCard 组件向父组件发送的事件
- */
-export type AssetCardEmit = {
-    /** 选中资源时触发 */
-    (e: "select", item: AssetItem): void;
-    /** 图片加载完成导致高度变化时触发 */
-    (e: "heightChange", height: number): void;
-};

@@ -2,15 +2,6 @@ import { createTemporaryModule } from "../../util/lib/code/scripts.executor";
 import type { AssistantResponseState } from "./session.types";
 
 /**
- * 工具调用执行结果类型
- */
-export interface ToolCallResult {
-    success: boolean;
-    result?: any;
-    error?: Error;
-}
-
-/**
  * 工具调用执行器配置
  */
 export interface ToolCallExecutorConfig {

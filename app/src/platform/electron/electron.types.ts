@@ -12,12 +12,3 @@
  * 关联类型：对应 Electron IpcRendererEvent 的简化版本
  */
 export type IpcListener = (event: unknown, ...args: unknown[]) => void;
-
-/**
- * Electron FileFilter 类型的本地定义，避免业务代码直接依赖 electron 类型包。
- * 对应 Electron 的 Electron.FileFilter。
- */
-export interface FileFilter {
-    name: string;
-    extensions: string[];
-}

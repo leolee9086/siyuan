@@ -21,12 +21,7 @@ interface BaseLayerOptions {
   };
 }
 
-// 网络请求特定配置接口
-interface NetworkConfig {
-  methods?: string[];
-  urlDecoder?: (text: string) => string;
-  urlQueryHandler?: (path: string, query?: string | Record<string, any>) => string;
-}
+
 
 // 参数处理器接口
 interface ParameterProcessor {

@@ -215,15 +215,7 @@ export interface IRectBounds {
     bottom: number;
 }
 
-/**
- * 页面位置信息
- */
-export interface IPagePosition {
-    /** 页面索引 */
-    index: number;
-    /** 位置坐标 */
-    positions: number[][];
-}
+
 
 /**
  * 全局变量 rectElement 的类型

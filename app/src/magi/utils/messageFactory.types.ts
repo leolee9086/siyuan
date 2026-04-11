@@ -67,55 +67,7 @@ export interface StreamResult {
     toolArgumentsByName?: Record<string, string[]>;
 }
 
-/**
- * 贤者响应结果
- *
- * 用途：封装单个贤者的响应内容及身份信息
- * 使用场景：投票和Trinity总结阶段使用
- * 关联类型：由 processSagesResponses 产出，传入 processVoting / handleTrinitySummary
- */
-export interface SageResponse {
-    /** 响应内容 */
-    content: string;
-    /** 贤者内部名称 */
-    seel: string;
-    /** 贤者显示名称 */
-    displayName: string;
-    /** 是否要求进入审慎决策模式（由 Melchior 标注） */
-    requiresDeliberation?: boolean;
-    /** 是否发生过工具调用（由流解析实测） */
-    usedToolCall?: boolean;
-}
 
-/**
- * 共识消息
- *
- * 用途：表示MAGI系统经投票和Trinity总结后产生的共识结果
- * 使用场景：共识面板展示最终决策
- */
-export interface ConsensusMessage {
-    /** 消息类型（固定为 "consensus"） */
-    type: "consensus";
-    /** 共识内容 */
-    content: string;
-    /** 状态 */
-    status: string;
-    /** 共识元数据 */
-    meta: {
-        /** 共识模式（普通统合/重要任务） */
-        mode: "standard" | "critical";
-        /** 来源（统合结果/反刍入口） */
-        source: "dominant-synthesis" | "rumination-entry";
-        /** 重要任务模式下的三方表决结果 */
-        vote?: VoteResult;
-        /** Melchior 在该轮是否发起工具调用（实测） */
-        melchiorUsedToolCall?: boolean;
-        /** 当前轮次 Trinity 输出是否可作为下一轮三贤者历史 */
-        trinityHistoryEligible?: boolean;
-    };
-    /** 时间戳 */
-    timestamp: number;
-}
 
 /**
  * 投票结果

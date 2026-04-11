@@ -289,8 +289,6 @@ export const routerOptionsSchema = z.object({
 });
 
 // 使用 z.infer 推导类型
-export type RequestLike = z.infer<typeof requestLikeSchema>
-export type ResponseLike = z.infer<typeof responseLikeSchema>
 export type Context<
   TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
   TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
@@ -298,12 +296,6 @@ export type Context<
 export type RouteOptions = z.infer<typeof routeOptionsSchema>
 export type RouterOptions = z.infer<typeof routerOptionsSchema>
 
-// 泛型类型推导辅助函数
-export type InferRequestLike<TBodySchema extends z.ZodTypeAny = z.ZodTypeAny> =
-  z.infer<ReturnType<typeof createRequestLikeSchema<TBodySchema>>>
-
-export type InferResponseLike<TBodySchema extends z.ZodTypeAny = z.ZodTypeAny> =
-  z.infer<ReturnType<typeof createResponseLikeSchema<TBodySchema>>>
 
 export type InferContext<
   TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
@@ -311,14 +303,7 @@ export type InferContext<
 > = z.infer<ReturnType<typeof createContextSchema<TRequestBodySchema, TResponseBodySchema>>>
 
 // 导出基础类型定义，方便在其他地方使用
-export type PrimitiveValue = z.infer<typeof primitiveValue>
-export type ArrayValue = z.infer<typeof arrayValue>
-export type Value = z.infer<typeof value>
-export type HeaderValue = z.infer<typeof headerValue>
 export type RequestBodyTypes = z.infer<typeof defaultRequestBodyTypes>
-export type ResponseBodyTypes = z.infer<typeof defaultResponseBodyTypes>
-export type ContextFunction = z.infer<typeof contextFunction>
-export type ResponseFunction = z.infer<typeof responseFunction>
 
 // 中间件函数类型
 export type MiddlewareFunction<
@@ -349,10 +334,7 @@ export interface AllowedMethodsOptions {
   methodNotAllowed?: () => Error
 }
 
-// 静态方法接口
-export interface IRouterStatic {
-  url(path: string, ...args: any[]): string
-}
+
 
 // 包含路由器的中间件接口
 export interface MiddlewareWithRouter {

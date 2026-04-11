@@ -1,17 +1,8 @@
 import type { Component, DefineComponent } from "vue";
-import { Extend } from "zod/v4/core/util.cjs";
 
 // 基础类型定义 - 只包含组件定义，不包含实例
 export type VueComponent = DefineComponent<any, any, any> | Component;
 
-// 获取组件名称的类型辅助函数
-export type ComponentName<T> = T extends { name?: string } ? T["name"] : string;
-
-// 获取组件props的类型辅助函数
-export type ComponentProps<T> = T extends { props?: any } ? T["props"] : any;
-
-// 获取组件emits的类型辅助函数
-export type ComponentEmits<T> = T extends { emits?: any } ? T["emits"] : any;
 
 // Props类型推导
 export type InferProps<T> = T extends DefineComponent<infer P, any, any> ? P : any;
@@ -116,37 +107,10 @@ export type TransformedEmit<TEmit, TTransform> = {
     : TEmit[K];
 };
 
-// 高级类型工具
-export type If<T extends boolean, A, B> = T extends true ? A : B;
 
-export type Extract<T, U> = T extends U ? T : never;
 
-export type Exclude<T, U> = T extends U ? never : T;
 
-export type MapProps<T, F> = {
-  [K in keyof T]: F extends (value: T[K]) => infer R ? R : T[K];
-};
 
-export type MapEmits<T, F> = {
-  [K in keyof T]: F extends (...args: any[]) => infer R ? R : T[K];
-};
-
-export type ValidateProps<T> = T extends Record<string, any> ? T : never;
-
-export type ValidateEmits<T> = T extends Record<string, any> ? T : never;
-
-// 测试相关类型 - 移除jest依赖
-export interface TestWrapperOptions<TProps = any> {
-  mockProps?: Partial<TProps>;
-  mockEmit?: (...args: any[]) => void;
-  spyOn?: boolean;
-}
-
-export interface TestWrapperResult {
-  wrapper: VueComponent;
-  propsSpy: (...args: any[]) => void;
-  emitSpy: (...args: any[]) => void;
-}
 
 // 性能测试结果
 export interface PerformanceResult {

@@ -17,19 +17,7 @@ export interface SEELConfigWithProtocol extends SEELConfiguration {
     protocol: string;
 }
 
-/** SEEL运行时实例 */
-export interface SEELInstance {
-    name: string;
-    color: string;
-    icon: string;
-    responseType: string;
-    baseWeight: number;
-    protocol: string;
-    processor: WISEInstance;
-    messages: Array<{ role: string; content: string }>;
-    status: "standby" | "active" | "error";
-    lastActive: number;
-}
+
 
 /** Marduk验证后的配置 */
 export interface MardukValidatedConfig {
@@ -49,12 +37,7 @@ export interface ConfigMeta {
     isDefault?: boolean;
 }
 
-/** SEEL配置映射 */
-export interface SEELConfigurationMap {
-    melchior: SEELConfiguration;
-    balthasar: SEELConfiguration;
-    caspar: SEELConfiguration;
-}
+
 
 /** WISE API接口 */
 export interface WISEApi {
@@ -85,28 +68,8 @@ export interface WISEPersona {
     bootPrompts?: { content: string };
 }
 
-/** WISE实例公共接口 */
-export interface WISEInstance {
-    voteFor: (
-        functions: Array<{ name: string; action: { toString: () => string } }>,
-        descriptions: string[],
-        inputs: unknown[],
-        goal: string
-    ) => Promise<VoteScore[]>;
-    reply: (userInput: string, context?: unknown) => Promise<WISEApiResponse | null>;
-    summarize: (conversation: Array<{ role: string; content: string }>) => Promise<unknown>;
-    checkSync: (getSEELConfig: (name: string) => { baseWeight: number }) => SyncCheckResult;
-}
 
-/** WISE完整实例（含内部状态，供工厂函数使用） */
-export interface WISEFullInstance extends WISEInstance {
-    api: WISEApi;
-    config: MardukValidatedConfig;
-    persona: WISEPersona;
-    votePrompt: string;
-    replyPrompt: string;
-    summarizePrompt: string;
-}
+
 
 /** 投票评分 */
 export interface VoteScore {
@@ -114,28 +77,6 @@ export interface VoteScore {
     score: number;
 }
 
-/** 同步率检查结果 */
-export interface SyncCheckResult {
-    status: "synced" | "desynced";
-    ratio: number;
-    threshold: number;
-}
-
-/** MAGI系统状态 */
-export interface MAGISystemStatus {
-    online: boolean;
-    leader: string;
-    syncRatios: Record<string, number>;
-    lastVote: VoteRecord | undefined;
-}
-
-/** 投票记录 */
-export interface VoteRecord {
-    timestamp: number;
-    responses: Array<{ seel: string; content: string }>;
-    consensus: string;
-    weights: Record<string, number>;
-}
 
 
 /** OpenAI兼容配置 */
@@ -230,30 +171,9 @@ export interface FunctionInfoEntry {
     goal: string;
 }
 
-/** Function Call构建器参数 */
-export interface FunctionCallOptions {
-    context?: string;
-    reference?: string;
-}
 
-/** Function Call参数定义 */
-export interface FunctionCallParameterDef {
-    type: string;
-    description: string;
-}
 
-/** Function Call构建结果 */
-export interface FunctionCallResult {
-    description: string;
-    call: (args: Record<string, unknown>) => { name: string; arguments: Record<string, unknown> };
-    meta: {
-        name: string;
-        description: string;
-        context: string | undefined;
-        reference: string | undefined;
-        parameters: Record<string, FunctionCallParameterDef>;
-    };
-}
+
 
 /** NERV Ghost容器 */
 export interface NERVGhost {
@@ -285,76 +205,5 @@ export interface NERVExecutionResult {
     [key: string]: unknown;
 }
 
-/** NERV同步状态 */
-export interface NERVSyncStatus {
-    status: "synced" | "desynced" | "error";
-    ratio: number;
-    confidence?: number;
-    lastExecution?: number;
-}
 
-/** NERV工作流结果 */
-export interface NERVWorkflowResult {
-    summary: Array<{ persona: string; confidence: number; timestamp: number | undefined }>;
-    consensus: Record<string, { score: number; weight: number }>;
-    timestamp: number;
-    averageConfidence: number;
-}
 
-/** 技术可行性评估结果 */
-export interface TechnicalAssessment {
-    difficulty: number;
-    dependencies: string[];
-    resourceCost: number;
-}
-
-/** 情感分析结果 */
-export interface EmotionProfile {
-    emotion: string;
-    intensity: number;
-    needs: string[];
-}
-
-/** 合规性检查结果 */
-export interface ComplianceResult {
-    legal: boolean;
-    ethical: boolean;
-    risks: string[];
-}
-
-/** 风险矩阵评估项 */
-export interface RiskMatrixItem {
-    probability: number;
-    impact: number;
-}
-
-/** Melchior扩展实例（逻辑分析型） */
-export interface MelchiorInstance extends WISEFullInstance {
-    technicalAssessment: (func: unknown) => Promise<TechnicalAssessment>;
-    compareSolutions: (solutions: unknown[]) => Promise<TechnicalAssessment[]>;
-}
-
-/** Balthazar扩展实例（情感共鸣型） */
-export interface BalthazarInstance extends WISEFullInstance {
-    analyzeEmotion: (response: WISEApiResponse) => Promise<EmotionProfile>;
-    generateEmpatheticResponse: (emotionProfile: EmotionProfile) => Promise<WISEApiResponse>;
-}
-
-/** Casper扩展实例（常理判断型） */
-export interface CasperInstance extends WISEFullInstance {
-    checkCompliance: (input: unknown) => Promise<ComplianceResult>;
-    riskMatrixAssessment: (risks: Array<{ name: string }>) => Promise<RiskMatrixItem[]>;
-}
-
-/** NERV事件回调 */
-export interface NERVCallbacks {
-    onPersonaCreated?: (data: { name: string; traits: unknown }) => void;
-    onPersonaActivated?: (data: { name: string; mode: string; report: unknown }) => void;
-    onPersonaDeactivated?: (data: { name: string }) => void;
-    onPersonaExpired?: (data: { name: string; inactiveTime: number }) => void;
-    onPersonaRebalanced?: (data: { name: string }) => void;
-    onSyncUpdate?: (data: { name: string } & NERVSyncStatus) => void;
-    onWorkflowTerminated?: (data: { name: string; reason: string | undefined; position: number }) => void;
-    onWorkflowCompleted?: (data: { task: unknown; results: NERVWorkflowResult; executionTime: number }) => void;
-    onError?: (data: { type: string; error: Error; [key: string]: unknown }) => void;
-}

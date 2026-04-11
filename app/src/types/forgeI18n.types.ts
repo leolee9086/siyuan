@@ -126,4 +126,3 @@ customList: {
   };
 }
 
-export type ForgeI18nKeys = ForgeI18n[keyof ForgeI18n]

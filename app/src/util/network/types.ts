@@ -182,18 +182,6 @@ export interface 编译结果 {
 
 // 英文别名导出
 
-/** 任务状态类型的英文别名，用于英文接口和代码中使用 */
-export type TaskStatusType = 任务状态类型;
-
-/** 任务运行时信息的英文别名，用于英文接口和代码中使用 */
-export type TaskRuntimeInfo = 任务运行时信息;
-
-/** 执行日志的英文别名，用于英文接口和代码中使用 */
-export type ExecutionLog = 执行日志;
-
-/** 编译结果的英文别名，用于英文接口和代码中使用 */
-export type CompileResult = 编译结果;
-
 /**
  * CronJob 鉴权请求数据结构
  * 由后端通过 WebSocket 发送给前端
@@ -207,19 +195,6 @@ export interface ICronjobAuthRequest {
     taskName: string;
     /** 请求原因描述 */
     reason: string;
-}
-
-/**
- * CronJob 鉴权响应消息结构
- * 由前端通过 WebSocket 发送给后端
- */
-export interface ICronjobAuthResponseMessage {
-    cmd: "cronjob_auth_response";
-    reqId: number;
-    param: {
-        reqId: string;
-        allow: boolean;
-    };
 }
 
 /**

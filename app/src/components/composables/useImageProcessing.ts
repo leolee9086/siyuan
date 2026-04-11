@@ -70,11 +70,11 @@ export const useImageProcessing = () => {
   // 计算属性
   const statusMessage = computed(() => {
     if (isProcessing.value) {
-return "正在处理图像...";
-}
+      return "正在处理图像...";
+    }
     if (!originalImage.value) {
-return "请选择图像文件";
-}
+      return "请选择图像文件";
+    }
     return "就绪";
   });
 
@@ -89,13 +89,13 @@ return "请选择图像文件";
    * @param params - 处理参数
    */
   const processImageElement = async (
-    imageElement: HTMLImageElement, 
-    dehazeFunction: (imageData: ImageData, params: ProcessingParams) => Promise<ProcessingResult>, 
+    imageElement: HTMLImageElement,
+    dehazeFunction: (imageData: ImageData, params: ProcessingParams) => Promise<ProcessingResult>,
     params: ProcessingParams
   ) => {
     if (!imageElement) {
-return;
-}
+      return;
+    }
 
     isProcessing.value = true;
     error.value = "";
@@ -107,15 +107,15 @@ return;
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-throw new Error("无法获取Canvas上下文");
-}
-      
+        throw new Error("无法获取Canvas上下文");
+      }
+
       canvas.width = imageElement.naturalWidth;
       canvas.height = imageElement.naturalHeight;
       ctx.drawImage(imageElement, 0, 0);
-      
+
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
+
       // 确保所有参数都是正确的数字类型
       const processedParams: ProcessingParams = {
         ...params,
@@ -131,32 +131,32 @@ throw new Error("无法获取Canvas上下文");
           brightnessEnhancement: Number(params.enhancementOptions.brightnessEnhancement || 1.0)
         }
       };
-      
+
       // 调用去雾函数
       const result = await dehazeFunction(imageData, processedParams);
-      
+
       // 将处理后的图像数据转换为canvas
       const resultCanvas = document.createElement("canvas");
       const resultCtx = resultCanvas.getContext("2d");
       if (!resultCtx) {
-throw new Error("无法获取结果Canvas上下文");
-}
-      
+        throw new Error("无法获取结果Canvas上下文");
+      }
+
       resultCanvas.width = result.imageData.width;
       resultCanvas.height = result.imageData.height;
       resultCtx.putImageData(result.imageData, 0, 0);
-      
+
       // 保存处理结果和自适应检测结果
       processingResult.value = result;
       hazeDetectionResult.value = result.adaptiveInfo;
-      
+
       // 直接使用canvas对象
       processedImage.value = resultCanvas;
-      
+
       processingTime.value = Math.round(performance.now() - startTime);
-      
+
       successMessage.value = `图像处理完成！耗时 ${processingTime.value}ms`;
-      
+
       imageStats.processed.width = result.imageData.width;
       imageStats.processed.height = result.imageData.height;
       imageStats.processed.size = estimateImageDataSize(result.imageData.width, result.imageData.height);
@@ -206,11 +206,11 @@ throw new Error("无法获取结果Canvas上下文");
     imageStats,
     hazeDetectionResult,
     processingResult,
-    
+
     // 计算属性
     statusMessage,
     isCanvasObject,
-    
+
     // 方法
     processImageElement,
     setOriginalImage,
@@ -228,8 +228,8 @@ const estimateImageDataSize = (width: number, height: number): string => {
   // RGBA格式，每个像素4字节
   const bytes = width * height * 4;
   if (bytes === 0) {
-return "0 Bytes";
-}
+    return "0 Bytes";
+  }
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

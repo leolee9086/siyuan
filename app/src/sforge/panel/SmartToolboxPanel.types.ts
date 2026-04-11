@@ -20,13 +20,6 @@ export interface IToolGroup {
     triggers: ITriggerRegistration[];
 }
 
-/**
- * 面板 Props 接口
- */
-export interface ISmartToolboxPanelProps {
-    /** 关闭对话框的回调 */
-    onClose?: () => void;
-}
 
 /**
  * 工具执行上下文接口

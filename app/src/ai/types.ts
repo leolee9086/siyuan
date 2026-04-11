@@ -124,23 +124,6 @@ export const chatResponseDataSchema = z.object({
     }).optional(),
 });
 
-/**
- * 流式请求配置接口（扩展原有接口）
- */
-export interface StreamRequestConfigWithAI {
-    url: string;
-    method?: "GET" | "POST" | "PUT" | "DELETE";
-    headers?: Record<string, string>;
-    body?: string | Record<string, unknown>;
-    timeout?: number;
-    // 新增AI配置支持
-    aiConfig?: AIConfig;
-}
-
-/**
- * AI服务提供商类型
- */
-export type AIProvider = "OpenAI" | "ZhipuAI" | "BaiduWenxin" | "AliTongyi" | string;
 
 
 

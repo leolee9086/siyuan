@@ -1,78 +1,18 @@
 {
-  "generatedAt": "2026-04-11T11:01:44.344Z",
+  "generatedAt": "2026-04-11T11:43:27.744Z",
   "usageCounts": [
     0,
     1
   ],
   "strictMode": false,
   "stats": {
-    "realTypeScriptFileCount": 1509,
+    "realTypeScriptFileCount": 1507,
     "virtualVueBlockCount": 56,
     "scannedVueFiles": 56,
-    "scannedTypeDeclarationCount": 824,
-    "matchedTypeCount": 223
+    "scannedTypeDeclarationCount": 728,
+    "matchedTypeCount": 137
   },
   "matches": [
-    {
-      "name": "StreamResponseConfig",
-      "kind": "interface",
-      "file": "src/ai/session/session.types.ts",
-      "line": 162,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ToolCallResult",
-      "kind": "interface",
-      "file": "src/ai/session/toolCallExecutor.ts",
-      "line": 7,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "StreamRequestConfigWithAI",
-      "kind": "interface",
-      "file": "src/ai/types.ts",
-      "line": 130,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "AIProvider",
-      "kind": "type",
-      "file": "src/ai/types.ts",
-      "line": 143,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "IPagePosition",
-      "kind": "interface",
-      "file": "src/asset/anno/anno.types.ts",
-      "line": 221,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "AssetCardEmit",
-      "kind": "type",
-      "file": "src/asset/components/AssetCard.types.ts",
-      "line": 19,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
     {
       "name": "check",
       "kind": "type",
@@ -92,721 +32,6 @@
       "exported": false,
       "usageCount": 0,
       "referenceFiles": []
-    },
-    {
-      "name": "MsgCallbackContext",
-      "kind": "interface",
-      "file": "src/layout/dock/Files/msgCallbackHandlers.types.ts",
-      "line": 14,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "LayoutContainer",
-      "kind": "type",
-      "file": "src/layout/layout-deserialization.types.ts",
-      "line": 9,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ChildLayout",
-      "kind": "type",
-      "file": "src/layout/layout-deserialization.types.ts",
-      "line": 16,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "IdZoomInResult",
-      "kind": "interface",
-      "file": "src/layout/layout-deserialization.types.ts",
-      "line": 25,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ModelTypeChecker",
-      "kind": "type",
-      "file": "src/layout/layout-deserialization.types.ts",
-      "line": 35,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ModelHandler",
-      "kind": "type",
-      "file": "src/layout/layout-deserialization.types.ts",
-      "line": 38,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MagiMonitorMessage",
-      "kind": "type",
-      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts",
-      "line": 57,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MagiMonitorConnectionStatus",
-      "kind": "type",
-      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.types.ts",
-      "line": 58,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "SEELConfigurationMap",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 53,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MAGISystemStatus",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 125,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MAGISystemCallbacks",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 141,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MockWISEInstance",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 188,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "FunctionCallOptions",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 259,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "FunctionCallResult",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 271,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MelchiorInstance",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 357,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "BalthazarInstance",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 363,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "CasperInstance",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 369,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "NERVCallbacks",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 375,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "AI响应Chunk",
-      "kind": "interface",
-      "file": "src/magi/core/wise/wise.types.ts",
-      "line": 105,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "StreamResponseHandlers",
-      "kind": "interface",
-      "file": "src/magi/types/session.types.ts",
-      "line": 16,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "SageResponse",
-      "kind": "interface",
-      "file": "src/magi/utils/messageFactory.types.ts",
-      "line": 77,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ConsensusMessage",
-      "kind": "interface",
-      "file": "src/magi/utils/messageFactory.types.ts",
-      "line": 96,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MessageType",
-      "kind": "type",
-      "file": "src/magi/utils/messageFormat.types.ts",
-      "line": 16,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "StatusType",
-      "kind": "type",
-      "file": "src/magi/utils/messageFormat.types.ts",
-      "line": 35,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "AlignmentType",
-      "kind": "type",
-      "file": "src/magi/utils/messageFormat.types.ts",
-      "line": 50,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "FileFilter",
-      "kind": "interface",
-      "file": "src/platform/electron/electron.types.ts",
-      "line": 20,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TriggerMode",
-      "kind": "type",
-      "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 33,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "BrushState",
-      "kind": "type",
-      "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 252,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "样式刷子参数",
-      "kind": "type",
-      "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 293,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TClickHandler",
-      "kind": "type",
-      "file": "src/search/utils/genSearch/SearchContext.types.ts",
-      "line": 56,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ISmartToolboxPanelProps",
-      "kind": "interface",
-      "file": "src/sforge/panel/SmartToolboxPanel.types.ts",
-      "line": 26,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ForgeI18nKeys",
-      "kind": "type",
-      "file": "src/types/forgeI18n.types.ts",
-      "line": 129,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ConfigManagerConfig",
-      "kind": "type",
-      "file": "src/util/lib/code/executor.types.ts",
-      "line": 131,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ModuleRedirectRule",
-      "kind": "type",
-      "file": "src/util/lib/code/executor.types.ts",
-      "line": 134,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "NetworkConfig",
-      "kind": "interface",
-      "file": "src/util/lib/zodMethodDefinedClass/layer.ts",
-      "line": 25,
-      "column": 11,
-      "exported": false,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TaskStatusType",
-      "kind": "type",
-      "file": "src/util/network/types.ts",
-      "line": 186,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TaskRuntimeInfo",
-      "kind": "type",
-      "file": "src/util/network/types.ts",
-      "line": 189,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ExecutionLog",
-      "kind": "type",
-      "file": "src/util/network/types.ts",
-      "line": 192,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "CompileResult",
-      "kind": "type",
-      "file": "src/util/network/types.ts",
-      "line": 195,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ICronjobAuthResponseMessage",
-      "kind": "interface",
-      "file": "src/util/network/types.ts",
-      "line": 216,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ParameterProcessor",
-      "kind": "interface",
-      "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "line": 21,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "LayerLikeType",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "line": 72,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "NetworkLayerLike",
-      "kind": "interface",
-      "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "line": 80,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "RequestLike",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 292,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ResponseLike",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 293,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "InferRequestLike",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 302,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "InferResponseLike",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 305,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "PrimitiveValue",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 314,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ArrayValue",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 315,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "Value",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 316,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "HeaderValue",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 317,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ResponseBodyTypes",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 319,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ContextFunction",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 320,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ResponseFunction",
-      "kind": "type",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 321,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "IRouterStatic",
-      "kind": "interface",
-      "file": "src/util/pathRouter/core/types.ts",
-      "line": 353,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ComponentName",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 8,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ComponentProps",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 11,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ComponentEmits",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 14,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "If",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 120,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "Extract",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 122,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "Exclude",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 124,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MapProps",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 126,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "MapEmits",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 130,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ValidateProps",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 134,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "ValidateEmits",
-      "kind": "type",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 136,
-      "column": 13,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TestWrapperOptions",
-      "kind": "interface",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 139,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "TestWrapperResult",
-      "kind": "interface",
-      "file": "src/util/vue/wrapper/types.ts",
-      "line": 145,
-      "column": 18,
-      "exported": true,
-      "usageCount": 0,
-      "referenceFiles": []
-    },
-    {
-      "name": "RequestCompleteConfig",
-      "kind": "interface",
-      "file": "src/ai/session/session.types.ts",
-      "line": 175,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/ai/session/session.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "RequestErrorConfig",
-      "kind": "interface",
-      "file": "src/ai/session/session.types.ts",
-      "line": 188,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/ai/session/session.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "RequestAbortConfig",
-      "kind": "interface",
-      "file": "src/ai/session/session.types.ts",
-      "line": 202,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/ai/session/session.types.ts",
-          "count": 1
-        }
-      ]
     },
     {
       "name": "GenerationParams",
@@ -1694,25 +919,10 @@
       ]
     },
     {
-      "name": "SEELInstance",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 21,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
       "name": "WISEApiPostParams",
       "kind": "interface",
       "file": "src/magi/core/core.types.ts",
-      "line": 67,
+      "line": 50,
       "column": 18,
       "exported": true,
       "usageCount": 1,
@@ -1724,100 +934,10 @@
       ]
     },
     {
-      "name": "SyncCheckResult",
+      "name": "WISEApiResponse",
       "kind": "interface",
       "file": "src/magi/core/core.types.ts",
-      "line": 118,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "VoteRecord",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 133,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "FunctionCallParameterDef",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 265,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "NERVSyncStatus",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 314,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "NERVWorkflowResult",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 322,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "ComplianceResult",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 344,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/magi/core/core.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "RiskMatrixItem",
-      "kind": "interface",
-      "file": "src/magi/core/core.types.ts",
-      "line": 351,
+      "line": 56,
       "column": 18,
       "exported": true,
       "usageCount": 1,
@@ -2492,7 +1612,7 @@
       "name": "IBrushModeProperties",
       "kind": "interface",
       "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 153,
+      "line": 146,
       "column": 11,
       "exported": false,
       "usageCount": 1,
@@ -2507,7 +1627,7 @@
       "name": "IImmediateModeProperties",
       "kind": "interface",
       "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 175,
+      "line": 168,
       "column": 11,
       "exported": false,
       "usageCount": 1,
@@ -2522,7 +1642,7 @@
       "name": "IToggleModeProperties",
       "kind": "interface",
       "file": "src/registry/TriggerRegistry.types.ts",
-      "line": 185,
+      "line": 178,
       "column": 11,
       "exported": false,
       "usageCount": 1,
@@ -2544,36 +1664,6 @@
       "referenceFiles": [
         {
           "filePath": "src/search/assets.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "ISearchContext",
-      "kind": "interface",
-      "file": "src/search/utils/genSearch/SearchContext.types.ts",
-      "line": 12,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/search/utils/genSearch/SearchContext.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "IClickHandlerResult",
-      "kind": "interface",
-      "file": "src/search/utils/genSearch/SearchContext.types.ts",
-      "line": 46,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/search/utils/genSearch/SearchContext.types.ts",
           "count": 1
         }
       ]
@@ -2672,7 +1762,7 @@
       "name": "ConfirmDialogPort",
       "kind": "type",
       "file": "src/util/network/types.ts",
-      "line": 232,
+      "line": 207,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2687,7 +1777,7 @@
       "name": "SendAuthResponsePort",
       "kind": "type",
       "file": "src/util/network/types.ts",
-      "line": 246,
+      "line": 221,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2702,22 +1792,7 @@
       "name": "BaseLayerOptions",
       "kind": "interface",
       "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "line": 6,
-      "column": 18,
-      "exported": true,
-      "usageCount": 1,
-      "referenceFiles": [
-        {
-          "filePath": "src/util/pathRouter/core/layerLike.types.ts",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "name": "LayerWithMethods",
-      "kind": "interface",
-      "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "line": 75,
+      "line": 5,
       "column": 18,
       "exported": true,
       "usageCount": 1,
@@ -2747,7 +1822,7 @@
       "name": "RequestBodyTypes",
       "kind": "type",
       "file": "src/util/pathRouter/core/types.ts",
-      "line": 318,
+      "line": 306,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2762,7 +1837,7 @@
       "name": "MiddlewareType",
       "kind": "type",
       "file": "src/util/pathRouter/core/types.ts",
-      "line": 373,
+      "line": 355,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2822,7 +1897,7 @@
       "name": "InferProps",
       "kind": "type",
       "file": "src/util/vue/wrapper/types.ts",
-      "line": 17,
+      "line": 8,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2837,7 +1912,7 @@
       "name": "InferEmit",
       "kind": "type",
       "file": "src/util/vue/wrapper/types.ts",
-      "line": 20,
+      "line": 11,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2852,7 +1927,7 @@
       "name": "TransformedProps",
       "kind": "type",
       "file": "src/util/vue/wrapper/types.ts",
-      "line": 100,
+      "line": 91,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2867,7 +1942,7 @@
       "name": "TransformedEmit",
       "kind": "type",
       "file": "src/util/vue/wrapper/types.ts",
-      "line": 109,
+      "line": 100,
       "column": 13,
       "exported": true,
       "usageCount": 1,
@@ -2882,7 +1957,7 @@
       "name": "PerformanceResult",
       "kind": "interface",
       "file": "src/util/vue/wrapper/types.ts",
-      "line": 152,
+      "line": 116,
       "column": 18,
       "exported": true,
       "usageCount": 1,

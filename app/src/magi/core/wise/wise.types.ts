@@ -101,19 +101,7 @@ export interface MockWISE完整配置 {
     memorySize: number;
 }
 
-/** SSE chunk 数据格式（OpenAI流式响应） */
-export interface AI响应Chunk {
-    id?: string;
-    object?: string;
-    created?: number;
-    model?: string;
-    error?: { code: string; message: string };
-    choices?: Array<{
-        delta: { content?: string };
-        index: number;
-        finish_reason: string | null;
-    }>;
-}
+
 
 /** SSE桥接状态（用于 AsyncGenerator 桥接模式） */
 export interface SSE桥接状态 {
