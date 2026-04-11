@@ -3,7 +3,7 @@ import MagiRoot from "./MagiRoot.vue";
 import {
     bootstrapMagiSiyuan,
     resolveMagiDesktopTargetFromPathname,
-} from "./magiEntry.environment";
+} from "../utils/environment/magiEntry.environment";
 import "../../assets/scss/base.scss";
 
 const rootElement = document.getElementById("magi-root");

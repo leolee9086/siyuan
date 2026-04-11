@@ -1,5 +1,5 @@
-import { loadForgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
-import type { MagiBuildTarget, MagiSiyuanRuntime } from "./magiEntry.types";
+import { loadForgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
+import type { MagiBuildTarget } from "./magiEntry.types";
 
 /**
  * 读取浏览器默认语言并映射为项目语言编码
@@ -26,12 +26,12 @@ function resolveDefaultLang(): string {
  * 意图：满足项目对全局访问封装约束，并在缺省时返回空对象。
  * 调用时机：`bootstrapMagiSiyuan` 每次初始化时调用。
  */
-function getSiyuanRuntime(): MagiSiyuanRuntime {
+function getSiyuanRuntime() {
     const value = Reflect.get(window, "siyuan");
     if (!value || typeof value !== "object") {
-        return {};
+       throw new Error("[magi-entry] window.siyuan is not defined or not an object");
     }
-    return value;
+    return value ;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 import MagiRoot from "./MagiRoot.vue";
-import { bootstrapMagiSiyuan } from "./magiEntry.environment";
+import { bootstrapMagiSiyuan } from "../utils/environment/magiEntry.environment";
 import "../../assets/scss/mobile.scss";
 
 const rootElement = document.getElementById("magi-root");

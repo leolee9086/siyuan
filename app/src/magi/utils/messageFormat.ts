@@ -7,6 +7,12 @@
 
 // [TASK] T2.2 迁移composables和工具函数 - messageFormat
 
+/**
+ * 用途：引入样式参数类型定义，确保 getMessageStyleClasses 的输入结构在编译期被严格校验。
+ * 使用范围：仅在当前 messageFormat 工具模块内部用于函数签名约束，不参与运行时逻辑，不对外产生额外副作用。
+ * 解耦评估：该依赖为 TypeScript 类型依赖（type-only import），运行时会被擦除；若改为依赖注入/参数传递/事件发射，
+ * 仍需在调用边界保留同等类型契约，无法降低实际耦合，反而会增加调用复杂度与维护成本。因此保持同目录类型模块的静态类型引用是当前最优解耦形态。
+ */
 import type { MessageStyleParams } from "./messageFormat.types";
 
 /** 合法消息类型集合（消费者直接调用 .has(type) 进行验证） */
