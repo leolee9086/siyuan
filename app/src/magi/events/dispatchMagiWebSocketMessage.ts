@@ -31,7 +31,7 @@ import { isValidMagiEventPayload } from "./dispatchMagiWebSocketMessage.guard";
 export function dispatchMagiWebSocketMessage(
     eventBus: MagiEventBus,
     rawMessage: unknown
-): boolean {
+) {
     const envelope = normalizeMagiEventEnvelope(rawMessage);
     if (!envelope) {
         return false;
