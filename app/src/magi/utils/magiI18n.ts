@@ -8,7 +8,7 @@ import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.envir
  * 意图：避免业务组件直接处理 i18n 词条缺失分支，统一兜底策略。
  * 调用时机：在 getMagiI18nText 构造文本映射时按键调用。
  */
-function resolveMagiI18nText(value: unknown, fallback: string): string {
+function resolveMagiI18nText(value: unknown, fallback: string) {
     if (typeof value === "string") {
         return value;
     }
@@ -23,7 +23,7 @@ function resolveMagiI18nText(value: unknown, fallback: string): string {
  * 调用时机：组件与 composable 渲染用户可见文本前调用。
  * @同步豁免: UI构建 - 渲染期同步读取已加载的内存词条，异步化会引入不必要的状态复杂度。
  */
-export function getMagiI18nText(key: MagiI18nKey): string {
+export function getMagiI18nText(key: MagiI18nKey) {
     const magiI18n = forgeI18n.ai.magi;
     const textMap: Record<MagiI18nKey, string> = {
         personaEntry: resolveMagiI18nText(magiI18n.适格者录入, "适格者 PERSONA 录入"),

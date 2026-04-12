@@ -164,7 +164,7 @@ import { computed, provide } from "vue";
 import { getMagiI18nText } from "../utils/magiI18n";
 import MagiWorkspace from "./MagiWorkspace.vue";
 import PersonaSeedPanel from "./persona-seed-panel/PersonaSeedPanel.vue";
-import { useMagiRootContext } from "./MagiRoot.ctx";
+import { useMagiRootContext } from "./rootctx";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 import "./MagiRoot.css";
 

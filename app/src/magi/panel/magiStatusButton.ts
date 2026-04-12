@@ -10,7 +10,7 @@ import { Constants } from "../../constants";
  * 意图：提供统一的 MAGI 唤起入口，供状态栏按钮点击复用。
  * 调用时机：状态栏 MAGI 按钮点击时调用。
  */
-export function 打开MAGI(): void {
+export function 打开MAGI() {
     if (isElectron) {
         ipcSend(Constants.SIYUAN_OPEN_MAGI);
         return;

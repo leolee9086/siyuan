@@ -8,7 +8,7 @@ import type { MagiBuildTarget } from "./magiEntry.types";
  * 意图：保证 MAGI 独立入口在无宿主上下文时也能正确加载 i18n。
  * 调用时机：`bootstrapMagiSiyuan` 初始化运行时对象时调用。
  */
-function resolveDefaultLang(): string {
+function resolveDefaultLang() {
     const languageTag = (navigator.language || "zh-CN").replace("-", "_");
     if (languageTag.startsWith("zh")) {
         return "zh_CN";
@@ -41,7 +41,7 @@ function getSiyuanRuntime() {
  * 意图：避免 MAGI 独立入口仅依赖本地占位配置导致 AI 连接失败。
  * 调用时机：`bootstrapMagiSiyuan` 初始化 `window.siyuan.config` 前调用。
  */
-async function fetchBackendConf(): Promise<object | null> {
+async function fetchBackendConf(){
     try {
         const response = await fetch("/api/system/getConf", {
             method: "POST",
@@ -78,7 +78,7 @@ async function fetchBackendConf(): Promise<object | null> {
  * 意图：让 MAGI 在独立构建产物下保持可运行，不依赖主笔记页面上下文。
  * 调用时机：`index.ts` 与 `mobile.ts` 启动时调用一次。
  */
-export async function bootstrapMagiSiyuan(target: MagiBuildTarget): Promise<void> {
+export async function bootstrapMagiSiyuan(target: MagiBuildTarget) {
     const existing = getSiyuanRuntime();
     const backendConfig = await fetchBackendConf();
     const fallbackConfig = existing.config ?? { appearance: { lang: resolveDefaultLang() } };
