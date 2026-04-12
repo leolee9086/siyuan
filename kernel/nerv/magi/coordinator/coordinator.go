@@ -103,12 +103,15 @@ func (c *Coordinator) CoordinateDecision(
 		logging.LogWarnf("推送轮次开始失败: %v", err)
 	}
 
-	sourceAwareUserInput := c.buildSourceAwareUserInput(
+	passiveRecallBasis := buildExternalPassiveRecallBasis(userMessage, sourceCtx)
+	sourceAwareUserInputBySage := c.buildSourceAwareUserInputBySage(
 		sessionId,
 		userMessage,
 		sourceCtx,
 		claimedRecentHistory,
+		passiveRecallBasis,
 	)
+	sourceAwareUserInput := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
 
 	// 非绝对可信来源优先走 Avatar 路径：若无绑定则创建，有绑定则复用直答。
 	if sourceCtx != nil && !sourceCtx.DirectResponseAllowed {
@@ -154,7 +157,7 @@ func (c *Coordinator) CoordinateDecision(
 		balthazar,
 		casper,
 		userMessage,
-		sourceAwareUserInput,
+		sourceAwareUserInputBySage,
 		sourceCtx,
 	)
 	if err != nil {
@@ -268,11 +271,53 @@ func (c *Coordinator) buildSourceAwareUserInput(
 	sourceCtx *types.RequestSourceContext,
 	claimedRecentHistory []types.ClaimedHistoryMessage,
 ) string {
+	roundOrdinal := c.nextRoundOrdinal(sessionID)
+	return c.buildSourceAwareUserInputWithRoundOrdinal(
+		userMessage,
+		sourceCtx,
+		claimedRecentHistory,
+		nil,
+		roundOrdinal,
+	)
+}
+
+func (c *Coordinator) buildSourceAwareUserInputBySage(
+	sessionID, userMessage string,
+	sourceCtx *types.RequestSourceContext,
+	claimedRecentHistory []types.ClaimedHistoryMessage,
+	passiveRecallBasis *types.PassiveRecallBasis,
+) map[string]string {
+	roundOrdinal := c.nextRoundOrdinal(sessionID)
+	passiveRecallBySage := buildPassiveRecallPayloadsBySage(passiveRecallBasis)
+	inputs := map[string]string{}
+	for _, sageName := range []string{"melchior", "balthazar", "casper"} {
+		var passiveRecall interface{}
+		if passiveRecallBySage != nil {
+			passiveRecall = passiveRecallBySage[sageName]
+		}
+		inputs[sageName] = c.buildSourceAwareUserInputWithRoundOrdinal(
+			userMessage,
+			sourceCtx,
+			claimedRecentHistory,
+			passiveRecall,
+			roundOrdinal,
+		)
+	}
+	return inputs
+}
+
+func (c *Coordinator) buildSourceAwareUserInputWithRoundOrdinal(
+	userMessage string,
+	sourceCtx *types.RequestSourceContext,
+	claimedRecentHistory []types.ClaimedHistoryMessage,
+	passiveRecall interface{},
+	roundOrdinal uint64,
+) string {
+	userMessage = strings.TrimSpace(userMessage)
 	if sourceCtx == nil {
 		return userMessage
 	}
 
-	roundOrdinal := c.nextRoundOrdinal(sessionID)
 	nickname := strings.TrimSpace(sourceCtx.Nickname)
 	loginIdentity := resolveSourceLoginIdentity(sourceCtx)
 	speakerLabel := resolveClaimedHistorySpeaker(sourceCtx)
@@ -309,13 +354,53 @@ func (c *Coordinator) buildSourceAwareUserInput(
 	}
 	runtimeClock := c.buildRuntimeClockPayload(roundOrdinal)
 	workspaceSnapshot := c.buildWorkspaceSnapshotPayload(roundOrdinal, sourceCtx)
-	return prompts.BuildSourceAwareUserInputWithRuntime(
-		buildClaimedHistoryInstruction(speakerLabel),
+	sourceContent := userMessage
+	if sourceContent == "" {
+		sourceContent = buildClaimedHistoryInstruction(speakerLabel)
+	}
+	return prompts.BuildSourceAwareUserInputWithRuntimeAndRecall(
+		sourceContent,
 		payload,
 		claimedHistoryPayload,
 		runtimeClock,
 		workspaceSnapshot,
+		passiveRecall,
 	)
+}
+
+func buildExternalPassiveRecallBasis(
+	userMessage string,
+	sourceCtx *types.RequestSourceContext,
+) *types.PassiveRecallBasis {
+	if sourceCtx == nil || strings.TrimSpace(sourceCtx.InterfaceKind) != "magi-main-ui" {
+		return nil
+	}
+	userMessage = strings.TrimSpace(userMessage)
+	if userMessage == "" {
+		return nil
+	}
+	return &types.PassiveRecallBasis{
+		Type:        types.PassiveRecallBasisUserMessage,
+		Query:       userMessage,
+		UserMessage: userMessage,
+	}
+}
+
+func resolveSourceAwareInputForSage(
+	inputsBySage map[string]string,
+	sageName string,
+	fallback string,
+) string {
+	if len(inputsBySage) == 0 {
+		return fallback
+	}
+	if input := strings.TrimSpace(inputsBySage[strings.TrimSpace(sageName)]); input != "" {
+		return input
+	}
+	if input := strings.TrimSpace(inputsBySage["melchior"]); input != "" {
+		return input
+	}
+	return fallback
 }
 
 func resolveSourceLoginIdentity(sourceCtx *types.RequestSourceContext) string {

@@ -581,6 +581,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		casper,
 		"heartbeat",
 		"heartbeat",
+		nil,
 		buildHeartbeatRuntimeToolsBySage(),
 		buildHeartbeatRuntimeToolChoiceBySage(),
 	)
@@ -646,6 +647,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		casper,
 		"heartbeat",
 		"heartbeat",
+		nil,
 		buildHeartbeatRuntimeToolsBySage(),
 		buildHeartbeatRuntimeToolChoiceBySage(),
 	)

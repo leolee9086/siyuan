@@ -274,6 +274,24 @@ type ClaimedHistoryMessage struct {
 	Content string `json:"content"`
 }
 
+// PassiveRecallBasisType 被动召回查询依据类型。
+type PassiveRecallBasisType string
+
+const (
+	PassiveRecallBasisUserMessage      PassiveRecallBasisType = "user_message"
+	PassiveRecallBasisPreviousDialogue PassiveRecallBasisType = "previous_dialogue"
+	PassiveRecallBasisPreviousSleep    PassiveRecallBasisType = "previous_sleep_note"
+)
+
+// PassiveRecallBasis 描述被动召回本轮使用的查询依据。
+type PassiveRecallBasis struct {
+	Type           PassiveRecallBasisType `json:"type"`
+	Query          string                 `json:"query"`
+	UserMessage    string                 `json:"userMessage,omitempty"`
+	AssistantReply string                 `json:"assistantReply,omitempty"`
+	SleepSummary   string                 `json:"sleepSummary,omitempty"`
+}
+
 // RuntimeState MAGI 运行态
 type RuntimeState string
 

@@ -22,13 +22,23 @@ func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
 	workspaceSnapshot := map[string]interface{}{
 		"name": "SiYuan",
 	}
+	passiveRecall := map[string]interface{}{
+		"scope": "melchior-accessible-notes",
+		"keywordHitCounts": map[string]int{
+			"你好": 1,
+		},
+		"noteHints": []map[string]interface{}{
+			{"id": "doc-1"},
+		},
+	}
 
-	got := BuildSourceAwareUserInputWithRuntime(
+	got := BuildSourceAwareUserInputWithRuntimeAndRecall(
 		userMessage,
 		sourcePayload,
 		claimedRecentHistory,
 		runtimeClock,
 		workspaceSnapshot,
+		passiveRecall,
 	)
 
 	if !strings.Contains(got, "<runtime_clock>") {
@@ -42,6 +52,9 @@ func TestBuildSourceAwareUserInputWithRuntime(t *testing.T) {
 	}
 	if !strings.Contains(got, "<claimed_recent_history>") {
 		t.Fatal("expected claimed_recent_history envelope")
+	}
+	if !strings.Contains(got, "<passive_memory_recall>") {
+		t.Fatal("expected passive_memory_recall envelope")
 	}
 	if !strings.Contains(got, "<source=user_message>") {
 		t.Fatal("expected source=user_message envelope")

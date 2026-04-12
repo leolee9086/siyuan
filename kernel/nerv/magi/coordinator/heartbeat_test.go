@@ -10,6 +10,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
@@ -101,6 +102,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		casper,
 		"heartbeat",
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("心跳协调不应报错: %v", err)
@@ -190,6 +192,7 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 		casper,
 		"heartbeat",
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("只要有足够响应，心跳协调不应报错: %v", err)
@@ -203,6 +206,12 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 }
 
 func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.T) {
+	originalMode := util.Mode
+	defer func() {
+		util.Mode = originalMode
+	}()
+	util.Mode = util.ModeProd
+
 	toolsBySage := buildHeartbeatRuntimeToolsBySage()
 	expectations := map[string]string{
 		"melchior":  config.WannaSleepPlanToolName,
@@ -215,11 +224,59 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	}
 	for sageName, toolName := range expectations {
 		tools := toolsBySage[sageName]
-		if len(tools) != 1 {
-			t.Fatalf("%s 期望只有一个运行时工具，实际=%d", sageName, len(tools))
+		if len(tools) != 2 {
+			t.Fatalf("%s 期望有专属休眠工具和笔记搜索工具，实际=%d", sageName, len(tools))
 		}
 		if tools[0].Type != openai.ToolTypeFunction || tools[0].Function == nil || tools[0].Function.Name != toolName {
 			t.Fatalf("%s 期望暴露 %s，实际=%+v", sageName, toolName, tools[0])
+		}
+		if tools[1].Type != openai.ToolTypeFunction || tools[1].Function == nil || tools[1].Function.Name != config.NoteKeywordSearchToolName {
+			t.Fatalf("%s 期望追加 %s，实际=%+v", sageName, config.NoteKeywordSearchToolName, tools[1])
+		}
+	}
+}
+
+func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testing.T) {
+	originalMode := util.Mode
+	defer func() {
+		util.Mode = originalMode
+	}()
+	util.Mode = util.ModeForge
+
+	toolsBySage := buildHeartbeatRuntimeToolsBySage()
+	expectedToolNamesBySage := map[string][]string{
+		"melchior": {
+			config.WannaSleepPlanToolName,
+			config.NoteKeywordSearchToolName,
+			config.ForgeDevRepoListToolName,
+			config.ForgeDevRepoReadToolName,
+			config.ForgeDevRepoSearchToolName,
+		},
+		"balthazar": {
+			config.WannaSleepDreamToolName,
+			config.NoteKeywordSearchToolName,
+			config.ForgeDevRepoListToolName,
+			config.ForgeDevRepoReadToolName,
+			config.ForgeDevRepoSearchToolName,
+		},
+		"casper": {
+			config.WannaSleepRecordToolName,
+			config.NoteKeywordSearchToolName,
+			config.ForgeDevRepoListToolName,
+			config.ForgeDevRepoReadToolName,
+			config.ForgeDevRepoSearchToolName,
+		},
+	}
+
+	for sageName, expectedToolNames := range expectedToolNamesBySage {
+		tools := toolsBySage[sageName]
+		if len(tools) != len(expectedToolNames) {
+			t.Fatalf("%s 期望工具数=%d，实际=%d", sageName, len(expectedToolNames), len(tools))
+		}
+		for index, expectedToolName := range expectedToolNames {
+			if tools[index].Type != openai.ToolTypeFunction || tools[index].Function == nil || tools[index].Function.Name != expectedToolName {
+				t.Fatalf("%s 工具[%d] 期望=%s，实际=%+v", sageName, index, expectedToolName, tools[index])
+			}
 		}
 	}
 }

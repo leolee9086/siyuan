@@ -21,19 +21,20 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	sessionID, roundID string,
 	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
-	sourceAwareUserInput string,
+	sourceAwareUserInputBySage map[string]string,
 	sourceCtx *types.RequestSourceContext,
 ) (*types.Message, *DominantElectionResult, error) {
 	excludedDominants := map[string]struct{}{}
 
 	for retry := 0; retry < 3; retry++ {
-		election, err := electDominantSageWithExclusions(
+		election, err := electDominantSageWithExclusionsAndSituations(
 			ctx,
 			sessionID,
 			melchior,
 			balthazar,
 			casper,
-			sourceAwareUserInput,
+			resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage),
+			sourceAwareUserInputBySage,
 			excludedDominants,
 		)
 		if err != nil {
@@ -65,7 +66,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			sessionID,
 			roundID,
 			dominantSage,
-			sourceAwareUserInput,
+			resolveSourceAwareInputForSage(sourceAwareUserInputBySage, dominantSage.GetName(), userMessage),
 			CollectResponsesOptions{
 				RuntimeTools:      buildDominantDirectReplyRuntimeTools(dominantSage),
 				RuntimeToolChoice: dominantSage.GetToolChoice(),

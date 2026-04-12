@@ -29,6 +29,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
+	passiveRecallBasis *types.PassiveRecallBasis,
 ) (*HeartbeatDecisionResult, error) {
 	if c == nil {
 		return nil, fmt.Errorf("coordinator is nil")
@@ -45,12 +46,14 @@ func (c *Coordinator) CoordinateHeartbeat(
 			Content: userMessage,
 		},
 	}
-	sourceAwareUserInput := c.buildSourceAwareUserInput(
+	sourceAwareUserInputBySage := c.buildSourceAwareUserInputBySage(
 		sessionID,
 		userMessage,
 		sourceCtx,
 		claimedHistory,
+		passiveRecallBasis,
 	)
+	sourceAwareUserInput := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
 
 	collection, err := c.collector.CollectHeartbeatResponses(
 		ctx,
@@ -61,6 +64,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 		casper,
 		userMessage,
 		sourceAwareUserInput,
+		sourceAwareUserInputBySage,
 		buildHeartbeatRuntimeToolsBySage(),
 		buildHeartbeatRuntimeToolChoiceBySage(),
 	)
@@ -111,11 +115,27 @@ func (c *Coordinator) CoordinateHeartbeat(
 }
 
 func buildHeartbeatRuntimeToolsBySage() map[string][]openai.Tool {
+	sharedReadingTools := buildHeartbeatReadingRuntimeTools()
 	return map[string][]openai.Tool{
-		"melchior":  {buildRuntimeTool(config.BuildWannaSleepPlanToolDef())},
-		"balthazar": {buildRuntimeTool(config.BuildWannaSleepDreamToolDef())},
-		"casper":    {buildRuntimeTool(config.BuildWannaSleepRecordToolDef())},
+		"melchior":  append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepPlanToolDef())}, sharedReadingTools...),
+		"balthazar": append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepDreamToolDef())}, sharedReadingTools...),
+		"casper":    append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepRecordToolDef())}, sharedReadingTools...),
 	}
+}
+
+func buildHeartbeatReadingRuntimeTools() []openai.Tool {
+	tools := []openai.Tool{
+		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
+	}
+	if util.IsForgeMode() {
+		tools = append(
+			tools,
+			buildRuntimeTool(config.BuildForgeDevRepoListToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoReadToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoSearchToolDef()),
+		)
+	}
+	return tools
 }
 
 func buildHeartbeatRuntimeToolChoiceBySage() map[string]any {

@@ -201,3 +201,72 @@ func TestMagiRuntimeManagerFinishForeground_ClearsLatestDominant(t *testing.T) {
 		t.Fatalf("期望请求完成后清空主导者信息，实际=%+v", status)
 	}
 }
+
+func TestMagiRuntimeManagerBuildHeartbeatPassiveRecallBasis_PrefersPreviousDialogue(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.status.LastSleepSummary = "上一轮睡前笔记"
+	manager.RememberForegroundTurn("用户提到 alpha beta", "AI 回复 recall plan")
+
+	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
+	if basis == nil {
+		t.Fatal("期望生成上一轮对话召回依据")
+	}
+	if basis.Type != types.PassiveRecallBasisPreviousDialogue {
+		t.Fatalf("期望 previous_dialogue，实际=%s", basis.Type)
+	}
+	if basis.UserMessage != "用户提到 alpha beta" {
+		t.Fatalf("期望保留用户消息，实际=%s", basis.UserMessage)
+	}
+	if basis.AssistantReply != "AI 回复 recall plan" {
+		t.Fatalf("期望保留 AI 回复，实际=%s", basis.AssistantReply)
+	}
+	if basis.Query != "用户提到 alpha beta\nAI 回复 recall plan" {
+		t.Fatalf("期望 query 拼接用户消息和 AI 回复，实际=%q", basis.Query)
+	}
+}
+
+func TestMagiRuntimeManagerBuildHeartbeatPassiveRecallBasis_FallsBackToPreviousSleep(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	manager.status.LastSleepSummary = "上一轮睡前笔记 alpha beta"
+
+	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
+	if basis == nil {
+		t.Fatal("期望从睡前笔记生成召回依据")
+	}
+	if basis.Type != types.PassiveRecallBasisPreviousSleep {
+		t.Fatalf("期望 previous_sleep_note，实际=%s", basis.Type)
+	}
+	if basis.Query != "上一轮睡前笔记 alpha beta" || basis.SleepSummary != "上一轮睡前笔记 alpha beta" {
+		t.Fatalf("期望 query 与 sleepSummary 使用上一轮睡前笔记，实际=%+v", basis)
+	}
+}
+
+func TestMagiRuntimeManagerFinishHeartbeat_SleepingRoundClearsPreviousDialogueBasis(t *testing.T) {
+	manager := newMagiRuntimeManager(time.Minute)
+	run := &magiHeartbeatRun{}
+
+	manager.RememberForegroundTurn("用户消息", "AI 回复")
+	manager.mu.Lock()
+	manager.activeHeartbeat = run
+	manager.status.State = types.RuntimeStateHeartbeat
+	manager.status.Awake = true
+	manager.status.Reason = "scheduled-heartbeat"
+	manager.mu.Unlock()
+
+	manager.finishHeartbeat(run, &coordinator.HeartbeatDecisionResult{
+		RoundID:      "heartbeat-round-3",
+		Sleeping:     true,
+		SleepSummary: "新的睡前笔记",
+	}, nil)
+
+	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
+	if basis == nil {
+		t.Fatal("期望休眠完成后仍能生成召回依据")
+	}
+	if basis.Type != types.PassiveRecallBasisPreviousSleep {
+		t.Fatalf("期望休眠完成后切换为 previous_sleep_note，实际=%s", basis.Type)
+	}
+	if basis.Query != "新的睡前笔记" {
+		t.Fatalf("期望使用新的睡前笔记作为 query，实际=%q", basis.Query)
+	}
+}

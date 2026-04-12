@@ -373,6 +373,7 @@ func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
 	if len(claimedRecentHistory) == 0 {
 		return MagiTaskResult{Err: errors.New("no chat messages found")}
 	}
+	lastUserMessage, hasUserMessage := findLastClaimedUserMessage(claimedRecentHistory)
 	userMessage := buildClaimedUserMessagePreview(claimedRecentHistory)
 	magiRuntimeMgr.BeginForeground(userMessage)
 	defer func() {
@@ -401,6 +402,9 @@ func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
 		return
 	}
 	magiRuntimeMgr.ApplyForegroundConsensus(consensusMsg)
+	if hasUserMessage {
+		magiRuntimeMgr.RememberForegroundTurn(lastUserMessage, consensusMsg.Content)
+	}
 	result = MagiTaskResult{ConsensusMsg: consensusMsg}
 	return
 }
@@ -438,15 +442,25 @@ func extractClaimedRecentHistory(messages []openai.ChatCompletionMessage) []type
 }
 
 func buildClaimedUserMessagePreview(history []types.ClaimedHistoryMessage) string {
-	for i := len(history) - 1; i >= 0; i-- {
-		if strings.TrimSpace(history[i].Role) == openai.ChatMessageRoleUser {
-			return history[i].Content
-		}
+	if message, ok := findLastClaimedUserMessage(history); ok {
+		return message
 	}
 	if len(history) == 0 {
 		return ""
 	}
 	return history[len(history)-1].Content
+}
+
+func findLastClaimedUserMessage(history []types.ClaimedHistoryMessage) (string, bool) {
+	for i := len(history) - 1; i >= 0; i-- {
+		if strings.TrimSpace(history[i].Role) == openai.ChatMessageRoleUser {
+			content := strings.TrimSpace(history[i].Content)
+			if content != "" {
+				return content, true
+			}
+		}
+	}
+	return "", false
 }
 
 // getOrCreateSession 获取或创建会话ID

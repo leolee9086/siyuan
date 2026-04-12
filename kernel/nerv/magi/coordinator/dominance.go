@@ -56,7 +56,7 @@ func electDominantSage(
 	melchior, balthazar, casper *sages.Sage,
 	situation string,
 ) (*DominantElectionResult, error) {
-	return electDominantSageWithExclusions(ctx, sessionID, melchior, balthazar, casper, situation, nil)
+	return electDominantSageWithExclusionsAndSituations(ctx, sessionID, melchior, balthazar, casper, situation, nil, nil)
 }
 
 func buildDominantCandidates(
@@ -70,6 +70,26 @@ func electDominantSageWithExclusions(
 	sessionID string,
 	melchior, balthazar, casper *sages.Sage,
 	situation string,
+	excludedSeels map[string]struct{},
+) (*DominantElectionResult, error) {
+	return electDominantSageWithExclusionsAndSituations(
+		ctx,
+		sessionID,
+		melchior,
+		balthazar,
+		casper,
+		situation,
+		nil,
+		excludedSeels,
+	)
+}
+
+func electDominantSageWithExclusionsAndSituations(
+	ctx context.Context,
+	sessionID string,
+	melchior, balthazar, casper *sages.Sage,
+	defaultSituation string,
+	situationBySeel map[string]string,
 	excludedSeels map[string]struct{},
 ) (*DominantElectionResult, error) {
 	candidates, err := buildDominantCandidatesWithExclusions(melchior, balthazar, casper, excludedSeels)
@@ -103,7 +123,13 @@ func electDominantSageWithExclusions(
 			return nil, fmt.Errorf("dominant election voter is nil")
 		}
 
-		vote, voteErr := scoreDominantCandidate(ctx, sessionID, voter, situation, candidates)
+		vote, voteErr := scoreDominantCandidate(
+			ctx,
+			sessionID,
+			voter,
+			resolveDominantSituationForSage(voter, defaultSituation, situationBySeel),
+			candidates,
+		)
 		if voteErr != nil {
 			return nil, voteErr
 		}
@@ -130,6 +156,20 @@ func electDominantSageWithExclusions(
 		AggregatedScores:    totals,
 		Votes:               votes,
 	}, nil
+}
+
+func resolveDominantSituationForSage(
+	voter *sages.Sage,
+	defaultSituation string,
+	situationBySeel map[string]string,
+) string {
+	if voter == nil || len(situationBySeel) == 0 {
+		return defaultSituation
+	}
+	if situation := strings.TrimSpace(situationBySeel[strings.TrimSpace(voter.GetName())]); situation != "" {
+		return situation
+	}
+	return defaultSituation
 }
 
 func buildDominantCandidatesWithExclusions(

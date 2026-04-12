@@ -325,7 +325,7 @@ func TestCoordinateDominantDirectReply_SharesDominantReplyToAllSages(t *testing.
 		balthazar,
 		casper,
 		"外部消息",
-		"外部消息",
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -390,7 +390,7 @@ func TestCoordinateDominantDirectReply_NotifiesDominantSelectionObserver(t *test
 		balthazar,
 		casper,
 		"外部消息",
-		"外部消息",
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -478,7 +478,7 @@ func TestCoordinateDominantDirectReply_SanitizesMelchiorQueryHistoryForPeers(t *
 		balthazar,
 		casper,
 		"请先查看仓库",
-		"请先查看仓库",
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -543,7 +543,7 @@ func TestCoordinateDominantDirectReply_InjectsDiaryToolIntoDominantRuntimeTools(
 		balthazar,
 		casper,
 		"帮我回答一下",
-		"帮我回答一下",
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -671,7 +671,7 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectedTwiceTriggersReelection(
 		balthazar,
 		casper,
 		"把这件事记下来并回复我",
-		"把这件事记下来并回复我",
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -804,7 +804,7 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectThenApproveKeepsDominance(
 		balthazar,
 		casper,
 		"把这次进展记下来并回复我",
-		"把这次进展记下来并回复我",
+		nil,
 		nil,
 	)
 	if err != nil {

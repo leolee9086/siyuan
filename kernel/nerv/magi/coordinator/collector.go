@@ -30,6 +30,7 @@ type CollectResponsesOptions struct {
 	RuntimeToolChoice       any
 	RuntimeToolsBySage      map[string][]openai.Tool
 	RuntimeToolChoiceBySage map[string]any
+	ModelInputBySage        map[string]string
 }
 
 type HeartbeatCollectionResult struct {
@@ -78,6 +79,7 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 	melchior, balthazar, casper *sages.Sage,
 	userMessage string,
 	modelInput string,
+	modelInputBySage map[string]string,
 	runtimeToolsBySage map[string][]openai.Tool,
 	runtimeToolChoiceBySage map[string]any,
 ) (*HeartbeatCollectionResult, error) {
@@ -94,6 +96,7 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 			AllowWannaSleep:         true,
 			RuntimeToolsBySage:      runtimeToolsBySage,
 			RuntimeToolChoiceBySage: runtimeToolChoiceBySage,
+			ModelInputBySage:        modelInputBySage,
 		},
 	)
 }
@@ -112,6 +115,7 @@ func (options CollectResponsesOptions) forSage(sage *sages.Sage) CollectResponse
 	}
 	cloned.RuntimeToolsBySage = nil
 	cloned.RuntimeToolChoiceBySage = nil
+	cloned.ModelInputBySage = nil
 	return cloned
 }
 
@@ -146,7 +150,14 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, melchior, modelInput, options.forSage(melchior))
+		resp, err := rc.collectSingleSageResponse(
+			derivedCtx,
+			sessionId,
+			roundId,
+			melchior,
+			resolveCollectorModelInputForSage(modelInput, options.ModelInputBySage, melchior),
+			options.forSage(melchior),
+		)
 		resultCh <- result{response: resp, err: err, sageName: "melchior"}
 	}()
 
@@ -158,7 +169,14 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, balthazar, modelInput, options.forSage(balthazar))
+		resp, err := rc.collectSingleSageResponse(
+			derivedCtx,
+			sessionId,
+			roundId,
+			balthazar,
+			resolveCollectorModelInputForSage(modelInput, options.ModelInputBySage, balthazar),
+			options.forSage(balthazar),
+		)
 		resultCh <- result{response: resp, err: err, sageName: "balthazar"}
 	}()
 
@@ -170,7 +188,14 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 		if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(derivedCtx, sessionId, roundId, casper, modelInput, options.forSage(casper))
+		resp, err := rc.collectSingleSageResponse(
+			derivedCtx,
+			sessionId,
+			roundId,
+			casper,
+			resolveCollectorModelInputForSage(modelInput, options.ModelInputBySage, casper),
+			options.forSage(casper),
+		)
 		resultCh <- result{response: resp, err: err, sageName: "casper"}
 	}()
 
@@ -208,6 +233,20 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 	}
 
 	return heartbeatResult, nil
+}
+
+func resolveCollectorModelInputForSage(
+	defaultModelInput string,
+	modelInputBySage map[string]string,
+	sage *sages.Sage,
+) string {
+	if sage == nil || len(modelInputBySage) == 0 {
+		return defaultModelInput
+	}
+	if resolved := strings.TrimSpace(modelInputBySage[strings.TrimSpace(sage.GetName())]); resolved != "" {
+		return resolved
+	}
+	return defaultModelInput
 }
 
 func buildSeelStreamMessage(roundId string, sage *sages.Sage) *types.Message {

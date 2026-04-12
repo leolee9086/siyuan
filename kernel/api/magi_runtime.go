@@ -38,6 +38,10 @@ type magiRuntimeManager struct {
 	stopCh            chan struct{}
 	activeHeartbeat   *magiHeartbeatRun
 	foregroundBusy    int32
+	lastRoundHasUser  bool
+	lastRoundUser     string
+	lastRoundReply    string
+	lastRoundSleep    string
 }
 
 func newMagiRuntimeManager(interval time.Duration) *magiRuntimeManager {
@@ -145,6 +149,7 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 	m.status.LastHeartbeatAt = nowMillis
 	m.status.LastWakeAt = nowMillis
 	m.status.UpdatedAt = nowMillis
+	passiveRecallBasis := m.buildHeartbeatPassiveRecallBasisLocked()
 	status := m.status
 	m.mu.Unlock()
 
@@ -161,6 +166,7 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 			magiCasper,
 			buildHeartbeatPrompt(now),
 			buildHeartbeatSourceContext(),
+			passiveRecallBasis,
 		)
 		m.finishHeartbeat(active, result, err)
 	}(run)
@@ -216,6 +222,10 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		m.status.WakeSource = ""
 		m.status.LastSleepAt = nowMillis
 		m.status.LastSleepSummary = strings.TrimSpace(result.SleepSummary)
+		m.lastRoundHasUser = false
+		m.lastRoundUser = ""
+		m.lastRoundReply = ""
+		m.lastRoundSleep = strings.TrimSpace(result.SleepSummary)
 		m.status.Reason = "wanna-sleep"
 	default:
 		m.status.State = types.RuntimeStateHeartbeat
@@ -356,6 +366,25 @@ func (m *magiRuntimeManager) FinishForeground(err error) {
 	m.pushStatus(status)
 }
 
+func (m *magiRuntimeManager) RememberForegroundTurn(userMessage string, assistantReply string) {
+	if m == nil {
+		return
+	}
+
+	userMessage = strings.TrimSpace(userMessage)
+	assistantReply = strings.TrimSpace(assistantReply)
+	if userMessage == "" {
+		return
+	}
+
+	m.mu.Lock()
+	m.lastRoundHasUser = true
+	m.lastRoundUser = userMessage
+	m.lastRoundReply = assistantReply
+	m.lastRoundSleep = ""
+	m.mu.Unlock()
+}
+
 func (m *magiRuntimeManager) GetStatus() types.RuntimeStatus {
 	if m == nil {
 		return types.RuntimeStatus{}
@@ -372,6 +401,44 @@ func (m *magiRuntimeManager) pushCurrentStatus() {
 func (m *magiRuntimeManager) pushStatus(status types.RuntimeStatus) {
 	if err := websocket.PushRuntimeStatusUpdated(magiRuntimeMonitorSessionID, status); err != nil {
 		logging.LogWarnf("推送MAGI运行态失败: %v", err)
+	}
+}
+
+func (m *magiRuntimeManager) buildHeartbeatPassiveRecallBasisLocked() *types.PassiveRecallBasis {
+	if m == nil {
+		return nil
+	}
+
+	if m.lastRoundHasUser {
+		queryParts := make([]string, 0, 2)
+		if trimmedUser := strings.TrimSpace(m.lastRoundUser); trimmedUser != "" {
+			queryParts = append(queryParts, trimmedUser)
+		}
+		if trimmedReply := strings.TrimSpace(m.lastRoundReply); trimmedReply != "" {
+			queryParts = append(queryParts, trimmedReply)
+		}
+		query := strings.TrimSpace(strings.Join(queryParts, "\n"))
+		if query != "" {
+			return &types.PassiveRecallBasis{
+				Type:           types.PassiveRecallBasisPreviousDialogue,
+				Query:          query,
+				UserMessage:    strings.TrimSpace(m.lastRoundUser),
+				AssistantReply: strings.TrimSpace(m.lastRoundReply),
+			}
+		}
+	}
+
+	sleepSummary := strings.TrimSpace(m.lastRoundSleep)
+	if sleepSummary == "" {
+		sleepSummary = strings.TrimSpace(m.status.LastSleepSummary)
+	}
+	if sleepSummary == "" {
+		return nil
+	}
+	return &types.PassiveRecallBasis{
+		Type:         types.PassiveRecallBasisPreviousSleep,
+		Query:        sleepSummary,
+		SleepSummary: sleepSummary,
 	}
 }
 
