@@ -28,7 +28,7 @@ import { isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { openHistory } from "../../history/history";
 import { openCard } from "../../card/openCard";
-import { lockScreen } from "../../dialog/processSystem";
+import { lockScreen } from "../../dialog/processSystem/lockScreen";
 import { isWindow } from "../../util/platform/functions";
 import { openRecentDocs } from "../../business/openRecentDocs";
 import { App } from "../../index";

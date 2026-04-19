@@ -53,12 +53,7 @@ import { isWindow } from "../util/platform/functions";
  */
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
-/**
- * 用途：提供锁屏功能，用于系统安全控制
- * 使用范围：onWindowsMsg.ts 等需要锁屏功能的模块
- * 解耦评估：依赖对话框系统，当前无法解耦
- */
-import { lockScreen } from "../dialog/processSystem";
+import { lockScreen } from "../dialog/processSystem/lockScreen";
 
 /**
  * 用途：提供布局序列化功能，用于将标签页布局转换为JSON格式

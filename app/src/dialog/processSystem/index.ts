@@ -13,7 +13,6 @@ import {confirmDialog} from "../confirmDialog";
 import {escapeHtml} from "../../util/DOM/escape";
 import {needSubscribe} from "../../util/platform/needSubscribe";
 import {hideAllElements} from "../../protyle/ui/hideElements";
-import {App} from "../../index";
 import {saveScroll} from "../../protyle/scroll/saveScroll";
 import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../../protyle/util/compatibility";
 import {Plugin} from "../../plugin";
@@ -86,29 +85,6 @@ export const setDefRefCount = (data: {
             liElement.insertAdjacentHTML("beforeend", `<span class="popover__block counter b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.ref}">${data.rootRefCount}</span>`);
         }
     }
-};
-
-export const lockScreen = async (app: App) => {
-    if (window.siyuan.config.readonly || window.siyuan.isPublish) {
-        return;
-    }
-    app.plugins.forEach(item => {
-        item.eventBus.emit("lock-screen");
-    });
-    if (isMobile()) {
-        if (!window.siyuan.mobile.editor) {
-            return;
-        }
-        await saveScroll(window.siyuan.mobile.editor.protyle);
-        fetchPost("/api/system/logoutAuth");
-        return;
-    }
-    exportLayout({
-        errorExit: false,
-        cb() {
-            fetchPost("/api/system/logoutAuth");
-        }
-    });
 };
 
 export const kernelError = () => {

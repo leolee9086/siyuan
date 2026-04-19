@@ -30,7 +30,7 @@ import { ipcSend } from "../../../platform/electron/ipcRenderer";
 import { App } from "../../../index";
 import { Constants } from "../../../constants";
 import { setReadOnly } from "../../../config/util/setReadOnly";
-import { lockScreen } from "../../../dialog/processSystem";
+import { lockScreen } from "../../../dialog/processSystem/lockScreen";
 import { newFile } from "../../../util/file/newFile";
 import { openCard } from "../../../card/openCard";
 import { syncGuide } from "../../../sync/syncGuide";
