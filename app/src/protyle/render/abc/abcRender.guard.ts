@@ -4,7 +4,7 @@
  * @module protyle/render/abcRender.guard
  */
 
-import type { AbcRenderParams } from "./abcRender.types";
+import type { AbcRenderParams } from "../abcRender.types";
 
 /**
  * 类型守卫：判断 looseJsonParse 返回值是否为有效的 ABC 渲染参数
