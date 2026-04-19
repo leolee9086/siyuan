@@ -212,7 +212,7 @@ export const saveLayout = (): void => {
 };
 
 /** 导出布局配置（带回调），保存所有编辑器的滚动位置后将布局导出 */
-export const exportLayout = async (options: { cb: () => void; errorExit: boolean }): Promise<void> => {
+export const exportLayout = async (options: { cb: () => void; errorExit: boolean }) => {
     // 保存所有编辑器的滚动位置
     if (!isMobile) {
         const editors = getAllModels().editor;

@@ -12,7 +12,6 @@ import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {
     bootSync,
-    downloadProgress,
     kernelError,
     processSync,
     progressBackgroundTask,
@@ -21,6 +20,7 @@ import {
     setDefRefCount,
     transactionError
 } from "./dialog/processSystem";
+import { downloadProgress } from "./dialog/processSystem/downloadProgress";
 import { setTitle } from "./dialog/processSystem/setTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
