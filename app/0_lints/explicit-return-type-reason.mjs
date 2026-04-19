@@ -3,12 +3,22 @@
  *
  * 默认禁止函数实现上显式标注返回值类型。
  * 只有在前置块注释中说明“为什么不能依赖类型推导”时才允许保留该语法。
+ * 类型守卫文件（*.guard.ts / *.guards.ts）默认豁免：
+ * 这类文件中的 `value is Type` / `asserts value is Type` 属于语法必需，
+ * 不应再要求额外补充“显式返回类型原因”。
  */
 
 import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
 
 const 默认理由标签 = "@显式返回类型原因";
 const 默认最短理由长度 = 12;
+
+/**
+ * 判断当前文件是否为类型守卫文件。
+ */
+function 是类型守卫文件(filename) {
+    return /(?:^|[\\/])[^\\/]+\.guards?\.ts$/u.test(filename);
+}
 
 /**
  * 转义正则中的特殊字符。
@@ -178,8 +188,13 @@ export const 显式返回类型理由插件 = {
                 const options = context.options[0] ?? {};
                 const tag = options.tag ?? 默认理由标签;
                 const minReasonLength = options.minReasonLength ?? 默认最短理由长度;
+                const filename = context.filename ?? context.getFilename?.() ?? "";
 
                 function 检查函数(node) {
+                    if (是类型守卫文件(filename)) {
+                        return;
+                    }
+
                     if (!是可检查的函数实现(node)) {
                         return;
                     }

@@ -177,15 +177,15 @@ const IMPORTS_GATEWAY_RESTRICTIONS = [
     },
 ];
 
-// 类型断言限制 (仅在非 .guard.ts 文件中生效)
+// 类型断言限制 (仅在非 *.guard.ts / *.guards.ts 文件中生效)
 const TYPE_ASSERTION_RESTRICTIONS = [
     {
         selector: "TSAsExpression:not([typeAnnotation.type='TSTypeReference'][typeAnnotation.typeName.name='const']), TSTypeAssertion",
-        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示 + 单文件检查提示,
+        message: "❌ 禁止使用 'as' 断言。请在 *.guard.ts 或 *.guards.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "TSTypePredicate",
-        message: "❌ 架构约束：禁止在常规文件使用 'is' 关键字。类型守卫逻辑必须移至 *.guard.ts 文件中。" + 全量修复提示 + 单文件检查提示,
+        message: "❌ 架构约束：禁止在常规文件使用 'is' 关键字。类型守卫逻辑必须移至 *.guard.ts 或 *.guards.ts 文件中。" + 全量修复提示 + 单文件检查提示,
     },
 ];
 
@@ -386,7 +386,7 @@ export default [{
             }))
         ]
     },
-    ignores: ["**/*.types.ts", "**/types.ts", "**/*.schema.ts", "**/*.guard.ts"]
+    ignores: ["**/*.types.ts", "**/types.ts", "**/*.schema.ts", "**/*.guard.ts", "**/*.guards.ts"]
 }, {
     // 禁止在非环境/全局文件中访问全局对象 (独立规则不冲突)
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
@@ -435,8 +435,8 @@ export default [{
         }]
     }
 }, {
-    // 只有 .guard.ts 允许 is，但依然受 COMMON 限制
-    files: ["**/*.guard.ts"],
+    // 只有 *.guard.ts / *.guards.ts 允许 is，但依然受 COMMON 限制
+    files: ["**/*.guard.ts", "**/*.guards.ts"],
     rules: {
         "no-restricted-syntax": ["error", ...COMMON_RESTRICTED_SYNTAX],
         "require-async-export/require-async-export": "off"
