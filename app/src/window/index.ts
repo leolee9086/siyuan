@@ -13,12 +13,12 @@ import {
     progressBackgroundTask,
     progressLoading,
     progressStatus,
-    reloadSync,
     setDefRefCount,
-    setRefDynamicText,
-    setTitle,
     transactionError
 } from "../dialog/processSystem";
+import { setTitle } from "../dialog/processSystem/setTitle";
+import { reloadSync } from "../dialog/processSystem/reloadSync";
+import { setRefDynamicText } from "../dialog/processSystem/setRefDynamicText";
 import { initMessage } from "../dialog/message";
 import { getAllTabs } from "../layout/getAll";
 import { getLocalStorage } from "../protyle/util/compatibility";

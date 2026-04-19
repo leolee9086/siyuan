@@ -292,7 +292,6 @@ export const fetchPost = async (
         handleFetchError(url, data, error, failCallback);
     }
 };
-
 /**
  * 发送 POST 请求到思源内核 API（Promise/async-await 风格）
  *
@@ -334,6 +333,7 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
  *
  * 专门用于 /api/file/getFile 等返回非标准格式的 API。
  * 这些 API 直接返回文件内容，而非包装在 {code, msg, data} 结构中。
+ * @显式返回类型原因 泛型函数类型的返回值类型
  */
 export const fetchSyncPostRaw = async <T = unknown>(url: string, data?: TFetchRequestData): Promise<T> => {
     const ctx: FetchContext = { url, data, serializedBody: null };

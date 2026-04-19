@@ -18,12 +18,12 @@ import {
     progressBackgroundTask,
     progressLoading,
     progressStatus,
-    reloadSync,
     setDefRefCount,
-    setRefDynamicText,
-    setTitle,
     transactionError
 } from "./dialog/processSystem";
+import { setTitle } from "./dialog/processSystem/setTitle";
+import { reloadSync } from "./dialog/processSystem/reloadSync";
+import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
 import { initMessage, showMessage } from "./dialog/message";
 import { getAllModels, getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入

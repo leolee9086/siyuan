@@ -1,165 +1,22 @@
-import {Constants} from "../constants";
-import {fetchPost} from "../util/network/fetch";
-import {exportLayout} from "../layout/util";
-import {getAllEditor, getAllModels} from "../layout/getAll";
-import {getDockByType} from "../layout/tabUtil";
-import {Files} from "../layout/dock/Files";
-import {isElectron} from "../platform";
-import {ipcSend} from "../platform/electron/ipcRenderer";
-import {hideMessage, showMessage} from "./message";
-import {Dialog} from "./index";
-import {isMobile} from "../util/platform/functions";
-import {confirmDialog} from "./confirmDialog";
-import {escapeHtml} from "../util/DOM/escape";
-import {getWorkspaceName} from "../util/platform/noRelyPCFunction";
-import {needSubscribe} from "../util/platform/needSubscribe";
-import {setNoteBook} from "../util/file/pathName";
-import {reloadProtyle} from "../protyle/util/reload";
-import {Tab} from "../layout/Tab";
-import {setEmpty} from "../mobile/util/setEmpty";
-import {hideAllElements, hideElements} from "../protyle/ui/hideElements";
-import {App} from "../index";
-import {saveScroll} from "../protyle/scroll/saveScroll";
-import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../protyle/util/compatibility";
-import {Plugin} from "../plugin";
-
-const updateTitle = (rootID: string, tab: Tab, protyle?: IProtyle) => {
-    fetchPost("/api/block/getDocInfo", {
-        id: rootID
-    }, (response) => {
-        tab.updateTitle(response.data.name);
-        if (protyle && protyle.title) {
-            protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
-        }
-    });
-};
-
-export const reloadSync = (
-    app: App,
-    data: { upsertRootIDs: string[], removeRootIDs: string[] },
-    hideMsg = true,
-    // 同步的时候需要更新只读状态 https://github.com/siyuan-note/siyuan/issues/11517
-    // 调整大纲的时候需要使用现有状态 https://github.com/siyuan-note/siyuan/issues/11808
-    updateReadonly = true,
-    onlyUpdateDoc = false
-) => {
-    if (hideMsg) {
-        hideMessage();
-    }
-    if (isMobile()) {
-        if (window.siyuan.mobile.popEditor) {
-            if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
-                hideElements(["dialog"]);
-            } else {
-                reloadProtyle(window.siyuan.mobile.popEditor.protyle, false, updateReadonly);
-            }
-        }
-    }
-    if (window.siyuan.mobile.editor) {
-        if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
-            setEmpty(app);
-        } else {
-            reloadProtyle(window.siyuan.mobile.editor.protyle, false, updateReadonly);
-            fetchPost("/api/block/getDocInfo", {
-                id: window.siyuan.mobile.editor.protyle.block.rootID
-            }, (response) => {
-                setTitle(response.data.name);
-                window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
-            });
-        }
-        setNoteBook(() => {
-            window.siyuan.mobile.docks.file.init(false);
-        });
-        return;
-    }
-    const allModels = getAllModels();
-    allModels.editor.forEach(item => {
-        if (data.upsertRootIDs.includes(item.editor.protyle.block.rootID)) {
-            fetchPost("/api/block/getDocInfo", {
-                id: item.editor.protyle.block.rootID,
-            }, (response) => {
-                item.editor.protyle.wysiwyg.renderCustom(response.data.ial);
-                reloadProtyle(item.editor.protyle, false, updateReadonly);
-                updateTitle(item.editor.protyle.block.rootID, item.parent, item.editor.protyle);
-            });
-        } else if (data.removeRootIDs.includes(item.editor.protyle.block.rootID)) {
-            item.parent.parent.removeTab(item.parent.id, false, false);
-            delete window.siyuan.storage[Constants.LOCAL_FILEPOSITION][item.editor.protyle.block.rootID];
-            setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
-        }
-    });
-    allModels.graph.forEach(item => {
-        if (item.type === "local" && data.removeRootIDs.includes(item.rootId)) {
-            item.parent.parent.removeTab(item.parent.id, false, false);
-        } else if (item.type !== "local" || data.upsertRootIDs.includes(item.rootId)) {
-            item.searchGraph(false);
-            if (item.type === "local") {
-                updateTitle(item.rootId, item.parent);
-            }
-        }
-    });
-    allModels.outline.forEach(item => {
-        if (item.type === "local" && data.removeRootIDs.includes(item.blockId)) {
-            item.parent.parent.removeTab(item.parent.id, false, false);
-        } else if (item.type !== "local" || data.upsertRootIDs.includes(item.blockId)) {
-            fetchPost("/api/outline/getDocOutline", {
-                id: item.blockId,
-                preview: item.isPreview
-            }, response => {
-                item.update(response);
-            });
-            if (item.type === "local") {
-                updateTitle(item.blockId, item.parent);
-            }
-        }
-    });
-    allModels.backlink.forEach(item => {
-        if (item.type === "local" && data.removeRootIDs.includes(item.rootId)) {
-            item.parent.parent.removeTab(item.parent.id, false, false);
-        } else {
-            item.refresh();
-            if (item.type === "local") {
-                updateTitle(item.rootId, item.parent);
-            }
-        }
-    });
-    if (!onlyUpdateDoc) {
-        allModels.files.forEach(item => {
-            setNoteBook(() => {
-                item.init(false);
-            });
-        });
-    }
-    allModels.bookmark.forEach(item => {
-        item.update();
-    });
-    allModels.tag.forEach(item => {
-        item.update();
-    });
-    // NOTE asset 无法获取推送地址，先不处理
-    allModels.search.forEach(item => {
-        item.parent.panelElement.querySelector("#searchInput").dispatchEvent(new CustomEvent("input"));
-    });
-    allModels.custom.forEach(item => {
-        if (item.update) {
-            item.update();
-        }
-    });
-};
-
-export const setRefDynamicText = (data: {
-    "blockID": string,
-    "defBlockID": string,
-    "refText": string,
-    "rootID": string
-}) => {
-    getAllEditor().forEach(editor => {
-        // 不能对比 rootId，否则嵌入块中的锚文本无法更新
-        editor.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${data.blockID}"] span[data-type~="block-ref"][data-subtype="d"][data-id="${data.defBlockID}"]`).forEach(item => {
-            item.innerHTML = data.refText;
-        });
-    });
-};
+import {Constants} from "../../constants";
+import {fetchPost} from "../../util/network/fetch";
+import {exportLayout} from "../../layout/util";
+import {getAllEditor} from "../../layout/getAll";
+import {getDockByType} from "../../layout/tabUtil";
+import {Files} from "../../layout/dock/Files";
+import {isElectron} from "../../platform";
+import {ipcSend} from "../../platform/electron/ipcRenderer";
+import {hideMessage, showMessage} from "../message";
+import {Dialog} from "../index";
+import {isMobile} from "../../util/platform/functions";
+import {confirmDialog} from "../confirmDialog";
+import {escapeHtml} from "../../util/DOM/escape";
+import {needSubscribe} from "../../util/platform/needSubscribe";
+import {hideAllElements} from "../../protyle/ui/hideElements";
+import {App} from "../../index";
+import {saveScroll} from "../../protyle/scroll/saveScroll";
+import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../../protyle/util/compatibility";
+import {Plugin} from "../../plugin";
 
 export const setDefRefCount = (data: {
     "blockID": string,
@@ -509,27 +366,6 @@ export const bootSync = () => {
             });
         }
     });
-};
-
-export const setTitle = (title: string, showVersionTitle = false) => {
-    const dragElement = document.getElementById("drag");
-    const workspaceName = getWorkspaceName();
-    if (showVersionTitle) {
-        const versionTitle = `${workspaceName} - ${window.siyuan.languages.siyuanNote} v${Constants.SIYUAN_VERSION}`;
-        document.title = versionTitle;
-        if (dragElement) {
-            dragElement.textContent = versionTitle;
-            dragElement.setAttribute("title", versionTitle);
-        }
-    } else {
-        title = title.trim() || window.siyuan.languages["_kernel"][16];
-        document.title = `${title} - ${workspaceName} - ${window.siyuan.languages.siyuanNote} v${Constants.SIYUAN_VERSION}`;
-        if (!dragElement) {
-            return;
-        }
-        dragElement.setAttribute("title", title);
-        dragElement.innerHTML = escapeHtml(title);
-    }
 };
 
 export const downloadProgress = (data: { id: string, percent: number }) => {

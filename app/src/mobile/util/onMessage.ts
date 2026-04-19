@@ -2,11 +2,11 @@ import {openMobileFileById} from "../editor";
 import {
     processSync,
     progressLoading,
-    reloadSync,
     setDefRefCount,
-    setRefDynamicText,
     transactionError
 } from "../../dialog/processSystem";
+import { reloadSync } from "../../dialog/processSystem/reloadSync";
+import { setRefDynamicText } from "../../dialog/processSystem/setRefDynamicText";
 import {App} from "../../index";
 import {reloadPlugin} from "../../plugin/loader";
 import {reloadEmoji} from "../../emoji";

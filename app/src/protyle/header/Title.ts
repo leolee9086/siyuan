@@ -16,7 +16,7 @@ import { isMac, readText } from "../util/compatibility";
 import * as dayjs from "dayjs";
 import { isMobile } from "../../platform";
 import { openFileById } from "../../editor/utils.openFileById";
-import { setTitle } from "../../dialog/processSystem";
+import { setTitle } from "../../dialog/processSystem/setTitle";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";

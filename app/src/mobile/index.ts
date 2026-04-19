@@ -11,7 +11,8 @@ import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch"
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets, loadAssets } from "../util/assets/assets";
-import { bootSync, kernelError, reloadSync } from "../dialog/processSystem";
+import { bootSync, kernelError } from "../dialog/processSystem";
+import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { initMessage, showMessage } from "../dialog/message";
 import { goBack } from "./util/MobileBackFoward";
 import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";

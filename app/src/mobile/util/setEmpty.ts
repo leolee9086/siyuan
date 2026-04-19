@@ -5,7 +5,7 @@ import {popSearch} from "../menu/search";
 import {getRecentDocs} from "../menu/getRecentDocs";
 import {openHistory} from "../../history/history";
 import {App} from "../../index";
-import {setTitle} from "../../dialog/processSystem";
+import { setTitle } from "../../dialog/processSystem/setTitle";
 import {isIPhone} from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
