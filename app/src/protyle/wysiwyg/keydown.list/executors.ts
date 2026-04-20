@@ -89,32 +89,12 @@ import { executeTransformToTL } from "./executors.transform";
  * 解耦评估：理论上可通过事件或注册表间接选择执行器，但当前命令和执行器的关系是静态且稳定的，引入额外中间层只会增加复杂度并削弱类型可追踪性，无法减少真实耦合。直接从同目录导入专用执行器是当前模块内更合适的方案。
  */
 import { executeTransformToQuote } from "./executors.transform";
-
 /**
- * 切换任务状态的 DOM 操作
- *
- * @param taskItemElement - 任务列表项元素
- * @param useElement - use 元素（用于显示图标）
- * @returns 切换后的状态
+ * 用途：引入任务状态 DOM 落地辅助函数，供任务切换执行器按已收集好的目标状态同步更新图标、类名和 `data-task`。
+ * 使用范围：仅用于当前文件的 [`executeToggleTaskStatus()`](app/src/protyle/wysiwyg/keydown.list/executors.ts:111)；边界是这里只消费既有 DOM 写入能力，不在本文件内重写状态到 DOM 的映射细节。
+ * 解耦评估：理论上可以把 DOM 写入语句直接内联在执行器里，但那会把状态到 DOM 的映射规则重新散落回执行层，削弱“状态收集/执行落地”分层。改成参数注入也只会扩大静态映射表的样板。继续从同目录 [`toggleTaskStatusDOM.ts`](app/src/protyle/wysiwyg/keydown.list/toggleTaskStatusDOM.ts:1) 复用专用辅助函数，是当前边界下更低耦合的方案。
  */
-const toggleTaskStatusDOM = (
-    taskItemElement: HTMLElement,
-    useElement: SVGUseElement
-) => {
-    const isDone = taskItemElement.classList.contains("protyle-task--done");
-    
-    if (isDone) {
-        useElement.setAttribute("xlink:href", "#iconUncheck");
-        taskItemElement.classList.remove("protyle-task--done");
-        taskItemElement.setAttribute("data-task", " ");
-        return false;
-    }
-    
-    useElement.setAttribute("xlink:href", "#iconCheck");
-    taskItemElement.classList.add("protyle-task--done");
-    taskItemElement.setAttribute("data-task", "X");
-    return true;
-};
+import { setTaskStatusDOM } from "./toggleTaskStatusDOM";
 
 /**
  * 执行任务列表切换命令（Phase 1）
@@ -133,13 +113,9 @@ const toggleTaskStatusDOM = (
  * 8. 阻止事件传播并中止后续处理
  */
 const executeToggleTaskStatus: CommandExecutor = async (
-    event, protyle, nodeElement, range, controller
+    event, protyle, nodeElement, range, controller, state
 ) => {
-    const taskItemElement = hasClosestByAttribute(
-        range.startContainer,
-        "data-subtype",
-        "t"
-    );
+    const taskItemElement = hasClosestByAttribute(range.startContainer, "data-subtype", "t");
     
     if (!taskItemElement) {
         return;
@@ -155,12 +131,14 @@ const executeToggleTaskStatus: CommandExecutor = async (
     if (!nodeId) {
         return;
     }
-    
-    // 记录切换前的状态
-    const oldStatus = taskItemElement.classList.contains("protyle-task--done");
-    
-    // 切换任务状态
-    const newStatus = toggleTaskStatusDOM(taskItemElement, useElement);
+
+    const { taskStatus, nextTaskStatus } = state.context;
+    if (taskStatus === null || nextTaskStatus === null) {
+        return;
+    }
+
+    // 根据已收集的状态空间直接应用目标状态
+    setTaskStatusDOM(taskItemElement, useElement, nextTaskStatus);
     
     // 更新时间戳并提交事务
     taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -173,8 +151,8 @@ const executeToggleTaskStatus: CommandExecutor = async (
             event,
             nodeElement: taskItemElement,
         },
-        oldStatus,
-        newStatus
+        taskStatus === "done",
+        nextTaskStatus === "done"
     );
     
     event.preventDefault();
@@ -368,18 +346,13 @@ const executorMap: Record<ListCommand, CommandExecutor | null> = {
  * 2. 如果执行器存在，则调用执行器
  * 3. 如果执行器不存在（如 IGNORE 命令），则不执行任何操作
  */
-export const executeCommand = async (
-    command: ListCommand,
-    event: KeyboardEvent,
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    range: Range,
-    controller: AbortController
-)=> {
+export const executeCommand = async (command: ListCommand,
+    event: KeyboardEvent, protyle: IProtyle, nodeElement: HTMLElement,
+    range: Range, controller: AbortController, state: Parameters<CommandExecutor>[5]) => {
     const executor = executorMap[command];
     
     if (executor) {
-        await executor(event, protyle, nodeElement, range, controller);
+        await executor(event, protyle, nodeElement, range, controller, state);
     }
     // IGNORE 命令或未实现的命令不执行任何操作
 };

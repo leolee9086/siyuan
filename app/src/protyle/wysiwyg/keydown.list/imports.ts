@@ -55,7 +55,7 @@ import { listOutdent } from "../list";
 import { listIndent } from "../list";
 /**
  * 用途：引入 Arktype 的运行时 schema 构造函数，供当前列表键盘模块的类型定义文件构建状态 schema。
- * 使用范围：仅用于 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 这类同目录类型定义文件在声明 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:42)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:69)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:105) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:145) 时复用；边界是不在本文件封装新的 schema DSL，也不承担任何路由判断或状态提取逻辑。
+ * 使用范围：仅用于 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 这类同目录类型定义文件在声明 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:66)、[`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:148)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:175)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:211) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:251) 时复用；边界是不在本文件封装新的 schema DSL，也不承担任何路由判断或状态提取逻辑。
  * 解耦评估：理论上可把 schema 结果直接内联为普通 TypeScript 类型，或把 schema 从外部工厂传入；但当前这些状态既需要编译期类型推断，也需要 Arktype 提供的运行时声明能力，简单参数传递无法替代其静态定义角色。通过本同层网关集中转发第三方 DSL，比让多个业务/类型文件直接耦合外部包路径更低耦合。
  */
 import { type } from "arktype";

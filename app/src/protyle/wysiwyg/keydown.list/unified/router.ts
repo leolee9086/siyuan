@@ -28,15 +28,15 @@ import { LIST_COMMANDS } from "./imports";
 /**
  * 用途：引入统一列表状态 Schema，作为 listMasterRouter 的 universe 输入约束，确保主路由器与 extractUnifiedListState 产出的状态结构保持一致。
  * 使用范围：仅用于当前 router 模块中主路由器的 calibur.universe() 声明阶段；边界是这里只消费 schema 做路由输入建模，不负责状态提取、命令执行，也不向 router.transform 反向传递实现细节。
- * 解耦评估：理论上可由外部把 schema 作为参数注入路由工厂，或在状态提取层返回后跳过 schema 直接依赖隐式对象结构；但当前 listMasterRouter 被设计为静态常量路由器，且 UnifiedListStateSchema 同时承载运行时 universe 约束与编译期类型来源。若改成依赖注入，需要把主路由器改造成工厂并把装配责任扩散到 middleware 等调用链；若仅靠参数传递或事件发射，也无法替代 calibur 在路由定义阶段对 schema 常量的直接依赖。因此这里保留对 ./types 的同层静态依赖，是结合当前静态路由架构后的真实最小耦合方案。
+ * 解耦评估：理论上可由外部把 schema 作为参数注入路由工厂，或在状态提取层返回后跳过 schema 直接依赖隐式对象结构；但当前 listMasterRouter 被设计为静态常量路由器，且 UnifiedListStateSchema 同时承载运行时 universe 约束与编译期类型来源。若改成依赖注入，需要把主路由器改造成工厂并把装配责任扩散到 middleware 等调用链；若仅靠参数传递或事件发射，也无法替代 calibur 在路由定义阶段对 schema 常量的直接依赖。因此这里保留对上层共享类型文件的静态依赖，是结合当前静态路由架构后的真实最小耦合方案。
  */
-import { UnifiedListStateSchema } from "./types";
+import { UnifiedListStateSchema } from "./imports";
 /**
  * 用途：引入统一列表状态类型，为主路由各分支回调的 state 参数提供编译期约束。
  * 使用范围：仅用于当前 router 模块的 TypeScript 类型标注；边界是不生成运行时代码，也不参与状态提取和命令执行。
- * 解耦评估：类型理论上可以在每个回调处以内联结构重复声明，或改由泛型从 schema 间接推断，但这会重复状态契约并提高维护成本。当前直接从 ./types 引入共享类型，不产生运行时耦合，已是准确且低成本的解耦方式。
+ * 解耦评估：类型理论上可以在每个回调处以内联结构重复声明，或改由泛型从 schema 间接推断，但这会重复状态契约并提高维护成本。当前直接从上层共享类型文件引入共享类型，不产生运行时耦合，已是准确且低成本的解耦方式。
  */
-import type { UnifiedListState } from "./types";
+import type { UnifiedListState } from "./imports";
 /**
  * 用途：引入列表类型转换子路由器，供 listMasterRouter 在 list/oList/check/quote 快捷键命中时委托转换决策。
  * 使用范围：仅用于当前 router 模块主路由器的 transform 分支；边界是不承担基础缩进/勾选子路由逻辑，也不参与具体命令执行。

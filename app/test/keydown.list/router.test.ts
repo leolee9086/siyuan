@@ -14,7 +14,7 @@ import {
     transformSubRouter
 } from "../../src/protyle/wysiwyg/keydown.list/unified/router";
 import { LIST_COMMANDS } from "../../src/protyle/wysiwyg/keydown.list/commands";
-import type { UnifiedListState } from "../../src/protyle/wysiwyg/keydown.list/unified/types";
+import type { UnifiedListState } from "../../src/protyle/wysiwyg/keydown.list/types";
 
 // ============================================================================
 // Mock 状态工厂函数
@@ -59,6 +59,8 @@ function createMockUnifiedState(
             inListItem: false,
             inCodeBlock: false,
             hasTaskItem: false,
+            taskStatus: null,
+            nextTaskStatus: null,
             hasPreviousSibling: true,
             blockType: "NodeParagraph",
             listSubtype: null,

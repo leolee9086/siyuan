@@ -28,9 +28,15 @@ import { getSiyuanConfig } from "./imports";
 /**
  * 用途：引入统一列表状态类型，作为本文件内部最小状态、选区状态与上下文状态的共享编译期契约。
  * 使用范围：仅用于 [`createMinimalState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:149)、[`extractSelectionState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:174)、[`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 与 [`extractUnifiedListState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:249) 的结构校验；边界是不参与任何运行时导出值与业务逻辑执行。
- * 解耦评估：该依赖完全属于编译期共享契约，既不能通过依赖注入减少运行时耦合，也不适合改为参数传递，否则只会在多个函数中重复内联同一状态结构；继续从同目录类型文件单点引用是当前最小且最准确的耦合方式。
+ * 解耦评估：该依赖完全属于编译期共享契约，既不能通过依赖注入减少运行时耦合，也不适合改为参数传递，否则只会在多个函数中重复内联同一状态结构；继续从上层共享类型文件单点引用是当前最小且最准确的耦合方式。
  */
-import type { UnifiedListState } from "./types";
+import type { TaskStatusState } from "./imports";
+/**
+ * 用途：引入统一列表状态类型，作为本文件内部最小状态、选区状态与上下文状态的共享编译期契约。
+ * 使用范围：仅用于 [`createMinimalState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:149)、[`extractSelectionState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:174)、[`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 与 [`extractUnifiedListState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:249) 的结构校验；边界是不参与任何运行时导出值与业务逻辑执行。
+ * 解耦评估：该依赖完全属于编译期共享契约，既不能通过依赖注入减少运行时耦合，也不适合改为参数传递，否则只会在多个函数中重复内联同一状态结构；继续经由同层 imports 网关转发单点引用是当前最小且最准确的耦合方式。
+ */
+import type { UnifiedListState } from "./imports";
 
 /**
  * 检查选中元素是否连续
@@ -78,7 +84,7 @@ const blockTypes = ["NodeParagraph", "NodeList", "NodeHeading"] as const;
  * 作用：把 DOM 上的 `data-type` 字符串收敛为统一列表状态约定的块类型枚举。
  * 意图：避免把编辑器中的任意字符串直接透传到路由层，确保 [`listMasterRouter`](app/src/protyle/wysiwyg/keydown.list/unified/router.ts:209) 只接收受控值。
  * 调用时机：仅在 [`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 读取当前目标块属性后调用。
- * 问题/改进：如果未来列表转换需要支持新的块类型，应同步扩展这里与 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/unified/types.ts:28) 的约束，避免状态与路由规则脱节。
+ * 问题/改进：如果未来列表转换需要支持新的块类型，应同步扩展这里与 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:1) 的约束，避免状态与路由规则脱节。
  *
  * @param dataType - data-type 属性值
  * @returns 块类型
@@ -99,6 +105,34 @@ const listSubtypes = ["u", "o", "t"] as const;
  * @returns 列表子类型
  */
 const parseListSubtype = (dataSubtype: string) => listSubtypes.find(item => item === dataSubtype) ?? null;
+
+/**
+ * 解析任务列表项当前状态。
+ *
+ * @param taskItemElement - 任务列表项元素
+ * @returns 当前任务状态；非任务列表项时返回 null
+ */
+const parseTaskStatus = (taskItemElement: false | HTMLElement) => {
+    if (!taskItemElement) {
+        return null;
+    }
+
+    return taskItemElement.classList.contains("protyle-task--done") ? "done" : "todo";
+};
+
+/**
+ * 解析任务切换后的目标状态。
+ *
+ * @param taskStatus - 当前任务状态
+ * @returns 切换后的目标状态；无任务状态时返回 null
+ */
+const resolveNextTaskStatus = (taskStatus: TaskStatusState) => {
+    if (taskStatus === null) {
+        return null;
+    }
+
+    return taskStatus === "done" ? "todo" : "done";
+};
 
 /**
  * 提取快捷键状态
@@ -158,6 +192,8 @@ const createMinimalState = (hotkeys: UnifiedListState["hotkeys"]) => ({
         inListItem: false,
         inCodeBlock: false,
         hasTaskItem: false,
+        taskStatus: null,
+        nextTaskStatus: null,
         hasPreviousSibling: false,
         blockType: "other",
         listSubtype: null
@@ -207,6 +243,7 @@ const extractContextState = (
     selectElements: NodeListOf<Element>
 ) => {
     const taskItemElement = hasClosestByAttribute(range.startContainer, "data-subtype", "t");
+    const taskStatus = parseTaskStatus(taskItemElement);
     const selectCount = selectElements.length;
     const targetElement = selectCount === 1 ? selectElements[0] : nodeElement;
     const dataType = targetElement?.getAttribute("data-type") || "";
@@ -216,6 +253,8 @@ const extractContextState = (
         inListItem: nodeElement.parentElement?.classList.contains("li") ?? false,
         inCodeBlock: nodeElement.getAttribute("data-type") === "NodeCodeBlock",
         hasTaskItem: !!taskItemElement,
+        taskStatus,
+        nextTaskStatus: resolveNextTaskStatus(taskStatus),
         hasPreviousSibling: !!(nodeElement.parentElement?.previousElementSibling),
         blockType: parseBlockType(dataType),
         listSubtype: parseListSubtype(dataSubtype)

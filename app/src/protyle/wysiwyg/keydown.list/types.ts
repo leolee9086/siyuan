@@ -7,17 +7,16 @@
 
 /**
  * 用途：通过同层依赖网关引入 Arktype 的运行时 schema 构造函数，供当前类型文件声明列表键盘状态 schema。
- * 使用范围：仅用于 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:45)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:76)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:113) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:155) 这四个 schema 常量；边界是不在本文件中改变 Arktype DSL 的行为，也不承担任何运行时状态收集逻辑。
+ * 使用范围：仅用于当前文件中的各个状态 schema 常量，包括 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:66)、[`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:148)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:175)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:211) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:251)；边界是不在本文件中改变 Arktype DSL 的行为，也不承担任何运行时状态收集逻辑。
  * 解耦评估：这些 schema 是静态模块定义的一部分，无法通过事件发射替代。理论上可把 schema 实例改为由外部工厂创建后传入，但那会打散当前类型文件中“schema + infer 类型”同源维护的结构，增加装配复杂度且不减少真实耦合；继续经由 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 单点转发第三方 DSL 更合适。
  */
 import { type } from "./imports";
 /**
  * 用途：通过同层依赖网关引入 Arktype 的 schema 类型接口，供当前类型文件为状态 schema 常量提供精确的泛型约束。
- * 使用范围：仅用于 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:42)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:69)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:105) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:145) 的类型标注；边界是仅参与编译期，不承担运行时推导逻辑。
+ * 使用范围：仅用于当前文件中各个状态 schema 常量的类型标注，包括 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:66)、[`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:148)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:175)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:211) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:251)；边界是仅参与编译期，不承担运行时推导逻辑。
  * 解耦评估：[`Type`](app/src/protyle/wysiwyg/keydown.list/imports.ts:90) 属于编译期契约，无法通过依赖注入或事件发射获得更低耦合；若在本文件重复声明这些 schema 的目标结构，会导致类型与 schema 推断分离。通过同层网关统一转发第三方类型导出，能把外部包路径耦合限制在单点。
  */
 import type { Type } from "./imports";
-
 /**
  * 日志级别枚举
  */
@@ -43,6 +42,102 @@ export interface CommandLogParams {
     /** 额外的上下文信息（可选） */
     context?: Record<string, unknown>;
 }
+
+/**
+ * 任务列表完成状态
+ *
+ * `todo` 表示未完成，`done` 表示已完成。
+ */
+export type TaskStatus = "todo" | "done";
+
+/**
+ * 任务列表状态空间中的状态值。
+ *
+ * 非任务列表项时为 `null`。
+ */
+export type TaskStatusState = TaskStatus | null;
+
+/**
+ * 统一列表状态空间 Schema
+ *
+ * 本 schema 收敛统一列表中间件的全部输入状态，
+ * 供 unified 路由器、状态提取器与执行器共享同一份契约。
+ */
+export const UnifiedListStateSchema: Type<{
+    hotkeys: {
+        checkToggle: boolean;
+        outdent: boolean;
+        indent: boolean;
+        list: boolean;
+        oList: boolean;
+        check: boolean;
+        quote: boolean;
+    };
+    selection: {
+        hasMultiple: boolean;
+        isContinuous: boolean;
+        firstInList: boolean;
+        hasListItem: boolean;
+        isSingle: boolean;
+    };
+    context: {
+        inListItem: boolean;
+        inCodeBlock: boolean;
+        hasTaskItem: boolean;
+        taskStatus: TaskStatusState;
+        nextTaskStatus: TaskStatusState;
+        hasPreviousSibling: boolean;
+        blockType: "NodeParagraph" | "NodeList" | "NodeHeading" | "other";
+        listSubtype: "u" | "o" | "t" | null;
+    };
+}> = type({
+    hotkeys: {
+        checkToggle: "boolean",
+        outdent: "boolean",
+        indent: "boolean",
+        list: "boolean",
+        oList: "boolean",
+        check: "boolean",
+        quote: "boolean"
+    },
+    selection: {
+        hasMultiple: "boolean",
+        isContinuous: "boolean",
+        firstInList: "boolean",
+        hasListItem: "boolean",
+        isSingle: "boolean"
+    },
+    context: {
+        inListItem: "boolean",
+        inCodeBlock: "boolean",
+        hasTaskItem: "boolean",
+        taskStatus: "'todo' | 'done' | null",
+        nextTaskStatus: "'todo' | 'done' | null",
+        hasPreviousSibling: "boolean",
+        blockType: "'NodeParagraph' | 'NodeList' | 'NodeHeading' | 'other'",
+        listSubtype: "'u' | 'o' | 't' | null"
+    }
+});
+
+/**
+ * 统一列表状态类型
+ */
+export type UnifiedListState = typeof UnifiedListStateSchema.infer;
+
+/**
+ * 快捷键状态类型
+ */
+export type HotkeysState = UnifiedListState["hotkeys"];
+
+/**
+ * 选区状态类型
+ */
+export type SelectionState = UnifiedListState["selection"];
+
+/**
+ * 上下文状态类型
+ */
+export type ContextState = UnifiedListState["context"];
 
 /**
  * Phase 1: 任务列表切换状态 Schema
@@ -234,6 +329,7 @@ export type ListCommand =
  * @param nodeElement - 当前节点元素
  * @param range - 当前选区对象
  * @param controller - 中止控制器，用于终止后续处理
+ * @param state - 已收集的统一列表状态
  */
 export interface CommandExecutor {
     (
@@ -241,6 +337,7 @@ export interface CommandExecutor {
         protyle: IProtyle,
         nodeElement: HTMLElement,
         range: Range,
-        controller: AbortController
+        controller: AbortController,
+        state: UnifiedListState
     ): Promise<void>;
 }

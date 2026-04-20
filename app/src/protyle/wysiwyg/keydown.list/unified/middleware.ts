@@ -14,7 +14,7 @@
 /**
  * 用途：引入统一列表主路由器，根据已提取的完整状态计算当前按键应触发的列表命令。
  * 使用范围：仅用于 [`listUnifiedMiddleware`](app/src/protyle/wysiwyg/keydown.list/unified/middleware.ts:56) 的路由决策阶段；边界是不参与 DOM 状态提取与具体命令执行。
- * 解耦评估：理论上可通过参数传入一个“命令解析函数”来解耦，但当前统一列表中间件是固定签名的键盘事件入口，路由规则又与 [`UnifiedListState`](app/src/protyle/wysiwyg/keydown.list/unified/types.ts:112) 强绑定；若改为外部注入，会把命令空间和规则装配扩散到调用方。保留同层直接依赖是当前最小改动且职责清晰的方案。
+ * 解耦评估：理论上可通过参数传入一个“命令解析函数”来解耦，但当前统一列表中间件是固定签名的键盘事件入口，路由规则又与 [`UnifiedListState`](app/src/protyle/wysiwyg/keydown.list/types.ts:1) 强绑定；若改为外部注入，会把命令空间和规则装配扩散到调用方。保留同层直接依赖是当前最小改动且职责清晰的方案。
  */
 import { listMasterRouter } from "./router";
 /**
@@ -73,6 +73,6 @@ export const listUnifiedMiddleware = async (
 
     // 步骤 3: 执行命令
     if (command !== LIST_COMMANDS.IGNORE) {
-        await executeCommand(command, event, protyle, nodeElement, range, controller);
+        await executeCommand(command, event, protyle, nodeElement, range, controller, state);
     }
 };

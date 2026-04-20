@@ -69,42 +69,36 @@ import { extractUnifiedListState } from "./state";
 /**
  * 用途：引入统一列表状态 Schema 并在入口层对外公开。
  * 使用范围：仅用于当前入口文件暴露类型约束与测试辅助能力，不参与路由决策执行。
- * 解耦评估：调用方可以直接导入 types 文件，但统一入口负责收敛公开契约；
+ * 解耦评估：调用方可以直接导入上层 types 文件，但统一入口负责收敛公开契约；
  * 这里显式导入后导出能满足无导出转发约束，并保持契约来源明确。
  */
-import { UnifiedListStateSchema } from "./types";
+import { UnifiedListStateSchema } from "./imports";
 
 /**
  * 用途：引入统一列表状态类型并在入口层统一导出。
  * 使用范围：仅用于当前入口文件维护公共类型契约，不形成运行时依赖。
- * 解耦评估：类型可由外部直接依赖 types 文件，但入口层集中导出更能稳定调用边界；
+ * 解耦评估：类型可由外部直接依赖上层 types 文件，但入口层集中导出更能稳定调用边界；
  * 类型导入不产生运行时耦合，显式导入后导出可避免类型导出转发。
  */
-import type { UnifiedListState } from "./types";
-
+import type { UnifiedListState } from "./imports";
 /**
  * 用途：引入快捷键状态类型并在入口层统一导出。
  * 使用范围：仅用于当前入口文件维护公共类型契约，不参与任何运行时逻辑。
- * 解耦评估：可由调用方直接导入 types 文件，但集中在入口层更便于约束统一公开面；
- * 采用 type import 可保持零运行时成本，同时避免导出转发。
+ * 解耦评估：该类型可被外部直接从同层 imports 网关间接读取，但当前入口承担统一公开边界职责；保留显式 type import 能让公开契约更清晰，同时不引入运行时耦合。
  */
-import type { HotkeysState } from "./types";
-
+import type { HotkeysState } from "./imports";
 /**
  * 用途：引入选区状态类型并在入口层统一导出。
- * 使用范围：仅用于当前入口文件维护公共类型契约，不参与状态计算过程。
- * 解耦评估：直接依赖 types 文件可以工作，但入口层统一导出更便于控制公共接口；
- * 使用 type import 后显式导出可保持编译期依赖最小化。
+ * 使用范围：仅用于当前入口文件维护公共类型契约，不参与状态提取与路由逻辑。
+ * 解耦评估：理论上调用方也可直接通过 imports 网关拿到该类型，但入口层统一暴露更能稳定公共 API；继续显式导入后导出是更清晰的边界表达。
  */
-import type { SelectionState } from "./types";
-
+import type { SelectionState } from "./imports";
 /**
  * 用途：引入上下文状态类型并在入口层统一导出。
  * 使用范围：仅用于当前入口文件维护公共类型契约，不参与运行时业务流程。
- * 解耦评估：该类型可被外部直接从 types 文件读取，但当前入口承担统一公开边界职责；
- * 因此采用 type import 后导出，以满足 lint 对导出转发的限制。
+ * 解耦评估：该类型可被外部直接从同层 imports 网关间接读取，但当前入口承担统一公开边界职责；因此保留单独 type import，再由入口统一导出更符合目录公共面的设计。
  */
-import type { ContextState } from "./types";
+import type { ContextState } from "./imports";
 
 /**
  * 导出统一列表中间件。

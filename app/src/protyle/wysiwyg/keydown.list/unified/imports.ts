@@ -21,6 +21,46 @@ export { calibur };
 import { type } from "arktype";
 /** 导出 [`type`](app/src/protyle/wysiwyg/keydown.list/unified/imports.ts:21) 供 unified 路由模块复用。 */
 export { type };
+/**
+ * 用途：集中转发 Arktype 的 schema 类型接口，供 unified 状态类型文件为 schema 常量添加精确的泛型约束。
+ * 使用范围：仅供 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 这类列表键盘模块类型定义文件在编译期标注 schema 目标结构；边界是不参与任何运行时校验逻辑，也不扩展第三方类型能力。
+ * 解耦评估：这是纯编译期依赖，无法通过事件发射替代；若在每个类型文件中直接耦合第三方包路径，会把外部依赖散落到多个业务文件。继续通过当前同层 imports 网关集中转发，可以把第三方路径耦合压缩到单点，同时保留未来替换类型源时的统一入口。
+ */
+import type { Type } from "arktype";
+/** 导出 [`Type`](app/src/protyle/wysiwyg/keydown.list/unified/imports.ts:27) 供 unified 类型模块复用。 */
+export type { Type };
+
+/**
+ * 用途：转发统一列表状态 schema 常量，供 unified 路由与入口模块在不越级导入的前提下复用上层共享状态契约。
+ * 使用范围：仅供 unified 目录内需要消费统一列表 schema 的模块使用；边界是不在本文件重新声明状态结构。
+ * 解耦评估：统一列表状态已经收敛到上层 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts:1)；继续通过当前 imports 网关转发，可满足 unified 目录禁止直接父级导入的约束，同时保持契约单源。
+ */
+import { UnifiedListStateSchema } from "../types";
+/** 导出 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:66) 供 unified 目录复用。 */
+export { UnifiedListStateSchema };
+
+/**
+ * 用途：转发统一列表状态相关类型，供 unified 目录中的路由、状态提取与入口模块共享编译期契约。
+ * 使用范围：仅用于 unified 目录内的 type-only 导入；边界是不生成运行时代码，也不在本文件重新声明状态结构。
+ * 解耦评估：这些类型已经集中定义在上层 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts:1)；通过当前网关统一转发能同时满足 unified 目录禁止直接父级导入的约束与单一类型源要求，比在各文件重复内联结构或分散父级导入更低耦合。
+ */
+import type {
+    ContextState,
+    HotkeysState,
+    SelectionState,
+    TaskStatusState,
+    UnifiedListState
+} from "../types";
+/** 导出 [`ContextState`](app/src/protyle/wysiwyg/keydown.list/types.ts:140) 供 unified 目录复用。 */
+export type { ContextState };
+/** 导出 [`HotkeysState`](app/src/protyle/wysiwyg/keydown.list/types.ts:130) 供 unified 目录复用。 */
+export type { HotkeysState };
+/** 导出 [`SelectionState`](app/src/protyle/wysiwyg/keydown.list/types.ts:135) 供 unified 目录复用。 */
+export type { SelectionState };
+/** 导出 [`TaskStatusState`](app/src/protyle/wysiwyg/keydown.list/types.ts:61) 供 unified 目录复用。 */
+export type { TaskStatusState };
+/** 导出 [`UnifiedListState`](app/src/protyle/wysiwyg/keydown.list/types.ts:125) 供 unified 目录复用。 */
+export type { UnifiedListState };
 
 /**
  * 用途：执行统一路由器返回的列表命令，并复用既有任务切换、缩进与类型转换执行逻辑。
