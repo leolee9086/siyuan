@@ -30,6 +30,30 @@ import { turnsIntoOneTransaction } from "../transaction";
  */
 import { turnsOneInto } from "../transaction";
 /**
+ * 用途：引入基于属性的最近祖先查找函数，供列表执行器与 unified 状态提取流程复用统一的任务列表项定位逻辑。
+ * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的任务勾选执行路径，以及 [`unified/state.ts`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:21) 的状态提取流程；边界是不在本文件内扩展 DOM 遍历策略，也不承担事务提交或命令路由判断。
+ * 解耦评估：理论上可由调用方先把匹配结果作为参数传入执行器或状态提取器，但当前两个流程都直接依赖实时 DOM 与 Range 上下文做同步判断；若改成透传，会把同一遍历职责扩散到更多入口，不能降低真实耦合。通过同层网关集中转发 [`hasClosestByAttribute`](app/src/protyle/util/hasClosest.ts:73)，可以把父级 util 路径依赖限制在单点。
+ */
+import { hasClosestByAttribute } from "../../util/hasClosest";
+/**
+ * 用途：引入块级 HTML 更新事务函数，供列表执行器在任务勾选场景提交更新后的列表项 HTML。
+ * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的任务状态切换流程；边界是不在本文件内承担批量事务编排，也不负责列表类型转换。
+ * 解耦评估：理论上可把 [`updateTransaction()`](app/src/protyle/transaction.ts:382) 作为参数注入执行器，但当前执行器由静态映射表直接调度，若改成注入会把事务依赖继续扩散到命令分发层与装配层；事件发射也不适合这种需要立即提交事务的同步调用。经由同层网关转发该事务接口，比业务文件直接依赖父级路径更低耦合。
+ */
+import { updateTransaction } from "../transaction";
+/**
+ * 用途：引入列表缩出业务函数，供当前目录执行器在列表缩出命令中复用既有列表结构调整实现。
+ * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的缩出执行流程；边界是不在本文件内决定命令触发条件，也不负责日志记录。
+ * 解耦评估：理论上可把 [`listOutdent()`](app/src/protyle/wysiwyg/list.ts:65) 作为参数注入执行器，但缩出逻辑本身就是列表编辑域的稳定底层动作，改为透传只会增加映射表与测试装配样板，不会减少真实耦合。通过 imports 网关集中暴露该能力，能把父级模块路径依赖限制在单点。
+ */
+import { listOutdent } from "../list";
+/**
+ * 用途：引入列表缩进业务函数，供当前目录执行器在列表缩进命令中复用既有列表结构调整实现。
+ * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的缩进执行流程；边界是不在本文件内承担命令路由判断、多选筛选或日志格式化。
+ * 解耦评估：与 [`listOutdent()`](app/src/protyle/wysiwyg/list.ts:65) 相同，[`listIndent()`](app/src/protyle/wysiwyg/list.ts:514) 属于列表编辑域的稳定底层动作；若改成参数注入，调用方仍需理解相同列表编辑契约，只会增加样板并扩散耦合。继续通过同层网关统一转发，是现有架构下更低耦合的方案。
+ */
+import { listIndent } from "../list";
+/**
  * 用途：引入 Arktype 的运行时 schema 构造函数，供当前列表键盘模块的类型定义文件构建状态 schema。
  * 使用范围：仅用于 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 这类同目录类型定义文件在声明 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:42)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:69)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:105) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:145) 时复用；边界是不在本文件封装新的 schema DSL，也不承担任何路由判断或状态提取逻辑。
  * 解耦评估：理论上可把 schema 结果直接内联为普通 TypeScript 类型，或把 schema 从外部工厂传入；但当前这些状态既需要编译期类型推断，也需要 Arktype 提供的运行时声明能力，简单参数传递无法替代其静态定义角色。通过本同层网关集中转发第三方 DSL，比让多个业务/类型文件直接耦合外部包路径更低耦合。
@@ -50,6 +74,12 @@ import {
     LogLevel,
     type CommandLogParams,
 } from "../../../util/lib/logger/types";
+/**
+ * 用途：引入 Day.js 日期工厂函数，供当前列表键盘模块在任务状态切换等场景生成统一格式的更新时间戳。
+ * 使用范围：仅通过本 imports 网关转发给 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 等同目录业务文件；边界是不在本文件内封装日期格式化策略或扩展插件注册逻辑。
+ * 解耦评估：理论上可让各业务文件直接从 `dayjs` 包导入，但当前目录已经通过同层网关集中收敛第三方与父级依赖；继续在这里单点转发可以把外部包路径耦合限制在一个文件内，也避免重复出现不兼容的命名空间导入写法。
+ */
+import dayjs from "dayjs";
 
 /**
  * 用途：对外暴露公共日志级别枚举，供列表模块调用方配置日志详细程度。
@@ -84,9 +114,29 @@ export { turnsIntoOneTransaction };
  */
 export { turnsOneInto };
 /**
+ * 用途：对外暴露祖先节点属性匹配工具，供列表执行器与状态提取流程复用统一的任务列表项定位逻辑。
+ */
+export { hasClosestByAttribute };
+/**
+ * 用途：对外暴露块级 HTML 更新事务函数，供列表执行器在任务勾选流程提交单节点更新事务。
+ */
+export { updateTransaction };
+/**
+ * 用途：对外暴露列表缩出业务函数，供列表执行器复用既有缩出实现。
+ */
+export { listOutdent };
+/**
+ * 用途：对外暴露列表缩进业务函数，供列表执行器复用既有缩进实现。
+ */
+export { listIndent };
+/**
  * 用途：对外暴露 Arktype schema 构造函数，供同目录类型定义文件声明运行时 schema。
  */
 export { type };
+/**
+ * 用途：对外暴露 Day.js 日期工厂函数，供列表执行器生成更新时间戳等统一日期格式。
+ */
+export { dayjs };
 /**
  * 用途：对外暴露 Arktype schema 类型接口，供同目录类型定义文件进行编译期泛型约束。
  */
