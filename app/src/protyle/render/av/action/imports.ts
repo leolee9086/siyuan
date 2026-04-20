@@ -1,0 +1,77 @@
+/**
+ * 用途：action 子目录的外部依赖网关。
+ * 使用范围：仅供 `action/` 当前层级文件使用，承接 click/contextmenu 已下沉后剩余的共享上游依赖。
+ */
+
+/** 用途：定位属性视图根块。使用范围：click 入口与局部动画刷新。解耦评估：DOM 结构定位属于基础能力，继续集中转发更稳妥。 */
+import { hasClosestBlock } from "../../../util/hasClosest";
+/** 导出 hasClosestBlock 供 action 当前层级模块复用。 */
+export { hasClosestBlock };
+
+/** 用途：提交事务。使用范围：标题同步与完整复制事务登记。解耦评估：事务是 action 层主要副作用出口，继续经网关接入更利于审计。 */
+import { transaction } from "../../../wysiwyg/transaction";
+/** 导出 transaction 供 action 当前层级模块复用。 */
+export { transaction };
+
+/** 用途：复用 cell 子模块中的局部刷新能力。使用范围：动画刷新模块。解耦评估：cell 渲染协议由 cell 模块维护，当前层级只应触发。 */
+import { addDragFill, cellValueIsEmpty, renderCell, renderCellAttr, updateHeaderCell } from "../cell";
+/** 导出 addDragFill 供 action 当前层级模块复用。 */
+export { addDragFill };
+/** 导出 cellValueIsEmpty 供 action 当前层级模块复用。 */
+export { cellValueIsEmpty };
+/** 导出 renderCell 供 action 当前层级模块复用。 */
+export { renderCell };
+/** 导出 renderCellAttr 供 action 当前层级模块复用。 */
+export { renderCellAttr };
+/** 导出 updateHeaderCell 供 action 当前层级模块复用。 */
+export { updateHeaderCell };
+
+/** 用途：整体渲染属性视图。使用范围：完整复制后的首渲染。解耦评估：整体渲染由 render 模块维护，当前层级只保留触发时机。 */
+import { avRender } from "../render";
+/** 导出 avRender 供 action 当前层级模块复用。 */
+export { avRender };
+
+/** 用途：发送异步请求。使用范围：完整复制接口。解耦评估：网络层能力继续统一复用即可。 */
+import { fetchPost } from "../../../../util/network/fetch";
+/** 导出 fetchPost 供 action 当前层级模块复用。 */
+export { fetchPost };
+
+/** 用途：聚焦复制后的新块。使用范围：完整复制完成后的交互闭环。解耦评估：焦点能力属于共享基础工具，继续转发即可。 */
+import { focusBlock } from "../../../util/selection";
+/** 导出 focusBlock 供 action 当前层级模块复用。 */
+export { focusBlock };
+
+/** 用途：滚动到当前焦点块。使用范围：完整复制完成后的视口对齐。解耦评估：滚动能力属于共享 DOM 工具，继续转发即可。 */
+import { scrollCenter } from "../../../../util/DOM/highlightById";
+/** 导出 scrollCenter 供 action 当前层级模块复用。 */
+export { scrollCenter };
+
+/** 用途：访问通用常量。使用范围：标题长度校验。解耦评估：常量属于跨模块共享协议，继续直接复用即可。 */
+import { Constants } from "../../../../constants";
+/** 导出 Constants 供 action 当前层级模块复用。 */
+export { Constants };
+
+/** 用途：提供时间格式化能力。使用范围：标题同步中的 updated 时间戳。解耦评估：时间格式约定是全局共享的，继续复用基础库即可。 */
+import * as dayjs from "dayjs";
+/** 导出 dayjs 供 action 当前层级模块复用。 */
+export { dayjs };
+
+/** 用途：显示轻量消息提示。使用范围：标题超长提示。解耦评估：消息提示属于 UI 基础能力，继续复用即可。 */
+import { showMessage } from "../../../../dialog/message";
+/** 导出 showMessage 供 action 当前层级模块复用。 */
+export { showMessage };
+
+/** 用途：读取国际化文案。使用范围：标题超长提示。解耦评估：文案对象继续经环境层转发即可。 */
+import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 导出 siyuanI18n 供 action 当前层级模块复用。 */
+export { siyuanI18n };
+
+/** 用途：判断节点是否为 HTMLElement。使用范围：动画刷新、完整复制与标题同步中的 DOM 收窄。解耦评估：DOM 守卫属于共享基础能力，继续转发即可。 */
+import { isHTMLElement } from "../../../../util/DOM/element.guard";
+/** 导出 isHTMLElement 供 action 当前层级模块复用。 */
+export { isHTMLElement };
+
+/** 用途：判断是否仅点击了元键。使用范围：click 入口快速放行。解耦评估：兼容性判断属于共享环境能力，不应在入口层重复实现。 */
+import { isOnlyMeta } from "../../../util/compatibility";
+/** 导出 isOnlyMeta 供 action 当前层级模块复用。 */
+export { isOnlyMeta };

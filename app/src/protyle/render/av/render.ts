@@ -102,7 +102,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         if (e.getAttribute("data-render") === "true" || hasClosestByClassName(e, "av__gallery-content")) {
             continue;
         }
-        if (isMobile() || isInMobileApp()) {
+        if (isMobile || isInMobileApp()) {
             e.classList.add("av--touch");
         }
 
