@@ -1,7 +1,7 @@
 import {App} from "../../index";
 import {windowMouseMove} from "./mousemove";
 import {windowKeyUp} from "./keyup";
-import {windowKeyDown} from "./keydown";
+import {windowKeyDown} from "./keydown/windowKeyDown";
 import {globalClick} from "./click";
 import {goBack, goForward} from "../../util/platform/backForward";
 import {Constants} from "../../constants";

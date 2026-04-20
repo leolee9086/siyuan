@@ -131,7 +131,7 @@ const renderLoading = () => {
     if (!mountElement) {
         return;
     }
-    mountElement.innerHTML = `<div class="bazaar-source"><div class="bazaar-source__empty">正在读取已发布包...</div></div>`;
+    mountElement.innerHTML = "<div class=\"bazaar-source\"><div class=\"bazaar-source__empty\">正在读取已发布包...</div></div>";
 };
 
 const renderError = (message: string) => {

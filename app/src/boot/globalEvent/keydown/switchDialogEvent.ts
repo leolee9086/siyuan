@@ -2,7 +2,7 @@ import { App } from "../../..";
 import { openCard } from "../../../card/openCard";
 import { getAllTabs } from "../../../layout/getAll";
 import { getDockByType } from "../../../layout/tabUtil";
-import { switchDialog } from "../keydown";
+import { switchDialog } from "./windowKeyDown";
 
 export const switchDialogEvent = (app: App, event: MouseEvent) => {
     event.preventDefault();

@@ -2,52 +2,52 @@ import {
     isMac,
     isNotCtrl,
     updateHotkeyTip
-} from "../../protyle/util/compatibility";
-import { matchAuxiliaryHotKey, matchHotKey } from "../../protyle/util/hotKey";
+} from "../../../protyle/util/compatibility";
+import { matchAuxiliaryHotKey, matchHotKey } from "../../../protyle/util/hotKey";
 import {
     hasClosestBlock,
     hasClosestByClassName,
-} from "../../protyle/util/hasClosest";
-import { newFile } from "../../util/file/newFile";
-import { Constants } from "../../constants";
-import { openSetting } from "../../config";
-import { getDockByType, switchTabByIndex } from "../../layout/tabUtil";
-import { Editor } from "../../editor";
-import { newDailyNote } from "../../util/file/mount";
-import { hideElements } from "../../protyle/ui/hideElements";
-import { goBack, goForward } from "../../util/platform/backForward";
-import { getAllDocks, getAllModels, getAllTabs } from "../../layout/getAll";
-import { focusBlock, focusByRange } from "../../protyle/util/selection";
-import { bindMenuKeydown } from "../../menus/Menu.bindMenuKeydown";
-import { Dialog } from "../../dialog";
-import { unicode2Emoji } from "../../emoji";
-import { escapeHtml } from "../../util/DOM/escape";
-import { syncGuide } from "../../sync/syncGuide";
-import { setZoom } from "../../layout/topBar";
-import { isElectron } from "../../platform";
-import { ipcSend } from "../../platform/electron/ipcRenderer";
-import { openHistory } from "../../history/history";
-import { openCard } from "../../card/openCard";
-import { lockScreen } from "../../dialog/processSystem/lockScreen";
-import { isWindow } from "../../util/platform/functions";
-import { openRecentDocs } from "../../business/openRecentDocs";
-import { App } from "../../index";
-import { toggleDockBar } from "../../layout/dock/util";
-import { workspaceMenu } from "../../menus/workspace";
-import { searchKeydown } from "./searchKeydown";
-import { historyKeydown } from "../../history/keydown";
-import { commandPanel, execByCommand } from "./command/panel";
-import { filterHotkey } from "./commonHotkey";
-import { setReadOnly } from "../../config/util/setReadOnly";
-import { globalCommand } from "./command/global";
-import { cancelDrag } from "./dragover";
-import { bindAVPanelKeydown } from "../../protyle/render/av/keydown";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { switchDialogEvent } from "./keydown/switchDialogEvent";
-import { dialogArrow } from "./keydown/dialogArrow";
-import { editKeydown } from "./keydown/editKeydown";
-import { fileTreeKeydown } from "./keydown/fileTreeKeydown";
-import { panelTreeKeydown } from "./keydown/panelTreeKeydown";
+} from "../../../protyle/util/hasClosest";
+import { newFile } from "../../../util/file/newFile";
+import { Constants } from "../../../constants";
+import { openSetting } from "../../../config";
+import { getDockByType, switchTabByIndex } from "../../../layout/tabUtil";
+import { Editor } from "../../../editor";
+import { newDailyNote } from "../../../util/file/mount";
+import { hideElements } from "../../../protyle/ui/hideElements";
+import { goBack, goForward } from "../../../util/platform/backForward";
+import { getAllDocks, getAllModels, getAllTabs } from "../../../layout/getAll";
+import { focusBlock, focusByRange } from "../../../protyle/util/selection";
+import { bindMenuKeydown } from "../../../menus/Menu.bindMenuKeydown";
+import { Dialog } from "../../../dialog";
+import { unicode2Emoji } from "../../../emoji";
+import { escapeHtml } from "../../../util/DOM/escape";
+import { syncGuide } from "../../../sync/syncGuide";
+import { setZoom } from "../../../layout/topBar";
+import { isElectron } from "../../../platform";
+import { ipcSend } from "../../../platform/electron/ipcRenderer";
+import { openHistory } from "../../../history/history";
+import { openCard } from "../../../card/openCard";
+import { lockScreen } from "../../../dialog/processSystem/lockScreen";
+import { isWindow } from "../../../util/platform/functions";
+import { openRecentDocs } from "../../../business/openRecentDocs";
+import { App } from "../../../index";
+import { toggleDockBar } from "../../../layout/dock/util";
+import { workspaceMenu } from "../../../menus/workspace";
+import { searchKeydown } from "../searchKeydown";
+import { historyKeydown } from "../../../history/keydown";
+import { commandPanel, execByCommand } from "../command/panel";
+import { filterHotkey } from "../commonHotkey";
+import { setReadOnly } from "../../../config/util/setReadOnly";
+import { globalCommand } from "../command/global";
+import { cancelDrag } from "../dragover";
+import { bindAVPanelKeydown } from "../../../protyle/render/av/keydown";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { switchDialogEvent } from "./switchDialogEvent";
+import { dialogArrow } from "./dialogArrow";
+import { editKeydown } from "./editKeydown";
+import { fileTreeKeydown } from "./fileTreeKeydown";
+import { panelTreeKeydown } from "./panelTreeKeydown";
 export let switchDialog: Dialog;
 export const windowKeyDown = (app: App, event: KeyboardEvent) => {
     if (filterHotkey(event, app)) {
