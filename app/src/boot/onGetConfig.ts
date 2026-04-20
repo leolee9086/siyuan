@@ -24,7 +24,7 @@ import { initBar } from "../layout/topBar";
 import { openChangelog } from "./openChangelog";
 import { App } from "../index";
 import { initWindowEvent } from "./globalEvent/event";
-import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown";
+import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKeyDown";
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
