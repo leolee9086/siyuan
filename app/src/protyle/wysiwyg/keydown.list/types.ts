@@ -5,7 +5,18 @@
  * 用于状态验证和类型安全
  */
 
-import { type, type Type } from "arktype";
+/**
+ * 用途：通过同层依赖网关引入 Arktype 的运行时 schema 构造函数，供当前类型文件声明列表键盘状态 schema。
+ * 使用范围：仅用于 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:45)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:76)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:113) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:155) 这四个 schema 常量；边界是不在本文件中改变 Arktype DSL 的行为，也不承担任何运行时状态收集逻辑。
+ * 解耦评估：这些 schema 是静态模块定义的一部分，无法通过事件发射替代。理论上可把 schema 实例改为由外部工厂创建后传入，但那会打散当前类型文件中“schema + infer 类型”同源维护的结构，增加装配复杂度且不减少真实耦合；继续经由 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 单点转发第三方 DSL 更合适。
+ */
+import { type } from "./imports";
+/**
+ * 用途：通过同层依赖网关引入 Arktype 的 schema 类型接口，供当前类型文件为状态 schema 常量提供精确的泛型约束。
+ * 使用范围：仅用于 [`CheckToggleStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:42)、[`OutdentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:69)、[`IndentStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:105) 与 [`TransformStateSchema`](app/src/protyle/wysiwyg/keydown.list/types.ts:145) 的类型标注；边界是仅参与编译期，不承担运行时推导逻辑。
+ * 解耦评估：[`Type`](app/src/protyle/wysiwyg/keydown.list/imports.ts:90) 属于编译期契约，无法通过依赖注入或事件发射获得更低耦合；若在本文件重复声明这些 schema 的目标结构，会导致类型与 schema 推断分离。通过同层网关统一转发第三方类型导出，能把外部包路径耦合限制在单点。
+ */
+import type { Type } from "./imports";
 
 /**
  * 日志级别枚举
@@ -181,6 +192,19 @@ export const TransformStateSchema: Type<{
  * 关联类型：由 TransformStateSchema 推断而来
  */
 export type TransformState = typeof TransformStateSchema.infer;
+
+/**
+ * 列表转换事务类型
+ *
+ * 用途：表示列表转换辅助流程传递给事务层的目标转换动作标识。
+ * 使用场景：在 [`executors.transform.helpers.ts`](app/src/protyle/wysiwyg/keydown.list/executors.transform.helpers.ts) 中约束段落转列表与批量转换时的 `targetType` 参数，并为对应的结果描述映射提供键空间。
+ * 关联类型：与 [`ListCommand`](app/src/protyle/wysiwyg/keydown.list/types.ts:201) 同属列表键盘模块的共享类型契约，但它描述的是底层事务动作，而非对外暴露的命令语义。
+ * 问题/改进：当前仅覆盖无序列表、有序列表和任务列表三类转换；若后续补充引用块或其他批量转换事务，应在保证事务层同步支持的前提下扩展该联合类型，避免业务层与事务层标识失配。
+ */
+export type TransformTransactionType =
+    | "Blocks2ULs"
+    | "Blocks2OLs"
+    | "Blocks2TLs";
 
 /**
  * 列表命令类型

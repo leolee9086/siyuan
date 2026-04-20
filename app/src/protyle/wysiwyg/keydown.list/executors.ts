@@ -12,7 +12,12 @@ import * as dayjs from "dayjs";
 import { LIST_COMMANDS } from "./commands";
 import type { ListCommand, CommandExecutor } from "./types";
 import { logTaskToggle, logCommandExecution } from "./imports";
-import { transformExecutors } from "./executors.transform";
+import {
+    executeTransformToUL,
+    executeTransformToOL,
+    executeTransformToTL,
+    executeTransformToQuote
+} from "./executors.transform";
 
 /**
  * 切换任务状态的 DOM 操作
@@ -260,17 +265,17 @@ const executeIndent: CommandExecutor = async (
  * - CHECK_TOGGLE: executeToggleTaskStatus (Phase 1)
  * - OUTDENT: executeOutdent (Phase 2)
  * - INDENT: executeIndent (Phase 3)
- * - TRANSFORM_TO_*: transformExecutors (Phase 4)
+ * - TRANSFORM_TO_*: executeTransformTo* (Phase 4)
  * - IGNORE: null（不需要执行器）
  */
 const executorMap: Record<ListCommand, CommandExecutor | null> = {
     [LIST_COMMANDS.CHECK_TOGGLE]: executeToggleTaskStatus,
     [LIST_COMMANDS.OUTDENT]: executeOutdent,
     [LIST_COMMANDS.INDENT]: executeIndent,
-    [LIST_COMMANDS.TRANSFORM_TO_UL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_UL],
-    [LIST_COMMANDS.TRANSFORM_TO_OL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_OL],
-    [LIST_COMMANDS.TRANSFORM_TO_TL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_TL],
-    [LIST_COMMANDS.TRANSFORM_TO_QUOTE]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_QUOTE],
+    [LIST_COMMANDS.TRANSFORM_TO_UL]: executeTransformToUL,
+    [LIST_COMMANDS.TRANSFORM_TO_OL]: executeTransformToOL,
+    [LIST_COMMANDS.TRANSFORM_TO_TL]: executeTransformToTL,
+    [LIST_COMMANDS.TRANSFORM_TO_QUOTE]: executeTransformToQuote,
     [LIST_COMMANDS.IGNORE]: null
 };
 
@@ -299,7 +304,7 @@ export const executeCommand = async (
     nodeElement: HTMLElement,
     range: Range,
     controller: AbortController
-): Promise<void> => {
+)=> {
     const executor = executorMap[command];
     
     if (executor) {

@@ -26,29 +26,11 @@ import { hasClosestByAttribute } from "./imports";
  */
 import { getSiyuanConfig } from "./imports";
 /**
- * 用途：引入统一列表状态总类型，约束本文件对外导出的完整状态对象形状。
- * 使用范围：仅用于本文件的返回值与局部状态对象编排；边界是不参与运行时逻辑，也不提供 schema 校验实现。
- * 解耦评估：这是编译期类型契约，依赖注入、参数传递或事件发射都不适用于消除这类耦合；保持与同目录类型源文件同源引用，能避免类型重复定义造成漂移。
+ * 用途：引入统一列表状态类型，作为本文件内部最小状态、选区状态与上下文状态的共享编译期契约。
+ * 使用范围：仅用于 [`createMinimalState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:149)、[`extractSelectionState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:174)、[`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 与 [`extractUnifiedListState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:249) 的结构校验；边界是不参与任何运行时导出值与业务逻辑执行。
+ * 解耦评估：该依赖完全属于编译期共享契约，既不能通过依赖注入减少运行时耦合，也不适合改为参数传递，否则只会在多个函数中重复内联同一状态结构；继续从同目录类型文件单点引用是当前最小且最准确的耦合方式。
  */
 import type { UnifiedListState } from "./types";
-/**
- * 用途：引入快捷键状态类型，约束 hotkeys 状态提取结果结构。
- * 使用范围：仅用于本文件内部 hotkeys 相关局部数据；边界是不参与运行时导出值。
- * 解耦评估：该依赖纯属编译期类型信息，不存在通过运行时注入解耦的现实空间；继续从同目录类型文件单点引用是最准确且最低成本的方案。
- */
-import type { HotkeysState } from "./types";
-/**
- * 用途：引入选区状态类型，约束选区状态提取结果结构。
- * 使用范围：仅用于本文件内部 selection 状态组装；边界是不改变 DOM 查询或选区计算逻辑。
- * 解耦评估：这是静态类型依赖，无法通过事件或参数传递替代；维持与类型定义文件同源引用可避免重复声明。
- */
-import type { SelectionState } from "./types";
-/**
- * 用途：引入上下文状态类型，约束上下文状态提取结果结构与字面量联合范围。
- * 使用范围：仅用于本文件内部 context 状态组装；边界是不参与路由执行或命令分发。
- * 解耦评估：这是编译期契约而非运行时服务，所谓依赖注入对其不成立；从同目录类型文件引用是保持状态空间一致性的必要做法。
- */
-import type { ContextState } from "./types";
 
 /**
  * 检查选中元素是否连续
@@ -88,37 +70,35 @@ const checkHasListItem = (selectElements: NodeListOf<Element>) => {
     return false;
 };
 
+const blockTypes = ["NodeParagraph", "NodeList", "NodeHeading"] as const;
+
 /**
- * 解析块类型
+ * 解析块类型。
+ *
+ * 作用：把 DOM 上的 `data-type` 字符串收敛为统一列表状态约定的块类型枚举。
+ * 意图：避免把编辑器中的任意字符串直接透传到路由层，确保 [`listMasterRouter`](app/src/protyle/wysiwyg/keydown.list/unified/router.ts:209) 只接收受控值。
+ * 调用时机：仅在 [`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 读取当前目标块属性后调用。
+ * 问题/改进：如果未来列表转换需要支持新的块类型，应同步扩展这里与 [`UnifiedListStateSchema`](app/src/protyle/wysiwyg/keydown.list/unified/types.ts:28) 的约束，避免状态与路由规则脱节。
  *
  * @param dataType - data-type 属性值
  * @returns 块类型
  */
-const parseBlockType = (dataType: string) => {
-    if (dataType === "NodeParagraph") {
-        return "NodeParagraph";
-    }
-    if (dataType === "NodeList") {
-        return "NodeList";
-    }
-    if (dataType === "NodeHeading") {
-        return "NodeHeading";
-    }
-    return "other";
-};
+const parseBlockType = (dataType: string) => blockTypes.find(item => item === dataType) ?? "other";
+
+const listSubtypes = ["u", "o", "t"] as const;
 
 /**
- * 解析列表子类型
+ * 解析列表子类型。
+ *
+ * 作用：把 DOM 上的 `data-subtype` 收敛为统一状态允许的列表子类型或空值。
+ * 意图：避免未知子类型进入转换路由，保证 [`transformSubRouter`](app/src/protyle/wysiwyg/keydown.list/unified/router.transform.ts:35) 的匹配空间保持封闭。
+ * 调用时机：仅在 [`extractContextState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:205) 读取目标元素属性后调用。
+ * 问题/改进：如果后续引入新的列表子类型，需要同时补充本函数与路由分支，否则新值会被有意降级为 `null`。
  *
  * @param dataSubtype - data-subtype 属性值
  * @returns 列表子类型
  */
-const parseListSubtype = (dataSubtype: string) => {
-    if (dataSubtype === "u" || dataSubtype === "o" || dataSubtype === "t") {
-        return dataSubtype;
-    }
-    return null;
-};
+const parseListSubtype = (dataSubtype: string) => listSubtypes.find(item => item === dataSubtype) ?? null;
 
 /**
  * 提取快捷键状态
@@ -165,7 +145,7 @@ const extractHotkeysState = (event: KeyboardEvent) => {
  * @param hotkeys - 快捷键状态
  * @returns 最小状态对象
  */
-const createMinimalState = (hotkeys: HotkeysState) => ({
+const createMinimalState = (hotkeys: UnifiedListState["hotkeys"]) => ({
     hotkeys,
     selection: {
         hasMultiple: false,
@@ -182,7 +162,7 @@ const createMinimalState = (hotkeys: HotkeysState) => ({
         blockType: "other",
         listSubtype: null
     }
-});
+} satisfies UnifiedListState);
 
 /**
  * 提取选区状态
@@ -210,7 +190,7 @@ const extractSelectionState = (selectElements: NodeListOf<Element>) => {
         firstInList,
         hasListItem: checkHasListItem(selectElements),
         isSingle: selectCount <= 1
-    };
+    } satisfies UnifiedListState["selection"];
 };
 
 /**
@@ -239,7 +219,7 @@ const extractContextState = (
         hasPreviousSibling: !!(nodeElement.parentElement?.previousElementSibling),
         blockType: parseBlockType(dataType),
         listSubtype: parseListSubtype(dataSubtype)
-    };
+    } satisfies UnifiedListState["context"];
 };
 
 /**
@@ -294,5 +274,5 @@ export const extractUnifiedListState = (
     // 步骤 5: 提取上下文状态
     const context = extractContextState(nodeElement, range, selectElements);
 
-    return { hotkeys, selection, context };
+    return { hotkeys, selection, context } satisfies UnifiedListState;
 };
