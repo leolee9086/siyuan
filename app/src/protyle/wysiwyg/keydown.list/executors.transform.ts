@@ -8,7 +8,7 @@
 import { turnsIntoOneTransaction } from "../transaction";
 import { LIST_COMMANDS } from "./commands";
 import type { CommandExecutor } from "./types";
-import { logCommandExecution } from "./logger";
+import { logCommandExecution } from "./imports";
 import {
     getSelectElements,
     extractElementInfo,

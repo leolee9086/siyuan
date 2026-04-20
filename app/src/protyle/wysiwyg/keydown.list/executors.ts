@@ -11,7 +11,7 @@ import { listOutdent, listIndent } from "../list";
 import * as dayjs from "dayjs";
 import { LIST_COMMANDS } from "./commands";
 import type { ListCommand, CommandExecutor } from "./types";
-import { logTaskToggle, logCommandExecution } from "./logger";
+import { logTaskToggle, logCommandExecution } from "./imports";
 import { transformExecutors } from "./executors.transform";
 
 /**
@@ -24,7 +24,7 @@ import { transformExecutors } from "./executors.transform";
 const toggleTaskStatusDOM = (
     taskItemElement: HTMLElement,
     useElement: SVGUseElement
-): boolean => {
+) => {
     const isDone = taskItemElement.classList.contains("protyle-task--done");
     
     if (isDone) {

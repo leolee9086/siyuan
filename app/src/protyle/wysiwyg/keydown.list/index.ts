@@ -74,7 +74,7 @@ export {
  * - logCommandExecution: 记录命令执行日志
  * - logTaskToggle: 记录任务状态切换日志
  */
-export { setLogLevel, getLogLevel, logCommandExecution, logTaskToggle } from "./logger";
+export { setLogLevel, getLogLevel, logCommandExecution, logTaskToggle } from "./imports";
 
 // ============================================================================
 // 命令常量导出（可选）

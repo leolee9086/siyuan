@@ -6,7 +6,7 @@
 
 import { turnsIntoOneTransaction, turnsOneInto } from "../transaction";
 import type { ListCommand } from "./types";
-import { logCommandExecution } from "./logger";
+import { logCommandExecution } from "./imports";
 
 /**
  * 获取选中元素列表
@@ -17,16 +17,16 @@ import { logCommandExecution } from "./logger";
 export const getSelectElements = (
     protyle: IProtyle,
     nodeElement: HTMLElement
-): HTMLElement[] => {
+) => {
     const selectsElement: HTMLElement[] = Array.from(
         protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select") || []
     );
-    
+
     // 如果没有多选元素，使用当前元素作为默认选择
     if (selectsElement.length === 0) {
         selectsElement.push(nodeElement);
     }
-    
+
     return selectsElement;
 };
 
@@ -39,7 +39,7 @@ export const extractElementInfo = (element: HTMLElement | undefined) => {
     if (!element) {
         return { type: null, subType: null, nodeId: null };
     }
-    
+
     return {
         type: element.getAttribute("data-type"),
         subType: element.getAttribute("data-subtype"),
@@ -65,13 +65,13 @@ export const transformParagraphToList = async (
         selectsElement,
         type: targetType
     });
-    
+
     const typeNames = {
         "Blocks2ULs": "无序列表",
         "Blocks2OLs": "有序列表",
         "Blocks2TLs": "任务列表"
     };
-    
+
     logCommandExecution({
         command,
         event,
@@ -101,7 +101,7 @@ export const transformListType = async (
         id: nodeId,
         type: transformType
     });
-    
+
     logCommandExecution({
         command,
         event,
@@ -127,13 +127,13 @@ export const transformBatch = async (
         selectsElement,
         type: targetType
     });
-    
+
     const typeNames = {
         "Blocks2ULs": "无序列表",
         "Blocks2OLs": "有序列表",
         "Blocks2TLs": "任务列表"
     };
-    
+
     logCommandExecution({
         command,
         event,
