@@ -39,3 +39,30 @@ export { executeCommand };
 import { LIST_COMMANDS } from "../commands";
 /** 导出 [`LIST_COMMANDS`](app/src/protyle/wysiwyg/keydown.list/commands.ts:20) 供 unified 目录复用。 */
 export { LIST_COMMANDS };
+
+/**
+ * 用途：引入快捷键匹配函数，供 unified 列表状态提取把当前键盘事件与用户配置的列表快捷键逐项比对。
+ * 使用范围：仅供 unified 目录中的状态提取流程在“读取配置 → 计算 hotkeys 状态”阶段复用；边界是不在本层封装新的快捷键语义，也不承担 DOM 事件监听职责。
+ * 解耦评估：理论上可把匹配函数作为参数注入状态提取器，但当前调用链只有 state 模块在同步计算 hotkeys 时直接使用该纯函数；若为此增加参数传递，会把同一稳定工具依赖扩散到中间件与测试装配层，而收益有限。现阶段通过同层网关收敛 util 路径，是比业务文件直接导入父级工具更低耦合的方案；若后续需要替换匹配实现，也只需在本文件调整导出来源。
+ */
+import { matchHotKey } from "../../../util/hotKey";
+/** 导出 [`matchHotKey`](app/src/protyle/util/hotKey.ts:35) 供 unified 状态提取模块复用。 */
+export { matchHotKey };
+
+/**
+ * 用途：引入基于属性的最近祖先查找函数，供 unified 列表状态提取判断当前选区是否位于任务列表项上下文。
+ * 使用范围：仅供 unified 目录中的状态提取流程在“读取当前 DOM/Range 上下文”阶段复用；边界是不在本层负责遍历策略扩展，也不把它暴露为通用业务判定器。
+ * 解耦评估：理论上可把“是否命中任务项”结果从更上层预先计算后传入，但那会让中间件额外承担 DOM 上下文推导职责，反而扩大业务边界；事件发射也不适合这种同步、即时、单次查询。当前经由同层 imports 网关转发该通用工具，已经把深层 util 路径耦合限制在单点，优于在多个业务文件中重复直接导入。
+ */
+import { hasClosestByAttribute } from "../../../util/hasClosest";
+/** 导出 [`hasClosestByAttribute`](app/src/protyle/util/hasClosest.ts:73) 供 unified 状态提取模块复用。 */
+export { hasClosestByAttribute };
+
+/**
+ * 用途：引入思源全局配置读取函数，供 unified 列表状态提取在键盘事件处理中读取用户自定义快捷键映射。
+ * 使用范围：仅供 [`state.ts`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts) 这类 unified 状态提取模块在“键盘事件 → 状态收集 → 路由决策”流程中读取只读配置；边界是不在本层缓存配置、不派发配置变更，也不把编辑器业务逻辑反向写入配置系统。
+ * 解耦评估：理论上可把配置对象或快捷键映射作为参数从 [`middleware.ts`](app/src/protyle/wysiwyg/keydown.list/unified/middleware.ts) 逐层传入 [`extractUnifiedListState`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:230)，或通过工厂函数在初始化阶段注入读取器；但当前 unified 调用链是一次性响应键盘事件的静态函数组合，直接参数传递会把配置依赖扩散到中间件、路由入口和测试装配层，增加样板并放大接口耦合。配置变更也并非此流程内的事件源，因此事件发射不能自然替代同步读取。现阶段通过本同层转发文件集中收敛对配置环境模块的依赖，比让业务文件直接耦合深层 util 路径更低耦合，也保留了未来改造成注入式网关时的单点替换位置。
+ */
+import { getSiyuanConfig } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 导出 [`getSiyuanConfig`](app/src/util/siyuanEnvironments/getSiyuanConfig.environment.ts:35) 供 unified 状态提取模块复用。 */
+export { getSiyuanConfig };
