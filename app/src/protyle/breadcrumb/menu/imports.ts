@@ -89,6 +89,18 @@ import { hasSiyuanUser } from "../../../util/siyuanEnvironments/getSiyuanConfig.
  */
 import { isMobile } from "../../../platform";
 /*
+ * 用途：判断当前是否运行在 Android 环境
+ * 使用范围：面包屑更多菜单中决定是否展示录音入口
+ * 解耦评估：平台检测函数，可通过依赖注入或能力探测服务解耦，但当前录音能力仍依赖全局环境判断，直接导入更符合现有架构边界
+ */
+import { isInAndroid } from "../../util/compatibility";
+/*
+ * 用途：判断当前是否运行在 Harmony 环境
+ * 使用范围：面包屑更多菜单中决定是否展示录音入口
+ * 解耦评估：平台检测函数，可通过依赖注入或能力探测服务解耦，但当前录音能力仍依赖全局环境判断，直接导入更符合现有架构边界
+ */
+import { isInHarmony } from "../../util/compatibility";
+/*
  * 用途：查找最近的块级元素
  * 使用范围：面包屑菜单显示时获取当前光标所在块的ID
  * 解耦评估：DOM工具函数，可通过参数传递解耦，但作为protyle核心工具直接导入更合理
@@ -106,6 +118,30 @@ import { hasTopClosestByClassName } from "../../util/hasClosest";
  * 解耦评估：编辑器工具函数，可通过参数传递解耦，但作为protyle核心工具直接导入更合理
  */
 import { getEditorRange } from "../../util/selection";
+/*
+ * 用途：在编辑器局部刷新后重新挂载 Protyle 视图
+ * 使用范围：面包屑更多菜单的刷新操作，确保当前编辑器视图与数据状态一致
+ * 解耦评估：编辑器核心行为，可通过命令总线解耦，但当前仍作为 Protyle 基础操作直接导入更合理
+ */
+import { reloadProtyle } from "../../util/reload";
+/*
+ * 用途：在执行排版优化前临时隐藏指定 UI 元素
+ * 使用范围：优化排版菜单项点击后隐藏工具栏，避免界面抖动或遮挡
+ * 解耦评估：UI 工具函数，可通过参数回调或事件通知解耦，但当前仅服务于 Protyle 视图层，直接导入边界清晰
+ */
+import { hideElements } from "../../ui/hideElements";
+/*
+ * 用途：调整编辑器布局尺寸
+ * 使用范围：切换全屏状态后重新计算 Protyle 尺寸
+ * 解耦评估：布局工具函数，可通过事件总线响应全屏变更解耦，但当前调用点非常局部，直接导入更直观
+ */
+import { resize } from "../../util/resize";
+/*
+ * 用途：切换面包屑关联编辑器的全屏状态
+ * 使用范围：面包屑更多菜单点击全屏项时执行
+ * 解耦评估：面包屑动作函数，可通过命令派发进一步解耦，但当前属于同一功能域内的直接调用，耦合度可接受
+ */
+import { fullscreen } from "../action";
 /*
  * 用途：触发插件菜单打开事件
  * 使用范围：面包屑菜单构建时通知插件系统添加自定义菜单项
@@ -153,12 +189,24 @@ export { getSiyuanConfig };
 export { hasSiyuanUser };
 // 平台检测导出
 export { isMobile };
+// 平台检测导出 - Android 环境
+export { isInAndroid };
+// 平台检测导出 - Harmony 环境
+export { isInHarmony };
 // DOM工具 - 查找最近块级元素
 export { hasClosestBlock };
 // DOM工具 - 查找最近指定类名祖先元素
 export { hasTopClosestByClassName };
 // 编辑器工具 - 获取选区范围
 export { getEditorRange };
+// 编辑器工具 - 刷新 Protyle 视图
+export { reloadProtyle };
+// UI工具 - 隐藏界面元素
+export { hideElements };
+// 布局工具 - 重新计算尺寸
+export { resize };
+// 面包屑动作 - 切换全屏
+export { fullscreen };
 // 插件事件 - 触发菜单打开事件
 export { emitOpenMenu };
 // 菜单系统访问器
