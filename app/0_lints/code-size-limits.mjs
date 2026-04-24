@@ -105,10 +105,10 @@ export const 代码量限制插件 = {
 
                         // 过滤注释行（简化版本，因为我们已经有 计算实际行数 函数）
                         if (skipComments) {
-                            // 简化实现：过滤单行注释
+                            // 简化实现：过滤单行/多行注释（含 JSDoc 中间行）
                             lines = lines.filter(l => {
                                 const trimmed = l.text.trim();
-                                return !trimmed.startsWith("//") && !trimmed.startsWith("/*");
+                                return !trimmed.startsWith("//") && !trimmed.startsWith("/*") && !trimmed.startsWith("*");
                             });
                         }
 

@@ -75,3 +75,12 @@ export { getSafeSiyuanConfig };
 import { getSiyuanIsPublish } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 `getSiyuanIsPublish` 供 `processSystem` 目录复用。 */
 export { getSiyuanIsPublish };
+
+/**
+ * 用途：获取所有已打开的编辑器实例列表。
+ * 使用范围：`processSystem` 目录中需要遍历所有编辑器实例以更新界面状态的流程，如动态链接锚文本更新。
+ * 解耦评估：编辑器实例访问是通过 `layout/getAll` 提供的全局工具函数，目前尚未抽象为编辑器服务注入；通过本转发层收敛后再逐步推动服务化改造。
+ */
+import { getAllEditor } from "../../plugin/imports";
+/** 导出 `getAllEditor` 供 `processSystem` 目录复用。 */
+export { getAllEditor };

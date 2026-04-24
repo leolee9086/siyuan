@@ -1,65 +1,124 @@
 /**
- * 用途：集中转发 `windowKeyDown` 目录对上层模块的依赖，避免业务文件直接使用父级路径导入。
- * 使用范围：`app/src/boot/globalEvent/keydown/windowKeyDown` 目录下与窗口级快捷键处理相关的模块。
- * 解耦评估：该目录处于全局按键分发链路中，短期内仍需依赖应用实例、IPC 与环境配置；通过本转发层可以收敛路径耦合，后续若改为注入式设计，只需调整此文件。
+ * 用途：集中转发 `windowKeyDown` 根入口层和快捷键同步模块共用的少量稳定依赖。
+ * 使用范围：仅供 `windowKeyDown.ts`、`sendGlobalShortcut.ts`、`sendUnregisterGlobalShortcut.ts` 与 `switchDialog.global.ts` 复用。
+ * 解耦评估：根层现在只保留入口编排与基础设施协作，不再承担阶段内部的万能依赖桶；更细的 `state/route/subset` 依赖已经下沉到各自阶段目录的聚合文件。
  */
 
 /**
- * 用途：提供应用实例类型，供全局快捷键注销流程标注入参。
- * 使用范围：`sendUnregisterGlobalShortcut.ts` 等需要访问插件列表的窗口按键模块。
- * 解耦评估：类型导入不形成运行时耦合，保留统一转发可降低业务文件路径噪音。
+ * 用途：引入 `keydown` 上层网关暴露的应用实例类型。
+ * 使用范围：供根层导出函数标注 `App` 入参。
+ * 解耦评估：纯类型依赖，不形成运行时耦合；继续通过上层网关转发即可。
  */
 import type { App } from "../imports";
-
-/**
- * 用途：提供 IPC 常量，供全局快捷键注册/注销消息构造使用。
- * 使用范围：窗口级快捷键发送到 Electron 主进程的流程。
- * 解耦评估：常量定义属于基础设施边界，当前无法从该业务链路中进一步解耦。
- */
-import { Constants } from "../imports";
-
-/**
- * 用途：提供 Electron 环境判断，避免 Web 环境误发主进程消息。
- * 使用范围：窗口按键模块中的桌面端分支控制。
- * 解耦评估：平台检测属于运行时基础能力，当前调用链未显式注入该能力，通过转发层集中管理更符合现状。
- */
-import { isElectron } from "../../../../platform";
-
-/**
- * 用途：提供 IPC 发送函数，供窗口按键模块向主进程发送快捷键注销命令。
- * 使用范围：`sendUnregisterGlobalShortcut.ts` 中的 Electron 主进程通信流程。
- * 解耦评估：IPC 能力与 Electron 平台强相关，桌面端能力暂不适合在此层重新抽象。
- */
-import { ipcSend } from "../../../../window/imports";
-
-/**
- * 用途：安全读取思源配置，避免在配置尚未初始化时直接访问全局对象。
- * 使用范围：窗口级快捷键逻辑读取 `keymap.general.toggleWin` 等配置项时。
- * 解耦评估：环境访问已在 `.environment.ts` 中封装，业务层继续经由本转发层引用可避免直接触碰全局对象。
- */
-import { getSafeSiyuanConfig } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-
-/**
- * 导出应用实例类型。
- */
+/** 导出应用实例类型。 */
 export type { App };
 
 /**
- * 导出 IPC 常量集合。
+ * 用途：引入对话框类。
+ * 使用范围：供共享切换对话框状态模块标注实例类型。
+ * 解耦评估：这是稳定 UI 边界，根层直接复用即可。
  */
+import { Dialog } from "../../../../dialog";
+/** 导出对话框类。 */
+export { Dialog };
+
+/**
+ * 用途：引入 AV 面板键盘处理中间件。
+ * 使用范围：供窗口级入口在主路由前复用现有 AV 面板逻辑。
+ * 解耦评估：这是既有稳定中间件契约，保持原调用顺序最稳妥。
+ */
+import { bindAVPanelKeydown } from "../../../../protyle/render/av/keydown";
+/** 导出 AV 面板键盘处理中间件。 */
+export { bindAVPanelKeydown };
+
+/**
+ * 用途：引入菜单键盘处理中间件。
+ * 使用范围：供窗口级入口在主路由前复用现有菜单逻辑。
+ * 解耦评估：这是既有稳定中间件契约，继续直接复用即可。
+ */
+import { bindMenuKeydown } from "../../../../menus/Menu.bindMenuKeydown";
+/** 导出菜单键盘处理中间件。 */
+export { bindMenuKeydown };
+
+/**
+ * 用途：引入共享常量集合。
+ * 使用范围：供全局快捷键同步与注销流程构造 IPC 消息体。
+ * 解耦评估：常量属于稳定契约，不应在业务层重复硬编码。
+ */
+import { Constants } from "../../../../constants";
+/** 导出共享常量集合。 */
 export { Constants };
 
 /**
- * 导出 Electron 环境判断函数。
+ * 用途：引入窗口级全局快捷键过滤中间件。
+ * 使用范围：供窗口级入口在状态收集前做前置短路。
+ * 解耦评估：既有稳定契约，本次重构不应改变语义。
  */
+import { filterHotkey } from "../../commonHotkey";
+/** 导出窗口级全局快捷键过滤中间件。 */
+export { filterHotkey };
+
+/**
+ * 用途：引入搜索键盘处理中间件。
+ * 使用范围：供窗口级入口在主路由前保留既有搜索抢占行为。
+ * 解耦评估：既有稳定契约，继续直接复用即可。
+ */
+import { searchKeydown } from "../../searchKeydown";
+/** 导出搜索键盘处理中间件。 */
+export { searchKeydown };
+
+/**
+ * 用途：引入安全配置读取函数。
+ * 使用范围：供全局快捷键注销流程安全读取当前键位。
+ * 解耦评估：环境访问已封装为稳定 accessor，根层直接复用即可。
+ */
+import { getSafeSiyuanConfig } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 导出安全配置读取函数。 */
+export { getSafeSiyuanConfig };
+
+/**
+ * 用途：引入配置读取函数与原始语言对象读取函数。
+ * 使用范围：供全局快捷键同步流程读取键位配置与托盘文案。
+ * 解耦评估：环境访问已通过 `.environment.ts` 封装，继续复用即可。
+ */
+import { getSiyuanConfig, getSiyuanLanguages } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 导出配置读取函数。 */
+export { getSiyuanConfig };
+/** 导出原始语言对象读取函数。 */
+export { getSiyuanLanguages };
+
+/**
+ * 用途：引入 Electron 环境判断。
+ * 使用范围：供全局快捷键同步与注销流程做桌面端分支保护。
+ * 解耦评估：平台判断属于稳定基础能力，继续直接复用即可。
+ */
+import { isElectron } from "../../../../platform";
+/** 导出 Electron 环境判断。 */
 export { isElectron };
 
 /**
- * 导出 IPC 发送函数。
+ * 用途：引入 IPC 发送函数。
+ * 使用范围：供全局快捷键同步与注销流程向主进程发送命令。
+ * 解耦评估：IPC 属于基础设施边界，当前根层直接依赖风险最低。
  */
+import { ipcSend } from "../../../../platform/electron/ipcRenderer";
+/** 导出 IPC 发送函数。 */
 export { ipcSend };
 
 /**
- * 导出安全配置读取函数。
+ * 用途：引入声明式路由构建器。
+ * 使用范围：供窗口级统一入口定义统一状态空间路由。
+ * 解耦评估：第三方 DSL 只通过根层网关向统一入口暴露，符合当前目录的依赖聚合边界。
  */
-export { getSafeSiyuanConfig };
+import { calibur } from "calibur-router";
+/** 导出声明式路由构建器。 */
+export { calibur };
+
+/**
+ * 用途：引入状态声明器。
+ * 使用范围：供窗口级统一入口声明统一状态空间约束。
+ * 解耦评估：状态声明 DSL 与统一路由定义强相关，通过根层网关暴露可以避免业务文件直接触达第三方包。
+ */
+import { type } from "arktype";
+/** 导出状态声明器。 */
+export { type };

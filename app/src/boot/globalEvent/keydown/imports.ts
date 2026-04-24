@@ -59,6 +59,15 @@ import { getDockByType } from "../../../layout/tabUtil";
 export { getDockByType };
 
 /**
+ * 用途：提供当前全部页签模型列表。
+ * 使用范围：供切换对话框点击确认时按 `data-id` 查找目标页签并切换。
+ * 解耦评估：页签枚举能力属于布局系统稳定边界，理论上可继续上收为命令接口，但当前事件层直接读取既有 API 的成本最低；通过网关转发已经把跨层路径耦合压缩到单点。
+ */
+import { getAllTabs } from "../../../layout/getAll";
+/** 导出 [`getAllTabs`](app/src/boot/globalEvent/keydown/imports.ts:75) 供 `keydown` 目录页签切换流程复用。 */
+export { getAllTabs };
+
+/**
  * 用途：提供隐藏指定 UI 浮层的工具。
  * 使用范围：供键盘确认当前项后关闭切换对话框等临时 UI。
  * 解耦评估：UI 清理逻辑目前由统一工具函数承载，未来可演进为更显式的对话框控制器；在现阶段通过网关转发已经足以降低路径耦合并保持调用一致。

@@ -23,13 +23,6 @@ import { getSafeSiyuanConfig } from "./imports";
  */
 import { ipcSend } from "./imports";
 /**
- * 用途：判断当前是否处于 Electron 环境，避免 Web 环境误发主进程消息。
- * 使用范围：仅用于导出函数入口的桌面端分支保护。
- * 解耦评估：平台判断属于运行时基础能力，理论上可由更高层传入，但当前窗口按键链路未提供该上下文，经转发层使用更清晰。
- */
-import { isElectron } from "./imports";
-
-/**
  * 作用：向 Electron 主进程发送单个全局快捷键的注销命令。
  * 意图：把 IPC 发送与空快捷键过滤逻辑收敛到单一入口，避免重复分支并防止将空值发送给主进程。
  * 调用时机：在注销主窗口快捷键和插件命令快捷键时统一调用。
@@ -67,11 +60,10 @@ const unregisterPluginGlobalShortcuts = (app: App) => {
  * 意图：在键位变更、窗口退出或相关生命周期收尾阶段统一回收全局快捷键，避免主进程残留失效注册。
  * 调用时机：窗口级快捷键系统需要撤销全局快捷键绑定时调用，例如重新注册前的清理流程。
  * 问题/改进：当前仍按单条 IPC 消息逐个注销；若后续发现插件数量较多导致消息频繁，可演进为批量协议。
+ * 注意：调用方（状态空间）需确保仅在 Electron 环境下调用此函数。
+ * @AIDONE isElectron 已从执行器移除，由调用方（keymap.ts 中已存在 isElectron 守卫）负责平台判断。
  */
 export const sendUnregisterGlobalShortcut = async (app: App) => {
-    if (!isElectron) {
-        return;
-    }
     const toggleWindowHotkey = getSafeSiyuanConfig()?.keymap.general.toggleWin.custom;
     unregisterGlobalShortcut(toggleWindowHotkey);
     unregisterPluginGlobalShortcuts(app);
