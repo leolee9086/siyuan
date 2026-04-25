@@ -695,6 +695,7 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 		config.ForgeDevRepoReadToolName,
 		config.ForgeDevRepoSearchToolName,
 		config.ForgeDevRepoEditToolName,
+		config.ForgeDevRepoBatchReplaceToolName,
 	) {
 		forgeExecutor := newForgeDevRepoToolResultExecutor()
 		executors = append(executors, forgeExecutor.ExecuteToolCall)

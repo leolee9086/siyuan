@@ -66,6 +66,17 @@ func (c *Coordinator) SetDominantSelectionObserver(observer DominantSelectionObs
 	c.dominantSelectionObserver = observer
 }
 
+// SetWorkspaceSnapshotInterval 设置工作区快照的轮次间隔。
+// interval 为 0 表示禁用快照。
+func (c *Coordinator) SetWorkspaceSnapshotInterval(interval uint64) {
+	if c == nil {
+		return
+	}
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+	c.workspaceSnapshotInterval = interval
+}
+
 func (c *Coordinator) notifyDominantSelected(roundID string, election *DominantElectionResult) {
 	if c == nil || election == nil {
 		return

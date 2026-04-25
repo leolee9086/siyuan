@@ -322,6 +322,263 @@ func TestWrapSearchNotFoundError_IncludesContext(t *testing.T) {
 	}
 }
 
+// ——— 新增功能测试 ———
+
+func TestExecuteForgeDevRepoList_FiltersByType(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	// 仅过滤目录
+	result, err := executeForgeDevRepoList(`{"input":"path=.\ntypefilter=dir\nlimit=100"}`)
+	if err != nil {
+		t.Fatalf("期望列出成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoListPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	for _, e := range payload.Entries {
+		if !strings.HasSuffix(e.Name, "/") && e.Type != "symlink-dir" {
+			t.Fatalf("期望仅返回目录，实际 entry=%+v", e)
+		}
+	}
+
+	// 仅过滤文件
+	result, err = executeForgeDevRepoList(`{"input":"path=.\ntypefilter=file\nlimit=100"}`)
+	if err != nil {
+		t.Fatalf("期望列出成功，实际错误: %v", err)
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	for _, e := range payload.Entries {
+		if strings.HasSuffix(e.Name, "/") {
+			t.Fatalf("期望仅返回文件，实际 entry=%+v", e)
+		}
+	}
+}
+
+func TestExecuteForgeDevRepoList_FiltersByNamePattern(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	result, err := executeForgeDevRepoList(`{"input":"path=.\nnamepattern=*.go\nlimit=100"}`)
+	if err != nil {
+		t.Fatalf("期望列出成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoListPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	for _, e := range payload.Entries {
+		if e.Type != "file" {
+			continue
+		}
+		if !strings.HasSuffix(e.Name, ".go") {
+			t.Fatalf("期望仅返回 .go 文件，实际 name=%s", e.Name)
+		}
+	}
+}
+
+func TestExecuteForgeDevRepoSearch_UseRegex(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	// 正则匹配 "alpha|beta" 应该匹配包含 alpha 或 beta 的行
+	result, err := executeForgeDevRepoSearch(`{"input":"pattern=alpha|beta\npath=kernel/nerv/magi/coordinator\nuseregex=true\nlimit=10"}`)
+	if err != nil {
+		t.Fatalf("期望正则搜索成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoSearchPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	if payload.MatchCount < 2 {
+		t.Fatalf("期望正则匹配多个结果，实际=%d", payload.MatchCount)
+	}
+}
+
+func TestExecuteForgeDevRepoSearch_UseRegexWithIgnoreCase(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	result, err := executeForgeDevRepoSearch(`{"input":"pattern=ALPHA|BETA\npath=kernel/nerv/magi/coordinator\nuseregex=true\nignorecase=true\nlimit=10"}`)
+	if err != nil {
+		t.Fatalf("期望正则+忽略大小写搜索成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoSearchPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	if payload.MatchCount < 2 {
+		t.Fatalf("期望忽略大小写后匹配多个结果，实际=%d", payload.MatchCount)
+	}
+}
+
+func TestExecuteForgeDevRepoSearch_FilePatternFilter(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	// filePattern=*.go 应该只搜索 .go 文件
+	result, err := executeForgeDevRepoSearch(`{"input":"pattern=needle\npath=.\nfilepattern=*.go\nlimit=10"}`)
+	if err != nil {
+		t.Fatalf("期望搜索成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoSearchPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	for _, m := range payload.Matches {
+		if !strings.HasSuffix(m.Path, ".go") {
+			t.Fatalf("期望仅搜索 .go 文件，实际 path=%s", m.Path)
+		}
+	}
+}
+
+func TestExecuteForgeDevRepoSearch_InvalidRegexReturnsError(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	_, err := executeForgeDevRepoSearch(`{"input":"pattern=[invalid\npath=.\nuseregex=true\nlimit=10"}`)
+	if err == nil {
+		t.Fatal("期望无效正则返回错误，实际成功")
+	}
+	if !strings.Contains(err.Error(), "正则表达式语法错误") {
+		t.Fatalf("期望正则语法错误提示，实际=%v", err)
+	}
+}
+
+func TestExecuteForgeDevRepoBatchReplace_ValidatesRequiredFields(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    string
+		wantErr string
+	}{
+		{
+			name:    "empty args returns error",
+			args:    ``,
+			wantErr: "参数不能为空",
+		},
+		{
+			name:    "missing pattern returns error",
+			args:    `{}`,
+			wantErr: "缺少 pattern",
+		},
+		{
+			name:    "missing old_string returns error",
+			args:    `{"pattern":"*.go"}`,
+			wantErr: "缺少 old_string",
+		},
+		{
+			name:    "missing motivation returns error",
+			args:    `{"pattern":"*.go","old_string":"a","new_string":"b"}`,
+			wantErr: "缺少 motivation",
+		},
+		{
+			name:    "invalid JSON returns error",
+			args:    `not-json`,
+			wantErr: "参数解析失败",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := executeForgeDevRepoBatchReplace(tt.args)
+			if err == nil {
+				t.Fatal("期望错误，实际成功")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("期望错误包含 %q，实际=%v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestExecuteForgeDevRepoBatchReplace_PreviewMode(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	result, err := executeForgeDevRepoBatchReplace(`{
+		"pattern":"kernel/nerv/magi/coordinator/sample.go",
+		"old_string":"func alpha()",
+		"new_string":"func alpha() { x := 1 }",
+		"preview":true,
+		"motivation":"test preview"
+	}`)
+	if err != nil {
+		t.Fatalf("期望预览成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoBatchReplacePayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	if payload.State != "preview" {
+		t.Fatalf("期望 preview 状态，实际=%s", payload.State)
+	}
+	if len(payload.MatchedFiles) == 0 {
+		t.Fatal("期望预览模式下找到匹配文件")
+	}
+}
+
+func TestExecuteForgeDevRepoBatchReplace_ReturnsPendingGovernance(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	result, err := executeForgeDevRepoBatchReplace(`{
+		"pattern":"kernel/nerv/magi/coordinator/sample.go",
+		"old_string":"func alpha()",
+		"new_string":"func alpha() { x := 1 }",
+		"preview":false,
+		"motivation":"test batch replace"
+	}`)
+	if err != nil {
+		t.Fatalf("期望返回待治理状态，实际错误: %v", err)
+	}
+	var payload forgeDevRepoBatchReplacePayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	if payload.State != "pending_governance" {
+		t.Fatalf("期望 state=pending_governance，实际=%s", payload.State)
+	}
+	if len(payload.MatchedFiles) == 0 {
+		t.Fatal("期望找到匹配文件")
+	}
+}
+
+func TestExecuteForgeDevRepoBatchReplace_GlobMatchesMultipleFiles(t *testing.T) {
+	repoRoot := createForgeDevRepoFixture(t)
+	// 添加第二个 .go 文件用于批量匹配
+	mustWriteFile(t, filepath.Join(repoRoot, "kernel", "api", "helper.go"), "package api\nfunc helper() {}\n")
+	restore := overrideForgeDevRepoRootResolver(repoRoot)
+	defer restore()
+
+	result, err := executeForgeDevRepoBatchReplace(`{
+		"pattern":"kernel/api/*.go",
+		"old_string":"func",
+		"new_string":"// updated\nfunc",
+		"preview":true,
+		"motivation":"test glob match"
+	}`)
+	if err != nil {
+		t.Fatalf("期望 glob 匹配成功，实际错误: %v", err)
+	}
+	var payload forgeDevRepoBatchReplacePayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果失败: %v", err)
+	}
+	if len(payload.MatchedFiles) < 1 {
+		t.Fatalf("期望至少匹配到1个文件，实际=%d", len(payload.MatchedFiles))
+	}
+}
+
 func createForgeDevRepoFixture(t *testing.T) string {
 	t.Helper()
 

@@ -9,12 +9,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -91,11 +94,26 @@ type forgeDevRepoSearchPayload struct {
 	Path         string                    `json:"path"`
 	Pattern      string                    `json:"pattern"`
 	IgnoreCase   bool                      `json:"ignoreCase"`
+	UseRegex     bool                      `json:"useRegex,omitempty"`
+	FilePattern  string                    `json:"filePattern,omitempty"`
 	Limit        int                       `json:"limit"`
 	ScannedFiles int                       `json:"scannedFiles"`
 	MatchCount   int                       `json:"matchCount"`
 	HasMore      bool                      `json:"hasMore"`
 	Matches      []forgeDevRepoSearchMatch `json:"matches"`
+}
+
+// forgeDevRepoFileCache 按文件路径缓存已读取的内容（只读工具共享）
+var forgeDevRepoFileCache = struct {
+	m map[string]fileCacheEntry
+}{
+	m: make(map[string]fileCacheEntry),
+}
+
+type fileCacheEntry struct {
+	Content   string
+	TotalLine int
+	FileSize  int64
 }
 
 type forgeDevRepoToolResultExecutor struct {
@@ -110,19 +128,54 @@ func newForgeDevRepoToolResultExecutor() *forgeDevRepoToolResultExecutor {
 
 func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (result string, handled bool, err error) {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
+	startTime := time.Now()
+	auditFields := map[string]interface{}{
+		"toolName": toolName,
+		"args":     truncateAuditArgs(toolCall.Function.Arguments),
+	}
+
 	switch toolName {
 	case config.ForgeDevRepoListToolName:
-		return e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoList)
+		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoList)
 	case config.ForgeDevRepoReadToolName:
-		return e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoRead)
+		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoRead)
 	case config.ForgeDevRepoSearchToolName:
-		return e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoSearch)
+		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoSearch)
 	case config.ForgeDevRepoEditToolName:
-		result, execErr := executeForgeDevRepoEdit(toolCall.Function.Arguments)
-		return result, true, execErr
+		var execErr error
+		result, execErr = executeForgeDevRepoEdit(toolCall.Function.Arguments)
+		result, handled, err = result, true, execErr
+	case config.ForgeDevRepoBatchReplaceToolName:
+		var execErr error
+		result, execErr = executeForgeDevRepoBatchReplace(toolCall.Function.Arguments)
+		result, handled, err = result, true, execErr
 	default:
 		return "", false, nil
 	}
+
+	elapsed := time.Since(startTime)
+	auditFields["elapsed"] = elapsed.String()
+	auditFields["success"] = err == nil
+	if err != nil {
+		auditFields["error"] = err.Error()
+	}
+	logging.LogInfof("forge_dev_repo audit: %s", marshalAuditLog(auditFields))
+
+	return result, handled, err
+}
+
+func truncateAuditArgs(rawArgs string) string {
+	trimmed := strings.TrimSpace(rawArgs)
+	runes := []rune(trimmed)
+	if len(runes) <= 200 {
+		return trimmed
+	}
+	return string(runes[:200]) + "..."
+}
+
+func marshalAuditLog(fields map[string]interface{}) string {
+	data, _ := json.Marshal(fields)
+	return string(data)
 }
 
 func (e *forgeDevRepoToolResultExecutor) executeCached(
@@ -159,6 +212,8 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoListToolName, err)
 	}
+	typeFilter := strings.ToLower(strings.TrimSpace(input.Fields["typefilter"]))
+	namePattern := strings.TrimSpace(input.Fields["namepattern"])
 
 	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
@@ -173,10 +228,35 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 		return "", fmt.Errorf("目标路径不是目录: %s", targetRel)
 	}
 
-	entries, err := os.ReadDir(targetAbs)
+	allEntries, err := os.ReadDir(targetAbs)
 	if err != nil {
 		return "", fmt.Errorf("列出开发仓库目录失败: %w", err)
 	}
+
+	// 按类型和名称模式过滤
+	entries := make([]os.DirEntry, 0, len(allEntries))
+	for _, entry := range allEntries {
+		if typeFilter != "" {
+			isDir := entry.IsDir()
+			switch typeFilter {
+			case "dir":
+				if !isDir {
+					continue
+				}
+			case "file":
+				if isDir {
+					continue
+				}
+			}
+		}
+		if namePattern != "" {
+			if matched, matchErr := filepath.Match(namePattern, entry.Name()); matchErr != nil || !matched {
+				continue
+			}
+		}
+		entries = append(entries, entry)
+	}
+
 	sort.Slice(entries, func(i, j int) bool {
 		left := strings.ToLower(entries[i].Name())
 		right := strings.ToLower(entries[j].Name())
@@ -208,6 +288,38 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 	}
 	payload.ReturnedEntries = len(payload.Entries)
 	return marshalForgeDevRepoPayload(payload)
+}
+
+func readFileWithCache(targetAbs, targetRel string) ([]byte, int64, error) {
+	entry, ok := forgeDevRepoFileCache.m[targetAbs]
+	if ok {
+		return []byte(entry.Content), entry.FileSize, nil
+	}
+
+	info, err := os.Stat(targetAbs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("读取开发仓库文件失败: %w", err)
+	}
+	if info.Size() > maxForgeDevRepoReadBytes {
+		return nil, 0, fmt.Errorf("文件过大（%d bytes），请缩小目标文件范围后再读取: %s", info.Size(), targetRel)
+	}
+
+	data, err := os.ReadFile(targetAbs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("读取开发仓库文件失败: %w", err)
+	}
+	if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
+		return nil, 0, fmt.Errorf("仅支持读取 UTF-8 文本文件: %s", targetRel)
+	}
+
+	normalized := normalizeForgeRepoText(string(data))
+	lines := strings.Split(normalized, "\n")
+	forgeDevRepoFileCache.m[targetAbs] = fileCacheEntry{
+		Content:   normalized,
+		TotalLine: len(lines),
+		FileSize:  info.Size(),
+	}
+	return []byte(normalized), info.Size(), nil
 }
 
 func executeForgeDevRepoRead(rawArgs string) (string, error) {
@@ -246,19 +358,13 @@ func executeForgeDevRepoRead(rawArgs string) (string, error) {
 	if info.IsDir() {
 		return "", fmt.Errorf("目标路径是目录，请改用 %s: %s", config.ForgeDevRepoListToolName, targetRel)
 	}
-	if info.Size() > maxForgeDevRepoReadBytes {
-		return "", fmt.Errorf("文件过大（%d bytes），请缩小目标文件范围后再读取: %s", info.Size(), targetRel)
-	}
 
-	data, err := os.ReadFile(targetAbs)
+	data, _, err := readFileWithCache(targetAbs, targetRel)
 	if err != nil {
-		return "", fmt.Errorf("读取开发仓库文件失败: %w", err)
-	}
-	if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-		return "", fmt.Errorf("仅支持读取 UTF-8 文本文件: %s", targetRel)
+		return "", err
 	}
 
-	lines := strings.Split(normalizeForgeRepoText(string(data)), "\n")
+	lines := strings.Split(string(data), "\n")
 	if startLine > len(lines) {
 		return "", fmt.Errorf("start=%d 超出文件总行数 %d", startLine, len(lines))
 	}
@@ -318,6 +424,26 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoSearchToolName, err)
 	}
+	useRegex, err := input.boolValue("useregex", false)
+	if err != nil {
+		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoSearchToolName, err)
+	}
+	filePattern := strings.TrimSpace(input.Fields["filepattern"])
+
+	// 预编译正则表达式
+	var regex *regexp.Regexp
+	if useRegex {
+		regex, err = regexp.Compile(pattern)
+		if err != nil {
+			return "", fmt.Errorf("%s 正则表达式语法错误: %w", config.ForgeDevRepoSearchToolName, err)
+		}
+		if ignoreCase {
+			regex, err = regexp.Compile("(?i)" + pattern)
+			if err != nil {
+				return "", fmt.Errorf("%s 正则表达式语法错误: %w", config.ForgeDevRepoSearchToolName, err)
+			}
+		}
+	}
 
 	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
@@ -330,20 +456,30 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 	}
 
 	payload := forgeDevRepoSearchPayload{
-		RootHint:   compactWorkspacePathHint(root),
-		Path:       targetRel,
-		Pattern:    pattern,
-		IgnoreCase: ignoreCase,
-		Limit:      limit,
-		Matches:    make([]forgeDevRepoSearchMatch, 0, limit),
+		RootHint:    compactWorkspacePathHint(root),
+		Path:        targetRel,
+		Pattern:     pattern,
+		IgnoreCase:  ignoreCase,
+		UseRegex:    useRegex,
+		FilePattern: filePattern,
+		Limit:       limit,
+		Matches:     make([]forgeDevRepoSearchMatch, 0, limit),
 	}
 
 	needle := pattern
-	if ignoreCase {
+	if !useRegex && ignoreCase {
 		needle = strings.ToLower(pattern)
 	}
 
 	appendMatchesFromFile := func(fileAbsPath, fileRelPath string) error {
+		// 检查 filePattern 过滤
+		if filePattern != "" {
+			fileName := filepath.Base(fileAbsPath)
+			if matched, matchErr := filepath.Match(filePattern, fileName); matchErr != nil || !matched {
+				return nil
+			}
+		}
+
 		fileInfo, err := os.Stat(fileAbsPath)
 		if err != nil || fileInfo.IsDir() {
 			return nil
@@ -363,11 +499,19 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 		payload.ScannedFiles++
 		lines := strings.Split(normalizeForgeRepoText(string(data)), "\n")
 		for idx, line := range lines {
-			haystack := line
-			if ignoreCase {
-				haystack = strings.ToLower(line)
+			var matched bool
+			if useRegex {
+				if regex != nil {
+					matched = regex.MatchString(line)
+				}
+			} else {
+				haystack := line
+				if ignoreCase {
+					haystack = strings.ToLower(line)
+				}
+				matched = strings.Contains(haystack, needle)
 			}
-			if !strings.Contains(haystack, needle) {
+			if !matched {
 				continue
 			}
 
@@ -490,6 +634,142 @@ func executeForgeDevRepoEdit(rawArgs string) (string, error) {
 		TargetPath: targetRel,
 		State:      "pending_governance",
 	}
+	return marshalForgeDevRepoPayload(payload)
+}
+
+// forgeDevRepoBatchReplacePayload 是 forge_dev_repo_batch_replace 工具结果的结构
+type forgeDevRepoBatchReplacePayload struct {
+	RootHint     string          `json:"rootHint"`
+	Path         string          `json:"path"`
+	Pattern      string          `json:"pattern"`
+	FilePattern  string          `json:"filePattern,omitempty"`
+	OldString    string          `json:"oldString"`
+	NewString    string          `json:"newString"`
+	Preview      bool            `json:"preview"`
+	State        string          `json:"state"`
+	MatchedFiles []string        `json:"matchedFiles,omitempty"`
+	ChangedFiles []string        `json:"changedFiles,omitempty"`
+	FailedFiles  []matchedFileOp `json:"failedFiles,omitempty"`
+}
+
+type matchedFileOp struct {
+	Path  string `json:"path"`
+	Error string `json:"error"`
+}
+
+func executeForgeDevRepoBatchReplace(rawArgs string) (string, error) {
+	var args struct {
+		Pattern     string `json:"pattern"`
+		OldString   string `json:"old_string"`
+		NewString   string `json:"new_string"`
+		Path        string `json:"path"`
+		FilePattern string `json:"filePattern"`
+		Preview     bool   `json:"preview"`
+		Motivation  string `json:"motivation"`
+	}
+	trimmed := strings.TrimSpace(rawArgs)
+	if trimmed == "" {
+		return "", fmt.Errorf("%s 参数不能为空", config.ForgeDevRepoBatchReplaceToolName)
+	}
+	if err := json.Unmarshal([]byte(trimmed), &args); err != nil {
+		return "", fmt.Errorf("%s 参数解析失败: %w", config.ForgeDevRepoBatchReplaceToolName, err)
+	}
+
+	args.Pattern = strings.TrimSpace(args.Pattern)
+	args.OldString = strings.TrimSpace(args.OldString)
+	args.NewString = strings.TrimSpace(args.NewString)
+	args.Path = strings.TrimSpace(args.Path)
+	args.FilePattern = strings.TrimSpace(args.FilePattern)
+	args.Motivation = strings.TrimSpace(args.Motivation)
+	if args.Pattern == "" {
+		return "", fmt.Errorf("%s 缺少 pattern", config.ForgeDevRepoBatchReplaceToolName)
+	}
+	if args.OldString == "" {
+		return "", fmt.Errorf("%s 缺少 old_string", config.ForgeDevRepoBatchReplaceToolName)
+	}
+	if args.Motivation == "" {
+		return "", fmt.Errorf("%s 缺少 motivation", config.ForgeDevRepoBatchReplaceToolName)
+	}
+
+	root, err := resolveForgeDevRepoRoot()
+	if err != nil {
+		return "", err
+	}
+
+	targetPath := args.Path
+	if targetPath == "" {
+		targetPath = "."
+	}
+	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
+	if err != nil {
+		return "", err
+	}
+
+	// 使用 Glob 匹配文件
+	globPattern := args.Pattern
+	if !filepath.IsAbs(globPattern) {
+		globPattern = filepath.Join(targetAbs, filepath.FromSlash(globPattern))
+	}
+	matches, err := filepath.Glob(globPattern)
+	if err != nil {
+		return "", fmt.Errorf("%s 文件匹配失败: %w", config.ForgeDevRepoBatchReplaceToolName, err)
+	}
+
+	// 过滤掉目录和非文本文件
+	matchedFiles := make([]string, 0, len(matches))
+	for _, m := range matches {
+		info, statErr := os.Stat(m)
+		if statErr != nil || info.IsDir() {
+			continue
+		}
+		if info.Size() > maxForgeDevRepoReadBytes {
+			continue
+		}
+		// 检查 filePattern 过滤
+		if args.FilePattern != "" {
+			fileName := filepath.Base(m)
+			if matched, matchErr := filepath.Match(args.FilePattern, fileName); matchErr != nil || !matched {
+				continue
+			}
+		}
+		// 检查是否是 UTF-8 文本文件
+		data, readErr := os.ReadFile(m)
+		if readErr != nil {
+			continue
+		}
+		if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
+			continue
+		}
+		// 检查 old_string 是否存在
+		if !strings.Contains(string(data), args.OldString) {
+			continue
+		}
+		rel, relErr := filepath.Rel(root, m)
+		if relErr != nil {
+			rel = m
+		} else {
+			rel = filepath.ToSlash(rel)
+		}
+		matchedFiles = append(matchedFiles, rel)
+	}
+
+	payload := forgeDevRepoBatchReplacePayload{
+		RootHint:     compactWorkspacePathHint(root),
+		Path:         targetRel,
+		Pattern:      args.Pattern,
+		FilePattern:  args.FilePattern,
+		OldString:    args.OldString,
+		NewString:    args.NewString,
+		Preview:      args.Preview,
+		MatchedFiles: matchedFiles,
+	}
+
+	if args.Preview {
+		payload.State = "preview"
+	} else {
+		payload.State = "pending_governance"
+	}
+
 	return marshalForgeDevRepoPayload(payload)
 }
 
@@ -832,6 +1112,12 @@ func materializeForgeDevRepoEditResult(
 		return marshalForgeDevRepoEditFailure(errors.New("搜索文本未找到"))
 	}
 
+	// 写入前创建 .bak 备份文件，提供回滚能力
+	bakPath := targetAbs + ".bak"
+	if bakErr := os.WriteFile(bakPath, data, 0644); bakErr != nil {
+		return marshalForgeDevRepoEditFailure(fmt.Errorf("创建备份文件失败: %w", bakErr))
+	}
+
 	if writeErr := os.WriteFile(targetAbs, []byte(newContent), 0644); writeErr != nil {
 		return marshalForgeDevRepoEditFailure(fmt.Errorf("写入文件失败: %w", writeErr))
 	}
@@ -843,6 +1129,198 @@ func materializeForgeDevRepoEditResult(
 	resultBytes, marshalErr := json.Marshal(payload)
 	if marshalErr != nil {
 		return marshalForgeDevRepoEditFailure(marshalErr)
+	}
+	return string(resultBytes)
+}
+
+// materializeForgeDevRepoBatchReplaceResult 在治理统合阶段执行批量替换操作。
+// 流程：治理投票 → 对每个匹配文件执行 applySearchReplace → 写入文件 → 返回结果。
+func materializeForgeDevRepoBatchReplaceResult(
+	ctx context.Context,
+	sessionID, roundID string,
+	sage *sages.Sage,
+	assistantContent string,
+	toolCall types.ToolCall,
+	detailedResult string,
+) string {
+	var args struct {
+		Pattern     string `json:"pattern"`
+		OldString   string `json:"old_string"`
+		NewString   string `json:"new_string"`
+		Path        string `json:"path"`
+		FilePattern string `json:"filePattern"`
+		Preview     bool   `json:"preview"`
+		Motivation  string `json:"motivation"`
+	}
+	trimmed := strings.TrimSpace(toolCall.Function.Arguments)
+	if trimmed == "" {
+		return marshalForgeDevRepoBatchReplaceFailure("参数不能为空")
+	}
+	if err := json.Unmarshal([]byte(trimmed), &args); err != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(fmt.Sprintf("参数解析失败: %v", err))
+	}
+
+	payload := map[string]interface{}{}
+	if trimmed := strings.TrimSpace(detailedResult); trimmed != "" {
+		_ = json.Unmarshal([]byte(trimmed), &payload)
+	}
+	if len(payload) == 0 {
+		payload["ok"] = true
+		payload["state"] = "pending_governance"
+	}
+
+	outcome, governed, voteErr := dominantActionToolGovernance.EvaluateActionVote(
+		ctx, sessionID, roundID, sage, assistantContent, toolCall,
+	)
+	if voteErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(voteErr.Error())
+	}
+	if governed && outcome != nil && outcome.Rejected {
+		return marshalForgeDevRepoBatchReplaceRejection(toolCall.Function.Name, payload, outcome)
+	}
+
+	// 治理通过，执行实际批量替换
+	root, rootErr := resolveForgeDevRepoRoot()
+	if rootErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(rootErr.Error())
+	}
+
+	targetPath := args.Path
+	if targetPath == "" {
+		targetPath = "."
+	}
+	targetAbs, _, targetErr := resolveForgeDevRepoTarget(root, targetPath)
+	if targetErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(targetErr.Error())
+	}
+
+	// 使用 Glob 匹配文件
+	globPattern := args.Pattern
+	if !filepath.IsAbs(globPattern) {
+		globPattern = filepath.Join(targetAbs, filepath.FromSlash(globPattern))
+	}
+	matches, err := filepath.Glob(globPattern)
+	if err != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(fmt.Sprintf("文件匹配失败: %v", err))
+	}
+
+	changedFiles := make([]string, 0, len(matches))
+	failedFiles := make([]matchedFileOp, 0)
+	hasFailure := false
+
+	for _, m := range matches {
+		info, statErr := os.Stat(m)
+		if statErr != nil || info.IsDir() {
+			continue
+		}
+		if info.Size() > maxForgeDevRepoReadBytes {
+			continue
+		}
+		// 检查 filePattern 过滤
+		if args.FilePattern != "" {
+			fileName := filepath.Base(m)
+			if matched, matchErr := filepath.Match(args.FilePattern, fileName); matchErr != nil || !matched {
+				continue
+			}
+		}
+
+		data, readErr := os.ReadFile(m)
+		if readErr != nil {
+			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: readErr.Error()})
+			hasFailure = true
+			continue
+		}
+		if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
+			continue
+		}
+		if !strings.Contains(string(data), args.OldString) {
+			continue
+		}
+
+		newContent, applied, srErr := applySearchReplace(string(data), args.OldString, args.NewString)
+		if srErr != nil || !applied {
+			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: "search/replace 失败"})
+			hasFailure = true
+			continue
+		}
+
+		// 创建 .bak 备份
+		bakPath := m + ".bak"
+		if bakErr := os.WriteFile(bakPath, data, 0644); bakErr != nil {
+			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: fmt.Sprintf("备份失败: %v", bakErr)})
+			hasFailure = true
+			continue
+		}
+
+		if writeErr := os.WriteFile(m, []byte(newContent), 0644); writeErr != nil {
+			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: fmt.Sprintf("写入失败: %v", writeErr)})
+			hasFailure = true
+			continue
+		}
+
+		rel, relErr := filepath.Rel(root, m)
+		if relErr != nil {
+			rel = m
+		} else {
+			rel = filepath.ToSlash(rel)
+		}
+		changedFiles = append(changedFiles, rel)
+	}
+
+	payload["ok"] = !hasFailure || len(changedFiles) > 0
+	payload["state"] = "batch_replaced"
+	payload["changedFiles"] = changedFiles
+	payload["failedFiles"] = failedFiles
+	payload["totalMatched"] = len(changedFiles) + len(failedFiles)
+
+	resultBytes, marshalErr := json.Marshal(payload)
+	if marshalErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(marshalErr.Error())
+	}
+	return string(resultBytes)
+}
+
+func marshalForgeDevRepoBatchReplaceFailure(errMsg string) string {
+	payload := map[string]interface{}{
+		"ok":    false,
+		"state": "batch_replace_failed",
+	}
+	if errMsg != "" {
+		payload["error"] = errMsg
+	}
+	resultBytes, _ := json.Marshal(payload)
+	return string(resultBytes)
+}
+
+func marshalForgeDevRepoBatchReplaceRejection(
+	toolName string,
+	payload map[string]interface{},
+	outcome *governedActionVoteOutcome,
+) string {
+	if payload == nil {
+		payload = map[string]interface{}{}
+	}
+	payload["ok"] = false
+	payload["toolName"] = strings.TrimSpace(toolName)
+	payload["reviewSummary"] = "该批量替换操作已被专家团队否决。"
+	if outcome != nil && len(outcome.RejectionReasons) > 0 {
+		payload["rejectionReasons"] = outcome.RejectionReasons
+	}
+	if outcome != nil && outcome.LostDominance {
+		payload["state"] = "dominance_revoked"
+		payload["remainingAttempts"] = 0
+		payload["instruction"] = "连续两次未获批准，当前轮次将改由其他处理路径继续。"
+	} else {
+		payload["state"] = "rejected"
+		payload["remainingAttempts"] = 1
+		payload["instruction"] = buildGovernedActionRetryPrompt(config.ForgeDevRepoBatchReplaceToolName)
+	}
+	resultBytes, err := json.Marshal(payload)
+	if err != nil {
+		if outcome != nil && outcome.LostDominance {
+			return `{"ok":false,"state":"dominance_revoked"}`
+		}
+		return `{"ok":false,"state":"rejected"}`
 	}
 	return string(resultBytes)
 }

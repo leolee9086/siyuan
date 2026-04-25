@@ -113,6 +113,8 @@ const (
 	ForgeDevRepoSearchToolName = "forge_dev_repo_search"
 	// ForgeDevRepoEditToolName forge 模式开发仓库文件编辑工具名。
 	ForgeDevRepoEditToolName = "forge_dev_repo_edit"
+	// ForgeDevRepoBatchReplaceToolName forge 模式开发仓库批量替换工具名。
+	ForgeDevRepoBatchReplaceToolName = "forge_dev_repo_batch_replace"
 	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
 	WriteDiaryToolName = "write_diary_entry"
 	// DominantElectionToolName 主导者选举投票工具名。
@@ -400,13 +402,13 @@ func BuildForgeDevRepoListToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoListToolName,
-			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi 或 path=kernel\\nlimit=200。",
+			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi\\nlimit=200。支持 typeFilter=file|dir 按类型过滤，namePattern=*.go 按名称模式过滤。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"input": map[string]interface{}{
 						"type":        "string",
-						"description": "纯文本参数，支持 path=<相对路径>、limit=<数量>",
+						"description": "纯文本参数，支持 path=<相对路径>、limit=<数量>、typeFilter=<file|dir>、namePattern=<glob 模式>",
 					},
 				},
 				"required": []string{"input"},
@@ -442,13 +444,13 @@ func BuildForgeDevRepoSearchToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoSearchToolName,
-			Description: "仅在 forge 模式可用。只读按字面文本搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20，支持 ignoreCase=true。",
+			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"input": map[string]interface{}{
 						"type":        "string",
-						"description": "纯文本参数，支持 pattern=<文本>、path=<相对路径>、limit=<数量>、ignoreCase=<true|false>",
+						"description": "纯文本参数，支持 pattern=<文本>、path=<相对路径>、limit=<数量>、ignoreCase=<true|false>、useRegex=<true|false>、filePattern=<glob 模式>",
 					},
 				},
 				"required": []string{"input"},
@@ -488,6 +490,55 @@ func BuildForgeDevRepoEditToolDef() ToolDef {
 					},
 				},
 				"required": []string{"target_path", "old_string", "new_string", "motivation"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoBatchReplaceToolDef 构建 forge 模式批量替换工具定义。
+func BuildForgeDevRepoBatchReplaceToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name: ForgeDevRepoBatchReplaceToolName,
+			Description: "仅在 forge 模式可用。在开发代码仓库中基于搜索匹配结果执行批量替换。" +
+				"先使用 pattern 搜索匹配文件，然后在匹配结果上执行 old_string→new_string 替换。" +
+				"如果指定 preview=true，仅预览匹配结果而不实际执行替换。" +
+				"调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核。" +
+				"若连续两次未获批准，当前轮次将改由其他处理路径继续。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"pattern": map[string]interface{}{
+						"type":        "string",
+						"description": "搜索模式，匹配包含此模式的文件",
+					},
+					"old_string": map[string]interface{}{
+						"type":        "string",
+						"description": "需要替换的原文（SEARCH 块），必须从文件中精确复制，包括所有空白字符和换行符",
+					},
+					"new_string": map[string]interface{}{
+						"type":        "string",
+						"description": "替换后的新内容（REPLACE 块）",
+					},
+					"path": map[string]interface{}{
+						"type":        "string",
+						"description": "搜索路径，相对于开发仓库根目录，默认 .",
+					},
+					"filePattern": map[string]interface{}{
+						"type":        "string",
+						"description": "文件名称 glob 模式过滤，如 *.go",
+					},
+					"preview": map[string]interface{}{
+						"type":        "boolean",
+						"description": "true 时仅预览匹配结果，不执行实际替换",
+					},
+					"motivation": map[string]interface{}{
+						"type":        "string",
+						"description": "为什么现在要执行这次批量替换，以及它与当前任务的关系。用于行动工具复核。",
+					},
+				},
+				"required": []string{"pattern", "old_string", "new_string", "motivation"},
 			},
 		},
 	}

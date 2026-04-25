@@ -315,7 +315,8 @@ func buildDominanceRevokedHandoffPrompt(toolName string, messages []types.Contex
 func isGovernedActionToolName(toolName string) bool {
 	switch strings.TrimSpace(toolName) {
 	case config.WriteDiaryToolName,
-		config.ForgeDevRepoEditToolName:
+		config.ForgeDevRepoEditToolName,
+		config.ForgeDevRepoBatchReplaceToolName:
 		return true
 	default:
 		return false
