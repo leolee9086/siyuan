@@ -76,6 +76,9 @@ func materializeToolResultForContext(
 	if toolName == config.WriteDiaryToolName {
 		return materializeDiaryToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
+	if toolName == config.ForgeDevRepoEditToolName {
+		return materializeForgeDevRepoEditResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
+	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult
 	}

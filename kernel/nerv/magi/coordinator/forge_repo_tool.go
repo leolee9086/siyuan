@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -69,6 +71,7 @@ type forgeDevRepoListPayload struct {
 type forgeDevRepoReadPayload struct {
 	RootHint      string `json:"rootHint"`
 	Path          string `json:"path"`
+	FileSize      int64  `json:"fileSize"`
 	StartLine     int    `json:"startLine"`
 	EndLine       int    `json:"endLine"`
 	TotalLines    int    `json:"totalLines"`
@@ -114,6 +117,9 @@ func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 		return e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoRead)
 	case config.ForgeDevRepoSearchToolName:
 		return e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoSearch)
+	case config.ForgeDevRepoEditToolName:
+		result, execErr := executeForgeDevRepoEdit(toolCall.Function.Arguments)
+		return result, true, execErr
 	default:
 		return "", false, nil
 	}
@@ -275,6 +281,7 @@ func executeForgeDevRepoRead(rawArgs string) (string, error) {
 	payload := forgeDevRepoReadPayload{
 		RootHint:   compactWorkspacePathHint(root),
 		Path:       targetRel,
+		FileSize:   info.Size(),
 		StartLine:  startLine,
 		EndLine:    endLine,
 		TotalLines: len(lines),
@@ -419,6 +426,70 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 
 	payload.MatchCount = len(payload.Matches)
 	payload.HasMore = errors.Is(err, errForgeDevRepoSearchLimitReached)
+	return marshalForgeDevRepoPayload(payload)
+}
+
+type forgeDevRepoEditPayload struct {
+	RootHint   string `json:"rootHint"`
+	TargetPath string `json:"targetPath"`
+	State      string `json:"state"`
+}
+
+func executeForgeDevRepoEdit(rawArgs string) (string, error) {
+	var args struct {
+		TargetPath string `json:"target_path"`
+		OldString  string `json:"old_string"`
+		NewString  string `json:"new_string"`
+		Motivation string `json:"motivation"`
+	}
+	trimmed := strings.TrimSpace(rawArgs)
+	if trimmed == "" {
+		return "", fmt.Errorf("%s 参数不能为空", config.ForgeDevRepoEditToolName)
+	}
+	if err := json.Unmarshal([]byte(trimmed), &args); err != nil {
+		return "", fmt.Errorf("%s 参数解析失败: %w", config.ForgeDevRepoEditToolName, err)
+	}
+
+	args.TargetPath = strings.TrimSpace(args.TargetPath)
+	args.OldString = strings.TrimSpace(args.OldString)
+	args.NewString = strings.TrimSpace(args.NewString)
+	args.Motivation = strings.TrimSpace(args.Motivation)
+	if args.TargetPath == "" {
+		return "", fmt.Errorf("%s 缺少 target_path", config.ForgeDevRepoEditToolName)
+	}
+	if args.OldString == "" {
+		return "", fmt.Errorf("%s 缺少 old_string", config.ForgeDevRepoEditToolName)
+	}
+	if args.Motivation == "" {
+		return "", fmt.Errorf("%s 缺少 motivation", config.ForgeDevRepoEditToolName)
+	}
+
+	root, err := resolveForgeDevRepoRoot()
+	if err != nil {
+		return "", err
+	}
+
+	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, args.TargetPath)
+	if err != nil {
+		return "", err
+	}
+
+	info, err := os.Stat(targetAbs)
+	if err != nil {
+		return "", fmt.Errorf("目标文件不存在: %s", targetRel)
+	}
+	if info.IsDir() {
+		return "", fmt.Errorf("目标路径是目录，不能编辑: %s", targetRel)
+	}
+	if info.Size() > maxForgeDevRepoReadBytes {
+		return "", fmt.Errorf("文件过大（%d bytes），无法编辑: %s", info.Size(), targetRel)
+	}
+
+	payload := forgeDevRepoEditPayload{
+		RootHint:   compactWorkspacePathHint(root),
+		TargetPath: targetRel,
+		State:      "pending_governance",
+	}
 	return marshalForgeDevRepoPayload(payload)
 }
 
@@ -691,4 +762,160 @@ func minInt(left, right int) int {
 		return left
 	}
 	return right
+}
+
+// forgeDevRepoEditArgs 是 forge_dev_repo_edit 工具参数的内部结构
+type forgeDevRepoEditArgs struct {
+	TargetPath string `json:"target_path"`
+	OldString  string `json:"old_string"`
+	NewString  string `json:"new_string"`
+	Motivation string `json:"motivation"`
+}
+
+// materializeForgeDevRepoEditResult 在治理统合阶段执行实际文件编辑操作。
+// 流程：治理投票 → 读取文件 → applySearchReplace → 写入文件 → 返回编辑结果。
+func materializeForgeDevRepoEditResult(
+	ctx context.Context,
+	sessionID, roundID string,
+	sage *sages.Sage,
+	assistantContent string,
+	toolCall types.ToolCall,
+	detailedResult string,
+) string {
+	args, err := parseForgeDevRepoEditArgs(toolCall.Function.Arguments)
+	if err != nil {
+		return marshalForgeDevRepoEditFailure(err)
+	}
+
+	payload := map[string]interface{}{}
+	if trimmed := strings.TrimSpace(detailedResult); trimmed != "" {
+		_ = json.Unmarshal([]byte(trimmed), &payload)
+	}
+	if len(payload) == 0 {
+		payload["ok"] = true
+		payload["state"] = "pending_governance"
+	}
+
+	outcome, governed, voteErr := dominantActionToolGovernance.EvaluateActionVote(
+		ctx, sessionID, roundID, sage, assistantContent, toolCall,
+	)
+	if voteErr != nil {
+		return marshalForgeDevRepoEditFailure(voteErr)
+	}
+	if governed && outcome != nil && outcome.Rejected {
+		return marshalForgeDevRepoEditRejection(toolCall.Function.Name, payload, outcome)
+	}
+
+	// 治理通过，执行实际文件编辑
+	root, rootErr := resolveForgeDevRepoRoot()
+	if rootErr != nil {
+		return marshalForgeDevRepoEditFailure(rootErr)
+	}
+	targetAbs, targetRel, targetErr := resolveForgeDevRepoTarget(root, args.TargetPath)
+	if targetErr != nil {
+		return marshalForgeDevRepoEditFailure(targetErr)
+	}
+
+	data, readErr := os.ReadFile(targetAbs)
+	if readErr != nil {
+		return marshalForgeDevRepoEditFailure(fmt.Errorf("读取文件失败: %w", readErr))
+	}
+
+	newContent, applied, srErr := applySearchReplace(string(data), args.OldString, args.NewString)
+	if srErr != nil {
+		if errors.Is(srErr, ErrSearchNotFound) {
+			return marshalForgeDevRepoEditFailure(WrapSearchNotFoundError(string(data), args.OldString))
+		}
+		return marshalForgeDevRepoEditFailure(srErr)
+	}
+	if !applied {
+		return marshalForgeDevRepoEditFailure(errors.New("搜索文本未找到"))
+	}
+
+	if writeErr := os.WriteFile(targetAbs, []byte(newContent), 0644); writeErr != nil {
+		return marshalForgeDevRepoEditFailure(fmt.Errorf("写入文件失败: %w", writeErr))
+	}
+
+	payload["ok"] = true
+	payload["state"] = "edited"
+	payload["targetPath"] = targetRel
+
+	resultBytes, marshalErr := json.Marshal(payload)
+	if marshalErr != nil {
+		return marshalForgeDevRepoEditFailure(marshalErr)
+	}
+	return string(resultBytes)
+}
+
+func parseForgeDevRepoEditArgs(rawArgs string) (*forgeDevRepoEditArgs, error) {
+	trimmed := strings.TrimSpace(rawArgs)
+	if trimmed == "" {
+		return nil, fmt.Errorf("%s 参数不能为空", config.ForgeDevRepoEditToolName)
+	}
+	var args forgeDevRepoEditArgs
+	if err := json.Unmarshal([]byte(trimmed), &args); err != nil {
+		return nil, fmt.Errorf("%s 参数解析失败: %w", config.ForgeDevRepoEditToolName, err)
+	}
+	args.TargetPath = strings.TrimSpace(args.TargetPath)
+	args.OldString = strings.TrimSpace(args.OldString)
+	args.NewString = strings.TrimSpace(args.NewString)
+	args.Motivation = strings.TrimSpace(args.Motivation)
+	if args.TargetPath == "" {
+		return nil, fmt.Errorf("%s 缺少 target_path", config.ForgeDevRepoEditToolName)
+	}
+	if args.OldString == "" {
+		return nil, fmt.Errorf("%s 缺少 old_string", config.ForgeDevRepoEditToolName)
+	}
+	if args.Motivation == "" {
+		return nil, fmt.Errorf("%s 缺少 motivation", config.ForgeDevRepoEditToolName)
+	}
+	return &args, nil
+}
+
+func marshalForgeDevRepoEditFailure(err error) string {
+	payload := map[string]interface{}{
+		"ok":    false,
+		"state": "edit_failed",
+	}
+	if err != nil {
+		payload["error"] = err.Error()
+	}
+	resultBytes, marshalErr := json.Marshal(payload)
+	if marshalErr != nil {
+		return `{"ok":false,"state":"edit_failed"}`
+	}
+	return string(resultBytes)
+}
+
+func marshalForgeDevRepoEditRejection(
+	toolName string,
+	payload map[string]interface{},
+	outcome *governedActionVoteOutcome,
+) string {
+	if payload == nil {
+		payload = map[string]interface{}{}
+	}
+	payload["ok"] = false
+	payload["toolName"] = strings.TrimSpace(toolName)
+	payload["reviewSummary"] = "该编辑操作已被专家团队否决。"
+	if outcome != nil && len(outcome.RejectionReasons) > 0 {
+		payload["rejectionReasons"] = outcome.RejectionReasons
+	}
+	if outcome != nil && outcome.LostDominance {
+		payload["state"] = "dominance_revoked"
+		payload["remainingAttempts"] = 0
+		payload["instruction"] = "连续两次未获批准，当前轮次将改由其他处理路径继续。"
+	} else {
+		payload["state"] = "rejected"
+		payload["remainingAttempts"] = 1
+		payload["instruction"] = buildGovernedActionRetryPrompt(config.ForgeDevRepoEditToolName)
+	}
+	resultBytes, err := json.Marshal(payload)
+	if err != nil {
+		if outcome != nil && outcome.LostDominance {
+			return `{"ok":false,"state":"dominance_revoked"}`
+		}
+		return `{"ok":false,"state":"rejected"}`
+	}
+	return string(resultBytes)
 }

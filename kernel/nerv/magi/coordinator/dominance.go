@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -15,7 +16,10 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 )
 
-const dominantElectionTimeout = 30 * time.Second
+const (
+	dominantElectionTimeout    = 30 * time.Second
+	maxDominantElectionRetries = 2
+)
 
 type dominantCandidate struct {
 	Key         marduk.CognitiveStanceKey
@@ -258,24 +262,95 @@ func scoreDominantCandidate(
 	tools := []openai.Tool{buildRuntimeTool(toolDef)}
 	toolChoice := buildRequiredFunctionToolChoice(config.DominantElectionToolName)
 
+	// 首次调用
+	displayName := voter.GetDisplayName()
 	result, err := voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
 	if err != nil {
-		return nil, fmt.Errorf("[%s] dominant election request failed: %w", voter.GetDisplayName(), err)
+		return nil, fmt.Errorf("[%s] dominant election request failed: %w", displayName, err)
 	}
 
-	payload, err := parseDominantElectionToolCall(result, voter.GetDisplayName(), candidates)
-	if err != nil {
-		return nil, err
+	payload, parseErr := parseDominantElectionToolCall(result, displayName, candidates)
+	if parseErr == nil {
+		return finalizeDominantVote(payload, candidates, displayName, voter.GetName())
 	}
 
+	// 解析失败（如 tool call 次数不对）时，将错误反馈给 LLM 要求重试
+	logging.LogWarnf("[%s] dominant election initial call failed: %v, retrying...", displayName, parseErr)
+	currentMessages := buildDominantElectionRetryMessages(messages, result, parseErr)
+
+	var lastErr error
+	for retry := 0; retry < maxDominantElectionRetries; retry++ {
+		result, err = voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, currentMessages, tools, toolChoice)
+		if err != nil {
+			lastErr = fmt.Errorf("[%s] dominant election retry %d failed: %w", displayName, retry+1, err)
+			logging.LogWarnf("%v", lastErr)
+			continue
+		}
+
+		payload, parseErr = parseDominantElectionToolCall(result, displayName, candidates)
+		if parseErr == nil {
+			logging.LogInfof("[%s] dominant election retry %d succeeded after initial failure: %v", displayName, retry+1, parseErr)
+			return finalizeDominantVote(payload, candidates, displayName, voter.GetName())
+		}
+
+		lastErr = parseErr
+		logging.LogWarnf("[%s] dominant election retry %d failed: %v, retrying...", displayName, retry+1, parseErr)
+		currentMessages = buildDominantElectionRetryMessages(currentMessages, result, parseErr)
+	}
+
+	return nil, fmt.Errorf("[%s] dominant election failed after %d retries: %w",
+		displayName, maxDominantElectionRetries, lastErr)
+}
+
+// buildDominantElectionRetryMessages 构建主导者选举重试消息序列。
+// 追加 assistant 原始响应（含 tool_calls）→ 各 tool 调用错误反馈 → 要求修正+反思。
+func buildDominantElectionRetryMessages(
+	prevMessages []types.ContextMessage,
+	prevResult *types.SyncChatResult,
+	parseErr error,
+) []types.ContextMessage {
+	retryMsgs := make([]types.ContextMessage, len(prevMessages), len(prevMessages)+2+len(prevResult.ToolCalls))
+	copy(retryMsgs, prevMessages)
+
+	// 追加 assistant 消息（携带原始 tool_calls）
+	retryMsgs = append(retryMsgs, types.ContextMessage{
+		Role:      types.RoleAssistant,
+		Content:   prevResult.Content,
+		ToolCalls: prevResult.ToolCalls,
+	})
+
+	// 对每个 tool_call 返回错误结果
+	for _, tc := range prevResult.ToolCalls {
+		retryMsgs = append(retryMsgs, types.ContextMessage{
+			Role:    types.RoleTool,
+			Content: fmt.Sprintf("错误：%s", parseErr.Error()),
+			ToolID:  tc.ID,
+		})
+	}
+
+	// 要求修正调用并反思
+	retryMsgs = append(retryMsgs, types.ContextMessage{
+		Role:    types.RoleUser,
+		Content: "请重新投票，必须且只能调用一次 dominant_election。同时反思为什么之前会调用多次。",
+	})
+
+	return retryMsgs
+}
+
+// finalizeDominantVote 根据有效的投票载荷构建最终投票结果。
+func finalizeDominantVote(
+	payload *dominantVotePayload,
+	candidates []dominantCandidate,
+	displayName, voterName string,
+) (*DominantElectionVote, error) {
 	scoreByKey, err := validateDominantVotePayload(*payload, candidates)
 	if err != nil {
-		return nil, fmt.Errorf("[%s] dominant election payload invalid: %w", voter.GetDisplayName(), err)
+		return nil, fmt.Errorf("[%s] dominant election payload invalid: %w", displayName, err)
 	}
 
 	return &DominantElectionVote{
-		VoterSeelName:    voter.GetName(),
-		VoterDisplayName: voter.GetDisplayName(),
+		VoterSeelName:    voterName,
+		VoterDisplayName: displayName,
 		Profession:       scoreByKey[string(marduk.CognitiveStanceProfession)],
 		SocialRelation:   scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
 		SelfName:         scoreByKey[string(marduk.CognitiveStanceSelfName)],

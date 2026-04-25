@@ -111,6 +111,8 @@ const (
 	ForgeDevRepoReadToolName = "forge_dev_repo_read"
 	// ForgeDevRepoSearchToolName forge 模式开发仓库文本搜索工具名。
 	ForgeDevRepoSearchToolName = "forge_dev_repo_search"
+	// ForgeDevRepoEditToolName forge 模式开发仓库文件编辑工具名。
+	ForgeDevRepoEditToolName = "forge_dev_repo_edit"
 	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
 	WriteDiaryToolName = "write_diary_entry"
 	// DominantElectionToolName 主导者选举投票工具名。
@@ -409,6 +411,42 @@ func BuildForgeDevRepoSearchToolDef() ToolDef {
 					},
 				},
 				"required": []string{"input"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoEditToolDef 构建 forge 模式开发仓库文件编辑工具定义。
+func BuildForgeDevRepoEditToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name: ForgeDevRepoEditToolName,
+			Description: "仅在 forge 模式可用。对开发代码仓库中的文本文件执行精确的 SEARCH/REPLACE 替换操作。" +
+				"请从文件中复制需要替换的原文作为 old_string，确保精确匹配（包括空白字符和换行符）。" +
+				"调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核。" +
+				"若连续两次未获批准，当前轮次将改由其他处理路径继续。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"target_path": map[string]interface{}{
+						"type":        "string",
+						"description": "目标文件路径，相对于开发代码仓库根目录",
+					},
+					"old_string": map[string]interface{}{
+						"type":        "string",
+						"description": "需要替换的原文（SEARCH 块），必须从文件中精确复制，包括所有空白字符和换行符",
+					},
+					"new_string": map[string]interface{}{
+						"type":        "string",
+						"description": "替换后的新内容（REPLACE 块）",
+					},
+					"motivation": map[string]interface{}{
+						"type":        "string",
+						"description": "为什么现在要执行这次编辑，以及它与当前任务的关系。用于行动工具复核。",
+					},
+				},
+				"required": []string{"target_path", "old_string", "new_string", "motivation"},
 			},
 		},
 	}

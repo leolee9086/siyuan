@@ -272,23 +272,24 @@ func TestCoreSagesShareSameNoteKeywordSearchTool(t *testing.T) {
 }
 
 func TestBuildForgeDevRepoToolDefs_Structure(t *testing.T) {
-	tools := []ToolDef{
+	// list/read/search 使用纯文本 input 参数
+	plainInputTools := []ToolDef{
 		BuildForgeDevRepoListToolDef(),
 		BuildForgeDevRepoReadToolDef(),
 		BuildForgeDevRepoSearchToolDef(),
 	}
-	expectedNames := []string{
+	expectedPlainNames := []string{
 		ForgeDevRepoListToolName,
 		ForgeDevRepoReadToolName,
 		ForgeDevRepoSearchToolName,
 	}
 
-	for idx, tool := range tools {
+	for idx, tool := range plainInputTools {
 		if tool.Type != "function" {
 			t.Fatalf("工具[%d] Type 期望=function，实际=%s", idx, tool.Type)
 		}
-		if tool.Function.Name != expectedNames[idx] {
-			t.Fatalf("工具[%d] Name 期望=%s，实际=%s", idx, expectedNames[idx], tool.Function.Name)
+		if tool.Function.Name != expectedPlainNames[idx] {
+			t.Fatalf("工具[%d] Name 期望=%s，实际=%s", idx, expectedPlainNames[idx], tool.Function.Name)
 		}
 
 		params, ok := tool.Function.Parameters["properties"].(map[string]interface{})
@@ -298,6 +299,33 @@ func TestBuildForgeDevRepoToolDefs_Structure(t *testing.T) {
 		if _, ok := params["input"]; !ok {
 			t.Fatalf("工具[%d] Parameters 缺少 input", idx)
 		}
+	}
+
+	// edit 工具使用结构化 JSON 参数
+	editTool := BuildForgeDevRepoEditToolDef()
+	if editTool.Type != "function" {
+		t.Fatalf("forge_dev_repo_edit Type 期望=function，实际=%s", editTool.Type)
+	}
+	if editTool.Function.Name != ForgeDevRepoEditToolName {
+		t.Fatalf("forge_dev_repo_edit Name 期望=%s，实际=%s", ForgeDevRepoEditToolName, editTool.Function.Name)
+	}
+
+	editParams, ok := editTool.Function.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatal("forge_dev_repo_edit Parameters 缺少 properties")
+	}
+	for _, field := range []string{"target_path", "old_string", "new_string", "motivation"} {
+		if _, ok := editParams[field]; !ok {
+			t.Fatalf("forge_dev_repo_edit Parameters 缺少 %s", field)
+		}
+	}
+
+	editRequired, ok := editTool.Function.Parameters["required"].([]string)
+	if !ok {
+		t.Fatal("forge_dev_repo_edit Parameters 缺少 required")
+	}
+	if len(editRequired) != 4 {
+		t.Fatalf("forge_dev_repo_edit required 期望4个字段，实际=%v", editRequired)
 	}
 }
 
@@ -335,13 +363,16 @@ func TestBuildDefaultCoreSageTools_ForgeOnlyRepoTools(t *testing.T) {
 		util.Mode = originalMode
 	}()
 
-	util.Mode = util.ModeProd
-	prodTools := buildDefaultCoreSageTools()
-	for _, toolName := range []string{
+	allForgeToolNames := []string{
 		ForgeDevRepoListToolName,
 		ForgeDevRepoReadToolName,
 		ForgeDevRepoSearchToolName,
-	} {
+		ForgeDevRepoEditToolName,
+	}
+
+	util.Mode = util.ModeProd
+	prodTools := buildDefaultCoreSageTools()
+	for _, toolName := range allForgeToolNames {
 		if hasToolDef(prodTools, toolName) {
 			t.Fatalf("prod 模式下不应包含 forge 仓库工具: %s", toolName)
 		}
@@ -349,11 +380,7 @@ func TestBuildDefaultCoreSageTools_ForgeOnlyRepoTools(t *testing.T) {
 
 	util.Mode = util.ModeForge
 	forgeTools := buildDefaultCoreSageTools()
-	for _, toolName := range []string{
-		ForgeDevRepoListToolName,
-		ForgeDevRepoReadToolName,
-		ForgeDevRepoSearchToolName,
-	} {
+	for _, toolName := range allForgeToolNames {
 		if !hasToolDef(forgeTools, toolName) {
 			t.Fatalf("forge 模式下缺少仓库工具: %s", toolName)
 		}
@@ -367,6 +394,13 @@ func TestApplyRequiredAvatarTools_StripsForgeRepoToolsOutsideForge(t *testing.T)
 	}()
 	util.Mode = util.ModeProd
 
+	allForgeToolNames := []string{
+		ForgeDevRepoListToolName,
+		ForgeDevRepoReadToolName,
+		ForgeDevRepoSearchToolName,
+		ForgeDevRepoEditToolName,
+	}
+
 	cfg := &MAGIConfig{
 		Melchior: AgentConfig{
 			Name: "melchior",
@@ -374,17 +408,14 @@ func TestApplyRequiredAvatarTools_StripsForgeRepoToolsOutsideForge(t *testing.T)
 				BuildForgeDevRepoListToolDef(),
 				BuildForgeDevRepoReadToolDef(),
 				BuildForgeDevRepoSearchToolDef(),
+				BuildForgeDevRepoEditToolDef(),
 			},
 		},
 	}
 
 	applyRequiredAvatarTools(cfg)
 
-	for _, toolName := range []string{
-		ForgeDevRepoListToolName,
-		ForgeDevRepoReadToolName,
-		ForgeDevRepoSearchToolName,
-	} {
+	for _, toolName := range allForgeToolNames {
 		if hasToolDef(cfg.Melchior.Tools, toolName) {
 			t.Fatalf("prod 模式标准化后仍残留 forge 仓库工具: %s", toolName)
 		}

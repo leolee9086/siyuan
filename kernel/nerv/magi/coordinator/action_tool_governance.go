@@ -27,10 +27,10 @@ type governedActionRejectionReason struct {
 }
 
 type governedActionFailureAttempt struct {
-	ToolName          string
-	Motivation        string
-	RejectionReasons  []governedActionRejectionReason
-	ReviewSummary     string
+	ToolName         string
+	Motivation       string
+	RejectionReasons []governedActionRejectionReason
+	ReviewSummary    string
 }
 
 type dominantActionRevokedError struct {
@@ -314,7 +314,8 @@ func buildDominanceRevokedHandoffPrompt(toolName string, messages []types.Contex
 
 func isGovernedActionToolName(toolName string) bool {
 	switch strings.TrimSpace(toolName) {
-	case config.WriteDiaryToolName:
+	case config.WriteDiaryToolName,
+		config.ForgeDevRepoEditToolName:
 		return true
 	default:
 		return false
@@ -451,10 +452,10 @@ func parseGovernedActionFailureAttempt(
 	toolResult string,
 ) (governedActionFailureAttempt, bool) {
 	var payload struct {
-		State            string                         `json:"state"`
-		ToolName         string                         `json:"toolName"`
-		Motivation       string                         `json:"motivation"`
-		ReviewSummary    string                         `json:"reviewSummary"`
+		State            string                          `json:"state"`
+		ToolName         string                          `json:"toolName"`
+		Motivation       string                          `json:"motivation"`
+		ReviewSummary    string                          `json:"reviewSummary"`
 		RejectionReasons []governedActionRejectionReason `json:"rejectionReasons"`
 	}
 	if err := json.Unmarshal([]byte(strings.TrimSpace(toolResult)), &payload); err != nil {

@@ -7,26 +7,45 @@ import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
 import { genEmptyBlock } from "../../block/util";
 
-
+/**
+ * 在指定列表项下添加子列表（或追加同级列表项）。
+ *
+ * 整体逻辑：
+ * 1. 如果当前列表项还没有子列表，则创建一个新的子列表（包含一个初始列表项），
+ *    并记录前驱元素 ID 以正确拼接到块结构树中。
+ * 2. 如果当前列表项已有子列表，则在最后一个子列表项的后面追加一个新的同级列表项。
+ *
+ * @param protyle     - 编辑器实例，用于提交事务
+ * @param nodeElement - 触发操作的 DOM 元素（如按钮、菜单项）
+ * @param range       - 当前选区范围，用于操作后焦点定位
+ */
 export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range) => {
+    // 向上查找最近的 <li> 列表项元素
     const parentItemElement = hasClosestByClassName(nodeElement, "li");
     if (!parentItemElement) {
         return;
     }
-    //找到最后一个**子列表**,不是子列表项
+
+    // 找到当前列表项下的最后一个子列表中的倒数第二个子项（即最后一个实际列表项）
     const lastSubItem = parentItemElement.querySelector(".list")?.lastElementChild?.previousElementSibling;
     if (!lastSubItem) {
-        //在没有子列表的之后,创建一个子列表
+        /* ============ 情况一：没有子列表 → 创建一个新的子列表 ============ */
+
+        // 从父列表项继承列表子类型（无序 u / 有序 o / 任务 t），默认为无序
         const subtype = parentItemElement.getAttribute("data-subtype") as "u" | "o" | "t" || "u";
         const newListElement = genListElement(subtype);
+
+        // 将新子列表插入到父列表项的 .protyle-attr 之前（即最末尾的属性占位前）
         const attrElements = parentItemElement.querySelectorAll(".protyle-attr");
         const lastAttrElement = attrElements[attrElements.length - 1];
         lastAttrElement && parentItemElement.insertBefore(newListElement, lastAttrElement);
+
+        // 如果父列表项处于折叠状态，更新折叠表现
         if (parentItemElement.getAttribute("fold") === "1") {
             setFold(protyle, parentItemElement, true);
         }
 
-        // 获取前一个元素的ID，使用hasClosestBlock确保正确获取
+        // 获取新子列表的前一个兄弟块 ID，用于操作事务中的 previousID
         let previousId: string | undefined;
         const previousElement = newListElement.previousElementSibling;
         if (previousElement) {
@@ -36,38 +55,46 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
             }
         }
 
+        // 构造插入操作：将新子列表插入到文档中
         const insertOperation: IOperation = {
             action: "insert",
             id: newListElement.getAttribute("data-node-id")!,
             data: newListElement.outerHTML,
         };
 
-        // 只有当 previousId 存在时才添加 previousID 属性
+        // 仅当有前驱 ID 时才设置 previousID，确保正确的块顺序
         if (previousId !== undefined) {
             insertOperation.previousID = previousId;
         }
 
+        // 提交事务：先插入新块，再执行删除操作（撤销态预留）
         transaction(protyle, [insertOperation], [{
             action: "delete",
             id: newListElement.getAttribute("data-node-id")!,
         }]);
 
-        // 聚焦到新创建的列表项
+        // 将焦点移动到新创建的子列表项中
         const newListItem = newListElement.querySelector(".li") as HTMLElement;
         if (newListItem) {
             focusByWbr(newListItem, range);
         }
     } else {
+        /* ============ 情况二：已有子列表 → 追加一个新的同级列表项 ============ */
+
+        // 基于最后一个子列表项生成新的列表项（标签类型、样式保持一致）
         const newListElement = genListItemElement(lastSubItem, 0, true);
         const id = newListElement.getAttribute("data-node-id");
         lastSubItem.after(newListElement);
 
+        // 如果子列表或其父列表项处于折叠状态，更新折叠表现
         if (lastSubItem.parentElement?.getAttribute("fold") === "1") {
             setFold(protyle, lastSubItem.parentElement, true);
         }
         if (parentItemElement.getAttribute("fold") === "1") {
             setFold(protyle, parentItemElement, true);
         }
+
+        // 提交事务：在最后一个子列表项之后插入新项，并设置 previousID
         transaction(protyle, [{
             action: "insert",
             id: id!,
@@ -77,21 +104,28 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
             action: "delete",
             id: id!,
         }]);
+
+        // 将焦点移动到新追加的列表项中
         focusByWbr(newListElement, range);
     }
 };
 /**
- * 生成列表元素，包含一个列表项
- * @param subtype 列表子类型: "u" 无序列表, "o" 有序列表, "t" 任务列表
- * @param referenceItem 参考的列表项，用于确定列表类型和标记
- * @returns 返回创建的列表元素
+ * 生成一个包含单个列表项的新列表 DOM 元素。
+ *
+ * 根据子类型生成对应的 HTML 结构（含列表容器、列表项、拖拽手柄图标、空块占位及属性占位）。
+ *
+ * @param subtype 列表子类型：
+ *   - "u"：无序列表（标记 *，图标 Dot）
+ *   - "o"：有序列表（标记 1.，图标 Dot）
+ *   - "t"：任务列表（标记 *，图标 Uncheck）
+ * @returns 返回创建的列表 <div> 元素（data-type="NodeList"）
  */
 const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
-    // 生成新的ID
+    // 为新列表和列表项生成唯一 ID
     const listId = Lute.NewNodeID();
     const updatedTime = dayjs().format("YYYYMMDDHHmmss");
 
-    // 确定标记符号
+    // 根据子类型确定列表项前的标记符号
     let marker = "*";
     if (subtype === "o") {
         marker = "1.";
@@ -99,12 +133,13 @@ const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
         marker = "*";
     }
 
-    // 确定图标
+    // 根据子类型确定折叠/拖拽区域显示的图标
     let icon = "Dot";
     if (subtype === "t") {
         icon = "Uncheck";
     }
 
+    // 构建完整 DOM 结构字符串
     const element = document.createElement("div");
     element.innerHTML = `
 

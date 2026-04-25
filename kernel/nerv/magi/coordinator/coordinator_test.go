@@ -123,6 +123,22 @@ func (m *mockAvatarPipelineClient) SendChatRequestSyncDetailed(
 	if err != nil {
 		return nil, err
 	}
+	if len(tools) == 1 && tools[0].Function != nil && strings.TrimSpace(tools[0].Function.Name) != "" && strings.TrimSpace(content) != "" {
+		return &types.SyncChatResult{
+			ToolCalls: []types.ToolCall{
+				{
+					ID:    "mock-sync-tool-call",
+					Type:  "function",
+					Index: 0,
+					Function: types.ToolCallFunction{
+						Name:      strings.TrimSpace(tools[0].Function.Name),
+						Arguments: content,
+					},
+				},
+			},
+			FinishReason: "tool_calls",
+		}, nil
+	}
 	return &types.SyncChatResult{Content: content}, nil
 }
 
