@@ -364,33 +364,18 @@ func buildMergedSleepNoteCalloutMarkdown(
 	finalNote string,
 	sleepAt time.Time,
 ) string {
-	var builder strings.Builder
-	builder.WriteString("> [!SLEEP_NOTE] 合并睡前笔记\n")
-	builder.WriteString("> **当前记录**: ")
-	builder.WriteString(strings.TrimSpace(casperNote.Summary))
-	builder.WriteString("\n")
-	builder.WriteString("> **下一步计划**: ")
-	builder.WriteString(strings.TrimSpace(melchiorNote.NextStepPlan))
-	builder.WriteString("\n")
-	builder.WriteString("> **画面式描述**: ")
-	builder.WriteString(strings.TrimSpace(balthazarNote.DreamScene))
-	builder.WriteString("\n")
-	builder.WriteString("> **补充整理描述**: ")
-	builder.WriteString(strings.TrimSpace(dominantSummary))
-	builder.WriteString("\n")
-	builder.WriteString("> **睡眠时间**: ")
-	builder.WriteString(sleepAt.Format(time.RFC3339))
-
+	fields := []CalloutField{
+		{Label: "当前记录", Value: strings.TrimSpace(casperNote.Summary)},
+		{Label: "下一步计划", Value: strings.TrimSpace(melchiorNote.NextStepPlan)},
+		{Label: "画面式描述", Value: strings.TrimSpace(balthazarNote.DreamScene)},
+		{Label: "补充整理描述", Value: strings.TrimSpace(dominantSummary)},
+		{Label: "睡眠时间", Value: sleepAt.Format(time.RFC3339)},
+	}
 	if strings.TrimSpace(sessionID) != "" {
-		builder.WriteString("\n")
-		builder.WriteString("> **会话**: ")
-		builder.WriteString(strings.TrimSpace(sessionID))
+		fields = append(fields, CalloutField{Label: "会话", Value: strings.TrimSpace(sessionID)})
 	}
 	if strings.TrimSpace(roundID) != "" {
-		builder.WriteString("\n")
-		builder.WriteString("> **轮次**: ")
-		builder.WriteString(strings.TrimSpace(roundID))
+		fields = append(fields, CalloutField{Label: "轮次", Value: strings.TrimSpace(roundID)})
 	}
-
-	return builder.String()
+	return BuildCalloutMarkdown("SLEEP_NOTE", "合并睡前笔记", fields...)
 }

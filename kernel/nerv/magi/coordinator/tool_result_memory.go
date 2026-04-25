@@ -362,44 +362,28 @@ func buildSleepNoteCalloutMarkdown(
 	summary string,
 	sleepAt time.Time,
 ) string {
-	header := "> [!SLEEP_NOTE]"
+	title := "睡前笔记"
 	if sage != nil {
-		header += " " + sage.GetDisplayName() + " 睡前笔记"
-	} else {
-		header += " 睡前笔记"
+		title = sage.GetDisplayName() + " 睡前笔记"
 	}
 
-	var builder strings.Builder
-	builder.WriteString(header)
-	builder.WriteString("\n")
-	builder.WriteString("> **摘要**: ")
-	builder.WriteString(summary)
-	builder.WriteString("\n")
-
-	if sage != nil {
-		builder.WriteString("> **贤者**: ")
-		builder.WriteString(sage.GetDisplayName())
-		builder.WriteString("\n")
+	fields := []CalloutField{
+		{Label: "摘要", Value: summary},
 	}
-
-	builder.WriteString("> **工具**: ")
-	builder.WriteString(strings.TrimSpace(toolCall.Function.Name))
-	builder.WriteString("\n")
-	builder.WriteString("> **睡眠时间**: ")
-	builder.WriteString(sleepAt.Format(time.RFC3339))
-
+	if sage != nil {
+		fields = append(fields, CalloutField{Label: "贤者", Value: sage.GetDisplayName()})
+	}
+	fields = append(fields,
+		CalloutField{Label: "工具", Value: strings.TrimSpace(toolCall.Function.Name)},
+		CalloutField{Label: "睡眠时间", Value: sleepAt.Format(time.RFC3339)},
+	)
 	if strings.TrimSpace(sessionID) != "" {
-		builder.WriteString("\n")
-		builder.WriteString("> **会话**: ")
-		builder.WriteString(strings.TrimSpace(sessionID))
+		fields = append(fields, CalloutField{Label: "会话", Value: strings.TrimSpace(sessionID)})
 	}
 	if strings.TrimSpace(roundID) != "" {
-		builder.WriteString("\n")
-		builder.WriteString("> **轮次**: ")
-		builder.WriteString(strings.TrimSpace(roundID))
+		fields = append(fields, CalloutField{Label: "轮次", Value: strings.TrimSpace(roundID)})
 	}
-
-	return builder.String()
+	return BuildCalloutMarkdown("SLEEP_NOTE", title, fields...)
 }
 
 func buildQueryArchiveCalloutMarkdown(
@@ -435,77 +419,57 @@ func buildNoteSearchArchiveCallout(toolCall types.ToolCall, purpose, detailedRes
 	var result noteSearchArchiveResult
 	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &result)
 
-	var builder strings.Builder
-	builder.WriteString("> [!QUERY_RESULT] 笔记关键词搜索\n")
-	builder.WriteString("> **查询**: ")
-	builder.WriteString(strings.TrimSpace(args.Query))
-	builder.WriteString("\n")
-	builder.WriteString("> **搜索目的**: ")
-	builder.WriteString(purpose)
-	builder.WriteString("\n")
-	builder.WriteString("> **匹配块数**: ")
-	builder.WriteString(strconv.Itoa(len(result.Blocks)))
-	builder.WriteString("（共 ")
-	builder.WriteString(strconv.Itoa(result.MatchedBlockCount))
-	builder.WriteString(" 个命中）\n")
-	builder.WriteString("> **搜索时间**: ")
-	builder.WriteString(storedAt)
-	builder.WriteString("\n")
+	fields := []CalloutField{
+		{Label: "查询", Value: strings.TrimSpace(args.Query)},
+		{Label: "搜索目的", Value: purpose},
+		{Label: "匹配块数", Value: strconv.Itoa(len(result.Blocks)) + "（共 " + strconv.Itoa(result.MatchedBlockCount) + " 个命中）"},
+		{Label: "搜索时间", Value: storedAt},
+	}
 
 	if len(result.Blocks) > 0 {
-		builder.WriteString(">\n")
-		builder.WriteString("> **结果**:\n")
+		var embedLines strings.Builder
 		for _, block := range result.Blocks {
 			if strings.TrimSpace(block.ID) != "" {
-				builder.WriteString("> {{! ")
-				builder.WriteString(strings.TrimSpace(block.ID))
-				builder.WriteString("}}\n")
+				if embedLines.Len() > 0 {
+					embedLines.WriteString("\n")
+				}
+				embedLines.WriteString("{{! ")
+				embedLines.WriteString(strings.TrimSpace(block.ID))
+				embedLines.WriteString("}}")
 			}
+		}
+		if embedLines.Len() > 0 {
+			fields = append(fields, CalloutField{Label: "结果", Value: embedLines.String()})
 		}
 	}
 
-	return builder.String()
+	return BuildCalloutMarkdown("QUERY_RESULT", "笔记关键词搜索", fields...)
 }
 
 func buildForgeArchiveCallout(displayName, purpose string, toolCall types.ToolCall, detailedResult, storedAt string) string {
-	var builder strings.Builder
-	builder.WriteString("> [!QUERY_RESULT] ")
-	builder.WriteString(displayName)
-	builder.WriteString("\n")
-	builder.WriteString("> **搜索目的**: ")
-	builder.WriteString(purpose)
-	builder.WriteString("\n")
-	builder.WriteString("> **搜索时间**: ")
-	builder.WriteString(storedAt)
+	fields := []CalloutField{
+		{Label: "搜索目的", Value: purpose},
+		{Label: "搜索时间", Value: storedAt},
+	}
 
 	pathPrefix := extractForgeArchivePath(toolCall, detailedResult)
 	if pathPrefix != "" {
-		builder.WriteString("\n")
-		builder.WriteString("> **路径**: ")
-		builder.WriteString(pathPrefix)
+		fields = append(fields, CalloutField{Label: "路径", Value: pathPrefix})
 	}
 
 	matchCount := extractForgeArchiveMatchCount(detailedResult)
 	if matchCount >= 0 {
-		builder.WriteString("\n")
-		builder.WriteString("> **匹配数**: ")
-		builder.WriteString(strconv.Itoa(matchCount))
+		fields = append(fields, CalloutField{Label: "匹配数", Value: strconv.Itoa(matchCount)})
 	}
 
-	return builder.String()
+	return BuildCalloutMarkdown("QUERY_RESULT", displayName, fields...)
 }
 
 func buildGenericArchiveCallout(toolName, purpose, storedAt string) string {
-	var builder strings.Builder
-	builder.WriteString("> [!QUERY_RESULT] ")
-	builder.WriteString(toolName)
-	builder.WriteString("\n")
-	builder.WriteString("> **搜索目的**: ")
-	builder.WriteString(purpose)
-	builder.WriteString("\n")
-	builder.WriteString("> **搜索时间**: ")
-	builder.WriteString(storedAt)
-	return builder.String()
+	return BuildCalloutMarkdown("QUERY_RESULT", toolName,
+		CalloutField{Label: "搜索目的", Value: purpose},
+		CalloutField{Label: "搜索时间", Value: storedAt},
+	)
 }
 
 func extractForgeArchivePath(toolCall types.ToolCall, detailedResult string) string {

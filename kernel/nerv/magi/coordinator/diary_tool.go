@@ -265,34 +265,11 @@ func buildDiaryCalloutMarkdown(args *types.WriteDiaryTool) string {
 	if args == nil {
 		return ""
 	}
-
-	calloutType := normalizeDiaryCalloutType(args.CalloutType)
-	title := normalizeDiaryTitle(args.Title)
-	header := "> [!" + calloutType + "]"
-	if title != "" {
-		header += " " + title
-	}
-
-	lines := strings.Split(normalizeDiaryMarkdown(args.Markdown), "\n")
-	if len(lines) == 0 {
-		lines = []string{""}
-	}
-
-	var builder strings.Builder
-	builder.WriteString(header)
-	builder.WriteString("\n")
-	for index, line := range lines {
-		if line == "" {
-			builder.WriteString(">")
-		} else {
-			builder.WriteString("> ")
-			builder.WriteString(line)
-		}
-		if index < len(lines)-1 {
-			builder.WriteString("\n")
-		}
-	}
-	return builder.String()
+	return BuildCalloutMarkdown(
+		normalizeDiaryCalloutType(args.CalloutType),
+		normalizeDiaryTitle(args.Title),
+		CalloutField{Value: normalizeDiaryMarkdown(args.Markdown)},
+	)
 }
 
 func normalizeDiaryMarkdown(markdown string) string {
