@@ -113,7 +113,51 @@ const (
 	ForgeDevRepoSearchToolName = "forge_dev_repo_search"
 	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
 	WriteDiaryToolName = "write_diary_entry"
+	// DominantElectionToolName 主导者选举投票工具名。
+	DominantElectionToolName = "dominant_election"
 )
+
+// BuildDominantElectionToolDef 构建主导者选举投票工具定义。
+// 对应 dominantVotePayload 结构，用于替代旧的自由文本 JSON 输出方式。
+func BuildDominantElectionToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        DominantElectionToolName,
+			Description: "对当前情境下的各候选主导者描述进行打分，选出最适合优先采取行动的一方。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"scores": map[string]interface{}{
+						"type": "array",
+						"items": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"candidate": map[string]interface{}{
+									"type":        "string",
+									"description": "候选描述原文，必须逐字复用给定描述",
+								},
+								"score": map[string]interface{}{
+									"type":        "integer",
+									"description": "0-100之间的整数，越高表示该描述在当前情境下越适合优先行动",
+									"minimum":     0,
+									"maximum":     100,
+								},
+							},
+							"required": []string{"candidate", "score"},
+						},
+						"description": "全部候选描述的打分列表，数量必须与候选描述数量完全一致",
+					},
+					"reason": map[string]interface{}{
+						"type":        "string",
+						"description": "一句中文理由，不超过48个字",
+					},
+				},
+				"required": []string{"scores", "reason"},
+			},
+		},
+	}
+}
 
 // BuildWannaSpeakToolDef 构建三贤人 wanna_speak 工具定义。
 func BuildWannaSpeakToolDef() ToolDef {

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -252,17 +254,21 @@ func scoreDominantCandidate(
 		},
 	)
 
-	content, err := voter.GetLLMClient().SendChatRequestSync(timeoutCtx, messages, nil, nil)
+	toolDef := config.BuildDominantElectionToolDef()
+	tools := []openai.Tool{buildRuntimeTool(toolDef)}
+	toolChoice := buildRequiredFunctionToolChoice(config.DominantElectionToolName)
+
+	result, err := voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
 	if err != nil {
 		return nil, fmt.Errorf("[%s] dominant election request failed: %w", voter.GetDisplayName(), err)
 	}
 
-	var payload dominantVotePayload
-	if err := decodeJSONObject(strings.TrimSpace(content), &payload); err != nil {
-		return nil, fmt.Errorf("[%s] dominant election parse failed: %w", voter.GetDisplayName(), err)
+	payload, err := parseDominantElectionToolCall(result, voter.GetDisplayName(), candidates)
+	if err != nil {
+		return nil, err
 	}
 
-	scoreByKey, err := validateDominantVotePayload(payload, candidates)
+	scoreByKey, err := validateDominantVotePayload(*payload, candidates)
 	if err != nil {
 		return nil, fmt.Errorf("[%s] dominant election payload invalid: %w", voter.GetDisplayName(), err)
 	}
@@ -275,6 +281,32 @@ func scoreDominantCandidate(
 		SelfName:         scoreByKey[string(marduk.CognitiveStanceSelfName)],
 		Reason:           strings.TrimSpace(payload.Reason),
 	}, nil
+}
+
+func parseDominantElectionToolCall(result *types.SyncChatResult, displayName string, candidates []dominantCandidate) (*dominantVotePayload, error) {
+	if result == nil {
+		return nil, fmt.Errorf("[%s] dominant election result is nil", displayName)
+	}
+	if len(result.ToolCalls) != 1 {
+		return nil, fmt.Errorf("[%s] dominant election must call %s exactly once, got %d", displayName, config.DominantElectionToolName, len(result.ToolCalls))
+	}
+
+	toolCall := result.ToolCalls[0]
+	if strings.TrimSpace(toolCall.Function.Name) != config.DominantElectionToolName {
+		return nil, fmt.Errorf("[%s] dominant election unexpected tool call: %s", displayName, toolCall.Function.Name)
+	}
+
+	rawArgs := strings.TrimSpace(toolCall.Function.Arguments)
+	if rawArgs == "" {
+		return nil, fmt.Errorf("[%s] dominant election tool call arguments are empty", displayName)
+	}
+
+	var payload dominantVotePayload
+	if err := json.Unmarshal([]byte(rawArgs), &payload); err != nil {
+		return nil, fmt.Errorf("[%s] dominant election parse failed: %w | raw=%s", displayName, err, rawArgs)
+	}
+
+	return &payload, nil
 }
 
 func resolveDominantSage(
@@ -295,21 +327,6 @@ func resolveDominantSage(
 	default:
 		return nil, fmt.Errorf("unknown dominant seel: %s", election.DominantSeelName)
 	}
-}
-
-func decodeJSONObject(raw string, target interface{}) error {
-	cleaned := strings.TrimSpace(raw)
-	cleaned = strings.TrimPrefix(cleaned, "```json")
-	cleaned = strings.TrimPrefix(cleaned, "```")
-	cleaned = strings.TrimSuffix(cleaned, "```")
-	cleaned = strings.TrimSpace(cleaned)
-	if cleaned == "" {
-		return fmt.Errorf("empty JSON payload")
-	}
-	if err := json.Unmarshal([]byte(cleaned), target); err != nil {
-		return fmt.Errorf("unmarshal JSON payload failed: %w | raw=%s", err, raw)
-	}
-	return nil
 }
 
 func buildDominantPromptLabel(key marduk.CognitiveStanceKey, stance string) string {

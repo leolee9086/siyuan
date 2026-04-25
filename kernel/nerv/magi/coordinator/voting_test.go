@@ -321,8 +321,8 @@ func TestBuildVoteSystemPrompt(t *testing.T) {
 // TestBuildVoteUserInput 测试用户输入构建
 func TestBuildVoteUserInput(t *testing.T) {
 	voteCtx := VoteContext{
-		UserMessage:        "用户测试输入",
-		MelchiorConclusion: "Melchior测试判断",
+		UserMessage:         "用户测试输入",
+		MelchiorConclusion:  "Melchior测试判断",
 		ProposerDisplayName: "Melchior",
 	}
 
@@ -414,7 +414,7 @@ func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *te
 			strings.Contains(message.Content, `"type":"pending_action_review"`) &&
 			strings.Contains(message.Content, `"name":"write_diary_entry"`) &&
 			strings.Contains(message.Content, `"motivation":"记录当前推进"`) &&
-			strings.Contains(message.Content, `"instruction":"请基于你自己当前 session 中已有的完整上下文审核这次行动请求。发起动机以 arguments.motivation 为准，不要自行补写或改写。"`) {
+			strings.Contains(message.Content, `"instruction":"查看行动计划,仔细考虑你要不要这样做。发起动机以 arguments.motivation 为准。"`) {
 			foundReviewPayload = true
 		}
 	}

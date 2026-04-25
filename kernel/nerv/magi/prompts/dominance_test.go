@@ -16,6 +16,9 @@ func TestBuildDominantElectionSystemPrompt_AvoidsOutOfBandConcepts(t *testing.T)
 		"幕后设定",
 		"候选立场",
 		`"stance"`,
+		"只输出 JSON",
+		`"candidate"`,
+		`"score"`,
 	}
 	for _, token := range disallowed {
 		if strings.Contains(prompt, token) {
@@ -24,8 +27,8 @@ func TestBuildDominantElectionSystemPrompt_AvoidsOutOfBandConcepts(t *testing.T)
 	}
 
 	required := []string{
-		"三段“对你自己的描述”",
-		`"candidate":"给定描述原文"`,
+		"打分",
+		"reason 不超过 48 个字",
 	}
 	for _, token := range required {
 		if !strings.Contains(prompt, token) {
@@ -46,7 +49,6 @@ func TestBuildDominantElectionUserInput_UsesDescriptionsInsteadOfStances(t *test
 		t.Fatalf("user input should avoid stance wording, got: %s", input)
 	}
 	required := []string{
-		"三段对你自己的描述",
 		"作为科学家的你",
 		"作为母亲的你",
 		"仅作为赤城直子本人的你",

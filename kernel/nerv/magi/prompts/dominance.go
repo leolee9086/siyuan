@@ -8,14 +8,12 @@ import (
 // BuildDominantElectionSystemPrompt 构建主导者选举评分提示。
 func BuildDominantElectionSystemPrompt(displayName string) string {
 	return fmt.Sprintf(`你是 %s。
-你现在只需要根据当前情景，判断接下来给出的三段“对你自己的描述”分别有多适合由你优先采取行动。
+你现在只需要根据当前情景，判断接下来给出的描述分别有多适合由你优先采取行动。
 
 严格要求：
-1. 三段描述都会直接给出，你只能对这三段描述打分，不允许改写、补充或发明新的描述。
-2. 只输出 JSON，格式固定为 {"scores":[{"candidate":"给定描述原文","score":0-100}],"reason":"一句中文理由"}。
-3. scores 必须正好包含全部 3 条给定描述，candidate 必须逐字复用给定原文，score 必须是 0 到 100 的整数。
-4. 分数越高，表示该描述下的你越适合在当前情景中优先采取行动。
-5. reason 不超过 48 个字。`, displayName)
+1. 各段描述会直接给出，你只能对它们打分，不允许改写、补充或发明新的描述。
+2. 分数越高，表示该描述下的你越适合在当前情景中优先采取行动。
+3. reason 不超过 48 个字。`, displayName)
 }
 
 // BuildDominantElectionUserInput 构建主导者选举用户输入。
@@ -28,12 +26,10 @@ func BuildDominantElectionUserInput(
 	return fmt.Sprintf(`当前情境：
 %s
 
-下面给出三段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
+下面给出若干段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
 1. %s
 2. %s
-3. %s
-
-请给出三项 0-100 的评分，并说明一句理由。`, situation, professionLabel, socialRelationLabel, selfLabel)
+3. %s`, situation, professionLabel, socialRelationLabel, selfLabel)
 }
 
 // BuildDominantElectionUserInputForCandidates 构建可变候选人数的主导者选举用户输入。
@@ -53,9 +49,7 @@ func BuildDominantElectionUserInputForCandidates(
 %s
 
 下面给出若干段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
-%s
-
-请给出对应数量的 0-100 评分，并说明一句理由。`, situation, strings.Join(lines, "\n"))
+%s`, situation, strings.Join(lines, "\n"))
 }
 
 // BuildDominantSleepSynthesisPrompt 构建睡前整合提示。

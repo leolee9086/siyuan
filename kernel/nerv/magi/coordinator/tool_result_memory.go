@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,6 +50,16 @@ type wannaSleepMemoryLocation struct {
 var persistQueryToolResultToNotebook = persistDetailedQueryToolResultToNotebook
 var persistWannaSleepMemoryToNotebook = persistWannaSleepMemoryEntryToNotebook
 var toolResultMemoryNow = time.Now
+
+type noteSearchArchiveBlock struct {
+	ID string `json:"id"`
+}
+
+type noteSearchArchiveResult struct {
+	Blocks            []noteSearchArchiveBlock `json:"blocks"`
+	MatchedBlockCount int                      `json:"matchedBlockCount"`
+	MatchedRootCount  int                      `json:"matchedRootCount"`
+}
 
 func materializeToolResultForContext(
 	ctx context.Context,
@@ -126,21 +137,7 @@ func persistDetailedQueryToolResultToNotebook(
 		return nil, fmt.Errorf("未能定位查询结果归档文档")
 	}
 
-	record := buildDetailedQueryArchiveRecord(
-		sessionID,
-		roundID,
-		sage,
-		toolCall,
-		assistantContent,
-		detailedResult,
-		now,
-	)
-	recordJSON, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("序列化查询结果归档记录失败: %w", err)
-	}
-
-	markdown := "```json\n" + string(recordJSON) + "\n```"
+	markdown := buildQueryArchiveCalloutMarkdown(toolCall, assistantContent, detailedResult, now)
 	blockID, err := appendMarkdownBlock(docID, markdown)
 	if err != nil {
 		return nil, err
@@ -245,13 +242,7 @@ func persistWannaSleepMemoryEntryToNotebook(
 		return nil, fmt.Errorf("未能定位 MAGI 记忆文档")
 	}
 
-	record := buildWannaSleepMemoryRecord(sessionID, roundID, sage, toolCall, summary, sleepAt)
-	recordJSON, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("序列化 wanna_sleep 记忆失败: %w", err)
-	}
-
-	markdown := "```json\n" + string(recordJSON) + "\n```"
+	markdown := buildSleepNoteCalloutMarkdown(sessionID, roundID, sage, toolCall, summary, sleepAt)
 	blockID, err := appendMarkdownBlock(docID, markdown)
 	if err != nil {
 		return nil, err
@@ -364,64 +355,206 @@ func appendMarkdownBlock(parentID string, markdown string) (string, error) {
 	return blockID, nil
 }
 
-func buildWannaSleepMemoryRecord(
+func buildSleepNoteCalloutMarkdown(
 	sessionID, roundID string,
 	sage *sages.Sage,
 	toolCall types.ToolCall,
 	summary string,
 	sleepAt time.Time,
-) map[string]interface{} {
-	record := map[string]interface{}{
-		"toolCallId": strings.TrimSpace(toolCall.ID),
-		"toolName":   strings.TrimSpace(toolCall.Function.Name),
-		"summary":    summary,
-		"sleepAt":    sleepAt.Format(time.RFC3339),
-		"arguments":  decodeJSONOrString(toolCall.Function.Arguments),
+) string {
+	header := "> [!SLEEP_NOTE]"
+	if sage != nil {
+		header += " " + sage.GetDisplayName() + " 睡前笔记"
+	} else {
+		header += " 睡前笔记"
 	}
+
+	var builder strings.Builder
+	builder.WriteString(header)
+	builder.WriteString("\n")
+	builder.WriteString("> **摘要**: ")
+	builder.WriteString(summary)
+	builder.WriteString("\n")
+
+	if sage != nil {
+		builder.WriteString("> **贤者**: ")
+		builder.WriteString(sage.GetDisplayName())
+		builder.WriteString("\n")
+	}
+
+	builder.WriteString("> **工具**: ")
+	builder.WriteString(strings.TrimSpace(toolCall.Function.Name))
+	builder.WriteString("\n")
+	builder.WriteString("> **睡眠时间**: ")
+	builder.WriteString(sleepAt.Format(time.RFC3339))
+
 	if strings.TrimSpace(sessionID) != "" {
-		record["sessionId"] = strings.TrimSpace(sessionID)
+		builder.WriteString("\n")
+		builder.WriteString("> **会话**: ")
+		builder.WriteString(strings.TrimSpace(sessionID))
 	}
 	if strings.TrimSpace(roundID) != "" {
-		record["roundId"] = strings.TrimSpace(roundID)
+		builder.WriteString("\n")
+		builder.WriteString("> **轮次**: ")
+		builder.WriteString(strings.TrimSpace(roundID))
 	}
-	if sage != nil {
-		record["sage"] = map[string]interface{}{
-			"name":        sage.GetName(),
-			"displayName": sage.GetDisplayName(),
-		}
-	}
-	return record
+
+	return builder.String()
 }
 
-func buildDetailedQueryArchiveRecord(
-	sessionID, roundID string,
-	sage *sages.Sage,
+func buildQueryArchiveCalloutMarkdown(
 	toolCall types.ToolCall,
 	assistantContent string,
 	detailedResult string,
 	now time.Time,
-) map[string]interface{} {
-	record := map[string]interface{}{
-		"toolCallId": strings.TrimSpace(toolCall.ID),
-		"toolName":   strings.TrimSpace(toolCall.Function.Name),
-		"purpose":    inferToolCallPurpose(toolCall.Function.Name, assistantContent),
-		"storedAt":   now.Format(time.RFC3339),
-		"arguments":  decodeJSONOrString(toolCall.Function.Arguments),
-		"result":     decodeJSONOrString(detailedResult),
+) string {
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	purpose := inferToolCallPurpose(toolName, assistantContent)
+	storedAt := now.Format(time.RFC3339)
+
+	switch toolName {
+	case config.NoteKeywordSearchToolName:
+		return buildNoteSearchArchiveCallout(toolCall, purpose, detailedResult, storedAt)
+	case config.ForgeDevRepoListToolName:
+		return buildForgeArchiveCallout("代码仓库目录查看", purpose, toolCall, detailedResult, storedAt)
+	case config.ForgeDevRepoReadToolName:
+		return buildForgeArchiveCallout("代码仓库文件读取", purpose, toolCall, detailedResult, storedAt)
+	case config.ForgeDevRepoSearchToolName:
+		return buildForgeArchiveCallout("代码仓库文本搜索", purpose, toolCall, detailedResult, storedAt)
+	default:
+		return buildGenericArchiveCallout(toolName, purpose, storedAt)
 	}
-	if strings.TrimSpace(sessionID) != "" {
-		record["sessionId"] = strings.TrimSpace(sessionID)
+}
+
+func buildNoteSearchArchiveCallout(toolCall types.ToolCall, purpose, detailedResult, storedAt string) string {
+	var args struct {
+		Query string `json:"query"`
 	}
-	if strings.TrimSpace(roundID) != "" {
-		record["roundId"] = strings.TrimSpace(roundID)
-	}
-	if sage != nil {
-		record["sage"] = map[string]interface{}{
-			"name":        sage.GetName(),
-			"displayName": sage.GetDisplayName(),
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	var result noteSearchArchiveResult
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &result)
+
+	var builder strings.Builder
+	builder.WriteString("> [!QUERY_RESULT] 笔记关键词搜索\n")
+	builder.WriteString("> **查询**: ")
+	builder.WriteString(strings.TrimSpace(args.Query))
+	builder.WriteString("\n")
+	builder.WriteString("> **搜索目的**: ")
+	builder.WriteString(purpose)
+	builder.WriteString("\n")
+	builder.WriteString("> **匹配块数**: ")
+	builder.WriteString(strconv.Itoa(len(result.Blocks)))
+	builder.WriteString("（共 ")
+	builder.WriteString(strconv.Itoa(result.MatchedBlockCount))
+	builder.WriteString(" 个命中）\n")
+	builder.WriteString("> **搜索时间**: ")
+	builder.WriteString(storedAt)
+	builder.WriteString("\n")
+
+	if len(result.Blocks) > 0 {
+		builder.WriteString(">\n")
+		builder.WriteString("> **结果**:\n")
+		for _, block := range result.Blocks {
+			if strings.TrimSpace(block.ID) != "" {
+				builder.WriteString("> {{! ")
+				builder.WriteString(strings.TrimSpace(block.ID))
+				builder.WriteString("}}\n")
+			}
 		}
 	}
-	return record
+
+	return builder.String()
+}
+
+func buildForgeArchiveCallout(displayName, purpose string, toolCall types.ToolCall, detailedResult, storedAt string) string {
+	var builder strings.Builder
+	builder.WriteString("> [!QUERY_RESULT] ")
+	builder.WriteString(displayName)
+	builder.WriteString("\n")
+	builder.WriteString("> **搜索目的**: ")
+	builder.WriteString(purpose)
+	builder.WriteString("\n")
+	builder.WriteString("> **搜索时间**: ")
+	builder.WriteString(storedAt)
+
+	pathPrefix := extractForgeArchivePath(toolCall, detailedResult)
+	if pathPrefix != "" {
+		builder.WriteString("\n")
+		builder.WriteString("> **路径**: ")
+		builder.WriteString(pathPrefix)
+	}
+
+	matchCount := extractForgeArchiveMatchCount(detailedResult)
+	if matchCount >= 0 {
+		builder.WriteString("\n")
+		builder.WriteString("> **匹配数**: ")
+		builder.WriteString(strconv.Itoa(matchCount))
+	}
+
+	return builder.String()
+}
+
+func buildGenericArchiveCallout(toolName, purpose, storedAt string) string {
+	var builder strings.Builder
+	builder.WriteString("> [!QUERY_RESULT] ")
+	builder.WriteString(toolName)
+	builder.WriteString("\n")
+	builder.WriteString("> **搜索目的**: ")
+	builder.WriteString(purpose)
+	builder.WriteString("\n")
+	builder.WriteString("> **搜索时间**: ")
+	builder.WriteString(storedAt)
+	return builder.String()
+}
+
+func extractForgeArchivePath(toolCall types.ToolCall, detailedResult string) string {
+	pathValue := extractForgePathFromArgs(toolCall.Function.Arguments)
+	if pathValue != "" {
+		return pathValue
+	}
+	return extractForgePathFromPayload(detailedResult)
+}
+
+func extractForgePathFromArgs(rawArgs string) string {
+	input, _ := parseForgeDevRepoPlainInput(rawArgs)
+	if input == nil {
+		return ""
+	}
+	return input.primary("path", "")
+}
+
+func extractForgePathFromPayload(detailedResult string) string {
+	var payload struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(payload.Path)
+}
+
+func extractForgeArchiveMatchCount(detailedResult string) int {
+	trimmed := strings.TrimSpace(detailedResult)
+	if trimmed == "" {
+		return -1
+	}
+
+	var listPayload struct {
+		Entries []struct{} `json:"entries"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &listPayload); err == nil {
+		return len(listPayload.Entries)
+	}
+
+	var searchPayload struct {
+		Matches []struct{} `json:"matches"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &searchPayload); err == nil {
+		return len(searchPayload.Matches)
+	}
+
+	return -1
 }
 
 func buildCompactToolHistorySummary(

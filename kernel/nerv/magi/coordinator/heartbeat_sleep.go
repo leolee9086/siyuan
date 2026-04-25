@@ -318,7 +318,7 @@ func persistMergedWannaSleepMemoryEntryToNotebook(
 		return nil, fmt.Errorf("未能定位 MAGI 记忆文档")
 	}
 
-	record := buildMergedWannaSleepMemoryRecord(
+	markdown := buildMergedSleepNoteCalloutMarkdown(
 		sessionID,
 		roundID,
 		melchiorNote,
@@ -328,12 +328,6 @@ func persistMergedWannaSleepMemoryEntryToNotebook(
 		finalNote,
 		sleepAt,
 	)
-	recordJSON, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("序列化合并后的 wanna_sleep 记忆失败: %w", err)
-	}
-
-	markdown := "```json\n" + string(recordJSON) + "\n```"
 	blockID, err := appendMarkdownBlock(docID, markdown)
 	if err != nil {
 		return nil, err
@@ -363,34 +357,40 @@ func persistMergedWannaSleepMemoryEntryToNotebook(
 	}, nil
 }
 
-func buildMergedWannaSleepMemoryRecord(
+func buildMergedSleepNoteCalloutMarkdown(
 	sessionID, roundID string,
 	melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
 	dominantSummary string,
 	finalNote string,
 	sleepAt time.Time,
-) map[string]interface{} {
-	record := map[string]interface{}{
-		"toolName": config.WannaSleepMergedRecordName,
-		"summary":  strings.TrimSpace(finalNote),
-		"sleepAt":  sleepAt.Format(time.RFC3339),
-		"sections": map[string]interface{}{
-			"currentRecord":       strings.TrimSpace(casperNote.Summary),
-			"nextStepPlan":        strings.TrimSpace(melchiorNote.NextStepPlan),
-			"dreamScene":          strings.TrimSpace(balthazarNote.DreamScene),
-			"supplementalSummary": strings.TrimSpace(dominantSummary),
-		},
-		"rawNotes": map[string]interface{}{
-			"melchior":  melchiorNote,
-			"balthazar": balthazarNote,
-			"casper":    casperNote,
-		},
-	}
+) string {
+	var builder strings.Builder
+	builder.WriteString("> [!SLEEP_NOTE] 合并睡前笔记\n")
+	builder.WriteString("> **当前记录**: ")
+	builder.WriteString(strings.TrimSpace(casperNote.Summary))
+	builder.WriteString("\n")
+	builder.WriteString("> **下一步计划**: ")
+	builder.WriteString(strings.TrimSpace(melchiorNote.NextStepPlan))
+	builder.WriteString("\n")
+	builder.WriteString("> **画面式描述**: ")
+	builder.WriteString(strings.TrimSpace(balthazarNote.DreamScene))
+	builder.WriteString("\n")
+	builder.WriteString("> **补充整理描述**: ")
+	builder.WriteString(strings.TrimSpace(dominantSummary))
+	builder.WriteString("\n")
+	builder.WriteString("> **睡眠时间**: ")
+	builder.WriteString(sleepAt.Format(time.RFC3339))
+
 	if strings.TrimSpace(sessionID) != "" {
-		record["sessionId"] = strings.TrimSpace(sessionID)
+		builder.WriteString("\n")
+		builder.WriteString("> **会话**: ")
+		builder.WriteString(strings.TrimSpace(sessionID))
 	}
 	if strings.TrimSpace(roundID) != "" {
-		record["roundId"] = strings.TrimSpace(roundID)
+		builder.WriteString("\n")
+		builder.WriteString("> **轮次**: ")
+		builder.WriteString(strings.TrimSpace(roundID))
 	}
-	return record
+
+	return builder.String()
 }
