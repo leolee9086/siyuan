@@ -112,7 +112,8 @@ func isArchivedQueryTool(toolName string) bool {
 	case config.NoteKeywordSearchToolName,
 		config.ForgeDevRepoListToolName,
 		config.ForgeDevRepoReadToolName,
-		config.ForgeDevRepoSearchToolName:
+		config.ForgeDevRepoSearchToolName,
+		config.NoteByIDReadToolName:
 		return true
 	default:
 		return false
@@ -543,6 +544,8 @@ func buildCompactToolHistorySummary(
 		summary = buildForgeReadHistorySummary(toolCall, purpose, detailedResult, location)
 	case config.ForgeDevRepoSearchToolName:
 		summary = buildForgeSearchHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.NoteByIDReadToolName:
+		summary = buildNoteByIDReadHistorySummary(toolCall, purpose, detailedResult, location)
 	default:
 		return detailedResult, nil
 	}
@@ -796,4 +799,85 @@ func dedupeStrings(values []string) []string {
 		ret = append(ret, value)
 	}
 	return ret
+}
+
+func buildNoteByIDReadHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	var args noteByIDReadToolArgs
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	format := normalizeNoteByIDReadFormat(args.Format)
+
+	var payload struct {
+		ID               string `json:"id"`
+		RootID           string `json:"rootID"`
+		Format           string `json:"format"`
+		RenderedContent  string `json:"renderedContent"`
+		Type             string `json:"type"`
+		Content          string `json:"content"`
+		TotalChildren    int    `json:"totalChildren"`
+		ReturnedChildren int    `json:"returnedChildren"`
+		HasMoreChildren  bool   `json:"hasMoreChildren"`
+		RestrictedDoc    string `json:"restrictedDocument"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	query := map[string]interface{}{
+		"blockID": args.ID,
+	}
+	if args.Start > 0 {
+		query["start"] = args.Start
+	}
+	if args.Limit > 0 {
+		query["limit"] = args.Limit
+	}
+	if format != "tree" {
+		query["format"] = format
+	}
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query":   query,
+	}
+	if payload.RestrictedDoc != "" {
+		summary["blockID"] = payload.ID
+		summary["restrictedDocument"] = payload.RestrictedDoc
+	} else if payload.Format == "markdown" || payload.Format == "kramdown" {
+		summary["blockID"] = payload.ID
+		summary["rootID"] = payload.RootID
+		summary["format"] = payload.Format
+		if payload.RenderedContent != "" {
+			contentRunes := []rune(payload.RenderedContent)
+			if len(contentRunes) > 200 {
+				summary["contentPreview"] = string(contentRunes[:200]) + "..."
+			} else {
+				summary["contentPreview"] = payload.RenderedContent
+			}
+		}
+	} else {
+		summary["blockID"] = payload.ID
+		summary["rootID"] = payload.RootID
+		summary["type"] = payload.Type
+		if payload.Content != "" {
+			contentRunes := []rune(payload.Content)
+			if len(contentRunes) > 200 {
+				summary["contentPreview"] = string(contentRunes[:200]) + "..."
+			} else {
+				summary["contentPreview"] = payload.Content
+			}
+		}
+		if payload.TotalChildren > 0 {
+			summary["children"] = map[string]interface{}{
+				"total":    payload.TotalChildren,
+				"returned": payload.ReturnedChildren,
+				"hasMore":  payload.HasMoreChildren,
+			}
+		}
+	}
+	_ = location
+	return summary
 }

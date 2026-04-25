@@ -147,6 +147,7 @@ func buildDefaultCoreSageTools() []ToolDef {
 		BuildWannaSpeakContinueToolDef(),
 		BuildWannaSpeakStopToolDef(),
 		BuildNoteKeywordSearchToolDef(),
+		BuildNoteByIDReadToolDef(),
 	}
 	if util.IsForgeMode() {
 		tools = append(

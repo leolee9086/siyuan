@@ -117,6 +117,8 @@ const (
 	WriteDiaryToolName = "write_diary_entry"
 	// DominantElectionToolName 主导者选举投票工具名。
 	DominantElectionToolName = "dominant_election"
+	// NoteByIDReadToolName 按 ID 读取笔记块内容及其子块的工具名。
+	NoteByIDReadToolName = "read_note_by_id"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -323,6 +325,45 @@ func ResolveWannaSleepToolNameForSage(sageName string) string {
 		return WannaSleepRecordToolName
 	default:
 		return ""
+	}
+}
+
+// BuildNoteByIDReadToolDef 构建按 ID 阅读笔记块内容及其子块的只读工具定义。
+// 读取权限与 search_notes_by_keywords 一致：仅限 AI 主笔记本及其直接引用/嵌入范围内。
+// format 参数支持 tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。
+// tree 模式下支持 start/limit 参数控制仅返回部分子块内容。
+func BuildNoteByIDReadToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        NoteByIDReadToolName,
+			Description: "按块 ID 阅读当前工作空间 AI 主笔记本中的笔记块内容及其子块；若目标超出 AI 主笔记本的直接读取范围，仅返回块 ID 和所属文档 ID，此时应向用户请求阅读权限。format 参数控制输出格式：tree（结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。tree 模式下支持通过 start 和 limit 参数仅读取部分子块内容。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"id": map[string]interface{}{
+						"type":        "string",
+						"description": "要读取的笔记块 ID",
+					},
+					"start": map[string]interface{}{
+						"type":        "integer",
+						"description": "子块起始序号，从 1 开始，不传则从第 1 个子块开始",
+						"minimum":     1,
+					},
+					"limit": map[string]interface{}{
+						"type":        "integer",
+						"description": "返回的子块数量上限，不传则返回全部子块",
+						"minimum":     1,
+					},
+					"format": map[string]interface{}{
+						"type":        "string",
+						"description": "输出格式：tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）",
+						"enum":        []string{"tree", "markdown", "kramdown"},
+					},
+				},
+				"required": []string{"id"},
+			},
+		},
 	}
 }
 

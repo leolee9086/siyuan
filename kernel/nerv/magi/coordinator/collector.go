@@ -703,6 +703,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 		diaryExecutor := newDiaryToolResultExecutor()
 		executors = append(executors, diaryExecutor.ExecuteToolCall)
 	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.NoteByIDReadToolName) {
+		noteReadExecutor := newNoteByIDReadToolResultExecutor()
+		executors = append(executors, noteReadExecutor.ExecuteToolCall)
+	}
 	if len(executors) == 0 {
 		return nil
 	}
