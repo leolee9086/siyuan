@@ -150,6 +150,32 @@ export function useMessageBubbleCtx(
     const normalContent = ref("");
     const hasThinkContent = ref(false);
     const thinkContentRef = ref<HTMLElement | null>(null);
+    const copySuccess = ref(false);
+
+    /** 提取纯文本内容供复制（去除 think 标签） */
+    const messagePlainText = computed(() => {
+        if (!props.msg?.content) {
+            return "";
+        }
+        return props.msg.content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    });
+
+    /** 复制消息内容到剪贴板 */
+    async function copyMessage(): Promise<void> {
+        const text = messagePlainText.value;
+        if (!text) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            copySuccess.value = true;
+            setTimeout(() => {
+                copySuccess.value = false;
+            }, 2000);
+        } catch {
+            copySuccess.value = false;
+        }
+    }
 
     // @内联回调
     onMounted(async () => {
@@ -181,9 +207,13 @@ export function useMessageBubbleCtx(
         normalContent,
         hasThinkContent,
         thinkContentRef,
+        messagePlainText,
+        copySuccess,
         /** 切换思考内容折叠/展开状态，由模板中的点击事件触发 */
         toggleThink: () => {
             isThinkExpanded.value = !isThinkExpanded.value;
         },
+        /** 复制消息内容到剪贴板 */
+        copyMessage,
     };
 }

@@ -1,0 +1,187 @@
+.message-bubble {
+  position: relative;
+}
+
+.message-bubble .protyle-wysiwyg {
+  font-family: "MS Gothic", "Consolas", monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #c5f0f2;
+  word-break: break-word;
+}
+
+.message-bubble .protyle-wysiwyg h1,
+.message-bubble .protyle-wysiwyg h2,
+.message-bubble .protyle-wysiwyg h3,
+.message-bubble .protyle-wysiwyg h4,
+.message-bubble .protyle-wysiwyg h5,
+.message-bubble .protyle-wysiwyg h6 {
+  margin: 0.6em 0 0.3em;
+  font-weight: 600;
+  color: #6ffbff;
+  text-shadow: 0 0 6px rgba(111, 251, 255, 0.3);
+}
+
+.message-bubble .protyle-wysiwyg h1 { font-size: 1.15rem; }
+.message-bubble .protyle-wysiwyg h2 { font-size: 1.05rem; }
+.message-bubble .protyle-wysiwyg h3 { font-size: 0.95rem; }
+.message-bubble .protyle-wysiwyg h4 { font-size: 0.88rem; }
+.message-bubble .protyle-wysiwyg h5 { font-size: 0.82rem; }
+.message-bubble .protyle-wysiwyg h6 { font-size: 0.78rem; }
+
+.message-bubble .protyle-wysiwyg strong {
+  color: #e8faff;
+  font-weight: 700;
+}
+
+.message-bubble .protyle-wysiwyg em {
+  color: #8ff2ff;
+}
+
+.message-bubble .protyle-wysiwyg code {
+  font-family: "Consolas", "MS Gothic", monospace;
+  font-size: 0.72rem;
+  padding: 1px 4px;
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(0, 32, 32, 0.6);
+  color: #8ff2ff;
+  border-radius: 2px;
+}
+
+.message-bubble .protyle-wysiwyg pre {
+  margin: 0.5em 0;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 10, 15, 0.85);
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+
+.message-bubble .protyle-wysiwyg pre code {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #b5f5f8;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.message-bubble .protyle-wysiwyg blockquote {
+  margin: 0.4em 0;
+  padding: 4px 8px 4px 12px;
+  border-left: 3px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 30, 35, 0.35);
+  color: #a5eef0;
+}
+
+.message-bubble .protyle-wysiwyg blockquote blockquote {
+  margin-left: 0.5em;
+}
+
+.message-bubble .protyle-wysiwyg ul,
+.message-bubble .protyle-wysiwyg ol {
+  margin: 0.3em 0;
+  padding-left: 1.5em;
+}
+
+.message-bubble .protyle-wysiwyg li {
+  margin: 0.15em 0;
+}
+
+.message-bubble .protyle-wysiwyg a {
+  color: #5df5ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(93, 245, 255, 0.4);
+}
+
+.message-bubble .protyle-wysiwyg a:hover {
+  color: #b3fbff;
+  text-decoration-color: rgba(179, 251, 255, 0.8);
+}
+
+.message-bubble .protyle-wysiwyg hr {
+  border: none;
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  margin: 0.6em 0;
+}
+
+.message-bubble .protyle-wysiwyg table {
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: 0.75rem;
+  width: 100%;
+}
+
+.message-bubble .protyle-wysiwyg th,
+.message-bubble .protyle-wysiwyg td {
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.message-bubble .protyle-wysiwyg th {
+  background: rgba(0, 50, 55, 0.4);
+  color: #6ffbff;
+  font-weight: 600;
+}
+
+.message-bubble .protyle-wysiwyg td {
+  background: rgba(0, 20, 25, 0.2);
+}
+
+.message-bubble .protyle-wysiwyg img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.message-bubble .protyle-wysiwyg p {
+  margin: 0.25em 0;
+}
+
+.message-bubble .protyle-wysiwyg input[type="checkbox"] {
+  margin-right: 4px;
+  accent-color: #15ff56;
+}
+
+.bubble-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 20, 25, 0.6);
+  color: rgba(157, 239, 242, 0.5);
+  font-size: 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  z-index: 3;
+  line-height: 1;
+  padding: 0;
+}
+
+.message-bubble:hover .bubble-copy-btn {
+  opacity: 1;
+}
+
+.bubble-copy-btn:hover {
+  border-color: rgba(0, 255, 255, 0.6);
+  color: #9deff2;
+  background: rgba(0, 40, 48, 0.7);
+}
+
+.bubble-copy-btn.copy-success {
+  border-color: rgba(21, 255, 86, 0.5);
+  color: #15ff56;
+  opacity: 1;
+}
+
+.sse-stream .stream-content.protyle-wysiwyg {
+  display: inline;
+}

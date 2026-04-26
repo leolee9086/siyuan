@@ -34,6 +34,16 @@
       <template v-else>
         <slot></slot>
       </template>
+      <button
+        v-if="messagePlainText && status !== 'loading'"
+        class="bubble-copy-btn"
+        :class="{ 'copy-success': copySuccess }"
+        :title="copySuccess ? copiedText : copyText"
+        @click.stop="copyMessage"
+      >
+        <template v-if="copySuccess">{{ copiedIcon }}</template>
+        <template v-else>{{ copyIcon }}</template>
+      </button>
     </div>
     <div v-if="$slots.extra" class="message-extra">
       <slot name="extra"></slot>
@@ -50,6 +60,7 @@ import MessageBubbleVoteMeta from "./MessageBubbleVoteMeta.vue";
 import MessageBubbleHeader from "./MessageBubbleHeader.vue";
 import { useMessageBubbleCtx } from "./MessageBubble.ctx";
 import type { MessageBubbleProps } from "./MessageBubble.types";
+import "./MessageBubble.css";
 
 const props = withDefaults(defineProps<MessageBubbleProps>(), {
     type: "default",
@@ -69,6 +80,14 @@ const {
     thinkContent,
     normalContent,
     hasThinkContent,
+    messagePlainText,
+    copySuccess,
     toggleThink,
+    copyMessage,
 } = useMessageBubbleCtx(props, emit);
+
+const copyIcon = "📋";
+const copiedIcon = "✓";
+const copyText = "复制消息";
+const copiedText = "已复制";
 </script>

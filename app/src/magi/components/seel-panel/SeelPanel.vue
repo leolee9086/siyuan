@@ -98,7 +98,9 @@
                   <pre class="seel-event-payload">{{ formatRawEventPayload(item.message) }}</pre>
                 </details>
               </template>
-              <template v-else>{{ item.message.content }}</template>
+              <template v-else>
+                <div class="protyle-wysiwyg" v-html="renderContent(item.message.content)"></div>
+              </template>
             </MessageBubble>
           </template>
         </VirtualMasonryGrid>
@@ -119,6 +121,7 @@ import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
 import VirtualMasonryGrid from "../../../components/masonry/components/VirtualMasonryGrid.vue";
+import { renderMarkdown } from "../../utils/lute";
 import { computed, onUnmounted, ref, watch, type PropType } from "vue";
 import "./SeelPanel.css";
 
@@ -429,5 +432,9 @@ function formatToolCallArgs(meta: Record<string, unknown>): string {
 
 function eventSummaryTitle(message: SeelPanelProps["ai"]["messages"][number]): string {
     return `${getRawEventType(message)} | seq=${getRawEventSeq(message)} | eventId=${getRawEventId(message)}`;
+}
+
+function renderContent(content: string): string {
+    return renderMarkdown(content);
 }
 </script>

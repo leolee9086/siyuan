@@ -9,13 +9,10 @@
         class="think-content"
         :class="{ 'expanded': isThinkExpanded }"
         ref="thinkContentRef"
-      >
-        {{ thinkContent }}
-      </div>
+        v-html="renderedThinkContent"
+      ></div>
     </div>
-    <div class="stream-content">
-      {{ normalContent || msg?.content || initializingNeuralLinkText }}
-    </div>
+    <div class="stream-content protyle-wysiwyg" v-html="renderedNormalContent"></div>
     <span
       v-if="msg?.status === 'loading'"
       class="stream-cursor animate-pulse"
@@ -24,10 +21,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { MagiMessageView } from "../../entry/magiView.types";
 import { getMagiI18nText } from "../../utils/magiI18n";
+import { renderMarkdown } from "../../utils/lute";
 
-defineProps<{
+const props = defineProps<{
     /** 思考内容文本 */
     thinkContent: string;
     /** 普通回复文本 */
@@ -43,6 +42,9 @@ defineProps<{
 defineEmits<{
     "toggle-think": [];
 }>();
+
+const renderedThinkContent = computed(() => renderMarkdown(props.thinkContent));
+const renderedNormalContent = computed(() => renderMarkdown(props.normalContent || props.msg?.content || initializingNeuralLinkText));
 
 /** 思考内容DOM引用，由父组件通过ref获取 */
 const thinkContentRef = defineModel<HTMLElement | null>("thinkContentRef");

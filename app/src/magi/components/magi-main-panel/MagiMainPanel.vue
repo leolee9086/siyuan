@@ -28,7 +28,7 @@
             </div>
           </template>
           <template v-else>
-            {{ formatContent(item) }}
+            <div class="protyle-wysiwyg" v-html="formatRenderedContent(item)"></div>
           </template>
         </MessageBubble>
       </template>
@@ -53,6 +53,7 @@ import type { MagiMainPanelMessageView } from "../../entry/magiView.types";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
 import MagiInputBar from "./MagiInputBar.vue";
 import VirtualMasonryGrid from "../../../components/masonry/components/VirtualMasonryGrid.vue";
+import { renderMarkdown } from "../../utils/lute";
 import { useMagiMainPanelContext } from "./MagiMainPanel.ctx";
 import type { MagiMainPanelEmits, MagiMainPanelProps } from "./MagiMainPanel.types";
 import "./MagiMainPanel.css";
@@ -116,6 +117,14 @@ function estimateMessageHeight(msg: MagiMainPanelMessageView): number {
     return 96;
   }
   return 84;
+}
+
+function formatRenderedContent(msg: MagiMainPanelMessageView): string {
+  const text = formatContent(msg);
+  if (!text) {
+    return "";
+  }
+  return renderMarkdown(text);
 }
 
 </script>
