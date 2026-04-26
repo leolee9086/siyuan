@@ -157,6 +157,7 @@ func buildDefaultCoreSageTools() []ToolDef {
 			BuildForgeDevRepoSearchToolDef(),
 			BuildForgeDevRepoEditToolDef(),
 			BuildForgeDevRepoBatchReplaceToolDef(),
+			BuildForgeDevRepoBashToolDef(),
 		)
 	}
 	return tools

@@ -194,8 +194,10 @@ func appendTurnToolCallsToContextWithExecutorContext(
 
 	for _, call := range toolCalls {
 		toolResult := `{"ok":true}`
+		handled := false
 		if resultExecutor != nil {
-			if result, handled, execErr := resultExecutor(call); handled {
+			if result, executorHandled, execErr := resultExecutor(call); executorHandled {
+				handled = true
 				if execErr != nil {
 					if payload, marshalErr := json.Marshal(map[string]interface{}{
 						"ok":    false,
@@ -210,12 +212,24 @@ func appendTurnToolCallsToContextWithExecutorContext(
 				}
 			} else if ackBuilder != nil {
 				if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
+					handled = true
 					toolResult = maybeMaterializeAckToolResult(ctx, sessionID, roundID, sage, assistantContent, call, ack)
 				}
 			}
 		} else if ackBuilder != nil {
 			if ack := strings.TrimSpace(ackBuilder(call.Function.Name)); ack != "" {
+				handled = true
 				toolResult = maybeMaterializeAckToolResult(ctx, sessionID, roundID, sage, assistantContent, call, ack)
+			}
+		}
+		if !handled {
+			if payload, marshalErr := json.Marshal(map[string]interface{}{
+				"ok":    false,
+				"error": fmt.Sprintf("未找到处理工具 %s 的 executor", call.Function.Name),
+			}); marshalErr == nil {
+				toolResult = string(payload)
+			} else {
+				toolResult = `{"ok":false}`
 			}
 		}
 		sage.AddToContextWithSession(sessionID, types.ContextMessage{

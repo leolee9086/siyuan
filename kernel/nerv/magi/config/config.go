@@ -115,6 +115,8 @@ const (
 	ForgeDevRepoEditToolName = "forge_dev_repo_edit"
 	// ForgeDevRepoBatchReplaceToolName forge 模式开发仓库批量替换工具名。
 	ForgeDevRepoBatchReplaceToolName = "forge_dev_repo_batch_replace"
+	// ForgeDevRepoBashToolName forge 模式开发仓库安全 Bash 命令执行工具名。
+	ForgeDevRepoBashToolName = "forge_dev_repo_bash"
 	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
 	WriteDiaryToolName = "write_diary_entry"
 	// DominantElectionToolName 主导者选举投票工具名。
@@ -539,6 +541,36 @@ func BuildForgeDevRepoBatchReplaceToolDef() ToolDef {
 					},
 				},
 				"required": []string{"pattern", "old_string", "new_string", "motivation"},
+			},
+		},
+	}
+}
+
+// BuildForgeDevRepoBashToolDef 构建 forge 模式开发仓库安全 Bash 命令执行工具定义。
+func BuildForgeDevRepoBashToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ForgeDevRepoBashToolName,
+			Description: "仅在 forge 模式可用。在 forge 开发代码库中执行安全的 Bash 命令。仅限只/读操作和受限的写操作（需三贤人投票）。cwd 自动锁定在 forge dev repo 根目录。支持 command（要执行的 bash 命令）、timeout（超时秒数 1-120，默认 30）、description（命令说明，辅助治理投票决策）。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"command": map[string]interface{}{
+						"type":        "string",
+						"description": "要执行的 bash 命令",
+					},
+					"timeout": map[string]interface{}{
+						"type":        "integer",
+						"description": "超时秒数（1-120），默认 30",
+						"default":     30,
+					},
+					"description": map[string]interface{}{
+						"type":        "string",
+						"description": "命令说明，辅助治理投票决策",
+					},
+				},
+				"required": []string{"command"},
 			},
 		},
 	}

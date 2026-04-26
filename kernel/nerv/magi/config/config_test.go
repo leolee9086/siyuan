@@ -368,6 +368,8 @@ func TestBuildDefaultCoreSageTools_ForgeOnlyRepoTools(t *testing.T) {
 		ForgeDevRepoReadToolName,
 		ForgeDevRepoSearchToolName,
 		ForgeDevRepoEditToolName,
+		ForgeDevRepoBatchReplaceToolName,
+		ForgeDevRepoBashToolName,
 	}
 
 	util.Mode = util.ModeProd
@@ -399,6 +401,8 @@ func TestApplyRequiredAvatarTools_StripsForgeRepoToolsOutsideForge(t *testing.T)
 		ForgeDevRepoReadToolName,
 		ForgeDevRepoSearchToolName,
 		ForgeDevRepoEditToolName,
+		ForgeDevRepoBatchReplaceToolName,
+		ForgeDevRepoBashToolName,
 	}
 
 	cfg := &MAGIConfig{

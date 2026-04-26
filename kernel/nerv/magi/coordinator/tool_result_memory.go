@@ -82,6 +82,9 @@ func materializeToolResultForContext(
 	if toolName == config.ForgeDevRepoBatchReplaceToolName {
 		return materializeForgeDevRepoBatchReplaceResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
+	if toolName == config.ForgeDevRepoBashToolName {
+		return materializeForgeDevRepoBashResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
+	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult
 	}

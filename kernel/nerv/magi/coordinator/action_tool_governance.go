@@ -316,7 +316,8 @@ func isGovernedActionToolName(toolName string) bool {
 	switch strings.TrimSpace(toolName) {
 	case config.WriteDiaryToolName,
 		config.ForgeDevRepoEditToolName,
-		config.ForgeDevRepoBatchReplaceToolName:
+		config.ForgeDevRepoBatchReplaceToolName,
+		config.ForgeDevRepoBashToolName:
 		return true
 	default:
 		return false
@@ -335,7 +336,10 @@ func buildGovernedActionToolCall(toolCall types.ToolCall) (*types.ToolCall, stri
 	}
 	motivation := normalizeGovernedActionMotivation(fmt.Sprintf("%v", args["motivation"]))
 	if motivation == "" {
-		return nil, "", fmt.Errorf("%s 的 motivation 不能为空", toolName)
+		motivation = normalizeGovernedActionMotivation(fmt.Sprintf("%v", args["description"]))
+	}
+	if motivation == "" {
+		return nil, "", fmt.Errorf("%s 的 motivation/description 不能为空", toolName)
 	}
 
 	normalizedArguments, err := json.Marshal(args)

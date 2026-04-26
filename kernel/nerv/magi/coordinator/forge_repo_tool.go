@@ -149,6 +149,10 @@ func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 		var execErr error
 		result, execErr = executeForgeDevRepoBatchReplace(toolCall.Function.Arguments)
 		result, handled, err = result, true, execErr
+	case config.ForgeDevRepoBashToolName:
+		var execErr error
+		result, execErr = executeForgeDevRepoBash(toolCall.Function.Arguments)
+		result, handled, err = result, true, execErr
 	default:
 		return "", false, nil
 	}
