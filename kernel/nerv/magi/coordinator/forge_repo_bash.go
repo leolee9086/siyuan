@@ -193,6 +193,19 @@ func materializeForgeDevRepoBashResult(
 	return result
 }
 
+// marshalForgeDevRepoBashFailure 构造失败状态的 JSON 结果。
+func marshalForgeDevRepoBashFailure(errMsg string) string {
+	payload := map[string]interface{}{
+		"ok":    false,
+		"state": "bash_failed",
+	}
+	if errMsg != "" {
+		payload["error"] = errMsg
+	}
+	resultBytes, _ := json.Marshal(payload)
+	return string(resultBytes)
+}
+
 // parseForgeDevRepoBashArgs 解析并验证 forge_dev_repo_bash 的 JSON 参数。
 func parseForgeDevRepoBashArgs(rawArgs string) (*forgeDevRepoBashArgs, error) {
 	trimmed := strings.TrimSpace(rawArgs)
@@ -230,31 +243,20 @@ func marshalForgeDevRepoBashPayload(payload forgeDevRepoBashPayload) (string, er
 	return string(resultBytes), nil
 }
 
-// marshalForgeDevRepoBashFailure 构造失败状态的 JSON 结果。
-func marshalForgeDevRepoBashFailure(errMsg string) string {
-	payload := map[string]interface{}{
-		"ok":    false,
-		"state": "bash_failed",
-	}
-	if errMsg != "" {
-		payload["error"] = errMsg
-	}
-	resultBytes, _ := json.Marshal(payload)
-	return string(resultBytes)
-}
-
 // marshalForgeDevRepoBashRejection 构造治理否决状态的 JSON 结果。
+// 注意：必须构建全新的 payload，不得复用传入的 payload map，
+// 因为 BashAllow 命令可能在治理投票前已被 executeForgeDevRepoBash 直接执行，
+// 传入的 payload 中可能携带实际命令执行的 stdout/stderr，复用会导致执行结果泄露。
 func marshalForgeDevRepoBashRejection(
 	toolName string,
-	payload map[string]interface{},
+	_ map[string]interface{},
 	outcome *governedActionVoteOutcome,
 ) string {
-	if payload == nil {
-		payload = map[string]interface{}{}
+	payload := map[string]interface{}{
+		"ok":            false,
+		"toolName":      strings.TrimSpace(toolName),
+		"reviewSummary": "该命令执行操作已被专家团队否决。",
 	}
-	payload["ok"] = false
-	payload["toolName"] = strings.TrimSpace(toolName)
-	payload["reviewSummary"] = "该命令执行操作已被专家团队否决。"
 	if outcome != nil && len(outcome.RejectionReasons) > 0 {
 		payload["rejectionReasons"] = outcome.RejectionReasons
 	}
