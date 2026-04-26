@@ -288,8 +288,9 @@ const getItemStyle = (item: LayoutItem) => ({
     top: `${item.y}px`,
     left: `${item.x}px`,
     width: `${item.width}px`,
-    // 在滚动过程中或手动禁用时不使用过渡动画
-    transition: isScrolling.value || !transitionEnabled.value ? "none" : "top 0.3s, left 0.3s",
+    // 在滚动过程中、follow-output 模式或手动禁用时不使用过渡动画
+    // follow-output 模式下底部持续追加新内容，旧消息位置变化应瞬间完成，避免抖动
+    transition: isScrolling.value || props.followOutput || !transitionEnabled.value ? "none" : "top 0.3s, left 0.3s",
 });
 
 // --- DOM Refs and Measurement ---
