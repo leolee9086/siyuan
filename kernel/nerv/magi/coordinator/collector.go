@@ -348,6 +348,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 		})
 		turnContent := strings.Builder{}
+		reasoningContent := strings.Builder{}
 
 		// 创建空闲超时定时器：30秒内没有收到chunk则超时
 		idleTimer := time.NewTimer(rc.timeout)
@@ -416,6 +417,9 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 						logging.LogWarnf("推送%s流式chunk失败: %v", sage.GetDisplayName(), pushErr)
 					}
 				}
+				if choice.Delta.ReasoningContent != "" {
+					reasoningContent.WriteString(choice.Delta.ReasoningContent)
+				}
 			}
 		}
 
@@ -445,9 +449,10 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					WantsSleep:          true,
 					SleepSummary:        strings.TrimSpace(sleepNote.Summary),
 					SleepNote:           sleepNote,
-					SkipAssistantMemory: true,
-					SleepAssistantDraft: turnContent.String(),
-					SleepToolCall:       cloneWannaSleepToolCall(turnToolCalls),
+					SkipAssistantMemory:    true,
+					SleepAssistantDraft:   turnContent.String(),
+					SleepReasoningDraft:   reasoningContent.String(),
+					SleepToolCall:         cloneWannaSleepToolCall(turnToolCalls),
 				}
 				msg := &types.Message{
 					ID:        streamMessageID,
@@ -482,6 +487,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					roundId,
 					sage,
 					turnContent.String(),
+					reasoningContent.String(),
 					turnToolCalls,
 					toolResultExecutor,
 					buildWannaSpeakToolAck,
@@ -521,7 +527,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 			result := processor.GetResult(true)
 
-			response, buildErr := rc.buildSageResponse(sessionId, roundId, sage, result, wannaSpeakTracker)
+			response, buildErr := rc.buildSageResponse(sessionId, roundId, sage, result, wannaSpeakTracker, reasoningContent.String())
 			if buildErr != nil {
 				if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), buildErr.Error()); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
@@ -549,6 +555,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				roundId,
 				sage,
 				turnContent.String(),
+				reasoningContent.String(),
 				turnToolCalls,
 				toolResultExecutor,
 				buildWannaSpeakToolAck,
@@ -576,10 +583,11 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				consecutiveTransitionFailures = 0
 				continue
 			}
-		} else if strings.TrimSpace(turnContent.String()) != "" {
+		} else if strings.TrimSpace(turnContent.String()) != "" || reasoningContent.Len() > 0 {
 			sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role:    types.RoleAssistant,
-				Content: turnContent.String(),
+				Role:             types.RoleAssistant,
+				Content:          turnContent.String(),
+				ReasoningContent: reasoningContent.String(),
 			})
 		}
 
@@ -611,6 +619,7 @@ func (rc *ResponseCollector) buildSageResponse(
 	sage *sages.Sage,
 	result *utilstream.StreamResult,
 	wannaSpeakTracker *wannaSpeakStateTracker,
+	reasoningContent string,
 ) (*types.SageResponse, error) {
 	// 检查是否有有效内容
 	if result.Content == "" && !result.HasToolCalls {
@@ -666,8 +675,9 @@ func (rc *ResponseCollector) buildSageResponse(
 
 	// 将assistant响应添加到贤者的上下文历史
 	assistantMsg := types.ContextMessage{
-		Role:    types.RoleAssistant,
-		Content: response.Content,
+		Role:             types.RoleAssistant,
+		Content:          response.Content,
+		ReasoningContent: reasoningContent,
 	}
 	sage.AddToContextWithSession(sessionId, assistantMsg)
 

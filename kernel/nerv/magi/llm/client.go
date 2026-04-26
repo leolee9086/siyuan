@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -44,13 +45,39 @@ type Config struct {
 	Timeout     int
 	UserAgent   string
 	APIVersion  string // Azure专用
+
+	OmitToolChoice bool
 }
 
 // NewClient 创建LLM客户端
 func NewClient(cfg *Config) Client {
 	if cfg.Provider == "Claude" {
+		if isOpencodeAIURL(cfg.APIBaseURL) {
+			ocfg := *cfg
+			ocfg.APIBaseURL = toOaCompatURL(cfg.APIBaseURL)
+			ocfg.OmitToolChoice = true
+			return newOpenAIClient(&ocfg)
+		}
 		return &claudeClient{config: cfg}
 	}
+	return newOpenAIClient(cfg)
+}
+
+func isOpencodeAIURL(raw string) bool {
+	return strings.Contains(strings.ToLower(raw), "opencode.ai")
+}
+
+func toOaCompatURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	clean := strings.TrimRight(raw, "/")
+	clean, _ = strings.CutSuffix(clean, "/messages")
+	return clean
+}
+
+func newOpenAIClient(cfg *Config) *openaiClient {
 	return &openaiClient{
 		config: cfg,
 		client: util.NewOpenAIClient(
@@ -90,13 +117,17 @@ type openaiClient struct {
 func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
+	tc := toolChoice
+	if c.config.OmitToolChoice {
+		tc = nil
+	}
 	req := openai.ChatCompletionRequest{
 		Model:               c.config.APIModel,
 		Messages:            reqMsgs,
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
 		Tools:               tools,
-		ToolChoice:          toolChoice,
+		ToolChoice:          tc,
 		Stream:              true,
 	}
 
@@ -153,8 +184,9 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 				Choices: []types.ChunkChoice{{
 					Index: choice.Index,
 					Delta: types.ChunkDelta{
-						Role:    choice.Delta.Role,
-						Content: choice.Delta.Content,
+						Role:             choice.Delta.Role,
+						Content:          choice.Delta.Content,
+						ReasoningContent: choice.Delta.ReasoningContent,
 					},
 					FinishReason: finishReason,
 				}},
@@ -207,13 +239,17 @@ func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types
 func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
+	tc := toolChoice
+	if c.config.OmitToolChoice {
+		tc = nil
+	}
 	req := openai.ChatCompletionRequest{
 		Model:               c.config.APIModel,
 		Messages:            reqMsgs,
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
 		Tools:               tools,
-		ToolChoice:          toolChoice,
+		ToolChoice:          tc,
 	}
 
 	resp, err := c.client.CreateChatCompletion(ctx, req)
@@ -243,10 +279,6 @@ type claudeClient struct {
 	config *Config
 }
 
-func (c *claudeClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
-	return nil, fmt.Errorf("claude streaming not implemented yet")
-}
-
 func (c *claudeClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	result, err := c.SendChatRequestSyncDetailed(ctx, messages, tools, toolChoice)
 	if err != nil {
@@ -268,8 +300,9 @@ func convertToOpenAIMessages(messages []types.ContextMessage) []openai.ChatCompl
 
 	for _, msg := range messages {
 		oaiMsg := openai.ChatCompletionMessage{
-			Role:    string(msg.Role),
-			Content: msg.Content,
+			Role:             string(msg.Role),
+			Content:          msg.Content,
+			ReasoningContent: msg.ReasoningContent,
 		}
 
 		// 转换tool_calls

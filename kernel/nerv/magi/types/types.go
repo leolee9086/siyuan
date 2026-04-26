@@ -48,11 +48,12 @@ type Message struct {
 
 // ContextMessage 上下文消息（对应前端ContextMessage）
 type ContextMessage struct {
-	Role      MessageRole            `json:"role"`
-	Content   string                 `json:"content"`
-	ToolCalls []ToolCall             `json:"tool_calls,omitempty"`
-	ToolID    string                 `json:"tool_call_id,omitempty"`
-	Meta      map[string]interface{} `json:"meta,omitempty"`
+	Role             MessageRole            `json:"role"`
+	Content          string                 `json:"content"`
+	ReasoningContent string                 `json:"reasoning_content,omitempty"`
+	ToolCalls        []ToolCall             `json:"tool_calls,omitempty"`
+	ToolID           string                 `json:"tool_call_id,omitempty"`
+	Meta             map[string]interface{} `json:"meta,omitempty"`
 }
 
 // ToolCall 工具调用结构
@@ -84,8 +85,9 @@ type SageResponse struct {
 	SleepSummary         string              `json:"sleepSummary,omitempty"`         // 心跳轮次本次醒来工作摘要
 	SleepNote            *WannaSleepTool     `json:"sleepNote,omitempty"`            // 心跳轮次结构化睡前笔记
 	SkipAssistantMemory  bool                `json:"skipAssistantMemory,omitempty"`  // 工具调用已完整入历史时，跳过额外assistant文本写回
-	SleepAssistantDraft  string              `json:"-"`                              // wanna_sleep 轮次暂存的 assistant 内容
-	SleepToolCall        *ToolCall           `json:"-"`                              // wanna_sleep 轮次暂存的工具调用
+	SleepAssistantDraft   string              `json:"-"` // wanna_sleep 轮次暂存的 assistant 内容
+	SleepReasoningDraft   string              `json:"-"` // wanna_sleep 轮次暂存的 reasoning 内容
+	SleepToolCall         *ToolCall           `json:"-"` // wanna_sleep 轮次暂存的工具调用
 }
 
 // VoteDecision 投票决定

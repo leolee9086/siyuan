@@ -152,7 +152,7 @@ func appendTurnToolCallsToContext(
 	toolCalls []types.ToolCall,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, toolCalls, nil, ackBuilder)
+	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, nil, ackBuilder)
 }
 
 func appendTurnToolCallsToContextWithExecutor(
@@ -164,7 +164,7 @@ func appendTurnToolCallsToContextWithExecutor(
 	resultExecutor ToolCallResultExecutor,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, toolCalls, resultExecutor, ackBuilder)
+	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, resultExecutor, ackBuilder)
 }
 
 func appendTurnToolCallsToContextWithExecutorContext(
@@ -173,6 +173,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 	roundID string,
 	sage *sages.Sage,
 	assistantContent string,
+	reasoningContent string,
 	toolCalls []types.ToolCall,
 	resultExecutor ToolCallResultExecutor,
 	ackBuilder func(toolName string) string,
@@ -187,9 +188,10 @@ func appendTurnToolCallsToContextWithExecutorContext(
 		content = " "
 	}
 	sage.AddToContextWithSession(sessionID, types.ContextMessage{
-		Role:      types.RoleAssistant,
-		Content:   content,
-		ToolCalls: toolCalls,
+		Role:             types.RoleAssistant,
+		Content:          content,
+		ReasoningContent: reasoningContent,
+		ToolCalls:        toolCalls,
 	})
 
 	for _, call := range toolCalls {

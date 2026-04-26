@@ -15,6 +15,8 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
+var errNoMessages = fmt.Errorf("no messages to send")
+
 func (c *claudeClient) SendChatRequestSyncDetailed(
 	ctx context.Context,
 	messages []types.ContextMessage,
