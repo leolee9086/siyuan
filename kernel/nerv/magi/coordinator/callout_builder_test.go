@@ -16,11 +16,11 @@ func TestBuildCalloutMarkdown_StructuredFields(t *testing.T) {
 }
 
 func TestBuildCalloutMarkdown_MultiLineValue(t *testing.T) {
-	got := BuildCalloutMarkdown("SLEEP_NOTE", "合并睡前笔记",
+	got := BuildCalloutMarkdown("DREAM", "🌙 合并睡前笔记",
 		CalloutField{Label: "当前记录", Value: "第一行\n第二行\n第三行"},
 		CalloutField{Label: "补充整理描述", Value: "段落1\n\n段落3"},
 	)
-	want := "> [!SLEEP_NOTE] 合并睡前笔记\n> **当前记录**: 第一行\n> 第二行\n> 第三行\n> **补充整理描述**: 段落1\n>\n> 段落3"
+	want := "> [!DREAM] 🌙 合并睡前笔记\n> **当前记录**: 第一行\n> 第二行\n> 第三行\n> **补充整理描述**: 段落1\n>\n> 段落3"
 	if got != want {
 		t.Fatalf("期望:\n%q\n实际:\n%q", want, got)
 	}

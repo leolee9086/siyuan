@@ -393,7 +393,7 @@ func buildSleepNoteCalloutMarkdown(
 	if strings.TrimSpace(roundID) != "" {
 		fields = append(fields, CalloutField{Label: "轮次", Value: strings.TrimSpace(roundID)})
 	}
-	return BuildCalloutMarkdown("SLEEP_NOTE", title, fields...)
+	return BuildCalloutMarkdown("DREAM", "🌙 "+title, fields...)
 }
 
 func buildQueryArchiveCalloutMarkdown(

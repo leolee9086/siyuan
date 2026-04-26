@@ -41,17 +41,22 @@ type OpenAI struct {
 	APIUserAgent   string  `json:"apiUserAgent"`
 	APIProvider    string  `json:"apiProvider"` // OpenAI, Azure
 	APIVersion     string  `json:"apiVersion"`  // Azure API version
+
+	MAGISleepStartHour int `json:"magiSleepStartHour"` // 睡眠时段起始小时（24h，默认 0=午夜）
+	MAGISleepEndHour   int `json:"magiSleepEndHour"`   // 睡眠时段结束小时（24h，默认 8=早上）
 }
 
 func NewAI() *AI {
 	openAI := &OpenAI{
-		APITemperature: 1.0,
-		APIMaxContexts: 7,
-		APITimeout:     30,
-		APIModel:       openai.GPT3Dot5Turbo,
-		APIBaseURL:     "https://api.openai.com/v1",
-		APIUserAgent:   util.UserAgent,
-		APIProvider:    "OpenAI",
+		APITemperature:     1.0,
+		APIMaxContexts:     7,
+		APITimeout:         30,
+		APIModel:           openai.GPT3Dot5Turbo,
+		APIBaseURL:         "https://api.openai.com/v1",
+		APIUserAgent:       util.UserAgent,
+		APIProvider:        "OpenAI",
+		MAGISleepStartHour: 0,
+		MAGISleepEndHour:   8,
 	}
 
 	openAI.APIKey = os.Getenv("SIYUAN_OPENAI_API_KEY")

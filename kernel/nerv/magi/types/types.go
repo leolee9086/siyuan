@@ -183,9 +183,10 @@ type StreamResult struct {
 
 // SyncChatResult 同步请求的结构化响应结果。
 type SyncChatResult struct {
-	Content      string     `json:"content"`
-	ToolCalls    []ToolCall `json:"toolCalls,omitempty"`
-	FinishReason string     `json:"finishReason,omitempty"`
+	Content          string     `json:"content"`
+	ReasoningContent string     `json:"reasoningContent,omitempty"`
+	ToolCalls        []ToolCall `json:"toolCalls,omitempty"`
+	FinishReason     string     `json:"finishReason,omitempty"`
 }
 
 // DeliberationSignal 审慎决策信号（Melchior工具调用）

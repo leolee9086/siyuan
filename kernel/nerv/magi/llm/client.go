@@ -263,9 +263,10 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 
 	choice := resp.Choices[0]
 	result := &types.SyncChatResult{
-		Content:      choice.Message.Content,
-		ToolCalls:    convertOpenAIToolCalls(choice.Message.ToolCalls),
-		FinishReason: string(choice.FinishReason),
+		Content:          choice.Message.Content,
+		ReasoningContent: choice.Message.ReasoningContent,
+		ToolCalls:        convertOpenAIToolCalls(choice.Message.ToolCalls),
+		FinishReason:     string(choice.FinishReason),
 	}
 	return result, nil
 }

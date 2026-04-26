@@ -582,8 +582,8 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		"heartbeat",
 		"heartbeat",
 		nil,
-		buildHeartbeatRuntimeToolsBySage(),
-		buildHeartbeatRuntimeToolChoiceBySage(),
+		buildHeartbeatRuntimeToolsBySage(false),
+		buildHeartbeatRuntimeToolChoiceBySage(false),
 	)
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)
@@ -648,8 +648,8 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		"heartbeat",
 		"heartbeat",
 		nil,
-		buildHeartbeatRuntimeToolsBySage(),
-		buildHeartbeatRuntimeToolChoiceBySage(),
+		buildHeartbeatRuntimeToolsBySage(false),
+		buildHeartbeatRuntimeToolChoiceBySage(false),
 	)
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)

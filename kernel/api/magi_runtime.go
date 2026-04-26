@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -18,12 +19,17 @@ import (
 )
 
 const (
-	defaultMagiHeartbeatInterval     = 5 * time.Minute
-	defaultMagiHeartbeatInitialDelay = 30 * time.Second
-	magiRuntimeMonitorSessionID      = websocket.RuntimeMonitorSessionID
-	magiHeartbeatPrincipalID         = "system-cron"
-	magiHeartbeatInterfaceID         = "magi-heartbeat"
-	magiHeartbeatConversationID      = "heartbeat-loop"
+	defaultMagiHeartbeatInterval             = 5 * time.Minute
+	magiHeartbeatSleepIntervalFirst          = 30 * time.Minute
+	magiHeartbeatSleepIntervalSecond         = 45 * time.Minute
+	magiHeartbeatSleepIntervalSubsequent     = 60 * time.Minute
+	defaultMagiHeartbeatInitialDelay         = 30 * time.Second
+	magiRuntimeMonitorSessionID              = websocket.RuntimeMonitorSessionID
+	magiHeartbeatPrincipalID                 = "system-cron"
+	magiHeartbeatInterfaceID                 = "magi-heartbeat"
+	magiHeartbeatConversationID              = "heartbeat-loop"
+	magiDefaultSleepScheduleStartHour        = 0  // 午夜
+	magiDefaultSleepScheduleEndHour          = 8  // 早上
 )
 
 type magiHeartbeatRun struct {
@@ -42,6 +48,8 @@ type magiRuntimeManager struct {
 	lastRoundUser     string
 	lastRoundReply    string
 	lastRoundSleep    string
+
+	sleepCycleCount int // 连续完成的睡眠心跳次数，用于渐进式间隔
 }
 
 func newMagiRuntimeManager(interval time.Duration) *magiRuntimeManager {
@@ -81,28 +89,53 @@ func (m *magiRuntimeManager) Start() {
 
 func (m *magiRuntimeManager) heartbeatLoop() {
 	initialDelay := m.initialHeartbeatDelay()
-	var initialHeartbeat <-chan time.Time
 	if initialDelay > 0 {
 		timer := time.NewTimer(initialDelay)
-		defer timer.Stop()
-		initialHeartbeat = timer.C
+		select {
+		case <-timer.C:
+			m.tryStartHeartbeat()
+		case <-m.stopCh:
+			timer.Stop()
+			return
+		}
+		timer.Stop()
 	} else {
 		m.tryStartHeartbeat()
 	}
 
-	ticker := time.NewTicker(m.heartbeatInterval)
+	lastHeartbeat := time.Now()
+
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-initialHeartbeat:
-			initialHeartbeat = nil
-			m.tryStartHeartbeat()
 		case <-ticker.C:
-			m.tryStartHeartbeat()
+			now := time.Now()
+			interval := m.heartbeatInterval
+			if m.isSleepTime(now) {
+				interval = m.sleepHeartbeatInterval()
+			} else {
+				m.sleepCycleCount = 0
+			}
+			if now.Sub(lastHeartbeat) >= interval {
+				lastHeartbeat = now
+				m.tryStartHeartbeat()
+			}
 		case <-m.stopCh:
 			return
 		}
+	}
+}
+
+func (m *magiRuntimeManager) sleepHeartbeatInterval() time.Duration {
+	switch m.sleepCycleCount {
+	case 0:
+		return magiHeartbeatSleepIntervalFirst
+	case 1:
+		return magiHeartbeatSleepIntervalSecond
+	default:
+		return magiHeartbeatSleepIntervalSubsequent
 	}
 }
 
@@ -114,6 +147,24 @@ func (m *magiRuntimeManager) initialHeartbeatDelay() time.Duration {
 		return m.heartbeatInterval
 	}
 	return defaultMagiHeartbeatInitialDelay
+}
+
+func (m *magiRuntimeManager) isSleepTime(now time.Time) bool {
+	startHour := magiDefaultSleepScheduleStartHour
+	endHour := magiDefaultSleepScheduleEndHour
+	if model.Conf != nil && model.Conf.AI != nil && model.Conf.AI.OpenAI != nil {
+		if h := model.Conf.AI.OpenAI.MAGISleepStartHour; h >= 0 && h <= 23 {
+			startHour = h
+		}
+		if h := model.Conf.AI.OpenAI.MAGISleepEndHour; h >= 0 && h <= 23 {
+			endHour = h
+		}
+	}
+	hour := now.Hour()
+	if startHour < endHour {
+		return hour >= startHour && hour < endHour
+	}
+	return hour >= startHour || hour < endHour
 }
 
 func (m *magiRuntimeManager) tryStartHeartbeat() {
@@ -164,9 +215,9 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 			magiMelchior,
 			magiBalthazar,
 			magiCasper,
-			buildHeartbeatPrompt(now),
-			buildHeartbeatSourceContext(),
-			passiveRecallBasis,
+		buildHeartbeatPrompt(now, m.isSleepTime(now)),
+		buildHeartbeatSourceContext(),
+		passiveRecallBasis,
 		)
 		m.finishHeartbeat(active, result, err)
 	}(run)
@@ -227,6 +278,7 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		m.lastRoundReply = ""
 		m.lastRoundSleep = strings.TrimSpace(result.SleepSummary)
 		m.status.Reason = "wanna-sleep"
+		m.sleepCycleCount++
 	default:
 		m.status.State = types.RuntimeStateHeartbeat
 		m.status.Awake = true
@@ -271,6 +323,7 @@ func (m *magiRuntimeManager) BeginForeground(taskPreview string) {
 	m.status.Awake = true
 	m.status.WakeSource = "external"
 	m.status.Reason = "external-request"
+	m.sleepCycleCount = 0
 	m.status.CurrentTask = truncateRuntimeText(taskPreview, 160)
 	m.status.CurrentRoundID = ""
 	clearDominantRuntimeStatus(&m.status)
@@ -446,7 +499,10 @@ func buildHeartbeatTaskPreview(now time.Time) string {
 	return fmt.Sprintf("heartbeat wake @ %s", now.Format(time.RFC3339))
 }
 
-func buildHeartbeatPrompt(now time.Time) string {
+func buildHeartbeatPrompt(now time.Time, sleepTime bool) string {
+	if sleepTime {
+		return prompts.BuildCoreSageHeartbeatSleepPrompt(now.Format(time.RFC3339))
+	}
 	return prompts.BuildCoreSageHeartbeatWakePrompt(now.Format(time.RFC3339))
 }
 

@@ -212,7 +212,7 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	}()
 	util.Mode = util.ModeProd
 
-	toolsBySage := buildHeartbeatRuntimeToolsBySage()
+	toolsBySage := buildHeartbeatRuntimeToolsBySage(false)
 	expectations := map[string]string{
 		"melchior":  config.WannaSleepPlanToolName,
 		"balthazar": config.WannaSleepDreamToolName,
@@ -243,7 +243,7 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 	}()
 	util.Mode = util.ModeForge
 
-	toolsBySage := buildHeartbeatRuntimeToolsBySage()
+	toolsBySage := buildHeartbeatRuntimeToolsBySage(false)
 	expectedToolNamesBySage := map[string][]string{
 		"melchior": {
 			config.WannaSleepPlanToolName,

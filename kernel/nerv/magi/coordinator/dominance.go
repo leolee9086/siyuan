@@ -312,11 +312,12 @@ func buildDominantElectionRetryMessages(
 	retryMsgs := make([]types.ContextMessage, len(prevMessages), len(prevMessages)+2+len(prevResult.ToolCalls))
 	copy(retryMsgs, prevMessages)
 
-	// 追加 assistant 消息（携带原始 tool_calls）
+	// 追加 assistant 消息（携带原始 tool_calls 和 reasoning_content）
 	retryMsgs = append(retryMsgs, types.ContextMessage{
-		Role:      types.RoleAssistant,
-		Content:   prevResult.Content,
-		ToolCalls: prevResult.ToolCalls,
+		Role:             types.RoleAssistant,
+		Content:          prevResult.Content,
+		ReasoningContent: prevResult.ReasoningContent,
+		ToolCalls:        prevResult.ToolCalls,
 	})
 
 	// 对每个 tool_call 返回错误结果

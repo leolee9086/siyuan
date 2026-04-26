@@ -30,6 +30,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 	userMessage string,
 	sourceCtx *types.RequestSourceContext,
 	passiveRecallBasis *types.PassiveRecallBasis,
+	isSleepTime ...bool,
 ) (*HeartbeatDecisionResult, error) {
 	if c == nil {
 		return nil, fmt.Errorf("coordinator is nil")
@@ -55,6 +56,16 @@ func (c *Coordinator) CoordinateHeartbeat(
 	)
 	sourceAwareUserInput := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
 
+	sleepMode := len(isSleepTime) > 0 && isSleepTime[0]
+	if sleepMode {
+		imaginativeInstr := "\n\n额外要求：你的记录内容越是天马行空越好。"
+		for sageName, input := range sourceAwareUserInputBySage {
+			if sageName == "melchior" {
+				continue
+			}
+			sourceAwareUserInputBySage[sageName] = input + imaginativeInstr
+		}
+	}
 	collection, err := c.collector.CollectHeartbeatResponses(
 		ctx,
 		sessionID,
@@ -65,8 +76,8 @@ func (c *Coordinator) CoordinateHeartbeat(
 		userMessage,
 		sourceAwareUserInput,
 		sourceAwareUserInputBySage,
-		buildHeartbeatRuntimeToolsBySage(),
-		buildHeartbeatRuntimeToolChoiceBySage(),
+		buildHeartbeatRuntimeToolsBySage(sleepMode),
+		buildHeartbeatRuntimeToolChoiceBySage(sleepMode),
 	)
 	if err != nil {
 		if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
@@ -114,7 +125,14 @@ func (c *Coordinator) CoordinateHeartbeat(
 	}, nil
 }
 
-func buildHeartbeatRuntimeToolsBySage() map[string][]openai.Tool {
+func buildHeartbeatRuntimeToolsBySage(sleepMode bool) map[string][]openai.Tool {
+	if sleepMode {
+		return map[string][]openai.Tool{
+			"melchior":  {buildRuntimeTool(config.BuildWannaSleepPlanToolDef())},
+			"balthazar": {buildRuntimeTool(config.BuildWannaSleepDreamToolDef())},
+			"casper":    {buildRuntimeTool(config.BuildWannaSleepRecordToolDef())},
+		}
+	}
 	sharedReadingTools := buildHeartbeatReadingRuntimeTools()
 	return map[string][]openai.Tool{
 		"melchior":  append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepPlanToolDef())}, sharedReadingTools...),
@@ -138,7 +156,7 @@ func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 	return tools
 }
 
-func buildHeartbeatRuntimeToolChoiceBySage() map[string]any {
+func buildHeartbeatRuntimeToolChoiceBySage(sleepMode bool) map[string]any {
 	return map[string]any{
 		"melchior":  "required",
 		"balthazar": "required",
