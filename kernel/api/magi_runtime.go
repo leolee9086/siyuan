@@ -153,10 +153,10 @@ func (m *magiRuntimeManager) isSleepTime(now time.Time) bool {
 	startHour := magiDefaultSleepScheduleStartHour
 	endHour := magiDefaultSleepScheduleEndHour
 	if model.Conf != nil && model.Conf.AI != nil && model.Conf.AI.OpenAI != nil {
-		if h := model.Conf.AI.OpenAI.MAGISleepStartHour; h >= 0 && h <= 23 {
+		if h := model.Conf.AI.OpenAI.MAGISleepStartHour; h > 0 && h <= 23 {
 			startHour = h
 		}
-		if h := model.Conf.AI.OpenAI.MAGISleepEndHour; h >= 0 && h <= 23 {
+		if h := model.Conf.AI.OpenAI.MAGISleepEndHour; h > 0 && h <= 23 {
 			endHour = h
 		}
 	}

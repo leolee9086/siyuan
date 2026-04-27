@@ -1,0 +1,6 @@
+github.com/88250/gulu v1.2.3-0.20260409163331-8c1dab1828ba h1:F9nZLeLTSPUIyYrQqprqElKFef4xVI7fzjxkLXRb2Bo=
+github.com/88250/gulu v1.2.3-0.20260409163331-8c1dab1828ba/go.mod h1:D+Db16m0N7r9MLZCMcj1a0ZsEGQAxDZkadOn79Gh0vI=
+golang.org/x/sys v0.40.0 h1:DBZZqJ2Rkml6QMQsZywtnjnnGvHza6BTfYFWY9kjEWQ=
+golang.org/x/sys v0.40.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+golang.org/x/text v0.35.0 h1:JOVx6vVDFokkpaq1AEptVzLTpDe9KGpj5tR4/X+ybL8=
+golang.org/x/text v0.35.0/go.mod h1:khi/HExzZJ2pGnjenulevKNX1W67CUy0AsXcNubPGCA=

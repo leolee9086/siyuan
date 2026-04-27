@@ -216,4 +216,4 @@ replace github.com/pdfcpu/pdfcpu => github.com/88250/pdfcpu v0.3.14-0.2025042412
 //replace github.com/88250/gulu => D:\88250\gulu
 //replace github.com/mattn/go-sqlite3 => D:\88250\go-sqlite3
 //replace github.com/88250/epub => D:\88250\epub
-//replace github.com/siyuan-note/logging => D:\88250\logging
+replace github.com/siyuan-note/logging => ./logging
