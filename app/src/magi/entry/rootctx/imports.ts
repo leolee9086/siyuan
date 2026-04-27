@@ -5,9 +5,11 @@
  */
 
 /** 用途：创建计算属性；使用范围：rootctx 视图派生与上下文装配；解耦评估：Vue 响应式基础能力，通过 imports.ts 转发可避免业务文件直接依赖第三方包。 */
-import { computed } from "vue";
+import { computed, watch } from "vue";
 /** 导出 computed。 */
 export { computed };
+/** 导出 watch。 */
+export { watch };
 
 /** 用途：创建响应式引用；使用范围：rootctx 状态容器初始化；解耦评估：Vue 响应式基础能力，通过 imports.ts 转发可保持目录边界稳定。 */
 import { ref } from "vue";

@@ -4,8 +4,8 @@
 
 .message-bubble .protyle-wysiwyg {
   font-family: "MS Gothic", "Consolas", monospace;
-  font-size: 0.78rem;
-  line-height: 1.55;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: #c5f0f2;
   word-break: break-word;
 }
@@ -22,12 +22,12 @@
   text-shadow: 0 0 6px rgba(111, 251, 255, 0.3);
 }
 
-.message-bubble .protyle-wysiwyg h1 { font-size: 1.15rem; }
-.message-bubble .protyle-wysiwyg h2 { font-size: 1.05rem; }
-.message-bubble .protyle-wysiwyg h3 { font-size: 0.95rem; }
-.message-bubble .protyle-wysiwyg h4 { font-size: 0.88rem; }
-.message-bubble .protyle-wysiwyg h5 { font-size: 0.82rem; }
-.message-bubble .protyle-wysiwyg h6 { font-size: 0.78rem; }
+.message-bubble .protyle-wysiwyg h1 { font-size: 1.35rem; }
+.message-bubble .protyle-wysiwyg h2 { font-size: 1.25rem; }
+.message-bubble .protyle-wysiwyg h3 { font-size: 1.15rem; }
+.message-bubble .protyle-wysiwyg h4 { font-size: 1.05rem; }
+.message-bubble .protyle-wysiwyg h5 { font-size: 0.95rem; }
+.message-bubble .protyle-wysiwyg h6 { font-size: 0.90rem; }
 
 .message-bubble .protyle-wysiwyg strong {
   color: #e8faff;
@@ -40,19 +40,19 @@
 
 .message-bubble .protyle-wysiwyg code {
   font-family: "Consolas", "MS Gothic", monospace;
-  font-size: 0.72rem;
-  padding: 1px 4px;
+  font-size: 0.85rem;
+  padding: 2px 5px;
   border: 1px solid rgba(0, 255, 255, 0.25);
   background: rgba(0, 32, 32, 0.6);
   color: #8ff2ff;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .message-bubble .protyle-wysiwyg pre {
   margin: 0.5em 0;
   border: 1px solid rgba(0, 255, 255, 0.2);
   background: rgba(0, 10, 15, 0.85);
-  padding: 8px 10px;
+  padding: 10px 12px;
   overflow-x: auto;
 }
 
@@ -61,8 +61,8 @@
   background: transparent;
   padding: 0;
   color: #b5f5f8;
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .message-bubble .protyle-wysiwyg blockquote {
@@ -108,7 +108,7 @@
 .message-bubble .protyle-wysiwyg table {
   border-collapse: collapse;
   margin: 0.4em 0;
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   width: 100%;
 }
 

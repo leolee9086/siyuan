@@ -20,6 +20,7 @@
           :status="item.status"
           :align="getMessageAlign(item.type)"
           :meta="item.meta"
+          :msg="item"
         >
           <template v-if="hasSystemProgress(item)">
             <div class="progress-container">
