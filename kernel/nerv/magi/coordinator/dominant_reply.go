@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 
@@ -61,6 +62,24 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			logging.LogWarnf("推送主导者开始响应失败: %v", err)
 		}
 
+		// 将选举中三贤人提出的质疑注入主导者上下文
+		if election != nil && len(election.Votes) > 0 {
+			var allDoubts []string
+			for _, vote := range election.Votes {
+				for _, d := range vote.Doubts {
+					if trimmed := strings.TrimSpace(d); trimmed != "" {
+						allDoubts = append(allDoubts, "【"+vote.VoterDisplayName+"】"+trimmed)
+					}
+				}
+			}
+			if len(allDoubts) > 0 {
+				dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
+					Role:    types.RoleSystem,
+					Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
+				})
+			}
+		}
+
 		response, collectErr := c.collector.collectSingleSageResponse(
 			ctx,
 			sessionID,
@@ -112,7 +131,52 @@ func (c *Coordinator) coordinateDominantDirectReply(
 		return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
 	}
 
-	return nil, nil, fmt.Errorf("主导者在行动工具审议中连续失格，当前轮次无法继续")
+	// 三次选举均失败：随机选一个主导者
+	allSages := []*sages.Sage{melchior, balthazar, casper}
+	var available []*sages.Sage
+	for _, sg := range allSages {
+		if sg == nil {
+			continue
+		}
+		name := strings.TrimSpace(sg.GetName())
+		if _, excluded := excludedDominants[name]; excluded {
+			continue
+		}
+		available = append(available, sg)
+	}
+	if len(available) == 0 {
+		available = allSages
+	}
+	pickIdx := rand.Intn(len(available))
+	fallbackSage := available[pickIdx]
+
+	election := &DominantElectionResult{
+		DominantSeelName:    fallbackSage.GetName(),
+		DominantDisplayName: fallbackSage.GetDisplayName(),
+	}
+
+	c.notifyDominantSelected(roundID, election)
+
+	response, collectErr := c.collector.collectSingleSageResponse(
+		ctx,
+		sessionID,
+		roundID,
+		fallbackSage,
+		resolveSourceAwareInputForSage(sourceAwareUserInputBySage, fallbackSage.GetName(), userMessage),
+		CollectResponsesOptions{
+			RuntimeTools:      buildDominantDirectReplyRuntimeTools(fallbackSage),
+			RuntimeToolChoice: fallbackSage.GetToolChoice(),
+		},
+	)
+	if collectErr != nil {
+		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+		return nil, nil, fmt.Errorf("随机主导者直答失败: %w", collectErr)
+	}
+	dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+	if response == nil {
+		return nil, nil, fmt.Errorf("随机主导者直答结果为空")
+	}
+	return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
 }
 
 func buildDominantRuntimeMeta(roundID string, election *DominantElectionResult) map[string]interface{} {
@@ -137,6 +201,12 @@ func buildDominantDirectReplyRuntimeTools(dominantSage *sages.Sage) []openai.Too
 	}
 
 	baseTools := append([]openai.Tool(nil), dominantSage.GetTools()...)
+	if !toolSetHasAllFunctionTools(baseTools, config.PersistSessionMemoryToolName) {
+		baseTools = append(baseTools, buildRuntimeTool(config.BuildPersistSessionMemoryToolDef()))
+	}
+	if !toolSetHasAllFunctionTools(baseTools, config.RecallCrossSessionMemoriesToolName) {
+		baseTools = append(baseTools, buildRuntimeTool(config.BuildRecallCrossSessionMemoriesToolDef()))
+	}
 	if toolSetHasAllFunctionTools(baseTools, config.WriteDiaryToolName) {
 		return baseTools
 	}
@@ -344,3 +414,5 @@ func contextMessageSlicesEqual(left []types.ContextMessage, right []types.Contex
 	}
 	return true
 }
+
+

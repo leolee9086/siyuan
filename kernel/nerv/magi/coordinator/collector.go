@@ -282,7 +282,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 ) (*types.SageResponse, error) {
 	const (
 		toolIndexStride               = 1000
-		maxConsecutiveTransitionRetry = 10
+		maxConsecutiveTransitionRetry = 50
 	)
 
 	processor := utilstream.NewProcessor()
@@ -449,10 +449,10 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					WantsSleep:          true,
 					SleepSummary:        strings.TrimSpace(sleepNote.Summary),
 					SleepNote:           sleepNote,
-					SkipAssistantMemory:    true,
-					SleepAssistantDraft:   turnContent.String(),
-					SleepReasoningDraft:   reasoningContent.String(),
-					SleepToolCall:         cloneWannaSleepToolCall(turnToolCalls),
+					SkipAssistantMemory: true,
+					SleepAssistantDraft: turnContent.String(),
+					SleepReasoningDraft: reasoningContent.String(),
+					SleepToolCall:       cloneWannaSleepToolCall(turnToolCalls),
 				}
 				msg := &types.Message{
 					ID:        streamMessageID,
@@ -583,12 +583,17 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				consecutiveTransitionFailures = 0
 				continue
 			}
-		} else if strings.TrimSpace(turnContent.String()) != "" || reasoningContent.Len() > 0 {
-			sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role:             types.RoleAssistant,
-				Content:          turnContent.String(),
-				ReasoningContent: reasoningContent.String(),
-			})
+		} else if strings.TrimSpace(turnContent.String()) != "" {
+			// stop 后纯文本输出忽略不上文，避免上下文膨胀，留待工具提示引导模型使用工具
+			if !wannaSpeakTracker.IsPostStop() {
+				sage.AddToContextWithSession(sessionId, types.ContextMessage{
+					Role:             types.RoleAssistant,
+					Content:          turnContent.String(),
+					ReasoningContent: reasoningContent.String(),
+				})
+			}
+		} else if reasoningContent.Len() > 0 {
+			// 纯 reasoning_content 无 content 无 tool_calls：剔除不上文，让模型重试
 		}
 
 		if wannaSpeakTracker.ShouldInjectContinuationPrompt() {
@@ -597,7 +602,12 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				Content: wannaSpeakTracker.BuildContinuationPrompt(),
 			})
 		}
-
+		if len(turnToolCalls) == 0 {
+			sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: "本次回复未检测到工具调用。你必须调用工具才能输出内容，否则响应将被系统拒绝。",
+			})
+		}
 		if !turnMadeProgress {
 			consecutiveTransitionFailures++
 		} else {
@@ -715,6 +725,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 	if toolSetHasAllFunctionTools(effectiveTools, config.NoteByIDReadToolName) {
 		noteReadExecutor := newNoteByIDReadToolResultExecutor()
 		executors = append(executors, noteReadExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.PersistSessionMemoryToolName, config.RecallCrossSessionMemoriesToolName) {
+		crossSessionExecutor := newCrossSessionMemoryToolExecutor(sage.GetName())
+		executors = append(executors, crossSessionExecutor.ExecuteToolCall)
 	}
 	if len(executors) == 0 {
 		return nil
@@ -1038,7 +1052,23 @@ func (t *wannaSpeakStateTracker) HasCapturedContent() bool {
 }
 
 func (t *wannaSpeakStateTracker) ShouldInjectContinuationPrompt() bool {
-	return t.phase == coreSagePhaseSpeaking && t.capturing
+	if t.phase == coreSagePhaseCompleted {
+		return false
+	}
+	// 整个表达态（包括 stop 后）都需要引导
+	return t.phase == coreSagePhaseSpeaking
+}
+
+func (t *wannaSpeakStateTracker) HasNoExpressionProgress() bool {
+	return t.phase == coreSagePhaseReadThink &&
+		t.startCount == 0 &&
+		t.continueCount == 0 &&
+		t.stopCount == 0 &&
+		!t.capturing
+}
+
+func (t *wannaSpeakStateTracker) IsPostStop() bool {
+	return t.phase == coreSagePhaseSpeaking && !t.capturing && t.startCount > 0 && t.startCount == t.stopCount
 }
 
 func (t *wannaSpeakStateTracker) BuildContinuationPrompt() string {

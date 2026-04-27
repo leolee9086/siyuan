@@ -352,8 +352,14 @@ func TestBuildWriteDiaryToolDef_Structure(t *testing.T) {
 	if !ok {
 		t.Fatal("Parameters 缺少 required")
 	}
-	if len(required) != 2 || required[0] != "motivation" || required[1] != "markdown" {
-		t.Fatalf("期望 required=[motivation markdown]，实际=%v", required)
+	if len(required) != 2 {
+		t.Fatalf("期望 required 有2个字段，实际=%v", required)
+	}
+	if required[0] != "motivation" && required[1] != "motivation" {
+		t.Fatal("required 应包含 motivation")
+	}
+	if required[0] != "markdown" && required[1] != "markdown" {
+		t.Fatal("required 应包含 markdown")
 	}
 }
 

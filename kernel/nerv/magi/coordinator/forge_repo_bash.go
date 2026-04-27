@@ -19,6 +19,7 @@ type forgeDevRepoBashArgs struct {
 	Command     string `json:"command"`
 	Timeout     int    `json:"timeout"`
 	Description string `json:"description"`
+	Motivation  string `json:"motivation"`
 }
 
 // forgeDevRepoBashPayload 是 forge_dev_repo_bash 工具结果结构

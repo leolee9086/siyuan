@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	dominantElectionTimeout    = 30 * time.Second
+	dominantElectionTimeout    = 120 * time.Second
 	maxDominantElectionRetries = 2
 )
 
@@ -37,6 +37,7 @@ type dominantVoteScore struct {
 type dominantVotePayload struct {
 	Scores []dominantVoteScore `json:"scores"`
 	Reason string              `json:"reason"`
+	Doubts []string            `json:"doubts"`
 }
 
 type DominantElectionVote struct {
@@ -46,6 +47,7 @@ type DominantElectionVote struct {
 	SocialRelation   int
 	SelfName         int
 	Reason           string
+	Doubts           []string
 }
 
 type DominantElectionResult struct {
@@ -250,7 +252,7 @@ func scoreDominantCandidate(
 		sessionID,
 		types.ContextMessage{
 			Role:    types.RoleSystem,
-			Content: prompts.BuildDominantElectionSystemPrompt(voter.GetDisplayName()),
+			Content: prompts.BuildDominantElectionSystemPrompt(),
 		},
 		types.ContextMessage{
 			Role:    types.RoleUser,
@@ -349,6 +351,12 @@ func finalizeDominantVote(
 		return nil, fmt.Errorf("[%s] dominant election payload invalid: %w", displayName, err)
 	}
 
+	doubts := make([]string, 0, len(payload.Doubts))
+	for _, d := range payload.Doubts {
+		if trimmed := strings.TrimSpace(d); trimmed != "" {
+			doubts = append(doubts, trimmed)
+		}
+	}
 	return &DominantElectionVote{
 		VoterSeelName:    voterName,
 		VoterDisplayName: displayName,
@@ -356,6 +364,7 @@ func finalizeDominantVote(
 		SocialRelation:   scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
 		SelfName:         scoreByKey[string(marduk.CognitiveStanceSelfName)],
 		Reason:           strings.TrimSpace(payload.Reason),
+		Doubts:           doubts,
 	}, nil
 }
 

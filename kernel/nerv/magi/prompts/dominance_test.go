@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuildDominantElectionSystemPrompt_AvoidsOutOfBandConcepts(t *testing.T) {
-	prompt := BuildDominantElectionSystemPrompt("Melchior")
+	prompt := BuildDominantElectionSystemPrompt()
 
 	disallowed := []string{
 		"贤者",
@@ -19,6 +19,12 @@ func TestBuildDominantElectionSystemPrompt_AvoidsOutOfBandConcepts(t *testing.T)
 		"只输出 JSON",
 		`"candidate"`,
 		`"score"`,
+		"Melchior",
+		"Balthazar",
+		"Casper",
+		"梅尔基奥",
+		"巴尔萨泽",
+		"卡斯帕",
 	}
 	for _, token := range disallowed {
 		if strings.Contains(prompt, token) {

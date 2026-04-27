@@ -6,14 +6,14 @@ import (
 )
 
 // BuildDominantElectionSystemPrompt 构建主导者选举评分提示。
-func BuildDominantElectionSystemPrompt(displayName string) string {
-	return fmt.Sprintf(`你是 %s。
-你现在只需要根据当前情景，判断接下来给出的描述分别有多适合由你优先采取行动。
+// 身份已在 wakeup 序列中建立，提示词不重复提及名字。
+func BuildDominantElectionSystemPrompt() string {
+	return `你现在只需要根据当前情景，判断接下来给出的描述分别有多适合由你优先采取行动。
 
 严格要求：
 1. 各段描述会直接给出，你只能对它们打分，不允许改写、补充或发明新的描述。
 2. 分数越高，表示该描述下的你越适合在当前情景中优先采取行动。
-3. reason 不超过 48 个字。`, displayName)
+3. reason 不超过 48 个字。`
 }
 
 // BuildDominantElectionUserInput 构建主导者选举用户输入。
