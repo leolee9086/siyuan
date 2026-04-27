@@ -58,7 +58,20 @@ func BuildSourceAwareUserInputWithRuntimeAndRecall(
 	workspaceSnapshot map[string]interface{},
 	passiveRecall interface{},
 ) string {
-	blocks := make([]string, 0, 6)
+	return BuildSourceAwareUserInputFull(userMessage, sourcePayload, claimedRecentHistory, runtimeClock, workspaceSnapshot, passiveRecall, "")
+}
+
+// BuildSourceAwareUserInputFull 构建完整用户输入封装，带可选的 identity_declaration 块。
+func BuildSourceAwareUserInputFull(
+	userMessage string,
+	sourcePayload map[string]interface{},
+	claimedRecentHistory interface{},
+	runtimeClock map[string]interface{},
+	workspaceSnapshot map[string]interface{},
+	passiveRecall interface{},
+	identityDeclaration string,
+) string {
+	blocks := make([]string, 0, 7)
 
 	if runtimeJSON, ok := marshalEnvelope(runtimeClock); ok {
 		blocks = append(blocks, fmt.Sprintf("<runtime_clock>%s</runtime_clock>", runtimeJSON))
@@ -71,8 +84,13 @@ func BuildSourceAwareUserInputWithRuntimeAndRecall(
 	if err != nil {
 		panic(fmt.Errorf("request_source is required and must be JSON serializable: %w", err))
 	}
-
 	blocks = append(blocks, fmt.Sprintf("<request_source>%s</request_source>", string(raw)))
+
+	identityDeclaration = strings.TrimSpace(identityDeclaration)
+	if identityDeclaration != "" {
+		blocks = append(blocks, identityDeclaration)
+	}
+
 	if claimedHistoryJSON, ok := marshalEnvelopeValue(claimedRecentHistory); ok {
 		blocks = append(blocks, fmt.Sprintf("<claimed_recent_history>%s</claimed_recent_history>", claimedHistoryJSON))
 	}
@@ -81,6 +99,40 @@ func BuildSourceAwareUserInputWithRuntimeAndRecall(
 	}
 	blocks = append(blocks, fmt.Sprintf("<source=user_message>\n%s\n</source>", userMessage))
 	return strings.Join(blocks, "\n")
+}
+
+// BuildIdentityDeclarationBlock 构建身份声明块，仅包含系统认证的客观调用者信息。
+// 不做语义映射和称呼推断——MAGI 需自行根据声明和语义判断调用者身份是否可信。
+func BuildIdentityDeclarationBlock(identityID, authStrength, channel, trustBase, interfaceKind string) string {
+	identityID = strings.TrimSpace(identityID)
+	if identityID == "" {
+		return ""
+	}
+	authStrength = strings.TrimSpace(authStrength)
+	if authStrength == "" {
+		authStrength = "unknown"
+	}
+	channel = strings.TrimSpace(channel)
+	trustBase = strings.TrimSpace(trustBase)
+	interfaceKind = strings.TrimSpace(interfaceKind)
+
+	lines := []string{
+		"<identity_declaration>",
+		fmt.Sprintf("调用者: %s", identityID),
+		fmt.Sprintf("认证强度: %s", authStrength),
+	}
+	if channel != "" {
+		lines = append(lines, fmt.Sprintf("通道: %s", channel))
+	}
+	if trustBase != "" {
+		lines = append(lines, fmt.Sprintf("信任等级: %s", trustBase))
+	}
+	if interfaceKind != "" {
+		lines = append(lines, fmt.Sprintf("接口: %s", interfaceKind))
+	}
+	lines = append(lines, "</identity_declaration>")
+
+	return strings.Join(lines, "\n")
 }
 
 func marshalEnvelope(payload map[string]interface{}) (string, bool) {

@@ -369,13 +369,21 @@ func (c *Coordinator) buildSourceAwareUserInputWithRoundOrdinal(
 	if sourceContent == "" {
 		sourceContent = buildClaimedHistoryInstruction(speakerLabel)
 	}
-	return prompts.BuildSourceAwareUserInputWithRuntimeAndRecall(
+	identityDecl := prompts.BuildIdentityDeclarationBlock(
+		loginIdentity,
+		string(sourceCtx.AuthStrength),
+		string(sourceCtx.Channel),
+		string(sourceCtx.TrustBase),
+		sourceCtx.InterfaceKind,
+	)
+	return prompts.BuildSourceAwareUserInputFull(
 		sourceContent,
 		payload,
 		claimedHistoryPayload,
 		runtimeClock,
 		workspaceSnapshot,
 		passiveRecall,
+		identityDecl,
 	)
 }
 
