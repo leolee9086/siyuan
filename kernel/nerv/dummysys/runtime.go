@@ -2,12 +2,12 @@ package dummysys
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util/stream"
@@ -49,6 +49,13 @@ type AvatarConfig struct {
 	SystemPrompt            string
 	ExposureMode            ExposureMode
 	HeartbeatIntervalRounds int
+	ReportCallback          ReportCallback
+	Identity                AvatarIdentity
+}
+
+// HasIdentity returns true if the config has a valid identity set.
+func (c AvatarConfig) HasIdentity() bool {
+	return c.Identity.ModelID != "" && IsValidAvatarModelID(c.Identity.ModelID)
 }
 
 // AvatarDescriptor represents a single Avatar execution entity
@@ -59,6 +66,8 @@ type AvatarDescriptor struct {
 	context               []types.ContextMessage
 	contextMutex          sync.RWMutex
 	stateMutex            sync.RWMutex
+	reportsMu             sync.RWMutex
+	reports               []ReportEvent
 	createdAt             time.Time
 	lastActiveAt          time.Time
 	lastHeartbeatAt       time.Time
@@ -74,8 +83,8 @@ func NewAvatar(config AvatarConfig, llmClient llm.Client) (*AvatarDescriptor, er
 	if config.Channel == "" {
 		return nil, fmt.Errorf("channel is required")
 	}
-	if config.SystemPrompt == "" {
-		return nil, fmt.Errorf("systemPrompt is required")
+	if config.SystemPrompt == "" && !config.HasIdentity() {
+		return nil, fmt.Errorf("systemPrompt or Identity is required")
 	}
 	if llmClient == nil {
 		return nil, fmt.Errorf("llmClient is required")
@@ -94,11 +103,23 @@ func NewAvatar(config AvatarConfig, llmClient llm.Client) (*AvatarDescriptor, er
 		roundsSinceMetaReport: 0,
 	}
 
-	// Add system prompt to context
-	avatar.context = append(avatar.context, types.ContextMessage{
-		Role:    "system",
-		Content: config.SystemPrompt,
-	})
+	// 身份锚定提示词 - 始终最先注入，不可覆盖
+	// 即使外部系统传入冲突的 system prompt，身份认知依然优先
+	if config.HasIdentity() {
+		identityPrompt := config.Identity.BuildIdentityPrompt()
+		avatar.context = append(avatar.context, types.ContextMessage{
+			Role:    "system",
+			Content: identityPrompt,
+		})
+	}
+
+	// 外部系统提示词 - 在身份锚定之后注入
+	if config.SystemPrompt != "" {
+		avatar.context = append(avatar.context, types.ContextMessage{
+			Role:    "system",
+			Content: config.SystemPrompt,
+		})
+	}
 
 	return avatar, nil
 }
@@ -141,88 +162,121 @@ func (a *AvatarDescriptor) AddToContext(message types.ContextMessage) {
 	a.context = append(a.context, message)
 }
 
-// ProcessMessage processes a user message and returns the Avatar's response
+// ProcessMessage processes a user message and returns the Avatar's response.
+// The method transparently handles internal report_to_core calls:
+// if the LLM only calls internal tools without generating content,
+// it automatically continues the conversation until a meaningful response is obtained.
 func (a *AvatarDescriptor) ProcessMessage(ctx context.Context, userMessage string) (*types.StreamResult, error) {
-	// Check if Avatar is destroyed
+	return a.ProcessMessageWithTools(ctx, userMessage, nil)
+}
+
+// ProcessMessageWithTools processes a user message with external tool definitions.
+// External tools (from the caller, e.g. RooCode) are merged with the internal
+// report_to_core tool and passed to the underlying LLM together.
+// Internal tool calls are intercepted and stripped from the response.
+func (a *AvatarDescriptor) ProcessMessageWithTools(ctx context.Context, userMessage string, externalTools []openai.Tool) (*types.StreamResult, error) {
+	fullContext := a.GetContext()
+	allTools := a.buildAllTools(externalTools)
+	return a.streamAndFilter(ctx, fullContext, allTools)
+}
+
+// ProcessExternalMessages processes a list of external messages (from RooCode etc.)
+// prepended with the Avatar's identity and system prompts.
+// External tools are merged with the internal report_to_core tool.
+func (a *AvatarDescriptor) ProcessExternalMessages(ctx context.Context, externalMessages []types.ContextMessage, externalTools []openai.Tool) (*types.StreamResult, error) {
+	// Start with identity prompt + system prompt (from NewAvatar)
+	baseContext := a.GetContext()
+
+	// Append external messages (user, assistant tool calls, tool results)
+	fullContext := make([]types.ContextMessage, len(baseContext)+len(externalMessages))
+	copy(fullContext, baseContext)
+	copy(fullContext[len(baseContext):], externalMessages)
+
+	allTools := a.buildAllTools(externalTools)
+	return a.streamAndFilter(ctx, fullContext, allTools)
+}
+
+func (a *AvatarDescriptor) buildAllTools(externalTools []openai.Tool) []openai.Tool {
+	reportTool := BuildReportToolDefinition()
+	if len(externalTools) == 0 {
+		return []openai.Tool{reportTool}
+	}
+	merged := make([]openai.Tool, 0, 1+len(externalTools))
+	merged = append(merged, reportTool)
+	merged = append(merged, externalTools...)
+	return merged
+}
+
+func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types.ContextMessage, allTools []openai.Tool) (*types.StreamResult, error) {
 	if a.GetState() == AvatarStateDestroyed {
 		return nil, fmt.Errorf("avatar is destroyed")
 	}
 
-	// Transition to active state
 	a.SetState(AvatarStateActive)
 	defer a.SetState(AvatarStateIdle)
 
-	// Increment round count
 	a.roundsSinceMetaReport++
 
-	// Add user message to context
-	a.AddToContext(types.ContextMessage{
-		Role:    "user",
-		Content: userMessage,
-	})
-
-	// Call LLM with current context
-	messages := a.GetContext()
-	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("avatar llm call failed: %w", err)
-	}
-
-	// 使用通用流式处理器
-	processor := stream.NewProcessor()
-	for {
+	for attempt := 0; attempt < 3; attempt++ {
 		select {
-		case chunk, ok := <-chunkChan:
-			if !ok {
-				// 流结束，获取结果
-				utilResult := processor.GetResult(true)
-				result := convertToMagiStreamResult(utilResult)
-
-				if result == nil {
-					return nil, fmt.Errorf("avatar llm returned nil result")
-				}
-				if !result.Success {
-					return nil, fmt.Errorf("avatar llm returned unsuccessful result")
-				}
-				if strings.TrimSpace(result.Content) == "" && !result.HasToolCalls {
-					return nil, fmt.Errorf("avatar llm returned empty content")
-				}
-
-				// Add assistant response to context
-				if result.Content != "" {
-					a.AddToContext(types.ContextMessage{
-						Role:    "assistant",
-						Content: result.Content,
-					})
-				}
-
-				// Parse tool calls to detect heartbeat
-				if result.HasToolCalls {
-					a.parseToolCallsForHeartbeat(result)
-				}
-
-				return result, nil
-			}
-
-			if len(chunk.Choices) == 0 {
-				continue
-			}
-
-			choice := chunk.Choices[0]
-
-			// 累积内容
-			processor.AccumulateContent(choice.Delta.Content)
-
-			// 转换并合并工具调用
-			if len(choice.Delta.ToolCalls) > 0 {
-				utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
-				processor.MergeToolCalls(utilToolCalls)
-			}
-
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		default:
+		}
+
+		chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, allTools, nil)
+		if err != nil {
+			return nil, fmt.Errorf("avatar llm call failed: %w", err)
+		}
+
+		processor := stream.NewProcessor()
+	streamLoop:
+		for {
+			select {
+			case chunk, ok := <-chunkChan:
+				if !ok {
+					utilResult := processor.GetResult(true)
+					result := convertToMagiStreamResult(utilResult)
+					if result == nil {
+						return nil, fmt.Errorf("avatar llm returned nil result")
+					}
+					if !result.Success {
+						return nil, fmt.Errorf("avatar llm returned unsuccessful result")
+					}
+
+					filtered := a.filterAndHandleReports(result)
+
+					if strings.TrimSpace(filtered.Content) != "" || filtered.HasToolCalls {
+						return filtered, nil
+					}
+
+					suffix := types.ContextMessage{
+						Role:    "system",
+						Content: "你刚才只完成了汇报。现在请回复用户的消息。",
+					}
+					messages = append(messages, suffix)
+					break streamLoop
+				}
+
+				if len(chunk.Choices) == 0 {
+					continue
+				}
+
+				choice := chunk.Choices[0]
+				processor.AccumulateContent(choice.Delta.Content)
+
+				if len(choice.Delta.ToolCalls) > 0 {
+					utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
+					processor.MergeToolCalls(utilToolCalls)
+				}
+
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 	}
+
+	return nil, fmt.Errorf("avatar failed to produce content after multiple attempts")
 }
 
 // convertToolCallDeltas 转换工具调用增量类型
@@ -277,7 +331,6 @@ func (a *AvatarDescriptor) processMessageOld(ctx context.Context) (*types.Stream
 		return nil, fmt.Errorf("avatar llm returned empty content")
 	}
 
-	// Add assistant response to context
 	if result.Content != "" {
 		a.AddToContext(types.ContextMessage{
 			Role:    "assistant",
@@ -285,37 +338,68 @@ func (a *AvatarDescriptor) processMessageOld(ctx context.Context) (*types.Stream
 		})
 	}
 
-	// Parse tool calls to detect heartbeat
 	if result.HasToolCalls {
-		a.parseToolCallsForHeartbeat(result)
+		a.filterAndHandleReports(result)
 	}
 
 	return result, nil
 }
 
-// parseToolCallsForHeartbeat checks if report_to_core(type="heartbeat") was called
-func (a *AvatarDescriptor) parseToolCallsForHeartbeat(result *types.StreamResult) {
-	if result.ToolArgumentsByName == nil {
-		return
+// GetReports returns all intercepted reports since the last check
+func (a *AvatarDescriptor) GetReports() []ReportEvent {
+	a.reportsMu.RLock()
+	defer a.reportsMu.RUnlock()
+	reportsCopy := make([]ReportEvent, len(a.reports))
+	copy(reportsCopy, a.reports)
+	return reportsCopy
+}
+
+// filterAndHandleReports strips internal report_to_core tool calls from the result,
+// handles them locally (heartbeat reset, callback), and returns the filtered result.
+func (a *AvatarDescriptor) filterAndHandleReports(result *types.StreamResult) *types.StreamResult {
+	if result == nil || !result.HasToolCalls || result.ToolArgumentsByName == nil {
+		return result
 	}
 
-	reportArgs, exists := result.ToolArgumentsByName["report_to_core"]
-	if !exists {
-		return
+	rawArgs, hasReport := result.ToolArgumentsByName[ReportToolName]
+	if !hasReport {
+		return result
 	}
 
-	for _, argJSON := range reportArgs {
-		var args struct {
-			Type string `json:"type"`
-		}
-		if err := json.Unmarshal([]byte(argJSON), &args); err != nil {
-			continue
-		}
-		if args.Type == "heartbeat" {
-			a.updateLastHeartbeat()
-			return
+	// Parse and store reports
+	events := parseReportPayloads(rawArgs)
+	if len(events) > 0 {
+		a.reportsMu.Lock()
+		a.reports = append(a.reports, events...)
+		a.reportsMu.Unlock()
+
+		// Handle heartbeat and invoke callback
+		for _, ev := range events {
+			if ev.Payload.Type == ReportTypeHeartbeat {
+				a.updateLastHeartbeat()
+			}
+			if a.config.ReportCallback != nil {
+				a.config.ReportCallback(ev)
+			}
 		}
 	}
+
+	// Remove report_to_core from ToolCallNames
+	filteredNames := make([]string, 0, len(result.ToolCallNames))
+	for _, name := range result.ToolCallNames {
+		if name != ReportToolName {
+			filteredNames = append(filteredNames, name)
+		}
+	}
+	result.ToolCallNames = filteredNames
+
+	// Remove report_to_core from ToolArgumentsByName
+	delete(result.ToolArgumentsByName, ReportToolName)
+
+	// Update HasToolCalls
+	result.HasToolCalls = len(result.ToolCallNames) > 0
+
+	return result
 }
 
 // CheckHeartbeatTimeout checks if the Avatar has exceeded the heartbeat interval
@@ -339,6 +423,24 @@ func (a *AvatarDescriptor) Destroy() {
 	a.SetState(AvatarStateDestroyed)
 	now := time.Now()
 	a.destroyedAt = &now
+}
+
+// GetIdentity returns the avatar's identity information
+func (a *AvatarDescriptor) GetIdentity() AvatarIdentity {
+	return a.config.Identity
+}
+
+// IdentityDisplay returns a human-readable identity string
+func (a *AvatarDescriptor) IdentityDisplay() string {
+	if !a.config.HasIdentity() {
+		return ""
+	}
+	model, ok := a.config.Identity.ResolveModel()
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s(%s) #%d @ %s",
+		model.Name, model.ID, a.config.Identity.Instance, a.config.Channel)
 }
 
 // GetRoundsSinceMetaReport returns the number of rounds since last meta report

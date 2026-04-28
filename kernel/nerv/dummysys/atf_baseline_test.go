@@ -35,6 +35,10 @@ func (m *baselineMockLLMClient) SendChatRequestSync(ctx context.Context, message
 	return m.response, nil
 }
 
+func (m *baselineMockLLMClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
+	return &types.SyncChatResult{Content: m.response}, m.err
+}
+
 func (m *baselineMockLLMClient) GetModel() string {
 	return "gpt-4"
 }

@@ -300,10 +300,18 @@ func convertToOpenAIMessages(messages []types.ContextMessage) []openai.ChatCompl
 	var result []openai.ChatCompletionMessage
 
 	for _, msg := range messages {
+		reasoningContent := msg.ReasoningContent
+		// DeepSeek thinking mode requires reasoning_content to be present
+		// for assistant messages with tool_calls. Ensure it's never empty
+		// so the JSON serialization always includes the field.
+		if reasoningContent == "" && msg.Role == types.RoleAssistant && len(msg.ToolCalls) > 0 {
+			reasoningContent = " "
+		}
+
 		oaiMsg := openai.ChatCompletionMessage{
 			Role:             string(msg.Role),
 			Content:          msg.Content,
-			ReasoningContent: msg.ReasoningContent,
+			ReasoningContent: reasoningContent,
 		}
 
 		// 转换tool_calls
