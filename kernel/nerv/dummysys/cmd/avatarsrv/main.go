@@ -391,10 +391,16 @@ func handleChatCompletions(
 			Channel:  channel,
 		},
 		ReportCallback: func(ev dummysys.ReportEvent) {
-			if showReports {
-				log.Printf("[REPORT] type=%s env=%q lessons=%q urgency=%s",
-					ev.Payload.Type, ev.Payload.Environment, ev.Payload.Lessons, ev.Payload.Urgency)
+			log.Printf("\n========================================")
+			log.Printf("[REPORT] === 织(ZHI-01) #3 向 MAGI 回报 ===")
+			log.Printf("[REPORT] 类型:     %s", ev.Payload.Type)
+			log.Printf("[REPORT] 环境:     %s", ev.Payload.Environment)
+			log.Printf("[REPORT] 教训:     %s", ev.Payload.Lessons)
+			if ev.Payload.Content != "" {
+				log.Printf("[REPORT] 补充内容: %s", ev.Payload.Content)
 			}
+			log.Printf("[REPORT] 紧急程度: %s", ev.Payload.Urgency)
+			log.Printf("========================================\n")
 		},
 	}, client)
 	if err != nil {
@@ -403,8 +409,8 @@ func handleChatCompletions(
 	}
 
 	if showReports {
-		log.Printf("[AVATAR] %s | context msgs: %d external msgs: %d",
-			avatar.IdentityDisplay(), len(avatar.GetContext()), len(externalMessages))
+		log.Printf("[AVATAR] %s | context msgs: %d external msgs: %d tools: %d",
+			avatar.IdentityDisplay(), len(avatar.GetContext()), len(externalMessages), len(externalTools))
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
@@ -412,17 +418,9 @@ func handleChatCompletions(
 
 	result, err := avatar.ProcessExternalMessages(ctx, externalMessages, externalTools)
 	if err != nil {
+		log.Printf("[AVATAR_ERROR] %v", err)
 		http.Error(w, fmt.Sprintf("avatar processing failed: %v", err), http.StatusInternalServerError)
 		return
-	}
-
-	if showReports {
-		reports := avatar.GetReports()
-		if len(reports) > 0 {
-			for _, rpt := range reports {
-				log.Printf("[REPORT] %s: env=%q", rpt.Payload.Type, rpt.Payload.Environment)
-			}
-		}
 	}
 
 	if req.Stream {

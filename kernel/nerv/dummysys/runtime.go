@@ -207,6 +207,20 @@ func (a *AvatarDescriptor) buildAllTools(externalTools []openai.Tool) []openai.T
 	return merged
 }
 
+func buildExternalToolsOnly(allTools []openai.Tool) []openai.Tool {
+	if len(allTools) <= 1 {
+		return nil
+	}
+	result := make([]openai.Tool, 0, len(allTools)-1)
+	for _, t := range allTools {
+		if t.Function != nil && t.Function.Name == ReportToolName {
+			continue
+		}
+		result = append(result, t)
+	}
+	return result
+}
+
 func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types.ContextMessage, allTools []openai.Tool) (*types.StreamResult, error) {
 	if a.GetState() == AvatarStateDestroyed {
 		return nil, fmt.Errorf("avatar is destroyed")
@@ -224,7 +238,15 @@ func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types
 		default:
 		}
 
-		chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, allTools, nil)
+		// 重试时移除 report_to_core 工具，仅保留外部工具
+		// 这样 LLM 无法再次调 report_to_core，必须使用外部工具或回复内容
+		tools := allTools
+		noRetryMsg := "你刚才只完成了汇报，这不是系统想要的第一回复。请直接回复用户或调用可用的外部工具。"
+		if attempt >= 1 {
+			tools = buildExternalToolsOnly(allTools)
+		}
+
+		chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, tools, nil)
 		if err != nil {
 			return nil, fmt.Errorf("avatar llm call failed: %w", err)
 		}
@@ -250,11 +272,10 @@ func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types
 						return filtered, nil
 					}
 
-					suffix := types.ContextMessage{
+					messages = append(messages, types.ContextMessage{
 						Role:    "system",
-						Content: "你刚才只完成了汇报。现在请回复用户的消息。",
-					}
-					messages = append(messages, suffix)
+						Content: noRetryMsg,
+					})
 					break streamLoop
 				}
 
