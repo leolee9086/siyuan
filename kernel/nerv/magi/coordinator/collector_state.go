@@ -188,7 +188,7 @@ func (t *wannaSpeakStateTracker) BuildContinuationPrompt() string {
 	}
 	if t.capturing || t.startCount > t.stopCount {
 		return fmt.Sprintf(
-			"你已进入内部表达状态。请继续调用 %s 追加内容，结束时必须调用 %s。",
+			"你已进入流式回复状态,输出内容将会推送给消息接收方。请继续调用 %s 追加内容，结束时必须调用 %s。",
 			config.WannaSpeakContinueToolName,
 			config.WannaSpeakStopToolName,
 		)

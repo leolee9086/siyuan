@@ -19,11 +19,11 @@ const (
 	SpeakContinueToolName = config.SpeakContinueToolName
 	// SpeakStopToolName 对外表达结束工具名称。
 	SpeakStopToolName = config.SpeakStopToolName
-	// SpeakInternalStartToolName 内部表达开始工具名称。
+	// SpeakInternalStartToolName 流式输出开始工具名称。
 	SpeakInternalStartToolName = config.SpeakInternalStartToolName
-	// SpeakInternalContinueToolName 内部表达续写工具名称。
+	// SpeakInternalContinueToolName 流式输出续写工具名称。
 	SpeakInternalContinueToolName = config.SpeakInternalContinueToolName
-	// SpeakInternalStopToolName 内部表达结束工具名称。
+	// SpeakInternalStopToolName 流式输出结束工具名称。
 	SpeakInternalStopToolName = config.SpeakInternalStopToolName
 	// DeliberationSignalToolName 审慎决策信号工具名称
 	DeliberationSignalToolName = "deliberation_signal"
