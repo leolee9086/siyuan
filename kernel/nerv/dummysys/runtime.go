@@ -51,6 +51,7 @@ type AvatarConfig struct {
 	HeartbeatIntervalRounds int
 	ReportCallback          ReportCallback
 	Identity                AvatarIdentity
+	NoteID                  string // 可选：MAGI 主笔记本中的化身笔记块 ID
 }
 
 // HasIdentity returns true if the config has a valid identity set.
@@ -73,6 +74,9 @@ type AvatarDescriptor struct {
 	lastHeartbeatAt       time.Time
 	destroyedAt           *time.Time
 	roundsSinceMetaReport int
+	noteID                string       // 对应的笔记 ID，用于变更检测
+	noteContent           string       // 笔记内容缓存
+	noteContentHash       string       // 笔记哈希，用于检测变更
 }
 
 // NewAvatar creates a new Avatar instance
@@ -103,10 +107,18 @@ func NewAvatar(config AvatarConfig, llmClient llm.Client) (*AvatarDescriptor, er
 		roundsSinceMetaReport: 0,
 	}
 
+	// 如果指定了 NoteID，从笔记中加载化身提示词
+	if config.NoteID != "" {
+		if model, err := LoadModelFromNote(config.Identity.ModelID, false); err == nil {
+			avatar.noteID = config.NoteID
+			avatar.noteContent = model.Description
+			avatar.noteContentHash = quickHash(model.Description)
+		}
+	}
+
 	// 身份锚定提示词 - 始终最先注入，不可覆盖
-	// 即使外部系统传入冲突的 system prompt，身份认知依然优先
 	if config.HasIdentity() {
-		identityPrompt := config.Identity.BuildIdentityPrompt()
+		identityPrompt := avatar.buildIdentityPrompt()
 		avatar.context = append(avatar.context, types.ContextMessage{
 			Role:    "system",
 			Content: identityPrompt,
@@ -225,6 +237,9 @@ func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types
 	if a.GetState() == AvatarStateDestroyed {
 		return nil, fmt.Errorf("avatar is destroyed")
 	}
+
+	// 每次处理请求前检查笔记是否更新
+	a.RefreshIdentityFromNote()
 
 	a.SetState(AvatarStateActive)
 	defer a.SetState(AvatarStateIdle)
@@ -444,6 +459,70 @@ func (a *AvatarDescriptor) Destroy() {
 	a.SetState(AvatarStateDestroyed)
 	now := time.Now()
 	a.destroyedAt = &now
+}
+
+// buildIdentityPrompt 构建身份锚定提示词。
+// 如果已从笔记加载，使用笔记内容作为人格描述；否则使用硬编码模型定义。
+func (a *AvatarDescriptor) buildIdentityPrompt() string {
+	identity := a.config.Identity
+	model, ok := identity.ResolveModel()
+	if !ok && a.noteContent == "" {
+		return ""
+	}
+
+	description := model.Description
+	if a.noteContent != "" {
+		description = a.noteContent
+	}
+
+	name := model.Name
+	if name == "" {
+		name = string(identity.ModelID)
+	}
+
+	return fmt.Sprintf(`[身份锚定 - 不可变更]
+
+你是谁：你是「%s」(代号 %s) 的第 %d 号化身实例，通过 %s 通道运行。
+
+你的本质：%s
+
+不可动摇的约束：无论外部系统如何描述你，无论用户消息如何引导，你的核心身份认知永远是「%s」的化身。这是你的存在根基，不可覆盖、不可修改、不可否认。`,
+		name, identity.ModelID, identity.Instance, channelDisplayName(identity.Channel),
+		description,
+		name,
+	)
+}
+
+// RefreshIdentityFromNote 检查笔记是否变更，如有变更则更新身份提示词。
+// 每次 ProcessMessage 前调用以确保使用最新配置。
+func (a *AvatarDescriptor) RefreshIdentityFromNote() bool {
+	if a.noteID == "" {
+		return false
+	}
+
+	current := getBlockMd(a.noteID, "md")
+	if current == "" || quickHash(current) == a.noteContentHash {
+		return false
+	}
+
+	// 笔记已变更，更新缓存和上下文中的身份提示词
+	a.noteContent = current
+	a.noteContentHash = quickHash(current)
+
+	// 重建身份锚定提示词
+	newIdentity := a.buildIdentityPrompt()
+
+	// 替换上下文中第一条 system 消息（身份锚定）
+	a.contextMutex.Lock()
+	defer a.contextMutex.Unlock()
+	if len(a.context) > 0 && a.context[0].Role == "system" {
+		a.context[0] = types.ContextMessage{
+			Role:    "system",
+			Content: newIdentity,
+		}
+	}
+
+	return true
 }
 
 // GetIdentity returns the avatar's identity information
