@@ -139,7 +139,7 @@ import SourceSimulationPanels from "../components/source-sim-panels/SourceSimula
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
 import MagiMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
 import { getColor } from "../components/seel-panel/SeelPanel.ctx";
-import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
+import { MAGI_IDENTITY_REQUIRED_EVENT, MAGI_WRITE_AVATAR_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 
 /**
@@ -369,11 +369,20 @@ function handleIdentityRequiredEvent(): void {
     activeMainMode.value = "identity";
 }
 
+function handleWriteAvatarEvent(e: Event): void {
+    const prompt = (e as CustomEvent).detail;
+    if (typeof prompt === "string" && prompt.trim()) {
+        inputValue.value = prompt.trim();
+        activeMainMode.value = "chat";
+    }
+}
+
 onMounted(() => {
     if (typeof window === "undefined") {
         return;
     }
     window.addEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
+    window.addEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarEvent);
 });
 
 onBeforeUnmount(() => {
@@ -381,6 +390,7 @@ onBeforeUnmount(() => {
         return;
     }
     window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
+    window.removeEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarEvent);
 });
 
 const hasSeelCluster = computed<boolean>(() =>

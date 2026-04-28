@@ -5,151 +5,265 @@
     :class="{ 'magi-identity-panel--attention': attention }"
   >
     <header class="magi-identity-panel__header">
-      <div class="magi-identity-panel__title">IDENTITY ACCESS CONTROL</div>
-      <button
-        type="button"
-        class="magi-identity-panel__refresh"
-        :disabled="state.loading"
-        @click="onRefresh"
-      >
-        {{ state.loading ? "REFRESHING..." : "REFRESH" }}
-      </button>
+      <div class="magi-identity-panel__title">TOKEN MANAGEMENT</div>
+      <div class="magi-identity-panel__header-actions">
+        <button type="button" class="magi-identity-panel__btn" :disabled="loading" @click="onRefresh">
+          {{ loading ? "..." : "REFRESH" }}
+        </button>
+      </div>
     </header>
 
-    <div class="magi-identity-panel__content">
-      <section class="magi-identity-panel__block">
-        <div class="magi-identity-panel__block-title">MAIN PANEL SESSION</div>
-        <div v-if="state.activeSession" class="magi-identity-panel__session">
-          <div>ID: {{ state.activeSession.identityId }}</div>
-          <div>NICK: {{ state.activeSession.nickname }}</div>
-          <div>ROUTE: {{ state.activeSession.routeClass }}</div>
-          <div>CHANNEL: {{ state.activeSession.channel }}</div>
-          <div>EXPIRES: {{ formatExpireAt(state.activeSession.expiresAt) }}</div>
-          <button type="button" class="magi-identity-panel__danger" @click="onLogoutMainSession">
-            LOGOUT SESSION
-          </button>
-        </div>
-        <div v-else class="magi-identity-panel__hint">
-          No active MAGI armor session.
-        </div>
-      </section>
+    <!-- Stats Bar -->
+    <div v-if="stats" class="magi-identity-panel__stats">
+      <div class="magi-identity-panel__stat">
+        <span class="magi-identity-panel__stat-value">{{ stats.totalIdentities }}</span>
+        <span class="magi-identity-panel__stat-label">Identities</span>
+      </div>
+      <div class="magi-identity-panel__stat">
+        <span class="magi-identity-panel__stat-value">{{ stats.enabledCount }}</span>
+        <span class="magi-identity-panel__stat-label">Active</span>
+      </div>
+      <div class="magi-identity-panel__stat">
+        <span class="magi-identity-panel__stat-value">{{ stats.totalUsage }}</span>
+        <span class="magi-identity-panel__stat-label">Requests</span>
+      </div>
+    </div>
 
-      <section class="magi-identity-panel__block">
-        <div class="magi-identity-panel__block-title">LOGIN (MAIN CHAT)</div>
-        <label class="magi-identity-panel__label">
-          IDENTITY
-          <select v-model="loginForm.identityId" class="magi-identity-panel__select">
-            <option v-for="identity in state.identities" :key="identity.identityId" :value="identity.identityId">
-              {{ identity.identityId }} | {{ identity.routeClass }}
-            </option>
-          </select>
-        </label>
-        <label class="magi-identity-panel__label">
-          PASSWORD
-          <input v-model="loginForm.password" class="magi-identity-panel__input" type="password" />
-        </label>
-        <label class="magi-identity-panel__label">
-          NICKNAME
-          <input v-model="loginForm.nickname" class="magi-identity-panel__input" type="text" />
-        </label>
-        <label class="magi-identity-panel__label">
-          CHANNEL
-          <select v-model="loginForm.channel" class="magi-identity-panel__select">
-            <option v-for="channel in channelOptions" :key="channel" :value="channel">
-              {{ channel }}
-            </option>
-          </select>
-        </label>
-        <button type="button" class="magi-identity-panel__primary" :disabled="busy" @click="onLoginMainSession">
-          LOGIN & ACTIVATE
-        </button>
-      </section>
+    <div class="magi-identity-panel__columns">
+      <!-- Left Column: Session + Login -->
+      <div class="magi-identity-panel__col">
+        <!-- Active Session -->
+        <section class="magi-identity-panel__block">
+          <div class="magi-identity-panel__block-title">ACTIVE SESSION</div>
+          <div v-if="state.activeSession" class="magi-identity-panel__session">
+            <div class="magi-identity-panel__session-field">
+              <span class="magi-identity-panel__session-label">ID</span>
+              <span class="magi-identity-panel__session-value">{{ state.activeSession.identityId }}</span>
+            </div>
+            <div class="magi-identity-panel__session-field">
+              <span class="magi-identity-panel__session-label">Nick</span>
+              <span class="magi-identity-panel__session-value">{{ state.activeSession.nickname }}</span>
+            </div>
+            <div class="magi-identity-panel__session-field">
+              <span class="magi-identity-panel__session-label">Route</span>
+              <span class="magi-identity-panel__session-value">{{ state.activeSession.routeClass }}</span>
+            </div>
+            <div class="magi-identity-panel__session-field">
+              <span class="magi-identity-panel__session-label">Channel</span>
+              <span class="magi-identity-panel__session-value">{{ state.activeSession.channel }}</span>
+            </div>
+            <div class="magi-identity-panel__session-field">
+              <span class="magi-identity-panel__session-label">Expires</span>
+              <span class="magi-identity-panel__session-value">{{ fmtTime(state.activeSession.expiresAt) }}</span>
+            </div>
+            <div class="magi-identity-panel__session-token">
+              <span class="magi-identity-panel__session-label">Endpoint</span>
+              <code class="magi-identity-panel__token-key">{{ apiEndpoint }}</code>
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="onCopyEndpoint">COPY URL</button>
+            </div>
+            <div class="magi-identity-panel__session-token">
+              <span class="magi-identity-panel__session-label">Armor Token</span>
+              <code class="magi-identity-panel__token-key magi-identity-panel__token-full">{{ state.activeSession.armorToken }}</code>
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="onCopyToken">COPY</button>
+            </div>
+            <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--danger" @click="onLogout">
+              LOGOUT
+            </button>
+          </div>
+          <div v-else class="magi-identity-panel__hint">No active session.</div>
+        </section>
 
-      <section class="magi-identity-panel__block magi-identity-panel__block--wide">
-        <div class="magi-identity-panel__block-title">IDENTITY MANAGEMENT</div>
-        <div class="magi-identity-panel__grid">
+        <!-- Login -->
+        <section class="magi-identity-panel__block">
+          <div class="magi-identity-panel__block-title">LOGIN (MAIN CHAT)</div>
           <label class="magi-identity-panel__label">
-            IDENTITY ID
-            <input v-model="editForm.identityId" class="magi-identity-panel__input" type="text" />
-          </label>
-          <label class="magi-identity-panel__label">
-            DISPLAY NAME
-            <input v-model="editForm.displayName" class="magi-identity-panel__input" type="text" />
-          </label>
-          <label class="magi-identity-panel__label">
-            PASSWORD (OPTIONAL FOR UPDATE)
-            <input v-model="editForm.password" class="magi-identity-panel__input" type="password" />
-          </label>
-          <label class="magi-identity-panel__label">
-            ROUTE CLASS
-            <select v-model="editForm.routeClass" class="magi-identity-panel__select">
-              <option value="guardian">guardian</option>
-              <option value="avatar-only">avatar-only</option>
+            IDENTITY
+            <select v-model="loginForm.identityId" class="magi-identity-panel__select">
+              <option v-for="id in state.identities" :key="id.identityId" :value="id.identityId">
+                {{ id.identityId }} [{{ id.routeClass }}]
+              </option>
             </select>
           </label>
-          <label class="magi-identity-panel__check">
-            <input v-model="editForm.enabled" type="checkbox" />
-            ENABLED
+          <label class="magi-identity-panel__label">
+            PASSWORD
+            <input v-model="loginForm.password" class="magi-identity-panel__input" type="password" />
           </label>
-        </div>
-        <div class="magi-identity-panel__actions">
-          <button type="button" class="magi-identity-panel__primary" :disabled="busy" @click="onUpsertIdentity">
-            SAVE IDENTITY
+          <label class="magi-identity-panel__label">
+            CHANNEL
+            <select v-model="loginForm.channel" class="magi-identity-panel__select">
+              <option v-for="ch in channelOptions" :key="ch" :value="ch">{{ ch }}</option>
+            </select>
+          </label>
+          <label class="magi-identity-panel__label">
+            TOKEN EXPIRY
+            <select v-model="loginForm.expiresIn" class="magi-identity-panel__select">
+              <option :value="600">10 minutes</option>
+              <option :value="3600">1 hour</option>
+              <option :value="21600">6 hours</option>
+              <option :value="86400">24 hours</option>
+              <option :value="604800">7 days</option>
+              <option :value="2592000">30 days</option>
+              <option :value="0">Identity default</option>
+            </select>
+          </label>
+          <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--primary" :disabled="busy" @click="onLogin">
+            LOGIN & ACTIVATE
           </button>
-          <button type="button" class="magi-identity-panel__neutral" :disabled="busy" @click="resetEditForm">
-            RESET
-          </button>
-        </div>
+        </section>
+      </div>
 
-        <div class="magi-identity-panel__list">
-          <article
-            v-for="identity in state.identities"
-            :key="identity.identityId"
-            class="magi-identity-panel__item"
-          >
-            <div class="magi-identity-panel__item-main">
-              <div class="magi-identity-panel__item-id">{{ identity.identityId }}</div>
-              <div class="magi-identity-panel__item-meta">
-                {{ identity.displayName }} | {{ identity.routeClass }} | {{ identity.enabled ? "enabled" : "disabled" }}
+      <!-- Right Column: Identity Management -->
+      <div class="magi-identity-panel__col">
+        <section class="magi-identity-panel__block">
+          <div class="magi-identity-panel__block-title">IDENTITY MANAGEMENT</div>
+          <div class="magi-identity-panel__form-grid">
+            <label class="magi-identity-panel__label">
+              IDENTITY ID
+              <input v-model="editForm.identityId" class="magi-identity-panel__input" type="text" />
+            </label>
+            <label class="magi-identity-panel__label">
+              DISPLAY NAME
+              <input v-model="editForm.displayName" class="magi-identity-panel__input" type="text" />
+            </label>
+            <label class="magi-identity-panel__label">
+              NICKNAME
+              <input v-model="editForm.nickname" class="magi-identity-panel__input" type="text" placeholder="used as caller display name" />
+            </label>
+            <label class="magi-identity-panel__label">
+              PASSWORD <small>(optional for update)</small>
+              <input v-model="editForm.password" class="magi-identity-panel__input" type="password" />
+            </label>
+            <label class="magi-identity-panel__label">
+              ROUTE CLASS
+              <select v-model="editForm.routeClass" class="magi-identity-panel__select">
+                <option value="guardian">guardian</option>
+                <option value="avatar-only">avatar-only</option>
+              </select>
+            </label>
+            <label class="magi-identity-panel__label">
+              TOKEN EXPIRY
+              <select v-model="editForm.tokenExpires" class="magi-identity-panel__select">
+                <option :value="0">Default (20 min)</option>
+                <option :value="600">10 minutes</option>
+                <option :value="3600">1 hour</option>
+                <option :value="21600">6 hours</option>
+                <option :value="86400">24 hours</option>
+                <option :value="604800">7 days</option>
+                <option :value="2592000">30 days</option>
+              </select>
+            </label>
+            <label class="magi-identity-panel__check">
+              <input v-model="editForm.enabled" type="checkbox" /> ENABLED
+            </label>
+          </div>
+          <div class="magi-identity-panel__actions">
+            <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--primary" :disabled="busy" @click="onUpsert">SAVE</button>
+            <button type="button" class="magi-identity-panel__btn" :disabled="busy" @click="resetEdit">RESET</button>
+          </div>
+        </section>
+
+        <!-- Identity List -->
+        <section class="magi-identity-panel__block">
+          <div class="magi-identity-panel__block-title">
+            IDENTITY LIST
+            <span class="magi-identity-panel__block-count">({{ filteredIdentities.length }})</span>
+          </div>
+          <label class="magi-identity-panel__label">
+            <input v-model="searchQuery" class="magi-identity-panel__input" type="text" placeholder="Search identity..." />
+          </label>
+          <div class="magi-identity-panel__list">
+            <article
+              v-for="id in filteredIdentities"
+              :key="id.identityId"
+              class="magi-identity-panel__item"
+            >
+              <div class="magi-identity-panel__item-main">
+                <div class="magi-identity-panel__item-id">{{ id.identityId }}</div>
+                <div class="magi-identity-panel__item-meta">
+                  {{ id.displayName }} | {{ id.routeClass }}
+                  <span :class="id.enabled ? 'magi-identity-panel__tag--ok' : 'magi-identity-panel__tag--muted'">
+                    {{ id.enabled ? "enabled" : "disabled" }}
+                  </span>
+                  <span v-if="id.usageCount" class="magi-identity-panel__tag--info">{{ id.usageCount }} req</span>
+                </div>
               </div>
-            </div>
-            <div class="magi-identity-panel__item-actions">
-              <button type="button" class="magi-identity-panel__neutral" @click="applyIdentityToEditForm(identity)">
-                EDIT
-              </button>
-              <button type="button" class="magi-identity-panel__danger" :disabled="busy" @click="onRemoveIdentity(identity.identityId)">
-                REMOVE
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
+              <div class="magi-identity-panel__item-actions">
+                <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="applyEdit(id)">EDIT</button>
+                <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="toggleIssueForm(id.identityId)">TOKEN</button>
+                <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm magi-identity-panel__btn--danger" :disabled="busy" @click="onRemove(id.identityId)">DEL</button>
+              </div>
+              <div v-if="issuingId === id.identityId" class="magi-identity-panel__issue-form">
+                <label class="magi-identity-panel__label">
+                  CHANNEL
+                  <select v-model="issueForm.channel" class="magi-identity-panel__select">
+                    <option v-for="ch in channelOptions" :key="ch" :value="ch">{{ ch }}</option>
+                  </select>
+                </label>
+                <label class="magi-identity-panel__label">
+                  EXPIRY
+                  <select v-model="issueForm.expiresIn" class="magi-identity-panel__select">
+                    <option :value="600">10 minutes</option>
+                    <option :value="3600">1 hour</option>
+                    <option :value="21600">6 hours</option>
+                    <option :value="86400">24 hours</option>
+                    <option :value="604800">7 days</option>
+                    <option :value="2592000">30 days</option>
+                    <option :value="0">Identity default</option>
+                  </select>
+                </label>
+                <label class="magi-identity-panel__label">
+                  BOUND DOC ID
+                  <input v-model="issueForm.documentId" class="magi-identity-panel__input" type="text" placeholder="optional note id" />
+                </label>
+                <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--primary magi-identity-panel__btn--sm" :disabled="busy" @click="onIssueToken(id.identityId)">ISSUE & COPY</button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
     </div>
 
     <div v-if="statusText" class="magi-identity-panel__status">{{ statusText }}</div>
     <div v-if="state.lastError" class="magi-identity-panel__error">{{ state.lastError }}</div>
+
+    <MagiConfirmDialog
+      v-if="dialogTarget"
+      title="WRITE AVATAR IDENTITY"
+      :body="`No bound document. Write avatar identity for [${dialogTarget}] in main chat?`"
+      confirm-text="GO"
+      cancel-text="CANCEL"
+      @confirm="onConfirmWriteAvatar(dialogTarget)"
+      @cancel="dialogTarget = ''"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import type { MagiIdentityView, MagiRequestChannel } from "../../service/magiIdentitySession";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import type { MagiIdentityView, MagiRequestChannel, MagiIdentityStats } from "../../service/magiIdentitySession";
 import {
     clearActiveMagiArmorSession,
+    fetchMagiIdentityStats,
+    issueAvatarToken,
     loginMagiIdentity,
     MAGI_IDENTITY_REQUIRED_EVENT,
+    MAGI_WRITE_AVATAR_EVENT,
     refreshMagiIdentities,
     removeMagiIdentity,
     upsertMagiIdentity,
     useMagiIdentitySessionState,
 } from "../../service/magiIdentitySession";
+import MagiConfirmDialog from "../MagiConfirmDialog.vue";
 import "./MagiIdentityPanel.css";
 
 const state = useMagiIdentitySessionState();
 const busy = ref(false);
+const loading = ref(false);
 const statusText = ref("");
 const attention = ref(false);
 const panelRef = ref<HTMLElement | null>(null);
+const searchQuery = ref("");
+const stats = ref<MagiIdentityStats | null>(null);
 let attentionTimer: ReturnType<typeof setTimeout> | null = null;
 
 const channelOptions: MagiRequestChannel[] = [
@@ -164,83 +278,124 @@ const channelOptions: MagiRequestChannel[] = [
 const loginForm = reactive({
     identityId: "",
     password: "",
-    nickname: "",
     channel: "magi-main-ui" as MagiRequestChannel,
+    expiresIn: 0,
 });
 
 const editForm = reactive({
     identityId: "",
     displayName: "",
+    nickname: "",
     password: "",
     routeClass: "avatar-only" as "guardian" | "avatar-only",
     enabled: true,
+    tokenExpires: 0,
 });
 
-function formatExpireAt(timestamp: number): string {
-    if (!timestamp) {
-        return "-";
+const issuingId = ref("");
+const dialogTarget = ref("");
+const issueForm = reactive({
+    channel: "tool-openai-sdk" as MagiRequestChannel,
+    expiresIn: 0,
+    documentId: "",
+});
+
+const filteredIdentities = computed(() => {
+    if (!searchQuery.value.trim()) {
+        return state.identities;
     }
-    return new Date(timestamp).toLocaleString();
+    const q = searchQuery.value.toLowerCase();
+    return state.identities.filter(id =>
+        id.identityId.toLowerCase().includes(q) ||
+        id.displayName.toLowerCase().includes(q)
+    );
+});
+
+const apiEndpoint = computed(() => {
+    const base = window.location.origin;
+    return base + "/api/s-forge/magi/v1/chat/completions";
+});
+
+const maskedToken = computed(() => {
+    if (!state.activeSession) return "";
+    const t = state.activeSession.armorToken;
+    if (t.length <= 12) return t;
+    return t.slice(0, 12) + "..." + t.slice(-6);
+});
+
+function fmtTime(ts: number): string {
+    if (!ts) return "-";
+    return new Date(ts).toLocaleString();
 }
 
-function applyIdentityToEditForm(identity: MagiIdentityView): void {
-    editForm.identityId = identity.identityId;
-    editForm.displayName = identity.displayName;
+function applyEdit(id: MagiIdentityView): void {
+    editForm.identityId = id.identityId;
+    editForm.displayName = id.displayName;
+    editForm.nickname = id.nickname || "";
     editForm.password = "";
-    editForm.routeClass = identity.routeClass;
-    editForm.enabled = identity.enabled;
+    editForm.routeClass = id.routeClass;
+    editForm.enabled = id.enabled;
+    editForm.tokenExpires = id.tokenExpiresSeconds ?? 0;
 }
 
-function resetEditForm(): void {
+function resetEdit(): void {
     editForm.identityId = "";
     editForm.displayName = "";
+    editForm.nickname = "";
     editForm.password = "";
     editForm.routeClass = "avatar-only";
     editForm.enabled = true;
+    editForm.tokenExpires = 0;
+}
+
+async function loadStats(): Promise<void> {
+    try {
+        stats.value = await fetchMagiIdentityStats();
+    } catch {
+        // stats are optional display
+    }
 }
 
 async function onRefresh(): Promise<void> {
-    busy.value = true;
+    loading.value = true;
     statusText.value = "";
     try {
         await refreshMagiIdentities();
         if (!loginForm.identityId && state.identities.length > 0) {
-            const first = state.identities[0];
-            if (first) {
-                loginForm.identityId = first.identityId;
-                loginForm.nickname = first.displayName;
-            }
+            loginForm.identityId = state.identities[0].identityId;
+            loginForm.nickname = state.identities[0].displayName;
         }
-        statusText.value = "Identity list refreshed.";
+        await loadStats();
+        statusText.value = "Refreshed.";
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
-        busy.value = false;
+        loading.value = false;
     }
 }
 
-async function onUpsertIdentity(): Promise<void> {
-    const identityId = editForm.identityId.trim();
-    if (!identityId) {
-        statusText.value = "identity id is required";
-        return;
-    }
+async function onUpsert(): Promise<void> {
+    const id = editForm.identityId.trim();
+    if (!id) { statusText.value = "identity_id is required"; return; }
     busy.value = true;
     statusText.value = "";
     try {
         await upsertMagiIdentity({
-            identityId,
-            displayName: editForm.displayName.trim() || identityId,
+            identityId: id,
+            displayName: editForm.displayName.trim() || id,
+            nickname: editForm.nickname.trim() || "",
             password: editForm.password,
             routeClass: editForm.routeClass,
             enabled: editForm.enabled,
+            tokenExpiresSeconds: editForm.tokenExpires > 0 ? editForm.tokenExpires : undefined,
         });
-        statusText.value = `Identity [${identityId}] saved.`;
+        statusText.value = `Identity [${id}] saved.`;
         if (!loginForm.identityId) {
-            loginForm.identityId = identityId;
-            loginForm.nickname = editForm.displayName.trim() || identityId;
+            loginForm.identityId = id;
+            loginForm.nickname = editForm.displayName.trim() || id;
         }
         editForm.password = "";
+        await loadStats();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -248,15 +403,16 @@ async function onUpsertIdentity(): Promise<void> {
     }
 }
 
-async function onRemoveIdentity(identityId: string): Promise<void> {
+async function onRemove(identityId: string): Promise<void> {
     busy.value = true;
     statusText.value = "";
     try {
         await removeMagiIdentity(identityId);
-        statusText.value = `Identity [${identityId}] removed.`;
+        statusText.value = `Removed [${identityId}].`;
         if (loginForm.identityId === identityId) {
             loginForm.identityId = state.identities[0]?.identityId ?? "";
         }
+        await loadStats();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -264,25 +420,76 @@ async function onRemoveIdentity(identityId: string): Promise<void> {
     }
 }
 
-async function onLoginMainSession(): Promise<void> {
-    const identityId = loginForm.identityId.trim();
-    const password = loginForm.password.trim();
-    if (!identityId || !password) {
-        statusText.value = "identity and password are required for login";
+async function onLogin(): Promise<void> {
+    const id = loginForm.identityId.trim();
+    const pw = loginForm.password.trim();
+    if (!id || !pw) { statusText.value = "identity and password required"; return; }
+    busy.value = true;
+    statusText.value = "";
+    try {
+        const session = await loginMagiIdentity({
+            identityId: id,
+            password: pw,
+            nickname: "",
+            channel: loginForm.channel,
+            activate: true,
+            expiresInSeconds: loginForm.expiresIn > 0 ? loginForm.expiresIn : undefined,
+        });
+        statusText.value = `Session activated: ${session.identityId} (${session.channel})`;
+        await loadStats();
+    } catch (error) {
+        statusText.value = error instanceof Error ? error.message : String(error);
+    } finally {
+        busy.value = false;
+    }
+}
+
+async function onCopyEndpoint(): Promise<void> {
+    const url = apiEndpoint.value;
+    if (!url) return;
+    try {
+        await navigator.clipboard.writeText(url);
+        statusText.value = "Endpoint URL copied to clipboard.";
+    } catch {
+        statusText.value = "Failed to copy endpoint URL.";
+    }
+}
+
+async function onCopyToken(): Promise<void> {
+    const token = state.activeSession?.armorToken;
+    if (!token) return;
+    try {
+        await navigator.clipboard.writeText(token);
+        statusText.value = "Token copied to clipboard.";
+    } catch {
+        statusText.value = "Failed to copy token.";
+    }
+}
+
+function onLogout(): void {
+    clearActiveMagiArmorSession();
+    statusText.value = "Session cleared.";
+}
+
+async function onIssueToken(identityId: string): Promise<void> {
+    if (!issueForm.documentId.trim()) {
+        dialogTarget.value = identityId;
         return;
     }
     busy.value = true;
     statusText.value = "";
     try {
-        const nickname = loginForm.nickname.trim() || identityId;
-        const session = await loginMagiIdentity({
+        const session = await issueAvatarToken({
             identityId,
-            password,
-            nickname,
-            channel: loginForm.channel,
-            activate: true,
+            channel: issueForm.channel,
+            expiresInSeconds: issueForm.expiresIn > 0 ? issueForm.expiresIn : undefined,
+            documentId: issueForm.documentId.trim() || undefined,
         });
-        statusText.value = `Main session activated: ${session.identityId} (${session.channel})`;
+        await navigator.clipboard.writeText(session.armorToken);
+        statusText.value = `Avatar token for [${identityId}] copied to clipboard (${session.channel}).`;
+        issuingId.value = "";
+        await refreshMagiIdentities();
+        await loadStats();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -290,39 +497,33 @@ async function onLoginMainSession(): Promise<void> {
     }
 }
 
-function onLogoutMainSession(): void {
-    clearActiveMagiArmorSession();
-    statusText.value = "Main panel session cleared.";
+function onConfirmWriteAvatar(identityId: string): void {
+    const prompt = `请为 avatar 身份 [${identityId}] 在 AI 主笔记本中编写一份身份文档。`;
+    window.dispatchEvent(new CustomEvent(MAGI_WRITE_AVATAR_EVENT, { detail: prompt }));
+    dialogTarget.value = "";
+    issuingId.value = "";
 }
 
-async function handleIdentityRequiredEvent(_event: Event): Promise<void> {
-    statusText.value = "Main chat requires identity login. Please login here first.";
-    panelRef.value?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-    });
-    if (attentionTimer) {
-        clearTimeout(attentionTimer);
-        attentionTimer = null;
-    }
+function toggleIssueForm(identityId: string): void {
+    issuingId.value = issuingId.value === identityId ? "" : identityId;
+}
+
+async function handleIdentityRequired(): Promise<void> {
+    statusText.value = "Main chat requires identity login.";
+    panelRef.value?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (attentionTimer) clearTimeout(attentionTimer);
     attention.value = true;
-    attentionTimer = setTimeout(() => {
-        attention.value = false;
-        attentionTimer = null;
-    }, 1800);
+    attentionTimer = setTimeout(() => { attention.value = false; attentionTimer = null; }, 1800);
     await onRefresh();
 }
 
 onMounted(async () => {
     await onRefresh();
-    window.addEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
+    window.addEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequired);
 });
 
 onBeforeUnmount(() => {
-    window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
-    if (attentionTimer) {
-        clearTimeout(attentionTimer);
-        attentionTimer = null;
-    }
+    window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequired);
+    if (attentionTimer) clearTimeout(attentionTimer);
 });
 </script>

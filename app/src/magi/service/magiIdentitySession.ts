@@ -3,6 +3,7 @@ import { getSafeSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConf
 
 const MAGI_IDENTITY_API_ROOT = "/api/s-forge/magi/v1/identity";
 export const MAGI_IDENTITY_REQUIRED_EVENT = "magi:identity-required";
+export const MAGI_WRITE_AVATAR_EVENT = "magi:write-avatar";
 
 export type MagiRouteClass = "guardian" | "avatar-only";
 export type MagiRequestChannel =
@@ -16,10 +17,13 @@ export type MagiRequestChannel =
 export interface MagiIdentityView {
     identityId: string;
     displayName: string;
+    nickname?: string;
     routeClass: MagiRouteClass;
     enabled: boolean;
     createdAt: number;
     updatedAt: number;
+    tokenExpiresSeconds?: number;
+    usageCount?: number;
 }
 
 export interface MagiArmorSession {
@@ -30,6 +34,20 @@ export interface MagiArmorSession {
     routeClass: MagiRouteClass;
     channel: MagiRequestChannel;
     nickname: string;
+}
+
+export interface MagiIdentityStats {
+    totalIdentities: number;
+    enabledCount: number;
+    totalUsage: number;
+    identities: Array<{
+        identityId: string;
+        displayName: string;
+        routeClass: string;
+        enabled: boolean;
+        usageCount: number;
+        createdAt: number;
+    }>;
 }
 
 interface MagiIdentitySessionState {
@@ -86,20 +104,26 @@ function normalizeIdentityView(raw: unknown): MagiIdentityView | null {
     }
     const identityId = String(Reflect.get(raw, "identityId") ?? "").trim();
     const displayName = String(Reflect.get(raw, "displayName") ?? identityId).trim();
+    const nickname = String(Reflect.get(raw, "nickname") ?? "").trim();
     const routeClass = String(Reflect.get(raw, "routeClass") ?? "").trim();
     const enabled = Boolean(Reflect.get(raw, "enabled"));
     const createdAt = Number(Reflect.get(raw, "createdAt") ?? 0);
     const updatedAt = Number(Reflect.get(raw, "updatedAt") ?? 0);
+    const tokenExpiresSeconds = Number(Reflect.get(raw, "tokenExpiresSeconds") ?? 0);
+    const usageCount = Number(Reflect.get(raw, "usageCount") ?? 0);
     if (!identityId || (routeClass !== "guardian" && routeClass !== "avatar-only")) {
         return null;
     }
     return {
         identityId,
         displayName: displayName || identityId,
+        nickname: nickname || undefined,
         routeClass,
         enabled,
         createdAt,
         updatedAt,
+        tokenExpiresSeconds: tokenExpiresSeconds > 0 ? tokenExpiresSeconds : undefined,
+        usageCount: usageCount > 0 ? usageCount : undefined,
     };
 }
 
@@ -195,24 +219,44 @@ export async function refreshMagiIdentities(): Promise<void> {
     }
 }
 
+export async function fetchMagiIdentityStats(): Promise<MagiIdentityStats> {
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/stats`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(false),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    return payload as MagiIdentityStats;
+}
+
 export async function upsertMagiIdentity(input: {
     identityId: string;
     displayName: string;
+    nickname?: string;
     password?: string;
     routeClass: MagiRouteClass;
     enabled: boolean;
+    tokenExpiresSeconds?: number;
 }): Promise<void> {
+    const body: Record<string, unknown> = {
+        identity_id: input.identityId,
+        display_name: input.displayName,
+        password: input.password ?? "",
+        route_class: input.routeClass,
+        enabled: input.enabled,
+    };
+    if (input.nickname) {
+        body.nickname = input.nickname;
+    }
+    if (input.tokenExpiresSeconds && input.tokenExpiresSeconds > 0) {
+        body.token_expires_seconds = input.tokenExpiresSeconds;
+    }
     const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/upsert`, {
         method: "POST",
         credentials: "include",
         headers: buildIdentityRequestHeaders(true),
-        body: JSON.stringify({
-            identity_id: input.identityId,
-            display_name: input.displayName,
-            password: input.password ?? "",
-            route_class: input.routeClass,
-            enabled: input.enabled,
-        }),
+        body: JSON.stringify(body),
     });
     const payload = await response.json().catch(() => ({}));
     ensureIdentityResponseOK(response, payload);
@@ -240,17 +284,22 @@ export async function loginMagiIdentity(input: {
     nickname: string;
     channel: MagiRequestChannel;
     activate?: boolean;
+    expiresInSeconds?: number;
 }): Promise<MagiArmorSession> {
+    const body: Record<string, unknown> = {
+        identity_id: input.identityId,
+        password: input.password,
+        nickname: input.nickname,
+        channel: input.channel,
+    };
+    if (input.expiresInSeconds && input.expiresInSeconds > 0) {
+        body.expires_in_seconds = input.expiresInSeconds;
+    }
     const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/login`, {
         method: "POST",
         credentials: "include",
         headers: buildIdentityRequestHeaders(true),
-        body: JSON.stringify({
-            identity_id: input.identityId,
-            password: input.password,
-            nickname: input.nickname,
-            channel: input.channel,
-        }),
+        body: JSON.stringify(body),
     });
     const payload = await response.json().catch(() => ({}));
     ensureIdentityResponseOK(response, payload);
@@ -283,6 +332,33 @@ export function getActiveMagiArmorSession(): MagiArmorSession | null {
 
 export function getActiveMagiArmorToken(): string {
     return getActiveMagiArmorSession()?.armorToken ?? "";
+}
+
+export async function issueAvatarToken(input: {
+    identityId: string;
+    channel: MagiRequestChannel;
+    expiresInSeconds?: number;
+    documentId?: string;
+}): Promise<MagiArmorSession> {
+    const body: Record<string, unknown> = {
+        identity_id: input.identityId,
+        channel: input.channel,
+    };
+    if (input.expiresInSeconds && input.expiresInSeconds > 0) {
+        body.expires_in_seconds = input.expiresInSeconds;
+    }
+    if (input.documentId) {
+        body.document_id = input.documentId;
+    }
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/issue-avatar-token`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(true),
+        body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    return normalizeLoginSession(payload);
 }
 
 export function useMagiIdentitySessionState() {

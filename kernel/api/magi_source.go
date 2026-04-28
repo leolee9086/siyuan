@@ -227,6 +227,9 @@ func buildRequestSourceContext(
 	if callerID != "" {
 		rawAttributes["callerId"] = callerID
 	}
+	if docID := strings.TrimSpace(claims.Doc); docID != "" {
+		rawAttributes["boundDocumentId"] = docID
+	}
 	if tagName := firstNonEmpty(sourcePayload["__sourceTag"]); tagName != "" {
 		rawAttributes["sourceTag"] = tagName
 	}

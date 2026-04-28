@@ -601,6 +601,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/upsert", model.CheckAuth, magiIdentityUpsert)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/remove", model.CheckAuth, magiIdentityRemove)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/login", model.CheckAuth, magiIdentityLogin)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/stats", model.CheckAuth, magiIdentityStats)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/issue-avatar-token", model.CheckAuth, magiIdentityIssueAvatarToken)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/persona/status", model.CheckAuth, magiPersonaStatus)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", magiChat)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)

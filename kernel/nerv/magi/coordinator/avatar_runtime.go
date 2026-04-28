@@ -12,6 +12,7 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
@@ -156,6 +157,16 @@ func (r *AvatarRuntime) DispatchForSource(
 	}
 	r.markBindingActive(bindingKey)
 
+	boundDocumentID := resolveBoundDocumentID(sourceCtx)
+	if boundDocumentID != "" {
+		if docContent := model.GetBlockDOM(boundDocumentID); docContent != "" {
+			binding.Agent.AddToContextWithSession(sessionID, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: fmt.Sprintf("<bound_document>\n<id>%s</id>\n%s\n</bound_document>", boundDocumentID, docContent),
+			})
+		}
+	}
+
 	if err := websocket.PushSeelReplyStarted(websocket.RuntimeMonitorSessionID, roundID, binding.Agent.GetName(), binding.DisplayName, userMessage, nil); err != nil {
 		logging.LogWarnf("推送Avatar开始响应失败: %v", err)
 	}
@@ -225,6 +236,13 @@ func (r *AvatarRuntime) DispatchForSource(
 		Timestamp: time.Now().UnixMilli(),
 		Meta:      meta,
 	}, nil
+}
+
+func resolveBoundDocumentID(sourceCtx *types.RequestSourceContext) string {
+	if sourceCtx == nil || len(sourceCtx.RawAttributes) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(sourceCtx.RawAttributes["boundDocumentId"])
 }
 
 func (r *AvatarRuntime) createBinding(
