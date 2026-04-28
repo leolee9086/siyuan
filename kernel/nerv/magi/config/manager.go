@@ -148,6 +148,10 @@ func buildDefaultCoreSageTools() []ToolDef {
 		BuildWannaSpeakStopToolDef(),
 		BuildNoteKeywordSearchToolDef(),
 		BuildNoteByIDReadToolDef(),
+		BuildCreateNoteDocumentToolDef(),
+		BuildAppendNoteBlocksToolDef(),
+		BuildModifyNoteBlockToolDef(),
+		BuildRevertNoteBlockToolDef(),
 	}
 	if util.IsForgeMode() {
 		tools = append(

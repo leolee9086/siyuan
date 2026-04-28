@@ -479,6 +479,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 		noteReadExecutor := newNoteByIDReadToolResultExecutor()
 		executors = append(executors, noteReadExecutor.ExecuteToolCall)
 	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.CreateNoteDocumentToolName) {
+		noteEditExecutor := newNoteEditToolResultExecutor()
+		executors = append(executors, noteEditExecutor.ExecuteToolCall)
+	}
 	if toolSetHasAllFunctionTools(effectiveTools, config.PersistSessionMemoryToolName, config.RecallCrossSessionMemoriesToolName) {
 		crossSessionExecutor := newCrossSessionMemoryToolExecutor(sage.GetName())
 		executors = append(executors, crossSessionExecutor.ExecuteToolCall)

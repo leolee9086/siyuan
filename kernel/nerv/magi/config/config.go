@@ -113,7 +113,7 @@ type ToolFunctionDef struct {
 }
 
 const (
-	// WannaSpeakToolName 三贤人内部表达工具名（兼容旧版，逐步废弃）。
+	// WannaSpeakToolName 三贤人流式输出工具名（兼容旧版，逐步废弃）。
 	WannaSpeakToolName = "wanna_speak"
 	// WannaSpeakStartToolName 三贤人表达状态开始工具名。
 	WannaSpeakStartToolName = "wanna_speak_start"
@@ -143,11 +143,11 @@ const (
 	SpeakContinueToolName = "speak_continue"
 	// SpeakStopToolName 统合输出的对外表达状态结束工具名。
 	SpeakStopToolName = "speak_stop"
-	// SpeakInternalStartToolName 统合输出的内部表达状态开始工具名。
+	// SpeakInternalStartToolName 统合输出的流式输出状态开始工具名。
 	SpeakInternalStartToolName = "speak_internal_start"
-	// SpeakInternalContinueToolName 统合输出的内部表达状态续写工具名。
+	// SpeakInternalContinueToolName 统合输出的流式输出状态续写工具名。
 	SpeakInternalContinueToolName = "speak_internal_continue"
-	// SpeakInternalStopToolName 统合输出的内部表达状态结束工具名。
+	// SpeakInternalStopToolName 统合输出的流式输出状态结束工具名。
 	SpeakInternalStopToolName = "speak_internal_stop"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
@@ -177,6 +177,14 @@ const (
 	PersistSessionMemoryToolName = "persist_session_memory"
 	// RecallCrossSessionMemoriesToolName 跨session对话记忆查询工具名。
 	RecallCrossSessionMemoriesToolName = "recall_cross_session_memories"
+	// CreateNoteDocumentToolName 在 AI 主笔记本中创建新文档的工具名。
+	CreateNoteDocumentToolName = "create_note_document"
+	// AppendNoteBlocksToolName 向已有文档追加叶子块的工具名。
+	AppendNoteBlocksToolName = "append_note_blocks"
+	// ModifyNoteBlockToolName 修改叶子块内容并标记 pending 的工具名。
+	ModifyNoteBlockToolName = "modify_note_block"
+	// RevertNoteBlockToolName 回滚 pending 修改恢复原内容的工具名。
+	RevertNoteBlockToolName = "revert_note_block"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -253,7 +261,7 @@ func BuildWannaSpeakStartToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakStartToolName,
-			Description: "进入内部表达状态。形成完整想法后再进入；进入后通过 wanna_speak_continue 追加内容，结束时调用 wanna_speak_stop。",
+			Description: "进入流式回复状态。形成完整想法后再进入；进入后通过 wanna_speak_continue 追加内容，结束时调用 wanna_speak_stop。",
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
@@ -268,7 +276,7 @@ func BuildWannaSpeakContinueToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakContinueToolName,
-			Description: "在内部表达状态中追加一段内容。可多次调用。",
+			Description: "在流式输出状态中追加一段内容,这些内容将会被推送给消息接收方。可多次调用。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -289,7 +297,7 @@ func BuildWannaSpeakStopToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WannaSpeakStopToolName,
-			Description: "结束内部表达状态。wanna_speak_start 与 wanna_speak_stop 必须成对出现。",
+			Description: "结束流式输出状态。wanna_speak_start 与 wanna_speak_stop 必须成对出现。",
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
@@ -968,6 +976,117 @@ func BuildVoteToolDef() ToolDef {
 					},
 				},
 				"required": []string{"decision", "reason"},
+			},
+		},
+	}
+}
+
+// BuildCreateNoteDocumentToolDef 构建创建文档工具定义。
+func BuildCreateNoteDocumentToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        CreateNoteDocumentToolName,
+			Description: "在 AI 主笔记本中创建一篇新文档。标题必须填写，内容支持 Markdown 格式。path 可选，指定存放路径如 /avatar/identity/，默认根路径。返回新文档的 ID。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"title": map[string]interface{}{
+						"type":        "string",
+						"description": "文档标题",
+					},
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "Markdown 正文",
+					},
+					"path": map[string]interface{}{
+						"type":        "string",
+						"description": "存放路径，如 /avatar/identity/，默认根路径",
+					},
+				},
+				"required": []string{"title", "content"},
+			},
+		},
+	}
+}
+
+// BuildAppendNoteBlocksToolDef 构建追加叶子块工具定义。
+func BuildAppendNoteBlocksToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        AppendNoteBlocksToolName,
+			Description: "向已有文档追加新的叶子块。parent_id 是文档 ID 或容器块 ID。content 为 Markdown 内容，多块用换行分隔。after_id 可选，在此块之后插入，必须是 parent_id 的后代。返回新块的 ID 列表。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"parent_id": map[string]interface{}{
+						"type":        "string",
+						"description": "文档 ID 或容器块 ID",
+					},
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "Markdown 内容，多块用换行分隔",
+					},
+					"after_id": map[string]interface{}{
+						"type":        "string",
+						"description": "在此块 ID 之后插入（可选，必须是 parent_id 的后代）",
+					},
+				},
+				"required": []string{"parent_id", "content"},
+			},
+		},
+	}
+}
+
+// BuildModifyNoteBlockToolDef 构建修改叶子块工具定义。
+func BuildModifyNoteBlockToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ModifyNoteBlockToolName,
+			Description: "修改 AI 主笔记本中的一个叶子块内容。修改后该块会被标记 pending，需要用户在前端接受后才会解除锁定。pending 期间不可再次修改。仅支持叶子块（段落、标题、列表项等）。attrs 可选，传入要设置的块属性 KV。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"block_id": map[string]interface{}{
+						"type":        "string",
+						"description": "要修改的叶子块 ID",
+					},
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "新的 Markdown 内容",
+					},
+					"attrs": map[string]interface{}{
+						"type":        "object",
+						"description": "可选，要设置的块属性 KV 对",
+						"additionalProperties": map[string]interface{}{
+							"type": "string",
+						},
+					},
+				},
+				"required": []string{"block_id", "content"},
+			},
+		},
+	}
+}
+
+// BuildRevertNoteBlockToolDef 构建回滚 pending 修改工具定义。
+func BuildRevertNoteBlockToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        RevertNoteBlockToolName,
+			Description: "回滚一个 pending 状态的叶子块修改，恢复原内容。仅当块有 custom-magi-pending 属性时可用。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"block_id": map[string]interface{}{
+						"type":        "string",
+						"description": "要回滚的叶子块 ID",
+					},
+				},
+				"required": []string{"block_id"},
 			},
 		},
 	}
