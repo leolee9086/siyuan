@@ -41,6 +41,35 @@ type MagiTaskResult struct {
 	Err          error
 }
 
+// DispatcherTaskType 统一分发器任务类型
+type DispatcherTaskType int
+
+const (
+	TaskTypeUserMessage DispatcherTaskType = iota
+	TaskTypeHeartbeat
+)
+
+// DispatcherTask 统一分发器任务，替代 MagiRequest 成为队列中的唯一任务类型。
+// 外部消息和心跳消息通过同一队列、同一分发器串行处理。
+type DispatcherTask struct {
+	Type DispatcherTaskType
+
+	// 外部消息字段（TaskTypeUserMessage）
+	Req        *openai.ChatCompletionRequest
+	SessionID  string
+	SourceCtx  *types.RequestSourceContext
+	RequestCtx context.Context
+	ResultChan chan MagiTaskResult
+
+	// 心跳字段（TaskTypeHeartbeat）
+	// 所有数据在 tryStartHeartbeat 中捕获，分发器直接使用，不再访问 runtime manager。
+	Run                        *magiHeartbeatRun
+	HeartbeatCtx               context.Context
+	HeartbeatPrompt            string
+	HeartbeatSourceCtx         *types.RequestSourceContext
+	HeartbeatPassiveRecallBasis *types.PassiveRecallBasis
+}
+
 type magiPersonaRuntimeStatus struct {
 	SubjectName   string
 	SubjectID     string
@@ -62,8 +91,8 @@ const (
 )
 
 var (
-	magiQueue       = make(chan *MagiRequest, 100) // 简易缓冲区，后续按需演进为优先级队列
-	onceMagi        sync.Once
+	dispQueue   = NewDispatcherRingQueue(100) // 按保护环分级的优先队列
+	onceMagi    sync.Once
 	magiSessionMgr  *session.SessionManager
 	magiSourceSID   sync.Map // sourceSessionKey -> sessionID
 	magiCoordinator *coordinator.Coordinator
@@ -152,7 +181,7 @@ func initMagiCron() {
 			logging.LogErrorf("初始化MAGI组件失败: %v", err)
 			magiInitErr = err
 		}
-		go magiDispatcher()
+		go unifiedDispatcher()
 		if magiInitErr == nil {
 			magiRuntimeMgr.Start()
 		}
@@ -242,14 +271,30 @@ func magiPersonaStatus(c *gin.Context) {
 	})
 }
 
-// magiDispatcher 扮演内部单线程 Cron 调度器的雏形。
-// 第一阶段：它仅确保任务被串行化消化，保障 Trinity 上下文注入单线程原则。
-func magiDispatcher() {
-	for reqTask := range magiQueue {
-		// 取出任务后，转交实际处理逻辑（此处为同步阻塞执行该任务）
-		result := handleMagiTask(reqTask)
-		reqTask.ResultChan <- result
-		close(reqTask.ResultChan)
+// unifiedDispatcher 统一分发器，串行处理所有 MAGI 任务。
+// 外部消息和心跳消息按保护环优先级进入同一队列，高 ring 任务优先处理。
+func unifiedDispatcher() {
+	for {
+		task := dispQueue.PopBlocking()
+		switch task.Type {
+		case TaskTypeHeartbeat:
+			hbResult, err := magiCoordinator.CoordinateHeartbeat(
+				task.HeartbeatCtx,
+				magiRuntimeMonitorSessionID,
+				magiMelchior,
+				magiBalthazar,
+				magiCasper,
+				task.HeartbeatPrompt,
+				task.HeartbeatSourceCtx,
+				task.HeartbeatPassiveRecallBasis,
+			)
+			magiRuntimeMgr.finishHeartbeat(task.Run, hbResult, err)
+			close(task.Run.done)
+		default:
+			result := handleMagiTask(task)
+			task.ResultChan <- result
+			close(task.ResultChan)
+		}
 	}
 }
 
@@ -305,24 +350,22 @@ func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx 
 	}
 
 	magiRuntimeMgr.InterruptHeartbeat()
+
 	sessionID := getOrCreateSession(c, sourceCtx)
 	if sessionID == "" {
 		return nil, errors.New("MAGI session manager is not ready")
 	}
 
-	task := &MagiRequest{
-		Req:        req,
+	task := &DispatcherTask{
+		Type:       TaskTypeUserMessage,
+		Req:        &req,
 		SessionID:  sessionID,
 		SourceCtx:  sourceCtx,
 		RequestCtx: c.Request.Context(),
 		ResultChan: make(chan MagiTaskResult, 1),
 	}
 
-	select {
-	case magiQueue <- task:
-	case <-c.Request.Context().Done():
-		return nil, c.Request.Context().Err()
-	case <-time.After(30 * time.Second): // 简易排队超时防卡死
+	if !dispQueue.Push(Ring0ExternalMessage, task) {
 		return nil, errors.New("magi queue is full or processing too slow")
 	}
 
@@ -361,7 +404,7 @@ func writeMagiTaskError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
-func handleMagiTask(task *MagiRequest) (result MagiTaskResult) {
+func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 	req := task.Req
 
 	// 检查初始化错误

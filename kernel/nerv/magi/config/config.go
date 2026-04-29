@@ -641,7 +641,7 @@ func BuildWriteDiaryToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        WriteDiaryToolName,
-			Description: "用于往你的日记本里面记录笔记,当你需要主动记录重要事情的时候都应该使用它。调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。",
+			Description: "用于往你的日记本里面记录笔记,当你需要主动记录重要事情的时候都应该使用它。调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -987,7 +987,7 @@ func BuildCreateNoteDocumentToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        CreateNoteDocumentToolName,
-			Description: "在 AI 主笔记本中创建一篇新文档。标题必须填写，内容支持 Markdown 格式。path 可选，指定存放路径如 /avatar/identity/，默认根路径。返回新文档的 ID。",
+			Description: "在 AI 主笔记本中创建一篇新文档。标题必须填写，内容支持 Markdown 格式。path 可选，指定存放路径如 /avatar/identity/，默认根路径。返回新文档的 ID。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1016,7 +1016,7 @@ func BuildAppendNoteBlocksToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        AppendNoteBlocksToolName,
-			Description: "向已有文档追加新的叶子块。parent_id 是文档 ID 或容器块 ID。content 为 Markdown 内容，多块用换行分隔。after_id 可选，在此块之后插入，必须是 parent_id 的后代。返回新块的 ID 列表。",
+			Description: "向已有文档追加新的叶子块。parent_id 是文档 ID 或容器块 ID。content 为 Markdown 内容，多块用换行分隔。after_id 可选，在此块之后插入，必须是 parent_id 的后代。返回新块的 ID 列表。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1045,7 +1045,7 @@ func BuildModifyNoteBlockToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ModifyNoteBlockToolName,
-			Description: "修改 AI 主笔记本中的一个叶子块内容。修改后该块会被标记 pending，需要用户在前端接受后才会解除锁定。pending 期间不可再次修改。仅支持叶子块（段落、标题、列表项等）。attrs 可选，传入要设置的块属性 KV。",
+			Description: "修改 AI 主笔记本中的一个叶子块内容。修改后该块会被标记 pending，需要用户在前端接受后才会解除锁定。pending 期间不可再次修改。仅支持叶子块（段落、标题、列表项等）。attrs 可选，传入要设置的块属性 KV。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

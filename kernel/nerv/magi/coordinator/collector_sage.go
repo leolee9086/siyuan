@@ -87,6 +87,18 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					consecutiveTransitionFailures = 0
 					continue
 				}
+				if appendResult.RequiresLinkRetry {
+					if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
+						sage.AddToContextWithSession(sessionId, types.ContextMessage{
+							Role:    types.RoleSystem,
+							Content: prompt,
+						})
+					}
+					processor = utilstream.NewProcessor()
+					wannaSpeakTracker = newWannaSpeakStateTracker()
+					consecutiveTransitionFailures = 0
+					continue
+				}
 			}
 
 			if !wannaSpeakTracker.HasCapturedContent() {
@@ -127,6 +139,18 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 			if appendResult.RequiresGovernedRetry {
 				if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
+					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						Role:    types.RoleSystem,
+						Content: prompt,
+					})
+				}
+				processor = utilstream.NewProcessor()
+				wannaSpeakTracker = newWannaSpeakStateTracker()
+				consecutiveTransitionFailures = 0
+				continue
+			}
+			if appendResult.RequiresLinkRetry {
+				if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
 					sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
 						Content: prompt,

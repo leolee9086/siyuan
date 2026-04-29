@@ -33,6 +33,11 @@
       </svg>
       <div class="seel-vote-badge-content">
         <span class="seel-vote-badge-text">{{ visibleVoteBadge.label }}</span>
+        <div v-if="visibleVoteBadge.proposedAction || visibleVoteBadge.reason || visibleVoteBadge.deliberationReason" class="seel-vote-badge-detail">
+          <span v-if="visibleVoteBadge.proposedAction" class="seel-vote-badge-action">{{ visibleVoteBadge.proposedAction }}</span>
+          <span v-if="visibleVoteBadge.reason" class="seel-vote-badge-reason">理由: {{ visibleVoteBadge.reason }}</span>
+          <span v-else-if="visibleVoteBadge.deliberationReason" class="seel-vote-badge-reason">动机: {{ visibleVoteBadge.deliberationReason }}</span>
+        </div>
       </div>
     </div>
     <div class="panel-content">

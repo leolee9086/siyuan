@@ -63,6 +63,10 @@ func (e *noteEditToolResultExecutor) executeCreateDocument(toolCall types.ToolCa
 		return marshalNoteEditError("TITLE_REQUIRED", "title 不能为空"), true, nil
 	}
 
+	if links, valid := validateNoteToolContent(config.CreateNoteDocumentToolName, toolCall.Function.Arguments); !valid {
+		return marshalLinkInsufficientResult(config.CreateNoteDocumentToolName, links), true, nil
+	}
+
 	boxID, err := resolveAIMainNotebookBox()
 	if err != nil {
 		return marshalNoteEditError("NOTEBOOK_NOT_FOUND", err.Error()), true, nil
@@ -106,6 +110,10 @@ func (e *noteEditToolResultExecutor) executeAppendBlocks(toolCall types.ToolCall
 	args.Content = strings.TrimSpace(args.Content)
 	if args.ParentID == "" || args.Content == "" {
 		return marshalNoteEditError("PARENT_OR_CONTENT_REQUIRED", "parent_id 和 content 不能为空"), true, nil
+	}
+
+	if links, valid := validateNoteToolContent(config.AppendNoteBlocksToolName, toolCall.Function.Arguments); !valid {
+		return marshalLinkInsufficientResult(config.AppendNoteBlocksToolName, links), true, nil
 	}
 
 	if err := ensureAIMainNotebookScope(args.ParentID); err != nil {
@@ -156,6 +164,10 @@ func (e *noteEditToolResultExecutor) executeModifyBlock(toolCall types.ToolCall)
 	args.Content = strings.TrimSpace(args.Content)
 	if args.BlockID == "" || args.Content == "" {
 		return marshalNoteEditError("BLOCK_ID_OR_CONTENT_REQUIRED", "block_id 和 content 不能为空"), true, nil
+	}
+
+	if links, valid := validateNoteToolContent(config.ModifyNoteBlockToolName, toolCall.Function.Arguments); !valid {
+		return marshalLinkInsufficientResult(config.ModifyNoteBlockToolName, links), true, nil
 	}
 
 	if err := ensureAIMainNotebookScope(args.BlockID); err != nil {

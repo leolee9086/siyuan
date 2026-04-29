@@ -30,6 +30,8 @@ type ToolContextAppendResult struct {
 	LostDominance         bool
 	GovernedToolName      string
 	GovernedInstruction   string
+	RequiresLinkRetry     bool
+	LinkRetryInstruction  string
 }
 
 type streamedToolCallCollector struct {
@@ -253,6 +255,13 @@ func appendTurnToolCallsToContextWithExecutorContext(
 		if appendResult.GovernedInstruction == "" && control.Instruction != "" {
 			appendResult.GovernedInstruction = control.Instruction
 		}
+
+		if !appendResult.RequiresGovernedRetry && !appendResult.LostDominance {
+			if linkRetry, linkInstruction := parseLinkRequirementToolControl(call.Function.Name, toolResult); linkRetry {
+				appendResult.RequiresLinkRetry = true
+				appendResult.LinkRetryInstruction = linkInstruction
+			}
+		}
 	}
 	return appendResult
 }
@@ -304,6 +313,16 @@ func parseGovernedActionToolControl(toolName string, toolResult string) governed
 		control.LostDominance = true
 	}
 	return control
+}
+
+func parseLinkRequirementToolControl(toolName string, toolResult string) (requiresRetry bool, instruction string) {
+	toolName = strings.TrimSpace(toolName)
+	if !isActiveNoteWriteToolName(toolName) {
+		return false, ""
+	}
+
+	retry, instruction := isLinkInsufficientResult(toolResult)
+	return retry, instruction
 }
 
 func withToolCallIndexOffset(deltas []types.ToolCallDelta, offset int) []types.ToolCallDelta {

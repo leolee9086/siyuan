@@ -47,64 +47,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, err
 		}
 
-		c.notifyDominantSelected(roundID, election)
-		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
-		beforeContext := dominantSage.GetContextForSession(sessionID)
-		streamMessage := buildSeelStreamMessageWithMeta(roundID, dominantSage, buildDominantRuntimeMeta(roundID, election))
-		if err := websocket.PushSeelReplyStarted(
-			websocket.RuntimeMonitorSessionID,
-			roundID,
-			dominantSage.GetName(),
-			dominantSage.GetDisplayName(),
-			userMessage,
-			streamMessage,
-		); err != nil {
-			logging.LogWarnf("推送主导者开始响应失败: %v", err)
-		}
-
-		// 将选举中三贤人提出的质疑注入主导者上下文
-		if election != nil && len(election.Votes) > 0 {
-			var allDoubts []string
-			for _, vote := range election.Votes {
-				for _, d := range vote.Doubts {
-					if trimmed := strings.TrimSpace(d); trimmed != "" {
-						allDoubts = append(allDoubts, "【"+vote.VoterDisplayName+"】"+trimmed)
-					}
-				}
-			}
-			if len(allDoubts) > 0 {
-				dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
-					Role:    types.RoleSystem,
-					Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
-				})
-			}
-		}
-
-		response, collectErr := c.collector.collectSingleSageResponse(
-			ctx,
-			sessionID,
-			roundID,
-			dominantSage,
-			resolveSourceAwareInputForSage(sourceAwareUserInputBySage, dominantSage.GetName(), userMessage),
-			CollectResponsesOptions{
-				RuntimeTools:      buildDominantDirectReplyRuntimeTools(dominantSage),
-				RuntimeToolChoice: dominantSage.GetToolChoice(),
-			},
-		)
-
-		afterContext := dominantSage.GetContextForSession(sessionID)
-		deltaMessages := diffAppendedContextMessages(beforeContext, afterContext)
-		if len(deltaMessages) > 0 {
-			shareDominantContextDelta(
-				sessionID,
-				dominantSage.GetName(),
-				deltaMessages,
-				melchior,
-				balthazar,
-				casper,
-			)
-		}
-
+		msg, _, collectErr := c.executeDominantReply(ctx, sessionID, roundID, dominantSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper)
 		if collectErr != nil {
 			var revokedErr *dominantActionRevokedError
 			if errors.As(collectErr, &revokedErr) {
@@ -123,12 +66,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, fmt.Errorf("主导者直答失败: %w", collectErr)
 		}
 		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
-
-		if response == nil {
-			return nil, nil, fmt.Errorf("主导者直答结果为空")
-		}
-
-		return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
+		return msg, election, nil
 	}
 
 	// 三次选举均失败：随机选一个主导者
@@ -154,28 +92,91 @@ func (c *Coordinator) coordinateDominantDirectReply(
 		DominantSeelName:    fallbackSage.GetName(),
 		DominantDisplayName: fallbackSage.GetDisplayName(),
 	}
-
 	c.notifyDominantSelected(roundID, election)
+
+	msg, _, err := c.executeDominantReply(ctx, sessionID, roundID, fallbackSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper)
+	if err != nil {
+		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+		return nil, nil, fmt.Errorf("随机主导者直答失败: %w", err)
+	}
+	dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+	return msg, election, nil
+}
+
+// executeDominantReply 执行主导者回复的全流程（共享给选举路径和回退路径）
+func (c *Coordinator) executeDominantReply(
+	ctx context.Context,
+	sessionID, roundID string,
+	dominantSage *sages.Sage,
+	election *DominantElectionResult,
+	userMessage string,
+	sourceAwareUserInputBySage map[string]string,
+	sourceCtx *types.RequestSourceContext,
+	melchior, balthazar, casper *sages.Sage,
+) (*types.Message, *DominantElectionResult, error) {
+	beforeContext := dominantSage.GetContextForSession(sessionID)
+	streamMessage := buildSeelStreamMessageWithMeta(roundID, dominantSage, buildDominantRuntimeMeta(roundID, election))
+	if err := websocket.PushSeelReplyStarted(
+		websocket.RuntimeMonitorSessionID,
+		roundID,
+		dominantSage.GetName(),
+		dominantSage.GetDisplayName(),
+		userMessage,
+		streamMessage,
+	); err != nil {
+		logging.LogWarnf("推送主导者开始响应失败: %v", err)
+	}
+
+	if election != nil && len(election.Votes) > 0 {
+		var allDoubts []string
+		for _, vote := range election.Votes {
+			for _, d := range vote.Doubts {
+				if trimmed := strings.TrimSpace(d); trimmed != "" {
+					allDoubts = append(allDoubts, "【"+vote.VoterDisplayName+"】"+trimmed)
+				}
+			}
+		}
+		if len(allDoubts) > 0 {
+			dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
+			})
+		}
+	}
 
 	response, collectErr := c.collector.collectSingleSageResponse(
 		ctx,
 		sessionID,
 		roundID,
-		fallbackSage,
-		resolveSourceAwareInputForSage(sourceAwareUserInputBySage, fallbackSage.GetName(), userMessage),
+		dominantSage,
+		resolveSourceAwareInputForSage(sourceAwareUserInputBySage, dominantSage.GetName(), userMessage),
 		CollectResponsesOptions{
-			RuntimeTools:      buildDominantDirectReplyRuntimeTools(fallbackSage),
-			RuntimeToolChoice: fallbackSage.GetToolChoice(),
+			RuntimeTools:      buildDominantDirectReplyRuntimeTools(dominantSage),
+			RuntimeToolChoice: dominantSage.GetToolChoice(),
 		},
 	)
+
+	afterContext := dominantSage.GetContextForSession(sessionID)
+	deltaMessages := diffAppendedContextMessages(beforeContext, afterContext)
+	if len(deltaMessages) > 0 {
+		shareDominantContextDelta(
+			sessionID,
+			dominantSage.GetName(),
+			deltaMessages,
+			melchior,
+			balthazar,
+			casper,
+		)
+	}
+
 	if collectErr != nil {
-		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
-		return nil, nil, fmt.Errorf("随机主导者直答失败: %w", collectErr)
+		return nil, nil, collectErr
 	}
-	dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+
 	if response == nil {
-		return nil, nil, fmt.Errorf("随机主导者直答结果为空")
+		return nil, nil, fmt.Errorf("主导者直答结果为空")
 	}
+
 	return buildDominantDirectReplyMessage(roundID, response, election, sourceCtx), election, nil
 }
 

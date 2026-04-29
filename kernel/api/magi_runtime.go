@@ -171,9 +171,6 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 	if m == nil || magiCoordinator == nil || magiInitErr != nil {
 		return
 	}
-	if atomic.LoadInt32(&m.foregroundBusy) > 0 || len(magiQueue) > 0 {
-		return
-	}
 
 	m.mu.Lock()
 	if m.activeHeartbeat != nil {
@@ -182,14 +179,16 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
 	run := &magiHeartbeatRun{
 		cancel: cancel,
-		done:   make(chan struct{}),
+		done:   done,
 	}
 	m.activeHeartbeat = run
 
 	now := time.Now()
 	nowMillis := now.UnixMilli()
+	isSleep := m.isSleepTime(now)
 	m.status.State = types.RuntimeStateHeartbeat
 	m.status.Awake = true
 	m.status.WakeSource = "heartbeat"
@@ -201,26 +200,31 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 	m.status.LastWakeAt = nowMillis
 	m.status.UpdatedAt = nowMillis
 	passiveRecallBasis := m.buildHeartbeatPassiveRecallBasisLocked()
+	sourceCtx := buildHeartbeatSourceContext()
+	prompt := buildHeartbeatPrompt(now, isSleep)
 	status := m.status
 	m.mu.Unlock()
 
 	m.pushStatus(status)
 
-	go func(active *magiHeartbeatRun) {
-		defer close(active.done)
+	task := &DispatcherTask{
+		Type:                        TaskTypeHeartbeat,
+		Run:                         run,
+		HeartbeatCtx:                ctx,
+		HeartbeatPrompt:             prompt,
+		HeartbeatSourceCtx:          sourceCtx,
+		HeartbeatPassiveRecallBasis: passiveRecallBasis,
+	}
 
-		result, err := magiCoordinator.CoordinateHeartbeat(
-			ctx,
-			magiRuntimeMonitorSessionID,
-			magiMelchior,
-			magiBalthazar,
-			magiCasper,
-		buildHeartbeatPrompt(now, m.isSleepTime(now)),
-		buildHeartbeatSourceContext(),
-		passiveRecallBasis,
-		)
-		m.finishHeartbeat(active, result, err)
-	}(run)
+	if !dispQueue.Push(Ring1Heartbeat, task) {
+		cancel()
+		close(done)
+		m.mu.Lock()
+		if m.activeHeartbeat == run {
+			m.activeHeartbeat = nil
+		}
+		m.mu.Unlock()
+	}
 }
 
 func (m *magiRuntimeManager) finishHeartbeat(

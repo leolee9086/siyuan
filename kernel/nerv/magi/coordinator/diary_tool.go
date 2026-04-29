@@ -44,6 +44,10 @@ func (e *diaryToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (resu
 		return "", true, err
 	}
 
+	if links, valid := validateNoteToolContent(config.WriteDiaryToolName, toolCall.Function.Arguments); !valid {
+		return marshalLinkInsufficientResult(config.WriteDiaryToolName, links), true, nil
+	}
+
 	payload := map[string]interface{}{
 		"ok":          true,
 		"state":       "pending_write",
@@ -110,6 +114,10 @@ func materializeDiaryToolResultForContext(
 	if len(payload) == 0 {
 		payload["ok"] = true
 		payload["state"] = "pending_write"
+	}
+
+	if state, _ := payload["state"].(string); state == "link_insufficient" {
+		return detailedResult
 	}
 
 	if outcome, governed, voteErr := dominantActionToolGovernance.EvaluateActionVote(

@@ -144,15 +144,15 @@ func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	case config.ForgeDevRepoEditToolName:
 		var execErr error
 		result, execErr = executeForgeDevRepoEdit(toolCall.Function.Arguments)
-		result, handled, err = result, true, execErr
+		handled, err = true, execErr
 	case config.ForgeDevRepoBatchReplaceToolName:
 		var execErr error
 		result, execErr = executeForgeDevRepoBatchReplace(toolCall.Function.Arguments)
-		result, handled, err = result, true, execErr
+		handled, err = true, execErr
 	case config.ForgeDevRepoBashToolName:
 		var execErr error
 		result, execErr = executeForgeDevRepoBash(toolCall.Function.Arguments)
-		result, handled, err = result, true, execErr
+		handled, err = true, execErr
 	default:
 		return "", false, nil
 	}

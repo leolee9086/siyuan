@@ -72,6 +72,12 @@ export interface SeelVoteBadgeState {
     label: "动议" | "肯定" | "否决";
     tone: SeelVoteBadgeTone;
     tooltip: string;
+    /** 行动详细内容（提议的具体操作描述） */
+    proposedAction?: string;
+    /** 当前贤者的表决理由 */
+    reason?: string;
+    /** 动议理由 / 审慎决策动机 */
+    deliberationReason?: string;
 }
 
 /**

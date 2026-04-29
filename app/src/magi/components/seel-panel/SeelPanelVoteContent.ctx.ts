@@ -216,6 +216,8 @@ export function resolveSeelVoteBadgeState(
             label: "动议",
             tone: "motion",
             tooltip: buildVoteBadgeTooltip(state),
+            proposedAction: state.proposedAction,
+            deliberationReason: state.deliberationReason,
         };
     }
 
@@ -231,6 +233,9 @@ export function resolveSeelVoteBadgeState(
             label: "肯定",
             tone: "approve",
             tooltip: buildVoteBadgeTooltip(state, detail),
+            proposedAction: state.proposedAction,
+            deliberationReason: state.deliberationReason,
+            reason: detail.reason,
         };
     }
 
@@ -241,6 +246,9 @@ export function resolveSeelVoteBadgeState(
             label: "否决",
             tone: "reject",
             tooltip: buildVoteBadgeTooltip(state, detail),
+            proposedAction: state.proposedAction,
+            deliberationReason: state.deliberationReason,
+            reason: detail.reason,
         };
     }
 

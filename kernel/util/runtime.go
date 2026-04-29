@@ -456,6 +456,10 @@ func existAvailabilityStatus(workspaceAbsPath string) bool {
 		return false
 	}
 	folderObj := result.ToIDispatch()
+	if nil == folderObj {
+		logging.LogWarnf("call shell [NameSpace] folder is nil [%s]", checkAbsPath)
+		return false
+	}
 
 	result, err = oleutil.CallMethod(folderObj, "ParseName", file)
 	if err != nil {
