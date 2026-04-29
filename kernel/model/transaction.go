@@ -1433,17 +1433,15 @@ func (tx *Transaction) doUpdate(operation *Operation) (ret *TxErr) {
 					unlinks = append(unlinks, n)
 				}
 			} else if n.IsTextMarkType("block-ref") {
-				sql.CacheRef(subTree, n)
+				sql.CacheRefs(subTree, n)
 
 				if "d" == n.TextMarkBlockRefSubtype {
-					// 偶发编辑文档标题后引用处的动态锚文本不更新 https://github.com/siyuan-note/siyuan/issues/5891
-					// 使用缓存的动态锚文本强制覆盖当前块中的引用节点动态锚文本
 					if dRefText, ok := treenode.DynamicRefTexts.Load(n.TextMarkBlockRefID); ok && "" != dRefText {
 						n.TextMarkTextContent = dRefText.(string)
 					}
 				}
 
-				newDefIDs = append(newDefIDs, n.TextMarkBlockRefID)
+				newDefIDs = append(newDefIDs, treenode.GetBlockRefIDs(n)...)
 			}
 		}
 		return ast.WalkContinue
@@ -1610,7 +1608,7 @@ func getRefDefIDs(node *ast.Node) (refDefIDs []string) {
 		}
 
 		if treenode.IsBlockRef(n) {
-			refDefIDs = append(refDefIDs, n.TextMarkBlockRefID)
+			refDefIDs = append(refDefIDs, treenode.GetBlockRefIDs(n)...)
 		} else if treenode.IsEmbedBlockRef(n) {
 			defID := treenode.GetEmbedBlockRef(n)
 			refDefIDs = append(refDefIDs, defID)
@@ -2077,25 +2075,26 @@ func updateRefText(refNode *ast.Node, changedDefNodes map[string]*ast.Node) (cha
 			return ast.WalkContinue
 		}
 		if treenode.IsBlockRef(n) {
-			defID, refText, subtype := treenode.GetBlockRef(n)
-			if "" == defID {
-				return ast.WalkContinue
-			}
-
-			defNode := changedDefNodes[defID]
-			if nil == defNode {
-				return ast.WalkSkipChildren
-			}
-
-			changed = true
-			if "d" == subtype {
-				refText = strings.TrimSpace(getNodeRefText(defNode))
-				if "" == refText {
-					refText = n.TextMarkBlockRefID
+			defIDs := treenode.GetBlockRefIDs(n)
+			_, refText, subtype := treenode.GetBlockRef(n)
+			for _, defID := range defIDs {
+				if "" == defID {
+					continue
 				}
-				treenode.SetDynamicBlockRefText(n, refText)
+				defNode := changedDefNodes[defID]
+				if nil == defNode {
+					continue
+				}
+				changed = true
+				if "d" == subtype {
+					refText = strings.TrimSpace(getNodeRefText(defNode))
+					if "" == refText {
+						refText = n.TextMarkBlockRefID
+					}
+					treenode.SetDynamicBlockRefText(n, refText)
+				}
+				defNodes = append(defNodes, &changedDefNode{id: defID, refText: refText, refType: "ref-" + subtype})
 			}
-			defNodes = append(defNodes, &changedDefNode{id: defID, refText: refText, refType: "ref-" + subtype})
 			return ast.WalkContinue
 		} else if treenode.IsEmbedBlockRef(n) {
 			defID := treenode.GetEmbedBlockRef(n)

@@ -76,9 +76,9 @@ export const isBrowser = () => {
     return platform !== "electron";
 };
 
-/** 判断是否为动态引用 */
+/** 判断是否为动态引用（单 ID 或多 ID） */
 export const isDynamicRef = (text: string) => {
-    return /^\(\(\d{14}-\w{7} '.*'\)\)$/.test(text);
+    return /^\(\(\d{14}-\w{7}(?:\s+\d{14}-\w{7})* '.*'\)\)$/.test(text);
 };
 
 /** 判断是否为文件注解 */

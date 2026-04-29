@@ -80,8 +80,8 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342
 	github.com/xuri/excelize/v2 v2.10.1
-	golang.org/x/image v0.38.0
 	golang.org/x/crypto v0.49.0
+	golang.org/x/image v0.38.0
 	golang.org/x/mobile v0.0.0-20251209145715-2553ed8ce294
 	golang.org/x/mod v0.33.0
 	golang.org/x/net v0.52.0
@@ -207,7 +207,8 @@ replace github.com/mattn/go-sqlite3 => github.com/88250/go-sqlite3 v1.14.13-0.20
 
 replace github.com/pdfcpu/pdfcpu => github.com/88250/pdfcpu v0.3.14-0.20250424122812-f10e8d9d8d46
 
-//replace github.com/88250/lute => F:\golang\gopath\src\github.com\88250\lute
+replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-20260429173809-0837d6611351
+
 //replace github.com/siyuan-note/dejavu => D:\88250\dejavu
 //replace github.com/siyuan-note/riff => D:\88250\riff
 //replace github.com/siyuan-note/httpclient => D:\88250\httpclient

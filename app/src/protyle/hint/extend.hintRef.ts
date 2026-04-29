@@ -38,6 +38,12 @@ const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeEl
         return `<span data-type="block-ref" data-id="${item.id}" data-subtype="d">${refText}</span>`;
     }
 };
+
+/** 生成多 ID 块引用的 HTML value */
+export const genBlockRefValueMulti = (ids: string[], anchorText: string): string => {
+    const joinedIds = ids.join(' ');
+    return `<span data-type="block-ref" data-id="${joinedIds}" data-subtype="s">${anchorText}</span>`;
+};
 export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IHintData[] => {
     if (!protyle.wysiwyg) {
         throw new Error("hintRef 方法调用时, protyle.wysiwyg 未定义");
@@ -58,17 +64,34 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
         if (!protyle.hint) {
             throw new Error("hintRef 方法调用时, protyle.hint 未定义");
         }
+        const blocks = response.data.blocks || [];
+        // 只有多个搜索结果时才启用多选模式
+        const isMultiRef = source === "search" && blocks.length > 1;
+        protyle.hint.multiRefMode = isMultiRef;
+        protyle.hint.selectedRefIds = isMultiRef ? new Set<string>() : undefined;
         const dataList: IHintData[] = [];
-        if (response.data.newDoc) {
-            dataList.push(genNewFileItem(response.data.k));
-        }
-        response.data.blocks.forEach((item: IBlock) => {
-            const value = genBlockRefValue(item, key, source, nodeElement || undefined);
-            dataList.push({
-                value,
-                html: genHintItemHTML(item),
+        if (isMultiRef) {
+            if (response.data.newDoc) {
+                dataList.push(genNewFileItem(response.data.k));
+            }
+            blocks.forEach((item: IBlock) => {
+                dataList.push({
+                    value: item.id,
+                    html: `<span class="b3-list-item__checkbox"><svg class="b3-list-item__graphic"><use xlink:href="#iconEmpty"></use></svg></span>${genHintItemHTML(item)}`,
+                });
             });
-        });
+        } else {
+            if (response.data.newDoc) {
+                dataList.push(genNewFileItem(response.data.k));
+            }
+            blocks.forEach((item: IBlock) => {
+                const value = genBlockRefValue(item, key, source, nodeElement || undefined);
+                dataList.push({
+                    value,
+                    html: genHintItemHTML(item),
+                });
+            });
+        }
         if (source === "search") {
             protyle.hint.splitChar = "((";
             protyle.hint.lastIndex = -1;
@@ -82,6 +105,20 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
             dataList[1] && (dataList[1].focus = true);
         }
         protyle.hint.genHTML(dataList, protyle, true, source);
+        // 多选模式：在搜索框与结果列表之间插入固定确认按钮
+        if (isMultiRef) {
+            const confirmBtn = document.createElement("button");
+            confirmBtn.className = "b3-list-item";
+            confirmBtn.setAttribute("data-value", "__confirm__");
+            confirmBtn.innerHTML = `<span class="b3-list-item__text" style="color:var(--b3-theme-primary);font-weight:bold;">✓ 确认插入 (0)</span>`;
+            // 插入在滚动列表之前（搜索框之后）
+            const scrollContainer = protyle.hint.element.querySelector('div[style*="overflow:auto"]');
+            if (scrollContainer) {
+                scrollContainer.parentElement?.insertBefore(confirmBtn, scrollContainer);
+            } else {
+                protyle.hint.element.appendChild(confirmBtn);
+            }
+        }
     });
     return [];
 };

@@ -550,7 +550,8 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 insertHTML(response.data, protyle, false, false, true);
                 protyle.wysiwyg.element.querySelectorAll('[data-type~="block-ref"]').forEach(item => {
                     if (item.textContent === "") {
-                        fetchPost("/api/block/getRefText", { id: item.getAttribute("data-id") }, (response) => {
+                        const firstId = (item.getAttribute("data-id") || '').split(/\s+/)[0];
+                        fetchPost("/api/block/getRefText", { id: firstId }, (response) => {
                             item.innerHTML = response.data;
                         });
                     }
@@ -569,10 +570,13 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
             if (range.toString() !== "") {
                 const firstLine = textPlain.split("\n")[0];
                 if (isDynamicRef(textPlain)) {
+                    // 提取所有 ID（取到单引号前的空格分隔 ID 串）
+                    const idEnd = textPlain.indexOf(" '");
+                    const ids = textPlain.substring(2, idEnd > 0 ? idEnd : textPlain.length - 2);
                     const refElement = protyle.toolbar.setInlineMark(protyle, "block-ref", "range", {
                         type: "id",
                         // range 不能 escape，否则 https://github.com/siyuan-note/siyuan/issues/8359
-                        color: `${textPlain.substring(2, 22 + 2)}${Constants.ZWSP}s${Constants.ZWSP}${range.toString()}`
+                        color: `${ids}${Constants.ZWSP}s${Constants.ZWSP}${range.toString()}`
                     });
                     if (refElement[0]) {
                         protyle.toolbar.range.selectNodeContents(refElement[0]);

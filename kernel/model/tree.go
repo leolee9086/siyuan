@@ -71,11 +71,11 @@ func resetTree(tree *parse.Tree, titleSuffix string, removeAvBinding bool) {
 		if !entering || !treenode.IsBlockRef(n) {
 			return ast.WalkContinue
 		}
-		defID, _, _ := treenode.GetBlockRef(n)
-		if "" == defID {
-			return ast.WalkContinue
+		for _, defID := range treenode.GetBlockRefIDs(n) {
+			if "" != defID {
+				refIDs[defID] = "1"
+			}
 		}
-		refIDs[defID] = "1"
 		return ast.WalkContinue
 	})
 
@@ -101,14 +101,18 @@ func resetTree(tree *parse.Tree, titleSuffix string, removeAvBinding bool) {
 		if !entering || !treenode.IsBlockRef(n) {
 			return ast.WalkContinue
 		}
-		defID, _, _ := treenode.GetBlockRef(n)
-		if "" == defID {
-			return ast.WalkContinue
-		}
-		if "1" != refIDs[defID] {
-			if ast.NodeTextMark == n.Type {
-				n.TextMarkBlockRefID = refIDs[defID]
+		ids := treenode.GetBlockRefIDs(n)
+		changed := false
+		for i, id := range ids {
+			if "1" != refIDs[id] {
+				if newID, ok := refIDs[id]; ok {
+					ids[i] = newID
+					changed = true
+				}
 			}
+		}
+		if changed && ast.NodeTextMark == n.Type {
+			n.TextMarkBlockRefID = strings.Join(ids, " ")
 		}
 		return ast.WalkContinue
 	})

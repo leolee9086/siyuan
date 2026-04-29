@@ -95,12 +95,13 @@ func ListInvalidBlockRefs(page, pageSize int) (ret []*Block, matchedBlockCount, 
 									}
 								}
 							} else if n.IsTextMarkType("block-ref") {
-								defID := n.TextMarkBlockRefID
 								refID := treenode.ParentBlock(n).ID
-								if defIDs := refBlockMap[refID]; 1 > len(defIDs) {
-									refBlockMap[refID] = []string{defID}
-								} else {
-									refBlockMap[refID] = append(defIDs, defID)
+								for _, defID := range treenode.GetBlockRefIDs(n) {
+									if curDefIDs := refBlockMap[refID]; 1 > len(curDefIDs) {
+										refBlockMap[refID] = []string{defID}
+									} else {
+										refBlockMap[refID] = append(curDefIDs, defID)
+									}
 								}
 							}
 						}
@@ -1015,8 +1016,10 @@ func replaceNodeTextMarkTextContent(n *ast.Node, method int, keyword, escapedKey
 					var replaceNodes []*ast.Node
 					for rNode := tree.Root.FirstChild.FirstChild; nil != rNode; rNode = rNode.Next {
 						replaceNodes = append(replaceNodes, rNode)
-						if blockRefID, _, _ := treenode.GetBlockRef(rNode); "" != blockRefID {
-							task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, blockRefID)
+						if blockRefIDs, _, _ := treenode.GetBlockRef(rNode); "" != blockRefIDs {
+							for _, refID := range treenode.GetBlockRefIDs(rNode) {
+								task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, refID)
+							}
 						}
 					}
 

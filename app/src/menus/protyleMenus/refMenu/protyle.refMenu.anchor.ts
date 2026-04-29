@@ -82,6 +82,15 @@ export const 获取引用目标ID = (refElement: HTMLElement): string => {
     return refBlockId;
 };
 
+/** 获取引用目标所有 ID（多 ID 支持） */
+export const 获取引用目标IDs = (refElement: HTMLElement): string[] => {
+    const raw = refElement.getAttribute("data-id");
+    if (!raw) {
+        throw new Error("引用目标id缺失");
+    }
+    return raw.split(/\s+/).filter(Boolean);
+};
+
 /**
  * 作用：创建 anchor 编辑菜单项。
  * 意图：将 anchor 输入交互从主流程中拆出。

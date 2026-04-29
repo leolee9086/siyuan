@@ -118,6 +118,14 @@ func GetBlockRef(n *ast.Node) (blockRefID, blockRefText, blockRefSubtype string)
 	return
 }
 
+func GetBlockRefIDs(n *ast.Node) []string {
+	id, _, _ := GetBlockRef(n)
+	if id == "" {
+		return nil
+	}
+	return strings.Fields(id)
+}
+
 func IsBlockRef(n *ast.Node) bool {
 	if nil == n {
 		return false

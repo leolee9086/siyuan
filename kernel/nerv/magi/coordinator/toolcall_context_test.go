@@ -452,7 +452,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsDiaryEntryAndAnnotates
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.WriteDiaryToolName,
-				Arguments: `{"motivation":"沉淀当前进展","markdown":"# 今日记录\n\n- 完成日记工具接线","calloutType":"NOTE","title":"行动日志"}`,
+				Arguments: `{"motivation":"沉淀当前进展","markdown":"# 今日记录\n\n- 完成日记工具接线\n- 参考 ((id1 \"文档A\"))、((id2 \"文档B\")) 和 ((id3 \"文档C\"))","calloutType":"NOTE","title":"行动日志"}`,
 			},
 		},
 	}

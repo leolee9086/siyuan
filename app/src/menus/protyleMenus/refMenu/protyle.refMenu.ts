@@ -26,7 +26,7 @@ import { hasTopClosestByClassName } from "./imports";
 import { siyuanI18n } from "./imports";
 
 /** 用途：anchor 子流程工具；使用范围：获取 refBlockId、创建 anchor 编辑项、removeCB 清理；解耦评估：按关注点拆分可降低主流程复杂度。 */
-import { 获取引用目标ID } from "./protyle.refMenu.anchor";
+import { 获取引用目标ID, 获取引用目标IDs } from "./protyle.refMenu.anchor";
 /** 用途：anchor 子流程工具；使用范围：创建 anchor 编辑项；解耦评估：输入交互逻辑单独维护便于测试。 */
 import { 创建锚点编辑菜单项 } from "./protyle.refMenu.anchor";
 /** 用途：anchor 子流程工具；使用范围：菜单关闭时补偿事务与焦点恢复；解耦评估：清理逻辑集中减少主流程噪音。 */
@@ -187,25 +187,61 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     }
     hideElements(["util", "toolbar", "hint"], protyle);
 
-    const refBlockId = 获取引用目标ID(refElement);
+    const refBlockIds = 获取引用目标IDs(refElement);
+    // 多 ID 时，首个 ID 作为 anchor 编辑和旧版兼容的默认值
+    const primaryId = refBlockIds[0] || '';
     const id = nodeElement.getAttribute("data-node-id");
     const htmlState = { oldHTML: nodeElement.outerHTML };
 
     getSiyuanGlobalMenus().menu.remove();
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_REF);
-    if (!protyle.disabled) {
-        getSiyuanGlobalMenus().menu.append(创建锚点编辑菜单项(refElement, refBlockId).element);
+
+    // 多 ID 目标选择区
+    if (refBlockIds.length > 1) {
+        const targetLabel = `(${refBlockIds.length} 个目标)`;
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            label: targetLabel,
+            type: "readonly",
+            id: "multi-target-label"
+        }).element);
+        const selected = new Set(refBlockIds);
+        // 存储到 menu 实例上供桌面端回调读取
+        (getSiyuanGlobalMenus().menu as any).selectedTargetIds = selected;
+        for (const blockId of refBlockIds) {
+            const item = new MenuItem({
+                label: blockId,
+                id: "target-" + blockId,
+                icon: "iconCheck",
+                click: () => {
+                    if (selected.has(blockId)) {
+                        selected.delete(blockId);
+                        item.element.querySelector("use")?.setAttribute("xlink:href", "#iconEmpty");
+                    } else {
+                        selected.add(blockId);
+                        item.element.querySelector("use")?.setAttribute("xlink:href", "#iconCheck");
+                    }
+                    // 不关闭菜单
+                    return true;
+                }
+            });
+            getSiyuanGlobalMenus().menu.append(item.element);
+        }
         getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
     }
+
+    if (!protyle.disabled) {
+        getSiyuanGlobalMenus().menu.append(创建锚点编辑菜单项(refElement, primaryId).element);
+        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
+    }
     if (!isMobile) {
-        追加桌面端引用菜单项(protyle, refBlockId);
+        追加桌面端引用菜单项(protyle, refBlockIds);
     }
     if (!protyle.disabled) {
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "turnInto",
             label: siyuanI18n.turnInto,
             icon: "iconRefresh",
-            submenu: 创建转换子菜单(protyle, id, nodeElement, htmlState, refElement, refBlockId)
+            submenu: 创建转换子菜单(protyle, id, nodeElement, htmlState, refElement, primaryId)
         }).element);
     }
     追加基础编辑菜单项(protyle, id, nodeElement, htmlState, refElement);
@@ -218,7 +254,6 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
 
     const inputElement = getSiyuanGlobalMenus().menu.element.querySelector("input");
     const 可编辑并且存在输入框 = !protyle.disabled && inputElement instanceof HTMLInputElement;
-    // 仅在可编辑状态选中输入框，保证用户可以直接继续编辑 anchor，而只读状态不抢焦点。
     if (可编辑并且存在输入框) {
         inputElement.select();
     }

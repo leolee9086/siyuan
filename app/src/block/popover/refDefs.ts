@@ -22,9 +22,10 @@ import { RefDefsResult } from "./types";
  * 从 data-id 属性获取 refDefs
  */
 const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<RefDefsResult> => {
-    // 卫语句：showRef 情况直接返回
+    const ids = dataId.split(/\s+/);
+    // 卫语句：showRef 情况，对首个 ID 查询引用来源（多 ID 暂只取首个）
     if (showRef) {
-        const postResponse = await fetchSyncPost("/api/block/getRefIDs", { id: dataId });
+        const postResponse = await fetchSyncPost("/api/block/getRefIDs", { id: ids[0] });
         return {
             refDefs: postResponse.data.refDefs,
             originalRefBlockIDs: postResponse.data.originalRefBlockIDs
@@ -39,8 +40,9 @@ const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<R
         return { refDefs, originalRefBlockIDs: {} };
     }
 
-    // 默认：单个 ID
-    return { refDefs: [{ refID: dataId }], originalRefBlockIDs: {} };
+    // 多 ID：展开为多个 refDef
+    const refDefs: IRefDefs[] = ids.map((id) => ({ refID: id }));
+    return { refDefs, originalRefBlockIDs: {} };
 };
 
 /**

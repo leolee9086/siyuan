@@ -386,10 +386,14 @@ func RenderTemplate(p, id string, preview bool) (tree *parse.Tree, dom string, e
 
 		if n.IsTextMarkType("block-ref") {
 			if refText := n.Text(); "" == refText {
-				refText = strings.TrimSpace(sql.GetRefText(n.TextMarkBlockRefID))
-				if "" != refText {
-					treenode.SetDynamicBlockRefText(n, refText)
-				} else {
+				for _, defID := range treenode.GetBlockRefIDs(n) {
+					refText = strings.TrimSpace(sql.GetRefText(defID))
+					if "" != refText {
+						treenode.SetDynamicBlockRefText(n, refText)
+						break
+					}
+				}
+				if "" == refText {
 					unlinks = append(unlinks, n)
 				}
 			}

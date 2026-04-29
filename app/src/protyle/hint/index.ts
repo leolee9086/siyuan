@@ -11,6 +11,7 @@ import {isNotCtrl, isOnlyMeta} from "../util/compatibility";
 import {handleFillAv, handleFillContent} from "./index.fill";
 import {handleSelect} from "./index.select";
 import {handleRender, handleGenEmojiHTML, handleGenSearchHTML} from "./index.render";
+import {genBlockRefValueMulti} from "./extend.hintRef";
 
 
 export class Hint {
@@ -22,6 +23,9 @@ export class Hint {
     public splitChar = "";
     public lastIndex = -1;
     public source: THintSource;
+    // 多选块引用模式
+    public multiRefMode = false;
+    public selectedRefIds: Set<string> | undefined;
 
     constructor(protyle: IProtyle) {
         this.element = document.createElement("div");
@@ -35,9 +39,45 @@ export class Hint {
             }
             const btnElement = hasClosestByTag(eventTarget, "BUTTON");
             if (btnElement && !btnElement.classList.contains("emojis__item") && !btnElement.classList.contains("emojis__type")) {
-                this.fill(decodeURIComponent(btnElement.getAttribute("data-value")), protyle, false, this.source === "search" ? isNotCtrl(event) : isOnlyMeta(event));
+                const rawValue = btnElement.getAttribute("data-value");
+                // 多选块引用模式
+                if (this.multiRefMode && rawValue !== "__confirm__") {
+                    // 切换勾选状态
+                    const blockId = rawValue;
+                    if (this.selectedRefIds?.has(blockId)) {
+                        this.selectedRefIds.delete(blockId);
+                        btnElement.classList.remove("b3-list-item--selected");
+                        btnElement.querySelector(".b3-list-item__checkbox use")?.setAttribute("xlink:href", "#iconEmpty");
+                    } else {
+                        this.selectedRefIds?.add(blockId);
+                        btnElement.classList.add("b3-list-item--selected");
+                        btnElement.querySelector(".b3-list-item__checkbox use")?.setAttribute("xlink:href", "#iconCheck");
+                    }
+                    // 更新确认按钮文字
+                    const confirmBtn = this.element.querySelector('[data-value="__confirm__"]');
+                    if (confirmBtn) {
+                        const selectedCount = this.selectedRefIds?.size || 0;
+                        confirmBtn.innerHTML = `<span class="b3-list-item__text" style="color:var(--b3-theme-primary);font-weight:bold;">✓ 确认插入 (${selectedCount})</span>`;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+                // 多选确认：拼接所有选中 ID 为多 ID 块引
+                if (this.multiRefMode && rawValue === "__confirm__") {
+                    const selectedIds = Array.from(this.selectedRefIds || []);
+                    if (selectedIds.length > 0) {
+                        const anchorText = protyle.toolbar?.range?.toString() || '';
+                        const value = genBlockRefValueMulti(selectedIds, anchorText);
+                        this.fill(value, protyle, false, true);
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+                this.fill(decodeURIComponent(rawValue), protyle, false, this.source === "search" ? isNotCtrl(event) : isOnlyMeta(event));
                 event.preventDefault();
-                event.stopPropagation(); // https://github.com/siyuan-note/siyuan/issues/3710
+                event.stopPropagation();
                 return;
             }
             const emojisContentElement = this.element.querySelector(".emojis__panel");

@@ -447,7 +447,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (!isMobile) {
             const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
             if (refElement) {
-                const id = refElement.getAttribute("data-id");
+                const id = (refElement.getAttribute("data-id") || '').split(/\s+/)[0];
                 if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event) && id) {
                     checkFold(id, (zoomIn, action, isRoot) => {
                         if (!isRoot) {

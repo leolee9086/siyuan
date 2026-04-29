@@ -91,6 +91,24 @@ Electron 开发环境下,本分支也会以 `--mode forge` 启动内核。
 
 因为我个人经济状况说不上特别好,平时为了生活焦头烂额,所以也没有时间查看Issue,但是有时间的时候我就会去处理.
 
+## 依赖替换
+
+### Lute (Markdown 引擎)
+
+使用 fork [leolee9086/lute](https://github.com/leolee9086/lute) 替换上游 [88250/lute](https://github.com/88250/lute)，修改见 `kernel/go.mod`：
+
+```
+replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-20260429173809-0837d6611351
+```
+
+改动：`parseBlockRefID` 支持 `((id1 id2 id3 "text"))` 多 ID 块引用语法。
+
+### fork 源码位置
+
+```
+D:\dev\lute
+```
+
 ## 协议
 
 所有代码遵守AGPL-3.0-or-later

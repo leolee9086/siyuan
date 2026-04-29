@@ -27,6 +27,7 @@ import (
 	gcache "github.com/patrickmn/go-cache"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/search"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
 )
 
 var cacheDisabled = true
@@ -103,6 +104,13 @@ func GetRefsCacheByDefID(defID string) (ret []*Ref) {
 func CacheRef(tree *parse.Tree, refNode *ast.Node) {
 	ref := buildRef(tree, refNode)
 	putRefCache(ref)
+}
+
+func CacheRefs(tree *parse.Tree, refNode *ast.Node) {
+	for _, defID := range treenode.GetBlockRefIDs(refNode) {
+		ref := buildRefForID(tree, refNode, defID)
+		putRefCache(ref)
+	}
 }
 
 func putRefCache(ref *Ref) {

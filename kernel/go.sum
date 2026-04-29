@@ -14,8 +14,6 @@ github.com/88250/go-sqlite3 v1.14.13-0.20231214121541-e7f54c482950 h1:Pa5hMiBceT
 github.com/88250/go-sqlite3 v1.14.13-0.20231214121541-e7f54c482950/go.mod h1:NyWgC/yNuGj7Q9rpYnZvas74GogHl5/Z4A/KQRfk6bU=
 github.com/88250/gulu v1.2.3-0.20260409163331-8c1dab1828ba h1:F9nZLeLTSPUIyYrQqprqElKFef4xVI7fzjxkLXRb2Bo=
 github.com/88250/gulu v1.2.3-0.20260409163331-8c1dab1828ba/go.mod h1:D+Db16m0N7r9MLZCMcj1a0ZsEGQAxDZkadOn79Gh0vI=
-github.com/88250/lute v1.7.7-0.20260410094720-75c101d9a057 h1:GStw0i4a2lcIdEeEB573fu233wcdB/vHN0ABqas8w4s=
-github.com/88250/lute v1.7.7-0.20260410094720-75c101d9a057/go.mod h1:WYyUw//5yVw9BJnoVjx7rI/3szsISxNZCYGOqTIrV0o=
 github.com/88250/pdfcpu v0.3.14-0.20250424122812-f10e8d9d8d46 h1:Bq1JsDfVbHKUxNL/B2JXd8cC/1h6aFjrlXpGycnh0Hk=
 github.com/88250/pdfcpu v0.3.14-0.20250424122812-f10e8d9d8d46/go.mod h1:fVfOloBzs2+W2VJCCbq60XIxc3yJHAZ0Gahv1oO0gyI=
 github.com/88250/vitess-sqlparser v0.0.0-20210205111146-56a2ded2aba1 h1:48T899JQDwyyRu9yXHePYlPdHtpJfrJEUGBMH3SMBWY=
@@ -276,6 +274,8 @@ github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
 github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
+github.com/leolee9086/lute v0.0.0-20260429173809-0837d6611351 h1:Y6NIxn1L7ebr+77OtKvS+ga2zba0MSSWknog9OOKq5A=
+github.com/leolee9086/lute v0.0.0-20260429173809-0837d6611351/go.mod h1:WYyUw//5yVw9BJnoVjx7rI/3szsISxNZCYGOqTIrV0o=
 github.com/levigross/exp-html v0.0.0-20120902181939-8df60c69a8f5 h1:W7p+m/AECTL3s/YR5RpQ4hz5SjNeKzZBl1q36ws12s0=
 github.com/levigross/exp-html v0.0.0-20120902181939-8df60c69a8f5/go.mod h1:QMe2wuKJ0o7zIVE8AqiT8rd8epmm6WDIZ2wyuBqYPzM=
 github.com/liushuangls/go-anthropic/v2 v2.17.0 h1:iBA6h7aghi1q86owEQ95XE2R2MF/0dQ7bCxtwTxOg4c=
@@ -375,8 +375,6 @@ github.com/siyuan-note/filelock v0.0.0-20260411080437-db25ef668c70 h1:OL6b2dm0YD
 github.com/siyuan-note/filelock v0.0.0-20260411080437-db25ef668c70/go.mod h1:L2iMBH7Mb1VICVlJFw2SxoJwCfyWc0luuZdUuRhzsq4=
 github.com/siyuan-note/httpclient v0.0.0-20260408083825-43e4476ad2b3 h1:zwfpFqYBhV7rPx6yC3AKjYW/5HOaBg2cuy4x4olWwQE=
 github.com/siyuan-note/httpclient v0.0.0-20260408083825-43e4476ad2b3/go.mod h1:XxprEfaOoufvhLkI6rjfJrsNPFUAaCV6HI4M0e/Fr5w=
-github.com/siyuan-note/logging v0.0.0-20260117134552-88b424dfe7f1 h1:C2Y1XhBrrGegnHvWOeVVRFkMRzB6EqJSytHheq+T6mU=
-github.com/siyuan-note/logging v0.0.0-20260117134552-88b424dfe7f1/go.mod h1:t3Tmt3DgQx0zqJmrckszJ+JBZ7iJrD1Ktp8FDBQ249E=
 github.com/siyuan-note/riff v0.0.0-20251022131846-228528e70754 h1:6QYpy7s5HlRSge09TyM/mT0vz1RDcWYZdkxEh7hmbH4=
 github.com/siyuan-note/riff v0.0.0-20251022131846-228528e70754/go.mod h1:/N7+N2CsZ0nleNPpP3b+06Bzqvuhy6GUmLY7Kug/zT0=
 github.com/soheilhy/cmux v0.1.5 h1:jjzc5WVemNEDTLwv9tlmemhC73tI08BNOIGwBOo10Js=

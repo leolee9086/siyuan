@@ -1695,17 +1695,13 @@ func ExportStdMarkdown(id string, assetsDestSpace2Underscore, fillCSSVar, adjust
 				return ast.WalkContinue
 			}
 
-			var defID string
 			if treenode.IsBlockLink(n) {
-				defID = strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
+				_ = strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
 			} else if treenode.IsBlockRef(n) {
-				defID, _, _ = treenode.GetBlockRef(n)
-			}
-
-			if "" != defID {
-				if defBt := treenode.GetBlockTree(defID); nil != defBt {
-					defBlockIDs = append(defBlockIDs, defID)
-					defBlockIDs = gulu.Str.RemoveDuplicatedElem(defBlockIDs)
+				for _, defID := range treenode.GetBlockRefIDs(n) {
+					if defBt := treenode.GetBlockTree(defID); nil != defBt {
+						defBlockIDs = append(defBlockIDs, defID)
+					}
 				}
 			}
 			return ast.WalkContinue
@@ -2610,9 +2606,11 @@ func exportTree(tree *parse.Tree, wysiwyg, keepFold, avHiddenCol bool,
 						return ast.WalkContinue
 					}
 
-					if id == n.TextMarkBlockRefID {
-						refRoot = true
-						return ast.WalkStop
+					for _, refID := range treenode.GetBlockRefIDs(n) {
+						if id == refID {
+							refRoot = true
+							return ast.WalkStop
+						}
 					}
 					return ast.WalkContinue
 				})
@@ -3115,7 +3113,11 @@ func resolveFootnotesDefs(refFootnoteOrder *[]string, refFootnotesByID map[strin
 				}
 
 				if treenode.IsBlockRef(n) {
-					defID, _, _ := treenode.GetBlockRef(n)
+					defIDs := treenode.GetBlockRefIDs(n)
+					var defID string
+					if len(defIDs) > 0 {
+						defID = defIDs[0]
+					}
 					if f := refFootnotesByID[defID]; nil != f {
 						n.InsertBefore(&ast.Node{Type: ast.NodeText, Tokens: []byte(blockRefTextLeft + f.refAnchorText + blockRefTextRight)})
 						n.InsertBefore(&ast.Node{Type: ast.NodeFootnotesRef, Tokens: []byte("^" + f.refNum), FootnotesRefId: f.refNum, FootnotesRefLabel: []byte("^" + f.refNum)})
@@ -3123,7 +3125,6 @@ func resolveFootnotesDefs(refFootnoteOrder *[]string, refFootnotesByID map[strin
 					} else {
 						if isNodeInTree(defID, currentTree) {
 							if currentTreeNodeIDs[defID] {
-								// 当前文档内不转换脚注，直接使用锚点哈希 https://github.com/siyuan-note/siyuan/issues/13283
 								n.TextMarkType = "a"
 								n.TextMarkTextContent = blockRefTextLeft + n.TextMarkTextContent + blockRefTextRight
 								n.TextMarkAHref = "#" + defID
@@ -3156,16 +3157,6 @@ func resolveFootnotesDefs(refFootnoteOrder *[]string, refFootnotesByID map[strin
 			})
 			for _, n := range unlinks {
 				n.Unlink()
-			}
-
-			if ast.NodeBlockQueryEmbed != node.Type {
-				if ast.NodeListItem == node.Type {
-					parentList := &ast.Node{Type: ast.NodeList, ListData: &ast.ListData{Typ: node.ListData.Typ}}
-					parentList.AppendChild(node)
-					newNodes = append(newNodes, parentList)
-				} else {
-					newNodes = append(newNodes, node)
-				}
 			}
 		}
 
@@ -3213,7 +3204,10 @@ func blockLink2Ref(currentTree *parse.Tree) {
 
 		if treenode.IsBlockLink(n) {
 			n.TextMarkType = strings.TrimSpace(strings.TrimPrefix(n.TextMarkType, "a") + " block-ref")
-			n.TextMarkBlockRefID = strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
+			defID := strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
+			// 转换后的块引仅包含单个 ID（block link 本来也只指向一个块）
+			// 如果需要多 ID 可在后续编辑中由用户或 AI 写入
+			n.TextMarkBlockRefID = defID
 			n.TextMarkBlockRefSubtype = "s"
 		}
 		return ast.WalkContinue
@@ -3274,8 +3268,11 @@ func collectFootnotesDefs0(currentTree *parse.Tree, node *ast.Node, refFootnoteO
 		}
 
 		if treenode.IsBlockRef(n) {
-			defID, refText, _ := treenode.GetBlockRef(n)
-			addRefFootnoteAndRecurse(currentTree, defID, refText, refFootnoteOrder, refFootnotesByID, depth)
+			defIDs := treenode.GetBlockRefIDs(n)
+			if len(defIDs) > 0 {
+				_, refText, _ := treenode.GetBlockRef(n)
+				addRefFootnoteAndRecurse(currentTree, defIDs[0], refText, refFootnoteOrder, refFootnotesByID, depth)
+			}
 			return ast.WalkSkipChildren
 		} else if treenode.IsBlockLink(n) {
 			defID := strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
@@ -3561,7 +3558,11 @@ func removeAssetsID(tree *parse.Tree, assetsOldNew, assetsNewOld map[string]stri
 }
 
 func getExportBlockRefLinkText(blockRef *ast.Node, blockRefTextLeft, blockRefTextRight string) (defID, linkText string) {
-	defID, linkText, _ = treenode.GetBlockRef(blockRef)
+	defIDs := treenode.GetBlockRefIDs(blockRef)
+	if len(defIDs) > 0 {
+		defID = defIDs[0]
+	}
+	_, linkText, _ = treenode.GetBlockRef(blockRef)
 	if "" == linkText {
 		linkText = sql.GetRefText(defID)
 	}
@@ -3610,25 +3611,27 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees map[string
 		}
 
 		if treenode.IsBlockRef(n) {
-			defID, _, _ := treenode.GetBlockRef(n)
-			if "" == defID {
-				return ast.WalkContinue
-			}
-			defBlock := treenode.GetBlockTree(defID)
-			if nil == defBlock {
-				return ast.WalkSkipChildren
-			}
+			for _, defID := range treenode.GetBlockRefIDs(n) {
+				if "" == defID {
+					continue
+				}
+				defBlock := treenode.GetBlockTree(defID)
+				if nil == defBlock {
+					continue
+				}
 
-			defTree, err := LoadTreeByBlockID(defBlock.RootID)
-			if err != nil {
-				return ast.WalkSkipChildren
-			}
-			*defBlockIDs = append(*defBlockIDs, defID)
+				defTree, err := LoadTreeByBlockID(defBlock.RootID)
+				if err != nil {
+					continue
+				}
+				*defBlockIDs = append(*defBlockIDs, defID)
 
-			if !Conf.Export.IncludeRelatedDocs {
-				return ast.WalkSkipChildren
+				if !Conf.Export.IncludeRelatedDocs {
+					return ast.WalkSkipChildren
+				}
+				exportRefTrees(defTree, defBlockIDs, retTrees)
 			}
-			exportRefTrees(defTree, defBlockIDs, retTrees)
+			return ast.WalkSkipChildren
 		} else if treenode.IsBlockLink(n) {
 			defID := strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
 			if "" == defID {

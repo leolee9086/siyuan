@@ -23,20 +23,30 @@ import { openBacklink } from "./imports";
 /** 用途：打开图谱面板；使用范围：graphView 动作；解耦评估：面板能力独立封装。 */
 import { openGraph } from "./imports";
 
+/** 从菜单数据获取已勾选的 ID 列表，未勾选时返回全部 */
+const 获取选中IDs = (fallback: string[]): string[] => {
+    const selected = (getSiyuanGlobalMenus().menu as any).selectedTargetIds as Set<string> | undefined;
+    if (selected && selected.size > 0) {
+        return Array.from(selected);
+    }
+    return fallback;
+};
+
 /**
  * 作用：创建桌面端普通打开回调（当前页/右侧/下侧）。
  * 意图：把 openBy / insertRight / insertBottom 的共同打开逻辑收敛到同一入口。
  * 调用时机：构建对应菜单项 click 时传给 `checkFold`。
  * 问题/改进：`action` 直接在原数组上 push，后续可评估改为不可变写法以降低副作用风险。
  */
-const 创建普通打开回调 = (protyle: IProtyle, refBlockId: string, position?: "right" | "bottom") => {
+const 创建普通打开回调 = (protyle: IProtyle, refBlockIds: string[], position?: "right" | "bottom") => {
     return (zoomIn: boolean, action: string[], isRoot: boolean) => {
         if (!isRoot) {
             action.push(Constants.CB_GET_HL);
         }
+        // 多 ID 时仅打开首个目标
         openFileById({
             app: protyle.app,
-            id: refBlockId,
+            id: refBlockIds[0],
             position,
             action,
             zoomIn
@@ -44,17 +54,11 @@ const 创建普通打开回调 = (protyle: IProtyle, refBlockId: string, positio
     };
 };
 
-/**
- * 作用：创建 RefTab 打开回调。
- * 意图：统一 RefTab 模式下 zoomIn 与普通点击对应的 action 组合，避免散落硬编码。
- * 调用时机：构建 `refTab` 菜单项时传给 `checkFold`。
- * 问题/改进：action 组合仍是硬编码常量数组，后续可提取成配置映射。
- */
-const 创建RefTab回调 = (protyle: IProtyle, refBlockId: string) => {
+const 创建RefTab回调 = (protyle: IProtyle, refBlockIds: string[]) => {
     return (zoomIn: boolean) => {
         openFileById({
             app: protyle.app,
-            id: refBlockId,
+            id: refBlockIds[0],
             action: zoomIn
                 ? [Constants.CB_GET_HL, Constants.CB_GET_ALL]
                 : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
@@ -63,6 +67,9 @@ const 创建RefTab回调 = (protyle: IProtyle, refBlockId: string) => {
         });
     };
 };
+
+
+
 
 /**
  * 作用：读取 insertBottom 菜单展示的快捷键文本。
@@ -83,54 +90,50 @@ const 读取插入到底部快捷键 = (): string => {
  * 调用时机：`追加桌面端引用菜单项` 的前半段。
  * 问题/改进：当前仍依赖固定顺序，后续可改为配置化排序。
  */
-const 构建打开方式菜单项列表 = (protyle: IProtyle, refBlockId: string): MenuItem[] => {
+const 构建打开方式菜单项列表 = (protyle: IProtyle, refBlockIds: string[]): MenuItem[] => {
+    const primaryId = refBlockIds[0] || '';
     const menuItems: MenuItem[] = [];
     menuItems.push(new MenuItem({
         id: "openBy",
         label: siyuanI18n.openBy,
         icon: "iconOpen",
         accelerator: getSiyuanConfig().keymap.editor.general.openBy.custom + "/" + siyuanI18n.click,
-        click: checkFold.bind(null, refBlockId, 创建普通打开回调(protyle, refBlockId))
+        click: checkFold.bind(null, primaryId, 创建普通打开回调(protyle, refBlockIds))
     }));
     menuItems.push(new MenuItem({
         id: "refTab",
         label: siyuanI18n.refTab,
         icon: "iconEyeoff",
         accelerator: getSiyuanConfig().keymap.editor.general.refTab.custom + "/" + updateHotkeyTip("⌘" + siyuanI18n.click),
-        click: checkFold.bind(null, refBlockId, 创建RefTab回调(protyle, refBlockId))
+        click: checkFold.bind(null, primaryId, 创建RefTab回调(protyle, refBlockIds))
     }));
     menuItems.push(new MenuItem({
         id: "insertRight",
         label: siyuanI18n.insertRight,
         icon: "iconLayoutRight",
         accelerator: getSiyuanConfig().keymap.editor.general.insertRight.custom + "/" + updateHotkeyTip("⌥" + siyuanI18n.click),
-        click: checkFold.bind(null, refBlockId, 创建普通打开回调(protyle, refBlockId, "right"))
+        click: checkFold.bind(null, primaryId, 创建普通打开回调(protyle, refBlockIds, "right"))
     }));
     menuItems.push(new MenuItem({
         id: "insertBottom",
         label: siyuanI18n.insertBottom,
         icon: "iconLayoutBottom",
         accelerator: 读取插入到底部快捷键(),
-        click: checkFold.bind(null, refBlockId, 创建普通打开回调(protyle, refBlockId, "bottom"))
+        click: checkFold.bind(null, primaryId, 创建普通打开回调(protyle, refBlockIds, "bottom"))
     }));
     if (isElectron) {
         menuItems.push(new MenuItem({
             id: "openByNewWindow",
             label: siyuanI18n.openByNewWindow,
             icon: "iconOpenWindow",
-            click: openNewWindowById.bind(null, refBlockId)
+            click: openNewWindowById.bind(null, primaryId)
         }));
     }
     return menuItems;
 };
 
-/**
- * 作用：构建桌面端“关系面板”相关菜单项。
- * 意图：把 backlinks/graph 及分隔符从主流程中独立，避免动作区块互相穿插。
- * 调用时机：`追加桌面端引用菜单项` 的后半段。
- * 问题/改进：后续如果要扩展更多关系面板入口，可继续在此函数追加。
- */
-const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockId: string): MenuItem[] => {
+const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockIds: string[]): MenuItem[] => {
+    const primaryId = refBlockIds[0] || '';
     const menuItems: MenuItem[] = [];
     menuItems.push(new MenuItem({ id: "separator_2", type: "separator" }));
     menuItems.push(new MenuItem({
@@ -140,7 +143,7 @@ const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockId: string
         accelerator: getSiyuanConfig().keymap.editor.general.backlinks.custom,
         click: openBacklink.bind(null, {
             app: protyle.app,
-            blockId: refBlockId,
+            blockId: primaryId,
         })
     }));
     menuItems.push(new MenuItem({
@@ -150,7 +153,7 @@ const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockId: string
         accelerator: getSiyuanConfig().keymap.editor.general.graphView.custom,
         click: openGraph.bind(null, {
             app: protyle.app,
-            blockId: refBlockId,
+            blockId: primaryId,
         })
     }));
     menuItems.push(new MenuItem({ id: "separator_3", type: "separator" }));
@@ -176,9 +179,9 @@ const 追加菜单项列表 = (menuItems: MenuItem[]): void => {
  * 问题/改进：当前顺序仍硬编码，后续可抽象成配置驱动。
  */
 /** @同步豁免: UI构建 */
-export const 追加桌面端引用菜单项 = (protyle: IProtyle, refBlockId: string): void => {
-    const 打开方式菜单项列表 = 构建打开方式菜单项列表(protyle, refBlockId);
+export const 追加桌面端引用菜单项 = (protyle: IProtyle, refBlockIds: string[]): void => {
+    const 打开方式菜单项列表 = 构建打开方式菜单项列表(protyle, refBlockIds);
     追加菜单项列表(打开方式菜单项列表);
-    const 关系面板菜单项列表 = 构建关系面板菜单项列表(protyle, refBlockId);
+    const 关系面板菜单项列表 = 构建关系面板菜单项列表(protyle, refBlockIds);
     追加菜单项列表(关系面板菜单项列表);
 };

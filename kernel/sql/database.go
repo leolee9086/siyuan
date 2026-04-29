@@ -486,6 +486,37 @@ func buildRef(tree *parse.Tree, refNode *ast.Node) *Ref {
 	}
 }
 
+func buildRefForID(tree *parse.Tree, refNode *ast.Node, defBlockID string) *Ref {
+	tmpTyp := refNode.TextMarkType
+	refNode.TextMarkType = "block-ref"
+	markdown := treenode.ExportNodeStdMd(refNode, luteEngine)
+	refNode.TextMarkType = tmpTyp
+
+	text, _ := refNode.TextMarkTextContent, refNode.TextMarkBlockRefSubtype
+	var defBlockParentID, defBlockRootID, defBlockPath string
+	defBlock := treenode.GetBlockTree(defBlockID)
+	if nil != defBlock {
+		defBlockParentID = defBlock.ParentID
+		defBlockRootID = defBlock.RootID
+		defBlockPath = defBlock.Path
+	}
+	parentBlock := treenode.ParentBlock(refNode)
+	return &Ref{
+		ID:               ast.NewNodeID(),
+		DefBlockID:       defBlockID,
+		DefBlockParentID: defBlockParentID,
+		DefBlockRootID:   defBlockRootID,
+		DefBlockPath:     defBlockPath,
+		BlockID:          parentBlock.ID,
+		RootID:           tree.ID,
+		Box:              tree.Box,
+		Path:             tree.Path,
+		Content:          text,
+		Markdown:         markdown,
+		Type:             treenode.TypeAbbr(refNode.Type.String()),
+	}
+}
+
 func buildEmbedRef(tree *parse.Tree, embedNode *ast.Node) *Ref {
 	defBlockID := getEmbedRef(embedNode)
 	var defBlockParentID, defBlockRootID, defBlockPath string

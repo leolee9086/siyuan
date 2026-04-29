@@ -450,8 +450,14 @@ func TransferBlockRef(fromID, toID string, refIDs []string) (err error) {
 		node := treenode.GetNodeInTree(tree, refID)
 		textMarks := node.ChildrenByType(ast.NodeTextMark)
 		for _, textMark := range textMarks {
-			if textMark.IsTextMarkType("block-ref") && textMark.TextMarkBlockRefID == fromID {
-				textMark.TextMarkBlockRefID = toID
+			if treenode.IsBlockRef(textMark) {
+				ids := treenode.GetBlockRefIDs(textMark)
+				for i, id := range ids {
+					if id == fromID {
+						ids[i] = toID
+					}
+				}
+				textMark.TextMarkBlockRefID = strings.Join(ids, " ")
 				if "d" == textMark.TextMarkBlockRefSubtype {
 					textMark.TextMarkTextContent = toRefText
 				}
