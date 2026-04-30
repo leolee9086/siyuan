@@ -354,7 +354,6 @@ type avatarCreateDecision string
 
 const (
 	avatarDecisionApproved avatarCreateDecision = "approved"
-	avatarDecisionRejected avatarCreateDecision = "rejected"
 )
 
 type melchiorBuildAvatar struct {
@@ -464,6 +463,48 @@ func requestAvatarPrototypeByMAGI(
 		return nil, fmt.Errorf("melchior rejected avatar creation: %s", melchiorBuild.Reason)
 	}
 
+	melchiorProposalRaw, _ := json.Marshal(melchiorBuild)
+
+	avatarSessionID := fmt.Sprintf("avatar-creation-%s", bindingKey)
+	avatarRoundID := fmt.Sprintf("avatar-round-%d", time.Now().UnixMilli())
+	dominantActionToolGovernance.RegisterRound(
+		avatarSessionID, avatarRoundID, userMessage,
+		melchior, balthazar, casper,
+	)
+
+	pendingToolCall := types.ToolCall{
+		ID:   fmt.Sprintf("avatar-build-%d", time.Now().UnixMilli()),
+		Type: "function",
+		Function: types.ToolCallFunction{
+			Name:      avatarBuildToolName,
+			Arguments: string(melchiorProposalRaw),
+		},
+	}
+	voteCtx := VoteContext{
+		UserMessage:            userMessage,
+		ProposerDisplayName:    melchior.GetDisplayName(),
+		ProposerConclusion:     melchiorBuild.Reason,
+		GovernedActionToolCall: &pendingToolCall,
+	}
+
+	voteResult, err := ProcessPeerVoting(
+		ctx, avatarSessionID, avatarRoundID,
+		melchior.GetName(), melchior.GetDisplayName(),
+		balthazar, casper,
+		avatarBuildToolName,
+		voteCtx,
+		melchior.GetName(),
+		"申请创建Avatar",
+		1,
+	)
+	dominantActionToolGovernance.UnregisterRound(avatarSessionID, avatarRoundID)
+	if err != nil {
+		return nil, fmt.Errorf("avatar creation governance vote failed: %w", err)
+	}
+	if !voteResult.Passed {
+		return nil, fmt.Errorf("avatar creation rejected by sages")
+	}
+
 	proposals := []avatarCreationProposal{
 		{
 			SageName:             melchior.GetName(),
@@ -474,25 +515,6 @@ func requestAvatarPrototypeByMAGI(
 			Requirements:         melchiorBuild.Requirements,
 		},
 	}
-
-	melchiorProposalRaw, _ := json.Marshal(melchiorBuild)
-	reviewerTask := prompts.BuildReviewerModifyAvatarTask(knowledgeBase, string(melchiorProposalRaw))
-	reviewerProposals := make(chan avatarCreationProposal, 2)
-
-	go func() {
-		reviewerProposals <- collectReviewerModifyAvatar(ctx, balthazar, reviewerTask)
-	}()
-	go func() {
-		reviewerProposals <- collectReviewerModifyAvatar(ctx, casper, reviewerTask)
-	}()
-
-	proposals = append(proposals, <-reviewerProposals)
-	proposals = append(proposals, <-reviewerProposals)
-
-	if !isAvatarCreationApprovedBySages(proposals) {
-		return nil, fmt.Errorf("avatar creation rejected by sages")
-	}
-
 	proposalsPayload := buildSageProposalPayload(proposals)
 	dominantSituation := buildAvatarDominantSituation(knowledgeBase, proposalsPayload)
 	dominantResult, err := electDominantSage(ctx, bindingKey, melchior, balthazar, casper, dominantSituation)
@@ -528,42 +550,6 @@ func collectMelchiorBuildAvatar(
 		return nil, err
 	}
 	return parseMelchiorBuildAvatar(rawArgs)
-}
-
-func collectReviewerModifyAvatar(
-	ctx context.Context,
-	reviewer *sages.Sage,
-	task string,
-) avatarCreationProposal {
-	if reviewer == nil {
-		return avatarCreationProposal{
-			SageName:    "unknown-reviewer",
-			DisplayName: "unknown-reviewer",
-			Decision:    avatarDecisionRejected,
-			Reason:      "reviewer-is-nil",
-		}
-	}
-	rawArgs, err := runSageToolCall(ctx, reviewer, task, avatarModifyToolName)
-	if err != nil {
-		return avatarCreationProposal{
-			SageName:    reviewer.GetName(),
-			DisplayName: reviewer.GetDisplayName(),
-			Decision:    avatarDecisionRejected,
-			Reason:      "modify-avatar-tool-call-failed",
-		}
-	}
-	proposal, parseErr := parseReviewerModifyAvatar(rawArgs)
-	if parseErr != nil {
-		return avatarCreationProposal{
-			SageName:    reviewer.GetName(),
-			DisplayName: reviewer.GetDisplayName(),
-			Decision:    avatarDecisionRejected,
-			Reason:      "modify-avatar-tool-args-invalid",
-		}
-	}
-	proposal.SageName = reviewer.GetName()
-	proposal.DisplayName = reviewer.GetDisplayName()
-	return *proposal
 }
 
 func collectDominantSynthesizeAvatar(
@@ -695,24 +681,6 @@ func parseMelchiorBuildAvatar(rawArgs string) (*melchiorBuildAvatar, error) {
 	return result, nil
 }
 
-func parseReviewerModifyAvatar(rawArgs string) (*avatarCreationProposal, error) {
-	payload := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(rawArgs), &payload); err != nil {
-		return nil, fmt.Errorf("parse reviewer modifyAvatar args failed: %w", err)
-	}
-	decision := normalizeAvatarCreateDecision(payload["decision"])
-	result := &avatarCreationProposal{
-		Decision:             decision,
-		Reason:               pickString(payload, "reason"),
-		SystemPromptProposal: pickString(payload, "systemPromptProposal", "system_prompt_proposal", "prompt"),
-		Requirements:         pickString(payload, "requirements", "requirement"),
-	}
-	if result.Reason == "" {
-		result.Reason = "no-reason"
-	}
-	return result, nil
-}
-
 func parseDominantSynthesizeAvatar(rawArgs string) (*dominantSynthesizeAvatar, error) {
 	payload := map[string]interface{}{}
 	if err := json.Unmarshal([]byte(rawArgs), &payload); err != nil {
@@ -725,26 +693,6 @@ func parseDominantSynthesizeAvatar(rawArgs string) (*dominantSynthesizeAvatar, e
 	return &dominantSynthesizeAvatar{
 		FinalSystemPrompt: strings.TrimSpace(finalSystemPrompt),
 	}, nil
-}
-
-func normalizeAvatarCreateDecision(raw interface{}) avatarCreateDecision {
-	value := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", raw)))
-	switch value {
-	case "approved", "approve", "yes", "create", "批准":
-		return avatarDecisionApproved
-	default:
-		return avatarDecisionRejected
-	}
-}
-
-func isAvatarCreationApprovedBySages(proposals []avatarCreationProposal) bool {
-	approvedCount := 0
-	for _, proposal := range proposals {
-		if proposal.Decision == avatarDecisionApproved {
-			approvedCount++
-		}
-	}
-	return approvedCount >= 2
 }
 
 func buildSageProposalPayload(proposals []avatarCreationProposal) string {

@@ -317,7 +317,14 @@ func isGovernedActionToolName(toolName string) bool {
 	case config.WriteDiaryToolName,
 		config.ForgeDevRepoEditToolName,
 		config.ForgeDevRepoBatchReplaceToolName,
-		config.ForgeDevRepoBashToolName:
+		config.ForgeDevRepoBashToolName,
+		config.CreateNoteDocumentToolName,
+		config.AppendNoteBlocksToolName,
+		config.ModifyNoteBlockToolName,
+		config.RevertNoteBlockToolName,
+		config.AvatarBuildToolName,
+		config.AvatarModifyToolName,
+		config.AvatarSynthesizeToolName:
 		return true
 	default:
 		return false

@@ -76,6 +76,12 @@ func materializeToolResultForContext(
 	if toolName == config.WriteDiaryToolName {
 		return materializeDiaryToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
+	if toolName == config.CreateNoteDocumentToolName ||
+		toolName == config.AppendNoteBlocksToolName ||
+		toolName == config.ModifyNoteBlockToolName ||
+		toolName == config.RevertNoteBlockToolName {
+		return materializeNoteEditResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
+	}
 	if toolName == config.ForgeDevRepoEditToolName {
 		return materializeForgeDevRepoEditResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
@@ -84,6 +90,11 @@ func materializeToolResultForContext(
 	}
 	if toolName == config.ForgeDevRepoBashToolName {
 		return materializeForgeDevRepoBashResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
+	}
+	if toolName == config.AvatarBuildToolName ||
+		toolName == config.AvatarModifyToolName ||
+		toolName == config.AvatarSynthesizeToolName {
+		return materializeAvatarToolResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult

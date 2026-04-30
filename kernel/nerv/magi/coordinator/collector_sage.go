@@ -507,6 +507,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 		noteEditExecutor := newNoteEditToolResultExecutor()
 		executors = append(executors, noteEditExecutor.ExecuteToolCall)
 	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.AvatarBuildToolName) {
+		avatarExecutor := newAvatarToolResultExecutor()
+		executors = append(executors, avatarExecutor.ExecuteToolCall)
+	}
 	if toolSetHasAllFunctionTools(effectiveTools, config.PersistSessionMemoryToolName, config.RecallCrossSessionMemoriesToolName) {
 		crossSessionExecutor := newCrossSessionMemoryToolExecutor(sage.GetName())
 		executors = append(executors, crossSessionExecutor.ExecuteToolCall)
