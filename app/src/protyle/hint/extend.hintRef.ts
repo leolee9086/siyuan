@@ -73,6 +73,7 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
         if (isMultiRef) {
             if (response.data.newDoc) {
                 dataList.push(genNewFileItem(response.data.k));
+                dataList[0].focus = true;
             }
             blocks.forEach((item: IBlock) => {
                 dataList.push({
@@ -101,8 +102,8 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
                 value: "",
                 html: siyuanI18n.emptyContent,
             });
-        } else if (response.data.newDoc && dataList.length > 1) {
-            dataList[1] && (dataList[1].focus = true);
+        } else if (response.data.newDoc) {
+            dataList[0] && (dataList[0].focus = true);
         }
         protyle.hint.genHTML(dataList, protyle, true, source);
         // 多选模式：在搜索框与结果列表之间插入固定确认按钮
