@@ -176,6 +176,28 @@ func ResolveWorkspaceAIMainNotebookAccessScope() (*WorkspaceAIMainNotebookAccess
 		scope.AccessibleRootIDs[rootID] = struct{}{}
 	}
 
+	notebooks, listErr := ListNotebooks()
+	if listErr == nil {
+		for _, box := range notebooks {
+			if box == nil || !IsUserGuide(box.ID) {
+				continue
+			}
+			for _, blockTree := range treenode.GetBlockTreesByBoxID(box.ID) {
+				if blockTree == nil || blockTree.Type != "d" {
+					continue
+				}
+				rootID := strings.TrimSpace(blockTree.RootID)
+				if rootID == "" {
+					rootID = strings.TrimSpace(blockTree.ID)
+				}
+				if rootID == "" {
+					continue
+				}
+				scope.AccessibleRootIDs[rootID] = struct{}{}
+			}
+		}
+	}
+
 	for _, rootID := range sql.QueryDefRootIDsByRefBox(activeNotebook.ID) {
 		rootID = strings.TrimSpace(rootID)
 		if rootID == "" {
