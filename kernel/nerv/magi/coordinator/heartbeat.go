@@ -41,6 +41,8 @@ func (c *Coordinator) CoordinateHeartbeat(
 		logging.LogWarnf("推送心跳轮次开始失败: %v", err)
 	}
 
+	defer dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+
 	claimedHistory := []types.ClaimedHistoryMessage{
 		{
 			Role:    string(types.RoleUser),
@@ -65,6 +67,8 @@ func (c *Coordinator) CoordinateHeartbeat(
 			}
 			sourceAwareUserInputBySage[sageName] = input + imaginativeInstr
 		}
+	} else {
+		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, melchior, melchior, balthazar, casper)
 	}
 	collection, err := c.collector.CollectHeartbeatResponses(
 		ctx,
@@ -134,11 +138,31 @@ func buildHeartbeatRuntimeToolsBySage(sleepMode bool) map[string][]openai.Tool {
 		}
 	}
 	sharedReadingTools := buildHeartbeatReadingRuntimeTools()
+	sharedActionTools := buildHeartbeatActionRuntimeTools()
 	return map[string][]openai.Tool{
-		"melchior":  append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepPlanToolDef())}, sharedReadingTools...),
-		"balthazar": append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepDreamToolDef())}, sharedReadingTools...),
-		"casper":    append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepRecordToolDef())}, sharedReadingTools...),
+		"melchior":  append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepPlanToolDef())}, sharedReadingTools...), sharedActionTools...),
+		"balthazar": append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepDreamToolDef())}, sharedReadingTools...), sharedActionTools...),
+		"casper":    append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepRecordToolDef())}, sharedReadingTools...), sharedActionTools...),
 	}
+}
+
+func buildHeartbeatActionRuntimeTools() []openai.Tool {
+	tools := []openai.Tool{
+		buildRuntimeTool(config.BuildWriteDiaryToolDef()),
+		buildRuntimeTool(config.BuildCreateNoteDocumentToolDef()),
+		buildRuntimeTool(config.BuildAppendNoteBlocksToolDef()),
+		buildRuntimeTool(config.BuildModifyNoteBlockToolDef()),
+		buildRuntimeTool(config.BuildRevertNoteBlockToolDef()),
+	}
+	if util.IsForgeMode() {
+		tools = append(
+			tools,
+			buildRuntimeTool(config.BuildForgeDevRepoEditToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoBatchReplaceToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoBashToolDef()),
+		)
+	}
+	return tools
 }
 
 func buildHeartbeatReadingRuntimeTools() []openai.Tool {
@@ -157,9 +181,16 @@ func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 }
 
 func buildHeartbeatRuntimeToolChoiceBySage(sleepMode bool) map[string]any {
+	if sleepMode {
+		return map[string]any{
+			"melchior":  "required",
+			"balthazar": "required",
+			"casper":    "required",
+		}
+	}
 	return map[string]any{
-		"melchior":  "required",
-		"balthazar": "required",
-		"casper":    "required",
+		"melchior":  "auto",
+		"balthazar": "auto",
+		"casper":    "auto",
 	}
 }

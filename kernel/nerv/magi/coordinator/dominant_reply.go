@@ -144,6 +144,10 @@ func (c *Coordinator) executeDominantReply(
 		}
 	}
 
+	dominantActionToolGovernance.RegisterRound(
+		sessionID, roundID, userMessage, dominantSage,
+		melchior, balthazar, casper,
+	)
 	response, collectErr := c.collector.collectSingleSageResponse(
 		ctx,
 		sessionID,
