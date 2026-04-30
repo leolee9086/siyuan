@@ -533,6 +533,8 @@ export abstract class Constants {
                 moveToDown: { default: "⇧⌘↓", custom: "⇧⌘↓" },
                 duplicateCompletely: { default: "", custom: "" },
                 copyPlainText: { default: "", custom: "" },
+                pasteAsPlainText: { default: "", custom: "" },
+                pasteEscaped: { default: "", custom: "" },
                 copyID: { default: "", custom: "" },
                 copyProtocolInMd: { default: "", custom: "" },
                 netImg2LocalAsset: { default: "", custom: "" },

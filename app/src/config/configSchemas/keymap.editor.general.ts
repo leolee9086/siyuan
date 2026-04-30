@@ -40,6 +40,8 @@ export const schema = z.object({
     openBy: buildKeymapEntrySchema(),
     optimizeTypography: buildKeymapEntrySchema(),
     outline: buildKeymapEntrySchema(),
+    pasteAsPlainText: buildKeymapEntrySchema(),
+    pasteEscaped: buildKeymapEntrySchema(),
     preview: buildKeymapEntrySchema(),
     quickMakeCard: buildKeymapEntrySchema(),
     redo: buildKeymapEntrySchema(),
