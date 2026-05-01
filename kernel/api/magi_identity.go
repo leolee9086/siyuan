@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +37,9 @@ const (
 	magiRequestChannelSystemCron    = "system-cron"
 
 	magiArmorTokenPrefix = "magi_ak_v1_"
+	magiBindCodePrefix   = "MB-"
+	magiBindCodeTTL      = 5 * time.Minute
+	magiBindCodeLen      = 6
 )
 
 var (
@@ -43,17 +47,94 @@ var (
 	errMagiIdentityDisabled = errors.New("magi identity is disabled")
 )
 
+type magiBindCodeEntry struct {
+	IdentityID string
+	ExpiresAt  time.Time
+}
+
+var magiBindCodeStore = struct {
+	mu    sync.Mutex
+	codes map[string]magiBindCodeEntry
+}{codes: make(map[string]magiBindCodeEntry)}
+
+func generateBindCode() string {
+	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	b := make([]byte, magiBindCodeLen)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(b)
+}
+
+func storeBindCode(identityID string) string {
+	magiBindCodeStore.mu.Lock()
+	defer magiBindCodeStore.mu.Unlock()
+
+	// 清理过期
+	now := time.Now()
+	for code, entry := range magiBindCodeStore.codes {
+		if now.After(entry.ExpiresAt) {
+			delete(magiBindCodeStore.codes, code)
+		}
+	}
+
+	// 为该身份撤回旧码
+	for code, entry := range magiBindCodeStore.codes {
+		if entry.IdentityID == identityID {
+			delete(magiBindCodeStore.codes, code)
+		}
+	}
+
+	// 生成唯一码
+	var code string
+	for i := 0; i < 20; i++ {
+		code = generateBindCode()
+		if _, exists := magiBindCodeStore.codes[code]; !exists {
+			break
+		}
+	}
+
+	magiBindCodeStore.codes[code] = magiBindCodeEntry{
+		IdentityID: identityID,
+		ExpiresAt:  now.Add(magiBindCodeTTL),
+	}
+	return magiBindCodePrefix + code
+}
+
+func consumeBindCode(code string) (identityID string, ok bool) {
+	magiBindCodeStore.mu.Lock()
+	defer magiBindCodeStore.mu.Unlock()
+
+	entry, exists := magiBindCodeStore.codes[code]
+	if !exists {
+		return "", false
+	}
+	if time.Now().After(entry.ExpiresAt) {
+		delete(magiBindCodeStore.codes, code)
+		return "", false
+	}
+	delete(magiBindCodeStore.codes, code)
+	return entry.IdentityID, true
+}
+
 type magiIdentityRecord struct {
-	IdentityID          string `json:"identityId"`
-	DisplayName         string `json:"displayName"`
-	Nickname            string `json:"nickname"`
-	PasswordHash        string `json:"passwordHash"`
-	RouteClass          string `json:"routeClass"`
-	Enabled             bool   `json:"enabled"`
-	CreatedAt           int64  `json:"createdAt"`
-	UpdatedAt           int64  `json:"updatedAt"`
-	TokenExpiresSeconds int64  `json:"tokenExpiresSeconds,omitempty"`
-	UsageCount          int64  `json:"usageCount,omitempty"`
+	IdentityID          string            `json:"identityId"`
+	DisplayName         string            `json:"displayName"`
+	Nickname            string            `json:"nickname"`
+	PasswordHash        string            `json:"passwordHash"`
+	RouteClass          string            `json:"routeClass"`
+	Enabled             bool              `json:"enabled"`
+	CreatedAt           int64             `json:"createdAt"`
+	UpdatedAt           int64             `json:"updatedAt"`
+	TokenExpiresSeconds int64             `json:"tokenExpiresSeconds,omitempty"`
+	UsageCount          int64             `json:"usageCount,omitempty"`
+	ChannelBindings     []channelBinding  `json:"channelBindings,omitempty"`
+}
+
+type channelBinding struct {
+	ChannelID string `json:"channelId"`
+	AccountID string `json:"accountId"`
+	UserID    string `json:"userId"`
 }
 
 type magiIdentityStoreFile struct {
@@ -69,15 +150,16 @@ type magiIdentityStore struct {
 }
 
 type magiIdentityView struct {
-	IdentityID          string `json:"identityId"`
-	DisplayName         string `json:"displayName"`
-	Nickname            string `json:"nickname,omitempty"`
-	RouteClass          string `json:"routeClass"`
-	Enabled             bool   `json:"enabled"`
-	CreatedAt           int64  `json:"createdAt"`
-	UpdatedAt           int64  `json:"updatedAt"`
-	TokenExpiresSeconds int64  `json:"tokenExpiresSeconds,omitempty"`
-	UsageCount          int64  `json:"usageCount,omitempty"`
+	IdentityID          string           `json:"identityId"`
+	DisplayName         string           `json:"displayName"`
+	Nickname            string           `json:"nickname,omitempty"`
+	RouteClass          string           `json:"routeClass"`
+	Enabled             bool             `json:"enabled"`
+	CreatedAt           int64            `json:"createdAt"`
+	UpdatedAt           int64            `json:"updatedAt"`
+	TokenExpiresSeconds int64            `json:"tokenExpiresSeconds,omitempty"`
+	UsageCount          int64            `json:"usageCount,omitempty"`
+	ChannelBindings     []channelBinding `json:"channelBindings,omitempty"`
 }
 
 type magiArmorClaimsV1 struct {
@@ -185,6 +267,7 @@ func (s *magiIdentityStore) listViews() ([]magiIdentityView, error) {
 			UpdatedAt:           item.UpdatedAt,
 			TokenExpiresSeconds: item.TokenExpiresSeconds,
 			UsageCount:          item.UsageCount,
+			ChannelBindings:     copyChannelBindings(item.ChannelBindings),
 		})
 	}
 	sort.SliceStable(ret, func(i, j int) bool {
@@ -209,7 +292,7 @@ func (s *magiIdentityStore) get(identityID string) (*magiIdentityRecord, error) 
 	return &copyItem, nil
 }
 
-func (s *magiIdentityStore) upsert(identityID, displayName, nickname, password, routeClass string, enabled bool, tokenExpiresSeconds int64) (*magiIdentityRecord, error) {
+func (s *magiIdentityStore) upsert(identityID, displayName, nickname, password, routeClass string, enabled bool, tokenExpiresSeconds int64, bindings []channelBinding) (*magiIdentityRecord, error) {
 	if err := s.ensureLoaded(); err != nil {
 		return nil, err
 	}
@@ -242,6 +325,7 @@ func (s *magiIdentityStore) upsert(identityID, displayName, nickname, password, 
 			CreatedAt:           now,
 			UpdatedAt:           now,
 			TokenExpiresSeconds: tokenExpiresSeconds,
+			ChannelBindings:     normalizeChannelBindings(bindings),
 		}
 	} else {
 		identity.DisplayName = displayName
@@ -259,6 +343,9 @@ func (s *magiIdentityStore) upsert(identityID, displayName, nickname, password, 
 			}
 			identity.PasswordHash = hash
 		}
+		if bindings != nil || len(identity.ChannelBindings) > 0 {
+			identity.ChannelBindings = normalizeChannelBindings(bindings)
+		}
 	}
 
 	s.items[identityID] = identity
@@ -267,6 +354,69 @@ func (s *magiIdentityStore) upsert(identityID, displayName, nickname, password, 
 	}
 	copyIdentity := identity
 	return &copyIdentity, nil
+}
+
+func normalizeChannelBindings(bindings []channelBinding) []channelBinding {
+	if len(bindings) == 0 {
+		return nil
+	}
+	seen := map[string]bool{}
+	result := make([]channelBinding, 0, len(bindings))
+	for _, b := range bindings {
+		ch := strings.TrimSpace(b.ChannelID)
+		acct := strings.TrimSpace(b.AccountID)
+		uid := strings.TrimSpace(b.UserID)
+		if ch == "" || acct == "" || uid == "" {
+			continue
+		}
+		key := ch + ":" + acct + ":" + uid
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, channelBinding{
+			ChannelID: ch,
+			AccountID: acct,
+			UserID:    uid,
+		})
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func copyChannelBindings(bindings []channelBinding) []channelBinding {
+	if len(bindings) == 0 {
+		return nil
+	}
+	result := make([]channelBinding, len(bindings))
+	copy(result, bindings)
+	return result
+}
+
+func (s *magiIdentityStore) resolveIdentityByChannel(channelID, accountID, userID string) *magiIdentityRecord {
+	if err := s.ensureLoaded(); err != nil {
+		return nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, item := range s.items {
+		if !item.Enabled {
+			continue
+		}
+		for _, b := range item.ChannelBindings {
+			if strings.EqualFold(b.ChannelID, channelID) &&
+				strings.EqualFold(b.AccountID, accountID) &&
+				b.UserID == userID {
+				copyItem := item
+				return &copyItem
+			}
+		}
+	}
+	return nil
 }
 
 func (s *magiIdentityStore) remove(identityID string) error {
@@ -620,13 +770,14 @@ func resolveIdentityByID(identityID string) (*magiIdentityRecord, *magiSourceAut
 }
 
 type magiIdentityUpsertRequest struct {
-	IdentityID          string `json:"identity_id"`
-	DisplayName         string `json:"display_name"`
-	Nickname            string `json:"nickname,omitempty"`
-	Password            string `json:"password"`
-	RouteClass          string `json:"route_class"`
-	Enabled             *bool  `json:"enabled"`
-	TokenExpiresSeconds int64  `json:"token_expires_seconds,omitempty"`
+	IdentityID          string           `json:"identity_id"`
+	DisplayName         string           `json:"display_name"`
+	Nickname            string           `json:"nickname,omitempty"`
+	Password            string           `json:"password"`
+	RouteClass          string           `json:"route_class"`
+	Enabled             *bool            `json:"enabled"`
+	TokenExpiresSeconds int64            `json:"token_expires_seconds,omitempty"`
+	ChannelBindings     []channelBinding `json:"channel_bindings,omitempty"`
 }
 
 type magiIdentityRemoveRequest struct {
@@ -726,6 +877,7 @@ func magiIdentityUpsert(c *gin.Context) {
 		routeClass,
 		enabled,
 		req.TokenExpiresSeconds,
+		req.ChannelBindings,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -746,6 +898,7 @@ func magiIdentityUpsert(c *gin.Context) {
 			UpdatedAt:           record.UpdatedAt,
 			TokenExpiresSeconds: record.TokenExpiresSeconds,
 			UsageCount:          record.UsageCount,
+			ChannelBindings:     copyChannelBindings(record.ChannelBindings),
 		},
 	})
 }
@@ -789,6 +942,246 @@ func magiIdentityRemove(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"ok": true,
 	})
+}
+
+type magiIdentityIssueBindCodeRequest struct {
+	IdentityID string `json:"identity_id"`
+}
+
+func magiIdentityIssueBindCode(c *gin.Context) {
+	if authErr := requireMagiMainUIAccess(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+
+	var req magiIdentityIssueBindCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request body",
+			"code":  "magi_identity_bind_code_request_invalid",
+		})
+		return
+	}
+
+	identityID := strings.TrimSpace(req.IdentityID)
+	if identityID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "identity_id is required",
+			"code":  "magi_identity_id_required",
+		})
+		return
+	}
+
+	record, err := globalMagiIdentityStore.get(identityID)
+	if err != nil {
+		if errors.Is(err, errMagiIdentityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "identity not found",
+				"code":  "magi_identity_not_found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to load identity",
+			"code":  "magi_identity_load_failed",
+		})
+		return
+	}
+
+	if !record.Enabled {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "identity is disabled",
+			"code":  "magi_identity_disabled",
+		})
+		return
+	}
+
+	code := storeBindCode(record.IdentityID)
+	expiresAt := time.Now().Add(magiBindCodeTTL)
+
+	c.JSON(http.StatusOK, gin.H{
+		"bindCode":   code,
+		"expiresAt":  expiresAt.UnixMilli(),
+		"ttlSeconds": int64(magiBindCodeTTL.Seconds()),
+	})
+}
+
+type magiIdentityChannelBindRequest struct {
+	IdentityID string          `json:"identity_id"`
+	Bindings   []channelBinding `json:"bindings"`
+}
+
+func magiIdentityChannelBind(c *gin.Context) {
+	if authErr := requireMagiMainUIAccess(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+
+	var req magiIdentityChannelBindRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request body",
+			"code":  "magi_identity_bind_request_invalid",
+		})
+		return
+	}
+
+	identityID := strings.TrimSpace(req.IdentityID)
+	if identityID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "identity_id is required",
+			"code":  "magi_identity_id_required",
+		})
+		return
+	}
+
+	record, err := globalMagiIdentityStore.get(identityID)
+	if err != nil {
+		if errors.Is(err, errMagiIdentityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "identity not found",
+				"code":  "magi_identity_not_found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to load identity",
+			"code":  "magi_identity_load_failed",
+		})
+		return
+	}
+
+	if err := globalMagiIdentityStore.setChannelBindings(identityID, req.Bindings); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+			"code":  "magi_identity_bind_failed",
+		})
+		return
+	}
+
+	// 重新获取最新记录，确保 UpdatedAt 等字段反映 bind 操作
+	record, _ = globalMagiIdentityStore.get(identityID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"identity": magiIdentityView{
+			IdentityID:          record.IdentityID,
+			DisplayName:         record.DisplayName,
+			Nickname:            record.Nickname,
+			RouteClass:          record.RouteClass,
+			Enabled:             record.Enabled,
+			CreatedAt:           record.CreatedAt,
+			UpdatedAt:           record.UpdatedAt,
+			TokenExpiresSeconds: record.TokenExpiresSeconds,
+			UsageCount:          record.UsageCount,
+			ChannelBindings:     copyChannelBindings(record.ChannelBindings),
+		},
+	})
+}
+
+type magiIdentityChannelUnbindRequest struct {
+	IdentityID string          `json:"identity_id"`
+	Binding    channelBinding `json:"binding"`
+}
+
+func magiIdentityChannelUnbind(c *gin.Context) {
+	if authErr := requireMagiMainUIAccess(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+
+	var req magiIdentityChannelUnbindRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request body",
+			"code":  "magi_identity_unbind_request_invalid",
+		})
+		return
+	}
+
+	identityID := strings.TrimSpace(req.IdentityID)
+	if identityID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "identity_id is required",
+			"code":  "magi_identity_id_required",
+		})
+		return
+	}
+
+	if err := globalMagiIdentityStore.removeChannelBinding(identityID, req.Binding); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+			"code":  "magi_identity_unbind_failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (s *magiIdentityStore) setChannelBindings(identityID string, bindings []channelBinding) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	item, ok := s.items[identityID]
+	if !ok {
+		return errMagiIdentityNotFound
+	}
+	item.ChannelBindings = normalizeChannelBindings(bindings)
+	item.UpdatedAt = time.Now().UnixMilli()
+	s.items[identityID] = item
+	return s.saveLocked()
+}
+
+func (s *magiIdentityStore) addChannelBinding(identityID string, binding channelBinding) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	item, ok := s.items[identityID]
+	if !ok {
+		return errMagiIdentityNotFound
+	}
+
+	ch := strings.TrimSpace(binding.ChannelID)
+	acct := strings.TrimSpace(binding.AccountID)
+	uid := strings.TrimSpace(binding.UserID)
+	if ch == "" || acct == "" || uid == "" {
+		return nil
+	}
+
+	for _, b := range item.ChannelBindings {
+		if strings.EqualFold(b.ChannelID, ch) && strings.EqualFold(b.AccountID, acct) && b.UserID == uid {
+			return nil // 已存在
+		}
+	}
+
+	item.ChannelBindings = append(item.ChannelBindings, channelBinding{ChannelID: ch, AccountID: acct, UserID: uid})
+	item.UpdatedAt = time.Now().UnixMilli()
+	s.items[identityID] = item
+	return s.saveLocked()
+}
+
+func (s *magiIdentityStore) removeChannelBinding(identityID string, binding channelBinding) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	item, ok := s.items[identityID]
+	if !ok {
+		return errMagiIdentityNotFound
+	}
+
+	filtered := make([]channelBinding, 0, len(item.ChannelBindings))
+	for _, b := range item.ChannelBindings {
+		if strings.EqualFold(b.ChannelID, binding.ChannelID) &&
+			strings.EqualFold(b.AccountID, binding.AccountID) &&
+			b.UserID == binding.UserID {
+			continue
+		}
+		filtered = append(filtered, b)
+	}
+	item.ChannelBindings = filtered
+	item.UpdatedAt = time.Now().UnixMilli()
+	s.items[identityID] = item
+	return s.saveLocked()
 }
 
 func magiIdentityLogin(c *gin.Context) {
@@ -960,7 +1353,7 @@ func magiIdentityIssueAvatarToken(c *gin.Context) {
 		}
 		created, createErr := globalMagiIdentityStore.upsert(
 			identityID, identityID, "", "",
-			magiRouteClassAvatarOnly, true, 0,
+			magiRouteClassAvatarOnly, true, 0, nil,
 		)
 		if createErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
