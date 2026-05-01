@@ -35,6 +35,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
+	hbInvestigated := false
 
 	for turn := 0; ; turn++ {
 		streamCh, err := rc.sendSageTurnMessage(ctx, sessionId, roundId, sage, modelInput, options, turn)
@@ -51,11 +52,24 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		turnToolCalls := turnCollector.BuildSorted()
 
 		if options.AllowWannaSleep {
+			for _, tc := range turnToolCalls {
+				if !hbInvestigated && isInvestigationTool(strings.TrimSpace(tc.Function.Name)) {
+					hbInvestigated = true
+				}
+			}
+
 			resp, found, err := checkWannaSleep(sage, turnContent, reasoningContent, turnToolCalls, streamMessageID, roundId)
 			if err != nil {
 				return nil, err
 			}
 			if found {
+				if !hbInvestigated {
+					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						Role:    types.RoleSystem,
+						Content: fmt.Sprintf("你不能现在休息，因为你还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用睡前记录工具。", config.NoteKeywordSearchToolName),
+					})
+					continue
+				}
 				return resp, nil
 			}
 		}
@@ -498,6 +512,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 	if toolSetHasAllFunctionTools(effectiveTools, config.WriteDiaryToolName) {
 		diaryExecutor := newDiaryToolResultExecutor()
 		executors = append(executors, diaryExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.SendChannelMessageToolName) {
+		channelMsgExecutor := newSendChannelMessageResultExecutor()
+		executors = append(executors, channelMsgExecutor.ExecuteToolCall)
 	}
 	if toolSetHasAllFunctionTools(effectiveTools, config.NoteByIDReadToolName) {
 		noteReadExecutor := newNoteByIDReadToolResultExecutor()
