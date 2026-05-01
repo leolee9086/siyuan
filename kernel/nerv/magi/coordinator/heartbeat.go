@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
@@ -59,6 +60,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 	sourceAwareUserInput := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
 
 	sleepMode := len(isSleepTime) > 0 && isSleepTime[0]
+	var dominantSage *sages.Sage
 	if sleepMode {
 		imaginativeInstr := "\n\n额外要求：你的记录内容越是天马行空越好。"
 		for sageName, input := range sourceAwareUserInputBySage {
@@ -72,7 +74,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 		if err != nil {
 			return nil, fmt.Errorf("心跳主导选举失败: %w", err)
 		}
-		dominantSage, err := resolveDominantSage(dominantResult, melchior, balthazar, casper)
+		dominantSage, err = resolveDominantSage(dominantResult, melchior, balthazar, casper)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +90,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 		userMessage,
 		sourceAwareUserInput,
 		sourceAwareUserInputBySage,
-		buildHeartbeatRuntimeToolsBySage(sleepMode),
+		buildHeartbeatRuntimeToolsBySage(sleepMode, dominantSage),
 		buildHeartbeatRuntimeToolChoiceBySage(sleepMode),
 	)
 	if err != nil {
@@ -137,7 +139,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 	}, nil
 }
 
-func buildHeartbeatRuntimeToolsBySage(sleepMode bool) map[string][]openai.Tool {
+func buildHeartbeatRuntimeToolsBySage(sleepMode bool, dominantSage *sages.Sage) map[string][]openai.Tool {
 	if sleepMode {
 		return map[string][]openai.Tool{
 			"melchior":  {buildRuntimeTool(config.BuildWannaSleepPlanToolDef())},
@@ -147,10 +149,24 @@ func buildHeartbeatRuntimeToolsBySage(sleepMode bool) map[string][]openai.Tool {
 	}
 	sharedReadingTools := buildHeartbeatReadingRuntimeTools()
 	sharedActionTools := buildHeartbeatActionRuntimeTools()
+
+	dominantName := ""
+	if dominantSage != nil {
+		dominantName = strings.TrimSpace(dominantSage.GetName())
+	}
+
+	buildTools := func(sleepTool openai.Tool, sageName string) []openai.Tool {
+		tools := append([]openai.Tool{sleepTool}, sharedReadingTools...)
+		if sageName == dominantName {
+			tools = append(tools, sharedActionTools...)
+		}
+		return tools
+	}
+
 	return map[string][]openai.Tool{
-		"melchior":  append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepPlanToolDef())}, sharedReadingTools...), sharedActionTools...),
-		"balthazar": append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepDreamToolDef())}, sharedReadingTools...), sharedActionTools...),
-		"casper":    append(append([]openai.Tool{buildRuntimeTool(config.BuildWannaSleepRecordToolDef())}, sharedReadingTools...), sharedActionTools...),
+		"melchior":  buildTools(buildRuntimeTool(config.BuildWannaSleepPlanToolDef()), "melchior"),
+		"balthazar": buildTools(buildRuntimeTool(config.BuildWannaSleepDreamToolDef()), "balthazar"),
+		"casper":    buildTools(buildRuntimeTool(config.BuildWannaSleepRecordToolDef()), "casper"),
 	}
 }
 

@@ -622,7 +622,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		"heartbeat",
 		"heartbeat",
 		nil,
-		buildHeartbeatRuntimeToolsBySage(false),
+		buildHeartbeatRuntimeToolsBySage(false, nil),
 		buildHeartbeatRuntimeToolChoiceBySage(false),
 	)
 	if err != nil {
@@ -690,7 +690,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		"heartbeat",
 		"heartbeat",
 		nil,
-		buildHeartbeatRuntimeToolsBySage(false),
+		buildHeartbeatRuntimeToolsBySage(false, nil),
 		buildHeartbeatRuntimeToolChoiceBySage(false),
 	)
 	if err != nil {

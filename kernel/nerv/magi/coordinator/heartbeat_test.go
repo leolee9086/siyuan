@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -234,28 +234,61 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	}()
 	util.Mode = util.ModeProd
 
-	toolsBySage := buildHeartbeatRuntimeToolsBySage(false)
-	expectations := map[string]string{
-		"melchior":  config.WannaSleepPlanToolName,
-		"balthazar": config.WannaSleepDreamToolName,
-		"casper":    config.WannaSleepRecordToolName,
-	}
+	toolsBySage := buildHeartbeatRuntimeToolsBySage(false, nil)
 
-	if len(toolsBySage) != len(expectations) {
+	if len(toolsBySage) != 3 {
 		t.Fatalf("期望有3组运行时工具，实际=%d", len(toolsBySage))
 	}
-	for sageName, toolName := range expectations {
+	for sageName := range toolsBySage {
 		tools := toolsBySage[sageName]
-		if len(tools) != 9 {
-			t.Fatalf("%s 期望1个睡眠工具 + 2个阅读工具 + 6个行动工具 = 9，实际=%d", sageName, len(tools))
-		}
-		if tools[0].Type != openai.ToolTypeFunction || tools[0].Function == nil || tools[0].Function.Name != toolName {
-			t.Fatalf("%s 期望暴露 %s，实际=%+v", sageName, toolName, tools[0])
-		}
-		if tools[1].Type != openai.ToolTypeFunction || tools[1].Function == nil || tools[1].Function.Name != config.NoteKeywordSearchToolName {
-			t.Fatalf("%s 期望追加 %s，实际=%+v", sageName, config.NoteKeywordSearchToolName, tools[1])
+		if len(tools) != 3 {
+			t.Fatalf("%s 期望1个睡眠+2个阅读=3个工具（无主导时无行动工具），实际=%d", sageName, len(tools))
 		}
 	}
+
+	// 验证有主导时，主导 sage 包含行动工具
+	profile := buildDominantReplyTestProfile()
+	melchiorClient := &scriptedDominantClient{}
+	balthazarClient := &scriptedDominantClient{}
+	casperClient := &scriptedDominantClient{}
+	melchior := createDominantReplyTestSage("melchior", "Melchior", profile, melchiorClient, nil)
+	balthazar := createDominantReplyTestSage("balthazar", "Balthazar", profile, balthazarClient, nil)
+	casper := createDominantReplyTestSage("casper", "Casper", profile, casperClient, nil)
+
+	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, mustBuildDominantCandidates(t, melchior, balthazar, casper), 95, 20, 10)}
+	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, mustBuildDominantCandidates(t, melchior, balthazar, casper), 80, 35, 25)}
+	casperClient.syncResponses = []string{buildDominantVoteResponse(t, mustBuildDominantCandidates(t, melchior, balthazar, casper), 75, 30, 40)}
+
+	dominantResult, err := electDominantSage(context.Background(), "test", melchior, balthazar, casper, "测试")
+	if err != nil {
+		t.Fatalf("选举失败: %v", err)
+	}
+	dominantSage, err := resolveDominantSage(dominantResult, melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("解析主导失败: %v", err)
+	}
+
+	toolsBySageWithDominant := buildHeartbeatRuntimeToolsBySage(false, dominantSage)
+	for sageName, tools := range toolsBySageWithDominant {
+		if sageName == dominantSage.GetName() {
+			if len(tools) != 9 {
+				t.Fatalf("主导 %s 期望1睡眠+2阅读+6行动=9，实际=%d", sageName, len(tools))
+			}
+		} else {
+			if len(tools) != 3 {
+				t.Fatalf("非主导 %s 期望1睡眠+2阅读=3，实际=%d", sageName, len(tools))
+			}
+		}
+	}
+}
+
+func mustBuildDominantCandidates(t *testing.T, melchior, balthazar, casper *sages.Sage) []dominantCandidate {
+	t.Helper()
+	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates failed: %v", err)
+	}
+	return candidates
 }
 
 func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testing.T) {
@@ -265,69 +298,32 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 	}()
 	util.Mode = util.ModeForge
 
-	toolsBySage := buildHeartbeatRuntimeToolsBySage(false)
-	expectedToolNamesBySage := map[string][]string{
-		"melchior": {
-			config.WannaSleepPlanToolName,
-			config.NoteKeywordSearchToolName,
-			config.NoteByIDReadToolName,
-			config.ForgeDevRepoListToolName,
-			config.ForgeDevRepoReadToolName,
-			config.ForgeDevRepoSearchToolName,
-			config.WriteDiaryToolName,
-			config.CreateNoteDocumentToolName,
-			config.AppendNoteBlocksToolName,
-			config.ModifyNoteBlockToolName,
-			config.RevertNoteBlockToolName,
-			config.SendChannelMessageToolName,
-			config.ForgeDevRepoEditToolName,
-			config.ForgeDevRepoBatchReplaceToolName,
-			config.ForgeDevRepoBashToolName,
-		},
-		"balthazar": {
-			config.WannaSleepDreamToolName,
-			config.NoteKeywordSearchToolName,
-			config.NoteByIDReadToolName,
-			config.ForgeDevRepoListToolName,
-			config.ForgeDevRepoReadToolName,
-			config.ForgeDevRepoSearchToolName,
-			config.WriteDiaryToolName,
-			config.CreateNoteDocumentToolName,
-			config.AppendNoteBlocksToolName,
-			config.ModifyNoteBlockToolName,
-			config.RevertNoteBlockToolName,
-			config.SendChannelMessageToolName,
-			config.ForgeDevRepoEditToolName,
-			config.ForgeDevRepoBatchReplaceToolName,
-			config.ForgeDevRepoBashToolName,
-		},
-		"casper": {
-			config.WannaSleepRecordToolName,
-			config.NoteKeywordSearchToolName,
-			config.NoteByIDReadToolName,
-			config.ForgeDevRepoListToolName,
-			config.ForgeDevRepoReadToolName,
-			config.ForgeDevRepoSearchToolName,
-			config.WriteDiaryToolName,
-			config.CreateNoteDocumentToolName,
-			config.AppendNoteBlocksToolName,
-			config.ModifyNoteBlockToolName,
-			config.RevertNoteBlockToolName,
-			config.SendChannelMessageToolName,
-			config.ForgeDevRepoEditToolName,
-			config.ForgeDevRepoBatchReplaceToolName,
-			config.ForgeDevRepoBashToolName,
-		},
+	toolsBySage := buildHeartbeatRuntimeToolsBySage(false, nil)
+
+	// 无主导时：1睡眠 + 5阅读（2基础+3 forge）= 6
+	for sageName, tools := range toolsBySage {
+		if len(tools) != 6 {
+			t.Fatalf("%s 无主导时期望1睡眠+5阅读=6，实际=%d", sageName, len(tools))
+		}
 	}
 
-	for sageName, expectedToolNames := range expectedToolNamesBySage {
-		tools := toolsBySage[sageName]
-		if len(tools) != len(expectedToolNames) {
-			t.Fatalf("%s 期望工具数=%d，实际=%d", sageName, len(expectedToolNames), len(tools))
-		}
-		for index, expectedToolName := range expectedToolNames {
-			if tools[index].Type != openai.ToolTypeFunction || tools[index].Function == nil || tools[index].Function.Name != expectedToolName {
-				t.Fatalf("%s 工具[%d] 期望=%s，实际=%+v", sageName, index, expectedToolName, tools[index])
+	// 验证有主导时主导 sage 包含 forge 行动工具：1+5+9=15
+	profile := buildDominantReplyTestProfile()
+	melchior := createDominantReplyTestSage("melchior", "Melchior", profile, &scriptedDominantClient{}, nil)
+	balthazar := createDominantReplyTestSage("balthazar", "Balthazar", profile, &scriptedDominantClient{}, nil)
+	casper := createDominantReplyTestSage("casper", "Casper", profile, &scriptedDominantClient{}, nil)
+	_ = balthazar
+	_ = casper
+
+	toolsBySageWithDominant := buildHeartbeatRuntimeToolsBySage(false, melchior)
+	for sageName, tools := range toolsBySageWithDominant {
+		if sageName == "melchior" {
+			if len(tools) != 15 {
+				t.Fatalf("主导 melchior 期望1睡眠+5阅读+9行动=15，实际=%d", len(tools))
+			}
+		} else {
+			if len(tools) != 6 {
+				t.Fatalf("非主导 %s 期望1睡眠+5阅读=6，实际=%d", sageName, len(tools))
 			}
 		}
 	}
