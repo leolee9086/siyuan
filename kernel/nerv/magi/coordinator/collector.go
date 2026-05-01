@@ -21,12 +21,14 @@ type ResponseCollector struct {
 }
 
 type CollectResponsesOptions struct {
-	AllowWannaSleep         bool
-	RuntimeTools            []openai.Tool
-	RuntimeToolChoice       any
-	RuntimeToolsBySage      map[string][]openai.Tool
-	RuntimeToolChoiceBySage map[string]any
-	ModelInputBySage        map[string]string
+	AllowWannaSleep            bool
+	IsSleepMode                bool
+	RuntimeTools               []openai.Tool
+	RuntimeToolChoice          any
+	RuntimeToolsBySage         map[string][]openai.Tool
+	RuntimeToolChoiceBySage    map[string]any
+	ModelInputBySage           map[string]string
+	IsExternalMessageTriggered bool
 }
 
 type HeartbeatCollectionResult struct {
@@ -78,6 +80,7 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 	modelInputBySage map[string]string,
 	runtimeToolsBySage map[string][]openai.Tool,
 	runtimeToolChoiceBySage map[string]any,
+	isSleepMode bool,
 ) (*HeartbeatCollectionResult, error) {
 	return rc.collectResponsesWithOptions(
 		ctx,
@@ -90,6 +93,7 @@ func (rc *ResponseCollector) CollectHeartbeatResponses(
 		modelInput,
 		CollectResponsesOptions{
 			AllowWannaSleep:         true,
+			IsSleepMode:             isSleepMode,
 			RuntimeToolsBySage:      runtimeToolsBySage,
 			RuntimeToolChoiceBySage: runtimeToolChoiceBySage,
 			ModelInputBySage:        modelInputBySage,

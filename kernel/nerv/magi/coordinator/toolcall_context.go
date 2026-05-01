@@ -189,7 +189,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 	if content == "" {
 		content = " "
 	}
-	sage.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:             types.RoleAssistant,
 		Content:          content,
 		ReasoningContent: reasoningContent,
@@ -236,7 +236,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 				toolResult = `{"ok":false}`
 			}
 		}
-		sage.AddToContextWithSession(sessionID, types.ContextMessage{
+		_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
 			Role:    types.RoleTool,
 			Content: toolResult,
 			ToolID:  call.ID,

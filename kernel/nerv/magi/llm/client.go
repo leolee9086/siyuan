@@ -302,9 +302,11 @@ func convertToOpenAIMessages(messages []types.ContextMessage) []openai.ChatCompl
 	for _, msg := range messages {
 		reasoningContent := msg.ReasoningContent
 		// DeepSeek thinking mode requires reasoning_content to be present
-		// for assistant messages with tool_calls. Ensure it's never empty
-		// so the JSON serialization always includes the field.
-		if reasoningContent == "" && msg.Role == types.RoleAssistant && len(msg.ToolCalls) > 0 {
+		// for ALL assistant messages (not just those with tool_calls).
+		// Wakeup sequence echoes and previous plain-text replies must
+		// include the field; otherwise DeepSeek rejects the request with
+		// "The reasoning_content in the thinking mode must be passed back".
+		if reasoningContent == "" && msg.Role == types.RoleAssistant {
 			reasoningContent = " "
 		}
 

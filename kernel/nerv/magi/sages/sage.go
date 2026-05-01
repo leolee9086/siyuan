@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/88250/lute/ast"
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
@@ -27,6 +28,8 @@ type ContextManager interface {
 	AddMessageWithSession(sessionId string, msg types.ContextMessage)
 	GetMessagesForSession(sessionId string) []types.ContextMessage
 	ClearSession(sessionId string)
+	// UpdateMessage 按 msg.ID 匹配并更新指定会话中的消息内容。
+	UpdateMessage(sessionId string, msg types.ContextMessage)
 }
 
 // Sage 贤者实例
@@ -117,7 +120,7 @@ func (s *Sage) sendMessageInternal(
 	// 添加系统提示词（如果上下文为空）
 	messages := s.contextManager.GetMessagesForSession(sessionId)
 	if len(messages) == 0 && s.systemPrompt != "" {
-		s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
+		_ = s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
 			Role:    types.RoleSystem,
 			Content: s.systemPrompt,
 		})
@@ -125,7 +128,7 @@ func (s *Sage) sendMessageInternal(
 
 	// 添加用户消息
 	if appendUserInput {
-		s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
+		_ = s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
 			Role:    types.RoleUser,
 			Content: userInput,
 		})
@@ -152,18 +155,18 @@ func (s *Sage) sendMessageInternal(
 	return s.llmClient.SendChatRequest(ctx, requestMessages, requestTools, requestToolChoice)
 }
 
-// AddToContext 添加消息到上下文（向后兼容，使用空sessionId）
-func (s *Sage) AddToContext(msg types.ContextMessage) {
+// AddToContext 添加消息到上下文并分配消息ID（向后兼容，使用空sessionId）
+func (s *Sage) AddToContext(msg types.ContextMessage) types.ContextMessage {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.addMessageWithSessionLocked("", "", msg)
+	return s.addMessageWithSessionLocked("", "", msg)
 }
 
-// AddToContextWithSession 添加消息到指定会话的上下文
-func (s *Sage) AddToContextWithSession(sessionId string, msg types.ContextMessage) {
+// AddToContextWithSession 添加消息到指定会话的上下文并分配消息ID
+func (s *Sage) AddToContextWithSession(sessionId string, msg types.ContextMessage) types.ContextMessage {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.addMessageWithSessionLocked(sessionId, "", msg)
+	return s.addMessageWithSessionLocked(sessionId, "", msg)
 }
 
 // GetContext 获取当前上下文（向后兼容，使用空sessionId）
@@ -178,6 +181,13 @@ func (s *Sage) GetContextForSession(sessionId string) []types.ContextMessage {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.contextManager.GetMessagesForSession(sessionId)
+}
+
+// UpdateContextMessage 按消息ID更新指定会话中的消息内容。
+func (s *Sage) UpdateContextMessage(sessionId string, msg types.ContextMessage) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.contextManager.UpdateMessage(sessionId, msg)
 }
 
 // ClearContext 清空上下文
@@ -320,17 +330,20 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	return request
 }
 
-func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.ContextMessage) {
+func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.ContextMessage) types.ContextMessage {
+	if msg.ID == "" {
+		msg.ID = ast.NewNodeID()
+	}
 	beforeCount := len(s.contextManager.GetMessagesForSession(sessionId))
 	s.contextManager.AddMessageWithSession(sessionId, msg)
 	afterCount := len(s.contextManager.GetMessagesForSession(sessionId))
 
 	droppedCount := beforeCount + 1 - afterCount
 	if droppedCount <= 0 {
-		return
+		return msg
 	}
 	if sessionId == "" {
-		return
+		return msg
 	}
 
 	strategyType := ""
@@ -356,6 +369,7 @@ func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.
 	); err != nil {
 		logging.LogWarnf("推送上下文裁剪事件失败: %v", err)
 	}
+	return msg
 }
 
 func cloneContextMessages(messages []types.ContextMessage) []types.ContextMessage {
@@ -450,6 +464,20 @@ func (cm *contextManagerImpl) ClearSession(sessionId string) {
 	cm.Clear()
 }
 
+func (cm *contextManagerImpl) UpdateMessage(sessionId string, msg types.ContextMessage) {
+	if msg.ID == "" {
+		return
+	}
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	for i := range cm.messages {
+		if cm.messages[i].ID == msg.ID {
+			cm.messages[i] = msg
+			return
+		}
+	}
+}
+
 // multiSessionContextManager 多会话上下文管理器（用于Melchior）
 type multiSessionContextManager struct {
 	mu       sync.RWMutex
@@ -490,6 +518,21 @@ func (mscm *multiSessionContextManager) ClearSession(sessionId string) {
 	mscm.mu.Lock()
 	defer mscm.mu.Unlock()
 	delete(mscm.sessions, sessionId)
+}
+
+func (mscm *multiSessionContextManager) UpdateMessage(sessionId string, msg types.ContextMessage) {
+	if msg.ID == "" {
+		return
+	}
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	messages := mscm.sessions[sessionId]
+	for i := range messages {
+		if messages[i].ID == msg.ID {
+			messages[i] = msg
+			return
+		}
+	}
 }
 
 func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId string) {

@@ -114,17 +114,56 @@ func materializeToolResultForContext(
 	if err != nil {
 		logging.LogWarnf("归档查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, err)
 	}
+	_ = archiveLocation
 
-	if sage != nil && sage.GetName() == "melchior" {
-		return detailedResult
-	}
+	return detailedResult
+}
 
-	summary, err := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
-	if err != nil {
-		logging.LogWarnf("构建查询工具历史摘要失败 [%s/%s]: %v", toolName, toolCall.ID, err)
-		return detailedResult
+// compressArchivedQueryResults 遍历上下文，压缩非 Melchior sage 的查询工具结果。
+// 应按消息在上下文中的顺序扫描：先收集 assistant 消息中的 tool_calls，
+// 再对匹配到的 tool 消息压缩，最后按 ID 原地更新。
+func compressArchivedQueryResults(sessionID string, melchior, balthazar, casper *sages.Sage) {
+	for _, sage := range []*sages.Sage{balthazar, casper} {
+		if sage == nil || sage.GetName() == "melchior" {
+			continue
+		}
+		messages := sage.GetContextForSession(sessionID)
+		if len(messages) == 0 {
+			continue
+		}
+
+		toolCallByID := map[string]types.ToolCall{}
+		for _, msg := range messages {
+			if msg.Role == types.RoleAssistant && len(msg.ToolCalls) > 0 {
+				for _, tc := range msg.ToolCalls {
+					toolCallByID[tc.ID] = tc
+				}
+			}
+		}
+		if len(toolCallByID) == 0 {
+			continue
+		}
+
+		for _, msg := range messages {
+			if msg.Role != types.RoleTool || msg.ToolID == "" {
+				continue
+			}
+			tc, ok := toolCallByID[msg.ToolID]
+			if !ok || !isArchivedQueryTool(tc.Function.Name) {
+				continue
+			}
+			summary, err := buildCompactToolHistorySummary(tc, "", msg.Content, nil)
+			if err != nil {
+				logging.LogWarnf("compressArchivedQueryResults: %v", err)
+				continue
+			}
+			if summary == msg.Content {
+				continue
+			}
+			msg.Content = summary
+			sage.UpdateContextMessage(sessionID, msg)
+		}
 	}
-	return summary
 }
 
 func isArchivedQueryTool(toolName string) bool {
@@ -133,7 +172,8 @@ func isArchivedQueryTool(toolName string) bool {
 		config.ForgeDevRepoListToolName,
 		config.ForgeDevRepoReadToolName,
 		config.ForgeDevRepoSearchToolName,
-		config.NoteByIDReadToolName:
+		config.NoteByIDReadToolName,
+		config.FetchWebPageToolName:
 		return true
 	default:
 		return false
@@ -429,6 +469,8 @@ func buildQueryArchiveCalloutMarkdown(
 		return buildForgeArchiveCallout("代码仓库文件读取", purpose, toolCall, detailedResult, storedAt)
 	case config.ForgeDevRepoSearchToolName:
 		return buildForgeArchiveCallout("代码仓库文本搜索", purpose, toolCall, detailedResult, storedAt)
+	case config.FetchWebPageToolName:
+		return buildWebFetchArchiveCallout(toolCall, purpose, storedAt)
 	default:
 		return buildGenericArchiveCallout(toolName, purpose, storedAt)
 	}
@@ -494,6 +536,20 @@ func buildGenericArchiveCallout(toolName, purpose, storedAt string) string {
 		CalloutField{Label: "搜索目的", Value: purpose},
 		CalloutField{Label: "搜索时间", Value: storedAt},
 	)
+}
+
+func buildWebFetchArchiveCallout(toolCall types.ToolCall, purpose, storedAt string) string {
+	var args struct {
+		URL string `json:"url"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	fields := []CalloutField{
+		{Label: "URL", Value: strings.TrimSpace(args.URL)},
+		{Label: "获取目的", Value: purpose},
+		{Label: "获取时间", Value: storedAt},
+	}
+	return BuildCalloutMarkdown("QUERY_RESULT", "网页内容获取", fields...)
 }
 
 func extractForgeArchivePath(toolCall types.ToolCall, detailedResult string) string {
@@ -566,6 +622,8 @@ func buildCompactToolHistorySummary(
 		summary = buildForgeSearchHistorySummary(toolCall, purpose, detailedResult, location)
 	case config.NoteByIDReadToolName:
 		summary = buildNoteByIDReadHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.FetchWebPageToolName:
+		summary = buildWebFetchHistorySummary(toolCall, purpose, detailedResult, location)
 	default:
 		return detailedResult, nil
 	}
@@ -631,7 +689,9 @@ func buildNoteQueryHistorySummary(
 		},
 		"noteIDs": noteIDs,
 	}
-	_ = location
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
 	return summary
 }
 
@@ -671,7 +731,9 @@ func buildForgeListHistorySummary(
 		},
 		"paths": dedupeStrings(paths),
 	}
-	_ = location
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
 	return summary
 }
 
@@ -712,7 +774,17 @@ func buildForgeReadHistorySummary(
 		},
 		"paths": dedupeStrings([]string{readPath}),
 	}
-	_ = location
+	if payload.Content != "" {
+		contentRunes := []rune(payload.Content)
+		if len(contentRunes) > 500 {
+			summary["contentPreview"] = string(contentRunes[:500]) + "..."
+		} else {
+			summary["contentPreview"] = payload.Content
+		}
+	}
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
 	return summary
 }
 
@@ -756,7 +828,9 @@ func buildForgeSearchHistorySummary(
 		},
 		"paths": dedupeStrings(paths),
 	}
-	_ = location
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
 	return summary
 }
 
@@ -775,6 +849,8 @@ func inferToolCallPurpose(toolName string, assistantContent string) string {
 		return "读取文件内容以提取实现细节"
 	case config.ForgeDevRepoSearchToolName:
 		return "搜索仓库文本以定位相关实现"
+	case config.FetchWebPageToolName:
+		return "获取网页内容以获取外部信息"
 	default:
 		return "支撑当前分析"
 	}
@@ -898,6 +974,43 @@ func buildNoteByIDReadHistorySummary(
 			}
 		}
 	}
-	_ = location
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
+	return summary
+}
+
+func buildWebFetchHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	var args struct {
+		URL string `json:"url"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	var payload fetchWebPageResultPayload
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"url": strings.TrimSpace(args.URL),
+		},
+	}
+	if payload.FilePath != "" {
+		summary["filePath"] = payload.FilePath
+	}
+	if payload.Title != "" {
+		summary["title"] = payload.Title
+	}
+	if payload.CharCount > 0 {
+		summary["charCount"] = payload.CharCount
+	}
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
 	return summary
 }

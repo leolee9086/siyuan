@@ -99,7 +99,7 @@ func TestSageAddToContext(t *testing.T) {
 	sage := NewSage("test", cfg, client, strategy)
 
 	// 添加消息
-	sage.AddToContext(types.ContextMessage{
+	_ = sage.AddToContext(types.ContextMessage{
 		Role:    types.RoleUser,
 		Content: "Hello",
 	})
@@ -133,7 +133,7 @@ func TestSageContextLimit(t *testing.T) {
 
 	// 添加5条消息
 	for i := 0; i < 5; i++ {
-		sage.AddToContext(types.ContextMessage{
+		_ = sage.AddToContext(types.ContextMessage{
 			Role:    types.RoleUser,
 			Content: "Message " + string(rune('0'+i)),
 		})
@@ -167,7 +167,7 @@ func TestSageClearContext(t *testing.T) {
 	client := &mockLLMClient{}
 	sage := NewSage("test", cfg, client, strategy)
 
-	sage.AddToContext(types.ContextMessage{
+	_ = sage.AddToContext(types.ContextMessage{
 		Role:    types.RoleUser,
 		Content: "Hello",
 	})
@@ -196,7 +196,7 @@ func TestSageCloneWithFreshContext(t *testing.T) {
 
 	client := &mockLLMClient{}
 	sage := NewSage("test", cfg, client, strategy)
-	sage.AddToContext(types.ContextMessage{
+	_ = sage.AddToContext(types.ContextMessage{
 		Role:    types.RoleUser,
 		Content: "persisted history",
 	})
@@ -379,7 +379,7 @@ func TestConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(id int) {
 			for j := 0; j < 10; j++ {
-				sage.AddToContext(types.ContextMessage{
+				_ = sage.AddToContext(types.ContextMessage{
 					Role:    types.RoleUser,
 					Content: "Message",
 				})

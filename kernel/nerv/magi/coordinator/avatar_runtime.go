@@ -160,7 +160,7 @@ func (r *AvatarRuntime) DispatchForSource(
 	boundDocumentID := resolveBoundDocumentID(sourceCtx)
 	if boundDocumentID != "" {
 		if docContent := model.GetBlockDOM(boundDocumentID); docContent != "" {
-			binding.Agent.AddToContextWithSession(sessionID, types.ContextMessage{
+			_ = binding.Agent.AddToContextWithSession(sessionID, types.ContextMessage{
 				Role:    types.RoleSystem,
 				Content: fmt.Sprintf("<bound_document>\n<id>%s</id>\n%s\n</bound_document>", boundDocumentID, docContent),
 			})

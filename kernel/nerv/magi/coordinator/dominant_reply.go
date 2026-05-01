@@ -66,6 +66,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, fmt.Errorf("主导者直答失败: %w", collectErr)
 		}
 		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+		compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 		return msg, election, nil
 	}
 
@@ -100,6 +101,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 		return nil, nil, fmt.Errorf("随机主导者直答失败: %w", err)
 	}
 	dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+	compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 	return msg, election, nil
 }
 
@@ -137,7 +139,7 @@ func (c *Coordinator) executeDominantReply(
 			}
 		}
 		if len(allDoubts) > 0 {
-			dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
+			_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
 				Role:    types.RoleSystem,
 				Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
 			})
@@ -155,8 +157,9 @@ func (c *Coordinator) executeDominantReply(
 		dominantSage,
 		resolveSourceAwareInputForSage(sourceAwareUserInputBySage, dominantSage.GetName(), userMessage),
 		CollectResponsesOptions{
-			RuntimeTools:      buildDominantDirectReplyRuntimeTools(dominantSage),
-			RuntimeToolChoice: dominantSage.GetToolChoice(),
+			RuntimeTools:               buildDominantDirectReplyRuntimeTools(dominantSage),
+			RuntimeToolChoice:          dominantSage.GetToolChoice(),
+			IsExternalMessageTriggered: true,
 		},
 	)
 
@@ -317,7 +320,7 @@ func shareDominantContextDelta(
 			continue
 		}
 		for _, msg := range cloneCoordinatorContextMessages(sanitizedDelta) {
-			sage.AddToContextWithSession(sessionID, msg)
+			_ = sage.AddToContextWithSession(sessionID, msg)
 		}
 	}
 }
@@ -401,7 +404,7 @@ func appendDominanceRevokedHandoff(sessionID string, prompt string, sagesToSync 
 		if sage == nil {
 			continue
 		}
-		sage.AddToContextWithSession(sessionID, types.ContextMessage{
+		_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
 			Role:    types.RoleSystem,
 			Content: prompt,
 		})

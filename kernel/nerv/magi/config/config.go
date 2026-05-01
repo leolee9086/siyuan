@@ -187,6 +187,8 @@ const (
 	RevertNoteBlockToolName = "revert_note_block"
 	// SendChannelMessageToolName 主动向可主动渠道（微信等）发送消息的工具名。
 	SendChannelMessageToolName = "send_channel_message"
+	// FetchWebPageToolName 网页内容获取工具名。
+	FetchWebPageToolName = "fetch_web_page"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -1125,6 +1127,33 @@ func BuildSendChannelMessageToolDef() ToolDef {
 			},
 		},
 	})
+}
+
+// BuildFetchWebPageToolDef 构建网页内容获取工具定义。
+func BuildFetchWebPageToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        FetchWebPageToolName,
+			Description: "获取指定 URL 的网页内容。拉取完成后将网页的纯文本版本保存到工作空间 temp/raw/ 目录下的 .md 文件中供你前往阅读。适用于阅读文档、新闻、技术文章等在线内容。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"url": map[string]interface{}{
+						"type":        "string",
+						"description": "要获取内容的完整 URL，须包含协议前缀（如 https://）",
+					},
+					"timeout": map[string]interface{}{
+						"type":        "integer",
+						"description": "请求超时时间（秒），默认 15",
+						"minimum":     5,
+						"maximum":     60,
+					},
+				},
+				"required": []string{"url"},
+			},
+		},
+	}
 }
 
 // MAGIConfig MAGI系统完整配置

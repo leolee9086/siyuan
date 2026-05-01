@@ -354,15 +354,15 @@ func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *te
 	balthazar := createVoteMockSage("Balthazar", balthazarClient)
 
 	sessionID := "governed-action-session"
-	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:    types.RoleSystem,
 		Content: "你是 Balthazar。",
 	})
-	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:    types.RoleUser,
 		Content: "把这次进展记下来。",
 	})
-	balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = balthazar.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:    types.RoleAssistant,
 		Content: "我准备先整理一下。",
 	})

@@ -299,7 +299,7 @@ func TestAvatarContextManagement(t *testing.T) {
 		t.Errorf("Initial context role = %v, want system", ctx[0].Role)
 	}
 
-	avatar.AddToContext(types.ContextMessage{
+	_ = avatar.AddToContext(types.ContextMessage{
 		Role:    "user",
 		Content: "Hello",
 	})
@@ -308,7 +308,7 @@ func TestAvatarContextManagement(t *testing.T) {
 		t.Errorf("Context length after AddToContext = %v, want 2", len(ctx))
 	}
 
-	avatar.AddToContext(types.ContextMessage{
+	_ = avatar.AddToContext(types.ContextMessage{
 		Role:    "assistant",
 		Content: "Hi there",
 	})

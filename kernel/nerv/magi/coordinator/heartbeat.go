@@ -92,6 +92,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 		sourceAwareUserInputBySage,
 		buildHeartbeatRuntimeToolsBySage(sleepMode, dominantSage),
 		buildHeartbeatRuntimeToolChoiceBySage(sleepMode),
+		sleepMode,
 	)
 	if err != nil {
 		if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
@@ -127,6 +128,8 @@ func (c *Coordinator) CoordinateHeartbeat(
 		}
 		sleeper = "all"
 	}
+
+	compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 
 	return &HeartbeatDecisionResult{
 		RoundID:        roundID,

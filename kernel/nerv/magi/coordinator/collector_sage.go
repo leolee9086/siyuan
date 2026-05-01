@@ -63,8 +63,8 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				return nil, err
 			}
 			if found {
-				if !hbInvestigated {
-					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				if !options.IsSleepMode && !hbInvestigated {
+					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
 						Content: fmt.Sprintf("你不能现在休息，因为你还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用睡前记录工具。", config.NoteKeywordSearchToolName),
 					})
@@ -91,7 +91,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				}
 				if appendResult.RequiresGovernedRetry {
 					if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
-						sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 							Role:    types.RoleSystem,
 							Content: prompt,
 						})
@@ -103,7 +103,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				}
 				if appendResult.RequiresLinkRetry {
 					if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
-						sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 							Role:    types.RoleSystem,
 							Content: prompt,
 						})
@@ -153,7 +153,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 			if appendResult.RequiresGovernedRetry {
 				if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
-					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
 						Content: prompt,
 					})
@@ -165,7 +165,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 			if appendResult.RequiresLinkRetry {
 				if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
-					sage.AddToContextWithSession(sessionId, types.ContextMessage{
+					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
 						Content: prompt,
 					})
@@ -177,7 +177,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 		} else if strings.TrimSpace(turnContent) != "" {
 			if !wannaSpeakTracker.IsPostStop() {
-				sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 					Role:             types.RoleAssistant,
 					Content:          turnContent,
 					ReasoningContent: reasoningContent,
@@ -187,13 +187,24 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		if wannaSpeakTracker.ShouldInjectContinuationPrompt() {
-			sage.AddToContextWithSession(sessionId, types.ContextMessage{
+			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 				Role:    types.RoleSystem,
 				Content: wannaSpeakTracker.BuildContinuationPrompt(),
 			})
 		}
+		if options.IsExternalMessageTriggered && wannaSpeakTracker.HasNoExpressionProgress() {
+			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role: types.RoleSystem,
+				Content: fmt.Sprintf(
+					"你还没有开始回复消息。请先调用 %s 开始表达，然后通过 %s 追加内容，最后调用 %s 结束。",
+					config.WannaSpeakStartToolName,
+					config.WannaSpeakContinueToolName,
+					config.WannaSpeakStopToolName,
+				),
+			})
+		}
 		if len(turnToolCalls) == 0 {
-			sage.AddToContextWithSession(sessionId, types.ContextMessage{
+			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 				Role:    types.RoleSystem,
 				Content: "本次回复未检测到工具调用。你必须调用工具才能输出内容，否则响应将被系统拒绝。",
 			})
@@ -480,7 +491,7 @@ func (rc *ResponseCollector) buildSageResponse(
 		Content:          response.Content,
 		ReasoningContent: reasoningContent,
 	}
-	sage.AddToContextWithSession(sessionId, assistantMsg)
+	_ = sage.AddToContextWithSession(sessionId, assistantMsg)
 
 	return response, nil
 }
@@ -520,6 +531,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 	if toolSetHasAllFunctionTools(effectiveTools, config.NoteByIDReadToolName) {
 		noteReadExecutor := newNoteByIDReadToolResultExecutor()
 		executors = append(executors, noteReadExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.FetchWebPageToolName) {
+		webFetchExecutor := newWebFetchToolResultExecutor()
+		executors = append(executors, webFetchExecutor.ExecuteToolCall)
 	}
 	if toolSetHasAllFunctionTools(effectiveTools, config.CreateNoteDocumentToolName) {
 		noteEditExecutor := newNoteEditToolResultExecutor()

@@ -52,7 +52,7 @@ func BuildCoreSageHeartbeatWakePrompt(now string) string {
 你现在可以做的事情：
 1. 检查自己现在有没有需要处理的事情。
    - 使用 search_notes_by_keywords 搜索 "#todo" 查找待办任务
-   - 如果找到带 #todo 标签的块，取最早的一个，读取块内容作为任务描述
+   - 如果找到带 #todo 标签的块，读取它们的内容,主动搞清楚应该做的事情
    - 尝试使用现有工具执行该任务
    - 执行完毕后，调用 modify_note_block 去掉 #todo 标签（保留块内其他标签和内容不变）
    - 完成任务之后应该记录到日记,以便之后回忆和总结；如果任务未完成，也应该记录下来，说明原因和下一步计划。

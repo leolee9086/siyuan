@@ -48,6 +48,7 @@ type Message struct {
 
 // ContextMessage 上下文消息（对应前端ContextMessage）
 type ContextMessage struct {
+	ID               string                 `json:"id,omitempty"`
 	Role             MessageRole            `json:"role"`
 	Content          string                 `json:"content"`
 	ReasoningContent string                 `json:"reasoning_content,omitempty"`

@@ -368,7 +368,7 @@ func (a *AvatarDescriptor) processMessageOld(ctx context.Context) (*types.Stream
 	}
 
 	if result.Content != "" {
-		a.AddToContext(types.ContextMessage{
+		_ = a.AddToContext(types.ContextMessage{
 			Role:    "assistant",
 			Content: result.Content,
 		})

@@ -236,13 +236,13 @@ func appendMergedWannaSleepHistory(
 	}
 	toolCall := buildHeartbeatSleepHistoryToolCall(roundID, response)
 
-	sage.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:             types.RoleAssistant,
 		Content:          assistantContent,
 		ReasoningContent: response.SleepReasoningDraft,
 		ToolCalls:        []types.ToolCall{toolCall},
 	})
-	sage.AddToContextWithSession(sessionID, types.ContextMessage{
+	_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
 		Role:    types.RoleTool,
 		Content: buildMergedWannaSleepToolResult(finalNote, sections, sleepAt),
 		ToolID:  toolCall.ID,
