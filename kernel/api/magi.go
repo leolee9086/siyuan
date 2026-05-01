@@ -16,6 +16,9 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/trust"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/wechat"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
@@ -247,8 +250,51 @@ func initMagiComponents() error {
 	magiCoordinator = coordinator.NewCoordinator(30 * time.Second)
 	magiCoordinator.SetDominantSelectionObserver(magiRuntimeMgr)
 
+	// 初始化通道可信度配置目录（延迟加载，因为 util.ConfDir 在包 init 时可能未就绪）
+	globalTrustMgr.EnsureConfigDir(util.ConfDir)
+
+	// 注入全局身份解析器，供 coordinator 等包校验渠道用户身份
+	trust.DefaultIdentityResolver = func(channelID, accountID, userID string) trust.ResolveResult {
+		return globalTrustMgr.Resolve(channelID, accountID, userID)
+	}
+
+	// 注册外部通道桥接器
+	channel.GlobalBridge().SetHandler(handleChannelInbound)
+
+	// 恢复已持久化的微信渠道适配器
+	recoverWechatAdapters()
+
 	logging.LogInfof("MAGI组件初始化完成")
 	return nil
+}
+
+func recoverWechatAdapters() {
+	accountIDs := wechat.ListIndexedAccountIDs(util.ConfDir)
+	if len(accountIDs) == 0 {
+		return
+	}
+
+	for _, accountID := range accountIDs {
+		instanceID := "wechat-" + accountID
+		if _, exists := channel.Get(instanceID); exists {
+			logging.LogInfof("MAGI 跳过恢复微信适配器 %s：已有活跃实例", accountID)
+			continue
+		}
+		adapter := wechat.NewAdapter(accountID)
+		if !adapter.IsConfigured() {
+			logging.LogWarnf("MAGI 恢复微信适配器 %s 失败：凭证无效", accountID)
+			continue
+		}
+		channel.Register(adapter)
+		if err := adapter.Start(context.Background()); err != nil {
+			logging.LogWarnf("MAGI 恢复微信适配器 %s 失败: %v", accountID, err)
+			continue
+		}
+		logging.LogInfof("MAGI 已恢复微信适配器: account=%s", accountID)
+	}
+	if len(channel.All()) >= 1 {
+		logging.LogInfof("MAGI 已恢复 %d 个渠道适配器", len(channel.All()))
+	}
 }
 
 func magiPersonaStatus(c *gin.Context) {
@@ -405,6 +451,15 @@ func writeMagiTaskError(c *gin.Context, err error) {
 }
 
 func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
+	if task.Type == TaskTypeHeartbeat {
+		return MagiTaskResult{Err: errors.New("unexpected heartbeat task in handleMagiTask")}
+	}
+
+	// 外部通道消息没有 Req（无 OpenAI 请求体），直接从 SourceCtx 获取用户消息
+	if task.Req == nil && task.SourceCtx != nil {
+		return handleChannelTask(task)
+	}
+
 	req := task.Req
 
 	// 检查初始化错误
@@ -450,6 +505,238 @@ func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 	}
 	result = MagiTaskResult{ConsensusMsg: consensusMsg}
 	return
+}
+
+// handleChannelTask 处理来自外部通道的消息（无 OpenAI 请求体）。
+func handleChannelTask(task *DispatcherTask) (result MagiTaskResult) {
+	if magiInitErr != nil {
+		return MagiTaskResult{Err: errors.New("MAGI system not initialized: " + magiInitErr.Error())}
+	}
+
+	userMessage := extractChannelUserMessage(task.SourceCtx)
+	if userMessage == "" {
+		return MagiTaskResult{Err: errors.New("empty channel message")}
+	}
+
+	magiRuntimeMgr.BeginForeground(userMessage)
+	defer func() {
+		magiRuntimeMgr.FinishForeground(result.Err)
+	}()
+
+	ctx := task.RequestCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	consensusMsg, err := magiCoordinator.CoordinateDecision(
+		ctx,
+		task.SessionID,
+		magiMelchior,
+		magiBalthazar,
+		magiCasper,
+		userMessage,
+		task.SourceCtx,
+		nil,
+	)
+	if err != nil {
+		return MagiTaskResult{Err: err}
+	}
+
+	magiRuntimeMgr.ApplyForegroundConsensus(consensusMsg)
+
+	// 外部通道消息：决策完成后通过通道适配器回复
+	if err := routeChannelOutbound(ctx, task.SourceCtx, consensusMsg.Content); err != nil {
+		logging.LogErrorf("route channel outbound failed: %v", err)
+	}
+
+	return MagiTaskResult{ConsensusMsg: consensusMsg}
+}
+
+// extractChannelUserMessage 从外部通道的 SourceCtx 中提取用户消息。
+func extractChannelUserMessage(sourceCtx *types.RequestSourceContext) string {
+	if sourceCtx == nil {
+		return ""
+	}
+	// RawAttributes 中由 channel bridge 写入用户消息原文
+	if msg, ok := sourceCtx.RawAttributes["userMessage"]; ok {
+		return msg
+	}
+	return ""
+}
+
+// handleChannelInbound 处理来自外部通道的入站消息。
+// 注册为 channel.GlobalBridge 的回调。
+func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) error {
+	if magiSessionMgr == nil {
+		return errors.New("MAGI session manager not ready")
+	}
+	magiRuntimeMgr.InterruptHeartbeat()
+
+	channelID := msg.ChannelID
+	accountID := msg.AccountID
+	userID := msg.UserID
+	channelInstanceID := channelID + "-" + accountID
+
+	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelID, accountID, userID)
+	rawAttributes := map[string]string{
+		"channelId":         channelID,
+		"accountId":         accountID,
+		"userId":            userID,
+		"userMessage":       msg.Text,
+		"conversationToken": msg.ConversationToken,
+	}
+
+	// 查询信任配置决定 DirectResponseAllowed
+	trustResult := globalTrustMgr.Resolve(channelID, accountID, userID)
+	directOK := trustResult.DirectAllowed
+
+	identityID := accountID + ":" + userID
+	nickname := firstNonEmpty(trustResult.Nickname, msg.Nickname)
+	interfaceKind := channelID + "-bot"
+
+	// 检测绑定码：格式 MB-XXXXXX
+	userText := strings.TrimSpace(msg.Text)
+	if strings.HasPrefix(userText, magiBindCodePrefix) {
+		code := strings.TrimPrefix(userText, magiBindCodePrefix)
+		bindIdentityID, ok := consumeBindCode(code)
+		if ok {
+			bindRecord, err := globalMagiIdentityStore.get(bindIdentityID)
+			if err != nil || !bindRecord.Enabled {
+				_ = routeChannelOutboundRaw(channelInstanceID, accountID, userID, "身份已禁用或不存在，请联系管理员。")
+				return nil
+			}
+			_ = globalMagiIdentityStore.addChannelBinding(bindIdentityID, channelBinding{
+				ChannelID: channelID,
+				AccountID: accountID,
+				UserID:    userID,
+			})
+			reply := fmt.Sprintf("绑定成功！欢迎 %s。", firstNonEmpty(bindRecord.DisplayName, bindRecord.IdentityID))
+			_ = routeChannelOutboundRaw(channelInstanceID, accountID, userID, reply)
+			return nil
+		}
+		_ = routeChannelOutboundRaw(channelInstanceID, accountID, userID, "绑定码无效或已过期，请在身份管理中重新生成。")
+		return nil
+	}
+
+	// 尝试从身份卡绑定中解析该渠道用户的 MAGI 身份
+	identityRecord := globalMagiIdentityStore.resolveIdentityByChannel(channelID, accountID, userID)
+
+	// 未绑定用户：自动回复引导
+	if identityRecord == nil {
+		_ = routeChannelOutboundRaw(channelInstanceID, accountID, userID,
+			"您尚未绑定身份。请在 MAGI 身份管理中获得绑定码后发送给我。")
+		return nil
+	}
+
+	if identityRecord != nil {
+		identityID = identityRecord.IdentityID
+		if nickname == "" {
+			nickname = firstNonEmpty(identityRecord.Nickname, identityRecord.DisplayName)
+		}
+		interfaceKind = fmt.Sprintf("%s-bot/%s", channelID, identityRecord.IdentityID)
+		if identityRecord.RouteClass == "guardian" {
+			directOK = true
+		}
+		rawAttributes["boundIdentityId"] = identityRecord.IdentityID
+		if identityRecord.DisplayName != "" {
+			rawAttributes["boundDisplayName"] = identityRecord.DisplayName
+		}
+	}
+
+	sourceCtx := &types.RequestSourceContext{
+		Channel:               types.SourceChannelExternalAgent,
+		PrincipalID:           userID,
+		IdentityID:            identityID,
+		Nickname:              nickname,
+		InterfaceID:           channelID + "-" + accountID,
+		InterfaceKind:         interfaceKind,
+		SourceSessionKey:      sourceSessionKey,
+		DirectResponseAllowed: directOK,
+		TrustBase:             types.TrustLevel(trustResult.TrustBase),
+		RiskLevel:             types.TrustLevel(trustResult.RiskLevel),
+		AuthStrength:          types.AuthStrengthMedium,
+		ModelIntent:           "general",
+		RawAttributes:         rawAttributes,
+	}
+
+	sessionID := getOrCreateSession(nil, sourceCtx)
+	if sessionID == "" {
+		return errors.New("failed to create MAGI session for channel message")
+	}
+
+	task := &DispatcherTask{
+		Type:       TaskTypeUserMessage,
+		SessionID:  sessionID,
+		SourceCtx:  sourceCtx,
+		RequestCtx: ctx,
+		ResultChan: make(chan MagiTaskResult, 1),
+	}
+
+	if !dispQueue.Push(Ring0ExternalMessage, task) {
+		return errors.New("magi queue is full")
+	}
+
+	// 异步等待结果（不阻塞桥接器）
+	go func() {
+		select {
+		case result := <-task.ResultChan:
+			if result.Err != nil {
+				logging.LogWarnf("channel message processing error: %v", result.Err)
+				// 尝试发送错误提示
+				_ = routeChannelOutbound(context.Background(), sourceCtx, "抱歉，处理消息时出现错误，请稍后再试。")
+			}
+		case <-ctx.Done():
+		}
+	}()
+
+	return nil
+}
+
+// routeChannelOutbound 将 MAGI 回复通过对应通道适配器发送出去。
+func routeChannelOutbound(ctx context.Context, sourceCtx *types.RequestSourceContext, reply string) error {
+	if sourceCtx == nil || reply == "" {
+		return nil
+	}
+
+	channelID := sourceCtx.RawAttributes["channelId"]
+	accountID := sourceCtx.RawAttributes["accountId"]
+	if channelID == "" {
+		return nil
+	}
+
+	instanceID := channelID + "-" + accountID
+	adapter, ok := channel.Get(instanceID)
+	if !ok {
+		// 兼容旧数据：回退到 channelID 查询
+		adapter, ok = channel.Get(channelID)
+		if !ok {
+			return fmt.Errorf("channel adapter not found: %s", instanceID)
+		}
+	}
+
+	msg := &channel.OutboundMessage{
+		ChannelID:         channelID,
+		AccountID:         sourceCtx.RawAttributes["accountId"],
+		UserID:            sourceCtx.PrincipalID,
+		Text:              reply,
+		ConversationToken: sourceCtx.RawAttributes["conversationToken"],
+	}
+
+	return adapter.SendMessage(ctx, msg)
+}
+
+// routeChannelOutboundRaw 直接向渠道发送消息，不依赖 sourceCtx。
+func routeChannelOutboundRaw(channelID, accountID, userID, text string) error {
+	adapter, ok := channel.Get(channelID)
+	if !ok {
+		return fmt.Errorf("channel adapter not found: %s", channelID)
+	}
+	return adapter.SendMessage(context.Background(), &channel.OutboundMessage{
+		ChannelID: channelID,
+		AccountID: accountID,
+		UserID:    userID,
+		Text:      text,
+	})
 }
 
 func extractClaimedRecentHistory(messages []openai.ChatCompletionMessage) []types.ClaimedHistoryMessage {
