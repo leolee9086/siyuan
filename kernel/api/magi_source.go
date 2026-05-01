@@ -378,7 +378,8 @@ func parseSourceChannel(raw string) (types.SourceChannel, bool) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "guardian":
 		return types.SourceChannelGuardian, true
-	case "external-agent", "external_agent", "external":
+	case "external-agent", "external_agent", "external",
+		"wechat", "discord", "telegram", "slack", "whatsapp":
 		return types.SourceChannelExternalAgent, true
 	case "system-cron", "system_cron", "cron":
 		return types.SourceChannelSystemCron, true
