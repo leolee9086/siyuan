@@ -96,6 +96,9 @@ func materializeToolResultForContext(
 		toolName == config.AvatarSynthesizeToolName {
 		return materializeAvatarToolResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
+	if toolName == config.SendChannelMessageToolName {
+		return materializeSendChannelMessageResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
+	}
 	if !isArchivedQueryTool(toolName) {
 		return detailedResult
 	}

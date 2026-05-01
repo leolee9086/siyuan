@@ -324,7 +324,8 @@ func isGovernedActionToolName(toolName string) bool {
 		config.RevertNoteBlockToolName,
 		config.AvatarBuildToolName,
 		config.AvatarModifyToolName,
-		config.AvatarSynthesizeToolName:
+		config.AvatarSynthesizeToolName,
+		config.SendChannelMessageToolName:
 		return true
 	default:
 		return false
