@@ -54,7 +54,8 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"我把这一轮检查结果梳理清楚了","nextStepPlan":"下一轮先确认新事件，再决定是否继续追踪仓库变化"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"我把这一轮检查结果梳理清楚了","nextStepPlan":"下一轮先确认新事件，再决定是否继续追踪仓库变化"}`),
 				},
 			},
 		},
@@ -63,7 +64,8 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepDreamToolName, `{"summary":"情绪上已经从紧绷回落到安静","dreamScene":"深夜的桌面被台灯照亮，玻璃窗外残留雨痕，屏幕上的待办清单泛着冷白色微光，屋里只剩轻微风声"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepDreamToolName, `{"summary":"情绪上已经从紧绷回落到安静","dreamScene":"深夜的桌面被台灯照亮，玻璃窗外残留雨痕，屏幕上的待办清单泛着冷白色微光，屋里只剩轻微风声"}`),
 				},
 			},
 		},
@@ -72,7 +74,8 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"当前没有新的紧急事项，我先把已经看见的线索和状态记下"} `),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有新的紧急事项，我先把已经看见的线索和状态记下"}`),
 				},
 			},
 		},
@@ -86,12 +89,15 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 	}
 	melchiorClient.syncResponses = []string{
 		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
 		"把这轮观察过的状态、计划与画面串成一条能直接续上的休眠线索。",
 	}
 	balthazarClient.syncResponses = []string{
 		buildDominantVoteResponse(t, candidates, 80, 35, 25),
+		buildDominantVoteResponse(t, candidates, 80, 35, 25),
 	}
 	casperClient.syncResponses = []string{
+		buildDominantVoteResponse(t, candidates, 75, 30, 40),
 		buildDominantVoteResponse(t, candidates, 75, 30, 40),
 	}
 	result, err := coordinator.CoordinateHeartbeat(
@@ -163,27 +169,43 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 
 func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 	coordinator := NewCoordinator(5 * time.Second)
-	melchior := createMockSageWithClient("melchior", "Melchior", &mockLLMClient{
+
+	melchiorClient := &mockLLMClient{
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"先记录检查结论","nextStepPlan":"继续看一下剩余事件"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"先记录检查结论","nextStepPlan":"继续看一下剩余事件"}`),
 				},
 			},
 		},
-	})
-	balthazar := createMockSageWithClient("balthazar", "Balthazar", &mockLLMClient{
+	}
+	balthazarClient := &mockLLMClient{
 		scriptedTurns: []mockTurn{completedSpeakTurn("我还没有准备好睡下")},
-	})
-	casper := createMockSageWithClient("casper", "Casper", &mockLLMClient{
+	}
+	casperClient := &mockLLMClient{
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"当前没有更多异常，我先记下来"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有更多异常，我先记下来"}`),
 				},
 			},
 		},
-	})
+	}
+
+	melchior := createMockSageWithClient("melchior", "Melchior", melchiorClient)
+	balthazar := createMockSageWithClient("balthazar", "Balthazar", balthazarClient)
+	casper := createMockSageWithClient("casper", "Casper", casperClient)
+
+	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
+	if err != nil {
+		t.Fatalf("buildDominantCandidates() error = %v", err)
+	}
+	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
+	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
+	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+
 	result, err := coordinator.CoordinateHeartbeat(
 		context.Background(),
 		"heartbeat-awake-session",
@@ -224,8 +246,8 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	}
 	for sageName, toolName := range expectations {
 		tools := toolsBySage[sageName]
-		if len(tools) != 2 {
-			t.Fatalf("%s 期望有专属休眠工具和笔记搜索工具，实际=%d", sageName, len(tools))
+		if len(tools) != 9 {
+			t.Fatalf("%s 期望1个睡眠工具 + 2个阅读工具 + 6个行动工具 = 9，实际=%d", sageName, len(tools))
 		}
 		if tools[0].Type != openai.ToolTypeFunction || tools[0].Function == nil || tools[0].Function.Name != toolName {
 			t.Fatalf("%s 期望暴露 %s，实际=%+v", sageName, toolName, tools[0])
@@ -248,23 +270,53 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 		"melchior": {
 			config.WannaSleepPlanToolName,
 			config.NoteKeywordSearchToolName,
+			config.NoteByIDReadToolName,
 			config.ForgeDevRepoListToolName,
 			config.ForgeDevRepoReadToolName,
 			config.ForgeDevRepoSearchToolName,
+			config.WriteDiaryToolName,
+			config.CreateNoteDocumentToolName,
+			config.AppendNoteBlocksToolName,
+			config.ModifyNoteBlockToolName,
+			config.RevertNoteBlockToolName,
+			config.SendChannelMessageToolName,
+			config.ForgeDevRepoEditToolName,
+			config.ForgeDevRepoBatchReplaceToolName,
+			config.ForgeDevRepoBashToolName,
 		},
 		"balthazar": {
 			config.WannaSleepDreamToolName,
 			config.NoteKeywordSearchToolName,
+			config.NoteByIDReadToolName,
 			config.ForgeDevRepoListToolName,
 			config.ForgeDevRepoReadToolName,
 			config.ForgeDevRepoSearchToolName,
+			config.WriteDiaryToolName,
+			config.CreateNoteDocumentToolName,
+			config.AppendNoteBlocksToolName,
+			config.ModifyNoteBlockToolName,
+			config.RevertNoteBlockToolName,
+			config.SendChannelMessageToolName,
+			config.ForgeDevRepoEditToolName,
+			config.ForgeDevRepoBatchReplaceToolName,
+			config.ForgeDevRepoBashToolName,
 		},
 		"casper": {
 			config.WannaSleepRecordToolName,
 			config.NoteKeywordSearchToolName,
+			config.NoteByIDReadToolName,
 			config.ForgeDevRepoListToolName,
 			config.ForgeDevRepoReadToolName,
 			config.ForgeDevRepoSearchToolName,
+			config.WriteDiaryToolName,
+			config.CreateNoteDocumentToolName,
+			config.AppendNoteBlocksToolName,
+			config.ModifyNoteBlockToolName,
+			config.RevertNoteBlockToolName,
+			config.SendChannelMessageToolName,
+			config.ForgeDevRepoEditToolName,
+			config.ForgeDevRepoBatchReplaceToolName,
+			config.ForgeDevRepoBashToolName,
 		},
 	}
 

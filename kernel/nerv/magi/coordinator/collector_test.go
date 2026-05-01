@@ -66,6 +66,8 @@ type mockLLMClient struct {
 	scriptedTurns   []mockTurn
 	mu              sync.Mutex
 	turnIndex       int
+	syncResponses   []string
+	syncIndex       int
 }
 
 func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
@@ -176,10 +178,42 @@ func (m *mockLLMClient) nextTurn() (mockTurn, bool) {
 }
 
 func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
+	m.mu.Lock()
+	if m.syncIndex < len(m.syncResponses) {
+		resp := m.syncResponses[m.syncIndex]
+		m.syncIndex++
+		m.mu.Unlock()
+		return resp, nil
+	}
+	m.mu.Unlock()
 	return m.responseContent, nil
 }
 
 func (m *mockLLMClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
+	m.mu.Lock()
+	if m.syncIndex < len(m.syncResponses) {
+		resp := m.syncResponses[m.syncIndex]
+		m.syncIndex++
+		m.mu.Unlock()
+		toolName := ""
+		if len(tools) == 1 && tools[0].Function != nil {
+			toolName = strings.TrimSpace(tools[0].Function.Name)
+		}
+		return &types.SyncChatResult{
+			ToolCalls: []types.ToolCall{
+				{
+					ID:   "mock-sync-tool-call",
+					Type: "function",
+					Function: types.ToolCallFunction{
+						Name:      toolName,
+						Arguments: resp,
+					},
+				},
+			},
+			FinishReason: "tool_calls",
+		}, nil
+	}
+	m.mu.Unlock()
 	return &types.SyncChatResult{Content: m.responseContent}, nil
 }
 
@@ -526,15 +560,18 @@ func TestWannaSpeakTracker_RejectsDuplicateStart(t *testing.T) {
 	}
 }
 
-func TestWannaSpeakTracker_RejectsReadingAfterSpeakStart(t *testing.T) {
+func TestWannaSpeakTracker_AllowsReadOnlyForgeAfterSpeakStart(t *testing.T) {
 	tracker := newWannaSpeakStateTracker()
 
-	_, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+	madeProgress, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
 		toolCall(config.WannaSpeakStartToolName),
 		toolCall(config.ForgeDevRepoReadToolName),
 	})
-	if err == nil {
-		t.Fatal("进入表达状态后再调用阅读工具应报错")
+	if err != nil {
+		t.Fatalf("表达状态后调用只读 forge 工具不应报错: %v", err)
+	}
+	if !madeProgress {
+		t.Fatal("表达状态后调用只读 forge 工具应计为有效进展")
 	}
 }
 
@@ -545,7 +582,8 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"检查了待办并确认暂时无事可做","nextStepPlan":"明早先确认新的调度信号"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"检查了待办并确认暂时无事可做","nextStepPlan":"明早先确认新的调度信号"}`),
 				},
 			},
 		},
@@ -556,7 +594,8 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepDreamToolName, `{"summary":"我把今天残留的感受收起来了","dreamScene":"夜色中的工作台，屏幕映着雨后的窗，手边摊着未合上的笔记本，空气安静而清醒"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepDreamToolName, `{"summary":"我把今天残留的感受收起来了","dreamScene":"夜色中的工作台，屏幕映着雨后的窗，手边摊着未合上的笔记本，空气安静而清醒"}`),
 				},
 			},
 		},
@@ -566,7 +605,8 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"目前没有必须立刻处理的新事，先把这一轮看到的细节记下来"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"目前没有必须立刻处理的新事，先把这一轮看到的细节记下来"}`),
 				},
 			},
 		},
@@ -620,7 +660,8 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepPlanToolName, `{"summary":"先记录检查结果","nextStepPlan":"继续观察队列变化"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"先记录检查结果","nextStepPlan":"继续观察队列变化"}`),
 				},
 			},
 		},
@@ -632,7 +673,8 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.WannaSleepRecordToolName, `{"summary":"当前没有新的异常，先把线索记下"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有新的异常，先把线索记下"}`),
 				},
 			},
 		},
