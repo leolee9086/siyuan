@@ -68,7 +68,15 @@ func (c *Coordinator) CoordinateHeartbeat(
 			sourceAwareUserInputBySage[sageName] = input + imaginativeInstr
 		}
 	} else {
-		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, melchior, melchior, balthazar, casper)
+		dominantResult, err := electDominantSage(ctx, sessionID, melchior, balthazar, casper, userMessage)
+		if err != nil {
+			return nil, fmt.Errorf("心跳主导选举失败: %w", err)
+		}
+		dominantSage, err := resolveDominantSage(dominantResult, melchior, balthazar, casper)
+		if err != nil {
+			return nil, err
+		}
+		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
 	}
 	collection, err := c.collector.CollectHeartbeatResponses(
 		ctx,
@@ -153,6 +161,7 @@ func buildHeartbeatActionRuntimeTools() []openai.Tool {
 		buildRuntimeTool(config.BuildAppendNoteBlocksToolDef()),
 		buildRuntimeTool(config.BuildModifyNoteBlockToolDef()),
 		buildRuntimeTool(config.BuildRevertNoteBlockToolDef()),
+		buildRuntimeTool(config.BuildSendChannelMessageToolDef()),
 	}
 	if util.IsForgeMode() {
 		tools = append(
@@ -168,6 +177,7 @@ func buildHeartbeatActionRuntimeTools() []openai.Tool {
 func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 	tools := []openai.Tool{
 		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
+		buildRuntimeTool(config.BuildNoteByIDReadToolDef()),
 	}
 	if util.IsForgeMode() {
 		tools = append(
