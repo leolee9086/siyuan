@@ -85,11 +85,16 @@ func (t *wannaSpeakStateTracker) ApplyTurnToolCalls(toolCalls []types.ToolCall) 
 			}
 		default:
 			if t.phase == coreSagePhaseSpeaking || t.capturing {
-				return madeProgress, t.appendTransitionError(
-					fmt.Sprintf("进入表达状态后不能再调用 %s", toolName),
-				)
+				if isReadOnlyForgeTool(toolName) {
+					madeProgress = true
+				} else {
+					return madeProgress, t.appendTransitionError(
+						fmt.Sprintf("进入表达状态后不能再调用 %s", toolName),
+					)
+				}
+			} else {
+				madeProgress = true
 			}
-			madeProgress = true
 		}
 	}
 
@@ -225,4 +230,29 @@ func buildCoreSageToolAck(toolName string) string {
 	default:
 		return buildWannaSpeakToolAck(toolName)
 	}
+}
+
+func isReadOnlyForgeTool(toolName string) bool {
+	return toolName == config.ForgeDevRepoListToolName ||
+		toolName == config.ForgeDevRepoReadToolName ||
+		toolName == config.ForgeDevRepoSearchToolName
+}
+
+func isInvestigationTool(toolName string) bool {
+	switch strings.TrimSpace(toolName) {
+	case config.NoteKeywordSearchToolName,
+		config.NoteByIDReadToolName,
+		config.ForgeDevRepoListToolName,
+		config.ForgeDevRepoReadToolName,
+		config.ForgeDevRepoSearchToolName,
+		config.RecallCrossSessionMemoriesToolName:
+		return true
+	default:
+		return false
+	}
+}
+
+func isActionTool(toolName string) bool {
+	return isGovernedActionToolName(toolName) ||
+		toolName == config.PersistSessionMemoryToolName
 }

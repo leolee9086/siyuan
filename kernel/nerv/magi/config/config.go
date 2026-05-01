@@ -185,6 +185,8 @@ const (
 	ModifyNoteBlockToolName = "modify_note_block"
 	// RevertNoteBlockToolName 回滚 pending 修改恢复原内容的工具名。
 	RevertNoteBlockToolName = "revert_note_block"
+	// SendChannelMessageToolName 主动向可主动渠道（微信等）发送消息的工具名。
+	SendChannelMessageToolName = "send_channel_message"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -467,11 +469,11 @@ func BuildNoteKeywordSearchToolDef() ToolDef {
 
 // BuildForgeDevRepoListToolDef 构建 forge 模式开发仓库目录查看工具定义。
 func BuildForgeDevRepoListToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoListToolName,
-			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi\\nlimit=200。支持 typeFilter=file|dir 按类型过滤，namePattern=*.go 按名称模式过滤。",
+			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi\\nlimit=200。支持 typeFilter=file|dir 按类型过滤，namePattern=*.go 按名称模式过滤。表达状态中调用时必须填写本次查询动机。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -483,16 +485,16 @@ func BuildForgeDevRepoListToolDef() ToolDef {
 				"required": []string{"input"},
 			},
 		},
-	}
+	})
 }
 
 // BuildForgeDevRepoReadToolDef 构建 forge 模式开发仓库文件读取工具定义。
 func BuildForgeDevRepoReadToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoReadToolName,
-			Description: "仅在 forge 模式可用。只读读取开发代码仓库中的文本文件。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi/coordinator/coordinator.go 或 path=kernel/nerv/magi/coordinator/coordinator.go\\nstart=1\\nlimit=120。",
+			Description: "仅在 forge 模式可用。只读读取开发代码仓库中的文本文件。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi/coordinator/coordinator.go 或 path=kernel/nerv/magi/coordinator/coordinator.go\\nstart=1\\nlimit=120。表达状态中调用时必须填写本次查询动机。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -504,16 +506,16 @@ func BuildForgeDevRepoReadToolDef() ToolDef {
 				"required": []string{"input"},
 			},
 		},
-	}
+	})
 }
 
 // BuildForgeDevRepoSearchToolDef 构建 forge 模式开发仓库文本搜索工具定义。
 func BuildForgeDevRepoSearchToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoSearchToolName,
-			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。",
+			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。表达状态中调用时必须填写本次查询动机。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -525,7 +527,7 @@ func BuildForgeDevRepoSearchToolDef() ToolDef {
 				"required": []string{"input"},
 			},
 		},
-	}
+	})
 }
 
 // BuildForgeDevRepoEditToolDef 构建 forge 模式开发仓库文件编辑工具定义。
@@ -1090,6 +1092,39 @@ func BuildRevertNoteBlockToolDef() ToolDef {
 			},
 		},
 	}
+}
+
+// BuildSendChannelMessageToolDef 构建主动发送渠道消息工具定义。
+func BuildSendChannelMessageToolDef() ToolDef {
+	return AddMotivationParam(ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SendChannelMessageToolName,
+			Description: "主动向可主动渠道（微信等）上特定用户发送消息。调用时必须先明确填写本次行动动机，系统会把动机、消息内容和目标用户交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。消息内容应简洁、人性化，适合在即时通讯平台上阅读。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"channelId": map[string]interface{}{
+						"type":        "string",
+						"description": "目标渠道 ID，如 wechat",
+					},
+					"accountId": map[string]interface{}{
+						"type":        "string",
+						"description": "目标账号 ID，对应渠道中的登录账户",
+					},
+					"userId": map[string]interface{}{
+						"type":        "string",
+						"description": "目标用户 ID，要发送给的具体用户",
+					},
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "要发送的消息正文内容。保持简洁自然，适合在即时通讯平台阅读。",
+					},
+				},
+				"required": []string{"channelId", "accountId", "userId", "content"},
+			},
+		},
+	})
 }
 
 // MAGIConfig MAGI系统完整配置
