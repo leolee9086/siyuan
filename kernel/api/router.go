@@ -603,11 +603,24 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/login", model.CheckAuth, magiIdentityLogin)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/stats", model.CheckAuth, magiIdentityStats)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/issue-avatar-token", model.CheckAuth, magiIdentityIssueAvatarToken)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/issue-bind-code", model.CheckAuth, magiIdentityIssueBindCode)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/channel-bind", model.CheckAuth, magiIdentityChannelBind)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/channel-unbind", model.CheckAuth, magiIdentityChannelUnbind)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/persona/status", model.CheckAuth, magiPersonaStatus)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", magiChat)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
 	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/messages", magiMessages)
+
+	// S-Forge MAGI 外部通道管理
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/list", model.CheckAuth, channelListStatus)
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/accounts", model.CheckAuth, channelListAccounts)
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/trust-config", model.CheckAuth, channelGetTrustConfig)
+	ginServer.Handle("PUT", "/api/s-forge/magi/v1/channel/trust-config", model.CheckAuth, channelPutTrustConfig)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/create", model.CheckAuth, channelCreate)
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/poll-login", model.CheckAuth, channelPollLogin)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/relogin", model.CheckAuth, channelReLogin)
+
 
 	// S-Forge Bazaar 本地包扩展接口
 	ginServer.Handle("POST", "/api/s-forge/bazaar/exportPackage", model.CheckAuth, model.CheckAdminRole, exportBazaarPackage)
