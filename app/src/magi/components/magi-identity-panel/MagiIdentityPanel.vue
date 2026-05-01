@@ -156,6 +156,25 @@
               <input v-model="editForm.enabled" type="checkbox" /> ENABLED
             </label>
           </div>
+          <!-- Channel Bindings -->
+          <div class="magi-identity-panel__block magi-identity-panel__block--sub">
+            <div class="magi-identity-panel__block-title">CHANNEL BINDINGS</div>
+            <div v-if="editForm.channelBindings.length === 0 && !bindCodeResult" class="magi-identity-panel__hint">No channel bindings.</div>
+            <div v-for="(b, idx) in editForm.channelBindings" :key="idx" class="magi-identity-panel__binding-row">
+              <span class="magi-identity-panel__binding-key">{{ b.channelId }}/{{ b.accountId }}/{{ b.userId }}</span>
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm magi-identity-panel__btn--danger" @click="removeBinding(idx)">REMOVE</button>
+            </div>
+            <div v-if="!bindCodeResult" class="magi-identity-panel__binding-add">
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--primary magi-identity-panel__btn--sm" :disabled="busy" @click="onGenerateBindCode">GENERATE BIND CODE</button>
+            </div>
+            <div v-if="bindCodeResult" class="magi-identity-panel__bind-code">
+              <div class="magi-identity-panel__bind-code-label">将该验证码发送给渠道中的 bot：</div>
+              <code class="magi-identity-panel__bind-code-value">{{ bindCodeResult.code }}</code>
+              <div class="magi-identity-panel__bind-code-expires">有效期 {{ Math.ceil((bindCodeResult.expiresAt - Date.now()) / 1000) }}s</div>
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="onCopyBindCode">COPY</button>
+              <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--sm" @click="bindCodeResult = null; onRefresh()">REFRESH LIST</button>
+            </div>
+          </div>
           <div class="magi-identity-panel__actions">
             <button type="button" class="magi-identity-panel__btn magi-identity-panel__btn--primary" :disabled="busy" @click="onUpsert">SAVE</button>
             <button type="button" class="magi-identity-panel__btn" :disabled="busy" @click="resetEdit">RESET</button>
@@ -185,6 +204,14 @@
                     {{ id.enabled ? "enabled" : "disabled" }}
                   </span>
                   <span v-if="id.usageCount" class="magi-identity-panel__tag--info">{{ id.usageCount }} req</span>
+                  <span v-if="id.channelBindings && id.channelBindings.length > 0" class="magi-identity-panel__tag--info">
+                    {{ id.channelBindings.length }} channel(s)
+                  </span>
+                </div>
+                <div v-if="id.channelBindings && id.channelBindings.length > 0" class="magi-identity-panel__item-bindings">
+                  <span v-for="b in id.channelBindings" :key="`${b.channelId}:${b.accountId}:${b.userId}`" class="magi-identity-panel__binding-tag">
+                    {{ b.channelId }}/{{ b.accountId }}/{{ b.userId }}
+                  </span>
                 </div>
               </div>
               <div class="magi-identity-panel__item-actions">
@@ -240,16 +267,19 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import type { MagiIdentityView, MagiRequestChannel, MagiIdentityStats } from "../../service/magiIdentitySession";
+import type { MagiIdentityView, MagiRequestChannel, MagiIdentityStats, MagiChannelBinding } from "../../service/magiIdentitySession";
 import {
+    bindChannelIdentity,
     clearActiveMagiArmorSession,
     fetchMagiIdentityStats,
     issueAvatarToken,
+    issueChannelBindCode,
     loginMagiIdentity,
     MAGI_IDENTITY_REQUIRED_EVENT,
     MAGI_WRITE_AVATAR_EVENT,
     refreshMagiIdentities,
     removeMagiIdentity,
+    unbindChannelIdentity,
     upsertMagiIdentity,
     useMagiIdentitySessionState,
 } from "../../service/magiIdentitySession";
@@ -290,6 +320,46 @@ const editForm = reactive({
     routeClass: "avatar-only" as "guardian" | "avatar-only",
     enabled: true,
     tokenExpires: 0,
+    channelBindings: [] as MagiChannelBinding[],
+});
+
+const newBinding = reactive({
+    channelId: "",
+    accountId: "",
+    userId: "",
+});
+
+const bindCodeResult = ref<{ code: string; expiresAt: number } | null>(null);
+
+const availableChannels = ref<ChannelStatusView[]>([]);
+const availableAccounts = ref<AccountView[]>([]);
+const trustConfig = ref<ChannelTrustConfigView | null>(null);
+
+const knownUsers = computed<{ userId: string; nickname: string }[]>(() => {
+    const chId = newBinding.channelId;
+    const acctId = newBinding.accountId;
+    if (!chId || !acctId || !trustConfig.value) return [];
+    const chanCfg = trustConfig.value.channels[chId];
+    if (!chanCfg) return [];
+    const acctCfg = chanCfg.perAccount[acctId];
+    if (!acctCfg) return [];
+    const users: { userId: string; nickname: string }[] = [];
+    for (const [uid, override] of Object.entries(acctCfg.perUser)) {
+        users.push({ userId: uid, nickname: override.nickname || uid });
+    }
+    // also include users from blockList (might be listed even if blocked)
+    for (const uid of acctCfg.blockList) {
+        if (!users.some(u => u.userId === uid)) {
+            users.push({ userId: uid, nickname: uid });
+        }
+    }
+    // also include users from allowList
+    for (const uid of acctCfg.allowList) {
+        if (!users.some(u => u.userId === uid)) {
+            users.push({ userId: uid, nickname: uid });
+        }
+    }
+    return users;
 });
 
 const issuingId = ref("");
@@ -336,6 +406,7 @@ function applyEdit(id: MagiIdentityView): void {
     editForm.routeClass = id.routeClass;
     editForm.enabled = id.enabled;
     editForm.tokenExpires = id.tokenExpiresSeconds ?? 0;
+    editForm.channelBindings = (id.channelBindings || []).map(b => ({ ...b }));
 }
 
 function resetEdit(): void {
@@ -346,6 +417,10 @@ function resetEdit(): void {
     editForm.routeClass = "avatar-only";
     editForm.enabled = true;
     editForm.tokenExpires = 0;
+    editForm.channelBindings = [];
+    newBinding.channelId = "";
+    newBinding.accountId = "";
+    newBinding.userId = "";
 }
 
 async function loadStats(): Promise<void> {
@@ -374,6 +449,48 @@ async function onRefresh(): Promise<void> {
     }
 }
 
+function addBinding(): void {
+    const ch = newBinding.channelId.trim();
+    const acct = newBinding.accountId.trim();
+    const uid = newBinding.userId.trim();
+    if (!ch || !acct || !uid) return;
+    if (editForm.channelBindings.some(b => b.channelId === ch && b.accountId === acct && b.userId === uid)) return;
+    editForm.channelBindings = [...editForm.channelBindings, { channelId: ch, accountId: acct, userId: uid }];
+    newBinding.channelId = "";
+    newBinding.accountId = "";
+    newBinding.userId = "";
+}
+
+function removeBinding(idx: number): void {
+    editForm.channelBindings = editForm.channelBindings.filter((_, i) => i !== idx);
+}
+
+async function onGenerateBindCode(): Promise<void> {
+    const id = editForm.identityId.trim();
+    if (!id) { statusText.value = "Please fill identity_id first."; return; }
+    busy.value = true;
+    statusText.value = "";
+    try {
+        const result = await issueChannelBindCode(id);
+        bindCodeResult.value = { code: result.bindCode, expiresAt: result.expiresAt };
+        statusText.value = "Bind code generated.";
+    } catch (error) {
+        statusText.value = error instanceof Error ? error.message : String(error);
+    } finally {
+        busy.value = false;
+    }
+}
+
+async function onCopyBindCode(): Promise<void> {
+    if (!bindCodeResult.value) return;
+    try {
+        await navigator.clipboard.writeText(bindCodeResult.value.code);
+        statusText.value = "Bind code copied.";
+    } catch {
+        statusText.value = "Copy failed.";
+    }
+}
+
 async function onUpsert(): Promise<void> {
     const id = editForm.identityId.trim();
     if (!id) { statusText.value = "identity_id is required"; return; }
@@ -388,6 +505,7 @@ async function onUpsert(): Promise<void> {
             routeClass: editForm.routeClass,
             enabled: editForm.enabled,
             tokenExpiresSeconds: editForm.tokenExpires > 0 ? editForm.tokenExpires : undefined,
+            channelBindings: editForm.channelBindings.length > 0 ? editForm.channelBindings : undefined,
         });
         statusText.value = `Identity [${id}] saved.`;
         if (!loginForm.identityId) {
@@ -396,6 +514,7 @@ async function onUpsert(): Promise<void> {
         }
         editForm.password = "";
         await loadStats();
+        await loadChannelsAndAccounts();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -413,6 +532,7 @@ async function onRemove(identityId: string): Promise<void> {
             loginForm.identityId = state.identities[0]?.identityId ?? "";
         }
         await loadStats();
+        await loadChannelsAndAccounts();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -437,6 +557,7 @@ async function onLogin(): Promise<void> {
         });
         statusText.value = `Session activated: ${session.identityId} (${session.channel})`;
         await loadStats();
+        await loadChannelsAndAccounts();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {
@@ -490,6 +611,7 @@ async function onIssueToken(identityId: string): Promise<void> {
         issuingId.value = "";
         await refreshMagiIdentities();
         await loadStats();
+        await loadChannelsAndAccounts();
     } catch (error) {
         statusText.value = error instanceof Error ? error.message : String(error);
     } finally {

@@ -112,6 +112,13 @@
           </div>
 
           <div
+            v-show="activeMainMode === 'channels'"
+            class="magi-main-pane magi-main-pane--channels"
+          >
+            <ExternalChannelsPanel />
+          </div>
+
+          <div
             v-show="activeMainMode === 'chat'"
             class="magi-main-pane magi-main-pane--chat"
           >
@@ -133,6 +140,7 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
+import ExternalChannelsPanel from "../components/external-channels/ExternalChannelsPanel.vue";
 import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPanel.vue";
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
@@ -346,12 +354,13 @@ const {
     onSubmitSourceSimulationPanel,
 } = ctx;
 
-type MagiMainMode = "chat" | "source" | "identity";
+type MagiMainMode = "chat" | "source" | "identity" | "channels";
 
 const magiMainModes: Array<{ id: MagiMainMode; label: string }> = [
     { id: "chat", label: "MAIN CHAT" },
     { id: "source", label: "SOURCE SIMULATION" },
     { id: "identity", label: "IDENTITY ACCESS" },
+    { id: "channels", label: "CHANNELS" },
 ];
 
 const activeMainMode = ref<MagiMainMode>("chat");

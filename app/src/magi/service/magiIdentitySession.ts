@@ -14,6 +14,12 @@ export type MagiRequestChannel =
     | "tool-custom"
     | "system-cron";
 
+export interface MagiChannelBinding {
+    channelId: string;
+    accountId: string;
+    userId: string;
+}
+
 export interface MagiIdentityView {
     identityId: string;
     displayName: string;
@@ -24,6 +30,7 @@ export interface MagiIdentityView {
     updatedAt: number;
     tokenExpiresSeconds?: number;
     usageCount?: number;
+    channelBindings?: MagiChannelBinding[];
 }
 
 export interface MagiArmorSession {
@@ -114,17 +121,35 @@ function normalizeIdentityView(raw: unknown): MagiIdentityView | null {
     if (!identityId || (routeClass !== "guardian" && routeClass !== "avatar-only")) {
         return null;
     }
-    return {
-        identityId,
-        displayName: displayName || identityId,
-        nickname: nickname || undefined,
-        routeClass,
-        enabled,
-        createdAt,
-        updatedAt,
-        tokenExpiresSeconds: tokenExpiresSeconds > 0 ? tokenExpiresSeconds : undefined,
-        usageCount: usageCount > 0 ? usageCount : undefined,
-    };
+	return {
+		identityId,
+		displayName: displayName || identityId,
+		nickname: nickname || undefined,
+		routeClass,
+		enabled,
+		createdAt,
+		updatedAt,
+		tokenExpiresSeconds: tokenExpiresSeconds > 0 ? tokenExpiresSeconds : undefined,
+		usageCount: usageCount > 0 ? usageCount : undefined,
+		channelBindings: normalizeChannelBindings(raw),
+	};
+}
+
+function normalizeChannelBindings(raw: unknown): MagiChannelBinding[] | undefined {
+	const rawBindings = Array.isArray(Reflect.get(raw as object, "channelBindings"))
+		? Reflect.get(raw as object, "channelBindings") as unknown[]
+		: [];
+	const bindings: MagiChannelBinding[] = [];
+	for (const rawB of rawBindings) {
+		if (!rawB || typeof rawB !== "object") continue;
+		const channelId = String(Reflect.get(rawB, "channelId") ?? "").trim();
+		const accountId = String(Reflect.get(rawB, "accountId") ?? "").trim();
+		const userId = String(Reflect.get(rawB, "userId") ?? "").trim();
+		if (channelId && accountId && userId) {
+			bindings.push({ channelId, accountId, userId });
+		}
+	}
+	return bindings.length > 0 ? bindings : undefined;
 }
 
 function normalizeLoginSession(raw: unknown): MagiArmorSession {
@@ -238,6 +263,7 @@ export async function upsertMagiIdentity(input: {
     routeClass: MagiRouteClass;
     enabled: boolean;
     tokenExpiresSeconds?: number;
+    channelBindings?: MagiChannelBinding[];
 }): Promise<void> {
     const body: Record<string, unknown> = {
         identity_id: input.identityId,
@@ -251,6 +277,13 @@ export async function upsertMagiIdentity(input: {
     }
     if (input.tokenExpiresSeconds && input.tokenExpiresSeconds > 0) {
         body.token_expires_seconds = input.tokenExpiresSeconds;
+    }
+    if (input.channelBindings && input.channelBindings.length > 0) {
+        body.channel_bindings = input.channelBindings.map(b => ({
+            channelId: b.channelId,
+            accountId: b.accountId,
+            userId: b.userId,
+        }));
     }
     const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/upsert`, {
         method: "POST",
@@ -359,6 +392,52 @@ export async function issueAvatarToken(input: {
     const payload = await response.json().catch(() => ({}));
     ensureIdentityResponseOK(response, payload);
     return normalizeLoginSession(payload);
+}
+
+export async function bindChannelIdentity(identityId: string, bindings: MagiChannelBinding[]): Promise<void> {
+	const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/channel-bind`, {
+		method: "POST",
+		credentials: "include",
+		headers: buildIdentityRequestHeaders(true),
+		body: JSON.stringify({ identity_id: identityId, bindings }),
+	});
+	const payload = await response.json().catch(() => ({}));
+	ensureIdentityResponseOK(response, payload);
+	await refreshMagiIdentities();
+}
+
+export async function unbindChannelIdentity(identityId: string, binding: MagiChannelBinding): Promise<void> {
+	const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/channel-unbind`, {
+		method: "POST",
+		credentials: "include",
+		headers: buildIdentityRequestHeaders(true),
+		body: JSON.stringify({ identity_id: identityId, binding }),
+	});
+	const payload = await response.json().catch(() => ({}));
+	ensureIdentityResponseOK(response, payload);
+	await refreshMagiIdentities();
+}
+
+export interface MagiBindCodeResult {
+	bindCode: string;
+	expiresAt: number;
+	ttlSeconds: number;
+}
+
+export async function issueChannelBindCode(identityId: string): Promise<MagiBindCodeResult> {
+	const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/issue-bind-code`, {
+		method: "POST",
+		credentials: "include",
+		headers: buildIdentityRequestHeaders(true),
+		body: JSON.stringify({ identity_id: identityId }),
+	});
+	const payload = await response.json().catch(() => ({}));
+	ensureIdentityResponseOK(response, payload);
+	return {
+		bindCode: String(payload.bindCode || ""),
+		expiresAt: Number(payload.expiresAt || 0),
+		ttlSeconds: Number(payload.ttlSeconds || 0),
+	};
 }
 
 export function useMagiIdentitySessionState() {
