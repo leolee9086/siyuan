@@ -624,6 +624,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		nil,
 		buildHeartbeatRuntimeToolsBySage(false, nil),
 		buildHeartbeatRuntimeToolChoiceBySage(false),
+		false,
 	)
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)
@@ -692,6 +693,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		nil,
 		buildHeartbeatRuntimeToolsBySage(false, nil),
 		buildHeartbeatRuntimeToolChoiceBySage(false),
+		false,
 	)
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)
