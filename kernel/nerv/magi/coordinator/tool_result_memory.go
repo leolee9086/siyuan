@@ -116,15 +116,6 @@ func materializeToolResultForContext(
 		logging.LogWarnf("归档查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, err)
 	}
 
-	if sage != nil && strings.TrimSpace(sage.GetName()) != "melchior" {
-		summary, sumErr := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
-		if sumErr != nil {
-			logging.LogWarnf("构建查询工具摘要失败 [%s/%s]: %v", toolName, toolCall.ID, sumErr)
-			return detailedResult
-		}
-		return summary
-	}
-
 	_ = archiveLocation
 
 	return detailedResult
@@ -831,8 +822,9 @@ func buildForgeReadHistorySummary(
 	}
 	if payload.Content != "" {
 		contentRunes := []rune(payload.Content)
-		if len(contentRunes) > 500 {
-			summary["contentPreview"] = string(contentRunes[:500]) + "..."
+		if len(contentRunes) > 1000 {
+			summary["contentPreview"] = string(contentRunes[:1000]) + "..."
+			summary["truncatedHint"] = "内容较长已截断，重新调用读取工具可获取完整内容"
 		} else {
 			summary["contentPreview"] = payload.Content
 		}
@@ -967,9 +959,7 @@ func buildNoteByIDReadHistorySummary(
 		ID               string `json:"id"`
 		RootID           string `json:"rootID"`
 		Format           string `json:"format"`
-		RenderedContent  string `json:"renderedContent"`
 		Type             string `json:"type"`
-		Content          string `json:"content"`
 		TotalChildren    int    `json:"totalChildren"`
 		ReturnedChildren int    `json:"returnedChildren"`
 		HasMoreChildren  bool   `json:"hasMoreChildren"`
@@ -991,35 +981,20 @@ func buildNoteByIDReadHistorySummary(
 	}
 
 	summary := map[string]interface{}{
-		"purpose": purpose,
-		"query":   query,
+		"purpose":    purpose,
+		"query":      query,
+		"blockID":    payload.ID,
+		"rereadHint": fmt.Sprintf("笔记详细内容可通过 %s 按此 ID 重新获取", config.NoteByIDReadToolName),
+	}
+	if payload.RootID != "" {
+		summary["rootID"] = payload.RootID
 	}
 	if payload.RestrictedDoc != "" {
-		summary["blockID"] = payload.ID
 		summary["restrictedDocument"] = payload.RestrictedDoc
-	} else if payload.Format == "markdown" || payload.Format == "kramdown" {
-		summary["blockID"] = payload.ID
-		summary["rootID"] = payload.RootID
+	} else if payload.Format != "" {
 		summary["format"] = payload.Format
-		if payload.RenderedContent != "" {
-			contentRunes := []rune(payload.RenderedContent)
-			if len(contentRunes) > 200 {
-				summary["contentPreview"] = string(contentRunes[:200]) + "..."
-			} else {
-				summary["contentPreview"] = payload.RenderedContent
-			}
-		}
-	} else {
-		summary["blockID"] = payload.ID
-		summary["rootID"] = payload.RootID
-		summary["type"] = payload.Type
-		if payload.Content != "" {
-			contentRunes := []rune(payload.Content)
-			if len(contentRunes) > 200 {
-				summary["contentPreview"] = string(contentRunes[:200]) + "..."
-			} else {
-				summary["contentPreview"] = payload.Content
-			}
+		if payload.Format == "tree" && payload.Type != "" {
+			summary["type"] = payload.Type
 		}
 		if payload.TotalChildren > 0 {
 			summary["children"] = map[string]interface{}{
