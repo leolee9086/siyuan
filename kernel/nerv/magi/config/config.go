@@ -193,6 +193,8 @@ const (
 	ListMagiChannelsToolName = "list_magi_channels"
 	// ListMagiContactsToolName 列出所有已知外部联系人的工具名。
 	ListMagiContactsToolName = "list_magi_contacts"
+	// FetchChannelMessagesToolName 查看指定渠道最近消息的工具名。
+	FetchChannelMessagesToolName = "fetch_channel_messages"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -1170,6 +1172,50 @@ func BuildListMagiChannelsToolDef() ToolDef {
 			Parameters: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildFetchChannelMessagesToolDef 构建查看指定渠道最近消息的工具定义。
+func BuildFetchChannelMessagesToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        FetchChannelMessagesToolName,
+			Description: "查看指定渠道的最近消息记录。先使用 list_magi_channels 确认可用的 channelId 和 accountId。返回按时间倒序排列的消息列表，支持按用户、方向筛选和游标分页。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"channelId": map[string]interface{}{
+						"type":        "string",
+						"description": "目标渠道 ID，如 wechat",
+					},
+					"accountId": map[string]interface{}{
+						"type":        "string",
+						"description": "目标账号 ID，对应渠道中的登录账户",
+					},
+					"userId": map[string]interface{}{
+						"type":        "string",
+						"description": "可选，按用户 ID 筛选消息",
+					},
+					"limit": map[string]interface{}{
+						"type":        "integer",
+						"description": "返回条数，默认 20，最大 100",
+						"minimum":     1,
+						"maximum":     100,
+					},
+					"before": map[string]interface{}{
+						"type":        "integer",
+						"description": "游标，获取此 Unix 毫秒时间戳之前的消息（用于分页向前翻）",
+					},
+					"direction": map[string]interface{}{
+						"type":        "string",
+						"description": "可选，筛选消息方向：inbound（收到的消息）或 outbound（发送的消息）",
+						"enum":        []string{"inbound", "outbound"},
+					},
+				},
+				"required": []string{"channelId", "accountId"},
 			},
 		},
 	}

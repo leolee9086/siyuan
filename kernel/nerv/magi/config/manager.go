@@ -153,6 +153,9 @@ func buildDefaultCoreSageTools() []ToolDef {
 		BuildModifyNoteBlockToolDef(),
 		BuildRevertNoteBlockToolDef(),
 		BuildFetchWebPageToolDef(),
+		BuildListMagiChannelsToolDef(),
+		BuildListMagiContactsToolDef(),
+		BuildFetchChannelMessagesToolDef(),
 	}
 	if util.IsForgeMode() {
 		tools = append(

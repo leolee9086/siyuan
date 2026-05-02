@@ -297,6 +297,11 @@ func initMagiComponents() error {
 	// 注册外部通道桥接器
 	channel.GlobalBridge().SetHandler(handleChannelInbound)
 
+	// 初始化渠道消息存储
+	if err := channel.InitMessageStore(); err != nil {
+		logging.LogWarnf("MAGI 渠道消息存储初始化失败: %v", err)
+	}
+
 	// 恢复已持久化的微信渠道适配器
 	recoverWechatAdapters()
 

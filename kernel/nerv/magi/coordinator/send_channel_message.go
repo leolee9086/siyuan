@@ -163,7 +163,14 @@ func executeSendChannelMessage(ctx context.Context, args *sendChannelMessageArgs
 		Text:      args.Content,
 	}
 
-	return adapter.SendMessage(ctx, msg)
+	err := adapter.SendMessage(ctx, msg)
+	if err != nil {
+		return err
+	}
+	if ms := channel.GlobalMessageStore(); ms != nil {
+		_ = ms.SaveOutbound(ctx, msg)
+	}
+	return nil
 }
 
 func resolveChannelUserNickname(channelID, accountID, userID string) string {

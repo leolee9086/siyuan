@@ -77,14 +77,14 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if !options.IsSleepMode && !hbInvestigated {
 					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
-						Content: fmt.Sprintf("你不能现在记录工作日志，因为你还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用工作日志工具。", config.NoteKeywordSearchToolName),
+						Content: fmt.Sprintf("错误：你不能现在记录工作日志，因为你**本次唤醒**还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用工作日志工具，认真对待你的工作和生活，不要反复重复失败的尝试。", config.NoteKeywordSearchToolName),
 					})
 					continue
 				}
 				if requireActionTool && !hbActionToolUsed {
 					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
-						Content: "你不能现在记录工作日志，因为你还没有完成任何实质性工作任务。请先使用当前可用工具执行至少一项工作任务（如修改待办、发送消息、写日记、创建文档等），然后再调用工作日志工具。",
+						Content: "错误：你不能现在记录工作日志，因为你**本次唤醒**还没有完成任何实质性工作任务。请先使用当前可用工具执行至少一项工作任务（如修改待办、发送消息、写日记、创建文档等），然后再调用工作日志工具，认真对待你的工作和生活we，不要反复重复失败的尝试。",
 					})
 					continue
 				}
@@ -390,18 +390,18 @@ func checkWannaDowntime(
 	}
 
 	response := &types.SageResponse{
-		Seel:                    sage.GetName(),
-		DisplayName:             sage.GetDisplayName(),
-		UsedToolCall:            true,
-		ToolCallNames:           collectToolCallNames(turnToolCalls),
-		ToolArgumentsByName:     collectToolArgumentsByName(turnToolCalls),
-		WantsDowntime:           true,
-		DowntimeSummary:         strings.TrimSpace(downtimeNote.Summary),
-		DowntimeNote:            downtimeNote,
-		SkipAssistantMemory:     true,
-		DowntimeAssistantDraft:  turnContent,
-		DowntimeReasoningDraft:  reasoningContent,
-		DowntimeToolCall:        cloneWannaDowntimeToolCall(turnToolCalls),
+		Seel:                   sage.GetName(),
+		DisplayName:            sage.GetDisplayName(),
+		UsedToolCall:           true,
+		ToolCallNames:          collectToolCallNames(turnToolCalls),
+		ToolArgumentsByName:    collectToolArgumentsByName(turnToolCalls),
+		WantsDowntime:          true,
+		DowntimeSummary:        strings.TrimSpace(downtimeNote.Summary),
+		DowntimeNote:           downtimeNote,
+		SkipAssistantMemory:    true,
+		DowntimeAssistantDraft: turnContent,
+		DowntimeReasoningDraft: reasoningContent,
+		DowntimeToolCall:       cloneWannaDowntimeToolCall(turnToolCalls),
 	}
 	isRest := false
 	for _, tc := range turnToolCalls {
@@ -584,6 +584,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 	if toolSetHasAllFunctionTools(effectiveTools, config.ListMagiContactsToolName) {
 		contactListExecutor := newListMagiContactsResultExecutor()
 		executors = append(executors, contactListExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.FetchChannelMessagesToolName) {
+		fetchMsgExecutor := newFetchChannelMessagesResultExecutor()
+		executors = append(executors, fetchMsgExecutor.ExecuteToolCall)
 	}
 	if len(executors) == 0 {
 		return nil

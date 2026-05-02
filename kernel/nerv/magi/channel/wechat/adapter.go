@@ -210,6 +210,9 @@ func (a *Adapter) runMonitor(ctx context.Context) {
 				inbound := convertToInbound(a.acctID, &wxMsg)
 				if inbound != nil {
 					_ = channel.GlobalBridge().Push(ctx, inbound)
+					if ms := channel.GlobalMessageStore(); ms != nil {
+						_ = ms.SaveInbound(ctx, inbound)
+					}
 				}
 			}
 		}
