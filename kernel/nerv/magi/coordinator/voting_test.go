@@ -3,7 +3,6 @@ package coordinator
 import (
 	"context"
 	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -132,12 +131,18 @@ func TestProcessVoting_BothApprove(t *testing.T) {
 		t.Error("投票应该通过（3/3批准）")
 	}
 
-	expectedToolChoice := buildRequiredFunctionToolChoice(config.VoteToolName)
-	if len(balthazarClient.lastTools) != 1 || balthazarClient.lastTools[0].Function == nil || balthazarClient.lastTools[0].Function.Name != config.VoteToolName {
-		t.Fatalf("Balthazar 投票未收到强制 vote 工具")
+	hasVote := false
+	for _, t := range balthazarClient.lastTools {
+		if t.Function != nil && strings.TrimSpace(t.Function.Name) == config.VoteToolName {
+			hasVote = true
+			break
+		}
 	}
-	if !reflect.DeepEqual(balthazarClient.lastToolChoice, expectedToolChoice) {
-		t.Fatalf("Balthazar toolChoice 不正确，实际=%#v", balthazarClient.lastToolChoice)
+	if !hasVote {
+		t.Fatalf("Balthazar 投票未收到 vote 工具: %d 个工具", len(balthazarClient.lastTools))
+	}
+	if balthazarClient.lastToolChoice != nil {
+		t.Fatalf("Balthazar 调查阶段 toolChoice 应为 nil，实际=%#v", balthazarClient.lastToolChoice)
 	}
 }
 
@@ -313,7 +318,7 @@ func TestBuildVoteSystemPrompt(t *testing.T) {
 	if !contains(prompt, "批准") || !contains(prompt, "否决") {
 		t.Error("系统提示词应该包含投票选项")
 	}
-	if !contains(prompt, config.VoteToolName) || !contains(prompt, "不要输出普通文本") {
+	if !contains(prompt, config.VoteToolName) || !contains(prompt, "禁止输出普通文本") {
 		t.Error("系统提示词应该要求调用 vote 工具且禁止正文输出")
 	}
 }

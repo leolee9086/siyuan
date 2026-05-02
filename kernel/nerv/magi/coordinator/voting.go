@@ -16,6 +16,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // VoteContext 投票上下文
@@ -46,9 +47,10 @@ type voteDecision struct {
 }
 
 const (
-	voteTimeout = 30 * time.Second // D-005: 投票超时30秒
-	voteApprove = prompts.VoteApprove
-	voteReject  = prompts.VoteReject
+	voteTimeout                = 30 * time.Second // D-005: 投票超时30秒
+	voteApprove                = prompts.VoteApprove
+	voteReject                 = prompts.VoteReject
+	maxVoteInvestigationTurns  = 3                 // 投票前允许的最大调查工具调用次数
 )
 
 // ProcessVoting 处理投票决策
@@ -219,7 +221,6 @@ func getRealVote(
 	proposedAction string,
 	voteCtx VoteContext,
 ) (voteDecision, error) {
-	// 创建超时上下文（D-005: 30秒）
 	timeoutCtx, cancel := context.WithTimeout(ctx, voteTimeout)
 	defer cancel()
 
@@ -228,29 +229,106 @@ func getRealVote(
 		return voteDecision{}, err
 	}
 
-	// 发送同步请求
-	result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(
-		timeoutCtx,
-		messages,
-		[]openai.Tool{buildRuntimeTool(config.BuildVoteToolDef())},
-		buildRequiredFunctionToolChoice(config.VoteToolName),
-	)
-	if err != nil {
-		return voteDecision{}, fmt.Errorf("[%s] LLM请求失败: %w", sage.GetDisplayName(), err)
+	voteTool := []openai.Tool{buildRuntimeTool(config.BuildVoteToolDef())}
+	investigationTools := buildVoteInvestigationTools()
+	toolExecutor := buildVoteInvestigationToolExecutor(sage.GetName())
+
+	for turn := 0; turn <= maxVoteInvestigationTurns; turn++ {
+		var tools []openai.Tool
+		var toolChoice any
+		if turn < maxVoteInvestigationTurns {
+			tools = append([]openai.Tool(nil), voteTool...)
+			tools = append(tools, investigationTools...)
+		} else {
+			tools = voteTool
+			toolChoice = buildRequiredFunctionToolChoice(config.VoteToolName)
+		}
+
+		result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+		if err != nil {
+			return voteDecision{}, fmt.Errorf("[%s] LLM请求失败: %w", sage.GetDisplayName(), err)
+		}
+
+		if len(result.ToolCalls) > 0 && strings.TrimSpace(result.ToolCalls[0].Function.Name) == config.VoteToolName {
+			decision, parseErr := parseVoteDecision(result)
+			if parseErr != nil {
+				return voteDecision{}, fmt.Errorf("[%s] 投票决策解析失败: %w", sage.GetDisplayName(), parseErr)
+			}
+			return decision, nil
+		}
+
+		if turn >= maxVoteInvestigationTurns {
+			return voteDecision{}, fmt.Errorf("[%s] 超出最大调查次数仍未投票", sage.GetDisplayName())
+		}
+
+		for _, tc := range result.ToolCalls {
+			toolRes, handled, execErr := toolExecutor(tc)
+			if !handled {
+				continue
+			}
+			messages = append(messages, types.ContextMessage{
+				Role:      types.RoleAssistant,
+				ToolCalls: []types.ToolCall{tc},
+			})
+			resContent := toolRes
+			if execErr != nil {
+				logging.LogWarnf("[%s] 投票调查工具 [%s] 执行出错: %v", sage.GetDisplayName(), tc.Function.Name, execErr)
+				resContent = fmt.Sprintf(`{"ok":false,"error":"%s"}`, execErr.Error())
+			}
+			messages = append(messages, types.ContextMessage{
+				Role:    types.RoleTool,
+				Content: resContent,
+				ToolID:  tc.ID,
+			})
+		}
 	}
 
-	// 解析决策
-	decision, parseErr := parseVoteDecision(result)
-	if parseErr != nil {
-		return voteDecision{}, fmt.Errorf("[%s] 投票决策解析失败: %w | 原始响应: %s", sage.GetDisplayName(), parseErr, describeSyncChatResult(result))
-	}
+	return voteDecision{}, fmt.Errorf("[%s] 投票未完成", sage.GetDisplayName())
+}
 
-	return decision, nil
+func buildVoteInvestigationTools() []openai.Tool {
+	tools := []openai.Tool{
+		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
+		buildRuntimeTool(config.BuildNoteByIDReadToolDef()),
+		buildRuntimeTool(config.BuildRecallCrossSessionMemoriesToolDef()),
+		buildRuntimeTool(config.BuildListMagiChannelsToolDef()),
+		buildRuntimeTool(config.BuildListMagiContactsToolDef()),
+	}
+	if util.IsForgeMode() {
+		tools = append(tools,
+			buildRuntimeTool(config.BuildForgeDevRepoListToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoReadToolDef()),
+			buildRuntimeTool(config.BuildForgeDevRepoSearchToolDef()),
+		)
+	}
+	return tools
+}
+
+func buildVoteInvestigationToolExecutor(sageName string) ToolCallResultExecutor {
+	var executors []ToolCallResultExecutor
+	executors = append(executors, newNoteKeywordToolResultExecutor().ExecuteToolCall)
+	executors = append(executors, newNoteByIDReadToolResultExecutor().ExecuteToolCall)
+	executors = append(executors, newCrossSessionMemoryToolExecutor(sageName).ExecuteToolCall)
+	executors = append(executors, newListMagiChannelsResultExecutor().ExecuteToolCall)
+	executors = append(executors, newListMagiContactsResultExecutor().ExecuteToolCall)
+	if util.IsForgeMode() {
+		forgeExecutor := newForgeDevRepoToolResultExecutor()
+		executors = append(executors, forgeExecutor.ExecuteToolCall)
+	}
+	return func(toolCall types.ToolCall) (string, bool, error) {
+		for _, e := range executors {
+			result, handled, err := e(toolCall)
+			if handled {
+				return result, true, err
+			}
+		}
+		return "", false, nil
+	}
 }
 
 // buildVoteSystemPrompt 创建评审系统提示词
 func buildVoteSystemPrompt(displayName string) string {
-	return prompts.BuildVoteSystemPrompt(displayName, config.VoteToolName)
+	return prompts.BuildVoteSystemPrompt(displayName, config.VoteToolName, maxVoteInvestigationTurns)
 }
 
 func buildVoteRequestMessages(
