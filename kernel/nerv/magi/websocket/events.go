@@ -321,8 +321,8 @@ func PushRuntimeStatusUpdated(sessionId string, status types.RuntimeStatus) erro
 		"currentTask":       status.CurrentTask,
 		"lastHeartbeatAt":   status.LastHeartbeatAt,
 		"lastWakeAt":        status.LastWakeAt,
-		"lastSleepAt":       status.LastSleepAt,
-		"lastSleepSummary":  status.LastSleepSummary,
+		"lastSleepAt":       status.LastDowntimeAt,
+		"lastSleepSummary":  status.LastDowntimeSummary,
 		"updatedAt":         status.UpdatedAt,
 	}
 	return globalPusher.Push(sessionId, EventRuntimeStatusUpdated, data)

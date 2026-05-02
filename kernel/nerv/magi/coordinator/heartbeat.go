@@ -16,9 +16,9 @@ import (
 
 type HeartbeatDecisionResult struct {
 	RoundID        string
-	Sleeping       bool
-	Sleeper        string
-	SleepSummary   string
+	Downtime       bool
+	DowntimeSage   string
+	DowntimeSummary string
 	DominantSeel   string
 	DominantStance string
 	Responses      []types.SageResponse
@@ -102,20 +102,20 @@ func (c *Coordinator) CoordinateHeartbeat(
 	}
 
 	sleepSummary := ""
-	sleeper := collection.Sleeper
+	sleeper := collection.DowntimeSage
 	dominantSeel := ""
 	dominantStance := ""
-	if collection.Sleeping {
+	if collection.AllDowntime {
 		var dominantResult *DominantElectionResult
-		sleepSummary, dominantResult, err = c.finalizeHeartbeatSleepRound(
-			ctx,
-			sessionID,
-			roundID,
-			melchior,
-			balthazar,
-			casper,
-			collection.Responses,
-		)
+		if sleepMode {
+			sleepSummary, dominantResult, err = c.finalizeHeartbeatSleepRound(
+				ctx, sessionID, roundID, melchior, balthazar, casper, collection.Responses,
+			)
+		} else {
+			sleepSummary, dominantResult, err = c.finalizeHeartbeatRestRound(
+				ctx, sessionID, roundID, melchior, balthazar, casper, collection.Responses,
+			)
+		}
 		if err != nil {
 			if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
 				logging.LogWarnf("推送心跳轮次失败事件失败: %v", pushErr)
@@ -133,9 +133,9 @@ func (c *Coordinator) CoordinateHeartbeat(
 
 	return &HeartbeatDecisionResult{
 		RoundID:        roundID,
-		Sleeping:       collection.Sleeping,
-		Sleeper:        sleeper,
-		SleepSummary:   sleepSummary,
+		Downtime:       collection.AllDowntime,
+		DowntimeSage:   sleeper,
+		DowntimeSummary: sleepSummary,
 		DominantSeel:   dominantSeel,
 		DominantStance: dominantStance,
 		Responses:      collection.Responses,
@@ -167,9 +167,9 @@ func buildHeartbeatRuntimeToolsBySage(sleepMode bool, dominantSage *sages.Sage) 
 	}
 
 	return map[string][]openai.Tool{
-		"melchior":  buildTools(buildRuntimeTool(config.BuildWannaSleepPlanToolDef()), "melchior"),
-		"balthazar": buildTools(buildRuntimeTool(config.BuildWannaSleepDreamToolDef()), "balthazar"),
-		"casper":    buildTools(buildRuntimeTool(config.BuildWannaSleepRecordToolDef()), "casper"),
+		"melchior":  buildTools(buildRuntimeTool(config.BuildWannaRestPlanToolDef()), "melchior"),
+		"balthazar": buildTools(buildRuntimeTool(config.BuildWannaRestDreamToolDef()), "balthazar"),
+		"casper":    buildTools(buildRuntimeTool(config.BuildWannaRestRecordToolDef()), "casper"),
 	}
 }
 
@@ -218,8 +218,8 @@ func buildHeartbeatRuntimeToolChoiceBySage(sleepMode bool) map[string]any {
 		}
 	}
 	return map[string]any{
-		"melchior":  "auto",
-		"balthazar": "auto",
-		"casper":    "auto",
+		"melchior":  "required",
+		"balthazar": "required",
+		"casper":    "required",
 	}
 }

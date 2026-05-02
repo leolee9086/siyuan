@@ -59,7 +59,7 @@ func newMagiRuntimeManager(interval time.Duration) *magiRuntimeManager {
 	now := time.Now().UnixMilli()
 	return &magiRuntimeManager{
 		status: types.RuntimeStatus{
-			State:     types.RuntimeStateSleeping,
+			State:     types.RuntimeStateDowntime,
 			Awake:     false,
 			Reason:    "startup",
 			UpdatedAt: now,
@@ -271,16 +271,13 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		m.status.State = types.RuntimeStateHeartbeat
 		m.status.Awake = true
 		m.status.Reason = "heartbeat-failed"
-	case result != nil && result.Sleeping:
-		m.status.State = types.RuntimeStateSleeping
-		m.status.Awake = false
-		m.status.WakeSource = ""
-		m.status.LastSleepAt = nowMillis
-		m.status.LastSleepSummary = strings.TrimSpace(result.SleepSummary)
+	case result != nil && result.Downtime:
+
+		m.status.LastDowntimeSummary = strings.TrimSpace(result.DowntimeSummary)
 		m.lastRoundHasUser = false
 		m.lastRoundUser = ""
 		m.lastRoundReply = ""
-		m.lastRoundSleep = strings.TrimSpace(result.SleepSummary)
+		m.lastRoundSleep = strings.TrimSpace(result.DowntimeSummary)
 		m.status.Reason = "wanna-sleep"
 		m.sleepCycleCount++
 	default:
@@ -401,13 +398,13 @@ func (m *magiRuntimeManager) FinishForeground(err error) {
 	nowMillis := time.Now().UnixMilli()
 
 	m.mu.Lock()
-	m.status.State = types.RuntimeStateSleeping
+	m.status.State = types.RuntimeStateDowntime
 	m.status.Awake = false
 	m.status.WakeSource = ""
 	m.status.CurrentTask = ""
 	m.status.CurrentRoundID = ""
 	clearDominantRuntimeStatus(&m.status)
-	m.status.LastSleepAt = nowMillis
+	m.status.LastDowntimeAt = nowMillis
 	m.status.UpdatedAt = nowMillis
 	switch {
 	case err != nil && errors.Is(err, context.Canceled):
@@ -487,15 +484,15 @@ func (m *magiRuntimeManager) buildHeartbeatPassiveRecallBasisLocked() *types.Pas
 
 	sleepSummary := strings.TrimSpace(m.lastRoundSleep)
 	if sleepSummary == "" {
-		sleepSummary = strings.TrimSpace(m.status.LastSleepSummary)
+		sleepSummary = strings.TrimSpace(m.status.LastDowntimeSummary)
 	}
 	if sleepSummary == "" {
 		return nil
 	}
 	return &types.PassiveRecallBasis{
-		Type:         types.PassiveRecallBasisPreviousSleep,
+		Type:         types.PassiveRecallBasisPreviousDowntime,
 		Query:        sleepSummary,
-		SleepSummary: sleepSummary,
+		DowntimeSummary: sleepSummary,
 	}
 }
 

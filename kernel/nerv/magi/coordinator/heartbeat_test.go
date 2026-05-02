@@ -35,17 +35,17 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 	}
 	persistMergedWannaSleepMemoryToNotebook = func(
 		sessionID, roundID string,
-		melchiorNote, balthazarNote, casperNote *types.WannaSleepTool,
+		melchiorNote, balthazarNote, casperNote *types.HeartbeatDowntimeTool,
 		trinitySummary string,
 		finalNote string,
 		sleepAt time.Time,
-	) (*wannaSleepMemoryLocation, error) {
+	) (*downtimeMemoryLocation, error) {
 		persisted.sessionID = sessionID
 		persisted.roundID = roundID
 		persisted.finalNote = finalNote
 		persisted.trinitySummary = trinitySummary
 		persisted.sleepAt = sleepAt
-		return &wannaSleepMemoryLocation{BlockID: "merged-sleep-memory"}, nil
+		return &downtimeMemoryLocation{BlockID: "merged-sleep-memory"}, nil
 	}
 
 	coordinator := NewCoordinator(5 * time.Second)
@@ -109,27 +109,28 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		"heartbeat",
 		nil,
 		nil,
-	)
+		true)
+
 	if err != nil {
 		t.Fatalf("心跳协调不应报错: %v", err)
 	}
-	if result == nil || !result.Sleeping {
+	if result == nil || !result.Downtime {
 		t.Fatal("期望三贤人全部休眠后得到 sleeping 结果")
 	}
 	if persisted.sessionID != "heartbeat-merge-session" {
 		t.Fatalf("期望合并记忆收到 sessionID，实际=%s", persisted.sessionID)
 	}
-	if strings.TrimSpace(persisted.finalNote) != strings.TrimSpace(result.SleepSummary) {
-		t.Fatalf("期望持久化笔记与返回摘要一致\npersisted=%s\nresult=%s", persisted.finalNote, result.SleepSummary)
+	if strings.TrimSpace(persisted.finalNote) != strings.TrimSpace(result.DowntimeSummary) {
+		t.Fatalf("期望持久化笔记与返回摘要一致\npersisted=%s\nresult=%s", persisted.finalNote, result.DowntimeSummary)
 	}
 	if !persisted.sleepAt.Equal(fixedTime) {
 		t.Fatalf("期望 sleepAt 使用固定时间，实际=%s", persisted.sleepAt.Format(time.RFC3339))
 	}
-	if !strings.Contains(result.SleepSummary, "当前的记录") ||
-		!strings.Contains(result.SleepSummary, "下一步的计划") ||
-		!strings.Contains(result.SleepSummary, "画面式的描述") ||
-		!strings.Contains(result.SleepSummary, "补充整理描述") {
-		t.Fatalf("期望最终睡前笔记包含四个部分，实际=%s", result.SleepSummary)
+	if !strings.Contains(result.DowntimeSummary, "当前的记录") ||
+		!strings.Contains(result.DowntimeSummary, "下一步的计划") ||
+		!strings.Contains(result.DowntimeSummary, "画面式的描述") ||
+		!strings.Contains(result.DowntimeSummary, "补充整理描述") {
+		t.Fatalf("期望最终睡前笔记包含四个部分，实际=%s", result.DowntimeSummary)
 	}
 
 	for _, sage := range []*struct {
@@ -153,7 +154,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 			if err := json.Unmarshal([]byte(msg.Content), &payload); err != nil {
 				continue
 			}
-			if payload.State == "sleeping" && strings.TrimSpace(payload.Summary) == strings.TrimSpace(result.SleepSummary) {
+			if payload.State == "sleeping" && strings.TrimSpace(payload.Summary) == strings.TrimSpace(result.DowntimeSummary) {
 				found = true
 				if payload.Sections["nextStepPlan"] == "" || payload.Sections["dreamScene"] == "" || payload.Sections["supplementalSummary"] == "" {
 					t.Fatalf("%s 的合并睡前笔记缺少结构化分段: %+v", sage.name, payload.Sections)
@@ -222,7 +223,7 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 	if result == nil {
 		t.Fatal("期望返回心跳结果")
 	}
-	if result.Sleeping {
+	if result.Downtime {
 		t.Fatal("只要有任一贤者未通过 wanna_sleep 结束，就不应进入 sleeping")
 	}
 }

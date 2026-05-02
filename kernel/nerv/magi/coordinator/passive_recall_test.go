@@ -93,13 +93,13 @@ func TestBuildPassiveRecallPayloadForSage_CasperMatchesSleepAnchors(t *testing.T
 	}
 
 	payload := buildPassiveRecallPayloadForSage("casper", &types.PassiveRecallBasis{
-		Type:  types.PassiveRecallBasisPreviousSleep,
+		Type:  types.PassiveRecallBasisPreviousDowntime,
 		Query: "alpha bedtime recall",
 	})
 	if payload == nil || payload.Empty {
 		t.Fatalf("期望命中睡前笔记锚点，实际=%+v", payload)
 	}
-	if payload.Scope != "casper-sleep-notes" {
+	if payload.Scope != "casper-downtime-notes" {
 		t.Fatalf("期望 casper 范围，实际=%s", payload.Scope)
 	}
 	if !strings.Contains(payload.RelatedTo, "上一轮睡前笔记") || !strings.Contains(payload.RelatedTo, "alpha bedtime recall") {
@@ -264,7 +264,7 @@ func TestBuildSourceAwareUserInputBySage_InjectsPassiveRecallEnvelopePerScope(t 
 	for sageName, scopeName := range map[string]string{
 		"melchior":  "melchior-accessible-notes",
 		"balthazar": "balthazar-active-records",
-		"casper":    "casper-sleep-notes",
+		"casper":    "casper-downtime-notes",
 	} {
 		input := inputs[sageName]
 		if !strings.Contains(input, "<passive_memory_recall>") {
@@ -346,9 +346,9 @@ func TestBuildSourceAwareUserInputBySage_PreservesHeartbeatPromptAlongsidePassiv
 		sourceCtx,
 		[]types.ClaimedHistoryMessage{{Role: "user", Content: heartbeatPrompt}},
 		&types.PassiveRecallBasis{
-			Type:         types.PassiveRecallBasisPreviousSleep,
+			Type:         types.PassiveRecallBasisPreviousDowntime,
 			Query:        "台灯 线索 待办",
-			SleepSummary: "台灯 线索 待办",
+			DowntimeSummary: "台灯 线索 待办",
 		},
 	)
 

@@ -275,7 +275,7 @@ func maybeMaterializeAckToolResult(
 	call types.ToolCall,
 	toolResult string,
 ) string {
-	if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
+	if !config.IsWannaSleepOrRestToolName(strings.TrimSpace(call.Function.Name)) {
 		return toolResult
 	}
 	return materializeToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, call, toolResult)

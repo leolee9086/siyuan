@@ -1,4 +1,4 @@
-// Package config 定义MAGI配置相关类型
+﻿// Package config 定义MAGI配置相关类型
 package config
 
 import (

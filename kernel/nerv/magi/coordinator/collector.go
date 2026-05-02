@@ -32,10 +32,10 @@ type CollectResponsesOptions struct {
 }
 
 type HeartbeatCollectionResult struct {
-	Responses    []types.SageResponse
-	Sleeping     bool
-	Sleeper      string
-	SleepSummary string
+	Responses      []types.SageResponse
+	AllDowntime    bool
+	DowntimeSage   string
+	DowntimeSummary string
 }
 
 // NewResponseCollector 创建响应收集器
@@ -221,9 +221,9 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 	}
 
 	heartbeatResult.Responses = responses
-	heartbeatResult.Sleeping = successCount == 3 && countSleepingResponses(responses) == 3
-	if heartbeatResult.Sleeping {
-		heartbeatResult.Sleeper = "all"
+	heartbeatResult.AllDowntime = successCount == 3 && countDowntimeResponses(responses) == 3
+	if heartbeatResult.AllDowntime {
+		heartbeatResult.DowntimeSage = "all"
 		return heartbeatResult, nil
 	}
 

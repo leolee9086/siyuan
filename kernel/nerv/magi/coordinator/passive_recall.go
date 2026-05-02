@@ -114,7 +114,7 @@ func clonePassiveRecallBasis(basis *types.PassiveRecallBasis) *types.PassiveReca
 	cloned.Query = strings.TrimSpace(cloned.Query)
 	cloned.UserMessage = strings.TrimSpace(cloned.UserMessage)
 	cloned.AssistantReply = strings.TrimSpace(cloned.AssistantReply)
-	cloned.SleepSummary = strings.TrimSpace(cloned.SleepSummary)
+	cloned.DowntimeSummary = strings.TrimSpace(cloned.DowntimeSummary)
 	return &cloned
 }
 
@@ -141,9 +141,9 @@ func buildPassiveRecallRelatedTo(basis *types.PassiveRecallBasis) string {
 			return "上一轮用户消息与 AI 回复"
 		}
 		return "上一轮用户消息与 AI 回复：" + summary
-	case types.PassiveRecallBasisPreviousSleep:
+	case types.PassiveRecallBasisPreviousDowntime:
 		if summary == "" {
-			summary = truncatePassiveRecallRelatedText(basis.SleepSummary, 120)
+			summary = truncatePassiveRecallRelatedText(basis.DowntimeSummary, 120)
 		}
 		if summary == "" {
 			return "上一轮睡前笔记"
@@ -176,7 +176,7 @@ func passiveRecallScopeName(sageName string) string {
 	case "balthazar":
 		return "balthazar-active-records"
 	case "casper":
-		return "casper-sleep-notes"
+		return "casper-downtime-notes"
 	default:
 		return "unknown"
 	}
@@ -193,7 +193,7 @@ func buildPassiveRecallHintsForScope(
 	case "balthazar":
 		return buildTaggedBlockPassiveRecallHints(blocks, queryTokens, matchActiveRecordRecallBlock)
 	case "casper":
-		return buildTaggedBlockPassiveRecallHints(blocks, queryTokens, matchSleepRecallBlock)
+		return buildTaggedBlockPassiveRecallHints(blocks, queryTokens, matchDowntimeRecallBlock)
 	default:
 		return []passiveRecallHint{}, nil, false, nil
 	}
@@ -459,19 +459,23 @@ func resolveTaggedAncestorForPassiveRecall(
 	return "", "", ""
 }
 
-func matchSleepRecallBlock(attrs map[string]string) (string, bool) {
+func matchDowntimeRecallBlock(attrs map[string]string) (string, bool) {
 	if len(attrs) == 0 {
 		return "", false
 	}
 	kind := strings.TrimSpace(attrs[magiMemoryKindAttr])
 	toolName := strings.TrimSpace(attrs[magiToolNameAttr])
-	if kind == config.WannaSleepMergedRecordName || toolName == config.WannaSleepMergedRecordName {
+	if kind == config.WannaSleepMergedRecordName || kind == config.WannaRestMergedRecordName ||
+		toolName == config.WannaSleepMergedRecordName || toolName == config.WannaRestMergedRecordName {
 		return "sleep-note", true
 	}
-	if config.IsWannaSleepToolName(kind) || config.IsWannaSleepToolName(toolName) {
+	if config.IsWannaSleepOrRestToolName(kind) || config.IsWannaSleepOrRestToolName(toolName) {
 		return "sleep-note", true
 	}
 	if strings.TrimSpace(attrs[magiSleepAtAttr]) != "" && strings.TrimSpace(attrs[magiMemoryBlockAttr]) == "true" {
+		return "sleep-note", true
+	}
+	if strings.TrimSpace(attrs[magiRestAtAttr]) != "" && strings.TrimSpace(attrs[magiMemoryBlockAttr]) == "true" {
 		return "sleep-note", true
 	}
 	return "", false

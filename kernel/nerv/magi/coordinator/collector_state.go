@@ -227,6 +227,8 @@ func buildCoreSageToolAck(toolName string) string {
 	switch strings.TrimSpace(toolName) {
 	case config.WannaSleepRecordToolName, config.WannaSleepPlanToolName, config.WannaSleepDreamToolName:
 		return `{"ok":true,"state":"sleeping"}`
+	case config.WannaRestRecordToolName, config.WannaRestPlanToolName, config.WannaRestDreamToolName:
+		return `{"ok":true,"state":"rested"}`
 	default:
 		return buildWannaSpeakToolAck(toolName)
 	}

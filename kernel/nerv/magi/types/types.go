@@ -82,13 +82,13 @@ type SageResponse struct {
 	ProposedAction       string              `json:"proposedAction,omitempty"`       // 建议的行动提案
 	ToolCallNames        []string            `json:"toolCallNames,omitempty"`        // 工具名称列表
 	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`  // 按工具名聚合参数
-	WantsSleep           bool                `json:"wantsSleep,omitempty"`           // 心跳轮次是否请求休眠
-	SleepSummary         string              `json:"sleepSummary,omitempty"`         // 心跳轮次本次醒来工作摘要
-	SleepNote            *WannaSleepTool     `json:"sleepNote,omitempty"`            // 心跳轮次结构化睡前笔记
-	SkipAssistantMemory  bool                `json:"skipAssistantMemory,omitempty"`  // 工具调用已完整入历史时，跳过额外assistant文本写回
-	SleepAssistantDraft   string              `json:"-"` // wanna_sleep 轮次暂存的 assistant 内容
-	SleepReasoningDraft   string              `json:"-"` // wanna_sleep 轮次暂存的 reasoning 内容
-	SleepToolCall         *ToolCall           `json:"-"` // wanna_sleep 轮次暂存的工具调用
+	WantsDowntime         bool                `json:"wantsSleep,omitempty"`           // 心跳轮次是否请求休眠/工作日志记录
+	DowntimeSummary       string              `json:"sleepSummary,omitempty"`         // 心跳轮次本次醒来工作摘要
+	DowntimeNote          *HeartbeatDowntimeTool `json:"sleepNote,omitempty"`            // 心跳轮次结构化休息/工作笔记
+	SkipAssistantMemory   bool                `json:"skipAssistantMemory,omitempty"`  // 工具调用已完整入历史时，跳过额外assistant文本写回
+	DowntimeAssistantDraft string              `json:"-"` // wanna_sleep/wanna_rest 轮次暂存的 assistant 内容
+	DowntimeReasoningDraft string              `json:"-"` // wanna_sleep/wanna_rest 轮次暂存的 reasoning 内容
+	DowntimeToolCall       *ToolCall           `json:"-"` // wanna_sleep/wanna_rest 轮次暂存的工具调用
 }
 
 // VoteDecision 投票决定
@@ -202,11 +202,13 @@ type WannaSpeakTool struct {
 	Content string `json:"content"`
 }
 
-// WannaSleepTool 三贤人心跳轮次休眠工具参数
-type WannaSleepTool struct {
+// HeartbeatDowntimeTool 三贤人心跳轮次休眠/工作日志工具参数
+type HeartbeatDowntimeTool struct {
 	Summary      string `json:"summary"`
 	NextStepPlan string `json:"nextStepPlan,omitempty"`
 	DreamScene   string `json:"dreamScene,omitempty"`
+	Reflection   string `json:"reflection,omitempty"` // 睡眠时段 Melchior 回想反思
+	Mood         string `json:"mood,omitempty"`       // 非睡眠时段 Balthazar 工作心情
 }
 
 // WriteDiaryTool 主导者向 AI 主笔记本当日日记写入 callout 容器式条目的工具参数。
@@ -284,7 +286,7 @@ type PassiveRecallBasisType string
 const (
 	PassiveRecallBasisUserMessage      PassiveRecallBasisType = "user_message"
 	PassiveRecallBasisPreviousDialogue PassiveRecallBasisType = "previous_dialogue"
-	PassiveRecallBasisPreviousSleep    PassiveRecallBasisType = "previous_sleep_note"
+	PassiveRecallBasisPreviousDowntime PassiveRecallBasisType = "previous_downtime_note"
 )
 
 // PassiveRecallBasis 描述被动召回本轮使用的查询依据。
@@ -293,14 +295,14 @@ type PassiveRecallBasis struct {
 	Query          string                 `json:"query"`
 	UserMessage    string                 `json:"userMessage,omitempty"`
 	AssistantReply string                 `json:"assistantReply,omitempty"`
-	SleepSummary   string                 `json:"sleepSummary,omitempty"`
+	DowntimeSummary string                 `json:"sleepSummary,omitempty"`
 }
 
 // RuntimeState MAGI 运行态
 type RuntimeState string
 
 const (
-	RuntimeStateSleeping  RuntimeState = "sleeping"
+	RuntimeStateDowntime  RuntimeState = "sleeping"
 	RuntimeStateHeartbeat RuntimeState = "heartbeat"
 	RuntimeStateExternal  RuntimeState = "external"
 )
@@ -318,7 +320,7 @@ type RuntimeStatus struct {
 	CurrentTask       string       `json:"currentTask,omitempty"`
 	LastHeartbeatAt   int64        `json:"lastHeartbeatAt,omitempty"`
 	LastWakeAt        int64        `json:"lastWakeAt,omitempty"`
-	LastSleepAt       int64        `json:"lastSleepAt,omitempty"`
-	LastSleepSummary  string       `json:"lastSleepSummary,omitempty"`
+	LastDowntimeAt     int64        `json:"lastSleepAt,omitempty"`
+	LastDowntimeSummary string       `json:"lastSleepSummary,omitempty"`
 	UpdatedAt         int64        `json:"updatedAt"`
 }

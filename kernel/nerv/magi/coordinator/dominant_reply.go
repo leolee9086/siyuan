@@ -66,6 +66,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, fmt.Errorf("主导者直答失败: %w", collectErr)
 		}
 		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
+		c.notifyDominantSelected(roundID, election)
 		compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 		return msg, election, nil
 	}

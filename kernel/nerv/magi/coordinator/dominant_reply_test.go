@@ -780,6 +780,7 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectThenApproveKeepsDominance(
 		streamTurns: []mockTurn{
 			buildDiaryToolTurn("# 第一次申请 ((id1 'a'))、((id2 'b'))", "NOTE", "行动记录"),
 			buildDiaryToolTurn("# 第二次申请 ((id4 'd'))、((id5 'e')) 和 ((id6 'f'))", "NOTE", "行动记录"),
+			buildDiaryToolTurn("# 第三次申请（修正版）((id4 'd'))、((id5 'e')) 和 ((id6 'f'))", "NOTE", "行动记录"),
 			completedSpeakTurn("主导者在获批后完成回复"),
 		},
 	}

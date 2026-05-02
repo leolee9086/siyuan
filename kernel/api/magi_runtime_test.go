@@ -26,19 +26,19 @@ func TestMagiRuntimeManagerFinishHeartbeat_SleepsOnlyAfterMergedSleep(t *testing
 
 	manager.finishHeartbeat(run, &coordinator.HeartbeatDecisionResult{
 		RoundID:      "heartbeat-round-1",
-		Sleeping:     true,
-		SleepSummary: "合并后的睡前笔记",
+		Downtime:     true,
+		DowntimeSummary: "合并后的睡前笔记",
 	}, nil)
 
 	status := manager.GetStatus()
-	if status.State != types.RuntimeStateSleeping || status.Awake {
+	if status.State != types.RuntimeStateDowntime || status.Awake {
 		t.Fatalf("期望全员休眠后 runtime 进入 sleeping，实际=%+v", status)
 	}
 	if status.Reason != "wanna-sleep" {
 		t.Fatalf("期望 reason=wanna-sleep，实际=%s", status.Reason)
 	}
-	if status.LastSleepSummary != "合并后的睡前笔记" {
-		t.Fatalf("期望保留合并后的睡前笔记，实际=%s", status.LastSleepSummary)
+	if status.LastDowntimeSummary != "合并后的睡前笔记" {
+		t.Fatalf("期望保留合并后的睡前笔记，实际=%s", status.LastDowntimeSummary)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestMagiRuntimeManagerFinishHeartbeat_KeepsAwakeWhenHeartbeatIncomplete(t *
 
 	manager.finishHeartbeat(run, &coordinator.HeartbeatDecisionResult{
 		RoundID:  "heartbeat-round-2",
-		Sleeping: false,
+		Downtime: false,
 	}, nil)
 
 	status := manager.GetStatus()
@@ -166,7 +166,7 @@ func TestMagiRuntimeManagerNotifyDominantSelected_UpdatesDominantImmediately(t *
 func TestMagiRuntimeManagerBeginForeground_ClearsStaleDominant(t *testing.T) {
 	manager := newMagiRuntimeManager(time.Minute)
 	manager.status = types.RuntimeStatus{
-		State:             types.RuntimeStateSleeping,
+		State:             types.RuntimeStateDowntime,
 		Awake:             false,
 		DominantSeel:      "melchior",
 		DominantStance:    "科学家",
@@ -194,7 +194,7 @@ func TestMagiRuntimeManagerFinishForeground_ClearsLatestDominant(t *testing.T) {
 	manager.FinishForeground(nil)
 
 	status := manager.GetStatus()
-	if status.State != types.RuntimeStateSleeping || status.Awake {
+	if status.State != types.RuntimeStateDowntime || status.Awake {
 		t.Fatalf("期望请求完成后进入 sleeping，实际=%+v", status)
 	}
 	if status.DominantSeel != "" || status.DominantStance != "" || status.DominantUpdatedAt != 0 {
@@ -204,7 +204,7 @@ func TestMagiRuntimeManagerFinishForeground_ClearsLatestDominant(t *testing.T) {
 
 func TestMagiRuntimeManagerBuildHeartbeatPassiveRecallBasis_PrefersPreviousDialogue(t *testing.T) {
 	manager := newMagiRuntimeManager(time.Minute)
-	manager.status.LastSleepSummary = "上一轮睡前笔记"
+	manager.status.LastDowntimeSummary = "上一轮睡前笔记"
 	manager.RememberForegroundTurn("用户提到 alpha beta", "AI 回复 recall plan")
 
 	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
@@ -227,16 +227,16 @@ func TestMagiRuntimeManagerBuildHeartbeatPassiveRecallBasis_PrefersPreviousDialo
 
 func TestMagiRuntimeManagerBuildHeartbeatPassiveRecallBasis_FallsBackToPreviousSleep(t *testing.T) {
 	manager := newMagiRuntimeManager(time.Minute)
-	manager.status.LastSleepSummary = "上一轮睡前笔记 alpha beta"
+	manager.status.LastDowntimeSummary = "上一轮睡前笔记 alpha beta"
 
 	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
 	if basis == nil {
 		t.Fatal("期望从睡前笔记生成召回依据")
 	}
-	if basis.Type != types.PassiveRecallBasisPreviousSleep {
+	if basis.Type != types.PassiveRecallBasisPreviousDowntime {
 		t.Fatalf("期望 previous_sleep_note，实际=%s", basis.Type)
 	}
-	if basis.Query != "上一轮睡前笔记 alpha beta" || basis.SleepSummary != "上一轮睡前笔记 alpha beta" {
+	if basis.Query != "上一轮睡前笔记 alpha beta" || basis.DowntimeSummary != "上一轮睡前笔记 alpha beta" {
 		t.Fatalf("期望 query 与 sleepSummary 使用上一轮睡前笔记，实际=%+v", basis)
 	}
 }
@@ -255,15 +255,15 @@ func TestMagiRuntimeManagerFinishHeartbeat_SleepingRoundClearsPreviousDialogueBa
 
 	manager.finishHeartbeat(run, &coordinator.HeartbeatDecisionResult{
 		RoundID:      "heartbeat-round-3",
-		Sleeping:     true,
-		SleepSummary: "新的睡前笔记",
+		Downtime:     true,
+		DowntimeSummary: "新的睡前笔记",
 	}, nil)
 
 	basis := manager.buildHeartbeatPassiveRecallBasisLocked()
 	if basis == nil {
 		t.Fatal("期望休眠完成后仍能生成召回依据")
 	}
-	if basis.Type != types.PassiveRecallBasisPreviousSleep {
+	if basis.Type != types.PassiveRecallBasisPreviousDowntime {
 		t.Fatalf("期望休眠完成后切换为 previous_sleep_note，实际=%s", basis.Type)
 	}
 	if basis.Query != "新的睡前笔记" {

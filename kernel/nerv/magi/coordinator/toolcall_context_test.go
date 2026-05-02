@@ -260,10 +260,10 @@ func TestAppendTurnToolCallsToContextWithExecutor_KeepsDetailedQueryResultForMel
 }
 
 func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnnotatesToolResult(t *testing.T) {
-	originalPersistFn := persistWannaSleepMemoryToNotebook
+	originalPersistFn := persistWannaDowntimeMemoryToNotebook
 	originalNowFn := toolResultMemoryNow
 	defer func() {
-		persistWannaSleepMemoryToNotebook = originalPersistFn
+		persistWannaDowntimeMemoryToNotebook = originalPersistFn
 		toolResultMemoryNow = originalNowFn
 	}()
 
@@ -280,7 +280,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnn
 		summary   string
 		sleepAt   time.Time
 	}
-	persistWannaSleepMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*wannaSleepMemoryLocation, error) {
+	persistWannaDowntimeMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*downtimeMemoryLocation, error) {
 		persisted.sessionID = sessionID
 		persisted.roundID = roundID
 		persisted.summary = summary
@@ -289,7 +289,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnn
 		if sage != nil {
 			persisted.sageName = sage.GetName()
 		}
-		return &wannaSleepMemoryLocation{BlockID: "memory-block-1"}, nil
+		return &downtimeMemoryLocation{BlockID: "memory-block-1"}, nil
 	}
 
 	sage := createMockSage("casper", "Casper", "测试", false, 0)
@@ -356,10 +356,10 @@ func TestAppendTurnToolCallsToContextWithExecutor_PersistsWannaSleepMemoryAndAnn
 }
 
 func TestAppendTurnToolCallsToContextWithExecutor_WannaSleepPersistenceFailureStillWritesToolResult(t *testing.T) {
-	originalPersistFn := persistWannaSleepMemoryToNotebook
+	originalPersistFn := persistWannaDowntimeMemoryToNotebook
 	originalNowFn := toolResultMemoryNow
 	defer func() {
-		persistWannaSleepMemoryToNotebook = originalPersistFn
+		persistWannaDowntimeMemoryToNotebook = originalPersistFn
 		toolResultMemoryNow = originalNowFn
 	}()
 
@@ -367,7 +367,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_WannaSleepPersistenceFailureSt
 	toolResultMemoryNow = func() time.Time {
 		return fixedTime
 	}
-	persistWannaSleepMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*wannaSleepMemoryLocation, error) {
+	persistWannaDowntimeMemoryToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, summary string, sleepAt time.Time) (*downtimeMemoryLocation, error) {
 		return nil, fmt.Errorf("write failed")
 	}
 

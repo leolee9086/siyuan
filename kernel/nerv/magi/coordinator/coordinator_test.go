@@ -107,6 +107,11 @@ func (m *mockAvatarPipelineClient) SendChatRequestSync(
 	tools []openai.Tool,
 	toolChoice any,
 ) (string, error) {
+	for _, tool := range tools {
+		if tool.Function != nil && strings.TrimSpace(tool.Function.Name) == config.VoteToolName {
+			return `{"decision":"批准","reason":"结合当前上下文判断可通过"}`, nil
+		}
+	}
 	if strings.TrimSpace(m.syncResponse) != "" {
 		return m.syncResponse, nil
 	}

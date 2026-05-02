@@ -629,11 +629,11 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("心跳收集不应报错: %v", err)
 	}
-	if result == nil || !result.Sleeping {
+	if result == nil || !result.AllDowntime {
 		t.Fatal("期望三贤人全部 wanna_sleep 后心跳轮次进入休眠")
 	}
-	if result.Sleeper != "all" {
-		t.Fatalf("期望所有贤者完成休眠，实际=%s", result.Sleeper)
+	if result.DowntimeSage != "all" {
+		t.Fatalf("期望所有贤者完成休眠，实际=%s", result.DowntimeSage)
 	}
 	if len(result.Responses) != 3 {
 		t.Fatalf("期望收集到3个休眠响应，实际=%d", len(result.Responses))
@@ -643,13 +643,13 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 	for _, resp := range result.Responses {
 		respBySeel[resp.Seel] = resp
 	}
-	if respBySeel["melchior"].SleepNote == nil || respBySeel["melchior"].SleepNote.NextStepPlan == "" {
+	if 	respBySeel["melchior"].DowntimeNote == nil || 	respBySeel["melchior"].DowntimeNote.NextStepPlan == "" {
 		t.Fatal("期望 Melchior 的睡前笔记携带下一步计划")
 	}
-	if respBySeel["balthazar"].SleepNote == nil || respBySeel["balthazar"].SleepNote.DreamScene == "" {
+	if respBySeel["balthazar"].DowntimeNote == nil || respBySeel["balthazar"].DowntimeNote.DreamScene == "" {
 		t.Fatal("期望 Balthazar 的睡前笔记携带梦境画面描述")
 	}
-	if respBySeel["casper"].SleepNote == nil || !strings.Contains(respBySeel["casper"].SleepNote.Summary, "细节") {
+	if respBySeel["casper"].DowntimeNote == nil || !strings.Contains(respBySeel["casper"].DowntimeNote.Summary, "细节") {
 		t.Fatal("期望 Casper 的睡前笔记保留当前记录")
 	}
 }
@@ -701,7 +701,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 	if result == nil {
 		t.Fatal("期望返回心跳结果")
 	}
-	if result.Sleeping {
+	if result.AllDowntime {
 		t.Fatal("只要有一位没有通过 wanna_sleep 结束，本轮就不应进入 sleeping")
 	}
 }
@@ -734,7 +734,7 @@ func TestParseWannaSleepToolContent_ValidatesToolSpecificFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			note, hasSleep, err := parseWannaSleepToolContent([]types.ToolCall{
+			note, hasSleep, err := parseWannaDowntimeToolContent([]types.ToolCall{
 				{
 					ID:   "sleep-call",
 					Type: "function",

@@ -33,6 +33,7 @@ const (
 	magiSageAttr                 = "custom-magi-sage"
 	magiPurposeAttr              = "custom-magi-purpose"
 	magiSleepAtAttr              = "custom-magi-sleep-at"
+	magiRestAtAttr               = "custom-magi-rest-at"
 )
 
 type queryToolArchiveLocation struct {
@@ -41,14 +42,14 @@ type queryToolArchiveLocation struct {
 	DocHPath string
 }
 
-type wannaSleepMemoryLocation struct {
+type downtimeMemoryLocation struct {
 	BlockID  string
 	DocID    string
 	DocHPath string
 }
 
 var persistQueryToolResultToNotebook = persistDetailedQueryToolResultToNotebook
-var persistWannaSleepMemoryToNotebook = persistWannaSleepMemoryEntryToNotebook
+var persistWannaDowntimeMemoryToNotebook = persistWannaDowntimeMemoryEntryToNotebook
 var toolResultMemoryNow = time.Now
 
 type noteSearchArchiveBlock struct {
@@ -70,8 +71,8 @@ func materializeToolResultForContext(
 	detailedResult string,
 ) string {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
-	if config.IsWannaSleepToolName(toolName) {
-		return materializeWannaSleepToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
+	if config.IsWannaSleepOrRestToolName(toolName) {
+		return materializeWannaDowntimeToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
 	}
 	if toolName == config.WriteDiaryToolName {
 		return materializeDiaryToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
@@ -114,6 +115,16 @@ func materializeToolResultForContext(
 	if err != nil {
 		logging.LogWarnf("归档查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, err)
 	}
+
+	if sage != nil && strings.TrimSpace(sage.GetName()) != "melchior" {
+		summary, sumErr := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
+		if sumErr != nil {
+			logging.LogWarnf("构建查询工具摘要失败 [%s/%s]: %v", toolName, toolCall.ID, sumErr)
+			return detailedResult
+		}
+		return summary
+	}
+
 	_ = archiveLocation
 
 	return detailedResult
@@ -237,22 +248,24 @@ func persistDetailedQueryToolResultToNotebook(
 	}, nil
 }
 
-func materializeWannaSleepToolResultForContext(
+func materializeWannaDowntimeToolResultForContext(
 	sessionID, roundID string,
 	sage *sages.Sage,
 	toolCall types.ToolCall,
 	detailedResult string,
 ) string {
-	sleepAt := toolResultMemoryNow()
+	now := toolResultMemoryNow()
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	isRest := config.IsWannaRestToolName(toolName)
 
-	var args types.WannaSleepTool
+	var args types.HeartbeatDowntimeTool
 	if err := json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args); err != nil {
 		logging.LogWarnf("解析 wanna_sleep 参数失败 [%s]: %v", toolCall.ID, err)
 	}
 	summary := strings.TrimSpace(args.Summary)
 
 	if summary != "" {
-		if _, err := persistWannaSleepMemoryToNotebook(sessionID, roundID, sage, toolCall, summary, sleepAt); err != nil {
+		if _, err := persistWannaDowntimeMemoryToNotebook(sessionID, roundID, sage, toolCall, summary, now); err != nil {
 			logging.LogWarnf("归档 wanna_sleep 记忆失败 [%s/%s]: %v", toolCall.Function.Name, toolCall.ID, err)
 		}
 	}
@@ -265,7 +278,11 @@ func materializeWannaSleepToolResultForContext(
 	}
 	if len(payload) == 0 {
 		payload["ok"] = true
-		payload["state"] = "sleeping"
+		if isRest {
+			payload["state"] = "rested"
+		} else {
+			payload["state"] = "sleeping"
+		}
 	}
 	if summary != "" {
 		payload["summary"] = summary
@@ -276,7 +293,17 @@ func materializeWannaSleepToolResultForContext(
 	if dreamScene := strings.TrimSpace(args.DreamScene); dreamScene != "" {
 		payload["dreamScene"] = dreamScene
 	}
-	payload["sleepAt"] = sleepAt.Format(time.RFC3339)
+	if reflection := strings.TrimSpace(args.Reflection); reflection != "" {
+		payload["reflection"] = reflection
+	}
+	if mood := strings.TrimSpace(args.Mood); mood != "" {
+		payload["mood"] = mood
+	}
+	if isRest {
+		payload["restAt"] = now.Format(time.RFC3339)
+	} else {
+		payload["sleepAt"] = now.Format(time.RFC3339)
+	}
 
 	resultBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -286,13 +313,13 @@ func materializeWannaSleepToolResultForContext(
 	return string(resultBytes)
 }
 
-func persistWannaSleepMemoryEntryToNotebook(
+func persistWannaDowntimeMemoryEntryToNotebook(
 	sessionID, roundID string,
 	sage *sages.Sage,
 	toolCall types.ToolCall,
 	summary string,
 	sleepAt time.Time,
-) (*wannaSleepMemoryLocation, error) {
+) (*downtimeMemoryLocation, error) {
 	accessScope, _ := resolveWorkspaceAIMainNotebookAccessScope()
 	if accessScope == nil || accessScope.ActiveNotebook == nil || strings.TrimSpace(accessScope.ActiveNotebook.ID) == "" {
 		return nil, nil
@@ -306,7 +333,10 @@ func persistWannaSleepMemoryEntryToNotebook(
 		return nil, fmt.Errorf("未能定位 MAGI 记忆文档")
 	}
 
-	markdown := buildSleepNoteCalloutMarkdown(sessionID, roundID, sage, toolCall, summary, sleepAt)
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	isRest := config.IsWannaRestToolName(toolName)
+
+	markdown := buildDowntimeNoteCalloutMarkdown(sessionID, roundID, sage, toolCall, summary, sleepAt)
 	blockID, err := appendMarkdownBlock(docID, markdown)
 	if err != nil {
 		return nil, err
@@ -314,9 +344,13 @@ func persistWannaSleepMemoryEntryToNotebook(
 
 	attrs := map[string]string{
 		magiMemoryBlockAttr: "true",
-		magiMemoryKindAttr:  strings.TrimSpace(toolCall.Function.Name),
-		magiToolNameAttr:    strings.TrimSpace(toolCall.Function.Name),
-		magiSleepAtAttr:     sleepAt.Format(time.RFC3339),
+		magiMemoryKindAttr:  toolName,
+		magiToolNameAttr:    toolName,
+	}
+	if isRest {
+		attrs[magiRestAtAttr] = sleepAt.Format(time.RFC3339)
+	} else {
+		attrs[magiSleepAtAttr] = sleepAt.Format(time.RFC3339)
 	}
 	if strings.TrimSpace(toolCall.ID) != "" {
 		attrs[magiToolCallIDAttr] = strings.TrimSpace(toolCall.ID)
@@ -334,7 +368,7 @@ func persistWannaSleepMemoryEntryToNotebook(
 		return nil, fmt.Errorf("设置 wanna_sleep 记忆块属性失败: %w", err)
 	}
 
-	return &wannaSleepMemoryLocation{
+	return &downtimeMemoryLocation{
 		BlockID:  blockID,
 		DocID:    docID,
 		DocHPath: docHPath,
@@ -419,16 +453,34 @@ func appendMarkdownBlock(parentID string, markdown string) (string, error) {
 	return blockID, nil
 }
 
-func buildSleepNoteCalloutMarkdown(
+func buildDowntimeNoteCalloutMarkdown(
 	sessionID, roundID string,
 	sage *sages.Sage,
 	toolCall types.ToolCall,
 	summary string,
 	sleepAt time.Time,
 ) string {
-	title := "睡前笔记"
-	if sage != nil {
-		title = sage.GetDisplayName() + " 睡前笔记"
+	toolName := strings.TrimSpace(toolCall.Function.Name)
+	isRest := config.IsWannaRestToolName(toolName)
+
+	var calloutType, title string
+	if isRest {
+		title = "工作日志"
+		if sage != nil {
+			title = sage.GetDisplayName() + " 工作日志"
+		}
+		calloutType = "NOTE"
+	} else {
+		title = "睡前笔记"
+		if sage != nil {
+			title = sage.GetDisplayName() + " 睡前笔记"
+		}
+		calloutType = "DREAM"
+	}
+
+	timeLabel := "记录时间"
+	if !isRest {
+		timeLabel = "睡眠时间"
 	}
 
 	fields := []CalloutField{
@@ -438,8 +490,8 @@ func buildSleepNoteCalloutMarkdown(
 		fields = append(fields, CalloutField{Label: "贤者", Value: sage.GetDisplayName()})
 	}
 	fields = append(fields,
-		CalloutField{Label: "工具", Value: strings.TrimSpace(toolCall.Function.Name)},
-		CalloutField{Label: "睡眠时间", Value: sleepAt.Format(time.RFC3339)},
+		CalloutField{Label: "工具", Value: toolName},
+		CalloutField{Label: timeLabel, Value: sleepAt.Format(time.RFC3339)},
 	)
 	if strings.TrimSpace(sessionID) != "" {
 		fields = append(fields, CalloutField{Label: "会话", Value: strings.TrimSpace(sessionID)})
@@ -447,7 +499,10 @@ func buildSleepNoteCalloutMarkdown(
 	if strings.TrimSpace(roundID) != "" {
 		fields = append(fields, CalloutField{Label: "轮次", Value: strings.TrimSpace(roundID)})
 	}
-	return BuildCalloutMarkdown("DREAM", "🌙 "+title, fields...)
+	if isRest {
+		return BuildCalloutMarkdown(calloutType, "📋 "+title, fields...)
+	}
+	return BuildCalloutMarkdown(calloutType, "🌙 "+title, fields...)
 }
 
 func buildQueryArchiveCalloutMarkdown(

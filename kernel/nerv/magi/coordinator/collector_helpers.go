@@ -40,54 +40,64 @@ func parseWannaSpeakToolContent(
 	return content, true, nil
 }
 
-func parseWannaSleepToolContent(toolCalls []types.ToolCall) (note *types.WannaSleepTool, hasSleep bool, err error) {
+func parseWannaDowntimeToolContent(toolCalls []types.ToolCall) (note *types.HeartbeatDowntimeTool, hasDowntime bool, err error) {
 	if len(toolCalls) == 0 {
 		return nil, false, nil
 	}
 
-	var sleepCall *types.ToolCall
+	var downtimeCall *types.ToolCall
 	for _, call := range toolCalls {
-		if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
+		if !config.IsWannaSleepOrRestToolName(strings.TrimSpace(call.Function.Name)) {
 			continue
 		}
-		if sleepCall != nil {
-			return nil, true, fmt.Errorf("睡前记录工具每轮最多调用一次")
+		if downtimeCall != nil {
+			return nil, true, fmt.Errorf("睡前/工作日志工具每轮最多调用一次")
 		}
 		cloned := call
-		sleepCall = &cloned
+		downtimeCall = &cloned
 	}
-	if sleepCall == nil {
+	if downtimeCall == nil {
 		return nil, false, nil
 	}
 
-	var payload types.WannaSleepTool
-	toolName := strings.TrimSpace(sleepCall.Function.Name)
-	if err := json.Unmarshal([]byte(sleepCall.Function.Arguments), &payload); err != nil {
+	var payload types.HeartbeatDowntimeTool
+	toolName := strings.TrimSpace(downtimeCall.Function.Name)
+	if err := json.Unmarshal([]byte(downtimeCall.Function.Arguments), &payload); err != nil {
 		return nil, true, fmt.Errorf("%s 参数解析失败: %w", toolName, err)
 	}
 	payload.Summary = strings.TrimSpace(payload.Summary)
 	payload.NextStepPlan = strings.TrimSpace(payload.NextStepPlan)
 	payload.DreamScene = strings.TrimSpace(payload.DreamScene)
+	payload.Reflection = strings.TrimSpace(payload.Reflection)
+	payload.Mood = strings.TrimSpace(payload.Mood)
 	if payload.Summary == "" {
 		return nil, true, fmt.Errorf("%s 的 summary 不能为空", toolName)
 	}
 
 	switch toolName {
 	case config.WannaSleepPlanToolName:
-		if payload.NextStepPlan == "" {
-			return nil, true, fmt.Errorf("%s 必须填写 nextStepPlan", toolName)
+		if payload.NextStepPlan == "" && payload.Reflection == "" {
+			return nil, true, fmt.Errorf("%s 必须填写 nextStepPlan 或 reflection", toolName)
 		}
 	case config.WannaSleepDreamToolName:
 		if payload.DreamScene == "" {
 			return nil, true, fmt.Errorf("%s 必须填写 dreamScene", toolName)
 		}
+	case config.WannaRestDreamToolName:
+		if payload.Mood == "" {
+			return nil, true, fmt.Errorf("%s 必须填写 mood", toolName)
+		}
+	case config.WannaRestPlanToolName:
+		if payload.NextStepPlan == "" {
+			return nil, true, fmt.Errorf("%s 必须填写 nextStepPlan", toolName)
+		}
 	}
 	return &payload, true, nil
 }
 
-func cloneWannaSleepToolCall(toolCalls []types.ToolCall) *types.ToolCall {
+func cloneWannaDowntimeToolCall(toolCalls []types.ToolCall) *types.ToolCall {
 	for _, call := range toolCalls {
-		if !config.IsWannaSleepToolName(strings.TrimSpace(call.Function.Name)) {
+		if !config.IsWannaSleepOrRestToolName(strings.TrimSpace(call.Function.Name)) {
 			continue
 		}
 		cloned := call
@@ -96,29 +106,38 @@ func cloneWannaSleepToolCall(toolCalls []types.ToolCall) *types.ToolCall {
 	return nil
 }
 
-func countSleepingResponses(responses []types.SageResponse) int {
+func countDowntimeResponses(responses []types.SageResponse) int {
 	count := 0
 	for _, response := range responses {
-		if response.WantsSleep {
+		if response.WantsDowntime {
 			count++
 		}
 	}
 	return count
 }
 
-func buildHeartbeatSleepPreview(sageName string, note *types.WannaSleepTool) string {
+func buildHeartbeatDowntimePreview(sageName string, note *types.HeartbeatDowntimeTool, isRest bool) string {
 	if note == nil {
 		return ""
 	}
 	parts := []string{strings.TrimSpace(note.Summary)}
 	switch strings.TrimSpace(sageName) {
 	case "melchior":
+		if note.Reflection != "" {
+			parts = append(parts, "回想反思："+note.Reflection)
+		}
 		if note.NextStepPlan != "" {
 			parts = append(parts, "下一步计划："+note.NextStepPlan)
 		}
 	case "balthazar":
-		if note.DreamScene != "" {
-			parts = append(parts, "画面描述："+note.DreamScene)
+		if isRest {
+			if note.Mood != "" {
+				parts = append(parts, "工作心情："+note.Mood)
+			}
+		} else {
+			if note.DreamScene != "" {
+				parts = append(parts, "画面描述："+note.DreamScene)
+			}
 		}
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n"))
