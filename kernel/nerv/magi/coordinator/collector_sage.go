@@ -36,6 +36,14 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
 	hbInvestigated := false
+	hbActionToolUsed := false
+	requireActionTool := false
+	for _, t := range options.RuntimeTools {
+		if isHeartbeatActionTool(strings.TrimSpace(t.Function.Name)) {
+			requireActionTool = true
+			break
+		}
+	}
 
 	for turn := 0; ; turn++ {
 		streamCh, err := rc.sendSageTurnMessage(ctx, sessionId, roundId, sage, modelInput, options, turn)
@@ -56,6 +64,9 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if !hbInvestigated && isInvestigationTool(strings.TrimSpace(tc.Function.Name)) {
 					hbInvestigated = true
 				}
+				if !hbActionToolUsed && isHeartbeatActionTool(strings.TrimSpace(tc.Function.Name)) {
+					hbActionToolUsed = true
+				}
 			}
 
 			resp, found, err := checkWannaDowntime(sage, turnContent, reasoningContent, turnToolCalls, streamMessageID, roundId)
@@ -67,6 +78,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 						Role:    types.RoleSystem,
 						Content: fmt.Sprintf("你不能现在记录工作日志，因为你还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用工作日志工具。", config.NoteKeywordSearchToolName),
+					})
+					continue
+				}
+				if requireActionTool && !hbActionToolUsed {
+					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+						Role:    types.RoleSystem,
+						Content: "你不能现在记录工作日志，因为你还没有完成任何实质性工作任务。请先使用当前可用工具执行至少一项工作任务（如修改待办、发送消息、写日记、创建文档等），然后再调用工作日志工具。",
 					})
 					continue
 				}
@@ -558,6 +576,14 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 	if toolSetHasAllFunctionTools(effectiveTools, config.PersistSessionMemoryToolName, config.RecallCrossSessionMemoriesToolName) {
 		crossSessionExecutor := newCrossSessionMemoryToolExecutor(sage.GetName())
 		executors = append(executors, crossSessionExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.ListMagiChannelsToolName) {
+		chListExecutor := newListMagiChannelsResultExecutor()
+		executors = append(executors, chListExecutor.ExecuteToolCall)
+	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.ListMagiContactsToolName) {
+		contactListExecutor := newListMagiContactsResultExecutor()
+		executors = append(executors, contactListExecutor.ExecuteToolCall)
 	}
 	if len(executors) == 0 {
 		return nil

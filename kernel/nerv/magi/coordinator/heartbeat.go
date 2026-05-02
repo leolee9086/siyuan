@@ -197,6 +197,8 @@ func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 	tools := []openai.Tool{
 		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
 		buildRuntimeTool(config.BuildNoteByIDReadToolDef()),
+		buildRuntimeTool(config.BuildListMagiChannelsToolDef()),
+		buildRuntimeTool(config.BuildListMagiContactsToolDef()),
 	}
 	if util.IsForgeMode() {
 		tools = append(

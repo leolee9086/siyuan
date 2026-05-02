@@ -50,9 +50,11 @@ func (t *wannaSpeakStateTracker) ApplyTurnToolCalls(toolCalls []types.ToolCall) 
 		switch toolName {
 		case config.WannaSpeakStartToolName:
 			if t.capturing {
-				return madeProgress, t.appendTransitionError(
-					fmt.Sprintf("%s 不能在当前表达未结束时重复调用", config.WannaSpeakStartToolName),
+				t.transitionErrors = append(t.transitionErrors,
+					fmt.Sprintf("%s 重复调用已忽略，继续当前表达", config.WannaSpeakStartToolName),
 				)
+				madeProgress = true
+				continue
 			}
 			t.phase = coreSagePhaseSpeaking
 			t.startCount++
@@ -257,4 +259,21 @@ func isInvestigationTool(toolName string) bool {
 func isActionTool(toolName string) bool {
 	return isGovernedActionToolName(toolName) ||
 		toolName == config.PersistSessionMemoryToolName
+}
+
+func isHeartbeatActionTool(toolName string) bool {
+	switch strings.TrimSpace(toolName) {
+	case config.WriteDiaryToolName,
+		config.CreateNoteDocumentToolName,
+		config.AppendNoteBlocksToolName,
+		config.ModifyNoteBlockToolName,
+		config.RevertNoteBlockToolName,
+		config.SendChannelMessageToolName,
+		config.ForgeDevRepoEditToolName,
+		config.ForgeDevRepoBatchReplaceToolName,
+		config.ForgeDevRepoBashToolName:
+		return true
+	default:
+		return false
+	}
 }

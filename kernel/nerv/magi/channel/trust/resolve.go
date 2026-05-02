@@ -17,6 +17,28 @@ type ResolveResult struct {
 // 由 API 层在 MAGI 初始化时注入。
 var DefaultIdentityResolver func(channelID, accountID, userID string) ResolveResult
 
+// DefaultConfigProvider 全局信任配置提供者，供 coordinator 等包在需要查询全量联系人信息时使用。
+// 由 API 层在 MAGI 初始化时注入。
+var DefaultConfigProvider func() *Config
+
+// DefaultChannelIdentityResolver 全局渠道用户身份标签解析器，供 coordinator 等包在需要查询联系人绑定身份标签时使用。
+// 返回身份标签（IdentityID）和显示名，未绑定时两者均为空字符串。
+// 由 API 层在 MAGI 初始化时注入。
+var DefaultChannelIdentityResolver func(channelID, accountID, userID string) (identityLabel string, displayName string)
+
+// ChannelBindingInfo 渠道用户身份绑定信息。
+type ChannelBindingInfo struct {
+	ChannelID     string
+	AccountID     string
+	UserID        string
+	IdentityLabel string
+	DisplayName   string
+}
+
+// DefaultChannelBindingEnumerator 全局渠道用户身份绑定枚举器，返回所有身份记录中绑定的渠道用户信息。
+// 由 API 层在 MAGI 初始化时注入。
+var DefaultChannelBindingEnumerator func() []ChannelBindingInfo
+
 // Resolve 解析指定通道、账号、用户的可信度结果。
 // 安全基线：无配置时默认 Trust=low, Risk=high。
 // 信任只能收敛不能扩张：用户级覆盖值若超出配置基线强度，会被降级到账号/通道基线。

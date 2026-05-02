@@ -551,12 +551,21 @@ func TestWannaSpeakTracker_AllowsSpeakingAcrossTurns(t *testing.T) {
 func TestWannaSpeakTracker_RejectsDuplicateStart(t *testing.T) {
 	tracker := newWannaSpeakStateTracker()
 
-	_, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
+	madeProgress, err := tracker.ApplyTurnToolCalls([]types.ToolCall{
 		toolCall(config.WannaSpeakStartToolName),
 		toolCall(config.WannaSpeakStartToolName),
 	})
-	if err == nil {
-		t.Fatal("表达未结束时重复调用 wanna_speak_start 应报错")
+	if err != nil {
+		t.Fatalf("重复调用 wanna_speak_start 不应阻塞: %v", err)
+	}
+	if !madeProgress {
+		t.Fatal("重复调用 wanna_speak_start 应计为有效进展")
+	}
+	if len(tracker.transitionErrors) == 0 {
+		t.Fatal("重复调用 wanna_speak_start 应记录警告")
+	}
+	if !tracker.capturing {
+		t.Fatal("重复调用 wanna_speak_start 后应仍处于表达状态")
 	}
 }
 

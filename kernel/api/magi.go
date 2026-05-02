@@ -258,6 +258,42 @@ func initMagiComponents() error {
 		return globalTrustMgr.Resolve(channelID, accountID, userID)
 	}
 
+	// 注入全局信任配置提供者，供 coordinator 等包查询全量联系人信息
+	trust.DefaultConfigProvider = globalTrustMgr.GetConfig
+
+	// 注入全局渠道用户身份标签解析器，供 coordinator 等包查询联系人身份标签
+	trust.DefaultChannelIdentityResolver = func(channelID, accountID, userID string) (string, string) {
+		record := globalMagiIdentityStore.resolveIdentityByChannel(channelID, accountID, userID)
+		if record == nil {
+			return "", ""
+		}
+		return record.IdentityID, record.DisplayName
+	}
+
+	// 注入全局渠道用户身份绑定枚举器，供 coordinator 等包从身份存储获取全量绑定用户
+	trust.DefaultChannelBindingEnumerator = func() []trust.ChannelBindingInfo {
+		views, err := globalMagiIdentityStore.listViews()
+		if err != nil {
+			return nil
+		}
+		var out []trust.ChannelBindingInfo
+		for _, v := range views {
+			if !v.Enabled {
+				continue
+			}
+			for _, b := range v.ChannelBindings {
+				out = append(out, trust.ChannelBindingInfo{
+					ChannelID:     b.ChannelID,
+					AccountID:     b.AccountID,
+					UserID:        b.UserID,
+					IdentityLabel: v.IdentityID,
+					DisplayName:   v.DisplayName,
+				})
+			}
+		}
+		return out
+	}
+
 	// 注册外部通道桥接器
 	channel.GlobalBridge().SetHandler(handleChannelInbound)
 

@@ -189,6 +189,10 @@ const (
 	SendChannelMessageToolName = "send_channel_message"
 	// FetchWebPageToolName 网页内容获取工具名。
 	FetchWebPageToolName = "fetch_web_page"
+	// ListMagiChannelsToolName 列出所有已注册外部渠道的工具名。
+	ListMagiChannelsToolName = "list_magi_channels"
+	// ListMagiContactsToolName 列出所有已知外部联系人的工具名。
+	ListMagiContactsToolName = "list_magi_contacts"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -1102,7 +1106,7 @@ func BuildSendChannelMessageToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        SendChannelMessageToolName,
-			Description: "主动向可主动渠道（微信等）上特定用户发送消息。调用时必须先明确填写本次行动动机，系统会把动机、消息内容和目标用户交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。消息内容应简洁、人性化，适合在即时通讯平台上阅读。",
+			Description: "主动向可主动渠道（微信等）上特定用户发送消息。先使用 list_magi_contacts 查找收件人的 channelId、accountId 和 userId。调用时必须先明确填写本次行动动机，系统会把动机、消息内容和目标用户交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。消息内容应简洁、人性化，适合在即时通讯平台上阅读。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1151,6 +1155,41 @@ func BuildFetchWebPageToolDef() ToolDef {
 					},
 				},
 				"required": []string{"url"},
+			},
+		},
+	}
+}
+
+// BuildListMagiChannelsToolDef 构建列出所有已注册外部渠道的工具定义。
+func BuildListMagiChannelsToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ListMagiChannelsToolName,
+			Description: "列出所有已注册的外部消息渠道（如微信等即时通讯平台）及其运行状态，包括渠道 ID、连接状态、账号 ID、用户数、能力（receive/proactive_send）等。可通过返回的渠道 ID 配合 list_magi_contacts 查找联系人，或作为 send_channel_message 的 channelId 参数。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildListMagiContactsToolDef 构建列出所有已知外部联系人的工具定义。
+func BuildListMagiContactsToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ListMagiContactsToolName,
+			Description: "列出所有已知的外部联系人（通过外部消息渠道交互过或绑定了身份的用户），包括所属渠道、账号 ID、用户 ID、昵称、身份标签、显示名、信任等级、风险等级等。发送消息前应先调用此工具查找收件人的 userId、channelId 和 accountId，再传给 send_channel_message。可选参数 channelId 用于筛选特定渠道的联系人。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"channelId": map[string]interface{}{
+						"type":        "string",
+						"description": "可选，要筛选的渠道 ID，如 wechat。不传则返回所有渠道的联系人。",
+					},
+				},
 			},
 		},
 	}

@@ -216,6 +216,12 @@ func buildDominantDirectReplyRuntimeTools(dominantSage *sages.Sage) []openai.Too
 	if !toolSetHasAllFunctionTools(baseTools, config.RecallCrossSessionMemoriesToolName) {
 		baseTools = append(baseTools, buildRuntimeTool(config.BuildRecallCrossSessionMemoriesToolDef()))
 	}
+	if !toolSetHasAllFunctionTools(baseTools, config.ListMagiChannelsToolName) {
+		baseTools = append(baseTools, buildRuntimeTool(config.BuildListMagiChannelsToolDef()))
+	}
+	if !toolSetHasAllFunctionTools(baseTools, config.ListMagiContactsToolName) {
+		baseTools = append(baseTools, buildRuntimeTool(config.BuildListMagiContactsToolDef()))
+	}
 	if toolSetHasAllFunctionTools(baseTools, config.WriteDiaryToolName) {
 		return baseTools
 	}
