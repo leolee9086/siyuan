@@ -47,12 +47,14 @@ type Coordinator struct {
 	collector *ResponseCollector
 	avatar    *AvatarRuntime
 
-	runtimeMu              sync.Mutex
+	runtimeMu                 sync.Mutex
 	dominantSelectionObserver DominantSelectionObserver
-	roundBySession           map[string]uint64
+	clockRoundBySession     map[string]uint64 // 心跳总轮数（睡眠+清醒混合），仅用于时钟展示
+	awakeRoundBySession       map[string]uint64        // 清醒心跳轮数，用于提醒系统计算
+	sleepRoundBySession       map[string]uint64        // 睡眠心跳轮数
 	workspaceSnapshotInterval uint64
-	toolCallRecords          map[string]*ToolCallSnapshot // tool name → 最近一次调用快照
-	toolRemindPolicies       map[string]*config.ToolRemindPolicy // tool name → 提醒策略（初始化时构建）
+	toolCallRecords           map[string]*ToolCallSnapshot       // tool name → 最近一次调用快照
+	toolRemindPolicies        map[string]*config.ToolRemindPolicy // tool name → 提醒策略（初始化时构建）
 }
 
 // NewCoordinator 创建决策协调器
@@ -61,7 +63,9 @@ func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 		collector: NewResponseCollector(collectionTimeout),
 		avatar:    NewAvatarRuntime(),
 
-		roundBySession:            map[string]uint64{},
+		clockRoundBySession:            map[string]uint64{},
+		awakeRoundBySession:       map[string]uint64{},
+		sleepRoundBySession:       map[string]uint64{},
 		workspaceSnapshotInterval: defaultWorkspaceSnapshotInterval,
 		toolCallRecords:           map[string]*ToolCallSnapshot{},
 	}
@@ -313,7 +317,7 @@ func (c *Coordinator) buildSourceAwareUserInput(
 	sourceCtx *types.RequestSourceContext,
 	claimedRecentHistory []types.ClaimedHistoryMessage,
 ) string {
-	roundOrdinal := c.nextRoundOrdinal(sessionID)
+	roundOrdinal := c.nextClockRoundOrdinal(sessionID)
 	return c.buildSourceAwareUserInputWithRoundOrdinal(
 		userMessage,
 		sourceCtx,
@@ -329,7 +333,7 @@ func (c *Coordinator) buildSourceAwareUserInputBySage(
 	claimedRecentHistory []types.ClaimedHistoryMessage,
 	passiveRecallBasis *types.PassiveRecallBasis,
 ) map[string]string {
-	roundOrdinal := c.nextRoundOrdinal(sessionID)
+	roundOrdinal := c.nextClockRoundOrdinal(sessionID)
 	passiveRecallBySage := buildPassiveRecallPayloadsBySage(passiveRecallBasis)
 	inputs := map[string]string{}
 	for _, sageName := range []string{"melchior", "balthazar", "casper"} {
@@ -509,7 +513,7 @@ func buildClaimedHistoryInstruction(speakerLabel string) string {
 	)
 }
 
-func (c *Coordinator) nextRoundOrdinal(sessionID string) uint64 {
+func (c *Coordinator) nextClockRoundOrdinal(sessionID string) uint64 {
 	key := strings.TrimSpace(sessionID)
 	if key == "" {
 		key = "__magi_anonymous_session__"
@@ -518,8 +522,45 @@ func (c *Coordinator) nextRoundOrdinal(sessionID string) uint64 {
 	c.runtimeMu.Lock()
 	defer c.runtimeMu.Unlock()
 
-	next := c.roundBySession[key] + 1
-	c.roundBySession[key] = next
+	next := c.clockRoundBySession[key] + 1
+	c.clockRoundBySession[key] = next
+	return next
+}
+
+// nextAwakeRoundOrdinal 递增并返回清醒心跳轮次数。用于提醒系统，与睡眠心跳轮次隔离。
+func (c *Coordinator) nextAwakeRoundOrdinal(sessionID string) uint64 {
+	key := strings.TrimSpace(sessionID)
+	if key == "" {
+		key = "__magi_anonymous_session__"
+	}
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+	next := c.awakeRoundBySession[key] + 1
+	c.awakeRoundBySession[key] = next
+	return next
+}
+
+// currentAwakeRoundOrdinal 获取当前清醒心跳轮次数，不递增。
+func (c *Coordinator) currentAwakeRoundOrdinal(sessionID string) uint64 {
+	key := strings.TrimSpace(sessionID)
+	if key == "" {
+		key = "__magi_anonymous_session__"
+	}
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+	return c.awakeRoundBySession[key]
+}
+
+// nextSleepRoundOrdinal 递增并返回睡眠心跳轮次数。
+func (c *Coordinator) nextSleepRoundOrdinal(sessionID string) uint64 {
+	key := strings.TrimSpace(sessionID)
+	if key == "" {
+		key = "__magi_anonymous_session__"
+	}
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+	next := c.sleepRoundBySession[key] + 1
+	c.sleepRoundBySession[key] = next
 	return next
 }
 

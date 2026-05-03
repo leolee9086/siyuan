@@ -67,6 +67,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 	sleepMode := len(isSleepTime) > 0 && isSleepTime[0]
 	var dominantSage *sages.Sage
 	if sleepMode {
+		c.nextSleepRoundOrdinal(sessionID)
 		imaginativeInstr := "\n\n额外要求：你的记录内容越是天马行空越好。"
 		for sageName, input := range sourceAwareUserInputBySage {
 			if sageName == "melchior" {
@@ -75,6 +76,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 			sourceAwareUserInputBySage[sageName] = input + imaginativeInstr
 		}
 	} else {
+		c.nextAwakeRoundOrdinal(sessionID)
 		dominantResult, err := electDominantSage(ctx, sessionID, melchior, balthazar, casper, userMessage)
 		if err != nil {
 			return nil, fmt.Errorf("心跳主导选举失败: %w", err)
@@ -86,7 +88,7 @@ func (c *Coordinator) CoordinateHeartbeat(
 		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
 
 		// 注入工具调用提醒（仅非睡眠模式，基于上一轮的记录）
-		reminders := c.buildHeartbeatReminders(sessionID)
+		reminders := c.buildHeartbeatReminders(sessionID, dominantSage)
 		for sageName, reminder := range reminders {
 			if reminder != "" {
 				sourceAwareUserInputBySage[sageName] += "\n\n" + reminder
@@ -257,23 +259,14 @@ func buildHeartbeatRuntimeToolChoiceBySage(sleepMode bool) map[string]any {
 	}
 }
 
-// currentRoundOrdinal 获取当前会话的轮次数，不递增。
-func (c *Coordinator) currentRoundOrdinal(sessionID string) uint64 {
-	if c == nil {
-		return 0
-	}
-	c.runtimeMu.Lock()
-	defer c.runtimeMu.Unlock()
-	return c.roundBySession[strings.TrimSpace(sessionID)]
-}
-
 // updateToolCallRecords 遍历贤者响应，提取有提醒策略的工具调用并更新快照。
+// 仅记录清醒心跳轮次，与睡眠心跳轮次隔离。
 // 全局提醒、辅助者提醒等更多钩子的记录更新在此统一完成，待实现。
 func (c *Coordinator) updateToolCallRecords(responses []types.SageResponse, sessionID string) {
 	if c == nil || len(c.toolRemindPolicies) == 0 {
 		return
 	}
-	currentRound := c.currentRoundOrdinal(sessionID)
+	currentRound := c.currentAwakeRoundOrdinal(sessionID)
 	now := time.Now()
 
 	for _, resp := range responses {
@@ -321,14 +314,23 @@ func extractToolCallContext(rawArgs string, keys []string) map[string]string {
 }
 
 // buildHeartbeatReminders 构建当前轮次需要注入的提醒，按贤者名称返回。
-// 当前实现了主导者提醒钩子，全局提醒、辅助者提醒等更多钩子待实现。
-func (c *Coordinator) buildHeartbeatReminders(sessionID string) map[string]string {
+// 根据 RemindScope 分发到不同贤者：
+//   - RemindScopeGlobal：所有贤者
+//   - RemindScopeDominant：仅主导贤者
+//   - RemindScopeAssistant：仅辅助贤者
+// TODO: 当前 RemindPolicy 尚未声明 Scope，统一按主导者分发。后续在 ToolRemindPolicy 中加入 Scope 字段后，此处应区分三种钩子。
+func (c *Coordinator) buildHeartbeatReminders(sessionID string, dominantSage *sages.Sage) map[string]string {
 	result := map[string]string{"melchior": "", "balthazar": "", "casper": ""}
 	if c == nil || len(c.toolRemindPolicies) == 0 {
 		return result
 	}
 
-	currentRound := c.currentRoundOrdinal(sessionID)
+	dominantName := ""
+	if dominantSage != nil {
+		dominantName = strings.TrimSpace(dominantSage.GetName())
+	}
+
+	currentRound := c.currentAwakeRoundOrdinal(sessionID)
 	now := time.Now()
 
 	for toolName, policy := range c.toolRemindPolicies {
@@ -345,16 +347,15 @@ func (c *Coordinator) buildHeartbeatReminders(sessionID string) map[string]strin
 			continue
 		}
 
-		// TODO: 全局提醒钩子 — 所有贤者均收到（待实现）
-		// TODO: 辅助者提醒钩子 — 非主导贤者收到（待实现）
+		// TODO: 全局提醒 — 所有贤者收到。后续根据 policy.Scope == RemindScopeGlobal 分支至此。
+		// TODO: 辅助者提醒 — 非主导贤者收到。后续根据 policy.Scope == RemindScopeAssistant 分支至此。
 
-		// 主导者提醒钩子 — 注入到所有贤者输入中，由持有工具的主导贤者响应
-		// 当前 send_channel_message 仅主导贤者持有此工具
-		for sageName := range result {
-			if result[sageName] != "" {
-				result[sageName] += "\n"
+		// 主导者提醒 — 仅注入给主导贤者（当前 send_channel_message 仅主导持有）
+		if dominantName != "" {
+			if result[dominantName] != "" {
+				result[dominantName] += "\n"
 			}
-			result[sageName] += reminderText
+			result[dominantName] += "[主导者提醒]" + reminderText
 		}
 	}
 	return result
