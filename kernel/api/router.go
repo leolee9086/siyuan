@@ -620,7 +620,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/create", model.CheckAuth, channelCreate)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/poll-login", model.CheckAuth, channelPollLogin)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/relogin", model.CheckAuth, channelReLogin)
-
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/cli/ws", cliWebSocketHandler)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/cli/issue-token", model.CheckAuth, model.CheckAdminRole, magiIssueCLIToken)
 
 	// S-Forge Bazaar 本地包扩展接口
 	ginServer.Handle("POST", "/api/s-forge/bazaar/exportPackage", model.CheckAuth, model.CheckAdminRole, exportBazaarPackage)

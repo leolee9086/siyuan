@@ -18,6 +18,7 @@ package model
 
 import (
 	"crypto/rand"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -158,6 +159,57 @@ func GetClaimRole(claims jwt.MapClaims) Role {
 		return Role(role.(float64))
 	}
 	return RoleVisitor
+}
+
+const (
+	CLIDelegationIss = "siyuan"
+	CLIDelegationSub = "cli-delegation"
+	CLIDelegationAud = "magi-cli"
+)
+
+// IssueCLIDelegationToken 签发 CLI 代理身份 JWT。
+func IssueCLIDelegationToken(userID string) (string, error) {
+	t := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"iss": CLIDelegationIss,
+			"sub": CLIDelegationSub,
+			"aud": CLIDelegationAud,
+			"uid": userID,
+		},
+	)
+	return t.SignedString(jwtKey)
+}
+
+// ParseCLIDelegationToken 解析 CLI 代理身份 JWT。
+// 使用与系统相同的 jwtKey 签名，但使用专属的 iss/sub/aud。
+// Token 中 "uid" 声明为被代理用户 ID，"scp" 为权限范围列表（可选）。
+func ParseCLIDelegationToken(tokenString string) (userID string, scope []string, err error) {
+	token, parseErr := jwt.Parse(
+		tokenString,
+		func(token *jwt.Token) (any, error) {
+			return jwtKey, nil
+		},
+		jwt.WithIssuer(CLIDelegationIss),
+		jwt.WithSubject(CLIDelegationSub),
+		jwt.WithAudience(CLIDelegationAud),
+	)
+	if parseErr != nil {
+		return "", nil, fmt.Errorf("parse CLI delegation token: %w", parseErr)
+	}
+	claims := GetTokenClaims(token)
+	uid, ok := claims["uid"].(string)
+	if !ok || uid == "" {
+		return "", nil, fmt.Errorf("CLI delegation token missing uid claim")
+	}
+	if rawScope, ok := claims["scp"].([]interface{}); ok {
+		for _, s := range rawScope {
+			if str, ok := s.(string); ok {
+				scope = append(scope, str)
+			}
+		}
+	}
+	return uid, scope, nil
 }
 
 // IsPublishServiceToken 检查 token 是否来自发布服务

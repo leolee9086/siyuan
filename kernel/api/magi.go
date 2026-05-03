@@ -17,6 +17,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/cli"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/trust"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/wechat"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
@@ -620,6 +621,10 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 	}
 	magiRuntimeMgr.InterruptHeartbeat()
 
+	if msg.ChannelID == "cli" {
+		return handleCLIInbound(ctx, msg)
+	}
+
 	channelID := msg.ChannelID
 	accountID := msg.AccountID
 	userID := msg.UserID
@@ -731,6 +736,84 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 			if result.Err != nil {
 				logging.LogWarnf("channel message processing error: %v", result.Err)
 				// 尝试发送错误提示
+				_ = routeChannelOutbound(context.Background(), sourceCtx, "抱歉，处理消息时出现错误，请稍后再试。")
+			}
+		case <-ctx.Done():
+		}
+	}()
+
+	return nil
+}
+
+// handleCLIInbound 处理来自 CLI 通道的入站消息。
+// 跳过身份卡绑定流程，直接进入 MAGI 调度。
+func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
+	channelID := msg.ChannelID
+	accountID := msg.AccountID
+	userID := msg.UserID
+
+	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelID, accountID, userID)
+	rawAttributes := map[string]string{
+		"channelId":         channelID,
+		"accountId":         accountID,
+		"userId":            userID,
+		"userMessage":       msg.Text,
+		"conversationToken": msg.ConversationToken,
+	}
+
+	adapter, ok := channel.Get(channelID + "-" + accountID)
+	if ok {
+		if cliAdapter, ok2 := adapter.(*cli.Adapter); ok2 {
+			ident := cliAdapter.Identity()
+			rawAttributes["toolName"] = ident.ToolName
+			rawAttributes["workingDir"] = ident.WorkingDir
+			rawAttributes["scenario"] = ident.Scenario
+			if ident.Delegation != nil {
+				rawAttributes["delegatedUser"] = ident.Delegation.UserID
+			}
+		}
+	}
+
+	trustResult := globalTrustMgr.Resolve(channelID, accountID, userID)
+
+	sourceCtx := &types.RequestSourceContext{
+		Channel:               types.SourceChannelExternalAgent,
+		PrincipalID:           userID,
+		IdentityID:            userID,
+		Nickname:              msg.Nickname,
+		InterfaceID:           channelID + "-" + accountID,
+		InterfaceKind:         "cli-tool",
+		SourceSessionKey:      sourceSessionKey,
+		DirectResponseAllowed: true,
+		TrustBase:             types.TrustLevel(trustResult.TrustBase),
+		RiskLevel:             types.TrustLevel(trustResult.RiskLevel),
+		AuthStrength:          types.AuthStrengthMedium,
+		ModelIntent:           "general",
+		RawAttributes:         rawAttributes,
+	}
+
+	sessionID := getOrCreateSession(nil, sourceCtx)
+	if sessionID == "" {
+		return errors.New("failed to create MAGI session for CLI message")
+	}
+
+	task := &DispatcherTask{
+		Type:       TaskTypeUserMessage,
+		SessionID:  sessionID,
+		SourceCtx:  sourceCtx,
+		RequestCtx: ctx,
+		ResultChan: make(chan MagiTaskResult, 1),
+	}
+
+	if !dispQueue.Push(Ring0ExternalMessage, task) {
+		return errors.New("magi queue is full")
+	}
+
+	go func() {
+		select {
+		case result := <-task.ResultChan:
+			if result.Err != nil {
+				logging.LogWarnf("CLI message processing error: %v", result.Err)
 				_ = routeChannelOutbound(context.Background(), sourceCtx, "抱歉，处理消息时出现错误，请稍后再试。")
 			}
 		case <-ctx.Done():
