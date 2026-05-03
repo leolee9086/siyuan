@@ -45,9 +45,9 @@ var (
 
 // BuildCoreSageHeartbeatWakePrompt 构建三贤人心跳唤醒提示（工作时间）。
 func BuildCoreSageHeartbeatWakePrompt(now string) string {
-	return `现在是工作时间,当前可信时间为：` + now + `,你可以此作为但钱时间判断依据
+	return `现在是工作时间,当前可信时间为：` + now + `,你可以此作为时间判断依据
 
-**重要：在调用工作日志工具之前，你必须先调用至少一次调查类工具（如 search_notes_by_keywords）检查当前状态。如果未经调查直接尝试记录，系统会拒绝。**
+**重要：在调用工作日志工具之前，你必须先调用至少一次调查类工具（如 search_notes_by_keywords）检查当前状态。在你完成调查之前，工作日志工具不会出现在可用工具列表中，你也看不到它。**
 
 你现在可以做的事情：
 1. 检查自己现在有没有需要处理的事情。

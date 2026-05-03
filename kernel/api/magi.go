@@ -71,6 +71,7 @@ type DispatcherTask struct {
 	HeartbeatPrompt            string
 	HeartbeatSourceCtx         *types.RequestSourceContext
 	HeartbeatPassiveRecallBasis *types.PassiveRecallBasis
+	HeartbeatIsSleepTime       bool
 }
 
 type magiPersonaRuntimeStatus struct {
@@ -302,6 +303,11 @@ func initMagiComponents() error {
 		logging.LogWarnf("MAGI 渠道消息存储初始化失败: %v", err)
 	}
 
+	// 初始化 token 编码器（用于上下文 token 裁剪）
+	if err := sages.InitTokenEncoders(); err != nil {
+		logging.LogWarnf("MAGI token 编码器初始化失败: %v", err)
+	}
+
 	// 恢复已持久化的微信渠道适配器
 	recoverWechatAdapters()
 
@@ -374,6 +380,7 @@ func unifiedDispatcher() {
 				task.HeartbeatPrompt,
 				task.HeartbeatSourceCtx,
 				task.HeartbeatPassiveRecallBasis,
+				task.HeartbeatIsSleepTime,
 			)
 			magiRuntimeMgr.finishHeartbeat(task.Run, hbResult, err)
 			close(task.Run.done)

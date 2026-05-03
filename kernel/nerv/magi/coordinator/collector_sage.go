@@ -38,6 +38,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	hbInvestigated := false
 	hbActionToolUsed := false
 	requireActionTool := false
+	workLogToolAdded := false
 	for _, t := range options.RuntimeTools {
 		if isHeartbeatActionTool(strings.TrimSpace(t.Function.Name)) {
 			requireActionTool = true
@@ -69,25 +70,16 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				}
 			}
 
+			if !options.IsSleepMode && !workLogToolAdded && hbInvestigated && (!requireActionTool || hbActionToolUsed) {
+				options.RuntimeTools = append(options.RuntimeTools, buildWorkLogRestToolForSage(sage.GetName()))
+				workLogToolAdded = true
+			}
+
 			resp, found, err := checkWannaDowntime(sage, turnContent, reasoningContent, turnToolCalls, streamMessageID, roundId)
 			if err != nil {
 				return nil, err
 			}
 			if found {
-				if !options.IsSleepMode && !hbInvestigated {
-					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-						Role:    types.RoleSystem,
-						Content: fmt.Sprintf("错误：你不能现在记录工作日志，因为你**本次唤醒**还没有调用任何调查类工具（如 %s）。请先使用调查类工具了解当前状态后再调用工作日志工具，认真对待你的工作和生活，不要反复重复失败的尝试。", config.NoteKeywordSearchToolName),
-					})
-					continue
-				}
-				if requireActionTool && !hbActionToolUsed {
-					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-						Role:    types.RoleSystem,
-						Content: "错误：你不能现在记录工作日志，因为你**本次唤醒**还没有完成任何实质性工作任务。请先使用当前可用工具执行至少一项工作任务（如修改待办、发送消息、写日记、创建文档等），然后再调用工作日志工具，认真对待你的工作和生活we，不要反复重复失败的尝试。",
-					})
-					continue
-				}
 				return resp, nil
 			}
 		}

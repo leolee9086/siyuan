@@ -38,6 +38,9 @@ func (c *Coordinator) CoordinateHeartbeat(
 	}
 
 	roundID := util.RandString(16)
+	melchior.MarkCurrentRoundHeartbeat(sessionID, roundID)
+	balthazar.MarkCurrentRoundHeartbeat(sessionID, roundID)
+	casper.MarkCurrentRoundHeartbeat(sessionID, roundID)
 	if err := websocket.PushRoundStarted(sessionID, roundID, userMessage); err != nil {
 		logging.LogWarnf("推送心跳轮次开始失败: %v", err)
 	}
@@ -158,8 +161,9 @@ func buildHeartbeatRuntimeToolsBySage(sleepMode bool, dominantSage *sages.Sage) 
 		dominantName = strings.TrimSpace(dominantSage.GetName())
 	}
 
-	buildTools := func(sleepTool openai.Tool, sageName string) []openai.Tool {
-		tools := append([]openai.Tool{sleepTool}, sharedReadingTools...)
+	buildTools := func(sageName string) []openai.Tool {
+		tools := make([]openai.Tool, len(sharedReadingTools))
+		copy(tools, sharedReadingTools)
 		if sageName == dominantName {
 			tools = append(tools, sharedActionTools...)
 		}
@@ -167,9 +171,23 @@ func buildHeartbeatRuntimeToolsBySage(sleepMode bool, dominantSage *sages.Sage) 
 	}
 
 	return map[string][]openai.Tool{
-		"melchior":  buildTools(buildRuntimeTool(config.BuildWannaRestPlanToolDef()), "melchior"),
-		"balthazar": buildTools(buildRuntimeTool(config.BuildWannaRestDreamToolDef()), "balthazar"),
-		"casper":    buildTools(buildRuntimeTool(config.BuildWannaRestRecordToolDef()), "casper"),
+		"melchior":  buildTools("melchior"),
+		"balthazar": buildTools("balthazar"),
+		"casper":    buildTools("casper"),
+	}
+}
+
+// buildWorkLogRestToolForSage 返回对应贤者的工作日志工具。仅非睡眠模式使用。
+func buildWorkLogRestToolForSage(sageName string) openai.Tool {
+	switch strings.TrimSpace(sageName) {
+	case "melchior":
+		return buildRuntimeTool(config.BuildWannaRestPlanToolDef())
+	case "balthazar":
+		return buildRuntimeTool(config.BuildWannaRestDreamToolDef())
+	case "casper":
+		return buildRuntimeTool(config.BuildWannaRestRecordToolDef())
+	default:
+		return openai.Tool{}
 	}
 }
 

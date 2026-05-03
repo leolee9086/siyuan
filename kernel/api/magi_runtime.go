@@ -50,6 +50,9 @@ type magiRuntimeManager struct {
 	lastRoundSleep    string
 
 	sleepCycleCount int // 连续完成的睡眠心跳次数，用于渐进式间隔
+
+	postWakeFromSleep bool // 睡眠时段被外部唤醒后进入工作过渡期
+	postWakeWorkCycle int  // 过渡期内完成的工作心跳轮数，驱动等差数列间隔 (n+1)*5min
 }
 
 func newMagiRuntimeManager(interval time.Duration) *magiRuntimeManager {
@@ -113,10 +116,22 @@ func (m *magiRuntimeManager) heartbeatLoop() {
 		case <-ticker.C:
 			now := time.Now()
 			interval := m.heartbeatInterval
-			if m.isSleepTime(now) {
+			if m.postWakeFromSleep && m.isSleepTime(now) {
+				interval = m.postWakeHeartbeatInterval()
+				if interval > 30*time.Minute {
+					m.postWakeFromSleep = false
+					m.postWakeWorkCycle = 0
+					m.sleepCycleCount = 0
+					interval = m.sleepHeartbeatInterval()
+				} else {
+					m.postWakeWorkCycle++
+				}
+			} else if m.isSleepTime(now) {
 				interval = m.sleepHeartbeatInterval()
 			} else {
 				m.sleepCycleCount = 0
+				m.postWakeFromSleep = false
+				m.postWakeWorkCycle = 0
 			}
 			if now.Sub(lastHeartbeat) >= interval {
 				lastHeartbeat = now
@@ -137,6 +152,10 @@ func (m *magiRuntimeManager) sleepHeartbeatInterval() time.Duration {
 	default:
 		return magiHeartbeatSleepIntervalSubsequent
 	}
+}
+
+func (m *magiRuntimeManager) postWakeHeartbeatInterval() time.Duration {
+	return time.Duration(m.postWakeWorkCycle+1) * 5 * time.Minute
 }
 
 func (m *magiRuntimeManager) initialHeartbeatDelay() time.Duration {
@@ -188,11 +207,15 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 
 	now := time.Now()
 	nowMillis := now.UnixMilli()
-	isSleep := m.isSleepTime(now)
+	isSleep := m.isSleepTime(now) && !m.postWakeFromSleep
 	m.status.State = types.RuntimeStateHeartbeat
 	m.status.Awake = true
 	m.status.WakeSource = "heartbeat"
-	m.status.Reason = "scheduled-heartbeat"
+	if m.postWakeFromSleep {
+		m.status.Reason = "post-wake-work-heartbeat"
+	} else {
+		m.status.Reason = "scheduled-heartbeat"
+	}
 	m.status.CurrentTask = buildHeartbeatTaskPreview(now)
 	m.status.CurrentRoundID = ""
 	clearDominantRuntimeStatus(&m.status)
@@ -214,6 +237,7 @@ func (m *magiRuntimeManager) tryStartHeartbeat() {
 		HeartbeatPrompt:             prompt,
 		HeartbeatSourceCtx:          sourceCtx,
 		HeartbeatPassiveRecallBasis: passiveRecallBasis,
+		HeartbeatIsSleepTime:        isSleep,
 	}
 
 	if !dispQueue.Push(Ring1Heartbeat, task) {
@@ -325,6 +349,10 @@ func (m *magiRuntimeManager) BeginForeground(taskPreview string) {
 	m.status.WakeSource = "external"
 	m.status.Reason = "external-request"
 	m.sleepCycleCount = 0
+	if m.isSleepTime(time.Now()) {
+		m.postWakeFromSleep = true
+		m.postWakeWorkCycle = 0
+	}
 	m.status.CurrentTask = truncateRuntimeText(taskPreview, 160)
 	m.status.CurrentRoundID = ""
 	clearDominantRuntimeStatus(&m.status)
