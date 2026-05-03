@@ -49,10 +49,63 @@ type AgentConfig struct {
 	ToolChoice any `json:"toolChoice,omitempty"`
 }
 
+// ToolMode 工具运行模式依赖。
+type ToolMode uint8
+
+const (
+	ModeCore  ToolMode = 0 // 始终可用
+	ModeForge ToolMode = 1 // 仅 forge 模式可用
+)
+
+// ToolPlatform 工具运行平台（bitmask 位掩码，0 表示全平台）。
+type ToolPlatform uint16
+
+const (
+	PlatformStd     ToolPlatform = 1 << 0 // 桌面端
+	PlatformDocker  ToolPlatform = 1 << 1 // Docker 容器
+	PlatformAndroid ToolPlatform = 1 << 2 // Android
+	PlatformIOS     ToolPlatform = 1 << 3 // iOS
+	PlatformHarmony ToolPlatform = 1 << 4 // 鸿蒙
+)
+
+// ToolMeta 工具自描述元数据。每个字段独立正交，字段之间不存在任何隐含推导关系。
+type ToolMeta struct {
+	// ── 副作用能力（原子化布尔字段）──
+	ReadsNotes           bool // 读取笔记内容
+	ReadsFilesystem      bool // 读取文件系统
+	ReadsExternalChannel bool // 读取外部渠道数据
+	ReadsWebContent      bool // 读取网络内容
+	ReadsMemories        bool // 读取跨会话记忆
+	ModifiesNotes        bool // 修改笔记内容
+	ModifiesFilesystem   bool // 修改文件系统
+	ExecutesCommand      bool // 执行系统命令
+	SendsExternalMessage bool // 发送外部渠道消息
+	ModifiesAvatar       bool // 修改 avatar 状态
+	PersistsMemory       bool // 写入持久化记忆到 /MAGI记忆/
+
+	// ── 执行策略 ──
+	RequiresPeerVote bool // 需要同级贤者投票
+
+	// ── 可用场景（三个独立的布尔字段，互不推导）──
+	AvailableDirectReply  bool // 正常用户消息/直接回复时可用
+	AvailableSleepHB      bool // 睡眠心跳时可用
+	AvailableWorkHB       bool // 工作心跳时可用
+
+	// ── 运行条件 ──
+	Mode      ToolMode      // 运行模式依赖
+	Platforms ToolPlatform  // 平台可用性，0 表示全平台
+
+	// ── 结果处理（三个独立属性）──
+	EntersUnifiedContext bool // 工具调用结果进入统一上下文，三贤人间可共享/压缩
+	ResultArchived       bool // 结果外部存档到 /MAGI查询结果/
+	ResultPersisted      bool // 结果持久化到 /MAGI记忆/（跨会话保留）
+}
+
 // ToolDef 工具定义
 type ToolDef struct {
 	Type     string          `json:"type"` // "function"
 	Function ToolFunctionDef `json:"function"`
+	Meta     ToolMeta        `json:"-"`
 }
 
 // AddMotivationParam 为工具定义统一添加 motivation 参数，用于行动工具复核。
@@ -153,8 +206,6 @@ const (
 	DeliberationSignalToolName = "deliberation_signal"
 	// VoteToolName 内部审批投票工具名。
 	VoteToolName = "vote"
-	// NoteKeywordSearchToolName 三贤人笔记关键词查询工具名（词法查询）。
-	NoteKeywordSearchToolName = "search_notes_by_keywords"
 	// ForgeDevRepoListToolName forge 模式开发仓库目录查看工具名。
 	ForgeDevRepoListToolName = "forge_dev_repo_list"
 	// ForgeDevRepoReadToolName forge 模式开发仓库文件读取工具名。
@@ -167,34 +218,14 @@ const (
 	ForgeDevRepoBatchReplaceToolName = "forge_dev_repo_batch_replace"
 	// ForgeDevRepoBashToolName forge 模式开发仓库安全 Bash 命令执行工具名。
 	ForgeDevRepoBashToolName = "forge_dev_repo_bash"
-	// WriteDiaryToolName 向 AI 主笔记本当日日记追加 callout 容器式日记条目的工具名。
-	WriteDiaryToolName = "write_diary_entry"
 	// DominantElectionToolName 主导者选举投票工具名。
 	DominantElectionToolName = "dominant_election"
-	// NoteByIDReadToolName 按 ID 读取笔记块内容及其子块的工具名。
-	NoteByIDReadToolName = "read_note_by_id"
 	// PersistSessionMemoryToolName 跨session对话记忆持久化落盘工具名。
 	PersistSessionMemoryToolName = "persist_session_memory"
 	// RecallCrossSessionMemoriesToolName 跨session对话记忆查询工具名。
 	RecallCrossSessionMemoriesToolName = "recall_cross_session_memories"
-	// CreateNoteDocumentToolName 在 AI 主笔记本中创建新文档的工具名。
-	CreateNoteDocumentToolName = "create_note_document"
-	// AppendNoteBlocksToolName 向已有文档追加叶子块的工具名。
-	AppendNoteBlocksToolName = "append_note_blocks"
-	// ModifyNoteBlockToolName 修改叶子块内容并标记 pending 的工具名。
-	ModifyNoteBlockToolName = "modify_note_block"
-	// RevertNoteBlockToolName 回滚 pending 修改恢复原内容的工具名。
-	RevertNoteBlockToolName = "revert_note_block"
-	// SendChannelMessageToolName 主动向可主动渠道（微信等）发送消息的工具名。
-	SendChannelMessageToolName = "send_channel_message"
 	// FetchWebPageToolName 网页内容获取工具名。
 	FetchWebPageToolName = "fetch_web_page"
-	// ListMagiChannelsToolName 列出所有已注册外部渠道的工具名。
-	ListMagiChannelsToolName = "list_magi_channels"
-	// ListMagiContactsToolName 列出所有已知外部联系人的工具名。
-	ListMagiContactsToolName = "list_magi_contacts"
-	// FetchChannelMessagesToolName 查看指定渠道最近消息的工具名。
-	FetchChannelMessagesToolName = "fetch_channel_messages"
 )
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
@@ -409,72 +440,7 @@ func ResolveWannaSleepToolNameForSage(sageName string) string {
 	}
 }
 
-// BuildNoteByIDReadToolDef 构建按 ID 阅读笔记块内容及其子块的只读工具定义。
-// 读取权限与 search_notes_by_keywords 一致：仅限 AI 主笔记本及其直接引用/嵌入范围内。
-// format 参数支持 tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。
-// tree 模式下支持 start/limit 参数控制仅返回部分子块内容。
-func BuildNoteByIDReadToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        NoteByIDReadToolName,
-			Description: "按块 ID 阅读当前工作空间 AI 主笔记本中的笔记块内容及其子块；若目标超出 AI 主笔记本的直接读取范围，仅返回块 ID 和所属文档 ID，此时应向用户请求阅读权限。format 参数控制输出格式：tree（结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。tree 模式下支持通过 start 和 limit 参数仅读取部分子块内容。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"id": map[string]interface{}{
-						"type":        "string",
-						"description": "要读取的笔记块 ID",
-					},
-					"start": map[string]interface{}{
-						"type":        "integer",
-						"description": "子块起始序号，从 1 开始，不传则从第 1 个子块开始",
-						"minimum":     1,
-					},
-					"limit": map[string]interface{}{
-						"type":        "integer",
-						"description": "返回的子块数量上限，不传则返回全部子块",
-						"minimum":     1,
-					},
-					"format": map[string]interface{}{
-						"type":        "string",
-						"description": "输出格式：tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）",
-						"enum":        []string{"tree", "markdown", "kramdown"},
-					},
-				},
-				"required": []string{"id"},
-			},
-		},
-	}
-}
-
 // BuildNoteKeywordSearchToolDef 构建三贤人笔记关键词查询工具定义（词法查询）。
-func BuildNoteKeywordSearchToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        NoteKeywordSearchToolName,
-			Description: "按关键词查询当前工作空间的AI主笔记本内容块；若命中超出AI主笔记本及其直接ID引用/嵌入范围，仅返回文档ID，此时应向用户请求阅读权限。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"query": map[string]interface{}{
-						"type":        "string",
-						"description": "查询关键词或短句",
-					},
-					"limit": map[string]interface{}{
-						"type":        "integer",
-						"description": "返回结果数量，最大 50",
-						"minimum":     1,
-						"maximum":     50,
-					},
-				},
-				"required": []string{"query"},
-			},
-		},
-	}
-}
-
 // BuildForgeDevRepoListToolDef 构建 forge 模式开发仓库目录查看工具定义。
 func BuildForgeDevRepoListToolDef() ToolDef {
 	return AddMotivationParam(ToolDef{
@@ -640,35 +606,6 @@ func BuildForgeDevRepoBashToolDef() ToolDef {
 					},
 				},
 				"required": []string{"command"},
-			},
-		},
-	})
-}
-
-// BuildWriteDiaryToolDef 构建向 AI 主笔记本日记写入 callout 容器条目的工具定义。
-func BuildWriteDiaryToolDef() ToolDef {
-	return AddMotivationParam(ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        WriteDiaryToolName,
-			Description: "用于往你的日记本里面记录笔记,当你需要主动记录重要事情的时候都应该使用它。调用时必须先明确填写本次行动动机，系统会把动机、工具名和参数交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。工具会把 markdown 正文包装成一个原生 callout 容器，并作为任意 markdown 子块追加到 AI 主笔记本当天的日记。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"markdown": map[string]interface{}{
-						"type":        "string",
-						"description": "要写入 callout 容器内的 markdown 正文。支持标题、列表、代码块、表格等任意 markdown 子块。",
-					},
-					"calloutType": map[string]interface{}{
-						"type":        "string",
-						"description": "可选的 Callout 类型文本。留空时默认使用 NOTE，也支持自定义类型。",
-					},
-					"title": map[string]interface{}{
-						"type":        "string",
-						"description": "可选的 Callout 标题。留空时使用该类型的默认标题。",
-					},
-				},
-				"required": []string{"markdown"},
 			},
 		},
 	})
@@ -991,149 +928,6 @@ func BuildVoteToolDef() ToolDef {
 	}
 }
 
-// BuildCreateNoteDocumentToolDef 构建创建文档工具定义。
-func BuildCreateNoteDocumentToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        CreateNoteDocumentToolName,
-			Description: "在 AI 主笔记本中创建一篇新文档。标题必须填写，内容支持 Markdown 格式。path 可选，指定存放路径如 /avatar/identity/，默认根路径。返回新文档的 ID。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"title": map[string]interface{}{
-						"type":        "string",
-						"description": "文档标题",
-					},
-					"content": map[string]interface{}{
-						"type":        "string",
-						"description": "Markdown 正文",
-					},
-					"path": map[string]interface{}{
-						"type":        "string",
-						"description": "存放路径，如 /avatar/identity/，默认根路径",
-					},
-				},
-				"required": []string{"title", "content"},
-			},
-		},
-	}
-}
-
-// BuildAppendNoteBlocksToolDef 构建追加叶子块工具定义。
-func BuildAppendNoteBlocksToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        AppendNoteBlocksToolName,
-			Description: "向已有文档追加新的叶子块。parent_id 是文档 ID 或容器块 ID。content 为 Markdown 内容，多块用换行分隔。after_id 可选，在此块之后插入，必须是 parent_id 的后代。返回新块的 ID 列表。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"parent_id": map[string]interface{}{
-						"type":        "string",
-						"description": "文档 ID 或容器块 ID",
-					},
-					"content": map[string]interface{}{
-						"type":        "string",
-						"description": "Markdown 内容，多块用换行分隔",
-					},
-					"after_id": map[string]interface{}{
-						"type":        "string",
-						"description": "在此块 ID 之后插入（可选，必须是 parent_id 的后代）",
-					},
-				},
-				"required": []string{"parent_id", "content"},
-			},
-		},
-	}
-}
-
-// BuildModifyNoteBlockToolDef 构建修改叶子块工具定义。
-func BuildModifyNoteBlockToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        ModifyNoteBlockToolName,
-			Description: "修改 AI 主笔记本中的一个叶子块内容。修改后该块会被标记 pending，需要用户在前端接受后才会解除锁定。pending 期间不可再次修改。仅支持叶子块（段落、标题、列表项等）。attrs 可选，传入要设置的块属性 KV。注意：正文内容至少应包含 3 个双向链接（使用 ((块ID \"显示文字\")) 格式引用其他笔记块）。建议先使用搜索/读取工具了解可链接的笔记，宁滥勿缺。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"block_id": map[string]interface{}{
-						"type":        "string",
-						"description": "要修改的叶子块 ID",
-					},
-					"content": map[string]interface{}{
-						"type":        "string",
-						"description": "新的 Markdown 内容",
-					},
-					"attrs": map[string]interface{}{
-						"type":        "object",
-						"description": "可选，要设置的块属性 KV 对",
-						"additionalProperties": map[string]interface{}{
-							"type": "string",
-						},
-					},
-				},
-				"required": []string{"block_id", "content"},
-			},
-		},
-	}
-}
-
-// BuildRevertNoteBlockToolDef 构建回滚 pending 修改工具定义。
-func BuildRevertNoteBlockToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        RevertNoteBlockToolName,
-			Description: "回滚一个 pending 状态的叶子块修改，恢复原内容。仅当块有 custom-magi-pending 属性时可用。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"block_id": map[string]interface{}{
-						"type":        "string",
-						"description": "要回滚的叶子块 ID",
-					},
-				},
-				"required": []string{"block_id"},
-			},
-		},
-	}
-}
-
-// BuildSendChannelMessageToolDef 构建主动发送渠道消息工具定义。
-func BuildSendChannelMessageToolDef() ToolDef {
-	return AddMotivationParam(ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        SendChannelMessageToolName,
-			Description: "主动向可主动渠道（微信等）上特定用户发送消息。先使用 list_magi_contacts 查找收件人的 channelId、accountId 和 userId。调用时必须先明确填写本次行动动机，系统会把动机、消息内容和目标用户交给专家团队结合完整上下文复核；若连续两次未获批准，当前轮次将改由其他处理路径继续。消息内容应简洁、人性化，适合在即时通讯平台上阅读。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"channelId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标渠道 ID，如 wechat",
-					},
-					"accountId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标账号 ID，对应渠道中的登录账户",
-					},
-					"userId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标用户 ID，要发送给的具体用户",
-					},
-					"content": map[string]interface{}{
-						"type":        "string",
-						"description": "要发送的消息正文内容。保持简洁自然，适合在即时通讯平台阅读。",
-					},
-				},
-				"required": []string{"channelId", "accountId", "userId", "content"},
-			},
-		},
-	})
-}
 
 // BuildFetchWebPageToolDef 构建网页内容获取工具定义。
 func BuildFetchWebPageToolDef() ToolDef {
@@ -1162,85 +956,8 @@ func BuildFetchWebPageToolDef() ToolDef {
 	}
 }
 
-// BuildListMagiChannelsToolDef 构建列出所有已注册外部渠道的工具定义。
-func BuildListMagiChannelsToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        ListMagiChannelsToolName,
-			Description: "列出所有已注册的外部消息渠道（如微信等即时通讯平台）及其运行状态，包括渠道 ID、连接状态、账号 ID、用户数、能力（receive/proactive_send）等。可通过返回的渠道 ID 配合 list_magi_contacts 查找联系人，或作为 send_channel_message 的 channelId 参数。",
-			Parameters: map[string]interface{}{
-				"type":       "object",
-				"properties": map[string]interface{}{},
-			},
-		},
-	}
-}
-
 // BuildFetchChannelMessagesToolDef 构建查看指定渠道最近消息的工具定义。
-func BuildFetchChannelMessagesToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        FetchChannelMessagesToolName,
-			Description: "查看指定渠道的最近消息记录。先使用 list_magi_channels 确认可用的 channelId 和 accountId。返回按时间倒序排列的消息列表，支持按用户、方向筛选和游标分页。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"channelId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标渠道 ID，如 wechat",
-					},
-					"accountId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标账号 ID，对应渠道中的登录账户",
-					},
-					"userId": map[string]interface{}{
-						"type":        "string",
-						"description": "可选，按用户 ID 筛选消息",
-					},
-					"limit": map[string]interface{}{
-						"type":        "integer",
-						"description": "返回条数，默认 20，最大 100",
-						"minimum":     1,
-						"maximum":     100,
-					},
-					"before": map[string]interface{}{
-						"type":        "integer",
-						"description": "游标，获取此 Unix 毫秒时间戳之前的消息（用于分页向前翻）",
-					},
-					"direction": map[string]interface{}{
-						"type":        "string",
-						"description": "可选，筛选消息方向：inbound（收到的消息）或 outbound（发送的消息）",
-						"enum":        []string{"inbound", "outbound"},
-					},
-				},
-				"required": []string{"channelId", "accountId"},
-			},
-		},
-	}
-}
-
 // BuildListMagiContactsToolDef 构建列出所有已知外部联系人的工具定义。
-func BuildListMagiContactsToolDef() ToolDef {
-	return ToolDef{
-		Type: "function",
-		Function: ToolFunctionDef{
-			Name:        ListMagiContactsToolName,
-			Description: "列出所有已知的外部联系人（通过外部消息渠道交互过或绑定了身份的用户），包括所属渠道、账号 ID、用户 ID、昵称、身份标签、显示名、信任等级、风险等级等。发送消息前应先调用此工具查找收件人的 userId、channelId 和 accountId，再传给 send_channel_message。可选参数 channelId 用于筛选特定渠道的联系人。",
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"channelId": map[string]interface{}{
-						"type":        "string",
-						"description": "可选，要筛选的渠道 ID，如 wechat。不传则返回所有渠道的联系人。",
-					},
-				},
-			},
-		},
-	}
-}
-
 // MAGIConfig MAGI系统完整配置
 type MAGIConfig struct {
 	Melchior  AgentConfig `json:"melchior"`
