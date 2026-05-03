@@ -26,6 +26,8 @@ import { tabRegistry } from "../registry";
 import { createApp } from "vue";
 import type { Custom } from "../layout/dock/Custom";
 import { isMobile } from "../platform";
+import { createVueComponentLoader } from "../util/vue/mount";
+import AIProfilesConfig from "./ai/AIProfilesConfig.vue";
 
 export const genItemPanel = (type: string, containerElement: Element, app: App) => {
     switch (type) {
@@ -93,6 +95,13 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
             publish.element = containerElement;
             publish.bindEvent();
             break;
+        case "AIProfiles":
+            containerElement.innerHTML = "";
+            createVueComponentLoader(containerElement as HTMLElement, {
+                components: { AIProfilesConfig },
+                template: "<AIProfilesConfig />"
+            });
+            break;
         default:
             break;
     }
@@ -129,6 +138,7 @@ export const openSetting = (app: App) => {
     <li data-name="filetree" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconFiles"></use></svg><span class="b3-list-item__text">${siyuanI18n.fileTree}</span></li>
     <li data-name="card" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconRiffCard"></use></svg><span class="b3-list-item__text">${siyuanI18n.riffCard}</span></li>
     <li data-name="AI" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconSparkles"></use></svg><span class="b3-list-item__text">AI</span></li>
+    <li data-name="AIProfiles" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconSparkles"></use></svg><span class="b3-list-item__text">AI Profiles</span></li>
     <li data-name="image" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">${siyuanI18n.assets}</span></li>
     <li data-name="export" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconUpload"></use></svg><span class="b3-list-item__text">${siyuanI18n.export}</span></li>
     <li data-name="appearance" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconTheme"></use></svg><span class="b3-list-item__text">${siyuanI18n.appearance}</span></li>
@@ -146,6 +156,7 @@ export const openSetting = (app: App) => {
       <div class="config__tab-container fn__none" data-name="filetree"></div>
       <div class="config__tab-container fn__none" data-name="card"></div>
       <div class="config__tab-container config__tab-container--top fn__none" data-name="AI"></div>
+      <div class="config__tab-container fn__none" data-name="AIProfiles"></div>
       <div class="config__tab-container config__tab-container--top fn__none" data-name="image"></div>
       <div class="config__tab-container fn__none" data-name="export"></div>
       <div class="config__tab-container fn__none" data-name="appearance"></div>

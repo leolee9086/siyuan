@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -21,6 +19,8 @@ var wsUpgrader = websocket.Upgrader{
 }
 
 func cliWebSocketHandler(c *gin.Context) {
+	authenticatedUser, hasAuth := resolveAuthenticatedCLIUser(c)
+
 	conn, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logging.LogErrorf("CLI WebSocket upgrade failed: %v", err)
@@ -53,29 +53,27 @@ func cliWebSocketHandler(c *gin.Context) {
 		return
 	}
 
-	toolName, err := cli.SanitizeField(auth.ToolName)
+	sessionID, err := cli.SanitizeField(auth.SessionID)
 	if err != nil {
-		_ = conn.WriteJSON(map[string]string{"type": "auth_result", "error": "invalid toolName"})
+		_ = conn.WriteJSON(map[string]string{"type": "auth_result", "error": "invalid sessionId"})
 		conn.Close()
 		return
 	}
 
 	workingDir, err := cli.SanitizeField(auth.WorkingDir)
 	if err != nil {
-		_ = conn.WriteJSON(map[string]string{"type": "auth_result", "error": "invalid workingDir"})
-		conn.Close()
-		return
+		workingDir = ""
 	}
 
 	scenario, err := cli.SanitizeField(auth.Scenario)
 	if err != nil {
-		scenario = "general"
+		scenario = ""
 	}
 
 	identity := &cli.Identity{
-		ToolName:   toolName,
-		WorkingDir: workingDir,
-		Scenario:   scenario,
+		AuthenticatedUser: authenticatedUser,
+		WorkingDir:        workingDir,
+		Scenario:          scenario,
 	}
 
 	if auth.Token != "" {
@@ -85,13 +83,19 @@ func cliWebSocketHandler(c *gin.Context) {
 			conn.Close()
 			return
 		}
-		identity.Delegation = delegation
+		if delegation != nil {
+			identity.AuthenticatedUser = delegation.UserID
+		}
 	}
-
-	sessionID := generateCLISessionID()
 
 	adapter := cli.NewAdapter(sessionID, conn, identity)
 	channel.Register(adapter)
+
+	if hasAuth {
+		logging.LogInfof("CLI adapter connected: user=%s session=%s", authenticatedUser, sessionID)
+	} else {
+		logging.LogWarnf("CLI adapter connected without workspace token: session=%s", sessionID)
+	}
 
 	if err := adapter.Start(context.Background()); err != nil {
 		logging.LogErrorf("CLI adapter start failed: %v", err)
@@ -104,6 +108,17 @@ func cliWebSocketHandler(c *gin.Context) {
 
 	_ = adapter.Stop(context.Background())
 	channel.Unregister(adapter.ID())
+}
+
+func resolveAuthenticatedCLIUser(c *gin.Context) (string, bool) {
+	if claims, ok := c.Get(model.ClaimsContextKey); ok {
+		if mapClaims, ok := claims.(map[string]interface{}); ok {
+			if username, ok := mapClaims["jti"].(string); ok && username != "" {
+				return username, true
+			}
+		}
+	}
+	return "", false
 }
 
 func magiIssueCLIToken(c *gin.Context) {
@@ -126,13 +141,6 @@ func magiIssueCLIToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-func generateCLISessionID() string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-// verifyCLIToken 验证 CLI 代理身份 token 并返回解析后的委托身份。
 func verifyCLIToken(token string) (*cli.Delegation, error) {
 	if token == "" {
 		return nil, nil

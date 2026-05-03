@@ -25,11 +25,15 @@ type Adapter struct {
 }
 
 func NewAdapter(sessionID string, conn *websocket.Conn, identity *Identity) *Adapter {
-	instanceID := fmt.Sprintf("cli-%s-%s", identity.ToolName, sessionID)
+	instanceID := fmt.Sprintf("cli-%s-%s", sessionID, generateShortID())
 
 	cfg := &channel.TrustConfig{
-		DefaultTrust: channel.TrustMedium,
-		DefaultRisk:  channel.RiskLow,
+		DefaultTrust: channel.TrustLow,
+		DefaultRisk:  channel.RiskHigh,
+	}
+	if identity.AuthenticatedUser != "" {
+		cfg.DefaultTrust = channel.TrustMedium
+		cfg.DefaultRisk = channel.RiskLow
 	}
 
 	return &Adapter{
@@ -39,7 +43,7 @@ func NewAdapter(sessionID string, conn *websocket.Conn, identity *Identity) *Ada
 		cfg:      cfg,
 		status: channel.ChannelStatus{
 			ID:        instanceID,
-			AccountID: identity.ToolName + "-" + sessionID,
+			AccountID: sessionID,
 			Connected: true,
 			UserCount: 1,
 		},

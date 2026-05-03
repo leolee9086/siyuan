@@ -1,0 +1,24 @@
+{
+  "name": "@s-forge/magi-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for communicating with MAGI via WebSocket",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "magi-cli": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

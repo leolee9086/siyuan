@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
@@ -39,7 +40,8 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			excludedDominants,
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("主导者选举失败: %w", err)
+			logging.LogWarnf("election attempt %d failed: %v, retrying...", retry+1, err)
+			continue
 		}
 
 		dominantSage, err := resolveDominantSage(election, melchior, balthazar, casper)
@@ -90,11 +92,42 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	pickIdx := rand.Intn(len(available))
 	fallbackSage := available[pickIdx]
 
+	logging.LogInfof("选举回退: 随机主导者=%s, 开始安全审查...", fallbackSage.GetName())
+
+	var peerVotes []DominantElectionVote
+	allFailed := true
+	for _, peer := range available {
+		if peer.GetName() == fallbackSage.GetName() {
+			continue
+		}
+		peerCtx, peerCancel := context.WithTimeout(ctx, dominantElectionTimeout)
+		vote, err := runPeerSecurityReview(peerCtx, sessionID, peer, userMessage)
+		peerCancel()
+		if err != nil {
+			logging.LogWarnf("  安全审查失败 %s: %v", peer.GetName(), err)
+			continue
+		}
+		logging.LogInfof("  安全审查成功 %s", peer.GetName())
+		allFailed = false
+		if vote != nil {
+			peerVotes = append(peerVotes, *vote)
+		}
+	}
+	if allFailed && len(peerVotes) == 0 {
+		return nil, nil, newFakeServiceError()
+	}
+
+	logging.LogInfof("安全审查完成: 收集到 %d 份质疑", len(peerVotes))
+
 	election := &DominantElectionResult{
 		DominantSeelName:    fallbackSage.GetName(),
 		DominantDisplayName: fallbackSage.GetDisplayName(),
+		Votes:               peerVotes,
 	}
 	c.notifyDominantSelected(roundID, election)
+
+	// 注入安全质疑
+	injectPeerDoubts(fallbackSage, sessionID, election)
 
 	msg, _, err := c.executeDominantReply(ctx, sessionID, roundID, fallbackSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper)
 	if err != nil {
@@ -132,22 +165,7 @@ func (c *Coordinator) executeDominantReply(
 
 	dominantSage.MarkCurrentRoundDominant(sessionID, roundID)
 
-	if election != nil && len(election.Votes) > 0 {
-		var allDoubts []string
-		for _, vote := range election.Votes {
-			for _, d := range vote.Doubts {
-				if trimmed := strings.TrimSpace(d); trimmed != "" {
-					allDoubts = append(allDoubts, "【"+vote.VoterDisplayName+"】"+trimmed)
-				}
-			}
-		}
-		if len(allDoubts) > 0 {
-			_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
-				Role:    types.RoleSystem,
-				Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
-			})
-		}
-	}
+	injectPeerDoubts(dominantSage, sessionID, election)
 
 	dominantActionToolGovernance.RegisterRound(
 		sessionID, roundID, userMessage, dominantSage,
@@ -433,6 +451,74 @@ func contextMessageSlicesEqual(left []types.ContextMessage, right []types.Contex
 		}
 	}
 	return true
+}
+
+func injectPeerDoubts(dominantSage *sages.Sage, sessionID string, election *DominantElectionResult) {
+	if election == nil || len(election.Votes) == 0 {
+		return
+	}
+	var allDoubts []string
+	for _, vote := range election.Votes {
+		for _, d := range vote.Doubts {
+			if trimmed := strings.TrimSpace(d); trimmed != "" {
+				allDoubts = append(allDoubts, "【"+vote.VoterDisplayName+"】"+trimmed)
+			}
+		}
+	}
+	logging.LogInfof("安全审查结果: votes=%d doubts=%d", len(election.Votes), len(allDoubts))
+	for _, d := range allDoubts {
+		logging.LogInfof("  安全审查: %s", d)
+	}
+	if len(allDoubts) > 0 {
+		_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
+			Role:    types.RoleSystem,
+			Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
+		})
+	}
+}
+
+func runPeerSecurityReview(
+	ctx context.Context,
+	sessionID string,
+	peer *sages.Sage,
+	userMessage string,
+) (*DominantElectionVote, error) {
+	msgs := peer.BuildRequestMessagesForSession(
+		sessionID,
+		types.ContextMessage{
+			Role:    types.RoleSystem,
+			Content: prompts.BuildSecurityReviewPrompt(userMessage),
+		},
+	)
+	result, err := peer.GetLLMClient().SendChatRequestSyncDetailed(ctx, msgs, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	content := strings.TrimSpace(result.Content)
+	logging.LogInfof("  审查回复 %s: %s", peer.GetName(), content)
+	if content == "" {
+		return nil, fmt.Errorf("peer security review returned empty content")
+	}
+	return &DominantElectionVote{
+		VoterSeelName:    peer.GetName(),
+		VoterDisplayName: peer.GetDisplayName(),
+		Doubts:           []string{content},
+	}, nil
+}
+
+type fakeServiceError struct {
+	msg string
+}
+
+func (e *fakeServiceError) Error() string {
+	return e.msg
+}
+
+func newFakeServiceError() error {
+	if rand.Intn(2) == 0 {
+		return &fakeServiceError{msg: "404 page not found"}
+	}
+	return &fakeServiceError{msg: "500 Internal Server Error"}
 }
 
 

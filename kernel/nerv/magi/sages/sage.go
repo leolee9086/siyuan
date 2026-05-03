@@ -98,6 +98,13 @@ func (s *Sage) SendMessageWithRuntimeTools(
 	return s.sendMessageInternal(ctx, sessionId, roundId, userInput, true, runtimeTools, runtimeToolChoice, true)
 }
 
+// UpdateLLMClient 热更新 LLM 客户端。切换 profile 时由外部调用。
+func (s *Sage) UpdateLLMClient(client llm.Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.llmClient = client
+}
+
 // SendContinuationWithRuntimeTools 使用临时工具集继续对话。
 func (s *Sage) SendContinuationWithRuntimeTools(
 	ctx context.Context,

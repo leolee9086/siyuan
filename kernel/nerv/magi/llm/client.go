@@ -58,6 +58,12 @@ func NewClient(cfg *Config) Client {
 			ocfg.OmitToolChoice = true
 			return newOpenAIClient(&ocfg)
 		}
+		if isDeepSeekAnthropicURL(cfg.APIBaseURL) {
+			ocfg := *cfg
+			ocfg.APIBaseURL = deepSeekToOaURL(cfg.APIBaseURL)
+			ocfg.OmitToolChoice = true
+			return newOpenAIClient(&ocfg)
+		}
 		return &claudeClient{config: cfg}
 	}
 	return newOpenAIClient(cfg)
@@ -74,6 +80,30 @@ func toOaCompatURL(raw string) string {
 	}
 	clean := strings.TrimRight(raw, "/")
 	clean, _ = strings.CutSuffix(clean, "/messages")
+	return clean
+}
+
+func isDeepSeekAnthropicURL(raw string) bool {
+	lower := strings.ToLower(raw)
+	return strings.Contains(lower, "deepseek.com") && strings.Contains(lower, "/anthropic")
+}
+
+func deepSeekToOaURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	clean := strings.TrimRight(raw, "/")
+	clean, _ = strings.CutSuffix(clean, "/messages")
+	clean, _ = strings.CutSuffix(clean, "/v1")
+	clean = strings.TrimRight(clean, "/")
+	if idx := strings.Index(clean, "/anthropic"); idx >= 0 {
+		clean = clean[:idx]
+	}
+	clean = strings.TrimRight(clean, "/")
+	if !strings.HasSuffix(clean, "/v1") {
+		clean += "/v1"
+	}
 	return clean
 }
 

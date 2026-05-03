@@ -1,12 +1,15 @@
 package cli
 
-import "fmt"
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+)
 
 type Identity struct {
-	ToolName   string
-	WorkingDir string
-	Scenario   string
-	Delegation *Delegation
+	AuthenticatedUser string
+	WorkingDir        string
+	Scenario          string
 }
 
 type Delegation struct {
@@ -15,22 +18,22 @@ type Delegation struct {
 }
 
 func (i *Identity) UserID() string {
-	if i.Delegation != nil {
-		return i.Delegation.UserID
+	if i.AuthenticatedUser != "" {
+		return i.AuthenticatedUser
 	}
-	return "tool:" + i.ToolName
+	return "unknown"
 }
 
 func (i *Identity) DisplayName() string {
-	if i.Delegation != nil {
-		return fmt.Sprintf("%s (via %s)", i.Delegation.UserID, i.ToolName)
+	if i.AuthenticatedUser != "" {
+		return fmt.Sprintf("%s @ %s", i.AuthenticatedUser, i.WorkingDir)
 	}
-	return fmt.Sprintf("%s @ %s", i.ToolName, i.WorkingDir)
+	return fmt.Sprintf("unknown @ %s", i.WorkingDir)
 }
 
 type AuthFrame struct {
 	Type       string `json:"type"`
-	ToolName   string `json:"toolName"`
+	SessionID  string `json:"sessionId"`
 	Version    string `json:"version,omitempty"`
 	WorkingDir string `json:"workingDir"`
 	Scenario   string `json:"scenario"`
@@ -47,4 +50,10 @@ type AuthResultFrame struct {
 type messageFrame struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
+}
+
+func generateShortID() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }

@@ -46,7 +46,11 @@ func (c *claudeClient) SendChatRequest(
 		Tools:       convertOpenAIToolsToClaude(tools),
 	}
 
-	claudeToolChoice, err := convertOpenAIToolChoiceToClaude(toolChoice, len(tools) > 0)
+	tc := toolChoice
+	if c.config.OmitToolChoice {
+		tc = nil
+	}
+	claudeToolChoice, err := convertOpenAIToolChoiceToClaude(tc, len(tools) > 0)
 	if err != nil {
 		return nil, err
 	}

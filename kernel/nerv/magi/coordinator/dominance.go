@@ -104,6 +104,7 @@ func electDominantSageWithExclusionsAndSituations(
 	if err != nil {
 		return nil, err
 	}
+	logging.LogInfof("MAGI 选举开始: candidates=%d voters=melchior/balthazar/casper", len(candidates))
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("dominant election has no available candidates")
 	}

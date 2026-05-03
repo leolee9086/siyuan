@@ -201,6 +201,35 @@ func BootstrapMagiRuntimeAsync() {
 
 // initMagiComponents 初始化MAGI核心组件
 func initMagiComponents() error {
+	// 初始化 AI Profiles 存储层
+	if err := model.InitProfileStore(); err != nil {
+		logging.LogWarnf("init profile store: %v", err)
+	}
+	if err := model.MigrateFromConf(); err != nil {
+		logging.LogWarnf("migrate profiles from conf: %v", err)
+	}
+	if err := llm.InitPool(); err != nil {
+		logging.LogWarnf("init llm pool: %v", err)
+	}
+
+	// 注册 profile 切换回调（热更新 Sage 的 LLM 客户端）
+	llm.RegisterOnChange(func(name string) {
+		newClient := llm.GetActiveClient()
+		if newClient == nil {
+			return
+		}
+		if magiMelchior != nil {
+			magiMelchior.UpdateLLMClient(newClient)
+		}
+		if magiBalthazar != nil {
+			magiBalthazar.UpdateLLMClient(newClient)
+		}
+		if magiCasper != nil {
+			magiCasper.UpdateLLMClient(newClient)
+		}
+		logging.LogInfof("MAGI switched to profile: %s", name)
+	})
+
 	// 创建配置管理器（使用默认配置）
 	magiConfigMgr = config.NewConfigManager("")
 
@@ -227,8 +256,11 @@ func initMagiComponents() error {
 
 	setMagiPersonaRuntimeStatus(profile, isComplete, presetName)
 
-	// 创建 LLM 客户端（从全局配置）
-	llmClient := llm.NewClientFromConf(model.Conf.AI.OpenAI)
+	// 创建 LLM 客户端（优先使用 profile pool，兜底用全局配置）
+	llmClient := llm.GetActiveClient()
+	if llmClient == nil {
+		llmClient = llm.NewClientFromConf(model.Conf.AI.OpenAI)
+	}
 
 	// 创建四个 Sage 实例
 	magiMelchior, err = sages.NewMelchior(magiConfigMgr, llmClient)
@@ -765,16 +797,20 @@ func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
 	if ok {
 		if cliAdapter, ok2 := adapter.(*cli.Adapter); ok2 {
 			ident := cliAdapter.Identity()
-			rawAttributes["toolName"] = ident.ToolName
 			rawAttributes["workingDir"] = ident.WorkingDir
 			rawAttributes["scenario"] = ident.Scenario
-			if ident.Delegation != nil {
-				rawAttributes["delegatedUser"] = ident.Delegation.UserID
-			}
+			rawAttributes["authenticatedUser"] = ident.AuthenticatedUser
 		}
 	}
 
 	trustResult := globalTrustMgr.Resolve(channelID, accountID, userID)
+
+	authStrength := types.AuthStrengthWeak
+	identityDecl := "身份未经校验"
+	if userID != "unknown" && userID != "" {
+		authStrength = types.AuthStrengthMedium
+		identityDecl = "持有工作空间token，但身份未经校验"
+	}
 
 	sourceCtx := &types.RequestSourceContext{
 		Channel:               types.SourceChannelExternalAgent,
@@ -787,10 +823,11 @@ func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
 		DirectResponseAllowed: true,
 		TrustBase:             types.TrustLevel(trustResult.TrustBase),
 		RiskLevel:             types.TrustLevel(trustResult.RiskLevel),
-		AuthStrength:          types.AuthStrengthMedium,
+		AuthStrength:          authStrength,
 		ModelIntent:           "general",
 		RawAttributes:         rawAttributes,
 	}
+	rawAttributes["identityDeclaration"] = identityDecl
 
 	sessionID := getOrCreateSession(nil, sourceCtx)
 	if sessionID == "" {
