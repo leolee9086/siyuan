@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -33,26 +34,56 @@ type DominantSelectionObserver interface {
 	NotifyDominantSelected(roundID string, election *DominantElectionResult)
 }
 
+// ToolCallSnapshot 工具调用快照，记录最近一次调用的上下文。
+// 用于实现超时未调用提醒等钩子（TODO: 全局提醒、辅助者提醒等更多钩子待实现）。
+type ToolCallSnapshot struct {
+	LastRound uint64            // 最近一次调用的心跳轮次
+	Args      map[string]string // 从工具参数中提取的关键字段（由 ToolRemindPolicy.ContextKeys 定义）
+	UpdatedAt time.Time         // 最近一次调用的时间
+}
+
 // Coordinator MAGI决策协调器
 type Coordinator struct {
 	collector *ResponseCollector
 	avatar    *AvatarRuntime
 
-	runtimeMu                 sync.Mutex
+	runtimeMu              sync.Mutex
 	dominantSelectionObserver DominantSelectionObserver
-	roundBySession            map[string]uint64
+	roundBySession           map[string]uint64
 	workspaceSnapshotInterval uint64
+	toolCallRecords          map[string]*ToolCallSnapshot // tool name → 最近一次调用快照
+	toolRemindPolicies       map[string]*config.ToolRemindPolicy // tool name → 提醒策略（初始化时构建）
 }
 
 // NewCoordinator 创建决策协调器
 func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
-	return &Coordinator{
+	c := &Coordinator{
 		collector: NewResponseCollector(collectionTimeout),
 		avatar:    NewAvatarRuntime(),
 
 		roundBySession:            map[string]uint64{},
 		workspaceSnapshotInterval: defaultWorkspaceSnapshotInterval,
+		toolCallRecords:           map[string]*ToolCallSnapshot{},
 	}
+	c.toolRemindPolicies = buildToolRemindPoliciesLocked()
+	return c
+}
+
+// buildToolRemindPoliciesLocked 集中构建所有工具的提醒策略。
+// 遍历所有定义的工具，提取设置了 RemindPolicy 的策略。
+// 新增有提醒需求的工具只需在 ToolDef 中设置 Meta.RemindPolicy 即可自动纳入。
+func buildToolRemindPoliciesLocked() map[string]*config.ToolRemindPolicy {
+	defs := []config.ToolDef{
+		config.BuildSendChannelMessageToolDef(),
+		// TODO: 新增有提醒需求的工具在此处添加
+	}
+	m := map[string]*config.ToolRemindPolicy{}
+	for _, d := range defs {
+		if d.Meta.RemindPolicy != nil {
+			m[d.Function.Name] = d.Meta.RemindPolicy
+		}
+	}
+	return m
 }
 
 // SetDominantSelectionObserver 设置主导者选举监听器。

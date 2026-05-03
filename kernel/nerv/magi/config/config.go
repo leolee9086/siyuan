@@ -99,6 +99,20 @@ type ToolMeta struct {
 	EntersUnifiedContext bool // 工具调用结果进入统一上下文，三贤人间可共享/压缩
 	ResultArchived       bool // 结果外部存档到 /MAGI查询结果/
 	ResultPersisted      bool // 结果持久化到 /MAGI记忆/（跨会话保留）
+
+	// ── 调用提醒 ──
+	// RemindPolicy 工具调用超时未调用提醒策略。
+	// 非 nil 时生效。更多钩子（全局提醒、辅助者提醒等）待实现。
+	RemindPolicy *ToolRemindPolicy
+}
+
+// ToolRemindPolicy 工具调用超时未调用提醒策略。
+// 声明该工具在持续多少轮未被调用时向持有者发出提醒。
+// 当前仅实现了主导者提醒钩子，全局提醒、辅助者提醒等更多钩子待实现。
+type ToolRemindPolicy struct {
+	AfterRounds uint64              // 超过多少轮未调用则触发提醒
+	Templates   map[uint64]string   // 超出轮数 → 提醒模板，key 递增匹配，取≤实际超出轮数的最大 key
+	ContextKeys []string            // 需要从调用参数中提取并保存到记录的字段名
 }
 
 // ToolDef 工具定义

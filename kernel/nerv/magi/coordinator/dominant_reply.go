@@ -224,6 +224,9 @@ func buildDominantDirectReplyRuntimeTools(dominantSage *sages.Sage) []openai.Too
 	if !toolSetHasAllFunctionTools(baseTools, config.ListMagiContactsToolName) {
 		baseTools = append(baseTools, buildRuntimeTool(config.BuildListMagiContactsToolDef()))
 	}
+	if !toolSetHasAllFunctionTools(baseTools, config.SendChannelMessageToolName) {
+		baseTools = append(baseTools, buildRuntimeTool(config.BuildSendChannelMessageToolDef()))
+	}
 	if toolSetHasAllFunctionTools(baseTools, config.WriteDiaryToolName) {
 		return baseTools
 	}

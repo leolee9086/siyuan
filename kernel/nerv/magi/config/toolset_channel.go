@@ -39,6 +39,17 @@ func BuildSendChannelMessageToolDef() ToolDef {
 				"required": []string{"channelId", "accountId", "userId", "content"},
 			},
 		},
+		Meta: ToolMeta{
+			SendsExternalMessage: true,
+			RemindPolicy: &ToolRemindPolicy{
+				AfterRounds: 10,
+				Templates: map[uint64]string{
+					10: "⚠️ 你已经连续 {elapsed} 轮没有主动联系外部联系人了，长时间未联系可能会被认为失联。上一次联系时间：{lastTime}，理由：{motivation}。请考虑是否应该联系。",
+					20: "🔴 你已经连续 {elapsed} 轮没有主动联系外部联系人了。上一次联系已是 {lastTime}，理由：{motivation}。强烈建议尽快联系。",
+				},
+				ContextKeys: []string{"motivation"},
+			},
+		},
 	})
 }
 
