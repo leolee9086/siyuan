@@ -13,10 +13,10 @@ import (
 
 // ContextStrategy 上下文管理策略
 type ContextStrategy struct {
-	Type    string  `json:"type"`    // "token_percent" 或 "message_count"
+	Type    string  `json:"type"`    // "token_percent"、"message_count" 或 "round_count"
 	Value   float64 `json:"value"`   // token百分比或消息条数
 	Percent float64 `json:"percent"` // token占用百分比（仅用于token_percent类型）
-	Count   int     `json:"count"`   // 消息条数（仅用于message_count类型）
+	Count   int     `json:"count"`   // 条数/轮数（用于message_count或round_count类型）
 }
 
 // TimeoutConfig 超时配置
@@ -190,7 +190,7 @@ func defaultMelchiorConfig() AgentConfig {
 }
 
 // defaultBalthazarConfig 返回Balthazar默认配置
-// 注意：认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
+// 差异化策略：Balthazar使用40% token上下文，在信息完整性与思考深度间平衡
 func defaultBalthazarConfig() AgentConfig {
 	return AgentConfig{
 		Name: "balthazar",
@@ -202,14 +202,14 @@ func defaultBalthazarConfig() AgentConfig {
 			BaseWeight:   1.0,
 		},
 		MardukConfig:   MardukConfig{},
-		ContextPercent: 0.8,
+		ContextPercent: 0.4,
 		SystemPrompt:   prompts.BalthazarSystemPrompt,
 		Tools:          buildDefaultCoreSageTools(),
 	}
 }
 
 // defaultCasperConfig 返回Casper默认配置
-// 注意：认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
+// 差异化策略：Casper使用round_count 7轮上下文，不占用token百分比名额，观察历史的节奏而非内容
 func defaultCasperConfig() AgentConfig {
 	return AgentConfig{
 		Name: "casper",
@@ -221,14 +221,14 @@ func defaultCasperConfig() AgentConfig {
 			BaseWeight:   1.0,
 		},
 		MardukConfig:   MardukConfig{},
-		ContextPercent: 0.8,
+		ContextPercent: 0,
 		SystemPrompt:   prompts.CasperSystemPrompt,
 		Tools:          buildDefaultCoreSageTools(),
 	}
 }
 
 // defaultContextStrategy 返回默认上下文策略
-// 注意：三贤人统一使用80%上下文，认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
+// 差异化策略：Melchior 80% token（深广视角）、Balthazar 40% token（平衡）、Casper 7轮（节奏观察）
 func defaultContextStrategy() map[string]*ContextStrategy {
 	return map[string]*ContextStrategy{
 		"melchior": {
@@ -237,11 +237,11 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 		},
 		"balthazar": {
 			Type:    "token_percent",
-			Percent: 0.8,
+			Percent: 0.4,
 		},
 		"casper": {
-			Type:    "token_percent",
-			Percent: 0.8,
+			Type:  "round_count",
+			Count: 7,
 		},
 	}
 }

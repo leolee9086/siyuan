@@ -130,6 +130,8 @@ func (c *Coordinator) executeDominantReply(
 		logging.LogWarnf("推送主导者开始响应失败: %v", err)
 	}
 
+	dominantSage.MarkCurrentRoundDominant(sessionID, roundID)
+
 	if election != nil && len(election.Votes) > 0 {
 		var allDoubts []string
 		for _, vote := range election.Votes {

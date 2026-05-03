@@ -69,3 +69,6 @@ extraResources:
   - from: "pandoc/pandoc-resources"
     to: "pandoc-resources"
     filter: "!**/{.DS_Store}"
+  - from: "tiktoken"
+    to: "tiktoken"
+    filter: "!**/{.DS_Store}"

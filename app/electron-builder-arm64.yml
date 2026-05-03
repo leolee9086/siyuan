@@ -72,3 +72,6 @@ extraResources:
   - from: "appearance/fonts"
     to: "appearance/fonts"
     filter: "!**/{.DS_Store}"
+  - from: "tiktoken"
+    to: "tiktoken"
+    filter: "!**/{.DS_Store}"

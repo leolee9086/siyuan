@@ -55,6 +55,9 @@ type ContextMessage struct {
 	ToolCalls        []ToolCall             `json:"tool_calls,omitempty"`
 	ToolID           string                 `json:"tool_call_id,omitempty"`
 	Meta             map[string]interface{} `json:"meta,omitempty"`
+	RoundID          string                 `json:"round_id,omitempty"`
+	Dominant         bool                   `json:"-"`
+	Heartbeat        bool                   `json:"-"`
 }
 
 // ToolCall 工具调用结构

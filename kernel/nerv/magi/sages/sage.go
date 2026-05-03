@@ -4,6 +4,7 @@ package sages
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/88250/lute/ast"
@@ -49,7 +50,7 @@ type Sage struct {
 
 // NewSage 创建贤者实例
 func NewSage(name string, cfg *config.AgentConfig, client llm.Client, strategy *config.ContextStrategy) *Sage {
-	cm := newContextManager(strategy)
+	cm := newContextManager(strategy, client.GetModel())
 
 	// 转换工具定义
 	var tools []openai.Tool
@@ -244,11 +245,12 @@ func (s *Sage) CloneWithFreshContext() *Sage {
 	defer s.mu.RUnlock()
 
 	var clonedContextManager ContextManager
+	modelName := s.llmClient.GetModel()
 	switch s.contextManager.(type) {
 	case *multiSessionContextManager:
-		clonedContextManager = newMultiSessionContextManager(s.contextStrategy)
+		clonedContextManager = newMultiSessionContextManager(s.contextStrategy, modelName)
 	default:
-		clonedContextManager = newContextManager(s.contextStrategy)
+		clonedContextManager = newContextManager(s.contextStrategy, modelName)
 	}
 
 	clonedTools := append([]openai.Tool(nil), s.tools...)
@@ -334,6 +336,9 @@ func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.
 	if msg.ID == "" {
 		msg.ID = ast.NewNodeID()
 	}
+	if roundId != "" {
+		msg.RoundID = roundId
+	}
 	beforeCount := len(s.contextManager.GetMessagesForSession(sessionId))
 	s.contextManager.AddMessageWithSession(sessionId, msg)
 	afterCount := len(s.contextManager.GetMessagesForSession(sessionId))
@@ -397,23 +402,45 @@ func cloneContextMessages(messages []types.ContextMessage) []types.ContextMessag
 
 // contextManagerImpl 上下文管理器实现
 type contextManagerImpl struct {
-	mu       sync.RWMutex
-	messages []types.ContextMessage
-	strategy *config.ContextStrategy
+	mu              sync.RWMutex
+	messages        []types.ContextMessage
+	strategy        *config.ContextStrategy
+	modelName       string
+	lastRoundID     string
+	dominantRounds  map[string]bool
+	heartbeatRounds map[string]bool
 }
 
-func newContextManager(strategy *config.ContextStrategy) *contextManagerImpl {
+func newContextManager(strategy *config.ContextStrategy, modelName string) *contextManagerImpl {
 	return &contextManagerImpl{
-		messages: make([]types.ContextMessage, 0),
-		strategy: strategy,
+		messages:        make([]types.ContextMessage, 0),
+		strategy:        strategy,
+		modelName:       modelName,
+		dominantRounds:  make(map[string]bool),
+		heartbeatRounds: make(map[string]bool),
 	}
 }
 
 func (cm *contextManagerImpl) AddMessage(msg types.ContextMessage) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
+
+	if msg.RoundID != "" {
+		if cm.dominantRounds[msg.RoundID] {
+			msg.Dominant = true
+		}
+		if cm.heartbeatRounds[msg.RoundID] {
+			msg.Heartbeat = true
+		}
+	}
+
+	roundChanged := msg.RoundID != "" && msg.RoundID != cm.lastRoundID
+	if roundChanged {
+		cm.lastRoundID = msg.RoundID
+	}
+
 	cm.messages = append(cm.messages, msg)
-	cm.applyStrategyLocked()
+	cm.applyStrategyLocked(roundChanged)
 }
 
 func (cm *contextManagerImpl) GetMessages() []types.ContextMessage {
@@ -428,27 +455,34 @@ func (cm *contextManagerImpl) Clear() {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.messages = make([]types.ContextMessage, 0)
+	cm.lastRoundID = ""
+	cm.dominantRounds = make(map[string]bool)
+	cm.heartbeatRounds = make(map[string]bool)
 }
 
 func (cm *contextManagerImpl) ApplyStrategy(strategy *config.ContextStrategy) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.strategy = strategy
-	cm.applyStrategyLocked()
+	cm.applyStrategyLocked(true)
 }
 
-func (cm *contextManagerImpl) applyStrategyLocked() {
+func (cm *contextManagerImpl) applyStrategyLocked(roundChanged bool) {
 	if cm.strategy == nil {
 		return
 	}
 
 	if cm.strategy.Type == "message_count" && cm.strategy.Count > 0 {
-		// 固定消息条数策略
 		if len(cm.messages) > cm.strategy.Count {
 			cm.messages = cm.messages[len(cm.messages)-cm.strategy.Count:]
 		}
 	}
-	// token_percent策略暂不实现，需要token计数功能
+	if cm.strategy.Type == "round_count" && cm.strategy.Count > 0 && roundChanged {
+		cm.trimByRoundCount(cm.strategy.Count)
+	}
+	if cm.strategy.Type == "token_percent" && roundChanged {
+		cm.trimByRoundTokenPercent(cm.strategy.Percent)
+	}
 }
 
 // 会话感知方法实现（单一历史版本忽略sessionId）
@@ -478,28 +512,118 @@ func (cm *contextManagerImpl) UpdateMessage(sessionId string, msg types.ContextM
 	}
 }
 
-// multiSessionContextManager 多会话上下文管理器（用于Melchior）
-type multiSessionContextManager struct {
-	mu       sync.RWMutex
-	sessions map[string][]types.ContextMessage
-	strategy *config.ContextStrategy
+func (cm *contextManagerImpl) markRoundAttr(roundId string, dominant, heartbeat bool) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if dominant {
+		cm.dominantRounds[roundId] = true
+	}
+	if heartbeat {
+		cm.heartbeatRounds[roundId] = true
+	}
 }
 
-func newMultiSessionContextManager(strategy *config.ContextStrategy) *multiSessionContextManager {
+func (cm *contextManagerImpl) trimByRoundCount(maxRounds int) {
+	if maxRounds <= 0 || len(cm.messages) == 0 {
+		return
+	}
+	seen := make(map[string]bool)
+	roundOrder := make([]string, 0)
+	for i := len(cm.messages) - 1; i >= 0; i-- {
+		rid := cm.messages[i].RoundID
+		if rid == "" || seen[rid] {
+			continue
+		}
+		seen[rid] = true
+		roundOrder = append(roundOrder, rid)
+	}
+	if len(roundOrder) <= maxRounds {
+		return
+	}
+	keepRounds := make(map[string]bool)
+	for i := 0; i < maxRounds; i++ {
+		keepRounds[roundOrder[i]] = true
+	}
+	filtered := make([]types.ContextMessage, 0, len(cm.messages))
+	for _, msg := range cm.messages {
+		if msg.Role == types.RoleSystem || msg.RoundID == "" || keepRounds[msg.RoundID] {
+			filtered = append(filtered, msg)
+		}
+	}
+	cm.messages = filtered
+}
+
+func (cm *contextManagerImpl) trimByRoundTokenPercent(percent float64) {
+	if percent <= 0 || percent >= 100 || len(cm.messages) == 0 {
+		return
+	}
+	modelMaxTokens := estimateModelMaxTokens(cm.modelName)
+	targetTokens := int(float64(modelMaxTokens) * percent / 100.0)
+	if targetTokens <= 0 {
+		return
+	}
+
+	totalChars := 0
+	cutIdx := -1
+	for i := len(cm.messages) - 1; i >= 0; i-- {
+		msg := cm.messages[i]
+		totalChars += len(msg.Content) + len(msg.ReasoningContent)
+		estimatedTokens := totalChars / 4
+		if estimatedTokens > targetTokens && i > 0 {
+			cutIdx = i
+			break
+		}
+	}
+	if cutIdx >= 0 {
+		cm.messages = cm.messages[cutIdx:]
+	}
+}
+
+// multiSessionContextManager 多会话上下文管理器（用于Melchior）
+type multiSessionContextManager struct {
+	mu              sync.RWMutex
+	sessions        map[string][]types.ContextMessage
+	strategy        *config.ContextStrategy
+	modelName       string
+	lastRoundID     map[string]string
+	dominantRounds  map[string]map[string]bool
+	heartbeatRounds map[string]map[string]bool
+}
+
+func newMultiSessionContextManager(strategy *config.ContextStrategy, modelName string) *multiSessionContextManager {
 	return &multiSessionContextManager{
-		sessions: make(map[string][]types.ContextMessage),
-		strategy: strategy,
+		sessions:        make(map[string][]types.ContextMessage),
+		strategy:        strategy,
+		modelName:       modelName,
+		lastRoundID:     make(map[string]string),
+		dominantRounds:  make(map[string]map[string]bool),
+		heartbeatRounds: make(map[string]map[string]bool),
 	}
 }
 
 func (mscm *multiSessionContextManager) AddMessageWithSession(sessionId string, msg types.ContextMessage) {
 	mscm.mu.Lock()
 	defer mscm.mu.Unlock()
+
+	if msg.RoundID != "" {
+		if mscm.dominantRounds[sessionId] != nil && mscm.dominantRounds[sessionId][msg.RoundID] {
+			msg.Dominant = true
+		}
+		if mscm.heartbeatRounds[sessionId] != nil && mscm.heartbeatRounds[sessionId][msg.RoundID] {
+			msg.Heartbeat = true
+		}
+	}
+
+	roundChanged := msg.RoundID != "" && msg.RoundID != mscm.lastRoundID[sessionId]
+	if roundChanged {
+		mscm.lastRoundID[sessionId] = msg.RoundID
+	}
+
 	if mscm.sessions[sessionId] == nil {
 		mscm.sessions[sessionId] = make([]types.ContextMessage, 0)
 	}
 	mscm.sessions[sessionId] = append(mscm.sessions[sessionId], msg)
-	mscm.applyStrategyForSessionLocked(sessionId)
+	mscm.applyStrategyForSessionLocked(sessionId, roundChanged)
 }
 
 func (mscm *multiSessionContextManager) GetMessagesForSession(sessionId string) []types.ContextMessage {
@@ -518,6 +642,9 @@ func (mscm *multiSessionContextManager) ClearSession(sessionId string) {
 	mscm.mu.Lock()
 	defer mscm.mu.Unlock()
 	delete(mscm.sessions, sessionId)
+	delete(mscm.lastRoundID, sessionId)
+	delete(mscm.dominantRounds, sessionId)
+	delete(mscm.heartbeatRounds, sessionId)
 }
 
 func (mscm *multiSessionContextManager) UpdateMessage(sessionId string, msg types.ContextMessage) {
@@ -535,7 +662,7 @@ func (mscm *multiSessionContextManager) UpdateMessage(sessionId string, msg type
 	}
 }
 
-func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId string) {
+func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId string, roundChanged bool) {
 	if mscm.strategy == nil {
 		return
 	}
@@ -544,6 +671,12 @@ func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId 
 		if len(messages) > mscm.strategy.Count {
 			mscm.sessions[sessionId] = messages[len(messages)-mscm.strategy.Count:]
 		}
+	}
+	if mscm.strategy.Type == "round_count" && mscm.strategy.Count > 0 && roundChanged {
+		mscm.trimByRoundCount(sessionId, mscm.strategy.Count)
+	}
+	if mscm.strategy.Type == "token_percent" && roundChanged {
+		mscm.trimByRoundTokenPercent(sessionId, mscm.strategy.Percent)
 	}
 }
 
@@ -560,6 +693,9 @@ func (mscm *multiSessionContextManager) Clear() {
 	mscm.mu.Lock()
 	defer mscm.mu.Unlock()
 	mscm.sessions = make(map[string][]types.ContextMessage)
+	mscm.lastRoundID = make(map[string]string)
+	mscm.dominantRounds = make(map[string]map[string]bool)
+	mscm.heartbeatRounds = make(map[string]map[string]bool)
 }
 
 func (mscm *multiSessionContextManager) ApplyStrategy(strategy *config.ContextStrategy) {
@@ -567,7 +703,106 @@ func (mscm *multiSessionContextManager) ApplyStrategy(strategy *config.ContextSt
 	defer mscm.mu.Unlock()
 	mscm.strategy = strategy
 	for sessionId := range mscm.sessions {
-		mscm.applyStrategyForSessionLocked(sessionId)
+		mscm.applyStrategyForSessionLocked(sessionId, true)
+	}
+}
+
+func (mscm *multiSessionContextManager) markRoundAttr(sessionId, roundId string, dominant, heartbeat bool) {
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	if dominant {
+		if mscm.dominantRounds[sessionId] == nil {
+			mscm.dominantRounds[sessionId] = make(map[string]bool)
+		}
+		mscm.dominantRounds[sessionId][roundId] = true
+	}
+	if heartbeat {
+		if mscm.heartbeatRounds[sessionId] == nil {
+			mscm.heartbeatRounds[sessionId] = make(map[string]bool)
+		}
+		mscm.heartbeatRounds[sessionId][roundId] = true
+	}
+}
+
+func (mscm *multiSessionContextManager) trimByRoundCount(sessionId string, maxRounds int) {
+	messages := mscm.sessions[sessionId]
+	if maxRounds <= 0 || len(messages) == 0 {
+		return
+	}
+	seen := make(map[string]bool)
+	roundOrder := make([]string, 0)
+	for i := len(messages) - 1; i >= 0; i-- {
+		rid := messages[i].RoundID
+		if rid == "" || seen[rid] {
+			continue
+		}
+		seen[rid] = true
+		roundOrder = append(roundOrder, rid)
+	}
+	if len(roundOrder) <= maxRounds {
+		return
+	}
+	keepRounds := make(map[string]bool)
+	for i := 0; i < maxRounds; i++ {
+		keepRounds[roundOrder[i]] = true
+	}
+	filtered := make([]types.ContextMessage, 0, len(messages))
+	for _, msg := range messages {
+		if msg.Role == types.RoleSystem || msg.RoundID == "" || keepRounds[msg.RoundID] {
+			filtered = append(filtered, msg)
+		}
+	}
+	mscm.sessions[sessionId] = filtered
+}
+
+func (mscm *multiSessionContextManager) trimByRoundTokenPercent(sessionId string, percent float64) {
+	messages := mscm.sessions[sessionId]
+	if percent <= 0 || percent >= 100 || len(messages) == 0 {
+		return
+	}
+	modelMaxTokens := estimateModelMaxTokens(mscm.modelName)
+	targetTokens := int(float64(modelMaxTokens) * percent / 100.0)
+	if targetTokens <= 0 {
+		return
+	}
+
+	totalChars := 0
+	cutIdx := -1
+	for i := len(messages) - 1; i >= 0; i-- {
+		msg := messages[i]
+		totalChars += len(msg.Content) + len(msg.ReasoningContent)
+		estimatedTokens := totalChars / 4
+		if estimatedTokens > targetTokens && i > 0 {
+			cutIdx = i
+			break
+		}
+	}
+	if cutIdx >= 0 {
+		mscm.sessions[sessionId] = messages[cutIdx:]
+	}
+}
+
+// MarkCurrentRoundDominant 将指定会话的当前轮次标记为支配轮，后续该轮次的
+// 消息入库时会自动带上 Dominant 标记，供策略检索时优先保留。
+func (s *Sage) MarkCurrentRoundDominant(sessionId, roundId string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if mscm, ok := s.contextManager.(*multiSessionContextManager); ok {
+		mscm.markRoundAttr(sessionId, roundId, true, false)
+	} else if cm, ok := s.contextManager.(*contextManagerImpl); ok {
+		cm.markRoundAttr(roundId, true, false)
+	}
+}
+
+// MarkCurrentRoundHeartbeat 将指定会话的当前轮次标记为心跳轮，后续该轮次的
+// 消息入库时会自动带上 Heartbeat 标记，供策略检索时优先保留。
+func (s *Sage) MarkCurrentRoundHeartbeat(sessionId, roundId string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if mscm, ok := s.contextManager.(*multiSessionContextManager); ok {
+		mscm.markRoundAttr(sessionId, roundId, false, true)
+	} else if cm, ok := s.contextManager.(*contextManagerImpl); ok {
+		cm.markRoundAttr(roundId, false, true)
 	}
 }
 
@@ -583,7 +818,7 @@ func NewMelchior(cfgManager *config.ConfigManager, client llm.Client) (*Sage, er
 	strategy := cfgManager.GetContextStrategy("melchior")
 
 	// Melchior使用多会话ContextManager
-	cm := newMultiSessionContextManager(strategy)
+	cm := newMultiSessionContextManager(strategy, client.GetModel())
 
 	// 转换工具定义
 	var tools []openai.Tool
@@ -649,4 +884,30 @@ func getPersonaProfileFromConfigManager(cfgManager *config.ConfigManager) *mardu
 		return profile
 	}
 	return nil
+}
+
+func estimateModelMaxTokens(modelName string) int {
+	lower := strings.ToLower(modelName)
+	switch {
+	case strings.Contains(lower, "gpt-4-32k"):
+		return 32768
+	case strings.Contains(lower, "gpt-4"):
+		return 8192
+	case strings.Contains(lower, "gpt-3.5-turbo-16k"):
+		return 16384
+	case strings.Contains(lower, "gpt-3.5"):
+		return 4096
+	case strings.Contains(lower, "claude-3-opus"):
+		return 200000
+	case strings.Contains(lower, "claude-3-sonnet"):
+		return 200000
+	case strings.Contains(lower, "claude-3-haiku"):
+		return 200000
+	case strings.Contains(lower, "claude-3.5"):
+		return 200000
+	case strings.Contains(lower, "claude-4"):
+		return 200000
+	default:
+		return 8192
+	}
 }

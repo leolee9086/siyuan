@@ -171,6 +171,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/otiai10/gosseract/v2 v2.4.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pkoukk/tiktoken-go v0.1.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/qiniu/go-sdk/v7 v7.26.8 // indirect

@@ -200,16 +200,46 @@ func TestDefaultContextStrategy_CoversOnlyCoreSages(t *testing.T) {
 	if len(strategies) != 3 {
 		t.Fatalf("期望仅保留三贤人的默认上下文策略，实际=%d", len(strategies))
 	}
-	for _, key := range []string{"melchior", "balthazar", "casper"} {
-		strategy, ok := strategies[key]
+
+	// melchior: token_percent, percent=0.8
+	{
+		strategy, ok := strategies["melchior"]
 		if !ok || strategy == nil {
-			t.Fatalf("缺少 %s 默认上下文策略", key)
+			t.Fatal("缺少 melchior 默认上下文策略")
 		}
 		if strategy.Type != "token_percent" {
-			t.Fatalf("期望 %s 使用 token_percent，实际=%s", key, strategy.Type)
+			t.Fatalf("期望 melchior 使用 token_percent，实际=%s", strategy.Type)
 		}
 		if strategy.Percent != 0.8 {
-			t.Fatalf("期望 %s percent=0.8，实际=%v", key, strategy.Percent)
+			t.Fatalf("期望 melchior percent=0.8，实际=%v", strategy.Percent)
+		}
+	}
+
+	// balthazar: token_percent, percent=0.4
+	{
+		strategy, ok := strategies["balthazar"]
+		if !ok || strategy == nil {
+			t.Fatal("缺少 balthazar 默认上下文策略")
+		}
+		if strategy.Type != "token_percent" {
+			t.Fatalf("期望 balthazar 使用 token_percent，实际=%s", strategy.Type)
+		}
+		if strategy.Percent != 0.4 {
+			t.Fatalf("期望 balthazar percent=0.4，实际=%v", strategy.Percent)
+		}
+	}
+
+	// casper: round_count, count=7
+	{
+		strategy, ok := strategies["casper"]
+		if !ok || strategy == nil {
+			t.Fatal("缺少 casper 默认上下文策略")
+		}
+		if strategy.Type != "round_count" {
+			t.Fatalf("期望 casper 使用 round_count，实际=%s", strategy.Type)
+		}
+		if strategy.Count != 7 {
+			t.Fatalf("期望 casper count=7，实际=%d", strategy.Count)
 		}
 	}
 }
