@@ -916,7 +916,7 @@ func BuildPersistSessionMemoryToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        PersistSessionMemoryToolName,
-			Description: "将当前会话中值得记住的信息持久化保存到 MAGI 记忆笔记中。由当轮主导AI自主判断是否触发。写入时按自己的场景tag系统打标。只读/追加操作，无需投票。",
+			Description: "将当前会话中值得记住的信息持久化保存到记忆笔记中。这是一个只读/追加操作，风险可控。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
