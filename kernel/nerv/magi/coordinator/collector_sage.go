@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -46,6 +48,12 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 	}
 
+	// 主导AI开始输出前排 #todo 快照 A
+	var preTodoBlocks []*model.Block
+	if !options.IsSleepMode && requireActionTool {
+		preTodoBlocks, _, _, _, _ = runNoteKeywordFullTextSearch(`"#todo"`, 50)
+	}
+
 	for turn := 0; ; turn++ {
 		streamCh, err := rc.sendSageTurnMessage(ctx, sessionId, roundId, sage, modelInput, options, turn)
 		if err != nil {
@@ -71,6 +79,26 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 
 			if !options.IsSleepMode && !workLogToolAdded && hbInvestigated && (!requireActionTool || hbActionToolUsed) {
+				if requireActionTool && len(preTodoBlocks) > 0 {
+					curBlocks, _, _, _, _ := runNoteKeywordFullTextSearch(`"#todo"`, 50)
+					preFP := computeTodoFP(preTodoBlocks)
+					curFP := computeTodoFP(curBlocks)
+
+					if curFP == preFP {
+						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+							Role:    types.RoleSystem,
+							Content: "[系统提示] 本轮 #todo 无任何变化，必须完成或新增待办后才能进入工作日志。",
+						})
+						continue
+					}
+
+					if diff := countBlockDiff(preTodoBlocks, curBlocks); diff > maxTodoChurnPerRound {
+						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+							Role:    types.RoleSystem,
+							Content: fmt.Sprintf("[系统提示] 本轮 #todo 变化较多（%d 个块），请注意收敛操作范围。", diff),
+						})
+					}
+				}
 				options.RuntimeTools = append(options.RuntimeTools, buildWorkLogRestToolForSage(sage.GetName()))
 				workLogToolAdded = true
 			}
@@ -622,4 +650,58 @@ func (rc *ResponseCollector) pushFailed(sage *sages.Sage, roundId, errMsg string
 	if pushErr := websocket.PushSeelReplyFailed(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
 		logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 	}
+}
+
+const maxTodoChurnPerRound = 5
+
+func computeTodoFP(blocks []*model.Block) string {
+	type entry struct {
+		id      string
+		updated string
+	}
+	entries := make([]entry, 0, len(blocks))
+	for _, b := range blocks {
+		if b != nil && b.ID != "" {
+			entries = append(entries, entry{id: b.ID, updated: b.Updated})
+		}
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
+	var sb strings.Builder
+	for i, e := range entries {
+		if i > 0 {
+			sb.WriteByte(',')
+		}
+		sb.WriteString(e.id)
+		sb.WriteByte(':')
+		sb.WriteString(e.updated)
+	}
+	return sb.String()
+}
+
+func countBlockDiff(before, after []*model.Block) int {
+	bm := make(map[string]string, len(before))
+	for _, b := range before {
+		if b != nil {
+			bm[b.ID] = b.Updated
+		}
+	}
+	am := make(map[string]string, len(after))
+	for _, b := range after {
+		if b != nil {
+			am[b.ID] = b.Updated
+		}
+	}
+	diff := 0
+	for id, up := range bm {
+		aup, ok := am[id]
+		if !ok || aup != up {
+			diff++
+		}
+	}
+	for id := range am {
+		if _, ok := bm[id]; !ok {
+			diff++
+		}
+	}
+	return diff
 }
