@@ -349,6 +349,10 @@ func BuildWannaSleepRecordToolDef() ToolDef {
 						"type":        "string",
 						"description": "本次醒来期间已经完成的检查、思考或处理摘要；若暂无任务，可简要记录当前心情和最近做了什么。不要重复写系统状态，因为系统会自动记录。",
 					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
+					},
 				},
 				"required": []string{"summary"},
 			},
@@ -374,6 +378,10 @@ func BuildWannaSleepPlanToolDef() ToolDef {
 						"type":        "string",
 						"description": "接下来最值得推进的步骤、顺序或检查计划。",
 					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
+					},
 				},
 				"required": []string{"summary", "nextStepPlan"},
 			},
@@ -398,6 +406,10 @@ func BuildWannaSleepDreamToolDef() ToolDef {
 					"dreamScene": map[string]interface{}{
 						"type":        "string",
 						"description": "可直接交给文生图接口的画面描述，具体,生动,用意向和场景表达你的情绪和联想,注意因为其他人可能并不知道你长什么样,所以如果画面中出现你自己,用具体的形象而不是简单地说'我'。",
+					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
 					},
 				},
 				"required": []string{"summary", "dreamScene"},

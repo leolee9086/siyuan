@@ -137,6 +137,10 @@ func (t *wannaSpeakStateTracker) GetCapturedContent() string {
 	return ""
 }
 
+func (t *wannaSpeakStateTracker) IsPhaseCompleted() bool {
+	return t.phase == coreSagePhaseCompleted
+}
+
 func (t *wannaSpeakStateTracker) IsCompletedPair() bool {
 	return t.startCount > 0 &&
 		t.continueCount > 0 &&

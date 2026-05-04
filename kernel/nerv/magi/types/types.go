@@ -212,6 +212,7 @@ type HeartbeatDowntimeTool struct {
 	DreamScene   string `json:"dreamScene,omitempty"`
 	Reflection   string `json:"reflection,omitempty"` // 睡眠时段 Melchior 回想反思
 	Mood         string `json:"mood,omitempty"`       // 非睡眠时段 Balthazar 工作心情
+	Deep         bool   `json:"deep,omitempty"`       // 是否进行深度休息，清理上下文记忆
 }
 
 // WriteDiaryTool 主导者向 AI 主笔记本当日日记写入 callout 容器式条目的工具参数。

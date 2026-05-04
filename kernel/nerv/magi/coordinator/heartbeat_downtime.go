@@ -95,6 +95,24 @@ func (c *Coordinator) finalizeHeartbeatSleepRound(
 		logging.LogWarnf("归档合并后的 wanna_sleep 记忆失败 [%s]: %v", roundID, err)
 	}
 
+	// 深度休息：清理请求 deep=true 的贤人的上下文
+	for _, entry := range []struct {
+		sage *sages.Sage
+		resp *types.SageResponse
+	}{
+		{melchior, melchiorResp},
+		{balthazar, balthazarResp},
+		{casper, casperResp},
+	} {
+		if entry.resp.DowntimeNote != nil && entry.resp.DowntimeNote.Deep {
+			entry.sage.ClearContextSession(sessionID)
+			_ = entry.sage.AddToContextWithSession(sessionID, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: entry.sage.GetSystemPrompt(),
+			})
+		}
+	}
+
 	appendMergedWannaSleepHistory(sessionID, roundID, melchior, melchiorResp, finalNote, sections, sleepAt)
 	appendMergedWannaSleepHistory(sessionID, roundID, balthazar, balthazarResp, finalNote, sections, sleepAt)
 	appendMergedWannaSleepHistory(sessionID, roundID, casper, casperResp, finalNote, sections, sleepAt)
@@ -176,6 +194,24 @@ func (c *Coordinator) finalizeHeartbeatRestRound(
 		sleepAt,
 	); err != nil {
 		logging.LogWarnf("归档合并后的 wanna_rest 记忆失败 [%s]: %v", roundID, err)
+	}
+
+	// 深度休息：清理请求 deep=true 的贤人的上下文
+	for _, entry := range []struct {
+		sage *sages.Sage
+		resp *types.SageResponse
+	}{
+		{melchior, melchiorResp},
+		{balthazar, balthazarResp},
+		{casper, casperResp},
+	} {
+		if entry.resp.DowntimeNote != nil && entry.resp.DowntimeNote.Deep {
+			entry.sage.ClearContextSession(sessionID)
+			_ = entry.sage.AddToContextWithSession(sessionID, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: entry.sage.GetSystemPrompt(),
+			})
+		}
 	}
 
 	appendMergedWannaRestHistory(sessionID, roundID, melchior, melchiorResp, finalNote, sections, sleepAt)

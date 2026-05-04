@@ -86,8 +86,30 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 		turnMadeProgress, turnStateErr := wannaSpeakTracker.ApplyTurnToolCalls(turnToolCalls)
 		if turnStateErr != nil {
-			rc.pushFailed(sage, roundId, turnStateErr.Error())
-			return nil, turnStateErr
+			if wannaSpeakTracker.IsPhaseCompleted() {
+				rc.pushFailed(sage, roundId, turnStateErr.Error())
+				return nil, turnStateErr
+			}
+			consecutiveTransitionFailures++
+			if consecutiveTransitionFailures >= _maxConsecutiveTransitionRetry {
+				err := fmt.Errorf("工具状态转移连续失败次数达到上限(%d): %v", _maxConsecutiveTransitionRetry, turnStateErr)
+				rc.pushFailed(sage, roundId, err.Error())
+				return nil, err
+			}
+			correctionPrompt := fmt.Sprintf(
+				"状态转移错误：%s\n请重新按顺序执行：先调用 %s，再调用 %s 追加内容，最后调用 %s。",
+				turnStateErr.Error(),
+				config.WannaSpeakStartToolName,
+				config.WannaSpeakContinueToolName,
+				config.WannaSpeakStopToolName,
+			)
+			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: correctionPrompt,
+			})
+			processor = utilstream.NewProcessor()
+			wannaSpeakTracker = newWannaSpeakStateTracker()
+			continue
 		}
 
 		if wannaSpeakTracker.IsCompletedPair() {

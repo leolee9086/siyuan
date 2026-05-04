@@ -127,6 +127,9 @@ func electDominantSageWithExclusionsAndSituations(
 		totals[string(candidate.Key)] = 0
 	}
 
+	// 收集所有贤者精力状况，注入选举上下文
+	statusInfo := buildSageElectionStatusInfo(sessionID, melchior, balthazar, casper)
+
 	for _, voter := range voters {
 		if voter == nil {
 			return nil, fmt.Errorf("dominant election voter is nil")
@@ -136,7 +139,7 @@ func electDominantSageWithExclusionsAndSituations(
 			ctx,
 			sessionID,
 			voter,
-			resolveDominantSituationForSage(voter, defaultSituation, situationBySeel),
+			resolveDominantSituationForSage(voter, defaultSituation, situationBySeel)+statusInfo,
 			candidates,
 		)
 		if voteErr != nil {
@@ -485,4 +488,21 @@ func collectDominantPromptLabels(candidates []dominantCandidate) []string {
 		}
 	}
 	return ret
+}
+
+// buildSageElectionStatusInfo 构建三贤人精力状况字符串，注入选举上下文。
+func buildSageElectionStatusInfo(sessionID string, melchior, balthazar, casper *sages.Sage) string {
+	var b strings.Builder
+	b.WriteString("\n\n当前各贤者精力状况：\n")
+	for _, sg := range []*sages.Sage{melchior, balthazar, casper} {
+		if sg == nil {
+			continue
+		}
+		b.WriteString(fmt.Sprintf("- %s：疲劳度=%s 唤醒值=%s\n",
+			sg.GetDisplayName(),
+			sages.FatigueLevel(sg.GetFatigue(sessionID)),
+			sages.WakefulnessLevel(sg.GetWakefulness(sessionID)),
+		))
+	}
+	return b.String()
 }

@@ -96,7 +96,9 @@ func TestSingleHistoryContextManager_IgnoresSession(t *testing.T) {
 	}
 }
 
-// testTiktokenDir 定位 tiktoken 资源目录（相对于测试源文件）。
+// testTiktokenDir 定位包含 tiktoken 编码器文件的资源目录。
+// 从测试源文件位置向上逐级查找，验证目录中必须存在 cl100k_base.tiktoken 或 o200k_base.tiktoken，
+// 避免被 InitTokenEncodersWithDir 的 os.MkdirAll 创建的空目录误导。
 func testTiktokenDir(t *testing.T) string {
 	t.Helper()
 	_, filename, _, ok := runtime.Caller(0)
@@ -107,14 +109,26 @@ func testTiktokenDir(t *testing.T) string {
 	for {
 		candidate := filepath.Join(dir, "app", "tiktoken")
 		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return candidate
+			if hasTiktokenFile(candidate) {
+				return candidate
+			}
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			t.Fatalf("cannot find app/tiktoken/ from %s", filename)
+			t.Fatalf("cannot find app/tiktoken/ with encoder files from %s", filename)
 		}
 		dir = parent
 	}
+}
+
+// hasTiktokenFile 检查目录中是否存在 tiktoken 编码器文件。
+func hasTiktokenFile(dir string) bool {
+	for _, name := range []string{"cl100k_base.tiktoken", "o200k_base.tiktoken"} {
+		if info, err := os.Stat(filepath.Join(dir, name)); err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 // TestTokenPercent_RoundBasedDiscard 验证 token_percent 策略在超预算时丢弃早期低优先级轮次。

@@ -2,6 +2,7 @@ package sages
 
 import (
 	"encoding/base64"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,18 +13,20 @@ import (
 
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 var (
-	gpt35Encoder   *tiktoken.Tiktoken
-	gpt4oEncoder   *tiktoken.Tiktoken
-	gpt4Encoder    *tiktoken.Tiktoken
-	defaultEncoder *tiktoken.Tiktoken
-	encoderMap     = map[string]*tiktoken.Tiktoken{}
-	encoderMu      sync.RWMutex
-	encodersReady  bool
+	gpt35Encoder    *tiktoken.Tiktoken
+	gpt4oEncoder    *tiktoken.Tiktoken
+	gpt4Encoder     *tiktoken.Tiktoken
+	defaultEncoder  *tiktoken.Tiktoken
+	encoderMap      = map[string]*tiktoken.Tiktoken{}
+	encoderMu       sync.RWMutex
+	encodersReady   bool
+	tiktokenDirPath string
 )
 
 // InitTokenEncoders 预加载 token 编码器。
@@ -38,6 +41,7 @@ func InitTokenEncodersWithDir(tiktokenDir string) error {
 		tiktokenDir = absDir
 	}
 	os.MkdirAll(tiktokenDir, 0755)
+	tiktokenDirPath = tiktokenDir
 
 	defaultLoader := tiktoken.NewDefaultBpeLoader()
 	tiktoken.SetBpeLoader(&localRedirectLoader{dir: tiktokenDir, fallback: defaultLoader})
@@ -357,6 +361,208 @@ func trimByRoundTokenPercent(messages []types.ContextMessage, percent float64, m
 		}
 	}
 	return result
+}
+
+// ─── 疲劳值/唤醒值算法 ───
+
+// countContextTokensFallback 统计上下文 token 数，优先使用 tiktoken 编码器，
+// 编码器未就绪时回退到字符估算。
+func countContextTokensFallback(messages []types.ContextMessage, model string) int {
+	enc := getTokenEncoder(model)
+	if enc != nil {
+		return countContextTokens(messages, enc)
+	}
+	logging.LogWarnf("countContextTokensFallback: 编码器未就绪 [%s]，tiktoken 目录 [%s]，回退到字符估算", model, tiktokenDirPath)
+	return estimateContextTokens(messages)
+}
+
+// estimateContextTokens 基于字符类别估算 token 数。
+// ASCII 字符按 4 chars/token，非 ASCII（含 CJK）按 2 chars/token。
+func estimateContextTokens(messages []types.ContextMessage) int {
+	total := 0
+	for _, msg := range messages {
+		total += estimateStringTokens(msg.Content)
+		total += estimateStringTokens(msg.ReasoningContent)
+	}
+	if total <= 0 {
+		return 0
+	}
+	if total < 1 {
+		return 1
+	}
+	return total
+}
+
+func estimateStringTokens(s string) int {
+	ascii := 0
+	other := 0
+	for _, r := range s {
+		if r < 128 {
+			ascii++
+		} else {
+			other++
+		}
+	}
+	return ascii/4 + other/2
+}
+
+// countUniqueRounds 统计消息中不重复的轮次数（排除 RoundID 为空的条目）。
+func countUniqueRounds(messages []types.ContextMessage) int {
+	seen := make(map[string]bool)
+	for _, msg := range messages {
+		if msg.RoundID != "" {
+			seen[msg.RoundID] = true
+		}
+	}
+	return len(seen)
+}
+
+func clampTo100(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
+
+// ─── 疲劳值 —— 衡量认知过载 / 幻觉风险 ───
+
+// CalculateFatigue 计算疲劳值 (0-100)。
+// 以策略预算上限为分母，convex 增长（^1.5）：早期负荷影响小，接近上限时加速攀升。
+// 疲劳值越高，上下文被裁剪的概率越大（开始遗忘信息）。
+func CalculateFatigue(messages []types.ContextMessage, strategy *config.ContextStrategy, model string) float64 {
+	if strategy == nil || len(messages) == 0 {
+		return 0
+	}
+
+	switch strategy.Type {
+	case "token_percent":
+		if strategy.Percent <= 0 {
+			return 0
+		}
+		maxTokens := getModelMaxContextTokens(model)
+		if maxTokens <= 0 {
+			return 0
+		}
+		limit := float64(maxTokens) * strategy.Percent
+		if limit <= 0 {
+			return 0
+		}
+		actual := float64(countContextTokensFallback(messages, model))
+		ratio := actual / limit
+		return clampTo100(math.Pow(ratio, 1.5) * 100)
+
+	case "round_count":
+		if strategy.Count <= 0 {
+			return 0
+		}
+		actual := float64(countUniqueRounds(messages))
+		ratio := actual / float64(strategy.Count)
+		return clampTo100(math.Pow(ratio, 1.5) * 100)
+
+	case "message_count":
+		if strategy.Count <= 0 {
+			return 0
+		}
+		nonSystem := 0
+		for _, msg := range messages {
+			if msg.Role != types.RoleSystem {
+				nonSystem++
+			}
+		}
+		ratio := float64(nonSystem) / float64(strategy.Count)
+		return clampTo100(math.Pow(ratio, 1.5) * 100)
+
+	default:
+		return 0
+	}
+}
+
+// ─── 唤醒值 —— 衡量上下文信息丰富度 ───
+
+// CalculateWakefulness 计算唤醒值 (0-100)。
+// 以原始模型上限 / 3 为甜点，concave 增长（sqrt）：少量上下文即显著提升，随后边际递减。
+// 唤醒值独立于策略预算——不同贤人以相同信息量获得相同唤醒值。
+// 深度休息清空上下文后唤醒值暂时降低。
+func CalculateWakefulness(messages []types.ContextMessage, strategy *config.ContextStrategy, model string) float64 {
+	if strategy == nil || len(messages) == 0 {
+		return 0
+	}
+
+	switch strategy.Type {
+	case "token_percent":
+		maxTokens := getModelMaxContextTokens(model)
+		if maxTokens <= 0 {
+			return 0
+		}
+		sweet := float64(maxTokens) / 3 // 原始模型上限，不受策略 Percent 影响
+		if sweet <= 0 {
+			return 0
+		}
+		actual := float64(countContextTokensFallback(messages, model))
+		ratio := actual / sweet
+		return clampTo100(math.Sqrt(ratio) * 100)
+
+	case "round_count":
+		if strategy.Count <= 0 {
+			return 0
+		}
+		sweet := float64(strategy.Count) / 3
+		if sweet <= 0 {
+			return 0
+		}
+		actual := float64(countUniqueRounds(messages))
+		return clampTo100(math.Sqrt(actual/sweet) * 100)
+
+	case "message_count":
+		if strategy.Count <= 0 {
+			return 0
+		}
+		sweet := float64(strategy.Count) / 3
+		if sweet <= 0 {
+			return 0
+		}
+		nonSystem := 0
+		for _, msg := range messages {
+			if msg.Role != types.RoleSystem {
+				nonSystem++
+			}
+		}
+		return clampTo100(math.Sqrt(float64(nonSystem)/sweet) * 100)
+
+	default:
+		return 0
+	}
+}
+
+// FatigueLevel 将疲劳值数值 (0-100) 映射为程度描述。
+func FatigueLevel(fatigue float64) string {
+	switch {
+	case fatigue < 30:
+		return "正常"
+	case fatigue < 60:
+		return "较高"
+	case fatigue < 85:
+		return "很高"
+	default:
+		return "极高"
+	}
+}
+
+// WakefulnessLevel 将唤醒值数值 (0-100) 映射为程度描述。
+func WakefulnessLevel(wakefulness float64) string {
+	switch {
+	case wakefulness < 30:
+		return "低"
+	case wakefulness < 60:
+		return "正常"
+	case wakefulness < 85:
+		return "较高"
+	default:
+		return "高"
+	}
 }
 
 // trimByRoundCount 保留最近 N 轮，优先保留主导轮次，优先丢弃心跳轮次。

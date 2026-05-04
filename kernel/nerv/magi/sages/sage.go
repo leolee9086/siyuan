@@ -205,6 +205,13 @@ func (s *Sage) ClearContext() {
 	s.contextManager.Clear()
 }
 
+// ClearContextSession 清空指定会话的上下文（Melchior 多会话安全）。
+func (s *Sage) ClearContextSession(sessionId string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.contextManager.ClearSession(sessionId)
+}
+
 // GetName 获取贤者名称
 func (s *Sage) GetName() string {
 	return s.name
@@ -239,6 +246,22 @@ func (s *Sage) GetSystemPrompt() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.systemPrompt
+}
+
+// GetFatigue 计算当前会话的疲劳值 (0-100)。
+func (s *Sage) GetFatigue(sessionId string) float64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	messages := s.contextManager.GetMessagesForSession(sessionId)
+	return CalculateFatigue(messages, s.contextStrategy, s.llmClient.GetModel())
+}
+
+// GetWakefulness 计算当前会话的唤醒值 (0-100)。
+func (s *Sage) GetWakefulness(sessionId string) float64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	messages := s.contextManager.GetMessagesForSession(sessionId)
+	return CalculateWakefulness(messages, s.contextStrategy, s.llmClient.GetModel())
 }
 
 // CloneWithFreshContext 基于当前 Sage 配置创建一个不携带历史的新实例。
@@ -321,19 +344,35 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	if !prompts.IsCoreSage(s.name) {
 		return history
 	}
+
+	// 注入 <status> 信封：疲劳度和唤醒值
+	model := s.llmClient.GetModel()
+	fatigueLevel := FatigueLevel(CalculateFatigue(history, s.contextStrategy, model))
+	wakeLevel := WakefulnessLevel(CalculateWakefulness(history, s.contextStrategy, model))
+	statusMsg := types.ContextMessage{
+		Role:    types.RoleSystem,
+		Content: fmt.Sprintf("<status>\n疲劳度: %s\n唤醒值: %s\n</status>", fatigueLevel, wakeLevel),
+	}
+
 	wakeup := prompts.BuildWakeupSequence(util.DataDir, s.name, s.profile)
 	if len(wakeup) == 0 {
-		return history
+		// 无唤醒序列时仍注入状态
+		request := make([]types.ContextMessage, 0, len(history)+1)
+		request = append(request, statusMsg)
+		request = append(request, history...)
+		return request
 	}
 
 	// 唤醒序列是固定前缀：只参与当前请求，不写入可裁剪历史。
-	request := make([]types.ContextMessage, 0, len(history)+len(wakeup))
+	request := make([]types.ContextMessage, 0, len(history)+len(wakeup)+1)
 	if len(history) > 0 && history[0].Role == types.RoleSystem {
 		request = append(request, history[0])
+		request = append(request, statusMsg)
 		request = append(request, wakeup...)
 		request = append(request, history[1:]...)
 		return request
 	}
+	request = append(request, statusMsg)
 	request = append(request, wakeup...)
 	request = append(request, history...)
 	return request

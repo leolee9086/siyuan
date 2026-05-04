@@ -26,6 +26,10 @@ func BuildWannaRestPlanToolDef() ToolDef {
 						"type":        "string",
 						"description": "下一轮行动的具体工作计划。",
 					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
+					},
 				},
 				"required": []string{"summary", "nextStepPlan"},
 			},
@@ -51,6 +55,10 @@ func BuildWannaRestDreamToolDef() ToolDef {
 						"type":        "string",
 						"description": "当前工作心情或感受的细致描述。",
 					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
+					},
 				},
 				"required": []string{"summary", "mood"},
 			},
@@ -71,6 +79,10 @@ func BuildWannaRestRecordToolDef() ToolDef {
 					"summary": map[string]interface{}{
 						"type":        "string",
 						"description": "本轮观察所得与备注的总体摘要。",
+					},
+					"deep": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否进行深度休息，清理当前上下文记忆以恢复精力。疲劳度归零但唤醒值暂时降低。请在深度休息前将重要信息通过工具持久化。",
 					},
 				},
 				"required": []string{"summary"},
