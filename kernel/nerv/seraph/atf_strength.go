@@ -32,19 +32,4 @@ func ComputeATFStrength(rho, rhoDerivative, gamma float64) ATFStrength {
 	}
 }
 
-// ComputeATFState 计算完整的ATF系统状态
-func ComputeATFState(cInt, cExt, beta, rho, rhoDerivative, gamma float64) ATFState {
-	rawCoherence := ComputeRawCoherence(cInt, cExt, beta)
-	syncRate := ComputeSyncRate(rawCoherence)
-	strength := ComputeATFStrength(rho, rhoDerivative, gamma)
 
-	return ATFState{
-		Coherence: CoherenceScore{
-			Internal: cInt,
-			External: cExt,
-			Raw:      rawCoherence,
-		},
-		SyncRate: syncRate,
-		Strength: strength,
-	}
-}

@@ -50,7 +50,7 @@ func NewAI() *AI {
 	openAI := &OpenAI{
 		APITemperature:     1.0,
 		APIMaxContexts:     7,
-		APITimeout:         30,
+		APITimeout:         120,
 		APIModel:           openai.GPT3Dot5Turbo,
 		APIBaseURL:         "https://api.openai.com/v1",
 		APIUserAgent:       util.UserAgent,

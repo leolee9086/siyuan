@@ -9,10 +9,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/88250/lute/ast"
+	"github.com/88250/lute/parse"
 	"github.com/go-ego/gse"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
 )
 
 const (
@@ -48,6 +51,34 @@ var runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block
 var resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
 	return model.ResolveWorkspaceAIMainNotebookAccessScope()
 }
+
+// ── 增强搜索结果相关类型和函数变量 ──
+
+type breadcrumbItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type enrichedBlockResult struct {
+	ID        string           `json:"id"`
+	Type      string           `json:"type"`
+	SubType   string           `json:"subType,omitempty"`
+	Content   string           `json:"content"`
+	Notebook  *breadcrumbItem  `json:"notebook"`
+	Path      []*breadcrumbItem `json:"path"`
+	Headings  []*breadcrumbItem `json:"headings"`
+	LeafIndex int              `json:"leafIndex"`
+}
+
+var loadTreeByIDForSearch = model.LoadTreeByBlockID
+
+var getTreeRootByHPathForSearch = treenode.GetBlockTreeRootByHPath
+
+var getConfBoxForSearch = func(boxID string) *model.Box {
+	return model.Conf.Box(boxID)
+}
+
+var buildBreadcrumbForSearch = model.BuildBlockBreadcrumb
 
 type noteKeywordSearchToolArgs struct {
 	Query string `json:"query"`
@@ -127,8 +158,13 @@ func executeNoteKeywordSearch(rawArgs string) (string, error) {
 	}
 	visibleBlocks, restrictedDocumentIDs := filterNoteKeywordBlocksByAIMainAccess(blocks, accessScope)
 
+	enrichedBlocks, err := enrichSearchBlocks(visibleBlocks)
+	if err != nil {
+		return "", err
+	}
+
 	payload := map[string]interface{}{
-		"blocks":                visibleBlocks,
+		"blocks":                enrichedBlocks,
 		"restrictedDocumentIDs": restrictedDocumentIDs,
 		"matchedBlockCount":     matchedBlockCount,
 		"matchedRootCount":      matchedRootCount,
@@ -420,4 +456,138 @@ func defaultNoteKeywordSearchTypes() map[string]bool {
 		"paragraph":  true,
 		"embedBlock": false,
 	}
+}
+
+// ── 搜索结果增强 ──
+
+func enrichSearchBlocks(blocks []*model.Block) ([]*enrichedBlockResult, error) {
+	if len(blocks) == 0 {
+		return []*enrichedBlockResult{}, nil
+	}
+
+	rootGroups := map[string][]*model.Block{}
+	rootOrder := make([]string, 0, len(blocks))
+	for _, b := range blocks {
+		if _, ok := rootGroups[b.RootID]; !ok {
+			rootOrder = append(rootOrder, b.RootID)
+		}
+		rootGroups[b.RootID] = append(rootGroups[b.RootID], b)
+	}
+
+	type docCache struct {
+		boxID   string
+		boxName string
+		pathBC  []*breadcrumbItem
+		leafSeq map[string]int
+	}
+	cache := map[string]*docCache{}
+
+	for _, rootID := range rootOrder {
+		tree, err := loadTreeByIDForSearch(rootID)
+		if err != nil {
+			return nil, fmt.Errorf("加载文档树失败 [%s]: %w", rootID, err)
+		}
+
+		box := getConfBoxForSearch(tree.Box)
+		boxName := ""
+		if box != nil {
+			boxName = box.Name
+		}
+
+		cache[rootID] = &docCache{
+			boxID:   tree.Box,
+			boxName: boxName,
+			pathBC:  buildPathBreadcrumbs(tree.Box, tree.HPath, tree.Root.ID),
+			leafSeq: computeLeafBlockSequence(tree),
+		}
+	}
+
+	results := make([]*enrichedBlockResult, 0, len(blocks))
+	for _, b := range blocks {
+		dc := cache[b.RootID]
+
+		headingBC := buildHeadingBreadcrumbs(b.ID)
+
+		leafIdx := -1
+		if idx, ok := dc.leafSeq[b.ID]; ok {
+			leafIdx = idx
+		}
+
+		results = append(results, &enrichedBlockResult{
+			ID:      b.ID,
+			Type:    b.Type,
+			SubType: b.SubType,
+			Content: b.Content,
+			Notebook: &breadcrumbItem{
+				ID:   dc.boxID,
+				Name: dc.boxName,
+			},
+			Path:      dc.pathBC,
+			Headings:  headingBC,
+			LeafIndex: leafIdx,
+		})
+	}
+	return results, nil
+}
+
+func buildPathBreadcrumbs(boxID, hPath, rootID string) []*breadcrumbItem {
+	trimmed := strings.TrimPrefix(hPath, "/")
+	if trimmed == "" {
+		return nil
+	}
+	segments := strings.Split(trimmed, "/")
+	items := make([]*breadcrumbItem, 0, len(segments))
+	var accumulated string
+	for i, seg := range segments {
+		accumulated += "/" + seg
+		var id string
+		if i == len(segments)-1 {
+			id = rootID
+		} else {
+			bt := getTreeRootByHPathForSearch(boxID, accumulated)
+			if bt != nil {
+				id = bt.ID
+			}
+		}
+		items = append(items, &breadcrumbItem{ID: id, Name: seg})
+	}
+	return items
+}
+
+func buildHeadingBreadcrumbs(blockID string) []*breadcrumbItem {
+	bps, err := buildBreadcrumbForSearch(blockID, nil)
+	if err != nil || len(bps) == 0 {
+		return nil
+	}
+	headings := make([]*breadcrumbItem, 0)
+	for _, bp := range bps {
+		if bp.Type == "NodeHeading" && bp.Name != "" {
+			headings = append(headings, &breadcrumbItem{
+				ID:   bp.ID,
+				Name: bp.Name,
+			})
+		}
+	}
+	return headings
+}
+
+func computeLeafBlockSequence(tree *parse.Tree) map[string]int {
+	seq := map[string]int{}
+	index := 0
+	ast.Walk(tree.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.WalkContinue
+		}
+		if !n.IsBlock() {
+			return ast.WalkContinue
+		}
+		switch n.Type {
+		case ast.NodeDocument, ast.NodeBlockquote, ast.NodeList, ast.NodeListItem, ast.NodeSuperBlock, ast.NodeCallout:
+			return ast.WalkContinue
+		}
+		index++
+		seq[n.ID] = index
+		return ast.WalkContinue
+	})
+	return seq
 }

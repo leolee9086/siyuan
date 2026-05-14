@@ -33,8 +33,10 @@ const (
 )
 
 type magiHeartbeatRun struct {
-	cancel context.CancelFunc
-	done   chan struct{}
+	cancel    context.CancelFunc
+	done      chan struct{}
+	roundID   string
+	sessionID string
 }
 
 type magiRuntimeManager struct {
@@ -266,10 +268,6 @@ func (m *magiRuntimeManager) finishHeartbeat(
 	if m.activeHeartbeat == run {
 		m.activeHeartbeat = nil
 	}
-	if atomic.LoadInt32(&m.foregroundBusy) > 0 {
-		m.mu.Unlock()
-		return
-	}
 
 	m.status.CurrentTask = ""
 	m.status.UpdatedAt = nowMillis
@@ -291,6 +289,16 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		m.status.State = types.RuntimeStateHeartbeat
 		m.status.Awake = true
 		m.status.Reason = "heartbeat-interrupted"
+		if result != nil {
+			roundID := strings.TrimSpace(result.RoundID)
+			if roundID != "" {
+				_ = websocket.PushRoundCancelled(websocket.RuntimeMonitorSessionID, roundID, "heartbeat-interrupted-by-external-message")
+			}
+			if len(result.Responses) > 0 {
+				interruptedSummary := coordinator.FinalizeHeartbeatInterrupted(result.Responses)
+				m.status.LastDowntimeSummary = interruptedSummary
+			}
+		}
 	case err != nil:
 		m.status.State = types.RuntimeStateHeartbeat
 		m.status.Awake = true

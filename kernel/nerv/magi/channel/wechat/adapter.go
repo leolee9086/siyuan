@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -207,11 +208,14 @@ func (a *Adapter) runMonitor(ctx context.Context) {
 				if wxMsg.MessageType != messageTypeUser {
 					continue
 				}
-				inbound := convertToInbound(a.acctID, &wxMsg)
+				inbound := convertToInbound(a.id, a.acctID, &wxMsg)
 				if inbound != nil {
 					_ = channel.GlobalBridge().Push(ctx, inbound)
-					if ms := channel.GlobalMessageStore(); ms != nil {
-						_ = ms.SaveInbound(ctx, inbound)
+					ms := channel.GlobalMessageStore()
+					if ms == nil {
+						logging.LogErrorf("消息存储未初始化，入站消息丢失: channel=%s user=%s", inbound.ChannelID, inbound.UserID)
+					} else if err := ms.SaveInbound(ctx, inbound); err != nil {
+						logging.LogErrorf("入站消息落盘失败: %v", err)
 					}
 				}
 			}

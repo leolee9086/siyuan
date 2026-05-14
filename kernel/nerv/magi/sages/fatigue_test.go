@@ -32,7 +32,7 @@ func TestCalculateFatigue_NilStrategy(t *testing.T) {
 }
 
 func TestCalculateFatigue_EmptyMessages(t *testing.T) {
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	if got := CalculateFatigue(nil, s, "gpt-4o"); got != 0 {
 		t.Errorf("nil messages: got %f, want 0", got)
 	}
@@ -50,11 +50,11 @@ func TestCalculateFatigue_TokenPercent_ZeroPercent(t *testing.T) {
 }
 
 func TestCalculateFatigue_TokenPercent_Estimation(t *testing.T) {
-	// gpt-4o: max=128000, percent=0.8 → limit=102400
+	// gpt-4o: max=128000, percent=80 → limit=102400
 	// 1000 chars → estimated ~250 tokens → ratio=250/102400=0.00244
 	// fatigue = 0.00244^1.5 × 100 ≈ 0.012
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("x", 1000))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateFatigue(m, s, "gpt-4o")
 	if got < 0.005 || got > 0.05 {
 		t.Errorf("token_percent 1000 chars: got %f, expected ~0.012", got)
@@ -62,10 +62,10 @@ func TestCalculateFatigue_TokenPercent_Estimation(t *testing.T) {
 }
 
 func TestCalculateFatigue_TokenPercent_AtLimit(t *testing.T) {
-	// gpt-4o: max=128000, percent=0.8 → limit=102400
+	// gpt-4o: max=128000, percent=80 → limit=102400
 	// 102400*4=409600 chars → fatigue=100
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("x", 409600))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateFatigue(m, s, "gpt-4o")
 	if got < 99 || got > 100 {
 		t.Errorf("at limit: got %f, want ~100", got)
@@ -74,7 +74,7 @@ func TestCalculateFatigue_TokenPercent_AtLimit(t *testing.T) {
 
 func TestCalculateFatigue_TokenPercent_AboveLimit(t *testing.T) {
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("x", 1000000))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateFatigue(m, s, "gpt-4o")
 	if got > 100 {
 		t.Errorf("above limit: got %f, want capped at 100", got)
@@ -188,7 +188,7 @@ func TestCalculateFatigue_MessageCount_SystemExcluded(t *testing.T) {
 
 func TestCalculateFatigue_UnknownStrategy(t *testing.T) {
 	m := []types.ContextMessage{msgr("r1", "hello")}
-	s := &config.ContextStrategy{Type: "unknown_type", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "unknown_type", Percent: 80}
 	if got := CalculateFatigue(m, s, "gpt-4o"); got != 0 {
 		t.Errorf("unknown strategy: got %f, want 0", got)
 	}
@@ -204,7 +204,7 @@ func TestCalculateWakefulness_NilStrategy(t *testing.T) {
 }
 
 func TestCalculateWakefulness_EmptyMessages(t *testing.T) {
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	if got := CalculateWakefulness(nil, s, "gpt-4o"); got != 0 {
 		t.Errorf("nil: got %f, want 0", got)
 	}
@@ -214,7 +214,7 @@ func TestCalculateWakefulness_EmptyMessages(t *testing.T) {
 }
 
 func TestCalculateWakefulness_TokenPercent_Zero(t *testing.T) {
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	// System prompt only, very few tokens
 	m := []types.ContextMessage{msgs("you are a helpful assistant")}
 	got := CalculateWakefulness(m, s, "gpt-4o")
@@ -227,7 +227,7 @@ func TestCalculateWakefulness_TokenPercent_AtIdeal(t *testing.T) {
 	// gpt-4o: max=128000, percent=0.8, ideal=128000*0.8*0.5=51200
 	// 51200*4=204800 chars → wakefulness=100
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("x", 204800))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateWakefulness(m, s, "gpt-4o")
 	if got < 98 {
 		t.Errorf("at ideal: got %f, want ~100", got)
@@ -237,7 +237,7 @@ func TestCalculateWakefulness_TokenPercent_AtIdeal(t *testing.T) {
 func TestCalculateWakefulness_TokenPercent_AboveIdeal(t *testing.T) {
 	// Above ideal should cap at 100
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("x", 500000))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateWakefulness(m, s, "gpt-4o")
 	if got > 100 {
 		t.Errorf("above ideal: got %f, want capped at 100", got)
@@ -351,7 +351,7 @@ func TestFatigueAndWakefulness_DeepRestScenario(t *testing.T) {
 	// 模拟深度休息后：上下文已清理，仅剩 system prompt
 	// 此时疲劳值应接近 0，唤醒值应较低
 	m := []types.ContextMessage{msgs("You are Melchior, a rational decision-maker.")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 
 	fatigue := CalculateFatigue(m, s, "gpt-4o")
 	wakefulness := CalculateWakefulness(m, s, "gpt-4o")
@@ -409,7 +409,7 @@ func TestFatigueAndWakefulness_AfterDeepRest(t *testing.T) {
 	// 深度休息后：context cleared, system prompt re-added
 	// fatigue=0, wakefulness=low → both are negative signals in their own dimension
 	m := []types.ContextMessage{msgs("You are Casper, an intuitive observer.")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.4}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 40}
 
 	fatigue := CalculateFatigue(m, s, "gpt-4o")
 	wakefulness := CalculateWakefulness(m, s, "gpt-4o")
@@ -429,14 +429,17 @@ func TestFatigueAndWakefulness_DualNegative(t *testing.T) {
 
 	// 模拟：context 刚被清理，system prompt 重新注入
 	m := []types.ContextMessage{msgs("You are Balthazar, scientific thinker.")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.4}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 40}
 
 	fatigue := CalculateFatigue(m, s, "gpt-4o")
 	wakefulness := CalculateWakefulness(m, s, "gpt-4o")
 
-	// fatigue low (good), wakefulness low (bad) → dual signals
-	t.Logf("After deep rest — fatigue: %.2f (%s), wakefulness: %.2f (%s)",
-		fatigue, FatigueLevel(fatigue), wakefulness, WakefulnessLevel(wakefulness))
+	if FatigueLevel(fatigue) != "正常" {
+		t.Errorf("after deep rest: fatigue should be 正常, got %s", FatigueLevel(fatigue))
+	}
+	if WakefulnessLevel(wakefulness) != "低" {
+		t.Errorf("after deep rest: wakefulness should be 低, got %s", WakefulnessLevel(wakefulness))
+	}
 }
 
 // ── 三贤人差异化策略 ──
@@ -446,8 +449,8 @@ func TestFatigue_MelchiorVsBalthazar(t *testing.T) {
 	content := strings.Repeat("The quick brown fox jumps over the lazy dog. ", 200)
 	m := []types.ContextMessage{msgr("r1", content)}
 
-	melchior := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
-	balthazar := &config.ContextStrategy{Type: "token_percent", Percent: 0.4}
+	melchior := &config.ContextStrategy{Type: "token_percent", Percent: 80}
+	balthazar := &config.ContextStrategy{Type: "token_percent", Percent: 40}
 
 	fMel := CalculateFatigue(m, melchior, "gpt-4o")
 	fBal := CalculateFatigue(m, balthazar, "gpt-4o")
@@ -464,8 +467,8 @@ func TestWakefulness_BalthazarVsMelchior(t *testing.T) {
 	content := strings.Repeat("x", 50000)
 	m := []types.ContextMessage{msgr("r1", content)}
 
-	melchior := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
-	balthazar := &config.ContextStrategy{Type: "token_percent", Percent: 0.4}
+	melchior := &config.ContextStrategy{Type: "token_percent", Percent: 80}
+	balthazar := &config.ContextStrategy{Type: "token_percent", Percent: 40}
 
 	wMel := CalculateWakefulness(m, melchior, "gpt-4o")
 	wBal := CalculateWakefulness(m, balthazar, "gpt-4o")
@@ -507,7 +510,7 @@ func TestFatigue_CasperRoundCount(t *testing.T) {
 func TestCalculateFatigue_NegativeValues(t *testing.T) {
 	// Ensure no panics or NaN
 	m := []types.ContextMessage{msgr("r1", "hello")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: -0.5}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: -50}
 	got := CalculateFatigue(m, s, "gpt-4o")
 	if got != 0 {
 		t.Errorf("negative percent: got %f, want 0", got)
@@ -516,7 +519,7 @@ func TestCalculateFatigue_NegativeValues(t *testing.T) {
 
 func TestCalculateWakefulness_UnknownModel(t *testing.T) {
 	m := []types.ContextMessage{msgr("r1", "hello")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	got := CalculateWakefulness(m, s, "nonexistent-model-v42")
 	// Unknown model defaults to 128000 max tokens
 	// No panic is the main test
@@ -527,7 +530,7 @@ func TestCalculateWakefulness_UnknownModel(t *testing.T) {
 
 func TestFatigueAndWakefulness_Consistent(t *testing.T) {
 	// 同一个输入多次调用应返回一致结果
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	m := []types.ContextMessage{msgr("r1", strings.Repeat("hello world ", 100))}
 
 	f1 := CalculateFatigue(m, s, "gpt-4o")
@@ -560,7 +563,7 @@ func TestCalculateFatigue_SystemPromptIgnoredInRoundCount(t *testing.T) {
 func TestWakefulness_SystemPromptMinimal(t *testing.T) {
 	// Just system prompt, no conversation → very low wakefulness
 	m := []types.ContextMessage{msgs("You are Melchior.")}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 	w := CalculateWakefulness(m, s, "gpt-4o")
 	if l := WakefulnessLevel(w); l != "低" {
 		t.Errorf("system-only: got %s, want 低", l)
@@ -619,7 +622,7 @@ func TestFatigue_ChineseVsEnglish_SameTokens(t *testing.T) {
 	// 400 ASCII chars 和 200 中文字符估算 token 相同 → 疲劳值应相等
 	mEn := []types.ContextMessage{msgr("r1", strings.Repeat("x", 400))}
 	mZh := []types.ContextMessage{msgr("r1", strings.Repeat("中", 200))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 
 	fEn := CalculateFatigue(mEn, s, "gpt-4o")
 	fZh := CalculateFatigue(mZh, s, "gpt-4o")
@@ -635,7 +638,7 @@ func TestFatigue_ChineseUnderestimatesVsEnglish(t *testing.T) {
 	// 英文字符数量相同时：400 英文字符 → 400/4=100 tokens
 	mEn := []types.ContextMessage{msgr("r1", strings.Repeat("x", 400))}
 	mZh := []types.ContextMessage{msgr("r1", strings.Repeat("中", 400))}
-	s := &config.ContextStrategy{Type: "token_percent", Percent: 0.8}
+	s := &config.ContextStrategy{Type: "token_percent", Percent: 80}
 
 	fEn := CalculateFatigue(mEn, s, "gpt-4o")
 	fZh := CalculateFatigue(mZh, s, "gpt-4o")

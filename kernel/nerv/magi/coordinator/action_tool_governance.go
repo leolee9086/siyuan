@@ -57,11 +57,13 @@ func (e *dominantActionRevokedError) Error() string {
 }
 
 type actionToolGovernanceRegistry struct {
-	mu     sync.RWMutex
-	rounds map[string]*actionToolGovernanceState
+	mu        sync.RWMutex
+	rounds    map[string]*actionToolGovernanceState
+	votingCfg VotingConfig
 }
 
 type actionToolGovernanceState struct {
+	votingCfg           VotingConfig
 	sessionID           string
 	roundID             string
 	userMessage         string
@@ -72,6 +74,12 @@ type actionToolGovernanceState struct {
 
 var dominantActionToolGovernance = &actionToolGovernanceRegistry{
 	rounds: map[string]*actionToolGovernanceState{},
+}
+
+func (r *actionToolGovernanceRegistry) SetVotingConfig(cfg VotingConfig) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.votingCfg = cfg
 }
 
 func (r *actionToolGovernanceRegistry) RegisterRound(
@@ -85,6 +93,7 @@ func (r *actionToolGovernanceRegistry) RegisterRound(
 	}
 
 	state := &actionToolGovernanceState{
+		votingCfg:           r.votingCfg,
 		sessionID:           strings.TrimSpace(sessionID),
 		roundID:             strings.TrimSpace(roundID),
 		userMessage:         strings.TrimSpace(userMessage),
@@ -212,6 +221,7 @@ func (s *actionToolGovernanceState) evaluateGovernedActionVoteLocked(
 		sageName,
 		fmt.Sprintf("申请执行 %s：%s", toolName, motivation),
 		approvalRound,
+		s.votingCfg,
 	)
 	if err != nil {
 		return nil, err

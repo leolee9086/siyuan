@@ -171,7 +171,7 @@ func TestTokenPercent_RoundBasedDiscard(t *testing.T) {
 		})
 	}
 
-	trimmed := trimByRoundTokenPercent(messages, 0.5, "gpt-4")
+	trimmed := trimByRoundTokenPercent(messages, 50, "gpt-4")
 
 	hasRound := func(rid string) bool {
 		for _, msg := range trimmed {
@@ -225,7 +225,7 @@ func TestTokenPercent_SystemPromptPreserved(t *testing.T) {
 		})
 	}
 
-	trimmed := trimByRoundTokenPercent(messages, 0.5, "gpt-4")
+	trimmed := trimByRoundTokenPercent(messages, 50, "gpt-4")
 
 	if len(trimmed) == 0 {
 		t.Fatal("trimmed result is empty")
@@ -247,9 +247,9 @@ func TestTokenPercent_NilStrategy_NoOp(t *testing.T) {
 		t.Errorf("zero percent should be a no-op, got %d messages", len(trimmed))
 	}
 
-	trimmed2 := trimByRoundTokenPercent(messages, 1.5, "gpt-4")
+	trimmed2 := trimByRoundTokenPercent(messages, 150, "gpt-4")
 	if len(trimmed2) != len(messages) {
-		t.Errorf("percent >= 1 should be a no-op, got %d messages", len(trimmed2))
+		t.Errorf("percent > 100 should be a no-op, got %d messages", len(trimmed2))
 	}
 }
 
@@ -277,7 +277,7 @@ func TestTokenPercent_NoRoundID_GroupsTogether(t *testing.T) {
 		})
 	}
 
-	trimmed := trimByRoundTokenPercent(messages, 0.3, "gpt-4")
+	trimmed := trimByRoundTokenPercent(messages, 30, "gpt-4")
 
 	lastRoundFound := false
 	noRoundFound := false
@@ -342,7 +342,7 @@ func TestTokenPercent_LargeScale(t *testing.T) {
 		}
 	}
 
-	trimmed := trimByRoundTokenPercent(messages, 0.5, "gpt-4o")
+	trimmed := trimByRoundTokenPercent(messages, 50, "gpt-4o")
 
 	if len(trimmed) == len(messages) {
 		t.Log("trimByRoundTokenPercent may not have triggered (encoders may not be available)")

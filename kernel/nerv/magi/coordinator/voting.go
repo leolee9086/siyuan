@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,13 @@ type VoteResult struct {
 	CasperReason    string `json:"-"`
 }
 
+// VotingConfig 投票配置
+type VotingConfig struct {
+	Timeout     time.Duration
+	MaxRetries  int
+	BackoffBase time.Duration
+}
+
 // voteDecision 投票决策响应
 type voteDecision struct {
 	Decision string `json:"decision"` // "批准" | "否决"
@@ -47,7 +55,6 @@ type voteDecision struct {
 }
 
 const (
-	voteTimeout                = 30 * time.Second // D-005: 投票超时30秒
 	voteApprove                = prompts.VoteApprove
 	voteReject                 = prompts.VoteReject
 	maxVoteInvestigationTurns  = 3                 // 投票前允许的最大调查工具调用次数
@@ -63,6 +70,7 @@ func ProcessVoting(
 	proposedAction string,
 	voteCtx VoteContext,
 	deliberationInitiator, deliberationReason string,
+	votingCfg VotingConfig,
 ) (*VoteResult, error) {
 	return ProcessPeerVoting(
 		ctx,
@@ -77,6 +85,7 @@ func ProcessVoting(
 		deliberationInitiator,
 		deliberationReason,
 		1,
+		votingCfg,
 	)
 }
 
@@ -91,6 +100,7 @@ func ProcessPeerVoting(
 	voteCtx VoteContext,
 	deliberationInitiator, deliberationReason string,
 	round int,
+	votingCfg VotingConfig,
 ) (*VoteResult, error) {
 	if strings.TrimSpace(initiatorSeelName) == "" {
 		return nil, fmt.Errorf("投票缺少主导者名称")
@@ -157,7 +167,7 @@ func ProcessPeerVoting(
 				Decision: voteReject,
 				Reason:   "评审失败，自动否决",
 			}
-			if voted, err := getRealVote(ctx, sessionId, peer, proposedAction, voteCtx); err != nil {
+			if voted, err := getRealVote(ctx, sessionId, peer, proposedAction, voteCtx, votingCfg); err != nil {
 				logging.LogWarnf("%s 投票失败，按否决处理: %v", peer.GetDisplayName(), err)
 				decision = buildFallbackVoteDecision(err)
 			} else {
@@ -220,8 +230,9 @@ func getRealVote(
 	sage *sages.Sage,
 	proposedAction string,
 	voteCtx VoteContext,
+	votingCfg VotingConfig,
 ) (voteDecision, error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, voteTimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, votingCfg.Timeout)
 	defer cancel()
 
 	messages, err := buildVoteRequestMessages(sessionId, sage, proposedAction, voteCtx)
@@ -244,9 +255,27 @@ func getRealVote(
 			toolChoice = buildRequiredFunctionToolChoice(config.VoteToolName)
 		}
 
-		result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
-		if err != nil {
-			return voteDecision{}, fmt.Errorf("[%s] LLM请求失败: %w", sage.GetDisplayName(), err)
+		var result *types.SyncChatResult
+		var llmErr error
+		for attempt := 0; attempt <= votingCfg.MaxRetries; attempt++ {
+			result, llmErr = sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+			if llmErr == nil {
+				break
+			}
+			if attempt < votingCfg.MaxRetries {
+				backoff := votingCfg.BackoffBase * (1 << attempt)
+				jitter := time.Duration(rand.Int63n(int64(votingCfg.BackoffBase / 2)))
+				logging.LogWarnf("[%s] LLM请求失败 (尝试 %d/%d): %v, %v后重试",
+					sage.GetDisplayName(), attempt+1, votingCfg.MaxRetries+1, llmErr, backoff+jitter)
+				select {
+				case <-time.After(backoff + jitter):
+				case <-timeoutCtx.Done():
+					return voteDecision{}, fmt.Errorf("[%s] LLM请求重试超时: %w", sage.GetDisplayName(), timeoutCtx.Err())
+				}
+			}
+		}
+		if llmErr != nil {
+			return voteDecision{}, fmt.Errorf("[%s] LLM请求失败已达最大重试次数: %w", sage.GetDisplayName(), llmErr)
 		}
 
 		if len(result.ToolCalls) > 0 && strings.TrimSpace(result.ToolCalls[0].Function.Name) == config.VoteToolName {
@@ -387,7 +416,7 @@ func buildGovernedActionVoteRequestMessages(
 	if strings.TrimSpace(pendingCall.Function.Arguments) == "" {
 		return nil, fmt.Errorf("行动审核投票缺少工具参数")
 	}
-	reviewInput, err := buildGovernedActionReviewInput(pendingCall)
+	reviewInput, err := buildGovernedActionReviewInput(pendingCall, voteCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +431,7 @@ func buildGovernedActionVoteRequestMessages(
 	), nil
 }
 
-func buildGovernedActionReviewInput(toolCall types.ToolCall) (string, error) {
+func buildGovernedActionReviewInput(toolCall types.ToolCall, voteCtx VoteContext) (string, error) {
 	if strings.TrimSpace(toolCall.Function.Name) == "" {
 		return "", fmt.Errorf("行动审核请求缺少工具名")
 	}
@@ -420,6 +449,8 @@ func buildGovernedActionReviewInput(toolCall types.ToolCall) (string, error) {
 
 	payload := map[string]interface{}{
 		"type": "pending_action_review",
+		"originalMessage":   strings.TrimSpace(voteCtx.UserMessage),
+		"proposerConclusion": strings.TrimSpace(voteCtx.ProposerConclusion),
 		"toolCall": map[string]interface{}{
 			"id":   strings.TrimSpace(toolCall.ID),
 			"type": strings.TrimSpace(toolCall.Type),
@@ -428,7 +459,7 @@ func buildGovernedActionReviewInput(toolCall types.ToolCall) (string, error) {
 				"arguments": arguments,
 			},
 		},
-		"instruction": "查看行动计划,仔细考虑你要不要这样做。发起动机以 arguments.motivation 为准。",
+		"instruction": "请结合原始消息(originalMessage)和你之前的分析(proposerConclusion)，对行动计划(toolCall)进行审慎判断。",
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {

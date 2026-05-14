@@ -40,7 +40,7 @@ type AgentConfig struct {
 	SEELConfig     SEELConfig   `json:"seelConfig"`
 	MardukConfig   MardukConfig `json:"mardukConfig"`
 	MemorySize     int          `json:"memorySize"`     // 消息历史条数
-	ContextPercent float64      `json:"contextPercent"` // 上下文token占用百分比（Melchior/Balthazar）
+	ContextPercent float64      `json:"contextPercent"` // 上下文token占用百分比，范围 (0,100]（Melchior/Balthazar）
 	SystemPrompt   string       `json:"systemPrompt"`
 	Tools          []ToolDef    `json:"tools,omitempty"`
 	// ToolChoice 控制模型的工具调用行为。
@@ -204,6 +204,8 @@ const (
 	AvatarSynthesizeToolName = "synthesizeAvatar"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
+	// ProposeActionPlanToolName 行动计划提案工具名。
+	ProposeActionPlanToolName = "propose_action_plan"
 	// VoteToolName 内部审批投票工具名。
 	VoteToolName = "vote"
 	// DominantElectionToolName 主导者选举投票工具名。
@@ -259,6 +261,31 @@ func BuildDominantElectionToolDef() ToolDef {
 				},
 				"required": []string{"scores", "reason", "doubts"},
 			},
+		},
+	}
+}
+
+// BuildProposeActionPlanToolDef 构建行动计划提案工具定义。
+// 贤者在选举前使用此工具提交本轮行动计划。
+func BuildProposeActionPlanToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        ProposeActionPlanToolName,
+			Description: "在主导者选举前提交你本轮的行动计划。简要描述你在本轮想要做什么、关注什么方向。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"plan": map[string]interface{}{
+						"type":        "string",
+						"description": "本轮的简短行动计划，说明你打算做什么、关注什么方向。尽可能具体但不过于细节。",
+					},
+				},
+				"required": []string{"plan"},
+			},
+		},
+		Meta: ToolMeta{
+			AvailableWorkHB: true,
 		},
 	}
 }
@@ -577,7 +604,7 @@ func BuildPersistSessionMemoryToolDef() ToolDef {
 					"tags": map[string]interface{}{
 						"type":        "array",
 						"items":       map[string]interface{}{"type": "string"},
-						"description": "场景tag列表，用自己视角的tag词汇表打标，例如 [\"#决策/技术选型\", \"#逻辑/方案对比\"]。tag 以 # 开头。",
+						"description": "场景tag列表，用自己视角的tag词汇表打标，例如 [\"#决策/技术选型#\", \"#逻辑/方案对比#\"]。tag 格式为 #tag#。",
 					},
 				},
 				"required": []string{"summary", "tags"},
@@ -603,7 +630,7 @@ func BuildRecallCrossSessionMemoriesToolDef() ToolDef {
 					"tags": map[string]interface{}{
 						"type":        "array",
 						"items":       map[string]interface{}{"type": "string"},
-						"description": "自己的场景tag列表，用于过滤记忆。只返回与之有交集的记忆。传空则不按tag过滤。例如 [\"#决策/技术选型\", \"#逻辑/方案对比\"]",
+						"description": "自己的场景tag列表，用于过滤记忆。只返回与之有交集的记忆。传空则不按tag过滤。例如 [\"#决策/技术选型#\", \"#逻辑/方案对比#\"]",
 					},
 					"limit": map[string]interface{}{
 						"type":        "integer",

@@ -539,19 +539,15 @@ func buildNoteSearchArchiveCallout(toolCall types.ToolCall, purpose, detailedRes
 	}
 
 	if len(result.Blocks) > 0 {
-		var embedLines strings.Builder
+		var ids []string
 		for _, block := range result.Blocks {
-			if strings.TrimSpace(block.ID) != "" {
-				if embedLines.Len() > 0 {
-					embedLines.WriteString("\n")
-				}
-				embedLines.WriteString("{{! ")
-				embedLines.WriteString(strings.TrimSpace(block.ID))
-				embedLines.WriteString("}}")
+			if trimmed := strings.TrimSpace(block.ID); trimmed != "" {
+				ids = append(ids, "'"+trimmed+"'")
 			}
 		}
-		if embedLines.Len() > 0 {
-			fields = append(fields, CalloutField{Label: "结果", Value: embedLines.String()})
+		if len(ids) > 0 {
+			embedSQL := "{{ select * from blocks where id in (" + strings.Join(ids, ", ") + ") }}"
+			fields = append(fields, CalloutField{Label: "结果", Value: embedSQL})
 		}
 	}
 

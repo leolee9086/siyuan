@@ -23,6 +23,8 @@ import (
 	"math"
 	"path"
 	"runtime/debug"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -126,6 +128,7 @@ func FlushQueue() {
 
 	// 如果有重命名子树的操作，则统计各路径前缀的块树数量，数量较大的话阻塞整个队列，以便尽可能合并重命名子树的操作
 	var renameSubTreeOp *dbQueueOperation
+	var renameSubTreeSleep float64
 	for _, op := range ops {
 		if "rename_sub_tree" == op.action {
 			renameSubTreeOp = op
@@ -136,15 +139,15 @@ func FlushQueue() {
 		childCount := treenode.CountBlockTreesByPathPrefix(path.Dir(renameSubTreeOp.renameTree.Path))
 		if 512 < childCount {
 			scale := math.Log(float64(childCount)/512.0+1.0) / math.Log(2.0)
-			secs := 1.0 * scale
-			if secs < 1.0 {
-				secs = 1.0
+			renameSubTreeSleep = 1.0 * scale
+			if renameSubTreeSleep < 1.0 {
+				renameSubTreeSleep = 1.0
 			}
-			if secs > 12.0 {
-				secs = 12.0
+			if renameSubTreeSleep > 12.0 {
+				renameSubTreeSleep = 12.0
 			}
-			logging.LogInfof("rename sub tree [%s] with large child count [%d], sleep [%.2fs] to wait for more operations", renameSubTreeOp.renameTree.Path, childCount, secs)
-			time.Sleep(time.Duration(secs * float64(time.Second)))
+			logging.LogInfof("rename sub tree [%s] with large child count [%d], sleep [%.2fs] to wait for more operations", renameSubTreeOp.renameTree.Path, childCount, renameSubTreeSleep)
+			time.Sleep(time.Duration(renameSubTreeSleep * float64(time.Second)))
 		}
 	}
 
@@ -159,11 +162,20 @@ func FlushQueue() {
 		groupOpsTotal[op.action]++
 	}
 
+	type opStat struct {
+		count int
+		total time.Duration
+		max   time.Duration
+	}
+	opStats := map[string]*opStat{}
+
 	groupOpsCurrent := map[string]int{}
 	for i, op := range ops {
 		if util.IsExiting.Load() {
 			return
 		}
+
+		opStart := time.Now()
 
 		tx, err := beginTx()
 		if err != nil {
@@ -185,6 +197,21 @@ func FlushQueue() {
 			continue
 		}
 
+		opElapsed := time.Since(opStart)
+		st := opStats[op.action]
+		if st == nil {
+			st = &opStat{}
+			opStats[op.action] = st
+		}
+		st.count++
+		st.total += opElapsed
+		if opElapsed > st.max {
+			st.max = opElapsed
+		}
+		if opElapsed > 1*time.Second {
+			logging.LogWarnf("slow db op [%s] index [%d/%d] took [%dms]", op.action, i+1, total, opElapsed.Milliseconds())
+		}
+
 		if 16 < i && 0 == i%128 {
 			debug.FreeOSMemory()
 		}
@@ -195,8 +222,22 @@ func FlushQueue() {
 	}
 
 	elapsed := time.Since(start).Milliseconds()
-	if 7000 < elapsed {
-		logging.LogInfof("database op tx [%dms]", elapsed)
+	if 7000 < elapsed || 0 < renameSubTreeSleep {
+		var detail strings.Builder
+		detail.WriteString(fmt.Sprintf("database op tx [%dms], ops [%d]", elapsed, total))
+		var actions []string
+		for action := range opStats {
+			actions = append(actions, action)
+		}
+		sort.Strings(actions)
+		for _, action := range actions {
+			st := opStats[action]
+			detail.WriteString(fmt.Sprintf(" %s=%d(avg=%dms,max=%dms)", action, st.count, st.total.Milliseconds()/int64(st.count), st.max.Milliseconds()))
+		}
+		if 0 < renameSubTreeSleep {
+			detail.WriteString(fmt.Sprintf(" rename_sub_tree_sleep=[%.2fs]", renameSubTreeSleep))
+		}
+		logging.LogInfo(detail.String())
 	}
 
 	// Push database index commit event https://github.com/siyuan-note/siyuan/issues/8814

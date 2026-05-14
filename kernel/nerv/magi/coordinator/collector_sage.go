@@ -37,6 +37,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 	indexOffset := 0
 	consecutiveTransitionFailures := 0
+	repetitiveCallTracker := newRepetitiveCallTracker()
 	hbInvestigated := false
 	hbActionToolUsed := false
 	requireActionTool := false
@@ -48,13 +49,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 	}
 
-	// 主导AI开始输出前排 #todo 快照 A
+	// 主导AI开始输出前排 #todo# 快照 A
 	var preTodoBlocks []*model.Block
 	if !options.IsSleepMode && requireActionTool {
-		preTodoBlocks, _, _, _, _ = runNoteKeywordFullTextSearch(`"#todo"`, 50)
+		preTodoBlocks, _, _, _, _ = runNoteKeywordFullTextSearch(`"#todo#"`, 50)
 	}
 
-	for turn := 0; ; turn++ {
+	for turn := 0; turn < maxTotalTurns; turn++ {
 		streamCh, err := rc.sendSageTurnMessage(ctx, sessionId, roundId, sage, modelInput, options, turn)
 		if err != nil {
 			return nil, err
@@ -68,6 +69,31 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		indexOffset += _toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
 
+		switch result := repetitiveCallTracker.Record(turnToolCalls); result {
+		case RecordNudge:
+			fp := repetitiveCallTracker.BuildFingerprint(turnToolCalls)
+			logging.LogWarnf("贤者 %s 连续 %d 轮调用相同工具 (%s)，注入提示 [会话:%s 轮次:%s]",
+				sage.GetDisplayName(), maxConsecutiveToolCallNudge, fp, sessionId, roundId)
+			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role: types.RoleSystem,
+				Content: fmt.Sprintf(
+					"[系统提示] 你已经连续 %d 轮调用相同工具 (%s) 但未取得实质进展。请停止重复调用，根据已有信息直接输出回复。",
+					maxConsecutiveToolCallNudge, fp,
+				),
+			})
+			processor = utilstream.NewProcessor()
+			wannaSpeakTracker = newWannaSpeakStateTracker()
+			consecutiveTransitionFailures = 0
+			continue
+		case RecordStop:
+			fp := repetitiveCallTracker.BuildFingerprint(turnToolCalls)
+			logging.LogWarnf("贤者 %s 达到循环上限(%s)，终止本轮 [会话:%s 轮次:%s]",
+				sage.GetDisplayName(), fp, sessionId, roundId)
+			rc.pushFailed(sage, roundId, fmt.Sprintf("循环检测上限(%s)，终止", fp))
+			return nil, fmt.Errorf("贤者 %s 循环检测上限(%s)，终止",
+				sage.GetDisplayName(), fp)
+		}
+
 		if options.AllowWannaSleep {
 			for _, tc := range turnToolCalls {
 				if !hbInvestigated && isInvestigationTool(strings.TrimSpace(tc.Function.Name)) {
@@ -80,14 +106,14 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 			if !options.IsSleepMode && !workLogToolAdded && hbInvestigated && (!requireActionTool || hbActionToolUsed) {
 				if requireActionTool && len(preTodoBlocks) > 0 {
-					curBlocks, _, _, _, _ := runNoteKeywordFullTextSearch(`"#todo"`, 50)
+					curBlocks, _, _, _, _ := runNoteKeywordFullTextSearch(`"#todo#"`, 50)
 					preFP := computeTodoFP(preTodoBlocks)
 					curFP := computeTodoFP(curBlocks)
 
 					if curFP == preFP {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 							Role:    types.RoleSystem,
-							Content: "[系统提示] 本轮 #todo 无任何变化，必须完成或新增待办后才能进入工作日志。",
+							Content: "[系统提示] 本轮 #todo# 无任何变化，必须在笔记中标记完成或新增待办,使得#todo#标签搜索结果发生变化后才能进入工作日志。",
 						})
 						continue
 					}
@@ -95,7 +121,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					if diff := countBlockDiff(preTodoBlocks, curBlocks); diff > maxTodoChurnPerRound {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 							Role:    types.RoleSystem,
-							Content: fmt.Sprintf("[系统提示] 本轮 #todo 变化较多（%d 个块），请注意收敛操作范围。", diff),
+							Content: fmt.Sprintf("[系统提示] 本轮 #todo# 变化较多（%d 个块），请注意收敛操作范围。", diff),
 						})
 					}
 				}
@@ -108,6 +134,16 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				return nil, err
 			}
 			if found {
+				if !options.IsSleepMode && resp.WantsDowntime && isAnyWannaRestTool(turnToolCalls) {
+					novel, msg := rc.workLogHistory.isNovel(sessionId, sage.GetName(), resp.DowntimeSummary)
+					if !novel {
+						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+							Role:    types.RoleSystem,
+							Content: "[系统提示] " + msg,
+						})
+						continue
+					}
+				}
 				return resp, nil
 			}
 		}
@@ -256,7 +292,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
 				Role: types.RoleSystem,
 				Content: fmt.Sprintf(
-					"你还没有开始回复消息。请先调用 %s 开始表达，然后通过 %s 追加内容，最后调用 %s 结束。",
+					"你还没有开始回复消息。当前状态下,你所说的任何内容都不会发送给外界,如果你要回复消息,请先调用 %s 开始表达，然后通过 %s 追加内容，最后调用 %s 结束。",
 					config.WannaSpeakStartToolName,
 					config.WannaSpeakContinueToolName,
 					config.WannaSpeakStopToolName,
@@ -280,6 +316,11 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			return nil, err
 		}
 	}
+	logging.LogWarnf("贤者 %s 达到最大轮次上限(%d)，终止 [会话:%s 轮次:%s]",
+		sage.GetDisplayName(), maxTotalTurns, sessionId, roundId)
+	rc.pushFailed(sage, roundId, fmt.Sprintf("达到最大轮次上限(%d)，终止", maxTotalTurns))
+	return nil, fmt.Errorf("贤者 %s 达到最大轮次上限(%d)，终止",
+		sage.GetDisplayName(), maxTotalTurns)
 }
 
 func (rc *ResponseCollector) sendSageTurnMessage(

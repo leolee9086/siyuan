@@ -121,19 +121,37 @@ func insertBlocks0(tx *sql.Tx, bulk []*Block, context map[string]any) (err error
 	hashBuf.WriteString("blocks")
 	evtHash := fmt.Sprintf("%x", sha256.Sum256(hashBuf.Bytes()))[:7]
 	// 使用下面的 EvtSQLInsertBlocksFTS 就可以了
-	//eventbus.Publish(eventbus.EvtSQLInsertBlocks, context, current, total, len(bulk), evtHash)
+	//eventbus.Publish(eventbus.EvtSQLInsertBlocks, context, current, total, blockCount, evtHash)
 
 	stmt = fmt.Sprintf(BlocksFTSInsert, strings.Join(valueStrings, ","))
 	if err = prepareExecInsertTx(tx, stmt, valueArgs); err != nil {
 		return
 	}
 
+	// 捕获 blocks_fts 的 rowid，供后续 UPDATE 使用
+	var ftsLast int64
+	tx.QueryRow("SELECT last_insert_rowid()").Scan(&ftsLast)
+	ftsFirst := ftsLast - int64(len(bulk)) + 1
+
+	var ciFirst int64
 	if !caseSensitive {
 		stmt = fmt.Sprintf(BlocksFTSCaseInsensitiveInsert, strings.Join(valueStrings, ","))
 		if err = prepareExecInsertTx(tx, stmt, valueArgs); err != nil {
 			return
 		}
+
+		var ciLast int64
+		tx.QueryRow("SELECT last_insert_rowid()").Scan(&ciLast)
+		ciFirst = ciLast - int64(len(bulk)) + 1
 	}
+
+	// 存储 rowid 映射
+	blockIDs := make([]string, len(bulk))
+	for i, b := range bulk {
+		blockIDs[i] = b.ID
+	}
+	storeFTSRowIDs(blockIDs, ftsFirst, ciFirst)
+
 	hashBuf.WriteString("fts")
 	evtHash = fmt.Sprintf("%x", sha256.Sum256(hashBuf.Bytes()))[:7]
 	eventbus.Publish(eventbus.EvtSQLInsertBlocksFTS, context, len(bulk), evtHash)

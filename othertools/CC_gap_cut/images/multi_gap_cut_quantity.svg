@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Multi Gap Cut - Quantity</title>
+  <desc>Divide line into N equal parts with parallel gap cuts</desc>
+  <defs>
+    <style>
+      .bar { fill: #31495c; stroke: #152531; stroke-width: 3; stroke-linejoin: round; }
+      .cut { fill: none; stroke: #50d7ff; stroke-width: 4; stroke-linecap: round; }
+      .acc { fill: none; stroke: #f1873a; stroke-width: 2; stroke-linecap: round; }
+      .label { fill: #f1873a; font-family: sans-serif; font-size: 22px; font-weight: bold; }
+    </style>
+  </defs>
+
+  <rect class="bar" x="18" y="52" width="92" height="24" rx="3"/>
+
+  <line class="cut" x1="27" y1="38" x2="27" y2="90"/>
+  <line class="cut" x1="44" y1="38" x2="44" y2="90"/>
+  <line class="cut" x1="61" y1="38" x2="61" y2="90"/>
+  <line class="cut" x1="78" y1="38" x2="78" y2="90"/>
+  <line class="cut" x1="95" y1="38" x2="95" y2="90"/>
+
+  <line class="acc" x1="18" y1="100" x2="110" y2="100"/>
+  <line class="acc" x1="18" y1="96" x2="18" y2="104"/>
+  <line class="acc" x1="110" y1="96" x2="110" y2="104"/>
+  <text class="label" x="64" y="122" text-anchor="middle">n</text>
+</svg>

@@ -5,8 +5,43 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/88250/lute/ast"
+	"github.com/88250/lute/parse"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
 )
+
+func setupEnrichmentMocks(t *testing.T) func() {
+	origLoadTree := loadTreeByIDForSearch
+	origGetHPath := getTreeRootByHPathForSearch
+	origGetBox := getConfBoxForSearch
+	origBreadcrumb := buildBreadcrumbForSearch
+
+	loadTreeByIDForSearch = func(rootID string) (*parse.Tree, error) {
+		return &parse.Tree{
+			Box:   "ai-box",
+			Path:  "/2020/" + rootID + ".sy",
+			HPath: "/" + rootID,
+			Root:  &ast.Node{Type: ast.NodeDocument, ID: rootID},
+		}, nil
+	}
+	getTreeRootByHPathForSearch = func(boxID, hPath string) *treenode.BlockTree {
+		return nil
+	}
+	getConfBoxForSearch = func(boxID string) *model.Box {
+		return &model.Box{ID: "ai-box", Name: "AI主笔记本"}
+	}
+	buildBreadcrumbForSearch = func(id string, excludeTypes []string) ([]*model.BlockPath, error) {
+		return nil, nil
+	}
+
+	return func() {
+		loadTreeByIDForSearch = origLoadTree
+		getTreeRootByHPathForSearch = origGetHPath
+		getConfBoxForSearch = origGetBox
+		buildBreadcrumbForSearch = origBreadcrumb
+	}
+}
 
 func TestNormalizeNoteKeywordSearchLimit(t *testing.T) {
 	if got := normalizeNoteKeywordSearchLimit(0); got != defaultNoteKeywordSearchLimit {
@@ -37,6 +72,7 @@ func TestExecuteNoteKeywordSearch_ReRankAndLimitClamp(t *testing.T) {
 		runNoteKeywordFullTextSearch = originalSearchFn
 		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
 	}()
+	defer setupEnrichmentMocks(t)()
 
 	var gotQuery string
 	var gotLimit int
@@ -105,6 +141,7 @@ func TestExecuteNoteKeywordSearch_FiltersRestrictedDocsToIDs(t *testing.T) {
 		runNoteKeywordFullTextSearch = originalSearchFn
 		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
 	}()
+	defer setupEnrichmentMocks(t)()
 
 	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
 		return &model.WorkspaceAIMainNotebookAccessScope{
@@ -209,6 +246,96 @@ func TestExecuteNoteKeywordSearch_ReturnsScopeMessageWhenConflict(t *testing.T) 
 	}
 	if len(payload.Blocks) != 0 {
 		t.Fatalf("冲突状态下不应返回块结果，实际=%d", len(payload.Blocks))
+	}
+}
+
+func TestExecuteNoteKeywordSearch_EnrichedStructure(t *testing.T) {
+	originalSearchFn := runNoteKeywordFullTextSearch
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
+	defer func() {
+		runNoteKeywordFullTextSearch = originalSearchFn
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
+	}()
+	defer setupEnrichmentMocks(t)()
+
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status:         model.WorkspaceAIMainNotebookStatusReady,
+				ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			},
+			ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			AccessibleRootIDs: map[string]struct{}{
+				"root-doc": {},
+			},
+			ReferencedRootIDs: map[string]struct{}{},
+		}, nil
+	}
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		return []*model.Block{
+			{ID: "b1", RootID: "root-doc", Type: "NodeParagraph", SubType: "", Content: "some content"},
+		}, 1, 1, 1, false
+	}
+
+	result, err := executeNoteKeywordSearch(`{"query":"content"}`)
+	if err != nil {
+		t.Fatalf("期望执行成功，实际错误: %v", err)
+	}
+
+	var payload struct {
+		Blocks []struct {
+			ID        string `json:"id"`
+			Type      string `json:"type"`
+			Content   string `json:"content"`
+			Notebook  struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			} `json:"notebook"`
+			Path      []struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			} `json:"path"`
+			Headings  []struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			} `json:"headings"`
+			LeafIndex int `json:"leafIndex"`
+		} `json:"blocks"`
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果JSON失败: %v", err)
+	}
+
+	if len(payload.Blocks) != 1 {
+		t.Fatalf("期望1条结果，实际=%d", len(payload.Blocks))
+	}
+	b := payload.Blocks[0]
+	if b.ID != "b1" {
+		t.Fatalf("期望ID=b1，实际=%s", b.ID)
+	}
+	if b.Type != "NodeParagraph" {
+		t.Fatalf("期望Type=NodeParagraph，实际=%s", b.Type)
+	}
+	if b.Content != "some content" {
+		t.Fatalf("期望Content=some content，实际=%s", b.Content)
+	}
+	if b.Notebook.ID != "ai-box" {
+		t.Fatalf("期望Notebook.ID=ai-box，实际=%s", b.Notebook.ID)
+	}
+	if b.Notebook.Name != "AI主笔记本" {
+		t.Fatalf("期望Notebook.Name=AI主笔记本，实际=%s", b.Notebook.Name)
+	}
+	if len(b.Path) != 1 {
+		t.Fatalf("期望Path有1段，实际=%d", len(b.Path))
+	}
+	if b.Path[0].ID != "root-doc" {
+		t.Fatalf("期望Path[0].ID=root-doc，实际=%s", b.Path[0].ID)
+	}
+	if b.Path[0].Name != "root-doc" {
+		t.Fatalf("期望Path[0].Name=root-doc，实际=%s", b.Path[0].Name)
+	}
+	if b.LeafIndex != -1 {
+		t.Fatalf("期望LeafIndex=-1（文档根容器），实际=%d", b.LeafIndex)
 	}
 }
 

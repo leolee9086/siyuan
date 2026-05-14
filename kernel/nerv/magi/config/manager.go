@@ -15,13 +15,15 @@ import (
 type ContextStrategy struct {
 	Type    string  `json:"type"`    // "token_percent"、"message_count" 或 "round_count"
 	Value   float64 `json:"value"`   // token百分比或消息条数
-	Percent float64 `json:"percent"` // token占用百分比（仅用于token_percent类型）
+	Percent float64 `json:"percent"` // token占用百分比，范围 (0,100]；如 40 表示 40%（仅用于token_percent类型）
 	Count   int     `json:"count"`   // 条数/轮数（用于message_count或round_count类型）
 }
 
 // TimeoutConfig 超时配置
 type TimeoutConfig struct {
 	VotingTimeout     time.Duration `json:"votingTimeout"`     // 投票超时（秒）
+	VotingMaxRetries  int           `json:"votingMaxRetries"`  // 投票LLM请求最大重试次数
+	VotingBackoffBase time.Duration `json:"votingBackoffBase"` // 投票重试指数退避基时
 	ReplyMaxRetries   int           `json:"trinityMaxRetries"` // 沿用旧键名兼容历史配置
 	ReplyInitialDelay time.Duration `json:"trinityInitialDelay"`
 }
@@ -183,7 +185,7 @@ func defaultMelchiorConfig() AgentConfig {
 			BaseWeight:   1.0,
 		},
 		MardukConfig:   MardukConfig{},
-		ContextPercent: 0.8,
+		ContextPercent: 80,
 		SystemPrompt:   prompts.MelchiorSystemPrompt,
 		Tools:          buildDefaultCoreSageTools(),
 	}
@@ -202,7 +204,7 @@ func defaultBalthazarConfig() AgentConfig {
 			BaseWeight:   1.0,
 		},
 		MardukConfig:   MardukConfig{},
-		ContextPercent: 0.4,
+		ContextPercent: 40,
 		SystemPrompt:   prompts.BalthazarSystemPrompt,
 		Tools:          buildDefaultCoreSageTools(),
 	}
@@ -233,11 +235,11 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 	return map[string]*ContextStrategy{
 		"melchior": {
 			Type:    "token_percent",
-			Percent: 0.8,
+			Percent: 80,
 		},
 		"balthazar": {
 			Type:    "token_percent",
-			Percent: 0.4,
+			Percent: 40,
 		},
 		"casper": {
 			Type:  "round_count",
@@ -249,7 +251,9 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 // defaultTimeoutConfig 返回默认超时配置
 func defaultTimeoutConfig() *TimeoutConfig {
 	return &TimeoutConfig{
-		VotingTimeout:     30 * time.Second,
+		VotingTimeout:     120 * time.Second,
+		VotingMaxRetries:  5,
+		VotingBackoffBase: 1 * time.Second,
 		ReplyMaxRetries:   10,
 		ReplyInitialDelay: 1 * time.Second,
 	}

@@ -92,13 +92,13 @@ func buildToolRemindPoliciesLocked() map[string]*config.ToolRemindPolicy {
 
 // SetDominantSelectionObserver 设置主导者选举监听器。
 func (c *Coordinator) SetDominantSelectionObserver(observer DominantSelectionObserver) {
-	if c == nil {
-		return
-	}
-
-	c.runtimeMu.Lock()
-	defer c.runtimeMu.Unlock()
 	c.dominantSelectionObserver = observer
+}
+
+// SetVotingConfig 设置投票配置，传播给 AvatarRuntime 和行动工具治理
+func (c *Coordinator) SetVotingConfig(cfg VotingConfig) {
+	c.avatar.SetVotingConfig(cfg)
+	dominantActionToolGovernance.SetVotingConfig(cfg)
 }
 
 // SetWorkspaceSnapshotInterval 设置工作区快照的轮次间隔。

@@ -612,6 +612,9 @@ func ServeAPI(ginServer *gin.Engine) {
 	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/messages", magiMessages)
 
+	// AI 代理转发：前端通过此接口请求 LLM，API Key 和代理配置由服务端统一管理
+	ginServer.Handle("POST", "/api/s-forge/ai/proxy/chat/completions", model.CheckAuth, aiChatProxy)
+
 	// S-Forge MAGI 外部通道管理
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/list", model.CheckAuth, channelListStatus)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/accounts", model.CheckAuth, channelListAccounts)

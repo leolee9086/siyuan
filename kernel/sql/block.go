@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"database/sql"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
@@ -33,6 +35,98 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
+
+// ftsRowidPair 记录一个 block 在两张 FTS 表中的 rowid。
+// rowid 在 INSERT 时由 SQLite 自动分配，后续 UPDATE 用 rowid 可避免全表扫描（WHERE id = ? 在 FTS5 中无索引）。
+type ftsRowidPair struct {
+	rowid   int64 // blocks_fts.rowid
+	rowidCI int64 // blocks_fts_case_insensitive.rowid，0 表示无双表
+}
+
+var (
+	blockFTSRowIDs     map[string]*ftsRowidPair
+	blockFTSRowIDsLock sync.RWMutex
+)
+
+func init() {
+	clearFTSRowIDs()
+}
+
+func storeFTSRowIDs(blockIDs []string, ftsFirst, ciFirst int64) {
+	blockFTSRowIDsLock.Lock()
+	defer blockFTSRowIDsLock.Unlock()
+	for i, id := range blockIDs {
+		blockFTSRowIDs[id] = &ftsRowidPair{
+			rowid:   ftsFirst + int64(i),
+			rowidCI: ciFirst + int64(i),
+		}
+	}
+}
+
+func getFTSRowIDs(blockID string) (pair *ftsRowidPair, ok bool) {
+	blockFTSRowIDsLock.RLock()
+	defer blockFTSRowIDsLock.RUnlock()
+	pair, ok = blockFTSRowIDs[blockID]
+	return
+}
+
+func clearFTSRowIDs() {
+	blockFTSRowIDsLock.Lock()
+	defer blockFTSRowIDsLock.Unlock()
+	blockFTSRowIDs = make(map[string]*ftsRowidPair)
+}
+
+// storeFTSRowIDMap 批量存储预填充的 rowid 映射，不依赖 rowid 连续性。
+func storeFTSRowIDMap(entries map[string]*ftsRowidPair) {
+	blockFTSRowIDsLock.Lock()
+	defer blockFTSRowIDsLock.Unlock()
+	for id, pair := range entries {
+		blockFTSRowIDs[id] = pair
+	}
+}
+
+// buildFTSRowIDMapping 扫描 blocks_fts 和 blocks_fts_case_insensitive 为所有存量 block 构建 rowid 映射。
+// 确保部署后存量 block 的第一次 UPDATE 不会退化到全表扫描。
+func buildFTSRowIDMapping() {
+	entries := map[string]*ftsRowidPair{}
+
+	rows, err := db.Query("SELECT rowid, id FROM blocks_fts")
+	if err != nil {
+		logging.LogErrorf("build FTS rowid mapping failed: %s", err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rowid int64
+		var id string
+		if err := rows.Scan(&rowid, &id); err != nil {
+			continue
+		}
+		entries[id] = &ftsRowidPair{rowid: rowid}
+	}
+
+	if !caseSensitive {
+		rows2, err := db.Query("SELECT rowid, id FROM blocks_fts_case_insensitive")
+		if err == nil {
+			defer rows2.Close()
+			for rows2.Next() {
+				var rowid int64
+				var id string
+				if err := rows2.Scan(&rowid, &id); err != nil {
+					continue
+				}
+				if p := entries[id]; p != nil {
+					p.rowidCI = rowid
+				} else {
+					entries[id] = &ftsRowidPair{rowidCI: rowid}
+				}
+			}
+		}
+	}
+
+	storeFTSRowIDMap(entries)
+	logging.LogInfof("built FTS rowid mapping for [%d] blocks", len(entries))
+}
 
 type Block struct {
 	ID       string
@@ -63,41 +157,86 @@ func updateRootContent(tx *sql.Tx, content, updated, id string) (err error) {
 	if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
 		return
 	}
-	stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
-		return
-	}
-	if !caseSensitive {
-		stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
+
+	if pair, ok := getFTSRowIDs(id); ok {
+		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ? WHERE rowid = ?"
+		if err = execStmtTx(tx, stmt, content, content, updated, pair.rowid); err != nil {
+			return
+		}
+		if pair.rowidCI > 0 {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ? WHERE rowid = ?"
+			if err = execStmtTx(tx, stmt, content, content, updated, pair.rowidCI); err != nil {
+				return
+			}
+		}
+	} else {
+		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
 		if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
 			return
 		}
+		if !caseSensitive {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
+			if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
+				return
+			}
+		}
 	}
+
 	removeBlockCache(id)
 	cache.RemoveBlockIAL(id)
 	return
 }
 
 func updateBlockContent(tx *sql.Tx, block *Block) (err error) {
+	t0 := time.Now()
+
 	stmt := "UPDATE blocks SET content = ? WHERE id = ?"
 	if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
 		tx.Rollback()
 		return
 	}
-	stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
-		tx.Rollback()
-		return
-	}
-	if !caseSensitive {
-		stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE id = ?"
+	t1 := time.Now()
+
+	// FTS 表改用 rowid 更新（O(1)），避免 WHERE id = ? 全表扫描
+	if pair, ok := getFTSRowIDs(block.ID); ok {
+		stmt = "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
+		if err = execStmtTx(tx, stmt, block.Content, pair.rowid); err != nil {
+			tx.Rollback()
+			return
+		}
+		if pair.rowidCI > 0 {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE rowid = ?"
+			if err = execStmtTx(tx, stmt, block.Content, pair.rowidCI); err != nil {
+				tx.Rollback()
+				return
+			}
+		}
+	} else {
+		// fallback: 映射不存在时退化到 WHERE id = ?
+		stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
 		if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
 			tx.Rollback()
 			return
 		}
+		if !caseSensitive {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE id = ?"
+			if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
+				tx.Rollback()
+				return
+			}
+		}
 	}
+	t2 := time.Now()
 
 	putBlockCache(block)
+	t3 := time.Now()
+
+	elapsed := t3.Sub(t0)
+	if 500 < elapsed.Milliseconds() {
+		logging.LogWarnf("slow update_block_content [id=%s] content_len=%d took [%dms]: blocks=%d fts=%d cache=%d",
+			block.ID, len(block.Content), elapsed.Milliseconds(),
+			t1.Sub(t0).Milliseconds(), t2.Sub(t1).Milliseconds(), t3.Sub(t2).Milliseconds())
+	}
 	return
 }
 
@@ -124,16 +263,32 @@ func indexNode(tx *sql.Tx, id string) (err error) {
 		tx.Rollback()
 		return
 	}
-	stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, content, id); err != nil {
-		tx.Rollback()
-		return
-	}
-	if !caseSensitive {
-		stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE id = ?"
+
+	if pair, ok := getFTSRowIDs(id); ok {
+		stmt = "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
+		if err = execStmtTx(tx, stmt, content, pair.rowid); err != nil {
+			tx.Rollback()
+			return
+		}
+		if pair.rowidCI > 0 {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE rowid = ?"
+			if err = execStmtTx(tx, stmt, content, pair.rowidCI); err != nil {
+				tx.Rollback()
+				return
+			}
+		}
+	} else {
+		stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
 		if err = execStmtTx(tx, stmt, content, id); err != nil {
 			tx.Rollback()
 			return
+		}
+		if !caseSensitive {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ? WHERE id = ?"
+			if err = execStmtTx(tx, stmt, content, id); err != nil {
+				tx.Rollback()
+				return
+			}
 		}
 	}
 	return

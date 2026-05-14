@@ -19,6 +19,8 @@ import (
 const (
 	dominantElectionTimeout    = 120 * time.Second
 	maxDominantElectionRetries = 2
+	// actionPlanScoreBonus 中选行动计划提出者的隐性加分值。
+	actionPlanScoreBonus = 15
 )
 
 type dominantCandidate struct {
@@ -35,19 +37,21 @@ type dominantVoteScore struct {
 }
 
 type dominantVotePayload struct {
-	Scores []dominantVoteScore `json:"scores"`
-	Reason string              `json:"reason"`
-	Doubts []string            `json:"doubts"`
+	Scores        []dominantVoteScore `json:"scores"`
+	Reason        string              `json:"reason"`
+	Doubts        []string            `json:"doubts"`
+	SelectedPlan  string              `json:"selected_plan"`
 }
 
 type DominantElectionVote struct {
-	VoterSeelName    string
-	VoterDisplayName string
-	Profession       int
-	SocialRelation   int
-	SelfName         int
-	Reason           string
-	Doubts           []string
+	VoterSeelName       string
+	VoterDisplayName    string
+	Profession          int
+	SocialRelation      int
+	SelfName            int
+	Reason              string
+	Doubts              []string
+	SelectedPlanProposer string
 }
 
 type DominantElectionResult struct {
@@ -56,6 +60,8 @@ type DominantElectionResult struct {
 	DominantStance      string
 	AggregatedScores    map[string]int
 	Votes               []DominantElectionVote
+	ActionPlans         []types.ActionPlanProposal
+	SelectedPlan        *types.ActionPlanProposal
 }
 
 func electDominantSage(
@@ -64,7 +70,17 @@ func electDominantSage(
 	melchior, balthazar, casper *sages.Sage,
 	situation string,
 ) (*DominantElectionResult, error) {
-	return electDominantSageWithExclusionsAndSituations(ctx, sessionID, melchior, balthazar, casper, situation, nil, nil)
+	return electDominantSageWithExclusionsAndSituations(ctx, sessionID, melchior, balthazar, casper, situation, nil, nil, nil)
+}
+
+func electDominantSageWithPlans(
+	ctx context.Context,
+	sessionID string,
+	melchior, balthazar, casper *sages.Sage,
+	situation string,
+	actionPlans []types.ActionPlanProposal,
+) (*DominantElectionResult, error) {
+	return electDominantSageWithExclusionsAndSituations(ctx, sessionID, melchior, balthazar, casper, situation, nil, nil, actionPlans)
 }
 
 func buildDominantCandidates(
@@ -89,6 +105,7 @@ func electDominantSageWithExclusions(
 		situation,
 		nil,
 		excludedSeels,
+		nil,
 	)
 }
 
@@ -99,6 +116,7 @@ func electDominantSageWithExclusionsAndSituations(
 	defaultSituation string,
 	situationBySeel map[string]string,
 	excludedSeels map[string]struct{},
+	actionPlans []types.ActionPlanProposal,
 ) (*DominantElectionResult, error) {
 	candidates, err := buildDominantCandidatesWithExclusions(melchior, balthazar, casper, excludedSeels)
 	if err != nil {
@@ -110,14 +128,19 @@ func electDominantSageWithExclusionsAndSituations(
 	}
 	if len(candidates) == 1 {
 		winner := candidates[0]
-		return &DominantElectionResult{
+		result := &DominantElectionResult{
 			DominantSeelName:    winner.SeelName,
 			DominantDisplayName: winner.DisplayName,
 			DominantStance:      winner.Stance,
 			AggregatedScores: map[string]int{
 				string(winner.Key): 100,
 			},
-		}, nil
+			ActionPlans: actionPlans,
+		}
+		if len(actionPlans) > 0 {
+			result.SelectedPlan = &actionPlans[0]
+		}
+		return result, nil
 	}
 
 	voters := []*sages.Sage{melchior, balthazar, casper}
@@ -141,6 +164,7 @@ func electDominantSageWithExclusionsAndSituations(
 			voter,
 			resolveDominantSituationForSage(voter, defaultSituation, situationBySeel)+statusInfo,
 			candidates,
+			actionPlans,
 		)
 		if voteErr != nil {
 			return nil, voteErr
@@ -148,6 +172,50 @@ func electDominantSageWithExclusionsAndSituations(
 		votes = append(votes, *vote)
 		for _, candidate := range candidates {
 			totals[string(candidate.Key)] += dominantVoteScoreForCandidate(*vote, candidate.Key)
+		}
+	}
+
+	// 统计行动计划评选结果
+	var selectedPlan *types.ActionPlanProposal
+	if len(actionPlans) > 0 {
+		planVotes := map[string]int{}
+		for _, plan := range actionPlans {
+			planVotes[plan.ProposerSeelName] = 0
+		}
+		for _, vote := range votes {
+			if vote.SelectedPlanProposer != "" {
+				if _, ok := planVotes[vote.SelectedPlanProposer]; ok {
+					planVotes[vote.SelectedPlanProposer]++
+				}
+			}
+		}
+		// 找出中选计划（票数最高者）
+		winnerPlanProposer := actionPlans[0].ProposerSeelName
+		winnerPlanVotes := 0
+		for _, plan := range actionPlans {
+			voteCount := planVotes[plan.ProposerSeelName]
+			if voteCount > winnerPlanVotes {
+				winnerPlanVotes = voteCount
+				winnerPlanProposer = plan.ProposerSeelName
+			}
+		}
+		for _, plan := range actionPlans {
+			if plan.ProposerSeelName == winnerPlanProposer {
+				selectedPlan = &plan
+				break
+			}
+		}
+
+		// 中选行动计划提出者获得隐性加分
+		if selectedPlan != nil {
+			for _, candidate := range candidates {
+				if candidate.SeelName == selectedPlan.ProposerSeelName {
+					totals[string(candidate.Key)] += actionPlanScoreBonus
+					logging.LogInfof("行动计划「%s」中选（提出者=%s），获得 +%d 隐性加分",
+						selectedPlan.Plan, selectedPlan.ProposerSeelName, actionPlanScoreBonus)
+					break
+				}
+			}
 		}
 	}
 
@@ -167,6 +235,8 @@ func electDominantSageWithExclusionsAndSituations(
 		DominantStance:      winner.Stance,
 		AggregatedScores:    totals,
 		Votes:               votes,
+		ActionPlans:         actionPlans,
+		SelectedPlan:        selectedPlan,
 	}, nil
 }
 
@@ -241,6 +311,7 @@ func scoreDominantCandidate(
 	voter *sages.Sage,
 	situation string,
 	candidates []dominantCandidate,
+	actionPlans []types.ActionPlanProposal,
 ) (*DominantElectionVote, error) {
 	if voter == nil {
 		return nil, fmt.Errorf("dominant election voter is nil")
@@ -252,6 +323,8 @@ func scoreDominantCandidate(
 	timeoutCtx, cancel := context.WithTimeout(ctx, dominantElectionTimeout)
 	defer cancel()
 
+	userInput := buildDominantElectionUserInput(situation, candidates, actionPlans)
+
 	messages := voter.BuildRequestMessagesForSession(
 		sessionID,
 		types.ContextMessage{
@@ -260,7 +333,7 @@ func scoreDominantCandidate(
 		},
 		types.ContextMessage{
 			Role:    types.RoleUser,
-			Content: prompts.BuildDominantElectionUserInputForCandidates(situation, collectDominantPromptLabels(candidates)...),
+			Content: userInput,
 		},
 	)
 
@@ -306,6 +379,24 @@ func scoreDominantCandidate(
 
 	return nil, fmt.Errorf("[%s] dominant election failed after %d retries: %w",
 		displayName, maxDominantElectionRetries, lastErr)
+}
+
+func buildDominantElectionUserInput(
+	situation string,
+	candidates []dominantCandidate,
+	actionPlans []types.ActionPlanProposal,
+) string {
+	labels := collectDominantPromptLabels(candidates)
+	if len(actionPlans) == 0 {
+		return prompts.BuildDominantElectionUserInputForCandidates(situation, labels...)
+	}
+
+	planStrings := make([]string, 0, len(actionPlans))
+	for _, plan := range actionPlans {
+		planStr := fmt.Sprintf("[%s] %s", plan.ProposerDisplayName, plan.Plan)
+		planStrings = append(planStrings, planStr)
+	}
+	return prompts.BuildDominantElectionUserInputForCandidatesWithPlans(situation, labels, planStrings)
 }
 
 // buildDominantElectionRetryMessages 构建主导者选举重试消息序列。
@@ -361,14 +452,17 @@ func finalizeDominantVote(
 			doubts = append(doubts, trimmed)
 		}
 	}
+
+	selectedPlan := strings.TrimSpace(payload.SelectedPlan)
 	return &DominantElectionVote{
-		VoterSeelName:    voterName,
-		VoterDisplayName: displayName,
-		Profession:       scoreByKey[string(marduk.CognitiveStanceProfession)],
-		SocialRelation:   scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
-		SelfName:         scoreByKey[string(marduk.CognitiveStanceSelfName)],
-		Reason:           strings.TrimSpace(payload.Reason),
-		Doubts:           doubts,
+		VoterSeelName:       voterName,
+		VoterDisplayName:    displayName,
+		Profession:          scoreByKey[string(marduk.CognitiveStanceProfession)],
+		SocialRelation:      scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
+		SelfName:            scoreByKey[string(marduk.CognitiveStanceSelfName)],
+		Reason:              strings.TrimSpace(payload.Reason),
+		Doubts:              doubts,
+		SelectedPlanProposer: selectedPlan,
 	}, nil
 }
 
@@ -490,10 +584,122 @@ func collectDominantPromptLabels(candidates []dominantCandidate) []string {
 	return ret
 }
 
+// collectActionPlans 并行收集三贤人的行动计划提案。
+// 每个贤者调用 propose_action_plan 工具提交本轮行动计划。
+// 需要至少2个成功响应，否则返回错误。
+func collectActionPlans(
+	ctx context.Context,
+	sessionID string,
+	melchior, balthazar, casper *sages.Sage,
+	situation string,
+) ([]types.ActionPlanProposal, error) {
+	type planResult struct {
+		plan *types.ActionPlanProposal
+		err  error
+	}
+	resultCh := make(chan planResult, 3)
+
+	collectSinglePlan := func(sage *sages.Sage, ch chan<- planResult) {
+		if sage == nil {
+			ch <- planResult{nil, fmt.Errorf("sage is nil")}
+			return
+		}
+		timeoutCtx, cancel := context.WithTimeout(ctx, dominantElectionTimeout)
+		defer cancel()
+
+		messages := sage.BuildRequestMessagesForSession(
+			sessionID,
+			types.ContextMessage{
+				Role:    types.RoleSystem,
+				Content: prompts.BuildActionPlanProposalSystemPrompt(),
+			},
+			types.ContextMessage{
+				Role:    types.RoleUser,
+				Content: fmt.Sprintf("当前情境：\n%s\n\n请描述你本轮的行动计划。", situation),
+			},
+		)
+
+		toolDef := config.BuildProposeActionPlanToolDef()
+		tools := []openai.Tool{buildRuntimeTool(toolDef)}
+		toolChoice := buildRequiredFunctionToolChoice(config.ProposeActionPlanToolName)
+
+		result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+		if err != nil {
+			ch <- planResult{nil, fmt.Errorf("[%s] plan proposal failed: %w", sage.GetName(), err)}
+			return
+		}
+
+		if len(result.ToolCalls) == 0 {
+			ch <- planResult{nil, fmt.Errorf("[%s] plan proposal returned no tool calls", sage.GetName())}
+			return
+		}
+
+		toolCall := result.ToolCalls[0]
+		if strings.TrimSpace(toolCall.Function.Name) != config.ProposeActionPlanToolName {
+			ch <- planResult{nil, fmt.Errorf("[%s] unexpected tool call: %s", sage.GetName(), toolCall.Function.Name)}
+			return
+		}
+
+		var params struct {
+			Plan string `json:"plan"`
+		}
+		if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &params); err != nil {
+			ch <- planResult{nil, fmt.Errorf("[%s] plan proposal parse failed: %w", sage.GetName(), err)}
+			return
+		}
+
+		plan := strings.TrimSpace(params.Plan)
+		if plan == "" {
+			ch <- planResult{nil, fmt.Errorf("[%s] plan proposal is empty", sage.GetName())}
+			return
+		}
+
+		ch <- planResult{
+			plan: &types.ActionPlanProposal{
+				ProposerSeelName:    sage.GetName(),
+				ProposerDisplayName: sage.GetDisplayName(),
+				Plan:                plan,
+			},
+		}
+	}
+
+	go collectSinglePlan(melchior, resultCh)
+	go collectSinglePlan(balthazar, resultCh)
+	go collectSinglePlan(casper, resultCh)
+
+	plans := make([]types.ActionPlanProposal, 0, 3)
+	var errs []string
+	for i := 0; i < 3; i++ {
+		res := <-resultCh
+		if res.err != nil {
+			errs = append(errs, res.err.Error())
+			continue
+		}
+		if res.plan != nil {
+			plans = append(plans, *res.plan)
+		}
+	}
+
+	if len(plans) < 2 {
+		return nil, fmt.Errorf("collectActionPlans: need at least 2 plans, got %d, errors: %v", len(plans), errs)
+	}
+
+	for _, err := range errs {
+		logging.LogWarnf("collectActionPlans partial error: %v", err)
+	}
+
+	logging.LogInfof("collectActionPlans: collected %d plans", len(plans))
+	for _, p := range plans {
+		logging.LogInfof("  %s: %s", p.ProposerSeelName, p.Plan)
+	}
+
+	return plans, nil
+}
+
 // buildSageElectionStatusInfo 构建三贤人精力状况字符串，注入选举上下文。
 func buildSageElectionStatusInfo(sessionID string, melchior, balthazar, casper *sages.Sage) string {
 	var b strings.Builder
-	b.WriteString("\n\n当前各贤者精力状况：\n")
+	b.WriteString("\n\n当前精力状况：\n")
 	for _, sg := range []*sages.Sage{melchior, balthazar, casper} {
 		if sg == nil {
 			continue

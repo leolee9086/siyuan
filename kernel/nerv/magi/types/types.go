@@ -94,6 +94,13 @@ type SageResponse struct {
 	DowntimeToolCall       *ToolCall           `json:"-"` // wanna_sleep/wanna_rest 轮次暂存的工具调用
 }
 
+// ActionPlanProposal 贤者的行动计划提案。
+type ActionPlanProposal struct {
+	ProposerSeelName    string `json:"proposerSeelName"`
+	ProposerDisplayName string `json:"proposerDisplayName"`
+	Plan                string `json:"plan"`
+}
+
 // VoteDecision 投票决定
 type VoteDecision string
 

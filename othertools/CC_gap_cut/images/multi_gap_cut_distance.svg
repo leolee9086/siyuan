@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Multi Gap Cut - Distance</title>
+  <desc>Evenly spaced parallel gap cuts along a line with configurable center-to-center distance</desc>
+  <defs>
+    <style>
+      .bar { fill: #31495c; stroke: #152531; stroke-width: 3; stroke-linejoin: round; }
+      .cut { fill: none; stroke: #50d7ff; stroke-width: 4; stroke-linecap: round; }
+      .dim { fill: none; stroke: #f1873a; stroke-width: 2; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <rect class="bar" x="18" y="52" width="92" height="24" rx="3"/>
+
+  <line class="cut" x1="30" y1="38" x2="30" y2="90"/>
+  <line class="cut" x1="50" y1="38" x2="50" y2="90"/>
+  <line class="cut" x1="70" y1="38" x2="70" y2="90"/>
+  <line class="cut" x1="90" y1="38" x2="90" y2="90"/>
+
+  <line class="dim" x1="30" y1="100" x2="50" y2="100"/>
+  <line class="dim" x1="30" y1="96" x2="30" y2="104"/>
+  <line class="dim" x1="50" y1="96" x2="50" y2="104"/>
+  <line class="dim" x1="50" y1="100" x2="70" y2="100"/>
+  <line class="dim" x1="70" y1="96" x2="70" y2="104"/>
+  <line class="dim" x1="70" y1="100" x2="90" y2="100"/>
+  <line class="dim" x1="90" y1="96" x2="90" y2="104"/>
+</svg>

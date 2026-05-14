@@ -284,6 +284,14 @@ func initMagiComponents() error {
 	magiCoordinator = coordinator.NewCoordinator(30 * time.Second)
 	magiCoordinator.SetDominantSelectionObserver(magiRuntimeMgr)
 
+	// 注入投票配置（超时、重试次数、退避基时）
+	tc := magiConfigMgr.GetTimeoutConfig()
+	magiCoordinator.SetVotingConfig(coordinator.VotingConfig{
+		Timeout:     tc.VotingTimeout,
+		MaxRetries:  tc.VotingMaxRetries,
+		BackoffBase: tc.VotingBackoffBase,
+	})
+
 	// 初始化通道可信度配置目录（延迟加载，因为 util.ConfDir 在包 init 时可能未就绪）
 	globalTrustMgr.EnsureConfigDir(util.ConfDir)
 
@@ -559,6 +567,9 @@ func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 		magiRuntimeMgr.FinishForeground(result.Err)
 	}()
 
+	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文
+	injectForegroundSystemNote(task.SessionID)
+
 	// 调用 Coordinator 执行决策。使用请求上下文承载取消信号，避免给整轮流程附加共享 deadline。
 	ctx := task.RequestCtx
 	if ctx == nil {
@@ -604,6 +615,9 @@ func handleChannelTask(task *DispatcherTask) (result MagiTaskResult) {
 		magiRuntimeMgr.FinishForeground(result.Err)
 	}()
 
+	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文
+	injectForegroundSystemNote(task.SessionID)
+
 	ctx := task.RequestCtx
 	if ctx == nil {
 		ctx = context.Background()
@@ -645,6 +659,21 @@ func extractChannelUserMessage(sourceCtx *types.RequestSourceContext) string {
 	return ""
 }
 
+// injectForegroundSystemNote 向三贤者注入外部消息触发提示，防御性覆盖可能残留的心跳上下文。
+func injectForegroundSystemNote(sessionID string) {
+	note := "[系统提示] 外部消息已记录，请以 <source=user_message> 为准开始处理。"
+	msg := types.ContextMessage{Role: types.RoleSystem, Content: note}
+	if magiMelchior != nil {
+		_ = magiMelchior.AddToContextWithSession(sessionID, msg)
+	}
+	if magiBalthazar != nil {
+		_ = magiBalthazar.AddToContextWithSession(sessionID, msg)
+	}
+	if magiCasper != nil {
+		_ = magiCasper.AddToContextWithSession(sessionID, msg)
+	}
+}
+
 // handleChannelInbound 处理来自外部通道的入站消息。
 // 注册为 channel.GlobalBridge 的回调。
 func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) error {
@@ -653,18 +682,18 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 	}
 	magiRuntimeMgr.InterruptHeartbeat()
 
-	if msg.ChannelID == "cli" {
+	channelType := msg.ChannelType
+	channelInstanceID := msg.ChannelID
+	accountID := msg.AccountID
+	userID := msg.UserID
+
+	if channelType == "cli" {
 		return handleCLIInbound(ctx, msg)
 	}
 
-	channelID := msg.ChannelID
-	accountID := msg.AccountID
-	userID := msg.UserID
-	channelInstanceID := channelID + "-" + accountID
-
-	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelID, accountID, userID)
+	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelType, accountID, userID)
 	rawAttributes := map[string]string{
-		"channelId":         channelID,
+		"channelId":         channelType,
 		"accountId":         accountID,
 		"userId":            userID,
 		"userMessage":       msg.Text,
@@ -672,12 +701,12 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 	}
 
 	// 查询信任配置决定 DirectResponseAllowed
-	trustResult := globalTrustMgr.Resolve(channelID, accountID, userID)
+	trustResult := globalTrustMgr.Resolve(channelType, accountID, userID)
 	directOK := trustResult.DirectAllowed
 
 	identityID := accountID + ":" + userID
 	nickname := firstNonEmpty(trustResult.Nickname, msg.Nickname)
-	interfaceKind := channelID + "-bot"
+	interfaceKind := channelType + "-bot"
 
 	// 检测绑定码：格式 MB-XXXXXX
 	userText := strings.TrimSpace(msg.Text)
@@ -691,7 +720,7 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 				return nil
 			}
 			_ = globalMagiIdentityStore.addChannelBinding(bindIdentityID, channelBinding{
-				ChannelID: channelID,
+				ChannelID: channelType,
 				AccountID: accountID,
 				UserID:    userID,
 			})
@@ -704,7 +733,7 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 	}
 
 	// 尝试从身份卡绑定中解析该渠道用户的 MAGI 身份
-	identityRecord := globalMagiIdentityStore.resolveIdentityByChannel(channelID, accountID, userID)
+	identityRecord := globalMagiIdentityStore.resolveIdentityByChannel(channelType, accountID, userID)
 
 	// 未绑定用户：自动回复引导
 	if identityRecord == nil {
@@ -718,7 +747,7 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 		if nickname == "" {
 			nickname = firstNonEmpty(identityRecord.Nickname, identityRecord.DisplayName)
 		}
-		interfaceKind = fmt.Sprintf("%s-bot/%s", channelID, identityRecord.IdentityID)
+		interfaceKind = fmt.Sprintf("%s-bot/%s", channelType, identityRecord.IdentityID)
 		if identityRecord.RouteClass == "guardian" {
 			directOK = true
 		}
@@ -726,6 +755,9 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 		if identityRecord.DisplayName != "" {
 			rawAttributes["boundDisplayName"] = identityRecord.DisplayName
 		}
+		// 身份归属写回消息体，供 SaveInbound 落盘
+		msg.IdentityID = identityRecord.IdentityID
+		msg.IdentityDisplayName = firstNonEmpty(identityRecord.DisplayName, identityRecord.Nickname)
 	}
 
 	sourceCtx := &types.RequestSourceContext{
@@ -733,7 +765,7 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 		PrincipalID:           userID,
 		IdentityID:            identityID,
 		Nickname:              nickname,
-		InterfaceID:           channelID + "-" + accountID,
+		InterfaceID:           channelInstanceID,
 		InterfaceKind:         interfaceKind,
 		SourceSessionKey:      sourceSessionKey,
 		DirectResponseAllowed: directOK,
@@ -780,20 +812,21 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 // handleCLIInbound 处理来自 CLI 通道的入站消息。
 // 跳过身份卡绑定流程，直接进入 MAGI 调度。
 func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
-	channelID := msg.ChannelID
+	channelInstanceID := msg.ChannelID
 	accountID := msg.AccountID
 	userID := msg.UserID
+	channelType := msg.ChannelType
 
-	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelID, accountID, userID)
+	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelType, accountID, userID)
 	rawAttributes := map[string]string{
-		"channelId":         channelID,
+		"channelId":         channelType,
 		"accountId":         accountID,
 		"userId":            userID,
 		"userMessage":       msg.Text,
 		"conversationToken": msg.ConversationToken,
 	}
 
-	adapter, ok := channel.Get(channelID + "-" + accountID)
+	adapter, ok := channel.Get(channelInstanceID)
 	if ok {
 		if cliAdapter, ok2 := adapter.(*cli.Adapter); ok2 {
 			ident := cliAdapter.Identity()
@@ -803,7 +836,7 @@ func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
 		}
 	}
 
-	trustResult := globalTrustMgr.Resolve(channelID, accountID, userID)
+	trustResult := globalTrustMgr.Resolve(channelType, accountID, userID)
 
 	authStrength := types.AuthStrengthWeak
 	identityDecl := "身份未经校验"
@@ -812,12 +845,16 @@ func handleCLIInbound(ctx context.Context, msg *channel.InboundMessage) error {
 		identityDecl = "持有工作空间token，但身份未经校验"
 	}
 
+	// 身份归属写回消息体，供 SaveInbound 落盘
+	msg.IdentityID = userID
+	msg.IdentityDisplayName = msg.Nickname
+
 	sourceCtx := &types.RequestSourceContext{
 		Channel:               types.SourceChannelExternalAgent,
 		PrincipalID:           userID,
 		IdentityID:            userID,
 		Nickname:              msg.Nickname,
-		InterfaceID:           channelID + "-" + accountID,
+		InterfaceID:           channelInstanceID,
 		InterfaceKind:         "cli-tool",
 		SourceSessionKey:      sourceSessionKey,
 		DirectResponseAllowed: true,

@@ -80,9 +80,9 @@ func TestBuildCalloutMarkdown_MixedFields(t *testing.T) {
 	got := BuildCalloutMarkdown("QUERY_RESULT", "笔记关键词搜索",
 		CalloutField{Label: "查询", Value: "关键词"},
 		CalloutField{Label: "匹配块数", Value: "2（共 5 个命中）"},
-		CalloutField{Label: "结果", Value: "{{! block1}}\n{{! block2}}"},
+		CalloutField{Label: "结果", Value: "{{ select * from blocks where id in ('block1', 'block2') }}"},
 	)
-	want := "> [!QUERY_RESULT] 笔记关键词搜索\n> **查询**: 关键词\n> **匹配块数**: 2（共 5 个命中）\n> **结果**: {{! block1}}\n> {{! block2}}"
+	want := "> [!QUERY_RESULT] 笔记关键词搜索\n> **查询**: 关键词\n> **匹配块数**: 2（共 5 个命中）\n> **结果**: {{ select * from blocks where id in ('block1', 'block2') }}"
 	if got != want {
 		t.Fatalf("期望:\n%q\n实际:\n%q", want, got)
 	}

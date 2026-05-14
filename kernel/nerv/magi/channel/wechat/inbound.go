@@ -8,13 +8,14 @@ import (
 
 // convertToInbound 将 weixinMessage 转换为通用的 InboundMessage。
 // 如果消息没有有效内容，返回 nil。
-func convertToInbound(accountID string, wxMsg *weixinMessage) *channel.InboundMessage {
+func convertToInbound(channelID, accountID string, wxMsg *weixinMessage) *channel.InboundMessage {
 	if wxMsg == nil || wxMsg.FromUserID == "" {
 		return nil
 	}
 
 	msg := &channel.InboundMessage{
-		ChannelID:         "wechat",
+		ChannelID:         channelID,
+		ChannelType:       "wechat",
 		AccountID:         accountID,
 		UserID:            wxMsg.FromUserID,
 		ConversationToken: wxMsg.ContextToken,

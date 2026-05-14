@@ -22,6 +22,40 @@ import { getSiyuanReqId } from "./imports";
 import { setSiyuanReqId } from "./imports";
 /** 用途：认证失效时重载页面 | 使用范围：handleFetchResponse 中 401 错误处理 | 解耦评估：浏览器基础设施，无法解耦 */
 import { reloadLocation } from "./imports";
+/** 用途：SForge 全局状态管理 | 使用范围：请求信号量跨模块持久化 | 解耦评估：基础设施，需全局单例 */
+import { getSForgeState, setSForgeState } from "../../config/sforge.global";
+import { SForgeSymbols } from "../../config/sforge.symbols";
+import type { IRequestSemaphore } from "../../config/sforge.types";
+
+const maxConcurrent = 6;
+
+function getSemaphore(): IRequestSemaphore {
+	let s = getSForgeState(SForgeSymbols.REQUEST_SEMAPHORE);
+	if (!s) {
+		s = { current: 0, pending: [] };
+		setSForgeState(SForgeSymbols.REQUEST_SEMAPHORE, s);
+	}
+	return s;
+}
+
+function acquire(): Promise<void> {
+	const s = getSemaphore();
+	if (s.current < maxConcurrent) {
+		s.current++;
+		return Promise.resolve();
+	}
+	return new Promise(resolve => { s.pending.push(resolve); });
+}
+
+function release(): void {
+	const s = getSemaphore();
+	s.current--;
+	const next = s.pending.shift();
+	if (next) {
+		s.current++;
+		next();
+	}
+}
 
 /**
  * 需要进行请求竞态控制的特殊 API 列表
@@ -257,30 +291,38 @@ export const fetchPost = async (
     data?: TFetchRequestData,
     cb?: (response: IWebSocketData) => void,
     headers?: IObject,
-    failCallback?: (response: IWebSocketData) => void
+    failCallback?: (response: IWebSocketData) => void,
+    bypassSemaphore = false,
 ) => {
-    // 创建请求上下文
-    const ctx: FetchContext = { url, data, serializedBody: null };
-    // 中间件1: 注入 reqId 用于竞态控制
-    injectReqIdMiddleware(ctx);
-    // 中间件2: 序列化请求数据
-    serializeRequestDataMiddleware(ctx);
-    
-    const init: RequestInit = {
-        method: "POST",
-        body: ctx.serializedBody,
-    };
-    if (headers) {
-        init.headers = headers;
+    if (!bypassSemaphore) {
+        await acquire();
     }
-    let isGetFile202 = false;
+    let released = false;
     try {
+        // 创建请求上下文
+        const ctx: FetchContext = { url, data, serializedBody: null };
+        // 中间件1: 注入 reqId 用于竞态控制
+        injectReqIdMiddleware(ctx);
+        // 中间件2: 序列化请求数据
+        serializeRequestDataMiddleware(ctx);
+
+        const init: RequestInit = {
+            method: "POST",
+            body: ctx.serializedBody,
+        };
+        if (headers) {
+            init.headers = headers;
+        }
+        let isGetFile202 = false;
         const response = await fetch(url, init);
         // 检查 getFile 接口是否返回 202 状态码（表示文件尚未就绪或需要特殊处理）
         if (response.status === 202 && url === "/api/file/getFile") {
             isGetFile202 = true;
         }
         const responseData: IWebSocketData = await handleFetchResponse(response);
+
+        if (!bypassSemaphore) { release(); released = true; }
+
         // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
         if (failCallback && url === "/api/file/getFile" && isGetFile202) {
             failCallback(responseData);
@@ -288,6 +330,7 @@ export const fetchPost = async (
         }
         createPostResponseHandler(url, cb)(responseData);
     } catch (e) {
+        if (!bypassSemaphore && !released) { release(); }
         const error = e instanceof Error ? e : new Error(String(e));
         handleFetchError(url, data, error, failCallback);
     }
@@ -311,21 +354,29 @@ export const fetchPost = async (
  * }
  */
 export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
-    const ctx: FetchContext = { url, data, serializedBody: null };
-    injectReqIdMiddleware(ctx);
-    serializeRequestDataMiddleware(ctx);
-    
-    const init: RequestInit = {
-        method: "POST",
-        body: ctx.serializedBody,
-    };
-    const res = await fetch(url, init);
-    const jsonResult: unknown = await res.json();
-    if (!isWebSocketData(jsonResult)) {
-        throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
+    await acquire();
+    let released = false;
+    try {
+        const ctx: FetchContext = { url, data, serializedBody: null };
+        injectReqIdMiddleware(ctx);
+        serializeRequestDataMiddleware(ctx);
+
+        const init: RequestInit = {
+            method: "POST",
+            body: ctx.serializedBody,
+        };
+        const res = await fetch(url, init);
+        const jsonResult: unknown = await res.json();
+        if (!isWebSocketData(jsonResult)) {
+            throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
+        }
+        release(); released = true;
+        processMessage(jsonResult);
+        return jsonResult;
+    } catch (e) {
+        if (!released) { release(); }
+        throw e;
     }
-    processMessage(jsonResult);
-    return jsonResult;
 };
 
 /**

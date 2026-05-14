@@ -33,35 +33,38 @@ const (
 // PersistedMessage 统一的渠道消息落盘记录 — 所有主流 IM 消息格式的超集。
 // 每条记录对应一条入站或出站消息。
 type PersistedMessage struct {
-	ID             string             `json:"id"`
-	ChannelID      string             `json:"channelId"`
-	AccountID      string             `json:"accountId"`
-	UserID         string             `json:"userId"`
-	Nickname       string             `json:"nickname,omitempty"`
-	ConversationID string             `json:"conversationId,omitempty"`
-	Direction      MessageDirection   `json:"direction"`
-	ContentType    MessageContentType `json:"contentType"`
-	CreatedAt      int64              `json:"createdAt"`
-	EditedAt       int64              `json:"editedAt,omitempty"`
-	PersistedAt    int64              `json:"persistedAt"`
-	Text           string             `json:"text,omitempty"`
-	RichBody       string             `json:"richBody,omitempty"`
-	Media          []MediaAttachment  `json:"media,omitempty"`
-	ReplyToID      string             `json:"replyToId,omitempty"`
-	ThreadID       string             `json:"threadId,omitempty"`
-	Mentions       []Mention          `json:"mentions,omitempty"`
-	Reactions      []Reaction         `json:"reactions,omitempty"`
-	Location       *Location          `json:"location,omitempty"`
-	Contact        *SharedContact     `json:"contact,omitempty"`
-	Poll           *Poll              `json:"poll,omitempty"`
-	Sticker        *StickerInfo       `json:"sticker,omitempty"`
-	Interactive    *Interactive       `json:"interactive,omitempty"`
-	Voice          *VoiceInfo         `json:"voice,omitempty"`
-	ForwardInfo    *ForwardInfo       `json:"forwardInfo,omitempty"`
-	IsEdited       bool               `json:"isEdited"`
-	IsDeleted      bool               `json:"isDeleted"`
-	IsPinned       bool               `json:"isPinned,omitempty"`
-	PlatformMeta   json.RawMessage    `json:"platformMeta,omitempty"`
+	ID                  string             `json:"id"`
+	ChannelID           string             `json:"channelId"`
+	ChannelType         string             `json:"channelType"`
+	AccountID           string             `json:"accountId"`
+	UserID              string             `json:"userId"`
+	Nickname            string             `json:"nickname,omitempty"`
+	IdentityID          string             `json:"identityId,omitempty"`
+	IdentityDisplayName string             `json:"identityDisplayName,omitempty"`
+	ConversationID      string             `json:"conversationId,omitempty"`
+	Direction           MessageDirection   `json:"direction"`
+	ContentType         MessageContentType `json:"contentType"`
+	CreatedAt           int64              `json:"createdAt"`
+	EditedAt            int64              `json:"editedAt,omitempty"`
+	PersistedAt         int64              `json:"persistedAt"`
+	Text                string             `json:"text,omitempty"`
+	RichBody            string             `json:"richBody,omitempty"`
+	Media               []MediaAttachment  `json:"media,omitempty"`
+	ReplyToID           string             `json:"replyToId,omitempty"`
+	ThreadID            string             `json:"threadId,omitempty"`
+	Mentions            []Mention          `json:"mentions,omitempty"`
+	Reactions           []Reaction         `json:"reactions,omitempty"`
+	Location            *Location          `json:"location,omitempty"`
+	Contact             *SharedContact     `json:"contact,omitempty"`
+	Poll                *Poll              `json:"poll,omitempty"`
+	Sticker             *StickerInfo       `json:"sticker,omitempty"`
+	Interactive         *Interactive       `json:"interactive,omitempty"`
+	Voice               *VoiceInfo         `json:"voice,omitempty"`
+	ForwardInfo         *ForwardInfo       `json:"forwardInfo,omitempty"`
+	IsEdited            bool               `json:"isEdited"`
+	IsDeleted           bool               `json:"isDeleted"`
+	IsPinned            bool               `json:"isPinned,omitempty"`
+	PlatformMeta        json.RawMessage    `json:"platformMeta,omitempty"`
 }
 
 // Mention @提及
@@ -137,13 +140,15 @@ type ForwardInfo struct {
 
 // QueryOptions 消息查询参数
 type QueryOptions struct {
-	ChannelID string
-	AccountID string
-	UserID    string
-	Direction MessageDirection
-	Limit     int
-	Before    int64
-	After     int64
+	ChannelID   string
+	ChannelType string
+	AccountID   string
+	UserID      string
+	IdentityID  string
+	Direction   MessageDirection
+	Limit       int
+	Before      int64
+	After       int64
 }
 
 // QueryResult 消息查询结果

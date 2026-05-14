@@ -591,7 +591,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"检查了待办并确认暂时无事可做","nextStepPlan":"明早先确认新的调度信号"}`),
 				},
 			},
@@ -603,7 +603,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepDreamToolName, `{"summary":"我把今天残留的感受收起来了","dreamScene":"夜色中的工作台，屏幕映着雨后的窗，手边摊着未合上的笔记本，空气安静而清醒"}`),
 				},
 			},
@@ -614,7 +614,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"目前没有必须立刻处理的新事，先把这一轮看到的细节记下来"}`),
 				},
 			},
@@ -652,7 +652,7 @@ func TestCollectHeartbeatResponses_WaitsForAllSleepingSages(t *testing.T) {
 	for _, resp := range result.Responses {
 		respBySeel[resp.Seel] = resp
 	}
-	if 	respBySeel["melchior"].DowntimeNote == nil || 	respBySeel["melchior"].DowntimeNote.NextStepPlan == "" {
+	if respBySeel["melchior"].DowntimeNote == nil || respBySeel["melchior"].DowntimeNote.NextStepPlan == "" {
 		t.Fatal("期望 Melchior 的睡前笔记携带下一步计划")
 	}
 	if respBySeel["balthazar"].DowntimeNote == nil || respBySeel["balthazar"].DowntimeNote.DreamScene == "" {
@@ -670,7 +670,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"先记录检查结果","nextStepPlan":"继续观察队列变化"}`),
 				},
 			},
@@ -683,7 +683,7 @@ func TestCollectHeartbeatResponses_AnySageStillAwakeKeepsHeartbeatAwake(t *testi
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有新的异常，先把线索记下"}`),
 				},
 			},

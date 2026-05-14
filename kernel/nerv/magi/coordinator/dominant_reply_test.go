@@ -271,6 +271,12 @@ func latestAssistantContent(messages []types.ContextMessage) string {
 	return ""
 }
 
+// buildPlanProposalResponse 构建行动计划提案的模拟响应 JSON。
+func buildPlanProposalResponse(plan string) string {
+	payload, _ := json.Marshal(map[string]string{"plan": plan})
+	return string(payload)
+}
+
 func hasContextMessage(messages []types.ContextMessage, role types.MessageRole, content string) bool {
 	for _, message := range messages {
 		if message.Role == role && strings.TrimSpace(message.Content) == strings.TrimSpace(content) {
@@ -313,9 +319,18 @@ func TestCoordinateDominantDirectReply_SharesDominantReplyToAllSages(t *testing.
 		t.Fatalf("buildDominantCandidates() error = %v", err)
 	}
 
-	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
-	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
-	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("分析并回复外部消息"),
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+	}
+	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("关注消息中的社交线索"),
+		buildDominantVoteResponse(t, candidates, 80, 35, 25),
+	}
+	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("记录这条消息的关键信息"),
+		buildDominantVoteResponse(t, candidates, 75, 30, 40),
+	}
 
 	message, election, err := coordinator.coordinateDominantDirectReply(
 		context.Background(),
@@ -378,9 +393,18 @@ func TestCoordinateDominantDirectReply_NotifiesDominantSelectionObserver(t *test
 		t.Fatalf("buildDominantCandidates() error = %v", err)
 	}
 
-	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
-	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
-	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("分析并回复外部消息"),
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+	}
+	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("关注消息中的社交线索"),
+		buildDominantVoteResponse(t, candidates, 80, 35, 25),
+	}
+	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("记录这条消息的关键信息"),
+		buildDominantVoteResponse(t, candidates, 75, 30, 40),
+	}
 
 	_, _, err = coordinator.coordinateDominantDirectReply(
 		context.Background(),
@@ -466,9 +490,18 @@ func TestCoordinateDominantDirectReply_SanitizesMelchiorQueryHistoryForPeers(t *
 		t.Fatalf("buildDominantCandidates() error = %v", err)
 	}
 
-	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 98, 10, 5)}
-	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 90, 30, 15)}
-	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 85, 20, 40)}
+	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("查看代码仓库结构"),
+		buildDominantVoteResponse(t, candidates, 98, 10, 5),
+	}
+	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("关注消息中的技术细节"),
+		buildDominantVoteResponse(t, candidates, 90, 30, 15),
+	}
+	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("记录相关代码信息"),
+		buildDominantVoteResponse(t, candidates, 85, 20, 40),
+	}
 
 	_, election, err := coordinator.coordinateDominantDirectReply(
 		context.Background(),
@@ -531,9 +564,18 @@ func TestCoordinateDominantDirectReply_InjectsDiaryToolIntoDominantRuntimeTools(
 		t.Fatalf("buildDominantCandidates() error = %v", err)
 	}
 
-	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
-	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
-	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("完成回复任务"),
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+	}
+	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("辅助回复任务"),
+		buildDominantVoteResponse(t, candidates, 80, 35, 25),
+	}
+	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("记录回复内容"),
+		buildDominantVoteResponse(t, candidates, 75, 30, 40),
+	}
 
 	_, election, err := coordinator.coordinateDominantDirectReply(
 		context.Background(),
@@ -797,14 +839,17 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectThenApproveKeepsDominance(
 	}
 
 	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("记录进展并回复"),
 		buildDominantVoteResponse(t, candidates, 95, 20, 10),
 	}
 	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("复核记录内容"),
 		buildDominantVoteResponse(t, candidates, 85, 40, 15),
 		`{"decision":"否决","reason":"先再想想"}`,
 		`{"decision":"批准","reason":"调整后可行"}`,
 	}
 	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("备份本次记录"),
 		buildDominantVoteResponse(t, candidates, 80, 35, 30),
 		`{"decision":"否决","reason":"还不够稳"}`,
 		`{"decision":"批准","reason":"现在可以"}`,

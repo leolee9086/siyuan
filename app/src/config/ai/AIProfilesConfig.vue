@@ -59,8 +59,8 @@
                     <input type="number" step="0.1" class="b3-text-field fn__size200" v-model.number="current.temperature" @change="handleSave">
                 </div>
                 <div class="fn__flex b3-label config__item">
-                    <div class="fn__flex-1">Timeout (ms)</div>
-                    <input type="number" class="b3-text-field fn__size200" v-model.number="current.timeoutMs" @change="handleSave">
+                    <div class="fn__flex-1">超时时间（秒）</div>
+                    <input type="number" class="b3-text-field fn__size200" v-model.number="timeoutSeconds" @change="handleSave">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">API Proxy</div>
@@ -111,6 +111,11 @@ const profiles = ref<Profile[]>([]);
 const activeId = ref("");
 const current = ref<Profile | null>(null);
 
+const timeoutSeconds = computed({
+    get: () => current.value ? Math.round(current.value.timeoutMs / 1000) : 30,
+    set: (val: number) => { if (current.value) current.value.timeoutMs = val * 1000; },
+});
+
 const loadProfiles = async () => {
     const resp: any = await fetchSyncPost("/api/s-forge/ai/profile/list", {});
     const data = resp.data || resp;
@@ -144,7 +149,7 @@ const handleCreate = async () => {
         model: "gpt-3.5-turbo",
         maxTokens: 0,
         temperature: 1.0,
-        timeoutMs: 30000,
+        timeoutMs: 120000,
         priority: 0,
         enabled: true,
         models: [],

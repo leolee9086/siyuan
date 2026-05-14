@@ -25,6 +25,18 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.MODEL_HANDLERS]?: IModelHandlers;
     [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: TOpenMobileFileById;
     [SForgeSymbols.CONTENT_RENDERER_REGISTRY]?: Map<string, ContentRendererRegistration>;
+    [SForgeSymbols.REQUEST_SEMAPHORE]?: IRequestSemaphore;
+}
+
+/**
+ * 请求信号量接口
+ *
+ * 用途：限制 API 最大并发请求数，防止前端过度发送请求导致后端任务队列堆积
+ * 使用场景：fetch.ts 中的 acquire/release 信号量机制
+ */
+export interface IRequestSemaphore {
+    current: number;
+    pending: Array<() => void>;
 }
 
 /**

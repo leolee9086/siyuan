@@ -62,27 +62,29 @@ func TestComputeBigFiveSimilarity(t *testing.T) {
 	}
 }
 
-func TestComputeSyncRate(t *testing.T) {
+func TestComputeSyncRateFromParts(t *testing.T) {
 	tests := []struct {
 		name         string
-		rawCoherence float64
-		expectedZone string
-		expectedRho  float64
+		cInt, cExt   float64
+		expRho       float64
+		expZone      string
 	}{
-		{"完全分裂", 0.1, "dispersion", 0.111},
-		{"健康中心", 0.5, "resonance", 1.0},
-		{"轻度过同步", 0.6, "dissolution", 1.5},
-		{"严重过同步", 0.75, "dissolution", 3.0},
+		{"健康稳态 C_int=0.8 C_ext=0.618", 0.8, 0.618, 1.0, "resonance"},
+		{"内部分裂 C_int→0（无方向背离，不转负）", 0, 1, 0, "dispersion"},
+		{"C_int=0.8 C_ext=0 → ρ≈0.815", 0.8, 0, 0.815, "resonance"},
+		{"内部全一致+外部全一致", 0.9999, 1, 3499.15, "dissolution"},
+		{"C_int=0.8 C_ext=1 → ρ≈1.115", 0.8, 1.0, 1.115, "resonance"},
+		{"C_int=0.5 C_ext=0.5（无方向背离，ρ>0）", 0.5, 0.5, 0.325, "dispersion"},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sr := ComputeSyncRate(tt.rawCoherence)
-			if sr.Zone != tt.expectedZone {
-				t.Errorf("区间错误: 期望%s, 实际%s", tt.expectedZone, sr.Zone)
+			sr := ComputeSyncRateFromParts(tt.cInt, tt.cExt)
+			t.Logf("C_int=%.4f C_ext=%.4f ρ=%.6f zone=%s", tt.cInt, tt.cExt, sr.Value, sr.Zone)
+			if math.Abs(sr.Value-tt.expRho) > 0.01 {
+				t.Errorf("ρ: 期望%.4f, 实际%.4f", tt.expRho, sr.Value)
 			}
-			if math.Abs(sr.Value-tt.expectedRho) > 0.01 {
-				t.Errorf("同步率错误: 期望%.2f, 实际%.2f", tt.expectedRho, sr.Value)
+			if sr.Zone != tt.expZone {
+				t.Errorf("分区: 期望%s, 实际%s", tt.expZone, sr.Zone)
 			}
 		})
 	}

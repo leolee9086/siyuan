@@ -17,7 +17,8 @@ import (
 
 // ResponseCollector 响应收集器
 type ResponseCollector struct {
-	timeout time.Duration
+	timeout        time.Duration
+	workLogHistory *workLogHistoryStore
 }
 
 type CollectResponsesOptions struct {
@@ -41,7 +42,8 @@ type HeartbeatCollectionResult struct {
 // NewResponseCollector 创建响应收集器
 func NewResponseCollector(timeout time.Duration) *ResponseCollector {
 	return &ResponseCollector{
-		timeout: timeout,
+		timeout:        timeout,
+		workLogHistory: newWorkLogHistory(),
 	}
 }
 
@@ -229,6 +231,10 @@ func (rc *ResponseCollector) collectResponsesWithOptions(
 
 	// 检查是否至少有2个成功
 	if successCount < 2 {
+		// 如果是因为 context 取消导致收集不足，返回部分结果而非直接失败
+		if ctx.Err() == context.Canceled {
+			return heartbeatResult, ctx.Err()
+		}
 		return nil, fmt.Errorf("至少需要2个贤者成功响应，实际成功: %d, 错误: %v", successCount, errMessages)
 	}
 

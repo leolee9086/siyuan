@@ -4,7 +4,6 @@ package sages
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/88250/lute/ast"
@@ -527,7 +526,7 @@ func (cm *contextManagerImpl) applyStrategyLocked(roundChanged bool) {
 		cm.trimByRoundCount(cm.strategy.Count)
 	}
 	if cm.strategy.Type == "token_percent" && roundChanged {
-		cm.trimByRoundTokenPercent(cm.strategy.Percent)
+		cm.trimByTokenPercent(cm.strategy.Percent)
 	}
 }
 
@@ -599,30 +598,11 @@ func (cm *contextManagerImpl) trimByRoundCount(maxRounds int) {
 	cm.messages = filtered
 }
 
-func (cm *contextManagerImpl) trimByRoundTokenPercent(percent float64) {
-	if percent <= 0 || percent >= 100 || len(cm.messages) == 0 {
+func (cm *contextManagerImpl) trimByTokenPercent(percent float64) {
+	if percent <= 0 || percent > 100 || len(cm.messages) == 0 {
 		return
 	}
-	modelMaxTokens := estimateModelMaxTokens(cm.modelName)
-	targetTokens := int(float64(modelMaxTokens) * percent / 100.0)
-	if targetTokens <= 0 {
-		return
-	}
-
-	totalChars := 0
-	cutIdx := -1
-	for i := len(cm.messages) - 1; i >= 0; i-- {
-		msg := cm.messages[i]
-		totalChars += len(msg.Content) + len(msg.ReasoningContent)
-		estimatedTokens := totalChars / 4
-		if estimatedTokens > targetTokens && i > 0 {
-			cutIdx = i
-			break
-		}
-	}
-	if cutIdx >= 0 {
-		cm.messages = cm.messages[cutIdx:]
-	}
+	cm.messages = trimByRoundTokenPercent(cm.messages, percent, cm.modelName)
 }
 
 // multiSessionContextManager 多会话上下文管理器（用于Melchior）
@@ -722,7 +702,7 @@ func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId 
 		mscm.trimByRoundCount(sessionId, mscm.strategy.Count)
 	}
 	if mscm.strategy.Type == "token_percent" && roundChanged {
-		mscm.trimByRoundTokenPercent(sessionId, mscm.strategy.Percent)
+		mscm.trimByTokenPercent(sessionId, mscm.strategy.Percent)
 	}
 }
 
@@ -801,31 +781,12 @@ func (mscm *multiSessionContextManager) trimByRoundCount(sessionId string, maxRo
 	mscm.sessions[sessionId] = filtered
 }
 
-func (mscm *multiSessionContextManager) trimByRoundTokenPercent(sessionId string, percent float64) {
+func (mscm *multiSessionContextManager) trimByTokenPercent(sessionId string, percent float64) {
 	messages := mscm.sessions[sessionId]
-	if percent <= 0 || percent >= 100 || len(messages) == 0 {
+	if percent <= 0 || percent > 100 || len(messages) == 0 {
 		return
 	}
-	modelMaxTokens := estimateModelMaxTokens(mscm.modelName)
-	targetTokens := int(float64(modelMaxTokens) * percent / 100.0)
-	if targetTokens <= 0 {
-		return
-	}
-
-	totalChars := 0
-	cutIdx := -1
-	for i := len(messages) - 1; i >= 0; i-- {
-		msg := messages[i]
-		totalChars += len(msg.Content) + len(msg.ReasoningContent)
-		estimatedTokens := totalChars / 4
-		if estimatedTokens > targetTokens && i > 0 {
-			cutIdx = i
-			break
-		}
-	}
-	if cutIdx >= 0 {
-		mscm.sessions[sessionId] = messages[cutIdx:]
-	}
+	mscm.sessions[sessionId] = trimByRoundTokenPercent(messages, percent, mscm.modelName)
 }
 
 // MarkCurrentRoundDominant 将指定会话的当前轮次标记为支配轮，后续该轮次的
@@ -932,28 +893,4 @@ func getPersonaProfileFromConfigManager(cfgManager *config.ConfigManager) *mardu
 	return nil
 }
 
-func estimateModelMaxTokens(modelName string) int {
-	lower := strings.ToLower(modelName)
-	switch {
-	case strings.Contains(lower, "gpt-4-32k"):
-		return 32768
-	case strings.Contains(lower, "gpt-4"):
-		return 8192
-	case strings.Contains(lower, "gpt-3.5-turbo-16k"):
-		return 16384
-	case strings.Contains(lower, "gpt-3.5"):
-		return 4096
-	case strings.Contains(lower, "claude-3-opus"):
-		return 200000
-	case strings.Contains(lower, "claude-3-sonnet"):
-		return 200000
-	case strings.Contains(lower, "claude-3-haiku"):
-		return 200000
-	case strings.Contains(lower, "claude-3.5"):
-		return 200000
-	case strings.Contains(lower, "claude-4"):
-		return 200000
-	default:
-		return 8192
-	}
-}
+

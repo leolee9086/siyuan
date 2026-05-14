@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/trust"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
@@ -124,7 +125,7 @@ func materializeSendChannelMessageResult(
 		return marshalSendChannelMessageError(err)
 	}
 
-	nickname := resolveChannelUserNickname(args.ChannelID, args.AccountID, args.UserID)
+	nickname := resolveChannelUserNickname(extractChannelType(args.ChannelID), args.AccountID, args.UserID)
 	resultPayload := map[string]interface{}{
 		"ok":         true,
 		"state":      "sent",
@@ -146,10 +147,9 @@ func executeSendChannelMessage(ctx context.Context, args *sendChannelMessageArgs
 		return fmt.Errorf("send_channel_message args is nil")
 	}
 
-	instanceID := args.ChannelID + "-" + args.AccountID
-	adapter, ok := channel.Get(instanceID)
+	adapter, ok := channel.Get(args.ChannelID)
 	if !ok {
-		return fmt.Errorf("channel adapter not found: %s", instanceID)
+		return fmt.Errorf("channel adapter not found: %s", args.ChannelID)
 	}
 
 	if !adapter.Capabilities().Has(channel.CapProactiveSend) {
@@ -157,18 +157,22 @@ func executeSendChannelMessage(ctx context.Context, args *sendChannelMessageArgs
 	}
 
 	msg := &channel.OutboundMessage{
-		ChannelID: args.ChannelID,
-		AccountID: args.AccountID,
-		UserID:    args.UserID,
-		Text:      args.Content,
+		ChannelID:   args.ChannelID,
+		ChannelType: extractChannelType(args.ChannelID),
+		AccountID:   args.AccountID,
+		UserID:      args.UserID,
+		Text:        args.Content,
 	}
 
 	err := adapter.SendMessage(ctx, msg)
 	if err != nil {
 		return err
 	}
-	if ms := channel.GlobalMessageStore(); ms != nil {
-		_ = ms.SaveOutbound(ctx, msg)
+	ms := channel.GlobalMessageStore()
+	if ms == nil {
+		logging.LogErrorf("消息存储未初始化，出站消息记录丢失: channel=%s user=%s", msg.ChannelID, msg.UserID)
+	} else if err := ms.SaveOutbound(ctx, msg); err != nil {
+		logging.LogErrorf("出站消息落盘失败: %v", err)
 	}
 	return nil
 }
@@ -238,4 +242,12 @@ func firstNonEmptyStr(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// extractChannelType 从适配器全量实例 ID 中提取渠道类型（第一个 "-" 之前的部分）。
+func extractChannelType(instanceID string) string {
+	if idx := strings.Index(instanceID, "-"); idx > 0 {
+		return instanceID[:idx]
+	}
+	return instanceID
 }

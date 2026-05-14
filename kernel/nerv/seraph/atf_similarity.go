@@ -3,23 +3,16 @@ package seraph
 import "math"
 
 // ComputeBigFiveSimilarity 计算两个PersonaBase的大五人格相似度
-// 使用加权Frobenius内积，归一化到[-1,1]
+// 使用归一化欧氏距离：sim = 1 - 2 * sqrt(avg_weighted_sq_diff) ∈ [-1, 1]
+// 1.0 = 完全一致（距离=0），-1.0 = 完全相反（距离=最大）
 func ComputeBigFiveSimilarity(p1, p2 *PersonaBase, weights map[string]float64) float64 {
 	if p1 == nil || p2 == nil {
 		return 0
 	}
 
-	// 默认权重：所有facet权重为1.0
-	if weights == nil {
-		weights = make(map[string]float64)
-	}
+	sumSq := 0.0
+	sumW := 0.0
 
-	// 计算加权内积和模长
-	dotProduct := 0.0
-	norm1 := 0.0
-	norm2 := 0.0
-
-	// 遍历所有facets
 	for facetKey, val1 := range p1.Facets {
 		val2, exists := p2.Facets[facetKey]
 		if !exists {
@@ -31,23 +24,21 @@ func ComputeBigFiveSimilarity(p1, p2 *PersonaBase, weights map[string]float64) f
 			weight = 1.0
 		}
 
-		weightedVal1 := weight * val1
-		weightedVal2 := weight * val2
-
-		dotProduct += weightedVal1 * weightedVal2
-		norm1 += weightedVal1 * weightedVal1
-		norm2 += weightedVal2 * weightedVal2
+		diff := val1 - val2
+		sumSq += weight * diff * diff
+		sumW += weight
 	}
 
-	if norm1 == 0 || norm2 == 0 {
+	if sumW == 0 {
 		return 0
 	}
 
-	// 余弦相似度
-	cosineSim := dotProduct / (math.Sqrt(norm1) * math.Sqrt(norm2))
+	normalizedDist := math.Sqrt(sumSq / sumW)
+	if normalizedDist > 1 {
+		normalizedDist = 1
+	}
 
-	// 归一化到[-1,1]（余弦相似度本身就在[-1,1]）
-	return cosineSim
+	return 1 - 2*normalizedDist
 }
 
 // ComputeCompositeSimilarity 计算综合相似度

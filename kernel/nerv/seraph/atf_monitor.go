@@ -18,9 +18,10 @@ var monitoredEntities = []ATFEntity{
 
 // ThreeBlindMonitor 三盲测试 + 多轮 ATF 监测执行器。
 type ThreeBlindMonitor struct {
-	sampler  *QuestionSampler
-	answerer ThreeBlindAnswerer
-	opts     MonitorOptions
+	sampler          *QuestionSampler
+	answerer         ThreeBlindAnswerer
+	opts             MonitorOptions
+	dominantSeelName string // 当前主导者名称，每轮 ATF 采样前由外部设置
 }
 
 // NewThreeBlindMonitor 创建监测执行器。
@@ -36,8 +37,9 @@ func NewThreeBlindMonitor(answerer ThreeBlindAnswerer, opts *MonitorOptions) *Th
 	}
 }
 
-// RunRounds 执行指定轮数监测。
-func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubject, rounds int) (*SubjectTelemetry, error) {
+// RunSamplingRounds 执行指定轮数的 ATF 采样监测。
+// dominantSeelName 为当前主导者名称，由外部传入（复用上次心跳/外界响应选举结果）。
+func (m *ThreeBlindMonitor) RunSamplingRounds(ctx context.Context, subject MonitorSubject, rounds int, dominantSeelName string) (*SubjectTelemetry, error) {
 	if m.answerer == nil {
 		return nil, fmt.Errorf("answerer is required")
 	}
@@ -47,6 +49,12 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 	if subject.InitialBase == nil {
 		return nil, fmt.Errorf("subject initial persona base is required")
 	}
+	if dominantSeelName == "" {
+		return nil, fmt.Errorf("dominantSeelName is required")
+	}
+
+	m.dominantSeelName = dominantSeelName
+	m.answerer.SetDominant(dominantSeelName)
 
 	personaByEntity := make(map[ATFEntity]*PersonaBase)
 	for _, entity := range monitoredEntities {
@@ -92,36 +100,175 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 			if err != nil {
 				return nil, fmt.Errorf("round %d entity %s partial score failed: %w", round, entity, err)
 			}
-			lambda := computeSalienceLambda(result.Answers, m.opts.EMA.MaxLambda)
-			personaByEntity[entity] = applyEMAUpdate(personaByEntity[entity], partialBase, lambda)
+			personaByEntity[entity] = partialBase
 		}
 
 		pairs := make(map[string]float64)
 		internalPairs := map[string]float64{
-			"I_m": 0,
-			"I_b": 0,
-			"I_c": 0,
 			"m_b": 0,
 			"m_c": 0,
 			"b_c": 0,
 		}
-		internalPairs["I_m"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityMelchior, alpha, bigFiveWeight))
-		internalPairs["I_b"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityBalthazar, alpha, bigFiveWeight))
-		internalPairs["I_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityCasper, alpha, bigFiveWeight))
-		internalPairs["m_b"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityMelchior, EntityBalthazar, alpha, bigFiveWeight))
-		internalPairs["m_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityMelchior, EntityCasper, alpha, bigFiveWeight))
-		internalPairs["b_c"] = toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityBalthazar, EntityCasper, alpha, bigFiveWeight))
+		// V2 双度量计算所有 pair
+		type namedPair struct {
+			name         string
+			left, right  ATFEntity
+		}
+		allPairs := []namedPair{
+			{"m_b", EntityMelchior, EntityBalthazar},
+			{"m_c", EntityMelchior, EntityCasper},
+			{"b_c", EntityBalthazar, EntityCasper},
+			{"a_m", EntityAvatar, EntityMelchior},
+			{"a_b", EntityAvatar, EntityBalthazar},
+			{"a_c", EntityAvatar, EntityCasper},
+			{"I_m", EntityIntegrated, EntityMelchior},
+			{"I_b", EntityIntegrated, EntityBalthazar},
+			{"I_c", EntityIntegrated, EntityCasper},
+			{"I_avatar", EntityIntegrated, EntityAvatar},
+		}
+		dualByPair := make(map[string]SimilarityPair)
+		for _, p := range allPairs {
+			sp := ComputeBigFiveSimilarityDual(personaByEntity[p.left], personaByEntity[p.right], nil)
+			dualByPair[p.name] = sp
+		}
+		internalPairs["m_b"] = dualByPair["m_b"].MagnitudeSim
+		internalPairs["m_c"] = dualByPair["m_c"].MagnitudeSim
+		internalPairs["b_c"] = dualByPair["b_c"].MagnitudeSim
 		for k, v := range internalPairs {
 			pairs[k] = v
 		}
+		pairs["I_m"] = dualByPair["I_m"].MagnitudeSim
+		pairs["I_b"] = dualByPair["I_b"].MagnitudeSim
+		pairs["I_c"] = dualByPair["I_c"].MagnitudeSim
+		pairs["I_avatar"] = dualByPair["I_avatar"].MagnitudeSim
 
-		integratedAvatarSim := toUnitInterval(computePairSimilarity(personaByEntity, styles, EntityIntegrated, EntityAvatar, alpha, bigFiveWeight))
-		pairs["I_avatar"] = integratedAvatarSim
+		// 打印各 pair 的文体成分、形状相似度和幅度相似度
+		{
+			for _, p := range allPairs {
+				rawStyle := ComputeStyleSimilarity(styles[p.left], styles[p.right])
+				sp := dualByPair[p.name]
+				fmt.Printf("[ATF] pair=%s style=%.6f shape=%.6f mag=%.6f\n", p.name, rawStyle, sp.ShapeSim, sp.MagnitudeSim)
+			}
+		}
 
-		cInt := ComputeInternalCoherence(internalPairs)
-		cExt := ComputeExternalCoherence(integratedAvatarSim)
-		raw := ComputeRawCoherence(cInt, cExt, m.opts.Coherence.InternalWeight)
-		syncRate := ComputeSyncRate(raw)
+		{
+			fmt.Printf("[ATF] traits: ")
+			for _, e := range monitoredEntities {
+				pb := personaByEntity[e]
+				if pb != nil {
+					fmt.Printf("%s={O=%.3f C=%.3f E=%.3f A=%.3f N=%.3f} ", e,
+						pb.Traits["O"], pb.Traits["C"], pb.Traits["E"], pb.Traits["A"], pb.Traits["N"])
+				}
+			}
+			fmt.Println()
+		}
+
+		// EM PID monitoring
+		pidStates := make(map[ATFEntity]map[string]*emPidFacet)
+		for _, e := range monitoredEntities {
+			st := make(map[string]*emPidFacet)
+			for k := range subject.InitialBase.Facets {
+				st[k] = &emPidFacet{}
+			}
+			pidStates[e] = st
+		}
+		var microAlerts []string
+		for _, e := range monitoredEntities {
+			result := answers[e]
+			allAns := result.Answers
+			st := pidStates[e]
+			for batch := 12; batch <= len(allAns); batch += 12 {
+				subAns := allAns[:batch]
+				partialSub, err := buildPartialPersonaBase(subAns, result.Questions)
+				if err != nil {
+					continue
+				}
+				for k, v := range partialSub.Facets {
+					initVal, ok := subject.InitialBase.Facets[k]
+					if !ok {
+						continue
+					}
+					dev := math.Abs(v - initVal)
+					s := st[k]
+					s.batch = (batch / 12)
+
+					// P: instantaneous deviation
+					pHit := dev > m.opts.EMA.MaxLambda
+
+					// I: sliding window of excess over MinLambda
+					excess := math.Max(dev-m.opts.EMA.MinLambda, 0)
+					s.ringSum -= s.ringBuf[s.ringPos]
+					s.ringBuf[s.ringPos] = excess
+					s.ringSum += excess
+					s.ringPos = (s.ringPos + 1) % 5
+					iHit := s.ringSum > 0.5
+
+					// D: filtered rate of change
+					rawDelta := dev - s.prevDev
+					s.filtDev = 0.3*rawDelta + 0.7*s.filtDev
+					s.prevDev = dev
+					dHit := math.Abs(s.filtDev) > 0.10
+
+					s.dev = dev
+					if pHit || iHit || dHit {
+						label := ""
+						if pHit {
+							label = "P"
+						}
+						if iHit {
+							label += "I"
+						}
+						if dHit {
+							label += "D"
+						}
+						microAlerts = append(microAlerts,
+							fmt.Sprintf("%s/%s@%d=%s(dev=%.3f)", e, k, s.batch, label, dev))
+						if len(microAlerts) > 20 {
+							break
+						}
+					}
+				}
+			}
+		}
+
+		maxDev := 0.0
+		for _, e := range monitoredEntities {
+			pb := personaByEntity[e]
+			if pb == nil || pb.Facets == nil {
+				continue
+			}
+			for k, v := range pb.Facets {
+				if initVal, ok := subject.InitialBase.Facets[k]; ok {
+					dev := math.Abs(v - initVal)
+					if dev > maxDev {
+						maxDev = dev
+					}
+				}
+			}
+		}
+		highAlert := maxDev > m.opts.EMA.MaxLambda
+		lowAlert := maxDev < m.opts.EMA.MinLambda
+
+		var emAlert string
+		if len(microAlerts) > 0 {
+			emAlert = "high"
+		} else {
+			emAlert = emAlertStatus(highAlert, lowAlert)
+		}
+		fmt.Printf("[ATF-EM] max_dev=%.4f thresholds=[%.3f, %.3f] alert=%s micro=%d\n",
+			maxDev, m.opts.EMA.MinLambda, m.opts.EMA.MaxLambda, emAlert, len(microAlerts))
+		if len(microAlerts) > 0 {
+			for _, a := range microAlerts {
+				fmt.Printf("  [ATF-EM]   %s\n", a)
+			}
+		}
+
+		// C_int 和 C_ext 均使用 V2 双度量，经由 ComputeCIntFromTripletV2 计算
+		cIntPairs := [3]SimilarityPair{dualByPair["m_b"], dualByPair["m_c"], dualByPair["b_c"]}
+		cExtPairs := [3]SimilarityPair{dualByPair["a_m"], dualByPair["a_b"], dualByPair["a_c"]}
+		cInt := ComputeCIntFromTripletV2(cIntPairs)
+		cExt := ComputeCIntFromTripletV2(cExtPairs)
+		syncRate := ComputeSyncRateFromParts(cInt, cExt)
 
 		rawDerivative := 0.0
 		if round > 1 {
@@ -135,11 +282,12 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 			AlphaUsed:      alpha,
 			CInt:           cInt,
 			CExt:           cExt,
-			RawCoherence:   raw,
+			RawCoherence:   cInt,
 			SyncRate:       syncRate,
 			RhoDerivative:  filteredDerivative,
 			Strength:       strength,
 			PairSimilarity: pairs,
+			EMAlert:        emAlert,
 		})
 
 		prevRho = syncRate.Value
@@ -150,16 +298,16 @@ func (m *ThreeBlindMonitor) RunRounds(ctx context.Context, subject MonitorSubjec
 }
 
 func (m *ThreeBlindMonitor) collectRoundAnswers(ctx context.Context, subject MonitorSubject) (map[ATFEntity]*EntityAnswerResult, error) {
-	melchiorQuestions := m.sampler.SampleForEntity(EntityMelchior, m.opts.QuestionsPerEntity)
-	balthazarQuestions := m.sampler.SampleForEntity(EntityBalthazar, m.opts.QuestionsPerEntity)
-	casperQuestions := m.sampler.SampleForEntity(EntityCasper, m.opts.QuestionsPerEntity)
+	// 全量 120 题
+	allQuestions := IpipNeo120QuestionBank
+
+	// 设置主导者（复用上次心跳/外界响应结果）
+	m.answerer.SetDominant(m.dominantSeelName)
 
 	results, err := m.answerer.AnswerAllEntities(
 		ctx,
 		subject,
-		melchiorQuestions,
-		balthazarQuestions,
-		casperQuestions,
+		allQuestions,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("collect integrated MAGI answers failed: %w", err)
@@ -174,18 +322,15 @@ func (m *ThreeBlindMonitor) collectRoundAnswers(ctx context.Context, subject Mon
 		}
 	}
 
-	// 阶段二：Avatar独立作答（参考基线）
-	avatarQuestions := m.sampler.SampleForEntity(EntityAvatar, m.opts.QuestionsPerEntity)
-	if len(avatarQuestions) > 0 {
-		avatarResult, err := m.answerer.Answer(ctx, subject, EntityAvatar, avatarQuestions)
-		if err != nil {
-			return nil, fmt.Errorf("avatar answer failed: %w", err)
-		}
-		if avatarResult == nil {
-			return nil, fmt.Errorf("avatar answer is nil")
-		}
-		results[EntityAvatar] = avatarResult
+	// Avatar 独立作答（全量 120 题，裸 LLM 镜像）
+	avatarResult, err := m.answerer.Answer(ctx, subject, EntityAvatar, allQuestions)
+	if err != nil {
+		return nil, fmt.Errorf("avatar answer failed: %w", err)
 	}
+	if avatarResult == nil {
+		return nil, fmt.Errorf("avatar answer is nil")
+	}
+	results[EntityAvatar] = avatarResult
 
 	return results, nil
 }
@@ -219,7 +364,30 @@ func computeSalienceLambda(answers []RawAnswer, maxLambda float64) float64 {
 	if salience > 1 {
 		salience = 1
 	}
-	return salience * maxLambda
+	return salience
+}
+
+type emPidFacet struct {
+	dev     float64
+	prevDev float64
+	filtDev float64
+	ringSum float64
+	ringBuf [5]float64
+	ringPos int
+	batch   int
+}
+
+func emAlertStatus(highAlert, lowAlert bool) string {
+	if highAlert && lowAlert {
+		return "both"
+	}
+	if highAlert {
+		return "high"
+	}
+	if lowAlert {
+		return "low"
+	}
+	return "none"
 }
 
 func buildPartialPersonaBase(answers []RawAnswer, questions []IpipNeo120Item) (*PersonaBase, error) {
@@ -376,6 +544,18 @@ func BuildReiSubject() MonitorSubject {
 func BuildKaoruSubject() MonitorSubject {
 	payload := marduk.GetKaoruSubmissionPayload()
 	preset := marduk.GetKaoruPreset()
+	return MonitorSubject{
+		ID:           payload.Subject.ID,
+		Name:         payload.Subject.Name,
+		Descriptions: payload.Descriptions,
+		InitialBase:  clonePersonaBase(&preset.PersonaBase),
+	}
+}
+
+// BuildShikinamiSubject 式波人格文档 + 初始人格矩阵。
+func BuildShikinamiSubject() MonitorSubject {
+	payload := marduk.GetShikinamiSubmissionPayload()
+	preset := marduk.GetShikinamiPreset()
 	return MonitorSubject{
 		ID:           payload.Subject.ID,
 		Name:         payload.Subject.Name,

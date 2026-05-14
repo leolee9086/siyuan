@@ -269,9 +269,9 @@ func sortRoundsForKeep(rounds []roundGroup) []roundGroup {
 }
 
 // trimByRoundTokenPercent 按轮次裁剪上下文。
-// percent 作为预警线；触发后裁剪到目标线。优先保留主导轮次，优先丢弃心跳轮次。
+// percent 使用百分比值（如 50 表示 50%）；触发后裁剪到目标线。优先保留主导轮次，优先丢弃心跳轮次。
 func trimByRoundTokenPercent(messages []types.ContextMessage, percent float64, model string) []types.ContextMessage {
-	if percent <= 0 || percent >= 1 || len(messages) == 0 {
+	if percent <= 0 || percent > 100 || len(messages) == 0 {
 		return messages
 	}
 
@@ -282,8 +282,8 @@ func trimByRoundTokenPercent(messages []types.ContextMessage, percent float64, m
 	}
 
 	maxContextTokens := getModelMaxContextTokens(model)
-	triggerTokens := int(float64(maxContextTokens) * percent)
-	targetTokens := int(float64(maxContextTokens) * percent * 0.2)
+	triggerTokens := int(float64(maxContextTokens) * percent / 100.0)
+	targetTokens := int(float64(maxContextTokens) * percent / 100.0 * 0.2)
 
 	var systemMsg *types.ContextMessage
 	startIdx := 0
@@ -446,7 +446,7 @@ func CalculateFatigue(messages []types.ContextMessage, strategy *config.ContextS
 		if maxTokens <= 0 {
 			return 0
 		}
-		limit := float64(maxTokens) * strategy.Percent
+		limit := float64(maxTokens) * strategy.Percent / 100.0
 		if limit <= 0 {
 			return 0
 		}

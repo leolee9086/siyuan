@@ -112,38 +112,41 @@ func (s *MessageStore) close() {
 func (s *MessageStore) createTables() error {
 	_, err := s.db.Exec(`
 	CREATE TABLE IF NOT EXISTS channel_messages (
-		id              TEXT PRIMARY KEY,
-		channel_id      TEXT NOT NULL,
-		account_id      TEXT NOT NULL,
-		user_id         TEXT NOT NULL,
-		nickname        TEXT DEFAULT '',
-		conversation_id TEXT DEFAULT '',
-		direction       TEXT NOT NULL CHECK(direction IN ('inbound','outbound')),
-		content_type    TEXT NOT NULL CHECK(content_type IN (
+		id                    TEXT PRIMARY KEY,
+		channel_id            TEXT NOT NULL,
+		channel_type          TEXT NOT NULL DEFAULT '',
+		account_id            TEXT NOT NULL,
+		user_id               TEXT NOT NULL,
+		nickname              TEXT DEFAULT '',
+		identity_id           TEXT DEFAULT '',
+		identity_display_name TEXT DEFAULT '',
+		conversation_id       TEXT DEFAULT '',
+		direction             TEXT NOT NULL CHECK(direction IN ('inbound','outbound')),
+		content_type          TEXT NOT NULL CHECK(content_type IN (
 			'text','image','video','audio','file','sticker','location',
 			'contact','poll','rich_text','interactive','voice','system','mixed'
 		)),
-		created_at      INTEGER NOT NULL,
-		edited_at       INTEGER DEFAULT 0,
-		persisted_at    INTEGER NOT NULL,
-		text_content    TEXT DEFAULT '',
-		rich_body       TEXT DEFAULT '',
-		media_json      TEXT DEFAULT '[]',
-		reply_to_id     TEXT DEFAULT '',
-		thread_id       TEXT DEFAULT '',
-		mentions_json   TEXT DEFAULT '[]',
-		reactions_json  TEXT DEFAULT '[]',
-		location_json   TEXT DEFAULT '{}',
-		contact_json    TEXT DEFAULT '{}',
-		poll_json       TEXT DEFAULT '{}',
-		sticker_json    TEXT DEFAULT '{}',
-		interactive_json TEXT DEFAULT '{}',
-		voice_json      TEXT DEFAULT '{}',
-		forward_info_json TEXT DEFAULT '{}',
-		is_edited       INTEGER DEFAULT 0,
-		is_deleted      INTEGER DEFAULT 0,
-		is_pinned       INTEGER DEFAULT 0,
-		platform_meta_json TEXT DEFAULT '{}'
+		created_at            INTEGER NOT NULL,
+		edited_at             INTEGER DEFAULT 0,
+		persisted_at          INTEGER NOT NULL,
+		text_content          TEXT DEFAULT '',
+		rich_body             TEXT DEFAULT '',
+		media_json            TEXT DEFAULT '[]',
+		reply_to_id           TEXT DEFAULT '',
+		thread_id             TEXT DEFAULT '',
+		mentions_json         TEXT DEFAULT '[]',
+		reactions_json        TEXT DEFAULT '[]',
+		location_json         TEXT DEFAULT '{}',
+		contact_json          TEXT DEFAULT '{}',
+		poll_json             TEXT DEFAULT '{}',
+		sticker_json          TEXT DEFAULT '{}',
+		interactive_json      TEXT DEFAULT '{}',
+		voice_json            TEXT DEFAULT '{}',
+		forward_info_json     TEXT DEFAULT '{}',
+		is_edited             INTEGER DEFAULT 0,
+		is_deleted            INTEGER DEFAULT 0,
+		is_pinned             INTEGER DEFAULT 0,
+		platform_meta_json    TEXT DEFAULT '{}'
 	)`)
 	if err != nil {
 		return fmt.Errorf("create channel_messages table: %w", err)
@@ -151,6 +154,8 @@ func (s *MessageStore) createTables() error {
 
 	for _, idx := range []string{
 		`CREATE INDEX IF NOT EXISTS idx_cm_channel_time ON channel_messages(channel_id, account_id, persisted_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_cm_type_acct_time ON channel_messages(channel_type, account_id, persisted_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_cm_identity_time ON channel_messages(identity_id, persisted_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_cm_conv_time ON channel_messages(conversation_id, persisted_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_cm_user_time ON channel_messages(channel_id, account_id, user_id, persisted_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_cm_direction ON channel_messages(channel_id, account_id, direction, persisted_at DESC)`,
@@ -178,7 +183,8 @@ func (s *MessageStore) createTables() error {
 }
 
 const saveMessageSQL = `INSERT OR REPLACE INTO channel_messages (
-	id, channel_id, account_id, user_id, nickname, conversation_id,
+	id, channel_id, channel_type, account_id, user_id, nickname,
+	identity_id, identity_display_name, conversation_id,
 	direction, content_type, created_at, edited_at, persisted_at,
 	text_content, rich_body, media_json,
 	reply_to_id, thread_id, mentions_json, reactions_json,
@@ -186,7 +192,7 @@ const saveMessageSQL = `INSERT OR REPLACE INTO channel_messages (
 	interactive_json, voice_json, forward_info_json,
 	is_edited, is_deleted, is_pinned, platform_meta_json
 ) VALUES (
-	?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+	?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
 )`
 
 // SaveInbound 持久化一条入站消息（用户→MAGI）。
@@ -222,7 +228,8 @@ func (s *MessageStore) save(ctx context.Context, inbound *InboundMessage, outbou
 	isPinned := boolToInt(p.IsPinned)
 
 	_, execErr := s.saveStmt.ExecContext(ctx,
-		p.ID, p.ChannelID, p.AccountID, p.UserID, p.Nickname, p.ConversationID,
+		p.ID, p.ChannelID, p.ChannelType, p.AccountID, p.UserID, p.Nickname,
+		p.IdentityID, p.IdentityDisplayName, p.ConversationID,
 		string(p.Direction), string(p.ContentType), p.CreatedAt, p.EditedAt, p.PersistedAt,
 		p.Text, p.RichBody, mediaJSON,
 		p.ReplyToID, p.ThreadID, mentionsJSON, reactionsJSON,
@@ -245,9 +252,12 @@ func (s *MessageStore) toPersisted(inbound *InboundMessage, outbound *OutboundMe
 
 	if inbound != nil {
 		p.ChannelID = truncateStr(inbound.ChannelID, maxIDLen)
+		p.ChannelType = truncateStr(inbound.ChannelType, maxIDLen)
 		p.AccountID = truncateStr(inbound.AccountID, maxIDLen)
 		p.UserID = truncateStr(inbound.UserID, maxIDLen)
 		p.Nickname = truncateStr(inbound.Nickname, maxNicknameLen)
+		p.IdentityID = truncateStr(inbound.IdentityID, maxIDLen)
+		p.IdentityDisplayName = truncateStr(inbound.IdentityDisplayName, maxNicknameLen)
 		p.ConversationID = truncateStr(inbound.ConversationToken, maxIDLen)
 		p.Direction = DirInbound
 		p.CreatedAt = inbound.Timestamp
@@ -262,6 +272,7 @@ func (s *MessageStore) toPersisted(inbound *InboundMessage, outbound *OutboundMe
 
 	if outbound != nil {
 		p.ChannelID = truncateStr(outbound.ChannelID, maxIDLen)
+		p.ChannelType = truncateStr(outbound.ChannelType, maxIDLen)
 		p.AccountID = truncateStr(outbound.AccountID, maxIDLen)
 		p.UserID = truncateStr(outbound.UserID, maxIDLen)
 		p.ConversationID = truncateStr(outbound.ConversationToken, maxIDLen)
@@ -306,6 +317,14 @@ func (s *MessageStore) Query(ctx context.Context, opts QueryOptions) (*QueryResu
 	where := "WHERE channel_id = ? AND account_id = ?"
 	args := []interface{}{opts.ChannelID, opts.AccountID}
 
+	if opts.ChannelType != "" {
+		where += " AND channel_type = ?"
+		args = append(args, opts.ChannelType)
+	}
+	if opts.IdentityID != "" {
+		where += " AND identity_id = ?"
+		args = append(args, opts.IdentityID)
+	}
 	if opts.UserID != "" {
 		where += " AND user_id = ?"
 		args = append(args, opts.UserID)
@@ -364,7 +383,8 @@ func (s *MessageStore) Query(ctx context.Context, opts QueryOptions) (*QueryResu
 }
 
 const messageSelectColumns = `
-	id, channel_id, account_id, user_id, nickname, conversation_id,
+	id, channel_id, channel_type, account_id, user_id, nickname,
+	identity_id, identity_display_name, conversation_id,
 	direction, content_type, created_at, edited_at, persisted_at,
 	text_content, rich_body, media_json,
 	reply_to_id, thread_id, mentions_json, reactions_json,
@@ -383,7 +403,8 @@ func scanMessages(rows *sql.Rows) ([]PersistedMessage, error) {
 		var platformMetaJSON string
 
 		if err := rows.Scan(
-			&m.ID, &m.ChannelID, &m.AccountID, &m.UserID, &m.Nickname, &m.ConversationID,
+			&m.ID, &m.ChannelID, &m.ChannelType, &m.AccountID, &m.UserID, &m.Nickname,
+			&m.IdentityID, &m.IdentityDisplayName, &m.ConversationID,
 			&m.Direction, &m.ContentType, &m.CreatedAt, &m.EditedAt, &m.PersistedAt,
 			&m.Text, &m.RichBody, &mediaJSON,
 			&m.ReplyToID, &m.ThreadID, &mentionsJSON, &reactionsJSON,

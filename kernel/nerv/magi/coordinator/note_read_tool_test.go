@@ -10,6 +10,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/sql"
 )
 
 func TestNormalizeNoteByIDReadChildStart(t *testing.T) {
@@ -305,7 +306,7 @@ func TestExecuteNoteByIDRead_Success(t *testing.T) {
 		}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main"}`)
+	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -313,6 +314,7 @@ func TestExecuteNoteByIDRead_Success(t *testing.T) {
 	var payload struct {
 		ID               string `json:"id"`
 		RootID           string `json:"rootID"`
+		Format           string `json:"format"`
 		Type             string `json:"type"`
 		Content          string `json:"content"`
 		TotalChildren    int    `json:"totalChildren"`
@@ -345,6 +347,9 @@ func TestExecuteNoteByIDRead_Success(t *testing.T) {
 	}
 	if payload.HasMoreChildren {
 		t.Fatal("期望 HasMoreChildren=false，实际=true")
+	}
+	if payload.Format != "tree" {
+		t.Fatalf("期望 Format=tree，实际=%s", payload.Format)
 	}
 }
 
@@ -390,7 +395,7 @@ func TestExecuteNoteByIDRead_PartialChildren(t *testing.T) {
 		return children
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","start":3,"limit":3}`)
+	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree","start":3,"limit":3}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -586,8 +591,8 @@ func TestNormalizeNoteByIDReadFormat(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"", "tree"},
-		{"  ", "tree"},
+		{"", "markdown"},
+		{"  ", "markdown"},
 		{"tree", "tree"},
 		{"TREE", "tree"},
 		{"Tree", "tree"},
@@ -595,8 +600,8 @@ func TestNormalizeNoteByIDReadFormat(t *testing.T) {
 		{"MARKDOWN", "markdown"},
 		{"kramdown", "kramdown"},
 		{"KRAMDOWN", "kramdown"},
-		{"invalid", "tree"},
-		{"html", "tree"},
+		{"invalid", "markdown"},
+		{"html", "markdown"},
 	}
 	for _, tt := range tests {
 		if got := normalizeNoteByIDReadFormat(tt.input); got != tt.expected {
@@ -827,14 +832,14 @@ func TestExecuteNoteByIDRead_MarkdownFormatRestricted(t *testing.T) {
 	}
 }
 
-func TestExecuteNoteByIDRead_DefaultFormatIsTree(t *testing.T) {
+func TestExecuteNoteByIDRead_DefaultFormatIsMarkdown(t *testing.T) {
 	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
 	originalGetBlock := getBlock
-	originalGetChildBlocks := getChildBlocks
+	originalGetBlockKramdown := getBlockKramdown
 	defer func() {
 		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
 		getBlock = originalGetBlock
-		getChildBlocks = originalGetChildBlocks
+		getBlockKramdown = originalGetBlockKramdown
 	}()
 
 	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
@@ -852,10 +857,8 @@ func TestExecuteNoteByIDRead_DefaultFormatIsTree(t *testing.T) {
 		return &model.Block{ID: "b1", RootID: "doc-visible", Type: "p", Content: "x"}, nil
 	}
 
-	getChildBlocks = func(id string) []*model.ChildBlock {
-		return []*model.ChildBlock{
-			{ID: "c1", Type: "p", Content: "a"},
-		}
+	getBlockKramdown = func(id, mode string) string {
+		return "rendered markdown content"
 	}
 
 	result, err := executeNoteByIDRead(`{"id":"b1"}`)
@@ -872,14 +875,14 @@ func TestExecuteNoteByIDRead_DefaultFormatIsTree(t *testing.T) {
 	if err := json.Unmarshal([]byte(result), &payload); err != nil {
 		t.Fatalf("解析结果JSON失败: %v", err)
 	}
-	if payload.Format != "tree" {
-		t.Fatalf("默认 format 应为 tree，实际=%s", payload.Format)
+	if payload.Format != "markdown" {
+		t.Fatalf("默认 format 应为 markdown，实际=%s", payload.Format)
 	}
-	if payload.RenderedContent != "" {
-		t.Fatal("tree 格式不应返回 renderedContent")
+	if payload.RenderedContent == "" {
+		t.Fatal("markdown 格式应返回 renderedContent")
 	}
-	if payload.TotalChildren != 1 {
-		t.Fatalf("期望 TotalChildren=1，实际=%d", payload.TotalChildren)
+	if payload.TotalChildren != 0 {
+		t.Fatalf("期望 TotalChildren=0，实际=%d", payload.TotalChildren)
 	}
 }
 
@@ -972,5 +975,372 @@ func TestExecuteNoteByIDRead_MarkdownFormatGetBlockError(t *testing.T) {
 	}
 	if payload.Format != "markdown" {
 		t.Fatalf("期望 Format=markdown，实际=%s", payload.Format)
+	}
+}
+
+func TestBuildNoteByIDReadRefs_Accessible(t *testing.T) {
+	originalQueryRefs := queryRefsByDefID
+	defer func() { queryRefsByDefID = originalQueryRefs }()
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return []*sql.Ref{
+			{BlockID: "ref-block-1", RootID: "doc-visible", Content: "锚文本1", Type: "p"},
+			{BlockID: "ref-block-2", RootID: "doc-visible", Content: "锚文本2", Type: "h"},
+		}
+	}
+
+	accessibleRootIDs := map[string]struct{}{"doc-visible": {}}
+	items := buildNoteByIDReadRefs("block-main", accessibleRootIDs)
+
+	if len(items) != 2 {
+		t.Fatalf("期望 2 个 refs，实际=%d", len(items))
+	}
+	if items[0].BlockID != "ref-block-1" {
+		t.Fatalf("期望 items[0].BlockID=ref-block-1，实际=%s", items[0].BlockID)
+	}
+	if items[0].AnchorText != "锚文本1" {
+		t.Fatalf("期望 items[0].AnchorText=锚文本1，实际=%s", items[0].AnchorText)
+	}
+	if items[0].Restricted {
+		t.Fatal("期望 items[0] 非 restricted")
+	}
+	if items[1].BlockID != "ref-block-2" {
+		t.Fatalf("期望 items[1].BlockID=ref-block-2，实际=%s", items[1].BlockID)
+	}
+}
+
+func TestBuildNoteByIDReadRefs_Restricted(t *testing.T) {
+	originalQueryRefs := queryRefsByDefID
+	defer func() { queryRefsByDefID = originalQueryRefs }()
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return []*sql.Ref{
+			{BlockID: "ref-hidden", RootID: "doc-restricted", Content: "secret", Type: "p"},
+		}
+	}
+
+	accessibleRootIDs := map[string]struct{}{"doc-visible": {}}
+	items := buildNoteByIDReadRefs("block-main", accessibleRootIDs)
+
+	if len(items) != 1 {
+		t.Fatalf("期望 1 个 ref，实际=%d", len(items))
+	}
+	if items[0].BlockID != "ref-hidden" {
+		t.Fatalf("期望 items[0].BlockID=ref-hidden，实际=%s", items[0].BlockID)
+	}
+	if items[0].RootID != "doc-restricted" {
+		t.Fatalf("期望 items[0].RootID=doc-restricted，实际=%s", items[0].RootID)
+	}
+	if !items[0].Restricted {
+		t.Fatal("期望 items[0] 标记为 restricted")
+	}
+	if items[0].AnchorText != "" {
+		t.Fatalf("期望 restricted 项 AnchorText 为空，实际=%s", items[0].AnchorText)
+	}
+}
+
+func TestBuildNoteByIDReadRefs_NilRef(t *testing.T) {
+	originalQueryRefs := queryRefsByDefID
+	defer func() { queryRefsByDefID = originalQueryRefs }()
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return []*sql.Ref{nil, {BlockID: "ref-1", RootID: "doc-visible", Content: "ok", Type: "p"}}
+	}
+
+	accessibleRootIDs := map[string]struct{}{"doc-visible": {}}
+	items := buildNoteByIDReadRefs("block-main", accessibleRootIDs)
+
+	if len(items) != 1 {
+		t.Fatalf("期望 1 个 ref（跳过 nil），实际=%d", len(items))
+	}
+	if items[0].BlockID != "ref-1" {
+		t.Fatalf("期望 items[0].BlockID=ref-1，实际=%s", items[0].BlockID)
+	}
+}
+
+func TestBuildNoteByIDReadRefs_Empty(t *testing.T) {
+	originalQueryRefs := queryRefsByDefID
+	defer func() { queryRefsByDefID = originalQueryRefs }()
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return nil
+	}
+
+	items := buildNoteByIDReadRefs("block-main", map[string]struct{}{})
+	if items != nil {
+		t.Fatal("期望无 refs 时返回 nil")
+	}
+}
+
+func TestBuildNoteByIDReadDefs_Accessible(t *testing.T) {
+	originalQueryDefs := queryDefsByBlockID
+	originalSQLGetBlock := sqlGetBlock
+	defer func() {
+		queryDefsByBlockID = originalQueryDefs
+		sqlGetBlock = originalSQLGetBlock
+	}()
+
+	queryDefsByBlockID = func(blockID string) []*sql.Ref {
+		return []*sql.Ref{
+			{DefBlockID: "def-block-1", DefBlockRootID: "doc-visible", Content: "锚文本1"},
+			{DefBlockID: "def-block-2", DefBlockRootID: "doc-visible", Content: "锚文本2"},
+		}
+	}
+
+	sqlGetBlock = func(id string) *sql.Block {
+		switch id {
+		case "def-block-1":
+			return &sql.Block{ID: "def-block-1", RootID: "doc-visible", Type: "d"}
+		case "def-block-2":
+			return &sql.Block{ID: "def-block-2", RootID: "doc-visible", Type: "h"}
+		}
+		return nil
+	}
+
+	accessibleRootIDs := map[string]struct{}{"doc-visible": {}}
+	items := buildNoteByIDReadDefs("block-main", accessibleRootIDs)
+
+	if len(items) != 2 {
+		t.Fatalf("期望 2 个 defs，实际=%d", len(items))
+	}
+	if items[0].BlockID != "def-block-1" {
+		t.Fatalf("期望 items[0].BlockID=def-block-1，实际=%s", items[0].BlockID)
+	}
+	if items[0].AnchorText != "锚文本1" {
+		t.Fatalf("期望 items[0].AnchorText=锚文本1，实际=%s", items[0].AnchorText)
+	}
+	if items[0].Type != "d" {
+		t.Fatalf("期望 items[0].Type=d，实际=%s", items[0].Type)
+	}
+	if items[0].Restricted {
+		t.Fatal("期望 items[0] 非 restricted")
+	}
+	if items[1].Type != "h" {
+		t.Fatalf("期望 items[1].Type=h，实际=%s", items[1].Type)
+	}
+}
+
+func TestBuildNoteByIDReadDefs_Restricted(t *testing.T) {
+	originalQueryDefs := queryDefsByBlockID
+	defer func() { queryDefsByBlockID = originalQueryDefs }()
+
+	queryDefsByBlockID = func(blockID string) []*sql.Ref {
+		return []*sql.Ref{
+			{DefBlockID: "def-hidden", DefBlockRootID: "doc-restricted", Content: "secret"},
+		}
+	}
+
+	accessibleRootIDs := map[string]struct{}{"doc-visible": {}}
+	items := buildNoteByIDReadDefs("block-main", accessibleRootIDs)
+
+	if len(items) != 1 {
+		t.Fatalf("期望 1 个 def，实际=%d", len(items))
+	}
+	if items[0].BlockID != "def-hidden" {
+		t.Fatalf("期望 items[0].BlockID=def-hidden，实际=%s", items[0].BlockID)
+	}
+	if !items[0].Restricted {
+		t.Fatal("期望 items[0] 标记为 restricted")
+	}
+	if items[0].AnchorText != "" {
+		t.Fatalf("期望 restricted 项 AnchorText 为空，实际=%s", items[0].AnchorText)
+	}
+}
+
+func TestBuildNoteByIDReadDefs_Empty(t *testing.T) {
+	originalQueryDefs := queryDefsByBlockID
+	defer func() { queryDefsByBlockID = originalQueryDefs }()
+
+	queryDefsByBlockID = func(blockID string) []*sql.Ref {
+		return nil
+	}
+
+	items := buildNoteByIDReadDefs("block-main", map[string]struct{}{})
+	if items != nil {
+		t.Fatal("期望无 defs 时返回 nil")
+	}
+}
+
+func TestExecuteNoteByIDRead_RefsDefsInTreeFormat(t *testing.T) {
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
+	originalGetBlock := getBlock
+	originalGetChildBlocks := getChildBlocks
+	originalQueryRefs := queryRefsByDefID
+	originalQueryDefs := queryDefsByBlockID
+	originalSQLGetBlock := sqlGetBlock
+	defer func() {
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
+		getBlock = originalGetBlock
+		getChildBlocks = originalGetChildBlocks
+		queryRefsByDefID = originalQueryRefs
+		queryDefsByBlockID = originalQueryDefs
+		sqlGetBlock = originalSQLGetBlock
+	}()
+
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status:         model.WorkspaceAIMainNotebookStatusReady,
+				ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			},
+			ActiveNotebook:    &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			AccessibleRootIDs: map[string]struct{}{"doc-visible": {}},
+		}, nil
+	}
+
+	getBlock = func(id string, tree *parse.Tree) (*model.Block, error) {
+		return &model.Block{ID: "block-main", RootID: "doc-visible", Type: "p", Content: "正文"}, nil
+	}
+
+	getChildBlocks = func(id string) []*model.ChildBlock {
+		return []*model.ChildBlock{{ID: "child-1", Type: "p", Content: "子块"}}
+	}
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return []*sql.Ref{
+			{BlockID: "ref-1", RootID: "doc-visible", Content: "引用了此块", Type: "p"},
+		}
+	}
+
+	queryDefsByBlockID = func(blockID string) []*sql.Ref {
+		return []*sql.Ref{
+			{DefBlockID: "def-1", DefBlockRootID: "doc-visible", Content: "被此块引用"},
+		}
+	}
+
+	sqlGetBlock = func(id string) *sql.Block {
+		return &sql.Block{ID: "def-1", RootID: "doc-visible", Type: "h"}
+	}
+
+	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree"}`)
+	if err != nil {
+		t.Fatalf("期望执行成功，实际错误: %v", err)
+	}
+
+	var payload struct {
+		Refs []struct {
+			BlockID    string `json:"blockID"`
+			RootID     string `json:"rootID"`
+			AnchorText string `json:"anchorText"`
+			Type       string `json:"type"`
+			Restricted bool   `json:"restricted"`
+		} `json:"refs"`
+		Defs []struct {
+			BlockID    string `json:"blockID"`
+			RootID     string `json:"rootID"`
+			AnchorText string `json:"anchorText"`
+			Type       string `json:"type"`
+			Restricted bool   `json:"restricted"`
+		} `json:"defs"`
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果JSON失败: %v", err)
+	}
+
+	if len(payload.Refs) != 1 {
+		t.Fatalf("期望 1 个 ref，实际=%d", len(payload.Refs))
+	}
+	if payload.Refs[0].BlockID != "ref-1" {
+		t.Fatalf("期望 refs[0].BlockID=ref-1，实际=%s", payload.Refs[0].BlockID)
+	}
+	if payload.Refs[0].AnchorText != "引用了此块" {
+		t.Fatalf("期望 refs[0].AnchorText=引用了此块，实际=%s", payload.Refs[0].AnchorText)
+	}
+	if payload.Refs[0].Restricted {
+		t.Fatal("期望 refs[0] 非 restricted")
+	}
+
+	if len(payload.Defs) != 1 {
+		t.Fatalf("期望 1 个 def，实际=%d", len(payload.Defs))
+	}
+	if payload.Defs[0].BlockID != "def-1" {
+		t.Fatalf("期望 defs[0].BlockID=def-1，实际=%s", payload.Defs[0].BlockID)
+	}
+	if payload.Defs[0].AnchorText != "被此块引用" {
+		t.Fatalf("期望 defs[0].AnchorText=被此块引用，实际=%s", payload.Defs[0].AnchorText)
+	}
+	if payload.Defs[0].Type != "h" {
+		t.Fatalf("期望 defs[0].Type=h，实际=%s", payload.Defs[0].Type)
+	}
+	if payload.Defs[0].Restricted {
+		t.Fatal("期望 defs[0] 非 restricted")
+	}
+}
+
+func TestExecuteNoteByIDRead_RefsDefsInMarkdownFormat(t *testing.T) {
+	originalAccessFn := resolveWorkspaceAIMainNotebookAccessScope
+	originalGetBlock := getBlock
+	originalGetBlockKramdown := getBlockKramdown
+	originalQueryRefs := queryRefsByDefID
+	originalQueryDefs := queryDefsByBlockID
+	originalSQLGetBlock := sqlGetBlock
+	defer func() {
+		resolveWorkspaceAIMainNotebookAccessScope = originalAccessFn
+		getBlock = originalGetBlock
+		getBlockKramdown = originalGetBlockKramdown
+		queryRefsByDefID = originalQueryRefs
+		queryDefsByBlockID = originalQueryDefs
+		sqlGetBlock = originalSQLGetBlock
+	}()
+
+	resolveWorkspaceAIMainNotebookAccessScope = func() (*model.WorkspaceAIMainNotebookAccessScope, error) {
+		return &model.WorkspaceAIMainNotebookAccessScope{
+			State: &model.WorkspaceAIMainNotebookState{
+				Status:         model.WorkspaceAIMainNotebookStatusReady,
+				ActiveNotebook: &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			},
+			ActiveNotebook:    &model.Box{ID: "ai-box", Name: "AI主笔记本"},
+			AccessibleRootIDs: map[string]struct{}{"doc-visible": {}},
+		}, nil
+	}
+
+	getBlock = func(id string, tree *parse.Tree) (*model.Block, error) {
+		return &model.Block{ID: "block-main", RootID: "doc-visible", Type: "p", Content: "正文"}, nil
+	}
+
+	getBlockKramdown = func(id, mode string) string {
+		return "# 正文\n\n这是 markdown 内容。"
+	}
+
+	queryRefsByDefID = func(defBlockID string, containChildren bool) []*sql.Ref {
+		return []*sql.Ref{{BlockID: "ref-1", RootID: "doc-visible", Content: "引用", Type: "p"}}
+	}
+
+	queryDefsByBlockID = func(blockID string) []*sql.Ref {
+		return []*sql.Ref{{DefBlockID: "def-1", DefBlockRootID: "doc-visible", Content: "被引用"}}
+	}
+
+	sqlGetBlock = func(id string) *sql.Block {
+		return &sql.Block{ID: "def-1", RootID: "doc-visible", Type: "h"}
+	}
+
+	result, err := executeNoteByIDRead(`{"id":"block-main","format":"markdown"}`)
+	if err != nil {
+		t.Fatalf("期望执行成功，实际错误: %v", err)
+	}
+
+	var payload struct {
+		Refs []struct {
+			BlockID string `json:"blockID"`
+		} `json:"refs"`
+		Defs []struct {
+			BlockID string `json:"blockID"`
+		} `json:"defs"`
+	}
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		t.Fatalf("解析结果JSON失败: %v", err)
+	}
+
+	if len(payload.Refs) != 1 {
+		t.Fatalf("期望 markdown 格式也返回 refs，实际=%d", len(payload.Refs))
+	}
+	if payload.Refs[0].BlockID != "ref-1" {
+		t.Fatalf("期望 refs[0].BlockID=ref-1，实际=%s", payload.Refs[0].BlockID)
+	}
+	if len(payload.Defs) != 1 {
+		t.Fatalf("期望 markdown 格式也返回 defs，实际=%d", len(payload.Defs))
+	}
+	if payload.Defs[0].BlockID != "def-1" {
+		t.Fatalf("期望 defs[0].BlockID=def-1，实际=%s", payload.Defs[0].BlockID)
 	}
 }

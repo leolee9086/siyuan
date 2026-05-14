@@ -18,7 +18,8 @@ type CoherenceWeights struct {
 
 // EMAConfig EMA 更新配置。
 type EMAConfig struct {
-	MaxLambda float64 // λ_max
+	MaxLambda float64 // 上限：偏离基线过大（分散），ρ→0 时告警
+	MinLambda float64 // 下限：偏离基线过小（过整合），ρ→200% 时告警
 }
 
 // MonitorOptions 多轮监测配置。
@@ -66,6 +67,7 @@ type RoundTelemetry struct {
 	RhoDerivative  float64
 	Strength       ATFStrength
 	PairSimilarity map[string]float64
+	EMAlert        string // "none" "mean" "skew" "both"
 }
 
 // SubjectTelemetry 单个被测对象的多轮监测结果。
@@ -79,9 +81,9 @@ func DefaultMonitorOptions() MonitorOptions {
 	return MonitorOptions{
 		QuestionsPerEntity: 5,
 		Similarity: SimilarityWeights{
-			StyleWeight:     0.35,
-			BigFiveWeight:   0.65,
-			ColdStartBoost:  0.25,
+			StyleWeight:     0.10,
+			BigFiveWeight:   0.90,
+			ColdStartBoost:  0,
 			ColdStartRounds: 3,
 		},
 		Coherence: CoherenceWeights{
@@ -89,7 +91,8 @@ func DefaultMonitorOptions() MonitorOptions {
 			ExternalWeight: 0.4,
 		},
 		EMA: EMAConfig{
-			MaxLambda: 0.25,
+			MinLambda: 0.12,
+			MaxLambda: 0.18,
 		},
 		Gamma:             2.0,
 		DerivativeLPAlpha: 0.5,

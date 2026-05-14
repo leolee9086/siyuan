@@ -2,19 +2,23 @@ package channel
 
 // InboundMessage 通道无关的标准化入站消息。
 type InboundMessage struct {
-	ChannelID         string            `json:"channelId"`
-	AccountID         string            `json:"accountId"`
-	UserID            string            `json:"userId"`
-	Nickname          string            `json:"nickname,omitempty"`
-	Text              string            `json:"text,omitempty"`
-	Media             []MediaAttachment `json:"media,omitempty"`
-	ConversationToken string            `json:"conversationToken,omitempty"`
-	Timestamp         int64             `json:"timestamp"`
+	ChannelID           string            `json:"channelId"`
+	ChannelType         string            `json:"channelType"`
+	AccountID           string            `json:"accountId"`
+	UserID              string            `json:"userId"`
+	Nickname            string            `json:"nickname,omitempty"`
+	IdentityID          string            `json:"identityId,omitempty"`
+	IdentityDisplayName string            `json:"identityDisplayName,omitempty"`
+	Text                string            `json:"text,omitempty"`
+	Media               []MediaAttachment `json:"media,omitempty"`
+	ConversationToken   string            `json:"conversationToken,omitempty"`
+	Timestamp           int64             `json:"timestamp"`
 }
 
 // OutboundMessage 通道无关的标准化出站消息。
 type OutboundMessage struct {
 	ChannelID         string            `json:"channelId"`
+	ChannelType       string            `json:"channelType"`
 	AccountID         string            `json:"accountId"`
 	UserID            string            `json:"userId"`
 	Text              string            `json:"text,omitempty"`

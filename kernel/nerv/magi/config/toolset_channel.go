@@ -19,18 +19,18 @@ func BuildSendChannelMessageToolDef() ToolDef {
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"channelId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标渠道 ID，如 wechat",
-					},
-					"accountId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标账号 ID，对应渠道中的登录账户",
-					},
-					"userId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标用户 ID，要发送给的具体用户",
-					},
+				"channelId": map[string]interface{}{
+					"type":        "string",
+					"description": "目标渠道 ID，由 list_magi_channels 返回的 id 字段，如 wechat-abc123",
+				},
+				"accountId": map[string]interface{}{
+					"type":        "string",
+					"description": "目标账号 ID，对应渠道中的登录账户",
+				},
+				"userId": map[string]interface{}{
+					"type":        "string",
+					"description": "目标用户 ID，要发送给的具体用户",
+				},
 					"content": map[string]interface{}{
 						"type":        "string",
 						"description": "要发送的消息正文内容。保持简洁自然，适合在即时通讯平台阅读。",
@@ -78,14 +78,14 @@ func BuildFetchChannelMessagesToolDef() ToolDef {
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"channelId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标渠道 ID，如 wechat",
-					},
-					"accountId": map[string]interface{}{
-						"type":        "string",
-						"description": "目标账号 ID，对应渠道中的登录账户",
-					},
+				"channelId": map[string]interface{}{
+					"type":        "string",
+					"description": "目标渠道 ID，由 list_magi_channels 返回的 id 字段，如 wechat-abc123",
+				},
+				"accountId": map[string]interface{}{
+					"type":        "string",
+					"description": "目标账号 ID，对应渠道中的登录账户",
+				},
 					"userId": map[string]interface{}{
 						"type":        "string",
 						"description": "可选，按用户 ID 筛选消息",

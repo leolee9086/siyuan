@@ -201,7 +201,7 @@ func TestDefaultContextStrategy_CoversOnlyCoreSages(t *testing.T) {
 		t.Fatalf("期望仅保留三贤人的默认上下文策略，实际=%d", len(strategies))
 	}
 
-	// melchior: token_percent, percent=0.8
+	// melchior: token_percent, percent=80
 	{
 		strategy, ok := strategies["melchior"]
 		if !ok || strategy == nil {
@@ -210,12 +210,12 @@ func TestDefaultContextStrategy_CoversOnlyCoreSages(t *testing.T) {
 		if strategy.Type != "token_percent" {
 			t.Fatalf("期望 melchior 使用 token_percent，实际=%s", strategy.Type)
 		}
-		if strategy.Percent != 0.8 {
-			t.Fatalf("期望 melchior percent=0.8，实际=%v", strategy.Percent)
+		if strategy.Percent != 80 {
+			t.Fatalf("期望 melchior percent=80，实际=%v", strategy.Percent)
 		}
 	}
 
-	// balthazar: token_percent, percent=0.4
+	// balthazar: token_percent, percent=40
 	{
 		strategy, ok := strategies["balthazar"]
 		if !ok || strategy == nil {
@@ -224,8 +224,8 @@ func TestDefaultContextStrategy_CoversOnlyCoreSages(t *testing.T) {
 		if strategy.Type != "token_percent" {
 			t.Fatalf("期望 balthazar 使用 token_percent，实际=%s", strategy.Type)
 		}
-		if strategy.Percent != 0.4 {
-			t.Fatalf("期望 balthazar percent=0.4，实际=%v", strategy.Percent)
+		if strategy.Percent != 40 {
+			t.Fatalf("期望 balthazar percent=40，实际=%v", strategy.Percent)
 		}
 	}
 

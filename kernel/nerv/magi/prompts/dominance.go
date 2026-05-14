@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// BuildActionPlanProposalSystemPrompt 构建行动计划提案系统提示。
+func BuildActionPlanProposalSystemPrompt() string {
+	return "请用 propose_action_plan 工具提交你本轮的行动计划。简要描述你想要做什么、关注什么方向。不要超过100字。"
+}
+
 // BuildDominantElectionSystemPrompt 构建主导者选举评分提示。
 // 身份已在 wakeup 序列中建立，提示词不重复提及名字。
 func BuildDominantElectionSystemPrompt() string {
@@ -12,8 +17,10 @@ func BuildDominantElectionSystemPrompt() string {
 
 严格要求：
 1. 各段描述会直接给出，你只能对它们打分，不允许改写、补充或发明新的描述。
-2. 分数越高，表示该描述下的你越适合在当前情景中优先采取行动。
-3. reason 不超过 48 个字。`
+2. 分数越高，表示该描述下的你越适合在当前情境中优先采取行动。
+3. reason 不超过 48 个字。
+4. 除了打分之外，你还需要从下面给出的行动计划中选定一份你认为最适合当前情境的（你的打分不受你的选择影响，选择仅用于统计）。
+5. selected_plan 填写选中计划的提出者名字（melchior/balthazar/casper），不要写其他内容。`
 }
 
 // BuildDominantElectionUserInput 构建主导者选举用户输入。
@@ -50,6 +57,39 @@ func BuildDominantElectionUserInputForCandidates(
 
 下面给出若干段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
 %s`, situation, strings.Join(lines, "\n"))
+}
+
+// BuildDominantElectionUserInputForCandidatesWithPlans 构建带行动计划选项的主导者选举用户输入。
+func BuildDominantElectionUserInputForCandidatesWithPlans(
+	situation string,
+	candidateLabels []string,
+	plans []string,
+) string {
+	lines := make([]string, 0, len(candidateLabels))
+	for idx, label := range candidateLabels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%d. %s", idx+1, label))
+	}
+	planLines := make([]string, 0, len(plans))
+	for _, plan := range plans {
+		plan = strings.TrimSpace(plan)
+		if plan == "" {
+			continue
+		}
+		planLines = append(planLines, fmt.Sprintf("- %s", plan))
+	}
+	plansSection := ""
+	if len(planLines) > 0 {
+		plansSection = "\n\n行动计划提案：\n" + strings.Join(planLines, "\n") + "\n\n请从以上行动计划提案中选定一份（在 selected_plan 中填写提出者的名字）。"
+	}
+	return fmt.Sprintf(`当前情境：
+%s
+
+下面给出若干段对你自己的描述，请分别判断它们在当前情境下有多适合由你优先采取行动：
+%s%s`, situation, strings.Join(lines, "\n"), plansSection)
 }
 
 // BuildDominantSleepSynthesisPrompt 构建睡前整合提示。

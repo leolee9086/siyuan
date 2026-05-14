@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Gap Cut Icon - Left Baseline</title>
+  <desc>Left block highlighted orange and lifted, indicating left baseline gap cut.</desc>
+  <defs>
+    <style>
+      .outline { stroke: #152531; stroke-width: 3; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <polygon points="28,84 50,84 62,74 40,74" fill="#152531" opacity="0.14"/>
+
+  <polygon class="outline" points="18,32 40,32 52,22 30,22" fill="#ffc67f"/>
+  <polygon class="outline" points="18,32 40,32 40,80 18,80" fill="#f1873a"/>
+  <polygon class="outline" points="40,32 52,22 52,70 40,80" fill="#cb6122"/>
+
+  <polygon class="outline" points="52,44 114,44 126,34 64,34" fill="#8da3b1"/>
+  <polygon class="outline" points="52,44 114,44 114,92 52,92" fill="#31495c"/>
+  <polygon class="outline" points="114,44 126,34 126,82 114,92" fill="#223443"/>
+</svg>

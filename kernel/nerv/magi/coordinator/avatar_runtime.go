@@ -48,9 +48,17 @@ const (
 
 // AvatarRuntime 负责按来源会话绑定并复用 Avatar 执行实例。
 type AvatarRuntime struct {
-	mu       sync.RWMutex
-	sequence int
-	bindings map[string]*avatarBinding
+	mu        sync.RWMutex
+	sequence  int
+	bindings  map[string]*avatarBinding
+	votingCfg VotingConfig
+}
+
+// SetVotingConfig 设置投票配置
+func (r *AvatarRuntime) SetVotingConfig(cfg VotingConfig) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.votingCfg = cfg
 }
 
 type avatarBinding struct {
@@ -263,6 +271,7 @@ func (r *AvatarRuntime) createBinding(
 		melchior,
 		balthazar,
 		casper,
+		r.votingCfg,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("request avatar prototype failed: %w", err)
@@ -388,6 +397,7 @@ func requestAvatarPrototypeByMAGI(
 	sourceCtx *types.RequestSourceContext,
 	userMessage string,
 	melchior, balthazar, casper *sages.Sage,
+	votingCfg VotingConfig,
 ) (*avatarPrototype, error) {
 	if melchior == nil {
 		return nil, fmt.Errorf("melchior is nil")
@@ -496,6 +506,7 @@ func requestAvatarPrototypeByMAGI(
 		melchior.GetName(),
 		"申请创建Avatar",
 		1,
+		votingCfg,
 	)
 	dominantActionToolGovernance.UnregisterRound(avatarSessionID, avatarRoundID)
 	if err != nil {

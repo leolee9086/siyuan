@@ -77,6 +77,7 @@ func InitDatabase(forceRebuild bool) {
 
 func initDatabase(forceRebuild bool) {
 	ClearCache()
+	clearFTSRowIDs()
 	disableCache()
 	defer enableCache()
 
@@ -92,6 +93,7 @@ func initDatabase(forceRebuild bool) {
 	if !forceRebuild {
 		// 检查数据库结构版本，如果版本不一致的话说明改过表结构，需要重建
 		if util.DatabaseVer == getDatabaseVer() {
+			buildFTSRowIDMapping()
 			return
 		}
 		logging.LogInfof("the database structure is changed, rebuilding database...")

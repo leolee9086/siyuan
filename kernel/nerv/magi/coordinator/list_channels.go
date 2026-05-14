@@ -68,3 +68,5 @@ func (e *listMagiChannelsResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	}
 	return string(resultBytes), true, nil
 }
+
+

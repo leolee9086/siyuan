@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -77,7 +78,16 @@ func (c *Coordinator) CoordinateHeartbeat(
 		}
 	} else {
 		c.nextAwakeRoundOrdinal(sessionID)
-		dominantResult, err := electDominantSage(ctx, sessionID, melchior, balthazar, casper, userMessage)
+
+		actionPlans, planErr := collectActionPlans(ctx, sessionID, melchior, balthazar, casper, userMessage)
+		if planErr != nil {
+			logging.LogWarnf("行动计划收集失败（降级为无计划选举）: %v", planErr)
+			actionPlans = nil
+		}
+
+		dominantResult, err := electDominantSageWithExclusionsAndSituations(
+			ctx, sessionID, melchior, balthazar, casper, userMessage, nil, nil, actionPlans,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("心跳主导选举失败: %w", err)
 		}
@@ -110,14 +120,29 @@ func (c *Coordinator) CoordinateHeartbeat(
 		sleepMode,
 	)
 	if err != nil {
-		if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
-			logging.LogWarnf("推送心跳轮次失败事件失败: %v", pushErr)
+		// context 取消时有部分结果也返回，供外部做中断摘要
+		if errors.Is(err, context.Canceled) && collection != nil && len(collection.Responses) > 0 {
+			c.updateToolCallRecords(collection.Responses, sessionID)
+			compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
+			return &HeartbeatDecisionResult{
+				RoundID:        roundID,
+				Downtime:       false,
+				DowntimeSage:   "",
+				DowntimeSummary: "",
+				DominantSeel:   "",
+				DominantStance: "",
+				Responses:      collection.Responses,
+			}, context.Canceled
+		} else {
+			if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
+				logging.LogWarnf("推送心跳轮次失败事件失败: %v", pushErr)
+			}
+			return nil, err
 		}
-		return nil, err
+	} else {
+		// 更新工具调用记录（无论是否睡眠模式，均采集本次轮次的工具调用）
+		c.updateToolCallRecords(collection.Responses, sessionID)
 	}
-
-	// 更新工具调用记录（无论是否睡眠模式，均采集本次轮次的工具调用）
-	c.updateToolCallRecords(collection.Responses, sessionID)
 
 	sleepSummary := ""
 	sleeper := collection.DowntimeSage

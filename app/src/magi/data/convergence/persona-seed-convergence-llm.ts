@@ -35,13 +35,14 @@ function hasAnyDescriptionText(descriptions: IpipPersonaSeedDescriptions): boole
  * 调用时机：每次发起 LLM 生成前调用。
  * 问题/改进：后续可抽取为 convergence 专用配置提供器。
  */
-function readOpenAIConfig(): { apiBaseURL: string; apiKey: string; apiModel: string } {
+function readOpenAIConfig(): { apiBaseURL: string; apiKey: string; apiModel: string; apiTimeout: number } {
     const config = getSafeSiyuanConfig();
     const openAI = config?.ai?.openAI;
     return {
         apiBaseURL: String(openAI?.apiBaseURL ?? "").trim(),
         apiKey: String(openAI?.apiKey ?? "").trim(),
         apiModel: String(openAI?.apiModel ?? "").trim(),
+        apiTimeout: Number(openAI?.apiTimeout ?? 120),
     };
 }
 
@@ -150,12 +151,13 @@ async function requestSuggestionCompletion(input: DescriptionToQuestionnaireSugg
     if (!openAI.apiBaseURL || !openAI.apiKey || !openAI.apiModel) {
         throw new Error("AI 配置缺失，请先在思源设置中配置 ai.openAI");
     }
-    const endpoint = `${openAI.apiBaseURL.replace(/\/$/, "")}/chat/completions`;
-    const response = await fetch(endpoint, {
+    if (openAI.apiTimeout < 150) {
+        console.warn(`apiTimeout=${openAI.apiTimeout}s < 150s，对于现代 LLM 可能过短，请在 AI 配置中增加超时时间`);
+    }
+    const response = await fetch("/api/s-forge/ai/proxy/chat/completions", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${openAI.apiKey}`,
         },
         body: JSON.stringify({
             model: openAI.apiModel,

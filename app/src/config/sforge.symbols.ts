@@ -28,4 +28,6 @@ export const SForgeSymbols = {
     OPEN_MOBILE_FILE_BY_ID: Symbol.for("sforge.mobile.openFileById"),
     /** 内容块渲染器注册表 */
     CONTENT_RENDERER_REGISTRY: Symbol.for("sforge.contentRenderer.registry"),
+    /** 请求信号量 (用于限制 API 最大并发) */
+    REQUEST_SEMAPHORE: Symbol.for("sforge.fetch.requestSemaphore"),
 } as const;

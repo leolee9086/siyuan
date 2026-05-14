@@ -218,6 +218,16 @@ func (c *Coordinator) finalizeHeartbeatRestRound(
 	appendMergedWannaRestHistory(sessionID, roundID, balthazar, balthazarResp, finalNote, sections, sleepAt)
 	appendMergedWannaRestHistory(sessionID, roundID, casper, casperResp, finalNote, sections, sleepAt)
 
+	if melchiorResp.DowntimeNote != nil {
+		c.collector.workLogHistory.append(sessionID, "melchior", melchiorResp.DowntimeNote.Summary)
+	}
+	if balthazarResp.DowntimeNote != nil {
+		c.collector.workLogHistory.append(sessionID, "balthazar", balthazarResp.DowntimeNote.Summary)
+	}
+	if casperResp.DowntimeNote != nil {
+		c.collector.workLogHistory.append(sessionID, "casper", casperResp.DowntimeNote.Summary)
+	}
+
 	return finalNote, dominantResult, nil
 }
 
@@ -673,4 +683,53 @@ func buildMergedRestNoteCalloutMarkdown(
 		fields = append(fields, CalloutField{Label: "轮次", Value: strings.TrimSpace(roundID)})
 	}
 	return BuildCalloutMarkdown("NOTE", "📋 合并工作日志", fields...)
+}
+
+// FinalizeHeartbeatInterrupted 提取被中断的心跳轮次中各贤者的工具调用摘要。
+// 不要求三个贤者都完成，只提取已成功收集的部分。
+// 每个贤者的字段策略与完整轮次一致：
+//
+//	Melchior - wanna_sleep_plan / wanna_rest_plan → nextStepPlan
+//	Balthazar - wanna_sleep_dream / wanna_rest_dream → dreamScene / mood
+//	Casper   - wanna_sleep_record / wanna_rest_record → summary
+func FinalizeHeartbeatInterrupted(responses []types.SageResponse) string {
+	var parts []string
+	for _, resp := range responses {
+		if resp.DowntimeNote == nil {
+			continue
+		}
+		note := resp.DowntimeNote
+		seel := strings.TrimSpace(resp.Seel)
+		summary := strings.TrimSpace(note.Summary)
+		switch seel {
+		case "melchior":
+			plan := strings.TrimSpace(note.NextStepPlan)
+			if summary != "" {
+				parts = append(parts, "Melchior: "+summary)
+			}
+			if plan != "" {
+				parts = append(parts, "Melchior 计划: "+plan)
+			}
+		case "balthazar":
+			dream := strings.TrimSpace(note.DreamScene)
+			mood := strings.TrimSpace(note.Mood)
+			if summary != "" {
+				parts = append(parts, "Balthazar: "+summary)
+			}
+			if dream != "" {
+				parts = append(parts, "Balthazar 画面: "+dream)
+			}
+			if mood != "" {
+				parts = append(parts, "Balthazar 心情: "+mood)
+			}
+		case "casper":
+			if summary != "" {
+				parts = append(parts, "Casper: "+summary)
+			}
+		}
+	}
+	if len(parts) == 0 {
+		return "心跳轮次因外部消息中断，未收集到落盘记录。"
+	}
+	return "心跳轮次因外部消息中断，已记录：\n" + strings.Join(parts, "\n")
 }

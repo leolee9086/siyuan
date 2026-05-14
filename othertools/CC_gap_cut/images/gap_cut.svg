@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Gap Cut Icon</title>
+  <desc>Two cut planes and a lifted center strip illustrate a slot or gap cut.</desc>
+  <defs>
+    <style>
+      .outline { stroke: #152531; stroke-width: 3; stroke-linejoin: round; }
+      .plane { fill: none; stroke: #50d7ff; stroke-width: 4; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <polygon points="56,84 78,84 90,74 68,74" fill="#152531" opacity="0.14"/>
+
+  <rect class="plane" x="40" y="18" width="16" height="88"/>
+  <rect class="plane" x="72" y="18" width="16" height="88"/>
+
+  <polygon class="outline" points="18,44 46,44 58,34 30,34" fill="#8da3b1"/>
+  <polygon class="outline" points="18,44 46,44 46,92 18,92" fill="#31495c"/>
+  <polygon class="outline" points="46,44 58,34 58,82 46,92" fill="#223443"/>
+
+  <polygon class="outline" points="82,44 110,44 122,34 94,34" fill="#8da3b1"/>
+  <polygon class="outline" points="82,44 110,44 110,92 82,92" fill="#31495c"/>
+  <polygon class="outline" points="110,44 122,34 122,82 110,92" fill="#223443"/>
+
+  <polygon class="outline" points="54,32 74,32 86,22 66,22" fill="#ffc67f"/>
+  <polygon class="outline" points="54,32 74,32 74,80 54,80" fill="#f1873a"/>
+  <polygon class="outline" points="74,32 86,22 86,70 74,80" fill="#cb6122"/>
+</svg>

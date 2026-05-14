@@ -9,14 +9,18 @@ const (
 
 // BuildNoteByIDReadToolDef 构建按 ID 阅读笔记块内容及其子块的只读工具定义。
 // 读取权限与 search_notes_by_keywords 一致：仅限 AI 主笔记本及其直接引用/嵌入范围内。
-// format 参数支持 tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。
-// tree 模式下支持 start/limit 参数控制仅返回部分子块内容。
+// format 参数支持三种格式，各自有不同权衡：
+//
+//	markdown（默认）：将目标块及其整个子树完整渲染为扁平的标准 Markdown 文本，一次性获得全部内容，但丢失块 ID 等结构化信息。
+//	tree：返回结构化块信息 + 直接子块列表。注意该模式仅展开一层，子块不再包含 children 字段，
+//	  如需访问更深层内容需对容器类子块另行调用本工具。支持 start/limit 分页。子块不含 IAL/Name/Alias 等属性。
+//	kramdown：将目标块及其整个子树完整渲染为思源 Kramdown 格式（含 AST 块 ID 内联属性），保留 ID 引用能力。
 func BuildNoteByIDReadToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        NoteByIDReadToolName,
-			Description: "按块 ID 阅读当前工作空间 AI 主笔记本中的笔记块内容及其子块；若目标超出 AI 主笔记本的直接读取范围，仅返回块 ID 和所属文档 ID，此时应向用户请求阅读权限。format 参数控制输出格式：tree（结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）。tree 模式下支持通过 start 和 limit 参数仅读取部分子块内容。",
+			Description: "按块 ID 阅读当前工作空间 AI 主笔记本中的笔记块内容及其子块；若目标超出 AI 主笔记本的直接读取范围，仅返回块 ID 和所属文档 ID，此时应向用户请求阅读权限。format 参数控制输出格式：markdown（默认，标准 Markdown，将目标块整个子树完整渲染为扁平文本）、tree（结构化块信息+直接子块列表，仅一层不递归）、kramdown（思源 Kramdown，完整子树渲染含 AST 块 ID 内联属性）。tree 模式下支持通过 start 和 limit 参数仅读取部分子块内容，markdown/kramdown 模式下忽略 start/limit。注意：tree 模式仅返回直接子块（不递归），子块不含 children 字段；如需读取深层嵌套需对容器子块反复调用本工具。markdown/kramdown 模式则会递归渲染整个子树，一次性返回全部内容。返回结果包含 refs（反向链接：哪些块引用了当前块）和 defs（正向链接：当前块引用了哪些块）两个列表，每项包含 blockID、rootID、anchorText（锚文本）、type（类型）和 restricted（是否超出 AI 主笔记本范围）。对于 restricted 为 true 的项，仅返回 blockID 和 rootID，不返回内容。所有格式均返回 refs 和 defs。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -26,17 +30,17 @@ func BuildNoteByIDReadToolDef() ToolDef {
 					},
 					"start": map[string]interface{}{
 						"type":        "integer",
-						"description": "子块起始序号，从 1 开始，不传则从第 1 个子块开始",
+						"description": "子块起始序号，从 1 开始，不传则从第 1 个子块开始。仅 tree 模式有效，markdown/kramdown 模式下忽略。",
 						"minimum":     1,
 					},
 					"limit": map[string]interface{}{
 						"type":        "integer",
-						"description": "返回的子块数量上限，不传则返回全部子块",
+						"description": "返回的子块数量上限，不传则返回全部子块。仅 tree 模式有效，markdown/kramdown 模式下忽略。",
 						"minimum":     1,
 					},
 					"format": map[string]interface{}{
 						"type":        "string",
-						"description": "输出格式：tree（默认，结构化块信息+子块列表）、markdown（标准 Markdown 内容）、kramdown（思源 Kramdown 格式内容）",
+						"description": "输出格式：markdown（默认，将目标块整个子树完整渲染为扁平标准 Markdown 文本，一次性获得全部内容但丢失块 ID）、tree（结构化块信息+直接子块列表，仅一层不递归，子块不含 IAL 等属性）、kramdown（将目标块整个子树完整渲染为思源 Kramdown 格式，含 AST 块 ID 内联属性，保留 ID 引用能力）。所有格式均额外返回 refs（反向链接）和 defs（正向链接）。如需读取深层嵌套内容，markdown/kramdown 可一次完成，tree 需反复调用。",
 						"enum":        []string{"tree", "markdown", "kramdown"},
 					},
 				},
@@ -52,7 +56,7 @@ func BuildNoteKeywordSearchToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        NoteKeywordSearchToolName,
-			Description: "按关键词查询当前工作空间的AI主笔记本内容块；若命中超出AI主笔记本及其直接ID引用/嵌入范围，仅返回文档ID，此时应向用户请求阅读权限。",
+			Description: "按关键词查询当前工作空间的AI主笔记本内容块。每条结果包含：notebook（笔记本名和ID）、path（文档路径面包屑，每段含ID）、headings（标题面包屑，匹配块上方标题层级链）、leafIndex（叶子块序号，-1表示非叶子块）。若命中超出AI主笔记本及其直接ID引用/嵌入范围，仅返回文档ID，此时应向用户请求阅读权限。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

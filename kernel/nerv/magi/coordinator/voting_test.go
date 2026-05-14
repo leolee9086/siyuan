@@ -13,6 +13,12 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
+var defaultTestVotingCfg = VotingConfig{
+	Timeout:     30 * time.Second,
+	MaxRetries:  0,
+	BackoffBase: time.Second,
+}
+
 // mockVoteClient 模拟投票客户端
 type mockVoteClient struct {
 	syncResult     *types.SyncChatResult
@@ -112,6 +118,7 @@ func TestProcessVoting_BothApprove(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 
 	if err != nil {
@@ -163,6 +170,7 @@ func TestProcessVoting_PartialApprove(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 
 	if err != nil {
@@ -197,6 +205,7 @@ func TestProcessVoting_BothReject(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 
 	if err != nil {
@@ -231,6 +240,7 @@ func TestProcessVoting_Timeout(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 
 	if err != nil {
@@ -390,6 +400,7 @@ func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *te
 			ProposerConclusion:     "准备写入日记。",
 			GovernedActionToolCall: &pendingToolCall,
 		},
+		defaultTestVotingCfg,
 	)
 	if err != nil {
 		t.Fatalf("getRealVote() 返回错误: %v", err)
@@ -464,6 +475,7 @@ func TestProcessVoting_Failure(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 
 	if err != nil {
@@ -498,6 +510,7 @@ func TestProcessVoting_ParseFailureRejects(t *testing.T) {
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断", ProposerDisplayName: "Melchior"},
 		"", "",
+		defaultTestVotingCfg,
 	)
 	if err != nil {
 		t.Fatalf("ProcessVoting失败: %v", err)

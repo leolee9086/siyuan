@@ -435,6 +435,20 @@ func QueryRefsByDefID(defBlockID string, containChildren bool) (ret []*Ref) {
 	return
 }
 
+func QueryDefsByBlockID(blockID string) (ret []*Ref) {
+	rows, err := query("SELECT * FROM refs WHERE block_id = ?", blockID)
+	if err != nil {
+		logging.LogErrorf("sql query failed: %s", err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		ref := scanRefRows(rows)
+		ret = append(ret, ref)
+	}
+	return
+}
+
 func QueryRefsByDefIDRefID(defBlockID, refBlockID string) (ret []*Ref) {
 	stmt := "SELECT * FROM refs WHERE def_block_id = ? AND block_id = ?"
 	rows, err := query(stmt, defBlockID, refBlockID)

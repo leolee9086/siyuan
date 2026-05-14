@@ -265,6 +265,15 @@ func isActionTool(toolName string) bool {
 		toolName == config.PersistSessionMemoryToolName
 }
 
+func isAnyWannaRestTool(toolCalls []types.ToolCall) bool {
+	for _, tc := range toolCalls {
+		if config.IsWannaRestToolName(strings.TrimSpace(tc.Function.Name)) {
+			return true
+		}
+	}
+	return false
+}
+
 func isHeartbeatActionTool(toolName string) bool {
 	switch strings.TrimSpace(toolName) {
 	case config.WriteDiaryToolName,

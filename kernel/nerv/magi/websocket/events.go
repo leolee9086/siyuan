@@ -38,6 +38,7 @@ const (
 	EventDominantSynthesisCompleted = "DOMINANT_SYNTHESIS_COMPLETED"
 	EventConsensusEmitted           = "CONSENSUS_EMITTED"
 	EventRoundFailed                = "ROUND_FAILED"
+	EventRoundCancelled             = "ROUND_CANCELLED"
 	EventToolCallDetected           = "TOOL_CALL_DETECTED"
 	EventDeliberationSignalRaised   = "DELIBERATION_SIGNAL_RAISED"
 	EventContextHistoryTrimmed      = "CONTEXT_HISTORY_TRIMMED"
@@ -296,6 +297,19 @@ func PushRoundFailed(sessionId, roundId, errorMsg string) error {
 		"error":     errorMsg,
 	}
 	return globalPusher.Push(sessionId, EventRoundFailed, data)
+}
+
+// PushRoundCancelled 推送轮次取消事件（外部消息进入导致心跳轮次被打断）。
+func PushRoundCancelled(sessionId, roundId, reason string) error {
+	eventId, seq := generateEventID()
+	data := map[string]interface{}{
+		"eventId":   eventId,
+		"seq":       seq,
+		"roundId":   roundId,
+		"timestamp": time.Now().UnixMilli(),
+		"reason":    reason,
+	}
+	return globalPusher.Push(sessionId, EventRoundCancelled, data)
 }
 
 // PushRuntimeStatusUpdated 推送 MAGI 全局运行态更新事件。

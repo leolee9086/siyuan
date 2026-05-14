@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
 )
 
@@ -176,17 +177,21 @@ func (a *Adapter) readLoop(ctx context.Context) {
 		a.mu.Unlock()
 
 		inbound := &channel.InboundMessage{
-			ChannelID: "cli",
-			AccountID: a.status.AccountID,
-			UserID:    a.identity.UserID(),
-			Nickname:  a.identity.DisplayName(),
-			Text:      text,
-			Timestamp: time.Now().UnixMilli(),
+			ChannelID:   a.id,
+			ChannelType: "cli",
+			AccountID:   a.status.AccountID,
+			UserID:      a.identity.UserID(),
+			Nickname:    a.identity.DisplayName(),
+			Text:        text,
+			Timestamp:   time.Now().UnixMilli(),
 		}
 
 		_ = channel.GlobalBridge().Push(ctx, inbound)
-		if ms := channel.GlobalMessageStore(); ms != nil {
-			_ = ms.SaveInbound(ctx, inbound)
+		ms := channel.GlobalMessageStore()
+		if ms == nil {
+			logging.LogErrorf("消息存储未初始化，CLI 入站消息丢失: channel=%s user=%s", inbound.ChannelID, inbound.UserID)
+		} else if err := ms.SaveInbound(ctx, inbound); err != nil {
+			logging.LogErrorf("CLI 入站消息落盘失败: %v", err)
 		}
 	}
 }

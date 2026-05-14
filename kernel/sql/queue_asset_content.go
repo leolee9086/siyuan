@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -65,11 +67,20 @@ func FlushAssetContentQueue() {
 	}
 
 	context := map[string]any{eventbus.CtxPushMsg: eventbus.CtxPushMsgToStatusBar}
+	type opStat struct {
+		count int
+		total time.Duration
+		max   time.Duration
+	}
+	opStats := map[string]*opStat{}
+
 	groupOpsCurrent := map[string]int{}
 	for i, op := range ops {
 		if util.IsExiting.Load() {
 			return
 		}
+
+		opStart := time.Now()
 
 		tx, err := beginAssetContentTx()
 		if err != nil {
@@ -92,6 +103,21 @@ func FlushAssetContentQueue() {
 			return
 		}
 
+		opElapsed := time.Since(opStart)
+		st := opStats[op.action]
+		if st == nil {
+			st = &opStat{}
+			opStats[op.action] = st
+		}
+		st.count++
+		st.total += opElapsed
+		if opElapsed > st.max {
+			st.max = opElapsed
+		}
+		if opElapsed > 1*time.Second {
+			logging.LogWarnf("slow asset content db op [%s] index [%d/%d] took [%dms]", op.action, i+1, total, opElapsed.Milliseconds())
+		}
+
 		if 16 < i && 0 == i%128 {
 			debug.FreeOSMemory()
 		}
@@ -103,7 +129,18 @@ func FlushAssetContentQueue() {
 
 	elapsed := time.Since(start).Milliseconds()
 	if 7000 < elapsed {
-		logging.LogInfof("database asset content op tx [%dms]", elapsed)
+		var detail strings.Builder
+		detail.WriteString(fmt.Sprintf("database asset content op tx [%dms], ops [%d]", elapsed, total))
+		var actions []string
+		for action := range opStats {
+			actions = append(actions, action)
+		}
+		sort.Strings(actions)
+		for _, action := range actions {
+			st := opStats[action]
+			detail.WriteString(fmt.Sprintf(" %s=%d(avg=%dms,max=%dms)", action, st.count, st.total.Milliseconds()/int64(st.count), st.max.Milliseconds()))
+		}
+		logging.LogInfo(detail.String())
 	}
 }
 

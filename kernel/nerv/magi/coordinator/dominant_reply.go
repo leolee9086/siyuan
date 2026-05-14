@@ -28,6 +28,14 @@ func (c *Coordinator) coordinateDominantDirectReply(
 ) (*types.Message, *DominantElectionResult, error) {
 	excludedDominants := map[string]struct{}{}
 
+	defaultSituation := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
+
+	actionPlans, planErr := collectActionPlans(ctx, sessionID, melchior, balthazar, casper, defaultSituation)
+	if planErr != nil {
+		logging.LogWarnf("直答路径行动计划收集失败（降级为无计划选举）: %v", planErr)
+		actionPlans = nil
+	}
+
 	for retry := 0; retry < 3; retry++ {
 		election, err := electDominantSageWithExclusionsAndSituations(
 			ctx,
@@ -35,9 +43,10 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			melchior,
 			balthazar,
 			casper,
-			resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage),
+			defaultSituation,
 			sourceAwareUserInputBySage,
 			excludedDominants,
+			actionPlans,
 		)
 		if err != nil {
 			logging.LogWarnf("election attempt %d failed: %v, retrying...", retry+1, err)
@@ -472,7 +481,7 @@ func injectPeerDoubts(dominantSage *sages.Sage, sessionID string, election *Domi
 	if len(allDoubts) > 0 {
 		_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
 			Role:    types.RoleSystem,
-			Content: "以下是其他贤者对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
+			Content: "以下是安全团队对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
 		})
 	}
 }
@@ -520,5 +529,3 @@ func newFakeServiceError() error {
 	}
 	return &fakeServiceError{msg: "500 Internal Server Error"}
 }
-
-
