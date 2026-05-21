@@ -65,8 +65,22 @@ export const handleExternalEditorDrop = async (
     const hasFiles = event.dataTransfer.types.includes("Files");
     // 本地文件拖入：上传文件（altKey 控制是否作为资源插入）
     if (hasFiles && !isBrowser()) {
-        const files = collectFilePaths(event.dataTransfer);
-        uploadLocalFiles(files, protyle, !event.altKey);
+        const files: string[] = [];
+        for (let i = 0; i < event.dataTransfer.files.length; i++) {
+            const file = event.dataTransfer.files[i];
+            if (file) {
+                const filePath = getPathForFile(file);
+                if (filePath) {
+                    files.push(filePath);
+                } else {
+                    paste(protyle, event);
+                    break;
+                }
+            }
+        }
+        if (files.length > 0) {
+            uploadLocalFiles(files, protyle, !event.altKey);
+        }
     }
     // HTML 内容拖入：走粘贴逻辑
     if (!hasFiles || isBrowser()) {

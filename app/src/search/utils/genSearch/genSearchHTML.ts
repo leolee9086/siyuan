@@ -35,7 +35,7 @@ export function genSearchHTML(
         <span id="searchResult" class="fn__flex-shrink ft__selectnone"></span>
         <span class="fn__space"></span>
         <span class="fn__flex-1${closeCB ? " resize__move" : ""}" style="min-height: 100%"></span>
-        <span id="searchPathInput" data-position="9south" class="search__path ft__on-surface fn__flex-center ft__smaller fn__ellipsis ariaLabel" aria-label="${escapeAriaLabel(config.hPath)}">
+        <span id="searchPathInput" data-position="9south" class="search__path ft__on-surface fn__flex-center ft__smaller fn__ellipsis ariaLabel" aria-label="${escapeAriaLabel(escapeHtml(escapeHtml(config.hPath)))}">
             ${escapeHtml(config.hPath)}
             <svg class="search__rmpath${config.hPath ? "" : " fn__none"}"><use xlink:href="#iconCloseRound"></use></svg>
         </span>
@@ -65,7 +65,7 @@ export function genSearchHTML(
         </span>
         <span class="fn__space"></span>
         <span id="searchAsset" aria-label="${siyuanI18n.searchAssetContent}" class="block__icon block__icon--show ariaLabel" data-position="9south">
-            <svg><use xlink:href="#iconExact"></use></svg>
+            <svg><use xlink:href="#iconSearchAsset"></use></svg>
         </span>
     </div>
     <div class="b3-form__icon search__header">

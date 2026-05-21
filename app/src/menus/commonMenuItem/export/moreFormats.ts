@@ -23,7 +23,7 @@ import { hideMessage } from "../imports";
  * 使用范围：导出完成后打开结果文件
  * 解耦评估：低耦合 - 平台适配工具，无需解耦
  */
-import { openByMobile } from "../imports";
+import { saveExportFile } from "../imports";
 
 /**
  * 用途：显示消息提示
@@ -48,17 +48,14 @@ import { siyuanI18n } from "../imports";
 export const createReStructuredTextExportMenuItem = (id: string): IMenu => ({
     id: "exportReStructuredText",
     label: "reStructuredText",
-    /**
-     * 用途：触发 reStructuredText 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportReStructuredText", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -72,17 +69,14 @@ export const createReStructuredTextExportMenuItem = (id: string): IMenu => ({
 export const createAsciiDocExportMenuItem = (id: string): IMenu => ({
     id: "exportAsciiDoc",
     label: "AsciiDoc",
-    /**
-     * 用途：触发 AsciiDoc 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportAsciiDoc", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -96,17 +90,14 @@ export const createAsciiDocExportMenuItem = (id: string): IMenu => ({
 export const createTextileExportMenuItem = (id: string): IMenu => ({
     id: "exportTextile",
     label: "Textile",
-    /**
-     * 用途：触发 Textile 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportTextile", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -120,17 +111,14 @@ export const createTextileExportMenuItem = (id: string): IMenu => ({
 export const createOPMLExportMenuItem = (id: string): IMenu => ({
     id: "exportOPML",
     label: "OPML",
-    /**
-     * 用途：触发 OPML 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportOPML", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -144,17 +132,14 @@ export const createOPMLExportMenuItem = (id: string): IMenu => ({
 export const createOrgModeExportMenuItem = (id: string): IMenu => ({
     id: "exportOrgMode",
     label: "Org-Mode",
-    /**
-     * 用途：触发 Org-Mode 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportOrgMode", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -168,17 +153,14 @@ export const createOrgModeExportMenuItem = (id: string): IMenu => ({
 export const createMediaWikiExportMenuItem = (id: string): IMenu => ({
     id: "exportMediaWiki",
     label: "MediaWiki",
-    /**
-     * 用途：触发 MediaWiki 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportMediaWiki", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -192,17 +174,14 @@ export const createMediaWikiExportMenuItem = (id: string): IMenu => ({
 export const createODTExportMenuItem = (id: string): IMenu => ({
     id: "exportODT",
     label: "ODT",
-    /**
-     * 用途：触发 ODT 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportODT", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -216,17 +195,14 @@ export const createODTExportMenuItem = (id: string): IMenu => ({
 export const createRTFExportMenuItem = (id: string): IMenu => ({
     id: "exportRTF",
     label: "RTF",
-    /**
-     * 用途：触发 RTF 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportRTF", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -240,17 +216,14 @@ export const createRTFExportMenuItem = (id: string): IMenu => ({
 export const createEPUBExportMenuItem = (id: string): IMenu => ({
     id: "exportEPUB",
     label: "EPUB",
-    /**
-     * 用途：触发 EPUB 格式导出
-     * 调用时机：用户点击菜单项时
-     */
+    iconHTML: "",
     click: () => {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         fetchPost("/api/export/exportEPUB", {
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });

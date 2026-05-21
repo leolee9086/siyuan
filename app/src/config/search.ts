@@ -228,7 +228,7 @@ const updateTab = (
     const inputValue = inputElement.value;
     const indexList = buildMatchingIndexList(configIndex, inputValue);
     let currentTabElement: HTMLElement | undefined;
-    const tabItems = element.querySelectorAll(".b3-tab-bar li");
+    const tabItems = element.querySelectorAll(".config__side .b3-list-item");
     for (let index = 0; index < tabItems.length; index++) {
         const item = tabItems[index];
         // 类型安全检查：确保标签项为HTMLElement
@@ -281,11 +281,10 @@ export const initConfigSearch = (element: HTMLElement, app: App): void => {
         inputElement.focus();
     }
     const activeElement = getActiveElement();
-    // 平板设备主动失焦当前活动元素以避免虚拟键盘弹出
     if (isPhablet() && isHTMLElement(activeElement)) {
         activeElement.blur();
     }
-    // 组合输入结束时触发搜索
+
     inputElement.addEventListener("compositionend", () => {
         updateTab(element, configIndex, inputElement, app);
     });

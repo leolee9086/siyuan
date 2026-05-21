@@ -22,3 +22,10 @@ export const getDefaultType = () => {
 
     };
 };
+
+export const getDefaultSubType = (): Config.IUILayoutTabSearchConfigSubTypes => {
+    return {
+        h1: false, h2: false, h3: false, h4: false, h5: false, h6: false,
+        o: false, u: false, t: false,
+    };
+};

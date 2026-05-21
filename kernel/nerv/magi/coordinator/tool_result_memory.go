@@ -372,7 +372,7 @@ func ensureMagiQueryArchiveDoc(boxID string, now time.Time) (docID, docHPath str
 		return root.ID, docHPath, nil
 	}
 
-	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "")
+	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "", nil)
 	if err != nil {
 		return "", docHPath, fmt.Errorf("创建查询结果归档文档失败: %w", err)
 	}
@@ -396,7 +396,7 @@ func ensureMagiMemoryDoc(boxID string, now time.Time) (docID, docHPath string, e
 		return root.ID, docHPath, nil
 	}
 
-	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "")
+	docID, err = model.CreateWithMarkdown("", boxID, docHPath, "", "", "", false, "", nil)
 	if err != nil {
 		return "", docHPath, fmt.Errorf("创建 MAGI 记忆文档失败: %w", err)
 	}

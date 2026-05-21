@@ -4,7 +4,7 @@ import {getIconByType} from "../../editor/getIcon";
 import {getDisplayName, getNotebookIcon, getNotebookName} from "../../util/file/pathName";
 import {getKeyByLiElement} from "../../search/menu";
 import {setStorageVal} from "../../protyle/util/compatibility";
-import {escapeGreat, escapeHtml} from "../../util/DOM/escape";
+import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {showMessage} from "../../dialog/message";
 import {reloadProtyle} from "../../protyle/util/reload";
@@ -44,6 +44,7 @@ export const replace = (element: Element, config: Config.IUILayoutTabSearchConfi
         r: replaceInputElement.value,
         ids: isAll ? [] : [currentId],
         types: config.types,
+        subTypes: config.subTypes,
         method: config.method,
         replaceTypes: config.replaceTypes,
         paths: config.idPath || [],
@@ -98,7 +99,7 @@ export const updateConfig = (element: Element, newConfig: Config.IUILayoutTabSea
     const searchPathElement = element.querySelector("#searchPath");
     if (newConfig.hPath) {
         searchPathElement.classList.remove("fn__none");
-        searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(newConfig.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconCloseRound"></use></svg></div>`;
+        searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(newConfig.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconClose"></use></svg></div>`;
     } else {
         searchPathElement.classList.add("fn__none");
     }
@@ -152,14 +153,14 @@ export const onRecentBlocks = (data: IBlock[], config: Config.IUILayoutTabSearch
     let currentData;
     let newData;
     data.forEach((item: IBlock) => {
-        const title = getNotebookName(item.box) + getDisplayName(item.hPath, false);
+        const title = escapeHtml(getNotebookName(item.box)) + getDisplayName(item.hPath, false);
         if (item.children) {
             resultHTML += `<div class="b3-list-item">
 <span class="b3-list-item__toggle b3-list-item__toggle--hl">
     <svg class="b3-list-item__arrow b3-list-item__arrow--open"><use xlink:href="#iconRight"></use></svg>
 </span>
 ${unicode2Emoji(getNotebookIcon(item.box) || window.siyuan.storage[Constants.LOCAL_IMAGES].note, "b3-list-item__graphic", true)}
-<span class="b3-list-item__text" style="color: var(--b3-theme-on-surface)">${escapeGreat(title)}</span>
+<span class="b3-list-item__text" style="color: var(--b3-theme-on-surface)">${escapeHtml(title)}</span>
 </div><div>`;
             item.children.forEach((childItem) => {
                 if (focusId) {
@@ -195,7 +196,7 @@ ${childItem.tag ? `<span class="b3-list-item__meta b3-list-item__meta--ellipsis"
     </div>
     <div class="fn__flex">
         ${item.tag ? `<span class="b3-list-item__meta b3-list-item__meta--ellipsis">${item.tag.replace(/#/g, "")}</span><span class="fn__space"></span>` : ""}
-        <span class="b3-list-item__text b3-list-item__meta">${escapeGreat(title)}</span>
+        <span class="b3-list-item__text b3-list-item__meta">${escapeHtml(title)}</span>
     </div>
 </div>`;
         }

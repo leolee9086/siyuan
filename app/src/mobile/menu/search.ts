@@ -4,7 +4,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {getIconByType} from "../../editor/getIcon";
 import {openModel} from "./model";
 import {getDisplayName, getNotebookName} from "../../util/file/pathName";
-import {escapeGreat, escapeHtml} from "../../util/DOM/escape";
+import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {newFileByName} from "../../util/file/newFile";
 import {activeBlur} from "../util/keyboardToolbar";
@@ -58,6 +58,7 @@ export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, elem
                 query: config.query,
                 method: config.method,
                 types: config.types,
+                subTypes: config.subTypes,
                 paths: config.idPath || [],
                 groupBy: config.group,
                 orderBy: config.sort,
@@ -138,7 +139,7 @@ export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConf
     <div id="searchPath" class="b3-chips${config.hPath ? "" : " fn__none"}" style="background-color: var(--b3-theme-background);">
         <div class="b3-chip b3-chip--middle">
             ${escapeHtml(config.hPath)}
-            <svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconCloseRound"></use></svg>
+            <svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconClose"></use></svg>
         </div>
     </div>
     <div class="toolbar">
@@ -277,14 +278,14 @@ const getUnRefListMobile = (element: Element, page = 1) => {
         }
         let resultHTML = "";
         response.data.blocks.forEach((item: IBlock, index: number) => {
-            const title = getNotebookName(item.box) + getDisplayName(item.hPath, false);
+            const title = escapeHtml(getNotebookName(item.box)) + getDisplayName(item.hPath, false);
             resultHTML += `<div class="b3-list-item b3-list-item--two${index === 0 ? " b3-list-item--focus" : ""}" data-type="search-item" data-node-id="${item.id}">
 <div class="b3-list-item__first">
     <svg class="b3-list-item__graphic"><use xlink:href="#${getIconByType(item.type)}"></use></svg>
     ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
     <span class="b3-list-item__text">${item.content}</span>
 </div>
-<span class="b3-list-item__text b3-list-item__meta">${escapeGreat(title)}</span>
+<span class="b3-list-item__text b3-list-item__meta">${escapeHtml(title)}</span>
 </div>`;
         });
         element.querySelector("#searchUnRefResult").innerHTML = `<span class="fn__flex-center">${siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>

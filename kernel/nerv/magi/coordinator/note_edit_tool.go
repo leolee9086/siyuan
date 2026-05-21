@@ -319,7 +319,7 @@ func executeCreateDocumentAfterGovernance(toolCall types.ToolCall) string {
 	}
 
 	id := ast.NewNodeID()
-	docID, createErr := model.CreateWithMarkdown("", boxID, hPath, args.Content, "", id, false, "")
+	docID, createErr := model.CreateWithMarkdown("", boxID, hPath, args.Content, "", id, false, "", nil)
 	if createErr != nil {
 		return marshalNoteEditError("CREATE_FAILED", fmt.Sprintf("创建文档失败: %v", createErr))
 	}

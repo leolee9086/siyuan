@@ -139,7 +139,7 @@ func InitConf() {
 
 	if "" != util.Lang {
 		initialized := false
-		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
+		if util.IsMobileContainer() {
 			// 移动端以上次设置的外观语言为准
 			if "" != Conf.Lang && util.Lang != Conf.Lang {
 				util.Lang = Conf.Lang
@@ -197,6 +197,12 @@ func InitConf() {
 		util.Lang = Conf.Lang
 	}
 	Conf.Appearance.Lang = Conf.Lang
+	if "ant" == Conf.Appearance.Icon || "material" == Conf.Appearance.Icon {
+		// v3.7.0 移除了 ant/material 图标包，如果用户之前选择了这两个其中之一，升级后改为 litheness 图标包，避免图标显示异常 https://github.com/siyuan-note/siyuan/issues/7976
+		Conf.Appearance.Icon = "litheness"
+	}
+	os.RemoveAll(filepath.Join(util.IconsPath, "ant"))
+	os.RemoveAll(filepath.Join(util.IconsPath, "material"))
 	if nil == Conf.UILayout {
 		Conf.UILayout = &conf.UILayout{}
 	}
@@ -227,6 +233,7 @@ func InitConf() {
 	}
 	Conf.FileTree.DocCreateSavePath = util.TrimSpaceInPath(Conf.FileTree.DocCreateSavePath)
 	Conf.FileTree.RefCreateSavePath = util.TrimSpaceInPath(Conf.FileTree.RefCreateSavePath)
+	Conf.FileTree.ShorthandSavePath = util.TrimSpaceInPath(Conf.FileTree.ShorthandSavePath)
 	util.UseSingleLineSave = Conf.FileTree.UseSingleLineSave
 	if 2 > Conf.FileTree.LargeFileWarningSize {
 		Conf.FileTree.LargeFileWarningSize = 8
@@ -594,15 +601,8 @@ func InitConf() {
 	Conf.AccessAuthCode = strings.TrimSpace(Conf.AccessAuthCode)
 
 	if 1 == Conf.DataIndexState {
-		// 上次未正常完成数据索引
-		go func() {
-			util.WaitForUILoaded()
-			if util.ContainerIOS == util.Container || util.ContainerAndroid == util.Container || util.ContainerHarmony == util.Container {
-				task.AppendAsyncTaskWithDelay(task.PushMsg, 2*time.Second, util.PushMsg, Conf.language(245), 15000)
-			} else {
-				task.AppendAsyncTaskWithDelay(task.PushMsg, 2*time.Second, util.PushMsg, Conf.language(244), 15000)
-			}
-		}()
+		// 上次未正常完成数据索引，后续会由 recoverIndexQueue() 恢复
+		logging.LogInfof("data index state is [%d], will recover through index queue", Conf.DataIndexState)
 	}
 
 	Conf.DataIndexState = 0
@@ -676,6 +676,7 @@ func initLang() {
 			logging.LogErrorf("read language configuration [%s] failed: %s", jsonPath, err)
 			continue
 		}
+		data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 		langMap := map[string]any{}
 		if err := gulu.JSON.UnmarshalJSON(data, &langMap); err != nil {
 			logging.LogErrorf("parse language configuration failed [%s] failed: %s", jsonPath, err)
@@ -741,10 +742,16 @@ func Close(force, setCurrentWorkspace bool, execInstallPkg int) (exitCode int) {
 	defer exitLock.Unlock()
 
 	logging.LogInfof("exiting kernel [force=%v, setCurrentWorkspace=%v, execInstallPkg=%d]", force, setCurrentWorkspace, execInstallPkg)
+
 	util.PushMsg(Conf.Language(95), 10000*60)
 	FlushTxQueue()
 
 	if !force {
+		// Stop kernel plugins early in shutdown
+		if OnKernelPluginsStop != nil {
+			OnKernelPluginsStop()
+		}
+
 		if Conf.Sync.Enabled && 3 != Conf.Sync.Mode &&
 			((IsSubscriber() && conf.ProviderSiYuan == Conf.Sync.Provider) || conf.ProviderSiYuan != Conf.Sync.Provider) {
 			syncData(true, false)
@@ -780,6 +787,7 @@ func Close(force, setCurrentWorkspace bool, execInstallPkg int) (exitCode int) {
 
 	Conf.Close()
 	sql.CloseDatabase()
+	closePushQueue()
 	util.SaveAssetsTexts()
 	clearWorkspaceTemp()
 	clearCorruptedNotebooks()
@@ -823,7 +831,7 @@ func Close(force, setCurrentWorkspace bool, execInstallPkg int) (exitCode int) {
 		}
 		util.HttpServing = false
 
-		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
+		if util.IsMobileContainer() {
 			return
 		}
 
@@ -1202,6 +1210,10 @@ func clearWorkspaceTemp() {
 	os.RemoveAll(filepath.Join(util.TempDir, "blocktree.msgpack")) // v2.7.2 前旧版的块树数据
 	os.RemoveAll(filepath.Join(util.DataDir, "%"))                 // v3.0.6 生成的错误历史文件夹
 	os.RemoveAll(filepath.Join(util.TempDir, "blocktree"))         // v3.1.0 前旧版的块树数据
+
+	// v3.7.0-dev 开发版数据索引队列，后面改成 index.queue 了
+	os.RemoveAll(filepath.Join(util.TempDir, "queue.wal"))
+	os.RemoveAll(filepath.Join(util.TempDir, "queue.wal.lock"))
 
 	logging.LogInfof("cleared workspace temp")
 }

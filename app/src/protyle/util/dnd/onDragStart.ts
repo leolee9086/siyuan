@@ -36,13 +36,21 @@ export const onDragStart = (protyle: IProtyle, event: DragEvent) => {
             target.parentElement.classList.add("protyle-wysiwyg--select");
             const ghostElement = document.createElement("div");
             ghostElement.className = protyle.wysiwyg.element.className;
-            ghostElement.append(processClonePHElement(target.parentElement.cloneNode(true) as Element));
+            const cloneElement = processClonePHElement(target.parentElement.cloneNode(true) as Element);
+            cloneElement.querySelectorAll(".iframe").forEach(item => {
+                item.remove();
+            });
+            ghostElement.append(cloneElement);
             ghostElement.setAttribute("style", `position:fixed;opacity:.1;width:${target.parentElement.clientWidth}px;padding:0;`);
             document.body.append(ghostElement);
             event.dataTransfer.setDragImage(ghostElement, 0, 0);
-            setTimeout(() => {
-                ghostElement.remove();
-            });
+            if (window.siyuan.touchDragActive) {
+                window.siyuan.touchDragGhost = ghostElement;
+            } else {
+                setTimeout(() => {
+                    ghostElement.remove();
+                });
+            }
 
             window.siyuan.dragElement = protyle.wysiwyg.element;
             event.dataTransfer.setData(`${Constants.SIYUAN_DROP_GUTTER}NodeListItem${Constants.ZWSP}${target.parentElement.getAttribute("data-subtype")}${Constants.ZWSP}${[target.parentElement.getAttribute("data-node-id")]}`,
@@ -110,9 +118,13 @@ export const onDragStart = (protyle: IProtyle, event: DragEvent) => {
                 ghostElement.setAttribute("style", "left: 1px;top:100vh;position:fixed;opacity:.1;padding:0;z-index: 8");
                 document.body.append(ghostElement);
                 event.dataTransfer.setDragImage(ghostElement, -10, -10);
-                setTimeout(() => {
-                    ghostElement.remove();
-                });
+                if (window.siyuan.touchDragActive) {
+                    window.siyuan.touchDragGhost = ghostElement;
+                } else {
+                    setTimeout(() => {
+                        ghostElement.remove();
+                    });
+                }
                 window.siyuan.dragElement = target;
                 const selectIds: string[] = [];
                 blockElement.querySelectorAll(".av__gallery-item--select").forEach(item => {

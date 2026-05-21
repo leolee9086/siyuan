@@ -145,6 +145,13 @@ export const handleToolbarClick = (
             renderTextMenu(protyle, toolbarElement);
             deps.showKeyboardToolbarUtil(oldScrollTop);
             window.JSAndroid?.hideKeyboard();
+            setTimeout(() => {
+                focusByRange(range);
+                deps.setPreventRender(true);
+                setTimeout(() => {
+                    deps.setPreventRender(false);
+                }, 1000);
+            }, Constants.TIMEOUT_TRANSITION);
         }
         return;
     } else if (type === "moveup") {

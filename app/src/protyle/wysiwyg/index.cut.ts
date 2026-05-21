@@ -51,7 +51,8 @@ export async function handleCut(
     const selectAVElement = nodeElement.querySelector(".av__row--select, .av__cell--select");
     const selectTableElement = nodeElement.querySelector(".table__select")?.clientWidth > 0;
     let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-    if (selectElements.length === 0 && range.toString() === "" && !range.cloneContents().querySelector("img") &&
+    const cloneElement = range.cloneContents();
+    if (selectElements.length === 0 && range.toString() === "" && !cloneElement.querySelector("img") &&
         !selectImgElement && !selectAVElement && !selectTableElement) {
         nodeElement.classList.add("protyle-wysiwyg--select");
         selectElements = [nodeElement];
@@ -186,6 +187,7 @@ export async function handleCut(
             !["DIV", "TD", "TH", "TR"].includes(range.startContainer.parentElement.tagName)) {
             // 选中整个内联元素
             tempElement.append(range.startContainer.parentElement);
+            textPlain = tempElement.textContent;
         } else if (selectImgElement) {
             tempElement.append(selectImgElement);
         } else if (range.startContainer.nodeType === 3 && range.startContainer.parentElement.tagName === "SPAN" &&
@@ -205,10 +207,11 @@ export async function handleCut(
                 spanElement.setAttribute("data-subtype", "s");
             }
             newSpanElement.textContent = range.toString();
+            textPlain = range.toString();
             range.deleteContents();
             tempElement.append(newSpanElement);
         } else {
-            if (range.cloneContents().querySelectorAll("td, th").length > 0) {
+            if (cloneElement.querySelectorAll("td, th").length > 0) {
                 // 表格内多格子 cut https://github.com/siyuan-note/insider/issues/564
                 const wbrElement = document.createElement("wbr");
                 range.insertNode(wbrElement);
@@ -224,16 +227,29 @@ export async function handleCut(
                     // 表格内剪切数学公式 https://ld246.com/article/1631708573504
                     tempElement.append(inlineMathElement);
                 } else {
-                    tempElement.append(range.extractContents());
-                    let parentElement: Element | false;
+                    tempElement.append(range.cloneContents());
+                    let parentElement: false | Element = getContenteditableElement(nodeElement);
                     // https://ld246.com/article/1647689760545
                     if (nodeElement.classList.contains("av")) {
                         updateAVName(protyle, nodeElement);
                     } else if (nodeElement.classList.contains("table")) {
                         parentElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
-                    } else {
-                        parentElement = getContenteditableElement(nodeElement);
+                    } else if (cloneElement.querySelector('.img, [data-type="inline-math"]')) {
+                        textPlain = "";
+                        cloneElement.childNodes.forEach((item: Element) => {
+                            if (item.nodeType === 3) {
+                                textPlain += item.textContent;
+                            } else if (item.nodeType === 1 &&
+                                (item.classList.contains("img") || item.getAttribute("data-type") === "inline-math")) {
+                                textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
+                            } else {
+                                textPlain += item.textContent;
+                            }
+                        });
+                    } else if (!hasClosestByTag(range.startContainer, "CODE")) {
+                        textPlain = range.toString();
                     }
+                    range.deleteContents();
                     if (parentElement) {
                         // 引用文本剪切 https://ld246.com/article/1647689760545
                         // 表格多行剪切 https://ld246.com/article/1652603836350

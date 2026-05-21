@@ -91,7 +91,8 @@ export function getSizeForItem(dock: Dock, item: Element): number {
  */
 export function getMaxSize(dock: Dock): number {
     let max = 0;
-    const activeItems = dock.element.querySelectorAll(".dock__item--active");
+    const activeItems = [...dock.elements[0].querySelectorAll(".dock__item--active"),
+        ...dock.elements[1].querySelectorAll(".dock__item--active")];
     for (const item of Array.from(activeItems)) {
         const size = getSizeForItem(dock, item);
         if (size > max) {

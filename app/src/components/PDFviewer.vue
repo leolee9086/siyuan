@@ -13,7 +13,7 @@
                     <button id="viewOutline" class="toolbarButton b3-tooltips b3-tooltips__ne"
                         :aria-label="siyuanI18n.outline">
                         <svg>
-                            <use xlink:href="#iconAlignCenter"></use>
+                            <use xlink:href="#iconOutline"></use>
                         </svg>
                     </button>
                     <button id="viewAttachments" class="toolbarButton fn__none" data-l10n-id="attachments">
@@ -248,7 +248,7 @@
                             aria-expanded="false" aria-controls="sidebarContainer"
                             :aria-label="siyuanI18n.toggleSidebarNotification2Title + '' + updateHotkeyTip('F4')">
                             <svg>
-                                <use xlink:href="#iconLayoutRight"></use>
+                                <use xlink:href="#iconLayoutLeft"></use>
                             </svg>
                         </button>
                         <button id="viewFindButton" class="toolbarButton b3-tooltips b3-tooltips__se"

@@ -40,6 +40,7 @@ var runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block
 		nil,
 		nil,
 		defaultNoteKeywordSearchTypes(),
+		nil,
 		fullTextSearchMethodQuerySyntax,
 		fullTextSearchOrderByBlockType,
 		fullTextSearchGroupByNone,

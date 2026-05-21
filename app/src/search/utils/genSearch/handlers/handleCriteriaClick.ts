@@ -5,7 +5,7 @@
 import { fetchPost } from "../../../../ai/imports";
 import { Constants } from "../../../../constants";
 import { Protyle } from "../../../../protyle";
-import { getDefaultType } from "../../../getDefault";
+import { getDefaultSubType, getDefaultType } from "../../../getDefault";
 import { updateConfig } from "../../../util";
 
 /**
@@ -25,6 +25,7 @@ function getDefaultConfig(): Config.IUILayoutTabSearchConfig {
         r: "",
         page: 1,
         types: getDefaultType(),
+        subTypes: getDefaultSubType(),
         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
     };
 }

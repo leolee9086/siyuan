@@ -47,7 +47,9 @@ export class Model {
             }
         };
         ws.onmessage = (event) => {
-            if (options.msgCallback) {
+            if (options.msgCallback &&
+                // 等待 config 加载完成才接受推送 https://github.com/siyuan-note/siyuan/issues/17508
+                window.siyuan.config) {
                 const data = getModelHandlers().processMessage(JSON.parse(event.data));
                 if (data) {
                     options.msgCallback.call(this, data);
@@ -83,7 +85,7 @@ export class Model {
         if (!this.ws) { // Inbox 无 ws
             return;
         }
-        this.reqId = process ? 0 : new Date().getTime();
+        this.reqId = process ? 0 : Date.now();
         this.ws.send(JSON.stringify({
             cmd,
             reqId: this.reqId,

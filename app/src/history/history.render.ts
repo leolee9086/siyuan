@@ -1,7 +1,7 @@
 import {Constants} from "../constants";
 import * as dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
-import {escapeHtml} from "../util/DOM/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {isMobile} from "../util/platform/functions";
 import {platform} from "../platform";
 import {setStorageVal} from "../protyle/util/compatibility";
@@ -161,7 +161,7 @@ export const renderRepoItem = (response: IWebSocketData, element: Element, type:
     } else if (type === "getRepoSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="genTag">
-    <svg><use xlink:href="#iconTags"></use></svg>
+    <svg><use xlink:href="#iconTag"></use></svg>
     <span class="fn__space"></span>
     ${siyuanI18n.tagSnapshot}
 </span>
@@ -188,7 +188,7 @@ export const renderRepoItem = (response: IWebSocketData, element: Element, type:
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="removeRepoTagSnapshot" aria-label="${siyuanI18n.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>`;
     } else if (type === "getRepoSnapshots") {
-        actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="genTag" aria-label="${siyuanI18n.tagSnapshot}"><svg><use xlink:href="#iconTags"></use></svg></span>
+        actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="genTag" aria-label="${siyuanI18n.tagSnapshot}"><svg><use xlink:href="#iconTag"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>`;
     }
     }
@@ -261,10 +261,71 @@ ${actionHTML}
     element.lastElementChild.innerHTML = `${repoHTML}`;
 };
 
+const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
+    if (response.data.files.length === 0) {
+        element.lastElementChild.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+        return;
+    }
+    let html = "";
+    response.data.files.forEach((item: {
+        fileID: string,
+        title: string,
+        path: string,
+        hSize: string,
+        updated: number
+    }) => {
+        if (isMobile()) {
+            html += `<li class="b3-list-item" data-type="searchFileItem" data-id="${item.fileID}" data-created="${item.updated}">
+    <div class="fn__flex-1">
+        <div style="padding-top:8px" class="b3-list-item__text">${escapeHtml(item.title)}</div>
+        <div class="b3-list-item__meta">
+            ${item.hSize}
+            <span class="fn__space"></span>
+            ${dayjs(item.updated).format("YYYY-MM-DD HH:mm:ss")}
+        </div>
+        <div class="fn__flex" style="height: 26px">
+            <span class="fn__flex-1"></span>
+            <span class="b3-list-item__action" data-type="saveAs">
+                <svg><use xlink:href="#iconDownload"></use></svg>
+                <span class="fn__space"></span>${siyuanI18n.saveAs}
+            </span>
+            <span class="fn__space"></span>
+            <span class="b3-list-item__action" data-type="rollback">
+                <svg><use xlink:href="#iconUndo"></use></svg>
+                <span class="fn__space"></span> ${siyuanI18n.rollback}
+            </span>
+        </div>
+    </div>
+</li>`;
+        } else {
+            html += `<li class="b3-list-item b3-list-item--hide-action" data-type="searchFileItem" data-id="${item.fileID}" data-created="${item.updated}">
+    <div class="fn__flex-1">
+        <span class="b3-list-item__text">${escapeHtml(item.title)}</span>
+        <div class="b3-list-item__meta">
+            ${escapeHtml(item.path)}
+            <span class="fn__space"></span>
+            ${item.hSize}
+            <span class="fn__space"></span>
+            ${dayjs(item.updated).format("YYYY-MM-DD HH:mm:ss")}
+        </div>
+    </div>
+    <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}">
+        <svg><use xlink:href="#iconUndo"></use></svg>
+    </span>
+    <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="saveAs" aria-label="${siyuanI18n.saveAs}">
+        <svg><use xlink:href="#iconDownload"></use></svg>
+    </span>
+</li>`;
+        }
+    });
+    element.lastElementChild.innerHTML = html;
+};
+
 export const renderRepo = (element: Element, currentPage: number) => {
     const selectElement = element.querySelector(".b3-select") as HTMLSelectElement;
-    selectElement.disabled = true;
     const selectValue = selectElement.value;
+
+    selectElement.disabled = true;
     element.lastElementChild.innerHTML = '<li style="position: relative;height: 100%;"><div class="fn__loading"><img width="64px" src="/stage/loading-pure.svg"></div></li>';
     const pageBtn = element.querySelector('button[data-type="jumpRepoPage"]');
     pageBtn.textContent = `${currentPage}`;
@@ -273,7 +334,41 @@ export const renderRepo = (element: Element, currentPage: number) => {
     const nextElement = element.querySelector('[data-type="next"]');
     const pageElement = nextElement.nextElementSibling.nextElementSibling;
     element.setAttribute("data-init", "true");
-    if (selectValue === "getRepoTagSnapshots" || selectValue === "getCloudRepoTagSnapshots") {
+
+    const searchInputElement = element.querySelector("input") as HTMLInputElement;
+    if (selectValue === "getRepoSnapshots") {
+        searchInputElement.parentElement.classList.remove("fn__none");
+    } else {
+        searchInputElement.parentElement.classList.add("fn__none");
+    }
+    const keyword = searchInputElement.value.trim();
+    if (keyword && selectValue === "getRepoSnapshots") {
+        const searchBtnElement = searchInputElement.nextElementSibling as HTMLButtonElement;
+        searchBtnElement.disabled = true;
+        previousElement.classList.remove("fn__none");
+        nextElement.classList.remove("fn__none");
+        pageBtn.classList.remove("fn__none");
+        element.setAttribute("data-page", currentPage.toString());
+        if (currentPage > 1) {
+            previousElement.removeAttribute("disabled");
+        } else {
+            previousElement.setAttribute("disabled", "disabled");
+        }
+        nextElement.setAttribute("disabled", "disabled");
+        fetchPost("/api/repo/searchRepoFile", {keyword, page: currentPage}, (response) => {
+            searchBtnElement.disabled = false;
+            selectElement.disabled = false;
+            if (currentPage < response.data.pageCount) {
+                nextElement.removeAttribute("disabled");
+            } else {
+                nextElement.setAttribute("disabled", "disabled");
+            }
+            pageBtn.setAttribute("data-totalpage", (response.data.pageCount || 1).toString());
+            pageElement.textContent = `${siyuanI18n.pageCountAndSnapshotCount.replace("${x}", response.data.pageCount).replace("${y}", response.data.totalCount || 1)}`;
+            pageElement.classList.remove("fn__none");
+            renderRepoSearchResult(response, element);
+        });
+    } else if (selectValue === "getRepoTagSnapshots" || selectValue === "getCloudRepoTagSnapshots") {
         fetchPost(`/api/repo/${selectValue}`, {}, (response) => {
             renderRepoItem(response, element, selectValue);
             selectElement.disabled = false;

@@ -161,7 +161,7 @@ const addRowToCustomView = (params: {
     
     const html = `<div class="block__icons av__row" data-id="${params.nodeId}" data-col-id="${params.id}">
     <div class="block__icon" draggable="true"><svg><use xlink:href="#iconDrag"></use></svg></div>
-    <div class="block__logo ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${getColNameByType(params.type)}">
+    <div class="block__logo block__logo--icon ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${getColNameByType(params.type)}">
         <svg class="block__logoicon"><use xlink:href="#${getColIconByType(params.type)}"></use></svg>
         <span>${getColNameByType(params.type)}</span>
     </div>

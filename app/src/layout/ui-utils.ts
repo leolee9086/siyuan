@@ -136,6 +136,11 @@ export const resizeTopBar = (): void => {
     barMoreElement.classList.remove(CSS_CLASSES.NONE);
     barMoreElement.removeAttribute(ATTRS.DATA_HIDE_IDS);
     resetHiddenElements(toolbarElement);
+
+    if (window.siyuan.config.appearance.hideToolbar) {
+        return;
+    }
+
     const hideIds: string[] = [];
     // 处理拖拽元素右侧的溢出
     processOverflowElements(

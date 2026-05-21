@@ -7,7 +7,7 @@ import { showMessage } from "../../dialog/message";
 import {
     isInMobileApp,
     isIPad,
-    openByMobile,
+    saveExportFile,
     writeText
 } from "../../protyle/util/compatibility";
 import { exitSiYuan, processSync } from "../../dialog/processSystem";
@@ -356,7 +356,7 @@ export const initAbout = () => {
                         break;
                     } else if (target.id === "exportLog") {
                         fetchPost("/api/system/exportLog", {}, (response) => {
-                            openByMobile(response.data.zip);
+                            saveExportFile(response.data.zip);
                         });
                         event.preventDefault();
                         event.stopPropagation();
@@ -510,12 +510,12 @@ export const initAbout = () => {
             });
             modelMainElement.querySelector("#exportCACert")?.addEventListener("click", () => {
                 fetchPost("/api/system/exportTLSCACert", {}, (response) => {
-                    openByMobile(response.data.path);
+                    saveExportFile(response.data.path);
                 });
             });
             modelMainElement.querySelector("#exportCABundle")?.addEventListener("click", () => {
                 fetchPost("/api/system/exportTLSCABundle", {}, (response) => {
-                    openByMobile(response.data.path);
+                    saveExportFile(response.data.path);
                 });
             });
             modelMainElement.querySelector("#importCABundle")?.addEventListener("click", () => {

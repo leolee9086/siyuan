@@ -8,6 +8,7 @@ import {
     processCopyFoldHeadingIds,
     updateListAfterOperation
 } from "./moveTo.helper";
+import { getParentBlock } from "../../wysiwyg/getBlock";
 
 export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,
     isSameDoc: boolean, position: InsertPosition, isCopy: boolean) => {
@@ -63,7 +64,7 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
         if (context.isCopy) {
             handleCopyOperation(item, id, context);
         } else {
-            const oldSourceParentElement = item.parentElement;
+            const oldSourceParentElement = getParentBlock(item);
             if (item.classList.contains("li") && item.getAttribute("data-subtype") === "o") {
                 orderListElements[item.parentElement.getAttribute("data-node-id")] = item.parentElement;
             }

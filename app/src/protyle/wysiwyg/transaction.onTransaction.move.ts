@@ -34,11 +34,17 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
     if (updateElements.length === 0) {
         const tempEl = document.createElement("div");
         tempEl.setAttribute("data-node-id", operation.id);
+        tempEl.setAttribute("data-protyle-id", protyle.element.getAttribute("data-id"));
         updateElements.push(tempEl);
         fetchPost("/api/block/getBlockDOM", {
             id: operation.id,
         }, (response) => {
-            document.querySelector(`[data-node-id="${operation.id}"]`).outerHTML = response.data.dom;
+            document.querySelectorAll(`.protyle-wysiwyg [data-node-id="${response.data.id}"]`).forEach(item => {
+                if (item.getAttribute("data-protyle-id")) {
+                    item.outerHTML = response.data.dom;
+                    item.removeAttribute("data-protyle-id");
+                }
+            });
         });
     }
     let range;

@@ -4,7 +4,7 @@
 
 import { fetchPost } from "../../../../ai/imports";
 import { Protyle } from "../../../../protyle";
-import { escapeHtml, escapeGreat } from "../../../../util/DOM/escape";
+import { escapeHtml } from "../../../../util/DOM/escape";
 import { getNotebookName, pathPosix } from "../../../../util/file/pathName";
 import { movePathTo } from "../../../../util/file/movePathTo";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -46,7 +46,7 @@ export function handleSearchPath(
                 config.page = 1;
 
                 if (searchPathInputElement) {
-                    searchPathInputElement.innerHTML = `${escapeGreat(config.hPath)}<svg class="search__rmpath"><use xlink:href="#iconCloseRound"></use></svg>`;
+                    searchPathInputElement.innerHTML = `${escapeHtml(config.hPath)}<svg class="search__rmpath"><use xlink:href="#iconCloseRound"></use></svg>`;
                     searchPathInputElement.setAttribute("aria-label", escapeHtml(config.hPath));
                 }
 

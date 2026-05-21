@@ -1,7 +1,7 @@
 import { Tab } from "./Tab";
 import { createTabModel } from "../registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
-import { getAllModels, getAllTabs } from "./getAll";
+import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
 import { pdfResize } from "../asset/renderAssets";
 import { App } from "../index";
@@ -25,6 +25,9 @@ import { newFile } from "../util/file/newFile";
 import { mountHelp, newNotebook } from "../util/file/mount";
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
+import { setTabPosition } from "../window/setHeader";
+
+export { setTabPosition };
 
 export const getActiveTab = (wndActive = true) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
@@ -57,14 +60,11 @@ export const switchTabByIndex = (index: number) => {
             indexElement = activeDockIcoElement.previousElementSibling;
             if (!indexElement) {
                 indexElement = activeDockIcoElement.parentElement.lastElementChild;
-                if (indexElement.classList.contains("dock__item--pin")) {
-                    indexElement = indexElement.previousElementSibling;
-                }
             }
         } else if (index === -3) {
             // 下一个
             indexElement = activeDockIcoElement.nextElementSibling;
-            if (!indexElement || indexElement.classList.contains("dock__item--pin")) {
+            if (!indexElement) {
                 indexElement = activeDockIcoElement.parentElement.firstElementChild;
             }
         }
@@ -183,7 +183,7 @@ export const newCenterEmptyTab = (app: App) => {
             <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.globalSearch.custom)}</span>
         </div>
         <div id="editorEmptyRecent" class="b3-list-item">
-            <svg class="b3-list-item__graphic"><use xlink:href="#iconList"></use></svg>
+            <svg class="b3-list-item__graphic"><use xlink:href="#iconRecentDocs"></use></svg>
             <span>${window.siyuan.languages.recentDocs}</span>
             <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.recentDocs.custom)}</span>
         </div>
@@ -193,7 +193,7 @@ export const newCenterEmptyTab = (app: App) => {
             <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.dataHistory.custom)}</span>
         </div>
         <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyFile">
-            <svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
+            <svg class="b3-list-item__graphic"><use xlink:href="#iconAddDoc"></use></svg>
             <span>${window.siyuan.languages.newFile}</span>
             <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.newFile.custom)}</span>
         </div>
@@ -375,21 +375,25 @@ export const copyTab = (app: App, tab: Tab) => {
     });
 };
 
-const getRootID = (item: Tab) => {
+const pushRootID = (rootIDs: string[], item: Tab) => {
+    let id;
     if (item.model instanceof Editor) {
-        return item.model.editor.protyle.block.rootID;
+        id = item.model.editor.protyle.block.rootID;
     } else if (!item.model) {
         const initTab = item.headElement.getAttribute("data-initdata");
         if (initTab) {
             try {
                 const initTabData = JSON.parse(initTab);
                 if (initTabData && initTabData.instance === "Editor" && initTabData.rootId) {
-                    return initTabData.rootId;
+                    id = initTabData.rootId;
                 }
             } catch (e) {
                 console.warn("Failed to parse tab init data:", e);
             }
         }
+    }
+    if (id) {
+        rootIDs.push(id);
     }
 };
 
@@ -399,7 +403,7 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
         for (let index = 0; index < tab.parent.children.length; index++) {
             const item = tab.parent.children[index];
             if (item.id !== tab.id && !item.headElement.classList.contains("item--pin")) {
-                rootIDs.push(getRootID(item));
+                pushRootID(rootIDs, item);
                 item.parent.removeTab(item.id, true, false);
                 index--;
             }
@@ -408,7 +412,7 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
         for (let index = 0; index < tab.parent.children.length; index++) {
             const item = tab.parent.children[index];
             if (!item.headElement.classList.contains("item--pin")) {
-                rootIDs.push(getRootID(item));
+                pushRootID(rootIDs, item);
                 item.parent.removeTab(item.id, true);
                 index--;
             }

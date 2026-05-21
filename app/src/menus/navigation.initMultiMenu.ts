@@ -5,7 +5,7 @@ import { showMessage, hideMessage } from "../dialog/message";
 import { deleteFiles } from "../editor/deleteFile";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
-import { openByMobile } from "../protyle/util/compatibility";
+import { saveExportFile } from "../protyle/util/compatibility";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { fetchPost } from "../util/network/fetch";
 import { getTopPaths } from "../util/file/pathName";
@@ -151,20 +151,19 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
                     ids: blockIDs,
                 }, response => {
                     hideMessage(msgId);
-                    openByMobile(response.data.zip);
+                    saveExportFile(response.data.zip);
                 });
             }
         }, {
             id: "exportMarkdown",
-            label: "Markdown .zip",
             icon: "iconMarkdown",
             click: () => {
                 const msgId = showMessage(siyuanI18n.exporting, -1);
-                fetchPost(" /api/export/exportMds", {
+                fetchPost("/api/export/exportMds", {
                     ids: blockIDs,
                 }, response => {
                     hideMessage(msgId);
-                    openByMobile(response.data.zip);
+                    saveExportFile(response.data.zip);
                 });
             }
         }]

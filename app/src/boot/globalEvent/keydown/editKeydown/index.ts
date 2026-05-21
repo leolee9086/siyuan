@@ -9,13 +9,11 @@ import {
     execByCommand,
     Editor,
     fetchPost,
-    focusByOffset,
     fullscreen,
     getActiveTab,
     getAllModels,
     getContentByInlineHTML,
     getPlainText,
-    getSelectionOffset,
     getSiyuanBlockPanels,
     getSiyuanConfig,
     getSiyuanDialogs,
@@ -312,14 +310,12 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
     }
     if (matchHotKey(config.keymap.editor.general.outline.custom, event)) {
         event.preventDefault();
-        const offset = getSelectionOffset(target);
         openOutline({
             app,
             rootId: protyle.block.rootID,
             title: protyle.options.render.title ? getTitleText(protyle) : "",
             isPreview: false,
         });
-        focusByOffset(target, offset.start, offset.end);
         return true;
     }
     if (matchHotKey(config.keymap.editor.general.copyPlainText.custom, event) && range) {

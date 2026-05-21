@@ -16,6 +16,7 @@ import { setInlineStyle } from "./setInlineStyle";
 import { setCodeTheme } from "./setCodeTheme";
 import { updateMobileTheme } from "./mobile";
 import { getBackend, getFrontend } from "../platform/functions";
+import { getWorkspaceName } from "../platform/noRelyPCFunction";
 
 export { setInlineStyle, setCodeTheme };
 
@@ -116,19 +117,17 @@ const updateBrowserMeta = () => {
     // 生效场景：通过浏览器直接访问思源笔记的Web端
     if (isBrowser && !getWindowWebkit()?.messageHandlers && !getWindowJSAndroid() && !getWindowJSHarmony() &&
         isServiceWorkerAvailable()) {
-        document.head.insertAdjacentHTML("afterbegin", `<meta name="theme-color" content="${getComputedStyle(document.body).getPropertyValue("--b3-toolbar-background").trim()}">`);
+        document.head.insertAdjacentHTML("afterbegin", `<meta name="theme-color" content="${getComputedStyle(document.body).getPropertyValue("--b3-body-background").trim()}">`);
     }
 };
 
 /** 移除冗余 SVG 图标 */
 const 移除冗余SVG图标 = () => {
     for (const [index, item] of Array.from(document.body.children).entries()) {
-        // 移除非首个、无data-name标记且不属于内置图标集(Material/Ant)的SVG元素
-        // 生效场景：图标脚本重复加载后产生的冗余SVG容器
         if (item.tagName === "svg" &&
             index !== 0 &&
             !item.getAttribute("data-name") &&
-            !["iconsMaterial", "iconsAnt"].includes(item.id)) {
+            "iconsLitheness" !== item.id) {
             item.remove();
         }
     }
@@ -152,11 +151,11 @@ const loadThemeScript = (data: Config.IAppearance) => {
 /** 加载图标 */
 const loadIcons = (data: Config.IAppearance) => {
     // load icons
-    const isBuiltInIcon = ["ant", "material"].includes(data.icon);
+    const isBuiltInIcon = data.icon === "litheness";
     const iconScriptElement = document.getElementById("iconScript");
     const iconDefaultScriptElement = document.getElementById("iconDefaultScript");
     // 不能使用 data.iconVer，因为其他主题也需要加载默认图标，此时 data.iconVer 为其他图标的版本号
-    const iconDefaultURL = `/appearance/icons/${isBuiltInIcon ? data.icon : "material"}/icon.js?v=${Constants.SIYUAN_VERSION}`;
+    const iconDefaultURL = `/appearance/icons/litheness/icon.js?v=${Constants.SIYUAN_VERSION}`;
     const iconThirdURL = `/appearance/icons/${data.icon}/icon.js?v=${data.iconVer}`;
 
     // 内置图标已加载：清理第三方图标后返回
@@ -168,15 +167,6 @@ const loadIcons = (data: Config.IAppearance) => {
     // 第三方图标已加载：直接返回
     if (!isBuiltInIcon && iconScriptElement && iconScriptElement.getAttribute("src")?.startsWith(iconThirdURL)) {
         return;
-    }
-    // 默认图标脚本已存在但URL不匹配当前配置：移除旧脚本和对应的SVG容器，准备重新加载
-    // 生效场景：用户在ant和material内置图标之间切换
-    if (iconDefaultScriptElement && !iconDefaultScriptElement.getAttribute("src")?.startsWith(iconDefaultURL)) {
-        iconDefaultScriptElement.remove();
-        const 待移除图标ID = data.icon === "ant" ? "#iconsMaterial" : "#iconsAnt";
-        for (const item of document.querySelectorAll(待移除图标ID)) {
-            item.remove();
-        }
     }
     // @内联回调
     addScript(iconDefaultURL, "iconDefaultScript").then(() => {
@@ -292,4 +282,49 @@ export const getThemeMode = () => {
         return OSTheme;
     }
     return getSiyuanConfig().appearance.mode === 0 ? "light" : "dark";
+};
+
+export const setBodyHighlight = () => {
+    const name = getWorkspaceName();
+    if (!name) {
+        return;
+    }
+
+    // 预定义颜色：赤橙黄绿青蓝紫（提高饱和度和亮度）
+    const colors = [
+        {h: 0, s: 85, l: 50},    // 赤 - 鲜艳红
+        {h: 30, s: 90, l: 52},   // 橙 - 亮橙色
+        {h: 50, s: 88, l: 50},   // 黄 - 金黄色
+        {h: 140, s: 80, l: 48},  // 绿 - 翠绿色
+        {h: 185, s: 85, l: 50},  // 青 - 亮青色
+        {h: 230, s: 82, l: 52},  // 蓝 - 宝蓝色
+        {h: 280, s: 85, l: 50},  // 紫 - 亮紫色
+    ];
+
+    let hue, saturation, lightness;
+
+    if (name === "SiYuan") {
+        // SiYuan 专用：更艳丽的紫色
+        hue = 280;
+        saturation = 85;
+        lightness = 48;
+    } else {
+        // 根据工作空间名生成稳定的索引
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = (hash << 5) - hash + name.charCodeAt(i);
+            hash |= 0;
+        }
+
+        const index = Math.abs(hash) % colors.length;
+        const color = colors[index];
+        hue = color.h;
+        saturation = color.s;
+        lightness = color.l;
+    }
+
+    document.documentElement.style.setProperty(
+        "--b3-body-background-hl",
+        `${hue}, ${saturation}%, ${lightness}%`
+    );
 };

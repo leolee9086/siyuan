@@ -21,7 +21,7 @@ import { hideMessage } from "../imports";
  * 使用范围：导出完成后打开文件
  * 解耦评估：移动端特定功能，无法通过参数传递解耦，必须直接导入
  */
-import { openByMobile } from "../imports";
+import { saveExportFile } from "../imports";
 /**
  * 用途：保存导出文件到本地
  * 使用范围：Electron 环境的 PDF/HTML/Word 导出
@@ -70,7 +70,7 @@ export const createSiYuanZipExportMenuItem = (id: string): IMenu => ({
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -98,7 +98,7 @@ export const createMarkdownZipExportMenuItem = (id: string): IMenu => ({
             id,
         }, response => {
             hideMessage(msgId);
-            openByMobile(response.data.zip);
+            saveExportFile(response.data.zip);
         });
     }
 });
@@ -206,7 +206,7 @@ export const createHTMLMarkdownExportMenuItem = (id: string): IMenu => ({
 export const createWordExportMenuItem = (id: string): IMenu => ({
     id: "exportWord",
     label: "Word .docx",
-    icon: "iconExact",
+    icon: "iconDocx",
     /**
      * 作用：处理 Word 导出点击事件
      * 意图：调用 Electron 的 Word 导出功能

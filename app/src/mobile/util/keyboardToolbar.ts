@@ -4,11 +4,12 @@ import {
     hasClosestByClassName,
 } from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
-import {getSelectionPosition} from "../../protyle/util/selection";
+import {focusBlock, focusByRange, getSelectionPosition} from "../../protyle/util/selection";
 import {getCurrentEditor} from "../editor";
 import {isInAndroid, isInEdge, isInHarmony} from "../../protyle/util/compatibility";
 import {callMobileAppShowKeyboard, canInput, keyboardLockUntil} from "./mobileAppUtil";
 import {handleToolbarClick} from "./keyboardToolbar.action";
+import {isNotEditBlock} from "../../protyle/wysiwyg/getBlock";
 
 export {renderTextMenu} from "./keyboardToolbar.menu";
 import {KEYBOARD_TOOLBAR_HTML} from "./keyboardToolbar.menu";
@@ -172,13 +173,24 @@ export const showKeyboardToolbar = () => {
     setTimeout(() => {
         const contentElement = hasClosestByClassName(range.startContainer, "protyle-content", true);
         if (contentElement) {
-            const contentTop = contentElement.getBoundingClientRect().top;
-            const cursorTop = getSelectionPosition(contentElement).top;
-            if (cursorTop < window.innerHeight - 42 && cursorTop > contentTop) {
+            let cursorTop = getSelectionPosition(contentElement).top;
+            if (cursorTop < 0 && window.siyuan.mobile.touchRange) {
+                const rangeBlockElement = hasClosestBlock(window.siyuan.mobile.touchRange.startContainer);
+                if (rangeBlockElement) {
+                    if (isNotEditBlock(rangeBlockElement)) {
+                        focusBlock(rangeBlockElement);
+                    } else {
+                        focusByRange(window.siyuan.mobile.touchRange);
+                    }
+                    cursorTop = getSelectionPosition(contentElement, window.siyuan.mobile.touchRange).top;
+                }
+            }
+            if (cursorTop < window.innerHeight - 42 && cursorTop > contentElement.getBoundingClientRect().top) {
                 return;
             }
             contentElement.scroll({
-                top: contentElement.scrollTop + cursorTop - window.innerHeight + 42 + 26,
+                top: cursorTop < 0 ? contentElement.scrollTop + window.innerHeight - 42 :
+                    contentElement.scrollTop + cursorTop - window.innerHeight + 42 + 26,
                 left: contentElement.scrollLeft,
                 behavior: "smooth"
             });
@@ -228,9 +240,10 @@ export const activeBlur = () => {
 export const initKeyboardToolbar = () => {
     let preventRender = false;
     document.addEventListener("selectionchange", () => {
-        if (!preventRender) {
-            renderKeyboardToolbar();
+        if (preventRender || (getCurrentEditor()?.protyle?.toolbar.isMultiSelectMode())) {
+            return;
         }
+        renderKeyboardToolbar();
     }, false);
     window.siyuan.mobile.size.isLandscape = window.matchMedia && window.matchMedia("(orientation: landscape)").matches;
     if (window.siyuan.mobile.size.isLandscape) {

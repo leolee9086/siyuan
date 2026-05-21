@@ -32,7 +32,7 @@ export function handleClick(dock: Dock, event: MouseEvent): void {
         return;
     }
     let target: Element | null = eventTarget;
-    while (target && target !== dock.element) {
+    while (target && target !== dock.elements[0].parentElement) {
         if (processClickTarget(dock, target, event)) {
             return;
         }

@@ -25,7 +25,7 @@ import { openEditorTab } from "./util";
 import { makeCard } from "../card/makeCard";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { emitOpenMenu } from "../plugin/EventBus";
-import { openByMobile } from "../protyle/util/compatibility";
+import { saveExportFile } from "../protyle/util/compatibility";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { initMultiMenu } from "./navigation.initMultiMenu";
@@ -235,7 +235,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
                     id: notebookId,
                 }, response => {
                     hideMessage(msgId);
-                    openByMobile(response.data.zip);
+                    saveExportFile(response.data.zip);
                 });
             }
         }, {
@@ -248,7 +248,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
                     notebook: notebookId
                 }, response => {
                     hideMessage(msgId);
-                    openByMobile(response.data.zip);
+                    saveExportFile(response.data.zip);
                 });
             }
         }]

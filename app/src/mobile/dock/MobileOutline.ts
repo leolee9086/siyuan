@@ -27,6 +27,7 @@ export class MobileOutline extends Model {
         super({
             app: options.app,
             id: genUUID(),
+            type: "outline",
             msgCallback(data) {
                 if (data) {
                     switch (data.cmd) {

@@ -116,6 +116,7 @@ export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchCo
                     query: config.query,
                     method: config.method,
                     types: config.types,
+                    subTypes: config.subTypes,
                     paths: config.idPath || [],
                     groupBy: config.group,
                     orderBy: config.sort,

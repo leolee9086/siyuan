@@ -24,7 +24,7 @@ export function 生成面板HTML(type: "pin" | "local"): string {
 
     return `<div class="block__icons fn__hidescrollbar">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconAlignCenter"></use></svg>${siyuanI18n.outline}
+        ${siyuanI18n.outline}
     </div>
     <span class="fn__flex-1 fn__space"></span>
     <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
@@ -37,7 +37,7 @@ export function 生成面板HTML(type: "pin" | "local"): string {
     </span>
     <span class="fn__space"></span>
     <span data-type="expandLevel" class="block__icon ariaLabel" aria-label="${siyuanI18n.expandLevel}">
-        <svg><use xlink:href="#iconList"></use></svg>
+        <svg><use xlink:href="#iconExpandLevel"></use></svg>
     </span>
     <span class="fn__space"></span>
     <span data-type="expand" class="block__icon ariaLabel" aria-label="${siyuanI18n.expandAll}${updateHotkeyAfterTip(getSiyuanConfig().keymap.editor.general.expand.custom)}">

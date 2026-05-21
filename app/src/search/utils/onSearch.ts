@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
 import { Protyle } from "../../protyle";
-import { escapeAriaLabel, escapeGreat, escapeHtml } from "../../util/DOM/escape";
+import { escapeAriaLabel, escapeLessThans, escapeHtml } from "../../util/DOM/escape";
 import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -41,7 +41,7 @@ ${unicode2Emoji(item.ial.icon ?? "", "b3-list-item__graphic", true)}
 <span class="b3-list-item__text">${item.content}</span>
 ${getAttr(item)}
 ${item.tag ? `<span class="b3-list-item__meta b3-list-item__meta--ellipsis">${item.tag.replace(/#/g, "")}</span>` : ""}
-<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(title)}">${escapeGreat(title)}</span>
+<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(escapeHtml(title))}">${title}</span>
 ${countHTML}
 </div>`;
 };
@@ -77,7 +77,7 @@ const 生成分组头部HTML = (item: IBlock, title: string): string => {
     <svg class="b3-list-item__arrow b3-list-item__arrow--open"><use xlink:href="#iconRight"></use></svg>
 </span>
 ${unicode2Emoji(图标, "b3-list-item__graphic", true)}
-<span class="b3-list-item__text ariaLabel" style="color: var(--b3-theme-on-surface)" aria-label="${escapeAriaLabel(title)}">${escapeGreat(title)}</span>
+<span class="b3-list-item__text ariaLabel" style="color: var(--b3-theme-on-surface)" aria-label="${escapeAriaLabel(escapeHtml(title))}">${title}</span>
 </div><div>`;
 };
 
@@ -178,7 +178,7 @@ const 获取默认数据 = (data: IBlock[]): IBlock | undefined => {
 const 生成结果HTML = (data: IBlock[]): string => {
     let resultHTML = "";
     for (const item of data) {
-        const title = getNotebookName(item.box ?? "") + getDisplayName(item.hPath ?? "", false);
+        const title = escapeHtml(getNotebookName(item.box ?? "")) + getDisplayName(item.hPath ?? "", false);
 
         if (item.children) {
             resultHTML += 生成分组头部HTML(item, title);

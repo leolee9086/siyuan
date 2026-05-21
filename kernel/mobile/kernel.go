@@ -293,6 +293,10 @@ func AssetName(name string) string {
 	return util.AssetName(name, ast.NewNodeID())
 }
 
+func HTML2Markdown(html string) string {
+	return util.NewLute().HTML2Md(html)
+}
+
 func Unzip(zipFilePath, destination string) {
 	if err := gulu.Zip.Unzip(zipFilePath, destination); nil != err {
 		logging.LogErrorf("unzip [%s] failed: %s", zipFilePath, err)

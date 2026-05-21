@@ -38,6 +38,9 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 node_modules
+
+# musl toolchain
+muslbin/
 # Workflows
 **/__pycache__
 

@@ -193,15 +193,6 @@ function handleWritableActions(
         });
         return;
     }
-    // 处理添加本地快捷方式
-    if (type === "addLocal") {
-        fetchPost("/api/filetree/moveLocalShorthands", {
-            "notebook": notebookId
-        });
-        for (const item of element.querySelectorAll('[data-type="addLocal"]')) {
-            item.remove();
-        }
-    }
 }
 
 /**

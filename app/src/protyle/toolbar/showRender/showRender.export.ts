@@ -2,7 +2,7 @@
  * showRender 模块 - 导出图片功能
  */
 import { fetchPost } from "../../../util/network/fetch";
-import { openByMobile } from "../../util/compatibility";
+import { saveExportFile } from "../../util/compatibility";
 import { hideMessage, showMessage } from "../../../dialog/message";
 import { addScript } from "../../util/addScript";
 import { Constants } from "../../../constants";
@@ -15,7 +15,7 @@ function 上传导出文件(blob: Blob, mimeType: string, msgId: string): void {
     formData.append("file", blob);
     formData.append("type", mimeType);
     fetchPost("/api/export/exportAsFile", formData, (response) => {
-        openByMobile(response.data.file);
+        saveExportFile(response.data.file);
         hideMessage(msgId);
     });
 }

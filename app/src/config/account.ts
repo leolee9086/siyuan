@@ -105,7 +105,7 @@ ${genSVGBG()}
                 const renewHTML = `<div class="fn__hr--b"></div>
 <div class="ft__on-surface ft__smaller">
     ${siyuanI18n.account6} 
-    ${Math.max(0, Math.floor((window.siyuan.user.userSiYuanProExpireTime - new Date().getTime()) / 1000 / 60 / 60 / 24))} 
+    ${Math.max(0, Math.floor((window.siyuan.user.userSiYuanProExpireTime - Date.now()) / 1000 / 60 / 60 / 24))} 
     ${siyuanI18n.day} 
     ${isIOS ? `<a href="javascript:void(0)" data-action="iOSPay" data-type="subscribe">${siyuanI18n.clickMeToRenew}</a>` : `<a href="${getCloudURL("subscribe/siyuan")}" target="_blank">${siyuanI18n.clickMeToRenew}</a>`}
 </div>`;
@@ -393,7 +393,7 @@ ${renewHTML}<div class="fn__hr--b"></div>`;
         let token: string;
         let needCaptcha: string;
         captchaImgElement.addEventListener("click", () => {
-            captchaImgElement.setAttribute("src", getCloudURL("captcha") + `/login?needCaptcha=${needCaptcha}&t=${new Date().getTime()}`);
+            captchaImgElement.setAttribute("src", getCloudURL("captcha") + `/login?needCaptcha=${needCaptcha}&t=${Date.now()}`);
         });
 
         const cloudRegionElement = element.querySelector("#cloudRegion") as HTMLSelectElement;
@@ -465,7 +465,7 @@ ${renewHTML}<div class="fn__hr--b"></div>`;
             if (needSubscribe("") && 0 === window.siyuan.config.sync.provider) {
                 const dialogElement = hasClosestByClassName(element, "b3-dialog--open");
                 if (dialogElement) {
-                    dialogElement.querySelector('.b3-tab-bar [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
+                    dialogElement.querySelector('.config__side [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
                     element.removeAttribute("data-action");
                 }
             } else {

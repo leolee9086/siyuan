@@ -17,10 +17,10 @@ export const escapeHtml = (html: string): string => {
 /**
  * 仅转义 `<`，用于调用方已经自行处理其余字符、只需要防止标签展开的场景。
  * 调用时机：部分搜索与关系面板会在已有转义链路中追加轻量安全处理时调用。
- * 问题/改进：名称沿用历史语义，若未来统一命名可在保留兼容层的前提下调整。
+ * 问题/改进：重命名为 escapeLessThans 以更准确描述函数行为。
  * @同步豁免: 性能考虑
  */
-export const escapeGreat = (html: string): string => {
+export const escapeLessThans = (html: string): string => {
     const hasHtml = !!html;
     if (!hasHtml) {
         return html;

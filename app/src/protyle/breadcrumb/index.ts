@@ -1,6 +1,7 @@
 import { fetchPost } from "../../util/network/fetch";
 import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../../dialog/message";
+import { net2LocalAssets } from "./action";
 import { uploadFiles } from "../upload";
 import { isMobile } from "../../platform";
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
@@ -224,6 +225,41 @@ export class Breadcrumb {
             return;
         }
         exitFocusElement.classList.remove("fn__none");
+    }
+
+    private genMobileMenu(protyle: IProtyle) {
+        if (protyle.toolbar.isMultiSelectMode()) {
+            return;
+        }
+        const menu = new Menu(Constants.MENU_BREADCRUMB_MOBILE_PATH);
+        const blockElement = 获取默认块元素(protyle) || protyle.wysiwyg.element.firstElementChild;
+        if (!blockElement) {
+            return;
+        }
+        const id = blockElement.getAttribute("data-node-id") || "";
+
+        if (!protyle.disabled) {
+            const siyuanConfig = getSiyuanConfig();
+            menu.append(new MenuItem({
+                id: "netImg2LocalAsset",
+                label: siyuanI18n.netImg2LocalAsset,
+                icon: "iconImgDown",
+                accelerator: siyuanConfig.keymap.editor.general.netImg2LocalAsset.custom,
+                click() {
+                    net2LocalAssets(protyle, "Img");
+                }
+            }).element);
+            menu.append(new MenuItem({
+                id: "netAssets2LocalAssets",
+                label: siyuanI18n.netAssets2LocalAssets,
+                icon: "iconDownloadAssets",
+                accelerator: siyuanConfig.keymap.editor.general.netAssets2LocalAssets.custom,
+                click() {
+                    net2LocalAssets(protyle, "Assets");
+                }
+            }).element);
+        }
+        menu.fullscreen("bottom");
     }
 
     public showMenu(protyle: IProtyle, position: IPosition) {

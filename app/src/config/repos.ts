@@ -2,7 +2,7 @@ import {fetchPost} from "../util/network/fetch";
 import {showMessage} from "../dialog/message";
 import {bindSyncCloudListEvent, getSyncCloudList} from "../sync/syncGuide";
 import {processSync} from "../dialog/processSystem";
-import {openByMobile} from "../protyle/util/compatibility";
+import {saveExportFile} from "../protyle/util/compatibility";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {renderProvider, bindProviderEvent} from "./repos.provider";
 
@@ -214,7 +214,7 @@ export const repos = {
                     break;
                 } else if (action === "exportData") {
                     fetchPost(target.getAttribute("data-type") === "s3" ? "/api/sync/exportSyncProviderS3" : "/api/sync/exportSyncProviderWebDAV", {}, response => {
-                        openByMobile(response.data.zip);
+                        saveExportFile(response.data.zip);
                     });
                     break;
                 } else if (action === "purgeData") {

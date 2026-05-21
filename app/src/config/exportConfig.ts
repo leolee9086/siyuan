@@ -3,13 +3,12 @@ import { afterExport } from "../protyle/export/util";
 import {exportLayout} from "../layout/util";
 import { isElectron, isMobile } from "../platform";
 import { ipcInvoke } from "../platform/electron/ipcRenderer";
-// S-forge: 统一i18n访问层
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/platform/functions";
 import { showMessage } from "../dialog/message";
 import { useShell } from "../util/file/pathName";
 import { Constants } from "../constants";
-import { openByMobile } from "../protyle/util/compatibility";
+import { saveExportFile } from "../protyle/util/compatibility";
 import { exitSiYuan } from "../dialog/processSystem";
 
 export const exportConfig = {
@@ -311,7 +310,7 @@ export const exportConfig = {
         exportConfig.element.querySelector("#exportData").addEventListener("click", async () => {
             if (!isElectron) {
                 fetchPost("/api/export/exportData", {}, response => {
-                    openByMobile(response.data.zip);
+                    saveExportFile(response.data.zip);
                 });
                 return;
             }
@@ -333,7 +332,7 @@ export const exportConfig = {
         });
         exportConfig.element.querySelector("#exportConf").addEventListener("click", async () => {
             fetchPost("/api/system/exportConf", {}, response => {
-                openByMobile(response.data.zip);
+                saveExportFile(response.data.zip);
             });
         });
         if (isElectron) {

@@ -219,7 +219,7 @@ export const renderSlashMenu = (protyle: IProtyle, toolbarElement: Element) => {
 <div class="keyboard__slash-block">
     ${getSlashItem(Constants.ZWSP + 3, "iconDownload", siyuanI18n.insertAsset + '<input class="b3-form__upload" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true")}
     ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconCamera", siyuanI18n.insertPhoto + '<input class="b3-form__upload" capture="user" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true") : ""}
-    ${getSlashItem('<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>', "iconLanguage", siyuanI18n.insertIframeURL, "true")}
+    ${getSlashItem('<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups allow-storage-access-by-user-activation" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>', "iconGlobe", siyuanI18n.insertIframeURL, "true")}
     ${getSlashItem("![]()", "iconImage", siyuanI18n.insertImgURL, "true")}
     ${getSlashItem('<video controls="controls" src=""></video>', "iconVideo", siyuanI18n.insertVideoURL, "true")}
     ${getSlashItem('<audio controls="controls" src=""></audio>', "iconRecord", siyuanI18n.insertAudioURL, "true")}
@@ -300,7 +300,7 @@ export const KEYBOARD_TOOLBAR_HTML = `<div class="fn__flex keyboard__bar">
             <button class="keyboard__action" data-type="clear"><svg><use xlink:href="#iconClear"></use></svg></button>
             <button class="keyboard__action" data-type="code"><svg><use xlink:href="#iconInlineCode"></use></svg></button>
             <button class="keyboard__action" data-type="kbd"<use xlink:href="#iconKeymap"></use></svg></button>
-            <button class="keyboard__action" data-type="tag"><svg><use xlink:href="#iconTags"></use></svg></button>
+            <button class="keyboard__action" data-type="tag"><svg><use xlink:href="#iconTag"></use></svg></button>
             <button class="keyboard__action" data-type="inline-math"><svg><use xlink:href="#iconMath"></use></svg></button>
             <button class="keyboard__action" data-type="inline-memo"><svg><use xlink:href="#iconM"></use></svg></button>
             <button class="keyboard__action" data-type="goback"><svg><use xlink:href="#iconCloseRound"></use></svg></button>

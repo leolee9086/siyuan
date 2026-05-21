@@ -26,6 +26,7 @@ export class Tag extends Model {
         super({
             app,
             id: tab.id,
+            type: "tag",
             msgCallback: (data) => {
                 this._处理消息(data);
             }

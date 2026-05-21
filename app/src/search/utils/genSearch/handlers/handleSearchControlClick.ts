@@ -10,7 +10,7 @@ import { Protyle } from "../../../../protyle";
 import { hasClosestByClassName } from "../../../../protyle/util/hasClosest";
 import { resize } from "../../../../protyle/util/resize";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDefaultType } from "../../../getDefault";
+import { getDefaultSubType, getDefaultType } from "../../../getDefault";
 import { inputEvent } from "../../../inputEvent";
 import { moreMenu, queryMenu } from "../../../menu";
 import { toggleReplaceHistory } from "../../../toggleHistory";
@@ -86,6 +86,7 @@ export function handleSearchMore(
             r: "",
             page: 1,
             types: getDefaultType(),
+            subTypes: getDefaultSubType(),
             replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
         }, config, edit, true);
         if (updateCB) {

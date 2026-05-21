@@ -25,7 +25,7 @@ export function handleContextmenu(
     event: MouseEvent & { detail: any },
     beforeContextmenuRange: Range | undefined,
 ) {
-    if (event.shiftKey) {
+    if (event.shiftKey || protyle.toolbar.isMultiSelectMode()) {
         return;
     }
     event.stopPropagation();

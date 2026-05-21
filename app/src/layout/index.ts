@@ -111,38 +111,35 @@ export class Layout {
      * 问题/改进：当 id 不存在时，布局不会被插入但后续操作仍会执行，可能导致不一致状态。
      *            建议调用前确保 id 存在，或调整逻辑在未找到时抛出错误/默认追加。
      */
-    addLayout(child: Layout, id?: string) {
-        // 处理无 id 情况：直接追加到末尾
+    addLayout(child: Layout, id?: string, after = true) {
         if (!id) {
             this.children.splice(this.children.length, 0, child);
-            // this 始终存在，直接追加元素
             this.element.append(child.element);
             applyChildSize(child, this.direction);
-            addResize(child);
+            addResize(child, after);
             child.parent = this;
             return;
         }
 
-        // 查找目标位置
         const foundIndex = this.children.findIndex(item => item.id === id);
-        // @无需注释 - 未找到目标时不插入，保持原样
         if (foundIndex === -1) {
             applyChildSize(child, this.direction);
-            addResize(child);
+            addResize(child, after);
             child.parent = this;
             return;
         }
 
-        // 在找到的目标之后插入新布局
-        this.children.splice(foundIndex + 1, 0, child);
-        // 因为 foundIndex 有效，所以目标元素一定存在
+        this.children.splice(after ? foundIndex + 1 : foundIndex, 0, child);
         const targetItem = this.children[foundIndex];
-        // @无需注释 - 确保目标元素存在后再操作
         if (targetItem) {
-            targetItem.element.after(child.element);
+            if (after) {
+                targetItem.element.after(child.element);
+            } else {
+                targetItem.element.before(child.element);
+            }
         }
         applyChildSize(child, this.direction);
-        addResize(child);
+        addResize(child, after);
         child.parent = this;
     }
 
@@ -154,48 +151,48 @@ export class Layout {
      * 问题/改进：当 id 不存在时，窗口不会被插入但后续操作仍会执行，可能导致不一致状态。
      *            建议调用前确保 id 存在，或调整逻辑在未找到时抛出错误/默认追加。
      */
-    addWnd(child: Wnd, id?: string) {
-        // 处理无 id 情况：直接追加到末尾
+    addWnd(child: Wnd, id?: string, after = true) {
         if (!id) {
             this.children.splice(this.children.length, 0, child);
             this.element.append(child.element);
-            addResize(child);
+            addResize(child, after);
             resizeTabs(false);
             child.parent = this;
             return;
         }
 
-        // 查找目标位置
         const foundIndex = this.children.findIndex(item => item.id === id);
-        // @无需注释 - 未找到目标时不插入，保持原样
         if (foundIndex === -1) {
-            // 原逻辑中未找到时不会插入窗口，但仍会执行后续的 fixWndFlex1、addResize 等
-            // 这可能是设计如此，我们保持相同行为
             fixWndFlex1(this);
-            addResize(child);
+            addResize(child, after);
             resizeTabs(false);
             child.parent = this;
             return;
         }
 
-        // 在找到的目标之后插入新窗口
-        this.children.splice(foundIndex + 1, 0, child);
+        if (after) {
+            this.children.splice(foundIndex + 1, 0, child);
+        } else {
+            this.children.splice(foundIndex, 0, child);
+        }
 
-        // 处理向右分屏时的动画效果
-        // @无需注释 - 仅在水平方向且向右分屏时需要移除动画和边距
-        const target = this.children[foundIndex];
-        // @无需注释 - 仅在水平方向且目标存在时处理动画
-        if (this.direction === "lr" && target) {
-            handleRightSplitAnimation(target);
+        if (this.direction === "lr") {
+            const target = this.children[after ? foundIndex : foundIndex + 1];
+            if (target) {
+                handleRightSplitAnimation(target);
+            }
         }
 
         const targetItem = this.children[foundIndex];
-        // @无需注释 - 确保目标元素存在后再操作
         if (targetItem) {
-            targetItem.element.after(child.element);
+            if (after) {
+                targetItem.element.after(child.element);
+            } else {
+                targetItem.element.before(child.element);
+            }
         }
         fixWndFlex1(this);
-        addResize(child);
+        addResize(child, after);
         resizeTabs(false);
         child.parent = this;
     }

@@ -71,7 +71,8 @@ const 处理文档打开 = async (options: IOpenTabOptions) => {
         afterOpen: options.afterOpen,
         id: doc.id,
         action: doc.action,
-        zoomIn: doc.zoomIn
+        zoomIn: doc.zoomIn,
+        mode: doc.mode
     });
 };
 

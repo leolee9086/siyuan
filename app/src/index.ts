@@ -41,10 +41,8 @@ import { isBrowser, isBrowserDesktop } from "./platform";
 import { ipcSend } from "./platform/electron/ipcRenderer";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
-import { setLocalShorthandCount } from "./util/platform/noRelyPCFunction";
 import { getDockByType } from "./layout/tabUtil";
 import { Tag } from "./layout/dock/Tag";
-import { updateControlAlt } from "./protyle/util/hotKey";
 import { EventBus } from "./plugin/EventBus";
 import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n.environment";
 import { updateAppearance } from "./config/util/updateAppearance";
@@ -52,6 +50,7 @@ import { renderSnippet } from "./config/util/snippets";
 import { embeddingText } from "./util/lib/embedding/transformer";
 import { setSForgeState } from "./config/sforge.global";
 import { SForgeSymbols } from "./config/sforge.symbols";
+import { setBodyHighlight } from "./util/assets/assets";
 import type { Plugin } from "./plugin";
 export class App {
     public plugins: Plugin[] = [];
@@ -107,12 +106,6 @@ export class App {
                                     (getDockByType("tag")?.data.tag as Tag).update();
                                 }
                                 break;
-                            case "setLocalShorthandCount":
-                                // 仅浏览器环境需要处理本地速记计数
-                                if (isBrowser) {
-                                    setLocalShorthandCount();
-                                }
-                                break;
                             case "setRefDynamicText":
                                 setRefDynamicText(data.data);
                                 break;
@@ -134,7 +127,6 @@ export class App {
                                 break;
                             case "setConf":
                                 window.siyuan.config = data.data;
-                                updateControlAlt();
                                 break;
                             case "setPublish":
                                 window.siyuan.config.publish = data.data;
@@ -152,7 +144,22 @@ export class App {
                                 progressLoading(data);
                                 break;
                             case "setLocalStorageVal":
-                                window.siyuan.storage[data.data.key] = data.data.val;
+                                if (window.siyuan.storage) {
+                                    window.siyuan.storage[data.data.key] = data.data.val;
+                                }
+                                break;
+                            case "setLocalStorageVals":
+                                Object.keys(data.data.keyVals).forEach((k) => {
+                                    window.siyuan.storage[k] = data.data.keyVals[k];
+                                });
+                                break;
+                            case "removeLocalStorageVal":
+                                delete window.siyuan.storage[data.data.key];
+                                break;
+                            case "removeLocalStorageVals":
+                                data.data.keys.forEach((k: string) => {
+                                    delete window.siyuan.storage[k];
+                                });
                                 break;
                             case "rename":
                                 getAllTabs().forEach((tab) => {
@@ -201,7 +208,7 @@ export class App {
                                 downloadProgress(data.data);
                                 break;
                             case "txerr":
-                                transactionError();
+                                transactionError(data.msg);
                                 break;
                             case "syncing":
                                 processSync(data, this.plugins);
@@ -235,8 +242,8 @@ export class App {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
             window.siyuan.config = response.data.conf;
-            updateControlAlt();
             window.siyuan.isPublish = response.data.isPublish;
+            setBodyHighlight();
             await loadPlugins(this);
             // 初始化笔记内插件
             const { inNotePluginManager } = await import("./inNotePlugin");

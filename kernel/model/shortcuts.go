@@ -33,7 +33,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err error) {
+func MoveLocalShorthands(boxID string) (retIDs []string, err error) {
 	shorthandsDir := filepath.Join(util.ShortcutsPath, "shorthands")
 	if !gulu.File.IsDir(shorthandsDir) {
 		return
@@ -68,8 +68,25 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 		}
 	}
 
-	var toRemoves []string
+	var hPath string
 	box := Conf.Box(boxID)
+	if nil != box {
+		boxConf := box.GetConf()
+		hPath = boxConf.ShorthandSavePath
+	}
+	if "" == hPath {
+		hPath = Conf.FileTree.ShorthandSavePath
+	}
+	if "" != hPath {
+		var renderErr error
+		hPath, renderErr = RenderGoTemplate(hPath)
+		if nil != renderErr {
+			logging.LogErrorf("render shorthand save path failed: %s", renderErr)
+			hPath = ""
+		}
+	}
+
+	var toRemoves []string
 
 	if "" == hPath { // hPath 为空的话每一个速记对应创建一个文档记录
 		for _, entry := range entries {
@@ -98,7 +115,7 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 			}
 			hPath = "/" + time.UnixMilli(i).Format("2006-01-02 15:04:05")
 			var retID string
-			retID, err = CreateWithMarkdown("", boxID, hPath, content, parentID, "", false, "")
+			retID, err = CreateWithMarkdown("", boxID, hPath, content, "", "", false, "", nil)
 			if nil != err {
 				logging.LogErrorf("create doc failed: %s", err)
 				return
@@ -106,7 +123,6 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 
 			retIDs = append(retIDs, retID)
 			toRemoves = append(toRemoves, p)
-			box.setSortByConf("/", retID)
 		}
 	} else { // 不为空的话将所有速记合并到指定路径的文档中
 		if !strings.HasPrefix(hPath, "/") {
@@ -141,7 +157,7 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 			bt := treenode.GetBlockTreeRootByHPath(boxID, hPath)
 			if nil == bt {
 				var retID string
-				retID, err = CreateWithMarkdown("", boxID, hPath, buff.String(), parentID, "", false, "")
+				retID, err = CreateWithMarkdown("", boxID, hPath, buff.String(), "", "", false, "", nil)
 				if nil != err {
 					logging.LogErrorf("create doc failed: %s", err)
 					return
@@ -174,8 +190,8 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 				}
 
 				indexWriteTreeIndexQueue(tree)
+				util.PushReloadProtyle(tree.ID)
 			}
-
 		}
 	}
 
@@ -184,10 +200,22 @@ func MoveLocalShorthands(boxID, hPath, parentID string) (retIDs []string, err er
 			logging.LogErrorf("remove file [%s] failed: %s", p, removeErr)
 		}
 	}
+
+	FlushTxQueue()
+	for _, id := range retIDs {
+		b, _ := GetBlock(id, nil)
+		PushCreate(box, b.Path, nil)
+	}
 	return
 }
 
-func WatchLocalShorthands() {
+func consumeShorthands() {
+	if !util.IsMobileContainer() {
+		return
+	}
+
+	defer logging.Recover()
+
 	shorthandsDir := filepath.Join(util.ShortcutsPath, "shorthands")
 	if !gulu.File.IsDir(shorthandsDir) {
 		return
@@ -195,26 +223,51 @@ func WatchLocalShorthands() {
 
 	entries, err := os.ReadDir(shorthandsDir)
 	if nil != err {
-		logging.LogErrorf("read dir [%s] failed: %s", shorthandsDir, err)
 		return
 	}
 
-	shorthandCount := 0
+	hasShorthand := false
 	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".md" {
+			hasShorthand = true
+			break
 		}
-
-		if filepath.Ext(entry.Name()) != ".md" {
-			continue
-		}
-
-		shorthandCount++
 	}
 
-	if 1 > shorthandCount {
+	if !hasShorthand {
 		return
 	}
 
-	util.PushLocalShorthandCount(shorthandCount)
+	var notebookID string
+	notebookID = Conf.FileTree.ShorthandSaveBox
+	if "" != notebookID && nil == Conf.Box(notebookID) {
+		notebookID = ""
+	}
+
+	if "" == notebookID {
+		boxes := Conf.GetBoxes()
+		for _, box := range boxes {
+			if !IsUserGuide(box.ID) {
+				notebookID = box.ID
+				break
+			}
+		}
+	}
+
+	if "" == notebookID {
+		logging.LogWarnf("auto consume shorthands failed: no available notebook found")
+		return
+	}
+
+	if _, err = MoveLocalShorthands(notebookID); nil != err {
+		logging.LogErrorf("auto consume shorthands failed: %s", err)
+	}
+}
+
+func AutoConsumeShorthandsJob() {
+	if Conf.Sync.Enabled {
+		return
+	}
+
+	consumeShorthands()
 }

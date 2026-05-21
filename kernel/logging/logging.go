@@ -67,6 +67,7 @@ var (
 	logger      *Logger
 	logFile     *os.File
 	LogPath     string
+	logToStdout = true
 	logDir      string
 	logName     string
 	logExt      string
@@ -103,6 +104,10 @@ func dailyLogPath(idx int) string {
 func SetLogPath(path string) {
 	LogPath = path
 	initLogParts(path)
+}
+
+func SetLogToStdout(enabled bool) {
+	logToStdout = enabled
 }
 
 func LogTracef(format string, v ...interface{}) {
@@ -242,7 +247,7 @@ func openLogger() {
 		if nil != err {
 			stdlog.Printf("create log file [%s] failed: %s", actualPath, err)
 		}
-		logger = NewLogger(io.MultiWriter(os.Stdout, logFile))
+		logger = NewLogger(io.MultiWriter(getWriters(logFile)...))
 		break
 	}
 }
@@ -250,6 +255,18 @@ func openLogger() {
 func closeLogger() {
 	logFile.Close()
 	lock.Unlock()
+}
+
+func getWriters(logFile *os.File) []io.Writer {
+	if logFile == nil {
+		return []io.Writer{os.Stdout}
+	}
+	writers := make([]io.Writer, 0, 2)
+	if logToStdout {
+		writers = append(writers, os.Stdout)
+	}
+	writers = append(writers, logFile)
+	return writers
 }
 
 func Recover() {

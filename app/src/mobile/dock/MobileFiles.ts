@@ -18,7 +18,15 @@ import {
 export class MobileFiles extends Model {
     public element: HTMLElement;
     private actionsElement: HTMLElement;
-    public closeElement: HTMLElement;
+    private closeElement: HTMLElement;
+    private touchDragState: {
+        selectedElement: HTMLElement;
+        startX: number;
+        startY: number;
+        isDragging: boolean;
+        ghostElement: HTMLElement;
+        startTime: number;
+    };
 
     constructor(app: App) {
         super({

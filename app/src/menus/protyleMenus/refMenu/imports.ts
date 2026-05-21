@@ -318,3 +318,30 @@ export { openGlobalSearch };
 import { renameTag } from "../../../util/platform/noRelyPCFunction";
 /** 导出 renameTag 供 refMenu 子模块复用 */
 export { renameTag };
+
+/**
+ * 用途：生成标签联想列表。
+ * 使用范围：标签菜单输入框中输入时显示匹配标签。
+ * 解耦评估：标签列表逻辑独立封装，业务层只负责展示与交互。
+ */
+import { genTagList } from "../../../util/platform/noRelyPCFunction";
+/** 导出 genTagList 供 refMenu 子模块复用 */
+export { genTagList };
+
+/**
+ * 用途：定位浮动元素。
+ * 使用范围：标签联想列表在输入框旁定位。
+ * 解耦评估：定位逻辑已封装为通用工具，业务层只传坐标参数。
+ */
+import { setPosition } from "../../../util/DOM/setPosition";
+/** 导出 setPosition 供 refMenu 子模块复用 */
+export { setPosition };
+
+/**
+ * 用途：键盘上下键导航列表项。
+ * 使用范围：标签联想列表键盘导航。
+ * 解耦评估：导航逻辑独立封装，业务层只传入列表容器和事件。
+ */
+import { upDownHint } from "../../../util/DOM/upDownHint";
+/** 导出 upDownHint 供 refMenu 子模块复用 */
+export { upDownHint };

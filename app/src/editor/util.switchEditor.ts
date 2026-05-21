@@ -5,7 +5,7 @@ import { preventScroll } from "../protyle/scroll/preventScroll";
 import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";
 import { focusBlock, focusByRange } from "../protyle/util/selection";
-import { setEditMode } from "../protyle/util/setEditMode";
+
 import { pushBack } from "../util/platform/backForward";
 import { fetchPost } from "../util/network/fetch";
 import { highlightById, scrollCenter } from "../util/DOM/highlightById";
@@ -72,9 +72,6 @@ export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModel
             }
         }
         pushBack(editor.editor.protyle, editor.editor.protyle.toolbar.range);
-    }
-    if (options.mode) {
-        setEditMode(editor.editor.protyle, options.mode);
     }
 };
 

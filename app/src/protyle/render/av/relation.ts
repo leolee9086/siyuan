@@ -2,7 +2,7 @@ import {Menu} from "../../../plugin/Menu";
 import {hasClosestByClassName, hasTopClosestByClassName} from "../../util/hasClosest";
 import {UDLRHint, upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
-import {escapeGreat, escapeHtml} from "../../../util/DOM/escape";
+import {escapeLessThans, escapeHtml} from "../../../util/DOM/escape";
 import {transaction} from "../../wysiwyg/transaction";
 import {updateCellsValue} from "./cell";
 import {updateAttrViewCellAnimation} from "./action";
@@ -44,7 +44,7 @@ const genSearchList = (element: Element, keyword: string, avId?: string, exclude
         <div class="b3-list-item__first">
             <span class="b3-list-item__text">${escapeHtml(item.avName || siyuanI18n._kernel[267])}</span>
         </div>
-        <div class="b3-list-item__meta b3-list-item__showall">${escapeGreat(item.hPath)}</div>
+        <div class="b3-list-item__meta b3-list-item__showall">${escapeLessThans(item.hPath)}</div>
     </div>
     <svg aria-label="${siyuanI18n.thisDatabase}" style="margin: 0 0 0 4px" class="b3-list-item__hinticon ariaLabel${item.avID === avId ? "" : " fn__none"}"><use xlink:href="#iconInfo"></use></svg>
 </div>`;

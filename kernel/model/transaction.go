@@ -92,8 +92,19 @@ func flushTx(tx *Transaction) {
 	start := time.Now()
 	if txErr := performTx(tx); nil != txErr {
 		switch txErr.code {
-		case TxErrCodeBlockNotFound:
-			util.PushTxErr("Transaction failed", txErr.code, nil)
+		case TxErrCodeBlockNotFound, TxErrCodePushMsg:
+			pushMsg := txErr.msg
+			if pushMsg == "" {
+				if TxErrCodeBlockNotFound == txErr.code {
+					pushMsg = "Transaction failed: block not found"
+				} else {
+					pushMsg = "Transaction failed"
+				}
+			}
+			if txErr.id != "" && !strings.Contains(pushMsg, txErr.id) {
+				pushMsg += fmt.Sprintf(" [%s]", txErr.id)
+			}
+			util.PushTxErr(pushMsg, txErr.code, nil)
 			return
 		case TxErrCodeDataIsSyncing:
 			util.PushMsg(Conf.Language(222), 5000)
@@ -118,7 +129,6 @@ func PerformTransactions(transactions *[]*Transaction) {
 		tx.m = &sync.Mutex{}
 		txQueue <- tx
 	}
-	return
 }
 
 const (
@@ -126,6 +136,7 @@ const (
 	TxErrCodeDataIsSyncing   = 1
 	TxErrCodeWriteTree       = 2
 	TxErrHandleAttributeView = 3
+	TxErrCodePushMsg         = 4
 )
 
 type TxErr struct {
@@ -150,7 +161,7 @@ func performTx(tx *Transaction) (ret *TxErr) {
 			return
 		}
 		logging.LogErrorf("begin tx failed: %s", err)
-		ret = &TxErr{msg: err.Error()}
+		ret = &TxErr{code: TxErrCodePushMsg, msg: err.Error()}
 		return
 	}
 
@@ -332,7 +343,7 @@ func performTx(tx *Transaction) (ret *TxErr) {
 
 	if cr := tx.commit(); nil != cr {
 		logging.LogErrorf("commit tx failed: %s", cr)
-		return &TxErr{msg: cr.Error()}
+		return &TxErr{code: TxErrCodePushMsg, msg: cr.Error()}
 	}
 	return
 }
@@ -515,9 +526,9 @@ func (tx *Transaction) doMove(operation *Operation) (ret *TxErr) {
 			srcEmptyList.Unlink()
 		}
 
-		refreshUpdated(srcNode)
+		treenode.RefreshUpdated(srcNode)
 		tx.nodes[srcNode.ID] = srcNode
-		refreshUpdated(srcTree.Root)
+		treenode.RefreshUpdated(srcTree.Root)
 		tx.writeTree(srcTree)
 		if !isSameTree {
 			tx.writeTree(targetTree)
@@ -596,9 +607,9 @@ func (tx *Transaction) doMove(operation *Operation) (ret *TxErr) {
 		}
 	}
 
-	refreshUpdated(srcNode)
+	treenode.RefreshUpdated(srcNode)
 	tx.nodes[srcNode.ID] = srcNode
-	refreshUpdated(srcTree.Root)
+	treenode.RefreshUpdated(srcTree.Root)
 	tx.writeTree(srcTree)
 	if !isSameTree {
 		tx.writeTree(targetTree)
@@ -704,11 +715,11 @@ func (tx *Transaction) doPrependInsert(operation *Operation) (ret *TxErr) {
 			node.InsertAfter(toInsert)
 		}
 
-		createdUpdated(toInsert)
+		treenode.CreatedUpdated(toInsert)
 		tx.nodes[toInsert.ID] = toInsert
 	}
 
-	createdUpdated(insertedNode)
+	treenode.CreatedUpdated(insertedNode)
 	tx.nodes[insertedNode.ID] = insertedNode
 	tx.writeTree(tree)
 
@@ -811,11 +822,11 @@ func (tx *Transaction) doAppendInsert(operation *Operation) (ret *TxErr) {
 			}
 		}
 
-		createdUpdated(toInsert)
+		treenode.CreatedUpdated(toInsert)
 		tx.nodes[toInsert.ID] = toInsert
 	}
 
-	createdUpdated(insertedNode)
+	treenode.CreatedUpdated(insertedNode)
 	tx.nodes[insertedNode.ID] = insertedNode
 	tx.writeTree(tree)
 
@@ -1201,6 +1212,8 @@ func (tx *Transaction) doInsert0(operation *Operation, tree *parse.Tree) (ret *T
 
 	insertedNode := subTree.Root.FirstChild
 	if nil == insertedNode {
+		logging.LogErrorf("invalid data tree: insert op id[%s] parent[%s] previous[%s] next[%s] root[%s]",
+			operation.ID, operation.ParentID, operation.PreviousID, operation.NextID, tree.Root.ID)
 		return &TxErr{code: TxErrCodeBlockNotFound, msg: "invalid data tree"}
 	}
 	var remains []*ast.Node
@@ -1300,7 +1313,7 @@ func (tx *Transaction) doInsert0(operation *Operation, tree *parse.Tree) (ret *T
 		}
 	}
 
-	createdUpdated(insertedNode)
+	treenode.CreatedUpdated(insertedNode)
 	tx.nodes[insertedNode.ID] = insertedNode
 
 	// 收集引用的定义块 ID
@@ -1413,7 +1426,7 @@ func (tx *Transaction) doUpdate(operation *Operation) (ret *TxErr) {
 	oldNode := treenode.GetNodeInTree(tree, id)
 	if nil == oldNode {
 		logging.LogErrorf("get node [%s] in tree [%s] failed", id, tree.Root.ID)
-		return &TxErr{msg: ErrBlockNotFound.Error(), id: id}
+		return &TxErr{code: TxErrCodeBlockNotFound, msg: ErrBlockNotFound.Error(), id: id}
 	}
 
 	// 收集引用的定义块 ID
@@ -1465,7 +1478,7 @@ func (tx *Transaction) doUpdate(operation *Operation) (ret *TxErr) {
 	updatedNode := subTree.Root.FirstChild
 	if nil == updatedNode {
 		logging.LogErrorf("get fist node in sub tree [%s] failed", subTree.Root.ID)
-		return &TxErr{msg: ErrBlockNotFound.Error(), id: id}
+		return &TxErr{code: TxErrCodeBlockNotFound, msg: ErrBlockNotFound.Error(), id: id}
 	}
 	if ast.NodeList == updatedNode.Type && ast.NodeList == oldNode.Parent.Type {
 		updatedNode = updatedNode.FirstChild
@@ -1550,7 +1563,7 @@ func (tx *Transaction) doUpdate(operation *Operation) (ret *TxErr) {
 		}()
 	}
 
-	createdUpdated(updatedNode)
+	treenode.CreatedUpdated(updatedNode)
 	tx.nodes[updatedNode.ID] = updatedNode
 	tx.writeTree(tree)
 
@@ -1716,11 +1729,11 @@ func (tx *Transaction) doUpdateUpdated(operation *Operation) (ret *TxErr) {
 	node := treenode.GetNodeInTree(tree, id)
 	if nil == node {
 		logging.LogErrorf("get node [%s] in tree [%s] failed", id, tree.Root.ID)
-		return &TxErr{msg: ErrBlockNotFound.Error(), id: id}
+		return &TxErr{code: TxErrCodeBlockNotFound, msg: ErrBlockNotFound.Error(), id: id}
 	}
 
 	node.SetIALAttr("updated", operation.Data.(string))
-	createdUpdated(node)
+	treenode.CreatedUpdated(node)
 	tx.nodes[node.ID] = node
 	tx.writeTree(tree)
 	return
@@ -1752,68 +1765,14 @@ func (tx *Transaction) doSetAttrs(operation *Operation) (ret *TxErr) {
 		return &TxErr{code: TxErrCodeBlockNotFound, id: id}
 	}
 
-	var invalidNames []string
-	for name := range attrs {
-		if !isValidAttrName(name) {
-			logging.LogWarnf("invalid attr name [%s]", name)
-			invalidNames = append(invalidNames, name)
-		}
-	}
-	for _, name := range invalidNames {
-		delete(attrs, name)
-	}
-
-	for name, value := range attrs {
-		if "" == value {
-			node.RemoveIALAttr(name)
-		} else {
-			node.SetIALAttr(name, value)
-		}
+	if _, setErr := setNodeAttrs0(node, attrs); nil != setErr {
+		logging.LogErrorf("set attrs failed: %s", setErr)
+		return &TxErr{code: TxErrCodePushMsg, msg: setErr.Error(), id: id}
 	}
 
 	tx.writeTree(tree)
 	cache.PutBlockIAL(id, parse.IAL2Map(node.KramdownIAL))
 	return
-}
-
-func refreshUpdated(node *ast.Node) {
-	updated := util.CurrentTimeSecondsStr()
-	node.SetIALAttr("updated", updated)
-	parents := treenode.ParentNodesWithHeadings(node)
-	for _, parent := range parents { // 更新所有父节点的更新时间字段
-		parent.SetIALAttr("updated", updated)
-	}
-}
-
-func createdUpdated(node *ast.Node) {
-	// 补全子节点的更新时间 Improve block update time filling https://github.com/siyuan-note/siyuan/issues/12182
-	ast.Walk(node, func(n *ast.Node, entering bool) ast.WalkStatus {
-		if !entering || !n.IsBlock() || ast.NodeKramdownBlockIAL == n.Type {
-			return ast.WalkContinue
-		}
-
-		updated := n.IALAttr("updated")
-		if "" == updated && ast.IsNodeIDPattern(n.ID) {
-			created := util.TimeFromID(n.ID)
-			n.SetIALAttr("updated", created)
-		}
-		return ast.WalkContinue
-	})
-
-	created := util.TimeFromID(node.ID)
-	updated := node.IALAttr("updated")
-	if !util.IsTimeStr(updated) {
-		updated = created
-		node.SetIALAttr("updated", updated)
-	}
-	if updated < created {
-		updated = created
-	}
-	parents := treenode.ParentNodesWithHeadings(node)
-	for _, parent := range parents { // 更新所有父节点的更新时间字段
-		parent.SetIALAttr("updated", updated)
-		cache.PutBlockIAL(parent.ID, parse.IAL2Map(parent.KramdownIAL))
-	}
 }
 
 type Operation struct {

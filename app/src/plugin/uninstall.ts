@@ -2,6 +2,7 @@ import {App} from "../index";
 import {Plugin} from "./index";
 import {getAllModels} from "../layout/getAll";
 import {resizeTopBar} from "../layout/util";
+import {setTabPosition} from "../layout/tabUtil";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {isMobile} from "../util/platform/functions";
@@ -48,7 +49,6 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
             }
             // 桌面端需要清理状态栏图标、调整顶栏尺寸、移除dock面板
             if (!isMobile()) {
-                resizeTopBar();
                 // rm statusBar
                 plugin.statusBarIcons.forEach(item => {
                     item.remove();
@@ -56,48 +56,16 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
                 // rm dock
                 const docksKeys = Object.keys(plugin.docks);
                 docksKeys.forEach(key => {
-                    let dockIconElement: Element | null = null;
-                    if (window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] && window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key]) {
-                        dockIconElement = document.querySelector(`.dock__item[data-type="${key}"]`);
-                        if (dockIconElement) {
-                            let index = 0;
-                            let previousElement = dockIconElement;
-                            while (previousElement.previousElementSibling) {
-                                index++;
-                                previousElement = previousElement.previousElementSibling;
-                            }
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].index = index;
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].show =
-                                dockIconElement.classList.contains("dock__item--active");
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].size = {
-                                height: parseInt(dockIconElement.getAttribute("data-height")) || null,
-                                width: parseInt(dockIconElement.getAttribute("data-width")) || null
-                            };
-                        }
-                    }
-                    if (Object.keys(window.siyuan.layout.leftDock.data).includes(key)) {
+                    if (window.siyuan.layout.leftDock && Object.keys(window.siyuan.layout.leftDock.data).includes(key)) {
                         window.siyuan.layout.leftDock.remove(key);
-                        if (dockIconElement) {
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].position =
-                                "Left" + (dockIconElement.getAttribute("data-index") === "0" ? "Top" : "Bottom");
-                        }
-                    } else if (Object.keys(window.siyuan.layout.rightDock.data).includes(key)) {
+                    } else if (window.siyuan.layout.rightDock && Object.keys(window.siyuan.layout.rightDock.data).includes(key)) {
                         window.siyuan.layout.rightDock.remove(key);
-                        if (dockIconElement) {
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].position =
-                                "Right" + (dockIconElement.getAttribute("data-index") === "0" ? "Top" : "Bottom");
-                        }
-                    } else if (Object.keys(window.siyuan.layout.bottomDock.data).includes(key)) {
+                    } else if (window.siyuan.layout.bottomDock && Object.keys(window.siyuan.layout.bottomDock.data).includes(key)) {
                         window.siyuan.layout.bottomDock.remove(key);
-                        if (dockIconElement) {
-                            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].position =
-                                "Bottom" + (dockIconElement.getAttribute("data-index") === "0" ? "Left" : "Right");
-                        }
-                    }
-                    if (dockIconElement) {
-                        setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
                     }
                 });
+                resizeTopBar();
+                setTabPosition(true);
             }
             // rm listen
             Array.from(document.childNodes).find(item => {

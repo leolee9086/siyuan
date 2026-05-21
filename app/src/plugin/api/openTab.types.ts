@@ -24,6 +24,8 @@ export interface IOpenTabDocOptions {
     action?: TProtyleAction[];
     /** 是否聚焦到文档内容（放大模式） */
     zoomIn?: boolean;
+    /** 文档打开模式，默认 "wysiwyg" */
+    mode?: TEditorMode;
 }
 
 /**

@@ -325,14 +325,6 @@ export const editor = {
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.allowSVGScript}
-        <div class="b3-label__text">${window.siyuan.languages.allowSVGScriptTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="allowSVGScript" type="checkbox"${window.siyuan.config.editor.allowSVGScript ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
         ${siyuanI18n.allowSVGScript}
         <div class="b3-label__text">${siyuanI18n.allowSVGScriptTip}</div>
     </div>
@@ -347,70 +339,73 @@ export const editor = {
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="allowHTMLBLockScript" type="checkbox"${window.siyuan.config.editor.allowHTMLBLockScript ? " checked" : ""}/>
 </label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineAsterisk}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineAsteriskTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineAsterisk" type="checkbox"${window.siyuan.config.editor.markdown.inlineAsterisk ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineUnderscore}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineUnderscoreTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineUnderscore" type="checkbox"${window.siyuan.config.editor.markdown.inlineUnderscore ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineSup}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSupTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSup" type="checkbox"${window.siyuan.config.editor.markdown.inlineSup ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineSub}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSubTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSub" type="checkbox"${window.siyuan.config.editor.markdown.inlineSub ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineTag}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineTagTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineTag" type="checkbox"${window.siyuan.config.editor.markdown.inlineTag ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineMath}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMathTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMath" type="checkbox"${window.siyuan.config.editor.markdown.inlineMath ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineStrikethrough}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineStrikethroughTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineStrikethrough" type="checkbox"${window.siyuan.config.editor.markdown.inlineStrikethrough ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.editorMarkdownInlineMark}
-        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMarkTip}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMark" type="checkbox"${window.siyuan.config.editor.markdown.inlineMark ? " checked" : ""}/>
-</label>`;
+<b class="config-group__title">${siyuanI18n.config}</b>
+<div class="config-group">
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineAsterisk}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineAsteriskTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineAsterisk" type="checkbox"${window.siyuan.config.editor.markdown.inlineAsterisk ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineUnderscore}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineUnderscoreTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineUnderscore" type="checkbox"${window.siyuan.config.editor.markdown.inlineUnderscore ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineSup}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSupTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSup" type="checkbox"${window.siyuan.config.editor.markdown.inlineSup ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineSub}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSubTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSub" type="checkbox"${window.siyuan.config.editor.markdown.inlineSub ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineTag}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineTagTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineTag" type="checkbox"${window.siyuan.config.editor.markdown.inlineTag ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineMath}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMathTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMath" type="checkbox"${window.siyuan.config.editor.markdown.inlineMath ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineStrikethrough}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineStrikethroughTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineStrikethrough" type="checkbox"${window.siyuan.config.editor.markdown.inlineStrikethrough ? " checked" : ""}/>
+    </label>
+    <label class="fn__flex b3-label">
+        <div class="fn__flex-1">
+            ${siyuanI18n.editorMarkdownInlineMark}
+            <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMarkTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMark" type="checkbox"${window.siyuan.config.editor.markdown.inlineMark ? " checked" : ""}/>
+    </label>
+</div>`;
     },
     bindEvent: async () => {
         let spellcheckLanguagesElement: Element | null = null;
@@ -441,6 +436,7 @@ export const editor = {
         }
 
         const fontFamilyElement = editor.element.querySelector("#fontFamily") as HTMLSelectElement;
+        fontFamilyElement.dataset.weight = String(window.siyuan.config.editor.fontWeight || 0);
         fontFamilyElement.addEventListener("click", () => {
             fetchPost("/api/system/getSysFonts", {}, (response) => {
                 const fontMenu = new Menu();
@@ -454,20 +450,22 @@ export const editor = {
                         }
                         fontFamilyElement.value = "";
                         fontFamilyElement.style.fontFamily = "";
+                        fontFamilyElement.dataset.weight = "0";
                         setEditor();
                     }
                 });
-                response.data.forEach((item: string) => {
+                response.data.forEach((item: {family: string; weight: number; displayName: string}) => {
                     fontMenu.addItem({
                         iconHTML: "",
-                        checked: window.siyuan.config.editor.fontFamily === item,
-                        label: `<div style='font-family:"${item}",var(--b3-font-family);'>${item}</div>`,
+                        checked: window.siyuan.config.editor.fontFamily === item.family && window.siyuan.config.editor.fontWeight === item.weight,
+                        label: `<div style='font-family:"${item.family}",var(--b3-font-family);'>${item.displayName}</div>`,
                         click: () => {
-                            if (item === window.siyuan.config.editor.fontFamily) {
+                            if (item.family === window.siyuan.config.editor.fontFamily && item.weight === window.siyuan.config.editor.fontWeight) {
                                 return;
                             }
-                            fontFamilyElement.value = item;
-                            fontFamilyElement.style.fontFamily = item + ",var(--b3-font-family)";
+                            fontFamilyElement.value = item.family;
+                            fontFamilyElement.style.fontFamily = item.family + ",var(--b3-font-family)";
+                            fontFamilyElement.dataset.weight = String(item.weight);
                             setEditor();
                         }
                     });
@@ -559,6 +557,7 @@ export const editor = {
                 generateHistoryInterval: parseInt((editor.element.querySelector("#generateHistoryInterval") as HTMLInputElement).value),
                 historyRetentionDays: parseInt((editor.element.querySelector("#historyRetentionDays") as HTMLInputElement).value),
                 fontFamily: fontFamilyElement.value,
+                fontWeight: parseInt(fontFamilyElement.dataset.weight || "0"),
                 emoji: window.siyuan.config.editor.emoji
             }, response => {
                 editor._onSetEditor(response.data);

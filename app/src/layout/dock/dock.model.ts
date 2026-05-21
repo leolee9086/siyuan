@@ -30,20 +30,24 @@ export function executeToggleHide(
     target: HTMLElement,
     type: string,
     close: boolean,
-    isSaveLayout: boolean
+    isSaveLayout: boolean,
+    _removeDock: boolean
 ): boolean {
     if (!close && handlePanelFocusSwitch(wnd, target, dock)) {
         return true;
     }
     target.classList.remove("dock__item--active", "dock__item--activefocus");
-    const activeItems = dock.element.querySelectorAll(".dock__item--active");
-    const hasNoActiveItems = activeItems.length === 0;
+    const hasNoActiveItems = !dock.elements[0].querySelector(".dock__item--active") &&
+        !dock.elements[1].querySelector(".dock__item--active");
     if (handleDockHideSize(dock, hasNoActiveItems)) {
         clearWindowTimeout(dock.hideResizeTimeout);
         dock.hideDock();
     }
     handleGraphDestroy(type, dock);
     handlePostCloseFocus(isSaveLayout);
+    if (isSaveLayout) {
+        dock.saveLocalPlugin(type, { show: false });
+    }
     return false;
 }
 
@@ -55,9 +59,10 @@ export function executeToggleShow(
     wnd: Wnd,
     target: HTMLElement,
     type: string,
-    index: number
+    index: number,
+    isSaveLayout: boolean
 ): void {
-    const items = dock.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`);
+    const items = dock.elements[index].querySelectorAll(".dock__item--active");
     for (const item of Array.from(items)) {
         item.classList.remove("dock__item--active", "dock__item--activefocus");
     }
@@ -75,13 +80,15 @@ export function executeToggleShow(
     handleGraphFullscreenDrag(type, dock, true);
     if (dock.pin) {
         dock.layout.element.style.opacity = "";
-        // @内联回调
         dock.hideResizeTimeout = setWindowTimeout(() => {
             dock.resizeElement.classList.remove("fn__none");
             adjustLayout();
         }, Constants.TIMEOUT_TRANSITION);
     }
     blurActiveElement();
+    if (isSaveLayout) {
+        dock.saveLocalPlugin(type, { show: true });
+    }
 }
 
 /**
@@ -97,8 +104,8 @@ export function executeUpdatePanelRelations(
     if (!isWnd(anotherChild)) {
         return;
     }
-    const anotherActiveItems = dock.element.querySelectorAll(`.dock__item--active[data-index="${anotherIndex}"]`);
-    const currentActiveItems = dock.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`);
+    const anotherActiveItems = dock.elements[anotherIndex].querySelectorAll(".dock__item--active");
+    const currentActiveItems = dock.elements[index].querySelectorAll(".dock__item--active");
     updateDockPanelRelation(dock, wnd, anotherChild, index, anotherIndex, currentActiveItems.length > 0, anotherActiveItems.length > 0);
     updatePanelVisibility(wnd, anotherChild, currentActiveItems.length > 0, anotherActiveItems.length > 0);
 }

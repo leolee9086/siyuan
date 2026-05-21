@@ -24,6 +24,7 @@ import {fetchSyncPost} from "../util/network/fetch";
  * @解耦评估: UI 工具函数可抽象事件触发，但当前直接调用更清晰
  */
 import {resizeTopBar} from "../layout/util";
+import {setTabPosition} from "../layout/tabUtil";
 
 /**
  * @导入用途: 布局持久化函数
@@ -138,6 +139,9 @@ export {fetchSyncPost};
 
 /** @导出说明: 顶部栏尺寸重算 */
 export {resizeTopBar};
+
+/** @导出说明: tab 位置重设函数 */
+export {setTabPosition};
 
 /** @导出说明: 布局持久化函数 */
 export {saveLayout};

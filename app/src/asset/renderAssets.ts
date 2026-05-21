@@ -365,7 +365,7 @@ export const genAssetHTML = (type: string, pathString: string, imgName: string, 
         const netHTML = pathString.startsWith("assets/") ? "" : /*html*/`
             <span class="img__net">
                 <svg>
-                    <use xlink:href="#iconLanguage"></use>
+                    <use xlink:href="#iconGlobe"></use>
                 </svg>
             </span>`;
         return /*html*/`<span contenteditable="false" data-type="img" class="img"><span></span><span><span class="protyle-action protyle-icons"><span class="protyle-icon protyle-icon--only"><svg><use xlink:href="#iconMore"></use></svg></span></span><img src="${pathString}" data-src="${pathString}" alt="${imgName}" /><span class="protyle-action__drag"></span>${netHTML}<span class="protyle-action__title"><span></span></span></span><span> </span></span>`;

@@ -108,7 +108,7 @@ const injectReqIdMiddleware: FetchMiddleware = (ctx) => {
     
     // 对于高频搜索/图谱请求，记录请求时间戳用于后续竞态检查
     if (需要竞态控制的API列表.includes(ctx.url)) {
-        setSiyuanReqId(ctx.url, new Date().getTime());
+        setSiyuanReqId(ctx.url, Date.now());
     }
     
     const isNotLocalGraph = ctx.data.type !== "local" || ctx.url !== "/api/graph/getLocalGraph";
@@ -121,7 +121,7 @@ const injectReqIdMiddleware: FetchMiddleware = (ctx) => {
     
     // 事务 API 总是需要唯一标识以保证操作顺序
     if (ctx.url === "/api/transactions") {
-        ctx.data.reqId = new Date().getTime();
+        ctx.data.reqId = Date.now();
     }
 };
 

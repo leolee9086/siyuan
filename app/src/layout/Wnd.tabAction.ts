@@ -188,12 +188,12 @@ export function removeTabAction(
         }
     }
     if (isSaveLayout) {
+        setTabPosition();
         saveLayout();
     }
     if (isElectron) {
         clearWebFrameCache();
         ipcSend(Constants.SIYUAN_CMD, "clearCache");
-        setTabPosition();
         setModelsHash();
     }
 }
@@ -300,7 +300,5 @@ export function wndMoveTab(wnd: Wnd, tab: Tab, nextId?: string): void {
 
     tab.parent = wnd;
     hideAllElements(["toolbar"]);
-    if (isElectron) {
-        setTabPosition();
-    }
+    setTabPosition();
 }

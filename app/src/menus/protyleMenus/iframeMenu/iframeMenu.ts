@@ -140,7 +140,7 @@ const updateIframeAttributes = (iframeElement: HTMLIFrameElement, value: string)
     }
     iframeElement.setAttribute("src", src);
     iframeElement.setAttribute("sandbox",
-        "allow-top-navigation-by-user-activation allow-same-origin allow-forms allow-scripts allow-popups");
+        "allow-top-navigation-by-user-activation allow-same-origin allow-forms allow-scripts allow-popups allow-storage-access-by-user-activation");
     // 未设置高度时，使用 Bilibili 播放器默认高度
     if (!iframeElement.style.height) {
         iframeElement.style.height = "360px";

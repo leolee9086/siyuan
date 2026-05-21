@@ -135,28 +135,12 @@ export function insertSourceElement(
     previousType?: string
 ): void {
     sourceElement.setAttribute("data-index", index.toString());
-    const prev = previousType ? dock.element.querySelector(`[data-type="${previousType}"]`) : null;
-    // 找到了前置元素，直接插入其后
-    /**
-     * 作用：基于前置锚点插入元素。
-     * 意图：为了保持用户自定义的排序，如果有指定的前置元素类型且在 DOM 中找到，则将新元素插入其后。
-     * 生效场景：布局恢复或拖拽排序时。
-     */
+    const prev = previousType ? dock.elements[index].parentElement.querySelector(`[data-type="${previousType}"]`) : null;
     if (prev) {
         prev.after(sourceElement);
         return;
     }
-    const container = index === 0 ? dock.element.firstElementChild : dock.element.lastElementChild;
-    // 如果找不到容器（首尾元素），则无法插入
-    /**
-     * 作用：验证插入容器。
-     * 意图：确保 Dock 中存在可作为参考的容器元素（通常是头部或尾部），否则无法执行插入。
-     * 生效场景：Dock DOM 结构未正确初始化为空时。
-     */
-    if (!container) {
-        return;
-    }
-    container.insertAdjacentElement("afterbegin", sourceElement);
+    dock.elements[index].insertAdjacentElement("afterbegin", sourceElement);
 }
 
 /**
@@ -172,13 +156,7 @@ export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: s
     if (!languages) {
         return;
     }
-    const firstChild = dock.element.firstElementChild;
-    // 确保有第一个子元素作为容器
-    /**
-     * 作用：验证挂载点。
-     * 意图：Pin 按钮需要插入到 Dock 的第一个子容器中，若不存在则无法渲染。
-     * 生效场景：Dock DOM 为空时。
-     */
+    const firstChild = dock.elements[0];
     if (!firstChild) {
         return;
     }
@@ -189,15 +167,12 @@ export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: s
  * 初始化 dock 文件（触发 file 类型的 toggle）
  */
 export function initDockFiles(dock: Dock): void {
-    for (const item of Array.from(dock.element.querySelectorAll(".dock__item"))) {
-        /**
-         * 作用：初始化文件树 Dock 的状态。
-         * 意图：通过切换文件树的显示状态（先显示再隐藏），强制触发文件树相关的初始化逻辑（如索引更新或视图渲染），确保文件树功能可用。
-         * 生效场景：当存在 "file" 类型的 Dock 项且该项当前未处于激活状态时。
-         */
-        if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
-            dock.toggleModel("file", true, false, false, false);
-            dock.toggleModel("file", false, false, false, false);
+    for (const elem of dock.elements) {
+        for (const item of Array.from(elem.querySelectorAll(".dock__item"))) {
+            if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
+                dock.toggleModel("file", true, false, false, false);
+                dock.toggleModel("file", false, false, false, false);
+            }
         }
     }
 }
@@ -277,7 +252,7 @@ export function initDockData(
      */
     if (!hasValidDockType(data, TYPES)) {
         renderPinButton(dock, getSiyuanLanguagesFn());
-        dock.element.classList.add("fn__none");
+        dock.elements[0].parentElement.classList.add("fn__none");
         initDockFiles(dock);
         initDockActiveState(dock);
         return;
@@ -301,7 +276,7 @@ export function initDockData(
     if (second && second.length > 0) {
         dock.genButton(second, 1);
     }
-    dock.element.classList.remove("fn__none");
+    dock.elements[0].parentElement.classList.remove("fn__none");
     initDockFiles(dock);
     initDockActiveState(dock);
 }
@@ -310,7 +285,8 @@ export function initDockData(
  * 初始化 dock 激活状态
  */
 export function initDockActiveState(dock: Dock): void {
-    const activeElements = Array.from(dock.element.querySelectorAll(".dock__item--active"));
+    const activeElements = [...dock.elements[0].querySelectorAll(".dock__item--active"),
+        ...dock.elements[1].querySelectorAll(".dock__item--active")];
     /**
      * 作用：恢复 Dock 的激活状态。
      * 意图：如果有 Dock 项在之前被标记为激活（例如从布局恢复），则直接初始化这些项的状态，跳过默认的无激活处理逻辑。

@@ -59,9 +59,16 @@ export function handleDockHideSize(
         return false;
     }
 
-    const isHorizontal = dock.position === "Left" || dock.position === "Right";
-    const styleProp = isHorizontal ? "width" : "height";
-    dock.layout.element.style[styleProp] = "0px";
+    if (dock.position === "Left") {
+        dock.layout.element.style.width = "0px";
+        dock.layout.element.style.marginRight = "0px";
+    } else if (dock.position === "Right") {
+        dock.layout.element.style.width = "0px";
+        dock.layout.element.style.marginLeft = "0px";
+    } else {
+        dock.layout.element.style.height = "0px";
+        dock.layout.element.style.marginTop = "0px";
+    }
     dock.resizeElement.classList.add("fn__none");
     return true;
 }
@@ -70,9 +77,22 @@ export function handleDockHideSize(
  * 设置 dock 显示时的尺寸
  */
 export function setDockLayoutSize(dock: Dock, size: number): void {
-    const isHorizontal = dock.position === "Left" || dock.position === "Right";
-    const styleProp = isHorizontal ? "width" : "height";
-    dock.layout.element.style[styleProp] = size + "px";
+    if (dock.position === "Left") {
+        if (dock.layout.element.style.width === "0px") {
+            dock.layout.element.style.width = size + "px";
+        }
+        dock.layout.element.style.marginRight = "var(--b3-layout-space)";
+    } else if (dock.position === "Right") {
+        if (dock.layout.element.style.width === "0px") {
+            dock.layout.element.style.width = size + "px";
+        }
+        dock.layout.element.style.marginLeft = "var(--b3-layout-space)";
+    } else if (dock.position === "Bottom") {
+        if (dock.layout.element.style.height === "0px") {
+            dock.layout.element.style.height = size + "px";
+        }
+        dock.layout.element.style.marginTop = "var(--b3-layout-space)";
+    }
 }
 
 

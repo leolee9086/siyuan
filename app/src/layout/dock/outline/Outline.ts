@@ -83,6 +83,7 @@ export class Outline extends Model {
         super({
             app: options.app,
             id: options.tab.id,
+            type: "outline",
             callback: Outline.prototype.onModelCallback,
             msgCallback: Outline.prototype.onModelMsgCallback,
         });

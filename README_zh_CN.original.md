@@ -70,11 +70,11 @@
 
 思源笔记是一款隐私优先的个人知识管理系统，支持细粒度块级引用和 Markdown 所见即所得。
 
+欢迎到[思源笔记官方讨论区](https://ld246.com/domain/siyuan)了解更多。同时也欢迎关注 B3log 开源社区微信公众号 `B3log开源`：
+
 ![feature0.png](https://b3logfile.com/file/2025/11/feature0-GfbhEqf.png)
 
 ![feature51.png](https://b3logfile.com/file/2025/11/feature5-1-7DJSfEP.png)
-
-欢迎到[思源笔记官方讨论区](https://ld246.com/domain/siyuan)了解更多。同时也欢迎关注 B3log 开源社区微信公众号 `B3log开源`：
 
 ![b3logos.jpg](https://b3logfile.com/file/2020/08/b3logos-032af045.jpg)
 
@@ -267,14 +267,14 @@ services:
 
 在此设置中：
 
-* PUID “和 ”PGID "是动态设置并传递给容器的
+* PUID "和 "PGID "是动态设置并传递给容器的
 * 如果没有提供这些变量，将使用默认的 `1000`
 
-在环境中指定 `PUID` 和 `PGID` 后，就无需在组成文件中明确设置 `user` 指令（`user: '1000:1000'`）。容器将在启动时根据这些环境变量动态调整用户和组。
+在环境中指定 `PUID` 和 `PGID` 后，就无需在 compose 文件中明确设置 `user` 指令（`user: '1000:1000'`）。容器将在启动时根据这些环境变量动态调整用户和组。
 
 #### 用户权限
 
-在图片中，“entrypoint.sh ”脚本确保以指定的 “PUID ”和 “PGID ”创建 “siyuan ”用户和组。因此，当主机创建工作区文件夹时，请注意设置文件夹的用户和组所有权，使其与计划使用的 `PUID` 和 `PGID` 匹配。例如
+在镜像中，"entrypoint.sh "脚本确保以指定的 "PUID "和 "PGID "创建 "siyuan "用户和组。因此，当主机创建工作区文件夹时，请注意设置文件夹的用户和组所有权，使其与计划使用的 `PUID` 和 `PGID` 匹配。例如
 
 ```bash
 chown -R 1001:1002 /siyuan/workspace

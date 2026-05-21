@@ -49,7 +49,7 @@ const (
 	ModeDev   = "dev"
 	ModeForge = "forge"
 
-	Ver       = "3.6.3"
+	Ver       = "3.6.5"
 	IsInsider = false
 )
 
@@ -75,6 +75,33 @@ func initEnvVars() {
 	var err error
 	if SiYuanAccessAuthCodeBypass, err = strconv.ParseBool(os.Getenv("SIYUAN_ACCESS_AUTH_CODE_BYPASS")); err != nil {
 		SiYuanAccessAuthCodeBypass = false
+	}
+}
+
+func InitWorkspace(workspacePath, wdPath string) {
+	initEnvVars()
+	initMime()
+	initHttpClient()
+
+	if "" != wdPath {
+		WorkingDir = wdPath
+	}
+
+	Container = ContainerStd
+	if RunInContainer {
+		Container = ContainerDocker
+	}
+
+	initWorkspaceDir(workspacePath)
+	initPathDir()
+
+	AppearancePath = filepath.Join(ConfDir, "appearance")
+	if "dev" == Mode {
+		ThemesPath = filepath.Join(WorkingDir, "appearance", "themes")
+		IconsPath = filepath.Join(WorkingDir, "appearance", "icons")
+	} else {
+		ThemesPath = filepath.Join(AppearancePath, "themes")
+		IconsPath = filepath.Join(AppearancePath, "icons")
 	}
 }
 
@@ -111,7 +138,7 @@ func Boot() {
 	readOnly := flag.String("readonly", "false", "read-only mode")
 	accessAuthCode := flag.String("accessAuthCode", "", "access auth code")
 	ssl := flag.Bool("ssl", false, "for https and wss")
-	lang := flag.String("lang", "", "ar_SA/de_DE/en_US/es_ES/fr_FR/he_IL/it_IT/ja_JP/ko_KR/pl_PL/pt_BR/ru_RU/sk_SK/tr_TR/zh_CHT/zh_CN")
+	lang := flag.String("lang", "", "ar_SA/de_DE/en_US/es_ES/fr_FR/he_IL/hi_IN/id_ID/it_IT/ja_JP/ko_KR/nl_NL/pl_PL/pt_BR/ru_RU/sk_SK/th_TH/tr_TR/uk_UA/zh_CHT/zh_CN")
 	mode := flag.String("mode", ModeProd, "dev/prod/forge")
 	noBrowser := flag.Bool("no-browser", false, "disable auto-open browser in forge mode")
 	flag.Parse()
@@ -248,6 +275,7 @@ var (
 	RepoDir            string        // 仓库目录路径
 	HistoryDir         string        // 数据历史目录路径
 	TempDir            string        // 临时目录路径
+	QueueDir           string        // 队列目录路径
 	LogPath            string        // 配置目录下的日志文件 siyuan.log 路径
 	DBName             = "siyuan.db" // SQLite 数据库文件名
 	DBPath             string        // SQLite 数据库文件路径
@@ -341,6 +369,7 @@ func initWorkspaceDir(workspaceArg string) {
 	RepoDir = filepath.Join(WorkspaceDir, "repo")
 	HistoryDir = filepath.Join(WorkspaceDir, "history")
 	TempDir = filepath.Join(WorkspaceDir, "temp")
+	QueueDir = filepath.Join(TempDir, "queue")
 	osTmpDir := filepath.Join(TempDir, "os")
 	os.RemoveAll(osTmpDir)
 	if err := os.MkdirAll(osTmpDir, 0755); err != nil {
@@ -440,6 +469,11 @@ const (
 	LocalHost = "127.0.0.1" // 伺服地址
 	FixedPort = "6806"      // 固定端口
 )
+
+// IsMobileContainer 表示当前内核运行在 Android、iOS 或鸿蒙客户端上。
+func IsMobileContainer() bool {
+	return ContainerAndroid == Container || ContainerIOS == Container || ContainerHarmony == Container
+}
 
 func initPathDir() {
 	if err := os.MkdirAll(ConfDir, 0755); err != nil && !os.IsExist(err) {

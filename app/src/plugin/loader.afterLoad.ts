@@ -153,7 +153,6 @@ const mountStatusBarIcons = (plugin: Plugin) => {
     if (isMobile()) {
         return;
     }
-    resizeTopBar();
 
     for (const element of plugin.statusBarIcons) {
         const inDocument = document.contains(element);
@@ -162,6 +161,7 @@ const mountStatusBarIcons = (plugin: Plugin) => {
         }
         appendStatusBarIcon(element);
     }
+    resizeTopBar();
 };
 
 /** 作用: 触发布局就绪回调; 意图: 保护插件生命周期调用; 调用时机: runAfterLoadPlugin 首步 */
@@ -282,4 +282,21 @@ export const runAfterLoadPlugin = (plugin: Plugin) => {
     mountTopBarIcons(plugin);
     mountStatusBarIcons(plugin);
     mountPluginDocks(plugin);
+};
+
+/** @导出说明: 插件动态注册 Dock 后立即渲染 */
+/** 作用: 当插件在 onload 后调用 addDock() 时渲染 dock 按钮; 意图: 保证 dock 即时出现; 调用时机: addDock 末尾 */
+/** @同步豁免: UI构建 */
+export const addPluginDock = (plugin: Plugin) => {
+    if (isWindow() || !getSiyuanLayout().leftDock) {
+        return;
+    }
+    const dockKeys = Object.keys(plugin.docks);
+    for (const dockKey of dockKeys) {
+        if (document.querySelector(`.dock .dock__item[data-type="${dockKey}"]`)) {
+            continue;
+        }
+        applyStoredDockConfig(plugin, dockKey);
+        appendDockButton(dockKey, plugin);
+    }
 };

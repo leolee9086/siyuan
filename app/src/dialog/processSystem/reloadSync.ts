@@ -26,7 +26,7 @@ export const reloadSync = (
         hideMessage();
     }
     if (isMobile()) {
-        if (window.siyuan.mobile.popEditor) {
+        if (window.siyuan.mobile.popEditor && window.siyuan.mobile.popEditor.protyle) {
             if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
                 hideElements(["dialog"]);
             } else {
@@ -34,7 +34,8 @@ export const reloadSync = (
             }
         }
     }
-    if (window.siyuan.mobile.editor) {
+    if (document.getElementById("empty").classList.contains("fn__none") &&
+        window.siyuan.mobile.editor && window.siyuan.mobile.editor.protyle) {
         if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
             setEmpty(app);
         } else {

@@ -20,8 +20,7 @@ export function getTagPanelHTML(): string {
     const minHotkey = updateHotkeyAfterTip(config?.keymap?.general?.closeTab?.custom ?? "");
 
     return `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconTags"></use></svg>${siyuanI18n.tag}
+    <div class="block__logo">${siyuanI18n.tag}
     </div>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>

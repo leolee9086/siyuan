@@ -152,31 +152,31 @@ type Block struct {
 	Updated  string
 }
 
-func updateRootContent(tx *sql.Tx, content, updated, id string) (err error) {
+func updateRootContent(tx *sql.Tx, content, updated, ialContent, id string) (err error) {
 	stmt := "UPDATE blocks SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
 	if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
 		return
 	}
 
 	if pair, ok := getFTSRowIDs(id); ok {
-		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ? WHERE rowid = ?"
-		if err = execStmtTx(tx, stmt, content, content, updated, pair.rowid); err != nil {
+		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE rowid = ?"
+		if err = execStmtTx(tx, stmt, content, content, updated, ialContent, pair.rowid); err != nil {
 			return
 		}
 		if pair.rowidCI > 0 {
-			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ? WHERE rowid = ?"
-			if err = execStmtTx(tx, stmt, content, content, updated, pair.rowidCI); err != nil {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE rowid = ?"
+			if err = execStmtTx(tx, stmt, content, content, updated, ialContent, pair.rowidCI); err != nil {
 				return
 			}
 		}
 	} else {
-		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
-		if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
+		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE id = ?"
+		if err = execStmtTx(tx, stmt, content, content, updated, ialContent, id); err != nil {
 			return
 		}
 		if !caseSensitive {
-			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ? WHERE id = ?"
-			if err = execStmtTx(tx, stmt, content, content, updated, id); err != nil {
+			stmt = "UPDATE blocks_fts_case_insensitive SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE id = ?"
+			if err = execStmtTx(tx, stmt, content, content, updated, ialContent, id); err != nil {
 				return
 			}
 		}

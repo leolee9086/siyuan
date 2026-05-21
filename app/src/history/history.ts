@@ -12,6 +12,8 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { renderDoc, renderRepo } from "./history.render";
 import { handleDocClick } from "./history.docEvent";
 import { handleRepoClick } from "./history.repoEvent";
+import * as dayjs from "dayjs";
+import { saveExportFile } from "../protyle/util/compatibility";
 
 let historyEditor: Protyle | undefined;
 
@@ -128,6 +130,12 @@ export const openHistory = (app: App) => {
                         <option value="getCloudRepoTagSnapshots">${siyuanI18n.cloudTagSnapshot}</option>
                     </select>
                     <span class="fn__space"></span>
+                    <div class="b3-form__icon fn__none">
+                        <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
+                        <input class="b3-text-field b3-form__icon-input fn__size200" style="padding-right: 44px;" placeholder="${siyuanI18n.searchFileName}">
+                        <button class="b3-button b3-button--text" style="position: absolute;right: 0;top: 0;">${siyuanI18n.search}</button>
+                    </div>
+                    <span class="fn__space"></span>
                     <button class="b3-button b3-button--outline" disabled data-type="compare">${siyuanI18n.compare}</button>
                     <span class="fn__space"></span>
                     <button class="b3-button b3-button--outline" data-type="genRepo">
@@ -204,11 +212,22 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
     disabledProtyle(historyEditor.protyle);
     const repoElement = element.querySelector('#historyContainer [data-type="repo"]');
     const repoSelectElement = repoElement.querySelector(".b3-select") as HTMLSelectElement;
+    const searchFileElement = repoElement.querySelector(".b3-text-field") as HTMLInputElement;
     repoSelectElement.addEventListener("change", () => {
+        searchFileElement.value = "";
         renderRepo(repoElement, 1);
         const btnElement = element.querySelector(".b3-button[data-type='compare']");
         btnElement.setAttribute("disabled", "disabled");
         btnElement.removeAttribute("data-ids");
+    });
+    searchFileElement.nextElementSibling.addEventListener("click", () => {
+        renderRepo(repoElement, 1);
+    });
+    searchFileElement.addEventListener("keydown", (event: KeyboardEvent) => {
+        if (event.key === "Enter" && !event.isComposing) {
+            event.preventDefault();
+            renderRepo(repoElement, 1);
+        }
     });
     element.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
@@ -221,14 +240,22 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                 break;
             }
             if (target.classList.contains("b3-list-item__action") && type === "rollback" && !window.siyuan.config.readonly) {
-                const dataType = target.parentElement.getAttribute("data-type");
-                let name = target.previousElementSibling.previousElementSibling.textContent.trim();
-                let time = dayjs(parseInt(target.parentElement.getAttribute("data-created")) * 1000).format("YYYY-MM-DD HH:mm:ss");
+                const liElement = target.closest(".b3-list-item") as HTMLElement;
+                const dataType = target.parentElement.getAttribute("data-type") || liElement.getAttribute("data-type");
+                let name: string;
+                let time: string;
                 if (dataType === "notebook") {
+                    name = target.previousElementSibling.previousElementSibling.textContent.trim();
                     time = target.parentElement.parentElement.previousElementSibling.textContent.trim();
                 } else if (dataType === "repoitem") {
                     name = window.siyuan.languages.workspaceData;
                     time = (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim();
+                } else if (dataType === "searchFileItem") {
+                    name = liElement.querySelector(".b3-list-item__text").textContent.trim();
+                    time = dayjs(parseInt(liElement.getAttribute("data-created"))).format("YYYY-MM-DD HH:mm:ss");
+                } else {
+                    name = target.previousElementSibling.previousElementSibling.textContent.trim();
+                    time = dayjs(parseInt(target.parentElement.getAttribute("data-created")) * 1000).format("YYYY-MM-DD HH:mm:ss");
                 }
                 confirmDialog("⚠️ " + window.siyuan.languages.rollback,
                     window.siyuan.languages.rollbackConfirm.replace("${name}", name).replace("${time}", time),
@@ -239,7 +266,6 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                             });
                         } else if (dataType === "doc") {
                             fetchPost("/api/history/rollbackDocHistory", {
-                                notebook: target.parentElement.getAttribute("data-notebook-id"),
                                 historyPath: target.parentElement.getAttribute("data-path")
                             });
                         } else if (dataType === "av") {
@@ -250,12 +276,25 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                             fetchPost("/api/history/rollbackNotebookHistory", {
                                 historyPath: target.parentElement.getAttribute("data-path")
                             });
+                        } else if (dataType === "searchFileItem") {
+                            fetchPost("/api/repo/rollbackRepoSnapshotFile", {
+                                id: liElement.getAttribute("data-id")
+                            });
                         } else {
                             fetchPost("/api/repo/checkoutRepo", {
                                 id: target.parentElement.getAttribute("data-id")
                             });
                         }
                     });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "saveAs") {
+                const liElement = target.closest(".b3-list-item") as HTMLElement;
+                const fileId = liElement.getAttribute("data-id");
+                fetchPost("/api/repo/exportRepoFile", {id: fileId}, (response) => {
+                    saveExportFile(response.data.path);
+                });
                 event.stopPropagation();
                 event.preventDefault();
                 break;

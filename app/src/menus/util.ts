@@ -7,7 +7,7 @@ import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import {App} from "../index";
-import {exportByMobile, isInAndroid, updateHotkeyTip} from "../protyle/util/compatibility";
+import {isInAndroid, saveExportFile, updateHotkeyTip} from "../protyle/util/compatibility";
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {showMessage} from "../dialog/message";
@@ -20,7 +20,7 @@ export const exportAsset = (src: string) => {
         icon: "iconUpload",
         async click() {
             if (!isElectron) {
-                exportByMobile(src);
+                saveExportFile(src);
             }
             if (isElectron) {
                 const result = await ipcInvoke(Constants.SIYUAN_GET, {

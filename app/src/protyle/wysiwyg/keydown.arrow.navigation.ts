@@ -62,7 +62,8 @@ export const arrowNavigationMiddleware = async (
                 (!firstEditElement && nodeElement === firstChild)
             ) {
                 // 不能用\n判断，否则文字过长折行将错误 https://github.com/siyuan-note/siyuan/issues/6156
-                if (getSelectionPosition(nodeEditableElement, range).top - nodeEditableElement.getBoundingClientRect().top < 20 || nodeElement.classList.contains("av")) {
+                const diff = getSelectionPosition(nodeEditableElement, range).top - nodeEditableElement.getBoundingClientRect().top;
+                if ((diff < 20 && diff !== 0) || nodeElement.classList.contains("av")) {
                     if (protyle.title && protyle.title.editElement &&
                         (firstChild?.getAttribute("data-eof") === "1" ||
                             protyle.contentElement?.scrollTop === 0)) {
@@ -128,7 +129,8 @@ export const arrowNavigationMiddleware = async (
                 // 页面按向下/右箭头丢失焦点 https://ld246.com/article/1629954026096
                 const lastEditElement = getContenteditableElement(nodeElement);
                 // 代码块需替换最后一个 /n  https://github.com/siyuan-note/siyuan/issues/3221
-                if (lastEditElement && !lastEditElement.querySelector(".emoji") && lastEditElement.textContent && lastEditElement.textContent.replace(/\n$/, "").length <= getSelectionOffset(lastEditElement, undefined, range).end) {
+                if (lastEditElement && !nodeElement.classList.contains("table") &&
+                    !lastEditElement.querySelector(".emoji") && lastEditElement.textContent && lastEditElement.textContent.replace(/\n$/, "").length <= getSelectionOffset(lastEditElement, undefined, range).end) {
                     event.stopPropagation();
                     event.preventDefault();
                     focusByRange(range);
@@ -141,7 +143,8 @@ export const arrowNavigationMiddleware = async (
             if (firstBlock && nodeElement === firstBlock) {
                 // 页面向左箭头丢失焦点 https://github.com/siyuan-note/siyuan/issues/2768
                 const firstEditElement = getContenteditableElement(nodeElement);
-                if (firstEditElement && getSelectionOffset(firstEditElement, undefined, range).start === 0) {
+                if (firstEditElement && !nodeElement.classList.contains("table") &&
+                    getSelectionOffset(firstEditElement, undefined, range).start === 0) {
                     event.stopPropagation();
                     event.preventDefault();
                     focusByRange(range);

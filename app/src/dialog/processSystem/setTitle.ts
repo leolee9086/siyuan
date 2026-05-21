@@ -4,6 +4,9 @@ import { getWorkspaceName } from "../../util/platform/noRelyPCFunction";
 
 
 export const setTitle = (title: string, showVersionTitle = false) => {
+    if (window.siyuan.config.appearance.hideToolbar) {
+        return;
+    }
     const dragElement = document.getElementById("drag");
     const workspaceName = getWorkspaceName();
     if (showVersionTitle) {

@@ -233,6 +233,18 @@ export async function handleCopy(
             } else if (hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH")) {
                 tempElement.innerHTML = tempElement.innerHTML.replace(/<br>/g, "\n").replace(/<br\/>/g, "\n");
                 textPlain = tempElement.textContent.endsWith("\n") ? tempElement.textContent.replace(/\n$/, "") : tempElement.textContent;
+            } else if (tempElement.querySelector('.img, [data-type="inline-math"]')) {
+                textPlain = "";
+                tempElement.childNodes.forEach((item: Element) => {
+                    if (item.nodeType === 3) {
+                        textPlain += item.textContent;
+                    } else if (item.nodeType === 1 &&
+                        (item.classList.contains("img") || item.getAttribute("data-type") === "inline-math")) {
+                        textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
+                    } else {
+                        textPlain += item.textContent;
+                    }
+                });
             } else if (!hasClosestByTag(range.startContainer, "CODE")) {
                 textPlain = range.toString();
             }

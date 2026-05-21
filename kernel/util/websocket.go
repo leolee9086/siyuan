@@ -17,12 +17,14 @@
 package util
 
 import (
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/88250/gulu"
 	"github.com/olahol/melody"
 	"github.com/siyuan-note/eventbus"
+	"github.com/siyuan-note/logging"
 )
 
 var (
@@ -107,11 +109,25 @@ func SessionsByType(typ string) (ret []*melody.Session) {
 }
 
 func AddPushChan(session *melody.Session) {
-	appID := session.Request.URL.Query().Get("app")
+	appID := strings.TrimSpace(session.Request.URL.Query().Get("app"))
+	if "" == appID {
+		logging.LogErrorf("app id is required")
+		return
+	}
 	session.Set("app", appID)
-	id := session.Request.URL.Query().Get("id")
+
+	id := strings.TrimSpace(session.Request.URL.Query().Get("id"))
+	if "" == id {
+		logging.LogErrorf("id is required")
+		return
+	}
 	session.Set("id", id)
-	typ := session.Request.URL.Query().Get("type")
+
+	typ := strings.TrimSpace(session.Request.URL.Query().Get("type"))
+	if "" == typ {
+		logging.LogErrorf("type is required")
+		return
+	}
 	session.Set("type", typ)
 
 	if IsAuthSession(session) {
@@ -341,10 +357,6 @@ func PushSetRefDynamicText(rootID, blockID, defBlockID, refText string) {
 
 func PushSetDefRefCount(rootID, blockID string, defIDs []string, refCount, rootRefCount int) {
 	BroadcastByType("main", "setDefRefCount", 0, "", map[string]any{"rootID": rootID, "blockID": blockID, "refCount": refCount, "rootRefCount": rootRefCount, "defIDs": defIDs})
-}
-
-func PushLocalShorthandCount(count int) {
-	BroadcastByType("main", "setLocalShorthandCount", 0, "", map[string]any{"count": count})
 }
 
 func PushProtyleLoading(rootID, msg string) {

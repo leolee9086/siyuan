@@ -7,10 +7,11 @@ import { App } from "../index";
 import {
     getSiyuanLanguages,
     getSiyuanConfig,
-    getSiyuanLayout
+    getSiyuanLayout,
 } from "./dock/dock.environment";
 import { isLayout } from "./layout.guard";
 import { LayoutData } from "./dock-utils.types";
+import { adjustDockPadding } from "./dock/util";
 
 /**
  * 将 Dock 元素序列化为 JSON 格式
@@ -63,10 +64,13 @@ export const dockToJSON = (dock: Dock): { pin: boolean; data: Config.IUILayoutDo
  */
 const extractSubDockItems = (dock: Dock, index: number): Config.IUILayoutDockTab[] => {
     const data: Config.IUILayoutDockTab[] = [];
-    const items = dock.element.querySelectorAll(`span[data-index="${index}"]`);
+    const items = dock.elements[index].querySelectorAll(".dock__item");
 
     // 遍历所有 Dock 项，提取其属性和状态
     for (const item of items) {
+        if (!item.getAttribute("data-type")) {
+            continue;
+        }
         const useElement = item.querySelector("use");
         const iconHref = useElement?.getAttribute("xlink:href") || "";
         const heightAttr = item.getAttribute("data-height");
@@ -210,4 +214,5 @@ export const JSONToDock = (json: LayoutData, app: App): void => {
         data: json.bottom,
         app
     });
+    adjustDockPadding();
 };

@@ -4,11 +4,10 @@ import { Model } from "./Model";
 import { Editor } from "../editor";
 import { hasClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
-import { escapeGreat, escapeHtml } from "../util/DOM/escape";
+import { escapeLessThans, escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
 import { fetchPost } from "../util/network/fetch";
 import { hideTooltip, showTooltip } from "../dialog/tooltip";
-import { isTouchDevice } from "../util/platform/functions";
 import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
 import { ipcSend } from "../platform/electron/ipcRenderer";
@@ -73,20 +72,15 @@ export class Tab {
                         id
                     }, (response) => {
                         if (!this.headElement.getAttribute("aria-label")) {
-                            showTooltip(escapeGreat(response.data), this.headElement);
+                            showTooltip(escapeLessThans(response.data), this.headElement);
                         }
-                        this.headElement.setAttribute("aria-label", escapeGreat(response.data));
+                        this.headElement.setAttribute("aria-label", escapeLessThans(response.data));
                     });
                 } else {
-                    this.headElement.setAttribute("aria-label", escapeGreat(this.title));
+                    this.headElement.setAttribute("aria-label", escapeLessThans(this.title));
                 }
             });
             this.headElement.addEventListener("dragstart", (event: DragEvent & { target: HTMLElement }) => {
-                if (isTouchDevice()) {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    return;
-                }
                 window.getSelection().removeAllRanges();
                 hideTooltip();
                 const tabElement = hasClosestByTag(event.target, "LI");
@@ -101,7 +95,7 @@ export class Tab {
                     acquireIframeInteractionLock();
                 }
                 if (isElectron) {
-                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "removeRegionStyle" });
+                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "addRegionStyle" });
                 }
             });
             this.headElement.addEventListener("dragend", (event: DragEvent & { target: HTMLElement }) => {

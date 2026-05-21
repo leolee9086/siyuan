@@ -933,10 +933,10 @@ func ExportMarkdownHTML(id, savePath string, docx, merge bool) (name, dom string
 
 	// 只复制图标文件夹中的 icon.js 文件
 	iconName := Conf.Appearance.Icon
-	// 如果使用的不是内建图标（ant 或 material），需要复制 material 作为后备
-	if iconName != "ant" && iconName != "material" && iconName != "" {
-		srcIconFile := filepath.Join(appearancePath, "icons", "material", "icon.js")
-		toIconDir := filepath.Join(savePath, "appearance", "icons", "material")
+	// 如果使用的不是内建图标（litheness），需要复制 litheness 作为后备
+	if iconName != "litheness" && iconName != "" {
+		srcIconFile := filepath.Join(appearancePath, "icons", "litheness", "icon.js")
+		toIconDir := filepath.Join(savePath, "appearance", "icons", "litheness")
 		if err := os.MkdirAll(toIconDir, 0755); err != nil {
 			logging.LogErrorf("mkdir [%s] failed: %s", toIconDir, err)
 			return
@@ -977,6 +977,7 @@ func ExportMarkdownHTML(id, savePath string, docx, merge bool) (name, dom string
 
 	luteEngine := NewLute()
 	luteEngine.SetFootnotes(true)
+	luteEngine.SetExportNormalizeTaskListMarker(true)
 
 	ast.Walk(tree.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
@@ -1129,10 +1130,10 @@ func ExportHTML(id, savePath string, pdf, keepFold, merge bool) (name, dom strin
 
 		// 只复制图标文件夹中的 icon.js 文件
 		iconName := Conf.Appearance.Icon
-		// 如果使用的不是内建图标（ant 或 material），需要复制 material 作为后备
-		if iconName != "ant" && iconName != "material" && iconName != "" {
-			srcIconFile := filepath.Join(appearancePath, "icons", "material", "icon.js")
-			toIconDir := filepath.Join(savePath, "appearance", "icons", "material")
+		// 如果使用的不是内建图标（litheness），需要复制 litheness 作为后备
+		if iconName != "litheness" && iconName != "" {
+			srcIconFile := filepath.Join(appearancePath, "icons", "litheness", "icon.js")
+			toIconDir := filepath.Join(savePath, "appearance", "icons", "litheness")
 			if err := os.MkdirAll(toIconDir, 0755); err != nil {
 				logging.LogErrorf("mkdir [%s] failed: %s", toIconDir, err)
 				return
@@ -2291,6 +2292,7 @@ func exportMarkdownContent0(id string, tree *parse.Tree, cloudAssetsBase string,
 	luteEngine := NewLute()
 	luteEngine.SetFootnotes(true)
 	luteEngine.SetKramdownIAL(false)
+	luteEngine.SetExportNormalizeTaskListMarker(true)
 	if "" != cloudAssetsBase {
 		luteEngine.RenderOptions.LinkBase = cloudAssetsBase
 	}
@@ -3383,6 +3385,7 @@ func exportPandocConvertZip(baseFolderName string, docPaths, defBlockIDs []strin
 
 	assetsOldNew, assetsNewOld := map[string]string{}, map[string]string{}
 	luteEngine := util.NewLute()
+	luteEngine.SetExportNormalizeTaskListMarker(true)
 	for i, p := range docPaths {
 		rootID := util.GetTreeID(p)
 		tree, md, isEmpty := exportMarkdownContent(rootID, ext, exportRefMode, defBlockIDs, false)

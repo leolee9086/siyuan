@@ -32,6 +32,14 @@ import { getSiyuanGlobalMenusMenu } from "./imports";
 import { siyuanI18n } from "./imports";
 /** 用途：菜单项构造器；使用范围：标签菜单各动作项创建；解耦评估：组件能力集中维护，业务层只拼装配置。 */
 import { MenuItem } from "./imports";
+/** 用途：生成标签联想列表；使用范围：标签输入时显示匹配标签；解耦评估：标签列表逻辑独立封装。 */
+import { genTagList } from "./imports";
+/** 用途：定位浮动元素；使用范围：标签联想列表定位；解耦评估：定位逻辑已封装为通用工具。 */
+import { setPosition } from "./imports";
+/** 用途：键盘上下键导航；使用范围：标签联想列表键盘导航；解耦评估：导航逻辑独立封装。 */
+import { upDownHint } from "./imports";
+/** 用途：查找 class 祖先；使用范围：标签联想列表点击事件；解耦评估：DOM 工具复用。 */
+import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
 
 /**
  * 作用：把输入框值安全写回标签节点。
@@ -320,23 +328,89 @@ const 追加标签菜单动作项 = (
 /** @同步豁免: 需要绝对同步的DOM访问 */
 export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     getSiyuanGlobalMenusMenu().remove();
-    getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_INLINE_TAG);
-
     const nodeElement = hasClosestBlock(tagElement);
     if (!nodeElement) {
         return;
     }
+    const oldHTML = nodeElement.outerHTML;
+    const id = nodeElement.getAttribute("data-node-id");
+    let inputElement: HTMLInputElement;
+    getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_INLINE_TAG);
+    getSiyuanGlobalMenusMenu().removeCB = () => {
+        tagElement.innerHTML = Constants.ZWSP + Lute.EscapeHTMLStr(inputElement.value || "");
+        if (!inputElement.value) {
+            tagElement.insertAdjacentHTML("afterend", "<wbr>");
+            tagElement.remove();
+            focusByWbr(nodeElement, protyle.toolbar.range);
+        } else {
+            protyle.toolbar.range.selectNodeContents(tagElement);
+            protyle.toolbar.range.collapse(false);
+            focusByRange(protyle.toolbar.range);
+        }
+        if (nodeElement.outerHTML !== oldHTML) {
+            nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+        }
+    };
 
     hideElements(["util", "toolbar", "hint"], protyle);
-    const id = nodeElement.getAttribute("data-node-id");
     const htmlState = { value: nodeElement.outerHTML };
 
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "tag",
         iconHTML: "",
         type: "readonly",
-        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">`,
-        bind: 绑定标签输入框.bind(null, protyle, id, nodeElement, htmlState, tagElement)
+        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">
+<div class="fn__none b3-list fn__flex-1 b3-list--background protyle-hint" style="position: fixed"></div>`,
+        bind(element) {
+            const listElement = element.querySelector(".b3-list") as HTMLElement;
+            inputElement = element.querySelector("input");
+            inputElement.value = tagElement.textContent.replace(Constants.ZWSP, "");
+            inputElement.addEventListener("compositionend", () => {
+                genTagList(listElement, inputElement.value.trim());
+                setPosition(listElement, inputElementRect.right + 8, inputElementRect[isMobile ? "bottom" : "top"], inputElementRect.height);
+            });
+            inputElement.addEventListener("input", (event: KeyboardEvent) => {
+                if (!event.isComposing) {
+                    listElement.classList.remove("fn__none");
+                    genTagList(listElement, inputElement.value.trim());
+                    setPosition(listElement, inputElementRect.right + 8, inputElementRect[isMobile ? "bottom" : "top"], inputElementRect.height);
+                }
+            });
+            inputElement.addEventListener("keydown", (event) => {
+                event.stopPropagation();
+                if (event.isComposing) {
+                    return;
+                }
+                if (event.key === "Enter" || event.key === "Escape") {
+                    if (!listElement.classList.contains("fn__none")) {
+                        listElement.classList.add("fn__none");
+                        if (event.key === "Enter") {
+                            const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
+                            inputElement.value = currentElement.dataset.type === "new" ? currentElement.querySelector("mark").textContent.trim() : currentElement.textContent.trim();
+                        }
+                        return;
+                    }
+                    if (event.key === "Escape") {
+                        getSiyuanGlobalMenusMenu().removeCB = null;
+                    }
+                    getSiyuanGlobalMenusMenu().remove();
+                    event.preventDefault();
+                } else {
+                    electronUndo(event);
+                    upDownHint(listElement, event);
+                }
+            });
+            listElement.addEventListener("click", (event) => {
+                const target = event.target as HTMLElement;
+                const listItemElement = hasClosestByClassName(target, "b3-list-item");
+                if (!listItemElement) {
+                    return;
+                }
+                inputElement.value = listItemElement.dataset.type === "new" ? listItemElement.querySelector("mark").textContent.trim() : listItemElement.textContent.trim();
+                listElement.classList.add("fn__none");
+            });
+        }
     }).element);
 
     追加标签菜单动作项(protyle, id, nodeElement, tagElement);
@@ -344,9 +418,6 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     触发插件扩展菜单(protyle, tagElement);
     展示标签菜单(protyle, tagElement);
 
-    const inputElement = getSiyuanGlobalMenusMenu().element.querySelector("input");
-    // 只有输入项存在时才执行 select，避免运行时空节点错误。
-    if (inputElement instanceof HTMLInputElement) {
-        inputElement.select();
-    }
+    inputElement.select();
+    const inputElementRect = inputElement.getBoundingClientRect();
 };

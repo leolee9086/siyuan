@@ -17,8 +17,8 @@ import {
 } from "./dialogHelpers";
 import { IDialogOptions } from "./dialog.types";
 import { isHTMLElement } from "./dialog.guard";
+import { isNotCtrl } from "../protyle/util/compatibility";
 
-// 重新导出接口，保持向后兼容
 export type { IDialogOptions } from "./dialog.types";
 
 export class Dialog {
@@ -35,8 +35,10 @@ export class Dialog {
     private isFullscreen: boolean = false;
     private originalSize: { width: string; height: string; left: string; top: string } | null = null;
     private abortController: AbortController;
+    private resizeCallback: (type: string) => void;
 
     constructor(options: IDialogOptions) {
+        this.resizeCallback = options.resizeCallback;
         this.disableClose = options.disableClose ?? false;
         this.disableScrimClose = options.disableScrimClose ?? false;
         this.disableEscapeClose = options.disableEscapeClose ?? false;
@@ -111,6 +113,15 @@ export class Dialog {
             };
             进入全屏模式(container, this.element);
             this.isFullscreen = true;
+        }
+    }
+
+    public resize() {
+        if (this.resizeCallback) {
+            const containerElement = this.element.querySelector(".b3-dialog__container") as HTMLElement;
+            if (containerElement && containerElement.style.maxWidth !== "none") {
+                this.resizeCallback("l");
+            }
         }
     }
 

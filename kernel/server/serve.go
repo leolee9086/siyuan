@@ -317,8 +317,9 @@ func Serve(fastMode bool, cookieKey string) {
 		}()
 	}
 
+	httpHandler := ginServer.Handler()
 	util.HttpServer = &http.Server{
-		Handler: ginServer,
+		Handler: httpHandler,
 	}
 
 	if useTLS && (util.FixedPort == util.ServerPort || util.IsPortOpen(util.FixedPort)) {

@@ -27,6 +27,7 @@ export class Bookmark extends Model {
         super({
             app,
             id: tab.id,
+            type: "bookmark",
             msgCallback: (data) => {
                 this._处理消息(data);
             }

@@ -184,9 +184,7 @@ export function generatePanelHtml(
     updateHotkeyTip: (hotkey: string) => string
 ): string {
     return `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconFiles"></use></svg>${i18n.fileTree}
-    </div>
+    <div class="block__logo fn__flex-1">${i18n.fileTree}</div>
     <span class="fn__flex-1 fn__space"></span>
     <span data-type="focus" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${i18n.selectOpen1}${updateHotkeyTip(config.keymap.general.selectOpen1.custom)}"><svg><use xlink:href='#iconFocus'></use></svg></span>
     <span class="fn__space"></span>

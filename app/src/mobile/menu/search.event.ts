@@ -19,7 +19,7 @@ import {
 } from "../../search/assets";
 import {addClearButton} from "../../util/DOM/addClearButton";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
-import {getDefaultType} from "../../search/getDefault";
+import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
 import {
     saveKeyList,
     toggleReplaceHistory,
@@ -151,6 +151,7 @@ export const initSearchEvent = (
                         r: "",
                         page: 1,
                         types: getDefaultType(),
+                        subTypes: getDefaultSubType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
                     }, config, updateSearchResult);
                 }
@@ -200,7 +201,7 @@ export const initSearchEvent = (
                     config.hPath = response.data[0];
                     const searchPathElement = element.querySelector("#searchPath");
                     searchPathElement.classList.remove("fn__none");
-                    searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(config.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconCloseRound"></use></svg></div>`;
+                    searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(config.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconClose"></use></svg></div>`;
 
                     const includeElement = element.querySelector('[data-type="include"]');
                     includeElement.classList.remove("toolbar__icon--active");
@@ -234,7 +235,7 @@ export const initSearchEvent = (
 
                             const searchPathElement = element.querySelector("#searchPath");
                             searchPathElement.classList.remove("fn__none");
-                            searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(config.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconCloseRound"></use></svg></div>`;
+                            searchPathElement.innerHTML = `<div class="b3-chip b3-chip--middle">${escapeHtml(config.hPath)}<svg data-type="remove-path" class="b3-chip__close"><use xlink:href="#iconClose"></use></svg></div>`;
 
                             const includeElement = element.querySelector('[data-type="include"]');
                             includeElement.classList.add("toolbar__icon--active");
@@ -297,6 +298,7 @@ export const initSearchEvent = (
                         r: "",
                         page: 1,
                         types: getDefaultType(),
+                        subTypes: getDefaultSubType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
                     }, config, updateSearchResult);
                     element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");

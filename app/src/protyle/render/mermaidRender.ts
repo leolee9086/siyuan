@@ -154,7 +154,7 @@ async function renderSingleMermaidElement(
                 (_match, attrName) => `${attrName}="about:blank"`
             );
             svg = window.DOMPurify.sanitize(svg, {
-                USE_PROFILES: { svg: true, svgFilters: true },
+                USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
                 ADD_TAGS: ["foreignObject", "use", "style"],
                 ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
                 // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空

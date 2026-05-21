@@ -17,14 +17,15 @@ export function genFileHTML(item: IFile, editingPublishAccess: boolean) {
     if (item.count && item.count > 0) {
         countHTML = `<span class="counter">${item.count}</span>`;
     }
+    const paddingLeft = (item.path.split("/").length - 1) * 20;
     return `<li data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" data-type="navigation-file"
-class="b3-list-item" data-path="${item.path}">
-    <span style="padding-left: ${(item.path.split("/").length - 1) * 20}px" class="b3-list-item__toggle${item.subFileCount === 0 ? " fn__hidden" : ""}">
+class="b3-list-item" data-path="${item.path}" style="--file-toggle-width:${paddingLeft + 20}px" >
+    <span style="padding-left: ${paddingLeft}px" class="b3-list-item__toggle${item.subFileCount === 0 ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     <span class="b3-list-item__icon"${editingPublishAccess ? " fn__none" : ""}>${unicode2Emoji(item.icon || (item.subFileCount === 0 ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder))}</span>
     <span class="b3-list-item__switch${editingPublishAccess ? "" : " fn__none"}">${getPublishAccessOptionByLevel("public").iconHTML}</span>
-    <span class="b3-list-item__text">${getDisplayName(item.name, true, true)}</span>
+    <span class="b3-list-item__text">${getDisplayName(Lute.EscapeHTMLStr(item.name), true, true)}</span>
     <span data-type="more-file" class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
     </span>

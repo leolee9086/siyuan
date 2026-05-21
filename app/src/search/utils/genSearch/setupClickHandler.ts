@@ -239,7 +239,7 @@ export function setupClickHandler(
 ): void {
     const listenerState: IClickListenerState = {
         clickTimeout: 0,
-        lastClickTime: new Date().getTime(),
+        lastClickTime: Date.now(),
     };
     const clickListener = createClickListener(ui, state, callbacks, listenerState);
     ui.element.addEventListener("click", clickListener, false);

@@ -5,7 +5,7 @@
  * 这些函数从Files.ts中提取出来，以提高代码的可维护性和可测试性。
  */
 
-import { escapeGreat } from "../../../util/DOM/escape";
+import { escapeLessThans } from "../../../util/DOM/escape";
 import { setNoteBook } from "../../../util/file/pathName";
 import { Constants } from "../../../constants";
 import { isStringArray, isHTMLElement } from "./wsHandlers.guard";
@@ -46,7 +46,7 @@ export const handleUpdateDocInfo = (
     
     liElement.setAttribute("data-count", data.data?.subFileCount ?? "0");
     const ariaLabelElement = liElement.querySelector(".ariaLabel");
-    ariaLabelElement?.setAttribute("aria-label", genDocAriaLabel(data.data, escapeGreat));
+    ariaLabelElement?.setAttribute("aria-label", genDocAriaLabel(data.data, escapeLessThans));
     
     const toggleElement = liElement.querySelector(".b3-list-item__toggle");
     // 没有子文件时隐藏展开箭头，有子文件时显示

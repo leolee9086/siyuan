@@ -70,6 +70,8 @@ Blok düzeyinde referansları ve Markdown WYSIWYG düzenlemeyi destekler.
 
 Daha fazla bilgi için [SiYuan İngilizce Tartışma Forumu](https://liuyun.io)’na katılabilirsin.
 
+Çevrimiçi kullanıcı rehberi: [English](https://siyuan-en.b3log.org/)
+
 ![feature0.png](https://b3logfile.com/file/2025/11/feature0-GfbhEqf.png)
 
 ![feature51.png](https://b3logfile.com/file/2025/11/feature5-1-7DJSfEP.png)
@@ -322,7 +324,7 @@ Publish parameters: --accessAuthCode=******(Access authorization code)
 <details>
 <summary>TrueNAS Dağıtım Dokümanı</summary>
 
-Not: Önce TrueNAS Shell'te aşağıdaki komutları çalıştırın. Lütfen `Pool_1/Apps_Data/siyuan` yolunu uygulamanızın dataset'ine göre güncelleyin。
+Not: Önce TrueNAS Shell'te aşağıdaki komutları çalıştırın. Lütfen `Pool_1/Apps_Data/siyuan` yolunu uygulamanızın dataset'ine göre güncelleyin.
 
 ```shell
 zfs create Pool_1/Apps_Data/siyuan
@@ -332,7 +334,7 @@ chmod 755 /mnt/Pool_1/Apps_Data/siyuan
 
 Apps --> DiscoverApps --> More Options (sağ üst, Custom App hariç) --> YAML ile Yükle bölümüne gidin
 
-Şablon örneği：
+Şablon örneği:
 
 ```yaml
 services:
@@ -343,10 +345,10 @@ services:
     ports:
       - 6806:6806
     volumes:
-      - /mnt/Pool_1/Apps_Data/siyuan:/siyuan/workspace  # Adjust to your dataset path 
+      - /mnt/Pool_1/Apps_Data/siyuan:/siyuan/workspace  # Veri kümesi yolunuza göre ayarlayın
     restart: unless-stopped
     environment:
-      - TZ=America/Los_Angeles  # Replace with your timezone if needed
+      - TZ=America/Los_Angeles  # Gerekirse kendi saat diliminizle değiştirin
       - PUID=1001
       - PGID=1002
 ```

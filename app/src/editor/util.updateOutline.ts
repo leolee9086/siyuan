@@ -97,6 +97,9 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
      */
     if (protyle && protyle.block) {
         blockId = protyle.block.rootID || "";
+        if (!blockId && reload && item.type === "local") {
+            blockId = item.blockId;
+        }
     }
     const isPreview = false;
 

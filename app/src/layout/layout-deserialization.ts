@@ -4,6 +4,7 @@
  * @同步豁免: 遗留代码 - 此模块从 util.ts 迁移，保持原有同步行为以确保兼容性
  */
 import { App } from "../index";
+import { Constants } from "../constants";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
@@ -11,7 +12,7 @@ import { Model } from "./Model";
 import { afterLoadPlugin } from "../plugin/loader";
 import { saveLayout } from "./layout-serialization";
 import { JSONToDock } from "./dock-utils";
-import { resizeTopBar } from "./ui-utils";
+import { setTabPosition } from "./tabUtil";
 import {
     handleLayoutInstance,
     handleWndInstance,
@@ -201,5 +202,7 @@ export const JSONToLayout = (app: App, isStart: boolean): void => {
     }
     // 保存布局并调整顶栏
     saveLayout();
-    resizeTopBar();
+    setTimeout(() => {
+        setTabPosition();
+    }, Constants.TIMEOUT_TRANSITION);
 };

@@ -17,7 +17,7 @@ import {Menu} from "./Menu";
  * @使用范围: addManageMenuItem 函数
  * @解耦评估: 工具函数，通过 imports 转发
  */
-import {isHuawei} from "./imports";
+import {isHuawei, setTabPosition} from "./imports";
 
 /**
  * @导入用途: 存储值设置，用于保存固定/取消固定状态
@@ -70,7 +70,7 @@ export const addManageMenuItem = (menu: Menu, app: App, languages: Record<string
         /** @同步豁免: UI构建 */
         click() {
             const settingDialog = openSetting(app);
-            const bazaarTab = settingDialog?.element.querySelector('.b3-tab-bar [data-name="bazaar"]');
+            const bazaarTab = settingDialog?.element.querySelector('.config__side [data-name="bazaar"]');
             bazaarTab?.dispatchEvent(new CustomEvent("click"));
         }
     });
@@ -106,6 +106,7 @@ export const createPinUnpinSubmenu = (item: Element, hasUnpin: boolean, language
                 currentStorage[Constants.LOCAL_PLUGINTOPUNPIN] = Array.from(new Set(unpinStorage));
                 item.classList.add("fn__none");
                 setStorageVal(Constants.LOCAL_PLUGINTOPUNPIN, currentStorage[Constants.LOCAL_PLUGINTOPUNPIN]);
+                setTabPosition(true);
                 return;
             }
             
@@ -116,6 +117,7 @@ export const createPinUnpinSubmenu = (item: Element, hasUnpin: boolean, language
             }
             item.classList.remove("fn__none");
             setStorageVal(Constants.LOCAL_PLUGINTOPUNPIN, currentStorage[Constants.LOCAL_PLUGINTOPUNPIN]);
+            setTabPosition(true);
         }
     };
 };

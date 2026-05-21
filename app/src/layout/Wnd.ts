@@ -3,7 +3,6 @@ import { genUUID } from "../util/platform/genID";
 import {
     fixWndFlex1,
     pdfIsLoading,
-    switchWnd,
 } from "./util";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { Tab } from "./Tab";
@@ -182,26 +181,25 @@ export class Wnd {
         wndMoveTab(this, tab, nextId);
     }
 
-    public split(direction: Config.TUILayoutDirection) {
+    public split(direction: Config.TUILayoutDirection, after = true) {
         if (this.children.length === 1 && !this.children[0].headElement) {
-            // 场景：没有打开的文档，点击标签面板打开
             return this;
         }
         recordBeforeResizeTop();
         const wnd = new Wnd(this.app, direction);
         if (direction === this.parent.direction) {
-            this.parent.addWnd(wnd, this.id);
+            this.parent.addWnd(wnd, this.id, after);
         } else if (this.parent.children.length === 1) {
-            // layout 仅含一个时，只需更新 direction
             this.parent.direction = direction;
             if (direction === "tb") {
                 this.parent.element.classList.add("fn__flex-column");
+                this.parent.element.style.minHeight = "8px";
                 this.parent.element.classList.remove("fn__flex");
             } else {
                 this.parent.element.classList.remove("fn__flex-column");
                 this.parent.element.classList.add("fn__flex");
             }
-            this.parent.addWnd(wnd, this.id);
+            this.parent.addWnd(wnd, this.id, after);
         } else {
             this.parent.children.find((item, index) => {
                 if (item.id === this.id) {
@@ -209,14 +207,23 @@ export class Wnd {
                         resize: item.resize,
                         direction,
                     });
-                    this.parent.addLayout(layout, item.id);
-                    const movedWnd = this.parent.children.splice(index, 1)[0];
+                    this.parent.addLayout(layout, item.id, after);
+                    const movedWnd = this.parent.children.splice(after ? index : index + 1, 1)[0];
                     if (movedWnd.resize) {
-                        movedWnd.element.previousElementSibling.remove();
+                        if (movedWnd.element.previousElementSibling && movedWnd.element.previousElementSibling.classList.contains("layout__resize")) {
+                            movedWnd.element.previousElementSibling.remove();
+                        } else if (movedWnd.element.nextElementSibling && movedWnd.element.nextElementSibling.classList.contains("layout__resize")) {
+                            movedWnd.element.nextElementSibling.remove();
+                        }
                         movedWnd.resize = undefined;
                     }
-                    layout.addWnd.call(layout, movedWnd);
-                    layout.addWnd.call(layout, wnd);
+                    if (after) {
+                        layout.addWnd.call(layout, movedWnd);
+                        layout.addWnd.call(layout, wnd);
+                    } else {
+                        layout.addWnd.call(layout, wnd);
+                        layout.addWnd.call(layout, movedWnd);
+                    }
 
                     if (direction === "tb" && movedWnd.element.style.width) {
                         layout.element.style.width = movedWnd.element.style.width;

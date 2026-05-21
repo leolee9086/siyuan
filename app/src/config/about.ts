@@ -2,14 +2,13 @@ import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import { ipcSend, ipcInvoke } from "../platform/electron/ipcRenderer";
 import { openExternal } from "../platform/electron/shell";
-// S-forge: 统一i18n访问层
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
 import { setAccessAuthCode } from "./util/about";
 import { exportLayout } from "../layout/util";
 import { exitSiYuan, processSync } from "../dialog/processSystem";
-import { isInMobileApp, isIPad, isMac, openByMobile, writeText } from "../protyle/util/compatibility";
+import { isInMobileApp, isIPad, isMac, saveExportFile, writeText } from "../protyle/util/compatibility";
 import { showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { confirmDialog } from "../dialog/confirmDialog";
@@ -59,7 +58,7 @@ export const about = {
     <div class="fn__space"></div>
     <input class="b3-switch fn__flex-center" id="downloadInstallPkg" type="checkbox"${window.siyuan.config.system.downloadInstallPkg ? " checked" : ""}>
 </label>
-<div class="b3-label${isBrowser() ? " fn__none" : ""}">
+<div class="b3-label${(isBrowser() && !isInMobileApp() && !isIPad()) ? " fn__none" : ""}">
     <label class="fn__flex config__item">
         <div class="fn__flex-1">
             ${siyuanI18n.about11}
@@ -327,7 +326,7 @@ ${checkUpdateHTML}
         });
         about.element.querySelector("#exportLog").addEventListener("click", () => {
             fetchPost("/api/system/exportLog", {}, (response) => {
-                openByMobile(response.data.zip);
+                saveExportFile(response.data.zip);
             });
         });
         const updateElement = about.element.querySelector("#checkUpdateBtn");
@@ -471,12 +470,12 @@ ${checkUpdateHTML}
         });
         about.element.querySelector("#exportCACert")?.addEventListener("click", () => {
             fetchPost("/api/system/exportTLSCACert", {}, (response) => {
-                openByMobile(response.data.path);
+                saveExportFile(response.data.path);
             });
         });
         about.element.querySelector("#exportCABundle")?.addEventListener("click", () => {
             fetchPost("/api/system/exportTLSCABundle", {}, (response) => {
-                openByMobile(response.data.path);
+                saveExportFile(response.data.path);
             });
         });
         about.element.querySelector("#importCABundle")?.addEventListener("click", () => {

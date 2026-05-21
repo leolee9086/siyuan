@@ -10,8 +10,6 @@ import { setRefDynamicText } from "../../dialog/processSystem/setRefDynamicText"
 import {App} from "../../index";
 import {reloadPlugin} from "../../plugin/loader";
 import {reloadEmoji} from "../../emoji";
-import {setLocalShorthandCount} from "../../util/platform/noRelyPCFunction";
-import {updateControlAlt} from "../../protyle/util/hotKey";
 import {renderSnippet} from "../../config/util/snippets";
 import {redirectToCheckAuth} from "../../util/file/pathName";
 
@@ -67,7 +65,6 @@ export const onMessage = (app: App, data: IWebSocketData) => {
                 break;
             case "setConf":
                 window.siyuan.config = data.data;
-                updateControlAlt();
                 break;
             case "setPublish":
                 window.siyuan.config.publish = data.data;

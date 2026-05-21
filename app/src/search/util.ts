@@ -1,6 +1,6 @@
 import { getAllModels } from "../layout/getAll";
 import { Constants } from "../constants";
-import { escapeGreat, escapeHtml } from "../util/DOM/escape";
+import { escapeHtml } from "../util/DOM/escape";
 import { fetchPost } from "../util/network/fetch";
 import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
@@ -51,6 +51,7 @@ export const openGlobalSearch = (app: App, text: string, replace: boolean, searc
             group: localData.group,
             sort: localData.sort,
             types: Object.assign({}, localData.types),
+            subTypes: Object.assign({}, localData.subTypes),
             replaceTypes: Object.assign({}, localData.replaceTypes),
             removed: localData.removed,
             page: 1
@@ -157,7 +158,7 @@ export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchCo
     }
     const searchPathInputElement = element.querySelector("#searchPathInput");
     if (item.hPath) {
-        searchPathInputElement.innerHTML = `${escapeGreat(item.hPath)}<svg class="search__rmpath"><use xlink:href="#iconCloseRound"></use></svg>`;
+        searchPathInputElement.innerHTML = `${escapeHtml(item.hPath)}<svg class="search__rmpath"><use xlink:href="#iconCloseRound"></use></svg>`;
         searchPathInputElement.setAttribute("aria-label", escapeHtml(item.hPath));
     } else {
         searchPathInputElement.innerHTML = "";
@@ -279,6 +280,7 @@ export const getArticle = (options: {
                 query: options.value || null,
                 queryMethod: options.config?.method || null,
                 queryTypes: options.config?.types || null,
+                querySubTypes: options.config?.subTypes || null,
                 mode: zoomIn ? 0 : 3,
                 size: zoomIn ? Constants.SIZE_GET_MAX : window.siyuan.config.editor.dynamicLoadBlocks,
                 zoom: zoomIn,
@@ -291,6 +293,7 @@ export const getArticle = (options: {
                     key: options.value || null,
                     method: options.config?.method || null,
                     types: options.config?.types || null,
+                    subTypes: options.config?.subTypes || null,
                 };
                 onGet({
                     updateReadonly: true,
@@ -369,6 +372,7 @@ export const replace = (element: Element, config: Config.IUILayoutTabSearchConfi
         r: replaceInputElement.value,
         method: config.method,
         types: config.types,
+        subTypes: config.subTypes,
         paths: config.idPath || [],
         groupBy: config.group,
         orderBy: config.sort,

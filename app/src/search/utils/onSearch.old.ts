@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
 import { Protyle } from "../../protyle";
-import { escapeAriaLabel, escapeGreat, escapeHtml } from "../../util/DOM/escape";
+import { escapeAriaLabel, escapeLessThans, escapeHtml } from "../../util/DOM/escape";
 import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getAttr, getArticle } from "../util";
@@ -25,7 +25,7 @@ export const onSearch = (data: IBlock[], edit: Protyle, element: Element, config
     <svg class="b3-list-item__arrow b3-list-item__arrow--open"><use xlink:href="#iconRight"></use></svg>
 </span>
 ${unicode2Emoji(getNotebookIcon(item.box) || window.siyuan.storage[Constants.LOCAL_IMAGES].note, "b3-list-item__graphic", true)}
-<span class="b3-list-item__text ariaLabel" style="color: var(--b3-theme-on-surface)" aria-label="${escapeAriaLabel(title)}">${escapeGreat(title)}</span>
+<span class="b3-list-item__text ariaLabel" style="color: var(--b3-theme-on-surface)" aria-label="${escapeAriaLabel(title)}">${escapeLessThans(title)}</span>
 </div><div>`;
             item.children.forEach((childItem) => {
                 if (focusId) {
@@ -67,7 +67,7 @@ ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
 <span class="b3-list-item__text">${item.content}</span>
 ${getAttr(item)}
 ${item.tag ? `<span class="b3-list-item__meta b3-list-item__meta--ellipsis">${item.tag.replace(/#/g, "")}</span>` : ""}
-<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(title)}">${escapeGreat(title)}</span>
+<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(title)}">${escapeLessThans(title)}</span>
 ${countHTML}
 </div>`;
         }

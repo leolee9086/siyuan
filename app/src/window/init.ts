@@ -3,7 +3,7 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
 import { fetchPost } from "../util/network/fetch";
 import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
-import { resizeTabs } from "../layout/tabUtil";
+import { resizeTabs, setTabPosition } from "../layout/tabUtil";
 import { initStatus } from "../layout/status";
 import { appearance } from "../config/appearance";
 import { initAssets, setInlineStyle } from "../util/assets/assets";
@@ -67,13 +67,14 @@ const resize = () => {
     if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         for (const item of getAllEditor()) {
-            // 判断选区是否位于当前编辑器内：找到包含选区的编辑器实例
-            // 确保只更新当前活跃编辑器的工具栏位置
             if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
                 item.protyle.toolbar?.render(item.protyle, range);
             }
         }
     }
+    window.siyuan.dialogs.forEach(item => {
+        item.resize();
+    });
 };
 
 /**
@@ -107,10 +108,14 @@ const handleWindowResize = (resizeTimeoutRef: { value: number }) => {
 export const init = async (app: App) => {
     const storage = getSiyuanStorage();
     setZoomFactor(storage[Constants.LOCAL_ZOOM]);
+    const position = Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position;
+    if (position && getSiyuanConfig().appearance.hideToolbar) {
+        position.y += 5;
+    }
     ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
         zoom: storage[Constants.LOCAL_ZOOM],
-        position: Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position
+        position
     });
     initWindowEvent(app);
     fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
@@ -158,4 +163,7 @@ const afterLayout = (app: App) => {
             tab.parent.switchTab(item, false, false);
         }
     }
+    setTimeout(() => {
+        setTabPosition();
+    }, Constants.TIMEOUT_TRANSITION);
 };

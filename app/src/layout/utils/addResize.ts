@@ -5,7 +5,7 @@ import { hideElements } from "../../protyle/ui/hideElements";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { isWindow } from "../../util/platform/functions";
 import { getAllModels } from "../getAll";
-import { resizeTabs } from "../tabUtil";
+import { resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustLayout } from "../util";
 import { Wnd } from "../Wnd";
 import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./iframeInteractionLock";
@@ -133,6 +133,7 @@ const handleResizeMouseUp = (
     documentSelf.onselect = null;
     const layout = getSiyuanLayout();
     adjustLayout(isWindow() ? layout.centerLayout : undefined);
+    setTabPosition(true);
     resizeTabs();
     if (!isWindow()) {
         layout.leftDock?.setSize();
@@ -154,6 +155,7 @@ const handleResizeMouseUp = (
  * 调用时机：当用户在 resize 句柄上按下鼠标时触发。
  */
 const onResizeMouseDown = (event: MouseEvent, resizeElement: HTMLElement, direction: string) => {
+    event.preventDefault();
     const editors = getAllModels().editor;
     for (const item of editors) {
         if (item.editor && item.editor.protyle && item.element.parentElement) {
@@ -290,7 +292,7 @@ const onResizeDblClick = (resizeElement: HTMLElement) => {
  * 意图：在 DOM 中插入 resize 分割线，并绑定交互事件，使界面可调整大小。
  * 调用时机：布局初始化或创建新窗口/分割时。
  */
-export const addResize = (obj: Layout | Wnd) => {
+export const addResize = (obj: Layout | Wnd, after = true) => {
     const resize = obj.resize;
     if (!resize) {
         return;
@@ -301,7 +303,12 @@ export const addResize = (obj: Layout | Wnd) => {
         resizeElement.classList.add("layout__resize--lr");
     }
     resizeElement.classList.add("layout__resize");
-    obj.element.insertAdjacentElement("beforebegin", resizeElement);
+    if (after) {
+        obj.element.insertAdjacentElement((obj.element.previousElementSibling && !obj.element.previousElementSibling.classList.contains("layout__resize")) ?
+            "beforebegin" : "afterend", resizeElement);
+    } else {
+        obj.element.insertAdjacentElement("afterend", resizeElement);
+    }
 
     resizeElement.addEventListener("mousedown", (event: MouseEvent) => {
         onResizeMouseDown(event, resizeElement, resize);

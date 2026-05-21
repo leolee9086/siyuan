@@ -161,6 +161,7 @@ function executeMergeCell(
             selectCellElements[0].colSpan = colSpan;
             selectCellElements[0].rowSpan = rowSpan;
             focusByWbr(selectCellElements[0], document.createRange());
+            document.execCommand("insertHTML", false, "");
             updateTransaction(protyle, tableBlockElement.getAttribute("data-node-id"), tableBlockElement.outerHTML, oldHTML);
         }
     });

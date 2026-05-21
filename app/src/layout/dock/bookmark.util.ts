@@ -18,9 +18,7 @@ export const shouldReloadBookmark = (item: IOperation) => {
 export const getBookmarkPanelHTML = () => {
     const config = getSiyuanConfig();
     return `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconBookmark"></use></svg>${siyuanI18n.bookmark}
-    </div>
+    <div class="block__logo fn__flex-1">${siyuanI18n.bookmark}</div>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>
     <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>

@@ -174,7 +174,10 @@ export function bindInputEvents(
                     input(protyle, blockElement, range, true, event);
                 }, Constants.TIMEOUT_INPUT);
             } else {
-                input(protyle, blockElement, range, true, event);
+                clearTimeout(timeout);
+                timeout = window.setTimeout(() => {
+                    input(protyle, blockElement, range, true, event);
+                });
             }
         }
         event.stopPropagation();

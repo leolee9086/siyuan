@@ -44,7 +44,8 @@ export const EXPORT_KEYS = ["paragraphBeginningSpace", "md4", "export", "export1
 export const APPEARANCE_KEYS = ["language", "language1", "appearance", "appearance1", "appearance2", "appearance3", "appearance4",
     "appearance5", "appearance6", "appearance8", "appearance9", "appearance10", "appearance11", "appearance16",
     "appearance17", "appearance18", "resetLayout", "reset", "icon", "themeLight", "themeDark", "close", "themeOS", "theme",
-    "theme2", "theme11", "theme12", "customEmoji", "customEmojiTip", "refresh"
+    "theme2", "theme11", "theme12", "customEmoji", "customEmojiTip", "refresh",
+    "desktopMode", "desktopModeTip", "mobileModeTip"
 ];
 
 export const SEARCH_KEYS = ["search", "searchLimit", "searchLimit1", "memo", "name", "alias", "keywordsLimit",

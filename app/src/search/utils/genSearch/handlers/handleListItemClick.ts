@@ -67,7 +67,7 @@ function processSearchItemClick(
 
     // 浏览器环境下 iPad 的 detail 不可靠，需用时间差判断单双击
     if (isBrowser && isIPad()) {
-        const newDate = new Date().getTime();
+        const newDate = Date.now();
         isClick = newDate - lastClickTime > Constants.TIMEOUT_DBLCLICK;
         isDblClick = !isClick;
         lastClickTime = newDate;

@@ -2,7 +2,7 @@ import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { Constants } from "../constants";
 import { onMessage } from "./util/onMessage";
 import { genUUID } from "../util/platform/genID";
-import { hasClosestBlock, hasClosestByAttribute, hasTopClosestByClassName } from "../protyle/util/hasClosest";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasTopClosestByClassName } from "../protyle/util/hasClosest";
 import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
 import { Menus } from "../menus";
@@ -11,7 +11,7 @@ import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch"
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets, loadAssets } from "../util/assets/assets";
-import { bootSync, kernelError } from "../dialog/processSystem";
+import { bootSync, kernelError, lockScreen } from "../dialog/processSystem";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { initMessage, showMessage } from "../dialog/message";
 import { goBack } from "./util/MobileBackFoward";
@@ -37,9 +37,9 @@ import { updateCardHV } from "../card/util";
 import { mobileKeydown } from "./util/keydown";
 import { correctHotkey } from "../boot/globalEvent/commonHotkey";
 import { processIOSPurchaseResponse } from "../util/platform/iOSPurchase";
-import { updateControlAlt } from "../protyle/util/hotKey";
 import { nbsp2space } from "../protyle/util/normalizeText";
-import { callMobileAppShowKeyboard, canInput, setWebViewFocusable } from "./util/mobileAppUtil";
+import { hideAllElements } from "../protyle/ui/hideElements";
+import { initTouchDragBridge } from "../util/touchDragBridge";
 import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 
@@ -112,6 +112,9 @@ class App {
                     callMobileAppShowKeyboard();
                 }
             }
+            if (document.contains(event.target) && !hasClosestByClassName(event.target as Element, "protyle-util")) {
+                hideAllElements(["util"]);
+            }
         });
         if (window.JSAndroid && window.JSAndroid.showKeyboard || window.JSHarmony && window.JSHarmony.showKeyboard) {
             const __siyuan_original_focus = HTMLElement.prototype.focus;
@@ -143,7 +146,6 @@ class App {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
             window.siyuan.config = confResponse.data.conf;
-            updateControlAlt();
             window.siyuan.isPublish = confResponse.data.isPublish;
             correctHotkey(siyuanApp);
             await loadPlugins(this);
@@ -184,9 +186,7 @@ class App {
             });
             document.addEventListener("touchstart", handleTouchStart, false);
             document.addEventListener("touchmove", handleTouchMove, false);
-            document.addEventListener("touchend", (event) => {
-                handleTouchEnd(event, siyuanApp);
-            }, false);
+            document.addEventListener("touchend", handleTouchEnd, false);
             window.addEventListener("keyup", () => {
                 window.siyuan.ctrlIsPressed = false;
                 window.siyuan.shiftIsPressed = false;
@@ -215,6 +215,7 @@ class App {
                     }
                 }
             });
+            initTouchDragBridge();
         });
     }
 }
@@ -227,6 +228,11 @@ window.reconnectWebSocket = () => {
     window.siyuan.mobile.docks.file.send("ping", {});
     window.siyuan.mobile.editor.protyle.ws.send("ping", {});
     window.siyuan.mobile.popEditor?.protyle.ws.send("ping", {});
+};
+window.lockscreenByMode = () => {
+    if (window.siyuan.config.system.lockScreenMode === 1) {
+        lockScreen(siyuanApp);
+    }
 };
 window.goBack = goBack;
 window.showMessage = showMessage;

@@ -1,21 +1,28 @@
-import {Constants} from "../../constants";
-import {fetchPost} from "../../util/network/fetch";
-import {exportLayout} from "../../layout/util";
-import {getAllEditor} from "../../layout/getAll";
-import {getDockByType} from "../../layout/tabUtil";
-import {Files} from "../../layout/dock/Files";
-import {isElectron} from "../../platform";
-import {ipcSend} from "../../platform/electron/ipcRenderer";
-import {hideMessage, showMessage} from "../message";
-import {Dialog} from "../index";
-import {isMobile} from "../../util/platform/functions";
-import {confirmDialog} from "../confirmDialog";
-import {escapeHtml} from "../../util/DOM/escape";
-import {needSubscribe} from "../../util/platform/needSubscribe";
-import {hideAllElements} from "../../protyle/ui/hideElements";
-import {saveScroll} from "../../protyle/scroll/saveScroll";
-import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../../protyle/util/compatibility";
-import {Plugin} from "../../plugin";
+export { reloadSync } from "./reloadSync";
+export { setRefDynamicText } from "./setRefDynamicText";
+export { updateTitle } from "./updateTitle";
+export { setTitle } from "./setTitle";
+export { downloadProgress } from "./downloadProgress";
+export { lockScreen } from "./lockScreen";
+
+import { Constants } from "../../constants";
+import { fetchPost } from "../../util/network/fetch";
+import { exportLayout } from "../../layout/util";
+import { getAllEditor } from "../../layout/getAll";
+import { getDockByType } from "../../layout/tabUtil";
+import { Files } from "../../layout/dock/Files";
+import { isElectron } from "../../platform";
+import { ipcSend } from "../../platform/electron/ipcRenderer";
+import { hideMessage, showMessage } from "../message";
+import { Dialog } from "../index";
+import { isMobile } from "../../util/platform/functions";
+import { confirmDialog } from "../confirmDialog";
+import { escapeHtml } from "../../util/DOM/escape";
+import { needSubscribe } from "../../util/platform/needSubscribe";
+import { hideAllElements } from "../../protyle/ui/hideElements";
+import { saveScroll } from "../../protyle/scroll/saveScroll";
+import { isInAndroid, isInHarmony, isInIOS, setStorageVal } from "../../protyle/util/compatibility";
+import { Plugin } from "../../plugin";
 
 export const setDefRefCount = (data: {
     "blockID": string,
@@ -40,10 +47,8 @@ export const setDefRefCount = (data: {
         if (data.rootID === data.blockID) {
             return;
         }
-        // 不能对比 rootId，否则嵌入块中的锚文本无法更新
         editor.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${data.blockID}"]`).forEach(item => {
-            // 不能直接查询，否则列表中会获取到第一个列表项的 attr https://github.com/siyuan-note/siyuan/issues/12738
-            const countElement = item.lastElementChild.querySelector(".protyle-attr--refcount");
+            const countElement = item.lastElementChild?.querySelector(".protyle-attr--refcount");
             if (countElement) {
                 if (data.refCount === 0) {
                     countElement.remove();
@@ -120,12 +125,11 @@ export const kernelError = () => {
 
 export const exitSiYuan = async (setCurrentWorkspace = true) => {
     hideAllElements(["util"]);
-    // 移动端退出前保存滚动位置
     if (isMobile() && window.siyuan.mobile.editor) {
         await saveScroll(window.siyuan.mobile.editor.protyle);
     }
     fetchPost("/api/system/exit", {force: false, setCurrentWorkspace}, (response) => {
-        if (response.code === 1) { // 同步执行失败
+        if (response.code === 1) {
             const msgId = showMessage(response.msg, response.data.closeTimeout, "error");
             const buttonElement = document.querySelector(`#message [data-id="${msgId}"] button`);
             if (buttonElement) {
@@ -150,7 +154,7 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                     });
                 });
             }
-        } else if (response.code === 2) { // 提示新安装包
+        } else if (response.code === 2) {
             hideMessage();
 
             if ("std" === window.siyuan.config.system.container) {
@@ -161,15 +165,12 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                 fetchPost("/api/system/exit", {
                     force: true,
                     setCurrentWorkspace,
-                    execInstallPkg: 2 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
+                    execInstallPkg: 2
                 }, () => {
                     if (isElectron) {
-                        // 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
-                        // 这里先将主界面隐藏
                         setTimeout(() => {
                             ipcSend(Constants.SIYUAN_CMD, "hide");
                         }, 2000);
-                        // 然后等待一段时间后再退出，避免界面主进程退出以后内核子进程被杀死
                         setTimeout(() => {
                             ipcSend(Constants.SIYUAN_QUIT, location.port);
                         }, 4000);
@@ -179,14 +180,14 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                 fetchPost("/api/system/exit", {
                     force: true,
                     setCurrentWorkspace,
-                    execInstallPkg: 1 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
+                    execInstallPkg: 1
                 }, () => {
                     if (isElectron) {
                         ipcSend(Constants.SIYUAN_QUIT, location.port);
                     }
                 });
             });
-        } else { // 正常退出
+        } else {
             if (isElectron) {
                 ipcSend(Constants.SIYUAN_QUIT, location.port);
                 return;
@@ -207,14 +208,17 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
     });
 };
 
-export const transactionError = () => {
+export const transactionError = (msg?: string) => {
     if (document.getElementById("transactionError")) {
         return;
     }
     const dialog = new Dialog({
         disableClose: true,
         title: `${window.siyuan.languages.stateExcepted} v${Constants.SIYUAN_VERSION}`,
-        content: `<div class="b3-dialog__content" id="transactionError">${window.siyuan.languages.rebuildIndexTip}</div>
+        content: `<div class="b3-dialog__content" style="max-height: calc(100vh - 182px)" id="transactionError">
+    ${window.siyuan.languages.rebuildIndexTip}
+    ${msg ? `<div class="fn__hr"></div>${escapeHtml(msg.trim())}` : ""}
+</div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--text">${window.siyuan.languages._kernel[97]}</button>
     <div class="fn__space"></div>
@@ -268,7 +272,6 @@ export const progressLoading = (data: IWebSocketData) => {
         document.body.insertAdjacentHTML("beforeend", `<div id="progress" style="z-index: ${++window.siyuan.zIndex}"></div>`);
         progressElement = document.getElementById("progress");
     }
-    // code 0: 有进度；1: 无进度；2: 关闭
     if (data.code === 2) {
         progressElement.remove();
         return;
@@ -360,15 +363,15 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
         if (data) {
             menuSyncUseElement?.parentElement.classList.remove("fn__rotate");
             barSyncUseElement.parentElement.classList.remove("fn__rotate");
-            if (data.code === 0) {  // syncing
+            if (data.code === 0) {
                 menuSyncUseElement?.parentElement.classList.add("fn__rotate");
                 barSyncUseElement.parentElement.classList.add("fn__rotate");
                 menuSyncUseElement?.setAttribute("xlink:href", "#iconRefresh");
                 barSyncUseElement.setAttribute("xlink:href", "#iconRefresh");
-            } else if (data.code === 2) {    // error
+            } else if (data.code === 2) {
                 menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudError");
                 barSyncUseElement.setAttribute("xlink:href", "#iconCloudError");
-            } else if (data.code === 1) {   // success
+            } else if (data.code === 1) {
                 menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
                 barSyncUseElement.setAttribute("xlink:href", "#iconCloudSucc");
             }
@@ -390,14 +393,14 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
             return;
         }
         iconElement.firstElementChild.classList.remove("fn__rotate");
-        if (data.code === 0) {  // syncing
+        if (data.code === 0) {
             iconElement.classList.add("toolbar__item--active");
             iconElement.firstElementChild.classList.add("fn__rotate");
             useElement.setAttribute("xlink:href", "#iconRefresh");
-        } else if (data.code === 2) {    // error
+        } else if (data.code === 2) {
             iconElement.classList.remove("toolbar__item--active");
             useElement.setAttribute("xlink:href", "#iconCloudError");
-        } else if (data.code === 1) {   // success
+        } else if (data.code === 1) {
             iconElement.classList.remove("toolbar__item--active");
             useElement.setAttribute("xlink:href", "#iconCloudSucc");
         }

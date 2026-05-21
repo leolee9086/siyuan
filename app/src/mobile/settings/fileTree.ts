@@ -61,13 +61,16 @@ const generateFileTreeHTML = (config: Config.IFileTree) => {
         generateBlockNumberInputHTML("maxListCount", "fileTree16", "fileTree17", config.maxListCount, 1, 10240) +
         generateBlockNumberInputHTML("recentDocsMaxListCount", "recentDocsMaxListCount", "recentDocsMaxListCountTip", config.recentDocsMaxListCount, 32, 256) +
         generateSavePathHTML("docCreateSavePath", "fileTree12", "fileTree13", "docCreateSaveBox", config.docCreateSaveBox, "") +
-        generateSavePathHTML("refCreateSavePath", "fileTree5", "fileTree6", "refCreateSaveBox", config.refCreateSaveBox, config.refCreateSavePath);
+        generateSavePathHTML("refCreateSavePath", "fileTree5", "fileTree6", "refCreateSaveBox", config.refCreateSaveBox, config.refCreateSavePath) +
+        generateSavePathHTML("shorthandSavePath", "fileTree26", "fileTree27", "shorthandSaveBox", config.shorthandSaveBox, "");
 };
 
 const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
     const docCreateSavePathElement = modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement;
     const refCreateSavePathElement = modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement;
     const refCreateSaveBoxElement = modelMainElement.querySelector("#refCreateSaveBox") as HTMLInputElement;
+    const shorthandSavePathElement = modelMainElement.querySelector("#shorthandSavePath") as HTMLInputElement;
+    const shorthandSaveBoxElement = modelMainElement.querySelector("#shorthandSaveBox") as HTMLInputElement;
     const docCreateSaveBoxElement = modelMainElement.querySelector("#docCreateSaveBox") as HTMLInputElement;
     const allowCreateDeeperElement = modelMainElement.querySelector("#allowCreateDeeper") as HTMLInputElement;
     const removeDocWithoutConfirmElement = modelMainElement.querySelector("#removeDocWithoutConfirm") as HTMLInputElement;
@@ -82,6 +85,8 @@ const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTr
         alwaysSelectOpenedFile: config.alwaysSelectOpenedFile,
         refCreateSavePath: refCreateSavePathElement.value,
         refCreateSaveBox: refCreateSaveBoxElement.value,
+        shorthandSavePath: shorthandSavePathElement.value,
+        shorthandSaveBox: shorthandSaveBoxElement.value,
         docCreateSavePath: docCreateSavePathElement.value,
         docCreateSaveBox: docCreateSaveBoxElement.value,
         openFilesUseCurrentTab: config.openFilesUseCurrentTab,
@@ -103,9 +108,11 @@ const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTr
 const bindFileTreeEvents = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
     const docCreateSavePathElement = modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement;
     const refCreateSavePathElement = modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement;
+    const shorthandSavePathElement = modelMainElement.querySelector("#shorthandSavePath") as HTMLInputElement;
 
     docCreateSavePathElement.value = config.docCreateSavePath;
     refCreateSavePathElement.value = config.refCreateSavePath;
+    shorthandSavePathElement.value = config.shorthandSavePath;
 
     const inputElements = modelMainElement.querySelectorAll("input, select");
     for (const item of inputElements) {

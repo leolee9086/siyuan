@@ -398,7 +398,7 @@ func RecentUpdatedBlocks() (ret []*Block) {
 	ret = []*Block{}
 
 	sqlStmt := "SELECT * FROM blocks WHERE type = 'p' AND length > 1"
-	if util.ContainerIOS == util.Container || util.ContainerAndroid == util.Container || util.ContainerHarmony == util.Container {
+	if util.IsMobileContainer() {
 		sqlStmt = "SELECT * FROM blocks WHERE type = 'd'"
 	}
 
@@ -513,8 +513,8 @@ func SwapBlockRef(refID, defID string, includeChildren bool) (err error) {
 		}
 	}
 
-	refreshUpdated(defNode)
-	refreshUpdated(refNode)
+	treenode.RefreshUpdated(defNode)
+	treenode.RefreshUpdated(refNode)
 
 	refPivot := treenode.NewParagraph("")
 	refNode.InsertBefore(refPivot)

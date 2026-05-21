@@ -61,8 +61,8 @@ export function handleFillSlash(ctx: IFillSlashContext): void {
     const {hint, value, protyle, range, id, html, genEmojiHTML} = ctx;
     const nodeElement = ctx.nodeElement;
 
-    hint.enableExtend = true;
     if (value === "((" || value === "{{") {
+        hint.enableExtend = true;
         handleRefOrEmbed(hint, value, protyle, range);
         return;
     }

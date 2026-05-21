@@ -46,6 +46,7 @@ import { renderAVAttribute } from "./render/av/blockAttr";
 import { setFoldById } from "../menus/protyle";
 import { zoomOut } from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../platform";
+import { setEditMode } from "./util/setEditMode";
 
 export class Protyle {
 
@@ -530,5 +531,9 @@ export class Protyle {
                 return element.getAttribute("data-node-id");
             }
         );
+    }
+
+    public switchMode(mode: TEditorMode) {
+        setEditMode(this.protyle, mode);
     }
 }

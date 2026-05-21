@@ -38,6 +38,9 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
+// errMsgSeeKernelLog 在 API 错误提示末尾追加，提示用户查看内核日志以获取更多信息，避免在 Msg 中暴露数据目录路径
+const errMsgSeeKernelLog = ". For details, see the SiYuan kernel log."
+
 func getUniqueFilename(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -72,18 +75,16 @@ func globalCopyFiles(c *gin.Context) {
 		absSrc, _ := filepath.Abs(src)
 
 		if !filelock.IsExist(absSrc) {
-			msg := fmt.Sprintf("file [%s] does not exist", src)
-			logging.LogErrorf("%s", msg)
+			logging.LogErrorf("file [%s] does not exist", src)
 			ret.Code = -1
-			ret.Msg = msg
+			ret.Msg = fmt.Sprintf("file [%s] does not exist", src)
 			return
 		}
 
 		if util.IsSensitivePath(absSrc) {
-			msg := fmt.Sprintf("refuse to copy sensitive file [%s]", src)
-			logging.LogErrorf("%s", msg)
+			logging.LogErrorf("refuse to copy sensitive file [%s]", src)
 			ret.Code = -2
-			ret.Msg = msg
+			ret.Msg = fmt.Sprintf("refuse to copy sensitive file [%s]", src)
 			return
 		}
 
@@ -240,10 +241,9 @@ func copyFile(c *gin.Context) {
 
 	dest := arg["dest"].(string)
 	if util.IsSensitivePath(dest) {
-		msg := fmt.Sprintf("refuse to copy sensitive file [%s]", dest)
-		logging.LogErrorf("%s", msg)
+		logging.LogErrorf("refuse to copy sensitive file [%s]", dest)
 		ret.Code = -2
-		ret.Msg = msg
+		ret.Msg = fmt.Sprintf("refuse to copy sensitive file [%s]", dest)
 		return
 	}
 

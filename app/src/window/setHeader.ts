@@ -23,27 +23,25 @@ import { isElectronStyle } from "./init.guard";
 import { isHTMLElement } from "./imports";
 
 /** 处理单个窗口的标签页位置设置 */
-const processWndForTabPosition = (item: Wnd): void => {
+const processWndForTabPosition = (item: Wnd, onlyPadding = false): void => {
     const headerElement = item.headersElement.parentElement;
     if (!headerElement) {
         return;
     }
     const rect = headerElement.getBoundingClientRect();
-    const dragElement = headerElement.querySelector<HTMLElement>(".item--readonly .fn__flex-1");
-    if (!dragElement) {
-        return;
-    }
-    // 先设置默认值：在 Electron 环境下清除拖拽区域标记
-    const dragStyle = dragElement.style;
-    // Electron 环境下才有 WebkitAppRegion 属性，用于控制窗口拖拽区域
-    // 此处先重置为空，后续根据窗口位置条件决定是否启用拖拽
-    if (isElectronStyle(dragStyle)) {
-        dragStyle.WebkitAppRegion = "";
-    }
-    // 再根据条件覆盖
-    if (rect.top <= 0 && isElectronStyle(dragStyle)) {
-        dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
-        dragStyle.WebkitAppRegion = "drag";
+
+    if (!onlyPadding) {
+        const dragElement = headerElement.querySelector<HTMLElement>(".item--readonly .fn__flex-1");
+        if (dragElement) {
+            const dragStyle = dragElement.style;
+            if (isElectronStyle(dragStyle)) {
+                dragStyle.WebkitAppRegion = "";
+            }
+            if (rect.top <= 0 && isElectronStyle(dragStyle)) {
+                dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
+                dragStyle.WebkitAppRegion = "drag";
+            }
+        }
     }
     const headersLastElement = headerElement.lastElementChild;
     if (!isHTMLElement(headersLastElement)) {
@@ -99,7 +97,7 @@ const processWndForTabPosition = (item: Wnd): void => {
  * @同步豁免: 遗留代码 - 此函数被多处同步调用，上游改进(#16811)将全屏状态判断
  *           从异步IPC调用改为同步CSS类名读取，无需异步
  */
-export const setTabPosition = () => {
+export const setTabPosition = (onlyPadding = false) => {
     if (!isWindow()) {
         return;
     }
@@ -111,7 +109,7 @@ export const setTabPosition = () => {
     getAllWnds(layout, wndsTemp);
 
     for (const item of wndsTemp) {
-        processWndForTabPosition(item);
+        processWndForTabPosition(item, onlyPadding);
     }
 };
 

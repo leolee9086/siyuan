@@ -107,7 +107,7 @@ export const setInlineStyle = async (set = true, servePath = "../../../") => {
 }`;
     }
     if (getSiyuanConfig().editor.fontFamily) {
-        style += `\n.b3-typography:not(.b3-typography--default), .protyle-wysiwyg, .protyle-title {font-family: "Emojis Additional", "Emojis Reset", "${getSiyuanConfig().editor.fontFamily}", var(--b3-font-family)}`;
+        style += `\n.b3-typography:not(.b3-typography--default), .protyle-wysiwyg, .protyle-title {${getSiyuanConfig().editor.fontWeight ? `font-weight: ${getSiyuanConfig().editor.fontWeight};` : ""}font-family: "Emojis Additional", "Emojis Reset", "${getSiyuanConfig().editor.fontFamily}", var(--b3-font-family)}`;
     }
     // pad 端菜单移除显示，如工作空间
     if ("ontouchend" in document) {

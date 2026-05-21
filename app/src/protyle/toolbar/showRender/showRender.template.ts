@@ -47,7 +47,7 @@ export function 生成渲染面板HTML(配置: 渲染面板配置): string {
     <span class="fn__space"></span>
     <button data-type="pin" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${固定标签}"><svg><use xlink:href="#icon${固定图标}"></use></svg></button>
     <span class="fn__space"></span>
-    <button data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.close}"><svg style="width: 10px;margin: 0 2px;"><use xlink:href="#iconClose"></use></svg></button>
+    <button data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.close}"><svg><use xlink:href="#iconClose"></use></svg></button>
 </div>
 <textarea ${是否禁用 ? " readonly" : ""} spellcheck="false" class="b3-text-field b3-text-field--text fn__block" placeholder="${占位符}" style="${文本框宽度样式};max-height:calc(80vh - 44px);min-height: 48px;min-width: 268px;border-radius: 0 0 var(--b3-border-radius-b) var(--b3-border-radius-b);font-family: var(--b3-font-family-code);"></textarea></div>`;
 }

@@ -135,7 +135,7 @@ export const genFileHTML = (item: IFile): string => {
     // 生成新建按钮的隐藏类（只读模式时隐藏）
     const newButtonHiddenClass = isReadonly ? " fn__none" : "";
     
-    return `<li data-node-id="${item.id ?? ""}" data-name="${Lute.EscapeHTMLStr(item.name ?? "")}" draggable="true" data-count="${item.subFileCount ?? 0}" 
+    return `<li data-node-id="${item.id ?? ""}" data-name="${item.name ?? ""}" draggable="true" data-count="${item.subFileCount ?? 0}" 
 data-type="navigation-file" 
 style="--file-toggle-width:${paddingLeft + 18}px" 
 class="b3-list-item b3-list-item--hide-action" data-path="${item.path ?? ""}">
@@ -144,7 +144,7 @@ class="b3-list-item b3-list-item--hide-action" data-path="${item.path ?? ""}">
     </span>
     <span class="b3-list-item__icon b3-tooltips b3-tooltips__n popover__block" data-id="${item.id ?? ""}" aria-label="${siyuanI18n.changeIcon}">${iconEmoji}</span>
     <span class="b3-list-item__text ariaLabel" data-position="parentE"
-aria-label="${ariaLabel}">${getDisplayName(item.name ?? "", true, true)}</span>
+aria-label="${ariaLabel}">${getDisplayName(Lute.EscapeHTMLStr(item.name ?? ""), true, true)}</span>
     <span data-type="more-file" class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
     </span>

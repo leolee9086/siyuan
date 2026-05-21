@@ -14,10 +14,8 @@ import {
     getInstanceById,
     JSONToCenter,
     saveLayout,
-    switchWnd,
 } from "./util";
-import { setTabPosition } from "../window/setHeader";
-import { resizeTabs } from "./tabUtil";
+import { resizeTabs, setTabPosition } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { App } from "../index";
 
@@ -286,31 +284,19 @@ export function bindPanelDragEvents(wnd: Wnd, app: App, dragElement: HTMLElement
             // split
             if (dragElement.style.height === "50%") {
                 // split to bottom
-                const newWnd = targetWnd.split("tb");
+                const newWnd = targetWnd.split("tb", dragElement.style.bottom !== "50%");
                 newWnd.headersElement.append(oldTab.headElement);
                 newWnd.headersElement.parentElement.classList.remove("fn__none");
                 newWnd.moveTab(oldTab);
-
-                if (dragElement.style.bottom === "50%" && newWnd.element.previousElementSibling && targetWnd.element.parentElement) {
-                    // 交换位置
-                    switchWnd(newWnd, targetWnd);
-                }
             } else if (dragElement.style.width === "50%") {
                 // split to right
-                const newWnd = targetWnd.split("lr");
+                const newWnd = targetWnd.split("lr", dragElement.style.right !== "50%");
                 newWnd.headersElement.append(oldTab.headElement);
                 newWnd.headersElement.parentElement.classList.remove("fn__none");
                 newWnd.moveTab(oldTab);
-
-                if (dragElement.style.right === "50%" && newWnd.element.previousElementSibling && targetWnd.element.parentElement) {
-                    // 交换位置
-                    switchWnd(newWnd, targetWnd);
-                }
             }
             resizeTabs();
-            if (isElectron) {
-                setTabPosition();
-            }
+            setTabPosition();
             dragElement.removeAttribute("style");
             return;
         }

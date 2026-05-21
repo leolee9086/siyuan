@@ -59,6 +59,16 @@ export const initAppearance = () => {
        <svg><use xlink:href="#iconSettings"></use></svg>${siyuanI18n.config}
     </button>
     <div class="b3-label__text">${siyuanI18n.appearance18}</div>
+</div>
+<div class="b3-label">
+    <label class="fn__flex">
+        <div class="fn__flex-1">
+            ${siyuanI18n.desktopMode}
+            <div class="b3-label__text">${siyuanI18n.desktopModeTip}</div>
+        </div>
+        <div class="fn__space"></div>
+        <input class="b3-switch fn__flex-center" id="desktopMode" type="checkbox">
+    </label>
 </div>`,
         bindEvent(modelMainElement: HTMLElement) {
             setStatusBar(modelMainElement.querySelector('[data-action="hideStatusBarSetting"]'));

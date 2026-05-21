@@ -165,26 +165,24 @@ function handleMoreClick(
  * @param files - Files 实例
  */
 function onActionsClick(event: MouseEvent, files: Files): void {
-    // 使用类型守卫获取事件目标（支持 SVG 图标元素）
     if (!isStylableElement(event.target)) {
         return;
     }
     let target: HTMLElement | SVGElement | null = event.target;
+    let isFocus = true;
 
     while (target && !target.isEqualNode(files.actionsElement)) {
         const type = target.getAttribute("data-type");
 
-        // 处理 min 按钮点击
         if (handleMinClick(event, type)) {
+            isFocus = false;
             break;
         }
 
-        // 处理 focus 按钮点击
         if (handleFocusClick(event, type)) {
             break;
         }
 
-        // 处理 more 按钮点击
         if (handleMoreClick(event, type, files)) {
             break;
         }
@@ -193,8 +191,7 @@ function onActionsClick(event: MouseEvent, files: Files): void {
     }
 
     const parentElement = files.element.parentElement;
-    // 父元素存在时设置焦点
-    if (parentElement) {
+    if (isFocus && parentElement) {
         setPanelFocus(parentElement);
     }
 }

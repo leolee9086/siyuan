@@ -25,7 +25,10 @@
 </p>
 
 <p align="center">
-<a href="README_zh_CN.md">中文</a> | <a href="README_ja_JP.md">日本語</a>
+<b>English</b>
+| <a href="README_zh_CN.md">中文</a>
+| <a href="README_ja_JP.md">日本語</a>
+| <a href="README_tr_TR.md">Türkçe</a>
 </p>
 
 ---
@@ -40,8 +43,10 @@
 * [🚀 Download Setup](#-download-setup)
   * [App Market](#app-market)
   * [Installation Package](#installation-package)
+  * [Package Manager](#package-manager)
   * [Docker Hosting](#docker-hosting)
   * [Unraid Hosting](#unraid-hosting)
+  * [TrueNAS Hosting](#TrueNAS-hosting)
   * [Insider Preview](#insider-preview)
 * [🏘️ Community](#️-community)
 * [🛠️ Development Guide](#️-development-guide)
@@ -159,6 +164,16 @@ Desktop:
 * [B3log](https://b3log.org/siyuan/en/download.html)
 * [GitHub](https://github.com/siyuan-note/siyuan/releases)
 
+### Package Manager
+
+#### `siyuan`
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/siyuan.svg)](https://repology.org/project/siyuan/versions)
+
+#### `siyuan-note`
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/siyuan-note.svg)](https://repology.org/project/siyuan-note/versions)
+
 ### Docker Hosting
 
 <details>
@@ -189,7 +204,7 @@ Use the following parameters when running the container with `docker run b3log/s
 * `--workspace`: Specifies the workspace folder path, mounted to the container via `-v` on the host
 * `--accessAuthCode`: Specifies the access authorization code
 
-More parameters can be found using `--help`. Here’s an example of a startup command with the new environment variables:
+More parameters can be found using `--help`. Here's an example of a startup command with the new environment variables:
 
 ```bash
 docker run -d \
@@ -259,7 +274,7 @@ In the image, the `entrypoint.sh` script ensures the creation of the `siyuan` us
 chown -R 1001:1002 /siyuan/workspace
 ```
 
-If you use custom `PUID` and `PGID` values, the entrypoint script will ensure that the correct user and group are created inside the container, and ownership of mounted volumes will be adjusted accordingly. There’s no need to manually pass `-u` in `docker run` or `docker-compose` as the environment variables will handle the customization.
+If you use custom `PUID` and `PGID` values, the entrypoint script will ensure that the correct user and group are created inside the container, and ownership of mounted volumes will be adjusted accordingly. There's no need to manually pass `-u` in `docker run` or `docker-compose` as the environment variables will handle the customization.
 
 #### Hidden port
 
@@ -298,6 +313,42 @@ Host path: /mnt/user/appdata/siyuan
 PUID: 1000
 PGID: 1000
 Publish parameters: --accessAuthCode=******(Access authorization code)
+```
+
+</details>
+
+### TrueNAS Hosting
+
+<details>
+<summary>TrueNAS Deployment</summary>
+
+Note: First run below commands in the TrueNAS Shell. please update `Pool_1/Apps_Data/siyuan to match your dataset for Apps.
+
+```shell
+zfs create Pool_1/Apps_Data/siyuan
+chown -R 1001:1002 /mnt/Pool_1/Apps_Data/siyuan
+chmod 755 /mnt/Pool_1/Apps_Data/siyuan
+```
+
+Navigate to Apps - DiscoverApps - More Options(on top right, besies Custom App) - Install via YAML
+
+Template reference:
+
+```yaml
+services:
+  siyuan:
+    image: b3log/siyuan
+    container_name: siyuan
+    command: ['--workspace=/siyuan/workspace/', '--accessAuthCode=2222']
+    ports:
+      - 6806:6806
+    volumes:
+      - /mnt/Pool_1/Apps_Data/siyuan:/siyuan/workspace  # Adjust to your dataset path 
+    restart: unless-stopped
+    environment:
+      - TZ=America/Los_Angeles  # Replace with your timezone if needed
+      - PUID=1001
+      - PGID=1002
 ```
 
 </details>

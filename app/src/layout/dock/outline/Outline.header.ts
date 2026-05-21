@@ -122,6 +122,9 @@ function handlePanelClick(outline: Outline, options: { app: App, tab: Tab }, eve
          */
         if (target.classList.contains("block__icon")) {
             handlePanelIconClick(outline, target, event);
+            if (target.getAttribute("data-type") === "min") {
+                isFocus = false;
+            }
             break;
         }
 

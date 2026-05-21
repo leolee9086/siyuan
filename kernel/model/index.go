@@ -170,7 +170,7 @@ func indexBox(boxID string) {
 			return
 		}
 
-		docIAL := parse.IAL2MapUnEsc(tree.Root.KramdownIAL)
+		docIAL := parse.IAL2Map(tree.Root.KramdownIAL)
 		if "" == docIAL["updated"] { // 早期的数据可能没有 updated 属性，这里进行订正
 			updated := util.TimeFromID(tree.Root.ID)
 			tree.Root.SetIALAttr("updated", updated)
@@ -395,7 +395,7 @@ func subscribeSQLEvents() {
 		util.ContextPushMsg(context, msg)
 	})
 	eventbus.Subscribe(eventbus.EvtSQLUpdateBlocksHPaths, func(context map[string]any, blockCount int, hash string) {
-		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
+		if util.IsMobileContainer() {
 			return
 		}
 
@@ -407,7 +407,7 @@ func subscribeSQLEvents() {
 	})
 
 	eventbus.Subscribe(eventbus.EvtSQLInsertHistory, func(context map[string]any) {
-		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
+		if util.IsMobileContainer() {
 			return
 		}
 
@@ -419,7 +419,7 @@ func subscribeSQLEvents() {
 	})
 
 	eventbus.Subscribe(eventbus.EvtSQLInsertAssetContent, func(context map[string]any) {
-		if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
+		if util.IsMobileContainer() {
 			return
 		}
 

@@ -127,7 +127,7 @@ export const initRightMenu = (app: App) => {
         <svg class="b3-menu__icon"><use xlink:href="#iconCloud"></use></svg><span class="b3-menu__label">${siyuanI18n.cloud}</span>
     </div>
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuPublish">
-        <svg class="b3-menu__icon"><use xlink:href="#iconLanguage"></use></svg><span class="b3-menu__label">${siyuanI18n.publish}</span>
+        <svg class="b3-menu__icon"><use xlink:href="#iconPublish"></use></svg><span class="b3-menu__label">${siyuanI18n.publish}</span>
     </div>
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAbout">
         <svg class="b3-menu__icon"><use xlink:href="#iconInfo"></use></svg><span class="b3-menu__label">${siyuanI18n.about}</span>
@@ -276,7 +276,7 @@ export const initRightMenu = (app: App) => {
             } else if (target.id === "menuPublish") {
                 openModel({
                     title: siyuanI18n.publish,
-                    icon: "iconLanguage",
+                    icon: "iconPublish",
                     html: publish.genHTML(),
                     bindEvent(modelMainElement: HTMLElement) {
                         publish.element = modelMainElement;
