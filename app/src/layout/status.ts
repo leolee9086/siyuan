@@ -136,10 +136,9 @@ export const initStatus = (isWindow = false) => {
 
 let countTimeout: number;
 let countAbortController: AbortController | null = null;
-let statusStatRootId: string; // 状态栏最后显示的统计信息所属文档 ID
+let lastRootId: string;
 
 const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) => {
-    statusStatRootId = rootID;
     clearTimeout(countTimeout);
     countTimeout = window.setTimeout(() => {
         if (countAbortController) {
@@ -162,10 +161,15 @@ const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) =>
 
         if (content) {
             fetchPost("/api/block/getContentWordCount", {content}, onFetched, undefined, undefined, signal);
+            lastRootId = null;
         } else if (ids && ids.length > 0) {
             fetchPost("/api/block/getBlocksWordCount", {ids}, onFetched, undefined, undefined, signal);
-        } else {
+            lastRootId = null;
+        } else if (rootID && lastRootId !== rootID) {
+            lastRootId = rootID;
             fetchPost("/api/block/getTreeStat", {id: rootID}, onFetched, undefined, undefined, signal);
+        } else {
+            lastRootId = null;
         }
     }, Constants.TIMEOUT_COUNT);
 };
@@ -174,6 +178,8 @@ export const countSelectWord = (range: Range, rootID: string) => {
     if (isMobile) {
         return;
     }
+export const countSelectWord = (range: Range, rootID?: string) => {
+    /// #if !MOBILE
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
@@ -184,10 +190,14 @@ export const countBlockWord = (ids: (string | null)[], rootID: string) => {
     if (isMobile) {
         return;
     }
+export const countBlockWord = (ids: string[], rootID?: string, clearCache = false) => {
+    /// #if !MOBILE
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
-    ids = ids.filter((id) => Boolean(id));
+    if (clearCache) {
+        lastRootId = null;
+    }
     if (ids.length > 0) {
         scheduleStatusStat(rootID, undefined, ids);
         return;
@@ -200,11 +210,8 @@ export const countBlockWord = (ids: (string | null)[], rootID: string) => {
     scheduleStatusStat(rootID);
 };
 
-export const clearCounter = (rootID: string) => {
-    if (statusStatRootId !== rootID) {
-        return;
-    }
-    statusStatRootId = undefined;
+export const clearCounter = () => {
+    lastRootId = null;
     clearTimeout(countTimeout);
     if (countAbortController) {
         countAbortController.abort();
