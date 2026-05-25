@@ -11,7 +11,8 @@ import { isStylableElement, clearLastSelectedElement, isHTMLLIElement } from "./
 import {
     handleIconClick,
     handleToggleClick,
-    handleActionClick
+    handleActionClick,
+    handleSwitchClick,
 } from "./eventHandlers.element.click.helpers";
 import { handleFileClick } from "./eventHandlers.element.click.file";
 import type { App } from "../../../index";
@@ -248,6 +249,10 @@ function onElementClick(event: MouseEvent, files: Files, app: App): void {
         }
         // 处理 action 按钮点击
         if (handleActionClick(event, target, app, notebookId, files.element)) {
+            break;
+        }
+        // 处理发布权限开关点击
+        if (handleSwitchClick(event, target)) {
             break;
         }
         // 处理 LI 元素点击

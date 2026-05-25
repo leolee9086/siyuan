@@ -29,7 +29,7 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
  */
 function createNewNotebookMenuItem(): HTMLElement {
     return new MenuItem({
-        icon: "iconFilesRoot",
+        icon: "iconNewNoteBook",
         label: siyuanI18n.newNotebook,
         /**
          * 点击回调
@@ -146,7 +146,7 @@ function createSortMenuItem(init: (isInitialCall?: boolean) => void): HTMLElemen
  * @returns 构建好的菜单实例
  */
 export function initMoreMenu(deps: InitMoreMenuDeps) {
-    const { init } = deps;
+    const { init, element, refreshPublishAccessSwitch } = deps;
     const menu = getSiyuanGlobalMenusMenu();
     const config = getSiyuanConfig();
 
@@ -159,6 +159,26 @@ export function initMoreMenu(deps: InitMoreMenuDeps) {
 
     // 重建索引菜单项
     menu.append(createRebuildIndexMenuItem(deps));
+
+    // 发布权限切换菜单项（只读且非发布模式下不显示）
+    if (!config.readonly && !config.publish?.enable) {
+        menu.append(new MenuItem({
+            icon: "iconEye",
+            label: siyuanI18n.publishAccess,
+            checked: element.classList.contains("file-tree__publish-access--active"),
+            click: () => {
+                element.classList.toggle("file-tree__publish-access--active");
+                const editingPublishAccess = element.classList.contains("file-tree__publish-access--active");
+                element.querySelectorAll(".b3-list-item__icon").forEach(item => {
+                    item.classList.toggle("fn__none", editingPublishAccess);
+                });
+                element.querySelectorAll(".b3-list-item__switch").forEach(item => {
+                    item.classList.toggle("fn__none", !editingPublishAccess);
+                });
+                refreshPublishAccessSwitch?.();
+            }
+        }).element);
+    }
 
     // 排序子菜单（只读模式下不显示）
     if (!config.readonly) {

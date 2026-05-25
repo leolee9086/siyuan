@@ -33,7 +33,7 @@ export const handleEmojiKeydown = (
                 icon: unicode
             }, () => {
                 dialog.destroy();
-                updateFileTreeEmoji(unicode, id, "iconFilesRoot");
+                updateFileTreeEmoji(unicode, id, "iconNewNoteBook");
             });
         } else if (type === "doc") {
             fetchPost("/api/attr/setBlockAttrs", {

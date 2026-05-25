@@ -732,6 +732,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     const sortMenu: IMenu[] = [{
         id: "fileNameASC",
         icon: sortMode === 0 ? "iconSelect" : undefined,
+        checked: sortMode === 0,
+        iconHTML: "",
         label: siyuanI18n.fileNameASC,
         click: () => {
             clickEvent(0);
@@ -739,6 +741,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "fileNameDESC",
         icon: sortMode === 1 ? "iconSelect" : undefined,
+        checked: sortMode === 1,
+        iconHTML: "",
         label: siyuanI18n.fileNameDESC,
         click: () => {
             clickEvent(1);
@@ -746,6 +750,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "fileNameNatASC",
         icon: sortMode === 4 ? "iconSelect" : undefined,
+        checked: sortMode === 4,
+        iconHTML: "",
         label: siyuanI18n.fileNameNatASC,
         click: () => {
             clickEvent(4);
@@ -753,6 +759,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "fileNameNatDESC",
         icon: sortMode === 5 ? "iconSelect" : undefined,
+        checked: sortMode === 5,
+        iconHTML: "",
         label: siyuanI18n.fileNameNatDESC,
         click: () => {
             clickEvent(5);
@@ -760,6 +768,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, { id: "separator_1", type: "separator" }, {
         id: "createdASC",
         icon: sortMode === 9 ? "iconSelect" : undefined,
+        checked: sortMode === 9,
+        iconHTML: "",
         label: siyuanI18n.createdASC,
         click: () => {
             clickEvent(9);
@@ -767,6 +777,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "createdDESC",
         icon: sortMode === 10 ? "iconSelect" : undefined,
+        checked: sortMode === 10,
+        iconHTML: "",
         label: siyuanI18n.createdDESC,
         click: () => {
             clickEvent(10);
@@ -774,6 +786,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "modifiedASC",
         icon: sortMode === 2 ? "iconSelect" : undefined,
+        checked: sortMode === 2,
+        iconHTML: "",
         label: siyuanI18n.modifiedASC,
         click: () => {
             clickEvent(2);
@@ -781,6 +795,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "modifiedDESC",
         icon: sortMode === 3 ? "iconSelect" : undefined,
+        checked: sortMode === 3,
+        iconHTML: "",
         label: siyuanI18n.modifiedDESC,
         click: () => {
             clickEvent(3);
@@ -788,6 +804,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, { id: "separator_2", type: "separator" }, {
         id: "refCountASC",
         icon: sortMode === 7 ? "iconSelect" : undefined,
+        checked: sortMode === 7,
+        iconHTML: "",
         label: siyuanI18n.refCountASC,
         click: () => {
             clickEvent(7);
@@ -795,6 +813,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "refCountDESC",
         icon: sortMode === 8 ? "iconSelect" : undefined,
+        checked: sortMode === 8,
+        iconHTML: "",
         label: siyuanI18n.refCountDESC,
         click: () => {
             clickEvent(8);
@@ -802,6 +822,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, { id: "separator_3", type: "separator" }, {
         id: "docSizeASC",
         icon: sortMode === 11 ? "iconSelect" : undefined,
+        checked: sortMode === 11,
+        iconHTML: "",
         label: siyuanI18n.docSizeASC,
         click: () => {
             clickEvent(11);
@@ -809,6 +831,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "docSizeDESC",
         icon: sortMode === 12 ? "iconSelect" : undefined,
+        checked: sortMode === 12,
+        iconHTML: "",
         label: siyuanI18n.docSizeDESC,
         click: () => {
             clickEvent(12);
@@ -816,6 +840,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, { id: "separator_4", type: "separator" }, {
         id: "subDocCountASC",
         icon: sortMode === 13 ? "iconSelect" : undefined,
+        checked: sortMode === 13,
+        iconHTML: "",
         label: siyuanI18n.subDocCountASC,
         click: () => {
             clickEvent(13);
@@ -823,6 +849,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, {
         id: "subDocCountDESC",
         icon: sortMode === 14 ? "iconSelect" : undefined,
+        checked: sortMode === 14,
+        iconHTML: "",
         label: siyuanI18n.subDocCountDESC,
         click: () => {
             clickEvent(14);
@@ -830,6 +858,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     }, { id: "separator_5", type: "separator" }, {
         id: "customSort",
         icon: sortMode === 6 ? "iconSelect" : undefined,
+        checked: sortMode === 6,
+        iconHTML: "",
         label: siyuanI18n.customSort,
         click: () => {
             clickEvent(6);
@@ -839,6 +869,8 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
         sortMenu.push({
             id: "sortByFiletree",
             icon: sortMode === 15 ? "iconSelect" : undefined,
+            checked: sortMode === 15,
+            iconHTML: "",
             label: siyuanI18n.sortByFiletree,
             click: () => {
                 clickEvent(15);

@@ -292,6 +292,7 @@ export const fetchPost = async (
     cb?: (response: IWebSocketData) => void,
     headers?: IObject,
     failCallback?: (response: IWebSocketData) => void,
+    signal?: AbortSignal,
     bypassSemaphore = false,
 ) => {
     if (!bypassSemaphore) {
@@ -313,6 +314,9 @@ export const fetchPost = async (
         if (headers) {
             init.headers = headers;
         }
+        if (signal) {
+            init.signal = signal;
+        }
         let isGetFile202 = false;
         const response = await fetch(url, init);
         // 检查 getFile 接口是否返回 202 状态码（表示文件尚未就绪或需要特殊处理）
@@ -331,6 +335,10 @@ export const fetchPost = async (
         createPostResponseHandler(url, cb)(responseData);
     } catch (e) {
         if (!bypassSemaphore && !released) { release(); }
+        if ((e as DOMException)?.name === "AbortError") {
+            console.warn(`fetchPost aborted: ${url}`, (e as DOMException)?.message || "");
+            return;
+        }
         const error = e instanceof Error ? e : new Error(String(e));
         handleFetchError(url, data, error, failCallback);
     }

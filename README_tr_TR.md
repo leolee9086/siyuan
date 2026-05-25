@@ -35,31 +35,31 @@
 
 ## İçindekiler
 
-* [💡 Giriş](#-giriş)
-* [🔮 Özellikler](#-özellikler)
-* [🏗️ Mimari ve Ekosistem](#-mimari-ve-ekosistem)
-* [🌟 Yıldız Geçmişi](#-yıldız-geçmişi)
-* [🗺️ Yol Haritası](#️-yol-haritası)
-* [🚀 İndirme ve Kurulum](#-indirme-ve-kurulum)
-  * [Uygulama Mağazası](#uygulama-mağazası)
-  * [Kurulum Paketi](#kurulum-paketi)
-  * [Paket Yöneticisi](#paket-yöneticisi)
-  * [Docker Barındırma](#docker-barındırma)
-  * [Unraid Barındırma](#unraid-barındırma)
-  * [TrueNAS Barındırma](#truenas-barındırma)
-  * [Erken Önizleme (Insider Preview)](#erken-önizleme-insider-preview)
-* [🏘️ Topluluk](#️-topluluk)
-* [🛠️ Geliştirme Rehberi](#️-geliştirme-rehberi)
-* [❓ SSS (Sıkça Sorulan Sorular)](#-sss-sıkça-sorulan-sorular)
-  * [SiYuan verileri nasıl saklar?](#siyuan-verileri-nasıl-saklar)
-  * [Üçüncü taraf senkronizasyon diskiyle veri senkronizasyonu destekleniyor mu?](#üçüncü-taraf-senkronizasyon-diskiyle-veri-senkronizasyonu-destekleniyor-mu)
-  * [SiYuan açık kaynak mı?](#siyuan-açık-kaynak-mı)
-  * [Yeni bir sürüme nasıl yükseltilir?](#yeni-bir-sürüme-nasıl-yükseltilir)
-  * [Bazı bloklar (örneğin liste öğelerindeki paragraflar) blok simgesini bulamıyorsa ne yapmalıyım?](#bazı-bloklar-örneğin-liste-öğelerindeki-paragraflar-blok-simgesini-bulamıyorsa-ne-yapmalıyım)
-  * [Veri deposu anahtarı (data repo key) kaybolursa ne yapmalıyım?](#veri-deposu-anahtarı-data-repo-key-kaybolursa-ne-yapmalıyım)
-  * [Ücretli mi?](#ücretli-mi)
-* [🙏 Teşekkür](#-teşekkür)
-  * [Katkıda Bulunanlar](#katkıda-bulunanlar)
+- [💡 Giriş](#-giriş)
+- [🔮 Özellikler](#-özellikler)
+- [🏗️ Mimari ve Ekosistem](#-mimari-ve-ekosistem)
+- [🌟 Yıldız Geçmişi](#-yıldız-geçmişi)
+- [🗺️ Yol Haritası](#️-yol-haritası)
+- [🚀 İndirme ve Kurulum](#-indirme-ve-kurulum)
+  - [Uygulama Mağazası](#uygulama-mağazası)
+  - [Kurulum Paketi](#kurulum-paketi)
+  - [Paket Yöneticisi](#paket-yöneticisi)
+  - [Docker Barındırma](#docker-barındırma)
+  - [Unraid Barındırma](#unraid-barındırma)
+  - [TrueNAS Barındırma](#truenas-barındırma)
+  - [Erken Önizleme (Insider Preview)](#erken-önizleme-insider-preview)
+- [🏘️ Topluluk](#️-topluluk)
+- [🛠️ Geliştirme Rehberi](#️-geliştirme-rehberi)
+- [❓ SSS (Sıkça Sorulan Sorular)](#-sss-sıkça-sorulan-sorular)
+  - [SiYuan verileri nasıl saklar?](#siyuan-verileri-nasıl-saklar)
+  - [Üçüncü taraf senkronizasyon diskiyle veri senkronizasyonu destekleniyor mu?](#üçüncü-taraf-senkronizasyon-diskiyle-veri-senkronizasyonu-destekleniyor-mu)
+  - [SiYuan açık kaynak mı?](#siyuan-açık-kaynak-mı)
+  - [Yeni bir sürüme nasıl yükseltilir?](#yeni-bir-sürüme-nasıl-yükseltilir)
+  - [Bazı bloklar (örneğin liste öğelerindeki paragraflar) blok simgesini bulamıyorsa ne yapmalıyım?](#bazı-bloklar-örneğin-liste-öğelerindeki-paragraflar-blok-simgesini-bulamıyorsa-ne-yapmalıyım)
+  - [Veri deposu anahtarı (data repo key) kaybolursa ne yapmalıyım?](#veri-deposu-anahtarı-data-repo-key-kaybolursa-ne-yapmalıyım)
+  - [Ücretli mi?](#ücretli-mi)
+- [🙏 Teşekkür](#-teşekkür)
+  - [Katkıda Bulunanlar](#katkıda-bulunanlar)
 
 ---
 
@@ -80,37 +80,37 @@ Daha fazla bilgi için [SiYuan İngilizce Tartışma Forumu](https://liuyun.io)�
 
 Çoğu özellik tamamen ücretsizdir ve ticari kullanım için de geçerlidir.
 
-* İçerik Bloğu
-  * Blok düzeyinde referans ve çift yönlü bağlantılar
-  * Özel nitelikler
-  * Gömülü SQL sorgusu
-  * `siyuan://` protokolü
-* Editör
-  * Blok tabanlı yapı
-  * Markdown WYSIWYG düzenleme
-  * Liste taslağı görünümü
-  * Blok yakınlaştırma (zoom-in)
-  * Milyon kelimelik büyük belge düzenleme
-  * Matematiksel formüller, grafikler, akış diyagramları, Gantt diyagramları, zaman diyagramları, notalar vb.
-  * Web kırpma (web clipping)
-  * PDF açıklama bağlantısı
-* Dışa Aktarım
-  * Blok referansı ve gömme desteği
-  * Varlıklarıyla birlikte standart Markdown çıktısı
-  * PDF, Word ve HTML olarak dışa aktarma
-  * WeChat MP, Zhihu ve Yuque’a kopyalama
-* Veritabanı
-  * Tablo görünümü
-* Aralıklı Tekrar (Flashcard)
-* OpenAI API ile yapay zekâ yazma ve Soru-Cevap sohbeti
-* Tesseract OCR
-* Çok sekmeli görünüm, sürükle-bırak ile ekran bölme
-* Şablon parçacıkları
-* JavaScript/CSS kod parçacıkları
-* Android / iOS / HarmonyOS uygulamaları
-* Docker dağıtımı
-* [API](https://github.com/siyuan-note/siyuan/blob/master/API.md)
-* Topluluk pazaryeri
+- İçerik Bloğu
+  - Blok düzeyinde referans ve çift yönlü bağlantılar
+  - Özel nitelikler
+  - Gömülü SQL sorgusu
+  - `siyuan://` protokolü
+- Editör
+  - Blok tabanlı yapı
+  - Markdown WYSIWYG düzenleme
+  - Liste taslağı görünümü
+  - Blok yakınlaştırma (zoom-in)
+  - Milyon kelimelik büyük belge düzenleme
+  - Matematiksel formüller, grafikler, akış diyagramları, Gantt diyagramları, zaman diyagramları, notalar vb.
+  - Web kırpma (web clipping)
+  - PDF açıklama bağlantısı
+- Dışa Aktarım
+  - Blok referansı ve gömme desteği
+  - Varlıklarıyla birlikte standart Markdown çıktısı
+  - PDF, Word ve HTML olarak dışa aktarma
+  - WeChat MP, Zhihu ve Yuque’a kopyalama
+- Veritabanı
+  - Tablo görünümü
+- Aralıklı Tekrar (Flashcard)
+- OpenAI API ile yapay zekâ yazma ve Soru-Cevap sohbeti
+- Tesseract OCR
+- Çok sekmeli görünüm, sürükle-bırak ile ekran bölme
+- Şablon parçacıkları
+- JavaScript/CSS kod parçacıkları
+- Android / iOS / HarmonyOS uygulamaları
+- Docker dağıtımı
+- [API](https://github.com/siyuan-note/siyuan/blob/master/API.md)
+- Topluluk pazaryeri
 
 Bazı özellikler yalnızca ücretli üyeler için geçerlidir. Detaylar için [Fiyatlandırma](https://b3log.org/siyuan/en/pricing.html) sayfasına göz atabilirsin.
 
@@ -142,8 +142,8 @@ Bazı özellikler yalnızca ücretli üyeler için geçerlidir. Detaylar için [
 
 ## 🗺️ Yol Haritası
 
-* [SiYuan geliştirme planı ve ilerleme durumu](https://github.com/orgs/siyuan-note/projects/1)
-* [SiYuan değişiklik günlüğü](CHANGELOG.md)
+- [SiYuan geliştirme planı ve ilerleme durumu](https://github.com/orgs/siyuan-note/projects/1)
+- [SiYuan değişiklik günlüğü](CHANGELOG.md)
 
 ## 🚀 İndirme ve Kurulum
 
@@ -153,18 +153,18 @@ Masaüstü ve mobil cihazlarda uygulama mağazası üzerinden kurulumu tercih et
 
 Mobil:
 
-* [App Store](https://apps.apple.com/us/app/siyuan/id1583226508)
-* [Google Play](https://play.google.com/store/apps/details?id=org.b3log.siyuan)
-* [F-Droid](https://f-droid.org/packages/org.b3log.siyuan)
+- [App Store](https://apps.apple.com/us/app/siyuan/id1583226508)
+- [Google Play](https://play.google.com/store/apps/details?id=org.b3log.siyuan)
+- [F-Droid](https://f-droid.org/packages/org.b3log.siyuan)
 
 Masaüstü:
 
-* [Microsoft Store](https://apps.microsoft.com/detail/9p7hpmxp73k4)
+- [Microsoft Store](https://apps.microsoft.com/detail/9p7hpmxp73k4)
 
 ### Kurulum Paketi
 
-* [B3log](https://b3log.org/siyuan/en/download.html)
-* [GitHub](https://github.com/siyuan-note/siyuan/releases)
+- [B3log](https://b3log.org/siyuan/en/download.html)
+- [GitHub](https://github.com/siyuan-note/siyuan/releases)
 
 ### Paket Yöneticisi
 
@@ -185,17 +185,17 @@ Masaüstü:
 
 SiYuan’ı bir sunucuda çalıştırmanın en kolay yolu Docker üzerinden dağıtmaktır.
 
-* Görüntü adı: `b3log/siyuan`
-* [Docker Görüntüsü](https://hub.docker.com/r/b3log/siyuan)
+- Görüntü adı: `b3log/siyuan`
+- [Docker Görüntüsü](https://hub.docker.com/r/b3log/siyuan)
 
 #### Dosya Yapısı
 
 Tüm program `/opt/siyuan/` dizini altındadır. Bu dizin, Electron kurulum paketinin `resources` klasör yapısına karşılık gelir:
 
-* **appearance**: simgeler, temalar, diller  
-* **guide**: kullanıcı kılavuzu belgeleri  
-* **stage**: arayüz ve statik kaynaklar  
-* **kernel**: çekirdek program
+- **appearance**: simgeler, temalar, diller  
+- **guide**: kullanıcı kılavuzu belgeleri  
+- **stage**: arayüz ve statik kaynaklar  
+- **kernel**: çekirdek program
 
 #### Giriş Noktası (Entrypoint)
 
@@ -203,8 +203,8 @@ Docker görüntüsü oluşturulurken giriş noktası şu şekilde ayarlanır: `E
 
 `docker run b3log/siyuan` komutunu çalıştırırken aşağıdaki parametreleri kullanabilirsin:
 
-* `--workspace`: çalışma alanı klasör yolunu belirtir, host üzerinde `-v` parametresiyle bağlanır  
-* `--accessAuthCode`: erişim yetkilendirme kodunu belirtir  
+- `--workspace`: çalışma alanı klasör yolunu belirtir, host üzerinde `-v` parametresiyle bağlanır  
+- `--accessAuthCode`: ekran kilidi şifresini belirtir  
 
 Tüm parametreleri görmek için `--help` komutunu kullanabilirsin. Yeni ortam değişkenleriyle bir örnek başlatma komutu aşağıdadır:
 
@@ -218,14 +218,14 @@ docker run -d \
   --accessAuthCode=xxx
 ```
 
-* `PUID`: Özel kullanıcı kimliği (isteğe bağlı, belirtilmezse varsayılan değer `1000` olarak kullanılır)  
-* `PGID`: Özel grup kimliği (isteğe bağlı, belirtilmezse varsayılan değer `1000` olarak kullanılır)  
-* `workspace_dir_host`: Ana makinedeki (host) çalışma alanı klasör yolu  
-* `workspace_dir_container`: Konteyner içindeki çalışma alanı klasör yolu (`--workspace` parametresiyle belirtilir)  
-  * Alternatif olarak, bu yol `SIYUAN_WORKSPACE_PATH` ortam değişkeniyle de ayarlanabilir. Eğer her iki yöntem de kullanılırsa, **komut satırı önceliklidir**.  
-* `accessAuthCode`: Erişim yetkilendirme kodu (**kesinlikle değiştir**, aksi halde herkes verilerine erişebilir)  
-  * Alternatif olarak, yetkilendirme kodu `SIYUAN_ACCESS_AUTH_CODE` ortam değişkeniyle de ayarlanabilir. Yine, hem komut satırı hem ortam değişkeni kullanılırsa, **komut satırı önceliklidir**.  
-  * Erişim yetkilendirme kodunu devre dışı bırakmak için şu ortam değişkenini ayarla: `SIYUAN_ACCESS_AUTH_CODE_BYPASS=true`  
+- `PUID`: Özel kullanıcı kimliği (isteğe bağlı, belirtilmezse varsayılan değer `1000` olarak kullanılır)  
+- `PGID`: Özel grup kimliği (isteğe bağlı, belirtilmezse varsayılan değer `1000` olarak kullanılır)  
+- `workspace_dir_host`: Ana makinedeki (host) çalışma alanı klasör yolu  
+- `workspace_dir_container`: Konteyner içindeki çalışma alanı klasör yolu (`--workspace` parametresiyle belirtilir)  
+  - Alternatif olarak, bu yol `SIYUAN_WORKSPACE_PATH` ortam değişkeniyle de ayarlanabilir. Eğer her iki yöntem de kullanılırsa, **komut satırı önceliklidir**.  
+- `accessAuthCode`: Ekran kilidi şifresi (**kesinlikle değiştir**, aksi halde herkes verilerine erişebilir)  
+  - Alternatif olarak, ekran kilidi şifresi `SIYUAN_ACCESS_AUTH_CODE` ortam değişkeniyle de ayarlanabilir. Yine, hem komut satırı hem ortam değişkeni kullanılırsa, **komut satırı önceliklidir**.  
+  - Ekran kilidi şifresini devre dışı bırakmak için şu ortam değişkenini ayarla: `SIYUAN_ACCESS_AUTH_CODE_BYPASS=true`  
 
 Kurulumu basitleştirmek için, host ve konteyner üzerindeki çalışma alanı yollarını aynı şekilde ayarlaman önerilir. Örneğin her ikisini de `/siyuan/workspace` olarak tanımlayabilirsin. Buna karşılık gelen başlatma komutu şu şekildedir:
 
@@ -263,8 +263,8 @@ services:
 
 Bu yapılandırmada:
 
-* `PUID` ve `PGID` dinamik olarak ayarlanır ve konteynere aktarılır.  
-* Eğer bu değişkenler belirtilmezse, varsayılan değer olarak `1000` kullanılır.  
+- `PUID` ve `PGID` dinamik olarak ayarlanır ve konteynere aktarılır.  
+- Eğer bu değişkenler belirtilmezse, varsayılan değer olarak `1000` kullanılır.  
 
 `PUID` ve `PGID` değişkenlerini ortamda (environment) belirterek, `docker-compose.yml` dosyasında `user: '1000:1000'` satırını açıkça yazmana gerek kalmaz. Konteyner, başlatma sırasında bu ortam değişkenlerine göre kullanıcı ve grup ayarlarını otomatik olarak düzenler.
 
@@ -282,19 +282,19 @@ Eğer özel `PUID` ve `PGID` değerleri kullanıyorsan, `entrypoint` betiği kon
 
 Port 6806’yı gizlemek için NGINX ters proxy (reverse proxy) kullan. Dikkat edilmesi gerekenler:
 
-* WebSocket ters proxy’sini `/ws` yoluna göre yapılandır.
+- WebSocket ters proxy’sini `/ws` yoluna göre yapılandır.
 
 #### Notlar
 
-* Bağlanan (mount edilen) disk birimlerinin doğru olduğundan emin ol; aksi halde konteyner silindiğinde veriler kaybolur.  
-* Yönlendirme (redirect) için URL yeniden yazımı (rewrite) kullanma; bu, kimlik doğrulamayla ilgili sorunlara neden olabilir. Bunun yerine ters proxy yapılandırmanı öneririz.  
-* Eğer izin sorunlarıyla karşılaşırsan, `PUID` ve `PGID` ortam değişkenlerinin, ana makinedeki bağlanan dizinlerin sahipliğiyle uyuştuğundan emin ol.
+- Bağlanan (mount edilen) disk birimlerinin doğru olduğundan emin ol; aksi halde konteyner silindiğinde veriler kaybolur.  
+- Yönlendirme (redirect) için URL yeniden yazımı (rewrite) kullanma; bu, kimlik doğrulamayla ilgili sorunlara neden olabilir. Bunun yerine ters proxy yapılandırmanı öneririz.  
+- Eğer izin sorunlarıyla karşılaşırsan, `PUID` ve `PGID` ortam değişkenlerinin, ana makinedeki bağlanan dizinlerin sahipliğiyle uyuştuğundan emin ol.
 
 #### Kısıtlamalar
 
-* Masaüstü ve mobil uygulama bağlantılarını desteklemez; yalnızca tarayıcı üzerinden kullanım mümkündür.  
-* PDF, HTML ve Word formatlarına dışa aktarma desteklenmez.  
-* Markdown dosyası içe aktarma desteklenmez.
+- Masaüstü ve mobil uygulama bağlantılarını desteklemez; yalnızca tarayıcı üzerinden kullanım mümkündür.  
+- PDF, HTML ve Word formatlarına dışa aktarma desteklenmez.  
+- Markdown dosyası içe aktarma desteklenmez.
 
 </details>
 
@@ -314,7 +314,7 @@ Container Path: /home/siyuan
 Host path: /mnt/user/appdata/siyuan
 PUID: 1000
 PGID: 1000
-Publish parameters: --accessAuthCode=******(Access authorization code)
+Publish parameters: --accessAuthCode=******(Lock screen password)
 ```
 
 </details>
@@ -361,9 +361,9 @@ Büyük güncellemelerden önce erken erişim (Insider Preview) sürümlerini ya
 
 ## 🏘️ Topluluk
 
-* [İngilizce Tartışma Forumu](https://liuyun.io)
-* [Kullanıcı topluluğu özeti](https://liuyun.io/article/1687779743723)
-* [Harika SiYuan (Awesome SiYuan)](https://github.com/siyuan-note/awesome)
+- [İngilizce Tartışma Forumu](https://liuyun.io)
+- [Kullanıcı topluluğu özeti](https://liuyun.io/article/1687779743723)
+- [Harika SiYuan (Awesome SiYuan)](https://github.com/siyuan-note/awesome)
 
 ## 🛠️ Geliştirme Rehberi
 
@@ -375,15 +375,15 @@ Büyük güncellemelerden önce erken erişim (Insider Preview) sürümlerini ya
 
 Veriler, çalışma alanı klasöründeki `data` klasöründe saklanır:
 
-* `assets`: eklenen tüm varlıkların (dosya, resim vb.) kaydedildiği klasör  
-* `emojis`: emoji görsellerinin kaydedildiği klasör  
-* `snippets`: kod parçacıklarının kaydedildiği klasör  
-* `storage`: sorgular, düzenler ve ezber kartları gibi verilerin saklandığı klasör  
-* `templates`: şablon parçacıklarının kaydedildiği klasör  
-* `widgets`: bileşenlerin kaydedildiği klasör  
-* `plugins`: eklentilerin kaydedildiği klasör  
-* `public`: genel verilerin saklandığı klasör  
-* Diğer klasörler, kullanıcının oluşturduğu not defteri (notebook) klasörleridir. `.sy` uzantılı dosyalar belge verilerini saklar ve JSON formatındadır.
+- `assets`: eklenen tüm varlıkların (dosya, resim vb.) kaydedildiği klasör  
+- `emojis`: emoji görsellerinin kaydedildiği klasör  
+- `snippets`: kod parçacıklarının kaydedildiği klasör  
+- `storage`: sorgular, düzenler ve ezber kartları gibi verilerin saklandığı klasör  
+- `templates`: şablon parçacıklarının kaydedildiği klasör  
+- `widgets`: bileşenlerin kaydedildiği klasör  
+- `plugins`: eklentilerin kaydedildiği klasör  
+- `public`: genel verilerin saklandığı klasör  
+- Diğer klasörler, kullanıcının oluşturduğu not defteri (notebook) klasörleridir. `.sy` uzantılı dosyalar belge verilerini saklar ve JSON formatındadır.
 
 ### Üçüncü taraf senkronizasyon diskiyle veri senkronizasyonu destekleniyor mu?
 
@@ -393,26 +393,26 @@ Bununla birlikte, üyelik avantajları kapsamında **üçüncü taraf bulut depo
 
 Alternatif olarak, verileri **elle dışa aktarıp içe aktararak** senkronizasyon sağlayabilirsin:
 
-* Masaüstü: <kbd>Ayarlar</kbd> → <kbd>Dışa Aktar</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>  
-* Mobil: <kbd>Sağ panel</kbd> → <kbd>Hakkında</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>
+- Masaüstü: <kbd>Ayarlar</kbd> → <kbd>Dışa Aktar</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>  
+- Mobil: <kbd>Sağ panel</kbd> → <kbd>Hakkında</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>
 
 ### SiYuan açık kaynak mı?
 
 Evet, SiYuan tamamen açık kaynaklıdır ve katkılara açıktır:
 
-* [Kullanıcı Arayüzü ve Çekirdek](https://github.com/siyuan-note/siyuan)  
-* [Android](https://github.com/siyuan-note/siyuan-android)  
-* [iOS](https://github.com/siyuan-note/siyuan-ios)  
-* [HarmonyOS](https://github.com/siyuan-note/siyuan-harmony)  
-* [Chrome Kırpma Uzantısı](https://github.com/siyuan-note/siyuan-chrome)
+- [Kullanıcı Arayüzü ve Çekirdek](https://github.com/siyuan-note/siyuan)  
+- [Android](https://github.com/siyuan-note/siyuan-android)  
+- [iOS](https://github.com/siyuan-note/siyuan-ios)  
+- [HarmonyOS](https://github.com/siyuan-note/siyuan-harmony)  
+- [Chrome Kırpma Uzantısı](https://github.com/siyuan-note/siyuan-chrome)
 
 Daha fazla bilgi için [Geliştirme Rehberi](https://github.com/siyuan-note/siyuan/blob/master/.github/CONTRIBUTING.md) sayfasına bakabilirsiniz.
 
 ### Yeni bir sürüme nasıl yükseltilir?
 
-* Uygulama mağazası üzerinden kurduysanız, güncellemeyi yine uygulama mağazası üzerinden yapın.  
-* Masaüstü kurulum paketiyle yüklediyseniz, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Güncelleme kurulum paketini otomatik indir</kbd> seçeneğini etkinleştirin. Böylece SiYuan, en son sürüm kurulum paketini otomatik indirip yükleme uyarısı gösterecektir.  
-* Manuel yükleme yaptıysanız, en son kurulum paketini indirip yeniden yüklemeniz gerekir.
+- Uygulama mağazası üzerinden kurduysanız, güncellemeyi yine uygulama mağazası üzerinden yapın.  
+- Masaüstü kurulum paketiyle yüklediyseniz, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Güncelleme kurulum paketini otomatik indir</kbd> seçeneğini etkinleştirin. Böylece SiYuan, en son sürüm kurulum paketini otomatik indirip yükleme uyarısı gösterecektir.  
+- Manuel yükleme yaptıysanız, en son kurulum paketini indirip yeniden yüklemeniz gerekir.
 
 Ayrıca, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Geçerli Sürüm</kbd> sekmesinden <kbd>Güncellemeyi kontrol et</kbd> seçeneğini kullanabilir veya [Resmî İndirme Sayfası](https://b3log.org/siyuan/en/download.html) ya da [GitHub Sürümleri](https://github.com/siyuan-note/siyuan/releases) sayfalarını takip edebilirsiniz.
 
@@ -422,9 +422,10 @@ Liste öğesinin altındaki ilk alt blok, blok simgesi görünmeyen bloktur. İm
 
 ### Veri deposu anahtarı (data repo key) kaybolursa ne yapmalıyım?
 
-* Eğer daha önce birden fazla cihazda doğru şekilde başlatıldıysa, tüm cihazlarda aynı anahtar kullanılır. Bu durumda anahtarı şu adımlarla kopyalayabilirsin:
+- Eğer daha önce birden fazla cihazda doğru şekilde başlatıldıysa, tüm cihazlarda aynı anahtar kullanılır. Bu durumda anahtarı şu adımlarla kopyalayabilirsin:
   <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Anahtar dizgesini kopyala</kbd>  
-* Eğer cihazlar arasında farklı anahtarlar kullanılmışsa veya hiçbiri erişilebilir değilse, aşağıdaki adımlarla yeni bir anahtar oluşturabilirsin:
+
+- Eğer cihazlar arasında farklı anahtarlar kullanılmışsa veya hiçbiri erişilebilir değilse, aşağıdaki adımlarla yeni bir anahtar oluşturabilirsin:
 
   1. Verilerini manuel olarak yedekle (<kbd>Verileri Dışa Aktar</kbd> seçeneğiyle veya dosya sisteminde `workspace/data/` klasörünü kopyalayarak).  
   2. <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Veri deposunu sıfırla</kbd>.  

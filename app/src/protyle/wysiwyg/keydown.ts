@@ -60,6 +60,63 @@ import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments
 import { getContenteditableElement } from "./getBlock";
 import { highlightRender } from "../render/highlightRender";
 import { isMobile } from "../../platform";
+import {removeBlock, removeImage} from "./remove";
+import {
+    getContenteditableElement,
+    getFirstBlock,
+    getLastBlock,
+    getNextBlock,
+    getParentBlock,
+    getPreviousBlock,
+    getTopAloneElement,
+    hasNextSibling,
+    hasPreviousSibling,
+    isEndOfBlock,
+    isNotEditBlock,
+} from "./getBlock";
+import {isIncludesHotKey, matchHotKey} from "../util/hotKey";
+import {enter, softEnter} from "./enter";
+import {clearTableCell, fixTable} from "../util/table";
+import {
+    transaction,
+    turnsIntoOneTransaction,
+    turnsIntoTransaction,
+    turnsOneInto,
+    updateBatchTransaction,
+    updateTransaction
+} from "./transaction";
+import {fontEvent} from "../toolbar/Font";
+import {addSubList, listIndent, listOutdent} from "./list";
+import {newFileContentBySelect, rename, replaceFileName} from "../../editor/rename";
+import {cancelSB, insertEmptyBlock, jumpToParent} from "../../block/util";
+import {isLocalPath} from "../../util/pathName";
+/// #if !MOBILE
+import {openBy, openFileById} from "../../editor/util";
+/// #endif
+import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";
+import {fileAnnotationRefMenu, inlineMathMenu, linkMenu, refMenu, tagMenu} from "../../menus/protyle";
+import {foldBlocksRecursively, getFoldBlock, setFold} from "../util/blockFold";
+import {openAttr} from "../../menus/commonMenuItem";
+import {Constants} from "../../constants";
+import {fetchPost} from "../../util/fetch";
+import {scrollCenter} from "../../util/highlightById";
+import {BlockPanel} from "../../block/Panel";
+import * as dayjs from "dayjs";
+import {highlightRender} from "../render/highlightRender";
+import {countBlockWord} from "../../layout/status";
+import {moveToDown, moveToUp} from "./move";
+import {pasteAsPlainText} from "../util/paste";
+import {preventScroll} from "../scroll/preventScroll";
+import {getSavePath, newFileBySelect} from "../../util/newFile";
+import {removeSearchMark} from "../toolbar/util";
+import {avKeydown} from "../render/av/keydown";
+import {checkFold} from "../../util/noRelyPCFunction";
+import {AIActions} from "../../ai/actions";
+import {openLink} from "../../editor/openLink";
+import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
+import {AIChat} from "../../ai/chat";
+import {updateCalloutType} from "./callout";
+import {tabCodeBlock} from "./codeBlock";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -231,6 +288,93 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await arrowUpDownMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
+            }
+        if (!event.altKey && !event.shiftKey && isNotCtrl(event) && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+            const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
+            if (selectElements.length > 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                hideElements(["select"], protyle);
+                if (event.key === "ArrowDown") {
+                    const currentSelectElement = selectElements[selectElements.length - 1] as HTMLElement;
+                    let nextElement = getNextBlock(currentSelectElement) as HTMLElement;
+                    if (nextElement) {
+                        if (nextElement.getBoundingClientRect().width === 0) {
+                            // https://github.com/siyuan-note/siyuan/issues/4294
+                            const foldElement = hasTopClosestByAttribute(nextElement, "fold", "1");
+                            if (foldElement) {
+                                nextElement = getNextBlock(foldElement) as HTMLElement;
+                                if (nextElement) {
+                                    nextElement = getFirstBlock(nextElement) as HTMLElement;
+                                } else {
+                                    nextElement = currentSelectElement;
+                                }
+                            } else {
+                                nextElement = currentSelectElement;
+                            }
+                        } else if (nextElement.getAttribute("fold") === "1"
+                            && (nextElement.classList.contains("sb") || nextElement.classList.contains("bq"))) {
+                            // https://github.com/siyuan-note/siyuan/issues/3913
+                        } else {
+                            nextElement = getFirstBlock(nextElement) as HTMLElement;
+                        }
+                    } else {
+                        nextElement = currentSelectElement;
+                    }
+
+                    nextElement.classList.add("protyle-wysiwyg--select");
+                    countBlockWord([nextElement.getAttribute("data-node-id")], protyle.block.rootID);
+                    const bottom = nextElement.getBoundingClientRect().bottom - protyle.contentElement.getBoundingClientRect().bottom;
+                    if (bottom > 0) {
+                        protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + bottom;
+                        protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop - 1;
+                    }
+                    focusBlock(nextElement);
+                } else if (event.key === "ArrowUp") {
+                    let previousElement: HTMLElement = getPreviousBlock(selectElements[0]) as HTMLElement;
+                    if (previousElement) {
+                        previousElement = getLastBlock(previousElement) as HTMLElement;
+                        if (previousElement.getBoundingClientRect().width === 0) {
+                            // https://github.com/siyuan-note/siyuan/issues/4294
+                            const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
+                            if (foldElement) {
+                                previousElement = getFirstBlock(foldElement) as HTMLElement;
+                            } else {
+                                previousElement = selectElements[0] as HTMLElement;
+                            }
+                        } else if (previousElement) {
+                            // https://github.com/siyuan-note/siyuan/issues/3913
+                            const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
+                            if (foldElement && (foldElement.classList.contains("sb") || foldElement.classList.contains("bq"))) {
+                                previousElement = foldElement;
+                            }
+                        }
+                    } else if (protyle.title && protyle.title.editElement &&
+                        (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" || protyle.contentElement.scrollTop === 0)) {
+                        const titleRange = setLastNodeRange(protyle.title.editElement, range, false);
+                        titleRange.collapse(false);
+                        focusByRange(titleRange);
+                        event.stopPropagation();
+                        event.preventDefault();
+                    } else if (protyle.contentElement.scrollTop !== 0) {
+                        protyle.contentElement.scrollTop = 0;
+                        protyle.scroll.lastScrollTop = 8;
+                    } else {
+                        previousElement = selectElements[0] as HTMLElement;
+                    }
+                    if (previousElement) {
+                        previousElement.classList.add("protyle-wysiwyg--select");
+                        countBlockWord([previousElement.getAttribute("data-node-id")], protyle.block.rootID);
+                        const top = previousElement.getBoundingClientRect().top - protyle.contentElement.getBoundingClientRect().top;
+                        if (top < 0) {
+                            protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + top;
+                            protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop + 1;
+                        }
+                        focusBlock(previousElement);
+                    }
+                }
+                return;
+            }
         }
         // 仅处理以下快捷键操作
         await commonInputMiddleware(event, protyle, nodeElement, range, controller);
@@ -258,6 +402,220 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
 
+
+        const nodeType = nodeElement.getAttribute("data-type");
+        if (matchHotKey(window.siyuan.config.keymap.editor.general.collapse.custom, event) && !event.repeat) {
+            getFoldBlock(protyle, nodeElement, (elements) => {
+                setFold(protyle, elements[0]);
+            });
+            event.stopPropagation();
+            event.preventDefault();
+            return false;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.editor.general.expand.custom, event) && !event.repeat) {
+            getFoldBlock(protyle, nodeElement, (elements) => {
+                setFold(protyle, elements[0], true);
+            });
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.editor.general.foldRecursive.custom, event) && !event.repeat) {
+            getFoldBlock(protyle, nodeElement, (elements) => {
+                foldBlocksRecursively(protyle, elements);
+            });
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.editor.general.expandUp.custom, event)) {
+            upSelect({
+                protyle, event, nodeElement, editorElement, range,
+                cb(selectElements) {
+                    const previousElement = selectElements[0].previousElementSibling as HTMLElement;
+                    if (previousElement && previousElement.getAttribute("data-node-id")) {
+                        previousElement.classList.add("protyle-wysiwyg--select");
+                        selectElements.forEach(item => {
+                            item.removeAttribute("select-end");
+                        });
+                        previousElement.setAttribute("select-end", "true");
+                        const top = previousElement.getBoundingClientRect().top - protyle.contentElement.getBoundingClientRect().top;
+                        if (top < 0) {
+                            protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + top;
+                            protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop + 1;
+                        }
+                    } else if (!getParentBlock(selectElements[0]).classList.contains("protyle-wysiwyg")) {
+                        hideElements(["select"], protyle);
+                        getParentBlock(selectElements[0]).classList.add("protyle-wysiwyg--select");
+                    }
+                }
+            });
+            return;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.editor.general.expandDown.custom, event)) {
+            downSelect({
+                protyle, event, nodeElement, editorElement, range,
+                cb(selectElements) {
+                    const selectLastElement = selectElements[selectElements.length - 1];
+                    const nextElement = selectLastElement.nextElementSibling as HTMLElement;
+                    if (nextElement && nextElement.getAttribute("data-node-id")) {
+                        nextElement.classList.add("protyle-wysiwyg--select");
+                        selectElements.forEach(item => {
+                            item.removeAttribute("select-end");
+                        });
+                        nextElement.setAttribute("select-end", "true");
+                        const bottom = nextElement.getBoundingClientRect().bottom - protyle.contentElement.getBoundingClientRect().bottom;
+                        if (bottom > 0) {
+                            protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + bottom;
+                            protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop - 1;
+                        }
+                    } else if (!getParentBlock(selectLastElement).classList.contains("protyle-wysiwyg")) {
+                        hideElements(["select"], protyle);
+                        getParentBlock(selectLastElement).classList.add("protyle-wysiwyg--select");
+                    }
+                }
+            });
+            return;
+        }
+
+        if (matchHotKey("⇧↑", event)) {
+            upSelect({
+                protyle, event, nodeElement, editorElement, range,
+                cb(selectElements) {
+                    const startEndElement = getStartEndElement(selectElements);
+                    if (startEndElement.startElement.getBoundingClientRect().top >= startEndElement.endElement.getBoundingClientRect().top) {
+                        const previousElement = startEndElement.endElement.previousElementSibling as HTMLElement;
+                        if (previousElement && previousElement.getAttribute("data-node-id")) {
+                            previousElement.classList.add("protyle-wysiwyg--select");
+                            previousElement.setAttribute("select-end", "true");
+                            startEndElement.endElement.removeAttribute("select-end");
+                            const top = previousElement.getBoundingClientRect().top - protyle.contentElement.getBoundingClientRect().top;
+                            if (top < 0) {
+                                protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + top;
+                                protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop + 1;
+                            }
+                        } else if (!getParentBlock(startEndElement.endElement).classList.contains("protyle-wysiwyg")) {
+                            hideElements(["select"], protyle);
+                            getParentBlock(startEndElement.endElement).classList.add("protyle-wysiwyg--select");
+                        }
+                    } else {
+                        startEndElement.endElement.classList.remove("protyle-wysiwyg--select");
+                        startEndElement.endElement.removeAttribute("select-end");
+                        const previousElement = getPreviousBlock(startEndElement.endElement);
+                        if (previousElement) {
+                            previousElement.setAttribute("select-end", "true");
+                            if (previousElement.getBoundingClientRect().top <= protyle.contentElement.getBoundingClientRect().top) {
+                                preventScroll(protyle);
+                                previousElement.scrollIntoView(true);
+                            }
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
+        if (matchHotKey("⇧↓", event)) {
+            downSelect({
+                protyle,
+                event,
+                nodeElement,
+                editorElement,
+                range,
+                cb(selectElements) {
+                    const startEndElement = getStartEndElement(selectElements);
+                    if (startEndElement.startElement.getBoundingClientRect().top <= startEndElement.endElement.getBoundingClientRect().top) {
+                        const nextElement = startEndElement.endElement.nextElementSibling as HTMLElement;
+                        if (nextElement && nextElement.getAttribute("data-node-id")) {
+                            if (nextElement.getBoundingClientRect().width === 0) {
+                                // https://github.com/siyuan-note/siyuan/issues/11194
+                                hideElements(["select"], protyle);
+                                getParentBlock(startEndElement.endElement).classList.add("protyle-wysiwyg--select");
+                            } else {
+                                nextElement.classList.add("protyle-wysiwyg--select");
+                                nextElement.setAttribute("select-end", "true");
+                                startEndElement.endElement.removeAttribute("select-end");
+                                const bottom = nextElement.getBoundingClientRect().bottom - protyle.contentElement.getBoundingClientRect().bottom;
+                                if (bottom > 0) {
+                                    protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + bottom;
+                                    protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop - 1;
+                                }
+                            }
+                        } else if (!getParentBlock(startEndElement.endElement).classList.contains("protyle-wysiwyg")) {
+                            hideElements(["select"], protyle);
+                            getParentBlock(startEndElement.endElement).classList.add("protyle-wysiwyg--select");
+                        }
+                    } else {
+                        startEndElement.endElement.classList.remove("protyle-wysiwyg--select");
+                        startEndElement.endElement.removeAttribute("select-end");
+                        const nextElement = getNextBlock(startEndElement.endElement);
+                        if (nextElement) {
+                            nextElement.setAttribute("select-end", "true");
+                            if (nextElement.getBoundingClientRect().bottom >= protyle.contentElement.getBoundingClientRect().bottom) {
+                                preventScroll(protyle);
+                                nextElement.scrollIntoView(false);
+                            }
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.general.enter.custom, event)) {
+            onlyProtyleCommand({
+                protyle,
+                command: "enter",
+                previousRange: range,
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+
+        if (matchHotKey(window.siyuan.config.keymap.general.enterBack.custom, event)) {
+            onlyProtyleCommand({
+                protyle,
+                command: "enterBack",
+                previousRange: range,
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+
+        if ((event.shiftKey && !event.altKey && isNotCtrl(event) && (event.key === "Home" || event.key === "End") && isMac()) ||
+            (event.shiftKey && !event.altKey && isOnlyMeta(event) && (event.key === "Home" || event.key === "End") && !isMac())) {
+            const topElement = hasTopClosestByAttribute(nodeElement, "data-node-id", null);
+            if (topElement) {
+                // 超级块内已选中某个块
+                topElement.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
+                    item.classList.remove("protyle-wysiwyg--select");
+                });
+                topElement.classList.add("protyle-wysiwyg--select");
+                const ids: (string | null)[] = [];
+                ids.push(topElement.getAttribute("data-node-id"));
+                let nextElement = event.key === "Home" ? topElement.previousElementSibling : topElement.nextElementSibling;
+                while (nextElement) {
+                    nextElement.classList.add("protyle-wysiwyg--select");
+                    ids.push(nextElement.getAttribute("data-node-id"));
+                    nextElement = event.key === "Home" ? nextElement.previousElementSibling : nextElement.nextElementSibling;
+                }
+                countBlockWord(ids, protyle.block.rootID);
+                if (event.key === "Home") {
+                    protyle.wysiwyg.element.firstElementChild.scrollIntoView();
+                } else {
+                    protyle.wysiwyg.element.lastElementChild.scrollIntoView(false);
+                }
+            }
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
         // https://github.com/siyuan-note/siyuan/issues/11726
         await hideHintMiddleware(editorContext);
         if (signal.aborted) {

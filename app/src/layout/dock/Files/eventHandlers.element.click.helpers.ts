@@ -12,6 +12,7 @@ import {
     getSiyuanConfig,
     removeSiyuanMenu
 } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getPublishAccessLevel, getPublishAccessOptionByLevel, openPublishAccessDialog } from "../../../protyle/util/publishAccess";
 import type { App } from "../../../index";
 import type { Files } from "../Files";
 
@@ -245,8 +246,47 @@ function handleActionClick(
     return true;
 }
 
+/**
+ * 处理 element click 事件中的发布权限开关点击
+ * @param event - 鼠标事件
+ * @param target - 目标元素
+ * @returns 是否已处理该事件
+ */
+function handleSwitchClick(
+    event: MouseEvent,
+    target: Element
+): boolean {
+    if (!target.classList.contains("b3-list-item__switch")) {
+        return false;
+    }
+
+    event.stopPropagation();
+    const rect = target.getBoundingClientRect();
+    openPublishAccessDialog(
+        target.parentElement?.getAttribute("data-node-id") ||
+            target.parentElement?.parentElement?.getAttribute("data-url") || "",
+        {
+            x: rect.left,
+            y: rect.bottom,
+        },
+        (access) => {
+            target.innerHTML = getPublishAccessOptionByLevel(
+                getPublishAccessLevel(access.visible, access.password, access.disable)
+            ).iconHTML;
+            fetchPost("/api/filetree/setPublishAccess", {
+                id: access.id,
+                visible: access.visible,
+                password: access.password,
+                disable: access.disable,
+            });
+        }
+    );
+    return true;
+}
+
 export {
     handleIconClick,
     handleToggleClick,
-    handleActionClick
+    handleActionClick,
+    handleSwitchClick,
 };

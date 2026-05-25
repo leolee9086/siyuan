@@ -1620,6 +1620,9 @@ func SQLTemplateFuncs(templateFuncMap *template.FuncMap) {
 		return
 	}
 	(*templateFuncMap)["querySQL"] = func(stmt string) (ret []map[string]any) {
+		if err := CheckSingleStatement(stmt); err != nil {
+			return
+		}
 		ret, _ = Query(stmt, 1024)
 		return
 	}

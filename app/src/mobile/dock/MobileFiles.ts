@@ -96,8 +96,8 @@ export class MobileFiles extends Model {
         filesElement.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>
     <div class="toolbar__text">${window.siyuan.languages.fileTree}</div>
-    <div class="fn__flex-1 fn__space"></div>
-    <svg data-type="newNotebook" class="toolbar__icon"><use xlink:href="#iconFilesRoot"></use></svg>
+    <div class="fn__space"></div>
+    <svg data-type="newNotebook" class="toolbar__icon"><use xlink:href="#iconNewNoteBook"></use></svg>
     <svg data-type="refresh" class="toolbar__icon"><use xlink:href="#iconRefresh"></use></svg>
     <svg data-type="focus" class="toolbar__icon"><use xlink:href="#iconFocus"></use></svg>
     <svg data-type="collapse" class="toolbar__icon"><use xlink:href="#iconContract"></use></svg>

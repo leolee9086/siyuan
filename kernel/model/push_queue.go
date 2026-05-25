@@ -28,6 +28,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -68,6 +69,26 @@ func AppendPushRenameEntry(box, p, title string) {
 
 func AppendPushReloadDocInfoEntry(box, p string) {
 	appendPushEntry(pushEntry{Action: "reloadDocInfo", Box: box, Path: p})
+}
+
+func AppendPushReloadProtyleEntry(id string) {
+	appendPushEntry(pushEntry{Action: "reloadProtyle", ID: id})
+}
+
+func AppendPushReloadAttrViewEntry(avID string) {
+	appendPushEntry(pushEntry{Action: "reloadAttrView", ID: avID})
+}
+
+func AppendPushReloadUIEntry() {
+	appendPushEntry(pushEntry{Action: "reloadUI"})
+}
+
+func AppendPushReloadFiletreeEntry() {
+	appendPushEntry(pushEntry{Action: "reloadFiletree"})
+}
+
+func AppendPushReloadTagEntry() {
+	appendPushEntry(pushEntry{Action: "reloadTag"})
 }
 
 func appendPushEntry(entry pushEntry) {
@@ -140,6 +161,19 @@ func PollPushQueue() {
 			renderer := render.NewJSONRenderer(tree, luteEngine.RenderOptions, luteEngine.ParseOptions)
 			size := uint64(len(renderer.Render()))
 			refreshDocInfo0(tree, size)
+		case "reloadProtyle":
+			bt := treenode.GetBlockTree(e.ID)
+			if bt != nil {
+				util.PushReloadProtyle(bt.RootID)
+			}
+		case "reloadAttrView":
+			util.BroadcastByType("protyle", "refreshAttributeView", 0, "", map[string]any{"id": e.ID})
+		case "reloadUI":
+			util.ReloadUI()
+		case "reloadFiletree":
+			util.BroadcastByType("filetree", "reloadFiletree", 0, "", nil)
+		case "reloadTag":
+			util.BroadcastByType("main", "reloadTag", 0, "", nil)
 		}
 	}
 

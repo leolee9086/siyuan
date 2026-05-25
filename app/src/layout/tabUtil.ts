@@ -198,7 +198,7 @@ export const newCenterEmptyTab = (app: App) => {
             <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.newFile.custom)}</span>
         </div>
         <div class="b3-list-item${window.siyuan.config.readonly ? " fn__none" : ""}" id="editorEmptyNewNotebook">
-            <svg class="b3-list-item__graphic"><use xlink:href="#iconFilesRoot"></use></svg>
+            <svg class="b3-list-item__graphic"><use xlink:href="#iconNewNoteBook"></use></svg>
             <span>${window.siyuan.languages.newNotebook}</span>
         </div>
         <div class="b3-list-item${(isIPad() || window.siyuan.config.readonly) ? " fn__none" : ""}" id="editorEmptyHelp">

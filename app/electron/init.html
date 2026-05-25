@@ -506,9 +506,9 @@
             }
 
             if (isCloudDrivePath(initPath)) {
-                let msg = '⚠️ The folder path can not contain onedrive, dropbox, google drive, pcloud and 坚果云, please change another path'
+                let msg = '⚠️ The folder path can not contain onedrive, dropbox, google drive, pcloud, nutstore, baidunetdisk, weiyun,坚果云,百度网盘 and 腾讯微云, etc., please change another path'
                 if (isChinese(currentLang)) {
-                    msg = '⚠️ 文件夹路径不能包含 onedrive、dropbox、google drive、pcloud 和 坚果云，请更换其他路径'
+                    msg = '⚠️ 文件夹路径不能包含 onedrive、dropbox、google drive、pcloud、nutstore、baidunetdisk、weiyun、坚果云、百度网盘和腾讯微云等字样，请更换其他路径'
                 }
                 alert(msg)
                 return
@@ -564,7 +564,9 @@
         const absPathLower = absPath.toLowerCase()
         return -1 < absPathLower.indexOf("onedrive") || -1 < absPathLower.indexOf("dropbox") ||
             -1 < absPathLower.indexOf("google drive") || -1 < absPathLower.indexOf("pcloud") ||
-            -1 < absPathLower.indexOf("坚果云")
+            -1 < absPathLower.indexOf("坚果云") || -1 < absPathLower.indexOf("nutstore") ||
+            -1 < absPathLower.indexOf("百度网盘") || -1 < absPathLower.indexOf("baidunetdisk") ||
+            -1 < absPathLower.indexOf("腾讯微云") || -1 < absPathLower.indexOf("weiyun");
     }
 
     const isICloudPath = (absPath) => {

@@ -55,7 +55,7 @@ const (
 
 var (
 	RunInContainer             = false // 是否运行在容器中
-	SiYuanAccessAuthCodeBypass = false // 是否跳过空访问授权码检查
+	SiYuanAccessAuthCodeBypass = false // 是否跳过空锁屏密码检查
 )
 
 func IsDevMode() bool {
@@ -509,6 +509,11 @@ func initPathDir() {
 	emojis := filepath.Join(DataDir, "emojis")
 	if err := os.MkdirAll(emojis, 0755); err != nil && !os.IsExist(err) {
 		logging.LogFatalf(logging.ExitCodeInitWorkspaceErr, "create data emojis folder [%s] failed: %s", widgets, err)
+	}
+
+	queueDir := filepath.Join(TempDir, "queue")
+	if err := os.MkdirAll(queueDir, 0755); err != nil && !os.IsExist(err) {
+		logging.LogFatalf(logging.ExitCodeInitWorkspaceErr, "create queue folder [%s] failed: %s", queueDir, err)
 	}
 
 	// Support directly access `data/public/*` contents via URL link https://github.com/siyuan-note/siyuan/issues/8593

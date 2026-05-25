@@ -1,0 +1,10 @@
+allowBuilds:
+  '@parcel/watcher': false
+  electron: false
+  electron-winstaller: false
+  esbuild: false
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false
+  unrs-resolver: false
+blockExoticSubdeps: false

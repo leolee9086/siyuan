@@ -106,6 +106,9 @@ const handleResizeMouseMove = (
         nextNowSize < 64 && nextNowSize < nextSize) {
         return;
     }
+    if (nextElement.classList.contains("layout__center") && nextNowSize <= 148) {
+        return;
+    }
     if (!previousElement.classList.contains("fn__flex-1")) {
         previousElement.style.setProperty(direction === "lr" ? "width" : "height", previousNowSize + "px");
     }

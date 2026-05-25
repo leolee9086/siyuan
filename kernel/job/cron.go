@@ -39,7 +39,6 @@ func StartCron() {
 	go every(util.SQLFlushInterval, sql.FlushTxJob)
 	go every(util.SQLFlushInterval, sql.FlushHistoryTxJob)
 	go every(util.SQLFlushInterval, sql.FlushAssetContentTxJob)
-	go every(util.SQLFlushInterval, sql.PollIndexQueue)
 	go every(50*time.Microsecond, model.PollPushQueue)
 	go every(10*time.Minute, model.IndexEmbedBlockJob)
 	go every(10*time.Minute, model.CacheVirtualBlockRefJob)

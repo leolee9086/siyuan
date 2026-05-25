@@ -1019,6 +1019,7 @@ declare namespace Config {
         attr: IKey;
         backlinks: IKey;
         collapse: IKey;
+        foldRecursive: IKey;
         copyBlockEmbed: IKey;
         copyBlockRef: IKey;
         copyHPath: IKey;

@@ -11,6 +11,7 @@ import { unicode2Emoji } from "../../../emoji";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getPublishAccessOptionByLevel } from "../../../protyle/util/publishAccess";
 
 /**
  * 生成文档的aria-label属性值
@@ -99,6 +100,7 @@ export const genDocAriaLabel = (
  */
 /** @同步豁免: UI构建 - 此函数用于同步生成文件项HTML，在文件树渲染流程中被调用，必须同步返回以确保列表的即时渲染 */
 export const genFileHTML = (item: IFile): string => {
+    const editingPublishAccess = document.querySelector(".sy__file")?.classList.contains("file-tree__publish-access--active") ?? false;
     // 生成引用计数HTML（如果有引用）
     let countHTML = "";
     // 当文档有被其他文档引用时，显示引用计数徽章，帮助用户了解文档的关联程度
@@ -135,6 +137,11 @@ export const genFileHTML = (item: IFile): string => {
     // 生成新建按钮的隐藏类（只读模式时隐藏）
     const newButtonHiddenClass = isReadonly ? " fn__none" : "";
     
+    // 发布权限编辑模式：隐藏图标，显示开关
+    const iconHiddenClass = editingPublishAccess ? " fn__none" : "";
+    const switchHiddenClass = editingPublishAccess ? "" : " fn__none";
+    const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__n${switchHiddenClass}" aria-label="${siyuanI18n.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
+    
     return `<li data-node-id="${item.id ?? ""}" data-name="${item.name ?? ""}" draggable="true" data-count="${item.subFileCount ?? 0}" 
 data-type="navigation-file" 
 style="--file-toggle-width:${paddingLeft + 18}px" 
@@ -142,7 +149,8 @@ class="b3-list-item b3-list-item--hide-action" data-path="${item.path ?? ""}">
     <span style="padding-left: ${paddingLeft}px" class="b3-list-item__toggle b3-list-item__toggle--hl${toggleHiddenClass}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
-    <span class="b3-list-item__icon b3-tooltips b3-tooltips__n popover__block" data-id="${item.id ?? ""}" aria-label="${siyuanI18n.changeIcon}">${iconEmoji}</span>
+    <span class="b3-list-item__icon b3-tooltips b3-tooltips__n popover__block${iconHiddenClass}" data-id="${item.id ?? ""}" aria-label="${siyuanI18n.changeIcon}">${iconEmoji}</span>
+    ${switchHTML}
     <span class="b3-list-item__text ariaLabel" data-position="parentE"
 aria-label="${ariaLabel}">${getDisplayName(Lute.EscapeHTMLStr(item.name ?? ""), true, true)}</span>
     <span data-type="more-file" class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}">
@@ -180,13 +188,19 @@ aria-label="${ariaLabel}">${getDisplayName(Lute.EscapeHTMLStr(item.name ?? ""), 
  */
 /** @同步豁免: UI构建 - 此函数用于同步生成笔记本HTML，在文件树初始化和刷新时被调用，必须同步返回以确保笔记本列表的即时渲染 */
 export const genNotebook = (item: INotebook): string => {
+    const editingPublishAccess = document.querySelector(".sy__file")?.classList.contains("file-tree__publish-access--active") ?? false;
     // 获取storage中的图标配置
     const storage = getSiyuanStorage();
     const localImages = storage?.[Constants.LOCAL_IMAGES];
     const defaultNoteIcon = localImages?.note ?? "";
     
+    // 发布权限编辑模式：隐藏图标，显示开关
+    const iconHiddenClass = editingPublishAccess ? " fn__none" : "";
+    const switchHiddenClass = editingPublishAccess ? "" : " fn__none";
+    const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__e${switchHiddenClass}" aria-label="${siyuanI18n.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
+    
     // 生成图标HTML
-    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e" aria-label="${siyuanI18n.changeIcon}">${unicode2Emoji(item.icon || defaultNoteIcon)}</span>`;
+    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e${iconHiddenClass}" aria-label="${siyuanI18n.changeIcon}">${unicode2Emoji(item.icon || defaultNoteIcon)}</span>`;
     
     // 获取只读配置
     const config = getSiyuanConfig();
@@ -200,6 +214,7 @@ export const genNotebook = (item: INotebook): string => {
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}
+    ${switchHTML}
     <span class="b3-list-item__text" style="cursor: default;">${escapeHtml(item.name ?? "")}</span>
     <span data-type="open" data-url="${item.id ?? ""}" class="b3-list-item__action b3-tooltips b3-tooltips__w${readonlyClass}" aria-label="${siyuanI18n.openBy}">
         <svg><use xlink:href="#iconOpen"></use></svg>
@@ -220,6 +235,7 @@ data-type="navigation-root" data-path="/">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}
+    ${switchHTML}
     <span class="b3-list-item__text ariaLabel" data-position="parentE">${escapeHtml(item.name ?? "")}</span>
     <span data-type="more-root" class="b3-list-item__action b3-tooltips b3-tooltips__w${readonlyClass}" aria-label="${siyuanI18n.more}">
         <svg><use xlink:href="#iconMore"></use></svg>

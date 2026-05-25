@@ -21,14 +21,10 @@ import {
 } from "../protyle/util/table.column";
 import { updateTableTitle } from "../protyle/util/table.title.update";
 import { transaction } from "../protyle/wysiwyg/transaction";
-import { preventScroll } from "../protyle/scroll/preventScroll";
-import { removeFoldHeading } from "../protyle/util/heading";
-import { lineNumberRender } from "../protyle/render/highlightRender";
-import { clearSelect } from "../protyle/util/clearSelect";
-import { scrollCenter } from "../util/DOM/highlightById";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../util/platform/functions";
 import { Dialog } from "../dialog";
+import { setFold } from "../protyle/util/blockFold";
 
 // ==================== 从拆分文件重新导出 ====================
 
@@ -582,114 +578,3 @@ export const setFoldById = (data: {
     }
 };
 
-/**
- * 设置块的折叠状态
- * @作用 切换或设置指定块元素的折叠/展开状态
- * @意图 提供统一的折叠控制逻辑,支持标题和列表项的折叠
- * @调用时机 用户点击折叠图标、快捷键触发、或程序化控制折叠时
- * @param protyle - 编辑器实例
- * @param nodeElement - 要折叠的块元素
- * @param isOpen - 可选,true强制展开,false强制折叠,undefined切换状态
- * @param isRemove - 可选,是否在展开时移除折叠内容
- * @param addLoading - 是否显示加载动画,默认true
- * @param getOperations - 是否只返回操作而不执行,默认false
- * @returns 包含折叠状态和操作的对象
- * @同步豁免 遗留代码
- */
-export const setFold = (protyle: IProtyle, nodeElement: Element, isOpen?: boolean,
-    isRemove?: boolean, addLoading = true, getOperations = false) => {
-    // @无需注释
-    if (nodeElement.getAttribute("data-type") === "NodeListItem" && nodeElement.childElementCount < 4 &&
-        !isOpen) {
-        return { fold: -1 };
-    }
-    // @无需注释
-    if (nodeElement.getAttribute("data-type") === "NodeThematicBreak") {
-        return { fold: -1 };
-    }
-    const hasFold = nodeElement.getAttribute("fold") === "1";
-    // @无需注释
-    if (hasFold) {
-        // @无需注释
-        if (typeof isOpen === "boolean" && !isOpen) {
-            return { fold: -1 };
-        }
-        nodeElement.removeAttribute("fold");
-        const linenumberElements = nodeElement.querySelectorAll(".protyle-linenumber__rows");
-        for (const item of Array.from(linenumberElements)) {
-            const htmlItem = item as HTMLElement;
-            if (htmlItem.parentElement) {
-                lineNumberRender(htmlItem.parentElement);
-            }
-        }
-    } else {
-        // @无需注释
-        if (typeof isOpen === "boolean" && isOpen) {
-            return { fold: -1 };
-        }
-        nodeElement.setAttribute("fold", "1");
-        // @无需注释
-        if (getSelection().rangeCount > 0) {
-            const range = getSelection().getRangeAt(0);
-            const blockElement = hasClosestBlock(range.startContainer);
-            // @无需注释
-            if (blockElement && blockElement.getBoundingClientRect().width === 0) {
-                focusBlock(nodeElement, undefined, false);
-            }
-        }
-        clearSelect(["img", "av"], nodeElement);
-        scrollCenter(protyle, nodeElement);
-    }
-    const id = nodeElement.getAttribute("data-node-id");
-    if (!id) {
-        return { fold: -1 };
-    }
-    const doOperations: IOperation[] = [];
-    const undoOperations: IOperation[] = [];
-    // @无需注释
-    if (nodeElement.getAttribute("data-type") === "NodeHeading") {
-        // @无需注释
-        if (hasFold) {
-            // @无需注释
-            if (addLoading) {
-                nodeElement.insertAdjacentHTML("beforeend", '<div spin="1" style="text-align: center"><img width="24px" height="24px" src="/stage/loading-pure.svg"></div>');
-            }
-            doOperations.push({
-                action: "unfoldHeading",
-                id,
-                data: isRemove ? "remove" : undefined,
-            });
-            undoOperations.push({
-                action: "foldHeading",
-                id
-            });
-        } else {
-            doOperations.push({
-                action: "foldHeading",
-                id
-            });
-            undoOperations.push({
-                action: "unfoldHeading",
-                id
-            });
-            removeFoldHeading(nodeElement);
-        }
-    } else {
-        doOperations.push({
-            action: "setAttrs",
-            id,
-            data: JSON.stringify({ fold: hasFold ? "" : "1" })
-        });
-        undoOperations.push({
-            action: "setAttrs",
-            id,
-            data: JSON.stringify({ fold: hasFold ? "1" : "" })
-        });
-    }
-    // @无需注释
-    if (!getOperations) {
-        transaction(protyle, doOperations, undoOperations);
-    }
-    preventScroll(protyle);
-    return { fold: !hasFold ? 1 : 0, undoOperations, doOperations };
-};

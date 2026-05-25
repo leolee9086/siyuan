@@ -29,6 +29,23 @@ import { Backlink } from "../../layout/dock/Backlink";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
+import {transaction, turnsIntoOneTransaction, turnsIntoTransaction, updateTransaction} from "./transaction";
+import {cancelSB, genEmptyElement} from "../../block/util";
+import {listOutdent, updateListOrder} from "./list";
+import {zoomOut} from "../../menus/protyle";
+import {preventScroll} from "../scroll/preventScroll";
+import {hideElements} from "../ui/hideElements";
+import {Constants} from "../../constants";
+import {scrollCenter} from "../../util/highlightById";
+import {isMobile} from "../../util/functions";
+import {mathRender} from "../render/mathRender";
+import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
+import {getInstanceById} from "../../layout/util";
+import {Tab} from "../../layout/Tab";
+import {Backlink} from "../../layout/dock/Backlink";
+import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {onGet} from "../util/onGet";
+import {setFold} from "../util/blockFold";
 
 export const removeBlock = async (protyle: IProtyle, blockElement: Element, range: Range, type: "Delete" | "Backspace" | "remove") => {
     protyle.observerLoad?.disconnect();

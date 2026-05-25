@@ -124,7 +124,7 @@ export const showTooltip = (
         }
     }
     messageElement.style.top = top + "px";
-    messageElement.style.left = left + "px";
+    messageElement.style.left = Math.max(0, left) + "px";
 };
 
 export const hideTooltip = () => {

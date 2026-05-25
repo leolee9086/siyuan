@@ -138,17 +138,14 @@ export const saveExportFile = async (uri: string) => {
     try {
         if (isInAndroid()) {
             window.JSAndroid.saveExportFile(uri);
-            showMessage(siyuanI18n.exported);
             return;
         }
         if (isInIOS()) {
             window.webkit.messageHandlers.saveExportFile.postMessage(uri);
-            showMessage(siyuanI18n.exported);
             return;
         }
         if (isInHarmony()) {
             window.JSHarmony.saveExportFile(uri);
-            showMessage(siyuanI18n.exported);
             return;
         }
         const openUrl = new URL(uri, `${location.origin}/`);

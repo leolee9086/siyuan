@@ -42,7 +42,8 @@ body {
   z-index: 8;
   border-radius: 0;
 
-  &.sy__graph {
+  &.sy__graph,
+  &.sy__globalGraph {
     background-color: var(--b3-theme-background);
   }
 

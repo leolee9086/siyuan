@@ -37,14 +37,12 @@ var importMdCmd = &cobra.Command{
 		filePath, _ := cmd.Flags().GetString("file")
 		notebook, _ := cmd.Flags().GetString("notebook")
 		toPath, _ := cmd.Flags().GetString("path")
+		hpath, _ := cmd.Flags().GetString("hpath")
 		if filePath == "" {
 			return fmt.Errorf("--file is required")
 		}
 		if notebook == "" {
 			return fmt.Errorf("--notebook is required")
-		}
-		if toPath == "" {
-			toPath = "/"
 		}
 
 		absPath, err := filepath.Abs(filePath)
@@ -52,9 +50,10 @@ var importMdCmd = &cobra.Command{
 			return err
 		}
 
-		if err := model.ImportFromLocalPath(notebook, absPath, toPath); err != nil {
+		if err := model.ImportFromLocalPath(notebook, absPath, resolvePath(notebook, toPath, hpath)); err != nil {
 			return err
 		}
+		model.AppendPushReloadFiletreeEntry()
 		fmt.Println("ok")
 		return nil
 	},
@@ -67,14 +66,12 @@ var importSYCmd = &cobra.Command{
 		filePath, _ := cmd.Flags().GetString("file")
 		notebook, _ := cmd.Flags().GetString("notebook")
 		toPath, _ := cmd.Flags().GetString("path")
+		hpath, _ := cmd.Flags().GetString("hpath")
 		if filePath == "" {
 			return fmt.Errorf("--file is required")
 		}
 		if notebook == "" {
 			return fmt.Errorf("--notebook is required")
-		}
-		if toPath == "" {
-			toPath = "/"
 		}
 
 		absPath, err := filepath.Abs(filePath)
@@ -82,9 +79,10 @@ var importSYCmd = &cobra.Command{
 			return err
 		}
 
-		if err := model.ImportSY(absPath, notebook, toPath); err != nil {
+		if err := model.ImportSY(absPath, notebook, resolvePath(notebook, toPath, hpath)); err != nil {
 			return err
 		}
+		model.AppendPushReloadFiletreeEntry()
 		fmt.Println("ok")
 		return nil
 	},
@@ -115,11 +113,13 @@ var importDataCmd = &cobra.Command{
 func init() {
 	importMdCmd.Flags().String("file", "", "file or directory path")
 	importMdCmd.Flags().StringP("notebook", "n", "", "notebook ID")
-	importMdCmd.Flags().String("path", "", "target path (default /)")
+	importMdCmd.Flags().String("path", "", "target internal path (default /)")
+	importMdCmd.Flags().String("hpath", "", "target human-readable path")
 
 	importSYCmd.Flags().String("file", "", ".sy.zip file path")
 	importSYCmd.Flags().StringP("notebook", "n", "", "notebook ID")
-	importSYCmd.Flags().String("path", "", "target path (default /)")
+	importSYCmd.Flags().String("path", "", "target internal path (default /)")
+	importSYCmd.Flags().String("hpath", "", "target human-readable path")
 
 	importDataCmd.Flags().String("file", "", "data backup zip path")
 

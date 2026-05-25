@@ -152,7 +152,8 @@ function handleMoreClick(
 
     initMoreMenu({
         element: files.element,
-        init: files.init.bind(files)
+        init: files.init.bind(files),
+        refreshPublishAccessSwitch: files.refreshPublishAccessSwitch?.bind(files),
     }).popup({ x: event.clientX, y: event.clientY });
     event.preventDefault();
     event.stopPropagation();

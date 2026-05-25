@@ -152,7 +152,7 @@ export const bindEmojiPanelEvents = (
                         notebook: id,
                         icon: ""
                     }, () => {
-                        updateFileTreeEmoji("", id, "iconFilesRoot");
+                        updateFileTreeEmoji("", id, "iconNewNoteBook");
                     });
                 } else if (type === "doc") {
                     fetchPost("/api/attr/setBlockAttrs", {
@@ -185,7 +185,7 @@ export const bindEmojiPanelEvents = (
                         notebook: id,
                         icon: unicode
                     }, () => {
-                        updateFileTreeEmoji(unicode, id, "iconFilesRoot");
+                        updateFileTreeEmoji(unicode, id, "iconNewNoteBook");
                     });
                 } else if (type === "doc") {
                     fetchPost("/api/attr/setBlockAttrs", {

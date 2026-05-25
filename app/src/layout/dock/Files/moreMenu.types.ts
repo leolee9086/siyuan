@@ -10,4 +10,6 @@ export interface InitMoreMenuDeps {
     element: HTMLElement;
     /** 初始化函数，用于刷新后重新初始化文件树 */
     init: (isInitialCall?: boolean) => void;
+    /** 发布权限开关刷新函数 */
+    refreshPublishAccessSwitch?: () => void;
 }

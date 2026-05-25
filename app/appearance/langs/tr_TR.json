@@ -1034,6 +1034,7 @@
   "memo": "Not",
   "name": "Ad",
   "fold": "Daralt/Genişlet",
+  "foldRecursive": "Seviye seviye daralt/genişlet",
   "zoom": "Yakınlaştır",
   "invalid": "Geçersiz",
   "conflict": "Çakışma",
@@ -1653,7 +1654,7 @@
     "153": "İndirilen dosyalar %d, parçalar %d, alınan veri %s",
     "154": "Bulut en fazla 12 yedek anlık görüntüyü destekler",
     "155": "Bulut senkron klasörü [main] olarak sıfırlandı",
-    "156": "Kimlik doğrulama başarısız, lütfen <button onclick=\"window.location.reload()\">yenile</button> veya yeniden aç",
+    "156": "Ekran kilidi şifresi kimlik doğrulaması başarısız, lütfen <button onclick=\"window.location.reload()\">yenile</button> veya yeniden aç",
     "157": "Anahtar tanınmadı, kopyalanan anahtarın doğru olduğundan emin ol",
     "158": "Veri deposu indeksleniyor, veriler taranıyor %s",
     "159": "Veri deposu indeksleniyor, en son dosya alınıyor %v/%v",
@@ -1785,6 +1786,11 @@
     "285": "Şifre yanlış",
     "286": "[%s] geri alındı",
     "287": "Erişim yetkilendirme kodu yalnızca boşluklardan oluşamaz. Devre dışı bırakmak için giriş kutusunu doğrudan temizleyin",
-    "288": " (Varsayılan)"
+    "288": " (Varsayılan)",
+    "289": "İndirilenlere aktarıldı",
+    "290": "Dışa aktarma başarısız",
+    "291": "Dosya bulunamadı veya boş",
+    "292": "Dosya oluşturulamadı",
+    "293": "Dosyaya yazılamadı"
   }
 }

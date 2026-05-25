@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
@@ -36,9 +37,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "siyuan",
-	Short: "SiYuan Note CLI",
-	Long:  `A command-line interface for SiYuan.`,
+	Use:     "SiYuan-Kernel",
+	Version: util.Ver,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// 确定工作目录
 		if exePath, err := os.Executable(); err == nil {
@@ -51,6 +51,11 @@ var rootCmd = &cobra.Command{
 			util.WorkingDir = appDir
 		}
 
+		langsDir := filepath.Join(util.WorkingDir, "appearance", "langs")
+		if _, err := os.Stat(langsDir); os.IsNotExist(err) {
+			return fmt.Errorf("appearance files not found at [%s]", langsDir)
+		}
+
 		// 设置工作空间路径
 		if workspacePath == "" {
 			workspacePath = os.Getenv("SIYUAN_WORKSPACE_PATH")
@@ -60,19 +65,24 @@ var rootCmd = &cobra.Command{
 		}
 
 		if _, err := os.Stat(workspacePath); os.IsNotExist(err) {
-			return fmt.Errorf("workspace not found: %s", workspacePath)
+			return fmt.Errorf("directory not found: %s", workspacePath)
+		}
+		if !util.IsWorkspaceDir(workspacePath) {
+			return fmt.Errorf("not a valid workspace: %s", workspacePath)
 		}
 
 		util.Mode = "prod"
 		util.InitWorkspace(workspacePath, util.WorkingDir)
 
-		os.MkdirAll(util.QueueDir, 0755)
 		logging.SetLogPath(filepath.Join(util.TempDir, "siyuan-cli.log"))
 		logging.SetLogToStdout(false)
 
 		model.InitConf()
 		sql.InitDatabase(false)
-
+		sql.InitHistoryDatabase(false)
+		sql.InitAssetContentDatabase(false)
+		sql.SetCaseSensitive(model.Conf.Search.CaseSensitive)
+		sql.SetIndexAssetPath(model.Conf.Search.IndexAssetPath)
 		return nil
 	},
 }
@@ -81,6 +91,7 @@ func findAppDir() string {
 	if exePath, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exePath)
 		candidates := []string{
+			filepath.Join(exeDir, ".."),              // resources/kernel/ → resources/ (production)
 			filepath.Join(exeDir, "..", "app"),       // kernel/cli/ → kernel/ → app/
 			filepath.Join(exeDir, "app"),             // kernel/ → app/
 			filepath.Join(exeDir, "..", "..", "app"), // kernel/cli/cmd/... → .../app/
@@ -102,6 +113,10 @@ func findAppDir() string {
 }
 
 func init() {
+	rootCmd.Use = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
+	rootCmd.Short = "SiYuan Kernel v" + util.Ver
+	rootCmd.Long = "SiYuan Kernel v" + util.Ver + ". Manage workspace data directly or start the HTTP server."
+
 	rootCmd.PersistentFlags().StringVarP(&workspacePath, "workspace", "w", "", "workspace path")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format: table | json")
 }

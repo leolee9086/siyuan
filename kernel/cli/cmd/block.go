@@ -202,6 +202,7 @@ var blockInsertCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(parentID)
 		fmt.Println("ok")
 		return nil
 	},
@@ -227,6 +228,7 @@ var blockAppendCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(parentID)
 		fmt.Println("ok")
 		return nil
 	},
@@ -245,13 +247,14 @@ var blockPrependCmd = &cobra.Command{
 		dom := markdownToBlockDOM(data)
 		transactions := []*model.Transaction{{
 			DoOperations: []*model.Operation{{
-				Action:   "prepend",
+				Action:   "prependInsert",
 				Data:     dom,
 				ParentID: parentID,
 			}},
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(parentID)
 		fmt.Println("ok")
 		return nil
 	},
@@ -277,6 +280,7 @@ var blockUpdateCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(id)
 		fmt.Println("ok")
 		return nil
 	},
@@ -299,6 +303,7 @@ var blockDeleteCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(id)
 		fmt.Println(id)
 		return nil
 	},
@@ -325,6 +330,7 @@ var blockMoveCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
+		model.AppendPushReloadProtyleEntry(id)
 		fmt.Println("ok")
 		return nil
 	},

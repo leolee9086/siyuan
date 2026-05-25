@@ -23,6 +23,7 @@
     flex-shrink: 0;
     background-color: var(--b3-theme-background);
     border-radius: var(--b3-border-radius-b);
+    overflow: hidden;
   }
 
   &__dockl + .layout__resize {

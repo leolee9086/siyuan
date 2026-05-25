@@ -23,22 +23,21 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute"
-	"github.com/88250/lute/parse"
 	"github.com/gofrs/flock"
-	"github.com/siyuan-note/dataparser"
-	"github.com/siyuan-note/filelock"
+	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 var (
-	indexMu         sync.Mutex
-	indexQueueSize       atomic.Int64
-	skipIndexAppend atomic.Bool
-	indexFlock      *flock.Flock
+	indexMu        sync.Mutex
+	indexQueueSize atomic.Int64
+	indexFlock     *flock.Flock
 )
 
 type indexEntry struct {
@@ -69,10 +68,6 @@ func closeIndexQueue() {
 }
 
 func appendToIndexQueue(op *dbQueueOperation) {
-	if skipIndexAppend.Load() {
-		return
-	}
-
 	entry := dbOpToIndexEntry(op)
 	if nil == entry {
 		return
@@ -209,27 +204,6 @@ func clearIndexQueueEntries() {
 	indexQueueSize.Store(0)
 }
 
-func PollIndexQueue() {
-	if skipIndexAppend.Load() {
-		return
-	}
-
-	_ = indexFlock.Lock()
-	defer func() { _ = indexFlock.Unlock() }()
-
-	entries := loadIndexQueue()
-	if 1 > len(entries) {
-		return
-	}
-
-	skipIndexAppend.Store(true)
-	defer skipIndexAppend.Store(false)
-
-	logging.LogInfof("polling [%d] external index queue operations", len(entries))
-	processIndexEntries(entries, "poll index queue")
-	clearIndexQueueEntries()
-}
-
 func loadIndexQueue() (entries []indexEntry) {
 	indexQueuePath := filepath.Join(util.QueueDir, "index.queue")
 	f, err := os.Open(indexQueuePath)
@@ -267,86 +241,80 @@ func recoverIndexQueue() {
 	}
 
 	logging.LogInfof("recovering [%d] index queue operations", len(entries))
-	processIndexEntries(entries, "recover index queue")
+
+	luteEngine := lute.New()
+	dbQueueLock.Lock()
+	for _, e := range entries {
+		op := indexEntryToOp(e, luteEngine, "recover index queue")
+		if nil == op {
+			continue
+		}
+		operationQueue = append(operationQueue, op)
+	}
+	dbQueueLock.Unlock()
+
+	eventbus.Publish(eventbus.EvtSQLIndexChanged)
 	logging.LogInfof("recovered [%d] index queue operations, will be flushed soon", len(entries))
 }
 
-func processIndexEntries(entries []indexEntry, prefix string) {
-	luteEngine := lute.New()
-	for _, e := range entries {
-		switch e.Action {
-		case "upsert":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s upsert: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			UpsertTreeQueue(tree)
-		case "index":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s index: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			IndexTreeQueue(tree)
-		case "rename":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s rename: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			RenameTreeQueue(tree)
-		case "move":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s move: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			MoveTreeQueue(tree)
-		case "update_refs":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s update_refs: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			UpdateRefsTreeQueue(tree)
-		case "delete_refs":
-			tree, err := loadTreeFromDisk(e.Box, e.Path, luteEngine)
-			if err != nil {
-				logging.LogWarnf("%s delete_refs: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
-				continue
-			}
-			DeleteRefsTreeQueue(tree)
-		case "delete":
-			RemoveTreePathQueue(e.Box, e.Path)
-		case "delete_id":
-			RemoveTreeQueue(e.ID)
-		case "delete_ids":
-			BatchRemoveTreeQueue(e.IDs)
-		case "delete_box":
-			DeleteBoxQueue(e.Box)
-		case "delete_box_refs":
-			DeleteBoxRefsQueue(e.Box)
-		case "delete_assets":
-			BatchRemoveAssetsQueue(e.Hashes)
-		case "index_node":
-			IndexNodeQueue(e.ID)
+func indexEntryToOp(e indexEntry, luteEngine *lute.Lute, prefix string) *dbQueueOperation {
+	switch e.Action {
+	case "upsert":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s upsert: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
 		}
+		return &dbQueueOperation{upsertTree: tree, inQueueTime: time.Now(), action: "upsert"}
+	case "index":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s index: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
+		}
+		return &dbQueueOperation{indexTree: tree, inQueueTime: time.Now(), action: "index"}
+	case "rename":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s rename: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
+		}
+		return &dbQueueOperation{indexTree: tree, inQueueTime: time.Now(), action: "rename"}
+	case "move":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s move: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
+		}
+		return &dbQueueOperation{indexTree: tree, inQueueTime: time.Now(), action: "move"}
+	case "update_refs":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s update_refs: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
+		}
+		return &dbQueueOperation{upsertTree: tree, inQueueTime: time.Now(), action: "update_refs"}
+	case "delete_refs":
+		tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
+		if err != nil {
+			logging.LogWarnf("%s delete_refs: load tree [%s/%s] failed: %s", prefix, e.Box, e.Path, err)
+			return nil
+		}
+		return &dbQueueOperation{upsertTree: tree, inQueueTime: time.Now(), action: "delete_refs"}
+	case "delete":
+		return &dbQueueOperation{removeTreeBox: e.Box, removeTreePath: e.Path, inQueueTime: time.Now(), action: "delete"}
+	case "delete_id":
+		return &dbQueueOperation{removeTreeID: e.ID, inQueueTime: time.Now(), action: "delete_id"}
+	case "delete_ids":
+		return &dbQueueOperation{removeTreeIDs: e.IDs, inQueueTime: time.Now(), action: "delete_ids"}
+	case "delete_box":
+		return &dbQueueOperation{box: e.Box, inQueueTime: time.Now(), action: "delete_box"}
+	case "delete_box_refs":
+		return &dbQueueOperation{box: e.Box, inQueueTime: time.Now(), action: "delete_box_refs"}
+	case "delete_assets":
+		return &dbQueueOperation{removeAssetHashes: e.Hashes, inQueueTime: time.Now(), action: "delete_assets"}
+	case "index_node":
+		return &dbQueueOperation{id: e.ID, inQueueTime: time.Now(), action: "index_node"}
 	}
-}
-
-func loadTreeFromDisk(box, p string, luteEngine *lute.Lute) (tree *parse.Tree, err error) {
-	filePath := filepath.Join(util.DataDir, box, p)
-	data, err := filelock.ReadFile(filePath)
-	if err != nil {
-		return
-	}
-
-	tree, _, err = dataparser.ParseJSON(data, luteEngine.ParseOptions)
-	if err != nil {
-		return
-	}
-	tree.Box = box
-	tree.Path = p
-	return
+	return nil
 }

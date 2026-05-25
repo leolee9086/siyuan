@@ -17,6 +17,7 @@ import { assertHTMLElement } from "./Files/treeOperations.guard";
 import { onLsHTMLHandler } from "./Files/onLsHTML";
 import { handleMsgCallback } from "./Files/msgCallbackHandler";
 import { onRenameHandler } from "./Files/wsHandlers.rename";
+import { getPublishAccessLevel, getPublishAccessOptionByLevel } from "../../protyle/util/publishAccess";
 import {
     generateNotebooksHtml,
     updateCloseAreaContent,
@@ -241,5 +242,24 @@ export class Files extends Model {
             this.setCurrent(liElement);
         }
         return liElement;
+    }
+    private refreshPublishAccessSwitch() {
+        if (window.siyuan.config.readonly || window.siyuan.isPublish ||
+            !this.element.classList.contains("file-tree__publish-access--active")) {
+            return;
+        }
+        const ids: string[] = [];
+        this.element.querySelectorAll("[data-url]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-url")));
+        this.element.querySelectorAll("[data-node-id]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-node-id")));
+        fetchPost("/api/filetree/getPublishAccess", {
+            ids
+        }, response => {
+            response.data.publishAccess.forEach((item: IPublishAccessItem) => {
+                const element = this.element.querySelector(`[data-url="${item.id}"] .b3-list-item__switch`) || this.element.querySelector(`[data-node-id="${item.id}"] .b3-list-item__switch`);
+                if (element) {
+                    element.innerHTML = getPublishAccessOptionByLevel(getPublishAccessLevel(item.visible, item.password, item.disable)).iconHTML;
+                }
+            });
+        });
     }
 }
