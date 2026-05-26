@@ -61,62 +61,11 @@ import { getContenteditableElement } from "./getBlock";
 import { highlightRender } from "../render/highlightRender";
 import { isMobile } from "../../platform";
 import {removeBlock, removeImage} from "./remove";
-import {
-    getContenteditableElement,
-    getFirstBlock,
-    getLastBlock,
-    getNextBlock,
-    getParentBlock,
-    getPreviousBlock,
-    getTopAloneElement,
-    hasNextSibling,
-    hasPreviousSibling,
-    isEndOfBlock,
-    isNotEditBlock,
-} from "./getBlock";
-import {isIncludesHotKey, matchHotKey} from "../util/hotKey";
-import {enter, softEnter} from "./enter";
-import {clearTableCell, fixTable} from "../util/table";
-import {
-    transaction,
-    turnsIntoOneTransaction,
-    turnsIntoTransaction,
-    turnsOneInto,
-    updateBatchTransaction,
-    updateTransaction
-} from "./transaction";
-import {fontEvent} from "../toolbar/Font";
-import {addSubList, listIndent, listOutdent} from "./list";
-import {newFileContentBySelect, rename, replaceFileName} from "../../editor/rename";
-import {cancelSB, insertEmptyBlock, jumpToParent} from "../../block/util";
-import {isLocalPath} from "../../util/pathName";
-/// #if !MOBILE
-import {openBy, openFileById} from "../../editor/util";
-/// #endif
-import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";
-import {fileAnnotationRefMenu, inlineMathMenu, linkMenu, refMenu, tagMenu} from "../../menus/protyle";
-import {foldBlocksRecursively, getFoldBlock, setFold} from "../util/blockFold";
-import {openAttr} from "../../menus/commonMenuItem";
-import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
-import {scrollCenter} from "../../util/highlightById";
-import {BlockPanel} from "../../block/Panel";
-import * as dayjs from "dayjs";
-import {highlightRender} from "../render/highlightRender";
-import {countBlockWord} from "../../layout/status";
-import {moveToDown, moveToUp} from "./move";
-import {pasteAsPlainText} from "../util/paste";
-import {preventScroll} from "../scroll/preventScroll";
-import {getSavePath, newFileBySelect} from "../../util/newFile";
-import {removeSearchMark} from "../toolbar/util";
-import {avKeydown} from "../render/av/keydown";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {AIActions} from "../../ai/actions";
-import {openLink} from "../../editor/openLink";
-import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
-import {AIChat} from "../../ai/chat";
-import {updateCalloutType} from "./callout";
-import {tabCodeBlock} from "./codeBlock";
+import { preventScroll } from "../scroll/preventScroll";
+import { foldBlocksRecursively, getFoldBlock, setFold } from "../util/blockFold";
+import { countBlockWord } from "../../layout/status";
+import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
+import { upSelect, downSelect, getStartEndElement } from "./commonHotkey";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";

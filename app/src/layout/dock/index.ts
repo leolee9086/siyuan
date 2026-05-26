@@ -21,7 +21,7 @@ import { getSiyuanLanguages, getSiyuanConfig, setWindowTimeout } from "./dock.en
 import { isWnd, isTDock } from "./dock.guard";
 import { removeSourceTab, initDockFloatMode, initDockData } from "./dock.init";
 import { setSizeForItem } from "./dock.size";
-import { handleClick, handleMouseLeave } from "./dock.events";
+import { handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
@@ -46,15 +46,17 @@ export class Dock {
         this.pin = options.data.pin;
         this.data = {};
         initDockLayout(this, options.position);
-        const dockElement = document.getElementById("dock" + options.position);
-        if (!dockElement) {
-            throw new Error(`Dock element not found: dock${options.position}`);
+        if (options.position === "Bottom") {
+            this.elements = [document.getElementById("dockLeft").lastElementChild as HTMLElement, document.getElementById("dockRight").lastElementChild as HTMLElement];
+        } else {
+            const dockElement = document.getElementById("dock" + options.position);
+            if (!dockElement) {
+                throw new Error(`Dock element not found: dock${options.position}`);
+            }
+            dockElement.innerHTML = '<div class="dock__items"></div><div class="fn__flex-1 dock__item--space"></div><div class="dock__items"></div>';
+            this.elements = Array.from(dockElement.querySelectorAll(".dock__items"));
         }
-        const dockClass = options.position === "Bottom" ? ' class="fn__flex dock__items"' : ' class="dock__items"';
-        dockElement.innerHTML = `<div${dockClass}></div><div class="fn__flex-1 dock__item--space"></div><div${dockClass}></div>`;
-        this.elements = Array.from(dockElement.querySelectorAll(".dock__items"));
         initDockData(this, options.data.data, TYPES, getSiyuanLanguages);
-        this.elements[0].parentElement.addEventListener("click", (e) => handleClick(this, e));
         this.layout.element.addEventListener("mouseleave", (e) => handleMouseLeave(this, e));
         initDockResize(this);
         initDockDnD(this);
@@ -389,7 +391,7 @@ export class Dock {
         for (const item of data) {
             this.data[item.type] = true;
         }
-        insertButtonsToContainer(this.elements[index], html, tabIndex, (this.pin ? languages?.unpin : languages?.pin) || "", this.pin, index === 0);
+        insertButtonsToContainer(this.elements[index], html, tabIndex);
         if (typeof tabIndex !== "number") {
             this.adjustSplit();
             return;
@@ -426,7 +428,7 @@ export class Dock {
         const html = generateAllButtonsHTML([item], 1, languages?.dockTip || "");
         const container = this.elements[1];
         if (container) {
-            insertButtonsToContainer(container, html, undefined, (this.pin ? languages?.unpin : languages?.pin) || "", this.pin, false, true);
+            insertButtonsToContainer(container, html, undefined, true);
         }
         this.data[item.type] = true;
         if (item.show) {

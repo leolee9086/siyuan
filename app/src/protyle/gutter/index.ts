@@ -9,7 +9,7 @@ import {
 import {getIconByType} from "../../editor/getIcon";
 import {enterBack, iframeMenu, tableMenu, videoMenu, zoomOut} from "../../menus/protyle";
 import {foldBlocksRecursively, setFold} from "../util/blockFold";
-import {MenuItem} from "../../menus/Menu";
+import {MenuItem} from "../../menus/Menu.Item";
 import {copySubMenu, openAttr, openFileAttr, openWechatNotify} from "../../menus/commonMenuItem";
 import {
     copyPlainText,
@@ -24,6 +24,7 @@ import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { renderGutter } from "./renderGutter";
 import { bindEvent, isMatchNode } from "./bindEvent";
+import { getTopAloneElement, getParentBlock } from "../wysiwyg/getBlock";
 
 /**
  * 思源笔记编辑器的侧边栏（Gutter）管理类

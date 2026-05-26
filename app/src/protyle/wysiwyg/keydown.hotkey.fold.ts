@@ -1,6 +1,6 @@
 import { matchHotKey } from "../util/hotKey";
 import { getTopAloneElement } from "./getBlock";
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 
 /**
  * 折叠展开快捷键中间件

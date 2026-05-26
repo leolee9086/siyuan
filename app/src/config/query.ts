@@ -1,4 +1,5 @@
 import {fetchPost} from "../util/network/fetch";
+import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const query = {
     element: undefined as Element,

@@ -5,7 +5,7 @@ import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
-import {setFold} from "../../menus/protyle";
+import {setFold} from "../util/blockFold";
 import {avRender} from "../render/av/render";
 import {genSBElement} from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";

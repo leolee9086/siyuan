@@ -15,11 +15,12 @@ import {
 } from "./hasClosest";
 import {Constants} from "../../constants";
 import {paste} from "./paste";
-import {cancelSB, genEmptyElement, genSBElement, insertEmptyBlock} from "../../block/util";
+import {genEmptyElement, genSBElement, insertEmptyBlock} from "../../block/util";
+import {cancelSB} from "../../block/util.cancelSB";
 import {transaction, turnsIntoOneTransaction} from "../wysiwyg/transaction";
 import {getParentBlock, getTopAloneElement} from "../wysiwyg/getBlock";
-import {updateListOrder} from "../wysiwyg/list";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {updateListOrder} from "../wysiwyg/list.updateOrder";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {onGet} from "./onGet";
 /// #if !MOBILE
 import {getAllEditor} from "../../layout/getAll";
@@ -28,7 +29,7 @@ import {updatePanelByEditor} from "../../editor/util";
 import {blockRender} from "../render/blockRender";
 import {uploadLocalFiles} from "../upload";
 import {insertHTML} from "./insertHTML";
-import {isBrowser} from "../../util/functions";
+import {isBrowser} from "../../util/platform/functions";
 import {hideElements} from "../ui/hideElements";
 import {insertAttrViewBlockAnimation} from "../render/av/row";
 import * as dayjs from "dayjs";

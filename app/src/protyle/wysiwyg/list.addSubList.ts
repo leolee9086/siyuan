@@ -1,4 +1,4 @@
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 import { hasClosestByClassName, hasClosestBlock } from "../util/hasClosest";
 import { focusByWbr } from "../util/selection";
 import { genListItemElement } from "./list";

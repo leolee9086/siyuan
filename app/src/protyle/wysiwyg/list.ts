@@ -5,7 +5,7 @@ import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
 import { moveToPrevious, removeBlock } from "./remove";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 import { getParentBlock } from "./getBlock";
 import { updateListOrder } from "./list.updateOrder";
 import {Constants} from "../../constants";

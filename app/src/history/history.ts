@@ -9,7 +9,7 @@ import { openModel } from "../mobile/menu/model";
 import { App } from "../index";
 import { resizeSide } from "./resizeSide";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { renderDoc, renderRepo } from "./history.render";
+import { renderDoc, renderRepo, renderRmNotebook } from "./history.render";
 import { handleDocClick } from "./history.docEvent";
 import { handleRepoClick } from "./history.repoEvent";
 import * as dayjs from "dayjs";
@@ -26,93 +26,6 @@ let historyEditor: Protyle | undefined;
  */
 export const clearHistoryEditor = () => {
     historyEditor = undefined;
-const renderDoc = (element: HTMLElement, currentPage: number) => {
-    const previousElement = element.querySelector('[data-type="docprevious"]');
-    const nextElement = element.querySelector('[data-type="docnext"]');
-    element.setAttribute("data-page", currentPage.toString());
-    if (currentPage > 1) {
-        previousElement.removeAttribute("disabled");
-    } else {
-        previousElement.setAttribute("disabled", "disabled");
-    }
-    const pageBtn = element.querySelector('button[data-type="jumpHistoryPage"]');
-    pageBtn.textContent = `${currentPage}`;
-
-    const inputElement = element.querySelector(".b3-text-field") as HTMLInputElement;
-    const opElement = element.querySelector('.b3-select[data-type="opselect"]') as HTMLSelectElement;
-    const typeElement = element.querySelector('.b3-select[data-type="typeselect"]') as HTMLSelectElement;
-    const notebookElement = element.querySelector('.b3-select[data-type="notebookselect"]') as HTMLSelectElement;
-    const docElement = element.querySelector('.history__text[data-type="docPanel"]');
-    const assetElement = element.querySelector('.history__text[data-type="assetPanel"]');
-    const mdElement = element.querySelector('.history__text[data-type="mdPanel"]') as HTMLTextAreaElement;
-    const listElement = element.querySelector(".b3-list");
-    element.querySelector(".protyle-title__input").classList.add("fn__none");
-    assetElement.classList.add("fn__none");
-    mdElement.classList.add("fn__none");
-    docElement.classList.add("fn__none");
-    if (typeElement.value === "2" || typeElement.value === "4") {
-        notebookElement.setAttribute("disabled", "disabled");
-        if (window.siyuan.storage[Constants.LOCAL_HISTORY].type !== 2 && window.siyuan.storage[Constants.LOCAL_HISTORY].type !== 4) {
-            opElement.value = "all";
-        }
-        if (typeElement.value === "4") {
-            opElement.querySelector('option[value="update"]').classList.add("fn__none");
-            opElement.querySelector('option[value="sync"]').classList.add("fn__none");
-        } else {
-            opElement.querySelector('option[value="update"]').classList.remove("fn__none");
-            opElement.querySelector('option[value="sync"]').classList.remove("fn__none");
-        }
-        opElement.querySelector('option[value="clean"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="delete"]').classList.add("fn__none");
-        opElement.querySelector('option[value="format"]').classList.add("fn__none");
-        opElement.querySelector('option[value="replace"]').classList.add("fn__none");
-        opElement.querySelector('option[value="outline"]').classList.add("fn__none");
-    } else {
-        notebookElement.removeAttribute("disabled");
-        if (window.siyuan.storage[Constants.LOCAL_HISTORY].type === 2 || window.siyuan.storage[Constants.LOCAL_HISTORY].type === 4) {
-            opElement.value = "all";
-        }
-        opElement.querySelector('option[value="clean"]').classList.add("fn__none");
-        opElement.querySelector('option[value="update"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="delete"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="format"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="sync"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="replace"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="outline"]').classList.remove("fn__none");
-    }
-    window.siyuan.storage[Constants.LOCAL_HISTORY].notebookId = notebookElement.value;
-    window.siyuan.storage[Constants.LOCAL_HISTORY].type = parseInt(typeElement.value);
-    window.siyuan.storage[Constants.LOCAL_HISTORY].operation = opElement.value;
-    setStorageVal(Constants.LOCAL_HISTORY, window.siyuan.storage[Constants.LOCAL_HISTORY]);
-    fetchPost("/api/history/searchHistory", {
-        notebook: notebookElement.value,
-        query: inputElement.value,
-        page: currentPage,
-        op: opElement.value,
-        type: parseInt(typeElement.value)
-    }, (response) => {
-        if (currentPage < response.data.pageCount) {
-            nextElement.removeAttribute("disabled");
-        } else {
-            nextElement.setAttribute("disabled", "disabled");
-        }
-        pageBtn.setAttribute("data-totalpage", (response.data.pageCount || 1).toString());
-        const pageElement = nextElement.nextElementSibling.nextElementSibling;
-        pageElement.textContent = `${window.siyuan.languages.pageCountAndHistoryCount.replace("${x}", response.data.pageCount).replace("${y}", response.data.totalCount || 1)}`;
-        pageElement.classList.remove("fn__none");
-        if (response.data.histories.length === 0) {
-            listElement.innerHTML = `<li class="b3-list--empty">${window.siyuan.languages.emptyContent}</li>`;
-            return;
-        }
-        let logsHTML = "";
-        response.data.histories.forEach((item: string) => {
-            logsHTML += `<li class="b3-list-item" data-type="toggle" data-created="${item}">
-    <span class="b3-list-item__toggle b3-list-item__toggle--hl"><svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg></span>
-    <span style="padding-left: 4px" class="b3-list-item__text">${dayjs(parseInt(item) * 1000).format("YYYY-MM-DD HH:mm:ss")}</span>
-</li>`;
-        });
-        listElement.innerHTML = logsHTML;
-    });
 };
 
 const renderRepoItem = (response: IWebSocketData, element: Element, type: string) => {

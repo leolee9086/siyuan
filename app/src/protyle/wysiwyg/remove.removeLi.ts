@@ -1,4 +1,4 @@
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 import { focusByRange } from "../util/selection.focus";
 import { focusByWbr, setLastNodeRange } from "../util/selection.range";
 import { getParentBlock, getContenteditableElement } from "./getBlock";

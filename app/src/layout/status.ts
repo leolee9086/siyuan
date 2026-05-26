@@ -174,24 +174,20 @@ const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) =>
     }, Constants.TIMEOUT_COUNT);
 };
 
-export const countSelectWord = (range: Range, rootID: string) => {
+export const countSelectWord = (range: Range, rootID?: string) => {
     if (isMobile) {
         return;
     }
-export const countSelectWord = (range: Range, rootID?: string) => {
-    /// #if !MOBILE
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
     scheduleStatusStat(rootID, range.toString());
 };
 
-export const countBlockWord = (ids: (string | null)[], rootID: string) => {
+export const countBlockWord = (ids: string[], rootID?: string, clearCache = false) => {
     if (isMobile) {
         return;
     }
-export const countBlockWord = (ids: string[], rootID?: string, clearCache = false) => {
-    /// #if !MOBILE
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }

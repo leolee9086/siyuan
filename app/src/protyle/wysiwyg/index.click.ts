@@ -16,7 +16,7 @@ import {
 } from "../util/selection";
 import {Constants} from "../../constants";
 import {isMobile} from "../../util/platform/functions";
-import {setFold} from "../../menus/protyle";
+import {setFold} from "../util/blockFold";
 import {enterBack} from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";

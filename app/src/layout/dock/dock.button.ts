@@ -47,23 +47,10 @@ export function generateAllButtonsHTML(
 }
 
 /**
- * 生成 Pin 按钮的 HTML
- * @同步豁免: UI构建
- */
-export function generatePinButtonHTML(pinText: string, isPinned: boolean): string {
-    return `<span class="dock__item dock__item--pin ariaLabel" aria-label="${pinText}">
-    <svg><use xlink:href="#icon${isPinned ? "Unpin" : "Pin"}"></use></svg>
-</span>`;
-}
-
-/**
  * 插入按钮到容器
  * @param container 目标容器
  * @param html 按钮HTML
  * @param tabIndex 可选的tab索引，用于指定插入位置
- * @param pinText pin按钮文本
- * @param isPinned 是否已pin
- * @param isFirstContainer 是否是第一个容器
  * @param append 是否追加模式（默认false为替换模式，用于初始化；true为追加模式，用于动态添加）
  * @同步豁免: DOM访问
  */
@@ -71,9 +58,6 @@ export function insertButtonsToContainer(
     container: Element | null,
     html: string,
     tabIndex: number | undefined,
-    pinText: string,
-    isPinned: boolean,
-    isFirstContainer: boolean,
     append: boolean = false
 ): void {
     if (!container) {
@@ -81,24 +65,15 @@ export function insertButtonsToContainer(
     }
 
     if (typeof tabIndex === "number") {
-        insertAtTabIndex(container, html, tabIndex, isFirstContainer);
+        insertAtTabIndex(container, html, tabIndex);
         return;
     }
 
-    // 处理第一个容器（带pin按钮）
-    if (isFirstContainer) {
-        const pinHtml = generatePinButtonHTML(pinText, isPinned);
-        container.innerHTML = `${html}${pinHtml}`;
-        return;
-    }
-
-    // 第二个容器：根据 append 参数决定替换还是追加
     if (append) {
         container.insertAdjacentHTML("beforeend", html);
         return;
     }
 
-    // 默认替换模式
     container.innerHTML = html;
 }
 
@@ -112,19 +87,12 @@ export function insertButtonsToContainer(
 function insertAtTabIndex(
     container: Element,
     html: string,
-    tabIndex: number,
-    isFirstContainer: boolean
+    tabIndex: number
 ): void {
     const target = container.children[tabIndex];
 
     if (target) {
         target.insertAdjacentHTML("beforebegin", html);
-        return;
-    }
-
-    if (isFirstContainer) {
-        const lastChild = container.lastElementChild;
-        lastChild?.insertAdjacentHTML("beforebegin", html);
         return;
     }
 

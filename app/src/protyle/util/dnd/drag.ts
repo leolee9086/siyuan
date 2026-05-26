@@ -1,7 +1,7 @@
 import { genSBElement } from "../../../block/util";
 import { focusBlock } from "../selection";
 import { moveTo } from "./moveTo";
-import { setFold } from "../../../menus/protyle";
+import { setFold } from "../../util/blockFold";
 import { transaction, turnsIntoOneTransaction } from "../../wysiwyg/transaction";
 
 export const dragSb = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element, isBottom: boolean,

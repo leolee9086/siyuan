@@ -6,7 +6,7 @@ import {
     isInAVBlock,
     isInEmbedBlock
 } from "../util/hasClosest";
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";

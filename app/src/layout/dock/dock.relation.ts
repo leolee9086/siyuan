@@ -51,7 +51,7 @@ function handleBothPanelsActive(
         anotherWnd.element.previousElementSibling?.classList.remove("fn__none");
     }
 
-    const lastActiveElement = dock.element.querySelector('.dock__item--active[data-index="1"]');
+    const lastActiveElement = dock.elements[0].parentElement.querySelector('.dock__item--active[data-index="1"]');
     if (!lastActiveElement) {
         return;
     }

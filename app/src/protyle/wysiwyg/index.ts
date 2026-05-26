@@ -3,12 +3,21 @@ import {
     hasClosestByAttribute,
     hasClosestByClassName,
     hasClosestByTag,
+    isInEmbedBlock,
 } from "../util/hasClosest";
 import {
     getEditorRange,
+    focusBlock,
+    focusByWbr,
+    focusByRange,
+    setLastNodeRange,
+    setFirstNodeRange,
+    setInsertWbrHTML,
 } from "../util/selection";
 import { Constants } from "../../constants";
 import { isMobile } from "../../util/platform/functions";
+import { isOnlyMeta, isMac, copyPlainText, encodeBase64, readClipboard } from "../util/compatibility";
+import { countBlockWord } from "../../layout/status";
 import { dropEvent } from "../util/editorCommonEvent";
 import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";
@@ -27,92 +36,21 @@ import { handleMediaResize, handleTableColResize } from "./index.mousedown.resiz
 import { setupDragSelect } from "./index.mousedown.dragSelect";
 import { handleContextmenu } from "./index.contextmenu";
 import { handleClick } from "./index.click";
-import {Constants} from "../../constants";
-import {isMobile} from "../../util/functions";
-import {previewDocImage} from "../preview/image";
-import {
-    contentMenu,
-    enterBack,
-    fileAnnotationRefMenu,
-    imgMenu,
-    inlineMathMenu,
-    linkMenu,
-    refMenu,
-    tagMenu,
-    zoomOut
-} from "../../menus/protyle";
-import * as dayjs from "dayjs";
-import {dropEvent} from "../util/editorCommonEvent";
-import {input} from "./input";
-import {
-    getContenteditableElement,
-    getNextBlock,
-    getTopAloneElement,
-    hasNextSibling,
-    hasPreviousSibling,
-    isEndOfBlock,
-    isNotEditBlock
-} from "./getBlock";
-import {transaction, updateTransaction} from "./transaction";
-import {hideElements} from "../ui/hideElements";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
-import {getEnableHTML, removeEmbed} from "./removeEmbed";
-import {keydown} from "./keydown";
-import {openMobileFileById} from "../../mobile/editor";
-import {removeBlock} from "./remove";
-import {highlightRender} from "../render/highlightRender";
-import {openAttr} from "../../menus/commonMenuItem";
-import {blockRender} from "../render/blockRender";
-/// #if !MOBILE
-import {getAllModels} from "../../layout/getAll";
-import {pushBack} from "../../util/backForward";
-import {openFileById} from "../../editor/util";
-import {openGlobalSearch} from "../../search/util";
-/// #else
-import {popSearch} from "../../mobile/menu/search";
-/// #endif
-import {BlockPanel} from "../../block/Panel";
-import {copyPlainText, encodeBase64, isInIOS, isMac, isOnlyMeta, readClipboard} from "../util/compatibility";
-import {MenuItem} from "../../menus/Menu";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {onGet} from "../util/onGet";
-import {clearTableCell, isIncludeCell, setTableAlign, updateTableTitle} from "../util/table";
-import {countBlockWord, countSelectWord} from "../../layout/status";
-import {showMessage} from "../../dialog/message";
-import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
-import {removeSearchMark} from "../toolbar/util";
-import {activeBlur} from "../../mobile/util/keyboardToolbar";
-import {commonClick} from "./commonClick";
-import {avClick, avContextmenu, updateAVName} from "../render/av/action";
-import {selectRow, stickyRow} from "../render/av/row";
-import {showColMenu} from "../render/av/col";
-import {openViewMenu} from "../render/av/view";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {
-    addDragFill,
-    dragFillCellsValue,
-    genCellValueByElement,
-    getCellText,
-    getPositionByCellElement,
-    getTypeByCellElement,
-    updateCellsValue
-} from "../render/av/cell";
-import {openEmojiPanel, unicode2Emoji} from "../../emoji";
-import {openLink} from "../../editor/openLink";
-import {mathRender} from "../render/mathRender";
-import {editAssetItem} from "../render/av/asset";
-import {img3115} from "../../boot/compatibleVersion";
-import {globalClickHideMenu} from "../../boot/globalEvent/click";
-import {hideTooltip} from "../../dialog/tooltip";
-import {openGalleryItemMenu} from "../render/av/gallery/util";
-import {clearSelect} from "../util/clear";
-import {chartRender} from "../render/chartRender";
-import {reloadProtyle} from "../util/reload";
-import {updateCalloutType} from "./callout";
-import {nbsp2space, removeZWJ} from "../util/normalizeText";
-import {setFold} from "../util/blockFold";
+import { getContenteditableElement } from "./getBlock";
+import { removeZWJ, nbsp2space } from "../util/normalizeText";
+import { clearTableCell, isIncludeCell, setTableAlign } from "../util/table";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
+import { getEnableHTML, removeEmbed } from "./removeEmbed";
+import { getTopAloneElement, isEndOfBlock } from "./getBlock";
+import { previewDocImage } from "../preview/image";
+import { selectRow } from "../render/av/row";
+import { showMessage } from "../../dialog/message";
+import { updateTransaction } from "./transaction";
+import { input } from "./input";
+import { countSelectWord } from "../../layout/status";
+import { paste, getTextStar, enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
+import { MenuItem } from "../../menus/Menu.Item";
+import { genCellValueByElement, getCellText, getTypeByCellElement } from "../render/av/cell";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
@@ -172,8 +110,6 @@ export class WYSIWYG {
     }
 
     private bindCommonEvent(protyle: IProtyle) {
-        this.element.addEventListener("copy", (event: ClipboardEvent & { target: HTMLElement }) => {
-            handleCopy(protyle, event);
         this.element.addEventListener("copy", async (event: ClipboardEvent & { target: HTMLElement }) => {
             window.siyuan.ctrlIsPressed = false; // https://github.com/siyuan-note/siyuan/issues/6373
             // https://github.com/siyuan-note/siyuan/issues/4600
@@ -452,6 +388,8 @@ export class WYSIWYG {
             }
             // ctrl+click 多选
             if (handleCtrlSelect(protyle, event, target, nodeElement, hasSelectClassElement, galleryItemElement, this.element)) {
+                return;
+            }
             if (event.shiftKey) {
                 let startElement;
                 let endElement = nodeElement;
@@ -728,6 +666,10 @@ export class WYSIWYG {
                 documentSelf, clentX, mostTop, mostRight, mostLeft, mostBottom, y,
                 contentRect, wysiwygElement: this.element,
             });
+            let mouseElement: Element;
+            let moveCellElement: HTMLElement;
+            let startFirstElement: Element;
+            let endLastElement: Element;
             const needScroll = ["IMG", "VIDEO", "AUDIO"].includes(target.tagName) || target.classList.contains("img");
             documentSelf.onmousemove = (moveEvent: MouseEvent) => {
                 let moveTarget: boolean | HTMLElement = moveEvent.target as HTMLElement;

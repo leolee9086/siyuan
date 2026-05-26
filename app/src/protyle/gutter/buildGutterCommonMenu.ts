@@ -8,7 +8,7 @@
 
 import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
-import { setFold } from "../../menus/protyle";
+import { setFold } from "../util/blockFold";
 import { enterBack } from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";

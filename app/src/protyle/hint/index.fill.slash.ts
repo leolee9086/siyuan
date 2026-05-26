@@ -9,7 +9,7 @@ import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../
 import {transaction, updateTransaction} from "../wysiwyg/transaction";
 import {insertHTML} from "../util/insertHTML";
 import {highlightRender} from "../render/highlightRender";
-import {setFold} from "../../menus/protyle";
+import {setFold} from "../util/blockFold";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {assetMenu} from "../../menus/protyleMenus/assetMenu/protyle.asset";
 import {fetchPost} from "../../util/network/fetch";

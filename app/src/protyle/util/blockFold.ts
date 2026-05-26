@@ -3,8 +3,8 @@ import {transaction} from "../wysiwyg/transaction";
 import {preventScroll} from "../scroll/preventScroll";
 import {hasClosestBlock} from "./hasClosest";
 import {focusBlock} from "./selection";
-import {scrollCenter} from "../../util/highlightById";
-import {clearSelect} from "./clear";
+import {scrollCenter} from "../../util/DOM/highlightById";
+import {clearSelect} from "./clearSelect";
 import {removeFoldHeading} from "./heading";
 import {getTopAloneElement} from "../wysiwyg/getBlock";
 
