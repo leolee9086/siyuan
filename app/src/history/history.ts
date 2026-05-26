@@ -13,18 +13,11 @@ import { renderDoc, renderRepo, renderRmNotebook } from "./history.render";
 import { handleDocClick } from "./history.docEvent";
 import { handleRepoClick } from "./history.repoEvent";
 import * as dayjs from "dayjs";
-import { saveExportFile } from "../protyle/util/compatibility";
-import {fetchPost} from "../util/fetch";
-import {escapeAttr, escapeHtml} from "../util/escape";
-import {isMobile} from "../util/functions";
-import {showDiff} from "./diff";
-import {saveExportFile, setStorageVal} from "../protyle/util/compatibility";
-import {openModel} from "../mobile/menu/model";
-import {closeModel} from "../mobile/util/closePanel";
-import {App} from "../index";
-import {resizeSide} from "./resizeSide";
+import { saveExportFile, setStorageVal } from "../protyle/util/compatibility";
+import { showDiff } from "./diff";
+import { closeModel } from "../mobile/util/closePanel";
 import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
-import {pathPosix} from "../util/pathName";
+import {pathPosix} from "../util/file/pathName";
 
 let historyEditor: Protyle | undefined;
 

@@ -25,7 +25,7 @@ import { isBrowserDesktop } from "../../platform";
 import { getAllModels } from "../../layout/getAll";
 import { stickyRow } from "../render/av/row";
 import { clearSelect } from "../util/clearSelect";
-import { renderCustomWithCtx } from "./utils/rendercustomWithCtx";
+import { renderCustomWithCtx, escapeInline } from "./utils/rendercustomWithCtx";
 import { bindInputEvents } from "./index.input";
 import { bindScrollEvent } from "./index.scroll";
 import { handleCopy } from "./index.copy";
@@ -1460,7 +1460,7 @@ export class WYSIWYG {
                 return;
             }
             if ("" !== event.data) {
-                this.escapeInline(protyle, range, event);
+                escapeInline(protyle, range, event);
                 // 小鹤音形 ;k 不能使用 setTimeout;
                 // wysiwyg.element contenteditable 为 false 时，连拼 needRender 必须为 false
                 // hr 渲染；任务列表、粗体、数学公示结尾 needRender 必须为 true
@@ -1500,7 +1500,7 @@ export class WYSIWYG {
             ) {
                 return;
             }
-            this.escapeInline(protyle, range, event);
+            escapeInline(protyle, range, event);
 
             if ((/^\d{1}$/.test(event.data) || event.data === "‘" || event.data === "“" ||
                 // 百度输入法中文反双引号 https://github.com/siyuan-note/siyuan/issues/9686
