@@ -53,10 +53,9 @@ export class Dock {
             if (!dockElement) {
                 throw new Error(`Dock element not found: dock${options.position}`);
             }
-            dockElement.innerHTML = '<div class="dock__items"></div><div class="fn__flex-1 dock__item--space"></div><div class="dock__items"></div>';
             this.elements = Array.from(dockElement.querySelectorAll(".dock__items"));
         }
-        initDockData(this, options.data.data, TYPES, getSiyuanLanguages);
+        initDockData(this, options.data.data, TYPES);
         this.layout.element.addEventListener("mouseleave", (e) => handleMouseLeave(this, e));
         initDockResize(this);
         initDockDnD(this);

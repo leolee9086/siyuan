@@ -144,26 +144,6 @@ export function insertSourceElement(
 }
 
 /**
- * 渲染 pin 按钮
- */
-export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: string } | undefined): void {
-    // 如果没有语言配置，不渲染 Pin 按钮
-    /**
-     * 作用：检查语言包配置。
-     * 意图：Pin 按钮依赖国际化字符串，若未提供语言包则跳过渲染，避免文案缺失。
-     * 生效场景：语言包未加载或传递错误时。
-     */
-    if (!languages) {
-        return;
-    }
-    const firstChild = dock.elements[0];
-    if (!firstChild) {
-        return;
-    }
-    firstChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${dock.pin ? languages.unpin : languages.pin}"><svg><use xlink:href="#icon${dock.pin ? "Unpin" : "Pin"}"></use></svg></span>`;
-}
-
-/**
  * 初始化 dock 文件（触发 file 类型的 toggle）
  */
 export function initDockFiles(dock: Dock): void {
@@ -193,9 +173,13 @@ export function initDockFloatMode(dock: Dock): void {
 export function initDockData(
     dock: Dock,
     data: Config.IUILayoutDockTab[][],
-    TYPES: string[],
-    getSiyuanLanguagesFn: () => { unpin?: string; pin?: string } | undefined
+    TYPES: string[]
 ): void {
+    if (dock.position === "Bottom") {
+        initDockActiveState(dock);
+        return;
+    }
+
     /**
      * 作用：确保第一列数据初始化。
      * 意图：防御性检查，防止访问未定义的列数据。
@@ -251,7 +235,6 @@ export function initDockData(
      * 生效场景：配置数据经过处理后仍不包含预定义的有效类型时。
      */
     if (!hasValidDockType(data, TYPES)) {
-        renderPinButton(dock, getSiyuanLanguagesFn());
         dock.elements[0].parentElement.classList.add("fn__none");
         initDockFiles(dock);
         initDockActiveState(dock);
