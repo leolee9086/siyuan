@@ -62,13 +62,18 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 	// Phase 2: 在 level 0 搜索 ef 个候选
 	candidates := idx.searchLevelVec(queryVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
 
-	// 转换为 SearchResult，重新计算精确距离
-	results := make([]SearchResult, 0, len(candidates))
-	for _, candidate := range candidates {
-		if idx.Deleted[candidate.ID] {
-			continue
+	// Filter deleted nodes under read lock to avoid concurrent map access.
+	idx.Mu.RLock()
+	live := make([]NeighborRecord, 0, len(candidates))
+	for _, c := range candidates {
+		if !idx.Deleted[c.ID] {
+			live = append(live, c)
 		}
+	}
+	idx.Mu.RUnlock()
 
+	results := make([]SearchResult, 0, len(live))
+	for _, candidate := range live {
 		var finalDist float32
 		if useBBQ {
 			vec, vecOK := idx.Distancer.GetUnsafe(candidate.ID)

@@ -24,6 +24,19 @@ export { kernelClient } from "../data/kernelSDK";
 // 存储工具相关导入
 export { setStorageVal } from "../protyle/util/compatibility";
 
+/**
+ * 用途：获取siyuan存储对象，用于操作本地存储中的AI动作配置
+ * 使用范围：AI动作配置的读取、写入和持久化
+ * 解耦评估：通过imports.ts统一转发，避免直接依赖siyuan环境
+ */
+export { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+/**
+ * 用途：获取siyuan国际化文本，用于对话框标题等UI文本
+ * 使用范围：AI对话框的UI标题
+ * 解耦评估：通过imports.ts统一转发，避免直接依赖siyuan环境
+ */
+export { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+
 // 渲染相关导入
 export { blockRender } from "../protyle/render/blockRender";
 export { highlightRender } from "../protyle/render/highlightRender";

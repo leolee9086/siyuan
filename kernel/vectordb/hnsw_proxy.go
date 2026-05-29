@@ -37,10 +37,8 @@ type SearchResult struct {
 	Meta     json.RawMessage `json:"meta"`
 }
 
-// InsertPoint inserts a point into HNSW index
+// InsertPoint inserts or updates a point in the HNSW index.
 func (c *Collection) InsertPoint(point Point) error {
-	config := c.Config
-
 	var docID DocID
 	exists := false
 
@@ -49,15 +47,27 @@ func (c *Collection) InsertPoint(point Point) error {
 		docID = existingID
 		exists = true
 	} else {
-		docID = DocID(len(c.DocMap))
-		c.IDMap[point.ID] = docID
-		c.DocMap = append(c.DocMap, point.ID)
-		if len(c.Metas) < len(c.DocMap) {
-			c.Metas = append(c.Metas, make([][]byte, len(c.DocMap)-len(c.Metas))...)
+		// Scan for a freed slot (from a previous delete) before appending.
+		found := false
+		for i, id := range c.DocMap {
+			if id == "" {
+				docID = DocID(i)
+				c.IDMap[point.ID] = docID
+				c.DocMap[i] = point.ID
+				found = true
+				break
+			}
+		}
+		if !found {
+			docID = DocID(len(c.DocMap))
+			c.IDMap[point.ID] = docID
+			c.DocMap = append(c.DocMap, point.ID)
+			if len(c.Metas) < len(c.DocMap) {
+				c.Metas = append(c.Metas, make([][]byte, len(c.DocMap)-len(c.Metas))...)
+			}
 		}
 	}
 
-	// Update Meta
 	if int(docID) < len(c.Metas) {
 		c.Metas[docID] = point.Meta
 	} else {
@@ -65,15 +75,18 @@ func (c *Collection) InsertPoint(point Point) error {
 	}
 	c.Mu.Unlock()
 
-	// Set Vector to Store
-	c.Store.Set(docID, point.Vector)
-
-	// Insert into HNSW index if new
-	if !exists {
-		c.HNSWIdx.Insert(docID)
+	if exists {
+		c.HNSWIdx.Delete(docID)
 	}
 
-	_ = config
+	c.Store.Set(docID, point.Vector)
+
+	c.HNSWIdx.Mu.Lock()
+	delete(c.HNSWIdx.Deleted, docID)
+	c.HNSWIdx.Mu.Unlock()
+
+	c.HNSWIdx.Insert(docID)
+
 	return nil
 }
 
@@ -120,12 +133,16 @@ func (c *Collection) DeleteItemWithIndex(id string) {
 		return
 	}
 
-	// Delegate graph deletion to HNSWIndex
 	c.HNSWIdx.Delete(docID)
 
-	// Clean up ID mapping
 	c.Mu.Lock()
 	delete(c.IDMap, id)
+	if int(docID) < len(c.DocMap) {
+		c.DocMap[docID] = ""
+	}
+	if int(docID) < len(c.Metas) {
+		c.Metas[docID] = nil
+	}
 	c.Mu.Unlock()
 }
 
@@ -167,8 +184,8 @@ func (c *Collection) RebuildIndex() error {
 		c.IDMap = make(map[string]DocID)
 		c.DocMap = make([]string, 0)
 		c.Metas = make([][]byte, 0)
-		c.Store = NewVectorStore(c.Dimension)
-		c.HNSWIdx = hnsw.NewHNSWIndex(c.Dimension, c.hnswConfig(), c.Store)
+		c.Store = NewVectorStore(c.ColDim)
+		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 		c.Mu.Unlock()
 		return nil
 	}
@@ -178,8 +195,8 @@ func (c *Collection) RebuildIndex() error {
 	c.IDMap = make(map[string]DocID)
 	c.DocMap = make([]string, 0)
 	c.Metas = make([][]byte, 0)
-	c.Store = NewVectorStore(c.Dimension)
-	c.HNSWIdx = hnsw.NewHNSWIndex(c.Dimension, c.hnswConfig(), c.Store)
+		c.Store = NewVectorStore(c.ColDim)
+		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 	c.Mu.Unlock()
 
 	// Re-insert all points
@@ -199,6 +216,94 @@ func (c *Collection) hnswConfig() hnsw.Config {
 		MaxLevel:       c.Config.MaxLevel,
 		MetricType:     c.Config.MetricType,
 	}
+}
+
+// =========================================
+// VectorCollection interface methods
+// =========================================
+
+func (c *Collection) Name() string     { return c.ColName }
+
+func (c *Collection) Dimension() int   { return c.ColDim }
+
+func (c *Collection) ListIDs() []string {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	ids := make([]string, 0, len(c.DocMap))
+	for _, id := range c.DocMap {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func (c *Collection) ForEachID(fn func(id string, docID uint64, meta []byte) bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	for docID, id := range c.DocMap {
+		if id == "" {
+			continue
+		}
+		if c.HNSWIdx.Deleted[DocID(docID)] {
+			continue
+		}
+		var meta []byte
+		if docID < len(c.Metas) {
+			meta = c.Metas[docID]
+		}
+		if !fn(id, uint64(docID), meta) {
+			return
+		}
+	}
+}
+
+func (c *Collection) Info() CollectionInfo {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	return CollectionInfo{
+		Name:      c.ColName,
+		Dimension: c.ColDim,
+		Count:     len(c.IDMap),
+	}
+}
+
+func (c *Collection) Close() error { return nil }
+
+func (c *Collection) GetMetaByID(id string) (json.RawMessage, bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	docID, ok := c.IDMap[id]
+	if !ok {
+		return nil, false
+	}
+	if int(docID) >= len(c.Metas) {
+		return nil, false
+	}
+	return json.RawMessage(c.Metas[docID]), true
+}
+
+func (c *Collection) ExtractPoints() []Point {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	points := make([]Point, 0, len(c.IDMap))
+	for id, docID := range c.IDMap {
+		if c.HNSWIdx.Deleted[docID] {
+			continue
+		}
+		vec, ok := c.Store.GetUnsafe(docID)
+		if !ok {
+			continue
+		}
+		vecCopy := make([]float32, len(vec))
+		copy(vecCopy, vec)
+		var meta json.RawMessage
+		if int(docID) < len(c.Metas) {
+			meta = json.RawMessage(c.Metas[docID])
+		}
+		points = append(points, Point{ID: id, Vector: vecCopy, Meta: meta})
+	}
+	return points
 }
 
 // distanceToScore converts distance to a score in [0, 1]

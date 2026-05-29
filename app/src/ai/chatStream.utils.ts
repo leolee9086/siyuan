@@ -66,7 +66,7 @@ const 处理工具调用 = async (
     回调函数: ((code: string) => Promise<void>) | undefined,
     错误信息前缀: string,
     state: AssistantResponseState
-): Promise<void> => {
+)=> {
     const toolCode = await 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, (_blockElement, content) => checkBlockCondition(content, state));
     // 仅在检测到工具代码且回调函数已注册时触发执行
     if (toolCode && 回调函数) {
@@ -88,7 +88,7 @@ const 处理工具调用 = async (
 export const processBlockDOMContent = (
     state: AssistantResponseState,
     lute: Lute
-): string => {
+) => {
     if (!lute) {
         throw new Error("缺少lute实例,无法处理工具调用");
     }

@@ -1,22 +1,74 @@
-import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import type { AiActionConfig, AiActionStorageContext } from "./types";
-import {
-    Constants,
-    Dialog,
-    setStorageVal,
-    VueComponentMountConfig,
-    createVueDialog,
-    AiEditDialog
-} from "./imports";
+/**
+ * 用途：获取siyuan存储对象，用于操作本地存储中的AI动作配置
+ * 使用范围：AI动作配置的读取、写入和持久化
+ * 解耦评估：通过imports.ts统一转发，避免直接依赖siyuan环境
+ */
+import { getSiyuanStorage } from "./imports";
+/**
+ * 用途：获取siyuan国际化文本，用于对话框标题等UI文本
+ * 使用范围：AI对话框的UI标题
+ * 解耦评估：通过imports.ts统一转发，避免直接依赖siyuan环境
+ */
+import { siyuanI18n } from "./imports";
+/**
+ * 用途：AI动作配置的类型定义
+ * 使用范围：存储上下文和动作配置的类型标注
+ * 解耦评估：类型导入，不涉及运行时耦合
+ */
+import type { AiActionConfig } from "./types";
+/**
+ * 用途：AI动作存储上下文类型，用于提供存储操作的接口定义
+ * 使用范围：存储上下文对象和函数参数的类型标注
+ * 解耦评估：类型导入，不涉及运行时耦合
+ */
+import type { AiActionStorageContext } from "./types";
+/**
+ * 用途：常量定义，用于本地存储键名
+ * 使用范围：本地存储的键名引用
+ * 解耦评估：通过imports.ts统一转发
+ */
+import { Constants } from "./imports";
+/**
+ * 用途：对话框实例类型，用于对话框创建和销毁
+ * 使用范围：对话框实例化操作
+ * 解耦评估：通过imports.ts统一转发
+ * @AITODO dialog实现应该作为参数传递，而不是直接依赖imports中的dialog模块，当前实现存在耦合问题
+ */
+import { Dialog } from "./imports";
+/**
+ * 用途：本地存储写入函数
+ * 使用范围：AI动作配置持久化
+ * 解耦评估：通过imports.ts统一转发
+ */
+import { setStorageVal } from "./imports";
+/**
+ * 用途：Vue组件挂载配置类型，用于定义对话框组件的数据、模板和事件处理器
+ * 使用范围：对话框Vue配置的类型标注
+ * 解耦评估：类型导入，通过imports.ts统一转发
+ */
+import type { VueComponentMountConfig } from "./imports";
+/**
+ * 用途：创建Vue对话框的工具函数
+ * 使用范围：对话框实例化
+ * 解耦评估：通过imports.ts统一转发
+ */
+import { createVueDialog } from "./imports";
+/**
+ * 用途：AI编辑对话框组件
+ * 使用范围：对话框模板渲染
+ * 解耦评估：组件导入，通过imports.ts统一转发
+ */
+import { AiEditDialog } from "./imports";
 
 /**
  * 创建AI动作存储上下文
+ * @显式返回类型原因 必须显式标注返回类型，以确保外部调用方明确知道对象提供的方法签名
  * @returns AI动作存储上下文对象
  */
 const createAiActionStorageContext = (): AiActionStorageContext => {
     return {
-        getAiActions: (): AiActionConfig[] => {
+        /** 获取全部AI动作配置列表 */
+        getAiActions: () => {
             if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
@@ -24,7 +76,8 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
             return getSiyuanStorage()[Constants.LOCAL_AI] || [];
         },
 
-        setAiActions: (actions: AiActionConfig[]): void => {
+        /** 覆盖设置AI动作配置列表 */
+        setAiActions: (actions: AiActionConfig[]) => {
             if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
@@ -32,7 +85,8 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
             getSiyuanStorage()[Constants.LOCAL_AI] = actions;
         },
 
-        saveAiActions: (): void => {
+        /** 将当前AI动作配置持久化到本地存储 */
+        saveAiActions: () => {
             if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
@@ -45,6 +99,7 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
 /**
  * 更新AI自定义动作配置
  * 遵循函数标准形式，使用inputs、outputs、ctx结构
+ * @显式返回类型原因 async函数需要显式标注Promise<void>以明确异步边界
  */
 const updateAiActionConfig = async (
     inputs: {
@@ -78,6 +133,7 @@ const updateAiActionConfig = async (
 /**
  * 删除AI自定义动作配置
  * 遵循函数标准形式，使用inputs、outputs、ctx结构
+ * @显式返回类型原因 async函数需要显式标注Promise<void>以明确异步边界
  */
 const deleteAiActionConfig = async (
     inputs: {
@@ -119,8 +175,10 @@ const createEditDialogEventHandlers = (customName: string, customMemo: string, d
     const ctx = createAiActionStorageContext();
 
     return {
+        /** 取消编辑并关闭对话框 */
         handleCancel: () => dialog.destroy(),
 
+        /** 确认编辑：更新动作配置并关闭对话框 */
         handleConfirm: async (name: string, memo: string) => {
             try {
                 await updateAiActionConfig({
@@ -136,6 +194,7 @@ const createEditDialogEventHandlers = (customName: string, customMemo: string, d
             }
         },
 
+        /** 删除当前动作配置并关闭对话框 */
         handleDelete: async () => {
             try {
                 await deleteAiActionConfig({
@@ -154,6 +213,7 @@ const createEditDialogEventHandlers = (customName: string, customMemo: string, d
 /**
  * 创建编辑对话框的Vue应用配置
  * 为AI编辑对话框组件提供必要的数据、事件处理器和模板配置
+ * @显式返回类型原因 必须显式标注返回类型以符合VueComponentMountConfig接口定义
  *
  * @param customName - 自定义动作名称
  * @param customMemo - 自定义动作描述
@@ -180,6 +240,7 @@ const createEditDialogVueConfig = (customName: string, customMemo: string, dialo
 /**
  * 创建并显示AI自定义动作编辑对话框
  * 提供用户界面用于编辑现有的AI自定义动作配置
+ * @显式返回类型原因 必须显式标注返回类型以符合createVueDialog对工厂函数的类型要求
  *
  * @param customName - 要编辑的自定义动作名称
  * @param customMemo - 要编辑的自定义动作描述
@@ -193,6 +254,7 @@ const editDialog = (customName: string, customMemo: string): Dialog => {
 
     return createVueDialog({
         dataKey: Constants.DIALOG_AIUPDATECUSTOMACTION,
+        /** @简洁函数 工厂函数，利用闭包捕获customName/customMemo参数，延迟到对话框创建时生成Vue配置 */
         vueConfigFactory: (dialog: Dialog) => createEditDialogVueConfig(customName, customMemo, dialog),
         dialogOptions: {
             title: siyuanI18n.update

@@ -109,11 +109,11 @@ func ListDatasets() []DatasetInfo {
 		// 从集合元数据中读取 model、dataset 和 type
 		col := vectordb.GlobalDB.GetCollection(colInfo.Name)
 		if col != nil {
-			info.Model = col.Meta.Model
-			info.Name = col.Meta.Dataset
-			info.Type = col.Meta.Type
-
-			// 如果元数据为空（旧数据），从集合名推断类型
+			if hc, ok := col.(*vectordb.Collection); ok {
+				info.Model = hc.Meta.Model
+				info.Name = hc.Meta.Dataset
+				info.Type = hc.Meta.Type
+			}
 			if info.Type == "" {
 				if strings.HasPrefix(colInfo.Name, "blocks_embedding_") {
 					info.Type = "blocks"
@@ -160,20 +160,17 @@ func GetEmbeddedBlocksWithModel(dataset string, model string, limit, offset int)
 	total := 0
 	datasetSuffix := "_" + dataset
 
-	col.Mu.RLock()
-	for vectorID := range col.IDMap {
-		// 仅统计属于该数据集的向量
+	col.ForEachID(func(vectorID string, _ uint64, metaBytes []byte) bool {
 		if !strings.HasSuffix(vectorID, datasetSuffix) {
-			continue
+			return true
 		}
 		total++
 
-		// 应用分页
 		if total <= offset {
-			continue
+			return true
 		}
 		if limit > 0 && len(result) >= limit {
-			continue
+			return false
 		}
 
 		blockID := strings.TrimSuffix(vectorID, datasetSuffix)
@@ -182,22 +179,19 @@ func GetEmbeddedBlocksWithModel(dataset string, model string, limit, offset int)
 			VectorID: vectorID,
 		}
 
-		// 获取元数据
-		if docID, ok := col.IDMap[vectorID]; ok {
-			if meta, ok := col.GetMeta(docID); ok {
-				var metaMap map[string]interface{}
-				if json.Unmarshal(meta, &metaMap) == nil {
-					embedded.Meta = metaMap
-					if hash, ok := metaMap["hash"].(string); ok {
-						embedded.Hash = hash
-					}
+		if len(metaBytes) > 0 {
+			var metaMap map[string]interface{}
+			if json.Unmarshal(metaBytes, &metaMap) == nil {
+				embedded.Meta = metaMap
+				if hash, ok := metaMap["hash"].(string); ok {
+					embedded.Hash = hash
 				}
 			}
 		}
 
 		result = append(result, embedded)
-	}
-	col.Mu.RUnlock()
+		return true
+	})
 
 	return result, total
 }
@@ -320,8 +314,8 @@ func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dime
 	}
 
 	// 校验集合维度
-	if col.Dimension != dimension {
-		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension, dimension)
+	if col.Dimension() != dimension {
+		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension(), dimension)
 		return
 	}
 
@@ -353,14 +347,12 @@ func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dime
 		vectorID := fmt.Sprintf("%s_%s", b.ID, dataset)
 
 		if !force {
-			if docID, ok := col.GetDocID(vectorID); ok {
-				if meta, ok := col.GetMeta(docID); ok {
-					var metaMap map[string]interface{}
-					if json.Unmarshal(meta, &metaMap) == nil {
-						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
-							skipped++
-							continue
-						}
+			if meta, ok := col.GetMetaByID(vectorID); ok {
+				var metaMap map[string]interface{}
+				if json.Unmarshal(meta, &metaMap) == nil {
+					if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+						skipped++
+						continue
 					}
 				}
 			}
@@ -441,14 +433,12 @@ func PushBlocksWithModel(ids []string, dataset string, model string, force bool)
 		vectorID := fmt.Sprintf("%s_%s", id, dataset)
 
 		if !force {
-			if docID, ok := col.GetDocID(vectorID); ok {
-				if meta, ok := col.GetMeta(docID); ok {
-					var metaMap map[string]interface{}
-					if json.Unmarshal(meta, &metaMap) == nil {
-						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
-							skipped++
-							continue
-						}
+			if meta, ok := col.GetMetaByID(vectorID); ok {
+				var metaMap map[string]interface{}
+				if json.Unmarshal(meta, &metaMap) == nil {
+					if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+						skipped++
+						continue
 					}
 				}
 			}
@@ -566,8 +556,8 @@ func QueryBlocksWithVector(queryVec []float32, topK int, dataset string, model s
 	}
 
 	// 校验向量维度
-	if col.Dimension != len(queryVec) {
-		return nil, fmt.Errorf("vector dimension mismatch: collection has %d, query has %d", col.Dimension, len(queryVec))
+	if col.Dimension() != len(queryVec) {
+		return nil, fmt.Errorf("vector dimension mismatch: collection has %d, query has %d", col.Dimension(), len(queryVec))
 	}
 
 	results := col.Search(queryVec, topK, 0)
@@ -636,34 +626,28 @@ func GetPendingBlocks(dataset string, box string, limit int) ([]PendingBlock, in
 
 // determineBlockPendingReason 判定块的待嵌入原因
 // 返回值: reason ("表示已嵌入最新版本, "new"/"outdated"表示待嵌入), isMatch (是否hash一致)
-func determineBlockPendingReason(blockID, vectorID, contentHash string, col *vectordb.Collection) (reason string, isMatch bool) {
-	// 数据库无 Hash
+func determineBlockPendingReason(blockID, vectorID, contentHash string, col vectordb.VectorCollection) (reason string, isMatch bool) {
 	if contentHash == "" {
 		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (数据库无Hash)", blockID)
 		return "outdated", false
 	}
 
-	// 集合不存在
 	if col == nil {
 		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (集合不存在)", blockID)
 		return "new", false
 	}
 
-	// 向量 ID 不存在
-	docID, exists := col.GetDocID(vectorID)
-	if !exists {
+	meta, metaExists := col.GetMetaByID(vectorID)
+	if !metaExists {
 		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (向量ID不存在:%s)", blockID, vectorID)
 		return "new", false
 	}
 
-	// Meta 丢失
-	meta, ok := col.GetMeta(docID)
-	if !ok {
+	if len(meta) == 0 {
 		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta丢失)", blockID)
 		return "outdated", false
 	}
 
-	// Meta 解析失败
 	var metaMap map[string]interface{}
 	if err := json.Unmarshal(meta, &metaMap); err != nil {
 		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta解析失败)", blockID)
@@ -715,7 +699,7 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 	// 如果集合不存在，我们先不急着创建，等到真正推送向量时根据前端传来的维度创建
 	// 这样可以避免默认用 1024 维度创建了集合，导致前端 768 维度的向量推不进去
 	if col != nil {
-		logging.LogInfof("[Embedding] 发现现有集合: %s, 维度: %d", collectionName, col.Dimension)
+		logging.LogInfof("[Embedding] 发现现有集合: %s, 维度: %d", collectionName, col.Dimension())
 	} else {
 		logging.LogInfof("[Embedding] 警告：集合 %s 尚不存在，将返回全部为 NEW", collectionName)
 	}
@@ -845,14 +829,10 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 	if col != nil && len(ids) > 0 {
 		var toDelete []string
 
-		col.Mu.RLock()
-		for vectorID := range col.IDMap {
-			// vectorID 格式为 "blockID_datasetID"
-			// 采用后缀匹配，避免数据集 ID 本身带下划线导致的解析错误
+		col.ForEachID(func(vectorID string, _ uint64, _ []byte) bool {
 			datasetSuffix := "_" + dataset
 			if strings.HasSuffix(vectorID, datasetSuffix) {
 				blockID := strings.TrimSuffix(vectorID, datasetSuffix)
-				// 检查该 blockID 是否在本次传入的名单中
 				inRequest := false
 				for _, reqID := range ids {
 					if reqID == blockID {
@@ -860,14 +840,12 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 						break
 					}
 				}
-
 				if !inRequest {
-					// 名单里没有这个 ID，但库里有其属于该数据集的记录 -> 需要清算
 					toDelete = append(toDelete, vectorID)
 				}
 			}
-		}
-		col.Mu.RUnlock()
+			return true
+		})
 
 		if len(toDelete) > 0 {
 			for _, vid := range toDelete {
@@ -912,14 +890,12 @@ func PushAssetsWithModel(paths []string, dataset string, model string, force boo
 		vectorID := fmt.Sprintf("%s_%s", path, dataset)
 
 		if !force {
-			if docID, ok := col.GetDocID(vectorID); ok {
-				if meta, ok := col.GetMeta(docID); ok {
-					var metaMap map[string]interface{}
-					if json.Unmarshal(meta, &metaMap) == nil {
-						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
-							skipped++
-							continue
-						}
+			if meta, ok := col.GetMetaByID(vectorID); ok {
+				var metaMap map[string]interface{}
+				if json.Unmarshal(meta, &metaMap) == nil {
+					if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+						skipped++
+						continue
 					}
 				}
 			}
@@ -1045,8 +1021,8 @@ func PushAssetsWithVectors(assets []AssetWithVector, dataset, model string, dime
 	}
 
 	// 校验集合维度
-	if col.Dimension != dimension {
-		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension, dimension)
+	if col.Dimension() != dimension {
+		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension(), dimension)
 		return
 	}
 
@@ -1067,14 +1043,12 @@ func PushAssetsWithVectors(assets []AssetWithVector, dataset, model string, dime
 		vectorID := fmt.Sprintf("%s_%s", a.Path, dataset)
 
 		if !force {
-			if docID, ok := col.GetDocID(vectorID); ok {
-				if meta, ok := col.GetMeta(docID); ok {
-					var metaMap map[string]interface{}
-					if json.Unmarshal(meta, &metaMap) == nil {
-						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
-							skipped++
-							continue
-						}
+			if meta, ok := col.GetMetaByID(vectorID); ok {
+				var metaMap map[string]interface{}
+				if json.Unmarshal(meta, &metaMap) == nil {
+					if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+						skipped++
+						continue
 					}
 				}
 			}

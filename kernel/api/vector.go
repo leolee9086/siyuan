@@ -39,6 +39,8 @@ func ensureVectorDB() {
 	if vectordb.GlobalDB != nil {
 		return
 	}
+	// 设置 SSD 检测结果
+	vectordb.IsSSD = util.IsWorkspaceOnSSD()
 	// 初始化向量数据库到 data/storage/vectordb
 	dbPath := filepath.Join(util.DataDir, "storage", "vectordb")
 	vectordb.InitGlobalDB(dbPath)
@@ -150,7 +152,7 @@ func vectorAdd(c *gin.Context) {
 			}
 		}
 
-		if len(vec) != col.Dimension {
+		if len(vec) != col.Dimension() {
 			continue
 		}
 
@@ -268,7 +270,7 @@ func vectorQuery(c *gin.Context) {
 		}
 	}
 
-	if len(queryVec) != col.Dimension {
+	if len(queryVec) != col.Dimension() {
 		ret["code"] = -1
 		ret["msg"] = "向量维度不匹配"
 		return
@@ -301,29 +303,22 @@ func vectorKeys(c *gin.Context) {
 		return
 	}
 
-	col.Mu.RLock()
-	defer col.Mu.RUnlock()
-
 	if withMeta {
-		result := make([]map[string]interface{}, 0, len(col.DocMap))
-		for docID, id := range col.DocMap {
-			item := map[string]interface{}{
-				"id": id,
-			}
-			if docID < len(col.Metas) && len(col.Metas[docID]) > 0 {
+		var result []map[string]interface{}
+		col.ForEachID(func(id string, _ uint64, metaBytes []byte) bool {
+			item := map[string]interface{}{"id": id}
+			if len(metaBytes) > 0 {
 				var metaObj interface{}
-				if json.Unmarshal(col.Metas[docID], &metaObj) == nil {
+				if json.Unmarshal(metaBytes, &metaObj) == nil {
 					item["meta"] = metaObj
 				}
 			}
 			result = append(result, item)
-		}
+			return true
+		})
 		ret["data"] = result
 	} else {
-		keys := make([]string, 0, len(col.DocMap))
-		for _, id := range col.DocMap {
-			keys = append(keys, id)
-		}
+		keys := col.ListIDs()
 		ret["data"] = keys
 	}
 }
@@ -351,10 +346,9 @@ func vectorState(c *gin.Context) {
 	}
 
 	ret["data"] = map[string]interface{}{
-		"name":       col.Name,
-		"dimension":  col.Dimension,
+		"name":       col.Info().Name,
+		"dimension":  col.Info().Dimension,
 		"item_count": col.ItemCount(),
-		"max_layer":  col.HNSWIdx.MaxLayer,
 	}
 }
 

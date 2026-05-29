@@ -24,16 +24,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/vectordb/hnsw"
+	"github.com/siyuan-note/siyuan/kernel/vectordb/vamana"
 )
 
 // =========================================
-// 核心类型定义 (v2 API)
+// Migration
+// =========================================
+
+const MigrationThreshold = 500000
+
+var IsSSD bool
+
+// =========================================
+// Core types (v2 API)
 // =========================================
 
 type DocID = uint32
 
-// CollectionConfig 集合配置
 type CollectionConfig struct {
 	M              int    `msgpack:"m"`
 	EfConstruction int    `msgpack:"ef_construction"`
@@ -42,77 +51,89 @@ type CollectionConfig struct {
 	MetricType     string `msgpack:"metric"`
 }
 
-// Point 表示一个数据点 (API交互用)
 type Point struct {
 	ID     string          `json:"id"`
 	Vector []float32       `json:"vector"`
-	Meta   json.RawMessage `json:"meta,omitempty"` // 任意 JSON 对象
+	Meta   json.RawMessage `json:"meta,omitempty"`
 }
 
-// NeighborRecord 邻居记录 (Graph Edge)
 type NeighborRecord struct {
 	ID       DocID   `msgpack:"id"`
 	Distance float32 `msgpack:"distance"`
 }
 
-// CollectionMeta 集合级别元数据
-// 用于存储集合的全局信息，不依赖于单个向量点
 type CollectionMeta struct {
-	Model   string                 `json:"model" msgpack:"model"`           // 模型名
-	Dataset string                 `json:"dataset" msgpack:"dataset"`       // 数据集名
-	Type    string                 `json:"type" msgpack:"type"`             // 类型: blocks 或 assets
-	Created int64                  `json:"created" msgpack:"created"`       // 创建时间戳 (Unix秒)
-	Updated int64                  `json:"updated" msgpack:"updated"`       // 最后修改时间戳 (Unix秒)
-	Extra   map[string]interface{} `json:"extra,omitempty" msgpack:"extra"` // 扩展字段
+	Model   string                 `json:"model" msgpack:"model"`
+	Dataset string                 `json:"dataset" msgpack:"dataset"`
+	Type    string                 `json:"type" msgpack:"type"`
+	Created int64                  `json:"created" msgpack:"created"`
+	Updated int64                  `json:"updated" msgpack:"updated"`
+	Extra   map[string]interface{} `json:"extra,omitempty" msgpack:"extra"`
 }
 
-// Collection 向量集合
-// 采用 "Point" 概念，不感知上层模型
+// Collection is an HNSW-based in-memory vector collection.
 type Collection struct {
-	Name      string
-	Dimension int
+	ColName   string
+	ColDim    int
 	Config    CollectionConfig
-	Meta      CollectionMeta // 集合级别元数据
+	Meta      CollectionMeta
 
-	// ID 映射 (External ID <-> Internal DocID)
-	// ID 是任意字符串，DocID 是紧凑的整数索引
 	IDMap  map[string]DocID
-	DocMap []string // DocID -> External ID
+	DocMap []string
+	Metas  [][]byte
 
-	// 数据存储
-	// Metas 存储原始 JSON bytes，解析由上层负责
-	Metas [][]byte
-
-	// HNSW 图索引（委托给 hnsw 子包）
 	HNSWIdx *hnsw.HNSWIndex
-
-	// 向量存储 (列式存储)
-	Store *VectorStore
+	Store   *VectorStore
 
 	Mu sync.RWMutex
 }
 
-// Database 数据库 (包含多个集合)
+// CollectionInfo holds summary info for a collection.
+type CollectionInfo struct {
+	Name      string `json:"name"`
+	Dimension int    `json:"dimension"`
+	Count     int    `json:"count"`
+}
+
+// Database holds multiple named collections.
 type Database struct {
 	Path        string
-	Collections map[string]*Collection
+	Collections map[string]VectorCollection
 	mu          sync.RWMutex
 }
 
+// VectorCollection is the common interface for both HNSW Collection and VamanaCollection.
+type VectorCollection interface {
+	InsertPoint(point Point) error
+	Search(queryVec []float32, k int, efSearch int) []SearchResult
+	DeleteItemWithIndex(id string)
+	RebuildIndex() error
+
+	Name() string
+	Dimension() int
+	ItemCount() int
+
+	ListIDs() []string
+	ForEachID(fn func(id string, docID uint64, meta []byte) bool)
+	GetMetaByID(id string) (json.RawMessage, bool)
+	Info() CollectionInfo
+
+	Close() error
+}
+
 // =========================================
-// 构造函数
+// Constructors
 // =========================================
 
 func NewDatabase(path string) *Database {
 	return &Database{
 		Path:        path,
-		Collections: make(map[string]*Collection),
+		Collections: make(map[string]VectorCollection),
 	}
 }
 
 func NewCollection(name string, dimension int) *Collection {
 	config := DefaultConfig()
-	// 如果是新建，初始化 Store
 	store := NewVectorStore(dimension)
 
 	hnswConfig := hnsw.Config{
@@ -124,16 +145,14 @@ func NewCollection(name string, dimension int) *Collection {
 	}
 
 	return &Collection{
-		Name:      name,
-		Dimension: dimension,
+		ColName:   name,
+		ColDim:    dimension,
 		Config:    config,
-
-		IDMap:  make(map[string]DocID),
-		DocMap: make([]string, 0),
-		Metas:  make([][]byte, 0),
-
-		HNSWIdx: hnsw.NewHNSWIndex(dimension, hnswConfig, store),
-		Store:   store,
+		IDMap:     make(map[string]DocID),
+		DocMap:    make([]string, 0),
+		Metas:     make([][]byte, 0),
+		HNSWIdx:   hnsw.NewHNSWIndex(dimension, hnswConfig, store),
+		Store:     store,
 	}
 }
 
@@ -141,17 +160,16 @@ func DefaultConfig() CollectionConfig {
 	return CollectionConfig{
 		M:              16,
 		EfConstruction: 200,
-		EfSearch:       64, // 针对 1-bit 查询优化
+		EfSearch:       64,
 		MaxLevel:       16,
 		MetricType:     "cosine",
 	}
 }
 
 // =========================================
-// 核心方法
+// Collection internal methods
 // =========================================
 
-// GetDocID 获取内部 DocID
 func (c *Collection) GetDocID(id string) (DocID, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
@@ -159,7 +177,6 @@ func (c *Collection) GetDocID(id string) (DocID, bool) {
 	return docID, ok
 }
 
-// GetExternalID 获取外部 ID
 func (c *Collection) GetExternalID(docID DocID) (string, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
@@ -169,7 +186,6 @@ func (c *Collection) GetExternalID(docID DocID) (string, bool) {
 	return c.DocMap[docID], true
 }
 
-// GetMeta 获取元数据 (Raw JSON)
 func (c *Collection) GetMeta(docID DocID) (json.RawMessage, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
@@ -179,48 +195,53 @@ func (c *Collection) GetMeta(docID DocID) (json.RawMessage, bool) {
 	return json.RawMessage(c.Metas[docID]), true
 }
 
-// GetNodeLevel 获取节点最大层级
 func (c *Collection) GetNodeLevel(docID DocID) int {
 	return c.HNSWIdx.GetItemLevel(docID)
 }
 
-// GetLevelNeighborIDs 获取指定层级的邻居
 func (c *Collection) GetLevelNeighborIDs(docID DocID, level int) []DocID {
 	return c.HNSWIdx.GetLevelNeighborIDs(docID, level)
 }
 
-// ItemCount 返回有效项目数量
 func (c *Collection) ItemCount() int {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
 	return len(c.IDMap)
 }
 
-// Database Helper
-func (db *Database) GetCollection(name string) *Collection {
+// =========================================
+// Database methods
+// =========================================
+
+func (db *Database) GetCollection(name string) VectorCollection {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 	return db.Collections[name]
 }
 
-func (db *Database) CreateCollection(name string, dimension int) (*Collection, error) {
+func (db *Database) GetHNSWCollection(name string) *Collection {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+	c, _ := db.Collections[name].(*Collection)
+	return c
+}
+
+func (db *Database) CreateCollection(name string, dimension int) (VectorCollection, error) {
 	return db.CreateCollectionWithMeta(name, dimension, CollectionMeta{})
 }
 
-// CreateCollectionWithMeta 创建带元数据的集合
-func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta CollectionMeta) (*Collection, error) {
+func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta CollectionMeta) (VectorCollection, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
 	if c, exists := db.Collections[name]; exists {
-		if c.Dimension != dimension {
-			return nil, fmt.Errorf("collection %s already exists with dimension %d, requested %d", name, c.Dimension, dimension)
+		if c.Dimension() != dimension {
+			return nil, fmt.Errorf("collection %s already exists with dimension %d, requested %d", name, c.Dimension(), dimension)
 		}
 		return c, nil
 	}
 
 	c := NewCollection(name, dimension)
-	// 设置元数据，并确保创建时间
 	if meta.Created == 0 {
 		meta.Created = time.Now().Unix()
 	}
@@ -231,54 +252,124 @@ func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta Co
 	return c, nil
 }
 
-// DeleteCollection 删除集合及其持久化文件
 func (db *Database) DeleteCollection(name string) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if _, exists := db.Collections[name]; !exists {
+	c, exists := db.Collections[name]
+	if !exists {
 		return fmt.Errorf("collection %s not found", name)
 	}
 
+	if cl, ok := c.(interface{ Close() error }); ok {
+		cl.Close()
+	}
 	delete(db.Collections, name)
 
-	// 删除持久化文件目录
 	collectionPath := filepath.Join(db.Path, name)
 	if err := os.RemoveAll(collectionPath); err != nil {
-		// 集合已从内存移除，文件删除失败只记录警告
 		return fmt.Errorf("collection removed from memory but failed to delete files: %w", err)
 	}
-
 	return nil
 }
 
-// CollectionInfo 集合信息摘要
-type CollectionInfo struct {
-	Name      string `json:"name"`
-	Dimension int    `json:"dimension"`
-	Count     int    `json:"count"`
-}
-
-// ListCollections 列出所有集合
 func (db *Database) ListCollections() []CollectionInfo {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	result := make([]CollectionInfo, 0, len(db.Collections))
-	for name, col := range db.Collections {
-		result = append(result, CollectionInfo{
-			Name:      name,
-			Dimension: col.Dimension,
-			Count:     len(col.IDMap),
-		})
+	for _, col := range db.Collections {
+		result = append(result, col.Info())
 	}
 	return result
 }
 
-// 兼容性辅助函数 (如果需要)
-// Item struct is minimal now as it's not core anymore
+// =========================================
+// Migration: HNSW -> DiskVamana
+// =========================================
+
+func (db *Database) MigrateToDisk(name string) (VectorCollection, error) {
+	db.mu.RLock()
+	old := db.Collections[name]
+	db.mu.RUnlock()
+
+	if old == nil {
+		return nil, fmt.Errorf("collection %q not found", name)
+	}
+	if _, ok := old.(*VamanaCollection); ok {
+		return old, nil
+	}
+
+	hnswCol, ok := old.(*Collection)
+	if !ok {
+		return nil, fmt.Errorf("collection %q is not HNSW-backed", name)
+	}
+	if !IsSSD {
+		logging.LogWarnf("vectordb: migration skipped for %q (not on SSD)", name)
+		return hnswCol, nil
+	}
+
+	logging.LogInfof("vectordb: migrating %q (%d items) to disk...", name, hnswCol.ItemCount())
+
+	points := hnswCol.ExtractPoints()
+	if len(points) == 0 {
+		return hnswCol, nil
+	}
+
+	indexPath := filepath.Join(db.Path, name, "vamana")
+
+	// Ensure directory exists for the disk index.
+	if err := os.MkdirAll(filepath.Dir(indexPath), 0755); err != nil {
+		return nil, fmt.Errorf("migrate %q: mkdir failed: %w", name, err)
+	}
+
+	config := vamanaConfigFromHNSW(hnswCol.Config)
+
+	vc, err := BuildVamanaCollection(name, points, indexPath, config, hnswCol.Meta)
+	if err != nil {
+		return nil, fmt.Errorf("migrate %q: build failed: %w", name, err)
+	}
+
+	db.mu.Lock()
+	db.Collections[name] = vc
+	db.mu.Unlock()
+
+	logging.LogInfof("vectordb: migrated %q to disk (%d items)", name, vc.ItemCount())
+	return vc, nil
+}
+
+func (db *Database) MaybeMigrate(name string) {
+	if !IsSSD {
+		return
+	}
+	db.mu.RLock()
+	col := db.Collections[name]
+	db.mu.RUnlock()
+	if col == nil {
+		return
+	}
+	if _, isDisk := col.(*VamanaCollection); isDisk {
+		return
+	}
+	if col.ItemCount() < MigrationThreshold {
+		return
+	}
+	go func() {
+		if _, err := db.MigrateToDisk(name); err != nil {
+			logging.LogWarnf("vectordb: auto-migration for %q failed: %v", name, err)
+		}
+	}()
+}
+
 type Item struct {
 	ID    string
 	DocID DocID
 	Meta  map[string]interface{}
+}
+
+func vamanaConfigFromHNSW(cfg CollectionConfig) vamana.DiskBuildConfig {
+	d := vamana.DefaultDiskBuildConfig()
+	d.R = cfg.M * 2
+	d.L = cfg.EfConstruction
+	return d
 }

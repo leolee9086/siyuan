@@ -333,8 +333,8 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// 4. 验证加载结果
-	if loadedCollection.Name != collection.Name {
-		t.Errorf("名称不匹配: %s vs %s", loadedCollection.Name, collection.Name)
+	if loadedCollection.ColName != collection.ColName {
+		t.Errorf("名称不匹配: %s vs %s", loadedCollection.ColName, collection.ColName)
 	}
 
 	if loadedCollection.ItemCount() != collection.ItemCount() {
@@ -627,4 +627,118 @@ func TestMetadataConsistency(t *testing.T) {
 	}
 
 	t.Log("元数据一致性测试通过")
+}
+
+// TestUpdateVectorStaleGraphEdges 验证修复后 InsertPoint 更新向量时图边正确重建。
+//
+// 修复前 (Bug): InsertPoint 遇已有 ID 跳过 HNSW Insert → 向量变了图边卡在旧位置
+//    → 搜索新位置时召回率暴跌（~22% vs 100%）
+//
+// 修复后: InsertPoint 遇已有 ID 先 Delete（清理旧边）再 Insert（重建新边）
+//    → 两个索引召回率应接近
+//
+// 对比方案：两个大小相同的集合，插入相同基线数据。
+//   - 集合 Fresh: 直接插入 vecB（正确的图边）
+//   - 集合 Updated: 先插入 vecA 再更新为 vecB（Delete+Insert 模式）
+func TestUpdateVectorStaleGraphEdges(t *testing.T) {
+	dim := 64
+	baseSize := 5000
+	numTargets := 50
+	efSearch := 50
+
+	baselines := make([][]float32, baseSize)
+	for i := 0; i < baseSize; i++ {
+		v := make([]float32, dim)
+		for j := 0; j < dim; j++ {
+			v[j] = rand.Float32()*2 - 1
+		}
+		NormalizeVector(v)
+		baselines[i] = v
+	}
+
+	vecsA := make([][]float32, numTargets)
+	vecsB := make([][]float32, numTargets)
+	for t := 0; t < numTargets; t++ {
+		for {
+			a := make([]float32, dim)
+			b := make([]float32, dim)
+			for j := 0; j < dim; j++ {
+				a[j] = rand.Float32()*2 - 1
+				b[j] = rand.Float32()*2 - 1
+			}
+			NormalizeVector(a)
+			NormalizeVector(b)
+			if CosineDistance(a, b) >= 0.8 {
+				vecsA[t] = a
+				vecsB[t] = b
+				break
+			}
+		}
+	}
+
+	fresh := NewCollection("fresh", dim)
+	updated := NewCollection("updated", dim)
+
+	for i, v := range baselines {
+		fresh.InsertPoint(Point{ID: fmt.Sprintf("base-%d", i), Vector: v})
+		updated.InsertPoint(Point{ID: fmt.Sprintf("base-%d", i), Vector: v})
+	}
+
+	for t := 0; t < numTargets; t++ {
+		fresh.InsertPoint(Point{ID: fmt.Sprintf("target-%d", t), Vector: vecsB[t]})
+	}
+	for t := 0; t < numTargets; t++ {
+		updated.InsertPoint(Point{ID: fmt.Sprintf("target-%d", t), Vector: vecsA[t]})
+	}
+	for t := 0; t < numTargets; t++ {
+		updated.InsertPoint(Point{ID: fmt.Sprintf("target-%d", t), Vector: vecsB[t]})
+	}
+
+	freshHits := 0
+	updatedHits := 0
+	for t := 0; t < numTargets; t++ {
+		targetID := fmt.Sprintf("target-%d", t)
+		rF := fresh.Search(vecsB[t], 10, efSearch)
+		rU := updated.Search(vecsB[t], 10, efSearch)
+		if _, ok := findResultRank(rF, targetID); ok {
+			freshHits++
+		}
+		if _, ok := findResultRank(rU, targetID); ok {
+			updatedHits++
+		}
+	}
+
+	freshRate := float64(freshHits) / float64(numTargets) * 100
+	updatedRate := float64(updatedHits) / float64(numTargets) * 100
+	t.Logf("Fresh  索引: %d/%d = %.1f%%", freshHits, numTargets, freshRate)
+	t.Logf("Updated索引: %d/%d = %.1f%%", updatedHits, numTargets, updatedRate)
+
+	if updatedRate < freshRate*0.8 {
+		t.Errorf("修复未生效: Updated 召回率 %.1f%% 仍明显低于 Fresh %.1f%%", updatedRate, freshRate)
+	} else {
+		t.Logf("OK: 修复后两个索引召回率接近")
+	}
+
+	// 额外验证：Updated 节点用旧向量 vecA 不应再被召回
+	staleHits := 0
+	for t := 0; t < numTargets; t++ {
+		targetID := fmt.Sprintf("target-%d", t)
+		r := updated.Search(vecsA[t], 10, efSearch)
+		if _, ok := findResultRank(r, targetID); ok {
+			staleHits++
+		}
+	}
+	if staleHits > 0 {
+		t.Logf("   旧向量仍召回 %d/%d 个 target（图删除不彻底）", staleHits, numTargets)
+	}
+}
+
+// findResultRank 在搜索结果中查找指定 ID，返回序号和是否找到
+func findResultRank(results []SearchResult, id string) (rank int, found bool) {
+	for i, r := range results {
+		if r.ID == id {
+			return i + 1, true
+		}
+	}
+	return -1, false
 }

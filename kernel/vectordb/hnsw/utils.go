@@ -64,6 +64,14 @@ func (idx *HNSWIndex) InitItemNeighbors(docID DocID) int {
 	return level
 }
 
+// SetNodeLocks replaces the internal nodeLocks slice. Used during snapshot
+// restore; must only be called with no concurrent access.
+func (idx *HNSWIndex) SetNodeLocks(locks []sync.Mutex) {
+	idx.Mu.Lock()
+	idx.nodeLocks = locks
+	idx.Mu.Unlock()
+}
+
 // GetItemLevel 获取节点最大层级
 // 读取 Neighbors[docID] 的长度，使用节点锁保护
 func (idx *HNSWIndex) GetItemLevel(docID DocID) int {

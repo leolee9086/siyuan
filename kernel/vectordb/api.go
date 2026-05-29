@@ -63,7 +63,6 @@ func InitGlobalDB(path string) {
 
 		db, err := LoadDatabase(path)
 		if err != nil {
-			// 加载失败，记录错误并创建空数据库
 			dbLoadErr = err
 			GlobalDB = NewDatabase(path)
 			return
@@ -151,11 +150,13 @@ func createCollectionHandler(c *gin.Context) {
 		return
 	}
 
-	col.Mu.Lock()
 	if req.Metric != "" {
-		col.Config.MetricType = req.Metric
+		if hc, ok := col.(*Collection); ok {
+			hc.Mu.Lock()
+			hc.Config.MetricType = req.Metric
+			hc.Mu.Unlock()
+		}
 	}
-	col.Mu.Unlock()
 
 	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Collection created"})
 }
@@ -183,7 +184,7 @@ func putPointsHandler(c *gin.Context) {
 	count := 0
 
 	for _, point := range req.Points {
-		if len(point.Vector) != col.Dimension {
+		if len(point.Vector) != col.Dimension() {
 			continue // Skip invalid dimension
 		}
 		col.InsertPoint(point)
@@ -237,7 +238,7 @@ func queryHandler(c *gin.Context) {
 		return
 	}
 
-	if len(req.Vector) != col.Dimension {
+	if len(req.Vector) != col.Dimension() {
 		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Dimension mismatch"})
 		return
 	}

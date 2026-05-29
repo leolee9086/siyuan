@@ -177,6 +177,16 @@ func getWorkspaceDriveType() string {
 	return matchedDriveType
 }
 
+// IsWorkspaceOnSSD returns whether the workspace directory is on an SSD drive.
+// Returns true on macOS/mobile (assumes SSD), or if detection fails.
+func IsWorkspaceOnSSD() bool {
+	driveType := getWorkspaceDriveType()
+	if driveType == "" {
+		return true // fail-safe: assume SSD
+	}
+	return driveType == ghw.DriveTypeSSD.String()
+}
+
 func RandomSleep(minMills, maxMills int) {
 	r := gulu.Rand.Int(minMills, maxMills)
 	time.Sleep(time.Duration(r) * time.Millisecond)
