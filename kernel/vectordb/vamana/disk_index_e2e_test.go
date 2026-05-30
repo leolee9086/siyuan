@@ -457,10 +457,17 @@ func TestDiskIndex_SaveLoad_WithDeletion(t *testing.T) {
 // ============================================================================
 
 // computeAverageRecall 计算内存索引的平均召回率（使用 BBQ 搜索）
+//
+// rerankFactor 的计算考虑 DefaultBBQOverSearchFactor，使内存 BBQ 搜索宽度
+// 与 DiskVamanaIndex.Search 的行为一致（efSearch × BBQOverSearchFactor × rerankFactor）。
 func computeAverageRecall(idx *VamanaIndex, queries [][]float32, groundTruth [][]int32, k, searchL int) float64 {
 	totalRecall := 0.0
-	// 使用 SearchWithBBQ 进行公平比较，rerankFactor = searchL / k
-	rerankFactor := searchL / k
+	// 使用 SearchWithBBQ 进行公平比较
+	// 搜索宽度对齐 DiskVamanaIndex.Search: efSearch * DefaultBBQOverSearchFactor
+	// SearchWithBBQ 使用 rerankFactor 作为搜索宽度缩放：搜索宽度 = k * rerankFactor
+	// 因此 rerankFactor = (searchL * DefaultBBQOverSearchFactor) / k
+	bbqSearchL := int(float64(searchL) * DefaultBBQOverSearchFactor)
+	rerankFactor := bbqSearchL / k
 	if rerankFactor < 1 {
 		rerankFactor = 1
 	}

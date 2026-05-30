@@ -217,15 +217,15 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	}
 
 	c = &Collection{
-		ColName:   snapshot.Name,
-		ColDim:    snapshot.Dimension,
-		Config:    snapshot.Config,
-		Meta:      snapshot.Meta,
-		IDMap:     idMap,
-		DocMap:    snapshot.DocMap,
-		Store:     store,
-		Metas:     snapshot.Metas,
-		HNSWIdx:   hnswIdx,
+		ColName: snapshot.Name,
+		ColDim:  snapshot.Dimension,
+		Config:  snapshot.Config,
+		Meta:    snapshot.Meta,
+		IDMap:   idMap,
+		DocMap:  snapshot.DocMap,
+		Store:   store,
+		Metas:   snapshot.Metas,
+		HNSWIdx: hnswIdx,
 	}
 
 	walPath := filepath.Join(collectionPath, WALFileName)

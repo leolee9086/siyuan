@@ -82,9 +82,12 @@ func (idx *DiskVamanaIndex) getVector(nodeID uint64) []float32 {
 		return nil
 	}
 
-	// Zero-copy: ReadVectorRef returns unsafe.Slice into mmap region,
-	// equivalent to C++ _data_store->get_vector() pointer arithmetic.
-	// No allocation, no per-element copy.
+	if idx.nodeCache != nil {
+		if cached, ok := idx.nodeCache.GetVector(nodeID); ok {
+			return cached
+		}
+	}
+
 	vec, err := idx.reader.ReadVectorRef(nodeID)
 	if err != nil {
 		return nil
@@ -178,7 +181,6 @@ func getCachedNormSq(nodeID uint64, vec []float32, cache *normSqCache) float32 {
 // modifiedNeighbors uses sync.Map for lock-free atomic Load, eliminating the
 // RWMutex overhead that caused timeout under -race in the Delete path.
 func (idx *DiskVamanaIndex) getNeighbors(nodeID uint64) []uint32 {
-	// Check modified neighbors first (covers both disk and append nodes)
 	if v, ok := idx.modifiedNeighbors.Load(nodeID); ok {
 		return v.([]uint32)
 	}
@@ -190,6 +192,12 @@ func (idx *DiskVamanaIndex) getNeighbors(nodeID uint64) []uint32 {
 			return idx.appendNeighbors[appendIdx]
 		}
 		return nil
+	}
+
+	if idx.nodeCache != nil {
+		if cached, ok := idx.nodeCache.GetNeighbors(nodeID); ok {
+			return cached
+		}
 	}
 
 	neighbors, err := idx.reader.ReadNeighbors(nodeID)

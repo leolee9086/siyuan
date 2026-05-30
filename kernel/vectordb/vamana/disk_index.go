@@ -108,6 +108,9 @@ type DiskVamanaIndex struct {
 	// 磁盘 I/O
 	reader storage.DiskIndexReader // 磁盘索引读取器（基于 mmap）
 
+	// 应用层热节点缓存
+	nodeCache *NodeCache // holds frequently-visited nodes (vectors + neighbors)
+
 	// 内存驻留数据
 	bbqCodes         []byte                 // 打包的 BBQ 码（每维 1-bit）
 	bbqCentroid      []float32              // BBQ 质心向量
@@ -713,6 +716,114 @@ func (idx *DiskVamanaIndex) SetBBQQueryBits(bits int) {
 		return
 	}
 	idx.bbqQueryBits = bits
+}
+
+// ============================================================================
+// Node Cache
+// ============================================================================
+
+// SetCacheSize sets the application-layer node cache capacity in MB.
+// A value of 0 disables the cache. Must be called before WarmupCache.
+func (idx *DiskVamanaIndex) SetCacheSize(mb int) {
+	if mb <= 0 {
+		idx.nodeCache = nil
+		return
+	}
+	dim := int(idx.metadata.Dims)
+	bytesPerNode := dim*4 + idx.maxDegree*4 + 4
+	nodes := (mb * 1024 * 1024) / bytesPerNode
+	if nodes < 1 {
+		nodes = 1
+	}
+	maxNodeID := int(idx.metadata.NumPoints + uint64(len(idx.appendVectors)))
+	idx.nodeCache = NewNodeCache(nodes, maxNodeID)
+}
+
+// WarmupCache populates the cache with up to numNodes nodes via BFS from the
+// medoid. If numNodes is 0, fills to cache capacity. Nodes already cached
+// are skipped. Returns the number of nodes cached.
+func (idx *DiskVamanaIndex) WarmupCache(numNodes int) int {
+	if idx.nodeCache == nil {
+		return 0
+	}
+	if numNodes <= 0 {
+		numNodes = idx.nodeCache.Capacity()
+	}
+
+	medoid := idx.metadata.Medoid
+	// If the medoid is deleted, find the first non-deleted node as entry point.
+	if idx.deleted.IsDeleted(medoid) {
+		for i := uint64(0); i < idx.metadata.NumPoints; i++ {
+			if !idx.deleted.IsDeleted(i) {
+				medoid = i
+				break
+			}
+		}
+	}
+
+	visited := make(map[uint64]bool, numNodes*2)
+	queue := make([]uint64, 0, numNodes*2)
+	queue = append(queue, medoid)
+	visited[medoid] = true
+
+	total := idx.totalPoints()
+	dim := int(idx.metadata.Dims)
+
+	for len(queue) > 0 && idx.nodeCache.Len() < numNodes {
+		batchSize := len(queue)
+		if batchSize > 1024 {
+			batchSize = 1024
+		}
+		batch := queue[:batchSize]
+		queue = queue[batchSize:]
+
+		for _, nodeID := range batch {
+			if idx.nodeCache.Len() >= numNodes {
+				return idx.nodeCache.Len()
+			}
+
+			if nodeID >= idx.metadata.NumPoints {
+				continue
+			}
+			if idx.deleted.IsDeleted(nodeID) {
+				continue
+			}
+
+			vec := make([]float32, dim)
+			if err := idx.reader.ReadVector(nodeID, vec); err != nil {
+				continue
+			}
+			neighbors, err := idx.reader.ReadNeighbors(nodeID)
+			if err != nil {
+				continue
+			}
+
+			vc := make([]float32, len(vec))
+			copy(vc, vec)
+			if !idx.nodeCache.Insert(nodeID, vc, neighbors) {
+				return idx.nodeCache.Len() // cache full
+			}
+
+			// Expand BFS: enqueue unvisited neighbors
+			for _, nbr := range neighbors {
+				if uint64(nbr) < total && !visited[uint64(nbr)] {
+					visited[uint64(nbr)] = true
+					queue = append(queue, uint64(nbr))
+				}
+			}
+		}
+		_ = dim
+	}
+
+	return idx.nodeCache.Len()
+}
+
+// CacheStats returns cache statistics.
+func (idx *DiskVamanaIndex) CacheStats() CacheStats {
+	if idx.nodeCache == nil {
+		return CacheStats{}
+	}
+	return idx.nodeCache.Stats()
 }
 
 // 编译时接口检查
