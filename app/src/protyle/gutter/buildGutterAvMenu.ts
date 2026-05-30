@@ -20,7 +20,7 @@ import { fetchPost } from "./imports";
  * 使用范围：导出结果打开
  * 解耦评估：通过 imports.ts 统一管理
  */
-import { openByMobile } from "./imports";
+import { saveExportFile } from "./imports";
 /**
  * 用途：系统 Shell 操作
  * 使用范围：在文件夹中显示数据库文件
@@ -51,7 +51,7 @@ import { path } from "./imports";
  * @param id - 块 ID，用于导出操作
  * @returns 菜单项配置数组
  */
-export const buildGutterAvMenu = async (nodeElement: Element, id: string): Promise<IMenu[]> => {
+export const buildGutterAvMenu = async (nodeElement: Element, id: string) => {
     const menus: IMenu[] = [];
 
     menus.push({ id: "separator_exportCSV", type: "separator" });
@@ -71,7 +71,7 @@ export const buildGutterAvMenu = async (nodeElement: Element, id: string): Promi
                 id: nodeElement.getAttribute("data-av-id"),
                 blockID: id,
             }, response => {
-                openByMobile(response.data.zip);
+                saveExportFile(response.data.zip);
             });
         }
     });

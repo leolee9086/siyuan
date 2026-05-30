@@ -85,6 +85,63 @@ import { exportImage } from "../export/util";
 /** 导出图片功能入口 */
 export { exportImage };
 
+// ============ 渲染引擎 ============
+
+/**
+ * 用途：代码语法高亮渲染
+ * 使用范围：代码块开关切换后重新渲染高亮
+ * 解耦评估：渲染引擎依赖，通过 imports.ts 统一管理
+ */
+import { highlightRender } from "../render/highlightRender";
+
+/** 导出代码语法高亮渲染 */
+export { highlightRender };
+
+// ============ 对话框工具 ============
+
+/**
+ * 用途：显示消息提示框
+ * 使用范围：需要向用户展示加载状态、操作结果等场景
+ * 解耦评估：UI基础设施，通过 imports.ts 统一管理
+ */
+import { showMessage } from "../../dialog/message";
+
+/**
+ * 用途：隐藏消息提示框
+ * 使用范围：异步操作完成后关闭提示框
+ * 解耦评估：UI基础设施，通过 imports.ts 统一管理
+ */
+import { hideMessage } from "../../dialog/message";
+
+/** 导出消息提示工具 */
+export { showMessage };
+/** 导出隐藏消息提示工具 */
+export { hideMessage };
+
+// ============ 平台兼容性 ============
+
+/**
+ * 用途：保存导出文件，触发 Electron 系统保存对话框或浏览器下载
+ * 使用范围：代码块导出为文件、数据库视图导出 CSV/ZIP 等需要下载文件的场景
+ * 解耦评估：平台兼容性工具，通过 imports.ts 统一管理
+ */
+import { saveExportFile } from "../util/compatibility";
+
+/** 导出文件保存工具 */
+export { saveExportFile };
+
+// ============ 菜单管理 ============
+
+/**
+ * 用途：获取全局菜单实例
+ * 使用范围：代码块开关切换后需要关闭菜单的场景
+ * 解耦评估：全局菜单管理，通过 imports.ts 统一管理
+ */
+import { getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+
+/** 导出全局菜单实例获取函数 */
+export { getSiyuanMenus };
+
 // ============ AI功能 ============
 
 /**

@@ -4,11 +4,7 @@
  * @param span 语言标识元素
  * @returns 包含代码块元素、内容和块元素的对象，如果无法提取则返回null
  */
-function 提取代码块信息(span: Element): {
-    codeElement: Element | null;
-    codeContent: string;
-    blockElement: Element | null;
-} | null {
+function 提取代码块信息(span: Element) {
     const blockElement = span.parentElement?.parentElement || null;
     const codeElement = span.parentElement?.nextElementSibling || null;
     const codeContent = codeElement?.textContent;
@@ -34,7 +30,7 @@ export async function 从块DOM提取首个符合条件的特定语言代码块�
     domElement: Element,
     language: string,
     conditionCallback?: (codeElement: Element, codeContent: string) => boolean
-): Promise<string | null> {
+) {
     // 获取所有语言标识元素
     const languageSpans = domElement.querySelectorAll(".protyle-action__language");
 
@@ -66,7 +62,7 @@ export async function 从块DOM提取首个符合条件的特定语言代码块�
         }
 
         // 检查条件是否满足
-        if (codeElement && blockElement && conditionCallback(blockElement, codeContent)) {
+        if (codeElement && blockElement && conditionCallback(codeElement, codeContent)) {
             return codeContent;
         }
     }

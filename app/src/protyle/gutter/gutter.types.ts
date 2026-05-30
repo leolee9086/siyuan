@@ -3,6 +3,11 @@
  * 包含 gutter 相关的接口和类型定义
  */
 
+/**
+ * 用途：配置管理器类型，用于 AI 认证配置
+ * 使用范围：生成块内容图片参数接口
+ * 解耦评估：类型定义本身不产生运行时依赖，通过 type import 可被 tree-shaking；若需解耦可将 ProfileManager 改为通用接口
+ */
 import type { ProfileManager } from "../../config/profileManager";
 
 /**
@@ -37,4 +42,28 @@ export interface 生成块内容图片参数 {
     onProgress?: (msg: string) => void;
     /** 完成回调，传入生成的图片 base64 数据 */
     onComplete?: (base64Data: string) => void | Promise<void>;
+}
+
+/**
+ * 代码块菜单构建上下文
+ */
+export interface IGutterCodeBlockMenuContext {
+    /** 目标节点元素 */
+    nodeElement: Element;
+    /** 节点 ID */
+    id: string;
+}
+
+/**
+ * 代码块开关选项配置
+ */
+export interface ICodeBlockSwitchConfig {
+    /** 菜单项 ID */
+    menuId: string;
+    /** 属性名 (linewrap/ligatures/linenumber) */
+    attrName: "linewrap" | "ligatures" | "linenumber";
+    /** 显示标签（i18n key） */
+    labelKey: keyof typeof import("../../util/siyuanEnvironments/i18n.getI18n.environment").siyuanI18n;
+    /** 编辑器默认配置的属性名 */
+    editorConfigKey: "codeLineWrap" | "codeLigatures" | "codeSyntaxHighlightLineNum";
 }

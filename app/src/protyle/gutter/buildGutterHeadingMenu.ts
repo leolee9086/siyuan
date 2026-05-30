@@ -47,6 +47,12 @@ export interface IGutterHeadingMenuResult {
  * @param protyle Protyle 实例
  * @param responseData 响应数据
  */
+/**
+ * 将内容写入剪贴板（兼容各平台）
+ * 与上游 writeSiYuanHTMLClipboard 行为对齐，写入 markdown、html 和原始BlockDOM三种格式
+ * @param protyle Protyle 实例
+ * @param responseData 响应数据（原始 BlockDOM）
+ */
 const 写入剪贴板 = (protyle: IProtyle, responseData: string): void => {
     const lute = protyle.lute;
     if (!lute) {
@@ -56,15 +62,17 @@ const 写入剪贴板 = (protyle: IProtyle, responseData: string): void => {
 
     const markdownContent = lute.BlockDOM2StdMd(responseData).trimEnd();
     const htmlContent = responseData + Constants.ZWSP;
+    // @siyuan-保留原始BlockDOM数据作为第三个参数，确保剪贴板保留完整的块元数据
+    const rawBlockDOM = responseData + Constants.ZWSP;
 
     if (isInAndroid()) {
         const jsAndroid = getWindowJSAndroid();
-        jsAndroid?.writeHTMLClipboard(markdownContent, htmlContent);
+        jsAndroid?.writeSiYuanHTMLClipboard(markdownContent, htmlContent, rawBlockDOM);
         return;
     }
     if (isInHarmony()) {
         const jsHarmony = getWindowJSHarmony();
-        jsHarmony?.writeHTMLClipboard(markdownContent, htmlContent);
+        jsHarmony?.writeSiYuanHTMLClipboard(markdownContent, htmlContent, rawBlockDOM);
         return;
     }
     writeText(htmlContent);
