@@ -17,6 +17,7 @@
 package hnsw
 
 import (
+	"math"
 	"math/rand"
 	"sync"
 )
@@ -25,10 +26,16 @@ import (
 // HNSW 层级工具
 // =========================================
 
-// RandomLevel 使用指数分布生成随机层级
-func RandomLevel(maxLevel int) int {
+// RandomLevel 使用指数分布生成随机层级。
+// 若 Config.LevelML > 0，使用论文公式 threshold = exp(-1/m_L)。
+// 否则使用当前默认 threshold = 0.5。
+func (idx *HNSWIndex) RandomLevel() int {
+	threshold := 0.5
+	if idx.Config.LevelML > 0 {
+		threshold = math.Exp(-1.0 / idx.Config.LevelML)
+	}
 	level := 0
-	for rand.Float32() < 0.5 && level < maxLevel-1 {
+	for rand.Float64() < threshold && level < idx.Config.MaxLevel-1 {
 		level++
 	}
 	return level
@@ -37,7 +44,7 @@ func RandomLevel(maxLevel int) int {
 // InitItemNeighbors 初始化节点邻居结构，返回分配的最大层级
 // 使用全局锁保护 Neighbors/nodeLocks 切片的扩展
 func (idx *HNSWIndex) InitItemNeighbors(docID DocID) int {
-	level := RandomLevel(idx.Config.MaxLevel)
+	level := idx.RandomLevel()
 
 	idx.Mu.Lock()
 

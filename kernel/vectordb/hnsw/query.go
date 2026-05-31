@@ -45,22 +45,39 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 	config := idx.Config
 	entryLevel := idx.GetItemLevel(entryPointID)
 
-	// BBQ: 对查询向量进行量化
-	useBBQ := idx.Dimension >= bbq.BBQEnableThreshold
+	alpha := idx.Config.ContaminationAlpha
+	var contaminated []float32
+	if alpha > 0 {
+		contaminated = make([]float32, len(queryVec))
+		copy(contaminated, queryVec)
+	}
+
+	// BBQ: disable when contamination modifies query
+	useBBQ := idx.Dimension >= bbq.BBQEnableThreshold && alpha == 0
 	var queryQuantized []byte
 	var queryCorrection bbq.QuantizationResult
 	if useBBQ {
 		queryQuantized, queryCorrection = idx.Distancer.QuantizeQuery(queryVec)
 	}
 
-	// Phase 1: 从顶层贪心搜索到 level 1
 	currentBestID := entryPointID
+	searchVec := queryVec
+	if alpha > 0 {
+		searchVec = contaminated
+	}
 	for level := entryLevel; level > 0; level-- {
-		currentBestID = idx.greedySearchVec(queryVec, queryQuantized, queryCorrection, currentBestID, level, config.MetricType)
+		currentBestID = idx.greedySearchVec(searchVec, queryQuantized, queryCorrection, currentBestID, level, config.MetricType)
+		if alpha > 0 {
+			bestVec, ok := idx.Distancer.GetUnsafe(currentBestID)
+			if ok && len(bestVec) == len(searchVec) {
+				for j := range searchVec {
+					searchVec[j] = (1-alpha)*searchVec[j] + alpha*bestVec[j]
+				}
+			}
+		}
 	}
 
-	// Phase 2: 在 level 0 搜索 ef 个候选
-	candidates := idx.searchLevelVec(queryVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
+	candidates := idx.searchLevelVec(searchVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
 
 	// Filter deleted nodes under read lock to avoid concurrent map access.
 	idx.Mu.RLock()

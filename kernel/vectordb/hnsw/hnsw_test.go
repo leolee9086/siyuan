@@ -22,6 +22,7 @@ import (
 	"sort"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 )
@@ -410,28 +411,161 @@ func TestMaxHeap_EmptyReplace(t *testing.T) {
 
 func TestRandomLevel(t *testing.T) {
 	maxLevel := 8
+	idx := NewHNSWIndex(128, Config{MaxLevel: maxLevel}, nil)
 	counts := make(map[int]int)
 	trials := 10000
 
 	for i := 0; i < trials; i++ {
-		l := RandomLevel(maxLevel)
+		l := idx.RandomLevel()
 		if l < 0 || l >= maxLevel {
-			t.Fatalf("RandomLevel 返回越界值: %d (maxLevel=%d)", l, maxLevel)
+			t.Fatalf("RandomLevel returned out of bounds: %d (maxLevel=%d)", l, maxLevel)
 		}
 		counts[l]++
 	}
 
-	// level 0 应该是最常见的（约 50%）
 	if counts[0] < trials/4 {
-		t.Errorf("level 0 出现次数过少: %d/%d", counts[0], trials)
+		t.Errorf("level 0 too few: %d/%d", counts[0], trials)
 	}
-
-	// 高层级应该越来越少
 	for l := 1; l < maxLevel-1; l++ {
 		if counts[l] > counts[l-1] {
-			t.Errorf("level %d (%d) 不应多于 level %d (%d)",
+			t.Errorf("level %d (%d) should not exceed level %d (%d)",
 				l, counts[l], l-1, counts[l-1])
 		}
+	}
+}
+
+func TestPaperMLQuality(t *testing.T) {
+	scales := []struct {
+		total int
+		dim   int
+		label string
+	}{
+		{5000, 128, "5K×128"},
+		{10000, 128, "10K×128"},
+	}
+	queryCnt := 100
+	topK := 10
+	efSearch := 64
+
+	for _, s := range scales {
+		t.Run(s.label, func(t *testing.T) {
+			genVec := func(seed int) []float32 {
+				v := make([]float32, s.dim)
+				rng := rand.New(rand.NewSource(int64(seed)))
+				for j := range v {
+					v[j] = float32(rng.Float64()*2 - 1)
+				}
+				return v
+			}
+			vectors := make([][]float32, s.total)
+			for i := 0; i < s.total; i++ {
+				vectors[i] = genVec(i)
+			}
+			queries := make([][]float32, queryCnt)
+			for q := 0; q < queryCnt; q++ {
+				queries[q] = genVec(1000000 + q)
+			}
+
+			type scored struct {
+				idx  int
+				dist float32
+			}
+			groundTruth := make([][]int, queryCnt)
+			for q := 0; q < queryCnt; q++ {
+				scores := make([]scored, s.total)
+				for i := 0; i < s.total; i++ {
+					var dist float32
+					for j := range vectors[i] {
+						d := vectors[i][j] - queries[q][j]
+						dist += d * d
+					}
+					scores[i] = scored{i, dist}
+				}
+				sort.Slice(scores, func(i, j int) bool { return scores[i].dist < scores[j].dist })
+				gt := make([]int, topK)
+				for i := 0; i < topK; i++ {
+					gt[i] = scores[i].idx
+				}
+				groundTruth[q] = gt
+			}
+
+			type result struct {
+				label     string
+				buildRate float64
+				queryUs   float64
+				recall    float64
+				levels    [17]int
+			}
+			var results []result
+
+			for _, lml := range []float64{0, 1.0 / math.Log(16)} {
+				label := "default(0.5)"
+				if lml > 0 {
+					label = "paper(1/lnM)"
+				}
+				cfg := Config{
+					M: 16, EfConstruction: 100, EfSearch: efSearch,
+					MaxLevel: 16, MetricType: "l2", LevelML: lml,
+				}
+				dist := newMockDistancer(euclideanDistance)
+				idx := NewHNSWIndex(s.dim, cfg, dist)
+				for i, v := range vectors {
+					dist.AddVector(DocID(i), v)
+				}
+				buildStart := time.Now()
+				for i := 0; i < s.total; i++ {
+					idx.Insert(DocID(i))
+				}
+				buildDur := time.Since(buildStart)
+
+				var hits int
+				var queryTotal time.Duration
+				for q := 0; q < queryCnt; q++ {
+					tq := time.Now()
+					res := idx.Search(queries[q], topK, efSearch)
+					queryTotal += time.Since(tq)
+					gt := groundTruth[q]
+					gtSet := make(map[int]bool, topK)
+					for _, g := range gt {
+						gtSet[g] = true
+					}
+					for _, r := range res {
+						if gtSet[int(r.ID)] {
+							hits++
+						}
+					}
+				}
+
+				var levels [17]int
+				for d := DocID(0); d < DocID(s.total); d++ {
+					l := idx.GetItemLevel(d)
+					if l >= 0 && l < 17 {
+						levels[l]++
+					}
+				}
+				results = append(results, result{
+					label:     label,
+					buildRate: float64(s.total) / buildDur.Seconds(),
+					queryUs:   float64(queryTotal.Microseconds()) / float64(queryCnt),
+					recall:    float64(hits) / float64(queryCnt*topK),
+					levels:    levels,
+				})
+			}
+
+			for _, r := range results {
+				t.Logf("%s: build=%.0f/s, query=%.0fus, recall=%.1f%%, L0=%d L1=%d L2=%d",
+					r.label, r.buildRate, r.queryUs, r.recall*100,
+					r.levels[0], r.levels[1], r.levels[2])
+			}
+			if len(results) == 2 {
+				paperRecall := results[1].recall
+				defRecall := results[0].recall
+				if paperRecall < defRecall*0.95 {
+					t.Errorf("paper recall %.1f%% < default %.1f%%",
+						paperRecall*100, defRecall*100)
+				}
+			}
+		})
 	}
 }
 
