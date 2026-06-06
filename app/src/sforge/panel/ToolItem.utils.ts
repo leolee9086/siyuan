@@ -7,15 +7,11 @@
  */
 
 /**
+ * 导出 获取显示名称 供工具项组件渲染使用。
  * @function 获取显示名称
- * @zh-CN
- * @作用: 从触发器 type 中提取可读的显示名称
- * @意图: 让用户看到友好的工具名称
- * @调用时机: 渲染工具项时
- * @param type 触发器类型标识
- * @returns 可读的显示名称
+ * @同步豁免: UI构建 - 在 Vue computed 属性中作为同步 getter 调用，异步化会破坏 computed 的同步契约。
  */
-export function 获取显示名称(type: string): string {
+export function 获取显示名称(type: string) {
     // 如果 type 本身是中文，直接使用
     if (/[\u4e00-\u9fa5]/.test(type)) {
         return type;
@@ -26,15 +22,11 @@ export function 获取显示名称(type: string): string {
 }
 
 /**
+ * 导出 获取图标链接 供工具项组件渲染使用。
  * @function 获取图标链接
- * @zh-CN
- * @作用: 根据触发器类型选择合适的图标
- * @意图: 为不同工具提供视觉区分
- * @调用时机: 渲染工具项时
- * @param type 触发器类型标识
- * @returns 图标的 SVG use 链接
+ * @同步豁免: UI构建 - 在 Vue computed 属性中作为同步 getter 调用，异步化会破坏 computed 的同步契约。
  */
-export function 获取图标链接(type: string): string {
+export function 获取图标链接(type: string) {
     // 根据已知类型映射图标
     if (type.includes("style-brush") || type.includes("样式刷")) {
         return "#iconFormat";

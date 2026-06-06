@@ -12,14 +12,14 @@ import {
     deleteRow,
     moveRowToUp,
     moveRowToDown,
-} from "../protyle/util/table.row";
+} from "../protyle/util/table/row";
 import {
     insertColumn,
     deleteColumn,
     moveColumnToLeft,
     moveColumnToRight,
-} from "../protyle/util/table.column";
-import { updateTableTitle } from "../protyle/util/table.title.update";
+} from "../protyle/util/table/column";
+import { updateTableTitle } from "../protyle/util/table/title.update";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../util/platform/functions";

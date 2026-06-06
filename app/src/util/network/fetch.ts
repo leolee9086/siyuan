@@ -44,7 +44,9 @@ function acquire(): Promise<void> {
 		s.current++;
 		return Promise.resolve();
 	}
-	return new Promise(resolve => { s.pending.push(resolve); });
+	return new Promise(resolve => {
+ s.pending.push(resolve); 
+});
 }
 
 function release(): void {
@@ -325,7 +327,9 @@ export const fetchPost = async (
         }
         const responseData: IWebSocketData = await handleFetchResponse(response);
 
-        if (!bypassSemaphore) { release(); released = true; }
+        if (!bypassSemaphore) {
+ release(); released = true; 
+}
 
         // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
         if (failCallback && url === "/api/file/getFile" && isGetFile202) {
@@ -334,7 +338,9 @@ export const fetchPost = async (
         }
         createPostResponseHandler(url, cb)(responseData);
     } catch (e) {
-        if (!bypassSemaphore && !released) { release(); }
+        if (!bypassSemaphore && !released) {
+ release(); 
+}
         if ((e as DOMException)?.name === "AbortError") {
             console.warn(`fetchPost aborted: ${url}`, (e as DOMException)?.message || "");
             return;
@@ -382,7 +388,9 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
         processMessage(jsonResult);
         return jsonResult;
     } catch (e) {
-        if (!released) { release(); }
+        if (!released) {
+ release(); 
+}
         throw e;
     }
 };

@@ -3,10 +3,9 @@ import { z } from "./imports";
 
 /**
  * 将Zod schema转换为JSON Schema字符串
- * @同步豁免: 性能考虑 - 纯同步的 JSON 序列化，异步化会引入不必要的 Promise 开销。
- * @显式返回类型原因: 返回 JSON Schema 字符串，显式标注确保调用方明确接收类型为字符串而非对象。
+ * @同步豁免: 生命周期 - 工具函数作为同步能力提供，调用方在同步上下文中拼接使用。
  */
 // @柯里化
-export const formatSchema = (schema: z.ZodTypeAny): string => {
+export const formatSchema = (schema: z.ZodTypeAny) => {
     return JSON.stringify(z.toJSONSchema(schema));
 };

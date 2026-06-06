@@ -61,9 +61,8 @@ export type { 生成块内容图片参数 };
  * 
  * @param onProgress - 可选的进度回调函数
  * @returns 进度报告函数
- * @显式返回类型原因: 回调工厂需要保证返回 (msg: string) => void 类型闭包，供调用方同步调用进度回调。显式类型可防止闭包返回 undefined 导致进度更新中断。
  */
-function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string) => void {
+function 创建进度报告器(onProgress?: (msg: string) => void) {
     return (msg: string) => {
         if (onProgress) {
             onProgress(msg);

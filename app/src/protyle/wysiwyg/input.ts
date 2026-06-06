@@ -141,7 +141,7 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
 
     const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
     if (refElement && refElement.getAttribute("data-subtype") === "d") {
-        const response = await fetchSyncPost("/api/block/getRefText", {id: (refElement.getAttribute("data-id") || '').split(/\s+/)[0]});
+        const response = await fetchSyncPost("/api/block/getRefText", {id: (refElement.getAttribute("data-id") || "").split(/\s+/)[0]});
         if (response.data !== refElement.innerHTML.replace("<wbr>", "")) {
             refElement.setAttribute("data-subtype", "s");
         }
@@ -269,7 +269,7 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
                 // https://github.com/siyuan-note/siyuan/issues/6087
                 realElement.querySelectorAll('[data-type~="block-ref"][data-subtype="d"]').forEach(refItem => {
                     if (refItem.textContent === "") {
-                        fetchPost("/api/block/getRefText", {id: (refItem.getAttribute("data-id") || '').split(/\s+/)[0]}, (response) => {
+                        fetchPost("/api/block/getRefText", {id: (refItem.getAttribute("data-id") || "").split(/\s+/)[0]}, (response) => {
                             refItem.innerHTML = response.data;
                         });
                     }

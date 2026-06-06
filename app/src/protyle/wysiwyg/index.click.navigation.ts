@@ -48,7 +48,7 @@ export function handleClickNavigation(
         if (range.toString() === "" || event.shiftKey) {
             let refBlockId: string;
             if (blockRefElement) {
-                refBlockId = (blockRefElement.getAttribute("data-id") || '').split(/\s+/)[0];
+                refBlockId = (blockRefElement.getAttribute("data-id") || "").split(/\s+/)[0];
             } else if (aElement) {
                 refBlockId = aLink.substring(16, 38);
             }

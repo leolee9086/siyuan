@@ -1,4 +1,5 @@
-import { z } from "zod";
+/** 用途：Zod 校验库的 ZodRawShape/ZodObject/ZodError 等类型。使用范围：事件定义、数据类型推断和运行时校验配置。解耦评估：通过目录 imports.ts 转发，可替换为其他校验库。 */
+import { z } from "./imports";
 
 /**
  * 事件定义的基础类型

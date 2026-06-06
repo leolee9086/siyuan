@@ -41,7 +41,7 @@ const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeEl
 
 /** 生成多 ID 块引用的 HTML value */
 export const genBlockRefValueMulti = (ids: string[], anchorText: string): string => {
-    const joinedIds = ids.join(' ');
+    const joinedIds = ids.join(" ");
     return `<span data-type="block-ref" data-id="${joinedIds}" data-subtype="s">${anchorText}</span>`;
 };
 export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IHintData[] => {
@@ -111,7 +111,7 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
             const confirmBtn = document.createElement("button");
             confirmBtn.className = "b3-list-item";
             confirmBtn.setAttribute("data-value", "__confirm__");
-            confirmBtn.innerHTML = `<span class="b3-list-item__text" style="color:var(--b3-theme-primary);font-weight:bold;">✓ 确认插入 (0)</span>`;
+            confirmBtn.innerHTML = "<span class=\"b3-list-item__text\" style=\"color:var(--b3-theme-primary);font-weight:bold;\">✓ 确认插入 (0)</span>";
             // 插入在滚动列表之前（搜索框之后）
             const scrollContainer = protyle.hint.element.querySelector('div[style*="overflow:auto"]');
             if (scrollContainer) {

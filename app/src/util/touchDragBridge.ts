@@ -22,8 +22,12 @@ let lastDragOverElement: Element | null = null;
 let manualTouchActive = false;
 
 const handleManualTouchStart = (e: TouchEvent) => {
-    if (dragState) return;
-    if (e.touches.length !== 1) return;
+    if (dragState) {
+return;
+}
+    if (e.touches.length !== 1) {
+return;
+}
 
     const target = e.target as HTMLElement;
     // All areas with manual mousedown/mousemove/mouseup drag/resize operations
@@ -41,7 +45,9 @@ const handleManualTouchStart = (e: TouchEvent) => {
         !target.closest(".protyle-action__drag") &&
         !target.closest(".table__resize") &&
         !target.closest(".protyle-background__img") &&
-        !target.closest(".b3-chip")) return;
+        !target.closest(".b3-chip")) {
+return;
+}
 
     const touch = e.touches[0];
     const mouseEvent = new MouseEvent("mousedown", {
@@ -57,8 +63,12 @@ const handleManualTouchStart = (e: TouchEvent) => {
 };
 
 const handleManualTouchMove = (e: TouchEvent) => {
-    if (dragState?.isDragging) return;
-    if (!manualTouchActive) return;
+    if (dragState?.isDragging) {
+return;
+}
+    if (!manualTouchActive) {
+return;
+}
 
     const touch = e.touches[0];
     if (document.onmousemove && typeof document.onmousemove === "function") {
@@ -76,11 +86,17 @@ const handleManualTouchMove = (e: TouchEvent) => {
 };
 
 const handleManualTouchEnd = (e: TouchEvent) => {
-    if (dragState?.isDragging) return;
-    if (!manualTouchActive) return;
+    if (dragState?.isDragging) {
+return;
+}
+    if (!manualTouchActive) {
+return;
+}
 
     if (document.onmouseup) {
-        if (typeof document.onmouseup !== "function") return;
+        if (typeof document.onmouseup !== "function") {
+return;
+}
         const target = e.changedTouches[0].target || document.body;
         target.dispatchEvent(new MouseEvent("mouseup", {
             clientX: e.changedTouches[0].clientX,
@@ -97,7 +113,9 @@ const getDraggableAncestor = (el: HTMLElement): HTMLElement | null => {
         if (current.getAttribute?.("draggable") === "true") {
             return current;
         }
-        if (current === document.body) break;
+        if (current === document.body) {
+break;
+}
         current = current.parentElement;
     }
     return null;
@@ -171,7 +189,9 @@ const startTouchDrag = (touch: Touch) => {
 };
 
 const continueTouchDrag = (touch: Touch) => {
-    if (!dragState.isDragging) return;
+    if (!dragState.isDragging) {
+return;
+}
 
     const elementUnderTouch = getElementUnderTouch(touch.clientX, touch.clientY);
 
@@ -224,7 +244,9 @@ const continueTouchDrag = (touch: Touch) => {
 };
 
 const endTouchDrag = (touch: Touch) => {
-    if (!dragState.isDragging) return;
+    if (!dragState.isDragging) {
+return;
+}
 
     const elementUnderTouch = getElementUnderTouch(touch.clientX, touch.clientY);
     if (elementUnderTouch) {
@@ -267,14 +289,18 @@ const cleanupDrag = () => {
 };
 
 const handleDragStart = (e: TouchEvent) => {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1) {
+return;
+}
 
     const target = e.target as HTMLElement;
     if (target.classList.contains("av__widthdrag")) {
         return;
     }
     const draggable = getDraggableAncestor(target);
-    if (!draggable) return;
+    if (!draggable) {
+return;
+}
 
     const touch = e.touches[0];
     dragState = {
@@ -293,7 +319,9 @@ const handleDragStart = (e: TouchEvent) => {
 };
 
 const handleDragMove = (e: TouchEvent) => {
-    if (!dragState) return;
+    if (!dragState) {
+return;
+}
 
     const touch = e.touches[0];
 
@@ -327,7 +355,9 @@ const handleDragMove = (e: TouchEvent) => {
 };
 
 const handleDragEnd = (e: TouchEvent) => {
-    if (!dragState) return;
+    if (!dragState) {
+return;
+}
 
     if (dragState.isDragging) {
         e.preventDefault();

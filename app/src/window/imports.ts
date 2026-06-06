@@ -53,6 +53,7 @@ import { isWindow } from "../util/platform/functions";
  */
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
+/** 用途：提供锁屏功能，用于应用锁屏操作。使用范围：onWindowsMsg.ts 等需要锁屏的模块。解耦评估：依赖对话框系统核心功能，当前通过 imports.ts 转发。 */
 import { lockScreen } from "../dialog/processSystem/lockScreen";
 
 /**

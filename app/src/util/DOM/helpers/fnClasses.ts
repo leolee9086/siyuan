@@ -4,7 +4,7 @@
  * 问题/改进：如果后续有更多统一状态类切换需求，可抽象成更通用的类名开关工具。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const switchFnNoneByFlag = (element: Element, flag: boolean): void => {
+export const switchFnNoneByFlag = (element: Element, flag: boolean) => {
     if (flag) {
         element.classList.add("fn__none");
         return;
@@ -18,7 +18,7 @@ export const switchFnNoneByFlag = (element: Element, flag: boolean): void => {
  * 问题/改进：当前是单类名检查，若后续需要更复杂组合判断应交给更明确的工具处理。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const checkClassListContain = (element: Element, className: string): boolean => {
+export const checkClassListContain = (element: Element, className: string) => {
     const hasClassName = element.classList.contains(className);
     return hasClassName;
 };
@@ -29,7 +29,7 @@ export const checkClassListContain = (element: Element, className: string): bool
  * 问题/改进：当前按数组顺序逐个检查，类名集合很大时可再考虑 Set 优化。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const checkClassListContainAll = (element: Element, classNames: string[]): boolean => {
+export const checkClassListContainAll = (element: Element, classNames: string[]) => {
     for (const className of classNames) {
         const hasClassName = element.classList.contains(className);
         if (!hasClassName) {
@@ -45,7 +45,7 @@ export const checkClassListContainAll = (element: Element, classNames: string[])
  * 问题/改进：当前返回布尔值即可满足需求，如未来需要返回命中的类名可另建工具。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const checkClassListContainAny = (element: Element, classNames: string[]): boolean => {
+export const checkClassListContainAny = (element: Element, classNames: string[]) => {
     for (const className of classNames) {
         const hasClassName = element.classList.contains(className);
         if (hasClassName) {

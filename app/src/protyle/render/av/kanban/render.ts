@@ -17,7 +17,7 @@ interface IIds {
     fieldId: string,
 }
 
-const getKanbanHTML = (data: IAVKanban) => {
+const getKanbanHTML = async (data: IAVKanban) => {
     let galleryHTML = "";
     // body
     data.cards.forEach((item: IAVGalleryItem, rowIndex: number) => {
@@ -53,6 +53,7 @@ const getKanbanHTML = (data: IAVKanban) => {
             if (cell.valueType === "checkbox" && !data.displayFieldName) {
                 cell.value.checkbox.content = data.fields[fieldsIndex].name || getColNameByType(data.fields[fieldsIndex].type);
             }
+            const renderedCell = await renderCell(cell.value, rowIndex, data.showIcon, "kanban");
             const cellHTML = `<div class="av__cell${checkClass}${data.displayFieldName ? "" : " ariaLabel"}" 
 data-wrap="${data.fields[fieldsIndex].wrap}" 
 aria-label="${ariaLabel}" 
@@ -62,7 +63,7 @@ data-field-id="${data.fields[fieldsIndex].id}"
 data-dtype="${cell.valueType}" 
 ${cell.value?.isDetached ? ' data-detached="true"' : ""} 
 style="${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
-${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, data.showIcon, "kanban")}</div>`;
+${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
             if (data.displayFieldName) {
                 galleryHTML += `<div class="av__gallery-field av__gallery-field--name" data-empty="${isEmpty}">
     <div class="av__gallery-name">
@@ -200,7 +201,7 @@ export const renderKanban = async (options: {
             }
             bodyHTML += `<div class="av__kanban-group${group.cardSize === 0 ? " av__kanban-group--small" : (group.cardSize === 2 ? " av__kanban-group--big" : "")}"${selectBg}>
     ${getKanbanTitleHTML(group, group.cardCount)}
-    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${getKanbanHTML(group)}</div>
+    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${await getKanbanHTML(group)}</div>
 </div>`;
         }
     });

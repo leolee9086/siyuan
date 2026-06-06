@@ -15,7 +15,7 @@ import { scrollNodeIntoView } from "./helpers/highlightById";
  * 问题/改进：当前仍使用定时器移除类名，后续如样式层改为动画事件可去掉时间依赖。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const bgFade = (element: Element): void => {
+export const bgFade = (element: Element) => {
     element.classList.add("protyle-wysiwyg--hl");
     /* 使用固定延时是为了沿用现有高亮闪烁时长，避免改动现有视觉反馈节奏。 */
     setTimeout(() => element.classList.remove("protyle-wysiwyg--hl"), 1024);
@@ -31,7 +31,7 @@ export const highlightById = (
     protyle: IProtyle,
     id: string,
     position: ScrollLogicalPosition | boolean = "nearest"
-): HTMLElement | undefined => {
+) => {
     const nodeElement = findHighlightTarget(protyle, id);
     const hasNodeElement = !!nodeElement;
     if (hasNodeElement) {
@@ -64,7 +64,7 @@ export const scrollCenter = (
     nodeElement?: Element,
     position: ScrollLogicalPosition | boolean = "nearest",
     behavior: ScrollBehavior = "auto"
-): void => {
+) => {
     const scrollPosition = normalizeScrollPosition(position);
     const handledCurrentSelection = !protyle.disabled && !nodeElement
         ? scrollCurrentSelection(protyle, scrollPosition, behavior)

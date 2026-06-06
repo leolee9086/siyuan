@@ -9,7 +9,7 @@ const hasSignificantVerticalOverlap = (
     top2: number,
     bottom2: number,
     overlapThreshold = 0.5
-): boolean => {
+) => {
     const overlapTop = Math.max(top1, top2);
     const overlapBottom = Math.min(bottom1, bottom2);
     const overlapHeight = Math.max(0, overlapBottom - overlapTop);
@@ -29,7 +29,7 @@ const hasSignificantVerticalOverlap = (
  * 问题/改进：当前返回的是轻量对象而非 `DOMRect`，若后续需要更多几何信息可扩展字段。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const mergeRects = (range: Range): Array<{ left: number; top: number; right: number; bottom: number }> => {
+export const mergeRects = (range: Range) => {
     const mergedRects: Array<{ left: number; top: number; right: number; bottom: number }> = [];
     for (const rect of Array.from(range.getClientRects())) {
         const isVisibleRect = rect.height > 0 && rect.width > 0;

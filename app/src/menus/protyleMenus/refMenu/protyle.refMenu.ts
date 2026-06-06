@@ -189,7 +189,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
 
     const refBlockIds = 获取引用目标IDs(refElement);
     // 多 ID 时，首个 ID 作为 anchor 编辑和旧版兼容的默认值
-    const primaryId = refBlockIds[0] || '';
+    const primaryId = refBlockIds[0] || "";
     const id = nodeElement.getAttribute("data-node-id");
     const htmlState = { oldHTML: nodeElement.outerHTML };
 

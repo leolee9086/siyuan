@@ -43,7 +43,7 @@ interface IIds {
     colId?: string
 }
 
-export const getTableHTMLs = (data: IAVTable, e: HTMLElement) => {
+export const getTableHTMLs = async (data: IAVTable, e: HTMLElement) => {
     let calcHTML = "";
     let contentHTML = '<div class="av__row av__row--header"><div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div></div>';
     let pinIndex = -1;
@@ -108,7 +108,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
 </div>
 </div>`;
     // body
-    data.rows.forEach((row: IAVRow, rowIndex: number) => {
+    for (const [rowIndex, row] of data.rows.entries()) {
         contentHTML += `<div class="av__row" data-id="${row.id}">`;
         if (pinIndex > -1) {
             contentHTML += '<div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div>';
@@ -116,15 +116,16 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
             contentHTML += '<div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div></div>';
         }
 
-        row.cells.forEach((cell, index) => {
+        for (const [index, cell] of row.cells.entries()) {
             if (data.columns[index].hidden) {
-                return;
+                continue;
             }
             // https://github.com/siyuan-note/siyuan/issues/10262
             let checkClass = "";
             if (cell.valueType === "checkbox") {
                 checkClass = cell.value?.checkbox?.checked ? " av__cell-check" : " av__cell-uncheck";
             }
+            const rendered = await renderCell(cell.value, rowIndex, data.showIcon);
             contentHTML += `<div class="av__cell${checkClass}" data-id="${cell.id}" data-col-id="${data.columns[index].id}" 
 data-wrap="${data.columns[index].wrap}" 
 data-dtype="${data.columns[index].type}" 
@@ -132,14 +133,14 @@ ${cell.value?.isDetached ? ' data-detached="true"' : ""}
 style="width: ${data.columns[index].width || "200px"};
 ${cell.valueType === "number" ? "text-align: right;" : ""}
 ${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
-${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, data.showIcon)}</div>`;
+${cell.color ? `color:${cell.color};` : ""}">${rendered}</div>`;
 
             if (pinIndex === index) {
                 contentHTML += "</div>";
             }
-        });
+        }
         contentHTML += "<div></div></div>";
-    });
+    }
     return `${contentHTML}<div class="av__row--util${data.rowCount > data.rows.length ? " av__readonly--show" : ""}">
     <div class="av__colsticky">
         <button class="b3-button av__button" data-type="av-add-bottom">
@@ -180,18 +181,19 @@ export const getGroupTitleHTML = (group: IAVView, counter: number) => {
 </div>`;
 };
 
-export const renderGroupTable = (options: ITableOptions) => {
+export const renderGroupTable = async (options: ITableOptions) => {
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const isSearching = searchInputElement && document.activeElement === searchInputElement;
     const query = searchInputElement?.textContent || "";
 
     let avBodyHTML = "";
-    options.data.view.groups.forEach((group: IAVTable) => {
+    for (const group of options.data.view.groups) {
         if (group.groupHidden === 0) {
+            const tableHTMLs = await getTableHTMLs(group, options.blockElement);
             avBodyHTML += `${getGroupTitleHTML(group, group.rowCount)}
-<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" style="float: left" class="av__body${group.groupFolded ? " fn__none" : ""}">${getTableHTMLs(group, options.blockElement)}</div>`;
+<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" style="float: left" class="av__body${group.groupFolded ? " fn__none" : ""}">${tableHTMLs}</div>`;
         }
-    });
+    }
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container">
     ${genTabHeaderHTML(options.data, isSearching || !!query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}

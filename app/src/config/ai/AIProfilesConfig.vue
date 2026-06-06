@@ -113,7 +113,11 @@ const current = ref<Profile | null>(null);
 
 const timeoutSeconds = computed({
     get: () => current.value ? Math.round(current.value.timeoutMs / 1000) : 30,
-    set: (val: number) => { if (current.value) current.value.timeoutMs = val * 1000; },
+    set: (val: number) => {
+ if (current.value) {
+current.value.timeoutMs = val * 1000;
+} 
+},
 });
 
 const loadProfiles = async () => {
@@ -162,7 +166,9 @@ const handleCreate = async () => {
 };
 
 const handleDelete = async () => {
-    if (!current.value || profiles.value.length <= 1) return;
+    if (!current.value || profiles.value.length <= 1) {
+return;
+}
     confirmDialog("Delete Profile", "Are you sure?", async () => {
         await fetchSyncPost("/api/s-forge/ai/profile/delete", { id: current.value!.id });
         await loadProfiles();
@@ -170,7 +176,9 @@ const handleDelete = async () => {
 };
 
 const handleSave = async () => {
-    if (!current.value) return;
+    if (!current.value) {
+return;
+}
     await fetchSyncPost("/api/s-forge/ai/profile/upsert", current.value);
     await loadProfiles();
 };

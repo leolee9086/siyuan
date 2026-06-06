@@ -18,7 +18,7 @@
  * @param event - 键盘事件对象
  * @returns 格式化的快捷键字符串，如 "Ctrl+Enter"
  */
-export const formatHotkey = (event: KeyboardEvent): string => {
+export const formatHotkey = (event: KeyboardEvent) => {
     const parts: string[] = [];
     
     if (event.ctrlKey) {
@@ -60,7 +60,7 @@ export const formatHotkey = (event: KeyboardEvent): string => {
  *
  * @returns 文件路径信息
  */
-export const extractCallerInfo = (): string => {
+export const extractCallerInfo = () => {
     const stack = new Error().stack || "";
     const lines = stack.split("\n");
     
@@ -134,7 +134,7 @@ export const extractCallerInfo = (): string => {
  * @param nodeElement - 块元素
  * @returns 块类型的中文描述
  */
-export const getBlockTypeDescription = (nodeElement: HTMLElement): string => {
+export const getBlockTypeDescription = (nodeElement: HTMLElement) => {
     const dataType = nodeElement.getAttribute("data-type");
     const dataSubtype = nodeElement.getAttribute("data-subtype");
     
@@ -178,7 +178,7 @@ export const getBlockTypeDescription = (nodeElement: HTMLElement): string => {
  * @param command - 命令标识符
  * @returns 命令的中文描述
  */
-export const getCommandDescription = (command: string): string => {
+export const getCommandDescription = (command: string) => {
     const commandMap: Record<string, string> = {
         "CHECK_TOGGLE": "TOGGLE_TASK_STATUS",
         "OUTDENT": "LIST_OUTDENT",
@@ -205,6 +205,6 @@ export const getCommandDescription = (command: string): string => {
  * @param isDone - 任务是否完成
  * @returns 任务状态的中文描述
  */
-export const getTaskStatusDescription = (isDone: boolean): string => {
+export const getTaskStatusDescription = (isDone: boolean) => {
     return isDone ? "已完成" : "未完成";
 };

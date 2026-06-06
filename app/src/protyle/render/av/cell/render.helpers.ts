@@ -168,14 +168,14 @@ export const renderLineNumberCell = (rowIndex: number): string => {
  * 辅助函数：渲染mAsset类型单元格
  * @同步豁免: UI构建
  */
-export const renderAssetCell = (cellValue: IAVCellValue): string => {
+export const renderAssetCell = async (cellValue: IAVCellValue): Promise<string> => {
     let text = "";
     const assets = cellValue.mAsset || [];
     
     for (const item of assets) {
         // 图片类型：渲染为img标签
         if (item.type === "image") {
-            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAttr(item.content)}" src="${getCompressURL(encodeURI(item.content))}">`;
+            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAttr(item.content)}" src="${await getCompressURL(encodeURI(item.content))}">`;
             continue;
         }
         // 其他资源类型：渲染为链接chip

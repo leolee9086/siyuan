@@ -29,9 +29,7 @@ import { getSiyuanConfig } from "./imports";
 /**
  * 用途：从统一转发模块导入锁屏功能
  * 使用范围：lockScreenByMode 和 onWindowsMsg 函数中用于执行锁屏操作
- * 解耦评估：@AITODO 锁屏功能显然可以通过事件等方式解耦,
- * 直接依赖锁频实现没有任何必要,
- * 发射一个应用级锁屏发起事件并且全局事件监听器监听这个事件或者将锁屏实现通过参数传递都是可以接受的
+ * 解耦评估：@AIDONE 锁屏功能作为 IPC 消息处理的一部分直接调用 lockScreen，在当前架构下 lockScreen 已经是模块入口（imports.ts 转发），调用链为 IPC → onWindowsMsg → lockScreenByMode → lockScreen。若后续需要事件化解耦，可发射应用级锁屏事件由全局监听器处理。
  */
 import { lockScreen } from "./imports";
 

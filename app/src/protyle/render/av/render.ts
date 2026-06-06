@@ -223,11 +223,12 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         }
         const view = data.view as IAVTable;
         if (view.groups?.length > 0) {
-            renderGroupTable({blockElement: e, protyle, cb, renderAll, data, resetData});
+            await renderGroupTable({blockElement: e, protyle, cb, renderAll, data, resetData});
             continue;
         }
+        const tableHTMLs = await getTableHTMLs(view, e);
         const avBodyHTML = `<div class="av__body" data-group-id="" data-page-size="${view.pageSize}" style="float: left">
-    ${getTableHTMLs(view, e)}
+    ${tableHTMLs}
 </div>`;
         if (renderAll) {
             e.firstElementChild.outerHTML = `<div class="av__container">

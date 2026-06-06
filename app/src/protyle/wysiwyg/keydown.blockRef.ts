@@ -23,7 +23,7 @@ export const blockRefMiddleware = async (
     }
     const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
     if (refElement) {
-        const id = (refElement.getAttribute("data-id") || '').split(/\s+/)[0];
+        const id = (refElement.getAttribute("data-id") || "").split(/\s+/)[0];
 
         if (!id) {
             return false;

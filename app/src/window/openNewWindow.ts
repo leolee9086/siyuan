@@ -94,7 +94,7 @@ import type { AssetTabConfig } from "./openNewWindow.types";
  * 默认窗口创建函数（外观模式）
  * 封装 Electron IPC 通信实现，提供统一的窗口创建接口
  */
-const defaultWindowCreator = (params: WindowCreationParams): void => {
+const defaultWindowCreator = (params: WindowCreationParams) => {
     // 仅在 Electron 环境中发送 IPC，避免 Web 环境误调用平台能力。
     if (isElectron) {
         ipcSend(Constants.SIYUAN_OPEN_WINDOW, params);
@@ -105,7 +105,7 @@ const defaultWindowCreator = (params: WindowCreationParams): void => {
  * 构建窗口创建参数
  * 仅在字段显式提供时写入，避免 exactOptionalPropertyTypes 下将 undefined 传入可选字段
  */
-const buildWindowCreationParams = (options: WindowOptions, url: string): WindowCreationParams => {
+const buildWindowCreationParams = (options: WindowOptions, url: string) => {
     const params: WindowCreationParams = { url };
     // 仅当调用方显式提供窗口位置时才写入，保持参数语义与类型约束一致。
     if (options.position !== undefined) {
@@ -119,6 +119,7 @@ const buildWindowCreationParams = (options: WindowOptions, url: string): WindowC
     if (options.height !== undefined) {
         params.height = options.height;
     }
+    // 仅当调用方显式设置 alwaysOnTop 标志时才写入，保持窗口置顶状态的显式控制。
     if (options.alwaysOnTop !== undefined) {
         params.alwaysOnTop = options.alwaysOnTop;
     }
@@ -221,7 +222,7 @@ export const openNewWindowById = async (id: string | string[], options: WindowOp
  * @returns 图标名称：图片返回 "iconImage"，音频返回 "iconRecord"，
  *          视频返回 "iconVideo"，其他（主要是PDF）返回 "iconPDF"
  */
-const getAssetDocIcon = (suffix: string): string => {
+const getAssetDocIcon = (suffix: string) => {
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
         return "iconImage";
     }

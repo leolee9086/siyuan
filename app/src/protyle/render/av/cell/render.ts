@@ -296,7 +296,7 @@ const shouldShowCopyButton = (cellValue: IAVCellValue): boolean => {
  * 问题/改进：函数较长，已拆分为多个辅助函数处理不同类型
  * @同步豁免: UI构建 - 纯字符串拼接生成HTML，无异步操作需求
  */
-export const renderCell = (cellValue: IAVCellValue, rowIndex = 0, showIcon = true, type: TAVView = "table") => {
+export const renderCell = async (cellValue: IAVCellValue, rowIndex = 0, showIcon = true, type: TAVView = "table") => {
     let text = "";
     
     // template类型：模板内容
@@ -354,7 +354,7 @@ export const renderCell = (cellValue: IAVCellValue, rowIndex = 0, showIcon = tru
     
     // mAsset类型：资源
     if (cellValue.type === "mAsset") {
-        text = renderAssetCell(cellValue);
+        text = await renderAssetCell(cellValue);
     }
     
     // checkbox类型：复选框

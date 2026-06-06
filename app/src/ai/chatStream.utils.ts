@@ -42,8 +42,7 @@ export const cache = new Map<string, boolean>();
  * 调用时机：由 `从块DOM提取首个符合条件的特定语言代码块内容` 的条件回调调用
  * @同步豁免: 性能考虑 - 作为DOM遍历中的条件判断回调，必须同步返回布尔值
  */
-/** @显式返回类型原因: 作为 DOM 遍历条件回调必须严格返回 boolean，显式类型可防止意外返回 undefined/null 导致条件判断失效。 */
-const checkBlockCondition = (content: string, state: AssistantResponseState): boolean => {
+const checkBlockCondition = (content: string, state: AssistantResponseState) => {
     let flag = false;
     const lastUsed = cache.get(content);
     // 当响应内容中最后一个代码围栏(```)之后没有实质内容时，说明代码块尚未闭合，此时触发工具调用

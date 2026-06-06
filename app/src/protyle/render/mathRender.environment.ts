@@ -17,7 +17,7 @@
  * @returns KaTeX 渲染器对象
  */
 /** @同步豁免: 遗留代码 - 访问动态加载到 window 上的第三方库对象 */
-export function getKatexRenderer(): Window["katex"] {
+export function getKatexRenderer() {
     return window.katex;
 }
 
@@ -31,6 +31,6 @@ export function getKatexRenderer(): Window["katex"] {
  * @returns katexMacros 字符串，如果配置不存在则返回空字符串
  */
 /** @同步豁免: 遗留代码 - 读取已加载的配置对象，无异步需求 */
-export function getKatexMacrosString(): string {
+export function getKatexMacrosString() {
     return window.siyuan?.config?.editor?.katexMacros || "";
 }

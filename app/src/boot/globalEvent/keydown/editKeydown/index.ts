@@ -273,7 +273,7 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
             if (refElement) {
                 openBacklink({
                     app: protyle.app,
-                    blockId: (refElement.dataset.id || '').split(/\s+/)[0],
+                    blockId: (refElement.dataset.id || "").split(/\s+/)[0],
                 });
                 return true;
             }
@@ -294,7 +294,7 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
             if (refElement) {
                 openGraph({
                     app: protyle.app,
-                    blockId: (refElement.dataset.id || '').split(/\s+/)[0],
+                    blockId: (refElement.dataset.id || "").split(/\s+/)[0],
                 });
                 return true;
             }

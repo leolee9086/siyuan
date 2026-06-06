@@ -73,7 +73,7 @@ export class Hint {
                 if (this.multiRefMode && rawValue === "__confirm__") {
                     const selectedIds = Array.from(this.selectedRefIds || []);
                     if (selectedIds.length > 0) {
-                        const anchorText = protyle.toolbar?.range?.toString() || '';
+                        const anchorText = protyle.toolbar?.range?.toString() || "";
                         const value = genBlockRefValueMulti(selectedIds, anchorText);
                         this.fill(value, protyle, false, true);
                     }

@@ -1,5 +1,11 @@
-import { z } from "zod";
-import { IEventDefines, EventData, EventEmitterOptions } from "./eventEmitter.types";
+/** 用途：Zod 运行时校验库。使用范围：事件数据的运行时 schema 校验。解耦评估：通过目录 imports.ts 转发，可替换为其他校验库。 */
+import { z } from "./imports";
+/** 用途：IEventDefines 事件定义类型。使用范围：类型守卫的泛型约束。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { IEventDefines } from "./eventEmitter.types";
+/** 用途：EventData 事件数据类型。使用范围：类型守卫的返回类型标注。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { EventData } from "./eventEmitter.types";
+/** 用途：EventEmitterOptions 事件发射器配置。使用范围：校验函数的配置参数类型。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { EventEmitterOptions } from "./eventEmitter.types";
 
 /**
  * 验证事件数据的类型守卫

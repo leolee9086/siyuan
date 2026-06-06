@@ -586,7 +586,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 insertHTML(response.data, protyle, false, false, true);
                 protyle.wysiwyg.element.querySelectorAll('[data-type~="block-ref"]').forEach(item => {
                     if (item.textContent === "") {
-                        const firstId = (item.getAttribute("data-id") || '').split(/\s+/)[0];
+                        const firstId = (item.getAttribute("data-id") || "").split(/\s+/)[0];
                         fetchPost("/api/block/getRefText", { id: firstId }, (response) => {
                             item.innerHTML = response.data;
                         });

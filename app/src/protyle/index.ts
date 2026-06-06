@@ -214,8 +214,8 @@ export class Protyle {
                                 }
                             }
                             // update ref
-                            this.protyle.wysiwyg.element.querySelectorAll(`[data-type~="block-ref"]`).forEach(item => {
-                                const ids = (item.getAttribute("data-id") || '').split(/\s+/);
+                            this.protyle.wysiwyg.element.querySelectorAll("[data-type~=\"block-ref\"]").forEach(item => {
+                                const ids = (item.getAttribute("data-id") || "").split(/\s+/);
                                 if (ids.includes(data.data.id) && item.getAttribute("data-subtype") === "d") {
                                     // 同 updateRef 一样处理 https://github.com/siyuan-note/siyuan/issues/10458
                                     item.innerHTML = data.data.refText;

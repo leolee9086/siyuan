@@ -4,7 +4,7 @@
  * 问题/改进：当前依赖全局 `window`，但文件已通过 `.global.ts` 表达该边界，符合现有约定。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const getSelection = (): Selection => {
+export const getSelection = () => {
     const selection = window.getSelection();
     const hasSelection = !!selection;
     if (hasSelection) {
@@ -19,7 +19,7 @@ export const getSelection = (): Selection => {
  * 问题/改进：若未来要支持多选区浏览器差异，这里可以统一扩展兼容逻辑。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const getFirstSelectedRange = (): Range | undefined => {
+export const getFirstSelectedRange = () => {
     const selection = getSelection();
     const hasRange = selection.rangeCount > 0;
     if (!hasRange) {

@@ -1,4 +1,4 @@
-import { fixTable } from "../util/table.fix";
+import { fixTable } from "../util/table/fix";
 import { editorContext } from "./types";
 
 /**

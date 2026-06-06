@@ -91,7 +91,7 @@ const 读取插入到底部快捷键 = (): string => {
  * 问题/改进：当前仍依赖固定顺序，后续可改为配置化排序。
  */
 const 构建打开方式菜单项列表 = (protyle: IProtyle, refBlockIds: string[]): MenuItem[] => {
-    const primaryId = refBlockIds[0] || '';
+    const primaryId = refBlockIds[0] || "";
     const menuItems: MenuItem[] = [];
     menuItems.push(new MenuItem({
         id: "openBy",
@@ -133,7 +133,7 @@ const 构建打开方式菜单项列表 = (protyle: IProtyle, refBlockIds: strin
 };
 
 const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockIds: string[]): MenuItem[] => {
-    const primaryId = refBlockIds[0] || '';
+    const primaryId = refBlockIds[0] || "";
     const menuItems: MenuItem[] = [];
     menuItems.push(new MenuItem({ id: "separator_2", type: "separator" }));
     menuItems.push(new MenuItem({

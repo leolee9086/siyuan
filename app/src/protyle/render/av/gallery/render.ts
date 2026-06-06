@@ -40,7 +40,7 @@ interface ITableOptions {
     }
 }
 
-const getGalleryHTML = (data: IAVGallery) => {
+const getGalleryHTML = async (data: IAVGallery) => {
     let galleryHTML = "";
     // body
     data.cards.forEach((item: IAVGalleryItem, rowIndex: number) => {
@@ -78,6 +78,7 @@ const getGalleryHTML = (data: IAVGallery) => {
             if (cell.valueType === "checkbox" && !data.displayFieldName) {
                 cell.value.checkbox.content = data.fields[fieldsIndex].name || getColNameByType(data.fields[fieldsIndex].type);
             }
+            const renderedCell = await renderCell(cell.value, rowIndex, data.showIcon, "gallery");
             const cellHTML = `<div class="av__cell${checkClass}${data.displayFieldName ? "" : " ariaLabel"}" 
 data-wrap="${data.fields[fieldsIndex].wrap}" 
 aria-label="${ariaLabel}" 
@@ -87,7 +88,7 @@ data-field-id="${data.fields[fieldsIndex].id}"
 data-dtype="${cell.valueType}" 
 ${cell.value?.isDetached ? ' data-detached="true"' : ""} 
 style="${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
-${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, data.showIcon, "gallery")}</div>`;
+${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
             if (data.displayFieldName) {
                 galleryHTML += `<div class="av__gallery-field av__gallery-field--name" data-empty="${isEmpty}">
     <div class="av__gallery-name">
@@ -125,18 +126,18 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, 
 </div>`;
 };
 
-const renderGroupGallery = (options: ITableOptions) => {
+const renderGroupGallery = async (options: ITableOptions) => {
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const isSearching = searchInputElement && document.activeElement === searchInputElement;
     const query = searchInputElement?.textContent || "";
 
     let avBodyHTML = "";
-    options.data.view.groups.forEach((group: IAVGallery) => {
+    for (const group of options.data.view.groups) {
         if (group.groupHidden === 0) {
             avBodyHTML += `${getGroupTitleHTML(group, group.cardCount)}
-<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body${group.groupFolded ? " fn__none" : ""}">${getGalleryHTML(group)}</div>`;
+<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body${group.groupFolded ? " fn__none" : ""}">${await getGalleryHTML(group)}</div>`;
         }
-    });
+    }
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
     ${genTabHeaderHTML(options.data, isSearching || !!query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}
@@ -354,7 +355,7 @@ export const renderGallery = async (options: {
     }
     const view: IAVGallery = data.view as IAVGallery;
     if (view.groups?.length > 0) {
-        renderGroupGallery({
+        await renderGroupGallery({
             blockElement: options.blockElement,
             protyle: options.protyle,
             cb: options.cb,
@@ -364,7 +365,7 @@ export const renderGallery = async (options: {
         });
         return;
     }
-    const bodyHTML = getGalleryHTML(view);
+    const bodyHTML = await getGalleryHTML(view);
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
     ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}

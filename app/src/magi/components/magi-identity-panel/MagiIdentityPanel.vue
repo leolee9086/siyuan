@@ -338,11 +338,17 @@ const trustConfig = ref<ChannelTrustConfigView | null>(null);
 const knownUsers = computed<{ userId: string; nickname: string }[]>(() => {
     const chId = newBinding.channelId;
     const acctId = newBinding.accountId;
-    if (!chId || !acctId || !trustConfig.value) return [];
+    if (!chId || !acctId || !trustConfig.value) {
+return [];
+}
     const chanCfg = trustConfig.value.channels[chId];
-    if (!chanCfg) return [];
+    if (!chanCfg) {
+return [];
+}
     const acctCfg = chanCfg.perAccount[acctId];
-    if (!acctCfg) return [];
+    if (!acctCfg) {
+return [];
+}
     const users: { userId: string; nickname: string }[] = [];
     for (const [uid, override] of Object.entries(acctCfg.perUser)) {
         users.push({ userId: uid, nickname: override.nickname || uid });
@@ -387,14 +393,20 @@ const apiEndpoint = computed(() => {
 });
 
 const maskedToken = computed(() => {
-    if (!state.activeSession) return "";
+    if (!state.activeSession) {
+return "";
+}
     const t = state.activeSession.armorToken;
-    if (t.length <= 12) return t;
+    if (t.length <= 12) {
+return t;
+}
     return t.slice(0, 12) + "..." + t.slice(-6);
 });
 
 function fmtTime(ts: number): string {
-    if (!ts) return "-";
+    if (!ts) {
+return "-";
+}
     return new Date(ts).toLocaleString();
 }
 
@@ -453,8 +465,12 @@ function addBinding(): void {
     const ch = newBinding.channelId.trim();
     const acct = newBinding.accountId.trim();
     const uid = newBinding.userId.trim();
-    if (!ch || !acct || !uid) return;
-    if (editForm.channelBindings.some(b => b.channelId === ch && b.accountId === acct && b.userId === uid)) return;
+    if (!ch || !acct || !uid) {
+return;
+}
+    if (editForm.channelBindings.some(b => b.channelId === ch && b.accountId === acct && b.userId === uid)) {
+return;
+}
     editForm.channelBindings = [...editForm.channelBindings, { channelId: ch, accountId: acct, userId: uid }];
     newBinding.channelId = "";
     newBinding.accountId = "";
@@ -467,7 +483,9 @@ function removeBinding(idx: number): void {
 
 async function onGenerateBindCode(): Promise<void> {
     const id = editForm.identityId.trim();
-    if (!id) { statusText.value = "Please fill identity_id first."; return; }
+    if (!id) {
+ statusText.value = "Please fill identity_id first."; return; 
+}
     busy.value = true;
     statusText.value = "";
     try {
@@ -482,7 +500,9 @@ async function onGenerateBindCode(): Promise<void> {
 }
 
 async function onCopyBindCode(): Promise<void> {
-    if (!bindCodeResult.value) return;
+    if (!bindCodeResult.value) {
+return;
+}
     try {
         await navigator.clipboard.writeText(bindCodeResult.value.code);
         statusText.value = "Bind code copied.";
@@ -493,7 +513,9 @@ async function onCopyBindCode(): Promise<void> {
 
 async function onUpsert(): Promise<void> {
     const id = editForm.identityId.trim();
-    if (!id) { statusText.value = "identity_id is required"; return; }
+    if (!id) {
+ statusText.value = "identity_id is required"; return; 
+}
     busy.value = true;
     statusText.value = "";
     try {
@@ -543,7 +565,9 @@ async function onRemove(identityId: string): Promise<void> {
 async function onLogin(): Promise<void> {
     const id = loginForm.identityId.trim();
     const pw = loginForm.password.trim();
-    if (!id || !pw) { statusText.value = "identity and password required"; return; }
+    if (!id || !pw) {
+ statusText.value = "identity and password required"; return; 
+}
     busy.value = true;
     statusText.value = "";
     try {
@@ -567,7 +591,9 @@ async function onLogin(): Promise<void> {
 
 async function onCopyEndpoint(): Promise<void> {
     const url = apiEndpoint.value;
-    if (!url) return;
+    if (!url) {
+return;
+}
     try {
         await navigator.clipboard.writeText(url);
         statusText.value = "Endpoint URL copied to clipboard.";
@@ -578,7 +604,9 @@ async function onCopyEndpoint(): Promise<void> {
 
 async function onCopyToken(): Promise<void> {
     const token = state.activeSession?.armorToken;
-    if (!token) return;
+    if (!token) {
+return;
+}
     try {
         await navigator.clipboard.writeText(token);
         statusText.value = "Token copied to clipboard.";
@@ -633,9 +661,13 @@ function toggleIssueForm(identityId: string): void {
 async function handleIdentityRequired(): Promise<void> {
     statusText.value = "Main chat requires identity login.";
     panelRef.value?.scrollIntoView({ block: "start", behavior: "smooth" });
-    if (attentionTimer) clearTimeout(attentionTimer);
+    if (attentionTimer) {
+clearTimeout(attentionTimer);
+}
     attention.value = true;
-    attentionTimer = setTimeout(() => { attention.value = false; attentionTimer = null; }, 1800);
+    attentionTimer = setTimeout(() => {
+ attention.value = false; attentionTimer = null; 
+}, 1800);
     await onRefresh();
 }
 
@@ -646,6 +678,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequired);
-    if (attentionTimer) clearTimeout(attentionTimer);
+    if (attentionTimer) {
+clearTimeout(attentionTimer);
+}
 });
 </script>

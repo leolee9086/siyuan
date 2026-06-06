@@ -1607,7 +1607,7 @@ export class WYSIWYG {
                 return;
             }
         });
-        let mobileBlur = false;
+        const mobileBlur = false;
         this.element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
             if (this.preventClick) {
                 this.preventClick = false;

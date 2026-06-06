@@ -402,7 +402,7 @@ export const turnsOneInto = async (options: {
     focusByWbr(options.protyle.wysiwyg.element, getEditorRange(options.protyle.wysiwyg.element));
     options.protyle.wysiwyg.element.querySelectorAll('[data-type~="block-ref"]').forEach(item => {
         if (item.textContent === "") {
-            fetchPost("/api/block/getRefText", {id: (item.getAttribute("data-id") || '').split(/\s+/)[0]}, (response) => {
+            fetchPost("/api/block/getRefText", {id: (item.getAttribute("data-id") || "").split(/\s+/)[0]}, (response) => {
                 item.innerHTML = response.data;
             });
         }

@@ -1,4 +1,6 @@
+/** 用途：同步 POST 请求函数。使用范围：通过后端接口获取和上传图片资源。解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理。 */
 import { fetchSyncPost } from "../network/fetch";
+/** 用途：全局常量配置。使用范围：MAX_BASE64_SIZE 等图片处理常量。解耦评估：全局配置，可通过配置注入解耦，但直接导入更合理。 */
 import { Constants } from "../../constants";
 
 /**
@@ -8,12 +10,10 @@ import { Constants } from "../../constants";
  * 意图：优化图片加载性能，减少带宽占用
  * 调用时机：渲染图片列表或缩略图时，需要使用压缩版本的图片
  *
- * @同步豁免: 性能考虑 - 纯字符串操作，无需异步，频繁调用需要最小开销
- *
  * @param url - 原始图片 URL
  * @returns 添加压缩参数后的 URL，如果不符合条件则返回原 URL
  */
-export const getCompressURL = (url: string) => {
+export const getCompressURL = async (url: string) => {
     if (url.startsWith("assets/") &&
         (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg"))) {
         return url + "?style=thumb";
@@ -33,7 +33,7 @@ export const getCompressURL = (url: string) => {
  * @param url - 可能包含压缩参数的图片 URL
  * @returns 移除压缩参数后的 URL，如果不符合条件则返回原 URL
  */
-export const removeCompressURL = (url: string) => {
+export const removeCompressURL = async (url: string) => {
     if (url.startsWith("assets/") &&
         (url.endsWith(".png?style=thumb") || url.endsWith(".jpg?style=thumb") || url.endsWith(".jpeg?style=thumb"))) {
         return url.replace("?style=thumb", "");
@@ -82,7 +82,7 @@ export const base64ToURL = async (base64SrcList: string[]) => {
  * @param base64Src - base64 图片数据，格式为 "data:image/xxx;base64,..."
  * @returns File 对象，如果格式无效则返回 null
  */
-function convertBase64ToFile(base64Src: string): File | null {
+function convertBase64ToFile(base64Src: string) {
     const srcPart = base64Src.split(",");
     if (srcPart.length !== 2) {
         return null;

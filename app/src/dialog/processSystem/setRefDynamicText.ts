@@ -25,7 +25,7 @@ export const setRefDynamicText = (data: {
         }
         const dynamicRefItems = wysiwygEl.querySelectorAll(`[data-node-id="${data.blockID}"] span[data-type~="block-ref"][data-subtype="d"]`);
         for (const item of dynamicRefItems) {
-            const ids = (item.getAttribute("data-id") || '').split(/\s+/);
+            const ids = (item.getAttribute("data-id") || "").split(/\s+/);
             if (ids.includes(data.defBlockID)) {
                 item.innerHTML = data.refText;
             }

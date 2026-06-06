@@ -5,13 +5,14 @@ import { getWindowHeight } from "./imports";
 /** 用途：读取当前视口宽度；使用范围：`setPosition` 的横向越界判断；解耦评估：窗口访问已在 environment 封装，通过网关访问可避免直接触碰全局对象。 */
 import { getWindowWidth } from "./imports";
 
-/** @简洁函数 */
+/** @简洁函数 @显式返回类型原因: 返回 {width, height} 结构化数据，调用方解构后用于视口裁剪计算，显式类型可防止结构字段丢失。 */
 const getViewportSize = (): { width: number; height: number } => ({ width: getWindowWidth(), height: getWindowHeight() });
 
 /**
  * 计算垂直方向的最终 top 值，把弹层限制在工具栏和视口范围内。
  * 调用时机：`calculatePosition` 在检测到可能越界时同步调用。
  * 问题/改进：当前策略优先维持元素完整显示，若未来需要跟随不同菜单样式可继续细化。
+ * @显式返回类型原因: 返回 top CSS 值或 undefined，调用方需处理 undefined 分支以决定是否覆盖默认 top。显式联合类型可防止遗漏空值处理。
  */
 const resolveTopPosition = (
     y: number,
@@ -44,6 +45,7 @@ const resolveTopPosition = (
  * 计算弹层在当前视口中的修正位置，只负责几何结果，不直接操作 DOM。
  * 调用时机：`setPosition` 在写入初始坐标后立即调用。
  * 问题/改进：当前返回轻量字符串结果，若未来需要更多诊断信息可扩展返回结构。
+ * @显式返回类型原因: 返回结构化位置修正对象，调用方解构后分别写入 top/left。显式类型可确保调用方正确处理所有字段。
  */
 const calculatePosition = (input: {
     y: number;
@@ -87,6 +89,7 @@ const calculatePosition = (input: {
  * 调用时机：菜单、面板、提示层渲染完成并拿到尺寸后立即调用。
  * 问题/改进：当前依赖同步布局读取，如果未来能提前拿到尺寸可减少一次回流。
  * @同步豁免: 需要绝对同步的DOM访问
+ * @显式返回类型原因: 对外公开 API，void 显式标注确保调用方不依赖返回值。避免被误认为有隐含返回值。
  */
 export const setPosition = (element: HTMLElement, x: number, y: number, targetHeight = 0, targetLeft = 0): void => {
     element.style.top = `${y}px`;

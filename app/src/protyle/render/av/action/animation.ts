@@ -103,7 +103,7 @@ const shouldShowCellIcon = (cellElement: HTMLElement) => {
  * @param {{icon?: string, name?: string, pin?: boolean, type?: TAVCol}} [headerValue] - 表头刷新时的补充信息
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const updateAttrViewCellAnimation = (
+export const updateAttrViewCellAnimation = async (
     cellElement: HTMLElement,
     value: IAVCellValue | undefined,
     headerValue?: {
@@ -142,7 +142,7 @@ export const updateAttrViewCellAnimation = (
     // gallery 和 kanban 使用卡片式布局，刷新时需要同步 data-empty 并补齐 checkbox 展示文本。
     if (isCardLayout) {
         normalizeCardLayoutCheckboxValue(cellElement, cellValue);
-        cellElement.innerHTML = renderCell(cellValue, 0, showIcon, viewType);
+        cellElement.innerHTML = await renderCell(cellValue, 0, showIcon, viewType);
     }
 
     // 卡片式布局的空态标记挂在父容器上，只有父节点确实存在且可写时才回写该状态。
@@ -153,7 +153,7 @@ export const updateAttrViewCellAnimation = (
 
     // 普通表格布局沿用旧版 renderCell 签名，不传 viewType，避免误走卡片模板。
     if (!isCardLayout) {
-        cellElement.innerHTML = renderCell(cellValue, 0, showIcon);
+        cellElement.innerHTML = await renderCell(cellValue, 0, showIcon);
     }
 
     if (hasDragFillElement) {

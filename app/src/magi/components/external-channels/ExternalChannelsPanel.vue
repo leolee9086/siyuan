@@ -147,15 +147,25 @@ async function loadData(): Promise<void> {
         trustConfig.value = cfg;
         workingCopy.value = JSON.parse(JSON.stringify(cfg));
         configDirty.value = false;
-    } catch (err) { console.error("loadData error:", err); } finally { loading.value = false; }
+    } catch (err) {
+ console.error("loadData error:", err); 
+} finally {
+ loading.value = false; 
+}
 }
 
 function stopQRPoll(): void {
-    if (qrPollTimer !== null) { clearInterval(qrPollTimer); qrPollTimer = null; }
+    if (qrPollTimer !== null) {
+ clearInterval(qrPollTimer); qrPollTimer = null; 
+}
 }
 
 function formatTime(iso: string): string {
-    try { return new Date(iso).toLocaleTimeString(); } catch { return iso; }
+    try {
+ return new Date(iso).toLocaleTimeString(); 
+} catch {
+ return iso; 
+}
 }
 
 async function onAddChannel(): Promise<void> {
@@ -169,42 +179,84 @@ async function onAddChannel(): Promise<void> {
         qrImgUrl.value = r.qrImgUrl;
         qrSessionKey.value = r.sessionKey;
         qrPollTimer = setInterval(async () => {
-            if (!qrSessionKey.value) { stopQRPoll(); return; }
+            if (!qrSessionKey.value) {
+ stopQRPoll(); return; 
+}
             try {
                 const s = await pollLoginStatus(qrSessionKey.value!);
-                if (s.status === "confirmed") { qrStatusText.value = "Online!"; stopQRPoll(); await loadData(); setTimeout(() => { qrImgUrl.value = null; }, 3000); }
-                else if (s.status === "scaned") { qrStatusText.value = "Scanned! Confirm on phone..."; }
-                else if (s.status === "wait") { qrStatusText.value = "Waiting for scan..."; }
-                else if (s.status.startsWith("failed")) { qrStatusText.value = "Failed: " + s.status; stopQRPoll(); }
-                else if (s.status === "done") { stopQRPoll(); await loadData(); qrImgUrl.value = null; }
-            } catch { qrStatusText.value = "Waiting..."; }
+                if (s.status === "confirmed") {
+ qrStatusText.value = "Online!"; stopQRPoll(); await loadData(); setTimeout(() => {
+ qrImgUrl.value = null; 
+}, 3000); 
+} else if (s.status === "scaned") {
+ qrStatusText.value = "Scanned! Confirm on phone..."; 
+} else if (s.status === "wait") {
+ qrStatusText.value = "Waiting for scan..."; 
+} else if (s.status.startsWith("failed")) {
+ qrStatusText.value = "Failed: " + s.status; stopQRPoll(); 
+} else if (s.status === "done") {
+ stopQRPoll(); await loadData(); qrImgUrl.value = null; 
+}
+            } catch {
+ qrStatusText.value = "Waiting..."; 
+}
         }, 2000);
-    } catch (err: unknown) { qrStatusText.value = "Error: " + String(err); } finally { addingChannel.value = false; }
+    } catch (err: unknown) {
+ qrStatusText.value = "Error: " + String(err); 
+} finally {
+ addingChannel.value = false; 
+}
 }
 
-function onOpenQR(): void { if (qrImgUrl.value) { window.open(qrImgUrl.value, "_blank"); } }
-function onCancelQR(): void { stopQRPoll(); qrImgUrl.value = null; qrSessionKey.value = null; }
+function onOpenQR(): void {
+ if (qrImgUrl.value) {
+ window.open(qrImgUrl.value, "_blank"); 
+} 
+}
+function onCancelQR(): void {
+ stopQRPoll(); qrImgUrl.value = null; qrSessionKey.value = null; 
+}
 
 function onToggleChannel(chanId: string, e: Event): void {
-    const t = e.target; if (!(t instanceof HTMLInputElement) || !workingCopy.value) return;
-    const c = workingCopy.value.channels[chanId]; if (c) { c.enabled = t.checked; configDirty.value = true; }
+    const t = e.target; if (!(t instanceof HTMLInputElement) || !workingCopy.value) {
+return;
+}
+    const c = workingCopy.value.channels[chanId]; if (c) {
+ c.enabled = t.checked; configDirty.value = true; 
+}
 }
 
 function onChangeTrust(chanId: string, e: Event): void {
-    const t = e.target; if (!(t instanceof HTMLSelectElement) || !workingCopy.value) return;
-    const c = workingCopy.value.channels[chanId]; if (c) { c.defaultTrust = t.value as any; configDirty.value = true; }
+    const t = e.target; if (!(t instanceof HTMLSelectElement) || !workingCopy.value) {
+return;
+}
+    const c = workingCopy.value.channels[chanId]; if (c) {
+ c.defaultTrust = t.value as any; configDirty.value = true; 
+}
 }
 
 function onChangeRisk(chanId: string, e: Event): void {
-    const t = e.target; if (!(t instanceof HTMLSelectElement) || !workingCopy.value) return;
-    const c = workingCopy.value.channels[chanId]; if (c) { c.defaultRisk = t.value as any; configDirty.value = true; }
+    const t = e.target; if (!(t instanceof HTMLSelectElement) || !workingCopy.value) {
+return;
+}
+    const c = workingCopy.value.channels[chanId]; if (c) {
+ c.defaultRisk = t.value as any; configDirty.value = true; 
+}
 }
 
 async function onSaveConfig(): Promise<void> {
-    if (!workingCopy.value) return;
+    if (!workingCopy.value) {
+return;
+}
     saving.value = true;
-    try { await updateTrustConfig(workingCopy.value); trustConfig.value = JSON.parse(JSON.stringify(workingCopy.value)); configDirty.value = false; } catch { /* */ } finally { saving.value = false; }
+    try {
+ await updateTrustConfig(workingCopy.value); trustConfig.value = JSON.parse(JSON.stringify(workingCopy.value)); configDirty.value = false; 
+} catch { /* */ } finally {
+ saving.value = false; 
+}
 }
 
-async function onRefresh(): Promise<void> { await loadData(); }
+async function onRefresh(): Promise<void> {
+ await loadData(); 
+}
 </script>

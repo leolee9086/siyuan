@@ -1,10 +1,9 @@
 /**
  * 导出 getHtmlSection 供提示词构建器拼接使用。
  * 说明HTML块渲染的提示词
- * @同步豁免: 性能考虑 - 纯字符串返回函数，异步化会引入不必要的 Promise 开销且调用方在模板字符串中同步拼接。
- * @显式返回类型原因: 固定返回常量字符串，显式标注便于调用方在模板字面量中直接使用。
+ * @同步豁免: 生命周期 - 作为同步字符串流水线的一环，在 getPublicPrompts 的模板字面量中被同步调用。
  */
-export function getHtmlSection(): string {
+export function getHtmlSection() {
 	return `
 # 以下渲染内容不要使用代码块包裹    
 ## HTML 渲染

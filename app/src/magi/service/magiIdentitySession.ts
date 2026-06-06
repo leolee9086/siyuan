@@ -141,7 +141,9 @@ function normalizeChannelBindings(raw: unknown): MagiChannelBinding[] | undefine
 		: [];
 	const bindings: MagiChannelBinding[] = [];
 	for (const rawB of rawBindings) {
-		if (!rawB || typeof rawB !== "object") continue;
+		if (!rawB || typeof rawB !== "object") {
+continue;
+}
 		const channelId = String(Reflect.get(rawB, "channelId") ?? "").trim();
 		const accountId = String(Reflect.get(rawB, "accountId") ?? "").trim();
 		const userId = String(Reflect.get(rawB, "userId") ?? "").trim();
