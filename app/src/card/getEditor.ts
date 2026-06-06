@@ -57,7 +57,7 @@ import { isMarkHideEnabled } from "./flashcard.global";
  * @param wysiwyg - 编辑器的wysiwyg对象
  * @returns 是否需要隐藏元素
  */
-const shouldHideElements = (wysiwyg: IProtyle["wysiwyg"]): boolean => {
+const shouldHideElements = (wysiwyg: IProtyle["wysiwyg"]) => {
     // 如果所有隐藏选项都未启用，则不需要隐藏
     if (!isSuperBlockHideEnabled() && 
         !isHeadingHideEnabled() && 

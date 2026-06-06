@@ -9,7 +9,7 @@ import { mountBazaarPublish } from "./internal/publishController";
 
 /** 用途：初始化 bazaar 发布设置页签入口。意图：只负责容器校验和挂载控制器。调用时机：register.ts 注册回调触发。问题/改进：入口保持轻量，便于后续替换控制器实现。 @同步豁免: UI构建 */
 /** 导出 initBazaarPublish 供 Tab 注册中心调用 */
-export function initBazaarPublish(model: Custom): void {
+export function initBazaarPublish(model: Custom) {
     if (!isHTMLElement(model.element)) {
         return;
     }

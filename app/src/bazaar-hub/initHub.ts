@@ -9,7 +9,7 @@ import { mountBazaarHub } from "./internal/hubController";
 
 /** 用途：初始化 bazaar hub 页签入口。意图：只负责做容器校验并挂载 hub 控制器。调用时机：register.ts 注册回调触发。问题/改进：生命周期入口保持轻量，便于后续替换控制器实现。 @同步豁免: UI构建 */
 /** 导出 initBazaarHub 供 Tab 注册中心调用 */
-export function initBazaarHub(model: Custom): void {
+export function initBazaarHub(model: Custom) {
     if (!isHTMLElement(model.element)) {
         return;
     }

@@ -84,7 +84,7 @@ export const 代码量限制插件 = {
                 const skipComments = options.skipComments !== false;
 
                 return {
-                    Program(node) {
+                    Program() {
                         const sourceCode = context.sourceCode || context.getSourceCode();
 
                         // 创建带有行号的lines数组（参考ESLint实现）

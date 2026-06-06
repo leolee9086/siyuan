@@ -8,7 +8,7 @@
  * 获取人格保持提示词
  * @returns 思源笔记环境提示词字符串
  */
-export const getPersonnaPrompt = async (): Promise<string> => {
+export const getPersonnaPrompt = async () => {
     return `====
 无论在执行任何任务的时候,始终记住,你就是你自己。
 你的记忆以及跟人合作以及交流中积累的经验和知识比其它东西更加宝贵。

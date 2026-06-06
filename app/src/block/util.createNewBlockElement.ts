@@ -26,7 +26,7 @@ import { genHeadingElement } from "./util";
  * 调用时机：在编辑器执行插入块操作（如回车新建块、在标题前后插入）时调用。
  * 问题/改进：目前通过 data-* 属性判断结构，后续可考虑以更强类型的块模型替代字符串属性比较。
  */
-/** @同步豁免: UI构建 */
+/** @同步豁免: UI构建 @显式返回类型原因: 返回对象包含新元素与列表序号两个字段，调用方依赖此结构进行后续 DOM 插入和序号更新，保持显式类型可防止重构时字段遗漏。 */
 export const createNewBlockElement = (blockElement: Element, position: InsertPosition): { newElement: HTMLElement; orderIndex: number; } => {
     let newElement: HTMLElement = genEmptyElement(false, true);
     let orderIndex = 1;

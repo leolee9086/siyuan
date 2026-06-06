@@ -35,7 +35,7 @@ export const aiWorkerPlugin = {
             meta: { type: 'problem' },
             create(context) {
                 return {
-                    Program(node) {
+                    Program() {
                         const sourceCode = context.sourceCode || context.getSourceCode();
                         const comments = sourceCode.getAllComments();
 
