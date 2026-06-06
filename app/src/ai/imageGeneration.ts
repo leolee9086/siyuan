@@ -61,6 +61,7 @@ export type { 生成块内容图片参数 };
  * 
  * @param onProgress - 可选的进度回调函数
  * @returns 进度报告函数
+ * @显式返回类型原因: 回调工厂需要保证返回 (msg: string) => void 类型闭包，供调用方同步调用进度回调。显式类型可防止闭包返回 undefined 导致进度更新中断。
  */
 function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string) => void {
     return (msg: string) => {
@@ -74,6 +75,7 @@ function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string
 /**
  * @AIDONE 插入到块后的行为已改为 onComplete 回调,由调用方决定如何处理生成的图片
  * 使用块内容生成图片
+ * @显式返回类型原因: 异步函数作为公开导出 API，Promise<void> 显式标注确保调用方不会遗漏 await，同时作为契约文档供 IDE 类型提示。
  */
 export async function 生成块内容图片(params: 生成块内容图片参数): Promise<void> {
     const { prompt, authManager, onProgress, onComplete } = params;

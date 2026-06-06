@@ -13,6 +13,6 @@
  * 调用时机：需要操作当前焦点元素时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-export const getActiveElement = (): Element | null => {
+export const getActiveElement = () => {
     return document.activeElement;
 };

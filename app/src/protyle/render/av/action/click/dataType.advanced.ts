@@ -93,6 +93,18 @@ export const handleBlockMoreClick = (protyle: IProtyle, target: HTMLElement, vie
 };
 
 /**
+ * 作用：延时提交分组折叠事务。
+ * @显式返回类型原因: setTimeout 的回调函数需要闭包捕获 blockElement/groupId/isOpen 状态，提取为命名函数可保持闭包变量清晰可审计。
+ */
+const onFoldTimeout = (blockElement: Element, groupId: string | undefined, isOpen: boolean, protyle: IProtyle) => {
+    const actions = buildFoldTransactionActions(blockElement, groupId, isOpen);
+    if (!actions) {
+        return;
+    }
+    transaction(protyle, actions.redoActions, actions.undoActions);
+};
+
+/**
  * 作用：处理分组折叠箭头点击。
  * 意图：先立即更新本地 DOM，再延时提交折叠事务。
  * 调用时机：data-type 分发命中 `av-group-fold` 时调用。
@@ -120,13 +132,7 @@ export const handleGroupFoldClick = (protyle: IProtyle, target: HTMLElement, blo
     const groupId = target.dataset.id;
     clearTimeout(foldTimeout);
     // 这里保留延时提交，是为了沿用原逻辑合并连续折叠操作，减少重复事务写入。
-    foldTimeout = setTimeout(() => {
-        const actions = buildFoldTransactionActions(blockElement, groupId, isOpen);
-        if (!actions) {
-            return;
-        }
-        transaction(protyle, actions.redoActions, actions.undoActions);
-    }, Constants.TIMEOUT_COUNT);
+    foldTimeout = setTimeout(() => onFoldTimeout(blockElement, groupId, isOpen, protyle), Constants.TIMEOUT_COUNT);
     return consumeClickEvent(event);
 };
 

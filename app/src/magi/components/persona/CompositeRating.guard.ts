@@ -4,6 +4,7 @@
  * 为 CompositeRating 的运行时输入校验提供类型守卫。
  */
 
+/** 用途：LikertScore 分值类型。使用范围：CompositeRating 输入校验。解耦评估：同目录内导入，类型定义与守卫职责分离。 */
 import type { LikertScore } from "./CompositeRating.types";
 
 const LIKERT_MIN = 1;

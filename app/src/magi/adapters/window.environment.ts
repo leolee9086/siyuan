@@ -7,7 +7,7 @@
  * 
  * @同步豁免: 性能考虑 - 简单的事件触发，无需异步
  */
-export function dispatchCustomEvent(eventName: string, detail?: unknown): void {
+export function dispatchCustomEvent(eventName: string, detail?: unknown) {
     if (typeof window === "undefined") {
         return;
     }

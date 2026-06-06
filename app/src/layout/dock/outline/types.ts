@@ -1,3 +1,4 @@
+/** 用途：Outline 大纲视图类型定义。使用范围：拖拽状态和节点交互类型。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { Outline } from "./Outline";
 
 /**

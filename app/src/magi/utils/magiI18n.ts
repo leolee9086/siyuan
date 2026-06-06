@@ -1,4 +1,6 @@
+/** 用途：MagiI18nKey 国际化键类型。使用范围：magiI18n 模块的键值映射。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiI18nKey } from "./magiI18n.types";
+/** 用途：forge 国际化文本获取函数。使用范围：解析并获取 UI 组件需要的翻译文本。解耦评估：环境工具函数，通过参数传递可解耦。 */
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 
 /**

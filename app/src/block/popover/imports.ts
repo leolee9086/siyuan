@@ -9,9 +9,9 @@ import { BlockPanel } from "../panel/Panel";
 import { hasClosestBlock } from "../../protyle/util/hasClosest";
 // 用途：判断元素是否包含指定属性的祖先元素；使用范围：target.ts 中查找块引用和链接元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦
 import { hasClosestByAttribute } from "../../protyle/util/hasClosest";
-// 用途：判断元素是否包含指定类名的祖先元素；使用范围：tooltip.ts 中查找特定类名的父元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦
+// 用途：判断祖先是否有指定类名；使用范围：tooltip.ts 查找特定类名父元素；解耦评估：DOM查询工具，通过参数传递即可使用
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-// 用途：发送同步 POST 请求到后端 API；使用范围：refDefs.ts 中所有需要从后端获取引用定义数据的场景；解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+// 用途：发送同步 POST 请求；使用范围：refDefs.ts 从后端获取引用定义；解耦评估：网络基础设施，可通过依赖注入解耦，但直接导入更合理
 import { fetchSyncPost } from "../../util/network/fetch";
 // 用途：发送异步 POST 请求到后端 API；使用范围：tooltip.ts 中获取资源信息和笔记本信息；解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { fetchPost } from "../../util/network/fetch";
@@ -29,7 +29,7 @@ import { Constants } from "../../constants";
 import { isTouchDevice } from "../../util/platform/functions";
 // 用途：类型守卫函数，判断元素是否为HTMLElement；使用范围：target.ts 中进行类型检查确保DOM操作安全；解耦评估：类型守卫工具函数，通过参数传递即可使用，已充分解耦
 import { isHTMLElement } from "../../util/DOM/element.guard";
-// 用途：获取属性视图单元格的文本内容；使用范围：tooltip.ts 中获取AV单元格文本用于tooltip显示；解耦评估：业务逻辑函数，可通过参数传递解耦，但作为protyle核心功能直接导入更合理
+// 用途：获取属性视图单元格文本；使用范围：tooltip.ts 显示AV单元格tooltip；解耦评估：业务函数，参数可解耦，但作为protyle核心直接导入更合理
 import { getCellText } from "../../protyle/render/av/cell";
 // 用途：转义 aria-label 属性值；使用范围：tooltip.ts 中处理tooltip内容时防止XSS；解耦评估：安全工具函数，通过参数传递即可使用，已充分解耦
 import { escapeAriaLabel } from "../../util/DOM/escape";

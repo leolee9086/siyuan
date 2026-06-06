@@ -170,6 +170,7 @@ const 处理闪卡打开 = async (options: IOpenTabOptions) => {
  * 打开Tab页签的主函数
  * 支持打开文档、PDF、资源、搜索、闪卡、自定义等多种页签类型
  */
+/** @显式返回类型原因: 异步函数返回 Tab 实例或 undefined，调用方需要根据返回值判断打开结果。显式标注确保类型安全，防止调用方遗漏 undefined 分支。 */
 export const openTab = async (options: IOpenTabOptions): Promise<Tab | undefined> => {
     // 移动端暂不支持Tab页签打开 TODO: Mobile
     if (isMobile()) {

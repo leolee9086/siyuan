@@ -12,7 +12,7 @@ import { Constants } from "./imports";
  * 问题/改进：依赖全局window对象，但已通过environment文件封装
  * @同步豁免: 需要绝对同步的DOM访问 - 读取全局配置
  */
-export const getDefaultFileIcon = (): string => {
+export const getDefaultFileIcon = () => {
     const storage = window.siyuan?.storage;
     if (!storage) {
         return "";

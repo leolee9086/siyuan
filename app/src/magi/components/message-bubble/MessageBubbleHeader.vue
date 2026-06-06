@@ -17,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+/** 用途：消息状态图标映射表。使用范围：MessageBubbleHeader 头部渲染。解耦评估：通过目录同级导入，保持在同一模块内。 */
 import { statusIconMap } from "./MessageBubble.ctx";
 
 defineProps<{

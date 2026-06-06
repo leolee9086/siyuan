@@ -47,7 +47,7 @@ export const 添加表格菜单 = (detail: {
     protyle: IProtyle,
     range: Range,
     element: Element
-}): void => {
+}) => {
     const { protyle, range, element: nodeElement } = detail;
     const tdElement = hasClosestByTag(range.startContainer, "TD");
     const thElement = hasClosestByTag(range.startContainer, "TH");

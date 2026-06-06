@@ -27,7 +27,7 @@ const TEXT_APPLICATION_MIMES = new Set([
  * @returns 如果是文本类型返回 true，否则返回 false
  */
 /** @同步豁免: 性能考虑 - 纯内存计算的类型判断函数，无 I/O 操作，异步化会引入不必要的开销 */
-export function isTextMime(mime: string | null): boolean {
+export function isTextMime(mime: string | null) {
   if (!mime) {
     return false;
   }

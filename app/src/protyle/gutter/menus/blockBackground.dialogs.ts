@@ -46,7 +46,7 @@ import { runBlockBackgroundSourceAction } from "./blockBackground.actions";
  * 调用时机：打开背景来源对话框前。
  * 问题/改进：当前按块逐个检查，数量较小时开销可接受。
  */
-const hasAnyBlockBackground = (nodeElements: HTMLElement[]): boolean => {
+const hasAnyBlockBackground = (nodeElements: HTMLElement[]) => {
     for (const nodeElement of nodeElements) {
         if (!getBlockBackgroundState(nodeElement).hasBackground) {
             continue;
@@ -62,7 +62,7 @@ const hasAnyBlockBackground = (nodeElements: HTMLElement[]): boolean => {
  * 调用时机：打开背景来源对话框时。
  * 问题/改进：当前采用轻量按钮列表，若未来使用频率更高可再演进为面板式布局。
  */
-const buildBackgroundSourceDialogContent = (hasBackground: boolean, showPosition: boolean): string => `<div class="b3-dialog__content">
+const buildBackgroundSourceDialogContent = (hasBackground: boolean, showPosition: boolean) => `<div class="b3-dialog__content">
     <div class="fn__flex-column">
         <button data-type="builtIn" class="b3-button b3-button--cancel fn__block">${siyuanI18n.builtIn}</button>
         <div class="fn__hr"></div>
@@ -84,7 +84,7 @@ const buildBackgroundSourceDialogContent = (hasBackground: boolean, showPosition
  * 调用时机：背景来源对话框 click 事件触发时。
  * 问题/改进：当前通过独立动作模块执行来源行为，后续扩展来源时只需补充动作映射。
  */
-const handleBlockBackgroundSourceDialogClick = (ctx: IBlockBackgroundMenuContext, dialog: Dialog, event: Event): void => {
+const handleBlockBackgroundSourceDialogClick = (ctx: IBlockBackgroundMenuContext, dialog: Dialog, event: Event) => {
     const clickTarget = event.target;
     if (!(clickTarget instanceof HTMLElement)) {
         return;
@@ -106,7 +106,7 @@ const handleBlockBackgroundSourceDialogClick = (ctx: IBlockBackgroundMenuContext
  * 问题/改进：当前来源入口较简洁，若后续使用频率高可再演进为更紧凑的面板式交互。
  */
 /** @同步豁免: UI构建 */
-export const openBlockBackgroundSourceDialog = (ctx: IBlockBackgroundMenuContext): void => {
+export const openBlockBackgroundSourceDialog = (ctx: IBlockBackgroundMenuContext) => {
     const firstNodeElement = ctx.nodeElements[0];
     if (!firstNodeElement) {
         return;

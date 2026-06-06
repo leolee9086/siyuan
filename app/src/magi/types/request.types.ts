@@ -9,7 +9,10 @@
  */
 
 // 重导出网络层的 StreamRequestConfig 作为统一的请求配置类型
-export type { StreamRequestConfig } from "../../util/network/fetchStream.types";
+/** 用途：网络层流式请求配置类型。使用范围：MAGI 请求参数配置。解耦评估：通过类型目录导入，避免直接依赖网络层路径。 */
+import type { StreamRequestConfig } from "../../util/network/fetchStream.types";
+/** 重导出 StreamRequestConfig 供 MAGI 模块统一使用 */
+export type { StreamRequestConfig };
 
 /**
  * 消息回调函数类型

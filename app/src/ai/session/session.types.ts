@@ -1,4 +1,5 @@
-import { TemporaryModule } from "../../util/lib/code/scripts.types";
+/** 用途：TemporaryModule 模块执行结果类型。使用范围：异步工具调用结果堆栈类型标注。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { TemporaryModule } from "../../util/lib/code/scripts.types";
 
 /**
  * 工具调用执行回调函数类型

@@ -69,7 +69,7 @@ import { isHTMLElement } from "./protyle.contentMenu.guard";
  * 添加粘贴相关菜单项。
  * @同步豁免: UI构建 - 菜单项必须在右键菜单构建阶段同步追加。
  */
-export const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElement: false | HTMLElement): void => {
+export const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElement: false | HTMLElement) => {
     // 表格caption内或只读模式下不显示粘贴菜单，防止破坏表格标题结构
     if (protyle.disabled || captionElement) {
         return;

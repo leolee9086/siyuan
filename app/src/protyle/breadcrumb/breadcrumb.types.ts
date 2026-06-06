@@ -1,6 +1,7 @@
 /**
  * 面包屑模块类型定义
  */
+/** 用途：RecordMedia 录音器类型。使用范围：面包屑录音器上下文类型依赖。解耦评估：通过同目录网关导入可降低路径耦合。 */
 import type { RecordMedia } from "../util/RecordMedia";
 
 /**

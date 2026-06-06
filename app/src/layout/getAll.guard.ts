@@ -1,3 +1,4 @@
+/** 用途：Layout 布局类型。使用范围：布局停靠栏类型守卫。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { Layout } from "./index";
 
 /**

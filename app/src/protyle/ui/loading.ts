@@ -1,4 +1,5 @@
-import { Constants } from "../../constants";
+/** 用途：全局常量配置。使用范围：加载动画定时器 TIMEOUT_LOAD 值。解耦评估：通过目录 imports.ts 转发，符合架构规范。 */
+import { Constants } from "./imports";
 
 /**
  * 在编辑器上显示加载动画。
@@ -34,6 +35,7 @@ import { Constants } from "../../constants";
  * @param protyle - Protyle 实例
  * @param msg - 可选的加载提示信息，显示在加载图标下方
  */
+ /** @同步豁免: UI构建 - 加载动画的添加和移除需要在 UI 线程同步执行，异步化会导致动画闪烁或延迟。 */
 export const addLoading = (protyle: IProtyle, msg?: string) => {
     // 取消之前可能存在的待执行 loading（处理快速连续调用的场景）
     if (protyle.loadingController) {
@@ -72,6 +74,7 @@ export const addLoading = (protyle: IProtyle, msg?: string) => {
  *
  * @param protyle - Protyle 实例
  */
+/** @同步豁免: UI构建 - 移除加载动画是同步 DOM 操作，异步化会与其他 UI 操作产生竞态。 */
 export const removeLoading = (protyle: IProtyle) => {
     // 取消待执行的 loading 显示定时器
     if (protyle.loadingController) {

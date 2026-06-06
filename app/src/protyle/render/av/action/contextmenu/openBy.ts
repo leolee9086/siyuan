@@ -49,6 +49,7 @@ export const appendOpenByMenu = (menu: Menu, protyle: IProtyle, state: AttrViewC
         id: "attr",
         icon: "iconAttr",
         label: siyuanI18n.attr,
+        /** 点击 attr 菜单项时，异步请求块属性数据并打开属性面板 */
         click: () => {
             handleOpenBlockAttr(protyle, state.keyRow.blockId);
         },

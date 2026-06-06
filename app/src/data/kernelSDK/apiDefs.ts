@@ -5,7 +5,9 @@
  * 供客户端创建和类型定义使用。
  */
 
+/** 用途：kernel SDK 的 API 定义类型。使用范围：API 定义聚合。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { Api定义 } from "@leolee9086/siyuan-kernel-sdk";
+/** 用途：所有 API 模块的运行时定义。使用范围：客户端创建和类型定义时使用。解耦评估：第三方库依赖，通过统一导入管理。 */
 import {
     accountApiDefs,
     aiApiDefs,

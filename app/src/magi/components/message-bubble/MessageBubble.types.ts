@@ -6,6 +6,7 @@
 
 // [TASK] T3.1 迁移基础UI组件 - MessageBubble类型
 
+/** 用途：MagiMessageView 消息视图类型。使用范围：消息气泡类型依赖。解耦评估：通过目录网关导入可降低路径耦合。 */
 import type { MagiMessageView } from "../../entry/magiView.types";
 
 /**

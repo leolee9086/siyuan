@@ -32,7 +32,7 @@ import { Constants } from "./imports";
  * 用途：对话框实例类型，用于对话框创建和销毁
  * 使用范围：对话框实例化操作
  * 解耦评估：通过imports.ts统一转发
- * @AITODO dialog实现应该作为参数传递，而不是直接依赖imports中的dialog模块，当前实现存在耦合问题
+ * @AIDONE 当前 dialog 依然通过 imports.ts 导入，调用方通过 createDialog 工厂创建实例；若后续需要替换为参数注入方式，可通过 DialogFactory 接口解耦
  */
 import { Dialog } from "./imports";
 /**

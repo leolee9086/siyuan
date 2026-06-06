@@ -140,7 +140,7 @@ export function 显示面包屑菜单(
     protyle: IProtyle,
     position: IPosition,
     录音上下文: 录音器上下文
-): void {
+) {
     const menus = getSiyuanMenus();
     if (!menus) {
         return;
@@ -176,7 +176,7 @@ function 构建菜单内容(
     position: IPosition,
     response: IWebSocketData,
     录音上下文: 录音器上下文
-): void {
+) {
     const menus = getSiyuanMenus();
     if (!menus) {
         return;
@@ -250,7 +250,7 @@ function 构建菜单内容(
  * @param protyle 编辑器实例，用于判断 popover 层级
  * @param position 桌面端菜单弹出位置
  */
-function 显示并标记菜单来源(menu: InstanceType<typeof Menu>, protyle: IProtyle, position: IPosition): void {
+function 显示并标记菜单来源(menu: InstanceType<typeof Menu>, protyle: IProtyle, position: IPosition) {
     if (isMobile) {
         menu.fullscreen();
     }

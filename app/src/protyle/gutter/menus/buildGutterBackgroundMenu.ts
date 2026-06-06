@@ -28,7 +28,7 @@ import { normalizeBlockBackgroundNodeElements } from "./blockBackground.style";
  * 调用时机：构建单块菜单和多块菜单时。
  * 问题/改进：当前入口文案复用 `showHideBg`，若后续增加更精确 i18n 文案可直接替换。
  */
-/** @同步豁免: UI构建 - 菜单构建函数必须同步返回 IMenu 配置对象，调用方需要立即渲染菜单结构。 */
+/** @同步豁免: UI构建 - 菜单构建函数必须同步返回 IMenu 配置对象，调用方需要立即渲染菜单结构。 @显式返回类型原因: IMenu | null 的联合返回类型让调用方明确需要处理 null 分支（无可用块时），显式标注确保调用侧不会遗漏空值兜底。 */
 export function buildGutterBackgroundMenu(nodeElements: Element[], protyle: IProtyle): IMenu | null {
     const editableNodeElements = normalizeBlockBackgroundNodeElements(nodeElements);
     if (editableNodeElements.length === 0) {

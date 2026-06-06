@@ -1,4 +1,6 @@
+/** 用途：MagiMessage 消息类型。使用范围：共识流消息追加。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiMessage } from "../utils/messageFactory.types";
+/** 用途：消息工厂函数。使用范围：本地 UI 事务消息创建。解耦评估：共同使用，通过参数传递可解耦。 */
 import { createMessage } from "../utils/messageFactory";
 
 /**

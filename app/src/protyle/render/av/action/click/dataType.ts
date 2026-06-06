@@ -124,7 +124,7 @@ const handleAddBottomClick = (protyle: IProtyle, target: HTMLElement, blockEleme
         blockElement,
         protyle,
         count: 1,
-        previousID: previousID as string,
+        previousID: previousID ?? undefined,
         groupID: isHTMLElement(bodyCandidate) ? bodyCandidate.getAttribute("data-group-id") || "" : ""
     });
     return consumeClickEvent(event);

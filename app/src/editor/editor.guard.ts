@@ -1,4 +1,5 @@
-import { ITabInitData } from "./types";
+/** 用途：ITabInitData 页签初始化数据类型。使用范围：编辑器初始化类型守卫。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { ITabInitData } from "./types";
 
 /**
  * 判断是否为 ITabInitData 类型

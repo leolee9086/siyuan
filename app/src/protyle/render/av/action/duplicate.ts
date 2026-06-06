@@ -64,6 +64,30 @@ const buildDuplicatedAttrViewElement = (
     return firstChild;
 };
 
+/** 在运行时安全地提取复制响应中的 blockID 和 avID */
+/** @显式返回类型原因: parseDuplicateResponse 返回结构化数据或 undefined，调用方依赖联合类型对空值做兜底处理。 */
+const parseDuplicateResponse = (data: unknown): { blockID: string; avID: string } | undefined => {
+    if (!data || typeof data !== "object") {
+        return undefined;
+    }
+    let blockID: string | undefined;
+    let avID: string | undefined;
+    for (const [k, v] of Object.entries(data)) {
+        // 从响应对象中提取 blockID 字段，它是新增属性视图的唯一块标识
+        if (k === "blockID" && typeof v === "string") {
+            blockID = v;
+        }
+        // 从响应对象中提取 avID 字段，它是新增属性视图的数据实体标识
+        if (k === "avID" && typeof v === "string") {
+            avID = v;
+        }
+    }
+    if (!blockID || !avID) {
+        return undefined;
+    }
+    return { blockID, avID };
+};
+
 /**
  * 处理完整复制接口成功后的本地更新链路。
  *
@@ -80,8 +104,8 @@ const handleDuplicateCompletelyResponse = (
     nodeElement: HTMLElement,
     response: IWebSocketData,
 ) => {
-    const responseData = response.data as { blockID?: unknown, avID?: unknown } | undefined;
-    if (typeof responseData?.blockID !== "string" || typeof responseData.avID !== "string") {
+    const responseData = parseDuplicateResponse(response.data);
+    if (!responseData) {
         return;
     }
     nodeElement.classList.remove("protyle-wysiwyg--select");

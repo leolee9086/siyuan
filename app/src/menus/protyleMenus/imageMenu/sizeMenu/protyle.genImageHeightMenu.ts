@@ -15,6 +15,7 @@ import { siyuanI18n } from "./imports";
  * 调用时机：高度菜单项被点击时。
  * 问题/改进：当前高度值依赖 `parseInt(label)`，后续可引入更严格的尺寸解析器。
  */
+/** @显式返回类型原因: 回调工厂需要保证返回 () => void 类型的闭包，供菜单 click 属性同步调用，显式类型可防止闭包返回 undefined 导致菜单点击无响应。 */
 const 创建高度调整回调 = (
     label: string,
     imgElement: HTMLElement,
