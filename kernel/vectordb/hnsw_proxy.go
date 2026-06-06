@@ -184,8 +184,8 @@ func (c *Collection) RebuildIndex() error {
 		c.IDMap = make(map[string]DocID)
 		c.DocMap = make([]string, 0)
 		c.Metas = make([][]byte, 0)
-		c.Store = NewVectorStore(c.ColDim)
-		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
+	c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
+	c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 		c.Mu.Unlock()
 		return nil
 	}
@@ -195,7 +195,7 @@ func (c *Collection) RebuildIndex() error {
 	c.IDMap = make(map[string]DocID)
 	c.DocMap = make([]string, 0)
 	c.Metas = make([][]byte, 0)
-		c.Store = NewVectorStore(c.ColDim)
+		c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
 		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 	c.Mu.Unlock()
 

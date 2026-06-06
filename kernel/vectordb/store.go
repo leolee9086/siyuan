@@ -42,8 +42,9 @@ type VectorStore struct {
 }
 
 // NewVectorStore creates a new VectorStore
-func NewVectorStore(dimension int) *VectorStore {
+func NewVectorStore(dimension int, metricType string) *VectorStore {
 	packedSize := (dimension + 7) / 8
+	st := resolveSimilarity(metricType)
 	return &VectorStore{
 		Dimension:      dimension,
 		vectors:        make([]float32, 0),
@@ -51,12 +52,19 @@ func NewVectorStore(dimension int) *VectorStore {
 		bbqPacked:      make([]byte, 0),
 		bbqCorrections: make([]bbq.QuantizationResult, 0),
 		packedSize:     packedSize,
-		quantizer:      bbq.NewScalarQuantizer(bbq.CosineSimilarity),
-		scorer:         bbq.NewQuantizedScorer(bbq.CosineSimilarity),
+		quantizer:      bbq.NewScalarQuantizer(st),
+		scorer:         bbq.NewQuantizedScorer(st),
 		centroid:       bbq.CreateZeroCentroid(dimension),
 		visitedEpoch:   make([]uint32, 0),
-		currentEpoch:   1, // 从1开始,0表示未访问
+		currentEpoch:   1,
 	}
+}
+
+func resolveSimilarity(metricType string) bbq.SimilarityType {
+	if metricType == "l2" {
+		return bbq.EuclideanDistance
+	}
+	return bbq.CosineSimilarity
 }
 
 // growSlice 确保 slice 长度至少为 targetLen，容量不足时以 2x 策略扩容。

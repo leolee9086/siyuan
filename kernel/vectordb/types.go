@@ -73,10 +73,10 @@ type CollectionMeta struct {
 
 // Collection is an HNSW-based in-memory vector collection.
 type Collection struct {
-	ColName   string
-	ColDim    int
-	Config    CollectionConfig
-	Meta      CollectionMeta
+	ColName string
+	ColDim  int
+	Config  CollectionConfig
+	Meta    CollectionMeta
 
 	IDMap  map[string]DocID
 	DocMap []string
@@ -134,7 +134,7 @@ func NewDatabase(path string) *Database {
 
 func NewCollection(name string, dimension int) *Collection {
 	config := DefaultConfig()
-	store := NewVectorStore(dimension)
+	store := NewVectorStore(dimension, config.MetricType)
 
 	hnswConfig := hnsw.Config{
 		M:              config.M,
@@ -145,14 +145,14 @@ func NewCollection(name string, dimension int) *Collection {
 	}
 
 	return &Collection{
-		ColName:   name,
-		ColDim:    dimension,
-		Config:    config,
-		IDMap:     make(map[string]DocID),
-		DocMap:    make([]string, 0),
-		Metas:     make([][]byte, 0),
-		HNSWIdx:   hnsw.NewHNSWIndex(dimension, hnswConfig, store),
-		Store:     store,
+		ColName: name,
+		ColDim:  dimension,
+		Config:  config,
+		IDMap:   make(map[string]DocID),
+		DocMap:  make([]string, 0),
+		Metas:   make([][]byte, 0),
+		HNSWIdx: hnsw.NewHNSWIndex(dimension, hnswConfig, store),
+		Store:   store,
 	}
 }
 
@@ -160,7 +160,7 @@ func DefaultConfig() CollectionConfig {
 	return CollectionConfig{
 		M:              16,
 		EfConstruction: 200,
-		EfSearch:       64,
+		EfSearch:       200,
 		MaxLevel:       16,
 		MetricType:     "cosine",
 	}

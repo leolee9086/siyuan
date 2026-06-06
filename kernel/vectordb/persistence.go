@@ -171,7 +171,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 		return nil, err
 	}
 
-	store := NewVectorStore(snapshot.Dimension)
+	store := NewVectorStore(snapshot.Dimension, snapshot.Config.MetricType)
 	store.vectors = snapshot.Vectors
 	store.bbqQuantized = snapshot.BBQQuantized
 	store.bbqPacked = snapshot.BBQPacked

@@ -306,7 +306,7 @@ func runHNSWPhasedInsert(t *testing.T, vectors [][]float32) []phaseResult {
 
 	// 使用生产级 VectorStore 替代 benchDistancer，
 	// 以反映真实的连续内存布局和 8 路展开距离计算性能
-	store := NewVectorStore(benchCompDim)
+	store := NewVectorStore(benchCompDim, "cosine")
 	store.Grow(benchCompTotal)
 	cfg := hnsw.Config{
 		M:              16,

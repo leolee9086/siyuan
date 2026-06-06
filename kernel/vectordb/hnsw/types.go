@@ -34,14 +34,14 @@ const InvalidEntryPoint DocID = 0xFFFFFFFF
 
 // Config HNSW 索引配置
 type Config struct {
-	M                 int     `msgpack:"m"`
-	EfConstruction    int     `msgpack:"ef_construction"`
-	EfSearch          int     `msgpack:"ef_search"`
-	MaxLevel          int     `msgpack:"max_level"`
-	MetricType        string  `msgpack:"metric"`
-	GraphSlackFactor  float32 `msgpack:"graph_slack_factor"`
-	LevelML           float64 `msgpack:"level_ml"`          // 0=default 0.5, >0=m_L value for paper formula
-	ContaminationAlpha float32 `msgpack:"contamination_a"`  // 0=disabled
+	M                  int     `msgpack:"m"`
+	EfConstruction     int     `msgpack:"ef_construction"`
+	EfSearch           int     `msgpack:"ef_search"`
+	MaxLevel           int     `msgpack:"max_level"`
+	MetricType         string  `msgpack:"metric"`
+	GraphSlackFactor   float32 `msgpack:"graph_slack_factor"`
+	LevelML            float64 `msgpack:"level_ml"`        // 0=default 0.5, >0=m_L value for paper formula
+	ContaminationAlpha float32 `msgpack:"contamination_a"` // 0=disabled
 }
 
 // DefaultConfig 返回默认 HNSW 配置
@@ -49,7 +49,7 @@ func DefaultConfig() Config {
 	return Config{
 		M:                16,
 		EfConstruction:   200,
-		EfSearch:         64,
+		EfSearch:         200,
 		MaxLevel:         16,
 		MetricType:       "cosine",
 		GraphSlackFactor: 1.3,

@@ -82,7 +82,7 @@ func generateTestQueries(n, dim int, seed int64) [][]float32 {
 func buildBFResults(vecs [][]float32) func(query []float32, k int) []searchHit {
 	n := len(vecs)
 	dim := len(vecs[0])
-	store := NewVectorStore(dim)
+	store := NewVectorStore(dim, "cosine")
 	for i, v := range vecs {
 		store.Set(DocID(i), v)
 	}

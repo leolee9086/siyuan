@@ -216,6 +216,7 @@ func TestHNSW_SIFT_10K(t *testing.T) {
 	collection := NewCollection("sift10k", dim)
 	// SIFT uses L2 distance, not cosine
 	collection.Config.MetricType = "l2"
+	collection.HNSWIdx.Config.MetricType = "l2"
 
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",
 		collection.Config.M, collection.Config.EfConstruction)
@@ -326,6 +327,7 @@ func TestHNSW_SIFT_100K(t *testing.T) {
 	// Build HNSW index
 	collection := NewCollection("sift100k", dim)
 	collection.Config.MetricType = "l2"
+	collection.HNSWIdx.Config.MetricType = "l2"
 
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",
 		collection.Config.M, collection.Config.EfConstruction)
@@ -429,6 +431,7 @@ func TestHNSW_SIFT_1M(t *testing.T) {
 	// Build HNSW index
 	collection := NewCollection("sift1m", dim)
 	collection.Config.MetricType = "l2"
+	collection.HNSWIdx.Config.MetricType = "l2"
 
 	numVectors := len(baseVectors)
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",
