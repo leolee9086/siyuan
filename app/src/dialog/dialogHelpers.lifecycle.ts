@@ -1,13 +1,29 @@
-import { App } from "vue";
-import { Constants } from "../constants";
-import { createVueComponentLoader } from "../util/vue/mount";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { getSiyuanDialogs } from "../util/siyuanEnvironments/getDialog.environment";
-import { incrementSiyuanZIndex } from "../util/siyuanEnvironments/siyuanDialogs.environment";
+/** 用途：Vue 应用实例类型。使用范围：Vue 组件挂载。解耦评估：通过 ./imports 转发。 */
+import { App } from "./imports";
+/** 用途：系统常量。使用范围：LOCAL_DIALOGPOSITION 等。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：Vue 组件加载器。使用范围：对话框标题区域挂载 Vue 组件。解耦评估：通过 ./imports 转发。 */
+import { createVueComponentLoader } from "./imports";
+/** 用途：安全获取全局菜单。使用范围：对话框菜单初始化。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanGlobalMenus } from "./imports";
+/** 用途：安全获取对话框集合。使用范围：对话框打开次数跟踪。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanDialogs } from "./imports";
+/** 用途：递增加层叠 z-index。使用范围：新对话框显示在最前。解耦评估：通过 ./imports 转发。 */
+import { incrementSiyuanZIndex } from "./imports";
+/** 用途：HTMLElement 类型守卫。使用范围：对话框类型校验。解耦评估：同目录直接导入。 */
 import { isHTMLElement } from "./dialog.guard";
-
+/** 用途：对话框选项类型。使用范围：对话框初始化参数。解耦评估：同目录直接导入。 */
 import { IDialogOptions } from "./dialog.types";
-import { 计算对话框位置, 生成关闭按钮HTML, 生成全屏按钮HTML, 计算标题栏样式, 生成对话框HTML } from "./dialogHelpers.html";
+/** 用途：对话框位置计算。使用范围：对话框初始化定位。解耦评估：同目录直接导入。 */
+import { 计算对话框位置 } from "./dialogHelpers.html";
+/** 用途：关闭和全屏按钮 HTML 生成。使用范围：对话框结构构建。解耦评估：同目录直接导入。 */
+import { 生成关闭按钮HTML } from "./dialogHelpers.html";
+/** 用途：全屏按钮 HTML 生成。使用范围：对话框结构构建。解耦评估：同目录直接导入。 */
+import { 生成全屏按钮HTML } from "./dialogHelpers.html";
+/** 用途：标题栏样式计算。使用范围：对话框布局。解耦评估：同目录直接导入。 */
+import { 计算标题栏样式 } from "./dialogHelpers.html";
+/** 用途：对话框 HTML 生成。使用范围：对话框结构构建。解耦评估：同目录直接导入。 */
+import { 生成对话框HTML } from "./dialogHelpers.html";
 
 /**
  * @function 挂载标题Vue组件
@@ -18,7 +34,7 @@ import { 计算对话框位置, 生成关闭按钮HTML, 生成全屏按钮HTML, 
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 挂载标题Vue组件(element: HTMLElement, options: IDialogOptions): App | null {
+export async function 挂载标题Vue组件(element: HTMLElement, options: IDialogOptions) {
     if (!options.titleVueConfig) {
         return null;
     }
@@ -46,20 +62,22 @@ export function 挂载标题Vue组件(element: HTMLElement, options: IDialogOpti
  * @已知问题: 无
  * @改进方向: 可以进一步拆分为更小的函数
  */
-export function 初始化对话框内容(
+export async function 初始化对话框内容(
     element: HTMLElement,
     options: IDialogOptions,
     config: {
         disableClose: boolean;
         scrimPointerEvents: boolean;
     }
-): void {
+) {
     const closeButtonPosition = options.closeButtonPosition || "outside";
     const hasTitle = !!(options.title || options.titleVueConfig);
     const 位置信息 = 计算对话框位置(options);
+    // 应用保存的对话框宽度
     if (位置信息.width) {
         options.width = 位置信息.width;
     }
+    // 应用保存的对话框高度
     if (位置信息.height) {
         options.height = 位置信息.height;
     }
@@ -101,12 +119,13 @@ export function 初始化对话框内容(
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 添加对话框到DOM(element: HTMLElement, disableAnimation?: boolean): void {
+export async function 添加对话框到DOM(element: HTMLElement, disableAnimation?: boolean) {
     document.body.append(element);
     if (disableAnimation) {
         element.classList.add("b3-dialog--open");
         return;
     }
+    // 延迟添加打开类名以触发 CSS 过渡动画
     setTimeout(() => element.classList.add("b3-dialog--open"), Constants.TIMEOUT_OPENDIALOG);
 }
 
@@ -119,18 +138,19 @@ export function 添加对话框到DOM(element: HTMLElement, disableAnimation?: b
  * @已知问题: 无
  * @改进方向: 可以考虑使用 AbortController 来自动清理事件监听器
  */
-export function 执行销毁清理(
+export async function 执行销毁清理(
     element: HTMLElement,
     id: string,
     titleVueApp: App | null,
     destroyCallback: ((options?: IObject) => void) | undefined,
     options?: IObject
-): App | null {
+) {
     const dialogElement = element.querySelector(".b3-dialog");
     if (!isHTMLElement(dialogElement)) {
         return titleVueApp;
     }
     const menuElement = getSiyuanGlobalMenus().menu.element;
+    // 对话框层叠值低于菜单时更新
     if (dialogElement.style.zIndex < menuElement.style.zIndex) {
         getSiyuanGlobalMenus().menu.remove();
     }
@@ -141,11 +161,13 @@ export function 执行销毁清理(
     }
 
     element.remove();
+    // 执行外部传入的销毁回调
     if (destroyCallback) {
         destroyCallback(options);
     }
     const dialogs = getSiyuanDialogs();
     const index = dialogs.findIndex((item) => item.id === id);
+    // 从对话框集合中移除已销毁的实例
     if (index !== -1) {
         dialogs.splice(index, 1);
     }

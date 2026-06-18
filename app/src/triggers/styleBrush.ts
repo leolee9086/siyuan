@@ -12,27 +12,42 @@
  * @module protyle/gutter/styleBrush
  */
 
-import {
-    注册触发器,
-    激活刷子,
-    退出刷子,
-    刷子是否激活
-} from "../registry/TriggerRegistry";
-import type { IGlobalContext, IStyleBrushParameters, IBatchContext } from "../registry/TriggerRegistry.types";
+/** 用途：TriggerRegistry 核心 API（注册）。使用范围：样式刷子注册。解耦评估：通过 ./imports 转发。 */
+import { 注册触发器 } from "./imports";
+/** 用途：TriggerRegistry 核心 API（激活）。使用范围：样式刷子激活。解耦评估：通过 ./imports 转发。 */
+import { 激活刷子 } from "./imports";
+/** 用途：TriggerRegistry 核心 API（退出）。使用范围：样式刷子退出。解耦评估：通过 ./imports 转发。 */
+import { 退出刷子 } from "./imports";
+/** 用途：TriggerRegistry 核心 API（查询）。使用范围：样式刷子状态判断。解耦评估：通过 ./imports 转发。 */
+import { 刷子是否激活 } from "./imports";
+/** 用途：全局上下文类型。使用范围：触发器事件处理。解耦评估：通过 ./imports 转发。 */
+import type { IGlobalContext } from "./imports";
+/** 用途：样式刷子参数类型。使用范围：刷子激活时参数类型标注。解耦评估：通过 ./imports 转发。 */
+import type { IStyleBrushParameters } from "./imports";
+/** 用途：批量操作上下文类型。使用范围：Ctrl+Click 批量应用。解耦评估：通过 ./imports 转发。 */
+import type { IBatchContext } from "./imports";
+/** 用途：类型守卫判断是否为样式刷子参数。使用范围：刷子激活时参数校验。解耦评估：同模块内部调用，无耦合问题。 */
 import { isStyleBrushParameters } from "./styleBrush.guard";
-import { 打开智能工具箱 } from "../sforge/panel/smartToolboxPanelDialog";
-import {
-    清理刷子类型名,
-    样式刷子光标HTML,
-    通用样式应用逻辑,
-    批量应用样式到当前选区,
-    提取DOM样式,
-    提取块样式,
-    应用样式
-} from "./styleBrush.impl";
+/** 用途：打开智能工具箱面板。使用范围：自定义刷子注册后自动展示工具箱。解耦评估：通过 ./imports 转发。 */
+import { 打开智能工具箱 } from "./imports";
+/** 用途：样式刷子常量（清理刷子类型标识）。使用范围：刷子注册与状态查询。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 清理刷子类型名 } from "./styleBrush.impl";
+/** 用途：刷子光标 HTML 模板。使用范围：注册触发器时指定光标样式。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 样式刷子光标HTML } from "./styleBrush.impl";
+/** 用途：通用样式应用逻辑。使用范围：刷子匹配目标后执行样式应用。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 通用样式应用逻辑 } from "./styleBrush.impl";
+/** 用途：批量应用样式到当前选区。使用范围：Ctrl+Click 快捷操作。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 批量应用样式到当前选区 } from "./styleBrush.impl";
+/** 用途：DOM 样式提取函数。使用范围：外部模块使用。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 提取DOM样式 } from "./styleBrush.impl";
+/** 用途：块样式提取函数。使用范围：外部模块使用。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 提取块样式 } from "./styleBrush.impl";
+/** 用途：样式应用函数。使用范围：外部模块使用。解耦评估：同模块内部工具函数，直接导入使用。 */
+import { 应用样式 } from "./styleBrush.impl";
 
 // ============ 常量定义 ============
 
+/** 重新导出样式刷子工具函数，供外部模块使用 */
 export { 清理刷子类型名, 提取DOM样式, 提取块样式, 应用样式 };
 
 // ============ 触发器注册 ============
@@ -44,8 +59,8 @@ export { 清理刷子类型名, 提取DOM样式, 提取块样式, 应用样式 }
  * 意图：提供一个用于清除块样式的工具
  * 调用时机：应用初始化时（sforge.init.ts）
  */
-export function 注册样式刷子(): void {
-    注册触发器({
+export async function 注册样式刷子() {
+    await 注册触发器({
         type: 清理刷子类型名,
         mode: "brush",
         category: "格式",
@@ -115,14 +130,14 @@ export function 注册样式刷子(): void {
  * @param options 可选交互选项(protyle, event)
  * @returns 是否激活成功或执行完成
  */
-export function 激活样式刷子(
+export async function 激活样式刷子(
     sourceStyle: string,
     sourceBlockId?: string,
     options?: {
         protyle: IProtyle;
         originalEvent: MouseEvent | KeyboardEvent;
     }
-): boolean {
+) {
     if (!sourceStyle) {
         console.warn("[StyleBrush] 源样式为空，无法激活");
         return false;
@@ -142,11 +157,12 @@ export function 激活样式刷子(
         params.sourceBlockId = sourceBlockId;
     }
 
-    if (样式刷子是否激活()) {
-        退出样式刷子();
+    // 若已有刷子处于激活状态，先退出再激活新的，避免状态冲突
+    if (刷子是否激活(清理刷子类型名)) {
+        await 退出样式刷子();
     }
 
-    return 激活刷子(清理刷子类型名, params);
+    return await 激活刷子(清理刷子类型名, params);
 }
 
 /**
@@ -159,14 +175,14 @@ export function 激活样式刷子(
  * @param sourceBlockId 源块 ID
  * @param options 可选交互选项(protyle, event)
  */
-export function 注册并激活自定义样式刷子(
+export async function 注册并激活自定义样式刷子(
     sourceStyle: string,
     sourceBlockId: string,
     options?: {
         protyle: IProtyle;
         originalEvent: MouseEvent | KeyboardEvent;
     }
-): boolean {
+) {
 
     // 判断是否是 Ctrl+Click 快捷操作
     const isCtrlClick = options?.originalEvent instanceof MouseEvent && (options.originalEvent.ctrlKey || options.originalEvent.metaKey);
@@ -186,7 +202,7 @@ export function 注册并激活自定义样式刷子(
     const type = `style-brush-${sourceBlockId}`;
 
     // 动态注册触发器
-    注册触发器({
+    await 注册触发器({
         type: type,
         mode: "brush",
         category: "格式",
@@ -235,20 +251,10 @@ export function 注册并激活自定义样式刷子(
     });
 
     // 2. 打开工具箱以显示新添加的工具
-    打开智能工具箱();
+    await 打开智能工具箱();
 
     // 3. 激活刷子
-    return 激活刷子(type, { sourceStyle, sourceBlockId });
-}
-
-/**
- * 检查样式刷子是否激活
- * 
- * @AIDONE 现在通过 TriggerRegistry 的 刷子是否激活 来判断
- * @returns 是否激活
- */
-export function 样式刷子是否激活(): boolean {
-    return 刷子是否激活(清理刷子类型名);
+    return await 激活刷子(type, { sourceStyle, sourceBlockId });
 }
 
 /**
@@ -256,8 +262,9 @@ export function 样式刷子是否激活(): boolean {
  * 
  * @AIDONE 现在通过 TriggerRegistry 统一管理退出
  */
-export function 退出样式刷子(): void {
-    if (样式刷子是否激活()) {
-        退出刷子();
+export async function 退出样式刷子() {
+    // 仅在刷子已激活时才执行退出，避免不必要的状态操作
+    if (刷子是否激活(清理刷子类型名)) {
+        await 退出刷子();
     }
 }

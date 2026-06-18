@@ -1,26 +1,45 @@
-import { genUUID } from "../util/platform/genID";
-import { moveResize } from "./moveResize";
-import { Protyle } from "../protyle";
-import { isMobile } from "../util/platform/functions";
-import { Constants } from "../constants";
-import { App } from "vue";
-import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
-import {
-    绑定对话框事件,
-    挂载标题Vue组件,
-    创建输入框键盘事件处理器,
-    进入全屏模式,
-    退出全屏模式,
-    初始化对话框内容,
-    添加对话框到DOM,
-    执行销毁清理
-} from "./dialogHelpers";
-import { IDialogOptions } from "./dialog.types";
+/** 用途：生成唯一 ID。使用范围：对话框实例标识。解耦评估：通过 ./imports 转发。 */
+import { genUUID } from "./imports";
+/** 用途：Protyle 编辑器类型。使用范围：Dialog 类属性类型。解耦评估：通过 ./imports 转发。 */
+import type { Protyle } from "./imports";
+/** 用途：移动端判断。使用范围：对话框尺寸适配。解耦评估：通过 ./imports 转发。 */
+import { isMobile } from "./imports";
+/** 用途：系统常量。使用范围：对话框配置。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：应用实例类型。使用范围：Dialog 上下文。解耦评估：通过 ./imports 转发。 */
+import type { App } from "./imports";
+/** 用途：推送对话框到全局列表。使用范围：构造函数注册。解耦评估：通过 ./imports 转发。 */
+import { pushSiyuanDialog } from "./imports";
+/** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
+/** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
+import { isNotCtrl } from "./imports";
+/** 用途：对话框事件和渲染函数。使用范围：对话框初始化。解耦评估：同目录模块。 */
+import { 绑定对话框事件 } from "./dialogHelpers.events";
+/** 用途：挂载 Vue 标题组件。使用范围：对话框标题渲染。解耦评估：同目录模块。 */
+import { 挂载标题Vue组件 } from "./dialogHelpers.lifecycle";
+/** 用途：创建键盘事件处理器。使用范围：对话框输入框。解耦评估：同目录模块。 */
+import { 创建输入框键盘事件处理器 } from "./dialogHelpers.events";
+/** 用途：进入全屏模式。使用范围：对话框全屏。解耦评估：同目录模块。 */
+import { 进入全屏模式 } from "./dialogHelpers";
+/** 用途：退出全屏模式。使用范围：对话框全屏。解耦评估：同目录模块。 */
+import { 退出全屏模式 } from "./dialogHelpers";
+/** 用途：初始化对话框内容。使用范围：对话框创建。解耦评估：同目录模块。 */
+import { 初始化对话框内容 } from "./dialogHelpers.lifecycle";
+/** 用途：添加对话框到 DOM。使用范围：对话框显示。解耦评估：同目录模块。 */
+import { 添加对话框到DOM } from "./dialogHelpers.lifecycle";
+/** 用途：执行销毁清理。使用范围：对话框销毁。解耦评估：同目录模块。 */
+import { 执行销毁清理 } from "./dialogHelpers.lifecycle";
+/** 用途：HTMLElement 类型守卫。使用范围：对话框 DOM 操作。解耦评估：同目录守卫文件。 */
 import { isHTMLElement } from "./dialog.guard";
-import { isNotCtrl } from "../protyle/util/compatibility";
+/** 用途：对话框拖拽调整大小。使用范围：对话框初始化。解耦评估：同目录模块。 */
+import { moveResize } from "./imports";
 
-export type { IDialogOptions } from "./dialog.types";
+/** 用途：对话框选项类型。使用范围：Dialog 构造函数。解耦评估：同目录类型文件。 */
+import { IDialogOptions } from "./dialog.types";
+/** 导出 IDialogOptions 类型 */
+export type { IDialogOptions };
 
+/** 对话框组件类 */
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
@@ -89,7 +108,7 @@ export class Dialog {
      * @调用时机: 用户点击对话框标题栏的全屏按钮时，或在全屏状态下按 ESC 键时调用。
      * @问题/改进: 无已知问题。
      */
-    public fullscreen(): void {
+    public fullscreen() {
         const container = this.element.querySelector(".b3-dialog__container");
         if (!isHTMLElement(container)) {
             return;
@@ -116,12 +135,15 @@ export class Dialog {
         }
     }
 
+    /** 处理对话框尺寸变化 */
     public resize() {
-        if (this.resizeCallback) {
-            const containerElement = this.element.querySelector(".b3-dialog__container") as HTMLElement;
-            if (containerElement && containerElement.style.maxWidth !== "none") {
-                this.resizeCallback("l");
-            }
+        if (!this.resizeCallback) {
+            return;
+        }
+        const containerElement = this.element.querySelector(".b3-dialog__container");
+        // 非全屏模式下触发尺寸回调
+        if (containerElement instanceof HTMLElement && containerElement.style.maxWidth !== "none") {
+            this.resizeCallback("l");
         }
     }
 
@@ -184,7 +206,7 @@ export class Dialog {
         type: string,
         listener: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
-    ): void {
+    ) {
         const listenerOptions = typeof options === "boolean"
             ? { capture: options, signal: this.abortController.signal }
             : { ...options, signal: this.abortController.signal };

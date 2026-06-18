@@ -119,13 +119,21 @@ export interface 获取图片参数 {
     imageUrl: string;
 }
 
-// 英文别名导出
+/** 英文别名导出 */
 export type GenerationParams = 生成参数;
+/** 英文别名导出 */
 export type TaskResponse = 任务响应;
+/* 英文别名导出 */
 export type TaskStatusResponse = 任务状态响应;
+/** 英文别名导出 */
 export type ApiError = API错误;
+/** 英文别名导出 */
 export type SiyuanProxyData = 思源代理响应;
+/** 英文别名导出 */
 export type SubmitGenerationTaskParams = 提交生成任务参数;
+/** 英文别名导出 */
 export type GetTaskStatusParams = 获取任务状态参数;
+/** 英文别名导出 */
 export type PollTaskParams = 轮询任务参数;
+/** 英文别名导出 */
 export type FetchImageParams = 获取图片参数;

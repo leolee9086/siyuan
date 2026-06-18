@@ -4,7 +4,7 @@ import hintNavigationHelpers from "./helpers/hintNavigation";
 const TREE_SCROLL_OFFSET = 46;
 
 /** 统一消费方向键事件。 */
-const consumeHintEvent = (event: KeyboardEvent): void => {
+const consumeHintEvent = (event: KeyboardEvent) => {
     event.preventDefault();
     event.stopPropagation();
 };
@@ -16,7 +16,7 @@ const moveTreeResolvedHintElement = (
     targetElement: HTMLElement,
     classActiveName: string,
     keepPreviousContext = false
-): HTMLElement => {
+) => {
     currentHintElement.classList.remove(classActiveName);
     return hintNavigationHelpers.selectHintElement(listElement, targetElement, classActiveName, TREE_SCROLL_OFFSET, keepPreviousContext);
 };
@@ -26,7 +26,7 @@ const resolveInitialHintElement = (
     listElement: Element,
     classActiveName: string,
     defaultElement?: Element
-): HTMLElement | undefined => {
+) => {
     const currentHintElement = hintNavigationHelpers.getCurrentHintElement(listElement, classActiveName);
     const hasCurrentHintElement = !!currentHintElement;
     if (hasCurrentHintElement) {
@@ -42,7 +42,7 @@ const resolveInitialHintElement = (
  * 问题/改进：当前仍以 `height === 0` 作为可见性近似判断，若后续有更明确标记可继续收敛。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const isAbnormalItem = (currentHintElement: HTMLElement | undefined, className: string): boolean => {
+export const isAbnormalItem = (currentHintElement: HTMLElement | undefined, className: string) => {
     const hasElement = !!currentHintElement;
     if (!hasElement) {
         return true;
@@ -66,7 +66,7 @@ export const upDownHint = (
     event: KeyboardEvent,
     classActiveName = "b3-list-item--focus",
     defaultElement?: Element
-): HTMLElement | undefined => {
+) => {
     const currentHintElement = resolveInitialHintElement(listElement, classActiveName, defaultElement);
     const hasCurrentHintElement = !!currentHintElement;
     if (!hasCurrentHintElement) {
@@ -111,7 +111,7 @@ export const UDLRHint = (
     event: KeyboardEvent,
     classActiveName = "b3-list-item--focus",
     defaultElement?: Element
-): HTMLElement | undefined => {
+) => {
     const currentHintElement = resolveInitialHintElement(listElement, classActiveName, defaultElement);
     const hasCurrentHintElement = !!currentHintElement;
     if (!hasCurrentHintElement) {

@@ -3,7 +3,7 @@ import {updateTransaction} from "../../wysiwyg/transaction";
 import {
     focusByWbr,
     focusByRange,
-} from "./selection";
+} from "../selection";
 import {scrollCenter} from "../../../util/DOM/highlightById";
 import {getColIndex} from "./table";
 import {

@@ -23,7 +23,7 @@ import {isHTMLElement, isHTMLElementNode} from "./mathRender.guard";
  * 调用时机：renderSingleMathElement 中判断为块级公式时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 操作 DOM 结构 */
-export function renderBlockMath(mathElement: HTMLElement, mathHTML: string): void {
+export function renderBlockMath(mathElement: HTMLElement, mathHTML: string) {
     genRenderFrame(mathElement);
     const renderContainer = mathElement.firstElementChild?.firstElementChild;
     // renderContainer 可能因 DOM 结构异常而不存在，此时跳过渲染
@@ -67,7 +67,7 @@ export function renderBlockMath(mathElement: HTMLElement, mathHTML: string): voi
 function applyInlineOverflowStyle(
     mathElement: HTMLElement,
     blockElement: HTMLElement | false
-): void {
+) {
     // 公式宽度超过块元素宽度时，启用横向滚动以防止布局溢出
     if (blockElement && mathElement.getBoundingClientRect().width > blockElement.clientWidth) {
         mathElement.style.maxWidth = "100%";
@@ -90,7 +90,7 @@ function applyInlineOverflowStyle(
  * 调用时机：fixInlineAfterSibling 中判断无后方兄弟时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function fixInlineNoNextSibling(mathElement: HTMLElement): void {
+function fixInlineNoNextSibling(mathElement: HTMLElement) {
     const parentTag = mathElement.parentElement?.tagName ?? "";
     // 表格单元格中使用零宽空格而非换行符，避免表格编辑问题
     // REF: https://ld246.com/article/1629191424824
@@ -111,7 +111,7 @@ function fixInlineNoNextSibling(mathElement: HTMLElement): void {
  * 调用时机：fixInlineAfterSibling 中后方兄弟为文本节点时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function fixInlineTextNextSibling(mathElement: HTMLElement, nextSibling: Node): void {
+function fixInlineTextNextSibling(mathElement: HTMLElement, nextSibling: Node) {
     const text = nextSibling.textContent ?? "";
     // 后方文本不以换行开头且不是零宽空格时，插入 FEFF 防止删除异常
     // REF: https://ld246.com/article/1647157880974
@@ -129,7 +129,7 @@ function fixInlineTextNextSibling(mathElement: HTMLElement, nextSibling: Node): 
  * 调用时机：行内公式渲染完成后调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 操作 DOM 兄弟节点 */
-function fixInlineAfterSibling(mathElement: HTMLElement): void {
+function fixInlineAfterSibling(mathElement: HTMLElement) {
     const nextSibling = hasNextSibling(mathElement);
 
     // 无后方兄弟节点时，需要插入字符确保光标可达公式末尾
@@ -164,7 +164,7 @@ function fixInlineAfterSibling(mathElement: HTMLElement): void {
  * 调用时机：行内公式渲染完成后调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function fixInlineBeforeSibling(mathElement: HTMLElement): void {
+function fixInlineBeforeSibling(mathElement: HTMLElement) {
     // 前方兄弟以换行结尾时，插入零宽空格确保光标可达段首
     // REF: https://ld246.com/article/1623551823742
     if (mathElement.previousSibling?.textContent?.endsWith("\n")) {
@@ -187,7 +187,7 @@ function fixInlineBeforeSibling(mathElement: HTMLElement): void {
  * 调用时机：renderSingleMathElement 中判断为行内公式时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 操作 DOM 结构和样式 */
-export function renderInlineMath(mathElement: HTMLElement, mathHTML: string): void {
+export function renderInlineMath(mathElement: HTMLElement, mathHTML: string) {
     mathElement.classList.remove("ft__error");
     mathElement.innerHTML = mathHTML;
     const blockElement = hasClosestBlock(mathElement);
@@ -204,7 +204,7 @@ export function renderInlineMath(mathElement: HTMLElement, mathHTML: string): vo
  * 调用时机：renderSingleMathElement 中 maxWidth=true 且为块级公式时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-export function scaleBlockMathForExport(mathElement: HTMLElement): void {
+export function scaleBlockMathForExport(mathElement: HTMLElement) {
     const katexElement = mathElement.querySelector(".katex-display");
     // katexElement 不存在或不是 HTMLElement 时无法测量尺寸
     if (!isHTMLElement(katexElement)) {
@@ -230,7 +230,7 @@ export function scaleBlockMathForExport(mathElement: HTMLElement): void {
  * 调用时机：renderSingleMathElement 中 maxWidth=true 且为行内公式时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-export function scaleInlineMathForExport(mathElement: HTMLElement): void {
+export function scaleInlineMathForExport(mathElement: HTMLElement) {
     const blockElement = hasClosestBlock(mathElement);
     // 行内公式宽度未超过块元素宽度时无需缩放
     if (!blockElement || mathElement.offsetWidth <= blockElement.clientWidth) {

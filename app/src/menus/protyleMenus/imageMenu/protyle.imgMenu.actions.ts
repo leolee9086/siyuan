@@ -23,7 +23,7 @@ import { getSiyuanConfig } from "./imports";
  * 调用时机：copy 与 cut 动作执行时。
  * 问题/改进：后续可按需求扩展更多 URL 规范化规则。
  */
-const 生成复制文本 = (protyle: IProtyle, assetElement: HTMLElement): string => {
+const 生成复制文本 = (protyle: IProtyle, assetElement: HTMLElement) => {
     const markdown = protyle.lute.BlockDOM2StdMd(assetElement.outerHTML);
     return markdown.replace(/%20/g, " ");
 };
@@ -41,7 +41,7 @@ const 执行删除并提交事务 = (
     id: string,
     html: string,
     range: Range
-): void => {
+) => {
     assetElement.outerHTML = "<wbr>";
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
     updateTransaction(protyle, id, nodeElement.outerHTML, html);
@@ -54,7 +54,7 @@ const 执行删除并提交事务 = (
  * 调用时机：创建 copyAsPNG 菜单项时。
  * 问题/改进：后续若快捷键来源调整，只需修改此处。
  */
-const 读取复制为PNG快捷键 = (): string => {
+const 读取复制为PNG快捷键 = () => {
     return getSiyuanConfig().keymap.editor.general.copyBlockRef.custom;
 };
 
@@ -64,7 +64,7 @@ const 读取复制为PNG快捷键 = (): string => {
  * 调用时机：copy 菜单项点击时。
  * 问题/改进：后续可扩展“复制纯文本/HTML”模式。
  */
-const 执行复制图片Markdown = (protyle: IProtyle, assetElement: HTMLElement): void => {
+const 执行复制图片Markdown = (protyle: IProtyle, assetElement: HTMLElement) => {
     const content = 生成复制文本(protyle, assetElement);
     writeText(content);
 };
@@ -75,7 +75,7 @@ const 执行复制图片Markdown = (protyle: IProtyle, assetElement: HTMLElement
  * 调用时机：copyImageURL 菜单项点击时。
  * 问题/改进：后续可增加复制 data-src 的可选模式。
  */
-const 执行复制图片链接 = (imgElement: HTMLImageElement): void => {
+const 执行复制图片链接 = (imgElement: HTMLImageElement) => {
     const src = imgElement.getAttribute("src") || "";
     writeText(src);
 };
@@ -86,7 +86,7 @@ const 执行复制图片链接 = (imgElement: HTMLImageElement): void => {
  * 调用时机：copyAsPNG 菜单项点击时。
  * 问题/改进：后续可增加失败提示反馈。
  */
-const 执行复制为PNG = (imgElement: HTMLImageElement): void => {
+const 执行复制为PNG = (imgElement: HTMLImageElement) => {
     const src = imgElement.getAttribute("src") || "";
     copyPNGByLink(src);
 };
@@ -104,7 +104,7 @@ const 执行剪切图片 = (
     id: string,
     html: string,
     range: Range
-): void => {
+) => {
     const content = 生成复制文本(protyle, assetElement);
     writeText(content);
     执行删除并提交事务(protyle, assetElement, nodeElement, id, html, range);

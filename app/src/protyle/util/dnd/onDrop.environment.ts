@@ -11,7 +11,7 @@
  * @returns 工作空间目录路径字符串
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽事件处理中同步读取配置，无法异步 */
-export const getWorkspaceDir = (): string => {
+export const getWorkspaceDir = () => {
     return window.siyuan?.config?.system?.workspaceDir ?? "";
 };
 
@@ -20,7 +20,7 @@ export const getWorkspaceDir = (): string => {
  * @returns 动态加载块数量
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽事件处理中同步读取配置，无法异步 */
-export const getDynamicLoadBlocks = (): number => {
+export const getDynamicLoadBlocks = () => {
     return window.siyuan?.config?.editor?.dynamicLoadBlocks ?? 0;
 };
 
@@ -29,7 +29,7 @@ export const getDynamicLoadBlocks = (): number => {
  * @returns 拖拽元素或 undefined
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽状态必须同步读取 */
-export const getDragElement = (): HTMLElement | undefined => {
+export const getDragElement = () => {
     return window.siyuan?.dragElement;
 };
 
@@ -38,7 +38,7 @@ export const getDragElement = (): HTMLElement | undefined => {
  * 调用时机：拖拽操作结束后的清理阶段
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽清理必须同步执行 */
-export const clearDragElement = (): void => {
+export const clearDragElement = () => {
     const el = window.siyuan?.dragElement;
     if (!el) {
         return;

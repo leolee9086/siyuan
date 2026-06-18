@@ -3,12 +3,22 @@
  * 用于替代 as 类型断言，提供运行时类型检查
  */
 
+/** 用途：窗口类型。使用范围：dock.guard 类型守卫。解耦评估：通过 imports.ts 转发。 */
+import { Wnd } from "./imports";
+/** 用途：布局类型。使用范围：dock.guard 类型守卫。解耦评估：通过 imports.ts 转发。 */
+import type { Layout } from "./imports";
+/** 用途：Model 构造函数/工厂函数类型。使用范围：dock.guard 类型守卫。解耦评估：同目录类型文件。 */
+import type { ModelConstructor } from "./dock.types";
+/** 用途：Model 工厂函数类型。使用范围：dock.guard 类型守卫。解耦评估：同目录类型文件。 */
+import type { ModelFactory } from "./dock.types";
+/** 用途：自定义列表类型。使用范围：dock.guard 类型检查。解耦评估：同目录模块。 */
+import type { ICustomList } from "./customBlockLists/CustomLists";
+/** 用途：DOM 元素类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
+import { isStylableElement } from "./imports";
+/** 用途：HTMLElement 类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
+import { isHTMLElement } from "./imports";
 
-import { Wnd } from "../Wnd";
-import type { Layout } from "../index";
-import { ModelConstructor, ModelFactory } from "./dock.types";
-import { ICustomList } from "./customBlockLists/CustomLists";
-import { isStylableElement, isHTMLElement } from "../../util/DOM/element.guard";
+/** 导出 DOM 类型守卫，供外部模块使用 */
 export { isStylableElement, isHTMLElement };
 
 const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];

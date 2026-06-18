@@ -47,6 +47,7 @@ import type { IBazaarSecurityStats } from "./types";
  * 调用时机：每次 fetchSyncPost 返回后立即调用。
  * 问题/改进：当前错误信息依赖后端 msg，后续可补充错误码映射。
  */
+/** @显式返回类型原因: 泛型函数需要显式返回类型以约束类型推导 */
 const ensureOK = <T>(response: IWebSocketData, fallbackMsg: string): T => {
     if (!response || typeof response.code !== "number") {
         throw new Error(fallbackMsg);
@@ -63,7 +64,7 @@ const ensureOK = <T>(response: IWebSocketData, fallbackMsg: string): T => {
  * 调用时机：集市广场与发布设置页面初始化时调用。
  */
 /** 导出 getBazaarWorkspaceBundle 供 bazaar-hub 页面初始化流程使用 */
-export const getBazaarWorkspaceBundle = async (): Promise<IBazaarWorkspaceBundle> => {
+export const getBazaarWorkspaceBundle = async () => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/getPublishWorkspace", {});
     return ensureOK<IBazaarWorkspaceBundle>(response, "load bazaar publish workspace failed");
 };
@@ -77,7 +78,7 @@ export const setBazaarPublishConfig = async (payload: {
     publish?: Config.IBazaarPublish;
     security?: Config.IBazaarSecurity;
     hub?: Config.IBazaarHubPreference;
-}): Promise<IBazaarPublishWorkspace> => {
+}) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/setPublishConfig", payload);
     return ensureOK<IBazaarPublishWorkspace>(response, "save bazaar publish config failed");
 };
@@ -87,7 +88,7 @@ export const setBazaarPublishConfig = async (payload: {
  * 调用时机：发布设置页保存源表单时调用。
  */
 /** 导出 upsertBazaarSource 供第三方源管理流程使用 */
-export const upsertBazaarSource = async (source: Partial<Config.IBazaarSource>): Promise<Config.IBazaarSource> => {
+export const upsertBazaarSource = async (source: Partial<Config.IBazaarSource>) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/upsertSource", source);
     const data = ensureOK<{ source: Config.IBazaarSource }>(response, "save bazaar source failed");
     return data.source;
@@ -98,7 +99,7 @@ export const upsertBazaarSource = async (source: Partial<Config.IBazaarSource>):
  * 调用时机：发布设置页点击“移除”并确认后调用。
  */
 /** 导出 removeBazaarSource 供第三方源移除流程使用 */
-export const removeBazaarSource = async (sourceID: string): Promise<void> => {
+export const removeBazaarSource = async (sourceID: string) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/removeSource", { sourceID });
     ensureOK(response, "remove bazaar source failed");
 };
@@ -108,7 +109,7 @@ export const removeBazaarSource = async (sourceID: string): Promise<void> => {
  * 调用时机：发布设置页点击“测试”时调用。
  */
 /** 导出 testBazaarSource 供第三方源连通性测试使用 */
-export const testBazaarSource = async (payload: { sourceID?: string; url?: string; token?: string }): Promise<number> => {
+export const testBazaarSource = async (payload: { sourceID?: string; url?: string; token?: string }) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/testSource", payload);
     const data = ensureOK<{ packageCount: number }>(response, "test bazaar source failed");
     return data.packageCount || 0;
@@ -119,7 +120,7 @@ export const testBazaarSource = async (payload: { sourceID?: string; url?: strin
  * 调用时机：集市广场切换源或刷新时调用。
  */
 /** 导出 getBazaarSourcePackages 供集市广场列表加载流程使用 */
-export const getBazaarSourcePackages = async (sourceID: string): Promise<IBazaarPublishedIndex> => {
+export const getBazaarSourcePackages = async (sourceID: string) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/getSourcePackages", { sourceID });
     return ensureOK<IBazaarPublishedIndex>(response, "load source packages failed");
 };
@@ -129,7 +130,7 @@ export const getBazaarSourcePackages = async (sourceID: string): Promise<IBazaar
  * 调用时机：发布设置页点击“发布”按钮时调用。
  */
 /** 导出 publishBazaarPackage 供发布操作流程使用 */
-export const publishBazaarPackage = async (packageType: string, packageName: string): Promise<IBazaarPublishResult> => {
+export const publishBazaarPackage = async (packageType: string, packageName: string) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/publishPackage", {
         packageType,
         packageName,
@@ -150,7 +151,7 @@ export const installBazaarPackageFromSource = async (payload: {
     mode: number;
     frontend?: string;
     keyword?: string;
-}): Promise<IBazaarInstallFromSourceResult> => {
+}) => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/installPackageFromSource", payload);
     return ensureOK<IBazaarInstallFromSourceResult>(response, "install package from source failed");
 };
@@ -160,7 +161,7 @@ export const installBazaarPackageFromSource = async (payload: {
  * 调用时机：发布设置页初始化和刷新时调用。
  */
 /** 导出 getBazaarSecurityStats 供发布安全统计面板使用 */
-export const getBazaarSecurityStats = async (): Promise<IBazaarSecurityStats> => {
+export const getBazaarSecurityStats = async () => {
     const response = await fetchSyncPost("/api/s-forge/bazaar/securityStats", {});
     return ensureOK<IBazaarSecurityStats>(response, "load bazaar security stats failed");
 };

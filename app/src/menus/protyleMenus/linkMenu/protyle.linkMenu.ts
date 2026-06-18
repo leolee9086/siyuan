@@ -112,7 +112,7 @@ import { 添加链接操作菜单项 } from "./protyle.linkMenu.items";
 // ────────────────────────────────────────────────────────────
 
 /** 显示菜单弹窗 */
-const 显示菜单弹窗 = (linkElement: HTMLElement, protyle: IProtyle): void => {
+const 显示菜单弹窗 = (linkElement: HTMLElement, protyle: IProtyle) => {
     // 移动端使用全屏菜单
     if (isMobile) {
         getSiyuanGlobalMenusMenu().fullscreen();
@@ -133,7 +133,7 @@ const 显示菜单弹窗 = (linkElement: HTMLElement, protyle: IProtyle): void =
 };
 
 /** 更新标题属性 */
-const 更新标题属性 = (ctx: LinkMenuContext): void => {
+const 更新标题属性 = (ctx: LinkMenuContext) => {
     if (!ctx.inputElements) {
         return;
     }
@@ -151,7 +151,7 @@ const 更新标题属性 = (ctx: LinkMenuContext): void => {
 };
 
 /** 更新链接地址 */
-const 更新链接地址 = (ctx: LinkMenuContext): void => {
+const 更新链接地址 = (ctx: LinkMenuContext) => {
     if (!ctx.inputElements) {
         return;
     }
@@ -170,7 +170,7 @@ const 更新链接地址 = (ctx: LinkMenuContext): void => {
 };
 
 /** 处理空锚文本 */
-const 处理空锚文本 = (ctx: LinkMenuContext): void => {
+const 处理空锚文本 = (ctx: LinkMenuContext) => {
     if (!ctx.inputElements) {
         return;
     }
@@ -187,7 +187,7 @@ const 处理空锚文本 = (ctx: LinkMenuContext): void => {
 };
 
 /** 恢复焦点 */
-const 恢复焦点 = (ctx: LinkMenuContext): void => {
+const 恢复焦点 = (ctx: LinkMenuContext) => {
     const currentRange = getSelection()?.rangeCount === 0 ? undefined : getSelection()?.getRangeAt(0);
     const toolbarRange = ctx.protyle.toolbar?.range;
     // 当存在选区但选区不在编辑器内且工具栏 range 存在时，将焦点恢复到链接元素
@@ -199,7 +199,7 @@ const 恢复焦点 = (ctx: LinkMenuContext): void => {
 };
 
 /** 处理空链接删除 */
-const 处理空链接删除 = (ctx: LinkMenuContext): boolean => {
+const 处理空链接删除 = (ctx: LinkMenuContext) => {
     if (!ctx.inputElements) {
         return false;
     }
@@ -218,7 +218,7 @@ const 处理空链接删除 = (ctx: LinkMenuContext): boolean => {
 };
 
 /** 设置菜单关闭时的回调 */
-const 设置菜单关闭回调 = (ctx: LinkMenuContext): void => {
+const 设置菜单关闭回调 = (ctx: LinkMenuContext) => {
     if (!ctx.inputElements) {
         return;
     }
@@ -239,7 +239,7 @@ const 设置菜单关闭回调 = (ctx: LinkMenuContext): void => {
 };
 
 /** 设置初始焦点 */
-const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean): void => {
+const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean) => {
     if (!ctx.inputElements) {
         return;
     }

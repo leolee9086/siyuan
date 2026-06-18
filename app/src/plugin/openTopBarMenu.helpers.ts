@@ -17,7 +17,10 @@ import {Menu} from "./Menu";
  * @使用范围: addManageMenuItem 函数
  * @解耦评估: 工具函数，通过 imports 转发
  */
-import {isHuawei, setTabPosition} from "./imports";
+/** @导入用途: 华为设备检测 @使用范围: 管理菜单项 @解耦评估: 平台检测工具 */
+import {isHuawei} from "./imports";
+/** @导入用途: 设置页签位置 @使用范围: 布局管理 @解耦评估: UI 工具函数 */
+import {setTabPosition} from "./imports";
 
 /**
  * @导入用途: 存储值设置，用于保存固定/取消固定状态
@@ -260,7 +263,7 @@ export const processPluginTopBarIcons = (
     languages: Record<string, string>,
     storage: Record<string, string[]>,
     hasSetting: boolean
-): boolean => {
+) => {
     let hasTopBar = false;
     
     for (let i = 0; i < plugin.topBarIcons.length; i++) {

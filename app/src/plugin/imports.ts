@@ -24,6 +24,7 @@ import {fetchSyncPost} from "../util/network/fetch";
  * @解耦评估: UI 工具函数可抽象事件触发，但当前直接调用更清晰
  */
 import {resizeTopBar} from "../layout/util";
+/** @导入用途: 设置页签位置 @使用范围: Setting.ts 中布局管理 @解耦评估: UI 工具函数 */
 import {setTabPosition} from "../layout/tabUtil";
 
 /**

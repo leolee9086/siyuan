@@ -5,7 +5,7 @@ import { getSelectionOffset } from "../util/selection";
 import { matchHotKey } from "../util/hotKey";
 import { removeBlock, removeImage } from "./remove";
 import { updateTransaction } from "./transaction";
-import { clearTableCell } from "../util/table";
+import { clearTableCell } from "../util/table/table";
 import { getNextBlock } from "./getBlock";
 import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";
 import { Constants } from "../../constants";

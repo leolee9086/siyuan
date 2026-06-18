@@ -109,7 +109,7 @@ const convertRectToPdfCoords = (
     r: IRectBounds,
     pageRect: DOMRect,
     viewport: { convertToPdfPoint: (x: number, y: number) => number[] }
-): number[] => {
+) => {
     const topLeft = viewport.convertToPdfPoint(r.left - pageRect.x, r.top - pageRect.y);
     const bottomRight = viewport.convertToPdfPoint(r.right - pageRect.x, r.bottom - pageRect.y);
     return topLeft.concat(bottomRight);
@@ -118,7 +118,7 @@ const convertRectToPdfCoords = (
 /**
  * 处理页面选区，返回选中的坐标
  */
-const processPageSelection = (pdf: IPdfInstance, pageIndex: number, range: Range): number[] => {
+const processPageSelection = (pdf: IPdfInstance, pageIndex: number, range: Range) => {
     const page = pdf.pdfViewer.getPageView(pageIndex);
     if (!page) {
         return [];

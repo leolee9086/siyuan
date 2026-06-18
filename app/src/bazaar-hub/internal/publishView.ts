@@ -11,7 +11,7 @@ import type { IBazaarSecurityStats } from "./imports";
 import type { IBazaarWorkspaceBundle } from "./imports";
 
 /** 用途：格式化时间。意图：统一发布时间与最近请求时间显示。调用时机：渲染表格。问题/改进：当前使用浏览器本地格式。 */
-const formatDateTime = (timestamp: number): string => {
+const formatDateTime = (timestamp: number) => {
     if (!timestamp) {
         return "-";
     }
@@ -19,7 +19,7 @@ const formatDateTime = (timestamp: number): string => {
 };
 
 /** 用途：包类型映射标签。意图：提升表格可读性。调用时机：渲染已安装包与发布记录。问题/改进：新增类型需补充映射。 */
-const packageTypeLabel = (packageType: string): string => {
+const packageTypeLabel = (packageType: string) => {
     const labelMap: Record<string, string> = {
         plugins: "插件",
         widgets: "挂件",
@@ -31,7 +31,7 @@ const packageTypeLabel = (packageType: string): string => {
 };
 
 /** 用途：渲染默认源下拉选项。意图：同步默认源配置。调用时机：页面渲染。问题/改进：当前按 sources 顺序输出。 */
-const renderSourceOptions = (bundle: IBazaarWorkspaceBundle): string => {
+const renderSourceOptions = (bundle: IBazaarWorkspaceBundle) => {
     let optionsHTML = "<option value=\"\">(自动)</option>";
     for (const source of bundle.workspace.sources) {
         const selected = source.id === bundle.workspace.hub.defaultSourceID ? " selected" : "";
@@ -41,7 +41,7 @@ const renderSourceOptions = (bundle: IBazaarWorkspaceBundle): string => {
 };
 
 /** 用途：渲染源管理表格行。意图：集中管理源状态与操作按钮。调用时机：页面渲染。问题/改进：当前为字符串模板拼接。 */
-const renderSourceRows = (bundle: IBazaarWorkspaceBundle): string => {
+const renderSourceRows = (bundle: IBazaarWorkspaceBundle) => {
     if (!bundle.workspace.sources.length) {
         return "<tr><td colspan=\"4\" class=\"bazaar-publish__empty-cell\">暂无第三方源</td></tr>";
     }
@@ -67,7 +67,7 @@ const renderSourceRows = (bundle: IBazaarWorkspaceBundle): string => {
 };
 
 /** 用途：渲染可发布包表格行。意图：集中处理 installed 结构遍历。调用时机：页面渲染。问题/改进：当前按对象遍历顺序展示。 */
-const renderInstalledRows = (bundle: IBazaarWorkspaceBundle): string => {
+const renderInstalledRows = (bundle: IBazaarWorkspaceBundle) => {
     let rowsHTML = "";
     for (const [packageType, list] of Object.entries(bundle.workspace.installed || {})) {
         for (const item of list || []) {
@@ -87,7 +87,7 @@ const renderInstalledRows = (bundle: IBazaarWorkspaceBundle): string => {
 };
 
 /** 用途：渲染发布记录表格行。意图：统一发布记录输出。调用时机：页面渲染。问题/改进：当前为全量记录展示。 */
-const renderPublishedRows = (bundle: IBazaarWorkspaceBundle): string => {
+const renderPublishedRows = (bundle: IBazaarWorkspaceBundle) => {
     const packages = bundle.published.packages || [];
     if (!packages.length) {
         return "<tr><td colspan=\"5\" class=\"bazaar-publish__empty-cell\">暂无发布记录</td></tr>";
@@ -108,7 +108,7 @@ const renderPublishedRows = (bundle: IBazaarWorkspaceBundle): string => {
 };
 
 /** 用途：渲染安全统计区域。意图：统一统计头和客户端列表输出。调用时机：页面渲染。问题/改进：当前为快照展示。 */
-const renderSecurityStats = (stats: IBazaarSecurityStats | null): string => {
+const renderSecurityStats = (stats: IBazaarSecurityStats | null) => {
     if (!stats) {
         return "<div class=\"bazaar-publish__muted\">暂无统计数据</div>";
     }
@@ -126,7 +126,7 @@ const renderSecurityStats = (stats: IBazaarSecurityStats | null): string => {
 };
 
 /** 用途：构建 publish 页面 HTML。意图：把渲染模板集中在视图模块。调用时机：bundle 可用时渲染。问题/改进：当前仍是整页字符串模板。 */
-const buildPublishHTML = (bundle: IBazaarWorkspaceBundle, stats: IBazaarSecurityStats | null): string => {
+const buildPublishHTML = (bundle: IBazaarWorkspaceBundle, stats: IBazaarSecurityStats | null) => {
     const publish = bundle.workspace.publish;
     const security = bundle.workspace.security;
     const hub = bundle.workspace.hub;
@@ -168,14 +168,14 @@ const buildPublishHTML = (bundle: IBazaarWorkspaceBundle, stats: IBazaarSecurity
 /** 用途：渲染加载态。意图：加载中占位。调用时机：loadAll 开始。问题/改进：当前为简单文本。 */
 /** 导出 renderLoading 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const renderLoading = (container: HTMLElement): void => {
+export const renderLoading = (container: HTMLElement) => {
     container.innerHTML = "<div class=\"bazaar-publish__loading\">正在加载发布配置...</div>";
 };
 
 /** 用途：渲染 publish 页面。意图：统一加载态和正常态切换。调用时机：loadAll 完成。问题/改进：当前整页重绘。 */
 /** 导出 renderPublishPage 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const renderPublishPage = (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): void => {
+export const renderPublishPage = (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     if (!state.bundle) {
         renderLoading(container);
         return;

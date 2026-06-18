@@ -1,4 +1,6 @@
+/** 用途：forgeI18n 国际化加载函数。使用范围：MAGI 独立入口的 i18n 初始化。解耦评估：环境工具函数，通过 imports.ts 转发可降低路径耦合。 */
 import { loadForgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
+/** 用途：MagiBuildTarget 构建目标类型。使用范围：MAGI 入口配置参数类型。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiBuildTarget } from "./magiEntry.types";
 
 /**
@@ -28,8 +30,9 @@ function resolveDefaultLang() {
  */
 function getSiyuanRuntime() {
     const value = Reflect.get(window, "siyuan")||{};
+    // 运行时对象不存在或不是对象时，发出警告但不阻止后续流程
     if (!value || typeof value !== "object") {
-       console.warn("[magi-entry] window.siyuan is not defined or not an object");
+        console.warn("[magi-entry] window.siyuan is not defined or not an object");
     }
     return value ;
 }
@@ -109,7 +112,7 @@ export async function bootstrapMagiSiyuan(target: MagiBuildTarget) {
  * 意图：确保 Electron/Web 构建在运行时都写入正确 target 标记。
  * 调用时机：`index.ts` 启动阶段调用一次。
  */
-export async function resolveMagiDesktopTargetFromPathname(pathname: string): Promise<"magi-app" | "magi-desktop"> {
+export async function resolveMagiDesktopTargetFromPathname(pathname: string) {
     if (pathname.startsWith("/stage/build/magi-app/")) {
         return "magi-app";
     }

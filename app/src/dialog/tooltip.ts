@@ -1,6 +1,269 @@
-import {isMobile} from "../util/platform/functions";
+/**
+ * 用途：判断当前是否为移动端环境。
+ * 使用范围：tooltip 显示前的环境检测。
+ * 解耦评估：平台判断通过 imports.ts 转发，避免直接路径耦合。
+ */
+import { isMobile } from "./imports";
+/**
+ * 用途：获取视口宽度。
+ * 使用范围：tooltip 位置边界计算。
+ * 解耦评估：尺寸读取已被 environment 层封装。
+ */
+import { getWindowWidth } from "./imports";
+/**
+ * 用途：获取视口高度。
+ * 使用范围：tooltip 位置边界计算。
+ * 解耦评估：尺寸读取已被 environment 层封装。
+ */
+import { getWindowHeight } from "./imports";
+/**
+ * 用途：获取 DOMPurify 实例。
+ * 使用范围：tooltip HTML 内容安全过滤。
+ * 解耦评估：DOMPurify 读取已被 environment 层封装。
+ */
+import { getDOMPurify } from "./imports";
 
-export const showTooltip = (
+/**
+ * 用途：解析 position 属性中的偏移量数值部分
+ * 使用范围：tooltip 各方向定位计算
+ */
+const parsePositionDiff = (position: string | null, space: number) => {
+    return (position ? parseInt(position) : NaN) || space;
+};
+
+/**
+ * 用途：获取消息元素容器，清空之前的位置样式
+ * 使用范围：showTooltip 中每次显示前重置 tooltip 位置
+ */
+const getTooltipElement = () => {
+    const messageElement = document.getElementById("tooltip");
+    messageElement.removeAttribute("style");
+    return messageElement;
+};
+
+/**
+ * 用途：处理多行元素时选择最适合的 ClientRect
+ * 使用范围：当 target 跨行时调用
+ */
+const findTargetRect = (target: Element, event: MouseEvent | undefined, targetRect: DOMRect) => {
+    const clientRects = Array.from(target.getClientRects());
+    if (clientRects.length <= 1) {
+        return targetRect;
+    }
+    // 跨行元素：根据是否有鼠标事件选择合适的矩形
+    if (event) {
+        // 选择鼠标附近的矩形
+        let resultRect = targetRect;
+        for (const item of clientRects) {
+            // 判断鼠标 Y 坐标是否在当前行的垂直范围内（包含 3px 容差）
+            if (event.clientY >= item.top - 3 && event.clientY <= item.bottom) {
+                resultRect = item;
+            }
+        }
+        return resultRect;
+    }
+    // 选择宽度最大的矩形
+    let resultRect = targetRect;
+    let lastWidth = 0;
+    for (const item of clientRects) {
+        // 选出宽度最大的矩形作为 tooltip 的定位参考
+        if (item.width > lastWidth) {
+            resultRect = item;
+            lastWidth = item.width;
+        }
+    }
+    return resultRect;
+};
+
+/**
+ * 用途：在父元素右侧定位（parentE）
+ * 使用范围：文件树、大纲、反向链接等
+ */
+const positionParentE = (messageElement: HTMLElement, parentRect: DOMRect) => {
+    const windowHeight = getWindowHeight();
+    const windowWidth = getWindowWidth();
+    // 垂直居中于父元素
+    let top = Math.max(0, parentRect.top - (messageElement.clientHeight - parentRect.height) / 2);
+    // 防止 tooltip 超出视口下边界
+    if (top > windowHeight - messageElement.clientHeight) {
+        top = windowHeight - messageElement.clientHeight;
+    }
+    let left = parentRect.right + 8;
+    // 若右侧溢出则显示在左侧
+    if (left + messageElement.clientWidth > windowWidth) {
+        left = parentRect.left - messageElement.clientWidth - 8;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：在父元素左侧定位（parentW）
+ * 使用范围：属性视图、列、选择器等
+ */
+const positionParentW = (messageElement: HTMLElement, parentRect: DOMRect) => {
+    const windowHeight = getWindowHeight();
+    // 垂直居中于父元素
+    let top = Math.max(0, parentRect.top - (messageElement.clientHeight - parentRect.height) / 2);
+    // 防止 tooltip 超出视口下边界
+    if (top > windowHeight - messageElement.clientHeight) {
+        top = windowHeight - messageElement.clientHeight;
+    }
+    let left = parentRect.left - messageElement.clientWidth;
+    // 若左侧溢出则显示在右侧
+    if (left < 0) {
+        left = parentRect.right;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：在目标元素左侧定位（west）
+ * 使用范围：gutter、标题图标、av relation 等
+ */
+const positionWest = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+    const positionDiff = parsePositionDiff(position, space);
+    const windowHeight = getWindowHeight();
+    // 垂直居中于目标元素
+    let top = Math.max(0, targetRect.top - (messageElement.clientHeight - targetRect.height) / 2);
+    // 防止 tooltip 超出视口下边界
+    if (top > windowHeight - messageElement.clientHeight) {
+        top = windowHeight - messageElement.clientHeight;
+    }
+    let left = targetRect.left - messageElement.clientWidth - positionDiff;
+    // 若左侧溢出则显示在右侧
+    if (left < 0) {
+        left = targetRect.right;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：在目标元素右侧定位（east）
+ * 使用范围：布局菜单等
+ */
+const positionEast = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+    const positionDiff = parsePositionDiff(position, space);
+    const windowHeight = getWindowHeight();
+    const windowWidth = getWindowWidth();
+    // 垂直居中于目标元素
+    let top = Math.max(0, targetRect.top - (messageElement.clientHeight - targetRect.height) / 2);
+    // 防止 tooltip 超出视口下边界
+    if (top > windowHeight - messageElement.clientHeight) {
+        top = windowHeight - messageElement.clientHeight;
+    }
+    let left = targetRect.right + positionDiff;
+    // 若右侧溢出则显示在左侧
+    if (left + messageElement.clientWidth > windowWidth) {
+        left = targetRect.left - messageElement.clientWidth - positionDiff;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：当 north 定位上方空间不足时，选择下方或置顶
+ */
+const handleNorthTopOverflow = (targetRect: DOMRect, positionDiff: number, messageElement: HTMLElement, windowHeight: number) => {
+    // 下方空间更多时显示在元素下方
+    if (targetRect.top < windowHeight - targetRect.bottom) {
+        const top = targetRect.bottom + positionDiff;
+        messageElement.style.maxHeight = (windowHeight - top) + "px";
+        return top;
+    }
+    // 否则置顶显示
+    messageElement.style.maxHeight = (targetRect.top - positionDiff) + "px";
+    return 0;
+};
+
+/**
+ * 用途：在目标元素上方定位（north）
+ * 使用范围：属性视图、列、多选描述、protyle-icon 等
+ */
+const positionNorth = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+    const positionDiff = parsePositionDiff(position, space);
+    const windowHeight = getWindowHeight();
+    const windowWidth = getWindowWidth();
+    let left = Math.max(0, targetRect.left - (messageElement.clientWidth - targetRect.width) / 2);
+    let top = targetRect.top - messageElement.clientHeight - positionDiff;
+
+    // 若上方空间不足则根据可用空间决定显示位置
+    if (top < 0) {
+        top = handleNorthTopOverflow(targetRect, positionDiff, messageElement, windowHeight);
+    }
+    // 防止 tooltip 超出视口右边界
+    if (left + messageElement.clientWidth > windowWidth) {
+        left = windowWidth - messageElement.clientWidth;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：当 south 定位下方空间不足时，选择上方或限制高度
+ */
+const handleSouthBottomOverflow = (targetRect: DOMRect, positionDiff: number, top: number, messageElement: HTMLElement, windowHeight: number) => {
+    // 上方空间更多时显示在元素上方
+    if (targetRect.top - positionDiff > windowHeight - top) {
+        const newTop = Math.max(0, targetRect.top - positionDiff - messageElement.clientHeight);
+        messageElement.style.maxHeight = (targetRect.top - positionDiff) + "px";
+        return newTop;
+    }
+    // 否则限制最大高度
+    messageElement.style.maxHeight = (windowHeight - top) + "px";
+    return top;
+};
+
+/**
+ * 用途：在目标元素下方定位（south / 默认值）
+ * 使用范围：默认定位方式
+ */
+const positionSouth = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+    const positionDiff = parsePositionDiff(position, space);
+    const windowHeight = getWindowHeight();
+    const windowWidth = getWindowWidth();
+    let left = Math.max(0, targetRect.left - (messageElement.clientWidth - targetRect.width) / 2);
+    let top = targetRect.bottom + positionDiff;
+
+    // 若下方空间不足则调整显示位置
+    if (top + messageElement.clientHeight > windowHeight) {
+        top = handleSouthBottomOverflow(targetRect, positionDiff, top, messageElement, windowHeight);
+    }
+    // 防止 tooltip 超出视口右边界
+    if (left + messageElement.clientWidth > windowWidth) {
+        left = windowWidth - messageElement.clientWidth;
+    }
+    return { left, top };
+};
+
+/**
+ * 用途：根据 position 属性选择对应的定位策略并计算最终位置
+ * 使用范围：showTooltip 中确定 tooltip 展示位置
+ */
+const calculateTooltipPosition = (messageElement: HTMLElement, target: Element, targetRect: DOMRect, position: string | null, event: MouseEvent | undefined, space: number) => {
+    const parentRect = target.parentElement.getBoundingClientRect();
+
+    if (position === "parentE") {
+        return positionParentE(messageElement, parentRect);
+    }
+    if (position === "parentW") {
+        return positionParentW(messageElement, parentRect);
+    }
+    if (position?.endsWith("west")) {
+        return positionWest(messageElement, targetRect, position, space);
+    }
+    if (position?.endsWith("east")) {
+        return positionEast(messageElement, targetRect, position, space);
+    }
+    if (position?.endsWith("north")) {
+        return positionNorth(messageElement, targetRect, position, space);
+    }
+    // south / 默认值
+    return positionSouth(messageElement, targetRect, position, space);
+};
+
+/**
+ * 用途：显示 tooltip 提示信息，根据目标元素位置自动计算最佳展示方向
+ * 调用时机：当用户悬停或聚焦到需要提示信息的 UI 元素时调用
+ */
+export const showTooltip = async (
     message: string,
     target: Element,
     tooltipClass?: string,
@@ -11,122 +274,31 @@ export const showTooltip = (
         return;
     }
     let targetRect = target.getBoundingClientRect();
-    // 跨行元素
-    const clientRects = Array.from(target.getClientRects());
-    if (clientRects.length > 1) {
-        if (event) {
-            // 选择鼠标附近的矩形
-            clientRects.forEach(item => {
-                if (event.clientY >= item.top - 3 && event.clientY <= item.bottom) {
-                    targetRect = item;
-                }
-            });
-        } else {
-            // 选择宽度最大的矩形
-            let lastWidth = 0;
-            clientRects.forEach(item => {
-                if (item.width > lastWidth) {
-                    targetRect = item;
-                }
-                lastWidth = item.width;
-            });
-        }
-    }
+    // 处理跨行元素，选择合适的矩形
+    targetRect = findTargetRect(target, event, targetRect);
+
+    // 目标元素不可见时隐藏 tooltip
     if (targetRect.height === 0) {
-        hideTooltip();
+        await hideTooltip();
         return;
     }
-    const messageElement = document.getElementById("tooltip");
+    const messageElement = getTooltipElement();
     messageElement.className = tooltipClass ? `tooltip tooltip--${tooltipClass}` : "tooltip";
-    messageElement.innerHTML = window.DOMPurify.sanitize(message);
-    // 避免原本的 top 和 left 影响计算
-    messageElement.removeAttribute("style");
+    // 使用 DOMPurify 过滤 HTML 防止 XSS
+    messageElement.innerHTML = getDOMPurify().sanitize(message);
+
     const position = target.getAttribute("data-position");
-    const parentRect = target.parentElement.getBoundingClientRect();
+    const { left, top } = calculateTooltipPosition(messageElement, target, targetRect, position, event, space);
 
-    let left;
-    let top;
-    if (position === "parentE") {
-        // parentE: file tree and outline、backlink & viewcard
-        top = Math.max(0, parentRect.top - (messageElement.clientHeight - parentRect.height) / 2);
-        if (top > window.innerHeight - messageElement.clientHeight) {
-            top = window.innerHeight - messageElement.clientHeight;
-        }
-        left = parentRect.right + 8;
-        if (left + messageElement.clientWidth > window.innerWidth) {
-            left = parentRect.left - messageElement.clientWidth - 8;
-        }
-    } else if (position === "parentW") {
-        // ${number}parentW: av 属性视图 & col & select
-        top = Math.max(0, parentRect.top - (messageElement.clientHeight - parentRect.height) / 2);
-        if (top > window.innerHeight - messageElement.clientHeight) {
-            top = window.innerHeight - messageElement.clientHeight;
-        }
-        left = parentRect.left - messageElement.clientWidth;
-        if (left < 0) {
-            left = parentRect.right;
-        }
-    } else if (position?.endsWith("west")) {
-        // west: gutter & 标题图标 & av relation
-        const positionDiff = parseInt(position) || space;
-        top = Math.max(0, targetRect.top - (messageElement.clientHeight - targetRect.height) / 2);
-        if (top > window.innerHeight - messageElement.clientHeight) {
-            top = window.innerHeight - messageElement.clientHeight;
-        }
-        left = targetRect.left - messageElement.clientWidth - positionDiff;
-        if (left < 0) {
-            left = targetRect.right;
-        }
-    } else if (position?.endsWith("east")) {
-        // east: 布局菜单
-        const positionDiff = parseInt(position) || space;
-        top = Math.max(0, targetRect.top - (messageElement.clientHeight - targetRect.height) / 2);
-        if (top > window.innerHeight - messageElement.clientHeight) {
-            top = window.innerHeight - messageElement.clientHeight;
-        }
-        left = targetRect.right + positionDiff;
-        if (left + messageElement.clientWidth > window.innerWidth) {
-            left = targetRect.left - messageElement.clientWidth - positionDiff;
-        }
-    } else if (position?.endsWith("north")) {
-        // north: av 视图，列，多选描述, protyle-icon
-        const positionDiff = parseInt(position) || space;
-        left = Math.max(0, targetRect.left - (messageElement.clientWidth - targetRect.width) / 2);
-        top = targetRect.top - messageElement.clientHeight - positionDiff;
-        if (top < 0) {
-            if (targetRect.top < window.innerHeight - targetRect.bottom) {
-                top = targetRect.bottom + positionDiff;
-                messageElement.style.maxHeight = (window.innerHeight - top) + "px";
-            } else {
-                top = 0;
-                messageElement.style.maxHeight = (targetRect.top - positionDiff) + "px";
-            }
-        }
-        if (left + messageElement.clientWidth > window.innerWidth) {
-            left = window.innerWidth - messageElement.clientWidth;
-        }
-    } else {
-        // ${number}south & 默认值
-        const positionDiff = parseInt(position) || space;
-        left = Math.max(0, targetRect.left - (messageElement.clientWidth - targetRect.width) / 2);
-        top = targetRect.bottom + positionDiff;
-
-        if (top + messageElement.clientHeight > window.innerHeight) {
-            if (targetRect.top - positionDiff > window.innerHeight - top) {
-                top = Math.max(0, targetRect.top - positionDiff - messageElement.clientHeight);
-                messageElement.style.maxHeight = (targetRect.top - positionDiff) + "px";
-            } else {
-                messageElement.style.maxHeight = (window.innerHeight - top) + "px";
-            }
-        }
-        if (left + messageElement.clientWidth > window.innerWidth) {
-            left = window.innerWidth - messageElement.clientWidth;
-        }
-    }
     messageElement.style.top = top + "px";
     messageElement.style.left = Math.max(0, left) + "px";
 };
 
-export const hideTooltip = () => {
-    document.getElementById("tooltip").classList.add("fn__none");
+/**
+ * 用途：隐藏 tooltip 提示信息
+ * 调用时机：当用户移出目标元素或 tooltip 超时时调用
+ */
+export const hideTooltip = async () => {
+    const tooltipElement = document.getElementById("tooltip");
+    tooltipElement.classList.add("fn__none");
 };

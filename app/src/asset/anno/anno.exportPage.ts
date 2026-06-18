@@ -1,4 +1,6 @@
+/** 用途：获取 Canvas 截图。使用范围：PDF 页面导出。解耦评估：同目录模块直接导入。 */
 import { getCaptureCanvas } from "./anno.getCaptureCanvas";
+/** 用途：PDF 实例类型。使用范围：导出函数参数类型。解耦评估：同目录类型文件。 */
 import { IPdfInstance } from "./anno.types";
 
 /**
@@ -11,7 +13,7 @@ import { IPdfInstance } from "./anno.types";
  * @param dataUrl - 文件的数据URL
  * @param fileName - 下载的文件名
  */
-function 触发下载(dataUrl: string, fileName: string): void {
+function 触发下载(dataUrl: string, fileName: string) {
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = fileName;
@@ -31,7 +33,7 @@ function 触发下载(dataUrl: string, fileName: string): void {
  * @param extension - 文件扩展名
  * @returns 格式如 "prefix_20260102_011516.extension" 的文件名
  */
-function 生成下载文件名(prefix: string, extension: string): string {
+function 生成下载文件名(prefix: string, extension: string) {
     const now = new Date();
     const timestamp = now.toISOString()
         .replace(/[-:T]/g, "")

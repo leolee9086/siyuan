@@ -1,4 +1,7 @@
-import { VueComponentMountConfig, VueComponentLoaderContext } from "../util/vue/mount";
+/** 用途：Vue 组件挂载配置类型。使用范围：dialog.types 接口定义。解耦评估：通过 imports.ts 转发。 */
+import type { VueComponentMountConfig } from "./imports";
+/** 用途：Vue 组件加载上下文类型。使用范围：dialog.types 接口定义。解耦评估：通过 imports.ts 转发。 */
+import type { VueComponentLoaderContext } from "./imports";
 
 /**
  * 对话框选项接口

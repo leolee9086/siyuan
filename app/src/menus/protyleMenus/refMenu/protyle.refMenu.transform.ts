@@ -21,7 +21,7 @@ import { blockRender } from "./imports";
  * 调用时机：所有需要访问 `toolbar.range` 的转换动作执行前。
  * 问题/改进：当 toolbar 不可用时仅返回 undefined，调用方需自行决定降级策略。
  */
-const 获取工具栏Range = (protyle: IProtyle): Range | undefined => {
+const 获取工具栏Range = (protyle: IProtyle) => {
     return protyle.toolbar?.range;
 };
 
@@ -31,7 +31,7 @@ const 获取工具栏Range = (protyle: IProtyle): Range | undefined => {
  * 调用时机：引用转换完成后需要回到编辑位置时。
  * 问题/改进：toolbar 缺失时会静默跳过聚焦，后续可评估是否需要显式 fallback。
  */
-const 聚焦工具栏Range = (protyle: IProtyle): void => {
+const 聚焦工具栏Range = (protyle: IProtyle) => {
     const toolbarRange = 获取工具栏Range(protyle);
     if (toolbarRange) {
         focusByRange(toolbarRange);
@@ -49,7 +49,7 @@ const 提交引用事务 = (
     id: string | null,
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string }
-): void => {
+) => {
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
     updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
@@ -68,7 +68,7 @@ const 处理动态引用回填响应 = (
     htmlState: { oldHTML: string },
     refElement: HTMLElement,
     response: IWebSocketData
-): void => {
+) => {
     refElement.innerHTML = response.data;
     提交引用事务(protyle, id, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
@@ -87,7 +87,7 @@ const 执行转动态引用 = (
     htmlState: { oldHTML: string },
     refElement: HTMLElement,
     refBlockId: string
-): void => {
+) => {
     refElement.setAttribute("data-subtype", "d");
     fetchPost(
         "/api/block/getRefText",
@@ -108,7 +108,7 @@ const 执行转静态引用 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.setAttribute("data-subtype", "s");
     提交引用事务(protyle, id, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
@@ -126,7 +126,7 @@ const 执行转文本 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     removeInlineType(refElement, "block-ref", 获取工具栏Range(protyle));
     提交引用事务(protyle, id, nodeElement, htmlState);
 };
@@ -143,7 +143,7 @@ const 执行转星号 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.setAttribute("data-subtype", "s");
     refElement.textContent = "*";
     提交引用事务(protyle, id, nodeElement, htmlState);
@@ -162,7 +162,7 @@ const 执行转文本星号 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.insertAdjacentHTML("beforebegin", refElement.innerHTML + " ");
     refElement.setAttribute("data-subtype", "s");
     refElement.textContent = "*";
@@ -182,7 +182,7 @@ const 执行转链接 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.outerHTML = `<span data-type="a" data-href="siyuan://blocks/${refElement.getAttribute("data-id")}">${refElement.innerHTML}</span><wbr>`;
     提交引用事务(protyle, id, nodeElement, htmlState);
     const toolbarRange = 获取工具栏Range(protyle);
@@ -203,7 +203,7 @@ const 执行转块嵌入 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refBlockId: string
-): void => {
+) => {
     const attrElement = nodeElement.querySelector(".protyle-attr");
     if (!attrElement) {
         return;
@@ -228,7 +228,7 @@ const 追加基础转换菜单项 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     submenu.push({
         id: "text",
         iconHTML: "",
@@ -261,7 +261,7 @@ const 追加基础转换菜单项 = (
  * 调用时机：创建 turnInto 子菜单末段。
  * 问题/改进：当前不处理请求返回，后续可按需要补充错误反馈。
  */
-const 追加定义块交换菜单项 = (submenu: IMenu[], id: string | null, refBlockId: string): void => {
+const 追加定义块交换菜单项 = (submenu: IMenu[], id: string | null, refBlockId: string) => {
     submenu.push({
         id: "defBlock",
         iconHTML: "",
@@ -298,7 +298,7 @@ export const 创建转换子菜单 = (
     htmlState: { oldHTML: string },
     refElement: HTMLElement,
     refBlockId: string
-): IMenu[] => {
+) => {
     const submenu: IMenu[] = [];
     // 静态引用可转换为动态引用。
     if (refElement.getAttribute("data-subtype") === "s") {

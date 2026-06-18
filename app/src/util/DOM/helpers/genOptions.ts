@@ -4,7 +4,7 @@
  * 问题/改进：当前直接拼接字符串，若后续需要统一转义策略可在这里集中处理。
  * @同步豁免: UI构建
  */
-export const genOptions = (data: string[] | Array<{ label: string; name: string }>, key: string): string => {
+export const genOptions = (data: string[] | Array<{ label: string; name: string }>, key: string) => {
     let html = "";
     for (const item of data) {
         const isPlainValue = typeof item === "string";
@@ -25,7 +25,7 @@ export const genOptions = (data: string[] | Array<{ label: string; name: string 
  * 问题/改进：当前输出结构固定，如后续需要更复杂模板可拆成 DOM 构建版本。
  * @同步豁免: UI构建
  */
-export const genLangOptions = (data: Array<{ label: string; name: string }>, key: string): string => {
+export const genLangOptions = (data: Array<{ label: string; name: string }>, key: string) => {
     let html = "";
     for (const item of data) {
         const isSelected = key === item.name;

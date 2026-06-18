@@ -33,3 +33,12 @@ export { Constants };
 
 // 导出文档渲染函数
 export { onGet };
+
+/**
+ * 用途：平台检测标志，判断是否为移动端
+ * 使用范围：card模块根据平台调整UI交互
+ * 解耦评估：平台检测属于环境层稳定依赖，通过网关导入可降低路径耦合
+ */
+import { isMobile } from "../platform";
+// 导出平台检测
+export { isMobile };

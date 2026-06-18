@@ -8,7 +8,7 @@ import type { IBazaarWorkspaceBundle } from "./imports";
 import type { IBazaarSecurityStats } from "./imports";
 
 /** 用途：安全解析数字输入。意图：避免 NaN 进入配置。调用时机：构建保存 payload。问题/改进：当前仅做 NaN 兜底。 */
-const parseNumber = (value: string, fallback: number): number => {
+const parseNumber = (value: string, fallback: number) => {
     const parsed = Number(value);
     if (Number.isNaN(parsed)) {
         return fallback;
@@ -17,7 +17,7 @@ const parseNumber = (value: string, fallback: number): number => {
 };
 
 /** 用途：查询 input 节点。意图：统一查询与类型校验。调用时机：读取发布和源表单。问题/改进：返回 null 由调用方保护。 */
-const queryInput = (container: HTMLElement, selector: string): HTMLInputElement | null => {
+const queryInput = (container: HTMLElement, selector: string) => {
     const element = container.querySelector(selector);
     if (element instanceof HTMLInputElement) {
         return element;
@@ -26,7 +26,7 @@ const queryInput = (container: HTMLElement, selector: string): HTMLInputElement 
 };
 
 /** 用途：查询 select 节点。意图：统一查询与类型校验。调用时机：读取默认源下拉。问题/改进：返回 null 由调用方保护。 */
-const querySelect = (container: HTMLElement, selector: string): HTMLSelectElement | null => {
+const querySelect = (container: HTMLElement, selector: string) => {
     const element = container.querySelector(selector);
     if (element instanceof HTMLSelectElement) {
         return element;
@@ -35,15 +35,7 @@ const querySelect = (container: HTMLElement, selector: string): HTMLSelectElemen
 };
 
 /** 用途：读取源表单节点集。意图：减少动作流程重复查询。调用时机：保存/清空/回填源表单。问题/改进：字段新增时需同步。 */
-const readSourceForm = (container: HTMLElement): {
-    idInput: HTMLInputElement;
-    nameInput: HTMLInputElement;
-    urlInput: HTMLInputElement;
-    tokenInput: HTMLInputElement;
-    enabledInput: HTMLInputElement;
-    allowInstallInput: HTMLInputElement;
-    openInTabInput: HTMLInputElement;
-} | null => {
+const readSourceForm = (container: HTMLElement) => {
     const idInput = queryInput(container, "#bazaarSourceID");
     const nameInput = queryInput(container, "#bazaarSourceName");
     const urlInput = queryInput(container, "#bazaarSourceURL");
@@ -58,11 +50,7 @@ const readSourceForm = (container: HTMLElement): {
 };
 
 /** 用途：构建保存配置 payload。意图：统一读取 publish/security/hub 三组表单。调用时机：保存配置和发布前同步。问题/改进：当前直接读 DOM。 */
-const buildPublishPayloadFromForm = (container: HTMLElement, bundle: IBazaarWorkspaceBundle): {
-    publish: Config.IBazaarPublish;
-    security: Config.IBazaarSecurity;
-    hub: Config.IBazaarHubPreference;
-} => {
+const buildPublishPayloadFromForm = (container: HTMLElement, bundle: IBazaarWorkspaceBundle) => {
     const publishEnabled = queryInput(container, "#bazaarPublishEnabled")?.checked || false;
     const requireAuth = queryInput(container, "#bazaarPublishRequireAuth")?.checked || false;
     const minExpose = queryInput(container, "#bazaarPublishMinExpose")?.checked || false;
@@ -106,7 +94,7 @@ const buildPublishPayloadFromForm = (container: HTMLElement, bundle: IBazaarWork
 export const syncPublishConfigFromForm = async (container: HTMLElement, state: {
     bundle: IBazaarWorkspaceBundle | null;
     stats: IBazaarSecurityStats | null;
-}, showSavedMessage: boolean, showMessage: (message: string) => void): Promise<boolean> => {
+}, showSavedMessage: boolean, showMessage: (message: string) => void) => {
     if (!state.bundle) {
         return false;
     }
@@ -122,7 +110,7 @@ export const syncPublishConfigFromForm = async (container: HTMLElement, state: {
 /** 用途：重置源表单。意图：统一清空和默认勾选状态。调用时机：保存源后与点击清空时。问题/改进：默认值目前固定。 */
 /** 导出 resetSourceForm 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const resetSourceForm = (container: HTMLElement): void => {
+export const resetSourceForm = (container: HTMLElement) => {
     const form = readSourceForm(container);
     if (!form) {
         return;
@@ -139,7 +127,7 @@ export const resetSourceForm = (container: HTMLElement): void => {
 /** 用途：回填源表单。意图：编辑源时填入已有配置。调用时机：edit-source 动作。问题/改进：会覆盖未保存输入。 */
 /** 导出 fillSourceForm 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const fillSourceForm = (container: HTMLElement, source: Config.IBazaarSource): void => {
+export const fillSourceForm = (container: HTMLElement, source: Config.IBazaarSource) => {
     const form = readSourceForm(container);
     if (!form) {
         return;
@@ -156,22 +144,14 @@ export const fillSourceForm = (container: HTMLElement, source: Config.IBazaarSou
 /** 用途：读取“启用发布”勾选状态。意图：发布动作前做开关校验。调用时机：publish-package 动作。问题/改进：当前直接读 DOM。 */
 /** 导出 readPublishEnabled 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const readPublishEnabled = (container: HTMLElement): boolean => {
+export const readPublishEnabled = (container: HTMLElement) => {
     return queryInput(container, "#bazaarPublishEnabled")?.checked || false;
 };
 
 /** 用途：读取源表单提交数据。意图：保存源动作统一收口表单解析。调用时机：save-source 动作。问题/改进：若节点缺失返回 null 交由控制器处理。 */
 /** 导出 readSourceFormPayload 供 publish 控制器复用 */
 /** @同步豁免: UI构建 */
-export const readSourceFormPayload = (container: HTMLElement): {
-    id: string;
-    name: string;
-    url: string;
-    token: string;
-    enabled: boolean;
-    allowInstall: boolean;
-    openInTab: boolean;
-} | null => {
+export const readSourceFormPayload = (container: HTMLElement) => {
     const form = readSourceForm(container);
     if (!form) {
         return null;

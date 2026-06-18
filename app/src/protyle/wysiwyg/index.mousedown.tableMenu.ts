@@ -2,7 +2,7 @@ import {paste} from "../util/paste";
 import {focusBlock, focusByRange, focusByWbr, getEditorRange} from "../util/selection";
 import {MenuItem} from "../../menus/Menu.Item";
 import {copyPlainText, readClipboard} from "../util/compatibility";
-import {clearTableCell, isIncludeCell, setTableAlign} from "../util/table";
+import {clearTableCell, isIncludeCell, setTableAlign} from "../util/table/table";
 import {updateTransaction} from "./transaction";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

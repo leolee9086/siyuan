@@ -26,7 +26,7 @@ import { bindRatingEvents } from "./protyle.imgMenu.rating";
  * 调用时机：URL 输入和 alt 写入流程中。
  * 问题/改进：目前只做换行和 trim，后续可扩展 URL 合法性校验。
  */
-const 清洗单行输入 = (value: string): string => {
+const 清洗单行输入 = (value: string) => {
     return value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
 };
 
@@ -36,7 +36,7 @@ const 清洗单行输入 = (value: string): string => {
  * 调用时机：URL 输入变更到 assets 路径时。
  * 问题/改进：当前查询类名固定，后续可抽到常量统一管理。
  */
-const 移除网络图片标记 = (assetElement: HTMLElement): void => {
+const 移除网络图片标记 = (assetElement: HTMLElement) => {
     const networkIcon = assetElement.querySelector(".img__net");
     // 网络图标存在时才执行移除，避免空节点调用错误。
     if (networkIcon) {
@@ -50,7 +50,7 @@ const 移除网络图片标记 = (assetElement: HTMLElement): void => {
  * 调用时机：URL 输入变更到非 assets 路径且配置允许时。
  * 问题/改进：后续可避免重复插入（当前沿用历史行为，不主动去重）。
  */
-const 添加网络图片标记 = (assetElement: HTMLElement): void => {
+const 添加网络图片标记 = (assetElement: HTMLElement) => {
     const dragHandle = assetElement.querySelector(".protyle-action__drag");
     // 拖拽锚点存在时再插入网络标记，保证插入位置稳定。
     if (dragHandle) {
@@ -64,7 +64,7 @@ const 添加网络图片标记 = (assetElement: HTMLElement): void => {
  * 调用时机：URL 输入框触发 input 事件时。
  * 问题/改进：后续可增加 URL 预校验与错误提示。
  */
-const 处理URL输入变化 = (assetElement: HTMLElement, imgElement: HTMLImageElement, event: Event): void => {
+const 处理URL输入变化 = (assetElement: HTMLElement, imgElement: HTMLImageElement, event: Event) => {
     const target = event.target;
     // 仅文本域输入事件参与 URL 同步，避免错误事件源进入流程。
     if (!(target instanceof HTMLTextAreaElement)) {
@@ -95,7 +95,7 @@ const 绑定URL输入监听 = (
     urlInput: HTMLTextAreaElement,
     assetElement: HTMLElement,
     imgElement: HTMLImageElement
-): void => {
+) => {
     const inputHandler = 处理URL输入变化.bind(null, assetElement, imgElement);
     urlInput.addEventListener("input", inputHandler);
 };
@@ -110,7 +110,7 @@ const 处理标题输入变化 = (
     titleElement: HTMLElement,
     imgElement: HTMLImageElement,
     event: Event
-): void => {
+) => {
     const target = event.target;
     // 仅文本域输入事件参与标题同步。
     if (!(target instanceof HTMLTextAreaElement)) {
@@ -132,7 +132,7 @@ const 绑定标题输入监听 = (
     titleInput: HTMLTextAreaElement,
     assetElement: HTMLElement,
     imgElement: HTMLImageElement
-): void => {
+) => {
     const titleElement = assetElement.querySelector(".protyle-action__title span");
     // 标题容器不存在时不绑定输入监听，避免无效写入。
     if (!(titleElement instanceof HTMLElement)) {
@@ -149,7 +149,7 @@ const 绑定标题输入监听 = (
  * 调用时机：设置面板根节点 click 事件冒泡触发时。
  * 问题/改进：后续可改为 data-target 显式映射，减少 DOM 相邻关系耦合。
  */
-const 处理复制按钮点击 = (event: MouseEvent): void => {
+const 处理复制按钮点击 = (event: MouseEvent) => {
     let currentTarget = event.target;
     while (currentTarget instanceof HTMLElement) {
         const isCopyAction = currentTarget.dataset?.action === "copy";
@@ -180,7 +180,7 @@ const 绑定图片设置事件 = (
     assetElement: HTMLElement,
     imgElement: HTMLImageElement,
     src: string
-): void => {
+) => {
     element.style.maxWidth = "none";
     const textareas = element.querySelectorAll("textarea");
     const urlInput = textareas[0];
@@ -207,7 +207,7 @@ const 绑定图片设置事件 = (
  * 调用时机：`/api/asset/getImageOCRText` 返回后。
  * 问题/改进：后续可在失败场景显示错误提示。
  */
-const 处理OCR读取响应 = (element: HTMLElement, response: IWebSocketData): void => {
+const 处理OCR读取响应 = (element: HTMLElement, response: IWebSocketData) => {
     const textarea = element.querySelector("textarea");
     const hasOCRText = response && response.data;
     // 仅在文本域存在且接口返回有效 OCR 数据时执行回填。
@@ -223,7 +223,7 @@ const 处理OCR读取响应 = (element: HTMLElement, response: IWebSocketData): 
  * 调用时机：OCR 只读项的 `bind` 阶段。
  * 问题/改进：当前读取请求每次打开都会发起，后续可按需加缓存。
  */
-const 绑定OCR结果菜单项 = (imgElement: HTMLImageElement, element: HTMLElement): void => {
+const 绑定OCR结果菜单项 = (imgElement: HTMLImageElement, element: HTMLElement) => {
     element.style.maxWidth = "none";
     fetchPost("/api/asset/getImageOCRText", {
         path: imgElement.getAttribute("src")
@@ -236,7 +236,7 @@ const 绑定OCR结果菜单项 = (imgElement: HTMLImageElement, element: HTMLEle
  * 调用时机：OCR 子菜单 `reOCR` 点击时。
  * 问题/改进：当前无成功提示，后续可补充结果反馈。
  */
-const 执行重新OCR = (imgElement: HTMLImageElement): void => {
+const 执行重新OCR = (imgElement: HTMLImageElement) => {
     const requestPayload = {
         path: imgElement.getAttribute("src"),
         force: true

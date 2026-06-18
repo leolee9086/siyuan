@@ -11,7 +11,9 @@
  * @module platform
  */
 
+/** 用途：平台类型定义。使用范围：运行时平台检测的类型标注。解耦评估：同目录类型文件，直接导入。 */
 import type { Platform } from "./platform.types";
+/** 导出 Platform 类型，供外部模块使用 */
 export type { Platform };
 
 /**
@@ -24,7 +26,7 @@ export type { Platform };
  *
  * 注意：webpack.export.js 的导出构建在浏览器环境中运行，归入 browser-desktop。
  */
-function detectPlatform(): Platform {
+function detectPlatform() {
     if (navigator.userAgent.startsWith("SiYuan/")) {
         return "electron";
     }

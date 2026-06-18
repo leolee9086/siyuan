@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+/** 用途：PersonaConvergenceSuggestion 收敛建议类型。使用范围：建议列表展示组件。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { PersonaConvergenceSuggestion } from "../../../data/convergence/persona-seed-convergence.types";
 
 defineProps<{

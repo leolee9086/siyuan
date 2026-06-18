@@ -1,6 +1,9 @@
-import { App } from "../index";
-import { Tab } from "../layout/Tab";
-import { Protyle } from "../protyle";
+/** 用途：应用实例类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
+import type { App } from "./imports";
+/** 用途：页签类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
+import type { Tab } from "./imports";
+/** 用途：Protyle 编辑器类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
+import type { Protyle } from "./imports";
 
 /**
  * 编辑器构造函数选项接口

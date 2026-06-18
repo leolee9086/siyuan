@@ -21,6 +21,8 @@ import { escapeAriaLabel } from "./imports";
 import { escapeHtml } from "./imports";
 // 用途：获取国际化文本；使用范围：显示本地化的提示信息；解耦评估：全局i18n服务，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { siyuanI18n } from "./imports";
+// 用途：获取 DOMPurify 实例；使用范围：行级备注内容安全过滤；解耦评估：安全工具，通过环境封装解耦
+import { getDOMPurify } from "./imports";
 // 用途：导入 TooltipInfo 类型定义；使用范围：类型标注；解耦评估：类型定义，无需解耦
 import { TooltipInfo } from "./types";
 // 用途：导出 TooltipInfo 类型供外部使用；使用范围：类型导出；解耦评估：类型定义，无需解耦
@@ -49,7 +51,7 @@ const CELL_SCROLL_TOLERANCE = 2;
 /**
  * 获取 AV 表头单元格的 tooltip 信息
  */
-const getAVHeaderCellTooltip = (aElement: HTMLElement): string => {
+const getAVHeaderCellTooltip = (aElement: HTMLElement) => {
     const textElement = aElement.querySelector(".av__celltext");
     const desc = aElement.getAttribute("data-desc");
     // 检查是否同时存在文本元素和描述，如果是则返回包含描述的完整 tooltip
@@ -66,7 +68,7 @@ const getAVHeaderCellTooltip = (aElement: HTMLElement): string => {
 /**
  * 检查单元格文本是否溢出，如果溢出则返回 tooltip 内容
  */
-const checkCellOverflow = (aElement: HTMLElement): string => {
+const checkCellOverflow = (aElement: HTMLElement) => {
     aElement.style.overflow = "auto";
     let tip = "";
     // 检查水平滚动宽度是否超过可见宽度，判断是否需要显示 tooltip
@@ -80,7 +82,7 @@ const checkCellOverflow = (aElement: HTMLElement): string => {
 /**
  * 获取 AV 普通单元格的 tooltip 信息
  */
-const getAVCellTooltip = (aElement: HTMLElement, target: HTMLElement): { tip: string; tooltipClass: string } => {
+const getAVCellTooltip = (aElement: HTMLElement, target: HTMLElement) => {
     let tip = "";
     let tooltipClass = "";
 
@@ -104,7 +106,7 @@ const getAVCellTooltip = (aElement: HTMLElement, target: HTMLElement): { tip: st
 /**
  * 获取 AV 视图标签的 tooltip 信息
  */
-const getAVViewTabTooltip = (aElement: HTMLElement): string => {
+const getAVViewTabTooltip = (aElement: HTMLElement) => {
     const textElement = aElement.querySelector(".item__text");
     const desc = aElement.getAttribute("data-desc");
     // 检查是否同时存在文本元素和描述，如果是则返回包含描述的完整 tooltip
@@ -121,7 +123,7 @@ const getAVViewTabTooltip = (aElement: HTMLElement): string => {
 /**
  * 处理 AV 单元格 tooltip (Header vs Ordinary)
  */
-const processAVCellTooltip = (aElement: HTMLElement, target: HTMLElement): { tip: string, tooltipClass: string } => {
+const processAVCellTooltip = (aElement: HTMLElement, target: HTMLElement) => {
     // 判断是否为表头单元格，表头和普通单元格的 tooltip 处理逻辑不同
     if (aElement.classList.contains("av__cell--header")) {
         return { tip: getAVHeaderCellTooltip(aElement), tooltipClass: "" };
@@ -131,7 +133,7 @@ const processAVCellTooltip = (aElement: HTMLElement, target: HTMLElement): { tip
 /**
  * 获取特定元素（AV 单元格、URL、计算结果等）的 tooltip 信息
  */
-const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, initialTip: string): { tip: string, tooltipClass: string } | undefined => {
+const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, initialTip: string) => {
     let tip = "";
     let tooltipClass = "";
 
@@ -177,7 +179,7 @@ const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, i
 /**
  * 获取关联单元格的 tooltip 信息
  */
-const getRelationCellTooltip = (aElement: HTMLElement, tooltipClass: string): { tip: string, tooltipClass: string } | undefined => {
+const getRelationCellTooltip = (aElement: HTMLElement, tooltipClass: string) => {
     const childElement = aElement.querySelector(".b3-menu__label");
     // 检查子元素是否存在且文本未溢出，如果未溢出则不需要显示 tooltip
     if (!childElement || childElement.clientWidth >= childElement.scrollWidth) {
@@ -192,7 +194,7 @@ const getRelationCellTooltip = (aElement: HTMLElement, tooltipClass: string): { 
 /**
  * 获取超链接 tooltip 信息
  */
-const getLinkTooltipInfo = (aElement: HTMLElement): { tip: string, tooltipClass: string, tooltipSpace?: number } => {
+const getLinkTooltipInfo = (aElement: HTMLElement) => {
     let tip = "";
     let tooltipClass = "";
     let tooltipSpace: number | undefined;
@@ -221,7 +223,7 @@ const getLinkTooltipInfo = (aElement: HTMLElement): { tip: string, tooltipClass:
  * 获取元素的 tooltip 信息
  * @同步豁免: UI构建 - 此函数用于同步计算和返回 tooltip 信息，供事件处理器立即使用，无异步操作需求
  */
-export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement): Promise<TooltipInfo> => {
+export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement) => {
     let tooltipClass = "";
     let tip = aElement.getAttribute("aria-label") || "";
     let tooltipSpace: number | undefined;
@@ -233,13 +235,14 @@ export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement)
         tooltipClass = specificTooltip.tooltipClass;
     }
 
+    // 行级备注内容需要 HTML 转义
     if (aElement.classList.contains("protyle-attr--memo")) {
         tip = escapeHtml(tip);
     }
 
     // 行级备注处理
     // 行级备注处理
-    const memoTip = !tip ? window.DOMPurify.sanitize(aElement.getAttribute("data-inline-memo-content") || "") : "";
+    const memoTip = !tip ? getDOMPurify().sanitize(aElement.getAttribute("data-inline-memo-content") || "") : "";
     // 检查是否存在行级备注内容，如果存在则显示备注
     if (memoTip) {
         tip = memoTip;
@@ -357,7 +360,7 @@ export const handleTooltipDisplay = async (
     aElement: HTMLElement,
     event: MouseEvent,
     tooltipInfo: TooltipInfo
-): Promise<boolean> => {
+) => {
     const { tip, tooltipClass, tooltipSpace } = tooltipInfo;
 
     // 处理本地路径 tooltip（异步）

@@ -100,3 +100,8 @@ export { SForgeSymbols };
 export { getSForgeState };
 // SForge状态管理导出
 export { setSForgeState };
+
+/** 用途：安全获取 DOMPurify 实例。使用范围：行级备注 HTML 过滤。解耦评估：安全工具，通过环境封装解耦。 */
+import { getDOMPurify } from "../../util/siyuanEnvironments/getDOMPurify.environment";
+/** 导出 getDOMPurify，供 popover 模块使用 */
+export { getDOMPurify };

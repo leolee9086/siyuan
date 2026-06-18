@@ -1,10 +1,21 @@
-import { isMobile } from "../util/platform/functions";
-import { Constants } from "../constants";
-import { getSiyuanDialogStorage } from "../util/siyuanEnvironments/getDialog.environment";
-import { getSiyuanWindowSize } from "../util/siyuanEnvironments/getWindow.environment";
-import { isSVGElement, isSVGUseElement } from "./dialog.guard";
-
-import { IDialogOptions, I对话框HTML参数 } from "./dialog.types";
+/** 用途：移动端判断。使用范围：对话框尺寸适配。解耦评估：通过 ./imports 转发。 */
+import { isMobile } from "./imports";
+/** 用途：系统常量。使用范围：LOCAL_DIALOGPOSITION。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：安全获取对话框存储。使用范围：恢复对话框位置。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanDialogStorage } from "./imports";
+/** 用途：安全获取窗口尺寸。使用范围：验证对话框位置。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanWindowSize } from "./imports";
+/** 用途：SVG 元素类型守卫。使用范围：全屏按钮图标更新。解耦评估：同目录直接导入。 */
+/** 用途：SVG 元素类型守卫。使用范围：全屏按钮图标更新。解耦评估：同目录直接导入。 */
+import { isSVGElement } from "./dialog.guard";
+/** 用途：SVGUseElement 类型守卫。使用范围：全屏按钮 use 元素图标更新。解耦评估：同目录直接导入。 */
+import { isSVGUseElement } from "./dialog.guard";
+/** 用途：对话框选项和 HTML 参数类型。使用范围：函数参数类型标注。解耦评估：同目录直接导入。 */
+/** 用途：对话框选项配置类型。使用范围：函数参数类型标注。解耦评估：同目录直接导入。 */
+import { IDialogOptions } from "./dialog.types";
+/** 用途：对话框 HTML 参数类型。使用范围：生成对话框 HTML 的参数。解耦评估：同目录直接导入。 */
+import { I对话框HTML参数 } from "./dialog.types";
 
 /**
  * @function 计算对话框位置
@@ -15,7 +26,7 @@ import { IDialogOptions, I对话框HTML参数 } from "./dialog.types";
  * @已知问题: 无
  * @改进方向: 可以考虑验证存储的位置是否在当前屏幕范围内（已实现）
  */
-export function 计算对话框位置(options: IDialogOptions): { left?: string; top?: string; width?: string; height?: string } {
+export async function 计算对话框位置(options: IDialogOptions) {
     if (isMobile() || !options.positionId) {
         return {};
     }
@@ -54,12 +65,12 @@ export function 计算对话框位置(options: IDialogOptions): { left?: string;
  * @已知问题: 无
  * @改进方向: 可以考虑使用模板引擎而不是字符串拼接
  */
-export function 生成关闭按钮HTML(options: {
+export async function 生成关闭按钮HTML(options: {
     disableClose: boolean;
     hideCloseIcon: boolean;
     closeButtonPosition: "outside" | "inside" | "inside-body";
     hasTitle: boolean;
-}): string {
+}) {
     if (options.disableClose || options.hideCloseIcon) {
         return "";
     }
@@ -84,7 +95,7 @@ export function 生成关闭按钮HTML(options: {
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: string): string {
+export async function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: string) {
     if (!hasTitle) {
         return "";
     }
@@ -103,7 +114,7 @@ export function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: s
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: string): string {
+export async function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: string) {
     if (!hasTitle) {
         return "";
     }
@@ -121,12 +132,14 @@ export function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: st
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: boolean): void {
+export async function 更新全屏按钮状态(dialogElement: Element, isFullscreen: boolean) {
     const fullscreenButton = dialogElement.querySelector(".b3-dialog__fullscreen use");
     const fullscreenButtonSvg = dialogElement.querySelector(".b3-dialog__fullscreen");
+    // 更新全屏按钮图标
     if (isSVGUseElement(fullscreenButton)) {
         fullscreenButton.setAttribute("xlink:href", isFullscreen ? "#iconFullscreenExit" : "#iconFullscreen");
     }
+    // 更新全屏按钮标题提示
     if (isSVGElement(fullscreenButtonSvg)) {
         fullscreenButtonSvg.setAttribute("title", isFullscreen ? "退出全屏" : "全屏");
     }
@@ -141,7 +154,7 @@ export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: b
  * @已知问题: 无
  * @改进方向: 可以考虑使用模板引擎或 JSX 来改善可读性
  */
-export function 生成对话框HTML(params: I对话框HTML参数): string {
+export async function 生成对话框HTML(params: I对话框HTML参数) {
     return `<div class="b3-dialog" style="z-index: ${params.zIndex};${typeof params.left === "string" ? "display:block" : ""};${params.scrimPointerEvents ? " pointer-events:none" : ""}">
 <div class="b3-dialog__scrim"${params.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${params.containerClassName || ""}" style="width:${params.width || "auto"};height:${params.height || "auto"};

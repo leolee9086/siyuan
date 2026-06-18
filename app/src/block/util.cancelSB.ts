@@ -47,7 +47,7 @@ import { fetchSyncPost } from "./imports";
  * 调用时机：读取 data-node-id、parentID、previousID 后立刻调用。
  * 问题/改进：若后续统一封装 DOM id 访问层，可进一步减少重复调用。
  */
-const toOptionalId = (value: string | null | undefined): string | undefined => {
+const toOptionalId = (value: string | null | undefined) => {
     if (!value) {
         return undefined;
     }
@@ -60,7 +60,7 @@ const toOptionalId = (value: string | null | undefined): string | undefined => {
  * 调用时机：cancelSB 在写入 undo insert 操作前调用。
  * 问题/改进：当前以最后子元素为核心快照，后续可评估是否需要更完整结构校验。
  */
-const buildSuperBlockSnapshot = (nodeElement: Element): string => {
+const buildSuperBlockSnapshot = (nodeElement: Element) => {
     const snapshotNode = nodeElement.cloneNode();
     if (!(snapshotNode instanceof HTMLElement)) {
         return "";
@@ -81,7 +81,7 @@ const resolvePositionIDs = async (
     id: string,
     previousId: string | undefined,
     parentID: string | undefined
-): Promise<{ previousId: string | undefined; parentID: string | undefined }> => {
+) => {
     // 说明：已有定位信息时不再触发额外请求，保证性能与最小副作用。
     if (previousId || parentID) {
         return { previousId, parentID };
@@ -103,7 +103,7 @@ const resolvePositionIDs = async (
  * 调用时机：cancelSB 构建 move 操作列表前调用。
  * 问题/改进：如后续出现新的块标识规则，应同步更新过滤条件。
  */
-const collectBlockChildren = (nodeElement: Element): Element[] => {
+const collectBlockChildren = (nodeElement: Element) => {
     return Array.from(nodeElement.children).filter((item) => Boolean(item.getAttribute("data-node-id")));
 };
 
@@ -120,7 +120,7 @@ const appendMoveOperations = (
     parentID: string | undefined,
     doOperations: IOperation[],
     undoOperations: IOperation[]
-): string | undefined => {
+) => {
     let currentPreviousId = previousId;
     for (const item of blockChildren) {
         const itemId = toOptionalId(item.getAttribute("data-node-id"));
@@ -158,7 +158,7 @@ const applyDomChanges = (
     range: Range | undefined,
     id: string,
     doOperations: IOperation[]
-): void => {
+) => {
     doOperations.push({ action: "delete", id });
     // 说明：无子块时直接删除超级块本体，避免保留空壳节点。
     if (blockChildren.length === 0) {
@@ -185,7 +185,7 @@ const applyDomChanges = (
  * 调用时机：cancelSB 在完成 DOM 调整与数学渲染后调用。
  * 问题/改进：当前逐个 querySelector，若操作量增大可评估批量索引优化。
  */
-const rerenderEmbedBlocks = (protyle: IProtyle, doOperations: IOperation[]): void => {
+const rerenderEmbedBlocks = (protyle: IProtyle, doOperations: IOperation[]) => {
     const wysiwygElement = protyle.wysiwyg?.element;
     // 说明：编辑器容器不存在时无法执行任何重渲染。
     if (!wysiwygElement) {
@@ -213,7 +213,7 @@ export const cancelSB = async (
     protyle: IProtyle,
     nodeElement: Element,
     range?: Range
-): Promise<{ doOperations: IOperation[]; undoOperations: IOperation[]; previousId: string | undefined }> => {
+) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
     let previousId = toOptionalId(nodeElement.previousElementSibling?.getAttribute("data-node-id"));

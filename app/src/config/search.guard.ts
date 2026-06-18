@@ -6,9 +6,19 @@
  * 调用时机：在 search.ts 中进行 DOM 查询和事件处理时使用
  */
 
-import { isHTMLElement, isHTMLInputElement, isInputEvent } from "../util/DOM/element.guard";
+/** 用途：DOM 元素类型守卫。使用范围：配置搜索模块守卫。解耦评估：通过 ./imports 转发。 */
+import { isHTMLElement } from "./imports";
+/** 用途：HTMLInputElement 类型守卫。使用范围：配置搜索事件处理。解耦评估：通过 ./imports 转发。 */
+import { isHTMLInputElement } from "./imports";
+/** 用途：InputEvent 类型守卫。使用范围：配置搜索事件处理。解耦评估：通过 ./imports 转发。 */
+import { isInputEvent } from "./imports";
 
-export { isHTMLElement, isHTMLInputElement, isInputEvent };
+/** 重新导出 DOM 类型守卫 */
+export { isHTMLElement };
+/** 重新导出 HTMLInputElement 类型守卫 */
+export { isHTMLInputElement };
+/** 重新导出 InputEvent 类型守卫 */
+export { isInputEvent };
 
 /**
  * 类型守卫：安全获取 HTMLElement，接受 Element | null | undefined

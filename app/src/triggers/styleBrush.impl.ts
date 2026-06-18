@@ -1,6 +1,10 @@
 
-import { IGlobalContext } from "../registry/TriggerRegistry.types";
-import { fetchPost, fetchSyncPost } from "../util/network/fetch";
+/** 用途：全局上下文类型。使用范围：styleBrush 事件处理。解耦评估：通过 imports.ts 转发。 */
+import type { IGlobalContext } from "./imports";
+/** 用途：网络请求工具（POST）。使用范围：styleBrush 调用后端 API。解耦评估：通过 imports.ts 转发。 */
+import { fetchPost } from "./imports";
+/** 用途：网络请求工具（同步 POST）。使用范围：styleBrush 调用后端 API。解耦评估：通过 imports.ts 转发。 */
+import { fetchSyncPost } from "./imports";
 
 // ============ 常量定义 ============
 
@@ -23,11 +27,12 @@ export const 样式刷子光标HTML = `
  * 作用：从元素的 style 属性提取内联样式
  * 意图：提供快速的样式检测能力，用于判断是否显示格式刷选项
  * 调用时机：Gutter 菜单弹出时判断是否显示样式刷子选项
+ * @同步豁免: 需要绝对同步的DOM访问
  * 
  * @param element DOM 元素
  * @returns 样式字符串，无样式时返回 null
  */
-export function 提取DOM样式(element: Element): string | null {
+export function 提取DOM样式(element: Element) {
     const styleAttr = element.getAttribute("style");
     if (styleAttr && styleAttr.trim()) {
         return styleAttr;
@@ -47,7 +52,7 @@ export function 提取DOM样式(element: Element): string | null {
  * @param element 块元素
  * @returns 样式字符串，若无样式则返回 null
  */
-export async function 提取块样式(element: Element): Promise<string | null> {
+export async function 提取块样式(element: Element) {
     const id = element.getAttribute("data-node-id");
     if (id) {
         try {
@@ -74,7 +79,7 @@ export async function 提取块样式(element: Element): Promise<string | null> 
  * @param style 样式字符串
  * @returns 是否成功
  */
-export async function 应用样式(targetId: string, style: string): Promise<boolean> {
+export async function 应用样式(targetId: string, style: string) {
     try {
         await fetchPost("/api/attr/setBlockAttrs", {
             id: targetId,
@@ -88,7 +93,8 @@ export async function 应用样式(targetId: string, style: string): Promise<boo
     }
 }
 
-import { 查找有选区的Protyle } from "../registry/TriggerRegistry.protyle";
+/** 用途：查找有选区的 Protyle 实例。使用范围：styleBrush 批量应用样式。解耦评估：通过 imports.ts 转发。 */
+import { 查找有选区的Protyle } from "./imports";
 
 /**
  * 批量将样式应用到 Protyle 中的选中块
@@ -99,7 +105,7 @@ import { 查找有选区的Protyle } from "../registry/TriggerRegistry.protyle";
  * @param protyle Protyle 实例 (可选，未传入时遍历所有有选区的 Protyle)
  * @param sourceStyle 源样式
  */
-export async function 批量应用样式到当前选区(protyle: IProtyle | undefined, sourceStyle: string): Promise<void> {
+export async function 批量应用样式到当前选区(protyle: IProtyle | undefined, sourceStyle: string) {
     // 确定要处理的 Protyle 列表
     const protyles: IProtyle[] = protyle ? [protyle] : 查找有选区的Protyle();
 
@@ -140,7 +146,7 @@ export async function 通用样式应用逻辑(
     sourceStyle: string,
     options: { isSecondary: boolean; originalEvent?: MouseEvent | KeyboardEvent },
     exitBrushFn: () => void
-): Promise<void> {
+) {
     const { isSecondary, originalEvent } = options;
 
     if (isSecondary) {

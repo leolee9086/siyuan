@@ -1,7 +1,10 @@
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { isHTMLElement } from "../../util/DOM/element.guard";
-import { rectElement } from ".";
+/** 用途：通过类名查找祖先元素。使用范围：获取 PDF 页面元素。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByClassName } from "./imports";
+/** 用途：HTMLElement 类型守卫。使用范围：PDF 元素类型检查。解耦评估：通过 ./imports 转发。 */
+import { isHTMLElement } from "./imports";
+/** 用途：Canvas 截图获取。使用范围：PDF 区域截图。解耦评估：同目录模块。 */
 import { getCaptureCanvas } from "./anno.getCaptureCanvas";
+/** 用途：PDF 实例类型。使用范围：PDF 操作方法。解耦评估：同目录类型文件。 */
 import { IPdfInstance } from "./anno.types";
 
 /**
@@ -14,7 +17,7 @@ import { IPdfInstance } from "./anno.types";
  * @param element - 需要定位页面的DOM元素
  * @returns 包含页码的对象，如果找不到页面则返回null
  */
-function getPageInfo(element: HTMLElement): { pageNumber: number } | null {
+function getPageInfo(element: HTMLElement) {
     const pageElement = hasClosestByClassName(element, "page");
     if (!pageElement) {
         return null;
@@ -39,7 +42,7 @@ function getPageInfo(element: HTMLElement): { pageNumber: number } | null {
  * @param rectElement - 矩形注释的DOM元素
  * @returns ImageData对象，失败时返回null
  */
-async function extractRectImageData(pdfObj: IPdfInstance, pageNumber: number, rectElement: HTMLElement): Promise<ImageData | null> {
+async function extractRectImageData(pdfObj: IPdfInstance, pageNumber: number, rectElement: HTMLElement) {
     const captureCanvas = await getCaptureCanvas(pdfObj, pageNumber);
     const captureCanvasCtx = captureCanvas.getContext("2d");
     if (!captureCanvasCtx) {
@@ -84,7 +87,7 @@ async function extractRectImageData(pdfObj: IPdfInstance, pageNumber: number, re
  * @param imageData - 要转换的ImageData对象
  * @returns base64编码的data URL字符串
  */
-function convertImageDataToDataUrl(imageData: ImageData): string {
+function convertImageDataToDataUrl(imageData: ImageData) {
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
@@ -131,7 +134,7 @@ export async function getRectImgData(pdfObj: IPdfInstance) {
  * @param dataUrl - 文件的data URL
  * @param fileName - 下载的文件名
  */
-function 触发下载(dataUrl: string, fileName: string): void {
+function 触发下载(dataUrl: string, fileName: string) {
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = fileName;
@@ -151,7 +154,7 @@ function 触发下载(dataUrl: string, fileName: string): void {
  * @param extension - 文件扩展名
  * @returns 格式如 "prefix_20260102_011516.extension" 的文件名
  */
-function 生成下载文件名(prefix: string, extension: string): string {
+function 生成下载文件名(prefix: string, extension: string) {
     const now = new Date();
     const timestamp = now.toISOString()
         .replace(/[-:T]/g, "")
@@ -171,7 +174,7 @@ function 生成下载文件名(prefix: string, extension: string): string {
  * @param pdfObj - PDF实例对象
  * @returns 下载成功返回true，失败返回false
  */
-export async function downloadRectAsPng(pdfObj: IPdfInstance): Promise<boolean> {
+export async function downloadRectAsPng(pdfObj: IPdfInstance) {
     const dataUrl = await getRectImgData(pdfObj);
     if (!dataUrl) {
         return false;
@@ -181,3 +184,5 @@ export async function downloadRectAsPng(pdfObj: IPdfInstance): Promise<boolean> 
     触发下载(dataUrl, fileName);
     return true;
 }
+
+

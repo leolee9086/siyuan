@@ -1,3 +1,4 @@
+/** 用途：对话框接口类型。使用范围：事件处理函数参数类型。解耦评估：同目录直接导入。 */
 import { IDialog } from "./dialog.types";
 
 /**
@@ -9,7 +10,7 @@ import { IDialog } from "./dialog.types";
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 创建输入框键盘事件处理器(options: {
+export async function 创建输入框键盘事件处理器(options: {
     dialog: IDialog;
     enterEvent: (() => void) | undefined;
     bindEnter: boolean;
@@ -17,31 +18,32 @@ export function 创建输入框键盘事件处理器(options: {
     setTimeStamp: (value: number) => void;
     isFullscreen: () => boolean;
     disableEscapeClose: () => boolean;
-}): (event: Event) => void {
+}) {
     return (event: Event) => {
         if (!(event instanceof KeyboardEvent)) {
             return;
         }
+        // 忽略 IME 组合输入和重复按键事件
         if (event.isComposing || event.repeat) {
             event.preventDefault();
             return;
         }
+        // 全屏模式下，ESC 键退出全屏
         if (event.key === "Escape" && options.isFullscreen()) {
-            // 全屏模式下，ESC 键退出全屏
             options.dialog.fullscreen();
             event.preventDefault();
             event.stopPropagation();
             return;
         }
+        // 非全屏模式下，ESC 键关闭对话框
         if (event.key === "Escape" && !options.disableEscapeClose()) {
-            // 非全屏模式下，ESC 键关闭对话框
             options.dialog.destroy();
             event.preventDefault();
             event.stopPropagation();
             return;
         }
+        // ESC 键但不执行任何操作（全屏已处理或禁用了 ESC 关闭）
         if (event.key === "Escape") {
-            // ESC 键但不执行任何操作（全屏已处理或禁用了 ESC 关闭）
             event.preventDefault();
             event.stopPropagation();
             return;
@@ -71,8 +73,9 @@ export function 创建输入框键盘事件处理器(options: {
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 创建遮罩点击处理器(dialog: IDialog, disableClose: boolean, disableScrimClose: boolean): (event: Event) => void {
+export async function 创建遮罩点击处理器(dialog: IDialog, disableClose: boolean, disableScrimClose: boolean) {
     return (event: Event) => {
+        // 未禁用遮罩关闭时销毁对话框
         if (!disableClose && !disableScrimClose) {
             dialog.destroy();
         }
@@ -90,8 +93,9 @@ export function 创建遮罩点击处理器(dialog: IDialog, disableClose: boole
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 创建关闭按钮点击处理器(dialog: IDialog, isFullscreen: () => boolean): (event: Event) => void {
+export async function 创建关闭按钮点击处理器(dialog: IDialog, isFullscreen: () => boolean) {
     return (event: Event) => {
+        // 全屏模式下先退出全屏再关闭
         if (isFullscreen()) {
             dialog.fullscreen();
             event.preventDefault();
@@ -113,7 +117,7 @@ export function 创建关闭按钮点击处理器(dialog: IDialog, isFullscreen:
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 创建全屏按钮点击处理器(dialog: IDialog): (event: Event) => void {
+export async function 创建全屏按钮点击处理器(dialog: IDialog) {
     return (event: Event) => {
         dialog.fullscreen();
         event.preventDefault();
@@ -130,7 +134,7 @@ export function 创建全屏按钮点击处理器(dialog: IDialog): (event: Even
  * @已知问题: 无
  * @改进方向: 可以考虑使用 AbortController 统一管理事件监听器的清理
  */
-export function 绑定对话框事件(dialog: IDialog, element: HTMLElement, disableClose: boolean, disableScrimClose: boolean, isFullscreen: () => boolean): void {
+export async function 绑定对话框事件(dialog: IDialog, element: HTMLElement, disableClose: boolean, disableScrimClose: boolean, isFullscreen: () => boolean) {
     // 遮罩点击事件
     const scrimElement = element.querySelector(".b3-dialog__scrim");
     scrimElement?.addEventListener("click", 创建遮罩点击处理器(dialog, disableClose, disableScrimClose));
@@ -149,4 +153,5 @@ export function 绑定对话框事件(dialog: IDialog, element: HTMLElement, dis
 }
 
 // 需要导入 isNotCtrl 以支持键盘事件处理
-import { isNotCtrl } from "../protyle/util/compatibility";
+/** 用途：键盘事件组合键判断。使用范围：对话框键盘事件处理。解耦评估：通过 ./imports 转发。 */
+import { isNotCtrl } from "./imports";

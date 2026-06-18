@@ -1,4 +1,6 @@
+/** 用途：WrappedSeel 贤者包装类型。使用范围：MAGI 投影目标定义。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { WrappedSeel } from "../composables/useMagi.types";
+/** 用途：MagiMessage 消息视图类型。使用范围：MAGI 投影目标定义。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiMessage } from "../utils/messageFactory.types";
 
 /**

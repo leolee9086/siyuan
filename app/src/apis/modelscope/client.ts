@@ -151,7 +151,7 @@ async function 通过思源代理请求<T>(
     targetUrl: string,
     options: RequestInit,
     maxRetries: number = 默认参数.最大重试次数
-): Promise<T> {
+) {
     // 规范化 URL：移除协议后的多余连续斜杠
     const normalizedTargetUrl = targetUrl.replace(/([^:])\/+/g, "$1/");
 
@@ -208,7 +208,7 @@ async function 通过思源代理请求<T>(
 /**
  * 创建认证请求头
  */
-function 创建认证请求头(apiToken: string): Record<string, string> {
+function 创建认证请求头(apiToken: string) {
     return {
         [请求头.Authorization]: `Bearer ${apiToken}`,
         [请求头.ContentType]: 内容类型JSON
@@ -218,7 +218,7 @@ function 创建认证请求头(apiToken: string): Record<string, string> {
 /**
  * 提交文生图任务
  */
-export async function 提交生成任务(params: 提交生成任务参数): Promise<string> {
+export async function 提交生成任务(params: 提交生成任务参数) {
     const { apiToken, prompt, params: genParams = {} } = params;
 
     const url = `${魔搭API基础URL}${端点.图片生成}`;
@@ -254,7 +254,7 @@ export async function 提交生成任务(params: 提交生成任务参数): Prom
 /**
  * 获取任务状态
  */
-export async function 获取任务状态(params: 获取任务状态参数): Promise<任务状态响应> {
+export async function 获取任务状态(params: 获取任务状态参数) {
     const { apiToken, taskId } = params;
 
     const url = `${魔搭API基础URL}${端点.任务状态}/${taskId}`;
@@ -273,7 +273,7 @@ export async function 获取任务状态(params: 获取任务状态参数): Prom
 /**
  * 轮询任务直到完成
  */
-export async function 轮询任务直到完成(params: 轮询任务参数): Promise<任务状态响应> {
+export async function 轮询任务直到完成(params: 轮询任务参数) {
     const {
         apiToken,
         taskId,
@@ -297,7 +297,7 @@ export async function 轮询任务直到完成(params: 轮询任务参数): Prom
 /**
  * 通过代理获取图片并返回 Base64
  */
-export async function 获取图片(params: 获取图片参数): Promise<string> {
+export async function 获取图片(params: 获取图片参数) {
     const { imageUrl } = params;
 
     const normalizedUrl = imageUrl.replace(/([^:])\/+/g, "$1/");
@@ -348,6 +348,6 @@ export async function 获取图片(params: 获取图片参数): Promise<string> 
 /**
  * 从任务状态响应中提取第一个图片 URL
  */
-export async function 提取图片URL(status: 任务状态响应): Promise<string | undefined> {
+export async function 提取图片URL(status: 任务状态响应) {
     return status.output_images?.[0];
 }

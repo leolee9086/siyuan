@@ -7,7 +7,7 @@ import {getEnableHTML, removeEmbed} from "./removeEmbed";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {countBlockWord} from "../../layout/status";
 import {encodeBase64} from "../util/compatibility";
-import {isIncludeCell} from "../util/table";
+import {isIncludeCell} from "../util/table/table";
 import {genCellValueByElement, getCellText, getTypeByCellElement} from "../render/av/cell";
 import {nbsp2space, removeZWJ} from "../util/normalizeText";
 

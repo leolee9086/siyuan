@@ -2,13 +2,15 @@
  * 魔搭社区 (ModelScope) API 工具函数
  */
 
+/** 用途：类型守卫。使用范围：Headers 可迭代性判断。解耦评估：同目录守卫文件。 */
 import { 是可迭代键值对 } from "./utils.guard";
+/** 用途：响应类型守卫。使用范围：代理响应校验。解耦评估：同目录守卫文件。 */
 import { 检查思源代理响应 } from "./client.guard";
 
 /**
  * 将 HeadersInit 转换为 Record<string, string> 格式
  */
-export function 转换请求头(headersInit?: HeadersInit): Record<string, string> {
+export async function 转换请求头(headersInit?: HeadersInit) {
     const headers: Record<string, string> = {};
     if (!headersInit) {
         return headers;
@@ -38,7 +40,7 @@ export function 转换请求头(headersInit?: HeadersInit): Record<string, strin
 /**
  * Base64 解码
  */
-export function 解码Base64(str: string): string {
+export async function 解码Base64(str: string) {
     try {
         return atob(str);
     } catch {
@@ -49,7 +51,7 @@ export function 解码Base64(str: string): string {
 /**
  * 获取错误信息
  */
-function 获取错误信息(data: { status: number; body?: string }): string {
+function 获取错误信息(data: { status: number; body?: string }) {
     let msg = `HTTP ${data.status}`;
     if (!data.body) {
         return msg;
@@ -66,7 +68,7 @@ function 获取错误信息(data: { status: number; body?: string }): string {
 /**
  * 处理思源代理响应
  */
-export function 处理思源代理响应<T>(innerData: unknown): T | undefined {
+export async function 处理思源代理响应<T>(innerData: unknown) {
     if (!检查思源代理响应(innerData)) {
         throw new Error("收到的响应不符合 思源代理响应 结构");
     }
@@ -94,7 +96,7 @@ export function 处理思源代理响应<T>(innerData: unknown): T | undefined {
 /**
  * 等待指定毫秒数
  */
-export function 等待(ms: number): Promise<void> {
+export async function 等待(ms: number) {
     // 用于创建可 await 的延迟，调用者根据需要决定延迟时长和用途（如 API 限流、等待动画等）
     return new Promise(resolve => setTimeout(resolve, ms));
 }

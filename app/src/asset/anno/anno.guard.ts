@@ -3,10 +3,10 @@
  * @deprecated 请从 '@/util/DOM/element.guard' 导入统一的类型守卫
  */
 
-import {
-    isHTMLElement,
-    isHTMLDivElement
-} from "../../util/DOM/element.guard";
+/** 用途：HTMLElement 类型守卫。使用范围：anno 模块类型安全。解耦评估：通过 ./imports 转发。 */
+import { isHTMLElement } from "./imports";
+/** 用途：HTMLDivElement 类型守卫。使用范围：anno 模块类型安全。解耦评估：通过 ./imports 转发。 */
+import { isHTMLDivElement } from "./imports";
 
 /**
  * 检查元素是否为 HTMLElement（支持null/undefined输入）

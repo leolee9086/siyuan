@@ -21,7 +21,7 @@ import { focusByRange } from "./imports";
  * 调用时机：anchor 输入框触发 `input` 事件时。
  * 问题/改进：动态回填依赖异步请求，后续可补充失败兜底与并发覆盖保护。
  */
-const 处理锚点输入变化 = (refElement: HTMLElement, refBlockId: string, inputElement: HTMLInputElement): void => {
+const 处理锚点输入变化 = (refElement: HTMLElement, refBlockId: string, inputElement: HTMLInputElement) => {
     if (inputElement.value) {
         refElement.innerHTML = Lute.EscapeHTMLStr(inputElement.value).trim() || refBlockId;
         refElement.setAttribute("data-subtype", "s");
@@ -39,7 +39,7 @@ const 处理锚点输入变化 = (refElement: HTMLElement, refBlockId: string, i
  * 调用时机：anchor 输入框触发 `keydown` 事件时。
  * 问题/改进：目前只处理 Enter，后续可按需求增加 Esc 等快捷键策略。
  */
-const 处理锚点输入按键 = (event: KeyboardEvent): void => {
+const 处理锚点输入按键 = (event: KeyboardEvent) => {
     if (event.isComposing) {
         return;
     }
@@ -57,7 +57,7 @@ const 处理锚点输入按键 = (event: KeyboardEvent): void => {
  * 调用时机：anchor 菜单项 `bind` 回调执行时。
  * 问题/改进：当前依赖 querySelector("input")，后续可通过更稳定的选择器或组件引用替代。
  */
-const 绑定锚点输入框 = (refElement: HTMLElement, refBlockId: string, menuItemElement: HTMLElement): void => {
+const 绑定锚点输入框 = (refElement: HTMLElement, refBlockId: string, menuItemElement: HTMLElement) => {
     const inputElement = menuItemElement.querySelector("input");
     if (!(inputElement instanceof HTMLInputElement)) {
         return;
@@ -74,7 +74,7 @@ const 绑定锚点输入框 = (refElement: HTMLElement, refBlockId: string, menu
  * 问题/改进：当前直接抛错，后续可统一错误处理策略。
  */
 /** @同步豁免: 类型守卫 */
-export const 获取引用目标ID = (refElement: HTMLElement): string => {
+export const 获取引用目标ID = (refElement: HTMLElement) => {
     const refBlockId = refElement.getAttribute("data-id");
     if (!refBlockId) {
         throw new Error("引用目标id缺失");
@@ -82,8 +82,9 @@ export const 获取引用目标ID = (refElement: HTMLElement): string => {
     return refBlockId;
 };
 
-/** 获取引用目标所有 ID（多 ID 支持） */
-export const 获取引用目标IDs = (refElement: HTMLElement): string[] => {
+/** 获取引用目标所有 ID（多 ID 支持）
+ * @同步豁免: 类型守卫 — 纯 DOM 属性读取，无异步依赖 */
+export const 获取引用目标IDs = (refElement: HTMLElement) => {
     const raw = refElement.getAttribute("data-id");
     if (!raw) {
         throw new Error("引用目标id缺失");
@@ -98,7 +99,7 @@ export const 获取引用目标IDs = (refElement: HTMLElement): string[] => {
  * 问题/改进：输入项仍是 HTML 字符串，后续可替换为组件化渲染。
  */
 /** @同步豁免: UI构建 */
-export const 创建锚点编辑菜单项 = (refElement: HTMLElement, refBlockId: string): MenuItem => {
+export const 创建锚点编辑菜单项 = (refElement: HTMLElement, refBlockId: string) => {
     return new MenuItem({
         id: "anchor",
         iconHTML: "",

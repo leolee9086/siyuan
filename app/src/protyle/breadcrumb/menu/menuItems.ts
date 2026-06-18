@@ -154,7 +154,7 @@ export function 添加导出预览菜单项(
     protyle: IProtyle,
     menu: Menu,
     siyuanConfig: ReturnType<typeof getSiyuanConfig>
-): void {
+) {
     const item = new MenuItem({
         id: "openExportPreview",
         icon: "iconPreview",

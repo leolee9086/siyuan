@@ -1,4 +1,5 @@
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 用途：国际化文本。使用范围：htmlRender 设置无障碍标签。解耦评估：通过 imports.ts 转发。 */
+import { siyuanI18n } from "./imports";
 
 /**
  * 为 HTML 块节点的工具栏按钮设置无障碍标签（aria-label）。

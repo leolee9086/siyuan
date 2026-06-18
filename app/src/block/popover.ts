@@ -3,27 +3,60 @@
  * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中的悬浮面板
  */
 
+/** 用途：块面板类。使用范围：Popover 内容渲染。解耦评估：同目录模块直接导入。 */
 import { BlockPanel } from "./panel/Panel";
-import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
-import { hideTooltip } from "../dialog/tooltip";
-import { App } from "../index";
-import { Constants } from "../constants";
-import { isTouchDevice } from "../util/platform/functions";
-import {
-    getSiyuanBlockPanels,
-    getSiyuanKeyboardState,
-    getSiyuanDragElement,
-    hasSiyuanConfig,
-    getSiyuanMenus,
-    getSiyuanConfig,
-} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
-import { MouseEventWithPath, asMouseEventWithPath, isMouseEventWithHTMLTarget, MouseEventWithHTMLTarget } from "../util/lib/events/event.guard";
-import { isHTMLElement } from "../util/DOM/element.guard";
+/** 用途：通过属性查找 DOM 元素。使用范围：Popover 定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByAttribute } from "./imports";
+/** 用途：通过类名查找最近祖先。使用范围：Popover 定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByClassName } from "./imports";
+/** 用途：隐藏 Tooltip。使用范围：Popover 关闭时清理。解耦评估：通过 ./imports 转发。 */
+import { hideTooltip } from "./imports";
+/** 用途：应用实例类型。使用范围：Popover 上下文。解耦评估：通过 ./imports 转发。 */
+import { App } from "./imports";
+/** 用途：系统常量。使用范围：Popover 配置。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：触屏设备判断。使用范围：Popover 交互适配。解耦评估：通过 ./imports 转发。 */
+import { isTouchDevice } from "./imports";
+/** 用途：安全获取 SiYuan 配置和状态。使用范围：Popover 初始化。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanBlockPanels } from "./imports";
+/** 用途：获取键盘状态。使用范围：Popover 交互判断。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanKeyboardState } from "./imports";
+/** 用途：获取拖拽元素。使用范围：Popover 拖拽状态。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanDragElement } from "./imports";
+/** 用途：判断配置是否存在。使用范围：Popover 初始化守卫。解耦评估：通过 ./imports 转发。 */
+import { hasSiyuanConfig } from "./imports";
+/** 用途：获取菜单集合。使用范围：Popover 菜单。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanMenus } from "./imports";
+/** 用途：获取配置。使用范围：Popover 行为配置。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanConfig } from "./imports";
+/** 用途：安全 setTimeout。使用范围：Popover 延迟操作。解耦评估：通过 ./imports 转发。 */
+import { setTimeout } from "./imports";
+/** 用途：鼠标事件守卫和类型。使用范围：Popover 事件处理。解耦评估：通过 ./imports 转发。 */
+import { asMouseEventWithPath } from "./imports";
+/** 用途：鼠标事件 HTML 目标守卫。使用范围：Popover 事件处理。解耦评估：通过 ./imports 转发。 */
+import { isMouseEventWithHTMLTarget } from "./imports";
+/** 用途：鼠标事件路径类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
+import type { MouseEventWithPath } from "./imports";
+/** 用途：HTML 目标鼠标事件类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
+import type { MouseEventWithHTMLTarget } from "./imports";
+// MouseEventWithHTMLTarget used in event handler type annotations below
+/** 用途：HTMLElement 类型守卫。使用范围：Popover DOM 操作。解耦评估：通过 ./imports 转发。 */
+import { isHTMLElement } from "./imports";
 
 // 子模块导入
-import { TooltipInfo, getTooltipInfo, handleTooltipDisplay } from "./popover/tooltip";
-import { getPopoverTargetElement, hidePopover, getTarget } from "./popover/target";
+/** 用途：Tooltip 工具提示信息类型。使用范围：Popover Tooltip 配置。解耦评估：同目录子模块。 */
+import type { TooltipInfo } from "./popover/tooltip";
+/** 用途：Tooltip 信息获取函数。使用范围：Popover 初始化。解耦评估：同目录子模块。 */
+import { getTooltipInfo } from "./popover/tooltip";
+/** 用途：Tooltip 显示处理函数。使用范围：Popover Tooltip 控制。解耦评估：同目录子模块。 */
+import { handleTooltipDisplay } from "./popover/tooltip";
+/** 用途：获取 Popover 定位目标。使用范围：Popover 显示定位。解耦评估：同目录子模块。 */
+import { getPopoverTargetElement } from "./popover/target";
+/** 用途：隐藏 Popover。使用范围：Popover 关闭。解耦评估：同目录子模块。 */
+import { hidePopover } from "./popover/target";
+/** 用途：获取 Popover 目标。使用范围：Popover 定位。解耦评估：同目录子模块。 */
+import { getTarget } from "./popover/target";
+/** 用途：引用定义获取。使用范围：Popover 内容渲染。解耦评估：同目录子模块。 */
 import { getRefDefs } from "./popover/refDefs";
 
 // 重新导出类型供外部使用
@@ -48,7 +81,7 @@ const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) 
  * 用于满足 getTarget 函数的类型要求
  * @returns 转换后的事件，如果 target 不是 HTMLElement 则返回 undefined
  */
-function asEventWithHTMLTarget(event: MouseEvent): MouseEventWithHTMLTarget | undefined {
+function asEventWithHTMLTarget(event: MouseEvent) {
     if (isMouseEventWithHTMLTarget(event)) {
         return event;
     }
@@ -60,7 +93,7 @@ function asEventWithHTMLTarget(event: MouseEvent): MouseEventWithHTMLTarget | un
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /** 查找可能显示 tooltip 的元素 */
-function 查找Tooltip元素(target: HTMLElement): HTMLElement | false {
+function 查找Tooltip元素(target: HTMLElement) {
     return hasClosestByAttribute(target, "data-type", "a", true) ||
         hasClosestByClassName(target, "ariaLabel") ||
         hasClosestByAttribute(target, "data-type", "tab-header") ||
@@ -70,7 +103,7 @@ function 查找Tooltip元素(target: HTMLElement): HTMLElement | false {
 }
 
 /** 处理 tooltip 元素的显示逻辑，返回 true 表示应该停止事件传播 */
-function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: HTMLElement): boolean {
+function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: HTMLElement) {
     const tooltipInfo = getTooltipInfo(aElement, target);
     if (handleTooltipDisplay(aElement, event, tooltipInfo)) {
         return true;
@@ -80,7 +113,7 @@ function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: H
 }
 
 /** 处理非 tooltip 元素，检查是否应该隐藏 tooltip */
-function 处理非Tooltip元素(target: HTMLElement): void {
+function 处理非Tooltip元素(target: HTMLElement) {
     const tipElement = hasClosestByAttribute(target, "id", "tooltip", true);
     // 当不存在 tooltip 元素，或者 tooltip 内容未溢出（不需要滚动查看）时，隐藏 tooltip
     if (!tipElement || (
@@ -105,7 +138,7 @@ const 处理按键触发模式 = (
     target: HTMLElement,
     aElement: HTMLElement | false,
     clearTimeoutHide: () => void
-): boolean => {
+) => {
     clearTimeoutHide();
     // @setTimeout豁免: 用户感知延迟 - 需要等待用户输入稳定后再隐藏 popover，防止快速移动鼠标时闪烁
     setTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
@@ -176,7 +209,7 @@ const 处理延迟触发模式 = (
     aElement: HTMLElement | false,
     setTimeouts: (t: number, th: number) => void,
     clearTimeouts: () => void
-): void => {
+) => {
     clearTimeouts();
 
     // 使用对象包装以避免闭包中的相互引用问题
@@ -204,7 +237,7 @@ const 处理Mouseover事件 = (
     clearTimeouts: () => void,
     setTimeouts: (t: number, th: number) => void,
     clearTimeoutHide: () => void
-): void => {
+) => {
     // 前置条件检查
     if (!hasSiyuanConfig() || !getSiyuanMenus() ||
         getSiyuanDragElement() || document.onmousemove) {

@@ -1,4 +1,5 @@
-import { kernelClient } from "../kernelSDK";
+/** 用途：内核 SDK 客户端，执行 SQL 查询。使用范围：tags 模块按笔记 ID 查找标签。解耦评估：通过 imports.ts 转发。 */
+import { kernelClient } from "./imports";
 
 /**
  * 根据笔记ID查找该笔记关联的所有标签
@@ -12,7 +13,7 @@ import { kernelClient } from "../kernelSDK";
  * console.log(tags); // ["技术", "前端", "Vue"]
  * ```
  */
-export async function findTagsByNoteID(id: string): Promise<string[]> {
+export async function findTagsByNoteID(id: string) {
     const sql = `select tag from blocks where id = "${id}" `;
     const result = await kernelClient.SQL({ stmt: sql });
     const firstRow = result.data[0];

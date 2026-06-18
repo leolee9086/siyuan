@@ -1,10 +1,16 @@
-import { App } from "..";
-import { showMessage } from "../dialog/message";
-import { Model } from "../layout/Model";
-import { fetchSyncPost } from "../util/network/fetch";
+/** 用途：应用实例类型。使用范围：openFileById 参数类型标注。解耦评估：通过 ./imports 转发。 */
+import type { App } from "./imports";
+/** 用途：显示提示消息。使用范围：文件不存在时的用户提示。解耦评估：通过 ./imports 转发。 */
+import { showMessage } from "./imports";
+/** 用途：布局模型类型。使用范围：openFileById 回调参数。解耦评估：通过 ./imports 转发。 */
+import { Model } from "./imports";
+/** 用途：同步 POST 请求。使用范围：获取块信息。解耦评估：通过 ./imports 转发。 */
+import { fetchSyncPost } from "./imports";
+/** 用途：核心文件打开逻辑。使用范围：openFileById 获取块信息后调用。解耦评估：同目录模块直接导入。 */
 import { openFile } from "./util";
 
 
+/** 根据 ID 打开文件块 */
 export const openFileById = async (options: {
     app: App;
     id: string;
@@ -21,6 +27,7 @@ export const openFileById = async (options: {
     if (response.code === -1) {
         return;
     }
+    // 块已删除或无权访问时显示错误消息
     if (response.code === 3) {
         showMessage(response.msg);
         return;
@@ -42,3 +49,5 @@ export const openFileById = async (options: {
         openNewTab: options.openNewTab
     });
 };
+
+

@@ -1,16 +1,16 @@
+/** 用途：国际化文案，用于按钮标签文本。使用范围：预览界面操作按钮渲染。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 生成并追加预览界面的操作按钮 HTML。
  *
- * - 作用：遍历 `actions` 数组，根据每个动作的类型（预定义字符串或自定义对象）生成相应的 `<button>` HTML 字符串，并将其 push 到 `actionHtml` 数组中。
- * - 意图：为了实现预览模式下顶部工具栏或相关区域的按钮动态渲染，支持响应式设备切换按钮和第三方分享按钮。
- * - 调用时机：在构建 Protyle 预览视图的 HTML 结构时被调用。
+ * - 作用：遍历 `actions` 数组
+ * @同步豁免: UI构建 - 预览界面的按钮 HTML 构建需要在渲染管线中同步完成，异步化会延迟界面首次渲染。
  *
  * @param actions 需要渲染的动作列表。
  * @param actionHtml 存储 HTML 片段的数组，函数会直接修改此数组以追加新的按钮 HTML。
  */
-export const addActionButtons = (actions: Array<IPreviewAction | IPreviewActionCustom>, actionHtml: string[]): void => {
+export const addActionButtons = (actions: Array<IPreviewAction | IPreviewActionCustom>, actionHtml: string[]) => {
     const actionMap: Record<string, string> = {
         "desktop": `<button type="button" class="protyle-preview__action--current" data-group="device" data-type="desktop">${siyuanI18n.desktop}</button>`,
         "tablet": `<button type="button" data-group="device" data-type="tablet">${siyuanI18n.tablet}</button>`,
@@ -26,6 +26,7 @@ export const addActionButtons = (actions: Array<IPreviewAction | IPreviewActionC
             actionHtml.push(`<button type="button" data-type="${action.key}" class="${action.className}">${action.text}</button>`);
             continue;
         }
+        // 如果 action 在预定义的映射表中，将对应的 HTML 按钮追加到输出数组
         if (actionMap[action]) {
             actionHtml.push(actionMap[action]);
         }

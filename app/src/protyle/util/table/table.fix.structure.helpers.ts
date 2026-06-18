@@ -5,7 +5,7 @@
  */
 
 import { RowSpanInfo, StructureContext, TableFixContext } from "./table.fix.types";
-import { getSiyuanEditorTableKeymap } from "../../util/siyuanEnvironments/getSiyuanKeymap.environment";
+import { getSiyuanEditorTableKeymap } from "../../../util/siyuanEnvironments/getSiyuanKeymap.environment";
 import { getColIndex } from "./table";
 
 /**

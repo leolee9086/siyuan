@@ -33,7 +33,7 @@ import { emitOpenMenu } from "./imports";
  * 添加全选菜单项。
  * @同步豁免: UI构建 - 菜单项需在当前构建周期同步追加。
  */
-export const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, range: Range, captionElement: false | HTMLElement): void => {
+export const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, range: Range, captionElement: false | HTMLElement) => {
     // 表格caption内不显示全选菜单，避免在表格标题中触发全选操作
     if (captionElement) {
         return;
@@ -54,7 +54,7 @@ export const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, rang
  * 触发插件菜单打开事件。
  * @同步豁免: UI构建 - 插件菜单扩展点需在当前菜单构建流程同步触发。
  */
-export const 触发插件菜单事件 = (protyle: IProtyle, nodeElement: Element, range: Range): void => {
+export const 触发插件菜单事件 = (protyle: IProtyle, nodeElement: Element, range: Range) => {
     if (!protyle?.app?.plugins) {
         return;
     }

@@ -62,7 +62,7 @@ const FOCUS_ACTION_NO_PUSH = [Constants.CB_GET_FOCUS, Constants.CB_GET_UNUNDO];
  * 调用时机：补偿请求回调执行时。
  * 问题/改进：动作映射仍是静态常量，后续可抽象为策略层。
  */
-const 获取聚焦补偿动作 = (options: ZoomOutOptions): string[] => {
+const 获取聚焦补偿动作 = (options: ZoomOutOptions) => {
     if (options.isPushBack) {
         return FOCUS_ACTION_PUSH;
     }
@@ -75,7 +75,7 @@ const 获取聚焦补偿动作 = (options: ZoomOutOptions): string[] => {
  * 调用时机：主文档响应后执行焦点恢复。
  * 问题/改进：当前使用同步请求，后续可改异步并减少阻塞。
  */
-const 获取焦点目标元素 = async (options: ZoomOutOptions): Promise<Element | null> => {
+const 获取焦点目标元素 = async (options: ZoomOutOptions) => {
     if (!options.focusId) {
         return null;
     }
@@ -101,7 +101,7 @@ const 获取焦点目标元素 = async (options: ZoomOutOptions): Promise<Elemen
  * 调用时机：焦点恢复命中目标元素后。
  * 问题/改进：依赖 DOM 结构推断，可考虑由渲染层提供可见节点 API。
  */
-const 获取可见聚焦元素 = (focusElement: Element): Element => {
+const 获取可见聚焦元素 = (focusElement: Element) => {
     let showElement = focusElement;
     while (showElement.getBoundingClientRect().height === 0 && showElement.parentElement) {
         showElement = showElement.parentElement;
@@ -124,7 +124,7 @@ const 获取可见聚焦元素 = (focusElement: Element): Element => {
  * 调用时机：命中目标元素后立即执行。
  * 问题/改进：观察器释放仍依赖超时，后续可改为事件驱动释放。
  */
-const 聚焦并滚动到目标 = (options: ZoomOutOptions, focusElement: Element): void => {
+const 聚焦并滚动到目标 = (options: ZoomOutOptions, focusElement: Element) => {
     const showElement = 获取可见聚焦元素(focusElement);
     focusBlock(showElement);
 
@@ -161,7 +161,7 @@ const 创建聚焦补偿回调 = (options: ZoomOutOptions) => {
  * 调用时机：主文档 onGet 之后。
  * 问题/改进：补偿路径较多，后续可继续收敛为状态机。
  */
-export const 处理ZoomOut焦点恢复 = async (options: ZoomOutOptions): Promise<boolean> => {
+export const 处理ZoomOut焦点恢复 = async (options: ZoomOutOptions) => {
     if (!options.focusId) {
         return false;
     }

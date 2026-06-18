@@ -17,7 +17,7 @@ import type { Custom } from "./imports";
  * 调用时机：读取 sourceName/sourceURL 时调用。
  * 问题/改进：当前仅支持字符串字段，后续如有复杂结构可扩展解析器。
  */
-const readStringField = (data: unknown, key: string): string => {
+const readStringField = (data: unknown, key: string) => {
     if (!data || typeof data !== "object") {
         return "";
     }
@@ -34,7 +34,7 @@ const readStringField = (data: unknown, key: string): string => {
  * 调用时机：sourceURL 可用时创建页面结构。
  * 问题/改进：按钮文案目前是固定中文，后续可改为 i18n 文案。
  */
-const createToolbar = (sourceName: string, sourceURL: string): HTMLDivElement => {
+const createToolbar = (sourceName: string, sourceURL: string) => {
     const toolbar = document.createElement("div");
     toolbar.className = "bazaar-source-tab__toolbar";
 
@@ -70,7 +70,7 @@ const createToolbar = (sourceName: string, sourceURL: string): HTMLDivElement =>
  * 调用时机：sourceURL 可用时创建页面结构。
  * 问题/改进：当前 sandbox 权限按最小可用设置，后续若源页面能力变更需同步评估。
  */
-const createFrameWrap = (sourceURL: string): { frameWrap: HTMLDivElement; iframe: HTMLIFrameElement } => {
+const createFrameWrap = (sourceURL: string) => {
     const frameWrap = document.createElement("div");
     frameWrap.className = "bazaar-source-tab__frame-wrap";
 
@@ -98,7 +98,7 @@ const createFrameWrap = (sourceURL: string): { frameWrap: HTMLDivElement; iframe
  * 调用时机：sourceURL 为空时立即调用。
  * 问题/改进：提示文案当前为英文，后续可切到 i18n 资源。
  */
-const renderEmptySource = (container: HTMLElement): void => {
+const renderEmptySource = (container: HTMLElement) => {
     container.innerHTML = "<div class=\"bazaar-source-tab__empty\">source url is empty</div>";
 };
 
@@ -108,7 +108,7 @@ const renderEmptySource = (container: HTMLElement): void => {
  * 调用时机：工具栏 click 事件触发时调用。
  * 问题/改进：目前采用时间戳强制刷新，后续可考虑 cache-control 协议优化。
  */
-const handleToolbarClick = (event: Event, sourceURL: string, iframe: HTMLIFrameElement): void => {
+const handleToolbarClick = (event: Event, sourceURL: string, iframe: HTMLIFrameElement) => {
     if (!isHTMLElement(event.target)) {
         return;
     }
@@ -128,7 +128,7 @@ const handleToolbarClick = (event: Event, sourceURL: string, iframe: HTMLIFrameE
  * @同步豁免: UI构建
  */
 /** 导出 initBazaarSourceTab 供 Tab 注册中心回调使用 */
-export function initBazaarSourceTab(model: Custom): void {
+export function initBazaarSourceTab(model: Custom) {
     if (!isHTMLElement(model.element)) {
         return;
     }

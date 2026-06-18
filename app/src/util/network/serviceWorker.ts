@@ -48,7 +48,7 @@ export const registerServiceWorker = async (
         type: "classic",
         updateViaCache: "all",
     },
-): Promise<void> => {
+) => {
     if (!isBrowser) {
         return;
     }

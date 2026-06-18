@@ -1,16 +1,16 @@
 //@AIDONE 检查App等导入被用作值还是类型,如果仅用作类型则改为 type 导入以优化性能
-// 用途：在新窗口中打开指定块；使用范围：Electron 环境下打开引用块；解耦评估：通过imports.ts统一管理外部依赖
-import { openNewWindowById } from "../imports";
-// 用途：在编辑器中打开指定文件；使用范围：粘贴标签页操作时打开文件；解耦评估：通过imports.ts统一管理外部依赖
-import { openFileById } from "../imports";
-// 用途：检查块是否折叠并执行回调；使用范围：粘贴标签页前检查折叠状态；解耦评估：通过imports.ts统一管理外部依赖
-import { checkFold } from "../imports";
-// 用途：判断当前是否为 Electron 环境；使用范围：判断是否支持新窗口打开；解耦评估：通过imports.ts统一管理外部依赖
-import { isElectron } from "../imports";
-// 用途：获取国际化文本；使用范围：设置固定按钮的 aria-label；解耦评估：通过imports.ts统一管理外部依赖
-import { siyuanI18n } from "../imports";
-// 用途：App 类型定义；使用范围：函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { App } from "../imports";
+/** 用途：在新窗口中打开指定块。使用范围：Electron 下打开引用块。解耦评估：通过 ./imports 转发。 */
+import { openNewWindowById } from "./imports";
+/** 用途：在编辑器中打开指定文件。使用范围：粘贴标签页操作。解耦评估：通过 ./imports 转发。 */
+import { openFileById } from "./imports";
+/** 用途：检查块是否折叠并执行回调。使用范围：粘贴标签页前检查折叠。解耦评估：通过 ./imports 转发。 */
+import { checkFold } from "./imports";
+/** 用途：判断当前是否为 Electron 环境。使用范围：判断是否支持新窗口。解耦评估：通过 ./imports 转发。 */
+import { isElectron } from "./imports";
+/** 用途：获取国际化文本。使用范围：固定按钮 aria-label。解耦评估：通过 ./imports 转发。 */
+import { siyuanI18n } from "./imports";
+/** 用途：App 类型定义。使用范围：函数参数类型标注。解耦评估：通过 ./imports 转发。 */
+import type { App } from "./imports";
 // 用途：面板头部图标上下文类型；使用范围：执行图标操作函数的参数类型；解耦评估：本地类型定义，作为类型导入不影响运行时
 import type { headIconCtx } from "../Panel.types";
 
@@ -21,7 +21,7 @@ import type { headIconCtx } from "../Panel.types";
  * 调用时机：通常在面板初始化或需要重置状态时调用
  * @同步豁免: 需要绝对同步的DOM访问 - 必须立即更新DOM状态以保证UI一致性
  */
-export function 切换固定状态(element: HTMLElement, 固定: boolean): void {
+export function 切换固定状态(element: HTMLElement, 固定: boolean) {
     const pinSelector = '[data-type="pin"]';
     const pinElement = element.querySelector(pinSelector) ??
         element.firstElementChild?.querySelector(pinSelector);
@@ -46,7 +46,7 @@ function 应用固定状态(
     useElement: SVGUseElement,
     element: HTMLElement,
     固定: boolean
-): void {
+) {
     // 判断是否需要固定面板：当固定参数为true时，设置为固定状态（显示取消固定图标）；否则设置为未固定状态（显示固定图标）
     if (固定) {
         pinElement.setAttribute("aria-label", siyuanI18n.unpin);
@@ -67,7 +67,7 @@ function 应用固定状态(
  * 调用时机：面板头部图标被点击时调用
  * @同步豁免: UI构建 - 事件处理器必须同步响应用户点击，立即执行对应操作
  */
-export function 执行图标操作(ctx: headIconCtx): void {
+export function 执行图标操作(ctx: headIconCtx) {
     const { type, target, element, refDefs, app, onDestroy } = ctx;
     const firstRef = refDefs[0];
 
@@ -101,7 +101,7 @@ export function 执行图标操作(ctx: headIconCtx): void {
  * 意图：处理点击固定按钮的具体业务逻辑
  * 调用时机：在 执行图标操作 中，当 type 为 'pin' 时调用
  */
-function 执行固定操作(target: HTMLElement, element: HTMLElement): void {
+function 执行固定操作(target: HTMLElement, element: HTMLElement) {
     const 当前固定 = element.getAttribute("data-pin") === "true";
     const useElement = target.querySelector("use");
     if (!useElement) {
@@ -117,7 +117,7 @@ function 执行固定操作(target: HTMLElement, element: HTMLElement): void {
  * 意图：响应 'stickTab' 操作，将当前内容以标签页形式打开
  * 调用时机：在 执行图标操作 中，当 type 为 'stickTab' 时调用
  */
-function 执行粘贴标签页操作(refDefs: IRefDefs[], app: App, onDestroy: () => void): void {
+function 执行粘贴标签页操作(refDefs: IRefDefs[], app: App, onDestroy: () => void) {
     const firstRef = refDefs[0];
     if (!firstRef) {
         return;

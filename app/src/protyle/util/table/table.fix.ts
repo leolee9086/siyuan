@@ -12,7 +12,7 @@
  * @同步豁免: 需要绝对同步的DOM访问
  */
 
-import { hasClosestByTag, hasClosestBlock } from "./hasClosest";
+import { hasClosestByTag, hasClosestBlock } from "../hasClosest";
 import { TableFixContext } from "./table.fix.types";
 import { handleBackspaceBrFix, handleShiftEnter } from "./table.fix.editing";
 import {

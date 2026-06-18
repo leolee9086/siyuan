@@ -4,6 +4,7 @@
  * @module sforge/panel/SmartToolboxPanel.types
  */
 
+/** 用途：ITriggerRegistration 触发器注册类型。使用范围：工具分组和工具执行上下文类型依赖。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { ITriggerRegistration } from "../../registry/TriggerRegistry.types";
 
 /**

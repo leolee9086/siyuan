@@ -45,7 +45,7 @@ import { Menu } from "./imports";
  * 调用时机：锚点输入框 input/compositionend。
  * 问题/改进：仍依赖全局 `Lute`，后续可评估显式注入。
  */
-const 更新锚点文本 = (refElement: HTMLElement, anchorElement: HTMLTextAreaElement): void => {
+const 更新锚点文本 = (refElement: HTMLElement, anchorElement: HTMLTextAreaElement) => {
     if (anchorElement.value) {
         refElement.innerHTML = Lute.EscapeHTMLStr(anchorElement.value);
         return;
@@ -64,7 +64,7 @@ const 提交引用事务 = (
     id: LuteNodeID,
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string }
-): void => {
+) => {
     updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
 };
@@ -75,7 +75,7 @@ const 提交引用事务 = (
  * 调用时机：锚点输入框 keydown。
  * 问题/改进：当前只处理 Enter，后续可按需补充 Escape 等行为。
  */
-const 处理锚点按键 = (menu: Menu, event: KeyboardEvent): void => {
+const 处理锚点按键 = (menu: Menu, event: KeyboardEvent) => {
     if (event.isComposing) {
         return;
     }
@@ -93,7 +93,7 @@ const 处理锚点按键 = (menu: Menu, event: KeyboardEvent): void => {
  * 调用时机：bind 回调初始化阶段。
  * 问题/改进：依赖当前 label 模板结构，后续可改为 data-role 标记更稳健。
  */
-const 获取锚点输入框 = (menuItemElement: HTMLElement): HTMLTextAreaElement | null => {
+const 获取锚点输入框 = (menuItemElement: HTMLElement) => {
     const textFields = menuItemElement.querySelectorAll(".b3-text-field");
     const anchorElement = textFields.item(1);
     if (anchorElement instanceof HTMLTextAreaElement) {
@@ -116,7 +116,7 @@ const 绑定锚点输入框 = (
     refElement: HTMLElement,
     menu: Menu,
     menuItemElement: HTMLElement
-): void => {
+) => {
     menuItemElement.style.maxWidth = "none";
     const anchorElement = 获取锚点输入框(menuItemElement);
     if (!anchorElement) {
@@ -148,7 +148,7 @@ const 执行转换为文本 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
     removeInlineType(refElement, "file-annotation-ref", requireRange(protyle));
     提交引用事务(protyle, id, nodeElement, htmlState);
@@ -166,7 +166,7 @@ const 执行转换为文本星号 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.insertAdjacentHTML("beforebegin", refElement.innerHTML + " ");
     refElement.textContent = "*";
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -185,7 +185,7 @@ const 删除文件注释引用 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -199,7 +199,7 @@ const 删除文件注释引用 = (
  * 调用时机：菜单基础项构建完成后。
  * 问题/改进：依赖运行时插件列表，后续可增加异常场景日志。
  */
-const 触发文件注释插件菜单 = (protyle: IProtyle, refElement: HTMLElement): void => {
+const 触发文件注释插件菜单 = (protyle: IProtyle, refElement: HTMLElement) => {
     if (!protyle?.app?.plugins) {
         return;
     }
@@ -220,7 +220,7 @@ const 触发文件注释插件菜单 = (protyle: IProtyle, refElement: HTMLEleme
  * 调用时机：菜单项构建完成后。
  * 问题/改进：桌面端偏移值 26 为历史常量，后续可提取配置。
  */
-const 展示文件注释菜单 = (refElement: HTMLElement, menu: Menu): void => {
+const 展示文件注释菜单 = (refElement: HTMLElement, menu: Menu) => {
     if (isMobile) {
         menu.fullscreen();
         return;

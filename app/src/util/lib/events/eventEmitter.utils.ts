@@ -25,7 +25,7 @@ import { isEventDataType } from "./eventEmitter.guard";
 /** @同步豁免: 性能考虑 - Schema编译是CPU密集型操作，需要同步执行以避免异步开销影响事件系统性能 */
 export function compileEventSchemas<T extends IEventDefines>(
   eventDefines: T
-): Map<keyof T, z.ZodObject<z.ZodRawShape>> {
+) {
   const schemas = new Map<keyof T, z.ZodObject<z.ZodRawShape>>();
   
   for (const key in eventDefines) {
@@ -69,7 +69,7 @@ export function processEventDataImpl<T extends IEventDefines, K extends keyof T>
   data: unknown,
   schemas: Map<keyof T, z.ZodObject<z.ZodRawShape>>,
   options: Required<EventEmitterOptions>
-): { data: unknown | null; shouldThrow: boolean } {
+) {
   if (!options.runtimeCheck) {
     return { data: data, shouldThrow: false };
   }
@@ -118,7 +118,7 @@ export function executeListenerSync<T extends IEventDefines, K extends keyof T>(
   data: unknown,
   schemas: Map<keyof T, z.ZodObject<z.ZodRawShape>>,
   options: Required<EventEmitterOptions>
-): void {
+) {
   try {
     // 创建数据的副本，这样监听器的修改不会影响原始数据
     const dataCopy = structuredClone(data);
@@ -176,7 +176,7 @@ export async function executeListenerAsync<T extends IEventDefines, K extends ke
   data: unknown,
   schemas: Map<keyof T, z.ZodObject<z.ZodRawShape>>,
   options: Required<EventEmitterOptions>
-): Promise<void> {
+) {
   try {
     // 创建数据的副本，这样监听器的修改不会影响原始数据
     const dataCopy = structuredClone(data);

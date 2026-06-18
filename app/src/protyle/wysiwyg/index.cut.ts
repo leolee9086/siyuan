@@ -5,7 +5,7 @@ import {Constants} from "../../constants";
 import {removeEmbed} from "./removeEmbed";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {encodeBase64} from "../util/compatibility";
-import {isIncludeCell} from "../util/table";
+import {isIncludeCell} from "../util/table/table";
 import {updateCellsValue} from "../render/av/cell";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
 import {removeBlock} from "./remove";

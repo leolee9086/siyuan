@@ -9,7 +9,7 @@ import { siyuanI18n } from "./imports";
  * 调用时机：绑定评分事件前。
  * 问题/改进：当前只过滤 HTMLElement，后续可根据组件演进收窄到具体元素类型。
  */
-const 收集星标元素 = (ratingContainer: Element): HTMLElement[] => {
+const 收集星标元素 = (ratingContainer: Element) => {
     const starElements: HTMLElement[] = [];
     const rawStars = ratingContainer.querySelectorAll(".star-icon");
     for (const rawStar of rawStars) {
@@ -27,7 +27,7 @@ const 收集星标元素 = (ratingContainer: Element): HTMLElement[] => {
  * 调用时机：初始化读取评分后、设置评分成功后、清空评分成功后。
  * 问题/改进：颜色目前硬编码主题变量，后续可接入主题 token 配置。
  */
-const 刷新星标展示 = (starElements: HTMLElement[], rating: number): void => {
+const 刷新星标展示 = (starElements: HTMLElement[], rating: number) => {
     for (let index = 0; index < starElements.length; index += 1) {
         const starElement = starElements[index];
         // 评分值以内的星标高亮，评分值以外恢复默认样式。
@@ -47,7 +47,7 @@ const 刷新星标展示 = (starElements: HTMLElement[], rating: number): void =
  * 调用时机：`/api/s-forge/asset-meta/get` 返回后。
  * 问题/改进：当前静默忽略失败分支，后续可按产品需求补充提示。
  */
-const 处理读取评分响应 = (starElements: HTMLElement[], response: IWebSocketData): void => {
+const 处理读取评分响应 = (starElements: HTMLElement[], response: IWebSocketData) => {
     // 仅接口成功且返回数据时刷新评分，避免把异常响应写入 UI。
     if (response.code === 0 && response.data) {
         刷新星标展示(starElements, response.data.star || 0);
@@ -60,7 +60,7 @@ const 处理读取评分响应 = (starElements: HTMLElement[], response: IWebSoc
  * 调用时机：`/api/s-forge/asset-meta/set` 返回后。
  * 问题/改进：当前仅处理成功响应，后续可追加失败提示。
  */
-const 处理设置评分响应 = (starElements: HTMLElement[], rating: number, response: IWebSocketData): void => {
+const 处理设置评分响应 = (starElements: HTMLElement[], rating: number, response: IWebSocketData) => {
     // 仅后端确认写入成功时更新前端展示，避免前后端状态不一致。
     if (response.code === 0) {
         刷新星标展示(starElements, rating);
@@ -73,7 +73,7 @@ const 处理设置评分响应 = (starElements: HTMLElement[], rating: number, r
  * 调用时机：星标点击与清空评分按钮点击时。
  * 问题/改进：当前未做节流，后续可按交互需要防抖请求。
  */
-const 提交评分 = (src: string, rating: number, starElements: HTMLElement[]): void => {
+const 提交评分 = (src: string, rating: number, starElements: HTMLElement[]) => {
     const requestPayload = {
         path: src,
         star: rating
@@ -88,7 +88,7 @@ const 提交评分 = (src: string, rating: number, starElements: HTMLElement[]):
  * 调用时机：循环绑定每个星标的 click 事件时。
  * 问题/改进：当前直接提交请求，后续可在此处接入乐观更新策略。
  */
-const 创建星标点击处理器 = (src: string, rating: number, starElements: HTMLElement[]): (() => void) => {
+const 创建星标点击处理器 = (src: string, rating: number, starElements: HTMLElement[]) => {
     return () => {
         提交评分(src, rating, starElements);
     };
@@ -100,7 +100,7 @@ const 创建星标点击处理器 = (src: string, rating: number, starElements: 
  * 调用时机：绑定清空按钮 click 事件时。
  * 问题/改进：当前将清空视为评分 0，后续如需软删除可扩展协议。
  */
-const 创建清空评分处理器 = (src: string, starElements: HTMLElement[]): (() => void) => {
+const 创建清空评分处理器 = (src: string, starElements: HTMLElement[]) => {
     return () => {
         提交评分(src, 0, starElements);
     };
@@ -112,7 +112,7 @@ const 创建清空评分处理器 = (src: string, starElements: HTMLElement[]): 
  * 调用时机：评分容器初始化完成后。
  * 问题/改进：目前逐元素绑定，后续可评估事件委托优化。
  */
-const 绑定星标点击事件 = (src: string, starElements: HTMLElement[]): void => {
+const 绑定星标点击事件 = (src: string, starElements: HTMLElement[]) => {
     for (let index = 0; index < starElements.length; index += 1) {
         const starElement = starElements[index];
         const clickHandler = 创建星标点击处理器(src, index + 1, starElements);
@@ -126,7 +126,7 @@ const 绑定星标点击事件 = (src: string, starElements: HTMLElement[]): voi
  * 调用时机：评分容器初始化完成后。
  * 问题/改进：后续若按钮变更为组件化结构，可仅替换该函数实现。
  */
-const 绑定清空评分事件 = (ratingContainer: Element, src: string, starElements: HTMLElement[]): void => {
+const 绑定清空评分事件 = (ratingContainer: Element, src: string, starElements: HTMLElement[]) => {
     const clearButton = ratingContainer.querySelector("[data-action='clear-rating']");
     // 仅在清空按钮存在时绑定事件，避免不存在节点时报错。
     if (clearButton instanceof HTMLElement) {

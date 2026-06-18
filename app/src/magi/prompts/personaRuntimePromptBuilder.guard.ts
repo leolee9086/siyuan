@@ -1,5 +1,7 @@
+/** 用途：IpipPersonaProfile 人格档案类型。使用范围：人格运行时提示词构建器。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { IpipPersonaProfile } from "../data/questionnaire.types";
 
+/** 导出 ACTIVE_SEED_POINTER_SCHEMA：活跃种子指针的 schema 标识常量。 */
 export const ACTIVE_SEED_POINTER_SCHEMA = "MAGI-ACTIVE-PERSONA-SEED-v1";
 const PROFILE_SCHEMA_VERSION = "IPIP-NEO-120-v1";
 const REQUIRED_TRAIT_KEYS: readonly (keyof IpipPersonaProfile["personaBase"]["traits"])[] = ["O", "C", "E", "A", "N"];

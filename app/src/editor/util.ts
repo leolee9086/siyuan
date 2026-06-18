@@ -1,17 +1,43 @@
-import { Tab } from "../layout/Tab";
+/** 用途：页签类型。使用范围：打开页签操作。解耦评估：通过 ./imports 转发。 */
+import { Tab } from "./imports";
+/** 用途：编辑器实例类型。使用范围：页签模型类型判断。解耦评估：同目录模块直接导入。 */
 import { Editor } from "./index";
-import { Wnd } from "../layout/Wnd";
-import { getInstanceById, getWndByLayout, pdfIsLoading } from "../layout/util";
-import { getAllModels } from "../layout/getAll";
-import { Constants } from "../constants";
-import { isElectron } from "../platform";
-import { ipcInvoke } from "../platform/electron/ipcRenderer";
-import { Layout } from "../layout";
+/** 用途：窗口类。使用范围：获取目标窗口。解耦评估：通过 ./imports 转发。 */
+import { Wnd } from "./imports";
+/** 用途：获取窗口实例、布局查询和 PDF 加载状态。使用范围：editor 页签切换操作。解耦评估：通过 ./imports 转发。 */
+import { getInstanceById } from "./imports";
+/** 用途：通过布局获取窗口实例。使用范围：获取中心布局对应窗口。解耦评估：通过 ./imports 转发。 */
+import { getWndByLayout } from "./imports";
+/** 用途：检查 PDF 是否加载中。使用范围：切换页签前等待。解耦评估：通过 ./imports 转发。 */
+import { pdfIsLoading } from "./imports";
+/** 用途：获取所有模型。使用范围：遍历查找匹配页签。解耦评估：通过 ./imports 转发。 */
+import { getAllModels } from "./imports";
+/** 用途：系统常量。使用范围：Electron IPC 命令。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：判断 Electron 环境。使用范围：仅在桌面端执行 IPC。解耦评估：通过 ./imports 转发。 */
+import { isElectron } from "./imports";
+/** 用途：Electron IPC 调用。使用范围：向主进程发送打开文件请求。解耦评估：通过 ./imports 转发。 */
+import { ipcInvoke } from "./imports";
+/** 用途：布局容器类。使用范围：判断窗口父级布局方向。解耦评估：通过 ./imports 转发。 */
+import { Layout } from "./imports";
+/** 用途：获取未初始化的页签。使用范围：页签未初始化时触发生成。解耦评估：同目录模块直接导入。 */
 import { getUnInitTab } from "./util.getUnInitTab";
+/** 用途：切换到指定编辑器。使用范围：查找到编辑器后切换焦点。解耦评估：同目录模块直接导入。 */
 import { switchEditor } from "./util.switchEditor";
-import { newTab } from "../layout/utils/newTab";
-import { getSafeSiyuanConfig, getSafeSiyuanLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { findAndOpenAsset, findAndOpenCustom, findAndOpenEditor, findAndOpenSearch } from "./util.find";
+/** 用途：创建新页签。使用范围：打开文件时创建新页签。解耦评估：通过 ./imports 转发。 */
+import { newTab } from "./imports";
+/** 用途：安全获取配置（不抛异常）。使用范围：读取文件树配置和布局。解耦评估：通过 ./imports 转发。 */
+import { getSafeSiyuanConfig } from "./imports";
+/** 用途：安全获取布局配置。使用范围：获取中心布局。解耦评估：通过 ./imports 转发。 */
+import { getSafeSiyuanLayout } from "./imports";
+/** 用途：查找并打开资源文件。使用范围：遍历模型查找匹配项。解耦评估：同目录模块直接导入。 */
+import { findAndOpenAsset } from "./util.find";
+/** 用途：查找并打开自定义页签。使用范围：遍历自定义模型查找匹配项。解耦评估：同目录模块直接导入。 */
+import { findAndOpenCustom } from "./util.find";
+/** 用途：查找并打开编辑器。使用范围：遍历编辑器模型查找匹配项。解耦评估：同目录模块直接导入。 */
+import { findAndOpenEditor } from "./util.find";
+/** 用途：查找并打开搜索页签。使用范围：遍历搜索模型查找匹配项。解耦评估：同目录模块直接导入。 */
+import { findAndOpenSearch } from "./util.find";
 
 /**  设置 keep-cursor 属性 */
 const setKeepCursorAttr = (element: HTMLElement, id?: string) => {
@@ -22,6 +48,7 @@ const setKeepCursorAttr = (element: HTMLElement, id?: string) => {
 
 /**  准备 UI 环境 */
 const prepareUI = (options: IOpenFileOptions) => {
+    // 默认移除当前页签
     if (typeof options.removeCurrentTab === "undefined") {
         options.removeCurrentTab = true;
     }
@@ -103,6 +130,7 @@ const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType
         return createdTab;
     }
 
+    // PDF 加载中时跳过页签切换
     if (pdfIsLoading(targetWnd.element)) {
         options.afterOpen?.();
         return;
@@ -135,11 +163,13 @@ const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType
 /** 在窗口中打开页签 */
 const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
     let createdTab: Tab;
+    // PDF 加载中时跳过页签操作
     if (pdfIsLoading(wnd.element)) {
         options.afterOpen?.();
         return;
     }
     const firstChild = wnd.children[0];
+    // keepCursor 模式：保留光标位置打开新页签
     if (options.keepCursor && firstChild && firstChild.headElement) {
         createdTab = newTab(options);
         setKeepCursorAttr(createdTab.headElement, options.id);
@@ -149,6 +179,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
         return createdTab;
     }
 
+    // 配置为不使用当前页签时，直接新建页签添加
     if (!getSafeSiyuanConfig()?.fileTree?.openFilesUseCurrentTab) {
         createdTab = newTab(options);
         wnd.addTab(createdTab);
@@ -175,6 +206,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
     }
     createdTab = newTab(options);
     wnd.addTab(createdTab);
+    // 存在未更新的旧页签且配置为移除时，清理旧页签
     if (unUpdateTab && options.removeCurrentTab) {
         wnd.removeTab(unUpdateTab.id, false, false);
     }
@@ -237,3 +269,6 @@ export const openFile = async (options: IOpenFileOptions) => {
     }
     return openTabInWindow(options, wnd);
 };
+
+
+

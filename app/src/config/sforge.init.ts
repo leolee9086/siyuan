@@ -12,6 +12,7 @@
  * @module config/sforge.init
  */
 
+/** 用途：S-Forge 初始化配置类型。使用范围：主初始化函数参数类型标注。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { ISForgeInitOptions } from "./sforge.types";
 
 // ============ 初始化状态 ============
@@ -27,14 +28,14 @@ let 已初始化 = false;
  * 意图：刷子模式需要精确的光标跟随，不适合移动端触摸交互
  * 调用时机：桌面端 S-Forge 初始化时
  */
-async function 注册桌面端触发器(): Promise<void> {
+async function 注册桌面端触发器() {
     console.log("[S-Forge] 开始注册桌面端触发器...");
 
     // 动态导入，避免移动端加载不必要的代码
     const { 注册样式刷子 } = await import("../triggers/styleBrush");
 
     // 样式刷子（格式刷）
-    注册样式刷子();
+    await 注册样式刷子();
 
     // 未来可以在这里添加更多桌面端触发器：
     // 注册颜色刷子();
@@ -49,7 +50,7 @@ async function 注册桌面端触发器(): Promise<void> {
  * 作用：注册桌面端和移动端共用的功能
  * 调用时机：所有平台 S-Forge 初始化时
  */
-async function 注册通用功能(): Promise<void> {
+async function 注册通用功能() {
     // 注册内置内容渲染器（9 个子渲染器）
     const { registerBuiltinRenderers } = await import("../registry/contentRenderer/registerBuiltinRenderers");
     await registerBuiltinRenderers();
@@ -68,7 +69,7 @@ async function 注册通用功能(): Promise<void> {
  * 
  * @param options 初始化选项
  */
-export async function initSForge(options?: ISForgeInitOptions): Promise<void> {
+export async function initSForge(options?: ISForgeInitOptions) {
     // 幂等性守卫：initSForge 可能被多个入口重复调用，此处确保实际初始化逻辑只执行一次
     if (已初始化) {
         console.debug("[S-Forge] 已经初始化过，跳过");
@@ -101,7 +102,7 @@ export async function initSForge(options?: ISForgeInitOptions): Promise<void> {
     }
 }
 
-/** @同步豁免: 性能考虑 */
-export function isSForgeInitialized(): boolean {
+/** 查询 S-Forge 是否已完成初始化 */
+export async function isSForgeInitialized() {
     return 已初始化;
 }

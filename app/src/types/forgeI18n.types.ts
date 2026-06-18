@@ -5,6 +5,7 @@
  * 主语言: zh_CN
  */
 
+/** Forge 国际化类型定义 */
 export interface ForgeI18n {
 "测试键": "这是一个测试翻译"
 embedding: "Embeddings"

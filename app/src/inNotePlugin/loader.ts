@@ -2,19 +2,28 @@
  * 笔记内插件加载器
  * 使用 SecureModuleCreator 安全加载和执行插件代码
  */
-import { Plugin } from "../plugin";
-import type { App } from "../index";
-import { SecureModuleCreator } from "../util/lib/code/executor";
+/** 用途：插件基类类型。使用范围：loader 模块创建器。解耦评估：通过 imports.ts 转发。 */
+import { Plugin } from "./imports";
+/** 用途：应用实例类型。使用范围：loader 函数签名。解耦评估：通过 imports.ts 转发。 */
+import type { App } from "./imports";
+/** 用途：安全模块创建器。使用范围：loader 执行插件代码。解耦评估：通过 imports.ts 转发。 */
+import { SecureModuleCreator } from "./imports";
+/** 用途：思源 API URL 工具。使用范围：loader 插件运行时。解耦评估：同目录模块，直接同层导入。 */
 import { getSiyuanApiUrl } from "./siyuanApi";
+/** 用途：文档编译器。使用范围：loader 编译插件文档。解耦评估：同目录模块。 */
 import { 编译文档 } from "./compiler";
-import type { 笔记内插件配置, 笔记内插件运行状态 } from "./types";
+/** 用途：笔记内插件配置类型。使用范围：loader 加载函数。解耦评估：同目录类型文件。 */
+import type { 笔记内插件配置 } from "./types";
+/** 用途：笔记内插件运行状态类型。使用范围：loader 函数签名。解耦评估：同目录类型文件。 */
+import type { 笔记内插件运行状态 } from "./types";
+/** 用途：权限管理器。使用范围：loader 检查加载权限。解耦评估：同目录模块。 */
 import { persistentPermissionManager } from "./permissionManager";
 
 /**
  * 创建笔记内插件专用的模块创建器
  * 配置白名单和CDN重定向
  */
-function 创建插件模块创建器(): SecureModuleCreator {
+function 创建插件模块创建器() {
     const siyuanApiUrl = getSiyuanApiUrl();
 
     // 获取已允许的包列表
@@ -53,7 +62,7 @@ function 创建插件模块创建器(): SecureModuleCreator {
 export async function 加载笔记内插件(
     app: App,
     config: 笔记内插件配置
-): Promise<笔记内插件运行状态> {
+) {
     const state: 笔记内插件运行状态 = {
         config,
         instance: null,
@@ -88,12 +97,12 @@ export async function 加载笔记内插件(
         }
 
         // 4. 实例化插件
-        const plugin = new pluginClass({
+        const plugin: Plugin = new pluginClass({
             app,
             name: config.name,
             displayName: config.displayName,
             i18n: {}
-        }) as Plugin;
+        });
 
         // 5. 调用生命周期方法
         await plugin.onload();
@@ -120,8 +129,9 @@ export async function 加载笔记内插件(
 /**
  * 卸载笔记内插件
  * @param state 插件运行状态
+ * @同步豁免: 生命周期 — 在插件卸载流程中同步执行清理
  */
-export function 卸载笔记内插件(state: 笔记内插件运行状态): void {
+export function 卸载笔记内插件(state: 笔记内插件运行状态) {
     if (state.instance) {
         try {
             state.instance.onunload();

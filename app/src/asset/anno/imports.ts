@@ -54,3 +54,86 @@ export { mergeRects };
 
 // 导出Range操作工具
 export { processRangeContents };
+
+/**
+ * 用途：DOM元素类型守卫，用于在PDF注释处理中安全地判断Element类型
+ * 使用范围：anno模块中DOM操作前进行类型断言，避免运行时类型错误
+ * 解耦评估：纯类型守卫函数，作为通用工具直接导入最合理，无需解耦
+ */
+import { isHTMLElement, isHTMLDivElement } from "../../util/DOM/element.guard";
+// 导出isHTMLElement类型守卫
+export { isHTMLElement };
+// 导出isHTMLDivElement类型守卫
+export { isHTMLDivElement };
+
+/**
+ * 用途：获取所有编辑器模型实例，用于在PDF注释中访问编辑器状态
+ * 使用范围：anno模块需要获取当前打开的编辑器实例以定位文档内容
+ * 解耦评估：布局模型是全局单例，无法通过参数传递解耦，必须直接导入
+ */
+import { getAllModels } from "../../layout/getAll";
+// 导出获取所有模型函数
+export { getAllModels };
+
+/**
+ * 用途：系统常量定义，包含编辑器需要的各种枚举值和配置常量
+ * 使用范围：anno模块中需要使用系统级常量进行逻辑判断
+ * 解耦评估：常量为纯数据定义，直接导入是最优选择
+ */
+import { Constants } from "../../constants";
+// 导出系统常量
+export { Constants };
+
+/**
+ * 用途：网络POST请求函数，用于与后端API通信
+ * 使用范围：anno模块需要向后端发送请求获取或保存注释数据
+ * 解耦评估：网络请求是基础设施，直接导入最合理，替换为参数传递会引入不必要的抽象层
+ */
+import { fetchPost } from "../../util/network/fetch";
+// 导出网络请求函数
+export { fetchPost };
+
+/**
+ * 用途：安全获取 siyuan.storage 全局存储对象，用于持久化状态和用户偏好
+ * 使用范围：click.ts 中读取 PDF 主题颜色等存储配置
+ * 解耦评估：存储访问是平台抽象层，直接导入以确保跨平台兼容性
+ */
+import { getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+// 导出存储访问函数
+export { getSiyuanStorage };
+
+/**
+ * 用途：设置本地存储值，用于持久化用户偏好和缓存数据
+ * 使用范围：anno模块需要保存或读取存储中的配置值
+ * 解耦评估：存储操作是平台抽象层的一部分，直接导入以确保跨平台兼容性
+ */
+import { setStorageVal } from "../../protyle/util/compatibility";
+// 导出存储值设置函数
+export { setStorageVal };
+
+/**
+ * 用途：获取窗口origin，用于构造PDF资源的完整URL路径
+ * 使用范围：anno模块中需要构造指向PDF文件的绝对URL时使用
+ * 解耦评估：这是浏览器环境抽象层的一部分，必须直接导入以确保跨平台兼容
+ */
+import { getLocationOrigin } from "../../util/siyuanEnvironments/windowStandard.environment";
+// 导出窗口origin获取函数
+export { getLocationOrigin };
+
+/**
+ * 用途：国际化文案，用于多语言支持的文本展示
+ * 使用范围：anno模块中所有面向用户显示的文本
+ * 解耦评估：国际化是全局基础设施，直接导入避免重复初始化，无法通过参数合理解耦
+ */
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+// 导出国际化文案
+export { siyuanI18n };
+
+/**
+ * 用途：元素定位工具，用于在窗口中精确设置DOM元素的位置
+ * 使用范围：anno模块中弹出面板或提示需要精确定位时使用
+ * 解耦评估：DOM定位是通用UI工具，直接导入最合理
+ */
+import { setPosition } from "../../util/DOM/setPosition";
+// 导出元素定位工具
+export { setPosition };

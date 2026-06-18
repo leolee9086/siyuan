@@ -20,7 +20,7 @@ interface IIds {
 const getKanbanHTML = async (data: IAVKanban) => {
     let galleryHTML = "";
     // body
-    data.cards.forEach((item: IAVGalleryItem, rowIndex: number) => {
+    for (const [rowIndex, item] of data.cards.entries()) {
         galleryHTML += `<div data-id="${item.id}" draggable="true" class="av__gallery-item">`;
         if (data.coverFrom !== 0) {
             const coverClass = "av__gallery-cover av__gallery-cover--" + data.cardAspectRatio;
@@ -35,9 +35,9 @@ const getKanbanHTML = async (data: IAVKanban) => {
             }
         }
         galleryHTML += '<div class="av__gallery-fields">';
-        item.values.forEach((cell, fieldsIndex) => {
+        for (const [fieldsIndex, cell] of item.values.entries()) {
             if (data.fields[fieldsIndex].hidden) {
-                return;
+                continue;
             }
             let checkClass = "";
             if (cell.valueType === "checkbox") {
@@ -80,14 +80,14 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
     ${cellHTML}
 </div>`;
             }
-        });
+        }
         galleryHTML += `</div>
     <div class="av__gallery-actions">
         <span class="protyle-icon protyle-icon--first ariaLabel" data-position="4north" aria-label="${siyuanI18n.displayEmptyFields}" data-type="av-gallery-edit"><svg><use xlink:href="#iconEdit"></use></svg></span>
         <span class="protyle-icon protyle-icon--last ariaLabel" data-position="4north" aria-label="${siyuanI18n.more}" data-type="av-gallery-more"><svg><use xlink:href="#iconMore"></use></svg></span>
     </div>
 </div>`;
-    });
+    }
     galleryHTML += `<div class="av__gallery-add" data-type="av-add-bottom"><svg class="svg"><use xlink:href="#iconAdd"></use></svg><span class="fn__space"></span>${siyuanI18n.newRow}</div>`;
     return `<div class="av__gallery av__gallery--small">
     ${galleryHTML}
@@ -184,7 +184,7 @@ export const renderKanban = async (options: {
     const view = data.view as IAVKanban;
     let bodyHTML = "";
     let isSelectGroup = false;
-    view.groups.forEach((group: IAVKanban) => {
+    for (const group of view.groups) {
         if (group.groupHidden === 0) {
             let selectBg = "";
             if (group.fillColBackgroundColor) {
@@ -204,7 +204,7 @@ export const renderKanban = async (options: {
     <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${await getKanbanHTML(group)}</div>
 </div>`;
         }
-    });
+    }
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
     ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}

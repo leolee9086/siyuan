@@ -166,7 +166,7 @@ const 构建关系面板菜单项列表 = (protyle: IProtyle, refBlockIds: strin
  * 调用时机：各菜单分组构建完成后统一调用。
  * 问题/改进：目前只处理 append，后续若引入插入位置可扩展为策略参数。
  */
-const 追加菜单项列表 = (menuItems: MenuItem[]): void => {
+const 追加菜单项列表 = (menuItems: MenuItem[]) => {
     for (const item of menuItems) {
         getSiyuanGlobalMenus().menu.append(item.element);
     }
@@ -179,7 +179,7 @@ const 追加菜单项列表 = (menuItems: MenuItem[]): void => {
  * 问题/改进：当前顺序仍硬编码，后续可抽象成配置驱动。
  */
 /** @同步豁免: UI构建 */
-export const 追加桌面端引用菜单项 = (protyle: IProtyle, refBlockIds: string[]): void => {
+export const 追加桌面端引用菜单项 = (protyle: IProtyle, refBlockIds: string[]) => {
     const 打开方式菜单项列表 = 构建打开方式菜单项列表(protyle, refBlockIds);
     追加菜单项列表(打开方式菜单项列表);
     const 关系面板菜单项列表 = 构建关系面板菜单项列表(protyle, refBlockIds);

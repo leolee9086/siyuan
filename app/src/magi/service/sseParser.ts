@@ -1,9 +1,9 @@
+/** 用途：AI 聊天响应数据的 Zod schema，用于运行时校验 SSE 数据格式。使用范围：SSE 流式数据解析和验证。解耦评估：网络请求工具模块，通过 imports.ts 转发可降低路径耦合。 */
 import { chatResponseDataSchema } from "../../ai/types";
 
 /**
  * 解析和验证流式响应数据
  *
- * 作用：将SSE data字段的原始JSON字符串解析为结构化对象并通过zod验证
  * 意图：作为SSE数据处理管道的第一步，确保后续处理拿到的数据符合预期格式
  * 调用时机：每收到一条SSE消息时由 handleOpenAILikeStreamResponse 调用
  *

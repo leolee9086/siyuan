@@ -1,8 +1,11 @@
-
-import { App } from "../../index";
-import { Tab } from "../Tab";
-import { Protyle } from "../../protyle";
-import { Model } from "../Model";
+/** 用途：应用实例类型。使用范围：dock.types 类型定义。解耦评估：通过 imports.ts 转发。 */
+import type { App } from "./imports";
+/** 用途：页签类型。使用范围：dock.types 类型定义。解耦评估：通过 imports.ts 转发。 */
+import type { Tab } from "./imports";
+/** 用途：Protyle 编辑器类型。使用范围：dock.types 类型定义。解耦评估：通过 imports.ts 转发。 */
+import type { Protyle } from "./imports";
+/** 用途：模型基类类型。使用范围：dock.types 类型定义。解耦评估：通过 imports.ts 转发。 */
+import type { Model } from "./imports";
 
 /**
  * Model 工厂函数类型

@@ -1,13 +1,28 @@
-import { Files } from "../layout/dock/Files";
-import { getAllModels } from "../layout/getAll";
-import { isMobile } from "../platform";
-import { countSelectWord, countBlockWord } from "../layout/status";
-import { getDockByType } from "../layout/tabUtil";
-import { resize } from "../protyle/util/resize";
-import { focusByRange, focusBlock } from "../protyle/util/selection";
-import { pushBack } from "../util/platform/backForward";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：文件树模型。使用范围：更新文件树选中状态。解耦评估：通过 ./imports 转发。 */
+import { Files } from "./imports";
+/** 用途：获取所有模型。使用范围：更新面板时遍历模型。解耦评估：通过 ./imports 转发。 */
+import { getAllModels } from "./imports";
+/** 用途：判断移动端。使用范围：仅在桌面端更新面板。解耦评估：通过 ./imports 转发。 */
+import { isMobile } from "./imports";
+/** 用途：统计选中字数和块字数。使用范围：编辑器聚焦时更新统计。解耦评估：通过 ./imports 转发。 */
+import { countSelectWord } from "./imports";
+/** 用途：统计块字数。使用范围：编辑器聚焦时更新统计。解耦评估：通过 ./imports 转发。 */
+import { countBlockWord } from "./imports";
+/** 用途：获取指定类型停靠栏。使用范围：获取文件树实例。解耦评估：通过 ./imports 转发。 */
+import { getDockByType } from "./imports";
+/** 用途：编辑器大小调整。使用范围：面板展开/收起时重绘。解耦评估：通过 ./imports 转发。 */
+import { resize } from "./imports";
+/** 用途：按选区范围聚焦编辑器。使用范围：还原编辑器焦点。解耦评估：通过 ./imports 转发。 */
+import { focusByRange } from "./imports";
+/** 用途：聚焦到指定块元素。使用范围：无选区时聚焦第一个块。解耦评估：通过 ./imports 转发。 */
+import { focusBlock } from "./imports";
+/** 用途：后退栈记录。使用范围：记录编辑器状态到后退栈。解耦评估：通过 ./imports 转发。 */
+import { pushBack } from "./imports";
+/** 用途：安全获取 SiYuan 配置。使用范围：检查文件树配置项。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanConfig } from "./imports";
+/** 用途：更新反链图。使用范围：切换编辑器时刷新反链面板。解耦评估：同目录模块直接导入。 */
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
+/** 用途：更新大纲面板。使用范围：切换编辑器时刷新大纲。解耦评估：同目录模块直接导入。 */
 import { updateOutline } from "./util.updateOutline";
 
 /**
@@ -24,7 +39,7 @@ import { updateOutline } from "./util.updateOutline";
  * @param options.reload - 是否重新加载
  * @param options.resize - 是否调整大小
  */
-export const updatePanelByEditor = (options: {
+export const updatePanelByEditor = async (options: {
     protyle?: IProtyle,
     focus: boolean,
     pushBackStack: boolean,
@@ -148,3 +163,6 @@ const recordPushBack = (protyle: IProtyle) => {
         pushBack(protyle, undefined, firstElement);
     }
 };
+
+
+

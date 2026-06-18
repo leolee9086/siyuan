@@ -5,16 +5,33 @@
  * 使用 Symbol 属性键确保状态隔离
  */
 
-import { ProfileManager } from "./profileManager";
+/** 用途：Profile 管理器。使用范围：获取 AI 配置实例（ModelScope 认证等）。解耦评估：同目录模块直接导入。 */
+import { getProfileManagerInstance } from "./profileManager";
 
-// 重新导出全局状态管理相关
-export { SForgeSymbols } from "./sforge.symbols";
-export type { ISForgeGlobalState } from "./sforge.types";
-export {
-    获取SForge全局对象,
-    getSForgeState,
-    setSForgeState
-} from "./sforge.global";
+/** 用途：SForge Symbol 键定义。使用范围：重新导出供外部模块使用。解耦评估：同目录符号定义，直接导入转发。 */
+import { SForgeSymbols } from "./sforge.symbols";
+/** 导出 SForgeSymbols，供外部模块使用 */
+export { SForgeSymbols };
+
+/** 用途：SForge 全局状态类型。使用范围：重新导出供外部模块使用。解耦评估：同目录类型文件，类型导入转发。 */
+import type { ISForgeGlobalState } from "./sforge.types";
+/** 导出 ISForgeGlobalState 类型，供外部模块使用 */
+export type { ISForgeGlobalState };
+
+/** 用途：获取 SForge 全局对象。使用范围：重新导出供外部模块使用。解耦评估：同目录全局状态模块，直接导入转发。 */
+import { 获取SForge全局对象 } from "./sforge.global";
+/** 导出 获取SForge全局对象，供外部模块使用 */
+export { 获取SForge全局对象 };
+
+/** 用途：获取 SForge 状态。使用范围：重新导出供外部模块使用。解耦评估：同目录全局状态模块，直接导入转发。 */
+import { getSForgeState } from "./sforge.global";
+/** 导出 getSForgeState，供外部模块使用 */
+export { getSForgeState };
+
+/** 用途：设置 SForge 状态。使用范围：重新导出供外部模块使用。解耦评估：同目录全局状态模块，直接导入转发。 */
+import { setSForgeState } from "./sforge.global";
+/** 导出 setSForgeState，供外部模块使用 */
+export { setSForgeState };
 
 // ============ SForge 配置访问器 ============
 
@@ -31,8 +48,8 @@ export const getSForgeConfigs = () => {
     return {
         ai: {
             modelScope: {
-                auth: ProfileManager.getInstance("ai_modelscope_auth"),
-                text2image: ProfileManager.getInstance("ai_modelscope_text2image")
+                auth: getProfileManagerInstance("ai_modelscope_auth"),
+                text2image: getProfileManagerInstance("ai_modelscope_text2image")
             }
         }
     };

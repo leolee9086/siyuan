@@ -1,11 +1,13 @@
-import { pinyin } from "pinyin-pro";
+/** 用途：拼音转换库。使用范围：pinyin 模块中文拼音搜索。解耦评估：通过 imports.ts 转发。 */
+import { pinyin } from "./imports";
 
 /**
  * 将中文字符串转换为拼音字符串
  * @param text 要转换的中文文本
  * @returns 拼音字符串（不带声调）
+ * @同步豁免: 性能考虑 — 纯计算转换（调用 pinyin-pro 库同步转换），无异步依赖
  */
-export const convertToPinyin = (text: string): string => {
+export const convertToPinyin = (text: string) => {
     if (!text) {
 return "";
 }
@@ -25,8 +27,9 @@ return "";
  * @param text 要搜索的文本
  * @param keyword 搜索关键词
  * @returns 是否匹配
+ * @同步豁免: 性能考虑 — 纯字符串匹配运算，无异步依赖
  */
-export const matchPinyinSearch = (text: string, keyword: string): boolean => {
+export const matchPinyinSearch = (text: string, keyword: string) => {
     if (!keyword) {
 return true;
 }

@@ -31,7 +31,7 @@ import type { ICronjobAuthRequest } from "./types";
  * @param data - 鉴权请求数据，包含 reqId、docId、taskName 和 reason
  * @param deps - 必须注入的依赖端口（confirmDialog + sendAuthResponse）
  */
-export const handleCronjobAuthRequest = (data: ICronjobAuthRequest, deps: ICronjobAuthDependencies): void => {
+export const handleCronjobAuthRequest = (data: ICronjobAuthRequest, deps: ICronjobAuthDependencies) => {
     const { reqId, docId, taskName, reason } = data;
 
     const dialogContent = `
@@ -78,7 +78,7 @@ export const handleCronjobAuthRequest = (data: ICronjobAuthRequest, deps: ICronj
  * @param text - 需要转义的文本
  * @returns 转义后的 HTML 安全字符串
  */
-const escapeHtml = (text: string): string => {
+const escapeHtml = (text: string) => {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;

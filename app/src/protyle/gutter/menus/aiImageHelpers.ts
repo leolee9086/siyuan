@@ -61,7 +61,7 @@ import { isProgressStatusUpdater } from "./imports";
 /**
  * 上传图片到资源系统
  */
-export async function 上传图片(blob: Blob, imageName: string): Promise<{ success: boolean; msg: string; path?: string }> {
+export async function 上传图片(blob: Blob, imageName: string) {
     const formData = new FormData();
     formData.append("file[]", blob, imageName);
 
@@ -83,7 +83,7 @@ export async function 上传图片(blob: Blob, imageName: string): Promise<{ suc
 /**
  * 插入段落到指定块后面
  */
-export async function 插入段落(previousID: string, paragraphHtml: string): Promise<{ success: boolean; msg: string }> {
+export async function 插入段落(previousID: string, paragraphHtml: string) {
     return new Promise((resolve) => {
         // @内联回调
         fetchPost("/api/block/insertBlock", {
@@ -111,7 +111,7 @@ export async function 插入图片到块后(
     nodeElement: Element,
     base64Data: string,
     reportProgress: (msg: string, isLoading?: boolean) => void
-): Promise<void> {
+) {
     // 获取块 ID
     const blockId = nodeElement.getAttribute("data-node-id");
     if (!blockId) {
@@ -165,7 +165,7 @@ export async function 插入图片到块后(
  * @param nodeElement - 块元素
  * @returns 块的完整纯文本内容，如果失败则返回空字符串
  */
-export async function 获取块文本内容(nodeElement: Element): Promise<string> {
+export async function 获取块文本内容(nodeElement: Element) {
     const dom = nodeElement.outerHTML;
     return new Promise((resolve) => {
         // @内联回调 - 使用 getDOMText 从 DOM 提取纯文本
@@ -187,7 +187,7 @@ export async function 获取块文本内容(nodeElement: Element): Promise<strin
  * @returns 对话框实例、Vue 应用实例和状态更新器，失败返回 null
  * @同步豁免: UI构建 - 对话框创建和Vue组件挂载必须同步完成，确保UI立即可用
  */
-export function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue").defineComponent>): { dialog: Dialog; vueApp: App<Element>; vm: IProgressStatusUpdater } | null {
+export function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue").defineComponent>) {
     let vueApp: App<Element> | null = null;
     const dialog = new Dialog({
         title: "AI 图片生成",

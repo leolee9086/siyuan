@@ -23,7 +23,7 @@ import { isElectronStyle } from "./init.guard";
 import { isHTMLElement } from "./imports";
 
 /** 处理单个窗口的标签页位置设置 */
-const processWndForTabPosition = (item: Wnd, onlyPadding = false): void => {
+const processWndForTabPosition = (item: Wnd, onlyPadding = false) => {
     const headerElement = item.headersElement.parentElement;
     if (!headerElement) {
         return;
@@ -115,7 +115,7 @@ export const setTabPosition = (onlyPadding = false) => {
 
 
 /** 从 tab 的 data-initdata 属性中提取 hash（如果是 Editor 类型） */
-const getHashFromInitData = (headElement: HTMLElement): string => {
+const getHashFromInitData = (headElement: HTMLElement) => {
     const initTab = headElement.getAttribute("data-initdata");
     if (!initTab) {
         return "";
@@ -128,7 +128,7 @@ const getHashFromInitData = (headElement: HTMLElement): string => {
 };
 
 /** 处理单个 tab 并返回对应的 hash 值 */
-const processTabForHash = (tab: Tab): string => {
+const processTabForHash = (tab: Tab) => {
     // 卫语句：处理 tab.model 不存在的情况
     if (!tab.model) {
         return getHashFromInitData(tab.headElement);

@@ -1,6 +1,10 @@
-import { Outline } from "../layout/dock/outline/Outline";
-import { hasClosestByAttribute } from "../protyle/util/hasClosest";
-import { fetchPost } from "../util/network/fetch";
+/** 用途：Outline 大纲模型类。使用范围：创建和管理大纲。解耦评估：通过 ./imports 转发。 */
+import { Outline } from "./imports";
+/** 用途：通过属性查找 DOM 元素。使用范围：高亮大纲项时定位元素。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByAttribute } from "./imports";
+/** 用途：网络请求。使用范围：获取大纲数据。解耦评估：通过 ./imports 转发。 */
+import { fetchPost } from "./imports";
+/** 用途：判断当前编辑器是否激活。使用范围：大纲更新前检查。解耦评估：同目录模块直接导入。 */
 import { isCurrentEditor } from "./util.isCurrentEditor";
 
 /**
@@ -97,9 +101,10 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
      */
     if (protyle && protyle.block) {
         blockId = protyle.block.rootID || "";
-        if (!blockId && reload && item.type === "local") {
-            blockId = item.blockId;
-        }
+    }
+    // local 类型的大纲在重载时使用 item.blockId 作为后备块 ID
+    if (!blockId && reload && item.type === "local") {
+        blockId = item.blockId;
     }
     const isPreview = false;
 

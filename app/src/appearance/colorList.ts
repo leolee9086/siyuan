@@ -1,7 +1,10 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 用途：国际化文案。使用范围：生成中英文主题色标签与 CSS 变量映射表。解耦评估：通过 ./imports 转发。 */
+import { siyuanI18n } from "./imports";
 
 /**
  * 主题文件中必然存在的颜色列表
+ *
+ * @同步豁免: UI构建 - 供 Vue 模板同步遍历渲染，无法使用 async
  */
 export const genThemedColorList = () => ({
     [siyuanI18n.colorFont + "1"]: "--b3-font-color1",

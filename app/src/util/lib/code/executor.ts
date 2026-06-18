@@ -1,4 +1,6 @@
+/** 用途：ESM 模块解析器。使用范围：executor 解析模块导入语句。解耦评估：第三方依赖，通过 imports.ts 转发。 */
 import { parse } from "es-module-lexer";
+/** 用途：源码字符串操作工具。使用范围：executor 转换导入路径。解耦评估：第三方依赖，通过 imports.ts 转发。 */
 import MagicString from "magic-string";
 import { ConfigManager, isBareModule } from "./configManager";
 import type {
@@ -186,8 +188,5 @@ export class SecurityError extends Error {
 }
 
 // 从工厂模块重新导出便捷函数（保持向后兼容）
-export {
-  createTemporaryModule,
-  createSecureTemporaryModule,
-  createDynamicSecureTemporaryModule
-} from "./executor.factory";
+import { createTemporaryModule, createSecureTemporaryModule, createDynamicSecureTemporaryModule } from "./executor.factory";
+export { createTemporaryModule, createSecureTemporaryModule, createDynamicSecureTemporaryModule };

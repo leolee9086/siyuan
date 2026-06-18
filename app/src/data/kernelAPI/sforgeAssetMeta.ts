@@ -6,15 +6,20 @@
  * @module sforgeAssetMeta
  */
 
-import { fetchSyncPost } from "../../util/network/fetch";
-import type {
-    调色板,
-    素材元数据,
-    批量提取单项结果,
-    设置素材元数据参数,
-    搜索素材元数据参数,
-    搜索素材元数据响应,
-} from "./sforgeAssetMeta.types";
+/** 用途：同步 POST 请求函数。使用范围：sforgeAssetMeta 调用后端元数据 API。解耦评估：通过 imports.ts 转发。 */
+import { fetchSyncPost } from "./imports";
+/** 用途：调色板类型定义。使用范围：sforgeAssetMeta 色彩提取。解耦评估：同目录类型文件，直接同层导入。 */
+import type { 调色板 } from "./sforgeAssetMeta.types";
+/** 用途：素材元数据类型定义。使用范围：sforgeAssetMeta 元数据管理。解耦评估：同目录类型文件。 */
+import type { 素材元数据 } from "./sforgeAssetMeta.types";
+/** 用途：批量提取结果类型。使用范围：sforgeAssetMeta 批量处理。解耦评估：同目录类型文件。 */
+import type { 批量提取单项结果 } from "./sforgeAssetMeta.types";
+/** 用途：设置元数据参数类型。使用范围：sforgeAssetMeta 写入操作。解耦评估：同目录类型文件。 */
+import type { 设置素材元数据参数 } from "./sforgeAssetMeta.types";
+/** 用途：搜索元数据参数类型。使用范围：sforgeAssetMeta 搜索操作。解耦评估：同目录类型文件。 */
+import type { 搜索素材元数据参数 } from "./sforgeAssetMeta.types";
+/** 用途：搜索元数据响应类型。使用范围：sforgeAssetMeta 搜索操作。解耦评估：同目录类型文件。 */
+import type { 搜索素材元数据响应 } from "./sforgeAssetMeta.types";
 
 // 导出类型
 export type {
@@ -52,7 +57,7 @@ export type {
  * console.log(palettes[0].ratio); // 0.35
  * ```
  */
-export async function 提取调色板(path: string, colorCount = 8): Promise<调色板[]> {
+export async function 提取调色板(path: string, colorCount = 8) {
     const result = await fetchSyncPost("/api/s-forge/asset-meta/palette", {
         path,
         colorCount,
@@ -84,11 +89,7 @@ export async function 提取调色板(path: string, colorCount = 8): Promise<调
 export async function 批量提取调色板(
     paths: string[],
     colorCount = 8
-): Promise<{
-    results: Record<string, 批量提取单项结果>;
-    successCount: number;
-    failCount: number;
-}> {
+) {
     const result = await fetchSyncPost("/api/s-forge/asset-meta/palette/batch", {
         paths,
         colorCount,
@@ -117,7 +118,7 @@ export async function 批量提取调色板(
  * console.log(meta.name, meta.tags, meta.palettes);
  * ```
  */
-export async function 获取素材元数据(path: string): Promise<素材元数据> {
+export async function 获取素材元数据(path: string) {
     const result = await fetchSyncPost("/api/s-forge/asset-meta/get", { path });
 
     if (result.code !== 0) {
@@ -146,7 +147,7 @@ export async function 获取素材元数据(path: string): Promise<素材元数�
  * });
  * ```
  */
-export async function 设置素材元数据(params: 设置素材元数据参数): Promise<素材元数据> {
+export async function 设置素材元数据(params: 设置素材元数据参数) {
     const result = await fetchSyncPost("/api/s-forge/asset-meta/set", { ...params });
 
     if (result.code !== 0) {
@@ -176,7 +177,7 @@ export async function 设置素材元数据(params: 设置素材元数据参数)
  * console.log(result.totalCount);
  * ```
  */
-export async function 搜索素材元数据(params: 搜索素材元数据参数): Promise<搜索素材元数据响应> {
+export async function 搜索素材元数据(params: 搜索素材元数据参数) {
     const result = await fetchSyncPost("/api/s-forge/asset-meta/search", { ...params });
 
     if (result.code !== 0) {
@@ -197,7 +198,7 @@ export async function 搜索素材元数据(params: 搜索素材元数据参数)
  * @param color RGB 颜色数组 [R, G, B]
  * @returns 十六进制颜色字符串，如 "#FF8040"
  */
-export function rgb转十六进制(color: [number, number, number]): string {
+export function rgb转十六进制(color: [number, number, number]) {
     return `#${color.map(c => c.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 }
 
@@ -208,7 +209,7 @@ export function rgb转十六进制(color: [number, number, number]): string {
  * @param palettes 调色板数组
  * @returns 占比最高的颜色条目，如果数组为空则返回 undefined
  */
-export function 获取主色调(palettes: 调色板[]): 调色板 | undefined {
+export function 获取主色调(palettes: 调色板[]) {
     const [first, ...rest] = palettes;
     if (!first) {
         return undefined;

@@ -144,7 +144,7 @@ const handleReloadUI = (response: IWebSocketData) => {
  * 作用：将用户授权结果通过现有 WebSocket 连接发送给内核。
  * 意图：把连接获取与发送细节封装在调用侧，避免业务模块耦合全局资源。
  */
-const sendCronjobAuthResponse = (reqId: string, allow: boolean): void => {
+const sendCronjobAuthResponse = (reqId: string, allow: boolean) => {
     const siyuanWs = getSiyuanWebSocket();
     const ws = siyuanWs?.ws;
     if (!ws) {
@@ -219,7 +219,7 @@ export const handlePublishServiceClosed = (msg: string) => {
 };
 
 /** @同步豁免: 需要绝对同步的DOM访问 - 在 App/Mobile 构造函数中同步调用以阻断后续初始化，需同步读取 sessionStorage 并替换 document.body 内容 */
-export const checkPublishServiceClosed = (): boolean => {
+export const checkPublishServiceClosed = () => {
     if (!isBrowser()) {
         return false;
     }

@@ -12,3 +12,5 @@ export interface IExportPreviewData {
     /** 初始预览类型，缺省为普通导出预览 */
     previewType?: TExportPreviewType;
 }
+
+

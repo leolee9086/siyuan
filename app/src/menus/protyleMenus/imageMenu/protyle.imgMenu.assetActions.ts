@@ -19,7 +19,7 @@ import { copyAsset } from "./imports";
  * 调用时机：创建 alignCenter 菜单项时。
  * 问题/改进：后续可与其它对齐快捷键合并成统一映射读取器。
  */
-const 读取居中对齐快捷键 = (): string => {
+const 读取居中对齐快捷键 = () => {
     return getSiyuanConfig().keymap.editor.general.alignCenter.custom;
 };
 
@@ -29,7 +29,7 @@ const 读取居中对齐快捷键 = (): string => {
  * 调用时机：创建 alignLeft 菜单项时。
  * 问题/改进：后续可与其它对齐快捷键合并成统一映射读取器。
  */
-const 读取左对齐快捷键 = (): string => {
+const 读取左对齐快捷键 = () => {
     return getSiyuanConfig().keymap.editor.general.alignLeft.custom;
 };
 
@@ -45,7 +45,7 @@ const 执行居中对齐 = (
     assetElement: HTMLElement,
     id: string,
     html: string
-): void => {
+) => {
     const selectedAssets = [assetElement];
     alignImgCenter(protyle, nodeElement, selectedAssets, id, html);
 };
@@ -62,7 +62,7 @@ const 执行左对齐 = (
     assetElement: HTMLElement,
     id: string,
     html: string
-): void => {
+) => {
     const selectedAssets = [assetElement];
     alignImgLeft(protyle, nodeElement, selectedAssets, id, html);
 };
@@ -73,7 +73,7 @@ const 执行左对齐 = (
  * 调用时机：创建 export 菜单项时。
  * 问题/改进：后续可加入导出权限校验。
  */
-const 构建导出配置 = (dataSrc: string): IMenu => {
+const 构建导出配置 = (dataSrc: string) => {
     const menuConfig = exportAsset(dataSrc);
     return menuConfig;
 };
@@ -84,7 +84,7 @@ const 构建导出配置 = (dataSrc: string): IMenu => {
  * 调用时机：创建 copyAsset 菜单项时。
  * 问题/改进：后续可增加不可用平台提示。
  */
-const 构建复制资源配置 = (dataSrc: string): IMenu => {
+const 构建复制资源配置 = (dataSrc: string) => {
     const menuConfig = copyAsset(dataSrc);
     return menuConfig;
 };

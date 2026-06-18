@@ -1,9 +1,9 @@
-import { IStyleBrushParameters } from "../registry/TriggerRegistry.types";
+/** 用途：IStyleBrushParameters 样式刷参数类型。使用范围：类型守卫返回值标注。解耦评估：类型导入，不涉及运行时耦合。 */
+import type { IStyleBrushParameters } from "../registry/TriggerRegistry.types";
 
 /**
  * 判断是否为样式刷子参数
  * 
- * @param target 待检查对象
  * @returns 是否符合 IStyleBrushParameters 接口定义
  */
 export function isStyleBrushParameters(target: unknown): target is IStyleBrushParameters {

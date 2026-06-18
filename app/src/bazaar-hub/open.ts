@@ -80,7 +80,7 @@ import { BAZAAR_SOURCE_TAB_TYPE } from "./constants";
  * 调用时机：读取模型 data.sourceID 时调用。
  * 问题/改进：当前仅支持字符串字段，后续可扩展为结构化读取器。
  */
-const readCustomString = (data: unknown, key: string): string => {
+const readCustomString = (data: unknown, key: string) => {
     if (!data || typeof data !== "object") {
         return "";
     }
@@ -97,7 +97,7 @@ const readCustomString = (data: unknown, key: string): string => {
  * 调用时机：所有 open*Tab 入口开始时调用。
  * 问题/改进：ws 回退依赖运行时环境，后续可考虑统一注入 app 上下文。
  */
-const resolveApp = (app?: App): App | undefined => {
+const resolveApp = (app?: App) => {
     if (app) {
         return app;
     }
@@ -114,7 +114,7 @@ const resolveApp = (app?: App): App | undefined => {
  * 调用时机：生成本地集市源 URL 时调用。
  * 问题/改进：若 serverAddrs 配置为空会返回空字符串，调用方需容忍该结果。
  */
-const getLocalOrigin = (): string => {
+const getLocalOrigin = () => {
     const browserOrigin = (getLocationOrigin() || "").replace(/\/+$/, "");
     if (browserOrigin) {
         return browserOrigin;
@@ -131,7 +131,7 @@ const getLocalOrigin = (): string => {
  * 调用时机：每次命中 existingModel 时调用。
  * 问题/改进：当前仅处理 headElement 可用场景，后续可扩展容错日志。
  */
-const activateExistingTab = (model: unknown): boolean => {
+const activateExistingTab = (model: unknown) => {
     if (!model || typeof model !== "object") {
         return false;
     }
@@ -163,7 +163,7 @@ const activateExistingTab = (model: unknown): boolean => {
  * 调用时机：openBazaarHubTab 命中 existingModel 后调用。
  * 问题/改进：当前失败时静默忽略，后续可按需补充调试日志。
  */
-const dispatchHubSourceIfNeeded = (model: unknown, sourceID: string): void => {
+const dispatchHubSourceIfNeeded = (model: unknown, sourceID: string) => {
     if (!sourceID) {
         return;
     }
@@ -185,7 +185,7 @@ const dispatchHubSourceIfNeeded = (model: unknown, sourceID: string): void => {
  * 调用时机：openBazaarSourceTab 查找已有页签时调用。
  * 问题/改进：当前仅依据 type + sourceID 匹配，如需多维匹配可继续扩展。
  */
-const isSourceTabModel = (model: unknown, sourceID: string): boolean => {
+const isSourceTabModel = (model: unknown, sourceID: string) => {
     if (!model || typeof model !== "object") {
         return false;
     }
@@ -206,7 +206,7 @@ const isSourceTabModel = (model: unknown, sourceID: string): boolean => {
  * @同步豁免: 生命周期
  */
 /** 导出 getLocalBazaarSourcePageURL 供本地源入口复用 */
-export const getLocalBazaarSourcePageURL = (): string => {
+export const getLocalBazaarSourcePageURL = () => {
     return `${getLocalOrigin()}/api/s-forge/bazaar/public/source`;
 };
 
@@ -217,7 +217,7 @@ export const getLocalBazaarSourcePageURL = (): string => {
  * 问题/改进：当前 sourceID 通过事件同步，未来可考虑集中状态总线。
  */
 /** 导出 openBazaarHubTab 供 bazaar-hub 相关入口调用 */
-export const openBazaarHubTab = async (options?: { app?: App; sourceID?: string }): Promise<void> => {
+export const openBazaarHubTab = async (options?: { app?: App; sourceID?: string }) => {
     const app = resolveApp(options?.app);
     if (!app) {
         return;
@@ -249,7 +249,7 @@ export const openBazaarHubTab = async (options?: { app?: App; sourceID?: string 
  * 问题/改进：当前标题拼接固定为“发布 · 集市”，后续可按语言习惯优化顺序。
  */
 /** 导出 openBazaarPublishTab 供发布设置入口调用 */
-export const openBazaarPublishTab = async (options?: { app?: App }): Promise<void> => {
+export const openBazaarPublishTab = async (options?: { app?: App }) => {
     const app = resolveApp(options?.app);
     if (!app) {
         return;
@@ -280,7 +280,7 @@ export const openBazaarPublishTab = async (options?: { app?: App }): Promise<voi
 export const openBazaarSourceTab = async (options: {
     app?: App;
     source: Pick<Config.IBazaarSource, "id" | "name" | "url"> & { openInTab?: boolean };
-}): Promise<void> => {
+}) => {
     const app = resolveApp(options.app);
     if (!app) {
         return;
@@ -317,7 +317,7 @@ export const openBazaarSourceTab = async (options: {
  * 问题/改进：本地源名称当前固定中文，后续可接入 i18n。
  */
 /** 导出 openLocalBazaarSourceTab 供本地源入口调用 */
-export const openLocalBazaarSourceTab = async (options?: { app?: App }): Promise<void> => {
+export const openLocalBazaarSourceTab = async (options?: { app?: App }) => {
     await openBazaarSourceTab({
         app: options?.app,
         source: {

@@ -59,7 +59,7 @@ import { MenuItem } from "./imports";
  * 调用时机：copy/cut 菜单项点击时。
  * 问题/改进：仍使用 execCommand，属于兼容路径，后续可评估 Clipboard API 替代。
  */
-const 执行复制或剪切命令 = (element: Element, command: "copy" | "cut"): void => {
+const 执行复制或剪切命令 = (element: Element, command: "copy" | "cut") => {
     const range = document.createRange();
     range.selectNode(element);
     focusByRange(range);
@@ -78,7 +78,7 @@ const 执行删除命令 = (
     nodeElement: Element,
     id: string | null,
     html: string
-): void => {
+) => {
     element.insertAdjacentHTML("afterend", "<wbr>");
     element.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -95,7 +95,7 @@ const 执行删除命令 = (
  * 调用时机：inlineMathMenu 构建菜单时。
  * 问题/改进：暂无。
  */
-const 追加复制菜单项 = (element: Element): void => {
+const 追加复制菜单项 = (element: Element) => {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,
@@ -116,7 +116,7 @@ const 追加可编辑菜单项 = (
     nodeElement: Element,
     id: string | null,
     html: string
-): void => {
+) => {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "cut",
         icon: "iconCut",

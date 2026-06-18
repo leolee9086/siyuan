@@ -1,3 +1,4 @@
+/** 用途：isStylableElement DOM 元素类型守卫函数。使用范围：快捷键配置的类型守卫，用于 isHTMLElement 代理转发。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isStylableElement } from "../../util/DOM/element.guard";
 
 /**

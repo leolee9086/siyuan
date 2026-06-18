@@ -1,9 +1,18 @@
+/** 用途：MIME 类型数据。使用范围：defaultWorkspace 文件类型判断。解耦评估：同目录模块，直接同层导入。 */
 import mimes from "./mimeDb";
-import * as path from "path";
-import type { KernelClientType } from "../kernelSDK";
-import { kernelClient } from "../kernelSDK";
-import { createClient, fileApiDefs } from "@leolee9086/siyuan-kernel-sdk";
+/** 用途：Node path 模块。使用范围：defaultWorkspace 路径处理。解耦评估：通过 imports.ts 转发。 */
+import * as path from "./imports";
+/** 用途：内核客户端类型。使用范围：defaultWorkspace 类型约束。解耦评估：通过 imports.ts 转发。 */
+import type { KernelClientType } from "./imports";
+/** 用途：内核客户端实例。使用范围：defaultWorkspace API 调用。解耦评估：通过 imports.ts 转发。 */
+import { kernelClient } from "./imports";
+/** 用途：内核 SDK 工厂函数。使用范围：defaultWorkspace 创建客户端。解耦评估：通过 imports.ts 转发。 */
+import { createClient } from "./imports";
+/** 用途：文件 API 定义。使用范围：defaultWorkspace 文件操作。解耦评估：通过 imports.ts 转发。 */
+import { fileApiDefs } from "./imports";
+/** 用途：文件列表结果类型。使用范围：defaultWorkspace 类型约束。解耦评估：同目录类型文件，直接同层导入。 */
 import type { LsFile } from "./defaultWorkspace.types";
+/** 用途：MIME 类型工具。使用范围：defaultWorkspace 文本文件判断。解耦评估：同目录模块，直接同层导入。 */
 import { isTextMime } from "./mimeUtils";
 
 // 重新导出类型供外部使用
@@ -20,6 +29,7 @@ const rawFileClient = createClient(fileApiDefs, {
   responseHandler: "raw",
 });
 
+/** 导出 Workspace 类，提供文件系统操作能力 */
 export class Workspace {
   private kernel: KernelClientType;
   private mimetype: { [key: string]: string } = {};
@@ -51,7 +61,7 @@ export class Workspace {
    * @param bin - 是否强制返回二进制格式，默认为 false（文本文件返回 string，二进制返回 Uint8Array）
    * @returns 文件内容（string 或 Uint8Array），如果文件不存在则返回 undefined
    */
-  async readFile(file: string, bin?: boolean): Promise<string | Uint8Array | undefined> {
+  async readFile(file: string, bin?: boolean) {
     // 使用配置了 responseHandler: 'raw' 的客户端获取原始 Response
     // rawFileClient 配置了 responseHandler: 'raw'，返回原始 Response 对象
     const res = await rawFileClient.getFile({ path: file });
@@ -116,7 +126,7 @@ export class Workspace {
    *
    * 注意：同步请求会阻塞主线程，仅在必要时使用（如初始化阶段）
    */
-  readFileSync(file: string): string | ArrayBuffer | undefined {
+  readFileSync(file: string) {
     // 使用 SDK 的同步方法获取文件，通过请求级配置获取原始响应
     const res = kernelClient.$sync.getFile(
       { path: file },
@@ -234,7 +244,7 @@ export class Workspace {
    * @param path - 目录路径（相对于工作空间根目录）
    * @returns 目录项数组，包含文件名、大小、修改时间等信息
    */
-  async readDir(path: string): Promise<LsFile[]> {
+  async readDir(path: string) {
     const result = await this.kernel.readDir({ path });
     return result.data;
   }
@@ -249,7 +259,7 @@ export class Workspace {
    * @param name - 文件或目录路径
    * @returns 如果存在返回文件信息对象，否则返回 undefined
    */
-  async exists(name: string): Promise<LsFile | undefined> {
+  async exists(name: string) {
     try {
       const parentDir = path.dirname(name);
 
@@ -309,7 +319,7 @@ export class Workspace {
    *
    * @param path - 要删除的文件或目录路径
    */
-  async removeFile(path: string): Promise<void> {
+  async removeFile(path: string) {
     await this.kernel.removeFile({ path: path });
   }
 
@@ -323,7 +333,7 @@ export class Workspace {
    * @param path1 - 源文件路径
    * @param path2 - 目标文件路径
    */
-  async copyFile(path1: string, path2: string): Promise<void> {
+  async copyFile(path1: string, path2: string) {
     const content = await this.readFile(path1);
     if (!content) {
       return;
@@ -341,7 +351,7 @@ export class Workspace {
    * @param path - 要初始化的文件路径
    * @param data - 可选的初始内容，默认为空字符串
    */
-  async initFile(path: string, data?: string): Promise<void> {
+  async initFile(path: string, data?: string) {
     // 检查文件是否已存在，存在则跳过初始化
     const fileExists = await this.exists(path);
     if (fileExists) {
@@ -351,4 +361,5 @@ export class Workspace {
     await this.writeFile(path, data ?? "");
   }
 }
+/** 导出默认工作空间实例，供全局使用 */
 export const localWorkerSpace = new Workspace(kernelClient);

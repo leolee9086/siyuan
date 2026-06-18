@@ -1,4 +1,5 @@
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 用途：国际化文案。使用范围：关联列表 HTML 生成。解耦评估：通过 ./imports 转发。 */
+import { siyuanI18n } from "./imports";
 
 /**
  * @作用: 根据传入的 ID 数组生成关联列表的 HTML 字符串。
@@ -11,7 +12,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
  *        - 在 updateRelationListHTML 更新列表时，添加或删除关联后刷新显示
  * @问题/改进: 无已知问题
  */
-export const getRelationHTML = (ids: string[]) => {
+export const getRelationHTML = async (ids: string[]) => {
     if (!ids) {
         return `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
     }

@@ -70,7 +70,7 @@ const 追加基础动作菜单项 = (
     protyle: IProtyle,
     assetElement: HTMLElement,
     imgElement: HTMLImageElement
-): void => {
+) => {
     const menu = getSiyuanGlobalMenusMenu();
     menu.append(genCopyItem(protyle, assetElement).element);
     // 只读模式额外展示“复制图片地址”。
@@ -94,7 +94,7 @@ const 追加编辑态动作菜单项 = (
     imgElement: HTMLImageElement,
     id: string,
     html: string
-): void => {
+) => {
     const menu = getSiyuanGlobalMenusMenu();
     menu.append(genCutItem(protyle, assetElement, nodeElement, id, html, range).element);
     menu.append(genDeleteItem(protyle, assetElement, nodeElement, id, html, range).element);
@@ -118,7 +118,7 @@ const 追加编辑态动作菜单项 = (
  * 调用时机：imgMenu 构建后段。
  * 问题/改进：后续可按协议类型（assets/http/data）细分策略。
  */
-const 追加资源打开菜单项 = (protyle: IProtyle, src: string): void => {
+const 追加资源打开菜单项 = (protyle: IProtyle, src: string) => {
     const menu = getSiyuanGlobalMenusMenu();
     // src 存在时才展示 openMenu。
     if (!src) {
@@ -134,7 +134,7 @@ const 追加资源打开菜单项 = (protyle: IProtyle, src: string): void => {
  * 调用时机：imgMenu 构建后段。
  * 问题/改进：后续可抽象为资源能力矩阵配置。
  */
-const 追加资源导出菜单项 = (imgElement: HTMLImageElement): void => {
+const 追加资源导出菜单项 = (imgElement: HTMLImageElement) => {
     const menu = getSiyuanGlobalMenusMenu();
     const dataSrc = imgElement.getAttribute("data-src");
     const isAssetResource = Boolean(dataSrc && dataSrc.startsWith("assets/"));
@@ -156,7 +156,7 @@ const 追加资源导出菜单项 = (imgElement: HTMLImageElement): void => {
  * 调用时机：菜单主体项构建完成后。
  * 问题/改进：后续可补充扩展耗时与异常监控。
  */
-const 触发图片插件菜单扩展 = (protyle: IProtyle, assetElement: HTMLElement): void => {
+const 触发图片插件菜单扩展 = (protyle: IProtyle, assetElement: HTMLElement) => {
     const hasPlugins = Boolean(protyle?.app?.plugins);
     // 仅存在插件系统时触发扩展事件。
     if (!hasPlugins) {
@@ -179,7 +179,7 @@ const 触发图片插件菜单扩展 = (protyle: IProtyle, assetElement: HTMLEle
  * 调用时机：菜单项构建完成后。
  * 问题/改进：后续可将 popup 定位策略提取为独立策略函数。
  */
-const 展示图片菜单 = (position: { clientX: number; clientY: number }): void => {
+const 展示图片菜单 = (position: { clientX: number; clientY: number }) => {
     const menu = getSiyuanGlobalMenusMenu();
     // 移动端使用全屏菜单。
     if (isMobile) {
@@ -195,7 +195,7 @@ const 展示图片菜单 = (position: { clientX: number; clientY: number }): voi
  * 调用时机：菜单弹出前。
  * 问题/改进：dataset.level 依赖外层结构，后续可考虑标准化来源字段。
  */
-const 设置菜单来源属性 = (protyle: IProtyle): void => {
+const 设置菜单来源属性 = (protyle: IProtyle) => {
     const menu = getSiyuanGlobalMenusMenu();
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
@@ -215,7 +215,7 @@ const 绑定菜单关闭回调 = (
     id: string,
     src: string,
     html: string
-): void => {
+) => {
     const menu = getSiyuanGlobalMenusMenu();
     const textareas = menu.element.querySelectorAll("textarea");
     const urlInput = textareas[0];

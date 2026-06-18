@@ -18,7 +18,7 @@ const BACKGROUND_STYLE_PROPERTIES = [
  * 调用时机：每次应用新背景前。
  * @同步豁免: 需要绝对同步的DOM访问 - 样式清理必须在同一调用栈内完成，确保后续 setProperty 不受旧值干扰。
  */
-export const clearElementBackgroundStyle = (element: HTMLElement): void => {
+export const clearElementBackgroundStyle = (element: HTMLElement) => {
     for (const property of BACKGROUND_STYLE_PROPERTIES) {
         element.style.removeProperty(property);
     }

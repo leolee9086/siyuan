@@ -15,6 +15,8 @@ import { isElectron } from "../platform";
 import { isMobile } from "../platform";
 // 用途：获取国际化文本；使用范围：Panel.actions.ts 中设置固定按钮的 aria-label；解耦评估：全局i18n服务，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+// 用途：系统常量配置；使用范围：block 模块使用全局常量；解耦评估：全局配置，可通过参数注入解耦，但作为全局基础设施直接导入更合理
+import { Constants } from "../constants";
 // 用途：查找最近的指定类名祖先元素；使用范围：Panel.ts 中查找父级浮窗和图标容器；解耦评估：DOM工具函数，可通过参数传递解耦，但作为基础工具直接导入更合理
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 // 用途：生成唯一ID；使用范围：Panel.ts 中为浮窗实例生成唯一标识；解耦评估：工具函数，可通过参数传递解耦，但作为基础工具直接导入更合理
@@ -38,10 +40,18 @@ import { getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig
 import { getSiyuanMenus } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：递增并获取全局z-index；使用范围：Panel.ts 中点击浮窗时提升层级；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { incrementSiyuanZIndex } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+// 用途：获取 siyuan 配置；使用范围：block 模块读取配置；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+// 用途：检查 siyuan 配置是否存在；使用范围：block 模块初始化守卫；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { hasSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+// 用途：获取键盘修饰键状态；使用范围：block 模块交互判断；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanKeyboardState } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+// 用途：获取当前拖拽元素；使用范围：block 模块拖拽状态；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanDragElement } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：App 类型定义；使用范围：Panel.ts 和 Panel.actions.ts 中函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
 import type { App } from "../index";
-// 用途：Protyle 编辑器类型定义；使用范围：Panel.ts 和 Panel.observer.types.ts 中编辑器实例类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { Protyle } from "../protyle";
+// 用途：Protyle 编辑器类；使用范围：Panel.ts 和 Panel.observer.types.ts 中编辑器实例类型标注；解耦评估：核心类型定义
+import { Protyle } from "../protyle";
 /*
  * 用途：生成列表项块元素。
  * 使用范围：block/util.createNewBlockElement.ts 的列表项插入分支。
@@ -104,6 +114,8 @@ export { isElectron };
 export { isMobile };
 // 环境工具导出
 export { siyuanI18n };
+// 常量导出
+export { Constants };
 // DOM工具导出
 export { hasClosestByClassName };
 // ID生成工具导出
@@ -122,10 +134,18 @@ export { getSiyuanBlockPanels };
 export { getSiyuanMenus };
 // 全局z-index管理导出
 export { incrementSiyuanZIndex };
+// siyuan 配置获取导出
+export { getSiyuanConfig };
+// siyuan 配置存在检查导出
+export { hasSiyuanConfig };
+// 键盘状态获取导出
+export { getSiyuanKeyboardState };
+// 拖拽元素获取导出
+export { getSiyuanDragElement };
 // 类型导出
 export type { App };
-// Protyle 编辑器类型导出
-export type { Protyle };
+// Protyle 编辑器类导出
+export { Protyle };
 // 列表项元素构建工具导出
 export { genListItemElement };
 // 可编辑区域解析工具导出
@@ -140,3 +160,79 @@ export { focusByWbr };
 export { getParentBlock };
 // 同步请求工具导出
 export { fetchSyncPost };
+
+// 用途：隐藏 Tooltip；使用范围：Popover 相关模块；解耦评估：UI 工具函数
+import { hideTooltip } from "../dialog/tooltip";
+// 导出 hideTooltip
+export { hideTooltip };
+
+// 用途：触屏设备判断；使用范围：block 模块交互适配；解耦评估：平台检测工具
+import { isTouchDevice } from "../util/platform/functions";
+// 导出 isTouchDevice
+export { isTouchDevice };
+
+// 用途：安全的 setTimeout；使用范围：block 模块延迟操作；解耦评估：环境工具
+import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+// 导出 setTimeout
+export { setTimeout };
+
+// 用途：通过属性值查找祖先元素；使用范围：block 模块 DOM 定位；解耦评估：DOM 工具函数
+import { hasClosestByAttribute } from "../protyle/util/hasClosest";
+// 导出 hasClosestByAttribute
+export { hasClosestByAttribute };
+
+// 用途：鼠标事件守卫（含事件路径）；使用范围：block 模块事件处理；解耦评估：类型守卫工具
+import { asMouseEventWithPath } from "../util/lib/events/event.guard";
+// 导出 asMouseEventWithPath
+export { asMouseEventWithPath };
+// 用途：鼠标事件 HTML 目标守卫；使用范围：block 模块事件处理；解耦评估：类型守卫工具
+import { isMouseEventWithHTMLTarget } from "../util/lib/events/event.guard";
+// 导出 isMouseEventWithHTMLTarget
+export { isMouseEventWithHTMLTarget };
+
+// 用途：鼠标事件路径类型；使用范围：block 模块类型标注；解耦评估：类型定义
+import type { MouseEventWithPath } from "../util/lib/events/event.guard";
+// 导出 MouseEventWithPath 类型
+export type { MouseEventWithPath };
+// 用途：HTML 目标鼠标事件类型；使用范围：block 模块类型标注；解耦评估：类型定义
+import type { MouseEventWithHTMLTarget } from "../util/lib/events/event.guard";
+// 导出 MouseEventWithHTMLTarget 类型
+export type { MouseEventWithHTMLTarget };
+
+// 用途：HTMLElement 类型守卫；使用范围：block 模块 DOM 类型安全；解耦评估：类型守卫工具
+import { isHTMLElement } from "../util/DOM/element.guard";
+// 导出 isHTMLElement
+export { isHTMLElement };
+
+// 用途：列表排序更新；使用范围：block 模块有序列表操作；解耦评估：Protyle 工具函数
+import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
+// 导出 updateListOrder
+export { updateListOrder };
+
+// 用途：事务处理和合并；使用范围：block 模块块操作；解耦评估：Protyle 核心工具
+import { transaction } from "../protyle/wysiwyg/transaction";
+// 导出 transaction
+export { transaction };
+// 用途：合并为单个事务；使用范围：block 模块合并操作；解耦评估：Protyle 核心工具
+import { turnsIntoOneTransaction } from "../protyle/wysiwyg/transaction";
+// 导出 turnsIntoOneTransaction
+export { turnsIntoOneTransaction };
+// 用途：更新事务；使用范围：block 模块事务更新；解耦评估：Protyle 核心工具
+import { updateTransaction } from "../protyle/wysiwyg/transaction";
+// 导出 updateTransaction
+export { updateTransaction };
+
+// 用途：滚动居中到高亮块；使用范围：block 模块编辑器定位；解耦评估：DOM 工具函数
+import { scrollCenter } from "../util/DOM/highlightById";
+// 导出 scrollCenter
+export { scrollCenter };
+
+// 用途：网络请求（POST）；使用范围：block 模块数据获取；解耦评估：网络工具
+import { fetchPost } from "../util/network/fetch";
+// 导出 fetchPost
+export { fetchPost };
+
+// 用途：移动端通过 ID 打开文件；使用范围：block 模块移动端跳转；解耦评估：移动端功能
+import { openMobileFileById } from "../mobile/editor";
+// 导出 openMobileFileById
+export { openMobileFileById };

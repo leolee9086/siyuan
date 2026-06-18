@@ -11,7 +11,7 @@
  * @param l 亮度值 (0-1)
  * @returns 十六进制颜色分量字符串
  */
-const calculateColorComponent = (n: number, h: number, a: number, l: number): string => {
+const calculateColorComponent = (n: number, h: number, a: number, l: number) => {
     const k = (n + h / 30) % 12;
     const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
     return Math.round(255 * color).toString(16).padStart(2, "0");
@@ -24,7 +24,7 @@ const calculateColorComponent = (n: number, h: number, a: number, l: number): st
  * @param l 亮度值 (0-100)
  * @returns 十六进制颜色值
  */
-const hslToHex = (h: number, s: number, l: number): string => {
+const hslToHex = (h: number, s: number, l: number) => {
     l /= 100;
     const a = s * Math.min(l, 1 - l) / 100;
     return `#${calculateColorComponent(0, h, a, l)}${calculateColorComponent(8, h, a, l)}${calculateColorComponent(4, h, a, l)}`;
@@ -40,7 +40,7 @@ const hslToHex = (h: number, s: number, l: number): string => {
  * @returns 十六进制颜色值，如 "#b3c8e0"
  */
 /** @同步豁免: 性能考虑 - 纯数学计算（Math.random + HSL→hex），无任何可await操作，async包装只增加无意义的Promise开销 */
-export const genRandomColor = (): string => {
+export const genRandomColor = () => {
     // 生成柔和的随机颜色，避免过于鲜艳的颜色
     const hue = Math.floor(Math.random() * 360);
     const saturation = Math.floor(Math.random() * 30) + 20; // 20-50% 饱和度

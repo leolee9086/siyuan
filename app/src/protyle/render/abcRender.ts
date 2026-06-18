@@ -23,7 +23,7 @@ const DEFAULT_ABC_PARAMS: AbcRenderParams = {
  *       解析失败时静默回退到默认参数，不影响乐谱渲染
  * 调用时机：renderSingleAbcElement 中调用 renderAbc 前，为每个 ABC 元素解析参数
  */
-const getAbcParams = async (abcString: string): Promise<AbcRenderParams> => {
+const getAbcParams = async (abcString: string) => {
     const firstLine = abcString.substring(0, abcString.indexOf("\n"));
     // 仅当首行以 %%params 开头时才尝试解析自定义参数，否则使用默认值
     if (!firstLine.startsWith(ABCJS_PARAMS_KEY)) {
@@ -140,7 +140,7 @@ const initAbcAudioControls = async (
  * 调用时机：abcRender 入口处调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function collectAbcElements(element: Element): Element[] {
+function collectAbcElements(element: Element) {
     // 当元素本身就是 abc 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "abc") {
         return element.getAttribute("data-render") === "true" ? [] : [element];

@@ -2,10 +2,19 @@
  * sforge.types.ts - SForge 类型定义
  */
 
+/** 用途：Symbol 键定义。使用范围：ISForgeGlobalState 接口的索引签名键。解耦评估：同目录符号定义，直接导入。 */
 import { SForgeSymbols } from "./sforge.symbols";
+/** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
 import type { TabRegistration } from "../registry/TabRegistry.types";
-import type { ITriggerRegistration, IBrushSession, IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
+/** 用途：触发器注册类型。使用范围：全局状态中触发器注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
+import type { ITriggerRegistration } from "../registry/TriggerRegistry.types";
+/** 用途：刷子会话类型。使用范围：全局状态中格式刷刷子会话。解耦评估：父目录类型导入，纯类型引用。 */
+import type { IBrushSession } from "../registry/TriggerRegistry.types";
+/** 用途：样式刷子处理器类型。使用范围：全局状态中样式刷子回调处理器。解耦评估：父目录类型导入，纯类型引用。 */
+import type { IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
+/** 用途：内容渲染器注册类型。使用范围：全局状态中内容渲染器注册表。解耦评估：父目录类型导入，纯类型引用。 */
 import type { ContentRendererRegistration } from "../registry/contentRenderer/ContentRendererRegistry.types";
+/** 用途：应用实例类型。使用范围：openMobileFileById 函数签名中 App 参数类型。解耦评估：父目录类型导入，纯类型引用。 */
 import type { App } from "../index";
 
 /**

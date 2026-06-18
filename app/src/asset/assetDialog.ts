@@ -13,11 +13,16 @@
  * - 必须传入 callback 处理选中后的行为
  */
 
-import { Dialog } from "../dialog";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { createVueDialog } from "../util/vue/createVueDialog";
+/** 用途：Dialog 对话框基类，管理对话框实例生命周期。使用范围：assetDialog 创建和管理对话框。解耦评估：通过 imports.ts 转发，与具体实现解耦。 */
+import { Dialog } from "./imports";
+/** 用途：国际化文本，显示对话框标题。使用范围：assetDialog 设置标题文本。解耦评估：通过 imports.ts 转发。 */
+import { siyuanI18n } from "./imports";
+/** 用途：Vue 对话框创建工具函数。使用范围：assetDialog 创建 Vue 驱动的对话框内容。解耦评估：通过 imports.ts 转发。 */
+import { createVueDialog } from "./imports";
+/** 用途：平台检测，根据桌面/移动端调整对话框尺寸。使用范围：assetDialog 响应式布局。解耦评估：通过 imports.ts 转发。 */
+import { isMobile } from "./imports";
+/** 用途：素材选择瀑布流 Vue 组件。使用范围：assetDialog 对话框渲染。解耦评估：组件位于本目录 components/ 下，仅在此处使用。 */
 import AssetMasonryDialog from "./components/AssetMasonryDialog.vue";
-import { isMobile } from "../platform";
 
 /** 全局对话框实例 */
 let dialogInstance: Dialog | null = null;

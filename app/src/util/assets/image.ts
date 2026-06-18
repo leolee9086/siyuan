@@ -1,7 +1,7 @@
-/** 用途：同步 POST 请求函数。使用范围：通过后端接口获取和上传图片资源。解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理。 */
-import { fetchSyncPost } from "../network/fetch";
-/** 用途：全局常量配置。使用范围：MAX_BASE64_SIZE 等图片处理常量。解耦评估：全局配置，可通过配置注入解耦，但直接导入更合理。 */
-import { Constants } from "../../constants";
+/** 用途：同步 POST 请求函数。使用范围：assets 模块上传图片资源。解耦评估：通过 imports.ts 转发。 */
+import { fetchSyncPost } from "./imports";
+/** 用途：全局常量配置。使用范围：图片处理常量。解耦评估：通过 imports.ts 转发。 */
+import { Constants } from "./imports";
 
 /**
  * 为图片 URL 添加压缩参数

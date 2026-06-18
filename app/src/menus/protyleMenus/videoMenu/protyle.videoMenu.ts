@@ -69,7 +69,7 @@ function createAssetInputMenuItem(
     id: string,
     nodeElement: Element,
     html: string
-): { menuItem: IMenu; updatedHtml: string } {
+) {
     let currentHtml = html;
     const menuItem: IMenu = {
         id: "asset",
@@ -103,7 +103,7 @@ function createAssetInputMenuItem(
  * 添加资源相关菜单项
  * @作用 为本地资源添加重命名、导出、复制等操作菜单项
  */
-function addAssetMenuItems(src: string | null, subMenus: IMenu[]): void {
+function addAssetMenuItems(src: string | null, subMenus: IMenu[]) {
     if (!src || !src.startsWith("assets/")) {
         return;
     }
@@ -125,7 +125,7 @@ function addAssetMenuItems(src: string | null, subMenus: IMenu[]): void {
  * 添加打开方式菜单项
  * @作用 添加使用不同应用打开资源的菜单项
  */
-function addOpenByMenuItem(protyle: IProtyle, src: string | null, subMenus: IMenu[]): void {
+function addOpenByMenuItem(protyle: IProtyle, src: string | null, subMenus: IMenu[]) {
     if (!src) {
         return;
     }
@@ -145,7 +145,7 @@ function addOpenByMenuItem(protyle: IProtyle, src: string | null, subMenus: IMen
  * 添加导出和复制菜单项
  * @作用 为本地资源添加导出和复制到剪贴板的菜单项
  */
-function addExportAndCopyMenuItems(src: string | null, subMenus: IMenu[]): void {
+function addExportAndCopyMenuItems(src: string | null, subMenus: IMenu[]) {
     if (!src || !src.startsWith("assets/")) {
         return;
     }
@@ -167,7 +167,7 @@ function addExportAndCopyMenuItems(src: string | null, subMenus: IMenu[]): void 
  * @returns 菜单项数组
  * @同步豁免: UI构建 — 菜单系统在同步调用栈中组装 submenu，若返回 Promise 会被当作对象传入并触发运行时错误
  */
-export function videoMenu(protyle: IProtyle, nodeElement: Element, type: string): IMenu[] {
+export function videoMenu(protyle: IProtyle, nodeElement: Element, type: string) {
     const id = nodeElement.getAttribute("data-node-id");
     if (!id) {
         return [];

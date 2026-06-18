@@ -169,7 +169,11 @@ function isContextHistoryTrimmedPayload(payload: Record<string, unknown>): boole
     );
 }
 
-function isRuntimeStatusUpdatedPayload(payload: Record<string, unknown>): boolean {
+/**
+ * 类型守卫：检查 payload 是否包含运行时状态更新必需字段（state + awake）。
+ * 调用时机：Magi 运行时状态消息分发前校验消息结构。
+ */
+function isRuntimeStatusUpdatedPayload(payload: Record<string, unknown>) {
     return (
         typeof payload.state === "string" &&
         typeof payload.awake === "boolean"

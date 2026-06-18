@@ -77,7 +77,7 @@ import { setPackageMessage } from "./hubView";
 import { renderPackageList } from "./hubView";
 
 /** 用途：按源配置打开源 Tab。意图：统一 openInTab 校验。调用时机：源列表与包卡片动作。问题/改进：提示文案当前固定中文。 */
-const openSourceTabBySource = (model: Custom, source: Config.IBazaarSource): void => {
+const openSourceTabBySource = (model: Custom, source: Config.IBazaarSource) => {
     if (!source.openInTab) {
         showMessage("该源已禁止在 Tab 中打开");
         return;
@@ -94,7 +94,7 @@ const openSourceTabBySource = (model: Custom, source: Config.IBazaarSource): voi
 };
 
 /** 用途：按 sourceID 打开源 Tab。意图：封装 sourceID 回退和查找逻辑。调用时机：open-source-tab 动作。问题/改进：未命中源时静默返回。 */
-const openSourceTabByID = (model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }, sourceID: string): void => {
+const openSourceTabByID = (model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }, sourceID: string) => {
     const finalSourceID = sourceID || state.sourceID;
     const source = findSourceByID(state.bundle, finalSourceID);
     if (!source) {
@@ -104,7 +104,7 @@ const openSourceTabByID = (model: Custom, state: { bundle: IBazaarWorkspaceBundl
 };
 
 /** 用途：定位安装动作按钮。意图：集中目标节点合法性校验。调用时机：install-package 动作分发。问题/改进：仅支持 data-type 节点链路。 */
-const getInstallActionElement = (target: HTMLElement): HTMLElement | null => {
+const getInstallActionElement = (target: HTMLElement) => {
     const element = target.closest('[data-type="install-package"]');
     if (element instanceof HTMLElement) {
         return element;
@@ -113,7 +113,7 @@ const getInstallActionElement = (target: HTMLElement): HTMLElement | null => {
 };
 
 /** 用途：执行安装动作。意图：封装安装接口调用与按钮禁用状态。调用时机：点击安装按钮后。问题/改进：成功后仅提示消息，不做增量刷新。 */
-const installPackageFromAction = async (actionElement: HTMLElement): Promise<void> => {
+const installPackageFromAction = async (actionElement: HTMLElement) => {
     const sourceID = actionElement.getAttribute("data-source-id") || "";
     const packageType = actionElement.getAttribute("data-package-type") || "";
     const packageName = actionElement.getAttribute("data-package-name") || "";
@@ -148,7 +148,7 @@ const loadSourcePackages = async (state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, packageListElement: HTMLElement): Promise<void> => {
+}, packageListElement: HTMLElement) => {
     const source = findSourceByID(state.bundle, state.sourceID);
     if (!source) {
         state.packageIndex = null;
@@ -179,7 +179,7 @@ const refreshWorkspace = async (state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }): Promise<void> => {
+}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }) => {
     try {
         state.bundle = await getBazaarWorkspaceBundle();
         state.sourceID = pickDefaultSource(state.bundle, state.sourceID);
@@ -201,7 +201,7 @@ const handleSimpleAction = (type: string, model: Custom, state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }): boolean => {
+}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }) => {
     /** 处理“打开发布设置”动作 */
     if (type === "open-publish") {
         void openBazaarPublishTab({ app: model.app });
@@ -233,7 +233,7 @@ const handleSelectSource = (event: Event, state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }): void => {
+}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }) => {
     const nextSourceID = readSourceIDFromEvent(event);
     if (!nextSourceID || nextSourceID === state.sourceID) {
         return;
@@ -245,13 +245,13 @@ const handleSelectSource = (event: Event, state: {
 };
 
 /** 用途：处理打开源动作。意图：统一解析 sourceID 并打开对应源页签。调用时机：open-source-tab 动作。问题/改进：未命中 source 时静默返回。 */
-const handleOpenSourceTabAction = (event: Event, model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }): void => {
+const handleOpenSourceTabAction = (event: Event, model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }) => {
     const sourceID = readSourceIDFromEvent(event);
     openSourceTabByID(model, state, sourceID);
 };
 
 /** 用途：处理安装动作。意图：定位安装按钮并触发异步安装流程。调用时机：install-package 动作。问题/改进：当前仅禁用当前按钮。 */
-const handleInstallAction = (event: Event): void => {
+const handleInstallAction = (event: Event) => {
     if (!(event.target instanceof HTMLElement)) {
         return;
     }
@@ -268,7 +268,7 @@ const handleHubClick = (event: Event, model: Custom, state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }): void => {
+}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }) => {
     if (!(event.target instanceof HTMLElement)) {
         return;
     }
@@ -307,7 +307,7 @@ const handleHubSearchInput = (state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, packageListElement: HTMLElement, searchInput: HTMLInputElement): void => {
+}, packageListElement: HTMLElement, searchInput: HTMLInputElement) => {
     state.keyword = searchInput.value;
     renderPackageList(state, packageListElement);
 };
@@ -318,7 +318,7 @@ const handleSetSourceEvent = (event: Event, state: {
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
     keyword: string;
-}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }): void => {
+}, elements: { sourceListElement: HTMLElement; summaryElement: HTMLElement; packageListElement: HTMLElement }) => {
     const nextSourceID = readSourceIDFromHubEvent(event);
     if (!nextSourceID || nextSourceID === state.sourceID) {
         return;
@@ -332,7 +332,7 @@ const handleSetSourceEvent = (event: Event, state: {
 /** 用途：挂载 hub 页面逻辑。意图：初始化状态、绑定事件并触发首次刷新。调用时机：根 initHub 入口。问题/改进：状态当前以局部对象维护。 */
 /** 导出 mountBazaarHub 供根 initHub 入口调用 */
 /** @同步豁免: UI构建 */
-export const mountBazaarHub = (model: Custom): void => {
+export const mountBazaarHub = (model: Custom) => {
     const container = model.element;
     container.classList.add("bazaar-hub");
     renderHubLayout(container);

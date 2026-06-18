@@ -1,11 +1,11 @@
 import { insertEmptyBlock } from "../../../block/util";
 import { scrollCenter } from "../../../util/DOM/highlightById";
 import { getSiyuanEditorGeneralKeymap } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isNotCtrl } from "./compatibility";
-import { matchHotKey } from "./hotKey";
-import { getSelectionOffset } from "./selection";
-import { focusBlock } from "./selection.focus";
-import { getSelectionPosition } from "./selection.position";
+import { isNotCtrl } from "../compatibility";
+import { matchHotKey } from "../hotKey";
+import { getSelectionOffset } from "../selection";
+import { focusBlock } from "../selection.focus";
+import { getSelectionPosition } from "../selection.position";
 import { getColIndex, setTableAlign } from "./table";
 import { goPreviousCell } from "./table.helpers";
 import { TableFixContext } from "./table.fix.types";

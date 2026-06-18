@@ -1,5 +1,7 @@
 /** 用途：创建计算属性；使用范围：showWindowControls 视图开关；解耦评估：Vue 计算属性 API 已通过 imports.ts 收口，当前依赖边界清晰。 */
-import { computed, watch } from "./imports";
+import { computed } from "./imports";
+/** 用途：侦听响应式变化；使用范围：showWindowControls 视图开关的副作用；解耦评估：Vue 侦听 API 已通过 imports.ts 收口，当前依赖边界清晰。 */
+import { watch } from "./imports";
 /** 用途：读取 Electron 环境标志；使用范围：窗口控制显示条件；解耦评估：平台能力已通过 imports.ts 收口，当前依赖边界清晰。 */
 import { isElectron } from "./imports";
 /** 用途：读取移动端环境标志；使用范围：窗口控制显示条件；解耦评估：平台能力已通过 imports.ts 收口，当前依赖边界清晰。 */
@@ -15,7 +17,9 @@ import { createMagiRootHandlers } from "./MagiRoot.handlers";
 /** 用途：执行启动阶段工作空间守卫；使用范围：MagiRoot 上下文构造完成后的异步引导；解耦评估：同目录 workspace 模块已封装守卫逻辑，直接依赖合理。 */
 import { bootstrapWorkspaceAIMainNotebookGuard } from "./MagiRoot.workspace";
 /** 用途：主面板聊天记录前端缓存；使用范围：useMagiRootContext 中挂载缓存持久化逻辑；解耦评估：utils 层已封装 localStorage 操作，直接依赖合理。 */
-import { loadChatHistory, saveChatHistory } from "../../utils/chatHistoryCache";
+import { loadChatHistory } from "../../utils/chatHistoryCache";
+/** 用途：主面板聊天记录前端缓存；使用范围：useMagiRootContext 中挂载缓存持久化逻辑；解耦评估：utils 层已封装 localStorage 操作，直接依赖合理。 */
+import { saveChatHistory } from "../../utils/chatHistoryCache";
 /** 用途：标注缓存消息类型；使用范围：缓存加载时的类型适配；解耦评估：纯类型依赖，直接导入合理。 */
 import type { CachedMessage } from "../../utils/chatHistoryCache";
 

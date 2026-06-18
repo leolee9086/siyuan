@@ -97,8 +97,7 @@ export async function createMagiStandardLLMAdapter(params: {
     model?: string;
     connectionStatus: { value: ConnectionStatus };
     mainInterfaceIdentity?: MagiInterfaceIdentity;
-}): Promise<StandardLLMAdapter> {
-    const model = params.model ?? "magi-trinity";
+}) {
     const runtimeMainInterfaceIdentity = params.mainInterfaceIdentity ?? buildRuntimeMainInterfaceIdentity();
 
     return {
@@ -136,7 +135,7 @@ export async function createMagiStandardLLMAdapter(params: {
  * 意图：区分“后端接口可达但请求无效”和“后端本身不可用”，避免把普通 4xx 误判成断连。
  * 调用时机：`syncBackendConnectionStatus` 判断失败类型时调用。
  */
-function readBackendHttpStatus(reason: string): number | null {
+function readBackendHttpStatus(reason: string) {
     const prefix = "backend-http-";
     if (!reason.startsWith(prefix)) {
         return null;
@@ -155,7 +154,7 @@ function readBackendHttpStatus(reason: string): number | null {
 function syncBackendConnectionStatus(
     connectionStatus: { value: ConnectionStatus },
     backendResult: { response: ChatResponseData | null; reason: string },
-): void {
+) {
     if (backendResult.response) {
         connectionStatus.value = "connected";
         return;
@@ -189,7 +188,7 @@ async function createMagiChatCompletion(
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
     connectionStatus: { value: ConnectionStatus },
-): Promise<ChatResponseData> {
+) {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
         return buildOpenAICompatibleResponse("", request.model ?? model, "stop");
@@ -231,7 +230,7 @@ async function streamMagiChatCompletion(
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
     connectionStatus: { value: ConnectionStatus },
-): Promise<void> {
+) {
     callbacks.onStart?.();
     try {
         const response = await createMagiChatCompletion(
@@ -250,3 +249,4 @@ async function streamMagiChatCompletion(
         callbacks.onError?.(normalizedError);
     }
 }
+

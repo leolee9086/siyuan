@@ -3,7 +3,7 @@
  * 调用时机：清空按钮初始化与输入变化时同步调用。
  * 问题/改进：当前针对文本类控件建模，若未来需要支持更多可编辑元素可继续扩展。
  */
-const getInputValue = (inputElement: HTMLElement): string => {
+const getInputValue = (inputElement: HTMLElement) => {
     const isHtmlInput = inputElement instanceof HTMLInputElement;
     if (isHtmlInput) {
         return inputElement.value;
@@ -20,7 +20,7 @@ const getInputValue = (inputElement: HTMLElement): string => {
  * 调用时机：用户点击清空按钮后同步调用。
  * 问题/改进：当前沿用同步写 DOM 的方式，便于在同一事件循环内立即更新状态。
  */
-const clearInputValue = (inputElement: HTMLElement): void => {
+const clearInputValue = (inputElement: HTMLElement) => {
     const isHtmlInput = inputElement instanceof HTMLInputElement;
     if (isHtmlInput) {
         inputElement.value = "";
@@ -39,7 +39,7 @@ const clearInputValue = (inputElement: HTMLElement): void => {
  * 调用时机：清空按钮需要隐藏时同步调用。
  * 问题/改进：当前只恢复 `padding-right`，后续如需恢复更多样式可扩展为通用样式快照。
  */
-const restoreInputSpacing = (inputElement: HTMLElement, right?: number): void => {
+const restoreInputSpacing = (inputElement: HTMLElement, right?: number) => {
     const hasRightOffset = typeof right === "number";
     if (!hasRightOffset) {
         return;
@@ -52,7 +52,7 @@ const restoreInputSpacing = (inputElement: HTMLElement, right?: number): void =>
  * 调用时机：输入框存在内容且清空按钮可见时同步调用。
  * 问题/改进：目前仍使用内联样式，后续如有统一输入组件可迁回样式层。
  */
-const applyInputSpacing = (inputElement: HTMLElement, clearElement: Element, right?: number): void => {
+const applyInputSpacing = (inputElement: HTMLElement, clearElement: Element, right?: number) => {
     const hasRightOffset = typeof right === "number";
     if (!hasRightOffset) {
         return;
@@ -69,7 +69,7 @@ const applyInputSpacing = (inputElement: HTMLElement, clearElement: Element, rig
  * 调用时机：初始化按钮、输入事件触发、点击清空按钮后都会同步调用。
  * 问题/改进：目前使用内容是否为空作为唯一判定标准，如后续支持只读态可继续补充分支。
  */
-const updateClearButtonState = (inputElement: HTMLElement, clearElement: Element, right?: number): void => {
+const updateClearButtonState = (inputElement: HTMLElement, clearElement: Element, right?: number) => {
     const value = getInputValue(inputElement);
     const isEmpty = value === "";
     if (isEmpty) {
@@ -90,7 +90,7 @@ const buildButtonStyle = (options: {
     right?: number;
     width?: string;
     height?: number;
-}): string => {
+}) => {
     let style = "";
     const hasRightOffset = typeof options.right === "number";
     if (hasRightOffset) {
@@ -117,7 +117,7 @@ const handleClearButtonClick = (
     clearElement: Element,
     right: number | undefined,
     clearCB?: () => void
-): void => {
+) => {
     clearInputValue(inputElement);
     inputElement.focus();
     updateClearButtonState(inputElement, clearElement, right);
@@ -139,7 +139,7 @@ export const addClearButton = (options: {
     height?: number;
     className?: string;
     clearAriaLabel?: string;
-}): void => {
+}) => {
     options.inputElement.dataset.oldPaddingRight = options.inputElement.style.paddingRight;
     const className = options.className || "b3-form__icon-clear";
     const style = buildButtonStyle(options);

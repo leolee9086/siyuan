@@ -45,7 +45,7 @@ import { getDefaultFileIcon } from "./storage.environment";
  * 辅助函数：渲染template类型单元格
  * @同步豁免: UI构建
  */
-export const renderTemplateCell = (cellValue: IAVCellValue): string => {
+export const renderTemplateCell = (cellValue: IAVCellValue) => {
     return `<span class="av__celltext">${cellValue.template?.content || ""}</span>`;
 };
 
@@ -53,7 +53,7 @@ export const renderTemplateCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染text类型单元格
  * @同步豁免: UI构建
  */
-export const renderTextCell = (cellValue: IAVCellValue): string => {
+export const renderTextCell = (cellValue: IAVCellValue) => {
     return `<span class="av__celltext">${Lute.EscapeHTMLStr(cellValue.text?.content || "")}</span>`;
 };
 
@@ -61,7 +61,7 @@ export const renderTextCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染email/phone类型单元格
  * @同步豁免: UI构建
  */
-export const renderContactCell = (cellValue: IAVCellValue): string => {
+export const renderContactCell = (cellValue: IAVCellValue) => {
     const content = cellValue.type === "email" 
         ? (cellValue.email?.content || "")
         : (cellValue.phone?.content || "");
@@ -72,7 +72,7 @@ export const renderContactCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染block类型单元格
  * @同步豁免: UI构建
  */
-export const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean): string => {
+export const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean) => {
     // 不可使用换行 https://github.com/siyuan-note/siyuan/issues/11365
     // detached状态：block已被删除或分离
     if (cellValue.isDetached) {
@@ -89,7 +89,7 @@ export const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean): str
  * 辅助函数：渲染number类型单元格
  * @同步豁免: UI构建
  */
-export const renderNumberCell = (cellValue: IAVCellValue): string => {
+export const renderNumberCell = (cellValue: IAVCellValue) => {
     const dataContent = cellValue.number?.isNotEmpty ? cellValue.number.content : "";
     const displayContent = cellValue.number?.formattedContent || cellValue.number?.content || "";
     return `<span class="av__celltext" data-content="${dataContent}">${displayContent}</span>`;
@@ -99,7 +99,7 @@ export const renderNumberCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染select/mSelect类型单元格
  * @同步豁免: UI构建
  */
-export const renderSelectCell = (cellValue: IAVCellValue): string => {
+export const renderSelectCell = (cellValue: IAVCellValue) => {
     let text = "";
     const items = cellValue.mSelect || [];
     for (let index = 0; index < items.length; index++) {
@@ -120,7 +120,7 @@ export const renderSelectCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染date类型单元格
  * @同步豁免: UI构建
  */
-export const renderDateCell = (cellValue: IAVCellValue): string => {
+export const renderDateCell = (cellValue: IAVCellValue) => {
     const dataValue = cellValue.date;
     let text = `<span class="av__celltext" data-value='${JSON.stringify(dataValue)}'>`;
     
@@ -142,7 +142,7 @@ export const renderDateCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染created/updated类型单元格
  * @同步豁免: UI构建
  */
-export const renderTimestampCell = (cellValue: IAVCellValue): string => {
+export const renderTimestampCell = (cellValue: IAVCellValue) => {
     const dataValue = cellValue.type === "created" ? cellValue.created : cellValue.updated;
     let text = `<span class="av__celltext" data-value='${JSON.stringify(dataValue)}'>`;
     
@@ -159,7 +159,7 @@ export const renderTimestampCell = (cellValue: IAVCellValue): string => {
  * 辅助函数：渲染lineNumber类型单元格
  * @同步豁免: UI构建
  */
-export const renderLineNumberCell = (rowIndex: number): string => {
+export const renderLineNumberCell = (rowIndex: number) => {
     const lineNumber = rowIndex + 1;
     return `<span class="av__celltext" data-value='${lineNumber}'>${lineNumber}</span>`;
 };
@@ -168,7 +168,7 @@ export const renderLineNumberCell = (rowIndex: number): string => {
  * 辅助函数：渲染mAsset类型单元格
  * @同步豁免: UI构建
  */
-export const renderAssetCell = async (cellValue: IAVCellValue): Promise<string> => {
+export const renderAssetCell = async (cellValue: IAVCellValue) => {
     let text = "";
     const assets = cellValue.mAsset || [];
     
@@ -189,7 +189,7 @@ export const renderAssetCell = async (cellValue: IAVCellValue): Promise<string> 
  * 辅助函数：渲染checkbox类型单元格
  * @同步豁免: UI构建
  */
-export const renderCheckboxCell = (cellValue: IAVCellValue, type: TAVView): string => {
+export const renderCheckboxCell = (cellValue: IAVCellValue, type: TAVView) => {
     const checked = cellValue.checkbox?.checked;
     let text = `<div class="fn__flex"><svg class="av__checkbox"><use xlink:href="#icon${checked ? "Check" : "Uncheck"}"></use></svg>`;
     
@@ -217,7 +217,7 @@ export const renderRollupCell = (
     type: TAVView,
     renderCell: (cellValue: IAVCellValue, rowIndex: number, showIcon: boolean, type: TAVView) => string,
     renderRollup: (cellValue: IAVCellValue, showIcon: boolean) => string
-): string => {
+) => {
     let text = "";
     let rollupType: string | undefined;
     const contents = cellValue.rollup?.contents || [];
@@ -254,7 +254,7 @@ export const renderRollupCell = (
  * 辅助函数：渲染relation类型单元格
  * @同步豁免: UI构建
  */
-export const renderRelationCell = (cellValue: IAVCellValue, showIcon: boolean): string => {
+export const renderRelationCell = (cellValue: IAVCellValue, showIcon: boolean) => {
     let text = "";
     const contents = cellValue.relation?.contents || [];
     const blockIDs = cellValue.relation?.blockIDs || [];
@@ -286,3 +286,6 @@ export const renderRelationCell = (cellValue: IAVCellValue, showIcon: boolean): 
     
     return text;
 };
+
+
+

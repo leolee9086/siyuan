@@ -1,4 +1,4 @@
-import { hasClosestByClassName } from "./hasClosest";
+import { hasClosestByClassName } from "../hasClosest";
 
 /**
  * 检查表格块是否处于非选中状态

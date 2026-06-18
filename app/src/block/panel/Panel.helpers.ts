@@ -1,13 +1,13 @@
-// 用途：查找最近的指定类名祖先元素；使用范围：查找父级浮窗和图标容器；解耦评估：DOM工具函数，已通过imports.ts转发
-import { hasClosestByClassName } from "../imports";
-// 用途：获取全局浮窗面板列表；使用范围：管理浮窗层级和清理；解耦评估：全局状态访问，已通过imports.ts转发
-import { getSiyuanBlockPanels } from "../imports";
-// 用途：切换浮窗固定状态；使用范围：双击图标区域时切换固定；解耦评估：状态切换逻辑已分离到Panel.actions模块
+/** 用途：查找最近指定类名的祖先元素。使用范围：浮窗层级定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByClassName } from "./imports";
+/** 用途：获取全局浮窗面板列表。使用范围：管理浮窗层级和清理。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanBlockPanels } from "./imports";
+/** 用途：切换浮窗固定状态。使用范围：双击图标区域时切换固定。解耦评估：同目录模块直接导入。 */
 import { 切换固定状态 } from "./actions";
-// 用途：执行图标点击操作；使用范围：处理浮窗工具栏图标点击事件；解耦评估：图标操作逻辑已分离到Panel.actions模块
+/** 用途：执行图标点击操作。使用范围：处理浮窗工具栏图标点击。解耦评估：同目录模块直接导入。 */
 import { 执行图标操作 } from "./actions";
-// 用途：App类型定义；使用范围：函数参数类型标注；解耦评估：核心类型定义，已通过imports.ts转发
-import type { App } from "../imports";
+/** 用途：App 应用实例类型。使用范围：函数参数类型标注。解耦评估：通过 ./imports 转发。 */
+import type { App } from "./imports";
 
 /**
  * 作用：初始化浮窗的层级关系和数据属性
@@ -20,7 +20,7 @@ export function 初始化层级(
     targetElement: HTMLElement | undefined,
     refDefs: IRefDefs[],
     清理回调: (level: number) => void
-): void {
+) {
     const parentElement = targetElement ? hasClosestByClassName(targetElement, "block__popover", true) : false;
     let level = 1;
     const firstRefDef = refDefs[0];
@@ -46,7 +46,7 @@ export function 初始化层级(
  * 调用时机：新浮窗初始化层级时调用
  * @同步豁免: UI构建 - 构造函数中需要立即同步清理浮窗
  */
-export function 清理同级浮窗(level: number): void {
+export function 清理同级浮窗(level: number) {
     const blockPanels = getSiyuanBlockPanels();
     for (let i = 0; i < blockPanels.length; i++) {
         const item = blockPanels[i];
@@ -69,7 +69,7 @@ export function 清理同级浮窗(level: number): void {
  * 调用时机：用户双击浮窗图标区域时触发
  * @同步豁免: 需要绝对同步的DOM访问 - 事件处理器必须同步响应用户交互
  */
-export function 处理双击事件(event: MouseEvent, element: HTMLElement): void {
+export function 处理双击事件(event: MouseEvent, element: HTMLElement) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
         return;
@@ -96,7 +96,7 @@ export function 处理图标点击(
     refDefs: IRefDefs[],
     app: App,
     onDestroy: () => void
-): void {
+) {
     const eventTarget = event.target;
     if (!(eventTarget instanceof HTMLElement)) {
         return;

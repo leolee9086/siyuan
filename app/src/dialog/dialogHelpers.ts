@@ -4,12 +4,8 @@
 // 本文件作为统一的导出点，从各个子模块重新导出所有函数
 // 同时保留全屏相关的函数实现
 
-import { 更新全屏按钮状态 as 内部更新全屏按钮状态 } from "./dialogHelpers.html";
-
-// 从子模块重新导出所有函数
-export * from "./dialogHelpers.events";
-export * from "./dialogHelpers.html";
-export * from "./dialogHelpers.lifecycle";
+/** 用途：全屏按钮状态更新函数。使用范围：对话框全屏模式切换。解耦评估：同目录模块直接导入。 */
+import { 更新全屏按钮状态 } from "./dialogHelpers.html";
 
 // ============================================================
 // 全屏模式控制函数（本地实现）
@@ -24,9 +20,10 @@ export * from "./dialogHelpers.lifecycle";
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 设置ResizeHandles显示状态(container: Element, visible: boolean): void {
+export async function 设置ResizeHandles显示状态(container: Element, visible: boolean) {
     const resizeHandles = container.querySelectorAll("[class^='resize__']");
     for (const handle of resizeHandles) {
+        // 仅在 HTMLElement 上设置样式，避免 querySelectorAll 返回的通用 Element 类型问题
         if (handle instanceof HTMLElement) {
             handle.style.display = visible ? "" : "none";
         }
@@ -42,11 +39,11 @@ export function 设置ResizeHandles显示状态(container: Element, visible: boo
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 退出全屏模式(
+export async function 退出全屏模式(
     container: HTMLElement,
     dialogElement: HTMLElement,
     originalSize: { width: string; height: string; left: string; top: string }
-): void {
+) {
     Object.assign(container.style, {
         width: originalSize.width,
         height: originalSize.height,
@@ -60,7 +57,7 @@ export function 退出全屏模式(
 
     dialogElement.classList.remove("b3-dialog--fullscreen");
     设置ResizeHandles显示状态(container, true);
-    内部更新全屏按钮状态(dialogElement, false);
+    更新全屏按钮状态(dialogElement, false);
 }
 
 /**
@@ -72,7 +69,7 @@ export function 退出全屏模式(
  * @已知问题: 无
  * @改进方向: 无
  */
-export function 进入全屏模式(container: HTMLElement, dialogElement: HTMLElement): void {
+export async function 进入全屏模式(container: HTMLElement, dialogElement: HTMLElement) {
     Object.assign(container.style, {
         width: "100vw",
         height: "100vh",
@@ -85,6 +82,5 @@ export function 进入全屏模式(container: HTMLElement, dialogElement: HTMLEl
 
     dialogElement.classList.add("b3-dialog--fullscreen");
     设置ResizeHandles显示状态(container, false);
-    内部更新全屏按钮状态(dialogElement, true);
+    更新全屏按钮状态(dialogElement, true);
 }
-

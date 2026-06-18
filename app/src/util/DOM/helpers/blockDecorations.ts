@@ -4,7 +4,7 @@
  * 问题/改进：当前仍依赖内联样式，后续如有统一遮罩组件可进一步收敛。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const createBlockMask = (blockElement: Element, color: string): HTMLElement => {
+export const createBlockMask = (blockElement: Element, color: string) => {
     const maskElement = document.createElement("div");
     maskElement.className = "protyle-custom ai-chat-mask";
     maskElement.style.position = "absolute";
@@ -26,7 +26,7 @@ export const createBlockMask = (blockElement: Element, color: string): HTMLEleme
  * 问题/改进：当前通过数组顺序区分主遮罩与附属遮罩，如后续需要更多元信息可改成对象结构。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const createBlockMasks = (mainElement: Element, selectedElements: Element[], color: string): HTMLElement[] => {
+export const createBlockMasks = (mainElement: Element, selectedElements: Element[], color: string) => {
     const maskElements = [createBlockMask(mainElement, color)];
     for (const selectedElement of selectedElements) {
         const isMainElement = selectedElement === mainElement;

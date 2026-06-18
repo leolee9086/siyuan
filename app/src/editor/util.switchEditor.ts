@@ -1,77 +1,139 @@
-import { Editor } from ".";
-import { Constants } from "../constants";
-import { zoomOut } from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
-import { preventScroll } from "../protyle/scroll/preventScroll";
-import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
-import { onGet } from "../protyle/util/onGet";
-import { focusBlock, focusByRange } from "../protyle/util/selection";
-
-import { pushBack } from "../util/platform/backForward";
-import { fetchPost } from "../util/network/fetch";
-import { highlightById, scrollCenter } from "../util/DOM/highlightById";
+/** 用途：编辑器实例类型。使用范围：switchEditor 参数类型标注。解耦评估：同目录直接导入。 */
+import { Editor } from "./index";
+/** 用途：系统常量。使用范围：CB_GET_CONTEXT 等常量。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：编辑器缩放功能。使用范围：切换编辑器时放大块。解耦评估：通过 ./imports 转发。 */
+import { zoomOut } from "./imports";
+/** 用途：阻止滚动。使用范围：定位内容时防止滚动偏移。解耦评估：通过 ./imports 转发。 */
+import { preventScroll } from "./imports";
+/** 用途：嵌入块判断。使用范围：查找块时排除嵌入块。解耦评估：通过 ./imports 转发。 */
+import { isInEmbedBlock } from "./imports";
+/** 用途：查找最近块元素。使用范围：定位编辑器选区。解耦评估：通过 ./imports 转发。 */
+import { hasClosestBlock } from "./imports";
+/** 用途：编辑器内容加载后处理。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
+import { onGet } from "./imports";
+/** 用途：块元素聚焦。使用范围：定位到指定块。解耦评估：通过 ./imports 转发。 */
+import { focusBlock } from "./imports";
+/** 用途：选区聚焦。使用范围：还原编辑器选区。解耦评估：通过 ./imports 转发。 */
+import { focusByRange } from "./imports";
+/** 用途：后退栈记录。使用范围：切换编辑器时记录位置。解耦评估：通过 ./imports 转发。 */
+import { pushBack } from "./imports";
+/** 用途：网络请求。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
+import { fetchPost } from "./imports";
+/** 用途：代码高亮。使用范围：定位到指定代码块。解耦评估：通过 ./imports 转发。 */
+import { highlightById } from "./imports";
+/** 用途：滚动居中。使用范围：使定位块居中显示。解耦评估：通过 ./imports 转发。 */
+import { scrollCenter } from "./imports";
+/** 用途：获取 SiYuan 配置。使用范围：读取动态加载块配置。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanConfig } from "./imports";
+/** 用途：更新反链关系图。使用范围：动态加载后刷新反链面板。解耦评估：同目录模块直接导入。 */
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 
-export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {
+/**
+ * 在编辑器子元素中查找目标块节点（排除嵌入块）
+ */
+function findTargetNode(wysiwyg: Element, targetId: string) {
+    const items = wysiwyg.querySelectorAll(`[data-node-id="${targetId}"]`);
+    for (const item of items) {
+        if (!isInEmbedBlock(item)) {
+            return item;
+        }
+    }
+    return undefined;
+}
+
+/**
+ * 加载块内容后的处理
+ */
+function handleGetResponse(getResponse: IWebSocketData, editor: Editor, options: IOpenFileOptions, allModels: IModels) {
+    onGet({ data: getResponse, protyle: editor.editor.protyle, action: options.action });
+    updateBacklinkGraph(allModels, editor.editor.protyle);
+}
+
+/**
+ * 设置滚动位置观察器，在元素位置变化时重新居中
+ */
+function setupScrollObserver(editor: Editor, nodeElement: Element) {
+    editor.editor.protyle.observerLoad = new ResizeObserver(() => {
+        // 元素仍在文档中时重新居中定位
+        if (document.contains(nodeElement)) {
+            scrollCenter(editor.editor.protyle, nodeElement, true);
+        }
+    });
+    // 3 秒后自动断开观察器，避免持续监听导致性能问题
+    setTimeout(() => {
+        editor.editor.protyle.observerLoad.disconnect();
+    }, 1000 * 3);
+    editor.editor.protyle.observerLoad.observe(editor.editor.protyle.wysiwyg.element);
+}
+
+/**
+ * 处理获取焦点操作（高亮或聚焦）
+ */
+function handleFocusAction(nodeElement: Element | undefined, editor: Editor, options: IOpenFileOptions) {
+    // 高亮模式：使用 highlightById 定位代码块
+    if (options.action?.includes(Constants.CB_GET_HL)) {
+        highlightById(editor.editor.protyle, options.id, true);
+        return;
+    }
+
+    // 聚焦模式且有目标元素：聚焦到指定块并设置滚动观察器
+    if (options.action?.includes(Constants.CB_GET_FOCUS) && nodeElement) {
+        const showOutline = options.action?.includes(Constants.CB_GET_OUTLINE) ? false : true;
+        const newRange = focusBlock(nodeElement, undefined, showOutline);
+        editor.editor.protyle.toolbar.range = newRange ?? editor.editor.protyle.toolbar.range;
+        scrollCenter(editor.editor.protyle, nodeElement, true);
+        setupScrollObserver(editor, nodeElement);
+        return;
+    }
+
+    // 聚焦模式且无 nodeElement 但有选区：从选区起始容器定位
+    if (options.action?.includes(Constants.CB_GET_FOCUS) && editor.editor.protyle.toolbar.range) {
+        const range = editor.editor.protyle.toolbar.range;
+        const closestBlock = hasClosestBlock(range.startContainer);
+        focusByRange(range);
+        scrollCenter(editor.editor.protyle, closestBlock);
+    }
+}
+
+/**
+ * 切换编辑器焦点
+ */
+export const switchEditor = async (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {
+    // keepCursor 模式：标记光标位置后直接返回
     if (options.keepCursor) {
         editor.parent.headElement.setAttribute("keep-cursor", options.id);
         return true;
     }
+
     editor.parent.parent.switchTab(editor.parent.headElement);
     editor.parent.parent.showHeading();
+
+    // zoomIn 模式：放大块后直接返回
     if (options.zoomIn) {
         zoomOut({ protyle: editor.editor.protyle, id: options.id });
         return true;
     }
-    let nodeElement: Element;
-    Array.from(editor.editor.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${options.id}"]`)).find(item => {
-        if (!isInEmbedBlock(item)) {
-            nodeElement = item;
-            return true;
-        }
-    });
-    if ((!nodeElement || nodeElement?.clientHeight === 0) && options.id !== options.rootID) {
-        fetchPost("/api/filetree/getDoc", {
-            id: options.id,
-            mode: (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0,
-            size: window.siyuan.config.editor.dynamicLoadBlocks,
-        }, getResponse => {
-            onGet({ data: getResponse, protyle: editor.editor.protyle, action: options.action });
-            // 大纲点击折叠标题下的内容时，需更新反链面板
-            updateBacklinkGraph(allModels, editor.editor.protyle);
-        });
-    } else {
-        // 点击大纲产生滚动时会动态加载内容，最终导致定位不准确
-        preventScroll(editor.editor.protyle);
-        editor.editor.protyle.observerLoad?.disconnect();
-        if (options.action?.includes(Constants.CB_GET_HL)) {
-            highlightById(editor.editor.protyle, options.id, true);
-        } else if (options.action?.includes(Constants.CB_GET_FOCUS)) {
-            if (nodeElement) {
-                const newRange = focusBlock(nodeElement, undefined, options.action?.includes(Constants.CB_GET_OUTLINE) ? false : true);
-                if (newRange) {
-                    editor.editor.protyle.toolbar.range = newRange;
-                }
-                scrollCenter(editor.editor.protyle, nodeElement, true);
-                editor.editor.protyle.observerLoad = new ResizeObserver(() => {
-                    if (document.contains(nodeElement)) {
-                        scrollCenter(editor.editor.protyle, nodeElement, true);
-                    }
-                });
-                setTimeout(() => {
-                    editor.editor.protyle.observerLoad.disconnect();
-                }, 1000 * 3);
-                editor.editor.protyle.observerLoad.observe(editor.editor.protyle.wysiwyg.element);
-            } else if (editor.editor.protyle.block.rootID === options.id) {
-                // 由于 https://github.com/siyuan-note/siyuan/issues/5420，移除定位
-            } else if (editor.editor.protyle.toolbar.range) {
-                nodeElement = hasClosestBlock(editor.editor.protyle.toolbar.range.startContainer) as Element;
-                focusByRange(editor.editor.protyle.toolbar.range);
-                if (nodeElement) {
-                    scrollCenter(editor.editor.protyle, nodeElement);
-                }
-            }
-        }
-        pushBack(editor.editor.protyle, editor.editor.protyle.toolbar.range);
-    }
-};
 
+    const wysiwyg = editor.editor.protyle.wysiwyg.element;
+    const nodeElement = findTargetNode(wysiwyg, options.id);
+    const needsLoad = !nodeElement || nodeElement?.clientHeight === 0;
+
+    // 块内容未加载则动态获取，否则直接定位
+    if (needsLoad && options.id !== options.rootID) {
+        const mode = (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0;
+        const size = getSiyuanConfig().editor.dynamicLoadBlocks;
+        fetchPost("/api/filetree/getDoc", { id: options.id, mode, size }, (getResponse) => {
+            handleGetResponse(getResponse, editor, options, allModels);
+        });
+        return;
+    }
+
+    // 块已加载，直接定位
+    preventScroll(editor.editor.protyle);
+    editor.editor.protyle.observerLoad?.disconnect();
+
+    handleFocusAction(nodeElement, editor, options);
+
+    pushBack(editor.editor.protyle, editor.editor.protyle.toolbar.range);
+};

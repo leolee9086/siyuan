@@ -39,7 +39,7 @@ import { setSForgeState } from "./imports";
  * 获取当前 popover 目标元素
  * @同步豁免: 遗留代码 - 此函数在事件处理链中被同步调用，需要即时返回 DOM 元素状态
  */
-export const getPopoverTargetElement = (): HTMLElement | undefined => {
+export const getPopoverTargetElement = () => {
     const state = getSForgeState(SForgeSymbols.POPOVER_TARGET_ELEMENT);
     // 类型守卫：确保返回值是 HTMLElement 或 undefined
     return state instanceof HTMLElement ? state : undefined;
@@ -55,7 +55,7 @@ export const getPopoverTargetElement = (): HTMLElement | undefined => {
  * 统一 hidePopover 和 getTarget 中的重复查找逻辑
  * @同步豁免: 需要绝对同步的DOM访问 - 在事件处理链中遍历 DOM 树查找目标元素，必须同步返回结果
  */
-export const findBlockRefTarget = (target: HTMLElement): HTMLElement | undefined => {
+export const findBlockRefTarget = (target: HTMLElement) => {
     let element = hasClosestByAttribute(target, "data-type", "block-ref") ||
         hasClosestByAttribute(target, "data-type", "virtual-block-ref");
 
@@ -74,7 +74,7 @@ export const findBlockRefTarget = (target: HTMLElement): HTMLElement | undefined
  * 查找链接目标元素
  * @同步豁免: 需要绝对同步的DOM访问 - 在事件处理链中查找链接元素，必须同步返回结果
  */
-export const findLinkTarget = (target: HTMLElement): HTMLElement | undefined => {
+export const findLinkTarget = (target: HTMLElement) => {
     const linkElement = hasClosestByAttribute(target, "data-type", "a", true);
     if (linkElement && linkElement.getAttribute("data-href")?.startsWith("siyuan://blocks")) {
         return linkElement;
@@ -86,7 +86,7 @@ export const findLinkTarget = (target: HTMLElement): HTMLElement | undefined => 
  * 从传递的 aElement 中查找目标
  * @同步豁免: 需要绝对同步的DOM访问 - 在事件处理链中检查元素属性，必须同步返回结果
  */
-export const findTargetFromPropagatedLink = (aElement: HTMLElement): HTMLElement | undefined => {
+export const findTargetFromPropagatedLink = (aElement: HTMLElement) => {
     if (aElement.getAttribute("data-href")?.startsWith("siyuan://blocks") && aElement.getAttribute("prevent-popover") !== "true") {
         return aElement;
     }
@@ -104,7 +104,7 @@ export const findTargetFromPropagatedLink = (aElement: HTMLElement): HTMLElement
  * 检查目标元素是否为特殊元素（不应处理 popover）
  * @同步豁免: 类型守卫 - 检查元素属性判断是否为特殊元素，必须同步返回布尔值
  */
-export const isSpecialElement = (target: HTMLElement): boolean => {
+export const isSpecialElement = (target: HTMLElement) => {
     return (target.id && target.tagName !== "svg" && (
         target.id.startsWith("minder_node") ||
         target.id.startsWith("kity_") ||
@@ -118,7 +118,7 @@ export const isSpecialElement = (target: HTMLElement): boolean => {
  * 检查是否有阻止 popover 销毁的 AV 面板
  * @同步豁免: 需要绝对同步的DOM访问 - 在事件处理链中检查 AV 面板层级，必须同步返回结果
  */
-export const hasBlockingAVPanel = (target: HTMLElement): boolean => {
+export const hasBlockingAVPanel = (target: HTMLElement) => {
     const avPanelElement = hasClosestByClassName(target, "av__panel") || hasClosestByClassName(target, "av__mask");
     if (avPanelElement) {
         const blockPanel = getSiyuanBlockPanels().find((item) => {
@@ -135,7 +135,7 @@ export const hasBlockingAVPanel = (target: HTMLElement): boolean => {
  * 检查是否有阻止 popover 销毁的菜单
  * @同步豁免: 需要绝对同步的DOM访问 - 在事件处理链中检查菜单层级，必须同步返回结果
  */
-export const hasBlockingMenu = (target: HTMLElement): boolean => {
+export const hasBlockingMenu = (target: HTMLElement) => {
     const menuElement = hasClosestByClassName(target, "b3-menu");
     // 当存在菜单元素且不是文档树更多菜单时，检查是否有 BlockPanel 被该菜单遮挡
     // 文档树更多菜单(MENU_DOC_TREE_MORE)不应阻止 popover 销毁
@@ -153,7 +153,7 @@ export const hasBlockingMenu = (target: HTMLElement): boolean => {
 /**
  * 检查是否选中了文本且选区在目标元素内
  */
-const hasSelectionInTarget = (target: HTMLElement): boolean => {
+const hasSelectionInTarget = (target: HTMLElement) => {
     const selection = getSelection();
     if (!selection || selection.rangeCount === 0) {
         return false;
@@ -169,7 +169,7 @@ const hasSelectionInTarget = (target: HTMLElement): boolean => {
 /**
  * 获取最大编辑层级映射
  */
-const getMaxEditLevels = (): Record<string, number> => {
+const getMaxEditLevels = () => {
     const maxEditLevels: Record<string, number> = { oid: 0 };
     for (const item of getSiyuanBlockPanels()) {
         if (!item.element) {
@@ -193,7 +193,7 @@ const getMaxEditLevels = (): Record<string, number> => {
 /**
  * 检查 BlockPanel 是否有打开的工具栏
  */
-const hasOpenToolbar = (item: BlockPanel): boolean => {
+const hasOpenToolbar = (item: BlockPanel) => {
     return !!item.editors.find(editItem => {
         if (editItem.protyle?.toolbar?.subElement && !editItem.protyle.toolbar.subElement.classList.contains("fn__none")) {
             return true;
@@ -208,7 +208,7 @@ const cleanupBlockPanelsWithBlock = (
     blockElement: HTMLElement,
     maxEditLevels: Record<string, number>,
     menuLevel: number
-): void => {
+) => {
     const blockLevel = parseInt(blockElement.getAttribute("data-level") || "0");
 
     for (let i = getSiyuanBlockPanels().length - 1; i >= 0; i--) {
@@ -242,7 +242,7 @@ const cleanupBlockPanelsWithBlock = (
 const cleanupAllUnpinnedBlockPanels = (
     targetElement: HTMLElement,
     menuLevel: number
-): void => {
+) => {
     for (let i = getSiyuanBlockPanels().length - 1; i >= 0; i--) {
         const item = getSiyuanBlockPanels()[i];
         if (!item?.element) {
@@ -273,7 +273,7 @@ const cleanupAllUnpinnedBlockPanels = (
 /**
  * 清理 Popover 相关的 BlockPanel
  */
-const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLElement[] }): void => {
+const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLElement[] }) => {
     // 移动到弹窗的 loading 元素上，但经过 settimeout 后 loading 已经被移除了
     // https://ld246.com/article/1673596577519/comment/1673767749885#comments
     let targetElement = target;
@@ -307,7 +307,7 @@ const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLE
  * @returns 是否应该继续处理
  * @同步豁免: 遗留代码 - 此函数在 mousemove 事件处理链中被同步调用，需要即时处理 DOM 状态
  */
-export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boolean => {
+export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }) => {
     // pad 端点击后 event.target 不会更新
     const target = isTouchDevice() ? document.elementFromPoint(event.clientX, event.clientY) : event.target;
     if (!isHTMLElement(target)) {
@@ -344,7 +344,7 @@ export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boole
  * @returns 是否找到有效目标
  * @同步豁免: 遗留代码 - 此函数在 mouseover 事件处理链中被同步调用，修改为异步会影响整个事件处理流程
  */
-export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement: false | HTMLElement): boolean => {
+export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement: false | HTMLElement) => {
     // 浮窗模式为2时禁用，或者在历史仓库中时不处理
     if (getSiyuanConfig().editor.floatWindowMode === 2 || hasClosestByClassName(event.target, "history__repo", true)) {
         return false;
@@ -377,3 +377,4 @@ export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement:
 
     return true;
 };
+

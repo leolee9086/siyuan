@@ -20,10 +20,12 @@ export const CSS_CLASSES = {
  * @param className CSS类名
  * @returns CSS选择器
  */
-export const createSelector = (className: string): string => {
+export const createSelector = async (className: string) => {
     return `.${className}`;
 };
 
 
+/** AI 工具等待状态的 CSS 类名 */
 export const JAVASCRIPT_TOOLS_WAIT_CLASS = "javascript-tools-wait";
+/** AI 工具面板的 CSS 类名 */
 export const JAVASCRIPT_TOOLS_CLASS = "javascript-tools";

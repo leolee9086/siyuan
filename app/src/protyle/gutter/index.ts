@@ -1704,7 +1704,7 @@ export class Gutter {
         }).element);
     }
 
-    private genCopyTextRef(selectsElement: Element[]): false | IMenu {
+    private genCopyTextRef(selectsElement: Element[]) {
         if (isNotEditBlock(selectsElement[0])) {
             return false;
         }

@@ -1,18 +1,25 @@
-import { z } from "zod";
-import {
-    EventEmitterOptions,
-    IEventDefines,
-    EventData,
-    EventDataWithMeta,
-    EventListener,
-    EventUnsubscribe,
-} from "./eventEmitter.types";
-import {
-    compileEventSchemas,
-    processEventDataImpl,
-    executeListenerSync,
-    executeListenerAsync,
-} from "./eventEmitter.utils";
+/** 用途：Zod 运行时校验库。使用范围：eventEmitter 事件数据校验。解耦评估：通过 imports.ts 转发。 */
+import { z } from "./imports";
+/** 用途：事件发射器选项类型。使用范围：eventEmitter 类型约束。解耦评估：同目录类型文件。 */
+import type { EventEmitterOptions } from "./eventEmitter.types";
+/** 用途：事件定义映射类型。使用范围：eventEmitter 泛型约束。解耦评估：同目录类型文件。 */
+import type { IEventDefines } from "./eventEmitter.types";
+/** 用途：事件数据类型。使用范围：eventEmitter 方法签名。解耦评估：同目录类型文件。 */
+import type { EventData } from "./eventEmitter.types";
+/** 用途：带元数据的事件数据类型。使用范围：eventEmitter 方法签名。解耦评估：同目录类型文件。 */
+import type { EventDataWithMeta } from "./eventEmitter.types";
+/** 用途：事件监听器类型。使用范围：eventEmitter 方法签名。解耦评估：同目录类型文件。 */
+import type { EventListener } from "./eventEmitter.types";
+/** 用途：事件退订函数类型。使用范围：eventEmitter 方法签名。解耦评估：同目录类型文件。 */
+import type { EventUnsubscribe } from "./eventEmitter.types";
+/** 用途：事件模式编译工具。使用范围：eventEmitter 初始化。解耦评估：同目录工具模块。 */
+import { compileEventSchemas } from "./eventEmitter.utils";
+/** 用途：事件数据处理工具。使用范围：eventEmitter 数据校验。解耦评估：同目录工具模块。 */
+import { processEventDataImpl } from "./eventEmitter.utils";
+/** 用途：同步监听器执行工具。使用范围：eventEmitter 事件触发。解耦评估：同目录工具模块。 */
+import { executeListenerSync } from "./eventEmitter.utils";
+/** 用途：异步监听器执行工具。使用范围：eventEmitter 事件触发。解耦评估：同目录工具模块。 */
+import { executeListenerAsync } from "./eventEmitter.utils";
 
 const eventMetaSchema = z.object({
     eventId: z.string().min(1),
@@ -34,7 +41,7 @@ function createValidationErrorHandler(validationFailure: "throw" | "warn" | "sil
 }
 
 /** 校验事件元字段。 */
-function assertEventMeta(event: string, data: unknown): void {
+function assertEventMeta(event: string, data: unknown) {
     const result = eventMetaSchema.safeParse(data);
     if (!result.success) {
         throw new Error(`Event meta validation failed for "${event}": ${result.error.message}`);
@@ -52,7 +59,7 @@ function registerListener<T extends IEventDefines, K extends keyof T>(
     event: K,
     listener: EventListener<T, K>,
     isOnce: boolean,
-): void {
+) {
     // 首次监听某事件时初始化该事件的监听器列表。
     if (!events[event]) {
         events[event] = [];
@@ -94,13 +101,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 注册监听器（持久）。 */
-    on<K extends keyof T>(event: K, listener: EventListener<T, K>): this {
+    on<K extends keyof T>(event: K, listener: EventListener<T, K>) {
         registerListener(this.events, event, listener, false);
         return this;
     }
 
     /** 订阅并返回取消订阅函数。 */
-    subscribe<K extends keyof T>(event: K, listener: EventListener<T, K>): EventUnsubscribe {
+    subscribe<K extends keyof T>(event: K, listener: EventListener<T, K>) {
         this.on(event, listener);
         return () => {
             this.off(event, listener);
@@ -108,13 +115,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 注册监听器（一次性）。 */
-    once<K extends keyof T>(event: K, listener: EventListener<T, K>): this {
+    once<K extends keyof T>(event: K, listener: EventListener<T, K>) {
         registerListener(this.events, event, listener, true);
         return this;
     }
 
     /** 一次性订阅并返回取消订阅函数。 */
-    subscribeOnce<K extends keyof T>(event: K, listener: EventListener<T, K>): EventUnsubscribe {
+    subscribeOnce<K extends keyof T>(event: K, listener: EventListener<T, K>) {
         this.once(event, listener);
         return () => {
             this.off(event, listener);
@@ -122,7 +129,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 同步触发事件。 */
-    emit<K extends keyof T>(event: K, data: EventData<T, K>): boolean {
+    emit<K extends keyof T>(event: K, data: EventData<T, K>) {
         const listeners = this.events[event];
         if (!listeners || listeners.length === 0) {
             return false;
@@ -147,13 +154,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 同步触发带 eventId/seq 元字段约束事件。 */
-    emitWithMeta<K extends keyof T>(event: K, data: EventDataWithMeta<T, K>): boolean {
+    emitWithMeta<K extends keyof T>(event: K, data: EventDataWithMeta<T, K>) {
         assertEventMeta(String(event), data);
         return this.emit(event, data);
     }
 
     /** 异步触发事件。 */
-    async emitAsync<K extends keyof T>(event: K, data: EventData<T, K>): Promise<boolean> {
+    async emitAsync<K extends keyof T>(event: K, data: EventData<T, K>) {
         const listeners = this.events[event];
         if (!listeners || listeners.length === 0) {
             return false;
@@ -178,13 +185,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 异步触发带 eventId/seq 元字段约束事件。 */
-    async emitAsyncWithMeta<K extends keyof T>(event: K, data: EventDataWithMeta<T, K>): Promise<boolean> {
+    async emitAsyncWithMeta<K extends keyof T>(event: K, data: EventDataWithMeta<T, K>) {
         assertEventMeta(String(event), data);
         return this.emitAsync(event, data);
     }
 
     /** 移除监听器。 */
-    off<K extends keyof T>(event: K, listener: EventListener<T, K>): this {
+    off<K extends keyof T>(event: K, listener: EventListener<T, K>) {
         const listeners = this.events[event];
         if (!listeners) {
             return this;
@@ -199,7 +206,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 更新运行时选项。 */
-    setOptions(newOptions: Partial<EventEmitterOptions>): this {
+    setOptions(newOptions: Partial<EventEmitterOptions>) {
         const currentValidationFailure = this.options.validationFailure;
         this.options = {
             ...this.options,
@@ -225,19 +232,19 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 启用运行时校验。 */
-    enableRuntimeCheck(): this {
+    enableRuntimeCheck() {
         this.options.runtimeCheck = true;
         return this;
     }
 
     /** 禁用运行时校验。 */
-    disableRuntimeCheck(): this {
+    disableRuntimeCheck() {
         this.options.runtimeCheck = false;
         return this;
     }
 
     /** 移除指定事件或全部监听器。 */
-    removeAllListeners<K extends keyof T>(event?: K): this {
+    removeAllListeners<K extends keyof T>(event?: K) {
         if (event) {
             delete this.events[event];
             return this;
@@ -247,13 +254,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 获取事件监听器数量。 */
-    listenerCount<K extends keyof T>(event: K): number {
+    listenerCount<K extends keyof T>(event: K) {
         const listeners = this.events[event];
         return listeners ? listeners.length : 0;
     }
 
     /** 返回当前有监听器的事件名列表。 */
-    eventNames(): (keyof T)[] {
+    eventNames() {
         const result: (keyof T)[] = [];
         for (const key in this.events) {
             const listeners = this.events[key];
@@ -266,7 +273,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
     }
 
     /** 获取事件对应 schema。 */
-    getEventSchema<K extends keyof T>(event: K): z.ZodObject<z.ZodRawShape> | undefined {
+    getEventSchema<K extends keyof T>(event: K) {
         return this.schemas.get(event);
     }
 }

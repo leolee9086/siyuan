@@ -48,7 +48,7 @@ const 执行剪切引用 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     writeText(protyle.lute.BlockDOM2StdMd(refElement.outerHTML));
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
@@ -73,7 +73,7 @@ const 执行删除引用 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -91,7 +91,7 @@ const 执行删除引用 = (
  * 调用时机：基础菜单项构建完成后。
  * 问题/改进：后续可增加扩展执行耗时监控。
  */
-const 触发引用插件菜单 = (protyle: IProtyle, refElement: HTMLElement): void => {
+const 触发引用插件菜单 = (protyle: IProtyle, refElement: HTMLElement) => {
     // 仅存在插件系统时触发扩展，避免无意义事件分发。
     if (!protyle?.app?.plugins) {
         return;
@@ -113,7 +113,7 @@ const 触发引用插件菜单 = (protyle: IProtyle, refElement: HTMLElement): v
  * 调用时机：菜单项构建完成后。
  * 问题/改进：桌面端偏移值 26 为历史常量，后续可提取配置。
  */
-const 展示引用菜单 = (refElement: HTMLElement): void => {
+const 展示引用菜单 = (refElement: HTMLElement) => {
     if (isMobile) {
         getSiyuanGlobalMenus().menu.fullscreen();
         return;
@@ -132,7 +132,7 @@ const 展示引用菜单 = (refElement: HTMLElement): void => {
  * 调用时机：copy 菜单项点击时。
  * 问题/改进：后续如需统一 copy/cut 的序列化格式，可与剪切逻辑继续收敛。
  */
-const 执行复制引用 = (protyle: IProtyle, refElement: HTMLElement): void => {
+const 执行复制引用 = (protyle: IProtyle, refElement: HTMLElement) => {
     const blockMarkdown = protyle.lute.BlockDOM2StdMd(refElement.outerHTML);
     const normalizedMarkdown = blockMarkdown.trim();
     writeText(normalizedMarkdown);
@@ -150,7 +150,7 @@ const 追加基础编辑菜单项 = (
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string },
     refElement: HTMLElement
-): void => {
+) => {
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,

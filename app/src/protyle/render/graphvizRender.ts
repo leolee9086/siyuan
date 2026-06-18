@@ -1,7 +1,11 @@
-import {addScript} from "../util/addScript";
-import {Constants} from "../../constants";
-import {genIconHTML} from "./util";
-import {hasClosestByClassName} from "../util/hasClosest";
+/** 用途：动态添加脚本到页面。使用范围：graphvizRender 加载 Viz.js。解耦评估：通过 imports.ts 转发。 */
+import { addScript } from "./imports";
+/** 用途：应用常量。使用范围：graphvizRender 配置项。解耦评估：通过 imports.ts 转发。 */
+import { Constants } from "./imports";
+/** 用途：图标 HTML 生成。使用范围：graphvizRender 渲染状态图标。解耦评估：同目录工具模块。 */
+import { genIconHTML } from "./util";
+/** 用途：DOM 类型守卫。使用范围：graphvizRender 查找最近块元素。解耦评估：通过 imports.ts 转发。 */
+import { hasClosestByClassName } from "./imports";
 
 /**
  * 收集需要渲染的 Graphviz 元素
@@ -11,7 +15,7 @@ import {hasClosestByClassName} from "../util/hasClosest";
  * 调用时机：graphvizRender 入口处调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function collectGraphvizElements(element: Element): Element[] {
+function collectGraphvizElements(element: Element) {
     // 当元素本身就是 graphviz 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "graphviz") {
         return element.getAttribute("data-render") === "true" ? [] : [element];
@@ -26,7 +30,7 @@ function collectGraphvizElements(element: Element): Element[] {
  * 意图：将异步的 Viz 渲染逻辑封装为独立函数，便于错误处理和可读性
  * 调用时机：renderSingleGraphvizElement 中确认有 data-content 后调用
  */
-const renderGraphvizSvg = async (renderElement: HTMLElement, dataContent: string): Promise<void> => {
+const renderGraphvizSvg = async (renderElement: HTMLElement, dataContent: string) => {
     try {
         const viz = await Viz.instance();
         const svgElement = viz.renderSVGElement(Lute.UnEscapeHTMLStr(dataContent));
@@ -46,7 +50,7 @@ const renderGraphvizSvg = async (renderElement: HTMLElement, dataContent: string
 const renderSingleGraphvizElement = async (
     element: Element,
     wysiwygElement: HTMLElement | false
-): Promise<void> => {
+) => {
     // 已渲染的元素跳过，避免重复渲染
     if (element.getAttribute("data-render") === "true") {
         return;

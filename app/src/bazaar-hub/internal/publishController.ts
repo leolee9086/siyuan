@@ -65,7 +65,7 @@ import { readPublishEnabled } from "./publishForm";
 import { readSourceFormPayload } from "./publishForm";
 
 /** 用途：错误对象转字符串。意图：统一 catch 分支消息。调用时机：所有异步动作异常分支。问题/改进：后续可扩展错误码映射。 */
-const toErrorMessage = (error: unknown, fallback: string): string => {
+const toErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
         return error.message;
     }
@@ -73,7 +73,7 @@ const toErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 /** 用途：读取 sourceID。意图：统一 data-source-id 提取。调用时机：源相关动作。问题/改进：依赖 data-source-id 属性。 */
-const readSourceID = (event: Event): string => {
+const readSourceID = (event: Event) => {
     if (!isHTMLElement(event.target)) {
         return "";
     }
@@ -85,7 +85,7 @@ const readSourceID = (event: Event): string => {
 };
 
 /** 用途：按 ID 查找源配置。意图：避免重复遍历 sources。调用时机：编辑/测试/打开源动作。问题/改进：当前线性查找。 */
-const findSourceByID = (bundle: IBazaarWorkspaceBundle | null, sourceID: string): Config.IBazaarSource | null => {
+const findSourceByID = (bundle: IBazaarWorkspaceBundle | null, sourceID: string) => {
     if (!bundle) {
         return null;
     }
@@ -93,7 +93,7 @@ const findSourceByID = (bundle: IBazaarWorkspaceBundle | null, sourceID: string)
 };
 
 /** 用途：全量加载 publish 数据。意图：统一刷新 bundle 与 stats。调用时机：初始化和关键动作后。问题/改进：当前为全量刷新。 */
-const loadAll = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): Promise<void> => {
+const loadAll = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     renderLoading(container);
     try {
         const [bundle, stats] = await Promise.all([
@@ -110,7 +110,7 @@ const loadAll = async (container: HTMLElement, state: { bundle: IBazaarWorkspace
 };
 
 /** 用途：保存配置动作。意图：封装保存并刷新流程。调用时机：save-config。问题/改进：保存后当前走全量刷新。 */
-const handleSaveConfig = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): Promise<void> => {
+const handleSaveConfig = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     const saved = await syncPublishConfigFromForm(container, state, true, showMessage);
     if (!saved) {
         return;
@@ -119,7 +119,7 @@ const handleSaveConfig = async (container: HTMLElement, state: { bundle: IBazaar
 };
 
 /** 用途：保存源动作。意图：封装表单读取、保存、提示和刷新。调用时机：save-source。问题/改进：URL 合法性依赖后端校验。 */
-const handleSaveSource = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): Promise<void> => {
+const handleSaveSource = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     const payload = readSourceFormPayload(container);
     if (!payload) {
         return;
@@ -131,7 +131,7 @@ const handleSaveSource = async (container: HTMLElement, state: { bundle: IBazaar
 };
 
 /** 用途：测试源动作。意图：封装查找源与测试接口调用。调用时机：test-source。问题/改进：当前仅展示包数量。 */
-const handleTestSource = async (bundle: IBazaarWorkspaceBundle | null, event: Event): Promise<void> => {
+const handleTestSource = async (bundle: IBazaarWorkspaceBundle | null, event: Event) => {
     const sourceID = readSourceID(event);
     const source = findSourceByID(bundle, sourceID);
     if (!source) {
@@ -142,7 +142,7 @@ const handleTestSource = async (bundle: IBazaarWorkspaceBundle | null, event: Ev
 };
 
 /** 用途：打开源 Tab 动作。意图：封装 openInTab 校验和打开参数构造。调用时机：open-source-tab。问题/改进：禁用时仅提示。 */
-const handleOpenSourceTab = (bundle: IBazaarWorkspaceBundle | null, model: Custom, event: Event): void => {
+const handleOpenSourceTab = (bundle: IBazaarWorkspaceBundle | null, model: Custom, event: Event) => {
     const sourceID = readSourceID(event);
     const source = findSourceByID(bundle, sourceID);
     if (!source) {
@@ -164,14 +164,14 @@ const handleOpenSourceTab = (bundle: IBazaarWorkspaceBundle | null, model: Custo
 };
 
 /** 用途：删除源并刷新。意图：将确认回调内异步流程外提。调用时机：remove-source 确认后。问题/改进：当前无细粒度错误分类。 */
-const removeSourceAndReload = async (sourceID: string, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): Promise<void> => {
+const removeSourceAndReload = async (sourceID: string, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     await removeBazaarSource(sourceID);
     showMessage("已移除第三方源");
     await loadAll(container, state);
 };
 
 /** 用途：发布包并刷新。意图：封装发布前同步、发布执行和按钮状态。调用时机：publish-package。问题/改进：当前发布期间仅禁用当前按钮。 */
-const publishPackageAndReload = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }, packageElement: HTMLElement): Promise<void> => {
+const publishPackageAndReload = async (container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }, packageElement: HTMLElement) => {
     const packageType = packageElement.getAttribute("data-package-type") || "";
     const packageName = packageElement.getAttribute("data-package-name") || "";
     if (!packageType || !packageName) {
@@ -203,7 +203,7 @@ const publishPackageAndReload = async (container: HTMLElement, state: { bundle: 
 };
 
 /** 用途：处理顶部基础动作。意图：分离基础导航动作。调用时机：click 分发优先处理。问题/改进：动作目前固定。 */
-const handleSimpleAction = (type: string, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): boolean => {
+const handleSimpleAction = (type: string, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     /** 处理“刷新发布页”动作 */
     if (type === "refresh-publish") {
         void loadAll(container, state);
@@ -228,7 +228,7 @@ const handleSimpleAction = (type: string, model: Custom, container: HTMLElement,
 };
 
 /** 用途：处理编辑源动作。意图：封装 sourceID 解析与表单回填。调用时机：edit-source。问题/改进：未命中源时静默返回。 */
-const handleEditSourceAction = (container: HTMLElement, bundle: IBazaarWorkspaceBundle | null, event: Event): void => {
+const handleEditSourceAction = (container: HTMLElement, bundle: IBazaarWorkspaceBundle | null, event: Event) => {
     const sourceID = readSourceID(event);
     const source = findSourceByID(bundle, sourceID);
     if (!source) {
@@ -238,7 +238,7 @@ const handleEditSourceAction = (container: HTMLElement, bundle: IBazaarWorkspace
 };
 
 /** 用途：处理浏览源包动作。意图：封装 sourceID 校验与跳转广场。调用时机：browse-source。问题/改进：空 sourceID 时静默返回。 */
-const handleBrowseSourceAction = (model: Custom, event: Event): void => {
+const handleBrowseSourceAction = (model: Custom, event: Event) => {
     const sourceID = readSourceID(event);
     if (!sourceID) {
         return;
@@ -250,7 +250,7 @@ const handleBrowseSourceAction = (model: Custom, event: Event): void => {
 };
 
 /** 用途：处理移除源动作。意图：封装 sourceID 校验、确认弹窗和删除流程。调用时机：remove-source。问题/改进：当前确认文案固定。 */
-const handleRemoveSourceAction = (event: Event, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): void => {
+const handleRemoveSourceAction = (event: Event, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     const sourceID = readSourceID(event);
     if (!sourceID) {
         return;
@@ -263,7 +263,7 @@ const handleRemoveSourceAction = (event: Event, container: HTMLElement, state: {
 };
 
 /** 用途：处理 publish 高级动作。意图：拆分点击分发器，控制单函数行数并保持职责清晰。调用时机：基础动作未命中后调用。问题/改进：返回值表示是否命中动作。 */
-const handlePublishAdvancedAction = (type: string, event: Event, actionElement: HTMLElement, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): boolean => {
+const handlePublishAdvancedAction = (type: string, event: Event, actionElement: HTMLElement, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     /** 处理“保存配置”动作 */
     if (type === "save-config") {
         void handleSaveConfig(container, state).catch((error) => {
@@ -316,7 +316,7 @@ const handlePublishAdvancedAction = (type: string, event: Event, actionElement: 
 };
 
 /** 用途：publish 点击分发器。意图：按 data-type 路由动作处理。调用时机：容器 click 事件。问题/改进：动作增多时可改注册表分发。 */
-const handlePublishClick = (event: Event, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }): void => {
+const handlePublishClick = (event: Event, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     if (!isHTMLElement(event.target)) {
         return;
     }
@@ -338,7 +338,7 @@ const handlePublishClick = (event: Event, model: Custom, container: HTMLElement,
 /** 用途：挂载 publish 页面逻辑。意图：初始化状态、绑定事件并触发首次加载。调用时机：根 initPublish 入口。问题/改进：当前状态对象为局部内存态。 */
 /** 导出 mountBazaarPublish 供根 initPublish 入口调用 */
 /** @同步豁免: UI构建 */
-export const mountBazaarPublish = (model: Custom): void => {
+export const mountBazaarPublish = (model: Custom) => {
     const container = model.element;
     container.classList.add("bazaar-publish");
 

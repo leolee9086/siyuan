@@ -1,21 +1,21 @@
-// 用途：Protyle编辑器类型；使用范围：编辑器实例数组类型标注；解耦评估：核心类型定义，已通过imports.ts转发
-import type { Protyle } from "../imports";
-// 用途：生成唯一ID；使用范围：为浮窗实例生成唯一标识；解耦评估：工具函数，已通过imports.ts转发
-import { genUUID } from "../imports";
-// 用途：隐藏编辑器工具栏元素；使用范围：销毁编辑器时隐藏工具栏；解耦评估：编辑器UI操作，已通过imports.ts转发
-import { hideElements } from "../imports";
-// 用途：启用对话框拖拽和调整大小功能；使用范围：为浮窗添加拖拽调整大小能力；解耦评估：UI交互功能，已通过imports.ts转发
-import { moveResize } from "../imports";
-// 用途：判断是否为移动端；使用范围：判断是否启用拖拽调整大小功能；解耦评估：平台检测工具，已通过imports.ts转发
-import { isMobile } from "../imports";
-// 用途：App类型定义；使用范围：构造函数参数和实例属性类型标注；解耦评估：核心类型定义，已通过imports.ts转发
-import type { App } from "../imports";
-// 用途：获取全局浮窗面板列表；使用范围：管理浮窗层级和清理；解耦评估：全局状态访问，已通过imports.ts转发
-import { getSiyuanBlockPanels } from "../imports";
-// 用途：获取全局菜单实例；使用范围：销毁浮窗时清理关联菜单；解耦评估：全局状态访问，已通过imports.ts转发
-import { getSiyuanMenus } from "../imports";
-// 用途：递增并获取全局z-index；使用范围：点击浮窗时提升层级；解耦评估：全局状态访问，已通过imports.ts转发
-import { incrementSiyuanZIndex } from "../imports";
+/** 用途：Protyle编辑器类型。使用范围：编辑器实例数组类型标注。解耦评估：通过 ./imports 转发。 */
+import type { Protyle } from "./imports";
+/** 用途：生成唯一ID。使用范围：为浮窗实例生成唯一标识。解耦评估：通过 ./imports 转发。 */
+import { genUUID } from "./imports";
+/** 用途：隐藏编辑器工具栏元素。使用范围：销毁编辑器时隐藏工具栏。解耦评估：通过 ./imports 转发。 */
+import { hideElements } from "./imports";
+/** 用途：启用对话框拖拽和调整大小功能。使用范围：为浮窗添加拖拽调整大小能力。解耦评估：通过 ./imports 转发。 */
+import { moveResize } from "./imports";
+/** 用途：判断是否为移动端。使用范围：判断是否启用拖拽调整大小功能。解耦评估：通过 ./imports 转发。 */
+import { isMobile } from "./imports";
+/** 用途：App类型定义。使用范围：构造函数参数和实例属性类型标注。解耦评估：通过 ./imports 转发。 */
+import type { App } from "./imports";
+/** 用途：获取全局浮窗面板列表。使用范围：管理浮窗层级和清理。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanBlockPanels } from "./imports";
+/** 用途：获取全局菜单实例。使用范围：销毁浮窗时清理关联菜单。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanMenus } from "./imports";
+/** 用途：递增并获取全局z-index。使用范围：点击浮窗时提升层级。解耦评估：通过 ./imports 转发。 */
+import { incrementSiyuanZIndex } from "./imports";
 // 用途：构建面板HTML结构；使用范围：render函数中生成浮窗内容；解耦评估：渲染逻辑已分离到Panel.render模块
 import { 构建面板HTML } from "./Panel.render";
 // 用途：设置面板位置；使用范围：首个编辑器加载完成后定位浮窗；解耦评估：定位逻辑已分离到Panel.render模块
@@ -45,7 +45,7 @@ import { 处理图标点击 } from "./Panel.helpers";
  * 调用时机：render函数中初始化编辑器前调用
  * @同步豁免: UI构建 - 仅构建数据对象，无异步操作
  */
-function 获取编辑器上下文(panel: BlockPanel): EditorInitContext {
+function 获取编辑器上下文(panel: BlockPanel) {
     return {
         app: panel.app,
         refDefs: panel.refDefs,
@@ -64,7 +64,7 @@ function 获取编辑器上下文(panel: BlockPanel): EditorInitContext {
  * 调用时机：BlockPanel构造函数末尾和需要刷新内容时调用
  * @同步豁免: UI构建 - 需要立即同步渲染DOM结构
  */
-function render(panel: BlockPanel): void {
+function render(panel: BlockPanel) {
     // 元素不存在或已从DOM移除时销毁实例
     if (!panel.element || !document.body.contains(panel.element)) {
         panel.destroy();

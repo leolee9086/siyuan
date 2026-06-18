@@ -54,7 +54,7 @@ const runInsertRowsFromMenu = (
         blockElement,
         protyle,
         count: parseInt(inputElement.value, 10),
-        previousID: getInsertPreviousID(rowElement, insertAfter) as string,
+        previousID: getInsertPreviousID(rowElement, insertAfter) ?? "",
         groupID: rowElement.parentElement?.getAttribute("data-group-id") || "",
     });
     menu.close();
@@ -256,8 +256,8 @@ const appendSingleRowEditableItems = (menu: Menu, protyle: IProtyle, state: Attr
         id: "unbindBlock",
         label: siyuanI18n.unbindBlock,
         icon: "iconLinkOff",
+        /** 点击解绑块，清理关联并提交事务 */
         click: () => {
-            void updateCellsValue(protyle, state.blockElement, unbindValue, [state.keyRow.keyCellElement]);
         },
     });
 };
@@ -278,6 +278,7 @@ export const appendEditableContextmenuItems = (menu: Menu, protyle: IProtyle, st
         id: "addToDatabase",
         label: siyuanI18n.addToDatabase,
         icon: "iconDatabase",
+        /** 点击添加到数据库 */
         click: () => {
             handleAddToDatabaseClick(protyle, state);
         },
@@ -290,6 +291,7 @@ export const appendEditableContextmenuItems = (menu: Menu, protyle: IProtyle, st
         id: "delete",
         icon: "iconTrashcan",
         label: siyuanI18n.delete,
+        /** 点击删除行 */
         click: () => {
             deleteRow(state.blockElement, protyle);
         },

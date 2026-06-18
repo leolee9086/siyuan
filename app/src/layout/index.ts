@@ -18,7 +18,7 @@ if (isMobile) {
  * 调用时机：在 addWnd 方法中，当 direction 为 "lr" 时调用
  * 问题/改进：当前实现假设目标元素是 Wnd 类型且包含特定 DOM 结构，可能在其他布局类型中失效。
  */
-function handleRightSplitAnimation(target: Layout | Wnd): void {
+function handleRightSplitAnimation(target: Layout | Wnd) {
     // 仅对 Wnd 实例处理，Layout 可能没有 .protyle-content 元素
     if (!("element" in target)) {
         return;
@@ -51,7 +51,7 @@ function handleRightSplitAnimation(target: Layout | Wnd): void {
  * 调用时机：在 addLayout 方法中插入子元素后调用
  * 问题/改进：当 child.size 为 undefined 时，不会应用任何样式，可能导致布局异常。
  */
-function applyChildSize(child: Layout, direction: Config.TUILayoutDirection): void {
+function applyChildSize(child: Layout, direction: Config.TUILayoutDirection) {
     // @无需注释 - 自动伸缩时添加 flex-1 类
     if (child.size === "auto") {
         child.element.classList.add("fn__flex-1");

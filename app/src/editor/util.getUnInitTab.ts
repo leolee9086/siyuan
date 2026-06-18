@@ -1,8 +1,14 @@
-import { Constants } from "../constants";
-import { getAllTabs } from "../layout/getAll";
-import { objEquals } from "../util/platform/functions";
-import { Tab } from "../layout/Tab";
-import { ITabInitData } from "./types";
+/** 用途：应用常量定义。使用范围：editor 模块页签动作配置。解耦评估：通过 imports.ts 转发。 */
+import { Constants } from "./imports";
+/** 用途：获取所有已打开页签。使用范围：getUnInitTab 查找未初始化页签。解耦评估：通过 imports.ts 转发。 */
+import { getAllTabs } from "./imports";
+/** 用途：对象相等性比较。使用范围：getUnInitTab 比较 custom 配置。解耦评估：通过 imports.ts 转发。 */
+import { objEquals } from "./imports";
+/** 用途：页签类型定义。使用范围：getUnInitTab 返回值类型。解耦评估：通过 imports.ts 转发。 */
+import type { Tab } from "./imports";
+/** 用途：页签初始化数据类型。使用范围：getUnInitTab 内部类型检查。解耦评估：同目录类型文件，直接同层导入。 */
+import type { ITabInitData } from "./types";
+/** 用途：页签初始化数据类型守卫。使用范围：getUnInitTab JSON 解析后验证。解耦评估：同目录守卫文件，直接同层导入。 */
 import { isTabInitData } from "./editor.guard";
 
 /**
@@ -21,8 +27,9 @@ import { isTabInitData } from "./editor.guard";
  *
  * @param options - 打开文件的选项参数
  * @returns 找到的匹配页签，如果没有找到则返回 undefined
+ * @同步豁免: 生命周期 — 在打开文件前同步检查可复用的未初始化页签
  */
-export const getUnInitTab = (options: IOpenFileOptions): Tab | undefined => {
+export const getUnInitTab = (options: IOpenFileOptions) => {
     return getAllTabs().find(isMatchingUnInitTab(options));
 };
 
@@ -39,7 +46,7 @@ export const getUnInitTab = (options: IOpenFileOptions): Tab | undefined => {
  * @returns 返回一个谓词函数，用于判断页签是否匹配
  */
 const isMatchingUnInitTab = (options: IOpenFileOptions) => {
-    return (item: Tab): boolean => {
+    return (item: Tab) => {
         const initData = item.headElement?.getAttribute("data-initdata");
         if (!initData) {
             return false;
@@ -80,7 +87,7 @@ const isMatchingUnInitTab = (options: IOpenFileOptions) => {
  * @param options - 打开文件的选项参数
  * @returns 始终返回 true，表示已找到匹配的页签
  */
-const handleEditorTab = (item: Tab, initObj: ITabInitData, options: IOpenFileOptions): boolean => {
+const handleEditorTab = (item: Tab, initObj: ITabInitData, options: IOpenFileOptions) => {
     initObj.blockId = options.id;
     initObj.mode = options.mode;
 

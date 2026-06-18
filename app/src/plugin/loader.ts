@@ -22,7 +22,9 @@ import {getPluginRuntimeRequire} from "./API.environment";
 /** @导入用途: 执行插件代码字符串 @使用范围: 生成插件入口执行函数 @解耦评估: 高风险 API 已封装到 environment 层 */
 import {evaluatePluginCode} from "./API.environment";
 /** @导入用途: 插件加载后 UI 挂载流程 @使用范围: afterLoadPlugin 委托执行 @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
-import {runAfterLoadPlugin, addPluginDock} from "./loader.afterLoad";
+import {runAfterLoadPlugin} from "./loader.afterLoad";
+/** @导入用途: 插件停靠栏动态添加 @使用范围: 插件初始化时挂载 UI @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
+import {addPluginDock} from "./loader.afterLoad";
 
 /** 作用: 构建插件 require 注入层; 意图: 统一第三方插件模块解析; 调用时机: 插件入口执行时 */
 const requireFunc = (key: string) => {
@@ -183,6 +185,7 @@ export const afterLoadPlugin = (plugin: Plugin) => {
     runAfterLoadPlugin(plugin);
     return;
 };
+/** 导出 addPluginDock 供插件系统外部模块使用 */
 export { addPluginDock };
 
 /** 作用: 按名称批量卸载插件; 意图: 复用 reloadPlugin 前置清理; 调用时机: reloadPlugin 内 */

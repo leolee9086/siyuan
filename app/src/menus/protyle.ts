@@ -5,21 +5,21 @@ import {
 import { focusBlock, focusByRange } from "../protyle/util/selection";
 import {
     getColIndex,
-    setTableAlign} from "../protyle/util/table";
+    setTableAlign} from "../protyle/util/table/table";
 import {
     insertRow,
     insertRowAbove,
     deleteRow,
     moveRowToUp,
     moveRowToDown,
-} from "../protyle/util/table/row";
+} from "../protyle/util/table/table.row";
 import {
     insertColumn,
     deleteColumn,
     moveColumnToLeft,
     moveColumnToRight,
 } from "../protyle/util/table/column";
-import { updateTableTitle } from "../protyle/util/table/title.update";
+import { updateTableTitle } from "../protyle/util/table/table.title.update";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../util/platform/functions";

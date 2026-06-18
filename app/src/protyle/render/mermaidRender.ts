@@ -14,7 +14,7 @@ import {MermaidConfig} from "./mermaidRender.types";
  * 调用时机：mermaidRender 入口处调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-function collectMermaidElements(element: Element): Element[] {
+function collectMermaidElements(element: Element) {
     // 当元素本身就是 mermaid 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "mermaid") {
         return element.getAttribute("data-render") === "true" ? [] : [element];
@@ -30,7 +30,7 @@ function collectMermaidElements(element: Element): Element[] {
  * 调用时机：Mermaid 脚本加载完成后、initialize 调用前
  */
 /** @同步豁免: UI构建 - 纯数据构造，无异步需求 */
-function buildMermaidConfig(): MermaidConfig {
+function buildMermaidConfig() {
     const config: MermaidConfig = {
         securityLevel: "loose", // 升级后无 https://github.com/siyuan-note/siyuan/issues/3587，可使用该选项
         altFontFamily: "sans-serif",
@@ -69,7 +69,7 @@ function buildMermaidConfig(): MermaidConfig {
  * 调用时机：Mermaid 初始化完成后、实际渲染前调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 读取 clientWidth 判断可见性 */
-function partitionByVisibility(elements: Element[]): { hidden: Element[]; visible: Element[] } {
+function partitionByVisibility(elements: Element[]) {
     const hidden: Element[] = [];
     const visible: Element[] = [];
     for (const item of elements) {
@@ -92,7 +92,7 @@ function partitionByVisibility(elements: Element[]): { hidden: Element[]; visibl
  * 调用时机：partitionByVisibility 发现存在隐藏元素时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 设置 MutationObserver 监听 DOM 属性变化 */
-function observeHiddenElements(hiddenElements: Element[]): void {
+function observeHiddenElements(hiddenElements: Element[]) {
     const observer = new MutationObserver(() => {
         initMermaid(hiddenElements);
         observer.disconnect();
@@ -121,7 +121,7 @@ function observeHiddenElements(hiddenElements: Element[]): void {
  */
 async function renderSingleMermaidElement(
     item: HTMLElement, wysiswgElement: false | HTMLElement
-): Promise<void> {
+) {
     // 已渲染的元素跳过，避免重复渲染
     if (item.getAttribute("data-render") === "true") {
         return;
@@ -153,13 +153,16 @@ async function renderSingleMermaidElement(
                 /(href|src|xlink:href)\s*=\s*["']\\\\/gi,
                 (_match, attrName) => `${attrName}="about:blank"`
             );
-            svg = window.DOMPurify.sanitize(svg, {
-                USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
-                ADD_TAGS: ["foreignObject", "use", "style"],
-                ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
-                // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
-                HTML_INTEGRATION_POINTS: { foreignobject: true }
-            });
+            const win = document.defaultView;
+            if (win) {
+                svg = win.DOMPurify.sanitize(svg, {
+                    USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
+                    ADD_TAGS: ["foreignObject", "use", "style"],
+                    ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
+                    // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
+                    HTML_INTEGRATION_POINTS: { foreignobject: true }
+                });
+            }
             renderElement.lastElementChild.innerHTML = svg;
         }
     } catch (e: unknown) {
@@ -182,7 +185,7 @@ async function renderSingleMermaidElement(
  *   - mermaidRender 初始化完成后，对可见元素调用
  *   - MutationObserver 检测到隐藏元素变为可见时回调调用
  */
-async function initMermaid(mermaidElements: Element[]): Promise<void> {
+async function initMermaid(mermaidElements: Element[]) {
     const firstElement = mermaidElements[0];
     // 空数组时直接返回
     if (!firstElement) {
@@ -205,7 +208,7 @@ async function initMermaid(mermaidElements: Element[]): Promise<void> {
  * 意图：将 fetch 逻辑提取为命名函数，避免内联回调超长
  * 调用时机：Mermaid registerIconPacks 内部按需调用
  */
-function createIconLoader(cdn: string): () => Promise<Response> {
+function createIconLoader(cdn: string) {
     return () => fetch(`${cdn}/js/mermaid/icons.json?v=11.11.0`).then((res) => res.json());
 }
 
@@ -217,7 +220,7 @@ function createIconLoader(cdn: string): () => Promise<Response> {
  * 意图：将脚本加载和注册逻辑从主入口分离，降低主函数复杂度
  * 调用时机：mermaidRender 确认存在待渲染元素后调用
  */
-async function loadAndInitMermaid(cdn: string): Promise<void> {
+async function loadAndInitMermaid(cdn: string) {
     await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.13.0`, "protyleMermaidScript");
     await addScript(`${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.2`, "protyleMermaidZenumlScript");
 
@@ -247,7 +250,7 @@ async function loadAndInitMermaid(cdn: string): Promise<void> {
  */
 export const mermaidRender = async (
     element: Element, cdn = Constants.PROTYLE_CDN
-): Promise<void> => {
+) => {
     const mermaidElements = collectMermaidElements(element);
     // 无 mermaid 元素时直接返回，避免不必要的脚本加载
     if (mermaidElements.length === 0) {

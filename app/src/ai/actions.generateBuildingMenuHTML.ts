@@ -1,11 +1,15 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+/**
+ * 用途：国际化文本，用于显示AI菜单标题。使用范围：generateBuildingMenuHTML 构建菜单。解耦评估：通过 imports.ts 转发。
+ */
+import { siyuanI18n } from "./imports";
 
 /**
  * 生成AI菜单的完整HTML模板
  * @param customHTML 自定义菜单项的HTML
  * @returns 菜单的完整HTML字符串
+ * @同步豁免: UI构建 — 生成静态菜单 HTML 模板，无异步依赖
  */
-export const generateBuildingMenuHTML = (customHTML: string): string => {
+export const generateBuildingMenuHTML = (customHTML: string) => {
     const clearContext = "Clear context";
     return /*html*/`<div class="fn__flex-column b3-menu__filter">
     <input class="b3-text-field fn__flex-shrink" placeholder="${siyuanI18n.ai}"/>

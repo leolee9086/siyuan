@@ -1,20 +1,43 @@
-import { Constants } from "../../constants";
-import { getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setStorageVal } from "../../protyle/util/compatibility";
+/** 用途：系统常量。使用范围：点击处理。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：安全获取存储。使用范围：点击状态管理。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanStorage } from "./imports";
+/** 用途：存储值设置。使用范围：点击状态持久化。解耦评估：通过 ./imports 转发。 */
+import { setStorageVal } from "./imports";
+/** 用途：获取高亮选区坐标。使用范围：点击处理。解耦评估：同目录模块。 */
 import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
+/** 用途：显示高亮。使用范围：点击响应。解耦评估：同目录模块。 */
 import { showHighlight } from "./anno.showHighlight";
+/** 用途：复制标注。使用范围：点击处理。解耦评估：同目录模块。 */
 import { copyAnno } from "./anno.copy";
+/** 用途：隐藏工具栏。使用范围：点击处理。解耦评估：同目录模块。 */
 import { hideToolbar } from "./anno.hideToolbar";
+/** 用途：获取配置。使用范围：点击处理。解耦评估：同目录模块。 */
 import { getConfig } from "./config";
-import { fetchPost } from "../../util/network/fetch";
+/** 用途：网络请求。使用范围：点击后请求数据。解耦评估：通过 ./imports 转发。 */
+import { fetchPost } from "./imports";
+/** 用途：显示工具栏。使用范围：点击响应。解耦评估：同目录模块。 */
 import { showToolbar } from "./anno.showToolbar";
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { rectElement, setRectElement } from ".";
+/** 用途：通过类名查找祖先元素。使用范围：点击目标定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByClassName } from "./imports";
+/** 用途：rect 元素引用。使用范围：点击处理。解耦评估：同目录模块。 */
+import { rectElement } from ".";
+/** 用途：设置 rect 元素。使用范围：点击处理。解耦评估：同目录模块。 */
+import { setRectElement } from ".";
+/** 用途：标注常量。使用范围：点击处理。解耦评估：同目录常量文件。 */
 import { AnnoConstants } from "./constants";
+/** 用途：PDF 实例类型。使用范围：点击处理类型标注。解耦评估：同目录类型文件。 */
 import type { IPdfInstance } from "./anno.types";
-import { createToolbarActionContext, toolbarActionRegistry } from "./click.handleToolbarAction";
+/** 用途：创建工具栏操作上下文。使用范围：点击响应。解耦评估：同目录模块。 */
+import { createToolbarActionContext } from "./click.handleToolbarAction";
+/** 用途：工具栏操作注册表。使用范围：点击分发。解耦评估：同目录模块。 */
+import { toolbarActionRegistry } from "./click.handleToolbarAction";
+/** 用途：外部事件点击处理。使用范围：全局点击事件。解耦评估：同目录子模块。 */
 import { externalEventClickHandler } from "./click/handleExternalEvent";
-import { getLocationOrigin, getWindowSelection } from "../../util/siyuanEnvironments/windowStandard.environment";
+/** 用途：获取窗口来源和选区。使用范围：点击事件处理。解耦评估：通过 ./imports 转发。 */
+import { getLocationOrigin } from "./imports";
+/** 用途：获取窗口选区。使用范围：点击事件处理。解耦评估：通过 ./imports 转发。 */
+import { getWindowSelection } from "./imports";
 
 /**
  * 更新已存在的注释颜色

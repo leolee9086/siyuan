@@ -1,7 +1,9 @@
+/** 用途：EventUnsubscribe 事件取消订阅类型。使用范围：MAGI 事件总线定义。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { EventUnsubscribe } from "../../util/lib/events/eventEmitter.types";
+/** 用途：MagiMessage 消息视图类型。使用范围：MAGI 事件载荷定义。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiMessage } from "../utils/messageFactory.types";
 
-/** MAGI 事件名称字典。 */
+/** 导出 MagiEventName：MAGI 系统所有已知事件名称的联合类型，用于约束事件发射和监听的名称参数。 */
 export type MagiEventName =
     | "ROUND_STARTED"
     | "LLM_REQUEST_SENT"

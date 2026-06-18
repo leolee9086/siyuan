@@ -2,7 +2,9 @@
  * 笔记内插件编译器
  * 从文档中提取 JavaScript 代码块并编译为可执行代码
  */
-import { fetchSyncPost } from "../util/network/fetch";
+/** 用途：同步 POST 请求函数。使用范围：compiler 编译文档获取块数据。解耦评估：通过 imports.ts 转发。 */
+import { fetchSyncPost } from "./imports";
+/** 用途：编译结果类型。使用范围：compiler 函数签名。解耦评估：同目录类型文件，直接同层导入。 */
 import type { 编译结果 } from "./types";
 
 /**
@@ -10,7 +12,7 @@ import type { 编译结果 } from "./types";
  * @param docId 文档ID
  * @returns 编译结果
  */
-export async function 编译文档(docId: string, docTitle?: string): Promise<编译结果> {
+export async function 编译文档(docId: string, docTitle?: string) {
     try {
         // 获取文档的所有子块
         const response = await fetchSyncPost("/api/block/getChildBlocks", { id: docId });
@@ -73,7 +75,7 @@ export async function 编译文档(docId: string, docTitle?: string): Promise<�
  * @param blockId 代码块ID
  * @returns JavaScript 代码内容，非JS代码块返回 null
  */
-async function 提取代码块内容(blockId: string): Promise<string | null> {
+async function 提取代码块内容(blockId: string) {
     try {
         const response = await fetchSyncPost("/api/block/getBlockKramdown", { id: blockId });
 
@@ -113,9 +115,9 @@ async function 提取代码块内容(blockId: string): Promise<string | null> {
 /**
  * 检查文档是否为插件定义文档
  * @param attrs 文档属性
- * @同步豁免: 性能考虑，纯同步访问属性不需要引入异步开销
+ * @同步豁免: 性能考虑
  */
-export function 是插件文档(attrs: Record<string, string>): boolean {
+export function 是插件文档(attrs: Record<string, string>) {
     return attrs["custom-ext-type"] === "plugin";
 }
 
@@ -123,7 +125,7 @@ export function 是插件文档(attrs: Record<string, string>): boolean {
  * 获取文档属性
  * @param docId 文档ID
  */
-export async function 获取文档属性(docId: string): Promise<Record<string, string>> {
+export async function 获取文档属性(docId: string) {
     try {
         const response = await fetchSyncPost("/api/attr/getBlockAttrs", { id: docId });
         if (response && response.code === 0 && response.data) {
@@ -140,7 +142,7 @@ export async function 获取文档属性(docId: string): Promise<Record<string, 
  * 设置文档为插件文档
  * @param docId 文档ID
  */
-export async function 设置为插件文档(docId: string): Promise<boolean> {
+export async function 设置为插件文档(docId: string) {
     try {
         const response = await fetchSyncPost("/api/attr/setBlockAttrs", {
             id: docId,

@@ -123,7 +123,7 @@ export const renderCellURL = (urlContent: string) => {
  * 调用时机：getCellText遍历文本元素时调用
  * @同步豁免: 需要绝对同步的DOM访问
  */
-const extractTextFromElement = (item: Element): string => {
+const extractTextFromElement = (item: Element) => {
     // 包含图标的元素，提取首尾子节点文本，firstChild和lastChild可能为null需要检查
     if (item.querySelector(".av__cellicon") && item.firstChild && item.lastChild) {
         return `${item.firstChild.textContent} → ${item.lastChild.textContent}`;
@@ -230,7 +230,7 @@ export const renderCellAttr = (cellElement: Element, value: IAVCellValue) => {
  * 辅助函数：判断单元格是否需要添加复制按钮
  * @同步豁免: UI构建
  */
-const shouldShowCopyButton = (cellValue: IAVCellValue): boolean => {
+const shouldShowCopyButton = (cellValue: IAVCellValue) => {
     // url类型：有内容时显示
     if (cellValue.type === "url") {
         return !!(cellValue.url?.content);

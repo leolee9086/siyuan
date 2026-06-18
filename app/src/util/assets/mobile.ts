@@ -1,6 +1,17 @@
-import { isInIOS, isInAndroid, isInHarmony } from "../../protyle/util/compatibility";
-import { getSiyuanConfig } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowWebkit, getWindowJSAndroid, getWindowJSHarmony } from "../siyuanEnvironments/windowNative.environment";
+/** 用途：平台兼容性检测（iOS）。使用范围：mobile.ts 平台判断。解耦评估：通过 imports.ts 转发。 */
+import { isInIOS } from "./imports";
+/** 用途：平台兼容性检测（Android）。使用范围：mobile.ts 平台判断。解耦评估：通过 imports.ts 转发。 */
+import { isInAndroid } from "./imports";
+/** 用途：平台兼容性检测（Harmony）。使用范围：mobile.ts 平台判断。解耦评估：通过 imports.ts 转发。 */
+import { isInHarmony } from "./imports";
+/** 用途：思源配置。使用范围：mobile.ts 读取移动端配置。解耦评估：通过 imports.ts 转发。 */
+import { getSiyuanConfig } from "./imports";
+/** 用途：获取 WebKit window 对象。使用范围：mobile.ts 原生接口。解耦评估：通过 imports.ts 转发。 */
+import { getWindowWebkit } from "./imports";
+/** 用途：获取 Android window 对象。使用范围：mobile.ts 原生接口。解耦评估：通过 imports.ts 转发。 */
+import { getWindowJSAndroid } from "./imports";
+/** 用途：获取 Harmony window 对象。使用范围：mobile.ts 原生接口。解耦评估：通过 imports.ts 转发。 */
+import { getWindowJSHarmony } from "./imports";
 
 /**
  * 更新移动端主题状态栏颜色

@@ -7,6 +7,7 @@
  * @module platform/electron/webFrame
  */
 
+/** 用途：isElectron 环境检测标志。使用范围：webFrame 操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,12 +27,12 @@ function getWebFrame() {
 
 /** 设置页面缩放比例 */
 /** @同步豁免: 遗留代码 - 封装 Electron webFrame.setZoomFactor 同步 API */
-export function setZoomFactor(factor: number): void {
+export function setZoomFactor(factor: number) {
     getWebFrame().setZoomFactor(factor);
 }
 
 /** 清除 webFrame 缓存 */
 /** @同步豁免: 遗留代码 - 封装 Electron webFrame.clearCache 同步 API */
-export function clearWebFrameCache(): void {
+export function clearWebFrameCache() {
     getWebFrame().clearCache();
 }

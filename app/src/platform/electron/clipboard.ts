@@ -7,6 +7,7 @@
  * @module platform/electron/clipboard
  */
 
+/** 用途：isElectron 环境检测标志。使用范围：剪贴板操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +27,6 @@ function getClipboard() {
 
 /** 以指定格式读取剪贴板内容 */
 /** @同步豁免: 遗留代码 - 封装 Electron clipboard.read 同步 API */
-export function clipboardRead(format: string): string {
+export function clipboardRead(format: string) {
     return getClipboard().read(format);
 }

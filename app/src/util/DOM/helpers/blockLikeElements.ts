@@ -4,7 +4,7 @@
  * 问题/改进：若未来需要支持更多块类元素来源，可以在这里统一扩展属性回退逻辑。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const getElementBlockId = (element: Element): string | null => {
+export const getElementBlockId = (element: Element) => {
     const blockId = element.getAttribute("data-node-id");
     return blockId;
 };
@@ -15,7 +15,7 @@ export const getElementBlockId = (element: Element): string | null => {
  * 问题/改进：当前保持原始顺序且不过滤重复值，如未来需要去重可在此处扩展。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const getElementsBlockId = (elements: Element[]): string[] => {
+export const getElementsBlockId = (elements: Element[]) => {
     const ids: string[] = [];
     for (const element of elements) {
         const blockId = getElementBlockId(element);

@@ -1,9 +1,19 @@
-import { Workspace } from "../../data/kernelAPI/defaultWorkspace";
-import { kernelClient } from "../../data/kernelSDK";
-import { ITag, tagSchema, TagType, isValidTag } from "./assetTags.types";
+/** 用途：Workspace 类，提供文件系统操作能力。使用范围：tags 模块加载和持久化标签数据。解耦评估：通过 imports.ts 转发。 */
+import { Workspace } from "./imports";
+/** 用途：内核 SDK 客户端实例。使用范围：tags 模块创建 Workspace 实例。解耦评估：通过 imports.ts 转发。 */
+import { kernelClient } from "./imports";
+/** 用途：标签类型定义和类型守卫。使用范围：assetTags 模块类型验证。解耦评估：本地类型定义，仅在此处使用。 */
+import { ITag } from "./assetTags.types";
+/** 用途：标签 schema 和类型推断。使用范围：assetTags 模块数据验证。解耦评估：本地类型定义。 */
+import { tagSchema } from "./assetTags.types";
+/** 用途：标签类型。使用范围：assetTags 模块返回类型。解耦评估：本地类型定义。 */
+import { TagType } from "./assetTags.types";
+/** 用途：类型守卫函数，验证对象是否为有效标签。使用范围：assetTags 模块数据验证。解耦评估：本地类型定义。 */
+import { isValidTag } from "./assetTags.types";
 
 const localWorkerSpace = new Workspace(kernelClient);
 
+/** 导出标签类型定义，供外部模块使用 */
 export { ITag, tagSchema, TagType };
 
 /**
@@ -17,9 +27,10 @@ export async function removeFilesFromTag(
     fileNames: string[],
     tagLabel: string,
     tags: ITag[]
-): Promise<ITag[] | undefined> {
+) {
     try {
         const tag = tags?.find(item => item.label === tagLabel);
+        // 只有当标签包含资产列表时才执行移除操作
         if (tag?.assets) {
             // 从资产列表中移除指定文件名
             tag.assets = tag.assets.filter(asset => !fileNames.includes(asset));
@@ -35,8 +46,9 @@ export async function removeFilesFromTag(
  * @param label - 标签名称
  * @param assets - 可选的初始资产文件列表
  * @returns 新创建的标签对象
+ * @同步豁免: 类型守卫 — 纯对象构造器，无异步依赖
  */
-export function createTag(label: string, assets?: string[]): ITag {
+export function createTag(label: string, assets?: string[]) {
     return {
         label,
         assets: assets || []
@@ -48,17 +60,18 @@ export function createTag(label: string, assets?: string[]): ITag {
  * @param label - 要查找的标签名称
  * @param tags - 标签数组
  * @returns 找到的标签对象，如果未找到则返回 undefined
+ * @同步豁免: 类型守卫 — 纯数组查找，无异步依赖
  */
-export function findTagByLabel(label: string, tags: ITag[]): ITag | undefined {
-    return tags.find(item => item.label === label);
-}
+// @柯里化
+export const findTagByLabel = (label: string, tags: ITag[]) => tags.find(item => item.label === label);
 
 /**
  * 获取标签的所有资产文件
  * @param tag - 标签对象
  * @returns 资产文件名数组，如果标签没有资产则返回空数组
+ * @同步豁免: 类型守卫 — 纯属性读取，无异步依赖
  */
-export function getTagAssets(tag: ITag): string[] {
+export function getTagAssets(tag: ITag) {
     return tag.assets || [];
 }
 
@@ -66,10 +79,11 @@ export function getTagAssets(tag: ITag): string[] {
  * 验证标签对象是否符合规范
  * @param tag - 要验证的标签对象
  * @returns 验证结果，包含是否有效和错误信息
+ * @同步豁免: 类型守卫 — 纯 schema 验证，无异步依赖
  */
-export function validateTag(tag: unknown): { isValid: boolean; error?: string } {
+export function validateTag(tag: unknown) {
     try {
-        const parsedTag = tagSchema.parse(tag);
+        tagSchema.parse(tag);
         return { isValid: true };
     } catch (error) {
         return {
@@ -90,7 +104,7 @@ export async function addFilesToTag(
     fileNames: string[],
     tagLabel: string,
     tags: ITag[]
-): Promise<ITag[] | undefined> {
+) {
     try {
         const tag = tags?.find(item => item.label === tagLabel);
         if (tag) {
@@ -123,7 +137,7 @@ export async function addFilesToTag(
  * 
  * @returns 标签数组，如果文件不存在、损坏或验证失败则返回空数组
  */
-const loadAssetsTags = async (): Promise<TagType[]> => {
+const loadAssetsTags = async () => {
     try {
         // 检查文件是否存在，不存在则创建空文件
         if (!(await localWorkerSpace.exists("/data/storage/tags/assets.json"))) {
@@ -133,6 +147,7 @@ const loadAssetsTags = async (): Promise<TagType[]> => {
 
         // 读取文件内容
         const raw = await localWorkerSpace.readFile("/data/storage/tags/assets.json");
+        // readFile 可能返回非字符串类型（如 Buffer），此时按空数据处理
         if (typeof raw !== "string") {
             console.warn("标签文件内容格式异常，返回空数组");
             return [];

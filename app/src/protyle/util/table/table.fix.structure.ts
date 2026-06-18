@@ -5,10 +5,10 @@
  * 每个操作为独立中间件，共享 prepareStructureContext 预分析
  */
 
-import { matchHotKey } from "./hotKey";
+import { matchHotKey } from "../hotKey";
 import { TableFixContext } from "./table.fix.types";
 import { moveRowToUp, moveRowToDown, insertRow, insertRowAbove, deleteRow } from "./table.row";
-import { moveColumnToLeft, moveColumnToRight, insertColumn, deleteColumn } from "./table.column";
+import { moveColumnToLeft, moveColumnToRight, insertColumn, deleteColumn } from "./column";
 import {
     isRowSafe, isRowDeletable, prepareStructureContext,
 } from "./table.fix.structure.helpers";

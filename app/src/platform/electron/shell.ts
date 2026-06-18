@@ -7,6 +7,7 @@
  * @module platform/electron/shell
  */
 
+/** 用途：isElectron 环境检测标志。使用范围：shell 操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +43,7 @@ function getShell() {
  *
  * @throws 非 Electron 环境下抛出错误
  */
-export async function openExternal(url: string): Promise<void> {
+export async function openExternal(url: string) {
     await getShell().openExternal(url);
 }
 
@@ -55,6 +56,6 @@ export async function openExternal(url: string): Promise<void> {
  *
  * @throws 非 Electron 环境下抛出错误
  */
-export async function openPath(path: string): Promise<string> {
+export async function openPath(path: string) {
     return getShell().openPath(path);
 }

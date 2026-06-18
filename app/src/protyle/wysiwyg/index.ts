@@ -38,7 +38,7 @@ import { handleContextmenu } from "./index.contextmenu";
 import { handleClick } from "./index.click";
 import { getContenteditableElement } from "./getBlock";
 import { removeZWJ, nbsp2space } from "../util/normalizeText";
-import { clearTableCell, isIncludeCell, setTableAlign } from "../util/table";
+import { clearTableCell, isIncludeCell, setTableAlign } from "../util/table/table";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { getEnableHTML, removeEmbed } from "./removeEmbed";
 import { getTopAloneElement, isEndOfBlock } from "./getBlock";

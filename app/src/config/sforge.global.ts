@@ -4,8 +4,11 @@
  * 封装 globalThis 访问，符合架构规范
  */
 
+/** 用途：SForge 全局 Symbol 键定义。使用范围：globalThis 属性键名。解耦评估：同目录常量文件，直接导入。 */
 import { SForgeSymbols } from "./sforge.symbols";
+/** 用途：SForge 全局状态类型。使用范围：函数返回值类型推导。解耦评估：同目录类型文件，类型导入。 */
 import type { ISForgeGlobalState } from "./sforge.types";
+/** 用途：类型守卫，将 globalThis 断言为带 SForge 状态的对象。使用范围：获取/设置全局状态前进行类型转换。解耦评估：同目录守卫函数，直接导入。 */
 import { asGlobalWithSForge } from "./sforge.guard";
 
 /**
@@ -13,7 +16,7 @@ import { asGlobalWithSForge } from "./sforge.guard";
  * 挂载在 globalThis 上，确保跨模块单例
  * @同步豁免: 生命周期 - 模块初始化阶段的基础设施，必须在其他模块加载前同步完成初始化
  */
-export function 获取SForge全局对象(): ISForgeGlobalState {
+export function 获取SForge全局对象() {
     const globalObj = asGlobalWithSForge(globalThis);
     const key = SForgeSymbols.GLOBAL_KEY;
 
@@ -33,7 +36,7 @@ export function 获取SForge全局对象(): ISForgeGlobalState {
  */
 export function getSForgeState<K extends keyof ISForgeGlobalState>(
     symbolKey: K
-): ISForgeGlobalState[K] {
+) {
     return 获取SForge全局对象()[symbolKey];
 }
 
@@ -46,6 +49,6 @@ export function getSForgeState<K extends keyof ISForgeGlobalState>(
 export function setSForgeState<K extends keyof ISForgeGlobalState>(
     symbolKey: K,
     value: ISForgeGlobalState[K]
-): void {
+) {
     获取SForge全局对象()[symbolKey] = value;
 }

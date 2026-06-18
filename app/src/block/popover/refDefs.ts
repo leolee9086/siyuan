@@ -21,7 +21,7 @@ import { RefDefsResult } from "./types";
 /**
  * 从 data-id 属性获取 refDefs
  */
-const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<RefDefsResult> => {
+const getRefDefsFromDataId = async (dataId: string, showRef: boolean) => {
     const ids = dataId.split(/\s+/);
     // 卫语句：showRef 情况，对首个 ID 查询引用来源（多 ID 暂只取首个）
     if (showRef) {
@@ -48,7 +48,7 @@ const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<R
 /**
  * 从虚拟块引用获取 refDefs
  */
-const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
+const getRefDefsFromVirtualBlockRef = async () => {
     const popoverTargetElement = getPopoverTargetElement();
     if (!popoverTargetElement) {
         return { refDefs: [], originalRefBlockIDs: {} };
@@ -67,7 +67,7 @@ const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
 /**
  * 从引用数或 PDF 获取 refDefs
  */
-const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
+const getRefDefsFromRefCountOrPDF = async () => {
     const popoverTargetElement = getPopoverTargetElement();
     if (!popoverTargetElement) {
         return { refDefs: [], originalRefBlockIDs: {} };
@@ -118,7 +118,7 @@ const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
 /**
  * 获取所有 refDefs
  */
-export const getRefDefs = async (showRef: boolean): Promise<RefDefsResult> => {
+export const getRefDefs = async (showRef: boolean) => {
     const popoverTargetElement = getPopoverTargetElement();
     if (!popoverTargetElement) {
         return { refDefs: [], originalRefBlockIDs: {} };

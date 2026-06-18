@@ -35,7 +35,7 @@ const prepareRenderContainer = (
     renderElement: HTMLElement,
     hasContent: boolean,
     defaultHeight: string
-): void => {
+) => {
     if (!hasContent) {
         renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span>`;
         return;
@@ -61,7 +61,7 @@ const isChartTypeChanged = (
 const updateExistingChart = (
     chartInstance: ReturnType<typeof getEchartsInstanceById>,
     option: unknown
-): void => {
+) => {
     if (!chartInstance) {
         return;
     }
@@ -79,7 +79,7 @@ const initNewChart = (
     lastChild: Element | null,
     option: unknown,
     width: number | undefined
-): void => {
+) => {
     if (!(lastChild instanceof HTMLElement)) {
         return;
     }
@@ -94,7 +94,7 @@ const renderChartError = (
     renderElement: HTMLElement,
     defaultHeight: string,
     error: unknown
-): void => {
+) => {
     disposeEcharts(renderElement.lastElementChild);
     renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div class="ft__error" style="height:${defaultHeight}" contenteditable="false">echarts render error: <br>${error}</div>`;
 };
@@ -104,7 +104,7 @@ const renderSingleChart = async (
     e: HTMLDivElement,
     wysiswgElement: HTMLElement | false,
     width: number | undefined
-): Promise<void> => {
+) => {
     if (e.getAttribute("data-render") === "true") {
         return;
     }
@@ -146,7 +146,7 @@ const renderEchartsLoop = (
     echartsElements: Element[],
     wysiswgElement: HTMLElement | false,
     width: number | undefined
-): void => {
+) => {
     for (const e of echartsElements) {
         if (isHTMLDivElement(e)) {
             renderSingleChart(e, wysiswgElement, width);
@@ -158,7 +158,7 @@ const renderEchartsLoop = (
 const onEchartsGLLoaded = (
     element: Element,
     echartsElements: Element[]
-): void => {
+) => {
     const wysiswgElement = hasClosestByClassName(element, "protyle-wysiwyg", true);
     const firstEchartsElement = echartsElements[0];
     if (!firstEchartsElement) {
@@ -173,7 +173,7 @@ const loadEchartsGLAndRender = (
     cdn: string,
     element: Element,
     echartsElements: Element[]
-): void => {
+) => {
     addScript(`${cdn}/js/echarts/echarts-gl.min.js?v=2.0.9`, "protyleEchartsGLScript").then(() => {
         onEchartsGLLoaded(element, echartsElements);
     });
@@ -184,13 +184,13 @@ const loadEchartsAndRender = (
     cdn: string,
     element: Element,
     echartsElements: Element[]
-): void => {
+) => {
     addScript(`${cdn}/js/echarts/echarts.min.js?v=5.3.2`, "protyleEchartsScript").then(() => {
         loadEchartsGLAndRender(cdn, element, echartsElements);
     });
 };
 
-export const chartRender = (element: Element, cdn = Constants.PROTYLE_CDN): void => {
+export const chartRender = (element: Element, cdn = Constants.PROTYLE_CDN) => {
     const isEchartsBlock = element.getAttribute("data-subtype") === "echarts";
     const echartsElements: Element[] = isEchartsBlock
         ? (element.getAttribute("data-render") === "true" ? [] : [element])

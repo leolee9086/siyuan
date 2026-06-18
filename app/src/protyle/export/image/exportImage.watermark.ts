@@ -14,7 +14,7 @@ import type {IExportImageContext} from "./exportImage.types";
  * 问题/改进：可引入缓存避免重复生成相同文本水印画布。
  */
 // 导出语句注释：导出图片水印更新入口。
-export const updateExportImageWatermark = async (ctx: IExportImageContext): Promise<void> => {
+export const updateExportImageWatermark = async (ctx: IExportImageContext) => {
     const preview = ctx.watermarkPreviewElement;
     preview.innerHTML = "";
 

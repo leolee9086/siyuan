@@ -39,7 +39,7 @@ export function 创建格式刷菜单项(ctx: IGutterCommonMenuContext): IMenu |
             const finalStyle = await 提取块样式(ctx.nodeElement);
             if (finalStyle) {
                 // 使用新函数：注册一个专属刷子并激活
-                注册并激活自定义样式刷子(finalStyle, ctx.id, {
+                await 注册并激活自定义样式刷子(finalStyle, ctx.id, {
                     protyle: ctx.protyle,
                     originalEvent: event
                 });
