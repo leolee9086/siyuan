@@ -1,14 +1,7 @@
-/** 用途：生成唯一 ID。使用范围：消息元素标识。解耦评估：通过 ./imports 转发。 */
-import { genUUID } from "./imports";
-/** 用途：系统常量。使用范围：消息配置常量。解耦评估：通过 ./imports 转发。 */
-import { Constants } from "./imports";
-/** 用途：安全的 setTimeout。使用范围：消息超时管理。解耦评估：通过 ./imports 转发。 */
-/** 用途：安全的 setTimeout。使用范围：消息超时管理。解耦评估：通过 ./imports 转发。 */
-import { setTimeout } from "./imports";
-/** 用途：取消定时器。使用范围：消息超时取消。解耦评估：通过 ./imports 转发。 */
-import { clearTimeout } from "./imports";
-/** 用途：安全获取 window 对象。使用范围：消息 z-index。解耦评估：通过 ./imports 转发。 */
-import { getWindow } from "./imports";
+import { Constants } from "../constants";
+import { genUUID } from "../util/platform/genID";
+import { getWindow } from "../util/siyuanEnvironments/getWindow.environment";
+import { clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 
 /** 尝试隐藏消息 */
 function 尝试隐藏消息(target: HTMLElement) {

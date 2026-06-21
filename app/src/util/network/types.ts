@@ -231,3 +231,40 @@ export interface ICronjobAuthDependencies {
     confirmDialog: ConfirmDialogPort;
     sendAuthResponse: SendAuthResponsePort;
 }
+
+export type MaybePromise<T> = T | Promise<T>;
+
+export type FetchPostPort = (
+    url: string,
+    data?: TFetchRequestData,
+    cb?: (response: IWebSocketData) => void,
+    headers?: IObject,
+    failCallback?: (response: IWebSocketData) => void,
+    signal?: AbortSignal,
+    bypassSemaphore?: boolean,
+) => MaybePromise<void>;
+
+export type ExportLayoutPort = (options: {
+    cb: () => void;
+    errorExit: boolean;
+}) => MaybePromise<void>;
+
+export type ShowMessagePort = (
+    message: string,
+    timeout?: number,
+    type?: string,
+    messageId?: string,
+) => MaybePromise<string | undefined>;
+
+export type HideMessagePort = (id?: string) => MaybePromise<void>;
+
+export interface IProcessMessageUIDependencies {
+    exportLayout: ExportLayoutPort;
+    showMessage: ShowMessagePort;
+    hideMessage: HideMessagePort;
+    confirmDialog: ConfirmDialogPort;
+}
+
+export interface IProcessMessageDependencies extends Partial<IProcessMessageUIDependencies> {
+    fetchPost: FetchPostPort;
+}

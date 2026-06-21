@@ -7,8 +7,10 @@ import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { genUUID } from "../util/platform/genID";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { addBaseURL, getDocDisplayName, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
+import { exportLayout } from "../layout/layout-serialization";
 import { openFileById } from "../editor/utils.openFileById";
 import {
+    kernelError,
     processSync,
     progressBackgroundTask,
     progressLoading,
@@ -19,7 +21,8 @@ import {
 import { setTitle } from "../dialog/processSystem/setTitle";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "../dialog/processSystem/setRefDynamicText";
-import { initMessage } from "../dialog/message";
+import { hideMessage, initMessage, showMessage } from "../dialog/message";
+import { confirmDialog } from "../dialog/confirmDialog";
 import { getAllTabs } from "../layout/getAll";
 import { getLocalStorage } from "../protyle/util/compatibility";
 import { init } from "./init";
@@ -29,6 +32,9 @@ import { reloadEmoji } from "../emoji";
 import { updateAppearance } from "../config/util/updateAppearance";
 import { renderSnippet } from "../config/util/snippets";
 import { setBodyHighlight } from "../util/assets/assets";
+import { setSForgeState } from "../config/sforge.global";
+import { SForgeSymbols } from "../config/sforge.symbols";
+import { createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -37,6 +43,9 @@ class App {
     constructor() {
         addBaseURL();
         this.appId = Constants.SIYUAN_APPID;
+        setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
+        const processMessage = createProcessMessage({ fetchPost });
+        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
 
         const mainWs = new Model({app: this});
         mainWs.connect({

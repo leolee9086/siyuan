@@ -6,8 +6,6 @@ import { ipcSend } from "./imports";
 import { isElectron } from "./imports";
 /** 用途：处理后端通知/错误消息 | 使用范围：createPostResponseHandler 和 fetchSyncPost 中展示消息 | 解耦评估：网络模块基础功能，可考虑依赖注入但当前直接导入符合实际场景 */
 import { processMessage } from "./processMessage";
-/** 用途：内核通信失败错误处理 | 使用范围：handleFetchError 中事务 API 失败时触发重连/重启 | 解耦评估：UI 基础设施，无法解耦 */
-import { kernelError } from "./imports";
 /** 用途：验证响应数据结构 | 使用范围：fetchSyncPost 中验证 IWebSocketData 格式 | 解耦评估：工具函数，直接导入符合模块化设计 */
 import { isWebSocketData } from "./fetch.guard";
 /** 用途：请求数据类型 | 使用范围：所有 fetch 函数参数类型 | 解耦评估：类型定义，直接导入符合设计 */
@@ -57,6 +55,15 @@ function release(): void {
 		s.current++;
 		next();
 	}
+}
+
+function handleKernelError(): void {
+    const handlers = getSForgeState(SForgeSymbols.MODEL_HANDLERS);
+    if (handlers?.kernelError) {
+        handlers.kernelError();
+        return;
+    }
+    console.warn("kernelError handler not registered");
 }
 
 /**
@@ -167,7 +174,7 @@ const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: E
     console.warn("fetch post failed [" + e + "], url [" + url + "]");
     // 特殊处理事务 API 的网络失败或解析错误，触发内核重传或重启确认。
     if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
-        kernelError();
+        handleKernelError();
         return;
     }
     const dataErrorExit = data && !(data instanceof FormData) ? data.errorExit : undefined;
@@ -256,7 +263,7 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
         const isMessage = typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number";
         // 验证响应是否为标准的后端消息格式，并调用通用消息处理器。
         // processMessage 如果返回 true，表示该响应已通过校验且不属于拦截型系统消息（如 UI 重载或特定指令），应继续传递给业务回调处理。
-        if (isMessage && processMessage(response)) {
+        if (isMessage && processMessage(response, { fetchPost })) {
             cb(response);
             return;
         }
@@ -386,7 +393,7 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
             throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
         }
         release(); released = true;
-        processMessage(jsonResult);
+        processMessage(jsonResult, { fetchPost });
         return jsonResult;
     } catch (e) {
         if (!released) {

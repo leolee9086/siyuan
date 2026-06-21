@@ -7,13 +7,15 @@ import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
 import { Menus } from "../menus";
 import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "../util/file/pathName";
+import { exportLayout } from "../layout/layout-serialization";
 import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets, loadAssets } from "../util/assets/assets";
 import { bootSync, kernelError, lockScreen } from "../dialog/processSystem";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
-import { initMessage, showMessage } from "../dialog/message";
+import { hideMessage, initMessage, showMessage } from "../dialog/message";
+import { confirmDialog } from "../dialog/confirmDialog";
 import { goBack } from "./util/MobileBackFoward";
 import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";
 // S-forge: 新增 isInMobileApp 导入（来自远程）
@@ -25,7 +27,7 @@ import {
 } from "../protyle/util/compatibility";
 import { getCurrentEditor, openMobileFileById } from "./editor";
 import { getSearch } from "../util/platform/functions";
-import { checkPublishServiceClosed, processMessage } from "../util/network/processMessage";
+import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
 import { registerServiceWorker } from "../util/network/serviceWorker";
@@ -54,6 +56,8 @@ class App {
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
         this.appId = Constants.SIYUAN_APPID;
+        setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
+        const processMessage = createProcessMessage({ fetchPost });
         setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
         setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, openMobileFileById);
 

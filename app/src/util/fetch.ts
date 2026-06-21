@@ -2,7 +2,17 @@ import {Constants} from "../constants";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {processMessage} from "./network/processMessage";
-import {kernelError} from "./kernelFault";
+import { getSForgeState } from "../config/sforge.global";
+import { SForgeSymbols } from "../config/sforge.symbols";
+
+function handleKernelError(): void {
+    const handlers = getSForgeState(SForgeSymbols.MODEL_HANDLERS);
+    if (handlers?.kernelError) {
+        handlers.kernelError();
+        return;
+    }
+    console.warn("kernelError handler not registered");
+}
 
 export const fetchPost = (
     url: string,
@@ -89,7 +99,7 @@ export const fetchPost = (
             }
         }
         if (typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number") {
-            if (processMessage(response) && cb) {
+            if (processMessage(response, { fetchPost }) && cb) {
                 cb(response);
             }
         } else if (cb) {
@@ -109,7 +119,7 @@ export const fetchPost = (
         }
         console.warn("fetch post failed [" + e + "], url [" + url + "]");
         if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
-            kernelError();
+            handleKernelError();
             return;
         }
         const dataErrorExit = data && !(data instanceof FormData) ? data.errorExit : undefined;
@@ -137,7 +147,7 @@ export const fetchSyncPost = async (url: string, data?: any, headers?: Record<st
     }
     const res = await fetch(url, init);
     const res2 = await res.json() as IWebSocketData;
-    processMessage(res2);
+    processMessage(res2, { fetchPost });
     return res2;
 };
 

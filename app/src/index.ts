@@ -8,6 +8,7 @@ import { addScript, addScriptSync } from "./protyle/util/addScript";
 import { genUUID } from "./util/platform/genID";
 import { fetchGet, fetchPost } from "./util/network/fetch";
 import { addBaseURL, getIdFromSYProtocol, isSYProtocol, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
+import { exportLayout } from "./layout/layout-serialization";
 // S-forge: 上游新增 - 支持空文档标题显示 (upstream #17110)
 import { getDocDisplayName } from "./util/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";
@@ -26,12 +27,13 @@ import { downloadProgress } from "./dialog/processSystem/downloadProgress";
 import { setTitle } from "./dialog/processSystem/setTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
-import { initMessage, showMessage } from "./dialog/message";
+import { hideMessage, initMessage, showMessage } from "./dialog/message";
+import { confirmDialog } from "./dialog/confirmDialog";
 import { getAllModels, getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { getSearch } from "./util/platform/functions";
-import { checkPublishServiceClosed, processMessage } from "./util/network/processMessage";
+import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "./util/network/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
 import { loadPlugins, reloadPlugin } from "./plugin/loader";
 import "./assets/scss/base.scss";
@@ -66,6 +68,8 @@ export class App {
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
 
+        setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
+        const processMessage = createProcessMessage({ fetchPost });
         // 注册 Model WebSocket 处理器，打断 Model ↔ processSystem/processMessage 循环依赖
         setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
 
