@@ -1,7 +1,6 @@
 import {Constants} from "../constants";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import {processMessage} from "./network/processMessage";
 import {kernelError} from "./kernelFault";
 
@@ -113,13 +112,12 @@ export const fetchPost = (
             kernelError();
             return;
         }
-        /// #if !BROWSER
-        if (url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
-            ["/api/system/setUILayout"].includes(url) && data.errorExit // 内核中断，点关闭处理
-        )) {
-            ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
+        const dataErrorExit = data && !(data instanceof FormData) ? data.errorExit : undefined;
+        if (isElectron && (url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
+            ["/api/system/setUILayout"].includes(url) && dataErrorExit // 内核中断，点关闭处理
+        ))) {
+            ipcSend(Constants.SIYUAN_QUIT, location.port);
         }
-        /// #endif
     });
 };
 

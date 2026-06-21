@@ -2,12 +2,8 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";
-/// #if !MOBILE
 import {getActiveTab} from "../../layout/tabUtil";
-/// #endif
-/// #if MOBILE
-import {getCurrentEditor} from "../../mobile/editor";
-/// #endif
+import {isMobile} from "../../util/platform/functions";
 
 // 本地镜像：按 rootID 缓存 {canUndo, canRedo}，按钮态零 fetch 读取。
 // 在编辑（add 落点）、撤销/重做响应、WS 广播（context.undoState）时更新。
@@ -79,26 +75,23 @@ export const refreshUndoButtons = (protyle: IProtyle) => {
 };
 
 export const getActiveProtyle = (): IProtyle => {
-    /// #if MOBILE
-    const editor = getCurrentEditor();
-    return editor?.protyle;
-    /// #else
+    if (isMobile()) {
+        const editor = window.siyuan.mobile?.popEditor || window.siyuan.mobile?.editor;
+        return editor?.protyle;
+    }
     const activeTab = getActiveTab();
     const model = activeTab?.model;
     if (model && (model as any).editor?.protyle) {
         return (model as any).editor.protyle;
     }
     // 兜底：搜索/反链/自定义编辑器中聚焦的那个
-    /// #if !MOBILE
     const allProtyle = (window as any).siyuan?.blockPanels || [];
     for (const panel of allProtyle) {
         if (panel.element && document.activeElement && panel.element.contains(document.activeElement)) {
             return panel.editor?.protyle;
         }
     }
-    /// #endif
     return undefined;
-    /// #endif
 };
 
 // 解析 rootID 列表为文档名，用于跨文档撤销确认提示

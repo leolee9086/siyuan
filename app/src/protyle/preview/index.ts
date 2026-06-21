@@ -7,14 +7,11 @@ import {getDiagramBlock, previewDiagram} from "./diagram";
 import {needSubscribe} from "../../util/platform/needSubscribe";
 import {Constants} from "../../constants";
 import {getSearch, isMobile} from "../../util/functions";
-/// #if !BROWSER
-import {shell} from "electron";
-/// #endif
-/// #if !MOBILE
+import {isElectron} from "../../platform";
+import {openExternal} from "../../platform/electron/shell";
 import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
 import {getAllModels} from "../../layout/getAll";
-/// #endif
 import {fetchPost} from "../../util/fetch";
 import {processRender} from "../util/processCode";
 import {highlightRender} from "../render/highlightRender";
@@ -96,7 +93,6 @@ export class Preview {
                     event.stopPropagation();
                     event.preventDefault();
                     if (isLocalPath(linkAddress)) {
-                        /// #if !MOBILE
                         if (isOnlyMeta(event)) {
                             openBy(linkAddress, "folder");
                         } else if (event.shiftKey) {
@@ -104,15 +100,14 @@ export class Preview {
                         } else if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname((linkAddress).split("?")[0]))) {
                             openAsset(protyle.app, linkAddress.split("?page")[0], parseInt(getSearch("page", linkAddress)));
                         }
-                        /// #endif
                     } else {
-                        /// #if !BROWSER
-                        shell.openExternal(linkAddress).catch((e) => {
-                            showMessage(e);
-                        });
-                        /// #else
-                        window.open(linkAddress);
-                        /// #endif
+                        if (isElectron) {
+                            openExternal(linkAddress).catch((e) => {
+                                showMessage(e);
+                            });
+                        } else {
+                            window.open(linkAddress);
+                        }
                     }
                     break;
                 } else if (target.tagName === "IMG") {
@@ -155,17 +150,15 @@ export class Preview {
                     item.classList.remove("selected");
                 });
                 nodeElement.classList.add("selected");
-                /// #if !MOBILE
-                if (protyle.model) {
+                if (isMobile()) {
+                    window.siyuan.mobile.docks.outline?.setCurrentByPreview(nodeElement);
+                } else if (protyle.model) {
                     getAllModels().outline.forEach(item => {
                         if (item.blockId === protyle.block.rootID) {
                             item.setCurrentByPreview(nodeElement);
                         }
                     });
                 }
-                /// #else
-                window.siyuan.mobile.docks.outline?.setCurrentByPreview(nodeElement);
-                /// #endif
                 const diagramElement = getDiagramBlock(nodeElement);
                 if (diagramElement) {
                     previewDiagram(diagramElement);

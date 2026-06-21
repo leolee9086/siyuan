@@ -357,6 +357,6 @@ func InstallBazaarPackageFromLocalZip(zipPath, originalFilename, packageType str
 	_ = os.Chtimes(installPath, now, now)
 	bazaar.SetPackageInstallTime(installedType, packageName, now)
 
-	afterInstallBazaarPackage(installedType, packageName, update, themeMode)
+	finishInstall(installedType, []batchInstallItem{{name: packageName, meta: installMeta{update: update}}}, themeMode)
 	return
 }

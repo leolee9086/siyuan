@@ -1,6 +1,6 @@
 import { addScript } from "../util/addScript";
 import { Constants } from "../../constants";
-import { focusByOffset } from "../util/selection";
+import { focusByTextOffset } from "../util/selection.textOffset";
 import { setCodeTheme } from "../../util/assets/setCodeTheme";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { escapeHtml } from "../../util/DOM/escape";
@@ -111,7 +111,7 @@ export const highlightRender = (element: Element, cdn = Constants.PROTYLE_CDN, z
                         ignoreIllegals: true
                     }).value;
                 if (wbrElement && getSelection().rangeCount > 0) {
-                    focusByOffset(block, startIndex, startIndex);
+                    focusByTextOffset(block, startIndex, startIndex);
                 }
             });
         });

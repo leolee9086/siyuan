@@ -2,12 +2,12 @@ import { addScript } from "../util/addScript";
 import { Constants } from "../../constants";
 import { genIconHTML } from "./util";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { looseJsonParse } from "../../util/lib/code/looseJsonParse";
 import { genUUID } from "../../util/platform/genID";
 import { addStyle } from "../util/addStyle";
 import { getAbcjsInstance } from "./abc/abcRender.environment";
 import { isAbcRenderParams } from "./abc/abcRender.guard";
 import type { AbcRenderParams } from "./abcRender.types";
+import { parseRenderOption } from "./parseRenderOption";
 
 const ABCJS_PARAMS_KEY = "%%params";
 
@@ -30,8 +30,8 @@ const getAbcParams = async (abcString: string) => {
         return DEFAULT_ABC_PARAMS;
     }
     try {
-        const result = await looseJsonParse(firstLine.substring(ABCJS_PARAMS_KEY.length));
-        // looseJsonParse 返回 unknown，需要运行时验证是否包含 responsive 字段
+        const result = parseRenderOption(firstLine.substring(ABCJS_PARAMS_KEY.length));
+        // 渲染参数解析返回 unknown，需要运行时验证是否包含 responsive 字段
         if (isAbcRenderParams(result)) {
             return result;
         }

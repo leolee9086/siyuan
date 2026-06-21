@@ -311,7 +311,7 @@ func Serve(fastMode bool, cookieKey string) {
 
 			// 打开 magi 界面
 			time.Sleep(500 * time.Millisecond) // 稍微延迟避免同时打开
-			magiURL := fmt.Sprintf("http://127.0.0.1:%s/stage/build/magi-desktop/", port)
+			magiURL := fmt.Sprintf("http://127.0.0.1:%s/stage/build/magi-desktop/?r=%s", port, gulu.Rand.String(7))
 			if err := util.OpenBrowser(magiURL); err != nil {
 				logging.LogWarnf("failed to open magi browser: %s", err)
 			} else {

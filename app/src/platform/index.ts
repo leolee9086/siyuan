@@ -1,7 +1,7 @@
 /**
  * 运行时平台检测模块
  *
- * 替代编译时 `/// #if BROWSER` / `/// #if MOBILE` 条件编译指令，
+ * 替代编译时 BROWSER / MOBILE 条件编译分支，
  * 提供类型安全的运行时平台检测。
  *
  * 检测逻辑基于现有代码库中已验证的模式：
@@ -40,14 +40,14 @@ function detectPlatform() {
 /** 当前运行平台，模块加载时确定，不可变 */
 export const platform: Platform = detectPlatform();
 
-/** 是否运行在浏览器环境（非 Electron），等价于原 `/// #if BROWSER` */
+/** 是否运行在浏览器环境（非 Electron），等价于原 BROWSER 分支 */
 export const isBrowser: boolean = platform !== "electron";
 
-/** 是否运行在移动端，等价于原 `/// #if MOBILE` */
+/** 是否运行在移动端，等价于原 MOBILE 分支 */
 export const isMobile: boolean = platform === "browser-mobile";
 
-/** 是否运行在 Electron 桌面端，等价于原 `/// #if !BROWSER` */
+/** 是否运行在 Electron 桌面端，等价于原非 BROWSER 分支 */
 export const isElectron: boolean = platform === "electron";
 
-/** 浏览器桌面端（非移动端的浏览器），等价于原 `/// #if BROWSER && !MOBILE` */
+/** 浏览器桌面端（非移动端的浏览器），等价于原 BROWSER 且非 MOBILE 分支 */
 export const isBrowserDesktop: boolean = platform === "browser-desktop";

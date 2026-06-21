@@ -21,7 +21,8 @@ import { countBlockWord } from "../../layout/status";
 import { dropEvent } from "../util/editorCommonEvent";
 import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";
-import { isBrowserDesktop } from "../../platform";
+import { isBrowserDesktop, isElectron } from "../../platform";
+import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { getAllModels } from "../../layout/getAll";
 import { stickyRow } from "../render/av/row";
 import { clearSelect } from "../util/clearSelect";
@@ -1516,9 +1517,9 @@ export class WYSIWYG {
                 return;
             }
             if (event.inputType === "historyUndo") {
-                /// #if !BROWSER
-                ipcRenderer.send(Constants.SIYUAN_CMD, "redo");
-                /// #endif
+                if (isElectron) {
+                    ipcSend(Constants.SIYUAN_CMD, "redo");
+                }
                 window.siyuan.menus.menu.remove();
                 return;
             }

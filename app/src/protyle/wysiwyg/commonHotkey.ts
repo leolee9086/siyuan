@@ -16,6 +16,7 @@ import {copyTextByType} from "../toolbar/util";
 import {hasClosestByTag, hasTopClosestByClassName} from "../util/hasClosest";
 import {removeEmbed} from "./removeEmbed";
 import {clearBlockElement} from "../util/clearSelect";
+import {isMobile} from "../../util/platform/functions";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     if (matchHotKey(window.siyuan.config.keymap.editor.general.netImg2LocalAsset.custom, event)) {
@@ -109,24 +110,24 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         event.stopPropagation();
         return true;
     }
-    /// #if !MOBILE
-    let matchCommand = false;
-    protyle.app.plugins.find(item => {
-        item.commands.find(command => {
-            if (command.editorCallback && matchHotKey(command.customHotkey, event)) {
-                matchCommand = true;
-                command.editorCallback(protyle);
+    if (!isMobile()) {
+        let matchCommand = false;
+        protyle.app.plugins.find(item => {
+            item.commands.find(command => {
+                if (command.editorCallback && matchHotKey(command.customHotkey, event)) {
+                    matchCommand = true;
+                    command.editorCallback(protyle);
+                    return true;
+                }
+            });
+            if (matchCommand) {
                 return true;
             }
         });
         if (matchCommand) {
             return true;
         }
-    });
-    if (matchCommand) {
-        return true;
     }
-    /// #endif
 };
 
 export const upSelect = (options: {

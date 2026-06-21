@@ -1,6 +1,4 @@
-/// #if !BROWSER
-import {shell} from "electron";
-/// #endif
+import {openExternal} from "../platform/electron/shell";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {getSearch, isMobile, isValidCustomAttrName} from "../util/functions";
 import {isLocalPath, movePathTo, moveToPath, pathPosix} from "../util/pathName";
@@ -19,10 +17,8 @@ import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
 import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
-/// #if !MOBILE
 import {openAsset} from "../editor/util.openAsset";
 import {openBy} from "../editor/utils.openBy";
-/// #endif
 import {rename, replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
@@ -35,6 +31,7 @@ import {hideElements} from "../protyle/ui/hideElements";
 import {Protyle} from "../protyle";
 import {getAllEditor} from "../layout/getAll";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
+import {isElectron} from "../platform";
 
 const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     inputElement.addEventListener("change", () => {
@@ -470,7 +467,7 @@ export const copySubMenu = (ids: string[], accelerator = true, focusElement?: El
             }
         }
     },
-        /// #if BROWSER
+        ...(!isElectron ? [
         {
             id: "copyWebURL",
             iconHTML: "",
@@ -482,7 +479,7 @@ export const copySubMenu = (ids: string[], accelerator = true, focusElement?: El
                 }
             }
         },
-        /// #endif
+        ] : []),
         {
             id: "copyHPath",
             iconHTML: "",
@@ -645,7 +642,7 @@ export const exportMd = (id: string) => {
                 exportImage(id);
             }
         },
-            /// #if !BROWSER
+            ...(isElectron ? [
             {
                 id: "exportPDF",
                 label: "PDF",
@@ -790,7 +787,7 @@ export const exportMd = (id: string) => {
                     }
                 }]
             },
-            /// #else
+            ] : [
             {
                 id: "exportPDF",
                 label: window.siyuan.languages.print,
@@ -835,24 +832,23 @@ export const exportMd = (id: string) => {
                     saveExport({type: "htmlmd", id});
                 }
             },
-            /// #endif
+            ])
         ]
     }).element;
 };
 
 export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     const submenu = [];
-    /// #if MOBILE
-    submenu.push({
-        id: isInAndroid() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
-        click: () => {
-            openByMobile(src);
-        }
-    });
-    /// #else
-    if (isLocalPath(src)) {
+    if (isMobile()) {
+        submenu.push({
+            id: isInAndroid() ? "useDefault" : "useBrowserView",
+            label: isInAndroid() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+            accelerator: showAccelerator ? window.siyuan.languages.click : "",
+            click: () => {
+                openByMobile(src);
+            }
+        });
+    } else if (isLocalPath(src)) {
         if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
             (!src.endsWith(".pdf") ||
                 (src.endsWith(".pdf") && !src.startsWith("file://")))
@@ -875,53 +871,81 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
                     openAsset(app, src.trim(), parseInt(getSearch("page", src)));
                 }
             });
-            /// #if !BROWSER
-            submenu.push({
-                id: "openByNewWindow",
-                label: window.siyuan.languages.openByNewWindow,
-                icon: "iconOpenWindow",
-                click() {
-                    openAssetNewWindow(src.trim());
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: window.siyuan.languages.showInFolder,
-                accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
-                click: () => {
-                    openBy(src, "folder");
-                }
-            });
-            submenu.push({
-                id: "useDefault",
-                label: window.siyuan.languages.useDefault,
-                accelerator: showAccelerator ? "⇧" + window.siyuan.languages.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            /// #endif
+            if (isElectron) {
+                submenu.push({
+                    id: "openByNewWindow",
+                    label: window.siyuan.languages.openByNewWindow,
+                    icon: "iconOpenWindow",
+                    click() {
+                        openAssetNewWindow(src.trim());
+                    }
+                });
+                submenu.push({
+                    id: "showInFolder",
+                    icon: "iconFolder",
+                    label: window.siyuan.languages.showInFolder,
+                    accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
+                    click: () => {
+                        openBy(src, "folder");
+                    }
+                });
+                submenu.push({
+                    id: "useDefault",
+                    label: window.siyuan.languages.useDefault,
+                    accelerator: showAccelerator ? "⇧" + window.siyuan.languages.click : "",
+                    click() {
+                        openBy(src, "app");
+                    }
+                });
+            }
         } else {
-            /// #if !BROWSER
+            if (isElectron) {
+                submenu.push({
+                    id: "useDefault",
+                    label: window.siyuan.languages.useDefault,
+                    accelerator: showAccelerator ? window.siyuan.languages.click : "",
+                    click() {
+                        openBy(src, "app");
+                    }
+                });
+                submenu.push({
+                    id: "showInFolder",
+                    icon: "iconFolder",
+                    label: window.siyuan.languages.showInFolder,
+                    accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
+                    click: () => {
+                        openBy(src, "folder");
+                    }
+                });
+            } else {
+                submenu.push({
+                    id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+                    label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+                    accelerator: showAccelerator ? window.siyuan.languages.click : "",
+                    click: () => {
+                        openByMobile(src);
+                    }
+                });
+            }
+        }
+    } else if (src) {
+        if (0 > src.indexOf(":")) {
+            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
+            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
+            src = `https://${src}`;
+        }
+        if (isElectron) {
             submenu.push({
                 id: "useDefault",
                 label: window.siyuan.languages.useDefault,
                 accelerator: showAccelerator ? window.siyuan.languages.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: window.siyuan.languages.showInFolder,
-                accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
                 click: () => {
-                    openBy(src, "folder");
+                    openExternal(src).catch((e) => {
+                        showMessage(e);
+                    });
                 }
             });
-            /// #else
+        } else {
             submenu.push({
                 id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
                 label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
@@ -930,37 +954,8 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
                     openByMobile(src);
                 }
             });
-            /// #endif
         }
-    } else if (src) {
-        if (0 > src.indexOf(":")) {
-            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
-            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
-            src = `https://${src}`;
-        }
-        /// #if !BROWSER
-        submenu.push({
-            id: "useDefault",
-            label: window.siyuan.languages.useDefault,
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
-            click: () => {
-                shell.openExternal(src).catch((e) => {
-                    showMessage(e);
-                });
-            }
-        });
-        /// #else
-        submenu.push({
-            id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-            label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
-            click: () => {
-                openByMobile(src);
-            }
-        });
-        /// #endif
     }
-    /// #endif
     if (onlyMenu) {
         return submenu;
     }

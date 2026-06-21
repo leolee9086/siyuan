@@ -8,11 +8,19 @@ import { setPanelFocus } from "./utils/setPanelFocus";
 import { Tab } from "./Tab";
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { clearWebFrameCache } from "../platform/electron/webFrame";
 import { newFile } from "../util/file/newFile";
-import { getFrontend } from "../util/platform/functions";
+import { getFrontend, isWindow } from "../util/platform/functions";
 import { App } from "../index";
-import { resizeTabs } from "./tabUtil";
+import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
+import { closeWindow } from "../window/closeWin";
+import { clearCounter } from "./status";
+import { getWndByLayout } from "./window-utils";
+import { saveLayout } from "./layout-serialization";
+import { setModelsHash } from "../window/setHeader";
+import { setTitle } from "../dialog/processSystem/setTitle";
 import { bindHeaderDragEvents, bindPanelDragEvents } from "./Wnd.drag";
 import {
     wndSwitchTab,
@@ -324,12 +332,10 @@ export class Wnd {
         if (window.siyuan.layout.centerLayout) {
             const wnd = getWndByLayout(window.siyuan.layout.centerLayout);
             if (!wnd) {
-                /// #if !BROWSER
-                if (isWindow()) {
+                if (isElectron && isWindow()) {
                     closeWindow(this.app);
                     return;
                 }
-                /// #endif
                 const wnd = new Wnd(this.app);
                 window.siyuan.layout.centerLayout.addWnd(wnd);
                 wnd.addTab(newCenterEmptyTab(this.app), false, false);
@@ -341,11 +347,11 @@ export class Wnd {
             setTabPosition();
             saveLayout();
         }
-        /// #if !BROWSER
-        webFrame.clearCache();
-        ipcRenderer.send(Constants.SIYUAN_CMD, "clearCache");
-        setModelsHash();
-        /// #endif
+        if (isElectron) {
+            clearWebFrameCache();
+            ipcSend(Constants.SIYUAN_CMD, "clearCache");
+            setModelsHash();
+        }
     };
 
     public removeTab(id: string, isBatchClose = false, animate = true, isSaveLayout = true) {

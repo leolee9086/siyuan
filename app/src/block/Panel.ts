@@ -4,13 +4,10 @@ import {genUUID} from "../util/genID";
 import {setPosition} from "../util/setPosition";
 import {hideElements} from "../protyle/ui/hideElements";
 import {Constants} from "../constants";
-/// #if !BROWSER
 import {openNewWindowById} from "../window/openNewWindow";
-/// #endif
-/// #if !MOBILE
 import {moveResize} from "../dialog/moveResize";
 import {openFileById} from "../editor/util";
-/// #endif
+import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";
 import {App} from "../index";
@@ -120,9 +117,9 @@ export class BlockPanel {
                             this.element.setAttribute("data-pin", "true");
                         }
                     } else if (type === "open") {
-                        /// #if !BROWSER
-                        openNewWindowById(this.refDefs[0].refID);
-                        /// #endif
+                        if (isElectron) {
+                            openNewWindowById(this.refDefs[0].refID);
+                        }
                     } else if (type === "stickTab") {
                         checkFold(this.refDefs[0].refID, (zoomIn, action) => {
                             openFileById({
@@ -143,14 +140,14 @@ export class BlockPanel {
                 target = target.parentElement;
             }
         });
-        /// #if !MOBILE
-        moveResize(this.element, () => {
-            const pinElement = this.element.firstElementChild.querySelector('[data-type="pin"]');
-            pinElement.setAttribute("aria-label", window.siyuan.languages.unpin);
-            pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
-            this.element.setAttribute("data-pin", "true");
-        });
-        /// #endif
+        if (!isMobile) {
+            moveResize(this.element, () => {
+                const pinElement = this.element.firstElementChild.querySelector('[data-type="pin"]');
+                pinElement.setAttribute("aria-label", window.siyuan.languages.unpin);
+                pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
+                this.element.setAttribute("data-pin", "true");
+            });
+        }
         this.render();
     }
 
@@ -245,10 +242,10 @@ export class BlockPanel {
         if (this.refDefs.length === 1) {
             openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.openInNewTab}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.openInNewTab.custom)}"><svg><use xlink:href="#iconOpen"></use></svg></span>
 <span class="fn__space"></span>`;
-            /// #if !BROWSER
-            openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
+            if (isElectron) {
+                openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
 <span class="fn__space"></span>`;
-            /// #endif
+            }
         }
         let html = `<div class="block__icons block__icons--menu">
     <span class="fn__space fn__flex-1 resize__move"></span>${openHTML}

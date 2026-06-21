@@ -1,5 +1,5 @@
-/** 用途：安全随机数生成。使用范围：genID 生成加密安全的 UUID。解耦评估：通过 imports.ts 转发。 */
-import { getRandomValues } from "./imports";
+/** 用途：安全随机数生成。使用范围：genID 生成加密安全的 UUID。解耦评估：直接依赖标准环境访问层。 */
+import { getRandomValues } from "../siyuanEnvironments/windowStandard.environment";
 
 /**
  * 生成加密安全的 UUID

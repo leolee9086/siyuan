@@ -8,9 +8,8 @@ import {setStorageVal} from "../protyle/util/compatibility";
 import {isMobile} from "../util/platform/functions";
 import {getAllEditor} from "../layout/getAll";
 import {unregisterAction} from "../layout/dock/frontendActions";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 
 export const uninstall = (app: App, name: string, isReload: boolean) => {
     app.plugins.find((plugin: Plugin, index) => {
@@ -91,16 +90,16 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
             });
             // rm style
             document.getElementById("pluginsStyle" + name)?.remove();
-            /// #if !BROWSER
-            plugin.commands.forEach(command => {
-                if (command.globalCallback && command.customHotkey) {
-                    ipcRenderer.send(Constants.SIYUAN_CMD, {
-                        cmd: "unregisterGlobalShortcut",
-                        accelerator: command.customHotkey
-                    });
-                }
-            });
-            /// #endif
+            if (isElectron) {
+                plugin.commands.forEach(command => {
+                    if (command.globalCallback && command.customHotkey) {
+                        ipcSend(Constants.SIYUAN_CMD, {
+                            cmd: "unregisterGlobalShortcut",
+                            accelerator: command.customHotkey
+                        });
+                    }
+                });
+            }
             return true;
         }
     });

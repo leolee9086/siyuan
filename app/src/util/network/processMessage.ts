@@ -53,11 +53,13 @@ import { fetchPost } from "./fetch";
  */
 import { getSiyuanStorage } from "./imports";
 /**
- * 用途：从 imports 转发确认对话框工具，用于 CronJob 鉴权时显示用户确认界面
+ * 用途：直接从 dialog/confirmDialog 导入确认对话框工具，用于 CronJob 鉴权时显示用户确认界面
  * 使用范围：仅在 cronjobAuthDependencies 依赖注入适配层中使用，传递给 handleCronjobAuthRequest
- * 解耦评估：已通过依赖注入方式解耦，confirmDialog 作为依赖对象传入 handleCronjobAuthRequest，当前导入仅用于构建依赖对象
+ * 解耦评估：已通过依赖注入方式解耦，confirmDialog 作为依赖对象传入 handleCronjobAuthRequest。
+ * 不使用 ./imports 转发层是因为存在循环依赖链 processMessage → imports → dialog/confirmDialog → dialog/imports → fetch → imports，
+ * Webpack 在循环依赖中返回未完成初始化的模块导出，导致 confirmDialog 为 undefined。
  */
-import { confirmDialog } from "./imports";
+import { confirmDialog } from "../../dialog/confirmDialog";
 /**
  * 用途：从 imports 转发 WebSocket 连接获取器，用于向内核发送鉴权响应
  * 使用范围：仅在 sendCronjobAuthResponse 中使用，用于获取 WebSocket 连接并发送鉴权响应消息

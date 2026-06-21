@@ -1,10 +1,8 @@
 import {Constants} from "../constants";
 import {addScript} from "../protyle/util/addScript";
 import {addStyle} from "../protyle/util/addStyle";
-/// #if !MOBILE
 import {getAllModels} from "../layout/getAll";
 import {exportLayout} from "../layout/util";
-/// #endif
 import {fetchPost} from "./fetch";
 import {
     isInAndroid,
@@ -17,7 +15,7 @@ import {
     isWin11
 } from "../protyle/util/compatibility";
 import {setCodeTheme} from "../protyle/render/util";
-import {getBackend, getFrontend} from "./functions";
+import {getBackend, getFrontend, isBrowser, isMobile} from "./functions";
 import {getWorkspaceName} from "./processTitle";
 
 export const loadAssets = (data: Config.IAppearance) => {
@@ -70,33 +68,31 @@ export const loadAssets = (data: Config.IAppearance) => {
     } else if (styleElement) {
         styleElement.remove();
     }
-    /// #if !MOBILE
-    getAllModels().graph.forEach(item => {
-        item.searchGraph(false);
-    });
-    const pdfTheme = window.siyuan.config.appearance.mode === 0 ? window.siyuan.storage[Constants.LOCAL_PDFTHEME].light :
-        window.siyuan.storage[Constants.LOCAL_PDFTHEME].dark;
-    document.querySelectorAll(".pdf__outer").forEach(item => {
-        const darkElement = item.querySelector("#pdfDark");
-        const lightElement = item.querySelector("#pdfLight");
-        if (pdfTheme === "dark") {
-            item.classList.add("pdf__outer--dark");
-            lightElement.classList.remove("toggled");
-            darkElement.classList.add("toggled");
-        } else {
-            item.classList.remove("pdf__outer--dark");
-            lightElement.classList.add("toggled");
-            darkElement.classList.remove("toggled");
-        }
-    });
-    /// #endif
+    if (!isMobile()) {
+        getAllModels().graph.forEach(item => {
+            item.searchGraph(false);
+        });
+        const pdfTheme = window.siyuan.config.appearance.mode === 0 ? window.siyuan.storage[Constants.LOCAL_PDFTHEME].light :
+            window.siyuan.storage[Constants.LOCAL_PDFTHEME].dark;
+        document.querySelectorAll(".pdf__outer").forEach(item => {
+            const darkElement = item.querySelector("#pdfDark");
+            const lightElement = item.querySelector("#pdfLight");
+            if (pdfTheme === "dark") {
+                item.classList.add("pdf__outer--dark");
+                lightElement.classList.remove("toggled");
+                darkElement.classList.add("toggled");
+            } else {
+                item.classList.remove("pdf__outer--dark");
+                lightElement.classList.add("toggled");
+                darkElement.classList.remove("toggled");
+            }
+        });
+    }
 
-    /// #if BROWSER
-    if (!window.webkit?.messageHandlers && !window.JSAndroid && !window.JSHarmony &&
+    if (isBrowser() && !window.webkit?.messageHandlers && !window.JSAndroid && !window.JSHarmony &&
         ("serviceWorker" in window.navigator) && ("caches" in window) && ("fetch" in window) && navigator.serviceWorker) {
         document.head.insertAdjacentHTML("afterbegin", `<meta name="theme-color" content="${getComputedStyle(document.body).getPropertyValue("--b3-body-background").trim()}">`);
     }
-    /// #endif
     setCodeTheme();
 
     const themeScriptElement = document.getElementById("themeScript");
@@ -176,17 +172,16 @@ export const initAssets = () => {
                     } catch (e) {
                         console.error("destroyTheme error: " + e);
                     }
-                } else {
-                    /// #if !MOBILE
+                } else if (!isMobile()) {
                     exportLayout({
                         cb() {
                             window.location.reload();
                         },
                         errorExit: false,
                     });
-                    /// #else
+                    return;
+                } else {
                     window.location.reload();
-                    /// #endif
                     return;
                 }
             }
@@ -318,7 +313,9 @@ export const setInlineStyle = async (set = true, servePath = "../../../") => {
 };
 
 export const setMode = (modeElementValue: number) => {
-    /// #if !MOBILE
+    if (isMobile()) {
+        return;
+    }
     let mode = modeElementValue;
     if (modeElementValue === 2) {
         if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
@@ -331,7 +328,6 @@ export const setMode = (modeElementValue: number) => {
         mode,
         modeOS: modeElementValue === 2,
     }));
-    /// #endif
 };
 
 const rgba2hex = (rgba: string) => {

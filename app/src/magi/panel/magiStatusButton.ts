@@ -15,7 +15,7 @@ export function 打开MAGI() {
         ipcSend(Constants.SIYUAN_OPEN_MAGI);
         return;
     }
-    window.open("/stage/build/magi-desktop/", "_blank");
+    window.open(`/stage/build/magi-desktop/?r=${Date.now()}`, "_blank");
 }
 
 /**

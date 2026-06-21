@@ -21,6 +21,7 @@ import { normalizeStoragePath } from "../util/file/pathName";
 import { Kernel } from "./kernel";
 import { registerAction } from "../layout/dock/frontendActions";
 import { ipcSend } from "../platform/electron/ipcRenderer";
+import { isElectron } from "../platform";
 
 export class Plugin {
     private app: App;
@@ -185,14 +186,12 @@ export class Plugin {
             console.error(`${this.name} - commands data is error and has been removed.`);
         } else {
             this.commands.push(command);
-            /// #if !BROWSER
-            if (command.globalCallback) {
+            if (isElectron && command.globalCallback) {
                 ipcSend(Constants.SIYUAN_CMD, {
                     cmd: "registerGlobalShortcut",
                     accelerator: command.customHotkey
                 });
             }
-            /// #endif
         }
     }
 

@@ -6,11 +6,8 @@ import {getSearch, isMobile} from "./functions";
 import {focusByRange} from "../protyle/util/selection";
 import {unicode2Emoji} from "../emoji";
 import {Constants} from "../constants";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
-/// #if !MOBILE
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import {showMessage} from "../dialog/message";
 import {isOnlyMeta, isWindows, setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 import {matchHotKey} from "../protyle/util/hotKey";
@@ -18,12 +15,13 @@ import {Menu} from "../plugin/Menu";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
+    if (!isElectron) {
+        return;
+    }
+    ipcSend(Constants.SIYUAN_CMD, {
         cmd,
         filePath: filePath
     });
-    /// #endif
 };
 
 export const getIdZoomInByPath = () => {
@@ -247,9 +245,9 @@ export const movePathTo = (options: {
 
     const inputElement = dialog.element.querySelector(".b3-text-field") as HTMLInputElement;
     inputElement.value = window.siyuan.storage[Constants.LOCAL_MOVE_PATH].k;
-    /// #if !MOBILE
-    inputElement.select();
-    /// #endif
+    if (!isMobile()) {
+        inputElement.select();
+    }
     const inputEvent = (event?: InputEvent) => {
         if (event && event.isComposing) {
             return;
@@ -608,9 +606,9 @@ export const movePathTo = (options: {
             }
             target = target.parentElement;
         }
-        /// #if !MOBILE
-        inputElement.focus();
-        /// #endif
+        if (!isMobile()) {
+            inputElement.focus();
+        }
     });
 };
 

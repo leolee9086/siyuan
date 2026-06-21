@@ -3,11 +3,9 @@ import {fetchPost} from "../network/fetch";
 import {isMobile} from "./functions";
 import {Constants} from "../../constants";
 import {pathPosix} from "../file/pathName";
-/// #if !MOBILE
 import {getDockByType} from "../../layout/tabUtil";
 import {Files} from "../../layout/dock/Files";
 import {Tag} from "../../layout/dock/Tag";
-/// #endif
 import {platform} from "../../platform";
 import {upDownHint} from "../DOM/upDownHint";
 import {escapeHtml} from "../DOM/escape";
@@ -65,12 +63,10 @@ export const renameTag = (labelName: string) => {
             if (platform === "browser-mobile") {
                 window.siyuan.mobile.docks.tag.update();
             }
-            /// #if !MOBILE
             if (platform !== "browser-mobile") {
                 const dockTag = getDockByType("tag");
                 (dockTag.data.tag as Tag).update();
             }
-            /// #endif
         });
     });
     const inputElement = dialog.element.querySelector("input");
@@ -144,7 +140,6 @@ export const setLocalShorthandCount = () => {
     if (platform === "browser-mobile") {
         fileElement = window.siyuan.mobile.docks.file.element;
     }
-    /// #if !MOBILE
     if (platform !== "browser-mobile") {
         const dockFile = getDockByType("file");
         if (!dockFile) {
@@ -152,7 +147,6 @@ export const setLocalShorthandCount = () => {
         }
         fileElement = (dockFile.data.file as Files).element;
     }
-    /// #endif
     const helpIDs: string[] = [];
     Object.keys(Constants.HELP_PATH).forEach((key) => {
         helpIDs.push(Constants.HELP_PATH[key]);

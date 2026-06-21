@@ -1,7 +1,6 @@
 import {addScript} from "../util/addScript";
 import {addStyle} from "../util/addStyle";
 import {Constants} from "../../constants";
-import {looseJsonParse} from "../../util/lib/code/looseJsonParse";
 import {getKatexRenderer, getKatexMacrosString} from "./mathRender.environment";
 import {isHTMLElement, isIObject} from "./mathRender.guard";
 import {
@@ -11,6 +10,7 @@ import {
     scaleInlineMathForExport,
 } from "./mathRender.helpers";
 import {genRenderFrame} from "./util";
+import {parseRenderOption} from "./parseRenderOption";
 
 /**
  * 收集需要渲染的数学公式元素
@@ -39,8 +39,8 @@ const EMPTY_MACROS: IObject = {};
  */
 async function parseMacros(): Promise<IObject> {
     try {
-        const result = await looseJsonParse(getKatexMacrosString() || "{}");
-        // looseJsonParse 返回 unknown，需要运行时验证是否为 IObject
+        const result = parseRenderOption(getKatexMacrosString() || "{}");
+        // 渲染参数解析返回 unknown，需要运行时验证是否为 IObject
         if (isIObject(result)) {
             return result;
         }

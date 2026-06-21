@@ -1,9 +1,9 @@
-/** 用途：应用常量定义。使用范围：setCodeTheme 使用 CDN 和主题列表。解耦评估：通过 imports.ts 转发。 */
-import { Constants } from "./imports";
-/** 用途：添加样式到文档。使用范围：setCodeTheme 动态加载 CSS。解耦评估：通过 imports.ts 转发。 */
-import { addStyle } from "./imports";
-/** 用途：安全读取思源配置。使用范围：setCodeTheme 读取代码主题配置。解耦评估：通过 imports.ts 转发。 */
-import { getSiyuanConfig } from "./imports";
+/** 用途：应用常量定义。使用范围：setCodeTheme 使用 CDN 和主题列表。解耦评估：直接依赖纯常量模块。 */
+import { Constants } from "../../constants";
+/** 用途：添加样式到文档。使用范围：setCodeTheme 动态加载 CSS。解耦评估：直接依赖纯 DOM 工具。 */
+import { addStyle } from "../../protyle/util/addStyle";
+/** 用途：安全读取思源配置。使用范围：setCodeTheme 读取代码主题配置。解耦评估：直接依赖环境访问层。 */
+import { getSiyuanConfig } from "../siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：HTMLLinkElement 类型守卫。使用范围：setCodeTheme DOM 类型检查。解耦评估：同目录守卫文件，直接同层导入。 */
 import { isHTMLLinkElement } from "./setCodeTheme.guard";
 

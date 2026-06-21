@@ -8,10 +8,33 @@
  */
 
 import {Constants} from "../../constants";
-import {hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import {hasClosestBlock} from "../util/hasClosest";
 import {genRenderFrame} from "./util";
 import {isHTMLElement, isHTMLElementNode} from "./mathRender.guard";
+
+const hasNextSibling = (element: Node) => {
+    let nextSibling = element.nextSibling;
+    while (nextSibling) {
+        if (nextSibling.textContent === "" && nextSibling.nodeType === Node.TEXT_NODE) {
+            nextSibling = nextSibling.nextSibling;
+        } else {
+            return nextSibling;
+        }
+    }
+    return false;
+};
+
+const hasPreviousSibling = (element: Node) => {
+    let previousSibling = element.previousSibling;
+    while (previousSibling) {
+        if (previousSibling.textContent === "" && previousSibling.nodeType === Node.TEXT_NODE) {
+            previousSibling = previousSibling.previousSibling;
+        } else {
+            return previousSibling;
+        }
+    }
+    return false;
+};
 
 /**
  * 渲染块级数学公式（DIV 元素）

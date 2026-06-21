@@ -1,4 +1,5 @@
 import {fetchPost} from "../util/fetch";
+import {isMobile} from "../util/platform/functions";
 
 function getDefaultModel() {
     const p = window.siyuan.config.ai.providers[0];
@@ -35,9 +36,7 @@ export const ai = {
         const prov = getDefaultProvider();
         const editing = getDefaultEditing();
         const agent = window.siyuan.config.ai.agent || {sessionTimeout: 600, confirmTimeout: 120, maxRetries: 3};
-        let responsiveHTML = "";
-        /// #if MOBILE
-        responsiveHTML = `<div class="b3-label">
+        const responsiveHTML = isMobile() ? `<div class="b3-label">
     ${window.siyuan.languages.apiBaseURL}
     <div class="fn__hr"></div>
     <input class="b3-text-field fn__block" id="apiBaseURL" value="${prov.baseURL || "https://api.openai.com/v1"}"/>
@@ -111,9 +110,7 @@ export const ai = {
     <div class="fn__hr"></div>
     <input class="b3-text-field fn__flex-center fn__block" type="number" step="1" min="0" max="10" id="agentMaxRetries" value="${agent.maxRetries || 3}"/>
     <div class="b3-label__text">${window.siyuan.languages.agentMaxRetriesTip || "Max API retry attempts on failure"}</div>
-</div>`;
-        /// #else
-        responsiveHTML = `<div class="fn__flex b3-label">
+</div>` : `<div class="fn__flex b3-label">
     <div class="fn__block">
         ${window.siyuan.languages.apiBaseURL}
         <div class="b3-label__text">${window.siyuan.languages.apiBaseURLTip}</div>
@@ -208,7 +205,6 @@ export const ai = {
     <span class="fn__space"></span>
     <input class="b3-text-field fn__flex-center fn__size200" type="number" step="1" min="0" max="10" id="agentMaxRetries" value="${agent.maxRetries || 3}"/>
 </div>`;
-        /// #endif
         return responsiveHTML;
     },
     bindEvent: () => {

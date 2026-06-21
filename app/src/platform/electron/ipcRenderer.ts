@@ -39,7 +39,7 @@ function getIpcRenderer() {
  * 向主进程发送异步消息（fire-and-forget）。
  *
  * 作用：封装 ipcRenderer.send，非 Electron 环境抛出错误
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 ipcRenderer.send 调用
+ * 意图：替代桌面端条件分支中的 ipcRenderer.send 调用
  * 调用时机：需要向主进程发送单向消息时
  */
 /** @同步豁免: 遗留代码 - 封装 Electron ipcRenderer.send 同步 fire-and-forget API */
@@ -51,7 +51,7 @@ export function ipcSend(channel: string, ...args: unknown[]): void {
  * 向主进程发送消息并等待异步响应。
  *
  * 作用：封装 ipcRenderer.invoke，非 Electron 环境抛出错误
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 ipcRenderer.invoke 调用
+ * 意图：替代桌面端条件分支中的 ipcRenderer.invoke 调用
  * 调用时机：需要从主进程获取返回值时
  */
 export async function ipcInvoke<T = unknown>(channel: string, ...args: unknown[]): Promise<T> {
@@ -62,7 +62,7 @@ export async function ipcInvoke<T = unknown>(channel: string, ...args: unknown[]
  * 向主进程发送同步消息并阻塞等待响应。
  *
  * 作用：封装 ipcRenderer.sendSync，非 Electron 环境抛出错误
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 ipcRenderer.sendSync 调用
+ * 意图：替代桌面端条件分支中的 ipcRenderer.sendSync 调用
  * 调用时机：需要同步获取主进程响应时（如对话框）
  */
 /** @同步豁免: 遗留代码 - 封装 Electron ipcRenderer.sendSync 阻塞式 API，语义上必须同步 */
@@ -74,7 +74,7 @@ export function ipcSendSync(channel: string, ...args: unknown[]): unknown {
  * 监听主进程发来的消息。
  *
  * 作用：封装 ipcRenderer.on 的延迟加载
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 ipcRenderer.on 调用
+ * 意图：替代桌面端条件分支中的 ipcRenderer.on 调用
  * 调用时机：应用启动时注册 IPC 事件监听（仅 Electron 环境）
  *
  * @returns 清理函数，调用后移除监听

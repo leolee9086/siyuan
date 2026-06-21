@@ -38,7 +38,7 @@ function getShell() {
  * 使用系统默认方式打开外部 URL。
  *
  * 作用：封装 shell.openExternal 的延迟加载
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 shell.openExternal 调用
+ * 意图：替代桌面端条件分支中的 shell.openExternal 调用
  * 调用时机：需要打开外部链接时（仅 Electron 环境）
  *
  * @throws 非 Electron 环境下抛出错误
@@ -51,7 +51,7 @@ export async function openExternal(url: string) {
  * 使用系统默认方式打开本地路径。
  *
  * 作用：封装 shell.openPath 的延迟加载
- * 意图：替代 `/// #if !BROWSER` 条件编译中的 shell.openPath 调用
+ * 意图：替代桌面端条件分支中的 shell.openPath 调用
  * 调用时机：需要打开本地文件或目录时（仅 Electron 环境）
  *
  * @throws 非 Electron 环境下抛出错误

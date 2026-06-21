@@ -20,6 +20,7 @@ import { fetchPost } from "./imports";
 import { openFileById } from "./imports";
 /** 用途：移动端通过 ID 打开文件。使用范围：移动端块跳转。解耦评估：通过 ./imports 转发。 */
 import { openMobileFileById } from "./imports";
+import { isMobile } from "./imports";
 /** 用途：国际化文案。使用范围：块类型名称。解耦评估：通过 ./imports 转发。 */
 import { siyuanI18n } from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：读取拼写检查配置。解耦评估：通过 ./imports 转发。 */
@@ -103,15 +104,18 @@ const handleBlockSiblingResponse = (
     if (!targetId) {
         return;
     }
-    /// #if !MOBILE
+    const action = targetId !== protyle.block.rootID && protyle.block.showAll ?
+        [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] :
+        [Constants.CB_GET_FOCUS];
+    if (isMobile) {
+        openMobileFileById(protyle.app, targetId, action);
+        return;
+    }
     openFileById({
         app: protyle.app,
         id: targetId,
-        action: targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]
+        action
     });
-    /// #else
-    openMobileFileById(protyle.app, targetId, targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]);
-    /// #endif
 };
 
 /**

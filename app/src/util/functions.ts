@@ -1,3 +1,5 @@
+import {isBrowser as runtimeIsBrowser, isElectron, platform} from "../platform";
+
 const CONTAINER_BACKEND_SET = new Set(["docker", "ios", "android", "harmony"]);
 
 export const isKernelInContainer = (): boolean => {
@@ -19,13 +21,12 @@ export const getBackend = () => {
 
 // "desktop" | "desktop-window" | "mobile" | "browser-desktop" | "browser-mobile"
 export const getFrontend = () => {
-    /// #if MOBILE
-    if (window.navigator.userAgent.startsWith("SiYuan/")) {
+    if (platform === "browser-mobile" && window.navigator.userAgent.startsWith("SiYuan/")) {
         return "mobile";
-    } else {
+    }
+    if (platform === "browser-mobile") {
         return "browser-mobile";
     }
-    /// #else
     if (window.navigator.userAgent.startsWith("SiYuan/")) {
         if (isWindow()) {
             return "desktop-window";
@@ -34,7 +35,6 @@ export const getFrontend = () => {
     } else {
         return "browser-desktop";
     }
-    /// #endif
 };
 
 export const isWindow = () => {
@@ -62,11 +62,7 @@ export const getSearch = (key: string, link = window.location.search) => {
 };
 
 export const isBrowser = () => {
-    /// #if BROWSER
-    return true;
-    /// #else
-    return false;
-    /// #endif
+    return runtimeIsBrowser;
 };
 
 export const isDynamicRef = (text: string) => {
@@ -111,11 +107,10 @@ export const duplicateNameAddOne = (name: string) => {
     return name;
 };
 
-/// #if !BROWSER
 // 红绿灯为原生控件不随缩放变化，缩小时按 zoom 补偿 --b3-toolbar-left-mac 避免与工具栏内容重叠 https://github.com/siyuan-note/siyuan/issues/9521
 export const setToolbarLeftMac = (zoom: number) => {
     // 非桌面端、非 macOS 不补偿（让 body--win32 的 class 规则生效）
-    if (!window.siyuan.config || getBackend() !== "darwin") {
+    if (!isElectron || !window.siyuan.config || getBackend() !== "darwin") {
         return;
     }
     // 全屏下红绿灯隐藏，清除内联补偿让 body--fullscreen 的 5px 生效
@@ -127,4 +122,3 @@ export const setToolbarLeftMac = (zoom: number) => {
     const base = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--b3-toolbar-left-mac")) || 74;
     document.body.style.setProperty("--b3-toolbar-left-mac", (base / zoom * .9) + "px");
 };
-/// #endif

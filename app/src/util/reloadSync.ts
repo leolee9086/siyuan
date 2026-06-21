@@ -9,6 +9,7 @@ import {getAllModels} from "../layout/getAll";
 import {setStorageVal} from "../protyle/util/compatibility";
 import type {Tab} from "../layout/Tab";
 import {setTitle} from "./processTitle";
+import {isMobile} from "./functions";
 
 export const reloadSync = (
     app: App,
@@ -22,32 +23,33 @@ export const reloadSync = (
     if (hideMsg) {
         hideMessage();
     }
-    /// #if MOBILE
-    if (window.siyuan.mobile.popEditor && window.siyuan.mobile.popEditor.protyle) {
-        if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
-            hideElements(["dialog"]);
-        } else {
-            window.siyuan.mobile.popEditor.reload(false, updateReadonly);
+    if (isMobile()) {
+        if (window.siyuan.mobile.popEditor && window.siyuan.mobile.popEditor.protyle) {
+            if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
+                hideElements(["dialog"]);
+            } else {
+                window.siyuan.mobile.popEditor.reload(false, updateReadonly);
+            }
         }
-    }
-    if (document.getElementById("empty").classList.contains("fn__none") &&
-        window.siyuan.mobile.editor && window.siyuan.mobile.editor.protyle) {
-        if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
-            setEmpty(app);
-        } else {
-            window.siyuan.mobile.editor.reload(false, updateReadonly);
-            fetchPost("/api/block/getDocInfo", {
-                id: window.siyuan.mobile.editor.protyle.block.rootID
-            }, (response) => {
-                setTitle(response.data.name);
-                window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
-            });
+        if (document.getElementById("empty").classList.contains("fn__none") &&
+            window.siyuan.mobile.editor && window.siyuan.mobile.editor.protyle) {
+            if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
+                setEmpty(app);
+            } else {
+                window.siyuan.mobile.editor.reload(false, updateReadonly);
+                fetchPost("/api/block/getDocInfo", {
+                    id: window.siyuan.mobile.editor.protyle.block.rootID
+                }, (response) => {
+                    setTitle(response.data.name);
+                    window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
+                });
+            }
         }
+        setNoteBook(() => {
+            window.siyuan.mobile.docks.file.init(false);
+        });
+        return;
     }
-    setNoteBook(() => {
-        window.siyuan.mobile.docks.file.init(false);
-    });
-    /// #else
     const allModels = getAllModels();
     const updateTitle = (rootID: string, tab: Tab, protyle?: IProtyle) => {
         fetchPost("/api/block/getDocInfo", {
@@ -132,5 +134,4 @@ export const reloadSync = (
             item.update();
         }
     });
-    /// #endif
 };

@@ -22,23 +22,17 @@ import {getParentBlock, getTopAloneElement} from "../wysiwyg/getBlock";
 import {updateListOrder} from "../wysiwyg/list.updateOrder";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {onGet} from "./onGet";
-/// #if !MOBILE
 import {getAllEditor} from "../../layout/getAll";
 import {updatePanelByEditor} from "../../editor/util";
-/// #endif
 import {blockRender} from "../render/blockRender";
-/// #else
 import {uploadFiles, uploadLocalFiles} from "../upload";
 import {insertHTML} from "./insertHTML";
-import {isBrowser} from "../../util/platform/functions";
+import {isBrowser, isMobile} from "../../util/platform/functions";
 import {hideElements} from "../ui/hideElements";
 import {insertAttrViewBlockAnimation} from "../render/av/row";
 import * as dayjs from "dayjs";
 import {zoomOut} from "../../menus/protyle";
-/// #if !BROWSER
-import {webUtils} from "electron";
 import {dragUpload} from "../render/av/asset";
-/// #endif
 import {addDragFill, getTypeByCellElement} from "../render/av/cell";
 import {processClonePHElement} from "../render/util";
 import {insertGalleryItemAnimation} from "../render/av/gallery/item";
@@ -224,25 +218,22 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                         sameElement.remove();
                     }
                 }
-                if (topSourceParentElement.classList.contains("sb") && getSbChildCount(topSourceParentElement) === 1) {
-                    // 拖拽后，sb 只剩下一个元素
-                    if (isSameDoc) {
-                        const sbData = await cancelSB(protyle, topSourceParentElement);
-                        doOperations.push(sbData.doOperations[0], sbData.doOperations[1]);
-                        undoOperations.push(sbData.undoOperations[1], sbData.undoOperations[0]);
-                    } else {
-                        /// #if !MOBILE
-                        const allEditor = getAllEditor();
-                        for (let i = 0; i < allEditor.length; i++) {
-                            if (allEditor[i].protyle.element.contains(topSourceParentElement)) {
-                                const otherSbData = await cancelSB(allEditor[i].protyle, topSourceParentElement);
-                                doOperations.push(otherSbData.doOperations[0], otherSbData.doOperations[1]);
-                                undoOperations.push(otherSbData.undoOperations[1], otherSbData.undoOperations[0]);
-                                // 全局撤销栈下跨文档移动为可逆条目，无需清空源编辑器历史
-                                break;
-                            }
+            if (topSourceParentElement.classList.contains("sb") && getSbChildCount(topSourceParentElement) === 1) {
+                // 拖拽后，sb 只剩下一个元素
+                if (isSameDoc) {
+                    const sbData = await cancelSB(protyle, topSourceParentElement);
+                    doOperations.push(sbData.doOperations[0], sbData.doOperations[1]);
+                    undoOperations.push(sbData.undoOperations[1], sbData.undoOperations[0]);
+                } else if (!isMobile()) {
+                    const allEditor = getAllEditor();
+                    for (let i = 0; i < allEditor.length; i++) {
+                        if (allEditor[i].protyle.element.contains(topSourceParentElement)) {
+                            const otherSbData = await cancelSB(allEditor[i].protyle, topSourceParentElement);
+                            doOperations.push(otherSbData.doOperations[0], otherSbData.doOperations[1]);
+                            undoOperations.push(otherSbData.undoOperations[1], otherSbData.undoOperations[0]);
+                            // 全局撤销栈下跨文档移动为可逆条目，无需清空源编辑器历史
+                            break;
                         }
-                        /// #endif
                     }
                 }
             } else if (oldSourceParentElement.classList.contains("sb") && getSbChildCount(oldSourceParentElement) === 1) {
@@ -251,8 +242,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                     const sbData = await cancelSB(protyle, oldSourceParentElement);
                     doOperations.push(sbData.doOperations[0], sbData.doOperations[1]);
                     undoOperations.push(sbData.undoOperations[1], sbData.undoOperations[0]);
-                } else {
-                    /// #if !MOBILE
+                } else if (!isMobile()) {
                     const allEditor = getAllEditor();
                     for (let i = 0; i < allEditor.length; i++) {
                         if (allEditor[i].protyle.element.contains(oldSourceParentElement)) {
@@ -263,33 +253,33 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                             break;
                         }
                     }
-                    /// #endif
                 }
             } else if (oldSourceParentElement.classList.contains("protyle-wysiwyg") && oldSourceParentElement.childElementCount === 0) {
-                /// #if !MOBILE
-                // 拖拽后，根文档原内容为空
-                getAllEditor().find(item => {
-                    if (item.protyle.element.contains(oldSourceParentElement)) {
-                        if (!item.protyle.block.showAll) {
-                            const newId = Lute.NewNodeID();
-                            doOperations.splice(0, 0, {
-                                action: "insert",
-                                id: newId,
-                                data: genEmptyElement(false, false, newId).outerHTML,
-                                parentID: item.protyle.block.parentID
-                            });
-                            undoOperations.splice(0, 0, {
-                                action: "delete",
-                                id: newId,
-                            });
-                        } else {
-                            zoomOut({protyle: item.protyle, id: item.protyle.block.rootID});
+                if (!isMobile()) {
+                    // 拖拽后，根文档原内容为空
+                    getAllEditor().find(item => {
+                        if (item.protyle.element.contains(oldSourceParentElement)) {
+                            if (!item.protyle.block.showAll) {
+                                const newId = Lute.NewNodeID();
+                                doOperations.splice(0, 0, {
+                                    action: "insert",
+                                    id: newId,
+                                    data: genEmptyElement(false, false, newId).outerHTML,
+                                    parentID: item.protyle.block.parentID
+                                });
+                                undoOperations.splice(0, 0, {
+                                    action: "delete",
+                                    id: newId,
+                                });
+                            } else {
+                                zoomOut({protyle: item.protyle, id: item.protyle.block.rootID});
+                            }
+                            return true;
                         }
-                        return true;
-                    }
-                });
-                /// #endif
+                    });
+                }
             }
+        }
         }
 
         if (newListId && (index === 0 ||

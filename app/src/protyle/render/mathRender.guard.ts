@@ -35,7 +35,7 @@ export function isHTMLElementNode(node: Node | false | null | undefined): node i
 /**
  * 检查 unknown 值是否为 IObject（字符串键值对对象）
  *
- * 作用：运行时类型守卫，将 looseJsonParse 返回的 unknown 安全窄化为 IObject
+ * 作用：运行时类型守卫，将渲染参数解析返回的 unknown 安全窄化为 IObject
  * 意图：替代 `as IObject` 断言，提供运行时安全检查
  * 调用时机：解析 KaTeX 宏配置后，需要传递给 KaTeX 渲染器前调用
  */

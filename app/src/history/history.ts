@@ -38,8 +38,8 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
         return;
     }
     let actionHTML = "";
-    /// #if MOBILE
-    if (type === "getCloudRepoTagSnapshots") {
+    if (isMobile()) {
+        if (type === "getCloudRepoTagSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="downloadSnapshot">
     <svg><use xlink:href="#iconDownload"></use></svg>
@@ -59,7 +59,7 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     ${window.siyuan.languages.remove}
 </span>
 <span class="fn__flex-1"></span>`;
-    } else if (type === "getCloudRepoSnapshots") {
+        } else if (type === "getCloudRepoSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="downloadSnapshot">
     <svg><use xlink:href="#iconDownload"></use></svg>
@@ -73,7 +73,7 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     ${window.siyuan.languages.downloadRollback}
 </span>
 <span class="fn__flex-1"></span>`;
-    } else if (type === "getRepoTagSnapshots") {
+        } else if (type === "getRepoTagSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="uploadSnapshot">
     <svg><use xlink:href="#iconUpload"></use></svg>
@@ -93,7 +93,7 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     ${window.siyuan.languages.remove}
 </span>
 <span class="fn__flex-1"></span>`;
-    } else if (type === "getRepoSnapshots") {
+        } else if (type === "getRepoSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="genTag">
     <svg><use xlink:href="#iconTag"></use></svg>
@@ -107,24 +107,24 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     ${window.siyuan.languages.rollback}
 </span>
 <span class="fn__flex-1"></span>`;
-    }
-    /// #else
-    if (type === "getCloudRepoTagSnapshots") {
+        }
+    } else {
+        if (type === "getCloudRepoTagSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${window.siyuan.languages.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadRollback" aria-label="${window.siyuan.languages.downloadRollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="removeCloudRepoTagSnapshot" aria-label="${window.siyuan.languages.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>`;
-    } else if (type === "getCloudRepoSnapshots") {
+        } else if (type === "getCloudRepoSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${window.siyuan.languages.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadRollback" aria-label="${window.siyuan.languages.downloadRollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>`;
-    } else if (type === "getRepoTagSnapshots") {
+        } else if (type === "getRepoTagSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="uploadSnapshot" aria-label="${window.siyuan.languages.upload}"><svg><use xlink:href="#iconUpload"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${window.siyuan.languages.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="removeRepoTagSnapshot" aria-label="${window.siyuan.languages.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>`;
-    } else if (type === "getRepoSnapshots") {
+        } else if (type === "getRepoSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="genTag" aria-label="${window.siyuan.languages.tagSnapshot}"><svg><use xlink:href="#iconTag"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${window.siyuan.languages.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>`;
+        }
     }
-    /// #endif
     let repoHTML = "";
     const isPhone = isMobile();
     const selectId: { id: string, time: string }[] = ["getRepoTagSnapshots", "getRepoSnapshots"].includes(type) ?
@@ -166,8 +166,8 @@ ${window.siyuan.languages.fileCount} ${item.count}<span class="fn__space"></span
 </div>
 ${statHTML}`;
         const hasSelected = selectId.find(subItem => subItem.id === item.id);
-        /// #if MOBILE
-        repoHTML += `<li class="b3-list-item${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
+        if (isPhone) {
+            repoHTML += `<li class="b3-list-item${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">
     ${infoHTML}
     <div class="fn__flex" style="height: 26px" data-type="repoitem"" data-id="${item.id}" data-tag="${item.tag}">
@@ -181,12 +181,12 @@ ${statHTML}`;
     </div>
 </div>
 </li>`;
-        /// #else
-        repoHTML += `<li class="b3-list-item b3-list-item--hide-action${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
+        } else {
+            repoHTML += `<li class="b3-list-item b3-list-item--hide-action${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">${infoHTML}</div>
 ${actionHTML}
 </li>`;
-        /// #endif
+        }
     });
     element.lastElementChild.innerHTML = `${repoHTML}`;
 };
@@ -206,8 +206,8 @@ const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
         hSize: string,
         updated: number
     }) => {
-        /// #if MOBILE
-        html += `<li class="b3-list-item" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
+        if (isMobile()) {
+            html += `<li class="b3-list-item" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
     <div class="fn__flex-1">
         <div style="padding-top:8px" class="b3-list-item__text">${escapeHtml(item.title)}</div>
         <div class="b3-list-item__meta">
@@ -234,8 +234,8 @@ const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
         </div>
     </div>
 </li>`;
-        /// #else
-        html += `<li class="b3-list-item b3-list-item--hide-action" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
+        } else {
+            html += `<li class="b3-list-item b3-list-item--hide-action" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
     <div class="fn__flex-1">
         <span class="b3-list-item__text">${escapeHtml(item.title)}</span>
         <div class="b3-list-item__meta">
@@ -256,7 +256,7 @@ const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
         <svg><use xlink:href="#iconUndo"></use></svg>
     </span>
 </li>`;
-        /// #endif
+        }
     });
     element.lastElementChild.innerHTML = html;
 };

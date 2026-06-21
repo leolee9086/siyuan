@@ -17,6 +17,7 @@ import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";
 import * as dayjs from "dayjs";
 import {sendNotification} from "../../plugin/platformUtils";
+import {isMobile} from "../../platform";
 import {
     bindThinkingCardToggle,
     createThinkingCardElement,
@@ -1204,13 +1205,13 @@ export class AgentChat extends Model {
     // this directly targets "user selected blocks here" regardless of which window has focus.
     // Falls back to the editor hosting the DOM selection, then the most-recently-activated tab.
     private captureEditorContext(): IEditorContext | undefined {
-        /// #if MOBILE
-        const mobEditor = window.siyuan.mobile.editor || window.siyuan.mobile.popEditor;
-        if (mobEditor?.protyle && !mobEditor.protyle.element.classList.contains("fn__none")) {
-            return this.readEditorContext(mobEditor);
+        if (isMobile) {
+            const mobEditor = window.siyuan.mobile?.editor || window.siyuan.mobile?.popEditor;
+            if (mobEditor?.protyle && !mobEditor.protyle.element.classList.contains("fn__none")) {
+                return this.readEditorContext(mobEditor);
+            }
+            return undefined;
         }
-        return undefined;
-        /// #else
         const allEditor = getAllEditor();
         if (!allEditor || allEditor.length === 0) {
             return undefined;
@@ -1277,7 +1278,6 @@ export class AgentChat extends Model {
             return merged;
         }
         return ctx;
-        /// #endif
     }
 
     private readEditorContext(editor: {

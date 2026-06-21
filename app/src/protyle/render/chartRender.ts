@@ -1,12 +1,12 @@
 import { addScript } from "../util/addScript";
 import { Constants } from "../../constants";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { looseJsonParse } from "../../util/lib/code/looseJsonParse";
 import { genIconHTML } from "./util";
 import { getEchartsInstanceById, initEcharts, disposeEcharts } from "../../util/siyuanEnvironments/echarts.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isHTMLDivElement } from "../../util/DOM/element.guard";
 import { isSeriesArray, isRecord } from "../../util/lib/code/object.guard";
+import { parseRenderOption } from "./parseRenderOption";
 
 /** 计算编辑器宽度 */
 const calcEditorWidth = (
@@ -133,7 +133,7 @@ const renderSingleChart = async (
         const lastChild = renderElement.lastElementChild;
         const instanceId = lastChild?.getAttribute("_echarts_instance_") ?? null;
         const chartInstance = getEchartsInstanceById(instanceId);
-        const option = await looseJsonParse(Lute.UnEscapeHTMLStr(dataContent));
+        const option = parseRenderOption(Lute.UnEscapeHTMLStr(dataContent));
         updateExistingChart(chartInstance, option);
         initNewChart(lastChild, option, width);
     } catch (error) {

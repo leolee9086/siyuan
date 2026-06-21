@@ -1127,24 +1127,24 @@ export class Gutter {
                 }
             }).element);
         } else {
-            /// #if !MOBILE
-            window.siyuan.menus.menu.append(new MenuItem({
-                id: "enter",
-                icon: "iconEnter",
-                accelerator: `${updateHotkeyTip(window.siyuan.config.keymap.general.enter.custom)}/${updateHotkeyTip("⌘" + window.siyuan.languages.click)}`,
-                label: window.siyuan.languages.openBy,
-                click: () => {
-                    checkFold(id, (zoomIn, action) => {
-                        openFileById({
-                            app: protyle.app,
-                            id,
-                            action,
-                            zoomIn
+            if (!isMobile()) {
+                window.siyuan.menus.menu.append(new MenuItem({
+                    id: "enter",
+                    icon: "iconEnter",
+                    accelerator: `${updateHotkeyTip(window.siyuan.config.keymap.general.enter.custom)}/${updateHotkeyTip("⌘" + window.siyuan.languages.click)}`,
+                    label: window.siyuan.languages.openBy,
+                    click: () => {
+                        checkFold(id, (zoomIn, action) => {
+                            openFileById({
+                                app: protyle.app,
+                                id,
+                                action,
+                                zoomIn
+                            });
                         });
-                    });
-                }
-            }).element);
-            /// #endif
+                    }
+                }).element);
+            }
         }
         if (!protyle.disabled) {
             window.siyuan.menus.menu.append(new MenuItem({
@@ -1253,20 +1253,20 @@ export class Gutter {
                 icon: "iconFont",
                 accelerator: window.siyuan.config.keymap.editor.insert.appearance.custom,
                 click: () => {
-                    /// #if MOBILE
-                    this.showMobileAppearance(protyle);
-                    /// #else
-                    protyle.toolbar.element.classList.add("fn__none");
-                    protyle.toolbar.subElement.innerHTML = "";
-                    protyle.toolbar.subElement.style.width = "";
-                    protyle.toolbar.subElement.style.padding = "";
-                    protyle.toolbar.subElement.append(appearanceMenu(protyle, [nodeElement]));
-                    protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-                    protyle.toolbar.subElement.classList.remove("fn__none");
-                    protyle.toolbar.subElementCloseCB = undefined;
-                    const position = nodeElement.getBoundingClientRect();
-                    setPosition(protyle.toolbar.subElement, position.left, position.top);
-                    /// #endif
+                    if (isMobile()) {
+                        this.showMobileAppearance(protyle);
+                    } else {
+                        protyle.toolbar.element.classList.add("fn__none");
+                        protyle.toolbar.subElement.innerHTML = "";
+                        protyle.toolbar.subElement.style.width = "";
+                        protyle.toolbar.subElement.style.padding = "";
+                        protyle.toolbar.subElement.append(appearanceMenu(protyle, [nodeElement]));
+                        protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
+                        protyle.toolbar.subElement.classList.remove("fn__none");
+                        protyle.toolbar.subElementCloseCB = undefined;
+                        const position = nodeElement.getBoundingClientRect();
+                        setPosition(protyle.toolbar.subElement, position.left, position.top);
+                    }
                 }
             }).element;
             window.siyuan.menus.menu.append(appearanceElement);

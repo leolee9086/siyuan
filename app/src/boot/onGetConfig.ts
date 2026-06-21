@@ -357,7 +357,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
     });
 
     if (isWindow()) {
-        const isAlwaysOnTop = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        const isAlwaysOnTop = await ipcInvoke(Constants.SIYUAN_GET, {
             cmd: "isAlwaysOnTop",
         });
         document.body.insertAdjacentHTML("beforeend", `<div class="toolbar__window">
@@ -380,7 +380,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         });
     }
 
-    const isFullScreen = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const isFullScreen = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "isFullScreen",
     });
     if (isFullScreen) {
@@ -388,7 +388,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
     }
     // 全屏状态恢复后再同步一次，避免启动时按缩放设置的补偿覆盖 body--fullscreen 的 5px
     setToolbarLeftMac(window.siyuan.storage[Constants.LOCAL_ZOOM]);
-    const isMaximized = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const isMaximized = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "isMaximized",
     });
     if (isMaximized) {

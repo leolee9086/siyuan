@@ -965,7 +965,7 @@ func (tx *Transaction) doLargeDelete(operations []*Operation) {
 	var ids []string
 	for _, operation := range operations {
 		deletedNode := tx.doDelete0(operation, tree)
-		ids = append(ids, deletedNode.BlockIDs()...)
+		ids = append(ids, deletedBlockIDs(deletedNode)...)
 	}
 	ids = gulu.Str.RemoveDuplicatedElem(ids)
 	treenode.RemoveBlockTreesByIDs(ids)
@@ -990,9 +990,25 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 	deletedNode := tx.doDelete0(operation, tree)
 	// 同步清理被删除容器块的索引节点及其子节点，否则删除列表/超级块等容器块后其子节点依然存在，ExistBlockTree 仍返回 true
 	// Improve editor state synchronization when deleting blocks https://github.com/siyuan-note/siyuan/issues/17742
-	deletedIDs := deletedNode.BlockIDs()
+	deletedIDs := deletedBlockIDs(deletedNode)
 	treenode.RemoveBlockTreesByIDs(deletedIDs)
 	tx.writeTree(tree)
+	return
+}
+
+func deletedBlockIDs(node *ast.Node) (ret []string) {
+	if nil == node {
+		return
+	}
+
+	ast.Walk(node, func(n *ast.Node, entering bool) ast.WalkStatus {
+		if !entering || !n.IsBlock() || "" == n.ID {
+			return ast.WalkContinue
+		}
+
+		ret = append(ret, n.ID)
+		return ast.WalkContinue
+	})
 	return
 }
 

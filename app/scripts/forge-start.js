@@ -50,8 +50,8 @@ function isPortAvailable(port) {
   // 启动命令
   console.log(`Starting forge mode on port ${port}...`);
   const startCmd = platform === 'win32'
-    ? `.\\${exeName} --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`
-    : `./${exeName} --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`;
+    ? `.\\${exeName} serve --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`
+    : `./${exeName} serve --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`;
 
   try {
     execSync(startCmd, {

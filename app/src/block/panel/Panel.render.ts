@@ -32,7 +32,7 @@ export async function 构建面板HTML(refDefs: IRefDefs[]) {
         openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openInNewTab}${updateHotkeyAfterTip(config.keymap?.editor?.general?.openInNewTab?.custom || "")}"><svg><use xlink:href="#iconOpen"></use></svg></span>
 <span class="fn__space"></span>`;
     }
-    // Electron 环境下追加"在新窗口打开"按钮（原 /// #if !BROWSER）
+    // Electron 环境下追加"在新窗口打开"按钮
     if (refDefs.length === 1 && isElectron) {
         openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
 <span class="fn__space"></span>`;

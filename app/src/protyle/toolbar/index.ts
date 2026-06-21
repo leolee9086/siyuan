@@ -271,12 +271,11 @@ export class Toolbar {
     }
 
     public isMultiSelectMode() {
-        let result = false;
-        /// #if MOBILE
-        result = !this.subElement.classList.contains("fn__none") &&
+        if (!isMobile) {
+            return false;
+        }
+        return !this.subElement.classList.contains("fn__none") &&
             !!this.subElement.querySelector('[data-type="exitMultiSelectMode"]');
-        /// #endif
-        return result;
     }
 
     /**

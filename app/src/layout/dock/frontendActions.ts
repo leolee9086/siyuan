@@ -45,8 +45,10 @@ export const unregisterAction = (name: string) => {
     actionRegistry.delete(name);
 };
 
-/// #if !MOBILE
-registerAction({
+const isMobileRuntime = () => Boolean(document.getElementById("sidebar"));
+
+if (!isMobileRuntime()) {
+    registerAction({
     name: "open_setting",
     handler: async (args, app) => {
         const query = (args.query as string | undefined)?.trim();
@@ -73,9 +75,9 @@ registerAction({
         }
         return {result: "Opened the settings panel."};
     },
-});
+    });
 
-registerAction({
+    registerAction({
     name: "focus_block",
     handler: async (args) => {
         const id = args.id as string | undefined;
@@ -101,9 +103,9 @@ registerAction({
         setTimeout(() => blockEl?.classList.remove("protyle-wysiwyg--hl"), 2000);
         return {result: `Focused block ${id} in the active editor.`};
     },
-});
+    });
 
-registerAction({
+    registerAction({
     name: "open_document",
     handler: async (args, app) => {
         const id = args.id as string | undefined;
@@ -121,9 +123,9 @@ registerAction({
             return {error: `Failed to open document ${id}: ${(e as Error).message}`};
         }
     },
-});
+    });
 
-registerAction({
+    registerAction({
     name: "open_search",
     handler: async (args, app) => {
         const query = (args.query as string | undefined)?.trim();
@@ -134,5 +136,5 @@ registerAction({
         await openSearch({app, hotkey: Constants.DIALOG_GLOBALSEARCH, key: query});
         return {result: query ? `Opened search dialog with query "${query}".` : "Opened search dialog."};
     },
-});
-/// #endif
+    });
+}
