@@ -90,7 +90,7 @@ function createAssetInputMenuItem(
                 }
                 const value = event.target.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
                 videoElement.setAttribute("src", value);
-                updateTransaction(protyle, id, nodeElement.outerHTML, currentHtml);
+                updateTransaction(protyle, nodeElement, currentHtml);
                 currentHtml = nodeElement.outerHTML;
                 event.stopPropagation();
             });

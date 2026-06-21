@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/88250/gulu"
+	"github.com/88250/lute/ast"
 	"github.com/88250/lute/html"
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/logging"
@@ -309,6 +310,27 @@ func setBlockReminder(c *gin.Context) {
 	}
 }
 
+func setCloudReminder(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	id := arg["id"].(string)
+	timed := arg["timed"].(string) // yyyyMMddHHmmss
+	content := arg["content"].(string)
+	err := model.SetCloudReminder(id, content, timed)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		ret.Data = map[string]any{"closeTimeout": 7000}
+		return
+	}
+}
+
 func getUnfoldedParentID(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -352,13 +374,26 @@ func checkBlockExist(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	b, err := model.GetBlock(id, nil)
-	if errors.Is(err, model.ErrIndexing) {
-		ret.Code = 0
-		ret.Data = false
+	ret.Data = treenode.ExistBlockTree(id)
+}
+
+func checkBlocksExist(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
 		return
 	}
-	ret.Data = nil != b
+
+	idsArg := arg["ids"].([]interface{})
+	var ids []string
+	for _, idArg := range idsArg {
+		if id, idOk := idArg.(string); idOk && ast.IsNodeIDPattern(id) {
+			ids = append(ids, id)
+		}
+	}
+	ret.Data = treenode.ExistBlockTrees(ids)
 }
 
 func getDocInfo(c *gin.Context) {
@@ -736,13 +771,14 @@ func getBlockInfo(c *gin.Context) {
 	rootTitle := root.IAL["title"]
 	rootTitle = html.UnescapeString(rootTitle)
 	icon := root.IAL["icon"]
-	ret.Data = map[string]string{
-		"box":         block.Box,
-		"path":        block.Path,
-		"rootID":      block.RootID,
-		"rootTitle":   rootTitle,
-		"rootChildID": rootChildID,
-		"rootIcon":    icon,
+	ret.Data = map[string]any{
+		"box":            block.Box,
+		"path":           block.Path,
+		"rootID":         block.RootID,
+		"rootTitle":      rootTitle,
+		"rootTitleEmpty": root.IAL[model.NodeAttrTitleEmpty] == "true",
+		"rootChildID":    rootChildID,
+		"rootIcon":       icon,
 	}
 }
 

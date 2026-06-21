@@ -55,7 +55,7 @@ import { openExportPreviewTab } from "../../../export-preview/open";
  * @param id 文档 ID
  * @returns SiYuan 导出菜单项配置对象
  */
-export const createSiYuanZipExportMenuItem = (id: string): IMenu => ({
+export const createSiYuanZipExportMenuItem = (id: string) => ({
     id: "exportSiYuanZip",
     label: "SiYuan .sy.zip",
     icon: "iconSiYuan",
@@ -83,7 +83,7 @@ export const createSiYuanZipExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns Markdown 导出菜单项配置对象
  */
-export const createMarkdownZipExportMenuItem = (id: string): IMenu => ({
+export const createMarkdownZipExportMenuItem = (id: string) => ({
     id: "exportMarkdown",
     label: "Markdown .zip",
     icon: "iconMarkdown",
@@ -111,7 +111,7 @@ export const createMarkdownZipExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns 图片导出菜单项配置对象
  */
-export const createImageExportMenuItem = (id: string): IMenu => ({
+export const createImageExportMenuItem = (id: string) => ({
     id: "exportImage",
     label: siyuanI18n.image,
     icon: "iconImage",
@@ -136,7 +136,7 @@ export const createImageExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns PDF 导出菜单项配置对象
  */
-export const createPDFExportMenuItem = (id: string): IMenu => ({
+export const createPDFExportMenuItem = (id: string) => ({
     id: "exportPDF",
     label: "PDF",
     icon: "iconPDF",
@@ -158,7 +158,7 @@ export const createPDFExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns HTML (SiYuan) 导出菜单项配置对象
  */
-export const createHTMLSiYuanExportMenuItem = (id: string): IMenu => ({
+export const createHTMLSiYuanExportMenuItem = (id: string) => ({
     id: "exportHTML_SiYuan",
     label: "HTML (SiYuan)",
     iconClass: "ft__error",
@@ -181,7 +181,7 @@ export const createHTMLSiYuanExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns HTML (Markdown) 导出菜单项配置对象
  */
-export const createHTMLMarkdownExportMenuItem = (id: string): IMenu => ({
+export const createHTMLMarkdownExportMenuItem = (id: string) => ({
     id: "exportHTML_Markdown",
     label: "HTML (Markdown)",
     icon: "iconHTML5",
@@ -203,7 +203,7 @@ export const createHTMLMarkdownExportMenuItem = (id: string): IMenu => ({
  * @param id 文档 ID
  * @returns Word 导出菜单项配置对象
  */
-export const createWordExportMenuItem = (id: string): IMenu => ({
+export const createWordExportMenuItem = (id: string) => ({
     id: "exportWord",
     label: "Word .docx",
     icon: "iconDocx",

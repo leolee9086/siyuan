@@ -81,7 +81,7 @@ const getDocumentElement = async (
     blockId: string,
     isSetCurrent: boolean
 ): Promise<{ element: HTMLElement; notebookId: string } | null> => {
-    const response = await fetchSyncPost("api/block/getBlockInfo", { id: blockId });
+    const response = await fetchSyncPost("/api/block/getBlockInfo", { id: blockId });
     // API调用失败时返回null
     if (response.code === -1) {
         return null;

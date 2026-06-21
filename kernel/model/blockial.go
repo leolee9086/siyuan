@@ -19,6 +19,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +36,40 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-func SetBlockReminder(id string, timed string) (err error) {
+func SetCloudReminder(id, content, timed string) (err error) {
+	if !IsSubscriber() {
+		if "ios" == util.Container {
+			return errors.New(Conf.Language(122))
+		}
+		return errors.New(Conf.Language(29))
+	}
+
+	var timedMills int64
+	if "0" != timed {
+		t, e := dateparse.ParseIn(timed, time.Now().Location())
+		if nil != e {
+			return e
+		}
+		timedMills = t.UnixMilli()
+	}
+
+	content = strings.TrimSpace(content)
+	err = SetCloudBlockReminder(id, content, timedMills)
+	if err != nil {
+		return
+	}
+
+	if "0" == timed {
+		util.PushMsg(fmt.Sprintf(Conf.Language(109), content), 3000)
+	} else {
+		util.PushMsg(fmt.Sprintf(Conf.Language(101), time.UnixMilli(timedMills).Format("2006-01-02 15:04")), 5000)
+	}
+
+	IncSync()
+	return
+}
+
+func SetBlockReminder(id, timed string) (err error) {
 	if !IsSubscriber() {
 		if "ios" == util.Container {
 			return errors.New(Conf.Language(122))
@@ -68,6 +102,7 @@ func SetBlockReminder(id string, timed string) (err error) {
 	if ast.NodeDocument != node.Type && node.IsContainerBlock() {
 		node = treenode.FirstLeafBlock(node)
 	}
+
 	content := sql.NodeStaticContent(node, nil, false, false, false)
 	content = gulu.Str.SubStr(content, 128)
 	content = strings.ReplaceAll(content, editor.Zwsp, "")
@@ -243,6 +278,10 @@ func setNodeAttrs0(node *ast.Node, nameValues map[string]string) (oldAttrs map[s
 			}
 		}
 
+		if lowerName == "icon" && "" != value {
+			value = normalizeIconValue(value)
+		}
+
 		if "" == value {
 			// 删除属性
 			if name != lowerName {
@@ -313,6 +352,29 @@ func validateChars(name string, startIdx, n int) bool {
 		}
 	}
 	return true
+}
+
+func normalizeIconValue(value string) string {
+	if strings.ContainsAny(value, "./") {
+		return value
+	}
+
+	allASCII := true
+	for _, r := range value {
+		if r > 127 {
+			allASCII = false
+			break
+		}
+	}
+	if allASCII {
+		return value
+	}
+
+	var parts []string
+	for _, r := range value {
+		parts = append(parts, strconv.FormatInt(int64(r), 16))
+	}
+	return strings.Join(parts, "-")
 }
 
 func pushBlockAttrs(oldAttrs map[string]string, node *ast.Node) {

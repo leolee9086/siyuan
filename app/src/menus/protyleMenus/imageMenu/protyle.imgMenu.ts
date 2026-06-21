@@ -253,7 +253,7 @@ const 绑定菜单关闭回调 = (
             imgElement.setAttribute("alt", altInput.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
         }
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        updateTransaction(protyle, id, nodeElement.outerHTML, html);
+        updateTransaction(protyle, nodeElement, html);
     };
 };
 

@@ -25,6 +25,8 @@ export const promiseTransaction = () => {
     const protyle = window.siyuan.transactions[0].protyle;
     const doOperations = window.siyuan.transactions[0].doOperations;
     const undoOperations = window.siyuan.transactions[0].undoOperations;
+    // S-forge: 移植自上游 — skipSync 支持
+    const skipSync = window.siyuan.transactions[0].skipSync;
     // 1. * ;2. * ;3. a
     // 第一步请求没有返回前在 transaction 中会合并1、2步，此时第一步请求返回将被以下代码删除，在输入a时，就会出现 block not found，因此以下代码不能放入请求回调中
     window.siyuan.transactions.splice(0, 1);
@@ -44,6 +46,9 @@ export const promiseTransaction = () => {
             countBlockWord(ids, protyle.block.rootID, true);
         } else {
             promiseTransaction();
+        }
+        if (skipSync) {
+            return;
         }
         if (isMobile && ((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
             (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&

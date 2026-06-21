@@ -32,8 +32,8 @@ import {contentRendererRegistry} from "../../../registry/contentRenderer/Content
 import {isIPhone} from "../../util/compatibility";
 /** 用途：Safari 判断；使用范围：截图兼容预热分支；解耦评估：平台判断工具，保持直接调用可读性最佳。 */
 import {isSafari} from "../../util/compatibility";
-/** 用途：移动端打开导出文件；使用范围：导出完成后打开图片结果；解耦评估：平台适配能力，不适合在业务层重复实现。 */
-import {openByMobile} from "../../util/compatibility";
+/** 用途：保存导出文件；使用范围：导出完成后打开或保存图片结果；解耦评估：平台适配能力，不适合在业务层重复实现。 */
+import {saveExportFile} from "../../util/compatibility";
 /** 用途：写入本地存储；使用范围：保存导出图片选项；解耦评估：存储基础能力，可注入但直接调用更简洁。 */
 import {setStorageVal} from "../../util/compatibility";
 /** 用途：Electron Shell 封装；使用范围：在文件夹中显示导出结果；解耦评估：平台能力封装，直接依赖是正确边界。 */
@@ -83,8 +83,8 @@ export {contentRendererRegistry};
 export {isIPhone};
 // 导出：Safari 判断
 export {isSafari};
-// 导出：移动端打开文件
-export {openByMobile};
+// 导出：保存导出文件
+export {saveExportFile};
 // 导出：存储写入
 export {setStorageVal};
 // 导出：Electron shell 封装

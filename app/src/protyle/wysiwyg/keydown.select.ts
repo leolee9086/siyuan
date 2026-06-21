@@ -1,6 +1,7 @@
 import { insertEmptyBlock } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
 import { isNotCtrl } from "../util/compatibility";
+import { isInEmbedBlock } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
 import { selectAll } from "../util/selection";
 import { editorContext } from "./types";
@@ -83,7 +84,8 @@ export const handleSelectedBlockInsertKeyMiddleware = (
 
 ) => {
     // 检查当前元素是否处于选中状态，且没有按下修饰键
-    if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey) {
+    if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey &&
+        !isInEmbedBlock(nodeElement)) {
         // 'a'键：在选中块之后插入新块（After）
         if (event.key.toLowerCase() === "a") {
             // 阻止事件冒泡和默认行为

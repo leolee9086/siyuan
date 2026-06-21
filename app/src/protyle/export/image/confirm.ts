@@ -14,8 +14,8 @@ import {isIPhone} from "./imports";
 import {isMobile} from "./imports";
 /** 用途：Safari 判断；使用范围：截图预热兼容逻辑；解耦评估：平台工具函数可复用。 */
 import {isSafari} from "./imports";
-/** 用途：移动端打开文件；使用范围：导出成功后打开生成文件；解耦评估：兼容层能力，避免业务重复实现。 */
-import {openByMobile} from "./imports";
+/** 用途：保存导出文件；使用范围：导出成功后打开或保存生成文件；解耦评估：兼容层能力，避免业务重复实现。 */
+import {saveExportFile} from "./imports";
 /** 用途：存储持久化；使用范围：保存导出选项；解耦评估：基础设施函数，直接调用最简洁。 */
 import {setStorageVal} from "./imports";
 /** 用途：展示消息；使用范围：导出进行中与失败提示；解耦评估：UI 基础能力直接调用。 */
@@ -59,14 +59,14 @@ const normalizeLineNumber = (previewElement: HTMLElement): void => {
  * 调用时机：截图 blob 生成完成后。
  * 问题/改进：当前后端接口只返回单文件 URL，后续可扩展批量上传接口减少往返次数。
  */
-const uploadExportImageBlob = async (blob: Blob, fileName: string): Promise<void> => {
+const uploadExportImageBlob = async (blob: Blob, fileName: string, msgId: string): Promise<void> => {
     const formData = new FormData();
     formData.append("file", blob, fileName);
     formData.append("type", "image/png");
 
     await new Promise<void>((resolve) => {
         fetchPost("/api/export/exportAsFile", formData, (response) => {
-            openByMobile(response.data.file);
+            saveExportFile(response.data.file, msgId);
             resolve();
         });
     });
@@ -93,7 +93,7 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
     await inlinePlantumlObjects(ctx.previewElement);
     normalizeLineNumber(ctx.previewElement);
 
-    await addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image");
+    await addScript(`${Constants.PROTYLE_CDN}/js/html-to-image.min.js?v=1.11.13`, "protyleHtml2image");
     const htmlToImage = await getHtmlToImage();
     if (!htmlToImage) {
         hideMessage(msgId);
@@ -113,17 +113,15 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
     // 选择了具体比例且内容被分页时，优先上传分页结果，避免再回退到整图导出。
     if (0 < ratioFiles.length) {
         for (const file of ratioFiles) {
-            await uploadExportImageBlob(file.blob, file.fileName);
+            await uploadExportImageBlob(file.blob, file.fileName, msgId);
         }
-        hideMessage(msgId);
         ctx.finish();
         return;
     }
 
     // 自动比例导出也必须截图带背景的画布节点，而不是外围内容容器。
     const blob = await htmlToImage.toBlob(ctx.exportImageElement);
-    await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
+    await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`, msgId);
 
-    hideMessage(msgId);
     ctx.finish();
 };

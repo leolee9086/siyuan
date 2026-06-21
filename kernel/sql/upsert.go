@@ -43,10 +43,9 @@ func init() {
 }
 
 const (
-	BlocksInsert                   = "INSERT INTO blocks (id, parent_id, root_id, hash, box, path, hpath, name, alias, memo, tag, content, fcontent, markdown, length, type, subtype, ial, sort, created, updated) VALUES %s"
-	BlocksFTSInsert                = "INSERT INTO blocks_fts (id, parent_id, root_id, hash, box, path, hpath, name, alias, memo, tag, content, fcontent, markdown, length, type, subtype, ial, sort, created, updated) VALUES %s"
-	BlocksFTSCaseInsensitiveInsert = "INSERT INTO blocks_fts_case_insensitive (id, parent_id, root_id, hash, box, path, hpath, name, alias, memo, tag, content, fcontent, markdown, length, type, subtype, ial, sort, created, updated) VALUES %s"
-	BlocksPlaceholder              = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	BlocksInsert      = "INSERT INTO blocks (id, parent_id, root_id, hash, box, path, hpath, name, alias, memo, tag, content, fcontent, markdown, length, type, subtype, ial, sort, created, updated) VALUES %s"
+	BlocksFTSInsert   = "INSERT INTO blocks_fts (id, parent_id, root_id, hash, box, path, hpath, name, alias, memo, tag, content, fcontent, markdown, length, type, subtype, ial, sort, created, updated) VALUES %s"
+	BlocksPlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 	SpansInsert      = "INSERT INTO spans (id, block_id, root_id, box, path, content, markdown, type, ial) VALUES %s"
 	SpansPlaceholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -130,27 +129,17 @@ func insertBlocks0(tx *sql.Tx, bulk []*Block, context map[string]any) (err error
 
 	// 捕获 blocks_fts 的 rowid，供后续 UPDATE 使用
 	var ftsLast int64
-	tx.QueryRow("SELECT last_insert_rowid()").Scan(&ftsLast)
-	ftsFirst := ftsLast - int64(len(bulk)) + 1
-
-	var ciFirst int64
-	if !caseSensitive {
-		stmt = fmt.Sprintf(BlocksFTSCaseInsensitiveInsert, strings.Join(valueStrings, ","))
-		if err = prepareExecInsertTx(tx, stmt, valueArgs); err != nil {
-			return
-		}
-
-		var ciLast int64
-		tx.QueryRow("SELECT last_insert_rowid()").Scan(&ciLast)
-		ciFirst = ciLast - int64(len(bulk)) + 1
+	if err = tx.QueryRow("SELECT last_insert_rowid()").Scan(&ftsLast); err != nil {
+		return
 	}
+	ftsFirst := ftsLast - int64(len(bulk)) + 1
 
 	// 存储 rowid 映射
 	blockIDs := make([]string, len(bulk))
 	for i, b := range bulk {
 		blockIDs[i] = b.ID
 	}
-	storeFTSRowIDs(blockIDs, ftsFirst, ciFirst)
+	storeFTSRowIDs(blockIDs, ftsFirst)
 
 	hashBuf.WriteString("fts")
 	evtHash = fmt.Sprintf("%x", sha256.Sum256(hashBuf.Bytes()))[:7]

@@ -1,5 +1,5 @@
 import {Constants} from "../../constants";
-import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
+import {hasClosestBlock, hasClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
 import {getSelectionOffset, getSelectionPosition} from "../util/selection";
 import {genHintItemHTML, hintSlash} from "./extend";
 import {setPosition} from "../../util/DOM/setPosition";
@@ -78,7 +78,8 @@ export function handleRender(hint: Hint, protyle: IProtyle) {
     // https://github.com/siyuan-note/siyuan/issues/5083
     if (hint.splitChar === "/" || hint.splitChar === "、") {
         clearTimeout(hint.timeId);
-        if (hint.enableSlash && !isMobile) {
+        const blockElement = hasClosestBlock(protyle.toolbar.range.startContainer);
+        if (hint.enableSlash && !isMobile && blockElement && !isInEmbedBlock(blockElement)) {
             hint.genHTML(hintSlash(key, protyle), protyle, false, "hint");
         }
         return;
@@ -118,7 +119,8 @@ export function getKey(hint: Hint, currentLineValue: string, extend: IHintExtend
         return undefined;
     }
     // 上一次提示没有结束时不能被其余提示干扰 https://github.com/siyuan-note/siyuan/issues/14324
-    if (!hint.element.classList.contains("fn__none") && prevSplit && prevSplit !== hint.splitChar) {
+    if (!hint.element.classList.contains("fn__none") && prevSplit && prevSplit !== hint.splitChar &&
+        !(["/", "、"].includes(prevSplit) && hint.splitChar === ":")) {
         hint.splitChar = prevSplit;
         hint.lastIndex = prevLastIndex;
     }

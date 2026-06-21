@@ -13,9 +13,9 @@ import { removeDocumentNode, incrementCounter, decrementCounter } from "./wsHand
 import { removeFromClosedList, createMountCallback, createCreateNotebookCallback } from "./wsHandlers.mount";
 import { handleSourceElementExists, handleSourceElementNotExists, updateTargetParentState } from "./wsHandlers.move";
 
-// ============================================================================
+// ----------------------------------------------------------------------------
 // handleUpdateDocInfo
-// ============================================================================
+// ----------------------------------------------------------------------------
 
 /**
  * 处理文档信息更新的WebSocket消息
@@ -57,9 +57,9 @@ export const handleUpdateDocInfo = (
     toggleElement?.classList.remove("fn__hidden");
 };
 
-// ============================================================================
+// ----------------------------------------------------------------------------
 // handleRemove
-// ============================================================================
+// ----------------------------------------------------------------------------
 
 /**
  * 从笔记本列表生成已关闭笔记本的HTML
@@ -172,6 +172,74 @@ const handleUnmount = (
 };
 
 /**
+ * 处理关闭笔记本时的UI更新
+ *
+ * @description
+ * 作用：从打开列表移除笔记本，并刷新已关闭笔记本列表
+ */
+/** @同步豁免: UI构建 - 需要同步更新DOM元素 */
+const handleCloseBox = (
+    element: HTMLElement,
+    closeElement: HTMLElement,
+    data: IWebSocketData,
+    genNotebook: (item: INotebook) => string
+): void => {
+    const boxId = data.data?.box;
+    if (!boxId) {
+        return;
+    }
+    const targetElement = element.querySelector(`ul[data-url="${boxId}"] li[data-path="${"/"}"]`);
+    if (!targetElement) {
+        return;
+    }
+
+    targetElement.parentElement?.remove();
+    setNoteBook((notebooks) => {
+        const closedListContainer = closeElement.lastElementChild;
+        if (closedListContainer) {
+            closedListContainer.innerHTML = generateClosedNotebooksHTML(notebooks, genNotebook);
+        }
+    });
+
+    const counterElement = closeElement.querySelector(".counter");
+    incrementCounter(counterElement);
+    closeElement.classList.remove("fn__none");
+};
+
+/**
+ * 处理移除笔记本时的UI更新
+ *
+ * @description
+ * 作用：从打开列表和已关闭列表中移除笔记本
+ */
+/** @同步豁免: UI构建 - 需要同步更新DOM元素 */
+const handleRemoveBox = (
+    element: HTMLElement,
+    closeElement: HTMLElement,
+    data: IWebSocketData
+): void => {
+    const boxId = data.data?.box;
+    if (!boxId) {
+        return;
+    }
+
+    const targetElement = element.querySelector(`ul[data-url="${boxId}"] li[data-path="${"/"}"]`);
+    targetElement?.parentElement?.remove();
+
+    const removeElement = closeElement.querySelector(`li[data-url="${boxId}"]`);
+    if (!removeElement) {
+        return;
+    }
+
+    removeElement.remove();
+    const counterElement = closeElement.querySelector(".counter");
+    const newCount = decrementCounter(counterElement);
+    if (newCount === "0") {
+        closeElement.classList.add("fn__none");
+    }
+};
+
+/**
  * 处理删除文档时的UI更新
  *
  * @description
@@ -198,7 +266,7 @@ const handleRemoveDoc = (element: HTMLElement, ids: string[]): void => {
  * 处理移除操作的WebSocket消息
  *
  * @description
- * 作用：处理笔记本卸载（unmount）和文档删除（removeDoc）的WebSocket消息
+ * 作用：处理笔记本卸载/关闭/移除和文档删除的WebSocket消息
  *
  * 意图：
  * - unmount：将笔记本从打开列表移动到已关闭列表，或完全删除
@@ -230,6 +298,16 @@ export function handleRemove(
         handleUnmount(element, closeElement, data, genNotebook);
         return;
     }
+
+    if (data.cmd === "closeBox") {
+        handleCloseBox(element, closeElement, data, genNotebook);
+        return;
+    }
+
+    if (data.cmd === "removeBox") {
+        handleRemoveBox(element, closeElement, data);
+        return;
+    }
     
     // 处理removeDoc命令：删除文档
     const ids = data.data?.ids;
@@ -241,9 +319,9 @@ export function handleRemove(
     handleRemoveDoc(element, ids);
 }
 
-// ============================================================================
+// ----------------------------------------------------------------------------
 // handleMount
-// ============================================================================
+// ----------------------------------------------------------------------------
 
 /**
  * 处理笔记本挂载的WebSocket消息
@@ -286,9 +364,9 @@ export function handleMount(
     setNoteBook(createMountCallback(element, data, genNotebook));
 }
 
-// ============================================================================
+// ----------------------------------------------------------------------------
 // handleMove
-// ============================================================================
+// ----------------------------------------------------------------------------
 
 /**
  * 处理文件移动操作的WebSocket消息
@@ -354,9 +432,9 @@ export const handleMove = (
     );
 };
 
-// ============================================================================
+// ----------------------------------------------------------------------------
 // handleCreateNotebook
-// ============================================================================
+// ----------------------------------------------------------------------------
 
 /**
  * 处理创建笔记本的WebSocket消息

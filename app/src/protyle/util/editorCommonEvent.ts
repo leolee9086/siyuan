@@ -15,7 +15,7 @@ import {
 } from "./hasClosest";
 import {Constants} from "../../constants";
 import {paste} from "./paste";
-import {genEmptyElement, genSBElement, insertEmptyBlock} from "../../block/util";
+import {genEmptyElement, genSBElement, getSbChildCount, insertEmptyBlock, refreshSbResize} from "../../block/util";
 import {cancelSB} from "../../block/util.cancelSB";
 import {transaction, turnsIntoOneTransaction} from "../wysiwyg/transaction";
 import {getParentBlock, getTopAloneElement} from "../wysiwyg/getBlock";
@@ -27,7 +27,8 @@ import {getAllEditor} from "../../layout/getAll";
 import {updatePanelByEditor} from "../../editor/util";
 /// #endif
 import {blockRender} from "../render/blockRender";
-import {uploadLocalFiles} from "../upload";
+/// #else
+import {uploadFiles, uploadLocalFiles} from "../upload";
 import {insertHTML} from "./insertHTML";
 import {isBrowser} from "../../util/platform/functions";
 import {hideElements} from "../ui/hideElements";
@@ -37,8 +38,6 @@ import {zoomOut} from "../../menus/protyle";
 /// #if !BROWSER
 import {webUtils} from "electron";
 import {dragUpload} from "../render/av/asset";
-/// #else
-import {uploadFiles} from "../upload";
 /// #endif
 import {addDragFill, getTypeByCellElement} from "../render/av/cell";
 import {processClonePHElement} from "../render/util";
@@ -67,6 +66,34 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
     let newListElement: Element;
     let newListId: string;
     const orderListElements: { [key: string]: Element } = {};
+    // 在 DOM 移动前显式捕获每个源块的位置，供 undoOperations 使用。
+    // 不能依赖循环内 getParentBlock(item)（移动后 item 的父已变），否则撤销会移到错误位置。
+    // 关键：对于文档顶层块，getParentBlock 返回 .protyle-wysiwyg 容器（无 data-node-id），
+    // 不能用目标 protyle 的 rootID（跨文档拖拽时这是错误的文档），必须用源 DOM 所属文档 rootID。
+    const sourcePositions = new Map<string, { previousID: string, parentID: string }>();
+    sourceElements.forEach(item => {
+        const id = item.getAttribute("data-node-id");
+        if (id) {
+            const parentBlock = getParentBlock(item);
+            let srcParentID = parentBlock?.getAttribute("data-node-id");
+            if (!srcParentID) {
+                // 顶层块：父是 .protyle-wysiwyg 容器（无 data-node-id）。
+                // 通过 getAllEditor 反查 item 所属的源 protyle，取其 block.rootID。
+                const sourceEditor = getAllEditor().find(editor =>
+                    editor.protyle.wysiwyg.element === parentBlock);
+                srcParentID = sourceEditor?.protyle?.block?.rootID || "";
+                if (!srcParentID) {
+                    // 兜底：找不到源编辑器时用目标 protyle 的 rootID（单文档场景正确，
+                    // 跨文档场景下虽不精确但优于空值导致 loadTree 失败）
+                    srcParentID = protyle.block.rootID;
+                }
+            }
+            sourcePositions.set(id, {
+                previousID: item.previousElementSibling?.getAttribute("data-node-id") || "",
+                parentID: srcParentID || "",
+            });
+        }
+    });
     for (let index = sourceElements.length - 1; index >= 0; index--) {
         const item = sourceElements[index];
         const id = item.getAttribute("data-node-id");
@@ -105,11 +132,13 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                 id: copyNewId,
             });
         } else {
+            // 用 DOM 移动前预捕获的源位置构造撤销操作，避免移动后 item 的父/兄弟已变导致撤销移到错误位置
+            const srcPos = sourcePositions.get(id) || {previousID: "", parentID};
             undoOperations.push({
                 action: "move",
                 id,
-                previousID: item.previousElementSibling?.getAttribute("data-node-id"),
-                parentID,
+                previousID: srcPos.previousID,
+                parentID: srcPos.parentID,
             });
         }
         if (!isSameDoc && !isCopy) {
@@ -195,7 +224,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                         sameElement.remove();
                     }
                 }
-                if (topSourceParentElement.classList.contains("sb") && topSourceParentElement.childElementCount === 2) {
+                if (topSourceParentElement.classList.contains("sb") && getSbChildCount(topSourceParentElement) === 1) {
                     // 拖拽后，sb 只剩下一个元素
                     if (isSameDoc) {
                         const sbData = await cancelSB(protyle, topSourceParentElement);
@@ -209,15 +238,14 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                                 const otherSbData = await cancelSB(allEditor[i].protyle, topSourceParentElement);
                                 doOperations.push(otherSbData.doOperations[0], otherSbData.doOperations[1]);
                                 undoOperations.push(otherSbData.undoOperations[1], otherSbData.undoOperations[0]);
-                                // 需清空操作栈，否则撤销到移动出去的块的操作会抛异常
-                                allEditor[i].protyle.undo.clear();
+                                // 全局撤销栈下跨文档移动为可逆条目，无需清空源编辑器历史
                                 break;
                             }
                         }
                         /// #endif
                     }
                 }
-            } else if (oldSourceParentElement.classList.contains("sb") && oldSourceParentElement.childElementCount === 2) {
+            } else if (oldSourceParentElement.classList.contains("sb") && getSbChildCount(oldSourceParentElement) === 1) {
                 // 拖拽后，sb 只剩下一个元素
                 if (isSameDoc) {
                     const sbData = await cancelSB(protyle, oldSourceParentElement);
@@ -231,8 +259,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                             const otherSbData = await cancelSB(allEditor[i].protyle, oldSourceParentElement);
                             doOperations.push(otherSbData.doOperations[0], otherSbData.doOperations[1]);
                             undoOperations.push(otherSbData.undoOperations[1], otherSbData.undoOperations[0]);
-                            // 需清空操作栈，否则撤销到移动出去的块的操作会抛异常
-                            allEditor[i].protyle.undo.clear();
+                            // 全局撤销栈下跨文档移动为可逆条目，无需清空源编辑器历史
                             break;
                         }
                     }
@@ -443,11 +470,13 @@ const dragSb = async (protyle: IProtyle, sourceElements: Element[], targetElemen
         doOperations.push(...foldOperations.doOperations);
         undoOperations.splice(0, 0, ...foldOperations.undoOperations);
     });
+    // 子块移入完成后刷新拖拽手柄 https://github.com/siyuan-note/siyuan/issues/9521
+    refreshSbResize(sbElement);
     if (isSameDoc || isCopy) {
         transaction(protyle, doOperations, undoOperations);
     } else {
-        // 跨文档或插入折叠标题下不支持撤销
-        transaction(protyle, doOperations);
+        // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
+        transaction(protyle, doOperations, undoOperations);
     }
     if (document.contains(sourceElements[0])) {
         focusBlock(sourceElements[0]);
@@ -525,8 +554,8 @@ const dragSame = async (protyle: IProtyle, sourceElements: Element[], targetElem
     if (isSameDoc || isCopy) {
         transaction(protyle, doOperations, undoOperations);
     } else {
-        // 跨文档或插入折叠标题下不支持撤销
-        transaction(protyle, doOperations);
+        // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
+        transaction(protyle, doOperations, undoOperations);
     }
     if ((newSourceParentElement.length > 1 || hasFoldHeading) &&
         newSourceParentElement[0].parentElement.classList.contains("sb") &&

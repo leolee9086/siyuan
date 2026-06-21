@@ -22,59 +22,109 @@ import { isElectronStyle } from "./init.guard";
  */
 import { isHTMLElement } from "./imports";
 
+type THorizontalRect = Pick<DOMRect, "left" | "right">;
+
+interface ITabPositionContext {
+    centerRect?: DOMRect;
+    isWindowMode: boolean;
+    onlyPadding: boolean;
+    toolbarDragElement: HTMLElement | null;
+    toolbarDragRect: THorizontalRect;
+}
+
 /** 处理单个窗口的标签页位置设置 */
-const processWndForTabPosition = (item: Wnd, onlyPadding = false) => {
+const processWndForTabPosition = (item: Wnd, context: ITabPositionContext) => {
+    const { centerRect, isWindowMode, onlyPadding, toolbarDragElement, toolbarDragRect } = context;
     const headerElement = item.headersElement.parentElement;
     if (!headerElement) {
         return;
     }
-    const rect = headerElement.getBoundingClientRect();
-
-    if (!onlyPadding) {
-        const dragElement = headerElement.querySelector<HTMLElement>(".item--readonly .fn__flex-1");
-        if (dragElement) {
-            const dragStyle = dragElement.style;
-            if (isElectronStyle(dragStyle)) {
-                dragStyle.WebkitAppRegion = "";
-            }
-            if (rect.top <= 0 && isElectronStyle(dragStyle)) {
-                dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
-                dragStyle.WebkitAppRegion = "drag";
-            }
-        }
+    if (headerElement.classList.contains("fn__none")) {
+        headerElement.classList.remove("fn__none");
     }
+    const rect = headerElement.getBoundingClientRect();
+    headerElement.style.paddingLeft = "";
+    item.headersElement.style.paddingLeft = "";
     const headersLastElement = headerElement.lastElementChild;
     if (!isHTMLElement(headersLastElement)) {
         return;
     }
+    headersLastElement.style.marginRight = "";
+    headersLastElement.style.paddingRight = "";
+    headerElement.style.visibility = "";
     const isDarwin = "darwin" === getSiyuanConfig().system.os;
-
-    // darwin 系统专用：处理左侧 padding
-    // 先设置默认值
-    item.headersElement.style.paddingLeft = "";
-    // 再根据条件覆盖
     // S-forge: 上游改进 (#16811) - 使用CSS类名判断全屏状态，替代异步IPC调用
     const isFullScreen = document.body.classList.contains("body--fullscreen");
-    // macOS 非全屏模式下，窗口贴近左上角时需要为系统红绿灯按钮预留空间
-    if (isDarwin && rect.top <= 0 && rect.left <= 0 && !isFullScreen) {
-        // 用 paddingLeft 为左侧红绿灯按钮预留空间
-        item.headersElement.style.paddingLeft = "var(--b3-toolbar-left-mac)";
+
+    if (rect.top <= 0) {
+        if (isWindowMode) {
+            if (isDarwin && rect.left <= 0 && !isFullScreen) {
+                item.headersElement.style.paddingLeft = "var(--b3-toolbar-left-mac)";
+            }
+            const isWindowRightEdge = rect.right + 8 >= getWindowInnerWidth();
+            if (isWindowRightEdge) {
+                headersLastElement.style.paddingRight = (42 * (isDarwin ? 1 : 4)) + "px";
+            } else if (isDarwin && rect.left <= 0 && !isFullScreen) {
+                headersLastElement.style.paddingRight = "42px";
+            }
+        } else if (centerRect && toolbarDragElement) {
+            if (rect.left > toolbarDragRect.left && rect.left === centerRect.left) {
+                toolbarDragElement.style.setProperty("--b3-toolbar-drag-left", rect.left - toolbarDragRect.left + "px");
+            } else if (rect.left < toolbarDragRect.left) {
+                headerElement.style.paddingLeft = (toolbarDragRect.left - rect.left) + "px";
+            }
+
+            if (rect.right < toolbarDragRect.right && rect.right === centerRect.right) {
+                toolbarDragElement.style.setProperty("--b3-toolbar-drag-right", toolbarDragRect.right - rect.right + "px");
+            } else if (rect.right > toolbarDragRect.right) {
+                if (rect.right - toolbarDragRect.right + 64 > rect.width) {
+                    headerElement.style.visibility = "hidden";
+                } else {
+                    headersLastElement.style.marginRight = (rect.right - toolbarDragRect.right) + "px";
+                }
+            }
+        }
     }
 
-    // 所有系统：处理右侧 padding
-    // 显示器缩放后像素存在小数点偏差 https://github.com/siyuan-note/siyuan/issues/7355
-    // 先设置默认值
-    headersLastElement.style.paddingRight = "";
-    // 再根据条件覆盖
-    const isWindowRightEdge = rect.top <= 0 && rect.right + 8 >= getWindowInnerWidth();
-    const needsDarwinLeftPadding = isDarwin && rect.top <= 0 && rect.left <= 0 && !isFullScreen;
-    // 窗口贴近右边缘时，为系统窗口控制按钮预留空间（macOS 1个按钮宽度，其他系统 4个按钮宽度）
-    if (isWindowRightEdge) {
-        headersLastElement.style.paddingRight = (42 * (isDarwin ? 1 : 4)) + "px";
+    if (onlyPadding) {
+        return;
     }
-    // macOS 特殊情况：窗口贴近左上角但不贴近右边缘时，仍需为右侧预留少量空间保持视觉平衡
-    if (!isWindowRightEdge && needsDarwinLeftPadding) {
-        headersLastElement.style.paddingRight = "42px";
+
+    item.element.classList.remove("layout__wnd--right", "layout__wnd--left", "layout__wnd--center");
+    const tabContainer = item.element.querySelector<HTMLElement>(".layout-tab-container");
+    if (tabContainer) {
+        tabContainer.style.backgroundColor = "";
+    }
+    const dragElement = headerElement.querySelector<HTMLElement>(".item--readonly .fn__flex-1");
+    if (!dragElement) {
+        return;
+    }
+    const readonlyBarElement = dragElement.parentElement?.parentElement;
+    if (!isHTMLElement(readonlyBarElement)) {
+        return;
+    }
+    const dragStyle = dragElement.style;
+    if (rect.top <= 0) {
+        item.element.classList.add("layout__wnd--center");
+        if (!isWindowMode && centerRect) {
+            if (rect.left - 1 <= centerRect.left) {
+                item.element.classList.add("layout__wnd--left");
+            }
+            if (rect.right + 1 >= centerRect.right) {
+                item.element.classList.add("layout__wnd--right");
+            }
+        }
+        readonlyBarElement.style.minWidth = "56px";
+        dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
+        if (isElectronStyle(dragStyle)) {
+            dragStyle.WebkitAppRegion = "drag";
+        }
+        return;
+    }
+    readonlyBarElement.style.minWidth = "";
+    dragElement.style.height = "";
+    if (isElectronStyle(dragStyle)) {
+        dragStyle.WebkitAppRegion = "";
     }
 };
 
@@ -98,18 +148,36 @@ const processWndForTabPosition = (item: Wnd, onlyPadding = false) => {
  *           从异步IPC调用改为同步CSS类名读取，无需异步
  */
 export const setTabPosition = (onlyPadding = false) => {
-    if (!isWindow()) {
+    const isWindowMode = isWindow();
+    if (!isWindowMode && !getSiyuanConfig().appearance.hideToolbar) {
         return;
     }
-    const layout = getSiyuanLayout().layout;
+    const siyuanLayout = getSiyuanLayout();
+    const layout = isWindowMode ? siyuanLayout.layout : siyuanLayout.centerLayout;
     if (!layout) {
         return;
     }
     const wndsTemp: Wnd[] = [];
     getAllWnds(layout, wndsTemp);
+    if (wndsTemp.length === 0) {
+        return;
+    }
+    const toolbarDragElement = document.getElementById("drag");
+    const toolbarDragRect = toolbarDragElement?.getBoundingClientRect() || { left: 0, right: 0 };
+    if (toolbarDragElement) {
+        toolbarDragElement.style.removeProperty("--b3-toolbar-drag-left");
+        toolbarDragElement.style.removeProperty("--b3-toolbar-drag-right");
+    }
+    const context: ITabPositionContext = {
+        centerRect: layout.element?.getBoundingClientRect(),
+        isWindowMode,
+        onlyPadding,
+        toolbarDragElement,
+        toolbarDragRect,
+    };
 
     for (const item of wndsTemp) {
-        processWndForTabPosition(item, onlyPadding);
+        processWndForTabPosition(item, context);
     }
 };
 

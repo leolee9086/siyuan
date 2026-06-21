@@ -2,7 +2,6 @@
  * 模板选择功能
  * 从 Toolbar 类中拆分出来以减少文件大小
  */
-import { Constants } from "../../constants";
 import { getSelectionPosition } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../platform";
@@ -20,6 +19,8 @@ import {
     设置点击事件
 } from "./showTpl/showTpl.handlers";
 import type { ITemplateState, IHandlerContext } from "./showTpl/showTpl.types";
+
+const LINE_HEIGHT = 32;
 
 /**
  * 显示模板选择面板
@@ -107,7 +108,7 @@ function 显示面板并加载数据(
 function 设置面板位置(subElement: HTMLElement, nodeElement: HTMLElement, range: Range): void {
     if (!isMobile) {
         const rangePosition = getSelectionPosition(nodeElement, range);
-        setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
+        setPosition(subElement, rangePosition.left, rangePosition.top + 18, LINE_HEIGHT);
         const firstChild = subElement.firstElementChild;
         if (firstChild instanceof HTMLElement) {
             const windowHeight = getWindowInnerHeight();

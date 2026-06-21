@@ -234,7 +234,6 @@ export function 创建关闭回调(
             textElement,
             types,
             protyle,
-            id,
             html
         } = 上下文;
 
@@ -257,7 +256,7 @@ export function 创建关闭回调(
         // 更新节点（上游 #17082: 仅在真正变更时才更新）
         if (nodeElement.outerHTML !== html) {
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, html);
+            updateTransaction(protyle, nodeElement, html);
         }
     };
 }

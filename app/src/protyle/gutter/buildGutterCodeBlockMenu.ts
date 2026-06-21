@@ -31,12 +31,6 @@ import { siyuanI18n } from "./imports";
  */
 import { showMessage } from "./imports";
 /**
- * 用途：隐藏消息提示对话框
- * 使用范围：导出完成后关闭提示
- * 解耦评估：UI 基础设施，与 showMessage 配对使用
- */
-import { hideMessage } from "./imports";
-/**
  * 用途：保存导出文件，触发 Electron 系统保存对话框或浏览器下载
  * 使用范围：代码块另存为文件操作
  * 解耦评估：平台兼容性工具，通过 imports.ts 网关导入
@@ -188,8 +182,7 @@ export const buildGutterCodeBlockMenu = (ctx: IGutterCodeBlockMenuContext) => {
         click() {
             const msgId = showMessage(siyuanI18n.exporting, -1);
             fetchPost("/api/export/exportCodeBlock", { id: ctx.id }, (response) => {
-                hideMessage(msgId);
-                saveExportFile(response.data.path);
+                saveExportFile(response.data.path, msgId);
             });
         }
     });

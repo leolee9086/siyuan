@@ -95,11 +95,6 @@ import { 处理ZoomOut焦点恢复 } from "./protyle.zoomOut.focus";
  */
 import type { ZoomOutOptions } from "./protyle.zoomOut.types";
 
-const ROOT_ACTION_PUSH = [Constants.CB_GET_FOCUS, Constants.CB_GET_HTML];
-const CHILD_ACTION_PUSH = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS, Constants.CB_GET_HTML];
-const ROOT_ACTION_NO_PUSH = [Constants.CB_GET_FOCUS, Constants.CB_GET_HTML, Constants.CB_GET_UNUNDO];
-const CHILD_ACTION_NO_PUSH = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS, Constants.CB_GET_UNUNDO, Constants.CB_GET_HTML];
-
 /**
  * 作用：补齐默认值，保持旧行为。
  * 意图：兼容未传参调用。
@@ -222,16 +217,17 @@ const 获取主文档请求大小 = (options: ZoomOutOptions): number => {
  * 问题/改进：动作仍是硬编码常量，后续可策略化。
  */
 const 获取主文档动作 = (options: ZoomOutOptions): string[] => {
-    if (options.id === options.protyle.block.rootID && options.isPushBack) {
-        return ROOT_ACTION_PUSH;
+    const action: string[] = [Constants.CB_GET_HTML];
+    if (!options.isPushBack) {
+        action.push(Constants.CB_GET_UNUNDO);
     }
-    if (options.isPushBack) {
-        return CHILD_ACTION_PUSH;
+    if (options.id !== options.protyle.block.rootID) {
+        action.push(Constants.CB_GET_ALL);
     }
-    if (options.id === options.protyle.block.rootID) {
-        return ROOT_ACTION_NO_PUSH;
+    if (options.focusId) {
+        action.push(Constants.CB_GET_FOCUS);
     }
-    return CHILD_ACTION_NO_PUSH;
+    return action;
 };
 
 /**

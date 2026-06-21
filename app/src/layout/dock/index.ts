@@ -24,7 +24,7 @@ import { setSizeForItem } from "./dock.size";
 import { handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
 /**
  * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
  * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠
@@ -177,7 +177,9 @@ export class Dock {
         if (fullscreenElement && fullscreenElement.clientHeight > 0) {
             return;
         }
-        if (document.activeElement && this.layout.element.contains(document.activeElement) && document.activeElement.classList.contains("b3-text-field")) {
+        if (document.activeElement && this.layout.element.contains(document.activeElement) &&
+            (document.activeElement.classList.contains("b3-text-field") ||
+                (document.activeElement as HTMLElement).getAttribute("contenteditable") === "true")) {
             return;
         }
         const dialogElement = document.querySelector(".b3-dialog") as HTMLElement;
@@ -240,12 +242,35 @@ export class Dock {
         }
         if (!isHideAction) {
             executeToggleShow(this, wndChild, target, type, index, isSaveLayout);
+            this.showDock();
         }
         executeUpdatePanelRelations(this, wndChild, index);
         resizeTabs(isSaveLayout);
-        this.showDock();
         if (target.classList.contains("dock__item--active") && !removeDock) {
             handleGraphShow(type, this);
+        }
+        if (this.pin) {
+            let rafId: number;
+            const updateTabPos = () => {
+                setTabPosition(true);
+                rafId = requestAnimationFrame(updateTabPos);
+            };
+            rafId = requestAnimationFrame(updateTabPos);
+
+            const onTransitionEnd = (event: TransitionEvent) => {
+                if (event.propertyName !== "width") {
+                    return;
+                }
+                cancelAnimationFrame(rafId);
+                this.layout.element.removeEventListener("transitionend", onTransitionEnd);
+                setTabPosition();
+            };
+            this.layout.element.addEventListener("transitionend", onTransitionEnd);
+            setWindowTimeout(() => {
+                cancelAnimationFrame(rafId);
+                this.layout.element.removeEventListener("transitionend", onTransitionEnd);
+                setTabPosition();
+            }, Constants.TIMEOUT_TRANSITION);
         }
     }
 

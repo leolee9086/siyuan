@@ -46,6 +46,9 @@ export const getSelectionPosition = (nodeElement: Element, range?: Range, useDir
                     let firstNode = range.startContainer.childNodes[range.startOffset] || range.startContainer.firstChild;
                     while (firstNode) {
                         if (firstNode.textContent === "" && firstNode.nodeType === 3) {
+                            if (!firstNode.previousSibling) {
+                                break;
+                            }
                             firstNode = firstNode.previousSibling;
                         } else {
                             break;
@@ -57,6 +60,9 @@ export const getSelectionPosition = (nodeElement: Element, range?: Range, useDir
                     let lastNode = range.startContainer.childNodes[range.startOffset] || range.startContainer.lastChild;
                     while (lastNode) {
                         if (lastNode.textContent === "" && lastNode.nodeType === 3) {
+                            if (!lastNode.previousSibling) {
+                                break;
+                            }
                             lastNode = lastNode.previousSibling;
                         } else {
                             break;
@@ -90,7 +96,9 @@ export const getSelectionPosition = (nodeElement: Element, range?: Range, useDir
         const rects = range.getClientRects(); // 由于长度过长折行，光标在行首时有多个 rects https://github.com/siyuan-note/siyuan/issues/6156
         if (range.toString()) {
             if (useDirect) {
-                const selection = window.getSelection();
+                const selection = window.getSelection() as Selection & {
+                    direction: "forward" | "backward" | "none"
+                };
                 // 判断选择方向
                 const isBackward = (selection && "direction" in selection && selection.direction !== "none") ?
                     selection.direction === "backward"

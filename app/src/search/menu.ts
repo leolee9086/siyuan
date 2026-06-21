@@ -375,16 +375,17 @@ export const queryMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => voi
             cb();
         }
     }).element);
-    // 语义搜索 method=4
-    window.siyuan.menus.menu.append(new MenuItem({
-        icon: "iconMindmap",  // 使用脑图图标表示语义/向量搜索
-        label: "语义搜索",    // TODO: 后续添加到 i18n
-        current: config.method === 4,
-        click() {
-            config.method = 4;
-            cb();
-        }
-    }).element);
+    if (window.siyuan.config.ai.embedding.enabled) {
+        window.siyuan.menus.menu.append(new MenuItem({
+            icon: "iconSparkles",
+            label: siyuanI18n.semanticSearch,
+            current: config.method === 4,
+            click() {
+                config.method = 4;
+                cb();
+            }
+        }).element);
+    }
 };
 
 
@@ -552,47 +553,60 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
                 replaceFilterMenu(config);
             }
         }).element);
+        const searchMethodSubmenu = [{
+            icon: "iconExact",
+            label: siyuanI18n.keyword,
+            current: config.method === 0,
+            click() {
+                config.method = 0;
+                config.page = 1;
+                updateSearchResult(config, element, true);
+            }
+        }, {
+            icon: "iconQuote",
+            label: siyuanI18n.querySyntax,
+            current: config.method === 1,
+            click() {
+                config.method = 1;
+                config.page = 1;
+                updateSearchResult(config, element, true);
+            }
+        }, {
+            icon: "iconDatabase",
+            label: "SQL",
+            current: config.method === 2,
+            click() {
+                config.method = 2;
+                config.page = 1;
+                updateSearchResult(config, element, true);
+            }
+        }, {
+            icon: "iconRegex",
+            label: siyuanI18n.regex,
+            current: config.method === 3,
+            click() {
+                config.method = 3;
+                config.page = 1;
+                updateSearchResult(config, element, true);
+            }
+        }];
+        if (window.siyuan.config.ai.embedding.enabled) {
+            searchMethodSubmenu.push({
+                icon: "iconSparkles",
+                label: siyuanI18n.semanticSearch,
+                current: config.method === 4,
+                click() {
+                    config.method = 4;
+                    config.page = 1;
+                    updateSearchResult(config, element, true);
+                }
+            });
+        }
         window.siyuan.menus.menu.append(new MenuItem({
             iconHTML: "",
             label: siyuanI18n.searchMethod,
             type: "submenu",
-            submenu: [{
-                icon: "iconExact",
-                label: siyuanI18n.keyword,
-                current: config.method === 0,
-                click() {
-                    config.method = 0;
-                    config.page = 1;
-                    updateSearchResult(config, element, true);
-                }
-            }, {
-                icon: "iconQuote",
-                label: siyuanI18n.querySyntax,
-                current: config.method === 1,
-                click() {
-                    config.method = 1;
-                    config.page = 1;
-                    updateSearchResult(config, element, true);
-                }
-            }, {
-                icon: "iconDatabase",
-                label: "SQL",
-                current: config.method === 2,
-                click() {
-                    config.method = 2;
-                    config.page = 1;
-                    updateSearchResult(config, element, true);
-                }
-            }, {
-                icon: "iconRegex",
-                label: siyuanI18n.regex,
-                current: config.method === 3,
-                click() {
-                    config.method = 3;
-                    config.page = 1;
-                    updateSearchResult(config, element, true);
-                }
-            }]
+            submenu: searchMethodSubmenu
         }).element);
     }
     const sortMenu = [{

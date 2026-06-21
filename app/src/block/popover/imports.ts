@@ -105,3 +105,36 @@ export { setSForgeState };
 import { getDOMPurify } from "../../util/siyuanEnvironments/getDOMPurify.environment";
 /** 导出 getDOMPurify，供 popover 模块使用 */
 export { getDOMPurify };
+/**
+ * 用途：在布局树中根据 ID 查找 Tab/Layout/Wnd 实例。
+ * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 需要获取 Tab 实例。
+ * 解耦评估：布局查找工具，通过参数传递即可，已充分解耦。
+ */
+import { getInstanceById } from "../../layout/util";
+/**
+ * 用途：编辑器类，表示一个打开的文档实例。
+ * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 需要检查模型是否为编辑器。
+ * 解耦评估：核心类，可通过接口解耦，但直接导入更合理。
+ */
+import { Editor } from "../../editor/index";
+/**
+ * 用途：标签页类，表示一个打开的标签页实例。
+ * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 需要获取标签页实例。
+ * 解耦评估：核心类，可通过接口解耦，但直接导入更合理。
+ */
+import { Tab } from "../../layout/Tab";
+/**
+ * 用途：转义小于号，用于安全显示 HTML。
+ * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 安全显示路径。
+ * 解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦。
+ */
+import { escapeLessThans } from "../../util/DOM/escape";
+
+// 布局工具导出
+export { getInstanceById };
+// 编辑器类导出
+export { Editor };
+// 标签页类导出
+export { Tab };
+// DOM 转义工具导出
+export { escapeLessThans };

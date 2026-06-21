@@ -101,7 +101,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
             currentRange.extractContents();
             focusByWbr(nodeElement, currentRange);
             focusByRange(currentRange);
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
         }
     }).element);
     return false;
@@ -145,7 +145,7 @@ const 添加行内编辑菜单 = (ctx: IInlineMenuContext): void => {
             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
             inlineElement.remove();
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
             focusByWbr(nodeElement, getProtyleToolbar(protyle).range ?? range);
         }
     }).element);
@@ -158,7 +158,7 @@ const 添加行内编辑菜单 = (ctx: IInlineMenuContext): void => {
             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
             inlineElement.remove();
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
             focusByWbr(nodeElement, getProtyleToolbar(protyle).range ?? range);
         }
     }).element);

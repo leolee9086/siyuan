@@ -139,6 +139,8 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
     } catch (error) {
         console.error(`plugin ${item.name} onload error:`, error);
     }
+    // S-forge: 移植上游 plugin.kernel.init() 调用
+    await validPlugin.kernel.init();
     return validPlugin;
 };
 

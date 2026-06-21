@@ -187,3 +187,8 @@ import { Dialog } from "../dialog";
 /** 导出 Dialog，供 dialog 目录复用。 */
 export { Dialog };
 
+/** 用途：获取工具栏高度，用于 moveResize 中的拖拽边界计算。使用范围：moveResize 中的位置/尺寸约束。解耦评估：布局查询被 environment 层封装。 */
+import { getTopBarHeight } from "../layout/getTopBarHeight";
+/** 导出 getTopBarHeight，供 moveResize 复用。 */
+export { getTopBarHeight };
+

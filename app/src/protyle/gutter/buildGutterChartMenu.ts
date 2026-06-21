@@ -16,14 +16,13 @@ function 处理图表高度变化(
     event: Event,
     nodeElement: Element,
     protyle: IProtyle,
-    id: string,
     getCurrentHtml: () => string,
     setCurrentHtml: (html: string) => void
 ): void {
     const inputElement = event.target as HTMLInputElement;
     const newHeight = (inputElement.value || "420") + "px";
     (nodeElement as HTMLElement).style.height = newHeight;
-    updateTransaction(protyle, id, nodeElement.outerHTML, getCurrentHtml());
+    updateTransaction(protyle, nodeElement, getCurrentHtml());
     setCurrentHtml(nodeElement.outerHTML);
     event.stopPropagation();
 
@@ -45,7 +44,7 @@ function 处理图表高度变化(
  * 构建图表菜单(用于echarts/mindmap类型的代码块)
  */
 export function buildGutterChartMenu(context: IGutterChartMenuContext): IMenu {
-    const { protyle, nodeElement, id } = context;
+    const { protyle, nodeElement } = context;
 
     const height = (nodeElement as HTMLElement).style.height;
     let html = nodeElement.outerHTML;
@@ -68,7 +67,6 @@ export function buildGutterChartMenu(context: IGutterChartMenuContext): IMenu {
                             event,
                             nodeElement,
                             protyle,
-                            id,
                             () => html,
                             (newHtml) => {
  html = newHtml; 

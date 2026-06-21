@@ -182,9 +182,7 @@ const buildActionArray = (action: unknown): TProtyleAction[] => {
     return [...validActions, Constants.CB_GET_FOCUS];
 };
 
-// ========================================
-// 重导出 - 保持向后兼容
-// ========================================
+// 重导出，保持向后兼容
 
 export { dockToJSON, initInternalDock, JSONToDock } from "./dock-utils";
 export { saveLayout, exportLayout, getAllLayout, layoutToJSON } from "./layout-serialization";

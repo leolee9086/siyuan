@@ -17,9 +17,11 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/88250/gulu"
@@ -230,6 +232,19 @@ func checkoutRepo(c *gin.Context) {
 	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("id", &id, true, true)) {
 		return
 	}
+
+	var sessionID string
+	util.ParseJsonArgs(arg, ret, util.BindJsonArg("sessionID", &sessionID, true, false))
+	if sessionID != "" {
+		markerDir := filepath.Join(util.TempDir, "ai", "agent")
+		os.MkdirAll(markerDir, 0755)
+		markerPath := filepath.Join(markerDir, "agentRollback_"+sessionID+".json")
+		marker := map[string]string{"sessionID": sessionID, "snapshotID": id}
+		if data, err := json.Marshal(marker); err == nil {
+			os.WriteFile(markerPath, data, 0644)
+		}
+	}
+
 	model.CheckoutRepo(id)
 }
 
@@ -485,7 +500,7 @@ func createSnapshot(c *gin.Context) {
 	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("memo", &memo, true, false)) {
 		return
 	}
-	if err := model.IndexRepo(memo); err != nil {
+	if _, err := model.IndexRepo(memo); err != nil {
 		ret.Code = -1
 		ret.Msg = fmt.Sprintf(model.Conf.Language(140), err)
 		ret.Data = map[string]any{"closeTimeout": 5000}

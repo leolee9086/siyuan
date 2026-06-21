@@ -21,7 +21,7 @@ export const 提交尺寸事务并关闭菜单 = (
     html: string
 ) => {
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, html);
+    updateTransaction(protyle, nodeElement, html);
     getSiyuanGlobalMenusMenu().remove();
     focusBlock(nodeElement);
 };

@@ -17,7 +17,6 @@ import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, se
 import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { getAllEditor } from "../layout/getAll";
 import { isEmojiArray, isTab } from "./init.guard";
-// S-forge: 采纳远程新增的 initNativeDialogOverride 导入
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
 import { isElectron } from "../platform";
 
@@ -109,9 +108,6 @@ export const init = async (app: App) => {
     const storage = getSiyuanStorage();
     setZoomFactor(storage[Constants.LOCAL_ZOOM]);
     const position = Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position;
-    if (position && getSiyuanConfig().appearance.hideToolbar) {
-        position.y += 5;
-    }
     ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
         zoom: storage[Constants.LOCAL_ZOOM],
@@ -121,7 +117,7 @@ export const init = async (app: App) => {
     fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
     initStatus(true);
     initWindow(app);
-    // S-forge: 采纳远程新增的原生对话框覆盖初始化，仅桌面端需要覆盖原生对话框
+    // S-forge: 仅桌面端覆盖原生对话框行为
     if (isElectron) {
         initNativeDialogOverride();
     }

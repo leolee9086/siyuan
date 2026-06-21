@@ -56,10 +56,22 @@ class App {
         this.appId = Constants.SIYUAN_APPID;
         setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
         setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, openMobileFileById);
+
+        const mainWs = new Model({app: this});
+        mainWs.connect({
+            id: genUUID(),
+            type: "main",
+            msgCallback: (data) => {
+                this.plugins.forEach((plugin) => {
+                    plugin.eventBus.emit("ws-main", data);
+                });
+                onMessage(this, data);
+            }
+        });
+
         window.siyuan = {
             zIndex: 10,
             notebooks: [],
-            transactions: [],
             reqIds: {},
             backStack: [],
             dialogs: [],
@@ -75,17 +87,7 @@ class App {
                     inbox: null,
                 }
             },
-            ws: new Model({
-                app: this,
-                id: genUUID(),
-                type: "main",
-                msgCallback: (data) => {
-                    this.plugins.forEach((plugin) => {
-                        plugin.eventBus.emit("ws-main", data);
-                    });
-                    onMessage(this, data);
-                }
-            })
+            ws: mainWs
         };
         // 不能使用 touchstart，否则会被 event.stopImmediatePropagation() 阻塞
         window.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {

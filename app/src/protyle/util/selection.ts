@@ -227,9 +227,9 @@ export const getSelectionOffset = (selectElement: Node, editorElement?: Element,
         preSelectionRange.selectNodeContents(selectElement);
     }
     preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    // 需加上表格内软换行 br 的长度
-    position.start = preSelectionRange.toString().length + preSelectionRange.cloneContents().querySelectorAll("br").length;
-    position.end = position.start + range.toString().length + range.cloneContents().querySelectorAll("br").length;
+    // 需加上表格内软换行 br 与表情的长度
+    position.start = preSelectionRange.toString().length + preSelectionRange.cloneContents().querySelectorAll("br, .emoji").length;
+    position.end = position.start + range.toString().length + range.cloneContents().querySelectorAll("br, .emoji").length;
     return position;
 };
 

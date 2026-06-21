@@ -1,13 +1,12 @@
-import { focusByRange } from "./selection";
-import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
-import { Constants } from "../../constants";
-import { isBrowser, isMobile, isElectron } from "../../platform";
-import { clipboardRead } from "../../platform/electron/clipboard";
-import { ipcInvoke, ipcSendSync } from "../../platform/electron/ipcRenderer";
-import { processSYLink } from "../../editor/openLink";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {focusByRange} from "./selection";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
+import {Constants} from "../../constants";
+import {isBrowser, isMobile, isElectron} from "../../platform";
+import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
+import {processSYLink} from "../../editor/openLink";
+import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
-import {showMessage} from "../../dialog/message";
+import {hideMessage, showMessage} from "../../dialog/message";
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
@@ -96,7 +95,7 @@ export const openByMobile = (uri: string) => {
     }
 };
 
-export const saveExportFile = async (uri: string) => {
+export const saveExportFile = async (uri: string, msgId?: string) => {
     if (!uri) {
         return;
     }
@@ -104,7 +103,7 @@ export const saveExportFile = async (uri: string) => {
         try {
             const resolved = new URL(uri, `${location.origin}/`);
             const pathSeg = resolved.pathname.substring(resolved.pathname.lastIndexOf("/") + 1);
-            let fileName;
+            let fileName: string;
             try {
                 fileName = decodeURIComponent(pathSeg);
             } catch {
@@ -119,18 +118,31 @@ export const saveExportFile = async (uri: string) => {
                 properties: ["showOverwriteConfirmation"],
             });
             if (result?.canceled || !result?.filePath) {
+                if (msgId) {
+                    hideMessage(msgId);
+                }
                 return;
             }
-            const response = await fetch(resolved.href);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status} ${response.statusText}: ${response.url || resolved.href}`);
+            const copyResponse = await (await fetch("/api/export/copyExportFile", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    srcPath: resolved.pathname,
+                    dest: result.filePath,
+                }),
+            })).json();
+            if (copyResponse.code !== 0) {
+                throw new Error(copyResponse.msg);
             }
-            const arrayBuffer = await response.arrayBuffer();
-            const fs = __non_webpack_require__("fs") as typeof import("fs");
-            fs.writeFileSync(result.filePath, Buffer.from(arrayBuffer));
+            if (msgId) {
+                hideMessage(msgId);
+            }
             showMessage(siyuanI18n.exported);
             return;
         } catch (e) {
+            if (msgId) {
+                hideMessage(msgId);
+            }
             showMessage("saveExportFile failed: " + e);
             return;
         }
@@ -138,46 +150,44 @@ export const saveExportFile = async (uri: string) => {
     try {
         if (isInAndroid()) {
             window.JSAndroid.saveExportFile(uri);
+            if (msgId) {
+                hideMessage(msgId);
+            }
             return;
         }
         if (isInIOS()) {
             window.webkit.messageHandlers.saveExportFile.postMessage(uri);
+            if (msgId) {
+                hideMessage(msgId);
+            }
             return;
         }
         if (isInHarmony()) {
             window.JSHarmony.saveExportFile(uri);
+            if (msgId) {
+                hideMessage(msgId);
+            }
             return;
         }
         const openUrl = new URL(uri, `${location.origin}/`);
         openUrl.searchParams.set("download", "true");
         window.open(openUrl.href);
+        if (msgId) {
+            hideMessage(msgId);
+        }
     } catch (e) {
+        if (msgId) {
+            hideMessage(msgId);
+        }
         showMessage("saveExportFile failed: " + e);
     }
 };
 
-export const saveZipExport = async (zipPath: string) => {
+export const saveZipExport = async (zipPath: string, msgId?: string) => {
     if (!zipPath) {
         return;
     }
-    if (isElectron) {
-        const fileName = decodeURIComponent(zipPath.substring(zipPath.lastIndexOf("/") + 1));
-        const result = await ipcInvoke(Constants.SIYUAN_GET, {
-            cmd: "showSaveDialog",
-            defaultPath: fileName,
-            properties: ["showOverwriteConfirmation"],
-        });
-        if (result?.canceled || !result?.filePath) {
-            return;
-        }
-        const response = await fetch(zipPath);
-        const arrayBuffer = await response.arrayBuffer();
-        const fs = __non_webpack_require__("fs") as typeof import("fs");
-        fs.writeFileSync(result.filePath, Buffer.from(arrayBuffer));
-        showMessage(siyuanI18n.exported);
-        return;
-    }
-    saveExportFile(zipPath);
+    await saveExportFile(zipPath, msgId);
 };
 
 export const readText = () => {
@@ -447,7 +457,12 @@ export function isChromeBrowser(): boolean {
         }
     };
     if (nav.userAgentData && Array.isArray(nav.userAgentData.brands)) {
-        return nav.userAgentData.brands.some((b: any) => /Chrome|Chromium/i.test(b.brand));
+        const brands = nav.userAgentData.brands.map((b) => b.brand);
+        // Edge、Opera 等 Chromium 内核浏览器 brands 中同样包含 Chromium，需与 userAgent 回退逻辑一致排除
+        if (brands.some((brand) => /Edge|Opera|OPR/i.test(brand))) {
+            return false;
+        }
+        return brands.some((brand) => /Chrome|Chromium/i.test(brand));
     }
     // 回退到 userAgent
     const ua = nav.userAgent || "";
@@ -704,4 +719,3 @@ export const initNativeDialogOverride = () => {
         }
     };
 };
-

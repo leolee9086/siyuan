@@ -1,4 +1,4 @@
-import { genSBElement } from "../../../block/util";
+import { genSBElement, refreshSbResize } from "../../../block/util";
 import { focusBlock } from "../selection";
 import { moveTo } from "./moveTo";
 import { setFold } from "../../util/blockFold";
@@ -91,11 +91,12 @@ export const dragSb = async (protyle: IProtyle, sourceElements: Element[], targe
             return true;
         }
     });
+    refreshSbResize(sbElement);
     if (isSameDoc || isCopy) {
         transaction(protyle, doOperations, undoOperations);
     } else {
-        // 跨文档或插入折叠标题下不支持撤销
-        transaction(protyle, doOperations);
+        // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
+        transaction(protyle, doOperations, undoOperations);
     }
     if ((newSourceParentElement.length > 1 || hasFoldHeading) && direct === "col") {
         turnsIntoOneTransaction({
@@ -181,8 +182,8 @@ export const dragSame = async (protyle: IProtyle, sourceElements: Element[], tar
     if (isSameDoc || isCopy) {
         transaction(protyle, doOperations, undoOperations);
     } else {
-        // 跨文档或插入折叠标题下不支持撤销
-        transaction(protyle, doOperations);
+        // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
+        transaction(protyle, doOperations, undoOperations);
     }
     if ((newSourceParentElement.length > 1 || hasFoldHeading) &&
         newSourceParentElement[0].parentElement.classList.contains("sb") &&

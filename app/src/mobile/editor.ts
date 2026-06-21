@@ -12,7 +12,8 @@ import {hideElements} from "../protyle/ui/hideElements";
 import {pushBack} from "./util/MobileBackFoward";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {showMessage} from "../dialog/message";
-import type {App} from "../index";
+import {App} from "../index";
+import {initMirror} from "../protyle/undo/globalUndo";
 import {getDocByScroll, saveScroll} from "../protyle/scroll/saveScroll";
 
 export const getCurrentEditor = () => {
@@ -116,6 +117,10 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
                 });
             }
             window.siyuan.mobile.editor.protyle.undo.clear();
+            // 切换文档后校准新文档的撤销镜像（语义 B：各文档栈隔离）
+            if (window.siyuan.mobile.editor.protyle.block?.rootID) {
+                initMirror(window.siyuan.mobile.editor.protyle.block.rootID);
+            }
         } else {
             fetchPost("/api/storage/updateRecentDocOpenTime", {rootID: data.data.rootID});
             window.siyuan.mobile.editor = new Protyle(app, document.getElementById("editor"), protyleOptions);

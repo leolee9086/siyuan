@@ -24,6 +24,7 @@ import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {MobileCustom} from "../dock/MobileCustom";
 import {Menu} from "../../plugin/Menu";
 import {showMessage} from "../../dialog/message";
+import {setTitle} from "../../util/processTitle";
 
 let custom: MobileCustom;
 const openDockMenu = (app: App) => {

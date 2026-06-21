@@ -48,9 +48,6 @@ export const onMessage = (app: App, data: IWebSocketData) => {
             case "reloadTag":
                 window.siyuan.mobile.docks.tag?.update();
                 break;
-            case "setLocalShorthandCount":
-                setLocalShorthandCount();
-                break;
             case "setRefDynamicText":
                 setRefDynamicText(data.data);
                 break;
@@ -76,6 +73,22 @@ export const onMessage = (app: App, data: IWebSocketData) => {
             case "readonly":
                 window.siyuan.config.editor.readOnly = data.data;
                 break;
+            case "setLocalStorageVal":
+                window.siyuan.storage[data.data.key] = data.data.val;
+                break;
+            case "setLocalStorageVals":
+                Object.keys(data.data.keyVals).forEach((k) => {
+                    window.siyuan.storage[k] = data.data.keyVals[k];
+                });
+                break;
+            case "removeLocalStorageVal":
+                delete window.siyuan.storage[data.data.key];
+                break;
+            case "removeLocalStorageVals":
+                data.data.keys.forEach((k: string) => {
+                    delete window.siyuan.storage[k];
+                });
+                break;
             case"progress":
                 progressLoading(data);
                 break;
@@ -89,7 +102,7 @@ export const onMessage = (app: App, data: IWebSocketData) => {
                 openMobileFileById(app, data.data.id);
                 break;
             case"txerr":
-                transactionError();
+                transactionError(data.msg);
                 break;
             case"statusbar":
                 if (!document.querySelector("#keyboardToolbar").classList.contains("fn__none") ||

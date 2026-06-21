@@ -1,4 +1,4 @@
-import { genEmptyElement } from "../../../block/util";
+import { genEmptyElement, getSbChildCount } from "../../../block/util";
 import { cancelSB } from "../../../block/util.cancelSB";
 import { getTopAloneElement } from "../../wysiwyg/getBlock";
 import { getAllEditor } from "../../../layout/getAll";
@@ -17,7 +17,7 @@ export const cleanupSourceElement = async (item: Element, oldSourceParentElement
         return;
     }
 
-    if (oldSourceParentElement.classList.contains("sb") && oldSourceParentElement.childElementCount === 2) {
+    if (oldSourceParentElement.classList.contains("sb") && getSbChildCount(oldSourceParentElement) === 1) {
         await handleCancelSB(oldSourceParentElement, context);
         return;
     }
@@ -62,7 +62,7 @@ const handleTopSourceElementCleanup = async (topSourceElement: Element, context:
     topSourceElement.remove();
     removeSameElementIfNotSameDoc(context, topSourceElement);
 
-    const needsCancelSB = topSourceParentElement?.classList.contains("sb") && topSourceParentElement.childElementCount === 2;
+    const needsCancelSB = topSourceParentElement?.classList.contains("sb") && getSbChildCount(topSourceParentElement) === 1;
     if (needsCancelSB) {
         await handleCancelSB(topSourceParentElement, context);
     }
@@ -110,7 +110,6 @@ const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
         }
         context.doOperations.push(firstOtherDoOp, secondOtherDoOp);
         context.undoOperations.push(secondOtherUndoOp, firstOtherUndoOp);
-        editor.protyle.undo?.clear();
         break;
     }
 };

@@ -1,5 +1,6 @@
 import { insertEmptyBlock } from "../../block/util";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isInEmbedBlock } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
 
 export const insertBeforeMiddleWare = (
@@ -10,7 +11,8 @@ export const insertBeforeMiddleWare = (
     controller: AbortController
 
 ) => {
-    if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBefore.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBefore.custom, event) &&
+        !isInEmbedBlock(nodeElement)) {
         // https://github.com/siyuan-note/siyuan/issues/14290#issuecomment-2846594701
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "beforebegin");
@@ -29,7 +31,8 @@ export const insertAfterMiddleWare = (
     controller: AbortController
 
 ) => {
-    if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertAfter.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertAfter.custom, event) &&
+        !isInEmbedBlock(nodeElement)) {
         // https://github.com/siyuan-note/siyuan/issues/14290#issuecomment-2846594701
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "afterend");

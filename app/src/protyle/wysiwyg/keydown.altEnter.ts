@@ -1,5 +1,7 @@
 import { matchHotKey, isIncludesHotKey } from "../util/hotKey";
 import { addSubList } from "./list.addSubList";
+import { hasClosestByClassName } from "../util/hasClosest";
+import { updateCalloutType } from "./callout";
 import { calibur } from "calibur-router";
 import { type } from "arktype";
 
@@ -8,14 +10,19 @@ import { type } from "arktype";
  */
 const altEnterRouter = calibur.universe(type({
     isIncludesHotKey: "boolean",
-    hasNonCodeBlock: "boolean"
+    hasCodeBlock: "boolean",
+    hasCallout: "boolean"
 }))
     .split(
-        type({ isIncludesHotKey: "false", hasNonCodeBlock: "false" }),
+        type({ isIncludesHotKey: "false", hasCodeBlock: "true" }),
         () => "SHOW_CODE_LANGUAGE"
     )
     .split(
-        type({ isIncludesHotKey: "false", hasNonCodeBlock: "true" }),
+        type({ isIncludesHotKey: "false", hasCodeBlock: "false", hasCallout: "true" }),
+        () => "UPDATE_CALLOUT"
+    )
+    .split(
+        type({ isIncludesHotKey: "false", hasCodeBlock: "false", hasCallout: "false" }),
         () => "ADD_SUB_LIST"
     )
     .remain(() => "IGNORE")
@@ -44,11 +51,21 @@ export const altEnterMiddleware = async (
     }
 
     const selectElements = getSelectElements(protyle, nodeElement);
-    const command = getAltEnterCommand(selectElements);
+    const codeBlockElements = selectElements.filter(item => item.classList.contains("code-block"));
+    const calloutElements = getCalloutElements(selectElements);
+    const command = getAltEnterCommand(codeBlockElements, calloutElements);
 
     // 当所有选中的都是代码块时，显示代码语言选择器，允许用户更改代码语言
     if (command === "SHOW_CODE_LANGUAGE") {
-        showCodeLanguage(protyle, selectElements, event, controller);
+        showCodeLanguage(protyle, codeBlockElements, event, controller);
+        return;
+    }
+
+    if (command === "UPDATE_CALLOUT") {
+        updateCalloutType(calloutElements, protyle);
+        event.stopPropagation();
+        event.preventDefault();
+        controller.abort("Alt+Enter 修改 Callout 类型");
         return;
     }
 
@@ -82,12 +99,25 @@ const getSelectElements = (protyle: IProtyle, nodeElement: HTMLElement) => {
  * 根据选中元素状态，使用 Router 决策后续动作
  * @param selectElements 选中的元素列表
  */
-const getAltEnterCommand = (selectElements: Element[]) => {
-    const hasNonCodeBlock = selectElements.some(item => !item.classList.contains("code-block"));
+const getAltEnterCommand = (codeBlockElements: Element[], calloutElements: HTMLElement[]) => {
     return altEnterRouter({
         isIncludesHotKey: isIncludesHotKey("⌥↩"),
-        hasNonCodeBlock
+        hasCodeBlock: codeBlockElements.length > 0,
+        hasCallout: calloutElements.length > 0
     });
+};
+
+const getCalloutElements = (selectElements: Element[]) => {
+    const calloutElements: HTMLElement[] = [];
+    selectElements.forEach((item) => {
+        const calloutElement = hasClosestByClassName(item, "callout");
+        const liElement = hasClosestByClassName(item, "li");
+        if (calloutElement instanceof HTMLElement &&
+            (!liElement || (liElement instanceof HTMLElement && liElement.contains(calloutElement)))) {
+            calloutElements.push(calloutElement);
+        }
+    });
+    return calloutElements;
 };
 
 /**

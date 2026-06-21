@@ -32,17 +32,19 @@ import { handleCopy } from "./index.copy";
 import { handleCut } from "./index.cut";
 import { handleShiftSelect, handleCtrlSelect } from "./index.mousedown.select";
 import { handleAvColResize, handleAvDragFill, handleAvCellSelect } from "./index.mousedown.av";
-import { handleMediaResize, handleTableColResize } from "./index.mousedown.resize";
+import { handleMediaResize, handleSuperBlockResize, handleTableColResize } from "./index.mousedown.resize";
 import { setupDragSelect } from "./index.mousedown.dragSelect";
 import { handleContextmenu } from "./index.contextmenu";
 import { handleClick } from "./index.click";
 import { getContenteditableElement } from "./getBlock";
 import { removeZWJ, nbsp2space } from "../util/normalizeText";
 import { clearTableCell, isIncludeCell, setTableAlign } from "../util/table/table";
+import { getTableRangeHTML } from "../util/table";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { getEnableHTML, removeEmbed } from "./removeEmbed";
 import { getTopAloneElement, isEndOfBlock } from "./getBlock";
 import { previewDocImage } from "../preview/image";
+import { getDiagramBlock, previewDiagram } from "../preview/diagram";
 import { selectRow } from "../render/av/row";
 import { showMessage } from "../../dialog/message";
 import { updateTransaction } from "./transaction";
@@ -127,9 +129,26 @@ export class WYSIWYG {
             const selectImgElement = nodeElement.querySelector(".img--select");
             const selectAVElement = nodeElement.querySelector(".av__row--select, .av__cell--select");
             const selectTableElement = nodeElement.querySelector(".table__select")?.clientWidth > 0;
+            let selectTableRange = false;
+            let tableRangeElement: HTMLElement = null;
+            let tableRangeStartCell: HTMLElement = null;
+            let tableRangeEndCell: HTMLElement = null;
+            if (!selectTableElement) {
+                const startCell = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
+                const endCell = hasClosestByTag(range.endContainer, "TD") || hasClosestByTag(range.endContainer, "TH");
+                if (startCell && endCell && startCell !== endCell) {
+                    const startTable = (startCell as HTMLElement).closest("table");
+                    if (startTable && startTable === (endCell as HTMLElement).closest("table")) {
+                        selectTableRange = true;
+                        tableRangeElement = (startCell as HTMLElement).closest('[data-type="NodeTable"]') as HTMLElement;
+                        tableRangeStartCell = startCell as HTMLElement;
+                        tableRangeEndCell = endCell as HTMLElement;
+                    }
+                }
+            }
             let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
             if (selectElements.length === 0 && range.toString() === "" && !range.cloneContents().querySelector("img") &&
-                !selectImgElement && !selectAVElement && !selectTableElement) {
+                !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange) {
                 nodeElement.classList.add("protyle-wysiwyg--select");
                 countBlockWord([nodeElement.getAttribute("data-node-id")]);
                 selectElements = [nodeElement];
@@ -235,28 +254,30 @@ export class WYSIWYG {
                 const scrollLeft = nodeElement.firstElementChild.scrollLeft;
                 const scrollTop = nodeElement.querySelector("table").scrollTop;
                 const tableSelectElement = nodeElement.querySelector(".table__select") as HTMLElement;
-                html = "<table>";
-                nodeElement.querySelectorAll("tr").forEach(rowElement => {
-                    const rowCells: HTMLTableCellElement[] = [];
-                    rowElement.querySelectorAll("th, td").forEach((item: HTMLTableCellElement) => {
-                        if (!item.classList.contains("fn__none") && isIncludeCell({
-                            tableSelectElement,
-                            scrollLeft,
-                            scrollTop,
-                            item,
-                        })) {
-                            rowCells.push(item);
+                const tableElement = nodeElement.querySelector("table");
+                let startCell: HTMLElement = null;
+                let endCell: HTMLElement = null;
+                const allCells = Array.from(tableElement.querySelectorAll("th, td")) as HTMLElement[];
+                allCells.forEach((item: HTMLTableCellElement) => {
+                    if (item.classList.contains("fn__none")) {
+                        return;
+                    }
+                    if (isIncludeCell({tableSelectElement, scrollLeft, scrollTop, item})) {
+                        if (!startCell) {
+                            startCell = item;
                         }
-                    });
-                    if (rowCells.length > 0) {
-                        html += "<tr>";
-                        rowCells.forEach(cell => {
-                            html += cell.outerHTML;
-                        });
-                        html += "</tr>";
+                        endCell = item;
                     }
                 });
-                html += "</table>";
+                if (startCell && endCell) {
+                    html = getTableRangeHTML(tableElement, startCell, endCell);
+                } else {
+                    html = "<table></table>";
+                }
+                textPlain = protyle.lute.HTML2Md(html);
+            } else if (selectTableRange) {
+                const tableElement = tableRangeElement.querySelector("table");
+                html = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
                 textPlain = protyle.lute.HTML2Md(html);
             } else {
                 const tempElement = document.createElement("div");
@@ -323,13 +344,16 @@ export class WYSIWYG {
                     } else if (hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH")) {
                         tempElement.innerHTML = tempElement.innerHTML.replace(/<br>/g, "\n").replace(/<br\/>/g, "\n");
                         textPlain = tempElement.textContent.endsWith("\n") ? tempElement.textContent.replace(/\n$/, "") : tempElement.textContent;
-                    } else if (tempElement.querySelector('.img, [data-type="inline-math"]')) {
+                    } else if (tempElement.querySelector('.img, [data-type~="inline-math"]')) {
                         textPlain = "";
                         tempElement.childNodes.forEach((item: Element) => {
                             if (item.nodeType === 3) {
                                 textPlain += item.textContent;
                             } else if (item.nodeType === 1 &&
                                 (item.classList.contains("img") || item.getAttribute("data-type").includes("inline-math"))) {
+                                if (!item.classList.contains("img")) {
+                                    item.setAttribute("data-type", "inline-math");
+                                }
                                 textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
                             } else {
                                 textPlain += item.textContent;
@@ -351,11 +375,18 @@ export class WYSIWYG {
 
             if (!isInCodeBlock) {
                 enableLuteMarkdownSyntax(protyle);
-                const textSiyuan = selectTableElement ? protyle.lute.HTML2BlockDOM(html) : html;
+                let textSiyuan: string;
+                if (selectTableElement || selectTableRange) {
+                    const newId = Lute.NewNodeID();
+                    textSiyuan = `<div data-node-id="${newId}" data-type="NodeTable" class="table"><div contenteditable="true" spellcheck="false">${html}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">\u200b</div></div>`;
+                    html = textSiyuan;
+                } else {
+                    textSiyuan = html;
+                }
                 event.clipboardData.setData("text/siyuan", textSiyuan);
                 restoreLuteMarkdownSyntax(protyle);
                 // 在 text/html 中插入注释节点，用于右键菜单粘贴时获取 text/siyuan 数据
-                const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ(selectTableElement ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
+                const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ((selectTableElement || selectTableRange) ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
                 event.clipboardData.setData("text/html", textHTML);
                 if (needClipboardWrite) {
                     try {
@@ -604,9 +635,14 @@ export class WYSIWYG {
             const mostBottom = protyleRect.bottom;
             const y = event.clientY;
             const contentRect = protyle.contentElement.getBoundingClientRect();
+            if (handleSuperBlockResize(protyle, event, target, documentSelf, () => {
+ this.preventClick = true;
+})) {
+                return;
+            }
             // av col resize
             if (handleAvColResize(protyle, event, target, nodeElement as HTMLElement, contentRect, documentSelf, () => {
- this.preventClick = true; 
+ this.preventClick = true;
 })) {
                 return;
             }
@@ -1091,7 +1127,7 @@ export class WYSIWYG {
                                                 selectCellElements[0].rowSpan = rowSpan;
                                                 focusByWbr(selectCellElements[0], document.createRange());
                                                 document.execCommand("insertHTML", false, "");
-                                                updateTransaction(protyle, tableBlockElement.getAttribute("data-node-id"), tableBlockElement.outerHTML, oldHTML);
+                                                updateTransaction(protyle, tableBlockElement, oldHTML);
                                             }
                                         });
                                     }
@@ -1468,7 +1504,7 @@ export class WYSIWYG {
             } else {
                 const id = blockElement.getAttribute("data-node-id");
                 if (protyle.wysiwyg.lastHTMLs[id]) {
-                    updateTransaction(protyle, id, blockElement.outerHTML, protyle.wysiwyg.lastHTMLs[id]);
+                    updateTransaction(protyle, blockElement, protyle.wysiwyg.lastHTMLs[id]);
                 }
             }
         });
@@ -1605,6 +1641,12 @@ export class WYSIWYG {
             if (event.target.tagName === "IMG" && !event.target.classList.contains("emoji")) {
                 previewDocImage((event.target as HTMLElement).getAttribute("src"), protyle.block.rootID);
                 return;
+            }
+            const diagramElement = getDiagramBlock(hasClosestBlock(event.target) as HTMLElement);
+            if (diagramElement) {
+                previewDiagram(diagramElement);
+                event.stopPropagation();
+                event.preventDefault();
             }
         });
         const mobileBlur = false;

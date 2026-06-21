@@ -6,7 +6,7 @@
 import { Constants } from "./imports";
 /**
  * 用途：发送异步 POST 请求
- * 使用范围：bindAttrInput、openAttr、renameMenu 函数
+ * 使用范围：openAttr、renameMenu 函数
  * 解耦评估：通过 imports.ts 统一管理
  */
 import { fetchPost } from "./imports";
@@ -148,25 +148,6 @@ import { createMobileHTMLMarkdownMenuItem } from "./export/mobile";
  * 解耦评估：已提取到独立文件，此处重新导出以保持 API 兼容性
  */
 import { copySubMenu } from "./copy";
-// @柯里化
-/**
- * 用途：绑定属性输入框的变更事件
- * 作用：当输入框值改变时自动保存到块属性
- * 意图：简化属性输入框的事件绑定代码
- * 调用时机：创建属性输入框时
- * @同步豁免: 需要绝对同步的DOM访问 - 事件监听器绑定必须同步
- */
-export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
-    // @内联回调 @柯里化
-    inputElement.addEventListener("change", () => {
-        const attrName = inputElement.dataset.name || "";
-        fetchPost("/api/attr/setBlockAttrs", {
-            id,
-            attrs: { [attrName]: inputElement.value }
-        });
-    });
-};
-
 /**
  * 用途：打开块属性对话框
  * 作用：获取块属性并显示属性编辑对话框

@@ -221,13 +221,14 @@ const handleFileSort = async (files: Files, newElement: Element, selectFileEleme
         }
         hasMove = true;
     }
-    updateDOMPosition(newElement, selectFileElements);
+    const newElementClassList = newElement.getAttribute("class") || "";
+    updateDOMPosition(newElement, selectFileElements, newElementClassList);
 
     finalizeSort(files, newElement, params, toDir, hasMove);
 };
 
-const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[]) => {
-    if (newElement.classList.contains("dragover__top")) {
+const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[], newElementClassList: string) => {
+    if (newElementClassList.includes("dragover__top")) {
         for (const item of selectFileElements) {
             let nextULElement;
             if (item.nextElementSibling && item.nextElementSibling.tagName === "UL") {
@@ -241,7 +242,7 @@ const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[
         return;
     }
 
-    if (newElement.classList.contains("dragover__bottom")) {
+    if (newElementClassList.includes("dragover__bottom")) {
         for (const item of selectFileElements.reverse()) {
             let nextULElement;
             if (item.nextElementSibling && item.nextElementSibling.tagName === "UL") {

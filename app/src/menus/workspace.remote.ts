@@ -17,7 +17,7 @@ import {exitSiYuan, lockScreen} from "../dialog/processSystem";
 import {showMessage} from "../dialog/message";
 import {unicode2Emoji} from "../emoji";
 import {Dock} from "../layout/dock";
-import {escapeAttr, escapeHtml} from "../util/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {viewCards} from "../card/viewCards";
 import {Dialog} from "../dialog";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";

@@ -24,19 +24,11 @@ export class MobileOutline extends Model {
         blockId: string,
         isPreview: boolean
     }) {
-        super({
-            app: options.app,
+        super({app: options.app});
+        this.connect({
             id: genUUID(),
             type: "outline",
-            msgCallback(data) {
-                if (data) {
-                    switch (data.cmd) {
-                        case "savedoc":
-                            this.onTransaction(data);
-                            break;
-                    }
-                }
-            }
+            msgCallback: this.handleMsgCallback.bind(this)
         });
 
         this.isPreview = options.isPreview;
@@ -98,7 +90,7 @@ export class MobileOutline extends Model {
                 } else {
                     checkFold(id, (zoomIn) => {
                         openMobileFileById(options.app, id, zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL, Constants.CB_GET_HTML, Constants.CB_GET_OUTLINE] :
-                            [Constants.CB_GET_HL, Constants.CB_GET_OUTLINE, Constants.CB_GET_SETID, Constants.CB_GET_CONTEXT, Constants.CB_GET_HTML],
+                                [Constants.CB_GET_HL, Constants.CB_GET_OUTLINE, Constants.CB_GET_SETID, Constants.CB_GET_CONTEXT, Constants.CB_GET_HTML],
                             "start");
                     });
                 }
@@ -170,6 +162,16 @@ export class MobileOutline extends Model {
         }, response => {
             this.update(response);
         });
+    }
+
+    private handleMsgCallback(data: IWebSocketData) {
+        if (data) {
+            switch (data.cmd) {
+                case "savedoc":
+                    this.onTransaction(data);
+                    break;
+            }
+        }
     }
 
     public setCurrent(nodeElement: HTMLElement) {

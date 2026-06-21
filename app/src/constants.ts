@@ -1,5 +1,3 @@
-import { isMobile } from "./util/platform/functions";
-
 declare const SIYUAN_VERSION: string;
 declare const NODE_ENV: string;
 
@@ -68,13 +66,16 @@ export abstract class Constants {
     public static readonly CUSTOM_SY_AV_VIEW: string = "custom-sy-av-view";
     public static readonly CUSTOM_SY_TITLE_EMPTY: string = "custom-sy-title-empty";
 
+    // 临时标记 DOM 属性以辅助完成其功能
+    public static readonly ATTRIBUTE_EDITING = "data-editing";
+    public static readonly ATTRIBUTE_V_SCROLL = "data-v-scroll";
+
     // size
     public static readonly SIZE_DATABASE_MAZ_SIZE: number = 102400;
     public static readonly SIZE_UPLOAD_TIP_SIZE: number = 268435456; // 256 M
     public static readonly SIZE_SCROLL_TB: number = 24;
     public static readonly SIZE_SCROLL_STEP: number = 256;
     public static readonly SIZE_LINK_TEXT_MAX: number = 64;
-    public static readonly SIZE_TOOLBAR_HEIGHT: number = isMobile() ? 0 : 32;
     public static readonly SIZE_GET_MAX = 102400;
     public static readonly SIZE_UNDO = 64;
     public static readonly SIZE_TITLE = 512;
@@ -82,17 +83,17 @@ export abstract class Constants {
     public static readonly SIZE_ZOOM = [
         {
             zoom: 0.67,
-            position: { x: 0, y: 2 }
+            position: {x: 5, y: 2}
         },
         {
             zoom: 0.75,
-            position: { x: 1, y: 4 }
+            position: {x: 5, y: 4}
         }, {
             zoom: 0.8,
-            position: { x: 2, y: 4 }
+            position: {x: 6, y: 4}
         }, {
             zoom: 0.9,
-            position: { x: 5, y: 6 }
+            position: {x: 7, y: 6}
         }, {
             zoom: 1,
             position: { x: 8, y: 8 }
@@ -310,27 +311,27 @@ export abstract class Constants {
 
     // id
     public static readonly HELP_PATH: { [key: string]: string } = {
-        ar_SA: "20210808180117-6v0mkxr",
-        de_DE: "20210808180117-6v0mkxr",
-        en_US: "20210808180117-6v0mkxr",
-        es_ES: "20210808180117-6v0mkxr",
-        fr_FR: "20210808180117-6v0mkxr",
-        he_IL: "20210808180117-6v0mkxr",
-        hi_IN: "20210808180117-6v0mkxr",
-        id_ID: "20210808180117-6v0mkxr",
-        it_IT: "20210808180117-6v0mkxr",
-        ja_JP: "20240530133126-axarxgx",
-        ko_KR: "20210808180117-6v0mkxr",
-        pl_PL: "20210808180117-6v0mkxr",
-        pt_BR: "20210808180117-6v0mkxr",
-        ru_RU: "20210808180117-6v0mkxr",
-        th_TH: "20210808180117-6v0mkxr",
-        nl_NL: "20210808180117-6v0mkxr",
-        sk_SK: "20210808180117-6v0mkxr",
-        tr_TR: "20210808180117-6v0mkxr",
-        uk_UA: "20210808180117-6v0mkxr",
-        zh_CHT: "20211226090932-5lcq56f",
-        zh_CN: "20210808180117-czj9bvb",
+        ar: "20210808180117-6v0mkxr",
+        de: "20210808180117-6v0mkxr",
+        en: "20210808180117-6v0mkxr",
+        es: "20210808180117-6v0mkxr",
+        fr: "20210808180117-6v0mkxr",
+        he: "20210808180117-6v0mkxr",
+        hi: "20210808180117-6v0mkxr",
+        id: "20210808180117-6v0mkxr",
+        it: "20210808180117-6v0mkxr",
+        ja: "20240530133126-axarxgx",
+        ko: "20210808180117-6v0mkxr",
+        pl: "20210808180117-6v0mkxr",
+        "pt-BR": "20210808180117-6v0mkxr",
+        ru: "20210808180117-6v0mkxr",
+        th: "20210808180117-6v0mkxr",
+        nl: "20210808180117-6v0mkxr",
+        sk: "20210808180117-6v0mkxr",
+        tr: "20210808180117-6v0mkxr",
+        uk: "20210808180117-6v0mkxr",
+        "zh-TW": "20211226090932-5lcq56f",
+        "zh-CN": "20210808180117-czj9bvb",
     };
     public static readonly QUICK_DECK_ID = "20230218211946-2kw8jgx";
 
@@ -726,6 +727,12 @@ export abstract class Constants {
             pin: true,
             data: [
                 [{
+                    type: "agentChat",
+                    size: {width: 320, height: 0},
+                    show: false,
+                    icon: "iconSparkles",
+                    hotkeyLangId: "agentChat",
+                }, {
                     type: "graph",
                     size: { width: 320, height: 0 },
                     show: false,
@@ -852,39 +859,5 @@ export abstract class Constants {
     ];
     public static readonly SIYUAN_RENDER_CODE_LANGUAGES: string[] = [
         "abc", "plantuml", "mermaid", "flowchart", "echarts", "mindmap", "graphviz", "math"
-    ];
-    public static readonly PROTYLE_TOOLBAR: string[] = isMobile() ? [
-        "block-ref",
-        "a",
-        "|",
-        "text",
-        "strong",
-        "em",
-        "u",
-        "clear",
-        "|",
-        "code",
-        "tag",
-        "inline-math",
-        "inline-memo",
-    ] : [
-        "block-ref",
-        "a",
-        "|",
-        "text",
-        "strong",
-        "em",
-        "u",
-        "s",
-        "mark",
-        "sup",
-        "sub",
-        "clear",
-        "|",
-        "code",
-        "kbd",
-        "tag",
-        "inline-math",
-        "inline-memo",
     ];
 }

@@ -2,7 +2,7 @@ import { transaction } from "../../wysiwyg/transaction";
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import { getColId, getEditHTML, bindEditEvent } from "./col/col";
 import { getSelectHTML, bindSelectEvent } from "./select";
-import { getFiltersHTML } from "./filter";
+import { getEditableFilters, getFilterByPath, getFiltersHTML, getParentByPath } from "./filter";
 import { getSortsHTML, bindSortsEvent } from "./sort";
 import { updateAssetCell } from "./asset";
 import { updateCellsValue } from "./cell";
@@ -14,7 +14,12 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
     const { avPanelElement, menuElement, options, avID, blockID, isCustomAttr } = ctx;
 
     avPanelElement.addEventListener("dragstart", (event: DragEvent) => {
-        window.siyuan.dragElement = event.target as HTMLElement;
+        const target = event.target as HTMLElement;
+        if (target.dataset.emptyGroup) {
+            event.preventDefault();
+            return;
+        }
+        window.siyuan.dragElement = target;
         window.siyuan.dragElement.style.opacity = ".38";
         return;
     });
@@ -81,38 +86,89 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
             bindSortsEvent(options.protyle, menuElement, ctx.data, blockID);
             return;
         }
-        if (targetElement.querySelector('[data-type="removeFilter"]')) {
-            const changeData = ctx.data.view.filters;
-            const oldData = Object.assign([], changeData);
-            let targetFilter: IAVFilter;
-            changeData.find((filter, index: number) => {
-                if (filter.column === sourceId) {
-                    targetFilter = changeData.splice(index, 1)[0];
-                    return true;
-                }
-            });
-            changeData.find((filter, index: number) => {
-                if (filter.column === targetId) {
-                    if (isTop) {
-                        changeData.splice(index, 0, targetFilter);
-                    } else {
-                        changeData.splice(index + 1, 0, targetFilter);
-                    }
-                    return true;
-                }
-            });
+        if (targetElement.querySelector('[data-type="removeFilter"]') || targetElement.dataset.emptyGroup) {
+            const sourcePath = sourceElement.dataset.path;
+            const targetPath = targetElement.dataset.path;
+            if (sourcePath && targetPath && sourcePath !== targetPath) {
+                const editable = getEditableFilters(ctx.data);
+                const src = getParentByPath(editable, sourcePath);
+                const oldData = JSON.parse(JSON.stringify(ctx.data.view.filters));
+                let moved: IAVFilter;
+                let targetParent: IAVFilter[];
+                let insertIndex: number;
 
-            transaction(options.protyle, [{
-                action: "setAttrViewFilters",
-                avID,
-                data: changeData,
-                blockID
-            }], [{
-                action: "setAttrViewFilters",
-                avID,
-                data: oldData,
-                blockID
-            }]);
+                if (targetElement.dataset.emptyGroup) {
+                    const groupNode = getFilterByPath(editable, targetPath);
+                    if (!groupNode || !src.parent || src.index < 0 || src.index >= src.parent.length) {
+                        return;
+                    }
+                    targetParent = groupNode.filters || (groupNode.filters = []);
+                    [moved] = src.parent.splice(src.index, 1);
+                    insertIndex = 0;
+                } else {
+                    const tgt = getParentByPath(editable, targetPath);
+                    if (!src.parent || !tgt.parent || src.index < 0 || src.index >= src.parent.length || tgt.index < 0 || tgt.index >= tgt.parent.length) {
+                        return;
+                    }
+                    const sameParent = src.parent === tgt.parent;
+                    [moved] = src.parent.splice(src.index, 1);
+                    if (!moved) {
+                        ctx.data.view.filters = oldData;
+                        return;
+                    }
+                    targetParent = tgt.parent;
+                    insertIndex = sameParent ? (src.index < tgt.index ? tgt.index - 1 : tgt.index) : tgt.index;
+                }
+
+                if (!moved) {
+                    ctx.data.view.filters = oldData;
+                    return;
+                }
+                targetParent.splice(isTop ? insertIndex : insertIndex + 1, 0, moved);
+                transaction(options.protyle, [{
+                    action: "setAttrViewFilters",
+                    avID,
+                    data: ctx.data.view.filters,
+                    blockID
+                }], [{
+                    action: "setAttrViewFilters",
+                    avID,
+                    data: oldData,
+                    blockID
+                }]);
+            } else {
+                const changeData = ctx.data.view.filters;
+                const oldData = Object.assign([], changeData);
+                let targetFilter: IAVFilter;
+                changeData.find((filter, index: number) => {
+                    if (filter.column === sourceId) {
+                        targetFilter = changeData.splice(index, 1)[0];
+                        return true;
+                    }
+                });
+                changeData.find((filter, index: number) => {
+                    if (filter.column === targetId) {
+                        if (isTop) {
+                            changeData.splice(index, 0, targetFilter);
+                        } else {
+                            changeData.splice(index + 1, 0, targetFilter);
+                        }
+                        return true;
+                    }
+                });
+
+                transaction(options.protyle, [{
+                    action: "setAttrViewFilters",
+                    avID,
+                    data: changeData,
+                    blockID
+                }], [{
+                    action: "setAttrViewFilters",
+                    avID,
+                    data: oldData,
+                    blockID
+                }]);
+            }
             menuElement.innerHTML = getFiltersHTML(ctx.data);
             return;
         }

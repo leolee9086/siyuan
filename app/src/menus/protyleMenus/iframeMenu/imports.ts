@@ -4,7 +4,7 @@
  * 解耦评估：作为导入转发层，已经是解耦的最佳实践，无需进一步解耦
  */
 
-// ============ 事务处理导入 ============
+// 事务处理导入
 /**
  * 用途：更新 Protyle 编辑器的事务记录，用于撤销/重做功能
  * 使用范围：handleIframeSrcChange 函数中，当用户修改 iframe src 后记录变更
@@ -14,7 +14,7 @@ import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
 /** 导出 updateTransaction 用于记录编辑器事务 */
 export { updateTransaction };
 
-// ============ 工具函数导入 ============
+// 工具函数导入
 /**
  * 用途：从 URL 中提取查询参数值
  * 使用范围：updateIframeAttributes 函数中解析 Bilibili 视频链接的 bvid 参数
@@ -24,7 +24,7 @@ import { getSearch } from "../../../util/platform/functions";
 /** 导出 getSearch 用于解析 URL 参数 */
 export { getSearch };
 
-// ============ 国际化导入 ============
+// 国际化导入
 /**
  * 用途：获取国际化文本，用于显示用户界面文本
  * 使用范围：iframeMenu 函数中显示 "链接" 占位符文本
@@ -34,7 +34,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 /** 导出 siyuanI18n 用于国际化文本 */
 export { siyuanI18n };
 
-// ============ 打开动作能力导入 ============
+// 打开动作能力导入
 /**
  * 用途：判断是否 Electron 环境
  * 使用范围：iframeMenu.open.ts 的浏览器打开动作

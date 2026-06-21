@@ -256,7 +256,11 @@ const handleParentLogic = (nodeElement: Element, parentElement: Element | undefi
     let hideParent = false, space = 0, shouldReturn = false;
 
     // 检查是否应该检查父级元素
-    const shouldCheckParent = (nodeElement.previousElementSibling && nodeElement.previousElementSibling.getAttribute("data-node-id")) ||
+    let previousBlock = nodeElement.previousElementSibling;
+    while (previousBlock && !previousBlock.getAttribute("data-node-id")) {
+        previousBlock = previousBlock.previousElementSibling;
+    }
+    const shouldCheckParent = (previousBlock && previousBlock.getAttribute("data-node-id")) ||
         (nodeElement.parentElement && nodeElement.parentElement.classList.contains("callout-content"));
 
     if (shouldCheckParent) {

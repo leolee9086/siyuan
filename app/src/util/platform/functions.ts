@@ -127,3 +127,16 @@ export const duplicateNameAddOne = (name: string) => {
     }
     return `${name} (1)`;
 };
+
+// 红绿灯为原生控件不随缩放变化，缩小时按 zoom 补偿 --b3-toolbar-left-mac 避免与工具栏内容重叠。
+export const setToolbarLeftMac = (zoom: number) => {
+    if (!getSiyuanConfig() || getBackend() !== "darwin") {
+        return;
+    }
+    if (zoom >= .9 || document.body.classList.contains("body--fullscreen")) {
+        document.body.style.removeProperty("--b3-toolbar-left-mac");
+        return;
+    }
+    const base = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--b3-toolbar-left-mac")) || 74;
+    document.body.style.setProperty("--b3-toolbar-left-mac", (base / zoom * .9) + "px");
+};

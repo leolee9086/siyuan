@@ -153,7 +153,7 @@ export const initSearchEvent = (
                         types: getDefaultType(),
                         subTypes: getDefaultSubType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-                    }, config, updateSearchResult);
+                    }, config, updateSearchResult, true);
                 }
                 if (target.parentElement.parentElement.childElementCount === 1) {
                     target.parentElement.parentElement.classList.add("fn__none");
@@ -300,7 +300,7 @@ export const initSearchEvent = (
                         types: getDefaultType(),
                         subTypes: getDefaultSubType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-                    }, config, updateSearchResult);
+                    }, config, updateSearchResult, true);
                     element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
                 });
                 window.siyuan.menus.menu.fullscreen();

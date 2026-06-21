@@ -22,11 +22,13 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/88250/lute"
 	"github.com/88250/lute/render"
 	"github.com/gofrs/flock"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -44,6 +46,7 @@ var (
 	pushMu        sync.Mutex
 	pushFlock     *flock.Flock
 	pushQueuePath string
+	pushNotifyCh  = make(chan struct{}, 1)
 )
 
 func ensurePushQueue() {
@@ -102,7 +105,13 @@ func appendPushEntry(entry pushEntry) {
 	data = append(data, '\n')
 
 	_ = pushFlock.Lock()
-	defer func() { _ = pushFlock.Unlock() }()
+	defer func() {
+		_ = pushFlock.Unlock()
+		select {
+		case pushNotifyCh <- struct{}{}:
+		default:
+		}
+	}()
 
 	pushMu.Lock()
 	defer pushMu.Unlock()
@@ -145,12 +154,15 @@ func PollPushQueue() {
 			evt := util.NewCmdResult("removeDoc", 0, util.PushModeBroadcast)
 			evt.Data = map[string]any{"ids": []string{e.ID}}
 			util.PushEvent(evt)
+			cache.RemoveTreeData(e.ID)
+			cache.RemoveDocIAL(e.Path)
 		case "rename":
 			util.BroadcastByType("filetree", "rename", 0, "", map[string]any{
 				"box":   e.Box,
 				"path":  e.Path,
 				"title": e.Title,
 			})
+			cache.RemoveDocIAL(e.Path)
 		case "reloadDocInfo":
 			luteEngine := lute.New()
 			tree, err := filesys.LoadTree(e.Box, e.Path, luteEngine)
@@ -161,12 +173,17 @@ func PollPushQueue() {
 			renderer := render.NewJSONRenderer(tree, luteEngine.RenderOptions, luteEngine.ParseOptions)
 			size := uint64(len(renderer.Render()))
 			refreshDocInfo0(tree, size)
+			cache.RemoveDocIAL(e.Path)
+			cache.RemoveTreeData(tree.Root.ID)
 		case "reloadProtyle":
 			bt := treenode.GetBlockTree(e.ID)
 			if bt != nil {
+				cache.RemoveTreeData(bt.RootID)
+				cache.RemoveBlockIAL(e.ID)
 				util.PushReloadProtyle(bt.RootID)
 			}
 		case "reloadAttrView":
+			cache.RemoveAVData(e.ID)
 			util.BroadcastByType("protyle", "refreshAttributeView", 0, "", map[string]any{"id": e.ID})
 		case "reloadUI":
 			util.ReloadUI()
@@ -178,6 +195,20 @@ func PollPushQueue() {
 	}
 
 	clearPushQueue()
+}
+
+func StartPushQueueConsumer() {
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			PollPushQueue()
+			select {
+			case <-pushNotifyCh:
+			case <-ticker.C:
+			}
+		}
+	}()
 }
 
 func loadPushQueue() (entries []pushEntry) {

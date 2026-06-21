@@ -1,0 +1,545 @@
+<<<<<<< HEAD
+/**
+ * Block Popover 模块
+ * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中的悬浮面板
+ */
+
+/** 用途：块面板类。使用范围：Popover 内容渲染。解耦评估：同目录模块直接导入。 */
+import { BlockPanel } from "./panel/Panel";
+/** 用途：通过属性查找 DOM 元素。使用范围：Popover 定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByAttribute } from "./imports";
+/** 用途：通过类名查找最近祖先。使用范围：Popover 定位。解耦评估：通过 ./imports 转发。 */
+import { hasClosestByClassName } from "./imports";
+/** 用途：隐藏 Tooltip。使用范围：Popover 关闭时清理。解耦评估：通过 ./imports 转发。 */
+import { hideTooltip } from "./imports";
+/** 用途：应用实例类型。使用范围：Popover 上下文。解耦评估：通过 ./imports 转发。 */
+import { App } from "./imports";
+/** 用途：系统常量。使用范围：Popover 配置。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
+/** 用途：触屏设备判断。使用范围：Popover 交互适配。解耦评估：通过 ./imports 转发。 */
+import { isTouchDevice } from "./imports";
+/** 用途：安全获取 SiYuan 配置和状态。使用范围：Popover 初始化。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanBlockPanels } from "./imports";
+/** 用途：获取键盘状态。使用范围：Popover 交互判断。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanKeyboardState } from "./imports";
+/** 用途：获取拖拽元素。使用范围：Popover 拖拽状态。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanDragElement } from "./imports";
+/** 用途：判断配置是否存在。使用范围：Popover 初始化守卫。解耦评估：通过 ./imports 转发。 */
+import { hasSiyuanConfig } from "./imports";
+/** 用途：获取菜单集合。使用范围：Popover 菜单。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanMenus } from "./imports";
+/** 用途：获取配置。使用范围：Popover 行为配置。解耦评估：通过 ./imports 转发。 */
+import { getSiyuanConfig } from "./imports";
+/** 用途：安全 setTimeout。使用范围：Popover 延迟操作。解耦评估：通过 ./imports 转发。 */
+import { setTimeout } from "./imports";
+/** 用途：鼠标事件守卫和类型。使用范围：Popover 事件处理。解耦评估：通过 ./imports 转发。 */
+import { asMouseEventWithPath } from "./imports";
+/** 用途：鼠标事件 HTML 目标守卫。使用范围：Popover 事件处理。解耦评估：通过 ./imports 转发。 */
+import { isMouseEventWithHTMLTarget } from "./imports";
+/** 用途：鼠标事件路径类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
+import type { MouseEventWithPath } from "./imports";
+/** 用途：HTML 目标鼠标事件类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
+import type { MouseEventWithHTMLTarget } from "./imports";
+// MouseEventWithHTMLTarget used in event handler type annotations below
+/** 用途：HTMLElement 类型守卫。使用范围：Popover DOM 操作。解耦评估：通过 ./imports 转发。 */
+import { isHTMLElement } from "./imports";
+
+// 子模块导入
+/** 用途：Tooltip 工具提示信息类型。使用范围：Popover Tooltip 配置。解耦评估：同目录子模块。 */
+import type { TooltipInfo } from "./popover/tooltip";
+/** 用途：Tooltip 信息获取函数。使用范围：Popover 初始化。解耦评估：同目录子模块。 */
+import { getTooltipInfo } from "./popover/tooltip";
+/** 用途：Tooltip 显示处理函数。使用范围：Popover Tooltip 控制。解耦评估：同目录子模块。 */
+import { handleTooltipDisplay } from "./popover/tooltip";
+/** 用途：获取 Popover 定位目标。使用范围：Popover 显示定位。解耦评估：同目录子模块。 */
+import { getPopoverTargetElement } from "./popover/target";
+/** 用途：隐藏 Popover。使用范围：Popover 关闭。解耦评估：同目录子模块。 */
+import { hidePopover } from "./popover/target";
+/** 用途：获取 Popover 目标。使用范围：Popover 定位。解耦评估：同目录子模块。 */
+import { getTarget } from "./popover/target";
+/** 用途：引用定义获取。使用范围：Popover 内容渲染。解耦评估：同目录子模块。 */
+import { getRefDefs } from "./popover/refDefs";
+=======
+import {BlockPanel} from "./Panel";
+import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName,} from "../protyle/util/hasClosest";
+import {fetchPost, fetchSyncPost} from "../util/fetch";
+import {hideTooltip, showTooltip} from "../dialog/tooltip";
+import {getIdFromSYProtocol, isLocalPath} from "../util/pathName";
+import {App} from "../index";
+import {Constants} from "../constants";
+import {getCellText} from "../protyle/render/av/cell";
+import {isTouchDevice} from "../util/functions";
+import {escapeAriaLabel, escapeHtml, escapeLessThans} from "../util/escape";
+import {getInstanceById} from "../layout/util";
+import {Editor} from "../editor";
+import {Tab} from "../layout/Tab";
+
+let popoverTargetElement: HTMLElement;
+// 异步获取信息后再显示 tooltip，鼠标已移走时需中断请求 https://github.com/siyuan-note/siyuan/issues/14823
+let tooltipAbortController: AbortController | null = null;
+export const initBlockPopover = (app: App) => {
+    let timeout: number;
+    let timeoutHide: number;
+    // 编辑器内容块引用/backlinks/tag/bookmark/套娃中使用
+    document.addEventListener("mouseover", (event: MouseEvent & { target: HTMLElement, path: HTMLElement[] }) => {
+        if (!window.siyuan.config || !window.siyuan.menus ||
+            // 拖拽时禁止
+            window.siyuan.dragElement || document.onmousemove) {
+            hideTooltip();
+            return;
+        }
+        // 鼠标进入新元素时中断上一轮尚未完成的 tooltip 信息请求
+        if (tooltipAbortController) {
+            tooltipAbortController.abort();
+            tooltipAbortController = null;
+        }
+        const aElement = hasClosestByAttribute(event.target, "data-type", "a", true) ||
+            hasClosestByClassName(event.target, "ariaLabel") ||
+            hasClosestByAttribute(event.target, "data-type", "tab-header") ||
+            hasClosestByAttribute(event.target, "data-type", "inline-memo") ||
+            hasClosestByClassName(event.target, "av__calc--ashow") ||
+            hasClosestByClassName(event.target, "av__cell");
+        if (aElement) {
+            let tooltipClass = "";
+            let tip = aElement.getAttribute("aria-label") || "";
+            if (aElement.classList.contains("av__cell") && !aElement.classList.contains("ariaLabel")) {
+                if (aElement.classList.contains("av__cell--header")) {
+                    const textElement = aElement.querySelector(".av__celltext");
+                    const desc = aElement.getAttribute("data-desc");
+                    if (textElement.scrollWidth > textElement.clientWidth + 0.5 || desc) {
+                        if (desc) {
+                            tip = `${getCellText(aElement)}<div class='ft__on-surface'>${escapeAriaLabel(desc)}</div>`;
+                        } else {
+                            tip = getCellText(aElement);
+                        }
+                    }
+                } else {
+                    if (aElement.firstElementChild?.getAttribute("data-type") === "url") {
+                        if (aElement.firstElementChild.textContent.indexOf("...") > -1) {
+                            tip = Lute.EscapeHTMLStr(aElement.firstElementChild.getAttribute("data-href"));
+                            tooltipClass = "href";
+                        }
+                    }
+                    tip = "";
+                    if (!tip && aElement.dataset.wrap !== "true" && event.target.dataset.type !== "block-more" && !hasClosestByClassName(event.target, "block__icon")) {
+                        aElement.style.overflow = "auto";
+                        if (aElement.scrollWidth > aElement.clientWidth + 2) {
+                            tip = Lute.EscapeHTMLStr(getCellText(aElement));
+                        }
+                        aElement.style.overflow = "";
+                    }
+                }
+            } else if (aElement.parentElement.parentElement.classList.contains("av__views") && aElement.parentElement.classList.contains("layout-tab-bar")) {
+                const textElement = aElement.querySelector(".item__text");
+                const desc = aElement.getAttribute("data-desc");
+                if (textElement.scrollWidth > textElement.clientWidth + 0.5 || desc) {
+                    if (desc) {
+                        tip = `${textElement.textContent}<div class='ft__on-surface'>${escapeAriaLabel(desc)}</div>`;
+                    } else {
+                        tip = textElement.textContent;
+                    }
+                }
+            } else if (aElement.classList.contains("av__celltext--url")) {
+                const title = aElement.getAttribute("data-name") || "";
+                tip = tip ? `<span style="word-break: break-all">${tip.substring(0, Constants.SIZE_TITLE)}</span>${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}` : title;
+                tooltipClass = "href";
+            } else if (aElement.classList.contains("av__calc--ashow") && aElement.clientWidth + 2 < aElement.scrollWidth) {
+                tip = aElement.lastChild.textContent + " " + aElement.firstElementChild.textContent;
+            } else if (aElement.getAttribute("data-type") === "setRelationCell") {
+                const childElement = aElement.querySelector(".b3-menu__label");
+                if (childElement && childElement.clientWidth < childElement.scrollWidth) {
+                    tip = childElement.textContent;
+                }
+            } else if (aElement.classList.contains("protyle-attr--memo")) {
+                tip = escapeHtml(tip);
+            }
+            let tooltipSpace: number | undefined;
+            if (!tip && aElement.getAttribute("data-type")?.includes("inline-memo")) {
+                tip = window.DOMPurify.sanitize(aElement.getAttribute("data-inline-memo-content"));
+                tooltipClass = "memo"; // 为行级备注添加 class https://github.com/siyuan-note/siyuan/issues/6161
+                tooltipSpace = 0; // tooltip 和备注元素之间不能有空隙 https://github.com/siyuan-note/siyuan/issues/14796#issuecomment-3649757267
+            }
+            if (!tip) {
+                if (aElement.getAttribute("data-type")?.includes("a")) {
+                    tooltipClass = "href"; // 为超链接添加 class https://github.com/siyuan-note/siyuan/issues/11440#issuecomment-2119080691
+                    tooltipSpace = 0;
+                }
+                const href = aElement.getAttribute("data-href") || "";
+                // 链接地址强制换行 https://github.com/siyuan-note/siyuan/issues/11539
+                if (href) {
+                    tip = `<span style="word-break: break-all">${href.substring(0, Constants.SIZE_TITLE)}</span>`;
+                }
+                const title = aElement.getAttribute("data-title");
+                if (tip && isLocalPath(href) && !aElement.classList.contains("b3-tooltips")) {
+                    let assetTip = tip;
+                    tooltipAbortController = new AbortController();
+                    const signal = tooltipAbortController.signal;
+                    const capturedController = tooltipAbortController;
+                    fetchPost("/api/asset/statAsset", {path: href}, (response) => {
+                        if (signal.aborted) {
+                            return;
+                        }
+                        if (response.code === 1) {
+                            if (title) {
+                                assetTip += '<div class="fn__hr"></div><span>' + title + "</span>";
+                            }
+                        } else {
+                            assetTip += ` ${response.data.hSize}${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}<br>${window.siyuan.languages.modifiedAt} ${response.data.hUpdated}<br>${window.siyuan.languages.createdAt} ${response.data.hCreated}`;
+                        }
+                        try {
+                            showTooltip(decodeURIComponent(assetTip), aElement, tooltipClass, event, tooltipSpace);
+                        } catch (e) {
+                            showTooltip(assetTip, aElement, tooltipClass, event, tooltipSpace);
+                        }
+                        if (tooltipAbortController === capturedController) {
+                            tooltipAbortController = null;
+                        }
+                    }, undefined, undefined, signal);
+                    tip = "";
+                } else if (title) {
+                    tip = (tip ? (tip + '<div class="fn__hr"></div>') : "") + "<span>" + title + "</span>";
+                }
+            }
+
+            const tabElement = hasClosestByAttribute(event.target, "data-type", "tab-header");
+            if (tabElement) {
+                const tab = getInstanceById(tabElement.getAttribute("data-id"));
+                if (tab instanceof Tab) {
+                    let id = "";
+                    if (tab.model instanceof Editor && tab.model.editor?.protyle?.block?.rootID) {
+                        id = (tab.model as Editor).editor.protyle.block.rootID;
+                    } else if (!tab.model) {
+                        const initData = JSON.parse(tab.headElement.getAttribute("data-initdata") || "{}");
+                        if (initData && initData.instance === "Editor") {
+                            id = initData.blockId;
+                        }
+                    }
+                    if (id) {
+                        tooltipAbortController = new AbortController();
+                        const signal = tooltipAbortController.signal;
+                        const capturedController = tooltipAbortController;
+                        fetchPost("/api/filetree/getFullHPathByID", {
+                            id
+                        }, (response) => {
+                            if (signal.aborted) {
+                                return;
+                            }
+                            showTooltip(escapeLessThans(response.data), tab.headElement);
+                            tab.headElement.setAttribute("aria-label", escapeLessThans(response.data));
+                            if (tooltipAbortController === capturedController) {
+                                tooltipAbortController = null;
+                            }
+                        }, undefined, undefined, signal);
+                    } else {
+                        tab.headElement.setAttribute("aria-label", escapeLessThans(tab.title));
+                    }
+                }
+            }
+
+            const notebookItemElement = hasClosestByClassName(event.target, "b3-list-item__text");
+            if (notebookItemElement && notebookItemElement.parentElement.getAttribute("data-type") === "navigation-root") {
+                tooltipAbortController = new AbortController();
+                const signal = tooltipAbortController.signal;
+                const capturedController = tooltipAbortController;
+                fetchPost("/api/notebook/getNotebookInfo", {notebook: notebookItemElement.parentElement.parentElement.getAttribute("data-url")}, (response) => {
+                    if (signal.aborted) {
+                        return;
+                    }
+                    const boxData = response.data.boxInfo;
+                    const tip = `${boxData.name} <small class='ft__on-surface'>${boxData.hSize}</small>${boxData.docCount !== 0 ? window.siyuan.languages.includeSubFile.replace("x", boxData.docCount) : ""}<br>${window.siyuan.languages.modifiedAt} ${boxData.hMtime}<br>${window.siyuan.languages.createdAt} ${boxData.hCtime}`;
+                    showTooltip(tip, notebookItemElement as Element);
+                    (notebookItemElement as HTMLElement).setAttribute("aria-label", tip);
+                    if (tooltipAbortController === capturedController) {
+                        tooltipAbortController = null;
+                    }
+                }, undefined, undefined, signal);
+            }
+>>>>>>> 2fcc6eeed5f3d583b2665080e69279dbfddb2f80
+
+// 重新导出类型供外部使用
+export type { TooltipInfo };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 常量定义
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** 检查面板是否已固定且内容相同 */
+const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) =>
+    (item.targetElement || typeof item.x === "number")
+    && item.element?.getAttribute("data-pin") === "true"
+    && JSON.stringify(refDefs) === JSON.stringify(item.refDefs);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 类型守卫辅助函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 验证并转换鼠标事件为带有 HTMLElement target 的类型
+ * 用于满足 getTarget 函数的类型要求
+ * @returns 转换后的事件，如果 target 不是 HTMLElement 则返回 undefined
+ */
+function asEventWithHTMLTarget(event: MouseEvent) {
+    if (isMouseEventWithHTMLTarget(event)) {
+        return event;
+    }
+    return undefined;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Mouseover 事件处理辅助函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** 查找可能显示 tooltip 的元素 */
+function 查找Tooltip元素(target: HTMLElement) {
+    return hasClosestByAttribute(target, "data-type", "a", true) ||
+        hasClosestByClassName(target, "ariaLabel") ||
+        hasClosestByAttribute(target, "data-type", "tab-header") ||
+        hasClosestByAttribute(target, "data-type", "inline-memo") ||
+        hasClosestByClassName(target, "av__calc--ashow") ||
+        hasClosestByClassName(target, "av__cell");
+}
+
+/** 处理 tooltip 元素的显示逻辑，返回 true 表示应该停止事件传播 */
+function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: HTMLElement) {
+    const tooltipInfo = getTooltipInfo(aElement, target);
+    if (handleTooltipDisplay(aElement, event, tooltipInfo)) {
+        return true;
+    }
+    hideTooltip();
+    return false;
+}
+
+/** 处理非 tooltip 元素，检查是否应该隐藏 tooltip */
+function 处理非Tooltip元素(target: HTMLElement) {
+    const tipElement = hasClosestByAttribute(target, "id", "tooltip", true);
+    // 当不存在 tooltip 元素，或者 tooltip 内容未溢出（不需要滚动查看）时，隐藏 tooltip
+    if (!tipElement || (
+        tipElement && (tipElement.clientHeight >= tipElement.scrollHeight && tipElement.clientWidth >= tipElement.scrollWidth)
+    )) {
+        hideTooltip();
+    }
+}
+
+/** 隐藏 Popover 的 setTimeout 回调 */
+const 创建隐藏Popover回调 = (event: MouseEventWithPath) => () => {
+    hidePopover(event);
+};
+
+/**
+ * 按键触发模式(模式1)处理，返回 true 表示已处理完毕
+ * 当用户配置为按键触发模式或按住 Shift 键时调用
+ */
+const 处理按键触发模式 = (
+    app: App,
+    event: MouseEventWithPath,
+    target: HTMLElement,
+    aElement: HTMLElement | false,
+    clearTimeoutHide: () => void
+) => {
+    clearTimeoutHide();
+    // @setTimeout豁免: 用户感知延迟 - 需要等待用户输入稳定后再隐藏 popover，防止快速移动鼠标时闪烁
+    setTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
+
+    const eventWithTarget = asEventWithHTMLTarget(event);
+    if (!eventWithTarget || !getTarget(eventWithTarget, aElement)) {
+        return true;
+    }
+
+    // https://github.com/siyuan-note/siyuan/issues/9007
+    // 当 relatedTarget 不在 document 中时（如从 iframe 移出），不处理 popover
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && !document.contains(relatedTarget)) {
+        return true;
+    }
+
+    const keyboardState = getSiyuanKeyboardState();
+    if (keyboardState.ctrlIsPressed) {
+        clearTimeoutHide();
+        showPopover(app);
+        return true;
+    }
+
+    if (keyboardState.shiftIsPressed) {
+        clearTimeoutHide();
+        showPopover(app, true);
+    }
+    return true;
+};
+
+/** 创建延迟隐藏 Popover 的回调 */
+const 创建延迟隐藏回调 = (
+    event: MouseEventWithPath,
+    aElement: HTMLElement | false,
+    getTimeout: () => number
+) => () => {
+    if (!hidePopover(event)) {
+        return;
+    }
+    const popoverTargetElement = getPopoverTargetElement();
+    // 当没有 popover 目标元素且没有链接元素时，清除显示定时器
+    if (!popoverTargetElement && !aElement) {
+        clearTimeout(getTimeout());
+    }
+};
+
+/** 创建延迟显示 Popover 的回调 */
+const 创建延迟显示回调 = (
+    app: App,
+    event: MouseEventWithPath,
+    target: HTMLElement,
+    aElement: HTMLElement | false,
+    getTimeoutHide: () => number
+) => () => {
+    const eventWithTarget = asEventWithHTMLTarget(event);
+    if (!eventWithTarget || !getTarget(eventWithTarget, aElement) || isTouchDevice()) {
+        return;
+    }
+    clearTimeout(getTimeoutHide());
+    showPopover(app);
+};
+
+/** 延迟触发模式(模式0)处理 */
+const 处理延迟触发模式 = (
+    app: App,
+    event: MouseEventWithPath,
+    target: HTMLElement,
+    aElement: HTMLElement | false,
+    setTimeouts: (t: number, th: number) => void,
+    clearTimeouts: () => void
+) => {
+    clearTimeouts();
+
+    // 使用对象包装以避免闭包中的相互引用问题
+    const timeoutRefs = { timeout: 0, timeoutHide: 0 };
+
+    // @setTimeout豁免: 用户感知延迟 - 防抖处理，等待用户鼠标移动稳定后再隐藏 popover
+    timeoutRefs.timeoutHide = setTimeout(
+        创建延迟隐藏回调(event, aElement, () => timeoutRefs.timeout),
+        Constants.TIMEOUT_INPUT
+    );
+
+    // @setTimeout豁免: 用户感知延迟 - 悬停延迟显示，避免鼠标快速划过时频繁弹出 popover
+    timeoutRefs.timeout = setTimeout(
+        创建延迟显示回调(app, event, target, aElement, () => timeoutRefs.timeoutHide),
+        getSiyuanConfig().editor.floatWindowDelay
+    );
+
+    setTimeouts(timeoutRefs.timeout, timeoutRefs.timeoutHide);
+};
+
+/** 处理 mouseover 事件 */
+const 处理Mouseover事件 = (
+    app: App,
+    event: MouseEvent,
+    clearTimeouts: () => void,
+    setTimeouts: (t: number, th: number) => void,
+    clearTimeoutHide: () => void
+) => {
+    // 前置条件检查
+    if (!hasSiyuanConfig() || !getSiyuanMenus() ||
+        getSiyuanDragElement() || document.onmousemove) {
+        hideTooltip();
+        return;
+    }
+
+    // 使用类型守卫验证 event.target 是 HTMLElement
+    const target = event.target;
+    if (!isHTMLElement(target)) {
+        return;
+    }
+
+    const aElement = 查找Tooltip元素(target);
+
+    // 处理 tooltip
+    if (aElement && 处理Tooltip元素(aElement, event, target)) {
+        event.stopPropagation();
+        return;
+    }
+
+    if (!aElement) {
+        处理非Tooltip元素(target);
+    }
+
+    // 将 MouseEvent 转换为 MouseEventWithPath（MouseEvent 本身就兼容此类型）
+    const eventWithPath = asMouseEventWithPath(event);
+
+    // Popover 模式处理
+    const keyboardState = getSiyuanKeyboardState();
+    // 当浮窗模式为按键触发(模式1)或用户按住 Shift 键时，使用按键触发模式
+    if (getSiyuanConfig().editor.floatWindowMode === 1 || keyboardState.shiftIsPressed) {
+        处理按键触发模式(app, eventWithPath, target, aElement, clearTimeoutHide);
+        return;
+    }
+
+    处理延迟触发模式(app, eventWithPath, target, aElement, setTimeouts, clearTimeouts);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 主入口函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Timeout 状态管理器 */
+class TimeoutManager {
+    private timeout = 0;
+    private timeoutHide = 0;
+
+    clearAll = () => {
+        clearTimeout(this.timeout);
+        clearTimeout(this.timeoutHide);
+    };
+
+    set = (t: number, th: number) => {
+        this.timeout = t;
+        this.timeoutHide = th;
+    };
+
+    clearHide = () => clearTimeout(this.timeoutHide);
+}
+
+/**
+ * 初始化块 Popover
+ * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中
+ * @同步豁免: 生命周期 - 此函数在应用初始化时同步调用，用于注册事件监听器，必须同步完成以确保事件处理器在应用启动前就绑定好
+ */
+export const initBlockPopover = (app: App) => {
+    const timeoutManager = new TimeoutManager();
+
+    document.addEventListener("mouseover", (event: MouseEvent) => {
+        处理Mouseover事件(app, event, timeoutManager.clearAll, timeoutManager.set, timeoutManager.clearHide);
+    });
+};
+
+/**
+ * 显示 Popover
+ */
+export const showPopover = async (app: App, showRef = false) => {
+    const popoverTargetElement = getPopoverTargetElement();
+    const menuData = getSiyuanMenus()?.menu?.data;
+    if (!popoverTargetElement || (menuData && menuData === popoverTargetElement)) {
+        return;
+    }
+
+    const { refDefs, originalRefBlockIDs } = await getRefDefs(showRef);
+
+    if (refDefs.length === 0) {
+        return;
+    }
+
+    // 检查是否已有相同内容的 pin 住的面板
+    const blockPanels = getSiyuanBlockPanels();
+    const hasPin = blockPanels.some(是已固定的相同面板(refDefs));
+
+    // 创建新面板
+    if (!hasPin && popoverTargetElement.parentElement &&
+        popoverTargetElement.parentElement.style.opacity !== "0.38" // 反向面板图标拖拽时不应该弹层
+    ) {
+        blockPanels.push(new BlockPanel({
+            app,
+            targetElement: popoverTargetElement,
+            isBacklink: showRef || popoverTargetElement.classList.contains("protyle-attr--refcount") || popoverTargetElement.classList.contains("counter"),
+            refDefs,
+            originalRefBlockIDs,
+        }));
+    }
+    // 不能清除，否则ctrl 后 shift 就无效 popoverTargetElement = undefined;
+};

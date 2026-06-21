@@ -8,7 +8,7 @@ import { hideElements } from "../../protyle/ui/hideElements";
 import { isMobile } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { bindAttrInput } from ".";
+import { bindAttrInput } from "./util.bindAttrInput";
 import { handleTabSwitch, handleRemoveAction, handleBookmarkAction, handleAddCustomAction } from "./openFileAttr.handlers";
 
 
@@ -69,7 +69,7 @@ const processAttributes = (attrs: IObject): { customHTML: string, notifyHTML: st
 };
 
 /** 生成 Tab 栏 HTML */
-const generateTabBarHTML = (hasAV: boolean): string => /*html*/ `
+const generateTabBarHTML = (hasAV: boolean) => /*html*/ `
     <div class="layout-tab-bar fn__flex" style="flex-shrink:0;border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0">
         <div class="item item--full item--focus" data-type="attr">
             <span class="fn__flex-1"></span>
@@ -89,7 +89,7 @@ const generateTabBarHTML = (hasAV: boolean): string => /*html*/ `
     </div>`;
 
 /** 生成内置属性面板 HTML */
-const generateBuiltInAttrHTML = (attrs: IObject, notifyHTML: string): string => {
+const generateBuiltInAttrHTML = (attrs: IObject, notifyHTML: string) => {
     const spellcheck = getSiyuanConfig().editor.spellcheck;
     return /*html*/ `
         <div class="custom-attr" data-type="attr">
@@ -121,7 +121,7 @@ const generateBuiltInAttrHTML = (attrs: IObject, notifyHTML: string): string => 
 };
 
 /** 生成自定义属性面板 HTML */
-const generateCustomAttrHTML = (customHTML: string): string => /*html*/ `
+const generateCustomAttrHTML = (customHTML: string) => /*html*/ `
         <div data-type="NodeAttributeView" class="fn__none custom-attr"></div>
         <div data-type="custom" class="fn__none custom-attr">
            ${customHTML}
@@ -133,7 +133,7 @@ const generateCustomAttrHTML = (customHTML: string): string => /*html*/ `
         </div>`;
 
 /** 组合生成完整对话框 HTML */
-const generateDialogHTML = (attrs: IObject, customHTML: string, notifyHTML: string, hasAV: boolean): string => /*html*/ `<div class="fn__flex-column">
+const generateDialogHTML = (attrs: IObject, customHTML: string, notifyHTML: string, hasAV: boolean) => /*html*/ `<div class="fn__flex-column">
     ${generateTabBarHTML(hasAV)}
     <div class="fn__flex-1">
         ${generateBuiltInAttrHTML(attrs, notifyHTML)}

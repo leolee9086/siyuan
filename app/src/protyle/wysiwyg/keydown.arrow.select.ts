@@ -73,7 +73,7 @@ export const arrowLeftRightMiddleWare = (
     const position = getSelectionOffset(nodeEditableElement, protyle.wysiwyg?.element, range);
 
     // 处理左箭头键：当光标在块开头时，阻止默认行为（除非按下了 Option+Shift+左箭头）
-    if (position.start === 0 && event.key === "ArrowLeft" && !isIncludesHotKey("⌥⇧←")) {
+    if (position.start === 0 && range.startOffset === 0 && event.key === "ArrowLeft" && !isIncludesHotKey("⌥⇧←")) {
         // 阻止浏览器默认的选择扩展行为，防止光标跳出当前块
         event.preventDefault();
         event.stopPropagation();

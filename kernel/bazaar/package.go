@@ -82,12 +82,13 @@ type Package struct {
 	Downloads               int    `json:"downloads"`
 	DisallowInstall         bool   `json:"disallowInstall"`
 	DisallowUpdate          bool   `json:"disallowUpdate"`
-	UpdateRequiredMinAppVer string `json:"updateRequiredMinAppVer"`
+	UpdateRequiredMinAppVer string `json:"updateRequiredMinAppVer,omitempty"` // 升级目标要求的最小应用版本
 
 	// 专用字段，nil 时不序列化
-	Incompatible *bool     `json:"incompatible,omitempty"` // Plugin：是否不兼容
-	Enabled      *bool     `json:"enabled,omitempty"`      // Plugin：是否启用
-	Modes        *[]string `json:"modes,omitempty"`        // Theme：支持的模式列表
+	InstalledIncompatible *bool     `json:"installedIncompatible,omitempty"` // Plugin：本地已安装版本是否不兼容
+	BazaarIncompatible    *bool     `json:"bazaarIncompatible,omitempty"`    // Plugin：在线集市版本是否不兼容
+	Enabled               *bool     `json:"enabled,omitempty"`               // Plugin：是否启用
+	Modes                 *[]string `json:"modes,omitempty"`                 // Theme：支持的模式列表
 }
 
 type StageRepo struct {
@@ -156,7 +157,7 @@ func unescapePackageDisplayStrings(pkg *Package) {
 	}
 }
 
-// GetPreferredLocaleString 从 LocaleStrings 中按当前语种取值，无则回退 default、en_US，再回退 fallback。
+// GetPreferredLocaleString 从 LocaleStrings 中按当前语种取值，无则回退 default、en、en_US（历史命名兼容），再回退 fallback。
 func GetPreferredLocaleString(m LocaleStrings, fallback string) string {
 	if len(m) == 0 {
 		return fallback
@@ -164,7 +165,14 @@ func GetPreferredLocaleString(m LocaleStrings, fallback string) string {
 	if v := strings.TrimSpace(m[util.Lang]); "" != v {
 		return v
 	}
+	// 兼容集市 JSON 数据中历史下划线 key（zh_CN、en_US 等）
+	if v := strings.TrimSpace(m[util.LangToFile(util.Lang)]); "" != v {
+		return v
+	}
 	if v := strings.TrimSpace(m["default"]); "" != v {
+		return v
+	}
+	if v := strings.TrimSpace(m["en"]); "" != v {
 		return v
 	}
 	if v := strings.TrimSpace(m["en_US"]); "" != v {

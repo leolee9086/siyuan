@@ -7,7 +7,7 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { MenuItem } from "../menus/Menu.Item";
 import { Constants } from "../constants";
 import { toggleDockBar } from "./dock/util";
-import { isIPad, updateHotkeyTip } from "../protyle/util/compatibility";
+import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
 
 export const initStatus = (isWindow = false) => {
@@ -67,7 +67,7 @@ export const initStatus = (isWindow = false) => {
                 window.siyuan.menus.menu.append(new MenuItem({
                     label: window.siyuan.languages.userGuide,
                     icon: "iconHelp",
-                    ignore: isIPad() || window.siyuan.config.readonly,
+                    ignore: window.siyuan.config.readonly,
                     click: () => {
                         mountHelp();
                     }
@@ -76,7 +76,7 @@ export const initStatus = (isWindow = false) => {
                     label: window.siyuan.languages.feedback,
                     icon: "iconFeedback",
                     click: () => {
-                        if ("zh_CN" === window.siyuan.config.lang || "zh_CHT" === window.siyuan.config.lang) {
+                        if ("zh-CN" === window.siyuan.config.lang || "zh-TW" === window.siyuan.config.lang) {
                             window.open("https://ld246.com/article/1649901726096");
                         } else {
                             window.open("https://liuyun.io/article/1686530886208");

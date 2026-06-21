@@ -4,7 +4,7 @@ import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { fetchGet, fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { getBackend, getFrontend, isMobile } from "../util/platform/functions";
-import { updateHotkeyTip } from "../protyle/util/compatibility";
+import { saveExportFile, updateHotkeyTip } from "../protyle/util/compatibility";
 import * as platformUtils from "./platformUtils";
 import { Constants } from "../constants";
 import { Setting } from "./Setting";
@@ -280,6 +280,7 @@ registerLazyBindings(API, [
     ["Menu", () => Menu],
     ["Setting", () => Setting],
     ["getAllEditor", () => getAllEditor],
+    ["saveExportFile", () => saveExportFile],
     ["getActiveTab", () => getActiveTab],
     ["getAllModels", () => getAllModels],
     ["getAllTabs", () => getAllTabs],

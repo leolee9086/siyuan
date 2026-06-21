@@ -32,7 +32,7 @@ import { isWindow } from "../util/platform/functions";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 import { closeWindow } from "../window/closeWin";
-import { setTitle } from "../dialog/processSystem/setTitle";
+import { setTitle } from "../util/processTitle";
 import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
 import { clearOBG } from "./dock/util";
 import { recordBeforeResizeTop } from "../protyle/util/resize";

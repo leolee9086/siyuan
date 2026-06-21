@@ -175,7 +175,7 @@ export const 添加删除菜单项 = (ctx: LinkMenuContext): void => {
             ctx.linkElement.insertAdjacentHTML("afterend", "<wbr>");
             ctx.linkElement.remove();
             ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(ctx.protyle, ctx.id, ctx.nodeElement.outerHTML, ctx.html);
+            updateTransaction(ctx.protyle, ctx.nodeElement, ctx.html);
             const toolbarRange = ctx.protyle.toolbar?.range;
             if (toolbarRange) {
                 focusByWbr(ctx.nodeElement, toolbarRange);
@@ -231,7 +231,7 @@ const 执行转换为引用 = (ctx: LinkMenuContext, inputElements: NodeListOf<H
     ctx.linkElement.removeAttribute("data-href");
     ctx.linkElement.removeAttribute("data-title");
     ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(ctx.protyle, ctx.id, ctx.nodeElement.outerHTML, ctx.html);
+    updateTransaction(ctx.protyle, ctx.nodeElement, ctx.html);
     const toolbarRange = ctx.protyle.toolbar?.range;
     if (toolbarRange) {
         toolbarRange.selectNodeContents(ctx.linkElement);
@@ -281,7 +281,7 @@ const 执行转换为文本 = (ctx: LinkMenuContext, inputElements: NodeListOf<H
     标题输入框.value = "";
     ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
     removeInlineType(ctx.linkElement, "a", ctx.protyle.toolbar?.range);
-    updateTransaction(ctx.protyle, ctx.id, ctx.nodeElement.outerHTML, ctx.html);
+    updateTransaction(ctx.protyle, ctx.nodeElement, ctx.html);
     ctx.html = ctx.nodeElement.outerHTML;
 };
 

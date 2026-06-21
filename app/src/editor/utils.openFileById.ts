@@ -36,6 +36,7 @@ export const openFileById = async (options: {
     return openFile({
         app: options.app,
         fileName: response.data.rootTitle,
+        rootTitleEmpty: response.data.rootTitleEmpty,
         rootIcon: response.data.rootIcon,
         rootID: response.data.rootID,
         id: options.id,

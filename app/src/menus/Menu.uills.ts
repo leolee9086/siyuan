@@ -1,4 +1,5 @@
 import { Constants } from "../constants";
+import { getTopBarHeight } from "../layout/getTopBarHeight";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { isMobile } from "../util/platform/functions";
@@ -124,13 +125,30 @@ export const positionSubMenu = (subMenuElement: HTMLElement | null): void => {
     // 减 9px 是为了尽量对齐菜单选项（b3-menu__submenu 的默认 padding-top 加上子菜单首个 b3-menu__item 的默认 margin-top）
     // 减 1px 是为了避免在特定情况下渲染出不应存在的滚动条而做的兼容处理
     const top = Math.min(itemRect.top - 9, window.innerHeight - subMenuRect.height - 1);
-    subMenuElement.style.top = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, top) + "px";
+    subMenuElement.style.top = Math.max(getTopBarHeight(), top) + "px";
 
     // 水平方向位置调整
-    if (window.innerWidth - itemRect.right - 8 >= subMenuRect.width) {
-        // 8px 是 b3-menu__items 的默认 padding-right
+    // 多级菜单继承上一级子菜单的方向
+    let isParentDirectionLeft = false;
+    const parentSubMenuElement = hasClosestByClassName(subMenuElement.parentElement.parentElement, "b3-menu__item") as HTMLElement;
+    if (parentSubMenuElement && itemRect.left < parentSubMenuElement.getBoundingClientRect().left) {
+        isParentDirectionLeft = true;
+    }
+
+    // 8px 是 b3-menu__items 的默认 padding-right
+    const spaceRight = window.innerWidth - itemRect.right - 8;
+    const spaceLeft = itemRect.left - 8;
+    if (isParentDirectionLeft) {
+        if (spaceLeft >= subMenuRect.width) {
+            subMenuElement.style.left = (itemRect.left - 8 - subMenuRect.width) + "px";
+        } else if (spaceRight >= subMenuRect.width) {
+            subMenuElement.style.left = (itemRect.right + 8) + "px";
+        } else {
+            subMenuElement.style.left = Math.max(0, window.innerWidth - subMenuRect.width) + "px";
+        }
+    } else if (spaceRight >= subMenuRect.width) {
         subMenuElement.style.left = (itemRect.right + 8) + "px";
-    } else if (itemRect.left - 8 >= subMenuRect.width) {
+    } else if (spaceLeft >= subMenuRect.width) {
         subMenuElement.style.left = (itemRect.left - 8 - subMenuRect.width) + "px";
     } else {
         subMenuElement.style.left = Math.max(0, window.innerWidth - subMenuRect.width) + "px";

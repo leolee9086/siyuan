@@ -3,6 +3,13 @@ import { getModelHandlers } from "./Model.registry";
 import type { Tab } from "./Tab";
 import type { App } from "../index";
 
+interface IConnectOptions {
+    id: string,
+    type?: TWS,
+    callback?: () => void,
+    msgCallback?: (data: IWebSocketData) => void
+}
+
 export class Model {
     public ws: WebSocket;
     public reqId: number;
@@ -11,23 +18,11 @@ export class Model {
 
     constructor(options: {
         app: App,
-        id: string,
-        type?: TWS,
-        callback?: () => void,
-        msgCallback?: (data: IWebSocketData) => void
     }) {
         this.app = options.app;
-        if (options.msgCallback) {
-            this.connect(options);
-        }
     }
 
-    private connect(options: {
-        id: string,
-        type?: TWS,
-        callback?: () => void,
-        msgCallback?: (data: IWebSocketData) => void
-    }) {
+    public connect(options: IConnectOptions) {
         const websocketURL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
         const ws = new WebSocket(`${websocketURL}?app=${Constants.SIYUAN_APPID}&id=${options.id}${options.type ? "&type=" + options.type : ""}`);
         ws.onopen = () => {
@@ -78,6 +73,10 @@ export class Model {
                 getModelHandlers().kernelError();
             }
         };
+        if (this.ws) {
+            this.ws.onclose = null;
+            this.ws.close();
+        }
         this.ws = ws;
     }
 

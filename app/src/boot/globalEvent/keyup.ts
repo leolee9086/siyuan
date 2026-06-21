@@ -240,6 +240,8 @@ export const windowKeyUp = (app: App, event: KeyboardEvent) => {
     setSiyuanCtrlIsPressed(false);
     setSiyuanShiftIsPressed(false);
     setSiyuanAltIsPressed(false);
+    // S-forge: 上游合并 - keyup 时清理 body--shift-pressed 类，确保 Shift 释放后表格列宽调整手柄恢复
+    document.body.classList.remove("body--shift-pressed");
     const switchDialog = getSiyuanDialogs().find(item => item.element.getAttribute("data-key") === Constants.DIALOG_SWITCHTAB);
     if (!switchDialog || !switchDialog.element.parentElement) {
         return;

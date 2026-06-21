@@ -7,7 +7,7 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../util/blockFold";
 import {avRender} from "../render/av/render";
-import {genSBElement} from "../../block/util";
+import {genSBElement, getSbChildCount} from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
 import {transaction, updateTransaction} from "./transaction";
@@ -128,7 +128,7 @@ export const turnsIntoOneTransaction = async (options: {
         }
     });
     if ((["Blocks2Blockquote", "Blocks2Callout"].includes(options.type) || options.type.endsWith("Ls")) &&
-        parentElement.parentElement.classList.contains("sb") && parentElement.parentElement.childElementCount === 2) {
+        parentElement.parentElement.classList.contains("sb") && getSbChildCount(parentElement.parentElement) === 1) {
         const cancelOperations = await cancelSB(options.protyle, parentElement.parentElement);
         doOperations.push(...cancelOperations.doOperations);
         undoOperations.splice(0, 0, ...cancelOperations.undoOperations);

@@ -2,7 +2,6 @@
  * 移动端内容操作面板
  */
 import { setPosition } from "../../util/DOM/setPosition";
-import { Constants } from "../../constants";
 import {
     focusByRange,
     focusByWbr,
@@ -18,6 +17,8 @@ import { paste, pasteAsPlainText, pasteEscaped } from "../util/paste";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { incrementSiyuanZIndex } from "../../util/siyuanEnvironments/siyuanDialogs.environment";
 import type { 操作上下文 } from "./showContent.types";
+
+const LINE_HEIGHT = 32;
 
 /**
  * 生成内容操作按钮 HTML
@@ -76,7 +77,7 @@ function 处理删除(ctx: 操作上下文): void {
     currentRange.extractContents();
     focusByWbr(ctx.nodeElement, currentRange);
     focusByRange(currentRange);
-    updateTransaction(ctx.protyle, ctx.nodeElement.getAttribute("data-node-id") ?? "", ctx.nodeElement.outerHTML, oldHTML);
+    updateTransaction(ctx.protyle, ctx.nodeElement, oldHTML);
     ctx.subElement.classList.add("fn__none");
 }
 
@@ -144,7 +145,7 @@ function 处理更多菜单(ctx: 操作上下文): void {
     if (ctx.subElement.lastElementChild) {
         ctx.subElement.lastElementChild.innerHTML = 生成更多菜单HTML(ctx.hasCopy, ctx.protyle.disabled);
     }
-    setPosition(ctx.subElement, ctx.rangePosition.left, ctx.rangePosition.top + 28, Constants.SIZE_TOOLBAR_HEIGHT);
+    setPosition(ctx.subElement, ctx.rangePosition.left, ctx.rangePosition.top + 28, LINE_HEIGHT);
 }
 
 /** 操作处理器映射表 */
@@ -213,6 +214,6 @@ export function 显示内容操作(
     subElement.style.zIndex = incrementSiyuanZIndex().toString();
     subElement.classList.remove("fn__none");
     toolbarElement.classList.add("fn__none");
-    setPosition(subElement, rangePosition.left, rangePosition.top - 48, Constants.SIZE_TOOLBAR_HEIGHT);
+    setPosition(subElement, rangePosition.left, rangePosition.top - 48, LINE_HEIGHT);
 }
 

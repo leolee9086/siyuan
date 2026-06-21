@@ -24,8 +24,8 @@ export class Bookmark extends Model {
     private element: HTMLElement;
 
     constructor(app: App, tab: Tab) {
-        super({
-            app,
+        super({app});
+        this.connect({
             id: tab.id,
             type: "bookmark",
             msgCallback: (data) => {
@@ -48,7 +48,11 @@ export class Bookmark extends Model {
             this._处理事务(data);
             return;
         }
-        if ((data.cmd === "unmount" || data.cmd === "removeDoc" || data.cmd === "mount") && (data.cmd !== "mount" || data.code !== 1)) {
+        if (
+            (data.cmd === "closeBox" || data.cmd === "removeBox" || data.cmd === "unmount" ||
+                data.cmd === "removeDoc" || data.cmd === "mount") &&
+            (data.cmd !== "mount" || data.code !== 1)
+        ) {
             fetchPost("/api/bookmark/getBookmark", {}, response => {
                 this.update(response.data);
             });
@@ -79,7 +83,7 @@ export class Bookmark extends Model {
     }
 
     private _初始化外观() {
-        // S-forge: 添加 dockPanel 类来自远程分支
+        // S-forge: 使用通用 dock 面板样式类
         this.element.classList.add("fn__flex-column", "file-tree", "sy__bookmark", "dockPanel");
         this.element.innerHTML = getBookmarkPanelHTML();
     }

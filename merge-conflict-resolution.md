@@ -4,7 +4,7 @@
 本文档记录了解决 multipleAI 分支与远程分支合并冲突的过程和经验。
 
 ## 冲突文件列表
-共10个文件存在合并冲突:
+共11个文件存在合并冲突:
 1. ✅ app/src/business/openRecentDocs.ts
 2. ✅ app/src/config/about.ts
 3. ✅ app/src/config/keymap.ts
@@ -14,7 +14,8 @@
 7. ✅ app/src/mobile/settings/about.ts
 8. ✅ app/src/protyle/render/av/asset.ts
 9. ✅ app/src/protyle/util/paste.ts
-10. ⏳ app/src/protyle/wysiwyg/keydown.ts
+10. ✅ app/src/protyle/wysiwyg/keydown.ts
+11. ✅ app/src/layout/status.ts
 
 ## 已解决冲突详情
 
@@ -458,23 +459,130 @@ $pattern = "(?s)export const assetMenu.*?(?=\nexport |$)"
 **注意事项**:
 根据用户反馈,这两个文件需要后续处理以正确使用项目中的重构方式
 
+### 11. app/src/layout/status.ts ✅
+
+**冲突类型**: 大规模重构冲突 - import路径重构 + 上游实质性改进
+
+**冲突详情**:
+- **本地版本(HEAD)**:
+  - import路径已重构: `../util/network/fetch`、`../util/file/mount`、`../menus/Menu.Item` 等
+  - 使用 `isMobile` 运行时检查而非条件编译
+  - 使用 `ipcSend` 封装（来自 `../platform/electron/ipcRenderer`）
+  - 包含 `isIPad()` 判断
+  - 包含 `渲染所有状态栏按钮()`（StatusBarRegistry 本地功能）
+  - 使用 `zh_CN`/`zh_CHT` 语言代码
+
+- **远程版本(2fcc6ee)**:
+  - import路径为原始路径: `../util/fetch`、`../util/mount`、`../menus/Menu`
+  - 使用条件编译 `/// #if !MOBILE`
+  - 使用 `ipcRenderer` 直接来自 `electron`
+  - 无 `isIPad()`（iOS用户指南优化）
+  - 使用 `zh-CN`/`zh-TW` 语言代码（RFC 5646 合规）
+
+**上游commit分析**:
+| Commit | 变更 | 需移植 | 处置 |
+|--------|------|--------|------|
+| `6f320404` (iOS用户指南) | 移除 `isIPad` 导入和调用 | ✅ | 已移植 - 移除 `isIPad` 导入、移除 `isIPad()` 条件 |
+| `69a8fba8` (RFC 5646合规) | `zh_CN`→`zh-CN`, `zh_CHT`→`zh-TW` | ✅ | 已移植 - 语言代码修复 |
+
+**解决策略**:
+1. 按规程：保存 `.backup`（`git show HEAD`）和 `.remote`（`git show MERGE_HEAD`）备份
+2. 获取 merge base（`a816a79f`）及上游 commit 列表
+3. 无条件接受本地版本恢复干净状态
+4. 逐项移植上游实质性改进
+
+**验证结果**:
+- ✅ 冲突标记已完全移除
+- ✅ 移除 `isIPad` 导入（`import { isIPad, updateHotkeyTip }` → `import { updateHotkeyTip }`）
+- ✅ 移除 `isIPad()` 调用（`ignore: isIPad() || window.siyuan.config.readonly` → `ignore: window.siyuan.config.readonly`）
+- ✅ 语言代码 RFC 5646 合规（`zh_CN`→`zh-CN`, `zh_CHT`→`zh-TW`）
+- ✅ 本地重构路径和架构保持不变
+- ✅ 本地 StatusBarRegistry 功能保留
+---
+
+### 12. app/src/protyle/wysiwyg/list.ts ✅
+
+**冲突类型**: 大规模重构冲突 - 模块提取 + 8个上游commit的功能改进
+
+**冲突详情**:
+- **本地版本(HEAD)**:
+  - `updateListOrder` 已抽取到独立文件 `./list.updateOrder`
+  - 代码风格使用空格分隔的 import 格式
+  - 缺少 `getLastChildBlock`/`unfoldElements` 工具函数
+  - 缺少 `toggleTaskListItem` 函数
+  - 使用旧的 `genListItemElement` 签名（无 `startIndex` 参数）
+  - `addSubList` 使用旧的实现（不通过 `getLastChildBlock`）
+  - `listIndent`/`listOutdent` 中直接访问 `lastElementChild.previousElementSibling`
+  - 缺少 `embed` 块边界检查
+  - 缺少 `ATTRIBUTE_EDITING` 标记
+  - 缺少 `scrollCenter` 导入和调用
+  - 使用旧的 `updateTransaction` 签名（4参数:id, html, oldHtml）
+  - 空 `foldElement` 类型为 `Element | undefined`
+
+- **远程版本(2fcc6ee)**:
+  - 新增 `getLastChildBlock` 工具函数
+  - 新增 `unfoldElements`（替代 `unfoldFoldedAncestors`）
+  - 新增 `toggleTaskListItem` 函数（含最终版 `protyle` 参数）
+  - `genListItemElement` 添加 `startIndex` 参数
+  - `addSubList` 重写，使用 `getLastChildBlock` + `querySelector(".list")`
+  - `listIndent` 中使用 `getLastChildBlock` + 同subtype提前return
+  - `listOutdent` 中使用 `getLastChildBlock` + `!lastBlockElement` 空安全
+  - 新增 `embed` 块边界保护（`protyle-wysiwyg__embed`）
+  - 3处添加 `ATTRIBUTE_EDITING`
+  - 添加 `scrollCenter` 导入和调用
+  - `updateTransaction` 改为3参数签名(element, html)
+  - `foldElement` 类型改为 `Element`（无 undefined）
+  - 有序列表 `data-subtype` 硬编码为 `"o"` 而非 `"${type}"`
+
+**上游commit分析**:
+| Commit | 变更 | 需移植 | 处置 |
+|--------|------|--------|------|
+| `89822142` (Alt+Enter改进) | `getLastChildBlock` / `genListItemElement` 加 `startIndex` / `genListItemElement` 中的 `data-subtype` 不动态 | ✅ | 已移植：getLastChildBlock 作为工具函数、genListItemElement 签名扩展、有序列表使用硬编码 "o" |
+| `e72f9d2e` (PR#16314 重写) | `getLastChildBlock` 去返回类型 / `unfoldFoldAncestors`→`unfoldElements` / `addSubList` 重写 | ✅ | 已移植：函数去类型标注、unfoldElements 替换、addSubList 新实现 |
+| `ed1f5a5e` (17800) | `updateTransaction` 签名改为 3 参数 | ✅ | 已移植：3处调用更新为 `updateTransaction(protyle, element, html)` |
+| `ac39fed9` (17800 embed) | 添加 `protyle-wysiwyg__embed` 边界检查 | ✅ | 已移植：listOutdent 中添加 embed 保护 |
+| `5398a3e6` (17800 ATTRIBUTE_EDITING) | 3处添加 `Constants.ATTRIBUTE_EDITING` | ✅ | 已移植：listIndent中1处 + listOutdent中2处 |
+| `5f161cd4` (PR#16314 scroll) | 添加 `scrollCenter` 导入和2处调用 | ✅ | 已移植：import + addSubList 中2处调用 |
+| `5adec40e` (PR#17840 toggleTask) | 新增 `toggleTaskListItem` / listIndent 同subtype提前return | ✅ | 已移植：toggleTaskListItem 函数 + listIndent 同subtype提前return |
+| `d5b50c36` (PR#17840 后修) | `toggleTaskListItem` 加 `protyle` 参数和 `updateTransaction` | ✅ | 已移植：采用最终版 (protyle, taskItemElement) 签名 |
+
+**解决策略**:
+1. 按规程保存 `.backup` 和 `.remote` 备份
+2. 无条件接受本地版本恢复干净状态
+3. 逐项移植上游8个commit的实质性改进
+4. 保留本地模块化架构（`updateListOrder` 从独立文件导入）
+5. 保留本地代码风格（空格分隔的 import 格式）
+
+**关键差异说明**:
+- `updateListOrder`: 本地已抽取到 `./list.updateOrder`，远程版本内联在此文件。采用本地导入版本
+- 有序列表 `data-subtype`: 远程将模板字符串 `${type}` 替换为硬编码的 `"o"` 修复了样式显示。采用远程修复
+- `data-subtype` 在 `genListItemElement` 的 unordered/task 分支中: 远程从 `${type}` 改为硬编码 `"t"`/`"u"`。采用远程修复
+- `unfoldFoldedAncestors` → `unfoldElements`: 远程重构为批量处理模式。采用远程版本
+
+**验证结果**:
+- ✅ 冲突标记已完全移除
+- ✅ 本地模块化架构保留（`updateListOrder` 从独立文件导入）
+- ✅ 所有8个上游commit的实质性改进已整合
+- ✅ 代码风格一致性维护
+
 ---
 
 ## 进度总结
-
-**已完成**: 10/10 个冲突文件 ✅
+**已完成**: 12/12 个冲突文件 ✅
 - ✅ app/src/business/openRecentDocs.ts
 - ✅ app/src/config/about.ts
 - ✅ app/src/config/keymap.ts
 - ✅ app/src/layout/Wnd.ts
 - ✅ app/src/layout/tabUtil.ts
+- ✅ app/src/layout/status.ts
 - ✅ app/src/menus/protyle.ts (已标记为已解决,待后续整合)
 - ✅ app/src/mobile/settings/about.ts
 - ✅ app/src/protyle/render/av/asset.ts
 - ✅ app/src/protyle/util/paste.ts
 - ✅ app/src/protyle/wysiwyg/keydown.ts
+- ✅ app/src/protyle/wysiwyg/list.ts
 
-**待处理**: 0/10 个冲突文件
+**待处理**: 0/12 个冲突文件
 
 **完成度**: 100% ✅
 
@@ -483,7 +591,7 @@ $pattern = "(?s)export const assetMenu.*?(?=\nexport |$)"
   - 保留本地的模块化架构(使用 [`deleteKeyMiddleware`](app/src/protyle/wysiwyg/keydown.delete.ts:14) 中间件)
   - 整合远程版本的bug修复到 [`keydown.delete.ts`](app/src/protyle/wysiwyg/keydown.delete.ts:200)
   - 添加了零宽空格的额外判断条件
-- ✅ 所有10个冲突文件已全部解决
+- ✅ 所有11个冲突文件已全部解决
 - ⚠️ 遗留问题记录:
   - [`keydown.delete.ts`](app/src/protyle/wysiwyg/keydown.delete.ts:1) 需要后续重构(函数过长、lint错误)
   - [`keydown.ts`](app/src/protyle/wysiwyg/keydown.ts:1) 需要后续重构(函数过长、lint错误)
@@ -519,8 +627,8 @@ $pattern = "(?s)export const assetMenu.*?(?=\nexport |$)"
 **状态**: ✅ 所有冲突已解决
 
 **统计数据**:
-- 冲突文件总数: 10个
-- 已解决: 10个 (100%)
+- 冲突文件总数: 11个
+- 已解决: 11个 (100%)
 - 待处理: 0个
 
 **Git状态**:
@@ -533,7 +641,7 @@ All conflicts fixed but you are still merging.
 
 1. **提交合并**:
    ```bash
-   git commit -m "Merge remote branch: 解决10个冲突文件"
+   git commit -m "Merge remote branch: 解决11个冲突文件"
    ```
 
 2. **后续重构任务** (按优先级排序):

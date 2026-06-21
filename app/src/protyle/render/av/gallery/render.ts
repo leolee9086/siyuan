@@ -15,7 +15,8 @@ import {getPageSize} from "../groups";
 import {activeBlur} from "../../../../mobile/util/keyboardToolbar";
 import {isMobile} from "../../../../platform";
 import {renderKanban} from "../kanban/render";
-import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {initVirtualScroll} from "../virtualScroll";
 
 interface IIds {
     groupId: string,
@@ -37,14 +38,26 @@ interface ITableOptions {
         query: string,
         oldOffset: number,
         left?: number,
+        virtualData: { [key: string]: IAVVirtualData },
     }
 }
 
-const getGalleryHTML = async (data: IAVGallery) => {
+const getGalleryHTML = async (data: IAVGallery, e: HTMLElement, virtualData: IAVVirtualData) => {
     let galleryHTML = "";
     // body
     for (const [rowIndex, item] of data.cards.entries()) {
-        galleryHTML += `<div data-id="${item.id}" draggable="true" class="av__gallery-item">`;
+        if (virtualData && virtualData.renderedEnd) {
+            if (rowIndex === 0) {
+                e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            }
+            if (rowIndex > virtualData.renderedEnd || rowIndex < virtualData.renderedStart) {
+                continue;
+            }
+        } else if (data.pageSize > 100 && rowIndex > 99) {
+            e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            continue;
+        }
+        galleryHTML += `<div data-id="${item.id}" data-index="${rowIndex}" draggable="true" class="av__gallery-item">`;
         if (data.coverFrom !== 0) {
             const coverClass = "av__gallery-cover av__gallery-cover--" + data.cardAspectRatio;
             if (item.coverURL) {
@@ -135,7 +148,7 @@ const renderGroupGallery = async (options: ITableOptions) => {
     for (const group of options.data.view.groups) {
         if (group.groupHidden === 0) {
             avBodyHTML += `${getGroupTitleHTML(group, group.cardCount)}
-<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body${group.groupFolded ? " fn__none" : ""}">${await getGalleryHTML(group)}</div>`;
+<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body${group.groupFolded ? " fn__none" : ""}">${await getGalleryHTML(group, options.blockElement, options.resetData.virtualData[group.id])}</div>`;
         }
     }
     if (options.renderAll) {
@@ -272,6 +285,7 @@ export const afterRenderGallery = (options: ITableOptions) => {
             }
         }
     });
+    initVirtualScroll(options);
 };
 
 export const renderGallery = async (options: {
@@ -300,8 +314,17 @@ export const renderGallery = async (options: {
         }
     });
     const pageSizes: { [key: string]: string } = {};
+    const virtualData: { [key: string]: IAVVirtualData } = {};
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
         pageSizes[item.dataset.groupId || "unGroup"] = item.dataset.pageSize;
+        if (!item.querySelector(".av__gallery-item") || options.blockElement.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
+            return;
+        }
+        virtualData[item.getAttribute("data-group-id") || "all"] = ({
+            renderedStart: parseInt(item.querySelector(".av__gallery-item").getAttribute("data-index")),
+            renderedEnd: parseInt(item.querySelector(".av__gallery-add").previousElementSibling.getAttribute("data-index")),
+            topSpacerHeight: item.querySelector(".av__spacer")?.clientHeight || 0,
+        });
     });
     const resetData = {
         isSearching: searchInputElement && document.activeElement === searchInputElement,
@@ -311,6 +334,7 @@ export const renderGallery = async (options: {
         editIds,
         selectItemIds,
         pageSizes,
+        virtualData
     };
     if (options.blockElement.firstElementChild.innerHTML === "") {
         options.blockElement.style.alignSelf = "";
@@ -365,7 +389,7 @@ export const renderGallery = async (options: {
         });
         return;
     }
-    const bodyHTML = await getGalleryHTML(view);
+    const bodyHTML = await getGalleryHTML(view, options.blockElement, virtualData.all);
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
     ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}

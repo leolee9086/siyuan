@@ -1,5 +1,6 @@
 import { matchHotKey } from "../util/hotKey";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isInEmbedBlock } from "../util/hasClosest";
 
 /**
  * 处理表格创建
@@ -12,7 +13,8 @@ export const handleTableBlockCreation = (
     range: Range,
     controller: AbortController
 ) => {
-    if (!matchHotKey(getSiyuanConfig().keymap.editor.insert.table.custom, event)) {
+    if (!matchHotKey(getSiyuanConfig().keymap.editor.insert.table.custom, event) ||
+        isInEmbedBlock(nodeElement)) {
         return;
     }
     if (!protyle.hint) {

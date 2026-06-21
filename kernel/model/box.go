@@ -791,10 +791,6 @@ func VacuumDataIndex() {
 func FullReindex(needResetScroll bool) {
 	util.PushEndlessProgress(Conf.language(35))
 
-	cache.ClearTreeCache()
-	cache.ClearDocsIAL()
-	cache.ClearBlocksIAL()
-
 	task.AppendTask(task.DatabaseIndexFull, fullReindex)
 	task.AppendTask(task.DatabaseIndexRef, IndexRefs)
 	go func() {
@@ -813,7 +809,26 @@ func FullReindexDirect() {
 	fullReindex()
 }
 
+func ReindexFTS() {
+	defer logging.Recover()
+
+	util.PushEndlessProgress(Conf.language(296))
+	defer util.PushClearProgress()
+
+	sql.FlushQueue()
+	FlushTxQueue()
+	if err := sql.RebuildFTSIndex(); err != nil {
+		logging.LogErrorf("rebuild fts index failed, falling back to full reindex: %s", err)
+		FullReindex(false)
+	}
+}
+
 func fullReindex() {
+	cache.ClearTreeCache()
+	cache.ClearDocsIAL()
+	cache.ClearBlocksIAL()
+	cache.ClearAVCache()
+
 	pushSQLInsertBlocksFTSMsg, pushSQLDeleteBlocksMsg = true, true
 	defer func() {
 		sql.FlushQueue()

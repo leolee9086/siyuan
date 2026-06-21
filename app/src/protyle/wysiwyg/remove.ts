@@ -11,7 +11,7 @@ import {
     hasPreviousSibling
 } from "./getBlock";
 import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
-import { genEmptyElement } from "../../block/util";
+import { genEmptyElement, getSbChildCount } from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../util/blockFold";
@@ -22,7 +22,7 @@ import { Constants } from "../../constants";
 import { scrollCenter } from "../../util/DOM/highlightById";
 import { isMobile } from "../../util/platform/functions";
 import { mathRender } from "../render/mathRender";
-import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
+import { hasClosestBlock, hasClosestByClassName, isInEmbedBlock } from "../util/hasClosest";
 import { getInstanceById } from "../../layout/util";
 import { Tab } from "../../layout/Tab";
 import { Backlink } from "../../layout/dock/Backlink";
@@ -66,6 +66,9 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             const item = selectElements[i];
             const topElement = getTopAloneElement(item);
             topParentElement = topElement.parentElement;
+            if (isInEmbedBlock(item)) {
+                continue;
+            }
             const id = topElement.getAttribute("data-node-id");
             deletes.push({
                 action: "delete",
@@ -208,6 +211,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                         id: listElement.getAttribute("data-node-id"),
                         data: listElement.outerHTML
                     });
+                    listElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
                     updateListOrder(listElement, 1);
                     deletes.push({
                         action: "update",
@@ -218,7 +222,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             }
         }
         if (deletes.length > 0) {
-            if (topParentElement && topParentElement.getAttribute("data-type") === "NodeSuperBlock" && topParentElement.childElementCount === 2) {
+            if (topParentElement && topParentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(topParentElement) === 1) {
                 const sbData = await cancelSB(protyle, topParentElement, range);
                 transaction(protyle, deletes.concat(sbData.doOperations), sbData.undoOperations.concat(inserts.reverse()));
             } else {
@@ -267,6 +271,9 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 });
             }
         }, Constants.TIMEOUT_COUNT);// 需等待滚动阻塞、后台处理完成。否则会加载已删除的内容
+        return;
+    }
+    if (isInEmbedBlock(blockElement)) {
         return;
     }
     const blockType = blockElement.getAttribute("data-type");
@@ -416,7 +423,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
 
     const parentElement = hasClosestBlock(getParentBlock(blockElement));
     const editableElement = getContenteditableElement(blockElement);
-    const previousLastElement = getLastBlock(previousElement) as HTMLElement;
+    let previousLastElement = getLastBlock(previousElement) as HTMLElement;
     if (range.toString() === "" && isMobile() && previousLastElement && previousLastElement.classList.contains("hr") && getSelectionOffset(editableElement).start === 0) {
         transaction(protyle, [{
             action: "delete",
@@ -456,7 +463,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 }];
                 blockElement.remove();
                 // 取消超级块
-                if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && parentElement.childElementCount === 2) {
+                if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(parentElement) === 1) {
                     const sbData = await cancelSB(protyle, parentElement);
                     transaction(protyle, doOperations.concat(sbData.doOperations), sbData.undoOperations.concat(undoOperations));
                 } else {
@@ -552,7 +559,9 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             }
         }
         // 图片前删除到上一个文字块时，图片前有 zwsp
-        previousLastElement.outerHTML = protyle.lute.SpinBlockDOM(previousLastElement.outerHTML);
+        previousLastElement.insertAdjacentHTML("afterend",  protyle.lute.SpinBlockDOM(previousLastElement.outerHTML));
+        previousLastElement = previousLastElement.nextElementSibling as HTMLElement;
+        previousLastElement.previousElementSibling.remove();
         mathRender(getPreviousBlock(removeElement) as HTMLElement);
         const removeParentElement = removeElement.parentElement;
         // https://github.com/siyuan-note/siyuan/issues/12327
@@ -566,13 +575,14 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         // extractContents 内容过多时需要进行滚动条重置，否则位置会错位
         protyle.contentElement.scrollTop = scroll;
         protyle.scroll.lastScrollTop = scroll - 1;
+        previousLastElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
         doOperations.push({
             action: "update",
             data: previousLastElement.outerHTML,
             id: previousId,
         });
     }
-    if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && parentElement.childElementCount === 2) {
+    if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(parentElement) === 1) {
         const sbData = await cancelSB(protyle, parentElement);
         transaction(protyle, doOperations.concat(sbData.doOperations), sbData.undoOperations.concat(undoOperations));
     } else {
@@ -610,7 +620,7 @@ export const removeImage = (imgSelectElement: Element, nodeElement: HTMLElement,
     }
     imgSelectElement.insertAdjacentHTML("afterend", "<wbr>");
     imgSelectElement.remove();
-    updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+    updateTransaction(protyle, nodeElement, oldHTML);
     focusByWbr(nodeElement, range);
     // 不太清楚为什么删除图片后无法上下键定位，但重绘后就好了 https://ld246.com/article/1714314625702
     const editElement = getContenteditableElement(nodeElement);

@@ -229,9 +229,13 @@ const handleSearchShortcut = (event: KeyboardEvent, app: App) => {
     }
     if (event.key !== "Shift") {
         setSiyuanShiftIsPressed(false);
+        // S-forge: 上游合并 - 释放 Shift 时移除 body--shift-pressed 类，恢复表格列宽调整手柄显示
+        document.body.classList.remove("body--shift-pressed");
         return;
     }
     setSiyuanShiftIsPressed(true);
+    // S-forge: 上游合并 - 按下 Shift 时隐藏表格列宽调整手柄，以便 Shift+滚轮可以横向滚动表格
+    document.body.classList.add("body--shift-pressed");
     if (!event.repeat) {
         showPopover(app, true);
     }

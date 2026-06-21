@@ -1,8 +1,10 @@
-import { hasClosestBlock, hasClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
-import { Constants } from "../../constants";
+import {hasClosestBlock, isInEmbedBlock} from "../util/hasClosest";
+import {Constants} from "../../constants";
+import {getSbChildCount} from "../../block/util";
 
 export const getParentBlock = (element: Element) => {
-    if (element.parentElement.classList.contains("callout-content")) {
+    if (element.parentElement.classList.contains("callout-content") ||
+        element.parentElement.classList.contains("protyle-wysiwyg__embed")) {
         return element.parentElement.parentElement;
     }
     return element.parentElement;
@@ -82,7 +84,7 @@ export const getContenteditableElement = (element: Element): Element => {
         return element;
     }
     if (element.classList.contains("protyle-title__input")) {
-        return  element;
+        return element;
     }
     let blockElement = element;
     if (!blockElement.getAttribute("data-node-id")) {
@@ -178,9 +180,9 @@ export const getTopAloneElement = (topSourceElement: Element) => {
                 break;
             }
         }
-    } else if ("NodeSuperBlock" === topSourceElement.parentElement.getAttribute("data-type") && topSourceElement.parentElement.childElementCount === 2) {
+    } else if ("NodeSuperBlock" === topSourceElement.parentElement.getAttribute("data-type") && getSbChildCount(topSourceElement.parentElement) === 1) {
         while (topSourceElement.parentElement && !topSourceElement.parentElement.classList.contains("protyle-wysiwyg")) {
-            if (topSourceElement.parentElement.getAttribute("data-type") === "NodeSuperBlock" && topSourceElement.parentElement.childElementCount === 2) {
+            if (topSourceElement.parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(topSourceElement.parentElement) === 1) {
                 topSourceElement = topSourceElement.parentElement;
             } else {
                 topSourceElement = getTopAloneElement(topSourceElement);
@@ -251,6 +253,9 @@ export const isEndOfBlock = (range: Range) => {
         if (hasNextSibling(nextSibling)) {
             return false;
         } else {
+            if (nextSibling.nodeType === 1 && (nextSibling as Element).classList.contains("emoji")) {
+                return false;
+            }
             if (nextSibling.parentElement.getAttribute("spellcheck")) {
                 return true;
             }

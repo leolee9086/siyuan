@@ -608,6 +608,7 @@ export const hintMoveBlock = (pathString: string, sourceElements: Element[], pro
             if (!id) {
                 throw new Error("Block id is missing");
             }
+            item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             doOperations.push({
                 action: "update",
                 id,

@@ -21,8 +21,11 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/sql"
+	"github.com/siyuan-note/siyuan/kernel/util"
 
 	"github.com/spf13/cobra"
 )
@@ -59,6 +62,12 @@ var notebookCreateCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("--name is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would create notebook \"%s\"\n", name)
+			return nil
+		}
+
 		id, err := model.CreateBox(name)
 		if err != nil {
 			return err
@@ -77,6 +86,12 @@ var notebookRemoveCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would remove notebook %s\n", id)
+			return nil
+		}
+
 		if err := model.RemoveBox(id); err != nil {
 			return err
 		}
@@ -98,10 +113,72 @@ var notebookRenameCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("--name is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would rename notebook %s to \"%s\"\n", id, name)
+			return nil
+		}
+
 		if err := model.RenameBox(id, name); err != nil {
 			return err
 		}
 		model.AppendPushReloadFiletreeEntry()
+		fmt.Println(id)
+		return nil
+	},
+}
+
+var notebookOpenCmd = &cobra.Command{
+	Use:   "open --id <id>",
+	Short: "Open a notebook",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, _ := cmd.Flags().GetString("id")
+		if id == "" {
+			return fmt.Errorf("--id is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would open notebook %s\n", id)
+			return nil
+		}
+
+		existed, err := model.Mount(id)
+		if err != nil {
+			return err
+		}
+		if box := model.Conf.Box(id); nil != box {
+			evt := util.NewCmdResult("mount", 0, util.PushModeBroadcast)
+			evt.Data = map[string]any{
+				"box":     box,
+				"existed": existed,
+			}
+			util.PushEvent(evt)
+		}
+		time.Sleep(1 * time.Second)
+		sql.FlushQueue()
+		fmt.Println(id)
+		return nil
+	},
+}
+
+var notebookCloseCmd = &cobra.Command{
+	Use:   "close --id <id>",
+	Short: "Close a notebook",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, _ := cmd.Flags().GetString("id")
+		if id == "" {
+			return fmt.Errorf("--id is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would close notebook %s\n", id)
+			return nil
+		}
+
+		model.Unmount(id)
+		time.Sleep(1 * time.Second)
+		sql.FlushQueue()
+		fmt.Println(id)
 		return nil
 	},
 }
@@ -120,10 +197,14 @@ func init() {
 	notebookRemoveCmd.Flags().String("id", "", "notebook ID")
 	notebookRenameCmd.Flags().String("id", "", "notebook ID")
 	notebookRenameCmd.Flags().String("name", "", "new notebook name")
+	notebookOpenCmd.Flags().String("id", "", "notebook ID")
+	notebookCloseCmd.Flags().String("id", "", "notebook ID")
 
 	rootCmd.AddCommand(notebookCmd)
 	notebookCmd.AddCommand(notebookListCmd)
 	notebookCmd.AddCommand(notebookCreateCmd)
 	notebookCmd.AddCommand(notebookRemoveCmd)
 	notebookCmd.AddCommand(notebookRenameCmd)
+	notebookCmd.AddCommand(notebookOpenCmd)
+	notebookCmd.AddCommand(notebookCloseCmd)
 }

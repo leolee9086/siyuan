@@ -6,6 +6,7 @@ import {removeEmbed} from "./removeEmbed";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {encodeBase64} from "../util/compatibility";
 import {isIncludeCell} from "../util/table/table";
+import {getTableRangeHTML} from "../util/table";
 import {updateCellsValue} from "../render/av/cell";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
 import {removeBlock} from "./remove";
@@ -50,10 +51,27 @@ export async function handleCut(
     const selectImgElement = nodeElement.querySelector(".img--select");
     const selectAVElement = nodeElement.querySelector(".av__row--select, .av__cell--select");
     const selectTableElement = nodeElement.querySelector(".table__select")?.clientWidth > 0;
+    let selectTableRange = false;
+    let tableRangeElement: HTMLElement = null;
+    let tableRangeStartCell: HTMLElement = null;
+    let tableRangeEndCell: HTMLElement = null;
+    if (!selectTableElement) {
+        const startCell = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
+        const endCell = hasClosestByTag(range.endContainer, "TD") || hasClosestByTag(range.endContainer, "TH");
+        if (startCell && endCell && startCell !== endCell) {
+            const startTable = (startCell as HTMLElement).closest("table");
+            if (startTable && startTable === (endCell as HTMLElement).closest("table")) {
+                selectTableRange = true;
+                tableRangeElement = (startCell as HTMLElement).closest('[data-type="NodeTable"]') as HTMLElement;
+                tableRangeStartCell = startCell as HTMLElement;
+                tableRangeEndCell = endCell as HTMLElement;
+            }
+        }
+    }
     let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
     const cloneElement = range.cloneContents();
     if (selectElements.length === 0 && range.toString() === "" && !cloneElement.querySelector("img") &&
-        !selectImgElement && !selectAVElement && !selectTableElement) {
+        !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange) {
         nodeElement.classList.add("protyle-wysiwyg--select");
         selectElements = [nodeElement];
     }
@@ -126,7 +144,7 @@ export async function handleCut(
         const scrollLeft = nodeElement.firstElementChild.scrollLeft;
         const scrollTop = nodeElement.querySelector("table").scrollTop;
         const tableSelectElement = nodeElement.querySelector(".table__select") as HTMLElement;
-        html = "<table>";
+        const tableElement = nodeElement.querySelector("table");
         nodeElement.querySelectorAll("th, td").forEach((item: HTMLTableCellElement) => {
             if (!item.classList.contains("fn__none") && isIncludeCell({
                 tableSelectElement,
@@ -147,21 +165,16 @@ export async function handleCut(
         const oldHTML = nodeElement.outerHTML;
         nodeElement.querySelector("wbr")?.remove();
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        selectCellElements.forEach((item, index) => {
-            if (index === 0 || !item.previousElementSibling ||
-                item.previousElementSibling !== selectCellElements[index - 1]) {
-                html += "<tr>";
-            }
-            html += item.outerHTML;
-            if (!item.nextElementSibling || !selectCellElements[index + 1] ||
-                item.nextElementSibling !== selectCellElements[index + 1]) {
-                html += "</tr>";
-            }
+        if (selectCellElements.length > 0) {
+            html = getTableRangeHTML(tableElement, selectCellElements[0], selectCellElements[selectCellElements.length - 1]);
+        } else {
+            html = "<table></table>";
+        }
+        selectCellElements.forEach((item) => {
             item.innerHTML = "";
         });
-        html += "</table>";
         textPlain = protyle.lute.HTML2Md(html);
-        updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+        updateTransaction(protyle, nodeElement, oldHTML);
     } else {
         const id = nodeElement.getAttribute("data-node-id");
         setInsertWbrHTML(nodeElement, range, protyle);
@@ -211,8 +224,21 @@ export async function handleCut(
             range.deleteContents();
             tempElement.append(newSpanElement);
         } else {
-            if (cloneElement.querySelectorAll("td, th").length > 0) {
-                // 表格内多格子 cut https://github.com/siyuan-note/insider/issues/564
+            if (selectTableRange) {
+                const tableElement = tableRangeElement.querySelector("table");
+                const newTableHTML = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
+                tempElement.innerHTML = newTableHTML;
+                textPlain = protyle.lute.HTML2Md(newTableHTML);
+                const wbrElement = document.createElement("wbr");
+                range.insertNode(wbrElement);
+                range.setStartAfter(wbrElement);
+                range.extractContents();
+                nodeElement.outerHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
+                nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) as HTMLElement;
+                mathRender(nodeElement);
+                focusByWbr(nodeElement, range);
+            } else if (cloneElement.querySelectorAll("td, th").length > 0) {
+                // 表格内多格子 cut https://github.com/siyuan-note/siyuan/issues/564
                 const wbrElement = document.createElement("wbr");
                 range.insertNode(wbrElement);
                 range.setStartAfter(wbrElement);
@@ -287,7 +313,7 @@ export async function handleCut(
         if (nodeElement.parentElement.parentElement && !nodeElement.classList.contains("av")) {
             // 选中 heading 时，使用删除的 transaction
             setInsertWbrHTML(nodeElement, range, protyle);
-            updateTransaction(protyle, id, protyle.wysiwyg.lastHTMLs[id] || nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
         }
     }
     protyle.hint.render(protyle);
@@ -303,11 +329,18 @@ export async function handleCut(
 
     if (!isInCodeBlock) {
         enableLuteMarkdownSyntax(protyle);
-        const textSiyuan = selectTableElement ? protyle.lute.HTML2BlockDOM(html) : html;
+        let textSiyuan: string;
+        if (selectTableElement || selectTableRange) {
+            const newId = Lute.NewNodeID();
+            textSiyuan = `<div data-node-id="${newId}" data-type="NodeTable" class="table"><div contenteditable="true" spellcheck="false">${html}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">\u200b</div></div>`;
+            html = textSiyuan;
+        } else {
+            textSiyuan = html;
+        }
         restoreLuteMarkdownSyntax(protyle);
         event.clipboardData.setData("text/siyuan", textSiyuan);
         // 在 text/html 中插入注释节点，用于右键菜单粘贴时获取 text/siyuan 数据
-        const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ(selectTableElement ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
+        const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ((selectTableElement || selectTableRange) ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
         event.clipboardData.setData("text/html", textHTML);
         if (needClipboardWrite) {
             try {

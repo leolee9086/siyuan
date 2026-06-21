@@ -33,7 +33,7 @@ const 创建高度调整回调 = (
         }
         img3115(imageContainer.parentElement);
         imageContainer.style.width = "";
-        updateTransaction(protyle, id, nodeElement.outerHTML, html);
+        updateTransaction(protyle, nodeElement, html);
         focusBlock(nodeElement);
     };
 };

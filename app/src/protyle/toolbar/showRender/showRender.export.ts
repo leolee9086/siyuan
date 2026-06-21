@@ -15,8 +15,7 @@ function 上传导出文件(blob: Blob, mimeType: string, msgId: string): void {
     formData.append("file", blob);
     formData.append("type", mimeType);
     fetchPost("/api/export/exportAsFile", formData, (response) => {
-        saveExportFile(response.data.file);
-        hideMessage(msgId);
+        saveExportFile(response.data.file, msgId);
     });
 }
 
@@ -44,7 +43,7 @@ function 导出为PNG(renderElement: Element, msgId: string): void {
     // @内联回调
     setTimeout(() => {
         // @内联回调
-        addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image").then(() => {
+        addScript(`${Constants.PROTYLE_CDN}/js/html-to-image.min.js?v=1.11.13`, "protyleHtml2image").then(() => {
             if (!(renderElement instanceof HTMLElement)) {
                 hideMessage(msgId);
                 return;

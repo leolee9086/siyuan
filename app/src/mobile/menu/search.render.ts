@@ -86,7 +86,8 @@ export const replace = (element: Element, config: Config.IUILayoutTabSearchConfi
 
 export const updateConfig = (element: Element, newConfig: Config.IUILayoutTabSearchConfig,
                              config: Config.IUILayoutTabSearchConfig,
-                             updateSearchResult: UpdateSearchResultFn) => {
+                             updateSearchResult: UpdateSearchResultFn,
+                             clear = false) => {
     if (config.hasReplace !== newConfig.hasReplace) {
         if (newConfig.hasReplace) {
             element.querySelector('[data-type="toggle-replace"]').classList.add("toolbar__icon--active");
@@ -133,7 +134,9 @@ export const updateConfig = (element: Element, newConfig: Config.IUILayoutTabSea
     } else {
         searchIncludeElement.setAttribute("disabled", "disabled");
     }
-    (document.querySelector("#toolbarSearch") as HTMLInputElement).value = newConfig.k;
+    if (newConfig.k || clear) {
+        (document.querySelector("#toolbarSearch") as HTMLInputElement).value = newConfig.k;
+    }
     (element.querySelector("#toolbarReplace") as HTMLInputElement).value = newConfig.r;
     config = JSON.parse(JSON.stringify(newConfig));
     window.siyuan.storage[Constants.LOCAL_SEARCHDATA] = Object.assign({}, config);

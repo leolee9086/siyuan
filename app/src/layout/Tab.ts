@@ -1,18 +1,17 @@
 import { Wnd } from "./Wnd";
 import { genUUID } from "../util/platform/genID";
-import { Model } from "./Model";
-import { Editor } from "../editor";
+import type { Model } from "./Model";
 import { hasClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
-import { escapeLessThans, escapeHtml } from "../util/DOM/escape";
+import { escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
-import { fetchPost } from "../util/network/fetch";
-import { hideTooltip, showTooltip } from "../dialog/tooltip";
+import { hideTooltip } from "../dialog/tooltip";
 import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { layoutToJSON, saveLayout } from "./util";
 import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./utils/iframeInteractionLock";
+import { setTitle } from "../util/processTitle";
 
 export class Tab {
     public parent: Wnd;
@@ -45,41 +44,6 @@ export class Tab {
             }
             this.headElement.innerHTML = `${iconHTML}<span class="item__text">${escapeHtml(options.title)}</span>
 <span class="item__close"><svg><use xlink:href="#iconClose"></use></svg></span>`;
-            this.headElement.addEventListener("mouseenter", (event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                const dragElement = Array.from(this.headElement.parentElement.childNodes).find((item: HTMLElement) => {
-                    if (item.style?.opacity === "0.38") {
-                        return true;
-                    }
-                });
-                if (dragElement) {
-                    hideTooltip();
-                    return;
-                }
-
-                let id = "";
-                if (this.model instanceof Editor && this.model.editor?.protyle?.block?.rootID) {
-                    id = (this.model as Editor).editor.protyle.block.rootID;
-                } else if (!this.model) {
-                    const initData = JSON.parse(this.headElement.getAttribute("data-initdata") || "{}");
-                    if (initData && initData.instance === "Editor") {
-                        id = initData.blockId;
-                    }
-                }
-                if (id) {
-                    fetchPost("/api/filetree/getFullHPathByID", {
-                        id
-                    }, (response) => {
-                        if (!this.headElement.getAttribute("aria-label")) {
-                            showTooltip(escapeLessThans(response.data), this.headElement);
-                        }
-                        this.headElement.setAttribute("aria-label", escapeLessThans(response.data));
-                    });
-                } else {
-                    this.headElement.setAttribute("aria-label", escapeLessThans(this.title));
-                }
-            });
             this.headElement.addEventListener("dragstart", (event: DragEvent & { target: HTMLElement }) => {
                 window.getSelection().removeAllRanges();
                 hideTooltip();
@@ -154,6 +118,14 @@ export class Tab {
     public updateTitle(title: string) {
         this.title = title;
         this.headElement.querySelector(".item__text").innerHTML = escapeHtml(title);
+
+        if (document.querySelector(".layout__wnd--active .layout-tab-bar .item--focus")) {
+            if (this.headElement.closest(".layout__wnd--active")) {
+                setTitle(title);
+            }
+        } else if (this.headElement.classList.contains("item--focus")) {
+            setTitle(title);
+        }
     }
 
     public addModel(model: Model) {

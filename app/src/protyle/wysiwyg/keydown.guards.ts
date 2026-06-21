@@ -47,6 +47,9 @@ export const protyleHaveSelectedGuard = async (
     range: Range,
     controller: AbortController
 ) => {
+    if (protyle.selectElement?.style.backgroundColor !== "") {
+        return;
+    }
     event.stopPropagation();
     event.preventDefault();
     controller.abort("编辑器已有选中内容");

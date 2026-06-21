@@ -6,7 +6,7 @@ import { Tab } from "../Tab";
 import { setPanelFocus } from "./setPanelFocus";
 import { tabRegistry } from "../../registry";
 import { Search } from "../../search";
-import { pathPosix, getDisplayName } from "../../util/file/pathName";
+import { pathPosix, getDisplayName, getDocDisplayName } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
@@ -208,7 +208,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
     }
 
     return new Tab({
-        title: getDisplayName(options.fileName || "", true, true),
+        title: getDocDisplayName(options.fileName || "", options.rootTitleEmpty),
         ...(options.rootIcon ? { docIcon: options.rootIcon } : {}),
         /**
          * 页签回调

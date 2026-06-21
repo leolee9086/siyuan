@@ -23,6 +23,12 @@ import { escapeHtml } from "./imports";
  */
 import { escapeAttr } from "./imports";
 /**
+ * 用途：ARIA 标签转义函数
+ * 使用范围：转义资源单元格可访问性标签
+ * 解耦评估：通过imports.ts统一管理
+ */
+import { escapeAriaLabel } from "./imports";
+/**
  * 用途：图片压缩URL生成函数
  * 使用范围：处理mAsset类型图片
  * 解耦评估：通过imports.ts统一管理
@@ -175,11 +181,11 @@ export const renderAssetCell = async (cellValue: IAVCellValue) => {
     for (const item of assets) {
         // 图片类型：渲染为img标签
         if (item.type === "image") {
-            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAttr(item.content)}" src="${await getCompressURL(encodeURI(item.content))}">`;
+            text += `<img loading="lazy" class="av__cellassetimg ariaLabel" aria-label="${escapeAriaLabel(item.content)}" src="${await getCompressURL(encodeURI(item.content))}">`;
             continue;
         }
         // 其他资源类型：渲染为链接chip
-        text += `<span class="b3-chip av__celltext--url ariaLabel" aria-label="${escapeAttr(item.content)}" data-name="${escapeAttr(item.name)}" data-url="${escapeAttr(item.content)}">${item.name || item.content}</span>`;
+        text += `<span class="b3-chip av__celltext--url ariaLabel" aria-label="${escapeAriaLabel(item.content)}" data-name="${escapeAttr(item.name)}" data-url="${escapeAttr(item.content)}">${escapeHtml(item.name || item.content)}</span>`;
     }
     
     return text;

@@ -114,69 +114,99 @@ declare namespace Config {
      * Artificial Intelligence (AI) related configuration
      */
     export interface IAI {
-        openAI: IOpenAI;
+        providers: IProvider[];
+        editing: IEditing;
+        agent: IAgent;
+        mcp: IMCP;
+        embedding: IEmbedding;
     }
 
     /**
-     * Open AI related configuration
+     * AI agent global settings
      */
-    export interface IOpenAI {
-        /**
-         * API base URL
-         */
-        apiBaseURL: string;
-        /**
-         * API key
-         */
-        apiKey: string;
-        /**
-         * The maximum number of contexts passed when requesting the API
-         */
-        apiMaxContexts: number;
-        /**
-         * Maximum number of tokens (0 means no limit)
-         */
-        apiMaxTokens: number;
-        /**
-         * The model name called by the API
-         */
-        apiModel: TOpenAIAPIModel;
-        /**
-         * API Provider
-         * OpenAI, Azure
-         */
-        apiProvider: TOpenAAPIProvider;
-        /**
-         * API request proxy address
-         */
-        apiProxy: string;
-        /**
-         * Parameter `temperature` that controls the randomness of the generated text
-         */
-        apiTemperature: number;
-        /**
-         * API request timeout (unit: seconds)
-         */
-        apiTimeout: number;
-        /**
-         * API request additional user agent field
-         */
-        apiUserAgent: string;
-        /**
-         * API version number
-         */
-        apiVersion: string;
+    export interface IAgent {
+        modelId: string;
+        sessionTimeout: number;
+        confirmTimeout: number;
+        maxRetries: number;
+        temperature: number;
+        maxCompletionTokens: number;
+        maxToolCallRounds: number;
     }
 
     /**
-     * The model name called by the API
+     * AI in-editor chat scenario behavior settings (mirrors IAgent)
+     */
+    export interface IEditing {
+        modelId: string;
+        maxHistoryMessages: number;
+        temperature: number;
+        maxCompletionTokens: number;
+    }
+
+    /**
+     * Embedding model configuration
+     */
+    export interface IEmbedding {
+        id: string;
+        enabled: boolean;
+        baseURL: string;
+        apiKey: string;
+        name: string;
+        timeout: number;
+    }
+
+    /**
+     * The model name called by the legacy OpenAI API configuration
      */
     export type TOpenAIAPIModel = "gpt-4" | "gpt-4-32k" | "gpt-3.5-turbo" | "gpt-3.5-turbo-16k" | string;
 
     /**
-     * API Provider
+     * API Provider for the legacy OpenAI API configuration
      */
     export type TOpenAAPIProvider = "OpenAI" | "Azure" | "Claude";
+
+    /**
+     * AI provider configuration
+     */
+    export interface IProvider {
+        id: string;
+        enabled: boolean;
+        displayName?: string;
+        baseURL: string;
+        apiKey: string;
+        requestTimeout: number;
+        models: IModel[];
+    }
+
+    /**
+     * AI model configuration. Behavior params (maxTokens/temperature/maxContexts)
+     * live on IEditing; Model holds only identity fields.
+     */
+    export interface IModel {
+        id: string;
+        enabled: boolean;
+        name: string;
+        displayName?: string;
+    }
+
+    /**
+     * MCP (Model Context Protocol) configuration
+     */
+    export interface IMCP {
+        servers: IMCPServer[];
+    }
+
+    export interface IMCPServer {
+        enabled: boolean;
+        name: string;
+        url: string;
+        type: string;
+        command: string;
+        args?: string[];
+        headers?: Record<string, string>;
+        timeout: number;
+    }
 
     /**
      * SiYuan API related configuration
@@ -281,27 +311,27 @@ declare namespace Config {
      * Same as {@link IAppearance.lang}
      */
     export type TLang =
-        "en_US"
-        | "ar_SA"
-        | "de_DE"
-        | "es_ES"
-        | "fr_FR"
-        | "he_IL"
-        | "hi_IN"
-        | "id_ID"
-        | "it_IT"
-        | "ja_JP"
-        | "ko_KR"
-        | "pl_PL"
-        | "pt_BR"
-        | "ru_RU"
-        | "sk_SK"
-        | "tr_TR"
-        | "uk_UA"
-        | "th_TH"
-        | "nl_NL"
-        | "zh_CN"
-        | "zh_CHT";
+        "en"
+        | "ar"
+        | "de"
+        | "es"
+        | "fr"
+        | "he"
+        | "hi"
+        | "id"
+        | "it"
+        | "ja"
+        | "ko"
+        | "pl"
+        | "pt-BR"
+        | "ru"
+        | "sk"
+        | "tr"
+        | "uk"
+        | "th"
+        | "nl"
+        | "zh-CN"
+        | "zh-TW";
 
     /**
      * SiYuan bazaar related configuration
@@ -1377,6 +1407,10 @@ declare namespace Config {
          */
         embedBlock: boolean;
         /**
+         * Whether to distinguish between Simplified and Traditional Chinese characters when searching
+         */
+        hanSensitive: boolean;
+        /**
          * Whether to search heading blocks
          */
         heading: boolean;
@@ -2267,6 +2301,7 @@ declare namespace Config {
          * - `1`: Query syntax
          * - `2`: SQL
          * - `3`: Regular expression
+         * - `4`: Fuzzy search
          * @default 0
          */
         method?: number;

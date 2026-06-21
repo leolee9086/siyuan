@@ -33,7 +33,7 @@ const 创建宽度调整回调 = (
         img3115(imageContainer.parentElement);
         imageContainer.style.width = label === siyuanI18n.default ? "" : `calc(${label} - 8px)`;
         imgElement.style.height = "";
-        updateTransaction(protyle, id, nodeElement.outerHTML, html);
+        updateTransaction(protyle, nodeElement, html);
         focusBlock(nodeElement);
     };
 };

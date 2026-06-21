@@ -45,7 +45,7 @@ export const openGlobalSearch = (app: App, text: string, replace: boolean, searc
             k: text,
             r: "",
             hasReplace: false,
-            method: searchData ? searchData.method : localData.method,
+            method: searchData ? searchData.method : (localData.method === 4 && !window.siyuan.config.ai.embedding.enabled ? 0 : localData.method),
             hPath: "",
             idPath: [],
             group: localData.group,
@@ -130,8 +130,8 @@ export const genQueryHTML = (method: number, id: string) => {
             methodIcon = "Regex";
             break;
         case 4:
-            methodTip = "语义搜索";  // TODO: 后续添加到 i18n
-            methodIcon = "Mindmap";
+            methodTip = siyuanI18n.semanticSearch;
+            methodIcon = "Sparkles";
             break;
     }
     return `<span id="${id}" aria-label="${siyuanI18n.searchMethod} ${methodTip}" class="block__icon ariaLabel" data-position="9south">
@@ -348,7 +348,7 @@ export const getArticle = (options: {
 };
 
 export const replace = (element: Element, config: Config.IUILayoutTabSearchConfig, edit: Protyle, isAll: boolean) => {
-    if (config.method === 2) {
+    if (config.method === 2 || config.method === 4) {
         showMessage(siyuanI18n._kernel[132]);
         return;
     }
@@ -430,5 +430,3 @@ export const getAttr = (block: IBlock) => {
     }
     return attrHTML;
 };
-
-

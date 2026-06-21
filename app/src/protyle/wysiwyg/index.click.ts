@@ -39,8 +39,8 @@ import {globalClickHideMenu} from "../../boot/globalEvent/click";
 import {chartRender} from "../render/chartRender";
 import {updateCalloutType} from "./callout";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
-import * as dayjs from "dayjs";
 import {handleClickNavigation} from "./index.click.navigation";
+import {toggleTaskListItem} from "./list";
 
 /**
  * 处理 click 事件的主逻辑，包括面包屑点击、表格选择清理、action 元素交互、
@@ -327,7 +327,7 @@ function handleListItemAction(
                     }
                 }
             });
-            updateTransaction(protyle, actionElement.parentElement.parentElement.getAttribute("data-node-id"), actionElement.parentElement.parentElement.outerHTML, oldHTML);
+            updateTransaction(protyle, actionElement.parentElement.parentElement, oldHTML);
         }
         hideElements(["gutter"], protyle);
     } else if (event.shiftKey && !protyle.disabled) {
@@ -337,18 +337,7 @@ function handleListItemAction(
     } else {
         if (actionElement.classList.contains("protyle-action--task")) {
             if (!protyle.disabled) {
-                const html = actionElement.parentElement.outerHTML;
-                if (actionElement.parentElement.classList.contains("protyle-task--done")) {
-                    actionElement.querySelector("use").setAttribute("xlink:href", "#iconUncheck");
-                    actionElement.parentElement.classList.remove("protyle-task--done");
-                    actionElement.parentElement.setAttribute("data-task", " ");
-                } else {
-                    actionElement.querySelector("use").setAttribute("xlink:href", "#iconCheck");
-                    actionElement.parentElement.classList.add("protyle-task--done");
-                    actionElement.parentElement.setAttribute("data-task", "X");
-                }
-                actionElement.parentElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                updateTransaction(protyle, actionId, actionElement.parentElement.outerHTML, html);
+                toggleTaskListItem(protyle, actionElement.parentElement);
             }
         } else if (window.siyuan.config.editor.listItemDotNumberClickFocus) {
             if (protyle.block.showAll && protyle.block.id === actionId) {
@@ -448,7 +437,7 @@ function handleCalloutAndEmoji(
                     }
                 }
                 calloutIconElement.innerHTML = emojiHTML;
-                updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                updateTransaction(protyle, nodeElement, oldHTML);
                 focusBlock(nodeElement);
             }, calloutIconElement.querySelector("img"));
         }
@@ -481,7 +470,7 @@ function handleCalloutAndEmoji(
                 }
                 emojiElement.outerHTML = emojiHTML;
                 hideElements(["dialog"]);
-                updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                updateTransaction(protyle, nodeElement, oldHTML);
                 focusByWbr(nodeElement, range);
             }, emojiElement);
         }

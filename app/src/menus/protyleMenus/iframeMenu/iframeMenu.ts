@@ -174,7 +174,7 @@ const handleIframeSrcChange = (
     const value = target.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
     updateIframeAttributes(iframeElement, value);
 
-    updateTransaction(protyle, id, nodeElement.outerHTML, state.html);
+    updateTransaction(protyle, nodeElement, state.html);
     state.html = nodeElement.outerHTML;
     event.stopPropagation();
 };

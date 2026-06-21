@@ -1,9 +1,9 @@
 import { matchHotKey } from "../util/hotKey";
 import { getContenteditableElement } from "./getBlock";
 import { updateTransaction } from "./transaction";
-import { focusByWbr } from "../util/selection";
 import { Constants } from "../../constants";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isInEmbedBlock } from "../util/hasClosest";
 
 /**
  * 处理代码块创建的快捷键
@@ -18,13 +18,9 @@ export const handleCodeBlockCreation = (
 ) => {
     // 检查是否匹配代码块插入快捷键，并且当前块不是代码块、标题或表格
     const blockType = nodeElement.getAttribute("data-type");
-    const id = nodeElement.getAttribute("data-node-id");
 
     if (!blockType) {
         throw ("块元素缺少类型属性");
-    }
-    if (!id) {
-        throw ("块元素缺少id属性");
     }
     if (!protyle.lute) {
         throw ("protyle缺少lute属性");
@@ -34,17 +30,21 @@ export const handleCodeBlockCreation = (
     }
     if (
         matchHotKey(getSiyuanConfig().keymap.editor.insert.code.custom, event) &&
-        !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(blockType)
+        !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(blockType) &&
+        !isInEmbedBlock(nodeElement)
     ) {
         const editElement = getContenteditableElement(nodeElement);
         if (editElement) {
             const html = nodeElement.outerHTML;
             // 需要 EscapeHTMLStr https://github.com/siyuan-note/siyuan/issues/11451
             editElement.innerHTML = "```" + getSiyuanStorage()[Constants.LOCAL_CODELANG] + "\n" + Lute.EscapeHTMLStr(editElement.textContent) + "<wbr>\n```";
-            const newHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
-            nodeElement.outerHTML = newHTML;
-            const newNodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
-            updateTransaction(protyle, id, newHTML, html);
+            nodeElement.insertAdjacentHTML("afterend", protyle.lute.SpinBlockDOM(nodeElement.outerHTML));
+            const newNodeElement = nodeElement.nextElementSibling;
+            if (!newNodeElement) {
+                return;
+            }
+            nodeElement.remove();
+            updateTransaction(protyle, newNodeElement, html);
             // 需要导入 highlightRender，但为了避免循环依赖，这里使用全局调用
             if (window.hljs) {
                 const highlightRender = (element: HTMLElement) => {

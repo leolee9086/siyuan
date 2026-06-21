@@ -5,6 +5,7 @@ import {
 import {
     hasClosestBlock,
     hasClosestByAttribute,
+    isInEmbedBlock,
 } from "../util/hasClosest";
 // S-forge: keydown 逻辑已重构拆分为多个中间件模块
 import { Constants } from "../../constants";
@@ -666,18 +667,21 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
         if (matchHotKey(getSiyuanConfig().keymap.editor.insert.code.custom, event) &&
-            !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type")!)) {
+            !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type")!) &&
+            !isInEmbedBlock(nodeElement)) {
             const editElement = getContenteditableElement(nodeElement);
             if (editElement) {
-                const id = nodeElement.getAttribute("data-node-id")!;
                 const html = nodeElement.outerHTML;
                 // 需要 EscapeHTMLStr https://github.com/siyuan-note/siyuan/issues/11451
                 editElement.innerHTML = "```" + getSiyuanStorage()[Constants.LOCAL_CODELANG] + "\n" + Lute.EscapeHTMLStr(editElement.textContent) + "<wbr>\n```";
-                const newHTML = protyle.lute!.SpinBlockDOM(nodeElement.outerHTML);
-                nodeElement.outerHTML = newHTML;
-                const newNodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
-                updateTransaction(protyle, id, newHTML, html);
-                highlightRender(newNodeElement!);
+                nodeElement.insertAdjacentHTML("afterend", protyle.lute!.SpinBlockDOM(nodeElement.outerHTML));
+                const newNodeElement = nodeElement.nextElementSibling;
+                if (!newNodeElement) {
+                    return true;
+                }
+                nodeElement.remove();
+                updateTransaction(protyle, newNodeElement, html);
+                highlightRender(newNodeElement);
                 event.preventDefault();
                 event.stopPropagation();
                 return true;

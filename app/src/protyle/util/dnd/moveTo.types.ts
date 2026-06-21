@@ -12,4 +12,5 @@ export interface IMoveContext {
     position: InsertPosition;
     newSourceElements: Element[];
     copyFoldHeadingIds: { newId: string, oldId: string }[];
+    sourcePositions: Map<string, { previousID: string; parentID: string }>;
 }

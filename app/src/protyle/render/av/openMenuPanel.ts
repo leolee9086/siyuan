@@ -3,7 +3,7 @@ import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";
-import { getFiltersHTML } from "./filter";
+import { bindInlineFilterEvents, getFiltersHTML, resetFoldedFilterPaths } from "./filter";
 import { bindSortsEvent, getSortsHTML } from "./sort";
 import { bindDateEvent, getDateHTML } from "./date";
 import { bindAssetEvent, getAssetHTML } from "./asset";
@@ -20,14 +20,51 @@ import { updateCellsValue } from "./cell";
 export type { IMenuPanelContext } from "./openMenuPanel.types";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 import { bindDragEvents } from "./openMenuPanel.drag";
-import { handleSortsFiltersClick } from "./openMenuPanel.click.sortsFilters";
+import { bindFilterCombinationChange, handleSortsFiltersClick } from "./openMenuPanel.click.sortsFilters";
 import { handleColEditClick } from "./openMenuPanel.click.colEdit";
 import { handleColOpsClick } from "./openMenuPanel.click.colOps";
 import { handleViewClick } from "./openMenuPanel.click.view";
 import { handleCellClick } from "./openMenuPanel.click.cell";
 import { handleGroupsClick } from "./openMenuPanel.click.groups";
-export { getPropertiesHTML } from "./openMenuPanel.properties";
-import { getPropertiesHTML } from "./openMenuPanel.properties";
+/**
+ * 用途：Emoji unicode → HTML 图标渲染。
+ * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
+ * 解耦评估：openMenuPanel.ts 是整个模块的入口枢纽，单点引入父级依赖后再以 deps 注入子模块，
+ *           已在子模块 openMenuPanel.properties.ts 中消除父级导入，这是合理的中转位置。
+ */
+import { unicode2Emoji } from "../../../emoji";
+/**
+ * 用途：HTML 转义函数，防止用户输入的列名破坏 HTML 结构。
+ * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
+ * 解耦评估：同上，openMenuPanel.ts 是依赖注入的锚点，在此处引入后注入给子模块。
+ */
+import { escapeHtml } from "../../../util/DOM/escape";
+/**
+ * 用途：国际化文案对象。
+ * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
+ * 解耦评估：同上，在入口枢纽处引入并注入子模块。
+ */
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+/**
+ * 用途：getPropertiesHTMLWithDeps 的实现函数（需注入 deps）。
+ * 使用范围：仅在此文件中调用以创建已绑定 deps 的版本，然后以统一签名 (fields) => string 重新导出。
+ * 解耦评估：已在 openMenuPanel.properties.ts 中消除父级导入，
+ *           通过 deps 参数从入口注入，这是合理的中转模式。
+ */
+import { getPropertiesHTMLWithDeps } from "./openMenuPanel.properties";
+/** 用途：PropertiesHTMLDeps 是 deps 注入上下文的类型约束。 */
+import type { PropertiesHTMLDeps } from "./openMenuPanel.types";
+
+/** getPropertiesHTML 的上下文依赖，在入口处构造后注入子模块 */
+const propertiesHTMLDeps: PropertiesHTMLDeps = { unicode2Emoji, escapeHtml, siyuanI18n };
+
+/**
+ * 包装后的 getPropertiesHTML，保持对外签名 (fields: IAVColumn[]) => string，
+ * 内部自动注入 deps 上下文，消除子模块对父级目录的导入依赖。
+ * @柯里化 合法的柯里化场景——在入口处捕获上下文闭包后以统一签名向外暴露。
+ * @同步豁免: UI构建 — 纯 HTML 字符串拼接，属于同步构造 UI 模板
+ */
+export const getPropertiesHTML = (fields: IAVColumn[]) => getPropertiesHTMLWithDeps(fields, propertiesHTMLDeps);
 
 export const openMenuPanel = (options: {
     protyle: IProtyle,
@@ -49,12 +86,15 @@ export const openMenuPanel = (options: {
     }
     const avID = options.blockElement.getAttribute("data-av-id");
     const avPageSize = getPageSize(options.blockElement);
+    // config/properties/sorts/filters/switcher 菜单只需要字段/视图元数据，不需要行数据，跳过行渲染以提升大体量视图下的响应速度
+    const ignoreRows = ["config", "properties", "sorts", "filters", "switcher"].includes(options.type);
     fetchPost("/api/av/renderAttributeView", {
         id: avID,
         query: options.blockElement.querySelector('[data-type="av-search"]')?.textContent.trim() || "",
         pageSize: avPageSize.unGroupPageSize,
         groupPaging: avPageSize.groupPageSize,
-        viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW)
+        viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW),
+        ignoreRows,
     }, (response) => {
         avPanelElement = document.querySelector(".av__panel");
         if (avPanelElement) {
@@ -77,6 +117,7 @@ export const openMenuPanel = (options: {
         } else if (options.type === "switcher") {
             html = getSwitcherHTML(data.views, data.viewID);
         } else if (options.type === "filters") {
+            resetFoldedFilterPaths();
             html = getFiltersHTML(data);
         } else if (options.type === "select") {
             html = getSelectHTML(fields, options.cellElements, true, options.blockElement);
@@ -122,7 +163,7 @@ export const openMenuPanel = (options: {
 
         document.body.insertAdjacentHTML("beforeend", `<div class="av__panel" style="z-index: ${++window.siyuan.zIndex};">
     <div class="b3-dialog__scrim" data-type="close"></div>
-    <div class="b3-menu" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="${["select", "asset", "relation"].includes(options.type) ? "max-height: calc(100vh - 32px);display: flex;flex-direction: column;" : ""}min-width: 200px;${isMobile ? "max-width: 90vw;" : "max-width: 50vw;"}"` : ""}>${html}</div>
+    <div class="b3-menu" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="${["select", "asset", "relation"].includes(options.type) ? "max-height: calc(100vh - 32px);display: flex;flex-direction: column;" : ""}min-width: 200px;${isMobile ? "max-width: 90vw;" : "max-width: 50vw;"}"` : (options.type === "filters" ? 'style="min-width: 340px;max-width: 80vw;width: fit-content;"' : "")}>${html}</div>
 </div>`);
         avPanelElement = document.querySelector(".av__panel");
         let closeCB: () => void;
@@ -183,6 +224,9 @@ export const openMenuPanel = (options: {
             setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
             if (options.type === "sorts") {
                 bindSortsEvent(options.protyle, menuElement, data, blockID);
+            } else if (options.type === "filters") {
+                bindInlineFilterEvents(avPanelElement, data, options.protyle, blockID, avID);
+                (avPanelElement as HTMLElement).dataset.inlineFilterEvents = "true";
             } else if (options.type === "edit") {
                 bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
             } else if (options.type === "config") {
@@ -199,6 +243,7 @@ export const openMenuPanel = (options: {
             menuElement, avPanelElement, tabRect, closeCB
         };
         bindDragEvents(ctx);
+        bindFilterCombinationChange(ctx);
         avPanelElement.addEventListener("mousedown", (event: MouseEvent & { target: HTMLElement }) => {
             if (event.button === 1 && !hasClosestByClassName(event.target, "b3-menu")) {
                 document.querySelector(".av__panel").dispatchEvent(new CustomEvent("click", { detail: "close" }));
@@ -273,6 +318,9 @@ export const openMenuPanel = (options: {
             }
             while (target && target !== avPanelElement || type) {
                 type = target?.dataset.type || type;
+                if (type === "toggleCombination") {
+                    break;
+                }
                 if (type === "close") {
                     if (!options.protyle.toolbar.subElement.classList.contains("fn__none")) {
                         // 优先关闭资源文件搜索
@@ -312,4 +360,3 @@ export const openMenuPanel = (options: {
         });
     });
 };
-

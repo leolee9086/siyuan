@@ -92,24 +92,44 @@ func ChatGPT(msg string, contextMsgs []string, c *openai.Client, modelName strin
 	return
 }
 
-func NewOpenAIClient(apiKey, apiProxy, apiBaseURL, apiUserAgent, apiVersion, apiProvider string) *openai.Client {
+func NewOpenAIClient(apiKey string, args ...string) *openai.Client {
+	apiProxy := ""
+	apiBaseURL := ""
+	apiUserAgent := UserAgent
+	apiVersion := ""
+	apiProvider := "OpenAI"
+	if 1 == len(args) {
+		apiBaseURL = args[0]
+	} else if 1 < len(args) {
+		apiProxy = args[0]
+		apiBaseURL = args[1]
+		if 2 < len(args) {
+			apiUserAgent = args[2]
+		}
+		if 3 < len(args) {
+			apiVersion = args[3]
+		}
+		if 4 < len(args) {
+			apiProvider = args[4]
+		}
+	}
+
 	config := openai.DefaultConfig(apiKey)
 	if "Azure" == apiProvider {
 		config = openai.DefaultAzureConfig(apiKey, apiBaseURL)
 		config.APIVersion = apiVersion
 	}
-
+	config.BaseURL = apiBaseURL
 	transport := &http.Transport{}
 	if "" != apiProxy {
-		proxyUrl, err := url.Parse(apiProxy)
+		proxyURL, err := url.Parse(apiProxy)
 		if err != nil {
 			logging.LogErrorf("OpenAI API proxy failed: %v", err)
 		} else {
-			transport.Proxy = http.ProxyURL(proxyUrl)
+			transport.Proxy = http.ProxyURL(proxyURL)
 		}
 	}
 	config.HTTPClient = &http.Client{Transport: newAddHeaderTransport(transport, apiUserAgent)}
-	config.BaseURL = apiBaseURL
 	return openai.NewClientWithConfig(config)
 }
 
@@ -119,10 +139,63 @@ type AddHeaderTransport struct {
 }
 
 func (adt *AddHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Add("User-Agent", adt.UserAgent)
+	if "" != adt.UserAgent {
+		req.Header.Add("User-Agent", adt.UserAgent)
+	}
 	return adt.RoundTripper.RoundTrip(req)
 }
 
 func newAddHeaderTransport(transport *http.Transport, userAgent string) *AddHeaderTransport {
 	return &AddHeaderTransport{RoundTripper: transport, UserAgent: userAgent}
+}
+
+func IsNetworkError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "actively refused") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "no such host") ||
+		strings.Contains(msg, "connection failed") ||
+		strings.Contains(msg, "hostname resolution") ||
+		strings.Contains(msg, "no address associated with hostname") ||
+		strings.Contains(msg, "request canceled while waiting for connection") ||
+		strings.Contains(msg, "exceeded while awaiting") ||
+		strings.Contains(msg, "context deadline exceeded") ||
+		strings.Contains(msg, "timeout") ||
+		strings.Contains(msg, "connection") ||
+		strings.Contains(msg, "refused") ||
+		strings.Contains(msg, "socket") ||
+		strings.Contains(msg, "eof") ||
+		strings.Contains(msg, "closed") ||
+		strings.Contains(msg, "network")
+}
+
+func BatchGetEmbeddings(texts []string, apiKey, baseURL, model string, timeout int) (ret [][]float32, err error) {
+	if 1 > len(texts) {
+		return
+	}
+
+	config := openai.DefaultConfig(apiKey)
+	config.BaseURL = baseURL
+	config.HTTPClient = &http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: &http.Transport{},
+	}
+	client := openai.NewClientWithConfig(config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	resp, err := client.CreateEmbeddings(ctx, openai.EmbeddingRequestStrings{
+		Input: texts,
+		Model: openai.EmbeddingModel(model),
+	})
+	if err != nil {
+		logging.LogErrorf("create embeddings failed: %s", err)
+		return
+	}
+
+	for _, data := range resp.Data {
+		ret = append(ret, data.Embedding)
+	}
+	return
 }

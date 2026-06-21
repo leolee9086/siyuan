@@ -40,6 +40,13 @@ import { getWindowWidth } from "./imports";
  * 解耦评估：尺寸读取已被 environment 层封装，通过 imports.ts 转发。
  */
 import { getWindowHeight } from "./imports";
+/**
+ * 用途：获取工具栏高度，用于拖拽时元素不应被工具栏遮挡的边界约束计算。
+ * 使用范围：handleEdgeResize/handleCornerResize/handleMovePosition 中的 Y 轴边界计算。
+ * 解耦评估：工具高度是运行时动态值（移动端/桌面端工具栏不同），通过 imports.ts 从环境读取合理；
+ *   若后续改为 CSS env() 方案可修改 imports.ts 实现。
+ */
+import { getTopBarHeight } from "./imports";
 
 /**
  * 用途：按 resize 类型分别处理元素尺寸变更
@@ -58,13 +65,13 @@ const handleEdgeResize = (moveEvent: MouseEvent, type: string, x: number, y: num
         return;
     }
     // 下侧拖拽：高度须 > 160 且不超过视口下边界（排除工具栏）
-    if (type === "d" && clientYOffset > 160 && clientYOffset < windowHeight - Constants.SIZE_TOOLBAR_HEIGHT) {
+    if (type === "d" && clientYOffset > 160 && clientYOffset < windowHeight - getTopBarHeight()) {
         element.style.height = clientYOffset + "px";
         element.style.maxHeight = "";
         return;
     }
     // 上侧拖拽：鼠标须在工具栏下方、且新高度 > 160
-    if (type === "t" && moveEvent.clientY > Constants.SIZE_TOOLBAR_HEIGHT && y - moveEvent.clientY + height > 160) {
+    if (type === "t" && moveEvent.clientY > getTopBarHeight() && y - moveEvent.clientY + height > 160) {
         element.style.top = moveEvent.clientY + "px";
         element.style.maxHeight = "";
         element.style.height = (y - moveEvent.clientY + height) + "px";
@@ -90,7 +97,7 @@ const handleCornerResize = (moveEvent: MouseEvent, type: string, x: number, y: n
 
     // 右下角拖拽：同时满足右边界和下边界约束
     if (type === "rd" && clientXOffset > 200 && clientXOffset < windowWidth &&
-        clientYOffset > 160 && clientYOffset < windowHeight - Constants.SIZE_TOOLBAR_HEIGHT) {
+        clientYOffset > 160 && clientYOffset < windowHeight - getTopBarHeight()) {
         element.style.height = clientYOffset + "px";
         element.style.maxHeight = "";
         element.style.maxWidth = "none";
@@ -99,7 +106,7 @@ const handleCornerResize = (moveEvent: MouseEvent, type: string, x: number, y: n
     }
     // 右上角拖拽：同时满足右边界和上边界约束
     if (type === "rt" && clientXOffset > 200 && clientXOffset < windowWidth &&
-        moveEvent.clientY > Constants.SIZE_TOOLBAR_HEIGHT && y - moveEvent.clientY + height > 160) {
+        moveEvent.clientY > getTopBarHeight() && y - moveEvent.clientY + height > 160) {
         element.style.width = clientXOffset + "px";
         element.style.top = moveEvent.clientY + "px";
         element.style.maxHeight = "";
@@ -109,7 +116,7 @@ const handleCornerResize = (moveEvent: MouseEvent, type: string, x: number, y: n
     }
     // 左上角拖拽：同时满足左边界和上边界约束
     if (type === "lt" && moveEvent.clientX > 0 && x - moveEvent.clientX + width > 200 &&
-        moveEvent.clientY > Constants.SIZE_TOOLBAR_HEIGHT && y - moveEvent.clientY + height > 160) {
+        moveEvent.clientY > getTopBarHeight() && y - moveEvent.clientY + height > 160) {
         element.style.left = moveEvent.clientX + "px";
         element.style.width = (x - moveEvent.clientX + width) + "px";
         element.style.top = moveEvent.clientY + "px";
@@ -120,7 +127,7 @@ const handleCornerResize = (moveEvent: MouseEvent, type: string, x: number, y: n
     }
     // 左下角拖拽：同时满足左边界和下边界约束
     if (type === "ld" && moveEvent.clientX > 0 && x - moveEvent.clientX + width > 200 &&
-        clientYOffset > 160 && clientYOffset < windowHeight - Constants.SIZE_TOOLBAR_HEIGHT) {
+        clientYOffset > 160 && clientYOffset < windowHeight - getTopBarHeight()) {
         element.style.left = moveEvent.clientX + "px";
         element.style.width = (x - moveEvent.clientX + width) + "px";
         element.style.height = clientYOffset + "px";
@@ -148,7 +155,7 @@ const handleMovePosition = (moveEvent: MouseEvent, x: number, y: number, width: 
         positionY = windowHeight - height;
     }
     element.style.left = Math.max(positionX, 0) + "px";
-    element.style.top = Math.max(positionY, Constants.SIZE_TOOLBAR_HEIGHT) + "px";
+    element.style.top = Math.max(positionY, getTopBarHeight()) + "px";
 };
 
 /**

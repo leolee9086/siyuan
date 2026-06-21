@@ -670,7 +670,7 @@ export class Gutter {
                         nodeElement.setAttribute("data-sb-layout", "col");
                     }
                     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                    updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+                    updateTransaction(protyle, nodeElement, oldHTML);
                     focusByRange(protyle.toolbar.range);
                     hideElements(["gutter"], protyle);
                 }
@@ -759,8 +759,7 @@ export class Gutter {
                     click() {
                         const msgId = showMessage(window.siyuan.languages.exporting, -1);
                         fetchPost("/api/export/exportCodeBlock", {id}, (response) => {
-                            hideMessage(msgId);
-                            saveExportFile(response.data.path);
+                            saveExportFile(response.data.path, msgId);
                         });
                     }
                 }]
@@ -782,7 +781,7 @@ export class Gutter {
                         element.querySelector("input").addEventListener("change", (event) => {
                             const newHeight = ((event.target as HTMLInputElement).value || "420") + "px";
                             (nodeElement as HTMLElement).style.height = newHeight;
-                            updateTransaction(protyle, id, nodeElement.outerHTML, html);
+                            updateTransaction(protyle, nodeElement, html);
                             html = nodeElement.outerHTML;
                             event.stopPropagation();
                             const renderElement = nodeElement.querySelector('[contenteditable="false"]') as HTMLElement;
@@ -1867,7 +1866,11 @@ data-type="fold" style="cursor:inherit;"><svg style="width: 10px;${fold && fold 
                 if (["NodeBlockquote", "NodeCallout"].includes(type)) {
                     space += 10;
                 }
-                if ((nodeElement.previousElementSibling && nodeElement.previousElementSibling.getAttribute("data-node-id")) ||
+                let previousBlock = nodeElement.previousElementSibling;
+                while (previousBlock && !previousBlock.getAttribute("data-node-id")) {
+                    previousBlock = previousBlock.previousElementSibling;
+                }
+                if ((previousBlock && previousBlock.getAttribute("data-node-id")) ||
                     nodeElement.parentElement.classList.contains("callout-content")) {
                     // 前一个块存在时，只显示到当前层级
                     hideParent = true;

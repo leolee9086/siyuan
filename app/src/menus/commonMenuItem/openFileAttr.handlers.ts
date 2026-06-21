@@ -6,7 +6,7 @@ import { renderAVAttribute } from "../../protyle/render/av/blockAttr";
 import { escapeHtml } from "../../util/DOM/escape";
 import { isMobile, isValidCustomAttrName } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { bindAttrInput } from ".";
+import { bindAttrInput } from "./util.bindAttrInput";
 import { MenuItem } from "../Menu.Item";
 import { fetchPost } from "../../ai/imports";
 

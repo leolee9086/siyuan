@@ -18,6 +18,7 @@ package model
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -55,6 +56,7 @@ import (
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/httpclient"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/task"
@@ -71,6 +73,9 @@ func AutoPurgeRepoJob() {
 var (
 	autoPurgeRepoAfterFirstSync = false
 	lastAutoPurgeRepo           = time.Time{}
+
+	purgeCancelMu sync.Mutex
+	purgeCancel   context.CancelFunc
 )
 
 func autoPurgeRepo(cron bool) {
@@ -165,7 +170,30 @@ func autoPurgeRepo(cron bool) {
 		return
 	}
 
-	_, err = repo.Purge(retentionIndexIDs...)
+	purgeCancelMu.Lock()
+	var ctx context.Context
+	ctx, purgeCancel = context.WithCancel(context.Background())
+	cancelCtx := ctx
+	purgeCancelMu.Unlock()
+	defer func() {
+		purgeCancelMu.Lock()
+		if nil != purgeCancel {
+			purgeCancel()
+			purgeCancel = nil
+		}
+		purgeCancelMu.Unlock()
+	}()
+
+	_, err = repo.Purge(cancelCtx, retentionIndexIDs...)
+}
+
+func cancelPurge() {
+	purgeCancelMu.Lock()
+	defer purgeCancelMu.Unlock()
+	if nil != purgeCancel {
+		purgeCancel()
+		purgeCancel = nil
+	}
 }
 
 func GetRepoFile(fileID string) (ret []byte, p string, err error) {
@@ -419,6 +447,7 @@ type LeftRightDiff struct {
 
 type DiffFile struct {
 	FileID  string `json:"fileID"`
+	IndexID string `json:"indexID"`
 	Title   string `json:"title"`
 	Path    string `json:"path"`
 	HPath   string `json:"hPath,omitempty"`
@@ -582,7 +611,7 @@ func SearchRepoFile(keyword string, page int) (ret []*DiffFile, pageCount, total
 		return
 	}
 
-	files, totalCount, pageCount, err := repo.SearchFile(keyword, page, 32)
+	files, fileIndexIDs, totalCount, pageCount, err := repo.SearchFile(keyword, page, 32)
 	if err != nil {
 		logging.LogErrorf("search repo file failed: %s", err)
 		return
@@ -607,6 +636,7 @@ func SearchRepoFile(keyword string, page int) (ret []*DiffFile, pageCount, total
 		}
 		ret = append(ret, &DiffFile{
 			FileID:  file.ID,
+			IndexID: fileIndexIDs[file.ID],
 			Title:   title,
 			Path:    file.Path,
 			HPath:   hpath,
@@ -873,7 +903,7 @@ func PurgeRepo() (err error) {
 		return
 	}
 
-	stat, err := repo.Purge()
+	stat, err := repo.Purge(context.Background())
 	if err != nil {
 		return
 	}
@@ -965,7 +995,7 @@ func initDataRepo() {
 	time.Sleep(1 * time.Second)
 	util.PushMsg(Conf.Language(138), 3000)
 	time.Sleep(1 * time.Second)
-	if initErr := IndexRepo("[Init] Init local data repo"); nil != initErr {
+	if _, initErr := IndexRepo("[Init] Init local data repo"); nil != initErr {
 		util.PushErrMsg(fmt.Sprintf(Conf.Language(140), initErr), 0)
 	}
 }
@@ -1009,6 +1039,9 @@ func checkoutRepo(id string) {
 	syncEnabled := Conf.Sync.Enabled
 	Conf.Sync.Enabled = false
 	Conf.Save()
+	if syncEnabled {
+		util.PushMsg(Conf.Language(134), 0)
+	}
 
 	// 回滚快照时默认为当前数据创建一个快照
 	// When rolling back a snapshot, a snapshot is created for the current data by default https://github.com/siyuan-note/siyuan/issues/12470
@@ -1030,11 +1063,67 @@ func checkoutRepo(id string) {
 	}
 
 	FullReindexDirect()
-
-	if syncEnabled {
-		task.AppendAsyncTaskWithDelay(task.PushMsg, 7*time.Second, util.PushMsg, Conf.Language(134), 0)
-	}
+	appendAgentRollbackEntries()
+	time.Sleep(time.Second)
+	FlushTxQueue()
+	task.AppendAsyncTaskWithDelay(task.ReloadUI, 1*time.Second, util.ReloadUI)
 	return
+}
+
+func appendAgentRollbackEntries() {
+	pattern := filepath.Join(util.TempDir, "ai", "agent", "agentRollback_*.json")
+	markers, err := filepath.Glob(pattern)
+	if err != nil {
+		return
+	}
+	for _, markerPath := range markers {
+		data, err := os.ReadFile(markerPath)
+		if err != nil {
+			os.Remove(markerPath)
+			continue
+		}
+		var marker struct {
+			SessionID  string `json:"sessionID"`
+			SnapshotID string `json:"snapshotID"`
+		}
+		if nil != gulu.JSON.UnmarshalJSON(data, &marker) {
+			os.Remove(markerPath)
+			continue
+		}
+
+		sessionPath := filepath.Join(util.DataDir, "storage", "ai", "agent", "sessions",
+			marker.SessionID, "session.json")
+		sessionData, err := os.ReadFile(sessionPath)
+		if err != nil {
+			os.Remove(markerPath)
+			continue
+		}
+
+		var session map[string]interface{}
+		if nil != gulu.JSON.UnmarshalJSON(sessionData, &session) {
+			os.Remove(markerPath)
+			continue
+		}
+
+		entries, ok := session["entries"].([]interface{})
+		if !ok {
+			entries = make([]interface{}, 0)
+		}
+		entry := map[string]interface{}{
+			"type":       "rollback",
+			"snapshotID": marker.SnapshotID,
+		}
+		entries = append(entries, entry)
+		session["entries"] = entries
+
+		newData, err := gulu.JSON.MarshalIndentJSON(session, "", "\t")
+		if err != nil {
+			os.Remove(markerPath)
+			continue
+		}
+		filelock.WriteFile(sessionPath, newData)
+		os.Remove(markerPath)
+	}
 }
 
 func DownloadCloudSnapshot(tag, id string) (err error) {
@@ -1301,7 +1390,7 @@ func TagSnapshot(id, name string) (err error) {
 	return
 }
 
-func IndexRepo(memo string) (err error) {
+func IndexRepo(memo string) (id string, err error) {
 	if 1 > len(Conf.Repo.Key) {
 		err = errors.New(Conf.Language(26))
 		return
@@ -1331,6 +1420,7 @@ func IndexRepo(memo string) (err error) {
 		util.PushStatusBar("Index data repo failed: " + html.EscapeString(err.Error()))
 		return
 	}
+	id = index.ID
 	elapsed := time.Since(start)
 
 	if nil == latest || latest.ID != index.ID {
@@ -1890,6 +1980,10 @@ func processSyncMergeResult(exit, byHand bool, mergeResult *dejavu.MergeResult, 
 		if file.Path == "/snippets/conf.json" {
 			needReloadSnippet = true
 		}
+
+		if strings.HasPrefix(file.Path, "/storage/av/") && strings.HasSuffix(file.Path, ".json") {
+			cache.RemoveAVData(strings.TrimSuffix(filepath.Base(file.Path), ".json"))
+		}
 	}
 
 	removeWidgetDirSet, unloadPluginSet, uninstallPluginSet := hashset.New(), hashset.New(), hashset.New()
@@ -1939,6 +2033,10 @@ func processSyncMergeResult(exit, byHand bool, mergeResult *dejavu.MergeResult, 
 
 		if file.Path == "/snippets/conf.json" {
 			needReloadSnippet = true
+		}
+
+		if strings.HasPrefix(file.Path, "/storage/av/") && strings.HasSuffix(file.Path, ".json") {
+			cache.RemoveAVData(strings.TrimSuffix(filepath.Base(file.Path), ".json"))
 		}
 	}
 

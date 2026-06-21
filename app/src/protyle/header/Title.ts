@@ -14,10 +14,14 @@ import { Constants } from "../../constants";
 import { matchHotKey } from "../util/hotKey";
 import { isMac, readText } from "../util/compatibility";
 import * as dayjs from "dayjs";
+// S-forge: 平台抽象，运行时 isMobile 判断替代编译时条件编译
 import { isMobile } from "../../platform";
+// S-forge: openFileById 路径重构
 import { openFileById } from "../../editor/utils.openFileById";
-import { setTitle } from "../../dialog/processSystem/setTitle";
+// 上游: getDocDisplayName 用于 render() 中标签页标题更新
+import { getDocDisplayName } from "../../util/pathName";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
+// S-forge: commonHotkey 路径重构
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";
 import { genEmptyElement } from "../../block/util";
@@ -27,6 +31,7 @@ import { commonClick } from "../wysiwyg/commonClick";
 import { openTitleMenu } from "./openTitleMenu";
 import { electronUndo } from "../undo";
 import { enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
+// S-forge: i18n 抽象层，替代 window.siyuan.languages 直接引用
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Title {
@@ -150,10 +155,12 @@ export class Title {
                         event.stopPropagation();
                     }
                 } else if (event.key === "Enter") {
-                    const editElement = getContenteditableElement(protyle.wysiwyg.element.firstElementChild);
-                    if (editElement && editElement.textContent === "" && editElement.getAttribute("placeholder")) {
+                    const firstElement = protyle.wysiwyg.element.firstElementChild;
+                    const editElement = getContenteditableElement(firstElement);
+                    if (editElement && editElement.textContent === "" && editElement.getAttribute("placeholder") ||
+                        firstElement.classList.contains("li")) {
                         // 配合提示文本使用，避免提示文本挤压到第二个块中
-                        focusBlock(protyle.wysiwyg.element.firstElementChild, protyle.wysiwyg.element);
+                        focusBlock(firstElement, protyle.wysiwyg.element);
                     } else {
                         const newId = Lute.NewNodeID();
                         const newElement = genEmptyElement(false, true, newId);
@@ -333,7 +340,6 @@ export class Title {
                 this.setTitle(fileName);
                 focusByOffset(this.editElement, offset.start, offset.end);
             }
-            setTitle(fileName);
         }, Constants.TIMEOUT_INPUT);
     }
 
@@ -378,6 +384,9 @@ export class Title {
         protyle.wysiwyg.renderCustom(response.data.ial);
         this.element.setAttribute("data-render", "true");
         this.setTitle(response.data.ial.title, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
+        if (protyle.model?.parent) {
+            protyle.model.parent.updateTitle(getDocDisplayName(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true"));
+        }
         let nodeAttrHTML = "";
         if (response.data.ial.bookmark) {
             nodeAttrHTML += `<div class="protyle-attr--bookmark">${Lute.EscapeHTMLStr(response.data.ial.bookmark)}</div>`;

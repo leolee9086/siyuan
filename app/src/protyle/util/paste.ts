@@ -4,10 +4,10 @@ import { processPasteCode } from "./processCode";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { getLocalFiles, getTextSiyuanFromTextHTML, readText } from "./compatibility";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName } from "./hasClosest";
-import { getEditorRange } from "./selection";
+import { getEditorRange, getSelectionOffset } from "./selection";
 import { blockRender } from "../render/blockRender";
 import { highlightRender } from "../render/highlightRender";
-import { fetchPost } from "../../util/network/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { isDynamicRef, isFileAnnotation } from "../../util/platform/functions";
 import { insertHTML } from "./insertHTML";
 import { scrollCenter } from "../../util/DOM/highlightById";
@@ -21,6 +21,28 @@ import { removeZWJ } from "./normalizeText";
 import { base64ToURL } from "../../util/assets/image";
 import { isElectron } from "../../platform";
 import { resolveLinkDest } from "../toolbar/util";
+
+export const beforePaste = (protyle: IProtyle, blockElement: HTMLElement) => {
+    // 链接，备注，样式，引用，pdf标注粘贴 https://github.com/siyuan-note/siyuan/issues/11572
+    const range = getSelection().getRangeAt(0);
+    protyle.toolbar.range = range;
+    const inlineElement = range.startContainer.parentElement;
+    if (range.toString() === "" && inlineElement.tagName === "SPAN") {
+        const currentTypes = (inlineElement.getAttribute("data-type") || "").split(" ");
+        if (currentTypes.includes("inline-memo") || currentTypes.includes("text") ||
+            currentTypes.includes("block-ref") || currentTypes.includes("file-annotation-ref") ||
+            currentTypes.includes("a")) {
+            const offset = getSelectionOffset(inlineElement, blockElement, range);
+            if (offset.start === 0) {
+                range.setStartBefore(inlineElement);
+                range.collapse(true);
+            } else if (offset.start === inlineElement.textContent.length) {
+                range.setEndAfter(inlineElement);
+                range.collapse(false);
+            }
+        }
+    }
+};
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     const dataType = blockElement.dataset.type;
@@ -195,6 +217,9 @@ export const pasteAsPlainText = async (protyle: IProtyle) => {
         textPlain = textPlain.replace(/__@kbd@__/g, "<kbd>").replace(/__@\/kbd@__/g, "</kbd>");
         textPlain = textPlain.replace(/__@u@__/g, "<u>").replace(/__@\/u@__/g, "</u>");
 
+        // 临界区：Lute 已是所有编辑器共享的单例，此处临时把 inline-syntax 标志置 true 再恢复。
+        // enable/transform/restore 必须保持同步执行，中间不得插入 await，否则并发编辑器的
+        // 转换调用（如实时输入的 SpinBlockDOM）会读到被改写的标志而产生错误输出。
         enableLuteMarkdownSyntax(protyle);
         const content = protyle.lute.BlockDOM2EscapeMarkerContent(protyle.lute.Md2BlockDOM(textPlain));
         restoreLuteMarkdownSyntax(protyle);
@@ -457,12 +482,26 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
             }
         }
         let isBlock = false;
-        tempElement.querySelectorAll("[data-node-id]").forEach((e) => {
-            const newId = Lute.NewNodeID();
-            e.setAttribute("data-node-id", newId);
-            clearBlockElement(e);
+        const pastedBlockElements = tempElement.querySelectorAll("[data-node-id]");
+        if (pastedBlockElements.length > 0) {
             isBlock = true;
-        });
+            // 剪切后粘贴时原块已被删除,保留原 ID 可避免该块被其他位置的引用失效;
+            // 仅当 ID 仍存在(复制粘贴)时才生成新 ID
+            const oldIds: string[] = [];
+            pastedBlockElements.forEach((e) => {
+                oldIds.push(e.getAttribute("data-node-id"));
+            });
+            const existResponse = await fetchSyncPost("/api/block/checkBlocksExist", {ids: oldIds});
+            pastedBlockElements.forEach((e) => {
+                const originalId = e.getAttribute("data-node-id");
+                const isCutPaste = existResponse.data[originalId] === false; // 剪切来的（原块已删）
+                if (!isCutPaste) {
+                    // 复制粘贴：生成新 ID
+                    e.setAttribute("data-node-id", Lute.NewNodeID());
+                }
+                clearBlockElement(e, isCutPaste); // 剪切粘贴保留引用角标
+            });
+        }
         if (nodeElement.classList.contains("table")) {
             isBlock = false;
         }

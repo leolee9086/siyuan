@@ -6,7 +6,7 @@
  */
 
 import { escapeAriaLabel, escapeHtml } from "../../../util/DOM/escape";
-import { getDisplayName } from "../../../util/file/pathName";
+import { getDocDisplayName } from "../../../util/file/pathName";
 import { unicode2Emoji } from "../../../emoji";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -39,8 +39,8 @@ export const genDocAriaLabel = (
     item: IFile,
     escapeMethod: (text: string) => string
 ): string => {
-    // 获取显示名称（去除.sy后缀，处理特殊字符）
-    const displayName = escapeMethod(getDisplayName(item.name, true, true));
+    // 获取显示名称，空标题文档显示内核约定的空标题占位符
+    const displayName = escapeMethod(getDocDisplayName(item.name, item.titleEmpty));
     
     // 构建基础信息：名称和大小
     let label = `${displayName} <small class='ft__on-surface'>${item.hSize ?? ""}</small>`;
@@ -152,7 +152,7 @@ class="b3-list-item b3-list-item--hide-action" data-path="${item.path ?? ""}">
     <span class="b3-list-item__icon b3-tooltips b3-tooltips__n popover__block${iconHiddenClass}" data-id="${item.id ?? ""}" aria-label="${siyuanI18n.changeIcon}">${iconEmoji}</span>
     ${switchHTML}
     <span class="b3-list-item__text ariaLabel" data-position="parentE"
-aria-label="${ariaLabel}">${getDisplayName(Lute.EscapeHTMLStr(item.name ?? ""), true, true)}</span>
+aria-label="${ariaLabel}">${getDocDisplayName(item.name ?? "", item.titleEmpty, true)}</span>
     <span data-type="more-file" class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
     </span>

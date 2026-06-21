@@ -35,7 +35,7 @@ export const handleVLayoutMiddleware = async (
             const oldHTML = firstSelectedBlockElement.outerHTML;
             firstSelectedBlockElement.setAttribute("data-sb-layout", "row");
             firstSelectedBlockElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, firstSelectedBlockId, firstSelectedBlockElement.outerHTML, oldHTML);
+            updateTransaction(protyle, firstSelectedBlockElement, oldHTML);
         } else {
             range.insertNode(document.createElement("wbr"));
             const sbData = await cancelSB(protyle, firstSelectedBlockElement);
@@ -99,7 +99,7 @@ export const handleHLayoutMiddleware = async (
             const oldHTML = firstSelectedBlockElement.outerHTML;
             firstSelectedBlockElement.setAttribute("data-sb-layout", "col");
             firstSelectedBlockElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, firstSelectedBlockId, firstSelectedBlockElement.outerHTML, oldHTML);
+            updateTransaction(protyle, firstSelectedBlockElement, oldHTML);
         } else {
             range.insertNode(document.createElement("wbr"));
             const sbData = await cancelSB(protyle, firstSelectedBlockElement);

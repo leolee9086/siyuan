@@ -2,6 +2,7 @@ import {transaction, updateTransaction} from "./transaction";
 import {focusByWbr} from "../util/selection";
 import * as dayjs from "dayjs";
 import {decodeHTML, escapeAttr} from "../../util/DOM/escape";
+import {Constants} from "../../constants";
 
 export const turnIntoTaskList = (protyle: IProtyle, type: string, blockElement: HTMLElement, editElement: HTMLElement, range: Range) => {
     const html = decodeHTML(editElement.innerHTML);
@@ -29,7 +30,7 @@ export const turnIntoTaskList = (protyle: IProtyle, type: string, blockElement: 
             // 仅有一项的列表才可转换
             if (!blockElement.parentElement.parentElement.classList.contains("protyle-wysiwyg") && // https://ld246.com/article/1659315815506
                 blockElement.parentElement.parentElement.childElementCount === 2) {
-                const liElement = blockElement.parentElement.parentElement;
+                const liElement = blockElement.parentElement.parentElement!;
                 const oldHTML = liElement.outerHTML;
                 liElement.setAttribute("data-subtype", "t");
                 liElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -40,7 +41,7 @@ export const turnIntoTaskList = (protyle: IProtyle, type: string, blockElement: 
                 }
                 blockElement.previousElementSibling.outerHTML = `<div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#icon${isDone ? "C" : "Unc"}heck"></use></svg></div>`;
                 editElement.innerHTML = html.substring(contextStartIndex);
-                updateTransaction(protyle, liElement.getAttribute("data-node-id"), liElement.outerHTML, oldHTML);
+                updateTransaction(protyle, liElement, oldHTML);
                 focusByWbr(protyle.wysiwyg.element, range);
                 return true;
             }
@@ -52,6 +53,7 @@ export const turnIntoTaskList = (protyle: IProtyle, type: string, blockElement: 
             const liItemId = Lute.NewNodeID();
             const oldHTML = blockElement.outerHTML;
             editElement.innerHTML = html.substring(contextStartIndex);
+            blockElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             transaction(protyle, [{
                 action: "update",
                 id,
@@ -98,6 +100,7 @@ export const headingTurnIntoList = (protyle: IProtyle, type: string, blockElemen
         const oldHTML = blockElement.outerHTML;
         const marker = editElement.innerHTML.substring(0, 1);
         editElement.innerHTML = editElement.innerHTML.substring(2);
+        blockElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
         transaction(protyle, [{
             action: "update",
             id,

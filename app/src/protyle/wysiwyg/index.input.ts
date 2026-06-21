@@ -1,9 +1,9 @@
 import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
-import {getEditorRange, getSelectionOffset, setInsertWbrHTML} from "../util/selection";
+import {getEditorRange, setInsertWbrHTML} from "../util/selection";
 import {Constants} from "../../constants";
 import {isMobile} from "../../util/platform/functions";
 import {previewDocImage} from "../preview/image";
-import {paste} from "../util/paste";
+import {beforePaste, paste} from "../util/paste";
 import {getContenteditableElement} from "./getBlock";
 import {updateTransaction} from "./transaction";
 import {ipcSend} from "../../platform/electron/ipcRenderer";
@@ -64,25 +64,7 @@ export function bindInputEvents(
         if (!blockElement) {
             return;
         }
-        // 链接，备注，样式，引用，pdf标注粘贴 https://github.com/siyuan-note/siyuan/issues/11572
-        const range = getSelection().getRangeAt(0);
-        protyle.toolbar.range = range;
-        const inlineElement = range.startContainer.parentElement;
-        if (range.toString() === "" && inlineElement.tagName === "SPAN") {
-            const currentTypes = (inlineElement.getAttribute("data-type") || "").split(" ");
-            if (currentTypes.includes("inline-memo") || currentTypes.includes("text") ||
-                currentTypes.includes("block-ref") || currentTypes.includes("file-annotation-ref") ||
-                currentTypes.includes("a")) {
-                const offset = getSelectionOffset(inlineElement, blockElement, range);
-                if (offset.start === 0) {
-                    range.setStartBefore(inlineElement);
-                    range.collapse(true);
-                } else if (offset.start === inlineElement.textContent.length) {
-                    range.setEndAfter(inlineElement);
-                    range.collapse(false);
-                }
-            }
-        }
+        beforePaste(protyle, blockElement);
         paste(protyle, event);
     });
 

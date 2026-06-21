@@ -142,17 +142,20 @@ export { turnsIntoOneTransaction, turnsIntoTransaction, turnsOneInto } from "./t
 export { processFold, removeUnfoldRepeatBlock } from "./transaction.fold";
 export { onTransaction } from "./transaction.onTransaction";
 
-export const updateTransaction = (protyle: IProtyle, id: string, newHTML: string, html: string) => {
-    if (newHTML === html) {
+export const updateTransaction = (protyle: IProtyle, element: Element, oldHTML: string) => {
+    const id = element.getAttribute("data-node-id");
+    const newHTML = element.outerHTML;
+    if (newHTML === oldHTML) {
         return;
     }
+    element.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
     transaction(protyle, [{
         id,
         data: newHTML,
         action: "update"
     }], [{
         id,
-        data: html,
+        data: oldHTML,
         action: "update"
     }]);
 };
@@ -171,6 +174,7 @@ export const updateBatchTransaction = (nodeElements: Element[], protyle: IProtyl
             data: element.outerHTML
         });
         cb(element as HTMLElement);
+        element.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
         operations.push({
             action: "update",
             id,

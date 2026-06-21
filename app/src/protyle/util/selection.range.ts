@@ -89,6 +89,7 @@ export const focusByOffset = (container: Element, start: number, end: number, is
     } else if (isFocus && (isNotEditBlock(container) || container.classList.contains("av"))) {
         return focusBlock(container);
     }
+    const isSame = start === end;
     let startNode: Node;
     searchNode(container, container.firstChild, node => {
         if (node.nodeType === Node.TEXT_NODE) {
@@ -100,7 +101,8 @@ export const focusByOffset = (container: Element, start: number, end: number, is
             start -= dataLength;
             end -= dataLength;
             return false;
-        } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === "BR") {
+        } else if (node.nodeType === Node.ELEMENT_NODE &&
+            ((node as Element).tagName === "BR" || (node as Element).classList.contains("emoji"))) {
             if (start <= 1) {
                 startNode = node;
                 return true;
@@ -113,17 +115,29 @@ export const focusByOffset = (container: Element, start: number, end: number, is
 
     let endNode;
     if (startNode) {
-        searchNode(container, startNode, node => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                const dataLength = (node as Text).data.length;
-                if (end <= dataLength) {
-                    endNode = node;
-                    return true;
+        if (isSame) {
+            endNode = startNode;
+        } else {
+            searchNode(container, startNode, node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const dataLength = (node as Text).data.length;
+                    if (end <= dataLength) {
+                        endNode = node;
+                        return true;
+                    }
+                    end -= dataLength;
+                    return false;
+                } else if (node.nodeType === Node.ELEMENT_NODE &&
+                    ((node as Element).tagName === "BR" || (node as Element).classList.contains("emoji"))) {
+                    if (end <= 1) {
+                        endNode = node;
+                        return true;
+                    }
+                    end -= 1;
+                    return false;
                 }
-                end -= dataLength;
-                return false;
-            }
-        });
+            });
+        }
     }
 
     const range = document.createRange();
@@ -141,8 +155,10 @@ export const focusByOffset = (container: Element, start: number, end: number, is
         }
     }
 
-    if (endNode) {
-        if (end <= (endNode as Text).data.length) {
+    if (isSame) {
+        range.collapse(true);
+    } else if (endNode) {
+        if (endNode.nodeType === Node.TEXT_NODE && end <= (endNode as Text).data.length) {
             range.setEnd(endNode, end);
         } else {
             range.setEndAfter(endNode);

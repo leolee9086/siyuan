@@ -20,13 +20,13 @@ import {
     moveColumnToRight,
 } from "../protyle/util/table/column";
 import { updateTableTitle } from "../protyle/util/table/table.title.update";
-import { transaction } from "../protyle/wysiwyg/transaction";
+import { transaction, updateTransaction } from "../protyle/wysiwyg/transaction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../util/platform/functions";
 import { Dialog } from "../dialog";
 import { setFold } from "../protyle/util/blockFold";
 
-// ==================== 从拆分文件重新导出 ====================
+// 从拆分文件重新导出
 
 // 从根目录拆分文件导出
 export { refMenu } from "./protyleMenus/refMenu/protyle.refMenu";
@@ -113,6 +113,16 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
                             while (prueTrElement !== theadElement.lastElementChild) {
                                 const lastChild = theadElement.lastElementChild;
                                 if (lastChild) {
+                                    lastChild.querySelectorAll("th").forEach((item) => {
+                                        const td = document.createElement("td");
+                                        Array.from(item.attributes).forEach((attr) => {
+                                            td.setAttribute(attr.name, attr.value);
+                                        });
+                                        while (item.firstChild) {
+                                            td.appendChild(item.firstChild);
+                                        }
+                                        item.replaceWith(td);
+                                    });
                                     tbodyElement.insertAdjacentElement("afterbegin", lastChild);
                                 }
                             }
@@ -120,11 +130,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
                     }
                 }
                 focusByRange(range);
-                const nodeId = nodeElement.getAttribute("data-node-id");
-                if (nodeId) {
-                    const { updateTransaction } = require("../protyle/wysiwyg/transaction");
-                    updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHTML);
-                }
+                updateTransaction(protyle, nodeElement, oldHTML);
             }
         });
     }
@@ -140,11 +146,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
                 const html = nodeElement.outerHTML;
                 thMatchElement.style.width = "";
                 thMatchElement.style.minWidth = "60px";
-                const nodeId = nodeElement.getAttribute("data-node-id");
-                if (nodeId) {
-                    const { updateTransaction } = require("../protyle/wysiwyg/transaction");
-                    updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-                }
+                updateTransaction(protyle, nodeElement, html);
             }
         });
     }
@@ -162,11 +164,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
             } else {
                 nodeElement.setAttribute("custom-pinthead", "true");
             }
-            const nodeId = nodeElement.getAttribute("data-node-id");
-            if (nodeId) {
-                const { updateTransaction } = require("../protyle/wysiwyg/transaction");
-                updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-            }
+            updateTransaction(protyle, nodeElement, html);
         }
     });
     otherMenus.push({
@@ -577,4 +575,3 @@ export const setFoldById = (data: {
         }
     }
 };
-

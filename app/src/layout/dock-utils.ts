@@ -4,6 +4,7 @@
  */
 import { Dock } from "./dock";
 import { App } from "../index";
+import { Constants } from "../constants";
 import {
     getSiyuanLanguages,
     getSiyuanConfig,
@@ -12,6 +13,8 @@ import {
 import { isLayout } from "./layout.guard";
 import { LayoutData } from "./dock-utils.types";
 import { adjustDockPadding } from "./dock/util";
+
+const DOCK_KEYS = ["left", "right", "bottom"] as const;
 
 /**
  * 将 Dock 元素序列化为 JSON 格式
@@ -114,7 +117,13 @@ export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]): void => {
         return;
     }
 
-    for (const existSubItem of dockItem) {
+    for (let index = 0; index < dockItem.length; index++) {
+        const existSubItem = dockItem[index];
+        if (window.siyuan.isPublish && (existSubItem.type === "inbox" || existSubItem.type === "agentChat")) {
+            dockItem.splice(index, 1);
+            index--;
+            continue;
+        }
         // 没有语言 ID 的项无法本地化处理，跳过
         if (!existSubItem.hotkeyLangId) {
             continue;
@@ -137,6 +146,55 @@ export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]): void => {
     }
 };
 
+const ensureAgentChatDock = (layout: Pick<Config.IUiLayout, "left" | "right" | "bottom">): void => {
+    let hasAgentChat = false;
+    for (const key of DOCK_KEYS) {
+        const sections = layout[key]?.data;
+        if (!sections) {
+            continue;
+        }
+        for (const sub of sections) {
+            if (!sub) {
+                continue;
+            }
+            for (let index = 0; index < sub.length; index++) {
+                if (sub[index]?.type !== "agentChat") {
+                    continue;
+                }
+                if (hasAgentChat) {
+                    sub.splice(index, 1);
+                    index--;
+                    continue;
+                }
+                hasAgentChat = true;
+            }
+        }
+    }
+    if (hasAgentChat) {
+        return;
+    }
+    for (const key of DOCK_KEYS) {
+        const sections = Constants.SIYUAN_EMPTY_LAYOUT[key]?.data;
+        if (!sections) {
+            continue;
+        }
+        for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+            const sub = sections[sectionIndex];
+            if (!sub) {
+                continue;
+            }
+            for (let itemIndex = 0; itemIndex < sub.length; itemIndex++) {
+                const item = sub[itemIndex];
+                const targetSections = layout[key]?.data;
+                if (item?.type === "agentChat" && targetSections?.[sectionIndex]) {
+                    targetSections[sectionIndex].splice(itemIndex, 0, { ...item });
+                    return;
+                }
+            }
+        }
+    }
+};
+
 /**
  * 从 JSON 配置初始化所有 Dock 实例
  *
@@ -151,6 +209,8 @@ export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]): void => {
  * @param app - 应用主实例，用于创建 Dock
  */
 export const JSONToDock = (json: LayoutData, app: App): void => {
+    ensureAgentChatDock(json);
+
     // 初始化左侧 Dock 配置（本地化标题和热键）
     for (const existItem of json.left.data) {
         initInternalDock(existItem);

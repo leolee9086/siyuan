@@ -15,6 +15,7 @@ import {genTabHeaderHTML} from "./render";
 import {updateSearch} from "./render";
 import {isMobile} from "../../../platform";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {initVirtualScroll} from "./virtualScroll";
 
 export interface ITableOptions {
     protyle: IProtyle,
@@ -34,6 +35,7 @@ export interface ITableOptions {
         activeIds: IIds[],
         query: string,
         pageSizes: { [key: string]: string },
+        virtualData: { [key: string]: IAVVirtualData },
     }
 }
 
@@ -43,7 +45,7 @@ interface IIds {
     colId?: string
 }
 
-export const getTableHTMLs = async (data: IAVTable, e: HTMLElement) => {
+export const getTableHTMLs = async (data: IAVTable, e: HTMLElement, virtualData?: IAVVirtualData) => {
     let calcHTML = "";
     let contentHTML = '<div class="av__row av__row--header"><div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div></div>';
     let pinIndex = -1;
@@ -101,15 +103,29 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
             calcHTML += "</div>";
         }
     });
-    contentHTML += `<div class="block__icons" style="min-height: auto">
+    contentHTML += `<div class="block__icons" style="min-height: auto" data-pinindex="${pinIndex}">
     <div class="block__icon block__icon--show" data-type="av-header-more"><svg><use xlink:href="#iconMore"></use></svg></div>
     <div class="fn__space"></div>
     <div class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.newCol}" data-type="av-header-add" data-position="4south"><svg><use xlink:href="#iconAdd"></use></svg></div>
 </div>
 </div>`;
+    if (virtualData?.topSpacerHeight) {
+        contentHTML += `<div class="av__spacer" style="height: ${virtualData.topSpacerHeight}px;"></div>`;
+    }
     // body
     for (const [rowIndex, row] of data.rows.entries()) {
-        contentHTML += `<div class="av__row" data-id="${row.id}">`;
+        if (virtualData && typeof virtualData.renderedEnd === "number") {
+            if (rowIndex === 0) {
+                e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            }
+            if (rowIndex > virtualData.renderedEnd || rowIndex < virtualData.renderedStart) {
+                continue;
+            }
+        } else if (data.pageSize > 100 && rowIndex > 99) {
+            e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            break;
+        }
+        contentHTML += `<div class="av__row" data-id="${row.id}" data-index="${rowIndex}">`;
         if (pinIndex > -1) {
             contentHTML += '<div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div>';
         } else {
@@ -189,7 +205,7 @@ export const renderGroupTable = async (options: ITableOptions) => {
     let avBodyHTML = "";
     for (const group of options.data.view.groups) {
         if (group.groupHidden === 0) {
-            const tableHTMLs = await getTableHTMLs(group, options.blockElement);
+            const tableHTMLs = await getTableHTMLs(group, options.blockElement, options.resetData.virtualData[group.id]);
             avBodyHTML += `${getGroupTitleHTML(group, group.rowCount)}
 <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" style="float: left" class="av__body${group.groupFolded ? " fn__none" : ""}">${tableHTMLs}</div>`;
         }
@@ -371,4 +387,5 @@ export const afterRenderTable = (options: ITableOptions) => {
             }
         }
     });
+    initVirtualScroll(options);
 };

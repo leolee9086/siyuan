@@ -27,8 +27,9 @@ const getViewerTitle = (image: HTMLImageElement, imageData: IObject) => {
  *
  * @param srcList 需要预览的图片地址列表
  * @param currentSrc 当前点击/显示的图片地址
+ * @param onHidden 查看器隐藏后的回调
  */
-const showViewer = (srcList: string[], currentSrc?: string) => {
+const showViewer = (srcList: string[], currentSrc?: string, onHidden?: () => void) => {
     const imagesElement = document.createElement("ul");
     let initialViewIndex = -1;
     for (const [index, item] of srcList.entries()) {
@@ -52,6 +53,9 @@ const showViewer = (srcList: string[], currentSrc?: string) => {
         /** 销毁 viewer 实例 */
         hidden: () => {
             destroySiyuanViewer();
+            if (onHidden) {
+                onHidden();
+            }
         },
         toolbar: {
             zoomIn: true,
@@ -80,10 +84,11 @@ const showViewer = (srcList: string[], currentSrc?: string) => {
  * 调用时机：在 previewDocImage 或 previewAttrViewImages 获取到图片列表后调用
  * @param srcList 图片地址列表
  * @param currentSrc 当前选中的图片地址
+ * @param onHidden 查看器隐藏后的回调
  */
-export const previewImages = (srcList: string[], currentSrc?: string) => {
+export const previewImages = (srcList: string[], currentSrc?: string, onHidden?: () => void) => {
     addScript(`${Constants.PROTYLE_CDN}/js/viewerjs/viewer.js?v=1.11.7`, "protyleViewerScript").then(() =>
-        showViewer(srcList, currentSrc)
+        showViewer(srcList, currentSrc, onHidden)
     );
 };
 

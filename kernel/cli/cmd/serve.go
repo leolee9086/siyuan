@@ -17,9 +17,6 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/assetmeta"
 	"github.com/siyuan-note/siyuan/kernel/cache"
@@ -33,35 +30,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// serve 子命令自己的 flag 值。--workspace 复用 rootCmd 的 persistent flag，不再重复声明。
+var (
+	serveWdPath         string
+	servePort           string
+	serveReadOnly       string
+	serveAccessAuthCode string
+	serveLang           string
+	serveMode           string
+	serveSSL            bool
+	serveAttachUI       bool
+	serveNoBrowser      bool
+)
+
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start kernel HTTP server",
-	FParseErrWhitelist: cobra.FParseErrWhitelist{UnknownFlags: true},
+	Long:  "Start kernel HTTP server. All serving-related options below are passed to the kernel boot.",
+	// 这些 flag 由 cobra 解析（见 init），serve -h 可直接列出全部参数。
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return nil // bypass root's init — Boot() handles it
+		return nil // bypass root's init — BootWithFlags() handles it
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		// Boot() uses flag.Parse() which expects raw --flags, not a cobra subcommand
-		// Strip the "serve" subcommand from os.Args before calling Boot()
-		saved := os.Args
-		newArgs := make([]string, 1, len(os.Args))
-		newArgs[0] = os.Args[0]
-		for i := 1; i < len(os.Args); i++ {
-			if i == 1 && os.Args[1] == "serve" {
-				continue
-			}
-			newArgs = append(newArgs, os.Args[i])
-		}
-		os.Args = newArgs
-		defer func() { os.Args = saved }()
+		// --workspace 优先取 serve 自己的（rootCmd 的 persistent flag），兜底环境变量与默认值交给 util.BootWithFlags 内部处理（与原 Boot() 行为一致）。
+		ws := workspacePath
 
-		// 设置工作目录为可执行文件所在目录
-		if exePath, err := os.Executable(); err == nil {
-			exePath, _ = filepath.EvalSymlinks(exePath)
-			util.WorkingDir = filepath.Dir(exePath)
-		}
-
-		util.Boot()
+		util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser)
 
 		model.InitJwtKey()
 		model.InitConf()
@@ -78,7 +72,7 @@ var serveCmd = &cobra.Command{
 		model.LoadFlashcards()
 		util.LoadAssetsTexts()
 
-		// Initialize S-Forge Asset Meta Service
+		// S-forge: 初始化资产元数据服务
 		if err := assetmeta.NewInstance().Initialize(); err != nil {
 			logging.LogErrorf("init asset meta service failed: %s", err)
 		}
@@ -92,6 +86,7 @@ var serveCmd = &cobra.Command{
 		go cache.LoadAssets()
 		go util.CheckFileSysStatus()
 		go plugin.InitManager()
+		go model.StartEmbeddingIndexer()
 
 		model.WatchAssets()
 		model.WatchEmojis()
@@ -101,5 +96,17 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
+	// --wd 默认值取内核可执行文件所在目录的上一级（打包后的 resources/，appearance/、stage/ 所在目录），
+	// 与 rootCmd.PersistentPreRunE 走同一个 resolveWorkingDir()，确保两条启动路径行为一致。
+	serveCmd.Flags().StringVar(&serveWdPath, "wd", resolveWorkingDir(), "working directory of SiYuan")
+	serveCmd.Flags().StringVar(&servePort, "port", "0", "port of the HTTP server")
+	serveCmd.Flags().StringVar(&serveReadOnly, "readonly", "false", "read-only mode")
+	serveCmd.Flags().StringVar(&serveAccessAuthCode, "accessAuthCode", "", "access auth code")
+	serveCmd.Flags().StringVar(&serveLang, "lang", "", "ar/de/en/es/fr/he/hi/id/it/ja/ko/nl/pl/pt-BR/ru/sk/th/tr/uk/zh-CN/zh-TW")
+	serveCmd.Flags().StringVar(&serveMode, "mode", util.ModeProd, "dev/prod/forge")
+	serveCmd.Flags().BoolVar(&serveSSL, "ssl", false, "for https and wss")
+	serveCmd.Flags().BoolVar(&serveAttachUI, "attach-ui", false, "attach kernel lifecycle to desktop UI process (used by Electron)")
+	serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
+
 	rootCmd.AddCommand(serveCmd)
 }

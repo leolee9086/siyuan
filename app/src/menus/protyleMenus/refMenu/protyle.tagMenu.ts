@@ -63,7 +63,7 @@ const 提交标签事务 = (
     nodeElement: HTMLElement,
     htmlState: { value: string }
 ): void => {
-    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.value);
+    updateTransaction(protyle, nodeElement, htmlState.value);
     htmlState.value = nodeElement.outerHTML;
 };
 
@@ -83,7 +83,7 @@ const 删除标签并恢复光标 = (
     tagElement.insertAdjacentHTML("afterend", "<wbr>");
     tagElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+    updateTransaction(protyle, nodeElement, oldHTML);
     const toolbarRange = protyle.toolbar?.range;
     if (toolbarRange) {
         focusByWbr(nodeElement, toolbarRange);
@@ -349,7 +349,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
         }
         if (nodeElement.outerHTML !== oldHTML) {
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
         }
     };
 

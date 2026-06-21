@@ -19,14 +19,21 @@ export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boole
     let tabHTML = "";
     let viewData: IAVView;
     let hasFilter = false;
-    getFieldsByData(data).forEach((item) => {
-        if (!hasFilter) {
-            data.view.filters.find(filterItem => {
-                if (filterItem.value.type === item.type && item.id === filterItem.column) {
-                    hasFilter = true;
+    const findLeafFilter = (nodes: IAVFilter[], columnId: string, columnType: string): boolean => {
+        for (const node of nodes) {
+            if (node.filters) {
+                if (findLeafFilter(node.filters, columnId, columnType)) {
                     return true;
                 }
-            });
+            } else if (node.value && node.value.type === columnType && node.column === columnId) {
+                return true;
+            }
+        }
+        return false;
+    };
+    getFieldsByData(data).forEach((item) => {
+        if (!hasFilter && findLeafFilter(data.view.filters, item.id, item.type)) {
+            hasFilter = true;
         }
     });
     data.views.forEach((item: IAVView) => {
@@ -153,8 +160,22 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         });
         const searchInputElement = e.querySelector('[data-type="av-search"]') as HTMLInputElement;
         const pageSizes: { [key: string]: string } = {};
+        const virtualData: { [key: string]: IAVVirtualData } = {};
         e.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
             pageSizes[item.dataset.groupId || "unGroup"] = item.dataset.pageSize;
+            if (e.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
+                return;
+            }
+            const firstRow = item.querySelectorAll(".av__row")[1] as HTMLElement;
+            const lastRow = item.querySelector(".av__row--util")?.previousElementSibling as HTMLElement;
+            if (!firstRow || !lastRow) {
+                return;
+            }
+            virtualData[item.getAttribute("data-group-id") || "all"] = {
+                renderedStart: parseInt(firstRow.getAttribute("data-index")),
+                renderedEnd: parseInt(lastRow.getAttribute("data-index")),
+                topSpacerHeight: item.querySelector(".av__spacer")?.clientHeight || 0,
+            };
         });
         const headerTransformElement = e.querySelector('.av__row--header[style^="transform"]') as HTMLElement;
         const footerTransformElement = e.querySelector('.av__row--footer[style^="transform"]') as HTMLElement;
@@ -175,7 +196,8 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             dragFillId,
             activeIds,
             query: searchInputElement?.textContent || "",
-            pageSizes
+            pageSizes,
+            virtualData
         };
         if (e.firstElementChild.innerHTML === "") {
             e.style.alignSelf = "";
@@ -226,7 +248,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             await renderGroupTable({blockElement: e, protyle, cb, renderAll, data, resetData});
             continue;
         }
-        const tableHTMLs = await getTableHTMLs(view, e);
+        const tableHTMLs = await getTableHTMLs(view, e, resetData.virtualData.all);
         const avBodyHTML = `<div class="av__body" data-group-id="" data-page-size="${view.pageSize}" style="float: left">
     ${tableHTMLs}
 </div>`;

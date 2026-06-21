@@ -15,6 +15,7 @@ import { App } from "../../index";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getDocDisplayName } from "../../util/pathName";
 
 declare const vis: any;
 
@@ -40,52 +41,12 @@ export class Graph extends Model {
         rootId?: string
         type: "local" | "pin" | "global"
     }) {
-        super({
-            app: options.app,
+        super({app: options.app});
+        this.connect({
             id: options.tab.id,
             type: "graph",
-            callback() {
-                if (this.type === "local") {
-                    fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
-                        if (!existResponse.data) {
-                            this.parent.parent.removeTab(this.parent.id);
-                        }
-                    });
-                }
-            },
-            msgCallback(data) {
-                if (data) {
-                    switch (data.cmd) {
-                        case "mount":
-                            if (this.type === "global" && data.code !== 1) {
-                                this.searchGraph(false);
-                            }
-                            break;
-                        case "rename":
-                            if (this.graphData && data.data.box === this.graphData.box && this.rootId === data.data.id) {
-                                this.searchGraph(false);
-                                if (this.type === "local") {
-                                    this.parent.updateTitle(data.data.title);
-                                }
-                            }
-                            if (this.type === "global") {
-                                this.searchGraph(false);
-                            }
-                            break;
-                        case "closeBox":
-                        case "removeBox":
-                            if (this.type === "local" && this.graphData && this.graphData.box === data.data.box) {
-                                this.parent.parent.removeTab(this.parent.id);
-                            }
-                            break;
-                        case "removeDoc":
-                            if (this.type === "local" && data.data.ids.includes(this.rootId)) {
-                                this.parent.parent.removeTab(this.parent.id);
-                            }
-                            break;
-                    }
-                }
-            }
+            callback: this.handleCallback.bind(this),
+            msgCallback: this.handleMsgCallback.bind(this)
         });
         this.element = options.tab.panelElement;
         this.blockId = options.blockId;
@@ -374,6 +335,50 @@ export class Graph extends Model {
             });
         });
         this.searchGraph(options.type !== "global");
+    }
+
+    private handleCallback() {
+        if (this.type === "local") {
+            fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
+                if (!existResponse.data) {
+                    this.parent.parent.removeTab(this.parent.id);
+                }
+            });
+        }
+    }
+
+    private handleMsgCallback(data: IWebSocketData) {
+        if (data) {
+            switch (data.cmd) {
+                case "mount":
+                    if (this.type === "global" && data.code !== 1) {
+                        this.searchGraph(false);
+                    }
+                    break;
+                case "rename":
+                    if (this.graphData && data.data.box === this.graphData.box && this.rootId === data.data.id) {
+                        this.searchGraph(false);
+                        if (this.type === "local") {
+                            this.parent.updateTitle(getDocDisplayName(data.data.title, data.data.empty));
+                        }
+                    }
+                    if (this.type === "global") {
+                        this.searchGraph(false);
+                    }
+                    break;
+                case "closeBox":
+                case "removeBox":
+                    if (this.type === "local" && this.graphData && this.graphData.box === data.data.box) {
+                        this.parent.parent.removeTab(this.parent.id);
+                    }
+                    break;
+                case "removeDoc":
+                    if (this.type === "local" && data.data.ids.includes(this.rootId)) {
+                        this.parent.parent.removeTab(this.parent.id);
+                    }
+                    break;
+            }
+        }
     }
 
     private reset(conf: IGraphCommon & ({ dailyNote: boolean } | { minRefs: number, dailyNote: boolean })) {

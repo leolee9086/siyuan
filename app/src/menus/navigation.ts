@@ -5,7 +5,7 @@ import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";
 import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/file/pathName";
-import { hideMessage, showMessage } from "../dialog/message";
+import { showMessage } from "../dialog/message";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { onGetnotebookconf } from "./onGetnotebookconf";
 import { openSearch } from "../search/spread";
@@ -234,8 +234,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
                 fetchPost("/api/export/exportNotebookSY", {
                     id: notebookId,
                 }, response => {
-                    hideMessage(msgId);
-                    saveExportFile(response.data.zip);
+                    saveExportFile(response.data.zip, msgId);
                 });
             }
         }, {
@@ -247,8 +246,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
                 fetchPost("/api/export/exportNotebookMd", {
                     notebook: notebookId
                 }, response => {
-                    hideMessage(msgId);
-                    saveExportFile(response.data.zip);
+                    saveExportFile(response.data.zip, msgId);
                 });
             }
         }]

@@ -9,6 +9,28 @@ import {
     updateListAfterOperation
 } from "./moveTo.helper";
 import { getParentBlock } from "../../wysiwyg/getBlock";
+import { getAllEditor } from "../../../layout/getAll";
+
+const captureSourcePositions = (protyle: IProtyle, sourceElements: Element[]) => {
+    const sourcePositions = new Map<string, { previousID: string; parentID: string }>();
+    for (const item of sourceElements) {
+        const id = item.getAttribute("data-node-id");
+        if (!id) {
+            continue;
+        }
+        const parentBlock = getParentBlock(item);
+        let parentID = parentBlock?.getAttribute("data-node-id") ?? "";
+        if (!parentID) {
+            const sourceEditor = getAllEditor().find(editor => editor.protyle.wysiwyg.element === parentBlock);
+            parentID = sourceEditor?.protyle?.block?.rootID || protyle.block.rootID || "";
+        }
+        sourcePositions.set(id, {
+            previousID: item.previousElementSibling?.getAttribute("data-node-id") || "",
+            parentID,
+        });
+    }
+    return sourcePositions;
+};
 
 export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,
     isSameDoc: boolean, position: InsertPosition, isCopy: boolean) => {
@@ -40,7 +62,8 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
         isSameDoc,
         position,
         newSourceElements,
-        copyFoldHeadingIds
+        copyFoldHeadingIds,
+        sourcePositions: captureSourcePositions(protyle, sourceElements),
     };
 
     const orderListElements: { [key: string]: Element } = {};

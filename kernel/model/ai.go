@@ -18,6 +18,7 @@ package model
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 
 	"github.com/88250/lute/ast"
@@ -60,7 +61,7 @@ func chatGPT(msg string, cloud bool) (ret string) {
 		return
 	}
 
-	ret, retCtxMsgs, err := chatGPTContinueWrite(msg, cachedContextMsg, cloud)
+	ret, retCtxMsgs, err := chatGPTComplete(msg, cachedContextMsg, cloud)
 	if err != nil {
 		return
 	}
@@ -73,42 +74,49 @@ func chatGPTWithAction(msg string, action string, cloud bool) (ret string) {
 	if "" != action {
 		msg = action + ":\n\n" + msg
 	}
-	ret, _, err := chatGPTContinueWrite(msg, nil, cloud)
+	ret, _, err := chatGPTComplete(msg, nil, cloud)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func chatGPTContinueWrite(msg string, contextMsgs []string, cloud bool) (ret string, retContextMsgs []string, err error) {
+func chatGPTComplete(msg string, contextMsgs []string, cloud bool) (ret string, retContextMsgs []string, err error) {
 	util.PushEndlessProgress("Requesting...")
 	defer util.ClearPushProgress(100)
 
-	if Conf.AI.OpenAI.APIMaxContexts < len(contextMsgs) {
-		contextMsgs = contextMsgs[len(contextMsgs)-Conf.AI.OpenAI.APIMaxContexts:]
-	}
-
 	var gpt GPT
+	maxHistoryMessages := getEditingMaxHistoryMessages()
 	if cloud {
 		gpt = &CloudGPT{}
 	} else {
-		gpt = &OpenAIGPT{c: util.NewOpenAIClient(Conf.AI.OpenAI.APIKey, Conf.AI.OpenAI.APIProxy, Conf.AI.OpenAI.APIBaseURL, Conf.AI.OpenAI.APIUserAgent, Conf.AI.OpenAI.APIVersion, Conf.AI.OpenAI.APIProvider)}
-	}
-
-	buf := &bytes.Buffer{}
-	for i := 0; i < Conf.AI.OpenAI.APIMaxContexts; i++ {
-		part, stop, chatErr := gpt.chat(msg, contextMsgs)
-		buf.WriteString(part)
-
-		if stop || nil != chatErr {
-			break
+		var cfgErr error
+		gpt, maxHistoryMessages, cfgErr = newOpenAIGPT()
+		if nil != cfgErr {
+			err = cfgErr
+			return
 		}
-
-		util.PushEndlessProgress("Continue requesting...")
 	}
 
-	ret = buf.String()
-	ret = strings.TrimSpace(ret)
+	if maxHistoryMessages < len(contextMsgs) {
+		contextMsgs = contextMsgs[len(contextMsgs)-maxHistoryMessages:]
+	}
+
+	part, stop, chatErr := gpt.chat(msg, contextMsgs)
+	if nil != chatErr {
+		err = chatErr
+		return
+	}
+
+	// stop==false means finish_reason=length: the output was truncated at
+	// MaxCompletionTokens. Retrying the same prompt would almost certainly hit
+	// the same limit again, so we return whatever was produced and notify the
+	// user instead of silently looping. See https://github.com/siyuan-note/siyuan/issues/17797
+	if !stop {
+		util.PushMsg(Conf.Language(297), 5000)
+	}
+
+	ret = strings.TrimSpace(part)
 	if "" != ret {
 		retContextMsgs = append(retContextMsgs, msg, ret)
 	}
@@ -116,11 +124,91 @@ func chatGPTContinueWrite(msg string, contextMsgs []string, cloud bool) (ret str
 }
 
 func isOpenAIAPIEnabled() bool {
-	if "" == Conf.AI.OpenAI.APIKey {
-		util.PushMsg(Conf.Language(193), 5000)
+	if Conf == nil || Conf.AI == nil || (!Conf.AI.HasAnyProvider() && (Conf.AI.OpenAI == nil || Conf.AI.OpenAI.APIKey == "")) {
+		pushAINotConfigured()
 		return false
 	}
 	return true
+}
+
+func pushAINotConfigured() {
+	if Conf != nil {
+		util.PushMsg(Conf.Language(193), 5000)
+		return
+	}
+	util.PushMsg("AI is not configured", 5000)
+}
+
+func getEditingMaxHistoryMessages() int {
+	if Conf != nil && Conf.AI != nil && Conf.AI.Editing != nil && Conf.AI.Editing.MaxHistoryMessages > 0 {
+		return Conf.AI.Editing.MaxHistoryMessages
+	}
+	return 7
+}
+
+func newOpenAIGPT() (*OpenAIGPT, int, error) {
+	if Conf == nil || Conf.AI == nil {
+		return nil, 7, errors.New("no AI config")
+	}
+
+	ai := Conf.AI
+	maxHistoryMessages := getEditingMaxHistoryMessages()
+	if prov, m := ai.GetEditingModel(); nil != prov && nil != m {
+		timeout := prov.RequestTimeout
+		if timeout < 1 {
+			timeout = 30
+		}
+		maxCompletionTokens := 0
+		temperature := 1.0
+		if ai.Editing != nil {
+			maxCompletionTokens = ai.Editing.MaxCompletionTokens
+			temperature = ai.Editing.Temperature
+		}
+		apiProvider := "OpenAI"
+		apiProxy := ""
+		if ai.OpenAI != nil {
+			apiProvider = ai.OpenAI.APIProvider
+			apiProxy = ai.OpenAI.APIProxy
+		}
+		if apiProvider == "" {
+			apiProvider = "OpenAI"
+		}
+		return &OpenAIGPT{
+			c:                   util.NewOpenAIClient(prov.APIKey, prov.BaseURL),
+			modelName:           m.Name,
+			timeout:             timeout,
+			maxCompletionTokens: maxCompletionTokens,
+			temperature:         temperature,
+			apiProvider:         apiProvider,
+			apiKey:              prov.APIKey,
+			apiProxy:            apiProxy,
+			apiBaseURL:          prov.BaseURL,
+		}, maxHistoryMessages, nil
+	}
+
+	if ai.OpenAI != nil && ai.OpenAI.APIKey != "" {
+		maxHistoryMessages = ai.OpenAI.APIMaxContexts
+		if maxHistoryMessages < 1 {
+			maxHistoryMessages = 7
+		}
+		apiProvider := ai.OpenAI.APIProvider
+		if apiProvider == "" {
+			apiProvider = "OpenAI"
+		}
+		return &OpenAIGPT{
+			c:                   util.NewOpenAIClient(ai.OpenAI.APIKey, ai.OpenAI.APIBaseURL),
+			modelName:           ai.OpenAI.APIModel,
+			timeout:             ai.OpenAI.APITimeout,
+			maxCompletionTokens: ai.OpenAI.APIMaxTokens,
+			temperature:         ai.OpenAI.APITemperature,
+			apiProvider:         apiProvider,
+			apiKey:              ai.OpenAI.APIKey,
+			apiProxy:            ai.OpenAI.APIProxy,
+			apiBaseURL:          ai.OpenAI.APIBaseURL,
+		}, maxHistoryMessages, nil
+	}
+
+	return nil, maxHistoryMessages, errors.New("no AI provider configured")
 }
 
 func getBlocksContent(ids []string) string {
@@ -168,11 +256,19 @@ type GPT interface {
 }
 
 type OpenAIGPT struct {
-	c *openai.Client
+	c                   *openai.Client
+	modelName           string
+	timeout             int
+	maxCompletionTokens int
+	temperature         float64
+	apiProvider         string
+	apiKey              string
+	apiProxy            string
+	apiBaseURL          string
 }
 
 func (gpt *OpenAIGPT) chat(msg string, contextMsgs []string) (partRet string, stop bool, err error) {
-	return util.ChatGPT(msg, contextMsgs, gpt.c, Conf.AI.OpenAI.APIModel, Conf.AI.OpenAI.APIMaxTokens, Conf.AI.OpenAI.APITemperature, Conf.AI.OpenAI.APITimeout, Conf.AI.OpenAI.APIProvider, Conf.AI.OpenAI.APIKey, Conf.AI.OpenAI.APIProxy, Conf.AI.OpenAI.APIBaseURL)
+	return util.ChatGPT(msg, contextMsgs, gpt.c, gpt.modelName, gpt.maxCompletionTokens, gpt.temperature, gpt.timeout, gpt.apiProvider, gpt.apiKey, gpt.apiProxy, gpt.apiBaseURL)
 }
 
 type CloudGPT struct {

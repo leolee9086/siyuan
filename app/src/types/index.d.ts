@@ -1,7 +1,7 @@
 type TPluginDockPosition = "LeftTop" | "LeftBottom" | "RightTop" | "RightBottom" | "BottomLeft" | "BottomRight"
 type TDockPosition = "Left" | "Right" | "Bottom"
-type TWS = "main" | "filetree" | "protyle" | "backlink" | "bookmark" | "graph" | "outline" | "tag"
-type TDock = "file" | "outline" | "inbox" | "bookmark" | "tag" | "graph" | "globalGraph" | "backlink"
+type TWS = "main" | "filetree" | "protyle" | "backlink" | "bookmark" | "graph" | "outline" | "tag" | "agentChat"
+type TDock = "file" | "outline" | "inbox" | "bookmark" | "tag" | "graph" | "globalGraph" | "backlink" | "agentChat"
 type TTab = "Outline" | "Graph" | "Backlink" | "Asset" | "Editor" | "Search" | "siyuan-card"
 type TOperation =
     "insert"
@@ -46,6 +46,7 @@ type TOperation =
     | "removeAttrViewView"
     | "setAttrViewViewIcon"
     | "duplicateAttrViewView"
+    | "duplicateAttrViewRow"
     | "sortAttrViewView"
     | "setAttrViewPageSize"
     | "updateAttrViewColRelation"
@@ -92,7 +93,9 @@ type TEventBus = "ws-main" | "sync-start" | "sync-end" | "sync-fail" |
     "destroy-protyle" |
     "lock-screen" |
     "mobile-keyboard-show" | "mobile-keyboard-hide" |
-    "code-language-update" | "code-language-change" | "app-ready"
+    "code-language-update" | "code-language-change" |
+    "app-ready" |
+    "kernel-plugin-state-change"
 type TAVView = "table" | "gallery" | "kanban"
 type TAVCol =
     "text"
@@ -132,6 +135,26 @@ type TAVFilterOperator =
 
 type TRecentDocsSort = "viewedAt" | "closedAt" | "openAt" | "updated"
 type TPublishAccessLevel = "public" | "protected" | "hidden" | "private" | "forbidden";
+
+/**
+ * 内核插件状态
+ * - `-1`: inactive 内核插件未安装或不可用
+ * - `0`: ready 内核插件已安装但未启动
+ * - `1`: loading 内核插件正在启动
+ * - `2`: running 内核插件正在运行, 可正常使用
+ * - `3`: stopping 内核插件正在停止
+ * - `4`: stopped 内核插件已停止
+ * - `5`: error 内核插件出现不可恢复的错误
+ */
+type TKernelPluginState = -1 | 0 | 1 | 2 | 3 | 4 | 5
+
+type TJsonRpcId = string | number;
+type TJsonRpcMethod = string;
+type TJsonRpcPositionalParams = any[];
+type TJsonRpcNamedParams = Record<string, any>;
+type TJsonRpcParams = TJsonRpcPositionalParams | TJsonRpcNamedParams | undefined;
+type TJsonRpcMethodParams = TJsonRpcPositionalParams | [TJsonRpcNamedParams] | [];
+type TJsonRpcHandler<T = any> = (...args: TJsonRpcMethodParams) => Promise<T> | T;
 
 declare module "blueimp-md5"
 
@@ -541,11 +564,6 @@ interface ISiyuan {
         [key: string]: any
     },
     closedTabs?: ILayoutJSON[]
-    transactions?: {
-        protyle: IProtyle,
-        doOperations: IOperation[],
-        undoOperations: IOperation[]
-    }[]
     reqIds: {
         [key: string]: number
     },
@@ -673,7 +691,6 @@ interface IOperationSrcs {
     isDetached: boolean
 }
 
-
 interface IObject {
     [key: string]: string;
 }
@@ -754,6 +771,7 @@ interface IOpenFileOptions {
     scrollPosition?: ScrollLogicalPosition | undefined,
     assetPath?: string | undefined, // asset 必填
     fileName?: string | undefined, // file 必填
+    rootTitleEmpty?: boolean | undefined,
     rootIcon?: string | undefined, // 文档图标
     id?: string | undefined,  // file 必填
     rootID?: string | undefined, // file 必填
@@ -833,6 +851,7 @@ interface IFile {
     bookmark: string;
     path: string;
     name: string;
+    titleEmpty?: boolean;
     hMtime: string;
     hCtime: string;
     hSize: string;
@@ -956,10 +975,11 @@ interface IBazaarItem {
     preferredFunding: string;
     keywords?: string[];
     disallowUpdate: boolean;
-    updateRequiredMinAppVer: string;
-    incompatible?: boolean;  // 仅 plugin
-    enabled?: boolean;       // 仅 plugin
-    modes?: string[];        // 仅 theme
+    updateRequiredMinAppVer?: string;
+    installedIncompatible?: boolean; // 仅 plugin
+    bazaarIncompatible?: boolean; // 仅 plugin
+    enabled?: boolean; // 仅 plugin
+    modes?: string[]; // 仅 theme
 }
 
 interface IAV {
@@ -998,6 +1018,12 @@ interface IAVTable extends IAVView {
     rowCount: number,
 }
 
+interface IAVVirtualData {
+    renderedStart: number;
+    renderedEnd: number;
+    topSpacerHeight: number;
+}
+
 interface IAVGallery extends IAVView {
     coverFrom: number;    // 0：无，1：内容图，2：资源字段，3：内容块
     coverFromAssetKeyID?: string;
@@ -1026,12 +1052,14 @@ interface IAVKanban extends IAVView {
 }
 
 interface IAVFilter {
-    column: string,
-    operator: TAVFilterOperator,
-    quantifier?: string,
-    value: IAVCellValue,
-    relativeDate?: IAVRelativeDate
-    relativeDate2?: IAVRelativeDate
+    column?: string,                                  // 叶子节点：字段（列）ID
+    operator?: TAVFilterOperator,                     // 叶子节点：操作符
+    quantifier?: string,                              // 叶子节点：量词
+    value?: IAVCellValue,                             // 叶子节点：过滤值
+    relativeDate?: IAVRelativeDate,                   // 叶子节点：相对时间
+    relativeDate2?: IAVRelativeDate,                  // 叶子节点：第二个相对时间
+    combination?: "and" | "or",                       // 分组节点：子条件组合方式
+    filters?: IAVFilter[],                            // 分组节点：子节点（递归）
 }
 
 interface IAVRelativeDate {
@@ -1197,6 +1225,7 @@ interface IAVCellRollupValue {
 
 interface IAVCalc {
     operator?: string,
+    template?: string,
     result?: IAVCellValue
 }
 
@@ -1206,4 +1235,106 @@ interface IPublishAccessItem {
     password: string,
     disable: boolean
     iconHTML?: string
+}
+
+interface IKernelPlugin {
+    /**
+     * 内核插件的状态管理接口
+     */
+    state: IKernelPluginState;
+
+    /**
+     * 内核插件的 JSON-RPC 调用接口
+     */
+    rpc: IKernelPluginRpc;
+}
+
+interface IKernelPluginState {
+    /**
+     * 内核插件的当前状态
+     */
+    code: TKernelPluginState;
+
+    /**
+     * 内核插件状态的描述信息
+     */
+    description: string;
+}
+
+interface IKernelPluginRpcCall {
+    /**
+     * JSON-RPC 2.0 中 method 必须是 string，且插件开发者需要保证传入的方法名与内核插件绑定的方法名一致，否则可能会导致调用失败
+     */
+    method: TJsonRpcMethod;
+
+    /**
+     * JSON-RPC 2.0 中 id 可以是 string、number 或 null，但为了兼容性和实用性，插件系统中不允许使用 null 作为 id
+     *
+     * 不设置时且 notification 不为 true 时会自动生成一个唯一的 id，设置时必须保证 id 的唯一性，否则可能会导致响应错误或混乱
+     */
+    id?: TJsonRpcId;
+
+    /**
+     * JSON-RPC 2.0 中 params 可以是 array 或 object，插件开发者需要自行保证传入参数与内核插件绑定的方法参数一致
+     */
+    params?: any[] | Record<string, any>;
+
+    /**
+     * 是否为通知，通知不会有响应，且不应传入 id
+     * @defaultValue false
+     */
+    notification?: boolean;
+}
+
+interface IKernelPluginRpcRequest extends IKernelPluginRpcCall {
+    jsonrpc: "2.0";
+}
+
+interface IKernelPluginRpcBaseResponse {
+    jsonrpc: "2.0";
+}
+
+interface IKernelPluginRpcResultResponse extends IKernelPluginRpcBaseResponse {
+    id: TJsonRpcId;
+    result?: any;
+}
+
+interface IKernelPluginRpcErrorResponse extends IKernelPluginRpcBaseResponse {
+    id: TJsonRpcId | null;
+    error?: any;
+}
+
+interface IKernelPluginRpcError {
+    code: number;
+    message: string;
+    data?: any;
+}
+
+
+
+interface IKernelPluginRpc {
+    /**
+     * 通过 {@link Proxy} 实现的动态方法调用，插件开发者可以直接调用 `call.方法名(params)` 来调用内核插件暴露的方法，无需关心 JSON-RPC 的细节
+     */
+    call: Record<TJsonRpcMethod, (...args: TJsonRpcMethodParams) => Promise<any>>;
+
+    /**
+     * 通过 {@link Proxy} 实现的动态方法调用，插件开发者可以直接调用 `notify.方法名(...args)` 来发送通知给内核插件，无需关心 JSON-RPC 的细节
+     */
+    notify: Record<TJsonRpcMethod, (...args: TJsonRpcMethodParams) => void>;
+
+    /**
+     * 批量调用方法，接受一个方法调用数组，返回一个结果数组，结果数组中的每一项对应方法调用数组中非通知的每一项，包含成功的结果或错误信息
+     */
+    batch: (...calls: IKernelPluginRpcCall[]) => Promise<IKernelPluginRpcError | (IKernelPluginRpcResultResponse | IKernelPluginRpcErrorResponse)[]>;
+
+    /**
+     * 绑定内核插件调用时的事件处理函数，插件开发者可以通过 `bind("方法名", handler)` 来监听内核插件通过 JSON-RPC 推送到客户端插件的通知
+     */
+    bind: (method: TJsonRpcMethod, handler: TJsonRpcHandler<void>) => void;
+
+    /**
+     * 解绑事件处理函数，插件开发者可以通过 `unbind("方法名", handler)` 来停止监听内核插件通过 JSON-RPC 推送到客户端插件的通知
+     */
+    unbind: (method: TJsonRpcMethod, handler: TJsonRpcHandler<void>) => void;
 }

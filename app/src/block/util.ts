@@ -24,14 +24,19 @@ import { openMobileFileById } from "./imports";
 import { siyuanI18n } from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：读取拼写检查配置。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
-/** 用途：移动端判断。使用范围：区分移动/桌面端。解耦评估：通过 ./imports 转发。 */
-import { isMobile } from "./imports";
 /** 用途：获取插入目标块。使用范围：插入空块定位。解耦评估：同目录模块直接导入。 */
 import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
 /** 用途：创建新块元素。使用范围：插入空块创建元素。解耦评估：同目录模块直接导入。 */
 import { createNewBlockElement } from "./util.createNewBlockElement";
-/** 创建超级块元素 */
-export const genSBElement = async (layout: string, id?: string, attrHTML?: string) => {
+
+/**
+ * 作用：创建超级块 DOM 元素。
+ * 意图：统一超级块的元素构造，保证 data-* 属性和内部结构一致。
+ * 调用时机：在块合并操作中需要创建超级块容器时调用。
+ * 问题/改进：Lute.NewNodeID() 是同步调用，不需要异步包装。
+ * @同步豁免: UI构建 - 纯 DOM 元素创建与属性设置，无异步依赖。
+ */
+export const genSBElement = (layout: string, id?: string, attrHTML?: string) => {
     const sbElement = document.createElement("div");
     sbElement.setAttribute("data-node-id", id || Lute.NewNodeID());
     sbElement.setAttribute("data-type", "NodeSuperBlock");
@@ -41,29 +46,116 @@ export const genSBElement = async (layout: string, id?: string, attrHTML?: strin
     return sbElement;
 };
 
-/** 处理块兄弟 ID 响应 */
-function handleSiblingResponse(response: IWebSocketData, protyle: IProtyle, type: string) {
+/**
+ * 作用：统计超级块内受 Lute 管理的真实子块数量。
+ * 意图：排除 sb__resize 手柄、protyle-attr 等纯装饰元素，确保计数与被 Lute AST 识别的块节点一致。
+ * 调用时机：超级块结构变更（折叠/展开/拖拽）后用于判断是否为空超级块。
+ * 问题/改进：selector 规则需与 Lute 的节点识别规则保持同步。
+ * @同步豁免: 需要绝对同步的DOM访问 - 实时读取 DOM 计数用于即时 UI 判断。
+ */
+export const getSbChildCount = (sbElement: Element) => {
+    const childBlocks = sbElement.querySelectorAll(":scope > [data-node-id]");
+    return childBlocks.length;
+};
+
+/**
+ * 作用：刷新超级块横向布局下的拖拽手柄。
+ * 意图：col 布局在每两个相邻子块间插入 sb__resize 手柄用于拖拽调整宽度，非 col 布局移除全部手柄。
+ *       手柄是纯装饰元素，回流时由 lute 的 genASTByBlockDOM 按 sb__resize class 忽略，不产生幽灵块。
+ * 调用时机：超级块布局切换或子块结构变化后调用。
+ * 问题/改进：如果新增布局类型需要手柄，需同步更新此函数。
+ * @同步豁免: 需要绝对同步的DOM访问 - DOM 手柄的插入/移除必须实时完成。
+ */
+export const refreshSbResize = (sbElement: Element) => {
+    if (!sbElement || !sbElement.classList.contains("sb")) {
+        return;
+    }
+    const resizeHandles = sbElement.querySelectorAll(":scope > .sb__resize");
+    for (const handle of resizeHandles) {
+        handle.remove();
+    }
+    if (sbElement.getAttribute("data-sb-layout") !== "col") {
+        return;
+    }
+    const children = Array.from(sbElement.querySelectorAll(":scope > [data-node-id]"));
+    for (let i = 0; i < children.length - 1; i++) {
+        const child = children[i];
+        if (!child) {
+            continue;
+        }
+        const resizeHandle = document.createElement("span");
+        resizeHandle.setAttribute("class", "sb__resize");
+        resizeHandle.setAttribute("contenteditable", "false");
+        child.after(resizeHandle);
+    }
+};
+
+/**
+ * 作用：处理跳转到父/子/兄弟块的后端响应。
+ * 意图：将回调逻辑抽离为具名函数，降低 jumpToParent 的嵌套层级并提升可读性。
+ */
+const handleBlockSiblingResponse = (
+    protyle: IProtyle,
+    type: "parent" | "next" | "previous",
+    response: IWebSocketData
+) => {
     const targetId = response.data[type];
     if (!targetId) {
         return;
     }
-    const action = targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS];
-    if (isMobile) {
-        openMobileFileById(protyle.app, targetId, action);
-        return;
-    }
+    /// #if !MOBILE
     openFileById({
         app: protyle.app,
         id: targetId,
-        action,
+        action: targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]
     });
-}
+    /// #else
+    openMobileFileById(protyle.app, targetId, targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]);
+    /// #endif
+};
 
-/** 跳转到父/子块 */
-export const jumpToParent = async (protyle: IProtyle, nodeElement: Element, type: "parent" | "next" | "previous") => {
-    fetchPost("/api/block/getBlockSiblingID", { id: nodeElement.getAttribute("data-node-id") }, (response) => {
-        handleSiblingResponse(response, protyle, type);
-    });
+/**
+ * 作用：跳转到当前块的父/子/兄弟块。
+ * 意图：通过后端接口获取目标块 ID 后，桌面端用 openFileById 打开，移动端用 openMobileFileById。
+ * 调用时机：在块面包屑或块标菜单中点击跳转按钮时调用。
+ * @柯里化 闭包捕获 protyle 上下文用于打开文件
+ * @同步豁免: 生命周期 使用回调式网络请求，不阻塞调用栈
+ */
+export const jumpToParent = (
+    protyle: IProtyle,
+    nodeElement: Element,
+    type: "parent" | "next" | "previous"
+) => {
+    fetchPost("/api/block/getBlockSiblingID", {id: nodeElement.getAttribute("data-node-id")},
+        response => handleBlockSiblingResponse(protyle, type, response));
+};
+
+/**
+ * 作用：根据插入位置构建非列表场景的事务操作数组。
+ * 意图：消除 insertEmptyBlock 中的位置分支，降低主函数复杂度。
+ * @显式返回类型原因 返回类型与 IOperation 精确对齐，防止插入操作构造遗漏 required 字段。
+ */
+const buildInsertOperations = (
+    newElement: HTMLElement,
+    newId: string,
+    blockElement: Element,
+    position: InsertPosition
+): IOperation[] => {
+    const blockId = blockElement.getAttribute("data-node-id") || "";
+    if (position === "beforebegin") {
+        return [{
+            action: "insert",
+            data: newElement.outerHTML,
+            id: newId || "",
+            nextID: blockId,
+        }];
+    }
+    return [{
+        action: "insert",
+        data: newElement.outerHTML,
+        id: newId || "",
+        previousID: blockId || undefined,
+    }];
 };
 
 /** 插入空块 */
@@ -74,36 +166,28 @@ export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPositi
     }
     protyle.observerLoad?.disconnect();
     const { newElement, orderIndex } = createNewBlockElement(blockElement, position);
-    const parentOldHTML = blockElement.parentElement.outerHTML;
+    const blockParent = blockElement.parentElement;
+    const parentOldHTML = blockParent?.outerHTML ?? "";
     const newId = newElement.getAttribute("data-node-id");
     blockElement.insertAdjacentElement(position, newElement);
-
-    const parentElement = newElement.parentElement;
-    let listHandled = false;
-    // 有序列表项需要更新编号
-    if (parentElement && blockElement.getAttribute("data-type") === "NodeListItem" && blockElement.getAttribute("data-subtype") === "o" &&
-        !parentElement.classList.contains("protyle-wysiwyg")) {
-        updateListOrder(parentElement, orderIndex);
-        updateTransaction(protyle, parentElement.getAttribute("data-node-id") || "", parentElement.outerHTML, parentOldHTML);
-        listHandled = true;
+    // 有序列表项插入需要同步更新编号，记录父元素快照用于撤销
+    const isOrderedListItem = blockElement.getAttribute("data-type") === "NodeListItem" &&
+        blockElement.getAttribute("data-subtype") === "o" &&
+        !newElement.parentElement?.classList.contains("protyle-wysiwyg");
+    // 列表项插入后立即更新序号并记录事务快照，使撤销可恢复父元素原始序号状态
+    if (isOrderedListItem && newElement.parentElement) {
+        const listParent = newElement.parentElement;
+        updateListOrder(listParent, orderIndex);
+        updateTransaction(protyle, listParent, parentOldHTML);
     }
-
-    if (!listHandled) {
-        const doOperations: IOperation[] = [{
-            action: "insert",
-            data: newElement.outerHTML,
-            id: newId || "",
-            nextID: position === "beforebegin" ? (blockElement.getAttribute("data-node-id") || undefined) : undefined,
-            previousID: position !== "beforebegin" ? (blockElement.getAttribute("data-node-id") || undefined) : undefined,
-        }];
-        transaction(protyle, doOperations, [{
-            action: "delete",
-            id: newId || "",
-        }]);
+    // 非列表项场景通过事务记录插入操作，支持撤销
+    if (!isOrderedListItem) {
+        const doOperations = buildInsertOperations(newElement, newId || "", blockElement, position);
+        transaction(protyle, doOperations, [{ action: "delete", id: newId || "" }]);
     }
     const prev = blockElement.previousElementSibling;
     const next = blockElement.nextElementSibling;
-    // 在列布局超级块中插入时自动合并
+    // 在列布局超级块中插入时自动合并相邻块
     if (prev && next && blockElement.parentElement?.classList.contains("sb") &&
         blockElement.parentElement.getAttribute("data-sb-layout") === "col") {
         turnsIntoOneTransaction({

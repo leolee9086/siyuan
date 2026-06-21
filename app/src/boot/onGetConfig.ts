@@ -1,6 +1,6 @@
 import { adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar } from "../layout/util";
 import { resizeTabs, setTabPosition } from "../layout/tabUtil";
-import { setStorageVal } from "../protyle/util/compatibility";
+import { isWindows, setStorageVal } from "../protyle/util/compatibility";
 import { afterExport } from "../protyle/export/util";
 import { onWindowsMsg } from "../window/onWindowsMsg";
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
@@ -15,7 +15,7 @@ import { renderSnippet } from "../config/util/snippets";
 import { openFile } from "../editor/util";
 
 import { exitSiYuan } from "../dialog/processSystem";
-import { isWindow } from "../util/platform/functions";
+import { isWindow, setToolbarLeftMac } from "../util/platform/functions";
 import { initStatus } from "../layout/status";
 import { showMessage } from "../dialog/message";
 import { replaceLocalPath } from "../editor/rename";
@@ -169,6 +169,10 @@ export const initWindow = async (app: App) => {
                 toolbar.classList.add("toolbar--browser");
             }
         }
+        // S-forge: 上游改进 - 浏览器环境下标记 Windows 平台 (#16811)
+        if (isWindows()) {
+            document.body.classList.add("body--win32-browser");
+        }
         return;
     }
     // 桌面端：初始化 IPC 事件监听和窗口控件
@@ -209,9 +213,13 @@ export const initWindow = async (app: App) => {
             document.body.classList.add("body--blur");
         } else if (cmd === "enter-full-screen") {
             document.body.classList.add("body--fullscreen");
+            // 全屏下红绿灯隐藏，清除缩放补偿让 body--fullscreen 的 5px 生效
+            setToolbarLeftMac(window.siyuan.storage[Constants.LOCAL_ZOOM]);
             setTabPosition();
         } else if (cmd === "leave-full-screen") {
             document.body.classList.remove("body--fullscreen");
+            // 退出全屏后按当前缩放重新补偿
+            setToolbarLeftMac(window.siyuan.storage[Constants.LOCAL_ZOOM]);
             setTabPosition();
         } else if (cmd === "maximize") {
             document.body.classList.add("body--maximize");
@@ -378,6 +386,8 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
     if (isFullScreen) {
         document.body.classList.add("body--fullscreen");
     }
+    // 全屏状态恢复后再同步一次，避免启动时按缩放设置的补偿覆盖 body--fullscreen 的 5px
+    setToolbarLeftMac(window.siyuan.storage[Constants.LOCAL_ZOOM]);
     const isMaximized = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
         cmd: "isMaximized",
     });

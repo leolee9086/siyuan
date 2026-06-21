@@ -46,12 +46,11 @@ const 聚焦工具栏Range = (protyle: IProtyle) => {
  */
 const 提交引用事务 = (
     protyle: IProtyle,
-    id: string | null,
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string }
 ) => {
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+    updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
 };
 
@@ -70,7 +69,7 @@ const 处理动态引用回填响应 = (
     response: IWebSocketData
 ) => {
     refElement.innerHTML = response.data;
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
 };
 
@@ -110,7 +109,7 @@ const 执行转静态引用 = (
     refElement: HTMLElement
 ) => {
     refElement.setAttribute("data-subtype", "s");
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
 };
 
@@ -128,7 +127,7 @@ const 执行转文本 = (
     refElement: HTMLElement
 ) => {
     removeInlineType(refElement, "block-ref", 获取工具栏Range(protyle));
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
 };
 
 /**
@@ -146,7 +145,7 @@ const 执行转星号 = (
 ) => {
     refElement.setAttribute("data-subtype", "s");
     refElement.textContent = "*";
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
 };
 
@@ -166,7 +165,7 @@ const 执行转文本星号 = (
     refElement.insertAdjacentHTML("beforebegin", refElement.innerHTML + " ");
     refElement.setAttribute("data-subtype", "s");
     refElement.textContent = "*";
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     聚焦工具栏Range(protyle);
 };
 
@@ -184,7 +183,7 @@ const 执行转链接 = (
     refElement: HTMLElement
 ) => {
     refElement.outerHTML = `<span data-type="a" data-href="siyuan://blocks/${refElement.getAttribute("data-id")}">${refElement.innerHTML}</span><wbr>`;
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     const toolbarRange = 获取工具栏Range(protyle);
     if (toolbarRange) {
         focusByWbr(nodeElement, toolbarRange);
@@ -208,11 +207,12 @@ const 执行转块嵌入 = (
     if (!attrElement) {
         return;
     }
-    const html = `<div data-content="select * from blocks where id='${refBlockId}'" data-node-id="${id}" data-type="NodeBlockQueryEmbed" class="render-node" updated="${dayjs().format("YYYYMMDDHHmmss")}">${attrElement.outerHTML}</div>`;
-    nodeElement.outerHTML = html;
-    updateTransaction(protyle, id, html, htmlState.oldHTML);
+    nodeElement.insertAdjacentHTML("afterend", `<div data-content="select * from blocks where id='${refBlockId}'" data-node-id="${id}" data-type="NodeBlockQueryEmbed" class="render-node" updated="${dayjs().format("YYYYMMDDHHmmss")}">${attrElement.outerHTML}</div>`);
+    const embedElement = nodeElement.nextElementSibling as HTMLElement;
+    nodeElement.remove();
+    updateTransaction(protyle, embedElement, htmlState.oldHTML);
     blockRender(protyle, protyle.wysiwyg.element);
-    htmlState.oldHTML = nodeElement.outerHTML;
+    htmlState.oldHTML = embedElement.outerHTML;
 };
 
 /**

@@ -270,5 +270,3 @@ export const openFile = async (options: IOpenFileOptions) => {
     return openTabInWindow(options, wnd);
 };
 
-
-

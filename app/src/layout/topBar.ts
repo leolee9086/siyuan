@@ -17,7 +17,7 @@ import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {setZoomFactor} from "../platform/electron/webFrame";
 import {Constants} from "../constants";
-import {isBrowser, isWindow} from "../util/platform/functions";
+import {isBrowser, isWindow, setToolbarLeftMac} from "../util/platform/functions";
 import {fetchPost} from "../util/network/fetch";
 import {needSubscribe} from "../util/platform/needSubscribe";
 import * as dayjs from "dayjs";
@@ -301,14 +301,15 @@ export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
     }
 
     setZoomFactor(zoom);
-    const position = Constants.SIZE_ZOOM.find((item) => item.zoom === window.siyuan.storage[Constants.LOCAL_ZOOM]).position;
-    if (window.siyuan.config.appearance.hideToolbar) {
-        position.y += 5;
-    }
+    setToolbarLeftMac(zoom);
+    const position = Constants.SIZE_ZOOM.find((item) => item.zoom === zoom).position;
     ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
         zoom,
-        position
+        position: {
+            x: position.x,
+            y: ((window.siyuan.config.appearance.hideToolbar && !isWindow()) ? 5 * zoom : 0) + position.y
+        },
     });
     window.siyuan.storage[Constants.LOCAL_ZOOM] = zoom;
     setStorageVal(Constants.LOCAL_ZOOM, zoom);

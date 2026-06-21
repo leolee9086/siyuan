@@ -4,7 +4,8 @@ import {
     resetMenuState,
     positionSubMenu,
     handleMenuEvent,
-    preventMenuDefault
+    preventMenuDefault,
+    updateMaxHeight
 } from "./Menu.uills";
 import { MenuItem } from "./Menu.Item";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -15,6 +16,7 @@ export class Menu {
     public data: any;   // 用于记录当前菜单的数据
     public removeCB: undefined | (() => void);
     private wheelEvent: string;
+    private position?: IPosition;
 
     constructor() {
         //默认什么都不做
@@ -109,6 +111,8 @@ export class Menu {
         this.element.style.zIndex = (++window.siyuan.zIndex).toString();
         this.element.classList.remove("fn__none");
         setPosition(this.element, options.x - (options.isLeft ? this.element.clientWidth : 0), options.y, options.h, options.w);
+        updateMaxHeight(this.element, this.element.lastElementChild as HTMLElement);
+        this.position = options;
     }
 
     /**
@@ -119,13 +123,20 @@ export class Menu {
      * 调用时机：窗口 resize 事件的防抖回调中（见 boot/onGetConfig.ts）
      */
     public resetPosition() {
-        // 如果菜单未显示，无需调整
-        if (this.element.classList.contains("fn__none")) {
+        if (this.element.classList.contains("fn__none") || !this.position) {
             return;
         }
-        // 重新调整菜单位置以防止超出窗口边界
-        const rect = this.element.getBoundingClientRect();
-        setPosition(this.element, rect.left, rect.top);
+        setPosition(
+            this.element,
+            this.position.x - (this.position.isLeft ? this.element.clientWidth : 0),
+            this.position.y,
+            this.position.h,
+            this.position.w
+        );
+        updateMaxHeight(this.element, this.element.lastElementChild as HTMLElement);
+        this.element.querySelectorAll(".b3-menu__item--show .b3-menu__submenu").forEach((item: HTMLElement) => {
+            this.showSubMenu(item);
+        });
     }
 
     public fullscreen(position: "bottom" | "all" = "all") {
@@ -158,5 +169,4 @@ export class Menu {
         );
     }
 }
-
-
+export { MenuItem };

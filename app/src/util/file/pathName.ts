@@ -97,6 +97,17 @@ export const getDisplayName = (filePath: string, basename = true, removeSY = fal
     return name;
 };
 
+export const getDocDisplayName = (name: string, titleEmpty?: boolean, escape?: boolean) => {
+    if (titleEmpty) {
+        return window.siyuan.languages["_kernel"][16];
+    }
+    const displayName = getDisplayName(name, true, true);
+    if (escape) {
+        return Lute.EscapeHTMLStr(displayName);
+    }
+    return displayName;
+};
+
 export const getAssetName = (assetPath: string) => {
     return pathPosix().basename(assetPath, pathPosix().extname(assetPath)).replace(/-\d{14}-\w{7}/, "");
 };

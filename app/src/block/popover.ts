@@ -50,6 +50,8 @@ import type { TooltipInfo } from "./popover/tooltip";
 import { getTooltipInfo } from "./popover/tooltip";
 /** 用途：Tooltip 显示处理函数。使用范围：Popover Tooltip 控制。解耦评估：同目录子模块。 */
 import { handleTooltipDisplay } from "./popover/tooltip";
+/** 用途：中断未完成的 tooltip 信息请求。使用范围：Mouseover 事件开始时调用。解耦评估：同目录子模块。 */
+import { abortPendingTooltipRequest } from "./popover/tooltip";
 /** 用途：获取 Popover 定位目标。使用范围：Popover 显示定位。解耦评估：同目录子模块。 */
 import { getPopoverTargetElement } from "./popover/target";
 /** 用途：隐藏 Popover。使用范围：Popover 关闭。解耦评估：同目录子模块。 */
@@ -238,6 +240,9 @@ const 处理Mouseover事件 = (
     setTimeouts: (t: number, th: number) => void,
     clearTimeoutHide: () => void
 ) => {
+    // 鼠标进入新元素时中断上一轮尚未完成的 tooltip 信息请求
+    abortPendingTooltipRequest();
+
     // 前置条件检查
     if (!hasSiyuanConfig() || !getSiyuanMenus() ||
         getSiyuanDragElement() || document.onmousemove) {

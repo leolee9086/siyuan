@@ -30,17 +30,13 @@ throw new Error("protyle结构错误");
 };
 
 export const handleMoveOperation = (item: Element, id: string, oldSourceParentElement: HTMLElement, context: IMoveContext) => {
-    const prevSibling = item.previousElementSibling;
-    const parent = context.tempTargetElement.parentElement;
-
-    const previousID = prevSibling?.getAttribute("data-node-id");
-    const parentID = parent?.getAttribute("data-node-id") || context.protyle.block.parentID || context.protyle.block.rootID;
+    const sourcePosition = context.sourcePositions.get(id) || { previousID: "", parentID: "" };
 
     context.undoOperations.push({
         action: "move",
         id,
-        previousID: previousID || undefined,
-        parentID: parentID || undefined,
+        previousID: sourcePosition.previousID,
+        parentID: sourcePosition.parentID,
     });
 
     removeSameElementIfExists(context, id);

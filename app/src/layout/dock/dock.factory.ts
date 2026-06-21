@@ -10,6 +10,7 @@ import { Inbox } from "./Inbox";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
+import { AgentChat } from "./AgentChat";
 import { App } from "../../index";
 import { Protyle } from "../../protyle";
 import { Model } from "../Model";
@@ -147,6 +148,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
     inbox: Inbox,
     embedding_dock: EmbeddingDock,
     cronjob: Cronjob,
+    agentChat: AgentChat,
 };
 
 /**

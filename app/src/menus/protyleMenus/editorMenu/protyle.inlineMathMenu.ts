@@ -82,7 +82,7 @@ const 执行删除命令 = (
     element.insertAdjacentHTML("afterend", "<wbr>");
     element.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, html);
+    updateTransaction(protyle, nodeElement, html);
     const toolbarRange = protyle.toolbar?.range;
     if (toolbarRange) {
         focusByWbr(nodeElement, toolbarRange);

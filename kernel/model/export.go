@@ -3670,16 +3670,21 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees map[string
 			}
 
 			blockKeyValues := attrView.GetBlockKeyValues()
-			if nil == blockKeyValues {
+			if nil == blockKeyValues || nil == blockKeyValues.Values {
 				return ast.WalkContinue
 			}
 
 			for _, val := range blockKeyValues.Values {
-				if val.IsDetached {
+				if val.IsDetached || nil == val.Block {
 					continue
 				}
 
-				defBlock := treenode.GetBlockTree(val.Block.ID)
+				blockID := val.Block.ID
+				if "" == blockID {
+					continue
+				}
+
+				defBlock := treenode.GetBlockTree(blockID)
 				if nil == defBlock {
 					continue
 				}
@@ -3717,7 +3722,7 @@ func getAttrViewTable(attrView *av.AttributeView, view *av.View, query string) (
 	}
 
 	depth := 1
-	ret = sql.RenderAttributeViewTable(attrView, view, query, &depth, map[string]*av.AttributeView{})
+	ret = sql.RenderAttributeViewTable(attrView, view, query, &depth, map[string]*av.AttributeView{}, false)
 	return
 }
 

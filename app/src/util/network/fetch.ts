@@ -71,6 +71,7 @@ const 需要竞态控制的API列表: readonly string[] = [
     "/api/graph/getLocalGraph",
     "/api/block/getRecentUpdatedBlocks",
     "/api/search/fullTextSearchBlock",
+    "/api/search/semanticSearchBlock",
 ];
 
 

@@ -2,9 +2,9 @@
 
 <p align="center">
 <b>English</b>
-| <a href="README_zh_CN.md">中文</a>
-| <a href="README_ja_JP.md">日本語</a>
-| <a href="README_tr_TR.md">Türkçe</a>
+| <a href="README.zh-CN.md">中文</a>
+| <a href="README.ja.md">日本語</a>
+| <a href="README.tr.md">Türkçe</a>
 </p>
 
 本仓库是我个人fork用于适应个人使用场景的仓库,所以代码有大量修改.
@@ -56,12 +56,16 @@
 在 `kernel/` 目录下运行:
 
 ```bash
-go run . --workspace=../.dev-workspace --mode forge --wd=../app
+go run . serve --workspace=../.dev-workspace --mode forge --wd=../app
 ```
 
-> 注意: 如果直接以 `go run` 启动内核,`--wd` 需要指向 `app` 目录。
+> 注意: 如果直接以 `go run` 启动内核,`--wd` 需要指向 `app` 目录。上游 3.7.0 起服务端启动需要显式传入 `serve` 子命令。
 
 Electron 开发环境下,本分支也会以 `--mode forge` 启动内核。
+
+### 语言参数
+
+`SIYUAN_LANG` 和 `--lang` 使用 BCP 47 语言标签,例如 `zh-CN`、`zh-TW`、`en`、`ja`、`pt-BR`。旧的下划线格式(如 `zh_CN`、`en_US`)仍保留兼容。
 
 ## 可能有用的部分
 
@@ -70,6 +74,18 @@ Electron 开发环境下,本分支也会以 `--mode forge` 启动内核。
 /kernelSDK是一个土法作业的思源核心API客户端
 
 /pacakges/dehaze是一个基于webgpu的图片暗通道去雾算法库
+
+### 命令行工具
+
+内置 CLI 可以直接访问工作空间数据,无需先启动服务端。常用示例:
+
+```bash
+siyuan notebook list -w ~/SiYuan
+siyuan search "keyword" -w ~/SiYuan -f json
+siyuan export md --id <block-id> -w ~/SiYuan
+```
+
+运行 `siyuan --help` 可以查看完整命令树,脚本场景可用 `-f json` 输出结构化结果。
 
 ### 插件|挂件|模板|主题
 
@@ -114,5 +130,3 @@ D:\dev\lute
 所有代码遵守AGPL-3.0-or-later
 
 希望我没有拼写错误
-
-

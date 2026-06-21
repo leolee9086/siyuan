@@ -42,7 +42,7 @@ var (
 )
 
 func HookDesktopUIProcJob() {
-	if util.ContainerStd != util.Container || util.IsDevOrForgeMode() {
+	if !util.AttachUI || util.ContainerStd != util.Container || util.IsDevOrForgeMode() {
 		return
 	}
 

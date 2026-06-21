@@ -53,7 +53,7 @@ export const buildGutterSuperBlockMenu = (protyle: IProtyle, nodeElement: Elemen
                 nodeElement.setAttribute("data-sb-layout", "col");
             }
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+            updateTransaction(protyle, nodeElement, oldHTML);
             if (protyle.toolbar) {
                 focusByRange(protyle.toolbar.range);
             }

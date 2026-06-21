@@ -12,12 +12,6 @@
  */
 import { hasClosestByAttribute } from "./imports";
 /**
- * 用途：通过同层导入网关引入块级 HTML 更新事务函数，供任务勾选执行器提交切换完成状态后的列表项 HTML 变更。
- * 使用范围：仅用于当前文件的任务状态切换流程，即 [`executeToggleTaskStatus()`](app/src/protyle/wysiwyg/keydown.list/executors.ts:84) 在修改勾选 DOM 与更新时间戳后提交单节点事务；边界是这里只调用既有事务接口，不承担事务合并策略或批量事务编排。
- * 解耦评估：理论上可在命令分发层把事务函数作为依赖注入到执行器，但当前执行器由静态映射表直接调用，若强制注入会把同一事务依赖扩散到映射构建层与测试装配层，只增加样板而不降低真实业务耦合。事件发射也无法替代这种要求立即提交并保持调用顺序的同步事务接口。因此经由同层 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 单点转发 [`updateTransaction()`](app/src/protyle/transaction.ts:382) 更符合当前架构的低耦合目标。
- */
-import { updateTransaction } from "./imports";
-/**
  * 用途：通过同层导入网关引入列表缩出业务函数，供列表缩出命令在单选或多选场景复用既有结构调整实现。
  * 使用范围：仅用于当前文件的 [`executeOutdent()`](app/src/protyle/wysiwyg/keydown.list/executors.ts:148)；边界是这里只触发缩出动作，不在本文件内实现列表重排算法或选择集收集逻辑。
  * 解耦评估：理论上可以把缩出动作作为参数传入执行器，但当前缩出能力本身就是列表编辑域的稳定底层操作，改为注入只会把相同依赖扩散到映射装配与测试桩层，不会降低真实耦合。事件发射同样不适合替代这种需要即时执行并依赖返回时序的编辑操作。因此通过同层 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 转发 [`listOutdent()`](app/src/protyle/wysiwyg/list.ts:65) 仍是更低耦合的做法。
@@ -41,12 +35,6 @@ import { logCommandExecution } from "./imports";
  * 解耦评估：理论上可把日志函数作为参数从外部传入，但当前任务切换执行器是静态映射表中的固定处理器，注入会把依赖扩散到装配层与测试入口，而不会减少真实耦合。事件发射也不适合替代这种同步、结构固定的日志记录接口。因此经由同层 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 转发 [`logTaskToggle()`](app/src/util/lib/logger/core.ts:117) 是现有架构下更低耦合的方案。
  */
 import { logTaskToggle } from "./imports";
-/**
- * 用途：通过同层导入网关引入时间工厂函数，供任务勾选执行器生成统一格式的更新时间戳。
- * 使用范围：仅用于当前文件的 [`executeToggleTaskStatus()`](app/src/protyle/wysiwyg/keydown.list/executors.ts:84) 在提交事务前写入 `updated` 属性；边界是这里只消费日期工厂，不在本文件内配置插件或扩展新的时间格式策略。
- * 解耦评估：理论上可让调用方预先传入时间字符串，但这会把时间生成职责外移到命令分发层，导致更多入口必须了解同一时间格式约束，反而扩散耦合。直接从第三方包导入也会重新引入跨层路径依赖。因此通过同层 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 单点转发 [`dayjs`](app/node_modules/.pnpm/dayjs@1.11.18/node_modules/dayjs/index.d.ts) 仍是当前结构下更低耦合的方案。
- */
-import { dayjs } from "./imports";
 /**
  * 用途：引入列表命令常量集合，供当前执行器在构建执行器映射与记录命令日志时复用同源命令标识，避免散落字符串字面量。
  * 使用范围：用于当前文件的任务勾选、缩进、缩出、列表类型转换执行器日志记录，以及 [`executorMap`](app/src/protyle/wysiwyg/keydown.list/executors.ts:281) 的键名声明；边界是这里只消费命令常量，不负责命令判定、路由生成或命令字符串定义。
@@ -89,12 +77,7 @@ import { executeTransformToTL } from "./executors.transform";
  * 解耦评估：理论上可通过事件或注册表间接选择执行器，但当前命令和执行器的关系是静态且稳定的，引入额外中间层只会增加复杂度并削弱类型可追踪性，无法减少真实耦合。直接从同目录导入专用执行器是当前模块内更合适的方案。
  */
 import { executeTransformToQuote } from "./executors.transform";
-/**
- * 用途：引入任务状态 DOM 落地辅助函数，供任务切换执行器按已收集好的目标状态同步更新图标、类名和 `data-task`。
- * 使用范围：仅用于当前文件的 [`executeToggleTaskStatus()`](app/src/protyle/wysiwyg/keydown.list/executors.ts:111)；边界是这里只消费既有 DOM 写入能力，不在本文件内重写状态到 DOM 的映射细节。
- * 解耦评估：理论上可以把 DOM 写入语句直接内联在执行器里，但那会把状态到 DOM 的映射规则重新散落回执行层，削弱“状态收集/执行落地”分层。改成参数注入也只会扩大静态映射表的样板。继续从同目录 [`toggleTaskStatusDOM.ts`](app/src/protyle/wysiwyg/keydown.list/toggleTaskStatusDOM.ts:1) 复用专用辅助函数，是当前边界下更低耦合的方案。
- */
-import { setTaskStatusDOM } from "./toggleTaskStatusDOM";
+import { toggleTaskListItem } from "./imports";
 
 /**
  * 执行任务列表切换命令（Phase 1）
@@ -121,14 +104,8 @@ const executeToggleTaskStatus: CommandExecutor = async (
         return;
     }
     
-    const html = taskItemElement.outerHTML;
     const useElement = taskItemElement.querySelector("use");
     if (!useElement) {
-        return;
-    }
-    
-    const nodeId = taskItemElement.getAttribute("data-node-id");
-    if (!nodeId) {
         return;
     }
 
@@ -137,12 +114,7 @@ const executeToggleTaskStatus: CommandExecutor = async (
         return;
     }
 
-    // 根据已收集的状态空间直接应用目标状态
-    setTaskStatusDOM(taskItemElement, useElement, nextTaskStatus);
-    
-    // 更新时间戳并提交事务
-    taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, nodeId, taskItemElement.outerHTML, html);
+    toggleTaskListItem(protyle, taskItemElement);
     
     // 记录详细的执行日志
     logTaskToggle(

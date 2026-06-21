@@ -53,7 +53,7 @@ const 执行剪切引用 = (
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+    updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
     const toolbarRange = protyle.toolbar?.range;
     if (toolbarRange) {
@@ -77,7 +77,7 @@ const 执行删除引用 = (
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+    updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
     const toolbarRange = protyle.toolbar?.range;
     if (toolbarRange) {

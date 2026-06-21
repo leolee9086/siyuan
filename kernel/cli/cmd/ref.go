@@ -44,7 +44,7 @@ var refBacklinksCmd = &cobra.Command{
 		keyword, _ := cmd.Flags().GetString("keyword")
 		sortMode, _ := cmd.Flags().GetInt("sort")
 
-		_, backlinks, _, count, _ := model.GetBacklink2(id, keyword, "", sortMode, 0, false)
+		_, backlinks, _, count, _ := model.GetBacklink2(id, keyword, "", sortMode, 0, model.Conf.Editor.BacklinkContainChildren)
 
 		switch outputFormat {
 		case "json":
@@ -71,7 +71,7 @@ var refMentionsCmd = &cobra.Command{
 		keyword, _ := cmd.Flags().GetString("keyword")
 		sortMode, _ := cmd.Flags().GetInt("sort")
 
-		_, _, backmentions, _, count := model.GetBacklink2(id, "", keyword, 0, sortMode, false)
+		_, _, backmentions, _, count := model.GetBacklink2(id, "", keyword, 0, sortMode, model.Conf.Editor.BacklinkContainChildren)
 
 		switch outputFormat {
 		case "json":
@@ -93,6 +93,11 @@ var refRefreshCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		if id == "" {
 			return fmt.Errorf("--id is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would refresh backlinks for block %s\n", id)
+			return nil
 		}
 
 		model.RefreshBacklink(id)

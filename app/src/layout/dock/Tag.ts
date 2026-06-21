@@ -23,8 +23,8 @@ export class Tag extends Model {
     private element: HTMLElement;
 
     constructor(app: App, tab: Tab) {
-        super({
-            app,
+        super({app});
+        this.connect({
             id: tab.id,
             type: "tag",
             msgCallback: (data) => {
@@ -42,7 +42,8 @@ export class Tag extends Model {
         if (!data) {
             return;
         }
-        if (data.cmd === "unmount" || data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) {
+        if (data.cmd === "unmount" || data.cmd === "closeBox" || data.cmd === "removeBox" ||
+            data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) {
             this.update(); return;
         }
         if (data.cmd !== "transactions") {
@@ -347,4 +348,3 @@ export class Tag extends Model {
         element.classList.remove("fn__rotate");
     }
 }
-

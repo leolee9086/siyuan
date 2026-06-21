@@ -6,7 +6,7 @@ import { initBlockPopover } from "../block/popover";
 import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { genUUID } from "../util/platform/genID";
 import { fetchGet, fetchPost } from "../util/network/fetch";
-import { addBaseURL, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
+import { addBaseURL, getDocDisplayName, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
 import { openFileById } from "../editor/utils.openFileById";
 import {
     processSync,
@@ -37,22 +37,12 @@ class App {
     constructor() {
         addBaseURL();
         this.appId = Constants.SIYUAN_APPID;
-        window.siyuan = {
-            zIndex: 10,
-            transactions: [],
-            reqIds: {},
-            backStack: [],
-            layout: {},
-            dialogs: [],
-            blockPanels: [],
-            closedTabs: [],
-            ctrlIsPressed: false,
-            altIsPressed: false,
-            ws: new Model({
-                app: this,
-                id: genUUID(),
-                type: "main",
-                msgCallback: (data) => {
+
+        const mainWs = new Model({app: this});
+        mainWs.connect({
+            id: genUUID(),
+            type: "main",
+            msgCallback: (data) => {
                     this.plugins.forEach((plugin) => {
                         plugin.eventBus.emit("ws-main", data);
                     });
@@ -121,7 +111,7 @@ class App {
                                         if (initTab) {
                                             const initTabData = JSON.parse(initTab);
                                             if (initTabData.instance === "Editor" && initTabData.rootId === data.data.id) {
-                                                tab.updateTitle(data.data.title);
+                                                tab.updateTitle(getDocDisplayName(data.data.title, data.data.empty));
                                             }
                                         }
                                     }
@@ -179,7 +169,20 @@ class App {
                         }
                     }
                 }
-            }),
+        });
+
+        window.siyuan = {
+            zIndex: 10,
+            transactions: [],
+            reqIds: {},
+            backStack: [],
+            layout: {},
+            dialogs: [],
+            blockPanels: [],
+            closedTabs: [],
+            ctrlIsPressed: false,
+            altIsPressed: false,
+            ws: mainWs,
         };
         fetchPost("/api/system/getConf", {}, async (response) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");

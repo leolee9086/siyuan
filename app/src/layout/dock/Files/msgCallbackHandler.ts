@@ -59,6 +59,20 @@ function buildHandlersMap(
                 item.eventBus.emit("closed-notebook", data);
             }
         },
+        /** 关闭笔记本：从打开列表移入关闭列表并触发插件事件 */
+        closeBox: () => {
+            handleRemove(context.element, context.closeElement, data, genNotebook);
+            for (const item of app.plugins) {
+                item.eventBus.emit("closed-notebook", data);
+            }
+        },
+        /** 移除笔记本：从打开和关闭列表中移除并触发插件事件 */
+        removeBox: () => {
+            handleRemove(context.element, context.closeElement, data, genNotebook);
+            for (const item of app.plugins) {
+                item.eventBus.emit("closed-notebook", data);
+            }
+        },
         /** 删除文档：从文件树中移除文档节点 */
         removeDoc: () => handleRemove(context.element, context.closeElement, data, genNotebook),
         /** 创建文档：处理新文档创建，选中并更新父节点箭头 */

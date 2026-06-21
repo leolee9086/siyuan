@@ -43,7 +43,26 @@ import {
 /** 存储需要移除的空Tab，在布局恢复完成后统一处理 */
 const removedTabs: Tab[] = [];
 
-// ============ JSONToCenter 实例处理分发 ============
+const collapseEmptyDockLayouts = (): void => {
+    const layout = getSiyuanLayout();
+    if (!layout) {
+        return;
+    }
+    if (layout.rightDock?.layout.children[0].element.classList.contains("fn__none") &&
+        layout.rightDock.layout.children[1].element.classList.contains("fn__none")) {
+        layout.rightDock.layout.element.style.width = "0px";
+    }
+    if (layout.leftDock?.layout.children[0].element.classList.contains("fn__none") &&
+        layout.leftDock.layout.children[1].element.classList.contains("fn__none")) {
+        layout.leftDock.layout.element.style.width = "0px";
+    }
+    if (layout.bottomDock?.layout.children[0].element.classList.contains("fn__none") &&
+        layout.bottomDock.layout.children[1].element.classList.contains("fn__none")) {
+        layout.bottomDock.layout.element.style.height = "0px";
+    }
+};
+
+// JSONToCenter 实例处理分发
 
 /**
  * 处理 Layout 类型实例
@@ -202,6 +221,7 @@ export const JSONToLayout = (app: App, isStart: boolean): void => {
     }
     // 保存布局并调整顶栏
     saveLayout();
+    collapseEmptyDockLayouts();
     setTimeout(() => {
         setTabPosition();
     }, Constants.TIMEOUT_TRANSITION);

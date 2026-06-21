@@ -1,7 +1,7 @@
 import { App } from "..";
 import { makeCard } from "../card/makeCard";
 import { Constants } from "../constants";
-import { showMessage, hideMessage } from "../dialog/message";
+import { showMessage } from "../dialog/message";
 import { deleteFiles } from "../editor/deleteFile";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
@@ -150,20 +150,19 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
                 fetchPost("/api/export/exportSYs", {
                     ids: blockIDs,
                 }, response => {
-                    hideMessage(msgId);
-                    saveExportFile(response.data.zip);
+                    saveExportFile(response.data.zip, msgId);
                 });
             }
         }, {
             id: "exportMarkdown",
+            label: "Markdown .zip",
             icon: "iconMarkdown",
             click: () => {
                 const msgId = showMessage(siyuanI18n.exporting, -1);
                 fetchPost("/api/export/exportMds", {
                     ids: blockIDs,
                 }, response => {
-                    hideMessage(msgId);
-                    saveExportFile(response.data.zip);
+                    saveExportFile(response.data.zip, msgId);
                 });
             }
         }]

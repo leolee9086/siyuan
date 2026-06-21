@@ -23,10 +23,40 @@ import { escapeHtml } from "./imports";
 import { siyuanI18n } from "./imports";
 // 用途：获取 DOMPurify 实例；使用范围：行级备注内容安全过滤；解耦评估：安全工具，通过环境封装解耦
 import { getDOMPurify } from "./imports";
+// 用途：在布局树中根据 ID 查找 Tab/Layout/Wnd 实例；使用范围：Tab 标签页 tooltip 获取 Tab 实例；解耦评估：布局查找工具，通过参数传递即可，已充分解耦
+import { getInstanceById } from "./imports";
+// 用途：编辑器类，检查 Tab 模型是否为编辑器；使用范围：Tab 标签页 tooltip；解耦评估：核心类，直接导入合理
+import { Editor } from "./imports";
+// 用途：标签页类，获取 Tab 实例类型判断；使用范围：Tab 标签页 tooltip；解耦评估：核心类，直接导入合理
+import { Tab } from "./imports";
+// 用途：转义小于号用于安全显示 HTML；使用范围：Tab 标签页 tooltip；解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦
+import { escapeLessThans } from "./imports";
 // 用途：导入 TooltipInfo 类型定义；使用范围：类型标注；解耦评估：类型定义，无需解耦
 import { TooltipInfo } from "./types";
 // 用途：导出 TooltipInfo 类型供外部使用；使用范围：类型导出；解耦评估：类型定义，无需解耦
 export type { TooltipInfo };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 模块状态
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 异步获取信息后再显示 tooltip，鼠标已移走时需中断请求
+ * https://github.com/siyuan-note/siyuan/issues/14823
+ */
+let tooltipAbortController: AbortController | null = null;
+
+/**
+ * 中断上一轮尚未完成的 tooltip 信息请求
+ * 在 mouseover 事件开始处调用
+ * @同步豁免: 性能考虑 - 此函数需要在事件循环中同步中断异步请求，避免并发请求堆积
+ */
+export const abortPendingTooltipRequest = () => {
+    if (tooltipAbortController) {
+        tooltipAbortController.abort();
+        tooltipAbortController = null;
+    }
+};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 常量定义
@@ -34,15 +64,8 @@ export type { TooltipInfo };
 
 /** 滚动检测容差（用于判断文本是否溢出） */
 const SCROLL_TOLERANCE = 0.5;
-
 /** 单元格滚动检测容差 */
 const CELL_SCROLL_TOLERANCE = 2;
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 类型定义
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Tooltip 获取函数
@@ -94,8 +117,7 @@ const getAVCellTooltip = (aElement: HTMLElement, target: HTMLElement) => {
         tooltipClass = "href";
     }
 
-    // 检查文本溢出
-    // 检查是否需要检测文本溢出：非自动换行、非更多按钮、非图标区域
+    // 检查文本溢出：非自动换行、非更多按钮、非图标区域
     if (!tip && aElement.dataset.wrap !== "true" && target.dataset.type !== "block-more" && !hasClosestByClassName(target, "block__icon")) {
         tip = checkCellOverflow(aElement);
     }
@@ -130,6 +152,7 @@ const processAVCellTooltip = (aElement: HTMLElement, target: HTMLElement) => {
     }
     return getAVCellTooltip(aElement, target);
 };
+
 /**
  * 获取特定元素（AV 单元格、URL、计算结果等）的 tooltip 信息
  */
@@ -138,13 +161,11 @@ const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, i
     let tooltipClass = "";
 
     // AV 单元格处理
-    // 检查是否为 AV 单元格且不是 ariaLabel 类型，如果是则处理单元格 tooltip
     if (aElement.classList.contains("av__cell") && !aElement.classList.contains("ariaLabel")) {
         return processAVCellTooltip(aElement, target);
     }
 
     // AV 视图标签处理
-    // 检查是否为 AV 视图标签元素，通过父元素类名判断
     if (aElement.parentElement?.parentElement?.classList.contains("av__views") &&
         aElement.parentElement.classList.contains("layout-tab-bar")) {
         tip = getAVViewTabTooltip(aElement);
@@ -152,7 +173,6 @@ const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, i
     }
 
     // URL 文本单元格处理
-    // 检查是否为 URL 文本单元格，如果是则显示完整 URL 和标题
     if (aElement.classList.contains("av__celltext--url")) {
         const title = aElement.getAttribute("data-name") || "";
         tip = initialTip ? `<span style="word-break: break-all">${initialTip.substring(0, Constants.SIZE_TITLE)}</span>${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}` : title;
@@ -161,14 +181,12 @@ const getSpecificElementTooltip = (aElement: HTMLElement, target: HTMLElement, i
     }
 
     // 计算结果单元格处理
-    // 检查是否为计算结果单元格且文本溢出，如果是则显示完整计算结果
     if (aElement.classList.contains("av__calc--ashow") && aElement.clientWidth + CELL_SCROLL_TOLERANCE < aElement.scrollWidth) {
         tip = (aElement.lastChild?.textContent || "") + " " + (aElement.firstElementChild?.textContent || "");
         return { tip, tooltipClass };
     }
 
     // 关联单元格处理
-    // 检查是否为关联单元格类型，如果是则处理关联单元格 tooltip
     if (aElement.getAttribute("data-type") === "setRelationCell") {
         return getRelationCellTooltip(aElement, tooltipClass);
     }
@@ -189,8 +207,6 @@ const getRelationCellTooltip = (aElement: HTMLElement, tooltipClass: string) => 
     return { tip, tooltipClass };
 };
 
-
-
 /**
  * 获取超链接 tooltip 信息
  */
@@ -201,7 +217,6 @@ const getLinkTooltipInfo = (aElement: HTMLElement) => {
 
     const href = aElement.getAttribute("data-href") || "";
     // 链接地址强制换行 https://github.com/siyuan-note/siyuan/issues/11539
-    // 检查是否存在链接地址，如果存在则显示链接 URL
     if (href) {
         tip = `<span style="word-break: break-all">${href.substring(0, Constants.SIZE_TITLE)}</span>`;
         tooltipClass = "href"; // 为超链接添加 class https://github.com/siyuan-note/siyuan/issues/11440#issuecomment-2119080691
@@ -213,17 +228,18 @@ const getLinkTooltipInfo = (aElement: HTMLElement) => {
         tip = (tip ? (tip + '<div class="fn__hr"></div>') : "") + "<span>" + title + "</span>";
     }
 
-    // 检查是否设置了 tooltipSpace，如果设置了则返回包含 tooltipSpace 的对象
     if (tooltipSpace !== undefined) {
         return { tip, tooltipClass, tooltipSpace };
     }
     return { tip, tooltipClass };
 };
+
 /**
  * 获取元素的 tooltip 信息
- * @同步豁免: UI构建 - 此函数用于同步计算和返回 tooltip 信息，供事件处理器立即使用，无异步操作需求
+ * @同步豁免: UI构建 - 此函数纯同步计算，返回 tooltip 信息供事件处理器立即使用，无异步操作需求
+ * @显式返回类型原因 固定返回 TooltipInfo 接口，确保调用方不依赖内部字段推断
  */
-export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement) => {
+export const getTooltipInfo = (aElement: HTMLElement, target: HTMLElement): TooltipInfo => {
     let tooltipClass = "";
     let tip = aElement.getAttribute("aria-label") || "";
     let tooltipSpace: number | undefined;
@@ -241,9 +257,7 @@ export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement)
     }
 
     // 行级备注处理
-    // 行级备注处理
     const memoTip = !tip ? getDOMPurify().sanitize(aElement.getAttribute("data-inline-memo-content") || "") : "";
-    // 检查是否存在行级备注内容，如果存在则显示备注
     if (memoTip) {
         tip = memoTip;
         tooltipClass = "memo"; // 为行级备注添加 class https://github.com/siyuan-note/siyuan/issues/6161
@@ -252,14 +266,13 @@ export const getTooltipInfo = async (aElement: HTMLElement, target: HTMLElement)
 
     // 超链接处理
     const linkInfo = !tip ? getLinkTooltipInfo(aElement) : undefined;
-    // 检查是否获取到链接 tooltip 信息，如果有则使用链接 tooltip
+    // 检查链接信息中是否包含 tooltip 内容，如果有则使用链接 tooltip
     if (linkInfo?.tip) {
         tip = linkInfo.tip;
         tooltipClass = linkInfo.tooltipClass;
         tooltipSpace = linkInfo.tooltipSpace;
     }
 
-    // 检查是否设置了 tooltipSpace，如果设置了则返回包含 tooltipSpace 的对象
     if (tooltipSpace !== undefined) {
         return { tip, tooltipClass, tooltipSpace };
     }
@@ -294,14 +307,25 @@ const handleStatAssetResponse = (response: IWebSocketData, tip: string, title: s
 };
 
 /**
- * 处理本地路径的 tooltip 显示
+ * 处理本地路径的 tooltip 显示，使用 AbortController 支持请求中断
  */
 const handleLocalPathTooltip = (aElement: HTMLElement, tip: string, tooltipClass: string) => {
     const href = aElement.getAttribute("data-href");
     const title = aElement.getAttribute("data-title");
+    tooltipAbortController = new AbortController();
+    const signal = tooltipAbortController.signal;
+    // @内联回调 回调需要捕获 signal 进行竞态控制，且需通过 signal 对象引用判断是否仍为最新请求
     fetchPost("/api/asset/statAsset", { path: href }, (response) => {
+        // 检查请求是否已被中断 https://github.com/siyuan-note/siyuan/issues/14823
+        if (signal.aborted) {
+            return;
+        }
         handleStatAssetResponse(response, tip, title, aElement, tooltipClass);
-    });
+        // 通过 signal 对象引用判断此回调是否对应最新请求，避免旧请求误清理
+        if (tooltipAbortController?.signal === signal) {
+            tooltipAbortController = null;
+        }
+    }, undefined, undefined, signal);
 };
 
 /**
@@ -324,63 +348,123 @@ const updateNotebookTooltip = (response: IWebSocketData, target: HTMLElement, no
 };
 
 /**
- * 处理笔记本的 tooltip 显示
+ * 处理笔记本的 tooltip 显示，使用 AbortController 支持请求中断
  */
 const handleNotebookTooltip = (event: MouseEvent) => {
     const target = event.target;
-    // 检查事件目标是否为 HTML 元素，如果不是则不处理
     if (!(target instanceof HTMLElement)) {
         return;
     }
     const notebookItemElement = hasClosestByClassName(target, "b3-list-item__text");
-    // 检查是否找到笔记本列表项元素，如果没找到则不处理
     if (!notebookItemElement) {
         return;
     }
-    // 检查父元素类型是否为笔记本根节点，如果不是则不处理
     if (notebookItemElement.parentElement?.getAttribute("data-type") !== "navigation-root") {
         return;
     }
     const url = notebookItemElement.parentElement?.parentElement?.getAttribute("data-url");
-    // 检查是否存在笔记本 URL，如果不存在则不处理
     if (!url) {
         return;
     }
+    tooltipAbortController = new AbortController();
+    const signal = tooltipAbortController.signal;
+    // @内联回调 回调需要捕获 signal 进行竞态控制，且需通过 signal 对象引用判断是否仍为最新请求
     fetchPost("/api/notebook/getNotebookInfo", { notebook: url }, (response) => {
+        if (signal.aborted) {
+            return;
+        }
         updateNotebookTooltip(response, target, notebookItemElement);
-    });
+        // 检查此回调是否仍对应最新的 AbortController，避免旧请求误清理新请求
+        if (tooltipAbortController?.signal === signal) {
+            tooltipAbortController = null;
+        }
+    }, undefined, undefined, signal);
+};
+
+/**
+ * 处理 Tab 标签页的 tooltip 显示，显示标签页对应的文档路径
+ */
+const handleTabTooltip = (event: MouseEvent) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+    const tabElement = target.getAttribute("data-type") === "tab-header"
+        ? target
+        : hasClosestByClassName(target, "layout-tab-item");
+    if (!tabElement || tabElement.getAttribute("data-type") !== "tab-header") {
+        return;
+    }
+    const tabId = tabElement.getAttribute("data-id");
+    if (!tabId) {
+        return;
+    }
+    const tab = getInstanceById(tabId);
+    if (!(tab instanceof Tab)) {
+        return;
+    }
+    let id = "";
+    // 检查 Tab 模型是否为编辑器实例，如果是则获取根文档 ID
+    if (tab.model instanceof Editor && tab.model.editor?.protyle?.block?.rootID) {
+        id = tab.model.editor.protyle.block.rootID;
+    }
+    // 如果 Tab 没有模型则从初始化数据中获取编辑器块 ID 和实例类型
+    if (!id && !tab.model) {
+        const initData = JSON.parse(tab.headElement.getAttribute("data-initdata") || "{}");
+        // 检查初始化数据中实例类型是否为编辑器
+        id = initData && initData.instance === "Editor" ? initData.blockId : "";
+    }
+    // 未找到文档 ID 时直接设置标题为 aria-label 后返回
+    if (!id) {
+        tab.headElement.setAttribute("aria-label", escapeLessThans(tab.title));
+        return;
+    }
+    tooltipAbortController = new AbortController();
+    const signal = tooltipAbortController.signal;
+    // @内联回调 回调需要捕获 signal 进行竞态控制
+    fetchPost("/api/filetree/getFullHPathByID", { id }, (response) => {
+        if (signal.aborted) {
+            return;
+        }
+        showTooltip(escapeLessThans(response.data), tab.headElement);
+        tab.headElement.setAttribute("aria-label", escapeLessThans(response.data));
+        // 检查此回调是否仍对应最新的 AbortController，避免旧请求误清理新请求
+        if (tooltipAbortController?.signal === signal) {
+            tooltipAbortController = null;
+        }
+    }, undefined, undefined, signal);
 };
 
 /**
  * 处理 tooltip 的显示逻辑
  * @returns 是否成功显示了 tooltip 并停止事件传播
- * @同步豁免: UI构建 - 此函数作为事件处理器需要同步返回 boolean 值以决定是否阻止事件传播，内部异步操作不影响返回值
+ * @同步豁免: UI构建 - 此函数纯同步执行，返回值决定事件传播行为
+ * @显式返回类型原因 调用方依赖固定的 boolean 返回类型进行事件传播决策
  */
-export const handleTooltipDisplay = async (
+export const handleTooltipDisplay = (
     aElement: HTMLElement,
     event: MouseEvent,
     tooltipInfo: TooltipInfo
-) => {
+): boolean => {
     const { tip, tooltipClass, tooltipSpace } = tooltipInfo;
 
-    // 处理本地路径 tooltip（异步）
-    // 检查是否为本地路径链接且有 tip 内容，如果是则异步获取资源信息
+    // 处理本地路径 tooltip（异步，回调驱动）
     if (tip && isLocalPath(aElement.getAttribute("data-href") || "") && !aElement.classList.contains("b3-tooltips")) {
         handleLocalPathTooltip(aElement, tip, tooltipClass);
         return true;
     }
 
+    // 处理 Tab 标签页 tooltip
+    handleTabTooltip(event);
+
     // 处理笔记本 tooltip
     handleNotebookTooltip(event);
 
     // 显示标准 tooltip
-    // 检查是否有 tip 内容且元素未标记为已处理，如果是则显示 tooltip
     if (tip && !aElement.classList.contains("b3-tooltips")) {
-        // https://github.com/siyuan-note/siyuan/issues/11294
         try {
             showTooltip(decodeURIComponent(tip), aElement, tooltipClass, event, tooltipSpace);
         } catch {
-            // https://ld246.com/article/1718235737991
             showTooltip(tip, aElement, tooltipClass, event, tooltipSpace);
         }
         return true;

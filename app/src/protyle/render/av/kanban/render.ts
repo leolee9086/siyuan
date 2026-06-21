@@ -9,19 +9,30 @@ import {getCompressURL} from "../../../../util/assets/image";
 import {cellValueIsEmpty, renderCell} from "../cell";
 import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
 import {unicode2Emoji} from "../../../../emoji";
-import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getKanbanTitleHTML } from "./getKanbanTitleHTML";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {getKanbanTitleHTML} from "./getKanbanTitleHTML";
 
 interface IIds {
     groupId: string,
     fieldId: string,
 }
 
-const getKanbanHTML = async (data: IAVKanban) => {
+const getKanbanHTML = async (data: IAVKanban, e: HTMLElement, virtualData: IAVVirtualData) => {
     let galleryHTML = "";
     // body
     for (const [rowIndex, item] of data.cards.entries()) {
-        galleryHTML += `<div data-id="${item.id}" draggable="true" class="av__gallery-item">`;
+        if (virtualData && virtualData.renderedEnd) {
+            if (rowIndex === 0) {
+                e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            }
+            if (rowIndex > virtualData.renderedEnd || rowIndex < virtualData.renderedStart) {
+                continue;
+            }
+        } else if (data.pageSize > 100 && rowIndex > 99) {
+            e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
+            continue;
+        }
+        galleryHTML += `<div data-id="${item.id}" data-index="${rowIndex}" draggable="true" class="av__gallery-item">`;
         if (data.coverFrom !== 0) {
             const coverClass = "av__gallery-cover av__gallery-cover--" + data.cardAspectRatio;
             if (item.coverURL) {
@@ -127,8 +138,17 @@ export const renderKanban = async (options: {
         }
     });
     const pageSizes: { [key: string]: string } = {};
+    const virtualData: { [key: string]: IAVVirtualData } = {};
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
         pageSizes[item.dataset.groupId || "unGroup"] = item.dataset.pageSize;
+        if (!item.querySelector(".av__gallery-item") || options.blockElement.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
+            return;
+        }
+        virtualData[item.getAttribute("data-group-id")] = ({
+            renderedStart: parseInt(item.querySelector(".av__gallery-item").getAttribute("data-index")),
+            renderedEnd: parseInt(item.querySelector(".av__gallery-add").previousElementSibling.getAttribute("data-index")),
+            topSpacerHeight: item.querySelector(".av__spacer")?.clientHeight || 0,
+        });
     });
     const resetData = {
         isSearching: searchInputElement && document.activeElement === searchInputElement,
@@ -139,6 +159,7 @@ export const renderKanban = async (options: {
         selectItemIds,
         pageSizes,
         left: options.blockElement.querySelector(".av__kanban")?.scrollLeft,
+        virtualData
     };
     if (options.blockElement.firstElementChild.innerHTML === "") {
         options.blockElement.style.alignSelf = "";
@@ -201,7 +222,7 @@ export const renderKanban = async (options: {
             }
             bodyHTML += `<div class="av__kanban-group${group.cardSize === 0 ? " av__kanban-group--small" : (group.cardSize === 2 ? " av__kanban-group--big" : "")}"${selectBg}>
     ${getKanbanTitleHTML(group, group.cardCount)}
-    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${await getKanbanHTML(group)}</div>
+    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${await getKanbanHTML(group, options.blockElement, virtualData[group.id])}</div>
 </div>`;
         }
     }

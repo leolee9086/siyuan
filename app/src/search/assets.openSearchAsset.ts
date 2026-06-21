@@ -203,8 +203,11 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
     }
     const localSearch: ISearchAssetOption = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
     const parent = element.parentElement;
-    const loadingElement = parent?.querySelector(".fn__loading--top");
+    const loadingElement = parent?.querySelector<HTMLElement>(".fn__loading");
     loadingElement?.classList.remove("fn__none");
+    if (loadingElement) {
+        loadingElement.style.top = "84px";
+    }
     let enterTip = "";
     // Electron 环境下显示"在文件夹中显示"的快捷键提示
     if (isElectron) {

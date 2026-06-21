@@ -35,6 +35,12 @@ import { escapeAttr } from "../../../../util/DOM/escape";
  */
 import { escapeHtml } from "../../../../util/DOM/escape";
 /**
+ * 用途：ARIA 标签转义函数，用于安全生成可访问性标签
+ * 使用范围：render函数中转义资源单元格的aria-label
+ * 解耦评估：无法解耦，安全转义是必需功能
+ */
+import { escapeAriaLabel } from "../../../../util/DOM/escape";
+/**
  * 用途：图片压缩URL生成，用于优化图片加载性能
  * 使用范围：render函数中处理mAsset类型的图片资源
  * 解耦评估：可通过参数传递解耦，但会增加函数签名复杂度，当前耦合合理
@@ -53,5 +59,7 @@ export { unicode2Emoji };
 export { escapeAttr };
 /** 导出HTML内容转义函数 */
 export { escapeHtml };
+/** 导出ARIA标签转义函数 */
+export { escapeAriaLabel };
 /** 导出图片压缩URL生成函数 */
 export { getCompressURL };

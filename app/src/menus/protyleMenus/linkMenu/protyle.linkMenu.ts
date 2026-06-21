@@ -233,7 +233,7 @@ const 设置菜单关闭回调 = (ctx: LinkMenuContext) => {
         // 保存更改
         if (ctx.html !== ctx.nodeElement.outerHTML) {
             ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(ctx.protyle, ctx.id, ctx.nodeElement.outerHTML, ctx.html);
+            updateTransaction(ctx.protyle, ctx.nodeElement, ctx.html);
         }
     };
 };

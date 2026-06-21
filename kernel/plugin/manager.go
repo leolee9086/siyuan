@@ -51,9 +51,10 @@ type PluginManager struct {
 }
 
 type PluginInfo struct {
-	Name    string           `json:"name"`
-	State   string           `json:"state"`
-	Methods []*RpcMethodInfo `json:"methods"`
+	Name      string           `json:"name"`
+	State     string           `json:"state"`
+	StateCode int              `json:"stateCode"`
+	Methods   []*RpcMethodInfo `json:"methods"`
 }
 
 var (
@@ -238,11 +239,12 @@ func (m *PluginManager) StartPlugin(petal *model.Petal) (ok bool) {
 		return
 	}
 
-	m.StopPlugin(petal) // stop first in case it's already running, to allow hot reload
-
 	pluginMu := m.getPluginMu(petal.Name)
 	pluginMu.Lock()
 	defer pluginMu.Unlock()
+
+	// Stop any running instance inside the same lock so that concurrent hot-reload goroutines queue here and each one sees the instance started by the previous.
+	m.stopLocked(petal.Name)
 
 	m.addPluginSourceWatch(petal.Name)
 
@@ -274,22 +276,25 @@ func (m *PluginManager) StopPlugin(petal *model.Petal) (ok bool) {
 	pluginMu.Lock()
 	defer pluginMu.Unlock()
 
-	m.removePluginSourceWatch(petal.Name)
+	return m.stopLocked(petal.Name)
+}
 
-	value, loaded := m.plugins.LoadAndDelete(petal.Name)
+// stopLocked stops a running plugin by name. The caller must hold the per-plugin mutex.
+func (m *PluginManager) stopLocked(name string) (ok bool) {
+	m.removePluginSourceWatch(name)
 
-	if loaded {
-		p := value.(*KernelPlugin)
-		if success, err := p.stop(); err != nil {
-			logging.LogErrorf("[plugin:%s] stop failed: %s", p.Name, err)
-			ok = false
-		} else {
-			ok = success
-		}
-	} else {
-		ok = false
+	value, loaded := m.plugins.LoadAndDelete(name)
+	if !loaded {
+		return false
 	}
-	return
+
+	p := value.(*KernelPlugin)
+	success, err := p.stop()
+	if err != nil {
+		logging.LogErrorf("[plugin:%s] stop failed: %s", name, err)
+		return false
+	}
+	return success
 }
 
 // getPluginMu returns the per-plugin mutex for the given name, creating it if needed.
@@ -312,9 +317,10 @@ func (m *PluginManager) GetLoadedPlugin(name string) (plugin *PluginInfo, found 
 	p := m.GetPlugin(name)
 	if p != nil {
 		return &PluginInfo{
-			Name:    p.Name,
-			State:   p.State().String(),
-			Methods: p.GetRpcMethodsInfo(),
+			Name:      p.Name,
+			State:     p.State().String(),
+			StateCode: int(p.State()),
+			Methods:   p.GetRpcMethodsInfo(),
 		}, true
 	}
 	return nil, false
@@ -325,9 +331,10 @@ func (m *PluginManager) GetLoadedPluginsInfo() (plugins []*PluginInfo) {
 	m.plugins.Range(func(key, value any) bool {
 		p := value.(*KernelPlugin)
 		plugins = append(plugins, &PluginInfo{
-			Name:    p.Name,
-			State:   p.State().String(),
-			Methods: p.GetRpcMethodsInfo(),
+			Name:      p.Name,
+			State:     p.State().String(),
+			StateCode: int(p.State()),
+			Methods:   p.GetRpcMethodsInfo(),
 		})
 		return true
 	})
@@ -346,12 +353,11 @@ func (m *PluginManager) addPluginSourceWatch(name string) {
 }
 
 // removePluginSourceWatch removes the plugin's base directory from the fsnotify watcher when the plugin is stopped.
-func (m *PluginManager) removePluginSourceWatch(name string) {
+func (m *PluginManager) removePluginSourceWatch(name string) (err error) {
 	if m.watcher == nil {
 		return
 	}
 	path := filepath.Join(m.pluginsDir, name)
-	if err := m.watcher.Remove(path); err != nil {
-		logging.LogErrorf("failed to remove kernel plugin source path [%s] from watcher: %s", path, err)
-	}
+	err = m.watcher.Remove(path)
+	return
 }

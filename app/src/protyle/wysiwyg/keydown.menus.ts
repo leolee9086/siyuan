@@ -1,4 +1,4 @@
-import { hasClosestByAttribute } from "../util/hasClosest";
+import { hasClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
 import { removeSearchMark } from "../toolbar/util";
 import { refMenu } from "../../menus/protyleMenus/refMenu/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyleMenus/refMenu/protyle.fileAnnotationRefMenu";
@@ -21,7 +21,7 @@ export const inlineMenuMiddleware = async (
     range: Range,
     controller: AbortController
 ): Promise<void> => {
-    if (!matchHotKey("⌘/", event)) {
+    if (!matchHotKey("⌘/", event) || isInEmbedBlock(nodeElement)) {
         return;
     }
 

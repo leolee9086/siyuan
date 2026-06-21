@@ -143,8 +143,11 @@ const executeAssetSearch = (element: Element, loadingElement: Element | null | u
 
 let inputTimeout: number;
 export const assetInputEvent = (element: Element, localSearch?: ISearchAssetOption, page = 1) => {
-    const loadingElement = element.parentElement?.querySelector(".fn__loading--top");
+    const loadingElement = element.parentElement?.querySelector<HTMLElement>(".fn__loading");
     loadingElement?.classList.remove("fn__none");
+    if (loadingElement) {
+        loadingElement.style.top = "84px";
+    }
     clearTimeout(inputTimeout);
     inputTimeout = setTimeout(() => {
         executeAssetSearch(element, loadingElement, page, localSearch);
@@ -343,8 +346,11 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
         iconHTML: "",
         label: siyuanI18n.rebuildIndex,
         click() {
-            const loadingElement = element.parentElement?.querySelector(".fn__loading--top");
+            const loadingElement = element.parentElement?.querySelector<HTMLElement>(".fn__loading");
             loadingElement?.classList.remove("fn__none");
+            if (loadingElement) {
+                loadingElement.style.top = "84px";
+            }
             fetchPost("/api/asset/fullReindexAssetContent", {}, () => {
                 assetInputEvent(element, localData);
             });

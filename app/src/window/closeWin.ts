@@ -35,6 +35,7 @@ export const closeWindow = async (
         } catch (e) {
             console.error(e);
         }
+        await plugin.kernel.destroy();
     }
     sendIpc(Constants.SIYUAN_CMD, "destroy");
 };

@@ -37,6 +37,8 @@ export class Files extends Model {
     constructor(options: { tab: Tab; app: App }) {
         super({
             app: options.app,
+        });
+        this.connect({
             type: "filetree",
             id: options.tab.id,
             /**
@@ -206,6 +208,7 @@ export class Files extends Model {
         box: string,
         path: string
     }, setStorage = true, isSetCurrent = true) {
+        filePath = filePath.replace(/\/\/+/g, "/");
         const treeElement = this.element.querySelector(`[data-url="${notebookId}"]`);
         // 有文件树和编辑器的布局初始化时，文件树还未挂载
         if (!treeElement) {

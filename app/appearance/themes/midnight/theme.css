@@ -39,7 +39,7 @@
     --b3-layout-space-margin: -4px;
 
     /* 顶部工具栏 */
-    --b3-toolbar-color: var(--b3-theme-on-surface);
+    --b3-toolbar-color: var(--b3-theme-on-surface-light);
     --b3-toolbar-hover: rgba(255, 255, 255, .08);
     --b3-toolbar-left-mac: 74px;
 
@@ -133,6 +133,7 @@
     --b3-switch-checked-hover2: rgba(253, 252, 251, .10);
 
     /* 阴影 */
+    --b3-dock-shadow-color: #010409;
     --b3-point-shadow: inset 0 .5px .5px .5px rgba(255, 255, 255, .12), 0 3px 8px rgba(0, 0, 0, .3), 0 0 0 0 transparent;
     --b3-dialog-shadow: 0 8px 24px #010409;
     --b3-button-shadow: 0 1px 2px 0 rgb(0 0 0 / .3), 0 1px 3px 1px rgb(255 255 255 /.15);
@@ -214,15 +215,15 @@
 }
 
 /* 微软字体斜体会被相邻背景遮挡，将 arial 放置其前 https://github.com/siyuan-note/siyuan/issues/11841；"Segoe UI" 和 Noto-COLRv1-2.047 冲突，故移除。 */
-:root:lang(zh_CN) {
+:root:lang(zh-CN) {
     --b3-font-family: "Emojis Additional", "Emojis Reset", BlinkMacSystemFont, Helvetica, "PingFang SC", "Luxi Sans", "DejaVu Sans", "Hiragino Sans GB", "Source Han Sans SC", arial, "Microsoft Yahei", sans-serif, emojis;
 }
 
-:root:lang(zh_CHT) {
+:root:lang(zh-TW) {
     --b3-font-family: "Emojis Additional", "Emojis Reset", BlinkMacSystemFont, Helvetica, "PingFang TC", "Luxi Sans", "DejaVu Sans", "Hiragino Sans TC", "Source Han Sans TC", "Microsoft JhengHei", arial, sans-serif, emojis;
 }
 
-:root:lang(ja_JP) {
+:root:lang(ja) {
     --b3-font-family: "Emojis Additional", "Emojis Reset", BlinkMacSystemFont, Helvetica, "Luxi Sans", "DejaVu Sans", "Yu Gothic UI", arial, sans-serif, emojis;
 }
 

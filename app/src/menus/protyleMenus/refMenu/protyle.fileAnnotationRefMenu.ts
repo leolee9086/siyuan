@@ -61,11 +61,10 @@ const 更新锚点文本 = (refElement: HTMLElement, anchorElement: HTMLTextArea
  */
 const 提交引用事务 = (
     protyle: IProtyle,
-    id: LuteNodeID,
     nodeElement: HTMLElement,
     htmlState: { oldHTML: string }
 ) => {
-    updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+    updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     htmlState.oldHTML = nodeElement.outerHTML;
 };
 
@@ -131,7 +130,7 @@ const 绑定锚点输入框 = (
         }
         更新锚点文本(refElement, anchorElement);
     });
-    anchorElement.addEventListener("change", 提交引用事务.bind(null, protyle, id, nodeElement, htmlState));
+    anchorElement.addEventListener("change", 提交引用事务.bind(null, protyle, nodeElement, htmlState));
     anchorElement.addEventListener("keydown", 处理锚点按键.bind(null, menu));
     anchorElement.select();
 };
@@ -151,7 +150,7 @@ const 执行转换为文本 = (
 ) => {
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
     removeInlineType(refElement, "file-annotation-ref", requireRange(protyle));
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
 };
 
 /**
@@ -170,7 +169,7 @@ const 执行转换为文本星号 = (
     refElement.insertAdjacentHTML("beforebegin", refElement.innerHTML + " ");
     refElement.textContent = "*";
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
 };
 
 /**
@@ -189,7 +188,7 @@ const 删除文件注释引用 = (
     refElement.insertAdjacentHTML("afterend", "<wbr>");
     refElement.remove();
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    提交引用事务(protyle, id, nodeElement, htmlState);
+    提交引用事务(protyle, nodeElement, htmlState);
     focusByWbr(nodeElement, requireRange(protyle));
 };
 
@@ -250,7 +249,7 @@ const handleMenuRemoveCleanup = (
     // 仅在内容确实发生变化时才提交补偿事务，避免无效事务噪音。
     if (nodeElement.outerHTML !== htmlState.oldHTML) {
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+    updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     }
 
     const currentSelection = getSelection();

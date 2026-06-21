@@ -4,38 +4,127 @@ import { genEmptyBlock } from "../../block/util";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
 import { moveToPrevious, removeBlock } from "./remove";
-import { hasClosestByClassName } from "../util/hasClosest";
+import { hasClosestByClassName, isBlockElement } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
 import { getParentBlock } from "./getBlock";
 import { updateListOrder } from "./list.updateOrder";
-import {Constants} from "../../constants";
-import {moveToPrevious, removeBlock} from "./remove";
-import {hasClosestByClassName} from "../util/hasClosest";
-import {getParentBlock} from "./getBlock";
-import {setFold} from "../util/blockFold";
+import { scrollCenter } from "../../util/DOM/highlightById";
 
+const getLastChildBlock = (element: Element) => {
+    if (!element || !element.lastElementChild) {
+        return null;
+    }
+    let current = element.lastElementChild.previousElementSibling;
+    while (current) {
+        if (isBlockElement(current)) {
+            return current;
+        }
+        current = current.previousElementSibling;
+    }
+    return null;
+};
+
+const unfoldElements = (protyle: IProtyle, elements: Element[]) => {
+    elements.forEach(item => {
+        if (item.getAttribute("fold") === "1") {
+            setFold(protyle, item, true);
+        }
+    });
+};
+
+export const toggleTaskListItem = (protyle: IProtyle, taskItemElement: Element): void => {
+    const html = taskItemElement.outerHTML;
+    const marker = taskItemElement.getAttribute("data-task");
+    const useElement = taskItemElement.querySelector("use");
+    if (marker !== null && marker !== " ") {
+        taskItemElement.setAttribute("data-task", " ");
+        taskItemElement.classList.remove("protyle-task--done");
+        useElement?.setAttribute("xlink:href", "#iconUncheck");
+    } else {
+        taskItemElement.setAttribute("data-task", "X");
+        taskItemElement.classList.add("protyle-task--done");
+        useElement?.setAttribute("xlink:href", "#iconCheck");
+    }
+    taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+    taskItemElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
+    updateTransaction(protyle, taskItemElement, html);
+};
 
 /**
  * 生成列表项元素
  * @param listItemElement 列表项元素
  * @param offset 偏移量
  * @param wbr 是否包含 wbr
+ * @param startIndex 起始序号
  * @returns 列表项元素
  */
-export const genListItemElement = (listItemElement: Element, offset = 0, wbr = false) => {
+export const genListItemElement = (listItemElement: Element, offset = 0, wbr = false, startIndex?: number) => {
     const element = document.createElement("template");
     const type = listItemElement.getAttribute("data-subtype");
     if (type === "o") {
-        const index = parseInt(listItemElement.getAttribute("data-marker") || "1") + offset;
-        element.innerHTML = `<div data-marker="${index + 1}." data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div contenteditable="false" class="protyle-action protyle-action--order" draggable="true">${index + 1}.</div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
+        const index = startIndex !== undefined ? startIndex : parseInt(listItemElement.getAttribute("data-marker")) + offset + 1;
+        element.innerHTML = `<div data-marker="${index}." data-subtype="o" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div contenteditable="false" class="protyle-action protyle-action--order" draggable="true">${index}.</div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else if (type === "t") {
-        element.innerHTML = `<div data-task=" " data-marker="*" data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
+        element.innerHTML = `<div data-task=" " data-marker="*" data-subtype="t" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else {
-        element.innerHTML = `<div data-marker="*" data-subtype="${type}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
+        element.innerHTML = `<div data-marker="*" data-subtype="u" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     }
     return element.content.firstElementChild as HTMLElement;
 };
 
+export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range) => {
+    const parentItemElement = hasClosestByClassName(nodeElement, "li");
+    if (!parentItemElement) {
+        return false;
+    }
+    const subListElement = parentItemElement.querySelector(".list");
+    // 无列表块：在列表项块的最后一个子块后面插入新的列表块
+    if (!subListElement) {
+        const lastElement = getLastChildBlock(parentItemElement);
+        if (!lastElement) {
+            return false;
+        }
+        const id = Lute.NewNodeID();
+        const newListItemElement = genListItemElement(parentItemElement, 0, true, 1);
+        const newListHTML = `<div data-subtype="${parentItemElement.getAttribute("data-subtype")}" data-node-id="${id}" data-type="NodeList" class="list" updated="${dayjs().format("YYYYMMDDHHmmss")}">${newListItemElement.outerHTML}<div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+        lastElement.insertAdjacentHTML("afterend", newListHTML);
+        unfoldElements(protyle, [parentItemElement]);
+        transaction(protyle, [{
+            action: "insert",
+            id,
+            data: newListHTML,
+            previousID: lastElement.getAttribute("data-node-id"),
+        }], [{
+            action: "delete",
+            id,
+        }]);
+        focusByWbr(lastElement.nextElementSibling, range);
+        scrollCenter(protyle, lastElement.nextElementSibling);
+        return true;
+    }
+
+    // 有列表块：在列表块的最后一个列表项块后插入新的列表项块
+    const lastSubItem = getLastChildBlock(subListElement);
+    if (!lastSubItem) {
+        return false;
+    }
+    const newListElement = genListItemElement(lastSubItem, 0, true);
+    const id = newListElement.getAttribute("data-node-id");
+    lastSubItem.after(newListElement);
+    unfoldElements(protyle, [lastSubItem.parentElement, parentItemElement]);
+    transaction(protyle, [{
+        action: "insert",
+        id,
+        data: newListElement.outerHTML,
+        previousID: lastSubItem.getAttribute("data-node-id"),
+    }], [{
+        action: "delete",
+        id,
+    }]);
+    focusByWbr(newListElement, range);
+    scrollCenter(protyle, newListElement);
+    return true;
+};
 
 /**
  * 列表缩进
@@ -61,13 +150,8 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
     }
     range.collapse(false);
     range.insertNode(document.createElement("wbr"));
-    const previousElementParent = previousElement.parentElement;
-    if (!previousElementParent) {
-        return;
-    }
-    const html = previousElementParent.outerHTML;
-    const lastChild = previousElement.lastElementChild;
-    const lastPreviousElement = lastChild ? lastChild.previousElementSibling : null;
+    const html = previousElement.parentElement.outerHTML;
+    const lastPreviousElement = getLastChildBlock(previousElement);
     if (lastPreviousElement && lastPreviousElement.getAttribute("data-type") === "NodeList") {
         // 上一个列表的最后一项为子列表
         const previousLastListHTML = lastPreviousElement.outerHTML;
@@ -76,10 +160,8 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
         const undoOperations: IOperation[] = [];
 
         const subtype = lastPreviousElement.getAttribute("data-subtype");
-        const lastLastElement = lastPreviousElement.lastElementChild;
-        const lastLastPreviousElement = lastLastElement ? lastLastElement.previousElementSibling : null;
-        let previousID = lastLastPreviousElement ? lastLastPreviousElement.getAttribute("data-node-id") : null;
-        for (const [index, item] of liItemElements.entries()) {
+        let previousID = getLastChildBlock(lastPreviousElement)?.getAttribute("data-node-id");
+        liItemElements.forEach((item, index) => {
             doOperations.push({
                 action: "move",
                 id: item.getAttribute("data-node-id"),
@@ -91,6 +173,10 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
                 previousID: index === 0 ? previousElement.getAttribute("data-node-id") : previousID,
             });
             previousID = item.getAttribute("data-node-id");
+            if (item.getAttribute("data-subtype") === subtype) {
+                lastPreviousElement.lastElementChild.before(item);
+                return;
+            }
             item.setAttribute("data-subtype", subtype);
             const actionElement = item.querySelector(".protyle-action");
             if (subtype === "o") {
@@ -112,7 +198,7 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
                 actionElement.classList.remove("protyle-action--order", "protyle-action--task");
                 lastPreviousElement.lastElementChild.before(item);
             }
-        }
+        });
 
         if (subtype === "o") {
             updateListOrder(lastPreviousElement);
@@ -122,15 +208,16 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
         }
 
         if (previousElement.parentElement.classList.contains("protyle-wysiwyg")) {
+            const newLastPreviousElement = getLastChildBlock(previousElement);
             doOperations.push({
                 action: "update",
-                data: previousElement.lastElementChild.previousElementSibling.outerHTML,
-                id: previousElement.lastElementChild.previousElementSibling.getAttribute("data-node-id")
+                data: newLastPreviousElement.outerHTML,
+                id: newLastPreviousElement.getAttribute("data-node-id")
             });
             undoOperations.push({
                 action: "update",
                 data: previousLastListHTML,
-                id: previousElement.lastElementChild.previousElementSibling.getAttribute("data-node-id")
+                id: newLastPreviousElement.getAttribute("data-node-id")
             });
             transaction(protyle, doOperations, undoOperations);
         }
@@ -144,9 +231,9 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
         newListElement.setAttribute("class", "list");
         newListElement.setAttribute("data-subtype", subType);
         newListElement.innerHTML = '<div class="protyle-attr" contenteditable="false"></div>';
-        let foldElement: Element | undefined;
-        if (lastPreviousElement && lastPreviousElement.getAttribute("fold") === "1" &&
-            lastPreviousElement.getAttribute("data-type") === "NodeHeading") {
+        let foldElement: Element;
+        if (lastPreviousElement?.getAttribute("fold") === "1" &&
+            lastPreviousElement?.getAttribute("data-type") === "NodeHeading") {
             foldElement = lastPreviousElement;
         }
         const doOperations: IOperation[] = [{
@@ -154,7 +241,7 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
             context: { ignoreProcess: foldElement ? "true" : "false" },
             data: newListElement.outerHTML,
             id: newListId,
-            previousID: lastPreviousElement ? lastPreviousElement.getAttribute("data-node-id") : null
+            previousID: lastPreviousElement?.getAttribute("data-node-id")
         }];
         if (!foldElement) {
             previousElement.lastElementChild.before(newListElement);
@@ -214,6 +301,7 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
                     const count = index + 1 + ".";
                     item.setAttribute("data-marker", count);
                     item.querySelector(".protyle-action--order").textContent = count;
+                    item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
                     doOperations.push({
                         action: "update",
                         id: itemId,
@@ -247,7 +335,7 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
         }
     }
     if (!previousElement.parentElement.classList.contains("protyle-wysiwyg")) {
-        updateTransaction(protyle, previousElement.parentElement.getAttribute("data-node-id"), previousElement.parentElement.outerHTML, html);
+        updateTransaction(protyle, previousElement.parentElement, html);
     }
     focusByWbr(previousElement, range);
 };
@@ -365,7 +453,7 @@ export const breakList = (protyle: IProtyle, blockElement: Element, range: Range
 };
 
 /**
- * 缩进列表
+ * 反向缩进列表
  * @param protyle
  * @param liItemElements
  * @param range
@@ -394,11 +482,12 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
         return;
     }
     const parentLiItemElement = getParentBlock(liElement);
-    const parentParentElement = parentLiItemElement ? parentLiItemElement.parentElement : null;
-    if (!parentLiItemElement || !parentParentElement) {
+    const parentParentElement = parentLiItemElement.parentElement;
+    if (parentLiItemElement.classList.contains("protyle-wysiwyg__embed") ||
+        parentParentElement.classList.contains("protyle-wysiwyg__embed")) {
         return;
     }
-    if (liElement.previousElementSibling && liElement.previousElementSibling.classList.contains("protyle-action") && !parentParentElement.getAttribute("data-node-id")) {
+    if (liElement.previousElementSibling?.classList.contains("protyle-action") && !parentParentElement.getAttribute("data-node-id")) {
         // https://ld246.com/article/1691981936960 情况下 zoom in 列表项
         return;
     }
@@ -419,15 +508,13 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             return;
         }
         let previousElement: Element = liElement;
-        const lastItem = liItemElements[liItemElements.length - 1];
-        let nextElement = lastItem.nextElementSibling;
-        const lastItemLastChild = lastItem.lastElementChild;
-        let lastBlockElement = lastItemLastChild ? lastItemLastChild.previousElementSibling : null;
-        for (const item of liItemElements) {
-            for (const [index, blockElement] of Array.from(item.children).entries()) {
+        let nextElement = liItemElements[liItemElements.length - 1].nextElementSibling;
+        let lastBlockElement = getLastChildBlock(liItemElements[liItemElements.length - 1]);
+        liItemElements.forEach(item => {
+            Array.from(item.children).forEach((blockElement, index) => {
                 const id = blockElement.getAttribute("data-node-id");
                 if (!id) {
-                    continue;
+                    return;
                 }
                 topDoOperations.push({
                     action: "move",
@@ -445,12 +532,12 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
                 topPreviousID = id;
                 previousElement.after(blockElement);
                 previousElement = blockElement;
-            }
-        }
+            });
+        });
         if (!window.siyuan.config.editor.listLogicalOutdent && nextElement && !nextElement.classList.contains("protyle-attr")) {
             // 传统缩进
             let newId;
-            if (lastBlockElement && nextElement && lastBlockElement.getAttribute("data-subtype") !== nextElement.getAttribute("data-subtype")) {
+            if (!lastBlockElement || lastBlockElement.getAttribute("data-subtype") !== nextElement.getAttribute("data-subtype")) {
                 newId = Lute.NewNodeID();
                 const newLastBlockElement = document.createElement("div");
                 newLastBlockElement.classList.add("list");
@@ -475,15 +562,15 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
                 }
                 topDoOperations.push({
                     action: "move",
-                    id: nextElement.getAttribute("data-node-id") || "",
-                    previousID: topOldPreviousID || lastBlockElement.lastElementChild.previousElementSibling?.getAttribute("data-node-id") || "",
-                    parentID: lastBlockElement.getAttribute("data-node-id") || ""
+                    id: nextElement.getAttribute("data-node-id"),
+                    previousID: topOldPreviousID || getLastChildBlock(lastBlockElement)?.getAttribute("data-node-id"),
+                    parentID: lastBlockElement.getAttribute("data-node-id")
                 });
                 topUndoOperations.push({
                     action: "move",
-                    id: nextElement.getAttribute("data-node-id") || "",
-                    parentID: lastBlockElement.getAttribute("data-node-id") || "",
-                    previousID: topOldPreviousID || nextElement.previousElementSibling?.getAttribute("data-node-id") || "",
+                    id: nextElement.getAttribute("data-node-id"),
+                    parentID: lastBlockElement.getAttribute("data-node-id"),
+                    previousID: topOldPreviousID || nextElement.previousElementSibling?.getAttribute("data-node-id"),
                 });
                 topOldPreviousID = nextElement.getAttribute("data-node-id");
                 const tempElement = nextElement;
@@ -592,7 +679,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
         liItemElements[0].firstElementChild.remove();
         liItemElements[0].lastElementChild.remove();
         liElement.outerHTML = liItemElements[0].innerHTML;
-        updateTransaction(protyle, parentLiItemElement.getAttribute("data-node-id"), parentLiItemElement.outerHTML, html);
+        updateTransaction(protyle, parentLiItemElement, html);
         focusByWbr(parentLiItemElement, range);
         return;
     }
@@ -609,7 +696,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
     }
     const html = parentLiItemElement.parentElement.outerHTML;
     let nextElement = liItemElements[liItemElements.length - 1].nextElementSibling;
-    let lastBlockElement = liItemElements[liItemElements.length - 1].lastElementChild.previousElementSibling;
+    let lastBlockElement = getLastChildBlock(liItemElements[liItemElements.length - 1]);
     liItemElements.reverse().forEach(item => {
         const itemId = item.getAttribute("data-node-id");
         doOperations.push({
@@ -636,6 +723,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.setAttribute("data-marker", "*");
             item.removeAttribute("data-task");
             item.classList.remove("protyle-task--done");
+            item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             doOperations.push({
                 action: "update",
                 id: itemId,
@@ -652,6 +740,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.setAttribute("data-subtype", "o");
             item.setAttribute("data-marker", "1.");
             item.removeAttribute("data-task");
+            item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             doOperations.push({
                 action: "update",
                 id: itemId,
@@ -668,6 +757,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             item.setAttribute("data-subtype", "t");
             item.setAttribute("data-marker", "*");
             item.setAttribute("data-task", " ");
+            item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             doOperations.push({
                 action: "update",
                 id: itemId,
@@ -678,7 +768,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
     if (!window.siyuan.config.editor.listLogicalOutdent && nextElement && !nextElement.classList.contains("protyle-attr")) {
         // 传统缩进
         let newId;
-        if (lastBlockElement && !lastBlockElement.classList.contains("list")) {
+        if (!lastBlockElement || !lastBlockElement.classList.contains("list")) {
             newId = Lute.NewNodeID();
             lastBlockElement = document.createElement("div");
             lastBlockElement.classList.add("list");
@@ -691,7 +781,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
                 action: "insert",
                 id: newId,
                 data: lastBlockElement.outerHTML,
-                previousID: liItemElements[0].lastElementChild.previousElementSibling.getAttribute("data-node-id"),
+                previousID: getLastChildBlock(liItemElements[0])?.getAttribute("data-node-id"),
             });
             liItemElements[0].lastElementChild.before(lastBlockElement);
         }
@@ -721,7 +811,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
             doOperations.push({
                 action: "move",
                 id: nextId,
-                previousID: subPreviousID || lastBlockElement.lastElementChild.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: subPreviousID || getLastChildBlock(lastBlockElement)?.getAttribute("data-node-id"),
                 parentID: lastBlockElement.getAttribute("data-node-id")
             });
             undoOperations.push({
@@ -835,7 +925,7 @@ export const listOutdent = (protyle: IProtyle, liItemElements: Element[], range:
         if (parentLiItemElement && parentLiItemElement.getAttribute("data-subtype") === "o") {
             updateListOrder(parentParentElement);
         }
-        updateTransaction(protyle, parentParentElement.getAttribute("data-node-id"), parentParentElement.outerHTML, html);
+        updateTransaction(protyle, parentParentElement, html);
     }
     focusByWbr(parentParentElement, range);
 };

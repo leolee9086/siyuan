@@ -126,7 +126,7 @@ export const 处理菜单关闭清理 = (
     // HTML 发生变化时才补偿事务，避免无效事务噪音。
     if (nodeElement.outerHTML !== htmlState.oldHTML) {
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        updateTransaction(protyle, id, nodeElement.outerHTML, htmlState.oldHTML);
+        updateTransaction(protyle, nodeElement, htmlState.oldHTML);
     }
     const currentSelection = getSelection();
     const currentRange = currentSelection.rangeCount === 0 ? undefined : currentSelection.getRangeAt(0);

@@ -234,7 +234,7 @@ export function onRename(files: MobileFiles, data: { path: string, title: string
  * 调用时机：收到 WebSocket "mount" 消息时。
  * @同步豁免: UI构建
  */
-export function onMount(files: MobileFiles, data: { data: { box: INotebook, existed?: boolean }, callback?: string }) {
+export function onMount(files: MobileFiles, data: IWebSocketData) {
     if (data.data.existed) {
         return;
     }

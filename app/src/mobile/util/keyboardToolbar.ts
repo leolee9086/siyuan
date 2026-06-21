@@ -10,6 +10,7 @@ import {isInAndroid, isInEdge, isInHarmony} from "../../protyle/util/compatibili
 import {callMobileAppShowKeyboard, canInput, keyboardLockUntil} from "./mobileAppUtil";
 import {handleToolbarClick} from "./keyboardToolbar.action";
 import {isNotEditBlock} from "../../protyle/wysiwyg/getBlock";
+import {getMirror} from "../../protyle/undo/globalUndo";
 
 export {renderTextMenu} from "./keyboardToolbar.menu";
 import {KEYBOARD_TOOLBAR_HTML} from "./keyboardToolbar.menu";
@@ -93,12 +94,14 @@ const renderKeyboardToolbar = () => {
         const protyle = getCurrentEditor().protyle;
         protyle.toolbar.range = range;
         if (!dynamicElements[0].classList.contains("fn__none")) {
-            if (protyle.undo.undoStack.length === 0) {
+            // 撤销权威栈在 kernel，本地按 rootID 读镜像设按钮态（零 fetch）
+            const undoState = protyle.block?.rootID ? getMirror(protyle.block.rootID) : {canUndo: false, canRedo: false};
+            if (!undoState.canUndo) {
                 dynamicElements[0].querySelector('[data-type="undo"]').setAttribute("disabled", "disabled");
             } else {
                 dynamicElements[0].querySelector('[data-type="undo"]').removeAttribute("disabled");
             }
-            if (protyle.undo.redoStack.length === 0) {
+            if (!undoState.canRedo) {
                 dynamicElements[0].querySelector('[data-type="redo"]').setAttribute("disabled", "disabled");
             } else {
                 dynamicElements[0].querySelector('[data-type="redo"]').removeAttribute("disabled");
@@ -275,7 +278,12 @@ export const initKeyboardToolbar = () => {
                     window.siyuan.mobile.size.landscape.height1 = window.innerHeight;
                 }
                 if (window.siyuan.mobile.size.landscape.height2 < window.innerHeight) {
-                    activeBlur();
+                    const isInputFocused = document.activeElement && (
+                        ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) ||
+                        (document.activeElement as HTMLElement).isContentEditable);
+                    if (!isInputFocused) {
+                        activeBlur();
+                    }
                 } else if (!preventRender) {
                     renderKeyboardToolbar();
                 }
@@ -293,7 +301,12 @@ export const initKeyboardToolbar = () => {
                     window.siyuan.mobile.size.portrait.height1 = window.innerHeight;
                 }
                 if (window.siyuan.mobile.size.portrait.height2 < window.innerHeight) {
-                    activeBlur();
+                    const isInputFocused = document.activeElement && (
+                        ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) ||
+                        (document.activeElement as HTMLElement).isContentEditable);
+                    if (!isInputFocused) {
+                        activeBlur();
+                    }
                 } else if (!preventRender) {
                     renderKeyboardToolbar();
                 }

@@ -84,10 +84,17 @@ var repoCreateCmd = &cobra.Command{
 	Short: "Create a snapshot",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		memo, _ := cmd.Flags().GetString("memo")
-		if err := model.IndexRepo(memo); err != nil {
+
+		if dryRun {
+			fmt.Println("[dry-run] Would create snapshot")
+			return nil
+		}
+
+		id, err := model.IndexRepo(memo)
+		if err != nil {
 			return err
 		}
-		fmt.Println("ok")
+		fmt.Println("created snapshot", id)
 		return nil
 	},
 }
@@ -101,6 +108,12 @@ var repoTagCmd = &cobra.Command{
 		if id == "" || name == "" {
 			return fmt.Errorf("--id and --name are required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would tag snapshot %s with \"%s\"\n", id, name)
+			return nil
+		}
+
 		if err := model.TagSnapshot(id, name); err != nil {
 			return err
 		}
@@ -117,6 +130,12 @@ var repoUntagCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("--name is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would remove snapshot tag \"%s\"\n", name)
+			return nil
+		}
+
 		if err := model.RemoveTagSnapshot(name); err != nil {
 			return err
 		}
@@ -133,6 +152,12 @@ var repoCheckoutCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would rollback workspace to snapshot %s\n", id)
+			return nil
+		}
+
 		model.CheckoutRepoDirect(id)
 		model.AppendPushReloadFiletreeEntry()
 		model.AppendPushReloadUIEntry()
@@ -196,6 +221,11 @@ var repoPurgeCmd = &cobra.Command{
 	Use:   "purge",
 	Short: "Purge old snapshots",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if dryRun {
+			fmt.Println("[dry-run] Would purge old snapshots")
+			return nil
+		}
+
 		if err := model.PurgeRepo(); err != nil {
 			return err
 		}
@@ -217,11 +247,17 @@ var repoFileGetCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		output, _ := cmd.Flags().GetString("output")
+		if dryRun && output != "" {
+			fmt.Printf("[dry-run] Would export snapshot file %s to %s\n", id, output)
+			return nil
+		}
+
 		data, path, err := model.GetRepoFile(id)
 		if err != nil {
 			return err
 		}
-		output, _ := cmd.Flags().GetString("output")
 		if output != "" {
 			return os.WriteFile(output, data, 0644)
 		}
@@ -238,6 +274,12 @@ var repoFileRollbackCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would rollback file %s from snapshot\n", id)
+			return nil
+		}
+
 		if err := model.RollbackRepoSnapshotFile(id); err != nil {
 			return err
 		}
@@ -274,6 +316,12 @@ var repoFileExportCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would export snapshot file %s to temp path\n", id)
+			return nil
+		}
+
 		exportPath, err := model.ExportRepoFile(id)
 		if err != nil {
 			return err

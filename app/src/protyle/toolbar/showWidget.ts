@@ -5,11 +5,12 @@ import { fetchPost } from "../../util/network/fetch";
 import { isMobile } from "../../platform";
 import { setPosition } from "../../util/DOM/setPosition";
 import { upDownHint } from "../../util/DOM/upDownHint";
-import { Constants } from "../../constants";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
 import { hintRenderWidget } from "../hint/extend";
+
+const LINE_HEIGHT = 32;
 
 /**
  * 显示挂件选择面板
@@ -97,7 +98,7 @@ ${item.name}
         }
         if (!isMobile) {
             const rangePosition = getSelectionPosition(nodeElement, range);
-            setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
+            setPosition(subElement, rangePosition.left, rangePosition.top + 18, LINE_HEIGHT);
         }
         if (isMobile) {
             setPosition(subElement, 0, 0);

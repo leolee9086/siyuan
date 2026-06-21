@@ -19,13 +19,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"path"
 	"strings"
 	"text/tabwriter"
-	"time"
 
+	"github.com/88250/lute/ast"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 
@@ -80,7 +79,12 @@ var documentCreateCmd = &cobra.Command{
 			dir = "/"
 		}
 
-		id := generateDocID()
+		if dryRun {
+			fmt.Printf("[dry-run] Would create document \"%s\" in notebook %s\n", title, notebook)
+			return nil
+		}
+
+		id := ast.NewNodeID()
 		docPath := path.Join(dir, id+".sy")
 		_, err := model.CreateDocByMd(notebook, docPath, title, markdown, nil, nil)
 		if err != nil {
@@ -146,6 +150,12 @@ var documentRemoveCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would remove document %s\n", id)
+			return nil
+		}
+
 		tree, err := model.LoadTreeByBlockID(id)
 		if err != nil {
 			return err
@@ -173,6 +183,12 @@ var documentRenameCmd = &cobra.Command{
 		if title == "" {
 			return fmt.Errorf("--title is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would rename document %s to \"%s\"\n", id, title)
+			return nil
+		}
+
 		tree, err := model.LoadTreeByBlockID(id)
 		if err != nil {
 			return err
@@ -181,6 +197,7 @@ var documentRenameCmd = &cobra.Command{
 			return err
 		}
 		model.AppendPushRenameEntry(tree.Box, tree.Path, title)
+		fmt.Println(id)
 		return nil
 	},
 }
@@ -196,6 +213,12 @@ var documentMoveCmd = &cobra.Command{
 		if id == "" || toNotebook == "" {
 			return fmt.Errorf("--id and --notebook are required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would move document %s to notebook %s\n", id, toNotebook)
+			return nil
+		}
+
 		tree, err := model.LoadTreeByBlockID(id)
 		if err != nil {
 			return err
@@ -204,7 +227,7 @@ var documentMoveCmd = &cobra.Command{
 			return err
 		}
 		model.AppendPushReloadFiletreeEntry()
-		fmt.Println("ok")
+		fmt.Println(id)
 		return nil
 	},
 }
@@ -217,13 +240,46 @@ var documentDuplicateCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would duplicate document %s\n", id)
+			return nil
+		}
+
 		tree, err := model.LoadTreeByBlockID(id)
 		if err != nil {
 			return err
 		}
 		model.DuplicateDoc(tree)
 		model.AppendPushReloadFiletreeEntry()
-		fmt.Println("ok")
+		fmt.Println(tree.ID)
+		return nil
+	},
+}
+
+var documentInfoCmd = &cobra.Command{
+	Use:   "info --id <id>",
+	Short: "Get document info",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, _ := cmd.Flags().GetString("id")
+		if id == "" {
+			return fmt.Errorf("--id is required")
+		}
+		info, err := model.GetDocInfo(id)
+		if err != nil {
+			return err
+		}
+		switch outputFormat {
+		case "json":
+			data, _ := json.MarshalIndent(info, "", "  ")
+			fmt.Println(string(data))
+		default:
+			fmt.Printf("ID:           %s\n", info.ID)
+			fmt.Printf("RootID:       %s\n", info.RootID)
+			fmt.Printf("Name:         %s\n", info.Name)
+			fmt.Printf("RefCount:     %d\n", info.RefCount)
+			fmt.Printf("SubFileCount: %d\n", info.SubFileCount)
+		}
 		return nil
 	},
 }
@@ -238,6 +294,37 @@ func resolvePath(boxID, userPath, hpath string) string {
 		}
 	}
 	return "/"
+}
+
+var documentSearchCmd = &cobra.Command{
+	Use:   "search <keyword>",
+	Short: "Search documents by keyword",
+	Args:  cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		keyword := args[0]
+		if keyword == "" {
+			return fmt.Errorf("keyword is required")
+		}
+		docs := model.SearchDocs(keyword, false, nil)
+		switch outputFormat {
+		case "json":
+			data, _ := json.MarshalIndent(docs, "", "  ")
+			fmt.Println(string(data))
+		default:
+			if len(docs) == 0 {
+				fmt.Println("No documents found.")
+				return nil
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			fmt.Fprintln(w, "NAME\tID\tHPATH")
+			for _, d := range docs {
+				fmt.Fprintf(w, "%s\t%s\t%s\n", d["name"], d["id"], d["hPath"])
+			}
+			w.Flush()
+			fmt.Printf("\n%d document(s)\n", len(docs))
+		}
+		return nil
+	},
 }
 
 func printDocumentTable(files []*model.File) {
@@ -270,6 +357,7 @@ func init() {
 	documentMoveCmd.Flags().String("hpath", "", "target human-readable path")
 
 	documentDuplicateCmd.Flags().String("id", "", "document block ID to duplicate")
+	documentInfoCmd.Flags().String("id", "", "document block ID")
 
 	rootCmd.AddCommand(documentCmd)
 	documentCmd.AddCommand(documentListCmd)
@@ -279,14 +367,8 @@ func init() {
 	documentCmd.AddCommand(documentRenameCmd)
 	documentCmd.AddCommand(documentMoveCmd)
 	documentCmd.AddCommand(documentDuplicateCmd)
+	documentCmd.AddCommand(documentInfoCmd)
+	documentCmd.AddCommand(documentSearchCmd)
 }
 
-func generateDocID() string {
-	ts := time.Now().Format("20060102150405")
-	r := make([]byte, 7)
-	chars := "abcdefghijklmnopqrstuvwxyz0123456789"
-	for i := range r {
-		r[i] = chars[rand.Intn(len(chars))]
-	}
-	return ts + "-" + string(r)
-}
+

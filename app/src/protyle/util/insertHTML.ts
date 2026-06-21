@@ -257,7 +257,7 @@ const processTable = (range: Range, html: string, protyle: IProtyle, blockElemen
         }
     });
     range.collapse(false);
-    updateTransaction(protyle, blockElement.getAttribute("data-node-id"), blockElement.outerHTML, oldHTML);
+    updateTransaction(protyle, blockElement, oldHTML);
     return true;
 };
 
@@ -335,7 +335,7 @@ export const insertHTML = (html: string, protyle: IProtyle, isBlock = false,
             focusByWbr(blockElement, range);
         }
         blockElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        updateTransaction(protyle, id, blockElement.outerHTML, oldHTML);
+        updateTransaction(protyle, blockElement, oldHTML);
         setTimeout(() => {
             scrollCenter(protyle, undefined, "nearest", "smooth");
         }, Constants.TIMEOUT_LOAD);
@@ -362,6 +362,7 @@ export const insertHTML = (html: string, protyle: IProtyle, isBlock = false,
             range.deleteContents();
         }
         range.insertNode(document.createElement("wbr"));
+        blockElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
         undoOperation.push({
             action: "update",
             id,
@@ -463,6 +464,7 @@ export const insertHTML = (html: string, protyle: IProtyle, isBlock = false,
         let addId = item.getAttribute("data-node-id");
         const hasParentHeading = item.getAttribute("parent-heading");
         if (addId === id) {
+            item.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             doOperation.push({
                 action: "update",
                 data: item.outerHTML,

@@ -81,7 +81,6 @@ class Search extends Model {
     constructor(options: { tab: Tab, config: Config.IUILayoutTabSearchConfig, app: App }) {
         super({
             app: options.app,
-            id: options.tab.id,
         });
         // 设置 Tab 未更新标记（当启用"使用当前标签页打开文件"时）
         if (getSiyuanConfig().fileTree.openFilesUseCurrentTab) {

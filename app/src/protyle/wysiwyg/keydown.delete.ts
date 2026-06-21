@@ -53,15 +53,9 @@ export const deleteKeyMiddleware = async (
                 throw new Error("DOM结构错误");
             }
             const nodeDataType = previousSibling.getAttribute("data-type");
-            const nodeDataId = nodeElement.getAttribute("data-node-id");
             if (!nodeDataType) {
                 console.error(previousSibling);
                 throw new Error("DOM结构错误,缺少data-type");
-            }
-            if (!nodeDataId) {
-                console.error(previousSibling);
-                throw new Error("DOM结构错误,缺少data-node-id");
-
             }
             if (previousSibling.classList.contains("img")) {
                 previousSibling.classList.add("img--select");
@@ -71,7 +65,7 @@ export const deleteKeyMiddleware = async (
                 const oldHTML = nodeElement.outerHTML;
                 range.startContainer.textContent = "";
                 previousSibling.remove();
-                updateTransaction(protyle, nodeDataId, nodeElement.outerHTML, oldHTML);
+                updateTransaction(protyle, nodeElement, oldHTML);
                 focusByWbr(nodeElement, range);
                 event.stopPropagation();
                 event.preventDefault();
@@ -125,7 +119,7 @@ export const deleteKeyMiddleware = async (
                         range.insertNode(wbrElement);
                         const oldHTML = nodeElement.outerHTML;
                         wbrElement.nextSibling.textContent = Constants.ZWSP;
-                        updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                        updateTransaction(protyle, nodeElement, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
                         controller.abort("删除图片后的空格");
@@ -140,7 +134,7 @@ export const deleteKeyMiddleware = async (
                         range.insertNode(wbrElement);
                         const oldHTML = nodeElement.outerHTML;
                         wbrElement.nextSibling.textContent = Constants.ZWSP;
-                        updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                        updateTransaction(protyle, nodeElement, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
                         controller.abort("删除图片前的字符");
@@ -264,7 +258,7 @@ export const deleteKeyMiddleware = async (
                         range.insertNode(wbrElement);
                         const oldHTML = nodeElement.outerHTML;
                         wbrElement.previousSibling.textContent = Constants.ZWSP;
-                        updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                        updateTransaction(protyle, nodeElement, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
                         controller.abort("删除图片后的空格");
@@ -279,7 +273,7 @@ export const deleteKeyMiddleware = async (
                         range.insertNode(wbrElement);
                         const oldHTML = nodeElement.outerHTML;
                         wbrElement.previousSibling.textContent = Constants.ZWSP;
-                        updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                        updateTransaction(protyle, nodeElement, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
                         controller.abort("删除图片前的字符");
@@ -345,7 +339,7 @@ export const deleteKeyMiddleware = async (
                     range.deleteContents();
                     range.insertNode(document.createTextNode(Constants.ZWSP));
                     range.insertNode(document.createElement("wbr"));
-                    updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                    updateTransaction(protyle, nodeElement, oldHTML);
                     focusByWbr(nodeElement, range);
                     event.preventDefault();
                     controller.abort("删除选中的文本内容");

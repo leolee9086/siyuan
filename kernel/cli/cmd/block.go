@@ -19,10 +19,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
+	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 
 	"github.com/spf13/cobra"
@@ -151,28 +155,29 @@ var blockKramdownCmd = &cobra.Command{
 	},
 }
 
-var blockInfoCmd = &cobra.Command{
-	Use:   "info --id <id>",
-	Short: "Get document info",
+var blockStatCmd = &cobra.Command{
+	Use:   "stat --id <id>",
+	Short: "Get block content statistics",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
-		info, err := model.GetDocInfo(id)
-		if err != nil {
-			return err
+		stat := filesys.StatTree(id)
+		if stat == nil {
+			return fmt.Errorf("document not found or empty")
 		}
 		switch outputFormat {
 		case "json":
-			data, _ := json.MarshalIndent(info, "", "  ")
+			data, _ := json.MarshalIndent(stat, "", "  ")
 			fmt.Println(string(data))
 		default:
-			fmt.Printf("ID:           %s\n", info.ID)
-			fmt.Printf("RootID:       %s\n", info.RootID)
-			fmt.Printf("Name:         %s\n", info.Name)
-			fmt.Printf("RefCount:     %d\n", info.RefCount)
-			fmt.Printf("SubFileCount: %d\n", info.SubFileCount)
+			fmt.Printf("Characters: %d\n", stat.RuneCount)
+			fmt.Printf("Words:      %d\n", stat.WordCount)
+			fmt.Printf("Blocks:     %d\n", stat.BlockCount)
+			fmt.Printf("Links:      %d\n", stat.LinkCount)
+			fmt.Printf("Images:     %d\n", stat.ImageCount)
+			fmt.Printf("Refs:       %d\n", stat.RefCount)
 		}
 		return nil
 	},
@@ -181,14 +186,26 @@ var blockInfoCmd = &cobra.Command{
 // ─── Write ─────────────────────────────────────────────────────────────────────
 
 var blockInsertCmd = &cobra.Command{
-	Use:   "insert --parent <id> --data <markdown>",
+	Use:   "insert --parent <id> [--data <markdown> | --file <path>]",
 	Short: "Insert block",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parentID, _ := cmd.Flags().GetString("parent")
-		data, _ := cmd.Flags().GetString("data")
 		previousID, _ := cmd.Flags().GetString("previous")
-		if parentID == "" || data == "" {
-			return fmt.Errorf("--parent and --data are required")
+		if parentID == "" {
+			return fmt.Errorf("--parent is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would insert block under parent %s\n", parentID)
+			if previousID != "" {
+				fmt.Printf("         after previous sibling %s\n", previousID)
+			}
+			return nil
+		}
+
+		data, err := resolveData(cmd)
+		if err != nil {
+			return err
 		}
 
 		dom := markdownToBlockDOM(data)
@@ -202,20 +219,31 @@ var blockInsertCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(parentID)
+		if bt := treenode.GetBlockTree(parentID); bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println("ok")
 		return nil
 	},
 }
 
 var blockAppendCmd = &cobra.Command{
-	Use:   "append --parent <id> --data <markdown>",
+	Use:   "append --parent <id> [--data <markdown> | --file <path>]",
 	Short: "Append block",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parentID, _ := cmd.Flags().GetString("parent")
-		data, _ := cmd.Flags().GetString("data")
-		if parentID == "" || data == "" {
-			return fmt.Errorf("--parent and --data are required")
+		if parentID == "" {
+			return fmt.Errorf("--parent is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would append block to parent %s\n", parentID)
+			return nil
+		}
+
+		data, err := resolveData(cmd)
+		if err != nil {
+			return err
 		}
 
 		dom := markdownToBlockDOM(data)
@@ -228,20 +256,31 @@ var blockAppendCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(parentID)
+		if bt := treenode.GetBlockTree(parentID); bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println("ok")
 		return nil
 	},
 }
 
 var blockPrependCmd = &cobra.Command{
-	Use:   "prepend --parent <id> --data <markdown>",
+	Use:   "prepend --parent <id> [--data <markdown> | --file <path>]",
 	Short: "Prepend block",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parentID, _ := cmd.Flags().GetString("parent")
-		data, _ := cmd.Flags().GetString("data")
-		if parentID == "" || data == "" {
-			return fmt.Errorf("--parent and --data are required")
+		if parentID == "" {
+			return fmt.Errorf("--parent is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would prepend block to parent %s\n", parentID)
+			return nil
+		}
+
+		data, err := resolveData(cmd)
+		if err != nil {
+			return err
 		}
 
 		dom := markdownToBlockDOM(data)
@@ -254,20 +293,31 @@ var blockPrependCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(parentID)
+		if bt := treenode.GetBlockTree(parentID); bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println("ok")
 		return nil
 	},
 }
 
 var blockUpdateCmd = &cobra.Command{
-	Use:   "update --id <id> --data <markdown>",
+	Use:   "update --id <id> [--data <markdown> | --file <path>]",
 	Short: "Update block",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
-		data, _ := cmd.Flags().GetString("data")
-		if id == "" || data == "" {
-			return fmt.Errorf("--id and --data are required")
+		if id == "" {
+			return fmt.Errorf("--id is required")
+		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would update block %s\n", id)
+			return nil
+		}
+
+		data, err := resolveData(cmd)
+		if err != nil {
+			return err
 		}
 
 		dom := markdownToBlockDOM(data)
@@ -280,13 +330,15 @@ var blockUpdateCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(id)
+		if bt := treenode.GetBlockTree(id); bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println("ok")
 		return nil
 	},
 }
 
-var blockDeleteCmd = &cobra.Command{
+	var blockDeleteCmd = &cobra.Command{
 	Use:   "delete --id <id>",
 	Short: "Delete block",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -294,6 +346,13 @@ var blockDeleteCmd = &cobra.Command{
 		if id == "" {
 			return fmt.Errorf("--id is required")
 		}
+
+		if dryRun {
+			fmt.Printf("[dry-run] Would delete block %s\n", id)
+			return nil
+		}
+
+		bt := treenode.GetBlockTree(id)
 
 		transactions := []*model.Transaction{{
 			DoOperations: []*model.Operation{{
@@ -303,7 +362,10 @@ var blockDeleteCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(id)
+
+		if bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println(id)
 		return nil
 	},
@@ -320,6 +382,14 @@ var blockMoveCmd = &cobra.Command{
 			return fmt.Errorf("--id and --parent are required")
 		}
 
+		if dryRun {
+			fmt.Printf("[dry-run] Would move block %s to parent %s\n", id, parentID)
+			if previousID != "" {
+				fmt.Printf("         after previous sibling %s\n", previousID)
+			}
+			return nil
+		}
+
 		transactions := []*model.Transaction{{
 			DoOperations: []*model.Operation{{
 				Action:     "move",
@@ -330,10 +400,126 @@ var blockMoveCmd = &cobra.Command{
 		}}
 		model.PerformTransactions(&transactions)
 		model.FlushTxQueue()
-		model.AppendPushReloadProtyleEntry(id)
+		if bt := treenode.GetBlockTree(id); bt != nil {
+			model.AppendPushReloadProtyleEntry(bt.RootID)
+		}
 		fmt.Println("ok")
 		return nil
 	},
+}
+
+var blockBatchGetCmd = &cobra.Command{
+	Use:   "batch-get --ids id1,id2,...",
+	Short: "Batch get block info",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		idsStr, _ := cmd.Flags().GetString("ids")
+		if idsStr == "" {
+			return fmt.Errorf("--ids is required")
+		}
+		ids := splitIDs(idsStr)
+		if len(ids) == 0 {
+			return fmt.Errorf("no valid IDs provided")
+		}
+		infos := model.GetDocsInfo(ids, false, false)
+		switch outputFormat {
+		case "json":
+			data, _ := json.MarshalIndent(infos, "", "  ")
+			fmt.Println(string(data))
+		default:
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tNAME\tROOTID\tREFCOUNT")
+			for _, info := range infos {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", info.ID, info.Name, info.RootID, info.RefCount)
+			}
+			for _, id := range ids {
+				found := false
+				for _, info := range infos {
+					if info.ID == id {
+						found = true
+						break
+					}
+				}
+				if !found {
+					fmt.Fprintf(w, "%s\tnot found\t\t\n", id)
+				}
+			}
+			w.Flush()
+		}
+		return nil
+	},
+}
+
+var blockBatchKramdownCmd = &cobra.Command{
+	Use:   "batch-kramdown --ids id1,id2,...",
+	Short: "Batch get block kramdown",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		idsStr, _ := cmd.Flags().GetString("ids")
+		if idsStr == "" {
+			return fmt.Errorf("--ids is required")
+		}
+		ids := splitIDs(idsStr)
+		if len(ids) == 0 {
+			return fmt.Errorf("no valid IDs provided")
+		}
+		kramdowns := model.GetBlockKramdowns(ids, "md")
+		switch outputFormat {
+		case "json":
+			data, _ := json.MarshalIndent(kramdowns, "", "  ")
+			fmt.Println(string(data))
+		default:
+			var sb strings.Builder
+			for _, id := range ids {
+				if kd, ok := kramdowns[id]; ok {
+					sb.WriteString(fmt.Sprintf("--- %s ---\n%s\n\n", id, kd))
+				} else {
+					sb.WriteString(fmt.Sprintf("--- %s ---\n(not found)\n\n", id))
+				}
+			}
+			fmt.Print(sb.String())
+		}
+		return nil
+	},
+}
+
+func splitIDs(s string) []string {
+	parts := strings.Split(s, ",")
+	var ids []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			ids = append(ids, p)
+		}
+	}
+	return ids
+}
+
+func resolveData(cmd *cobra.Command) (string, error) {
+	data, _ := cmd.Flags().GetString("data")
+	if data != "" {
+		return data, nil
+	}
+
+	filePath, _ := cmd.Flags().GetString("file")
+	if filePath == "-" {
+		stdinData, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", err
+		}
+		return string(stdinData), nil
+	}
+	if filePath != "" {
+		fileData, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", err
+		}
+		return string(fileData), nil
+	}
+
+	stdinData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return "", err
+	}
+	return string(stdinData), nil
 }
 
 func markdownToBlockDOM(md string) string {
@@ -353,20 +539,24 @@ func init() {
 	blockDomCmd.Flags().String("id", "", "block ID")
 	blockKramdownCmd.Flags().String("id", "", "block ID")
 	blockKramdownCmd.Flags().String("mode", "md", "export mode: md | textmark")
-	blockInfoCmd.Flags().String("id", "", "document block ID")
+	blockStatCmd.Flags().String("id", "", "block ID")
 
 	blockInsertCmd.Flags().String("parent", "", "parent block ID")
 	blockInsertCmd.Flags().String("data", "", "markdown content")
+	blockInsertCmd.Flags().String("file", "", "read content from file path (- for stdin)")
 	blockInsertCmd.Flags().String("previous", "", "previous sibling block ID")
 
 	blockAppendCmd.Flags().String("parent", "", "parent block ID")
 	blockAppendCmd.Flags().String("data", "", "markdown content")
+	blockAppendCmd.Flags().String("file", "", "read content from file path (- for stdin)")
 
 	blockPrependCmd.Flags().String("parent", "", "parent block ID")
 	blockPrependCmd.Flags().String("data", "", "markdown content")
+	blockPrependCmd.Flags().String("file", "", "read content from file path (- for stdin)")
 
 	blockUpdateCmd.Flags().String("id", "", "block ID")
 	blockUpdateCmd.Flags().String("data", "", "markdown content")
+	blockUpdateCmd.Flags().String("file", "", "read content from file path (- for stdin)")
 
 	blockDeleteCmd.Flags().String("id", "", "block ID")
 
@@ -374,17 +564,22 @@ func init() {
 	blockMoveCmd.Flags().String("parent", "", "target parent block ID")
 	blockMoveCmd.Flags().String("previous", "", "target previous sibling block ID")
 
+	blockBatchGetCmd.Flags().String("ids", "", "comma-separated block IDs")
+	blockBatchKramdownCmd.Flags().String("ids", "", "comma-separated block IDs")
+
 	rootCmd.AddCommand(blockCmd)
 	blockCmd.AddCommand(blockGetCmd)
 	blockCmd.AddCommand(blockChildrenCmd)
 	blockCmd.AddCommand(blockBreadcrumbCmd)
 	blockCmd.AddCommand(blockDomCmd)
 	blockCmd.AddCommand(blockKramdownCmd)
-	blockCmd.AddCommand(blockInfoCmd)
+	blockCmd.AddCommand(blockStatCmd)
 	blockCmd.AddCommand(blockInsertCmd)
 	blockCmd.AddCommand(blockAppendCmd)
 	blockCmd.AddCommand(blockPrependCmd)
 	blockCmd.AddCommand(blockUpdateCmd)
 	blockCmd.AddCommand(blockDeleteCmd)
 	blockCmd.AddCommand(blockMoveCmd)
+	blockCmd.AddCommand(blockBatchGetCmd)
+	blockCmd.AddCommand(blockBatchKramdownCmd)
 }

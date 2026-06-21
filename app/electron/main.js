@@ -20,6 +20,7 @@ const {
     BrowserWindow,
     Notification,
     shell,
+    session,
     Menu,
     MenuItem,
     screen,
@@ -171,7 +172,7 @@ const hotKey2Electron = (key) => {
  */
 const resolveAppLanguage = (languageTags) => {
     if (!languageTags || languageTags.length === 0) {
-        return "en_US";
+        return "en";
     }
 
     const tag = languageTags[0].toLowerCase();
@@ -180,40 +181,40 @@ const resolveAppLanguage = (languageTags) => {
 
     if (language === "zh") {
         if (tag.includes("hant")) {
-            return "zh_CHT";
+            return "zh-TW";
         }
         if (tag.includes("hans") || tag.includes("cn") || tag.includes("sg")) {
-            return "zh_CN";
+            return "zh-CN";
         }
         if (tag.includes("tw") || tag.includes("hk") || tag.includes("mo")) {
-            return "zh_CHT";
+            return "zh-TW";
         }
-        return "zh_CN";
+        return "zh-CN";
     }
 
     const languageMapping = {
-        "en": "en_US",
-        "ar": "ar_SA",
-        "de": "de_DE",
-        "es": "es_ES",
-        "fr": "fr_FR",
-        "he": "he_IL",
-        "hi": "hi_IN",
-        "id": "id_ID",
-        "it": "it_IT",
-        "ja": "ja_JP",
-        "ko": "ko_KR",
-        "nl": "nl_NL",
-        "pl": "pl_PL",
-        "pt": "pt_BR",
-        "ru": "ru_RU",
-        "sk": "sk_SK",
-        "th": "th_TH",
-        "tr": "tr_TR",
-        "uk": "uk_UA",
+        "en": "en",
+        "ar": "ar",
+        "de": "de",
+        "es": "es",
+        "fr": "fr",
+        "he": "he",
+        "hi": "hi",
+        "id": "id",
+        "it": "it",
+        "ja": "ja",
+        "ko": "ko",
+        "nl": "nl",
+        "pl": "pl",
+        "pt": "pt-BR",
+        "ru": "ru",
+        "sk": "sk",
+        "th": "th",
+        "tr": "tr",
+        "uk": "uk",
     };
 
-    return languageMapping[language] || "en_US";
+    return languageMapping[language] || "en";
 };
 
 const exitApp = (port, errorWindowId) => {
@@ -286,7 +287,7 @@ const exitApp = (port, errorWindowId) => {
     }
 };
 
-const localServer = "http://127.0.0.1";
+const localServer = "https://127.0.0.1";
 
 const getServer = (port = kernelPort) => {
     return localServer + ":" + port;
@@ -355,6 +356,11 @@ const isOpenAsHidden = function () {
 };
 
 const initMainWindow = () => {
+    if (!app.isReady()) {
+        writeLog("initMainWindow: app not ready, skipping");
+        return;
+    }
+
     // 恢复主窗体状态
     let oldWindowState = {};
     try {
@@ -428,6 +434,7 @@ const initMainWindow = () => {
 
     // 创建主窗体
     const currentWindow = new BrowserWindow({
+        title: "SiYuan",
         show: false,
         width: windowState.width,
         height: windowState.height,
@@ -735,7 +742,7 @@ const initKernel = (workspace, port, lang) => {
             resolve(false);
             return;
         }
-        const cmds = ["--port", kernelPort, "--wd", appDir];
+        const cmds = ["serve", "--port", kernelPort, "--wd", appDir, "--attach-ui"];
         if (isDevEnv) {
             cmds.push("--mode", "forge");
         }
@@ -885,6 +892,15 @@ for (let i = argStart; i < process.argv.length; i++) {
 }
 
 app.whenReady().then(() => {
+    // Trust self-signed TLS certificates for local HTTPS server
+    session.defaultSession.setCertificateVerifyProc((request, callback) => {
+        if (request.hostname === "127.0.0.1" || request.hostname === "localhost") {
+            callback(0); // VERIFY_OK
+        } else {
+            callback(-3); // default Chromium handling
+        }
+    });
+
     const resetTrayMenu = (tray, lang, mainWindow) => {
         if (!mainWindow || mainWindow.isDestroyed()) {
             return;
@@ -1109,6 +1125,19 @@ app.whenReady().then(() => {
             case "showItemInFolder":
                 shell.showItemInFolder(data.filePath);
                 break;
+            case "notification": {
+                const n = new Notification({
+                    title: data.title,
+                    body: data.body,
+                    timeoutType: data.timeoutType,
+                });
+                n.on("click", () => {
+                    currentWindow.focus();
+                    currentWindow.show();
+                });
+                n.show();
+                break;
+            }
             case "setSpellCheckerLanguages":
                 BrowserWindow.getAllWindows().forEach(item => {
                     item.webContents.session.setSpellCheckerLanguages(data.languages);
@@ -1123,6 +1152,18 @@ app.whenReady().then(() => {
             case "unregisterGlobalShortcut":
                 if (data.accelerator) {
                     globalShortcut.unregister(hotKey2Electron(data.accelerator));
+                }
+                break;
+            case "registerGlobalShortcut":
+                if (data.accelerator) {
+                    globalShortcut.unregister(hotKey2Electron(data.accelerator));
+                    globalShortcut.register(hotKey2Electron(data.accelerator), () => {
+                        BrowserWindow.getAllWindows().forEach(itemB => {
+                            itemB.webContents.send("siyuan-hotkey", {
+                                hotkey: data.accelerator
+                            });
+                        });
+                    });
                 }
                 break;
             case "setTrafficLightPosition":
@@ -1248,6 +1289,7 @@ app.whenReady().then(() => {
         const wndBounds = getWindowByContentId(event.sender.id).getBounds();
         const wndScreen = screen.getDisplayNearestPoint({x: wndBounds.x, y: wndBounds.y});
         const printWin = new BrowserWindow({
+            title: "SiYuan",
             show: true,
             width: Math.floor(wndScreen.size.width * 0.8),
             height: Math.floor(wndScreen.size.height * 0.8),
@@ -1294,6 +1336,7 @@ app.whenReady().then(() => {
         const mainBounds = mainWindow.getBounds();
         const mainScreen = screen.getDisplayNearestPoint({x: mainBounds.x, y: mainBounds.y});
         const win = new BrowserWindow({
+            title: "SiYuan",
             show: true,
             trafficLightPosition: {x: 8, y: 13},
             width: Math.floor(data.width || mainScreen.size.width * 0.7),

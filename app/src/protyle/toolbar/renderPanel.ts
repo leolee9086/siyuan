@@ -29,6 +29,7 @@ export function showRender(
     if (!nodeElement) {
         return;
     }
+    nodeElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
     hideElements(["hint"], protyle);
     window.siyuan.menus.menu.remove();
 

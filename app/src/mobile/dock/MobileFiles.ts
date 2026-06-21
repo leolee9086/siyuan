@@ -29,68 +29,11 @@ export class MobileFiles extends Model {
     };
 
     constructor(app: App) {
-        super({
-            app,
+        super({app});
+        this.connect({
             id: genUUID(),
             type: "filetree",
-            msgCallback(data) {
-                if (data) {
-                    switch (data.cmd) {
-                        case "moveDoc":
-                            onMove(this, data.data);
-                            break;
-                        case "reloadFiletree":
-                            setNoteBook(() => {
-                                this.init(false);
-                            });
-                            break;
-                        case "mount":
-                            onMount(this, data);
-                            break;
-                        case "createnotebook":
-                            setNoteBook((notebooks) => {
-                                let previousId: string;
-                                notebooks.find(item => {
-                                    if (!item.closed) {
-                                        if (item.id === data.data.box.id) {
-                                            if (previousId) {
-                                                this.element.querySelector(`.b3-list[data-url="${previousId}"]`).insertAdjacentHTML("afterend", genNotebook(data.data.box));
-                                            } else {
-                                                this.element.insertAdjacentHTML("afterbegin", genNotebook(data.data.box));
-                                            }
-                                            return true;
-                                        }
-                                        previousId = item.id;
-                                    }
-                                });
-                            });
-                            break;
-                        case "closeBox":
-                        case "removeBox":
-                        case "removeDoc":
-                            onRemove(this, data);
-                            break;
-                        case "create":
-                            if (data.data.listDocTree) {
-                                this.selectItem(data.data.box.id, data.data.path);
-                            } else {
-                                updateItemArrow(this, data.data.box.id, data.data.path);
-                            }
-                            break;
-                        case "createdailynote":
-                        case "heading2doc":
-                        case "li2doc":
-                            this.selectItem(data.data.box.id, data.data.path);
-                            break;
-                        case "renamenotebook":
-                            this.element.querySelector(`[data-url="${data.data.box}"] .b3-list-item__text`).innerHTML = data.data.name;
-                            break;
-                        case "rename":
-                            onRename(this, data.data);
-                            break;
-                    }
-                }
-            },
+            msgCallback: this.handleMsgCallback.bind(this),
         });
         const filesElement = document.querySelector('#sidebar [data-type="sidebar-file"]');
         filesElement.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
@@ -119,6 +62,66 @@ export class MobileFiles extends Model {
         this.element = this.actionsElement.nextElementSibling as HTMLElement;
         this.closeElement = this.element.nextElementSibling as HTMLElement;
         bindClickEvent(this, app, filesElement, this.actionsElement);
+    }
+
+    private handleMsgCallback(data: IWebSocketData) {
+        if (!data) {
+            return;
+        }
+        switch (data.cmd) {
+            case "moveDoc":
+                onMove(this, data.data);
+                break;
+            case "reloadFiletree":
+                setNoteBook(() => {
+                    this.init(false);
+                });
+                break;
+            case "mount":
+                onMount(this, data);
+                break;
+            case "createnotebook":
+                setNoteBook((notebooks) => {
+                    let previousId: string;
+                    notebooks.find(item => {
+                        if (!item.closed) {
+                            if (item.id === data.data.box.id) {
+                                if (previousId) {
+                                    this.element.querySelector(`.b3-list[data-url="${previousId}"]`).insertAdjacentHTML("afterend", genNotebook(data.data.box));
+                                } else {
+                                    this.element.insertAdjacentHTML("afterbegin", genNotebook(data.data.box));
+                                }
+                                return true;
+                            }
+                            previousId = item.id;
+                        }
+                    });
+                });
+                break;
+            case "closeBox":
+            case "removeBox":
+            case "removeDoc":
+                onRemove(this, data);
+                break;
+            case "create":
+                if (data.data.listDocTree) {
+                    this.selectItem(data.data.box.id, data.data.path);
+                } else {
+                    updateItemArrow(this, data.data.box.id, data.data.path);
+                }
+                break;
+            case "createdailynote":
+            case "heading2doc":
+            case "li2doc":
+                this.selectItem(data.data.box.id, data.data.path);
+                break;
+            case "renamenotebook":
+                this.element.querySelector(`[data-url="${data.data.box}"] .b3-list-item__text`).innerHTML = data.data.name;
+                break;
+            case "rename":
+                onRename(this, data.data);
+                break;
+        }
     }
 
     public init(init = true) {

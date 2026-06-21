@@ -44,7 +44,7 @@ const 执行删除并提交事务 = (
 ) => {
     assetElement.outerHTML = "<wbr>";
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, id, nodeElement.outerHTML, html);
+    updateTransaction(protyle, nodeElement, html);
     focusByWbr(protyle.wysiwyg.element, range);
 };
 

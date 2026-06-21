@@ -46,7 +46,7 @@ import { updateTransaction } from "../transaction";
  * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的缩出执行流程；边界是不在本文件内决定命令触发条件，也不负责日志记录。
  * 解耦评估：理论上可把 [`listOutdent()`](app/src/protyle/wysiwyg/list.ts:65) 作为参数注入执行器，但缩出逻辑本身就是列表编辑域的稳定底层动作，改为透传只会增加映射表与测试装配样板，不会减少真实耦合。通过 imports 网关集中暴露该能力，能把父级模块路径依赖限制在单点。
  */
-import { listOutdent } from "../list";
+import { listOutdent, toggleTaskListItem } from "../list";
 /**
  * 用途：引入列表缩进业务函数，供当前目录执行器在列表缩进命令中复用既有列表结构调整实现。
  * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的缩进执行流程；边界是不在本文件内承担命令路由判断、多选筛选或日志格式化。
@@ -125,6 +125,10 @@ export { updateTransaction };
  * 用途：对外暴露列表缩出业务函数，供列表执行器复用既有缩出实现。
  */
 export { listOutdent };
+/**
+ * 用途：对外暴露任务列表状态切换业务函数，供列表执行器复用点击与快捷键一致的勾选逻辑。
+ */
+export { toggleTaskListItem };
 /**
  * 用途：对外暴露列表缩进业务函数，供列表执行器复用既有缩进实现。
  */

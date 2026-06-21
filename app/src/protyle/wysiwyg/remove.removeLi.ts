@@ -7,6 +7,7 @@ import { updateListOrder } from "./list.updateOrder";
 import { moveToPrevious } from "./remove";
 import { transaction, updateTransaction } from "./transaction";
 import { turnsIntoOneTransaction } from "./transaction.turns";
+import { Constants } from "../../constants";
 
 /**
  * 作用：处理首个子列表合并
@@ -47,6 +48,8 @@ const mergeFirstChildList = (protyle: IProtyle, blockEl: Element, range: Range, 
     if (listEl.getAttribute("data-subtype") === "o") {
         updateListOrder(listEl);
     }
+    listEl.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
+    prevLastEl.parentElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
     const idList = listEl.getAttribute("data-node-id") || "";
     const idPrev = prevLastEl.parentElement.getAttribute("data-node-id") || "";
     transaction(protyle,
@@ -143,6 +146,7 @@ const topListFirstLineToBlock = (protyle: IProtyle, blockEl: Element, range: Ran
             updateListOrder(listEl, parseInt(firstMark) - 1);
         }
     }
+    listEl.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
     const idLocal = listEl.getAttribute("data-node-id") || "";
     doOps.splice(0, 0, { action: "update", id: idLocal, data: listEl.outerHTML });
     undoOps.push({ action: "update", data: htmlOld, id: idLocal });
@@ -281,6 +285,7 @@ const moveFoldElAction = (protyle: IProtyle, foldEl: Element, doOps: IOperation[
                 actOrder.textContent = countStr;
             }
             doOps.push({ action: "update", id: nextId, data: nExt.outerHTML });
+            nExt.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             nExt = nExt.nextElementSibling;
         }
     }
@@ -342,7 +347,7 @@ const mergeToPrev = (protyle: IProtyle, blockEl: Element, range: Range, isDel: b
         if (listEl.getAttribute("data-subtype") === "o") {
             updateListOrder(listEl);
         }
-        updateTransaction(protyle, listEl.getAttribute("data-node-id") || "", listEl.outerHTML, htmlOld);
+        updateTransaction(protyle, listEl, htmlOld);
     }
 
     const fEl = pLast?.parentElement || protyle.wysiwyg?.element;

@@ -18,11 +18,15 @@ import { Constants } from "../constants";
 import { uninstall } from "./uninstall";
 import { addPluginDock, afterLoadPlugin, loadPlugins } from "./loader";
 import { normalizeStoragePath } from "../util/file/pathName";
+import { Kernel } from "./kernel";
+import { registerAction } from "../layout/dock/frontendActions";
+import { ipcSend } from "../platform/electron/ipcRenderer";
 
 export class Plugin {
     private app: App;
     public i18n: IObject;
     public eventBus: EventBus;
+    public kernel: Kernel;
     public data: any = {};
     public displayName: string;
     public readonly name: string;
@@ -45,6 +49,9 @@ export class Plugin {
     public setting: Setting;
     public statusBarIcons: Element[] = [];
     public commands: ICommand[] = [];
+    // Full names of agent actions this plugin registered (plugin__<name>__<action>), tracked
+    // so they can be unregistered on uninstall.
+    public agentActions: string[] = [];
     public models: {
         [key: string]: (options: { tab: Tab, data: any }) => Custom
     } = {};
@@ -67,6 +74,11 @@ export class Plugin {
         this.i18n = options.i18n;
         this.displayName = options.displayName;
         this.eventBus = new EventBus(options.name);
+        this.kernel = new Kernel({
+            appId: options.app.appId,
+            name: options.name,
+            eventBus: this.eventBus,
+        });
 
         // https://github.com/siyuan-note/siyuan/issues/9943
         Object.defineProperty(this, "name", {
@@ -173,6 +185,14 @@ export class Plugin {
             console.error(`${this.name} - commands data is error and has been removed.`);
         } else {
             this.commands.push(command);
+            /// #if !BROWSER
+            if (command.globalCallback) {
+                ipcSend(Constants.SIYUAN_CMD, {
+                    cmd: "registerGlobalShortcut",
+                    accelerator: command.customHotkey
+                });
+            }
+            /// #endif
         }
     }
 
@@ -386,6 +406,22 @@ export class Plugin {
             });
         };
         return this.models[type2];
+    }
+
+    // Register a frontend action that the AI agent can discover and invoke. The action is exposed
+    // to the LLM under the full name "plugin__<pluginName>__<name>" with the given description, and
+    // is dispatched via the "frontend" tool. On uninstall, all registered actions are removed.
+    public addAgentAction(options: {
+        name: string,
+        description: string,
+        handler: (args: Record<string, unknown>, app: App) => Promise<{result?: string; error?: string}>
+    }): string {
+        const fullName = "plugin__" + this.name + "__" + options.name;
+        if (!this.agentActions.includes(fullName)) {
+            registerAction({name: fullName, description: options.description, handler: options.handler});
+            this.agentActions.push(fullName);
+        }
+        return fullName;
     }
 
     public addDock(options: {

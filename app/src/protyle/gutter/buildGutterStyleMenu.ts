@@ -4,6 +4,7 @@ import { updateBatchTransaction, transaction } from "../wysiwyg/transaction";
 import { focusBlock } from "../util/selection";
 import { chartRender } from "../render/chartRender";
 import { getEchartsInstanceById } from "../../util/siyuanEnvironments/echarts.environment";
+import { Constants } from "../../constants";
 
 const genClick = (nodeElements: Element[], protyle: IProtyle, cb: (e: HTMLElement) => void) => {
     updateBatchTransaction(nodeElements, protyle, cb);
@@ -14,6 +15,7 @@ const updateNodeElements = (nodeElements: Element[], protyle: IProtyle, inputEle
     const undoOperations: IOperation[] = [];
     const operations: IOperation[] = [];
     nodeElements.forEach((e) => {
+        e.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
         undoOperations.push({
             action: "update",
             id: e.getAttribute("data-node-id"),
@@ -22,6 +24,7 @@ const updateNodeElements = (nodeElements: Element[], protyle: IProtyle, inputEle
     });
     inputElement.addEventListener(inputElement.type === "number" ? "blur" : "change", () => {
         nodeElements.forEach((e: HTMLElement) => {
+            e.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
             operations.push({
                 action: "update",
                 id: e.getAttribute("data-node-id"),

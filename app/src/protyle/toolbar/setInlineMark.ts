@@ -128,7 +128,7 @@ export function setInlineMark(
         整理零宽空格(newNodes, hasPreviousSibling, hasNextSibling);
     }
     nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, html);
+    updateTransaction(protyle, nodeElement, html);
     nodeElement.querySelectorAll("wbr").forEach(item => {
         item.remove();
     });

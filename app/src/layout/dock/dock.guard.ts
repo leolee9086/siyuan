@@ -21,7 +21,7 @@ import { isHTMLElement } from "./imports";
 /** 导出 DOM 类型守卫，供外部模块使用 */
 export { isStylableElement, isHTMLElement };
 
-const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
+const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
 
 /**
  * 判断是否为 Model 构造函数

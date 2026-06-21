@@ -166,5 +166,5 @@ export function genSearchHTML(
         <kbd>Esc</kbd> ${siyuanI18n.searchTip5}
     </div>
 </div>
-<div class="fn__loading fn__loading--top"><img width="120px" src="/stage/loading-pure.svg"></div>`;
+<div class="fn__loading"><img width="120px" src="/stage/loading-pure.svg"></div>`;
 }

@@ -53,7 +53,7 @@ export function handleFillContent(hint: Hint, value: string, protyle: IProtyle, 
     if (!nodeElement) {
         return;
     }
-    hint.enableExtend = false;
+    hint.enableExtend = value === "emoji";
     // nodeElement 已通过上方守卫确认存在，直接取 id
     const id = nodeElement.getAttribute("data-node-id") ?? "";
     const html = nodeElement.outerHTML;

@@ -1,5 +1,7 @@
 /** 用途：动态脚本加载；使用范围：确保 html-to-image 已注入；解耦评估：基础设施依赖，复用优于重复实现。 */
 import {addScript} from "./imports";
+/** 用途：常量集合；使用范围：拼接 PROTYLE_CDN 资源路径；解耦评估：全局常量依赖，不应硬编码。 */
+import {Constants} from "./imports";
 /** 用途：全局配置读取；使用范围：读取水印描述与文本配置；解耦评估：经 environment 封装已解耦 window。 */
 import {getSiyuanConfig} from "./imports";
 /** 用途：html-to-image 访问器；使用范围：文本水印转 canvas；解耦评估：经 environment 封装避免业务直接访问 window。 */
@@ -42,7 +44,7 @@ export const updateExportImageWatermark = async (ctx: IExportImageContext) => {
         return;
     }
 
-    await addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image");
+    await addScript(`${Constants.PROTYLE_CDN}/js/html-to-image.min.js?v=1.11.13`, "protyleHtml2image");
     const htmlToImage = await getHtmlToImage();
     if (!htmlToImage) {
         return;
