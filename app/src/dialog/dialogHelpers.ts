@@ -20,7 +20,10 @@ import { 更新全屏按钮状态 } from "./dialogHelpers.html";
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 设置ResizeHandles显示状态(container: Element, visible: boolean) {
+/**
+ * @同步豁免: UI构建 - DOM状态更新必须同步执行
+ */
+export function 设置ResizeHandles显示状态(container: Element, visible: boolean) {
     const resizeHandles = container.querySelectorAll("[class^='resize__']");
     for (const handle of resizeHandles) {
         // 仅在 HTMLElement 上设置样式，避免 querySelectorAll 返回的通用 Element 类型问题
@@ -39,7 +42,10 @@ export async function 设置ResizeHandles显示状态(container: Element, visibl
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 退出全屏模式(
+/**
+ * @同步豁免: UI构建 - DOM操作必须同步执行，否则全屏切换会因Promise而无法正确设置样式
+ */
+export function 退出全屏模式(
     container: HTMLElement,
     dialogElement: HTMLElement,
     originalSize: { width: string; height: string; left: string; top: string }
@@ -69,7 +75,10 @@ export async function 退出全屏模式(
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 进入全屏模式(container: HTMLElement, dialogElement: HTMLElement) {
+/**
+ * @同步豁免: UI构建 - DOM操作必须同步执行
+ */
+export function 进入全屏模式(container: HTMLElement, dialogElement: HTMLElement) {
     Object.assign(container.style, {
         width: "100vw",
         height: "100vh",

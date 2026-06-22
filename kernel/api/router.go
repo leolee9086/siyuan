@@ -683,6 +683,13 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/channel/cli/ws", model.CheckAuth, cliWebSocketHandler)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/channel/cli/issue-token", model.CheckAuth, model.CheckAdminRole, magiIssueCLIToken)
 
+	// S-Forge MAGI 前缀指令管理
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/prefix/list", model.CheckAuth, prefixList)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/prefix/create", model.CheckAuth, model.CheckAdminRole, prefixCreate)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/prefix/update", model.CheckAuth, model.CheckAdminRole, prefixUpdate)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/prefix/delete", model.CheckAuth, model.CheckAdminRole, prefixDelete)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/prefix/test", model.CheckAuth, prefixTest)
+
 	// S-Forge AI Profiles 管理
 	ginServer.Handle("POST", "/api/s-forge/ai/profile/list", model.CheckAuth, listAIProfiles)
 	ginServer.Handle("POST", "/api/s-forge/ai/profile/upsert", model.CheckAuth, model.CheckAdminRole, upsertAIProfile)

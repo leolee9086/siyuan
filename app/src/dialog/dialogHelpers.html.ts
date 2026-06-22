@@ -26,7 +26,10 @@ import { I对话框HTML参数 } from "./dialog.types";
  * @已知问题: 无
  * @改进方向: 可以考虑验证存储的位置是否在当前屏幕范围内（已实现）
  */
-export async function 计算对话框位置(options: IDialogOptions) {
+/**
+ * @同步豁免: UI构建 - HTML生成操作必须同步执行，否则Dialog构造函数中innerHTML赋值会拿到Promise对象
+ */
+export function 计算对话框位置(options: IDialogOptions) {
     if (isMobile() || !options.positionId) {
         return {};
     }
@@ -65,7 +68,10 @@ export async function 计算对话框位置(options: IDialogOptions) {
  * @已知问题: 无
  * @改进方向: 可以考虑使用模板引擎而不是字符串拼接
  */
-export async function 生成关闭按钮HTML(options: {
+/**
+ * @同步豁免: UI构建 - HTML生成操作必须同步执行
+ */
+export function 生成关闭按钮HTML(options: {
     disableClose: boolean;
     hideCloseIcon: boolean;
     closeButtonPosition: "outside" | "inside" | "inside-body";
@@ -95,7 +101,10 @@ export async function 生成关闭按钮HTML(options: {
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: string) {
+/**
+ * @同步豁免: UI构建 - HTML生成操作必须同步执行
+ */
+export function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: string) {
     if (!hasTitle) {
         return "";
     }
@@ -114,7 +123,10 @@ export async function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosit
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: string) {
+/**
+ * @同步豁免: UI构建 - 样式计算必须同步执行
+ */
+export function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: string) {
     if (!hasTitle) {
         return "";
     }
@@ -132,7 +144,10 @@ export async function 计算标题栏样式(hasTitle: boolean, closeButtonPositi
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 更新全屏按钮状态(dialogElement: Element, isFullscreen: boolean) {
+/**
+ * @同步豁免: UI构建 - DOM状态更新必须同步执行
+ */
+export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: boolean) {
     const fullscreenButton = dialogElement.querySelector(".b3-dialog__fullscreen use");
     const fullscreenButtonSvg = dialogElement.querySelector(".b3-dialog__fullscreen");
     // 更新全屏按钮图标
@@ -154,7 +169,10 @@ export async function 更新全屏按钮状态(dialogElement: Element, isFullscr
  * @已知问题: 无
  * @改进方向: 可以考虑使用模板引擎或 JSX 来改善可读性
  */
-export async function 生成对话框HTML(params: I对话框HTML参数) {
+/**
+ * @同步豁免: UI构建 - HTML生成操作必须同步执行，否则Dialog构造函数中innerHTML赋值会拿到Promise对象
+ */
+export function 生成对话框HTML(params: I对话框HTML参数) {
     return `<div class="b3-dialog" style="z-index: ${params.zIndex};${typeof params.left === "string" ? "display:block" : ""};${params.scrimPointerEvents ? " pointer-events:none" : ""}">
 <div class="b3-dialog__scrim"${params.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${params.containerClassName || ""}" style="width:${params.width || "auto"};height:${params.height || "auto"};

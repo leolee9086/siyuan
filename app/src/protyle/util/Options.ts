@@ -1,9 +1,71 @@
+/* eslint-disable import/namespace */
+/**
+ * 作用：Protyle 编辑器配置选项
+ * 意图：提供默认选项配置，合并用户传入的自定义选项，处理工具栏定义转换
+ * 使用范围：在 Protyle 构造函数中创建 Options 实例并调用 merge() 获取最终配置
+ * 解耦评估：对 Constants 的引用仅为 UPLOAD_ADDRESS 常量，可改为直接内联值或从 config 获取
+ */
 import { Constants } from "../../constants";
 import { merge } from "./merge";
-import { hintEmbed, hintSlash, hintTag } from "../hint/extend";
+import { isMobile } from "../../platform";
+import { hintEmbed } from "../hint/extend";
+import { hintSlash } from "../hint/extend";
+import { hintTag } from "../hint/extend";
 import { hintRef } from "../hint/extend.hintRef";
 import { toolbarKeyToMenu } from "../toolbar/util";
 
+/** Desktop 端默认工具栏按键列表 */
+const DEFAULT_TOOLBAR_KEYS_DESKTOP: string[] = [
+    "block-ref",
+    "a",
+    "|",
+    "text",
+    "strong",
+    "em",
+    "u",
+    "s",
+    "mark",
+    "sup",
+    "sub",
+    "clear",
+    "|",
+    "code",
+    "kbd",
+    "tag",
+    "inline-math",
+    "inline-memo",
+];
+
+/** Mobile 端默认工具栏按键列表 */
+const DEFAULT_TOOLBAR_KEYS_MOBILE: string[] = [
+    "block-ref",
+    "a",
+    "|",
+    "text",
+    "strong",
+    "em",
+    "u",
+    "clear",
+    "|",
+    "code",
+    "tag",
+    "inline-math",
+    "inline-memo",
+];
+
+/**
+ * 根据平台返回默认工具栏按键列表（字符串数组，延迟转换）。
+ * 作用：提供默认的工具栏按键名列表，在 merge() 中通过 toolbarKeyToMenu 转换为 IMenuItem[]
+ * 意图：避免在类字段初始化时访问 window.siyuan.config.keymap（此时可能尚未就绪），
+ *       导致 Protyle 构造失败、文档页签无法打开
+ */
+const getDefaultToolbarKeys = (): Array<string | IMenuItem> => isMobile ? DEFAULT_TOOLBAR_KEYS_MOBILE : DEFAULT_TOOLBAR_KEYS_DESKTOP;
+
+/**
+ * 作用：将 IProtyleOptions 合并配置
+ * 意图：合并默认配置与用户自定义配置，并处理 toolbar 等特殊字段的转换
+ * 调用时机：Protyle 构造函数中 new 之后立即调用
+ */
 export class Options {
     public options: IProtyleOptions;
     private defaultOptions: IProtyleOptions = {
@@ -91,7 +153,13 @@ export class Options {
             },
             mode: "both",
         },
-        toolbar: Constants.PROTYLE_TOOLBAR,
+        /**
+         * 工具栏默认使用按键名列表（字符串数组），在 merge() 中延迟转换为 IMenuItem[]
+         * 不能在类字段初始化时调用 toolbarKeyToMenu——该函数访问 window.siyuan.config.keymap，
+         * 而类字段初始化发生在 new Options() 构造时，此时 keymap 可能尚未就绪，
+         * 会导致 TypeError 使 Protyle 构造失败、文档页签无法打开
+         */
+        toolbar: getDefaultToolbarKeys(),
         typewriterMode: false,
         upload: {
             max: 1024 * 1024 * 1024 * 16,
@@ -108,26 +176,40 @@ export class Options {
         this.options = options;
     }
 
-    public merge(): IProtyleOptions {
-        if (this.options) {
-            if (this.options.toolbar) {
-                this.options.toolbar = this.mergeToolbar(this.options.toolbar);
-            } else {
-                this.options.toolbar = this.mergeToolbar(this.defaultOptions.toolbar);
-            }
-            if (this.options.hint?.emoji && this.defaultOptions.hint) {
-                this.defaultOptions.hint.emoji = this.options.hint.emoji;
-            }
+    /**
+     * 合并用户选项与默认选项，返回最终配置
+     * 作用：将传入的 options 覆盖默认值，处理 toolbar 的类型转换，合并 hint.emoji 自定义映射
+     * 调用时机：Protyle 构造函数中 Options 实例化后立即调用
+     */
+    public merge() {
+        if (!this.options) {
+            // 即使没有传入 options，也需要将默认的字符串按键列表转换为 IMenuItem[]
+            this.defaultOptions.toolbar = mergeToolbar(this.defaultOptions.toolbar);
+            return this.defaultOptions;
         }
-
+        // 优先使用用户传入的 toolbar，否则使用默认值
+        if (this.options.toolbar) {
+            this.options.toolbar = mergeToolbar(this.options.toolbar);
+        } else {
+            this.options.toolbar = mergeToolbar(this.defaultOptions.toolbar);
+        }
+        // 合并用户自定义的 emoji 映射到默认配置中
+        if (this.options.hint?.emoji && this.defaultOptions.hint) {
+            this.defaultOptions.hint.emoji = this.options.hint.emoji;
+        }
         return merge(this.defaultOptions, this.options);
     }
+}
 
-    private mergeToolbar(toolbar: Array<string | IMenuItem> | undefined) {
-        if (toolbar) {
-            return toolbarKeyToMenu(toolbar);
-        } else {
-            throw new Error("必须传入正确的工具条定义");
-        }
+/**
+ * 将 toolbar 定义从按键名数组转换为 IMenuItem 数组
+ * 作用：如果传入的 toolbar 是字符串数组（按键名），则调用 toolbarKeyToMenu 转换
+ *      如果已是 IMenuItem 数组，则直接返回
+ * 抛出：当 toolbar 为 undefined/null/空 时抛出 Error
+ */
+function mergeToolbar(toolbar: Array<string | IMenuItem> | undefined){
+    if (!toolbar || (Array.isArray(toolbar) && toolbar.length === 0)) {
+        throw new Error("必须传入正确的工具条定义");
     }
+    return toolbarKeyToMenu(toolbar);
 }

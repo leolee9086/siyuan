@@ -23,6 +23,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prefix"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/session"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -111,6 +112,9 @@ var (
 	magiPersonaInfo = magiPersonaRuntimeStatus{
 		SubjectName: "未配置",
 	}
+	// prefixDispatcher 前缀指令路由器，在 handleChannelInbound 最前置分流。
+	// nil 表示未初始化（MAGI 组件未就绪），此时所有消息走原有 MAGI 对话流程。
+	prefixDispatcher *prefix.Dispatcher
 )
 
 func setMagiPersonaRuntimeStatus(profile *marduk.IpipPersonaProfile, isComplete bool, presetName string) {
@@ -352,8 +356,20 @@ func initMagiComponents() error {
 	// 恢复已持久化的微信渠道适配器
 	recoverWechatAdapters()
 
+	// 初始化前缀指令路由器
+	initPrefixDispatcher()
+
 	logging.LogInfof("MAGI组件初始化完成")
 	return nil
+}
+
+// initPrefixDispatcher 初始化前缀指令路由器。
+// 从 conf/prefix-commands.json 加载配置，注册到 handleChannelInbound 的最前置分流。
+func initPrefixDispatcher() {
+	prefixConfigMgr = prefix.NewConfigManager(util.ConfDir)
+	prefixDispatcher = prefix.NewDispatcher(globalTrustMgr)
+	prefixDispatcher.SetCommands(prefixConfigMgr.GetCommands())
+	logging.LogInfof("prefix dispatcher initialized with %d commands", len(prefixConfigMgr.GetCommands()))
 }
 
 func recoverWechatAdapters() {
@@ -689,6 +705,19 @@ func handleChannelInbound(ctx context.Context, msg *channel.InboundMessage) erro
 
 	if channelType == "cli" {
 		return handleCLIInbound(ctx, msg)
+	}
+
+	// 前缀指令路由：命中前缀指令则执行 handler 不走 MAGI 对话流程。
+	// 这是最前置的分流——在身份绑定检查之前，因为前缀指令（如收集/待办）
+	// 不需要 MAGI 身份，只需要信任配置中的 TrustLevel 检查。
+	if prefixDispatcher != nil {
+		handled, err := prefixDispatcher.Dispatch(ctx, msg)
+		if err != nil {
+			logging.LogErrorf("prefix dispatch error: %v", err)
+		}
+		if handled {
+			return nil
+		}
 	}
 
 	sourceSessionKey := fmt.Sprintf("%s:%s:%s", channelType, accountID, userID)

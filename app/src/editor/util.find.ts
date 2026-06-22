@@ -26,7 +26,7 @@ const handleFoundEditor = (editor: Editor, options: IOpenFileOptions, allModels:
 };
 
 /**  查找并打开资源文件 */
-export const findAndOpenAsset = async (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
+export const findAndOpenAsset = (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
     // 卫语句：无资源路径时直接返回
     if (!options.assetPath) {
         return;
@@ -51,7 +51,7 @@ export const findAndOpenAsset = async (options: IOpenFileOptions, allModels: Ret
 };
 
 /**  查找并打开自定义页签 */
-export const findAndOpenCustom = async (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
+export const findAndOpenCustom = (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
     // 卫语句：无自定义数据时直接返回
     if (!options.custom) {
         return;
@@ -81,7 +81,7 @@ export const findAndOpenCustom = async (options: IOpenFileOptions, allModels: Re
 };
 
 /**  查找并打开搜索页签 */
-export const findAndOpenSearch = async (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
+export const findAndOpenSearch = (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
     // 卫语句：无搜索数据时直接返回
     if (!options.searchData) {
         return;
@@ -102,7 +102,7 @@ export const findAndOpenSearch = async (options: IOpenFileOptions, allModels: Re
 };
 
 /**  查找并打开编辑器 */
-export const findAndOpenEditor = async (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
+export const findAndOpenEditor = (options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
     if (options.position || options.openNewTab) {
         return;
     }

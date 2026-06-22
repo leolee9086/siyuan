@@ -34,7 +34,11 @@ import { 生成对话框HTML } from "./dialogHelpers.html";
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 挂载标题Vue组件(element: HTMLElement, options: IDialogOptions) {
+/**
+ * @同步豁免: UI构建 - createVueComponentLoader是同步函数，Dialog构造函数中未使用await，
+ * 保持同步以避免titleVueApp存储Promise而非App实例
+ */
+export function 挂载标题Vue组件(element: HTMLElement, options: IDialogOptions) {
     if (!options.titleVueConfig) {
         return null;
     }
@@ -62,7 +66,11 @@ export async function 挂载标题Vue组件(element: HTMLElement, options: IDial
  * @已知问题: 无
  * @改进方向: 可以进一步拆分为更小的函数
  */
-export async function 初始化对话框内容(
+/**
+ * @同步豁免: UI构建 - Dialog构造函数中同步调用innerHTML赋值，必须立即获得HTML字符串而非Promise
+ * 此函数内部的子函数调用已全部改为同步函数
+ */
+export function 初始化对话框内容(
     element: HTMLElement,
     options: IDialogOptions,
     config: {
@@ -119,7 +127,10 @@ export async function 初始化对话框内容(
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 添加对话框到DOM(element: HTMLElement, disableAnimation?: boolean) {
+/**
+ * @同步豁免: UI构建 - Dialog构造函数中同步执行
+ */
+export function 添加对话框到DOM(element: HTMLElement, disableAnimation?: boolean) {
     document.body.append(element);
     if (disableAnimation) {
         element.classList.add("b3-dialog--open");
@@ -138,7 +149,10 @@ export async function 添加对话框到DOM(element: HTMLElement, disableAnimati
  * @已知问题: 无
  * @改进方向: 可以考虑使用 AbortController 来自动清理事件监听器
  */
-export async function 执行销毁清理(
+/**
+ * @同步豁免: UI构建 - 销毁清理不涉及异步操作，同步执行即可
+ */
+export function 执行销毁清理(
     element: HTMLElement,
     id: string,
     titleVueApp: App | null,
