@@ -63,14 +63,14 @@ function connect(): Promise<void> {
   });
 }
 
-function send(text: string): void {
+function send(text: string) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: "message", text }));
     pendingCount++;
   }
 }
 
-async function main(): Promise<void> {
+async function main(){
   try {
     await connect();
   } catch {

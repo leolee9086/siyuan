@@ -1,7 +1,7 @@
 export { reloadSync } from "./reloadSync";
 export { setRefDynamicText } from "./setRefDynamicText";
 export { updateTitle } from "./updateTitle";
-export { setTitle } from "./setTitle";
+export { setTitle } from "../../util/processTitle";
 export { downloadProgress } from "./downloadProgress";
 export { lockScreen } from "./lockScreen";
 

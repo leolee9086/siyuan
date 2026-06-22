@@ -20,7 +20,7 @@ import { executeSyncToolCall, executeAsyncToolCallFn } from "./session/toolCallE
 async function doStartAIRequest(
     ctx: RequestContext,
     messages: MessageHistory
-): Promise<void> {
+){
     ctx.controllerRef.value = initializeRequestController(
         ctx.state, ctx.startTimeRef, ctx.controllerRef.value, ctx.protyle
     );

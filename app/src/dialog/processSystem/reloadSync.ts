@@ -1,4 +1,4 @@
-import { setTitle } from "./setTitle";
+import { setTitle } from "../../util/processTitle";
 import { getAllModels } from "../../bazaar-hub/imports";
 import { hideElements } from "../../block/imports";
 import { fetchPost } from "../../card/imports";

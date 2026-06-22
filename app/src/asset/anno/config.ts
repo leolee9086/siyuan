@@ -45,7 +45,7 @@ import type { IPdfInstance, IPdfAnno } from "./anno.types";
  * - 如果配置中已存在相同id的项，会完全覆盖原有数据
  * - 该函数被anno.click.handleToolbarAction.ts中的各种操作处理器调用
  */
-export const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno): void => {
+export const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno) => {
     const config = getConfig(pdf);
     config[id] = data;
     fetchPost("/api/asset/setFileAnnotation", {

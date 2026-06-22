@@ -1,4 +1,4 @@
-import { setTitle } from "../../dialog/processSystem/setTitle";
+import { setTitle } from "../../util/processTitle";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { saveLayout } from "../util";
 import { removeAllClass } from "../../util/DOM/helpers/removeAllClass";

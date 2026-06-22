@@ -155,7 +155,7 @@ export const getSiyuanKeyboardState = () => {
 /**
  * 获取 window.siyuan.dragElement（当前拖拽元素）
  */
-export const getSiyuanDragElement = (): HTMLElement | undefined => {
+export const getSiyuanDragElement = ()=> {
     return window.siyuan?.dragElement;
 };
 

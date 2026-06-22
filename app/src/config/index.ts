@@ -108,6 +108,7 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
 };
 
 export const openSetting = (app: App) => {
+    registerFileTreeTab();
     if (isMobile) {
         popMenu();
         return;
@@ -206,8 +207,19 @@ export const openSetting = (app: App) => {
     return dialog;
 };
 
-// 立即注册 Tab 类型（不依赖 app-ready 事件，确保新窗口也能正确初始化）
-if (!isMobile) {
+/**
+ * 延迟注册 Tab 类型。
+ * 不能在模块顶层直接调用 tabRegistry.register()——由于 config 模块与 plugin/registry 等模块之间存在
+ * 循环依赖，模块初始化时 tabRegistry 可能尚未完成初始化（TDZ），导致 ReferenceError。
+ * 延迟到 openSetting 首次调用时执行，此时所有模块已完成初始化。
+ * INTERNAL_FILETREE_TAB_TYPE 仅在 openSetting → fileTree.bindEvent 路径中使用，延迟注册不会影响功能。
+ */
+let _fileTreeTabRegistered = false;
+const registerFileTreeTab = () => {
+    if (_fileTreeTabRegistered || isMobile) {
+        return;
+    }
+    _fileTreeTabRegistered = true;
     tabRegistry.register({
         type: INTERNAL_FILETREE_TAB_TYPE,
         init: (model: Custom) => {
@@ -218,4 +230,4 @@ if (!isMobile) {
             }
         }
     });
-}
+};

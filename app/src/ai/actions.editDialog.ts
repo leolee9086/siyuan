@@ -62,10 +62,9 @@ import { AiEditDialog } from "./imports";
 
 /**
  * 创建AI动作存储上下文
- * @显式返回类型原因 必须显式标注返回类型，以确保外部调用方明确知道对象提供的方法签名
  * @returns AI动作存储上下文对象
  */
-const createAiActionStorageContext = (): AiActionStorageContext => {
+const createAiActionStorageContext = () => {
     return {
         /** 获取全部AI动作配置列表 */
         getAiActions: () => {

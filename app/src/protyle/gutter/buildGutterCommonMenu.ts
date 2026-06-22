@@ -52,7 +52,7 @@ export interface IGutterCommonMenuContext {
 /**
  * 创建进入菜单项（非反链模式）
  */
-const 创建进入菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建进入菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enter",
     accelerator: `${getSiyuanConfig().keymap.general.enter.custom ? updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + siyuanI18n.click)}`,
     label: siyuanI18n.enter,
@@ -64,7 +64,7 @@ const 创建进入菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建返回上一层菜单项
  */
-const 创建返回菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建返回菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enterBack",
     accelerator: getSiyuanConfig().keymap.general.enterBack.custom,
     label: siyuanI18n.enterBack,
@@ -76,7 +76,7 @@ const 创建返回菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建反链模式下的打开菜单项
  */
-const 创建反链打开菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建反链打开菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enter",
     accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom)}/${updateHotkeyTip("⌘" + siyuanI18n.click)}`,
     label: siyuanI18n.openBy,
@@ -99,7 +99,7 @@ const 创建反链打开菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建在上方插入菜单项
  */
-const 创建插入上方菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建插入上方菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "insertBefore",
     icon: "iconBefore",
     label: siyuanI18n.insertBefore,
@@ -114,7 +114,7 @@ const 创建插入上方菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建在下方插入菜单项
  */
-const 创建插入下方菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建插入下方菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "insertAfter",
     icon: "iconAfter",
     label: siyuanI18n.insertAfter,
@@ -129,7 +129,7 @@ const 创建插入下方菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建跳转子菜单
  */
-const 创建跳转菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建跳转菜单 = (ctx: IGutterCommonMenuContext) => ({
     id: "jumpTo",
     type: "submenu",
     label: siyuanI18n.jumpTo,
@@ -166,7 +166,7 @@ const 创建跳转菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建折叠菜单项
  */
-const 创建折叠菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建折叠菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "fold",
     label: siyuanI18n.fold,
     accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.editor.general.collapse.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}`,
@@ -179,7 +179,7 @@ const 创建折叠菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建属性菜单项
  */
-const 创建属性菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建属性菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "attr",
     label: siyuanI18n.attr,
     icon: "iconAttr",
@@ -193,7 +193,7 @@ const 创建属性菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
  * 创建外观菜单项
  * @returns 外观菜单项的 DOM 元素
  */
-const 创建外观菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建外观菜单 = (ctx: IGutterCommonMenuContext) => ({
     id: "appearance",
     label: siyuanI18n.appearance,
     icon: "iconFont",
@@ -219,7 +219,7 @@ const 创建外观菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建微信提醒菜单项
  */
-const 创建微信提醒菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建微信提醒菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "wechatReminder",
     icon: "iconMp",
     label: siyuanI18n.wechatReminder,
@@ -232,7 +232,7 @@ const 创建微信提醒菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
 /**
  * 创建闪卡菜单项
  */
-const 创建闪卡菜单项 = (ctx: IGutterCommonMenuContext): IMenu => {
+const 创建闪卡菜单项 = (ctx: IGutterCommonMenuContext) => {
     const isCardMade = ctx.nodeElement.hasAttribute(Constants.CUSTOM_RIFF_DECKS);
     return {
         id: isCardMade ? "removeCard" : "quickMakeCard",
@@ -248,7 +248,7 @@ const 创建闪卡菜单项 = (ctx: IGutterCommonMenuContext): IMenu => {
 /**
  * 创建添加到卡组菜单项
  */
-const 创建添加到卡组菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建添加到卡组菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "addToDeck",
     label: siyuanI18n.addToDeck,
     ignore: !getSiyuanConfig().flashcard.deck,
@@ -261,7 +261,7 @@ const 创建添加到卡组菜单项 = (ctx: IGutterCommonMenuContext): IMenu =>
 /**
  * 创建时间戳菜单项
  */
-const 创建时间戳菜单项 = (ctx: IGutterCommonMenuContext): IMenu => {
+const 创建时间戳菜单项 = (ctx: IGutterCommonMenuContext) => {
     let updateHTML = ctx.nodeElement.getAttribute("updated") || "";
     if (updateHTML) {
         updateHTML = `${siyuanI18n.modifiedAt} ${dayjs(updateHTML).format("YYYY-MM-DD HH:mm:ss")}<br>`;
@@ -277,7 +277,7 @@ const 创建时间戳菜单项 = (ctx: IGutterCommonMenuContext): IMenu => {
 /**
  * 创建导出图片菜单项
  */
-const 创建导出图片菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
+const 创建导出图片菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "exportImage",
     label: siyuanI18n.exportAsImage,
     icon: "iconImage",
@@ -309,7 +309,7 @@ const 应该显示微信提醒 = (ctx: IGutterCommonMenuContext): boolean => {
 /**
  * 添加导航菜单项（进入/返回）
  */
-const 添加导航菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
+const 添加导航菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
     if (ctx.protyle.options.backlinkData && !isMobile) {
         menuItems.push(创建反链打开菜单项(ctx));
     }
@@ -322,7 +322,7 @@ const 添加导航菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
 /**
  * 添加编辑菜单项（插入/引用计数）
  */
-const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
+const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
     if (ctx.protyle.disabled) {
         return;
     }
@@ -338,7 +338,7 @@ const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
 /**
  * 添加视图菜单项（折叠/属性/外观/格式刷）
  */
-const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
+const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
     if (ctx.type !== "NodeThematicBreak") {
         menuItems.push(创建折叠菜单项(ctx));
     }
@@ -361,7 +361,7 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
 /**
  * 添加扩展菜单项（微信/闪卡/插件）
  */
-const 添加扩展菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
+const 添加扩展菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
     if (应该显示微信提醒(ctx)) {
         menuItems.push(创建微信提醒菜单项(ctx));
     }

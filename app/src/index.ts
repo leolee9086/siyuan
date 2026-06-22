@@ -24,7 +24,7 @@ import {
     transactionError
 } from "./dialog/processSystem";
 import { downloadProgress } from "./dialog/processSystem/downloadProgress";
-import { setTitle } from "./dialog/processSystem/setTitle";
+import { setTitle } from "./util/processTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
 import { hideMessage, initMessage, showMessage } from "./dialog/message";

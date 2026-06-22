@@ -22,7 +22,7 @@ const handleListItemActionClick = (
     currentTarget: HTMLElement | SVGElement,
     menu: Menu,
     event: Event
-): void => {
+) => {
     // 对于SVG元素，需要找到包含dataset的父元素
     const parentElement = currentTarget.parentElement;
     if (!parentElement || !("dataset" in parentElement)) {
@@ -50,7 +50,7 @@ const handleListItemClick = (
     currentTarget: HTMLElement | SVGElement,
     context: AIMenuContext,
     event: Event
-): void => {
+) => {
     const { protyle, ids, elements, menu, clearContext } = context;
 
     // 对于SVG元素，需要找到包含dataset的元素

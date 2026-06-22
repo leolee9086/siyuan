@@ -20,7 +20,7 @@ import { clearCounter } from "./status";
 import { getWndByLayout } from "./window-utils";
 import { saveLayout } from "./layout-serialization";
 import { setModelsHash } from "../window/setHeader";
-import { setTitle } from "../dialog/processSystem/setTitle";
+import { setTitle } from "../util/processTitle";
 import { bindHeaderDragEvents, bindPanelDragEvents } from "./Wnd.drag";
 import {
     wndSwitchTab,

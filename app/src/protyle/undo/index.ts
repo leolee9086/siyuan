@@ -1,14 +1,34 @@
-import {onTransaction} from "../wysiwyg/transaction";
-import {preventScroll} from "../scroll/preventScroll";
-import {Constants} from "../../constants";
-import {hideElements} from "../ui/hideElements";
-import {scrollCenter} from "../../util/DOM/highlightById";
-import {matchHotKey} from "../util/hotKey";
-import {isElectron} from "../../platform";
-import {ipcSend} from "../../platform/electron/ipcRenderer";
-import {getSiyuanEditorGeneralKeymap} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import {markMirror, refreshUndoButtons, requestRedo, requestUndo} from "./globalUndo";
+/** 用途：事务处理核心函数。使用范围：undo 模块 renderLocal 本地乐观应用操作。解耦评估：通过 imports.ts 转发。 */
+import {onTransaction} from "./imports";
+/** 用途：阻止滚动容器在操作应用期间意外滚动。使用范围：renderLocal 操作应用前后。解耦评估：通过 imports.ts 转发。 */
+import {preventScroll} from "./imports";
+/** 用途：应用全局常量（快捷键命令标识与 API 调用参数）。使用范围：undo 模块快捷键命令发送。解耦评估：通过 imports.ts 转发。 */
+import {Constants} from "./imports";
+/** 用途：隐藏编辑器浮动 UI 元素（hint/gutter）。使用范围：renderLocal 操作应用前清理界面。解耦评估：通过 imports.ts 转发。 */
+import {hideElements} from "./imports";
+/** 用途：将编辑器滚动到指定高亮块位置。使用范围：renderLocal 操作应用后恢复视口。解耦评估：通过 imports.ts 转发。 */
+import {scrollCenter} from "./imports";
+/** 用途：匹配键盘事件与用户自定义快捷键组合。使用范围：electronUndo 处理器判断快捷键是否匹配。解耦评估：通过 imports.ts 转发。 */
+import {matchHotKey} from "./imports";
+/** 用途：运行时平台环境判断（是否 Electron）。使用范围：electronUndo 处理器条件守卫。解耦评估：通过 imports.ts 转发。 */
+import {isElectron} from "./imports";
+/** 用途：向 Electron 主进程发送 IPC 消息。使用范围：electronUndo 处理器触发撤销/重做命令。解耦评估：通过 imports.ts 转发。 */
+import {ipcSend} from "./imports";
+/** 用途：读取用户自定义的编辑器快捷键映射。使用范围：electronUndo 处理器加载快捷键配置。解耦评估：通过 imports.ts 转发。 */
+import {getSiyuanEditorGeneralKeymap} from "./imports";
+/** 用途：标记文档可撤销镜像状态。使用范围：add/replace 方法。解耦评估：同目录内部模块，直接依赖。 */
+import {markMirror} from "./globalUndo";
+/** 用途：刷新撤销/重做按钮 UI 状态。使用范围：add/replace 方法。解耦评估：同目录内部模块，直接依赖。 */
+import {refreshUndoButtons} from "./globalUndo";
+/** 用途：发起重做请求。使用范围：Undo.redo 方法。解耦评估：同目录内部模块，直接依赖。 */
+import {requestRedo} from "./globalUndo";
+/** 用途：发起撤销请求。使用范围：Undo.undo 方法。解耦评估：同目录内部模块，直接依赖。 */
+import {requestUndo} from "./globalUndo";
 
+/**
+ * 从操作列表中找出最后一个 insert 操作，标记其需要恢复光标位置。
+ * 确保撤销/重做后光标定位到最后插入内容处。
+ */
 const markLastInsertRange = (operations: IOperation[]) => {
     for (let i = operations.length - 1; i >= 0; i--) {
         const operation = operations[i];
@@ -26,6 +46,7 @@ const markLastInsertRange = (operations: IOperation[]) => {
 // 撤销权威栈已下沉到 kernel（GlobalUndoLog），前端按 rootID 共享。
 // 本类仅保留发起窗口本地乐观应用的渲染逻辑，以及按钮态刷新。
 export class Undo {
+    /** 发起撤销操作：委托 requestUndo 处理完整撤销流程（含 Kernel 请求与本地乐观渲染） */
     public undo(protyle: IProtyle) {
         if (protyle.disabled) {
             return;
@@ -33,6 +54,7 @@ export class Undo {
         requestUndo(protyle);
     }
 
+    /** 发起重做操作：委托 requestRedo 处理完整重做流程（含 Kernel 请求与本地乐观渲染） */
     public redo(protyle: IProtyle) {
         if (protyle.disabled) {
             return;
@@ -42,38 +64,50 @@ export class Undo {
 
     // renderLocal 仅在发起窗口本地应用操作（isUndo=true），不 POST 到 kernel。
     // kernel 的 undo/redo 接口已执行事务并广播，这里保留光标恢复/折叠/zoom/lastHTMLs 行为。
+    /** 本地乐观应用撤销/重做操作结果，不向 kernel 发起请求（kernel 已通过接口执行事务并广播） */
     public renderLocal(protyle: IProtyle, operations: IOperation[], isRedo: boolean) {
         void isRedo;
         hideElements(["hint", "gutter"], protyle);
-        protyle.wysiwyg.lastHTMLs = {};
+        if (protyle.wysiwyg) {
+            protyle.wysiwyg.lastHTMLs = {};
+        }
         markLastInsertRange(operations);
         for (const operation of operations) {
             onTransaction(protyle, operation, true);
         }
-        document.querySelector(".av__panel")?.remove();
+        const avPanel = document.querySelector(".av__panel");
+        avPanel?.remove();
         preventScroll(protyle);
         scrollCenter(protyle);
     }
 
     // add 降级为：不压栈（kernel 已在 commit 后 Record），仅置位本地镜像 + 刷新按钮态。
     // 保留签名以兼容 transaction.ts 的调用点。
+    /** 编辑提交后标记可撤销状态并刷新按钮态，不再向 kernel 压栈 */
     public add(doOperations: IOperation[], undoOperations: IOperation[], protyle: IProtyle) {
         void doOperations;
         void undoOperations;
+        // 确保文档已初始化（rootID 存在）后才标记可撤销镜像
         if (protyle.block?.rootID) {
             markMirror(protyle.block.rootID, {canUndo: true});
         }
         refreshUndoButtons(protyle);
     }
 
+    /** 替换操作后标记可撤销状态并刷新按钮态 */
     public replace(doOperations: IOperation[], protyle: IProtyle) {
         void doOperations;
+        // 确保文档已初始化后才更新撤销镜像状态
         if (protyle.block?.rootID) {
             markMirror(protyle.block.rootID, {canUndo: true});
         }
         refreshUndoButtons(protyle);
     }
 
+    /**
+     * 清空操作：kernel 全局撤销栈不随前端编辑器销毁/重载而清空（跨窗口共享）。
+     * 本地仅刷新按钮态，镜像条目保留供重开校准。
+     */
     public clear() {
         // kernel 全局栈不随前端编辑器销毁/重载而清空（跨窗口共享）。
         // 本地仅刷新按钮态，镜像条目保留供重开校准。
@@ -89,12 +123,14 @@ export const electronUndo = (event: KeyboardEvent) => {
     if (!keymap) {
         return false;
     }
+    // 匹配撤销快捷键：用户按下自定义撤销组合键时，拦截默认行为并通过 IPC 通知 Electron 主进程执行撤销
     if (matchHotKey(keymap.undo.custom, event)) {
         ipcSend(Constants.SIYUAN_CMD, "undo");
         event.preventDefault();
         event.stopPropagation();
         return true;
     }
+    // 匹配重做快捷键：用户按下自定义重做组合键时，拦截默认行为并通过 IPC 通知 Electron 主进程执行重做
     if (matchHotKey(keymap.redo.custom, event)) {
         ipcSend(Constants.SIYUAN_CMD, "redo");
         event.preventDefault();

@@ -13,7 +13,7 @@ export type TCopyTargetPlatform = "mp-wechat" | "zhihu" | "yuque";
  * 处理微信公众号的HTML预处理
  * @param copyElement 需要预处理的HTML元素
  */
-const processWeChatHTML = async (copyElement: HTMLElement): Promise<void> => {
+const processWeChatHTML = async (copyElement: HTMLElement) => {
     // 处理链接转换为在线链接
     link2online(copyElement);
 
@@ -82,7 +82,7 @@ const processWeChatHTML = async (copyElement: HTMLElement): Promise<void> => {
  * 处理知乎的HTML预处理
  * @param copyElement 需要预处理的HTML元素
  */
-const processZhihuHTML = async (copyElement: HTMLElement): Promise<void> => {
+const processZhihuHTML = async (copyElement: HTMLElement) => {
     // 处理链接转换为在线链接
     link2online(copyElement);
 
@@ -109,7 +109,7 @@ const processZhihuHTML = async (copyElement: HTMLElement): Promise<void> => {
 export const preparePreviewHTMLForX = async (
     copyElement: HTMLElement,
     targetPlatform: Exclude<TCopyTargetPlatform, "yuque">,
-): Promise<void> => {
+)=> {
     if (targetPlatform === "mp-wechat") {
         await processWeChatHTML(copyElement);
         return;
@@ -117,7 +117,7 @@ export const preparePreviewHTMLForX = async (
     await processZhihuHTML(copyElement);
 };
 
-export const requestYuqueMarkdown = (id: string): Promise<string> => {
+export const requestYuqueMarkdown = (id: string)=> {
     return new Promise((resolve) => {
         fetchPost("/api/lute/copyStdMarkdown", {
             id,
@@ -135,7 +135,7 @@ export const copyPreviewHTMLToX = async (
     copyElement: HTMLElement,
     id: string,
     targetPlatform?: TCopyTargetPlatform,
-): Promise<void> => {
+) => {
     if (!targetPlatform) {
         return;
     }
@@ -160,7 +160,7 @@ const executeCopyOperation = (
     element: HTMLElement,
     copyElement: HTMLElement,
     target?: string,
-): void => {
+) => {
     // 防止背景色被粘贴到公众号中
     copyElement.style.backgroundColor = "#fff";
     // 代码背景

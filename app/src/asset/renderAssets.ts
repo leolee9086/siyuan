@@ -118,7 +118,7 @@ const handlePaletteClick = (e: Event): void => {
 };
 
 /** 格式化文件大小 */
-const formatFileSize = (bytes: number): string => {
+const formatFileSize = (bytes: number) => {
     if (bytes < 1024) {
         return `${bytes} B`;
     }
@@ -129,14 +129,14 @@ const formatFileSize = (bytes: number): string => {
 };
 
 /** 渲染星级 */
-const renderStars = (star: number): string => {
+const renderStars = (star: number) => {
     const filled = "★".repeat(star);
     const empty = "☆".repeat(5 - star);
     return `<span style="color: var(--b3-theme-primary);">${filled}</span><span style="opacity: 0.3;">${empty}</span>`;
 };
 
 /** 渲染标签 */
-const renderTags = (tags: string[]): string => {
+const renderTags = (tags: string[]) => {
     return tags.map(t => `<span style="background: var(--b3-theme-primary-light); color: var(--b3-theme-primary); padding: 1px 6px; border-radius: 3px; margin-right: 4px; margin-bottom: 4px;">${escapeHtml(t)}</span>`).join("");
 };
 
@@ -284,7 +284,7 @@ const loadTextPreview = async (path: string, elementId: string) => {
 /**
  * HTML 转义，防止 XSS
  */
-const escapeHtml = (text: string): string => {
+const escapeHtml = (text: string) => {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
