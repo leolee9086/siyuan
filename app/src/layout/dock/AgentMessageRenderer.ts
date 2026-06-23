@@ -144,7 +144,9 @@ export const bindThinkingCardToggle = (el: HTMLElement): void => {
     const body = el.querySelector(".agent-chat__thinking-body") as HTMLElement;
     const expandIcon = el.querySelector(".agent-chat__thinking-arrow--expand") as HTMLElement;
     const contractIcon = el.querySelector(".agent-chat__thinking-arrow--contract") as HTMLElement;
-    if (!header || !body || !expandIcon || !contractIcon) { return; }
+    if (!header || !body || !expandIcon || !contractIcon) {
+ return; 
+}
     header.addEventListener("click", () => {
         const isExpanded = body.classList.toggle("agent-chat__thinking-body--expanded");
         expandIcon.classList.toggle("fn__none", isExpanded);
@@ -170,7 +172,9 @@ export const highlightCodeBlocks = (container: HTMLElement): void => {
             codeElements.push({el, language});
         }
     });
-    if (codeElements.length === 0) { return; }
+    if (codeElements.length === 0) {
+ return; 
+}
 
     const process = () => {
         codeElements.forEach(({el, language}) => {
@@ -220,7 +224,9 @@ export const addCopyButtons = (container: HTMLElement): void => {
 
 export const postRender = (container: HTMLElement, app?: App): void => {
     container.querySelectorAll(".language-math").forEach((el) => {
-        if (el.hasAttribute("data-subtype")) { return; }
+        if (el.hasAttribute("data-subtype")) {
+ return; 
+}
         const content = el.textContent || "";
         const preParent = el.closest("pre");
         if (preParent) {

@@ -439,6 +439,7 @@ export default [{
     files: ["**/*.guard.ts", "**/*.guards.ts"],
     rules: {
         "no-restricted-syntax": ["error", ...COMMON_RESTRICTED_SYNTAX],
+        "explicit-return-type-reason/require-return-type-reason": "off",
         "require-async-export/require-async-export": "off"
     }
 }];

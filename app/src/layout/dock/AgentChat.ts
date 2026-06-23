@@ -199,7 +199,9 @@ export class AgentChat extends Model {
         this.modelTrigger = panel.querySelector(".agent-chat__model-trigger") as HTMLElement;
         this.scrollBottomBtn = panel.querySelector(".agent-chat__scroll-bottom") as HTMLElement;
         this.messagesContainer.addEventListener("scroll", () => {
-            if (this.programmaticScroll) { return; }
+            if (this.programmaticScroll) {
+ return; 
+}
             const { scrollTop, scrollHeight, clientHeight } = this.messagesContainer;
             const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
             // Hysteresis: only mark as scrolled-up when clearly above bottom (>=60),
@@ -282,12 +284,16 @@ export class AgentChat extends Model {
                 }
             } else if (e.key === "ArrowDown") {
                 e.preventDefault();
-                if (!this.modelMenu) { this.openModelMenu(); return; }
+                if (!this.modelMenu) {
+ this.openModelMenu(); return; 
+}
                 this.modelMenuIndex = (this.modelMenuIndex + 1) % this.modelOptions.length;
                 this.updateModelMenuHighlight();
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
-                if (!this.modelMenu) { this.openModelMenu(); return; }
+                if (!this.modelMenu) {
+ this.openModelMenu(); return; 
+}
                 this.modelMenuIndex = (this.modelMenuIndex - 1 + this.modelOptions.length) % this.modelOptions.length;
                 this.updateModelMenuHighlight();
             } else if (e.key === "Escape" && this.modelMenu) {
@@ -299,13 +305,17 @@ export class AgentChat extends Model {
     private updateModelLabel() {
         const label = this.modelTrigger.querySelector(".agent-chat__model-label") as HTMLElement;
         const option = this.modelOptions.find((o) => o.id === this.selectedModel);
-        if (label && option) { label.textContent = option.name; }
+        if (label && option) {
+ label.textContent = option.name; 
+}
     }
 
     private openModelMenu() {
         this.closeModelMenu();
         this.modelMenuIndex = this.modelOptions.findIndex((o) => o.id === this.selectedModel);
-        if (this.modelMenuIndex < 0) { this.modelMenuIndex = 0; }
+        if (this.modelMenuIndex < 0) {
+ this.modelMenuIndex = 0; 
+}
         const menu = document.createElement("div");
         menu.className = "agent-chat__model-menu b3-menu";
         let html = '<div class="b3-menu__items">';
@@ -350,13 +360,17 @@ export class AgentChat extends Model {
     }
 
     private updateModelMenuHighlight() {
-        if (!this.modelMenu) { return; }
+        if (!this.modelMenu) {
+ return; 
+}
         const items = this.modelMenu.querySelectorAll(".agent-chat__model-item");
         for (let i = 0; i < items.length; i++) {
             items[i].classList.toggle("b3-menu__item--highlight", i === this.modelMenuIndex);
         }
         const current = items[this.modelMenuIndex] as HTMLElement;
-        if (current) { current.scrollIntoView({ block: "nearest" }); }
+        if (current) {
+ current.scrollIntoView({ block: "nearest" }); 
+}
     }
 
     private getSelectedModel(): string {
@@ -419,7 +433,9 @@ export class AgentChat extends Model {
         });
         this.navRail.addEventListener("click", (e: MouseEvent) => {
             const marker = (e.target as HTMLElement).closest(".agent-chat__nav-rail-marker") as HTMLElement;
-            if (!marker) { return; }
+            if (!marker) {
+ return; 
+}
             this.jumpToMessage(marker.dataset.messageId || "");
         });
 
@@ -429,7 +445,9 @@ export class AgentChat extends Model {
     private rebuildNavMarkers() {
         this.navRail.innerHTML = "";
         const userEntries = this.entries.filter((e): e is { id?: string; type: "user"; content: string; timestamp?: number } => e.type === "user");
-        if (userEntries.length === 0) { return; }
+        if (userEntries.length === 0) {
+ return; 
+}
 
         const gap = Math.max(0.5, Math.min(3, 40 / userEntries.length));
         this.navRail.style.setProperty("--nav-gap", gap + "px");
@@ -448,7 +466,9 @@ export class AgentChat extends Model {
 
     private updateActiveMarker() {
         const userMsgs = this.messagesContainer.querySelectorAll(".agent-chat__msg--user[data-message-id]");
-        if (userMsgs.length === 0) { return; }
+        if (userMsgs.length === 0) {
+ return; 
+}
         const threshold = this.messagesContainer.scrollTop + 50;
         let activeId = "";
         for (let i = 0; i < userMsgs.length; i++) {
@@ -469,9 +489,13 @@ export class AgentChat extends Model {
     }
 
     private jumpToMessage(messageId: string) {
-        if (!messageId) { return; }
+        if (!messageId) {
+ return; 
+}
         const el = this.messagesContainer.querySelector('[data-message-id="' + messageId + '"]') as HTMLElement;
-        if (!el) { return; }
+        if (!el) {
+ return; 
+}
         el.scrollIntoView({behavior: "smooth", block: "center"});
         el.classList.add("agent-chat__msg--jumped");
         setTimeout(() => {
@@ -967,7 +991,9 @@ export class AgentChat extends Model {
                             const lastText = rawEntry.steps[rawEntry.steps.length - 1]?.text;
                             if (lastText) {
                                 const m = lastText.match(/([\d.]+)\s*s/i);
-                                if (m) { dur = parseFloat(m[1]); }
+                                if (m) {
+ dur = parseFloat(m[1]); 
+}
                             }
                         }
                         this.renderMergedThinkingCard(normSteps, entryId, dur);
@@ -1227,7 +1253,9 @@ export class AgentChat extends Model {
             e.protyle?.wysiwyg?.element?.querySelectorAll("[data-node-id].protyle-wysiwyg--select")
                 ?.forEach(el => {
                     const id = (el as HTMLElement).getAttribute("data-node-id");
-                    if (id) { allSelected.push(id); }
+                    if (id) {
+ allSelected.push(id); 
+}
                 });
         });
         allSelected = Array.from(new Set(allSelected));
@@ -1302,7 +1330,9 @@ export class AgentChat extends Model {
         p.wysiwyg?.element?.querySelectorAll("[data-node-id].protyle-wysiwyg--select")
             ?.forEach(el => {
                 const id = (el as HTMLElement).getAttribute("data-node-id");
-                if (id) { selectedBlockIDs.push(id); }
+                if (id) {
+ selectedBlockIDs.push(id); 
+}
             });
 
         // Visible blocks: top-level [data-node-id] children whose bounding rect intersects
@@ -1316,13 +1346,19 @@ export class AgentChat extends Model {
             for (let i = 0; i < children.length; i++) {
                 const child = children[i] as HTMLElement;
                 const id = child.getAttribute("data-node-id");
-                if (!id) { continue; }
+                if (!id) {
+ continue; 
+}
                 const rect = child.getBoundingClientRect();
-                if (rect.height === 0) { continue; }
+                if (rect.height === 0) {
+ continue; 
+}
                 if (rect.bottom >= view.top && rect.top <= view.bottom) {
                     visibleBlockIDs.push(id);
                 }
-                if (visibleBlockIDs.length >= maxVisibleBlockIDs) { break; }
+                if (visibleBlockIDs.length >= maxVisibleBlockIDs) {
+ break; 
+}
             }
         }
 
@@ -1331,12 +1367,24 @@ export class AgentChat extends Model {
             return undefined;
         }
         const ctx: IEditorContext = {};
-        if (activeDocID) { ctx.activeDocID = activeDocID; }
-        if (activeDocTitle) { ctx.activeDocTitle = activeDocTitle; }
-        if (notebookID) { ctx.notebookID = notebookID; }
-        if (focusedBlockID && focusedBlockID !== activeDocID) { ctx.focusedBlockID = focusedBlockID; }
-        if (selectedBlockIDs.length > 0) { ctx.selectedBlockIDs = selectedBlockIDs; }
-        if (visibleBlockIDs.length > 0) { ctx.visibleBlockIDs = visibleBlockIDs; }
+        if (activeDocID) {
+ ctx.activeDocID = activeDocID; 
+}
+        if (activeDocTitle) {
+ ctx.activeDocTitle = activeDocTitle; 
+}
+        if (notebookID) {
+ ctx.notebookID = notebookID; 
+}
+        if (focusedBlockID && focusedBlockID !== activeDocID) {
+ ctx.focusedBlockID = focusedBlockID; 
+}
+        if (selectedBlockIDs.length > 0) {
+ ctx.selectedBlockIDs = selectedBlockIDs; 
+}
+        if (visibleBlockIDs.length > 0) {
+ ctx.visibleBlockIDs = visibleBlockIDs; 
+}
         return ctx;
     }
 
@@ -1715,7 +1763,9 @@ export class AgentChat extends Model {
                 let seconds = Math.floor(durationMs / 1000);
                 const minutes = Math.floor(seconds / 60);
                 seconds = seconds % 60;
-                if (text) { text += " \u00B7 "; }
+                if (text) {
+ text += " \u00B7 "; 
+}
                 text += (minutes > 0 ? minutes + "m" : "") + seconds + "s";
             }
             const stats = document.createElement("span");
@@ -1938,7 +1988,9 @@ export class AgentChat extends Model {
     }
 
     private tryGenerateTitle() {
-        if (this.hasTitled) { return; }
+        if (this.hasTitled) {
+ return; 
+}
         this.hasTitled = true;
         const userEntry = this.entries.find((e): e is { type: "user"; content: string } => e.type === "user");
         const userMsg = userEntry?.content?.slice(0, 500) || "";
@@ -2251,7 +2303,9 @@ export class AgentChat extends Model {
 
         el.querySelectorAll(".agent-chat__question-option").forEach((option) => {
             const input = option.querySelector("input") as HTMLInputElement;
-            if (!input) return;
+            if (!input) {
+return;
+}
             let wasChecked = false;
             option.addEventListener("mousedown", () => {
                 wasChecked = input.checked;
@@ -2343,7 +2397,9 @@ export class AgentChat extends Model {
         toolNames?: string[];
         content?: string
     }>, entryId?: string, duration?: number) {
-        if (!steps || steps.length === 0) { return; }
+        if (!steps || steps.length === 0) {
+ return; 
+}
         let detail = "";
         const seenTools: Record<string, boolean> = {};
         for (let i = 0; i < steps.length; i++) {
@@ -2422,7 +2478,9 @@ export class AgentChat extends Model {
             let seconds = Math.floor(durationMs / 1000);
             const minutes = Math.floor(seconds / 60);
             seconds = seconds % 60;
-            if (text) { text += " \u00B7 "; }
+            if (text) {
+ text += " \u00B7 "; 
+}
             text += (minutes > 0 ? minutes + "m" : "") + seconds + "s";
         }
         this.tokenDisplayEl.textContent = text;
@@ -2514,7 +2572,9 @@ export class AgentChat extends Model {
             const el = items[i] as HTMLElement;
             if (i === items.length - 1) {
                 const streamingChat = el.querySelector(".agent-chat__thinking-chat--streaming");
-                if (streamingChat) { streamingChat.remove(); }
+                if (streamingChat) {
+ streamingChat.remove(); 
+}
             }
             el.classList.add("agent-chat__msg--thinking-done");
             if (doneText) {
@@ -2536,7 +2596,9 @@ export class AgentChat extends Model {
     }
 
     private scrollToBottom(force = false, smooth = false) {
-        if (!force && this.userScrolledUp) { return; }
+        if (!force && this.userScrolledUp) {
+ return; 
+}
         // Guard with a flag so the resulting scroll event can be told apart from
         // a user-driven scroll. Without this, the programmatic stick-to-bottom
         // write itself trips the scroll handler and, while streaming, flips
@@ -2584,7 +2646,9 @@ export class AgentChat extends Model {
             this.stickResizeObserver.disconnect();
             this.stickResizeObserver = null;
         }
-        if (!el) { return; }
+        if (!el) {
+ return; 
+}
         this.stickResizeObserver = new ResizeObserver(() => {
             if (!this.userScrolledUp) {
                 this.scrollToBottom();

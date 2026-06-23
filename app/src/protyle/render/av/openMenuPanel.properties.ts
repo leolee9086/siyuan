@@ -30,7 +30,7 @@ const toColItemSafeHTML = (item: IAVColumn, deps: PropertiesHTMLDeps): ColItemSa
         : `<svg class="b3-menu__icon"><use xlink:href="#${getColIconByType(item.type)}"></use></svg>`,
     nameHTML: deps.escapeHtml(item.name) || "&nbsp;",
     actionHTML: item.hidden
-        ? `<svg class="b3-menu__action" data-type="showCol"><use xlink:href="#iconEye"></use></svg>`
+        ? "<svg class=\"b3-menu__action\" data-type=\"showCol\"><use xlink:href=\"#iconEye\"></use></svg>"
         : `<svg class="b3-menu__action${item.type === "block" ? " fn__none" : ""}" data-type="hideCol"><use xlink:href="#iconEyeoff"></use></svg>`,
 });
 

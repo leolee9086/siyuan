@@ -468,7 +468,7 @@ export const getFiltersHTML = (data: IAV) => {
             const groupHeader = `<button class="b3-menu__item av__filter-group-header" data-type="nobg" style="align-items:center;margin:4px 0;" onmouseenter="this.querySelector('.av__group-actions').style.opacity='1'" onmouseleave="this.querySelector('.av__group-actions').style.opacity='0'">${foldIcon}${combinationSelect}<span class="fn__flex-1"></span><span class="av__group-actions" style="display:inline-flex;align-items:center;opacity:0;transition:opacity .15s;"><span class="block__icon ariaLabel" data-position="4west" data-type="addFilter" data-path="${path}" aria-label="${siyuanI18n.addFilter}"><svg><use xlink:href="#iconAdd"></use></svg></span><span class="fn__space"></span><span class="block__icon ariaLabel" data-position="4west" data-type="addFilterGroup" data-path="${path}" aria-label="${siyuanI18n.addFilterGroup}"><svg><use xlink:href="#iconlistFilterPlus"></use></svg></span>${isRoot ? "" : `<span class="fn__space"></span><svg class="b3-menu__action b3-menu__action--show ariaLabel" data-position="4west" data-type="removeFilter" data-path="${path}" aria-label="${siyuanI18n.removeFilters}"><use xlink:href="#iconTrashcan"></use></svg>`}</span></button>`;
             // 子节点容器：层级缩进完全由 margin-left 表达（每层 16px），padding-left=0 避免与 item padding 叠加；
             // border-left 对齐到父分组头 foldIcon 下方，体现从属关系
-            const containerStyle = isRoot ? "" : `margin-left: 16px;border-left: 1px solid var(--b3-theme-background-light);`;
+            const containerStyle = isRoot ? "" : "margin-left: 16px;border-left: 1px solid var(--b3-theme-background-light);";
             const containerClass = folded ? "fn__none" : "";
             return groupHeader + (childrenHTML ? `<div data-children="${path}" class="${containerClass}" style="${containerStyle}">${childrenHTML}</div>` : "");
         }
@@ -582,7 +582,7 @@ const resolveFilterValueType = (filter: IAVFilter, colData: IAVColumn): { type: 
     }
     // rollup：根据汇总配置或目标 AV 解析底层类型
     let resolvedType: TAVCol = valueType;
-    let resolvedColData = colData;
+    const resolvedColData = colData;
     const rollup = filter.value?.rollup;
     if (colData.rollup?.calc && colData.rollup.calc.operator !== "") {
         // 有汇总计算算子时，按算子映射类型
@@ -852,14 +852,18 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
     // 通过 data-path 定位叶子行
     const getRow = (target: HTMLElement): HTMLElement => {
         const path = target.dataset.path;
-        if (!path) return null;
+        if (!path) {
+return null;
+}
         return menuElement.querySelector(`[data-path="${path}"]`) as HTMLElement;
     };
 
     // 查找列配置
     const findColData = (path: string): IAVColumn => {
         const filter = getFilterByPath(getEditableFilters(data), path);
-        if (!filter) return null;
+        if (!filter) {
+return null;
+}
         let colData: IAVColumn;
         fields.find((column: IAVColumn) => {
             if (column.id === filter.column) {
@@ -874,7 +878,9 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
     const saveRow = (rowElement: HTMLElement, path: string, reRender: boolean) => {
         const filter = getFilterByPath(getEditableFilters(data), path);
         const colData = findColData(path);
-        if (!filter || !colData) return;
+        if (!filter || !colData) {
+return;
+}
         const {type: valueType} = resolveFilterValueType(filter, colData);
         const operatorSel = rowElement.querySelector('[data-type="operation"]') as HTMLSelectElement;
         const operator = (operatorSel?.value || filter.operator) as TAVFilterOperator;
@@ -897,11 +903,17 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
     panelElement.addEventListener("change", (event: Event) => {
         const target = event.target as HTMLElement;
         const type = target.dataset.type;
-        if (!type) return;
+        if (!type) {
+return;
+}
         const path = target.dataset.path;
-        if (!path) return;
+        if (!path) {
+return;
+}
         const row = getRow(target);
-        if (!row) return;
+        if (!row) {
+return;
+}
 
         if (type === "fieldSelect") {
             // 切换字段：用新字段的默认 operator + 空 value 替换，整体重渲染
@@ -949,13 +961,17 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
         if (target.dataset.type === "filterValue" || target.dataset.type?.startsWith("absDate") || target.dataset.type?.startsWith("relCount")) {
             const path = target.dataset.path;
             const row = getRow(target);
-            if (path && row) saveRow(row, path, false);
+            if (path && row) {
+saveRow(row, path, false);
+}
         }
     }, true); // capture 捕获 blur（blur 不冒泡）
 
     panelElement.addEventListener("keydown", (event: KeyboardEvent) => {
         const target = event.target as HTMLElement;
-        if (event.key !== "Enter" || event.isComposing) return;
+        if (event.key !== "Enter" || event.isComposing) {
+return;
+}
         if (target.dataset.type === "filterValue") {
             const path = target.dataset.path;
             const row = getRow(target);
@@ -997,7 +1013,9 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
             if (dropdown) {
                 // 收起其它已展开的下拉
                 menuElement.querySelectorAll('[data-type="selectDropdown"]').forEach((el: HTMLElement) => {
-                    if (el !== dropdown) el.style.display = "none";
+                    if (el !== dropdown) {
+el.style.display = "none";
+}
                 });
                 if (dropdown.style.display === "none") {
                     // 展开时用 fixed 定位到 trigger 下方（避免被 overflow:auto 裁剪）
@@ -1026,10 +1044,14 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
         }
         // 再处理 selectOption chip 点击（切换选中态）
         const chip = target.closest('[data-type="selectOption"]') as HTMLElement;
-        if (!chip) return;
+        if (!chip) {
+return;
+}
         const path = chip.dataset.path;
         const row = getRow(chip);
-        if (!path || !row) return;
+        if (!path || !row) {
+return;
+}
         const dropdown = menuElement.querySelector(`[data-type="selectDropdown"][data-path="${path}"]`) as HTMLElement;
         const isSingle = dropdown?.dataset.single === "true";
         const useEl = chip.querySelector("use");
@@ -1087,7 +1109,9 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
             const path = target.dataset.path;
             // 下拉面板在行外，用 path 查找 dropdown 内的选项
             const dropdown = menuElement.querySelector(`[data-type="selectDropdown"][data-path="${path}"]`);
-            if (!dropdown) return;
+            if (!dropdown) {
+return;
+}
             const key = (target as HTMLInputElement).value.toLowerCase();
             dropdown.querySelectorAll('[data-type="selectOption"]').forEach((chip: HTMLElement) => {
                 const name = (chip.dataset.name || "").toLowerCase();
@@ -1097,14 +1121,18 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
             // relation 异步加载候选（修正点④：inline 容器，非 fixed 浮层）
             const path = target.dataset.path;
             const colData = findColData(path);
-            if (!colData?.relation?.avID) return;
+            if (!colData?.relation?.avID) {
+return;
+}
             const keyword = (target as HTMLInputElement).value;
             fetchPost("/api/av/getAttributeViewPrimaryKeyValues", {
                 id: colData.relation.avID,
                 keyword,
             }, response => {
                 const row = getRow(target);
-                if (!row) return;
+                if (!row) {
+return;
+}
                 let listEl = row.querySelector('[data-type="relList"]') as HTMLElement;
                 if (!listEl) {
                     listEl = document.createElement("div");
@@ -1128,11 +1156,15 @@ export const bindInlineFilterEvents = (panelElement: HTMLElement, data: IAV, pro
     panelElement.addEventListener("click", (event: MouseEvent) => {
         const target = event.target as HTMLElement;
         const item = target.closest('[data-type="relList"] .b3-list-item') as HTMLElement;
-        if (!item) return;
+        if (!item) {
+return;
+}
         const listEl = item.closest('[data-type="relList"]') as HTMLElement;
         const path = listEl.dataset.path;
         const row = getRow(item);
-        if (!path || !row) return;
+        if (!path || !row) {
+return;
+}
         const input = row.querySelector('[data-type="filterValue"]') as HTMLInputElement;
         if (input) {
             input.value = item.dataset.name || "";

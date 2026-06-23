@@ -77,7 +77,9 @@ export const SessionStore = {
             pageSize: opts?.pageSize || 30,
             keyword: opts?.keyword || "",
         }) as {code: number, data: SessionListResult};
-        if (resp && resp.code === 0) { return resp.data; }
+        if (resp && resp.code === 0) {
+ return resp.data; 
+}
         return {sessions: [], total: 0, page: 1, pageSize: opts?.pageSize || 30};
     },
 
@@ -97,7 +99,9 @@ export const SessionStore = {
 
     async rename(id: string, newTitle: string): Promise<void> {
         const session = await this.load(id);
-        if (!session) { return; }
+        if (!session) {
+ return; 
+}
         session.title = newTitle;
         await this.save(session);
     },

@@ -27,7 +27,9 @@ export class AgentSessionPanel {
     ) {}
 
     toggle() {
-        if (this.isRendering) { return; }
+        if (this.isRendering) {
+ return; 
+}
         if (this.popup) {
             this.close();
             return;
@@ -36,13 +38,17 @@ export class AgentSessionPanel {
     }
 
     close() {
-        document.querySelectorAll(".agent-session-popup").forEach(function (el) { el.remove(); });
+        document.querySelectorAll(".agent-session-popup").forEach(function (el) {
+ el.remove(); 
+});
         this.popup = null;
         this.searchKeyword = "";
         this.items = [];
         this.total = 0;
         this.page = 0;
-        if (this.searchTimer !== null) { clearTimeout(this.searchTimer); this.searchTimer = null; }
+        if (this.searchTimer !== null) {
+ clearTimeout(this.searchTimer); this.searchTimer = null; 
+}
     }
 
     destroy() {
@@ -79,8 +85,12 @@ export class AgentSessionPanel {
             });
 
             itemsContainer.addEventListener("scroll", () => {
-                if (this.isLoadingMore) { return; }
-                if (this.items.length >= this.total) { return; }
+                if (this.isLoadingMore) {
+ return; 
+}
+                if (this.items.length >= this.total) {
+ return; 
+}
                 if (itemsContainer.scrollHeight - itemsContainer.scrollTop - itemsContainer.clientHeight <= 30) {
                     this.loadMore(itemsContainer);
                 }
@@ -95,7 +105,9 @@ export class AgentSessionPanel {
             this.popup.addEventListener("click", (e: MouseEvent) => {
                 e.stopPropagation();
             });
-            const onResize = () => { this.close(); };
+            const onResize = () => {
+ this.close(); 
+};
             window.addEventListener("resize", onResize);
             const closeOut = () => {
                 this.close();
@@ -138,7 +150,9 @@ export class AgentSessionPanel {
     }
 
     private bindEvents(container: HTMLElement) {
-        if (container.dataset.eventsBound) { return; }
+        if (container.dataset.eventsBound) {
+ return; 
+}
         container.dataset.eventsBound = "1";
 
         container.addEventListener("click", (e: MouseEvent) => {
@@ -148,7 +162,11 @@ export class AgentSessionPanel {
             if (deleteBtn) {
                 e.stopPropagation();
                 const id = (deleteBtn as HTMLElement).getAttribute("data-id") || "";
-                if (id) { this.callbacks.onDelete(id).then(() => { this.refresh(); }); }
+                if (id) {
+ this.callbacks.onDelete(id).then(() => {
+ this.refresh(); 
+}); 
+}
                 return;
             }
 
@@ -159,7 +177,9 @@ export class AgentSessionPanel {
                 if (id) {
                     const parent = (renameBtn as HTMLElement).parentElement;
                     const row = parent ? parent.parentElement as HTMLElement : null;
-                    if (row) { this.startRename(id, row); }
+                    if (row) {
+ this.startRename(id, row); 
+}
                 }
                 return;
             }
@@ -180,7 +200,9 @@ export class AgentSessionPanel {
     }
 
     private async loadMore(container: HTMLElement) {
-        if (this.isLoadingMore) { return; }
+        if (this.isLoadingMore) {
+ return; 
+}
         this.isLoadingMore = true;
         try {
             const result = await SessionStore.list({page: this.page + 1, pageSize: 30, keyword: this.searchKeyword});
@@ -195,7 +217,9 @@ export class AgentSessionPanel {
 
     private filter(keyword: string, container: HTMLElement) {
         this.searchKeyword = keyword.trim();
-        if (this.searchTimer !== null) { clearTimeout(this.searchTimer); }
+        if (this.searchTimer !== null) {
+ clearTimeout(this.searchTimer); 
+}
         this.searchTimer = window.setTimeout(async () => {
             const result = await SessionStore.list({page: 1, pageSize: 30, keyword: this.searchKeyword});
             this.items = result.sessions;
@@ -218,10 +242,16 @@ export class AgentSessionPanel {
         titleEl.replaceWith(input);
         input.focus();
         input.select();
-        input.addEventListener("blur", () => { this.finishRename(id, input.value, input, titleEl); });
+        input.addEventListener("blur", () => {
+ this.finishRename(id, input.value, input, titleEl); 
+});
         input.addEventListener("keydown", (e: KeyboardEvent) => {
-            if (e.key === "Enter") { input.blur(); }
-            if (e.key === "Escape") { input.value = oldTitle; input.blur(); }
+            if (e.key === "Enter") {
+ input.blur(); 
+}
+            if (e.key === "Escape") {
+ input.value = oldTitle; input.blur(); 
+}
         });
     }
 
@@ -231,12 +261,16 @@ export class AgentSessionPanel {
         titleEl.textContent = title;
         await this.callbacks.onRename(id, title);
         const listItem = this.items.find((s) => s.id === id);
-        if (listItem) { listItem.title = title; }
+        if (listItem) {
+ listItem.title = title; 
+}
     }
 
     private highlightCurrent() {
         const items = this.popup?.querySelectorAll(".b3-menu__item");
-        if (!items) { return; }
+        if (!items) {
+ return; 
+}
         const currentId = this.getCurrentSessionId();
         for (let i = 0; i < items.length; i++) {
             const item = items[i] as HTMLElement;
@@ -249,7 +283,9 @@ export class AgentSessionPanel {
     // popup 未打开时直接返回（下次 toggle/render 会拉取最新数据），避免无谓请求。
     async refresh() {
         const itemsContainer = this.popup?.querySelector(".b3-menu__items") as HTMLElement;
-        if (!itemsContainer) { return; }
+        if (!itemsContainer) {
+ return; 
+}
         const result = await SessionStore.list({page: 1, pageSize: 30, keyword: this.searchKeyword});
         this.items = result.sessions;
         this.total = result.total;

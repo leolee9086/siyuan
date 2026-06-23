@@ -54,7 +54,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
     let cachedSkills: BlockHit[] | null = null;
 
     const updateHighlight = () => {
-        if (!suggestionMenu) { return; }
+        if (!suggestionMenu) {
+ return; 
+}
         const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
         for (let i = 0; i < items.length; i++) {
             items[i].classList.toggle("agent-mention-menu__item--active", i === selectedIndex);
@@ -63,7 +65,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
 
     const openMenu = (items: BlockHit[], command: (item: BlockHit) => void, clientRect?: () => DOMRect) => {
         closeMenu();
-        if (items.length === 0) { return; }
+        if (items.length === 0) {
+ return; 
+}
 
         suggestionMenu = document.createElement("div");
         suggestionMenu.className = "agent-mention-menu";
@@ -76,7 +80,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
             const hPathText = item.hPath ? '<div class="agent-mention-menu__hpath">' + escapeHtml(item.hPath) + "</div>" : "";
             row.innerHTML = '<div class="agent-mention-menu__first">' + iconSvg + '<span class="agent-mention-menu__text">' + escapeHtml(item.label) + "</span></div>" + hPathText;
             row.addEventListener("mousedown", function (hit: BlockHit) {
-                return function (e: MouseEvent) { e.preventDefault(); command(hit); };
+                return function (e: MouseEvent) {
+ e.preventDefault(); command(hit); 
+};
             }(item));
             suggestionMenu.appendChild(row);
         }
@@ -160,16 +166,24 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
                     render: function () {
                         return {
                             onStart: function (props) {
-                                suggestionCommand = function (item) { props.command(item); };
+                                suggestionCommand = function (item) {
+ props.command(item); 
+};
                                 openMenu(props.items as BlockHit[], suggestionCommand!, props.clientRect?.bind(props));
                             },
                             onUpdate: function (props) {
-                                suggestionCommand = function (item) { props.command(item); };
+                                suggestionCommand = function (item) {
+ props.command(item); 
+};
                                 openMenu(props.items as BlockHit[], suggestionCommand!, props.clientRect?.bind(props));
                             },
-                            onExit: function () { closeMenu(); },
+                            onExit: function () {
+ closeMenu(); 
+},
                             onKeyDown: function (props) {
-                                if (!suggestionMenu) { return false; }
+                                if (!suggestionMenu) {
+ return false; 
+}
                                 if (props.event.key === "ArrowDown") {
                                     props.event.preventDefault();
                                     const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
@@ -264,7 +278,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
                         if (historyIdx === -1) {
                             savedDraft = editor.state.doc.textContent;
                             historyIdx = history.length - 1;
-                        } else if (historyIdx > 0) { historyIdx--; }
+                        } else if (historyIdx > 0) {
+ historyIdx--; 
+}
                         if (historyIdx >= 0) {
                             editor.commands.setContent(history[historyIdx]);
                         }
@@ -293,7 +309,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
     });
 
     editor.on("update", function () {
-        if (suggestionMenu && !slashActive) { return; }
+        if (suggestionMenu && !slashActive) {
+ return; 
+}
         const {$from} = editor.state.selection;
         const textBefore = $from.parent.textBetween(0, $from.parentOffset);
         const match = textBefore.match(/(?:^|\s)\/(\S*)$/);
@@ -335,7 +353,9 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
                 fetch("/api/ai/agent/lsSkills", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                }).then(function (r) { return r.json(); }).then(function (data) {
+                }).then(function (r) {
+ return r.json(); 
+}).then(function (data) {
                     const rawSkills = (data && data.data) ? data.data : [];
                     const items: BlockHit[] = rawSkills.map(function (s: Record<string, string>) {
                         return {
@@ -360,8 +380,12 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
     });
 
     return {
-        focus: function () { editor.commands.focus(); },
-        destroy: function () { closeMenu(); editor.destroy(); },
+        focus: function () {
+ editor.commands.focus(); 
+},
+        destroy: function () {
+ closeMenu(); editor.destroy(); 
+},
         getSendData: function () {
             const refs: {id: string; title: string}[] = [];
             const textParts: string[] = [];
@@ -375,15 +399,27 @@ export function mountComposer(host: HTMLElement, onSend: () => void): ComposerHa
             });
             return {text: textParts.join("").trim(), references: refs};
         },
-        clear: function () { editor.commands.clearContent(); },
+        clear: function () {
+ editor.commands.clearContent(); 
+},
         pushHistory: function (text: string) {
-            if (!text || history[history.length - 1] === text) { return; }
+            if (!text || history[history.length - 1] === text) {
+ return; 
+}
             history.push(text);
-            if (history.length > 50) { history.shift(); }
+            if (history.length > 50) {
+ history.shift(); 
+}
             historyIdx = -1;
         },
-        getHistory: function () { return history.slice(); },
-        clearHistory: function () { history.length = 0; historyIdx = -1; },
-        restoreHistory: function (h: string[]) { history.length = 0; history.push(...h); historyIdx = -1; },
+        getHistory: function () {
+ return history.slice(); 
+},
+        clearHistory: function () {
+ history.length = 0; historyIdx = -1; 
+},
+        restoreHistory: function (h: string[]) {
+ history.length = 0; history.push(...h); historyIdx = -1; 
+},
     };
 }

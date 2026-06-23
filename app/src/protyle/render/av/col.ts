@@ -853,7 +853,9 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
                         for (const n of nodes) {
                             if (n.filters) {
                                 const found = findFilter(n.filters);
-                                if (found) return found;
+                                if (found) {
+return found;
+}
                             } else if (n.column === colId && n.value.type === type) {
                                 return n;
                             }

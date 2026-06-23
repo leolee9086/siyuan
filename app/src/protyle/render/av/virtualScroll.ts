@@ -238,9 +238,13 @@ const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<
 
 const getBodyData = (bodyEl: HTMLElement) => {
     const avEl = bodyEl.closest(".av") as HTMLElement;
-    if (!avEl) return null;
+    if (!avEl) {
+return null;
+}
     const stored = dataStore.get(avEl.getAttribute("data-av-id") + avEl.getAttribute(Constants.CUSTOM_SY_AV_VIEW));
-    if (!stored) return null;
+    if (!stored) {
+return null;
+}
 
     const groupId = bodyEl.dataset.groupId;
     return groupId ? stored.data.view.groups.find((g: IAVView) => g.id === groupId) : stored.data.view;
