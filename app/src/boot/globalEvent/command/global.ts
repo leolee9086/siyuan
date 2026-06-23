@@ -1,455 +1,63 @@
-import { newDailyNote } from "../../../util/file/mount";
-import { openHistory } from "../../../history/history";
-import { Editor } from "../../../editor";
-import { openDock } from "../../../mobile/dock/util";
-import { popMenu } from "../../../mobile/menu";
-import { popSearch } from "../../../mobile/menu/search";
-import { getRecentDocs } from "../../../mobile/menu/getRecentDocs";
-import { openNewWindow } from "../../../window/openNewWindow";
-import { selectOpenTab, openBacklink, openGraph, openOutline, toggleDockBar } from "../../../layout/dock/util";
-import { openGlobalSearch } from "../../../search/util";
-import { workspaceMenu } from "../../../menus/workspace";
-import { isWindow } from "../../../util/platform/functions";
-import { openRecentDocs } from "../../../business/openRecentDocs";
-import { openSearch } from "../../../search/spread";
-import { goBack, goForward } from "../../../util/platform/backForward";
-import { getAllTabs, getAllWnds } from "../../../layout/getAll";
-import { getInstanceById } from "../../../layout/util";
-import {
-    copyTab,
-    getActiveTab,
-    getDockByType,
-    resizeTabs,
-    switchTabByIndex
-} from "../../../layout/tabUtil";
-import { closeTabByType } from "../../../layout/utils/closeTabByType";
-import { openSetting } from "../../../config";
-import { Tab } from "../../../layout/Tab";
-import { isMobile, isElectron } from "../../../platform";
-import { ipcSend } from "../../../platform/electron/ipcRenderer";
-import { App } from "../../../index";
-import { Constants } from "../../../constants";
-import { setReadOnly } from "../../../config/util/setReadOnly";
-import { lockScreen } from "../../../dialog/processSystem/lockScreen";
-import { newFile } from "../../../util/file/newFile";
-import { openCard } from "../../../card/openCard";
-import { syncGuide } from "../../../sync/syncGuide";
-import { Wnd } from "../../../layout/Wnd";
-import { unsplitWnd } from "../../../menus/tab";
-import { openFile } from "../../../editor/util";
-import { fetchPost } from "../../../util/network/fetch";
-import { setStorageVal } from "../../../protyle/util/compatibility";
+/** 用途：引入平台判断。使用范围：根路由选择移动端或桌面端命令域。解耦评估：平台状态通过 global/imports.ts 网关集中访问。 */
+import { isMobile } from "./global/imports";
+/** 用途：引入 CaliburRouter 构建 command 域路由。使用范围：globalCommand 根分发。解耦评估：根入口只选择执行器，不承载业务细节。 */
+import { calibur } from "./global/imports";
+/** 用途：引入 arktype 类型声明器。使用范围：根路由 split 条件。解耦评估：属于 CaliburRouter schema 基础设施。 */
+import { type } from "./global/imports";
+/** 用途：引入移动端命令值列表。使用范围：识别移动端命令域。解耦评估：命令契约集中在 commands.ts。 */
+import { MOBILE_GLOBAL_COMMAND_VALUES } from "./global/commands";
+/** 用途：引入桌面端命令值列表。使用范围：识别桌面端命令域。解耦评估：命令契约集中在 commands.ts。 */
+import { DESKTOP_GLOBAL_COMMAND_VALUES } from "./global/commands";
+/** 用途：引入通用命令值列表。使用范围：识别跨平台通用命令域。解耦评估：命令契约集中在 commands.ts。 */
+import { COMMON_GLOBAL_COMMAND_VALUES } from "./global/commands";
+/** 用途：引入移动端命令执行器。使用范围：根路由移动端分支。解耦评估：移动端 UI 操作由 mobile.ts 独立承接。 */
+import { executeMobileGlobalCommand } from "./global/mobile";
+/** 用途：引入桌面端命令执行器。使用范围：根路由桌面端分支。解耦评估：桌面端复杂布局命令由 desktop 子目录承接。 */
+import { executeDesktopGlobalCommand } from "./global/desktop";
+/** 用途：引入通用命令执行器。使用范围：根路由通用命令分支。解耦评估：跨平台命令由 common.ts 独立承接。 */
+import { executeCommonGlobalCommand } from "./global/common";
+/** 用途：引入应用实例类型。使用范围：保持 globalCommand 既有公共签名。解耦评估：类型通过 global/imports.ts 网关透传。 */
+import type { App } from "./global/imports";
+/** 用途：引入全局命令上下文类型。使用范围：构造分发上下文。解耦评估：复用 global/types.ts 契约。 */
+import type { GlobalCommandContext } from "./global/types";
+/** 根据当前平台和命令名解析根路由处理域。 */
+const resolveGlobalCommandDomain = (command: string) => {
+    // 移动端只处理移动端命令，桌面命令留给通用分支或未处理结果。
+    if (isMobile && MOBILE_GLOBAL_COMMAND_VALUES.includes(command)) {
+        return "mobile";
+    }
+    // 桌面端只处理桌面命令，移动端命令留给通用分支或未处理结果。
+    if (!isMobile && DESKTOP_GLOBAL_COMMAND_VALUES.includes(command)) {
+        return "desktop";
+    }
+    // 通用命令不区分平台，在平台专属命令未命中后统一处理。
+    if (COMMON_GLOBAL_COMMAND_VALUES.includes(command)) {
+        return "common";
+    }
+    return "unhandled";
+};
 
+/** 未识别命令保持原 globalCommand 返回 false 的语义。 */
+const ignoreUnhandledGlobalCommand = () => false;
+
+/** 根命令域路由，将平台状态和命令名解析结果映射到具体执行器。 */
+const globalCommandRouter = calibur
+    .universe(type({ domain: "string" }))
+    .split(type({ domain: "'mobile'" }), () => executeMobileGlobalCommand)
+    .split(type({ domain: "'desktop'" }), () => executeDesktopGlobalCommand)
+    .split(type({ domain: "'common'" }), () => executeCommonGlobalCommand)
+    .remain(() => ignoreUnhandledGlobalCommand)
+    .build();
+
+/**
+ * 执行全局快捷命令。
+ * @同步豁免: UI构建 - 该函数是既有同步公共入口，调用方依赖立即返回命令是否已处理。
+ */
 export const globalCommand = (command: string, app: App) => {
-    // 移动端命令分发
-    if (isMobile) {
-    switch (command) {
-        case "fileTree":
-            openDock("file");
-            return true;
-        case "outline":
-        case "bookmark":
-        case "tag":
-        case "inbox":
-            openDock(command);
-            return true;
-        case "backlinks":
-            openDock("backlink");
-            return true;
-        case "mainMenu":
-            popMenu();
-            return true;
-        case "globalSearch":
-            popSearch(app);
-            return true;
-        case "recentDocs":
-            getRecentDocs(app);
-            return true;
-    }
-    }
-    // 桌面端命令分发
-    if (!isMobile) {
-    switch (command) {
-        case "fileTree":
-            getDockByType("file").toggleModel("file");
-            return true;
-        case "outline":
-            getDockByType("outline").toggleModel("outline");
-            return true;
-        case "bookmark":
-        case "tag":
-        case "inbox":
-            getDockByType(command).toggleModel(command);
-            return true;
-        case "backlinks":
-            getDockByType("backlink").toggleModel("backlink");
-            return true;
-        case "graphView":
-            getDockByType("graph").toggleModel("graph");
-            return true;
-        case "globalGraph":
-            getDockByType("globalGraph").toggleModel("globalGraph");
-            return true;
-        case "config":
-            openSetting(app);
-            return true;
-        case "globalSearch":
-            openSearch({
-                app,
-                hotkey: Constants.DIALOG_GLOBALSEARCH,
-                key: (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange()).toString()
-            });
-            return true;
-        case "stickSearch":
-            openGlobalSearch(app, (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange()).toString(), true);
-            return true;
-        case "goBack":
-            goBack(app);
-            return true;
-        case "goForward":
-            goForward(app);
-            return true;
-        case "goToTab1":
-            switchTabByIndex(0);
-            return true;
-        case "goToTab2":
-            switchTabByIndex(1);
-            return true;
-        case "goToTab3":
-            switchTabByIndex(2);
-            return true;
-        case "goToTab4":
-            switchTabByIndex(3);
-            return true;
-        case "goToTab5":
-            switchTabByIndex(4);
-            return true;
-        case "goToTab6":
-            switchTabByIndex(5);
-            return true;
-        case "goToTab7":
-            switchTabByIndex(6);
-            return true;
-        case "goToTab8":
-            switchTabByIndex(7);
-            return true;
-        case "goToTab9":
-            switchTabByIndex(-1);
-            return true;
-        case "goToTabNext":
-            switchTabByIndex(-3);
-            return true;
-        case "goToTabPrev":
-            switchTabByIndex(-2);
-            return true;
-        case "mainMenu":
-            if (!isWindow()) {
-                workspaceMenu(app, document.querySelector("#barWorkspace").getBoundingClientRect());
-            }
-            return true;
-        case "recentDocs":
-            openRecentDocs();
-            return true;
-        case "recentClosed":
-            if (window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].length > 0) {
-                const closeData = window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].pop();
-                setStorageVal(Constants.LOCAL_CLOSED_TABS, window.siyuan.storage[Constants.LOCAL_CLOSED_TABS]);
-                const childData = closeData.children as ILayoutJSON;
-                if (childData.instance === "Search") {
-                    openFile({
-                        app,
-                        searchData: childData.config,
-                    });
-                    return true;
-                }
-                if (childData.instance === "Asset") {
-                    fetchPost("/api/asset/statAsset", {path: childData.path}, (response) => {
-                        if (response.code !== 1) {
-                            openFile({
-                                app,
-                                assetPath: childData.path,
-                                page: childData.page,
-                            });
-                        }
-                    });
-                    return true;
-                }
-                if (childData.instance === "Custom") {
-                    let exit = childData.customModelType === "siyuan-card";
-                    if (!exit) {
-                        app.plugins.find(p => {
-                            if (p.models[childData.customModelType]) {
-                                exit = true;
-                                return true;
-                            }
-                        });
-                    }
-                    if (exit) {
-                        openFile({
-                            app,
-                            custom: {
-                                icon: closeData.icon,
-                                title: closeData.title,
-                                data: childData.customModelData,
-                                id: childData.customModelType
-                            },
-                        });
-                    }
-                    return true;
-                }
-                fetchPost("/api/block/getBlockInfo", {id: childData.rootId || childData.blockId}, (infoResponse) => {
-                    if (infoResponse.data.rootID === (childData.rootId || childData.blockId)) {
-                        if (childData.instance === "Editor") {
-                            openFile({
-                                app,
-                                fileName: closeData.title,
-                                id: childData.blockId,
-                                rootID: childData.rootId,
-                                mode: childData.mode,
-                                rootIcon: closeData.docIcon,
-                                action: [childData.action]
-                            });
-                        } else if (childData.instance === "Backlink") {
-                            openBacklink({
-                                app,
-                                blockId: childData.blockId,
-                                rootId: childData.rootId,
-                                title: closeData.title,
-                            });
-                        } else if (childData.instance === "Graph") {
-                            openGraph({
-                                app,
-                                blockId: childData.blockId,
-                                rootId: childData.rootId,
-                                title: closeData.title
-                            });
-                        } else if (childData.instance === "Outline") {
-                            openOutline({
-                                app,
-                                rootId: childData.blockId,
-                                title: closeData.title,
-                                isPreview: childData.isPreview
-                            });
-                        }
-                    }
-                });
-            }
-            return true;
-        case "toggleDock":
-            toggleDockBar(document.querySelector("#barDock use"));
-            return true;
-        case "toggleWin":
-            // Electron 桌面端：隐藏并最小化窗口
-            if (isElectron) {
-                ipcSend(Constants.SIYUAN_CMD, "hide");
-                ipcSend(Constants.SIYUAN_CMD, "minimize");
-            }
-            return true;
-    }
-    if (command === "goToEditTabNext" || command === "goToEditTabPrev") {
-        let currentTabElement = document.querySelector(".layout__wnd--active ul.layout-tab-bar > .item--focus");
-        if (!currentTabElement) {
-            currentTabElement = document.querySelector("ul.layout-tab-bar > .item--focus");
-        }
-        if (!currentTabElement) {
-            return true;
-        }
-        const tabs = getAllTabs().sort((itemA, itemB) => {
-            return itemA.headElement.getAttribute("data-activetime") > itemB.headElement.getAttribute("data-activetime") ? -1 : 1;
-        });
-        const currentId = currentTabElement.getAttribute("data-id");
-        tabs.find((item, index) => {
-            if (currentId === item.id) {
-                let newItem: Tab;
-                if (command === "goToEditTabPrev") {
-                    if (index === 0) {
-                        newItem = tabs[tabs.length - 1];
-                    } else {
-                        newItem = tabs[index - 1];
-                    }
-                } else {
-                    if (index === tabs.length - 1) {
-                        newItem = tabs[0];
-                    } else {
-                        newItem = tabs[index + 1];
-                    }
-                }
-                const tab = getInstanceById(newItem.id) as Tab;
-                tab.parent.switchTab(newItem.headElement);
-                tab.parent.showHeading();
-            }
-        });
-        return true;
-    }
-    if (command === "closeUnmodified") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            const unmodifiedTabs: Tab[] = [];
-            tab.parent.children.forEach((item: Tab) => {
-                const editor = item.model as Editor;
-                if (!editor || (editor.editor?.protyle && !editor.editor?.protyle.updated)) {
-                    unmodifiedTabs.push(item);
-                }
-            });
-            if (unmodifiedTabs.length > 0) {
-                closeTabByType(tab, "other", unmodifiedTabs);
-            }
-        }
-        return true;
-    }
-    if (command === "unsplitAll") {
-        unsplitWnd(window.siyuan.layout.centerLayout, window.siyuan.layout.centerLayout, false);
-        return true;
-    }
-    if (command === "unsplit") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            let wndsTemp: Wnd[] = [];
-            let layout = tab.parent.parent;
-            while (layout.id !== window.siyuan.layout.centerLayout.id) {
-                wndsTemp = [];
-                getAllWnds(layout, wndsTemp);
-                if (wndsTemp.length > 1) {
-                    break;
-                } else {
-                    layout = layout.parent;
-                }
-            }
-            unsplitWnd(tab.parent.parent.children[0], layout, true);
-            resizeTabs();
-        }
-        return true;
-    }
-    if (command === "closeTab") {
-        const activeTabElement = document.querySelector(".layout__tab--active");
-        if (activeTabElement && activeTabElement.getBoundingClientRect().width > 0) {
-            let type: TDock;
-            Array.from(activeTabElement.classList).find(item => {
-                if (item.startsWith("sy__")) {
-                    type = item.replace("sy__", "") as TDock;
-                    return true;
-                }
-            });
-            if (type) {
-                getDockByType(type)?.toggleModel(type, false, true);
-            }
-            return true;
-        }
-
-        const tab = getActiveTab();
-        if (tab) {
-            tab.parent.removeTab(tab.id);
-            return true;
-        }
-        // https://github.com/siyuan-note/siyuan/issues/14729
-        if (window.siyuan.blockPanels.length > 0) {
-            window.siyuan.blockPanels[window.siyuan.blockPanels.length - 1]?.destroy();
-            return true;
-        }
-        const noFocusTab = getActiveTab(false);
-        if (noFocusTab) {
-            noFocusTab.parent.removeTab(noFocusTab.id);
-            return true;
-        }
-    }
-    if (command === "closeOthers" || command === "closeAll") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            closeTabByType(tab, command);
-        }
-        return true;
-    }
-    if (command === "closeLeft" || command === "closeRight") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            const leftTabs: Tab[] = [];
-            const rightTabs: Tab[] = [];
-            let midIndex = -1;
-            tab.parent.children.forEach((item: Tab, index: number) => {
-                if (item.id === tab.id) {
-                    midIndex = index;
-                }
-                if (midIndex === -1) {
-                    leftTabs.push(item);
-                } else if (index > midIndex) {
-                    rightTabs.push(item);
-                }
-            });
-            if (command === "closeLeft") {
-                if (leftTabs.length > 0) {
-                    closeTabByType(tab, "other", leftTabs);
-                }
-            } else {
-                if (rightTabs.length > 0) {
-                    closeTabByType(tab, "other", rightTabs);
-                }
-            }
-        }
-        return true;
-    }
-    if (command === "splitLR") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            tab.parent.split("lr").addTab(copyTab(app, tab));
-        }
-        return true;
-    }
-    if (command === "splitTB") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            tab.parent.split("tb").addTab(copyTab(app, tab));
-        }
-        return true;
-    }
-    if (command === "splitMoveB" || command === "splitMoveR") {
-        const tab = getActiveTab(false);
-        if (tab && tab.parent.children.length > 1) {
-            const newWnd = tab.parent.split(command === "splitMoveB" ? "tb" : "lr");
-            newWnd.headersElement.append(tab.headElement);
-            newWnd.headersElement.parentElement.classList.remove("fn__none");
-            newWnd.moveTab(tab);
-            resizeTabs();
-        }
-        return true;
-    }
-    if (command === "tabToWindow") {
-        const tab = getActiveTab(false);
-        if (tab) {
-            openNewWindow(tab);
-        }
-        return true;
-    }
-    }
-
-    switch (command) {
-        case "dailyNote":
-            newDailyNote(app);
-            return true;
-        case "dataHistory":
-            openHistory(app);
-            return true;
-        case "editReadonly":
-            setReadOnly(!window.siyuan.config.editor.readOnly);
-            return true;
-        case "lockScreen":
-            lockScreen(app);
-            return true;
-        case "newFile":
-            newFile({
-                app,
-                useSavePath: true
-            });
-            return true;
-        case "riffCard":
-            openCard(app);
-            return true;
-        case "selectOpen1":
-            selectOpenTab();
-            return true;
-        case "syncNow":
-            syncGuide(app);
-            return true;
-    }
-
-    return false;
+    const context: GlobalCommandContext = {
+        app,
+        command,
+    };
+    const executor = globalCommandRouter({ domain: resolveGlobalCommandDomain(command) });
+    return executor(context);
 };
