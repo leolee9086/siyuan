@@ -4,6 +4,7 @@ import { updateTransaction } from "./transaction";
 import { Constants } from "../../constants";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isInEmbedBlock } from "../util/hasClosest";
+import { highlightRender } from "../render/highlightRender";
 
 /**
  * 处理代码块创建的快捷键
@@ -45,21 +46,9 @@ export const handleCodeBlockCreation = (
             }
             nodeElement.remove();
             updateTransaction(protyle, newNodeElement, html);
-            // 需要导入 highlightRender，但为了避免循环依赖，这里使用全局调用
-            if (window.hljs) {
-                const highlightRender = (element: HTMLElement) => {
-                    const codeElement = element.querySelector("code");
-                    if (codeElement) {
-                        const language = element.querySelector(".protyle-action__language")?.textContent || "plaintext";
-                        if (window.hljs.getLanguage(language)) {
-                            codeElement.innerHTML = window.hljs.highlight(codeElement.textContent, { language, ignoreIllegals: false }).value;
-                        }
-                    }
-                };
-                newNodeElement instanceof HTMLElement && highlightRender(newNodeElement);
-            }
-            event.stopPropagation();
             event.preventDefault();
+            highlightRender(newNodeElement);
+            event.stopPropagation();
             controller.abort("代码块创建完成");
             return;
         }

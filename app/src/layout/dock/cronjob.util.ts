@@ -2,7 +2,7 @@
  * cronjob.util.ts - 定时任务面板工具函数
  */
 
-import { 任务运行时信息, 任务状态类型 } from "../../util/network/cronjob.types";
+import type { 任务运行时信息, 任务状态类型 } from "../../util/network/types";
 
 /**
  * 生成面板 HTML 结构

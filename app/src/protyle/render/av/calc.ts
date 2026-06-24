@@ -6,7 +6,7 @@ import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";
 import {Dialog} from "../../../dialog";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {escapeAttr} from "../../../util/escape";
+import {escapeAttr} from "../../../util/DOM/escape";
 
 const calcItem = (options: {
     menu: Menu,

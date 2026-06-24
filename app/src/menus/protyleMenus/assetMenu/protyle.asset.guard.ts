@@ -7,7 +7,7 @@
  * 使用范围：isAssetItem 与 isAssetItemArray 的返回类型声明
  * 解耦评估：类型依赖仅用于静态约束，已保持最小耦合
  */
-import { assetItem } from "./protyle.types";
+import type { assetItem } from "../protyle.types";
 
 /**
  * 检查一个值是否符合 assetItem 结构

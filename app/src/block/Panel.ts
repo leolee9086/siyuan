@@ -1,18 +1,18 @@
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {Protyle} from "../protyle";
-import {genUUID} from "../util/genID";
+import {genUUID} from "../util/platform/genID";
 import {setPosition} from "../util/setPosition";
 import {hideElements} from "../protyle/ui/hideElements";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import {moveResize} from "../dialog/moveResize";
-import {openFileById} from "../editor/util";
+import {openFileById} from "../editor/utils.openFileById";
 import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";
 import {App} from "../index";
 import {resize} from "../protyle/util/resize";
-import {checkFold} from "../util/noRelyPCFunction";
+import {checkFold} from "../util/platform/noRelyPCFunction";
 import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
 import {getTopBarHeight} from "../layout/getTopBarHeight";
 

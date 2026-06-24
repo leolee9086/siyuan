@@ -3,7 +3,6 @@ import { getEditorRange } from "../util/selection";
 import { hasClosestByTag } from "../util/hasClosest";
 import { tableMenu } from "../../menus/protyle";
 import { IMenu } from "../../menus/Menu";
-import { IProtyle } from "../protyle";
 
 
 /**

@@ -11,7 +11,7 @@ import {Dialog} from "../../dialog";
 import {useShell} from "../../util/pathName";
 import {updateHotkeyTip} from "../../protyle/util/compatibility";
 import {Menu} from "../../plugin/Menu";
-import {escapeAttr} from "../../util/escape";
+import {escapeAttr} from "../../util/DOM/escape";
 import {genConfigItemMainHtml, genListSwitchItemHtml} from "../render/fragments";
 import {genStackHtml} from "../render/render";
 import {controlBoolean} from "../setting/control";

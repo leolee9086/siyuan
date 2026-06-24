@@ -9,7 +9,7 @@ import {
     type StackRight,
     type SwitchQueryItem
 } from "./parts";
-import {escapeAttr} from "../../util/escape";
+import {escapeAttr} from "../../util/DOM/escape";
 import {buildRangeValues} from "../setting/domIO";
 import {genConfigItemMainHtml, genConfigItemName, genSwitchRow} from "./fragments";
 

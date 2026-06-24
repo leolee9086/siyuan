@@ -1422,3 +1422,45 @@
 验证：
 
 - `rg -n '^([<]{7} .+|[=]{7}$|[>]{7} .+)' app/src kernel docs` 复扫用于确认真实冲突标记已清理。
+
+### 前端构建错误收口
+
+状态：已处理，等待开发者回跑实际 dev 构建。
+
+处置结果：
+
+- 修复 `app/src/protyle/render/av/calc.ts` 的旧 `../../../util/escape` 导入，并逐个同步清理当前仓库中仍指向 `util/escape` 的导入：`app/src/boot/globalEvent/keydown.ts`、`app/src/config/render/render.ts`、`app/src/config/tabs/accountUi.ts`、`app/src/config/tabs/appearanceTab.ts`、`app/src/protyle/render/av/calc.ts` 均改为真实实现 `util/DOM/escape`，避免构建走到其它入口时再次触发同类 `Can't resolve`。
+- 修复 `app/src/protyle/wysiwyg/keydown.ts` 中 `attrMiddleware` 后缺失的中止返回结构，删除合并残留的旧“新建命名文件”内联块，避免文件尾部 `});` 被 esbuild 误报 `Unexpected ")"`。
+- 删除 `keydown.ts` 中已由 `arrowUpDownMiddleware`、`expandSelectMiddleware`、`superBlockSelectMiddleware` 承接的旧内联选择逻辑，并同步移除对应未使用导入；保留尚未迁出的 `foldRecursive` 逻辑，避免功能丢失。
+- 将代码块创建入口接回 `handleCodeBlockCreation` 中间件，并让该中间件继续使用原 `highlightRender` 路径，避免主流程和中间件行为不一致。
+- 将上游 `protyle.toolbar.range = range` 修复迁入 `keydown.createNewFile.ts` 的 `createNamedNewFileMiddleware`，避免删除旧内联块时丢失 `https://github.com/siyuan-note/siyuan/issues/17896` 的修复。
+- 未引入任何 `/// #if/#else/#endif` 条件编译。
+
+验证：
+
+- `rg -n 'util/escape' app/src -g '*.ts'` 无输出，确认当前源码不再引用旧 `util/escape` 路径。
+- `rg -n '^([<]{7} .+|[=]{7}$|[>]{7} .+)' app/src/boot/globalEvent/keydown.ts app/src/config/render/render.ts app/src/config/tabs/accountUi.ts app/src/config/tabs/appearanceTab.ts app/src/protyle/render/av/calc.ts app/src/protyle/wysiwyg/keydown.ts app/src/protyle/wysiwyg/keydown.codeBlock.ts app/src/protyle/wysiwyg/keydown.createNewFile.ts` 无输出。
+- `node -e "const fs=require('fs'); const esbuild=require('./node_modules/.pnpm/esbuild@0.19.12/node_modules/esbuild'); for (const file of ['src/protyle/wysiwyg/keydown.ts','src/protyle/wysiwyg/keydown.codeBlock.ts','src/protyle/wysiwyg/keydown.createNewFile.ts','src/protyle/render/av/calc.ts','src/boot/globalEvent/keydown.ts','src/config/render/render.ts','src/config/tabs/accountUi.ts','src/config/tabs/appearanceTab.ts']) { const code=fs.readFileSync(file,'utf8'); esbuild.transformSync(code,{loader:'ts',format:'esm'}); console.log(file+' ok'); }"` 在 `app` 目录通过。
+- `git diff --check -- app/src/boot/globalEvent/keydown.ts app/src/config/render/render.ts app/src/config/tabs/accountUi.ts app/src/config/tabs/appearanceTab.ts app/src/protyle/render/av/calc.ts app/src/protyle/wysiwyg/keydown.ts app/src/protyle/wysiwyg/keydown.codeBlock.ts app/src/protyle/wysiwyg/keydown.createNewFile.ts` 通过；仅提示 `keydown.codeBlock.ts` / `keydown.createNewFile.ts` 后续 Git 触碰时会按设置处理 CRLF/LF。
+- `pnpm run lint` 已执行但不能作为通过依据：当前仓库存在大量既有 lint 问题，首先命中 `benchmark_vector_api.js`、`electron/main.js`、`src/ai/*` 等文件的全局/目录/导入注释规则；未运行 `pnpm build` 或 webpack，避免干扰开发者正在运行的 dev 构建。
+
+### 前端 import 导出与模块路径继续收口
+
+状态：已处理，等待开发者回跑实际 dev 构建。
+
+处置结果：
+
+- 修复 `app/src/boot/globalEvent/keydown.ts` 中 `openFileById` 和 `bindMenuKeydown` 的旧聚合模块导入：分别改为真实导出 `editor/utils.openFileById` 与 `menus/Menu.bindMenuKeydown`，消除 webpack `export ... was not found` warning。
+- 同步处理同类 `openFileById` 旧导入残留：`app/src/block/Panel.ts`、`app/src/layout/dock/Outline.ts` 均改为真实导出 `editor/utils.openFileById`，避免后续入口触发同样 warning。
+- 修复迁移后仍指向旧 util 路径的导入：`Panel.ts` 的 `genID` / `noRelyPCFunction` 指向 `util/platform`，`Outline.ts` 的 `Tree` 指向 `util/file/Tree`，`workspace.remote.ts` 的 `mount` / `upDownHint` 指向真实位置。
+- 修复 `app/src/config/tabs/syncUi.ts` 的 `needSubscribe` 路径、`app/src/protyle/util/insertHTML.ts` 的 `updateListOrder` 导入来源，直接依赖真实实现文件，未通过新增兼容转发掩盖问题。
+- 修复网络类型旧文件名残留：`Cronjob.ts`、`cronjob.util.ts`、`mockWise.ts`、`request.types.ts`、`assets.ts` 等改为从 `util/network/types.ts` 进行 type-only 导入；`protyle.asset.guard.ts` 的 `assetItem` 改为从真实 `protyle.types.ts` 导入。
+- 删除 `buildGutterTableMenu.ts` 对不存在的 `../protyle` 的 `IProtyle` 导入，继续使用全局 `IProtyle` 类型声明，不引入运行时循环。
+- 未引入任何 `/// #if/#else/#endif` 条件编译。
+
+验证：
+
+- 过滤备份目录和 `.backup.ts` 后的相对 import 解析扫描无输出，未发现新的明显 `Can't resolve` 候选。
+- `node -e "const fs=require('fs'); const esbuild=require('./node_modules/.pnpm/esbuild@0.19.12/node_modules/esbuild'); const files=['src/boot/globalEvent/keydown.ts','src/block/Panel.ts','src/layout/dock/Outline.ts','src/layout/dock/Cronjob.ts','src/layout/dock/cronjob.util.ts','src/magi/core/wise/mockWise.ts','src/magi/types/request.types.ts','src/menus/protyleMenus/assetMenu/protyle.asset.guard.ts','src/util/assets/assets.ts','src/protyle/gutter/buildGutterTableMenu.ts','src/config/tabs/syncUi.ts','src/protyle/util/insertHTML.ts','src/menus/workspace.remote.ts']; for (const file of files) { const code=fs.readFileSync(file,'utf8'); esbuild.transformSync(code,{loader:'ts',format:'esm'}); console.log(file+' ok'); }"` 在 `app` 目录通过。
+- `git diff --check -- app/src/boot/globalEvent/keydown.ts app/src/block/Panel.ts app/src/layout/dock/Outline.ts app/src/layout/dock/Cronjob.ts app/src/layout/dock/cronjob.util.ts app/src/magi/core/wise/mockWise.ts app/src/magi/types/request.types.ts app/src/menus/protyleMenus/assetMenu/protyle.asset.guard.ts app/src/util/assets/assets.ts app/src/protyle/gutter/buildGutterTableMenu.ts app/src/config/tabs/syncUi.ts app/src/protyle/util/insertHTML.ts app/src/menus/workspace.remote.ts` 通过；仅提示部分已触碰文件后续 Git 会按设置处理 CRLF/LF。
+- `pnpm run lint:file -- src/boot/globalEvent/keydown.ts --json`、`pnpm run lint:file -- src/protyle/util/insertHTML.ts --json`、`pnpm run lint:file -- src/layout/dock/Cronjob.ts --json` 已执行但不能作为通过依据：分别命中 737 / 252 / 39 个既有架构 lint 问题，主要是导入注释、父级导入、目录数量、直接访问 window、旧 if/forEach 规则等；本次未运行会全仓 `--fix` 的 `pnpm run lint`，避免改动无关文件。

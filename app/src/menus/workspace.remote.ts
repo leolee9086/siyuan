@@ -3,7 +3,7 @@ import {isElectron} from "../platform";
 import {ipcInvoke, ipcSend} from "../platform/electron/ipcRenderer";
 import {openHistory} from "../history/history";
 import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/pathName";
-import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/mount";
+import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/file/mount";
 import {fetchPost} from "../util/fetch";
 import {Constants} from "../constants";
 import {isInAndroid, isInHarmony, isInMobileApp, isIPad, setStorageVal, writeText} from "../protyle/util/compatibility";
@@ -25,7 +25,7 @@ import {App} from "../index";
 import {isBrowser} from "../util/functions";
 import {openRecentDocs} from "../business/openRecentDocs";
 import * as dayjs from "dayjs";
-import {upDownHint} from "../util/upDownHint";
+import {upDownHint} from "../util/DOM/upDownHint";
 
 const editLayout = (layoutName?: string) => {
     const dialog = new Dialog({

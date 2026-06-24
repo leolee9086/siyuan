@@ -19,7 +19,7 @@ import {
     立即执行,
     获取日志
 } from "../../util/network/cronjobApi";
-import { 任务运行时信息 } from "../../util/network/cronjob.types";
+import type { 任务运行时信息 } from "../../util/network/types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
 import { setWindowInterval, clearWindowInterval } from "./dock.environment";
 import { openFileById } from "../../editor/utils.openFileById";

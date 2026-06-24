@@ -1,6 +1,6 @@
 import {Tab} from "../Tab";
 import {Model} from "../Model";
-import {Tree} from "../../util/Tree";
+import {Tree} from "../../util/file/Tree";
 import {getInstanceById, setPanelFocus} from "../util";
 import {getDockByType} from "../tabUtil";
 import {fetchPost} from "../../util/fetch";
@@ -13,14 +13,14 @@ import {
     updateHotkeyAfterTip,
     writeText
 } from "../../protyle/util/compatibility";
-import {openFileById} from "../../editor/util";
+import {openFileById} from "../../editor/utils.openFileById";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu";
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
 import {App} from "../../index";
-import {checkFold} from "../../util/noRelyPCFunction";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
 import {goHome} from "../../protyle/wysiwyg/commonHotkey";
 import {Editor} from "../../editor";

@@ -13,7 +13,7 @@ import {
     hasClosestByClassName,
     hasTopClosestByTag,
 } from "../../protyle/util/hasClosest";
-import {newFile} from "../../util/newFile";
+import {newFile} from "../../util/file/newFile";
 import {Constants} from "../../constants";
 import {openSetting} from "../../config";
 import {getInstanceById, saveLayout} from "../../layout/util";
@@ -23,20 +23,20 @@ import {Editor} from "../../editor";
 import {setEditMode} from "../../protyle/util/setEditMode";
 import {rename} from "../../editor/rename";
 import {Files} from "../../layout/dock/Files";
-import {newDailyNote} from "../../util/mount";
+import {newDailyNote} from "../../util/file/mount";
 import {hideElements} from "../../protyle/ui/hideElements";
 import {fetchPost} from "../../util/fetch";
-import {goBack, goForward} from "../../util/backForward";
+import {goBack, goForward} from "../../util/platform/backForward";
 import {getDisplayName, getNotebookName} from "../../util/pathName";
-import {openFileById} from "../../editor/util";
+import {openFileById} from "../../editor/utils.openFileById";
 import {getAllDocks, getAllModels, getAllTabs} from "../../layout/getAll";
 import {focusBlock, focusByRange} from "../../protyle/util/selection";
 import {initFileMenu, initNavigationMenu} from "../../menus/navigation";
-import {bindMenuKeydown} from "../../menus/Menu";
+import {bindMenuKeydown} from "../../menus/Menu.bindMenuKeydown";
 import {Dialog} from "../../dialog";
 import {unicode2Emoji} from "../../emoji";
 import {deleteFiles} from "../../editor/deleteFile";
-import {escapeHtml} from "../../util/escape";
+import {escapeHtml} from "../../util/DOM/escape";
 import {syncGuide} from "../../sync/syncGuide";
 import {duplicateBlock, getStartEndElement, goEnd, goHome} from "../../protyle/wysiwyg/commonHotkey";
 import {getNextFileLi, getPreviousFileLi} from "../../protyle/wysiwyg/getBlock";

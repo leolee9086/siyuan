@@ -8,7 +8,7 @@
 
 // [TASK] T2.1 迁移MAGI核心系统 - wise/mockWise
 import { getSafeSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import type { StreamCallbacks, StreamRequestConfig } from "../../../util/network/fetchStream.types";
+import type { StreamCallbacks, StreamRequestConfig } from "../../../util/network/types";
 import { 是AI响应Chunk } from "./wise.guard";
 import { 提取桥接Chunk数据, 构建桥接SSE行, 执行追加上下文消息, 执行替换最近Assistant上下文消息 } from "./mockWise.streamBridge";
 import type { MockWISEConfig, ContextMessage, OpenAICompatConfig, ReplyOptions } from "../core.types";

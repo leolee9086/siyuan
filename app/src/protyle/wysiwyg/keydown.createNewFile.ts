@@ -26,6 +26,9 @@ export const createNamedNewFileMiddleware = (
             ) {
                 selectAll(protyle, nodeElement, range);
             }
+            // 同步 toolbar.range，避免 DOM 已被其他操作替换后变为 detached
+            // https://github.com/siyuan-note/siyuan/issues/17896
+            protyle.toolbar.range = range;
             if (isNewNameFile) {
                 fetchPost("/api/filetree/getHPathByPath", {
                     notebook: protyle.notebookId,

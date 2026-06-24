@@ -6,7 +6,7 @@ import { exportLayout } from "../../layout/util";
 import {isMobile, isBrowser} from "../../platform";
 // S-forge: 模块化重构 - 使用环境抽象层和资源模块
 import { fetchPost } from "../network/fetch";
-import { IFetchRequestObject } from "../network/fetch.types";
+import type { IFetchRequestObject } from "../network/types";
 import { getSiyuanConfig, getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowDestroyTheme, setWindowDestroyTheme, windowMatchMedia } from "../siyuanEnvironments/windowAppearance.environment";
 import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";

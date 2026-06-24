@@ -7,13 +7,13 @@ import {isInIOS} from "../../protyle/util/compatibility";
 import {isMobile} from "../../util/functions";
 import {processSync} from "../../dialog/processSystem";
 import {getCloudURL, getIndexURL} from "../util/about";
-import {iOSPurchase} from "../../util/iOSPurchase";
+import {iOSPurchase} from "../../util/platform/iOSPurchase";
 import {hideElements} from "../../protyle/ui/hideElements";
 import {closePanel} from "../../mobile/util/closePanel";
 import md5 from "blueimp-md5";
 import type {SettingTabBuilder} from "../setting/builder";
 import {patchSyncConfig, refreshSyncCloudSpaceGroup} from "./syncRuntime";
-import {escapeAttr, escapeHtml} from "../../util/escape";
+import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 
 /** 账号节：由 syncTab 注册 */
 export const registerAccountGroup = (tab: SettingTabBuilder) => {

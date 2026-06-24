@@ -18,7 +18,7 @@ import {updateAttrViewCellAnimation, updateAVName} from "../render/av/action";
 import {updateCellsValue} from "../render/av/cell";
 import {input} from "../wysiwyg/input";
 import {fetchPost} from "../../util/network/fetch";
-import {updateListOrder} from "../wysiwyg/list";
+import {updateListOrder} from "../wysiwyg/list.updateOrder";
 import {isIncludeCell} from "./table/table";
 import {getFieldIdByCellElement} from "../render/av/row";
 import {processClonePHElement} from "../render/util";

@@ -1,7 +1,7 @@
 import { Tab } from "./Tab";
 import { createTabModel } from "../registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
-import { getAllModels, getAllTabs } from "./getAll";
+import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
 import { pdfResize } from "../asset/renderAssets";
 import { App } from "../index";
@@ -27,7 +27,7 @@ import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
 import { setTabPosition } from "../window/setHeader";
 
-export { setTabPosition };
+export { setTabPosition, getAllTabs, getAllWnds, getInstanceById };
 
 export const getActiveTab = (wndActive = true) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
