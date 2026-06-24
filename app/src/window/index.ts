@@ -29,7 +29,7 @@ import { init } from "./init";
 import { loadPlugins, reloadPlugin } from "../plugin/loader";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { reloadEmoji } from "../emoji";
-import { updateAppearance } from "../config/util/updateAppearance";
+import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 import { renderSnippet } from "../config/util/snippets";
 import { setBodyHighlight } from "../util/assets/assets";
 import { setSForgeState } from "../config/sforge.global";
@@ -61,7 +61,7 @@ class App {
                                 redirectToCheckAuth();
                                 break;
                             case "setAppearance":
-                                updateAppearance(data.data);
+                                appearanceConfigApi.apply(data.data);
                                 break;
                             case "setSnippet":
                                 window.siyuan.config.snippet = data.data;

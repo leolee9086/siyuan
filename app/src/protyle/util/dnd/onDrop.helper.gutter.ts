@@ -215,12 +215,108 @@ export const handleBlockDrag = async (
     targetClass: string[],
     ctrlKey: boolean,
     editorElement: HTMLElement,
+    gutterTypes: string[],
 ): Promise<void> => {
+    const isChild = targetClass.some(item => item.includes("--child"));
+    const isBottom = targetClass.some(item => item.indexOf("dragover__bottom") === 0);
     const isHorizontal = targetClass.includes("dragover__left") || targetClass.includes("dragover__right");
-    const isAfter = targetClass.includes("dragover__bottom") || targetClass.includes("dragover__right");
+    const isAfter = isBottom || targetClass.includes("dragover__right");
     const parentEl = targetElement.parentElement;
     const isSbCol = parentEl?.getAttribute("data-type") === "NodeSuperBlock"
         && parentEl?.getAttribute("data-sb-layout") === "col";
+    const isListSource = gutterTypes[0] === "nodelistitem" || gutterTypes[0] === "nodelist";
+    if (isListSource) {
+        if (targetElement.classList.contains("list") &&
+            sourceElements.some(sourceElement => targetElement.contains(sourceElement))) {
+            return;
+        }
+        let targetLi: HTMLElement | undefined;
+        if (targetElement.classList.contains("li")) {
+            targetLi = targetElement as HTMLElement;
+        } else if (targetElement.classList.contains("list")) {
+            const lis = targetElement.querySelectorAll(":scope > .li");
+            targetLi = (isBottom ? lis[lis.length - 1] : lis[0]) as HTMLElement;
+        } else {
+            targetLi = targetElement.closest(".li") as HTMLElement;
+        }
+        if (targetLi) {
+            const isNoOpDrop = sourceElements.some(sourceElement =>
+                sourceElement === targetLi ||
+                sourceElement.contains(targetLi) ||
+                (!isChild && isBottom && sourceElement === targetLi.nextElementSibling) ||
+                (!isChild && !isBottom && sourceElement === targetLi.previousElementSibling));
+            if (isNoOpDrop) {
+                return;
+            }
+        } else {
+            const sourceSelected = sourceElements[0];
+            if (sourceSelected && (sourceSelected.classList.contains("li") || sourceSelected.classList.contains("list"))) {
+                if (targetElement.classList.contains("list") && targetElement.contains(sourceSelected)) {
+                    return;
+                }
+                let current: Element | null = sourceSelected;
+                while (current && current !== editorElement) {
+                    if (current.classList.contains("list") || current.classList.contains("li")) {
+                        let previous = current.previousElementSibling;
+                        while (previous?.classList.contains("protyle-attr")) {
+                            previous = previous.previousElementSibling;
+                        }
+                        let next = current.nextElementSibling;
+                        while (next?.classList.contains("protyle-attr")) {
+                            next = next.nextElementSibling;
+                        }
+                        if (targetElement === previous || targetElement === next) {
+                            return;
+                        }
+                    }
+                    current = current.parentElement;
+                }
+            }
+        }
+    }
+
+    if (targetElement.getAttribute("data-type") === "NodeListItem") {
+        const expandedElements: Element[] = [];
+        sourceElements.forEach(item => {
+            if (item.getAttribute("data-type") === "NodeList") {
+                Array.from(item.children).forEach((li) => {
+                    if (li.classList.contains("li")) {
+                        expandedElements.push(li);
+                    }
+                });
+                return;
+            }
+            expandedElements.push(item);
+        });
+        if (expandedElements.length > 0) {
+            sourceElements.length = 0;
+            sourceElements.push(...expandedElements);
+        }
+    }
+
+    if (isChild && targetElement.getAttribute("data-type") === "NodeListItem") {
+        const nestedList = Array.from(targetElement.children).find(item => item.classList.contains("list"));
+        let nestedTarget: Element | undefined;
+        if (nestedList) {
+            const liChildren = Array.from(nestedList.children).filter(item => item.classList.contains("li"));
+            nestedTarget = (isBottom ? liChildren[liChildren.length - 1] : liChildren[0]) as Element;
+        }
+        if (nestedTarget) {
+            if (!sourceElements.includes(nestedTarget)) {
+                dragSame(protyle, sourceElements, nestedTarget, isBottom, ctrlKey);
+            }
+        } else {
+            const contentBlocks = Array.from(targetElement.children).filter(item =>
+                item.hasAttribute("data-node-id") && !item.classList.contains("list"));
+            const lastContentBlock = contentBlocks[contentBlocks.length - 1];
+            if (lastContentBlock) {
+                dragSame(protyle, sourceElements, lastContentBlock, true, ctrlKey);
+            } else {
+                dragSame(protyle, sourceElements, targetElement, isBottom, ctrlKey);
+            }
+        }
+        return;
+    }
 
     // 超级块列布局 + 水平拖拽：同级移动（Mac 上 ⌘ 无法进行拖拽，用 Ctrl）
     if (isSbCol && isHorizontal) {
@@ -232,6 +328,9 @@ export const handleBlockDrag = async (
     }
     // 非超级块 + 水平拖拽：创建列布局超级块
     if (!isSbCol && isHorizontal) {
+        if (gutterTypes[0] === "nodelistitem" && targetElement.classList.contains("list")) {
+            return;
+        }
         dragSb(protyle, sourceElements, targetElement, isAfter, "col", ctrlKey);
     }
     // 非超级块 + 垂直拖拽：同级移动

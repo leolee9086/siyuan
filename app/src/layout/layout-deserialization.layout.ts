@@ -6,7 +6,7 @@
 import { App } from "../index";
 import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
-import { getIdZoomInByPath } from "../util/file/pathName";
+import { parseUriInfo } from "../util/pathName";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { isBrowser } from "../platform";
 import { getAllTabs } from "./getAll";
@@ -27,7 +27,7 @@ import {
 } from "./layout-deserialization.environment";
 import { isMobile } from "../platform";
 
-// ============ Tab 移除处理 ============
+// Tab 移除处理
 
 /**
  * 移除启动时未固定的Tab
@@ -50,7 +50,7 @@ export const removeUnpinnedTabsOnStart = (): void => {
     }
 };
 
-// ============ 插件检查 ============
+// 插件检查
 
 /**
  * 检查插件是否已注册指定的模型类型
@@ -126,7 +126,7 @@ export const handleMissingPluginTabs = (app: App): void => {
     }
 };
 
-// ============ URL 文件打开 ============
+// URL 文件打开
 
 /**
  * 处理URL中指定的文件打开
@@ -134,20 +134,20 @@ export const handleMissingPluginTabs = (app: App): void => {
  * @returns true 表示已处理URL文件打开，false 表示无需处理
  */
 export const handleUrlFileOpen = (app: App): boolean => {
-    const idZoomIn = getIdZoomInByPath();
+    const info = parseUriInfo();
     // 无指定ID时返回false
-    if (!idZoomIn.id) {
+    if (!info.id) {
         return false;
     }
     // 根据是否缩放选择不同的打开方式
-    const action: TProtyleAction[] = idZoomIn.isZoomIn
+    const action: TProtyleAction[] = info.focus
         ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS]
         : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL];
-    openFileById({ app, id: idZoomIn.id, action, zoomIn: idZoomIn.isZoomIn });
+    openFileById({ app, id: info.id, action, zoomIn: info.focus });
     return true;
 };
 
-// ============ Tab 激活处理 ============
+// Tab 激活处理
 
 /**
  * 查找最新激活的Tab头元素
@@ -218,7 +218,7 @@ export const activateInitialTabs = (removedTabs: Tab[]): void => {
     }
 };
 
-// ============ 启动时Tab关闭处理 ============
+// 启动时Tab关闭处理
 
 /**
  * 根据配置决定是否移除未固定的Tab

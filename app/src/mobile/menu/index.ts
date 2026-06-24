@@ -1,23 +1,14 @@
 import {popSearch} from "./search";
-import {initAppearance} from "../settings/appearance";
-import {initConfigAssets} from "../settings/assets";
 import {closePanel} from "../util/closePanel";
 import {mountHelp, newDailyNote, newNotebook} from "../../util/file/mount";
-import {repos} from "../../config/repos";
-import {publish} from "../../config/publish";
 import {exitSiYuan, processSync} from "../../dialog/processSystem";
 import { lockScreen } from "../../dialog/processSystem/lockScreen";
 import {openHistory} from "../../history/history";
 import {syncGuide} from "../../sync/syncGuide";
 import {openCard} from "../../card/openCard";
 import {activeBlur} from "../util/keyboardToolbar";
-import {initAI} from "../settings/ai";
-import {initRiffCard} from "../settings/riffCard";
-import {login, showAccountInfo} from "../settings/account";
 import {openModel} from "./model";
-import {initAbout} from "../settings/about";
 import {getRecentDocs} from "./getRecentDocs";
-import {initEditor} from "../settings/editor";
 import {App} from "../../index";
 import {
     isDisabledFeature,
@@ -28,12 +19,52 @@ import {newFile} from "../../util/file/newFile";
 import {afterLoadPlugin} from "../../plugin/loader";
 import {commandPanel} from "../../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";
-import {initFileTree} from "../settings/fileTree";
-import {initExport} from "../settings/export";
+import {
+    getSettingTab,
+    getSettingTabDefs,
+    settingTabToMenuId,
+    type ISettingTabShell,
+    type TSettingTab
+} from "../../config/setting/tabs";
+import {bindSettingSaveDelegation} from "../../config/setting/save";
+import {isMobile} from "../../util/platform/functions";
+import {getCurrentEditor} from "../editor";
 // S-forge: 本地i18n封装，替代直接访问 window.siyuan.languages
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
+// S-forge: 保留本地运行时 AI 可见性判断，避免移动端菜单显示被禁用功能。
+const isSettingTabHidden = (def: ISettingTabShell<TSettingTab>) => {
+    return def.hidden || (["ai", "AIProfiles"].includes(def.id) && (isHuawei() || isDisabledFeature("ai")));
+};
+
+const getSettingTabFromMenuTarget = (target: HTMLElement): ISettingTabShell<TSettingTab> | undefined => {
+    const item = target.closest(".b3-menu__item") as HTMLElement | null;
+    if (!item?.id) {
+        return undefined;
+    }
+    return getSettingTabDefs().find(def => settingTabToMenuId(def.id) === item.id);
+};
+
+const openSettingTabModel = (app: App, settingTabDef: ISettingTabShell<TSettingTab>, title = settingTabDef.title, icon = settingTabDef.icon) => {
+    if (isSettingTabHidden(settingTabDef)) {
+        return;
+    }
+    openModel({
+        title,
+        icon,
+        html: `<div class="config${isMobile() ? " config--mobile" : ""}"></div>`,
+        bindEvent(modelMainElement: HTMLElement) {
+            const root = modelMainElement.firstElementChild as HTMLElement;
+            bindSettingSaveDelegation(root);
+            void getSettingTab(settingTabDef.id).mount(root, undefined, app);
+        }
+    });
+};
+
 export const popMenu = () => {
+    if (getCurrentEditor()?.protyle.toolbar.isMultiSelectMode()) {
+        return;
+    }
     activeBlur();
     document.getElementById("menu").style.transform = "translateX(0px)";
 };
@@ -52,14 +83,11 @@ export const initRightMenu = (app: App) => {
 </div>`;
     }
 
-    let aiHTML = `<div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAI">
-        <svg class="b3-menu__icon"><use xlink:href="#iconSparkles"></use></svg><span class="b3-menu__label">AI</span>
-    </div>`;
-    if (isHuawei() || isDisabledFeature("ai")) {
-        // Access to the OpenAI API is no longer supported on Huawei devices https://github.com/siyuan-note/siyuan/issues/8192
-        // Apps in Chinese mainland app stores no longer provide AI access settings https://github.com/siyuan-note/siyuan/issues/13051
-        aiHTML = "";
-    }
+    const settingTabsMenuHTML = getSettingTabDefs().map(def =>
+        `<div class="b3-menu__item${isSettingTabHidden(def) ? " fn__none" : ""}" id="${settingTabToMenuId(def.id)}">
+        <svg class="b3-menu__icon"><use xlink:href="#${def.icon}"></use></svg>
+        <span class="b3-menu__label">${def.title}</span>
+    </div>`).join("");
 
     menuElement.innerHTML = `<div class="b3-menu__title">
     <svg class="b3-menu__icon"><use xlink:href="#iconLeft"></use></svg>
@@ -103,34 +131,7 @@ export const initRightMenu = (app: App) => {
         <svg class="b3-menu__icon"><use xlink:href="#iconQuit"></use></svg><span class="b3-menu__label">${siyuanI18n.safeQuit}</span>
     </div>
     <div class="b3-menu__separator"></div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuEditor">
-        <svg class="b3-menu__icon"><use xlink:href="#iconEdit"></use></svg><span class="b3-menu__label">${siyuanI18n.editor}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuFileTree">
-        <svg class="b3-menu__icon"><use xlink:href="#iconFiles"></use></svg><span class="b3-menu__label">${siyuanI18n.fileTree}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuRiffCard">
-        <svg class="b3-menu__icon"><use xlink:href="#iconRiffCard"></use></svg><span class="b3-menu__label">${siyuanI18n.riffCard}</span>
-    </div>
-    ${aiHTML}
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAssets">
-        <svg class="b3-menu__icon"><use xlink:href="#iconImage"></use></svg><span class="b3-menu__label">${siyuanI18n.assets}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuExport">
-        <svg class="b3-menu__icon"><use xlink:href="#iconUpload"></use></svg><span class="b3-menu__label">${window.siyuan.languages.export}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAppearance">
-        <svg class="b3-menu__icon"><use xlink:href="#iconTheme"></use></svg><span class="b3-menu__label">${siyuanI18n.appearance}</span>
-    </div>
-    <div id="menuSync" class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}">
-        <svg class="b3-menu__icon"><use xlink:href="#iconCloud"></use></svg><span class="b3-menu__label">${siyuanI18n.cloud}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuPublish">
-        <svg class="b3-menu__icon"><use xlink:href="#iconPublish"></use></svg><span class="b3-menu__label">${siyuanI18n.publish}</span>
-    </div>
-    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAbout">
-        <svg class="b3-menu__icon"><use xlink:href="#iconInfo"></use></svg><span class="b3-menu__label">${siyuanI18n.about}</span>
-    </div>
+    ${settingTabsMenuHTML}
     <div class="b3-menu__item" id="menuPlugin">
         <svg class="b3-menu__icon"><use xlink:href="#iconPlugin"></use></svg><span class="b3-menu__label">${siyuanI18n.plugin}</span>
     </div>
@@ -150,6 +151,7 @@ export const initRightMenu = (app: App) => {
     // 只能用 click，否则无法上下滚动 https://github.com/siyuan-note/siyuan/issues/6628
     menuElement.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
+        let settingTabDef: ISettingTabShell<TSettingTab> | undefined;
         while (target && !target.isEqualNode(menuElement)) {
             if (target.classList.contains("b3-menu__title")) {
                 closePanel();
@@ -172,50 +174,10 @@ export const initRightMenu = (app: App) => {
                 event.preventDefault();
                 event.stopPropagation();
                 break;
-            } else if (target.id === "menuAppearance") {
-                initAppearance();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuAssets") {
-                initConfigAssets(app);
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuExport") {
-                initExport();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuAI") {
-                initAI();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuRiffCard") {
-                initRiffCard();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuEditor") {
-                initEditor();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuFileTree") {
-                initFileTree();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
             } else if (target.id === "menuSafeQuit") {
                 event.preventDefault();
                 event.stopPropagation();
                 exitSiYuan();
-                break;
-            } else if (target.id === "menuAbout") {
-                initAbout();
-                event.preventDefault();
-                event.stopPropagation();
                 break;
             } else if (target.id === "menuPlugin") {
                 openTopBarMenu(app);
@@ -259,32 +221,6 @@ export const initRightMenu = (app: App) => {
                 event.preventDefault();
                 event.stopPropagation();
                 break;
-            } else if (target.id === "menuSync") {
-                openModel({
-                    title: siyuanI18n.cloud,
-                    icon: "iconCloud",
-                    html: repos.genHTML(),
-                    bindEvent(modelMainElement: HTMLElement) {
-                        repos.element = modelMainElement;
-                        repos.bindEvent();
-                    }
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuPublish") {
-                openModel({
-                    title: siyuanI18n.publish,
-                    icon: "iconPublish",
-                    html: publish.genHTML(),
-                    bindEvent(modelMainElement: HTMLElement) {
-                        publish.element = modelMainElement;
-                        publish.bindEvent();
-                    }
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                break;
             } else if (target.id === "menuSyncNow") {
                 syncGuide();
                 event.preventDefault();
@@ -296,13 +232,17 @@ export const initRightMenu = (app: App) => {
                 event.stopPropagation();
                 break;
             } else if (target.id === "menuAccount") {
+                const syncTab = getSettingTabDefs().find(def => def.id === "sync");
+                if (syncTab) {
+                    openSettingTabModel(app, syncTab, window.siyuan.user ? siyuanI18n.manage : siyuanI18n.login, "iconAccount");
+                }
                 event.preventDefault();
                 event.stopPropagation();
-                if (document.querySelector("#menuAccount img")) {
-                    showAccountInfo();
-                    return;
-                }
-                login();
+                break;
+            } else if ((settingTabDef = getSettingTabFromMenuTarget(target))) {
+                openSettingTabModel(app, settingTabDef);
+                event.preventDefault();
+                event.stopPropagation();
                 break;
             }
             target = target.parentElement;

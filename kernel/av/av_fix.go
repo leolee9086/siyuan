@@ -26,6 +26,8 @@ import (
 
 const CurrentSpec = 5
 
+const MaxFilterNestingDepth = 3
+
 func UpgradeSpec(av *AttributeView) {
 	if CurrentSpec <= av.Spec {
 		return
@@ -36,6 +38,15 @@ func UpgradeSpec(av *AttributeView) {
 	upgradeSpec3(av)
 	upgradeSpec4(av)
 	upgradeSpec5(av)
+}
+
+func CheckSpec(av *AttributeView) (err error) {
+	if CurrentSpec < av.Spec {
+		logging.LogErrorf("attribute view spec [%d] is newer than current [%d]", av.Spec, CurrentSpec)
+		err = ErrSpecTooNew
+		return
+	}
+	return
 }
 
 // upgradeSpec5 将旧的扁平过滤规则数组包装为单个隐式 AND 根组，支持递归嵌套分组。

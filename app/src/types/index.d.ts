@@ -283,8 +283,8 @@ interface Window {
         }
     };
     htmlToImage: {
-        toCanvas: (element: Element) => Promise<HTMLCanvasElement>
-        toBlob: (element: Element) => Promise<Blob>
+        toCanvas: (element: Element, options?: Partial<IObject>) => Promise<HTMLCanvasElement>
+        toBlob: (element: Element, options?: Partial<IObject>) => Promise<Blob>
     };
     siyuan: ISiyuan;
     JSAndroid: {
@@ -603,11 +603,31 @@ interface ISiyuan {
         userHomeBImgURL: string
         userIntro: string
         userNickname: string
-        userSiYuanOneTimePayStatus: number  // 0 未付费；1 已付费
-        userSiYuanProExpireTime: number // -1 终身会员；0 普通用户；> 0 过期时间
-        userSiYuanSubscriptionPlan: number // 0 年付订阅/终生；1 教育优惠；2 订阅试用
-        userSiYuanSubscriptionType: number // 0 年付；1 终生；2 月付
-        userSiYuanSubscriptionStatus: number // -1：未订阅，0：订阅可用，1：订阅封禁，2：订阅过期
+        /**
+         * 功能特性付费状态
+         * 0 未付费，1 已付费
+         */
+        userSiYuanOneTimePayStatus: number
+        /**
+         * 会员过期时间
+         * -1 终身会员；0 未订阅或订阅已过期；>0 订阅到期时间（时间戳，毫秒）
+         */
+        userSiYuanProExpireTime: number
+        /**
+         * 订阅计划类型
+         * 0 年付订阅/终生；1 教育优惠；2 订阅试用
+         */
+        userSiYuanSubscriptionPlan: number
+        /**
+         * 订阅类型
+         * 0 年付；1 终生；2 月付
+         */
+        userSiYuanSubscriptionType: number
+        /**
+         * 订阅状态
+         * -1 未订阅，0 订阅可用，1 订阅封禁，2 订阅过期（包括付费订阅过期和试用订阅过期）
+         */
+        userSiYuanSubscriptionStatus: number
         userToken: string
         userTitles: {
             name: string,
@@ -616,6 +636,7 @@ interface ISiyuan {
         }[]
     },
     dragElement?: HTMLElement | undefined,
+    dragTitle?: string,
     currentDragOverTabHeadersElement?: HTMLElement
     touchDragActive?: boolean,
     touchDragGhost?: HTMLElement | null,
@@ -1310,8 +1331,6 @@ interface IKernelPluginRpcError {
     data?: any;
 }
 
-
-
 interface IKernelPluginRpc {
     /**
      * 通过 {@link Proxy} 实现的动态方法调用，插件开发者可以直接调用 `call.方法名(params)` 来调用内核插件暴露的方法，无需关心 JSON-RPC 的细节
@@ -1337,4 +1356,28 @@ interface IKernelPluginRpc {
      * 解绑事件处理函数，插件开发者可以通过 `unbind("方法名", handler)` 来停止监听内核插件通过 JSON-RPC 推送到客户端插件的通知
      */
     unbind: (method: TJsonRpcMethod, handler: TJsonRpcHandler<void>) => void;
+}
+
+/**
+ * SiYuan URI 块信息接口，用于描述通过 SiYuan URI 协议传递的块信息
+ */
+interface ISiYuanUriBlockInfo {
+    /**
+     * 块 ID
+     */
+    id: string;
+
+    /**
+     * 是否聚焦该块
+     * 
+     * @defaultValue false
+     */
+    focus: boolean;
+
+    /**
+     * 是否全屏显示该块
+     * 
+     * @defaultValue false
+     */
+    fullscreen: boolean;
 }

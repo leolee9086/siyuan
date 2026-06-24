@@ -70,6 +70,13 @@ import {openSetting} from "../config";
 import {Constants} from "../constants";
 
 /**
+ * @导入用途: 设置页签菜单 ID 映射
+ * @使用范围: 插件顶栏图标在移动端设置菜单中的挂载位置
+ * @解耦评估: 新设置 UI 的稳定映射函数，应通过导入网关统一转发
+ */
+import {settingTabToMenuId} from "../config/setting/tabs";
+
+/**
  * @导入用途: 获取思源配置信息
  * @使用范围: 插件菜单中判断只读模式等配置
  * @解耦评估: 可通过参数传递解耦，但当前全局访问更符合配置读取模式
@@ -161,6 +168,9 @@ export {openSetting};
 
 /** @导出说明: 全局常量 */
 export {Constants};
+
+/** @导出说明: 设置页签菜单 ID 映射 */
+export {settingTabToMenuId};
 
 /** @导出说明: 获取思源配置 */
 export {getSiyuanConfig};

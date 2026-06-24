@@ -38,6 +38,12 @@ const 调整字体大小 = (deltaY: number): boolean => {
     return false;
 };
 
+const 保存编辑器配置 = () => {
+    fetchPost("/api/setting/setEditor", window.siyuan.config.editor, (response) => {
+        window.siyuan.config.editor = response.data;
+    });
+};
+
 /**
  * 绑定鼠标滚轮事件 - 用于字体缩放功能
  * Ctrl/Cmd + 滚轮可以调整编辑器字体大小
@@ -73,7 +79,7 @@ export const 绑定滚轮缩放事件 = (protyle: IProtyle) => {
 
         // @内联回调 延时保存配置
         wheelTimeout = window.setTimeout(() => {
-            fetchPost("/api/setting/setEditor", config);
+            保存编辑器配置();
             const lineNumbers = protyle.wysiwyg.element.querySelectorAll(".code-block .protyle-linenumber__rows");
             for (const block of Array.from(lineNumbers)) {
                 if (block.parentElement) {
@@ -84,9 +90,9 @@ export const 绑定滚轮缩放事件 = (protyle: IProtyle) => {
             if (messageButton) {
                 // @内联回调 重置按钮处理
                 messageButton.addEventListener("click", () => {
-                    config.fontSize = 16;
+                    window.siyuan.config.editor.fontSize = 16;
                     setInlineStyle();
-                    fetchPost("/api/setting/setEditor", config);
+                    保存编辑器配置();
                     hideMessage(wheelId);
                     for (const block of Array.from(lineNumbers)) {
                         if (block.parentElement) {

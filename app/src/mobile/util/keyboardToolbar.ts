@@ -7,7 +7,7 @@ import {Constants} from "../../constants";
 import {focusBlock, focusByRange, getSelectionPosition} from "../../protyle/util/selection";
 import {getCurrentEditor} from "../editor";
 import {isInAndroid, isInEdge, isInHarmony} from "../../protyle/util/compatibility";
-import {callMobileAppShowKeyboard, canInput, keyboardLockUntil} from "./mobileAppUtil";
+import {canInput, keyboardLockUntil} from "./mobileAppUtil";
 import {handleToolbarClick} from "./keyboardToolbar.action";
 import {isNotEditBlock} from "../../protyle/wysiwyg/getBlock";
 import {getMirror} from "../../protyle/undo/globalUndo";
@@ -334,8 +334,8 @@ export const initKeyboardToolbar = () => {
             showKeyboardToolbarUtil,
             activeBlur,
             setPreventRender: (value: boolean) => {
- preventRender = value; 
-},
+                preventRender = value;
+            },
         });
     });
 };

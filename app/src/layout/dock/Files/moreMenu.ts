@@ -93,15 +93,11 @@ function createRebuildIndexMenuItem(deps: InitMoreMenuDeps): HTMLElement {
  */
 function handleSortChange(sort: number, init: (isInitialCall?: boolean) => void): void {
     const config = getSiyuanConfig();
-    config.fileTree.sort = sort;
     fetchPost("/api/setting/setFiletree", {
-        sort: config.fileTree.sort,
-        alwaysSelectOpenedFile: config.fileTree.alwaysSelectOpenedFile,
-        refCreateSavePath: config.fileTree.refCreateSavePath,
-        docCreateSavePath: config.fileTree.docCreateSavePath,
-        openFilesUseCurrentTab: config.fileTree.openFilesUseCurrentTab,
-        maxListCount: config.fileTree.maxListCount,
-    }, () => {
+        ...config.fileTree,
+        sort,
+    }, (response) => {
+        config.fileTree = response.data;
         setNoteBook(() => {
             init(false);
         });

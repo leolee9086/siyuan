@@ -78,7 +78,10 @@ export const 构建外观菜单 = (protyle: IProtyle, selectsElement: Element[])
     }
 
     getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterAlignMenu(selectsElement, protyle)).element);
-    getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterWidthsMenu(selectsElement, protyle)).element);
+    const widthsMenu = buildGutterWidthsMenu(selectsElement, protyle);
+    if (widthsMenu) {
+        getSiyuanGlobalMenus().menu.append(new MenuItem(widthsMenu).element);
+    }
 };
 
 /**

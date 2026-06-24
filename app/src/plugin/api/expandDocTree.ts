@@ -5,12 +5,6 @@
  */
 import { fetchSyncPost } from "./imports";
 /**
- * 用途：文件树管理类，用于操作文件树UI
- * 使用范围：本文件中操作文件树节点
- * 解耦评估：通过imports.ts转发
- */
-import { Files } from "./imports";
-/**
  * 用途：获取指定类型的模型实例
  * 使用范围：本文件中获取文件树模型
  * 解耦评估：同目录直接导入
@@ -23,6 +17,23 @@ import { getModelByDockType } from "./getModelByDockType";
  */
 import { getSiyuanNotebooks } from "./imports";
 
+type FileTreeModel = {
+    element: HTMLElement;
+    setCurrent: (target: HTMLElement, isScroll?: boolean) => void;
+    getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void;
+    selectItem: (
+        notebookId: string,
+        filePath: string,
+        data?: {
+            files: IFile[],
+            box: string,
+            path: string
+        },
+        setStorage?: boolean,
+        isSetCurrent?: boolean
+    ) => Promise<HTMLElement | undefined> | HTMLElement | undefined;
+};
+
 /**
  * 检查给定ID是否为笔记本ID
  *
@@ -33,9 +44,27 @@ import { getSiyuanNotebooks } from "./imports";
  * @param id - 要检查的ID
  * @returns 如果是笔记本ID返回true，否则返回false
  */
-const isNotebookId = (id: string): boolean => {
+const isNotebookId = (id: string) => {
     const notebooks = getSiyuanNotebooks();
     return notebooks.some(item => item.id === id);
+};
+
+/**
+ * 判断对象是否具备文件树操作能力
+ *
+ * 作用：同时接纳桌面端 Files 和移动端 MobileFiles
+ * 意图：避免通过具体 class 做运行时判断导致移动端文件树被排除
+ * 调用时机：插件 API 展开文档树前验证 dock 模型
+ */
+const isFileTreeModel = (value: unknown): value is FileTreeModel => {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+    const candidate = value as Partial<FileTreeModel>;
+    return candidate.element instanceof HTMLElement &&
+        typeof candidate.setCurrent === "function" &&
+        typeof candidate.getLeaf === "function" &&
+        typeof candidate.selectItem === "function";
 };
 
 /**
@@ -50,9 +79,9 @@ const isNotebookId = (id: string): boolean => {
  * @returns 包含节点元素和笔记本ID的对象，未找到返回null
  */
 const getNotebookElementInfo = (
-    file: Files,
+    file: FileTreeModel,
     notebookId: string
-): { element: HTMLElement; notebookId: string } | null => {
+) => {
     const listElement = file.element.querySelector(`.b3-list[data-url="${notebookId}"]`);
     if (!listElement) {
         return null;
@@ -77,10 +106,10 @@ const getNotebookElementInfo = (
  * @returns 包含文档节点元素和笔记本ID的对象，失败返回null
  */
 const getDocumentElement = async (
-    file: Files,
+    file: FileTreeModel,
     blockId: string,
     isSetCurrent: boolean
-): Promise<{ element: HTMLElement; notebookId: string } | null> => {
+) => {
     const response = await fetchSyncPost("/api/block/getBlockInfo", { id: blockId });
     // API调用失败时返回null
     if (response.code === -1) {
@@ -110,7 +139,7 @@ const getDocumentElement = async (
  * @param file - 文件树管理实例
  * @param notebookId - 笔记本ID
  */
-const expandTreeNode = (liElement: HTMLElement, file: Files, notebookId: string): void => {
+const expandTreeNode = (liElement: HTMLElement, file: FileTreeModel, notebookId: string) => {
     const toggleElement = liElement.querySelector(".b3-list-item__arrow");
     if (!toggleElement) {
         return;
@@ -135,10 +164,10 @@ const expandTreeNode = (liElement: HTMLElement, file: Files, notebookId: string)
  * @returns 包含节点元素和笔记本ID的对象，失败返回null
  */
 const getTargetNodeInfo = async (
-    file: Files,
+    file: FileTreeModel,
     id: string,
     isSetCurrent: boolean
-): Promise<{ element: HTMLElement; notebookId: string } | null> => {
+) => {
     // 如果是笔记本ID，直接查找笔记本节点
     if (isNotebookId(id)) {
         return getNotebookElementInfo(file, id);
@@ -165,7 +194,7 @@ export const expandDocTree = async (options: {
     isSetCurrent?: boolean
 }) => {
     const file = getModelByDockType("file");
-    if (!file || !(file instanceof Files)) {
+    if (!isFileTreeModel(file)) {
         return;
     }
 

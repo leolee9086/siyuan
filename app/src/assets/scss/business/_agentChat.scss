@@ -5,10 +5,59 @@
 }
 
 .agent-chat__tokens {
-    font-size: 12px;
-    color: var(--b3-theme-on-surface-light);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    align-self: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--b3-border-radius);
+    cursor: pointer;
+    color: var(--b3-theme-on-surface-light);
+
+    &:hover {
+        background: var(--b3-list-hover);
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    // 圆环轨道（背景灰圈）。用比 hover 背景更深的灰，避免悬浮时轨道被吃掉。
+    .agent-chat__tokens-track {
+        fill: none;
+        stroke: var(--b3-scroll-color);
+    }
+
+    // 圆环弧度（按占用率描边），rotate -90 让起点在顶部。
+    .agent-chat__tokens-arc {
+        fill: none;
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+
+    // 描边颜色按占用率分档：绿（<30%）、黄（30-45%）、橙（45-85%）、红（≥85%）、未知上限（灰）。
+    &.agent-chat__tokens--low .agent-chat__tokens-arc {
+        stroke: var(--b3-theme-success);
+    }
+
+    &.agent-chat__tokens--mid .agent-chat__tokens-arc {
+        stroke: var(--b3-graph-todo-point);
+    }
+
+    &.agent-chat__tokens--warn .agent-chat__tokens-arc {
+        stroke: var(--b3-theme-secondary);
+    }
+
+    &.agent-chat__tokens--high .agent-chat__tokens-arc {
+        stroke: var(--b3-theme-error);
+    }
+
+    &.agent-chat__tokens--unknown .agent-chat__tokens-arc {
+        stroke: var(--b3-theme-on-surface-light);
+    }
 }
 
 .agent-chat__messages-wrap {
@@ -126,6 +175,34 @@
     border-color: var(--b3-theme-primary);
 }
 
+// 无模型提示块：引导用户去 设置 - 人工智能 配置。
+.agent-welcome__no-model {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 12px;
+    padding: 20px 16px;
+    background: var(--b3-theme-surface);
+    border: 1px solid var(--b3-border-color);
+    border-radius: var(--b3-border-radius);
+    text-align: center;
+}
+
+.agent-welcome__no-model-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--b3-theme-on-surface);
+}
+
+.agent-welcome__no-model-tip {
+    font-size: 13px;
+    color: var(--b3-theme-on-surface-light);
+    line-height: 1.5;
+}
+
 .agent-chat__msg {
     display: flex;
     flex-direction: column;
@@ -179,15 +256,9 @@
     display: flex;
     gap: 4px;
     width: 100%;
+    justify-content: flex-end;
     opacity: 0;
     transition: var(--b3-transition);
-}
-
-.agent-chat__msg-stats {
-    flex-shrink: 0;
-    margin-right: auto;
-    margin-left: 4px;
-    opacity: 0.6;
 }
 
 .agent-chat__msg--ai:hover .agent-chat__msg-actions,
@@ -588,7 +659,7 @@ pre:hover .agent-chat__copy-wrap {
 }
 
 .agent-chat__msg--error .agent-chat__body {
-    display: flex; align-items: flex-start; gap: 6px;
+    display: flex; align-items: center; gap: 6px;
     color: var(--b3-theme-error);
     background: var(--b3-theme-error-light);
     word-break: break-word;
@@ -862,43 +933,131 @@ pre:hover .agent-chat__copy-wrap {
 .agent-chat__stop svg {
     width: 18px;
     height: 18px;
+    // 抵消 .b3-button svg 的 margin-right: 4px，让图标在 24×24 正方形背景中真正居中。
+    margin-right: 0;
 }
 
-.agent-chat__model-trigger {
-    display: flex; align-items: center; gap: 2px;
-    font-size: 13px; padding: 0 8px; height: 24px;
-    border-radius: var(--b3-border-radius);
-    cursor: pointer;
-    white-space: nowrap;
-    position: relative;
-    outline: none;
-
-    svg { width: 12px; height: 12px; flex-shrink: 0; }
-
-    &:hover, &:focus-visible { background: var(--b3-theme-surface-light); }
-}
-
-.agent-chat__model-menu {
-    position: absolute; bottom: 100%; left: 0;
-    width: 180px;
-}
-
-.agent-chat__model-menu .b3-menu__item:hover,
-.agent-chat__model-menu .b3-menu__item--highlight {
-    background: var(--b3-list-hover);
-}
-
-.agent-chat__model-check {
-    display: none;
-    width: 14px; height: 14px;
-    margin-left: auto;
+// 发送/停止按钮：与上下文用量圆环保持一致的 24×24 正方形背景，hover 同色。
+.agent-chat__send,
+.agent-chat__stop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     flex-shrink: 0;
-    align-self: center;
+    border-radius: var(--b3-border-radius);
+
+    &:hover {
+        background: var(--b3-list-hover);
+    }
+}
+
+// 模型选择器：原生 select，复用 b3-select 基础样式，此处只补充尺寸约束。
+// height 与 line-height 一致以保证文字垂直居中（b3-select 默认 28/20，这里压到 24/24）。
+.agent-chat__model-select {
+    max-width: 160px;
+    font-size: 13px;
+    height: 24px;
+    line-height: 24px;
+    padding: 0 22px 0 8px;
+    cursor: pointer;
+}
+
+// 无可用模型时的占位态：灰色文案，提示用户去设置配置。
+.agent-chat__model-select--empty {
+    color: var(--b3-theme-on-surface-light);
+    cursor: default;
+}
+
+// 无可用模型时禁用发送按钮：半透明 + 禁止光标，从源头阻止无效请求。
+.agent-chat__send--disabled,
+.agent-chat__send[disabled] {
+    opacity: .5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+// token 分类明细弹层：hover 底部 tokens 数字时弹出，复用 b3-menu 基础样式。
+.agent-token-popup {
+    position: fixed;
+    width: 280px;
+    padding: 8px 0;
+
+    .b3-menu__items {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+// 总数行（第一行）：加粗，与其他分类区分。
+.agent-token-popup__total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 14px;
+    font-weight: 600;
+    color: var(--b3-theme-on-background);
+}
+
+// 各分类行：两端对齐，左标签右百分比。
+.agent-token-popup__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 14px;
+    font-size: 13px;
+    color: var(--b3-theme-on-surface);
+}
+
+.agent-token-popup__label {
+    flex-shrink: 0;
+}
+
+.agent-token-popup__value {
+    margin-left: 12px;
+    flex-shrink: 0;
     color: var(--b3-theme-on-surface-light);
 }
 
-.b3-menu__item--current .agent-chat__model-check {
-    display: block;
+// 总数行与分类之间、分类与缓存命中之间的分隔线。
+.agent-token-popup__divider {
+    height: 1px;
+    margin: 4px 10px;
+    background: var(--b3-border-color);
+}
+
+// 第一行下方的上下文占用横条：总长 = 模型上限，填充宽度 = 已用占比，
+// 填充色按占用率分档，与底部圆环颜色算法一致；未填充为轨道灰。
+.agent-token-popup__bar {
+    height: 4px;
+    margin: 6px 10px 4px;
+    border-radius: 2px;
+    background: var(--b3-border-color);
+    overflow: hidden;
+
+    & > span {
+        display: block;
+        height: 100%;
+        border-radius: 2px;
+    }
+
+    &.agent-token-popup__bar--low > span {
+        background: var(--b3-theme-success);
+    }
+
+    &.agent-token-popup__bar--mid > span {
+        background: var(--b3-graph-todo-point);
+    }
+
+    &.agent-token-popup__bar--warn > span {
+        background: var(--b3-theme-secondary);
+    }
+
+    &.agent-token-popup__bar--high > span {
+        background: var(--b3-theme-error);
+    }
 }
 
 .agent-session-popup {

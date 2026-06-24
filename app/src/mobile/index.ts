@@ -6,12 +6,13 @@ import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasTopCl
 import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
 import { Menus } from "../menus";
-import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "../util/file/pathName";
+import { addBaseURL, setNoteBook } from "../util/file/pathName";
+import { parseSiYuanUriInfo } from "../util/pathName";
 import { exportLayout } from "../layout/layout-serialization";
 import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
-import { initAssets, loadAssets } from "../util/assets/assets";
+import { initAssets } from "../util/assets/assets";
 import { bootSync, kernelError, lockScreen } from "../dialog/processSystem";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { hideMessage, initMessage, showMessage } from "../dialog/message";
@@ -26,7 +27,6 @@ import {
     writeText
 } from "../protyle/util/compatibility";
 import { getCurrentEditor, openMobileFileById } from "./editor";
-import { getSearch } from "../util/platform/functions";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
@@ -44,6 +44,7 @@ import { hideAllElements } from "../protyle/ui/hideElements";
 import { initTouchDragBridge } from "../util/touchDragBridge";
 import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
+import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -167,7 +168,7 @@ class App {
                     window.siyuan.menus = new Menus(this);
                     document.title = window.siyuan.languages.siyuanNote;
                     bootSync();
-                    loadAssets(confResponse.data.conf.appearance);
+                    appearanceConfigApi.apply(window.siyuan.config.appearance);
                     initMessage();
                     initAssets();
                     if (!isInMobileApp()) {
@@ -262,9 +263,10 @@ window.showKeyboardToolbar = (height) => {
 };
 window.hideKeyboardToolbar = hideKeyboardToolbar;
 window.openFileByURL = (openURL) => {
-    if (openURL && isSYProtocol(openURL)) {
-        openMobileFileById(siyuanApp, getIdFromSYProtocol(openURL),
-            getSearch("focus", openURL) === "1" ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+    const blockInfo = parseSiYuanUriInfo(openURL);
+    if (blockInfo != null) {
+        openMobileFileById(siyuanApp, blockInfo.id,
+            blockInfo.focus ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
         return true;
     }
     return false;

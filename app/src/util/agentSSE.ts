@@ -26,6 +26,10 @@ export type ISSEResult = {
     type: "usage";
     promptTokens: number;
     completionTokens: number;
+    lastPromptTokens: number;
+    tokenBreakdown: Record<string, number>;
+    cachedTokens: number;
+    contextLimit: number;
 } | {
     type: "retry";
     attempt: number;
@@ -125,6 +129,21 @@ export async function fetchAgentSSE(
                 msg = window.siyuan.languages.agentChatBusy || msg;
             }
             onError(new AgentHttpError(msg, response.status));
+            return;
+        }
+
+        // 后端在无 provider/无模型等前置错误时返回 HTTP 200 + JSON 包络 {code:-1, msg}（非 SSE 流），
+        // 此时 Content-Type 为 application/json 而非 text/event-stream。检测并转 onError，避免静默卡死。
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.indexOf("text/event-stream") === -1) {
+            try {
+                const text = await response.text();
+                const data = text ? JSON.parse(text) : null;
+                const errMsg = (data && (data.msg || data.message)) || window.siyuan.languages._kernel[28];
+                onError(new AgentHttpError(errMsg, response.status));
+            } catch (e) {
+                onError(new Error(window.siyuan.languages._kernel[28]));
+            }
             return;
         }
 
@@ -235,6 +254,10 @@ function buildSSEResult(event: string, data: Record<string, unknown>): ISSEResul
                 type: "usage",
                 promptTokens: (data.promptTokens as number) || 0,
                 completionTokens: (data.completionTokens as number) || 0,
+                lastPromptTokens: (data.lastPromptTokens as number) || 0,
+                tokenBreakdown: (data.tokenBreakdown as Record<string, number>) || {},
+                cachedTokens: (data.cachedTokens as number) || 0,
+                contextLimit: (data.contextLimit as number) || 0,
             };
         case "retry":
             return {

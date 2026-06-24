@@ -64,6 +64,7 @@ export const setLute = (options: ILuteOptions) => {
     lute.SetDataTask(true);
     lute.SetExportNormalizeTaskListMarker(true);
     lute.SetArbitraryTaskListItemMarker(true);
+    lute.SetEnsureListItemParagraph(true); // 空列表项下创建子列表前补一个空段落
     return lute;
 };
 

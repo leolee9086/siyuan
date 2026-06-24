@@ -211,13 +211,14 @@ export const setInsertWbrHTML = (nodeElement: HTMLElement, range: Range, protyle
             const offset = getSelectionOffset(cellElement, nodeElement, range);
             cellElement.classList.add("range");
             const cloneNode = nodeElement.cloneNode(true) as HTMLElement;
-            cellElement.removeAttribute("class");
+            // 仅移除临时标记，保留合并单元格等场景依赖的原有 class。
+            cellElement.classList.remove("range");
             const cloneCellElement = cloneNode.querySelector(".range");
             const cloneRange = focusByOffset(cloneCellElement, offset.end, offset.end, false);
             if (cloneRange) {
                 cloneRange.insertNode(document.createElement("wbr"));
             }
-            cloneCellElement.removeAttribute("class");
+            cloneCellElement.classList.remove("range");
             protyle.wysiwyg.lastHTMLs[nodeElement.getAttribute("data-node-id")] = cloneNode.outerHTML;
         }
     } else {

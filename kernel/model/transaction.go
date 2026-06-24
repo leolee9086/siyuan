@@ -313,10 +313,10 @@ func performTx(tx *Transaction) (ret *TxErr) {
 				ret = tx.doSetAttrViewViewIcon(op)
 			case "setAttrViewViewDesc":
 				ret = tx.doSetAttrViewViewDesc(op)
-		case "duplicateAttrViewView":
-			ret = tx.doDuplicateAttrViewView(op)
-		case "duplicateAttrViewRow":
-			ret = tx.doDuplicateAttrViewRow(op)
+			case "duplicateAttrViewView":
+				ret = tx.doDuplicateAttrViewView(op)
+			case "duplicateAttrViewRow":
+				ret = tx.doDuplicateAttrViewRow(op)
 			case "sortAttrViewView":
 				ret = tx.doSortAttrViewView(op)
 			case "updateAttrViewColRelation":
@@ -988,6 +988,9 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 	}
 
 	deletedNode := tx.doDelete0(operation, tree)
+	if nil == deletedNode {
+		return
+	}
 	// 同步清理被删除容器块的索引节点及其子节点，否则删除列表/超级块等容器块后其子节点依然存在，ExistBlockTree 仍返回 true
 	// Improve editor state synchronization when deleting blocks https://github.com/siyuan-note/siyuan/issues/17742
 	deletedIDs := deletedBlockIDs(deletedNode)

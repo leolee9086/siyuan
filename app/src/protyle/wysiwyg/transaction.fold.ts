@@ -8,6 +8,7 @@ import {isInEmbedBlock} from "../util/hasClosest";
 import {disabledProtyle, onGet} from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {scrollCenter} from "../../util/DOM/highlightById";
+import {refreshSbs} from "./transaction.refreshSbs";
 
 export const removeUnfoldRepeatBlock = (html: string, protyle: IProtyle) => {
     const temp = document.createElement("template");
@@ -25,7 +26,8 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
         }
         if (operation.action === "unfoldHeading") {
             const scrollTop = protyle.contentElement.scrollTop;
-            protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach(item => {
+            const headingElements = Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`));
+            headingElements.forEach(item => {
                 const embedElement = isInEmbedBlock(item);
                 if (embedElement) {
                     embedElement.removeAttribute("data-render");
@@ -53,6 +55,7 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
             highlightRender(protyle.wysiwyg.element);
             avRender(protyle.wysiwyg.element, protyle);
             blockRender(protyle, protyle.wysiwyg.element);
+            refreshSbs(...headingElements);
             if (operation.context?.focusId) {
                 const focusElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.context.focusId}"]`);
                 focusBlock(focusElement);
@@ -70,6 +73,7 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
                 blockRender(protyle, embedElement);
             }
         });
+        refreshSbs(...Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)));
         // 折叠标题后未触发动态加载 https://github.com/siyuan-note/siyuan/issues/4168
         if (protyle.wysiwyg.element.lastElementChild.getAttribute("data-eof") !== "2" &&
             !protyle.scroll.element.classList.contains("fn__none") &&

@@ -8,7 +8,7 @@ import { isElectron } from "../platform";
 import { ipcSend, ipcInvoke, ipcOn } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
 import { Constants } from "../constants";
-import { appearance } from "../config/appearance";
+import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
@@ -27,7 +27,7 @@ import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKe
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
-import { processSYLink } from "../editor/openLink";
+import { processSiYuanUri } from "../editor/openLink";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
@@ -148,7 +148,7 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     if (isElectron) {
         initNativeDialogOverride();
     }
-    appearance.onSetAppearance(getSiyuanConfig().appearance);
+    appearanceConfigApi.apply(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();
     renderSnippet();
@@ -229,7 +229,7 @@ export const initWindow = async (app: App) => {
     });
     if (!isWindow()) {
         ipcOn(Constants.SIYUAN_OPEN_URL, (event, url) => {
-            processSYLink(app, url);
+            processSiYuanUri(app, url);
         });
     }
     ipcOn(Constants.SIYUAN_OPEN_FILE, (event, data) => {

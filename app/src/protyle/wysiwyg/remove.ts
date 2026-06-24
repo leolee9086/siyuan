@@ -5,13 +5,15 @@ import {
     getLastBlock,
     getNextBlock, getParentBlock,
     getPreviousBlock,
+    getPreviousBlockSibling,
+    getSbChildBlockCount,
     getTopAloneElement,
     getTopEmptyElement,
     hasNextSibling,
     hasPreviousSibling
 } from "./getBlock";
 import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
-import { genEmptyElement, getSbChildCount } from "../../block/util";
+import { genEmptyElement, rebalanceSbWidth, refreshSbResize } from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../util/blockFold";
@@ -29,6 +31,27 @@ import { Backlink } from "../../layout/dock/Backlink";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
+
+/**
+ * 作用：把超级块删除后的宽度重平衡写入事务。
+ * 意图：删除子块会移除 resize 手柄并改变剩余列宽，需要让撤销/重做同步 DOM 宽度。
+ * 调用时机：删除操作未取消超级块、仍保留多个子块时调用。
+ * 问题/改进：依赖调用方传入已完成 DOM 删除后的超级块元素。
+ */
+const appendSuperBlockWidthOperations = (parentElement: Element, doOperations: IOperation[], undoOperations: IOperation[]) => {
+    refreshSbResize(parentElement);
+    const widthChanges = rebalanceSbWidth(parentElement);
+    for (const change of widthChanges) {
+        const targetEl = parentElement.querySelector(`[data-node-id="${change.id}"]`);
+        // 重平衡返回的块可能已被删除，缺少 DOM 时跳过对应事务项。
+        if (!targetEl) {
+            continue;
+        }
+        doOperations.push({ action: "update", id: change.id, data: targetEl.outerHTML });
+        undoOperations.push({ action: "update", id: change.id, data: change.oldHTML });
+    }
+};
+
 export const removeBlock = async (protyle: IProtyle, blockElement: Element, range: Range, type: "Delete" | "Backspace" | "remove") => {
     protyle.observerLoad?.disconnect();
     // 删除后，防止滚动条滚动后调用 get 请求，因为返回的请求已查找不到内容块了
@@ -40,7 +63,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         let sideElement: Element | boolean;
         let sideIsNext = false;
         if (type === "Backspace") {
-            sideElement = selectElements[0].previousElementSibling;
+            sideElement = getPreviousBlockSibling(selectElements[0]);
             if (!sideElement) {
                 sideIsNext = true;
                 sideElement = selectElements[selectElements.length - 1].nextElementSibling;
@@ -50,7 +73,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             sideIsNext = true;
             if (!sideElement) {
                 sideIsNext = false;
-                sideElement = selectElements[0].previousElementSibling;
+                sideElement = getPreviousBlockSibling(selectElements[0]);
             }
         }
         let listElement: Element;
@@ -105,16 +128,17 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                     }
                 });
                 foldTransaction.data.undoOperations.reverse();
-                if (topElement.previousElementSibling &&
-                    topElement.previousElementSibling.getAttribute("data-type") === "NodeHeading" &&
-                    topElement.previousElementSibling.getAttribute("fold") === "1") {
-                    const foldId = topElement.previousElementSibling.getAttribute("data-node-id");
+                const foldPreviousBlockElement = getPreviousBlockSibling(topElement);
+                if (foldPreviousBlockElement &&
+                    foldPreviousBlockElement.getAttribute("data-type") === "NodeHeading" &&
+                    foldPreviousBlockElement.getAttribute("fold") === "1") {
+                    const foldId = foldPreviousBlockElement.getAttribute("data-node-id");
                     if (!unfoldData[foldId]) {
                         const foldTransaction = await fetchSyncPost("/api/block/getHeadingDeleteTransaction", {
                             id: foldId,
                         });
                         unfoldData[foldId] = {
-                            element: topElement.previousElementSibling,
+                            element: foldPreviousBlockElement,
                             previousID: foldTransaction.data.doOperations[foldTransaction.data.doOperations.length - 1].id
                         };
                     }
@@ -128,17 +152,18 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 if (topElement.classList.contains("render-node") || topElement.querySelector("div.render-node")) {
                     data = protyle.lute.SpinBlockDOM(topElement.outerHTML);  // 防止图表撤销问题
                 }
-                let previousID = topElement.previousElementSibling ? topElement.previousElementSibling.getAttribute("data-node-id") : "";
-                if (topElement.previousElementSibling &&
-                    topElement.previousElementSibling.getAttribute("data-type") === "NodeHeading" &&
-                    topElement.previousElementSibling.getAttribute("fold") === "1") {
-                    const foldId = topElement.previousElementSibling.getAttribute("data-node-id");
+                const previousBlockElement = getPreviousBlockSibling(topElement);
+                let previousID = previousBlockElement ? previousBlockElement.getAttribute("data-node-id") : "";
+                if (previousBlockElement &&
+                    previousBlockElement.getAttribute("data-type") === "NodeHeading" &&
+                    previousBlockElement.getAttribute("fold") === "1") {
+                    const foldId = previousBlockElement.getAttribute("data-node-id");
                     if (!unfoldData[foldId]) {
                         const foldTransaction = await fetchSyncPost("/api/block/getHeadingDeleteTransaction", {
                             id: foldId,
                         });
                         unfoldData[foldId] = {
-                            element: topElement.previousElementSibling,
+                            element: previousBlockElement,
                             previousID: foldTransaction.data.doOperations[foldTransaction.data.doOperations.length - 1].id
                         };
                     }
@@ -164,6 +189,26 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                     };
                 }
                 topElement.remove();
+                // 删除列表项内容块后，若该列表项仅剩子列表而无内容块，需补一个空段落。
+                const liChildren = Array.from(topParentElement.children);
+                const firstBlock = liChildren.find(item => item.hasAttribute("data-node-id") &&
+                    !item.classList.contains("protyle-action") && !item.classList.contains("protyle-attr"));
+                if (topParentElement.classList.contains("li") && firstBlock?.classList.contains("list")) {
+                    const emptyID = Lute.NewNodeID();
+                    const emptyElement = genEmptyElement(false, false, emptyID);
+                    liChildren.find(item => item.classList.contains("protyle-action"))?.after(emptyElement);
+                    deletes.push({
+                        action: "insert",
+                        data: emptyElement.outerHTML,
+                        id: emptyID,
+                        nextID: firstBlock.getAttribute("data-node-id"),
+                        parentID: topParentElement.getAttribute("data-node-id"),
+                    });
+                    inserts.push({
+                        action: "delete",
+                        id: emptyID,
+                    });
+                }
             }
         }
         Object.keys(unfoldData).forEach(item => {
@@ -222,10 +267,14 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             }
         }
         if (deletes.length > 0) {
-            if (topParentElement && topParentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(topParentElement) === 1) {
+            if (topParentElement && topParentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildBlockCount(topParentElement) === 1) {
                 const sbData = await cancelSB(protyle, topParentElement, range);
                 transaction(protyle, deletes.concat(sbData.doOperations), sbData.undoOperations.concat(inserts.reverse()));
             } else {
+                // 超级块仍保留多个子块时同步 resize 手柄和剩余块宽度。
+                if (topParentElement && topParentElement.getAttribute("data-type") === "NodeSuperBlock") {
+                    appendSuperBlockWidthOperations(topParentElement, deletes, inserts);
+                }
                 transaction(protyle, deletes, inserts.reverse());
             }
         }
@@ -306,7 +355,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             transaction(protyle, [{
                 action: "move",
                 id: blockElement.getAttribute("data-node-id"),
-                previousID: blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
                 parentID: getParentBlock(blockParentElement).getAttribute("data-node-id") || protyle.block.parentID
             }, {
                 action: "delete",
@@ -315,7 +364,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 action: "insert",
                 id: blockParentElement.getAttribute("data-node-id"),
                 data: blockParentElement.outerHTML,
-                previousID: blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
                 parentID: getParentBlock(blockElement).getAttribute("data-node-id") || protyle.block.parentID
             }, {
                 action: "move",
@@ -327,7 +376,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             transaction(protyle, [{
                 action: "move",
                 id: blockElement.getAttribute("data-node-id"),
-                previousID: blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
                 parentID: getParentBlock(blockParentElement).getAttribute("data-node-id") || protyle.block.parentID
             }], [{
                 action: "move",
@@ -345,13 +394,13 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
 
     if (blockElement.parentElement.classList.contains("li") && blockType !== "NodeHeading" &&
         blockElement.previousElementSibling.classList.contains("protyle-action")) {
-        removeLi(protyle, blockElement, range, type === "Delete");
+        await removeLi(protyle, blockElement, range, type === "Delete");
         return;
     }
     if (type === "Delete") {
         const liElement = hasClosestByClassName(blockElement, "li");
         if (liElement && getContenteditableElement(liElement) === getContenteditableElement(blockElement)) {
-            removeLi(protyle, liElement.firstElementChild.nextElementSibling, range, true);
+            await removeLi(protyle, liElement.firstElementChild.nextElementSibling, range, true);
             return;
         }
     }
@@ -432,7 +481,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             action: "insert",
             data: previousLastElement.outerHTML,
             id: previousLastElement.getAttribute("data-node-id"),
-            previousID: previousLastElement.previousElementSibling?.getAttribute("data-node-id"),
+            previousID: getPreviousBlockSibling(previousLastElement)?.getAttribute("data-node-id"),
             parentID: getParentBlock(previousLastElement).getAttribute("data-node-id")
         }]);
         previousLastElement.remove();
@@ -458,12 +507,12 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                     action: "insert",
                     data: blockElement.outerHTML,
                     id: id,
-                    previousID: blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                    previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
                     parentID: getParentBlock(blockElement).getAttribute("data-node-id")
                 }];
                 blockElement.remove();
                 // 取消超级块
-                if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(parentElement) === 1) {
+                if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildBlockCount(parentElement) === 1) {
                     const sbData = await cancelSB(protyle, parentElement);
                     transaction(protyle, doOperations.concat(sbData.doOperations), sbData.undoOperations.concat(undoOperations));
                 } else {
@@ -495,7 +544,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         data: removeElement.outerHTML,
         id: removeId,
         // 不能使用 previousLastElement，否则在超级块下的元素前删除撤销错误
-        previousID: blockElement.previousElementSibling?.getAttribute("data-node-id"),
+        previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
         parentID: parentElement ? parentElement.getAttribute("data-node-id") : protyle.block.parentID
     }];
     const doOperations: IOperation[] = [{
@@ -582,10 +631,14 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             id: previousId,
         });
     }
-    if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildCount(parentElement) === 1) {
+    if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock" && getSbChildBlockCount(parentElement) === 1) {
         const sbData = await cancelSB(protyle, parentElement);
         transaction(protyle, doOperations.concat(sbData.doOperations), sbData.undoOperations.concat(undoOperations));
     } else {
+        // 超级块仍保留多个子块时同步 resize 手柄和剩余块宽度。
+        if (parentElement && parentElement.getAttribute("data-type") === "NodeSuperBlock") {
+            appendSuperBlockWidthOperations(parentElement, doOperations, undoOperations);
+        }
         transaction(protyle, doOperations, undoOperations);
     }
     focusByWbr(protyle.wysiwyg.element, range);
@@ -628,4 +681,3 @@ export const removeImage = (imgSelectElement: Element, nodeElement: HTMLElement,
         editElement.innerHTML = "";
     }
 };
-

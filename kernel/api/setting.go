@@ -204,57 +204,12 @@ func setAI(c *gin.Context) {
 		return
 	}
 
-	for _, p := range ai.Providers {
-		if nil == p {
-			continue
-		}
-		if 1 > p.RequestTimeout {
-			p.RequestTimeout = 30
-		}
-	}
-
-	if nil != ai.Editing {
-		if 0 > ai.Editing.MaxCompletionTokens {
-			ai.Editing.MaxCompletionTokens = 0
-		}
-		if 0 > ai.Editing.Temperature || 2 < ai.Editing.Temperature {
-			ai.Editing.Temperature = 1.0
-		}
-		if 1 > ai.Editing.MaxHistoryMessages || 64 < ai.Editing.MaxHistoryMessages {
-			ai.Editing.MaxHistoryMessages = 7
-		}
-	}
-
-	if len(ai.Providers) == 0 {
-		ai.Providers = model.Conf.AI.Providers
-	}
-	if nil == ai.MCP {
-		ai.MCP = model.Conf.AI.MCP
-	}
-	if nil == ai.Embedding {
-		ai.Embedding = model.Conf.AI.Embedding
-	}
-	if nil == ai.Agent {
-		ai.Agent = model.Conf.AI.Agent
-	}
-	if nil == ai.Editing {
-		ai.Editing = model.Conf.AI.Editing
-	}
-
-	for i, p := range ai.Providers {
-		if nil == p {
-			continue
-		}
-		if "" == p.ID && i < len(model.Conf.AI.Providers) && nil != model.Conf.AI.Providers[i] {
-			p.ID = model.Conf.AI.Providers[i].ID
-		}
-	}
 	model.Conf.AI = ai
 
 	model.Conf.AI.Normalize()
 	model.Conf.Save()
 
-	ret.Data = ai
+	ret.Data = model.Conf.AI
 }
 
 func setFlashcard(c *gin.Context) {
@@ -421,6 +376,14 @@ func setExport(c *gin.Context) {
 		ret.Msg = err.Error()
 		ret.Data = map[string]any{"closeTimeout": 5000}
 		return
+	}
+
+	// 重置为空字符串表示恢复内置 Pandoc：先落盘清空自定义路径，再重新初始化并写回默认路径
+	if "" == export.PandocBin {
+		model.Conf.Export = export
+		model.Conf.Save()
+		util.InitPandoc()
+		export.PandocBin = util.PandocBinPath
 	}
 
 	if "" != export.PandocBin {
@@ -616,7 +579,7 @@ func setAppearance(c *gin.Context) {
 
 	model.Conf.Appearance = appearance
 	util.StatusBarCfg = model.Conf.Appearance.StatusBar
-	model.Conf.Lang = util.MigrateLang(appearance.Lang) // 兼容历史下划线值，如 zh_CN → zh-CN
+	model.Conf.Lang = util.LangToBCP47(appearance.Lang) // 兼容历史下划线值，如 zh_CN → zh-CN
 	util.Lang = model.Conf.Lang
 	model.Conf.Save()
 	model.InitAppearance()

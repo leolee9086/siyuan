@@ -4,6 +4,7 @@ import { genBazaarHTML, genCardHTML, genFundingHTML, genKeywordsHTML, genUpdateI
 import { renderFilteredPackages, onBazaar, renderReadme, genMyHTML, getUpdate } from "./bazaarRender";
 import { App } from "../../index";
 import { isHTMLSelectElement } from "../../util/DOM/element.guard";
+import { switchSettingPanelSubTab } from "../setting/mount";
 
 const getElement = (): HTMLElement | undefined => undefined;
 
@@ -80,5 +81,39 @@ export const bazaar = {
         if (this.element) {
             onBazaar(this.element, response, bazaarType);
         }
+    }
+};
+
+/** 集市 Tab 侧栏 / 全局搜索索引文案 */
+export const collectBazaarTabSearchStrings = (): string[] => [
+    window.siyuan.languages.bazaar,
+    window.siyuan.languages.downloaded,
+    window.siyuan.languages.plugin,
+    window.siyuan.languages.theme,
+    window.siyuan.languages.icon,
+    window.siyuan.languages.template,
+    window.siyuan.languages.widget,
+];
+
+/** 集市 Tab 挂载：复用本地拆分后的 Bazaar 面板实现 */
+export const mountBazaarTab = (root: HTMLElement, keywords?: string, app?: App) => {
+    if (root.innerHTML === "") {
+        bazaar.element = root;
+        root.innerHTML = bazaar.genHTML();
+        if (app) {
+            bazaar.bindEvent(app);
+        }
+    } else {
+        bazaar.element = root;
+    }
+    if (keywords) {
+        switchSettingPanelSubTab(root, keywords, [
+            {type: "downloaded", label: window.siyuan.languages.downloaded},
+            {type: "plugin", label: window.siyuan.languages.plugin},
+            {type: "theme", label: window.siyuan.languages.theme},
+            {type: "icon", label: window.siyuan.languages.icon},
+            {type: "template", label: window.siyuan.languages.template},
+            {type: "widget", label: window.siyuan.languages.widget},
+        ]);
     }
 };

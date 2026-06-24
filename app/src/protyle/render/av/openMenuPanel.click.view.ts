@@ -11,6 +11,7 @@ import type { IMenuPanelContext } from "./openMenuPanel.types";
 
 /** 导航到配置面板：重新渲染视图配置HTML并绑定事件 @同步豁免: UI构建 */
 const handleGoConfig = (ctx: IMenuPanelContext, event: MouseEvent): void => {
+    ctx.menuElement.classList.remove("av__filter-panel");
     ctx.menuElement.innerHTML = getViewHTML(ctx.data);
     setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
     bindViewEvent({ protyle: ctx.options.protyle, data: ctx.data, menuElement: ctx.menuElement, blockElement: ctx.options.blockElement });
@@ -29,6 +30,7 @@ const handleGoProperties = (
     if (viewsEl) {
         ctx.tabRect = viewsEl.getBoundingClientRect();
     }
+    ctx.menuElement.classList.remove("av__filter-panel");
     ctx.menuElement.innerHTML = getPropertiesHTML(ctx.fields);
     setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
     removeSiyuanMenu();
@@ -38,6 +40,7 @@ const handleGoProperties = (
 
 /** 导航到布局面板 @同步豁免: UI构建 */
 const handleGoLayout = (ctx: IMenuPanelContext, event: MouseEvent): void => {
+    ctx.menuElement.classList.remove("av__filter-panel");
     ctx.menuElement.innerHTML = getLayoutHTML(ctx.data);
     setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
     bindLayoutEvent({ protyle: ctx.options.protyle, data: ctx.data, menuElement: ctx.menuElement, blockElement: ctx.options.blockElement });

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/88250/lute/ast"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -154,6 +155,32 @@ func normalizeFiltersAsRoot(filters []*ViewFilter) *ViewFilter {
 		return filters[0]
 	}
 	return &ViewFilter{Combination: FilterCombinationAnd, Filters: filters}
+}
+
+func ValidateFilterDepth(filters []*ViewFilter) (err error) {
+	for _, f := range filters {
+		if err = validateFilterNodeDepth(f, 0); nil != err {
+			return
+		}
+	}
+	return
+}
+
+func validateFilterNodeDepth(node *ViewFilter, depth int) (err error) {
+	if nil == node || !node.IsGroup() {
+		return
+	}
+	if depth > MaxFilterNestingDepth {
+		logging.LogErrorf("filter nesting depth [%d] exceeds the maximum [%d]", depth, MaxFilterNestingDepth)
+		err = ErrFilterTooDeep
+		return
+	}
+	for _, child := range node.Filters {
+		if err = validateFilterNodeDepth(child, depth+1); nil != err {
+			return
+		}
+	}
+	return
 }
 
 // collectLeafColumnIndexes 递归收集所有叶子节点引用的列 ID 在 fields 中的下标。
@@ -1009,9 +1036,17 @@ func (value *Value) filter(other *Value, relativeDate, relativeDate2 *RelativeDa
 	case KeyTypeCheckbox:
 		if nil != value.Checkbox {
 			switch operator {
-			case FilterOperatorIsTrue:
+			case FilterOperatorIsTrue, FilterOperatorIsEqual:
+				if nil != other && nil != other.Checkbox {
+					return value.Checkbox.Checked == other.Checkbox.Checked
+				}
 				return value.Checkbox.Checked
 			case FilterOperatorIsFalse:
+				return !value.Checkbox.Checked
+			case FilterOperatorIsNotEqual:
+				if nil != other && nil != other.Checkbox {
+					return value.Checkbox.Checked != other.Checkbox.Checked
+				}
 				return !value.Checkbox.Checked
 			}
 		}

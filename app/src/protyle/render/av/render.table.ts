@@ -6,16 +6,12 @@ import {focusBlock} from "../../util/selection";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {stickyRow, updateHeader} from "./row";
 import {getCalcValue} from "./calc";
-import {electronUndo} from "../../undo";
-import {isInMobileApp} from "../../util/compatibility";
-import {activeBlur} from "../../../mobile/util/keyboardToolbar";
-import {addClearButton} from "../../../util/DOM/addClearButton";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {genTabHeaderHTML} from "./render";
 import {updateSearch} from "./render";
-import {isMobile} from "../../../platform";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {initVirtualScroll} from "./virtualScroll";
+import {bindAvSearch} from "./search";
 
 export interface ITableOptions {
     protyle: IProtyle,
@@ -328,64 +324,11 @@ export const afterRenderTable = (options: ITableOptions) => {
     if (!options.renderAll) {
         return;
     }
-    const viewsElement = options.blockElement.querySelector(".av__views") as HTMLElement;
-    const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]') as HTMLElement;
-    searchInputElement.textContent = options.resetData.query || "";
-    if (options.resetData.isSearching) {
-        searchInputElement.focus();
-    }
-    searchInputElement.addEventListener("compositionstart", (event: KeyboardEvent) => {
-        event.stopPropagation();
-    });
-    searchInputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        electronUndo(event);
-    });
-    searchInputElement.addEventListener("input", (event: KeyboardEvent) => {
-        event.stopPropagation();
-        if (event.isComposing) {
-            return;
-        }
-        if (searchInputElement.textContent || document.activeElement === searchInputElement) {
-            viewsElement.classList.add("av__views--show");
-        } else {
-            viewsElement.classList.remove("av__views--show");
-        }
-        updateSearch(options.blockElement, options.protyle);
-    });
-    searchInputElement.addEventListener("compositionend", () => {
-        updateSearch(options.blockElement, options.protyle);
-    });
-    searchInputElement.addEventListener("blur", (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        if (!searchInputElement.textContent) {
-            viewsElement.classList.remove("av__views--show");
-            searchInputElement.style.width = "0";
-            searchInputElement.style.paddingLeft = "0";
-            searchInputElement.style.paddingRight = "0";
-        }
-    });
-    addClearButton({
-        inputElement: searchInputElement,
-        right: 0,
-        width: "1em",
-        height: searchInputElement.clientHeight,
-        clearAriaLabel: siyuanI18n.clear,
-        clearCB() {
-            viewsElement.classList.remove("av__views--show");
-            searchInputElement.style.width = "0";
-            searchInputElement.style.paddingLeft = "0";
-            searchInputElement.style.paddingRight = "0";
-            focusBlock(options.blockElement);
-            updateSearch(options.blockElement, options.protyle);
-            if (isMobile) {
-                activeBlur();
-            }
-        }
+    bindAvSearch({
+        blockElement: options.blockElement,
+        query: options.resetData.query,
+        isSearching: options.resetData.isSearching,
+        onChange: () => updateSearch(options.blockElement, options.protyle),
     });
     initVirtualScroll(options);
 };

@@ -147,9 +147,9 @@ const processWndForTabPosition = (item: Wnd, context: ITabPositionContext) => {
  * @同步豁免: 遗留代码 - 此函数被多处同步调用，上游改进(#16811)将全屏状态判断
  *           从异步IPC调用改为同步CSS类名读取，无需异步
  */
-export const setTabPosition = (onlyPadding = false) => {
+export const setTabPosition = (onlyPadding = false, onlyClear = false) => {
     const isWindowMode = isWindow();
-    if (!isWindowMode && !getSiyuanConfig().appearance.hideToolbar) {
+    if (!isWindowMode && !getSiyuanConfig().appearance.hideToolbar && !onlyClear) {
         return;
     }
     const siyuanLayout = getSiyuanLayout();
@@ -165,8 +165,8 @@ export const setTabPosition = (onlyPadding = false) => {
     const toolbarDragElement = document.getElementById("drag");
     const toolbarDragRect = toolbarDragElement?.getBoundingClientRect() || { left: 0, right: 0 };
     if (toolbarDragElement) {
-        toolbarDragElement.style.removeProperty("--b3-toolbar-drag-left");
-        toolbarDragElement.style.removeProperty("--b3-toolbar-drag-right");
+        toolbarDragElement.style.setProperty("--b3-toolbar-drag-left", "8px");
+        toolbarDragElement.style.setProperty("--b3-toolbar-drag-right", "8px");
     }
     const context: ITabPositionContext = {
         centerRect: layout.element?.getBoundingClientRect(),

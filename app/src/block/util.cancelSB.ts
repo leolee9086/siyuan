@@ -225,6 +225,8 @@ export const cancelSB = async (
     if (!id) {
         return { doOperations, undoOperations, previousId };
     }
+    // 先清理拖拽手柄，避免手柄被克隆进撤销用的超级块副本，导致恢复后残留多余手柄。
+    nodeElement.querySelectorAll(":scope > .sb__resize").forEach(handle => handle.remove());
     const parentFromDom = toOptionalId(getParentBlock(nodeElement)?.getAttribute("data-node-id"));
     const snapshotHtml = buildSuperBlockSnapshot(nodeElement);
     const position = await resolvePositionIDs(protyle, id, previousId, parentFromDom);

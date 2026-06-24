@@ -239,15 +239,6 @@ import { fetchSyncPost } from "../../../util/network/fetch";
 export { fetchSyncPost };
 
 /**
- * 用途：滚动并居中高亮指定元素
- * 使用范围：zoomOut 聚焦恢复后保证目标块可见
- * 解耦评估：滚动定位工具由 DOM 模块维护，转发层可降低路径耦合
- */
-import { scrollCenter } from "../../../util/DOM/highlightById";
-/** 导出 scrollCenter 供 zoomOut 定位目标块 */
-export { scrollCenter };
-
-/**
  * 用途：读取安全的移动端运行对象
  * 使用范围：zoomOut 判断是否处于 mobile editor 运行态
  * 解耦评估：window 访问通过环境层封装，业务文件不直接触达全局对象

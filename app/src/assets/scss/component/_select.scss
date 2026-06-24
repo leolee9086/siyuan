@@ -27,6 +27,12 @@
   .body--win32 &, .body--win32-browser & {
     @supports (appearance: base-select) {
       appearance: base-select;
+      white-space: nowrap;
+      field-sizing: content;
+
+      &:disabled {
+        opacity: .68;
+      }
 
       &::picker(select) {
         appearance: base-select;
@@ -60,6 +66,11 @@
 
         &:hover {
           background-color: var(--b3-list-hover);
+        }
+
+        &:focus-visible {
+          background-color: var(--b3-list-hover);
+          outline: none;
         }
       }
     }

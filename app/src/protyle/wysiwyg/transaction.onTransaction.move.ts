@@ -7,6 +7,7 @@ import {getAllModels} from "../../layout/getAll";
 import {isMobile} from "../../platform";
 import {processClonePHElement} from "../render/util";
 import {removeTopElement} from "./transaction";
+import {refreshSbs} from "./transaction.refreshSbs";
 
 export const handleMove = (operation: IOperation, protyle: IProtyle, updateElements: Element[], isUndo: boolean): void => {
     if (operation.context?.ignoreProcess === "true") {
@@ -59,6 +60,13 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
             }
         }
     }
+    const originSbs: Element[] = [];
+    updateElements.forEach(item => {
+        const sbElement = item.closest('[data-type="NodeSuperBlock"]');
+        if (sbElement && !originSbs.includes(sbElement)) {
+            originSbs.push(sbElement);
+        }
+    });
     let hasFind = false;
     if (operation.previousID && updateElements.length > 0) {
         const previousElement = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.previousID}"]`);
@@ -113,6 +121,7 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
             removeTopElement(item, protyle);
         }
     });
+    refreshSbs(...originSbs);
     if (isUndo && range) {
         if (operation.data === "focus") {
             // 标记需要 focus，https://ld246.com/article/1650018446988/comment/1650081404993?r=Vanessa#comments
@@ -129,13 +138,14 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
             focusByWbr(protyle.wysiwyg.element, range);
         }
     }
-    // 更新 ws 嵌入块，undo 会在 transaction 中更新
-    if (!isUndo) {
-        protyle.wysiwyg.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]').forEach((item) => {
-            if (item.querySelector(`[data-node-id="${operation.id}"],[data-node-id="${operation.parentID}"],[data-node-id="${operation.previousID}"]`)) {
-                item.removeAttribute("data-render");
-                blockRender(protyle, item);
-            }
-        });
-    }
+    protyle.wysiwyg.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]').forEach((item) => {
+        if (item.querySelector(`[data-node-id="${operation.id}"],[data-node-id="${operation.parentID}"],[data-node-id="${operation.previousID}"]`)) {
+            item.removeAttribute("data-render");
+            blockRender(protyle, item);
+        }
+    });
+    const moveElements = [operation.id, operation.parentID, operation.previousID]
+        .map(id => id ? protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) : null)
+        .filter(Boolean) as Element[];
+    refreshSbs(...moveElements);
 };

@@ -8,6 +8,7 @@ import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { updateAttrViewCellAnimation } from "./action";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { asTAVCol } from "./openMenuPanel.click.guard";
+import { hasFilterForColumn, removeFiltersByColumn } from "./filter";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 
 /** 从 menuElement 获取当前列ID @同步豁免: UI构建 */
@@ -105,10 +106,18 @@ const removeLineNumberSortAndFilter = (ctx: IMenuPanelContext, colId: string): v
             action: "setAttrViewSorts", avID: ctx.data.id, data: oldSorts, blockID: ctx.blockID,
         }]);
     }
-    const filterExist = ctx.data.view.filters.find((filter) => filter.column === colId);
+    const filterExist = hasFilterForColumn(ctx.data.view.filters, colId);
     if (filterExist) {
         const oldFilters = JSON.parse(JSON.stringify(ctx.data.view.filters));
-        const newFilters = ctx.data.view.filters.filter((filter) => filter.column !== colId);
+        let newFilters: IAVFilter[];
+        if (ctx.data.view.filters.length === 1 && (ctx.data.view.filters[0].filters || ctx.data.view.filters[0].combination)) {
+            const root = JSON.parse(JSON.stringify(ctx.data.view.filters[0]));
+            root.filters = removeFiltersByColumn(root.filters || [], colId);
+            newFilters = [root];
+        } else {
+            newFilters = removeFiltersByColumn(ctx.data.view.filters, colId);
+        }
+        ctx.data.view.filters = newFilters;
         transaction(protyle, [{
             action: "setAttrViewFilters", avID: ctx.data.id, data: newFilters, blockID: ctx.blockID
         }], [{

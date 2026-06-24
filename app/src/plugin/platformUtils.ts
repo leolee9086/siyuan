@@ -2,8 +2,8 @@ import {Constants} from "../constants";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 // 该文件包含了一些与平台相关的工具函数，主要用于处理通知和兼容性问题。
+export {openByMobile} from "../editor/openLink";
 export {
-    openByMobile,
     readText,
     writeText,
     copyPlainText,

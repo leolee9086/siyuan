@@ -112,7 +112,9 @@ export function handleShiftSelect(
                             hasJump = true;
                         }
                     } else {
-                        selectElements.push(currentElement);
+                        if (!currentElement.classList.contains("sb__resize")) {
+                            selectElements.push(currentElement);
+                        }
                         currentElement = currentElement.nextElementSibling as HTMLElement;
                     }
                 } else if (currentElement.parentElement.classList.contains("sb")) {

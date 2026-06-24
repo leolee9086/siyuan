@@ -14,12 +14,18 @@ import { handleUpdateAttrs } from "./transaction.onTransaction.attrs";
 import { handleMove } from "./transaction.onTransaction.move";
 import { handleInsert } from "./transaction.onTransaction.insert";
 import { updateEmbed } from "./transaction.promise";
+import { refreshSbs } from "./transaction.refreshSbs";
 
 const deleteBlock = (updateElements: Element[], id: string, protyle: IProtyle, isUndo: boolean) => {
     if (isUndo && updateElements[0]) {
         focusSideBlock(updateElements[0]);
     }
+    const sbParents: Element[] = [];
     updateElements.forEach(item => {
+        const sbElement = item.closest('[data-type="NodeSuperBlock"]');
+        if (sbElement && !sbParents.includes(sbElement)) {
+            sbParents.push(sbElement);
+        }
         if (isUndo) {
             // https://github.com/siyuan-note/siyuan/issues/13617
             item.remove();
@@ -38,6 +44,7 @@ const deleteBlock = (updateElements: Element[], id: string, protyle: IProtyle, i
             blockRender(protyle, item);
         }
     });
+    refreshSbs(...sbParents);
 };
 
 const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IOperation, isUndo: boolean) => {
@@ -75,6 +82,7 @@ const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IO
     blockRender(protyle, updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
     // 更新 ws 嵌入块
     updateEmbed(protyle, operation);
+    refreshSbs(updateElements[0]);
 };
 
 // 用于推送和撤销
@@ -103,6 +111,10 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
             item.removeAttribute("fold");
             // undo 会走 transaction
             if (isUndo) {
+                if (operation.retData) {
+                    removeUnfoldRepeatBlock(operation.retData, protyle);
+                    item.insertAdjacentHTML("afterend", operation.retData);
+                }
                 return;
             }
             const embedElement = isInEmbedBlock(item);
@@ -111,7 +123,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
                 blockRender(protyle, embedElement);
                 return;
             }
-            if (operation.retData) { // undo 的时候没有 retData
+            if (operation.retData) {
                 removeUnfoldRepeatBlock(operation.retData, protyle);
                 item.insertAdjacentHTML("afterend", operation.retData);
             }
@@ -127,6 +139,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
             highlightRender(protyle.wysiwyg.element);
             avRender(protyle.wysiwyg.element, protyle);
             blockRender(protyle, protyle.wysiwyg.element);
+            refreshSbs(...Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)));
         }
         return;
     }
@@ -141,6 +154,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
         if (isUndo) {
             return;
         }
+        refreshSbs(...Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)));
         if (operation.retData) {
             operation.retData.forEach((item: string) => {
                 let embedElement: HTMLElement | false;

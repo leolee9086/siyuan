@@ -166,7 +166,7 @@ func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, 
 		WorkingDir = wdPath
 	}
 	if "" != lang {
-		Lang = MigrateLang(lang) // 兼容历史下划线值，如 zh_CN → zh-CN
+		Lang = LangToBCP47(lang) // 兼容历史下划线值，如 zh_CN → zh-CN
 	}
 	Mode = mode
 	ServerPort = port

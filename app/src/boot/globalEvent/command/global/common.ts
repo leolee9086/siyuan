@@ -2,8 +2,8 @@
 import { newDailyNote } from "./imports";
 /** 用途：引入历史面板入口。使用范围：仅供 dataHistory 命令执行器调用。解耦评估：命令层只触发历史 UI，不展开内部流程。 */
 import { openHistory } from "./imports";
-/** 用途：引入只读模式切换工具。使用范围：仅供 editReadonly 命令执行器调用。解耦评估：沿用配置模块公开入口，避免命令层直接写配置。 */
-import { setReadOnly } from "./imports";
+/** 用途：引入编辑器设置运行时 API。使用范围：仅供 editReadonly 命令执行器调用。解耦评估：复用设置命名空间写入逻辑。 */
+import { editorConfigApi } from "./imports";
 /** 用途：引入配置访问器。使用范围：仅供 editReadonly 命令读取当前只读状态。解耦评估：通过环境封装访问全局配置，避免新增直接 window 访问。 */
 import { getSiyuanConfig } from "./imports";
 /** 用途：引入锁屏入口。使用范围：仅供 lockScreen 命令执行器调用。解耦评估：锁屏是系统对话边界，命令层保持触发职责。 */
@@ -39,7 +39,7 @@ const executeDataHistoryCommonGlobalCommand = ({ app }: GlobalCommandContext) =>
 
 /** 执行只读模式切换命令。 */
 const executeEditReadonlyCommonGlobalCommand = () => {
-    setReadOnly(!getSiyuanConfig().editor.readOnly);
+    editorConfigApi.patch("editor.readOnly", !getSiyuanConfig().editor.readOnly);
     return true;
 };
 

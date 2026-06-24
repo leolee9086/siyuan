@@ -204,6 +204,12 @@ const setHTML = (options: {
         }
     } else {
         protyle.wysiwyg.element.innerHTML = options.content;
+        // 设置 innerHTML 会导致浏览器将 scrollTop 重置为 0，此处立即恢复以避免页面跳转到开头
+        // https://github.com/siyuan-note/siyuan/issues/17886
+        if (options.scrollAttr && typeof options.scrollAttr.scrollTop === "number") {
+            protyle.contentElement.scrollTop = options.scrollAttr.scrollTop;
+            protyle.scroll.lastScrollTop = options.scrollAttr.scrollTop;
+        }
     }
 
     if (platform.isMobile) {
@@ -327,13 +333,17 @@ const setHTML = (options: {
     }
     if (options.scrollAttr && !protyle.scroll.element.classList.contains("fn__none") && !protyle.element.classList.contains("fn__none")) {
         // 使用动态滚动条定位到最后一个块，重启后无法触发滚动事件，需要再次更新 index
-        protyle.scroll.updateIndex(protyle, options.scrollAttr.startId, (index) => {
-            // https://github.com/siyuan-note/siyuan/issues/8224
-            // https://github.com/siyuan-note/siyuan/issues/10716
-            if (index > 1 && protyle.block.blockCount > 1 && protyle.contentElement.scrollHeight <= protyle.contentElement.clientHeight) {
-                showMessage(siyuanI18n.scrollGetMore);
-            }
-        });
+        const startId = options.scrollAttr.startId || protyle.wysiwyg.element.firstElementChild?.getAttribute("data-node-id");
+        if (startId) {
+            protyle.scroll.updateIndex(protyle, startId, (index) => {
+                // https://github.com/siyuan-note/siyuan/issues/8224
+                // https://github.com/siyuan-note/siyuan/issues/10716
+                if (index > 1 && protyle.block.blockCount > 1 && protyle.contentElement.scrollHeight <= protyle.contentElement.clientHeight) {
+                    showMessage(window.siyuan.languages.scrollGetMore);
+                }
+            });
+        }
+
     }
  
     protyle.app.plugins.forEach(item => {

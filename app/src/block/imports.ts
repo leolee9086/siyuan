@@ -161,10 +161,12 @@ export { getParentBlock };
 // 同步请求工具导出
 export { fetchSyncPost };
 
-// 用途：隐藏 Tooltip；使用范围：Popover 相关模块；解耦评估：UI 工具函数
-import { hideTooltip } from "../dialog/tooltip";
+// 用途：隐藏 Tooltip 与读取当前触发元素；使用范围：Popover 相关模块；解耦评估：UI 工具函数
+import { hideTooltip, tooltipTargetElement } from "../dialog/tooltip";
 // 导出 hideTooltip
 export { hideTooltip };
+// 导出 tooltipTargetElement
+export { tooltipTargetElement };
 
 // 用途：触屏设备判断；使用范围：block 模块交互适配；解耦评估：平台检测工具
 import { isTouchDevice } from "../util/platform/functions";

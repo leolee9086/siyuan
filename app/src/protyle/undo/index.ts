@@ -6,8 +6,6 @@ import {preventScroll} from "./imports";
 import {Constants} from "./imports";
 /** 用途：隐藏编辑器浮动 UI 元素（hint/gutter）。使用范围：renderLocal 操作应用前清理界面。解耦评估：通过 imports.ts 转发。 */
 import {hideElements} from "./imports";
-/** 用途：将编辑器滚动到指定高亮块位置。使用范围：renderLocal 操作应用后恢复视口。解耦评估：通过 imports.ts 转发。 */
-import {scrollCenter} from "./imports";
 /** 用途：匹配键盘事件与用户自定义快捷键组合。使用范围：electronUndo 处理器判断快捷键是否匹配。解耦评估：通过 imports.ts 转发。 */
 import {matchHotKey} from "./imports";
 /** 用途：运行时平台环境判断（是否 Electron）。使用范围：electronUndo 处理器条件守卫。解耦评估：通过 imports.ts 转发。 */
@@ -62,23 +60,24 @@ export class Undo {
         requestRedo(protyle);
     }
 
-    // renderLocal 仅在发起窗口本地应用操作（isUndo=true），不 POST 到 kernel。
+    // renderLocal 仅在发起窗口本地应用操作，不 POST 到 kernel。
     // kernel 的 undo/redo 接口已执行事务并广播，这里保留光标恢复/折叠/zoom/lastHTMLs 行为。
     /** 本地乐观应用撤销/重做操作结果，不向 kernel 发起请求（kernel 已通过接口执行事务并广播） */
-    public renderLocal(protyle: IProtyle, operations: IOperation[], isRedo: boolean) {
-        void isRedo;
+    public renderLocal(protyle: IProtyle, operations: IOperation[]) {
         hideElements(["hint", "gutter"], protyle);
         if (protyle.wysiwyg) {
             protyle.wysiwyg.lastHTMLs = {};
         }
         markLastInsertRange(operations);
-        for (const operation of operations) {
-            onTransaction(protyle, operation, true);
-        }
+        onTransaction(protyle, operations, true);
         const avPanel = document.querySelector(".av__panel");
         avPanel?.remove();
         preventScroll(protyle);
-        scrollCenter(protyle);
+        // 同步 toolbar range，避免 undo/redo 替换 DOM 后 range 变为 detached，
+        // 导致后续异步操作读到无效 range 而报错。
+        if (getSelection().rangeCount > 0) {
+            protyle.toolbar.range = getSelection().getRangeAt(0);
+        }
     }
 
     // add 降级为：不压栈（kernel 已在 commit 后 Record），仅置位本地镜像 + 刷新按钮态。

@@ -370,8 +370,8 @@ export const editAssetItem = (options: {
         }).element);
     }
     if (linkAddress?.startsWith("assets/")) {
-        window.siyuan.menus.menu.append(new MenuItem(exportAsset(linkAddress)).element);
-        window.siyuan.menus.menu.append(new MenuItem(writeAssetToClipboard(linkAddress)).element);
+        window.siyuan.menus.menu.append(new MenuItem(exportAsset(decodeURI(linkAddress))).element);
+        window.siyuan.menus.menu.append(new MenuItem(writeAssetToClipboard(decodeURI(linkAddress))).element);
     }
     const rect = options.rect;
     if (isMobile) {

@@ -1,6 +1,6 @@
-import { genEmptyElement, getSbChildCount } from "../../../block/util";
+import { genEmptyElement } from "../../../block/util";
 import { cancelSB } from "../../../block/util.cancelSB";
-import { getTopAloneElement } from "../../wysiwyg/getBlock";
+import { getParentBlock, getPreviousBlockSibling, getSbChildBlockCount, getTopAloneElement } from "../../wysiwyg/getBlock";
 import { getAllEditor } from "../../../layout/getAll";
 import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../../../platform";
@@ -17,7 +17,7 @@ export const cleanupSourceElement = async (item: Element, oldSourceParentElement
         return;
     }
 
-    if (oldSourceParentElement.classList.contains("sb") && getSbChildCount(oldSourceParentElement) === 1) {
+    if (oldSourceParentElement.classList.contains("sb") && getSbChildBlockCount(oldSourceParentElement) === 1) {
         await handleCancelSB(oldSourceParentElement, context);
         return;
     }
@@ -48,8 +48,8 @@ const handleTopSourceElementCleanup = async (topSourceElement: Element, context:
         id: topSourceId,
     });
 
-    const prevSibling = topSourceElement.previousElementSibling;
-    const parent = topSourceElement.parentElement;
+    const prevSibling = getPreviousBlockSibling(topSourceElement);
+    const parent = getParentBlock(topSourceElement);
 
     context.undoOperations.push({
         action: "insert",
@@ -62,7 +62,7 @@ const handleTopSourceElementCleanup = async (topSourceElement: Element, context:
     topSourceElement.remove();
     removeSameElementIfNotSameDoc(context, topSourceElement);
 
-    const needsCancelSB = topSourceParentElement?.classList.contains("sb") && getSbChildCount(topSourceParentElement) === 1;
+    const needsCancelSB = topSourceParentElement?.classList.contains("sb") && getSbChildBlockCount(topSourceParentElement) === 1;
     if (needsCancelSB) {
         await handleCancelSB(topSourceParentElement, context);
     }

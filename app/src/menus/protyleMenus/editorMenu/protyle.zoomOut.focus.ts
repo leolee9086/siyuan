@@ -29,12 +29,6 @@ import { getFirstBlock } from "./imports";
  */
 import { fetchSyncPost } from "./imports";
 /**
- * 用途：滚动到目标元素。
- * 使用范围：焦点恢复后保证目标可见。
- * 解耦评估：滚动细节由工具层封装，便于后续统一滚动策略。
- */
-import { scrollCenter } from "./imports";
-/**
  * 用途：读取运行时配置。
  * 使用范围：补偿请求 `size` 参数。
  * 解耦评估：通过环境封装隔离全局对象访问。
@@ -119,24 +113,14 @@ const 获取可见聚焦元素 = (focusElement: Element) => {
 };
 
 /**
- * 作用：聚焦目标并持续滚动保持可见。
- * 意图：覆盖布局变化期间目标位置抖动的场景。
+ * 作用：聚焦目标块。
+ * 意图：焦点滚动交给 onGet 的 scrollAttr/scrollPosition 统一处理。
  * 调用时机：命中目标元素后立即执行。
- * 问题/改进：观察器释放仍依赖超时，后续可改为事件驱动释放。
+ * 问题/改进：依赖 DOM 结构推断，可考虑由渲染层提供可见节点 API。
  */
-const 聚焦并滚动到目标 = (options: ZoomOutOptions, focusElement: Element) => {
+const 聚焦到目标 = (focusElement: Element) => {
     const showElement = 获取可见聚焦元素(focusElement);
     focusBlock(showElement);
-
-    const resizeObserver = new ResizeObserver(() => {
-        scrollCenter(options.protyle, focusElement, "start");
-    });
-    resizeObserver.observe(options.protyle.wysiwyg.element);
-
-    // 当前缺少稳定的“滚动已完成”信号，保留 3 秒兜底断开避免监听泄漏。
-    setTimeout(() => {
-        resizeObserver.disconnect();
-    }, 1000 * 3);
 };
 
 /**
@@ -151,6 +135,10 @@ const 创建聚焦补偿回调 = (options: ZoomOutOptions) => {
             data: getFocusResponse,
             protyle: options.protyle,
             action: 获取聚焦补偿动作(options),
+            scrollAttr: options.focusId ? {
+                rootId: options.id,
+                focusId: options.focusId,
+            } : undefined,
         });
     };
 };
@@ -168,7 +156,7 @@ export const 处理ZoomOut焦点恢复 = async (options: ZoomOutOptions) => {
 
     const focusElement = await 获取焦点目标元素(options);
     if (focusElement) {
-        聚焦并滚动到目标(options, focusElement);
+        聚焦到目标(focusElement);
         return false;
     }
 

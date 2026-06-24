@@ -28,7 +28,7 @@ import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.envi
  * }
  * ```
  */
-const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
+const createRenameBookmarkMenuItem = (element: HTMLElement) => {
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     // 没有data-node-id说明是纯书签项目而不是块项目
     const id = element.getAttribute("data-node-id");
@@ -110,7 +110,7 @@ return;
  * }
  * ```
  */
-const createCopyBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
+const createCopyBookmarkMenuItem = (element: HTMLElement) => {
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     const id = element.getAttribute("data-node-id");
 
@@ -146,7 +146,7 @@ const createCopyBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
  * }
  * ```
  */
-const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks): MenuItem | null => {
+const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks) => {
     // 检查系统是否处于只读模式，只读模式下不允许删除操作
     if (getSiyuanConfig().readonly) {
         return null;

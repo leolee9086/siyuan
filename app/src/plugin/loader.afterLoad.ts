@@ -9,6 +9,8 @@ import {isWindow} from "./imports";
 import {resizeTopBar} from "./imports";
 /** @导入用途: 常量键集合 @使用范围: 本地存储键读取与写入 @解耦评估: 常量依赖无法进一步解耦 */
 import {Constants} from "./imports";
+/** @导入用途: 设置页签菜单 ID 映射 @使用范围: 移动端插件顶栏图标挂载位置 @解耦评估: 通过 imports 网关统一路径 */
+import {settingTabToMenuId} from "./imports";
 /** @导入用途: 存储写入函数 @使用范围: Dock 配置持久化 @解耦评估: 已通过 imports 网关隔离路径耦合 */
 import {setStorageVal} from "./imports";
 /** @导入用途: 读取思源配置 @使用范围: 同步布局中的 Dock 数据 @解耦评估: 全局配置访问已收敛到环境层 */
@@ -80,11 +82,11 @@ const appendMobileTopBarIcon = (element: Element) => {
     if (shouldHide) {
         return;
     }
-    const menuAbout = document.querySelector("#menuAbout");
-    if (!(menuAbout instanceof Element)) {
+    const aboutMenu = document.querySelector("#" + settingTabToMenuId("about"));
+    if (!(aboutMenu instanceof Element)) {
         return;
     }
-    menuAbout.after(element);
+    aboutMenu.after(element);
 };
 
 /** 作用: 桌面端挂载顶栏图标; 意图: 按位置插入拖拽区或插件区; 调用时机: appendTopBarIcon 的桌面分支 */
@@ -106,7 +108,7 @@ const appendDesktopTopBarIcon = (element: Element) => {
 
 /** 作用: 根据运行形态挂载单个顶栏图标; 意图: 统一顶栏分支入口; 调用时机: mountTopBarIcons 内 */
 const appendTopBarIcon = (element: Element) => {
-    /** 说明: 移动端图标进入 menuAbout 容器，避免误插入桌面区域 */
+    /** 说明: 移动端图标进入设置“关于”项后方，避免误插入桌面区域 */
     if (isMobile()) {
         appendMobileTopBarIcon(element);
         return;

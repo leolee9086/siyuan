@@ -1,4 +1,6 @@
 import { IDndState } from "./onDrop.types";
+import { cleanupDragIndicators } from "./util";
+import { hideDragTip } from "../dragTip";
 
 export const onDragLeave = (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent, state: IDndState) => {
     if (protyle.disabled) {
@@ -8,10 +10,8 @@ export const onDragLeave = (protyle: IProtyle, editorElement: HTMLElement, event
     }
     state.counter--;
     if (state.counter === 0) {
-        const elements = editorElement.querySelectorAll(".dragover__left, .dragover__right, .dragover__bottom, .dragover__top, .dragover");
-        for (const item of elements) {
-            item.classList.remove("dragover__top", "dragover__bottom", "dragover__left", "dragover__right", "dragover");
-        }
+        cleanupDragIndicators(editorElement);
         state.dragoverElement = undefined;
+        hideDragTip();
     }
 };

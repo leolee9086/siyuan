@@ -1,16 +1,17 @@
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {focusBlock, focusByWbr, getEditorRange} from "../util/selection";
-import {getContenteditableElement} from "./getBlock";
+import {getContenteditableElement, getSbChildBlockCount} from "./getBlock";
 import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../util/blockFold";
 import {avRender} from "../render/av/render";
-import {genSBElement, getSbChildCount} from "../../block/util";
+import {genSBElement} from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
 import {transaction, updateTransaction} from "./transaction";
+import {refreshSbs} from "./transaction.refreshSbs";
 
 export const turnsIntoOneTransaction = async (options: {
     protyle: IProtyle,
@@ -24,6 +25,14 @@ export const turnsIntoOneTransaction = async (options: {
     const id = Lute.NewNodeID();
     if (options.type === "BlocksMergeSuperBlock") {
         parentElement = genSBElement(options.level, id);
+        // 横向超级块拆分时，新超级块继承原块宽度，子块移入后自身宽度归零。
+        const firstChild = options.selectsElement[0] as HTMLElement;
+        if (firstChild.style.width) {
+            (parentElement as HTMLElement).style.width = firstChild.style.width;
+            (parentElement as HTMLElement).style.flex = firstChild.style.flex;
+            firstChild.style.width = "";
+            firstChild.style.flex = "";
+        }
     } else if (options.type === "Blocks2Blockquote") {
         parentElement = document.createElement("div");
         parentElement.classList.add("bq");
@@ -127,8 +136,13 @@ export const turnsIntoOneTransaction = async (options: {
             blockRender(options.protyle, item);
         }
     });
+    if (parentElement.classList.contains("sb")) {
+        refreshSbs(parentElement);
+    } else if (parentElement.parentElement?.classList.contains("sb")) {
+        refreshSbs(parentElement.parentElement);
+    }
     if ((["Blocks2Blockquote", "Blocks2Callout"].includes(options.type) || options.type.endsWith("Ls")) &&
-        parentElement.parentElement.classList.contains("sb") && getSbChildCount(parentElement.parentElement) === 1) {
+        parentElement.parentElement?.classList.contains("sb") && getSbChildBlockCount(parentElement.parentElement) === 1) {
         const cancelOperations = await cancelSB(options.protyle, parentElement.parentElement);
         doOperations.push(...cancelOperations.doOperations);
         undoOperations.splice(0, 0, ...cancelOperations.undoOperations);

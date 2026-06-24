@@ -169,7 +169,10 @@ export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle)
     };
 };
 
-export const buildGutterWidthsMenu = (nodeElements: Element[], protyle: IProtyle): IMenu => {
+export const buildGutterWidthsMenu = (nodeElements: Element[], protyle: IProtyle): IMenu | null => {
+    if (nodeElements.some((e: HTMLElement) => e.parentElement?.classList.contains("sb"))) {
+        return null;
+    }
     let rangeElement: HTMLInputElement;
     const firstElement = nodeElements[0] as HTMLElement;
     const styles: IMenu[] = [{

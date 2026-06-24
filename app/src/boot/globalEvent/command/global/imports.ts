@@ -20,8 +20,8 @@ import { getRecentDocs } from "../../../../mobile/menu/getRecentDocs";
 import { selectOpenTab, openBacklink, openGraph, openOutline } from "../../../../layout/dock/util";
 /** 用途：常量集合；使用范围：recentClosed.ts；解耦评估：避免重复硬编码存储键。 */
 import { Constants } from "../../../../constants";
-/** 用途：只读切换工具；使用范围：common.ts；解耦评估：配置写入由 config 模块封装。 */
-import { setReadOnly } from "../../../../config/util/setReadOnly";
+/** 用途：编辑器设置运行时 API；使用范围：common.ts；解耦评估：配置写入由设置命名空间统一处理。 */
+import { editorConfigApi } from "../../../../config/tabs/editorRuntime";
 /** 用途：锁屏入口；使用范围：common.ts；解耦评估：系统对话流程由 lockScreen 封装。 */
 import { lockScreen } from "../../../../dialog/processSystem/lockScreen";
 /** 用途：新建文件入口；使用范围：common.ts；解耦评估：文件创建由 util/file 封装。 */
@@ -69,8 +69,8 @@ export { openGraph };
 export { openOutline };
 /** 导出常量集合。 */
 export { Constants };
-/** 导出只读切换工具。 */
-export { setReadOnly };
+/** 导出编辑器设置运行时 API。 */
+export { editorConfigApi };
 /** 导出锁屏入口。 */
 export { lockScreen };
 /** 导出新建文件入口。 */

@@ -352,7 +352,10 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
         }
         menuItems.push(创建外观菜单(ctx));
         menuItems.push(buildGutterAlignMenu([ctx.nodeElement], ctx.protyle));
-        menuItems.push(buildGutterWidthsMenu([ctx.nodeElement], ctx.protyle));
+        const widthsMenu = buildGutterWidthsMenu([ctx.nodeElement], ctx.protyle);
+        if (widthsMenu) {
+            menuItems.push(widthsMenu);
+        }
         // [S-Forge] 格式刷菜单项
         添加格式刷菜单(ctx, menuItems);
     }

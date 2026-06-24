@@ -19,4 +19,10 @@ export interface IDndState {
     disabledPosition: string;
     /** dragenter/dragleave 计数器，用于正确判断是否真正离开了目标区域 */
     counter: number;
+    /** 列表拖拽层级线缓存，避免高频 dragover 中重复计算缩进和颜色 */
+    dragCache?: { nodeId: string; indent: number; rgb: { r: number; g: number; b: number }; guides: string };
+    /** 当前目标块文本缓存，用于拖拽提示 */
+    cachedTargetText?: string;
+    /** 当前目标是否在列布局超级块内 */
+    cachedIsCol?: boolean;
 }

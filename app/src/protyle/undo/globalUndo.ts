@@ -203,17 +203,18 @@ const resolveRootNames = async (rootIDs: string[]) => {
 const focusRootIDs = (rootIDs: string[], focusBlockId?: string) => {
     // 只滚动发起窗口的焦点 protyle 到变更块；其它文档不强制重开（撤销物理结果在发起文档）
     const protyle = getActiveProtyle();
-    if (!protyle || !protyle.block?.rootID || !rootIDs.includes(protyle.block.rootID)) {
+    if (!protyle || !protyle.block?.rootID || !rootIDs.includes(protyle.block.rootID) || !focusBlockId) {
         return;
     }
-    // 优先滚动到指定的变更块；未指定时滚到文档首块（兜底）
-    const firstNode = protyle.wysiwyg?.element.querySelector("[data-node-id]");
-    const targetId = focusBlockId || firstNode?.getAttribute("data-node-id");
-    if (!targetId) {
+    const target = protyle.wysiwyg?.element.querySelector(`[data-node-id="${focusBlockId}"]`);
+    if (!target) {
         return;
     }
-    const target = protyle.wysiwyg?.element.querySelector(`[data-node-id="${targetId}"]`);
-    target?.scrollIntoView({behavior: "smooth", block: "center"});
+    const rect = target.getBoundingClientRect();
+    // 仅在变更块不在视口内时才滚动，避免打断用户当前的滚动位置
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        target.scrollIntoView({behavior: "smooth", block: "center"});
+    }
 };
 
 /** 使用 kernel API 查询 undoState，获取栈顶跨文档变更涉及的 rootID 列表 */
@@ -271,9 +272,9 @@ const handleUndoResponse = (protyle: IProtyle, rootID: string) => (response: IWe
         return;
     }
     // 单文档撤销：发起窗口本地乐观应用 doOperations
-    protyle.undo?.renderLocal(protyle, data.doOperations, false);
+    protyle.undo?.renderLocal(protyle, data.doOperations);
     refreshUndoButtons(protyle);
-    const focusBlockId = data.doOperations?.find((op: IOperation) => op.action === "insert")?.id;
+    const focusBlockId = data.doOperations?.find((op: IOperation) => op.id)?.id;
     focusRootIDs(mutatedRootIDs, focusBlockId);
 };
 
@@ -336,9 +337,9 @@ const handleRedoResponse = (protyle: IProtyle, rootID: string) => (response: IWe
         return;
     }
     // 单文档重做：发起窗口本地乐观应用 doOperations
-    protyle.undo?.renderLocal(protyle, data.doOperations, true);
+    protyle.undo?.renderLocal(protyle, data.doOperations);
     refreshUndoButtons(protyle);
-    const focusBlockId = data.doOperations?.find((op: IOperation) => op.action === "insert")?.id;
+    const focusBlockId = data.doOperations?.find((op: IOperation) => op.id)?.id;
     focusRootIDs(mutatedRootIDs, focusBlockId);
 };
 

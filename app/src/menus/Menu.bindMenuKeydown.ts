@@ -107,7 +107,7 @@ const handleLeftArrowNavigation = (currentElement: Element): boolean => {
  * @param {Element} currentElement - 当前选中的菜单项元素
  * @returns {boolean} 是否成功处理了回车键导航
  */
-const handleEnterKeyNavigation = (currentElement: Element): boolean => {
+const handleEnterKeyNavigation = (currentElement: Element) => {
     if (!currentElement) {
         return false;
     }

@@ -1,6 +1,8 @@
 import { Constants } from "../../../constants";
 import { hasClosestBlock, hasClosestByClassName } from "../hasClosest";
 import { processClonePHElement } from "../../render/util";
+import { getContenteditableElement } from "../../wysiwyg/getBlock";
+import { transparentImgSrc } from "../dragTip";
 
 export const onDragStart = (protyle: IProtyle, event: DragEvent) => {
     if (protyle.disabled) {
@@ -43,14 +45,18 @@ export const onDragStart = (protyle: IProtyle, event: DragEvent) => {
             ghostElement.append(cloneElement);
             ghostElement.setAttribute("style", `position:fixed;opacity:.1;width:${target.parentElement.clientWidth}px;padding:0;`);
             document.body.append(ghostElement);
-            event.dataTransfer.setDragImage(ghostElement, 0, 0);
             if (window.siyuan.touchDragActive) {
+                event.dataTransfer.setDragImage(ghostElement, 0, 0);
                 window.siyuan.touchDragGhost = ghostElement;
             } else {
+                const transparentImg = new Image();
+                transparentImg.src = transparentImgSrc;
+                event.dataTransfer.setDragImage(transparentImg, 0, 0);
                 setTimeout(() => {
                     ghostElement.remove();
                 });
             }
+            window.siyuan.dragTitle = getContenteditableElement(target.parentElement)?.textContent?.trim() || "";
 
             window.siyuan.dragElement = protyle.wysiwyg.element;
             event.dataTransfer.setData(`${Constants.SIYUAN_DROP_GUTTER}NodeListItem${Constants.ZWSP}${target.parentElement.getAttribute("data-subtype")}${Constants.ZWSP}${[target.parentElement.getAttribute("data-node-id")]}`,

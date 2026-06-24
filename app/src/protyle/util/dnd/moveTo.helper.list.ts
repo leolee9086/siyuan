@@ -1,6 +1,7 @@
 import { Constants } from "../../../constants";
 import { updateListOrder } from "../../wysiwyg/list.updateOrder";
 import { IMoveContext } from "./moveTo.types";
+import { getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 
 export const handleNewListCreation = (item: Element, context: IMoveContext) => {
     if (item.getAttribute("data-type") !== "NodeListItem" || context.newListId || context.isSameLi) {
@@ -41,7 +42,7 @@ const getPreviousIDForNewList = (context: IMoveContext): string | null | undefin
     if (context.position === "afterend") {
         return context.targetId;
     }
-    const prevSibling = context.tempTargetElement.previousElementSibling;
+    const prevSibling = getPreviousBlockSibling(context.tempTargetElement);
     return prevSibling?.getAttribute("data-node-id");
 };
 

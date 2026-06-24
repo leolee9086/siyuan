@@ -5,6 +5,7 @@ import { onDragStart } from "./dnd.onDragStart";
 import { onDragOver } from "./dnd.onDragOver";
 import { onDrop } from "./dnd.onDrop";
 import { onDragEnd } from "./dnd.onDragEnd";
+import { hideDragTip } from "../../../protyle/util/dragTip";
 
 export const initFilesDrag = (files: Files) => {
     files.element.addEventListener("dragstart", (event: DragEvent) => {
@@ -25,6 +26,7 @@ export const initFilesDrag = (files: Files) => {
             for (const item of Array.from(dragOverElements)) {
                 item.classList.remove("dragover", "dragover__bottom", "dragover__top");
             }
+            hideDragTip();
         }
     });
     files.element.addEventListener("dragenter", (event) => {

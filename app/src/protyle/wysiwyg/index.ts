@@ -48,7 +48,7 @@ import { previewDocImage } from "../preview/image";
 import { getDiagramBlock, previewDiagram } from "../preview/diagram";
 import { selectRow } from "../render/av/row";
 import { showMessage } from "../../dialog/message";
-import { updateTransaction } from "./transaction";
+import { transaction, updateTransaction } from "./transaction";
 import { input } from "./input";
 import { countSelectWord } from "../../layout/status";
 import { paste, getTextStar, enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
@@ -512,7 +512,9 @@ export class WYSIWYG {
                                         hasJump = true;
                                     }
                                 } else {
-                                    selectElements.push(currentElement);
+                                    if (!currentElement.classList.contains("sb__resize")) {
+                                        selectElements.push(currentElement);
+                                    }
                                     currentElement = currentElement.nextElementSibling as HTMLElement;
                                 }
                             } else if (currentElement.parentElement.classList.contains("sb")) {
@@ -941,7 +943,8 @@ export class WYSIWYG {
                                 }
                             } else {
                                 if (!currentElement.classList.contains("protyle-breadcrumb__bar") &&
-                                    !currentElement.classList.contains("protyle-breadcrumb__item")) {
+                                    !currentElement.classList.contains("protyle-breadcrumb__item") &&
+                                    !currentElement.classList.contains("sb__resize")) {
                                     selectElements.push(currentElement);
                                 }
                                 if (!currentElement.nextElementSibling && currentElement.parentElement.classList.contains("callout-content")) {
@@ -1638,12 +1641,48 @@ export class WYSIWYG {
             }
         });
 
-        this.element.addEventListener("dblclick", (event: MouseEvent & { target: HTMLElement }) => {
-            if (event.target.tagName === "IMG" && !event.target.classList.contains("emoji")) {
-                previewDocImage((event.target as HTMLElement).getAttribute("src"), protyle.block.rootID);
+        this.element.addEventListener("dblclick", (event: MouseEvent) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
                 return;
             }
-            const diagramElement = getDiagramBlock(hasClosestBlock(event.target) as HTMLElement);
+            // 双击超级块拖拽手柄，均分所有列宽。
+            if (target.classList.contains("sb__resize")) {
+                const parentElement = target.parentElement;
+                if (!parentElement) {
+                    return;
+                }
+                const doOperations: IOperation[] = [];
+                const undoOperations: IOperation[] = [];
+                for (const item of Array.from(parentElement.children)) {
+                    if (!(item instanceof HTMLElement)) {
+                        continue;
+                    }
+                    if (!item.style.width && !item.style.flex) {
+                        continue;
+                    }
+                    const oldHTML = item.outerHTML;
+                    item.style.width = "";
+                    item.style.flex = "";
+                    const id = item.getAttribute("data-node-id");
+                    doOperations.push({action: "update", id, data: item.outerHTML});
+                    undoOperations.push({action: "update", id, data: oldHTML});
+                }
+
+                if (doOperations.length > 0) {
+                    transaction(protyle, doOperations, undoOperations);
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+            if (target.tagName === "IMG" && !target.classList.contains("emoji")) {
+                previewDocImage(target.getAttribute("src"), protyle.block.rootID);
+                return;
+            }
+            // https://github.com/siyuan-note/siyuan/issues/12691
+            const blockElement = hasClosestBlock(target);
+            const diagramElement = blockElement instanceof HTMLElement ? getDiagramBlock(blockElement) : undefined;
             if (diagramElement) {
                 previewDiagram(diagramElement);
                 event.stopPropagation();

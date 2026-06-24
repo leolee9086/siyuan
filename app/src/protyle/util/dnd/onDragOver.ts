@@ -3,26 +3,139 @@ import { dragoverTab } from "../../render/av/view";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClosestByTag, hasTopClosestByAttribute, isInEmbedBlock } from "../hasClosest";
 import { addDragFill } from "../../render/av/cell";
 import { clearSelect } from "../clearSelect";
-import { addDragover, clearDragoverElement } from "./util";
+import {
+    addDragover,
+    cleanupDragIndicators,
+    clearDragoverElement,
+    getListDepth,
+    highlightByLevel,
+    highlightColColumn,
+    parseHexColor,
+} from "./util";
 import { IDndState } from "./onDrop.types";
+import { hideDragTip, showDragTip } from "../dragTip";
+import { getContenteditableElement } from "../../wysiwyg/getBlock";
+
+const applyLiTarget = (
+    editorElement: HTMLElement,
+    htmlTarget: HTMLElement,
+    event: DragEvent,
+    state: IDndState,
+) => {
+    cleanupDragIndicators(editorElement);
+    const nodeId = htmlTarget.getAttribute("data-node-id") || "";
+    if (!state.dragCache || state.dragCache.nodeId !== nodeId) {
+        const contentBlock = Array.from(htmlTarget.children).find(item =>
+            item.hasAttribute("data-node-id")) as HTMLElement;
+        const indent = contentBlock ? parseFloat(getComputedStyle(contentBlock).marginLeft) || 34 : 34;
+        const depth = getListDepth(htmlTarget);
+        const computedColor = getComputedStyle(htmlTarget).getPropertyValue("--b3-theme-primary-lighter").trim();
+        const rgb = parseHexColor(computedColor) || {r: 53, g: 115, b: 217};
+        let siblingGuides = "";
+        for (let n = 1; n <= depth; n++) {
+            if (siblingGuides) {
+                siblingGuides += ", ";
+            }
+            const opacity = depth <= 1 ? 0.3 : 0.5 - (n - 1) / (depth - 1) * 0.4;
+            siblingGuides += `${-n * indent}px 0 0 0 rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity.toFixed(2)})`;
+        }
+        state.dragCache = {nodeId, indent, rgb, guides: siblingGuides || "none"};
+    }
+
+    const {indent, rgb, guides} = state.dragCache;
+    const liRect = htmlTarget.getBoundingClientRect();
+    const isRTL = getComputedStyle(htmlTarget).direction === "rtl";
+    const offsetX = isRTL ? (liRect.right - event.clientX) : (event.clientX - liRect.left);
+    const contentBlockForRect = Array.from(htmlTarget.children).find(item =>
+        item.hasAttribute("data-node-id") && !item.classList.contains("list")) as HTMLElement;
+    const contentRect = contentBlockForRect ? contentBlockForRect.getBoundingClientRect() : liRect;
+    const isBottom = event.clientY > contentRect.top + contentRect.height / 2;
+    const isFirstLi = !htmlTarget.previousElementSibling || !htmlTarget.previousElementSibling.classList.contains("li");
+    const position = isFirstLi && !isBottom ? "top" : "bottom";
+    const hasChildList = !!Array.from(htmlTarget.children).find(item => item.classList.contains("list"));
+    const isChild = position === "bottom" && !hasChildList && offsetX >= indent;
+    const sourceElements = Array.from(editorElement.querySelectorAll(".protyle-wysiwyg--select")) as HTMLElement[];
+    const isNoOp = sourceElements.some(source =>
+        source === htmlTarget ||
+        source.contains(htmlTarget) ||
+        (!isChild && position === "bottom" && source === htmlTarget.nextElementSibling) ||
+        (position === "top" && source === htmlTarget.previousElementSibling));
+    if (isNoOp) {
+        cleanupDragIndicators(editorElement);
+        hideDragTip();
+        return;
+    }
+
+    const className = `dragover__${position}--${isChild ? "child" : "sibling"}`;
+    htmlTarget.classList.add(className);
+    htmlTarget.style.setProperty("--drag-indent", `${indent}px`);
+    htmlTarget.style.setProperty("--drag-line-left", isChild ? `${indent}px` : "0");
+    htmlTarget.style.setProperty("--drag-guides", guides);
+    htmlTarget.style.setProperty("--drag-base-bg", isChild ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)` : "transparent");
+    htmlTarget.style.setProperty("--drag-line-bg", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`);
+    highlightByLevel(editorElement, htmlTarget);
+
+    const targetText = (getContenteditableElement(htmlTarget)?.textContent?.trim() || "").slice(0, 20);
+    if (isChild) {
+        showDragTip(window.siyuan.dragTitle || "",
+            window.siyuan.languages.dragTipListItemChild.replace("${x}", targetText),
+            event.clientX, event.clientY);
+        return;
+    }
+    const actionText = position === "bottom"
+        ? window.siyuan.languages.dragTipListItemAfter
+        : window.siyuan.languages.dragTipListItemBefore;
+    showDragTip(window.siyuan.dragTitle || "",
+        actionText.replace("${x}", targetText),
+        event.clientX, event.clientY);
+};
 
 export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent & { target: HTMLElement }, state: IDndState) => {
     if (protyle.disabled || event.dataTransfer.types.includes(Constants.SIYUAN_DROP_EDITOR)) {
         event.preventDefault();
         event.stopPropagation();
         event.dataTransfer.dropEffect = "none";
+        hideDragTip();
         return;
     }
     let gutterType = "";
-    for (const item of event.dataTransfer.items) {
-        if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
-            gutterType = item.type;
+    for (const type of event.dataTransfer.types) {
+        if (type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
+            gutterType = type;
         }
     }
     if (gutterType.startsWith(`${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}ViewTab${Constants.ZWSP}`.toLowerCase())) {
         dragoverTab(event);
         event.preventDefault();
         return;
+    }
+    const gutterTypes = gutterType ? gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP) : [];
+    const isAvSubType = gutterTypes[0] === "nodeattributeviewrowmenu" ||
+        gutterTypes[0] === "nodeattributeviewrow" ||
+        (gutterTypes[0] === "nodeattributeview" && ["viewtab", "col", "galleryitem"].includes(gutterTypes[1] || ""));
+    const isAvTarget = !!(hasClosestByClassName(event.target, "av__row") ||
+        hasClosestByClassName(event.target, "av__row--util") ||
+        hasClosestByClassName(event.target, "av__gallery-item") ||
+        hasClosestByClassName(event.target, "av__gallery-add"));
+    if (event.dataTransfer.types.includes(Constants.SIYUAN_DROP_FILE)) {
+        showDragTip(window.siyuan.dragTitle || "",
+            isAvTarget ? window.siyuan.languages.addToDatabase :
+                (event.altKey ? window.siyuan.languages.dragTip2Heading : window.siyuan.languages.dragTipRef),
+            event.clientX, event.clientY);
+    } else if (gutterType && !isAvSubType) {
+        let action: string;
+        if (isAvTarget) {
+            action = window.siyuan.languages.addToDatabase;
+        } else if (event.altKey) {
+            action = window.siyuan.languages.dragTipRef;
+        } else if (event.shiftKey) {
+            action = window.siyuan.languages.dragTipEmbed;
+        } else {
+            action = window.siyuan.languages.move;
+        }
+        showDragTip(window.siyuan.dragTitle || "", action, event.clientX, event.clientY);
+    } else {
+        hideDragTip();
     }
     const contentRect = protyle.contentElement.getBoundingClientRect();
     if (!hasClosestByClassName(event.target, "av__cell") &&
@@ -61,7 +174,6 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
         event.preventDefault();
         return;
     }
-    const gutterTypes = gutterType ? gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP) : [];
     const fileTreeIds = (event.dataTransfer.types.includes(Constants.SIYUAN_DROP_FILE) && window.siyuan.dragElement) ? window.siyuan.dragElement.innerText : "";
     if (event.shiftKey || (event.altKey && fileTreeIds.indexOf("-") === -1)) {
         const targetAssetElement = hasClosestBlock(event.target);
@@ -126,26 +238,48 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
                 point.className = "dragover__right";
             }
             targetElement = document.elementFromPoint(point.x, point.y) as HTMLElement;
-            if (targetElement.classList.contains("protyle-wysiwyg")) {
-                // 命中间隙
-                targetElement = document.elementFromPoint(point.x, point.y - 6) as HTMLElement;
+            let probeOffset = 6;
+            while (targetElement.classList.contains("protyle-wysiwyg") && probeOffset < 100) {
+                targetElement = document.elementFromPoint(point.x, point.y - probeOffset) as HTMLElement;
+                probeOffset += 6;
             }
-            targetElement = hasTopClosestByAttribute(targetElement, "data-node-id", null);
-            if (targetElement && targetElement.classList.contains("sb") && targetElement.getAttribute("data-sb-layout") === "col") {
-                const childElements = targetElement.querySelectorAll("[data-node-id]");
-                if (point.className === "dragover__left") {
-                    targetElement = childElements[0] as HTMLElement;
+            let hProbed = false;
+            if (targetElement.classList.contains("protyle-wysiwyg")) {
+                const editorRect = editorElement.getBoundingClientRect();
+                const editorCenter = editorRect.left + editorRect.width / 2;
+                let hProbe = 6;
+                while (targetElement.classList.contains("protyle-wysiwyg") && hProbe < 100) {
+                    const probeX = point.x > editorCenter ? point.x - hProbe : point.x + hProbe;
+                    targetElement = document.elementFromPoint(probeX, point.y) as HTMLElement;
+                    hProbe += 6;
+                }
+                hProbed = !targetElement.classList.contains("protyle-wysiwyg");
+            }
+            if (gutterTypes[0] === "nodelistitem") {
+                let closestLiFromPoint: HTMLElement | null;
+                if (targetElement.classList.contains("li")) {
+                    closestLiFromPoint = targetElement;
+                } else if (targetElement.classList.contains("list")) {
+                    const lis = targetElement.querySelectorAll(":scope > .li");
+                    closestLiFromPoint = lis.length > 0
+                        ? lis[lis.length - 1] as HTMLElement
+                        : targetElement.closest(".li") as HTMLElement;
                 } else {
-                    targetElement = childElements[childElements.length - 1] as HTMLElement;
+                    closestLiFromPoint = targetElement.closest(".li") as HTMLElement;
+                }
+                targetElement = closestLiFromPoint || hasTopClosestByAttribute(targetElement, "data-node-id", null) as HTMLElement;
+            } else {
+                targetElement = hasTopClosestByAttribute(targetElement, "data-node-id", null) as HTMLElement;
+            }
+            if (targetElement && targetElement.classList.contains("sb") && targetElement.getAttribute("data-sb-layout") === "col") {
+                if (point.className !== "dragover__left" && point.className !== "dragover__right" && !hProbed) {
+                    const childElements = targetElement.querySelectorAll("[data-node-id]");
+                    targetElement = childElements[point.className === "dragover__left" ? 0 : childElements.length - 1] as HTMLElement;
                 }
             }
         }
     } else if (targetElement && targetElement.classList.contains("list")) {
-        if (gutterTypes[0] !== "nodelistitem") {
-            targetElement = hasClosestBlock(document.elementFromPoint(event.clientX, event.clientY - 6));
-        } else {
-            targetElement = hasClosestByClassName(document.elementFromPoint(event.clientX, event.clientY - 6), "li");
-        }
+        targetElement = hasClosestBlock(document.elementFromPoint(event.clientX, event.clientY - 6));
     }
     if (gutterType && gutterType.startsWith(`${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}Col${Constants.ZWSP}`.toLowerCase())) {
         // 表头只能拖拽到当前 av 的表头中
@@ -217,20 +351,124 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     }
 
     if (!targetElement) {
-        editorElement.querySelectorAll(".dragover__bottom, .dragover__top, .dragover, .dragover__left, .dragover__right").forEach((item: HTMLElement) => {
-            item.classList.remove("dragover__top", "dragover__bottom", "dragover", "dragover__left", "dragover__right");
-        });
+        cleanupDragIndicators(editorElement);
+        hideDragTip();
         return;
     }
     const isNotAvItem = !targetElement.classList.contains("av__row") &&
         !targetElement.classList.contains("av__row--util") &&
         !targetElement.classList.contains("av__gallery-item") &&
         !targetElement.classList.contains("av__gallery-add");
+    if (!targetElement.classList.contains("sb")) {
+        const ancestorSb = targetElement.closest('[data-type="NodeSuperBlock"]') as HTMLElement;
+        if (ancestorSb) {
+            const sbChildBlocks = Array.from(ancestorSb.querySelectorAll("[data-node-id]"));
+            const firstBlock = sbChildBlocks[0] as HTMLElement;
+            const lastBlock = sbChildBlocks[sbChildBlocks.length - 1] as HTMLElement;
+            const isFirstBlock = targetElement === firstBlock || firstBlock.contains(targetElement);
+            const isLastBlock = targetElement === lastBlock || lastBlock.contains(targetElement);
+            const childRect = targetElement.getBoundingClientRect();
+            if ((isFirstBlock && event.clientX < childRect.left + 8) ||
+                (isLastBlock && event.clientX > childRect.right - 8)) {
+                targetElement = ancestorSb;
+            }
+        }
+    }
+    let liTarget = targetElement.classList.contains("list") ? null :
+        (targetElement.getAttribute("data-type") === "NodeListItem"
+            ? targetElement : targetElement.parentElement?.getAttribute("data-type") === "NodeListItem"
+                ? targetElement.parentElement : null);
+    const isListSource = gutterTypes[0] === "nodelistitem" || gutterTypes[0] === "nodelist";
+    if (isListSource && !liTarget) {
+        const sourceSelected = editorElement.querySelector(".protyle-wysiwyg--select") as HTMLElement;
+        if (sourceSelected && (sourceSelected.classList.contains("li") || sourceSelected.classList.contains("list"))) {
+            if (targetElement.classList.contains("list") && targetElement.contains(sourceSelected)) {
+                cleanupDragIndicators(editorElement);
+                hideDragTip();
+                return;
+            }
+            let current: Element | null = sourceSelected;
+            while (current && current !== editorElement) {
+                if (current.classList.contains("list") || current.classList.contains("li")) {
+                    let previousSibling = current.previousElementSibling;
+                    while (previousSibling?.classList.contains("protyle-attr")) {
+                        previousSibling = previousSibling.previousElementSibling;
+                    }
+                    let nextSibling = current.nextElementSibling;
+                    while (nextSibling?.classList.contains("protyle-attr")) {
+                        nextSibling = nextSibling.nextElementSibling;
+                    }
+                    if (targetElement === previousSibling || targetElement === nextSibling) {
+                        cleanupDragIndicators(editorElement);
+                        hideDragTip();
+                        return;
+                    }
+                }
+                current = current.parentElement;
+            }
+        }
+    }
+    if (liTarget && fileTreeIds.indexOf("-") > -1 && isNotAvItem) {
+        if (!event.altKey) {
+            return;
+        } else if (fileTreeIds.split(",").includes(protyle.block.rootID) && event.altKey) {
+            return;
+        }
+    }
+    if (isListSource && targetElement.classList.contains("list")) {
+        const sourceSelected = editorElement.querySelector(".protyle-wysiwyg--select");
+        if (sourceSelected && targetElement.contains(sourceSelected)) {
+            cleanupDragIndicators(editorElement);
+            hideDragTip();
+            return;
+        }
+        const lis = targetElement.querySelectorAll(":scope > .li");
+        const lastLi = lis[lis.length - 1];
+        const firstLi = lis[0];
+        const listRect = targetElement.getBoundingClientRect();
+        const isListBottom = event.clientY > listRect.top + listRect.height / 2;
+        const sourceIds = Array.from(editorElement.querySelectorAll(".protyle-wysiwyg--select"))
+            .map((item: HTMLElement) => item.getAttribute("data-node-id"));
+        const isNoOpList = (isListBottom && lastLi && sourceIds.includes(lastLi.getAttribute("data-node-id"))) ||
+            (!isListBottom && firstLi && sourceIds.includes(firstLi.getAttribute("data-node-id")));
+        if (isNoOpList) {
+            cleanupDragIndicators(editorElement);
+            hideDragTip();
+            return;
+        }
+    }
+    if (liTarget) {
+        let topList: Element = liTarget;
+        while (topList.parentElement?.classList.contains("li") ||
+            topList.parentElement?.classList.contains("list")) {
+            topList = topList.parentElement;
+            if (topList.classList.contains("list") && !topList.parentElement?.classList.contains("li")) {
+                break;
+            }
+        }
+        const topListRect = topList.getBoundingClientRect();
+        const isLeftEdge = event.clientX < topListRect.left + 32;
+        const isRightEdge = event.clientX > topListRect.right - 32;
+        if (gutterTypes[0] === "nodelistitem") {
+            if (isRightEdge) {
+                cleanupDragIndicators(editorElement);
+                return;
+            }
+            applyLiTarget(editorElement, liTarget, event, state);
+            return;
+        }
+        if (isLeftEdge || isRightEdge) {
+            liTarget = null;
+        } else {
+            applyLiTarget(editorElement, liTarget, event, state);
+            return;
+        }
+    }
     if (targetElement && state.dragoverElement && targetElement === state.dragoverElement) {
         // 性能优化，目标为同一个元素不再进行校验
         const nodeRect = targetElement.getBoundingClientRect();
-        editorElement.querySelectorAll(".dragover__left, .dragover__right, .dragover__bottom, .dragover__top, .dragover").forEach((item: HTMLElement) => {
-            item.classList.remove("dragover__top", "dragover__bottom", "dragover__left", "dragover__right", "dragover");
+        cleanupDragIndicators(editorElement);
+        editorElement.querySelectorAll("[select-start], [select-end]").forEach((item: HTMLElement) => {
             item.removeAttribute("select-start");
             item.removeAttribute("select-end");
         });
@@ -245,19 +483,28 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
         if (targetElement.getAttribute("data-type") === "NodeAttributeView" && hasClosestByTag(event.target, "TD")) {
             return;
         }
-        if (point.className) {
-            targetElement.classList.add(point.className);
-            addDragover(targetElement);
-            return;
-        }
-        // 忘记为什么要限定文档树的拖拽了，先放开 https://github.com/siyuan-note/siyuan/pull/13284#issuecomment-2503853135
-        if (targetElement.getAttribute("data-type") === "NodeListItem") {
-            if (event.clientY > nodeRect.top + nodeRect.height / 2) {
-                targetElement.classList.add("dragover__bottom");
+        if (point.className && !liTarget && !targetElement.classList.contains("sb")) {
+            if (!(gutterTypes[0] === "nodelistitem" && targetElement.classList.contains("list") &&
+                (point.className === "dragover__left" || point.className === "dragover__right"))) {
+                targetElement.classList.add(point.className);
                 addDragover(targetElement);
-            } else if (!targetElement.classList.contains("av__row--header")) {
-                targetElement.classList.add("dragover__top");
-                addDragover(targetElement);
+                let displayText = state.cachedTargetText || "";
+                if (!displayText && targetElement.classList.contains("list")) {
+                    const firstLi = targetElement.querySelector(":scope > .li");
+                    displayText = getContenteditableElement(firstLi as HTMLElement)?.textContent?.trim() || "";
+                }
+                if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget && displayText) {
+                    const isFront = point.className === "dragover__top" || point.className === "dragover__left";
+                    const isBack = point.className === "dragover__bottom" || point.className === "dragover__right";
+                    if (isFront || isBack) {
+                        const isHorizontal = point.className === "dragover__left" || point.className === "dragover__right";
+                        const key = (isHorizontal || state.cachedIsCol)
+                            ? (isFront ? window.siyuan.languages.dragTipMoveTargetFront : window.siyuan.languages.dragTipMoveTargetBack)
+                            : (isFront ? window.siyuan.languages.dragTipMoveTargetAbove : window.siyuan.languages.dragTipMoveTargetBelow);
+                        showDragTip(window.siyuan.dragTitle || "", key.replace("${x}", displayText),
+                            event.clientX, event.clientY);
+                    }
+                }
             }
             return;
         }
@@ -305,15 +552,48 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
             return;
         }
 
+        if (targetElement.classList.contains("sb")) {
+            const sbRect = targetElement.getBoundingClientRect();
+            const isSbLeftEdge = point.className === "dragover__left" || event.clientX < sbRect.left + 32;
+            const isSbRightEdge = point.className === "dragover__right" || event.clientX > sbRect.right - 32;
+            if (isSbLeftEdge || isSbRightEdge) {
+                const edgeClass = isSbLeftEdge ? "dragover__left" : "dragover__right";
+                targetElement.classList.add(edgeClass);
+                addDragover(targetElement);
+                const sbFirstBlock = targetElement.querySelector("[data-node-id]") as HTMLElement;
+                const sbText = getContenteditableElement(sbFirstBlock)?.textContent?.trim() || "";
+                if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget && sbText) {
+                    const key = isSbLeftEdge
+                        ? window.siyuan.languages.dragTipMoveTargetFront
+                        : window.siyuan.languages.dragTipMoveTargetBack;
+                    showDragTip(window.siyuan.dragTitle || "", key.replace("${x}", sbText),
+                        event.clientX, event.clientY);
+                }
+                return;
+            }
+        }
+
         if (event.clientX < nodeRect.left + (targetElement.classList.contains("list") ? 8 : 32) &&
             event.clientX >= nodeRect.left - 1 &&
             !targetElement.classList.contains("av__row")) {
             targetElement.classList.add("dragover__left");
             addDragover(targetElement);
+            if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget &&
+                !targetElement.classList.contains("sb") && state.cachedTargetText) {
+                showDragTip(window.siyuan.dragTitle || "",
+                    window.siyuan.languages.dragTipMoveTargetFront.replace("${x}", state.cachedTargetText),
+                    event.clientX, event.clientY);
+            }
         } else if (event.clientX > nodeRect.right - 32 && event.clientX < nodeRect.right &&
             !targetElement.classList.contains("av__row")) {
             targetElement.classList.add("dragover__right");
             addDragover(targetElement);
+            if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget &&
+                !targetElement.classList.contains("sb") && state.cachedTargetText) {
+                showDragTip(window.siyuan.dragTitle || "",
+                    window.siyuan.languages.dragTipMoveTargetBack.replace("${x}", state.cachedTargetText),
+                    event.clientX, event.clientY);
+            }
         } else if (targetElement.classList.contains("av__row--header")) {
             targetElement.classList.add("dragover__bottom");
         } else if (targetElement.classList.contains("av__row--util")) {
@@ -322,9 +602,21 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
             if (event.clientY > nodeRect.top + nodeRect.height / 2 && state.disabledPosition !== "bottom") {
                 targetElement.classList.add("dragover__bottom");
                 addDragover(targetElement);
+                if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget &&
+                    !targetElement.classList.contains("sb") && state.cachedTargetText) {
+                    showDragTip(window.siyuan.dragTitle || "",
+                        (state.cachedIsCol ? window.siyuan.languages.dragTipMoveTargetBack : window.siyuan.languages.dragTipMoveTargetBelow).replace("${x}", state.cachedTargetText),
+                        event.clientX, event.clientY);
+                }
             } else if (state.disabledPosition !== "top") {
                 targetElement.classList.add("dragover__top");
                 addDragover(targetElement);
+                if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && !isAvTarget &&
+                    !targetElement.classList.contains("sb") && state.cachedTargetText) {
+                    showDragTip(window.siyuan.dragTitle || "",
+                        (state.cachedIsCol ? window.siyuan.languages.dragTipMoveTargetFront : window.siyuan.languages.dragTipMoveTargetAbove).replace("${x}", state.cachedTargetText),
+                        event.clientX, event.clientY);
+                }
             }
         }
         return;
@@ -333,8 +625,8 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     if (fileTreeIds.indexOf("-") > -1) {
         if (fileTreeIds.split(",").includes(protyle.block.rootID) && isNotAvItem && event.altKey) {
             state.dragoverElement = undefined;
-            editorElement.querySelectorAll(".dragover__left, .dragover__right, .dragover__bottom, .dragover__top, .dragover").forEach((item: HTMLElement) => {
-                item.classList.remove("dragover__top", "dragover__bottom", "dragover__left", "dragover__right", "dragover");
+            cleanupDragIndicators(editorElement);
+            editorElement.querySelectorAll("[select-start], [select-end]").forEach((item: HTMLElement) => {
                 item.removeAttribute("select-start");
                 item.removeAttribute("select-end");
             });
@@ -410,5 +702,21 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
             state.disabledPosition = "top";
         }
         state.dragoverElement = targetElement;
+        state.cachedTargetText = getContenteditableElement(targetElement as HTMLElement)?.textContent?.trim() || "";
+        state.cachedIsCol = !!hasClosestByAttribute(targetElement as HTMLElement, "data-sb-layout", "col");
+        highlightColColumn(targetElement as HTMLElement);
+    }
+    if (!event.altKey && !event.shiftKey && gutterType && !isAvSubType && targetElement && !isAvTarget && point.className) {
+        const targetText = getContenteditableElement(targetElement as HTMLElement)?.textContent?.trim() || "";
+        const isFront = point.className === "dragover__top" || point.className === "dragover__left";
+        const isBack = point.className === "dragover__bottom" || point.className === "dragover__right";
+        if (targetText && (isFront || isBack)) {
+            const isCol = hasClosestByAttribute(targetElement as HTMLElement, "data-sb-layout", "col");
+            const key = isCol
+                ? (isFront ? window.siyuan.languages.dragTipMoveTargetFront : window.siyuan.languages.dragTipMoveTargetBack)
+                : (isFront ? window.siyuan.languages.dragTipMoveTargetAbove : window.siyuan.languages.dragTipMoveTargetBelow);
+            showDragTip(window.siyuan.dragTitle || "", key.replace("${x}", targetText),
+                event.clientX, event.clientY);
+        }
     }
 };

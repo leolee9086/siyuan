@@ -12,8 +12,7 @@ import { isWindow } from "../util/platform/functions";
 import { Constants } from "../constants";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { dockToJSON } from "./dock-utils";
-import { isMobile } from "../platform";
-import { getAllModels } from "./getAll";
+import { getAllEditor } from "./getAll";
 import { SerializationJSON, BreakObject } from "./layout-serialization.types";
 import { serializeInstance } from "./layout-serialization.serializers";
 import { getSiyuanLayout, getSiyuanConfig, setWindowTimeout } from "./dock/dock.environment";
@@ -214,11 +213,9 @@ export const saveLayout = (): void => {
 /** 导出布局配置（带回调），保存所有编辑器的滚动位置后将布局导出 */
 export const exportLayout = async (options: { cb: () => void; errorExit: boolean }) => {
     // 保存所有编辑器的滚动位置
-    if (!isMobile) {
-        const editors = getAllModels().editor;
-        for (const editor of editors) {
-            await saveScroll(editor.editor.protyle);
-        }
+    const editors = getAllEditor();
+    for (const editor of editors) {
+        await saveScroll(editor);
     }
     
     // 独立窗口模式
@@ -233,6 +230,7 @@ export const exportLayout = async (options: { cb: () => void; errorExit: boolean
     const layoutJSON = buildMainWindowLayoutJSON();
     // 如果构建失败，直接返回
     if (!layoutJSON) {
+        options.cb();
         return;
     }
     const siyuanLayout = getSiyuanLayout();

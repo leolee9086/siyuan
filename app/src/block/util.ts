@@ -92,6 +92,71 @@ export const refreshSbResize = (sbElement: Element) => {
 };
 
 /**
+ * 作用：重新分配列布局超级块中子块的宽度。
+ * 意图：子块进出超级块后按现有比例归一化宽度，避免 gap 不均或换行。
+ * 调用时机：拖拽、删除、插入等操作刷新超级块布局时调用。
+ * @同步豁免: 需要绝对同步的DOM访问 - 需要实时读取手柄尺寸和子块宽度并立即写回 DOM。
+ */
+export const rebalanceSbWidth = (sbElement: Element): Array<{ id: string; oldHTML: string }> => {
+    if (!sbElement || sbElement.getAttribute("data-sb-layout") !== "col") {
+        return [];
+    }
+    const children = Array.from(sbElement.querySelectorAll(":scope > [data-node-id]")) as HTMLElement[];
+    if (children.length < 2 || !children.some(child => child.style.width)) {
+        return [];
+    }
+    const handle = sbElement.querySelector(":scope > .sb__resize") as HTMLElement | null;
+    let gapPx = 20;
+    if (handle) {
+        const style = getComputedStyle(handle);
+        gapPx = handle.offsetWidth + parseFloat(style.marginLeft) + parseFloat(style.marginRight);
+    }
+    const gapShare = ((children.length - 1) * gapPx) / children.length + 0.5;
+    const avgRatio = 1 / children.length;
+    const ratios = children.map((child) => {
+        const match = child.style.width.match(/calc\(([\d.]+)%/);
+        return match ? parseFloat(match[1]) / 100 : avgRatio;
+    });
+    const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) || 1;
+    const changes: Array<{ id: string; oldHTML: string }> = [];
+    children.forEach((child, index) => {
+        const id = child.getAttribute("data-node-id");
+        if (!id) {
+            return;
+        }
+        const oldHTML = child.outerHTML;
+        const percent = Math.round((ratios[index] / totalRatio) * 100 * 10) / 10;
+        child.style.width = `calc(${percent}% - ${gapShare}px)`;
+        child.style.flex = "none";
+        changes.push({ id, oldHTML });
+    });
+    return changes;
+};
+
+/**
+ * 作用：刷新超级块手柄并把宽度变化写入事务操作。
+ * 意图：让 DOM 变化、doOperations 与 undoOperations 同步，保证撤销时宽度恢复顺序正确。
+ */
+export const refreshSbAndPersistWidth = (
+    sbElement: Element,
+    doOperations: IOperation[],
+    undoOperations: IOperation[]
+) => {
+    if (!sbElement || !sbElement.parentElement) {
+        return;
+    }
+    refreshSbResize(sbElement);
+    for (const change of rebalanceSbWidth(sbElement)) {
+        const targetElement = sbElement.querySelector(`[data-node-id="${change.id}"]`);
+        if (!targetElement) {
+            continue;
+        }
+        doOperations.push({ action: "update", id: change.id, data: targetElement.outerHTML });
+        undoOperations.splice(0, 0, { action: "update", id: change.id, data: change.oldHTML });
+    }
+};
+
+/**
  * 作用：处理跳转到父/子/兄弟块的后端响应。
  * 意图：将回调逻辑抽离为具名函数，降低 jumpToParent 的嵌套层级并提升可读性。
  */
@@ -187,20 +252,29 @@ export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPositi
     // 非列表项场景通过事务记录插入操作，支持撤销
     if (!isOrderedListItem) {
         const doOperations = buildInsertOperations(newElement, newId || "", blockElement, position);
-        transaction(protyle, doOperations, [{ action: "delete", id: newId || "" }]);
-    }
-    const prev = blockElement.previousElementSibling;
-    const next = blockElement.nextElementSibling;
-    // 在列布局超级块中插入时自动合并相邻块
-    if (prev && next && blockElement.parentElement?.classList.contains("sb") &&
-        blockElement.parentElement.getAttribute("data-sb-layout") === "col") {
-        turnsIntoOneTransaction({
-            protyle,
-            selectsElement: position === "afterend" ? [blockElement, next] : [prev, blockElement],
-            type: "BlocksMergeSuperBlock",
-            level: "row",
-            unfocus: true,
-        });
+        const undoOperations: IOperation[] = [{ action: "delete", id: newId || "" }];
+        if (blockElement.parentElement?.classList.contains("sb") &&
+            blockElement.parentElement.getAttribute("data-sb-layout") === "col") {
+            // 合并到同一个 transaction，避免新超级块 id 在第二个 transaction 中找不到。
+            const prev = blockElement.previousElementSibling;
+            const next = blockElement.nextElementSibling;
+            const selectsElement = position === "afterend" ? [blockElement, next] : [prev, blockElement];
+            if (selectsElement.every(item => item instanceof Element)) {
+                const mergeOperations = await turnsIntoOneTransaction({
+                    protyle,
+                    selectsElement: selectsElement as Element[],
+                    type: "BlocksMergeSuperBlock",
+                    level: "row",
+                    unfocus: true,
+                    getOperations: true,
+                });
+                if (mergeOperations) {
+                    doOperations.push(...mergeOperations.doOperations);
+                    undoOperations.splice(0, 0, ...mergeOperations.undoOperations);
+                }
+            }
+        }
+        transaction(protyle, doOperations, undoOperations);
     }
     // 插入后恢复光标位置
     if (protyle.wysiwyg?.element) {

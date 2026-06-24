@@ -11,6 +11,8 @@ import { hasClosestByAttribute } from "./imports";
 import { hasClosestByClassName } from "./imports";
 /** 用途：隐藏 Tooltip。使用范围：Popover 关闭时清理。解耦评估：通过 ./imports 转发。 */
 import { hideTooltip } from "./imports";
+/** 用途：当前 tooltip 触发元素。使用范围：Popover 判断鼠标是否已离开触发区域。解耦评估：通过 ./imports 转发。 */
+import { tooltipTargetElement } from "./imports";
 /** 用途：应用实例类型。使用范围：Popover 上下文。解耦评估：通过 ./imports 转发。 */
 import { App } from "./imports";
 /** 用途：系统常量。使用范围：Popover 配置。解耦评估：通过 ./imports 转发。 */
@@ -117,10 +119,13 @@ function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: H
 /** 处理非 tooltip 元素，检查是否应该隐藏 tooltip */
 function 处理非Tooltip元素(target: HTMLElement) {
     const tipElement = hasClosestByAttribute(target, "id", "tooltip", true);
-    // 当不存在 tooltip 元素，或者 tooltip 内容未溢出（不需要滚动查看）时，隐藏 tooltip
-    if (!tipElement || (
-        tipElement && (tipElement.clientHeight >= tipElement.scrollHeight && tipElement.clientWidth >= tipElement.scrollWidth)
-    )) {
+    if (!tipElement) {
+        hideTooltip();
+        return;
+    }
+    if (tooltipTargetElement && !tooltipTargetElement.contains(target)) {
+        // 鼠标在 #tooltip 上但已离开触发元素范围，正常隐藏
+        // 仍在触发元素范围内时不隐藏，避免 showTooltip 与 hideTooltip 循环闪烁
         hideTooltip();
     }
 }

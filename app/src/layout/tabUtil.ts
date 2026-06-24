@@ -1,7 +1,7 @@
 import { Tab } from "./Tab";
 import { createTabModel } from "../registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
-import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
+import { getAllModels, getAllTabs } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
 import { pdfResize } from "../asset/renderAssets";
 import { App } from "../index";

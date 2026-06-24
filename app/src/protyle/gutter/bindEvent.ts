@@ -23,6 +23,7 @@ import { insertAttrViewBlockAnimation, updateHeader } from "../render/av/row";
 import { avContextmenu } from "../render/av/action";
 import { transaction } from "../wysiwyg/transaction";
 import { processClonePHElement } from "../render/util";
+import { transparentImgSrc } from "../util/dragTip";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -128,10 +129,34 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
         });
         ghostElement.setAttribute("style", `position:fixed;opacity:.1;width:${selectElements[0].clientWidth}px;padding:0;`);
         document.body.append(ghostElement);
-        event.dataTransfer.setDragImage(ghostElement, 0, 0);
-        setTimeout(() => {
-            ghostElement.remove();
-        });
+        const isBlockDrag = !buttonElement.dataset.rowId;
+        if (isBlockDrag && !window.siyuan.touchDragActive) {
+            const transparentImg = new Image();
+            transparentImg.src = transparentImgSrc;
+            event.dataTransfer.setDragImage(transparentImg, 0, 0);
+            setTimeout(() => {
+                ghostElement.remove();
+            });
+        } else {
+            event.dataTransfer.setDragImage(ghostElement, 0, 0);
+            if (window.siyuan.touchDragActive) {
+                window.siyuan.touchDragGhost = ghostElement;
+            } else {
+                setTimeout(() => {
+                    ghostElement.remove();
+                });
+            }
+        }
+        if (isBlockDrag) {
+            const text = getContenteditableElement(selectElements[0] as HTMLElement)?.textContent?.trim() || "";
+            // 数据库块若无标题，优先用当前视图名，最后兜底为"数据库"
+            let title = text;
+            if (!title && buttonElement.getAttribute("data-type") === "NodeAttributeView") {
+                title = (selectElements[0] as HTMLElement)?.querySelector(".av__views .item--focus")?.textContent?.trim() ||
+                    window.siyuan.languages.database;
+            }
+            window.siyuan.dragTitle = title;
+        }
         buttonElement.style.opacity = "0.38";
         window.siyuan.dragElement = avElement as HTMLElement || protyle.wysiwyg.element;
         event.dataTransfer.setData(`${Constants.SIYUAN_DROP_GUTTER}${buttonElement.getAttribute("data-type")}${Constants.ZWSP}${buttonElement.getAttribute("data-subtype")}${Constants.ZWSP}${selectIds}${Constants.ZWSP}${getSiyuanConfig().system.workspaceDir}`,
@@ -142,6 +167,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
             item.style.opacity = "";
         });
         window.siyuan.dragElement = undefined;
+        window.siyuan.dragTitle = "";
     });
     gutterElement.addEventListener("click", (event: MouseEvent & { target: HTMLInputElement }) => {
         const buttonElement = hasClosestByTag(event.target, "BUTTON");

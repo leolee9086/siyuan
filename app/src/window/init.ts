@@ -5,7 +5,7 @@ import { fetchPost } from "../util/network/fetch";
 import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
 import { resizeTabs, setTabPosition } from "../layout/tabUtil";
 import { initStatus } from "../layout/status";
-import { appearance } from "../config/appearance";
+import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { getSearch } from "../util/platform/functions";
@@ -121,7 +121,7 @@ export const init = async (app: App) => {
     if (isElectron) {
         initNativeDialogOverride();
     }
-    appearance.onSetAppearance(getSiyuanConfig().appearance);
+    appearanceConfigApi.apply(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();
     renderSnippet();

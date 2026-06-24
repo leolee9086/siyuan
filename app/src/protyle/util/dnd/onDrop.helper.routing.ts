@@ -159,7 +159,21 @@ export const handleGutterNormalDrop = async (
     const { sourceIds, srcs } = await prepareSourceData(sourceElements);
     hideElements(["gutter"], protyle);
     const targetClass = targetElement.className.split(" ");
-    targetElement.classList.remove("dragover__bottom", "dragover__top", "dragover__left", "dragover__right");
+    targetElement.classList.remove(
+        "dragover__bottom",
+        "dragover__top",
+        "dragover__left",
+        "dragover__right",
+        "dragover__bottom--sibling",
+        "dragover__top--sibling",
+        "dragover__bottom--child",
+        "dragover__top--child"
+    );
+    (targetElement as HTMLElement).style.removeProperty("--drag-indent");
+    (targetElement as HTMLElement).style.removeProperty("--drag-guides");
+    (targetElement as HTMLElement).style.removeProperty("--drag-line-left");
+    (targetElement as HTMLElement).style.removeProperty("--drag-base-bg");
+    (targetElement as HTMLElement).style.removeProperty("--drag-line-bg");
 
     // AV 单元格列排序
     if (targetElement.classList.contains("av__cell")) {
@@ -190,7 +204,7 @@ export const handleGutterNormalDrop = async (
     if (sourceElements.length > 0) {
         await handleBlockDrag(
             protyle, sourceElements, targetElement,
-            targetClass, event.ctrlKey, editorElement,
+            targetClass, event.ctrlKey, editorElement, gutterTypes,
         );
     }
     state.dragoverElement = undefined;

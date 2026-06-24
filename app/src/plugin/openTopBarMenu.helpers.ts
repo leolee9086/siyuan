@@ -72,9 +72,7 @@ export const addManageMenuItem = (menu: Menu, app: App, languages: Record<string
         ignore: isHuawei() || config.readonly,
         /** @同步豁免: UI构建 */
         click() {
-            const settingDialog = openSetting(app);
-            const bazaarTab = settingDialog?.element.querySelector('.config__side [data-name="bazaar"]');
-            bazaarTab?.dispatchEvent(new CustomEvent("click"));
+            openSetting(app, "bazaar");
         }
     });
     menu.addSeparator({id: "separator_1", ignore: isHuawei() || config.readonly});

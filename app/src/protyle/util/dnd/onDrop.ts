@@ -26,6 +26,7 @@ import {
     handleExternalAvCellDrop,
 } from "./onDrop.helper.external";
 import { IDndState } from "./onDrop.types";
+import { hideDragTip } from "../dragTip";
 
 export type { IDndState };
 
@@ -75,7 +76,21 @@ const handleFileTreeDrop = async (
         await convertDocToHeading(ids, targetElement, isBottom);
         await reloadDocAfterConvert(protyle, scrollTop);
     }
-    targetElement.classList.remove("dragover__bottom", "dragover__top", "dragover__left", "dragover__right");
+    targetElement.classList.remove(
+        "dragover__bottom",
+        "dragover__top",
+        "dragover__left",
+        "dragover__right",
+        "dragover__bottom--sibling",
+        "dragover__top--sibling",
+        "dragover__bottom--child",
+        "dragover__top--child"
+    );
+    (targetElement as HTMLElement).style.removeProperty("--drag-indent");
+    (targetElement as HTMLElement).style.removeProperty("--drag-guides");
+    (targetElement as HTMLElement).style.removeProperty("--drag-line-left");
+    (targetElement as HTMLElement).style.removeProperty("--drag-base-bg");
+    (targetElement as HTMLElement).style.removeProperty("--drag-line-bg");
 };
 
 /**
@@ -106,7 +121,7 @@ const handleExternalDrop = async (
 /**
  * 从 dataTransfer 中查找 gutter 类型标识
  *
- * 作用：遍历 dataTransfer.items 查找以 SIYUAN_DROP_GUTTER 开头的类型
+ * 作用：遍历 dataTransfer.types 查找以 SIYUAN_DROP_GUTTER 开头的类型
  * 意图：gutter 拖拽通过 dataTransfer 的 type 字段传递类型信息
  * 调用时机：onDrop 主函数中判断拖拽来源时
  *
@@ -115,10 +130,10 @@ const handleExternalDrop = async (
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽事件处理中同步读取 dataTransfer */
 const findGutterType = (dataTransfer: DataTransfer): string => {
-    for (const item of dataTransfer.items) {
+    for (const type of dataTransfer.types) {
         // gutter 类型以特定前缀开头
-        if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
-            return item.type;
+        if (type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
+            return type;
         }
     }
     return "";
@@ -153,7 +168,8 @@ const isViewTabSort = (gutterType: string): boolean => {
 /** @同步豁免: 需要绝对同步的DOM访问 - 拖拽清理必须同步执行 */
 const cleanupDragoverTarget = (editorElement: HTMLElement): Element | null => {
     const targetElement = editorElement.querySelector(
-        ".dragover__left, .dragover__right, .dragover__bottom, .dragover__top",
+        ".dragover__left, .dragover__right, .dragover__bottom, .dragover__top, " +
+        ".dragover__bottom--sibling, .dragover__top--sibling, .dragover__bottom--child, .dragover__top--child",
     );
     if (!targetElement) {
         return null;
@@ -183,6 +199,8 @@ export const onDrop = async (
     state: IDndState,
 ): Promise<void> => {
     state.counter = 0;
+    hideDragTip();
+    window.siyuan.dragTitle = "";
     // dataTransfer 不存在时无法处理
     if (!event.dataTransfer) {
         return;

@@ -1,4 +1,5 @@
 import { IMoveContext } from "./moveTo.types";
+import { getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 
 const computePreviousID = (context: IMoveContext, prevSibling: Element | null): string | null | undefined => {
     if (context.position === "afterbegin") {
@@ -62,7 +63,7 @@ throw new Error("List element missing");
 
 const insertMoveElement = (item: Element, id: string, context: IMoveContext) => {
     context.tempTargetElement.insertAdjacentElement(context.position, item);
-    const prevSibling = item.previousElementSibling;
+    const prevSibling = getPreviousBlockSibling(item);
     const parent = item.parentElement;
 
     const previousIDOps = computePreviousID(context, prevSibling);

@@ -39,7 +39,14 @@ export const handleToolbarClick = (
         protyle.hint.fill(dataValue, protyle, false);   // 点击后 range 会改变
         event.preventDefault();
         event.stopPropagation();
-        if (slashBtnElement.getAttribute("data-focus") === "true") {
+        if (dataValue === "((" || dataValue === "{{") {
+            // (( / {{ 的候选列表无输入框，需保持键盘不收起，否则无法继续输入筛选。
+            // 见 https://github.com/siyuan-note/siyuan/issues/17877
+            callMobileAppShowKeyboard();
+            if (isInHarmony() || isInAndroid()) {
+                setTimeout(() => focusByRange(protyle.toolbar.range), Constants.TIMEOUT_TRANSITION);
+            }
+        } else if (slashBtnElement.getAttribute("data-focus") === "true") {
             focusByRange(protyle.toolbar.range);
         }
         return;
@@ -108,7 +115,7 @@ export const handleToolbarClick = (
     if (type === "goback") {
         toolbarElement.querySelector('.keyboard__action[data-type="goinline"]').classList.remove("protyle-toolbar__item--current");
         const dynamicElements = document.querySelectorAll("#keyboardToolbar .keyboard__dynamic");
-        dynamicElements[0].classList.add("fn__none");
+        dynamicElements[0].classList.remove("fn__none");
         dynamicElements[1].classList.add("fn__none");
         focusByRange(range);
         deps.setPreventRender(true);

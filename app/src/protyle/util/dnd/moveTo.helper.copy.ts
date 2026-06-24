@@ -1,5 +1,6 @@
 import { fetchSyncPost } from "../../../util/network/fetch";
 import { IMoveContext } from "./moveTo.types";
+import { getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 
 export const handleCopyOperation = (item: Element, id: string, context: IMoveContext) => {
     const copyNewId = Lute.NewNodeID();
@@ -64,7 +65,7 @@ const insertCopyElement = (copyElement: HTMLElement, copyNewId: string, context:
     }
 
     // 其他分支：作为兄弟节点插入
-    const prevSibling = copyElement.previousElementSibling;
+    const prevSibling = getPreviousBlockSibling(copyElement);
     const previousID = (context.position === "afterend" ? context.targetId : prevSibling?.getAttribute("data-node-id")) || undefined;
     const parent = copyElement.parentElement;
     const parentID = parent?.getAttribute("data-node-id") || context.protyle.block.parentID || context.protyle.block.rootID;

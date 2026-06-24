@@ -23,6 +23,9 @@ import { getWindowHeight } from "./imports";
  */
 import { getDOMPurify } from "./imports";
 
+// 记录当前 tooltip 对应的触发元素，便于判断鼠标是否已离开触发区域
+export let tooltipTargetElement: Element | null = null;
+
 /**
  * 用途：解析 position 属性中的偏移量数值部分
  * 使用范围：tooltip 各方向定位计算
@@ -273,6 +276,7 @@ export const showTooltip = async (
     if (isMobile() || !message) {
         return;
     }
+    tooltipTargetElement = target;
     let targetRect = target.getBoundingClientRect();
     // 处理跨行元素，选择合适的矩形
     targetRect = findTargetRect(target, event, targetRect);
@@ -300,5 +304,6 @@ export const showTooltip = async (
  */
 export const hideTooltip = async () => {
     const tooltipElement = document.getElementById("tooltip");
+    tooltipTargetElement = null;
     tooltipElement.classList.add("fn__none");
 };

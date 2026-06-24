@@ -1,7 +1,7 @@
 import { setFold } from "../util/blockFold";
 import { focusByRange } from "../util/selection.focus";
 import { focusByWbr, setLastNodeRange } from "../util/selection.range";
-import { getParentBlock, getContenteditableElement } from "./getBlock";
+import { getParentBlock, getContenteditableElement, getPreviousBlockSibling } from "./getBlock";
 import { listOutdent } from "./list";
 import { updateListOrder } from "./list.updateOrder";
 import { moveToPrevious } from "./remove";
@@ -65,7 +65,7 @@ const mergeFirstChildList = (protyle: IProtyle, blockEl: Element, range: Range, 
  * 调用时机：列表转普通块后合并
  * 问题/改进：无
  */
-const mergeSuperBlock = (protyle: IProtyle, listEl: Element, undoFirstId: string) => {
+const mergeSuperBlock = async (protyle: IProtyle, listEl: Element, undoFirstId: string) => {
     const pEl = listEl.parentElement;
     // 判断超级块列布局
     if (pEl?.classList.contains("sb") && pEl.getAttribute("data-sb-layout") === "col") {
@@ -78,10 +78,53 @@ const mergeSuperBlock = (protyle: IProtyle, listEl: Element, undoFirstId: string
             if (undoFirstId === prevEl.getAttribute("data-node-id")) {
                 break;
             }
-            prevEl = prevEl.previousElementSibling;
+            prevEl = getPreviousBlockSibling(prevEl);
         }
-        turnsIntoOneTransaction({ protyle, selectsElement: selectsHtml.reverse(), type: "BlocksMergeSuperBlock", level: "row", unfocus: true });
+        return turnsIntoOneTransaction({
+            protyle,
+            selectsElement: selectsHtml.reverse(),
+            type: "BlocksMergeSuperBlock",
+            level: "row",
+            unfocus: true,
+            getOperations: true,
+        });
     }
+};
+
+/**
+ * 作用：计算顶级列表首项拆出后的前序块。
+ * 意图：超级块中可能夹有 resize 手柄，事务 previousID 只能指向真实业务块。
+ * 调用时机：列表项子块转换为同级普通块时调用。
+ * 问题/改进：依赖 doOps 已按插入顺序累积前一个新块。
+ */
+const getTopListPreviousId = (index: number, listEl: Element, doOps: IOperation[]) => {
+    // 第一项插到原列表前方，需要寻找原列表前的真实业务块。
+    if (index === 0) {
+        return getPreviousBlockSibling(listEl)?.getAttribute("data-node-id") || undefined;
+    }
+    const previousOperation = doOps[index - 1];
+    return previousOperation?.id;
+};
+
+/**
+ * 作用：把顶级列表首项拆出后的超级块合并操作并入事务。
+ * 意图：避免超级块合并生成的新 id 落在第二个事务里，导致撤销/重做找不到节点。
+ * 调用时机：列表首行脱出并完成 DOM 移动后、提交 transaction 前调用。
+ * 问题/改进：只有列布局超级块会产生合并 operations。
+ */
+const appendMergeSuperBlockOperations = async (protyle: IProtyle, listEl: Element, doOps: IOperation[], undoOps: IOperation[]) => {
+    const firstUndo = undoOps[0];
+    // 没有首个撤销项时说明没有新块可合并。
+    if (!firstUndo?.id) {
+        return;
+    }
+    const mergeOperations = await mergeSuperBlock(protyle, listEl, firstUndo.id);
+    // 非列布局超级块不需要追加合并事务。
+    if (!mergeOperations) {
+        return;
+    }
+    doOps.push(...mergeOperations.doOperations);
+    undoOps.splice(0, 0, ...mergeOperations.undoOperations);
 };
 
 /**
@@ -90,7 +133,7 @@ const mergeSuperBlock = (protyle: IProtyle, listEl: Element, undoFirstId: string
  * 调用时机：在 removeLi 中
  * 问题/改进：无
  */
-const topListFirstLineToBlock = (protyle: IProtyle, blockEl: Element, range: Range, isDel: boolean, listEl: Element) => {
+const topListFirstLineToBlock = async (protyle: IProtyle, blockEl: Element, range: Range, isDel: boolean, listEl: Element) => {
     moveToPrevious(blockEl, range, isDel);
     range.insertNode(document.createElement("wbr"));
     const htmlOld = listEl.outerHTML;
@@ -113,19 +156,7 @@ const topListFirstLineToBlock = (protyle: IProtyle, blockEl: Element, range: Ran
     // 遍历项转为块
     for (const item of Array.from(tempEl.children)) {
         const id = item.getAttribute("data-node-id") || "";
-        let pIdLocal: string | undefined = undefined;
-        // 第一项的情况
-        if (index === 0) {
-            pIdLocal = listEl.previousElementSibling?.getAttribute("data-node-id") || undefined;
-        }
-        // 非第一项情况
-        if (index !== 0) {
-            const prevOp = doOps[index - 1];
-            // 取前项事务
-            if (prevOp) {
-                pIdLocal = prevOp.id;
-            }
-        }
+        const pIdLocal = getTopListPreviousId(index, listEl, doOps);
         const pId = getParentBlock(listEl)?.getAttribute("data-node-id") || protyle.block.parentID;
         doOps.push({ action: "insert", id, data: item.outerHTML, previousID: pIdLocal, parentID: pId });
         undoOps.push({ action: "delete", id });
@@ -139,24 +170,18 @@ const topListFirstLineToBlock = (protyle: IProtyle, blockEl: Element, range: Ran
     }
 
     // 处理有序列表标号
-    if (listEl.getAttribute("data-subtype") === "o") {
-        const firstMark = listEl.firstElementChild?.getAttribute("data-marker");
-        // 更新下标
-        if (firstMark) {
-            updateListOrder(listEl, parseInt(firstMark) - 1);
-        }
+    const firstMark = listEl.firstElementChild?.getAttribute("data-marker");
+    // 有序列表拆出首项后，从原起始序号前一位继续刷新。
+    if (listEl.getAttribute("data-subtype") === "o" && firstMark) {
+        updateListOrder(listEl, parseInt(firstMark) - 1);
     }
     listEl.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
     const idLocal = listEl.getAttribute("data-node-id") || "";
     doOps.splice(0, 0, { action: "update", id: idLocal, data: listEl.outerHTML });
     undoOps.push({ action: "update", data: htmlOld, id: idLocal });
-    transaction(protyle, doOps, undoOps);
 
-    const firstUndo = undoOps[0];
-    // 合并超级块
-    if (firstUndo?.id) {
-        mergeSuperBlock(protyle, listEl, firstUndo.id);
-    }
+    await appendMergeSuperBlockOperations(protyle, listEl, doOps, undoOps);
+    transaction(protyle, doOps, undoOps);
     // 聚焦编辑器
     if (protyle.wysiwyg?.element) {
         focusByWbr(protyle.wysiwyg.element, range);
@@ -364,7 +389,7 @@ const mergeToPrev = (protyle: IProtyle, blockEl: Element, range: Range, isDel: b
  * 调用时机：热键事件分发
  * 问题/改进：无
  */
-export const removeLi = (protyle: IProtyle, blockEl: Element, range: Range, isDelete = false) => {
+export const removeLi = async (protyle: IProtyle, blockEl: Element, range: Range, isDelete = false) => {
     const pEl = blockEl.parentElement;
     const prevSib = pEl?.previousElementSibling;
     const nextSib = pEl?.nextElementSibling;
@@ -385,7 +410,7 @@ export const removeLi = (protyle: IProtyle, blockEl: Element, range: Range, isDe
         if (gpEl.classList.contains("protyle-wysiwyg")) {
             return;
         }
-        topListFirstLineToBlock(protyle, blockEl, range, isDelete, gpEl);
+        await topListFirstLineToBlock(protyle, blockEl, range, isDelete, gpEl);
         return;
     }
     mergeToPrev(protyle, blockEl, range, isDelete);

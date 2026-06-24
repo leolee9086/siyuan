@@ -4,8 +4,8 @@ import {addScript} from "../../protyle/util/addScript";
 import {Constants} from "../../constants";
 import {mathRender} from "../../protyle/render/mathRender";
 import {showMessage} from "../../dialog/message";
-import {processSYLink} from "../../editor/openLink";
 import type {App} from "../../index";
+import {processSiYuanUri} from "../../editor/openLink";
 
 export const renderTodoList = (result: string): string => {
     const L = window.siyuan.languages;
@@ -32,8 +32,18 @@ export const renderTodoList = (result: string): string => {
     return html;
 };
 
-export const renderWelcomeHTML = (): string => {
+// hasModel=false 时渲染"未配置模型"提示块替代示例，避免用户点击示例后卡死。
+export const renderWelcomeHTML = (hasModel = true): string => {
     const L = window.siyuan.languages;
+    if (!hasModel) {
+        return '<div class="agent-welcome">' +
+            '<div class="agent-welcome__greeting">' + (L.agentWelcomeGreeting || "Hello, I am SiYuan Agent") + "</div>" +
+            '<div class="agent-welcome__no-model">' +
+                '<div class="agent-welcome__no-model-title">' + (L.agentNoModel || "No model configured") + "</div>" +
+                '<div class="agent-welcome__no-model-tip">' + (L.agentNoModelTip || "Please configure a provider and model in Settings - AI first.") + "</div>" +
+            "</div>" +
+        "</div>";
+    }
     return '<div class="agent-welcome">' +
         '<div class="agent-welcome__greeting">' + (L.agentWelcomeGreeting || "Hello, I am SiYuan Agent") + "</div>" +
         '<div class="agent-welcome__examples">' +
@@ -265,7 +275,7 @@ export const postRender = (container: HTMLElement, app?: App): void => {
         a.addEventListener("click", (event: MouseEvent) => {
             event.preventDefault();
             event.stopPropagation();
-            void processSYLink(app, href);
+            void processSiYuanUri(app, href);
         });
     });
 };

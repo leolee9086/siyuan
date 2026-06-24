@@ -3,14 +3,14 @@ import { Menus } from "./menus";
 import { Model } from "./layout/Model";
 import { onGetConfig } from "./boot/onGetConfig";
 import { initBlockPopover } from "./block/popover";
-import { account } from "./config/account";
+import { onSetaccount } from "./config/tabs/accountUi";
 import { addScript, addScriptSync } from "./protyle/util/addScript";
 import { genUUID } from "./util/platform/genID";
 import { fetchGet, fetchPost } from "./util/network/fetch";
-import { addBaseURL, getIdFromSYProtocol, isSYProtocol, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
+import { addBaseURL, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
 import { exportLayout } from "./layout/layout-serialization";
 // S-forge: 上游新增 - 支持空文档标题显示 (upstream #17110)
-import { getDocDisplayName } from "./util/pathName";
+import { getDocDisplayName, parseSiYuanUriInfo } from "./util/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {
@@ -32,7 +32,6 @@ import { confirmDialog } from "./dialog/confirmDialog";
 import { getAllModels, getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
-import { getSearch } from "./util/platform/functions";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "./util/network/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
 import { loadPlugins, reloadPlugin } from "./plugin/loader";
@@ -48,8 +47,7 @@ import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
 import { getDockByType } from "./layout/tabUtil";
 import { Tag } from "./layout/dock/Tag";
 import { EventBus } from "./plugin/EventBus";
-import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n.environment";
-import { updateAppearance } from "./config/util/updateAppearance";
+import { appearanceConfigApi } from "./config/tabs/appearanceRuntime";
 import { renderSnippet } from "./config/util/snippets";
 import { embeddingText } from "./util/lib/embedding/transformer";
 import { setSForgeState } from "./config/sforge.global";
@@ -89,7 +87,7 @@ export class App {
                             redirectToCheckAuth();
                             break;
                         case "setAppearance":
-                            updateAppearance(data.data);
+                            appearanceConfigApi.apply(data.data);
                             break;
                         case "setSnippet":
                             window.siyuan.config.snippet = data.data;
@@ -224,7 +222,7 @@ export class App {
                             openFileById({app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS]});
                             break;
                         case "exit":
-                            if (isBrowser() && !isInMobileApp()) {
+                            if (isBrowser && !isInMobileApp()) {
                                 window.location.href = "about:blank";
                             }
                             break;
@@ -286,8 +284,7 @@ export class App {
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {
                         window.siyuan.user = userResponse.data;
                         onGetConfig(response.data.start, this);
-                        account.onSetaccount();
-                        // S-forge: 上游改进 - 支持设置空文档标题 (#17110)
+                        onSetaccount();
                         setTitle("", true);
                         initMessage();
                         // 浏览器桌面端检查是否使用 Chrome，非 Chrome 时提示用户
@@ -307,13 +304,13 @@ export class App {
 const siyuanApp = new App();
 
 window.openFileByURL = (openURL) => {
-    if (openURL && isSYProtocol(openURL)) {
-        const isZoomIn = getSearch("focus", openURL) === "1";
+    const blockInfo = parseSiYuanUriInfo(openURL);
+    if (blockInfo != null) {
         openFileById({
             app: siyuanApp,
-            id: getIdFromSYProtocol(openURL),
-            action: isZoomIn ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-            zoomIn: isZoomIn
+            id: blockInfo.id,
+            action: blockInfo.focus ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+            zoomIn: blockInfo.focus
         });
         return true;
     }

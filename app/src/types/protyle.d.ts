@@ -301,6 +301,8 @@ declare class Lute {
     public SetExportNormalizeTaskListMarker(marker: boolean): void;
 
     public SetArbitraryTaskListItemMarker(marker: boolean): void;
+
+    public SetEnsureListItemParagraph(enable: boolean): void;
 }
 
 declare const webkitAudioContext: {

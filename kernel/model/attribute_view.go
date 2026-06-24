@@ -3536,14 +3536,21 @@ func SetAttrViewFilters(avID, blockID string, data []any) (err error) {
 		return
 	}
 
-	if err = gulu.JSON.UnmarshalJSON(jsonData, &view.Filters); err != nil {
+	var newFilters []*av.ViewFilter
+	if err = gulu.JSON.UnmarshalJSON(jsonData, &newFilters); err != nil {
 		return
 	}
+	view.Filters = newFilters
 
 	// 归一化为单一根组：spec 5 起顶层应为一个根组。
 	// 兜底旧前端/异常数据发来的扁平叶子数组，在内存里包成 AND 根组后再持久化。
 	if 1 != len(view.Filters) || nil == view.Filters[0] || !view.Filters[0].IsGroup() {
 		view.Filters = []*av.ViewFilter{{Combination: av.FilterCombinationAnd, Filters: view.Filters}}
+	}
+
+	// 限制筛选嵌套深度，防止异常数据创建过深的嵌套分组。
+	if err = av.ValidateFilterDepth(view.Filters); nil != err {
+		return
 	}
 
 	err = av.SaveAttributeView(attrView)
@@ -3576,9 +3583,11 @@ func SetAttrViewSorts(avID, blockID string, data []any) (err error) {
 		return
 	}
 
-	if err = gulu.JSON.UnmarshalJSON(jsonData, &view.Sorts); err != nil {
+	var newSorts []*av.ViewSort
+	if err = gulu.JSON.UnmarshalJSON(jsonData, &newSorts); err != nil {
 		return
 	}
+	view.Sorts = newSorts
 
 	err = av.SaveAttributeView(attrView)
 	return

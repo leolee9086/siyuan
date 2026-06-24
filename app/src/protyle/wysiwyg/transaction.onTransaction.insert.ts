@@ -4,24 +4,30 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {hasClosestBlock, isInEmbedBlock} from "../util/hasClosest";
 import {avRender} from "../render/av/render";
+import {refreshSbs} from "./transaction.refreshSbs";
 
 export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: boolean): void => {
     if (operation.context?.ignoreProcess === "true") {
         return;
     }
-    const cursorElements = [];
+    const cursorElements: Element[] = [];
+    const pushCursorElement = (element: Element | null) => {
+        if (element) {
+            cursorElements.push(element);
+        }
+    };
     if (operation.previousID) {
         const previousElement = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.previousID}"]`);
         if (previousElement.length === 0 && isUndo && protyle.wysiwyg.element.childElementCount === 0) {
             // https://github.com/siyuan-note/siyuan/issues/15396 操作后撤销
             protyle.wysiwyg.element.innerHTML = operation.data;
-            cursorElements.push(protyle.wysiwyg.element.firstElementChild);
+            pushCursorElement(protyle.wysiwyg.element.firstElementChild);
         } else if (previousElement.length === 0 && protyle.options.backlinkData && isUndo && getSelection().rangeCount > 0) {
             // 反链面板删除超级块中的最后一个段落块后撤销
             const blockElement = hasClosestBlock(getSelection().getRangeAt(0).startContainer);
             if (blockElement) {
                 blockElement.insertAdjacentHTML("beforebegin", operation.data);
-                cursorElements.push(blockElement.previousElementSibling);
+                pushCursorElement(blockElement.previousElementSibling);
             }
         } else {
             previousElement.forEach(item => {
@@ -32,7 +38,7 @@ export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: b
                     blockRender(protyle, embedElement);
                 } else {
                     item.insertAdjacentHTML("afterend", operation.data);
-                    cursorElements.push(item.nextElementSibling);
+                    pushCursorElement(item.nextElementSibling);
                 }
             });
         }
@@ -45,20 +51,20 @@ export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: b
                 blockRender(protyle, embedElement);
             } else {
                 item.insertAdjacentHTML("beforebegin", operation.data);
-                cursorElements.push(item.previousElementSibling);
+                pushCursorElement(item.previousElementSibling);
             }
         });
     } else {
         const parentElement = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.parentID}"]`);
         if (!protyle.options.backlinkData && operation.parentID === protyle.block.parentID && !protyle.block.showAll) {
             protyle.wysiwyg.element.insertAdjacentHTML("afterbegin", operation.data);
-            cursorElements.push(protyle.wysiwyg.element.firstElementChild);
+            pushCursorElement(protyle.wysiwyg.element.firstElementChild);
         } else if (parentElement.length === 0 && protyle.options.backlinkData && isUndo && getSelection().rangeCount > 0) {
             // 反链面板删除超级块中的段落块后撤销
             const blockElement = hasClosestBlock(getSelection().getRangeAt(0).startContainer);
             if (blockElement) {
                 blockElement.insertAdjacentHTML("beforebegin", operation.data);
-                cursorElements.push(blockElement.previousElementSibling);
+                pushCursorElement(blockElement.previousElementSibling);
             }
         } else {
             parentElement.forEach(item => {
@@ -66,13 +72,13 @@ export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: b
                     // 列表特殊处理
                     if (item.firstElementChild?.classList.contains("protyle-action")) {
                         item.firstElementChild.insertAdjacentHTML("afterend", operation.data);
-                        cursorElements.push(item.firstElementChild.nextElementSibling);
+                        pushCursorElement(item.firstElementChild.nextElementSibling);
                     } else if (item.classList.contains("callout")) {
                         item.querySelector(".callout-content").insertAdjacentHTML("afterbegin", operation.data);
-                        cursorElements.push(item.querySelector("[data-node-id]"));
+                        pushCursorElement(item.querySelector("[data-node-id]"));
                     } else {
                         item.insertAdjacentHTML("afterbegin", operation.data);
-                        cursorElements.push(item.firstElementChild);
+                        pushCursorElement(item.firstElementChild);
                     }
                 }
             });
@@ -117,4 +123,5 @@ export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: b
     protyle.wysiwyg.element.querySelectorAll("[parent-heading]").forEach(item => {
         item.remove();
     });
+    refreshSbs(...cursorElements);
 };

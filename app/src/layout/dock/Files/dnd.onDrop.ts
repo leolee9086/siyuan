@@ -1,6 +1,7 @@
 import { Files } from "../Files";
 import { Constants } from "../../../constants";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
+import { hideDragTip } from "../../../protyle/util/dragTip";
 import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { getSiyuanConfig, setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { pathPosix } from "../../../util/file/pathName";
@@ -9,6 +10,8 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { onLsHTMLHandler } from "./onLsHTML";
 
 export const onDrop = async (files: Files, event: DragEvent) => {
+    hideDragTip();
+    window.siyuan.dragTitle = "";
     const newElement = files.element.querySelector(".dragover, .dragover__bottom, .dragover__top");
     if (!newElement) {
         return;

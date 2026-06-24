@@ -253,11 +253,6 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 /** 导出 ipcSend，供 editor 模块使用 */
 export { ipcSend };
 
-/** 用途：移动端链接打开。使用范围：editor 移动端打开链接。解耦评估：通过 imports.ts 转发。 */
-import { openByMobile } from "../protyle/util/compatibility";
-/** 导出 openByMobile，供 editor 模块使用 */
-export { openByMobile };
-
 /** 用途：检查折叠状态。使用范围：editor 打开链接时检查。解耦评估：通过 imports.ts 转发。 */
 import { checkFold } from "../util/platform/noRelyPCFunction";
 /** 导出 checkFold，供 editor 模块使用 */
@@ -270,12 +265,18 @@ export { openMobileFileById };
 
 /** 用途：SiYuan 协议解析。使用范围：editor 处理 siyuan:// 链接。解耦评估：通过 imports.ts 转发。 */
 import { getIdFromSYProtocol, isLocalPath, isSYProtocol } from "../util/file/pathName";
+/** 用途：SiYuan URI 协议解析。使用范围：editor 处理 siyuan:// 与 web+siyuan:// 链接。解耦评估：通过 imports.ts 转发。 */
+import { isSiYuanUriProtocol, parseSiYuanUriInfo } from "../util/pathName";
 /** 导出 getIdFromSYProtocol，供 editor 模块使用 */
 export { getIdFromSYProtocol };
 /** 导出 isLocalPath，供 editor 模块使用 */
 export { isLocalPath };
 /** 导出 isSYProtocol，供 editor 模块使用 */
 export { isSYProtocol };
+/** 导出 isSiYuanUriProtocol，供 editor 模块使用 */
+export { isSiYuanUriProtocol };
+/** 导出 parseSiYuanUriInfo，供 editor 模块使用 */
+export { parseSiYuanUriInfo };
 
 /** 用途：URL 查询参数提取。使用范围：editor 从链接提取参数。解耦评估：通过 imports.ts 转发。 */
 import { getSearch } from "../util/platform/functions";

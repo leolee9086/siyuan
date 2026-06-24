@@ -3,7 +3,7 @@ import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";
-import { bindInlineFilterEvents, getFiltersHTML, resetFoldedFilterPaths } from "./filter";
+import { bindInlineFilterEvents, getFiltersHTML } from "./filter";
 import { bindSortsEvent, getSortsHTML } from "./sort";
 import { bindDateEvent, getDateHTML } from "./date";
 import { bindAssetEvent, getAssetHTML } from "./asset";
@@ -127,7 +127,6 @@ export const openMenuPanel = (options: {
         } else if (options.type === "switcher") {
             html = getSwitcherHTML(data.views, data.viewID);
         } else if (options.type === "filters") {
-            resetFoldedFilterPaths();
             html = getFiltersHTML(data);
         } else if (options.type === "select") {
             html = getSelectHTML(fields, options.cellElements, true, options.blockElement);
@@ -173,7 +172,7 @@ export const openMenuPanel = (options: {
 
         document.body.insertAdjacentHTML("beforeend", `<div class="av__panel" style="z-index: ${++window.siyuan.zIndex};">
     <div class="b3-dialog__scrim" data-type="close"></div>
-    <div class="b3-menu" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="${["select", "asset", "relation"].includes(options.type) ? "max-height: calc(100vh - 32px);display: flex;flex-direction: column;" : ""}min-width: 200px;${isMobile ? "max-width: 90vw;" : "max-width: 50vw;"}"` : (options.type === "filters" ? 'style="min-width: 340px;max-width: 80vw;width: fit-content;"' : "")}>${html}</div>
+    <div class="b3-menu${options.type === "filters" ? " av__filter-panel" : ""}" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="${["select", "asset", "relation"].includes(options.type) ? "max-height: calc(100vh - 32px);display: flex;flex-direction: column;" : ""}min-width: 200px;${isMobile ? "max-width: 90vw;" : "max-width: 50vw;"}"` : ""}>${html}</div>
 </div>`);
         avPanelElement = document.querySelector(".av__panel");
         let closeCB: () => void;
@@ -236,7 +235,6 @@ export const openMenuPanel = (options: {
                 bindSortsEvent(options.protyle, menuElement, data, blockID);
             } else if (options.type === "filters") {
                 bindInlineFilterEvents(avPanelElement, data, options.protyle, blockID, avID);
-                (avPanelElement as HTMLElement).dataset.inlineFilterEvents = "true";
             } else if (options.type === "edit") {
                 bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
             } else if (options.type === "config") {

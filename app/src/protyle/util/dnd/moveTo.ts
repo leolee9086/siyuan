@@ -8,10 +8,11 @@ import {
     processCopyFoldHeadingIds,
     updateListAfterOperation
 } from "./moveTo.helper";
-import { getParentBlock } from "../../wysiwyg/getBlock";
+import { getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 import { getAllEditor } from "../../../layout/getAll";
+import { fetchSyncPost } from "../../../util/network/fetch";
 
-const captureSourcePositions = (protyle: IProtyle, sourceElements: Element[]) => {
+const captureSourcePositions = async (protyle: IProtyle, sourceElements: Element[]) => {
     const sourcePositions = new Map<string, { previousID: string; parentID: string }>();
     for (const item of sourceElements) {
         const id = item.getAttribute("data-node-id");
@@ -22,10 +23,14 @@ const captureSourcePositions = (protyle: IProtyle, sourceElements: Element[]) =>
         let parentID = parentBlock?.getAttribute("data-node-id") ?? "";
         if (!parentID) {
             const sourceEditor = getAllEditor().find(editor => editor.protyle.wysiwyg.element === parentBlock);
-            parentID = sourceEditor?.protyle?.block?.rootID || protyle.block.rootID || "";
+            parentID = sourceEditor?.protyle?.block?.rootID || "";
+            if (!parentID) {
+                const response = await fetchSyncPost("/api/block/getBlockInfo", {id});
+                parentID = response?.data?.rootID || "";
+            }
         }
         sourcePositions.set(id, {
-            previousID: item.previousElementSibling?.getAttribute("data-node-id") || "",
+            previousID: getPreviousBlockSibling(item)?.getAttribute("data-node-id") || "",
             parentID,
         });
     }
@@ -63,7 +68,7 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
         position,
         newSourceElements,
         copyFoldHeadingIds,
-        sourcePositions: captureSourcePositions(protyle, sourceElements),
+        sourcePositions: await captureSourcePositions(protyle, sourceElements),
     };
 
     const orderListElements: { [key: string]: Element } = {};

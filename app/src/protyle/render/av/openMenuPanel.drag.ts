@@ -86,7 +86,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
             bindSortsEvent(options.protyle, menuElement, ctx.data, blockID);
             return;
         }
-        if (targetElement.querySelector('[data-type="removeFilter"]') || targetElement.dataset.emptyGroup) {
+        if (targetElement.querySelector('[data-type="removeFilter"], [data-type="moreFilter"]') || targetElement.dataset.emptyGroup) {
             const sourcePath = sourceElement.dataset.path;
             const targetPath = targetElement.dataset.path;
             if (sourcePath && targetPath && sourcePath !== targetPath) {

@@ -8,7 +8,7 @@ require (
 	github.com/88250/epub v0.0.0-20230830085737-c19055cd1f48
 	github.com/88250/go-humanize v0.0.0-20240424102817-4f78fac47ea7
 	github.com/88250/gulu v1.2.3-0.20260609090754-168309361d92
-	github.com/88250/lute v1.7.7-0.20260617052332-ed2671091116
+	github.com/88250/lute v1.7.7-0.20260621064642-fd13242ab8be
 	github.com/88250/vitess-sqlparser v0.0.0-20210205111146-56a2ded2aba1
 	github.com/ClarkThan/ahocorasick v0.0.0-20231011042242-30d1ef1347f4
 	github.com/ConradIrwin/font v0.2.2-0.20260202161408-44ae4cf5fb22
@@ -102,6 +102,11 @@ require (
 )
 
 require (
+	github.com/pkoukk/tiktoken-go v0.1.8 // indirect
+	github.com/pkoukk/tiktoken-go-loader v0.0.2 // indirect
+)
+
+require (
 	dario.cat/mergo v1.0.2 // indirect
 	dmitri.shuralyov.com/font/woff2 v0.0.0-20180220214647-957792cbbdab // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
@@ -152,7 +157,7 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/go-sw/text-codec v0.0.1 // indirect
-	github.com/goccy/go-json v0.10.6 // indirect
+	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect

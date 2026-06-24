@@ -2,6 +2,7 @@ import { Files } from "../Files";
 import { Constants } from "../../../constants";
 import { showTooltip } from "../../../dialog/tooltip";
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
+import { hideDragTip } from "../../../protyle/util/dragTip";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { ipcSend } from "../../../platform/electron/ipcRenderer";
 import { isElectron } from "../../../platform";
@@ -31,6 +32,8 @@ export const onDragEnd = (files: Files, event: DragEvent) => {
         }
     }
     setSiyuanDragElement(undefined);
+    hideDragTip();
+    window.siyuan.dragTitle = "";
     if (isElectron) {
         ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
         return;

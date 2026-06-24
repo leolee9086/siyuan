@@ -3,7 +3,7 @@ import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {isBrowser, isMobile, isElectron} from "../../platform";
 import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
-import {processSYLink} from "../../editor/openLink";
+import {processSiYuanUri} from "../../editor/processSiYuanUri";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
 import {hideMessage, showMessage} from "../../dialog/message";
@@ -68,7 +68,7 @@ export const openByMobile = (uri: string) => {
     if (!uri) {
         return;
     }
-    if (isMobile && processSYLink(window.siyuan.ws.app, uri)) {
+    if (isMobile && processSiYuanUri(window.siyuan.ws.app, uri)) {
         return;
     }
     if (isInIOS()) {

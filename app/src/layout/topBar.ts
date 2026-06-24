@@ -21,11 +21,49 @@ import {isBrowser, isWindow, setToolbarLeftMac} from "../util/platform/functions
 import {fetchPost} from "../util/network/fetch";
 import {needSubscribe} from "../util/platform/needSubscribe";
 import * as dayjs from "dayjs";
-import {exportLayout} from "./util";
+import {exportLayout, resizeTopBar} from "./util";
+import {setTabPosition} from "./tabUtil";
 import {commandPanel} from "../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../plugin/openTopBarMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openBazaarHubTab } from "../bazaar-hub/open";
+
+const sendTrafficLightPosition = (zoom: number) => {
+    if (!isElectron) {
+        return;
+    }
+    const position = Constants.SIZE_ZOOM.find((item) => item.zoom === zoom)?.position;
+    if (!position) {
+        return;
+    }
+    ipcSend(Constants.SIYUAN_CMD, {
+        cmd: "setTrafficLightPosition",
+        zoom,
+        position: {
+            x: position.x,
+            y: ((window.siyuan.config.appearance.hideToolbar && !isWindow()) ? 5 * zoom : 0) + position.y,
+        },
+    });
+};
+
+/** 同步顶栏隐藏后的布局（运行时切换 hideToolbar 时调用） */
+export const syncHideToolbarLayout = () => {
+    document.body.classList.toggle("body--toolbar-hide", window.siyuan.config.appearance.hideToolbar);
+    resizeTopBar();
+    if (!isWindow()) {
+        sendTrafficLightPosition(window.siyuan.storage[Constants.LOCAL_ZOOM]);
+    } else {
+        return;
+    }
+    setTabPosition(false, true);
+};
+
+export const updateBarModeIcon = () => {
+    document.querySelector("#barMode use")?.setAttribute(
+        "xlink:href",
+        `#icon${window.siyuan.config.appearance.modeOS ? "Mode" : (window.siyuan.config.appearance.mode === 0 ? "Light" : "Dark")}`
+    );
+};
 
 export const initBar = (app: App) => {
     const toolbarElement = document.getElementById("toolbar");
@@ -178,8 +216,7 @@ export const initBar = (app: App) => {
                 break;
             } else if (targetId === "toolbarVIP") {
                 if (!window.siyuan.config.readonly) {
-                    const dialogSetting = openSetting(app);
-                    dialogSetting.element.querySelector('.config__side [data-name="account"]').dispatchEvent(new CustomEvent("click"));
+                    openSetting(app, "sync");
                 }
                 event.stopPropagation();
                 break;
@@ -302,15 +339,7 @@ export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
 
     setZoomFactor(zoom);
     setToolbarLeftMac(zoom);
-    const position = Constants.SIZE_ZOOM.find((item) => item.zoom === zoom).position;
-    ipcSend(Constants.SIYUAN_CMD, {
-        cmd: "setTrafficLightPosition",
-        zoom,
-        position: {
-            x: position.x,
-            y: ((window.siyuan.config.appearance.hideToolbar && !isWindow()) ? 5 * zoom : 0) + position.y
-        },
-    });
+    sendTrafficLightPosition(zoom);
     window.siyuan.storage[Constants.LOCAL_ZOOM] = zoom;
     setStorageVal(Constants.LOCAL_ZOOM, zoom);
     if (!isWindow()) {

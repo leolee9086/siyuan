@@ -18,18 +18,45 @@ import {Protyle} from "../protyle";
 import {App} from "../index";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/initUI";
-// S-forge: openFile 用于在新页签中打开
-import {openFile} from "../editor/util";
 // S-forge: Plugin 系统支持
 import {Custom} from "../layout/dock/Custom";
 import {Plugin} from "../plugin";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import {switchSettingPanelSubTab} from "./setting/mount";
 
-export const image = {
+/** 资源 Tab 侧栏 / 全局搜索索引文案 */
+export const collectAssetsTabSearchStrings = (): string[] => [
+    window.siyuan.languages.assets,
+    window.siyuan.languages.unreferencedAssets,
+    window.siyuan.languages.unreferencedAV,
+    window.siyuan.languages.missingAssets,
+];
+
+/** 资源 Tab 挂载（面板页，不走注册表渲染） */
+export const mountAssetsTab = (root: HTMLElement, keywords?: string, app?: App) => {
+    if (root.innerHTML === "") {
+        assets.element = root;
+        root.innerHTML = assets.genHTML();
+        if (app) {
+            assets.bindEvent(app);
+        }
+    } else {
+        assets.element = root;
+    }
+    if (keywords) {
+        switchSettingPanelSubTab(root, keywords, [
+            {type: "remove", label: window.siyuan.languages.unreferencedAssets},
+            {type: "removeAV", label: window.siyuan.languages.unreferencedAV},
+            {type: "missing", label: window.siyuan.languages.missingAssets},
+        ]);
+    }
+};
+
+const assets = {
     element: undefined as Element,
     genHTML: () => {
-        const isM = isMobile();
+        const mobile = isMobile();
         return `<div class="fn__flex-column" style="height: 100%">
     <div class="layout-tab-bar fn__flex">
         <div class="item item--full item--focus" data-type="remove">
@@ -49,7 +76,7 @@ export const image = {
         </div>
     </div>
     <div class="fn__flex-1">
-        <div class="config-assets${isM ? " b3-list--mobile" : ""}" data-type="remove" data-init="true">
+        <div class="config-assets${mobile ? " b3-list--mobile" : ""}" data-type="remove" data-init="true">
             <div class="fn__hr--b"></div>
             <div class="fn__flex">
                 <div class="fn__space"></div>
@@ -64,7 +91,7 @@ export const image = {
             </ul>
             <div class="config-assets__preview"></div>
         </div>
-        <div class="fn__none config-assets${isM ? " b3-list--mobile" : ""}" data-type="removeAV">
+        <div class="fn__none config-assets${mobile ? " b3-list--mobile" : ""}" data-type="removeAV">
             <div class="fn__hr--b"></div>
             <div class="fn__flex">
                 <div class="fn__space"></div>
@@ -79,7 +106,7 @@ export const image = {
             </ul>
             <div class="config-assets__preview" style="display: block;padding: 8px;"></div>
         </div>
-        <div class="fn__none config-assets${isM ? " b3-list--mobile" : ""}" data-type="missing">
+        <div class="fn__none config-assets${mobile ? " b3-list--mobile" : ""}" data-type="missing">
             <div class="fn__hr"></div>
             <ul class="b3-list b3-list--background config-assets__list">
                 <li class="fn__loading"><img src="/stage/loading-pure.svg"></li>
@@ -90,8 +117,8 @@ export const image = {
 </div>`;
     },
     bindEvent: (app: App) => {
-        const assetsListElement = image.element.querySelector('.config-assets[data-type="remove"] .config-assets__list');
-        const avListElement = image.element.querySelector('.config-assets[data-type="removeAV"] .config-assets__list');
+        const assetsListElement = assets.element.querySelector('.config-assets[data-type="remove"] .config-assets__list');
+        const avListElement = assets.element.querySelector('.config-assets[data-type="removeAV"] .config-assets__list');
         const editor = new Protyle(app, avListElement.nextElementSibling as HTMLElement, {
             blockId: "",
             action: [Constants.CB_GET_HISTORY],
@@ -105,9 +132,9 @@ export const image = {
         });
         disabledProtyle(editor.protyle);
         removeLoading(editor.protyle);
-        image.element.addEventListener("click", (event) => {
+        assets.element.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(image.element)) {
+            while (target && !target.isEqualNode(assets.element)) {
                 const type = target.getAttribute("data-type");
                 if (target.id === "removeAll") {
                     confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
@@ -137,23 +164,23 @@ export const image = {
                     event.stopPropagation();
                     break;
                 } else if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
-                    image.element.querySelector(".layout-tab-bar .item--focus").classList.remove("item--focus");
+                    assets.element.querySelector(".layout-tab-bar .item--focus").classList.remove("item--focus");
                     target.classList.add("item--focus");
-                    image.element.querySelectorAll(".config-assets").forEach(item => {
+                    assets.element.querySelectorAll(".config-assets").forEach(item => {
                         if (type === item.getAttribute("data-type")) {
                             item.classList.remove("fn__none");
                             if (type === "remove") {
                                 fetchPost("/api/asset/getUnusedAssets", {}, response => {
-                                    image._renderList(response.data, assetsListElement, "unrefAssets");
+                                    assets._renderList(response.data, assetsListElement, "unrefAssets");
                                 });
                             } else if (!item.getAttribute("data-init")) {
                                 if (type === "removeAV") {
                                     fetchPost("/api/av/getUnusedAttributeViews", {}, response => {
-                                        image._renderList(response.data, avListElement, "unRefAV");
+                                        assets._renderList(response.data, avListElement, "unRefAV");
                                     });
                                 } else {
                                     fetchPost("/api/asset/getMissingAssets", {}, response => {
-                                        image._renderList(response.data, item.querySelector(".config-assets__list"), "lostAssets");
+                                        assets._renderList(response.data, item.querySelector(".config-assets__list"), "lostAssets");
                                     });
                                 }
                                 item.setAttribute("data-init", "true");
@@ -272,7 +299,7 @@ export const image = {
             }
         });
         fetchPost("/api/asset/getUnusedAssets", {}, response => {
-            image._renderList(response.data, assetsListElement, "unrefAssets");
+            assets._renderList(response.data, assetsListElement, "unrefAssets");
         });
     },
     _renderList: (data: {
@@ -292,9 +319,9 @@ export const image = {
     <svg><use xlink:href="#iconTrashcan"></use></svg>
 </span>`;
         }
-        const isM = isMobile();
+        const mobile = isMobile();
         data.forEach((item) => {
-            html += `<li data-tab-type="${type}" data-item="${item.item}"  class="b3-list-item${isM ? "" : " b3-list-item--hide-action"}">
+            html += `<li data-tab-type="${type}" data-item="${item.item}"  class="b3-list-item${mobile ? "" : " b3-list-item--hide-action"}">
     <span class="b3-list-item__text">${escapeHtml(item.name || item.item)}</span>
     <span data-type="copy" class="ariaLabel b3-list-item__action" aria-label="${type === "unRefAV" ? window.siyuan.languages.copyMirror : window.siyuan.languages.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
@@ -306,6 +333,9 @@ export const image = {
         element.innerHTML = html || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
     }
 };
+
+// S-forge: 兼容本地旧配置入口，外部逐步迁移到 assets.ts 后仍可复用原 image API。
+export const image = assets;
 
 // S-forge: 独立页签的事件绑定，用于 Plugin 系统中的资源管理页签
 const bindAssetTabEvent = (element: Element, type: string) => {
@@ -413,7 +443,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
         const apiEndpoint = type === "remove" ? "/api/asset/getUnusedAssets" : "/api/asset/getMissingAssets";
         fetchPost(apiEndpoint, {}, response => {
             const data = type === "remove" ? response.data.unusedAssets : response.data.missingAssets;
-            image._renderList(data, assetsListElement, type === "remove");
+            assets._renderList(data, assetsListElement, type === "remove" ? "unrefAssets" : "lostAssets");
         });
     }
 };
@@ -455,9 +485,9 @@ document.addEventListener(
                 init: (model: Custom) => {
                     const tab = model.tab;
                     if (tab) {
-                        tab.panelElement.innerHTML = image.genHTML();
-                        image.element = tab.panelElement;
-                        image.bindEvent(window.siyuan.ws.app);
+                        tab.panelElement.innerHTML = assets.genHTML();
+                        assets.element = tab.panelElement;
+                        assets.bindEvent(window.siyuan.ws.app);
                     }
                 }
             }

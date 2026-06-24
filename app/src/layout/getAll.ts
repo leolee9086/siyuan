@@ -1,3 +1,4 @@
+import type { Protyle } from "../protyle";
 import { Layout } from "./index";
 import { Tab } from "./Tab";
 import { Editor } from "../editor";
@@ -11,10 +12,8 @@ import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Custom } from "./dock/Custom";
 import { Forwardlink } from "./dock/forwardlink/Forwardlink";
-import { Protyle } from "../protyle";
 import { Wnd } from "./Wnd";
 
-import { Model } from "./Model";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 import { hasLayoutDocks } from "./getAll.guard";
@@ -80,6 +79,21 @@ export const getAllEditor = () => {
     }
     return editors;
 };
+
+const createEmptyModels = (): IModels => ({
+    editor: [],
+    graph: [],
+    asset: [],
+    outline: [],
+    backlink: [],
+    search: [],
+    inbox: [],
+    files: [],
+    bookmark: [],
+    tag: [],
+    custom: [],
+    forwardlink: [],
+});
 
 /**
  * 获取当前桌面端布局中分类好的所有 Tab 模型。
@@ -147,7 +161,7 @@ const pushModel = (models: IModels, model: Tab["model"]) => {
 };
 
 /** 递归遍历布局获取模型 */
-const getTabsForModels = (layout: Layout, models: IModels) => {
+const getTabsForModels = (layout: Layout | Wnd, models: IModels) => {
     const children = layout.children;
     if (!children) {
         return;
@@ -159,14 +173,7 @@ const getTabsForModels = (layout: Layout, models: IModels) => {
             continue;
         }
         // @无需注释
-        if (item instanceof Wnd) {
-            for (const tab of item.children) {
-                pushModel(models, tab.model);
-            }
-            continue;
-        }
-        // @无需注释
-        if (item instanceof Layout) {
+        if (item instanceof Wnd || item instanceof Layout) {
             getTabsForModels(item, models);
         }
     }
@@ -182,26 +189,9 @@ const getTabsForModels = (layout: Layout, models: IModels) => {
  */
 export const getAllModels = () => {
     if (isMobile) {
-        return {
-            editor: [], graph: [], asset: [], outline: [], backlink: [],
-            search: [], inbox: [], files: [], bookmark: [], tag: [],
-            custom: [], forwardlink: [],
-        };
+        return createEmptyModels();
     }
-    const models: IModels = {
-        editor: [],
-        graph: [],
-        asset: [],
-        outline: [],
-        backlink: [],
-        search: [],
-        inbox: [],
-        files: [],
-        bookmark: [],
-        tag: [],
-        custom: [],
-        forwardlink: [],
-    };
+    const models = createEmptyModels();
     const layout = getSafeSiyuanLayout();
     // 检查主布局是否存在，存在则遍历收集模型
     if (layout?.layout) {
@@ -249,8 +239,75 @@ export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
     }
 };
 
+const matchesTabModel = (model: Tab["model"], type: TTab | string) => {
+    // @无需注释
+    if (model instanceof Search) {
+        return type === "Search";
+    }
+    // @无需注释
+    if (model instanceof Asset) {
+        return type === "Asset";
+    }
+    // @无需注释
+    if (model instanceof Editor) {
+        return type === "Editor";
+    }
+    // @无需注释
+    if (model instanceof Graph) {
+        return type === "Graph";
+    }
+    // @无需注释
+    if (model instanceof Backlink) {
+        return type === "Backlink";
+    }
+    // @无需注释
+    if (model instanceof Outline) {
+        return type === "Outline";
+    }
+    // @无需注释
+    if (model instanceof Forwardlink) {
+        return type === "Forwardlink" || type === "forwardlink";
+    }
+    // @无需注释
+    if (model instanceof Custom) {
+        return model.type === type;
+    }
+    return false;
+};
+
+const matchesUninitializedTab = (tab: Tab, type: TTab | string) => {
+    const initData = tab.headElement?.getAttribute("data-initdata");
+    if (!initData) {
+        return false;
+    }
+    try {
+        const initObj = JSON.parse(initData) as ILayoutJSON;
+        return (initObj.instance === "Custom" && initObj.customModelType === type) || initObj.instance === type;
+    } catch (e) {
+        console.log(`getAllTabs(${type}) error:`, e);
+        return false;
+    }
+};
+
+const pushTabByType = (tab: Tab, tabs: Tab[], type?: TTab | string) => {
+    if (!type) {
+        tabs.push(tab);
+        return;
+    }
+    const model = tab.model;
+    if (model) {
+        if (matchesTabModel(model, type)) {
+            tabs.push(tab);
+        }
+        return;
+    }
+    if (matchesUninitializedTab(tab, type)) {
+        tabs.push(tab);
+    }
+};
+
 /** 递归遍历布局获取 Tab */
-const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
+const getTabsForTabs = (layout: Layout | Wnd, tabs: Tab[], type?: TTab | string) => {
     const children = layout.children;
     if (!children) {
         return;
@@ -258,12 +315,12 @@ const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
     for (const item of children) {
         // @无需注释
         if (item instanceof Tab) {
-            tabs.push(item);
+            pushTabByType(item, tabs, type);
             continue;
         }
         // @无需注释
-        if (item instanceof Layout) {
-            getTabsForTabs(item, tabs);
+        if (item instanceof Wnd || item instanceof Layout) {
+            getTabsForTabs(item, tabs, type);
         }
     }
 };
@@ -276,7 +333,7 @@ const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
  * - 调用时机：需要统计或操作中心区所有页面时，如"关闭所有标签页"。
  * @同步豁免: 性能考虑
  */
-export const getAllTabs = () => {
+export const getAllTabs = (type?: TTab | string) => {
     if (isMobile) {
         return [];
     }
@@ -284,7 +341,7 @@ export const getAllTabs = () => {
     const layout = getSafeSiyuanLayout();
     // 检查中心布局是否存在，存在则遍历收集所有 Tab
     if (layout?.centerLayout) {
-        getTabsForTabs(layout.centerLayout, tabs);
+        getTabsForTabs(layout.centerLayout, tabs, type);
     }
     return tabs;
 };
@@ -332,4 +389,3 @@ export const getAllDocks = () => {
     }
     return docks;
 };
-

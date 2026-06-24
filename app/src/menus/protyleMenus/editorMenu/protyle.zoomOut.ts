@@ -285,6 +285,11 @@ const 处理主文档响应 = async (options: ZoomOutOptions, getResponse: IWebS
         data: getResponse,
         protyle: options.protyle,
         action: 获取主文档动作(options),
+        scrollAttr: options.focusId ? {
+            rootId: options.id,
+            focusId: options.focusId,
+        } : undefined,
+        scrollPosition: options.focusId ? "start" : undefined,
         afterCB: options.callback,
     });
 

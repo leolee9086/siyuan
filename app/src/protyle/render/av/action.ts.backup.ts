@@ -585,6 +585,15 @@ export const avContextmenu = (protyle: IProtyle, rowElement: HTMLElement, positi
         });
     }
 
+    copyMenu.push({
+        id: "duplicate",
+        iconHTML: "",
+        label: window.siyuan.languages.duplicate,
+        click: () => {
+            duplicateRows(blockElement, protyle, rowElements);
+        }
+    });
+
     menu.addItem({
         id: "copy",
         label: siyuanI18n.copy,
