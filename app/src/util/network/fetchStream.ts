@@ -32,7 +32,7 @@ import type { StreamProcessContext } from "./types";
  */
 const processStreamData = async (
     ctx: StreamProcessContext,
-): Promise<void> => {
+)=> {
     let buffer = "";
     
     while (true) {
@@ -75,7 +75,7 @@ const processStreamData = async (
 const prepareRequestParams = (
     headers: Record<string, string>,
     body: unknown,
-): { headers: Record<string, string>; body: string | null } => {
+)=> {
     const requestHeaders: Record<string, string> = {
         "Content-Type": "application/json",
         ...headers
@@ -99,7 +99,7 @@ const prepareRequestParams = (
 const processResponse = async (
     ctx: StreamProcessContext,
     response: Response
-): Promise<void> => {
+)=> {
     // HTTP状态码非2xx时抛出错误
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -123,7 +123,7 @@ const processResponse = async (
  * 调用时机：在handleError中，当捕获到AbortError时调用
  * 问题/改进：依赖时间差判断超时可能不够精确，理想方案是在超时时设置专门的标志位
  */
-const isTimeoutAbort = (lastEventTime: number, timeout: number): boolean => {
+const isTimeoutAbort = (lastEventTime: number, timeout: number)=> {
     const timeSinceLastEvent = Date.now() - lastEventTime;
     return timeSinceLastEvent >= timeout;
 };
@@ -139,7 +139,7 @@ const handleError = (
     onError: (error: Error) => void,
     lastEventTime: number,
     timeout: number
-): void => {
+)=> {
     // 非Error类型的异常（如throw "string"）统一包装
     if (!(error instanceof Error)) {
         onError(new Error("未知错误"));
@@ -164,7 +164,7 @@ const handleError = (
 const createTimeoutManager = (
     timeout: number,
     onError: (error: Error) => void
-): { resetTimeout: () => void; cleanup: () => void; getLastEventTime: () => number } => {
+)=> {
     let timeoutId: NodeJS.Timeout | null = null;
     let lastEventTime = Date.now();
     

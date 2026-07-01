@@ -38,7 +38,7 @@ export type { 任务运行时信息, 执行日志, 编译结果, 任务状态类
  * 列出所有已注册的定时任务
  * @returns 任务列表
  */
-export const 列出所有任务 = async (): Promise<任务运行时信息[]> => {
+export const 列出所有任务 = async ()=> {
     const res = await fetchSyncPost("/api/cronjob/list");
     return res.data?.tasks ?? [];
 };
@@ -48,7 +48,7 @@ export const 列出所有任务 = async (): Promise<任务运行时信息[]> => 
  * @param docId - 任务所属文档ID
  * @returns 任务信息，不存在时返回 null
  */
-export const 获取任务详情 = async (docId: string): Promise<任务运行时信息 | null> => {
+export const 获取任务详情 = async (docId: string)=> {
     const res = await fetchSyncPost("/api/cronjob/get", { docId });
     return res.data ?? null;
 };
@@ -60,7 +60,7 @@ export const 获取任务详情 = async (docId: string): Promise<任务运行时
  * @param extType - 扩展类型 (如 "cronjob")
  * @returns 是否成功
  */
-export const 注册扩展 = async (docId: string, extLang: string, extType: string): Promise<boolean> => {
+export const 注册扩展 = async (docId: string, extLang: string, extType: string)=> {
     const res = await fetchSyncPost("/api/cronjob/register", { docId, extLang, extType });
     return res.code === 0;
 };
@@ -70,7 +70,7 @@ export const 注册扩展 = async (docId: string, extLang: string, extType: stri
  * @param docId - 文档ID
  * @returns 是否成功
  */
-export const 注销扩展 = async (docId: string): Promise<boolean> => {
+export const 注销扩展 = async (docId: string)=> {
     const res = await fetchSyncPost("/api/cronjob/unregister", { docId });
     return res.code === 0;
 };
@@ -80,7 +80,7 @@ export const 注销扩展 = async (docId: string): Promise<boolean> => {
  * @param docId - 任务所属文档ID
  * @returns 是否成功
  */
-export const 启用任务 = async (docId: string): Promise<boolean> => {
+export const 启用任务 = async (docId: string)=> {
     const res = await fetchSyncPost("/api/cronjob/enable", { docId });
     return res.code === 0;
 };
@@ -90,7 +90,7 @@ export const 启用任务 = async (docId: string): Promise<boolean> => {
  * @param docId - 任务所属文档ID
  * @returns 是否成功
  */
-export const 禁用任务 = async (docId: string): Promise<boolean> => {
+export const 禁用任务 = async (docId: string) => {
     const res = await fetchSyncPost("/api/cronjob/disable", { docId });
     return res.code === 0;
 };
@@ -100,7 +100,7 @@ export const 禁用任务 = async (docId: string): Promise<boolean> => {
  * @param docId - 任务所属文档ID
  * @returns 是否成功
  */
-export const 立即执行 = async (docId: string): Promise<boolean> => {
+export const 立即执行 = async (docId: string)=> {
     const res = await fetchSyncPost("/api/cronjob/run", { docId });
     return res.code === 0;
 };
@@ -111,7 +111,7 @@ export const 立即执行 = async (docId: string): Promise<boolean> => {
  * @param extLang - 可选，扩展语言，默认 "go"
  * @returns 编译结果，失败时返回 null
  */
-export const 编译文档 = async (docId: string, extLang?: string): Promise<编译结果 | null> => {
+export const 编译文档 = async (docId: string, extLang?: string) => {
     const res = await fetchSyncPost("/api/cronjob/compile", { docId, extLang });
     if (res.code !== 0) {
         return null;
@@ -125,7 +125,7 @@ export const 编译文档 = async (docId: string, extLang?: string): Promise<编
  * @param count - 可选，返回日志条数，默认 20
  * @returns 日志列表
  */
-export const 获取日志 = async (docId: string, count?: number): Promise<执行日志[]> => {
+export const 获取日志 = async (docId: string, count?: number) => {
     const res = await fetchSyncPost("/api/cronjob/logs", { docId, count });
     return res.data?.logs ?? [];
 };

@@ -27,7 +27,7 @@ import { isMobile } from "../platform";
  * @param index 菜单项索引
  * @returns 单个菜单项的HTML字符串
  */
-const generateAIMenuItemHTML = (item: { name: string, memo: string }, index: number): string => {
+const generateAIMenuItemHTML = (item: { name: string, memo: string }, index: number) => {
     return `<div data-action="${escapeAttr(item.memo || item.name)}" data-position="10west" data-index="${index}" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="${escapeAriaLabel(item.memo)}">
     <span class="b3-list-item__text">${escapeHtml(item.name)}</span>
     <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
@@ -38,7 +38,7 @@ const generateAIMenuItemHTML = (item: { name: string, memo: string }, index: num
  * 生成自定义AI菜单项的HTML
  * @returns 自定义菜单项的HTML字符串
  */
-const generateCustomMenuItems = (storage: Record<string, unknown>): string => {
+const generateCustomMenuItems = (storage: Record<string, unknown>) => {
     const localAIItems = storage[Constants.LOCAL_AI];
     if (!Array.isArray(localAIItems)) {
         throw new Error("传入的AI定义表不是有效的数组");

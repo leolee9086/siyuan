@@ -22,7 +22,7 @@ const getPageElements = (pdf: IPdfInstance, pageIndex: number) => {
  * @param textLayerElement - 文本层元素
  * @returns 矩形容器元素
  */
-const getOrCreateRectsElement = (textLayerElement: HTMLElement): HTMLElement => {
+const getOrCreateRectsElement = (textLayerElement: HTMLElement) => {
     const rectsElement = getOrCreateElement(
         textLayerElement,
         ".pdf__rects",
@@ -39,7 +39,7 @@ const getOrCreateRectsElement = (textLayerElement: HTMLElement): HTMLElement => 
  * @param selected - 注释坐标信息
  * @returns CSS 样式字符串
  */
-const generateRectStyle = (selected: IAnnoCoords): string => {
+const generateRectStyle = (selected: IAnnoCoords) => {
     if (selected.type === "border") {
         return `border: 2px solid ${selected.color};`;
     }
@@ -53,7 +53,7 @@ const generateRectStyle = (selected: IAnnoCoords): string => {
  * @param rect - 矩形坐标数组
  * @returns HTML 字符串
  */
-const generateRectHtml = (selected: IAnnoCoords, viewport: IPdfViewport, rect: number[]): string => {
+const generateRectHtml = (selected: IAnnoCoords, viewport: IPdfViewport, rect: number[]) => {
     const bounds = viewport.convertToViewportRectangle(rect);
     const width = Math.abs(bounds[0] - bounds[2]);
     if (width <= 0) {
@@ -73,7 +73,7 @@ height: ${Math.abs(bounds[1] - bounds[3])}px"></div>`;
  * @param viewport - PDF 视口对象
  * @returns 完整的高亮 HTML 字符串
  */
-const generateHighlightHtml = (selected: IAnnoCoords, viewport: IPdfViewport): string => {
+const generateHighlightHtml = (selected: IAnnoCoords, viewport: IPdfViewport) => {
     let html = `<div class="pdf__rect popover__block" data-node-id="${selected.id}" data-relations="${selected.ids || ""}" data-mode="${selected.mode}">`;
 
     for (const rect of selected.coords) {
@@ -94,7 +94,7 @@ const generateHighlightHtml = (selected: IAnnoCoords, viewport: IPdfViewport): s
  * @param html - 高亮 HTML 字符串
  * @returns 插入的元素
  */
-const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string): HTMLElement => {
+const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string) => {
     rectsElement.insertAdjacentHTML("beforeend", html);
     const lastChild = rectsElement.lastElementChild;
     if (!isHTMLElement(lastChild)) {

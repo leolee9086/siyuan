@@ -74,7 +74,7 @@ export function openInNewWindow(url: string): void {
  * 调用时机：需要在主窗口广播自定义事件时。
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - dispatchEvent 为同步 DOM API */
-export function dispatchWindowCustomEvent<TDetail>(type: string, detail: TDetail): void {
+export function dispatchWindowCustomEvent<TDetail>(type: string, detail: TDetail) {
     window.dispatchEvent(new CustomEvent(type, { detail }));
 }
 

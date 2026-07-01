@@ -6,7 +6,7 @@ import { Tool } from "@modelcontextprotocol/sdk/types.js";
  * @param client MCP客户端实例
  * @returns 格式化的工具列表提示词
  */
-export async function buildToolListPromptFromClient(toolsetName: string, client: Client): Promise<string> {
+export async function buildToolListPromptFromClient(toolsetName: string, client: Client){
   try {
     // 使用MCP客户端获取工具列表
     const toolsResult = await client.listTools();

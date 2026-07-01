@@ -28,36 +28,36 @@ import type { IRequestSemaphore } from "../../config/sforge.types";
 const maxConcurrent = 6;
 
 function getSemaphore(): IRequestSemaphore {
-	let s = getSForgeState(SForgeSymbols.REQUEST_SEMAPHORE);
-	if (!s) {
-		s = { current: 0, pending: [] };
-		setSForgeState(SForgeSymbols.REQUEST_SEMAPHORE, s);
-	}
-	return s;
+    let s = getSForgeState(SForgeSymbols.REQUEST_SEMAPHORE);
+    if (!s) {
+        s = { current: 0, pending: [] };
+        setSForgeState(SForgeSymbols.REQUEST_SEMAPHORE, s);
+    }
+    return s;
 }
 
-function acquire(): Promise<void> {
-	const s = getSemaphore();
-	if (s.current < maxConcurrent) {
-		s.current++;
-		return Promise.resolve();
-	}
-	return new Promise(resolve => {
- s.pending.push(resolve); 
-});
+function acquire(){
+    const s = getSemaphore();
+    if (s.current < maxConcurrent) {
+        s.current++;
+        return Promise.resolve();
+    }
+    return new Promise(resolve => {
+        s.pending.push(resolve);
+    });
 }
 
-function release(): void {
-	const s = getSemaphore();
-	s.current--;
-	const next = s.pending.shift();
-	if (next) {
-		s.current++;
-		next();
-	}
+function release() {
+    const s = getSemaphore();
+    s.current--;
+    const next = s.pending.shift();
+    if (next) {
+        s.current++;
+        next();
+    }
 }
 
-function handleKernelError(): void {
+function handleKernelError() {
     const handlers = getSForgeState(SForgeSymbols.MODEL_HANDLERS);
     if (handlers?.kernelError) {
         handlers.kernelError();
@@ -115,20 +115,20 @@ const injectReqIdMiddleware: FetchMiddleware = (ctx) => {
     if (!ctx.data || ctx.data instanceof FormData) {
         return;
     }
-    
+
     // 对于高频搜索/图谱请求，记录请求时间戳用于后续竞态检查
     if (需要竞态控制的API列表.includes(ctx.url)) {
         setSiyuanReqId(ctx.url, Date.now());
     }
-    
+
     const isNotLocalGraph = ctx.data.type !== "local" || ctx.url !== "/api/graph/getLocalGraph";
     const reqId = getSiyuanReqId(ctx.url);
-    
+
     // 将 reqId 注入请求数据，以便响应时验证（排除 local 类型的本地图谱，因其不需要竞态控制）
     if (需要竞态控制的API列表.includes(ctx.url) && isNotLocalGraph && reqId !== undefined) {
         ctx.data.reqId = reqId;
     }
-    
+
     // 事务 API 总是需要唯一标识以保证操作顺序
     if (ctx.url === "/api/transactions") {
         ctx.data.reqId = Date.now();
@@ -336,8 +336,8 @@ export const fetchPost = async (
         const responseData: IWebSocketData = await handleFetchResponse(response);
 
         if (!bypassSemaphore) {
- release(); released = true; 
-}
+            release(); released = true;
+        }
 
         // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
         if (failCallback && url === "/api/file/getFile" && isGetFile202) {
@@ -347,8 +347,8 @@ export const fetchPost = async (
         createPostResponseHandler(url, cb)(responseData);
     } catch (e) {
         if (!bypassSemaphore && !released) {
- release(); 
-}
+            release();
+        }
         if ((e as DOMException)?.name === "AbortError") {
             console.warn(`fetchPost aborted: ${url}`, (e as DOMException)?.message || "");
             return;
@@ -392,13 +392,14 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
         if (!isWebSocketData(jsonResult)) {
             throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
         }
-        release(); released = true;
+        release(); 
+        released = true;
         processMessage(jsonResult, { fetchPost });
         return jsonResult;
     } catch (e) {
         if (!released) {
- release(); 
-}
+            release();
+        }
         throw e;
     }
 };
@@ -414,7 +415,7 @@ export const fetchSyncPostRaw = async <T = unknown>(url: string, data?: TFetchRe
     const ctx: FetchContext = { url, data, serializedBody: null };
     injectReqIdMiddleware(ctx);
     serializeRequestDataMiddleware(ctx);
-    
+
     const init: RequestInit = {
         method: "POST",
         body: ctx.serializedBody,

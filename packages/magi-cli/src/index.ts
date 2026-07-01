@@ -7,7 +7,7 @@ const WS_URL = process.env.MAGI_WS_URL || "ws://127.0.0.1:6806/api/s-forge/magi/
 const WORKING_DIR = process.env.MAGI_DIR || process.cwd();
 const SCENARIO = process.env.MAGI_SCENARIO || "cli";
 
-function sessionID(): string {
+function sessionID() {
   return randomBytes(8).toString("hex");
 }
 
@@ -18,7 +18,7 @@ const messageText = msgIndex >= 0 ? process.argv[msgIndex + 1] : undefined;
 let ws: WebSocket;
 let pendingCount = 0;
 
-function connect(): Promise<void> {
+function connect() {
   return new Promise((resolve, reject) => {
     ws = new WebSocket(WS_URL);
 
@@ -32,7 +32,7 @@ function connect(): Promise<void> {
         if (frame.type === "auth_result") {
           if (frame.ok) {
             console.error(`connected (session: ${frame.session})`);
-            resolve();
+            resolve(void 0);
           } else {
             reject(new Error(`auth failed: ${frame.error}`));
           }
