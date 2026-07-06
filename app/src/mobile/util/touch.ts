@@ -10,7 +10,7 @@ import {popMenu} from "../menu";
 import {activeBlur} from "./keyboardToolbar";
 import {isChromeBrowser, isInAndroid, isInHarmony, isIPhone} from "../../protyle/util/compatibility";
 import {getRangeByPoint} from "../../protyle/util/selection";
-import {getCurrentEditor} from "../editor";
+import {getCurrentEditor} from "./getCurrentEditor";
 import {Constants} from "../../constants";
 
 let clientX: number;

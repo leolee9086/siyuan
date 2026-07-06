@@ -3,6 +3,7 @@ import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
 import {exportConfigApi} from "./exportRuntime";
 import {ipcInvoke} from "../../platform/electron/ipcRenderer";
+import {isElectron} from "../../platform";
 
 const registerExportReferencesGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("references", window.siyuan.languages.configGroupReferences);
@@ -130,7 +131,6 @@ const registerExportImagesGroup = (tab: SettingTabBuilder) => {
     });
 };
 
-/// #if !BROWSER
 const registerExportPandocGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("pandoc", window.siyuan.languages.configGroupPandoc);
 
@@ -165,6 +165,9 @@ const registerExportPandocGroup = (tab: SettingTabBuilder) => {
 };
 
 const mountExportPandocStack = (root: HTMLElement) => {
+    if (!isElectron) {
+        return;
+    }
     root.querySelector("#pandocBinReset")?.addEventListener("click", () => {
         exportConfigApi.patch("export.pandocBin", "");
     });
@@ -185,14 +188,13 @@ const mountExportPandocStack = (root: HTMLElement) => {
         exportConfigApi.patch("export.pandocBin", localPath.filePaths[0]);
     });
 };
-/// #endif
 
 export const registerExportTab = (tab: SettingTabBuilder) => {
     registerExportReferencesGroup(tab);
     registerExportFormatGroup(tab);
     registerExportPdfGroup(tab);
     registerExportImagesGroup(tab);
-    /// #if !BROWSER
-    registerExportPandocGroup(tab);
-    /// #endif
+    if (isElectron) {
+        registerExportPandocGroup(tab);
+    }
 };

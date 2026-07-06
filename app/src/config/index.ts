@@ -1,21 +1,24 @@
-import {popMenu} from "../mobile/menu";
-import {isMobile} from "../platform";
-import {initSettingSearch, switchSettingTab} from "./search/dialog";
+import {popMenu} from "./imports";
+import {isMobile} from "./imports";
+import {initSettingSearch} from "./search/dialog";
+import {switchSettingTab} from "./search/dialog";
 import {bindSettingSaveDelegation} from "./setting/save";
-import {Dialog} from "../dialog";
-import {Constants} from "../constants";
-import {focusByRange} from "../protyle/util/selection";
-import {getSettingTabDefs, type TSettingTab} from "./setting/tabs";
+import {Dialog} from "./imports";
+import {Constants} from "./imports";
+import {focusByRange} from "./imports";
+import {getSettingTabDefs} from "./setting/tabs";
+import type {TSettingTab} from "./setting/tabs";
 import {clearAccessTabElement} from "./tabs/accessRuntime";
 import {clearSyncTabElement} from "./tabs/syncRuntime";
 import {INTERNAL_FILETREE_TAB_TYPE} from "./fileTree";
-import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
-import {tabRegistry} from "../registry";
-import {createApp} from "vue";
+import {fileTreeConfigPanel} from "./imports";
+import {tabRegistry} from "./imports";
+import {createApp} from "./imports";
 import type {Custom} from "../layout/dock/Custom";
 import {bazaar} from "./bazzar/bazaar";
-import {fetchSyncPost} from "../util/network/fetch";
+import {fetchSyncPost} from "./imports";
 import type {App} from "../index";
+import {isHTMLElement} from "./imports";
 
 /**
  * 延迟注册 Tab 类型。
@@ -39,13 +42,44 @@ const registerFileTreeTab = () => {
     });
 };
 
+/**
+ * 初始化设置对话框元素（事件绑定、搜索注册等）
+ * @param dialog 对话框实例
+ * @param app 应用实例
+ * @param initialTab 初始标签页
+ */
+const initSettingDialogElement = (dialog: Dialog, app: App, initialTab: TSettingTab) => {
+    const tabWrap = dialog.element.querySelector(".config__tab-wrap");
+    if (!isHTMLElement(tabWrap)) {
+        return;
+    }
+    bindSettingSaveDelegation(tabWrap);
+    initSettingSearch(dialog.element, app);
+    const container = dialog.element.querySelector(".b3-dialog__container");
+    if (isHTMLElement(container)) {
+        container.style.maxWidth = "1280px";
+    }
+    const tabDefs = getSettingTabDefs();
+    const items = dialog.element.querySelectorAll(".config__side .b3-list-item");
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const def = tabDefs[i];
+        if (!def || !isHTMLElement(item)) {
+            continue;
+        }
+        // 兼容社区 JS 代码片段模拟点击，不做事件委托
+        item.addEventListener("click", () => {
+            switchSettingTab(dialog.element, app, def.id);
+        });
+    }
+    switchSettingTab(dialog.element, app, initialTab);
+};
+
 const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
     registerFileTreeTab();
     window.siyuan.dialogs.find((item) => item.element.querySelector(".config__tab-container"))?.destroy();
-    let range: Range;
-    if (getSelection().rangeCount > 0) {
-        range = getSelection().getRangeAt(0);
-    }
+    const selection = getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : undefined;
     const tabListItems: string[] = [];
     const tabPanels: string[] = [];
     for (const def of getSettingTabDefs()) {
@@ -59,9 +93,9 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
         <div class="config__tab-head">
             <div class="config__tab-title resize__move">
                 <svg class="b3-list-item__graphic"><use xlink:href="#iconSettings"></use></svg>
-                <span class="b3-list-item__text">${window.siyuan.languages.config}</span>
+                <span class="b3-list-item__text">${window.siyuan.languages?.config ?? ""}</span>
             </div>
-            <input placeholder="${window.siyuan.languages.search}" class="b3-text-field fn__block">
+            <input placeholder="${window.siyuan.languages?.search ?? ""}" class="b3-text-field fn__block">
         </div>
         <ul class="config__tab-scroll">
             ${tabListItems.join("")}
@@ -85,19 +119,7 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
         scrimPointerEvents: true,
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_SETTING);
-
-    const tabWrap = dialog.element.querySelector(".config__tab-wrap") as HTMLElement;
-    bindSettingSaveDelegation(tabWrap);
-    initSettingSearch(dialog.element, app);
-    (dialog.element.querySelector(".b3-dialog__container") as HTMLElement).style.maxWidth = "1280px";
-    dialog.element.querySelectorAll(".config__side .b3-list-item").forEach((item) => {
-        // 兼容社区 JS 代码片段模拟点击，不做事件委托
-        item.addEventListener("click", () => {
-            const tabId = item.getAttribute("data-name") as TSettingTab;
-            switchSettingTab(dialog.element, app, tabId);
-        });
-    });
-    switchSettingTab(dialog.element, app, initialTab);
+    initSettingDialogElement(dialog, app, initialTab);
     return dialog;
 };
 
@@ -109,36 +131,33 @@ export const openSetting = (app: App, tab?: TSettingTab) => {
     return openSettingDialog(app, tab);
 };
 
+const BAZAAR_RESOURCES_URL: Record<TBazaarType, string> = {
+    templates: "/api/bazaar/getBazaarTemplate",
+    icons: "/api/bazaar/getBazaarIcon",
+    widgets: "/api/bazaar/getBazaarWidget",
+    themes: "/api/bazaar/getBazaarTheme",
+    plugins: "/api/bazaar/getBazaarPlugin",
+};
+
 export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemName: string) => {
-    /// #if !MOBILE
-    let getResourcesUrl: string;
-    switch (bazaarType) {
-        case "templates":
-            getResourcesUrl = "/api/bazaar/getBazaarTemplate";
-            break;
-        case "icons":
-            getResourcesUrl = "/api/bazaar/getBazaarIcon";
-            break;
-        case "widgets":
-            getResourcesUrl = "/api/bazaar/getBazaarWidget";
-            break;
-        case "themes":
-            getResourcesUrl = "/api/bazaar/getBazaarTheme";
-            break;
-        case "plugins":
-            getResourcesUrl = "/api/bazaar/getBazaarPlugin";
-            break;
-        default:
-            return;
+    if (isMobile) {
+        return;
+    }
+    const getResourcesUrl = BAZAAR_RESOURCES_URL[bazaarType];
+    if (!getResourcesUrl) {
+        return;
     }
 
     const response = await fetchSyncPost(getResourcesUrl, {frontend: "all", keyword: itemName});
-    if (response.code !== 0) return;
-
-    const resource = (response.data.packages as IBazaarItem[]).find((item: IBazaarItem) => item.name === itemName);
-    if (!resource) return;
+    if (response.code !== 0) {
+        return;
+    }
+    const packages: IBazaarItem[] = response.data.packages;
+    const resource = packages.find((item: IBazaarItem) => item.name === itemName);
+    if (!resource) {
+        return;
+    }
 
     openSettingDialog(app, "bazaar");
     bazaar._renderReadme(bazaarType, resource, false);
-    /// #endif
 };

@@ -33,6 +33,100 @@ import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayou
 import { getAllEditor } from "../layout/getAll";
 import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuanEnvironments/windowTimer.environment";
 
+/**
+ * 初始化 IPC 通信（仅桌面端）
+ */
+const 初始化IPC = () => {
+    if (isElectron) {
+        ipcInvoke(Constants.SIYUAN_INIT, {
+            languages: getSiyuanLanguages()["_trayMenu"],
+            workspaceDir: getSiyuanConfig().system.workspaceDir,
+            port: location.port
+        });
+        setZoomFactor(getSiyuanStorage()[Constants.LOCAL_ZOOM]);
+        const position = { ...Constants.SIZE_ZOOM.find((item) => item.zoom === getSiyuanStorage()[Constants.LOCAL_ZOOM])?.position ?? { x: 8, y: 12 } };
+        if (getSiyuanConfig().appearance.hideToolbar) {
+            position.y += 5;
+        }
+        ipcSend(Constants.SIYUAN_CMD, {
+            cmd: "setTrafficLightPosition",
+            zoom: getSiyuanStorage()[Constants.LOCAL_ZOOM],
+            position
+        });
+    }
+};
+
+/**
+ * 更新编辑器工具栏（用于 resize 后重新渲染选区）
+ */
+const 更新编辑器工具栏 = () => {
+    const selection = getSelection();
+    if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        for (const item of getAllEditor()) {
+            if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
+                item.protyle.toolbar?.render(item.protyle, range);
+            }
+        }
+    }
+};
+
+/**
+ * 延迟执行布局调整（防抖后的回调）
+ */
+const 延迟执行布局调整 = (状态: { resizeTimeout: number; firstResize: boolean }) => {
+    adjustLayout();
+    resizeTabs();
+    resizeTopBar();
+    setTabPosition(true);
+    window.siyuan.menus.menu.resetPosition();
+    window.siyuan.dialogs.forEach(item => {
+        item.resize();
+    });
+    状态.firstResize = true;
+    更新编辑器工具栏();
+};
+
+/**
+ * 处理窗口 resize 事件
+ */
+const 处理窗口Resize = (状态: { resizeTimeout: number; firstResize: boolean }) => {
+    if (状态.firstResize) {
+        recordBeforeResizeTop();
+        状态.firstResize = false;
+    }
+    clearTimeout(状态.resizeTimeout);
+    状态.resizeTimeout = setTimeout(() => 延迟执行布局调整(状态), Constants.TIMEOUT_RESIZE);
+};
+
+/**
+ * 初始化窗口 resize 事件处理器
+ */
+const 初始化ResizeHandler = () => {
+    const 状态 = { resizeTimeout: 0, firstResize: true };
+    windowAddEventListener("resize", () => 处理窗口Resize(状态));
+};
+
+/**
+ * 处理 Emoji 配置响应（从 API 获取后初始化布局）
+ */
+const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData) => {
+    window.siyuan.emojis = response.data as IEmoji[];
+    try {
+        JSONToLayout(app, isStart);
+        setTimeout(() => {
+            adjustLayout();
+        });
+        if (isElectron) {
+            sendGlobalShortcut(app);
+        }
+        openChangelog();
+    } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        resetLayout(error);
+    }
+};
+
 export const onGetConfig = (isStart: boolean, app: App) => {
     correctHotkey(app);
     初始化IPC();

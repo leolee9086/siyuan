@@ -1,3 +1,4 @@
+
 import {escapeHtml} from "../../../util/DOM/escape";
 import {processSiYuanUri} from "../../../editor/processSiYuanUri";
 import {highlightRender} from "../../../protyle/render/highlightRender";
@@ -15,7 +16,7 @@ import {showMessage} from "../../../dialog/message";
 import type {App} from "../../../index";
 
 export const renderTodoList = (result: string): string => {
-    const L = window.siyuan.languages;
+    const L = window.siyuan.languages ?? {};
     const lines = result.split("\n");
     let html = '<div class="agent-chat__tool-card agent-chat__tool-card--todo">' +
     '<div class="agent-chat__todo-header">' +
@@ -23,15 +24,20 @@ export const renderTodoList = (result: string): string => {
         '<span class="agent-chat__tool-title">' + (L.agentTodoList || "Todo List") + "</span>" +
     "</div>" +
     '<div class="agent-chat__todo-items">';
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+    for (const line of lines) {
         if (line.startsWith("- [x]")) {
             html += '<div class="agent-chat__todo-item agent-chat__todo-item--completed"><svg class="agent-chat__todo-status"><use xlink:href="#iconCheck"></use></svg>' + escapeHtml(line.substring(5).trim()) + "</div>";
-        } else if (line.startsWith("- [/]")) {
+            continue;
+        }
+        if (line.startsWith("- [/]")) {
             html += '<div class="agent-chat__todo-item agent-chat__todo-item--in-progress"><svg class="agent-chat__todo-status"><use xlink:href="#iconRefresh"></use></svg>' + escapeHtml(line.substring(5).trim()) + "</div>";
-        } else if (line.startsWith("- [-]")) {
+            continue;
+        }
+        if (line.startsWith("- [-]")) {
             html += '<div class="agent-chat__todo-item agent-chat__todo-item--cancelled"><svg class="agent-chat__todo-status"><use xlink:href="#iconCloseRound"></use></svg>' + escapeHtml(line.substring(5).trim()) + "</div>";
-        } else if (line.startsWith("- [ ]")) {
+            continue;
+        }
+        if (line.startsWith("- [ ]")) {
             html += '<div class="agent-chat__todo-item agent-chat__todo-item--pending"><svg class="agent-chat__todo-status"><use xlink:href="#iconUncheck"></use></svg>' + escapeHtml(line.substring(5).trim()) + "</div>";
         }
     }
@@ -41,7 +47,7 @@ export const renderTodoList = (result: string): string => {
 
 // hasModel=false 时渲染"未配置模型"提示块替代示例，避免用户点击示例后卡死。
 export const renderWelcomeHTML = (hasModel = true): string => {
-    const L = window.siyuan.languages;
+    const L = window.siyuan.languages ?? {};
     if (!hasModel) {
         return '<div class="agent-welcome">' +
             '<div class="agent-welcome__greeting">' + (L.agentWelcomeGreeting || "Hello, I am SiYuan Agent") + "</div>" +
@@ -63,18 +69,17 @@ export const renderWelcomeHTML = (hasModel = true): string => {
 };
 
 export const renderQuestionCardHTML = (rawQuestions: Array<Record<string, unknown>>, questionID: string): string => {
-    const L = window.siyuan.languages;
+    const L = window.siyuan.languages ?? {};
     let html = '<div class="agent-chat__question-card">';
     if (!rawQuestions || !rawQuestions.length) {
         return html + "</div>";
     }
-    for (let qi = 0; qi < rawQuestions.length; qi++) {
-        const q = rawQuestions[qi];
-        const header = (q.header as string) || "";
-        const question = (q.question as string) || "";
-        const options = q.options as Array<Record<string, unknown>> || [];
-        const multiple = q.multiple as boolean || false;
-        const custom = q.custom as boolean !== false;
+    for (const [qi, q] of rawQuestions.entries()) {
+        const header = String(q.header ?? "");
+        const question = String(q.question ?? "");
+        const options = Array.isArray(q.options) ? q.options : [];
+        const multiple = Boolean(q.multiple);
+        const custom = q.custom !== false;
 
         html += '<div class="agent-chat__question-item">';
         if (header) {
@@ -86,10 +91,9 @@ export const renderQuestionCardHTML = (rawQuestions: Array<Record<string, unknow
         html += '<div class="agent-chat__question-options" data-qi="' + qi + '">';
         const inputType = multiple ? "checkbox" : "radio";
         const inputName = "q_" + questionID + "_" + qi;
-        for (let oi = 0; oi < options.length; oi++) {
-            const opt = options[oi];
-            const label = (opt.label as string) || "";
-            const desc = (opt.description as string) || "";
+        for (const opt of options) {
+            const label = String(opt.label ?? "");
+            const desc = String(opt.description ?? "");
             html += '<label class="agent-chat__question-option">' +
                 '<input type="' + inputType + '" name="' + inputName + '" value="' + escapeHtml(label) + '">' +
                 '<span class="agent-chat__question-option-label">' + escapeHtml(label) + "</span>";
@@ -120,8 +124,8 @@ export const renderRetryCardHTML = (attempt: number, maxRetries: number): string
 
 export const renderToolsLineHTML = (newTools: Array<{name: string}>): string => {
     let detailLines = "<div class=\"agent-chat__thinking-tools-line\"><span class=\"agent-chat__thinking-summary\">Tool calls:</span>";
-    for (let i = 0; i < newTools.length; i++) {
-        detailLines += '<span class="agent-chat__thinking-tool">' + escapeHtml(newTools[i].name) + "</span>";
+    for (const tool of newTools) {
+        detailLines += '<span class="agent-chat__thinking-tool">' + escapeHtml(tool.name) + "</span>";
     }
     detailLines += "</div>";
     return detailLines;
@@ -134,8 +138,8 @@ export const createThinkingCardElement = (step: {reasoning: string; text: string
     let detail = "";
     if (step.toolNames && step.toolNames.length > 0) {
         detail += '<div class="agent-chat__thinking-tools-line"><span class="agent-chat__thinking-summary">Tool calls:</span>';
-        for (let j = 0; j < step.toolNames.length; j++) {
-            detail += '<span class="agent-chat__thinking-tool">' + escapeHtml(step.toolNames[j]) + "</span>";
+        for (const name of step.toolNames) {
+            detail += '<span class="agent-chat__thinking-tool">' + escapeHtml(name) + "</span>";
         }
         detail += "</div>";
     }
@@ -161,88 +165,92 @@ export const createThinkingCardElement = (step: {reasoning: string; text: string
 };
 
 export const bindThinkingCardToggle = (el: HTMLElement): void => {
-    const header = el.querySelector(".agent-chat__thinking-header") as HTMLElement;
-    const body = el.querySelector(".agent-chat__thinking-body") as HTMLElement;
-    const expandIcon = el.querySelector(".agent-chat__thinking-arrow--expand") as HTMLElement;
-    const contractIcon = el.querySelector(".agent-chat__thinking-arrow--contract") as HTMLElement;
-    if (!header || !body || !expandIcon || !contractIcon) { return; }
+    const header = el.querySelector<HTMLElement>(".agent-chat__thinking-header");
+    const body = el.querySelector<HTMLElement>(".agent-chat__thinking-body");
+    const expandIcon = el.querySelector<HTMLElement>(".agent-chat__thinking-arrow--expand");
+    const contractIcon = el.querySelector<HTMLElement>(".agent-chat__thinking-arrow--contract");
+    if (!header || !body || !expandIcon || !contractIcon) {
+        return;
+    }
     header.addEventListener("click", () => {
         el.setAttribute("data-user-interacted", "true");
         const isExpanded = body.classList.contains("agent-chat__thinking-body--expanded");
         const isDone = el.classList.contains("agent-chat__msg--thinking-done");
-        if (isDone) {
-            // 思考完成后：两态 toggle（折叠↔完全展开），不经过预览中间态。
-            if (isExpanded) {
-                body.classList.remove("agent-chat__thinking-body--expanded");
-                expandIcon.classList.remove("fn__none");
-                contractIcon.classList.add("fn__none");
-            } else {
-                body.classList.remove("agent-chat__thinking-body--preview");
-                body.classList.add("agent-chat__thinking-body--expanded");
-                expandIcon.classList.add("fn__none");
-                contractIcon.classList.remove("fn__none");
-            }
-        } else {
-            // 流式中：三态循环（完全折叠 → 预览 → 完全展开 → 完全折叠）。
-            const isPreview = body.classList.contains("agent-chat__thinking-body--preview");
-            if (isExpanded) {
-                body.classList.remove("agent-chat__thinking-body--expanded");
-                expandIcon.classList.remove("fn__none");
-                contractIcon.classList.add("fn__none");
-            } else if (isPreview) {
-                body.classList.remove("agent-chat__thinking-body--preview");
-                body.classList.add("agent-chat__thinking-body--expanded");
-                expandIcon.classList.add("fn__none");
-                contractIcon.classList.remove("fn__none");
-            } else {
-                body.classList.add("agent-chat__thinking-body--preview");
-            }
+        if (isDone && isExpanded) {
+            body.classList.remove("agent-chat__thinking-body--expanded");
+            expandIcon.classList.remove("fn__none");
+            contractIcon.classList.add("fn__none");
+            return;
         }
+        if (isDone) {
+            body.classList.remove("agent-chat__thinking-body--preview");
+            body.classList.add("agent-chat__thinking-body--expanded");
+            expandIcon.classList.add("fn__none");
+            contractIcon.classList.remove("fn__none");
+            return;
+        }
+        const isPreview = body.classList.contains("agent-chat__thinking-body--preview");
+        if (isExpanded) {
+            body.classList.remove("agent-chat__thinking-body--expanded");
+            expandIcon.classList.remove("fn__none");
+            contractIcon.classList.add("fn__none");
+            return;
+        }
+        if (isPreview) {
+            body.classList.remove("agent-chat__thinking-body--preview");
+            body.classList.add("agent-chat__thinking-body--expanded");
+            expandIcon.classList.add("fn__none");
+            contractIcon.classList.remove("fn__none");
+            return;
+        }
+        body.classList.add("agent-chat__thinking-body--preview");
     });
 };
 
 // 为容器内所有代码块（pre）和公式块（div[data-subtype=math]）注入复制按钮。
 export const addCopyButtons = (container: HTMLElement): void => {
-    // 代码块复制 code 文本；公式块复制 data-content（KaTeX 渲染前的原始 LaTeX）。
     const targets: Array<{ selector: string; getText: (el: HTMLElement) => string }> = [
         {selector: "pre", getText: (el) => (el.querySelector("code")?.textContent || "").trimEnd().replace(/\n$/, "")},
         {selector: '[data-subtype="math"]', getText: (el) => el.getAttribute("data-content") || ""}
     ];
-    targets.forEach(({selector, getText}) => {
-        container.querySelectorAll<HTMLElement>(selector).forEach((block) => {
+    for (const {selector, getText} of targets) {
+        for (const block of container.querySelectorAll<HTMLElement>(selector)) {
             if (block.querySelector(".protyle-icon")) {
-                return;
+                continue;
             }
             const wrap = document.createElement("div");
             wrap.className = "protyle-icons";
             wrap.appendChild(createCopyButton(() => getText(block)));
             block.appendChild(wrap);
-        });
-    });
+        }
+    }
 };
 
 // 构建单个复制按钮，getText 返回要复制的文本。
 const createCopyButton = (getText: () => string): HTMLElement => {
+    const L = window.siyuan.languages ?? {};
     const btn = document.createElement("span");
     btn.className = "protyle-icon protyle-icon--only ariaLabel";
     btn.innerHTML = '<svg><use xlink:href="#iconCopy"></use></svg>';
-    btn.setAttribute("aria-label", window.siyuan.languages.copy);
+    btn.setAttribute("aria-label", L.copy);
     btn.setAttribute("data-position", "4north");
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const text = getText();
         navigator.clipboard.writeText(text).then(() => {
-            showMessage(window.siyuan.languages.copied, 2000);
+            showMessage(L.copied, 2000);
         }).catch(() => {
-            showMessage(window.siyuan.languages.copied, 2000);
+            showMessage(L.copied, 2000);
         });
     });
     return btn;
 };
 
-export const postRender = (container: HTMLElement, app?: App): void => {
-    container.querySelectorAll(".language-math").forEach((el) => {
-        if (el.hasAttribute("data-subtype")) { return; }
+const normalizeMathElements = (container: HTMLElement): void => {
+    for (const el of container.querySelectorAll(".language-math")) {
+        if (el.hasAttribute("data-subtype")) {
+            continue;
+        }
         const content = el.textContent || "";
         const preParent = el.closest("pre");
         if (preParent) {
@@ -251,27 +259,37 @@ export const postRender = (container: HTMLElement, app?: App): void => {
             div.setAttribute("data-subtype", "math");
             div.setAttribute("data-content", content);
             preParent.replaceWith(div);
-        } else {
-            el.setAttribute("data-subtype", "math");
-            el.setAttribute("data-content", content);
-            if (el.tagName === "DIV" && !el.firstElementChild) {
-                el.textContent = "";
-                el.appendChild(document.createElement("span"));
-            }
+            continue;
         }
-    });
-    container.querySelectorAll("pre > code[class*='language-']").forEach((code) => {
+        el.setAttribute("data-subtype", "math");
+        el.setAttribute("data-content", content);
+        if (el.tagName === "DIV" && !el.firstElementChild) {
+            el.textContent = "";
+            el.appendChild(document.createElement("span"));
+        }
+    }
+};
+
+const labelCodeLanguages = (container: HTMLElement): void => {
+    for (const code of container.querySelectorAll("pre > code[class*='language-']")) {
         const match = code.className.match(/language-(\S+)/);
         if (match) {
-            code.parentElement?.setAttribute("data-language", match[1]);
+            code.parentElement?.setAttribute("data-language", match[1] ?? "");
         }
-    });
+    }
+};
+
+export const postRender = (container: HTMLElement, app?: App): void => {
+    normalizeMathElements(container);
+    labelCodeLanguages(container);
     // Agent 内容由 ProtylePreview 生成，结构与官方 preview 一致，复用 highlightRender 渲染高亮。
     // 容器自身可能是 b3-typography（流式更新），也可能外层包裹含 b3-typography 的后代，两种情况都需覆盖。
     const typographyElements = container.classList.contains("b3-typography")
-        ? [container as HTMLElement]
+        ? [container]
         : Array.from(container.querySelectorAll<HTMLElement>(".b3-typography"));
-    typographyElements.forEach((item) => highlightRender(item));
+    for (const item of typographyElements) {
+        highlightRender(item);
+    }
     mathRender(container);
     mermaidRender(container);
     flowchartRender(container);
@@ -287,7 +305,7 @@ export const postRender = (container: HTMLElement, app?: App): void => {
     }
     // MarkdownStr 渲染出的 siyuan:// 块链接只是普通 <a href>，需补全 data-type/data-href
     // 才能接入全局 popover 浮窗系统；dock 内无 protyle 点击链路，需自行绑定点击打开块。
-    container.querySelectorAll<HTMLAnchorElement>('a[href^="siyuan://"]').forEach((a) => {
+    for (const a of container.querySelectorAll<HTMLAnchorElement>('a[href^="siyuan://"]')) {
         const href = a.getAttribute("href") || "";
         a.setAttribute("data-type", "a");
         a.setAttribute("data-href", href);
@@ -296,5 +314,5 @@ export const postRender = (container: HTMLElement, app?: App): void => {
             event.stopPropagation();
             void processSiYuanUri(app, href);
         });
-    });
+    }
 };

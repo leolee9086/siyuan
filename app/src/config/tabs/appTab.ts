@@ -6,22 +6,17 @@ import {exportLayout} from "../../layout/util";
 import {exitSiYuan} from "../../dialog/processSystem";
 import {showMessage} from "../../dialog/message";
 import {isMac, saveExportFile} from "../../protyle/util/compatibility";
-/// #if MOBILE
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {isInMobileApp} from "../../protyle/util/compatibility";
 import {pathPosix} from "../../util/pathName";
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
-/// #endif
-/// #if !BROWSER
 import {afterExport} from "../../protyle/export/util";
-/// #endif
 import {genConfigItemMainHtml, genConfigItemName} from "../render/fragments";
 import {sendAppSetting} from "./appRuntime";
 import {isElectron, isMobile} from "../../platform";
 import {ipcInvoke} from "../../platform/electron/ipcRenderer";
 
-/// #if MOBILE
 const registerAppWorkspaceGroup = (tab: SettingTabBuilder) => {
     if (!isInMobileApp() || window.siyuan.config.readonly) {
         return;
@@ -170,7 +165,6 @@ const mountAppWorkspaceSlot = (root: HTMLElement) => {
         }
     });
 };
-/// #endif
 
 const genImportUploadButtonHtml = (inputId: string, label: string): string =>
     `<button class="b3-button b3-button--outline fn__flex-center fn__size200" style="position: relative">
@@ -182,8 +176,7 @@ const genImportUploadButtonHtml = (inputId: string, label: string): string =>
 const registerAppGeneralGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("general", window.siyuan.languages.configGroupGeneral);
 
-    /// #if !BROWSER
-    if (!window.siyuan.config.system.isMicrosoftStore && window.siyuan.config.system.container === "std" && window.siyuan.config.system.os !== "linux") {
+    if (isElectron && !window.siyuan.config.system.isMicrosoftStore && window.siyuan.config.system.container === "std" && window.siyuan.config.system.os !== "linux") {
         group.select("system.autoLaunch2", {
             title: window.siyuan.languages.autoLaunch,
             desc: window.siyuan.languages.autoLaunchTip,
@@ -195,7 +188,6 @@ const registerAppGeneralGroup = (tab: SettingTabBuilder) => {
             save: (value) => sendAppSetting("system.autoLaunch2", value),
         });
     }
-    /// #endif
     group.slot({
         key: "networkProxy",
         keywords: [
@@ -430,9 +422,9 @@ const registerAppMaintenanceGroup = (tab: SettingTabBuilder) => {
 };
 
 export const registerAppTab = (tab: SettingTabBuilder) => {
-    /// #if MOBILE
-    registerAppWorkspaceGroup(tab);
-    /// #endif
+    if (isMobile) {
+        registerAppWorkspaceGroup(tab);
+    }
     registerAppGeneralGroup(tab);
     registerAppDataGroup(tab);
     registerAppMaintenanceGroup(tab);

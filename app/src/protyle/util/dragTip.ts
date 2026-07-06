@@ -1,6 +1,8 @@
 // 拖拽时跟随鼠标的自定义双区提示框：上半=操作对象名称，下半=操作文案
 // 通过 .drag-tip 类做全局单例，在编辑器和文档树两处 dragover 共用
 
+import {isMobile} from "../../platform";
+
 export const transparentImgSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 const dragTipState = {
@@ -57,10 +59,9 @@ const renderDragTip = () => {
 };
 
 export const showDragTip = (title: string, action: string, x: number, y: number) => {
-    /// #if MOBILE
-    // 移动端不显示拖拽提示
-    return;
-    /// #endif
+    if (isMobile) {
+        return;
+    }
     dragTipState.title = title;
     dragTipState.action = action;
     dragTipState.x = x;

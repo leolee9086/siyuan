@@ -16,10 +16,8 @@ import {App} from "../index";
 import {initMirror} from "../protyle/undo/globalUndo";
 import {getDocByScroll, saveScroll} from "../protyle/scroll/saveScroll";
 
-export const getCurrentEditor = () => {
-    return window.siyuan.mobile.popEditor || window.siyuan.mobile.editor;
-};
-
+// getCurrentEditor 已提取到 ./util/getCurrentEditor.ts
+// 目的：打断 closePanel → keyboardToolbar → mobile/editor → closePanel 循环依赖
 export const openMobileFileById = (app: App, id: string, action: TProtyleAction[] = [Constants.CB_GET_HL], scrollPosition?: ScrollLogicalPosition) => {
     window.siyuan.storage[Constants.LOCAL_DOCINFO] = {id};
     setStorageVal(Constants.LOCAL_DOCINFO, window.siyuan.storage[Constants.LOCAL_DOCINFO]);

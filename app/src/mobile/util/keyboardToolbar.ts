@@ -5,7 +5,7 @@ import {
 } from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
 import {focusBlock, focusByRange, getSelectionPosition} from "../../protyle/util/selection";
-import {getCurrentEditor} from "../editor";
+import {getCurrentEditor} from "./getCurrentEditor"; // 从独立模块导入，避免循环依赖 closePanel → keyboardToolbar → mobile/editor → closePanel
 import {isInAndroid, isInEdge, isInHarmony} from "../../protyle/util/compatibility";
 import {canInput, keyboardLockUntil} from "./mobileAppUtil";
 import {handleToolbarClick} from "./keyboardToolbar.action";

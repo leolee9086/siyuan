@@ -28,7 +28,7 @@ import {
 } from "../../config/setting/tabs";
 import {bindSettingSaveDelegation} from "../../config/setting/save";
 import {isMobile} from "../../util/platform/functions";
-import {getCurrentEditor} from "../editor";
+import {getCurrentEditor} from "../util/getCurrentEditor";
 // S-forge: 本地i18n封装，替代直接访问 window.siyuan.languages
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

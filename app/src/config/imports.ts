@@ -19,3 +19,43 @@ export { fetchSyncPostRaw };
 import { genUUID } from "../util/platform/genID";
 /** 导出 genUUID，供 config 模块使用 */
 export { genUUID };
+
+/** 用途：移动端菜单弹出。使用范围：设置页面入口。解耦评估：通过 imports.ts 转发。 */
+import { popMenu } from "../mobile/menu";
+/** 导出 popMenu，供 config 模块使用 */
+export { popMenu };
+
+/** 用途：移动端判断。使用范围：config 模块各功能适配。解耦评估：通过 imports.ts 转发。 */
+import { isMobile } from "../platform";
+/** 导出 isMobile，供 config 模块使用 */
+export { isMobile };
+
+/** 用途：对话框组件。使用范围：config 模块弹窗操作。解耦评估：通过 imports.ts 转发。 */
+import { Dialog } from "../dialog";
+/** 导出 Dialog，供 config 模块使用 */
+export { Dialog };
+
+/** 用途：系统常量。使用范围：config 模块常量引用。解耦评估：通过 imports.ts 转发。 */
+import { Constants } from "../constants";
+/** 导出 Constants，供 config 模块使用 */
+export { Constants };
+
+/** 用途：选区焦点恢复。使用范围：设置对话框关闭后恢复焦点。解耦评估：通过 imports.ts 转发。 */
+import { focusByRange } from "../protyle/util/selection";
+/** 导出 focusByRange，供 config 模块使用 */
+export { focusByRange };
+
+/** 用途：Vue 应用工厂。使用范围：config 模块内部 Vue 组件挂载。解耦评估：第三方依赖，通过 imports.ts 转发。 */
+import { createApp } from "vue";
+/** 导出 createApp，供 config 模块使用 */
+export { createApp };
+
+/** 用途：Tab 注册器。使用范围：文件树配置 Tab 延迟注册。解耦评估：通过 imports.ts 转发。 */
+import { tabRegistry } from "../registry";
+/** 导出 tabRegistry，供 config 模块使用 */
+export { tabRegistry };
+
+/** 用途：Vue 组件（文件树配置面板）。使用范围：设置对话框 Tab 挂载。解耦评估：Vue SFC，通过 imports.ts 转发。 */
+import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
+/** 导出 fileTreeConfigPanel，供 config 模块使用 */
+export { fileTreeConfigPanel };

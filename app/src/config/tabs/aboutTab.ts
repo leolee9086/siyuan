@@ -3,6 +3,7 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/fetch";
 import {getCloudURL} from "../util/about";
 import {sendAppSetting} from "./appRuntime";
+import {isElectron} from "../../platform";
 
 const registerAboutVersionGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("version", "");
@@ -18,15 +19,13 @@ const registerAboutVersionGroup = (tab: SettingTabBuilder) => {
         html: genAboutVersionHtml,
         afterMount: mountAboutVersionSlot,
     });
-    /// #if !BROWSER
-    if (!window.siyuan.config.system.isMicrosoftStore && window.siyuan.config.system.container === "std" && window.siyuan.config.system.os !== "linux") {
+    if (isElectron && !window.siyuan.config.system.isMicrosoftStore && window.siyuan.config.system.container === "std" && window.siyuan.config.system.os !== "linux") {
         group.switch("system.downloadInstallPkg", {
             title: window.siyuan.languages.autoDownloadUpdatePkg,
             desc: window.siyuan.languages.autoDownloadUpdatePkgTip,
             save: (value) => sendAppSetting("system.downloadInstallPkg", value),
         });
     }
-    /// #endif
 };
 
 const genAboutVersionHtml = (): string => {

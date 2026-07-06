@@ -5,7 +5,7 @@ import {updateHotkeyTip} from "../../../protyle/util/compatibility";
 import {isMobile} from "../../../util/platform/functions";
 import {Constants} from "../../../constants";
 import {Editor} from "../../../editor";
-import {getCurrentEditor} from "../../../mobile/editor";
+import {getCurrentEditor} from "../../../mobile/util/getCurrentEditor";
 import {popSearch} from "../../../mobile/menu/search";
 import {getActiveTab, getDockByType} from "../../../layout/tabUtil";
 import {Custom} from "../../../layout/dock/Custom";

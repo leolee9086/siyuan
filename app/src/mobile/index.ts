@@ -28,7 +28,8 @@ import {
     isInMobileApp,
     writeText
 } from "../protyle/util/compatibility";
-import { getCurrentEditor, openMobileFileById } from "./editor";
+import { getCurrentEditor } from "./util/getCurrentEditor";
+import { openMobileFileById } from "./editor";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";

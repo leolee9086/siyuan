@@ -1,5 +1,6 @@
 import {Constants} from "../../constants";
-import {getCurrentEditor, openMobileFileById} from "../editor";
+import {getCurrentEditor} from "../util/getCurrentEditor";
+import {openMobileFileById} from "../editor";
 import {fetchPost} from "../../util/network/fetch";
 import {preventScroll} from "../../protyle/scroll/preventScroll";
 import {getNotebookName, pathPosix} from "../../util/file/pathName";

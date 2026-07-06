@@ -1,6 +1,7 @@
 import {Constants} from "../../constants";
 import {closeModel, closePanel} from "./closePanel";
-import {getCurrentEditor, openMobileFileById} from "../editor";
+import {getCurrentEditor} from "./getCurrentEditor";
+import {openMobileFileById} from "../editor";
 import {validateName} from "../../editor/rename";
 import {getEventName} from "../../protyle/util/compatibility";
 import {fetchPost} from "../../util/network/fetch";

@@ -3,11 +3,9 @@ import {escapeHtml} from "../../../util/DOM/escape";
 import {setPosition} from "../../../util/DOM/setPosition";
 import {hasClosestByClassName} from "../../../protyle/util/hasClosest";
 import {upDownHint} from "../../../util/DOM/upDownHint";
-/// #if !BROWSER
 import * as path from "path";
 import {useShell} from "../../../util/pathName";
-
-/// #endif
+import {isElectron} from "../../../platform";
 
 export class AgentSessionPanel {
     private popup: HTMLElement | null = null;
@@ -147,10 +145,7 @@ export class AgentSessionPanel {
         } else {
             const currentId = this.getCurrentSessionId();
             const defaultTitle = this.getDefaultTitle();
-            let isDesktop = false;
-            /// #if !BROWSER
-            isDesktop = true;
-            /// #endif
+            const isDesktop = isElectron;
             const L = window.siyuan.languages;
             for (let i = 0; i < listItems.length; i++) {
                 const s = listItems[i];
@@ -393,10 +388,8 @@ export class AgentSessionPanel {
                             this.refresh();
                         });
                     }
-                    if (action === "folder") {
-                        /// #if !BROWSER
+                    if (action === "folder" && isElectron) {
                         useShell("openPath", path.join(window.siyuan.config.system.dataDir, "storage", "ai", "agent", "sessions", id));
-                        /// #endif
                     }
                     onClose();
                 });

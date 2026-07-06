@@ -1,4 +1,4 @@
-import {getCurrentEditor} from "../editor";
+import {getCurrentEditor} from "../util/getCurrentEditor";
 import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {getIconByType} from "../../editor/getIcon";

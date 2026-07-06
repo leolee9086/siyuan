@@ -5,6 +5,7 @@ import {AgentHttpError, fetchAgentSSE, IEditorContext, ISSEResult} from "./agent
 import {genUUID} from "../../../util/platform/genID";
 import {mountComposer} from "./AgentComposer";
 import {getAllEditor} from "../../getAll";
+import {isMobile} from "../../../platform";
 import "./frontendActions";
 import {listActions, lookupAction} from "./frontendActions";
 import {AgentSession, SessionStore} from "./SessionStore";
@@ -1409,89 +1410,81 @@ export class AgentChat extends Model {
     // this directly targets "user selected blocks here" regardless of which window has focus.
     // Falls back to the editor hosting the DOM selection, then the most-recently-activated tab.
     private captureEditorContext(): IEditorContext | undefined {
-        /// #if MOBILE
-        const mobEditor = window.siyuan.mobile.editor || window.siyuan.mobile.popEditor;
-        if (mobEditor?.protyle && !mobEditor.protyle.element.classList.contains("fn__none")) {
-            return this.readEditorContext(mobEditor);
-        }
-        return undefined;
-        /// #else
-        const allEditor = getAllEditor();
-        if (!allEditor || allEditor.length === 0) {
+        if (isMobile) {
+            const mobEditor = window.siyuan.mobile.editor || window.siyuan.mobile.popEditor;
+            if (mobEditor?.protyle && !mobEditor.protyle.element.classList.contains("fn__none")) {
+                return this.readEditorContext(mobEditor);
+            }
             return undefined;
-        }
-        const isEditable = (e: { protyle: { element: HTMLElement } }) =>
-            !e.protyle.element.classList.contains("fn__none") &&
-            e.protyle.element.closest(".layout__center") !== null;
+        } else {
+            const allEditor = getAllEditor();
+            if (!allEditor || allEditor.length === 0) {
+                return undefined;
+            }
+            const isEditable = (e: { protyle: { element: HTMLElement } }) =>
+                !e.protyle.element.classList.contains("fn__none") &&
+                e.protyle.element.closest(".layout__center") !== null;
 
-        // Aggregate selected block IDs across ALL editors (user may have selected blocks
-        // in one editor while a different one is "active").
-        let allSelected: string[] = [];
-        allEditor.forEach(e => {
-            e.protyle?.wysiwyg?.element?.querySelectorAll("[data-node-id].protyle-wysiwyg--select")
-                ?.forEach(el => {
-                    const id = (el as HTMLElement).getAttribute("data-node-id");
-                    if (id) {
-                        allSelected.push(id);
+            let allSelected: string[] = [];
+            allEditor.forEach(e => {
+                e.protyle?.wysiwyg?.element?.querySelectorAll("[data-node-id].protyle-wysiwyg--select")
+                    ?.forEach(el => {
+                        const id = (el as HTMLElement).getAttribute("data-node-id");
+                        if (id) {
+                            allSelected.push(id);
+                        }
+                    });
+            });
+            allSelected = Array.from(new Set(allSelected));
+
+            let candidate: {
+                protyle: {
+                    block?: { id?: string; rootID?: string };
+                    wysiwyg?: { element?: HTMLElement };
+                    element: HTMLElement;
+                    model?: { parent?: { headElement?: HTMLElement } }
+                }
+            } | undefined;
+
+            candidate = allEditor.find(e => isEditable(e) &&
+                !!e.protyle?.wysiwyg?.element?.querySelector(".protyle-wysiwyg--select"));
+            if (!candidate) {
+                const domSel = window.getSelection();
+                const range = domSel && domSel.rangeCount > 0 ? domSel.getRangeAt(0) : null;
+                if (range) {
+                    candidate = allEditor.find(e => e.protyle.element.contains(range.startContainer));
+                }
+            }
+            if (!candidate) {
+                let activeTime = 0;
+                allEditor.forEach(e => {
+                    let head = e.protyle.model?.parent?.headElement;
+                    if (!head && e.protyle.element.getBoundingClientRect().height > 0) {
+                        const tabBody = e.protyle.element.closest(".fn__flex-1[data-id]");
+                        if (tabBody) {
+                            head = document.querySelector(
+                                `.layout-tab-bar .item[data-id="${tabBody.getAttribute("data-id")}"]`);
+                        }
+                    }
+                    if (head && head.classList.contains("item--focus") &&
+                        parseInt(head.dataset.activetime || "0") > activeTime) {
+                        activeTime = parseInt(head.dataset.activetime || "0");
+                        candidate = e;
                     }
                 });
-        });
-        allSelected = Array.from(new Set(allSelected));
-
-        // Candidate selection, in priority order:
-        let candidate: {
-            protyle: {
-                block?: { id?: string; rootID?: string };
-                wysiwyg?: { element?: HTMLElement };
-                element: HTMLElement;
-                model?: { parent?: { headElement?: HTMLElement } }
             }
-        } | undefined;
-
-        // 1) An editable editor that has its own selected blocks.
-        candidate = allEditor.find(e => isEditable(e) &&
-            !!e.protyle?.wysiwyg?.element?.querySelector(".protyle-wysiwyg--select"));
-        // 2) The editor hosting the current DOM selection.
-        if (!candidate) {
-            const domSel = window.getSelection();
-            const range = domSel && domSel.rangeCount > 0 ? domSel.getRangeAt(0) : null;
-            if (range) {
-                candidate = allEditor.find(e => e.protyle.element.contains(range.startContainer));
+            if (!candidate) {
+                candidate = allEditor.find(e => !e.protyle.element.classList.contains("fn__none"));
             }
-        }
-        // 3) The most-recently-activated focused document tab (data-activetime).
-        if (!candidate) {
-            let activeTime = 0;
-            allEditor.forEach(e => {
-                let head = e.protyle.model?.parent?.headElement;
-                if (!head && e.protyle.element.getBoundingClientRect().height > 0) {
-                    const tabBody = e.protyle.element.closest(".fn__flex-1[data-id]");
-                    if (tabBody) {
-                        head = document.querySelector(
-                            `.layout-tab-bar .item[data-id="${tabBody.getAttribute("data-id")}"]`);
-                    }
-                }
-                if (head && head.classList.contains("item--focus") &&
-                    parseInt(head.dataset.activetime || "0") > activeTime) {
-                    activeTime = parseInt(head.dataset.activetime || "0");
-                    candidate = e;
-                }
-            });
-        }
-        // 4) Any visible (non-fn__none) editor.
-        if (!candidate) {
-            candidate = allEditor.find(e => !e.protyle.element.classList.contains("fn__none"));
-        }
 
-        const ctx = candidate ? this.readEditorContext(candidate) : undefined;
-        // Even if no candidate editor was located, surface the globally-collected selections.
-        if ((!ctx || !ctx.selectedBlockIDs || ctx.selectedBlockIDs.length === 0) && allSelected.length > 0) {
-            const merged: IEditorContext = ctx ? {...ctx} : {};
-            merged.selectedBlockIDs = allSelected;
-            return merged;
+            const ctx = candidate ? this.readEditorContext(candidate) : undefined;
+            if ((!ctx || !ctx.selectedBlockIDs || ctx.selectedBlockIDs.length === 0) && allSelected.length > 0) {
+                const merged: IEditorContext = ctx ? {...ctx} : {};
+                merged.selectedBlockIDs = allSelected;
+                return merged;
+            }
+            return ctx;
         }
-        return ctx;
-        /// #endif
     }
 
     private readEditorContext(editor: {

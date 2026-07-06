@@ -10,7 +10,7 @@ import { disabledForeverProtyle, setReadonlyByConfig } from "../../protyle/util/
 import { setStorageVal } from "../../protyle/util/compatibility";
 import { closePanel } from "./closePanel";
 import { showMessage } from "../../dialog/message";
-import { getCurrentEditor } from "../editor";
+import { getCurrentEditor } from "./getCurrentEditor"; // 独立模块，打断循环依赖
 import { avRender } from "../../protyle/render/av/render";
 import { setTitle } from "../../util/processTitle";
 
