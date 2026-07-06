@@ -345,3 +345,33 @@ func PackBinary(vector []byte) []byte {
 func CreateZeroCentroid(dimension int) []float32 {
 	return make([]float32, dimension)
 }
+
+// QuantizeRange 对 vectors[start:end] 范围内的向量执行 1-bit 标量量化，
+// 将量化码打包为 packed 格式，并写入四个元数据数组。
+//
+// 每个向量执行以下操作序列（在内存索引 computeBBQDataParallel 与
+// 磁盘构建 computeBBQChunk 中完全重复，此处统一提取）：
+//
+//  1. quantizer.Quantize(vec, quantized, 1, centroid) → result
+//  2. PackBinary(quantized) → packed
+//  3. copy(bbqPacked[i*packedSize:], packed)
+//  4. lower[i] = result.LowerBound, upper[i] = result.UpperBound
+//     correction[i] = result.Correction, sum[i] = result.QuantizedSum
+//
+// quantized 缓冲区由调用方分配且每个 goroutine 独立，避免并发写冲突。
+func QuantizeRange(quantizer *ScalarQuantizer, vectors [][]float32, centroid []float32,
+	start, end, dimension, packedSize int,
+	bbqPacked []byte, lower, upper, correction, sum []float32) {
+	quantized := make([]byte, dimension)
+	for i := start; i < end; i++ {
+		vec := vectors[i]
+		result := quantizer.Quantize(vec, quantized, 1, centroid)
+		packed := PackBinary(quantized)
+		offset := i * packedSize
+		copy(bbqPacked[offset:offset+packedSize], packed)
+		lower[i] = result.LowerBound
+		upper[i] = result.UpperBound
+		correction[i] = result.Correction
+		sum[i] = result.QuantizedSum
+	}
+}

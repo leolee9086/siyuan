@@ -75,7 +75,7 @@ func (idx *VamanaIndex) bbqMeta(id uint32) bbq.QuantizationResult {
 	return bbq.QuantizationResult{
 		LowerBound:   idx.bbqLowerBounds[id],
 		UpperBound:   idx.bbqUpperBounds[id],
-		Correction:   idx.bbqCompensations[id],
+		Correction:   idx.bbqCorrections[id],
 		QuantizedSum: idx.bbqQuantizedSums[id],
 	}
 }

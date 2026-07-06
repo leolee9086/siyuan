@@ -64,7 +64,7 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 
 	// 1. 分配存储空间
 	idx.bbqPacked = make([]byte, n*idx.bbqPackedSize) // 打包数据用于 1-bit 和 4-bit BitTranspose 查询
-	idx.bbqCompensations = make([]float32, n)
+	idx.bbqCorrections = make([]float32, n)
 	idx.bbqLowerBounds = make([]float32, n)
 	idx.bbqUpperBounds = make([]float32, n)
 	idx.bbqQuantizedSums = make([]float32, n)
@@ -86,27 +86,11 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 		wg.Add(1)
 		go func(start, end int) {
 			defer wg.Done()
-
-			// 每个 worker 创建自己的量化器和临时缓冲区
-			// 使用配置中的距离度量，与图构建保持一致
-			quantizer := bbq.NewScalarQuantizer(idx.config.DistanceMetric)
-			quantized := make([]byte, idx.dimension)
-
-			for i := start; i < end; i++ {
-				// 量化向量
-				result := quantizer.Quantize(idx.vectors[i], quantized, 1, idx.bbqCentroid)
-
-				// 打包为 []byte (用于 1-bit 和 4-bit BitTranspose 查询)
-				packed := bbq.PackBinary(quantized)
-
-				// 存储打包结果
-				offset := i * idx.bbqPackedSize
-				copy(idx.bbqPacked[offset:offset+idx.bbqPackedSize], packed)
-				idx.bbqCompensations[i] = result.Correction
-				idx.bbqLowerBounds[i] = result.LowerBound
-				idx.bbqUpperBounds[i] = result.UpperBound
-				idx.bbqQuantizedSums[i] = result.QuantizedSum
-			}
+			q := bbq.NewScalarQuantizer(idx.config.DistanceMetric)
+			bbq.QuantizeRange(q, idx.vectors, idx.bbqCentroid,
+				start, end, idx.dimension, idx.bbqPackedSize,
+				idx.bbqPacked, idx.bbqLowerBounds, idx.bbqUpperBounds,
+				idx.bbqCorrections, idx.bbqQuantizedSums)
 		}(start, end)
 	}
 

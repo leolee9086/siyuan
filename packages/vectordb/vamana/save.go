@@ -286,7 +286,7 @@ func (idx *VamanaIndex) saveBBQFile(path string) error {
 	}
 
 	// Corrections
-	for _, v := range idx.bbqCompensations {
+	for _, v := range idx.bbqCorrections {
 		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
 		if _, err := w.Write(metaBuf); err != nil {
 			return err

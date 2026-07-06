@@ -198,7 +198,7 @@ type diskBuilder struct {
 	bbqCentroid      []float32
 	bbqLowerBounds   []float32
 	bbqUpperBounds   []float32
-	bbqCompensations []float32
+	bbqCorrections   []float32
 	bbqQuantizedSums []float32
 }
 
@@ -359,7 +359,7 @@ func (b *diskBuilder) computeBBQData() {
 	b.bbqPacked = make([]byte, n*packedSize)
 	b.bbqLowerBounds = make([]float32, n)
 	b.bbqUpperBounds = make([]float32, n)
-	b.bbqCompensations = make([]float32, n)
+	b.bbqCorrections = make([]float32, n)
 	b.bbqQuantizedSums = make([]float32, n)
 
 	// Create quantizer
@@ -396,28 +396,13 @@ func (b *diskBuilder) computeBBQData() {
 }
 
 // computeBBQChunk computes BBQ data for a chunk of vectors.
+// 委托 bbq.QuantizeRange 完成逐向量量化、打包与元数据存储，
+// 与内存索引的 computeBBQDataParallel 共享同一实现，消除重复编码。
 func (b *diskBuilder) computeBBQChunk(quantizer *bbq.ScalarQuantizer, start, end, packedSize int) {
-	// Each worker has its own temporary buffer
-	quantized := make([]byte, b.dimension)
-
-	for i := start; i < end; i++ {
-		vec := b.vectors[i]
-
-		// Quantize vector (1-bit quantization)
-		result := quantizer.Quantize(vec, quantized, 1, b.bbqCentroid)
-
-		// Pack binary data for POPCNT optimization
-		packed := bbq.PackBinary(quantized)
-
-		// Store packed code
-		copy(b.bbqPacked[i*packedSize:(i+1)*packedSize], packed)
-
-		// Store metadata
-		b.bbqLowerBounds[i] = result.LowerBound
-		b.bbqUpperBounds[i] = result.UpperBound
-		b.bbqCompensations[i] = result.Correction
-		b.bbqQuantizedSums[i] = result.QuantizedSum
-	}
+	bbq.QuantizeRange(quantizer, b.vectors, b.bbqCentroid,
+		start, end, b.dimension, packedSize,
+		b.bbqPacked, b.bbqLowerBounds, b.bbqUpperBounds,
+		b.bbqCorrections, b.bbqQuantizedSums)
 }
 
 // ============================================================================
@@ -643,8 +628,8 @@ func (b *diskBuilder) writeBBQFile() error {
 		}
 	}
 
-	// Corrections (compensations)
-	for _, v := range b.bbqCompensations {
+	// Corrections
+	for _, v := range b.bbqCorrections {
 		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
 		if _, err := w.Write(metaBuf); err != nil {
 			return err

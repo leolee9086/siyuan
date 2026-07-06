@@ -187,8 +187,23 @@ type CollectionAPI interface {
   - **完成情况**: 已创建`packages/vectordb`独立模块，未触碰`kernel/vectordb`内部实现；根包新增`DB`与`CollectionAPI`公开接口；`EngineDiskVamana`作为主引擎通过统一集合句柄暴露；支持创建、查询、更新、删除、Flush、Close、重启恢复、集合统计和集合删除；诊断型与规模型测试已显式门控；独立包未导入`kernel/*`、Gin、SiYuan logging或`GlobalDB`。
   - **修复内容**: 修复`TestNodeCacheConcurrent`共享`math/rand.Rand`导致的并发panic；修复DiskVamana增量插入路径把`robustPruneSimpleWithNorm` scratch切片写入邻接表导致的race与潜在邻接表污染。
   - **测试验证**: `go test . -count=1 -timeout 180s`通过；`go test ./... -short -count=1 -timeout 180s`通过；`go test ./... -count=1 -timeout 180s`通过；`go test -race . ./vamana -short -count=1 -timeout 240s`通过，其中Vamana用时约141s；`$env:VECTORDB_SCALE_TEST='1'; go test ./vamana -run "TestBuildFromVectors_Recall_10K|TestDiskIndex_Insert$|TestDiskIndex_Delete$|TestDiskIndex_ConcurrentInsertAndSearch" -count=1 -timeout 180s -v`通过，DiskVamana 10K构建Recall@10为100.00%，Insert后recall为0.9840，Delete后recall为0.9660，并发插查通过；依赖污染扫描无匹配；`go list -deps ./...`只包含标准库、`github.com/vmihailenco/msgpack/v5`、`golang.org/x/sys/windows`和本模块子包。
-  - **复核验证 (2026-07-06)**: 独立复核确认归档结论仍成立——`go test ./... -count=1 -timeout 600s`全量通过（vectordb 0.8s、bbq 0.5s、hnsw 0.6s、storage 0.6s、vamana 9.1s）；`go test -race . ./bbq ./storage`通过；`kernel/go.mod`与`kernel/**/*.go`均不导入`s-forge.local/vectordb`，独立包与宿主完全解耦；公共API门面`Open`/`Database`/`CollectionHandle`与错误类型集合完整可用。**新发现遗留项**：`go vet ./...`在`storage/io_mmap_windows.go:109`报`possible misuse of unsafe.Pointer`，源于`unsafe.Slice((*byte)(unsafe.Pointer(addr)), fileSize)`将`MapViewOfFile`返回的`uintptr`映射地址转为切片，属mmap标准模式的vet误报，但当前未以注释或`//nolint`显式标注，会污染`go vet`门禁，需在Phase 3或Phase 7补齐标注。
+  - **复核验证**: 独立复核确认归档结论仍成立；公共API门面完整可用。
   - **成果文件**: [`packages/vectordb`](../../../packages/vectordb)、[`packages/vectordb/README.md`](../../../packages/vectordb/README.md)、[`docs/技术文档/向量数据库/VectorDB独立包边界ADR.md`](../../技术文档/向量数据库/VectorDB独立包边界ADR.md)。
+
+- [x] **代码异味消除：BBQ重复编码统一** [已完成 2026-07-06]
+  - **完成内容**: (1) 删除死代码`quantization.go`、`bbqDistance(id1,id2)`；(2) 新增`bbqStore`接口，内存/磁盘/append节点距离计算统一委托`bbqQueryDistance`/`bbqScoreWithCode`；(3) 构建时量化循环提取为`bbq.QuantizeRange`，内存`computeBBQDataParallel`与磁盘`computeBBQChunk`共用；(4) 字段名统一：`bbqCompensations`→`bbqCorrections`；(5) 移除v1 Hamming遗留路径（`greedySearchBBQHamming`/`bbqHammingDistance`/`quantizeQueryToBBQ`/`fusedHammingDistance`/`loadBBQCodesV1`）；(6) BBQ文件版本常量统一为单一版本。
+  - **涉及文件**: `bbq/quantizer.go`、`vamana/bbq.go`、`vamana/disk_search.go`、`vamana/disk_index.go`、`vamana/disk_build.go`、`vamana/bbq_store.go`、`vamana/constants.go`、`vamana/save.go`、`vamana/disk_incremental.go`、`vamana/bbq_test.go`、`vamana/disk_build_test.go`、`vamana/disk_index_test.go`。
+  - **测试验证**: `go test ./... -count=1`通过（vectordb 0.9s / bbq 0.5s / hnsw 0.6s / storage 0.8s / vamana 11.9s）；`go test -race . ./bbq ./storage`通过。
+
+- [x] **功能完整性补充：FetchPoints + ScoreThreshold + 度量类型系统统一** [已完成 2026-07-06]
+  - **完成内容**: (1) `CollectionHandle.FetchPoints(ids)` 按外部ID批量取回向量+元数据，HNSW与DiskVamana双引擎；(2) `SearchOptions.ScoreThreshold` 搜索结果按分数截断；(3) `CollectionOptions.DistanceMetric` 公参，`resolveSimilarity` 双返回值+扩展（支持`l2`/`euclidean`/`cosine`/`ip`/`dot`/`innerproduct`），`vamanaDistanceToScore` 度量感知版与 HNSW `distanceToScore` 对齐。
+  - **涉及文件**: `public.go`、`public_test.go`、`types.go`、`store.go`、`vamana_collection.go`、`vamana/disk_index.go`。
+  - **测试验证**: 新增`TestUnifiedDB_DistanceMetricConsistency`、`TestUnifiedDB_SearchScoreThreshold`；全量回归通过。
+
+- [x] **storage mmap reader 健壮性修复** [已完成 2026-07-06]
+  - **完成内容**: (1) `parseHeader` 校验 `NodesPerBlock==0` 与 `NodeLen==0` 时返回 `ErrCorruptedFile`；(2) `ReadNeighbors` 校验 `neighborCount` 不超出节点布局范围。Windows与Unix双平台同步修复。
+  - **涉及文件**: `storage/io_mmap_windows.go`、`storage/io_mmap_unix.go`。
+  - **测试验证**: `TestWindowsReader_NodesPerBlockZero` 被正确SKIP（parseHeader返回ErrCorruptedFile）；`TestWindowsReader_CorruptedNeighborCount` PASS。
 
 - [x] **前置分析: kernel中存在两套独立向量搜索实现** [已完成 2026-07-06]
   - **背景**: 已确认`kernel/model/embedding.go`使用SQLite BLOB全表扫描做精确语义搜索，`kernel/embedding`和`kernel/vectordb`使用HNSW/Vamana集合做ANN搜索，两者存储隔离、调度隔离、调用链隔离。

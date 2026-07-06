@@ -154,10 +154,10 @@ func testBBQDataStructures(t *testing.T) {
 			expectedPackedLen, len(idx.bbqPacked))
 	}
 
-	// 验证 bbqCompensations 已分配且大小正确
-	if len(idx.bbqCompensations) != numVectors {
-		t.Errorf("bbqCompensations length mismatch: expected %d, got %d",
-			numVectors, len(idx.bbqCompensations))
+	// 验证 bbqCorrections 已分配且大小正确
+	if len(idx.bbqCorrections) != numVectors {
+		t.Errorf("bbqCorrections length mismatch: expected %d, got %d",
+			numVectors, len(idx.bbqCorrections))
 	}
 
 	// 验证 bbqCentroid 已计算且维度正确
@@ -177,22 +177,22 @@ func testBBQDataStructures(t *testing.T) {
 		t.Error("bbqPacked are all zeros, quantization may have failed")
 	}
 
-	// 验证 bbqCompensations 不全为零
+	// 验证 bbqCorrections 不全为零
 	nonZeroCompCount := 0
-	for _, comp := range idx.bbqCompensations {
+	for _, comp := range idx.bbqCorrections {
 		if comp != 0 {
 			nonZeroCompCount++
 		}
 	}
 	if nonZeroCompCount == 0 {
-		t.Error("bbqCompensations are all zeros, quantization may have failed")
+		t.Error("bbqCorrections are all zeros, quantization may have failed")
 	}
 
 	t.Logf("BBQ data structures test passed:")
 	t.Logf("  - bbqPacked: %d bytes (%d non-zero)",
 		len(idx.bbqPacked), nonZeroCount)
-	t.Logf("  - bbqCompensations: %d values (%d non-zero)",
-		len(idx.bbqCompensations), nonZeroCompCount)
+	t.Logf("  - bbqCorrections: %d values (%d non-zero)",
+		len(idx.bbqCorrections), nonZeroCompCount)
 	t.Logf("  - bbqCentroid: %d dimensions", len(idx.bbqCentroid))
 }
 
@@ -473,13 +473,13 @@ func TestBBQMemoryUsage(t *testing.T) {
 
 	// 验证 BBQ 数据结构大小
 	actualBBQPackedBytes := len(idx.bbqPacked)
-	actualBBQCompBytes := len(idx.bbqCompensations) * 4
+	actualBBQCompBytes := len(idx.bbqCorrections) * 4
 	actualBBQCentroidBytes := len(idx.bbqCentroid) * 4
 
 	t.Logf("")
 	t.Logf("Actual BBQ data structure sizes:")
 	t.Logf("  - bbqPacked: %d bytes = %s", len(idx.bbqPacked), formatBytes(uint64(actualBBQPackedBytes)))
-	t.Logf("  - bbqCompensations: %d float32 = %s", len(idx.bbqCompensations), formatBytes(uint64(actualBBQCompBytes)))
+	t.Logf("  - bbqCorrections: %d float32 = %s", len(idx.bbqCorrections), formatBytes(uint64(actualBBQCompBytes)))
 	t.Logf("  - bbqCentroid: %d float32 = %s", len(idx.bbqCentroid), formatBytes(uint64(actualBBQCentroidBytes)))
 }
 
@@ -696,8 +696,8 @@ func testLowDimensionNoBBQ(t *testing.T) {
 	if len(idx.bbqPacked) != 0 {
 		t.Errorf("bbqPacked should be empty, got %d elements", len(idx.bbqPacked))
 	}
-	if len(idx.bbqCompensations) != 0 {
-		t.Errorf("bbqCompensations should be empty, got %d elements", len(idx.bbqCompensations))
+	if len(idx.bbqCorrections) != 0 {
+		t.Errorf("bbqCorrections should be empty, got %d elements", len(idx.bbqCorrections))
 	}
 	if len(idx.bbqCentroid) != 0 {
 		t.Errorf("bbqCentroid should be empty, got %d elements", len(idx.bbqCentroid))

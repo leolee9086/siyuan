@@ -366,9 +366,9 @@ func TestComputeBBQData_SIFT(t *testing.T) {
 		t.Errorf("bbqUpperBounds length mismatch: expected %d, got %d",
 			numVectors, len(builder.bbqUpperBounds))
 	}
-	if len(builder.bbqCompensations) != numVectors {
-		t.Errorf("bbqCompensations length mismatch: expected %d, got %d",
-			numVectors, len(builder.bbqCompensations))
+	if len(builder.bbqCorrections) != numVectors {
+		t.Errorf("bbqCorrections length mismatch: expected %d, got %d",
+			numVectors, len(builder.bbqCorrections))
 	}
 	if len(builder.bbqQuantizedSums) != numVectors {
 		t.Errorf("bbqQuantizedSums length mismatch: expected %d, got %d",
