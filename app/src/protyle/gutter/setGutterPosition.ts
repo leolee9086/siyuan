@@ -126,9 +126,13 @@ export const setGutterPosition = (protyle: IProtyle, element: Element, gutterEle
         gutterElement.style.left = `${rect.left - gutterElement.clientWidth - space / 2 + 3}px`;
 
         // 重新排列按钮，使其垂直堆叠
+        // 跳过块标边缘框线与+号元素，避免被压缩重排
         let html = "";
         const children = Array.from(gutterElement.children).reverse();
         for (const [index, item] of children.entries()) {
+            if (item.classList.contains("protyle-gutters__line") || item.classList.contains("protyle-gutters__plus")) {
+                continue;
+            }
             const firstChild = item.firstElementChild;
             if (index !== 0 && (isHTMLElement(firstChild) || isSVGElement(firstChild))) {
                 firstChild.style.height = "14px";

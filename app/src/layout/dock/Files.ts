@@ -4,7 +4,7 @@ import { Constants } from "../../constants";
 import { pathPosix } from "../../util/file/pathName";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { mountHelp } from "../../util/file/mount";
-import { newFile } from "../../util/file/newFile";
+import { newFileInTree } from "../../util/file/newFile";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { App } from "../../index";
 import { initFilesDrag } from "./Files/dnd";
@@ -174,13 +174,7 @@ export class Files extends Model {
         }, response => {
             // 根目录且无文件时，自动创建新文件（空笔记本引导）
             if (response.data.path === "/" && response.data.files.length === 0) {
-                newFile({
-                    app: this.app,
-                    notebookId,
-                    currentPath: "/",
-                    useSavePath: false,
-                    listDocTree: true,
-                });
+                newFileInTree(this.app, notebookId, "/");
                 return;
             }
             onLsHTMLHandler(this.element, response.data);

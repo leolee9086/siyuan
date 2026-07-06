@@ -74,8 +74,10 @@ export function updateItemArrow(files: MobileFiles, notebookId: string, filePath
         } else {
             const hiddenElement = liElement.querySelector(".fn__hidden");
             if (hiddenElement) {
+                // 原先无子文档：显示展开箭头
                 hiddenElement.classList.remove("fn__hidden");
-            } else {
+            } else if (liElement.querySelector(".b3-list-item__arrow--open")) {
+                // 父文档已展开：刷新子列表
                 files.getLeaf(liElement, notebookId, true);
             }
             break;
@@ -273,4 +275,22 @@ export function onMount(files: MobileFiles, data: IWebSocketData) {
             }
         }
     });
+}
+
+/**
+ * 作用：处理文档子文件数变更后更新文件树中对应节点的 data-count 属性和展开箭头显隐。
+ * 意图：保持文件树显示与实际子文件数同步。
+ * 调用时机：收到 WebSocket "reloadDocInfo" 消息时。
+ * @同步豁免: UI构建
+ */
+export function onReloadDocInfo(files: MobileFiles, data: IWebSocketData) {
+    const liElement = files.element.querySelector(`li[data-node-id="${data.data.rootID}"]`);
+    if (liElement) {
+        liElement.setAttribute("data-count", data.data.subFileCount);
+        if (data.data.subFileCount === 0) {
+            liElement.querySelector(".b3-list-item__toggle")?.classList.add("fn__hidden");
+        } else {
+            liElement.querySelector(".b3-list-item__toggle")?.classList.remove("fn__hidden");
+        }
+    }
 }

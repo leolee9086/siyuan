@@ -245,7 +245,7 @@ function handleDragMoveBlockSelect(
     if (rect.newHeight < 4) {
         return {mouseElement, startFirstElement, endLastElement};
     }
-    protyle.selectElement.setAttribute("style", `background-color: ${protyle.selectElement.style.backgroundColor};top:${rect.newTop}px;height:${rect.newHeight}px;left:${rect.newLeft + 2}px;width:${rect.newWidth - 2}px;`);
+    protyle.selectElement.setAttribute("style", `top:${rect.newTop}px;height:${rect.newHeight}px;left:${rect.newLeft + 2}px;width:${rect.newWidth - 2}px;`);
     const newMouseElement = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
     if (mouseElement && mouseElement === newMouseElement && !mouseElement.classList.contains("protyle-wysiwyg") &&
         !mouseElement.classList.contains("list") && !mouseElement.classList.contains("bq") &&
@@ -256,15 +256,15 @@ function handleDragMoveBlockSelect(
     mouseElement = newMouseElement;
 
     hideElements(["select"], protyle);
-    const blockResult = collectSelectedBlocks(moveEvent, protyle, rect, y, startFirstElement, endLastElement);
+    const blockResult = collectSelectedBlocks(moveEvent, protyle, rect, y, startFirstElement, endLastElement, mostLeft, mostRight);
     startFirstElement = blockResult.startFirstElement;
     endLastElement = blockResult.endLastElement;
 
     if (blockResult.selectElements.length === 1 && !blockResult.selectElements[0].classList.contains("list") &&
         !blockResult.selectElements[0].classList.contains("bq") && !blockResult.selectElements[0].classList.contains("callout") &&
         !blockResult.selectElements[0].classList.contains("sb")) {
-        // 只有一个 p 时不选中
-        protyle.selectElement.style.backgroundColor = "transparent";
+        // 只有一个 p 时不选中，用 data 属性标记未选中状态（矩形视觉保持可见）
+        protyle.selectElement.setAttribute("data-empty", "true");
         protyle.wysiwyg.element.classList.remove("protyle-wysiwyg--hiderange");
     } else {
         protyle.wysiwyg.element.classList.add("protyle-wysiwyg--hiderange");
@@ -273,7 +273,7 @@ function handleDragMoveBlockSelect(
                 item.classList.add("protyle-wysiwyg--select");
             }
         });
-        protyle.selectElement.style.backgroundColor = "";
+        protyle.selectElement.removeAttribute("data-empty");
     }
     return {mouseElement, startFirstElement, endLastElement};
 }
@@ -326,6 +326,15 @@ function computeSelectRect(
     return {newTop, newLeft, newWidth, newHeight};
 }
 
+/**
+ * 容器类元素判断（划选时 elementFromPoint 命中它们的边缘/空白需继续探测子块）
+ */
+function isContainerElement(el: Element) {
+    return el.classList.contains("protyle-wysiwyg") || el.classList.contains("list") ||
+        el.classList.contains("li") || el.classList.contains("sb") ||
+        el.classList.contains("callout") || el.classList.contains("bq");
+}
+
 function collectSelectedBlocks(
     moveEvent: MouseEvent,
     protyle: IProtyle,
@@ -333,22 +342,36 @@ function collectSelectedBlocks(
     y: number,
     startFirstElement: Element,
     endLastElement: Element,
+    mostLeft?: number,
+    mostRight?: number,
 ) {
     let firstElement;
     if (moveEvent.clientY > y) {
         firstElement = startFirstElement || document.elementFromPoint(rect.newLeft, rect.newTop);
         endLastElement = undefined;
     } else {
-        firstElement = document.elementFromPoint(rect.newLeft, rect.newTop);
+        // newLeft 落在 padding 内时 elementFromPoint 会命中 wysiwyg 容器，需钳制到内容区
+        const detectX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect.newLeft, mostRight)) : rect.newLeft;
+        firstElement = document.elementFromPoint(detectX, rect.newTop);
         startFirstElement = undefined;
     }
     if (!firstElement) {
         return {selectElements: [] as Element[], startFirstElement, endLastElement};
     }
-    if (firstElement.classList.contains("protyle-wysiwyg") || firstElement.classList.contains("list") ||
-        firstElement.classList.contains("li") || firstElement.classList.contains("sb") ||
-        firstElement.classList.contains("callout") || firstElement.classList.contains("bq")) {
-        firstElement = document.elementFromPoint(rect.newLeft, rect.newTop + 16);
+    // 向上划选且落点在 padding/缝隙时，elementFromPoint 易命中 wysiwyg 容器或容器类元素，
+    // 需沿 y 轴循环向下探测以定位到实际块，避免回退到文档首块导致误选上部所有块
+    if (moveEvent.clientY <= y && isContainerElement(firstElement)) {
+        const selectBottomY = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect.newTop + rect.newHeight);
+        let probeY = rect.newTop;
+        const probeX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect.newLeft, mostRight)) : rect.newLeft;
+        while (probeY < selectBottomY) {
+            probeY += 8;
+            const probeElement = document.elementFromPoint(probeX, probeY);
+            if (probeElement && !isContainerElement(probeElement)) {
+                firstElement = probeElement;
+                break;
+            }
+        }
     }
     if (!firstElement) {
         return {selectElements: [] as Element[], startFirstElement, endLastElement};
@@ -385,15 +408,17 @@ function collectSelectedBlocks(
     }
 
     let hasJump = false;
+    // 块选择判定用的右边界需落在内容区，避免矩形右边缘在 padding 内时选不中块
+    const selectRight = mostLeft !== undefined ? Math.max(rect.newLeft + rect.newWidth, mostLeft) : (rect.newLeft + rect.newWidth);
     const selectBottom = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect.newTop + rect.newHeight);
     while (currentElement) {
         if (currentElement && !currentElement.classList.contains("protyle-attr")) {
             const currentRect = currentElement.getBoundingClientRect();
-            if (currentRect.height > 0 && currentRect.top < selectBottom && currentRect.left < rect.newLeft + rect.newWidth) {
+            if (currentRect.height > 0 && currentRect.top < selectBottom && currentRect.left < selectRight) {
                 if (hasJump) {
                     if (currentElement.nextElementSibling && !currentElement.nextElementSibling.classList.contains("protyle-attr")) {
                         const nextRect = currentElement.nextElementSibling.getBoundingClientRect();
-                        if (nextRect.top < selectBottom && nextRect.left < rect.newLeft + rect.newWidth) {
+                        if (nextRect.top < selectBottom && nextRect.left < selectRight) {
                             selectElements = [currentElement];
                             currentElement = currentElement.nextElementSibling;
                             hasJump = false;

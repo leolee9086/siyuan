@@ -5,15 +5,15 @@ echo Options:
 echo   --target=^<target^>  Build target: amd64, arm64, appx-amd64, appx-arm64, or all (default: all)
 echo.
 
-REM 保存初始目录
+REM Save initial directory
 set "INITIAL_DIR=%cd%"
 
-REM 获取脚本所在目录
+REM Get script directory
 set "SCRIPT_DIR=%~dp0"
-REM 移除末尾的反斜杠
+REM Remove trailing backslash
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-REM 获取项目根目录（脚本目录的父目录）
+REM Get project root (parent of script directory)
 for %%I in ("%SCRIPT_DIR%\..") do set "PROJECT_ROOT=%%~fI"
 
 set "TARGET=all"
@@ -49,8 +49,12 @@ if "%TARGET%"=="amd64" (
 ) else if "%TARGET%"=="arm64" (
     set BUILD_ARM64=1
 ) else if "%TARGET%"=="appx-amd64" (
+    REM appx 阶段依赖 electron-builder 产出的 win-unpacked 目录，需连带构建 amd64 electron
+    set BUILD_AMD64=1
     set BUILD_APPX_AMD64=1
 ) else if "%TARGET%"=="appx-arm64" (
+    REM appx 阶段依赖 electron-builder 产出的 win-arm64-unpacked 目录，需连带构建 arm64 electron
+    set BUILD_ARM64=1
     set BUILD_APPX_ARM64=1
 ) else (
     REM all: build everything
@@ -75,6 +79,10 @@ call pnpm install
 if errorlevel 1 (
     exit /b %errorlevel%
 )
+call pnpm run install:electron
+if errorlevel 1 (
+    exit /b %errorlevel%
+)
 call pnpm run build
 if errorlevel 1 (
     exit /b %errorlevel%
@@ -89,7 +97,7 @@ if errorlevel 1 (
 )
 go version
 set GO111MODULE=on
-set GOPROXY=https://mirrors.aliyun.com/goproxy/
+set GOPROXY=https://mirrors.aliyun.com/goproxy/,https://goproxy.cn,direct
 set CGO_ENABLED=1
 set GOOS=windows
 

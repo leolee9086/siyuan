@@ -8,17 +8,17 @@
 
 ## NPM dependencies
 
-Install pnpm: `npm install -g pnpm@11.4.0`
+Install pnpm: `npm install -g pnpm@11.9.0`
 
 <details>
 <summary>For China mainland</summary>
 
 Set the Electron mirror environment variable and install Electron:
 
-* macOS/Linux: `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ pnpm install electron@41.7.1 -D`
+* macOS/Linux: `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ pnpm install electron@42.5.0 -D`
 * Windows:
   * `SET ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`
-  * `pnpm install electron@41.7.1 -D`
+  * `pnpm install electron@42.5.0 -D`
 
 NPM mirror:
 
@@ -28,9 +28,12 @@ NPM mirror:
 
 Enter the app folder and execute:
 
-* `pnpm install electron@41.7.1 -D`
+* `pnpm install electron@42.5.0 -D`
+* `pnpm run install:electron`
 * `pnpm run dev`
 * `pnpm run start`
+
+Note: Electron 42 no longer downloads its binary automatically during `pnpm install`. Run `pnpm run install:electron` (or set `ELECTRON_MIRROR` first on China mainland) to fetch the binary before `pnpm run start`.
 
 Note: In the development environment, the kernel process will not be automatically started, and you need to manually start the kernel process first.
 

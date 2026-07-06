@@ -31,6 +31,8 @@ import { isMobile } from "../../platform";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
+import { insertEmptyBlock } from "../../block/util";
+import { countBlockWord } from "../../layout/status";
 
 export const isMatchNode = (item: Element, gutterElement: Element) => {
     const itemRect = item.getBoundingClientRect();
@@ -178,6 +180,22 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
         event.stopPropagation();
         hideTooltip();
         clearSelect(["cell", "img"], protyle.wysiwyg.element);
+        // 框线点击：若鼠标在块标范围内（框线::before 截获了块标点击），转发为块标菜单；否则无操作
+        if (buttonElement.classList.contains("protyle-gutters__line")) {
+            if (activeBlockButton && !protyle.disabled) {
+                const br = activeBlockButton.getBoundingClientRect();
+                if (event.clientX >= br.left && event.clientX <= br.right &&
+                    event.clientY >= br.top && event.clientY <= br.bottom) {
+                    buildGutterMenu({ protyle, buttonElement: activeBlockButton as HTMLElement });
+                    if (!protyle.toolbar.range) {
+                        protyle.toolbar.range = getEditorRange(protyle.wysiwyg.element.querySelector(`[data-node-id="${activeBlockButton.getAttribute("data-node-id")}"]`) || protyle.wysiwyg.element.firstElementChild);
+                    }
+                    getSiyuanGlobalMenus().menu.popup({ x: br.left, y: br.bottom, isLeft: true });
+                    focusByRange(protyle.toolbar.range);
+                }
+            }
+            return;
+        }
         const id = buttonElement.getAttribute("data-node-id");
         if (!id) {
             if (buttonElement.getAttribute("disabled")) {
@@ -253,6 +271,16 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
             return;
         }
         const gutterRect = buttonElement.getBoundingClientRect();
+        if (buttonElement.dataset.type === "gutterPlusBefore" || buttonElement.dataset.type === "gutterPlusAfter") {
+            // 块标边缘+号：在对应块上方/下方插入新块，复用 insertEmptyBlock（列表项自动生成新列表项）
+            if (protyle.disabled || !id) {
+                return;
+            }
+            hideElements(["gutter"], protyle);
+            countBlockWord([], protyle.block.rootID);
+            insertEmptyBlock(protyle, buttonElement.dataset.type === "gutterPlusBefore" ? "beforebegin" : "afterend", id);
+            return;
+        }
         if (buttonElement.dataset.type === "NodeAttributeViewRowMenu" || buttonElement.dataset.type === "NodeAttributeViewRow") {
             const rowElement = Array.from(protyle.wysiwyg.element.querySelectorAll(`.av[data-node-id="${buttonElement.dataset.nodeId}"] .av__row[data-id="${buttonElement.dataset.rowId}"]`)).find((item: HTMLElement) => {
                 if (!isInEmbedBlock(item)) {
@@ -456,12 +484,130 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
         event.preventDefault();
         event.stopPropagation();
     });
-    gutterElement.addEventListener("mouseleave", (event: MouseEvent & { target: HTMLInputElement }) => {
+    // 延迟隐藏计时器，鼠标在块标/框线/+号之间移动时提供缓冲
+    let hidePlusTimeout: number;
+    // 当前悬浮的块标 button，供框线点击坐标判断
+    let activeBlockButton: Element | undefined;
+    const hideInsert = () => {
+        activeBlockButton = undefined;
+        gutterElement.querySelectorAll(".protyle-gutters__line, .protyle-gutters__plus").forEach(item => {
+            (item as HTMLElement).style.display = "none";
+        });
+    };
+    gutterElement.addEventListener("mouseleave", (event: MouseEvent) => {
+        const related = event.relatedTarget as HTMLElement;
+        if (related && (related.classList.contains("protyle-gutters__line") || related.classList.contains("protyle-gutters__plus"))) {
+            return;
+        }
         Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--hl, .av__row--hl")).forEach(item => {
             item.classList.remove("protyle-wysiwyg--hl", "av__row--hl");
         });
+        window.clearTimeout(hidePlusTimeout);
+        hidePlusTimeout = window.setTimeout(hideInsert, 200);
         event.preventDefault();
         event.stopPropagation();
+    });
+    // 双元素交互：悬浮块标显示框线（贴边不动），悬浮框线显示+号（独立元素外偏定位）
+    gutterElement.addEventListener("mousemove", (event: MouseEvent) => {
+        const lineBefore = gutterElement.querySelector('.protyle-gutters__line[data-type="gutterLineBefore"]') as HTMLElement;
+        const lineAfter = gutterElement.querySelector('.protyle-gutters__line[data-type="gutterLineAfter"]') as HTMLElement;
+        const plusBefore = gutterElement.querySelector('.protyle-gutters__plus[data-type="gutterPlusBefore"]') as HTMLElement;
+        const plusAfter = gutterElement.querySelector('.protyle-gutters__plus[data-type="gutterPlusAfter"]') as HTMLElement;
+        if (protyle.disabled || !lineBefore || !lineAfter || !plusBefore || !plusAfter) {
+            return;
+        }
+        const lineEl = hasClosestByClassName(event.target as HTMLElement, "protyle-gutters__line");
+        const plusEl = hasClosestByClassName(event.target as HTMLElement, "protyle-gutters__plus");
+        const hoverEl = lineEl || plusEl;
+        if (hoverEl) {
+            window.clearTimeout(hidePlusTimeout);
+            if (activeBlockButton) {
+                const br = activeBlockButton.getBoundingClientRect();
+                if (event.clientX >= br.left && event.clientX <= br.right &&
+                    event.clientY >= br.top && event.clientY <= br.bottom) {
+                    return;
+                }
+            }
+            const isBefore = hoverEl.getAttribute("data-type")!.includes("Before");
+            plusBefore.style.display = isBefore ? "" : "none";
+            plusAfter.style.display = isBefore ? "none" : "";
+            lineBefore.style.opacity = "0";
+            lineAfter.style.opacity = "0";
+            return;
+        }
+        const buttonElement = hasClosestByTag(event.target as HTMLElement, "BUTTON");
+        if (!buttonElement || buttonElement.classList.contains("protyle-gutters__line") || buttonElement.classList.contains("protyle-gutters__plus")) {
+            return;
+        }
+        const type = buttonElement.getAttribute("data-type");
+        const id = buttonElement.getAttribute("data-node-id");
+        if (type === "fold" || type === "NodeAttributeViewRow" || type === "NodeAttributeViewRowMenu" || !id) {
+            hideInsert();
+            return;
+        }
+        plusBefore.dataset.nodeId = id;
+        plusAfter.dataset.nodeId = id;
+        activeBlockButton = buttonElement;
+        const rect = buttonElement.getBoundingClientRect();
+        const compressed = gutterElement.style.width === "24px";
+        plusBefore.setAttribute("aria-label", compressed ? "" : window.siyuan.languages.insertBefore);
+        plusAfter.setAttribute("aria-label", compressed ? "" : window.siyuan.languages.insertAfter);
+        plusBefore.style.display = "none";
+        plusAfter.style.display = "none";
+        if (compressed) {
+            const iconRect = buttonElement.querySelector("svg")!.getBoundingClientRect();
+            const centerY = iconRect.top + iconRect.height / 2;
+            const lineH = 12;
+            const top = centerY - lineH / 2;
+            const plusSize = 16;
+            lineBefore.style.display = "";
+            lineBefore.style.opacity = "1";
+            lineBefore.style.width = "2px";
+            lineBefore.style.height = `${lineH}px`;
+            lineBefore.style.left = `${rect.left - 4}px`;
+            lineBefore.style.top = `${top}px`;
+            lineAfter.style.display = "";
+            lineAfter.style.opacity = "1";
+            lineAfter.style.width = "2px";
+            lineAfter.style.height = `${lineH}px`;
+            lineAfter.style.left = `${rect.right + 2}px`;
+            lineAfter.style.top = `${top}px`;
+            plusBefore.style.width = `${plusSize}px`;
+            plusBefore.style.height = `${plusSize}px`;
+            plusBefore.style.left = `${rect.left - 6 - plusSize / 2}px`;
+            plusBefore.style.top = `${centerY - plusSize / 2}px`;
+            plusAfter.style.width = `${plusSize}px`;
+            plusAfter.style.height = `${plusSize}px`;
+            plusAfter.style.left = `${rect.right + 4 - plusSize / 2}px`;
+            plusAfter.style.top = `${centerY - plusSize / 2}px`;
+            hideTooltip();
+        } else {
+            const lineW = 10;
+            const left = rect.left + (rect.width - lineW) / 2;
+            const plusSize = 16;
+            const plusLeft = rect.left + (rect.width - plusSize) / 2;
+            lineBefore.style.display = "";
+            lineBefore.style.opacity = "1";
+            lineBefore.style.width = `${lineW}px`;
+            lineBefore.style.height = "2px";
+            lineBefore.style.left = `${left}px`;
+            lineBefore.style.top = `${rect.top - 4}px`;
+            lineAfter.style.display = "";
+            lineAfter.style.opacity = "1";
+            lineAfter.style.width = `${lineW}px`;
+            lineAfter.style.height = "2px";
+            lineAfter.style.left = `${left}px`;
+            lineAfter.style.top = `${rect.bottom + 2}px`;
+            plusBefore.style.width = `${plusSize}px`;
+            plusBefore.style.height = `${plusSize}px`;
+            plusBefore.style.left = `${plusLeft}px`;
+            plusBefore.style.top = `${rect.top - 5 - plusSize / 2 + 1}px`;
+            plusAfter.style.width = `${plusSize}px`;
+            plusAfter.style.height = `${plusSize}px`;
+            plusAfter.style.left = `${plusLeft}px`;
+            plusAfter.style.top = `${rect.bottom + 3 - plusSize / 2 + 1}px`;
+        }
+        window.clearTimeout(hidePlusTimeout);
     });
     // https://github.com/siyuan-note/siyuan/issues/12751
     gutterElement.addEventListener("mousewheel", (event) => {

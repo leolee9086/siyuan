@@ -1,7 +1,6 @@
+import {useShell} from "../../util/pathName";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
-import {isBrowser} from "../../util/functions";
-import {useShell} from "../../util/pathName";
 import {exportConfigApi} from "./exportRuntime";
 import {ipcInvoke} from "../../platform/electron/ipcRenderer";
 
@@ -73,9 +72,6 @@ const registerExportFormatGroup = (tab: SettingTabBuilder) => {
 };
 
 const registerExportPdfGroup = (tab: SettingTabBuilder) => {
-    if (isBrowser()) {
-        return;
-    }
     const group = tab.group("pdf", window.siyuan.languages.configGroupPDF);
 
     group.select("export.fileAnnotationRefMode", {
@@ -134,10 +130,8 @@ const registerExportImagesGroup = (tab: SettingTabBuilder) => {
     });
 };
 
+/// #if !BROWSER
 const registerExportPandocGroup = (tab: SettingTabBuilder) => {
-    if (isBrowser()) {
-        return;
-    }
     const group = tab.group("pandoc", window.siyuan.languages.configGroupPandoc);
 
     group.stack({
@@ -191,11 +185,14 @@ const mountExportPandocStack = (root: HTMLElement) => {
         exportConfigApi.patch("export.pandocBin", localPath.filePaths[0]);
     });
 };
+/// #endif
 
 export const registerExportTab = (tab: SettingTabBuilder) => {
     registerExportReferencesGroup(tab);
     registerExportFormatGroup(tab);
     registerExportPdfGroup(tab);
     registerExportImagesGroup(tab);
+    /// #if !BROWSER
     registerExportPandocGroup(tab);
+    /// #endif
 };

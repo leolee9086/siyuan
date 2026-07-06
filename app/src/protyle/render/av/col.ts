@@ -466,6 +466,11 @@ export const bindEditEvent = (options: {
                     blockID: options.blockID
                 });
                 (options.menuElement.querySelector('[data-type="addOption"]') as HTMLInputElement).focus();
+                // 添加选项后面板增高，需按首次锚点重新定位（sticky 锁底部，顶部上移避免溢出视口）
+                const prevTop = parseFloat(options.menuElement.dataset.positionTop);
+                if (!isNaN(prevTop)) {
+                    setPosition(options.menuElement, parseFloat(options.menuElement.dataset.positionX), prevTop, 0, 0, true);
+                }
             }
         });
     }
@@ -627,6 +632,11 @@ const addAttrViewColAnimation = (options: {
             } else {
                 previousElement = item.querySelector(".av__cell").previousElementSibling;
             }
+            // 分组视图下空分组或被虚拟滚动裁剪的行内可能找不到锚点单元格，此时跳过该行，
+            // 避免在 null 上调用 insertAdjacentHTML 抛出异常而中断整轮遍历 https://github.com/siyuan-note/siyuan/issues/18014
+            if (!previousElement) {
+                return;
+            }
             let html = "";
             if (item.classList.contains("av__row--header")) {
                 html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${options.icon || ""}" data-col-id="${options.id}" data-dtype="${options.type}" data-wrap="false" style="width: 200px;">
@@ -668,7 +678,7 @@ const addAttrViewColAnimation = (options: {
         });
         const tabRect = options.blockElement.querySelector(".av__views").getBoundingClientRect();
         if (tabRect) {
-            setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
+            setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height, 0, true);
         }
         return;
     }
@@ -1257,7 +1267,7 @@ export const removeCol = (options: {
         options.menuElement.innerHTML = getPropertiesHTML(options.fields);
         setPosition(options.menuElement,
             options.tabRect.right - options.menuElement.clientWidth, options.tabRect.bottom,
-            options.tabRect.height);
+            options.tabRect.height, 0, true);
     }
 };
 

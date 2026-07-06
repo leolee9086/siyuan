@@ -6,7 +6,7 @@ import * as path from "path";
 import { Constants } from "../../../../constants";
 import { isIPad, isNotCtrl } from "../../../../protyle/util/compatibility";
 import { useShell } from "../../../../util/file/pathName";
-import { newFileByName } from "../../../../util/file/newFile";
+import { newFile } from "../../../../util/file/newFile";
 import { renderPreview, renderNextAssetMark } from "../../../assets";
 import { getArticle, openSearchEditor, renderNextSearchMark } from "../../../util";
 import { isHTMLInputElement } from "../search.guard";
@@ -30,7 +30,7 @@ export function handleListItemClick(
     // 新建文件
     if (type === "search-new") {
         if (ctx.config.method === 0) {
-            newFileByName(ctx.app, ctx.searchInputElement.value);
+            newFile(ctx.app, ctx.searchInputElement.value);
         }
         return { clickTimeout, lastClickTime };
     }

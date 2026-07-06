@@ -58,13 +58,15 @@ const handleFoundElementArrow = (
     getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void
 ): void => {
     const hiddenElement = liElement.querySelector(".fn__hidden");
-    // 箭头被隐藏时，显示它
+    // 原先无子文档：显示展开箭头
     if (hiddenElement) {
         hiddenElement.classList.remove("fn__hidden");
         return;
     }
-    // 箭头已显示时，刷新子文档列表
-    getLeaf(liElement, notebookId, true);
+    // 父文档已展开：刷新子列表（避免对未展开的目录进行不必要的刷新）
+    if (liElement.querySelector(".b3-list-item__arrow--open")) {
+        getLeaf(liElement, notebookId, true);
+    }
 };
 
 // ============================================================================

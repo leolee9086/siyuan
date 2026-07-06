@@ -27,110 +27,11 @@ import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKe
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
-import { processSiYuanUri } from "../editor/openLink";
+import { processSiYuanUri } from "../util/uri";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
 import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuanEnvironments/windowTimer.environment";
-
-/**
- * 初始化 IPC 通信（仅桌面端）
- */
-const 初始化IPC = () => {
-    // 仅桌面端：初始化 IPC 通信、缩放和交通灯位置
-    if (isElectron) {
-        ipcInvoke(Constants.SIYUAN_INIT, {
-            // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
-            // 使用 getSiyuanLanguages() 获取原始对象
-            languages: getSiyuanLanguages()["_trayMenu"],
-            workspaceDir: getSiyuanConfig().system.workspaceDir,
-            port: location.port
-        });
-        setZoomFactor(getSiyuanStorage()[Constants.LOCAL_ZOOM]);
-        const position = { ...Constants.SIZE_ZOOM.find((item) => item.zoom === getSiyuanStorage()[Constants.LOCAL_ZOOM])?.position ?? { x: 8, y: 12 } };
-        if (getSiyuanConfig().appearance.hideToolbar) {
-            position.y += 5;
-        }
-        ipcSend(Constants.SIYUAN_CMD, {
-            cmd: "setTrafficLightPosition",
-            zoom: getSiyuanStorage()[Constants.LOCAL_ZOOM],
-            position
-        });
-    }
-};
-
-/**
- * 更新编辑器工具栏（用于 resize 后重新渲染选区）
- */
-const 更新编辑器工具栏 = () => {
-    const selection = getSelection();
-    if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        for (const item of getAllEditor()) {
-            if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
-                item.protyle.toolbar?.render(item.protyle, range);
-            }
-        }
-    }
-};
-
-/**
- * 延迟执行布局调整（防抖后的回调）
- */
-const 延迟执行布局调整 = (状态: { resizeTimeout: number; firstResize: boolean }) => {
-    adjustLayout();
-    resizeTabs();
-    resizeTopBar();
-    setTabPosition(true);
-    // S-forge: 上游改进 - 防止菜单超出窗口边界 (#15400)
-    window.siyuan.menus.menu.resetPosition();
-    window.siyuan.dialogs.forEach(item => {
-        item.resize();
-    });
-    状态.firstResize = true;
-    更新编辑器工具栏();
-};
-
-/**
- * 处理窗口 resize 事件
- */
-const 处理窗口Resize = (状态: { resizeTimeout: number; firstResize: boolean }) => {
-    if (状态.firstResize) {
-        recordBeforeResizeTop();
-        状态.firstResize = false;
-    }
-    clearTimeout(状态.resizeTimeout);
-    状态.resizeTimeout = setTimeout(() => 延迟执行布局调整(状态), Constants.TIMEOUT_RESIZE);
-};
-
-/**
- * 初始化窗口 resize 事件处理器
- */
-const 初始化ResizeHandler = () => {
-    const 状态 = { resizeTimeout: 0, firstResize: true };
-    windowAddEventListener("resize", () => 处理窗口Resize(状态));
-};
-
-/**
- * 处理 Emoji 配置响应（从 API 获取后初始化布局）
- */
-const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData) => {
-    window.siyuan.emojis = response.data as IEmoji[];
-    try {
-        JSONToLayout(app, isStart);
-        setTimeout(() => {
-            adjustLayout();
-        }); // 等待 dock 中 !this.pin 的 setTimeout
-        // 桌面端：注册全局快捷键
-        if (isElectron) {
-            sendGlobalShortcut(app);
-        }
-        openChangelog();
-    } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e));
-        resetLayout(error);
-    }
-};
 
 export const onGetConfig = (isStart: boolean, app: App) => {
     correctHotkey(app);
@@ -152,6 +53,10 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     initAssets();
     setInlineStyle();
     renderSnippet();
+// S-forge: 上游改进 - 安全模式下禁用代码片段、插件、自定义主题和图标
+    if (getSiyuanConfig().system.safeMode) {
+        showMessage(siyuanI18n.safeModeTip);
+    }
     // S-forge: 本地重构 - 使用独立函数初始化 resize 处理器
     // S-forge: 上游改进 - 已应用菜单位置重置到重构后的函数中
     初始化ResizeHandler();

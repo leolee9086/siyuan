@@ -1,35 +1,33 @@
-/** 用途：导出图片上下文创建器；使用范围：导出流程初始化阶段；解耦评估：上下文构建逻辑独立后，主流程仅编排调用。 */
-import {createExportImageContext} from "./exportImage.context";
 /** 用途：导出预览请求函数；使用范围：初始化预览与 keepFold 切换；解耦评估：请求与渲染链路独立后更易测试。 */
-import {requestExportImagePreview} from "./exportImage.preview";
+import { requestExportImagePreview } from "./exportImage.preview";
 /** 用途：导出确认处理函数；使用范围：点击确认按钮后执行截图与上传；解耦评估：重流程独立模块，便于后续性能优化。 */
-import {handleConfirmExport} from "./confirm";
+import { handleConfirmExport } from "./confirm";
 /** 用途：水印刷新函数；使用范围：水印开关变更与预览刷新后；解耦评估：水印逻辑独立后可单独替换策略。 */
-import {updateExportImageWatermark} from "./exportImage.watermark";
+import { updateExportImageWatermark } from "./exportImage.watermark";
 /** 用途：导出比例预览函数；使用范围：比例切换后更新导出画布最小高度；解耦评估：比例逻辑独立后可单独扩展分页策略。 */
-import {applyExportImageRatioPreview} from "./exportImage.ratio";
+import { applyExportImageRatioPreview } from "./exportImage.ratio";
 /** 用途：导出流程常量；使用范围：背景上传地址与本地配置持久化。 */
-import {Constants} from "./imports";
+import { Constants } from "./imports";
 /** 用途：对话框组件；使用范围：背景来源、内置背景和外链背景选择。 */
-import {Dialog} from "./imports";
+import { Dialog } from "./imports";
 /** 用途：属性值转义工具；使用范围：外链背景输入框安全回填。 */
-import {escapeAttr} from "./imports";
+import { escapeAttr } from "./imports";
 /** 用途：Promise 风格 POST 请求；使用范围：上传背景图片并等待返回路径。 */
-import {fetchSyncPost} from "./imports";
+import { fetchSyncPost } from "./imports";
 /** 用途：移动端判断；使用范围：背景相关对话框宽高自适配。 */
-import {isMobile} from "./imports";
+import { isMobile } from "./imports";
 /** 用途：全局资源选择对话框；使用范围：选择已有资源作为导出背景。 */
-import {openAssetDialog} from "./imports";
+import { openAssetDialog } from "./imports";
 /** 用途：展示错误消息；使用范围：背景上传失败时反馈给用户。 */
-import {showMessage} from "./imports";
+import { showMessage } from "./imports";
 /** 用途：国际化文案；使用范围：背景来源和弹窗按钮文案。 */
-import {siyuanI18n} from "./imports";
+import { siyuanI18n } from "./imports";
 /** 用途：题头图内置背景列表；使用范围：导出图片复用同一份背景顺序。 */
-import {bgs} from "./imports";
+import { bgs } from "./imports";
 /** 用途：导出图片上下文类型；使用范围：事件处理回调参数；解耦评估：类型依赖不引入运行时耦合。 */
-import type {IExportImageContext} from "./exportImage.types";
+import type { IExportImageContext } from "./exportImage.types";
 /** 用途：背景内联样式清理工具；使用范围：每次背景应用前清除旧背景属性；解耦评估：通过本目录 imports 转发降低跨目录路径耦合，后续替换实现仅改 imports。 */
-import {clearElementBackgroundStyle} from "./imports";
+import { clearElementBackgroundStyle } from "./imports";
 
 /** 用途：导出图片背景按钮文案；使用范围：在导出图片界面明确表达为“背景图”。 */
 const EXPORT_IMAGE_BACKGROUND_LABEL = "添加背景图";
@@ -39,7 +37,7 @@ const EXPORT_IMAGE_BACKGROUND_LABEL = "添加背景图";
  * 调用时机：keepFold 复选框 change 事件。
  * 问题/改进：后续可增加并发请求取消，避免快速切换时旧结果覆盖新结果。
  */
-const handleKeepFoldChange = async (ctx: IExportImageContext): Promise<void> => {
+const handleKeepFoldChange = async (ctx: IExportImageContext) => {
     ctx.storage.keepFold = ctx.keepFoldElement.checked;
     await requestExportImagePreview(ctx);
 };
@@ -50,7 +48,7 @@ const handleKeepFoldChange = async (ctx: IExportImageContext): Promise<void> => 
  * 调用时机：watermark 复选框 change 事件。
  * 问题/改进：后续可增加失败提示以改善异常可观测性。
  */
-const handleWatermarkChange = async (ctx: IExportImageContext): Promise<void> => {
+const handleWatermarkChange = async (ctx: IExportImageContext) => {
     ctx.storage.watermark = ctx.watermarkElement.checked;
     await updateExportImageWatermark(ctx);
 };
@@ -61,7 +59,7 @@ const handleWatermarkChange = async (ctx: IExportImageContext): Promise<void> =>
  * 调用时机：ratio 下拉框 change 事件。
  * 问题/改进：当前仅更新最小高度预览，后续可扩展为更完整的分页预估信息。
  */
-const handleRatioChange = async (ctx: IExportImageContext): Promise<void> => {
+const handleRatioChange = async (ctx: IExportImageContext) => {
     ctx.storage.ratio = ctx.ratioElement.value;
     await applyExportImageRatioPreview(ctx);
     await updateExportImageWatermark(ctx);
@@ -72,7 +70,7 @@ const handleRatioChange = async (ctx: IExportImageContext): Promise<void> => {
  * 意图：与题头图 `title-img` 的存储格式保持一致，方便复用同一套背景来源。
  * 调用时机：选择资源、上传图片或填写外链后。
  */
-const buildImageBackgroundStyle = (url: string): string => `background-image:url("${url}")`;
+const buildImageBackgroundStyle = (url: string) => `background-image:url("${url}")`;
 
 /**
  * @AIDONE 背景样式清理逻辑与属性清单已迁移到公共 DOM 工具 `clearElementBackgroundStyle`。
@@ -83,7 +81,7 @@ const buildImageBackgroundStyle = (url: string): string => `background-image:url
  * 意图：借助浏览器原生 CSS 解析能力处理题头图样式串，避免手写拆分逻辑。
  * 调用时机：应用导出背景、提取背景 URL 时。
  */
-const createBackgroundStyleParser = (backgroundStyle: string): HTMLDivElement => {
+const createBackgroundStyleParser = (backgroundStyle: string) => {
     const parserElement = document.createElement("div");
     parserElement.setAttribute("style", Lute.UnEscapeHTMLStr(backgroundStyle));
     return parserElement;
@@ -94,7 +92,7 @@ const createBackgroundStyleParser = (backgroundStyle: string): HTMLDivElement =>
  * 意图：在编辑外链背景时把当前值安全回填到输入框里。
  * 调用时机：打开外链背景输入对话框时。
  */
-const extractBackgroundUrl = (backgroundStyle: string): string => {
+const extractBackgroundUrl = (backgroundStyle: string) => {
     if (!backgroundStyle || backgroundStyle.indexOf("url(") === -1) {
         return "";
     }
@@ -107,7 +105,7 @@ const extractBackgroundUrl = (backgroundStyle: string): string => {
  * 意图：保证导出图片使用与题头图同源的背景表达，但渲染层级始终落在正文后方。
  * 调用时机：背景初始化、切换背景、清除背景时。
  */
-const applyBackgroundStyleToElement = (element: HTMLElement, backgroundStyle: string): void => {
+const applyBackgroundStyleToElement = (element: HTMLElement, backgroundStyle: string) => {
     clearElementBackgroundStyle(element);
     if (!backgroundStyle) {
         return;
@@ -168,7 +166,7 @@ const handleBuiltInBackgroundDialogClick = (
     ctx: Pick<IExportImageContext, "storage" | "exportImageElement" | "backgroundPreviewElement" | "clearBackgroundButton">,
     dialog: Dialog,
     event: Event,
-): void => {
+) => {
     const clickTarget = event.target;
     if (!(clickTarget instanceof HTMLElement)) {
         return;
@@ -211,7 +209,7 @@ const openBuiltInBackgroundDialog = (ctx: Pick<IExportImageContext, "storage" | 
  * 意图：让导出图片支持与题头图一致的上传图片背景来源。
  * 调用时机：用户从背景来源对话框选择上传并选中文件后。
  */
-const uploadBackgroundFile = async (file: File): Promise<string | undefined> => {
+const uploadBackgroundFile = async (file: File)=> {
     const formData = new FormData();
     formData.append("file[]", file);
     const response = await fetchSyncPost(Constants.UPLOAD_ADDRESS, formData);
@@ -273,7 +271,7 @@ const openLinkBackgroundDialog = (ctx: Pick<IExportImageContext, "storage" | "ex
  * 意图：把背景来源分发逻辑收敛到单点，避免来源对话框点击处理函数过长。
  * 调用时机：背景来源对话框中点击某个来源按钮后。
  */
-const handleBackgroundSourceSelect = (ctx: IExportImageContext, type: string): void => {
+const handleBackgroundSourceSelect = (ctx: IExportImageContext, type: string) => {
     if (type === "builtIn") {
         openBuiltInBackgroundDialog(ctx);
         return;
@@ -302,7 +300,7 @@ const handleBackgroundSourceSelect = (ctx: IExportImageContext, type: string): v
  * 意图：把 data-type 解析和来源动作调用独立出来，降低对话框创建函数复杂度。
  * 调用时机：背景来源对话框点击事件触发时。
  */
-const handleBackgroundSourceDialogClick = (ctx: IExportImageContext, dialog: Dialog, event: Event): void => {
+const handleBackgroundSourceDialogClick = (ctx: IExportImageContext, dialog: Dialog, event: Event) => {
     const clickTarget = event.target;
     if (!(clickTarget instanceof HTMLElement)) {
         return;
@@ -321,7 +319,7 @@ const handleBackgroundSourceDialogClick = (ctx: IExportImageContext, dialog: Dia
  * 意图：让“添加背景图”按钮稳定弹出来源入口，避免全局菜单状态影响点击表现。
  * 调用时机：点击导出图片面板中的背景按钮时。
  */
-const openBackgroundSourceDialog = (ctx: IExportImageContext): void => {
+const openBackgroundSourceDialog = (ctx: IExportImageContext) => {
     const dialog = new Dialog({
         title: EXPORT_IMAGE_BACKGROUND_LABEL,
         width: isMobile() ? "92vw" : "520px",
@@ -349,7 +347,7 @@ const openBackgroundSourceDialog = (ctx: IExportImageContext): void => {
  * 意图：用户选中本地图片后，上传并立即刷新导出背景。
  * 调用时机：背景上传 input 的 change 事件。
  */
-const handleBackgroundUploadChange = async (ctx: IExportImageContext): Promise<void> => {
+const handleBackgroundUploadChange = async (ctx: IExportImageContext)=> {
     const file = ctx.backgroundUploadInputElement.files?.[0];
     if (!file) {
         return;
@@ -371,7 +369,7 @@ const handleBackgroundUploadChange = async (ctx: IExportImageContext): Promise<v
  * 意图：把背景选择、清除、上传和当前背景渲染统一收口，避免散落在入口函数中。
  * 调用时机：导出图片 panel 初始化时。
  */
-const initializeExportImageBackground = (ctx: IExportImageContext): void => {
+const initializeExportImageBackground = (ctx: IExportImageContext) => {
     syncExportImageBackground(ctx);
     ctx.backgroundButton.addEventListener("click", () => {
         openBackgroundSourceDialog(ctx);
@@ -391,7 +389,7 @@ const initializeExportImageBackground = (ctx: IExportImageContext): void => {
  * 问题/改进：目前背景来源采用对话框二次选择，后续可按实际使用频率再优化为更紧凑的内联 UI。
  */
 // 导出语句注释：导出图片共享 panel 初始化入口。
-export const initializeExportImagePanel = async (ctx: IExportImageContext): Promise<void> => {
+export const initializeExportImagePanel = async (ctx: IExportImageContext)=> {
     initializeExportImageBackground(ctx);
     ctx.cancelButton.addEventListener("click", () => {
         ctx.cancel();
@@ -412,19 +410,4 @@ export const initializeExportImagePanel = async (ctx: IExportImageContext): Prom
     await requestExportImagePreview(ctx, (response) => {
         ctx.confirmButton.setAttribute("data-title", `${response.data.name}.png`);
     });
-};
-
-/**
- * 作用：执行“导出为图片”完整流程。
- * 意图：保持现有 dialog 入口兼容，同时把真正的 panel 初始化逻辑复用给 tab 宿主。
- * 调用时机：`exportImage` 入口函数调用时。
- * 问题/改进：后续如果还有更多宿主，可继续直接复用 `initializeExportImagePanel`。
- */
-// 导出语句注释：导出图片主流程编排入口。
-export const runExportImageFlow = async (id: string, dialogKey: string): Promise<void> => {
-    const ctx = await createExportImageContext(id, dialogKey);
-    if (!ctx) {
-        return;
-    }
-    await initializeExportImagePanel(ctx);
 };

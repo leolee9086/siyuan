@@ -1,9 +1,7 @@
 import {Constants} from "../../constants";
 import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
-import {getSavePath} from "../../util/file/getSavePath";
+import {newFileByRefHint} from "../../util/file/newFile";
 import {transaction} from "../wysiwyg/transaction";
-import {fetchPost} from "../../util/network/fetch";
-import {pathPosix} from "../../util/file/pathName";
 import {updateAttrViewCellAnimation} from "../render/av/action";
 import {isHTMLElement} from "../../util/DOM/element.guard";
 import type {Hint} from "./index";
@@ -14,7 +12,7 @@ import type {Hint} from "./index";
  * @returns true 表示已处理（调用方应 return），false 表示未命中 av 源
  * @同步豁免: 遗留代码 — 需要同步操作 DOM 和事务
  */
-export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, source: string): boolean {
+export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, source: string) {
     if (source !== "av") {
         return false;
     }
@@ -52,7 +50,7 @@ export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, sourc
 }
 
 /** 查找当前 range 所在的 av 单元格，优先直接命中，回退到选中态单元格 */
-function findAvCell(range: Range, nodeElement: HTMLElement): HTMLElement | false {
+function findAvCell(range: Range, nodeElement: HTMLElement) {
     const cellElement = hasClosestByClassName(range.startContainer, "av__cell");
     if (cellElement) {
         return cellElement;
@@ -73,31 +71,22 @@ function handleFillAvNewFile(
     const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
     const newID = Lute.NewNodeID();
     rowElement.dataset.id = newID;
-    // @内联回调 — getSavePath/fetchPost 回调需要闭包访问 protyle、avID、previousID、newID 等多个局部变量
-    getSavePath(protyle.path ?? "", protyle.notebookId ?? "", (pathString, targetNotebookId) => {
-        // @内联回调 — fetchPost 回调需要闭包访问 transaction 参数
-        fetchPost("/api/filetree/createDocWithMd", {
-            notebook: targetNotebookId,
-            path: pathPosix().join(pathString, realFileName ?? ""),
-            parentID: protyle.notebookId === targetNotebookId ? protyle.block.rootID : "",
-            markdown: "",
-            id: newID,
-        }, () => {
-            transaction(protyle, [{
-                action: "replaceAttrViewBlock",
-                avID,
-                previousID,
-                nextID: newID,
-                isDetached: false,
-            }], [{
-                action: "replaceAttrViewBlock",
-                avID,
-                previousID: newID,
-                nextID: previousID,
-                isDetached: true,
-            }]);
-        });
-    });
+    // @内联回调 — newFileByRefHint 回调需要闭包访问 protyle、avID、previousID、newID 等多个局部变量
+    newFileByRefHint(protyle, realFileName ?? "", () => {
+        transaction(protyle, [{
+            action: "replaceAttrViewBlock",
+            avID,
+            previousID,
+            nextID: newID,
+            isDetached: false,
+        }], [{
+            action: "replaceAttrViewBlock",
+            avID,
+            previousID: newID,
+            nextID: previousID,
+            isDetached: true,
+        }]);
+    }, newID);
     updateAttrViewCellAnimation(cellElement, {
         type: "block",
         isDetached: false,

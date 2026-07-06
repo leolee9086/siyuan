@@ -30,6 +30,7 @@ const genNotebookSavePathHtml = (
     </div>
 </div>`;
 
+/// #if !MOBILE
 const registerFileTabsGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("tabs", window.siyuan.languages.configGroupTabs);
 
@@ -75,6 +76,7 @@ const registerFileTabsGroup = (tab: SettingTabBuilder) => {
         desc: window.siyuan.languages.fileTree10,
     });
 };
+/// #endif
 
 const registerFileNewDocumentGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("newDocument", window.siyuan.languages.configGroupNewDocument);
@@ -277,7 +279,9 @@ const registerFileOthersGroup = (tab: SettingTabBuilder) => {
 };
 
 export const registerFileTab = (tab: SettingTabBuilder) => {
+    /// #if !MOBILE
     registerFileTabsGroup(tab);
+    /// #endif
     registerFileNewDocumentGroup(tab);
     registerFileManagementGroup(tab);
     registerFileOthersGroup(tab);

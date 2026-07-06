@@ -48,7 +48,7 @@ function createSuperBlockResizeTips(sbChildren: HTMLElement[]) {
     const tips: ISuperBlockResizeTip[] = [];
     for (const child of sbChildren) {
         const tip = document.createElement("span");
-        tip.className = "sb__resize-tip protyle-icon";
+        tip.className = "sb__resize-tip protyle-icon protyle-icon--first protyle-icon--last";
         tips.push({child, el: tip, position: child.style.position});
         child.style.position = "relative";
         child.appendChild(tip);

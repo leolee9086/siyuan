@@ -121,7 +121,9 @@ export const lockScreen = async (app: App) => {
 
 };
 
-const exitFrontend = () => {
+// forceQuit 用于内核已断连、无法走 /api/system/exit 的场景：绕过内核 HTTP，直接通知宿主退出
+// S-forge: 本地以运行时 isElectron 与平台封装替代上游 /// #if !BROWSER 条件编译
+export const forceQuit = () => {
     if (isElectron) {
         ipcSend(Constants.SIYUAN_QUIT, location.port);
         return;
@@ -136,7 +138,10 @@ const exitFrontend = () => {
     }
     if (isInHarmony()) {
         window.JSHarmony.exit();
+        return;
     }
+    // 浏览器/Docker 等纯 Web 环境无宿主可调，只能关闭当前页
+    window.close();
 };
 
 export const exitSiYuan = async (setCurrentWorkspace = true) => {
@@ -151,7 +156,7 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
             if (buttonElement) {
                 buttonElement.addEventListener("click", () => {
                     fetchPost("/api/system/exit", {force: true, setCurrentWorkspace}, () => {
-                        exitFrontend();
+                        forceQuit();
                     });
                 });
             }
@@ -192,7 +197,7 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                 });
             });
         } else { // 正常退出
-            exitFrontend();
+            forceQuit();
         }
     });
 };
@@ -345,16 +350,23 @@ export const downloadProgress = (data: { id: string, percent: number }) => {
     if (data.id !== bazaarSideElement.getAttribute("data-repourl")) {
         return;
     }
-    const btnElement = bazaarSideElement.querySelector('[data-type="install"]') as HTMLElement;
-    if (btnElement) {
-        if (data.percent >= 1) {
-            btnElement.parentElement.classList.add("fn__none");
-            btnElement.parentElement.nextElementSibling.classList.add("fn__none");
-        } else {
-            btnElement.classList.add("b3-button--progress");
-            btnElement.parentElement.nextElementSibling.firstElementChild.classList.add("b3-button--progress");
-            btnElement.innerHTML = `<span style="width: ${data.percent * 100}%"></span>`;
-            btnElement.parentElement.nextElementSibling.firstElementChild.innerHTML = `<span style="width: ${data.percent * 100}%"></span>`;
+    const installBtnElement = bazaarSideElement.querySelector('[data-type="install"]') as HTMLElement;
+    const updateBtnElement = bazaarSideElement.querySelector('[data-type="install-t"]') as HTMLElement;
+    if (!installBtnElement && !updateBtnElement) {
+        return;
+    }
+    const progressHTML = `<span style="width: ${data.percent * 100}%"></span>`;
+    if (data.percent >= 1) {
+        installBtnElement?.parentElement.classList.add("fn__none");
+        updateBtnElement?.parentElement.classList.add("fn__none");
+    } else {
+        if (installBtnElement) {
+            installBtnElement.classList.add("b3-button--progress");
+            installBtnElement.innerHTML = progressHTML;
+        }
+        if (updateBtnElement) {
+            updateBtnElement.classList.add("b3-button--progress");
+            updateBtnElement.innerHTML = progressHTML;
         }
     }
 };

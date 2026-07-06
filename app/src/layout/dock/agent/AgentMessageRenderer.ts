@@ -1,11 +1,18 @@
-import {escapeHtml} from "../../util/DOM/escape";
-import {setCodeTheme} from "../../protyle/render/util";
-import {addScript} from "../../protyle/util/addScript";
-import {Constants} from "../../constants";
-import {mathRender} from "../../protyle/render/mathRender";
-import {showMessage} from "../../dialog/message";
-import type {App} from "../../index";
-import {processSiYuanUri} from "../../editor/openLink";
+import {escapeHtml} from "../../../util/DOM/escape";
+import {processSiYuanUri} from "../../editor/processSiYuanUri";
+import {highlightRender} from "../../../protyle/render/highlightRender";
+import {mathRender} from "../../../protyle/render/mathRender";
+import {mermaidRender} from "../../../protyle/render/mermaidRender";
+import {flowchartRender} from "../../../protyle/render/flowchartRender";
+import {graphvizRender} from "../../../protyle/render/graphvizRender";
+import {chartRender} from "../../../protyle/render/chartRender";
+import {mindmapRender} from "../../../protyle/render/mindmapRender";
+import {abcRender} from "../../../protyle/render/abcRender";
+import {plantumlRender} from "../../../protyle/render/plantumlRender";
+import {htmlRender} from "../../../protyle/render/htmlRender";
+import {showMessage} from "../../../dialog/message";
+
+import type {App} from "../../../index";
 
 export const renderTodoList = (result: string): string => {
     const L = window.siyuan.languages;
@@ -41,6 +48,7 @@ export const renderWelcomeHTML = (hasModel = true): string => {
             '<div class="agent-welcome__no-model">' +
                 '<div class="agent-welcome__no-model-title">' + (L.agentNoModel || "No model configured") + "</div>" +
                 '<div class="agent-welcome__no-model-tip">' + (L.agentNoModelTip || "Please configure a provider and model in Settings - AI first.") + "</div>" +
+                '<button class="b3-button agent-welcome__go-setting" data-type="go-ai-setting">' + (L.agentGoToSetting || "Go to Settings") + "</button>" +
             "</div>" +
         "</div>";
     }
@@ -57,6 +65,9 @@ export const renderWelcomeHTML = (hasModel = true): string => {
 export const renderQuestionCardHTML = (rawQuestions: Array<Record<string, unknown>>, questionID: string): string => {
     const L = window.siyuan.languages;
     let html = '<div class="agent-chat__question-card">';
+    if (!rawQuestions || !rawQuestions.length) {
+        return html + "</div>";
+    }
     for (let qi = 0; qi < rawQuestions.length; qi++) {
         const q = rawQuestions[qi];
         const header = (q.header as string) || "";
@@ -154,89 +165,84 @@ export const bindThinkingCardToggle = (el: HTMLElement): void => {
     const body = el.querySelector(".agent-chat__thinking-body") as HTMLElement;
     const expandIcon = el.querySelector(".agent-chat__thinking-arrow--expand") as HTMLElement;
     const contractIcon = el.querySelector(".agent-chat__thinking-arrow--contract") as HTMLElement;
-    if (!header || !body || !expandIcon || !contractIcon) {
- return; 
-}
+    if (!header || !body || !expandIcon || !contractIcon) { return; }
     header.addEventListener("click", () => {
-        const isExpanded = body.classList.toggle("agent-chat__thinking-body--expanded");
-        expandIcon.classList.toggle("fn__none", isExpanded);
-        contractIcon.classList.toggle("fn__none", !isExpanded);
+        el.setAttribute("data-user-interacted", "true");
+        const isExpanded = body.classList.contains("agent-chat__thinking-body--expanded");
+        const isDone = el.classList.contains("agent-chat__msg--thinking-done");
+        if (isDone) {
+            // 思考完成后：两态 toggle（折叠↔完全展开），不经过预览中间态。
+            if (isExpanded) {
+                body.classList.remove("agent-chat__thinking-body--expanded");
+                expandIcon.classList.remove("fn__none");
+                contractIcon.classList.add("fn__none");
+            } else {
+                body.classList.remove("agent-chat__thinking-body--preview");
+                body.classList.add("agent-chat__thinking-body--expanded");
+                expandIcon.classList.add("fn__none");
+                contractIcon.classList.remove("fn__none");
+            }
+        } else {
+            // 流式中：三态循环（完全折叠 → 预览 → 完全展开 → 完全折叠）。
+            const isPreview = body.classList.contains("agent-chat__thinking-body--preview");
+            if (isExpanded) {
+                body.classList.remove("agent-chat__thinking-body--expanded");
+                expandIcon.classList.remove("fn__none");
+                contractIcon.classList.add("fn__none");
+            } else if (isPreview) {
+                body.classList.remove("agent-chat__thinking-body--preview");
+                body.classList.add("agent-chat__thinking-body--expanded");
+                expandIcon.classList.add("fn__none");
+                contractIcon.classList.remove("fn__none");
+            } else {
+                body.classList.add("agent-chat__thinking-body--preview");
+            }
+        }
     });
 };
 
-export const highlightCodeBlocks = (container: HTMLElement): void => {
-    const codeElements: Array<{el: HTMLElement; language: string}> = [];
-    container.querySelectorAll("pre code:not(.hljs)").forEach((codeEl) => {
-        const el = codeEl as HTMLElement;
-        let language = "";
-        for (const cls of el.className.split(" ")) {
-            if (cls.startsWith("language-")) {
-                language = cls.replace("language-", "");
-                break;
-            }
-        }
-        if (!language) {
-            language = el.parentElement?.getAttribute("data-language") || "";
-        }
-        if (language) {
-            codeElements.push({el, language});
-        }
-    });
-    if (codeElements.length === 0) {
- return; 
-}
-
-    const process = () => {
-        codeElements.forEach(({el, language}) => {
-            if (!window.hljs.getLanguage(language)) {
-                language = "plaintext";
-            }
-            el.classList.add("hljs");
-            el.innerHTML = window.hljs.highlight(el.textContent || "", {language, ignoreIllegals: true}).value;
-        });
-    };
-
-    if (window.hljs) {
-        process();
-    } else {
-        setCodeTheme(Constants.PROTYLE_CDN);
-        addScript(`${Constants.PROTYLE_CDN}/js/highlight.js/highlight.min.js?v=11.11.1`, "protyleHljsScript")
-            .then(() => addScript(`${Constants.PROTYLE_CDN}/js/highlight.js/third-languages.js?v=2.0.1`, "protyleHljsThirdScript"))
-            .then(process);
-    }
-};
-
+// 为容器内所有代码块（pre）和公式块（div[data-subtype=math]）注入复制按钮。
 export const addCopyButtons = (container: HTMLElement): void => {
-    container.querySelectorAll("pre").forEach((pre) => {
-        if (pre.querySelector(".agent-chat__copy-btn")) {
-            return;
-        }
-        const wrap = document.createElement("div");
-        wrap.className = "agent-chat__copy-wrap";
-        const btn = document.createElement("span");
-        btn.className = "agent-chat__copy-btn";
-        btn.innerHTML = '<svg><use xlink:href="#iconCopy"></use></svg>';
-        btn.setAttribute("aria-label", window.siyuan.languages.copy);
-        btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const code = pre.querySelector("code");
-            const text = (code?.textContent || "").trimEnd().replace(/\n$/, "");
-            navigator.clipboard.writeText(text).then(() => {
-                showMessage(window.siyuan.languages.copied, 2000);
-            }).catch(() => {
-                showMessage(window.siyuan.languages.copied, 2000);
-            });
+    // 代码块复制 code 文本；公式块复制 data-content（KaTeX 渲染前的原始 LaTeX）。
+    const targets: Array<{ selector: string; getText: (el: HTMLElement) => string }> = [
+        {selector: "pre", getText: (el) => (el.querySelector("code")?.textContent || "").trimEnd().replace(/\n$/, "")},
+        {selector: '[data-subtype="math"]', getText: (el) => el.getAttribute("data-content") || ""}
+    ];
+    targets.forEach(({selector, getText}) => {
+        container.querySelectorAll<HTMLElement>(selector).forEach((block) => {
+            if (block.querySelector(".protyle-icon")) {
+                return;
+            }
+            const wrap = document.createElement("div");
+            wrap.className = "protyle-icons";
+            wrap.appendChild(createCopyButton(() => getText(block)));
+            block.appendChild(wrap);
         });
-        wrap.appendChild(btn);
-        pre.appendChild(wrap);
     });
+};
+
+// 构建单个复制按钮，getText 返回要复制的文本。
+const createCopyButton = (getText: () => string): HTMLElement => {
+    const btn = document.createElement("span");
+    btn.className = "protyle-icon protyle-icon--only ariaLabel";
+    btn.innerHTML = '<svg><use xlink:href="#iconCopy"></use></svg>';
+    btn.setAttribute("aria-label", window.siyuan.languages.copy);
+    btn.setAttribute("data-position", "4north");
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const text = getText();
+        navigator.clipboard.writeText(text).then(() => {
+            showMessage(window.siyuan.languages.copied, 2000);
+        }).catch(() => {
+            showMessage(window.siyuan.languages.copied, 2000);
+        });
+    });
+    return btn;
 };
 
 export const postRender = (container: HTMLElement, app?: App): void => {
     container.querySelectorAll(".language-math").forEach((el) => {
-        if (el.hasAttribute("data-subtype")) {
- return; 
-}
+        if (el.hasAttribute("data-subtype")) { return; }
         const content = el.textContent || "";
         const preParent = el.closest("pre");
         if (preParent) {
@@ -260,8 +266,21 @@ export const postRender = (container: HTMLElement, app?: App): void => {
             code.parentElement?.setAttribute("data-language", match[1]);
         }
     });
-    highlightCodeBlocks(container);
+    // Agent 内容由 ProtylePreview 生成，结构与官方 preview 一致，复用 highlightRender 渲染高亮。
+    // 容器自身可能是 b3-typography（流式更新），也可能外层包裹含 b3-typography 的后代，两种情况都需覆盖。
+    const typographyElements = container.classList.contains("b3-typography")
+        ? [container as HTMLElement]
+        : Array.from(container.querySelectorAll<HTMLElement>(".b3-typography"));
+    typographyElements.forEach((item) => highlightRender(item));
     mathRender(container);
+    mermaidRender(container);
+    flowchartRender(container);
+    graphvizRender(container);
+    chartRender(container);
+    mindmapRender(container);
+    abcRender(container);
+    plantumlRender(container);
+    htmlRender(container);
     addCopyButtons(container);
     if (!app) {
         return;

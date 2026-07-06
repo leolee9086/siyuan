@@ -5,7 +5,7 @@ import {setNoteBook} from "../../util/file/pathName";
 import {openMobileFileById} from "../editor";
 import {Constants} from "../../constants";
 import {mountHelp, newNotebook} from "../../util/file/mount";
-import {newFile} from "../../util/file/newFile";
+import {newFileInTree} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {refreshFileTree} from "../../dialog/processSystem";
@@ -144,13 +144,7 @@ export function bindClickEvent(
                     const notebookId = ulElement.getAttribute("data-url");
                     if (!window.siyuan.config.readonly) {
                         if (type === "new") {
-                            newFile({
-                                app,
-                                notebookId,
-                                currentPath: pathString,
-                                useSavePath: false,
-                                listDocTree: true,
-                            });
+                            newFileInTree(app, notebookId, pathString ?? "");
                         } else if (type === "more-root") {
                             initNavigationMenu(app, target.parentElement);
                             window.siyuan.menus.menu.fullscreen("bottom");

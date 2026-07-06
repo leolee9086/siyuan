@@ -1,22 +1,38 @@
-import {fetchPost} from "../util/network/fetch";
-import {Dialog} from "../dialog";
-import {Constants} from "../constants";
-import {focusByRange} from "../protyle/util/selection";
-import {hideElements} from "../protyle/ui/hideElements";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {createVueComponentInDialog, VueComponentMountConfig} from "../util/vue/mount";
-import RecentDocs from "../components/recentDocsAndDocks.vue";
-import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import {getSiyuanDialogs} from "../util/siyuanEnvironments/getDialog.environment";
-import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：HTTP POST 请求工具。使用范围：调用后端 API 获取最近文档数据。解耦评估：通过 imports.ts 转发。 */
+import {fetchPost} from "./imports";
+/** 用途：Dialog 对话框组件。使用范围：创建最近文档对话框。解耦评估：通过 imports.ts 转发。 */
+import {Dialog} from "./imports";
+/** 用途：应用常量定义。使用范围：使用 DIALOG_RECENTDOCS、LOCAL_RECENT_DOCS 等常量。解耦评估：通过 imports.ts 转发。 */
+import {Constants} from "./imports";
+/** 用途：通过 Range 恢复编辑器焦点。使用范围：对话框关闭后恢复光标位置。解耦评估：通过 imports.ts 转发。 */
+import {focusByRange} from "./imports";
+/** 用途：隐藏指定类型的 UI 元素。使用范围：关闭已打开的对话框。解耦评估：通过 imports.ts 转发。 */
+import {hideElements} from "./imports";
+/** 用途：本地存储值写入工具。使用范围：保存排序方式配置。解耦评估：通过 imports.ts 转发。 */
+import {setStorageVal} from "./imports";
+/** 用途：Vue 组件在对话框中挂载的工具函数。使用范围：创建 Vue 驱动的对话框内容。解耦评估：通过 imports.ts 转发。 */
+import {createVueComponentInDialog} from "./imports";
+/** 用途：最近文档 Vue 组件。使用范围：渲染最近文档列表界面。解耦评估：通过 imports.ts 转发。 */
+import {RecentDocs} from "./imports";
+/** 用途：国际化文案。使用范围：获取对话框标题等文案。解耦评估：通过 imports.ts 转发。 */
+import {siyuanI18n} from "./imports";
+/** 用途：获取全局对话框集合。使用范围：查找和管理最近文档对话框实例。解耦评估：通过 imports.ts 转发。 */
+import {getSiyuanDialogs} from "./imports";
+/** 用途：获取 SiYuan 全局存储。使用范围：读取最近文档排序配置。解耦评估：通过 imports.ts 转发。 */
+import {getSiyuanStorage} from "./imports";
+/** 用途：最近文档数据类型定义。使用范围：openRecentDocs 模块处理最近文档数据。解耦评估：类型定义通过同目录文件导入，避免跨目录依赖。 */
 import {IRecentDoc} from "./openRecentDocs.types";
-import {isHTMLSelectElement, isTRecentDocsSort} from "./openRecentDocs.guard";
+/** 用途：HTMLSelectElement 类型守卫。使用范围：openRecentDocs 模块安全操作排序选择器。解耦评估：类型守卫通过同目录文件导入，避免跨目录依赖。 */
+import {isHTMLSelectElement} from "./openRecentDocs.guard";
+/** 用途：排序类型守卫。使用范围：openRecentDocs 模块校验排序方式有效性。解耦评估：类型守卫通过同目录文件导入，避免跨目录依赖。 */
+import {isTRecentDocsSort} from "./openRecentDocs.guard";
 
 /**
  * 处理文档选择事件
  * 作用: 打开选中的文档
  * 意图: 响应用户在最近文档对话框中选择文档的操作
  * 调用时机: 用户点击最近文档列表中的某个文档时
+ * @柯里化: 闭包捕获 doc 上下文，作为事件处理器传递给 Vue 组件
  */
 const handleDocSelected = (doc: IRecentDoc) => {
     fetchPost("/api/filetree/openDoc", {
@@ -33,12 +49,13 @@ const handleDocSelected = (doc: IRecentDoc) => {
  * @param recentDocs 最近文档数据
  * @param sortBy 排序方式
  * @param onSortChange 排序变更回调
+ * @显式返回类型原因: VueComponentMountConfig 类型需要明确约束返回对象结构，确保与 createVueComponentInDialog 的参数类型匹配
  */
 const createRecentDocsVueConfig = (
     recentDocs: IRecentDoc[],
     sortBy: string,
     onSortChange: (newSortBy: string) => void
-): VueComponentMountConfig => {
+) => {
     return {
         components: {
             RecentDocs
@@ -160,9 +177,9 @@ const createRecentDocsDialog = (
  * 作用: 显示最近访问的文档列表,支持搜索和排序
  * 意图: 提供快速访问最近文档的功能
  * 调用时机: 用户通过快捷键或菜单触发打开最近文档功能时
- * 
- * @同步豁免: 必须同步
- * 原因: 此函数需要立即检查对话框状态并决定是否显示,不能异步执行
+ *
+ * @同步豁免: 需要绝对同步的DOM访问
+ * 原因: 此函数需要立即检查对话框状态并决定是否显示,涉及DOM元素属性读取和UI状态切换,必须同步执行以避免竞态条件
  */
 export const openRecentDocs = () => {
     const dialogs = getSiyuanDialogs();

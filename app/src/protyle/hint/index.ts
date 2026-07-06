@@ -3,8 +3,6 @@ import {focusByRange, getEditorRange, getSelectionPosition} from "../util/select
 import {isAbnormalItem, upDownHint} from "../../util/DOM/upDownHint";
 import {setPosition} from "../../util/DOM/setPosition";
 import {insertHTML} from "../util/insertHTML";
-import {highlightRender} from "../render/highlightRender";
-import {assetMenu, imgMenu} from "../../menus/protyle";
 import {hideElements} from "../ui/hideElements";
 import {addEmoji, getEmojiDesc, unicode2Emoji} from "../../emoji";
 import {uploadFiles} from "../upload";
@@ -14,11 +12,6 @@ import {handleFillAv, handleFillContent} from "./index.fill";
 import {handleSelect} from "./index.select";
 import {handleRender, handleGenEmojiHTML, handleGenSearchHTML} from "./index.render";
 import {genBlockRefValueMulti} from "./extend.hintRef";
-
-import {avRender} from "../render/av/render";
-import {genIconHTML} from "../render/util";
-import {updateAttrViewCellAnimation} from "../render/av/action";
-import {setFold} from "../util/blockFold";
 
 export class Hint {
     public timeId: number;

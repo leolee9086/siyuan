@@ -3,7 +3,7 @@ import {getColIconByType} from "./col/col.typeUtils";
 import {addDragFill, cellScrollIntoView, renderCell} from "./cell";
 import {unicode2Emoji} from "../../../emoji";
 import {focusBlock} from "../../util/selection";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
+import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {stickyRow, updateHeader} from "./row";
 import {getCalcValue} from "./calc";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
@@ -208,7 +208,7 @@ export const renderGroupTable = async (options: ITableOptions) => {
     }
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container">
-    ${genTabHeaderHTML(options.data, isSearching || !!query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}
+    ${genTabHeaderHTML(options.data, isSearching || !!query, !options.protyle.disabled)}
     <div class="av__scroll">
         ${avBodyHTML}
     </div>

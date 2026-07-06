@@ -1,7 +1,7 @@
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {Constants} from "../../../constants";
 import {unicode2Emoji} from "../../../emoji";
-import {hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
+import {hasClosestByClassName} from "../../util/hasClosest";
 import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
 import {isMobile} from "../../../platform";
 import {isInMobileApp} from "../../util/compatibility";
@@ -254,7 +254,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
 </div>`;
         if (renderAll) {
             e.firstElementChild.outerHTML = `<div class="av__container">
-    ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !protyle.disabled && !hasClosestByAttribute(e, "data-type", "NodeBlockQueryEmbed"))}
+    ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !protyle.disabled)}
     <div class="av__scroll">
         ${avBodyHTML}
     </div>

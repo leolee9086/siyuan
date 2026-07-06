@@ -42,3 +42,10 @@
     background-image: linear-gradient(135deg, transparent 42%, var(--b3-border-color) 42%, var(--b3-border-color) 58%, transparent 58%);
   }
 }
+
+// 导出 Markdown 参数对话框 https://github.com/siyuan-note/siyuan/issues/17031
+.export-md__content {
+  .b3-label__text {
+    font-size: 13px !important;
+  }
+}

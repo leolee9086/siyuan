@@ -8,7 +8,7 @@ require (
 	github.com/88250/epub v0.0.0-20230830085737-c19055cd1f48
 	github.com/88250/go-humanize v0.0.0-20240424102817-4f78fac47ea7
 	github.com/88250/gulu v1.2.3-0.20260609090754-168309361d92
-	github.com/88250/lute v1.7.7-0.20260621064642-fd13242ab8be
+	github.com/88250/lute v1.7.7-0.20260628041727-efc0f76eeca2
 	github.com/88250/vitess-sqlparser v0.0.0-20210205111146-56a2ded2aba1
 	github.com/ClarkThan/ahocorasick v0.0.0-20231011042242-30d1ef1347f4
 	github.com/ConradIrwin/font v0.2.2-0.20260202161408-44ae4cf5fb22
@@ -63,6 +63,8 @@ require (
 	github.com/panjf2000/ants/v2 v2.12.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pdfcpu/pdfcpu v0.11.0
+	github.com/pkoukk/tiktoken-go v0.1.8
+	github.com/pkoukk/tiktoken-go-loader v0.0.2
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rqlite/sql v0.0.0-20251204023435-65660522892e
@@ -71,7 +73,7 @@ require (
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/shirou/gopsutil/v4 v4.26.4
 	github.com/siyuan-note/dataparser v0.0.0-20260115084335-b57cb8bc7c17
-	github.com/siyuan-note/dejavu v0.0.0-20260612083615-9c45cefc9285
+	github.com/siyuan-note/dejavu v0.0.0-20260628015922-7375ef1abb2a
 	github.com/siyuan-note/encryption v0.0.0-20251120032857-3ddc3c2cc49f
 	github.com/siyuan-note/eventbus v0.0.0-20260530125927-d77c74260dce
 	github.com/siyuan-note/filelock v0.0.0-20260411141728-bf44452627c0
@@ -102,11 +104,6 @@ require (
 )
 
 require (
-	github.com/pkoukk/tiktoken-go v0.1.8 // indirect
-	github.com/pkoukk/tiktoken-go-loader v0.0.2 // indirect
-)
-
-require (
 	dario.cat/mergo v1.0.2 // indirect
 	dmitri.shuralyov.com/font/woff2 v0.0.0-20180220214647-957792cbbdab // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
@@ -118,7 +115,7 @@ require (
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.41.8 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.42.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.10 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.19 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.18 // indirect
@@ -135,7 +132,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.18 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.36.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.2 // indirect
-	github.com/aws/smithy-go v1.26.0 // indirect
+	github.com/aws/smithy-go v1.27.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.1 // indirect
@@ -192,13 +189,12 @@ require (
 	github.com/otiai10/gosseract/v2 v2.4.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkoukk/tiktoken-go v0.1.8
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/qiniu/go-sdk/v7 v7.26.12 // indirect
+	github.com/qiniu/go-sdk/v7 v7.26.13 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.58.0 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
-	github.com/restic/chunker v0.4.0 // indirect
+	github.com/restic/chunker v0.5.0 // indirect
 	github.com/richardlehane/mscfb v1.0.6 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
@@ -234,7 +230,7 @@ replace github.com/mattn/go-sqlite3 => github.com/88250/go-sqlite3 v1.14.13-0.20
 
 replace github.com/pdfcpu/pdfcpu => github.com/88250/pdfcpu v0.3.14-0.20250424122812-f10e8d9d8d46
 
-replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-20260429173809-0837d6611351
+replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-20260701212244-81e833cf739b
 
 replace github.com/leolee9086/string-metrics-damerau-levenshtein => ../packages/string-metrics-damerau-levenshtein
 

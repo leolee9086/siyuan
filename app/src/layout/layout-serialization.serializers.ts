@@ -37,9 +37,12 @@ export const serializeLayoutInstance = (layout: Layout, json: SerializationJSON)
     // 检查是否为自动尺寸（flex-1 类）
     const isAutoSize = layout.element.classList.contains("fn__flex-1");
     const isVertical = layout.parent.direction === "tb";
+    // S-forge: 上游 #17919 dock 宽度记忆——已记录原始宽度时优先取回，避免 maxWidth 收缩后序列化丢失原始尺寸
     json.size = isAutoSize
         ? "auto"
-        : (isVertical ? layout.element.clientHeight : layout.element.clientWidth) + "px";
+        : (layout.element.style.maxWidth && !isVertical
+            ? layout.element.getAttribute(Constants.ATTRIBUTE_DOCK_WIDTH) + "px"
+            : (isVertical ? layout.element.clientHeight : layout.element.clientWidth) + "px");
     json.resize = layout.resize;
     json.type = layout.type;
     json.instance = "Layout";

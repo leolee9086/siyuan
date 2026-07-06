@@ -276,5 +276,5 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
                 item.removeAttribute("data-loading");
             });
         });
-    }, ["insertAttrViewBlock"].includes(operation.action) ? 2 : 100);
+    }, ["insertAttrViewBlock", "addAttrViewCol", "removeAttrViewCol", "duplicateAttrViewKey"].includes(operation.action) ? 2 : 100);
 };

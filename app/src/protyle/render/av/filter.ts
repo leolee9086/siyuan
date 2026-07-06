@@ -413,7 +413,7 @@ export const addFilter = (options: {
                         blockID
                     }]);
                     options.menuElement.innerHTML = getFiltersHTML(options.data);
-                    setPosition(options.menuElement, options.tabRect.right - options.menuElement.clientWidth, options.tabRect.bottom, options.tabRect.height);
+                    setPosition(options.menuElement, options.tabRect.right - options.menuElement.clientWidth, options.tabRect.bottom, options.tabRect.height, 0, true);
                 }
             });
         }
@@ -719,23 +719,31 @@ const genInlineDateHTML = (filter: IAVFilter, valueType: TAVCol, path: string): 
     const showToday2 = !filter.relativeDate2?.direction;
     const isBetween = filter.operator === "Is between";
 
+    // formatAbsDate 把时间戳格式化为 yyyy-MM-dd；空值/非法值返回 ""，避免 <input type="date"> 报 "Invalid Date"。
+    const formatAbsDate = (timestamp: any): string => {
+        const dayObj = dayjs(timestamp);
+        return dayObj.isValid() ? dayObj.format("YYYY-MM-DD") : "";
+    };
+
     const dateBlock = (suffix: "" | "2", relativeDate: IAVRelativeDate, dateVal: any, showToday: boolean): string => {
         const dateTypeSel = `<select class="b3-select" data-type="dateType${suffix}" data-path="${path}">
 <option value="time"${!relativeDate ? " selected" : ""}>${siyuanI18n.includeTime}</option>
 <option value="custom"${relativeDate ? " selected" : ""}>${siyuanI18n.relativeToToday}</option>
 </select>`;
-        const absDate = `<input value="${(dateVal && (dateVal.isNotEmpty || (suffix === "2" ? dateVal.isNotEmpty2 : valueType !== "date"))) ? dayjs(suffix === "2" ? dateVal.content2 : dateVal.content).format("YYYY-MM-DD") : ""}" type="date" max="9999-12-31" class="b3-text-field b3-text-field--text" data-type="absDate${suffix}" data-path="${path}" style="${relativeDate ? "display:none;" : ""}">`;
+        const absDate = `<input value="${(dateVal && (dateVal.isNotEmpty || (suffix === "2" ? dateVal.isNotEmpty2 : valueType !== "date"))) ? formatAbsDate(suffix === "2" ? dateVal.content2 : dateVal.content) : ""}" type="date" max="9999-12-31" class="b3-text-field b3-text-field--text" data-type="absDate${suffix}" data-path="${path}" style="${relativeDate ? "display:none;" : ""}">`;
         const relDir = `<select class="b3-select" data-type="dataDirection${suffix}" data-path="${path}" style="${!relativeDate ? "display:none;" : ""}">
 <option value="-1"${relativeDate?.direction === -1 ? " selected" : ""}>${siyuanI18n.pastDate}</option>
 <option value="1"${relativeDate?.direction === 1 ? " selected" : ""}>${siyuanI18n.nextDate}</option>
 <option value="0"${showToday ? " selected" : ""}>${siyuanI18n.current}</option>
 </select>`;
+        // “当前”方向下数量 count 无意义（后端按单位取今天/本周/本月/今年），故仅隐藏 relCount；
+        // 但单位 relUnit 必须保留，以便用户选择天/周/月/年
         const relCount = `<input type="number" min="1" step="1" value="${relativeDate?.count || 1}" class="b3-text-field b3-text-field--text av__filter-num" data-type="relCount${suffix}" data-path="${path}" style="${(!relativeDate || showToday) ? "display:none;" : ""}">`;
-        const relUnit = `<select class="b3-select" data-type="relUnit${suffix}" data-path="${path}" style="${(!relativeDate || showToday) ? "display:none;" : ""}">
-<option value="0"${relativeDate?.unit === 0 ? " selected" : ""}>${siyuanI18n.day}</option>
-<option value="1"${(!relativeDate || relativeDate?.unit === 1) ? " selected" : ""}>${siyuanI18n.week}</option>
-<option value="2"${relativeDate?.unit === 2 ? " selected" : ""}>${siyuanI18n.month}</option>
-<option value="3"${relativeDate?.unit === 3 ? " selected" : ""}>${siyuanI18n.year}</option>
+        const relUnit = `<select class="b3-select" data-type="relUnit${suffix}" data-path="${path}" style="${!relativeDate ? "display:none;" : ""}">
+<option value="0"${relativeDate?.unit === 0 ? " selected" : ""}>${window.siyuan.languages.day}</option>
+<option value="1"${(!relativeDate || relativeDate?.unit === 1) ? " selected" : ""}>${window.siyuan.languages.week}</option>
+<option value="2"${relativeDate?.unit === 2 ? " selected" : ""}>${window.siyuan.languages.month}</option>
+<option value="3"${relativeDate?.unit === 3 ? " selected" : ""}>${window.siyuan.languages.year}</option>
 </select>`;
         return `<span class="av__filter-date-row">${dateTypeSel}${absDate}${relDir}${relCount}${relUnit}</span>`;
     };
@@ -1002,8 +1010,9 @@ return;
             filter.operator = newOp as TAVFilterOperator;
             saveRow(row, path, structureChange);
         } else if (type === "quantifier" || type?.startsWith("dataDirection") || type?.startsWith("dateType")) {
-            // 量化器、日期方向、日期类型变化：保存（dateType 变化需重渲染以切换绝对/相对）
-            if (type === "dateType" || type === "dateType2") {
+            // 量化器、日期方向、日期类型变化：保存。dateType 切换绝对/相对、dataDirection 切换“当前/前/后”
+            // 都会改变 relCount/relUnit 的显示状态，需重渲染
+            if (type === "dateType" || type === "dateType2" || type?.startsWith("dataDirection")) {
                 saveRow(row, path, true);
             } else {
                 saveRow(row, path, false);

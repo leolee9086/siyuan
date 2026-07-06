@@ -51,7 +51,7 @@ export type ISSEResult = {
     arguments: Record<string, unknown>;
 };
 
-import {Constants} from "../constants";
+import {Constants} from "../../../constants";
 
 export type IEditorContext = {
     activeDocID?: string;
@@ -81,27 +81,19 @@ export async function fetchAgentSSE(
     signal?: AbortSignal,
     sessionID?: string,
     model?: string,
+    reasoningEffort?: string,
     regenerate?: boolean,
     editorContext?: IEditorContext,
     pluginActions?: Array<{name: string; description: string}>,
 ): Promise<void> {
     try {
         const body: Record<string, unknown> = {message: message, language: language, references: references};
-        if (sessionID) {
- body.sessionID = sessionID; 
-}
-        if (model) {
- body.model = model; 
-}
-        if (regenerate) {
- body.regenerate = regenerate; 
-}
-        if (editorContext) {
- body.editorContext = editorContext; 
-}
-        if (pluginActions && pluginActions.length > 0) {
- body.pluginActions = pluginActions; 
-}
+        if (sessionID) { body.sessionID = sessionID; }
+        if (model) { body.model = model; }
+        if (reasoningEffort) { body.reasoningEffort = reasoningEffort; }
+        if (regenerate) { body.regenerate = regenerate; }
+        if (editorContext) { body.editorContext = editorContext; }
+        if (pluginActions && pluginActions.length > 0) { body.pluginActions = pluginActions; }
 
         const response = await fetch("/api/ai/agent/chat", {
             method: "POST",
@@ -120,9 +112,7 @@ export async function fetchAgentSSE(
             if (response.status === 409) {
                 try {
                     const data = await response.json();
-                    if (data && data.msg) {
- msg = data.msg; 
-}
+                    if (data && data.msg) { msg = data.msg; }
                 } catch (e) {
                     // 读取 JSON 失败时使用 i18n
                 }

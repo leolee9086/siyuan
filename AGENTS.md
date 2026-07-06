@@ -23,6 +23,7 @@ SiYuan spans several repos. This repo (`siyuan`) holds the kernel + Electron/web
 | `siyuan` | **This repo** — kernel + Electron/web/tablet UI |
 | `siyuan-android` / `siyuan-ios` / `siyuan-harmony` | Native apps wrapping the gomobile kernel; build steps differ per platform — see each project's README |
 | `siyuan-chrome` | Browser extension (web clipper); talks to the running kernel over HTTP only |
+| `petal` | SiYuan Plugin API declaration (the plugin system is named "petal"); consumed by plugins, not a kernel Go dependency |
 | `lute` | Markdown/Kramdown AST engine — the editor + `.sy` format; also the source of the bundled `lute.min.js` (a GopherJS build served to the frontend). **Lives under `$GOPATH/src/github.com/88250/lute`, not as a sibling repo** |
 | `dejavu` | Data repo / sync engine (encrypted snapshots) |
 | `riff` | Spaced-repetition (SRS) flashcard scheduler |
@@ -41,7 +42,7 @@ All Go libraries above are dependencies in `kernel/go.mod`. GitHub org: `siyuan-
 - **Editing any Go dependency (Lute / dejavu / gulu / eventbus / riff / filelock / httpclient / logging / go-sqlite3 / pdfcpu / epub / …):** these are imported by the kernel as Go modules (`kernel/go.mod`). To test a local change, add a temporary `replace` in `kernel/go.mod` pointing at your local checkout — but **never commit that `replace`**; it breaks builds for everyone else.
 - **Rebuilding `lute.min.js`:** it's the JS build of the Go `lute` project — generated upstream and checked into `app/stage/protyle/js/lute/`. Don't edit it here; change `lute`, rebuild, and copy the artifact in.
 - **Mobile apps (`siyuan-android` / `siyuan-ios` / `siyuan-harmony`):** each is a separate native app that wraps the kernel built from this repo. For how to build, vendor the kernel binding, and wire everything up, **read each project's own README** — the toolchains and steps differ per platform and aren't documented here.
-- **`siyuan-chrome`:** independent TypeScript project; it only interacts with a running SiYuan instance through the public HTTP API documented in `API.md`.
+- **`siyuan-chrome`:** independent TypeScript project; it only interacts with a running SiYuan instance through the public HTTP API documented in `docs/API.md`.
 
 ---
 
@@ -119,6 +120,7 @@ Four webpack configs each emit a separate bundle to `app/stage/build/{app,deskto
 3. **Frontend verification:** Do not use `npx webpack` or `pnpm dev` to verify changes; after changes, run `cd app && pnpm run lint` to check code style
 4. **Frontend build:** Do NOT run `pnpm build` — the developer runs `pnpm dev` manually, and `pnpm build` will conflict with it, producing broken bundles
 5. **Icons:** Do not hand-write SVG; use existing icons from `app/appearance/icons/litheness/icon.js` when possible
+6. **User guide:** When editing the user guide, follow `docs/SY-FORMAT.md`
 
 ---
 
@@ -127,8 +129,10 @@ Four webpack configs each emit a separate bundle to `app/stage/build/{app,deskto
 1. **Comments:** Wrap code comments at 120 characters
 2. **Comments:** Describe what the code does, not what it replaced — don't reference the old implementation in comments
 3. **Comments:** Write comments in Chinese
-4. **Markdown:** Do not hand-wrap; keep each line (paragraphs, table rows, list items, etc.) on a single line
-5. **TypeScript/JavaScript:** Semicolons required, use double quotes, indent with spaces
+4. **Punctuation:** Use language-appropriate punctuation (e.g. Chinese punctuation ，。：；！？「」 for Chinese, not ASCII); do not hard-code it in code — put it in the i18n language files so each locale renders its own. Applies to comments, user guide, `.md` docs, etc.
+5. **Markdown:** Do not hand-wrap; keep each line (paragraphs, table rows, list items, etc.) on a single line
+6. **TypeScript/JavaScript:** Semicolons required, use double quotes, indent with spaces
+7. **Go:** Format with `gofmt` after editing
 
 ---
 

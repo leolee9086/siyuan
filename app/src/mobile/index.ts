@@ -5,11 +5,13 @@ import { genUUID } from "../util/platform/genID";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasTopClosestByClassName } from "../protyle/util/hasClosest";
 import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
+// S-forge: 移动端框架入口
 import { Menus } from "../menus";
 import { addBaseURL, setNoteBook } from "../util/file/pathName";
 import { parseSiYuanUriInfo } from "../util/pathName";
 import { exportLayout } from "../layout/layout-serialization";
-import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch";
+// S-forge: 补 handleTouchUp——上游 commit 8e2f01032 新增的触摸事件处理函数，用于物理按键消除长按定时器
+import { handleTouchEnd, handleTouchMove, handleTouchStart, handleTouchUp } from "./util/touch";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets } from "../util/assets/assets";
@@ -45,6 +47,8 @@ import { initTouchDragBridge } from "../util/touchDragBridge";
 import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
+// S-forge: 上游 8422a9b49 新增的移动端原生键盘控制函数，用于调用原生键盘、判断输入能力、设置 WebView 可聚焦
+import { callMobileAppShowKeyboard, canInput, setWebViewFocusable } from "./util/mobileAppUtil";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -194,6 +198,8 @@ class App {
             document.addEventListener("touchstart", handleTouchStart, false);
             document.addEventListener("touchmove", handleTouchMove, false);
             document.addEventListener("touchend", handleTouchEnd, false);
+            document.addEventListener("touchcancel", handleTouchEnd, false);
+            window.addEventListener("nativePhysicalTouchUp", handleTouchUp, false);
             window.addEventListener("keyup", () => {
                 window.siyuan.ctrlIsPressed = false;
                 window.siyuan.shiftIsPressed = false;

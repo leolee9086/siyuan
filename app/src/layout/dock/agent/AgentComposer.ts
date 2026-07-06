@@ -6,8 +6,8 @@ import HardBreak from "@tiptap/extension-hard-break";
 import Mention from "@tiptap/extension-mention";
 import {Placeholder} from "@tiptap/extension-placeholder";
 import {History} from "@tiptap/extension-history";
-import {getIconByType} from "../../editor/getIcon";
-import {escapeHtml} from "../../util/DOM/escape";
+import {getIconByType} from "../../../editor/getIcon";
+import {escapeHtml} from "../../../util/DOM/escape";
 
 interface BlockHit {
     id: string;
@@ -25,6 +25,8 @@ interface ComposerHandle {
     getHistory: () => string[];
     clearHistory: () => void;
     restoreHistory: (h: string[]) => void;
+    insertMention: (id: string, label: string) => void;
+    insertMentions: (mentions: Array<{id: string; label: string}>) => void;
 }
 
 // 内容变化回调（含用户输入、IME、程序化 clearContent 等所有 doc 变更）。
@@ -55,40 +57,34 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
 
     let slashActive = false;
     let slashRange: {from: number; to: number} | null = null;
-    let cachedSkills: BlockHit[] | null = null;
 
     const updateHighlight = () => {
-        if (!suggestionMenu) {
- return; 
-}
-        const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
+        if (!suggestionMenu) { return; }
+        const items = suggestionMenu.querySelectorAll(".b3-list-item");
         for (let i = 0; i < items.length; i++) {
-            items[i].classList.toggle("agent-mention-menu__item--active", i === selectedIndex);
+            items[i].classList.toggle("b3-list-item--focus", i === selectedIndex);
         }
     };
 
     const openMenu = (items: BlockHit[], command: (item: BlockHit) => void, clientRect?: () => DOMRect) => {
         closeMenu();
-        if (items.length === 0) {
- return; 
-}
+        if (items.length === 0) { return; }
 
         suggestionMenu = document.createElement("div");
-        suggestionMenu.className = "agent-mention-menu";
+        suggestionMenu.className = "b3-list b3-list--background agent-mention-menu protyle-hint";
+        suggestionMenu.innerHTML = '<div style="flex: 1;overflow:auto;"></div>';
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const row = document.createElement("div");
-            row.className = "agent-mention-menu__item";
+            row.className = "b3-list-item b3-list-item--two";
             row.setAttribute("data-index", i.toString());
-            const iconSvg = item.icon ? '<svg class="agent-mention-menu__icon"><use xlink:href="#' + item.icon + '"></use></svg>' : "";
-            const hPathText = item.hPath ? '<div class="agent-mention-menu__hpath">' + escapeHtml(item.hPath) + "</div>" : "";
-            row.innerHTML = '<div class="agent-mention-menu__first">' + iconSvg + '<span class="agent-mention-menu__text">' + escapeHtml(item.label) + "</span></div>" + hPathText;
+            const iconSvg = item.icon ? '<svg class="b3-list-item__graphic"><use xlink:href="#' + item.icon + '"></use></svg>' : "";
+            const hPathText = item.hPath ? '<span class="b3-list-item__meta b3-list-item__showall">' + escapeHtml(item.hPath) + "</span>" : "";
+            row.innerHTML = '<div class="b3-list-item__first">' + iconSvg + '<span class="b3-list-item__text">' + escapeHtml(item.label) + "</span></div>" + hPathText;
             row.addEventListener("mousedown", function (hit: BlockHit) {
-                return function (e: MouseEvent) {
- e.preventDefault(); command(hit); 
-};
+                return function (e: MouseEvent) { e.preventDefault(); command(hit); };
             }(item));
-            suggestionMenu.appendChild(row);
+            suggestionMenu.firstElementChild.appendChild(row);
         }
 
         document.body.appendChild(suggestionMenu);
@@ -146,14 +142,16 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                             return blocks.slice(0, 10).map(function (b: Record<string, unknown>) {
                                 const id = String(b.id || "");
                                 const raw = String(b.content || b.refText || b.name || id);
-                                const plain = raw.replace(/<[^>]+>/g, "").trim() || id;
+                                // 内核返回的 content 已做 HTML 转义并可能含 <mark> 标签，先剥离标签再反转为纯文本，
+                                // 否则 escapeHtml 会再次转义导致显示成 "&lt;" 等字面量。
+                                const plain = Lute.UnEscapeHTMLStr(raw.replace(/<[^>]+>/g, "")).trim() || id;
                                 const type = String(b.type || "NodeParagraph");
                                 const sub = b.subType ? String(b.subType) : "";
                                 return {
                                     id: id,
                                     label: plain.slice(0, 80),
                                     icon: getIconByType(type, sub),
-                                    hPath: String(b.hPath || ""),
+                                    hPath: Lute.UnEscapeHTMLStr(String(b.hPath || "")),
                                 };
                             });
                         } catch (e) {
@@ -170,27 +168,19 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                     render: function () {
                         return {
                             onStart: function (props) {
-                                suggestionCommand = function (item) {
- props.command(item); 
-};
+                                suggestionCommand = function (item) { props.command(item); };
                                 openMenu(props.items as BlockHit[], suggestionCommand!, props.clientRect?.bind(props));
                             },
                             onUpdate: function (props) {
-                                suggestionCommand = function (item) {
- props.command(item); 
-};
+                                suggestionCommand = function (item) { props.command(item); };
                                 openMenu(props.items as BlockHit[], suggestionCommand!, props.clientRect?.bind(props));
                             },
-                            onExit: function () {
- closeMenu(); 
-},
+                            onExit: function () { closeMenu(); },
                             onKeyDown: function (props) {
-                                if (!suggestionMenu) {
- return false; 
-}
+                                if (!suggestionMenu) { return false; }
                                 if (props.event.key === "ArrowDown") {
                                     props.event.preventDefault();
-                                    const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
+                                    const items = suggestionMenu.querySelectorAll(".b3-list-item");
                                     if (items.length > 0) {
                                         selectedIndex = (selectedIndex + 1) % items.length;
                                         updateHighlight();
@@ -199,7 +189,7 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                                 }
                                 if (props.event.key === "ArrowUp") {
                                     props.event.preventDefault();
-                                    const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
+                                    const items = suggestionMenu.querySelectorAll(".b3-list-item");
                                     if (items.length > 0) {
                                         selectedIndex = (selectedIndex - 1 + items.length) % items.length;
                                         updateHighlight();
@@ -251,7 +241,7 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                 if (suggestionMenu && slashActive) {
                     if (event.key === "ArrowDown") {
                         event.preventDefault();
-                        const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
+                        const items = suggestionMenu.querySelectorAll(".b3-list-item");
                         if (items.length > 0) {
                             selectedIndex = (selectedIndex + 1) % items.length;
                             updateHighlight();
@@ -260,7 +250,7 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                     }
                     if (event.key === "ArrowUp") {
                         event.preventDefault();
-                        const items = suggestionMenu.querySelectorAll(".agent-mention-menu__item");
+                        const items = suggestionMenu.querySelectorAll(".b3-list-item");
                         if (items.length > 0) {
                             selectedIndex = (selectedIndex - 1 + items.length) % items.length;
                             updateHighlight();
@@ -300,9 +290,7 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                         if (historyIdx === -1) {
                             savedDraft = editor.state.doc.textContent;
                             historyIdx = history.length - 1;
-                        } else if (historyIdx > 0) {
- historyIdx--; 
-}
+                        } else if (historyIdx > 0) { historyIdx--; }
                         if (historyIdx >= 0) {
                             editor.commands.setContent(history[historyIdx]);
                         }
@@ -332,12 +320,8 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
 
     editor.on("update", function () {
         // 通知外部内容已变更（无论是否涉及 slash 命令处理）。
-        if (onChange) {
-            onChange();
-        }
-        if (suggestionMenu && !slashActive) {
-            return;
-        }
+        if (onChange) { onChange(); }
+        if (suggestionMenu && !slashActive) { return; }
         const {$from} = editor.state.selection;
         const textBefore = $from.parent.textBetween(0, $from.parentOffset);
         const match = textBefore.match(/(?:^|\s)\/(\S*)$/);
@@ -370,34 +354,28 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
                     slashRange = null;
                 };
                 openMenu(filtered, suggestionCommand!, slashClientRect);
-                cachedSkills = skills;
             };
 
-            if (cachedSkills) {
-                filterAndOpen(cachedSkills);
-            } else {
-                fetch("/api/ai/agent/lsSkills", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                }).then(function (r) {
- return r.json(); 
-}).then(function (data) {
-                    const rawSkills = (data && data.data) ? data.data : [];
-                    const items: BlockHit[] = rawSkills.map(function (s: Record<string, string>) {
-                        return {
-                            id: s.name,
-                            label: s.name,
-                            icon: "",
-                            hPath: s.description || "",
-                        };
-                    });
-                    filterAndOpen(items);
-                }).catch(function () {
-                    closeMenu();
-                    slashActive = false;
-                    slashRange = null;
+            // 每次打开 / 菜单都重新拉取 skill 列表，确保 install/remove/save/rename 后立即反映变化。
+            fetch("/api/ai/agent/lsSkills", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                const rawSkills = (data && data.data) ? data.data : [];
+                const items: BlockHit[] = rawSkills.map(function (s: Record<string, string>) {
+                    return {
+                        id: s.name,
+                        label: s.name,
+                        icon: "",
+                        hPath: s.description || "",
+                    };
                 });
-            }
+                filterAndOpen(items);
+            }).catch(function () {
+                closeMenu();
+                slashActive = false;
+                slashRange = null;
+            });
         } else if (slashActive) {
             closeMenu();
             slashActive = false;
@@ -406,12 +384,8 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
     });
 
     return {
-        focus: function () {
- editor.commands.focus(); 
-},
-        destroy: function () {
- closeMenu(); editor.destroy(); 
-},
+        focus: function () { editor.commands.focus(); },
+        destroy: function () { closeMenu(); editor.destroy(); },
         getSendData: function () {
             const refs: {id: string; title: string}[] = [];
             const textParts: string[] = [];
@@ -425,27 +399,32 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
             });
             return {text: textParts.join("").trim(), references: refs};
         },
-        clear: function () {
- editor.commands.clearContent(); 
-},
+        clear: function () { editor.commands.clearContent(); },
         pushHistory: function (text: string) {
-            if (!text || history[history.length - 1] === text) {
- return; 
-}
+            if (!text || history[history.length - 1] === text) { return; }
             history.push(text);
-            if (history.length > 50) {
- history.shift(); 
-}
+            if (history.length > 50) { history.shift(); }
             historyIdx = -1;
         },
-        getHistory: function () {
- return history.slice(); 
-},
-        clearHistory: function () {
- history.length = 0; historyIdx = -1; 
-},
-        restoreHistory: function (h: string[]) {
- history.length = 0; history.push(...h); historyIdx = -1; 
-},
+        getHistory: function () { return history.slice(); },
+        clearHistory: function () { history.length = 0; historyIdx = -1; },
+        restoreHistory: function (h: string[]) { history.length = 0; history.push(...h); historyIdx = -1; },
+        insertMention: function (id: string, label: string) {
+            editor.chain().focus().insertContent([
+                {type: "mention", attrs: {id, label}},
+                {type: "text", text: " "},
+            ]).run();
+        },
+        insertMentions: function (mentions: Array<{id: string; label: string}>) {
+            // 批量插入多个 mention chip，一次性 insertContent 避免多次 focus/选择重置。
+            const nodes: Array<Record<string, unknown>> = [];
+            for (const m of mentions) {
+                nodes.push({type: "mention", attrs: {id: m.id, label: m.label}});
+                nodes.push({type: "text", text: " "});
+            }
+            if (nodes.length) {
+                editor.chain().focus().insertContent(nodes).run();
+            }
+        },
     };
 }

@@ -1,5 +1,5 @@
-import {fetchSyncPost} from "../../util/fetch";
-import {Constants} from "../../constants";
+import {fetchSyncPost} from "../../../util/fetch";
+import {Constants} from "../../../constants";
 
 const API = "/api/ai/agent";
 
@@ -50,6 +50,7 @@ export interface AgentSession {
         questionID?: string;
         questions?: Array<Record<string, unknown>>;
         questionStatus?: string;
+        answers?: string[];
         snapshotID?: string;
     }>;
     snapshots?: string[];

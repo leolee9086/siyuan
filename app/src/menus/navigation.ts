@@ -12,7 +12,7 @@ import { openSearch } from "../search/spread";
 import { closePanel } from "../mobile/util/closePanel";
 import { popSearch } from "../mobile/menu/search";
 import { Constants } from "../constants";
-import { newFile } from "../util/file/newFile";
+import { newFileInTree } from "../util/file/newFile";
 import { hasClosestByTag, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { deleteFiles } from "../editor/deleteFile";
 import { getDockByType } from "../layout/tabUtil";
@@ -26,6 +26,7 @@ import { makeCard } from "../card/makeCard";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { saveExportFile } from "../protyle/util/compatibility";
+import { exportMarkdownZip } from "../protyle/export/exportMd";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { initMultiMenu } from "./navigation.initMultiMenu";
@@ -242,12 +243,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
             label: "Markdown .zip",
             icon: "iconMarkdown",
             click: () => {
-                const msgId = showMessage(siyuanI18n.exporting, -1);
-                fetchPost("/api/export/exportNotebookMd", {
-                    notebook: notebookId
-                }, response => {
-                    saveExportFile(response.data.zip, msgId);
-                });
+                exportMarkdownZip({notebook: notebookId});
             }
         }]
     }).element);
@@ -304,14 +300,7 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
                             paths.push(item.getAttribute("data-path"));
                         }
                     });
-                    newFile({
-                        app,
-                        notebookId,
-                        currentPath: pathPosix().dirname(pathString),
-                        paths,
-                        useSavePath: false,
-                        listDocTree: true,
-                    });
+                    newFileInTree(app, notebookId, pathPosix().dirname(pathString), paths);
                 }
             }).element);
             window.siyuan.menus.menu.append(new MenuItem({
@@ -328,14 +317,7 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
                             }
                         }
                     });
-                    newFile({
-                        app,
-                        notebookId,
-                        currentPath: pathPosix().dirname(pathString),
-                        paths,
-                        useSavePath: false,
-                        listDocTree: true,
-                    });
+                    newFileInTree(app, notebookId, pathPosix().dirname(pathString), paths);
                 }
             }).element);
             window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);

@@ -111,7 +111,8 @@ export const isSpecialElement = (target: HTMLElement) => {
         target.id.startsWith("node_")
     )) ||
         target.classList.contains("counter") ||
-        target.tagName === "circle";
+        target.tagName === "circle" ||
+        !!target.closest('.protyle-icon[data-action="openFloat"]');
 };
 
 /**

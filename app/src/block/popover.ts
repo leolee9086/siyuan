@@ -123,9 +123,9 @@ function 处理非Tooltip元素(target: HTMLElement) {
         hideTooltip();
         return;
     }
+    // 鼠标已移到 #tooltip 浮层上：若已离开触发元素范围则正常隐藏；
+    // 仍在触发元素范围内（触发元素自身含 #tooltip）时不隐藏，避免 showTooltip 与 hideTooltip 循环闪烁
     if (tooltipTargetElement && !tooltipTargetElement.contains(target)) {
-        // 鼠标在 #tooltip 上但已离开触发元素范围，正常隐藏
-        // 仍在触发元素范围内时不隐藏，避免 showTooltip 与 hideTooltip 循环闪烁
         hideTooltip();
     }
 }

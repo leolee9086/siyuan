@@ -2,6 +2,7 @@ import {editorConfigApi} from "../tabs/editorRuntime";
 import {fileConfigApi} from "../tabs/fileRuntime";
 import {flashcardConfigApi} from "../tabs/flashcardRuntime";
 import {aiConfigApi} from "../tabs/aiRuntime";
+import {secretsConfigApi} from "../tabs/secretsVariablesRuntime";
 import {exportConfigApi} from "../tabs/exportRuntime";
 import {searchConfigApi} from "../tabs/searchRuntime";
 import {appearanceConfigApi} from "../tabs/appearanceRuntime";
@@ -14,11 +15,15 @@ import {isHuawei, isInHarmony} from "../../protyle/util/compatibility";
 import {isMobile} from "../../platform";
 import {createVueComponentLoader} from "../../util/vue/mount";
 import AIProfilesConfig from "../ai/AIProfilesConfig.vue";
+/// #if MOBILE
+import {isDisabledFeature} from "../../protyle/util/compatibility";
+/// #endif
 import {SettingBuilder, type SettingTab} from "./builder";
 import {registerEditorTab} from "../tabs/editorTab";
 import {registerFileTab} from "../tabs/fileTab";
 import {registerFlashcardTab} from "../tabs/flashcardTab";
 import {registerAiTab} from "../tabs/aiTab";
+import {registerSecretsVariablesTab} from "../tabs/secretsVariablesTab";
 import {registerExportTab} from "../tabs/exportTab";
 import {registerSearchTab} from "../tabs/searchTab";
 import {registerAppearanceTab} from "../tabs/appearanceTab";
@@ -85,6 +90,9 @@ const settingTabs = {
         icon: "iconSparkles",
         title: () => window.siyuan.languages.ai,
         defaultSave: aiConfigApi.patch,
+        /// #if MOBILE
+        hidden: () => isHuawei() || isDisabledFeature("ai"),
+        /// #endif
     }, registerAiTab),
     AIProfiles: setting.panel({
         id: "AIProfiles",
@@ -93,6 +101,12 @@ const settingTabs = {
         searchStrings: collectAIProfilesTabSearchStrings,
         mount: mountAIProfilesTab,
     }),
+    secretsVariables: setting.tab({
+        id: "secretsVariables",
+        icon: "iconSquareAsterisk",
+        title: () => window.siyuan.languages.secretsVariables,
+        defaultSave: secretsConfigApi.patch,
+    }, registerSecretsVariablesTab),
     assets: setting.panel({
         id: "assets",
         icon: "iconImage",

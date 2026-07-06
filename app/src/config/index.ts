@@ -13,6 +13,8 @@ import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
 import {tabRegistry} from "../registry";
 import {createApp} from "vue";
 import type {Custom} from "../layout/dock/Custom";
+import {renderReadme} from "./bazaar";
+import {fetchSyncPost} from "../util/network/fetch";
 import type {App} from "../index";
 
 /**
@@ -59,10 +61,7 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
                 <svg class="b3-list-item__graphic"><use xlink:href="#iconSettings"></use></svg>
                 <span class="b3-list-item__text">${window.siyuan.languages.config}</span>
             </div>
-            <div class="b3-form__icon">
-                <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
-                <input placeholder="${window.siyuan.languages.search}" class="b3-text-field fn__block b3-form__icon-input">
-            </div>
+            <input placeholder="${window.siyuan.languages.search}" class="b3-text-field fn__block">
         </div>
         <ul class="config__tab-scroll">
             ${tabListItems.join("")}
@@ -72,7 +71,7 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
         ${tabPanels.join("")}
     </div>
 </div>`,
-        width: "64vw",
+        width: "70vw",
         height: "90vh",
         destroyCallback() {
             clearSyncTabElement();
@@ -108,4 +107,38 @@ export const openSetting = (app: App, tab?: TSettingTab) => {
         return;
     }
     return openSettingDialog(app, tab);
+};
+
+export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemName: string) => {
+    /// #if !MOBILE
+    let getResourcesUrl: string;
+    switch (bazaarType) {
+        case "templates":
+            getResourcesUrl = "/api/bazaar/getBazaarTemplate";
+            break;
+        case "icons":
+            getResourcesUrl = "/api/bazaar/getBazaarIcon";
+            break;
+        case "widgets":
+            getResourcesUrl = "/api/bazaar/getBazaarWidget";
+            break;
+        case "themes":
+            getResourcesUrl = "/api/bazaar/getBazaarTheme";
+            break;
+        case "plugins":
+            getResourcesUrl = "/api/bazaar/getBazaarPlugin";
+            break;
+        default:
+            return;
+    }
+
+    const response = await fetchSyncPost(getResourcesUrl, {frontend: "all", keyword: itemName});
+    if (response.code !== 0) return;
+
+    const resource = (response.data.packages as IBazaarItem[]).find((item: IBazaarItem) => item.name === itemName);
+    if (!resource) return;
+
+    openSettingDialog(app, "bazaar");
+    renderReadme(bazaarType, "bazaar", resource);
+    /// #endif
 };

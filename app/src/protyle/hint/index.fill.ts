@@ -11,6 +11,7 @@ import {blockRender} from "../render/blockRender";
 import {isMobile} from "../../platform";
 import {getSiyuanConfig} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {isHTMLElement, isTextNode} from "../../util/DOM/element.guard";
+import {newFileByRefHint} from "../../util/file/newFile";
 import {handleFillSlash} from "./index.fill.slash";
 import type {IFillSlashContext} from "./index.fill.slash";
 import type {Hint} from "./index";
@@ -137,28 +138,19 @@ function handleNewFileBlockRef(hint: Hint, value: string, protyle: IProtyle, ran
     const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
     const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
     const anchorTextMaxLen = getSiyuanConfig().editor?.blockRefDynamicAnchorTextMaxLen ?? 64;
-    // @内联回调 — getSavePath/fetchPost 回调需要闭包访问 protyle、range、refIsS、fileNames 等多个局部变量
-    getSavePath(protyle.path ?? "", protyle.notebookId ?? "", (pathString, targetNotebookId) => {
-        // @内联回调 — fetchPost 回调需要闭包访问 toolbar、range、refIsS 等
-        fetchPost("/api/filetree/createDocWithMd", {
-            notebook: targetNotebookId,
-            path: pathPosix().join(pathString, realFileName ?? ""),
-            parentID: protyle.notebookId === targetNotebookId ? protyle.block.rootID : "",
-            markdown: ""
-        }, response => {
-            // https://github.com/siyuan-note/siyuan/issues/10133
-            const toolbar = protyle.toolbar;
-            if (!toolbar) {
-                return;
-            }
-            toolbar.range = range;
-            const anchorText = (refIsS ? fileNames[0] : realFileName)?.substring(0, anchorTextMaxLen) ?? "";
-            const refElement = toolbar.setInlineMark(protyle, "block-ref", "range", {
-                type: "id",
-                color: `${response.data}${Constants.ZWSP}${refIsS ? "s" : "d"}${Constants.ZWSP}${anchorText}`
-            });
-            collapseRefElementRange(protyle, refElement);
+    newFileByRefHint(protyle, realFileName, (id) => {
+        // https://github.com/siyuan-note/siyuan/issues/10133
+        const toolbar = protyle.toolbar;
+        if (!toolbar) {
+            return;
+        }
+        toolbar.range = range;
+        const anchorText = (refIsS ? fileNames[0] : realFileName)?.substring(0, anchorTextMaxLen) ?? "";
+        const refElement = toolbar.setInlineMark(protyle, "block-ref", "range", {
+            type: "id",
+            color: `${id}${Constants.ZWSP}${refIsS ? "s" : "d"}${Constants.ZWSP}${anchorText}`
         });
+        collapseRefElementRange(protyle, refElement);
     });
 }
 

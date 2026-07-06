@@ -39,19 +39,26 @@ import (
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/httpclient"
 	"github.com/siyuan-note/logging"
+	"golang.org/x/mod/semver"
 )
 
 // var Mode = ModeDev
 var Mode = ModeProd
 
 const (
-	ModeProd  = "prod"
+ModeProd  = "prod"
 	ModeDev   = "dev"
 	ModeForge = "forge"
 
-	Ver       = "3.6.5"
+	Ver       = "3.7.1-alpha.1"
 	IsInsider = false
 )
+
+// IsReleaseVer 判断是否为正式版（不含 beta、rc 等预发布标识）。
+func IsReleaseVer(ver string) bool {
+	v := "v" + strings.TrimPrefix(ver, "v")
+	return semver.IsValid(v) && semver.Prerelease(v) == ""
+}
 
 var (
 	RunInContainer             = false // 是否运行在容器中
@@ -114,6 +121,7 @@ var (
 	HttpServer   *http.Server     // HTTP 伺服器实例
 	HttpServing  = false          // 是否 HTTP 伺服已经可用
 	NoBrowser    = false          // 是否禁用自动打开浏览器（forge 模式）
+	SafeMode     = false          // 是否以安全模式启动：禁用代码片段、插件、自定义主题与图标
 )
 
 // If a commandline parameter is empty, fallback to the env var.
@@ -144,17 +152,18 @@ func Boot() {
 	ssl := flag.Bool("ssl", false, "for https and wss")
 	attachUI := flag.Bool("attach-ui", false, "attach kernel lifecycle to desktop UI process (used by Electron)")
 	lang := flag.String("lang", "", "ar/de/en/es/fr/he/hi/id/it/ja/ko/nl/pl/pt-BR/ru/sk/th/tr/uk/zh-CN/zh-TW")
-	mode := flag.String("mode", ModeProd, "dev/prod/forge")
+mode := flag.String("mode", ModeProd, "dev/prod/forge")
 	noBrowser := flag.Bool("no-browser", false, "disable auto-open browser in forge mode")
+	safeMode := flag.Bool("safe-mode", false, "boot in safe mode")
 	flag.Parse()
 
-	BootWithFlags(*workspacePath, *wdPath, *port, *readOnly, *accessAuthCode, *lang, *mode, *ssl, *attachUI, *noBrowser)
+	BootWithFlags(*workspacePath, *wdPath, *port, *readOnly, *accessAuthCode, *lang, *mode, *ssl, *attachUI, *noBrowser, *safeMode)
 }
 
 // BootWithFlags 接收已解析好的启动参数，完成环境变量回退、全局变量赋值、工作空间初始化与加锁等启动收尾工作。Boot()（标准库 flag 解析）和 serve 子命令（cobra 解析）都走这个统一入口。
-func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, mode string, ssl, attachUI bool, noBrowser ...bool) {
+func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, mode string, ssl, attachUI bool, noBrowser bool, safeMode bool) {
 	initEnvVars()
-
+	SafeMode = safeMode
 	// Fallback to env vars if commandline args are not set
 	// valid only for CLI args that default to "", as the
 	// others have explicit (sane) defaults
@@ -172,7 +181,7 @@ func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, 
 	ServerPort = port
 	ReadOnly, _ = strconv.ParseBool(readOnly)
 	AttachUI = attachUI
-	NoBrowser = 0 < len(noBrowser) && noBrowser[0]
+	NoBrowser = noBrowser
 	AccessAuthCode = accessAuthCode
 	AccessAuthCode = RemoveInvalid(AccessAuthCode)
 	AccessAuthCode = strings.TrimSpace(AccessAuthCode)
@@ -202,13 +211,14 @@ func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, 
 		ServerPort = FixedPort
 	}
 
-	msStoreFilePath := filepath.Join(WorkingDir, "ms-store")
-	ISMicrosoftStore = gulu.File.IsExist(msStoreFilePath)
-
 	UserAgent = UserAgent + " " + Container + "/" + runtime.GOOS
 	httpclient.SetUserAgent(UserAgent)
 
 	InitWorkspace(workspacePath, wdPath)
+
+	// 必须在 InitWorkspace 之后：此时 WorkingDir 才被 --wd 参数修正为真实工作目录（如 app\resources），否则会用进程 CWD 误判微软商店版标记文件
+	msStoreFilePath := filepath.Join(WorkingDir, "ms-store")
+	ISMicrosoftStore = gulu.File.IsExist(msStoreFilePath)
 
 	SSL = ssl
 	logging.SetLogPath(LogPath)
@@ -261,8 +271,10 @@ func GetBootProgress() int32 {
 }
 
 func SetBooted() {
-	setBootDetails("Finishing boot...")
+	// 先置进度为 100 再写 details，保证前端轮询/SSE 读到 progress>=100 时一定满足跳转条件，
+	// 避免 "先写 details 后写 progress" 造成的 "Finishing boot... 但进度未满" 竞态窗口
 	bootProgress.Store(100)
+	setBootDetails("Finishing boot...")
 	logging.LogInfof("kernel booted")
 }
 

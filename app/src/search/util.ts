@@ -416,7 +416,6 @@ export const replace = (element: Element, config: Config.IUILayoutTabSearchConfi
 
 // inputEvent 函数已拆分到 inputEvent.ts
 
-
 export const getAttr = (block: IBlock) => {
     let attrHTML = "";
     if (block.name) {

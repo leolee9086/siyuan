@@ -213,25 +213,43 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number) =
     }
 };
 
-/** 生成嵌入块的 HTML */
+/** 生成嵌入块的 HTML，非首个嵌入块额外生成浮窗图标 */
 const generateEmbedBlocksHtml = (blocks: { block: IBlock; blockPaths: IBreadcrumb[] }[]): string => {
     let html = "";
-    for (const blocksItem of blocks) {
-        const breadcrumbHTML = blocksItem.blockPaths.length !== 0
-            ? genBreadcrumb(blocksItem.blockPaths, true)
+    for (let i = 0; i < blocks.length; i++) {
+        const blocksItem = blocks[i];
+        if (!blocksItem) {
+            continue;
+        }
+        const { block, blockPaths } = blocksItem;
+        const breadcrumbHTML = blockPaths.length !== 0
+            ? genBreadcrumb(blockPaths, true)
             : "";
-        html += `<div class="protyle-wysiwyg__embed" data-id="${blocksItem.block.id}">${breadcrumbHTML}${blocksItem.block.content}</div>`;
+        let popover = "";
+        if (i !== 0) {
+            popover = `<div class="protyle-icons"><span data-id="${block.id}" data-action="openFloat" aria-label="${siyuanI18n.refPopover}" data-position="4north" class="ariaLabel protyle-icon protyle-icon--last protyle-icon--first"><svg><use xlink:href="#iconPictureInPicture"></use></svg></span></div>`;
+        }
+        html += `<div class="protyle-wysiwyg__embed" data-id="${block.id}">
+${popover}${breadcrumbHTML}${block.content}
+</div>`;
     }
     return html;
 };
 
-/** 渲染嵌入块并改善面包屑外观 */
+/** 渲染嵌入块，更新首个嵌入块浮窗图标 ID，并改善面包屑外观 */
 const renderBlocksAndImproveBreadcrumb = (item: HTMLElement, blocks: { block: IBlock; blockPaths: IBreadcrumb[] }[]): void => {
     const html = generateEmbedBlocksHtml(blocks);
     if (!item.firstElementChild) {
         return;
     }
     item.firstElementChild.insertAdjacentHTML("afterend", html);
+    // 更新第一个嵌入块的浮窗图标 data-id（复用框架内已有的图标）
+    if (blocks.length > 0 && blocks[0]) {
+        const popoverElement = item.querySelectorAll(".protyle-icon")[2];
+        if (popoverElement) {
+            popoverElement.setAttribute("data-id", blocks[0].block.id || "");
+        }
+    }
     const firstEmbedElement = item.querySelector(".protyle-wysiwyg__embed");
     if (!firstEmbedElement || !isStylableElement(firstEmbedElement)) {
         return;
@@ -288,12 +306,11 @@ const renderEmbed = (blocks: {
     if (rotateElement) {
         rotateElement.classList.remove("fn__rotate");
     }
-    // 卫语句：空块时显示过期/错误提示
+    // 空块时显示过期/错误提示
     if (blocks.length === 0) {
         const emptyHtml = `<div class="protyle-wysiwyg__embed ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${errorTip || siyuanI18n.refExpired}</div>`;
         item.firstElementChild.insertAdjacentHTML("afterend", emptyHtml);
     }
-    // 正常情况：渲染嵌入块（提取函数避免嵌套 if）
     if (blocks.length > 0) {
         renderBlocksAndImproveBreadcrumb(item, blocks);
     }

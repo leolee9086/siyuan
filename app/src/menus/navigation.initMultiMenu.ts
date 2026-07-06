@@ -5,6 +5,7 @@ import { showMessage } from "../dialog/message";
 import { deleteFiles } from "../editor/deleteFile";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
+import { exportMarkdownZip } from "../protyle/export/exportMd";
 import { saveExportFile } from "../protyle/util/compatibility";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { fetchPost } from "../util/network/fetch";
@@ -158,12 +159,7 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
             label: "Markdown .zip",
             icon: "iconMarkdown",
             click: () => {
-                const msgId = showMessage(siyuanI18n.exporting, -1);
-                fetchPost("/api/export/exportMds", {
-                    ids: blockIDs,
-                }, response => {
-                    saveExportFile(response.data.zip, msgId);
-                });
+                exportMarkdownZip({ids: blockIDs});
             }
         }]
     }).element);

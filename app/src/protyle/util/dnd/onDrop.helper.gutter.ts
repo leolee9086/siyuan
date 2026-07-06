@@ -15,6 +15,13 @@ import { fetchSyncPost } from "../../../util/network/fetch";
 import { insertHTML } from "../insertHTML";
 import { blockRender } from "../../render/blockRender";
 import { dragSame, dragSb } from "./drag";
+import {
+    expandListBlockSources,
+    handleLiGapDrop,
+    handleListItemChildDrop,
+    isListSourceType,
+    shouldSkipListSourceDrop,
+} from "./onDrop.helper.list";
 import { getDragElement, getWorkspaceDir } from "./onDrop.environment";
 
 /**
@@ -224,127 +231,61 @@ export const handleBlockDrag = async (
     const parentEl = targetElement.parentElement;
     const isSbCol = parentEl?.getAttribute("data-type") === "NodeSuperBlock"
         && parentEl?.getAttribute("data-sb-layout") === "col";
-    const isListSource = gutterTypes[0] === "nodelistitem" || gutterTypes[0] === "nodelist";
-    if (isListSource) {
-        if (targetElement.classList.contains("list") &&
-            sourceElements.some(sourceElement => targetElement.contains(sourceElement))) {
-            return;
-        }
-        let targetLi: HTMLElement | undefined;
-        if (targetElement.classList.contains("li")) {
-            targetLi = targetElement as HTMLElement;
-        } else if (targetElement.classList.contains("list")) {
-            const lis = targetElement.querySelectorAll(":scope > .li");
-            targetLi = (isBottom ? lis[lis.length - 1] : lis[0]) as HTMLElement;
-        } else {
-            targetLi = targetElement.closest(".li") as HTMLElement;
-        }
-        if (targetLi) {
-            const isNoOpDrop = sourceElements.some(sourceElement =>
-                sourceElement === targetLi ||
-                sourceElement.contains(targetLi) ||
-                (!isChild && isBottom && sourceElement === targetLi.nextElementSibling) ||
-                (!isChild && !isBottom && sourceElement === targetLi.previousElementSibling));
-            if (isNoOpDrop) {
-                return;
-            }
-        } else {
-            const sourceSelected = sourceElements[0];
-            if (sourceSelected && (sourceSelected.classList.contains("li") || sourceSelected.classList.contains("list"))) {
-                if (targetElement.classList.contains("list") && targetElement.contains(sourceSelected)) {
-                    return;
-                }
-                let current: Element | null = sourceSelected;
-                while (current && current !== editorElement) {
-                    if (current.classList.contains("list") || current.classList.contains("li")) {
-                        let previous = current.previousElementSibling;
-                        while (previous?.classList.contains("protyle-attr")) {
-                            previous = previous.previousElementSibling;
-                        }
-                        let next = current.nextElementSibling;
-                        while (next?.classList.contains("protyle-attr")) {
-                            next = next.nextElementSibling;
-                        }
-                        if (targetElement === previous || targetElement === next) {
-                            return;
-                        }
-                    }
-                    current = current.parentElement;
-                }
-            }
-        }
+    const isListSource = isListSourceType(gutterTypes);
+    if (isListSource && shouldSkipListSourceDrop(
+        sourceElements, targetElement, isChild, isBottom, ctrlKey, editorElement,
+    )) {
+        return;
     }
-
-    if (targetElement.getAttribute("data-type") === "NodeListItem") {
-        const expandedElements: Element[] = [];
-        sourceElements.forEach(item => {
-            if (item.getAttribute("data-type") === "NodeList") {
-                Array.from(item.children).forEach((li) => {
-                    if (li.classList.contains("li")) {
-                        expandedElements.push(li);
-                    }
-                });
-                return;
-            }
-            expandedElements.push(item);
-        });
-        if (expandedElements.length > 0) {
-            sourceElements.length = 0;
-            sourceElements.push(...expandedElements);
-        }
+    expandListBlockSources(sourceElements, targetElement);
+    if (!isListSource && handleLiGapDrop(
+        protyle, sourceElements, targetElement, targetClass, isChild, isBottom, ctrlKey,
+    )) {
+        return;
     }
-
-    if (isChild && targetElement.getAttribute("data-type") === "NodeListItem") {
-        const nestedList = Array.from(targetElement.children).find(item => item.classList.contains("list"));
-        let nestedTarget: Element | undefined;
-        if (nestedList) {
-            const liChildren = Array.from(nestedList.children).filter(item => item.classList.contains("li"));
-            nestedTarget = (isBottom ? liChildren[liChildren.length - 1] : liChildren[0]) as Element;
-        }
-        if (nestedTarget) {
-            if (!sourceElements.includes(nestedTarget)) {
-                dragSame(protyle, sourceElements, nestedTarget, isBottom, ctrlKey);
-            }
-        } else {
-            const contentBlocks = Array.from(targetElement.children).filter(item =>
-                item.hasAttribute("data-node-id") && !item.classList.contains("list"));
-            const lastContentBlock = contentBlocks[contentBlocks.length - 1];
-            if (lastContentBlock) {
-                dragSame(protyle, sourceElements, lastContentBlock, true, ctrlKey);
-            } else {
-                dragSame(protyle, sourceElements, targetElement, isBottom, ctrlKey);
-            }
-        }
+    if (handleListItemChildDrop(protyle, sourceElements, targetElement, isChild, isBottom, ctrlKey)) {
         return;
     }
 
-    // 超级块列布局 + 水平拖拽：同级移动（Mac 上 ⌘ 无法进行拖拽，用 Ctrl）
-    if (isSbCol && isHorizontal) {
-        dragSame(protyle, sourceElements, targetElement, isAfter, ctrlKey);
-    }
-    // 超级块列布局 + 垂直拖拽：转为行布局超级块
-    if (isSbCol && !isHorizontal) {
-        dragSb(protyle, sourceElements, targetElement, isAfter, "row", ctrlKey);
-    }
-    // 非超级块 + 水平拖拽：创建列布局超级块
-    if (!isSbCol && isHorizontal) {
-        if (gutterTypes[0] === "nodelistitem" && targetElement.classList.contains("list")) {
-            return;
-        }
-        dragSb(protyle, sourceElements, targetElement, isAfter, "col", ctrlKey);
-    }
-    // 非超级块 + 垂直拖拽：同级移动
-    if (!isSbCol && !isHorizontal) {
-        dragSame(protyle, sourceElements, targetElement, isAfter, ctrlKey);
-    }
+    executeBlockMove(protyle, sourceElements, targetElement, gutterTypes, {
+        isAfter,
+        isHorizontal,
+        isSbCol,
+        ctrlKey,
+    });
+    cleanupAfterBlockMove(protyle, editorElement);
+};
 
-    // 清除空状态标记 https://github.com/siyuan-note/siyuan/issues/10528
+const executeBlockMove = (
+    protyle: IProtyle,
+    sourceElements: Element[],
+    targetElement: Element,
+    gutterTypes: string[],
+    options: { isAfter: boolean; isHorizontal: boolean; isSbCol: boolean; ctrlKey: boolean },
+): void => {
+    if (options.isSbCol && options.isHorizontal) {
+        dragSame(protyle, sourceElements, targetElement, options.isAfter, options.ctrlKey);
+        return;
+    }
+    if (options.isSbCol) {
+        dragSb(protyle, sourceElements, targetElement, options.isAfter, "row", options.ctrlKey);
+        return;
+    }
+    if (options.isHorizontal && gutterTypes[0] !== "nodelistitem") {
+        dragSb(protyle, sourceElements, targetElement, options.isAfter, "col", options.ctrlKey);
+        return;
+    }
+    if (options.isHorizontal && targetElement.classList.contains("list")) {
+        return;
+    }
+    dragSame(protyle, sourceElements, targetElement, options.isAfter, options.ctrlKey);
+};
+
+const cleanupAfterBlockMove = (protyle: IProtyle, editorElement: HTMLElement): void => {
     const emptyItems = editorElement.querySelectorAll(".protyle-wysiwyg--empty");
     for (const item of emptyItems) {
         item.classList.remove("protyle-wysiwyg--empty");
     }
-
-    // 重新渲染嵌入块 https://github.com/siyuan-note/siyuan/issues/7574
     const embedItems = protyle.wysiwyg?.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]');
     if (!embedItems) {
         return;

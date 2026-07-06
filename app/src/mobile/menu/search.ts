@@ -6,17 +6,12 @@ import {openModel} from "./model";
 import {getDisplayName, getNotebookName} from "../../util/file/pathName";
 import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
-import {newFileByName} from "../../util/file/newFile";
+import {newFile} from "../../util/file/newFile";
 import {activeBlur} from "../util/keyboardToolbar";
 import {App} from "../../index";
 import {
     assetInputEvent,
 } from "../../search/assets";
-import {addClearButton} from "../../util/DOM/addClearButton";
-import {
-    saveAssetKeyList,
-    toggleSearchHistory,
-} from "../../search/toggleHistory";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {onRecentBlocks} from "./search.render";
 import {initSearchEvent} from "./search.event";
@@ -206,7 +201,7 @@ export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConf
 </div>`,
         bindEvent(element) {
             document.querySelector("#toolbarSearchNew").addEventListener("click", () => {
-                newFileByName(app, (document.querySelector("#toolbarSearch") as HTMLInputElement).value);
+                newFile(app, (document.querySelector("#toolbarSearch") as HTMLInputElement).value);
             });
             const historyElement = document.querySelector('.toolbar [data-type="history"]');
             historyElement.addEventListener("click", () => {

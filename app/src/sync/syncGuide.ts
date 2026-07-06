@@ -158,13 +158,13 @@ export const syncGuide = (app?: App) => {
         return;
     }
     if (window.siyuan.config.sync.provider === 0 && needSubscribe("")) {
-        if (app) {
+        if (!isMobile() && app) {
             openSetting(app, "sync");
         }
         showMessage(siyuanI18n._kernel[29].replaceAll("${accountServer}", getCloudURL("")));
         return;
     } else if (!isPaidUser()) {
-        if (app) {
+        if (!isMobile() && app) {
             openSetting(app, "sync");
         }
         showMessage(siyuanI18n._kernel[214].replaceAll("${accountServer}", getCloudURL("")));

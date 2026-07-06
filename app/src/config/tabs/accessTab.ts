@@ -11,13 +11,10 @@ import {openExternal} from "../../platform/electron/shell";
 import {setAccessAuthCode} from "../util/about";
 
 const registerAccessAuthGroup = (tab: SettingTabBuilder) => {
-    const hideOnWeb = isBrowser() && !isInMobileApp();
-    if (hideOnWeb) {
-        return;
-    }
     const group = tab.group("authentication", window.siyuan.languages.authentication);
+    const onWeb = isBrowser() && !isInMobileApp();
 
-    if (!window.siyuan.config.readonly) {
+    if (!window.siyuan.config.readonly && !onWeb) {
         group.button({
             id: "authCode",
             title: window.siyuan.languages.about5,
@@ -27,7 +24,7 @@ const registerAccessAuthGroup = (tab: SettingTabBuilder) => {
             afterMount: mountAuthCodeButton,
         });
     }
-    if (window.siyuan.config.accessAuthCode) {
+    if (window.siyuan.config.accessAuthCode && !onWeb) {
         group.switch("system.lockScreenMode", {
             title: window.siyuan.languages.about7,
             desc: window.siyuan.languages.about8,

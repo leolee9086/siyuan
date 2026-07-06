@@ -6,6 +6,8 @@ import {
     hasTopClosestByClassName,
     isInEmbedBlock,
 } from "../util/hasClosest";
+import { BlockPanel } from "../../block/panel/Panel";
+import { openMobileFileById } from "../../mobile/editor";
 import {
     focusBlock,
     focusByRange,
@@ -203,6 +205,25 @@ function handleActionElements(
     range: Range,
     ctrlIsPressed: boolean,
 ): boolean {
+    // https://github.com/siyuan-note/siyuan/issues/17800
+    const openFloatElement = hasClosestByAttribute(event.target, "data-action", "openFloat");
+    if (openFloatElement) {
+        const id = openFloatElement.getAttribute("data-id");
+        if (isMobile()) {
+            openMobileFileById(protyle.app, id, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+        } else {
+            window.siyuan.blockPanels.push(new BlockPanel({
+                app: protyle.app,
+                isBacklink: false,
+                targetElement: openFloatElement,
+                refDefs: [{ refID: id }]
+            }));
+        }
+        event.stopPropagation();
+        event.preventDefault();
+        return true;
+    }
+
     const editElement = hasClosestByClassName(event.target, "protyle-action__edit");
     if (editElement && !protyle.disabled) {
         protyle.toolbar.showRender(protyle, editElement.parentElement.parentElement);

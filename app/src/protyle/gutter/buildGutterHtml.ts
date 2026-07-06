@@ -1,5 +1,6 @@
 import { getIconByType } from "../../editor/getIcon";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getLangByType } from "../../block/util";
 import {
     hasClosestBlock,
     isInAVBlock,
@@ -148,10 +149,11 @@ const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip
 
 /**
  * 检查生成的 HTML 是否与现有 Gutter 按钮匹配
+ * 统计时排除块标边缘框线与+号元素，它们由 render 末尾单独追加，不参与防抖比较
  */
 const isGutterMatch = (gutterElement: HTMLElement, html: string) => {
     let match = true;
-    const buttonsElement = gutterElement.querySelectorAll("button");
+    const buttonsElement = gutterElement.querySelectorAll("button:not(.protyle-gutters__line):not(.protyle-gutters__plus)");
     if (buttonsElement.length !== html.split("</button>").length - 1) {
         match = false;
     }
@@ -306,8 +308,8 @@ const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: strin
         popoverHTML = `class="popover__block" data-id="${dataNodeId}"`;
     }
 
-    // 生成主按钮 HTML
-    const buttonHTML = type ? `<button class="ariaLabel" data-position="parentW" aria-label="${currentGutterTip}"
+    // 生成主按钮 HTML，使用 data-delay 实现提示延迟以避免干扰
+    const buttonHTML = type ? `<button class="ariaLabel" data-delay="500" data-position="parentW" aria-label="${currentGutterTip}"
 data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" data-node-id="${dataNodeId}">
 <svg><use xlink:href="#${getIconByType(type || "", nodeElement.getAttribute("data-subtype") || undefined)}"></use></svg>
 <span ${popoverHTML} ${protyle.disabled ? "" : 'draggable="true"'}></span>

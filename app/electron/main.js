@@ -43,6 +43,7 @@ const isDevEnv = process.env.NODE_ENV === "development";
 const appVer = app.getVersion();
 const confDir = path.join(app.getPath("home"), ".config", "siyuan");
 const windowStatePath = path.join(confDir, "windowState.json");
+const appCrashLogPath = path.join(confDir, "app.crash.log");
 let bootWindow;
 let latestActiveWindow;
 let firstOpen = false;
@@ -90,6 +91,33 @@ if (process.platform === "linux") {
     }
 }
 
+app.commandLine.appendSwitch("disable-web-security");
+app.commandLine.appendSwitch("auto-detect", "false");
+app.commandLine.appendSwitch("no-proxy-server");
+app.commandLine.appendSwitch("enable-features", "PlatformHEVCDecoderSupport");
+app.commandLine.appendSwitch("xdg-portal-required-version", "4");
+// 本地 HTTPS 页面加载 HTTP 外链图时，禁止自动升级为 HTTPS
+app.commandLine.appendSwitch("disable-features", "AutoupgradeMixedContent");
+
+// Support set Chromium command line arguments on the desktop https://github.com/siyuan-note/siyuan/issues/9696
+writeLog("app is packaged [" + app.isPackaged + "], command line args [" + process.argv.join(", ") + "]");
+let argStart = 1;
+if (!app.isPackaged) {
+    argStart = 2;
+}
+
+for (let i = argStart; i < process.argv.length; i++) {
+    let arg = process.argv[i];
+    if (arg.startsWith("--workspace=") || arg.startsWith("--openAsHidden") || arg.startsWith("--port=") || arg.startsWith("--safe-mode=") || arg.startsWith("siyuan://")) {
+        // 跳过内置参数
+        if (arg.startsWith("--openAsHidden")) {
+            openAsHidden = true;
+            writeLog("open as hidden");
+        }
+        continue;
+    }
+}
+
 try {
     firstOpen = !fs.existsSync(path.join(confDir, "workspace.json"));
     if (!fs.existsSync(confDir)) {
@@ -99,6 +127,56 @@ try {
     console.error(e);
     require("electron").dialog.showErrorBox("创建配置目录失败 Failed to create config directory", "思源需要在用户家目录下创建配置文件夹（~/.config/siyuan），请确保该路径具有写入权限。\n\nSiYuan needs to create a configuration folder (~/.config/siyuan) in the user's home directory. Please make sure that the path has write permissions.");
     app.exit();
+}
+
+// 解析命令行参数，参数需以 `name=value` 形式传入 https://github.com/siyuan-note/siyuan/issues/14748
+const getArg = (name) => {
+    for (let i = 0; i < process.argv.length; i++) {
+        if (process.argv[i].startsWith(name)) {
+            return process.argv[i].split("=")[1];
+        }
+    }
+};
+
+// 检测上次打开的工作空间是否丢失 https://github.com/siyuan-note/siyuan/issues/14748
+let lastWorkspaceMissing = false;
+let missingWorkspacePath = "";
+let availableWorkspaces = [];
+if (!firstOpen && !getArg("--workspace")) {
+    // 显式通过命令行指定工作空间时尊重用户参数，跳过检测
+    try {
+        const wsFile = path.join(confDir, "workspace.json");
+        if (fs.existsSync(wsFile)) {
+            const wsList = JSON.parse(fs.readFileSync(wsFile, "utf8"));
+            if (Array.isArray(wsList) && 0 < wsList.length) {
+                const last = wsList[wsList.length - 1];
+                if (!fs.existsSync(last) || !fs.statSync(last).isDirectory()) {
+                    lastWorkspaceMissing = true;
+                    missingWorkspacePath = last;
+                    availableWorkspaces = wsList.slice(0, -1).filter(p =>
+                        fs.existsSync(p) && fs.statSync(p).isDirectory());
+                }
+            }
+        }
+    } catch (e) {
+        writeLog("check missing workspace failed: " + e);
+    }
+}
+
+// 读取上次打开的工作空间路径，用于崩溃恢复时默认选中该工作空间
+let lastWorkspacePath = "";
+if (!firstOpen && !getArg("--workspace")) {
+    try {
+        const wsFile = path.join(confDir, "workspace.json");
+        if (fs.existsSync(wsFile)) {
+            const wsList = JSON.parse(fs.readFileSync(wsFile, "utf8"));
+            if (Array.isArray(wsList) && 0 < wsList.length) {
+                lastWorkspacePath = wsList[wsList.length - 1];
+            }
+        }
+    } catch (e) {
+        writeLog("read last workspace path failed: " + e);
+    }
 }
 
 const windowNavigate = (currentWindow, windowType) => {
@@ -464,14 +542,27 @@ const initMainWindow = () => {
     }
     currentWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + currentWindow.webContents.userAgent;
 
-    // set proxy
+    // 加载主界面。setProxy 用超时兜底包装：Electron 在某些系统代理配置下 session.setProxy 可能永久
+    // pending（既不 resolve 也不 reject），会导致 loadURL 永不执行，主窗口卡在启动页无法显示。
+    // 这里无论 setProxy 是否完成，最多等待 5 秒后强制加载主界面。
+    const loadMainURL = () => {
+        currentWindow.loadURL(getServer() + "/stage/build/app/?v=" + Date.now());
+    };
     net.fetch(getServer() + "/api/system/getNetwork", {method: "POST"}).then((response) => {
         return response.json();
     }).then((response) => {
-        setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`, currentWindow.webContents).then(() => {
-            // 加载主界面
-            currentWindow.loadURL(getServer() + "/stage/build/app/?v=" + Date.now());
+        const setProxyDone = setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`, currentWindow.webContents);
+        Promise.race([
+            Promise.resolve(setProxyDone),
+            new Promise((resolve) => setTimeout(resolve, 5000)), // setProxy 永久 pending 时的超时兜底
+        ]).then(loadMainURL).catch(() => {
+            writeLog("setProxy failed, load main UI without proxy");
+            loadMainURL();
         });
+    }).catch((e) => {
+        // getNetwork 失败也要继续加载主界面，避免主窗口不加载导致卡在启动页
+        writeLog("getNetwork failed, load main UI without proxy: " + e.message);
+        loadMainURL();
     });
 
     // 发起互联网服务请求时绕过安全策略 https://github.com/siyuan-note/siyuan/issues/5516
@@ -521,10 +612,6 @@ const initMainWindow = () => {
                 currentWindow.webContents.send("siyuan-open-url", siyuanOpenURL);
             }, 2000);
         }
-    });
-
-    currentWindow.webContents.on("render-process-gone", (event, details) => {
-        writeLog("Render process gone [reason=" + details.reason + ", exitCode=" + details.exitCode + "]");
     });
 
     if (windowState.isDevToolsOpened) {
@@ -579,7 +666,19 @@ const initMainWindow = () => {
     workspaces.push({
         browserWindow: currentWindow,
     });
+    // loadURL 后设置超时兜底：前端 app bundle 加载或初始化异常导致 siyuan-ready-to-show 迟迟不发时，
+    // 强制销毁 boot 窗口并显示主窗口，避免永久卡在启动页
+    const readyToShowTimeout = setTimeout(() => {
+        if (bootWindow && !bootWindow.isDestroyed()) {
+            if (!currentWindow.isDestroyed()) {
+                writeLog("siyuan-ready-to-show timeout, force showing main window");
+                currentWindow.show();
+            }
+            bootWindow.destroy();
+        }
+    }, 60000);
     ipcMain.once("siyuan-ready-to-show", () => {
+        clearTimeout(readyToShowTimeout); // 正常收到信号则取消超时兜底
         if (isOpenAsHidden()) {
             currentWindow.minimize();
         } else {
@@ -683,7 +782,7 @@ const createOrShowMagiWindow = (mainWindow) => {
     magiWindows.set(mainWindow.id, magiWindow);
 };
 
-const initKernel = (workspace, port, lang) => {
+const initKernel = (workspace, port, lang, safeMode) => {
     return new Promise(async (resolve) => {
         bootWindow = new BrowserWindow({
             show: false,
@@ -693,12 +792,15 @@ const initKernel = (workspace, port, lang) => {
             backgroundColor: "#1e1e1e",
             resizable: false,
             icon: path.join(appDir, "stage", "icon-large.png"),
+            webPreferences: {
+                webSecurity: false,
+            },
         });
         let bootIndex = path.join(appDir, "app", "electron", "boot.html");
         if (isDevEnv) {
             bootIndex = path.join(appDir, "electron", "boot.html");
         }
-        bootWindow.loadFile(bootIndex, {query: {v: appVer}});
+        bootWindow.loadFile(bootIndex, {query: {v: appVer, port: kernelPort}});
         if (openAsHidden) {
             bootWindow.minimize();
         } else {
@@ -754,6 +856,9 @@ const initKernel = (workspace, port, lang) => {
         }
         if (lang && "" !== lang) {
             cmds.push("--lang", lang);
+        }
+        if (safeMode) {
+            cmds.push("--safe-mode", "true");
         }
         let cmd = `ui version [${appVer}], booting kernel [${kernelPath} ${cmds.join(" ")}]`;
         writeLog(cmd);
@@ -811,7 +916,6 @@ const initKernel = (workspace, port, lang) => {
             try {
                 const apiResult = await net.fetch(getServer() + "/api/system/version");
                 apiData = await apiResult.json();
-                bootWindow.loadURL(getServer() + "/appearance/boot/index.html");
                 break;
             } catch (e) {
                 writeLog("get kernel version failed: " + e.message);
@@ -835,11 +939,28 @@ const initKernel = (workspace, port, lang) => {
                 resolve(false);
             } else {
                 let progressing = false;
+                const bootShowStart = Date.now();
+                // 启动超时兜底，防止内核异常时永久卡在 boot 轮询。数据同步、首次全量索引重建、
+                // 数据库版本变更触发的全表重建都发生在 SetBooted() 之前，会计入此循环，故给足余量
+                const bootTimeout = 300000;
                 while (!progressing) {
+                    if (Date.now() - bootShowStart > bootTimeout) {
+                        writeLog("boot progress timeout after " + bootTimeout + "ms, exiting boot");
+                        showErrorWindow("启动超时", "Boot timeout",
+                            "<div>内核启动超时，请查看 工作空间/temp/siyuan.log 获取详细报错信息，或尝试重启思源。</div>" +
+                            "<div>Kernel boot timed out. Please check workspace/temp/siyuan.log for details, or try restarting SiYuan.</div>");
+                        net.fetch(getServer() + "/api/system/exit", {method: "POST"});
+                        bootWindow.destroy();
+                        resolve(false);
+                        progressing = true;
+                        break;
+                    }
                     try {
                         const progressResult = await net.fetch(getServer() + "/api/system/bootProgress");
                         const progressData = await progressResult.json();
                         if (progressData.data.progress >= 100) {
+                            // 内核完成后等待动画快进收尾（200ms）再进入主窗口
+                            await sleep(200);
                             resolve(true);
                             progressing = true;
                         } else {
@@ -899,6 +1020,13 @@ app.whenReady().then(() => {
         } else {
             callback(-3); // default Chromium handling
         }
+    });
+
+    // 渲染进程崩溃监听，应用级别监听比 webContents 级别更早注册、更可靠（可覆盖所有渲染进程）
+    app.on("render-process-gone", (event, webContents, details) => {
+        writeLog("Render process gone [reason=" + details.reason + ", exitCode=" + details.exitCode + "]");
+        writeAppCrashLog(details.reason, details.exitCode);
+        exitApp(kernelPort); // 退出当前工作空间的窗口和内核进程，下次启动时由用户选择是否以安全模式启动
     });
 
     const resetTrayMenu = (tray, lang, mainWindow) => {
@@ -1549,15 +1677,99 @@ app.whenReady().then(() => {
             });
             firstOpenWindow.destroy();
         });
-    } else {
-        const getArg = (name) => {
-            for (let i = 0; i < process.argv.length; i++) {
-                if (process.argv[i].startsWith(name)) {
-                    return process.argv[i].split("=")[1];
-                }
-            }
-        };
+    } else if (hasAppCrashLog()) {
+        // 上次渲染进程崩溃，弹出安全模式选择窗口
+        const safeModeWindow = new BrowserWindow({
+            width: Math.floor(screen.getPrimaryDisplay().size.width * 0.55),
+            height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height * 0.65),
+            frame: "darwin" === process.platform,
+            titleBarStyle: "hidden",
+            fullscreenable: false,
+            icon: path.join(appDir, "stage", "icon-large.png"),
+            transparent: "darwin" === process.platform,
+            webPreferences: {
+                nodeIntegration: true, webviewTag: true, webSecurity: false, contextIsolation: false,
+            },
+        });
+        let safeModeHTMLPath = path.join(appDir, "app", "electron", "workspace.html");
+        if (isDevEnv) {
+            safeModeHTMLPath = path.join(appDir, "electron", "workspace.html");
+        }
 
+        // 改进桌面端初始化时使用的外观语言 https://github.com/siyuan-note/siyuan/issues/6803
+        const languages = app.getPreferredSystemLanguages();
+        const language = resolveAppLanguage(languages);
+        let crashInfo = "";
+        try {
+            crashInfo = fs.readFileSync(appCrashLogPath, "utf8");
+        } catch (e) {
+            writeLog("read crash log failed: " + e);
+        }
+        safeModeWindow.loadFile(safeModeHTMLPath, {
+            query: {
+                lang: language,
+                home: app.getPath("home"),
+                v: appVer,
+                icon: path.join(appDir, "stage", "icon-large.png"),
+                crash: "1",
+                workspace: lastWorkspacePath,
+                crashInfo: crashInfo,
+            },
+        });
+        safeModeWindow.show();
+        // 用户选择启动方式后启动内核，仅在崩溃恢复路径下、内核启动成功后删除崩溃日志
+        ipcMain.on("siyuan-select-workspace", (event, data) => {
+            initKernel(data.workspace, "", data.lang, data.safeMode).then((isSucc) => {
+                if (isSucc) {
+                    clearAppCrashLog();
+                    initMainWindow();
+                }
+            });
+            safeModeWindow.destroy();
+        });
+    } else if (lastWorkspaceMissing) {
+        // 上次使用的工作空间丢失，弹出选择工作空间窗口 https://github.com/siyuan-note/siyuan/issues/14748
+        const missingWorkspaceWindow = new BrowserWindow({
+            width: Math.floor(screen.getPrimaryDisplay().size.width * 0.55),
+            height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height * 0.65),
+            frame: "darwin" === process.platform,
+            titleBarStyle: "hidden",
+            fullscreenable: false,
+            icon: path.join(appDir, "stage", "icon-large.png"),
+            transparent: "darwin" === process.platform,
+            webPreferences: {
+                nodeIntegration: true, webviewTag: true, webSecurity: false, contextIsolation: false,
+            },
+        });
+        let missingWorkspaceHTMLPath = path.join(appDir, "app", "electron", "workspace.html");
+        if (isDevEnv) {
+            missingWorkspaceHTMLPath = path.join(appDir, "electron", "workspace.html");
+        }
+
+        // 改进桌面端初始化时使用的外观语言 https://github.com/siyuan-note/siyuan/issues/6803
+        const languages = app.getPreferredSystemLanguages();
+        const language = resolveAppLanguage(languages);
+        missingWorkspaceWindow.loadFile(missingWorkspaceHTMLPath, {
+            query: {
+                lang: language,
+                home: app.getPath("home"),
+                v: appVer,
+                icon: path.join(appDir, "stage", "icon-large.png"),
+                missing: missingWorkspacePath,
+                workspaces: availableWorkspaces.join("\n"),
+            },
+        });
+        missingWorkspaceWindow.show();
+        // 选择工作空间后启动内核
+        ipcMain.on("siyuan-select-workspace", (event, data) => {
+            initKernel(data.workspace, "", data.lang).then((isSucc) => {
+                if (isSucc) {
+                    initMainWindow();
+                }
+            });
+            missingWorkspaceWindow.destroy();
+        });
+    } else {
         const workspace = getArg("--workspace");
         if (workspace) {
             writeLog("got arg [--workspace=" + workspace + "]");
@@ -1566,7 +1778,11 @@ app.whenReady().then(() => {
         if (port) {
             writeLog("got arg [--port=" + port + "]");
         }
-        initKernel(workspace, port, "").then((isSucc) => {
+        const safeMode = getArg("--safe-mode") === "true";
+        if (safeMode) {
+            writeLog("got arg [--safe-mode=true]");
+        }
+        initKernel(workspace, port, "", safeMode).then((isSucc) => {
             if (isSucc) {
                 initMainWindow();
             }
@@ -1726,3 +1942,56 @@ app.on("before-quit", (event) => {
         }
     });
 });
+
+function writeLog(out) {
+    console.log(out);
+    const logFile = path.join(confDir, "app.log");
+    let log = "";
+    const maxLogLines = 1024;
+    try {
+        if (fs.existsSync(logFile)) {
+            log = fs.readFileSync(logFile).toString();
+            let lines = log.split("\n");
+            if (maxLogLines < lines.length) {
+                log = lines.slice(maxLogLines / 2, maxLogLines).join("\n") + "\n";
+            }
+        }
+        out = out.toString();
+        out = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "") + " " + out;
+        log += out + "\n";
+        fs.writeFileSync(logFile, log);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// 记录渲染进程崩溃信息，多次崩溃追加记录，供下次启动时判断是否进入安全模式
+const writeAppCrashLog = (reason, exitCode) => {
+    try {
+        const line = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "") +
+            " Render process gone [reason=" + reason + ", exitCode=" + exitCode + "]\n";
+        // 与 writeLog 一致，用 readFileSync + writeFileSync 实现，确保同步落盘
+        let log = "";
+        if (fs.existsSync(appCrashLogPath)) {
+            log = fs.readFileSync(appCrashLogPath).toString();
+        }
+        log += line;
+        fs.writeFileSync(appCrashLogPath, log);
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+// 删除崩溃日志，在内核启动成功后调用
+const clearAppCrashLog = () => {
+    try {
+        fs.unlinkSync(appCrashLogPath);
+    } catch (e) {
+        // 文件不存在等异常忽略
+    }
+};
+
+// 是否存在崩溃日志（上次渲染进程崩溃）
+const hasAppCrashLog = () => {
+    return fs.existsSync(appCrashLogPath);
+};

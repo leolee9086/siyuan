@@ -286,10 +286,26 @@ export const runAfterLoadPlugin = (plugin: Plugin) => {
     mountPluginDocks(plugin);
 };
 
+// S-forge: 上游 #18003 移动端仅在有插件 dock 时显示插件入口图标（本地以运行时 isMobile() 替代条件编译）
+/** 作用: 移动端插件声明 dock 时显示侧栏插件入口图标; 意图: 与桌面端 dock 栏对应的移动端入口; 调用时机: addPluginDock 移动端分支 */
+const showMobileSidebarPluginTab = (plugin: Plugin) => {
+    // 插件未声明 dock 时移动端无需显示侧栏插件入口图标
+    if (Object.keys(plugin.docks).length === 0) {
+        return;
+    }
+    const sidebarPluginTab = document.querySelector('#sidebar [data-type="sidebar-plugin-tab"]');
+    sidebarPluginTab?.classList.remove("fn__none");
+};
+
 /** @导出说明: 插件动态注册 Dock 后立即渲染 */
 /** 作用: 当插件在 onload 后调用 addDock() 时渲染 dock 按钮; 意图: 保证 dock 即时出现; 调用时机: addDock 末尾 */
 /** @同步豁免: UI构建 */
 export const addPluginDock = (plugin: Plugin) => {
+    // 移动端走侧栏入口图标分支，桌面端走 dock 栏
+    if (isMobile()) {
+        showMobileSidebarPluginTab(plugin);
+        return;
+    }
     if (isWindow() || !getSiyuanLayout().leftDock) {
         return;
     }

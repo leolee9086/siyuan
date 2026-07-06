@@ -5,7 +5,7 @@
 
 import { openEmojiPanel } from "../../../emoji";
 import { initFileMenu, initNavigationMenu } from "../../../menus/navigation";
-import { newFile } from "../../../util/file/newFile";
+import { newFileInTree } from "../../../util/file/newFile";
 import { fetchPost } from "../../../util/network/fetch";
 import { isNotCtrl } from "../../../protyle/util/compatibility";
 import {
@@ -30,7 +30,7 @@ function handleFileIconClick(
     event: MouseEvent,
     target: Element,
     parentElement: Element
-): void {
+) {
     event.preventDefault();
     event.stopPropagation();
     const rect = target.getBoundingClientRect();
@@ -54,7 +54,7 @@ function handleNotebookIconClick(
     event: MouseEvent,
     target: Element,
     grandParent: Element
-): void {
+) {
     event.preventDefault();
     event.stopPropagation();
     const rect = target.getBoundingClientRect();
@@ -77,7 +77,7 @@ function handleNotebookIconClick(
 function handleIconClick(
     event: MouseEvent,
     target: Element
-): boolean {
+){
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
         return false;
@@ -130,7 +130,7 @@ function handleToggleClick(
     target: Element,
     files: Files,
     notebookId: string
-): boolean {
+) {
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
         return false;
@@ -174,16 +174,10 @@ function handleWritableActions(
     pathString: string | null,
     parentElement: HTMLElement,
     element: HTMLElement
-): void {
+) {
     // 处理新建文件
     if (type === "new") {
-        newFile({
-            app: app,
-            notebookId,
-            currentPath: pathString ?? "",
-            useSavePath: false,
-            listDocTree: true,
-        });
+        newFileInTree(app, notebookId, pathString ?? "");
         return;
     }
     // 处理笔记本更多菜单
@@ -211,7 +205,7 @@ function handleActionClick(
     app: App,
     notebookId: string,
     element: HTMLElement
-): boolean {
+) {
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
         return false;
@@ -255,7 +249,7 @@ function handleActionClick(
 function handleSwitchClick(
     event: MouseEvent,
     target: Element
-): boolean {
+) {
     if (!target.classList.contains("b3-list-item__switch")) {
         return false;
     }

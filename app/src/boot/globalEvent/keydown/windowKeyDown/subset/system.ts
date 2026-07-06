@@ -116,7 +116,7 @@ const executeOpenDailyNoteSystemWindowKeyCommand = async (state: WindowKeyDownSt
 };
 
 const executeNewFileSystemWindowKeyCommand = async (state: WindowKeyDownState) => {
-    newFile({ app: state.app, useSavePath: true });
+    newFile(state.app);
     state.event.preventDefault();
     return true;
 };

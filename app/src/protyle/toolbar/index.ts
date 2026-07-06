@@ -15,7 +15,6 @@ import {isMobile} from "../../platform";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import {hideElements} from "../ui/hideElements";
 import {setPosition} from "../../util/DOM/setPosition";
-
 const getDefaultToolbar = () => toolbarKeyToMenu(isMobile ? [
     "block-ref",
     "a",
@@ -50,6 +49,42 @@ const getDefaultToolbar = () => toolbarKeyToMenu(isMobile ? [
     "inline-math",
     "inline-memo",
 ]);
+
+const renderMultiSelectMenu = (protyle: IProtyle, wysiwygElement: HTMLElement) => {
+    const selectedElement = wysiwygElement.querySelector(".protyle-wysiwyg--select");
+    if (!selectedElement || !protyle.gutter) {
+        return;
+    }
+    protyle.gutter.renderMenu(protyle, selectedElement);
+};
+
+const handleMultiSelectModeClick = (
+    event: Event,
+    protyle: IProtyle,
+    subElement: HTMLElement,
+    wysiwygElement: HTMLElement,
+    menu: {fullscreen: () => void}
+) => {
+    let target = event.target;
+    while (target instanceof HTMLElement && target !== subElement) {
+        if (target.dataset.type === "exitMultiSelectMode") {
+            subElement.classList.add("fn__none");
+            subElement.innerHTML = "";
+            hideElements(["select"], protyle);
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        if (target.dataset.type === "menu") {
+            renderMultiSelectMenu(protyle, wysiwygElement);
+            menu.fullscreen();
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        target = target.parentElement;
+    }
+};
 
 /**
  * Toolbar 重构版本
@@ -226,15 +261,20 @@ export class Toolbar {
     }
 
     public showMultiSelectMode(protyle: IProtyle, blockElement: HTMLElement) {
+        const wysiwygElement = protyle.wysiwyg?.element;
+        const menu = window.siyuan.menus?.menu;
+        if (!wysiwygElement || !menu) {
+            return;
+        }
         blockElement.classList.add("protyle-wysiwyg--select");
-        window.siyuan.menus.menu.remove();
+        menu.remove();
 
         this.subElement.style.width = window.innerWidth - 16 + "px";
         this.subElement.style.padding = "0";
         this.subElement.innerHTML = `<div class="block__icons">
     <div class="block__logo">
         <svg class="block__logoicon"><use xlink:href="#iconCheck"></use></svg>
-        <span class="multiSelectCount">${protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select").length}</span>
+        <span class="multiSelectCount">${wysiwygElement.querySelectorAll(".protyle-wysiwyg--select").length}</span>
     </div>
     <span class="fn__flex-1"></span>
     <button class="block__icon block__icon--show" data-type="menu" data-menu="true"><svg><use xlink:href="#iconMore"></use></svg></button>
@@ -244,26 +284,8 @@ export class Toolbar {
         this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
         this.subElement.classList.remove("fn__none");
         this.subElementCloseCB = undefined;
-        this.subElement.firstElementChild.addEventListener("click", (event) => {
-            let target = event.target as HTMLElement;
-            while (target && target !== this.subElement) {
-                if (target.dataset.type === "exitMultiSelectMode") {
-                    this.subElement.classList.add("fn__none");
-                    this.subElement.innerHTML = "";
-                    hideElements(["select"], protyle);
-                    event.preventDefault();
-                    event.stopPropagation();
-                    break;
-                }
-                if (target.dataset.type === "menu") {
-                    protyle.gutter.renderMenu(protyle, protyle.wysiwyg.element.querySelector(".protyle-wysiwyg--select"));
-                    window.siyuan.menus.menu.fullscreen();
-                    event.preventDefault();
-                    event.stopPropagation();
-                    break;
-                }
-                target = target.parentElement;
-            }
+        this.subElement.firstElementChild?.addEventListener("click", (event) => {
+            handleMultiSelectModeClick(event, protyle, this.subElement, wysiwygElement, menu);
         });
         setPosition(this.subElement, 8, 8);
         this.element.classList.add("fn__none");

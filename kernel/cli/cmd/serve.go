@@ -32,15 +32,16 @@ import (
 
 // serve 子命令自己的 flag 值。--workspace 复用 rootCmd 的 persistent flag，不再重复声明。
 var (
-	serveWdPath         string
-	servePort           string
-	serveReadOnly       string
-	serveAccessAuthCode string
-	serveLang           string
-	serveMode           string
-	serveSSL            bool
-	serveAttachUI       bool
-	serveNoBrowser      bool
+serveWdPath          string
+	servePort            string
+	serveReadOnly        string
+	serveAccessAuthCode  string
+	serveLang            string
+	serveMode            string
+	serveSSL             bool
+	serveAttachUI        bool
+	serveNoBrowser       bool
+	serveSafeMode        bool
 )
 
 var serveCmd = &cobra.Command{
@@ -55,7 +56,7 @@ var serveCmd = &cobra.Command{
 		// --workspace 优先取 serve 自己的（rootCmd 的 persistent flag），兜底环境变量与默认值交给 util.BootWithFlags 内部处理（与原 Boot() 行为一致）。
 		ws := workspacePath
 
-		util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser)
+util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser, serveSafeMode)
 
 		model.InitJwtKey()
 		model.InitConf()
@@ -106,7 +107,8 @@ func init() {
 	serveCmd.Flags().StringVar(&serveMode, "mode", util.ModeProd, "dev/prod/forge")
 	serveCmd.Flags().BoolVar(&serveSSL, "ssl", false, "for https and wss")
 	serveCmd.Flags().BoolVar(&serveAttachUI, "attach-ui", false, "attach kernel lifecycle to desktop UI process (used by Electron)")
-	serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
+serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
+	serveCmd.Flags().BoolVar(&serveSafeMode, "safe-mode", false, "boot in safe mode")
 
 	rootCmd.AddCommand(serveCmd)
 }

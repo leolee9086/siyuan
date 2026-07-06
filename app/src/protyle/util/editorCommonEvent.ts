@@ -6,6 +6,19 @@ import { onDragOver } from "./dnd/onDragOver";
 import { onDragLeave } from "./dnd/onDragLeave";
 import { cleanupDragIndicators } from "./dnd/util";
 import { hideDragTip } from "./dragTip";
+import { isDragEventWithHTMLElement } from "./dnd/onDrop.guard";
+
+const handleDragEnd = (state: IDndState, editorElement: HTMLElement) => {
+    if (window.siyuan.dragElement) {
+        window.siyuan.dragElement.style.opacity = "";
+        window.siyuan.dragElement = undefined;
+        document.onmousemove = null;
+    }
+    cleanupDragIndicators(editorElement);
+    state.dragoverElement = undefined;
+    hideDragTip();
+    window.siyuan.dragTitle = "";
+};
 
 export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
     const state: IDndState = {
@@ -17,13 +30,20 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
         onDragStart(protyle, event);
     });
 
+    // @内联回调
     editorElement.addEventListener("drop", async (event: DragEvent) => {
-        await onDrop(protyle, editorElement, event as DragEvent & { target: HTMLElement }, state);
+        if (!isDragEventWithHTMLElement(event)) {
+            return;
+        }
+        await onDrop(protyle, editorElement, event, state);
         cleanupDragIndicators(document);
     });
-
+    // @内联回调
     editorElement.addEventListener("dragover", (event: DragEvent) => {
-        onDragOver(protyle, editorElement, event as DragEvent & { target: HTMLElement }, state);
+        if (!isDragEventWithHTMLElement(event)) {
+            return;
+        }
+        onDragOver(protyle, editorElement, event, state);
     });
 
     editorElement.addEventListener("dragleave", (event: DragEvent) => {
@@ -36,15 +56,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
     });
 
     editorElement.addEventListener("dragend", () => {
-        if (window.siyuan.dragElement) {
-            window.siyuan.dragElement.style.opacity = "";
-            window.siyuan.dragElement = undefined;
-            document.onmousemove = null;
-        }
-        cleanupDragIndicators(editorElement);
-        state.dragoverElement = undefined;
-        hideDragTip();
-        window.siyuan.dragTitle = "";
+        handleDragEnd(state, editorElement);
     });
 
     document.addEventListener("dragend", () => {

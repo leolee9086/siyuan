@@ -40,6 +40,9 @@ export const protyleDisabledGuard = async (
     event.preventDefault();
     controller.abort("编辑器已禁用");
 };
+// S-forge: data-empty 检查，移植自上游 f6bc057c5
+// 上游将 protyle.selectElement.style.backgroundColor === "" 改为 !protyle.selectElement.getAttribute("data-empty")
+// 本地逆向条件：有 data-empty 属性表示无实际选中 → 不应中止
 export const protyleHaveSelectedGuard = async (
     event: KeyboardEvent,
     protyle: IProtyle,
@@ -47,7 +50,7 @@ export const protyleHaveSelectedGuard = async (
     range: Range,
     controller: AbortController
 ) => {
-    if (protyle.selectElement?.style.backgroundColor !== "") {
+    if (protyle.selectElement?.getAttribute("data-empty")) {
         return;
     }
     event.stopPropagation();

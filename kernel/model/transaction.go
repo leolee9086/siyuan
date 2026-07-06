@@ -993,7 +993,7 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 	}
 	// 同步清理被删除容器块的索引节点及其子节点，否则删除列表/超级块等容器块后其子节点依然存在，ExistBlockTree 仍返回 true
 	// Improve editor state synchronization when deleting blocks https://github.com/siyuan-note/siyuan/issues/17742
-	deletedIDs := deletedBlockIDs(deletedNode)
+deletedIDs := deletedNode.BlockIDs()
 	treenode.RemoveBlockTreesByIDs(deletedIDs)
 	tx.writeTree(tree)
 	return
@@ -1027,6 +1027,8 @@ func (tx *Transaction) doDelete0(operation *Operation, tree *parse.Tree) (delete
 	for _, defID := range refDefIDs {
 		task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, defID)
 	}
+	// 删除被引用的块后需刷新其所属文档的引用计数，否则源文档级计数角标不会更新
+	task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, tree.Root.ID)
 
 	parent := node.Parent
 	if nil != node.Next && ast.NodeKramdownBlockIAL == node.Next.Type && bytes.Contains(node.Next.Tokens, []byte(node.ID)) {
@@ -1382,6 +1384,8 @@ func (tx *Transaction) doInsert0(operation *Operation, tree *parse.Tree) (ret *T
 	for _, defID := range refDefIDs {
 		task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, defID)
 	}
+	// 粘贴被引用的块后需刷新目标文档的引用计数，否则目标文档级计数角标不会更新
+	task.AppendAsyncTaskWithDelay(task.SetDefRefCount, util.SQLFlushInterval, refreshRefCount, tree.Root.ID)
 
 	upsertAvBlockRel(insertedNode)
 

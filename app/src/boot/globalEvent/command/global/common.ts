@@ -51,10 +51,7 @@ const executeLockScreenCommonGlobalCommand = ({ app }: GlobalCommandContext) => 
 
 /** 执行新建文档命令。 */
 const executeNewFileCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
-    newFile({
-        app,
-        useSavePath: true,
-    });
+    newFile(app);
     return true;
 };
 

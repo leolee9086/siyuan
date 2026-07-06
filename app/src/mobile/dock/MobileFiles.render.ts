@@ -18,7 +18,7 @@ export function genFileHTML(item: IFile, editingPublishAccess: boolean) {
         countHTML = `<span class="counter">${item.count}</span>`;
     }
     const paddingLeft = (item.path.split("/").length - 1) * 20;
-    return `<li data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" data-type="navigation-file"
+    return `<li data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" data-count="${item.subFileCount}" data-type="navigation-file"
 class="b3-list-item" data-path="${item.path}" style="--file-toggle-width:${paddingLeft + 20}px" >
     <span style="padding-left: ${paddingLeft}px" class="b3-list-item__toggle${item.subFileCount === 0 ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
@@ -42,7 +42,7 @@ class="b3-list-item" data-path="${item.path}" style="--file-toggle-width:${paddi
  * 调用时机：getLeaf 获取到文件列表数据后调用。
  * @同步豁免: UI构建
  */
-export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string, path: string }) {
+export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string, path: string }, scrollTop?: number) {
     if (data.files.length === 0) {
         return;
     }
@@ -70,6 +70,9 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
             }
         });
         nextElement.innerHTML = tempElement.innerHTML;
+        if (typeof scrollTop === "number") {
+            files.element.scroll({top: scrollTop, behavior: "smooth"});
+        }
         files.refreshPublishAccessSwitch();
         return;
     }

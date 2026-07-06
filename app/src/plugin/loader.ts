@@ -197,6 +197,7 @@ const uninstallPluginsByNames = (app: App, names: string[], disabled: boolean) =
     }
 };
 
+// S-forge: addPluginDock 已拆分到 loader.afterLoad.ts，上游 #18003 移动端逻辑已移植到该子模块
 /** 作用: 处理代码更新插件; 意图: 重挂 UI 并刷新工具栏; 调用时机: reloadPlugin 加载代码后 */
 const handleUpsertCodePlugins = (app: App, upsertCodePlugins: string[]) => {
     for (const plugin of app.plugins) {

@@ -1,6 +1,6 @@
-import {updateHotkeyTip} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
-import {isBrowser} from "../../util/functions";
+import {isBrowser, isMobile} from "../../util/functions";
+import {updateHotkeyTip} from "../../protyle/util/compatibility";
 import {editorConfigApi} from "./editorRuntime";
 import type {SettingTabBuilder} from "../setting/builder";
 import {isElectron} from "../../platform";
@@ -8,19 +8,20 @@ import {ipcInvoke, ipcSend} from "../../platform/electron/ipcRenderer";
 
 /** 编辑器 Tab：各组注册实现（由 setting/tabs.ts 调用） */
 const registerEditorBehaviorGroup = (tab: SettingTabBuilder) => {
-    const browser = isBrowser();
     const group = tab.group("behavior", window.siyuan.languages.configGroupBehavior);
     const readOnlyKeymap = window.siyuan.config.keymap.general.editReadonly.custom;
     group.switch("editor.readOnly", {
-        title: `${window.siyuan.languages.editReadonly} <code class="fn__code${readOnlyKeymap ? "" : " fn__none"}">${updateHotkeyTip(readOnlyKeymap)}</code>`,
+        title: isMobile()
+            ? window.siyuan.languages.editReadonly
+            : `${window.siyuan.languages.editReadonly} <code class="fn__code${readOnlyKeymap ? "" : " fn__none"}">${updateHotkeyTip(readOnlyKeymap)}</code>`,
         desc: window.siyuan.languages.editReadonlyTip,
     });
     group.switch("editor.spellcheck", {
         title: window.siyuan.languages.spellcheck,
-        desc: browser ? window.siyuan.languages.spellcheckTip : window.siyuan.languages.spellcheckTip2,
+        desc: isBrowser() ? window.siyuan.languages.spellcheckTip : window.siyuan.languages.spellcheckTip2,
         afterMount: bindSpellcheckLanguagesVisibility,
     });
-    if (!browser) {
+    if (isElectron) {
         group.slot({
             key: "spellcheckLanguages",
             keywords: [
@@ -56,6 +57,7 @@ const registerEditorBehaviorGroup = (tab: SettingTabBuilder) => {
         min: 48,
     });
 };
+
 const bindSpellcheckLanguagesVisibility = async (root: HTMLElement) => {
     if (!isElectron) {
         return;
@@ -70,6 +72,7 @@ const bindSpellcheckLanguagesVisibility = async (root: HTMLElement) => {
     spellcheckSwitch.addEventListener("change", toggleWrap);
     toggleWrap();
 };
+
 const bindSpellcheckLanguagesChips = async (root: HTMLElement) => {
     if (!isElectron) {
         return;

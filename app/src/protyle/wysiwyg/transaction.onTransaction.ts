@@ -48,6 +48,12 @@ const deleteBlock = (updateElements: Element[], id: string, protyle: IProtyle, i
 };
 
 const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IOperation, isUndo: boolean) => {
+    // 表格出现滚动条，更新块后需还原横向滚动位置 https://github.com/siyuan-note/siyuan/issues/3650
+    let tableScrollLeft = 0;
+    const tableItem = updateElements.find(item => item.classList.contains("table"));
+    if (tableItem) {
+        tableScrollLeft = (tableItem.firstElementChild as HTMLElement).scrollLeft;
+    }
     updateElements.forEach(item => {
         // 图标撤销后无法渲染
         if (item.getAttribute("data-subtype") === "echarts") {
@@ -65,6 +71,9 @@ const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IO
             return true;
         }
     });
+    if (tableScrollLeft > 0) {
+        (updateElements[0].firstElementChild as HTMLElement).scrollLeft = tableScrollLeft;
+    }
     const wbrElement = updateElements[0].querySelector("wbr");
     if (isUndo) {
         const range = getEditorRange(updateElements[0]);

@@ -429,7 +429,9 @@ func PruneInvalidColumnFilters(filters []*ViewFilter, validColumns map[string]bo
 			if 0 < len(children) {
 				f.Filters = children
 				ret = append(ret, f)
-			} else {
+			} else if 0 < len(f.Filters) {
+				// 仅当分组原本有子节点却被裁空时才算改动；原本就是空的分组丢弃不算改动，
+				// 否则无筛选条件的视图每次渲染都会误判为已改动而触发保存，干扰数据同步判断
 				changed = true // 分组变为空被丢弃
 			}
 			if childChanged {
@@ -871,9 +873,14 @@ func (value *Value) filter(other *Value, relativeDate, relativeDate2 *RelativeDa
 			}
 
 			if nil != relativeDate { // 使用相对时间比较
+				// 非 Is between 时前端不会下发 relativeDate2，为 nil 时复用第一段作为安全默认，避免空指针
+				secondRelativeDate := relativeDate2
+				if nil == secondRelativeDate {
+					secondRelativeDate = relativeDate
+				}
 				relativeTimeStart, relativeTimeEnd := calcRelativeTimeRegion(relativeDate.Count, relativeDate.Unit, relativeDate.Direction)
-				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(relativeDate2.Count, relativeDate2.Unit, relativeDate2.Direction)
-				return filterRelativeTime(value.Date.Content, value.Date.IsNotEmpty, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, relativeDate2.Direction)
+				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(secondRelativeDate.Count, secondRelativeDate.Unit, secondRelativeDate.Direction)
+				return filterRelativeTime(value.Date.Content, value.Date.IsNotEmpty, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, secondRelativeDate.Direction)
 			}
 			// 使用具体时间比较
 			if nil == other.Date {
@@ -884,9 +891,14 @@ func (value *Value) filter(other *Value, relativeDate, relativeDate2 *RelativeDa
 	case KeyTypeCreated:
 		if nil != value.Created {
 			if nil != relativeDate { // 使用相对时间比较
+				// 非 Is between 时前端不会下发 relativeDate2，为 nil 时复用第一段作为安全默认，避免空指针
+				secondRelativeDate := relativeDate2
+				if nil == secondRelativeDate {
+					secondRelativeDate = relativeDate
+				}
 				relativeTimeStart, relativeTimeEnd := calcRelativeTimeRegion(relativeDate.Count, relativeDate.Unit, relativeDate.Direction)
-				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(relativeDate2.Count, relativeDate2.Unit, relativeDate2.Direction)
-				return filterRelativeTime(value.Created.Content, true, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, relativeDate2.Direction)
+				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(secondRelativeDate.Count, secondRelativeDate.Unit, secondRelativeDate.Direction)
+				return filterRelativeTime(value.Created.Content, true, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, secondRelativeDate.Direction)
 			}
 			// 使用具体时间比较
 			if nil == other.Created {
@@ -897,9 +909,14 @@ func (value *Value) filter(other *Value, relativeDate, relativeDate2 *RelativeDa
 	case KeyTypeUpdated:
 		if nil != value.Updated {
 			if nil != relativeDate { // 使用相对时间比较
+				// 非 Is between 时前端不会下发 relativeDate2，为 nil 时复用第一段作为安全默认，避免空指针
+				secondRelativeDate := relativeDate2
+				if nil == secondRelativeDate {
+					secondRelativeDate = relativeDate
+				}
 				relativeTimeStart, relativeTimeEnd := calcRelativeTimeRegion(relativeDate.Count, relativeDate.Unit, relativeDate.Direction)
-				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(relativeDate2.Count, relativeDate2.Unit, relativeDate2.Direction)
-				return filterRelativeTime(value.Updated.Content, true, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, relativeDate2.Direction)
+				relativeTimeStart2, relativeTimeEnd2 := calcRelativeTimeRegion(secondRelativeDate.Count, secondRelativeDate.Unit, secondRelativeDate.Direction)
+				return filterRelativeTime(value.Updated.Content, true, operator, relativeTimeStart, relativeTimeEnd, relativeDate.Direction, relativeTimeStart2, relativeTimeEnd2, secondRelativeDate.Direction)
 			}
 			// 使用具体时间比较
 			if nil == other.Updated {

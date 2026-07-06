@@ -276,19 +276,27 @@ export class Dock {
 
     /**
      * 添加 Dock Item
-     * 
+     *
      * 作用：将其他位置拖拽来的 Tab 添加到当前 Dock
      * 意图：支持 Dock 间的拖拽重组
      * 调用时机：拖拽 Tab 到 Dock 区域释放时
      */
     public add(index: number, sourceElement: Element, previousType?: string): void {
-        sourceElement.setAttribute("data-height", "");
-        sourceElement.setAttribute("data-width", "");
         const typeAttr = sourceElement.getAttribute("data-type");
         if (!isTDock(typeAttr)) {
             return;
         }
         const sourceDock = getDockByType(typeAttr);
+        // 仅在左右轴与下轴之间跨轴移动时清除尺寸：左右侧之间或下侧内部移动，原有尺寸维度仍然有效
+        const size: Partial<Config.IUILayoutDockPanelSize> = {};
+        if ((sourceDock.position === "Left" || sourceDock.position === "Right") && this.position === "Bottom") {
+            sourceElement.setAttribute("data-width", "");
+            size.width = null;
+        }
+        if (sourceDock.position === "Bottom" && (this.position === "Left" || this.position === "Right")) {
+            sourceElement.setAttribute("data-height", "");
+            size.height = null;
+        }
         if (sourceDock.elements[0].parentElement.querySelectorAll(".dock__item").length === 1) {
             sourceDock.elements[0].parentElement.classList.add("fn__none");
         }
@@ -314,7 +322,7 @@ export class Dock {
             this.toggleModel(typeAttr, true, false, false, false);
         }
         setWindowTimeout(() => saveLayout(), Constants.TIMEOUT_TRANSITION);
-        this.saveLocalPlugin(typeAttr, { index: this._getSortIndex(sourceElement), position: this._getPluginPosition(sourceElement, index), size: { height: null, width: null } });
+        this.saveLocalPlugin(typeAttr, { index: this._getSortIndex(sourceElement), position: this._getPluginPosition(sourceElement, index), size });
         adjustDockPadding();
         this.adjustSplit();
         sourceDock.adjustSplit();
@@ -474,7 +482,7 @@ export class Dock {
 
     public saveLocalPlugin(dockType: TDock | string, options: {
         position?: TPluginDockPosition,
-        size?: Config.IUILayoutDockPanelSize,
+        size?: Partial<Config.IUILayoutDockPanelSize>,
         index?: number,
         show?: boolean
     }): void {
@@ -483,8 +491,14 @@ export class Dock {
                 if (!window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType]) {
                     window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType] = pluginItem.docks[dockType].config;
                 }
-                Object.keys(options).forEach((item: "position") => {
-                    window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType][item] = options[item];
+                const dockConfig = window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType];
+                Object.keys(options).forEach((item: "position" | "size" | "index" | "show") => {
+                    // size 需按字段合并，否则会整体覆盖、丢失用户已拖动的尺寸
+                    if (item === "size") {
+                        Object.assign(dockConfig.size, options.size);
+                    } else {
+                        dockConfig[item] = options[item];
+                    }
                 });
                 setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
                 return true;

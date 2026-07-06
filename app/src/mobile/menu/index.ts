@@ -174,13 +174,20 @@ export const initRightMenu = (app: App) => {
                 event.preventDefault();
                 event.stopPropagation();
                 break;
-            } else if (target.id === "menuSafeQuit") {
-                event.preventDefault();
-                event.stopPropagation();
-                exitSiYuan();
-                break;
             } else if (target.id === "menuPlugin") {
                 openTopBarMenu(app);
+                event.preventDefault();
+                event.stopPropagation();
+                break;
+            } else if (target.id === "menuNewDoc") {
+                newFile(app);
+                closePanel();
+                event.preventDefault();
+                event.stopPropagation();
+                break;
+            } else if (target.id === "menuNewNotebook") {
+                newNotebook();
+                closePanel();
                 event.preventDefault();
                 event.stopPropagation();
                 break;
@@ -192,21 +199,6 @@ export const initRightMenu = (app: App) => {
                 break;
             } else if (target.id === "menuCard") {
                 openCard(app);
-                closePanel();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuNewNotebook") {
-                newNotebook();
-                closePanel();
-                event.preventDefault();
-                event.stopPropagation();
-                break;
-            } else if (target.id === "menuNewDoc") {
-                newFile({
-                    app,
-                    useSavePath: true
-                });
                 closePanel();
                 event.preventDefault();
                 event.stopPropagation();

@@ -1392,10 +1392,7 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
         return;
     }
     if (matchHotKey(window.siyuan.config.keymap.general.newFile.custom, event)) {
-        newFile({
-            app,
-            useSavePath: true
-        });
+        newFile(app);
         event.preventDefault();
         return;
     }

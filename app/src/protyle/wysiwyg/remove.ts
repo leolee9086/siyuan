@@ -350,12 +350,14 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             range.insertNode(document.createElement("wbr"));
         }
         blockParentElement.insertAdjacentElement("beforebegin", blockElement);
+        // 跳过 sb__resize 手柄取前一个块，避免超级块内引述块首删除时 previousID 为手柄导致位置错
+        const previousID = getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id");
         if (isCallout ? blockParentElement.querySelector(".callout-content").childElementCount === 0 :
             blockParentElement.childElementCount === 1) {
             transaction(protyle, [{
                 action: "move",
                 id: blockElement.getAttribute("data-node-id"),
-                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
+                previousID,
                 parentID: getParentBlock(blockParentElement).getAttribute("data-node-id") || protyle.block.parentID
             }, {
                 action: "delete",
@@ -364,7 +366,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 action: "insert",
                 id: blockParentElement.getAttribute("data-node-id"),
                 data: blockParentElement.outerHTML,
-                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
+                previousID,
                 parentID: getParentBlock(blockElement).getAttribute("data-node-id") || protyle.block.parentID
             }, {
                 action: "move",
@@ -376,13 +378,18 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             transaction(protyle, [{
                 action: "move",
                 id: blockElement.getAttribute("data-node-id"),
-                previousID: getPreviousBlockSibling(blockElement)?.getAttribute("data-node-id"),
+                previousID,
                 parentID: getParentBlock(blockParentElement).getAttribute("data-node-id") || protyle.block.parentID
             }], [{
                 action: "move",
                 id: blockElement.getAttribute("data-node-id"),
                 parentID: blockParentElement.getAttribute("data-node-id")
             }]);
+        }
+        // 引述块移出/删除后，若所在容器是超级块则刷新拖拽手柄（清残留）
+        const sbAncestor = getParentBlock(blockElement);
+        if (sbAncestor?.classList.contains("sb")) {
+            refreshSbResize(sbAncestor);
         }
         if (type === "Delete") {
             moveToPrevious(blockElement, range, true);

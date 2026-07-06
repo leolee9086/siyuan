@@ -1,7 +1,6 @@
 import { fetchPost } from "../../ai/imports";
+import { newFileBySelect, getRefCreateSavePath } from "../../util/file/newFile";
 import { newFileContentBySelect } from "../../editor/rename";
-import { newFileBySelect } from "../../util/file/newFile";
-import { getSavePath } from "../../util/file/getSavePath";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 import { selectAll } from "../util/selection";
@@ -46,8 +45,9 @@ export const createNamedNewFileMiddleware = (
                 if (!protyle.notebookId) {
                     throw new Error("protyle缺少ID");
                 }
-                getSavePath(protyle.path, protyle.notebookId, (pathString, targetNotebookId) => {
-                    newFileBySelect(protyle, selectText, nodeElement, pathString, targetNotebookId);
+                // S-forge: 移植上游 887e5d8ed — getSavePath → getRefCreateSavePath，参数顺序改变
+                getRefCreateSavePath(protyle.notebookId, protyle.path, (targetNotebookId, hPath) => {
+                    newFileBySelect(protyle, selectText, nodeElement, hPath, targetNotebookId);
                 });
             }
         }

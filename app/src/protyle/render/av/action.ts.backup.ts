@@ -19,6 +19,7 @@ import {addCol} from "./col/addCol";
 import {showColMenu} from "./col/col";
 import {getColIconByType} from "./col/col.typeUtils";
 import {deleteRow, duplicateRows, insertRows, selectRow, setPageSize, updateHeader} from "./row";
+import {resetAVRowSelect, updateAVRowSelect} from "./virtualScroll";
 import {emitOpenMenu} from "../../../plugin/EventBus";
 import {openMenuPanel} from "./openMenuPanel";
 import { hintRef } from "../../hint/extend.hintRef";
@@ -184,6 +185,10 @@ export const avClick = (protyle: IProtyle, event: MouseEvent & { target: HTMLEle
                         scrollElement.querySelectorAll(".av__row--select").forEach(item => {
                             item.querySelector(".av__firstcol use").setAttribute("xlink:href", "#iconUncheck");
                             item.classList.remove("av__row--select");
+                        });
+                        // 同步清空虚拟滚动选中快照，避免被 trim 掉的行回填后仍带选中态
+                        blockElement.querySelectorAll(".av__body").forEach((bodyEl: HTMLElement) => {
+                            resetAVRowSelect(bodyEl, []);
                         });
                         updateHeader(rowElement);
                         popTextCell(protyle, [target]);
@@ -373,6 +378,11 @@ export const avContextmenu = (protyle: IProtyle, rowElement: HTMLElement, positi
         clearSelect(["cell"], blockElement);
         rowElement.classList.add("av__row--select");
         rowElement.querySelector(".av__firstcol use").setAttribute("xlink:href", "#iconCheck");
+        const bodyElement = hasClosestByClassName(rowElement, "av__body") as HTMLElement;
+        const rowId = rowElement.getAttribute("data-id");
+        if (bodyElement && rowId) {
+            updateAVRowSelect(bodyElement, rowId, true);
+        }
         updateHeader(rowElement);
     } else {
         if (!rowElement.classList.contains("av__gallery-item--select")) {

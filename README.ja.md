@@ -3,7 +3,7 @@
 <br>
 <em>あなたの思考をリファクタリングする</em>
 <br><br>
-<a title="Build Status" target="_blank" href="https://github.com/siyuan-note/siyuan/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/siyuan-note/siyuan/cd.yml?style=flat-square"></a>
+<a title="Build Status" target="_blank" href="https://github.com/siyuan-note/siyuan/actions/workflows/cd.yml"><img src="https://img.shields.io/github/actions/workflow/status/siyuan-note/siyuan/cd.yml?style=flat-square"></a>
 <a title="Releases" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/release/siyuan-note/siyuan.svg?style=flat-square&color=9CF"></a>
 <a title="Downloads" target="_blank" href="https://github.com/siyuan-note/siyuan/releases"><img src="https://img.shields.io/github/downloads/siyuan-note/siyuan/total.svg?style=flat-square&color=blueviolet"></a>
 <br>
@@ -107,7 +107,7 @@ SiYuanは、プライバシーを最優先とする個人の知識管理シス�
 - JavaScript/CSSスニペット
 - Android/iOS/HarmonyOSアプリ
 - Dockerデプロイメント
-- [API](https://github.com/siyuan-note/siyuan/blob/master/API.md)
+- [API](https://github.com/siyuan-note/siyuan/blob/master/docs/API.md)
 - コミュニティマーケットプレイス
 
 一部の機能は有料会員のみ利用可能です。詳細については[価格](https://b3log.org/siyuan/en/pricing.html)をご覧ください。
@@ -204,7 +204,7 @@ SiYuanは、プライバシーを最優先とする個人の知識管理シス�
 - `--workspace`: ワークスペースフォルダーのパスを指定し、ホスト上で `-v` を使用してコンテナにマウントします
 - `--accessAuthCode`: ロック画面パスワードを指定します
 
-> **注意:** v3.7.0 以降、`serve` サブコマンドを明示的に渡す必要があります（例: `docker run b3log/siyuan serve --workspace=...`）。以前のバージョンでは bare flag を自動検出していましたが、明確さのためその暗黙の挙動は削除されました。すべてのサーブ用オプションは `docker run --rm b3log/siyuan serve --help` で確認できます。
+> **注意:** v3.7.0 以降、`serve` サブコマンドを明示的に渡す必要があります（例: `docker run b3log/siyuan serve --workspace=...`）。すべてのサーブ用オプションは `docker run --rm b3log/siyuan serve --help` で確認できます。
 
 詳細なパラメータは `--help` を参照してください。以下は新しい環境変数を使用した起動コマンドの例です：
 
@@ -321,7 +321,7 @@ Host path: /mnt/user/appdata/siyuan
 PUID: 1000
 PGID: 1000
 SIYUAN_LANG: ja
-Publish parameters: --accessAuthCode=******（ロック画面パスワード）
+Publish parameters: serve --accessAuthCode=******（ロック画面パスワード）
 ```
 
 </details>
@@ -383,18 +383,19 @@ siyuan export md --id <block-id> -w ~/SiYuan
 
 | カテゴリ | コマンド |
 |----------|----------|
-| ノートと文書 | `notebook`, `document` — CRUD |
-| コンテンツ | `block`, `attr` — 読み書き、カスタム属性 |
-| メタデータ | `tag`, `bookmark` |
+| ノートと文書 | `notebook`, `document`, `dailynote` — CRUD とデイリーノート |
+| コンテンツ | `block`, `attr`, `outline` — ブロックの読み書き、属性、アウトライン |
+| メタデータ | `tag`, `bookmark`, `template` — タグ、ブックマーク、テンプレートスニペット |
 | クエリ | `search`, `sql` — 全文検索と SQL |
 | 参照 | `ref` — バックリンクと言及 |
-| インポート/エクスポート | `export`, `import` — Markdown, HTML, PDF, Word, .sy.zip |
+| インポート/エクスポート | `export`, `import` — Markdown, HTML, preview, Word, .sy.zip, Data |
 | データ管理 | `repo`, `history`, `sync` — スナップショット、履歴、クラウド同期 |
 | ユーティリティ | `asset`, `file` — リソースとファイルシステム |
 | データベース | `database` — 属性ビュー管理 |
-| ワークスペース | `workspace` — 一覧と確認 |
+| サーバー | `serve` — カーネルの HTTP サーバーを起動 |
+| ワークスペースとシステム | `workspace`, `system` — 一覧、確認、システム情報 |
 
-詳細は `siyuan --help` を実行してください。スクリプト向け出力には `-f json` を使用します。
+詳細は `siyuan --help` を実行してください。スクリプト向け出力には（デフォルトの `-f table` ではなく）`-f json` を使用します。変更を伴うほとんどのコマンドは `--dry-run` にも対応しており、適用せずに変更内容をプレビューできます。
 
 ### セットアップ
 

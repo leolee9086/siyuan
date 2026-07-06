@@ -5,9 +5,11 @@ import {resizeTopBar} from "../layout/util";
 import {setTabPosition} from "../layout/tabUtil";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
+// S-forge: 上游 ed77bd609 将 frontendActions 迁入 dock/agent/，import 路径同步更新
+// 本地保留 isMobile/isElectron/ipcSend 平台封装
 import {isMobile} from "../util/platform/functions";
 import {getAllEditor} from "../layout/getAll";
-import {unregisterAction} from "../layout/dock/frontendActions";
+import {unregisterAction} from "../layout/dock/agent/frontendActions";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 
@@ -82,6 +84,10 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
             });
             // rm plugin
             app.plugins.splice(index, 1);
+            // S-forge: 上游 #18003 移动端卸载插件后，若无任何插件 dock 则隐藏插件入口图标（本地以运行时 isMobile() 替代条件编译）
+            if (isMobile() && app.plugins.every(p => Object.keys(p.docks).length === 0)) {
+                document.querySelector('#sidebar [data-type="sidebar-plugin-tab"]')?.classList.add("fn__none");
+            }
             // rm icons
             document.querySelector(`svg[data-name="${plugin.name}"]`)?.remove();
             // rm protyle toolbar

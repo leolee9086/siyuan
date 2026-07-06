@@ -13,6 +13,7 @@ import { getFieldsByData } from "./view";
 import { getFieldIdByCellElement } from "./row";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {setPosition} from "../../../util/setPosition";
 
 let cellValues: IAVCellValue[];
 
@@ -139,7 +140,13 @@ export const removeCellOption = (protyle: IProtyle, cellElements: HTMLElement[],
             return true;
         }
     });
+    // chips 减少导致菜单高度变化后重新定位（锁底部，顶部自适应），需在移除 target 前获取 menuElement
+    const menuElement = hasClosestByClassName(target, "b3-menu");
     target.remove();
+    if (menuElement) {
+        const cellRect = cellElements[cellElements.length - 1].getBoundingClientRect();
+        setPosition(menuElement, cellRect.left, cellRect.bottom, cellRect.height, 0, true);
+    }
 };
 
 export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, blockElement: Element, isCustomAttr: boolean, cellElements?: HTMLElement[]) => {
@@ -237,6 +244,9 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
         }
         if (selectedElement) {
             menuElement.querySelector(".b3-menu__items").scrollTop = oldScroll + (menuElement.querySelector(".b3-chips").clientHeight - oldChipsHeight);
+            // chips 增减导致菜单高度变化后重新定位（锁底部，顶部自适应，避免底部溢出视口）
+            const cellRect = cellElements[cellElements.length - 1].getBoundingClientRect();
+            setPosition(menuElement, cellRect.left, cellRect.bottom, cellRect.height, 0, true);
         }
     });
     if (menu.isOpen) {
@@ -354,6 +364,9 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                 }
                 if (selectedElement) {
                     menuElement.querySelector(".b3-menu__items").scrollTop = oldScroll + (menuElement.querySelector(".b3-chips").clientHeight - oldChipsHeight);
+                    // chips 增减导致菜单高度变化后重新定位（锁底部，顶部自适应，避免底部溢出视口）
+                    const cellRect = cellElements[cellElements.length - 1].getBoundingClientRect();
+                    setPosition(menuElement, cellRect.left, cellRect.bottom, cellRect.height, 0, true);
                 }
             }, undefined, true);
         }
@@ -444,6 +457,9 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                         bindSelectEvent(protyle, data, menuElement, cellElements, blockElement);
                     }
                     menuElement.querySelector(".b3-menu__items").scrollTop = oldScroll;
+                    // chips 增减导致菜单高度变化后重新定位（锁底部，顶部自适应，避免底部溢出视口）
+                    const cellRect = cellElements[cellElements.length - 1].getBoundingClientRect();
+                    setPosition(menuElement, cellRect.left, cellRect.bottom, cellRect.height, 0, true);
                     name = inputElement.value;
                     desc = descElement.value;
                     color = newColor;
@@ -642,6 +658,9 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
         bindSelectEvent(protyle, data, menuElement, cellElements, blockElement);
         menuElement.querySelector("input").focus();
         menuElement.querySelector(".b3-menu__items").scrollTop = oldScroll + (menuElement.querySelector(".b3-chips").clientHeight - oldChipsHeight);
+        // chips 增减导致菜单高度变化后重新定位（锁底部，顶部自适应，避免底部溢出视口）
+        const cellRect = cellElements[cellElements.length - 1].getBoundingClientRect();
+        setPosition(menuElement, cellRect.left, cellRect.bottom, cellRect.height, 0, true);
     }
 };
 
