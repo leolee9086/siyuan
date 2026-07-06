@@ -7,7 +7,7 @@ import { avRender } from "./av/render";
 import { genRenderFrame } from "./util";
 import { 语义搜索, 获取语义搜索配置 } from "../../layout/dock/embeddingDock/semanticSearch.api";
 import { Constants } from "../../constants";
-import type { SearchContext, SemanticSearchResultItem } from "./blockRender.types";
+import type { SearchContext, SemanticSearchResultItem } from "./render.types";
 import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isStylableElement } from "../../util/DOM/element.guard";

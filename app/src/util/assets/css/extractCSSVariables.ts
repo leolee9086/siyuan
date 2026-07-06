@@ -26,7 +26,7 @@ export function extractCSSVariables(element: Element): CSSVariableInfo[] {
     
     let computedStyle: CSSStyleDeclaration;
     try {
-        // eslint-disable-next-line no-restricted-globals
+         
         computedStyle = window.getComputedStyle(element);
     } catch (error) {
         console.error("无法获取元素的计算样式:", error);

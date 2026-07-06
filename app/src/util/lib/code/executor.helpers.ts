@@ -215,7 +215,7 @@ export async function 创建NodeJS临时模块(code: string): Promise<TemporaryM
 /** 检查是否为 Node.js 环境（用于环境检测） */
 function 检测NodeJS环境(): boolean {
     // @环境检测: 需要检测 window 来区分浏览器和 Node.js 环境
-    // eslint-disable-next-line no-restricted-globals
+     
     return typeof window === "undefined" && typeof process !== "undefined";
 }
 

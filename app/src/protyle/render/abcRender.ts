@@ -6,7 +6,7 @@ import { genUUID } from "../../util/platform/genID";
 import { addStyle } from "../util/addStyle";
 import { getAbcjsInstance } from "./abc/abcRender.environment";
 import { isAbcRenderParams } from "./abc/abcRender.guard";
-import type { AbcRenderParams } from "./abcRender.types";
+import type { AbcRenderParams } from "./render.types";
 import { parseRenderOption } from "./parseRenderOption";
 
 const ABCJS_PARAMS_KEY = "%%params";

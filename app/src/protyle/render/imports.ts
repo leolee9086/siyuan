@@ -26,3 +26,6 @@ export { hasClosestBlock };
 import { hasClosestByClassName } from "../util/hasClosest";
 /** 导出 hasClosestByClassName，供 render 模块使用 */
 export { hasClosestByClassName };
+import { hasClosestByAttribute } from "../util/hasClosest";
+/** 导出 hasClosestByAttribute，供 render 模块使用 */
+export { hasClosestByAttribute };

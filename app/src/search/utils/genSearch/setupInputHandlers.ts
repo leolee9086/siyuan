@@ -62,7 +62,7 @@ function handleBlur(searchInputElement: HTMLInputElement, config: Config.IUILayo
         return;
     }
     config.k = searchInputElement.value;
-    const storage = window.siyuan.storage; // eslint-disable-line
+    const storage = window.siyuan.storage;  
     if (storage) {
         storage[Constants.LOCAL_SEARCHDATA] = Object.assign({}, config);
         setStorageVal(Constants.LOCAL_SEARCHDATA, storage[Constants.LOCAL_SEARCHDATA]);

@@ -5,7 +5,7 @@
  */
 
 /** 用途：AbcRenderParams 渲染参数类型。使用范围：ABC 渲染参数类型守卫。解耦评估：类型定义已移至独立 types 文件，守卫模块仅依赖类型。 */
-import type { AbcRenderParams } from "../abcRender.types";
+import type { AbcRenderParams } from "../render.types";
 
 /**
  * 类型守卫：判断渲染参数解析结果是否为有效的 ABC 渲染参数

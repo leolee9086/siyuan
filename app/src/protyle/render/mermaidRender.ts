@@ -1,10 +1,13 @@
-import {addScript} from "../util/addScript";
-import {Constants} from "../../constants";
-import {hasClosestByAttribute, hasClosestByClassName} from "../util/hasClosest";
+import {addScript} from "./imports";
+import {Constants} from "./imports";
+import {hasClosestByAttribute} from "./imports";
+import {hasClosestByClassName} from "./imports";
 import {genIconHTML} from "./util";
-import {getMermaidInstance, getZenumlModule, isDarkMode} from "./mermaidRender.environment";
+import {getMermaidInstance} from "./mermaidRender.environment";
+import {getZenumlModule} from "./mermaidRender.environment";
+import {isDarkMode} from "./mermaidRender.environment";
 import {isHTMLElement} from "./mathRender.guard";
-import {MermaidConfig} from "./mermaidRender.types";
+import {MermaidConfig} from "./render.types";
 
 /**
  * 收集需要渲染的 Mermaid 图表元素
@@ -113,6 +116,27 @@ function observeHiddenElements(hiddenElements: Element[]) {
 }
 
 /**
+ * 使用 DOMPurify 对 Mermaid 生成的 SVG 进行消毒
+ *
+ * 作用：调用 DOMPurify.sanitize 清理 SVG 中的潜在恶意内容
+ * 意图：将消毒逻辑提取为独立函数，避免嵌套 if 块
+ * 调用时机：renderSingleMermaidElement 中 SVG 插入 DOM 前调用
+ */
+/** @同步豁免: 纯数据转换，无异步需求 */
+function sanitizeMermaidSvg(svg: string, win: Window | null): string {
+    if (!win) {
+        return svg;
+    }
+    return win.DOMPurify.sanitize(svg, {
+        USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
+        ADD_TAGS: ["foreignObject", "use", "style"],
+        ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
+        // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
+        HTML_INTEGRATION_POINTS: { foreignobject: true }
+    });
+}
+
+/**
  * 渲染单个 Mermaid 图表元素
  *
  * 作用：调用 mermaid.render 将 data-content 中的文本渲染为 SVG 并插入 DOM
@@ -153,16 +177,7 @@ async function renderSingleMermaidElement(
                 /(href|src|xlink:href)\s*=\s*["']\\\\/gi,
                 (_match, attrName) => `${attrName}="about:blank"`
             );
-            const win = document.defaultView;
-            if (win) {
-                svg = win.DOMPurify.sanitize(svg, {
-                    USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
-                    ADD_TAGS: ["foreignObject", "use", "style"],
-                    ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
-                    // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
-                    HTML_INTEGRATION_POINTS: { foreignobject: true }
-                });
-            }
+            svg = sanitizeMermaidSvg(svg, document.defaultView);
             renderElement.lastElementChild.innerHTML = svg;
         }
     } catch (e: unknown) {
