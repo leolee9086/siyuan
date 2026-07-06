@@ -83,7 +83,7 @@ export const openMenuPanel = (options: {
     colId?: string, // for edit, rollup
     // 使用前端构造的数据
     editData?: {
-        previousID: string,
+        previousID: string | undefined,
         colData: IAVColumn,
     },
     cellElements?: HTMLElement[],   // for select & date & relation & asset

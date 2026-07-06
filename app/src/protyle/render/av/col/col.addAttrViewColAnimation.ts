@@ -83,7 +83,7 @@ import { removeSiyuanMenu } from "./imports";
  */
 const addCellToTableRow = (params: {
     item: Element;
-    previousID: string;
+    previousID: string | undefined;
     icon: string | undefined;
     id: string;
     type: TAVCol;
@@ -124,7 +124,7 @@ const addCellToTableRow = (params: {
  */
 const addColumnToTableView = (params: {
     blockElement: Element;
-    previousID: string;
+    previousID: string | undefined;
     icon: string | undefined;
     id: string;
     type: TAVCol;
@@ -230,7 +230,7 @@ const handlePanelDisplay = (params: {
     blockElement: Element;
     nodeId: string | null;
     isTableView: boolean;
-    previousID: string;
+    previousID: string | undefined;
     type: TAVCol;
     name: string;
 }): void => {
@@ -285,7 +285,7 @@ export const addAttrViewColAnimation = (options: {
     name: string;
     id: string;
     icon?: string;
-    previousID: string;
+    previousID: string | undefined;
     data?: IAV;
 }): void => {
     if (!options.blockElement) {

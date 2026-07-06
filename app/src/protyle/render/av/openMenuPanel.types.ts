@@ -13,7 +13,7 @@ export interface IMenuPanelContext {
         type: string,
         colId?: string,
         editData?: {
-            previousID: string,
+            previousID: string | undefined,
             colData: IAVColumn,
         },
         cellElements?: HTMLElement[],
