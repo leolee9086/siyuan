@@ -60,6 +60,7 @@ import { folderItemLimitPlugin } from "./folder-item-limit.mjs";
 import { noLongSingleLineCommentPlugin } from "./no-long-single-line-comment.mjs";
 import { noNestedFunctionPlugin } from "./no-nested-function.mjs";
 import { explicitReturnTypeReasonPlugin } from "./explicit-return-type-reason.mjs";
+import { noControlFlowInExecutorPlugin } from "./no-control-flow-in-executor.mjs";
 
 // ─── 包装自定义插件并注册优先级 ───
 // createPriorityPlugin 不修改插件行为，仅将规则优先级写入 registry
@@ -134,6 +135,8 @@ const wrappedPlugins = {
     "no-export-forwarding": createPriorityPlugin(noExportForwardingPlugin, "no-export-forwarding", 11),
     "no-alias-usage": createPriorityPlugin(noAliasUsagePlugin, "no-alias-usage", 11),
     "no-nested-function": createPriorityPlugin(noNestedFunctionPlugin, "no-nested-function", 11),
+    // 执行器层无控制流约束（架构边界，优先级 1，与 if 控制流同级）
+    "no-control-flow-in-executor": createPriorityPlugin(noControlFlowInExecutorPlugin, "no-control-flow-in-executor", 1),
     "folder-item-limit": createPriorityPlugin(folderItemLimitPlugin, "folder-item-limit", 11),
     "no-inline-callback": createPriorityPlugin(noInlineCallbackPlugin, "no-inline-callback", 11),
     "no-large-inline-array": createPriorityPlugin(noLargeInlineArrayPlugin, "no-large-inline-array", 11),

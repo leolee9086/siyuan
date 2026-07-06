@@ -298,4 +298,12 @@ export default [{
         "explicit-return-type-reason/require-return-type-reason": "off",
         "require-async-export/require-async-export": "off"
     }
+}, {
+    // 执行器层 (*.executor.ts)：状态空间收集完成后禁止控制流
+    // 分派必须提升到 calibur-router 的 split 模式，由类型系统保证穷尽性与互斥性
+    // 极少数必须保留的判断通过 // @执行器豁免: <理由> 显式声明
+    files: ["**/*.executor.ts"],
+    rules: {
+        "no-control-flow-in-executor/no-control-flow-in-executor": "error",
+    }
 }];
