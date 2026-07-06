@@ -32,7 +32,8 @@ function parseArgs() {
         filePath: null,
         json: false,
         help: false,
-        cwd: null
+        cwd: null,
+        showAll: false
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -47,6 +48,9 @@ function parseArgs() {
                 break;
             case "--cwd":
                 options.cwd = args[++i];
+                break;
+            case "--show-all":
+                options.showAll = true;
                 break;
             default:
                 if (!options.filePath && !arg.startsWith("--")) {
@@ -69,29 +73,49 @@ function showHelp() {
 
 选项:
   --json          输出 JSON 格式结果
+  --show-all      显示所有优先级的错误（跳过优先级过滤）
   --cwd <目录>    指定工作目录 (默认: app 目录)
   --help, -h      显示此帮助信息
 
 示例:
   pnpm lint:file src/util/events/eventEmitter.ts
   pnpm lint:file src/util/events/eventEmitter.ts --json
+  pnpm lint:file src/util/events/eventEmitter.ts --show-all
 
 注意:
   - 文件路径可以是相对于 app 目录的路径
   - JSON 输出便于程序化处理结果
+  - --show-all 可绕过优先级过滤，查看被隐藏的低优先级错误
 `);
 }
 
-// 格式化输出单个错误
-function formatError(error, filePath) {
+// 动态加载优先级查询函数（从 priority-config.mjs 间接导入 priority-lint.mjs）
+// 使用动态 import 因为 priority-config.mjs 是 ESM 模块
+let _getPriorityFn = null;
+async function getPriorityFn(appDir) {
+    if (_getPriorityFn) return _getPriorityFn;
+    try {
+        const modulePath = "file://" + path.join(appDir, "0_lints", "priority-config.mjs").replace(/\\/g, "/");
+        const mod = await import(modulePath);
+        _getPriorityFn = mod.getPriority;
+    } catch {
+        // 加载失败时返回默认优先级
+        _getPriorityFn = () => 15;
+    }
+    return _getPriorityFn;
+}
+
+// 格式化输出单个错误（含优先级标注）
+function formatError(error, filePath, getPriority) {
     const severity = error.severity === 2 ? "ERROR" : "WARN";
     const ruleId = error.ruleId || "unknown";
+    const priorityLabel = error.severity === 2 ? `[P${getPriority(error.ruleId)}]` : "[W]";
     
-    return `${filePath}:${error.line}:${error.column} [${severity}] ${error.message} (${ruleId})`;
+    return `${filePath}:${error.line}:${error.column} ${priorityLabel} [${severity}] ${error.message} (${ruleId})`;
 }
 
 // 格式化输出结果
-function formatResults(results) {
+async function formatResults(results, getPriority) {
     if (!results || results.length === 0) {
         return "✅ 没有发现 lint 错误";
     }
@@ -108,7 +132,7 @@ function formatResults(results) {
     output.push(`🔍 发现 ${messages.length} 个问题:\n`);
 
     messages.forEach((message, index) => {
-        output.push(`${index + 1}. ${formatError(message, path.basename(filePath))}`);
+        output.push(`${index + 1}. ${formatError(message, path.basename(filePath), getPriority)}`);
     });
 
     // 统计错误和警告数量
@@ -159,6 +183,14 @@ async function main() {
     }
 
     try {
+        // --show-all 模式：设置环境变量让 processor 跳过优先级过滤
+        if (options.showAll) {
+            process.env.PRIORITY_LINT_SHOW_ALL = "1";
+        }
+
+        // 加载优先级查询函数
+        const getPriority = await getPriorityFn(cwd);
+
         // 动态加载 ESLint 类
         const ESLint = loadESLint(cwd);
         
@@ -169,22 +201,27 @@ async function main() {
         });
 
         // 检查文件
-        console.error(`🔍 正在检查文件: ${path.relative(cwd, targetFile)}`);
+        console.error(`🔍 正在检查文件: ${path.relative(cwd, targetFile)}` + (options.showAll ? " (--show-all 模式，跳过优先级过滤)" : ""));
         const results = await eslint.lintFiles([targetFile]);
 
         if (options.json) {
-            // JSON 输出
+            // JSON 输出（在每条 message 中添加 priority 字段）
+            const messages = (results[0]?.messages || []).map(msg => ({
+                ...msg,
+                priority: msg.severity === 2 ? getPriority(msg.ruleId) : null,
+            }));
             const jsonOutput = {
                 filePath: targetFile,
                 relativePath: path.relative(cwd, targetFile),
                 errorCount: results[0]?.errorCount || 0,
                 warningCount: results[0]?.warningCount || 0,
-                messages: results[0]?.messages || []
+                showAll: options.showAll,
+                messages,
             };
             console.log(JSON.stringify(jsonOutput, null, 2));
         } else {
             // 格式化输出
-            console.log(formatResults(results));
+            console.log(await formatResults(results, getPriority));
         }
 
         // 设置退出码

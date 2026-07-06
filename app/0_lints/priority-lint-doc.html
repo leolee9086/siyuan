@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>优先级 Lint 机制：AI 协作编程的注意力管理系统</title>
+<style>
+:root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --code-bg: #1c2128;
+    --mono: "SF Mono", "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+    --sans: -apple-system, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.75;
+    padding: 0;
+}
+
+.container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+}
+
+h1 {
+    font-size: 2.2em;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    color: var(--text-dim);
+    font-size: 1.15em;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-top: 48px;
+    margin-bottom: 16px;
+    color: var(--text);
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+}
+
+h3 {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    color: var(--accent);
+}
+
+h4 {
+    font-size: 1.05em;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+p {
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+ul, ol {
+    margin-bottom: 16px;
+    padding-left: 28px;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+code {
+    font-family: var(--mono);
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #79c0ff;
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0 24px;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.85em;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+blockquote {
+    border-left: 3px solid var(--accent-dim);
+    padding: 12px 20px;
+    margin: 16px 0;
+    background: rgba(31, 111, 235, 0.08);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+}
+
+blockquote p {
+    color: var(--text-dim);
+    margin-bottom: 0;
+}
+
+.callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0 24px;
+    border: 1px solid;
+}
+
+.callout-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.callout-success {
+    border-color: rgba(63, 185, 80, 0.4);
+    background: rgba(63, 185, 80, 0.1);
+}
+.callout-success .callout-title { color: var(--green); }
+
+.callout-warning {
+    border-color: rgba(210, 153, 34, 0.4);
+    background: rgba(210, 153, 34, 0.1);
+}
+.callout-warning .callout-title { color: var(--yellow); }
+
+.callout-danger {
+    border-color: rgba(248, 81, 73, 0.4);
+    background: rgba(248, 81, 73, 0.1);
+}
+.callout-danger .callout-title { color: var(--red); }
+
+.callout-info {
+    border-color: rgba(88, 166, 255, 0.4);
+    background: rgba(88, 166, 255, 0.08);
+}
+.callout-info .callout-title { color: var(--accent); }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 0.9em;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+td {
+    color: var(--text);
+}
+
+tr:nth-child(even) td {
+    background: rgba(22, 27, 34, 0.5);
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-family: var(--mono);
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.p-0 { background: rgba(248, 81, 73, 0.2); color: #ff7b72; border: 1px solid rgba(248, 81, 73, 0.4); }
+.p-1 { background: rgba(248, 81, 73, 0.15); color: #ffa198; border: 1px solid rgba(248, 81, 73, 0.3); }
+.p-2 { background: rgba(210, 153, 34, 0.2); color: #e3b341; border: 1px solid rgba(210, 153, 34, 0.4); }
+.p-13 { background: rgba(139, 148, 158, 0.2); color: #b1bac4; border: 1px solid rgba(139, 148, 158, 0.3); }
+
+.flow-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0 28px;
+    text-align: center;
+    overflow-x: auto;
+}
+
+.flow-diagram pre {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: inline-block;
+    text-align: left;
+    color: var(--text);
+    font-size: 0.82em;
+    line-height: 1.5;
+}
+
+.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+}
+
+.toc-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--accent);
+}
+
+.toc ol {
+    padding-left: 24px;
+    color: var(--text-dim);
+}
+
+.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+.metric {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-weight: 600;
+    margin: 0 2px;
+}
+
+.metric-huge { background: rgba(248, 81, 73, 0.2); color: #ff7b72; }
+ metric-mid { background: rgba(210, 153, 34, 0.2); color: #e3b341; }
+.metric-low { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
+
+.spacer { height: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>优先级 Lint 机制：AI 协作编程的注意力管理系统</h1>
+
+<p class="subtitle">渐进式错误披露如何将 5 万个 lint 错误从 AI 的认知过载中解救出来</p>
+
+<div class="toc">
+<div class="toc-title">目录</div>
+<ol>
+    <li><a href="#problem">问题：认知过载与注意力耗散</a></li>
+    <li><a href="#mechanism">机制：渐进式错误披露</a></li>
+    <li><a href="#architecture">架构与技术实现</a></li>
+    <li><a href="#priority-assignment">优先级分配策略</a></li>
+    <li><a href="#ai-collaboration">核心价值：AI 协作场景下的意义</a></li>
+    <li><a href="#usage">使用指南</a></li>
+    <li><a href="#extend">新增规则的注册方式</a></li>
+</ol>
+</div>
+
+<h2 id="problem">一、问题：认知过载与注意力耗散</h2>
+
+<p>本项目是一个大型 TypeScript 前端代码库，维护了 100+ 条自定义 ESLint 规则。在不做任何过滤的情况下，全量 lint 检查会抛出约 <span class="metric metric-huge">50,022</span> 个 error，涵盖 <span class="metric metric-huge">59</span> 种规则。</p>
+
+<p>这个数字对人类开发者已经构成了认知过载——但真正的灾难在于 <strong>AI 协作编程场景</strong>。当 AI 智能体（如 s-code）尝试修复一个文件的 lint 错误时，它同时面对以下完全混合在一起的错误：</p>
+
+<ul>
+    <li><code>code-size/max-lines-per-function</code>：某个函数有 1210 行——这需要大规模重构</li>
+    <li><code>require-if-comment</code>：某处 if 语句缺少注释——这需要补充一行注释</li>
+    <li><code>restrictions/no-parent-import</code>：从父目录导入——这需要调整导入路径</li>
+    <li><code>task-checker/require-task</code>：存在未完成的元任务——这需要查看 task.md</li>
+    <li><code>semi</code>：缺一个分号——这只需要加一个字符</li>
+</ul>
+
+<p>AI 的策略通常是"逐个修复"或"批量修复"。但 500 个错误中混合着从"补一行注释"到"拆分 1000 行函数"的完全不同维度的任务，导致以下恶性循环：</p>
+
+<div class="callout callout-danger">
+<div class="callout-title">恶性循环</div>
+<p>AI 看到海量错误 → 尝试修复其中一些 → 修复过程中引入新的轻微错误（比如改了导入路径但忘了注释）→ 错误总数不降反升 → AI 陷入焦虑式反复修改 → 上下文窗口被无用信息占满 → 最终放弃或产出低质量结果</p>
+</div>
+
+<p>这并非 AI 的能力问题，而是<strong>注意力管理问题</strong>。人类在面对 500 个错误时也不会从注释缺失开始修——会先修那些破坏性最大的问题。优先级 Lint 机制就是将这种人类的注意力策略固化到工具层面，让 AI 也能遵循同样的路径。</p>
+
+<h2 id="mechanism">二、机制：渐进式错误披露</h2>
+
+<h3>核心原则</h3>
+
+<p><strong>高优先级错误清零之前，低优先级错误完全不显示。</strong></p>
+
+<p>这不是简单的"排序"或"分级显示"。它是一个<strong>硬性过滤</strong>：在某个文件的 lint 结果中，如果存在优先级 0（最高）的 error，那么优先级 1 及以上的 error 会被 <strong>彻底移除</strong>，不出现在 IDE、CLI 或 AI 的上下文中。直到该文件的所有 P0 error 被修复，P1 error 才会自动浮现；P1 清零后 P2 浮现，以此类推。</p>
+
+<h3>过滤单位：单文件独立</h3>
+
+<p>渐进披露的过滤单位始终是<strong>单文件</strong>，不存在跨文件的全局过滤逻辑。每个文件在 ESLint 的 postprocess 阶段独立执行优先级过滤——只看该文件自身的错误来决定保留哪些。这意味着：</p>
+
+<ul>
+    <li>文件 A 可能只有 P13 的错误（注释缺失），全部展示</li>
+    <li>文件 B 同时有 P0（函数超长）和 P13 的错误，只展示 P0</li>
+    <li>两个文件的过滤互不影响</li>
+</ul>
+
+<h3>实际效果数据</h3>
+
+<p>以下是全量 lint 运行的真实数据对比（1658 个文件）：</p>
+
+<table>
+<tr>
+    <th>模式</th>
+    <th>error 数</th>
+    <th>warning 数</th>
+    <th>规则种数</th>
+    <th>说明</th>
+</tr>
+<tr>
+    <td>正常模式（渐进过滤）</td>
+    <td><strong>4,543</strong></td>
+    <td>273</td>
+    <td>39</td>
+    <td>每个文件只显示最高优先级的 error</td>
+</tr>
+<tr>
+    <td>--show-all（跳过过滤）</td>
+    <td><strong>50,022</strong></td>
+    <td>273</td>
+    <td>59</td>
+    <td>所有 error 全部暴露</td>
+</tr>
+<tr>
+    <td>差异</td>
+    <td><strong>45,479 被隐藏</strong></td>
+    <td>0</td>
+    <td>20 种规则完全隐藏</td>
+    <td>90.9% 的 error 不在 AI 的视野中</td>
+</tr>
+</table>
+
+<p>关键证据——同一规则在两种模式中的数量对比：</p>
+
+<table>
+<tr>
+    <th>规则</th>
+    <th>优先级</th>
+    <th>正常模式</th>
+    <th>--show-all</th>
+    <th>被隐藏</th>
+</tr>
+<tr><td><code>code-size/max-lines-per-function</code></td><td><span class="priority-badge p-0">P0</span></td><td>744</td><td>744</td><td>0 ✅</td></tr>
+<tr><td><code>code-size/max-lines</code></td><td><span class="priority-badge p-0">P0</span></td><td>132</td><td>132</td><td>0 ✅</td></tr>
+<tr><td><code>restrictions/no-else</code></td><td><span class="priority-badge p-1">P1</span></td><td>207</td><td>2,930</td><td>2,723</td></tr>
+<tr><td><code>restrictions/no-parent-import</code></td><td><span class="priority-badge p-2">P4</span></td><td>1,107</td><td>4,733</td><td>3,626</td></tr>
+<tr><td><code>require-if-comment</code></td><td><span class="priority-badge p-13">P13</span></td><td>10</td><td>5,700</td><td>5,690</td></tr>
+<tr><td><code>task-checker/require-task</code></td><td><span class="priority-badge p-13">P14</span></td><td>345</td><td>1,649</td><td>1,304</td></tr>
+</table>
+
+<p>P0 规则在两种模式中数量完全一致——因为它们是最高优先级，永远不被隐藏。低优先级规则的原始数量在 --show-all 模式下暴增数倍至数十倍，但在正常模式中被压缩到只出现在那些"该文件确实没有任何更高优先级 error"的文件中。</p>
+
+<div class="callout callout-success">
+<div class="callout-title">渐进披露的核心收益</div>
+<p>AI（或人类开发者）在任何时刻只面对 <strong>一个优先级层次的错误</strong>——该文件当前需要解决的最紧迫问题。修完之后，下一层自动浮现，形成自然的工作节奏。</p>
+</div>
+
+<h2 id="architecture">三、架构与技术实现</h2>
+
+<h3>数据流</h3>
+
+<div class="flow-diagram">
+<pre>
+ESLint 运行所有规则（100+ 条）
+       │
+       ▼
+ 每个规则的 context.report() 产生消息
+       │
+       ▼
+ ┌─────────────────────────────────────┐
+ │  priority-lint/processor            │
+ │  postprocess(messages, filename)    │
+ │                                     │
+ │  1. 分离 error (severity=2)         │
+ │     和 warning (severity=1)         │
+ │                                     │
+ │  2. 查 registry 中每条 error 的     │
+ │     规则优先级（任意数值）           │
+ │                                     │
+ │  3. 找到最低数值（最高优先级）       │
+ │                                     │
+ │  4. 过滤掉所有 > 该数值的 error     │
+ │                                     │
+ │  5. 保留全部 warning +              │
+ │     最高优先级的 error              │
+ └─────────────────────────────────────┘
+       │
+       ▼
+ IDE / CLI / AI 上下文
+ 只看到最高优先级的 error</pre>
+</div>
+
+<h3>三层分离</h3>
+
+<p>系统由三层组成，职责严格分离：</p>
+
+<table>
+<tr>
+    <th>层</th>
+    <th>文件</th>
+    <th>职责</th>
+    <th>可变性</th>
+</tr>
+<tr>
+    <td><strong>引擎层</strong></td>
+    <td><code>0_lints/priority-lint.mjs</code></td>
+    <td>注册表（Map）、<code>createPriorityPlugin</code> 工厂、<code>postprocess</code> 过滤逻辑</td>
+    <td>不变——不含任何项目特定配置，可被任意项目复用</td>
+</tr>
+<tr>
+    <td><strong>配置层</strong></td>
+    <td><code>0_lints/priority-config.mjs</code></td>
+    <td>导入所有插件、调用 <code>createPriorityPlugin</code> 注册优先级、手动注册原生规则优先级</td>
+    <td>可变——调整数值即可改变规则的优先级</td>
+</tr>
+<tr>
+    <td><strong>规则层</strong></td>
+    <td><code>0_lints/restrictions.mjs</code> + 20 个原有插件</td>
+    <td>标准 ESLint 规则定义——每条规则是完整的 <code>{ meta, create }</code> 结构</td>
+    <td>可变——新增或修改规则逻辑</td>
+</tr>
+</table>
+
+<h3>优先级数值：任意、无边阶</h3>
+
+<p>优先级使用<strong>任意数值</strong>，没有硬编码级别限制。约定 <code>0 = 最高</code>，数值越大优先级越低。当前项目使用了 0~14 共 15 个梯度，但未来可以随时插入 <code>1.5</code>、<code>3</code>、<code>7</code> 等任意中间值。</p>
+
+<p>未注册的规则默认优先级为 <code>15</code>（DEFAULT_PRIORITY），确保不会因为遗漏注册而隐藏关键错误。</p>
+
+<h3>为什么拆分 <code>no-restricted-syntax</code></h3>
+
+<p>ESLint 内置的 <code>no-restricted-syntax</code> 规则允许在一个配置项中声明多个 AST 选择器，但它们共享一个 ruleId——无法在优先级系统中分别赋值。这意味着"禁止 else"和"禁止 forEach"被绑定为同一优先级，即使它们的严重程度完全不同。</p>
+
+<p>实现优先级系统的正确方式是将 <code>no-restricted-syntax</code> 拆解为 31 条独立规则（<code>restrictions.mjs</code>），每条拥有独立的 ruleId 和独立的优先级。这是必要的重构，不是可选的优化。</p>
+
+<h2 id="priority-assignment">四、优先级分配策略</h2>
+
+<p>优先级不是按"规则类型"分配，而是按<strong>修复该错误所需的认知负荷和重构范围</strong>分配。以下是当前分配及理由：</p>
+
+<table>
+<tr>
+    <th>优先级</th>
+    <th>含义</th>
+    <th>规则示例</th>
+    <th>分配理由</th>
+</tr>
+<tr>
+    <td><span class="priority-badge p-0">P0</span></td>
+    <td>代码规模超标</td>
+    <td><code>code-size/max-lines</code>、<code>code-size/max-lines-per-function</code></td>
+    <td>文件或函数超长是一切问题的放大器——在其他 lint 错误被修复之前，超长的代码本身就是修复过程中引入新错误的高风险源。优先处理规模问题，后续修复在更小的、更可控的代码单元上进行。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-1">P1</span></td>
+    <td>控制流复杂度</td>
+    <td><code>restrictions/no-else</code>、<code>restrictions/no-nested-if-block</code>、<code>restrictions/no-nested-if-direct</code></td>
+    <td>if 嵌套和 else 分支是逻辑复杂度的核心来源。在代码规模不超标的前提下，先扁平化控制流能让后续的架构修复有一个清晰的基础。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-2">P2</span></td>
+    <td>类型安全</td>
+    <td><code>restrictions/no-as-assertion</code>、<code>restrictions/no-is-keyword</code>、<code>@typescript-eslint/no-explicit-any</code>、<code>semi</code>、<code>quotes</code>、<code>curly</code></td>
+    <td>类型安全违规和基础格式问题。这些是"一旦看到就应该立即修复"的问题，但不应打断更大规模的结构性修复工作。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-2">P3</span></td>
+    <td>流程控制</td>
+    <td><code>restrictions/no-for-each</code>、<code>restrictions/no-switch</code></td>
+    <td>流程控制结构的替换是中等规模的重构，需要在控制流已扁平化后进行。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-2">P4</span></td>
+    <td>导入边界</td>
+    <td><code>restrictions/no-parent-import</code>、<code>restrictions/no-direct-import</code>、<code>restrictions/no-multi-import</code></td>
+    <td>导入路径的规范化影响模块依赖图，需要整体审视而非逐文件修补。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P5</span></td>
+    <td>类型定义边界</td>
+    <td><code>restrictions/no-type-alias</code>、<code>restrictions/no-interface</code>、<code>restrictions/no-enum</code></td>
+    <td>类型定义应该放在专用文件中。这是架构层的约束，不影响运行时正确性。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P6~P10</span></td>
+    <td>类设计 / this / 上下文切换 / 全局对象 / 网关</td>
+    <td><code>restrictions/no-private-method</code>、<code>restrictions/no-window</code> 等</td>
+    <td>架构设计原则约束。修复这些需要理解模块的整体设计意图。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P11</span></td>
+    <td>架构强约束</td>
+    <td><code>no-extends</code>、<code>no-export-forwarding</code>、<code>no-nested-function</code>、<code>folder-item-limit</code></td>
+    <td>继承禁令、导出转发、嵌套函数等。这些是架构红线，但它们的修复需要设计层面的判断。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P12</span></td>
+    <td>AI 标记</td>
+    <td><code>ai-worker/detect-ai-todo</code></td>
+    <td>代码中残留的 <code>@AITODO</code> 标记。需要人工或 AI 确认是否仍需处理。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P13</span></td>
+    <td>代码质量与注释</td>
+    <td><code>require-import-comment</code>、<code>require-function-comment</code>、<code>require-if-comment</code>、<code>explicit-return-type-reason</code> 等</td>
+    <td>注释和文档要求。这些是"锦上添花"——在所有架构和类型问题解决之前，花精力写完美的注释是浪费注意力。</td>
+</tr>
+<tr>
+    <td><span class="priority-badge p-13">P14</span></td>
+    <td>元任务</td>
+    <td><code>task-checker/require-task</code></td>
+    <td>从 task.md 领取任务的提示。这是最低优先级——AI 应该在代码完全干净后再去查看是否有未被领取的元任务。</td>
+</tr>
+</table>
+
+<h2 id="ai-collaboration">五、核心价值：AI 协作场景下的意义</h2>
+
+<h3>场景对比：无优先级 vs 有优先级</h3>
+
+<h4>无优先级系统时</h4>
+
+<blockquote>
+<p>AI 打开 <code>bindEvent.ts</code> → ESLint 报出 244 个 error，涵盖 24 种规则 → AI 的上下文窗口被 244 条错误信息占满 → AI 尝试批量修复 → 修分号时改动了导入路径，触发新错误 → 同时修复 50 行函数拆分耗时巨大 → AI 工作过程中不断被新错误打断 → 最终要么放弃要么产出低质量结果</p>
+</blockquote>
+
+<h4>有优先级系统时</h4>
+
+<blockquote>
+<p>AI 打开 <code>bindEvent.ts</code> → 只看到 5 个 error，全部是 <code>code-size/max-lines-per-function</code>（函数超长）→ AI 理解：这个文件的核心问题是函数太大 → 逐一拆分超长函数 → P0 清零 → 重新 lint → P1 错误浮现（if 嵌套、else）→ 扁平化控制流 → P1 清零 → P2 浮现（as 断言）→ 移到 guard 文件 → 以此类推 → 最终文件完全干净</p>
+</blockquote>
+
+<h3>三个关键效应</h3>
+
+<div class="callout callout-info">
+<div class="callout-title">效应 1：注意力聚焦</div>
+<p>AI 在任何时刻只看到一类性质的错误。244 → 5 不是简单的"数量减少"，而是<strong>性质收敛</strong>——从"24 种完全不同维度的问题"变为"1 种问题：函数太大"。AI 可以采用单一策略（拆分函数）来处理所有 5 个错误，而不需要在"补注释"和"拆函数"之间频繁切换。</p>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">效应 2：修复路径自然涌现</div>
+<p>渐进披露让"下一步做什么"从显式决策变为隐式涌现——AI 不需要阅读所有错误后决定先修哪个，因为低优先级错误根本不在视野中。修完当前层次的错误后，下一层自动出现。这消除了一种特别隐蔽的 AI 失效模式：<strong>错误优先级误判</strong>——AI 可能选择先修容易的注释错误，把困难的函数拆分留到最后，但修注释时改动的代码可能使得函数拆分变得更加复杂。</p>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">效应 3：上下文窗口的有效扩展</div>
+<p>全量 lint 的 50,022 个错误如果全部输出到 AI 的上下文，将消耗约 200K+ tokens——占了上下文窗口的相当比例。渐进披露将每个文件的可见错误压缩到其最高优先级层次（总计 4,543 个），释放了数十 K 的上下文空间给实际代码阅读和修复工作。对 AI 而言，有效的上下文窗口实际上被扩展了。</p>
+</div>
+
+<h3>"先难后易"原则的工程化</h3>
+
+<p>人类专家在面对一个满是问题的文件时，遵循的是"先难后易"——先修复最复杂、最结构性、最可能影响后续所有修改的问题。函数太大 → 先拆函数；拆完后发现 if 嵌套 → 再扁平化控制流；扁平化后发现有 forEach → 换成 for...of；以此类推。</p>
+
+<p>这个顺序不是随意设定的，它基于一个深层规律：<strong>高优先级的问题如果不先解决，会持续产生新的低优先级问题</strong>。一个 1000 行的函数在被拆分时，无论是 AI 还是人类都会不可避免地引入新的参数命名、新的导入路径、新的控制流结构——这些在拆分后才需要检查。如果先在旧的大函数上修注释问题，拆分后那些注释位置可能完全不对了。</p>
+
+<p>优先级 Lint 系统将这个"先难后易"的专家策略工程化——不依赖 AI 或人类的判断力来判断先做什么，而是<strong>由工具层硬性保证信息呈现的顺序</strong>。这是从"提示 AI 应该怎么做"升级为"让 AI 只能看到应该做的事"的根本变化。</p>
+
+<div class="callout callout-warning">
+<div class="callout-title">关键技术细节：为什么是逐文件而非逐全量</div>
+<p>渐进披露的过滤单位是<strong>单文件</strong>，不是全量。ESLint 的 processor 在每个文件的 postprocess 阶段独立工作，只看该文件自身的消息来决定过滤。这意味着：文件 A 有 P0 错误只看到 P0，文件 B 没有 P0 只看到 P1——两者互不影响。这个设计避免了"一个文件的 P0 错误把另一个文件的 P13 错误全部隐藏"的全局性问题，确保了过滤的精准性。</p>
+</div>
+
+<h2 id="usage">六、使用指南</h2>
+
+<h3>日常开发</h3>
+
+<table>
+<tr>
+    <th>命令</th>
+    <th>行为</th>
+</tr>
+<tr>
+    <td><code>pnpm lint</code></td>
+    <td>全量 lint + autofix，只显示最高优先级的 error</td>
+</tr>
+<tr>
+    <td><code>pnpm lint:file -- &lt;路径&gt;</code></td>
+    <td>单文件检查，显示优先级标注 <code>[P0]</code></td>
+</tr>
+<tr>
+    <td><code>pnpm lint:top</code></td>
+    <td>显示错误最多的文件（已过滤）</td>
+</tr>
+<tr>
+    <td><code>pnpm lint:rules</code></td>
+    <td>按规则统计错误（已过滤）</td>
+</tr>
+</table>
+
+<h3>调试与全量查看</h3>
+
+<table>
+<tr>
+    <th>方式</th>
+    <th>效果</th>
+</tr>
+<tr>
+    <td><code>pnpm lint:file -- &lt;路径&gt; --show-all</code></td>
+    <td>跳过单文件优先级过滤，显示该文件全部 error</td>
+</tr>
+<tr>
+    <td><code>$env:PRIORITY_LINT_SHOW_ALL="1"; pnpm lint</code></td>
+    <td>跳过全量优先级过滤，所有 error 全部暴露</td>
+</tr>
+<tr>
+    <td><code>$env:PRIORITY_LINT_SHOW_ALL="1"; pnpm lint:rules</code></td>
+    <td>统计全部 error 的真实捕获分布</td>
+</tr>
+</table>
+
+<p><code>--show-all</code> 和环境变量两种手段走的是同一机制——processor 在 <code>postprocess</code> 中检测 <code>PRIORITY_LINT_SHOW_ALL=1</code> 环境变量，跳过过滤逻辑直接返回全部消息。</p>
+
+<h3>输出格式</h3>
+
+<p><code>pnpm lint:file</code> 的输出中，每条错误前标注优先级：</p>
+
+<pre><code>1. bindEvent.ts:13:32    [W]  [WARN]  'openFileAttr' is defined but never used. (@typescript-eslint/no-unused-vars)
+2. bindEvent.ts:157:22   [P0] [ERROR] ❌ 函数表达式 "renderMenu" 超过最大实际行数限制... (code-size/max-lines-per-function)
+3. bindEvent.ts:380:1    [P0] [ERROR] ❌ 文件超过最大行数限制... (code-size/max-lines)</code></pre>
+
+<p><code>[P0]</code> = 优先级 0（最高），<code>[W]</code> = warning（不参与优先级过滤）。</p>
+
+<h2 id="extend">七、新增规则的注册方式</h2>
+
+<p>新增一个 lint 规则时，开发者只需三步：</p>
+
+<h4>步骤 1：编写规则文件</h4>
+
+<p>与标准 ESLint 插件格式完全一致：</p>
+
+<pre><code>// 0_lints/my-new-rule.mjs
+export const myNewRulePlugin = {
+    rules: {
+        "my-new-rule": {
+            meta: {
+                type: "problem",
+                // 可选：在此声明优先级，工厂会自动读取
+                priority: 5,
+                docs: { description: "我的新规则" },
+                schema: [],
+            },
+            create(context) {
+                // 标准 ESLint 规则逻辑
+            },
+        },
+    },
+};</code></pre>
+
+<h4>步骤 2：在 priority-config.mjs 中导入并注册</h4>
+
+<pre><code>// 0_lints/priority-config.mjs
+import { myNewRulePlugin } from "./my-new-rule.mjs";
+
+const wrappedPlugins = {
+    // 方式 A：优先级写在 meta.priority 中，工厂自动读取
+    "my-new-rule": createPriorityPlugin(myNewRulePlugin, "my-new-rule"),
+
+    // 方式 B：在工厂调用中统一指定
+    "my-new-rule": createPriorityPlugin(myNewRulePlugin, "my-new-rule", 5),
+
+    // 方式 C：对插件内不同规则分别指定
+    "my-new-rule": createPriorityPlugin(myNewRulePlugin, "my-new-rule", {
+        "rule-a": 3,
+        "rule-b": 7,
+    }),
+};</code></pre>
+
+<h4>步骤 3：在 eslint.config.mjs 的 SHARED_RULES 中启用</h4>
+
+<pre><code>"my-new-rule/my-new-rule": "error",</code></pre>
+
+<p>三步完成。规则编写方式与之前完全一致——<code>createPriorityPlugin</code> 是一次纯副作用调用，不修改插件行为，只将优先级写入注册表。过滤逻辑完全由 processor 在统一的 postprocess 阶段处理。</p>
+
+<div class="spacer"></div>
+<hr style="border: none; border-top: 1px solid var(--border); margin: 48px 0 24px;">
+<p style="color: var(--text-dim); font-size: 0.85em; text-align: center;">
+优先级 Lint 系统 · 渐进式错误披露 · AI 协作编程的注意力管理基础设施
+</p>
+
+</div>
+</body>
+</html>
