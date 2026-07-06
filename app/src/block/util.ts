@@ -300,7 +300,7 @@ export const genEmptyBlock = async (zwsp = true, wbr = true, string?: string) =>
 };
 
 /** 生成空块 DOM 元素 */
-export const genEmptyElement = async (zwsp = true, wbr = true, id?: string) => {
+export const genEmptyElement = (zwsp = true, wbr = true, id?: string) => {
     const element = document.createElement("div");
     element.setAttribute("data-node-id", id || Lute.NewNodeID());
     element.setAttribute("data-type", "NodeParagraph");
@@ -310,7 +310,7 @@ export const genEmptyElement = async (zwsp = true, wbr = true, id?: string) => {
 };
 
 /** 生成标题元素 */
-export const genHeadingElement = async (headElement: Element, getHTML = false, addWbr = false) => {
+export const genHeadingElement = (headElement: Element, getHTML = false, addWbr = false) => {
     const html = `<div data-subtype="${headElement.getAttribute("data-subtype")}" data-node-id="${Lute.NewNodeID()}" data-type="NodeHeading" class="${headElement.className}"><div contenteditable="true" spellcheck="false">${addWbr ? "<wbr>" : ""}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
     if (getHTML) {
         return html;
