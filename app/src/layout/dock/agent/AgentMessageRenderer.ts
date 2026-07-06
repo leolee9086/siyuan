@@ -1,5 +1,5 @@
 import {escapeHtml} from "../../../util/DOM/escape";
-import {processSiYuanUri} from "../../editor/processSiYuanUri";
+import {processSiYuanUri} from "../../../editor/processSiYuanUri";
 import {highlightRender} from "../../../protyle/render/highlightRender";
 import {mathRender} from "../../../protyle/render/mathRender";
 import {mermaidRender} from "../../../protyle/render/mermaidRender";

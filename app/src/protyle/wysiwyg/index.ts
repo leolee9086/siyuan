@@ -956,16 +956,16 @@ export class WYSIWYG {
                 }
 
                 let hasJump = false;
-                const selectBottom = endLastElement ? endLastElement.getBoundingClientRect().bottom : (newTop + newHeight);
+                const traverseBottom = endLastElement ? endLastElement.getBoundingClientRect().bottom : (newTop + newHeight);
                 while (currentElement) {
                     if (currentElement && !currentElement.classList.contains("protyle-attr")) {
                         const currentRect = currentElement.getBoundingClientRect();
-                        if (currentRect.height > 0 && currentRect.top < selectBottom && currentRect.left < selectRight) {
+                        if (currentRect.height > 0 && currentRect.top < traverseBottom && currentRect.left < selectRight) {
                             if (hasJump) {
                                 // 父节点的下个节点在选中范围内才可使用父节点作为选中节点
                                 if (currentElement.nextElementSibling && !currentElement.nextElementSibling.classList.contains("protyle-attr")) {
                                     const nextRect = currentElement.nextElementSibling.getBoundingClientRect();
-                                    if (nextRect.top < selectBottom && nextRect.left < selectRight) {
+                                    if (nextRect.top < traverseBottom && nextRect.left < selectRight) {
                                         selectElements = [currentElement];
                                         currentElement = currentElement.nextElementSibling;
                                         hasJump = false;

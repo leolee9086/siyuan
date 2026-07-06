@@ -1,4 +1,3 @@
-import { Tab } from "../Tab";
 import { Files } from "./Files";
 import { Bookmark } from "./Bookmark";
 import { Tag } from "./Tag";
@@ -10,14 +9,21 @@ import { Inbox } from "./Inbox";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
-import { AgentChat } from "./AgentChat";
-import { App } from "../../index";
-import { Protyle } from "../../protyle";
-import { Model } from "../Model";
-import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE, createErrorPlaceholderFromData } from "./ErrorPlaceholder";
-import { getSiyuanLanguages, getSiyuanStorage } from "./dock.environment";
-import { isErrorPlaceholderData, isModelConstructor, isICustomList } from "./dock.guard";
-import { ModelFactory, ModelConstructor } from "./dock.types";
+import { AgentChat } from "./agent/AgentChat";
+import { Tab } from "./imports";
+import type { App } from "./imports";
+import type { Protyle } from "./imports";
+import type { Model } from "./imports";
+import { ErrorPlaceholder } from "./ErrorPlaceholder";
+import { ERROR_PLACEHOLDER_TYPE } from "./ErrorPlaceholder";
+import { createErrorPlaceholderFromData } from "./ErrorPlaceholder";
+import { getSiyuanLanguages } from "./dock.environment";
+import { getSiyuanStorage } from "./dock.environment";
+import { isErrorPlaceholderData } from "./dock.guard";
+import { isModelConstructor } from "./dock.guard";
+import { isICustomList } from "./dock.guard";
+import { ModelFactory } from "./dock.types";
+import { ModelConstructor } from "./dock.types";
 
 /**
  * 初始化文件树 Dock

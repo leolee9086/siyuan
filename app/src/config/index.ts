@@ -13,7 +13,7 @@ import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
 import {tabRegistry} from "../registry";
 import {createApp} from "vue";
 import type {Custom} from "../layout/dock/Custom";
-import {renderReadme} from "./bazaar";
+import {bazaar} from "./bazzar/bazaar";
 import {fetchSyncPost} from "../util/network/fetch";
 import type {App} from "../index";
 
@@ -139,6 +139,6 @@ export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemNa
     if (!resource) return;
 
     openSettingDialog(app, "bazaar");
-    renderReadme(bazaarType, "bazaar", resource);
+    bazaar._renderReadme(bazaarType, resource, false);
     /// #endif
 };

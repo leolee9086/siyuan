@@ -19,7 +19,7 @@ import {genStackHtml} from "../render/render";
 import {controlBoolean} from "../setting/control";
 import {editorConfigApi} from "./editorRuntime";
 import {appearanceThemeModeValue, saveThemeMode} from "./appearanceRuntime";
-import {upDownHint} from "../../util/upDownHint";
+import {upDownHint} from "../../util/DOM/upDownHint";
 
 interface IFontItem {
     family: string;

@@ -5,9 +5,9 @@ import type { App } from "../../index";
 export type { App };
 
 /** 用途：页签类型定义。使用范围：dock 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { Tab } from "../Tab";
+import { Tab } from "../Tab";
 /** 导出 Tab 类型，供 dock 模块使用 */
-export type { Tab };
+export { Tab };
 
 /** 用途：Protyle 编辑器类型。使用范围：dock 模块类型约束。解耦评估：通过 imports.ts 转发。 */
 import type { Protyle } from "../../protyle";

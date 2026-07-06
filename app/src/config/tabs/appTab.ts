@@ -11,7 +11,7 @@ import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {isInMobileApp} from "../../protyle/util/compatibility";
 import {pathPosix} from "../../util/pathName";
-import {escapeAttr, escapeHtml} from "../../util/escape";
+import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 /// #endif
 /// #if !BROWSER
 import {afterExport} from "../../protyle/export/util";

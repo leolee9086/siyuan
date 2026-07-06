@@ -189,3 +189,4 @@ export { saveLayout, exportLayout, getAllLayout, layoutToJSON } from "./layout-s
 export { JSONToCenter, JSONToLayout } from "./layout-deserialization";
 export { switchWnd, getWndByLayout } from "./window-utils";
 export { resizeTopBar, adjustLayout, fixWndFlex1 } from "./ui-utils";
+export { setPanelFocus } from "./utils/setPanelFocus";
