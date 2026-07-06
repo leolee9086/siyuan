@@ -260,12 +260,10 @@ func initMagiComponents() error {
 
 	setMagiPersonaRuntimeStatus(profile, isComplete, presetName)
 
-	// 创建 LLM 客户端（优先使用 profile pool，兜底用 providers 中的 agent 模型）
-	llmClient := llm.GetActiveClient()
-	if llmClient == nil {
-		if p, m := model.Conf.AI.GetAgentModel(); p != nil && m != nil {
-			llmClient = llm.NewClientFromProvider(p, m, util.UserAgent)
-		}
+	// 创建 LLM 客户端，直接从 providers 读取 agent 模型，与 agentChat 一致
+	var llmClient llm.Client
+	if p, m := model.Conf.AI.GetAgentModel(); p != nil && m != nil {
+		llmClient = llm.NewClientFromProvider(p, m, util.UserAgent)
 	}
 
 	// 创建四个 Sage 实例
