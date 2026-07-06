@@ -26,9 +26,14 @@ function isPortAvailable(port) {
 }
 
 (async () => {
-  if (!(await isPortAvailable(port))) {
-    console.error(`端口 ${port} 已被占用，请先关闭占用该端口的进程后重试`);
-    process.exit(1);
+  // 自动检测可用端口，从指定端口开始递增尝试
+  let selectedPort = parseInt(port, 10);
+  while (!(await isPortAvailable(selectedPort))) {
+    console.error(`端口 ${selectedPort} 已被占用`);
+    selectedPort++;
+  }
+  if (selectedPort !== parseInt(port, 10)) {
+    console.log(`自动切换到端口 ${selectedPort}`);
   }
 
   // 确定可执行文件名
@@ -36,7 +41,7 @@ function isPortAvailable(port) {
   const kernelBinDir = path.join(appDir, 'kernel');
 
   // 构建命令
-  console.log(`Building kernel for forge mode (port=${port})...`);
+  console.log(`Building kernel for forge mode (port=${selectedPort})...`);
   try {
     execSync(`go build --tags "fts5" -o "../app/kernel/${exeName}"`, {
       cwd: kernelDir,
@@ -48,10 +53,10 @@ function isPortAvailable(port) {
   }
 
   // 启动命令
-  console.log(`Starting forge mode on port ${port}...`);
+  console.log(`Starting forge mode on port ${selectedPort}...`);
   const startCmd = platform === 'win32'
-    ? `.\\${exeName} serve --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`
-    : `./${exeName} serve --wd=.. --mode=forge --port=${port} --workspace=../../.dev-workspace`;
+    ? `.\\${exeName} serve --wd=.. --mode=forge --port=${selectedPort} --workspace=../../.dev-workspace`
+    : `./${exeName} serve --wd=.. --mode=forge --port=${selectedPort} --workspace=../../.dev-workspace`;
 
   try {
     execSync(startCmd, {
