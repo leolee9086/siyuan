@@ -260,10 +260,12 @@ func initMagiComponents() error {
 
 	setMagiPersonaRuntimeStatus(profile, isComplete, presetName)
 
-	// 创建 LLM 客户端（优先使用 profile pool，兜底用全局配置）
+	// 创建 LLM 客户端（优先使用 profile pool，兜底用 providers 中的 agent 模型）
 	llmClient := llm.GetActiveClient()
 	if llmClient == nil {
-		llmClient = llm.NewClientFromConf(model.Conf.AI.OpenAI)
+		if p, m := model.Conf.AI.GetAgentModel(); p != nil && m != nil {
+			llmClient = llm.NewClientFromProvider(p, m, util.UserAgent)
+		}
 	}
 
 	// 创建四个 Sage 实例
@@ -454,8 +456,9 @@ func magiChat(c *gin.Context) {
 	// 确保单例调度器已启动
 	initMagiCron()
 
-	if "" == model.Conf.AI.OpenAI.APIKey {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "OpenAI API Key not configured"})
+	provider, agentModel := model.Conf.AI.GetAgentModel()
+	if provider == nil || agentModel == nil || provider.APIKey == "" {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "AI Provider not configured"})
 		return
 	}
 
@@ -466,7 +469,7 @@ func magiChat(c *gin.Context) {
 		return
 	}
 	if req.Model == "" {
-		req.Model = model.Conf.AI.OpenAI.APIModel
+		req.Model = agentModel.Name
 	}
 
 	sourceCtx, authErr := resolveOpenAISourceContext(c, &req)
@@ -1167,11 +1170,12 @@ func sendStreamResponse(c *gin.Context, msg *types.Message, modelName string) {
 }
 
 func magiListModels(c *gin.Context) {
-	modelName := model.Conf.AI.OpenAI.APIModel
-	if modelName == "" {
+	_, agentModel := model.Conf.AI.GetAgentModel()
+	if agentModel == nil || agentModel.Name == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "模型名称未配置"})
 		return
 	}
+	modelName := agentModel.Name
 
 	// 模拟 /v1/models 响应
 	c.JSON(http.StatusOK, gin.H{

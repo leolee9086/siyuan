@@ -10,7 +10,7 @@ import { IDialog } from "./dialog.types";
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 创建输入框键盘事件处理器(options: {
+export function 创建输入框键盘事件处理器(options: {
     dialog: IDialog;
     enterEvent: (() => void) | undefined;
     bindEnter: boolean;
@@ -73,7 +73,7 @@ export async function 创建输入框键盘事件处理器(options: {
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 创建遮罩点击处理器(dialog: IDialog, disableClose: boolean, disableScrimClose: boolean) {
+export function 创建遮罩点击处理器(dialog: IDialog, disableClose: boolean, disableScrimClose: boolean) {
     return (event: Event) => {
         // 未禁用遮罩关闭时销毁对话框
         if (!disableClose && !disableScrimClose) {
@@ -93,7 +93,7 @@ export async function 创建遮罩点击处理器(dialog: IDialog, disableClose:
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 创建关闭按钮点击处理器(dialog: IDialog, isFullscreen: () => boolean) {
+export function 创建关闭按钮点击处理器(dialog: IDialog, isFullscreen: () => boolean) {
     return (event: Event) => {
         // 全屏模式下先退出全屏再关闭
         if (isFullscreen()) {
@@ -117,7 +117,7 @@ export async function 创建关闭按钮点击处理器(dialog: IDialog, isFulls
  * @已知问题: 无
  * @改进方向: 无
  */
-export async function 创建全屏按钮点击处理器(dialog: IDialog) {
+export function 创建全屏按钮点击处理器(dialog: IDialog) {
     return (event: Event) => {
         dialog.fullscreen();
         event.preventDefault();
@@ -134,7 +134,7 @@ export async function 创建全屏按钮点击处理器(dialog: IDialog) {
  * @已知问题: 无
  * @改进方向: 可以考虑使用 AbortController 统一管理事件监听器的清理
  */
-export async function 绑定对话框事件(dialog: IDialog, element: HTMLElement, disableClose: boolean, disableScrimClose: boolean, isFullscreen: () => boolean) {
+export function 绑定对话框事件(dialog: IDialog, element: HTMLElement, disableClose: boolean, disableScrimClose: boolean, isFullscreen: () => boolean) {
     // 遮罩点击事件
     const scrimElement = element.querySelector(".b3-dialog__scrim");
     scrimElement?.addEventListener("click", 创建遮罩点击处理器(dialog, disableClose, disableScrimClose));

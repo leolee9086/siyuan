@@ -318,13 +318,13 @@ export const 执行连接操作 = async (
         const normalizedApiKey = String(openAIConfig.apiKey ?? "").trim();
 
         if (!normalizedBaseURL) {
-            throw new Error("AI 接口地址为空，请先在后端配置 ai.openAI.apiBaseURL");
+            throw new Error("AI 接口地址为空，请先在 AI 设置中 Provider 的 Base URL");
         }
         if (normalizedBaseURL.includes(PLACEHOLDER_ENDPOINT)) {
             throw new Error(`检测到占位符接口地址: ${normalizedBaseURL}，请改为后端真实配置`);
         }
         if (!normalizedApiKey) {
-            throw new Error("AI API Key 为空，请先在后端配置 ai.openAI.apiKey");
+            throw new Error("AI API Key 为空，请先在 AI 设置中配置 Provider 的 API Key");
         }
 
         const testUrl = `${normalizedBaseURL.replace(/\/$/, "")}/chat/completions`;

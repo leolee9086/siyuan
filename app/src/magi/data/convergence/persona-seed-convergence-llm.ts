@@ -36,13 +36,15 @@ function hasAnyDescriptionText(descriptions: IpipPersonaSeedDescriptions): boole
  * 问题/改进：后续可抽取为 convergence 专用配置提供器。
  */
 function readOpenAIConfig(): { apiBaseURL: string; apiKey: string; apiModel: string; apiTimeout: number } {
-    const config = getSafeSiyuanConfig();
-    const openAI = config?.ai?.openAI;
+    const aiConf = getSafeSiyuanConfig()?.ai;
+    const agentModelId = aiConf?.agent?.modelId;
+    const provider = aiConf?.providers?.find((p) => p.models?.some((m) => m.id === agentModelId));
+    const model = provider?.models?.find((m) => m.id === agentModelId);
     return {
-        apiBaseURL: String(openAI?.apiBaseURL ?? "").trim(),
-        apiKey: String(openAI?.apiKey ?? "").trim(),
-        apiModel: String(openAI?.apiModel ?? "").trim(),
-        apiTimeout: Number(openAI?.apiTimeout ?? 120),
+        apiBaseURL: provider?.baseURL ?? "",
+        apiKey: provider?.apiKey ?? "",
+        apiModel: model?.name ?? "",
+        apiTimeout: provider?.requestTimeout ?? 120,
     };
 }
 

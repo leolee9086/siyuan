@@ -637,6 +637,7 @@ export class WYSIWYG {
 
             const protyleRect = protyle.element.getBoundingClientRect();
             const mostBottom = protyleRect.bottom;
+            const clentX = event.clientX;
             const y = event.clientY;
             const contentRect = protyle.contentElement.getBoundingClientRect();
             if (handleSuperBlockResize(protyle, event, target, documentSelf, () => {
@@ -889,7 +890,7 @@ export class WYSIWYG {
                 // 向上划选时以 nodeElement 的实时边作为遍历终点（兼容滚动 https://github.com/siyuan-note/siyuan/issues/14664）；
                 // 落点在缝隙时 nodeElement 为下方块，需用其 top（不含自身）避免误选下方块
                 const startBlockRect = nodeElement.getBoundingClientRect();
-                const selectBottom = moveEvent.clientY <= selectStartY
+                const selectBottom = moveEvent.clientY <= y
                     ? (startBelowPoint ? startBlockRect.top : startBlockRect.bottom)
                     : (newTop + newHeight);
                 // newLeft 落在 padding 内时 elementFromPoint 会命中 wysiwyg 容器，需钳制到内容区
@@ -907,7 +908,7 @@ export class WYSIWYG {
                 }
                 // 向上划选且落点在 padding/缝隙时，elementFromPoint 易命中 wysiwyg 容器或容器类元素，
                 // 需沿 y 轴循环向下探测以定位到实际块，避免回退到文档首块导致误选上部所有块
-                if (moveEvent.clientY <= selectStartY && isContainer(firstElement)) {
+                if (moveEvent.clientY <= y && isContainer(firstElement)) {
                     let probeY = newTop;
                     while (probeY < selectBottom) {
                         probeY += 8;

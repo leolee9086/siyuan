@@ -121,7 +121,7 @@ func newOpenAIClient(cfg *Config) *openaiClient {
 	}
 }
 
-// NewClientFromConf 从全局配置创建客户端
+// NewClientFromConf 从全局配置创建客户端（兼容旧版）
 func NewClientFromConf(aiConf *conf.OpenAI) Client {
 	cfg := &Config{
 		Provider:    aiConf.APIProvider,
@@ -134,6 +134,18 @@ func NewClientFromConf(aiConf *conf.OpenAI) Client {
 		Timeout:     aiConf.APITimeout,
 		UserAgent:   aiConf.APIUserAgent,
 		APIVersion:  aiConf.APIVersion,
+	}
+	return NewClient(cfg)
+}
+
+// NewClientFromProvider 从 Provider 配置创建客户端，替代 NewClientFromConf。
+func NewClientFromProvider(provider *conf.Provider, model *conf.Model, userAgent string) Client {
+	cfg := &Config{
+		APIKey:     provider.APIKey,
+		APIBaseURL: provider.BaseURL,
+		APIModel:   model.Name,
+		Timeout:    provider.RequestTimeout,
+		UserAgent:  userAgent,
 	}
 	return NewClient(cfg)
 }

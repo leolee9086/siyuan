@@ -35,9 +35,18 @@ export const 合并MockWISE配置 = async (
     基础默认: MockWISEConfig,
     用户输入: MockWISEConfig
 ): Promise<MockWISE完整配置> => {
-    // @AIDONE 目前前端实现阶段，三贤人共享直接使用 S-forge 的全局 AI 配置进行实际连接验证。
-    // 待后端 S-forge 特有的多 AI 配置机制落地后，这里将支持并使用不同贤人各自的专属配置。
-    const globalAI = getSafeSiyuanConfig()?.ai?.openAI;
+    // 从 ai.providers 读取 Agent 所用模型的提供商配置
+    const aiConf = getSafeSiyuanConfig()?.ai;
+    const agentModelId = aiConf?.agent?.modelId;
+    const agentProvider = aiConf?.providers?.find((p) => p.models?.some((m) => m.id === agentModelId));
+    const agentModel = agentProvider?.models?.find((m) => m.id === agentModelId);
+    const globalAI = agentProvider && agentModel ? {
+        apiKey: agentProvider.apiKey,
+        apiModel: agentModel.name,
+        apiBaseURL: agentProvider.baseURL,
+        apiTemperature: aiConf?.agent?.temperature ?? 0.7,
+        apiMaxTokens: aiConf?.agent?.maxCompletionTokens ?? 500,
+    } : undefined;
 
     // 基础默认和用户输入合并出的初始配置
     const userOpenAI = {
