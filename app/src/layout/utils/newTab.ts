@@ -1,13 +1,16 @@
-import { Editor, IEditorOptions } from "../../editor";
-import { Asset } from "../../asset";
-import { newCardModel } from "../../card/newCardTab";
-import { Constants } from "../../constants";
-import { Tab } from "../Tab";
+import { Editor } from "./imports";
+import type { IEditorOptions } from "./imports";
+import { Asset } from "./imports";
+import { newCardModel } from "./imports";
+import { Constants } from "./imports";
+import { Tab } from "./imports";
 import { setPanelFocus } from "./setPanelFocus";
-import { tabRegistry } from "../../registry";
-import { Search } from "../../search";
-import { pathPosix, getDisplayName, getDocDisplayName } from "../../util/file/pathName";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { tabRegistry } from "./imports";
+import { Search } from "./imports";
+import { pathPosix } from "./imports";
+import { getDisplayName } from "./imports";
+import { getDocDisplayName } from "./imports";
+import { siyuanI18n } from "./imports";
 
 /**
  * 根据选项创建一个新页签。

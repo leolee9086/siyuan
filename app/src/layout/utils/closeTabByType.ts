@@ -1,4 +1,7 @@
-import { Tab } from "../Tab";
+/**
+ * 用途：Tab 类类型定义。使用范围：closeTabByType 函数参数和返回值类型标注。解耦评估：仅用作类型标注，不形成运行时依赖。类型引用无法通过依赖注入替代，import type 是最小耦合方式。
+ */
+import type { Tab } from "../Tab";
 
 
 /**
@@ -19,6 +22,7 @@ export const closeTabByType = async (tab: Tab, type: "closeOthers" | "closeAll" 
         const children = tab.parent.children;
         for (let i = children.length - 1; i >= 0; i--) {
             const item = children[i];
+            // 跳过自身（基准页签保留）和已固定的页签（item--pin）
             if (item && item.id !== tab.id && !item.headElement.classList.contains("item--pin")) {
                 await tab.parent.removeTab(item.id, true, false);
             }
@@ -30,6 +34,7 @@ export const closeTabByType = async (tab: Tab, type: "closeOthers" | "closeAll" 
         const children = tab.parent.children;
         for (let i = children.length - 1; i >= 0; i--) {
             const item = children[i];
+            // 跳过已固定的页签（pin 类型页签不应被批量关闭）
             if (item && !item.headElement.classList.contains("item--pin")) {
                 await tab.parent.removeTab(item.id, true);
             }
@@ -39,6 +44,7 @@ export const closeTabByType = async (tab: Tab, type: "closeOthers" | "closeAll" 
     // 关闭指定的一组页签
     if (type === "other" && tabs && tabs.length > 0) {
         for (const item of tabs) {
+            // 跳过已固定的页签，防止意外关闭常驻页签
             if (!item.headElement.classList.contains("item--pin")) {
                 await item.parent.removeTab(item.id);
             }
