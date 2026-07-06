@@ -270,6 +270,22 @@ func (c *Collection) Info() CollectionInfo {
 
 func (c *Collection) Close() error { return nil }
 
+func (c *Collection) GetVectorByID(id string) ([]float32, bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	docID, ok := c.IDMap[id]
+	if !ok {
+		return nil, false
+	}
+	vec, ok := c.Store.GetUnsafe(docID)
+	if !ok {
+		return nil, false
+	}
+	vecCopy := make([]float32, len(vec))
+	copy(vecCopy, vec)
+	return vecCopy, true
+}
+
 func (c *Collection) GetMetaByID(id string) (json.RawMessage, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()

@@ -30,6 +30,7 @@ type CollectionOptions struct {
 	Dimension       int
 	Meta            CollectionMeta
 	Points          []Point
+	DistanceMetric  string // 距离度量："l2"、"cosine"、"ip"；空字符串表示使用引擎默认
 	DiskBuildConfig *vamana.DiskBuildConfig
 }
 
@@ -55,8 +56,9 @@ type CollectionAPI interface {
 }
 
 type SearchOptions struct {
-	TopK     int
-	EfSearch int
+	TopK           int
+	EfSearch       int
+	ScoreThreshold float32 // >=0 时仅返回 score >= threshold 的结果；0 或负数表示不启用阈值截断
 }
 
 type CollectionStats struct {
@@ -203,7 +205,7 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 		return nil, ErrVectorDimensionInvalid
 	}
 
-	col, err := db.CreateCollectionWithMeta(name, dimension, opts.Meta)
+	col, err := db.CreateCollectionWithOptionsRaw(name, dimension, opts.Meta, opts.DistanceMetric)
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +238,15 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	config := vamana.DefaultDiskBuildConfig()
 	if opts.DiskBuildConfig != nil {
 		config = *opts.DiskBuildConfig
+	}
+
+	// 从 CollectionOptions 传递距离度量
+	if opts.DistanceMetric != "" {
+		sim, err := resolveSimilarity(opts.DistanceMetric)
+		if err != nil {
+			return nil, err
+		}
+		config.DistanceMetric = sim
 	}
 
 	basePath := db.vamanaBasePath(name)
@@ -301,7 +312,20 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	if topK <= 0 {
 		topK = 10
 	}
-	return h.col.Search(query, topK, opts.EfSearch), nil
+	results := h.col.Search(query, topK, opts.EfSearch)
+
+	// 按 ScoreThreshold 过滤
+	if opts.ScoreThreshold > 0 {
+		filtered := results[:0]
+		for _, r := range results {
+			if r.Score >= opts.ScoreThreshold {
+				filtered = append(filtered, r)
+			}
+		}
+		results = filtered
+	}
+
+	return results, nil
 }
 
 func (h *CollectionHandle) Delete(ids []string) error {
@@ -329,6 +353,19 @@ func (h *CollectionHandle) Flush() error {
 		return vc.FlushToDisk(h.db.vamanaBasePath(vc.Name()))
 	}
 	return SaveCollection(h.col, h.db.Path)
+}
+
+func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
+	var points []Point
+	for _, id := range ids {
+		vec, ok := h.col.GetVectorByID(id)
+		if !ok {
+			continue
+		}
+		meta, _ := h.col.GetMetaByID(id)
+		points = append(points, Point{ID: id, Vector: vec, Meta: meta})
+	}
+	return points, nil
 }
 
 func (h *CollectionHandle) Close() error {

@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/vmihailenco/msgpack/v5"
+	"s-forge.local/vectordb/bbq"
 	"s-forge.local/vectordb/vamana"
 )
 
@@ -180,7 +181,7 @@ func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []Se
 			continue
 		}
 
-		score := vamanaDistanceToScore(r.Distance)
+		score := vamanaDistanceToScore(r.Distance, vc.Index.DistanceMetric())
 
 		var meta json.RawMessage
 		if metaBytes, metaOk := vc.Metas[r.ID]; metaOk {
@@ -225,26 +226,40 @@ func (vc *VamanaCollection) RebuildIndex() error {
 	return nil
 }
 
-// vamanaDistanceToScore converts a Vamana Euclidean distance to a score in [0, 1].
+// vamanaDistanceToScore 将 Vamana 的内部距离转换为 [0,1] 分数，度量感知版。
 //
-// Vamana uses euclideanDistance (‖a-b‖²) or dotProduct distance internally.
-// The distance is un-normalized, so we use a clamped inverse transform:
-//
-//	score = 1.0 / (1.0 + distance)
-//
-// Clamped to [0, 1].
-func vamanaDistanceToScore(distance float32) float32 {
-	if distance < 1e-6 {
-		return 1.0
+// 与 HNSW 的 distanceToScore 对齐：
+//   - cosine:  score = 1.0 - distance/2.0（cosine distance 范围 [0,2]，余弦距离≠余弦相似度）
+//   - l2/euclidean: score = 1.0 / (1.0 + distance)
+//   - ip: 缩放后映射到 [0, +∞)
+func vamanaDistanceToScore(distance float32, metric bbq.SimilarityType) float32 {
+	switch metric {
+	case bbq.CosineSimilarity:
+		s := 1.0 - distance/2.0
+		if s < 0 {
+			s = 0
+		}
+		return s
+	case bbq.MaxInnerProduct:
+		s := 1.0 - distance
+		if s < 0 {
+			return 1.0 / (1.0 - s)
+		}
+		return s + 1.0
+	default:
+		// Euclidean / L2
+		if distance < 1e-6 {
+			return 1.0
+		}
+		s := 1.0 / (1.0 + distance)
+		if s < 0 {
+			s = 0
+		}
+		if s > 1 {
+			s = 1
+		}
+		return s
 	}
-	score := 1.0 / (1.0 + distance)
-	if score < 0 {
-		score = 0
-	}
-	if score > 1 {
-		score = 1
-	}
-	return score
 }
 
 // BuildVamanaCollection builds a new disk-based Vamana index from a set of
@@ -554,6 +569,20 @@ func vamanaFileSet(basePath string) []string {
 
 func (vc *VamanaCollection) Close() error {
 	return vc.Index.Close()
+}
+
+func (vc *VamanaCollection) GetVectorByID(id string) ([]float32, bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	nodeID, ok := vc.IDMap[id]
+	if !ok {
+		return nil, false
+	}
+	vec, err := vc.Index.ReadVector(nodeID)
+	if err != nil || vec == nil {
+		return nil, false
+	}
+	return vec, true
 }
 
 func (vc *VamanaCollection) GetMetaByID(id string) (json.RawMessage, bool) {

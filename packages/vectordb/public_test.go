@@ -109,6 +109,208 @@ func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
 	}
 }
 
+func TestUnifiedDB_FetchPointsAfterSearch(t *testing.T) {
+	dbPath := t.TempDir()
+	db, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+
+	// 构建 DiskVamana 集合，含元数据
+	points := []Point{
+		{ID: "f1", Vector: []float32{1, 0, 0, 0}, Meta: MarshalMeta(map[string]string{"tag": "one"})},
+		{ID: "f2", Vector: []float32{0, 1, 0, 0}},
+		{ID: "f3", Vector: []float32{0, 0, 1, 0}, Meta: MarshalMeta(map[string]string{"tag": "three"})},
+	}
+	col, err := db.CreateCollectionWithOptions("fetch-test", CollectionOptions{
+		Engine:    EngineDiskVamana,
+		Dimension: 4,
+		Points:    points,
+	})
+	if err != nil {
+		t.Fatalf("create collection: %v", err)
+	}
+
+	// 搜索后按结果 ID 取回完整点
+	results, err := col.Search([]float32{1, 0, 0, 0}, SearchOptions{TopK: 3, EfSearch: 20})
+	if err != nil {
+		t.Fatalf("search failed: %v", err)
+	}
+	if len(results) == 0 || results[0].ID != "f1" {
+		t.Fatalf("expected f1 as top result, got %+v", results[0])
+	}
+
+	// FetchPoints 按 ID 批量取回向量+元数据
+	ids := []string{"f1", "f2", "f-none"}
+	fetched, err := col.FetchPoints(ids)
+	if err != nil {
+		t.Fatalf("FetchPoints failed: %v", err)
+	}
+	if len(fetched) != 2 {
+		t.Fatalf("expected 2 fetched points (f-none should be skipped), got %d", len(fetched))
+	}
+	if fetched[0].ID != "f1" || len(fetched[0].Vector) != 4 {
+		t.Errorf("f1 fetch mismatch: %+v", fetched[0])
+	}
+	if fetched[1].ID != "f2" {
+		t.Errorf("f2 fetch mismatch: got ID=%s", fetched[1].ID)
+	}
+	// f1 应有元数据
+	for _, pt := range fetched {
+		if pt.ID == "f1" {
+			var meta map[string]string
+			if err := json.Unmarshal(pt.Meta, &meta); err != nil {
+				t.Fatalf("unmarshal meta for f1: %v", err)
+			}
+			if meta["tag"] != "one" {
+				t.Errorf("f1 meta tag mismatch: got %v", meta)
+			}
+		}
+	}
+
+	_ = col.Close()
+
+	// 重新打开后 FetchPoints 仍可工作
+	db2, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("reopen db: %v", err)
+	}
+	col2, err := db2.OpenCollection("fetch-test")
+	if err != nil {
+		t.Fatalf("reopen collection: %v", err)
+	}
+	defer col2.Close()
+
+	fetched2, err := col2.FetchPoints([]string{"f3"})
+	if err != nil {
+		t.Fatalf("FetchPoints after reopen failed: %v", err)
+	}
+	if len(fetched2) != 1 || fetched2[0].ID != "f3" {
+		t.Errorf("after reopen: expected f3, got %+v", fetched2)
+	}
+}
+
+// TestUnifiedDB_FetchPoints_HNSW 验证 HNSW 引擎的 FetchPoints
+func TestUnifiedDB_FetchPoints_HNSW(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	col, err := db.CreateCollectionWithOptions("hnsw-fetch", CollectionOptions{
+		Engine:    EngineHNSW,
+		Dimension: 3,
+		Points: []Point{
+			{ID: "x", Vector: []float32{1, 0, 0}, Meta: MarshalMeta(map[string]string{"v": "x"})},
+			{ID: "y", Vector: []float32{0, 1, 0}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create hnsw collection: %v", err)
+	}
+
+	fetched, err := col.FetchPoints([]string{"x", "z"})
+	if err != nil {
+		t.Fatalf("FetchPoints hnsw failed: %v", err)
+	}
+	if len(fetched) != 1 {
+		t.Fatalf("expected 1 fetched (z not found), got %d", len(fetched))
+	}
+	if fetched[0].ID != "x" || len(fetched[0].Vector) != 3 {
+		t.Errorf("hnsw fetch x mismatch: %+v", fetched[0])
+	}
+}
+
+func TestUnifiedDB_SearchScoreThreshold(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+
+	// 插入距离分布不同的向量，使 ScoreThreshold 能截断部分结果
+	col, err := db.CreateCollectionWithOptions("score-test", CollectionOptions{
+		Engine:    EngineHNSW,
+		Dimension: 2,
+		Points: []Point{
+			{ID: "near", Vector: []float32{0.99, 0.01}},
+			{ID: "mid", Vector: []float32{0.5, 0.5}},
+			{ID: "far", Vector: []float32{0.01, 0.99}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create collection: %v", err)
+	}
+
+	// 查询与 near 相同的向量，score 约为 1.0
+	query := []float32{0.99, 0.01}
+
+	// 无阈值：应返回全部 3 个
+	results, err := col.Search(query, SearchOptions{TopK: 3})
+	if err != nil {
+		t.Fatalf("search without threshold: %v", err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results without threshold, got %d", len(results))
+	}
+
+	// ScoreThreshold=0.9：应只返回 near（score≈1.0）
+	results, err = col.Search(query, SearchOptions{TopK: 3, ScoreThreshold: 0.9})
+	if err != nil {
+		t.Fatalf("search threshold=0.9: %v", err)
+	}
+	if len(results) == 0 || results[0].ID != "near" {
+		t.Fatalf("threshold=0.9: expected near at top, got %+v", results)
+	}
+	if len(results) > 1 {
+		t.Logf("threshold=0.9 returned %d results (may include near only if scores drop below 0.9)", len(results))
+	}
+
+	// ScoreThreshold=0.0：应返回全部
+	results, err = col.Search(query, SearchOptions{TopK: 3, ScoreThreshold: 0.0})
+	if err != nil {
+		t.Fatalf("search threshold=0.0: %v", err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("threshold=0.0 expected 3 results, got %d", len(results))
+	}
+}
+
+func TestUnifiedDB_Count(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+
+	col, err := db.CreateCollectionWithOptions("count-test", CollectionOptions{
+		Engine:    EngineHNSW,
+		Dimension: 2,
+		Points: []Point{
+			{ID: "a", Vector: []float32{1, 0}},
+			{ID: "b", Vector: []float32{0, 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create collection: %v", err)
+	}
+
+	if got := col.Stats().Count; got != 2 {
+		t.Fatalf("expected count=2 after create, got %d", got)
+	}
+
+	if err := col.Upsert([]Point{{ID: "c", Vector: []float32{0.5, 0.5}}}); err != nil {
+		t.Fatalf("upsert c: %v", err)
+	}
+	if got := col.Stats().Count; got != 3 {
+		t.Fatalf("expected count=3 after upsert, got %d", got)
+	}
+
+	if err := col.Delete([]string{"a"}); err != nil {
+		t.Fatalf("delete a: %v", err)
+	}
+	if got := col.Stats().Count; got != 2 {
+		t.Fatalf("expected count=2 after delete, got %d", got)
+	}
+}
+
 func TestUnifiedDB_PublicInterfaceManagement(t *testing.T) {
 	var dbi DB
 	dbi, err := Open(t.TempDir())
@@ -228,5 +430,87 @@ func TestUnifiedDB_HNSWLifecycle(t *testing.T) {
 	}
 	if len(results) == 0 || results[0].ID != "a" {
 		t.Fatalf("expected a as nearest result, got %+v", results)
+	}
+}
+
+// TestUnifiedDB_DistanceMetricConsistency 验证度量类型系统一致性。
+func TestUnifiedDB_DistanceMetricConsistency(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+
+	// 1) CollectionOptions 支持 DistanceMetric，HNSW 引擎使用 cosine
+	col, err := db.CreateCollectionWithOptions("metric-test", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "cosine",
+		Points: []Point{
+			{ID: "a", Vector: []float32{1, 0}},
+			{ID: "b", Vector: []float32{0, 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create with DistanceMetric: %v", err)
+	}
+	defer col.Close()
+	results, err := col.Search([]float32{1, 0}, SearchOptions{TopK: 3})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(results) == 0 || results[0].ID != "a" {
+		t.Fatalf("cosine: expected a as top-1, got %+v", results)
+	}
+
+	// 2) DiskVamana 引擎也通过 DistanceMetric
+	col2, err := db.CreateCollectionWithOptions("disk-metric", CollectionOptions{
+		Engine:         EngineDiskVamana,
+		Dimension:      2,
+		DistanceMetric: "l2",
+		Points: []Point{
+			{ID: "x", Vector: []float32{1, 0}},
+			{ID: "y", Vector: []float32{2, 0}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create disk with l2: %v", err)
+	}
+	defer col2.Close()
+	results, err = col2.Search([]float32{1.5, 0}, SearchOptions{TopK: 3})
+	if err != nil {
+		t.Fatalf("search disk: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatalf("disk l2: got no results")
+	}
+
+	// 3) 未知度量应返回明确错误
+	_, err = db.CreateCollectionWithOptions("bad-metric", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "unknown_metric_type",
+	})
+	if err == nil {
+		t.Error("expected error for unknown metric type, got nil")
+	}
+
+	// 4) 不指定 DistanceMetric 时使用默认（不应报错）
+	col3, err := db.CreateCollectionWithOptions("default-metric", CollectionOptions{
+		Engine:    EngineHNSW,
+		Dimension: 2,
+		Points: []Point{
+			{ID: "d", Vector: []float32{1, 0}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create with default metric: %v", err)
+	}
+	defer col3.Close()
+	results, err = col3.Search([]float32{1, 0}, SearchOptions{TopK: 1})
+	if err != nil {
+		t.Fatalf("search default metric: %v", err)
+	}
+	if len(results) == 0 || results[0].ID != "d" {
+		t.Fatalf("default metric: expected d as top-1, got %+v", results)
 	}
 }

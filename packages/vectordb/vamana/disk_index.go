@@ -684,6 +684,13 @@ func (idx *DiskVamanaIndex) SetBBQQueryBits(bits int) {
 	idx.bbqQueryBits = bits
 }
 
+// DistanceMetric 返回索引使用的距离度量类型。
+func (idx *DiskVamanaIndex) DistanceMetric() bbq.SimilarityType {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+	return idx.distanceMetric
+}
+
 // ============================================================================
 // Node Cache
 // ============================================================================

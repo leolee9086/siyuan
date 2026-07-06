@@ -63,11 +63,11 @@ type VamanaIndex struct {
 	scratchPool sync.Pool
 
 	// BBQ 量化数据
-	bbqEnabled       bool      // 是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
-	bbqPacked        []byte    // 打包的 1-bit 量化数据 (用于 1-bit 和 4-bit BitTranspose 查询)
-	bbqCompensations []float32 // 补偿因子 (||x||²)
-	bbqCentroid      []float32 // 全局质心向量
-	bbqPackedSize    int       // 每个向量打包后的字节数 = (dimension + 7) / 8
+	bbqEnabled     bool      // 是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
+	bbqPacked      []byte    // 打包的 1-bit 量化数据 (用于 1-bit 和 4-bit BitTranspose 查询)
+	bbqCorrections []float32 // 校正因子 (Correction: 欧氏=normSq, 余弦=centroidDot)
+	bbqCentroid    []float32 // 全局质心向量
+	bbqPackedSize  int       // 每个向量打包后的字节数 = (dimension + 7) / 8
 
 	// BBQ 量化元数据 (用于精确距离还原)
 	bbqLowerBounds   []float32 // 每个向量的量化区间下界
@@ -97,21 +97,21 @@ func New(dimension int, config Config) *VamanaIndex {
 	}
 
 	idx := &VamanaIndex{
-		config:           config,
-		dimension:        dimension,
-		vectorData:       make([]float32, 0),
-		vectors:          make([][]float32, 0),
-		neighbors:        make([][]uint32, 0),
-		medoid:           math.MaxUint32,
-		normSquares:      make([]float32, 0),
-		deleted:          NewBitset(1024),
-		nDeleted:         0,
-		bbqEnabled:       bbqEnabled,
-		bbqPacked:        nil,
-		bbqCompensations: nil,
-		bbqCentroid:      nil,
-		bbqPackedSize:    bbqPackedSize,
-		bbqQueryBits:     DefaultBBQQueryBits,
+		config:         config,
+		dimension:      dimension,
+		vectorData:     make([]float32, 0),
+		vectors:        make([][]float32, 0),
+		neighbors:      make([][]uint32, 0),
+		medoid:         math.MaxUint32,
+		normSquares:    make([]float32, 0),
+		deleted:        NewBitset(1024),
+		nDeleted:       0,
+		bbqEnabled:     bbqEnabled,
+		bbqPacked:      nil,
+		bbqCorrections: nil,
+		bbqCentroid:    nil,
+		bbqPackedSize:  bbqPackedSize,
+		bbqQueryBits:   DefaultBBQQueryBits,
 	}
 
 	idx.scratchPool = sync.Pool{

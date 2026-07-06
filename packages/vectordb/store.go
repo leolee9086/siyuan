@@ -1,6 +1,7 @@
 package vectordb
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -44,7 +45,7 @@ type VectorStore struct {
 // NewVectorStore creates a new VectorStore
 func NewVectorStore(dimension int, metricType string) *VectorStore {
 	packedSize := (dimension + 7) / 8
-	st := resolveSimilarity(metricType)
+	st, _ := resolveSimilarity(metricType) // 内部路径：默认余弦，忽略未知度量
 	return &VectorStore{
 		Dimension:      dimension,
 		vectors:        make([]float32, 0),
@@ -60,11 +61,22 @@ func NewVectorStore(dimension int, metricType string) *VectorStore {
 	}
 }
 
-func resolveSimilarity(metricType string) bbq.SimilarityType {
-	if metricType == "l2" {
-		return bbq.EuclideanDistance
+// resolveSimilarity 将字符串距离度量映射为 BBQ 枚举类型。
+// 支持的度量： "l2" (EuclideanDistance)、"cosine" (CosineSimilarity)、"ip" (MaxInnerProduct)。
+// 空字符串或未知值返回 errResult 以允许调用方决定默认行为。
+func resolveSimilarity(metricType string) (bbq.SimilarityType, error) {
+	switch metricType {
+	case "l2", "euclidean":
+		return bbq.EuclideanDistance, nil
+	case "cosine":
+		return bbq.CosineSimilarity, nil
+	case "ip", "dot", "innerproduct":
+		return bbq.MaxInnerProduct, nil
+	case "":
+		return bbq.CosineSimilarity, nil // 空字符串使用默认
+	default:
+		return 0, fmt.Errorf("unsupported distance metric %q: expected one of l2, cosine, ip", metricType)
 	}
-	return bbq.CosineSimilarity
 }
 
 // growSlice 确保 slice 长度至少为 targetLen，容量不足时以 2x 策略扩容。

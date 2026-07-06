@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"log"
+
 	"s-forge.local/vectordb/hnsw"
 	"s-forge.local/vectordb/vamana"
 )
@@ -116,6 +117,7 @@ type VectorCollection interface {
 	ListIDs() []string
 	ForEachID(fn func(id string, docID uint64, meta []byte) bool)
 	GetMetaByID(id string) (json.RawMessage, bool)
+	GetVectorByID(id string) ([]float32, bool)
 	Info() CollectionInfo
 
 	Close() error
@@ -132,8 +134,11 @@ func NewDatabase(path string) *Database {
 	}
 }
 
-func NewCollection(name string, dimension int) *Collection {
+func NewCollectionWithMetric(name string, dimension int, metricType string) *Collection {
 	config := DefaultConfig()
+	if metricType != "" {
+		config.MetricType = metricType
+	}
 	store := NewVectorStore(dimension, config.MetricType)
 
 	hnswConfig := hnsw.Config{
@@ -156,6 +161,9 @@ func NewCollection(name string, dimension int) *Collection {
 	}
 }
 
+func NewCollection(name string, dimension int) *Collection {
+	return NewCollectionWithMetric(name, dimension, "")
+}
 func DefaultConfig() CollectionConfig {
 	return CollectionConfig{
 		M:              16,
@@ -231,6 +239,10 @@ func (db *Database) CreateCollection(name string, dimension int) (VectorCollecti
 }
 
 func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta CollectionMeta) (VectorCollection, error) {
+	return db.CreateCollectionWithOptionsRaw(name, dimension, meta, "")
+}
+
+func (db *Database) CreateCollectionWithOptionsRaw(name string, dimension int, meta CollectionMeta, metricType string) (VectorCollection, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -241,7 +253,14 @@ func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta Co
 		return c, nil
 	}
 
-	c := NewCollection(name, dimension)
+	// 校验距离度量有效性
+	if metricType != "" {
+		if _, err := resolveSimilarity(metricType); err != nil {
+			return nil, err
+		}
+	}
+
+	c := NewCollectionWithMetric(name, dimension, metricType)
 	if meta.Created == 0 {
 		meta.Created = time.Now().Unix()
 	}
