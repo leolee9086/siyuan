@@ -687,7 +687,18 @@ func InitConf() {
 
 	logging.SetLogLevel(Conf.LogLevel)
 
-	util.SetNetworkProxy(Conf.System.NetworkProxy.String())
+	// 启动时处理代理配置：自动探测模式下重新探测
+	if Conf.System.AutoDetectProxy && Conf.System.NetworkProxy.String() == "" {
+		go func() {
+			detectedURL := util.DetectSystemProxy()
+			if detectedURL != "" {
+				Conf.System.DetectedProxyURL = detectedURL
+				util.SetNetworkProxy(conf.EffectiveProxyURL(Conf.System))
+			}
+		}()
+	} else {
+		util.SetNetworkProxy(conf.EffectiveProxyURL(Conf.System))
+	}
 
 	go util.InitPandoc()
 	go util.InitTesseract()

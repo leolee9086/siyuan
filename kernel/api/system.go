@@ -1085,18 +1085,61 @@ func setNetworkProxy(c *gin.Context) {
 		return
 	}
 
-	scheme := arg["scheme"].(string)
-	host := arg["host"].(string)
-	port := arg["port"].(string)
+	scheme, _ := arg["scheme"].(string)
+	host, _ := arg["host"].(string)
+	port, _ := arg["port"].(string)
+	autoDetect, _ := arg["autoDetectProxy"].(bool)
+
+	model.Conf.System.AutoDetectProxy = autoDetect
 	model.Conf.System.NetworkProxy = &conf.NetworkProxy{
 		Scheme: scheme,
 		Host:   host,
 		Port:   port,
 	}
+	// 用户提交手动配置时关闭自动探测
+	if scheme != "" || host != "" || port != "" {
+		model.Conf.System.AutoDetectProxy = false
+	}
 	model.Conf.Save()
 
-	proxyURL := model.Conf.System.NetworkProxy.String()
+	proxyURL := conf.EffectiveProxyURL(model.Conf.System)
 	util.SetNetworkProxy(proxyURL)
+	util.PushMsg(model.Conf.Language(102), 3000)
+}
+
+func detectSystemProxy(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	proxyURL := util.DetectSystemProxy()
+	if proxyURL != "" {
+		model.Conf.System.DetectedProxyURL = proxyURL
+		model.Conf.System.AutoDetectProxy = true
+		// 手动配置非空时不清除
+		if model.Conf.System.NetworkProxy.String() == "" {
+			model.Conf.System.NetworkProxy = &conf.NetworkProxy{}
+		}
+		model.Conf.Save()
+
+		effectiveURL := conf.EffectiveProxyURL(model.Conf.System)
+		util.SetNetworkProxy(effectiveURL)
+
+		ret.Data = map[string]any{
+			"detected": true,
+		}
+		util.PushMsg(model.Conf.Language(102), 3000)
+		return
+	}
+
+	model.Conf.System.DetectedProxyURL = ""
+	model.Conf.System.AutoDetectProxy = true
+	model.Conf.Save()
+
+	util.SetNetworkProxy("")
+
+	ret.Data = map[string]any{
+		"detected": false,
+	}
 	util.PushMsg(model.Conf.Language(102), 3000)
 }
 

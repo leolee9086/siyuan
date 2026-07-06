@@ -39,6 +39,10 @@ type System struct {
 	NetworkServe    bool          `json:"networkServe"`    // 是否开启网络伺服
 	NetworkServeTLS bool          `json:"networkServeTLS"` // 是否开启 HTTPS 网络伺服
 	NetworkProxy    *NetworkProxy `json:"networkProxy"`
+	AutoDetectProxy bool          `json:"autoDetectProxy"` // 是否自动探测系统代理
+
+	// 运行时状态（不持久化），自动探测到的代理地址，前端不可见
+	DetectedProxyURL string `json:"-"`
 
 	DownloadInstallPkg bool `json:"downloadInstallPkg"`
 	AutoLaunch2        int  `json:"autoLaunch2"`    // 0：不自动启动，1：自动启动，2：自动启动+隐藏主窗口
@@ -72,4 +76,18 @@ func (np *NetworkProxy) String() string {
 		return ""
 	}
 	return np.Scheme + "://" + np.Host + ":" + np.Port
+}
+
+// EffectiveProxyURL 返回实际生效的代理 URL。
+// 优先级：手动配置 > 自动探测 > 空（直连）。
+func EffectiveProxyURL(s *System) string {
+	if s.NetworkProxy != nil {
+		if manualURL := s.NetworkProxy.String(); manualURL != "" {
+			return manualURL
+		}
+	}
+	if s.AutoDetectProxy && s.DetectedProxyURL != "" {
+		return s.DetectedProxyURL
+	}
+	return ""
 }

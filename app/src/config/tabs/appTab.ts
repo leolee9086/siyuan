@@ -208,6 +208,7 @@ const registerAppGeneralGroup = (tab: SettingTabBuilder) => {
 
 const genNetworkProxyHtml = (): string => {
     const proxy = window.siyuan.config.system.networkProxy;
+    const autoDetect = window.siyuan.config.system.autoDetectProxy;
     return `<div class="b3-label config-item">
     ${genConfigItemName(window.siyuan.languages.networkProxy)}
     <div class="b3-label__text">
@@ -227,6 +228,19 @@ const genNetworkProxyHtml = (): string => {
         <span class="fn__space"></span>
         <button id="networkProxyConfirm" class="b3-button fn__size200 b3-button--outline">${window.siyuan.languages.confirm}</button>
     </div>
+    <div class="fn__hr--small"></div>
+    <div class="fn__flex config-wrap">
+        <label class="fn__flex fn__flex-1 fn__pointer">
+            <input type="checkbox" id="autoDetectProxy"${autoDetect ? " checked" : ""}>
+            <span class="fn__space"></span>
+            <span>${window.siyuan.languages.autoDetectProxy}</span>
+        </label>
+        <button id="detectProxyBtn" class="b3-button b3-button--outline fn__size200"${autoDetect && !proxy.scheme ? "" : " disabled"}>
+            <svg class="fn__none" id="detectProxySpinner"><use xlink:href="#iconRefresh"></use></svg>
+            <span id="detectProxyLabel">${window.siyuan.languages.autoDetectProxy}</span>
+        </button>
+    </div>
+    <div class="b3-label__text">${window.siyuan.languages.autoDetectProxyTip}</div>
 </div>`;
 };
 
@@ -250,6 +264,52 @@ const mountNetworkProxy = (root: HTMLElement) => {
                     window.location.reload();
                 },
             });
+        });
+    });
+
+    // 自动探测代理开关
+    const autoDetectChk = root.querySelector("#autoDetectProxy") as HTMLInputElement;
+    const detectBtn = root.querySelector("#detectProxyBtn") as HTMLButtonElement;
+    const detectLabel = root.querySelector("#detectProxyLabel") as HTMLSpanElement;
+    const detectSpinner = root.querySelector("#detectProxySpinner") as SVGSVGElement;
+
+    const updateDetectBtnState = () => {
+        const scheme = (root.querySelector("#networkProxyScheme") as HTMLSelectElement)?.value || "";
+        const host = (root.querySelector("#networkProxyHost") as HTMLInputElement)?.value || "";
+        if (autoDetectChk && detectBtn) {
+            detectBtn.disabled = !(autoDetectChk.checked && !scheme && !host);
+        }
+    };
+    updateDetectBtnState();
+
+    autoDetectChk?.addEventListener("change", () => {
+        updateDetectBtnState();
+        const scheme = (root.querySelector("#networkProxyScheme") as HTMLSelectElement)?.value || "";
+        const host = (root.querySelector("#networkProxyHost") as HTMLInputElement)?.value || "";
+        fetchPost("/api/system/setNetworkProxy", {
+            scheme: scheme || "",
+            host: host || "",
+            port: (root.querySelector("#networkProxyPort") as HTMLInputElement)?.value || "",
+            autoDetectProxy: autoDetectChk.checked,
+        });
+    });
+
+    detectBtn?.addEventListener("click", async () => {
+        if (detectLabel && detectSpinner) {
+            detectLabel.textContent = window.siyuan.languages.detectProxyRunning;
+            detectSpinner.classList.remove("fn__none");
+            detectBtn.disabled = true;
+        }
+        fetchPost("/api/system/detectSystemProxy", {}, (response) => {
+            if (detectLabel && detectSpinner) {
+                detectLabel.textContent = window.siyuan.languages.autoDetectProxy;
+                detectSpinner.classList.add("fn__none");
+                detectBtn.disabled = false;
+            }
+            if (response.data?.detected) {
+                window.siyuan.config.system.autoDetectProxy = true;
+            }
+            updateDetectBtnState();
         });
     });
 };

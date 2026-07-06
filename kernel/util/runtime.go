@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -230,6 +231,58 @@ func SetNetworkProxy(proxyURL string) {
 	}
 
 	httpclient.CloseIdleConnections()
+}
+
+// DetectSystemProxy 探测系统代理，返回探测到的代理 URL。
+//
+// 探测顺序：
+// 1. 环境变量 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY
+// 2. 常见本地代理端口（127.0.0.1:7890/1080/1081/8080）
+// 3. 无可用代理时返回空字符串
+func DetectSystemProxy() string {
+	// 1. 优先读取环境变量
+	candidates := []string{
+		os.Getenv("HTTPS_PROXY"),
+		os.Getenv("https_proxy"),
+		os.Getenv("HTTP_PROXY"),
+		os.Getenv("http_proxy"),
+		os.Getenv("ALL_PROXY"),
+		os.Getenv("all_proxy"),
+	}
+	for _, c := range candidates {
+		if c != "" {
+			logging.LogInfof("detected system proxy from env [%s]", c)
+			return c
+		}
+	}
+
+	// 2. 探测常见本地代理端口
+	hosts := []string{"127.0.0.1"}
+	ports := []string{"7890", "1080", "1081", "8080"}
+
+	for _, host := range hosts {
+		for _, port := range ports {
+			addr := "http://" + host + ":" + port
+			logging.LogInfof("probing proxy [%s]...", addr)
+			client := &http.Client{Timeout: 2 * time.Second}
+			req, err := http.NewRequest("CONNECT", addr, nil)
+			if err != nil {
+				continue
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				continue
+			}
+			resp.Body.Close()
+			if resp.StatusCode < 500 {
+				logging.LogInfof("detected system proxy from probe [%s]", addr)
+				return addr
+			}
+		}
+	}
+
+	logging.LogInfof("no system proxy detected")
+	return ""
 }
 
 const (
