@@ -1,0 +1,612 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package vectordb
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"sort"
+	"sync"
+
+	"github.com/vmihailenco/msgpack/v5"
+	"s-forge.local/vectordb/vamana"
+)
+
+// VamanaCollection wraps a disk-resident Vamana index with external ID mapping
+// and per-node JSON metadata, providing the same CRUD surface as Collection.
+//
+// Unlike Collection (HNSW-based, fully in-memory), VamanaCollection is designed
+// for large-scale datasets where vectors reside on disk via mmap.
+//
+// All methods are safe for concurrent use.
+type VamanaCollection struct {
+	ColName  string
+	ColDim   int
+	Meta     CollectionMeta
+	BasePath string
+	Config   vamana.DiskBuildConfig
+
+	Index *vamana.DiskVamanaIndex
+
+	IDMap          map[string]uint64    // external string ID → internal node ID
+	DocMap         map[uint64]string    // internal node ID → external string ID
+	Metas          map[uint64][]byte    // internal node ID → raw JSON metadata
+	PendingVectors map[string][]float32 // vectors inserted after the last durable rebuild
+
+	Mu sync.RWMutex
+}
+
+type vamanaCollectionState struct {
+	Name           string               `msgpack:"name"`
+	Dimension      int                  `msgpack:"dimension"`
+	Meta           CollectionMeta       `msgpack:"meta"`
+	IDMap          map[string]uint64    `msgpack:"idMap"`
+	DocMap         map[uint64]string    `msgpack:"docMap"`
+	Metas          map[uint64][]byte    `msgpack:"metas"`
+	PendingVectors map[string][]float32 `msgpack:"pendingVectors"`
+}
+
+const VamanaStateFileExt = ".ids.msgpack"
+
+// NewVamanaCollection wraps an existing DiskVamanaIndex with ID mapping and metadata.
+// The caller is responsible for providing the correct name, dimension, and meta.
+func NewVamanaCollection(name string, dimension int, idx *vamana.DiskVamanaIndex, meta CollectionMeta) *VamanaCollection {
+	return &VamanaCollection{
+		ColName:        name,
+		ColDim:         dimension,
+		Meta:           meta,
+		Config:         vamana.DefaultDiskBuildConfig(),
+		Index:          idx,
+		IDMap:          make(map[string]uint64),
+		DocMap:         make(map[uint64]string),
+		Metas:          make(map[uint64][]byte),
+		PendingVectors: make(map[string][]float32),
+	}
+}
+
+// ItemCount returns the number of live (non-deleted) mapped points.
+func (vc *VamanaCollection) ItemCount() int {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	return len(vc.IDMap)
+}
+
+// GetDocID returns the internal node ID for an external string ID.
+func (vc *VamanaCollection) GetDocID(id string) (uint64, bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	nodeID, ok := vc.IDMap[id]
+	return nodeID, ok
+}
+
+// GetExternalID returns the external string ID for an internal node ID.
+func (vc *VamanaCollection) GetExternalID(nodeID uint64) (string, bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	id, ok := vc.DocMap[nodeID]
+	return id, ok
+}
+
+// GetMeta returns the JSON metadata for an internal node ID.
+func (vc *VamanaCollection) GetMeta(nodeID uint64) (json.RawMessage, bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	meta, ok := vc.Metas[nodeID]
+	if !ok {
+		return nil, false
+	}
+	return json.RawMessage(meta), true
+}
+
+// InsertPoint inserts or updates a point in the Vamana disk index.
+//
+// For new IDs: calls idx.Insert to allocate a new node, records the mapping.
+// For existing IDs: soft-deletes the old node and inserts a new one, updating
+// the ID mapping to point to the new node.
+func (vc *VamanaCollection) InsertPoint(point Point) error {
+	vc.Mu.Lock()
+
+	oldNodeID, exists := vc.IDMap[point.ID]
+	if exists {
+		// Soft-delete the old node. The old nodeID is not reusable;
+		// insert a fresh node and remap.
+		var delErr error
+		if !vc.Index.IsDeleted(oldNodeID) {
+			delErr = vc.Index.Delete(oldNodeID)
+		}
+		delete(vc.IDMap, point.ID)
+		delete(vc.DocMap, oldNodeID)
+		delete(vc.Metas, oldNodeID)
+		vc.Mu.Unlock()
+
+		if delErr != nil {
+			return delErr
+		}
+	} else {
+		vc.Mu.Unlock()
+	}
+
+	nodeID, err := vc.Index.Insert(point.Vector)
+	if err != nil {
+		return err
+	}
+
+	vc.Mu.Lock()
+	vc.IDMap[point.ID] = nodeID
+	vc.DocMap[nodeID] = point.ID
+	if len(point.Meta) > 0 {
+		metaCopy := make([]byte, len(point.Meta))
+		copy(metaCopy, point.Meta)
+		vc.Metas[nodeID] = metaCopy
+	}
+	vectorCopy := make([]float32, len(point.Vector))
+	copy(vectorCopy, point.Vector)
+	vc.PendingVectors[point.ID] = vectorCopy
+	vc.Mu.Unlock()
+
+	return nil
+}
+
+// Search searches for k nearest neighbors in the Vamana index, enriching
+// results with external string IDs, normalized scores, and metadata.
+func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	rawResults, err := vc.Index.Search(queryVec, k, efSearch)
+	if err != nil || rawResults == nil {
+		return []SearchResult{}
+	}
+
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+
+	results := make([]SearchResult, 0, len(rawResults))
+	for _, r := range rawResults {
+		externalID, ok := vc.DocMap[r.ID]
+		if !ok {
+			continue
+		}
+
+		score := vamanaDistanceToScore(r.Distance)
+
+		var meta json.RawMessage
+		if metaBytes, metaOk := vc.Metas[r.ID]; metaOk {
+			meta = json.RawMessage(metaBytes)
+		}
+
+		results = append(results, SearchResult{
+			ID:       externalID,
+			Score:    score,
+			Distance: r.Distance,
+			Meta:     meta,
+		})
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+
+	return results
+}
+
+// DeleteItemWithIndex removes a point by external string ID.
+func (vc *VamanaCollection) DeleteItemWithIndex(id string) {
+	vc.Mu.Lock()
+	nodeID, ok := vc.IDMap[id]
+	if !ok {
+		vc.Mu.Unlock()
+		return
+	}
+	delete(vc.IDMap, id)
+	delete(vc.DocMap, nodeID)
+	delete(vc.Metas, nodeID)
+	delete(vc.PendingVectors, id)
+	vc.Mu.Unlock()
+
+	_ = vc.Index.Delete(nodeID)
+}
+
+// RebuildIndex is not supported for disk-based Vamana collections.
+// Use Compact() instead to reclaim space from deleted nodes.
+func (vc *VamanaCollection) RebuildIndex() error {
+	return nil
+}
+
+// vamanaDistanceToScore converts a Vamana Euclidean distance to a score in [0, 1].
+//
+// Vamana uses euclideanDistance (‖a-b‖²) or dotProduct distance internally.
+// The distance is un-normalized, so we use a clamped inverse transform:
+//
+//	score = 1.0 / (1.0 + distance)
+//
+// Clamped to [0, 1].
+func vamanaDistanceToScore(distance float32) float32 {
+	if distance < 1e-6 {
+		return 1.0
+	}
+	score := 1.0 / (1.0 + distance)
+	if score < 0 {
+		score = 0
+	}
+	if score > 1 {
+		score = 1
+	}
+	return score
+}
+
+// BuildVamanaCollection builds a new disk-based Vamana index from a set of
+// points and returns a VamanaCollection wrapping it.
+//
+// BuildFromVectors assigns sequential node IDs (0, 1, 2, ...) in the order
+// the vectors are provided. This function records the mapping from external
+// string IDs to those sequential node IDs.
+//
+// basePath is the file path prefix (without extension) for the index files.
+func BuildVamanaCollection(
+	name string, points []Point, basePath string,
+	config vamana.DiskBuildConfig, meta CollectionMeta,
+) (*VamanaCollection, error) {
+	ensureDiskVamanaReader()
+
+	if len(points) == 0 {
+		return nil, nil
+	}
+
+	dimension := len(points[0].Vector)
+
+	vectors := make([][]float32, len(points))
+	for i, p := range points {
+		vectors[i] = p.Vector
+	}
+
+	_, err := vamana.BuildFromVectors(basePath, vectors, config)
+	if err != nil {
+		return nil, err
+	}
+
+	idx, err := vamana.Open(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	vc := NewVamanaCollection(name, dimension, idx, meta)
+	vc.BasePath = basePath
+	vc.Config = config
+
+	// BuildFromVectors assigns sequential node IDs in input order.
+	for i, p := range points {
+		nodeID := uint64(i)
+		vc.IDMap[p.ID] = nodeID
+		vc.DocMap[nodeID] = p.ID
+		if len(p.Meta) > 0 {
+			metaCopy := make([]byte, len(p.Meta))
+			copy(metaCopy, p.Meta)
+			vc.Metas[nodeID] = metaCopy
+		}
+	}
+
+	return vc, nil
+}
+
+// OpenVamanaCollection opens an existing disk-based Vamana index.
+//
+// ID mapping and metadata must be loaded separately (not yet supported).
+func OpenVamanaCollection(name string, basePath string, meta CollectionMeta) (*VamanaCollection, error) {
+	ensureDiskVamanaReader()
+
+	idx, err := vamana.Open(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	vc := NewVamanaCollection(name, int(idx.Dimension()), idx, meta)
+	vc.BasePath = basePath
+	if err := LoadVamanaCollectionState(vc, basePath); err != nil {
+		_ = idx.Close()
+		return nil, err
+	}
+	return vc, nil
+}
+
+func SaveVamanaCollectionState(vc *VamanaCollection, basePath string) error {
+	vc.Mu.RLock()
+	state := vamanaCollectionState{
+		Name:           vc.ColName,
+		Dimension:      vc.ColDim,
+		Meta:           vc.Meta,
+		IDMap:          make(map[string]uint64, len(vc.IDMap)),
+		DocMap:         make(map[uint64]string, len(vc.DocMap)),
+		Metas:          make(map[uint64][]byte, len(vc.Metas)),
+		PendingVectors: make(map[string][]float32, len(vc.PendingVectors)),
+	}
+	for id, nodeID := range vc.IDMap {
+		state.IDMap[id] = nodeID
+	}
+	for nodeID, id := range vc.DocMap {
+		state.DocMap[nodeID] = id
+	}
+	for nodeID, meta := range vc.Metas {
+		metaCopy := make([]byte, len(meta))
+		copy(metaCopy, meta)
+		state.Metas[nodeID] = metaCopy
+	}
+	for id, vec := range vc.PendingVectors {
+		vecCopy := make([]float32, len(vec))
+		copy(vecCopy, vec)
+		state.PendingVectors[id] = vecCopy
+	}
+	vc.Mu.RUnlock()
+
+	data, err := msgpack.Marshal(&state)
+	if err != nil {
+		return err
+	}
+	return atomicWriteFile(basePath+VamanaStateFileExt, data)
+}
+
+func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
+	data, err := os.ReadFile(basePath + VamanaStateFileExt)
+	if err != nil {
+		return err
+	}
+
+	var state vamanaCollectionState
+	if err := msgpack.Unmarshal(data, &state); err != nil {
+		return err
+	}
+
+	vc.Mu.Lock()
+	if state.Name != "" {
+		vc.ColName = state.Name
+	}
+	if state.Dimension > 0 {
+		vc.ColDim = state.Dimension
+	}
+	vc.Meta = state.Meta
+	vc.IDMap = state.IDMap
+	vc.DocMap = state.DocMap
+	vc.Metas = state.Metas
+	vc.PendingVectors = state.PendingVectors
+	if vc.IDMap == nil {
+		vc.IDMap = make(map[string]uint64)
+	}
+	if vc.DocMap == nil {
+		vc.DocMap = make(map[uint64]string)
+	}
+	if vc.Metas == nil {
+		vc.Metas = make(map[uint64][]byte)
+	}
+	if vc.PendingVectors == nil {
+		vc.PendingVectors = make(map[string][]float32)
+	}
+	vc.Mu.Unlock()
+	return nil
+}
+
+func (vc *VamanaCollection) FlushToDisk(basePath string) error {
+	if basePath == "" {
+		basePath = vc.BasePath
+	}
+	if basePath == "" {
+		return nil
+	}
+
+	points, err := vc.extractLivePoints()
+	if err != nil {
+		return err
+	}
+	if len(points) == 0 {
+		return SaveVamanaCollectionState(vc, basePath)
+	}
+
+	tmpBasePath := basePath + ".rebuild"
+	if err := removeVamanaFiles(tmpBasePath); err != nil {
+		return err
+	}
+
+	config := vc.Config
+	if config.R == 0 {
+		config = vamana.DefaultDiskBuildConfig()
+	}
+
+	next, err := BuildVamanaCollection(vc.ColName, points, tmpBasePath, config, vc.Meta)
+	if err != nil {
+		return err
+	}
+	next.BasePath = basePath
+	next.Config = config
+	next.PendingVectors = make(map[string][]float32)
+	if err := SaveVamanaCollectionState(next, tmpBasePath); err != nil {
+		_ = next.Close()
+		return err
+	}
+	if err := next.Close(); err != nil {
+		return err
+	}
+
+	if vc.Index != nil {
+		_ = vc.Index.Close()
+	}
+	if err := replaceVamanaFiles(tmpBasePath, basePath); err != nil {
+		return err
+	}
+
+	reopened, err := OpenVamanaCollection(vc.ColName, basePath, vc.Meta)
+	if err != nil {
+		return err
+	}
+	reopened.Config = config
+	reopened.BasePath = basePath
+
+	vc.Mu.Lock()
+	vc.ColDim = reopened.ColDim
+	vc.Meta = reopened.Meta
+	vc.BasePath = reopened.BasePath
+	vc.Config = reopened.Config
+	vc.Index = reopened.Index
+	vc.IDMap = reopened.IDMap
+	vc.DocMap = reopened.DocMap
+	vc.Metas = reopened.Metas
+	vc.PendingVectors = make(map[string][]float32)
+	vc.Mu.Unlock()
+
+	return nil
+}
+
+func (vc *VamanaCollection) extractLivePoints() ([]Point, error) {
+	vc.Mu.RLock()
+	ids := make([]string, 0, len(vc.IDMap))
+	for id := range vc.IDMap {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	type liveRef struct {
+		id      string
+		nodeID  uint64
+		meta    []byte
+		pending []float32
+	}
+	refs := make([]liveRef, 0, len(ids))
+	for _, id := range ids {
+		nodeID := vc.IDMap[id]
+		refs = append(refs, liveRef{
+			id:      id,
+			nodeID:  nodeID,
+			meta:    vc.Metas[nodeID],
+			pending: vc.PendingVectors[id],
+		})
+	}
+	vc.Mu.RUnlock()
+
+	points := make([]Point, 0, len(refs))
+	for _, ref := range refs {
+		var vec []float32
+		if ref.pending != nil {
+			vec = make([]float32, len(ref.pending))
+			copy(vec, ref.pending)
+		} else {
+			readVec, err := vc.Index.ReadVector(ref.nodeID)
+			if err != nil {
+				return nil, err
+			}
+			vec = readVec
+		}
+		metaCopy := make([]byte, len(ref.meta))
+		copy(metaCopy, ref.meta)
+		points = append(points, Point{ID: ref.id, Vector: vec, Meta: json.RawMessage(metaCopy)})
+	}
+	return points, nil
+}
+
+func removeVamanaFiles(basePath string) error {
+	for _, path := range vamanaFileSet(basePath) {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func replaceVamanaFiles(tmpBasePath, basePath string) error {
+	if err := removeVamanaFiles(basePath); err != nil {
+		return err
+	}
+	for _, ext := range []string{".index", ".bbq", ".deleted", VamanaStateFileExt} {
+		src := tmpBasePath + ext
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(basePath+ext), 0755); err != nil {
+			return err
+		}
+		if err := os.Rename(src, basePath+ext); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func vamanaFileSet(basePath string) []string {
+	return []string{
+		basePath + ".index",
+		basePath + ".bbq",
+		basePath + ".deleted",
+		basePath + VamanaStateFileExt,
+	}
+}
+
+func (vc *VamanaCollection) Close() error {
+	return vc.Index.Close()
+}
+
+func (vc *VamanaCollection) GetMetaByID(id string) (json.RawMessage, bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	nodeID, ok := vc.IDMap[id]
+	if !ok {
+		return nil, false
+	}
+	meta, ok := vc.Metas[nodeID]
+	if !ok {
+		return nil, false
+	}
+	return json.RawMessage(meta), true
+}
+
+// =========================================
+// VectorCollection interface methods
+// =========================================
+
+func (vc *VamanaCollection) Name() string   { return vc.ColName }
+func (vc *VamanaCollection) Dimension() int { return vc.ColDim }
+
+func (vc *VamanaCollection) ListIDs() []string {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	ids := make([]string, 0, len(vc.IDMap))
+	for id := range vc.IDMap {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+func (vc *VamanaCollection) ForEachID(fn func(id string, docID uint64, meta []byte) bool) {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	for nodeID, id := range vc.DocMap {
+		if vc.Index.IsDeleted(nodeID) {
+			continue
+		}
+		meta := vc.Metas[nodeID]
+		if !fn(id, nodeID, meta) {
+			return
+		}
+	}
+}
+
+func (vc *VamanaCollection) Info() CollectionInfo {
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
+	return CollectionInfo{
+		Name:      vc.ColName,
+		Dimension: vc.ColDim,
+		Count:     len(vc.IDMap),
+	}
+}
