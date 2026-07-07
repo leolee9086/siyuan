@@ -152,12 +152,24 @@ func convertClaudeContentBlocks(raw map[string]any, blocks []any) []Message {
 				}
 				if st, ok := source["type"].(string); ok {
 					att["source_type"] = st
-				}
-				if data, ok := source["data"].(string); ok {
-					att["data"] = data
-				}
-				if url, ok := source["url"].(string); ok {
-					att["data"] = url
+					// base64 和 url 用不同字段避免相互覆盖
+					if st == "base64" {
+						if data, ok := source["data"].(string); ok {
+							att["data"] = data
+						}
+					} else if st == "url" {
+						if url, ok := source["url"].(string); ok {
+							att["url"] = url
+						}
+					}
+				} else {
+					// 无 source_type 时分别保留
+					if data, ok := source["data"].(string); ok {
+						att["data"] = data
+					}
+					if url, ok := source["url"].(string); ok {
+						att["url"] = url
+					}
 				}
 			}
 			attachments = append(attachments, att)

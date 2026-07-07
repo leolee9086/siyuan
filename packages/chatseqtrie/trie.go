@@ -71,6 +71,12 @@ type Trie struct {
 	policy  *FieldPolicy
 	storage Storage          // 可选的持久化存储后端
 	nextID  atomic.Int64     // 下一个节点 ID
+
+	// sessionToNode 维护 sessionID → 终节点的映射，用于：
+	//   1. 同一 sessionID 重复 Insert 不同路径时，清理旧标记
+	//   2. 快速按 sessionID 反查消息序列
+	//   3. Remove 时无需全树遍历即可定位目标节点
+	sessionToNode map[string]*trieNode
 }
 
 // Option Trie 构造选项。
@@ -101,6 +107,7 @@ func New(opts ...Option) *Trie {
 		},
 		policy: DefaultFieldPolicy(),
 	}
+	t.sessionToNode = make(map[string]*trieNode)
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -202,11 +209,18 @@ func (t *Trie) Insert(sessionID string, messages []Message) (*MatchResult, error
 		}
 	}
 
-	// 标记终节点
+	// 标记终节点前，清理同一 sessionID 的旧标记（如果此次路径变了）
+	if oldNode, hasOld := t.sessionToNode[sessionID]; hasOld && oldNode != current {
+		delete(oldNode.sessions, sessionID)
+		if t.storage != nil {
+			_ = t.storage.RemoveSession(oldNode.nodeID, sessionID)
+		}
+	}
 	if current.sessions == nil {
 		current.sessions = make(map[string]bool)
 	}
 	current.sessions[sessionID] = true
+	t.sessionToNode[sessionID] = current
 
 	if t.storage != nil {
 		_ = t.storage.MarkSession(current.nodeID, sessionID)
@@ -332,13 +346,24 @@ func (t *Trie) Remove(sessionID string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// 遍历所有节点查找 session 标记（深度优先）
+	// 先查映射表快速定位旧节点
+	if oldNode, hasOld := t.sessionToNode[sessionID]; hasOld {
+		delete(oldNode.sessions, sessionID)
+		delete(t.sessionToNode, sessionID)
+		if t.storage != nil {
+			_ = t.storage.RemoveSession(oldNode.nodeID, sessionID)
+		}
+		return true
+	}
+
+	// 映射表未命中时回退到全树遍历
 	removed := false
 	var walk func(n *trieNode)
 	walk = func(n *trieNode) {
 		if n.sessions[sessionID] {
 			delete(n.sessions, sessionID)
 			removed = true
+			delete(t.sessionToNode, sessionID)
 			if t.storage != nil {
 				_ = t.storage.RemoveSession(n.nodeID, sessionID)
 			}
