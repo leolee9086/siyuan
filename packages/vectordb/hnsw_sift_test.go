@@ -217,9 +217,11 @@ func TestHNSW_SIFT_10K(t *testing.T) {
 	var mBefore runtime.MemStats
 	runtime.ReadMemStats(&mBefore)
 
-	// Build HNSW index
-	collection := NewCollection("sift10k", dim)
-	collection.Config.MetricType = "l2"
+	// Build HNSW index — 使用 NewCollectionWithMetric 从创建起即指定 L2 度量，
+	// 确保 VectorStore 的 BBQ 量化器和 HNSWIndex 的距离计算均使用欧氏距离。
+	// 若先以默认 cosine 创建再改 Config，量化器仍为余弦模式，导致图结构质量差、
+	// 插入性能随规模超线性退化。
+	collection := NewCollectionWithMetric("sift10k", dim, "l2")
 
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",
 		collection.Config.M, collection.Config.EfConstruction)
@@ -327,9 +329,8 @@ func TestHNSW_SIFT_100K(t *testing.T) {
 	var mBefore runtime.MemStats
 	runtime.ReadMemStats(&mBefore)
 
-	// Build HNSW index
-	collection := NewCollection("sift100k", dim)
-	collection.Config.MetricType = "l2"
+	// Build HNSW index — 同 TestHNSW_SIFT_10K，从创建起即指定 L2 度量
+	collection := NewCollectionWithMetric("sift100k", dim, "l2")
 
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",
 		collection.Config.M, collection.Config.EfConstruction)
@@ -430,9 +431,8 @@ func TestHNSW_SIFT_1M(t *testing.T) {
 	var mBefore runtime.MemStats
 	runtime.ReadMemStats(&mBefore)
 
-	// Build HNSW index
-	collection := NewCollection("sift1m", dim)
-	collection.Config.MetricType = "l2"
+	// Build HNSW index — 同 TestHNSW_SIFT_10K，从创建起即指定 L2 度量
+	collection := NewCollectionWithMetric("sift1m", dim, "l2")
 
 	numVectors := len(baseVectors)
 	t.Logf("Building HNSW index (M=%d, efConstruction=%d)...",

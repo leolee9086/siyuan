@@ -17,10 +17,29 @@
 package hnsw
 
 import (
-	"sort"
+	"sync"
 
 	"s-forge.local/vectordb/bbq"
 )
+
+// heapPool 复用 MinHeap/MaxHeap 以减少 GC 压力。
+// searchLevel 每次插入的每一层都会创建堆，1M 节点构建时产生数百万次分配。
+var minHeapPool = sync.Pool{
+	New: func() interface{} { return NewMinHeap() },
+}
+
+var maxHeapPool = sync.Pool{
+	New: func() interface{} { return NewMaxHeap(256) },
+}
+
+// resetHeap 将堆清空但保留底层数组容量，供 sync.Pool 复用。
+func resetMinHeap(h *MinHeap) {
+	h.data = h.data[:0]
+}
+
+func resetMaxHeap(h *MaxHeap) {
+	h.data = h.data[:0]
+}
 
 // =========================================
 // HNSW Build (Insert)
@@ -181,8 +200,14 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
 	epoch := idx.Distancer.NewSearchEpoch()
 
-	candidates := NewMinHeap()
-	results := NewMaxHeap(ef)
+	candidates := minHeapPool.Get().(*MinHeap)
+	resetMinHeap(candidates)
+	defer minHeapPool.Put(candidates)
+
+	results := maxHeapPool.Get().(*MaxHeap)
+	resetMaxHeap(results)
+	results.capacity = ef
+	defer maxHeapPool.Put(results)
 
 	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
 
@@ -251,9 +276,11 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 		})
 	}
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Distance < result[j].Distance
-	})
+	// MaxHeap.Pop 按降序弹出（最大距离优先），反转即得升序。
+	// 替代 sort.Slice（反射开销），O(n) 反转 vs O(n log n) 排序。
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
 
 	return result
 }

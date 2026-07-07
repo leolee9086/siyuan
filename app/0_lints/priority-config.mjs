@@ -61,6 +61,7 @@ import { noLongSingleLineCommentPlugin } from "./no-long-single-line-comment.mjs
 import { noNestedFunctionPlugin } from "./no-nested-function.mjs";
 import { explicitReturnTypeReasonPlugin } from "./explicit-return-type-reason.mjs";
 import { noControlFlowInExecutorPlugin } from "./no-control-flow-in-executor.mjs";
+import { noClassPlugin } from "./no-class.mjs";
 
 // ─── 包装自定义插件并注册优先级 ───
 // createPriorityPlugin 不修改插件行为，仅将规则优先级写入 registry
@@ -131,6 +132,7 @@ const wrappedPlugins = {
     }),
 
     // 架构强约束（优先级 11）
+    "no-class": createPriorityPlugin(noClassPlugin, "no-class", 11),
     "no-extends": createPriorityPlugin(noExtendsPlugin, "no-extends", 11),
     "no-export-forwarding": createPriorityPlugin(noExportForwardingPlugin, "no-export-forwarding", 11),
     "no-alias-usage": createPriorityPlugin(noAliasUsagePlugin, "no-alias-usage", 11),

@@ -1,23 +1,14 @@
 /**
  * 禁止使用 class 关键字
  *
- * 架构决策：坚持使用函数式编程模式（工厂函数、闭包、模块级函数等）
- * 替代面向对象编程。class 关键字仅在经由充分论证并附有详细说明后
- * 才允许豁免，豁免注释必须不少于 500 字符。
+ * class 只在经由充分论证并附有详细说明后才允许豁免，
+ * 豁免注释必须不少于 500 字符。
  *
  * 豁免格式：
  *   // @允许类: <详细的解释说明，不少于 500 字符>
  *   class Foo { ... }
  *
  * 未使用的豁免注释也会被报错，避免残留不一致。
- *
- * 常见函数式替代方案：
- * - 状态容器 → 闭包 + 模块级变量
- * - 方法调用 → 模块级函数，状态作为参数传入
- * - 构造逻辑 → 工厂函数
- * - 多态分发 → 策略模式对象映射
- * - 命名空间 → 模块作用域
- * - 生命周期管理 → 组合函数
  */
 
 import { FULL_FIX_REMINDER, 单文件检查提示 } from "./shared-constants.mjs";
@@ -32,32 +23,16 @@ export const noClassPlugin = {
         "no-class": {
             meta: {
                 type: "problem",
-                docs: {
-                    description: "禁止使用 class 关键字，要求使用函数式编程模式替代",
-                    recommended: "error",
-                },
+                    docs: {
+                        description: "禁止使用 class 关键字",
+                        recommended: "error",
+                    },
                 messages: {
                     forbiddenClass: [
                         "❌ [架构约束] 禁止使用 class 关键字。",
                         "",
-                        "请使用函数式编程模式（工厂函数、闭包、模块级函数等）替代面向对象编程。",
-                        "class 增加了隐式状态管理和继承复杂度，而函数式模式更易于测试、组合和推理。",
-                        "",
-                        "常见替代方案：",
-                        "  - 状态容器 → 闭包 + 模块级变量",
-                        "  - 方法调用 → 模块级函数，状态作为参数传入",
-                        "  - 构造逻辑 → 工厂函数",
-                        "  - 多态分发 → 策略模式对象映射",
-                        "  - 命名空间 → 模块作用域",
-                        "  - 生命周期管理 → 组合函数",
-                        "",
                         `如果确需使用 class，必须在上一行使用至少 ${MIN_EXEMPTION_LENGTH} 字符的注释进行豁免。`,
                         `格式: // ${EXEMPTION_PREFIX} <详细解释>`,
-                        "",
-                        "豁免注释必须阐明以下问题：",
-                        "  1. 为什么无法使用函数式替代方案？",
-                        "  2. 已经评估了哪些替代方案以及它们为何不可行？",
-                        "  3. class 方案在可维护性上的具体优势是什么？",
                     ].join("\n") + FULL_FIX_REMINDER + 单文件检查提示,
 
                     commentTooShort: [
@@ -67,10 +42,10 @@ export const noClassPlugin = {
                         "",
                         "请补充充分的技术理由，包括但不限于：",
                         "  1. 具体业务场景和上下文",
-                        "  2. 无法使用函数式替代方案的根本原因",
+                        "  2. 无法使用 class 替代方案的根本原因",
                         "  3. 已评估的替代方案及其逐个排除的理由",
                         "  4. class 方案在本场景中带来的具体可维护性优势",
-                        "  5. 如果将来条件变化，如何迁移到函数式模式",
+                        "  5. 如果将来条件变化，可能的重构方向",
                     ].join("\n") + FULL_FIX_REMINDER + 单文件检查提示,
 
                     invalidIgnore: [
@@ -101,6 +76,11 @@ export const noClassPlugin = {
                      * 在 class 前寻找豁免注释，如果没有或长度不足则报错。
                      */
                     "ClassDeclaration, ClassExpression"(node) {
+                        // abstract class 默认豁免：抽象类仅定义类型契约，不涉及实例化
+                        if (node.abstract === true) {
+                            return;
+                        }
+
                         // 查找紧邻在 class 前的豁免注释
                         const commentsBefore = sourceCode.getCommentsBefore(node);
                         const exemptionComment = commentsBefore.find(
