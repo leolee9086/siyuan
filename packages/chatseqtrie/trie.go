@@ -48,14 +48,15 @@ type MatchResult struct {
 
 // trieNode 前缀树内部节点。
 type trieNode struct {
-	keyJSON  string               // 内容字段的 JSON 字符串（用于匹配）
-	keyHash  string               // keyJSON 的 SHA-256 十六进制摘要（用于存储键）
-	document Message              // 完整消息文档（含修饰字段）
-	children map[string]*trieNode // keyJSON → 子节点
-	sessions map[string]bool      // 以此节点为终点的 session ID 集合
-	parent   *trieNode            // 父节点（用于向上遍历）
-	depth    int                  // 从根开始的深度（根 = 0）
-	nodeID   int64                // 持久化节点 ID（0 = 未分配）
+	keyJSON      string               // 内容字段的 JSON 字符串（用于匹配）
+	keyHash      string               // keyJSON 的 SHA-256 十六进制摘要（用于存储键）
+	document     Message              // 完整消息文档（含修饰字段）
+	children     map[string]*trieNode // keyJSON → 子节点
+	sessions     map[string]bool      // 以此节点为终点的 session ID 集合
+	sessionOrder []string             // session 插入顺序，用于稳定迭代而非 map 随机遍历
+	parent       *trieNode            // 父节点（用于向上遍历）
+	depth        int                  // 从根开始的深度（根 = 0）
+	nodeID       int64                // 持久化节点 ID（0 = 未分配）
 }
 
 // Trie 聊天序列前缀树。
@@ -199,12 +200,14 @@ func (t *Trie) Insert(sessionID string, messages []Message) (*MatchResult, error
 		current = child
 		commonPrefixLen = i + 1
 
-		// 检查此节点上是否有 session 标记
+		// 检查此节点上是否有 session 标记（按插入顺序稳定迭代）
 		if len(current.sessions) > 0 {
-			for sid := range current.sessions {
-				lastSessionID = sid
-				lastSessionEnd = i
-				pathSessions = append(pathSessions, sid)
+			for _, sid := range current.sessionOrder {
+				if current.sessions[sid] {
+					lastSessionID = sid
+					lastSessionEnd = i
+					pathSessions = append(pathSessions, sid)
+				}
 			}
 		}
 	}
@@ -215,9 +218,14 @@ func (t *Trie) Insert(sessionID string, messages []Message) (*MatchResult, error
 		if t.storage != nil {
 			_ = t.storage.RemoveSession(oldNode.nodeID, sessionID)
 		}
+		// 修剪可能变为孤立的祖先节点
+		t.pruneUpwards(oldNode)
 	}
 	if current.sessions == nil {
 		current.sessions = make(map[string]bool)
+	}
+	if !current.sessions[sessionID] {
+		current.sessionOrder = append(current.sessionOrder, sessionID)
 	}
 	current.sessions[sessionID] = true
 	t.sessionToNode[sessionID] = current
@@ -298,10 +306,12 @@ func (t *Trie) Match(messages []Message) (*MatchResult, error) {
 		commonPrefixLen = i + 1
 
 		if len(current.sessions) > 0 {
-			for sid := range current.sessions {
-				lastSessionID = sid
-				lastSessionEnd = i
-				pathSessions = append(pathSessions, sid)
+			for _, sid := range current.sessionOrder {
+				if current.sessions[sid] {
+					lastSessionID = sid
+					lastSessionEnd = i
+					pathSessions = append(pathSessions, sid)
+				}
 			}
 		}
 	}
@@ -340,7 +350,7 @@ func (t *Trie) Match(messages []Message) (*MatchResult, error) {
 	}, nil
 }
 
-// Remove 移除一个会话标记。不删除节点本身（其他会话可能共享路径）。
+// Remove 移除一个会话标记。触发孤立节点修剪。
 // 返回是否找到并移除了该会话。
 func (t *Trie) Remove(sessionID string) bool {
 	t.mu.Lock()
@@ -353,16 +363,19 @@ func (t *Trie) Remove(sessionID string) bool {
 		if t.storage != nil {
 			_ = t.storage.RemoveSession(oldNode.nodeID, sessionID)
 		}
+		t.pruneUpwards(oldNode)
 		return true
 	}
 
-	// 映射表未命中时回退到全树遍历
+	// 映射表未命中时回退到全树遍历（记录最后一个被移除的节点用于修剪）
 	removed := false
+	var lastRemovedNode *trieNode
 	var walk func(n *trieNode)
 	walk = func(n *trieNode) {
 		if n.sessions[sessionID] {
 			delete(n.sessions, sessionID)
 			removed = true
+			lastRemovedNode = n
 			delete(t.sessionToNode, sessionID)
 			if t.storage != nil {
 				_ = t.storage.RemoveSession(n.nodeID, sessionID)
@@ -373,6 +386,9 @@ func (t *Trie) Remove(sessionID string) bool {
 		}
 	}
 	walk(t.root)
+	if removed && lastRemovedNode != nil {
+		t.pruneUpwards(lastRemovedNode)
+	}
 	return removed
 }
 
@@ -401,7 +417,9 @@ func (t *Trie) FindVariants(sessionID string) map[string]int {
 		}
 		return false
 	}
-	findPath(t.root)
+	if !findPath(t.root) {
+		return result // session 不存在，返回空
+	}
 	targetPath = append([]*trieNode{t.root}, targetPath...)
 
 	// 沿路径收集 session 标记（其他 session 在路径节点上的标记）
@@ -433,6 +451,26 @@ func (t *Trie) FindVariants(sessionID string) map[string]int {
 	}
 
 	return result
+}
+
+// pruneUpwards 从指定节点向上修剪变为孤立的祖先节点。
+// 当节点上无 session 标记且无子节点时，从父节点移除并继续向上。
+// 需在持有 t.mu 写锁时调用。
+func (t *Trie) pruneUpwards(from *trieNode) {
+	cur := from
+	for cur != nil && cur != t.root {
+		parent := cur.parent
+		if parent == nil {
+			break
+		}
+		if len(cur.sessions) > 0 || len(cur.children) > 0 {
+			break
+		}
+		// 孤立节点：无 session 无子节点，从父节点移除
+		delete(parent.children, cur.keyJSON)
+		cur.parent = nil
+		cur = parent
+	}
 }
 
 // collectSessionsInSubtree 递归收集子树中的所有 session，记录共享前缀深度。

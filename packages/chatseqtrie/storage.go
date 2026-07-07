@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -77,7 +78,7 @@ type BoltStorage struct {
 
 // NewBoltStorage 打开或创建 bbolt 存储。
 func NewBoltStorage(path string) (*BoltStorage, error) {
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("打开 bbolt 存储失败: %w", err)
 	}
@@ -355,6 +356,13 @@ func (t *Trie) LoadFromStorage() error {
 	for _, se := range data.Sessions {
 		if node, ok := nodeMap[se.NodeID]; ok {
 			node.sessions[se.SessionID] = true
+		}
+	}
+
+	// 第四遍：填充 sessionToNode 映射表，确保重启后 Insert 可清理旧标记
+	for _, se := range data.Sessions {
+		if node, ok := nodeMap[se.NodeID]; ok {
+			t.sessionToNode[se.SessionID] = node
 		}
 	}
 

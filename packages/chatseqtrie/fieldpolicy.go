@@ -185,6 +185,9 @@ func projectDocument(doc map[string]any, tree *pathNode) map[string]any {
 					}
 				}
 				result[field] = filtered
+			} else if singleObj, ok := v.(map[string]any); ok {
+				// 非数组格式（如某些兼容 API 返回单对象）：包装为单元素数组
+				result[field] = []any{projectDocument(singleObj, subTree.wildcard)}
 			}
 		} else if len(subTree.children) > 0 {
 			// 嵌套对象：递归投影

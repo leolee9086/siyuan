@@ -52,6 +52,7 @@ type CollectionAPI interface {
 	Delete(ids []string) error
 	Flush() error
 	Stats() CollectionStats
+	FetchPoints(ids []string) ([]Point, error)
 	Close() error
 }
 

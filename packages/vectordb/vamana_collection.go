@@ -124,20 +124,16 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 
 	oldNodeID, exists := vc.IDMap[point.ID]
 	if exists {
-		// Soft-delete the old node. The old nodeID is not reusable;
-		// insert a fresh node and remap.
-		var delErr error
-		if !vc.Index.IsDeleted(oldNodeID) {
-			delErr = vc.Index.Delete(oldNodeID)
-		}
-		delete(vc.IDMap, point.ID)
-		delete(vc.DocMap, oldNodeID)
-		delete(vc.Metas, oldNodeID)
+		// 先标记但不删除映射：确保 FlushToDisk 在此窗口内不会看到空洞。
+		// 完成 Index.Insert 后再清理旧映射。
 		vc.Mu.Unlock()
 
-		if delErr != nil {
-			return delErr
+		if !vc.Index.IsDeleted(oldNodeID) {
+			if delErr := vc.Index.Delete(oldNodeID); delErr != nil {
+				return delErr
+			}
 		}
+		// 旧 ID 可能已被并发 flush 废弃，但不影响新 Insert
 	} else {
 		vc.Mu.Unlock()
 	}
@@ -148,6 +144,13 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 	}
 
 	vc.Mu.Lock()
+	if exists && oldNodeID != nodeID {
+		// 现在安全删除旧映射：FlushToDisk 要么看到旧映射（Insert 前），
+		// 要么看到新映射（Insert 后），不会同时缺失两者。
+		delete(vc.IDMap, point.ID)
+		delete(vc.DocMap, oldNodeID)
+		delete(vc.Metas, oldNodeID)
+	}
 	vc.IDMap[point.ID] = nodeID
 	vc.DocMap[nodeID] = point.ID
 	if len(point.Meta) > 0 {

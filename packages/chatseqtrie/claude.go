@@ -202,8 +202,9 @@ func convertClaudeContentBlocks(raw map[string]any, blocks []any) []Message {
 	// 保留原始 content blocks 供回溯
 	doc["_raw_content"] = blocks
 
-	// 仅在有实际内容时添加主消息
-	if len(textParts) > 0 || len(toolCalls) > 0 || len(attachments) > 0 || reasoning != "" {
+	// 仅在有实际内容时添加主消息。
+	// 纯 tool_result 的 user 消息也要保留（role=messages 中的"容器"角色）。
+	if len(textParts) > 0 || len(toolCalls) > 0 || len(attachments) > 0 || reasoning != "" || len(toolResults) > 0 {
 		result = append(result, doc)
 	}
 

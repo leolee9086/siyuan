@@ -192,6 +192,3 @@ func NormalizeVector(v []float32) {
 		v[i] /= norm
 	}
 }
-
-// ComputeItemDistance deprecated and removed
-// ComputeQueryDistance deprecated and removed

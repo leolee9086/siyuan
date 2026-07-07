@@ -107,17 +107,20 @@ type Database struct {
 type VectorCollection interface {
 	InsertPoint(point Point) error
 	Search(queryVec []float32, k int, efSearch int) []SearchResult
-	DeleteItemWithIndex(id string)
+	DeletePoint(id string)
 	RebuildIndex() error
 
 	Name() string
 	Dimension() int
 	ItemCount() int
+	Engine() Engine
+	Flush() error
 
 	ListIDs() []string
 	ForEachID(fn func(id string, docID uint64, meta []byte) bool)
 	GetMetaByID(id string) (json.RawMessage, bool)
 	GetVectorByID(id string) ([]float32, bool)
+	FetchPoints(ids []string) ([]Point, error)
 	Info() CollectionInfo
 
 	Close() error
