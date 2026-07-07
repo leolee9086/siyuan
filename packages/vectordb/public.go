@@ -36,8 +36,8 @@ type CollectionOptions struct {
 
 // DB 是独立向量数据库包对宿主暴露的稳定入口。
 type DB interface {
-	CreateCollectionWithOptions(name string, opts CollectionOptions) (*CollectionHandle, error)
-	OpenCollection(name string) (*CollectionHandle, error)
+	CreateCollectionWithOptions(name string, opts CollectionOptions) (CollectionAPI, error)
+	OpenCollection(name string) (CollectionAPI, error)
 	DeleteCollection(name string) error
 	ListCollectionStats() []CollectionStats
 	Close() error
@@ -113,7 +113,7 @@ func Open(path string) (*Database, error) {
 	return db, nil
 }
 
-func (db *Database) CreateCollectionWithOptions(name string, opts CollectionOptions) (*CollectionHandle, error) {
+func (db *Database) CreateCollectionWithOptions(name string, opts CollectionOptions) (CollectionAPI, error) {
 	if name == "" {
 		return nil, fmt.Errorf("collection name cannot be empty")
 	}
@@ -131,7 +131,7 @@ func (db *Database) CreateCollectionWithOptions(name string, opts CollectionOpti
 	}
 }
 
-func (db *Database) OpenCollection(name string) (*CollectionHandle, error) {
+func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 	db.mu.RLock()
 	col := db.Collections[name]
 	db.mu.RUnlock()
@@ -285,12 +285,7 @@ func (h *CollectionHandle) Name() string {
 }
 
 func (h *CollectionHandle) Engine() Engine {
-	switch h.col.(type) {
-	case *VamanaCollection:
-		return EngineDiskVamana
-	default:
-		return EngineHNSW
-	}
+	return h.col.Engine()
 }
 
 func (h *CollectionHandle) Upsert(points []Point) error {
@@ -331,7 +326,7 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 
 func (h *CollectionHandle) Delete(ids []string) error {
 	for _, id := range ids {
-		h.col.DeleteItemWithIndex(id)
+		h.col.DeletePoint(id)
 	}
 	return h.Flush()
 }
@@ -350,10 +345,7 @@ func (h *CollectionHandle) Flush() error {
 	if h.db == nil {
 		return nil
 	}
-	if vc, ok := h.col.(*VamanaCollection); ok {
-		return vc.FlushToDisk(h.db.vamanaBasePath(vc.Name()))
-	}
-	return SaveCollection(h.col, h.db.Path)
+	return h.col.Flush()
 }
 
 func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {

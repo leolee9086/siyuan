@@ -126,8 +126,8 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 	return searchResults
 }
 
-// DeleteItemWithIndex deletes an item and updates the HNSW index
-func (c *Collection) DeleteItemWithIndex(id string) {
+// DeletePoint deletes an item and updates the HNSW index
+func (c *Collection) DeletePoint(id string) {
 	docID, ok := c.GetDocID(id)
 	if !ok {
 		return
@@ -145,6 +145,9 @@ func (c *Collection) DeleteItemWithIndex(id string) {
 	}
 	c.Mu.Unlock()
 }
+
+// DeleteItemWithIndex 保留旧名称供外部调用，委托给 DeletePoint。
+func (c *Collection) DeleteItemWithIndex(id string) { c.DeletePoint(id) }
 
 // RebuildIndex rebuilds the HNSW index
 func (c *Collection) RebuildIndex() error {
@@ -226,6 +229,8 @@ func (c *Collection) Name() string { return c.ColName }
 
 func (c *Collection) Dimension() int { return c.ColDim }
 
+func (c *Collection) Engine() Engine { return EngineHNSW }
+
 func (c *Collection) ListIDs() []string {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
@@ -269,6 +274,21 @@ func (c *Collection) Info() CollectionInfo {
 }
 
 func (c *Collection) Close() error { return nil }
+
+func (c *Collection) Flush() error { return nil }
+
+func (c *Collection) FetchPoints(ids []string) ([]Point, error) {
+	points := make([]Point, 0, len(ids))
+	for _, id := range ids {
+		vec, ok := c.GetVectorByID(id)
+		if !ok {
+			continue
+		}
+		meta, _ := c.GetMetaByID(id)
+		points = append(points, Point{ID: id, Vector: vec, Meta: meta})
+	}
+	return points, nil
+}
 
 func (c *Collection) GetVectorByID(id string) ([]float32, bool) {
 	c.Mu.RLock()

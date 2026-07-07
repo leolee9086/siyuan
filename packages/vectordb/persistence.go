@@ -247,9 +247,9 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 				for _, point := range entry.Points {
 					c.InsertPoint(point)
 				}
-			} else if entry.Op == OpDelete {
+				} else if entry.Op == OpDelete {
 				for _, key := range entry.Keys {
-					c.DeleteItemWithIndex(key)
+					c.DeletePoint(key)
 				}
 			}
 		}

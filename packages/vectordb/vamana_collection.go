@@ -206,8 +206,10 @@ func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []Se
 	return results
 }
 
-// DeleteItemWithIndex removes a point by external string ID.
-func (vc *VamanaCollection) DeleteItemWithIndex(id string) {
+func (vc *VamanaCollection) Engine() Engine { return EngineDiskVamana }
+
+// DeletePoint removes a point by external string ID.
+func (vc *VamanaCollection) DeletePoint(id string) {
 	vc.Mu.Lock()
 	nodeID, ok := vc.IDMap[id]
 	if !ok {
@@ -222,6 +224,9 @@ func (vc *VamanaCollection) DeleteItemWithIndex(id string) {
 
 	_ = vc.Index.Delete(nodeID)
 }
+
+// DeleteItemWithIndex 保留旧名称，委托给 DeletePoint。
+func (vc *VamanaCollection) DeleteItemWithIndex(id string) { vc.DeletePoint(id) }
 
 // RebuildIndex is not supported for disk-based Vamana collections.
 // Use Compact() instead to reclaim space from deleted nodes.
@@ -608,6 +613,29 @@ func (vc *VamanaCollection) GetMetaByID(id string) (json.RawMessage, bool) {
 
 func (vc *VamanaCollection) Name() string   { return vc.ColName }
 func (vc *VamanaCollection) Dimension() int { return vc.ColDim }
+
+func (vc *VamanaCollection) Flush() error {
+	return vc.FlushToDisk(vc.BasePath)
+}
+
+func (vc *VamanaCollection) FetchPoints(ids []string) ([]Point, error) {
+	points := make([]Point, 0, len(ids))
+	for _, id := range ids {
+		vc.Mu.RLock()
+		nodeID, ok := vc.IDMap[id]
+		vc.Mu.RUnlock()
+		if !ok {
+			continue
+		}
+		vec, err := vc.Index.ReadVector(nodeID)
+		if err != nil {
+			continue
+		}
+		meta, _ := vc.GetMetaByID(id)
+		points = append(points, Point{ID: id, Vector: vec, Meta: meta})
+	}
+	return points, nil
+}
 
 func (vc *VamanaCollection) ListIDs() []string {
 	vc.Mu.RLock()
