@@ -158,6 +158,11 @@ func projectDocument(doc map[string]any, tree *pathNode) map[string]any {
 	if tree == nil {
 		return doc
 	}
+	// 终端路径且无子节点与通配符：整个文档作为值参与匹配
+	// 例如策略 "tool_calls/*" 中通配符节点本身是终端，数组元素应整体保留
+	if tree.isLeaf && len(tree.children) == 0 && tree.wildcard == nil {
+		return doc
+	}
 	result := make(map[string]any)
 	for field, subTree := range tree.children {
 		v, ok := doc[field]
