@@ -25,7 +25,7 @@ const WORKSPACE_AI_MAIN_NOTEBOOK_STATUS_MAP: Record<string, WorkspaceAIMainNoteb
  * 意图：避免 UI 直接依赖未校验的响应字段。
  * 调用时机：解析工作空间 AI 主笔记本状态响应时调用。
  */
-function normalizeWorkspaceAIMainNotebookStatus(raw: unknown): WorkspaceAIMainNotebookStatus {
+function normalizeWorkspaceAIMainNotebookStatus(raw: unknown) {
     const normalized = String(raw ?? "").trim();
     return WORKSPACE_AI_MAIN_NOTEBOOK_STATUS_MAP[normalized] ?? "missing";
 }
@@ -37,7 +37,7 @@ function normalizeWorkspaceAIMainNotebookStatus(raw: unknown): WorkspaceAIMainNo
  * 意图：收敛后端字段漂移对 UI 的影响。
  * 调用时机：解析 notebooks/openNotebooks/activeNotebook 时调用。
  */
-function normalizeWorkspaceAIMainNotebookInfo(raw: unknown): WorkspaceAIMainNotebookInfo | null {
+function normalizeWorkspaceAIMainNotebookInfo(raw: unknown) {
     if (!raw || typeof raw !== "object") {
         return null;
     }
@@ -65,7 +65,7 @@ function normalizeWorkspaceAIMainNotebookInfo(raw: unknown): WorkspaceAIMainNote
  * 意图：保证消费方始终拿到稳定的数组结构。
  * 调用时机：解析 notebooks/openNotebooks 列表时调用。
  */
-function normalizeWorkspaceAIMainNotebookList(raw: unknown): WorkspaceAIMainNotebookInfo[] {
+function normalizeWorkspaceAIMainNotebookList(raw: unknown) {
     if (!Array.isArray(raw)) {
         return [];
     }
@@ -87,7 +87,7 @@ function normalizeWorkspaceAIMainNotebookList(raw: unknown): WorkspaceAIMainNote
  * 意图：避免每个 service 方法重复编写相同的防御逻辑。
  * 调用时机：所有工作空间 AI 主笔记本接口返回后调用。
  */
-function readResponseData(response: unknown): unknown {
+function readResponseData(response: unknown) {
     if (!response || typeof response !== "object") {
         return null;
     }
@@ -101,7 +101,7 @@ function readResponseData(response: unknown): unknown {
  * 意图：让 MagiRoot 只面向稳定的领域模型，而不是原始响应。
  * 调用时机：所有工作空间 AI 主笔记本查询/变更接口完成后调用。
  */
-function normalizeWorkspaceAIMainNotebookState(raw: unknown): WorkspaceAIMainNotebookState {
+function normalizeWorkspaceAIMainNotebookState(raw: unknown) {
     if (!raw || typeof raw !== "object") {
         return {
             status: "missing",
@@ -120,7 +120,7 @@ function normalizeWorkspaceAIMainNotebookState(raw: unknown): WorkspaceAIMainNot
 }
 
 /** 用途：供 MagiRoot 在启动前读取工作空间 AI 主笔记本状态。 */
-export async function fetchWorkspaceAIMainNotebookState(): Promise<WorkspaceAIMainNotebookState> {
+export async function fetchWorkspaceAIMainNotebookState() {
     const response = await fetchSyncPost(WORKSPACE_AI_MAIN_NOTEBOOK_STATE_ENDPOINT, {});
     const data = readResponseData(response);
     return normalizeWorkspaceAIMainNotebookState(
@@ -129,7 +129,7 @@ export async function fetchWorkspaceAIMainNotebookState(): Promise<WorkspaceAIMa
 }
 
 /** 用途：供缺失守卫页创建 AI 主笔记本，并返回最新状态。 */
-export async function createWorkspaceAIMainNotebook(name?: string): Promise<WorkspaceAIMainNotebookState> {
+export async function createWorkspaceAIMainNotebook(name?: string) {
     const trimmedName = String(name ?? "").trim();
     const response = await fetchSyncPost(
         WORKSPACE_AI_MAIN_NOTEBOOK_CREATE_ENDPOINT,
@@ -142,7 +142,7 @@ export async function createWorkspaceAIMainNotebook(name?: string): Promise<Work
 }
 
 /** 用途：供冲突/未激活守卫页选择一个 AI 主笔记本继续，并返回最新状态。 */
-export async function resolveWorkspaceAIMainNotebookConflict(keepNotebook: string): Promise<WorkspaceAIMainNotebookState> {
+export async function resolveWorkspaceAIMainNotebookConflict(keepNotebook: string){
     const response = await fetchSyncPost(WORKSPACE_AI_MAIN_NOTEBOOK_RESOLVE_ENDPOINT, {
         keepNotebook,
     });
@@ -153,7 +153,7 @@ export async function resolveWorkspaceAIMainNotebookConflict(keepNotebook: strin
 }
 
 /** 用途：在仅有一个 AI 主笔记本但它处于关闭状态时自动打开，保证 MAGI 查询范围可用。 */
-export async function openWorkspaceAIMainNotebook(notebookID: string): Promise<void> {
+export async function openWorkspaceAIMainNotebook(notebookID: string){
     await fetchSyncPost(OPEN_NOTEBOOK_ENDPOINT, {
         notebook: notebookID,
     });

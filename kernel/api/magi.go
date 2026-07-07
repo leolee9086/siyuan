@@ -205,35 +205,6 @@ func BootstrapMagiRuntimeAsync() {
 
 // initMagiComponents 初始化MAGI核心组件
 func initMagiComponents() error {
-	// 初始化 AI Profiles 存储层
-	if err := model.InitProfileStore(); err != nil {
-		logging.LogWarnf("init profile store: %v", err)
-	}
-	if err := model.MigrateFromConf(); err != nil {
-		logging.LogWarnf("migrate profiles from conf: %v", err)
-	}
-	if err := llm.InitPool(); err != nil {
-		logging.LogWarnf("init llm pool: %v", err)
-	}
-
-	// 注册 profile 切换回调（热更新 Sage 的 LLM 客户端）
-	llm.RegisterOnChange(func(name string) {
-		newClient := llm.GetActiveClient()
-		if newClient == nil {
-			return
-		}
-		if magiMelchior != nil {
-			magiMelchior.UpdateLLMClient(newClient)
-		}
-		if magiBalthazar != nil {
-			magiBalthazar.UpdateLLMClient(newClient)
-		}
-		if magiCasper != nil {
-			magiCasper.UpdateLLMClient(newClient)
-		}
-		logging.LogInfof("MAGI switched to profile: %s", name)
-	})
-
 	// 创建配置管理器（使用默认配置）
 	magiConfigMgr = config.NewConfigManager("")
 

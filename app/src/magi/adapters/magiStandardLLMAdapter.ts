@@ -98,6 +98,7 @@ export async function createMagiStandardLLMAdapter(params: {
     connectionStatus: { value: ConnectionStatus };
     mainInterfaceIdentity?: MagiInterfaceIdentity;
 }) {
+    const model = params.model;
     const runtimeMainInterfaceIdentity = params.mainInterfaceIdentity ?? buildRuntimeMainInterfaceIdentity();
 
     return {
