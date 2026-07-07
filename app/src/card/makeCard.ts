@@ -82,7 +82,7 @@ export const makeCard = (app: App, ids: string[]) => {
                             hideMessage(msgId);
                         }
                         fetchPost("/api/riff/createRiffDeck", {name: inputElement.value}, (response) => {
-                            dialog.element.querySelector(".b3-list").insertAdjacentHTML("afterbegin", genCardItem(response.data));
+                            dialog.element.querySelector(".b3-list")?.insertAdjacentHTML("afterbegin", genCardItem(response.data));
                             inputElement.value = "";
                         });
                     } else {

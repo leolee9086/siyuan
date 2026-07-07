@@ -15,9 +15,9 @@ import type { Protyle } from "../../protyle";
 export type { Protyle };
 
 /** 用途：模型基类。使用范围：dock 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { Model } from "../Model";
-/** 导出 Model 类型，供 dock 模块使用 */
-export type { Model };
+import { Model } from "../Model";
+/** 导出 Model，供 dock 模块使用 */
+export { Model };
 
 /** 用途：窗口类型。使用范围：dock 模块类型守卫。解耦评估：通过 imports.ts 转发。 */
 import { Wnd } from "../Wnd";
@@ -36,3 +36,8 @@ export { isStylableElement };
 import { isHTMLElement } from "../../util/DOM/element.guard";
 /** 导出 isHTMLElement，供 dock 模块使用 */
 export { isHTMLElement };
+
+/** 用途：JSON 可序列化对象类型。使用范围：dock 模块泛型约束。解耦评估：通过 imports.ts 转发。 */
+import type { BaseJSONSerializableObject } from "../../types/JSONSerializable-types/JSONSerializable-types.types";
+/** 导出 BaseJSONSerializableObject 类型，供 dock 模块使用 */
+export type { BaseJSONSerializableObject };
