@@ -13,22 +13,24 @@
  *
  * ─── 优先级分配 ───
  *
- *   0  代码行数/函数行数（用户指定最高优先级）
- *   1  if 嵌套控制流（用户指定次高优先级）
- *   2  类型安全（as 断言、is 关键字）
- *   3  流程控制（forEach、switch）
- *   4  导入边界（父级导入、直接导入第三方、批量导入）
- *   5  类型定义边界（业务文件中定义 type/interface/enum）
- *   6  类设计（私有方法、静态方法）
- *   7  this 约束
- *   8  上下文切换（DOM 链式调用、下标取值链式调用）
- *   9  全局对象访问（window、global、globalThis）
- *  10  imports.ts 网关特殊约束
- *  11  架构强约束（继承禁令、导出转发、别名禁令、嵌套函数定义、文件夹条目、内联回调、大型内联数组、无意义包装）
- *  12  AI 任务标记
- *  13  代码质量（注释要求、返回类型理由、Vue 文件约束、长单行注释）
- *  14  元任务检查（task-checker）
- *  15  未注册规则的默认优先级（DEFAULT_PRIORITY in priority-lint.mjs）
+ *   0  代码行数/函数行数
+ *   1  if 嵌套控制流 + 执行器层无控制流约束
+ *   2  流程控制（forEach、switch）
+ *   3  类型安全（as 断言、is 关键字）+ 基础格式 + vue
+ *   4  代码质量（注释要求、返回类型理由、Vue 文件约束、长单行注释）
+ *   5  架构强约束-单文件（继承禁令、嵌套函数定义、内联回调、大型内联数组、无意义包装、禁止 new）
+ *   6  类型定义边界（业务文件中定义 type/interface/enum）
+ *   7  类设计（私有方法、静态方法）
+ *   8  this 约束
+ *   9  上下文切换（DOM 链式调用、下标取值链式调用）
+ *  10  全局对象访问（window、global、globalThis）
+ *  11  AI 任务标记
+ *  11  require-async-export / require-import-comment（单独下调）+ AI 任务标记
+ *  12  no-class（单独下调，禁止所有 class 声明）
+ *  13  导入边界（父级导入、直接导入第三方、批量导入）——跨文件
+ *  14  imports.ts 网关特殊约束——跨文件
+ *  15  跨文件架构约束（导出转发、别名禁令、文件夹条目）——跨文件
+ *  16  未注册规则的默认优先级（DEFAULT_PRIORITY in priority-lint.mjs）
  *
  * eslint.config.mjs 只需从此文件导入 SHARED_PLUGINS_WITH_PRIORITY 和
  * PRIORITY_PROCESSOR，替换原先的 SHARED_PLUGINS。
@@ -55,122 +57,129 @@ import { requireExportCommentPlugin } from "./require-export-comment.mjs";
 import { noTrivialWrapperPlugin } from "./no-trivial-wrapper.mjs";
 import { noExtendsPlugin } from "./no-extends.mjs";
 import { noExportForwardingPlugin } from "./no-export-forwarding.mjs";
-import { taskCheckerPlugin } from "./task-checker.mjs";
 import { folderItemLimitPlugin } from "./folder-item-limit.mjs";
 import { noLongSingleLineCommentPlugin } from "./no-long-single-line-comment.mjs";
 import { noNestedFunctionPlugin } from "./no-nested-function.mjs";
 import { explicitReturnTypeReasonPlugin } from "./explicit-return-type-reason.mjs";
 import { noControlFlowInExecutorPlugin } from "./no-control-flow-in-executor.mjs";
 import { noClassPlugin } from "./no-class.mjs";
+import { maxParamsPlugin } from "./max-params.mjs";
+import { noNewPlugin } from "./no-new.mjs";
 
 // ─── 包装自定义插件并注册优先级 ───
 // createPriorityPlugin 不修改插件行为，仅将规则优先级写入 registry
 
 const wrappedPlugins = {
-    // 第三方插件——基础安全规则，给较低数值确保不遗漏
-    "@typescript-eslint": createPriorityPlugin(typescriptEslint, "@typescript-eslint", 2),
-    "vue": createPriorityPlugin(pluginVue, "vue", 2),
+    // 第三方插件——基础安全规则（优先级 3，与类型安全同级）
+    "@typescript-eslint": createPriorityPlugin(typescriptEslint, "@typescript-eslint", 3),
+    "vue": createPriorityPlugin(pluginVue, "vue", 3),
 
     // 拆分后的架构约束插件——每条规则单独注册优先级
     "restrictions": createPriorityPlugin(restrictionsPlugin, "restrictions", {
-        // if 控制流（用户指定次高优先级）
+        // if 控制流（优先级 1）
         "no-else": 1,
         "no-nested-if-block": 1,
         "no-nested-if-direct": 1,
 
-        // 上下文切换
-        "no-implicit-dom-chain": 8,
-        "no-implicit-computed-chain": 8,
+        // 流程控制（优先级 2）
+        "no-for-each": 2,
+        "no-switch": 2,
 
-        // 流程控制
-        "no-for-each": 3,
-        "no-switch": 3,
+        // 类型安全（优先级 3）
+        "no-as-assertion": 3,
+        "no-is-keyword": 3,
 
-        // 类设计
-        "no-private-method": 6,
-        "no-hash-private-method": 6,
-        "no-static-method": 6,
+        // 类型定义边界（优先级 6）
+        "no-type-alias": 6,
+        "no-interface": 6,
+        "no-enum": 6,
 
-        // this 约束
-        "no-this-in-function": 7,
-        "no-this-in-non-class": 7,
+        // 类设计（优先级 7）
+        "no-private-method": 7,
+        "no-hash-private-method": 7,
+        "no-static-method": 7,
 
-        // 导入边界
-        "no-parent-import": 4,
-        "no-parent-reexport": 4,
-        "no-parent-reexport-all": 4,
-        "no-direct-import": 4,
-        "no-direct-reexport": 4,
-        "no-direct-reexport-all": 4,
-        "no-multi-import": 4,
+        // this 约束（优先级 8）
+        "no-this-in-function": 8,
+        "no-this-in-non-class": 8,
 
-        // 类型定义边界
-        "no-type-alias": 5,
-        "no-interface": 5,
-        "no-enum": 5,
+        // 上下文切换（优先级 9）
+        "no-implicit-dom-chain": 9,
+        "no-implicit-computed-chain": 9,
 
-        // 类型安全
-        "no-as-assertion": 2,
-        "no-is-keyword": 2,
+        // 全局对象访问（优先级 10）
+        "no-window": 10,
+        "no-global": 10,
+        "no-globalthis": 10,
 
-        // 全局对象访问
-        "no-window": 9,
-        "no-global": 9,
-        "no-globalthis": 9,
+        // 导入边界——跨文件（优先级 13）
+        "no-parent-import": 13,
+        "no-parent-reexport": 13,
+        "no-parent-reexport-all": 13,
+        "no-direct-import": 13,
+        "no-direct-reexport": 13,
+        "no-direct-reexport-all": 13,
+        "no-multi-import": 13,
 
-        // imports.ts 网关特殊约束
-        "imports-no-relative-import": 10,
-        "imports-no-relative-export": 10,
-        "imports-no-reexport-all-internal": 10,
-        "imports-no-multi-export": 10,
+        // imports.ts 网关特殊约束——跨文件（优先级 14）
+        "imports-no-relative-import": 14,
+        "imports-no-relative-export": 14,
+        "imports-no-reexport-all-internal": 14,
+        "imports-no-multi-export": 14,
     }),
 
-    // 代码行数/函数行数（用户指定最高优先级）
+    // 代码行数/函数行数（优先级 0）
     "code-size": createPriorityPlugin(codeSizeLimitsPlugin, "code-size", {
         "max-lines": 0,
         "max-lines-per-function": 0,
     }),
 
-    // 架构强约束（优先级 11）
-    "no-class": createPriorityPlugin(noClassPlugin, "no-class", 11),
-    "no-extends": createPriorityPlugin(noExtendsPlugin, "no-extends", 11),
-    "no-export-forwarding": createPriorityPlugin(noExportForwardingPlugin, "no-export-forwarding", 11),
-    "no-alias-usage": createPriorityPlugin(noAliasUsagePlugin, "no-alias-usage", 11),
-    "no-nested-function": createPriorityPlugin(noNestedFunctionPlugin, "no-nested-function", 11),
     // 执行器层无控制流约束（架构边界，优先级 1，与 if 控制流同级）
     "no-control-flow-in-executor": createPriorityPlugin(noControlFlowInExecutorPlugin, "no-control-flow-in-executor", 1),
-    "folder-item-limit": createPriorityPlugin(folderItemLimitPlugin, "folder-item-limit", 11),
-    "no-inline-callback": createPriorityPlugin(noInlineCallbackPlugin, "no-inline-callback", 11),
-    "no-large-inline-array": createPriorityPlugin(noLargeInlineArrayPlugin, "no-large-inline-array", 11),
-    "no-trivial-wrapper": createPriorityPlugin(noTrivialWrapperPlugin, "no-trivial-wrapper", 11),
 
-    // AI 任务标记（优先级 12）
-    "ai-worker": createPriorityPlugin(aiWorkerPlugin, "ai-worker", 12),
+    // 代码质量（优先级 4）
+    "function-comment": createPriorityPlugin(requireFunctionCommentPlugin, "function-comment", 4),
+    "max-params": createPriorityPlugin(maxParamsPlugin, "max-params", 4),
+    "require-export-comment": createPriorityPlugin(requireExportCommentPlugin, "require-export-comment", 4),
+    "require-if-comment": createPriorityPlugin(requireIfCommentPlugin, "require-if-comment", 4),
+    "require-timeout-comment": createPriorityPlugin(requireTimeoutCommentPlugin, "require-timeout-comment", 4),
+    "explicit-return-type-reason": createPriorityPlugin(explicitReturnTypeReasonPlugin, "explicit-return-type-reason", 4),
+    "comment-style": createPriorityPlugin(noLongSingleLineCommentPlugin, "comment-style", 4),
+    "vue-custom": createPriorityPlugin(vueCustomRulesPlugin, "vue-custom", 4),
 
-    // 代码质量（优先级 13）
-    "function-comment": createPriorityPlugin(requireFunctionCommentPlugin, "function-comment", 13),
-    "require-import-comment": createPriorityPlugin(requireImportCommentPlugin, "require-import-comment", 13),
-    "require-export-comment": createPriorityPlugin(requireExportCommentPlugin, "require-export-comment", 13),
-    "require-if-comment": createPriorityPlugin(requireIfCommentPlugin, "require-if-comment", 13),
-    "require-timeout-comment": createPriorityPlugin(requireTimeoutCommentPlugin, "require-timeout-comment", 13),
-    "require-async-export": createPriorityPlugin(requireAsyncExportPlugin, "require-async-export", 13),
-    "explicit-return-type-reason": createPriorityPlugin(explicitReturnTypeReasonPlugin, "explicit-return-type-reason", 13),
-    "comment-style": createPriorityPlugin(noLongSingleLineCommentPlugin, "comment-style", 13),
-    "vue-custom": createPriorityPlugin(vueCustomRulesPlugin, "vue-custom", 13),
+    // 架构强约束-单文件（优先级 5）
+    "no-extends": createPriorityPlugin(noExtendsPlugin, "no-extends", 5),
+    "no-nested-function": createPriorityPlugin(noNestedFunctionPlugin, "no-nested-function", 5),
+    "no-inline-callback": createPriorityPlugin(noInlineCallbackPlugin, "no-inline-callback", 5),
+    "no-large-inline-array": createPriorityPlugin(noLargeInlineArrayPlugin, "no-large-inline-array", 5),
+    "no-trivial-wrapper": createPriorityPlugin(noTrivialWrapperPlugin, "no-trivial-wrapper", 5),
+    "no-new": createPriorityPlugin(noNewPlugin, "no-new", 5),
 
-    // 元任务检查（优先级 14，最低）
-    "task-checker": createPriorityPlugin(taskCheckerPlugin, "task-checker", 14),
+    // require-async-export / require-import-comment 单独下调（优先级 11）
+    "require-async-export": createPriorityPlugin(requireAsyncExportPlugin, "require-async-export", 11),
+    "require-import-comment": createPriorityPlugin(requireImportCommentPlugin, "require-import-comment", 11),
+
+    // AI 任务标记（优先级 11）
+    "ai-worker": createPriorityPlugin(aiWorkerPlugin, "ai-worker", 11),
+
+    // no-class 单独下调（优先级 12，禁止所有 class 声明，改造影响面大）
+    "no-class": createPriorityPlugin(noClassPlugin, "no-class", 12),
+
+    // 跨文件架构约束（优先级 15）
+    "no-export-forwarding": createPriorityPlugin(noExportForwardingPlugin, "no-export-forwarding", 15),
+    "no-alias-usage": createPriorityPlugin(noAliasUsagePlugin, "no-alias-usage", 15),
+    "folder-item-limit": createPriorityPlugin(folderItemLimitPlugin, "folder-item-limit", 15),
 };
 
 // ─── 手动注册原生/第三方规则优先级 ───
 // 这些规则不在我们的自定义插件中，无法通过 createPriorityPlugin 注册
 registerPriorities({
-    // 基础格式（优先级 2，与类型安全同级）
-    "semi": 2,
-    "quotes": 2,
-    "curly": 2,
-    "brace-style": 2,
-    "max-statements-per-line": 2,
+    // 基础格式（优先级 3，与类型安全同级）
+    "semi": 3,
+    "quotes": 3,
+    "curly": 3,
+    "brace-style": 3,
+    "max-statements-per-line": 3,
 });
 
 // ─── 处理器插件 ───

@@ -32,7 +32,7 @@ export const noExtendsPlugin = {
                 // Track all exemption comments
                 const exemptionComments = [];
                 for (const comment of sourceCode.getAllComments()) {
-                    if (comment.type === "Line" && comment.value.trim().startsWith("@允许继承")) {
+                    if ((comment.type === "Line" || comment.type === "Block") && comment.value.includes("@允许继承:")) {
                         exemptionComments.push(comment);
                     }
                 }
@@ -40,20 +40,38 @@ export const noExtendsPlugin = {
                 // Track which comments were actually used
                 const usedComments = new Set();
 
+                /**
+                 * 查找 class 前的豁免注释。
+                 *
+                 * 不能依赖 sourceCode.getCommentsBefore(node)，
+                 * 因为 export class 场景下 AST 结构为
+                 * ExportNamedDeclaration 包裹 ClassDeclaration，
+                 * 注释附着在外层 ExportNamedDeclaration 上，
+                 * getCommentsBefore(ClassDeclaration) 找不到它。
+                 *
+                 * 改用基于源码行的位置查找：取 class 上一行的 @允许继承 注释。
+                 */
+                function findExemptionComment(classNode) {
+                    const classLine = classNode.loc.start.line;
+                    for (const comment of exemptionComments) {
+                        if (comment.loc.end.line === classLine - 1) {
+                            return comment;
+                        }
+                    }
+                    return null;
+                }
+
                 return {
                     "ClassDeclaration, ClassExpression"(node) {
                         if (node.superClass) {
-                            // Find comment on the immediately preceding line
-                            const commentsBefore = sourceCode.getCommentsBefore(node);
-                            const exemptionComment = commentsBefore.find(
-                                c => c.type === "Line" && c.value.trim().startsWith("@允许继承")
-                            );
+                            // Find exemption comment by source line position
+                            const exemptionComment = findExemptionComment(node);
 
                             if (exemptionComment) {
                                 usedComments.add(exemptionComment);
 
                                 const val = exemptionComment.value.trim();
-                                if (!val.startsWith(EXEMPTION_PREFIX)) {
+                                if (!val.includes(EXEMPTION_PREFIX)) {
                                     context.report({
                                         loc: exemptionComment.loc,
                                         messageId: "invalidReason",
@@ -61,7 +79,14 @@ export const noExtendsPlugin = {
                                     return;
                                 }
 
-                                const providedReason = val.substring(EXEMPTION_PREFIX.length).trim();
+                                // 找到 @允许继承: 的实际位置，提取其后到下一个 @ 标记或结尾之间的文本作为原因
+                                const prefixIndex = val.indexOf(EXEMPTION_PREFIX);
+                                let providedReason = "";
+                                if (prefixIndex >= 0) {
+                                    const afterPrefix = val.substring(prefixIndex + EXEMPTION_PREFIX.length).trim();
+                                    // 取第一行作为原因（JSDoc 块中支持后续跨行，仅取 @允许继承: 所在行）
+                                    providedReason = afterPrefix.split(/\r?\n/)[0].trim();
+                                }
                                 if (!VALID_EXEMPTION_REASONS.includes(providedReason)) {
                                     context.report({
                                         loc: exemptionComment.loc,

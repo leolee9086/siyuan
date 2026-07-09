@@ -31,7 +31,7 @@ const registry = new Map();
  * 设为 15 而非 0：确保用户显式注册的 code-size (0) 和 if-nesting (10)
  * 占据前两位后，未注册的基础安全规则处于第三档，优先级不低于业务约束规则。
  */
-const DEFAULT_PRIORITY = 15;
+const DEFAULT_PRIORITY = 16;
 
 /**
  * 注册单个规则的优先级

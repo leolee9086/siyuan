@@ -59,10 +59,10 @@ export const noClassPlugin = {
             create(context) {
                 const sourceCode = context.getSourceCode();
 
-                // 收集文件中所有 @允许类 注释，用于在 Program:exit 中检测未使用豁免
+                // 收集包含 @允许类: 的注释（允许与其他豁免标记合并在同一行）
                 const exemptionComments = [];
                 for (const comment of sourceCode.getAllComments()) {
-                    if (comment.type === "Line" && comment.value.trim().startsWith("@允许类")) {
+                    if ((comment.type === "Line" || comment.type === "Block") && comment.value.includes("@允许类:")) {
                         exemptionComments.push(comment);
                     }
                 }
@@ -70,22 +70,39 @@ export const noClassPlugin = {
                 // 记录已匹配到 class 的豁免注释
                 const usedComments = new Set();
 
+                /**
+                 * 查找 class 前的豁免注释。
+                 *
+                 * 不能依赖 sourceCode.getCommentsBefore(node)，
+                 * 因为 export class 场景下 AST 结构为
+                 * ExportNamedDeclaration 包裹 ClassDeclaration，
+                 * 注释附着在外层 ExportNamedDeclaration 上，
+                 * getCommentsBefore(ClassDeclaration) 找不到它。
+                 *
+                 * 改用基于源码行的位置查找：取 class 上一行的 @允许类 注释。
+                 */
+                function findExemptionComment(classNode) {
+                    const classLine = classNode.loc.start.line;
+                    for (const comment of exemptionComments) {
+                        if (comment.loc.end.line === classLine - 1) {
+                            return comment;
+                        }
+                    }
+                    return null;
+                }
+
                 return {
                     /**
                      * 匹配所有 class 定义（包括声明和表达式）。
                      * 在 class 前寻找豁免注释，如果没有或长度不足则报错。
                      */
                     "ClassDeclaration, ClassExpression"(node) {
-                        // abstract class 默认豁免：抽象类仅定义类型契约，不涉及实例化
+                        // abstract class 默认豁免
                         if (node.abstract === true) {
                             return;
                         }
 
-                        // 查找紧邻在 class 前的豁免注释
-                        const commentsBefore = sourceCode.getCommentsBefore(node);
-                        const exemptionComment = commentsBefore.find(
-                            c => c.type === "Line" && c.value.trim().startsWith("@允许类"),
-                        );
+                        const exemptionComment = findExemptionComment(node);
 
                         if (exemptionComment) {
                             usedComments.add(exemptionComment);
@@ -102,7 +119,7 @@ export const noClassPlugin = {
                             }
 
                             // 检查前缀格式正确
-                            if (!commentText.startsWith(EXEMPTION_PREFIX)) {
+                            if (!commentText.includes(EXEMPTION_PREFIX)) {
                                 context.report({
                                     loc: exemptionComment.loc,
                                     messageId: "forbiddenClass",
