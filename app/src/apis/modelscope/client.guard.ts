@@ -50,6 +50,6 @@ export function 断言思源代理请求响应(value: unknown): asserts value is
     // 运行时断言：如果当前值不符合 思源代理请求响应 结构，抛出详细错误以便快速定位 API 兼容性问题
     if (!检查思源代理请求响应(value)) {
         const preview = JSON.stringify(value, null, 2).substring(0, 500);
-        throw new Error(`fetchSyncPost 返回了非预期的响应结构: ${preview}`);
+        throw  Error(`fetchSyncPost 返回了非预期的响应结构: ${preview}`);
     }
 }

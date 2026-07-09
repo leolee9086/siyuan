@@ -136,7 +136,9 @@ const initForwardlink: ModelFactory = (app, tab, editor) => {
  * 调用时机：加载自定义列表 Dock 时
  */
 const initCustomList: ModelFactory = (app, tab, editor, data) => {
-    if (!data || !isICustomList(data)) {
+    // isICustomList 已排除 null/undefined/非对象，无需额外 !data 真值检查；
+    // 否则 !data 会将 unknown 先收窄为 {}，导致类型守卫无法在 || 否定分支中收窄为 ICustomList
+    if (!isICustomList(data)) {
         return undefined;
     }
     return new CustomLists(app, tab, data);
@@ -164,11 +166,12 @@ const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
  * 意图：支持插件扩展 Dock 功能
  * 调用时机：当 Dock 类型为非内置类型时尝试加载插件
  */
-const initPlugin = (app: App, tab: Tab, type: string): Model | undefined => {
+const initPlugin = (app: App, tab: Tab, type: string) => {
     let customModel: Model | undefined;
     for (const item of app.plugins) {
         const dock = item.docks[type];
-        if (dock) {
+        // dock.model 为可选属性，需同时校验 dock 与 dock.model，避免调用未定义函数
+        if (dock?.model) {
             customModel = dock.model({ tab });
             break;
         }
@@ -183,7 +186,7 @@ const initPlugin = (app: App, tab: Tab, type: string): Model | undefined => {
  * 意图：处理 custom_list 类型的特殊数据恢复逻辑
  * 调用时机：createModel 中遇到 custom_list 类型但没有 data 时
  */
-const getCustomListData = (type: string): unknown => {
+const getCustomListData = (type: string) => {
     const parts = type.split(":");
     const uuid = parts.length > 2 ? parts[parts.length - 1] : "";
     if (!uuid) {
@@ -221,7 +224,7 @@ export const createModel = (options: {
     type: string,
     editor?: Protyle | undefined,
     data?: unknown
-}): Model | undefined => {
+}) => {
     // 处理已保存的错误占位符
     if (options.type === ERROR_PLACEHOLDER_TYPE && isErrorPlaceholderData(options.data)) {
         return createErrorPlaceholderFromData(options.app, options.tab, options.data);
@@ -256,7 +259,7 @@ export const safeCreateModel = (options: {
     type: string,
     editor?: Protyle | undefined,
     data?: unknown
-}): Model | undefined => {
+}) => {
     try {
         return createModel(options);
     } catch (error) {
@@ -287,7 +290,7 @@ export const createDockTab = (options: {
     type: string,
     editor?: Protyle,
     data?: unknown
-}): Tab => {
+}) => {
     return new Tab({
         /**  创建 Tab 后的回调，创建并添加 model */
         callback: (tab: Tab) => {

@@ -13,6 +13,8 @@ import { siyuanI18n } from "./imports";
 import type { App } from "./imports";
 // 用途：面板头部图标上下文类型；使用范围：执行图标操作函数的参数类型；解耦评估：本地类型定义，作为类型导入不影响运行时
 import type { headIconCtx } from "../Panel.types";
+// 用途：固定操作固定的 DOM 元素上下文；使用范围：应用固定状态函数参数类型；解耦评估：本地类型，通过类型文件集中管理
+import type { 固定状态上下文 } from "../Panel.types";
 
 /**
  * 切换面板的固定状态
@@ -32,7 +34,7 @@ export function 切换固定状态(element: HTMLElement, 固定: boolean) {
     if (!useElement) {
         return;
     }
-    应用固定状态(pinElement, useElement, element, 固定);
+    应用固定状态({ pinElement, useElement, element }, 固定);
 }
 
 /**
@@ -42,11 +44,10 @@ export function 切换固定状态(element: HTMLElement, 固定: boolean) {
  * 调用时机：在 执行固定操作 或 切换固定状态 中调用
  */
 function 应用固定状态(
-    pinElement: Element,
-    useElement: SVGUseElement,
-    element: HTMLElement,
+    ctx: 固定状态上下文,
     固定: boolean
 ) {
+    const { pinElement, useElement, element } = ctx;
     // 判断是否需要固定面板：当固定参数为true时，设置为固定状态（显示取消固定图标）；否则设置为未固定状态（显示固定图标）
     if (固定) {
         pinElement.setAttribute("aria-label", siyuanI18n.unpin);
@@ -108,7 +109,7 @@ function 执行固定操作(target: HTMLElement, element: HTMLElement) {
         return;
     }
     // 切换状态：当前固定则取消固定，当前未固定则固定
-    应用固定状态(target, useElement, element, !当前固定);
+    应用固定状态({ pinElement: target, useElement, element }, !当前固定);
 }
 
 /**

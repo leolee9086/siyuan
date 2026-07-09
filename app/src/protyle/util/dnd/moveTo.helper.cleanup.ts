@@ -9,10 +9,8 @@ import { IMoveContext } from "./moveTo.types";
 export const cleanupSourceElement = async (item: Element, oldSourceParentElement: HTMLElement, context: IMoveContext) => {
     let topSourceElement = getTopAloneElement(item);
 
-    if (topSourceElement !== item) {
-        if (topSourceElement.contains(item)) {
-            topSourceElement = getTopAloneElement(oldSourceParentElement);
-        }
+    if (topSourceElement !== item && topSourceElement.contains(item)) {
+        topSourceElement = getTopAloneElement(oldSourceParentElement);
         await handleTopSourceElementCleanup(topSourceElement, context);
         return;
     }

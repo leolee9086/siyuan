@@ -1,235 +1,105 @@
+/** 用途：生成超级块元素、刷新超级块宽度与拖拽手柄。使用范围：dragSb 创建并维护超级块。解耦评估：通过 block/util 直接导入。 */
 import { genSBElement, refreshSbAndPersistWidth, refreshSbResize } from "../../../block/util";
-import { focusBlock } from "../selection";
+/** 用途：移动块。使用范围：dragSb/dragSame 主流程。解耦评估：同目录模块直接导入。 */
 import { moveTo } from "./moveTo";
-import { setFold } from "../../util/blockFold";
-import { transaction, turnsIntoOneTransaction } from "../../wysiwyg/transaction";
-import { getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
-import { updateListOrder } from "../../wysiwyg/list.updateOrder";
+/** 用途：拖拽各阶段辅助函数。使用范围：dragSb/dragSame 各阶段处理。解耦评估：同目录模块直接导入。 */
+import {
+    collectOriginSbSet, shouldAbortUniqueLiDrag, buildTargetMoveUndo, buildSbInsertOperation,
+    locateSbRemoveIndex, applySbMoveAndUndo, headingNeedsRefold, mergeAndFoldSb, finishDrag,
+    unfoldTargetHeading, applyFoldData, updateOrderedListAfterDrag, refoldHeadingsAfterDrag,
+    refreshDragSbSet, mergeIntoColSuperBlockIfNeeded
+} from "./drag.helpers";
 
-export const dragSb = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element, isBottom: boolean,
-    direct: "col" | "row", isCopy: boolean) => {
-    const isSameDoc = protyle.element.contains(sourceElements[0]);
-    const originSbSet = new Set<Element>();
-    sourceElements.forEach((element) => {
-        const sbElement = element.closest("[data-type=\"NodeSuperBlock\"]");
-        if (sbElement && sbElement !== targetElement.closest("[data-type=\"NodeSuperBlock\"]")) {
-            originSbSet.add(sbElement);
-        }
-    });
-    // 把列表块中的唯一一个列表项块拖拽到列表块的左侧 https://github.com/siyuan-note/siyuan/issues/16315
-    if (isSameDoc && sourceElements[0].classList.contains("li") && targetElement === sourceElements[0].parentElement &&
-        targetElement.childElementCount === sourceElements.length + 1) {
-        const outLiElement = sourceElements.find((element) => {
-            if (!targetElement.contains(element)) {
-                return true;
-            }
-        });
-        if (!outLiElement) {
-            return;
-        }
+/**
+ * 作用：将源块拖拽为新的超级块
+ * 意图：处理拖拽到超级块布局区域的场景
+ * 调用时机：拖拽落点为超级块布局时由拖拽控制器调用
+ * @参数豁免: 遗留代码 - 公共拖拽 API 签名沿用历史调用约定
+ */
+export async function dragSb(protyle: IProtyle, sourceElements: Element[], targetElement: Element,
+                             isBottom: boolean, direct: "col" | "row", isCopy: boolean) {
+    const firstSource = sourceElements[0];
+    // 源块为空时中止
+    if (!firstSource) {
+        return;
     }
-    const undoOperations: IOperation[] = [];
-    const targetMoveUndo: IOperation = {
-        action: "move",
-        context: {
-            removeFold: "true"
-        },
-        id: targetElement.getAttribute("data-node-id"),
-        previousID: getPreviousBlockSibling(targetElement)?.getAttribute("data-node-id"),
-        parentID: getParentBlock(targetElement)?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID
-    };
+    const isSameDoc = protyle.element.contains(firstSource);
+    // 列表唯一列表项拖到列表左侧的边界场景无需处理
+    if (shouldAbortUniqueLiDrag(sourceElements, targetElement, isSameDoc)) {
+        return;
+    }
+    const targetParent = targetElement.parentElement;
+    // 目标无父元素时中止
+    if (!targetParent) {
+        return;
+    }
+    const originSbSet = collectOriginSbSet(sourceElements, targetElement);
+    const targetMoveUndo = buildTargetMoveUndo(targetElement, protyle);
     const sbElement = genSBElement(direct);
-    targetElement.parentElement.replaceChild(sbElement, targetElement);
-    const doOperations: IOperation[] = [{
-        action: "insert",
-        data: sbElement.outerHTML,
-        id: sbElement.getAttribute("data-node-id"),
-        nextID: sbElement.nextElementSibling?.getAttribute("data-node-id"),
-        previousID: getPreviousBlockSibling(sbElement)?.getAttribute("data-node-id"),
-        parentID: getParentBlock(sbElement)?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID
-    }];
+    targetParent.replaceChild(sbElement, targetElement);
+    const doOperations: IOperation[] = [buildSbInsertOperation(sbElement, protyle)];
+    const sbLastChild = sbElement.lastElementChild;
+    // 超级块末尾子块缺失时中止
+    if (!sbLastChild) {
+        return;
+    }
     // 临时插入，防止后面计算错误，最终再移动矫正
-    sbElement.lastElementChild.before(targetElement);
+    sbLastChild.before(targetElement);
     const moveToResult = await moveTo(protyle, sourceElements, sbElement, isSameDoc, "afterbegin", isCopy);
     doOperations.push(...moveToResult.doOperations);
-    undoOperations.push(...moveToResult.undoOperations);
+    const undoOperations: IOperation[] = [...moveToResult.undoOperations];
     const newSourceParentElement = moveToResult.newSourceElements;
-    // 横向超级块A内两个元素拖拽成纵向超级块B，取消超级块A会导致 targetElement 被删除，需先移动再删除 https://github.com/siyuan-note/siyuan/issues/16292
-    let removeIndex = doOperations.length;
-    doOperations.find((item, index) => {
-        // 横向超级块A内两个元素拖拽成纵向超级块B，取消超级块A会导致 targetElement 被删除，需先移动再删除 https://github.com/siyuan-note/siyuan/issues/16292
-        if (item.action === "delete" && item.id === targetMoveUndo.parentID) {
-            removeIndex = index;
-        }
-        // 超级块内有两个块，拖拽其中一个到超级块外 https://github.com/siyuan-note/siyuan/issues/16292#issuecomment-3523600155
-        if (item.action === "delete" && item.id === targetElement.getAttribute("data-node-id")) {
-            targetElement = sbElement.querySelector(`[data-node-id="${doOperations[index - 1].id}"]`);
-        }
+    const located = locateSbRemoveIndex({
+        doOperations, targetMoveUndoParentID: targetMoveUndo.parentID, targetElement, sbElement
     });
-
-    if (isBottom) {
-        // 拖拽到超级块 col 下方， 其他块右侧
-        sbElement.insertAdjacentElement("afterbegin", targetElement);
-        doOperations.splice(removeIndex, 0, {
-            action: "move",
-            id: targetElement.getAttribute("data-node-id"),
-            parentID: sbElement.getAttribute("data-node-id")
-        });
-    } else {
-        sbElement.lastElementChild.insertAdjacentElement("beforebegin", targetElement);
-        doOperations.splice(removeIndex, 0, {
-            action: "move",
-            id: targetElement.getAttribute("data-node-id"),
-            previousID: newSourceParentElement[0].getAttribute("data-node-id"),
-        });
-    }
-    undoOperations.push(targetMoveUndo);
-    undoOperations.push({
-        action: "delete",
-        id: sbElement.getAttribute("data-node-id"),
+    targetElement = located.targetElement;
+    applySbMoveAndUndo({
+        sbElement, targetElement, isBottom, removeIndex: located.removeIndex,
+        newSourceParentElement, doOperations, undoOperations, targetMoveUndo
     });
-    const foldElements: Element[] = [];
-    newSourceParentElement.forEach(item => {
-        if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1" &&
-            item.nextElementSibling && (
-                item.nextElementSibling.getAttribute("data-type") !== "NodeHeading" ||
-                (item.nextElementSibling.getAttribute("data-subtype") || "") > item.getAttribute("data-subtype")
-            )) {
-            foldElements.push(item);
-        }
-    });
-    if ((newSourceParentElement.length > 1 || foldElements.length > 0) && direct === "col") {
-        const mergeOperations = await turnsIntoOneTransaction({
-            protyle,
-            selectsElement: newSourceParentElement.reverse(),
-            type: "BlocksMergeSuperBlock",
-            level: "row",
-            unfocus: true,
-            getOperations: true
-        });
-        doOperations.push(...mergeOperations.doOperations);
-        undoOperations.splice(0, 0, ...mergeOperations.undoOperations);
-    }
-    foldElements.forEach(item => {
-        const foldOperations = setFold(protyle, item, true, false, false, true);
-        doOperations.push(...foldOperations.doOperations);
-        undoOperations.splice(0, 0, ...foldOperations.undoOperations);
-    });
+    const foldElements = newSourceParentElement.filter(headingNeedsRefold);
+    await mergeAndFoldSb({protyle, newSourceParentElement, foldElements, direct, doOperations, undoOperations});
     refreshSbResize(sbElement);
-    originSbSet.forEach(sbElementItem => {
+    for (const sbElementItem of originSbSet) {
         refreshSbAndPersistWidth(sbElementItem, doOperations, undoOperations);
-    });
-    // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
-    transaction(protyle, doOperations, undoOperations);
-    if (document.contains(sourceElements[0])) {
-        focusBlock(sourceElements[0]);
-    } else {
-        focusBlock(targetElement);
     }
-};
+    finishDrag({protyle, doOperations, undoOperations, firstSource, targetElement});
+}
 
-export const dragSame = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element, isBottom: boolean, isCopy: boolean) => {
-    const isSameDoc = protyle.element.contains(sourceElements[0]);
+/**
+ * 作用：将源块拖拽到同文档目标位置
+ * 意图：处理同文档内块拖拽移动
+ * 调用时机：拖拽落点为普通块位置时由拖拽控制器调用
+ * @参数豁免: 遗留代码 - 公共拖拽 API 签名沿用历史调用约定
+ */
+export async function dragSame(protyle: IProtyle, sourceElements: Element[], targetElement: Element,
+                               isBottom: boolean, isCopy: boolean) {
+    const firstSource = sourceElements[0];
+    // 源块为空时中止
+    if (!firstSource) {
+        return;
+    }
+    const isSameDoc = protyle.element.contains(firstSource);
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
-    const originSbSet = new Set<Element>();
-    sourceElements.forEach((element) => {
-        const sbElement = element.closest("[data-type=\"NodeSuperBlock\"]");
-        if (sbElement) {
-            originSbSet.add(sbElement);
-        }
-    });
-
-    const moveToResult = await moveTo(protyle, sourceElements, targetElement, isSameDoc, isBottom ? "afterend" : "beforebegin", isCopy);
+    const originSbSet = collectOriginSbSet(sourceElements);
+    const moveToResult = await moveTo(protyle, sourceElements, targetElement, isSameDoc,
+        isBottom ? "afterend" : "beforebegin", isCopy);
     doOperations.push(...moveToResult.doOperations);
     undoOperations.push(...moveToResult.undoOperations);
     const newSourceParentElement = moveToResult.newSourceElements;
-    let foldData;
-    if (isBottom &&
-        targetElement.getAttribute("data-type") === "NodeHeading" &&
-        targetElement.getAttribute("fold") === "1") {
-        foldData = setFold(protyle, targetElement, true, false, false, true);
-    } else if (!isBottom && targetElement.previousElementSibling &&
-        targetElement.previousElementSibling.getAttribute("data-type") === "NodeHeading" &&
-        targetElement.previousElementSibling.getAttribute("fold") === "1") {
-        foldData = setFold(protyle, targetElement.previousElementSibling, true, false, false, true);
-    }
+    const foldData = unfoldTargetHeading(protyle, targetElement, isBottom);
+    // 存在折叠标题展开数据时合并进事务
     if (foldData) {
-        foldData.doOperations[0].context = {
-            focusId: sourceElements[0].getAttribute("data-node-id"),
-        };
-        doOperations.push(...foldData.doOperations);
-        undoOperations.push(...foldData.undoOperations);
+        applyFoldData({foldData, firstSource, doOperations, undoOperations});
     }
+    // 目标为有序列表项时重排序号
     if (targetElement.getAttribute("data-type") === "NodeListItem" &&
         targetElement.getAttribute("data-subtype") === "o") {
-        // https://github.com/siyuan-note/insider/issues/536
-        Array.from(targetElement.parentElement.children).forEach((item) => {
-            if (item.classList.contains("protyle-attr")) {
-                return;
-            }
-            undoOperations.splice(0, 0, {
-                action: "update",
-                id: item.getAttribute("data-node-id"),
-                data: item.outerHTML
-            });
-        });
-        updateListOrder(targetElement.parentElement, 1);
-        Array.from(targetElement.parentElement.children).forEach((item) => {
-            if (item.classList.contains("protyle-attr")) {
-                return;
-            }
-            doOperations.push({
-                action: "update",
-                id: item.getAttribute("data-node-id"),
-                data: item.outerHTML
-            });
-        });
+        updateOrderedListAfterDrag(targetElement, doOperations, undoOperations);
     }
-    let hasFoldHeading = false;
-    newSourceParentElement.forEach(item => {
-        if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
-            hasFoldHeading = true;
-            if (item.nextElementSibling && (
-                item.nextElementSibling.getAttribute("data-type") !== "NodeHeading" ||
-                item.nextElementSibling.getAttribute("data-subtype") > item.getAttribute("data-subtype")
-            )) {
-                const foldOperations = setFold(protyle, item, true, false, false, true);
-                doOperations.push(...foldOperations.doOperations);
-                // 不折叠，否则无法撤销 undoOperations.push(...foldOperations.undoOperations);
-            }
-            return true;
-        }
-    });
-    const dragSbSet = new Set<Element>(originSbSet);
-    [newSourceParentElement[0], targetElement].forEach((element) => {
-        const sbElement = element?.closest("[data-type=\"NodeSuperBlock\"]");
-        if (sbElement) {
-            dragSbSet.add(sbElement);
-        }
-    });
-    dragSbSet.forEach(sbElement => {
-        refreshSbAndPersistWidth(sbElement, doOperations, undoOperations);
-    });
-    if ((newSourceParentElement.length > 1 || hasFoldHeading) &&
-        newSourceParentElement[0].parentElement.classList.contains("sb") &&
-        newSourceParentElement[0].parentElement.getAttribute("data-sb-layout") === "col") {
-        const mergeOperations = await turnsIntoOneTransaction({
-            protyle,
-            selectsElement: newSourceParentElement.reverse(),
-            type: "BlocksMergeSuperBlock",
-            level: "row",
-            unfocus: true,
-            getOperations: true
-        });
-        doOperations.push(...mergeOperations.doOperations);
-        undoOperations.splice(0, 0, ...mergeOperations.undoOperations);
-    }
-    // 跨文档移动为可逆条目：全局撤销栈按 rootID 分栈联动，撤销时经 mutatedRootIDs 判定弹确认
-    transaction(protyle, doOperations, undoOperations);
-    if (document.contains(sourceElements[0])) {
-        focusBlock(sourceElements[0]);
-    } else {
-        focusBlock(targetElement);
-    }
-};
+    const hasFoldHeading = refoldHeadingsAfterDrag(protyle, newSourceParentElement, doOperations);
+    refreshDragSbSet({originSbSet, newSourceParentElement, targetElement, doOperations, undoOperations});
+    await mergeIntoColSuperBlockIfNeeded({protyle, newSourceParentElement, hasFoldHeading, doOperations, undoOperations});
+    finishDrag({protyle, doOperations, undoOperations, firstSource, targetElement});
+}

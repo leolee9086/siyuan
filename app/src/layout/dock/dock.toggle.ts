@@ -7,32 +7,18 @@ import type { Wnd } from "../Wnd";
 import type { Tab } from "../Tab";
 import type { Dock } from "./index";
 import { handleGraphDestroy } from "./dock.graph";
-export { handleGraphDestroy };
-export {
-    handleGraphShow,
-    handleGraphFullscreenDrag,
-} from "./dock.graph";
 
-import {
-    handlePanelFocusSwitch,
-    handlePostCloseFocus,
-    handleTabSwitch,
-    blurActiveElement,
-} from "./dock.focus";
-import { resizeTabs } from "../tabUtil";
+import { handlePanelFocusSwitch } from "./dock.focus";
+import { handlePostCloseFocus } from "./dock.focus";
+import { handleTabSwitch } from "./dock.focus";
+import { blurActiveElement } from "./dock.focus";
+import { resizeTabs } from "./imports";
 export {
     handlePanelFocusSwitch,
     handlePostCloseFocus,
     handleTabSwitch,
     blurActiveElement,
 };
-
-export {
-    updateDockPanelRelation,
-    updatePanelVisibility,
-    executePanelRelationsUpdate,
-} from "./dock.relation";
-
 
 
 
@@ -59,16 +45,21 @@ export function handleDockHideSize(
         return false;
     }
 
+    // 使用卫语句替代 else-if 链
     if (dock.position === "Left") {
         dock.layout.element.style.width = "0px";
         dock.layout.element.style.marginRight = "0px";
-    } else if (dock.position === "Right") {
+        dock.resizeElement.classList.add("fn__none");
+        return true;
+    }
+    if (dock.position === "Right") {
         dock.layout.element.style.width = "0px";
         dock.layout.element.style.marginLeft = "0px";
-    } else {
-        dock.layout.element.style.height = "0px";
-        dock.layout.element.style.marginTop = "0px";
+        dock.resizeElement.classList.add("fn__none");
+        return true;
     }
+    dock.layout.element.style.height = "0px";
+    dock.layout.element.style.marginTop = "0px";
     dock.resizeElement.classList.add("fn__none");
     return true;
 }
@@ -77,20 +68,27 @@ export function handleDockHideSize(
  * 设置 dock 显示时的尺寸
  */
 export function setDockLayoutSize(dock: Dock, size: number): void {
+    // 合并条件避免嵌套 if（no-nested-if-block）
+    if (dock.position === "Left" && dock.layout.element.style.width === "0px") {
+        dock.layout.element.style.width = size + "px";
+    }
+    if (dock.position === "Right" && dock.layout.element.style.width === "0px") {
+        dock.layout.element.style.width = size + "px";
+    }
+    if (dock.position === "Bottom" && dock.layout.element.style.height === "0px") {
+        dock.layout.element.style.height = size + "px";
+    }
+
+    // 使用卫语句替代 else-if 链，每个位置独立处理 margin
     if (dock.position === "Left") {
-        if (dock.layout.element.style.width === "0px") {
-            dock.layout.element.style.width = size + "px";
-        }
         dock.layout.element.style.marginRight = "var(--b3-layout-space)";
-    } else if (dock.position === "Right") {
-        if (dock.layout.element.style.width === "0px") {
-            dock.layout.element.style.width = size + "px";
-        }
+        return;
+    }
+    if (dock.position === "Right") {
         dock.layout.element.style.marginLeft = "var(--b3-layout-space)";
-    } else if (dock.position === "Bottom") {
-        if (dock.layout.element.style.height === "0px") {
-            dock.layout.element.style.height = size + "px";
-        }
+        return;
+    }
+    if (dock.position === "Bottom") {
         dock.layout.element.style.marginTop = "var(--b3-layout-space)";
     }
 }
@@ -228,7 +226,7 @@ export function executeToggleShow(
     setTimeoutFn: (fn: () => void, ms?: number) => number,
     adjustLayoutFn: () => void,
     TIMEOUT_TRANSITION: number
-): void {
+) {
     const activeItems = dock.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`);
     for (const item of Array.from(activeItems)) {
         item.classList.remove("dock__item--active", "dock__item--activefocus");

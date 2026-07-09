@@ -15,7 +15,7 @@ import { Constants } from "../../constants";
 import { initDockResize } from "./dock.resize";
 import { initDockDnD } from "./dock.dnd";
 import { initDockLayout } from "./dock.layout";
-import { handleGraphShow } from "./dock.toggle";
+import { handleGraphShow } from "./dock.graph";
 import { generateAllButtonsHTML, insertButtonsToContainer } from "./dock.button";
 import { getSiyuanLanguages, getSiyuanConfig, setWindowTimeout } from "./dock.environment";
 import { isWnd, isTDock } from "./dock.guard";
@@ -237,7 +237,7 @@ export class Dock {
             return;
         }
         const isHideAction = target.classList.contains("dock__item--active") || removeDock;
-        if (isHideAction && executeToggleHide(this, wndChild, target, type, close, isSaveLayout, removeDock)) {
+        if (isHideAction && executeToggleHide(this, wndChild, target, type, close, isSaveLayout)) {
             return;
         }
         if (!isHideAction) {

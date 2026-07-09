@@ -70,7 +70,7 @@ function buildRandomIdentitySegment(): string {
  *
  * @同步豁免: 性能考虑 - 简单配置读取，无需异步。
  */
-function resolveMagiTargetLabel(): string {
+function resolveMagiTargetLabel() {
     try {
         const config = getSiyuanConfig();
         const magiConfig = config && typeof config === "object" ? Reflect.get(config, "magi") : undefined;
@@ -92,7 +92,7 @@ function resolveMagiTargetLabel(): string {
  * 意图：让前端通过标准 OpenAI `user` 字段把调用端身份镜像传给后端，而不是依赖私有 header。
  * 调用时机：`useMagi` 初始化适配器前与 `createMagiStandardLLMAdapter` 缺省参数回退时调用。
  */
-export function buildRuntimeMainInterfaceIdentity(): MagiInterfaceIdentity {
+export function buildRuntimeMainInterfaceIdentity() {
     const suffix = buildRandomIdentitySegment();
     return {
         principalId: "workspace-admin",
@@ -108,7 +108,7 @@ export function buildRuntimeMainInterfaceIdentity(): MagiInterfaceIdentity {
  *
  * @同步豁免: 性能考虑 - 简单全局变量读取，无需异步。
  */
-function resolveRuntimeOrigin(): string {
+function resolveRuntimeOrigin() {
     if (typeof location === "undefined") {
         return "";
     }
@@ -122,7 +122,7 @@ function resolveRuntimeOrigin(): string {
  * 意图：让桌面/Web 入口都能复用同一条 `/api/s-forge/magi/v1/chat/completions` 转发链路。
  * 调用时机：tryForwardMagiRequestToBackend 发请求前调用。
  */
-function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string {
+function buildSourceSimulationBackendEndpoint(apiBaseURL: string) {
     const runtimeOrigin = resolveRuntimeOrigin();
     if (runtimeOrigin) {
         return `${runtimeOrigin}${SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH}`;

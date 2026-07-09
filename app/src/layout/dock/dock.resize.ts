@@ -1,5 +1,5 @@
 import { Custom } from "./Custom";
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { hasClosestByClassName } from "./imports";
 import type { Dock } from "./index";
 
 const onMouseMove = (event: MouseEvent, context: {
@@ -11,25 +11,22 @@ const onMouseMove = (event: MouseEvent, context: {
     event.preventDefault();
     event.stopPropagation();
     const { dock, direction, currentSize, x } = context;
-    let currentNowSize: number;
-
+    let currentNowSize = currentSize + (x - event.clientY);
     if (dock.position === "Left") {
-        currentNowSize = (currentSize + (event.clientX - x));
-    } else if (dock.position === "Right") {
-        currentNowSize = (currentSize + (x - event.clientX));
-    } else {
-        currentNowSize = (currentSize + (x - event.clientY));
+        currentNowSize = currentSize + (event.clientX - x);
+    }
+    if (dock.position === "Right") {
+        currentNowSize = currentSize + (x - event.clientX);
     }
 
     let minSize = 232;
     const fileTrees = Array.from(dock.layout.element.querySelectorAll(".file-tree"));
     for (const item of fileTrees) {
-        if (item.classList.contains("sy__backlink") || item.classList.contains("sy__graph")
-            || item.classList.contains("sy__globalGraph") || item.classList.contains("sy__inbox")) {
-            if (!item.classList.contains("fn__none") && (item instanceof HTMLElement) && !hasClosestByClassName(item, "fn__none")) {
-                minSize = 320;
-                break;
-            }
+        if ((item.classList.contains("sy__backlink") || item.classList.contains("sy__graph")
+            || item.classList.contains("sy__globalGraph") || item.classList.contains("sy__inbox"))
+            && !item.classList.contains("fn__none") && (item instanceof HTMLElement) && !hasClosestByClassName(item, "fn__none")) {
+            minSize = 320;
+            break;
         }
     }
 
@@ -42,9 +39,9 @@ const onMouseMove = (event: MouseEvent, context: {
 
     if (direction === "lr") {
         dock.layout.element.style.width = currentNowSize + "px";
-    } else {
-        dock.layout.element.style.height = currentNowSize + "px";
+        return;
     }
+    dock.layout.element.style.height = currentNowSize + "px";
 };
 
 const onMouseUp = (context: { dock: Dock }) => {
@@ -55,7 +52,7 @@ const onMouseUp = (context: { dock: Dock }) => {
     document.onselect = null;
     context.dock.setSize();
 
-    const activeItems = context.dock.element.querySelectorAll(".dock__item--active");
+    const activeItems = context.dock.layout.element.querySelectorAll(".dock__item--active");
     for (const item of Array.from(activeItems)) {
         const type = item.getAttribute("data-type");
         if (!type) {
@@ -83,7 +80,11 @@ const onMouseDown = (event: MouseEvent, dock: Dock) => {
 };
 
 export const initDockResize = (dock: Dock) => {
-    dock.layout.element.querySelector(".layout__dockresize")?.addEventListener("mousedown", (event: MouseEvent) => {
+    const resizeHandle = dock.layout.element.querySelector(".layout__dockresize");
+    if (!resizeHandle || !(resizeHandle instanceof HTMLElement)) {
+        return;
+    }
+    resizeHandle.addEventListener("mousedown", (event: MouseEvent) => {
         onMouseDown(event, dock);
     });
 };

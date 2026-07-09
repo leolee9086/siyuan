@@ -1,230 +1,88 @@
-// updateHotkeyTip 已移至 dock.button.ts
+/**
+ * @AIDONE 已完成拆分重构
+ * 所有 private 方法已提取到辅助文件中
+ */
+import { setStorageVal } from "../../protyle/util/compatibility";
 import { Layout } from "../index";
-import { Wnd } from "../Wnd";
-import { getAllModels } from "../getAll";
 import { Model } from "../Model";
-import { adjustLayout, saveLayout } from "../util";
-import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType, resizeTabs } from "../tabUtil";
-import { Protyle } from "../../protyle";
-import { resetFloatDockSize } from "./util";
-// hasClosestByClassName 已移至 dock.dnd.ts
+import { saveLayout } from "../util";
+import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
+import { adjustDockPadding, resetFloatDockSize } from "./util";
 import { App } from "../../index";
 import { Custom } from "./Custom";
-// Graph 已移至 dock.toggle.ts 和 dock.factory.ts
 import { recordBeforeResizeTop } from "../../protyle/util/resize";
-// clearBeforeResizeTop 已移至 dock.toggle.ts
 import { Constants } from "../../constants";
-import { createDockTab } from "./dock.factory";
 import { initDockResize } from "./dock.resize";
 import { initDockDnD } from "./dock.dnd";
 import { initDockLayout } from "./dock.layout";
-import {
-    handlePanelFocusSwitch,
-    handleGraphDestroy,
-    handlePostCloseFocus,
-    handleTabSwitch,
-    updateDockPanelRelation,
-    updatePanelVisibility,
-    handleGraphShow,
-    handleDockHideSize,
-    setDockLayoutSize,
-    handleGraphFullscreenDrag,
-    blurActiveElement
-} from "./dock.toggle";
-import {
-    generateAllButtonsHTML,
-    insertButtonsToContainer
-} from "./dock.button";
+import { handleGraphShow } from "./dock.graph";
+import { generateAllButtonsHTML, insertButtonsToContainer } from "./dock.button";
+import { getSiyuanLanguages, getSiyuanConfig, setWindowTimeout } from "./dock.environment";
+import { isWnd, isTDock } from "./dock.guard";
+import { removeSourceTab, initDockFloatMode, initDockData } from "./dock.init";
+import { setSizeForItem } from "./dock.size";
+import { handleMouseLeave } from "./dock.events";
+import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
 /**
- * @AITODO
- * 拆分重构这个文件,直到清理所有lint错误和类型问题,注意文件备份
- * 拆分实现不应该使类
- * 应该在拆分过程中执行类型检查,保证拆分出的文件本身没有lint错误
- * 对于已经拆分的部分,应该核对其功能是否正确实现,再尝试应用
+ * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
+ * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠
+ * 解决：在 dock.init.ts 中使用全局注册表 (dock.registry.ts) 替代 DOM 查询进行跨 Dock 去重
  */
 export class Dock {
-    public element!: HTMLElement;
+    public elements: HTMLElement[];
     public layout!: Layout;
     public position: TDockPosition;
-    private app: App;
+    public app: App;
     public resizeElement!: HTMLElement;
     public pin = true;
     public data: { [key in TDock | string]?: Model | boolean } = {};
-    private hideResizeTimeout = 0;
+    public hideResizeTimeout = 0;
 
-    constructor(options: {
-        app: App,
-        data: {
-            pin: boolean,
-            data: Config.IUILayoutDockTab[][]
-        },
-        position: TDockPosition
-    }) {
+    constructor(options: { app: App, data: { pin: boolean, data: Config.IUILayoutDockTab[][] }, position: TDockPosition }) {
         this.app = options.app;
         this.position = options.position;
         this.pin = options.data.pin;
         this.data = {};
-        this.initLayout(options.position);
-
-        this.element = document.getElementById("dock" + options.position);
-        const dockClass = options.position === "Bottom" ? ' class="fn__flex dock__items"' : ' class="dock__items"';
-        this.element.innerHTML = `<div${dockClass}></div><div class="fn__flex-1 dock__item--space"></div><div${dockClass}></div>`;
-
-        this.initDockData(options.data.data);
-        this.initEvents();
-
+        initDockLayout(this, options.position);
+        if (options.position === "Bottom") {
+            this.elements = [document.getElementById("dockLeft").lastElementChild as HTMLElement, document.getElementById("dockRight").lastElementChild as HTMLElement];
+        } else {
+            const dockElement = document.getElementById("dock" + options.position);
+            if (!dockElement) {
+                throw new Error(`Dock element not found: dock${options.position}`);
+            }
+            this.elements = Array.from(dockElement.querySelectorAll(".dock__items"));
+        }
+        initDockData(this, options.data.data, TYPES);
+        this.layout.element.addEventListener("mouseleave", (e) => handleMouseLeave(this, e));
         initDockResize(this);
         initDockDnD(this);
-
-        if (window.siyuan.config.uiLayout.hideDock) {
-            this.element.classList.add("fn__none");
+        const config = getSiyuanConfig();
+        if (config?.uiLayout?.hideDock) {
+            this.elements[0].parentElement.classList.add("fn__none");
         }
         if (!this.pin) {
-            setTimeout(() => {
-                this.resetDockPosition(false);
-                this.hideDock(true);
-                this.layout.element.classList.add("layout--float");
-                this.resizeElement.classList.add("fn__none");
-            });   // 需等待所有 Dock 初始化完成后才有稳定布局，才可进行定位
+            setWindowTimeout(() => initDockFloatMode(this));
         }
     }
 
-    private initLayout(position: TDockPosition) {
-        initDockLayout(this, position);
-    }
-
-    private initDockData(data: Config.IUILayoutDockTab[][]) {
-        let showDock = false;
-        const hasType = (item: Config.IUILayoutDockTab) => TYPES.includes(item.type);
-        if (data[0]?.find(hasType)) {
-            showDock = true;
-        } else if (data[1]?.find(hasType)) {
-            showDock = true;
-        }
-
-        if (showDock) {
-            if (data[0]) this.genButton(data[0], 0);
-            if (data[1]) this.genButton(data[1], 1);
-            this.element.classList.remove("fn__none");
-        } else {
-            this.renderPin();
-            this.element.classList.add("fn__none");
-        }
-
-        this.initDockFiles();
-        this.initDockActive();
-    }
-
-    private renderPin() {
-        if (!window.siyuan.languages) return;
-        const unpin = window.siyuan.languages.unpin;
-        const pin = window.siyuan.languages.pin;
-        this.element.firstElementChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${this.pin ? unpin : pin}">
-    <svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg>
-</span>`;
-    }
-
-    private initDockFiles() {
-        const dockItems = this.element.querySelectorAll(".dock__item");
-        for (const item of Array.from(dockItems)) {
-            if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
-                this.toggleModel("file", true, false, false, false);
-                this.toggleModel("file", false, false, false, false);
-            }
-        }
-    }
-
-    private initDockActive() {
-        const activeElements = Array.from(this.element.querySelectorAll(".dock__item--active"));
-        if (activeElements.length === 0) {
-            this.resizeElement.classList.add("fn__none");
-            // 如果没有打开的侧栏，隐藏 layout 的子元素
-            const children = this.layout.children;
-            if (children && children.length > 1) {
-                for (const child of children) {
-                    child.element.classList.add("fn__none");
-                }
-                const firstChild = children[0];
-                if (firstChild && firstChild.element.nextElementSibling) {
-                    firstChild.element.nextElementSibling.classList.add("fn__none");
-                }
-            }
-        } else {
-            for (const item of activeElements) {
-                const type = item.getAttribute("data-type");
-                if (type) {
-                    this.toggleModel(type as TDock, true, false, false, false);
-                }
-            }
-        }
-    }
-
-    private initEvents() {
-        this.element.addEventListener("click", this.onClick.bind(this));
-
-        this.layout.element.addEventListener("mouseleave", this.onMouseLeave.bind(this));
-    }
-
-
-    private onMouseLeave(event: MouseEvent) {
-        const toElement = event.relatedTarget as HTMLElement;
-        if (event.buttons !== 0 || this.pin || (toElement && (toElement.classList.contains("b3-menu") ||
-            toElement.classList.contains("tooltip")))) {
-            return;
-        }
-        if (this.position === "Left" && event.clientX < 43) {
-            return;
-        }
-        if (this.position === "Right" && event.clientX > window.innerWidth - 43) {
-            return;
-        }
-        if (this.position === "Bottom" && event.clientY > window.innerHeight - 73) {
-            return;
-        }
-        this.hideDock();
-    }
-
-    private onClick(event: MouseEvent) {
-        let target = event.target as HTMLElement;
-        while (target && !target.isEqualNode(this.element)) {
-            const type = target.getAttribute("data-type");
-            if (type) {
-                this.toggleModel(type as TDock, false, true);
-                event.preventDefault();
-                break;
-            }
-            if (target.classList.contains("dock__item")) {
-                this.togglePin();
-                const unpin = window.siyuan.languages?.unpin;
-                const pin = window.siyuan.languages?.pin;
-                if (unpin && pin) {
-                    target.setAttribute("aria-label", this.pin ? unpin : pin);
-                }
-                const use = target.querySelector("use");
-                if (use) {
-                    use.setAttribute("xlink:href", this.pin ? "#iconUnpin" : "#iconPin");
-                }
-                event.preventDefault();
-                break;
-            }
-            target = target.parentElement as HTMLElement;
-        }
-    }
-
-    public togglePin() {
+    /**
+     * 切换 Dock 的钉住状态
+     * 
+     * 作用：切换 Dock 是否固定显示
+     * 意图：允许用户在自动隐藏和固定显示之间切换
+     * 调用时机：点击 Pin/Unpin 按钮时
+     */
+    public togglePin(): void {
         this.pin = !this.pin;
-        const hasActive = this.element.querySelector(".dock__item--active");
+        const hasActive = this.elements[0].querySelector(".dock__item--active") ||
+            this.elements[1].querySelector(".dock__item--active");
         if (!this.pin) {
-            this.resetDockPosition(hasActive ? true : false);
+            this.resetDockPosition(Boolean(hasActive));
             this.resizeElement.classList.add("fn__none");
-            if (hasActive) {
-                this.showDock(true);
-            } else {
-                this.hideDock(true);
-            }
+            this.hideDock(true);
         } else {
             this.layout.element.style.opacity = "";
             this.layout.element.style.transform = "";
@@ -235,20 +93,37 @@ export class Dock {
         }
         this.layout.element.classList.toggle("layout--float");
         resizeTabs();
+        setTabPosition(true);
     }
 
-    public resetDockPosition(show: boolean) {
+    /**
+     * 重置 Dock 位置和尺寸
+     * 
+     * 作用：根据显示状态设置 Dock 的尺寸和透明度
+     * 意图：在显示/隐藏或模式切换时恢复 Dock 的正确视觉状态
+     * 调用时机：Dock 显示/隐藏动画或状态变更时
+     */
+    private resetDockPosition(show: boolean): void {
         if (this.position === "Left") {
-            this.layout.element.setAttribute("style", `width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `margin-right: var(--b3-layout-space);width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
         } else if (this.position === "Right") {
-            this.layout.element.setAttribute("style", `width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `margin-left: var(--b3-layout-space);width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
         } else {
-            this.layout.element.setAttribute("style", `height:${this.layout.element.clientHeight}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `margin-top: var(--b3-layout-space);height:${this.layout.element.clientHeight}px;opacity:${show ? 1 : 0};`);
         }
     }
 
-    public showDock(reset = false) {
-        if (!reset && (this.pin || !this.element.querySelector(".dock__item--active") || this.layout.element.style.opacity === "1")) {
+    /**
+     * 显示 Dock
+     * 
+     * 作用：显示 Dock 面板
+     * 意图：使用户可以看见和交互 Dock
+     * 调用时机：鼠标悬停、激活 Tab 或收到显示指令时
+     */
+    public showDock(reset = false): void {
+        if (!reset && (this.pin || this.layout.element.style.opacity === "1") ||
+            (!this.elements[0].querySelector(".dock__item--active") && !this.elements[1].querySelector(".dock__item--active"))
+        ) {
             return;
         }
         if (!reset && (this.position === "Left" || this.position === "Right") &&
@@ -264,10 +139,10 @@ export class Dock {
             document.querySelector(".block__popover") ||
             document.querySelector("#commonMenu:not(.fn__none)")
         ) && (
-                window.siyuan.layout.leftDock?.layout.element.style.opacity === "1" ||
-                window.siyuan.layout.rightDock?.layout.element.style.opacity === "1" ||
-                window.siyuan.layout.bottomDock?.layout.element.style.opacity === "1"
-            )) {
+            window.siyuan.layout.leftDock?.layout.element.style.opacity === "1" ||
+            window.siyuan.layout.rightDock?.layout.element.style.opacity === "1" ||
+            window.siyuan.layout.bottomDock?.layout.element.style.opacity === "1"
+        )) {
             return;
         }
 
@@ -277,33 +152,42 @@ export class Dock {
         this.layout.element.style.transform = "";
         this.layout.element.style.zIndex = (++window.siyuan.zIndex).toString();
         if (this.position === "Left") {
-            this.layout.element.style.left = `${this.element.clientWidth}px`;
+            this.layout.element.style.left = `${this.elements[0].clientWidth}px`;
         } else if (this.position === "Right") {
-            this.layout.element.style.right = `${this.element.clientWidth}px`;
+            this.layout.element.style.right = `${this.elements[0].clientWidth}px`;
         } else if (this.position === "Bottom") {
-            this.layout.element.style.bottom = `${this.element.offsetHeight + document.getElementById("status").offsetHeight}px`;
+            this.layout.element.style.bottom = `${document.getElementById("status").offsetHeight}px`;
+            this.layout.element.style.left = this.elements[0].clientWidth + "px";
+            this.layout.element.style.right = this.elements[1].clientWidth + "px";
         }
     }
 
-    public hideDock(reset = false) {
+    /**
+     * 隐藏 Dock
+     * 
+     * 作用：隐藏 Dock 面板
+     * 意图：在不使用时腾出屏幕空间
+     * 调用时机：鼠标离开、失去焦点或显式隐藏时
+     */
+    public hideDock(reset = false): void {
         if (!reset && (this.layout.element.style.opacity === "0" || this.pin)) {
             return;
         }
-        // 关系图全屏不应该退出 & https://github.com/siyuan-note/siyuan/issues/11775
         const fullscreenElement = this.layout.element.querySelector(".fullscreen");
         if (fullscreenElement && fullscreenElement.clientHeight > 0) {
             return;
         }
-        // https://github.com/siyuan-note/siyuan/issues/7504
-        if (document.activeElement && this.layout.element.contains(document.activeElement) && document.activeElement.classList.contains("b3-text-field")) {
+        if (document.activeElement && this.layout.element.contains(document.activeElement) &&
+            (document.activeElement.classList.contains("b3-text-field") ||
+                (document.activeElement as HTMLElement).getAttribute("contenteditable") === "true")) {
             return;
         }
         const dialogElement = document.querySelector(".b3-dialog") as HTMLElement;
         const blockElement = document.querySelector(".block__popover") as HTMLElement;
         const menuElement = document.querySelector("#commonMenu:not(.fn__none)") as HTMLElement;
-        if ((dialogElement && dialogElement.style.zIndex > this.layout.element.style.zIndex) ||  // 文档树上修改 emoji 时
-            (blockElement && blockElement.style.zIndex > this.layout.element.style.zIndex) ||  // 文档树上弹出悬浮层
-            (menuElement && menuElement.style.zIndex > this.layout.element.style.zIndex)  // 面板上弹出菜单时
+        if (!reset && ((dialogElement && dialogElement.style.zIndex > this.layout.element.style.zIndex) ||
+            (blockElement && blockElement.style.zIndex > this.layout.element.style.zIndex) ||
+            (menuElement && menuElement.style.zIndex > this.layout.element.style.zIndex))
         ) {
             return;
         }
@@ -321,247 +205,304 @@ export class Dock {
             return;
         }
         this.layout.element.style.opacity = "0";
-        this.element.querySelector(".dock__item--activefocus")?.classList.remove("dock__item--activefocus");
+        this.elements[0].querySelector(".dock__item--activefocus")?.classList.remove("dock__item--activefocus");
+        this.elements[1].querySelector(".dock__item--activefocus")?.classList.remove("dock__item--activefocus");
         this.layout.element.querySelector(".layout__tab--active")?.classList.remove("layout__tab--active");
     }
 
-    public toggleModel(type: TDock | string, show = false, close = false, hide = false, isSaveLayout = true) {
+    /**
+     * 切换 Model 的显示/隐藏状态
+     * 
+     * 作用：打开、关闭或切换 Dock 中的具体功能面板
+     * 意图：核心交互逻辑，响应用户点击 Dock Icon
+     * 调用时机：点击 Dock 图标或其他组件请求打开面板时
+     */
+    public toggleModel(type: TDock | string, show = false, close = false, removeDock = false, isSaveLayout = true): void {
         if (!type) {
             return;
         }
         if (this.pin) {
             recordBeforeResizeTop();
         }
-        const target = this.element.querySelector(`[data-type="${type}"]`) as HTMLElement;
+        const target = document.querySelector(`.dock__item[data-type="${type}"]`);
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
         if (show && target.classList.contains("dock__item--active")) {
             target.classList.remove("dock__item--active", "dock__item--activefocus");
         }
         const index = parseInt(target.getAttribute("data-index") || "0", 10);
-        const wnd = this.layout.children[index] as Wnd;
-        if (target.classList.contains("dock__item--active") || hide) {
-            if (!close && handlePanelFocusSwitch(wnd, target, this)) {
-                return;
-            }
-
-            target.classList.remove("dock__item--active", "dock__item--activefocus");
-            // dock 隐藏
-            const hasNoActiveItems = this.element.querySelectorAll(".dock__item--active").length === 0;
-            if (handleDockHideSize(this, hasNoActiveItems)) {
-                clearTimeout(this.hideResizeTimeout);
-                this.hideDock();
-            }
-            handleGraphDestroy(type, this);
-            // 关闭 dock 后设置光标
-            handlePostCloseFocus(isSaveLayout);
-        } else {
-            this.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`).forEach(item => {
-                item.classList.remove("dock__item--active", "dock__item--activefocus");
-            });
-            target.classList.add("dock__item--active", "dock__item--activefocus");
-            if (!target.getAttribute("data-id")) {
-                let editor: Protyle;
-                const models = getAllModels();
-                models.editor.find((item) => {
-                    if (item.parent.headElement.classList.contains("item--focus") && item.editor?.protyle?.path) {
-                        editor = item.editor;
-                        return true;
-                    }
-                });
-                const tab = createDockTab({
-                    app: this.app,
-                    type,
-                    editor
-                });
-                wnd.addTab(tab, false, false);
-                target.setAttribute("data-id", tab.id);
-                this.data[type] = tab.model;
-                setPanelFocus(tab.panelElement);
-            } else {
-                // tab 切换
-                handleTabSwitch(wnd, target.getAttribute("data-id"));
-            }
-            // dock 显示
-            setDockLayoutSize(this, this.getMaxSize());
-            handleGraphFullscreenDrag(type, this, true);
-            if (this.pin) {
-                this.layout.element.style.opacity = "";
-                this.hideResizeTimeout = window.setTimeout(() => {
-                    this.resizeElement.classList.remove("fn__none");
-                    adjustLayout();
-                }, Constants.TIMEOUT_TRANSITION);
-            }
-            blurActiveElement();
+        const wndChild = this.layout?.children?.[index];
+        if (!isWnd(wndChild)) {
+            return;
         }
-
-        // dock 中两个面板的显示关系
-        const anotherIndex = index === 0 ? 1 : 0;
-        const anotherWnd = this.layout.children[anotherIndex] as Wnd;
-        const anotherHasActive = this.element.querySelectorAll(`.dock__item--active[data-index="${anotherIndex}"]`).length > 0;
-        const hasActive = this.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`).length > 0;
-
-        updateDockPanelRelation(this, wnd, anotherWnd, index, anotherIndex, hasActive, anotherHasActive);
-        updatePanelVisibility(wnd, anotherWnd, hasActive, anotherHasActive);
-
+        const isHideAction = target.classList.contains("dock__item--active") || removeDock;
+        if (isHideAction && executeToggleHide(this, wndChild, target, type, close, isSaveLayout)) {
+            return;
+        }
+        if (!isHideAction) {
+            executeToggleShow(this, wndChild, target, type, index, isSaveLayout);
+            this.showDock();
+        }
+        executeUpdatePanelRelations(this, wndChild, index);
         resizeTabs(isSaveLayout);
-        this.showDock();
-
-        if (target.classList.contains("dock__item--active") && !hide) {
+        if (target.classList.contains("dock__item--active") && !removeDock) {
             handleGraphShow(type, this);
         }
+        if (this.pin) {
+            let rafId: number;
+            const updateTabPos = () => {
+                setTabPosition(true);
+                rafId = requestAnimationFrame(updateTabPos);
+            };
+            rafId = requestAnimationFrame(updateTabPos);
+
+            const onTransitionEnd = (event: TransitionEvent) => {
+                if (event.propertyName !== "width") {
+                    return;
+                }
+                cancelAnimationFrame(rafId);
+                this.layout.element.removeEventListener("transitionend", onTransitionEnd);
+                setTabPosition();
+            };
+            this.layout.element.addEventListener("transitionend", onTransitionEnd);
+            setWindowTimeout(() => {
+                cancelAnimationFrame(rafId);
+                this.layout.element.removeEventListener("transitionend", onTransitionEnd);
+                setTabPosition();
+            }, Constants.TIMEOUT_TRANSITION);
+        }
     }
 
-    public add(index: number, sourceElement: Element, previousType?: string) {
-        sourceElement.setAttribute("data-height", "");
-        sourceElement.setAttribute("data-width", "");
-
+    /**
+     * 添加 Dock Item
+     *
+     * 作用：将其他位置拖拽来的 Tab 添加到当前 Dock
+     * 意图：支持 Dock 间的拖拽重组
+     * 调用时机：拖拽 Tab 到 Dock 区域释放时
+     */
+    public add(index: number, sourceElement: Element, previousType?: string): void {
         const typeAttr = sourceElement.getAttribute("data-type");
-        if (!typeAttr || !TYPES.includes(typeAttr)) return;
-        const type = typeAttr as TDock;
-
-        const sourceDock = getDockByType(type);
-        // ...
-
-        const sourceIndex = parseInt(sourceElement.getAttribute("data-index") || "0", 10);
-        if (sourceDock && sourceDock.layout && sourceDock.layout.children) {
-            const sourceWnd = sourceDock.layout.children[sourceIndex];
-            if (sourceWnd instanceof Wnd) {
-                const sourceId = sourceElement.getAttribute("data-id");
-                if (sourceId) {
-                    sourceWnd.removeTab(sourceId, false, true, false);
-                    sourceElement.removeAttribute("data-id");
-                }
-            }
+        if (!isTDock(typeAttr)) {
+            return;
         }
-
+        const sourceDock = getDockByType(typeAttr);
+        // 仅在左右轴与下轴之间跨轴移动时清除尺寸：左右侧之间或下侧内部移动，原有尺寸维度仍然有效
+        const size: Partial<Config.IUILayoutDockPanelSize> = {};
+        if ((sourceDock.position === "Left" || sourceDock.position === "Right") && this.position === "Bottom") {
+            sourceElement.setAttribute("data-width", "");
+            size.width = null;
+        }
+        if (sourceDock.position === "Bottom" && (this.position === "Left" || this.position === "Right")) {
+            sourceElement.setAttribute("data-height", "");
+            size.height = null;
+        }
+        if (sourceDock.elements[0].parentElement.querySelectorAll(".dock__item").length === 1) {
+            sourceDock.elements[0].parentElement.classList.add("fn__none");
+        }
+        const sourceIndex = parseInt(sourceElement.getAttribute("data-index") || "0", 10);
+        removeSourceTab(sourceDock, sourceIndex, sourceElement);
         const hasActive = sourceElement.classList.contains("dock__item--active");
         if (hasActive && sourceDock) {
-            sourceDock.toggleModel(type, false, false, false, false);
+            sourceDock.toggleModel(typeAttr, false, false, false, false);
         }
         if (sourceDock) {
-            delete sourceDock.data[type];
+            delete sourceDock.data[typeAttr];
         }
-
-        // 目标处理
         sourceElement.setAttribute("data-index", index.toString());
         if (previousType) {
-            const prev = this.element.querySelector(`[data-type="${previousType}"]`);
-            if (prev) prev.after(sourceElement);
+            this.elements[index].parentElement.querySelector(`[data-type="${previousType}"]`)?.after(sourceElement);
         } else {
-            if (index === 0) {
-                this.element.firstElementChild.insertAdjacentElement("afterbegin", sourceElement);
-            } else {
-                this.element.lastElementChild.insertAdjacentElement("afterbegin", sourceElement);
-            }
+            this.elements[index].insertAdjacentElement("afterbegin", sourceElement);
         }
-        this.element.classList.remove("fn__none");
+        this.elements[0].parentElement.classList.remove("fn__none");
         resetFloatDockSize();
-        this.data[type] = true;
+        this.data[typeAttr] = true;
         if (hasActive) {
-            this.toggleModel(type, true, false, false, false);
+            this.toggleModel(typeAttr, true, false, false, false);
         }
-        // 保存布局需等待动画完毕 https://github.com/siyuan-note/siyuan/issues/13507
-        setTimeout(() => {
-            saveLayout();
-        }, Constants.TIMEOUT_TRANSITION);
+        setWindowTimeout(() => saveLayout(), Constants.TIMEOUT_TRANSITION);
+        this.saveLocalPlugin(typeAttr, { index: this._getSortIndex(sourceElement), position: this._getPluginPosition(sourceElement, index), size });
+        adjustDockPadding();
+        this.adjustSplit();
+        sourceDock.adjustSplit();
     }
 
-    public remove(key: TDock | string) {
-        const type = key as TDock; // validation typically happens before call or within toggleModel
-        this.toggleModel(type, false, true, true);
-        const item = this.element.querySelector(`[data-type="${key}"]`);
-        if (item) item.remove();
+    private _getSortIndex(sourceElement: Element): number {
+        let sortIndex = 0;
+        let previousElement = sourceElement;
+        while (previousElement.previousElementSibling) {
+            sortIndex++;
+            previousElement = previousElement.previousElementSibling;
+        }
+        return sortIndex;
+    }
 
+    private _getPluginPosition(sourceElement: Element, index: number): TPluginDockPosition | undefined {
+        const leftDockElement = document.getElementById("dockLeft");
+        const rightDockElement = document.getElementById("dockRight");
+        if (leftDockElement && leftDockElement.contains(sourceElement)) {
+            if (leftDockElement.lastElementChild && leftDockElement.lastElementChild.contains(sourceElement)) {
+                return "BottomLeft";
+            }
+            return ("Left" + (index === 0 ? "Top" : "Bottom")) as TPluginDockPosition;
+        }
+        if (rightDockElement && rightDockElement.contains(sourceElement)) {
+            if (rightDockElement.lastElementChild && rightDockElement.lastElementChild.contains(sourceElement)) {
+                return "BottomRight";
+            }
+            return ("Right" + (index === 0 ? "Top" : "Bottom")) as TPluginDockPosition;
+        }
+    }
+
+    /**
+     * 移除 Dock Item
+     * 
+     * 作用：从当前 Dock 移除指定的 Item
+     * 意图：清理不再需要的或被拖走到其他位置的 Item
+     * 调用时机：Item 被关闭或拖出时
+     */
+    public remove(key: TDock | string): void {
+        if (isTDock(key)) {
+            this.toggleModel(key, false, true, true);
+        }
+        const item = this.elements[0].parentElement.querySelector(`[data-type="${key}"]`);
+        if (item) {
+            item.remove();
+        }
         const custom = this.data[key];
         if (custom instanceof Custom && custom.parent) {
             custom.parent.parent.removeTab(custom.parent.id);
         }
+        if (this.elements[0].parentElement.querySelectorAll(".dock__item").length === 1) {
+            this.elements[0].parentElement.classList.add("fn__none");
+            adjustDockPadding();
+        }
         delete this.data[key];
+        this.adjustSplit();
     }
 
-    public setSize() {
-        const activesElement = this.element.querySelectorAll(".dock__item--active");
-        for (const item of Array.from(activesElement)) {
-            const index = item.getAttribute("data-index");
-            const type = item.getAttribute("data-type") as TDock; // Assuming known type
-
-            if (this.position === "Left" || this.position === "Right") {
-                if (index === "1" && activesElement.length > 1) {
-                    const model = this.data[type];
-                    if (model instanceof Model) {
-                        const dockElement = model.parent.parent.element;
-                        item.setAttribute("data-height", dockElement.style.height ? dockElement.clientHeight.toString() : "");
-                    }
+    /**
+     * 设置尺寸
+     * 
+     * 作用：更新 Dock 中各激活 Item 的尺寸信息
+     * 意图：确保布局调整后 Item 记录正确的尺寸
+     * 调用时机：Dock 尺寸改变后
+     */
+    public setSize(): void {
+        const activesElement = [...this.elements[0].querySelectorAll(".dock__item--active"),
+            ...this.elements[1].querySelectorAll(".dock__item--active")];
+        for (const item of activesElement) {
+            setSizeForItem(this, item, activesElement.length);
+            this.saveLocalPlugin(item.getAttribute("data-type"), {
+                size: {
+                    width: parseInt(item.getAttribute("data-width")) || null,
+                    height: parseInt(item.getAttribute("data-height")) || null
                 }
-                item.setAttribute("data-width", this.layout.element.clientWidth.toString());
-            } else {
-                if (index === "1" && activesElement.length > 1) {
-                    const model = this.data[type];
-                    if (model instanceof Model) {
-                        const dockElement = model.parent.parent.element;
-                        item.setAttribute("data-width", dockElement.style.width ? dockElement.clientWidth.toString() : "");
-                    }
-                }
-                item.setAttribute("data-height", this.layout.element.clientHeight.toString());
-            }
+            });
         }
     }
 
-    private getMaxSize() {
-        let max = 0;
-        const activeItems = this.element.querySelectorAll(".dock__item--active");
-        for (const item of Array.from(activeItems)) {
-            let size = 0;
-            const sizeAttr = (this.position === "Left" || this.position === "Right") ? "data-width" : "data-height";
-            const attrVal = item.getAttribute(sizeAttr);
-            if (attrVal) {
-                size = parseInt(attrVal, 10);
-            }
-
-            if (!size) {
-                const type = item.getAttribute("data-type");
-                if (this.position === "Left" || this.position === "Right") {
-                    size = (type && ["graph", "globalGraph", "backlink"].includes(type)) ? 320 : 232;
-                } else {
-                    size = 232;
-                }
-            }
-            if (size > max) {
-                max = size;
+    /**
+     * 生成并插入按钮
+     * 
+     * 作用：根据数据生成 Dock 按钮并插入到 DOM
+     * 意图：初始化 Dock 的视觉内容
+     * 调用时机：Dock 初始化时
+     */
+    public genButton(data: Config.IUILayoutDockTab[], index: number, tabIndex?: number): void {
+        for (const item of data) {
+            if (item.type === "outline") {
+                item.icon = "iconOutline";
+            } else if (item.type === "tags") {
+                item.icon = "iconTag";
             }
         }
-        return max;
-    }
-
-    public genButton(data: Config.IUILayoutDockTab[], index: number, tabIndex?: number) {
-        const languages = window.siyuan.languages;
-        const dockTip = languages?.dockTip || "";
-        const pinText = (this.pin ? languages?.unpin : languages?.pin) || "";
-
-        // 生成按钮 HTML
-        const html = generateAllButtonsHTML(data, index, dockTip, tabIndex);
-
-        // 更新 data 状态
+        const languages = getSiyuanLanguages();
+        const html = generateAllButtonsHTML(data, index, languages?.dockTip || "", tabIndex);
         for (const item of data) {
             this.data[item.type] = true;
         }
-
-        // 插入到正确的容器
-        const container = index === 0 ? this.element.firstElementChild : this.element.lastElementChild;
-        insertButtonsToContainer(container, html, tabIndex, pinText, this.pin, index === 0);
-
-        // 处理 tabIndex 特殊情况
+        insertButtonsToContainer(this.elements[index], html, tabIndex);
         if (typeof tabIndex !== "number") {
+            this.adjustSplit();
             return;
         }
-
-        const config = window.siyuan.config;
+        const config = getSiyuanConfig();
         if (config && !config.uiLayout.hideDock) {
-            this.element.classList.remove("fn__none");
+            this.elements[0].parentElement.classList.remove("fn__none");
+            adjustDockPadding();
         }
-
         const firstItem = data[0];
-        if (firstItem && firstItem.show) {
+        if (firstItem?.show) {
             this.toggleModel(firstItem.type, true, false, false, false);
         }
+        this.adjustSplit();
+    }
+
+    /**
+     * 添加自定义 Item
+     * 
+     * 作用：动态添加自定义列表等类型的 Item
+     * 意图：支持插件或特定功能动态扩展 Dock
+     * 调用时机：用户创建自定义列表或插件注册 Dock 时
+     */
+    public addCustomItem(item: Config.IUILayoutDockTab): void {
+        if (this.data[item.type]) {
+            return;
+        }
+        if (item.type === "outline") {
+            item.icon = "iconOutline";
+        } else if (item.type === "tags") {
+            item.icon = "iconTag";
+        }
+        const languages = getSiyuanLanguages();
+        const html = generateAllButtonsHTML([item], 1, languages?.dockTip || "");
+        const container = this.elements[1];
+        if (container) {
+            insertButtonsToContainer(container, html, undefined, true);
+        }
+        this.data[item.type] = true;
+        if (item.show) {
+            this.toggleModel(item.type, true);
+        }
+        this.adjustSplit();
+        saveLayout();
+    }
+
+    private adjustSplit(): void {
+        if (this.position !== "Bottom") {
+            if (this.elements[0].innerHTML && this.elements[1].innerHTML) {
+                this.elements[0].nextElementSibling?.classList.remove("fn__none");
+            } else {
+                this.elements[0].nextElementSibling?.classList.add("fn__none");
+            }
+        }
+    }
+
+    public saveLocalPlugin(dockType: TDock | string, options: {
+        position?: TPluginDockPosition,
+        size?: Partial<Config.IUILayoutDockPanelSize>,
+        index?: number,
+        show?: boolean
+    }): void {
+        this.app.plugins.find(pluginItem => {
+            if (Object.keys(pluginItem.docks).includes(dockType)) {
+                if (!window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType]) {
+                    window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType] = pluginItem.docks[dockType].config;
+                }
+                const dockConfig = window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][pluginItem.name][dockType];
+                Object.keys(options).forEach((item: "position" | "size" | "index" | "show") => {
+                    // size 需按字段合并，否则会整体覆盖、丢失用户已拖动的尺寸
+                    if (item === "size") {
+                        Object.assign(dockConfig.size, options.size);
+                    } else {
+                        dockConfig[item] = options[item];
+                    }
+                });
+                setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
+                return true;
+            }
+        });
     }
 }

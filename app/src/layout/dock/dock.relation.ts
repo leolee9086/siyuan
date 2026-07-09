@@ -51,7 +51,11 @@ function handleBothPanelsActive(
         anotherWnd.element.previousElementSibling?.classList.remove("fn__none");
     }
 
-    const lastActiveElement = dock.elements[0].parentElement.querySelector('.dock__item--active[data-index="1"]');
+    const firstElement = dock.elements[0];
+    if (!firstElement?.parentElement) {
+        return;
+    }
+    const lastActiveElement = firstElement.parentElement.querySelector('.dock__item--active[data-index="1"]');
     if (!lastActiveElement) {
         return;
     }
@@ -83,7 +87,7 @@ function applyPanelSize(
 /**
  * @简洁函数 隐藏两个面板之间的分隔线
  */
-function hidePanelSeparator(anotherWnd: Wnd, anotherIndex: number): void {
+function hidePanelSeparator(anotherWnd: Wnd, anotherIndex: number) {
     if (anotherIndex === 0) {
         anotherWnd.element.nextElementSibling?.classList.add("fn__none");
         return;
@@ -99,7 +103,7 @@ export function updatePanelVisibility(
     anotherWnd: Wnd,
     hasActive: boolean,
     anotherHasActive: boolean
-): void {
+) {
     // 更新 anotherWnd 可见性
     if (anotherHasActive) {
         anotherWnd.element.classList.remove("fn__none");
@@ -144,8 +148,13 @@ export function executePanelRelationsUpdate(
     if (!isWnd(anotherChild)) {
         return;
     }
-    const anotherActiveItems = dock.element.querySelectorAll(`.dock__item--active[data-index="${anotherIndex}"]`);
-    const currentActiveItems = dock.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`);
+    const firstElement = dock.elements[0];
+    const dockContainer = firstElement?.parentElement;
+    if (!dockContainer) {
+        return;
+    }
+    const anotherActiveItems = dockContainer.querySelectorAll(`.dock__item--active[data-index="${anotherIndex}"]`);
+    const currentActiveItems = dockContainer.querySelectorAll(`.dock__item--active[data-index="${index}"]`);
     const anotherHasActive = anotherActiveItems.length > 0;
     const hasActive = currentActiveItems.length > 0;
     updateDockPanelRelation(dock, wnd, anotherChild, index, anotherIndex, hasActive, anotherHasActive);

@@ -6,29 +6,22 @@
  * 用户可以通过关闭 tab 或删除 dock 项来手动清理。
  */
 
-import { Model } from "../Model";
-import { Tab } from "../Tab";
-import { App } from "../../index";
+import { Model } from "./imports";
+import { Tab } from "./imports";
+import type { App } from "./imports";
+import type { IErrorPlaceholderData } from "./ErrorPlaceholder.types";
 
 /** 错误占位符类型标识 */
 export const ERROR_PLACEHOLDER_TYPE = "error_placeholder";
 
-/** 错误占位符配置接口 */
-export interface IErrorPlaceholderData {
-    /** 原本应加载的类型 */
-    原始类型: string;
-    /** 错误信息 */
-    错误信息: string;
-    /** 错误堆栈（可选，用于调试） */
-    错误堆栈?: string;
-}
-
 /**
  * 错误占位组件
- * 
- * 作用：当 dock 或 tab 加载失败时显示错误信息，而不是触发布局重置
- * 意图：提供优雅降级，让用户能够看到具体错误信息并保持布局完整
- * 调用时机：在 safeCreateModel 捕获到异常时创建
+ *
+ * 作用：当 dock 或 tab 加载失败时显示错误信息，而不是触发布局重置。
+ * 意图：提供优雅降级，让用户能够看到具体错误信息并保持布局完整。
+ * 调用时机：在 safeCreateModel 捕获到异常时创建。
+ * @允许继承: 框架要求 (FrameworkRequired)
+ * @允许类: ErrorPlaceholder 是 SiYuan 布局系统的错误占位面板类型，必须继承 Model 基类才能被布局引擎识别和序列化。具体业务场景：当 dock 或 tab 加载失败时，ErrorPlaceholder 作为降级组件替代原始面板，必须与普通 model 遵循相同的创建/销毁/序列化生命周期，否则布局系统会在保存/恢复时崩溃或丢失错误状态。替代方案评估：(1) 纯函数工厂可创建实例但无法被 dock.registry 的 instanceof 守卫识别，这会绕过类型安全检查导致运行时错误；(2) 对象组合模式无法注入布局生命周期，且无法通过布局序列化/反序列化流程恢复；(3) 接口模拟 class 行为需要额外适配器来匹配布局框架契约，复杂度反而更高且与框架基类的交互路径更长。class 方案的优势：与所有其他 Model 子类格式一致，布局框架的序列化/反序列化流程无需特殊分支即可处理 ErrorPlaceholder；构造函数签名与 dock.registry 工厂签名完全兼容；toJSON 方法精确控制序列化行为；instanceof 检查确保类型安全。未来重构方向：如果布局框架改为函数式组件注册，ErrorPlaceholder 可直接转为纯函数。
  */
 export class ErrorPlaceholder extends Model {
     public element: HTMLElement;
@@ -45,63 +38,16 @@ export class ErrorPlaceholder extends Model {
     }) {
         super({
             app: options.app,
-            id: options.tab.id,
         });
 
         this.element = options.tab.panelElement;
         this.原始类型 = options.原始类型;
         this.错误信息 = options.错误信息;
-        this.错误堆栈 = options.错误堆栈;
+        if (options.错误堆栈 !== undefined) {
+            this.错误堆栈 = options.错误堆栈;
+        }
 
-        this.渲染界面();
-    }
-
-    /**
-     * 渲染错误占位符界面
-     */
-    private 渲染界面() {
-        this.element.classList.add("fn__flex-column", "error-placeholder");
-
-        const 堆栈显示 = this.错误堆栈
-            ? `<details class="error-placeholder__details">
-                <summary>查看详情</summary>
-                <pre class="error-placeholder__stack">${this.转义HTML(this.错误堆栈)}</pre>
-               </details>`
-            : "";
-
-        this.element.innerHTML = `
-            <div class="error-placeholder__header block__icons">
-                <span class="block__logo">
-                    <svg class="block__logoicon"><use xlink:href="#iconClose"></use></svg>
-                    加载失败
-                </span>
-            </div>
-            <div class="error-placeholder__content fn__flex-1">
-                <div class="error-placeholder__icon">
-                    <svg style="width: 48px; height: 48px; color: var(--b3-theme-error);">
-                        <use xlink:href="#iconClose"></use>
-                    </svg>
-                </div>
-                <div class="error-placeholder__info">
-                    <div class="error-placeholder__type">
-                        <strong>组件类型:</strong> ${this.转义HTML(this.原始类型)}
-                    </div>
-                    <div class="error-placeholder__message">
-                        <strong>错误信息:</strong> ${this.转义HTML(this.错误信息)}
-                    </div>
-                </div>
-                ${堆栈显示}
-            </div>
-        `;
-    }
-
-    /**
-     * HTML 转义，防止 XSS
-     */
-    private 转义HTML(text: string): string {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
+        渲染错误占位符(this.element, this);
     }
 
     /**
@@ -112,9 +58,62 @@ export class ErrorPlaceholder extends Model {
         return {
             原始类型: this.原始类型,
             错误信息: this.错误信息,
-            错误堆栈: this.错误堆栈,
+            ...(this.错误堆栈 !== undefined ? { 错误堆栈: this.错误堆栈 } : {}),
         };
     }
+}
+
+/**
+ * HTML 转义，防止 XSS
+ */
+function 转义HTML(text: string): string {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * 渲染错误占位符界面
+ * @param element 目标 DOM 元素
+ * @param data 错误数据
+ */
+function 渲染错误占位符(
+    element: HTMLElement,
+    data: Pick<ErrorPlaceholder, "原始类型" | "错误信息" | "错误堆栈">,
+): void {
+    element.classList.add("fn__flex-column", "error-placeholder");
+
+    const 堆栈显示 = data.错误堆栈
+        ? `<details class="error-placeholder__details">
+            <summary>查看详情</summary>
+            <pre class="error-placeholder__stack">${转义HTML(data.错误堆栈)}</pre>
+           </details>`
+        : "";
+
+    element.innerHTML = `
+        <div class="error-placeholder__header block__icons">
+            <span class="block__logo">
+                <svg class="block__logoicon"><use xlink:href="#iconClose"></use></svg>
+                加载失败
+            </span>
+        </div>
+        <div class="error-placeholder__content fn__flex-1">
+            <div class="error-placeholder__icon">
+                <svg style="width: 48px; height: 48px; color: var(--b3-theme-error);">
+                    <use xlink:href="#iconClose"></use>
+                </svg>
+            </div>
+            <div class="error-placeholder__info">
+                <div class="error-placeholder__type">
+                    <strong>组件类型:</strong> ${转义HTML(data.原始类型)}
+                </div>
+                <div class="error-placeholder__message">
+                    <strong>错误信息:</strong> ${转义HTML(data.错误信息)}
+                </div>
+            </div>
+            ${堆栈显示}
+        </div>
+    `;
 }
 
 /**
@@ -137,6 +136,6 @@ export function createErrorPlaceholderFromData(
         tab,
         原始类型: data.原始类型,
         错误信息: data.错误信息,
-        错误堆栈: data.错误堆栈,
+        ...(data.错误堆栈 !== undefined ? { 错误堆栈: data.错误堆栈 } : {}),
     });
 }

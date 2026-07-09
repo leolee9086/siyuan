@@ -69,7 +69,7 @@ const createAiActionStorageContext = () => {
         /** 获取全部AI动作配置列表 */
         getAiActions: () => {
             if (!getSiyuanStorage()) {
-                throw new Error("siyuan对象结构不正确");
+                throw Error("siyuan对象结构不正确");
             }
 
             return getSiyuanStorage()[Constants.LOCAL_AI] || [];
@@ -78,7 +78,7 @@ const createAiActionStorageContext = () => {
         /** 覆盖设置AI动作配置列表 */
         setAiActions: (actions: AiActionConfig[]) => {
             if (!getSiyuanStorage()) {
-                throw new Error("siyuan对象结构不正确");
+                throw Error("siyuan对象结构不正确");
             }
 
             getSiyuanStorage()[Constants.LOCAL_AI] = actions;
@@ -87,7 +87,7 @@ const createAiActionStorageContext = () => {
         /** 将当前AI动作配置持久化到本地存储 */
         saveAiActions: () => {
             if (!getSiyuanStorage()) {
-                throw new Error("siyuan对象结构不正确");
+                throw Error("siyuan对象结构不正确");
             }
 
             setStorageVal(Constants.LOCAL_AI, getSiyuanStorage()[Constants.LOCAL_AI]);
@@ -109,12 +109,12 @@ const updateAiActionConfig = async (
     },
     _outputs: undefined,
     ctx: AiActionStorageContext
-): Promise<void> => {
+)=> {
     const { originalName, originalMemo, newName, newMemo } = inputs;
 
     // 验证输入参数
     if (!originalName || !originalMemo || !newName || !newMemo) {
-        throw new Error("更新AI动作配置：所有参数都不能为空");
+        throw Error("更新AI动作配置：所有参数都不能为空");
     }
 
     const actions = ctx.getAiActions();
@@ -146,7 +146,7 @@ const deleteAiActionConfig = async (
 
     // 验证输入参数
     if (!name || !memo) {
-        throw new Error("删除AI动作配置：名称和描述不能为空");
+        throw Error("删除AI动作配置：名称和描述不能为空");
     }
 
     const actions = ctx.getAiActions();
@@ -156,7 +156,7 @@ const deleteAiActionConfig = async (
 
     // 检查是否找到了要删除的项目
     if (actions.length === filteredActions.length) {
-        throw new Error(`未找到要删除的AI动作配置：${name} - ${memo}`);
+        throw Error(`未找到要删除的AI动作配置：${name} - ${memo}`);
     }
 
     ctx.setAiActions(filteredActions);
@@ -248,7 +248,7 @@ const createEditDialogVueConfig = (customName: string, customMemo: string, dialo
 const editDialog = (customName: string, customMemo: string): Dialog => {
     // 验证输入参数
     if (!customName || !customMemo) {
-        throw new Error("编辑AI动作配置：名称和描述不能为空");
+        throw Error("编辑AI动作配置：名称和描述不能为空");
     }
 
     return createVueDialog({

@@ -5,17 +5,22 @@
 
 import type { Wnd } from "../Wnd";
 import type { Dock } from "./index";
-import { adjustLayout } from "../util";
-import { setPanelFocus } from "../utils/setPanelFocus";
-import { Constants } from "../../constants";
+import { adjustLayout } from "./imports";
+import { setPanelFocus } from "./imports";
+import { Constants } from "./imports";
 import { createDockTab } from "./dock.factory";
-import {
-    handlePanelFocusSwitch, handleGraphDestroy, handlePostCloseFocus,
-    handleTabSwitch, updateDockPanelRelation, updatePanelVisibility,
-    handleDockHideSize, setDockLayoutSize,
-    handleGraphFullscreenDrag, blurActiveElement
-} from "./dock.toggle";
-import { setWindowTimeout, clearWindowTimeout } from "./dock.environment";
+import { handleGraphDestroy } from "./dock.graph";
+import { handleGraphFullscreenDrag } from "./dock.graph";
+import { handlePanelFocusSwitch } from "./dock.toggle";
+import { handlePostCloseFocus } from "./dock.toggle";
+import { handleTabSwitch } from "./dock.toggle";
+import { handleDockHideSize } from "./dock.toggle";
+import { setDockLayoutSize } from "./dock.toggle";
+import { blurActiveElement } from "./dock.toggle";
+import { updateDockPanelRelation } from "./dock.relation";
+import { updatePanelVisibility } from "./dock.relation";
+import { setWindowTimeout } from "./dock.environment";
+import { clearWindowTimeout } from "./dock.environment";
 import { isWnd } from "./dock.guard";
 import { findActiveEditor } from "./dock.init";
 import { getMaxSize } from "./dock.size";
@@ -30,15 +35,19 @@ export function executeToggleHide(
     target: HTMLElement,
     type: string,
     close: boolean,
-    isSaveLayout: boolean,
-    _removeDock: boolean
+    isSaveLayout: boolean
 ): boolean {
     if (!close && handlePanelFocusSwitch(wnd, target, dock)) {
         return true;
     }
     target.classList.remove("dock__item--active", "dock__item--activefocus");
-    const hasNoActiveItems = !dock.elements[0].querySelector(".dock__item--active") &&
-        !dock.elements[1].querySelector(".dock__item--active");
+    const leftElements = dock.elements[0];
+    const rightElements = dock.elements[1];
+    if (!leftElements || !rightElements) {
+        return false;
+    }
+    const hasNoActiveItems = !leftElements.querySelector(".dock__item--active") &&
+        !rightElements.querySelector(".dock__item--active");
     if (handleDockHideSize(dock, hasNoActiveItems)) {
         clearWindowTimeout(dock.hideResizeTimeout);
         dock.hideDock();
@@ -62,14 +71,18 @@ export function executeToggleShow(
     index: number,
     isSaveLayout: boolean
 ): void {
-    const items = dock.elements[index].querySelectorAll(".dock__item--active");
+    const targetElements = dock.elements[index];
+    if (!targetElements) {
+        return;
+    }
+    const items = targetElements.querySelectorAll(".dock__item--active");
     for (const item of Array.from(items)) {
         item.classList.remove("dock__item--active", "dock__item--activefocus");
     }
     target.classList.add("dock__item--active", "dock__item--activefocus");
     if (!target.getAttribute("data-id")) {
         const editor = findActiveEditor();
-        const tab = createDockTab({ app: dock.app, type, editor });
+        const tab = createDockTab({ app: dock.app, type, ...(editor ? { editor } : {}) });
         wnd.addTab(tab, false, false);
         target.setAttribute("data-id", tab.id);
         dock.data[type] = tab.model;
@@ -104,8 +117,13 @@ export function executeUpdatePanelRelations(
     if (!isWnd(anotherChild)) {
         return;
     }
-    const anotherActiveItems = dock.elements[anotherIndex].querySelectorAll(".dock__item--active");
-    const currentActiveItems = dock.elements[index].querySelectorAll(".dock__item--active");
+    const anotherElements = dock.elements[anotherIndex];
+    const currentElements = dock.elements[index];
+    if (!anotherElements || !currentElements) {
+        return;
+    }
+    const anotherActiveItems = anotherElements.querySelectorAll(".dock__item--active");
+    const currentActiveItems = currentElements.querySelectorAll(".dock__item--active");
     updateDockPanelRelation(dock, wnd, anotherChild, index, anotherIndex, currentActiveItems.length > 0, anotherActiveItems.length > 0);
     updatePanelVisibility(wnd, anotherChild, currentActiveItems.length > 0, anotherActiveItems.length > 0);
 }
