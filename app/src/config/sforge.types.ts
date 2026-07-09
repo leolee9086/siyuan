@@ -16,6 +16,8 @@ import type { IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
 import type { ContentRendererRegistration } from "../registry/contentRenderer/ContentRendererRegistry.types";
 /** 用途：应用实例类型。使用范围：openMobileFileById 函数签名中 App 参数类型。解耦评估：父目录类型导入，纯类型引用。 */
 import type { App } from "../index";
+/** 用途：拖拽提示框状态类型。使用范围：SForge 全局状态中拖拽提示状态映射。解耦评估：父目录类型导入，纯类型引用。 */
+import type { DragTipState } from "../protyle/util/dragTip.types";
 
 /**
  * SForge 全局状态类型定义
@@ -35,6 +37,8 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: TOpenMobileFileById;
     [SForgeSymbols.CONTENT_RENDERER_REGISTRY]?: Map<string, ContentRendererRegistration>;
     [SForgeSymbols.REQUEST_SEMAPHORE]?: IRequestSemaphore;
+    [SForgeSymbols.DRAG_TIP_STATE]?: DragTipState;
+    [SForgeSymbols.CARET_LINE_ELEMENT]?: HTMLElement | null;
 }
 
 /**

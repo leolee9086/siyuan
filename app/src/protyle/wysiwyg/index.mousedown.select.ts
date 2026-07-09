@@ -88,6 +88,9 @@ export function handleShiftSelect(
         let currentElement: HTMLElement = startElement as HTMLElement;
         let hasJump = false;
         while (currentElement) {
+            if (currentElement.classList.contains("protyle-breadcrumb__bar")) {
+                currentElement = currentElement.nextElementSibling as HTMLElement;
+            }
             if (currentElement && !currentElement.classList.contains("protyle-attr")) {
                 const currentRect = currentElement.getBoundingClientRect();
                 if (startRect.top === endRect.top ? (currentRect.left <= endTop) : (currentRect.top <= endTop)) {

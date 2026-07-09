@@ -1,29 +1,251 @@
-import {enableLuteMarkdownSyntax, getTextStar, restoreLuteMarkdownSyntax} from "../util/paste";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByTag} from "../util/hasClosest";
-import {getEditorRange} from "../util/selection";
-import {isEndOfBlock} from "./getBlock";
-import {Constants} from "../../constants";
-import {getEnableHTML, removeEmbed} from "./removeEmbed";
-import {fetchSyncPost} from "../../util/network/fetch";
-import {countBlockWord} from "../../layout/status";
-import {encodeBase64} from "../util/compatibility";
-import {isIncludeCell} from "../util/table/table";
-import {getTableRangeHTML} from "../util/table";
-import {genCellValueByElement, getCellText, getTypeByCellElement} from "../render/av/cell";
-import {nbsp2space, removeZWJ} from "../util/normalizeText";
+/** 用途: 块/AV/表格内容处理函数；使用范围: routeCopyContent；解耦评估: 与 DOM 结构强耦合 */
+import { processSelectElements } from "./index.copy.helpers";
+/** 用途: AV 单元格复制；使用范围: routeCopyContent；解耦评估: 与 DOM 结构耦合 */
+import { processSelectAV } from "./index.copy.helpers";
+/** 用途: 表格选择区域复制；使用范围: routeCopyContent；解耦评估: 与 DOM 结构耦合 */
+import { processSelectTable } from "./index.copy.helpers";
+/** 用途: 表格范围检测；使用范围: handleCopy 入口；解耦评估: 与 DOM 结构耦合 */
+import { detectTableRange } from "./index.copy.helpers";
+/** 用途: 选中元素收集；使用范围: handleCopy 入口；解耦评估: 与 DOM 结构耦合 */
+import { collectSelectElements } from "./index.copy.helpers";
+/** 用途: 剪贴板写入；使用范围: handleCopy；解耦评估: 与 Clipboard API 耦合 */
+import { writeClipboardData } from "./index.copy.helpers";
+/** 用途: 路由参数类型定义；使用范围: routeCopyContent；解耦评估: pure type */
+import type { RouteContentParams } from "./index.copy.types";
+/** 用途: 块级元素查找；使用范围: handleCopy 等；解耦评估: 与 DOM 结构耦合 */
+import { hasClosestBlock } from "../util/hasClosest";
+/** 用途: 属性匹配；使用范围: processGenericRange 等；解耦评估: 与 DOM 结构耦合 */
+import { hasClosestByAttribute } from "../util/hasClosest";
+/** 用途: 标签匹配；使用范围: processGenericRange 等；解耦评估: 与 DOM 结构耦合 */
+import { hasClosestByTag } from "../util/hasClosest";
+/** 用途: 选区获取；使用范围: handleCopy 入口；解耦评估: 与 contenteditable 耦合 */
+import { getEditorRange } from "../util/selection";
+/** 用途: 常量；使用范围: 多处；解耦评估: pure 常量 */
+import { Constants } from "../../constants";
+/** 用途: 只读模式 HTML 处理；使用范围: processDisabledAndTextPlain；解耦评估: 与只读模式耦合 */
+import { getEnableHTML } from "./removeEmbed";
+/** 用途: 块结尾检测；使用范围: processGenericRange；解耦评估: 与 AST 结构耦合 */
+import { isEndOfBlock } from "./getBlock";
+/** 用途: nbsp转space；使用范围: normalizeTextPlain；解耦评估: pure 工具 */
+import { nbsp2space } from "../util/normalizeText";
+/** 用途: 去除ZWSP；使用范围: normalizeTextPlain；解耦评估: pure 工具 */
+import { removeZWJ } from "../util/normalizeText";
+/** 用途: 表格 HTML 生成；使用范围: routeCopyContent；解耦评估: 与表格 DOM 耦合 */
+import { getTableRangeHTML } from "../util/table";
 
+/** @同步豁免: 需要绝对同步的DOM访问 */
 export function emojiToMd(element: HTMLElement) {
-    element.querySelectorAll(".emoji").forEach((item: HTMLElement) => {
-        item.outerHTML = `:${item.getAttribute("alt")}:`;
-    });
+    const emojiElements = element.querySelectorAll(".emoji");
+    for (const item of emojiElements) {
+        const itemElement = item;
+        itemElement.outerHTML = `:${itemElement.getAttribute("alt")}:`;
+    }
 }
 
+/** 处理匹配的行内元素或标题 */
+function processMatchHeadingOrRange(range: Range) {
+    const tempElement = document.createElement("div");
+    const headingElement = hasClosestByAttribute(range.startContainer, "data-type", "NodeHeading");
+    const matchHeading = headingElement && headingElement.textContent.replace(Constants.ZWSP, "") === range.toString();
+    // 匹配标题时复制整个标题块
+    if (matchHeading) {
+        tempElement.append(headingElement.cloneNode(true));
+        headingElement.removeAttribute("fold");
+        return { html: tempElement.innerHTML, textPlain: range.toString() };
+    }
+    const parentEl = range.startContainer.parentElement;
+    // @内联数组
+    const blockTagNames = ["DIV", "TD", "TH", "TR"];
+    // 非块级容器（DIV/TD/TH/TR）时复制整个行内元素
+    if (!blockTagNames.includes(parentEl?.tagName ?? "") && parentEl) {
+        tempElement.append(parentEl.cloneNode(true));
+        emojiToMd(tempElement);
+        return { html: tempElement.innerHTML, textPlain: range.toString() };
+    }
+    tempElement.append(range.cloneContents());
+    emojiToMd(tempElement);
+    return { html: tempElement.innerHTML, textPlain: range.toString() };
+}
+
+/** 处理部分选中的行内样式 */
+function processPartialSelect(range: Range) {
+    const parentElement = range.startContainer.parentElement;
+    // 无父元素时直接返回选中文本
+    if (!parentElement) {
+        return { html: range.toString(), textPlain: range.toString() };
+    }
+    const attributes = parentElement.attributes;
+    const clonedSpanElement = document.createElement("span");
+    for (let i = 0; i < attributes.length; i++) {
+        const attr = attributes[i];
+        if (attr) {
+            clonedSpanElement.setAttribute(attr.name, attr.value);
+        }
+    }
+    const dataType = clonedSpanElement.getAttribute("data-type");
+    // 动态块引用需转为静态锚文本
+    if (dataType && dataType.indexOf("block-ref") > -1 &&
+        clonedSpanElement.getAttribute("data-subtype") === "d") {
+        clonedSpanElement.setAttribute("data-subtype", "s");
+    }
+    clonedSpanElement.textContent = range.toString();
+    return { html: clonedSpanElement.outerHTML, textPlain: range.toString() };
+}
+
+/** 收集混合内容文本 */
+function collectMixedTextPlain(tempElement: HTMLElement, protyle: IProtyle) {
+    let textPlain = "";
+    for (const item of tempElement.childNodes) {
+        // 文本节点直接拼接
+        if (item.nodeType === 3) {
+            textPlain += item.textContent;
+            continue;
+        }
+        // 非 Element 节点跳过
+        if (!(item instanceof Element)) {
+            textPlain += item.textContent;
+            continue;
+        }
+        const isImg = item.classList.contains("img");
+        const isInlineMath = item.getAttribute("data-type") === "inline-math";
+        // 行内数学公式需标记类型
+        if (isInlineMath) {
+            item.setAttribute("data-type", "inline-math");
+            textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
+            continue;
+        }
+        // 图片输出 Markdown 格式
+        if (isImg) {
+            textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
+            continue;
+        }
+        textPlain += item.textContent;
+    }
+    return textPlain;
+}
+
+/** 处理一般范围复制 */
+function processGenericRange(protyle: IProtyle, range: Range) {
+    const tempElement = document.createElement("div");
+    tempElement.append(range.cloneContents());
+    emojiToMd(tempElement);
+    const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
+    const html = inlineMathElement ? inlineMathElement.outerHTML : tempElement.innerHTML;
+    // 代码块内复制，标记 isInCodeBlock 防止 Markdown 语法转换
+    if (hasClosestByAttribute(range.startContainer, "data-type", "NodeCodeBlock")) {
+        const textPlain = isEndOfBlock(range) ? tempElement.textContent.replace(/\n$/, "") : tempElement.textContent;
+        return { html, textPlain, isInCodeBlock: true };
+    }
+    // 表格内复制，将 <br> 转为换行
+    if (hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH")) {
+        tempElement.innerHTML = tempElement.innerHTML.replace(/<br>/g, "\n").replace(/<br\/>/g, "\n");
+        const textPlain = tempElement.textContent.endsWith("\n") ? tempElement.textContent.replace(/\n$/, "") : tempElement.textContent;
+        return { html, textPlain, isInCodeBlock: false };
+    }
+    // 包含图片或行内数学公式时单独拼接文本
+    if (tempElement.querySelector('.img, [data-type~="inline-math"]')) {
+        const textPlain = collectMixedTextPlain(tempElement, protyle);
+        return { html, textPlain, isInCodeBlock: false };
+    }
+    // 非 CODE 标签内的文本
+    if (!hasClosestByTag(range.startContainer, "CODE")) {
+        return { html, textPlain: range.toString(), isInCodeBlock: false };
+    }
+    return { html, textPlain: tempElement.textContent, isInCodeBlock: false };
+}
+
+/** 处理内联内容复制 */
+function processInlineContent(params: {
+    protyle: IProtyle;
+    range: Range;
+    selectImgElement: HTMLElement | null;
+    selectTypes: string[];
+}) {
+    const { protyle, range, selectImgElement, selectTypes } = params;
+    const spanElement = hasClosestByTag(range.startContainer, "SPAN");
+    const headingElement = hasClosestByAttribute(range.startContainer, "data-type", "NodeHeading");
+    const matchHeading = headingElement && headingElement.textContent.replace(Constants.ZWSP, "") === range.toString();
+    // 选中整个行内元素或标题时复制结构和属性
+    if ((selectTypes.length > 0 && spanElement && spanElement.textContent.replace(Constants.ZWSP, "") === range.toString()) ||
+        matchHeading) {
+        const result = processMatchHeadingOrRange(range);
+        return { ...result, isInCodeBlock: false };
+    }
+    // 单独选中的图片
+    if (selectImgElement) {
+        return {
+            html: selectImgElement.outerHTML,
+            textPlain: protyle.lute.BlockDOM2StdMd(selectImgElement.outerHTML).replace(/%20/g, " "),
+            isInCodeBlock: false,
+        };
+    }
+    // 选中粗体等字体中的一部分，保留样式属性
+    if (selectTypes.length > 0 && range.startContainer.nodeType === 3 &&
+        range.startContainer.parentElement?.tagName === "SPAN" &&
+        range.startContainer.parentElement === range.endContainer.parentElement) {
+        const result = processPartialSelect(range);
+        return { ...result, isInCodeBlock: false };
+    }
+    const genericResult = processGenericRange(protyle, range);
+    return { html: genericResult.html, textPlain: genericResult.textPlain, isInCodeBlock: genericResult.isInCodeBlock };
+}
+
+/** 规范化 textPlain */
+function normalizeTextPlain(textPlain: string, html: string, protyle: IProtyle) {
+    const result = textPlain || protyle.lute.BlockDOM2StdMd(html).trimEnd();
+    return removeZWJ(nbsp2space(result))
+        .replace(new RegExp(Constants.ZWSP, "g"), "");
+}
+
+/** 禁用模式处理 + textPlain 规范化 */
+function processDisabledAndTextPlain(protyle: IProtyle, html: string, textPlain: string) {
+    let resultHtml = html;
+    let resultText = textPlain;
+    // 禁用模式时移除编辑属性
+    if (protyle.disabled) {
+        resultHtml = getEnableHTML(resultHtml);
+    }
+    resultText = normalizeTextPlain(resultText, resultHtml, protyle);
+    return { html: resultHtml, textPlain: resultText };
+}
+
+/** 复制内容路由 */
+async function routeCopyContent(params: RouteContentParams) {
+    const { protyle, nodeElement, range, selectElements, selectImgElement, selectAVElement, selectTableElement, selectTableRange, tableRangeElement, tableRangeStartCell, tableRangeEndCell } = params;
+    // 选中块优先处理
+    if (selectElements.length > 0) {
+        const blockResult = await processSelectElements(protyle, selectElements);
+        return { html: blockResult.html, textPlain: "", isInCodeBlock: false, needClipboardWrite: blockResult.needClipboardWrite };
+    }
+    // 属性视图单元格复制
+    if (selectAVElement) {
+        const avResult = processSelectAV(nodeElement, selectAVElement);
+        return { html: avResult.html, textPlain: avResult.textPlain, isInCodeBlock: false, needClipboardWrite: false };
+    }
+    // 表格选择区域复制
+    if (selectTableElement) {
+        const tableResult = processSelectTable(protyle, nodeElement);
+        return { html: tableResult.html, textPlain: tableResult.textPlain, isInCodeBlock: false, needClipboardWrite: false };
+    }
+    // 表格范围选择（跨单元格）复制
+    const tableElement = selectTableRange ? tableRangeElement.querySelector("table") : null;
+    if (tableElement) {
+        const html = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
+        const textPlain = protyle.lute.HTML2Md(html);
+        return { html, textPlain, isInCodeBlock: false, needClipboardWrite: false };
+    }
+    const selectTypes = protyle.toolbar.getCurrentType(range);
+    const inlineResult = processInlineContent({ protyle, range, selectImgElement, selectTypes });
+    return { html: inlineResult.html, textPlain: inlineResult.textPlain, isInCodeBlock: inlineResult.isInCodeBlock, needClipboardWrite: false };
+}
+
+/** 处理复制事件入口 */
 export async function handleCopy(
     protyle: IProtyle,
     event: ClipboardEvent & { target: HTMLElement },
 ) {
-    window.siyuan.ctrlIsPressed = false; // https://github.com/siyuan-note/siyuan/issues/6373
-    // https://github.com/siyuan-note/siyuan/issues/4600
+    window.siyuan.ctrlIsPressed = false;
+    // 编辑区外（PROTYLE-HTML 或 input 元素）不处理复制
     if (event.target.tagName === "PROTYLE-HTML" || event.target.localName === "input") {
         event.stopPropagation();
         return;
@@ -32,280 +254,28 @@ export async function handleCopy(
     event.preventDefault();
     const range = getEditorRange(protyle.wysiwyg.element);
     const nodeElement = hasClosestBlock(range.startContainer);
+    // 无块级元素时返回
     if (!nodeElement) {
         return;
     }
     const selectImgElement = nodeElement.querySelector(".img--select");
     const selectAVElement = nodeElement.querySelector(".av__row--select, .av__cell--select");
-    const selectTableElement = nodeElement.querySelector(".table__select")?.clientWidth > 0;
-    let selectTableRange = false;
-    let tableRangeElement: HTMLElement = null;
-    let tableRangeStartCell: HTMLElement = null;
-    let tableRangeEndCell: HTMLElement = null;
-    if (!selectTableElement) {
-        const startCell = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
-        const endCell = hasClosestByTag(range.endContainer, "TD") || hasClosestByTag(range.endContainer, "TH");
-        if (startCell && endCell && startCell !== endCell) {
-            const startTable = (startCell as HTMLElement).closest("table");
-            if (startTable && startTable === (endCell as HTMLElement).closest("table")) {
-                selectTableRange = true;
-                tableRangeElement = (startCell as HTMLElement).closest('[data-type="NodeTable"]') as HTMLElement;
-                tableRangeStartCell = startCell as HTMLElement;
-                tableRangeEndCell = endCell as HTMLElement;
-            }
-        }
-    }
-    let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-    if (selectElements.length === 0 && range.toString() === "" && !range.cloneContents().querySelector("img") &&
-        !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange) {
-        nodeElement.classList.add("protyle-wysiwyg--select");
-        countBlockWord([nodeElement.getAttribute("data-node-id")]);
-        selectElements = [nodeElement];
-    }
-    let html = "";
-    let textPlain = "";
-    let isInCodeBlock = false;
-    let needClipboardWrite = false;
-    if (selectElements.length > 0) {
-        const isRefText = selectElements[0].getAttribute("data-reftext") === "true";
-        if (selectElements[0].getAttribute("data-type") === "NodeListItem" &&
-            selectElements[0].parentElement.classList.contains("list") &&   // 反链复制列表项 https://github.com/siyuan-note/siyuan/issues/6555
-            selectElements[0].parentElement.childElementCount - 1 === selectElements.length) {
-            const hasNoLiElement = selectElements.find(item => {
-                if (!selectElements[0].parentElement.contains(item)) {
-                    return true;
-                }
-            });
-            if (!hasNoLiElement) {
-                selectElements = [selectElements[0].parentElement];
-            }
-        }
-        let listHTML = "";
-        for (let i = 0; i < selectElements.length; i++) {
-            const item = selectElements[i] as HTMLElement;
-            // 复制列表项中的块会变为复制列表项，因此不能使用 getTopAloneElement https://github.com/siyuan-note/siyuan/issues/8925
-            if (isRefText) {
-                html += getTextStar(item) + "\n\n";
-            } else {
-                let itemHTML = "";
-                if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
-                    needClipboardWrite = true;
-                    const response = await fetchSyncPost("/api/block/getHeadingChildrenDOM", {
-                        id: item.getAttribute("data-node-id"),
-                        removeFoldAttr: false
-                    });
-                    itemHTML = response.data;
-                } else if (item.getAttribute("data-type") !== "NodeBlockQueryEmbed" && item.querySelector('[data-type="NodeHeading"][fold="1"]')) {
-                    needClipboardWrite = true;
-                    const response = await fetchSyncPost("/api/block/getBlockDOM", {
-                        id: item.getAttribute("data-node-id"),
-                    });
-                    itemHTML = response.data.dom;
-                } else {
-                    itemHTML = removeEmbed(item);
-                }
-                if (item.getAttribute("data-type") === "NodeListItem") {
-                    if (!listHTML) {
-                        listHTML = `<div data-subtype="${item.getAttribute("data-subtype")}" data-node-id="${Lute.NewNodeID()}" data-type="NodeList" class="list">`;
-                    }
-                    listHTML += itemHTML;
-                    if (i === selectElements.length - 1 ||
-                        selectElements[i + 1].getAttribute("data-type") !== "NodeListItem" ||
-                        selectElements[i + 1].getAttribute("data-subtype") !== item.getAttribute("data-subtype")
-                    ) {
-                        html += `${listHTML}<div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
-                        listHTML = "";
-                    }
-                } else {
-                    html += itemHTML;
-                }
-            }
-        }
-        if (isRefText) {
-            html = html.slice(0, -2);
-            selectElements[0].removeAttribute("data-reftext");
-        }
-    } else if (selectAVElement) {
-        const cellElements: Element[] = Array.from(nodeElement.querySelectorAll(".av__cell--active, .av__cell--select")) || [];
-        if (cellElements.length === 0) {
-            nodeElement.querySelectorAll(".av__row--select:not(.av__row--header)").forEach(rowElement => {
-                rowElement.querySelectorAll(".av__cell").forEach(cellElement => {
-                    cellElements.push(cellElement);
-                });
-            });
-        }
-        if (cellElements.length > 0) {
-            html = "[";
-            cellElements.forEach((item: HTMLElement, index) => {
-                const cellText = getCellText(item);
-                if (index === 0 || (
-                    cellElements[index - 1] !== item.previousElementSibling &&
-                    !(item.previousElementSibling?.classList.contains("av__colsticky") && !cellElements[index - 1].nextElementSibling &&
-                        cellElements[index - 1].parentElement === item.previousElementSibling)
-                )) {
-                    html += "[";
-                }
-                html += JSON.stringify(genCellValueByElement(getTypeByCellElement(item), item)) + ",";
-                if (index === cellElements.length - 1 || (
-                    cellElements[index + 1] !== item.nextElementSibling &&
-                    !(!item.nextElementSibling && item.parentElement.nextElementSibling === cellElements[index + 1])
-                )) {
-                    html = html.substring(0, html.length - 1) + "],";
-                    textPlain += cellText + "\n";
-                } else {
-                    textPlain += cellText + "\t";
-                }
-            });
-            textPlain = textPlain.substring(0, textPlain.length - 1);
-            html = html.substring(0, html.length - 1) + "]";
-        }
-    } else if (selectTableElement) {
-        const scrollLeft = nodeElement.firstElementChild.scrollLeft;
-        const scrollTop = nodeElement.querySelector("table").scrollTop;
-        const tableSelectElement = nodeElement.querySelector(".table__select") as HTMLElement;
-        const tableElement = nodeElement.querySelector("table");
-        let startCell: HTMLElement = null;
-        let endCell: HTMLElement = null;
-        const allCells = Array.from(tableElement.querySelectorAll("th, td")) as HTMLElement[];
-        allCells.forEach((item: HTMLTableCellElement) => {
-            if (item.classList.contains("fn__none")) {
-                return;
-            }
-            if (isIncludeCell({tableSelectElement, scrollLeft, scrollTop, item})) {
-                if (!startCell) {
-                    startCell = item;
-                }
-                endCell = item;
-            }
-        });
-        if (startCell && endCell) {
-            html = getTableRangeHTML(tableElement, startCell, endCell);
-        } else {
-            html = "<table></table>";
-        }
-        textPlain = protyle.lute.HTML2Md(html);
-    } else if (selectTableRange) {
-        const tableElement = tableRangeElement.querySelector("table");
-        html = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
-        textPlain = protyle.lute.HTML2Md(html);
-    } else {
-        const tempElement = document.createElement("div");
-        // https://github.com/siyuan-note/siyuan/issues/5540
-        const selectTypes = protyle.toolbar.getCurrentType(range);
-        const spanElement = hasClosestByTag(range.startContainer, "SPAN");
-        const headingElement = hasClosestByAttribute(range.startContainer, "data-type", "NodeHeading");
-        const matchHeading = headingElement && headingElement.textContent.replace(Constants.ZWSP, "") === range.toString();
-        if ((selectTypes.length > 0 && spanElement && spanElement.textContent.replace(Constants.ZWSP, "") === range.toString()) ||
-            matchHeading) {
-            if (matchHeading) {
-                // 复制标题 https://github.com/siyuan-note/insider/issues/297
-                tempElement.append(headingElement.cloneNode(true));
-                // https://github.com/siyuan-note/siyuan/issues/13232
-                headingElement.removeAttribute("fold");
-            } else if (!["DIV", "TD", "TH", "TR"].includes(range.startContainer.parentElement.tagName)) {
-                // 复制行内元素 https://github.com/siyuan-note/insider/issues/191
-                tempElement.append(range.startContainer.parentElement.cloneNode(true));
-                emojiToMd(tempElement);
-            } else {
-                // 直接复制块 https://github.com/siyuan-note/insider/issues/318
-                tempElement.append(range.cloneContents());
-                emojiToMd(tempElement);
-            }
-            html = tempElement.innerHTML;
-            textPlain = range.toString();
-        } else if (selectImgElement) {
-            html = selectImgElement.outerHTML;
-            textPlain = selectImgElement.querySelector("img").getAttribute("data-src");
-        } else if (selectTypes.length > 0 && range.startContainer.nodeType === 3 &&
-            range.startContainer.parentElement.tagName === "SPAN" &&
-            range.startContainer.parentElement === range.endContainer.parentElement) {
-            // 复制粗体等字体中的一部分
-            const attributes = range.startContainer.parentElement.attributes;
-            const spanElement = document.createElement("span");
-            for (let i = 0; i < attributes.length; i++) {
-                spanElement.setAttribute(attributes[i].name, attributes[i].value);
-            }
-            if (spanElement.getAttribute("data-type").indexOf("block-ref") > -1 &&
-                spanElement.getAttribute("data-subtype") === "d") {
-                // 需变为静态锚文本
-                spanElement.setAttribute("data-subtype", "s");
-            }
-            spanElement.textContent = range.toString();
-            html = spanElement.outerHTML;
-            textPlain = range.toString();
-        } else {
-            tempElement.append(range.cloneContents());
-            emojiToMd(tempElement);
-            const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
-            if (inlineMathElement) {
-                // 表格内复制数学公式 https://ld246.com/article/1631708573504
-                html = inlineMathElement.outerHTML;
-            } else {
-                html = tempElement.innerHTML;
-            }
-            // 不能使用 commonAncestorContainer https://ld246.com/article/1643282894693
-            textPlain = tempElement.textContent;
-            if (hasClosestByAttribute(range.startContainer, "data-type", "NodeCodeBlock")) {
-                if (isEndOfBlock(range)) {
-                    textPlain = textPlain.replace(/\n$/, "");
-                }
-                isInCodeBlock = true;
-            } else if (hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH")) {
-                tempElement.innerHTML = tempElement.innerHTML.replace(/<br>/g, "\n").replace(/<br\/>/g, "\n");
-                textPlain = tempElement.textContent.endsWith("\n") ? tempElement.textContent.replace(/\n$/, "") : tempElement.textContent;
-            } else if (tempElement.querySelector('.img, [data-type~="inline-math"]')) {
-                textPlain = "";
-                tempElement.childNodes.forEach((item: Element) => {
-                    if (item.nodeType === 3) {
-                        textPlain += item.textContent;
-                    } else if (item.nodeType === 1 &&
-                        (item.classList.contains("img") || item.getAttribute("data-type") === "inline-math")) {
-                        if (!item.classList.contains("img")) {
-                            item.setAttribute("data-type", "inline-math");
-                        }
-                        textPlain += protyle.lute.BlockDOM2StdMd(item.outerHTML).trimEnd();
-                    } else {
-                        textPlain += item.textContent;
-                    }
-                });
-            } else if (!hasClosestByTag(range.startContainer, "CODE")) {
-                textPlain = range.toString();
-            }
-        }
-    }
-    if (protyle.disabled) {
-        html = getEnableHTML(html);
-    }
-    textPlain = textPlain || protyle.lute.BlockDOM2StdMd(html).trimEnd();
-    textPlain = removeZWJ(nbsp2space(textPlain)) // Replace non-breaking spaces with normal spaces when copying https://github.com/siyuan-note/siyuan/issues/9382
-        // Remove ZWSP when copying inline elements https://github.com/siyuan-note/siyuan/issues/13882
-        .replace(new RegExp(Constants.ZWSP, "g"), "");
-    event.clipboardData.setData("text/plain", textPlain);
-
-    if (!isInCodeBlock) {
-        enableLuteMarkdownSyntax(protyle);
-        let textSiyuan: string;
-        if (selectTableElement || selectTableRange) {
-            const newId = Lute.NewNodeID();
-            textSiyuan = `<div data-node-id="${newId}" data-type="NodeTable" class="table"><div contenteditable="true" spellcheck="false">${html}<div class="protyle-action__table"><div class="table__resize"></div><div class="table__select"></div></div></div><div class="protyle-attr" contenteditable="false">\u200b</div></div>`;
-            html = textSiyuan;
-        } else {
-            textSiyuan = html;
-        }
-        event.clipboardData.setData("text/siyuan", textSiyuan);
-        restoreLuteMarkdownSyntax(protyle);
-        // 在 text/html 中插入注释节点，用于右键菜单粘贴时获取 text/siyuan 数据
-        const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ((selectTableElement || selectTableRange) ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
-        event.clipboardData.setData("text/html", textHTML);
-        if (needClipboardWrite) {
-            try {
-                await navigator.clipboard.write([new ClipboardItem({
-                    ["text/plain"]: textPlain,
-                    ["text/html"]: textHTML,
-                })]);
-            } catch (e) {
-                console.log("Copy write clipboard error:", e);
-            }
-        }
+    const tableSelectEl = nodeElement.querySelector(".table__select");
+    const selectTableElement = tableSelectEl?.clientWidth > 0;
+    const tableRange = detectTableRange(range, selectTableElement);
+    const selectElements = collectSelectElements(protyle, nodeElement, range, selectImgElement, selectAVElement, selectTableElement, tableRange.selectTableRange);
+    const routeResult = await routeCopyContent({
+        protyle, nodeElement, range, selectElements,
+        selectImgElement, selectAVElement, selectTableElement,
+        selectTableRange: tableRange.selectTableRange,
+        tableRangeElement: tableRange.tableRangeElement,
+        tableRangeStartCell: tableRange.tableRangeStartCell,
+        tableRangeEndCell: tableRange.tableRangeEndCell,
+    });
+    const processed = processDisabledAndTextPlain(protyle, routeResult.html, routeResult.textPlain);
+    event.clipboardData.setData("text/plain", processed.textPlain);
+    // 代码块内不写入 siyuan/html 格式
+    if (!routeResult.isInCodeBlock) {
+        await writeClipboardData(protyle, event, processed.html, processed.textPlain, selectTableElement, tableRange.selectTableRange, selectAVElement, routeResult.needClipboardWrite);
     }
 }
