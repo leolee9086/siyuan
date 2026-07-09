@@ -27,6 +27,7 @@
  *  11  AI 任务标记
  *  11  require-async-export / require-import-comment（单独下调）+ AI 任务标记
  *  12  no-class（单独下调，禁止所有 class 声明）
+ *  12  no-module-level-var（模块级变量禁止，改造影响面大，与 no-class 同档）
  *  13  导入边界（父级导入、直接导入第三方、批量导入）——跨文件
  *  14  imports.ts 网关特殊约束——跨文件
  *  15  跨文件架构约束（导出转发、别名禁令、文件夹条目）——跨文件
@@ -65,6 +66,7 @@ import { noControlFlowInExecutorPlugin } from "./no-control-flow-in-executor.mjs
 import { noClassPlugin } from "./no-class.mjs";
 import { maxParamsPlugin } from "./max-params.mjs";
 import { noNewPlugin } from "./no-new.mjs";
+import { noModuleLevelVarPlugin } from "./no-module-level-var.mjs";
 
 // ─── 包装自定义插件并注册优先级 ───
 // createPriorityPlugin 不修改插件行为，仅将规则优先级写入 registry
@@ -164,6 +166,9 @@ const wrappedPlugins = {
 
     // no-class 单独下调（优先级 12，禁止所有 class 声明，改造影响面大）
     "no-class": createPriorityPlugin(noClassPlugin, "no-class", 12),
+
+    // no-module-level-var 单独下调（优先级 12，模块级变量禁止，改造影响面大）
+    "no-module-level-var": createPriorityPlugin(noModuleLevelVarPlugin, "no-module-level-var", 12),
 
     // 跨文件架构约束（优先级 15）
     "no-export-forwarding": createPriorityPlugin(noExportForwardingPlugin, "no-export-forwarding", 15),
