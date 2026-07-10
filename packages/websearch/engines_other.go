@@ -1066,7 +1066,49 @@ func newMarginalia(config EngineConfig) SearchEngine {
 }
 func newPodchaser(config EngineConfig) SearchEngine     { return newSiteScopedEngine("podchaser.com", "podchaser")(config) }
 func newZLibrary(config EngineConfig) SearchEngine      { return newSiteScopedEngine("z-lib.org", "z-library")(config) }
-func newAppleAppStore(config EngineConfig) SearchEngine { return newSiteScopedEngine("apps.apple.com", "apple-app-store")(config) }
+func newAppleAppStore(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "apple-app-store", Category: "software",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://itunes.apple.com/search?term=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20)) + "&entity=software"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Results []struct {
+					TrackName      string  `json:"trackName"`
+					TrackViewURL   string  `json:"trackViewUrl"`
+					SellerName     string  `json:"sellerName"`
+					FormattedPrice string  `json:"formattedPrice"`
+					AvgRating      float64 `json:"averageUserRating"`
+				} `json:"results"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, a := range resp.Results {
+				if i >= max || a.TrackName == "" {
+					break
+				}
+				price := a.FormattedPrice
+				if price == "" {
+					price = "Free"
+				}
+				rating := "?"
+				if a.AvgRating > 0 {
+					rating = strconv.FormatFloat(a.AvgRating, 'f', 1, 64)
+				}
+				results = append(results, SearchResult{
+					Title: a.TrackName, URL: a.TrackViewURL,
+					Snippet: a.SellerName + " · " + price + " · ⭐" + rating,
+					Engine: "apple-app-store", Position: i + 1, Category: "software",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newApkMirror(config EngineConfig) SearchEngine     { return newSiteScopedEngine("apkmirror.com", "apkmirror")(config) }
 func newGooglePlay(config EngineConfig) SearchEngine    { return newSiteScopedEngine("play.google.com", "google-play")(config) }
 func newCurrencyConvert(config EngineConfig) SearchEngine { return newSiteScopedEngine("xe.com", "currency-convert")(config) }
