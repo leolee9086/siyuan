@@ -1,0 +1,509 @@
+// 代码/技术搜索引擎实现
+package websearch
+
+import (
+	"encoding/json"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+func init() {
+	register("github", newGitHub)
+	register("github-code", newGitHubCode)
+	register("github-issues", newGitHubIssues)
+	register("github-repo-files", newGitHubRepoFiles)
+	register("gitlab", newGitLab)
+	register("huggingface", newHuggingFace)
+	register("gitea", newGitea)
+	register("sourcehut", newSourceHut)
+	register("npm", newNPM)
+	register("pypi-html", newPyPI)
+	register("crates", newCrates)
+	register("hex", newHex)
+	register("dockerhub", newDockerHub)
+	register("packagist", newPackagist)
+	register("rubygems", newRubyGems)
+	register("pub-dev", newPubDev)
+	register("mankier", newMankier)
+	register("hoogle", newHoogle)
+	register("metacpan", newMetacpan)
+	register("archlinux", newArchLinux)
+	register("alpinelinux", newAlpineLinux)
+	register("voidlinux", newVoidLinux)
+	register("fdroid", newFDroid)
+	register("mdn", newMDN)
+	register("docsrs", newDocsRs)
+	register("react-docs", newReactDocs)
+	register("vue-docs", newVueDocs)
+	register("python-docs", newPythonDocs)
+	register("pkg-go-dev", newPkgGoDev)
+	register("microsoft-learn", newMicrosoftLearn)
+	register("stackexchange", newStackExchange)
+}
+
+// ── GitHub ────────────────────────────────────────────
+
+func newGitHub(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "github", Category: "code",
+		UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		URL: func(q string, n int) string {
+			return "https://api.github.com/search/repositories?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=stars&order=desc"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Items []struct {
+					FullName    string `json:"full_name"`
+					HTMLURL     string `json:"html_url"`
+					Description string `json:"description"`
+					Stars       int    `json:"stargazers_count"`
+					Language    string `json:"language"`
+				} `json:"items"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, item := range resp.Items {
+				if i >= max {
+					break
+				}
+				snippet := item.Description
+				if snippet == "" {
+					snippet = "⭐ " + strconv.Itoa(item.Stars)
+				} else if item.Stars > 0 {
+					snippet += " | ⭐ " + strconv.Itoa(item.Stars)
+				}
+				results = append(results, SearchResult{
+					Title: item.FullName, URL: item.HTMLURL, Snippet: snippet,
+					Engine: "github", Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+
+func newNPM(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "npm", Category: "code",
+		URL: func(q string, n int) string {
+			return "https://registry.npmjs.org/-/v1/search?text=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 50))
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Objects []struct {
+					Package struct {
+						Name        string `json:"name"`
+						Version     string `json:"version"`
+						Description string `json:"description"`
+						Links       struct {
+							Npm string `json:"npm"`
+						} `json:"links"`
+					} `json:"package"`
+				} `json:"objects"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, o := range resp.Objects {
+				if i >= max {
+					break
+				}
+				pkg := o.Package
+				snippet := pkg.Version
+				if pkg.Description != "" {
+					snippet += " — " + pkg.Description
+				}
+				results = append(results, SearchResult{
+					Title: pkg.Name, URL: pkg.Links.Npm, Snippet: snippet,
+					Engine: "npm", Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newPackagist(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "packagist", Category: "code",
+		URL: func(q string, n int) string { return "https://packagist.org/search.json?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Results []struct{ Name, URL, Description string; Downloads, Favers int } `json:"results"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Results == nil { return nil, nil }
+			var res []SearchResult
+			for i, p := range r.Results {
+				if i >= max { break }
+				res = append(res, SearchResult{Title: p.Name, URL: p.URL, Snippet: p.Description + " · ⬇" + strconv.Itoa(p.Downloads) + " · ⭐" + strconv.Itoa(p.Favers), Engine: "packagist", Position: i + 1, Category: "code"})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newRubyGems(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "rubygems", Category: "code",
+		URL: func(q string, n int) string { return "https://rubygems.org/api/v1/search.json?query=" + url.QueryEscape(q) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r []struct{ Name, ProjectURI, Info string; Downloads int; Version string }
+			if err := json.Unmarshal(data, &r); err != nil { return nil, nil }
+			var res []SearchResult
+			for i, g := range r {
+				if i >= max { break }
+				res = append(res, SearchResult{Title: g.Name + " " + g.Version, URL: g.ProjectURI, Snippet: g.Info[:minInt(len(g.Info), 120)] + " · ⬇" + strconv.Itoa(g.Downloads), Engine: "rubygems", Position: i + 1, Category: "code"})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newPubDev(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "pub-dev", Category: "code",
+		URL: func(q string, n int) string { return "https://pub.dev/api/search?q=" + url.QueryEscape(q) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Packages []struct{ Package string } `json:"packages"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Packages == nil { return nil, nil }
+			var res []SearchResult
+			for i, p := range r.Packages {
+				if i >= max { break }
+				res = append(res, SearchResult{Title: p.Package, URL: "https://pub.dev/packages/" + p.Package, Snippet: "Dart/Flutter package", Engine: "pub-dev", Position: i + 1, Category: "code"})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newMankier(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "mankier", Category: "code",
+		URL: func(q string, n int) string { return "https://www.mankier.com/api/v2/mans/?q=" + url.QueryEscape(q) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Results []struct{ Name, URL, Description string } `json:"results"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Results == nil { return nil, nil }
+			var res []SearchResult
+			for i, m := range r.Results {
+				if i >= max { break }
+				s := m.Description
+				if s == "" { s = "man page: " + m.Name }
+				res = append(res, SearchResult{Title: m.Name, URL: m.URL, Snippet: s, Engine: "mankier", Position: i + 1, Category: "code"})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newHoogle(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "hoogle", Category: "code",
+		URL: func(q string, n int) string { return "https://hoogle.haskell.org/?hoogle=" + url.QueryEscape(q) + "&mode=json" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r []struct{ Name, URL, Docs string; Package struct{ Name string } }
+			if err := json.Unmarshal(data, &r); err != nil { return nil, nil }
+			var res []SearchResult
+			for i, h := range r {
+				if i >= max { break }
+				s := h.Docs[:minInt(len(h.Docs), 120)] + " · " + h.Package.Name
+				res = append(res, SearchResult{Title: h.Name, URL: h.URL, Snippet: s, Engine: "hoogle", Position: i + 1, Category: "code"})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newStackExchange(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{Name: "stackexchange", Category: "code",
+		URL: func(q string, n int) string { return "https://api.stackexchange.com/2.3/search?order=desc&sort=relevance&intitle=" + url.QueryEscape(q) + "&site=stackoverflow&pagesize=" + strconv.Itoa(minInt(n, 20)) + "&filter=withbody" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Items []struct{ Title, Link string; Score, AnswerCount, ViewCount, CreationDate int } `json:"items"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Items == nil { return nil, nil }
+			var res []SearchResult
+			for i, item := range r.Items {
+				if i >= max { break }
+				if item.Title == "" || item.Link == "" { continue }
+				res = append(res, SearchResult{Title: StripHTML(item.Title), URL: item.Link, Snippet: "⭐" + strconv.Itoa(item.Score) + " · 💬" + strconv.Itoa(item.AnswerCount) + " · 👁" + strconv.Itoa(item.ViewCount), Engine: "stackexchange", Position: i + 1, Category: "code", PublishedDate: int64(item.CreationDate) * 1000})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newPyPI(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "pypi-html",
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://pypi.org/search/?q=" + url.QueryEscape(q)
+		},
+		Parse: func(body string, maxResults int) ([]SearchResult, error) {
+			var results []SearchResult
+			pos := 0
+			re := regexp.MustCompile(`<a[^>]*class="[^"]*package-snippet[^"]*"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*package-snippet__name[^"]*"[^>]*>([^<]+)<\/span>[\s\S]*?<span[^>]*class="[^"]*package-snippet__version[^"]*"[^>]*>([^<]+)<\/span>[\s\S]*?<p[^>]*>([^<]*)<\/p>`)
+			matches := re.FindAllStringSubmatch(body, -1)
+			for _, m := range matches {
+				if len(results) >= maxResults {
+					break
+				}
+				href := strings.TrimSpace(m[1])
+				name := strings.TrimSpace(m[2])
+				version := strings.TrimSpace(m[3])
+				desc := strings.TrimSpace(m[4])
+				if name == "" {
+					continue
+				}
+				url := href
+				if strings.HasPrefix(href, "/") {
+					url = "https://pypi.org" + href
+				}
+				pos++
+				results = append(results, SearchResult{
+					Title: name + " v" + version, URL: url, Snippet: desc,
+					Engine: "pypi", Position: pos, Category: "code",
+				})
+			}
+			if len(results) == 0 {
+				fbRe := regexp.MustCompile(`href="/project/([^/"]+)/"[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>[\s\S]*?<span[^>]*>([^<]+)<\/span>`)
+				fmatches := fbRe.FindAllStringSubmatch(body, -1)
+				for _, m := range fmatches {
+					if len(results) >= maxResults {
+						break
+					}
+					pkgName := m[1]
+					name := strings.TrimSpace(m[2])
+					version := strings.TrimSpace(m[3])
+					if name == "" || pkgName == "" {
+						continue
+					}
+					pos++
+					results = append(results, SearchResult{
+						Title: name + " v" + version, URL: "https://pypi.org/project/" + pkgName + "/",
+						Snippet: "PyPI Python package", Engine: "pypi", Position: pos, Category: "code",
+					})
+				}
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newCrates(config EngineConfig) SearchEngine        { return newSiteScopedEngine("crates.io", "crates")(config) }
+func newHex(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "hex", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://hex.pm/api/packages?search=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20))
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp []struct {
+				Name          string `json:"name"`
+				LatestVersion string `json:"latest_version"`
+				Meta          *struct{ Description string } `json:"meta"`
+				Downloads     *struct{ All int64 } `json:"downloads"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, item := range resp {
+				if i >= max || item.Name == "" {
+					break
+				}
+				snippet := ""
+				if item.Meta != nil && item.Meta.Description != "" {
+					snippet = item.Meta.Description
+				}
+				if item.Downloads != nil && item.Downloads.All > 0 {
+					if snippet != "" {
+						snippet += " · "
+					}
+					snippet += strconv.FormatInt(item.Downloads.All, 10) + " downloads"
+				}
+				title := item.Name
+				if item.LatestVersion != "" {
+					title += " v" + item.LatestVersion
+				}
+				results = append(results, SearchResult{
+					Title: title, URL: "https://hex.pm/packages/" + item.Name,
+					Snippet: snippet, Engine: "hex", Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newDockerHub(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "dockerhub", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://hub.docker.com/v2/repositories/library/" + url.QueryEscape(q) + "/?page_size=" + strconv.Itoa(minInt(n, 20))
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Results []struct{ Name, RepoName, ShortDescription string; PullCount, StarCount int } `json:"results"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Results == nil { return nil, nil }
+			var res []SearchResult
+			for i, p := range r.Results {
+				if i >= max { break }
+				name := p.RepoName
+				if name == "" { name = p.Name }
+				if name == "" { continue }
+				snippet := p.ShortDescription
+				if snippet == "" { snippet = strconv.Itoa(p.PullCount) + " pulls" }
+				res = append(res, SearchResult{
+					Title: name, URL: "https://hub.docker.com/r/" + name, Snippet: snippet,
+					Engine: "dockerhub", Position: i + 1, Category: "code",
+				})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newMetacpan(config EngineConfig) SearchEngine      { return newSiteScopedEngine("metacpan.org", "metacpan")(config) }
+func newArchLinux(config EngineConfig) SearchEngine     { return newSiteScopedEngine("archlinux.org", "archlinux")(config) }
+func newAlpineLinux(config EngineConfig) SearchEngine   { return newSiteScopedEngine("alpinelinux.org", "alpinelinux")(config) }
+func newVoidLinux(config EngineConfig) SearchEngine     { return newSiteScopedEngine("voidlinux.org", "voidlinux")(config) }
+func newFDroid(config EngineConfig) SearchEngine        { return newSiteScopedEngine("f-droid.org", "fdroid")(config) }
+func newMDN(config EngineConfig) SearchEngine           { return newSiteScopedEngine("developer.mozilla.org", "mdn")(config) }
+func newDocsRs(config EngineConfig) SearchEngine        { return newSiteScopedEngine("docs.rs", "docsrs")(config) }
+func newReactDocs(config EngineConfig) SearchEngine     { return newSiteScopedEngine("react.dev", "react-docs")(config) }
+func newVueDocs(config EngineConfig) SearchEngine       { return newSiteScopedEngine("vuejs.org", "vue-docs")(config) }
+func newPythonDocs(config EngineConfig) SearchEngine    { return newSiteScopedEngine("docs.python.org", "python-docs")(config) }
+func newPkgGoDev(config EngineConfig) SearchEngine      { return newSiteScopedEngine("pkg.go.dev", "pkg-go-dev")(config) }
+func newMicrosoftLearn(config EngineConfig) SearchEngine { return newSiteScopedEngine("learn.microsoft.com", "microsoft-learn")(config) }
+func newGitHubCode(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "github-code", Category: "code",
+		UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		URL: func(q string, n int) string {
+			return "https://api.github.com/search/code?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=indexed&order=desc"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Items []struct {
+					Name     string `json:"name"`
+					Path     string `json:"path"`
+					HTMLURL  string `json:"html_url"`
+					Language string `json:"language"`
+					Repo     struct {
+						FullName string `json:"full_name"`
+						HTMLURL  string `json:"html_url"`
+					} `json:"repository"`
+					TextMatches []struct {
+						Fragment string `json:"fragment"`
+					} `json:"text_matches"`
+				} `json:"items"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, item := range resp.Items {
+				if i >= max {
+					break
+				}
+				if item.Repo.FullName == "" || item.Path == "" {
+					continue
+				}
+				fragments := make([]string, 0)
+				for _, tm := range item.TextMatches {
+					if tm.Fragment != "" {
+						fragments = append(fragments, tm.Fragment)
+					}
+				}
+				snippet := "File in " + item.Repo.FullName
+				if len(fragments) > 0 {
+					snippet = strings.Join(fragments, "\n...\n")
+					if len(snippet) > 400 {
+						snippet = snippet[:400]
+					}
+				}
+				if item.Language != "" {
+					snippet = "[" + item.Language + "] " + snippet
+				}
+				results = append(results, SearchResult{
+					Title: item.Repo.FullName + ": " + item.Path, URL: item.HTMLURL,
+					Snippet: snippet, Engine: "github-code", Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newGitHubIssues(config EngineConfig) SearchEngine  { return newSiteScopedEngine("github.com/issues", "github-issues")(config) }
+func newGitHubRepoFiles(config EngineConfig) SearchEngine { return newSiteScopedEngine("github.com", "github-repo-files")(config) }
+func newGitLab(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "gitlab", Category: "code",
+		UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITLAB_TOKEN",
+		URL: func(q string, n int) string {
+			return "https://gitlab.com/api/v4/projects?search=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&order_by=stars&sort=desc"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp []struct {
+				Name       string `json:"name"`
+				PathWithNS string `json:"path_with_namespace"`
+				WebURL     string `json:"web_url"`
+				Desc       string `json:"description"`
+				Stars      int    `json:"star_count"`
+				Forks      int    `json:"forks_count"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, p := range resp {
+				if i >= max || p.Name == "" {
+					break
+				}
+				snippet := ""
+				if p.Desc != "" {
+					snippet = p.Desc + " | "
+				}
+				snippet += "⭐ " + strconv.Itoa(p.Stars) + " · 🍴 " + strconv.Itoa(p.Forks)
+				results = append(results, SearchResult{
+					Title: p.PathWithNS, URL: p.WebURL, Snippet: snippet,
+					Engine: "gitlab", Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newHuggingFace(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "huggingface", Category: "code",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://huggingface.co/api/models?search=" + url.QueryEscape(q) + "&direction=-1"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp []struct {
+				ID          string   `json:"id"`
+				Likes       int      `json:"likes"`
+				Downloads   int      `json:"downloads"`
+				Description string   `json:"description"`
+				PipelineTag string   `json:"pipeline_tag"`
+				LibraryName string   `json:"library_name"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, e := range resp {
+				if i >= max || e.ID == "" {
+					break
+				}
+				parts := make([]string, 0, 4)
+				if e.Description != "" {
+					parts = append(parts, e.Description)
+				}
+				if e.LibraryName != "" {
+					parts = append(parts, "Library: "+e.LibraryName)
+				}
+				if e.PipelineTag != "" {
+					parts = append(parts, e.PipelineTag)
+				}
+				parts = append(parts, "❤️ "+strconv.Itoa(e.Likes)+" ⬇ "+strconv.Itoa(e.Downloads))
+				results = append(results, SearchResult{
+					Title: e.ID, URL: "https://huggingface.co/" + e.ID,
+					Snippet: strings.Join(parts, " · "), Engine: "huggingface",
+					Position: i + 1, Category: "code",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newGitea(config EngineConfig) SearchEngine         { return newSiteScopedEngine("gitea.com", "gitea")(config) }
+func newSourceHut(config EngineConfig) SearchEngine     { return newSiteScopedEngine("sr.ht", "sourcehut")(config) }

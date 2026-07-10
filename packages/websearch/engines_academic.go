@@ -1,0 +1,376 @@
+// 学术搜索引擎实现
+package websearch
+
+import (
+	"encoding/json"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+)
+
+func init() {
+	register("arxiv", newArxiv)
+	register("semantic-scholar", newSemanticScholar)
+	register("wikipedia", newWikipedia)
+	register("google-scholar", newGoogleScholar)
+	register("crossref", newCrossref)
+	register("pubmed", newPubMed)
+	register("openalex", newOpenAlex)
+	register("core", newCore)
+	register("openlibrary", newOpenLibrary)
+	register("goodreads", newGoodreads)
+	register("zenodo", newZenodo)
+	register("ads", newAds)
+	register("pdbe", newPdbe)
+	register("scanr", newScanr)
+	register("openaire-publications", newOpenAirePublications)
+	register("annas-archive", newAnnasArchive)
+	register("moviepilot", newMoviepilot)
+	register("wikidata", newWikidata)
+	register("wikicommons", newWikimediaCommons)
+}
+
+// ── Arxiv ─────────────────────────────────────────────
+
+func newArxiv(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "arxiv", Category: "academic",
+		URL: func(q string, n int) string {
+			return "http://export.arxiv.org/api/query?search_query=all:" + url.QueryEscape(q) + "&max_results=" + strconv.Itoa(minInt(n, 50)) + "&sortBy=relevance&sortOrder=descending"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			body := string(data)
+			var results []SearchResult
+			re := regexp.MustCompile(`<entry>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<id>([\s\S]*?)<\/id>[\s\S]*?<summary>([\s\S]*?)<\/summary>`)
+			matches := re.FindAllStringSubmatch(body, -1)
+			for i, m := range matches {
+				if i >= max {
+					break
+				}
+				results = append(results, SearchResult{
+					Title: StripHTML(m[1]), URL: strings.TrimSpace(m[2]),
+					Snippet: StripHTML(m[3]), Engine: "arxiv", Position: i + 1, Category: "academic",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+
+// ── Semantic Scholar ──────────────────────────────────
+
+func newSemanticScholar(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "semantic-scholar", Category: "academic",
+		URL: func(q string, n int) string {
+			return "https://api.semanticscholar.org/graph/v1/paper/search?query=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 50)) + "&fields=title,url,publicationDate,authors,abstract"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Data []struct {
+					Title           string `json:"title"`
+					URL             string `json:"url"`
+					PublicationDate string `json:"publicationDate"`
+					Abstract        string `json:"abstract"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, p := range resp.Data {
+				if i >= max {
+					break
+				}
+				if p.Title == "" || p.URL == "" {
+					continue
+				}
+				var publishedDate int64
+				if p.PublicationDate != "" {
+					if t, err := time.Parse("2006-01-02", p.PublicationDate); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
+				results = append(results, SearchResult{
+					Title: p.Title, URL: p.URL, Snippet: p.Abstract,
+					Engine: "semantic-scholar", Position: i + 1, Category: "academic",
+					PublishedDate: publishedDate,
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+
+// ── Wikipedia ─────────────────────────────────────────
+
+func newWikipedia(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "wikipedia", Category: "encyclopedia",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + url.QueryEscape(q) + "&srlimit=" + strconv.Itoa(minInt(n, 50)) + "&format=json&origin=*"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Query *struct {
+					Search []struct {
+						Title   string `json:"title"`
+						Snippet string `json:"snippet"`
+						PageID  int    `json:"pageid"`
+					} `json:"search"`
+				} `json:"query"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			if resp.Query == nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, s := range resp.Query.Search {
+				if i >= max {
+					break
+				}
+				results = append(results, SearchResult{
+					Title: s.Title, URL: "https://en.wikipedia.org/wiki/" + url.QueryEscape(strings.ReplaceAll(s.Title, " ", "_")),
+					Snippet: StripHTML(s.Snippet), Engine: "wikipedia", Position: i + 1, Category: "encyclopedia",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+
+// ── Google Scholar ────────────────────────────────────
+
+func newGoogleScholar(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "google-scholar",
+		BuildURL: func(q string, opts SearchOptions) string {
+			hl := "en"
+			if opts.Lang != "" {
+				hl = strings.Split(strings.Split(opts.Lang, "-")[0], "_")[0]
+			}
+			return "https://scholar.google.com/scholar?q=" + url.QueryEscape(q) + "&hl=" + hl + "&num=" + strconv.Itoa(minInt(opts.NumResults, 10))
+		},
+		Headers: map[string]string{"Cookie": "CONSENT=YES+"},
+		Parse: func(body string, maxResults int) ([]SearchResult, error) {
+			if len(body) < 2000 && strings.Contains(body, "/sorry/") {
+				return nil, nil
+			}
+			return parseGoogleScholarResults(body, maxResults)
+		},
+	})(config)
+}
+
+// ── Crossref ──────────────────────────────────────────
+
+func newCrossref(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "crossref", Category: "academic",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://api.crossref.org/works?query=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 50))
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Message *struct {
+					Items []struct {
+						DOI    string   `json:"DOI"`
+						Title  []string `json:"title"`
+						Author []struct {
+							Given  string `json:"given"`
+							Family string `json:"family"`
+						} `json:"author"`
+						ContainerTitle []string    `json:"container-title"`
+						Type          string      `json:"type"`
+						Published     interface{} `json:"published"`
+						URL           string      `json:"URL"`
+					} `json:"items"`
+				} `json:"message"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			if resp.Message == nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, item := range resp.Message.Items {
+				if i >= max {
+					break
+				}
+				if item.Type == "component" {
+					continue
+				}
+				title := ""
+				if len(item.Title) > 0 {
+					title = item.Title[0]
+				}
+				if title == "" && len(item.ContainerTitle) > 0 {
+					title = item.ContainerTitle[0]
+				}
+				if title == "" {
+					continue
+				}
+				u := item.URL
+				if u == "" && item.DOI != "" {
+					u = "https://doi.org/" + item.DOI
+				}
+				if u == "" {
+					continue
+				}
+				authors := make([]string, 0, 3)
+				for _, a := range item.Author {
+					if len(authors) >= 3 {
+						break
+					}
+					authors = append(authors, strings.TrimSpace(a.Given+" "+a.Family))
+				}
+				parts := make([]string, 0, 4)
+				if len(authors) > 0 {
+					parts = append(parts, strings.Join(authors, ", "))
+				}
+				if len(item.ContainerTitle) > 0 {
+					parts = append(parts, item.ContainerTitle[0])
+				}
+				if item.Type != "" {
+					parts = append(parts, item.Type)
+				}
+				if item.DOI != "" {
+					parts = append(parts, "DOI: "+item.DOI)
+				}
+				results = append(results, SearchResult{
+					Title: title, URL: u, Snippet: strings.Join(parts, " · "),
+					Engine: "crossref", Position: i + 1, Category: "academic",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+
+// ── 占位实现（通过 DuckDuckGo site: 搜索）─────────────
+
+func newPubMed(config EngineConfig) SearchEngine        { return newSiteScopedEngine("pubmed.ncbi.nlm.nih.gov", "pubmed")(config) }
+func newOpenAlex(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "openalex", Category: "academic",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://api.openalex.org/works?search=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=relevance_score:desc"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Results []struct {
+					Title        string `json:"title"`
+					ID           string `json:"id"`
+					DOI          string `json:"doi"`
+					PubDate      string `json:"publication_date"`
+					CitedByCount int    `json:"cited_by_count"`
+					Authorships  []struct {
+						Author *struct{ DisplayName string `json:"display_name"` } `json:"author"`
+					} `json:"authorships"`
+					PrimaryLocation *struct {
+						LandingPageURL string `json:"landing_page_url"`
+					} `json:"primary_location"`
+				} `json:"results"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, w := range resp.Results {
+				if i >= max || w.Title == "" {
+					break
+				}
+				url := w.ID
+				if w.PrimaryLocation != nil && w.PrimaryLocation.LandingPageURL != "" {
+					url = w.PrimaryLocation.LandingPageURL
+				}
+				doi := ""
+				if w.DOI != "" {
+					doi = "DOI: " + strings.TrimPrefix(w.DOI, "https://doi.org/")
+				}
+				authors := make([]string, 0, 3)
+				for _, a := range w.Authorships {
+					if len(authors) >= 3 {
+						break
+					}
+					if a.Author != nil && a.Author.DisplayName != "" {
+						authors = append(authors, a.Author.DisplayName)
+					}
+				}
+				parts := make([]string, 0, 3)
+				if len(authors) > 0 {
+					parts = append(parts, strings.Join(authors, ", "))
+				}
+				if doi != "" {
+					parts = append(parts, doi)
+				}
+				if w.CitedByCount > 0 {
+					parts = append(parts, strconv.Itoa(w.CitedByCount)+" citations")
+				}
+				var publishedDate int64
+				if w.PubDate != "" {
+					if t, err := time.Parse("2006-01-02", w.PubDate); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
+				results = append(results, SearchResult{
+					Title: w.Title, URL: url, Snippet: strings.Join(parts, " · "),
+					Engine: "openalex", Position: i + 1, Category: "academic",
+					PublishedDate: publishedDate,
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newCore(config EngineConfig) SearchEngine          { return newSiteScopedEngine("core.ac.uk", "core")(config) }
+func newOpenLibrary(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "openlibrary", Category: "academic", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://openlibrary.org/search.json?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 50)) + "&fields=*"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var r struct{ Docs []struct{ Key, Title string; AuthorName []string `json:"author_name"`; FirstPublishYear int `json:"first_publish_year"`; Isbn []string `json:"isbn"` } `json:"docs"` }
+			if err := json.Unmarshal(data, &r); err != nil || r.Docs == nil { return nil, nil }
+			var res []SearchResult
+			for i, b := range r.Docs {
+				if i >= max || b.Title == "" || b.Key == "" { break }
+				year := ""
+				if b.FirstPublishYear > 0 { year = strconv.Itoa(b.FirstPublishYear) }
+				parts := make([]string, 0, 3)
+				if len(b.AuthorName) > 0 { parts = append(parts, strings.Join(b.AuthorName[:minInt(3, len(b.AuthorName))], ", ")) }
+				if year != "" { parts = append(parts, year) }
+				if len(b.Isbn) > 0 { parts = append(parts, "ISBN: "+b.Isbn[0]) }
+				var publishedDate int64
+				if b.FirstPublishYear > 0 {
+					if t, err := time.Parse("2006-01-02", strconv.Itoa(b.FirstPublishYear)+"-01-01"); err == nil { publishedDate = t.UnixMilli() }
+				}
+				title := b.Title
+				if year != "" { title += " (" + year + ")" }
+				res = append(res, SearchResult{
+					Title: title, URL: "https://openlibrary.org" + b.Key, Snippet: strings.Join(parts, " · "),
+					Engine: "openlibrary", Position: i + 1, Category: "academic", PublishedDate: publishedDate,
+				})
+			}
+			return res, nil
+		},
+	})(config)
+}
+func newGoodreads(config EngineConfig) SearchEngine     { return newSiteScopedEngine("goodreads.com", "goodreads")(config) }
+func newZenodo(config EngineConfig) SearchEngine        { return newSiteScopedEngine("zenodo.org", "zenodo")(config) }
+func newAds(config EngineConfig) SearchEngine           { return newSiteScopedEngine("adsabs.harvard.edu", "ads")(config) }
+func newPdbe(config EngineConfig) SearchEngine          { return newSiteScopedEngine("pdbe.org", "pdbe")(config) }
+func newScanr(config EngineConfig) SearchEngine         { return newSiteScopedEngine("scanr.io", "scanr")(config) }
+func newOpenAirePublications(config EngineConfig) SearchEngine { return newSiteScopedEngine("openaire.eu", "openaire-publications")(config) }
+func newAnnasArchive(config EngineConfig) SearchEngine  { return newSiteScopedEngine("annas-archive.org", "annas-archive")(config) }
+func newMoviepilot(config EngineConfig) SearchEngine    { return newSiteScopedEngine("moviepilot.de", "moviepilot")(config) }
+func newWikidata(config EngineConfig) SearchEngine     { return newSiteScopedEngine("wikidata.org", "wikidata")(config) }
+func newWikimediaCommons(config EngineConfig) SearchEngine { return newSiteScopedEngine("commons.wikimedia.org", "wikicommons")(config) }
