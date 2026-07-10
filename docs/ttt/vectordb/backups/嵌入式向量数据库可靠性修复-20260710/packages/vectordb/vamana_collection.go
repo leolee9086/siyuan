@@ -49,8 +49,7 @@ type VamanaCollection struct {
 	Metas          map[uint64][]byte    // internal node ID → raw JSON metadata
 	PendingVectors map[string][]float32 // vectors inserted after the last durable rebuild
 
-	Mu      sync.RWMutex
-	flushMu sync.Mutex
+	Mu sync.RWMutex
 }
 
 type vamanaCollectionState struct {
@@ -122,13 +121,21 @@ func (vc *VamanaCollection) GetMeta(nodeID uint64) (json.RawMessage, bool) {
 // the ID mapping to point to the new node.
 func (vc *VamanaCollection) InsertPoint(point Point) error {
 	vc.Mu.Lock()
-	defer vc.Mu.Unlock()
 
 	oldNodeID, exists := vc.IDMap[point.ID]
-	if exists && !vc.Index.IsDeleted(oldNodeID) {
-		if err := vc.Index.Delete(oldNodeID); err != nil {
-			return err
+	if exists {
+		// 先标记但不删除映射：确保 FlushToDisk 在此窗口内不会看到空洞。
+		// 完成 Index.Insert 后再清理旧映射。
+		vc.Mu.Unlock()
+
+		if !vc.Index.IsDeleted(oldNodeID) {
+			if delErr := vc.Index.Delete(oldNodeID); delErr != nil {
+				return delErr
+			}
 		}
+		// 旧 ID 可能已被并发 flush 废弃，但不影响新 Insert
+	} else {
+		vc.Mu.Unlock()
 	}
 
 	nodeID, err := vc.Index.Insert(point.Vector)
@@ -136,7 +143,11 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 		return err
 	}
 
+	vc.Mu.Lock()
 	if exists && oldNodeID != nodeID {
+		// 现在安全删除旧映射：FlushToDisk 要么看到旧映射（Insert 前），
+		// 要么看到新映射（Insert 后），不会同时缺失两者。
+		delete(vc.IDMap, point.ID)
 		delete(vc.DocMap, oldNodeID)
 		delete(vc.Metas, oldNodeID)
 	}
@@ -150,6 +161,7 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 	vectorCopy := make([]float32, len(point.Vector))
 	copy(vectorCopy, point.Vector)
 	vc.PendingVectors[point.ID] = vectorCopy
+	vc.Mu.Unlock()
 
 	return nil
 }
@@ -157,13 +169,13 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 // Search searches for k nearest neighbors in the Vamana index, enriching
 // results with external string IDs, normalized scores, and metadata.
 func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
-	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-
 	rawResults, err := vc.Index.Search(queryVec, k, efSearch)
 	if err != nil || rawResults == nil {
 		return []SearchResult{}
 	}
+
+	vc.Mu.RLock()
+	defer vc.Mu.RUnlock()
 
 	results := make([]SearchResult, 0, len(rawResults))
 	for _, r := range rawResults {
@@ -199,16 +211,17 @@ func (vc *VamanaCollection) Engine() Engine { return EngineDiskVamana }
 // DeletePoint removes a point by external string ID.
 func (vc *VamanaCollection) DeletePoint(id string) {
 	vc.Mu.Lock()
-	defer vc.Mu.Unlock()
-
 	nodeID, ok := vc.IDMap[id]
 	if !ok {
+		vc.Mu.Unlock()
 		return
 	}
 	delete(vc.IDMap, id)
 	delete(vc.DocMap, nodeID)
 	delete(vc.Metas, nodeID)
 	delete(vc.PendingVectors, id)
+	vc.Mu.Unlock()
+
 	_ = vc.Index.Delete(nodeID)
 }
 
@@ -333,11 +346,6 @@ func OpenVamanaCollection(name string, basePath string, meta CollectionMeta) (*V
 
 func SaveVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-	return saveVamanaCollectionStateLocked(vc, basePath)
-}
-
-func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) error {
 	state := vamanaCollectionState{
 		Name:           vc.ColName,
 		Dimension:      vc.ColDim,
@@ -363,6 +371,7 @@ func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) erro
 		copy(vecCopy, vec)
 		state.PendingVectors[id] = vecCopy
 	}
+	vc.Mu.RUnlock()
 
 	data, err := msgpack.Marshal(&state)
 	if err != nil {
@@ -411,12 +420,6 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 }
 
 func (vc *VamanaCollection) FlushToDisk(basePath string) error {
-	vc.flushMu.Lock()
-	defer vc.flushMu.Unlock()
-
-	vc.Mu.Lock()
-	defer vc.Mu.Unlock()
-
 	if basePath == "" {
 		basePath = vc.BasePath
 	}
@@ -424,12 +427,12 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 		return nil
 	}
 
-	points, err := vc.extractLivePointsLocked()
+	points, err := vc.extractLivePoints()
 	if err != nil {
 		return err
 	}
 	if len(points) == 0 {
-		return saveVamanaCollectionStateLocked(vc, basePath)
+		return SaveVamanaCollectionState(vc, basePath)
 	}
 
 	tmpBasePath := basePath + ".rebuild"
@@ -458,9 +461,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	}
 
 	if vc.Index != nil {
-		if err := vc.Index.Close(); err != nil {
-			return err
-		}
+		_ = vc.Index.Close()
 	}
 	if err := replaceVamanaFiles(tmpBasePath, basePath); err != nil {
 		return err
@@ -473,6 +474,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	reopened.Config = config
 	reopened.BasePath = basePath
 
+	vc.Mu.Lock()
 	vc.ColDim = reopened.ColDim
 	vc.Meta = reopened.Meta
 	vc.BasePath = reopened.BasePath
@@ -482,17 +484,13 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	vc.DocMap = reopened.DocMap
 	vc.Metas = reopened.Metas
 	vc.PendingVectors = make(map[string][]float32)
+	vc.Mu.Unlock()
 
 	return nil
 }
 
 func (vc *VamanaCollection) extractLivePoints() ([]Point, error) {
 	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-	return vc.extractLivePointsLocked()
-}
-
-func (vc *VamanaCollection) extractLivePointsLocked() ([]Point, error) {
 	ids := make([]string, 0, len(vc.IDMap))
 	for id := range vc.IDMap {
 		ids = append(ids, id)
@@ -515,6 +513,7 @@ func (vc *VamanaCollection) extractLivePointsLocked() ([]Point, error) {
 			pending: vc.PendingVectors[id],
 		})
 	}
+	vc.Mu.RUnlock()
 
 	points := make([]Point, 0, len(refs))
 	for _, ref := range refs {
@@ -577,14 +576,6 @@ func vamanaFileSet(basePath string) []string {
 }
 
 func (vc *VamanaCollection) Close() error {
-	vc.flushMu.Lock()
-	defer vc.flushMu.Unlock()
-
-	vc.Mu.Lock()
-	defer vc.Mu.Unlock()
-	if vc.Index == nil {
-		return nil
-	}
 	return vc.Index.Close()
 }
 
@@ -620,29 +611,19 @@ func (vc *VamanaCollection) GetMetaByID(id string) (json.RawMessage, bool) {
 // VectorCollection interface methods
 // =========================================
 
-func (vc *VamanaCollection) Name() string {
-	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-	return vc.ColName
-}
-
-func (vc *VamanaCollection) Dimension() int {
-	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-	return vc.ColDim
-}
+func (vc *VamanaCollection) Name() string   { return vc.ColName }
+func (vc *VamanaCollection) Dimension() int { return vc.ColDim }
 
 func (vc *VamanaCollection) Flush() error {
-	return vc.FlushToDisk("")
+	return vc.FlushToDisk(vc.BasePath)
 }
 
 func (vc *VamanaCollection) FetchPoints(ids []string) ([]Point, error) {
-	vc.Mu.RLock()
-	defer vc.Mu.RUnlock()
-
 	points := make([]Point, 0, len(ids))
 	for _, id := range ids {
+		vc.Mu.RLock()
 		nodeID, ok := vc.IDMap[id]
+		vc.Mu.RUnlock()
 		if !ok {
 			continue
 		}
@@ -650,10 +631,8 @@ func (vc *VamanaCollection) FetchPoints(ids []string) ([]Point, error) {
 		if err != nil {
 			continue
 		}
-		metaBytes := vc.Metas[nodeID]
-		meta := make([]byte, len(metaBytes))
-		copy(meta, metaBytes)
-		points = append(points, Point{ID: id, Vector: vec, Meta: json.RawMessage(meta)})
+		meta, _ := vc.GetMetaByID(id)
+		points = append(points, Point{ID: id, Vector: vec, Meta: meta})
 	}
 	return points, nil
 }

@@ -20,6 +20,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/vmihailenco/msgpack/v5"
 	"s-forge.local/vectordb/bbq"
@@ -97,18 +98,25 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	copy(bbqCorrections, c.Store.bbqCorrections)
 	c.Store.mu.RUnlock()
 
-	hnswNeighbors, deleted, entryPoint, maxLayer := c.HNSWIdx.Snapshot()
-	neighbors := make([][][]DocID, len(hnswNeighbors))
-	for i, levels := range hnswNeighbors {
+	c.HNSWIdx.Mu.RLock()
+	neighbors := make([][][]DocID, len(c.HNSWIdx.Neighbors))
+	for i, levels := range c.HNSWIdx.Neighbors {
 		neighbors[i] = make([][]DocID, len(levels))
 		for j, records := range levels {
 			ids := make([]DocID, len(records))
-			for k, record := range records {
-				ids[k] = record.ID
+			for k, r := range records {
+				ids[k] = r.ID
 			}
 			neighbors[i][j] = ids
 		}
 	}
+	deleted := make(map[DocID]bool, len(c.HNSWIdx.Deleted))
+	for k, v := range c.HNSWIdx.Deleted {
+		deleted[k] = v
+	}
+	entryPoint := c.HNSWIdx.EntryPoint
+	maxLayer := c.HNSWIdx.MaxLayer
+	c.HNSWIdx.Mu.RUnlock()
 
 	snapshot := SnapshotData{
 		Name:           c.ColName,
@@ -195,7 +203,13 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	}
 
 	hnswIdx := hnsw.NewHNSWIndex(snapshot.Dimension, hnswConfig, store)
-	hnswIdx.Restore(hnswNeighbors, deleted, snapshot.EntryPoint, snapshot.MaxLayer)
+	hnswIdx.Neighbors = hnswNeighbors
+	hnswIdx.Deleted = deleted
+	hnswIdx.EntryPoint = snapshot.EntryPoint
+	hnswIdx.MaxLayer = snapshot.MaxLayer
+
+	nodeLocks := make([]sync.Mutex, len(hnswNeighbors))
+	hnswIdx.SetNodeLocks(nodeLocks)
 
 	idMap := snapshot.IDMap
 	if idMap == nil {
@@ -233,7 +247,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 				for _, point := range entry.Points {
 					c.InsertPoint(point)
 				}
-			} else if entry.Op == OpDelete {
+				} else if entry.Op == OpDelete {
 				for _, key := range entry.Keys {
 					c.DeletePoint(key)
 				}

@@ -130,10 +130,10 @@ type HNSWIndex struct {
 	Distancer Distancer
 
 	// 并发控制
-	// Mu 保护元数据（EntryPoint、MaxLayer、Deleted）和 Neighbors/nodeLocks 切片。
-	// nodeLocks 保护每个节点的邻居列表 Neighbors[docID]，指针保证切片扩展时不会复制已使用的锁。
+	// Mu 保护元数据（EntryPoint, MaxLayer, Deleted）和 Neighbors/nodeLocks 切片的扩展
+	// nodeLocks 保护每个节点的邻居列表 Neighbors[docID]
 	Mu        sync.RWMutex
-	nodeLocks []*sync.RWMutex
+	nodeLocks []sync.Mutex
 }
 
 // NewHNSWIndex 创建新的 HNSW 索引
@@ -150,7 +150,7 @@ func NewHNSWIndex(dimension int, config Config, distancer Distancer) *HNSWIndex 
 		EntryPoint: InvalidEntryPoint,
 		MaxLayer:   -1,
 		Distancer:  distancer,
-		nodeLocks:  make([]*sync.RWMutex, 0),
+		nodeLocks:  make([]sync.Mutex, 0),
 	}
 }
 

@@ -224,21 +224,6 @@ func TestBuildFromVectors_SingleVector(t *testing.T) {
 	}
 }
 
-// TestSetNeighborsLockedPreservesConcurrentBackedge 验证节点完成自身邻居构建时不丢失其他工作线程已写入的反向边。
-func TestSetNeighborsLockedPreservesConcurrentBackedge(t *testing.T) {
-	idx := New(1, DefaultConfig())
-	idx.initializeForBuild([][]float32{{0}, {1}, {2}})
-
-	idx.setNeighborsLocked(0, []uint32{1})
-	idx.addEdgeAndPruneLocked(0, 2)
-	idx.setNeighborsLocked(0, []uint32{1})
-
-	neighbors := idx.GetNeighbors(0)
-	if !containsID(neighbors, 1) || !containsID(neighbors, 2) {
-		t.Fatalf("node neighbors lost during build interleaving: got %v, want both 1 and 2", neighbors)
-	}
-}
-
 // ============================================================================
 // DiskBuildConfig Tests
 // ============================================================================

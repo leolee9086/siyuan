@@ -45,15 +45,12 @@ func resetMaxHeap(h *MaxHeap) {
 // HNSW Build (Insert)
 // =========================================
 
-// Insert 将一个新节点插入 HNSW 索引。
+// Insert 将一个新节点插入 HNSW 索引
 // docID 是已由外部分配的内部文档 ID，向量已存储在 Distancer 中。
 // 返回值表示是否为新插入（非更新）。
 func (idx *HNSWIndex) Insert(docID DocID) bool {
-	idx.Mu.Lock()
-	delete(idx.Deleted, docID)
-	idx.Mu.Unlock()
-
 	config := idx.Config
+
 	level := idx.InitItemNeighbors(docID)
 
 	entryPointID, ok := idx.SelectEntryPoint()

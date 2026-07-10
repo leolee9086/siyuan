@@ -1117,6 +1117,48 @@ func newWiby(config EngineConfig) SearchEngine          { return newSiteScopedEn
 func newEncyclosearch(config EngineConfig) SearchEngine { return newSiteScopedEngine("encyclosearch.org", "encyclosearch")(config) }
 func newOpenFoodFacts(config EngineConfig) SearchEngine { return newSiteScopedEngine("openfoodfacts.org", "openfoodfacts")(config) }
 func newMusicBrainz(config EngineConfig) SearchEngine   { return newSiteScopedEngine("musicbrainz.org", "musicbrainz")(config) }
-func newMediaWiki(config EngineConfig) SearchEngine     { return newSiteScopedEngine("mediawiki.org", "mediawiki")(config) }
+func newMediaWiki(config EngineConfig) SearchEngine {
+	wikiHost := "en.wikipedia.org"
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "mediawiki", Category: "general",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://" + wikiHost + "/w/api.php?action=query&list=search&srsearch=" + url.QueryEscape(q) + "&srlimit=" + strconv.Itoa(minInt(n, 50)) + "&format=json&origin=*"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Query *struct {
+					Search []struct {
+						Title     string `json:"title"`
+						Snippet   string `json:"snippet"`
+						Timestamp string `json:"timestamp"`
+					} `json:"search"`
+				} `json:"query"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil || resp.Query == nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, r := range resp.Query.Search {
+				if i >= max || r.Title == "" {
+					break
+				}
+				encodedTitle := url.PathEscape(strings.ReplaceAll(r.Title, " ", "_"))
+				var publishedDate int64
+				if r.Timestamp != "" {
+					if t, err := time.Parse(time.RFC3339, r.Timestamp); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
+				results = append(results, SearchResult{
+					Title: r.Title, URL: "https://" + wikiHost + "/wiki/" + encodedTitle,
+					Snippet: StripHTML(r.Snippet), Engine: "mediawiki",
+					Position: i + 1, PublishedDate: publishedDate,
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newSensCritique(config EngineConfig) SearchEngine  { return newSiteScopedEngine("senscritique.com", "senscritique")(config) }
 func newContext7(config EngineConfig) SearchEngine      { return newSiteScopedEngine("context7.com", "context7")(config) }

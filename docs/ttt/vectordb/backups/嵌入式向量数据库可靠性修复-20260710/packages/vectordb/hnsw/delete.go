@@ -25,13 +25,9 @@ import (
 // HNSW Delete
 // =========================================
 
-// Delete 从 HNSW 索引中删除节点。
+// Delete 从 HNSW 索引中删除节点
 // 执行软删除并修复受影响邻居的连接。
 func (idx *HNSWIndex) Delete(docID DocID) {
-	if idx.IsDeleted(docID) {
-		return
-	}
-
 	affectedNeighbors := make([]DocID, 0)
 
 	// 从所有邻居的邻接表中移除
@@ -48,15 +44,12 @@ func (idx *HNSWIndex) Delete(docID DocID) {
 		}
 	}
 
-	// 软删除、清空邻居并更新入口点。
+	// 软删除 + 清空邻居 + 更新入口点
 	idx.Mu.Lock()
 	idx.Deleted[docID] = true
 
 	if int(docID) < len(idx.Neighbors) {
-		lock := idx.nodeLocks[docID]
-		lock.Lock()
 		idx.Neighbors[docID] = nil
-		lock.Unlock()
 	}
 
 	if idx.EntryPoint == docID {
@@ -88,9 +81,9 @@ func (idx *HNSWIndex) Delete(docID DocID) {
 	}
 }
 
-// recomputeNeighbors 删除后重计算邻居连接。
+// recomputeNeighbors 删除后重计算邻居连接
 func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
-	if idx.IsDeleted(docID) {
+	if idx.Deleted[docID] {
 		return
 	}
 
@@ -124,7 +117,7 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 			current := queue[0]
 			queue = queue[1:]
 
-			if idx.IsDeleted(current) {
+			if idx.Deleted[current] {
 				continue
 			}
 
@@ -138,7 +131,7 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 
 			nextNeighbors := idx.GetLevelNeighborIDs(current, l)
 			for _, nnID := range nextNeighbors {
-				if !visited[nnID] && !idx.IsDeleted(nnID) {
+				if !visited[nnID] && !idx.Deleted[nnID] {
 					visited[nnID] = true
 					queue = append(queue, nnID)
 				}
@@ -161,14 +154,14 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 	}
 }
 
-// RebuildIndex 重建索引。
+// RebuildIndex 重建索引
 // 需要外部提供 resetFn 来重置索引状态并重新插入所有有效节点。
 // resetFn 参数：当前有效的 docID 列表。
 // 这个方法清空图结构，由外部负责重新调用 Insert。
 func (idx *HNSWIndex) RebuildIndex(validDocIDs []DocID) {
 	idx.Mu.Lock()
 	idx.Neighbors = make([][][]NeighborRecord, 0)
-	idx.nodeLocks = make([]*sync.RWMutex, 0)
+	idx.nodeLocks = make([]sync.Mutex, 0)
 	idx.Deleted = make(map[DocID]bool)
 	idx.EntryPoint = InvalidEntryPoint
 	idx.MaxLayer = -1

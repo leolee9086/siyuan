@@ -3,8 +3,6 @@ package vectordb
 import (
 	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -107,35 +105,6 @@ func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
 	for _, result := range results {
 		if result.ID == "beta" {
 			t.Fatalf("deleted beta should not be returned after reopen: %+v", results)
-		}
-	}
-}
-
-func TestUnifiedDB_DiskVamanaCloseReleasesFiles(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		dbPath := t.TempDir()
-		db, err := Open(dbPath)
-		if err != nil {
-			t.Fatalf("iteration %d: open db: %v", i, err)
-		}
-		col, err := db.CreateCollectionWithOptions("disk-close", CollectionOptions{
-			Engine: EngineDiskVamana,
-			Points: []Point{{ID: "p1", Vector: []float32{1, 2, 3, 4}}},
-		})
-		if err != nil {
-			t.Fatalf("iteration %d: create collection: %v", i, err)
-		}
-		if err := col.Close(); err != nil {
-			t.Fatalf("iteration %d: close collection: %v", i, err)
-		}
-
-		collectionPath := filepath.Join(dbPath, "disk-close")
-		renamedPath := filepath.Join(dbPath, "disk-close-renamed")
-		if err := os.Rename(collectionPath, renamedPath); err != nil {
-			t.Fatalf("iteration %d: rename closed collection directory: %v", i, err)
-		}
-		if err := os.RemoveAll(renamedPath); err != nil {
-			t.Fatalf("iteration %d: remove closed collection directory: %v", i, err)
 		}
 	}
 }

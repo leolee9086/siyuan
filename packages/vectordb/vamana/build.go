@@ -200,15 +200,27 @@ func (idx *VamanaIndex) buildNode(id uint32) {
 	}
 }
 
-// setNeighborsLocked 使用节点级锁设置邻居
-// 注意：idx.neighbors 切片在初始化后不再 resize，因此只需节点锁
-// 同时通过 atomic.Store 更新 neighborPtrs，供 greedySearchForBuild 无锁读取
+// setNeighborsLocked 使用节点级锁设置邻居。
+// 并行构建期间，其他工作线程可能已经为该节点写入反向边；合并而非覆盖可保持图可达性。
+// 同时通过 atomic.Store 更新 neighborPtrs，供 greedySearchForBuild 无锁读取。
 func (idx *VamanaIndex) setNeighborsLocked(id uint32, neighbors []uint32) {
 	idx.nodeLocks[id].Lock()
 	defer idx.nodeLocks[id].Unlock()
-	idx.neighbors[id] = neighbors
+
+	merged := make([]uint32, 0, len(neighbors)+len(idx.neighbors[id]))
+	for _, neighbor := range neighbors {
+		if !containsID(merged, neighbor) {
+			merged = append(merged, neighbor)
+		}
+	}
+	for _, neighbor := range idx.neighbors[id] {
+		if !containsID(merged, neighbor) {
+			merged = append(merged, neighbor)
+		}
+	}
+	idx.neighbors[id] = merged
 	if idx.neighborPtrs != nil {
-		idx.neighborPtrs[id].Store(&neighbors)
+		idx.neighborPtrs[id].Store(&merged)
 	}
 }
 

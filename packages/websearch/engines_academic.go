@@ -369,7 +369,101 @@ func newZenodo(config EngineConfig) SearchEngine        { return newSiteScopedEn
 func newAds(config EngineConfig) SearchEngine           { return newSiteScopedEngine("adsabs.harvard.edu", "ads")(config) }
 func newPdbe(config EngineConfig) SearchEngine          { return newSiteScopedEngine("pdbe.org", "pdbe")(config) }
 func newScanr(config EngineConfig) SearchEngine         { return newSiteScopedEngine("scanr.io", "scanr")(config) }
-func newOpenAirePublications(config EngineConfig) SearchEngine { return newSiteScopedEngine("openaire.eu", "openaire-publications")(config) }
+func newOpenAirePublications(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "openaire-publications", Category: "academic",
+		UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://api.openaire.eu/search/publications?format=json&size=" + strconv.Itoa(minInt(n, 50)) + "&title=" + url.QueryEscape(q)
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var raw interface{}
+			if err := json.Unmarshal(data, &raw); err != nil {
+				return nil, nil
+			}
+			m, _ := raw.(map[string]interface{})
+			if m == nil {
+				return nil, nil
+			}
+			resp, _ := m["response"].(map[string]interface{})
+			if resp == nil {
+				return nil, nil
+			}
+			resultsObj, _ := resp["results"].(map[string]interface{})
+			if resultsObj == nil {
+				return nil, nil
+			}
+			resultsArr, _ := resultsObj["result"].([]interface{})
+			if resultsArr == nil {
+				return nil, nil
+			}
+			var results []SearchResult
+			for i, r := range resultsArr {
+				if i >= max {
+					break
+				}
+				rm, _ := r.(map[string]interface{})
+				if rm == nil {
+					continue
+				}
+				metadata, _ := rm["metadata"].(map[string]interface{})
+				if metadata == nil {
+					continue
+				}
+				entity, _ := metadata["oaf:entity"].(map[string]interface{})
+				if entity == nil {
+					continue
+				}
+				oafResult, _ := entity["oaf:result"].(map[string]interface{})
+				if oafResult == nil {
+					continue
+				}
+				title := ""
+				if titleArr, ok := oafResult["title"].([]interface{}); ok && len(titleArr) > 0 {
+					if t, ok := titleArr[0].(map[string]interface{}); ok {
+						if s, ok := t["$"].(string); ok {
+							title = s
+						}
+					}
+				}
+				if title == "" {
+					title = "Untitled"
+				}
+				desc := ""
+				if descArr, ok := oafResult["description"].([]interface{}); ok && len(descArr) > 0 {
+					if d, ok := descArr[0].(map[string]interface{}); ok {
+						if s, ok := d["$"].(string); ok {
+							desc = s
+						}
+					}
+				}
+				url := ""
+				if children, ok := oafResult["children"].(map[string]interface{}); ok {
+					if instance, ok := children["instance"].(map[string]interface{}); ok {
+						if webresource, ok := instance["webresource"].(map[string]interface{}); ok {
+							if urlArr, ok := webresource["url"].([]interface{}); ok && len(urlArr) > 0 {
+								if u, ok := urlArr[0].(map[string]interface{}); ok {
+									if s, ok := u["$"].(string); ok {
+										url = s
+									}
+								}
+							}
+						}
+					}
+				}
+				snippet := desc
+				if len(snippet) > 150 {
+					snippet = snippet[:150]
+				}
+				results = append(results, SearchResult{
+					Title: title, URL: url, Snippet: snippet,
+					Engine: "openaire-publications", Position: i + 1, Category: "academic",
+				})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newAnnasArchive(config EngineConfig) SearchEngine  { return newSiteScopedEngine("annas-archive.org", "annas-archive")(config) }
 func newMoviepilot(config EngineConfig) SearchEngine    { return newSiteScopedEngine("moviepilot.de", "moviepilot")(config) }
 func newWikidata(config EngineConfig) SearchEngine     { return newSiteScopedEngine("wikidata.org", "wikidata")(config) }

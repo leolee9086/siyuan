@@ -39,11 +39,15 @@ type SearchResult struct {
 
 // InsertPoint inserts or updates a point in the HNSW index.
 func (c *Collection) InsertPoint(point Point) error {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
+	var docID DocID
+	exists := false
 
-	docID, exists := c.IDMap[point.ID]
-	if !exists {
+	c.Mu.Lock()
+	if existingID, ok := c.IDMap[point.ID]; ok {
+		docID = existingID
+		exists = true
+	} else {
+		// Scan for a freed slot (from a previous delete) before appending.
 		found := false
 		for i, id := range c.DocMap {
 			if id == "" {
@@ -69,12 +73,20 @@ func (c *Collection) InsertPoint(point Point) error {
 	} else {
 		c.Metas = append(c.Metas, point.Meta)
 	}
+	c.Mu.Unlock()
 
 	if exists {
 		c.HNSWIdx.Delete(docID)
 	}
+
 	c.Store.Set(docID, point.Vector)
+
+	c.HNSWIdx.Mu.Lock()
+	delete(c.HNSWIdx.Deleted, docID)
+	c.HNSWIdx.Mu.Unlock()
+
 	c.HNSWIdx.Insert(docID)
+
 	return nil
 }
 
@@ -114,17 +126,16 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 	return searchResults
 }
 
-// DeletePoint deletes an item and updates the HNSW index.
+// DeletePoint deletes an item and updates the HNSW index
 func (c *Collection) DeletePoint(id string) {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
-
-	docID, ok := c.IDMap[id]
+	docID, ok := c.GetDocID(id)
 	if !ok {
 		return
 	}
 
 	c.HNSWIdx.Delete(docID)
+
+	c.Mu.Lock()
 	delete(c.IDMap, id)
 	if int(docID) < len(c.DocMap) {
 		c.DocMap[docID] = ""
@@ -132,6 +143,7 @@ func (c *Collection) DeletePoint(id string) {
 	if int(docID) < len(c.Metas) {
 		c.Metas[docID] = nil
 	}
+	c.Mu.Unlock()
 }
 
 // DeleteItemWithIndex 保留旧名称供外部调用，委托给 DeletePoint。
@@ -145,7 +157,7 @@ func (c *Collection) RebuildIndex() error {
 	c.Mu.RLock()
 	for i, id := range c.DocMap {
 		docID := DocID(i)
-		if c.HNSWIdx.IsDeleted(docID) {
+		if c.HNSWIdx.Deleted[docID] {
 			continue
 		}
 
@@ -238,7 +250,7 @@ func (c *Collection) ForEachID(fn func(id string, docID uint64, meta []byte) boo
 		if id == "" {
 			continue
 		}
-		if c.HNSWIdx.IsDeleted(DocID(docID)) {
+		if c.HNSWIdx.Deleted[DocID(docID)] {
 			continue
 		}
 		var meta []byte
@@ -312,7 +324,7 @@ func (c *Collection) ExtractPoints() []Point {
 	defer c.Mu.RUnlock()
 	points := make([]Point, 0, len(c.IDMap))
 	for id, docID := range c.IDMap {
-		if c.HNSWIdx.IsDeleted(docID) {
+		if c.HNSWIdx.Deleted[docID] {
 			continue
 		}
 		vec, ok := c.Store.GetUnsafe(docID)

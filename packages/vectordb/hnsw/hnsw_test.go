@@ -112,7 +112,6 @@ func (d *mockDistancer) AddVector(id DocID, vec []float32) {
 	}
 	needed := int(id) + 1
 	if needed > d.count {
-		// 扩容 flatVectors 和 visited
 		newLen := needed * d.dim
 		if newLen > len(d.flatVectors) {
 			grown := make([]float32, newLen, newLen*2)
