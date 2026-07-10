@@ -9,11 +9,17 @@ import {
     setFirstNodeRange,
     setLastNodeRange,
 } from "../util/selection";
-import {getContenteditableElement} from "./getBlock";
-import {Constants} from "../../constants";
-import {hideElements} from "../ui/hideElements";
-import {countBlockWord} from "../../layout/status";
-import {buildTableCellMenu} from "./index.mousedown.tableMenu";
+import { getContenteditableElement } from "./getBlock";
+import { Constants } from "../../constants";
+import { hideElements } from "../ui/hideElements";
+import { countBlockWord } from "../../layout/status";
+import { buildTableCellMenu } from "./index.mousedown.tableMenu";
+/** 用途：Rect 矩形类型。使用范围：collectSelectedBlocks 等函数的参数类型。解耦评估：类型导入，通过 imports.ts 转发。 */
+import type { Rect } from "./imports";
+/** 用途：createPoint/createBoundingRect 几何厂牌构造器。使用范围：构造锚点和边界参数。解耦评估：通过 imports.ts 转发。 */
+import { createPoint, createBoundingRect } from "./imports";
+import { computeSelectRect } from "./computeSelectRect";
+import { computeTableSelectRect } from "./computeTableSelectRect";
 
 export interface DragSelectContext {
     protyle: IProtyle;
@@ -36,7 +42,7 @@ export interface DragSelectContext {
  * 设置多节点框选的 onmousemove 和 onmouseup 处理器。
  * 包含表格单元格拖选和多块节点框选两种模式。
  */
-export function setupDragSelect(ctx: DragSelectContext): void {
+export function setupDragSelect(ctx: DragSelectContext) {
     const {
         protyle, event, target, tableBlockElement, documentSelf,
         clentX, mostTop, mostRight, mostLeft, mostBottom, y,
@@ -94,11 +100,6 @@ export function setupDragSelect(ctx: DragSelectContext): void {
     };
 }
 
-interface TableCellMoveResult {
-    handled: boolean;
-    returnValue?: false | void;
-    moveCellElement: HTMLElement;
-}
 
 function handleDragMoveTableCell(
     moveEvent: MouseEvent,
@@ -106,7 +107,7 @@ function handleDragMoveTableCell(
     tableBlockElement: HTMLElement | false,
     moveCellElement: HTMLElement,
     protyle: IProtyle,
-): TableCellMoveResult {
+) {
     let moveTarget: boolean | HTMLElement = moveEvent.target as HTMLElement;
     // table cell select
     if (tableBlockElement &&
@@ -121,84 +122,20 @@ function handleDragMoveTableCell(
             if (moveTarget && moveTarget === target) {
                 tableBlockElement.querySelector(".table__select").removeAttribute("style");
                 protyle.wysiwyg.element.classList.remove("protyle-wysiwyg--hiderange");
-                return {handled: true, returnValue: false, moveCellElement: moveTarget};
+                return { handled: true, returnValue: false, moveCellElement: moveTarget };
             }
             if (moveTarget && (moveTarget.tagName === "TH" || moveTarget.tagName === "TD") &&
                 (!moveCellElement || moveCellElement !== moveTarget)) {
                 computeTableSelectRect(target, moveTarget, tableBlockElement, protyle);
-                return {handled: true, moveCellElement: moveTarget};
+                return { handled: true, moveCellElement: moveTarget };
             }
-            return {handled: true, moveCellElement};
+            return { handled: true, moveCellElement };
         } else {
             tableBlockElement.querySelector(".table__select").removeAttribute("style");
-            return {handled: false, moveCellElement: undefined};
+            return { handled: false, moveCellElement: undefined };
         }
     }
-    return {handled: false, moveCellElement};
-}
-
-function computeTableSelectRect(
-    target: HTMLElement,
-    moveTarget: HTMLElement | boolean,
-    tableBlockElement: HTMLElement,
-    protyle: IProtyle,
-) {
-    if (typeof moveTarget === "boolean") {
-return;
-}
-    tableBlockElement.firstElementChild.style.webkitUserModify = "read-only";
-    let width = target.offsetLeft + target.clientWidth - moveTarget.offsetLeft;
-    let left = moveTarget.offsetLeft;
-    if (target.offsetLeft === moveTarget.offsetLeft) {
-        width = Math.max(target.clientWidth, moveTarget.clientWidth);
-    } else if (target.offsetLeft < moveTarget.offsetLeft) {
-        width = moveTarget.offsetLeft + moveTarget.clientWidth - target.offsetLeft;
-        left = target.offsetLeft;
-    }
-    let height = target.offsetTop + target.clientHeight - moveTarget.offsetTop;
-    let top = moveTarget.offsetTop;
-    if (target.offsetTop === moveTarget.offsetTop) {
-        height = Math.max(target.clientHeight, moveTarget.clientHeight);
-    } else if (target.offsetTop < moveTarget.offsetTop) {
-        height = moveTarget.offsetTop + moveTarget.clientHeight - target.offsetTop;
-        top = target.offsetTop;
-    }
-    // https://github.com/siyuan-note/insider/issues/1015
-    Array.from(tableBlockElement.querySelectorAll("th, td")).find((item: HTMLElement) => {
-        const updateWidth = item.offsetLeft < left + width && item.offsetLeft + item.clientWidth > left + width;
-        const updateWidth2 = item.offsetLeft < left && item.offsetLeft + item.clientWidth > left;
-        if (item.offsetTop < top && item.offsetTop + item.clientHeight > top) {
-            if ((item.offsetLeft + 6 > left && item.offsetLeft + item.clientWidth - 6 < left + width) || updateWidth || updateWidth2) {
-                height = top + height - item.offsetTop;
-                top = item.offsetTop;
-            }
-            if (updateWidth) {
-                width = item.offsetLeft + item.clientWidth - left;
-            }
-            if (updateWidth2) {
-                width = left + width - item.offsetLeft;
-                left = item.offsetLeft;
-            }
-        } else if (item.offsetTop < top + height && item.offsetTop + item.clientHeight > top + height) {
-            if ((item.offsetLeft + 6 > left && item.offsetLeft + item.clientWidth - 6 < left + width) || updateWidth || updateWidth2) {
-                height = item.clientHeight + item.offsetTop - top;
-            }
-            if (updateWidth) {
-                width = item.offsetLeft + item.clientWidth - left;
-            }
-            if (updateWidth2) {
-                width = left + width - item.offsetLeft;
-                left = item.offsetLeft;
-            }
-        } else if (updateWidth2 && item.offsetTop + 6 > top && item.offsetTop + item.clientHeight - 6 < top + height) {
-            width = left + width - item.offsetLeft;
-            left = item.offsetLeft;
-        } else if (updateWidth && item.offsetTop + 6 > top && item.offsetTop + item.clientHeight - 6 < top + height) {
-            width = item.offsetLeft + item.clientWidth - left;
-        }
-    });
-    protyle.wysiwyg.element.classList.add("protyle-wysiwyg--hiderange");
-    tableBlockElement.querySelector(".table__select").setAttribute("style", `left:${left - tableBlockElement.firstElementChild.scrollLeft}px;top:${top - tableBlockElement.querySelector("table").scrollTop}px;height:${height}px;width:${width + 1}px;`);
+    return { handled: false, moveCellElement };
 }
 
 function handleDragMoveScroll(
@@ -219,11 +156,7 @@ function handleDragMoveScroll(
     }
 }
 
-interface BlockSelectResult {
-    mouseElement: Element;
-    startFirstElement: Element;
-    endLastElement: Element;
-}
+
 
 function handleDragMoveBlockSelect(
     moveEvent: MouseEvent,
@@ -237,21 +170,21 @@ function handleDragMoveBlockSelect(
     mouseElement: Element,
     startFirstElement: Element,
     endLastElement: Element,
-): BlockSelectResult {
+) {
     protyle.selectElement.classList.remove("fn__none");
     // 向左选择，遇到 gutter 就不会弹出 toolbar
     hideElements(["gutter"], protyle);
-    const rect = computeSelectRect(moveEvent, clentX, y, mostLeft, mostRight, mostTop, mostBottom);
-    if (rect.newHeight < 4) {
-        return {mouseElement, startFirstElement, endLastElement};
+    const rect = computeSelectRect({ moveEvent, anchor: createPoint(clentX, y), bounds: createBoundingRect(mostLeft, mostTop, mostRight, mostBottom) });
+    if (rect[3] < 4) {
+        return { mouseElement, startFirstElement, endLastElement };
     }
-    protyle.selectElement.setAttribute("style", `top:${rect.newTop}px;height:${rect.newHeight}px;left:${rect.newLeft + 2}px;width:${rect.newWidth - 2}px;`);
+    protyle.selectElement.setAttribute("style", `top:${rect[1]}px;height:${rect[3]}px;left:${rect[0] + 2}px;width:${rect[2] - 2}px;`);
     const newMouseElement = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
     if (mouseElement && mouseElement === newMouseElement && !mouseElement.classList.contains("protyle-wysiwyg") &&
         !mouseElement.classList.contains("list") && !mouseElement.classList.contains("bq") &&
         !mouseElement.classList.contains("sb") && !mouseElement.classList.contains("callout")) {
         // 性能优化，同一个p元素不进行选中计算
-        return {mouseElement, startFirstElement, endLastElement};
+        return { mouseElement, startFirstElement, endLastElement };
     }
     mouseElement = newMouseElement;
 
@@ -275,55 +208,7 @@ function handleDragMoveBlockSelect(
         });
         protyle.selectElement.removeAttribute("data-empty");
     }
-    return {mouseElement, startFirstElement, endLastElement};
-}
-
-function computeSelectRect(
-    moveEvent: MouseEvent,
-    clentX: number,
-    y: number,
-    mostLeft: number,
-    mostRight: number,
-    mostTop: number,
-    mostBottom: number,
-) {
-    let newTop = 0;
-    let newLeft = 0;
-    let newWidth = 0;
-    let newHeight = 0;
-    if (moveEvent.clientX < clentX) {
-        if (moveEvent.clientX < mostLeft) {
-            newLeft = mostLeft;
-        } else {
-            newLeft = moveEvent.clientX;
-        }
-        newWidth = clentX - newLeft;
-    } else {
-        if (moveEvent.clientX > mostRight) {
-            newLeft = clentX;
-            newWidth = mostRight - newLeft;
-        } else {
-            newLeft = clentX;
-            newWidth = moveEvent.clientX - clentX;
-        }
-    }
-    if (moveEvent.clientY > y) {
-        if (moveEvent.clientY > mostBottom) {
-            newTop = y;
-            newHeight = mostBottom - y;
-        } else {
-            newTop = y;
-            newHeight = moveEvent.clientY - y;
-        }
-    } else {
-        if (moveEvent.clientY < mostTop) {
-            newTop = mostTop;
-        } else {
-            newTop = moveEvent.clientY;
-        }
-        newHeight = y - newTop;
-    }
-    return {newTop, newLeft, newWidth, newHeight};
+    return { mouseElement, startFirstElement, endLastElement };
 }
 
 /**
@@ -338,7 +223,7 @@ function isContainerElement(el: Element) {
 function collectSelectedBlocks(
     moveEvent: MouseEvent,
     protyle: IProtyle,
-    rect: {newTop: number; newLeft: number; newWidth: number; newHeight: number},
+    rect: Rect,
     y: number,
     startFirstElement: Element,
     endLastElement: Element,
@@ -347,23 +232,23 @@ function collectSelectedBlocks(
 ) {
     let firstElement;
     if (moveEvent.clientY > y) {
-        firstElement = startFirstElement || document.elementFromPoint(rect.newLeft, rect.newTop);
+        firstElement = startFirstElement || document.elementFromPoint(rect[0], rect[1]);
         endLastElement = undefined;
     } else {
         // newLeft 落在 padding 内时 elementFromPoint 会命中 wysiwyg 容器，需钳制到内容区
-        const detectX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect.newLeft, mostRight)) : rect.newLeft;
-        firstElement = document.elementFromPoint(detectX, rect.newTop);
+        const detectX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect[0], mostRight)) : rect[0];
+        firstElement = document.elementFromPoint(detectX, rect[1]);
         startFirstElement = undefined;
     }
     if (!firstElement) {
-        return {selectElements: [] as Element[], startFirstElement, endLastElement};
+        return { selectElements: [] as Element[], startFirstElement, endLastElement };
     }
     // 向上划选且落点在 padding/缝隙时，elementFromPoint 易命中 wysiwyg 容器或容器类元素，
     // 需沿 y 轴循环向下探测以定位到实际块，避免回退到文档首块导致误选上部所有块
     if (moveEvent.clientY <= y && isContainerElement(firstElement)) {
-        const selectBottomY = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect.newTop + rect.newHeight);
-        let probeY = rect.newTop;
-        const probeX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect.newLeft, mostRight)) : rect.newLeft;
+        const selectBottomY = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect[1] + rect[3]);
+        let probeY = rect[1];
+        const probeX = mostLeft !== undefined ? Math.max(mostLeft, Math.min(rect[0], mostRight)) : rect[0];
         while (probeY < selectBottomY) {
             probeY += 8;
             const probeElement = document.elementFromPoint(probeX, probeY);
@@ -374,7 +259,7 @@ function collectSelectedBlocks(
         }
     }
     if (!firstElement) {
-        return {selectElements: [] as Element[], startFirstElement, endLastElement};
+        return { selectElements: [] as Element[], startFirstElement, endLastElement };
     }
     let firstBlockElement = hasClosestBlock(firstElement);
     if (!firstBlockElement && firstElement.classList.contains("protyle-breadcrumb__bar")) {
@@ -409,8 +294,8 @@ function collectSelectedBlocks(
 
     let hasJump = false;
     // 块选择判定用的右边界需落在内容区，避免矩形右边缘在 padding 内时选不中块
-    const selectRight = mostLeft !== undefined ? Math.max(rect.newLeft + rect.newWidth, mostLeft) : (rect.newLeft + rect.newWidth);
-    const selectBottom = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect.newTop + rect.newHeight);
+    const selectRight = mostLeft !== undefined ? Math.max(rect[0] + rect[2], mostLeft) : (rect[0] + rect[2]);
+    const selectBottom = endLastElement ? endLastElement.getBoundingClientRect().bottom : (rect[1] + rect[3]);
     while (currentElement) {
         if (currentElement && !currentElement.classList.contains("protyle-attr")) {
             const currentRect = currentElement.getBoundingClientRect();
@@ -460,7 +345,7 @@ function collectSelectedBlocks(
     if (moveEvent.clientY <= y && !endLastElement) {
         endLastElement = selectElements[selectElements.length - 1];
     }
-    return {selectElements, startFirstElement, endLastElement};
+    return { selectElements, startFirstElement, endLastElement };
 }
 
 function handleMouseUpTableMenu(
@@ -469,8 +354,8 @@ function handleMouseUpTableMenu(
     mouseUpEvent: MouseEvent,
 ) {
     if (!tableBlockElement) {
-return;
-}
+        return;
+    }
     tableBlockElement.firstElementChild.style.webkitUserModify = "";
     const tableSelectElement = tableBlockElement.querySelector(".table__select") as HTMLElement;
     if (tableSelectElement.getAttribute("style")) {

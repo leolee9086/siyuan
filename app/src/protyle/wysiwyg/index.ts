@@ -31,7 +31,8 @@ import { bindInputEvents } from "./index.input";
 import { bindScrollEvent } from "./index.scroll";
 import { handleCopy } from "./index.copy";
 import { handleCut } from "./index.cut";
-import { handleShiftSelect, handleCtrlSelect } from "./index.mousedown.select";
+import { handleShiftSelect } from "./index.mousedown.select.shift";
+import { handleCtrlSelect } from "./index.mousedown.select.ctrl";
 import { handleAvColResize, handleAvDragFill, handleAvCellSelect } from "./index.mousedown.av";
 import { handleMediaResize, handleSuperBlockResize, handleTableColResize } from "./index.mousedown.resize";
 import { setupDragSelect } from "./index.mousedown.dragSelect";
@@ -122,11 +123,11 @@ export class WYSIWYG {
             const hasSelectClassElement = this.element.querySelector(".protyle-wysiwyg--select");
             const galleryItemElement = hasClosestByClassName(target, "av__gallery-item");
             // shift+click 多选
-            if (handleShiftSelect(protyle, event, nodeElement, hasSelectClassElement, galleryItemElement)) {
+            if (handleShiftSelect(protyle, {event, nodeElement, hasSelectClassElement, galleryItemElement})) {
                 return;
             }
             // ctrl+click 多选
-            if (handleCtrlSelect(protyle, event, target, nodeElement, hasSelectClassElement, galleryItemElement, this.element)) {
+            if (handleCtrlSelect(protyle, {event, target, nodeElement, hasSelectClassElement, galleryItemElement, wysiwygElement: this.element})) {
                 return;
             }
 
