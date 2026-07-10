@@ -126,7 +126,7 @@ function handleDragMoveTableCell(
             }
             if (moveTarget && (moveTarget.tagName === "TH" || moveTarget.tagName === "TD") &&
                 (!moveCellElement || moveCellElement !== moveTarget)) {
-                computeTableSelectRect(target, moveTarget, tableBlockElement, protyle);
+                computeTableSelectRect({ target, moveTarget, tableBlockElement, protyle });
                 return { handled: true, moveCellElement: moveTarget };
             }
             return { handled: true, moveCellElement };

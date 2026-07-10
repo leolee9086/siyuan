@@ -1,6 +1,19 @@
+// 用途：导入事务引擎，用于在超级块和表格列宽拖拽结束时提交变更，使撤销/重做能正确恢复旧宽度。
+// 使用范围：handleSuperBlockResize 的最终事务提交（commitSuperBlockResize）以及 handleTableColResize 的 mouseup 清理。
+// 解耦评估：transaction 是 wysiwyg 层的事务引擎，所有编辑操作均依赖它完成撤销/重做生命周期，无法被 DI 或事件替代。
 import {transaction, updateTransaction} from "./transaction";
+// 用途：导入图片 3.11.5 兼容处理函数，用于 img3115 在拖拽缩放时对旧版本图片数据做格式转换。
+// 使用范围：仅在 handleMediaResize 的 IMG 分支调用。
+// 解耦评估：img3115 是 boot 层的前向兼容适配函数，属于纯粹的端能力校验，不适合通过 DI 注入。
 import {img3115} from "../../boot/compatibleVersion";
+// 用途：导入 dayjs 日期格式化工具，用于在超级块列宽事务提交时为 dom 属性 "updated" 生成时间戳。
+// 使用范围：仅在 commitSuperBlockResize 中使用。
+// 解耦评估：dayjs 是纯工具库，无运行时依赖；date-fns 在项目中未使用，替换代价不可控。
 import * as dayjs from "dayjs";
+// 用途：导入表格列宽拖拽的上下文初始化函数与事件处理器，将表格列宽调整的 DOM 操作从主入口中分离。
+// 使用范围：仅在 handleTableColResize 中调用。
+// 解耦评估：类型定义是编译时产物，不产生运行时依赖；函数调用在同步事件流中委托执行，属于同一职责范围内拆分。
+import {createTableColResizeContext, updateTableColDragWidth, finalizeTableColDrag} from "./index.mousedown.resize.table";
 
 interface ISuperBlockResizeTip {
     child: HTMLElement;
@@ -85,6 +98,9 @@ function createSuperBlockResizeShares(sbChildren: HTMLElement[], sbWidth: number
 function updateSuperBlockResizeTips(tips: ISuperBlockResizeTip[], shares: number[]) {
     for (let index = 0; index < tips.length; index++) {
         const tip = tips[index];
+        if (!tip) {
+            continue;
+        }
         tip.el.textContent = `${shares[index]}%`;
     }
 }
@@ -370,49 +386,26 @@ export function handleTableColResize(
     if (!nodeElement) {
         return true;
     }
-    const html = nodeElement.outerHTML;
-    // https://github.com/siyuan-note/siyuan/issues/4455
+    // 折叠当前选区，避免拖拽列宽时选区干扰列的视觉反馈
     if (getSelection().rangeCount > 0) {
         getSelection().getRangeAt(0).collapse(false);
     }
-    // @ts-ignore
-    nodeElement.firstElementChild.style.webkitUserModify = "read-only";
+    const context = createTableColResizeContext(target, nodeElement, event.clientX);
+    if (!context) {
+        return true;
+    }
+    const firstChild = nodeElement.firstElementChild;
+    if (firstChild instanceof HTMLElement) {
+        // @ts-ignore -- webkitUserModify 为 WebKit 私有属性，TypeScript 声明未覆盖
+        firstChild.style.webkitUserModify = "read-only";
+    }
     nodeElement.style.cursor = "col-resize";
     target.removeAttribute("style");
-    const x = event.clientX;
-    const colIndex = parseInt(target.getAttribute("data-col-index"));
-    const colElement = nodeElement.querySelectorAll("table col")[colIndex] as HTMLElement;
-    // 清空初始化 table 时的最小宽度
-    if (colElement.style.minWidth) {
-        colElement.style.width = (nodeElement.querySelectorAll("table td, table th")[colIndex] as HTMLElement).offsetWidth + "px";
-        colElement.style.minWidth = "";
-    }
-    // 移除 cell 上的宽度限制 https://github.com/siyuan-note/siyuan/issues/7795
-    nodeElement.querySelectorAll("tr").forEach((trItem: HTMLTableRowElement) => {
-        trItem.cells[colIndex].style.width = "";
-    });
-    const oldWidth = colElement.clientWidth;
-    const hasScroll = nodeElement.firstElementChild.clientWidth < nodeElement.firstElementChild.scrollWidth;
     documentSelf.onmousemove = (moveEvent: MouseEvent) => {
-        if (nodeElement.style.textAlign === "center" && !hasScroll) {
-            colElement.style.width = (oldWidth + (moveEvent.clientX - x) * 2) + "px";
-        } else {
-            colElement.style.width = (oldWidth + (moveEvent.clientX - x)) + "px";
-        }
+        updateTableColDragWidth(moveEvent, context, nodeElement);
     };
-
     documentSelf.onmouseup = () => {
-        // @ts-ignore
-        nodeElement.firstElementChild.style.webkitUserModify = "";
-        nodeElement.style.cursor = "";
-        documentSelf.onmousemove = null;
-        documentSelf.onmouseup = null;
-        documentSelf.ondragstart = null;
-        documentSelf.onselectstart = null;
-        documentSelf.onselect = null;
-        if (nodeElement) {
-            updateTransaction(protyle, nodeElement, html);
-        }
+        finalizeTableColDrag({protyle, nodeElement, html: context.html, documentSelf});
     };
     return true;
 }
