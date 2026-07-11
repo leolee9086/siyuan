@@ -107,7 +107,9 @@ type Database struct {
 type VectorCollection interface {
 	InsertPoint(point Point) error
 	Search(queryVec []float32, k int, efSearch int) []SearchResult
+	SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error)
 	DeletePoint(id string)
+	DeletePointWithError(id string) error
 	RebuildIndex() error
 
 	Name() string
@@ -283,8 +285,8 @@ func (db *Database) DeleteCollection(name string) error {
 		return fmt.Errorf("%w: %s", ErrCollectionNotFound, name)
 	}
 
-	if cl, ok := c.(interface{ Close() error }); ok {
-		cl.Close()
+	if err := c.Close(); err != nil {
+		return err
 	}
 	delete(db.Collections, name)
 

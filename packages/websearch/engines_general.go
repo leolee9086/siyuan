@@ -3,7 +3,9 @@ package websearch
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -53,7 +55,27 @@ func newBing(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.bing.com/search?q=" + url.QueryEscape(q) + "&setlang=en"
 		},
-		Parse: parseBingResults,
+		Headers: map[string]string{"Accept-Language": "en-US,en;q=0.9"},
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			results, _ := parseBingResults(body, max)
+			if len(results) > 0 {
+				return results, nil
+			}
+			// 备用：匹配 Bing 新版 HTML 结构
+			var results2 []SearchResult
+			pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(https?://[^"]*)"[^>]*>[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results2) >= max { break }
+				title := StripHTML(m[2]); u := m[1]
+				if title == "" || u == "" { continue }
+				pos++; results2 = append(results2, SearchResult{Title: title, URL: u, Snippet: "", Engine: "bing", Position: pos})
+			}
+			if len(results2) > 0 {
+				return results2, nil
+			}
+			return results, nil
+		},
 	})(config)
 }
 
@@ -98,15 +120,175 @@ func newBrave(config EngineConfig) SearchEngine {
 }
 
 // ── Google ────────────────────────────────────────────
+// 完整对齐 TS google.ts + google-traits.ts
+
+// guessCountry 从语言标签猜测国家代码
+func guessCountry(lang string) string {
+	if lang == "" {
+		return "US"
+	}
+	parts := strings.Split(lang, "-")
+	if len(parts) > 1 {
+		return strings.ToUpper(parts[1])
+	}
+	m := map[string]string{
+		"zh": "CN", "ja": "JP", "ko": "KR", "de": "DE", "fr": "FR",
+		"es": "ES", "pt": "BR", "ru": "RU", "it": "IT", "ar": "SA",
+		"tr": "TR", "nl": "NL", "sv": "SE", "pl": "PL", "da": "DK",
+		"fi": "FI", "nb": "NO", "th": "TH", "vi": "VN", "id": "ID",
+		"ms": "MY",
+	}
+	if v, ok := m[parts[0]]; ok {
+		return v
+	}
+	return "US"
+}
+
+// googleSubdomain 获取 Google 子域名
+func googleSubdomain(country string) string {
+	m := map[string]string{
+		"US": "www.google.com", "GB": "www.google.co.uk", "DE": "www.google.de",
+		"FR": "www.google.fr", "JP": "www.google.co.jp", "KR": "www.google.co.kr",
+		"CN": "www.google.com.hk", "TW": "www.google.com.tw", "HK": "www.google.com.hk",
+		"CA": "www.google.ca", "AU": "www.google.com.au", "IN": "www.google.co.in",
+		"BR": "www.google.com.br", "RU": "www.google.ru", "IT": "www.google.it",
+		"ES": "www.google.es", "NL": "www.google.nl", "SE": "www.google.se",
+		"PL": "www.google.pl", "TR": "www.google.com.tr", "AR": "www.google.com.ar",
+		"MX": "www.google.com.mx", "SG": "www.google.com.sg",
+	}
+	if v, ok := m[country]; ok {
+		return v
+	}
+	return "www.google.com"
+}
+
+// googleLangMap 语言→Google LR 参数
+func googleLangMap(lang string) string {
+	if lang == "" || lang == "all" {
+		return ""
+	}
+	m := map[string]string{
+		"en": "lang_en", "zh_CN": "lang_zh-CN", "zh_TW": "lang_zh-TW",
+		"ja": "lang_ja", "ko": "lang_ko", "de": "lang_de", "fr": "lang_fr",
+		"es": "lang_es", "it": "lang_it", "pt": "lang_pt", "pt_BR": "lang_pt-BR",
+		"ru": "lang_ru", "ar": "lang_ar", "tr": "lang_tr",
+	}
+	// 先查完整 locale, 再查纯语言
+	norm := strings.ReplaceAll(lang, "-", "_")
+	if v, ok := m[norm]; ok {
+		return v
+	}
+	base := strings.Split(norm, "_")[0]
+	if v, ok := m[base]; ok {
+		return v
+	}
+	return "lang_en"
+}
+
+// genGoogleUA 生成 Google Search App User-Agent (对应 TS genGoogleUa)
+func genGoogleUA(country string) string {
+	return "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36 (gws, country:" + country + ")"
+}
+
+// isGoogleCaptcha 检测 Google CAPTCHA (对应 TS isGoogleCaptcha)
+func isGoogleCaptcha(status int, body string) bool {
+	if status == 302 || status == 303 {
+		return true
+	}
+	if body == "" {
+		return false
+	}
+	if len(body) < 2000 && (strings.Contains(body, "/sorry/") || strings.Contains(body, "sorry.google")) {
+		return true
+	}
+	return false
+}
 
 func newGoogle(config EngineConfig) SearchEngine {
-	return newHTMLScraperEngine(htmlScraperConfig{
-		Name: "google",
-		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://www.google.com/search?q=" + url.QueryEscape(q) + "&num=" + strconv.Itoa(minInt(opts.NumResults, 20))
-		},
-		Parse: parseGoogleResults,
-	})(config)
+	return &googleEngine{config: config}
+}
+
+type googleEngine struct{ config EngineConfig }
+
+func (e *googleEngine) Name() string        { return "google" }
+func (e *googleEngine) Config() EngineConfig { return e.config }
+func (e *googleEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
+	// 对应 TS: getGoogleInfo(lang)
+	langParam := opts.Lang // may be ""
+	country := guessCountry(langParam)
+	langNorm := strings.ReplaceAll(langParam, "-", "_")
+
+	// 对应 TS: const langOrig = lang?.replace("_", "-") || "en"
+	hl := langParam
+	if hl != "" {
+		hl = strings.ReplaceAll(hl, "_", "-")
+	} else {
+		hl = "en"
+	}
+
+	// 对应 TS: const engLang = LANG_MAP[langNorm] || LANG_MAP[langNorm.split("_")[0]] || "lang_en"
+	engLang := googleLangMap(langNorm)
+	if engLang == "" && langNorm != "" {
+		engLang = googleLangMap(strings.Split(langNorm, "_")[0])
+	}
+	if engLang == "" {
+		engLang = "lang_en"
+	}
+
+	// 对应 TS: const subdomain = DOMAIN_MAP[country] || "www.google.com"
+	subdomain := googleSubdomain(country)
+
+	// 构建 URL: 对应 TS new URLSearchParams({q,num,start,filter,safe,...info.params})
+	params := url.Values{}
+	params.Set("q", query)
+	params.Set("num", strconv.Itoa(minInt(opts.NumResults, 20)))
+	params.Set("start", "0")
+	params.Set("filter", "0")
+	params.Set("safe", "off")
+	params.Set("hl", hl)
+	if langParam == "" || langParam == "all" {
+		// 不限制语言
+	} else {
+		params.Set("lr", engLang)
+	}
+	if country != "US" {
+		params.Set("cr", "country"+country)
+	}
+	params.Set("ie", "utf8")
+	params.Set("oe", "utf8")
+
+	u := fmt.Sprintf("https://%s/search?%s", subdomain, params.Encode())
+
+	// 对应 TS: headers
+	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	// 对应 TS: lang?.replace("_", "-") || "en-US,en;q=0.9"
+	if langParam != "" {
+		client.SetHeader("Accept-Language", strings.ReplaceAll(langParam, "_", "-")+",en;q=0.9")
+	} else {
+		client.SetHeader("Accept-Language", "en-US,en;q=0.9")
+	}
+	client.SetHeader("User-Agent", genGoogleUA(country))
+	client.SetHeader("Cookie", "CONSENT=YES+")
+	for k, v := range headers {
+		client.SetHeader(k, v)
+	}
+
+	status, body, err := client.Get(u, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 400 {
+		return nil, nil
+	}
+	if body == "" {
+		return nil, nil
+	}
+	// CAPTCHA 检测: 对应 TS isGoogleCaptcha
+	if isGoogleCaptcha(status, body) {
+		return nil, nil
+	}
+	return parseGoogleResults(body, opts.NumResults)
 }
 
 // ── 百度 ──────────────────────────────────────────────

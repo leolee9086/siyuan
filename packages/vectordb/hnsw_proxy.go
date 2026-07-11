@@ -78,12 +78,18 @@ func (c *Collection) InsertPoint(point Point) error {
 	return nil
 }
 
-// Search searches for k nearest neighbors
+// Search searches for k nearest neighbors.
 func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	results, _ := c.SearchWithError(queryVec, k, efSearch)
+	return results
+}
+
+// SearchWithError searches for k nearest neighbors and preserves the common error-aware collection contract.
+func (c *Collection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
 	// Delegate to HNSWIndex
 	hnswResults := c.HNSWIdx.Search(queryVec, k, efSearch)
 	if hnswResults == nil {
-		return []SearchResult{}
+		return []SearchResult{}, nil
 	}
 
 	config := c.Config
@@ -111,17 +117,22 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 		return searchResults[i].Score > searchResults[j].Score
 	})
 
-	return searchResults
+	return searchResults, nil
 }
 
-// DeletePoint deletes an item and updates the HNSW index.
+// DeletePoint deletes an item and preserves the legacy no-error API.
 func (c *Collection) DeletePoint(id string) {
+	_ = c.DeletePointWithError(id)
+}
+
+// DeletePointWithError deletes an item and reports failures through the common collection contract.
+func (c *Collection) DeletePointWithError(id string) error {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 
 	docID, ok := c.IDMap[id]
 	if !ok {
-		return
+		return nil
 	}
 
 	c.HNSWIdx.Delete(docID)
@@ -132,6 +143,7 @@ func (c *Collection) DeletePoint(id string) {
 	if int(docID) < len(c.Metas) {
 		c.Metas[docID] = nil
 	}
+	return nil
 }
 
 // DeleteItemWithIndex 保留旧名称供外部调用，委托给 DeletePoint。

@@ -154,15 +154,23 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 	return nil
 }
 
-// Search searches for k nearest neighbors in the Vamana index, enriching
-// results with external string IDs, normalized scores, and metadata.
+// Search searches for k nearest neighbors and preserves the legacy no-error API.
 func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	results, _ := vc.SearchWithError(queryVec, k, efSearch)
+	return results
+}
+
+// SearchWithError searches for k nearest neighbors and propagates disk index failures.
+func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
 	vc.Mu.RLock()
 	defer vc.Mu.RUnlock()
 
 	rawResults, err := vc.Index.Search(queryVec, k, efSearch)
-	if err != nil || rawResults == nil {
-		return []SearchResult{}
+	if err != nil {
+		return nil, classifyPublicError(err)
+	}
+	if rawResults == nil {
+		return []SearchResult{}, nil
 	}
 
 	results := make([]SearchResult, 0, len(rawResults))
@@ -191,25 +199,33 @@ func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []Se
 		return results[i].Score > results[j].Score
 	})
 
-	return results
+	return results, nil
 }
 
 func (vc *VamanaCollection) Engine() Engine { return EngineDiskVamana }
 
-// DeletePoint removes a point by external string ID.
+// DeletePoint removes a point and preserves the legacy no-error API.
 func (vc *VamanaCollection) DeletePoint(id string) {
+	_ = vc.DeletePointWithError(id)
+}
+
+// DeletePointWithError removes a point and only updates mappings after the index deletion succeeds.
+func (vc *VamanaCollection) DeletePointWithError(id string) error {
 	vc.Mu.Lock()
 	defer vc.Mu.Unlock()
 
 	nodeID, ok := vc.IDMap[id]
 	if !ok {
-		return
+		return nil
+	}
+	if err := vc.Index.Delete(nodeID); err != nil {
+		return classifyPublicError(err)
 	}
 	delete(vc.IDMap, id)
 	delete(vc.DocMap, nodeID)
 	delete(vc.Metas, nodeID)
 	delete(vc.PendingVectors, id)
-	_ = vc.Index.Delete(nodeID)
+	return nil
 }
 
 // DeleteItemWithIndex 保留旧名称，委托给 DeletePoint。

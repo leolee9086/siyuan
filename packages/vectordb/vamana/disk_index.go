@@ -284,19 +284,20 @@ func (idx *DiskVamanaIndex) Close() error {
 
 	idx.closed = true
 
+	var firstErr error
+
 	// 如果删除位图有变更则保存
 	if idx.deleted != nil && idx.deleted.IsDirty() {
 		deletedPath := idx.basePath + diskDeletedExt
 		if err := storage.SaveDeletedBitmap(deletedPath, idx.deleted); err != nil {
-			// 保存删除位图失败不阻止关闭流程，但记录错误
-			log.Printf("保存删除位图失败 [path=%s]: %v", deletedPath, err)
+			firstErr = fmt.Errorf("failed to save deleted bitmap: %w", err)
 		}
 	}
 
-	// 关闭磁盘读取器
+	// 即使持久化失败也必须继续关闭读取器，确保 mmap 和文件句柄得到释放。
 	if idx.reader != nil {
-		if err := idx.reader.Close(); err != nil {
-			return fmt.Errorf("failed to close reader: %w", err)
+		if err := idx.reader.Close(); err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("failed to close reader: %w", err)
 		}
 	}
 
@@ -304,7 +305,7 @@ func (idx *DiskVamanaIndex) Close() error {
 	idx.bbqCodes = nil
 	idx.deleted = nil
 
-	return nil
+	return firstErr
 }
 
 // ============================================================================

@@ -1063,6 +1063,10 @@ func newStartpage(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "startpage",
 		BuildURL: func(q string, opts SearchOptions) string { return "https://www.startpage.com/do/search?q=" + url.QueryEscape(q) + "&cat=web&language=english" },
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult; pos := 0
 			re := regexp.MustCompile(`<div[^>]*class="[^"]*w-gl__result[^"]*"[^>]*>[\s\S]*?<a[^>]*class="[^"]*w-gl__result-url[^"]*"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<h3[^>]*class="[^"]*w-gl__result-title[^"]*"[^>]*>([\s\S]*?)<\/h3>[\s\S]*?<p[^>]*class="[^"]*w-gl__description[^"]*"[^>]*>([\s\S]*?)<\/p>`)
@@ -1070,6 +1074,15 @@ func newStartpage(config EngineConfig) SearchEngine {
 				if len(results) >= max { break }
 				title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" { continue }
 				pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: StripHTML(m[3]), Engine: "startpage", Position: pos})
+			}
+			// 对应 TS fallbackRegex
+			if len(results) == 0 {
+				fbRe := regexp.MustCompile(`<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>[\s\S]*?<h[23][^>]*>([\s\S]*?)<\/h[23]>`)
+				for _, m := range fbRe.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max { break }
+					title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" || strings.Contains(url, "startpage.com") { continue }
+					pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: "", Engine: "startpage", Position: pos})
+				}
 			}
 			return results, nil
 		},
@@ -1080,7 +1093,7 @@ func newQwant(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "qwant", Category: "general", UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
-			return "https://api.qwant.com/v3/search/web?q=" + url.QueryEscape(q) + "&count=" + strconv.Itoa(minInt(n, 20)) + "&locale=en_US&offset=0&device=desktop&safesearch=0"
+			return "https://api.qwant.com/v3/search/web?q=" + url.QueryEscape(q) + "&count=" + strconv.Itoa(minInt(n, 20)) + "&locale=en_US&offset=0&device=desktop&safesearch=0&tgp=1&display=true&llm=true"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct{ Data *struct{ Result *struct{ Items *struct{ Mainline []struct{ Type string; Items []struct{ Title, URL, Desc string; Date int64 } } `json:"mainline"` } `json:"items"` } `json:"result"` } `json:"data"` }

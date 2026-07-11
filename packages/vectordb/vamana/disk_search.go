@@ -23,6 +23,7 @@
 package vamana
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -88,7 +89,7 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 
 	// Validate query dimension
 	if len(query) != dimension {
-		return nil, nil
+		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionMismatch, dimension, len(query))
 	}
 
 	// Ensure efSearch >= topK

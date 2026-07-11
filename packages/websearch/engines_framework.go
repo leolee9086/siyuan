@@ -237,29 +237,60 @@ func decodeBingURL(href string) string {
 
 // ── Google 搜索结果解析 ───────────────────────────────
 
+// parseGoogleResults 解析 Google 搜索结果 HTML
+// 对应 TS google.ts 的 parseGoogleResults()
 func parseGoogleResults(body string, maxResults int) ([]SearchResult, error) {
 	var results []SearchResult
 	pos := 0
+
+	// 步骤1: 使用 data-ved + /url?q= 提取标题和 URL
+	// 对应 TS: /<a[^>]*data-ved[^>]*href="\/url\?q=([^"&]+)...<h3...>([\s\S]*?)<\/h3>/gi
+	type titleEntry struct {
+		url   string
+		title string
+		index int
+	}
+	var entries []titleEntry
 	re := regexp.MustCompile(`<a[^>]*data-ved[^>]*href="\/url\?q=([^"&]+)[^"]*"[^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>`)
-	matches := re.FindAllStringSubmatch(body, -1)
-	for _, m := range matches {
-		if len(results) >= maxResults {
+	idxMatches := re.FindAllStringSubmatchIndex(body, -1)
+	for _, idx := range idxMatches {
+		if len(entries) >= maxResults*2 {
 			break
 		}
-		u, err := url.QueryUnescape(m[1])
+		u, err := url.QueryUnescape(body[idx[2]:idx[3]])
 		if err != nil {
 			continue
 		}
-		if idx := strings.Index(u, "&sa=U"); idx >= 0 {
-			u = u[:idx]
+		if idx2 := strings.Index(u, "&sa=U"); idx2 >= 0 {
+			u = u[:idx2]
 		}
-		title := StripHTML(m[2])
+		title := StripHTML(body[idx[4]:idx[5]])
 		if title == "" || u == "" {
 			continue
 		}
+		entries = append(entries, titleEntry{url: u, title: title, index: idx[0]})
+	}
+
+	// 步骤2: 从 VwiC3b 提取摘要（对应 TS: /<div[^>]*class="[^"]*VwiC3b[^"]*"...>/i）
+	for _, e := range entries {
+		if len(results) >= maxResults {
+			break
+		}
+		snippet := ""
+		end := e.index + 2000
+		if end > len(body) {
+			end = len(body)
+		}
+		after := body[e.index:end]
+		if sm := regexp.MustCompile(`<div[^>]*class="[^"]*VwiC3b[^"]*"[^>]*>([\s\S]*?)<\/div>`).FindStringSubmatch(after); sm != nil {
+			snippet = StripHTML(sm[1])
+		}
+		if len(snippet) > 300 {
+			snippet = snippet[:300]
+		}
 		pos++
 		results = append(results, SearchResult{
-			Title: title, URL: u, Snippet: "",
+			Title: e.title, URL: e.url, Snippet: snippet,
 			Engine: "google", Position: pos,
 		})
 	}

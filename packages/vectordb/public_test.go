@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"s-forge.local/vectordb/storage"
+	"s-forge.local/vectordb/vamana"
 )
 
 func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
@@ -543,5 +546,90 @@ func TestUnifiedDB_DistanceMetricConsistency(t *testing.T) {
 	}
 	if len(results) == 0 || results[0].ID != "d" {
 		t.Fatalf("default metric: expected d as top-1, got %+v", results)
+	}
+}
+
+func TestUnifiedDB_DiskVamanaClosedErrorsPropagate(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	col, err := db.CreateCollectionWithOptions("closed-errors", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{{ID: "a", Vector: []float32{1, 0}}, {ID: "b", Vector: []float32{0, 1}}},
+	})
+	if err != nil {
+		t.Fatalf("create collection: %v", err)
+	}
+	if err := col.Close(); err != nil {
+		t.Fatalf("close collection: %v", err)
+	}
+
+	if _, err := col.Search([]float32{1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrCollectionClosed) {
+		t.Fatalf("expected ErrCollectionClosed from search, got %v", err)
+	}
+	if err := col.Delete([]string{"a"}); !errors.Is(err, ErrCollectionClosed) {
+		t.Fatalf("expected ErrCollectionClosed from delete, got %v", err)
+	}
+	if err := col.Flush(); !errors.Is(err, ErrCollectionClosed) {
+		t.Fatalf("expected ErrCollectionClosed from flush, got %v", err)
+	}
+}
+
+func TestUnifiedDB_OpenCorruptedDiskVamanaReturnsStableError(t *testing.T) {
+	dbPath := t.TempDir()
+	db, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	_, err = db.CreateCollectionWithOptions("corrupted", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{{ID: "a", Vector: []float32{1, 0}}, {ID: "b", Vector: []float32{0, 1}}},
+	})
+	if err != nil {
+		t.Fatalf("create collection: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	indexPath := filepath.Join(dbPath, "corrupted", "vamana.index")
+	file, err := os.OpenFile(indexPath, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatalf("open index for corruption: %v", err)
+	}
+	if _, err := file.WriteAt([]byte{0, 0, 0, 0}, 0); err != nil {
+		_ = file.Close()
+		t.Fatalf("corrupt index magic: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("close corrupted index: %v", err)
+	}
+
+	_, err = Open(dbPath)
+	if !errors.Is(err, ErrStorageCorrupted) {
+		t.Fatalf("expected ErrStorageCorrupted, got %v", err)
+	}
+}
+
+func TestUnifiedDB_StableErrorClassification(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  error
+		target error
+	}{
+		{name: "closed", input: vamana.ErrDiskIndexClosed, target: ErrCollectionClosed},
+		{name: "dimension", input: vamana.ErrVectorDimensionMismatch, target: ErrVectorDimensionInvalid},
+		{name: "corrupted", input: storage.ErrCorruptedFile, target: ErrStorageCorrupted},
+		{name: "busy", input: vamana.ErrCompactionInProgress, target: ErrCollectionBusy},
+		{name: "read-only", input: storage.ErrReadOnly, target: ErrCollectionReadOnly},
+		{name: "persistence", input: errors.New("write failed"), target: ErrPersistenceFailed},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := classifyPublicError(test.input); !errors.Is(err, test.target) {
+				t.Fatalf("expected %v, got %v", test.target, err)
+			}
+		})
 	}
 }

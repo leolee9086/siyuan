@@ -70,3 +70,6 @@ kernel/util/out.txt
 
 # Workshop mode (工坊模式) - 开发目录内置工作空间
 .dev-workspace/
+
+# test results
+packages/websearch/test_results/

@@ -1,7 +1,6 @@
 package websearch
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"

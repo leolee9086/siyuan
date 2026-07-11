@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"s-forge.local/vectordb/storage"
 	"s-forge.local/vectordb/vamana"
 )
 
@@ -23,6 +24,11 @@ var (
 	ErrUnsupportedEngine      = errors.New("unsupported vector engine")
 	ErrDiskVamanaNeedsPoints  = errors.New("disk-vamana collection requires initial points")
 	ErrVectorDimensionInvalid = errors.New("vector dimension invalid")
+	ErrCollectionClosed       = errors.New("collection closed")
+	ErrStorageCorrupted       = errors.New("vector storage corrupted")
+	ErrCollectionBusy         = errors.New("collection busy")
+	ErrCollectionReadOnly     = errors.New("collection read-only")
+	ErrPersistenceFailed      = errors.New("vector persistence failed")
 )
 
 type CollectionOptions struct {
@@ -94,9 +100,16 @@ func Open(path string) (*Database, error) {
 		}
 
 		name := entry.Name()
-		if vc, err := OpenVamanaCollection(name, db.vamanaBasePath(name), CollectionMeta{}); err == nil {
+		vamanaBasePath := db.vamanaBasePath(name)
+		if _, statErr := os.Stat(vamanaBasePath + ".index"); statErr == nil {
+			vc, openErr := OpenVamanaCollection(name, vamanaBasePath, CollectionMeta{})
+			if openErr != nil {
+				return nil, classifyPublicError(openErr)
+			}
 			db.Collections[name] = vc
 			continue
+		} else if !os.IsNotExist(statErr) {
+			return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
 		}
 
 		snapshotPath := filepath.Join(path, name, SnapshotFileName)
@@ -139,11 +152,18 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		return &CollectionHandle{db: db, col: col}, nil
 	}
 
-	if vc, err := OpenVamanaCollection(name, db.vamanaBasePath(name), CollectionMeta{}); err == nil {
+	vamanaBasePath := db.vamanaBasePath(name)
+	if _, statErr := os.Stat(vamanaBasePath + ".index"); statErr == nil {
+		vc, openErr := OpenVamanaCollection(name, vamanaBasePath, CollectionMeta{})
+		if openErr != nil {
+			return nil, classifyPublicError(openErr)
+		}
 		db.mu.Lock()
 		db.Collections[name] = vc
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: vc}, nil
+	} else if !os.IsNotExist(statErr) {
+		return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
 	}
 
 	snapshotPath := filepath.Join(db.Path, name, SnapshotFileName)
@@ -191,7 +211,7 @@ func (db *Database) Close() error {
 	var firstErr error
 	for _, col := range collections {
 		if err := col.Close(); err != nil && firstErr == nil {
-			firstErr = err
+			firstErr = classifyPublicError(err)
 		}
 	}
 	return firstErr
@@ -294,7 +314,7 @@ func (h *CollectionHandle) Upsert(points []Point) error {
 			return fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, i, h.col.Dimension(), len(point.Vector))
 		}
 		if err := h.col.InsertPoint(point); err != nil {
-			return err
+			return classifyPublicError(err)
 		}
 	}
 	return h.Flush()
@@ -308,7 +328,10 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	if topK <= 0 {
 		topK = 10
 	}
-	results := h.col.Search(query, topK, opts.EfSearch)
+	results, err := h.col.SearchWithError(query, topK, opts.EfSearch)
+	if err != nil {
+		return nil, err
+	}
 
 	// 按 ScoreThreshold 过滤
 	if opts.ScoreThreshold > 0 {
@@ -326,7 +349,9 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 
 func (h *CollectionHandle) Delete(ids []string) error {
 	for _, id := range ids {
-		h.col.DeletePoint(id)
+		if err := h.col.DeletePointWithError(id); err != nil {
+			return err
+		}
 	}
 	return h.Flush()
 }
@@ -343,9 +368,12 @@ func (h *CollectionHandle) Stats() CollectionStats {
 
 func (h *CollectionHandle) Flush() error {
 	if h.db == nil {
-		return nil
+		return fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
 	}
-	return h.col.Flush()
+	if err := h.col.Flush(); err != nil {
+		return classifyPublicError(err)
+	}
+	return nil
 }
 
 func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
@@ -362,7 +390,28 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 }
 
 func (h *CollectionHandle) Close() error {
-	return h.col.Close()
+	return classifyPublicError(h.col.Close())
+}
+
+func classifyPublicError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, vamana.ErrDiskIndexClosed), errors.Is(err, storage.ErrIndexClosed):
+		return fmt.Errorf("%w: %w", ErrCollectionClosed, err)
+	case errors.Is(err, vamana.ErrVectorDimensionMismatch), errors.Is(err, storage.ErrDimensionMismatch):
+		return fmt.Errorf("%w: %w", ErrVectorDimensionInvalid, err)
+	case errors.Is(err, storage.ErrCorruptedFile), errors.Is(err, storage.ErrInvalidMagic),
+		errors.Is(err, storage.ErrVersionMismatch), errors.Is(err, vamana.ErrBBQMagicMismatch),
+		errors.Is(err, vamana.ErrBBQVersionMismatch), errors.Is(err, vamana.ErrBBQDimensionMismatch):
+		return fmt.Errorf("%w: %w", ErrStorageCorrupted, err)
+	case errors.Is(err, vamana.ErrCompactionInProgress):
+		return fmt.Errorf("%w: %w", ErrCollectionBusy, err)
+	case errors.Is(err, storage.ErrReadOnly):
+		return fmt.Errorf("%w: %w", ErrCollectionReadOnly, err)
+	}
+	return fmt.Errorf("%w: %w", ErrPersistenceFailed, err)
 }
 
 func MarshalMeta(v any) json.RawMessage {
