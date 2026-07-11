@@ -3,6 +3,7 @@
 package vectordb
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -73,6 +74,53 @@ func TestANNBenchmarksSIFTPairedUSearchRatio(t *testing.T) {
 	}
 }
 
+func TestANNBenchmarksDiskVamanaCheckpointUSearchRatio(t *testing.T) {
+	rand.Seed(1)
+	fixture := loadANNSIFTFixture(t)
+	disk := loadANNDiskVamanaFixture(t, fixture)
+	defer disk.close()
+	competitor, err := buildANNUSearch(fixture.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = competitor.index.close() }()
+
+	updates := make([]WriteOperation, 100)
+	for id := range updates {
+		point := Point{ID: fmt.Sprintf("%d", id), Vector: fixture.base[id]}
+		updates[id] = WriteOperation{Point: &point}
+	}
+	if _, err := disk.collection.Write(context.Background(), WriteBatch{Operations: updates}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	expansions := []int{32, 200}
+	before := make(map[int]annPairedMeasurement, len(expansions))
+	beforeRecall := make(map[int]float64, len(expansions))
+	for _, expansion := range expansions {
+		measurement, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		before[expansion] = measurement
+		beforeRecall[expansion] = annDiskVamanaRecall(fixture, disk.collection, expansion)
+	}
+	checkpoint, err := disk.collection.Checkpoint(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expansion := range expansions {
+		after, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		afterRecall := annDiskVamanaRecall(fixture, disk.collection, expansion)
+		if afterRecall+0.001 < beforeRecall[expansion] {
+			t.Fatalf("ef=%d checkpoint 后 Recall@10 从 %.2f%% 降至 %.2f%%", expansion, beforeRecall[expansion]*100, afterRecall*100)
+		}
+		t.Logf("ef=%d checkpoint=%+v，Recall@10：前 %.2f%%，后 %.2f%%；DiskVamana/USearch QPS：前 %.4f，后 %.4f", expansion, checkpoint, beforeRecall[expansion]*100, afterRecall*100, before[expansion].ratio, after.ratio)
+	}
+}
+
 type annPairedMeasurement struct {
 	oursQPS   float64
 	theirsQPS float64
@@ -110,6 +158,50 @@ func annMeasurePairedHNSWUSearch(fixture *annSIFTFixture, index *annUSearchIndex
 					return annPairedMeasurement{}, err
 				}
 				measureOurs()
+			}
+			operations++
+		}
+	}
+	oursQPS := float64(operations) / oursDuration.Seconds()
+	theirsQPS := float64(operations) / theirsDuration.Seconds()
+	return annPairedMeasurement{oursQPS: oursQPS, theirsQPS: theirsQPS, ratio: oursQPS / theirsQPS}, nil
+}
+
+func annMeasurePairedDiskUSearch(fixture *annSIFTFixture, collection CollectionAPI, index *annUSearchIndex, expansion int) (annPairedMeasurement, error) {
+	if err := index.setExpansionSearch(expansion); err != nil {
+		return annPairedMeasurement{}, err
+	}
+	var oursDuration time.Duration
+	var theirsDuration time.Duration
+	operations := 0
+	for queryIndex, query := range fixture.queries {
+		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
+			measureOurs := func() error {
+				started := time.Now()
+				_, err := collection.Search(query, SearchOptions{TopK: annSIFTTopK, EfSearch: expansion})
+				oursDuration += time.Since(started)
+				return err
+			}
+			measureTheirs := func() error {
+				started := time.Now()
+				_, err := index.search(query, annSIFTTopK)
+				theirsDuration += time.Since(started)
+				return err
+			}
+			if (queryIndex+repetition)&1 == 0 {
+				if err := measureOurs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
+				if err := measureTheirs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
+			} else {
+				if err := measureTheirs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
+				if err := measureOurs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
 			}
 			operations++
 		}

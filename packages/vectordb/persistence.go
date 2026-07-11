@@ -391,12 +391,17 @@ func syncWALPath(walPath string) error {
 }
 
 func appendFramedWAL(f *os.File, originalSize int64, entry WALEntry) error {
+	_, err := appendFramedWALWithSize(f, originalSize, entry)
+	return err
+}
+
+func appendFramedWALWithSize(f *os.File, originalSize int64, entry WALEntry) (int64, error) {
 	payload, err := msgpack.Marshal(&entry)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if len(payload) > maxWALRecordSize {
-		return fmt.Errorf("WAL record too large: %d", len(payload))
+		return 0, fmt.Errorf("WAL record too large: %d", len(payload))
 	}
 
 	frameSize := len(payload) + walRecordHeader
@@ -417,12 +422,12 @@ func appendFramedWAL(f *os.File, originalSize int64, entry WALEntry) error {
 
 	written, err := f.Write(buffer)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if written != len(buffer) {
-		return io.ErrShortWrite
+		return 0, io.ErrShortWrite
 	}
-	return nil
+	return int64(written), nil
 }
 
 func rollbackWALAppend(f *os.File, originalSize int64, syncWrite bool) error {

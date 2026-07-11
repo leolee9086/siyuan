@@ -17,14 +17,18 @@
 package vectordb
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
 
 	"github.com/vmihailenco/msgpack/v5"
 	"s-forge.local/vectordb/bbq"
+	"s-forge.local/vectordb/storage"
 	"s-forge.local/vectordb/vamana"
 )
 
@@ -36,11 +40,13 @@ import (
 //
 // All methods are safe for concurrent use.
 type VamanaCollection struct {
-	ColName  string
-	ColDim   int
-	Meta     CollectionMeta
-	BasePath string
-	Config   vamana.DiskBuildConfig
+	ColName            string
+	ColDim             int
+	Meta               CollectionMeta
+	RootPath           string
+	BasePath           string
+	Config             vamana.DiskBuildConfig
+	WALCheckpointBytes int64
 	// LastCommitSequence 是最近一次成功公开提交的线性化序号。
 	LastCommitSequence uint64
 
@@ -51,37 +57,44 @@ type VamanaCollection struct {
 	Metas          map[uint64][]byte    // internal node ID → raw JSON metadata
 	PendingVectors map[string][]float32 // vectors inserted after the last durable rebuild
 
-	Mu      sync.RWMutex
-	flushMu sync.Mutex
-	walFile *os.File // 由 flushMu 保护，集合生命周期内复用以降低同步写系统调用开销
+	Mu               sync.RWMutex
+	flushMu          sync.Mutex
+	walFile          *os.File // 由 flushMu 保护，集合生命周期内复用以降低同步写系统调用开销
+	walBytes         int64
+	checkpointNeeded atomic.Bool
 }
 
 type vamanaCollectionState struct {
-	Name           string               `msgpack:"name"`
-	Dimension      int                  `msgpack:"dimension"`
-	CommitSequence uint64               `msgpack:"commitSequence"`
-	Meta           CollectionMeta       `msgpack:"meta"`
-	IDMap          map[string]uint64    `msgpack:"idMap"`
-	DocMap         map[uint64]string    `msgpack:"docMap"`
-	Metas          map[uint64][]byte    `msgpack:"metas"`
-	PendingVectors map[string][]float32 `msgpack:"pendingVectors"`
+	Name               string                 `msgpack:"name"`
+	Dimension          int                    `msgpack:"dimension"`
+	CommitSequence     uint64                 `msgpack:"commitSequence"`
+	Meta               CollectionMeta         `msgpack:"meta"`
+	Config             vamana.DiskBuildConfig `msgpack:"config,omitempty"`
+	IDMap              map[string]uint64      `msgpack:"idMap"`
+	DocMap             map[uint64]string      `msgpack:"docMap"`
+	Metas              map[uint64][]byte      `msgpack:"metas"`
+	PendingVectors     map[string][]float32   `msgpack:"pendingVectors"`
+	WALCheckpointBytes int64                  `msgpack:"walCheckpointBytes,omitempty"`
 }
 
 const VamanaStateFileExt = ".ids.msgpack"
+
+const DefaultVamanaCheckpointWALBytes = int64(64 << 20)
 
 // NewVamanaCollection wraps an existing DiskVamanaIndex with ID mapping and metadata.
 // The caller is responsible for providing the correct name, dimension, and meta.
 func NewVamanaCollection(name string, dimension int, idx *vamana.DiskVamanaIndex, meta CollectionMeta) *VamanaCollection {
 	return &VamanaCollection{
-		ColName:        name,
-		ColDim:         dimension,
-		Meta:           meta,
-		Config:         vamana.DefaultDiskBuildConfig(),
-		Index:          idx,
-		IDMap:          make(map[string]uint64),
-		DocMap:         make(map[uint64]string),
-		Metas:          make(map[uint64][]byte),
-		PendingVectors: make(map[string][]float32),
+		ColName:            name,
+		ColDim:             dimension,
+		Meta:               meta,
+		Config:             vamana.DefaultDiskBuildConfig(),
+		Index:              idx,
+		IDMap:              make(map[string]uint64),
+		DocMap:             make(map[uint64]string),
+		Metas:              make(map[uint64][]byte),
+		PendingVectors:     make(map[string][]float32),
+		WALCheckpointBytes: DefaultVamanaCheckpointWALBytes,
 	}
 }
 
@@ -239,10 +252,10 @@ func (vc *VamanaCollection) DeletePointWithError(id string) error {
 // DeleteItemWithIndex 保留旧名称，委托给 DeletePoint。
 func (vc *VamanaCollection) DeleteItemWithIndex(id string) { vc.DeletePoint(id) }
 
-// RebuildIndex is not supported for disk-based Vamana collections.
-// Use Compact() instead to reclaim space from deleted nodes.
+// RebuildIndex 通过原生 Vamana compaction 发布新的 generation。
 func (vc *VamanaCollection) RebuildIndex() error {
-	return nil
+	_, err := vc.Checkpoint(context.Background())
+	return err
 }
 
 // vamanaDistanceToScore 将 Vamana 的内部距离转换为 [0,1] 分数，度量感知版。
@@ -317,6 +330,7 @@ func BuildVamanaCollection(
 	}
 
 	vc := NewVamanaCollection(name, dimension, idx, meta)
+	vc.RootPath = basePath
 	vc.BasePath = basePath
 	vc.Config = config
 
@@ -338,24 +352,45 @@ func BuildVamanaCollection(
 // OpenVamanaCollection opens an existing disk-based Vamana index.
 //
 // ID mapping and metadata must be loaded separately (not yet supported).
-func OpenVamanaCollection(name string, basePath string, meta CollectionMeta) (*VamanaCollection, error) {
+func OpenVamanaCollection(name string, rootPath string, meta CollectionMeta) (*VamanaCollection, error) {
 	ensureDiskVamanaReader()
+	basePath, err := resolveVamanaGeneration(rootPath)
+	if err != nil {
+		return nil, err
+	}
+	return openVamanaCollectionGeneration(name, rootPath, basePath, meta)
+}
 
+func openVamanaCollectionGeneration(name, rootPath, basePath string, meta CollectionMeta) (*VamanaCollection, error) {
 	idx, err := vamana.Open(basePath)
 	if err != nil {
 		return nil, err
 	}
 
 	vc := NewVamanaCollection(name, int(idx.Dimension()), idx, meta)
+	vc.RootPath = rootPath
 	vc.BasePath = basePath
 	if err := LoadVamanaCollectionState(vc, basePath); err != nil {
 		_ = idx.Close()
 		return nil, err
 	}
+	if basePath != rootPath {
+		manifest, err := readVamanaGenerationManifest(rootPath)
+		if err != nil && !os.IsNotExist(err) {
+			_ = idx.Close()
+			return nil, err
+		}
+		if err == nil && manifest.Generation == filepath.Base(basePath) && manifest.CommitSequence != vc.LastCommitSequence {
+			_ = idx.Close()
+			return nil, fmt.Errorf("%w: DiskVamana manifest sequence %d does not match state sequence %d", storage.ErrCorruptedFile, manifest.CommitSequence, vc.LastCommitSequence)
+		}
+	}
 	if err := LoadVamanaWAL(vc); err != nil {
 		_ = idx.Close()
 		return nil, err
 	}
+	vc.walBytes = fileSizeOrZero(basePath + VamanaWALFileExt)
+	vc.checkpointNeeded.Store(vc.walBytes >= vc.WALCheckpointBytes)
 	return vc, nil
 }
 
@@ -367,14 +402,16 @@ func SaveVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 
 func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) error {
 	state := vamanaCollectionState{
-		Name:           vc.ColName,
-		Dimension:      vc.ColDim,
-		CommitSequence: vc.LastCommitSequence,
-		Meta:           vc.Meta,
-		IDMap:          make(map[string]uint64, len(vc.IDMap)),
-		DocMap:         make(map[uint64]string, len(vc.DocMap)),
-		Metas:          make(map[uint64][]byte, len(vc.Metas)),
-		PendingVectors: make(map[string][]float32, len(vc.PendingVectors)),
+		Name:               vc.ColName,
+		Dimension:          vc.ColDim,
+		CommitSequence:     vc.LastCommitSequence,
+		Meta:               vc.Meta,
+		Config:             vc.Config,
+		IDMap:              make(map[string]uint64, len(vc.IDMap)),
+		DocMap:             make(map[uint64]string, len(vc.DocMap)),
+		Metas:              make(map[uint64][]byte, len(vc.Metas)),
+		PendingVectors:     make(map[string][]float32, len(vc.PendingVectors)),
+		WALCheckpointBytes: vc.WALCheckpointBytes,
 	}
 	for id, nodeID := range vc.IDMap {
 		state.IDMap[id] = nodeID
@@ -420,10 +457,17 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	}
 	vc.LastCommitSequence = state.CommitSequence
 	vc.Meta = state.Meta
+	if state.Config.R > 0 {
+		vc.Config = state.Config
+	}
 	vc.IDMap = state.IDMap
 	vc.DocMap = state.DocMap
 	vc.Metas = state.Metas
 	vc.PendingVectors = state.PendingVectors
+	vc.WALCheckpointBytes = state.WALCheckpointBytes
+	if vc.WALCheckpointBytes <= 0 {
+		vc.WALCheckpointBytes = DefaultVamanaCheckpointWALBytes
+	}
 	if vc.IDMap == nil {
 		vc.IDMap = make(map[string]uint64)
 	}
@@ -490,6 +534,18 @@ func (vc *VamanaCollection) restorePendingVectorsLocked() error {
 }
 
 func (vc *VamanaCollection) FlushToDisk(basePath string) error {
+	vc.Mu.RLock()
+	rootPath := vc.RootPath
+	activePath := vc.BasePath
+	vc.Mu.RUnlock()
+	if rootPath == "" {
+		rootPath = activePath
+	}
+	if basePath == "" || basePath == rootPath || basePath == activePath {
+		_, err := vc.Checkpoint(context.Background())
+		return err
+	}
+
 	vc.flushMu.Lock()
 	defer vc.flushMu.Unlock()
 
@@ -558,6 +614,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 
 	vc.ColDim = reopened.ColDim
 	vc.Meta = reopened.Meta
+	vc.RootPath = reopened.RootPath
 	vc.BasePath = reopened.BasePath
 	vc.Config = reopened.Config
 	vc.Index = reopened.Index

@@ -60,6 +60,19 @@ type CompactResult struct {
 	RemainingPoints uint64 // Points after compaction
 	DeletedPoints   uint64 // Number of deleted points removed
 	NewIndexPath    string // Path to the new compacted index
+	oldToNew        []uint32
+}
+
+// Remap 返回 compaction 后的节点 ID；被删除或越界的节点返回 false。
+func (result *CompactResult) Remap(oldID uint64) (uint64, bool) {
+	if result == nil || oldID >= uint64(len(result.oldToNew)) {
+		return 0, false
+	}
+	newID := result.oldToNew[oldID]
+	if newID == compactSentinel {
+		return 0, false
+	}
+	return uint64(newID), true
 }
 
 // ============================================================================
@@ -1393,11 +1406,15 @@ func (idx *DiskVamanaIndex) doCompact(newPath string) (*CompactResult, error) {
 	deletedPoints := totalPts - remainingPoints
 
 	if remainingPoints == 0 {
+		if err := idx.writeCompactedIndexFile(newPath, nil, nil, 0, dimension); err != nil {
+			return nil, fmt.Errorf("failed to write empty compacted index: %w", err)
+		}
 		return &CompactResult{
 			OriginalPoints:  totalPts,
 			RemainingPoints: 0,
 			DeletedPoints:   deletedPoints,
 			NewIndexPath:    newPath,
+			oldToNew:        oldToNew,
 		}, nil
 	}
 
@@ -1458,6 +1475,7 @@ func (idx *DiskVamanaIndex) doCompact(newPath string) (*CompactResult, error) {
 		RemainingPoints: remainingPoints,
 		DeletedPoints:   deletedPoints,
 		NewIndexPath:    newPath,
+		oldToNew:        oldToNew,
 	}, nil
 }
 

@@ -46,16 +46,20 @@ func (vc *VamanaCollection) appendWALLocked(entry WALEntry, syncWrite bool) erro
 		return err
 	}
 	originalSize := stat.Size()
-	err = appendFramedWAL(file, originalSize, entry)
+	written, err := appendFramedWALWithSize(file, originalSize, entry)
 	if err == nil && syncWrite {
 		err = syncVamanaWALFile(file)
 	}
 	if err == nil {
+		vc.walBytes = originalSize + written
+		vc.checkpointNeeded.Store(vc.walBytes >= vc.WALCheckpointBytes)
 		return nil
 	}
 	if rollbackErr := vc.rollbackWALAppendLocked(originalSize, syncWrite); rollbackErr != nil {
 		return fmt.Errorf("append DiskVamana WAL: %v; rollback WAL: %w", err, rollbackErr)
 	}
+	vc.walBytes = originalSize
+	vc.checkpointNeeded.Store(vc.walBytes >= vc.WALCheckpointBytes)
 	return err
 }
 

@@ -39,6 +39,8 @@ type CollectionOptions struct {
 	Points          []Point
 	DistanceMetric  string // 距离度量："l2"、"cosine"、"ip"；空字符串表示使用引擎默认
 	DiskBuildConfig *vamana.DiskBuildConfig
+	// WALCheckpointBytes 达到该大小后 Stats 会建议执行 checkpoint；零值使用默认阈值。
+	WALCheckpointBytes int64
 }
 
 // DB 是独立向量数据库包对宿主暴露的稳定入口。
@@ -59,6 +61,7 @@ type CollectionAPI interface {
 	Search(query []float32, opts SearchOptions) ([]SearchResult, error)
 	Delete(ids []string) error
 	Flush() error
+	Checkpoint(ctx context.Context) (CheckpointResult, error)
 	Stats() CollectionStats
 	FetchPoints(ids []string) ([]Point, error)
 	Close() error
@@ -71,10 +74,28 @@ type SearchOptions struct {
 }
 
 type CollectionStats struct {
-	Name      string `json:"name"`
-	Engine    Engine `json:"engine"`
-	Dimension int    `json:"dimension"`
-	Count     int    `json:"count"`
+	Name                  string `json:"name"`
+	Engine                Engine `json:"engine"`
+	Dimension             int    `json:"dimension"`
+	Count                 int    `json:"count"`
+	TotalCount            int    `json:"total_count,omitempty"`
+	DeletedCount          int    `json:"deleted_count,omitempty"`
+	PendingCount          int    `json:"pending_count,omitempty"`
+	WALBytes              int64  `json:"wal_bytes,omitempty"`
+	CheckpointRecommended bool   `json:"checkpoint_recommended,omitempty"`
+	ActiveGeneration      string `json:"active_generation,omitempty"`
+	MaintenanceError      string `json:"maintenance_error,omitempty"`
+}
+
+// CheckpointResult 描述快照发布和日志回收结果。
+type CheckpointResult struct {
+	Engine          Engine `json:"engine"`
+	CommitSequence  uint64 `json:"commit_sequence"`
+	OriginalPoints  uint64 `json:"original_points"`
+	RemainingPoints uint64 `json:"remaining_points"`
+	ReclaimedPoints uint64 `json:"reclaimed_points"`
+	WALBytesBefore  int64  `json:"wal_bytes_before"`
+	CleanupPending  bool   `json:"cleanup_pending"`
 }
 
 type CollectionHandle struct {
@@ -127,7 +148,11 @@ func Open(path string) (*Database, error) {
 
 		name := entry.Name()
 		vamanaBasePath := db.vamanaBasePath(name)
-		if _, statErr := os.Stat(vamanaBasePath + ".index"); statErr == nil {
+		hasVamana, statErr := hasVamanaCollection(vamanaBasePath)
+		if statErr != nil {
+			return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
+		}
+		if hasVamana {
 			vc, openErr := OpenVamanaCollection(name, vamanaBasePath, CollectionMeta{})
 			if openErr != nil {
 				return nil, classifyPublicError(openErr)
@@ -135,8 +160,6 @@ func Open(path string) (*Database, error) {
 			db.Collections[name] = vc
 			db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(vc)
 			continue
-		} else if !os.IsNotExist(statErr) {
-			return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
 		}
 
 		snapshotPath := filepath.Join(path, name, SnapshotFileName)
@@ -181,7 +204,11 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 	}
 
 	vamanaBasePath := db.vamanaBasePath(name)
-	if _, statErr := os.Stat(vamanaBasePath + ".index"); statErr == nil {
+	hasVamana, statErr := hasVamanaCollection(vamanaBasePath)
+	if statErr != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
+	}
+	if hasVamana {
 		vc, openErr := OpenVamanaCollection(name, vamanaBasePath, CollectionMeta{})
 		if openErr != nil {
 			return nil, classifyPublicError(openErr)
@@ -191,8 +218,6 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(vc)
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: vc}, nil
-	} else if !os.IsNotExist(statErr) {
-		return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
 	}
 
 	snapshotPath := filepath.Join(db.Path, name, SnapshotFileName)
@@ -320,6 +345,9 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	}
 	vc.BasePath = basePath
 	vc.Config = config
+	if opts.WALCheckpointBytes > 0 {
+		vc.WALCheckpointBytes = opts.WALCheckpointBytes
+	}
 	if err := SaveVamanaCollectionState(vc, basePath); err != nil {
 		_ = vc.Close()
 		return nil, err
@@ -368,7 +396,7 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 	state := h.db.writeState(h.Name())
 	state.mu.Lock()
 	defer state.mu.Unlock()
-	if state.closed {
+	if state.closed || state.closing {
 		return WriteResult{}, ErrCollectionClosed
 	}
 	if state.recoveryRequired {
@@ -457,6 +485,7 @@ func (h *CollectionHandle) writeDurableLocked(ctx context.Context, state *collec
 	if options.Durability == DurabilityAsync {
 		h.flushAsync()
 	}
+	h.scheduleAutoCheckpointLocked(state)
 	if options.OnProgress != nil {
 		options.OnProgress(WriteProgress{Stage: "committed", Completed: applied, Total: applied})
 	}
@@ -480,7 +509,7 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	state := h.db.writeState(h.Name())
 	state.mu.RLock()
 	defer state.mu.RUnlock()
-	if state.closed {
+	if state.closed || state.closing {
 		return nil, ErrCollectionClosed
 	}
 	if state.recoveryRequired {
@@ -548,18 +577,56 @@ func (h *CollectionHandle) flushAsync() {
 	asyncFlushCollection(h)
 }
 
+// scheduleAutoCheckpointLocked 在 WAL 超过阈值后安排后台 checkpoint；调用方持有 state.mu。
+func (h *CollectionHandle) scheduleAutoCheckpointLocked(state *collectionWriteState) {
+	collection, ok := h.col.(*VamanaCollection)
+	if !ok || !collection.AutoCheckpointNeeded() || state.closing || state.closed {
+		return
+	}
+	if !state.checkpointRunning.CompareAndSwap(false, true) {
+		return
+	}
+	state.checkpointWG.Add(1)
+	go func() {
+		defer state.checkpointWG.Done()
+		state.mu.Lock()
+		defer func() {
+			state.checkpointRunning.Store(false)
+			state.mu.Unlock()
+		}()
+		if state.closed || state.closing || state.recoveryRequired || !collection.AutoCheckpointNeeded() {
+			return
+		}
+		_, err := collection.Checkpoint(context.Background())
+		state.checkpointErr = err
+	}()
+}
+
 func (h *CollectionHandle) Stats() CollectionStats {
 	state := h.db.writeState(h.Name())
 	state.mu.RLock()
 	defer state.mu.RUnlock()
 
 	info := h.col.Info()
-	return CollectionStats{
+	stats := CollectionStats{
 		Name:      info.Name,
 		Engine:    h.Engine(),
 		Dimension: info.Dimension,
 		Count:     info.Count,
 	}
+	if collection, ok := h.col.(*VamanaCollection); ok {
+		maintenance := collection.MaintenanceStats()
+		stats.TotalCount = int(maintenance.TotalPoints)
+		stats.DeletedCount = int(maintenance.DeletedPoints)
+		stats.PendingCount = maintenance.PendingPoints
+		stats.WALBytes = maintenance.WALBytes
+		stats.CheckpointRecommended = maintenance.CheckpointRecommended
+		stats.ActiveGeneration = maintenance.ActiveGeneration
+	}
+	if state.checkpointErr != nil {
+		stats.MaintenanceError = state.checkpointErr.Error()
+	}
+	return stats
 }
 
 func (h *CollectionHandle) Flush() error {
@@ -569,7 +636,7 @@ func (h *CollectionHandle) Flush() error {
 	state := h.db.writeState(h.Name())
 	state.mu.Lock()
 	defer state.mu.Unlock()
-	if state.closed {
+	if state.closed || state.closing {
 		return ErrCollectionClosed
 	}
 	if state.recoveryRequired {
@@ -580,6 +647,9 @@ func (h *CollectionHandle) Flush() error {
 	var err error
 	if _, ok := h.col.(*Collection); ok {
 		err = SaveCollection(h.col, h.db.Path)
+	} else if collection, ok := h.col.(*VamanaCollection); ok && collection.MaintenanceStats().CheckpointRecommended {
+		_, err = collection.Checkpoint(context.Background())
+		state.checkpointErr = err
 	} else {
 		err = h.col.Flush()
 	}
@@ -587,6 +657,49 @@ func (h *CollectionHandle) Flush() error {
 		return classifyPublicError(err)
 	}
 	return nil
+}
+
+func (h *CollectionHandle) Checkpoint(ctx context.Context) (CheckpointResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if h.db == nil {
+		return CheckpointResult{}, fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
+	}
+	state := h.db.writeState(h.Name())
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	if state.closed || state.closing {
+		return CheckpointResult{}, ErrCollectionClosed
+	}
+	if state.recoveryRequired {
+		return CheckpointResult{}, ErrIndexRecoveryRequired
+	}
+	if err := ctx.Err(); err != nil {
+		return CheckpointResult{}, err
+	}
+	state.waitAsync()
+	if collection, ok := h.col.(*VamanaCollection); ok {
+		result, err := collection.Checkpoint(ctx)
+		state.checkpointErr = err
+		if err != nil {
+			return CheckpointResult{}, classifyPublicError(err)
+		}
+		return result, nil
+	}
+	info := h.col.Info()
+	walPath := filepath.Join(h.db.Path, h.Name(), WALFileName)
+	walBytes := fileSizeOrZero(walPath)
+	if err := SaveCollection(h.col, h.db.Path); err != nil {
+		return CheckpointResult{}, classifyPublicError(err)
+	}
+	return CheckpointResult{
+		Engine:          h.Engine(),
+		CommitSequence:  state.sequence,
+		OriginalPoints:  uint64(info.Count),
+		RemainingPoints: uint64(info.Count),
+		WALBytesBefore:  walBytes,
+	}, nil
 }
 
 func (h *CollectionHandle) persistWrite(operations []WriteOperation, sequence uint64) error {
@@ -609,7 +722,7 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 	state := h.db.writeState(h.Name())
 	state.mu.RLock()
 	defer state.mu.RUnlock()
-	if state.closed {
+	if state.closed || state.closing {
 		return nil, ErrCollectionClosed
 	}
 	if state.recoveryRequired {
@@ -634,15 +747,40 @@ func (h *CollectionHandle) Close() error {
 	}
 	state := h.db.writeState(h.Name())
 	state.mu.Lock()
+	if state.closed {
+		state.mu.Unlock()
+		return nil
+	}
+	if !state.closing {
+		state.closing = true
+	}
+	state.mu.Unlock()
+
+	// closing 在 state.mu 下阻止新的后台任务登记，因此此处等待不会与 WaitGroup.Add 并发。
+	state.checkpointWG.Wait()
+
+	state.mu.Lock()
 	defer state.mu.Unlock()
 	if state.closed {
 		return nil
 	}
 	state.waitAsync()
+	var checkpointErr error
+	if collection, ok := h.col.(*VamanaCollection); ok && collection.MaintenanceStats().CheckpointRecommended {
+		if _, err := collection.Checkpoint(context.Background()); err != nil {
+			state.checkpointErr = err
+			checkpointErr = classifyPublicError(err)
+		} else {
+			state.checkpointErr = nil
+		}
+	}
 	if err := h.col.Close(); err != nil {
 		return classifyPublicError(err)
 	}
 	state.closed = true
+	if checkpointErr != nil {
+		return checkpointErr
+	}
 	return nil
 }
 
