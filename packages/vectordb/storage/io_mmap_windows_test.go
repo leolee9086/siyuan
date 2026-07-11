@@ -626,7 +626,7 @@ func TestWindowsReader_NodesPerBlockZero(t *testing.T) {
 	off := 0
 	binary.LittleEndian.PutUint32(header[off:], MagicNumber)
 	off = 4
-	binary.LittleEndian.PutUint64(header[off:], 10)   // NumPoints > 0 以到达 calcOffset
+	binary.LittleEndian.PutUint64(header[off:], 10) // NumPoints > 0 以到达 calcOffset
 	binary.LittleEndian.PutUint64(header[off+8:], dims)
 	binary.LittleEndian.PutUint64(header[off+16:], 0)
 	binary.LittleEndian.PutUint64(header[off+24:], nodeLen)

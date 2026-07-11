@@ -20,6 +20,38 @@ func init() {
 }
 
 // ── DuckDuckGo ────────────────────────────────────────
+// 对齐 TS duckduckgo.ts: searchHtmlPost + langToKl + timeRangeToDf
+
+// langToKl 对应 TS langToKl: 语言→DDG 区域参数
+func langToKl(lang string) string {
+	if lang == "" {
+		return "wt-wt"
+	}
+	m := map[string]string{
+		"zh-CN": "cn-zh", "zh-TW": "tw-zh", "zh": "cn-zh",
+		"ja": "jp-jp", "ko": "kr-kr",
+		"en": "us-en", "en-US": "us-en", "en-GB": "uk-en",
+		"fr": "fr-fr", "de": "de-de", "es": "es-es",
+		"pt": "br-pt", "it": "it-it", "ru": "ru-ru",
+	}
+	if v, ok := m[lang]; ok {
+		return v
+	}
+	parts := strings.SplitN(lang, "-", 2)
+	if v, ok := m[parts[0]]; ok {
+		return v
+	}
+	return "wt-wt"
+}
+
+// timeRangeToDf 对应 TS timeRangeToDf: timeRange→DDG 日期过滤参数
+func timeRangeToDf(timeRange string) string {
+	m := map[string]string{"day": "d", "week": "w", "month": "m", "year": "y"}
+	if v, ok := m[timeRange]; ok {
+		return v
+	}
+	return ""
+}
 
 func newDuckDuckGo(config EngineConfig) SearchEngine {
 	return &ddgEngine{config: config}
@@ -31,17 +63,48 @@ func (e *ddgEngine) Name() string        { return "duckduckgo" }
 func (e *ddgEngine) Config() EngineConfig { return e.config }
 func (e *ddgEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	// 对应 TS: headers
+	client.SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
 	client.SetHeader("Content-Type", "application/x-www-form-urlencoded")
-	client.SetHeader("Accept", "text/html")
-	formData := map[string]string{"q": query, "b": "", "kl": "wt-wt"}
+	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	// 对应 TS: Accept-Language
+	acceptLang := "en-US,en;q=0.9"
+	if opts.Lang != "" {
+		acceptLang = strings.ReplaceAll(opts.Lang, "_", "-") + ",en;q=0.9"
+	}
+	client.SetHeader("Accept-Language", acceptLang)
+	// 对应 TS: Sec-Fetch-* + Referer
+	client.SetHeader("Sec-Fetch-Dest", "document")
+	client.SetHeader("Sec-Fetch-Mode", "navigate")
+	client.SetHeader("Sec-Fetch-Site", "same-origin")
+	client.SetHeader("Sec-Fetch-User", "?1")
+	client.SetHeader("Referer", "https://html.duckduckgo.com/")
+
+	// 对应 TS: formData = { q, b: "", kl: langToKl(opts.lang) }
+	formData := map[string]string{"q": query, "b": "", "kl": langToKl(opts.Lang)}
+	// 对应 TS: if (df) formData.set("df", df)
+	if df := timeRangeToDf(opts.TimeRange); df != "" {
+		formData["df"] = df
+	}
+
 	status, body, err := client.PostForm("https://html.duckduckgo.com/html/", formData, nil)
 	if err != nil {
 		return nil, err
 	}
+	// 对应 TS: if (response.status < 200 || response.status >= 400) return []
 	if status < 200 || status >= 400 {
 		return nil, nil
 	}
-	if strings.Contains(body, "challenge-form") || strings.Contains(body, "captcha") {
+	// 对应 TS: if (response.status === 303 || response.status === 403) return []
+	if status == 303 || status == 403 {
+		return nil, nil
+	}
+	// 对应 TS: if (html.length < 500) return []
+	if len(body) < 500 {
+		return nil, nil
+	}
+	// 对应 TS: if (html.includes('id="challenge-form"') || html.includes('id="captcha"')) return []
+	if strings.Contains(body, `id="challenge-form"`) || strings.Contains(body, `id="captcha"`) {
 		return nil, nil
 	}
 	return parseDdgHTML(body, opts.NumResults, "duckduckgo", "")
@@ -89,32 +152,61 @@ func newBrave(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "brave", Category: "general",
 		UserAgent: "opencode-search/1.0",
+		Headers: map[string]string{
+			"Accept-Encoding": "gzip",
+		},
+		RequiresKey: true,
+		APIKeyEnv:   "BRAVE_API_KEY",
+		APIKeyHeader: "X-Subscription-Token",
 		URL: func(q string, n int) string {
-			return "https://api.search.brave.com/res/v1/web/search?q=" + url.QueryEscape(q) + "&count=" + strconv.Itoa(minInt(n, 20))
+			// 对应 TS: q, count, safesearch
+			return "https://api.search.brave.com/res/v1/web/search?q=" + url.QueryEscape(q) + "&count=" + strconv.Itoa(minInt(n, 20)) + "&safesearch=1"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			// 对应 TS: parsed?.web?.results ?? parsed?.results ?? []
 			var resp struct {
 				Web *struct {
 					Results []struct {
 						Title       string `json:"title"`
 						URL         string `json:"url"`
 						Description string `json:"description"`
+						Snippet     string `json:"snippet"`
 					} `json:"results"`
 				} `json:"web"`
+				Results []struct {
+					Title       string `json:"title"`
+					URL         string `json:"url"`
+					Description string `json:"description"`
+					Snippet     string `json:"snippet"`
+				} `json:"results"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
 				return nil, nil
 			}
-			if resp.Web == nil {
-				return nil, nil
+			// 优先 web.results，fallback 到顶层 results
+			var items []struct {
+				Title       string `json:"title"`
+				URL         string `json:"url"`
+				Description string `json:"description"`
+				Snippet     string `json:"snippet"`
+			}
+			if resp.Web != nil && len(resp.Web.Results) > 0 {
+				items = resp.Web.Results
+			} else if len(resp.Results) > 0 {
+				items = resp.Results
 			}
 			var results []SearchResult
-			for i, r := range resp.Web.Results {
+			for i, r := range items {
 				if i >= max {
 					break
 				}
+				// 对应 TS: r.description ?? r.snippet ?? ""
+				snippet := r.Description
+				if snippet == "" {
+					snippet = r.Snippet
+				}
 				results = append(results, SearchResult{
-					Title: r.Title, URL: r.URL, Snippet: r.Description,
+					Title: r.Title, URL: r.URL, Snippet: snippet,
 					Engine: "brave", Position: i + 1, Category: "general",
 				})
 			}
@@ -304,17 +396,29 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 
 func newBaidu(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "baidu", UserAgent: RandomUserAgent(),
+		Name: "baidu",
+		UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+		Headers: map[string]string{
+			"Accept":          "application/json, text/javascript, */*; q=0.01",
+			"Accept-Language": "zh-CN,zh;q=0.9",
+			"Referer":         "https://www.baidu.com/",
+		},
 		URL: func(q string, n int) string {
-			return "https://www.baidu.com/s?wd=" + url.QueryEscape(q) + "&rn=" + strconv.Itoa(minInt(n, 50)) + "&tn=json"
+			return "https://www.baidu.com/s?wd=" + url.QueryEscape(q) + "&rn=" + strconv.Itoa(minInt(n, 50)) + "&pn=0&tn=json"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			// 对应 TS: wappass/captcha 检测
+			body := string(data)
+			if strings.Contains(body, "wappass") || strings.Contains(body, "captcha") {
+				return nil, nil
+			}
 			var resp struct {
 				Feed *struct {
 					Entry []struct {
 						Title string `json:"title"`
 						URL   string `json:"url"`
 						Abs   string `json:"abs"`
+						Time  int64  `json:"time"`
 					} `json:"entry"`
 				} `json:"feed"`
 			}
@@ -325,13 +429,24 @@ func newBaidu(config EngineConfig) SearchEngine {
 				return nil, nil
 			}
 			var results []SearchResult
-			for i, entry := range resp.Feed.Entry {
-				if i >= max {
+			for _, entry := range resp.Feed.Entry {
+				if len(results) >= max {
 					break
 				}
+				// 对应 TS: if (!title || !url) continue
+				title := strings.TrimSpace(UnescapeHTML(entry.Title))
+				if title == "" || entry.URL == "" {
+					continue
+				}
+				var pubDate int64
+				if entry.Time > 0 {
+					pubDate = entry.Time * 1000 // 百度返回秒级时间戳
+				}
 				results = append(results, SearchResult{
-					Title: UnescapeHTML(entry.Title), URL: entry.URL,
-					Snippet: UnescapeHTML(entry.Abs), Engine: "baidu", Position: i + 1,
+					Title: title, URL: entry.URL,
+					Snippet: strings.TrimSpace(UnescapeHTML(entry.Abs)),
+					Engine: "baidu", Position: len(results) + 1,
+					PublishedDate: pubDate,
 				})
 			}
 			return results, nil

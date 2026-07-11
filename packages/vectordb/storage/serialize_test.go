@@ -118,7 +118,7 @@ func TestReadGraphHeader_EmptyReader(t *testing.T) {
 func TestReadGraphHeader_Truncated(t *testing.T) {
 	// Write header then read from truncated data
 	header := &GraphHeader{
-		Meta: GraphMetadata{Dims: 128},
+		Meta:      GraphMetadata{Dims: 128},
 		BlockSize: 4096,
 		Version:   LayoutVersion{Major: CurrentMajorVersion},
 	}

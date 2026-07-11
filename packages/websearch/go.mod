@@ -2,7 +2,11 @@ module github.com/siyuan-note/siyuan/packages/websearch
 
 go 1.24.5
 
+require github.com/refraction-networking/utls v1.8.2
+
 require (
-	github.com/mattn/go-sqlite3 v1.14.22
-	golang.org/x/net v0.35.0
+	github.com/andybalholm/brotli v1.0.6 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 )

@@ -283,17 +283,79 @@ func newPyPI(config EngineConfig) SearchEngine {
 func newCrates(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "crates", Category: "code", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://crates.io/api/v1/crates?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) },
+		URL: func(q string, n int) string { return "https://crates.io/api/v1/crates?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) },
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ Crates []struct{ ID, Name, Description, Documentation, Repository, MaxStableVersion string `json:"max_version"`; Downloads, RecentDownloads int `json:"recent_downloads"` } `json:"crates"` }
-			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var resp struct {
+				Crates []struct {
+					Name             string   `json:"name"`
+					Description      string   `json:"description"`
+					NewestVersion    string   `json:"newest_version"`
+					MaxVersion       string   `json:"max_version"`
+					MaxStableVersion string   `json:"max_stable_version"`
+					Keywords         []string `json:"keywords"`
+					UpdatedAt        string   `json:"updated_at"`
+					Downloads        int64    `json:"downloads"`
+				} `json:"crates"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
 			var results []SearchResult
-			for i, c := range resp.Crates {
-				if i >= max || c.Name == "" { break }
-				title := c.Name; if c.MaxStableVersion != "" { title += " v" + c.MaxStableVersion }
-				url := "https://crates.io/crates/" + c.Name
-				dl := ""; if c.Downloads > 0 { dl = "⬇ " + strconv.Itoa(c.Downloads) }
-				results = append(results, SearchResult{Title: title, URL: url, Snippet: dl + " " + c.Description, Engine: "crates", Position: i + 1, Category: "code"})
+			for _, c := range resp.Crates {
+				if len(results) >= max {
+					break
+				}
+				// 对应 TS: if (!crate.name) continue（不是 break）
+				if c.Name == "" {
+					continue
+				}
+				// 对应 TS: newest_version || max_version || max_stable_version
+				version := c.NewestVersion
+				if version == "" {
+					version = c.MaxVersion
+				}
+				if version == "" {
+					version = c.MaxStableVersion
+				}
+				// 对应 TS 标题: name vVERSION
+				title := c.Name
+				if version != "" {
+					title += " v" + version
+				}
+				// 对应 TS snippet 格式: [vX · N downloads · keywords] description
+				parts := make([]string, 0, 3)
+				if version != "" {
+					parts = append(parts, "v"+version)
+				}
+				if c.Downloads > 0 {
+					parts = append(parts, fmt.Sprintf("%d downloads", c.Downloads))
+				}
+				if len(c.Keywords) > 0 {
+					topK := 3
+					if len(c.Keywords) < 3 {
+						topK = len(c.Keywords)
+					}
+					parts = append(parts, strings.Join(c.Keywords[:topK], ", "))
+				}
+				snippet := c.Description
+				if len(parts) > 0 {
+					snippet = "[" + strings.Join(parts, " · ") + "] " + c.Description
+				}
+				if len(snippet) > 300 {
+					snippet = snippet[:300]
+				}
+				var pubDate int64
+				if c.UpdatedAt != "" {
+					if t, err := time.Parse(time.RFC3339, c.UpdatedAt); err == nil {
+						pubDate = t.UnixMilli()
+					}
+				}
+				results = append(results, SearchResult{
+					Title: title, URL: "https://crates.io/crates/" + c.Name,
+					Snippet: snippet, Engine: "crates",
+					Position: len(results) + 1, Category: "code",
+					PublishedDate: pubDate,
+				})
 			}
 			return results, nil
 		},
@@ -659,35 +721,74 @@ func newGitHubRepoFiles(config EngineConfig) SearchEngine {
 func newGitLab(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "gitlab", Category: "code",
-		UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITLAB_TOKEN",
+		UserAgent: "opencode-search/1.0",
+		// 对应 TS: PRIVATE-TOKEN header（不是 Authorization Bearer）
+		RequiresKey: true, APIKeyEnv: "GITLAB_TOKEN", APIKeyHeader: "PRIVATE-TOKEN",
 		URL: func(q string, n int) string {
 			return "https://gitlab.com/api/v4/projects?search=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&order_by=stars&sort=desc"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp []struct {
-				Name       string `json:"name"`
-				PathWithNS string `json:"path_with_namespace"`
-				WebURL     string `json:"web_url"`
-				Desc       string `json:"description"`
-				Stars      int    `json:"star_count"`
-				Forks      int    `json:"forks_count"`
+				Name          string   `json:"name"`
+				PathWithNS    string   `json:"path_with_namespace"`
+				WebURL        string   `json:"web_url"`
+				Desc          string   `json:"description"`
+				Stars         int      `json:"star_count"`
+				Forks         int      `json:"forks_count"`
+				LastActivity  string   `json:"last_activity_at"`
+				Topics        []string `json:"topics"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
 				return nil, nil
 			}
 			var results []SearchResult
-			for i, p := range resp {
-				if i >= max || p.Name == "" {
+			for _, p := range resp {
+				if len(results) >= max {
 					break
 				}
-				snippet := ""
-				if p.Desc != "" {
-					snippet = p.Desc + " | "
+				// 对应 TS: if (!url || !name) continue（不是 break！）
+				name := p.PathWithNS
+				if name == "" {
+					name = p.Name
 				}
-				snippet += "⭐ " + strconv.Itoa(p.Stars) + " · 🍴 " + strconv.Itoa(p.Forks)
+				if p.WebURL == "" || name == "" {
+					continue
+				}
+				// 对应 TS: snippet 格式
+				parts := make([]string, 0, 4)
+				if p.Stars > 0 {
+					parts = append(parts, strconv.Itoa(p.Stars)+" stars")
+				}
+				if p.Forks > 0 {
+					parts = append(parts, strconv.Itoa(p.Forks)+" forks")
+				}
+				if len(p.Topics) > 0 {
+					topCount := 3
+					if len(p.Topics) < 3 {
+						topCount = len(p.Topics)
+					}
+					parts = append(parts, strings.Join(p.Topics[:topCount], ", "))
+				}
+				snippet := ""
+				if len(parts) > 0 {
+					snippet = "[" + strings.Join(parts, " · ") + "] " + p.Desc
+				} else {
+					snippet = p.Desc
+				}
+				if len(snippet) > 300 {
+					snippet = snippet[:300]
+				}
+				var pubDate int64
+				if p.LastActivity != "" {
+					if t, err := time.Parse(time.RFC3339, p.LastActivity); err == nil {
+						pubDate = t.UnixMilli()
+					}
+				}
 				results = append(results, SearchResult{
-					Title: p.PathWithNS, URL: p.WebURL, Snippet: snippet,
-					Engine: "gitlab", Position: i + 1, Category: "code",
+					Title: "⭐" + strconv.Itoa(p.Stars) + " " + name,
+					URL: p.WebURL, Snippet: snippet,
+					Engine: "gitlab", Position: len(results) + 1, Category: "code",
+					PublishedDate: pubDate,
 				})
 			}
 			return results, nil

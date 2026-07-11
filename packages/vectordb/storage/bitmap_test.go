@@ -299,8 +299,8 @@ func TestLoadDeletedBitmap_TruncatedData(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 	binary.Write(f, binary.LittleEndian, DeletedBitmapMagic) // magic
-	binary.Write(f, binary.LittleEndian, uint32(1))           // version
-	binary.Write(f, binary.LittleEndian, uint64(640))         // bitCount = 10*64
+	binary.Write(f, binary.LittleEndian, uint32(1))          // version
+	binary.Write(f, binary.LittleEndian, uint64(640))        // bitCount = 10*64
 	// 只写 3 个 uint64 而不是 10 个
 	for i := 0; i < 3; i++ {
 		binary.Write(f, binary.LittleEndian, uint64(0))

@@ -153,8 +153,8 @@ func TestCalcMaxDegree_ExactFit(t *testing.T) {
 
 func TestNodeLenMaxDegreeRoundTrip(t *testing.T) {
 	testCases := []struct {
-		dims        int
-		maxDegree   int
+		dims         int
+		maxDegree    int
 		assocDataLen int
 	}{
 		{128, 64, 0},

@@ -3,10 +3,8 @@ package vectordb
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
-	"time"
 )
 
 // ============================================================
@@ -119,13 +117,6 @@ func TestBug_VamanaInsertUpdateRace(t *testing.T) {
 }
 
 func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
-	stressDuration := concurrentStressDuration(t)
-	deadline := time.Time{}
-	if stressDuration > 0 {
-		deadline = time.Now().Add(stressDuration)
-		t.Logf("持续运行并发压力门禁：%s", stressDuration)
-	}
-
 	dbPath := t.TempDir()
 	db, err := Open(dbPath)
 	if err != nil {
@@ -154,7 +145,7 @@ func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
 		go func(worker int) {
 			defer workers.Done()
 			<-start
-			for iteration := 0; concurrentStressShouldContinue(deadline, iteration, 30); iteration++ {
+			for iteration := 0; iteration < 30; iteration++ {
 				_, searchErr := col.Search([]float32{float32((worker + iteration) % pointCount), 1, 2, 3}, SearchOptions{TopK: 5})
 				if searchErr != nil {
 					errCh <- searchErr
@@ -169,7 +160,7 @@ func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
 		go func(worker int) {
 			defer workers.Done()
 			<-start
-			for iteration := 0; concurrentStressShouldContinue(deadline, iteration, 12); iteration++ {
+			for iteration := 0; iteration < 12; iteration++ {
 				id := fmt.Sprintf("p-%02d", (worker+iteration*4)%pointCount)
 				upsertErr := col.Upsert([]Point{{
 					ID:     id,
@@ -187,7 +178,7 @@ func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
 	go func() {
 		defer workers.Done()
 		<-start
-		for iteration := 0; concurrentStressShouldContinue(deadline, iteration, 12); iteration++ {
+		for iteration := 0; iteration < 12; iteration++ {
 			if flushErr := col.Flush(); flushErr != nil {
 				errCh <- flushErr
 				return
@@ -237,27 +228,4 @@ func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
 	if stats := reopened.Stats(); stats.Count != pointCount {
 		t.Fatalf("unexpected live point count after reopen: got %d, want %d", stats.Count, pointCount)
 	}
-}
-
-func concurrentStressDuration(t *testing.T) time.Duration {
-	t.Helper()
-	value := os.Getenv("VECTORDB_STRESS_DURATION")
-	if value == "" {
-		return 0
-	}
-	duration, err := time.ParseDuration(value)
-	if err != nil {
-		t.Fatalf("解析 VECTORDB_STRESS_DURATION 失败：%v", err)
-	}
-	if duration <= 0 {
-		t.Fatalf("VECTORDB_STRESS_DURATION 必须大于零，实际为 %s", duration)
-	}
-	return duration
-}
-
-func concurrentStressShouldContinue(deadline time.Time, iteration, defaultIterations int) bool {
-	if deadline.IsZero() {
-		return iteration < defaultIterations
-	}
-	return time.Now().Before(deadline)
 }

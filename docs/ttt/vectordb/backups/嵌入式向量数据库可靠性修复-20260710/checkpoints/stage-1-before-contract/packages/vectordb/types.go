@@ -100,7 +100,6 @@ type CollectionInfo struct {
 type Database struct {
 	Path        string
 	Collections map[string]VectorCollection
-	writeStates map[string]*collectionWriteState
 	mu          sync.RWMutex
 }
 
@@ -137,7 +136,6 @@ func NewDatabase(path string) *Database {
 	return &Database{
 		Path:        path,
 		Collections: make(map[string]VectorCollection),
-		writeStates: make(map[string]*collectionWriteState),
 	}
 }
 
@@ -275,7 +273,6 @@ func (db *Database) CreateCollectionWithOptionsRaw(name string, dimension int, m
 	c.Meta = meta
 
 	db.Collections[name] = c
-	db.ensureWriteStateLocked(name)
 	return c, nil
 }
 
@@ -292,7 +289,6 @@ func (db *Database) DeleteCollection(name string) error {
 		return err
 	}
 	delete(db.Collections, name)
-	delete(db.writeStates, name)
 
 	collectionPath := filepath.Join(db.Path, name)
 	if err := os.RemoveAll(collectionPath); err != nil {

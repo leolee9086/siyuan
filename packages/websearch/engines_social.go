@@ -182,6 +182,10 @@ func newReddit(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.reddit.com/search/?q=" + url.QueryEscape(q)
 		},
+		Headers: map[string]string{
+			"User-Agent": "opencode-search/1.0 (by /u/opencode)",
+			"Accept":     "text/html",
+		},
 		Parse: func(body string, maxResults int) ([]SearchResult, error) {
 			var results []SearchResult
 			pos := 0
@@ -1066,6 +1070,7 @@ func newStartpage(config EngineConfig) SearchEngine {
 		Headers: map[string]string{
 			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			"Accept-Language": "en-US,en;q=0.9",
+			"Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult; pos := 0

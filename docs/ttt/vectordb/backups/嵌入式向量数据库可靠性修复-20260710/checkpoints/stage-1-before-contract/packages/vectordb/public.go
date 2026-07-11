@@ -1,7 +1,6 @@
 package vectordb
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,7 +53,6 @@ type DB interface {
 type CollectionAPI interface {
 	Name() string
 	Engine() Engine
-	Write(ctx context.Context, batch WriteBatch, opts WriteOptions) (WriteResult, error)
 	Upsert(points []Point) error
 	Search(query []float32, opts SearchOptions) ([]SearchResult, error)
 	Delete(ids []string) error
@@ -85,10 +83,6 @@ type CollectionHandle struct {
 var _ DB = (*Database)(nil)
 var _ CollectionAPI = (*CollectionHandle)(nil)
 
-var flushCollection = func(h *CollectionHandle) error {
-	return h.Flush()
-}
-
 func Open(path string) (*Database, error) {
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return nil, err
@@ -113,7 +107,6 @@ func Open(path string) (*Database, error) {
 				return nil, classifyPublicError(openErr)
 			}
 			db.Collections[name] = vc
-			db.ensureWriteStateLocked(name)
 			continue
 		} else if !os.IsNotExist(statErr) {
 			return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
@@ -128,7 +121,6 @@ func Open(path string) (*Database, error) {
 			return nil, fmt.Errorf("open hnsw collection %q: %w", name, err)
 		}
 		db.Collections[name] = c
-		db.ensureWriteStateLocked(name)
 	}
 
 	return db, nil
@@ -168,7 +160,6 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = vc
-		db.ensureWriteStateLocked(name)
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: vc}, nil
 	} else if !os.IsNotExist(statErr) {
@@ -183,7 +174,6 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = c
-		db.ensureWriteStateLocked(name)
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: c}, nil
 	}
@@ -301,7 +291,6 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 		_ = old.Close()
 	}
 	db.Collections[name] = vc
-	db.ensureWriteStateLocked(name)
 	db.mu.Unlock()
 
 	return &CollectionHandle{db: db, col: vc}, nil
@@ -319,83 +308,19 @@ func (h *CollectionHandle) Engine() Engine {
 	return h.col.Engine()
 }
 
-func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts WriteOptions) (WriteResult, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if h.db == nil {
-		return WriteResult{}, fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
-	}
-
-	normalizedOptions, err := normalizeWriteOptions(opts)
-	if err != nil {
-		return WriteResult{}, err
-	}
-	operations, err := validateWriteBatch(ctx, h.col.Dimension(), batch)
-	if err != nil {
-		return WriteResult{}, err
-	}
-
-	state := h.db.writeState(h.Name())
-	state.mu.Lock()
-	defer state.mu.Unlock()
-	if err := ctx.Err(); err != nil {
-		return WriteResult{}, err
-	}
-
-	if normalizedOptions.OnProgress != nil {
-		normalizedOptions.OnProgress(WriteProgress{Stage: "applying", Total: len(operations)})
-	}
-	applied, err := h.applyWriteOperations(ctx, operations, normalizedOptions.OnProgress)
-	if err != nil {
-		return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrBatchApplyFailed, classifyPublicError(err))
-	}
-
-	if normalizedOptions.OnProgress != nil && normalizedOptions.Durability == DurabilitySync {
-		normalizedOptions.OnProgress(WriteProgress{Stage: "persisting", Completed: applied, Total: applied})
-	}
-	if normalizedOptions.Durability == DurabilitySync {
-		if err := flushCollection(h); err != nil {
-			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: false}, classifyPublicError(err)
+func (h *CollectionHandle) Upsert(points []Point) error {
+	for i, point := range points {
+		if len(point.Vector) != h.col.Dimension() {
+			return fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, i, h.col.Dimension(), len(point.Vector))
+		}
+		if err := h.col.InsertPoint(point); err != nil {
+			return classifyPublicError(err)
 		}
 	}
-
-	state.sequence++
-	result := WriteResult{
-		CommitSequence: state.sequence,
-		Applied:        applied,
-		Durability:     normalizedOptions.Durability,
-		Committed:      true,
-		IndexHealthy:   true,
-	}
-	if normalizedOptions.Durability == DurabilityAsync {
-		h.flushAsync()
-	}
-
-	if normalizedOptions.OnProgress != nil {
-		normalizedOptions.OnProgress(WriteProgress{Stage: "committed", Completed: applied, Total: applied})
-	}
-	return result, nil
-}
-
-func (h *CollectionHandle) Upsert(points []Point) error {
-	if len(points) == 0 {
-		return nil
-	}
-	operations := make([]WriteOperation, len(points))
-	for i := range points {
-		point := points[i]
-		operations[i] = WriteOperation{Point: &point}
-	}
-	_, err := h.Write(context.Background(), WriteBatch{Operations: operations}, WriteOptions{Durability: DurabilitySync})
-	return err
+	return h.Flush()
 }
 
 func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]SearchResult, error) {
-	state := h.db.writeState(h.Name())
-	state.mu.RLock()
-	defer state.mu.RUnlock()
-
 	if len(query) != h.col.Dimension() {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, h.col.Dimension(), len(query))
 	}
@@ -423,47 +348,15 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 }
 
 func (h *CollectionHandle) Delete(ids []string) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	operations := make([]WriteOperation, len(ids))
-	for i, id := range ids {
-		operations[i] = WriteOperation{DeleteID: id}
-	}
-	_, err := h.Write(context.Background(), WriteBatch{Operations: operations}, WriteOptions{Durability: DurabilitySync})
-	return err
-}
-
-func (h *CollectionHandle) applyWriteOperations(ctx context.Context, operations []WriteOperation, progress func(WriteProgress)) (int, error) {
-	for index, operation := range operations {
-		if err := ctx.Err(); err != nil {
-			return index, err
-		}
-		if operation.Point != nil {
-			if err := h.col.InsertPoint(*operation.Point); err != nil {
-				return index, err
-			}
-		} else if err := h.col.DeletePointWithError(operation.DeleteID); err != nil {
-			return index, err
-		}
-		if progress != nil {
-			progress(WriteProgress{Stage: "applying", Completed: index + 1, Total: len(operations)})
+	for _, id := range ids {
+		if err := h.col.DeletePointWithError(id); err != nil {
+			return err
 		}
 	}
-	return len(operations), nil
-}
-
-func (h *CollectionHandle) flushAsync() {
-	go func() {
-		_ = h.Flush()
-	}()
+	return h.Flush()
 }
 
 func (h *CollectionHandle) Stats() CollectionStats {
-	state := h.db.writeState(h.Name())
-	state.mu.RLock()
-	defer state.mu.RUnlock()
-
 	info := h.col.Info()
 	return CollectionStats{
 		Name:      info.Name,
@@ -484,10 +377,6 @@ func (h *CollectionHandle) Flush() error {
 }
 
 func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
-	state := h.db.writeState(h.Name())
-	state.mu.RLock()
-	defer state.mu.RUnlock()
-
 	var points []Point
 	for _, id := range ids {
 		vec, ok := h.col.GetVectorByID(id)

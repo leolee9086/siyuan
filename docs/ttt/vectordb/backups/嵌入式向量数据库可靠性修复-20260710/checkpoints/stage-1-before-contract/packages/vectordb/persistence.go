@@ -17,7 +17,6 @@
 package vectordb
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -37,13 +36,10 @@ const (
 )
 
 type SnapshotData struct {
-	FormatMajor      uint32           `msgpack:"formatMajor"`
-	FormatMinor      uint32           `msgpack:"formatMinor"`
-	RequiredFeatures uint64           `msgpack:"requiredFeatures"`
-	Name             string           `msgpack:"name"`
-	Dimension        int              `msgpack:"dimension"`
-	Config           CollectionConfig `msgpack:"config"`
-	Meta             CollectionMeta   `msgpack:"meta"`
+	Name      string           `msgpack:"name"`
+	Dimension int              `msgpack:"dimension"`
+	Config    CollectionConfig `msgpack:"config"`
+	Meta      CollectionMeta   `msgpack:"meta"`
 
 	DocMap []string         `msgpack:"docMap"`
 	IDMap  map[string]DocID `msgpack:"idMap"`
@@ -115,8 +111,6 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	}
 
 	snapshot := SnapshotData{
-		FormatMajor:    CurrentFormatMajor,
-		FormatMinor:    CurrentFormatMinor,
 		Name:           c.ColName,
 		Dimension:      c.ColDim,
 		Config:         c.Config,
@@ -167,15 +161,6 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	var snapshot SnapshotData
 	if err := msgpack.Unmarshal(data, &snapshot); err != nil {
 		return nil, err
-	}
-	if snapshot.FormatMajor != 0 {
-		compatibility, compatibilityErr := CheckFormatCompatibility(snapshot.FormatMajor, snapshot.FormatMinor, snapshot.RequiredFeatures, 0)
-		if compatibilityErr != nil {
-			return nil, compatibilityErr
-		}
-		if !compatibility.Writable {
-			return nil, fmt.Errorf("%w: snapshot requires migration before write", ErrFormatIncompatible)
-		}
 	}
 
 	store := NewVectorStore(snapshot.Dimension, snapshot.Config.MetricType)
