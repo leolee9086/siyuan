@@ -28,3 +28,18 @@ export { getSiyuanGlobalMenus };
 import { openTransferBlockRefDialog } from "../dialog/openTransferBlockRefDialog";
 /** 导出 openTransferBlockRefDialog，供 menus 模块使用 */
 export { openTransferBlockRefDialog };
+
+/** 用途：HTMLInputElement 类型守卫。使用范围：菜单键盘导航识别输入框/开关。解耦评估：DOM 守卫为基础能力，经 imports 转发避免业务文件直连 util。 */
+import { isHTMLInputElement } from "../util/DOM/element.guard";
+/** 导出 isHTMLInputElement，供 menus 模块类型收窄 */
+export { isHTMLInputElement };
+
+/** 用途：获取兼容的点击事件名。使用范围：菜单回车激活菜单项时派发点击。解耦评估：兼容层封装平台差异，经 imports 转发统一入口。 */
+import { getEventName } from "../protyle/util/compatibility";
+/** 导出 getEventName，供 menus 模块派发点击事件 */
+export { getEventName };
+
+/** 用途：按 class 向上查找祖先。使用范围：菜单左键返回父级菜单项。解耦评估：DOM 查找工具职责清晰，经 imports 转发避免业务直连 protyle。 */
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+/** 导出 hasClosestByClassName，供 menus 模块祖先查找 */
+export { hasClosestByClassName };
