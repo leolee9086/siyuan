@@ -3,10 +3,12 @@ package websearch
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -278,7 +280,25 @@ func newPyPI(config EngineConfig) SearchEngine {
 		},
 	})(config)
 }
-func newCrates(config EngineConfig) SearchEngine        { return newSiteScopedEngine("crates.io", "crates")(config) }
+func newCrates(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "crates", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string { return "https://crates.io/api/v1/crates?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Crates []struct{ ID, Name, Description, Documentation, Repository, MaxStableVersion string `json:"max_version"`; Downloads, RecentDownloads int `json:"recent_downloads"` } `json:"crates"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, c := range resp.Crates {
+				if i >= max || c.Name == "" { break }
+				title := c.Name; if c.MaxStableVersion != "" { title += " v" + c.MaxStableVersion }
+				url := "https://crates.io/crates/" + c.Name
+				dl := ""; if c.Downloads > 0 { dl = "⬇ " + strconv.Itoa(c.Downloads) }
+				results = append(results, SearchResult{Title: title, URL: url, Snippet: dl + " " + c.Description, Engine: "crates", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newHex(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "hex", Category: "code", UserAgent: "opencode-search/1.0",
@@ -349,18 +369,200 @@ func newDockerHub(config EngineConfig) SearchEngine {
 		},
 	})(config)
 }
-func newMetacpan(config EngineConfig) SearchEngine      { return newSiteScopedEngine("metacpan.org", "metacpan")(config) }
-func newArchLinux(config EngineConfig) SearchEngine     { return newSiteScopedEngine("archlinux.org", "archlinux")(config) }
-func newAlpineLinux(config EngineConfig) SearchEngine   { return newSiteScopedEngine("alpinelinux.org", "alpinelinux")(config) }
-func newVoidLinux(config EngineConfig) SearchEngine     { return newSiteScopedEngine("voidlinux.org", "voidlinux")(config) }
-func newFDroid(config EngineConfig) SearchEngine        { return newSiteScopedEngine("f-droid.org", "fdroid")(config) }
-func newMDN(config EngineConfig) SearchEngine           { return newSiteScopedEngine("developer.mozilla.org", "mdn")(config) }
-func newDocsRs(config EngineConfig) SearchEngine        { return newSiteScopedEngine("docs.rs", "docsrs")(config) }
-func newReactDocs(config EngineConfig) SearchEngine     { return newSiteScopedEngine("react.dev", "react-docs")(config) }
-func newVueDocs(config EngineConfig) SearchEngine       { return newSiteScopedEngine("vuejs.org", "vue-docs")(config) }
-func newPythonDocs(config EngineConfig) SearchEngine    { return newSiteScopedEngine("docs.python.org", "python-docs")(config) }
-func newPkgGoDev(config EngineConfig) SearchEngine      { return newSiteScopedEngine("pkg.go.dev", "pkg-go-dev")(config) }
-func newMicrosoftLearn(config EngineConfig) SearchEngine { return newSiteScopedEngine("learn.microsoft.com", "microsoft-learn")(config) }
+func newMetacpan(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "metacpan", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string { return "https://api.metacpan.org/search?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 20)) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ HITS *struct{ HITS []struct{ Source struct{ Name, Description, URL, Author string `json:"name"`; Abstract, Release string } `json:"_source"` } `json:"hits"` } `json:"hits"` }
+			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil { return nil, nil }
+			var results []SearchResult
+			for i, h := range resp.HITS.HITS {
+				if i >= max || h.Source.Name == "" { break }
+				results = append(results, SearchResult{Title: h.Source.Name + " (" + h.Source.Release + ")", URL: "https://metacpan.org/pod/" + h.Source.Name, Snippet: h.Source.Abstract, Engine: "metacpan", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newArchLinux(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "archlinux",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://archlinux.org/packages/?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/packages/[^"]*)"[^>]*>([\s\S]*?)<\/a>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" || !strings.HasPrefix(href, "/packages/") { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://archlinux.org" + href, Snippet: "Arch Linux package", Engine: "archlinux", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newAlpineLinux(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "alpinelinux",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://pkgs.alpinelinux.org/packages?name=" + url.QueryEscape(q) + "&branch=edge&arch=x86_64" },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/package/[^"]*)"[^>]*>([\s\S]*?)<\/a>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" || !strings.HasPrefix(href, "/package/") { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://pkgs.alpinelinux.org" + href, Snippet: "Alpine Linux package", Engine: "alpinelinux", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newVoidLinux(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "voidlinux",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://voidlinux.org/packages/?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<small[^>]*>[\s\S]*?<\/small>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "Void Linux package", Engine: "voidlinux", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newFDroid(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "fdroid",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://f-droid.org/search?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/packages/[^"]*)"[^>]*>[\s\S]*?<h[^>]*>([\s\S]*?)<\/h`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://f-droid.org" + href, Snippet: "F-Droid app", Engine: "fdroid", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newMDN(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "mdn",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://developer.mozilla.org/en-US/search?q=" + url.QueryEscape(q) + "&locale=en-US" },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/en-US/docs/[^"]*)"[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://developer.mozilla.org" + href, Snippet: "MDN Web Docs", Engine: "mdn", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newDocsRs(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "docsrs", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string { return "https://docs.rs/releases/search?query=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20)) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Crates []struct{ Name, Version, Description string } `json:"crates"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, c := range resp.Crates {
+				if i >= max || c.Name == "" { break }
+				results = append(results, SearchResult{Title: c.Name + " " + c.Version, URL: "https://docs.rs/" + c.Name + "/latest", Snippet: c.Description, Engine: "docsrs", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newReactDocs(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "react-docs",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://react.dev/search?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/[^"]*)"[^>]*>[\s\S]*?<h[^>]*>([\s\S]*?)<\/h`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://react.dev" + href, Snippet: "React docs", Engine: "react-docs", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newVueDocs(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "vue-docs",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://vuejs.org/search?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<h[^>]*>([\s\S]*?)<\/h`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				if !strings.HasPrefix(href, "http") { href = "https://vuejs.org" + href }
+				pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "Vue.js docs", Engine: "vue-docs", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newPythonDocs(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "python-docs",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://docs.python.org/3/search.html?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/span>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				if !strings.HasPrefix(href, "http") { href = "https://docs.python.org" + href }
+				pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "Python docs", Engine: "python-docs", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newPkgGoDev(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "pkg-go-dev", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string { return "https://pkg.go.dev/search?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20)) },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Results []struct{ Name, Path, Synopsis string; Version string } `json:"results"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, r := range resp.Results {
+				if i >= max || r.Name == "" { break }
+				results = append(results, SearchResult{Title: r.Path, URL: "https://pkg.go.dev/" + r.Path, Snippet: r.Synopsis, Engine: "pkg-go-dev", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newMicrosoftLearn(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "microsoft-learn",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://learn.microsoft.com/en-us/search/?terms=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="(/en-us/[^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/span>`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				pos++; results = append(results, SearchResult{Title: title, URL: "https://learn.microsoft.com" + href, Snippet: "Microsoft Learn", Engine: "microsoft-learn", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newGitHubCode(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "github-code", Category: "code",
@@ -420,8 +622,40 @@ func newGitHubCode(config EngineConfig) SearchEngine {
 		},
 	})(config)
 }
-func newGitHubIssues(config EngineConfig) SearchEngine  { return newSiteScopedEngine("github.com/issues", "github-issues")(config) }
-func newGitHubRepoFiles(config EngineConfig) SearchEngine { return newSiteScopedEngine("github.com", "github-repo-files")(config) }
+func newGitHubIssues(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		URL: func(q string, n int) string { return "https://api.github.com/search/issues?q=" + url.QueryEscape(q) + "+type:issue&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=relevance&order=desc" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Items []struct{ Title, HTMLURL, State string `json:"html_url"`; Comments int; User *struct{ Login string } `json:"user"`; CreatedAt string `json:"created_at"` } `json:"items"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, item := range resp.Items {
+				if i >= max || item.Title == "" || item.HTMLURL == "" { break }
+				author := ""; if item.User != nil { author = "@" + item.User.Login }
+				var ts int64; if item.CreatedAt != "" { if t, err := time.Parse(time.RFC3339, item.CreatedAt); err == nil { ts = t.UnixMilli() } }
+				results = append(results, SearchResult{Title: item.Title, URL: item.HTMLURL, Snippet: fmt.Sprintf("%s · %s · %d comments", author, item.State, item.Comments), Engine: "github-issues", Position: i + 1, Category: "code", PublishedDate: ts})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newGitHubRepoFiles(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "github-repo-files", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		URL: func(q string, n int) string { return "https://api.github.com/search/repositories?q=" + url.QueryEscape(q) + "+in:name&per_page=" + strconv.Itoa(minInt(n, 20)) + "&sort=stars&order=desc" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Items []struct{ FullName, HTMLURL, Description, DefaultBranch string `json:"html_url"`; Stars int `json:"stargazers_count"` } `json:"items"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, item := range resp.Items {
+				if i >= max || item.FullName == "" { break }
+				results = append(results, SearchResult{Title: item.FullName, URL: item.HTMLURL, Snippet: fmt.Sprintf("⭐%d · %s", item.Stars, item.Description), Engine: "github-repo-files", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
 func newGitLab(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "gitlab", Category: "code",
@@ -505,5 +739,36 @@ func newHuggingFace(config EngineConfig) SearchEngine {
 		},
 	})(config)
 }
-func newGitea(config EngineConfig) SearchEngine         { return newSiteScopedEngine("gitea.com", "gitea")(config) }
-func newSourceHut(config EngineConfig) SearchEngine     { return newSiteScopedEngine("sr.ht", "sourcehut")(config) }
+func newGitea(config EngineConfig) SearchEngine {
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "gitea", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string { return "https://gitea.com/api/v1/repos/search?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20)) + "&sort=stars&order=desc" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct{ Data []struct{ FullName, HTMLURL, Description string `json:"html_url"`; Stars, Forks int } `json:"data"` }
+			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var results []SearchResult
+			for i, r := range resp.Data {
+				if i >= max || r.FullName == "" { break }
+				results = append(results, SearchResult{Title: r.FullName, URL: r.HTMLURL, Snippet: fmt.Sprintf("%s · ⭐%d 🍴%d", r.Description, r.Stars, r.Forks), Engine: "gitea", Position: i + 1, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}
+func newSourceHut(config EngineConfig) SearchEngine {
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "sourcehut",
+		BuildURL: func(q string, opts SearchOptions) string { return "https://sr.ht/search?q=" + url.QueryEscape(q) },
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult; pos := 0
+			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*class="[^"]*search-result[^"]*"[^>]*>[\s\S]*?<h[^>]*>([\s\S]*?)<\/h`)
+			for _, m := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max { break }
+				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
+				if !strings.HasPrefix(href, "http") { href = "https://sr.ht" + href }
+				pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "SourceHut project", Engine: "sourcehut", Position: pos, Category: "code"})
+			}
+			return results, nil
+		},
+	})(config)
+}

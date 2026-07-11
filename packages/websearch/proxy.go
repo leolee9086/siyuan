@@ -1,50 +1,33 @@
 package websearch
 
 import (
-	"os"
 	"time"
 )
 
-// ── 代理检测 ──────────────────────────────────────────
+// ── 代理配置 ──────────────────────────────────────────
 
 // ProxyConfig 代理配置
+// AutoDetect 与 HTTP/HTTPS 显式 URL 互斥（由调用方保证）
 type ProxyConfig struct {
-	HTTP    string
-	HTTPS   string
-	NoProxy string
+	HTTP       string // 显式 HTTP 代理 URL，如 "http://127.0.0.1:7890"
+	HTTPS      string // 显式 HTTPS 代理 URL
+	NoProxy    string // 不使用代理的地址列表
+	AutoDetect bool   // 是否自动探测本地常见代理端口（与 HTTP/HTTPS 互斥）
 }
 
-// DetectProxyFromEnv 从环境变量检测代理配置
-func DetectProxyFromEnv() ProxyConfig {
-	httpProxy := os.Getenv("HTTP_PROXY")
-	if httpProxy == "" {
-		httpProxy = os.Getenv("http_proxy")
-	}
-	httpsProxy := os.Getenv("HTTPS_PROXY")
-	if httpsProxy == "" {
-		httpsProxy = os.Getenv("https_proxy")
-	}
-	allProxy := os.Getenv("ALL_PROXY")
-	if allProxy == "" {
-		allProxy = os.Getenv("all_proxy")
-	}
-	noProxy := os.Getenv("NO_PROXY")
-	if noProxy == "" {
-		noProxy = os.Getenv("no_proxy")
-	}
+// NewProxyConfig 创建空代理配置（不使用代理）
+func NewProxyConfig() ProxyConfig {
+	return ProxyConfig{}
+}
 
-	config := ProxyConfig{NoProxy: noProxy}
-	if httpProxy != "" {
-		config.HTTP = httpProxy
-	} else if allProxy != "" {
-		config.HTTP = allProxy
-	}
-	if httpsProxy != "" {
-		config.HTTPS = httpsProxy
-	} else if allProxy != "" {
-		config.HTTPS = allProxy
-	}
-	return config
+// NewExplicitProxy 创建显式代理配置
+func NewExplicitProxy(httpURL, httpsURL string) ProxyConfig {
+	return ProxyConfig{HTTP: httpURL, HTTPS: httpsURL}
+}
+
+// NewAutoDetectProxy 创建自动探测代理配置
+func NewAutoDetectProxy() ProxyConfig {
+	return ProxyConfig{AutoDetect: true}
 }
 
 // ProbeCommonProxy 探测 127.0.0.1:7890 等常见代理地址是否可用
@@ -64,20 +47,4 @@ func ProbeCommonProxy() *ProxyConfig {
 		}
 	}
 	return nil
-}
-
-// GetProxyConfig 获取代理配置：优先环境变量
-func GetProxyConfig() ProxyConfig {
-	envProxy := DetectProxyFromEnv()
-	if envProxy.HTTP != "" || envProxy.HTTPS != "" {
-		return envProxy
-	}
-	return ProxyConfig{}
-}
-
-// ApplyProxyEnv 将代理配置应用到 HTTP 客户端
-func ApplyProxyEnv(config ProxyConfig, client *HTTPClient) {
-	if config.HTTP != "" {
-		_ = client.SetProxy(config.HTTP)
-	}
 }

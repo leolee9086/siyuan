@@ -1,6 +1,7 @@
 package websearch
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,17 +13,54 @@ import (
 type HTTPClient struct {
 	client  *http.Client
 	headers map[string]string
+	proxy   *ProxyConfig // 当前代理配置
 }
 
 // NewHTTPClient 创建 HTTP 客户端
+// 代理优先级：UseProxy() > HTTP_PROXY 环境变量 > 直连
 func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	return &HTTPClient{
 		client: &http.Client{
-			Timeout:   timeout,
-			Transport: &http.Transport{},
+			Timeout: timeout,
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+			},
 		},
 		headers: make(map[string]string),
 	}
+}
+
+// UseProxy 为客户端配置代理
+// 优先级：显式 URL > AutoDetect > 无代理
+// 同时设置显式 URL 和 AutoDetect 时，显式 URL 优先
+func (c *HTTPClient) UseProxy(config ProxyConfig) error {
+	if config.HTTP != "" || config.HTTPS != "" {
+		c.proxy = &config
+		return c.applyProxyURL(config.HTTP)
+	}
+	if config.AutoDetect {
+		detected := ProbeCommonProxy()
+		if detected != nil {
+			c.proxy = detected
+			return c.applyProxyURL(detected.HTTP)
+		}
+	}
+	c.proxy = nil
+	return nil
+}
+
+func (c *HTTPClient) applyProxyURL(proxyURL string) error {
+	if proxyURL == "" {
+		return nil
+	}
+	parsed, err := url.Parse(proxyURL)
+	if err != nil {
+		return err
+	}
+	if t, ok := c.client.Transport.(*http.Transport); ok {
+		t.Proxy = http.ProxyURL(parsed)
+	}
+	return nil
 }
 
 // SetHeader 设置默认请求头
