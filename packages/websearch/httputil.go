@@ -1,7 +1,10 @@
 package websearch
 
 import (
+	"context"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,19 +16,18 @@ type HTTPClient struct {
 	client  *http.Client
 	headers map[string]string
 	proxy   *ProxyConfig // 当前代理配置
+	timeout time.Duration
 }
 
 // NewHTTPClient 创建 HTTP 客户端
 // 代理优先级：UseProxy() > HTTP_PROXY 环境变量 > 直连
 func NewHTTPClient(timeout time.Duration) *HTTPClient {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = http.ProxyFromEnvironment
 	return &HTTPClient{
-		client: &http.Client{
-			Timeout: timeout,
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-			},
-		},
+		client:  &http.Client{Transport: transport},
 		headers: make(map[string]string),
+		timeout: timeout,
 	}
 }
 
@@ -82,16 +84,7 @@ func (c *HTTPClient) Get(urlStr string, extraHeaders map[string]string) (int, st
 	if req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", RandomUserAgent())
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return 0, "", err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, "", err
-	}
-	return resp.StatusCode, string(body), nil
+	return c.do(req)
 }
 
 // PostForm 执行 POST 表单请求
@@ -116,16 +109,7 @@ func (c *HTTPClient) PostForm(urlStr string, formData map[string]string, extraHe
 	if req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", RandomUserAgent())
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return 0, "", err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, "", err
-	}
-	return resp.StatusCode, string(body), nil
+	return c.do(req)
 }
 
 // PostJSON 执行 POST JSON 请求
@@ -145,16 +129,57 @@ func (c *HTTPClient) PostJSON(urlStr string, jsonBody string, extraHeaders map[s
 	if req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", RandomUserAgent())
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return 0, "", err
+	return c.do(req)
+}
+
+func (c *HTTPClient) do(req *http.Request) (int, string, error) {
+	ctx := req.Context()
+	cancel := func() {}
+	if c.timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, c.timeout)
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, "", err
+	defer cancel()
+
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		attemptReq := req.Clone(ctx)
+		if req.GetBody != nil {
+			body, err := req.GetBody()
+			if err != nil {
+				return 0, "", err
+			}
+			attemptReq.Body = body
+		}
+		resp, err := c.client.Do(attemptReq)
+		if err == nil {
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr == nil {
+				return resp.StatusCode, string(body), nil
+			}
+			err = readErr
+		}
+		lastErr = err
+		if attempt > 0 || !isRetryableHTTPError(err) || ctx.Err() != nil {
+			break
+		}
+		timer := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			timer.Stop()
+			return 0, "", ctx.Err()
+		}
 	}
-	return resp.StatusCode, string(body), nil
+	return 0, "", lastErr
+}
+
+func isRetryableHTTPError(err error) bool {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary())
 }
 
 // SetProxy 设置代理

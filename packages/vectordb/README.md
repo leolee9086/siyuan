@@ -34,7 +34,28 @@
 | `OpenCollection(name)` | 通过统一句柄打开集合 |
 | `DeleteCollection(name)` | 删除集合及其落盘文件 |
 | `ListCollectionStats()` | 返回包含引擎、维度和数量的集合统计 |
-| `CollectionHandle.Upsert/Search/Delete/Flush/Stats/Close` | 统一集合生命周期接口 |
+| `CollectionHandle.Write(ctx, batch, opts)` | 带上下文、提交序号和 `memory`/`async`/`sync` 持久性选项的批次写入契约 |
+| `CollectionHandle.Upsert/Search/Delete/Flush/Stats/Close` | 兼容集合生命周期接口；`Upsert` 和 `Delete` 委托给同步批次写入 |
+
+## 写入与格式契约
+
+同一集合的公开批次写入按提交序号线性化；批次内同一外部 ID 的最后操作生效，搜索、统计和点读取不会观察批次中间状态。验证失败、提交前取消和可恢复的持久化失败不产生部分写入。HNSW 的 `sync` 模式使用带长度互补校验和 CRC32C 的批次 WAL，在文件同步完成后才返回；`Flush` 生成原子快照并清理 WAL。提交序号写入 WAL、HNSW 快照和 Vamana 状态文件，重启后继续递增。
+
+HNSW 快照写入当前格式主版本和次版本。主版本不一致或存在未知必需特性位时拒绝打开；未来次版本可判定为只读并要求迁移，旧的无版本快照继续按兼容格式读取。
+
+## ANN-Benchmarks SIFT 基准
+
+`BenchmarkANNBenchmarksSIFT`采用 ANN-Benchmarks 常用的 SIFT L2、Recall@10 与单查询吞吐协议，在同一进程和数据上报告精确 k-NN 基线以及 HNSW 的 `efSearch=32/64/100/200` 曲线。默认轻量配置使用 SIFT1M 的前 10,000 个 base 向量和前 100 个 query，并重新计算该子集的精确 ground truth；通过环境变量可扩展到更大规模。
+
+```powershell
+$env:VECTORDB_ANN_BENCH='1'
+$env:VECTORDB_ANN_BASE_COUNT='10000'
+$env:VECTORDB_ANN_QUERY_COUNT='100'
+go test -run TestANNBenchmarksSIFTReport -count=1 -timeout 30m -v
+go test -run '^$' -bench BenchmarkANNBenchmarksSIFT -benchmem -benchtime=3s -count=3 -timeout 30m
+```
+
+数据目录为仓库根目录的 `test_data/sift`，需包含 TEXMEX SIFT1M 的 `sift_base.fvecs` 和 `sift_query.fvecs`。报告包含构建时间、构建吞吐、每向量堆内存、QPS、p50/p95/p99、Recall@10 和相对 exact k-NN 加速比。
 
 ## 已验证基线
 

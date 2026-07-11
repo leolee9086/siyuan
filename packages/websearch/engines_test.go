@@ -13,13 +13,13 @@ import (
 
 // testResult 记录单个引擎的测试结果
 type testResult struct {
-	Engine         string         `json:"engine"`
-	Success        bool           `json:"success"`
-	ResultsCount   int            `json:"resultsCount"`
-	StatusCode     int            `json:"statusCode,omitempty"`
-	Error          string         `json:"error,omitempty"`
-	Results        []SearchResult `json:"results,omitempty"`
-	DurationMs     int64          `json:"durationMs"`
+	Engine       string         `json:"engine"`
+	Success      bool           `json:"success"`
+	ResultsCount int            `json:"resultsCount"`
+	StatusCode   int            `json:"statusCode,omitempty"`
+	Error        string         `json:"error,omitempty"`
+	Results      []SearchResult `json:"results,omitempty"`
+	DurationMs   int64          `json:"durationMs"`
 }
 
 // TestAllEnginesIntegration 对所有已注册引擎进行实际网络调用测试
@@ -144,10 +144,10 @@ func TestEngineBatches(t *testing.T) {
 		query   string
 		engines []string
 	}{
-		{"general", "hello world", []string{"duckduckgo", "bing", "brave", "google", "baidu", "startpage", "qwant", "seznam", "mwmbl", "yandex"}},
-		{"academic", "machine learning 2025", []string{"arxiv", "wikipedia", "semantic-scholar", "crossref", "openalex", "openlibrary", "pubmed", "zenodo", "openaire-publications"}},
-		{"code", "react hooks", []string{"github", "npm", "stackexchange", "gitlab", "huggingface", "pypi", "crates", "hex", "packagist", "rubygems"}},
-		{"social", "technology news", []string{"reddit", "mastodon", "lemmy", "discourse", "bandcamp", "genius", "deezer", "fyyd", "radio-browser", "tootfinder"}},
+		{name: "general", query: "hello world", engines: []string{"duckduckgo", "bing", "brave", "google", "baidu", "startpage", "qwant", "seznam", "mwmbl", "yandex"}},
+		{name: "academic", query: "machine learning 2025", engines: []string{"arxiv", "wikipedia", "semantic-scholar", "crossref", "openalex", "openlibrary", "pubmed", "zenodo", "openaire-publications"}},
+		{name: "code", query: "react hooks", engines: []string{"github", "npm", "stackexchange", "gitlab", "huggingface", "pypi", "crates", "hex", "packagist", "rubygems"}},
+		{name: "social", query: "technology news", engines: []string{"reddit", "mastodon", "lemmy", "discourse", "bandcamp", "genius", "deezer", "fyyd", "radio-browser", "tootfinder"}},
 		{"video", "music video", []string{"youtube", "bilibili", "dailymotion", "vimeo", "rumble", "odysee", "peertube", "sepiasearch", "piped", "invidious"}},
 		{"news", "latest technology", []string{"hackernews", "reuters", "bbc-news", "theguardian", "techcrunch", "theverge", "arstechnica", "tagesschau", "ansa", "yahoo-news"}},
 		{"image", "nature photography", []string{"unsplash", "pixabay", "pexels", "flickr", "openclipart", "artic", "wallhaven", "findthatmeme", "deviantart"}},
@@ -178,6 +178,7 @@ func TestEngineBatches(t *testing.T) {
 				factory, ok := GlobalEngineRegistry.Get(engineName)
 				if !ok {
 					fmt.Fprintf(batchFile, "| %s | NOT_REGISTERED | - | - | - |\n", engineName)
+					t.Errorf("[%s] %s is not registered", batch.name, engineName)
 					continue
 				}
 
@@ -188,12 +189,18 @@ func TestEngineBatches(t *testing.T) {
 				wg.Add(1)
 				sem <- struct{}{}
 
-				go func(eng SearchEngine, name string) {
+				query := batch.query
+				if engineName == "huggingface" {
+					query = "text generation"
+				} else if engineName == "pypi" {
+					query = "requests"
+				}
+				go func(eng SearchEngine, name, query string) {
 					defer wg.Done()
 					defer func() { <-sem }()
 
 					start := time.Now()
-					results, err := eng.Search(batch.query, SearchOptions{NumResults: 3}, nil)
+					results, err := eng.Search(query, SearchOptions{NumResults: 3}, nil)
 					duration := time.Since(start).Milliseconds()
 
 					mu.Lock()
@@ -201,13 +208,13 @@ func TestEngineBatches(t *testing.T) {
 
 					if err != nil {
 						fmt.Fprintf(batchFile, "| %s | ERROR | - | %d | %v |\n", name, duration, truncateStr(err.Error(), 60))
-						t.Logf("[%s] ❌ %s: %v (%dms)", batch.name, name, err, duration)
+						t.Errorf("[%s] %s: %v (%dms)", batch.name, name, err, duration)
 						return
 					}
 
 					if len(results) == 0 {
 						fmt.Fprintf(batchFile, "| %s | ZERO_RESULTS | 0 | %d | - |\n", name, duration)
-						t.Logf("[%s] ⚠️ %s: 0 results (%dms)", batch.name, name, duration)
+						t.Errorf("[%s] %s: 0 results (%dms)", batch.name, name, duration)
 						return
 					}
 
@@ -225,10 +232,10 @@ func TestEngineBatches(t *testing.T) {
 						Query    string         `json:"query"`
 						Duration int64          `json:"durationMs"`
 						Results  []SearchResult `json:"results"`
-					}{name, batch.query, duration, results}
+					}{name, query, duration, results}
 					j, _ := json.MarshalIndent(detail, "", "  ")
 					os.WriteFile(filepath.Join(resultsDir, fmt.Sprintf("%s_%s.json", batch.name, name)), j, 0644)
-				}(engine, engineName)
+				}(engine, engineName, query)
 			}
 
 			wg.Wait()

@@ -17,7 +17,10 @@
 package vectordb
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"os"
 	"path/filepath"
@@ -36,10 +39,21 @@ const (
 	WALFileName      = "wal.msgpack"
 )
 
+var walFileMagic = [8]byte{'S', 'V', 'D', 'B', 'W', 'A', 'L', '1'}
+
+const (
+	walRecordMagic   uint32 = 0x31524c57
+	walRecordHeader         = 16
+	maxWALRecordSize        = 256 << 20
+)
+
+var walChecksumTable = crc32.MakeTable(crc32.Castagnoli)
+
 type SnapshotData struct {
 	FormatMajor      uint32           `msgpack:"formatMajor"`
 	FormatMinor      uint32           `msgpack:"formatMinor"`
 	RequiredFeatures uint64           `msgpack:"requiredFeatures"`
+	CommitSequence   uint64           `msgpack:"commitSequence"`
 	Name             string           `msgpack:"name"`
 	Dimension        int              `msgpack:"dimension"`
 	Config           CollectionConfig `msgpack:"config"`
@@ -63,14 +77,17 @@ type SnapshotData struct {
 }
 
 type WALEntry struct {
-	Op     int      `msgpack:"op"`
-	Points []Point  `msgpack:"points,omitempty"`
-	Keys   []string `msgpack:"keys,omitempty"`
+	Op         int              `msgpack:"op"`
+	Sequence   uint64           `msgpack:"sequence,omitempty"`
+	Points     []Point          `msgpack:"points,omitempty"`
+	Keys       []string         `msgpack:"keys,omitempty"`
+	Operations []WriteOperation `msgpack:"operations,omitempty"`
 }
 
 const (
 	OpAdd    = 1
 	OpDelete = 2
+	OpBatch  = 3
 )
 
 // SaveCollection saves a collection snapshot.
@@ -117,6 +134,7 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	snapshot := SnapshotData{
 		FormatMajor:    CurrentFormatMajor,
 		FormatMinor:    CurrentFormatMinor,
+		CommitSequence: c.LastCommitSequence,
 		Name:           c.ColName,
 		Dimension:      c.ColDim,
 		Config:         c.Config,
@@ -218,70 +236,253 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	}
 
 	c = &Collection{
-		ColName: snapshot.Name,
-		ColDim:  snapshot.Dimension,
-		Config:  snapshot.Config,
-		Meta:    snapshot.Meta,
-		IDMap:   idMap,
-		DocMap:  snapshot.DocMap,
-		Store:   store,
-		Metas:   snapshot.Metas,
-		HNSWIdx: hnswIdx,
+		ColName:            snapshot.Name,
+		ColDim:             snapshot.Dimension,
+		Config:             snapshot.Config,
+		Meta:               snapshot.Meta,
+		LastCommitSequence: snapshot.CommitSequence,
+		IDMap:              idMap,
+		DocMap:             snapshot.DocMap,
+		Store:              store,
+		Metas:              snapshot.Metas,
+		HNSWIdx:            hnswIdx,
 	}
 
 	walPath := filepath.Join(collectionPath, WALFileName)
 	f, err := os.Open(walPath)
 	if err == nil {
 		defer f.Close()
-		decoder := msgpack.NewDecoder(f)
-
-		for {
-			var entry WALEntry
-			if err := decoder.Decode(&entry); err != nil {
-				if err == io.EOF {
-					break
-				}
-				break
-			}
-
-			if entry.Op == OpAdd {
-				for _, point := range entry.Points {
-					c.InsertPoint(point)
-				}
-			} else if entry.Op == OpDelete {
-				for _, key := range entry.Keys {
-					c.DeletePoint(key)
-				}
-			}
+		if err := loadWAL(c, f); err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrStorageCorrupted, err)
 		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	return c, nil
 }
 
 func AppendWALAdd(c *Collection, basePath string, points []Point) error {
-	return appendWAL(c.ColName, basePath, WALEntry{Op: OpAdd, Points: points})
+	return appendWAL(c.ColName, basePath, WALEntry{Op: OpAdd, Points: points}, false)
 }
 
 func AppendWALDelete(c *Collection, basePath string, keys []string) error {
-	return appendWAL(c.ColName, basePath, WALEntry{Op: OpDelete, Keys: keys})
+	return appendWAL(c.ColName, basePath, WALEntry{Op: OpDelete, Keys: keys}, false)
 }
 
-func appendWAL(name string, basePath string, entry WALEntry) error {
+func AppendWALBatchSync(c *Collection, basePath string, operations []WriteOperation, sequence uint64) error {
+	return appendWAL(c.ColName, basePath, WALEntry{Op: OpBatch, Sequence: sequence, Operations: operations}, true)
+}
+
+func AppendWALBatchAsync(c *Collection, basePath string, operations []WriteOperation, sequence uint64) error {
+	return appendWAL(c.ColName, basePath, WALEntry{Op: OpBatch, Sequence: sequence, Operations: operations}, false)
+}
+
+func SyncCollectionWAL(c *Collection, basePath string) error {
+	walPath := filepath.Join(basePath, c.ColName, WALFileName)
+	f, err := os.OpenFile(walPath, os.O_RDWR, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	return f.Sync()
+}
+
+func appendWAL(name string, basePath string, entry WALEntry, syncWrite bool) error {
 	collectionPath := filepath.Join(basePath, name)
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
 
 	walPath := filepath.Join(collectionPath, WALFileName)
-	f, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	encoder := msgpack.NewEncoder(f)
-	return encoder.Encode(entry)
+	stat, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	originalSize := stat.Size()
+	framed := originalSize == 0
+	if originalSize >= int64(len(walFileMagic)) {
+		var magic [8]byte
+		if _, err := f.ReadAt(magic[:], 0); err != nil {
+			return err
+		}
+		framed = magic == walFileMagic
+	}
+
+	if framed {
+		err = appendFramedWAL(f, originalSize, entry)
+	} else {
+		err = msgpack.NewEncoder(f).Encode(entry)
+	}
+	if err == nil && syncWrite {
+		err = f.Sync()
+	}
+	if err == nil {
+		return nil
+	}
+	if rollbackErr := rollbackWALAppend(f, originalSize, syncWrite); rollbackErr != nil {
+		return fmt.Errorf("append WAL: %v; rollback WAL: %w", err, rollbackErr)
+	}
+	return err
+}
+
+func appendFramedWAL(f *os.File, originalSize int64, entry WALEntry) error {
+	payload, err := msgpack.Marshal(&entry)
+	if err != nil {
+		return err
+	}
+	if len(payload) > maxWALRecordSize {
+		return fmt.Errorf("WAL record too large: %d", len(payload))
+	}
+
+	frameSize := len(payload) + walRecordHeader
+	prefixSize := 0
+	if originalSize == 0 {
+		prefixSize = len(walFileMagic)
+	}
+	buffer := make([]byte, prefixSize+frameSize)
+	if prefixSize != 0 {
+		copy(buffer, walFileMagic[:])
+	}
+	header := buffer[prefixSize : prefixSize+walRecordHeader]
+	binary.LittleEndian.PutUint32(header[0:4], walRecordMagic)
+	binary.LittleEndian.PutUint32(header[4:8], uint32(len(payload)))
+	binary.LittleEndian.PutUint32(header[8:12], ^uint32(len(payload)))
+	binary.LittleEndian.PutUint32(header[12:16], crc32.Checksum(payload, walChecksumTable))
+	copy(buffer[prefixSize+walRecordHeader:], payload)
+
+	written, err := f.Write(buffer)
+	if err != nil {
+		return err
+	}
+	if written != len(buffer) {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+func rollbackWALAppend(f *os.File, originalSize int64, syncWrite bool) error {
+	if err := f.Truncate(originalSize); err != nil {
+		return err
+	}
+	if syncWrite {
+		return f.Sync()
+	}
+	return nil
+}
+
+func loadWAL(c *Collection, f *os.File) error {
+	var magic [8]byte
+	n, err := io.ReadFull(f, magic[:])
+	if err != nil {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			return nil
+		}
+		return err
+	}
+	if n == len(magic) && magic == walFileMagic {
+		return loadFramedWAL(c, f)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	return loadLegacyWAL(c, f)
+}
+
+func loadLegacyWAL(c *Collection, reader io.Reader) error {
+	decoder := msgpack.NewDecoder(reader)
+	for {
+		var entry WALEntry
+		if err := decoder.Decode(&entry); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		if err := replayWALEntry(c, entry); err != nil {
+			return err
+		}
+	}
+}
+
+func loadFramedWAL(c *Collection, reader io.Reader) error {
+	header := make([]byte, walRecordHeader)
+	for {
+		if _, err := io.ReadFull(reader, header); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return nil
+			}
+			return err
+		}
+		if binary.LittleEndian.Uint32(header[0:4]) != walRecordMagic {
+			return fmt.Errorf("invalid WAL record magic")
+		}
+		length := binary.LittleEndian.Uint32(header[4:8])
+		if binary.LittleEndian.Uint32(header[8:12]) != ^length || length > maxWALRecordSize {
+			return fmt.Errorf("invalid WAL record length %d", length)
+		}
+		payload := make([]byte, int(length))
+		if _, err := io.ReadFull(reader, payload); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return nil
+			}
+			return err
+		}
+		if crc32.Checksum(payload, walChecksumTable) != binary.LittleEndian.Uint32(header[12:16]) {
+			return fmt.Errorf("WAL record checksum mismatch")
+		}
+		var entry WALEntry
+		if err := msgpack.NewDecoder(bytes.NewReader(payload)).Decode(&entry); err != nil {
+			return err
+		}
+		if err := replayWALEntry(c, entry); err != nil {
+			return err
+		}
+	}
+}
+
+func replayWALEntry(c *Collection, entry WALEntry) error {
+	switch entry.Op {
+	case OpAdd:
+		for _, point := range entry.Points {
+			if err := c.InsertPoint(point); err != nil {
+				return err
+			}
+		}
+	case OpDelete:
+		for _, key := range entry.Keys {
+			if err := c.DeletePointWithError(key); err != nil {
+				return err
+			}
+		}
+	case OpBatch:
+		for _, operation := range entry.Operations {
+			if operation.Point != nil {
+				if err := c.InsertPoint(*operation.Point); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := c.DeletePointWithError(operation.DeleteID); err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("unknown WAL operation %d", entry.Op)
+	}
+	if entry.Sequence > c.LastCommitSequence {
+		c.LastCommitSequence = entry.Sequence
+	}
+	return nil
 }
 
 func atomicWriteFile(path string, data []byte) (err error) {
@@ -355,6 +556,7 @@ func LoadDatabase(path string) (*Database, error) {
 			continue
 		}
 		db.Collections[collection.ColName] = collection
+		db.ensureWriteStateLocked(collection.ColName).sequence = collectionCommitSequence(collection)
 	}
 
 	return db, nil

@@ -3,6 +3,8 @@ package vectordb
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 )
@@ -96,6 +98,54 @@ func TestWriteContractLastOperationWinsAndCompatibilityWrappers(t *testing.T) {
 	}
 }
 
+func TestWriteContractDurabilityModes(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	col, err := db.CreateCollectionWithOptions("durability", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	originalAsyncFlush := asyncFlushCollection
+	asyncFlushCalled := make(chan struct{}, 1)
+	asyncFlushCollection = func(*CollectionHandle) {
+		asyncFlushCalled <- struct{}{}
+	}
+	t.Cleanup(func() {
+		asyncFlushCollection = originalAsyncFlush
+	})
+
+	memoryPoint := Point{ID: "memory", Vector: []float32{1, 0}}
+	memoryResult, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &memoryPoint}}}, WriteOptions{Durability: DurabilityMemory})
+	if err != nil || memoryResult.Durability != DurabilityMemory || !memoryResult.Committed {
+		t.Fatalf("memory 模式失败：%+v，%v", memoryResult, err)
+	}
+	select {
+	case <-asyncFlushCalled:
+		t.Fatal("memory 模式不得触发异步刷新")
+	default:
+	}
+
+	asyncPoint := Point{ID: "async", Vector: []float32{2, 0}}
+	asyncResult, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &asyncPoint}}}, WriteOptions{Durability: DurabilityAsync})
+	if err != nil || asyncResult.Durability != DurabilityAsync || !asyncResult.Committed {
+		t.Fatalf("async 模式失败：%+v，%v", asyncResult, err)
+	}
+	select {
+	case <-asyncFlushCalled:
+	default:
+		t.Fatal("async 模式应调度异步刷新")
+	}
+
+	syncPoint := Point{ID: "sync", Vector: []float32{3, 0}}
+	syncResult, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &syncPoint}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil || syncResult.Durability != DurabilitySync || !syncResult.Committed {
+		t.Fatalf("sync 模式失败：%+v，%v", syncResult, err)
+	}
+}
+
 func TestWriteContractCancellationAndSyncFailure(t *testing.T) {
 	db, err := Open(t.TempDir())
 	if err != nil {
@@ -115,20 +165,229 @@ func TestWriteContractCancellationAndSyncFailure(t *testing.T) {
 		t.Fatalf("提交前取消不得产生写入：%+v，%v", points, err)
 	}
 
-	originalFlush := flushCollection
-	flushCollection = func(*CollectionHandle) error {
+	originalPersistWrite := persistWriteCollection
+	persistWriteCollection = func(*CollectionHandle, []WriteOperation, uint64) error {
 		return errors.New("injected sync failure")
 	}
 	t.Cleanup(func() {
-		flushCollection = originalFlush
+		persistWriteCollection = originalPersistWrite
 	})
 
 	result, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &Point{ID: "sync-failed", Vector: []float32{2, 0}}}}}, WriteOptions{Durability: DurabilitySync})
 	if !errors.Is(err, ErrPersistenceFailed) {
 		t.Fatalf("同步失败应返回 ErrPersistenceFailed，实际为 %v", err)
 	}
-	if result.Committed || result.CommitSequence != 0 || result.Applied != 1 || result.IndexHealthy {
-		t.Fatalf("同步失败结果不符合未提交契约：%+v", result)
+	if result.Committed || result.CommitSequence != 0 || result.Applied != 1 || !result.IndexHealthy {
+		t.Fatalf("同步失败结果不符合回滚后的未提交契约：%+v", result)
+	}
+	if points, fetchErr := col.FetchPoints([]string{"sync-failed"}); fetchErr != nil || len(points) != 0 {
+		t.Fatalf("同步失败后应回滚内存写入：%+v，%v", points, fetchErr)
+	}
+}
+
+func TestWriteContractCancellationDuringApplyRollsBackBatch(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	col, err := db.CreateCollectionWithOptions("cancel-rollback", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := col.Upsert([]Point{{ID: "existing", Vector: []float32{1, 0}, Meta: []byte(`{"version":1}`)}}); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	updated := Point{ID: "existing", Vector: []float32{2, 0}, Meta: []byte(`{"version":2}`)}
+	created := Point{ID: "created", Vector: []float32{3, 0}}
+	result, err := col.Write(ctx, WriteBatch{Operations: []WriteOperation{
+		{Point: &updated},
+		{Point: &created},
+	}}, WriteOptions{
+		Durability: DurabilityMemory,
+		OnProgress: func(progress WriteProgress) {
+			if progress.Stage == "applying" && progress.Completed == 1 {
+				cancel()
+			}
+		},
+	})
+	if !errors.Is(err, ErrBatchApplyFailed) || !errors.Is(err, context.Canceled) {
+		t.Fatalf("应用中取消应保留批次错误和 context.Canceled，实际为 %v", err)
+	}
+	if result.Committed || result.CommitSequence != 0 || result.Applied != 1 {
+		t.Fatalf("应用中取消不得提交批次：%+v", result)
+	}
+
+	points, fetchErr := col.FetchPoints([]string{"existing", "created"})
+	if fetchErr != nil {
+		t.Fatal(fetchErr)
+	}
+	if len(points) != 1 || points[0].ID != "existing" || points[0].Vector[0] != 1 || string(points[0].Meta) != `{"version":1}` {
+		t.Fatalf("应用中取消后应完整恢复写入前状态：%+v", points)
+	}
+}
+
+func TestWriteContractSyncSurvivesReopen(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	col, err := db.CreateCollectionWithOptions("sync-reopen", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	point := Point{ID: "durable", Vector: []float32{1, 2}, Meta: []byte(`{"durable":true}`)}
+	result, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil || !result.Committed {
+		t.Fatalf("同步写入失败：%+v，%v", result, err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopenedCol, err := reopened.OpenCollection("sync-reopen")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopenedCol.FetchPoints([]string{"durable"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(points) != 1 || points[0].Vector[0] != 1 || points[0].Vector[1] != 2 || string(points[0].Meta) != `{"durable":true}` {
+		t.Fatalf("同步写入在重开后丢失：%+v", points)
+	}
+	next := Point{ID: "next", Vector: []float32{3, 4}}
+	nextResult, err := reopenedCol.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &next}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nextResult.CommitSequence != result.CommitSequence+1 {
+		t.Fatalf("重开后提交序号应继续递增：首次 %+v，重开后 %+v", result, nextResult)
+	}
+}
+
+func TestWriteContractWALTornTailAndCorruption(t *testing.T) {
+	t.Run("torn tail", func(t *testing.T) {
+		path := t.TempDir()
+		db, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		col, err := db.CreateCollectionWithOptions("wal-tail", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		point := Point{ID: "committed", Vector: []float32{1, 2}}
+		if _, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatal(err)
+		}
+		walPath := filepath.Join(path, "wal-tail", WALFileName)
+		wal, err := os.OpenFile(walPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := wal.Write([]byte{1, 2, 3, 4, 5}); err != nil {
+			_ = wal.Close()
+			t.Fatal(err)
+		}
+		if err := wal.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		reopened, err := Open(path)
+		if err != nil {
+			t.Fatalf("撕裂尾帧不应破坏已同步记录：%v", err)
+		}
+		reopenedCol, err := reopened.OpenCollection("wal-tail")
+		if err != nil {
+			t.Fatal(err)
+		}
+		points, err := reopenedCol.FetchPoints([]string{"committed"})
+		if err != nil || len(points) != 1 {
+			t.Fatalf("撕裂尾帧后已同步记录丢失：%+v，%v", points, err)
+		}
+	})
+
+	t.Run("checksum corruption", func(t *testing.T) {
+		path := t.TempDir()
+		db, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		col, err := db.CreateCollectionWithOptions("wal-corrupt", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		point := Point{ID: "committed", Vector: []float32{1, 2}}
+		if _, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatal(err)
+		}
+		walPath := filepath.Join(path, "wal-corrupt", WALFileName)
+		data, err := os.ReadFile(walPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data[len(data)-1] ^= 0xff
+		if err := os.WriteFile(walPath, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Open(path); !errors.Is(err, ErrStorageCorrupted) {
+			t.Fatalf("完整 WAL 帧损坏应返回 ErrStorageCorrupted，实际为 %v", err)
+		}
+	})
+}
+
+func TestWriteContractDiskVamanaSequenceSurvivesReopen(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	col, err := db.CreateCollectionWithOptions("vamana-sequence", CollectionOptions{
+		Engine:    EngineDiskVamana,
+		Dimension: 2,
+		Points: []Point{
+			{ID: "a", Vector: []float32{1, 0}},
+			{ID: "b", Vector: []float32{0, 1}},
+			{ID: "c", Vector: []float32{1, 1}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := Point{ID: "d", Vector: []float32{2, 1}}
+	firstResult, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &first}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = reopened.Close()
+	})
+	reopenedCol, err := reopened.OpenCollection("vamana-sequence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := Point{ID: "e", Vector: []float32{2, 2}}
+	secondResult, err := reopenedCol.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &second}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secondResult.CommitSequence != firstResult.CommitSequence+1 {
+		t.Fatalf("Vamana 重开后提交序号应继续递增：首次 %+v，重开后 %+v", firstResult, secondResult)
 	}
 }
 

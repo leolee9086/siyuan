@@ -85,8 +85,25 @@ type CollectionHandle struct {
 var _ DB = (*Database)(nil)
 var _ CollectionAPI = (*CollectionHandle)(nil)
 
-var flushCollection = func(h *CollectionHandle) error {
-	return h.Flush()
+var persistWriteCollection = func(h *CollectionHandle, operations []WriteOperation, sequence uint64) error {
+	return h.persistWrite(operations, sequence)
+}
+
+var persistWriteAsyncCollection = func(h *CollectionHandle, operations []WriteOperation, sequence uint64) error {
+	if collection, ok := h.col.(*Collection); ok {
+		return AppendWALBatchAsync(collection, h.db.Path, operations, sequence)
+	}
+	return nil
+}
+
+var asyncFlushCollection = func(h *CollectionHandle) {
+	state := h.db.writeState(h.Name())
+	state.scheduleAsync(func() error {
+		if collection, ok := h.col.(*Collection); ok {
+			return SyncCollectionWAL(collection, h.db.Path)
+		}
+		return h.col.Flush()
+	})
 }
 
 func Open(path string) (*Database, error) {
@@ -113,7 +130,7 @@ func Open(path string) (*Database, error) {
 				return nil, classifyPublicError(openErr)
 			}
 			db.Collections[name] = vc
-			db.ensureWriteStateLocked(name)
+			db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(vc)
 			continue
 		} else if !os.IsNotExist(statErr) {
 			return nil, fmt.Errorf("%w: %w", ErrPersistenceFailed, statErr)
@@ -128,7 +145,7 @@ func Open(path string) (*Database, error) {
 			return nil, fmt.Errorf("open hnsw collection %q: %w", name, err)
 		}
 		db.Collections[name] = c
-		db.ensureWriteStateLocked(name)
+		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(c)
 	}
 
 	return db, nil
@@ -168,7 +185,7 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = vc
-		db.ensureWriteStateLocked(name)
+		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(vc)
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: vc}, nil
 	} else if !os.IsNotExist(statErr) {
@@ -183,7 +200,7 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = c
-		db.ensureWriteStateLocked(name)
+		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(c)
 		db.mu.Unlock()
 		return &CollectionHandle{db: db, col: c}, nil
 	}
@@ -212,16 +229,16 @@ func (db *Database) ListCollectionStats() []CollectionStats {
 
 func (db *Database) Close() error {
 	db.mu.RLock()
-	collections := make([]VectorCollection, 0, len(db.Collections))
+	handles := make([]*CollectionHandle, 0, len(db.Collections))
 	for _, col := range db.Collections {
-		collections = append(collections, col)
+		handles = append(handles, &CollectionHandle{db: db, col: col})
 	}
 	db.mu.RUnlock()
 
 	var firstErr error
-	for _, col := range collections {
-		if err := col.Close(); err != nil && firstErr == nil {
-			firstErr = classifyPublicError(err)
+	for _, handle := range handles {
+		if err := handle.Close(); err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
 	return firstErr
@@ -339,30 +356,50 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 	state := h.db.writeState(h.Name())
 	state.mu.Lock()
 	defer state.mu.Unlock()
+	if state.closed {
+		return WriteResult{}, ErrCollectionClosed
+	}
 	if err := ctx.Err(); err != nil {
 		return WriteResult{}, err
 	}
 
+	rollback := h.captureWriteRollback(operations)
+	nextSequence := state.sequence + 1
 	if normalizedOptions.OnProgress != nil {
 		normalizedOptions.OnProgress(WriteProgress{Stage: "applying", Total: len(operations)})
 	}
 	applied, err := h.applyWriteOperations(ctx, operations, normalizedOptions.OnProgress)
 	if err != nil {
-		return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrBatchApplyFailed, classifyPublicError(err))
+		if rollbackErr := h.applyWriteRollback(rollback, applied); rollbackErr != nil {
+			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: apply failed: %v; rollback failed: %w", ErrIndexRecoveryRequired, err, classifyPublicError(rollbackErr))
+		}
+		return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, fmt.Errorf("%w: %w", ErrBatchApplyFailed, classifyPublicError(err))
 	}
 
 	if normalizedOptions.OnProgress != nil && normalizedOptions.Durability == DurabilitySync {
 		normalizedOptions.OnProgress(WriteProgress{Stage: "persisting", Completed: applied, Total: applied})
 	}
+	if normalizedOptions.Durability == DurabilityAsync {
+		if err := persistWriteAsyncCollection(h, operations, nextSequence); err != nil {
+			if rollbackErr := h.applyWriteRollback(rollback, applied); rollbackErr != nil {
+				return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrIndexRecoveryRequired, classifyPublicError(err))
+			}
+			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, classifyPublicError(err)
+		}
+	}
 	if normalizedOptions.Durability == DurabilitySync {
-		if err := flushCollection(h); err != nil {
-			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: false}, classifyPublicError(err)
+		if err := persistWriteCollection(h, operations, nextSequence); err != nil {
+			if rollbackErr := h.applyWriteRollback(rollback, len(rollback)); rollbackErr != nil {
+				return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrIndexRecoveryRequired, classifyPublicError(err))
+			}
+			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, classifyPublicError(err)
 		}
 	}
 
-	state.sequence++
+	state.sequence = nextSequence
+	setCollectionCommitSequence(h.col, nextSequence)
 	result := WriteResult{
-		CommitSequence: state.sequence,
+		CommitSequence: nextSequence,
 		Applied:        applied,
 		Durability:     normalizedOptions.Durability,
 		Committed:      true,
@@ -395,6 +432,9 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	state := h.db.writeState(h.Name())
 	state.mu.RLock()
 	defer state.mu.RUnlock()
+	if state.closed {
+		return nil, ErrCollectionClosed
+	}
 
 	if len(query) != h.col.Dimension() {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, h.col.Dimension(), len(query))
@@ -454,9 +494,7 @@ func (h *CollectionHandle) applyWriteOperations(ctx context.Context, operations 
 }
 
 func (h *CollectionHandle) flushAsync() {
-	go func() {
-		_ = h.Flush()
-	}()
+	asyncFlushCollection(h)
 }
 
 func (h *CollectionHandle) Stats() CollectionStats {
@@ -477,8 +515,35 @@ func (h *CollectionHandle) Flush() error {
 	if h.db == nil {
 		return fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
 	}
-	if err := h.col.Flush(); err != nil {
+	state := h.db.writeState(h.Name())
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	if state.closed {
+		return ErrCollectionClosed
+	}
+	state.waitAsync()
+
+	var err error
+	if _, ok := h.col.(*Collection); ok {
+		err = SaveCollection(h.col, h.db.Path)
+	} else {
+		err = h.col.Flush()
+	}
+	if err != nil {
 		return classifyPublicError(err)
+	}
+	return nil
+}
+
+func (h *CollectionHandle) persistWrite(operations []WriteOperation, sequence uint64) error {
+	if collection, ok := h.col.(*Collection); ok {
+		return AppendWALBatchSync(collection, h.db.Path, operations, sequence)
+	}
+	previousSequence := collectionCommitSequence(h.col)
+	setCollectionCommitSequence(h.col, sequence)
+	if err := h.col.Flush(); err != nil {
+		setCollectionCommitSequence(h.col, previousSequence)
+		return err
 	}
 	return nil
 }
@@ -487,6 +552,9 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 	state := h.db.writeState(h.Name())
 	state.mu.RLock()
 	defer state.mu.RUnlock()
+	if state.closed {
+		return nil, ErrCollectionClosed
+	}
 
 	var points []Point
 	for _, id := range ids {
@@ -501,7 +569,21 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 }
 
 func (h *CollectionHandle) Close() error {
-	return classifyPublicError(h.col.Close())
+	if h.db == nil {
+		return fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
+	}
+	state := h.db.writeState(h.Name())
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	if state.closed {
+		return nil
+	}
+	state.waitAsync()
+	if err := h.col.Close(); err != nil {
+		return classifyPublicError(err)
+	}
+	state.closed = true
+	return nil
 }
 
 func classifyPublicError(err error) error {

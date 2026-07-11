@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 // DurabilityMode 定义批次提交成功前要求达到的持久性级别。
@@ -81,8 +82,12 @@ type FormatCompatibility struct {
 
 // collectionWriteState 串行化同一集合的公开批次提交并分配提交序号。
 type collectionWriteState struct {
-	mu       sync.RWMutex
-	sequence uint64
+	mu           sync.RWMutex
+	sequence     uint64
+	closed       bool
+	asyncRunning atomic.Bool
+	asyncDirty   atomic.Bool
+	asyncWG      sync.WaitGroup
 }
 
 // CheckFormatCompatibility 按主版本、次版本和特性位判断格式兼容性。
@@ -168,4 +173,93 @@ func validateWriteBatch(ctx context.Context, dimension int, batch WriteBatch) ([
 		}
 	}
 	return normalized, nil
+}
+
+func (h *CollectionHandle) captureWriteRollback(operations []WriteOperation) []WriteOperation {
+	rollback := make([]WriteOperation, 0, len(operations))
+	for _, operation := range operations {
+		id := operation.DeleteID
+		if operation.Point != nil {
+			id = operation.Point.ID
+		}
+		vector, ok := h.col.GetVectorByID(id)
+		if ok {
+			meta, _ := h.col.GetMetaByID(id)
+			point := Point{ID: id, Vector: vector, Meta: meta}
+			rollback = append(rollback, WriteOperation{Point: &point})
+			continue
+		}
+		rollback = append(rollback, WriteOperation{DeleteID: id})
+	}
+	return rollback
+}
+
+func (h *CollectionHandle) applyWriteRollback(operations []WriteOperation, applied int) error {
+	for index := applied - 1; index >= 0; index-- {
+		operation := operations[index]
+		if operation.Point != nil {
+			if err := h.col.InsertPoint(*operation.Point); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := h.col.DeletePointWithError(operation.DeleteID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func collectionCommitSequence(collection VectorCollection) uint64 {
+	switch typed := collection.(type) {
+	case *Collection:
+		typed.Mu.RLock()
+		defer typed.Mu.RUnlock()
+		return typed.LastCommitSequence
+	case *VamanaCollection:
+		typed.Mu.RLock()
+		defer typed.Mu.RUnlock()
+		return typed.LastCommitSequence
+	default:
+		return 0
+	}
+}
+
+func setCollectionCommitSequence(collection VectorCollection, sequence uint64) {
+	switch typed := collection.(type) {
+	case *Collection:
+		typed.Mu.Lock()
+		typed.LastCommitSequence = sequence
+		typed.Mu.Unlock()
+	case *VamanaCollection:
+		typed.Mu.Lock()
+		typed.LastCommitSequence = sequence
+		typed.Mu.Unlock()
+	}
+}
+
+func (state *collectionWriteState) scheduleAsync(syncFn func() error) {
+	state.asyncDirty.Store(true)
+	if !state.asyncRunning.CompareAndSwap(false, true) {
+		return
+	}
+	state.asyncWG.Add(1)
+	go func() {
+		defer state.asyncWG.Done()
+		for {
+			state.asyncDirty.Store(false)
+			_ = syncFn()
+			if state.asyncDirty.Load() {
+				continue
+			}
+			state.asyncRunning.Store(false)
+			if !state.asyncDirty.Load() || !state.asyncRunning.CompareAndSwap(false, true) {
+				return
+			}
+		}
+	}()
+}
+
+func (state *collectionWriteState) waitAsync() {
+	state.asyncWG.Wait()
 }

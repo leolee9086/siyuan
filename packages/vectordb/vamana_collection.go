@@ -41,6 +41,8 @@ type VamanaCollection struct {
 	Meta     CollectionMeta
 	BasePath string
 	Config   vamana.DiskBuildConfig
+	// LastCommitSequence 是最近一次成功公开提交的线性化序号。
+	LastCommitSequence uint64
 
 	Index *vamana.DiskVamanaIndex
 
@@ -56,6 +58,7 @@ type VamanaCollection struct {
 type vamanaCollectionState struct {
 	Name           string               `msgpack:"name"`
 	Dimension      int                  `msgpack:"dimension"`
+	CommitSequence uint64               `msgpack:"commitSequence"`
 	Meta           CollectionMeta       `msgpack:"meta"`
 	IDMap          map[string]uint64    `msgpack:"idMap"`
 	DocMap         map[uint64]string    `msgpack:"docMap"`
@@ -357,6 +360,7 @@ func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) erro
 	state := vamanaCollectionState{
 		Name:           vc.ColName,
 		Dimension:      vc.ColDim,
+		CommitSequence: vc.LastCommitSequence,
 		Meta:           vc.Meta,
 		IDMap:          make(map[string]uint64, len(vc.IDMap)),
 		DocMap:         make(map[uint64]string, len(vc.DocMap)),
@@ -405,6 +409,7 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	if state.Dimension > 0 {
 		vc.ColDim = state.Dimension
 	}
+	vc.LastCommitSequence = state.CommitSequence
 	vc.Meta = state.Meta
 	vc.IDMap = state.IDMap
 	vc.DocMap = state.DocMap
@@ -464,6 +469,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	}
 	next.BasePath = basePath
 	next.Config = config
+	next.LastCommitSequence = vc.LastCommitSequence
 	next.PendingVectors = make(map[string][]float32)
 	if err := SaveVamanaCollectionState(next, tmpBasePath); err != nil {
 		_ = next.Close()

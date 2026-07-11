@@ -78,6 +78,8 @@ type Collection struct {
 	ColDim  int
 	Config  CollectionConfig
 	Meta    CollectionMeta
+	// LastCommitSequence 是最近一次成功公开提交的线性化序号。
+	LastCommitSequence uint64
 
 	IDMap  map[string]DocID
 	DocMap []string

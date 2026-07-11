@@ -3,6 +3,7 @@ package websearch
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/url"
 	"os"
 	"regexp"
@@ -18,15 +19,16 @@ import (
 // ── JSON API 引擎 ─────────────────────────────────────
 
 type jsonAPIConfig struct {
-	Name          string
-	URL           func(query string, numResults int) string
-	Parse         func(data []byte, maxResults int) ([]SearchResult, error)
-	Category      string
-	UserAgent     string
-	Headers       map[string]string // 额外的自定义请求头
-	RequiresKey   bool
-	APIKeyEnv     string
-	APIKeyHeader  string
+	Name         string
+	URL          func(query string, numResults int) string
+	Parse        func(data []byte, maxResults int) ([]SearchResult, error)
+	Category     string
+	UserAgent    string
+	Headers      map[string]string // 额外的自定义请求头
+	RequiresKey  bool
+	APIKeyEnv    string
+	APIKeyHeader string
+	APIKeyPrefix string
 }
 
 func newJSONAPIEngine(cfg jsonAPIConfig) EngineFactory {
@@ -40,7 +42,7 @@ type jsonAPIEngine struct {
 	config EngineConfig
 }
 
-func (e *jsonAPIEngine) Name() string        { return e.config.Name }
+func (e *jsonAPIEngine) Name() string         { return e.config.Name }
 func (e *jsonAPIEngine) Config() EngineConfig { return e.config }
 func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	url := e.cfg.URL(query, opts.NumResults)
@@ -58,7 +60,11 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 			if h == "" {
 				h = "Authorization"
 			}
-			client.SetHeader(h, "Bearer "+key)
+			prefix := e.cfg.APIKeyPrefix
+			if prefix == "" && h == "Authorization" {
+				prefix = "Bearer "
+			}
+			client.SetHeader(h, prefix+key)
 		}
 	}
 	for k, v := range headers {
@@ -69,9 +75,16 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, nil
+		return nil, fmt.Errorf("%s returned HTTP %d", e.config.Name, status)
 	}
-	return e.cfg.Parse([]byte(body), opts.NumResults)
+	if strings.TrimSpace(body) == "" {
+		return nil, fmt.Errorf("%s returned an empty response", e.config.Name)
+	}
+	results, err := e.cfg.Parse([]byte(body), opts.NumResults)
+	if err != nil {
+		return nil, fmt.Errorf("%s response parsing failed: %w", e.config.Name, err)
+	}
+	return results, nil
 }
 
 // ── HTML 抓取引擎 ─────────────────────────────────────
@@ -94,7 +107,7 @@ type htmlScraperEngine struct {
 	config EngineConfig
 }
 
-func (e *htmlScraperEngine) Name() string        { return e.config.Name }
+func (e *htmlScraperEngine) Name() string         { return e.config.Name }
 func (e *htmlScraperEngine) Config() EngineConfig { return e.config }
 func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	if e.cfg.Headers != nil {
@@ -118,7 +131,7 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, nil
+		return nil, fmt.Errorf("%s returned HTTP %d", e.config.Name, status)
 	}
 	return e.cfg.Parse(body, opts.NumResults)
 }
@@ -136,7 +149,7 @@ type siteScopedEngine struct {
 	config             EngineConfig
 }
 
-func (e *siteScopedEngine) Name() string        { return e.config.Name }
+func (e *siteScopedEngine) Name() string         { return e.config.Name }
 func (e *siteScopedEngine) Config() EngineConfig { return e.config }
 func (e *siteScopedEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	scopedQuery := "site:" + e.domain + " " + query
