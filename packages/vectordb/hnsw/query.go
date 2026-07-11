@@ -30,6 +30,9 @@ import (
 // 返回内部 SearchResult（包含 DocID 和精确距离），
 // 外部 ID 解析和元数据附加由调用方（Collection 代理层）负责。
 func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	if idx.Distancer == nil {
+		return nil
+	}
 	if efSearch <= 0 {
 		efSearch = idx.Config.EfSearch
 	}

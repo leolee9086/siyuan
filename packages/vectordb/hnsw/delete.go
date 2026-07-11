@@ -111,8 +111,12 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 
 		candidates := make([]NeighborRecord, 0, expectedNeighbors*2)
 
-		// 预取 docID 的向量，循环内复用，避免每次 ComputeDistance 都重复查找
-		docVec, hasVec := idx.Distancer.GetUnsafe(docID)
+		// 向量索引预取 docID 的向量；非向量索引直接使用节点间距离。
+		var docVec []float32
+		var hasVec bool
+		if idx.Distancer != nil {
+			docVec, hasVec = idx.Distancer.GetUnsafe(docID)
+		}
 
 		queue := make([]DocID, 0)
 		for _, nid := range neighborIDs {
@@ -132,7 +136,7 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 			if hasVec {
 				dist = idx.Distancer.ComputeDistanceFromVector(docVec, current, config.MetricType)
 			} else {
-				dist = idx.Distancer.ComputeDistance(docID, current, config.MetricType)
+				dist = validDistance(idx.nodeDistancer.ComputeDistance(docID, current, config.MetricType))
 			}
 			candidates = append(candidates, NeighborRecord{ID: current, Distance: dist})
 

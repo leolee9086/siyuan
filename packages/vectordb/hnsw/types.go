@@ -74,19 +74,28 @@ type SearchResult struct {
 // Distancer 接口 — 解耦距离计算与存储层
 // =========================================
 
-// Distancer 距离计算抽象
-// 由外部存储层（如 vectordb.VectorStore）实现，
-// 解耦 HNSW 算法与具体的向量存储和量化实现。
-type Distancer interface {
+// NodeDistancer 是 HNSW 建图唯一必需的距离能力。
+// 节点间距离应当对称、稳定并使用“越小越近”的语义；HNSW 不要求数据项必须是向量。
+type NodeDistancer interface {
 	// ComputeDistance 计算两个已索引节点间的距离
 	ComputeDistance(a, b DocID, metric string) float32
+}
 
+// VectorDistancer 提供 float32 向量查询的精确距离快路径。
+// 只有 Search 和向量建图优化需要实现它，纯图索引无需实现。
+type VectorDistancer interface {
 	// ComputeDistanceFromVector 计算查询向量与已索引节点的距离
 	ComputeDistanceFromVector(query []float32, id DocID, metric string) float32
 
 	// ComputeDistancesFromVector 批量计算同一查询向量与多个已索引节点的距离，并复用 dst 容量。
 	ComputeDistancesFromVector(query []float32, ids []DocID, metric string, dst []float32) []float32
 
+	// GetUnsafe 零拷贝获取向量（调用方不得修改返回值）
+	GetUnsafe(id DocID) ([]float32, bool)
+}
+
+// BBQDistancer 提供固定 4-bit query × 1-bit data 的非对称 BBQ 加速能力。
+type BBQDistancer interface {
 	// ComputeBBQDistanceFromQuery 使用 4-bit 查询与 1-bit 索引计算非对称 BBQ 距离
 	ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorr bbq.QuantizationResult, id DocID) float32
 	// ComputeBBQDistancesFromQuery 批量计算非对称 BBQ 距离，并复用 dst 容量。
@@ -97,10 +106,10 @@ type Distancer interface {
 
 	// QuantizeVector 将已存储向量临时量化为 4-bit 查询编码，用于非对称构图。
 	QuantizeVector(id DocID) ([]byte, bbq.QuantizationResult)
+}
 
-	// GetUnsafe 零拷贝获取向量（调用方不得修改返回值）
-	GetUnsafe(id DocID) ([]float32, bool)
-
+// VisitTracker 提供可复用的并发访问标记，避免向量搜索为每次查询分配 map。
+type VisitTracker interface {
 	// NewSearchEpoch 开始新的搜索 epoch
 	NewSearchEpoch() uint32
 
@@ -109,6 +118,27 @@ type Distancer interface {
 
 	// MarkVisited 标记节点为已访问
 	MarkVisited(id DocID, epoch uint32)
+}
+
+// Distancer 保留完整向量距离能力的兼容接口。
+// 新的非向量索引只需实现 NodeDistancer，并通过 SearchBy 提供查询距离。
+type Distancer interface {
+	NodeDistancer
+	VectorDistancer
+	BBQDistancer
+	VisitTracker
+}
+
+// QueryDistancer 将任意查询对象适配为查询到图节点的排序值。
+// 实现者可持有字符串、稀疏词项、BM25 查询状态或其他不透明数据；相似度应转换为越小越优的值。
+type QueryDistancer interface {
+	DistanceTo(id DocID) float32
+}
+
+// BatchQueryDistancer 是可选的批量查询距离快路径。
+type BatchQueryDistancer interface {
+	QueryDistancer
+	DistancesTo(ids []DocID, dst []float32) []float32
 }
 
 // =========================================
@@ -133,7 +163,8 @@ type HNSWIndex struct {
 	MaxLayer   int
 
 	// 距离计算（由外部注入）
-	Distancer Distancer
+	Distancer     Distancer
+	nodeDistancer NodeDistancer
 
 	// 并发控制
 	// Mu 保护元数据（EntryPoint、MaxLayer、Deleted）和 Neighbors/nodeLocks 切片。
@@ -143,7 +174,7 @@ type HNSWIndex struct {
 }
 
 // NewHNSWIndex 创建新的 HNSW 索引
-func NewHNSWIndex(dimension int, config Config, distancer Distancer) *HNSWIndex {
+func NewHNSWIndex(dimension int, config Config, distancer NodeDistancer) *HNSWIndex {
 	// 零值兼容：GraphSlackFactor 未设置时使用默认值 1.3
 	if config.GraphSlackFactor <= 0 {
 		config.GraphSlackFactor = 1.3
@@ -151,16 +182,18 @@ func NewHNSWIndex(dimension int, config Config, distancer Distancer) *HNSWIndex 
 	if config.LevelML <= 0 && config.M > 1 {
 		config.LevelML = 1.0 / math.Log(float64(config.M))
 	}
-	return &HNSWIndex{
-		Config:     config,
-		Dimension:  dimension,
-		Neighbors:  make([][][]NeighborRecord, 0),
-		Deleted:    make(map[DocID]bool),
-		EntryPoint: InvalidEntryPoint,
-		MaxLayer:   -1,
-		Distancer:  distancer,
-		nodeLocks:  make([]*sync.RWMutex, 0),
+	idx := &HNSWIndex{
+		Config:        config,
+		Dimension:     dimension,
+		Neighbors:     make([][][]NeighborRecord, 0),
+		Deleted:       make(map[DocID]bool),
+		EntryPoint:    InvalidEntryPoint,
+		MaxLayer:      -1,
+		nodeDistancer: distancer,
+		nodeLocks:     make([]*sync.RWMutex, 0),
 	}
+	idx.Distancer, _ = distancer.(Distancer)
+	return idx
 }
 
 // =========================================

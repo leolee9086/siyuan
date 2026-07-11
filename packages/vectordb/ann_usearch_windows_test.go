@@ -4,11 +4,13 @@ package vectordb
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 )
 
 func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
+	rand.Seed(1)
 	fixture := loadANNSIFTFixture(t)
 	disk := loadANNDiskVamanaFixture(t, fixture)
 	defer disk.close()
@@ -40,10 +42,85 @@ func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
 		t.Logf("ef=%d vectordb：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, ours.recall*100, ours.qps, ours.p50, ours.p95, ours.p99)
 		t.Logf("ef=%d DiskVamana（内部 5× over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, diskMeasurement.recall*100, diskMeasurement.qps, diskMeasurement.p50, diskMeasurement.p95, diskMeasurement.p99)
 		t.Logf("ef=%d USearch：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, theirs.recall*100, theirs.qps, theirs.p50, theirs.p95, theirs.p99)
+		paired, err := annMeasurePairedHNSWUSearch(fixture, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=%d 逐查询交错比值：vectordb/USearch QPS=%.4f（vectordb %.2f，USearch %.2f）", expansion, paired.ratio, paired.oursQPS, paired.theirsQPS)
 	}
 }
 
+func TestANNBenchmarksSIFTPairedUSearchRatio(t *testing.T) {
+	rand.Seed(1)
+	fixture := loadANNSIFTFixture(t)
+	competitor, err := buildANNUSearch(fixture.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := competitor.index.close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	t.Logf("构建吞吐比值：vectordb/USearch=%.4f（vectordb %.0f，USearch %.0f vectors/s）", fixture.buildVectorsSec/competitor.vectorsPerSecond, fixture.buildVectorsSec, competitor.vectorsPerSecond)
+	for _, expansion := range []int{32, 64, 100, 200} {
+		paired, err := annMeasurePairedHNSWUSearch(fixture, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=%d 逐查询交错比值：vectordb/USearch QPS=%.4f（vectordb %.2f，USearch %.2f）", expansion, paired.ratio, paired.oursQPS, paired.theirsQPS)
+	}
+}
+
+type annPairedMeasurement struct {
+	oursQPS   float64
+	theirsQPS float64
+	ratio     float64
+}
+
+// annMeasurePairedHNSWUSearch 在每次查询内交错测量两个实现，并轮换执行顺序以抵消背景负载与先后顺序偏差。
+func annMeasurePairedHNSWUSearch(fixture *annSIFTFixture, index *annUSearchIndex, expansion int) (annPairedMeasurement, error) {
+	if err := index.setExpansionSearch(expansion); err != nil {
+		return annPairedMeasurement{}, err
+	}
+	var oursDuration time.Duration
+	var theirsDuration time.Duration
+	operations := 0
+	for queryIndex, query := range fixture.queries {
+		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
+			measureOurs := func() {
+				started := time.Now()
+				fixture.collection.Search(query, annSIFTTopK, expansion)
+				oursDuration += time.Since(started)
+			}
+			measureTheirs := func() error {
+				started := time.Now()
+				_, err := index.search(query, annSIFTTopK)
+				theirsDuration += time.Since(started)
+				return err
+			}
+			if (queryIndex+repetition)&1 == 0 {
+				measureOurs()
+				if err := measureTheirs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
+			} else {
+				if err := measureTheirs(); err != nil {
+					return annPairedMeasurement{}, err
+				}
+				measureOurs()
+			}
+			operations++
+		}
+	}
+	oursQPS := float64(operations) / oursDuration.Seconds()
+	theirsQPS := float64(operations) / theirsDuration.Seconds()
+	return annPairedMeasurement{oursQPS: oursQPS, theirsQPS: theirsQPS, ratio: oursQPS / theirsQPS}, nil
+}
+
 func BenchmarkANNBenchmarksSIFTUSearchComparison(b *testing.B) {
+	rand.Seed(1)
 	fixture := loadANNSIFTFixture(b)
 	competitor, err := buildANNUSearch(fixture.base)
 	if err != nil {
