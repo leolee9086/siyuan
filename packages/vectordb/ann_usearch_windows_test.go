@@ -10,6 +10,8 @@ import (
 
 func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
 	fixture := loadANNSIFTFixture(t)
+	disk := loadANNDiskVamanaFixture(t, fixture)
+	defer disk.close()
 	competitor, err := buildANNUSearch(fixture.base)
 	if err != nil {
 		t.Fatal(err)
@@ -23,17 +25,20 @@ func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
 	t.Logf("协议：ANN-Benchmarks SIFT L2，base=%d，queries=%d，dim=%d，k=%d，单线程顺序构建/查询", len(fixture.base), len(fixture.queries), len(fixture.base[0]), annSIFTTopK)
 	t.Logf("参数：F32，M=16，efConstruction/expansionAdd=200，USearch=%s，SIMD=%s", annUSearchVersion, competitor.hardware)
 	t.Logf("构建 vectordb：%v，%.0f vectors/s，Go heap=%.1f bytes/vector", fixture.buildDuration, fixture.buildVectorsSec, float64(fixture.heapBytes)/float64(len(fixture.base)))
+	t.Logf("构建 DiskVamana（公开 API）：%v，%.0f vectors/s，disk=%.1f bytes/vector", disk.buildDuration, disk.buildVectorsSec, float64(disk.indexBytes)/float64(len(fixture.base)))
 	t.Logf("构建 USearch：%v，%.0f vectors/s，native memory=%.1f bytes/vector，serialized=%.1f bytes/vector", competitor.duration, competitor.vectorsPerSecond, float64(competitor.memoryBytes)/float64(len(fixture.base)), float64(competitor.serializedBytes)/float64(len(fixture.base)))
 
 	exact := annMeasureExact(fixture)
 	t.Logf("exact：QPS=%.2f，p50=%v，p95=%v，p99=%v", exact.qps, exact.p50, exact.p95, exact.p99)
 	for _, expansion := range []int{32, 64, 100, 200} {
 		ours := annMeasureHNSW(fixture, expansion)
+		diskMeasurement := annMeasureDiskVamana(fixture, disk.collection, expansion)
 		theirs, err := annMeasureUSearch(fixture, competitor.index, expansion)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Logf("ef=%d vectordb：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, ours.recall*100, ours.qps, ours.p50, ours.p95, ours.p99)
+		t.Logf("ef=%d DiskVamana（内部 5× over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, diskMeasurement.recall*100, diskMeasurement.qps, diskMeasurement.p50, diskMeasurement.p95, diskMeasurement.p99)
 		t.Logf("ef=%d USearch：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, theirs.recall*100, theirs.qps, theirs.p50, theirs.p95, theirs.p99)
 	}
 }

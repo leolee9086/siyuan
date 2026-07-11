@@ -83,9 +83,12 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 		return nil, nil
 	}
 
-	medoid := idx.metadata.Medoid
+	medoid, hasEntryPoint := idx.liveEntryPointLocked()
 	dimension := int(idx.metadata.Dims)
 	idx.mu.RUnlock()
+	if !hasEntryPoint {
+		return nil, nil
+	}
 
 	// Validate query dimension
 	if len(query) != dimension {

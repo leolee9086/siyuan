@@ -145,6 +145,24 @@ type DiskVamanaIndex struct {
 	mu     sync.RWMutex // 保护 closed 状态和写操作
 }
 
+// liveEntryPointLocked 返回可用于图导航的存活入口点。调用方必须持有 idx.mu 至少读锁。
+func (idx *DiskVamanaIndex) liveEntryPointLocked() (uint64, bool) {
+	total := idx.totalPoints()
+	if total == 0 {
+		return 0, false
+	}
+	medoid := idx.metadata.Medoid
+	if medoid < total && !idx.deleted.IsDeleted(medoid) {
+		return medoid, true
+	}
+	for nodeID := uint64(0); nodeID < total; nodeID++ {
+		if !idx.deleted.IsDeleted(nodeID) {
+			return nodeID, true
+		}
+	}
+	return 0, false
+}
+
 // ============================================================================
 // 构造与析构
 // ============================================================================
@@ -449,7 +467,7 @@ func (idx *DiskVamanaIndex) NumPoints() uint64 {
 		return 0
 	}
 
-	return idx.metadata.NumPoints - idx.deleted.CountDeleted()
+	return idx.totalPoints() - idx.deleted.CountDeleted()
 }
 
 // NumPointsTotal 返回索引中的总点数（含已删除）。
@@ -461,7 +479,7 @@ func (idx *DiskVamanaIndex) NumPointsTotal() uint64 {
 		return 0
 	}
 
-	return idx.metadata.NumPoints
+	return idx.totalPoints()
 }
 
 // Dimension 返回向量维度。

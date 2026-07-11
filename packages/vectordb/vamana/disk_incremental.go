@@ -364,7 +364,10 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(
 	scratch.Best.SetCapacity(DefaultInsertSearchL)
 	scratch.Reset()
 
-	medoid := idx.metadata.Medoid
+	medoid, hasEntryPoint := idx.liveEntryPointLocked()
+	if !hasEntryPoint {
+		return nil
+	}
 
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
@@ -973,7 +976,10 @@ func (idx *DiskVamanaIndex) deleteGreedySearch(
 	// by DefaultDeleteSearchL instead of growing to thousands of nodes.
 	expanded := make([]uint32, 0, DefaultDeleteSearchL)
 
-	medoid := idx.metadata.Medoid
+	medoid, hasEntryPoint := idx.liveEntryPointLocked()
+	if !hasEntryPoint {
+		return nil, nil
+	}
 
 	if !idx.deleted.IsDeletedUnsafe(medoid) {
 		scratch.Visited.Insert(uint32(medoid))

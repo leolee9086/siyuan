@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"s-forge.local/vectordb/vamana"
 )
 
 const (
@@ -26,6 +28,14 @@ type annSIFTFixture struct {
 	buildDuration   time.Duration
 	heapBytes       uint64
 	buildVectorsSec float64
+}
+
+type annDiskVamanaFixture struct {
+	collection      CollectionAPI
+	buildDuration   time.Duration
+	buildVectorsSec float64
+	indexBytes      uint64
+	close           func()
 }
 
 type annSearchMeasurement struct {
@@ -68,6 +78,27 @@ func BenchmarkANNBenchmarksSIFT(b *testing.B) {
 			}
 		})
 	}
+
+	disk := loadANNDiskVamanaFixture(b, fixture)
+	defer disk.close()
+	b.Run("disk-vamana/build", func(b *testing.B) {
+		b.ReportMetric(disk.buildDuration.Seconds(), "build_seconds")
+		b.ReportMetric(disk.buildVectorsSec, "build_vectors/s")
+		b.ReportMetric(float64(disk.indexBytes)/float64(len(fixture.base)), "disk_bytes/vector")
+	})
+	for _, efSearch := range []int{32, 64, 100, 200} {
+		recall := annDiskVamanaRecall(fixture, disk.collection, efSearch)
+		b.Run(fmt.Sprintf("disk-vamana/ef_%d", efSearch), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ReportMetric(recall*100, "recall@10_percent")
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
 
 func TestANNBenchmarksSIFTReport(t *testing.T) {
@@ -88,6 +119,104 @@ func TestANNBenchmarksSIFTReport(t *testing.T) {
 			t.Errorf("ANN-Benchmarks SIFT Recall@10 %.2f%% 低于 70%% 门槛", measurement.recall*100)
 		}
 	}
+
+	disk := loadANNDiskVamanaFixture(t, fixture)
+	defer disk.close()
+	t.Logf("DiskVamana 公开 API 构建：%v，%.0f vectors/s，%.1f disk bytes/vector", disk.buildDuration, disk.buildVectorsSec, float64(disk.indexBytes)/float64(len(fixture.base)))
+	for _, efSearch := range []int{32, 64, 100, 200} {
+		measurement := annMeasureDiskVamana(fixture, disk.collection, efSearch)
+		t.Logf("DiskVamana ef=%d（内部 5× over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", efSearch, measurement.recall*100, measurement.qps, measurement.p50, measurement.p95, measurement.p99)
+	}
+}
+
+func loadANNDiskVamanaFixture(tb testing.TB, fixture *annSIFTFixture) *annDiskVamanaFixture {
+	tb.Helper()
+	path := tb.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	points := make([]Point, len(fixture.base))
+	for id, vector := range fixture.base {
+		points[id] = Point{ID: strconv.Itoa(id), Vector: vector}
+	}
+	config := vamana.DefaultDiskBuildConfig()
+	config.R = 16
+	config.L = 200
+	config.MaxBackedges = 16
+	started := time.Now()
+	collection, err := db.CreateCollectionWithOptions("ann-sift-disk", CollectionOptions{
+		Engine:          EngineDiskVamana,
+		Points:          points,
+		DistanceMetric:  "l2",
+		DiskBuildConfig: &config,
+	})
+	if err != nil {
+		_ = db.Close()
+		tb.Fatal(err)
+	}
+	duration := time.Since(started)
+	indexBytes := annFileSetSize(filepath.Join(path, "ann-sift-disk", "vamana"))
+	return &annDiskVamanaFixture{
+		collection:      collection,
+		buildDuration:   duration,
+		buildVectorsSec: float64(len(fixture.base)) / duration.Seconds(),
+		indexBytes:      indexBytes,
+		close: func() {
+			if err := db.Close(); err != nil {
+				tb.Errorf("关闭 DiskVamana benchmark 数据库失败：%v", err)
+			}
+		},
+	}
+}
+
+func annFileSetSize(basePath string) uint64 {
+	var total uint64
+	for _, suffix := range []string{".index", ".bbq", ".deleted", VamanaStateFileExt} {
+		info, err := os.Stat(basePath + suffix)
+		if err == nil {
+			total += uint64(info.Size())
+		}
+	}
+	return total
+}
+
+func annDiskVamanaRecall(fixture *annSIFTFixture, collection CollectionAPI, efSearch int) float64 {
+	hits := 0
+	for queryIndex, query := range fixture.queries {
+		truth := make(map[string]struct{}, annSIFTTopK)
+		for _, id := range fixture.groundTruth[queryIndex] {
+			truth[strconv.Itoa(id)] = struct{}{}
+		}
+		results, err := collection.Search(query, SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch})
+		if err != nil {
+			return 0
+		}
+		for _, result := range results {
+			if _, ok := truth[result.ID]; ok {
+				hits++
+			}
+		}
+	}
+	return float64(hits) / float64(len(fixture.queries)*annSIFTTopK)
+}
+
+func annMeasureDiskVamana(fixture *annSIFTFixture, collection CollectionAPI, efSearch int) annSearchMeasurement {
+	latencies := make([]time.Duration, len(fixture.queries))
+	started := time.Now()
+	for queryIndex, query := range fixture.queries {
+		queryStarted := time.Now()
+		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
+			if _, err := collection.Search(query, SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
+				return annSearchMeasurement{}
+			}
+		}
+		latencies[queryIndex] = time.Since(queryStarted) / annSIFTReportRepetitions
+	}
+	measurement := annMeasurementFromLatencies(latencies, float64(len(fixture.queries)*annSIFTReportRepetitions)/time.Since(started).Seconds())
+	measurement.efSearch = efSearch
+	measurement.recall = annDiskVamanaRecall(fixture, collection, efSearch)
+	return measurement
 }
 
 func annBBQBruteForceCandidateRecall(fixture *annSIFTFixture, candidateCounts []int) map[int]float64 {

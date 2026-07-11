@@ -114,6 +114,64 @@ func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
 	}
 }
 
+func TestUnifiedDB_DiskVamanaSyncWriteDoesNotRebuildBaseIndex(t *testing.T) {
+	dbPath := t.TempDir()
+	db, err := Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	points := []Point{
+		{ID: "medoid", Vector: []float32{0, 0, 0, 0}},
+		{ID: "one", Vector: []float32{10, 10, 10, 10}},
+		{ID: "two", Vector: []float32{20, 20, 20, 20}},
+	}
+	collection, err := db.CreateCollectionWithOptions("incremental-durable", CollectionOptions{Engine: EngineDiskVamana, Points: points})
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexPath := filepath.Join(dbPath, "incremental-durable", "vamana.index")
+	before, err := os.Stat(indexPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := collection.Upsert([]Point{{ID: "medoid", Vector: []float32{50, 50, 50, 50}}, {ID: "new", Vector: []float32{1, 1, 1, 1}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := collection.Delete([]string{"one"}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.Stat(indexPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) {
+		t.Fatalf("普通同步写入不应全量重建基础索引：before=%d/%v，after=%d/%v", before.Size(), before.ModTime(), after.Size(), after.ModTime())
+	}
+	if err := collection.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopenedDB, err := Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopenedDB.Close()
+	reopened, err := reopenedDB.OpenCollection("incremental-durable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := reopened.Search([]float32{50, 50, 50, 50}, SearchOptions{TopK: 3, EfSearch: 20})
+	if err != nil || len(results) == 0 || results[0].ID != "medoid" {
+		t.Fatalf("删除磁盘 medoid 后增量恢复失败：results=%+v，err=%v", results, err)
+	}
+	for _, result := range results {
+		if result.ID == "one" {
+			t.Fatalf("已删除节点不应在重启后返回：%+v", results)
+		}
+	}
+}
+
 func TestUnifiedDB_DiskVamanaCloseReleasesFiles(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		dbPath := t.TempDir()

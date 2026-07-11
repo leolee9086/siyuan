@@ -149,6 +149,8 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 		metaCopy := make([]byte, len(point.Meta))
 		copy(metaCopy, point.Meta)
 		vc.Metas[nodeID] = metaCopy
+	} else {
+		delete(vc.Metas, nodeID)
 	}
 	vectorCopy := make([]float32, len(point.Vector))
 	copy(vectorCopy, point.Vector)
@@ -356,6 +358,23 @@ func SaveVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	return saveVamanaCollectionStateLocked(vc, basePath)
 }
 
+// PersistState 原子保存外部 ID、元数据、增量向量和提交序号。
+// DiskVamanaIndex 已经在内存中维护增量图；普通提交无需全量重建磁盘图，重启时由 PendingVectors 恢复增量节点。
+func (vc *VamanaCollection) PersistState(sequence uint64) error {
+	vc.flushMu.Lock()
+	defer vc.flushMu.Unlock()
+	vc.Mu.Lock()
+	defer vc.Mu.Unlock()
+
+	previousSequence := vc.LastCommitSequence
+	vc.LastCommitSequence = sequence
+	if err := saveVamanaCollectionStateLocked(vc, vc.BasePath); err != nil {
+		vc.LastCommitSequence = previousSequence
+		return err
+	}
+	return nil
+}
+
 func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) error {
 	state := vamanaCollectionState{
 		Name:           vc.ColName,
@@ -427,7 +446,56 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	if vc.PendingVectors == nil {
 		vc.PendingVectors = make(map[string][]float32)
 	}
+	if err := vc.restorePendingVectorsLocked(); err != nil {
+		vc.Mu.Unlock()
+		return err
+	}
 	vc.Mu.Unlock()
+	return nil
+}
+
+func (vc *VamanaCollection) restorePendingVectorsLocked() error {
+	if len(vc.PendingVectors) == 0 {
+		return nil
+	}
+	type pendingPoint struct {
+		id     string
+		oldID  uint64
+		vector []float32
+	}
+	pending := make([]pendingPoint, 0, len(vc.PendingVectors))
+	for id, vector := range vc.PendingVectors {
+		oldID, ok := vc.IDMap[id]
+		if !ok {
+			continue
+		}
+		pending = append(pending, pendingPoint{id: id, oldID: oldID, vector: vector})
+	}
+	sort.Slice(pending, func(i, j int) bool { return pending[i].oldID < pending[j].oldID })
+	diskPoints := vc.Index.NumPointsTotal()
+	for _, point := range pending {
+		if point.oldID < diskPoints {
+			if !vc.Index.IsDeleted(point.oldID) {
+				if err := vc.Index.Delete(point.oldID); err != nil {
+					return err
+				}
+			}
+		}
+		nodeID, err := vc.Index.Insert(point.vector)
+		if err != nil {
+			return err
+		}
+		if nodeID == point.oldID {
+			continue
+		}
+		delete(vc.DocMap, point.oldID)
+		vc.IDMap[point.id] = nodeID
+		vc.DocMap[nodeID] = point.id
+		if meta, ok := vc.Metas[point.oldID]; ok {
+			delete(vc.Metas, point.oldID)
+			vc.Metas[nodeID] = meta
+		}
+	}
 	return nil
 }
 
@@ -655,7 +723,7 @@ func (vc *VamanaCollection) Dimension() int {
 }
 
 func (vc *VamanaCollection) Flush() error {
-	return vc.FlushToDisk("")
+	return vc.PersistState(collectionCommitSequence(vc))
 }
 
 func (vc *VamanaCollection) FetchPoints(ids []string) ([]Point, error) {
