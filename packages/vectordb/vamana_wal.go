@@ -2,6 +2,7 @@ package vectordb
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
@@ -13,6 +14,10 @@ import (
 )
 
 const VamanaWALFileExt = ".wal"
+
+var syncVamanaWALFile = func(file *os.File) error {
+	return file.Sync()
+}
 
 func AppendVamanaWAL(vc *VamanaCollection, operations []WriteOperation, sequence uint64, syncWrite bool) error {
 	entry := WALEntry{
@@ -41,16 +46,42 @@ func (vc *VamanaCollection) appendWALLocked(entry WALEntry, syncWrite bool) erro
 		return err
 	}
 	originalSize := stat.Size()
-	if err := appendFramedWAL(file, originalSize, entry); err == nil {
-		if syncWrite {
-			return file.Sync()
-		}
+	err = appendFramedWAL(file, originalSize, entry)
+	if err == nil && syncWrite {
+		err = syncVamanaWALFile(file)
+	}
+	if err == nil {
 		return nil
-	} else if rollbackErr := rollbackWALAppend(file, originalSize, syncWrite); rollbackErr != nil {
+	}
+	if rollbackErr := vc.rollbackWALAppendLocked(originalSize, syncWrite); rollbackErr != nil {
 		return fmt.Errorf("append DiskVamana WAL: %v; rollback WAL: %w", err, rollbackErr)
-	} else {
+	}
+	return err
+}
+
+// rollbackWALAppendLocked 关闭 O_APPEND 句柄后再按路径截断。
+// Windows 可能在开放的追加句柄上延迟完成写入，使 Truncate 返回后文件再次增长。
+func (vc *VamanaCollection) rollbackWALAppendLocked(originalSize int64, syncWrite bool) error {
+	if err := vc.closeWALLocked(); err != nil {
 		return err
 	}
+	path := vc.BasePath + VamanaWALFileExt
+	if err := os.Truncate(path, originalSize); err != nil {
+		return err
+	}
+	if !syncWrite {
+		return nil
+	}
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	syncErr := file.Sync()
+	closeErr := file.Close()
+	if syncErr != nil {
+		return syncErr
+	}
+	return closeErr
 }
 
 func (vc *VamanaCollection) openWALLocked(create bool) (*os.File, error) {
@@ -71,7 +102,7 @@ func (vc *VamanaCollection) openWALLocked(create bool) (*os.File, error) {
 
 func (vc *VamanaCollection) syncWALLocked() error {
 	if vc.walFile != nil {
-		return vc.walFile.Sync()
+		return syncVamanaWALFile(vc.walFile)
 	}
 	file, err := vc.openWALLocked(false)
 	if err != nil {
@@ -80,7 +111,7 @@ func (vc *VamanaCollection) syncWALLocked() error {
 		}
 		return err
 	}
-	return file.Sync()
+	return syncVamanaWALFile(file)
 }
 
 func (vc *VamanaCollection) closeWALLocked() error {
@@ -165,9 +196,16 @@ func truncateTornVamanaWAL(file *os.File, size int64) error {
 
 func replayVamanaWALEntry(vc *VamanaCollection, entry WALEntry) error {
 	if entry.Op != OpBatch {
-		return fmt.Errorf("unknown DiskVamana WAL operation %d", entry.Op)
+		return fmt.Errorf("%w: unknown DiskVamana WAL operation %d", storage.ErrCorruptedFile, entry.Op)
 	}
-	for _, operation := range entry.Operations {
+	if entry.Sequence == 0 {
+		return fmt.Errorf("%w: DiskVamana WAL sequence is zero", storage.ErrCorruptedFile)
+	}
+	operations, err := validateWriteBatch(context.Background(), vc.ColDim, WriteBatch{Operations: entry.Operations})
+	if err != nil || len(operations) != len(entry.Operations) {
+		return fmt.Errorf("%w: invalid DiskVamana WAL batch: %v", storage.ErrCorruptedFile, err)
+	}
+	for _, operation := range operations {
 		if operation.Point != nil {
 			if err := vc.InsertPoint(*operation.Point); err != nil {
 				return err

@@ -177,11 +177,303 @@ func TestWriteContractCancellationAndSyncFailure(t *testing.T) {
 	if !errors.Is(err, ErrPersistenceFailed) {
 		t.Fatalf("同步失败应返回 ErrPersistenceFailed，实际为 %v", err)
 	}
-	if result.Committed || result.CommitSequence != 0 || result.Applied != 1 || !result.IndexHealthy {
-		t.Fatalf("同步失败结果不符合回滚后的未提交契约：%+v", result)
+	if result.Committed || result.CommitSequence != 0 || result.Applied != 0 || !result.IndexHealthy {
+		t.Fatalf("同步失败结果不符合 WAL 提交前未修改索引的契约：%+v", result)
 	}
 	if points, fetchErr := col.FetchPoints([]string{"sync-failed"}); fetchErr != nil || len(points) != 0 {
 		t.Fatalf("同步失败后应回滚内存写入：%+v，%v", points, fetchErr)
+	}
+}
+
+func TestWriteContractDiskVamanaWALFailureDoesNotMutateGraph(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	collection, err := db.CreateCollectionWithOptions("vamana-wal-failure", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0}},
+			{ID: "b", Vector: []float32{10, 10}},
+			{ID: "c", Vector: []float32{20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := collection.(*CollectionHandle)
+	vamanaCollection := handle.col.(*VamanaCollection)
+	beforeTotal := vamanaCollection.Index.NumPointsTotal()
+	beforeLive := vamanaCollection.Index.NumPoints()
+	beforeIDs := make(map[string]uint64, len(vamanaCollection.IDMap))
+	for id, nodeID := range vamanaCollection.IDMap {
+		beforeIDs[id] = nodeID
+	}
+
+	originalPersistWrite := persistWriteCollection
+	persistWriteCollection = func(*CollectionHandle, []WriteOperation, uint64) error {
+		return errors.New("injected DiskVamana WAL failure")
+	}
+	t.Cleanup(func() { persistWriteCollection = originalPersistWrite })
+
+	updated := Point{ID: "a", Vector: []float32{1, 1}}
+	created := Point{ID: "uncommitted", Vector: []float32{1, 2}}
+	result, err := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{
+		{Point: &updated},
+		{DeleteID: "b"},
+		{Point: &created},
+	}}, WriteOptions{Durability: DurabilitySync})
+	if !errors.Is(err, ErrPersistenceFailed) {
+		t.Fatalf("WAL 失败应返回 ErrPersistenceFailed，实际为 %v", err)
+	}
+	if result.Committed || !result.IndexHealthy {
+		t.Fatalf("WAL 失败不得提交且索引应保持健康：%+v", result)
+	}
+	if got := vamanaCollection.Index.NumPointsTotal(); got != beforeTotal {
+		t.Fatalf("WAL 失败后磁盘图总节点从 %d 变为 %d，说明补偿回滚留下了墓碑", beforeTotal, got)
+	}
+	if got := vamanaCollection.Index.NumPoints(); got != beforeLive {
+		t.Fatalf("WAL 失败后存活节点从 %d 变为 %d", beforeLive, got)
+	}
+	for id, nodeID := range beforeIDs {
+		if got, ok := vamanaCollection.IDMap[id]; !ok || got != nodeID {
+			t.Fatalf("WAL 失败后 ID %q 的内部映射从 %d 变为 %d（存在=%v）", id, nodeID, got, ok)
+		}
+	}
+	if _, ok := vamanaCollection.IDMap[created.ID]; ok {
+		t.Fatal("WAL 失败后外部 ID 映射仍然存在")
+	}
+	points, fetchErr := collection.FetchPoints([]string{"a", "b"})
+	if fetchErr != nil || len(points) != 2 || points[0].Vector[0] != 0 || points[1].Vector[0] != 10 {
+		t.Fatalf("WAL 失败后原始向量发生变化：%+v，%v", points, fetchErr)
+	}
+}
+
+func TestWriteContractDiskVamanaFsyncFailureRollsBackWALFrame(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	collection, err := db.CreateCollectionWithOptions("vamana-fsync-failure", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0}},
+			{ID: "b", Vector: []float32{10, 10}},
+			{ID: "c", Vector: []float32{20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := collection.(*CollectionHandle)
+	vamanaCollection := handle.col.(*VamanaCollection)
+	beforeTotal := vamanaCollection.Index.NumPointsTotal()
+	walPath := filepath.Join(path, "vamana-fsync-failure", "vamana"+VamanaWALFileExt)
+	var beforeWALSize int64
+	if info, statErr := os.Stat(walPath); statErr == nil {
+		beforeWALSize = info.Size()
+	} else if !os.IsNotExist(statErr) {
+		t.Fatal(statErr)
+	}
+
+	originalSync := syncVamanaWALFile
+	syncVamanaWALFile = func(*os.File) error { return errors.New("injected fsync failure") }
+	point := Point{ID: "not-durable", Vector: []float32{1, 2}}
+	result, err := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync})
+	syncVamanaWALFile = originalSync
+	if !errors.Is(err, ErrPersistenceFailed) {
+		t.Fatalf("fsync 失败应返回 ErrPersistenceFailed，实际为 %v", err)
+	}
+	if result.Committed || result.Applied != 0 || !result.IndexHealthy {
+		t.Fatalf("fsync 失败不得发布索引修改：%+v", result)
+	}
+	if got := vamanaCollection.Index.NumPointsTotal(); got != beforeTotal {
+		t.Fatalf("fsync 失败后图节点从 %d 变为 %d", beforeTotal, got)
+	}
+	info, statErr := os.Stat(walPath)
+	if statErr != nil {
+		t.Fatal(statErr)
+	}
+	if info.Size() != beforeWALSize {
+		t.Fatalf("fsync 失败后 WAL 完整帧未截断，原大小 %d，现大小 %d", beforeWALSize, info.Size())
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedCollection, err := reopened.OpenCollection("vamana-fsync-failure")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopenedCollection.FetchPoints([]string{point.ID})
+	if err != nil || len(points) != 0 {
+		t.Fatalf("fsync 失败的批次不得在重开后出现：%+v，%v", points, err)
+	}
+}
+
+func TestWriteContractDiskVamanaCancellationBeforeWALCommit(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	collection, err := db.CreateCollectionWithOptions("vamana-cancel-before-wal", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0}},
+			{ID: "b", Vector: []float32{10, 10}},
+			{ID: "c", Vector: []float32{20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	vamanaCollection := collection.(*CollectionHandle).col.(*VamanaCollection)
+	beforeTotal := vamanaCollection.Index.NumPointsTotal()
+	ctx, cancel := context.WithCancel(context.Background())
+	point := Point{ID: "cancelled", Vector: []float32{1, 2}}
+	result, err := collection.Write(ctx, WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{
+		Durability: DurabilitySync,
+		OnProgress: func(progress WriteProgress) {
+			if progress.Stage == "persisting" {
+				cancel()
+			}
+		},
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("WAL 提交前取消应保留 context.Canceled，实际为 %v", err)
+	}
+	if result.Committed || result.Applied != 0 || !result.IndexHealthy {
+		t.Fatalf("WAL 提交前取消不得发布事务：%+v", result)
+	}
+	if got := vamanaCollection.Index.NumPointsTotal(); got != beforeTotal {
+		t.Fatalf("WAL 提交前取消后图节点从 %d 变为 %d", beforeTotal, got)
+	}
+	if points, fetchErr := collection.FetchPoints([]string{point.ID}); fetchErr != nil || len(points) != 0 {
+		t.Fatalf("WAL 提交前取消后出现写入：%+v，%v", points, fetchErr)
+	}
+}
+
+func TestWriteContractDiskVamanaCommittedWALRecoversApplyFailure(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collection, err := db.CreateCollectionWithOptions("vamana-redo", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0}},
+			{ID: "b", Vector: []float32{10, 10}},
+			{ID: "c", Vector: []float32{20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := collection.(*CollectionHandle)
+	vamanaCollection := handle.col.(*VamanaCollection)
+	if err := vamanaCollection.Index.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	point := Point{ID: "redo", Vector: []float32{1, 2}, Meta: []byte(`{"committed":true}`)}
+	result, err := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync})
+	if !errors.Is(err, ErrIndexRecoveryRequired) {
+		t.Fatalf("WAL 已提交但索引应用失败应要求恢复，实际为 %v", err)
+	}
+	if !result.Committed || result.CommitSequence == 0 || result.Applied != 0 || result.IndexHealthy {
+		t.Fatalf("WAL 提交后的失败结果错误：%+v", result)
+	}
+	if _, err := collection.Search(point.Vector, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexRecoveryRequired) {
+		t.Fatalf("不完整索引不得继续查询，实际为 %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedCollection, err := reopened.OpenCollection("vamana-redo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopenedCollection.FetchPoints([]string{point.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(points) != 1 || points[0].Vector[0] != 1 || points[0].Vector[1] != 2 || string(points[0].Meta) != `{"committed":true}` {
+		t.Fatalf("重开后未完整重放已提交 WAL：%+v", points)
+	}
+	next := Point{ID: "next", Vector: []float32{2, 3}}
+	nextResult, err := reopenedCollection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &next}}}, WriteOptions{Durability: DurabilitySync})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nextResult.CommitSequence != result.CommitSequence+1 {
+		t.Fatalf("恢复后提交序号未连续：失败提交 %+v，下一提交 %+v", result, nextResult)
+	}
+}
+
+func TestWriteContractDiskVamanaRejectsInvalidBatchBeforeReplay(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collection, err := db.CreateCollectionWithOptions("vamana-invalid-wal", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0}},
+			{ID: "b", Vector: []float32{10, 10}},
+			{ID: "c", Vector: []float32{20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	vamanaCollection := collection.(*CollectionHandle).col.(*VamanaCollection)
+	badPoint := Point{ID: "bad", Vector: []float32{1}}
+	if err := AppendVamanaWAL(vamanaCollection, []WriteOperation{
+		{DeleteID: "a"},
+		{Point: &badPoint},
+	}, 1, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Open(path); !errors.Is(err, ErrStorageCorrupted) {
+		t.Fatalf("非法 WAL 批次应在修改索引前被拒绝，实际为 %v", err)
+	}
+	walPath := filepath.Join(path, "vamana-invalid-wal", "vamana"+VamanaWALFileExt)
+	if err := os.Remove(walPath); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedCollection, err := reopened.OpenCollection("vamana-invalid-wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopenedCollection.FetchPoints([]string{"a"})
+	if err != nil || len(points) != 1 {
+		t.Fatalf("拒绝非法 WAL 后基础快照被部分修改：%+v，%v", points, err)
 	}
 }
 

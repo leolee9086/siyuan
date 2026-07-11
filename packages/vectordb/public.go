@@ -371,41 +371,29 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 	if state.closed {
 		return WriteResult{}, ErrCollectionClosed
 	}
+	if state.recoveryRequired {
+		return WriteResult{IndexHealthy: false}, ErrIndexRecoveryRequired
+	}
 	if err := ctx.Err(); err != nil {
 		return WriteResult{}, err
 	}
 
-	rollback := h.captureWriteRollback(operations)
 	nextSequence := state.sequence + 1
+	if normalizedOptions.Durability != DurabilityMemory {
+		return h.writeDurableLocked(ctx, state, operations, normalizedOptions, nextSequence)
+	}
+
+	rollback := h.captureWriteRollback(operations)
 	if normalizedOptions.OnProgress != nil {
 		normalizedOptions.OnProgress(WriteProgress{Stage: "applying", Total: len(operations)})
 	}
 	applied, err := h.applyWriteOperations(ctx, operations, normalizedOptions.OnProgress)
 	if err != nil {
 		if rollbackErr := h.applyWriteRollback(rollback, applied); rollbackErr != nil {
+			state.recoveryRequired = true
 			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: apply failed: %v; rollback failed: %w", ErrIndexRecoveryRequired, err, classifyPublicError(rollbackErr))
 		}
 		return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, fmt.Errorf("%w: %w", ErrBatchApplyFailed, classifyPublicError(err))
-	}
-
-	if normalizedOptions.OnProgress != nil && normalizedOptions.Durability == DurabilitySync {
-		normalizedOptions.OnProgress(WriteProgress{Stage: "persisting", Completed: applied, Total: applied})
-	}
-	if normalizedOptions.Durability == DurabilityAsync {
-		if err := persistWriteAsyncCollection(h, operations, nextSequence); err != nil {
-			if rollbackErr := h.applyWriteRollback(rollback, applied); rollbackErr != nil {
-				return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrIndexRecoveryRequired, classifyPublicError(err))
-			}
-			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, classifyPublicError(err)
-		}
-	}
-	if normalizedOptions.Durability == DurabilitySync {
-		if err := persistWriteCollection(h, operations, nextSequence); err != nil {
-			if rollbackErr := h.applyWriteRollback(rollback, len(rollback)); rollbackErr != nil {
-				return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, Committed: true, IndexHealthy: false}, fmt.Errorf("%w: %w", ErrIndexRecoveryRequired, classifyPublicError(err))
-			}
-			return WriteResult{Applied: applied, Durability: normalizedOptions.Durability, IndexHealthy: true}, classifyPublicError(err)
-		}
 	}
 
 	state.sequence = nextSequence
@@ -417,12 +405,60 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 		Committed:      true,
 		IndexHealthy:   true,
 	}
-	if normalizedOptions.Durability == DurabilityAsync {
-		h.flushAsync()
-	}
-
 	if normalizedOptions.OnProgress != nil {
 		normalizedOptions.OnProgress(WriteProgress{Stage: "committed", Completed: applied, Total: applied})
+	}
+	return result, nil
+}
+
+// writeDurableLocked 先把完整批次写入 WAL，再修改索引；调用方持有集合写状态锁。
+// WAL 达到请求的持久性级别后成为提交点，提交后即使上下文取消也必须完成内存发布。
+func (h *CollectionHandle) writeDurableLocked(ctx context.Context, state *collectionWriteState, operations []WriteOperation, options WriteOptions, sequence uint64) (WriteResult, error) {
+	if options.OnProgress != nil {
+		options.OnProgress(WriteProgress{Stage: "persisting", Total: len(operations)})
+	}
+	if err := ctx.Err(); err != nil {
+		return WriteResult{Durability: options.Durability, IndexHealthy: true}, err
+	}
+	var err error
+	if options.Durability == DurabilitySync {
+		err = persistWriteCollection(h, operations, sequence)
+	} else {
+		err = persistWriteAsyncCollection(h, operations, sequence)
+	}
+	if err != nil {
+		return WriteResult{Durability: options.Durability, IndexHealthy: true}, classifyPublicError(err)
+	}
+
+	if options.OnProgress != nil {
+		options.OnProgress(WriteProgress{Stage: "applying", Total: len(operations)})
+	}
+	applied, applyErr := h.applyWriteOperations(context.Background(), operations, options.OnProgress)
+	if applyErr != nil {
+		state.recoveryRequired = true
+		return WriteResult{
+			CommitSequence: sequence,
+			Applied:        applied,
+			Durability:     options.Durability,
+			Committed:      true,
+			IndexHealthy:   false,
+		}, fmt.Errorf("%w: committed WAL sequence %d could not be applied: %v", ErrIndexRecoveryRequired, sequence, classifyPublicError(applyErr))
+	}
+
+	state.sequence = sequence
+	setCollectionCommitSequence(h.col, sequence)
+	result := WriteResult{
+		CommitSequence: sequence,
+		Applied:        applied,
+		Durability:     options.Durability,
+		Committed:      true,
+		IndexHealthy:   true,
+	}
+	if options.Durability == DurabilityAsync {
+		h.flushAsync()
+	}
+	if options.OnProgress != nil {
+		options.OnProgress(WriteProgress{Stage: "committed", Completed: applied, Total: applied})
 	}
 	return result, nil
 }
@@ -446,6 +482,9 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	defer state.mu.RUnlock()
 	if state.closed {
 		return nil, ErrCollectionClosed
+	}
+	if state.recoveryRequired {
+		return nil, ErrIndexRecoveryRequired
 	}
 
 	if len(query) != h.col.Dimension() {
@@ -533,6 +572,9 @@ func (h *CollectionHandle) Flush() error {
 	if state.closed {
 		return ErrCollectionClosed
 	}
+	if state.recoveryRequired {
+		return ErrIndexRecoveryRequired
+	}
 	state.waitAsync()
 
 	var err error
@@ -569,6 +611,9 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 	defer state.mu.RUnlock()
 	if state.closed {
 		return nil, ErrCollectionClosed
+	}
+	if state.recoveryRequired {
+		return nil, ErrIndexRecoveryRequired
 	}
 
 	var points []Point

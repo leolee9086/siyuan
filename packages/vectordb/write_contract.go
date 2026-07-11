@@ -82,12 +82,13 @@ type FormatCompatibility struct {
 
 // collectionWriteState 串行化同一集合的公开批次提交并分配提交序号。
 type collectionWriteState struct {
-	mu           sync.RWMutex
-	sequence     uint64
-	closed       bool
-	asyncRunning atomic.Bool
-	asyncDirty   atomic.Bool
-	asyncWG      sync.WaitGroup
+	mu               sync.RWMutex
+	sequence         uint64
+	closed           bool
+	recoveryRequired bool
+	asyncRunning     atomic.Bool
+	asyncDirty       atomic.Bool
+	asyncWG          sync.WaitGroup
 }
 
 // CheckFormatCompatibility 按主版本、次版本和特性位判断格式兼容性。
