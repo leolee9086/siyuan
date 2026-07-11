@@ -23,6 +23,7 @@ type jsonAPIConfig struct {
 	Parse         func(data []byte, maxResults int) ([]SearchResult, error)
 	Category      string
 	UserAgent     string
+	Headers       map[string]string // 额外的自定义请求头
 	RequiresKey   bool
 	APIKeyEnv     string
 	APIKeyHeader  string
@@ -47,6 +48,9 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 	client.SetHeader("Accept", "application/json")
 	if e.cfg.UserAgent != "" {
 		client.SetHeader("User-Agent", e.cfg.UserAgent)
+	}
+	for k, v := range e.cfg.Headers {
+		client.SetHeader(k, v)
 	}
 	if e.cfg.RequiresKey && e.cfg.APIKeyEnv != "" {
 		if key := os.Getenv(e.cfg.APIKeyEnv); key != "" {
@@ -298,22 +302,31 @@ func parseGoogleResults(body string, maxResults int) ([]SearchResult, error) {
 }
 
 // ── Bing 搜索结果解析 ─────────────────────────────────
+// 逐行对齐 TS parseBingResults + extractResult + extractSnippet
 
 func parseBingResults(body string, maxResults int) ([]SearchResult, error) {
 	var results []SearchResult
 	pos := 0
-	algoRegex := regexp.MustCompile(`<li[^>]*class="b_algo"[^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>`)
-	matches := algoRegex.FindAllStringSubmatch(body, -1)
-	for _, m := range matches {
+	seen := make(map[string]bool)
+
+	// 对应 TS: const containerStart = html.indexOf('<ol id="b_results"')
+	containerStart := strings.Index(body, `<ol id="b_results"`)
+	searchHTML := body
+	if containerStart >= 0 {
+		searchHTML = body[containerStart:]
+	}
+
+	// 对应 TS: /<li[^>]*class="b_algo"[^>]*>[\s\S]*?<\/li>/gi
+	algoRegex := regexp.MustCompile(`<li[^>]*class="b_algo"[^>]*>[\s\S]*?<\/li>`)
+	for _, block := range algoRegex.FindAllString(searchHTML, -1) {
 		if len(results) >= maxResults {
 			break
 		}
-		url := decodeBingURL(m[1])
-		title := StripHTML(m[2])
-		snippet := StripHTML(m[3])
-		if title == "" || url == "" {
+		url, title, snippet := extractBingResult(block)
+		if url == "" || title == "" || seen[url] {
 			continue
 		}
+		seen[url] = true
 		pos++
 		results = append(results, SearchResult{
 			Title: title, URL: url, Snippet: snippet,
@@ -321,6 +334,65 @@ func parseBingResults(body string, maxResults int) ([]SearchResult, error) {
 		})
 	}
 	return results, nil
+}
+
+// extractBingResult 从单个 b_algo 块提取 URL/标题/摘要
+// 对应 TS extractResult + extractSnippet
+func extractBingResult(block string) (url, title, snippet string) {
+	// 变体1: <h2><a href="URL">TITLE</a></h2> (对应 TS h2Match)
+	if m := rxFindStringSubmatch(block, `<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h2>`); m != nil {
+		url = decodeBingURL(m[1])
+		title = StripHTML(m[2])
+		if title != "" && url != "" {
+			goto extractSnippet
+		}
+	}
+	// 变体2: <a class="tilk" href="URL">TITLE</a> (对应 TS tilkMatch)
+	if m := rxFindStringSubmatch(block, `<a[^>]*class="tilk"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>`); m != nil {
+		url = decodeBingURL(m[1])
+		title = StripHTML(m[2])
+		if title != "" && url != "" {
+			goto extractSnippet
+		}
+	}
+	return "", "", ""
+
+extractSnippet:
+	// 对应 TS extractSnippet: 清除 <span class="algoSlug_icon"> 装饰
+	cleaned := rxReplaceAllString(block, `<span[^>]*class="algoSlug_icon"[^>]*>[\s\S]*?<\/span>`, "")
+	// 提取 <p> 标签内容
+	snippetParts := rxFindAllStringSubmatch(cleaned, `<p[^>]*>([\s\S]*?)<\/p>`)
+	for _, sm := range snippetParts {
+		text := StripHTML(sm[1])
+		if text != "" {
+			if snippet != "" {
+				snippet += " "
+			}
+			snippet += text
+		}
+	}
+	if len(snippet) > 300 {
+		snippet = snippet[:300]
+	}
+	return url, title, snippet
+}
+
+// rxFindStringSubmatch 便捷正则匹配
+func rxFindStringSubmatch(s, pattern string) []string {
+	re := regexp.MustCompile(pattern)
+	return re.FindStringSubmatch(s)
+}
+
+// rxFindAllStringSubmatch 便捷正则多匹配
+func rxFindAllStringSubmatch(s, pattern string) [][]string {
+	re := regexp.MustCompile(pattern)
+	return re.FindAllStringSubmatch(s, -1)
+}
+
+// rxReplaceAllString 便捷正则替换
+func rxReplaceAllString(s, pattern, repl string) string {
+	re := regexp.MustCompile(pattern)
+	return re.ReplaceAllString(s, repl)
 }
 
 // ── Google Scholar 结果解析 ───────────────────────────

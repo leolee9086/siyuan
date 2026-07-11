@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -169,6 +170,10 @@ func TestEngineBatches(t *testing.T) {
 			fmt.Fprintf(batchFile, "| Engine | Status | Results | Time(ms) | First Result |\n")
 			fmt.Fprintf(batchFile, "|--------|--------|---------|----------|-------------|\n")
 
+			var mu sync.Mutex
+			var wg sync.WaitGroup
+			sem := make(chan struct{}, 5) // 每批最多 5 个并发
+
 			for _, engineName := range batch.engines {
 				factory, ok := GlobalEngineRegistry.Get(engineName)
 				if !ok {
@@ -180,40 +185,53 @@ func TestEngineBatches(t *testing.T) {
 					Name: engineName, Weight: 1.0, Timeout: 10000, MaxResults: 5,
 				})
 
-				start := time.Now()
-				results, err := engine.Search(batch.query, SearchOptions{NumResults: 3}, nil)
-				duration := time.Since(start).Milliseconds()
+				wg.Add(1)
+				sem <- struct{}{}
 
-				if err != nil {
-					fmt.Fprintf(batchFile, "| %s | ERROR | - | %d | %v |\n", engineName, duration, truncateStr(err.Error(), 60))
-					t.Logf("[%s] ❌ %s: %v (%dms)", batch.name, engineName, err, duration)
-					continue
-				}
+				go func(eng SearchEngine, name string) {
+					defer wg.Done()
+					defer func() { <-sem }()
 
-				if len(results) == 0 {
-					fmt.Fprintf(batchFile, "| %s | ZERO_RESULTS | 0 | %d | - |\n", engineName, duration)
-					t.Logf("[%s] ⚠️ %s: 0 results (%dms)", batch.name, engineName, duration)
-					continue
-				}
+					start := time.Now()
+					results, err := eng.Search(batch.query, SearchOptions{NumResults: 3}, nil)
+					duration := time.Since(start).Milliseconds()
 
-				firstTitle := truncateStr(results[0].Title, 60)
-				if strings.TrimSpace(firstTitle) == "" {
-					firstTitle = "(empty title)"
-				}
+					mu.Lock()
+					defer mu.Unlock()
 
-				fmt.Fprintf(batchFile, "| %s | OK | %d | %d | %s |\n", engineName, len(results), duration, firstTitle)
-				t.Logf("[%s] ✅ %s: %d results (%dms) — %s", batch.name, engineName, len(results), duration, firstTitle)
+					if err != nil {
+						fmt.Fprintf(batchFile, "| %s | ERROR | - | %d | %v |\n", name, duration, truncateStr(err.Error(), 60))
+						t.Logf("[%s] ❌ %s: %v (%dms)", batch.name, name, err, duration)
+						return
+					}
 
-				// 保存每个引擎的详细 JSON 结果
-				detail := struct {
-					Engine   string         `json:"engine"`
-					Query    string         `json:"query"`
-					Duration int64          `json:"durationMs"`
-					Results  []SearchResult `json:"results"`
-				}{engineName, batch.query, duration, results}
-				j, _ := json.MarshalIndent(detail, "", "  ")
-				os.WriteFile(filepath.Join(resultsDir, fmt.Sprintf("%s_%s.json", batch.name, engineName)), j, 0644)
+					if len(results) == 0 {
+						fmt.Fprintf(batchFile, "| %s | ZERO_RESULTS | 0 | %d | - |\n", name, duration)
+						t.Logf("[%s] ⚠️ %s: 0 results (%dms)", batch.name, name, duration)
+						return
+					}
+
+					firstTitle := truncateStr(results[0].Title, 60)
+					if strings.TrimSpace(firstTitle) == "" {
+						firstTitle = "(empty title)"
+					}
+
+					fmt.Fprintf(batchFile, "| %s | OK | %d | %d | %s |\n", name, len(results), duration, firstTitle)
+					t.Logf("[%s] ✅ %s: %d results (%dms) — %s", batch.name, name, len(results), duration, firstTitle)
+
+					// 保存每个引擎的详细 JSON 结果
+					detail := struct {
+						Engine   string         `json:"engine"`
+						Query    string         `json:"query"`
+						Duration int64          `json:"durationMs"`
+						Results  []SearchResult `json:"results"`
+					}{name, batch.query, duration, results}
+					j, _ := json.MarshalIndent(detail, "", "  ")
+					os.WriteFile(filepath.Join(resultsDir, fmt.Sprintf("%s_%s.json", batch.name, name)), j, 0644)
+				}(engine, engineName)
 			}
+
+			wg.Wait()
 		})
 	}
 }

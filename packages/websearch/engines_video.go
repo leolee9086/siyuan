@@ -4,6 +4,7 @@ package websearch
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -97,20 +98,40 @@ func parseYouTubeResults(body string, maxResults int) ([]SearchResult, error) {
 
 // ── Bilibili ──────────────────────────────────────────
 
+// hexChars Bilibili buvid3 随机十六进制字符集
+var hexChars = "0123456789abcdefABCDEF"
+
+// generateBuvid3 生成 Bilibili 所需的 buvid3 cookie（对应 TS generateBuvid3）
+func generateBuvid3() string {
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = hexChars[rand.IntN(len(hexChars))]
+	}
+	return string(b) + "infoc"
+}
+
 func newBilibili(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "bilibili", Category: "video",
-		UserAgent: RandomUserAgent(),
+		UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+		Headers: map[string]string{
+			"Referer":         "https://www.bilibili.com/",
+			"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+			"Cookie":          "buvid3=" + generateBuvid3() + "; innersign=0; i-wanna-go-back=-1; b_ut=7; FEED_LIVE_VERSION=V8; header_theme_version=undefined; home_feed_column=4",
+		},
 		URL: func(q string, n int) string {
-			return "https://api.bilibili.com/x/web-interface/search/type?keyword=" + url.QueryEscape(q) + "&search_type=video&page=1&page_size=" + strconv.Itoa(minInt(n, 20))
+			return "https://api.bilibili.com/x/web-interface/search/type?keyword=" + url.QueryEscape(q) +
+				"&search_type=video&page=1&page_size=" + strconv.Itoa(minInt(n, 50)) +
+				"&single_column=0&__refresh__=true&platform=web"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Data *struct {
 					Result []struct {
-						Title  string `json:"title"`
-						Arcurl string `json:"arcurl"`
-						Desc   string `json:"description"`
+						Title       string `json:"title"`
+						Arcurl      string `json:"arcurl"`
+						Desc        string `json:"description"`
+						Pubdate     int64  `json:"pubdate"`
 					} `json:"result"`
 				} `json:"data"`
 			}
@@ -125,15 +146,30 @@ func newBilibili(config EngineConfig) SearchEngine {
 				if i >= max {
 					break
 				}
+				// 对应 TS sanitizeTitle: 先解 HTML 实体，再剥 <em> 标签
+				title := strings.NewReplacer("&amp;", "&", "&lt;", "<", "&gt;", ">", "&quot;", "\"", "&#x27;", "'", "&#x2F;", "/").Replace(r.Title)
+				title = reStripTags.ReplaceAllString(title, "")
+				title = strings.TrimSpace(title)
+				if title == "" || r.Arcurl == "" {
+					continue
+				}
+				var pubDate int64
+				if r.Pubdate > 0 {
+					pubDate = r.Pubdate * 1000 // Bilibili 返回秒级时间戳
+				}
 				results = append(results, SearchResult{
-					Title: UnescapeHTML(r.Title), URL: r.Arcurl,
+					Title: title, URL: r.Arcurl,
 					Snippet: r.Desc, Engine: "bilibili", Position: i + 1, Category: "video",
+					PublishedDate: pubDate,
 				})
 			}
 			return results, nil
 		},
 	})(config)
 }
+
+func init() { register("bilibili", newBilibili) }
+
 
 // ── 其余视频引擎（site-scoped）────────────────────────
 

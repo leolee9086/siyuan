@@ -178,6 +178,10 @@ func hnswFormatBytes(bytes uint64) string {
 
 // TestHNSW_SIFT_10K builds an HNSW index on SIFT 10K and measures recall.
 func TestHNSW_SIFT_10K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping HNSW SIFT 10K scale test in short mode")
+	}
+
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found. Download from: ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz")

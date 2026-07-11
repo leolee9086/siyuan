@@ -93,6 +93,10 @@ func buildTestIndex(t *testing.T, cfg testCacheConfig) (*DiskVamanaIndex, func()
 // ============================================================================
 
 func TestNodeCacheCorrectness(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 10K node-cache scale test in short mode")
+	}
+
 	cfg := defaultCacheTestConfig()
 	idx, cleanup := buildTestIndex(t, cfg)
 	defer cleanup()
@@ -174,6 +178,10 @@ func TestNodeCacheCorrectness(t *testing.T) {
 // ============================================================================
 
 func TestNodeCacheHitRate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 20K node-cache scale test in short mode")
+	}
+
 	cfg := defaultCacheTestConfig()
 	cfg.total = 20000
 	cfg.dim = 128
@@ -345,6 +353,10 @@ func TestNodeCachePerformance768Dim(t *testing.T) {
 // ============================================================================
 
 func TestNodeCacheConcurrent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 5K node-cache concurrency scale test in short mode")
+	}
+
 	cfg := defaultCacheTestConfig()
 	cfg.total = 5000
 	cfg.dim = 128
@@ -673,6 +685,10 @@ func TestNodeCacheDisable(t *testing.T) {
 // ============================================================================
 
 func TestNodeCacheSearchParity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 5K node-cache parity scale test in short mode")
+	}
+
 	cfg := testCacheConfig{total: 5000, dim: 128, R: 32, L: 200}
 	idx, cleanup := buildTestIndex(t, cfg)
 	defer cleanup()

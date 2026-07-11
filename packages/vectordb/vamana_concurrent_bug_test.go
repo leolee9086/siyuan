@@ -1,6 +1,8 @@
 package vectordb
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -111,5 +113,119 @@ func TestBug_VamanaInsertUpdateRace(t *testing.T) {
 		if len(points) == 0 {
 			t.Errorf("BUG: 点 %s 在重新打开后丢失", id)
 		}
+	}
+}
+
+func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
+	dbPath := t.TempDir()
+	db, err := Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const pointCount = 32
+	points := make([]Point, pointCount)
+	for i := range points {
+		points[i] = Point{ID: fmt.Sprintf("p-%02d", i), Vector: []float32{float32(i), 1, 2, 3}}
+	}
+	col, err := db.CreateCollectionWithOptions("concurrent-stress", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: points,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := make(chan struct{})
+	var workers sync.WaitGroup
+	errCh := make(chan error, 128)
+
+	for worker := 0; worker < 32; worker++ {
+		workers.Add(1)
+		go func(worker int) {
+			defer workers.Done()
+			<-start
+			for iteration := 0; iteration < 30; iteration++ {
+				_, searchErr := col.Search([]float32{float32((worker + iteration) % pointCount), 1, 2, 3}, SearchOptions{TopK: 5})
+				if searchErr != nil {
+					errCh <- searchErr
+					return
+				}
+			}
+		}(worker)
+	}
+
+	for worker := 0; worker < 4; worker++ {
+		workers.Add(1)
+		go func(worker int) {
+			defer workers.Done()
+			<-start
+			for iteration := 0; iteration < 12; iteration++ {
+				id := fmt.Sprintf("p-%02d", (worker+iteration*4)%pointCount)
+				upsertErr := col.Upsert([]Point{{
+					ID:     id,
+					Vector: []float32{float32(worker*100 + iteration), 1, 2, 3},
+				}})
+				if upsertErr != nil {
+					errCh <- upsertErr
+					return
+				}
+			}
+		}(worker)
+	}
+
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		<-start
+		for iteration := 0; iteration < 12; iteration++ {
+			if flushErr := col.Flush(); flushErr != nil {
+				errCh <- flushErr
+				return
+			}
+		}
+	}()
+
+	close(start)
+	workers.Wait()
+	close(errCh)
+	for workerErr := range errCh {
+		t.Fatalf("concurrent operation failed: %v", workerErr)
+	}
+
+	if stats := col.Stats(); stats.Count != pointCount {
+		t.Fatalf("unexpected live point count before close: got %d, want %d", stats.Count, pointCount)
+	}
+	ids := col.(*CollectionHandle).col.ListIDs()
+	seen := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if _, duplicated := seen[id]; duplicated {
+			t.Fatalf("duplicate external ID: %s", id)
+		}
+		seen[id] = struct{}{}
+	}
+	if len(seen) != pointCount {
+		t.Fatalf("unexpected unique ID count: got %d, want %d", len(seen), pointCount)
+	}
+
+	if err := col.Close(); err != nil {
+		t.Fatalf("close collection: %v", err)
+	}
+	if _, err := col.Search([]float32{0, 1, 2, 3}, SearchOptions{TopK: 1}); !errors.Is(err, ErrCollectionClosed) {
+		t.Fatalf("expected stable closed error after close, got %v", err)
+	}
+
+	reopenedDB, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("reopen database: %v", err)
+	}
+	defer reopenedDB.Close()
+	reopened, err := reopenedDB.OpenCollection("concurrent-stress")
+	if err != nil {
+		t.Fatalf("reopen collection: %v", err)
+	}
+	defer reopened.Close()
+	if stats := reopened.Stats(); stats.Count != pointCount {
+		t.Fatalf("unexpected live point count after reopen: got %d, want %d", stats.Count, pointCount)
 	}
 }

@@ -55,20 +55,24 @@ func newBing(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.bing.com/search?q=" + url.QueryEscape(q) + "&setlang=en"
 		},
-		Headers: map[string]string{"Accept-Language": "en-US,en;q=0.9"},
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+			"Accept":          "text/html,application/xhtml+xml",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			results, _ := parseBingResults(body, max)
 			if len(results) > 0 {
 				return results, nil
 			}
-			// 备用：匹配 Bing 新版 HTML 结构
+			// 备用：宽松匹配 h2>a（对应 TS fallbackRegex，修复了 <a><h2> 反向嵌套 bug）
 			var results2 []SearchResult
 			pos := 0
-			re := regexp.MustCompile(`<a[^>]*href="(https?://[^"]*)"[^>]*>[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>`)
+			re := regexp.MustCompile(`<h2[^>]*>[\s\S]*?<a[^>]*href="(https?://[^"]*)"[^>]*>([\s\S]*?)<\/a>`)
 			for _, m := range re.FindAllStringSubmatch(body, -1) {
 				if len(results2) >= max { break }
 				title := StripHTML(m[2]); u := m[1]
-				if title == "" || u == "" { continue }
+				if title == "" || u == "" || strings.Contains(u, "bing.com") { continue }
 				pos++; results2 = append(results2, SearchResult{Title: title, URL: u, Snippet: "", Engine: "bing", Position: pos})
 			}
 			if len(results2) > 0 {
@@ -239,6 +243,7 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 	subdomain := googleSubdomain(country)
 
 	// 构建 URL: 对应 TS new URLSearchParams({q,num,start,filter,safe,...info.params})
+	// TS 始终发送 lr 和 cr（即使是空值），逐行对齐
 	params := url.Values{}
 	params.Set("q", query)
 	params.Set("num", strconv.Itoa(minInt(opts.NumResults, 20)))
@@ -246,14 +251,18 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 	params.Set("filter", "0")
 	params.Set("safe", "off")
 	params.Set("hl", hl)
-	if langParam == "" || langParam == "all" {
-		// 不限制语言
+	// TS: 如果 lang 是 "all"，不限制语言
+	if langParam == "all" {
+		// 不设置 lr
 	} else {
-		params.Set("lr", engLang)
+		params.Set("lr", engLang) // TS 总是设置 lr，默认 lang_en
 	}
+	// TS: cr 始终设置（countryUS 或空）
+	cr := ""
 	if country != "US" {
-		params.Set("cr", "country"+country)
+		cr = "country" + country
 	}
+	params.Set("cr", cr) // TS 始终设置 cr，美国为空
 	params.Set("ie", "utf8")
 	params.Set("oe", "utf8")
 

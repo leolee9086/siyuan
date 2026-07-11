@@ -1169,6 +1169,11 @@ func newSeznam(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "seznam",
 		BuildURL: func(q string, opts SearchOptions) string { return "https://search.seznam.cz/?q=" + url.QueryEscape(q) },
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+			"Accept-Language": "cs,en;q=0.9",
+			"Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult; pos := 0
 			re := regexp.MustCompile(`<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>[\s\S]*?<p[^>]*class="[^"]*snippet[^"]*"[^>]*>([\s\S]*?)<\/p>`)
@@ -1177,6 +1182,15 @@ func newSeznam(config EngineConfig) SearchEngine {
 				title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" { continue }
 				if !strings.HasPrefix(url, "http") { url = "https://search.seznam.cz" + url }
 				pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: StripHTML(m[3]), Engine: "seznam", Position: pos})
+			}
+			// 备用模式：宽松匹配 h2/h3
+			if len(results) == 0 {
+				fbRe := regexp.MustCompile(`<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>[\s\S]*?<h[23][^>]*>([\s\S]*?)<\/h[23]>`)
+				for _, m := range fbRe.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max { break }
+					title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" || strings.Contains(url, "seznam.cz") { continue }
+					pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: "", Engine: "seznam", Position: pos})
+				}
 			}
 			return results, nil
 		},
@@ -1328,14 +1342,25 @@ func newYandex(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "yandex",
 		BuildURL: func(q string, opts SearchOptions) string { return "https://yandex.com/search/site/?text=" + url.QueryEscape(q) + "&tmpl_version=releases&web=1&frame=1&searchid=3131712" },
-		Headers: map[string]string{"Accept-Language": "en-US,en;q=0.9"},
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+			"Accept":          "text/html,application/xhtml+xml",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult; pos := 0
+			// 对应 TS: li.serp-item → a.b-serp-item__title-link → span → div.b-serp-item__text
 			re := regexp.MustCompile(`<li[^>]*class="[^"]*serp-item[^"]*"[^>]*>[\s\S]*?<a[^>]*class="[^"]*b-serp-item__title-link[^"]*"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>`)
 			for _, m := range re.FindAllStringSubmatch(body, -1) {
 				if len(results) >= max { break }
 				title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" { continue }
-				pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: "", Engine: "yandex", Position: pos})
+				snippet := ""
+				// 提取摘要: div.b-serp-item__text
+				if sm := regexp.MustCompile(`<div[^>]*class="[^"]*b-serp-item__text[^"]*"[^>]*>([\s\S]*?)<\/div>`).FindStringSubmatch(m[0]); len(sm) > 1 {
+					snippet = StripHTML(sm[1])
+					if len(snippet) > 300 { snippet = snippet[:300] }
+				}
+				pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: snippet, Engine: "yandex", Position: pos})
 			}
 			return results, nil
 		},
