@@ -21,8 +21,8 @@ package bbq
 // 基于Lucene的二值量化算法
 // =========================================
 
-// QueryQuantizationBits 查询向量量化位数 (1位启用POPCNT优化，速度更快但精度略降)
-const QueryQuantizationBits = 1
+// QueryQuantizationBits 查询向量量化位数。BBQ 使用非对称 4-bit 查询与 1-bit 索引。
+const QueryQuantizationBits = 4
 
 // IndexQuantizationBits 索引向量量化位数 (1位用于压缩存储)
 const IndexQuantizationBits = 1

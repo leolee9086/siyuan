@@ -136,6 +136,7 @@ func (c *Collection) DeletePointWithError(id string) error {
 	}
 
 	c.HNSWIdx.Delete(docID)
+	c.Store.Delete(docID)
 	delete(c.IDMap, id)
 	if int(docID) < len(c.DocMap) {
 		c.DocMap[docID] = ""

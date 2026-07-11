@@ -1,12 +1,17 @@
 package vectordb
 
 import (
+	"errors"
 	"fmt"
+	"math"
+	"math/bits"
 	"sync"
 	"sync/atomic"
 
 	"s-forge.local/vectordb/bbq"
 )
+
+var errBBQCentroidDimension = errors.New("BBQ centroid dimension mismatch")
 
 // VectorStore manages storage for high-dimensional vectors.
 // It uses contiguous memory layout for cache efficiency.
@@ -32,7 +37,17 @@ type VectorStore struct {
 	// BBQ组件
 	quantizer *bbq.ScalarQuantizer
 	scorer    *bbq.QuantizedScorer
-	centroid  []float32 // 默认使用零向量
+	centroid  []float32
+
+	// 质心采用固定 epoch：当前 epoch 内所有 data code 共用同一质心，达到几何增长或漂移阈值后原子重编码。
+	centroidSum            []float64
+	centroidSquareSum      float64
+	centroidCount          uint64
+	centroidEpoch          uint64
+	centroidRebuildAt      uint64
+	centroidMutations      uint64
+	centroidTrainingTarget uint64
+	active                 []bool
 
 	visitedEpoch []uint32
 	currentEpoch uint32
@@ -44,18 +59,88 @@ func NewVectorStore(dimension int, metricType string) *VectorStore {
 	packedSize := (dimension + 7) / 8
 	st, _ := resolveSimilarity(metricType) // 内部路径：默认余弦，忽略未知度量
 	return &VectorStore{
-		Dimension:      dimension,
-		vectors:        make([]float32, 0),
-		bbqQuantized:   make([]byte, 0),
-		bbqPacked:      make([]byte, 0),
-		bbqCorrections: make([]bbq.QuantizationResult, 0),
-		packedSize:     packedSize,
-		quantizer:      bbq.NewScalarQuantizer(st),
-		scorer:         bbq.NewQuantizedScorer(st),
-		centroid:       bbq.CreateZeroCentroid(dimension),
-		visitedEpoch:   make([]uint32, 0),
-		currentEpoch:   1,
+		Dimension:         dimension,
+		vectors:           make([]float32, 0),
+		bbqQuantized:      make([]byte, 0),
+		bbqPacked:         make([]byte, 0),
+		bbqCorrections:    make([]bbq.QuantizationResult, 0),
+		packedSize:        packedSize,
+		quantizer:         bbq.NewScalarQuantizer(st),
+		scorer:            bbq.NewQuantizedScorer(st),
+		centroid:          make([]float32, dimension),
+		centroidSum:       make([]float64, dimension),
+		centroidEpoch:     0,
+		centroidRebuildAt: 1,
+		visitedEpoch:      make([]uint32, 0),
+		currentEpoch:      1,
 	}
+}
+
+// SetBBQCentroid 设置外部训练的质心。后续写入仍会维护运行统计量，并在数据发生显著漂移后原子重编码。
+func (s *VectorStore) SetBBQCentroid(centroid []float32) error {
+	if len(centroid) != s.Dimension {
+		return errBBQCentroidDimension
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.vectors) != 0 {
+		return errors.New("BBQ centroid must be trained before inserting vectors")
+	}
+	s.centroid = append(s.centroid[:0], centroid...)
+	s.centroidEpoch = 1
+	// 外部只提供质心而未提供训练集大小时，先积累一个小型校准窗口，避免首个写入覆盖训练结果。
+	s.centroidRebuildAt = 256
+	return nil
+}
+
+// TrainBBQCentroid 使用完整初始训练集设置质心，并在初始写入阶段同步建立增量统计量。
+func (s *VectorStore) TrainBBQCentroid(vectors [][]float32) error {
+	centroid, err := ComputeBBQCentroid(vectors, s.Dimension)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.vectors) != 0 {
+		return errors.New("BBQ centroid must be trained before inserting vectors")
+	}
+	s.centroid = append(s.centroid[:0], centroid...)
+	s.centroidEpoch = 1
+	s.centroidTrainingTarget = uint64(len(vectors))
+	s.centroidRebuildAt = nextCentroidRebuildCount(uint64(len(vectors)))
+	return nil
+}
+
+func nextCentroidRebuildCount(count uint64) uint64 {
+	if count == 0 {
+		return 1
+	}
+	if count >= 1<<63 {
+		return math.MaxUint64
+	}
+	return 1 << bits.Len64(count)
+}
+
+// ComputeBBQCentroid 计算训练向量的逐维均值。
+func ComputeBBQCentroid(vectors [][]float32, dimension int) ([]float32, error) {
+	if len(vectors) == 0 || dimension <= 0 {
+		return nil, errBBQCentroidDimension
+	}
+	centroid := make([]float32, dimension)
+	for _, vector := range vectors {
+		if len(vector) != dimension {
+			return nil, errBBQCentroidDimension
+		}
+		for index, value := range vector {
+			centroid[index] += value
+		}
+	}
+	inverseCount := 1 / float32(len(vectors))
+	for index := range centroid {
+		centroid[index] *= inverseCount
+	}
+	return centroid, nil
 }
 
 // resolveSimilarity 将字符串距离度量映射为 BBQ 枚举类型。
@@ -98,6 +183,7 @@ func (s *VectorStore) Grow(n int) {
 	s.bbqQuantized = growSlice(s.bbqQuantized, n*s.Dimension)
 	s.bbqPacked = growSlice(s.bbqPacked, n*s.packedSize)
 	s.bbqCorrections = growSlice(s.bbqCorrections, n)
+	s.active = growSlice(s.active, n)
 	s.visitedEpoch = growSlice(s.visitedEpoch, n)
 }
 
@@ -111,6 +197,12 @@ func (s *VectorStore) Set(docID DocID, vec []float32) {
 	defer s.mu.Unlock()
 
 	id := int(docID)
+	wasActive := id < len(s.active) && s.active[id]
+	if wasActive {
+		offset := id * s.Dimension
+		oldVector := s.vectors[offset : offset+s.Dimension]
+		s.removeCentroidSampleLocked(oldVector)
+	}
 
 	// 确保原始向量容量
 	minLen := (id + 1) * s.Dimension
@@ -128,6 +220,11 @@ func (s *VectorStore) Set(docID DocID, vec []float32) {
 	// 复制原始向量
 	offset := id * s.Dimension
 	copy(s.vectors[offset:], vec)
+	if len(s.active) <= id {
+		s.active = growSlice(s.active, id+1)
+	}
+	s.active[id] = true
+	s.addCentroidSampleLocked(vec)
 
 	// BBQ量化: 确保容量
 	if len(s.bbqQuantized) < minLen {
@@ -161,15 +258,168 @@ func (s *VectorStore) Set(docID DocID, vec []float32) {
 		}
 	}
 
-	// 执行BBQ量化
-	quantDest := s.bbqQuantized[offset : offset+s.Dimension]
-	correction := s.quantizer.Quantize(vec, quantDest, bbq.IndexQuantizationBits, s.centroid)
-	s.bbqCorrections[id] = correction
+	if s.maybeRebuildCentroidLocked() {
+		return
+	}
+	s.quantizeVectorLocked(id)
+}
 
-	// 打包为二进制
-	packed := bbq.PackBinary(quantDest)
+// Delete 从质心运行统计量中移除向量。原始向量保留，便于文档 ID 复用和持久化恢复。
+func (s *VectorStore) Delete(docID DocID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	id := int(docID)
+	if id >= len(s.active) || !s.active[id] {
+		return
+	}
+	offset := id * s.Dimension
+	s.removeCentroidSampleLocked(s.vectors[offset : offset+s.Dimension])
+	s.active[id] = false
+	s.maybeRebuildCentroidLocked()
+}
+
+func (s *VectorStore) addCentroidSampleLocked(vector []float32) {
+	for index, value := range vector {
+		value64 := float64(value)
+		s.centroidSum[index] += value64
+		s.centroidSquareSum += value64 * value64
+	}
+	s.centroidCount++
+	s.centroidMutations++
+}
+
+func (s *VectorStore) removeCentroidSampleLocked(vector []float32) {
+	for index, value := range vector {
+		value64 := float64(value)
+		s.centroidSum[index] -= value64
+		s.centroidSquareSum -= value64 * value64
+	}
+	if s.centroidCount > 0 {
+		s.centroidCount--
+	}
+	s.centroidMutations++
+}
+
+func (s *VectorStore) maybeRebuildCentroidLocked() bool {
+	if s.centroidCount == 0 {
+		clear(s.centroid)
+		s.centroidEpoch++
+		s.centroidMutations = 0
+		s.centroidRebuildAt = 1
+		clear(s.bbqQuantized)
+		clear(s.bbqPacked)
+		clear(s.bbqCorrections)
+		return true
+	}
+	if s.centroidTrainingTarget > 0 {
+		if s.centroidCount < s.centroidTrainingTarget {
+			return false
+		}
+		s.centroidTrainingTarget = 0
+		s.centroidMutations = 0
+		s.centroidRebuildAt = nextCentroidRebuildCount(s.centroidCount)
+		return false
+	}
+
+	rebuild := s.centroidEpoch == 0 || s.centroidCount >= s.centroidRebuildAt
+	if !rebuild {
+		minMutations := s.centroidCount / 8
+		if minMutations < 64 {
+			minMutations = 64
+		}
+		if s.centroidMutations >= minMutations {
+			rebuild = s.centroidDriftedLocked() || s.centroidMutations >= s.centroidCount
+		}
+	}
+	if !rebuild {
+		return false
+	}
+
+	inverseCount := 1 / float64(s.centroidCount)
+	for index := range s.centroid {
+		s.centroid[index] = float32(s.centroidSum[index] * inverseCount)
+	}
+	s.reencodeAllLocked()
+	s.centroidEpoch++
+	s.centroidMutations = 0
+	s.centroidRebuildAt = nextCentroidRebuildCount(s.centroidCount)
+	return true
+}
+
+func (s *VectorStore) centroidDriftedLocked() bool {
+	inverseCount := 1 / float64(s.centroidCount)
+	var centroidEnergy float64
+	var driftEnergy float64
+	for index, current := range s.centroid {
+		mean := s.centroidSum[index] * inverseCount
+		centroidEnergy += mean * mean
+		delta := mean - float64(current)
+		driftEnergy += delta * delta
+	}
+	variance := s.centroidSquareSum*inverseCount - centroidEnergy
+	if variance <= 0 {
+		return driftEnergy > 0
+	}
+	// 当均方质心位移达到每维标准差的 10% 时开启新 epoch。
+	return driftEnergy >= variance*0.01
+}
+
+func (s *VectorStore) quantizeVectorLocked(id int) {
+	offset := id * s.Dimension
+	quantDest := s.bbqQuantized[offset : offset+s.Dimension]
+	correction := s.quantizer.Quantize(s.vectors[offset:offset+s.Dimension], quantDest, bbq.IndexQuantizationBits, s.centroid)
+	s.bbqCorrections[id] = correction
 	packedOffset := id * s.packedSize
-	copy(s.bbqPacked[packedOffset:], packed)
+	bbq.PackBinaryInto(quantDest, s.bbqPacked[packedOffset:packedOffset+s.packedSize])
+}
+
+func (s *VectorStore) reencodeAllLocked() {
+	for id, active := range s.active {
+		if active {
+			s.quantizeVectorLocked(id)
+			continue
+		}
+		offset := id * s.Dimension
+		if offset+s.Dimension <= len(s.bbqQuantized) {
+			clear(s.bbqQuantized[offset : offset+s.Dimension])
+		}
+		packedOffset := id * s.packedSize
+		if packedOffset+s.packedSize <= len(s.bbqPacked) {
+			clear(s.bbqPacked[packedOffset : packedOffset+s.packedSize])
+		}
+		if id < len(s.bbqCorrections) {
+			s.bbqCorrections[id] = bbq.QuantizationResult{}
+		}
+	}
+}
+
+// restoreCentroidStatistics 为旧快照重建增量统计量，但保留快照中已经持久化的质心和 data code。
+func (s *VectorStore) restoreCentroidStatistics(docMap []string, deleted map[DocID]bool) {
+	vectorCount := len(s.vectors) / s.Dimension
+	s.active = make([]bool, vectorCount)
+	clear(s.centroidSum)
+	s.centroidSquareSum = 0
+	s.centroidCount = 0
+	for id := 0; id < vectorCount; id++ {
+		if id >= len(docMap) || docMap[id] == "" || deleted[DocID(id)] {
+			continue
+		}
+		s.active[id] = true
+		offset := id * s.Dimension
+		vector := s.vectors[offset : offset+s.Dimension]
+		for index, value := range vector {
+			value64 := float64(value)
+			s.centroidSum[index] += value64
+			s.centroidSquareSum += value64 * value64
+		}
+		s.centroidCount++
+	}
+	if s.centroidEpoch == 0 && s.centroidCount > 0 {
+		s.centroidEpoch = 1
+	}
+	s.centroidMutations = 0
+	s.centroidRebuildAt = nextCentroidRebuildCount(s.centroidCount)
 }
 
 // Get retrieves a vector by DocID (returns a copy for safety)
@@ -250,12 +500,29 @@ func (s *VectorStore) ComputeBBQDistance(a, b DocID) float32 {
 	return s.scorer.ComputeQuantizedDistance(bitDotProduct, corrA, corrB, s.Dimension, 0, false)
 }
 
-// ComputeBBQDistanceFromQuery 计算查询向量与已索引向量的 BBQ 距离。
-// 1-bit 量化模式：使用打包位点积与 POPCNT 硬件加速。
-// 4-bit 量化模式（dim < 128）：使用朴素点积（4-bit query x 1-bit index）。
-func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorrection bbq.QuantizationResult, docID DocID) float32 {
+// ComputeBBQDistanceFromQuery 使用 4-bit BitTranspose 查询与 1-bit 索引计算非对称 BBQ 距离。
+func (s *VectorStore) ComputeBBQDistanceFromQuery(queryTransposed []byte, queryCorrection bbq.QuantizationResult, docID DocID) float32 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	return s.computeBBQDistanceFromQueryLocked(queryTransposed, queryCorrection, docID)
+}
+
+// ComputeBBQDistancesFromQuery 在一次读锁内批量计算 4-bit query × 1-bit data 距离。
+func (s *VectorStore) ComputeBBQDistancesFromQuery(queryTransposed []byte, queryCorrection bbq.QuantizationResult, docIDs []DocID, dst []float32) []float32 {
+	if cap(dst) < len(docIDs) {
+		dst = make([]float32, len(docIDs))
+	} else {
+		dst = dst[:len(docIDs)]
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for index, docID := range docIDs {
+		dst[index] = s.computeBBQDistanceFromQueryLocked(queryTransposed, queryCorrection, docID)
+	}
+	return dst
+}
+
+func (s *VectorStore) computeBBQDistanceFromQueryLocked(queryTransposed []byte, queryCorrection bbq.QuantizationResult, docID DocID) float32 {
 
 	id := int(docID)
 
@@ -263,31 +530,6 @@ func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorre
 		return 1e9
 	}
 
-	if s.Dimension < 128 {
-		// 4-bit Query strategy
-		// queryPacked actually contains unpacked 4-bit values (0-15)
-
-		// Ensure we have access to unpacked 1-bit index data
-		offset := id * s.Dimension
-		endOffset := offset + s.Dimension
-		if endOffset > len(s.bbqQuantized) {
-			return 1e9
-		}
-
-		indexQuantized := s.bbqQuantized[offset:endOffset] // Unpacked 1-bit values (0 or 1)
-
-		// Compute dot product between 4-bit query and 1-bit index
-		// This effectively computes sum(q[i] * index[i])
-		bitDotProduct := bbq.ComputeNaiveDotProduct(queryPacked, indexQuantized)
-
-		indexCorrection := s.bbqCorrections[id]
-
-		// Use 4-bit scoring mode
-		return s.scorer.ComputeQuantizedDistance(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
-	}
-
-	// Standard 1-bit strategy
-	// 获取打包的索引向量
 	packedOffset := id * s.packedSize
 	endOffset := packedOffset + s.packedSize
 	if endOffset > len(s.bbqPacked) {
@@ -297,28 +539,33 @@ func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorre
 	indexPacked := s.bbqPacked[packedOffset:endOffset]
 
 	// 使用 POPCNT 优化的打包位点积
-	bitDotProduct := bbq.ComputePackedDotProduct(queryPacked, indexPacked)
+	bitDotProduct := bbq.ComputeTransposedDotProduct(queryTransposed, indexPacked)
 	indexCorrection := s.bbqCorrections[id]
 
-	return s.scorer.ComputeQuantizedDistance(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, false)
+	return s.scorer.ComputeQuantizedDistance(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
 }
 
-// QuantizeQuery 对查询向量进行量化
+// QuantizeQuery 将查询向量量化为 4-bit BitTranspose 布局，索引向量保持 1-bit packed 布局。
 func (s *VectorStore) QuantizeQuery(query []float32) ([]byte, bbq.QuantizationResult) {
-	if s.Dimension < 128 {
-		// 4-bit quantization for dimensions < 128
-		// Note: For 4-bit, we return the raw quantized values (0-15) in []byte
-		// They are NOT packed into bits because we need 4-bit precision for dot product
-		quantized := make([]byte, len(query))
-		correction := s.quantizer.Quantize(query, quantized, 4, s.centroid)
-		return quantized, correction
-	}
-
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	quantized := make([]byte, len(query))
 	correction := s.quantizer.Quantize(query, quantized, bbq.QueryQuantizationBits, s.centroid)
-	// 打包为二进制 (8个bit压缩为1个byte)
-	packed := bbq.PackBinary(quantized)
-	return packed, correction
+	return bbq.PackBitTranspose4(quantized), correction
+}
+
+// QuantizeVector 将已存储向量临时编码为 4-bit query，索引中仍只保留 1-bit data code。
+func (s *VectorStore) QuantizeVector(docID DocID) ([]byte, bbq.QuantizationResult) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	offset := int(docID) * s.Dimension
+	endOffset := offset + s.Dimension
+	if endOffset > len(s.vectors) {
+		return nil, bbq.QuantizationResult{}
+	}
+	quantized := make([]byte, s.Dimension)
+	correction := s.quantizer.Quantize(s.vectors[offset:endOffset], quantized, bbq.QueryQuantizationBits, s.centroid)
+	return bbq.PackBitTranspose4(quantized), correction
 }
 
 // GetCorrection 获取指定文档的校正因子
@@ -353,6 +600,33 @@ func (s *VectorStore) ComputeDistanceFromVector(query []float32, docID DocID, me
 		return L2Distance(query, vec)
 	}
 	return CosineDistance(query, vec)
+}
+
+// ComputeDistancesFromVector 在一次读锁内批量计算距离，避免图遍历为每条边重复获取存储锁。
+func (s *VectorStore) ComputeDistancesFromVector(query []float32, docIDs []DocID, metric string, dst []float32) []float32 {
+	if cap(dst) < len(docIDs) {
+		dst = make([]float32, len(docIDs))
+	} else {
+		dst = dst[:len(docIDs)]
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for index, docID := range docIDs {
+		offset := int(docID) * s.Dimension
+		endOffset := offset + s.Dimension
+		if endOffset > len(s.vectors) {
+			dst[index] = 1e9
+			continue
+		}
+		vector := s.vectors[offset:endOffset]
+		if metric == "l2" {
+			dst[index] = L2Distance(query, vector)
+		} else {
+			dst[index] = CosineDistance(query, vector)
+		}
+	}
+	return dst
 }
 
 // NewSearchEpoch 开始新的搜索并返回该搜索使用的 epoch。

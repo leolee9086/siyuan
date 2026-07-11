@@ -27,13 +27,9 @@ import (
 // =========================================
 
 // RandomLevel 使用指数分布生成随机层级。
-// 若 Config.LevelML > 0，使用论文公式 threshold = exp(-1/m_L)。
-// 否则使用当前默认 threshold = 0.5。
+// 使用论文公式 threshold = exp(-1/m_L)；NewHNSWIndex 会把零值配置归一化为 m_L=1/ln(M)。
 func (idx *HNSWIndex) RandomLevel() int {
-	threshold := 0.5
-	if idx.Config.LevelML > 0 {
-		threshold = math.Exp(-1.0 / idx.Config.LevelML)
-	}
+	threshold := math.Exp(-1.0 / idx.Config.LevelML)
 	level := 0
 	for rand.Float64() < threshold && level < idx.Config.MaxLevel-1 {
 		level++
@@ -271,4 +267,16 @@ func sortNeighborsByDistance(neighbors []NeighborRecord) {
 		}
 		neighbors[j+1] = key
 	}
+}
+
+func neighborRecordIDs(records []NeighborRecord, dst []DocID) []DocID {
+	if cap(dst) < len(records) {
+		dst = make([]DocID, len(records))
+	} else {
+		dst = dst[:len(records)]
+	}
+	for index, record := range records {
+		dst[index] = record.ID
+	}
+	return dst
 }

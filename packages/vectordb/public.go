@@ -257,6 +257,15 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 	if err != nil {
 		return nil, err
 	}
+	if len(opts.Points) > 0 {
+		vectors := make([][]float32, len(opts.Points))
+		for index := range opts.Points {
+			vectors[index] = opts.Points[index].Vector
+		}
+		if centroidErr := col.(*Collection).Store.TrainBBQCentroid(vectors); centroidErr != nil {
+			return nil, centroidErr
+		}
+	}
 	for _, point := range opts.Points {
 		if err := col.InsertPoint(point); err != nil {
 			return nil, err

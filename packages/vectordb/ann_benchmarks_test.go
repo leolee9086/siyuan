@@ -15,6 +15,7 @@ const (
 	annSIFTDefaultBaseCount  = 10000
 	annSIFTDefaultQueryCount = 100
 	annSIFTTopK              = 10
+	annSIFTReportRepetitions = 10
 )
 
 type annSIFTFixture struct {
@@ -76,6 +77,9 @@ func TestANNBenchmarksSIFTReport(t *testing.T) {
 
 	exact := annMeasureExact(fixture)
 	t.Logf("exact：QPS=%.2f，p50=%v，p95=%v，p99=%v", exact.qps, exact.p50, exact.p95, exact.p99)
+	for candidateCount, recall := range annBBQBruteForceCandidateRecall(fixture, []int{32, 64, 100, 200}) {
+		t.Logf("BBQ 4×1 暴力粗排 top-%d 对 exact top-10 的候选召回：%.2f%%", candidateCount, recall*100)
+	}
 	for _, efSearch := range []int{32, 64, 100, 200} {
 		measurement := annMeasureHNSW(fixture, efSearch)
 		speedup := measurement.qps / exact.qps
@@ -84,6 +88,52 @@ func TestANNBenchmarksSIFTReport(t *testing.T) {
 			t.Errorf("ANN-Benchmarks SIFT Recall@10 %.2f%% 低于 70%% 门槛", measurement.recall*100)
 		}
 	}
+}
+
+func annBBQBruteForceCandidateRecall(fixture *annSIFTFixture, candidateCounts []int) map[int]float64 {
+	maxCandidates := 0
+	for _, candidateCount := range candidateCounts {
+		if candidateCount > maxCandidates {
+			maxCandidates = candidateCount
+		}
+	}
+	hits := make(map[int]int, len(candidateCounts))
+	type candidate struct {
+		id       int
+		distance float32
+	}
+	candidates := make([]candidate, len(fixture.base))
+	for queryIndex, query := range fixture.queries {
+		queryCode, queryCorrection := fixture.collection.Store.QuantizeQuery(query)
+		for id := range fixture.base {
+			candidates[id] = candidate{id: id, distance: fixture.collection.Store.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, DocID(id))}
+		}
+		sort.Slice(candidates, func(i, j int) bool { return candidates[i].distance < candidates[j].distance })
+		truth := make(map[int]struct{}, annSIFTTopK)
+		for _, id := range fixture.groundTruth[queryIndex] {
+			truth[id] = struct{}{}
+		}
+		limit := maxCandidates
+		if limit > len(candidates) {
+			limit = len(candidates)
+		}
+		for rank := 0; rank < limit; rank++ {
+			if _, ok := truth[candidates[rank].id]; !ok {
+				continue
+			}
+			for _, candidateCount := range candidateCounts {
+				if rank < candidateCount {
+					hits[candidateCount]++
+				}
+			}
+		}
+	}
+	recalls := make(map[int]float64, len(candidateCounts))
+	denominator := float64(len(fixture.queries) * annSIFTTopK)
+	for _, candidateCount := range candidateCounts {
+		recalls[candidateCount] = float64(hits[candidateCount]) / denominator
+	}
+	return recalls
 }
 
 func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
@@ -119,6 +169,15 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 	var before runtime.MemStats
 	runtime.ReadMemStats(&before)
 	collection := NewCollectionWithMetric("ann-sift", dim, "l2")
+	if err := collection.Store.TrainBBQCentroid(base); err != nil {
+		tb.Fatal(err)
+	}
+	exactAll := os.Getenv("VECTORDB_ANN_HNSW_EXACT") == "1"
+	exactBuild := exactAll || os.Getenv("VECTORDB_ANN_HNSW_EXACT_BUILD") == "1"
+	if exactBuild {
+		// HNSW 的 Dimension 只参与是否启用 BBQ 的判断；诊断模式保留真实向量维度并强制使用精确距离构图和导航。
+		collection.HNSWIdx.Dimension = 0
+	}
 	buildStarted := time.Now()
 	for i, vector := range base {
 		if err := collection.InsertPoint(Point{ID: strconv.Itoa(i), Vector: vector}); err != nil {
@@ -126,6 +185,9 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 		}
 	}
 	buildDuration := time.Since(buildStarted)
+	if exactBuild && !exactAll {
+		collection.HNSWIdx.Dimension = dim
+	}
 	runtime.GC()
 	var after runtime.MemStats
 	runtime.ReadMemStats(&after)
@@ -210,11 +272,14 @@ func annMeasureExact(fixture *annSIFTFixture) annSearchMeasurement {
 	started := time.Now()
 	for i, query := range fixture.queries {
 		queryStarted := time.Now()
-		_ = annExactKNN(fixture.base, query, annSIFTTopK)
-		latencies[i] = time.Since(queryStarted)
+		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
+			_ = annExactKNN(fixture.base, query, annSIFTTopK)
+		}
+		latencies[i] = time.Since(queryStarted) / annSIFTReportRepetitions
 	}
 	elapsed := time.Since(started)
-	return annMeasurementFromLatencies(latencies, float64(len(fixture.queries))/elapsed.Seconds())
+	operations := len(fixture.queries) * annSIFTReportRepetitions
+	return annMeasurementFromLatencies(latencies, float64(operations)/elapsed.Seconds())
 }
 
 func annMeasureHNSW(fixture *annSIFTFixture, efSearch int) annSearchMeasurement {
@@ -222,11 +287,14 @@ func annMeasureHNSW(fixture *annSIFTFixture, efSearch int) annSearchMeasurement 
 	started := time.Now()
 	for i, query := range fixture.queries {
 		queryStarted := time.Now()
-		fixture.collection.Search(query, annSIFTTopK, efSearch)
-		latencies[i] = time.Since(queryStarted)
+		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
+			fixture.collection.Search(query, annSIFTTopK, efSearch)
+		}
+		latencies[i] = time.Since(queryStarted) / annSIFTReportRepetitions
 	}
 	elapsed := time.Since(started)
-	measurement := annMeasurementFromLatencies(latencies, float64(len(fixture.queries))/elapsed.Seconds())
+	operations := len(fixture.queries) * annSIFTReportRepetitions
+	measurement := annMeasurementFromLatencies(latencies, float64(operations)/elapsed.Seconds())
 	measurement.efSearch = efSearch
 	measurement.recall = annRecall(fixture, efSearch)
 	return measurement

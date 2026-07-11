@@ -329,16 +329,26 @@ func PackBinary(vector []byte) []byte {
 	dimension := len(vector)
 	packedSize := (dimension + 7) / 8
 	result := make([]byte, packedSize)
+	PackBinaryInto(vector, result)
+	return result
+}
 
-	for i := 0; i < dimension; i++ {
+// PackBinaryInto 将 1-bit 量化结果写入调用方提供的打包缓冲区。
+// 复用目标缓冲区可避免批量构建和增量写入时为每个向量分配临时切片。
+func PackBinaryInto(vector, result []byte) {
+	packedSize := (len(vector) + 7) / 8
+	if len(result) < packedSize {
+		return
+	}
+	clear(result[:packedSize])
+
+	for i := 0; i < len(vector); i++ {
 		if vector[i] != 0 {
 			byteIdx := i / 8
 			bitIdx := uint(7 - i%8) // 高位在前
 			result[byteIdx] |= (1 << bitIdx)
 		}
 	}
-
-	return result
 }
 
 // CreateZeroCentroid 创建零质心 生成指定维度的零向量作为默认质心

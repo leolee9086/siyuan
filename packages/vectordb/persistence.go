@@ -71,6 +71,14 @@ type SnapshotData struct {
 	BBQQuantized   []byte                   `msgpack:"bbqQuantized"`
 	BBQPacked      []byte                   `msgpack:"bbqPacked"`
 	BBQCorrections []bbq.QuantizationResult `msgpack:"bbqCorrections"`
+	BBQCentroid    []float32                `msgpack:"bbqCentroid"`
+	BBQCentroidSum []float64                `msgpack:"bbqCentroidSum"`
+	BBQSquareSum   float64                  `msgpack:"bbqSquareSum"`
+	BBQCount       uint64                   `msgpack:"bbqCount"`
+	BBQEpoch       uint64                   `msgpack:"bbqEpoch"`
+	BBQRebuildAt   uint64                   `msgpack:"bbqRebuildAt"`
+	BBQMutations   uint64                   `msgpack:"bbqMutations"`
+	BBQActive      []bool                   `msgpack:"bbqActive"`
 
 	EntryPoint DocID `msgpack:"entryPoint"`
 	MaxLayer   int   `msgpack:"maxLayer"`
@@ -116,6 +124,14 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	copy(bbqPacked, c.Store.bbqPacked)
 	bbqCorrections := make([]bbq.QuantizationResult, len(c.Store.bbqCorrections))
 	copy(bbqCorrections, c.Store.bbqCorrections)
+	bbqCentroid := append([]float32(nil), c.Store.centroid...)
+	bbqCentroidSum := append([]float64(nil), c.Store.centroidSum...)
+	bbqActive := append([]bool(nil), c.Store.active...)
+	bbqSquareSum := c.Store.centroidSquareSum
+	bbqCount := c.Store.centroidCount
+	bbqEpoch := c.Store.centroidEpoch
+	bbqRebuildAt := c.Store.centroidRebuildAt
+	bbqMutations := c.Store.centroidMutations
 	c.Store.mu.RUnlock()
 
 	hnswNeighbors, deleted, entryPoint, maxLayer := c.HNSWIdx.Snapshot()
@@ -148,6 +164,14 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 		BBQQuantized:   bbqQuantized,
 		BBQPacked:      bbqPacked,
 		BBQCorrections: bbqCorrections,
+		BBQCentroid:    bbqCentroid,
+		BBQCentroidSum: bbqCentroidSum,
+		BBQSquareSum:   bbqSquareSum,
+		BBQCount:       bbqCount,
+		BBQEpoch:       bbqEpoch,
+		BBQRebuildAt:   bbqRebuildAt,
+		BBQMutations:   bbqMutations,
+		BBQActive:      bbqActive,
 		EntryPoint:     entryPoint,
 		MaxLayer:       maxLayer,
 	}
@@ -201,6 +225,20 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	store.bbqQuantized = snapshot.BBQQuantized
 	store.bbqPacked = snapshot.BBQPacked
 	store.bbqCorrections = snapshot.BBQCorrections
+	if len(snapshot.BBQCentroid) == snapshot.Dimension {
+		store.centroid = append(store.centroid[:0], snapshot.BBQCentroid...)
+	}
+	if len(snapshot.BBQCentroidSum) == snapshot.Dimension && len(snapshot.BBQActive) > 0 {
+		store.centroidSum = append(store.centroidSum[:0], snapshot.BBQCentroidSum...)
+		store.centroidSquareSum = snapshot.BBQSquareSum
+		store.centroidCount = snapshot.BBQCount
+		store.centroidEpoch = snapshot.BBQEpoch
+		store.centroidRebuildAt = snapshot.BBQRebuildAt
+		store.centroidMutations = snapshot.BBQMutations
+		store.active = append(store.active[:0], snapshot.BBQActive...)
+	} else {
+		store.restoreCentroidStatistics(snapshot.DocMap, snapshot.Deleted)
+	}
 
 	hnswNeighbors := make([][][]hnsw.NeighborRecord, len(snapshot.Neighbors))
 	for i, levels := range snapshot.Neighbors {

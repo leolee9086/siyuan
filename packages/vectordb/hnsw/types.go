@@ -17,6 +17,7 @@
 package hnsw
 
 import (
+	"math"
 	"sync"
 
 	"s-forge.local/vectordb/bbq"
@@ -40,7 +41,7 @@ type Config struct {
 	MaxLevel           int     `msgpack:"max_level"`
 	MetricType         string  `msgpack:"metric"`
 	GraphSlackFactor   float32 `msgpack:"graph_slack_factor"`
-	LevelML            float64 `msgpack:"level_ml"`        // 0=default 0.5, >0=m_L value for paper formula
+	LevelML            float64 `msgpack:"level_ml"`        // 0=论文默认 1/ln(M)，>0=显式 m_L
 	ContaminationAlpha float32 `msgpack:"contamination_a"` // 0=disabled
 }
 
@@ -83,14 +84,19 @@ type Distancer interface {
 	// ComputeDistanceFromVector 计算查询向量与已索引节点的距离
 	ComputeDistanceFromVector(query []float32, id DocID, metric string) float32
 
-	// ComputeBBQDistance 计算两个已索引节点间的 BBQ 量化距离
-	ComputeBBQDistance(a, b DocID) float32
+	// ComputeDistancesFromVector 批量计算同一查询向量与多个已索引节点的距离，并复用 dst 容量。
+	ComputeDistancesFromVector(query []float32, ids []DocID, metric string, dst []float32) []float32
 
-	// ComputeBBQDistanceFromQuery 计算量化查询与已索引节点的 BBQ 距离
+	// ComputeBBQDistanceFromQuery 使用 4-bit 查询与 1-bit 索引计算非对称 BBQ 距离
 	ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorr bbq.QuantizationResult, id DocID) float32
+	// ComputeBBQDistancesFromQuery 批量计算非对称 BBQ 距离，并复用 dst 容量。
+	ComputeBBQDistancesFromQuery(queryPacked []byte, queryCorr bbq.QuantizationResult, ids []DocID, dst []float32) []float32
 
 	// QuantizeQuery 对查询向量进行量化
 	QuantizeQuery(query []float32) ([]byte, bbq.QuantizationResult)
+
+	// QuantizeVector 将已存储向量临时量化为 4-bit 查询编码，用于非对称构图。
+	QuantizeVector(id DocID) ([]byte, bbq.QuantizationResult)
 
 	// GetUnsafe 零拷贝获取向量（调用方不得修改返回值）
 	GetUnsafe(id DocID) ([]float32, bool)
@@ -141,6 +147,9 @@ func NewHNSWIndex(dimension int, config Config, distancer Distancer) *HNSWIndex 
 	// 零值兼容：GraphSlackFactor 未设置时使用默认值 1.3
 	if config.GraphSlackFactor <= 0 {
 		config.GraphSlackFactor = 1.3
+	}
+	if config.LevelML <= 0 && config.M > 1 {
+		config.LevelML = 1.0 / math.Log(float64(config.M))
 	}
 	return &HNSWIndex{
 		Config:     config,

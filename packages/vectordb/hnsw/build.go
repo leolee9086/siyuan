@@ -88,10 +88,15 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 	entryLevel := idx.GetItemLevel(entryPointID)
 
 	currentBestID := entryPointID
+	var queryCode []byte
+	var queryCorrection bbq.QuantizationResult
+	if idx.Dimension >= bbq.BBQEnableThreshold {
+		queryCode, queryCorrection = idx.Distancer.QuantizeVector(itemDocID)
+	}
 
 	// Phase 1: 从顶层贪心搜索到 itemLevel+1
 	for level := entryLevel; level > itemLevel; level-- {
-		currentBestID = idx.greedySearch(itemDocID, currentBestID, level, config.MetricType)
+		currentBestID = idx.greedySearch(itemDocID, queryCode, queryCorrection, currentBestID, level, config.MetricType)
 	}
 
 	// 预分配双向连接维护的缓冲区，在层级循环外分配一次，循环内复用
@@ -100,7 +105,7 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 
 	// Phase 2: 在每一层构建连接
 	for level := min(entryLevel, itemLevel); level >= 0; level-- {
-		candidates := idx.searchLevel(itemDocID, currentBestID, level, config.EfConstruction, config.MetricType)
+		candidates := idx.searchLevel(itemDocID, queryCode, queryCorrection, currentBestID, level, config.EfConstruction, config.MetricType)
 
 		M := ExpectedNeighborCount(level, config.M)
 		selected := idx.selectNeighborsHeuristic(itemDocID, candidates, M, config.MetricType, true, true)
@@ -145,9 +150,9 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 
 // greedySearch 在单层执行贪心搜索（节点对节点）
 // 优化：非BBQ路径预取 queryVec，消除每次距离计算中的重复向量查找
-func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int, metricType string) DocID {
+func (idx *HNSWIndex) greedySearch(queryID DocID, queryCode []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, metricType string) DocID {
 	currentBestID := entryPointID
-	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
+	useBQ := len(queryCode) > 0
 
 	if !useBQ {
 		// 预取 queryVec，后续循环中复用，避免每次 ComputeDistance 都查找 queryID 的向量
@@ -156,6 +161,8 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 			return currentBestID
 		}
 		currentDist := idx.Distancer.ComputeDistanceFromVector(queryVec, currentBestID, metricType)
+		var neighborIDs []DocID
+		var distances []float32
 
 		improved := true
 		for improved {
@@ -164,8 +171,10 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 			if neighbors == nil {
 				break
 			}
-			for _, neighbor := range neighbors {
-				dist := idx.Distancer.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+			neighborIDs = neighborRecordIDs(neighbors, neighborIDs)
+			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
+			for index, neighbor := range neighbors {
+				dist := distances[index]
 				if dist < currentDist {
 					currentBestID = neighbor.ID
 					currentDist = dist
@@ -176,8 +185,10 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 		return currentBestID
 	}
 
-	// BBQ 路径
-	currentDist := idx.Distancer.ComputeBBQDistance(queryID, currentBestID)
+	// BBQ 路径：新插入向量作为 4-bit query，已有节点保持 1-bit data code。
+	currentDist := idx.Distancer.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, currentBestID)
+	var neighborIDs []DocID
+	var distances []float32
 	improved := true
 	for improved {
 		improved = false
@@ -185,8 +196,10 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 		if neighbors == nil {
 			break
 		}
-		for _, neighbor := range neighbors {
-			dist := idx.Distancer.ComputeBBQDistance(queryID, neighbor.ID)
+		neighborIDs = neighborRecordIDs(neighbors, neighborIDs)
+		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
+		for index, neighbor := range neighbors {
+			dist := distances[index]
 			if dist < currentDist {
 				currentBestID = neighbor.ID
 				currentDist = dist
@@ -200,7 +213,7 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 
 // searchLevel 在指定层搜索 ef 个候选节点（节点对节点）
 // 优化：非BBQ路径预取 queryVec，消除每次距离计算中的重复向量查找
-func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
+func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
 	epoch := idx.Distancer.NewSearchEpoch()
 
 	candidates := minHeapPool.Get().(*MinHeap)
@@ -212,7 +225,7 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 	results.capacity = ef
 	defer maxHeapPool.Put(results)
 
-	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
+	useBQ := len(queryCode) > 0
 
 	// 非BBQ路径：预取 queryVec 避免重复查找
 	var queryVec []float32
@@ -226,7 +239,7 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 
 	var entryDist float32
 	if useBQ {
-		entryDist = idx.Distancer.ComputeBBQDistance(queryID, entryPointID)
+		entryDist = idx.Distancer.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, entryPointID)
 	} else {
 		entryDist = idx.Distancer.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
 	}
@@ -234,6 +247,8 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	idx.Distancer.MarkVisited(entryPointID, epoch)
+	var neighborIDs []DocID
+	var distances []float32
 
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
@@ -247,25 +262,47 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 			continue
 		}
 
+		if !useBQ {
+			neighborIDs = neighborIDs[:0]
+			for _, neighbor := range neighbors {
+				if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+					continue
+				}
+				idx.Distancer.MarkVisited(neighbor.ID, epoch)
+				neighborIDs = append(neighborIDs, neighbor.ID)
+			}
+			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
+			for index, neighborID := range neighborIDs {
+				dist := distances[index]
+				if !results.IsFull() {
+					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+					results.Push(HeapItem{ID: neighborID, Distance: dist})
+				} else if dist < results.Peek().Distance {
+					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+					results.Replace(HeapItem{ID: neighborID, Distance: dist})
+				}
+			}
+			continue
+		}
+
+		neighborIDs = neighborIDs[:0]
 		for _, neighbor := range neighbors {
 			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
 				continue
 			}
 			idx.Distancer.MarkVisited(neighbor.ID, epoch)
-
-			var dist float32
-			if useBQ {
-				dist = idx.Distancer.ComputeBBQDistance(queryID, neighbor.ID)
-			} else {
-				dist = idx.Distancer.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
-			}
+			neighborIDs = append(neighborIDs, neighbor.ID)
+		}
+		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
+		for index, neighborID := range neighborIDs {
+			dist := distances[index]
 
 			if !results.IsFull() {
-				candidates.Push(HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Push(HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+				results.Push(HeapItem{ID: neighborID, Distance: dist})
 			} else if dist < results.Peek().Distance {
-				candidates.Push(HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Replace(HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+				results.Replace(HeapItem{ID: neighborID, Distance: dist})
 			}
 		}
 	}
@@ -295,9 +332,50 @@ func (idx *HNSWIndex) selectNeighborsHeuristic(itemID DocID, candidates []Neighb
 	}
 
 	sortNeighborsByDistance(candidates)
+	if idx.Dimension >= bbq.BBQEnableThreshold {
+		// BBQ 构图候选已经按 4-bit query × 1-bit data 距离排序。
+		// 对前 2M 个候选执行有界多样性筛选，只选出一半邻居，再按距离补齐；这保留长程边，同时限制高维精确距离开销。
+		maxCandidates := 2 * M
+		if len(candidates) > maxCandidates {
+			candidates = candidates[:maxCandidates]
+		}
+		diverseTarget := M / 4
+		if diverseTarget < 1 {
+			diverseTarget = 1
+		}
+		result := make([]NeighborRecord, 0, M)
+		for _, candidate := range candidates {
+			if len(result) >= diverseTarget {
+				break
+			}
+			isGood := true
+			for _, selected := range result {
+				if idx.Distancer.ComputeDistance(candidate.ID, selected.ID, metricType) < candidate.Distance {
+					isGood = false
+					break
+				}
+			}
+			if isGood {
+				result = append(result, candidate)
+			}
+		}
+		for _, candidate := range candidates {
+			if len(result) >= M {
+				break
+			}
+			if !containsNeighborRecord(result, candidate.ID) {
+				result = append(result, candidate)
+			}
+		}
+		return result
+	}
+	// 与 DiskANN/Vamana 的 RobustPrune 一致，只在最近的 2M 个候选中执行二次多样性判断。
+	// 更远候选极少进入最终邻居集，却会把高维精确距离开销放大到 O(efConstruction*M*dim)。
+	if maxCandidates := 2 * M; len(candidates) > maxCandidates {
+		candidates = candidates[:maxCandidates]
+	}
 
 	result := make([]NeighborRecord, 0, M)
-	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
 
 	for _, candidate := range candidates {
 		if len(result) >= M {
@@ -305,26 +383,15 @@ func (idx *HNSWIndex) selectNeighborsHeuristic(itemID DocID, candidates []Neighb
 		}
 
 		isGood := true
-		if useBQ {
-			for _, res := range result {
-				distToRes := idx.Distancer.ComputeBBQDistance(candidate.ID, res.ID)
-				if distToRes < candidate.Distance {
-					isGood = false
-					break
-				}
-			}
-		} else {
-			// 预取 candidate 向量，内循环中复用
-			candidateVec, ok := idx.Distancer.GetUnsafe(candidate.ID)
-			if !ok {
-				continue
-			}
-			for _, res := range result {
-				distToRes := idx.Distancer.ComputeDistanceFromVector(candidateVec, res.ID, metricType)
-				if distToRes < candidate.Distance {
-					isGood = false
-					break
-				}
+		candidateVec, ok := idx.Distancer.GetUnsafe(candidate.ID)
+		if !ok {
+			continue
+		}
+		for _, res := range result {
+			distToRes := idx.Distancer.ComputeDistanceFromVector(candidateVec, res.ID, metricType)
+			if distToRes < candidate.Distance {
+				isGood = false
+				break
 			}
 		}
 
@@ -359,4 +426,13 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func containsNeighborRecord(records []NeighborRecord, id DocID) bool {
+	for _, record := range records {
+		if record.ID == id {
+			return true
+		}
+	}
+	return false
 }

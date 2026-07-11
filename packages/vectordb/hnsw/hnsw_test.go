@@ -154,6 +154,18 @@ func (d *mockDistancer) ComputeDistanceFromVector(query []float32, id DocID, _ s
 	return d.distFunc(query, d.flatVectors[off:off+d.dim:off+d.dim])
 }
 
+func (d *mockDistancer) ComputeDistancesFromVector(query []float32, ids []DocID, metric string, dst []float32) []float32 {
+	if cap(dst) < len(ids) {
+		dst = make([]float32, len(ids))
+	} else {
+		dst = dst[:len(ids)]
+	}
+	for index, id := range ids {
+		dst[index] = d.ComputeDistanceFromVector(query, id, metric)
+	}
+	return dst
+}
+
 func (d *mockDistancer) ComputeBBQDistance(a, b DocID) float32 {
 	return d.ComputeDistance(a, b, "")
 }
@@ -162,7 +174,23 @@ func (d *mockDistancer) ComputeBBQDistanceFromQuery(_ []byte, _ bbq.Quantization
 	return 1e9
 }
 
+func (d *mockDistancer) ComputeBBQDistancesFromQuery(_ []byte, _ bbq.QuantizationResult, ids []DocID, dst []float32) []float32 {
+	if cap(dst) < len(ids) {
+		dst = make([]float32, len(ids))
+	} else {
+		dst = dst[:len(ids)]
+	}
+	for index := range dst {
+		dst[index] = 1e9
+	}
+	return dst
+}
+
 func (d *mockDistancer) QuantizeQuery(_ []float32) ([]byte, bbq.QuantizationResult) {
+	return nil, bbq.QuantizationResult{}
+}
+
+func (d *mockDistancer) QuantizeVector(_ DocID) ([]byte, bbq.QuantizationResult) {
 	return nil, bbq.QuantizationResult{}
 }
 

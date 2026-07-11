@@ -20,10 +20,14 @@
 package vectordb
 
 import (
+	"bytes"
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 	"time"
+
+	"s-forge.local/vectordb/bbq"
 )
 
 // TestBBQThreshold verifies that the vector database works correctly
@@ -32,6 +36,123 @@ func TestBBQThreshold(t *testing.T) {
 	testDimensions(t, 32, "dim-32-no-bbq")
 	testDimensions(t, 33, "dim-33-with-bbq-4bit-query")
 	testDimensions(t, 64, "dim-64-with-bbq-4bit-query")
+}
+
+func TestHNSWBBQQueryUsesAsymmetric4Bit(t *testing.T) {
+	for _, dim := range []int{33, 128, 768} {
+		t.Run(fmt.Sprintf("dim-%d", dim), func(t *testing.T) {
+			store := NewVectorStore(dim, "l2")
+			indexed := make([]float32, dim)
+			query := make([]float32, dim)
+			for i := 0; i < dim; i++ {
+				indexed[i] = float32((i*7)%19) - 9
+				query[i] = float32((i*11)%23) - 11
+			}
+			store.Set(0, indexed)
+
+			queryCode, queryCorrection := store.QuantizeQuery(query)
+			quantized := make([]byte, dim)
+			expectedCorrection := store.quantizer.Quantize(query, quantized, 4, store.centroid)
+			expectedCode := bbq.PackBitTranspose4(quantized)
+			if !bytes.Equal(queryCode, expectedCode) || queryCorrection != expectedCorrection {
+				t.Fatalf("查询必须使用 4-bit BitTranspose 编码")
+			}
+
+			indexCode := store.bbqPacked[:store.packedSize]
+			dotProduct := bbq.ComputeTransposedDotProduct(queryCode, indexCode)
+			expectedDistance := store.scorer.ComputeQuantizedDistance(dotProduct, queryCorrection, store.bbqCorrections[0], dim, 0, true)
+			if distance := store.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, 0); distance != expectedDistance {
+				t.Fatalf("4-bit×1-bit 距离不一致：实际 %f，期望 %f", distance, expectedDistance)
+			}
+		})
+	}
+}
+
+func TestHNSWBBQCentroidUsesIncrementalEpochs(t *testing.T) {
+	const dimension = 128
+	store := NewVectorStore(dimension, "l2")
+	first := make([]float32, dimension)
+	second := make([]float32, dimension)
+	for index := 0; index < dimension; index++ {
+		first[index] = float32(index%11) + 20
+		second[index] = float32((index*3)%17) + 40
+	}
+
+	store.Set(0, first)
+	if store.centroidEpoch != 1 || store.centroidCount != 1 {
+		t.Fatalf("首个向量必须建立非零质心 epoch：epoch=%d，count=%d", store.centroidEpoch, store.centroidCount)
+	}
+	for index, value := range store.centroid {
+		if value != first[index] {
+			t.Fatalf("首个质心不等于首个向量：维度=%d，实际=%f，期望=%f", index, value, first[index])
+		}
+	}
+
+	store.Set(1, second)
+	if store.centroidEpoch != 2 || store.centroidCount != 2 {
+		t.Fatalf("数据量翻倍必须开启新 epoch：epoch=%d，count=%d", store.centroidEpoch, store.centroidCount)
+	}
+	expectedCentroid := make([]float32, dimension)
+	for index := range expectedCentroid {
+		expectedCentroid[index] = (first[index] + second[index]) / 2
+		if store.centroid[index] != expectedCentroid[index] {
+			t.Fatalf("增量质心不正确：维度=%d，实际=%f，期望=%f", index, store.centroid[index], expectedCentroid[index])
+		}
+	}
+
+	quantized := make([]byte, dimension)
+	expectedCorrection := store.quantizer.Quantize(first, quantized, bbq.IndexQuantizationBits, expectedCentroid)
+	expectedPacked := bbq.PackBinary(quantized)
+	if !bytes.Equal(store.bbqPacked[:store.packedSize], expectedPacked) || store.bbqCorrections[0] != expectedCorrection {
+		t.Fatalf("开启新质心 epoch 后必须重编码既有 1-bit data code")
+	}
+}
+
+func TestHNSWBBQCentroidStateSurvivesReopen(t *testing.T) {
+	const dimension = 128
+	collection := NewCollectionWithMetric("centroid-reopen", dimension, "l2")
+	for id := 0; id < 8; id++ {
+		vector := make([]float32, dimension)
+		for index := range vector {
+			vector[index] = float32(id*13+index%19) / 7
+		}
+		if err := collection.InsertPoint(Point{ID: fmt.Sprintf("point-%d", id), Vector: vector}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := collection.DeletePointWithError("point-3"); err != nil {
+		t.Fatal(err)
+	}
+
+	query := make([]float32, dimension)
+	for index := range query {
+		query[index] = float32(index%23) / 5
+	}
+	beforeCode, beforeCorrection := collection.Store.QuantizeQuery(query)
+	beforeCentroid := append([]float32(nil), collection.Store.centroid...)
+	beforeEpoch := collection.Store.centroidEpoch
+	beforeCount := collection.Store.centroidCount
+
+	basePath := t.TempDir()
+	if err := SaveCollection(collection, basePath); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := LoadCollection(basePath, collection.ColName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterCode, afterCorrection := reopened.Store.QuantizeQuery(query)
+	if !bytes.Equal(beforeCode, afterCode) || beforeCorrection != afterCorrection {
+		t.Fatalf("重启前后的 4-bit query 编码不一致")
+	}
+	if reopened.Store.centroidEpoch != beforeEpoch || reopened.Store.centroidCount != beforeCount {
+		t.Fatalf("重启后质心状态不一致：epoch=%d/%d，count=%d/%d", reopened.Store.centroidEpoch, beforeEpoch, reopened.Store.centroidCount, beforeCount)
+	}
+	for index := range beforeCentroid {
+		if math.Float32bits(reopened.Store.centroid[index]) != math.Float32bits(beforeCentroid[index]) {
+			t.Fatalf("重启后质心不一致：维度=%d", index)
+		}
+	}
 }
 
 func testDimensions(t *testing.T, dim int, name string) {

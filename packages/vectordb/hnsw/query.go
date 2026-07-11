@@ -90,19 +90,15 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 	idx.Mu.RUnlock()
 
 	results := make([]SearchResult, 0, len(live))
-	for _, candidate := range live {
+	var exactDistances []float32
+	if useBBQ {
+		candidateIDs := neighborRecordIDs(live, nil)
+		exactDistances = idx.Distancer.ComputeDistancesFromVector(queryVec, candidateIDs, config.MetricType, nil)
+	}
+	for index, candidate := range live {
 		var finalDist float32
 		if useBBQ {
-			vec, vecOK := idx.Distancer.GetUnsafe(candidate.ID)
-			if vecOK && len(vec) == len(queryVec) {
-				if config.MetricType == "l2" {
-					finalDist = l2Distance(queryVec, vec)
-				} else {
-					finalDist = cosineDistance(queryVec, vec)
-				}
-			} else {
-				finalDist = 1e9
-			}
+			finalDist = exactDistances[index]
 		} else {
 			finalDist = candidate.Distance
 		}
@@ -137,23 +133,26 @@ func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte,
 	}
 
 	improved := true
+	var neighborIDs []DocID
+	var distances []float32
 	for improved {
 		improved = false
-		neighborIDs := idx.GetLevelNeighborIDs(currentBestID, level)
-		if neighborIDs == nil {
+		neighbors := idx.GetLevelNeighborRecords(currentBestID, level)
+		if neighbors == nil {
 			break
 		}
 
-		for _, neighborID := range neighborIDs {
-			var dist float32
-			if useBBQ {
-				dist = idx.Distancer.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighborID)
-			} else {
-				dist = idx.Distancer.ComputeDistanceFromVector(queryVec, neighborID, metricType)
-			}
+		neighborIDs = neighborRecordIDs(neighbors, neighborIDs)
+		if useBBQ {
+			distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryQuantized, queryCorrection, neighborIDs, distances)
+		} else {
+			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
+		}
+		for index, neighbor := range neighbors {
+			dist := distances[index]
 
 			if dist < currentDist {
-				currentBestID = neighborID
+				currentBestID = neighbor.ID
 				currentDist = dist
 				improved = true
 			}
@@ -167,8 +166,14 @@ func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte,
 func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
 	epoch := idx.Distancer.NewSearchEpoch()
 
-	candidates := NewMinHeap()
-	results := NewMaxHeap(ef)
+	candidates := minHeapPool.Get().(*MinHeap)
+	resetMinHeap(candidates)
+	defer minHeapPool.Put(candidates)
+
+	results := maxHeapPool.Get().(*MaxHeap)
+	resetMaxHeap(results)
+	results.capacity = ef
+	defer maxHeapPool.Put(results)
 
 	useBBQ := len(queryQuantized) > 0
 	var entryDist float32
@@ -181,6 +186,8 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	idx.Distancer.MarkVisited(entryPointID, epoch)
+	var neighborIDs []DocID
+	var distances []float32
 
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
@@ -189,23 +196,45 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 			break
 		}
 
-		neighborIDs := idx.GetLevelNeighborIDs(current.ID, level)
-		if neighborIDs == nil {
+		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
+		if neighbors == nil {
 			continue
 		}
 
-		for _, neighborID := range neighborIDs {
-			if idx.Distancer.IsVisited(neighborID, epoch) {
+		if !useBBQ {
+			neighborIDs = neighborIDs[:0]
+			for _, neighbor := range neighbors {
+				if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+					continue
+				}
+				idx.Distancer.MarkVisited(neighbor.ID, epoch)
+				neighborIDs = append(neighborIDs, neighbor.ID)
+			}
+			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
+			for index, neighborID := range neighborIDs {
+				dist := distances[index]
+				if !results.IsFull() {
+					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+					results.Push(HeapItem{ID: neighborID, Distance: dist})
+				} else if dist < results.Peek().Distance {
+					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+					results.Replace(HeapItem{ID: neighborID, Distance: dist})
+				}
+			}
+			continue
+		}
+
+		neighborIDs = neighborIDs[:0]
+		for _, neighbor := range neighbors {
+			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
 				continue
 			}
-			idx.Distancer.MarkVisited(neighborID, epoch)
-
-			var dist float32
-			if useBBQ {
-				dist = idx.Distancer.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighborID)
-			} else {
-				dist = idx.Distancer.ComputeDistanceFromVector(queryVec, neighborID, metricType)
-			}
+			idx.Distancer.MarkVisited(neighbor.ID, epoch)
+			neighborIDs = append(neighborIDs, neighbor.ID)
+		}
+		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryQuantized, queryCorrection, neighborIDs, distances)
+		for index, neighborID := range neighborIDs {
+			dist := distances[index]
 
 			if !results.IsFull() {
 				candidates.Push(HeapItem{ID: neighborID, Distance: dist})
@@ -226,9 +255,9 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 		})
 	}
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Distance < result[j].Distance
-	})
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
 
 	return result
 }
