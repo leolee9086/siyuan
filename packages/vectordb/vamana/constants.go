@@ -114,9 +114,7 @@ const (
 // 生产默认取 4：使用 4-bit 非对称量化（查询 4-bit × 索引 1-bit），与 Rust 参考实现
 // （toread/rust-bbq/quantized_index.rs：query_bits=4, index_bits=1）一致，保证召回率。
 //
-// 取值 1 或 4：
-//   - 4: 非对称量化，精度更高（生产默认）
-//   - 1: 1-bit 对称量化 + POPCNT 硬件加速，仅作为可选性能路径，通过 SetBBQQueryBits(1) 启用
+// 生产契约固定为 4，数据向量固定保持 1-bit packed 编码。
 const DefaultBBQQueryBits = 4
 
 // DefaultBBQOverSearchFactor 是 BBQ 搜索路径的默认过搜索因子。

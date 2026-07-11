@@ -178,6 +178,7 @@ func hnswFormatBytes(bytes uint64) string {
 
 // TestHNSW_SIFT_10K builds an HNSW index on SIFT 10K and measures recall.
 func TestHNSW_SIFT_10K(t *testing.T) {
+	requireScaleTest(t)
 	if testing.Short() {
 		t.Skip("Skipping HNSW SIFT 10K scale test in short mode")
 	}
@@ -290,6 +291,7 @@ func TestHNSW_SIFT_10K(t *testing.T) {
 
 // TestHNSW_SIFT_100K builds an HNSW index on SIFT 100K and measures recall.
 func TestHNSW_SIFT_100K(t *testing.T) {
+	requireScaleTest(t)
 	if testing.Short() {
 		t.Skip("Skipping HNSW SIFT 100K test in short mode")
 	}
@@ -400,6 +402,7 @@ func TestHNSW_SIFT_100K(t *testing.T) {
 
 // TestHNSW_SIFT_1M builds an HNSW index on full SIFT 1M and measures recall.
 func TestHNSW_SIFT_1M(t *testing.T) {
+	requireScaleTest(t)
 	if testing.Short() {
 		t.Skip("Skipping HNSW SIFT 1M test in short mode")
 	}

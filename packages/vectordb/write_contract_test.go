@@ -312,6 +312,26 @@ func TestWriteContractWALTornTailAndCorruption(t *testing.T) {
 		if err != nil || len(points) != 1 {
 			t.Fatalf("撕裂尾帧后已同步记录丢失：%+v，%v", points, err)
 		}
+		afterTail := Point{ID: "after-tail", Vector: []float32{3, 4}}
+		if _, err := reopenedCol.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &afterTail}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatal(err)
+		}
+		if err := reopened.Close(); err != nil {
+			t.Fatal(err)
+		}
+		reopenedAgain, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reopenedAgain.Close()
+		reopenedAgainCol, err := reopenedAgain.OpenCollection("wal-tail")
+		if err != nil {
+			t.Fatal(err)
+		}
+		points, err = reopenedAgainCol.FetchPoints([]string{"committed", "after-tail"})
+		if err != nil || len(points) != 2 {
+			t.Fatalf("修复撕裂尾帧后追加的同步记录必须可恢复：%+v，%v", points, err)
+		}
 	})
 
 	t.Run("checksum corruption", func(t *testing.T) {
@@ -389,6 +409,102 @@ func TestWriteContractDiskVamanaSequenceSurvivesReopen(t *testing.T) {
 	if secondResult.CommitSequence != firstResult.CommitSequence+1 {
 		t.Fatalf("Vamana 重开后提交序号应继续递增：首次 %+v，重开后 %+v", firstResult, secondResult)
 	}
+}
+
+func TestWriteContractDiskVamanaWALTornTailAndCorruption(t *testing.T) {
+	create := func(t *testing.T, path, name string) CollectionAPI {
+		t.Helper()
+		db, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		col, err := db.CreateCollectionWithOptions(name, CollectionOptions{
+			Engine: EngineDiskVamana,
+			Points: []Point{
+				{ID: "a", Vector: []float32{0, 0}},
+				{ID: "b", Vector: []float32{10, 10}},
+				{ID: "c", Vector: []float32{20, 20}},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		point := Point{ID: "committed", Vector: []float32{1, 2}}
+		if _, err := col.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatal(err)
+		}
+		return col
+	}
+
+	t.Run("torn tail", func(t *testing.T) {
+		path := t.TempDir()
+		col := create(t, path, "vamana-wal-tail")
+		defer col.Close()
+		walPath := filepath.Join(path, "vamana-wal-tail", "vamana"+VamanaWALFileExt)
+		wal, err := os.OpenFile(walPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := wal.Write([]byte{1, 2, 3, 4, 5}); err != nil {
+			_ = wal.Close()
+			t.Fatal(err)
+		}
+		if err := wal.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		reopened, err := Open(path)
+		if err != nil {
+			t.Fatalf("DiskVamana WAL 撕裂尾帧不应破坏已同步记录：%v", err)
+		}
+		defer reopened.Close()
+		reopenedCol, err := reopened.OpenCollection("vamana-wal-tail")
+		if err != nil {
+			t.Fatal(err)
+		}
+		points, err := reopenedCol.FetchPoints([]string{"committed"})
+		if err != nil || len(points) != 1 {
+			t.Fatalf("DiskVamana WAL 撕裂尾帧后已同步记录丢失：%+v，%v", points, err)
+		}
+		afterTail := Point{ID: "after-tail", Vector: []float32{3, 4}}
+		if _, err := reopenedCol.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &afterTail}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatal(err)
+		}
+		if err := reopened.Close(); err != nil {
+			t.Fatal(err)
+		}
+		reopenedAgain, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reopenedAgain.Close()
+		reopenedAgainCol, err := reopenedAgain.OpenCollection("vamana-wal-tail")
+		if err != nil {
+			t.Fatal(err)
+		}
+		points, err = reopenedAgainCol.FetchPoints([]string{"committed", "after-tail"})
+		if err != nil || len(points) != 2 {
+			t.Fatalf("修复撕裂尾帧后追加的同步记录必须可恢复：%+v，%v", points, err)
+		}
+	})
+
+	t.Run("checksum corruption", func(t *testing.T) {
+		path := t.TempDir()
+		col := create(t, path, "vamana-wal-corrupt")
+		defer col.Close()
+		walPath := filepath.Join(path, "vamana-wal-corrupt", "vamana"+VamanaWALFileExt)
+		data, err := os.ReadFile(walPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data[len(data)-1] ^= 0xff
+		if err := os.WriteFile(walPath, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Open(path); !errors.Is(err, ErrStorageCorrupted) {
+			t.Fatalf("DiskVamana 完整 WAL 帧损坏应返回 ErrStorageCorrupted，实际为 %v", err)
+		}
+	})
 }
 
 func TestWriteContractCommitSequenceIsLinearized(t *testing.T) {

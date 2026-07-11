@@ -25,9 +25,7 @@ type bbqStore interface {
 
 // bbqQueryDistance 计算已量化查询向量到索引中 id 向量的近似距离。
 //
-// use4Bit=true 时 queryCode 为 BitTranspose 布局，走 ComputeTransposedDotProduct；
-// use4Bit=false 时 queryCode 为 packed 1-bit，走 ComputePackedDotProduct。
-// scorer 由调用方按距离度量创建并传入：内存索引复用预创建评分器，磁盘索引按搜索创建。
+// queryCode 固定为 4-bit BitTranspose 布局，data code 固定为 packed 1-bit。
 //
 // 当 store.bbqCode 返回 nil（节点无 BBQ 码）时返回 LargeInvalidDistance 哨兵值，
 // 使该节点在候选堆中排到最后，与既有 bbqCorrectedDistance 行为一致。
@@ -35,30 +33,23 @@ type bbqStore interface {
 //
 // 这是所有 BBQ 查询距离计算的唯一点积+评分入口：
 //   - indexCode 为 nil 时返回 LargeInvalidDistance 哨兵值
-//   - use4Bit=true 走 ComputeTransposedDotProduct，否则走 ComputePackedDotProduct
-//   - 最终委托 scorer.ComputeQuantizedDistance
+//   - 最终委托 bbq.ComputeAsymmetricDistance
 //
 // bbqQueryDistance（store 抽象）与 appendBBQCorrectedDistance*（实时量化码）均复用此函数，
 // 消除"点积 + 评分"在内存索引、磁盘节点、append 节点之间的重复编码。
-func bbqScoreWithCode(scorer *bbq.QuantizedScorer, indexCode []byte, indexCorr bbq.QuantizationResult, dimension int, queryCode []byte, queryCorr bbq.QuantizationResult, use4Bit bool) float32 {
+func bbqScoreWithCode(scorer *bbq.QuantizedScorer, indexCode []byte, indexCorr bbq.QuantizationResult, dimension int, queryCode []byte, queryCorr bbq.QuantizationResult) float32 {
 	if indexCode == nil {
 		return LargeInvalidDistance
 	}
-	var dotProd int
-	if use4Bit {
-		dotProd = bbq.ComputeTransposedDotProduct(queryCode, indexCode)
-	} else {
-		dotProd = bbq.ComputePackedDotProduct(queryCode, indexCode)
-	}
-	return scorer.ComputeQuantizedDistance(dotProd, queryCorr, indexCorr, dimension, 0, use4Bit)
+	return bbq.ComputeAsymmetricDistance(scorer, queryCode, queryCorr, indexCode, indexCorr, dimension)
 }
 
 // bbqQueryDistance 计算已量化查询向量到索引中 id 向量的近似距离。
 //
 // 通过 bbqStore 抽象取码与元数据，委托 bbqScoreWithCode 完成点积与评分。
 // scorer 由调用方按距离度量创建并传入：内存索引复用预创建评分器，磁盘索引按搜索创建。
-func bbqQueryDistance(store bbqStore, scorer *bbq.QuantizedScorer, id uint32, queryCode []byte, queryCorr bbq.QuantizationResult, use4Bit bool) float32 {
-	return bbqScoreWithCode(scorer, store.bbqCode(id), store.bbqMeta(id), store.bbqDimension(), queryCode, queryCorr, use4Bit)
+func bbqQueryDistance(store bbqStore, scorer *bbq.QuantizedScorer, id uint32, queryCode []byte, queryCorr bbq.QuantizationResult) float32 {
+	return bbqScoreWithCode(scorer, store.bbqCode(id), store.bbqMeta(id), store.bbqDimension(), queryCode, queryCorr)
 }
 
 // =========================================

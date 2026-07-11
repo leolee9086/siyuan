@@ -287,7 +287,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	}
 
 	walPath := filepath.Join(collectionPath, WALFileName)
-	f, err := os.Open(walPath)
+	f, err := os.OpenFile(walPath, os.O_RDWR, 0644)
 	if err == nil {
 		defer f.Close()
 		if err := loadWAL(c, f); err != nil {
@@ -334,8 +334,13 @@ func appendWAL(name string, basePath string, entry WALEntry, syncWrite bool) err
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
+	return appendWALPath(filepath.Join(collectionPath, WALFileName), entry, syncWrite)
+}
 
-	walPath := filepath.Join(collectionPath, WALFileName)
+func appendWALPath(walPath string, entry WALEntry, syncWrite bool) error {
+	if err := os.MkdirAll(filepath.Dir(walPath), 0755); err != nil {
+		return err
+	}
 	f, err := os.OpenFile(walPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
@@ -371,6 +376,18 @@ func appendWAL(name string, basePath string, entry WALEntry, syncWrite bool) err
 		return fmt.Errorf("append WAL: %v; rollback WAL: %w", err, rollbackErr)
 	}
 	return err
+}
+
+func syncWALPath(walPath string) error {
+	f, err := os.OpenFile(walPath, os.O_RDWR, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	return f.Sync()
 }
 
 func appendFramedWAL(f *os.File, originalSize int64, entry WALEntry) error {
@@ -423,7 +440,7 @@ func loadWAL(c *Collection, f *os.File) error {
 	n, err := io.ReadFull(f, magic[:])
 	if err != nil {
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			return nil
+			return truncateTornWAL(f, 0)
 		}
 		return err
 	}
@@ -452,12 +469,16 @@ func loadLegacyWAL(c *Collection, reader io.Reader) error {
 	}
 }
 
-func loadFramedWAL(c *Collection, reader io.Reader) error {
+func loadFramedWAL(c *Collection, file *os.File) error {
 	header := make([]byte, walRecordHeader)
+	validSize := int64(len(walFileMagic))
 	for {
-		if _, err := io.ReadFull(reader, header); err != nil {
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
+		if _, err := io.ReadFull(file, header); err != nil {
+			if err == io.EOF {
 				return nil
+			}
+			if err == io.ErrUnexpectedEOF {
+				return truncateTornWAL(file, validSize)
 			}
 			return err
 		}
@@ -469,9 +490,9 @@ func loadFramedWAL(c *Collection, reader io.Reader) error {
 			return fmt.Errorf("invalid WAL record length %d", length)
 		}
 		payload := make([]byte, int(length))
-		if _, err := io.ReadFull(reader, payload); err != nil {
+		if _, err := io.ReadFull(file, payload); err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				return nil
+				return truncateTornWAL(file, validSize)
 			}
 			return err
 		}
@@ -482,10 +503,18 @@ func loadFramedWAL(c *Collection, reader io.Reader) error {
 		if err := msgpack.NewDecoder(bytes.NewReader(payload)).Decode(&entry); err != nil {
 			return err
 		}
+		validSize += walRecordHeader + int64(length)
 		if err := replayWALEntry(c, entry); err != nil {
 			return err
 		}
 	}
+}
+
+func truncateTornWAL(file *os.File, size int64) error {
+	if err := file.Truncate(size); err != nil {
+		return err
+	}
+	return file.Sync()
 }
 
 func replayWALEntry(c *Collection, entry WALEntry) error {

@@ -29,7 +29,6 @@ import (
 	"math"
 	"os"
 	"sort"
-	"sync"
 	"unsafe"
 
 	"s-forge.local/vectordb/bbq"
@@ -103,6 +102,21 @@ func (idx *DiskVamanaIndex) getVector(nodeID uint64) []float32 {
 type vectorCache struct {
 	vecs   [][]float32
 	cached []bool
+	keys   []uint64
+	epochs []uint32
+	epoch  uint32
+	mask   uint64
+}
+
+func nextPowerOfTwo(value int) int {
+	if value <= 1 {
+		return 1
+	}
+	value--
+	for shift := 1; shift < 64; shift <<= 1 {
+		value |= value >> shift
+	}
+	return value + 1
 }
 
 // newVectorCache creates a vectorCache sized for the given number of nodes.
@@ -113,10 +127,41 @@ func newVectorCache(size uint64) *vectorCache {
 	}
 }
 
+// newBoundedVectorCache 创建固定容量的直接映射缓存，空间不随索引总规模增长。
+func newBoundedVectorCache(capacity int) *vectorCache {
+	capacity = nextPowerOfTwo(max(capacity, 64))
+	return &vectorCache{
+		vecs:   make([][]float32, capacity),
+		keys:   make([]uint64, capacity),
+		epochs: make([]uint32, capacity),
+		epoch:  1,
+		mask:   uint64(capacity - 1),
+	}
+}
+
+func (c *vectorCache) resetBounded() {
+	c.epoch++
+	if c.epoch == 0 {
+		clear(c.epochs)
+		c.epoch = 1
+	}
+}
+
 // getCachedVector returns the vector for nodeID, using the cache to avoid repeated mmap reads.
 // On cache miss, it delegates to getVector and stores the result (including nil) in the cache.
 // Out-of-range nodeIDs bypass the cache entirely (safe for concurrent Insert scenarios).
 func (idx *DiskVamanaIndex) getCachedVector(nodeID uint64, cache *vectorCache) []float32 {
+	if len(cache.epochs) > 0 {
+		slot := (nodeID * 11400714819323198485) & cache.mask
+		if cache.epochs[slot] == cache.epoch && cache.keys[slot] == nodeID {
+			return cache.vecs[slot]
+		}
+		vector := idx.getVector(nodeID)
+		cache.keys[slot] = nodeID
+		cache.vecs[slot] = vector
+		cache.epochs[slot] = cache.epoch
+		return vector
+	}
 	if nodeID < uint64(len(cache.cached)) && cache.cached[nodeID] {
 		return cache.vecs[nodeID]
 	}
@@ -136,7 +181,30 @@ const normSqNotCached = float32(-1.0)
 // Replaces map[uint64]float32 to eliminate GC pressure from mapassign_fast64.
 // Uses normSqNotCached (-1) as sentinel for uncached entries.
 type normSqCache struct {
-	norms []float32
+	norms  []float32
+	keys   []uint64
+	epochs []uint32
+	epoch  uint32
+	mask   uint64
+}
+
+func newBoundedNormSqCache(capacity int) *normSqCache {
+	capacity = nextPowerOfTwo(max(capacity, 64))
+	return &normSqCache{
+		norms:  make([]float32, capacity),
+		keys:   make([]uint64, capacity),
+		epochs: make([]uint32, capacity),
+		epoch:  1,
+		mask:   uint64(capacity - 1),
+	}
+}
+
+func (c *normSqCache) resetBounded() {
+	c.epoch++
+	if c.epoch == 0 {
+		clear(c.epochs)
+		c.epoch = 1
+	}
 }
 
 // newNormSqCache creates a normSqCache sized for the given number of nodes,
@@ -151,6 +219,13 @@ func newNormSqCache(size uint64) *normSqCache {
 
 // set stores a normSq value for the given nodeID. Out-of-range nodeIDs are ignored.
 func (c *normSqCache) set(nodeID uint64, val float32) {
+	if len(c.epochs) > 0 {
+		slot := (nodeID * 11400714819323198485) & c.mask
+		c.keys[slot] = nodeID
+		c.norms[slot] = val
+		c.epochs[slot] = c.epoch
+		return
+	}
 	if nodeID < uint64(len(c.norms)) {
 		c.norms[nodeID] = val
 	}
@@ -161,6 +236,17 @@ func (c *normSqCache) set(nodeID uint64, val float32) {
 // (caller is responsible for providing the correct vector, typically from getCachedVector).
 // Out-of-range nodeIDs bypass the cache entirely.
 func getCachedNormSq(nodeID uint64, vec []float32, cache *normSqCache) float32 {
+	if len(cache.epochs) > 0 {
+		slot := (nodeID * 11400714819323198485) & cache.mask
+		if cache.epochs[slot] == cache.epoch && cache.keys[slot] == nodeID {
+			return cache.norms[slot]
+		}
+		norm := computeNormSquare(vec)
+		cache.keys[slot] = nodeID
+		cache.norms[slot] = norm
+		cache.epochs[slot] = cache.epoch
+		return norm
+	}
 	if nodeID < uint64(len(cache.norms)) {
 		if ns := cache.norms[nodeID]; ns != normSqNotCached {
 			return ns
@@ -247,7 +333,7 @@ func cloneUint32s(values []uint32) []uint32 {
 // Insert adds a new vector to the index using a Lock-Snapshot-Unlock pattern.
 //
 // The operation is split into four phases to minimize global lock hold time:
-//   - Phase 1 (write lock): Validate, allocate ID, append vector, expand nodeLocks
+//   - Phase 1 (write lock): Validate, allocate ID, append vector
 //   - Phase 2 (read lock):  Greedy search + robust pruning (no write lock held)
 //   - Phase 3 (write lock): Write neighbors and BBQ metadata
 //   - Phase 4 (write lock): Add back-edges (will be refined in Task 3)
@@ -285,13 +371,6 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 	copy(vectorCopy, vector)
 	idx.appendVectors = append(idx.appendVectors, vectorCopy)
 
-	// Expand nodeLocks for the new node (write lock ensures no concurrent access)
-	if int(newID) >= len(idx.nodeLocks) {
-		newLocks := make([]sync.RWMutex, newID+1)
-		copy(newLocks, idx.nodeLocks)
-		idx.nodeLocks = newLocks
-	}
-
 	// Snapshot immutable values needed for Phase 2
 	R := idx.maxDegree
 
@@ -300,9 +379,21 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 	// Create per-insert vector and normSq caches to eliminate redundant mmap reads
 	// and normSq computations across findNeighborsForInsert, robustPrune, and addBackEdges.
 	// Same pattern as inplaceDelete. Sized to newID+1 (covers all existing + new node).
-	cacheSize := newID + 1
-	cache := newVectorCache(cacheSize)
-	nsCache := newNormSqCache(cacheSize)
+	cacheCapacity := 8 * (DefaultInsertSearchL + 2*R)
+	cache, _ := idx.insertVectorCachePool.Get().(*vectorCache)
+	if cache == nil || len(cache.epochs) < nextPowerOfTwo(cacheCapacity) {
+		cache = newBoundedVectorCache(cacheCapacity)
+	} else {
+		cache.resetBounded()
+	}
+	defer idx.insertVectorCachePool.Put(cache)
+	nsCache, _ := idx.insertNormCachePool.Get().(*normSqCache)
+	if nsCache == nil || len(nsCache.epochs) < nextPowerOfTwo(cacheCapacity) {
+		nsCache = newBoundedNormSqCache(cacheCapacity)
+	} else {
+		nsCache.resetBounded()
+	}
+	defer idx.insertNormCachePool.Put(nsCache)
 
 	// Create per-insert pruneScratch to reuse temporary buffers across all robustPrune calls
 	// (Phase 2 initial prune + Phase 4 back-edge prunes). Capacity hint: 2*R candidates.
@@ -774,11 +865,9 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(
 	cache *vectorCache, nsCache *normSqCache, ps *pruneScratch,
 ) {
 	// ── Phase 1 (mu.RLock → nodeLock → read → unlock both): quick check + copy ──
-	// Must acquire mu.RLock first to safely access nodeLocks slice (Insert Phase 1
-	// may reallocate nodeLocks under mu.Lock). Capture the lock pointer to ensure
-	// Lock/Unlock operate on the same mutex instance.
+	// 先获取全局读锁，再获取稳定的分片节点锁。
 	idx.mu.RLock()
-	nodeLock := &idx.nodeLocks[neighborID]
+	nodeLock := idx.nodeLock(neighborID)
 	nodeLock.Lock()
 
 	currentNeighbors := idx.getNeighbors(neighborID)
@@ -849,9 +938,9 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(
 	idx.mu.RUnlock()
 
 	// ── Phase 3 (mu.RLock → nodeLock): write result ──
-	// Re-acquire mu.RLock to safely access nodeLocks slice, then nodeLock for write.
+	// 重新获取全局读锁和对应分片节点锁后发布邻居表。
 	idx.mu.RLock()
-	nodeLock = &idx.nodeLocks[neighborID]
+	nodeLock = idx.nodeLock(neighborID)
 	nodeLock.Lock()
 	idx.storeNeighbors(neighborID, newNeighbors)
 	nodeLock.Unlock()

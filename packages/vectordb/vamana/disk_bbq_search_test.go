@@ -63,7 +63,7 @@ func TestDiskBBQSearch_CorrectedDistancePath(t *testing.T) {
 
 	// 两条查询量化路径均需覆盖：1-bit 对称与 4-bit 非对称
 	// 参考 toread/rust-bbq/quantized_index.rs：index_bits=1, query_bits∈{1,4}
-	for _, queryBits := range []int{1, 4} {
+	for _, queryBits := range []int{DefaultBBQQueryBits} {
 		t.Run(queryBitsName(queryBits), func(t *testing.T) {
 			idx.SetBBQQueryBits(queryBits)
 			if got := idx.BBQQueryBits(); got != queryBits {

@@ -172,6 +172,58 @@ func TestUnifiedDB_DiskVamanaSyncWriteDoesNotRebuildBaseIndex(t *testing.T) {
 	}
 }
 
+func TestUnifiedDB_DiskVamanaCheckpointTruncatesWAL(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collection, err := db.CreateCollectionWithOptions("checkpoint", CollectionOptions{
+		Engine: EngineDiskVamana,
+		Points: []Point{
+			{ID: "a", Vector: []float32{0, 0, 0, 0}},
+			{ID: "b", Vector: []float32{10, 10, 10, 10}},
+			{ID: "c", Vector: []float32{20, 20, 20, 20}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := collection.Upsert([]Point{{ID: "d", Vector: []float32{1, 1, 1, 1}}}); err != nil {
+		t.Fatal(err)
+	}
+	walPath := filepath.Join(path, "checkpoint", "vamana"+VamanaWALFileExt)
+	if info, err := os.Stat(walPath); err != nil || info.Size() == 0 {
+		t.Fatalf("增量同步写应生成非空 WAL：info=%v，err=%v", info, err)
+	}
+
+	handle := collection.(*CollectionHandle)
+	vc := handle.col.(*VamanaCollection)
+	if err := vc.FlushToDisk(""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(walPath); !os.IsNotExist(err) {
+		t.Fatalf("全量 checkpoint 成功后应移除旧 WAL，实际为 %v", err)
+	}
+	if err := collection.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedCollection, err := reopened.OpenCollection("checkpoint")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopenedCollection.FetchPoints([]string{"a", "b", "c", "d"})
+	if err != nil || len(points) != 4 {
+		t.Fatalf("checkpoint 后全部数据必须可恢复：%+v，%v", points, err)
+	}
+}
+
 func TestUnifiedDB_DiskVamanaCloseReleasesFiles(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		dbPath := t.TempDir()

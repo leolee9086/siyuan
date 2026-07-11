@@ -137,12 +137,22 @@ type DiskVamanaIndex struct {
 	// where thousands of getNeighbors calls per delete each acquired modifiedMu.RLock/RUnlock.
 	modifiedNeighbors sync.Map // map[uint64][]uint32
 
+	// 增量插入缓存池使用固定容量的直接映射缓存，空间不随索引总节点数增长。
+	insertVectorCachePool sync.Pool
+	insertNormCachePool   sync.Pool
+
 	// 并发控制
-	nodeLocks []sync.RWMutex // 节点级读写锁，大小应等于总点数（或分片数）
+	nodeLocks []sync.RWMutex // 分片节点锁，避免按节点增长和复制已使用的互斥锁
 
 	// 状态
 	closed bool         // 索引是否已关闭
 	mu     sync.RWMutex // 保护 closed 状态和写操作
+}
+
+const diskNodeLockShards = 1024
+
+func (idx *DiskVamanaIndex) nodeLock(nodeID uint64) *sync.RWMutex {
+	return &idx.nodeLocks[nodeID&(uint64(len(idx.nodeLocks))-1)]
 }
 
 // liveEntryPointLocked 返回可用于图导航的存活入口点。调用方必须持有 idx.mu 至少读锁。
@@ -243,10 +253,8 @@ func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, e
 	}
 	idx.deleted = deleted
 
-	// 初始化节点锁
-	// 注意：每个节点一把锁，内存开销约为 NumPoints * 24 bytes
-	// 对于 100万 向量，约为 24MB，这是可接受的
-	idx.nodeLocks = make([]sync.RWMutex, idx.metadata.NumPoints)
+	// 固定分片锁既避免百万节点的线性锁内存，也禁止增量扩容时复制已经使用的 sync.RWMutex。
+	idx.nodeLocks = make([]sync.RWMutex, diskNodeLockShards)
 
 	return idx, nil
 }
@@ -636,12 +644,14 @@ func (idx *DiskVamanaIndex) ReadVector(nodeID uint64) ([]float32, error) {
 		return nil, ErrDiskIndexClosed
 	}
 
-	vec := make([]float32, idx.metadata.Dims)
-	if err := idx.reader.ReadVector(nodeID, vec); err != nil {
-		return nil, err
+	if nodeID >= idx.totalPoints() {
+		return nil, storage.ErrNodeNotFound
 	}
-
-	return vec, nil
+	vector := idx.getVector(nodeID)
+	if vector == nil {
+		return nil, storage.ErrNodeNotFound
+	}
+	return append([]float32(nil), vector...), nil
 }
 
 // ============================================================================
@@ -686,21 +696,18 @@ func openDiskIndexReader(path string) (storage.DiskIndexReader, error) {
 // BBQ 查询量化配置
 // ============================================================================
 
-// BBQQueryBits 返回查询向量量化位数（1 或 4）。
+// BBQQueryBits 返回固定的非对称 BBQ 查询量化位数。
 func (idx *DiskVamanaIndex) BBQQueryBits() int {
-	return idx.bbqQueryBits
+	return DefaultBBQQueryBits
 }
 
 // SetBBQQueryBits 设置查询向量量化位数。
 //
-// 仅接受 1 或 4，其他值将被忽略：
-//   - 1: 使用 1-bit 对称量化 + POPCNT 硬件加速（默认）
-//   - 4: 使用 4-bit 非对称量化（查询 4-bit × 索引 1-bit），精度更高
+// 保留兼容入口；生产契约固定为 4-bit query × 1-bit data。
 func (idx *DiskVamanaIndex) SetBBQQueryBits(bits int) {
-	if bits != 1 && bits != 4 {
-		return
+	if bits == DefaultBBQQueryBits {
+		idx.bbqQueryBits = DefaultBBQQueryBits
 	}
-	idx.bbqQueryBits = bits
 }
 
 // DistanceMetric 返回索引使用的距离度量类型。

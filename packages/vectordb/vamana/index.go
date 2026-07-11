@@ -171,17 +171,16 @@ func (idx *VamanaIndex) Dimension() int {
 	return idx.dimension
 }
 
-// BBQQueryBits 返回当前 BBQ 查询量化位数
+// BBQQueryBits 返回固定的非对称 BBQ 查询量化位数。
 func (idx *VamanaIndex) BBQQueryBits() int {
-	return idx.bbqQueryBits
+	return DefaultBBQQueryBits
 }
 
-// SetBBQQueryBits 设置 BBQ 查询量化位数 (仅接受 1 或 4)
+// SetBBQQueryBits 保留兼容入口；生产契约固定为 4-bit query × 1-bit data。
 func (idx *VamanaIndex) SetBBQQueryBits(bits int) {
-	if bits != 1 && bits != 4 {
-		return
+	if bits == DefaultBBQQueryBits {
+		idx.bbqQueryBits = DefaultBBQQueryBits
 	}
-	idx.bbqQueryBits = bits
 }
 
 // ============================================================================

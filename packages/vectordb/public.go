@@ -93,7 +93,10 @@ var persistWriteAsyncCollection = func(h *CollectionHandle, operations []WriteOp
 	if collection, ok := h.col.(*Collection); ok {
 		return AppendWALBatchAsync(collection, h.db.Path, operations, sequence)
 	}
-	return h.persistWrite(operations, sequence)
+	if collection, ok := h.col.(*VamanaCollection); ok {
+		return AppendVamanaWAL(collection, operations, sequence, false)
+	}
+	return nil
 }
 
 var asyncFlushCollection = func(h *CollectionHandle) {
@@ -549,7 +552,7 @@ func (h *CollectionHandle) persistWrite(operations []WriteOperation, sequence ui
 		return AppendWALBatchSync(collection, h.db.Path, operations, sequence)
 	}
 	if collection, ok := h.col.(*VamanaCollection); ok {
-		return collection.PersistState(sequence)
+		return AppendVamanaWAL(collection, operations, sequence, true)
 	}
 	previousSequence := collectionCommitSequence(h.col)
 	setCollectionCommitSequence(h.col, sequence)

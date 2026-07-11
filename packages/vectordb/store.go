@@ -539,10 +539,8 @@ func (s *VectorStore) computeBBQDistanceFromQueryLocked(queryTransposed []byte, 
 	indexPacked := s.bbqPacked[packedOffset:endOffset]
 
 	// 使用 POPCNT 优化的打包位点积
-	bitDotProduct := bbq.ComputeTransposedDotProduct(queryTransposed, indexPacked)
 	indexCorrection := s.bbqCorrections[id]
-
-	return s.scorer.ComputeQuantizedDistance(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
+	return bbq.ComputeAsymmetricDistance(s.scorer, queryTransposed, queryCorrection, indexPacked, indexCorrection, s.Dimension)
 }
 
 // QuantizeQuery 将查询向量量化为 4-bit BitTranspose 布局，索引向量保持 1-bit packed 布局。
@@ -550,8 +548,7 @@ func (s *VectorStore) QuantizeQuery(query []float32) ([]byte, bbq.QuantizationRe
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	quantized := make([]byte, len(query))
-	correction := s.quantizer.Quantize(query, quantized, bbq.QueryQuantizationBits, s.centroid)
-	return bbq.PackBitTranspose4(quantized), correction
+	return bbq.QuantizeAsymmetricQuery(s.quantizer, query, s.centroid, quantized)
 }
 
 // QuantizeVector 将已存储向量临时编码为 4-bit query，索引中仍只保留 1-bit data code。
@@ -564,8 +561,7 @@ func (s *VectorStore) QuantizeVector(docID DocID) ([]byte, bbq.QuantizationResul
 		return nil, bbq.QuantizationResult{}
 	}
 	quantized := make([]byte, s.Dimension)
-	correction := s.quantizer.Quantize(s.vectors[offset:endOffset], quantized, bbq.QueryQuantizationBits, s.centroid)
-	return bbq.PackBitTranspose4(quantized), correction
+	return bbq.QuantizeAsymmetricQuery(s.quantizer, s.vectors[offset:endOffset], s.centroid, quantized)
 }
 
 // GetCorrection 获取指定文档的校正因子

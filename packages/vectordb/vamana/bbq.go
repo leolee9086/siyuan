@@ -104,62 +104,21 @@ func (idx *VamanaIndex) bbqDistanceToQuery4Bit(id uint32, queryTransposed []byte
 	if !idx.bbqEnabled {
 		return 0
 	}
-	return bbqQueryDistance(idx, idx.bbqScorer, id, queryTransposed, queryCorr, true)
-}
-
-// bbqDistanceToQuery1Bit 使用 1-bit + POPCNT 计算距离。
-// 委托 bbqQueryDistance，与磁盘索引 bbqCorrectedDistance 共享同一距离计算实现。
-// 1-bit 对称量化仅为可选性能路径，生产默认使用 4-bit 非对称（见 DefaultBBQQueryBits）。
-func (idx *VamanaIndex) bbqDistanceToQuery1Bit(id uint32, queryCodes []byte, queryCorr bbq.QuantizationResult) float32 {
-	if !idx.bbqEnabled {
-		return 0
-	}
-	return bbqQueryDistance(idx, idx.bbqScorer, id, queryCodes, queryCorr, false)
+	return bbqQueryDistance(idx, idx.bbqScorer, id, queryTransposed, queryCorr)
 }
 
 // ============================================================================
 // BBQ 搜索相关函数
 // ============================================================================
 
-// greedySearchBBQ 基于 BBQ 的贪婪图搜索
-// 根据 idx.bbqQueryBits 配置选择量化策略:
-//   - bbqQueryBits == 4: 始终使用 4-bit 非对称量化路径 (精度更高)
-//   - bbqQueryBits == 1: 使用 1-bit + POPCNT 硬件加速路径 (性能优先)
-//     若维度 < BBQEnableThreshold (128)，1-bit POPCNT 不可用，回退到 4-bit
+// greedySearchBBQ 基于固定的 4-bit query × 1-bit data 非对称 BBQ 执行贪婪图搜索。
 func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
 	if !idx.bbqEnabled {
 		// 如果未启用 BBQ，回退到精确搜索
 		return idx.greedySearch(scratch, startIDs, query, L)
 	}
 
-	// 根据 bbqQueryBits 配置选择量化策略
-	if idx.bbqQueryBits == 4 {
-		return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
-	}
-
-	// bbqQueryBits == 1: 使用 POPCNT 硬件加速
-	// 但 1-bit POPCNT 在低维度 (< BBQEnableThreshold) 不可用，回退到 4-bit
-	if idx.dimension < bbq.BBQEnableThreshold {
-		return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
-	}
-	return idx.greedySearchBBQ1Bit(scratch, startIDs, query, L)
-}
-
-// greedySearchBBQ1Bit 使用 1-bit + POPCNT 策略的 BBQ 搜索
-// 性能优化: 使用硬件 POPCNT 指令加速点积计算
-func (idx *VamanaIndex) greedySearchBBQ1Bit(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
-	// 从对象池获取量化缓冲区
-	queryQuantized := idx.bbqQuery4BitPool.Get().([]byte)
-	defer idx.bbqQuery4BitPool.Put(queryQuantized)
-
-	// 使用 1-bit 量化查询向量
-	queryCorr := idx.bbqQuantizer.Quantize(query, queryQuantized, 1, idx.bbqCentroid)
-
-	// 打包为 []byte 用于 POPCNT (与 bbqPacked 格式一致)
-	queryPacked := bbq.PackBinary(queryQuantized)
-
-	// 执行搜索
-	return idx.greedySearchBBQ1BitWithQuantized(scratch, startIDs, queryPacked, queryCorr)
+	return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
 }
 
 // greedySearchBBQ4Bit 使用 4-bit BitTranspose 策略的 BBQ 搜索
@@ -169,11 +128,7 @@ func (idx *VamanaIndex) greedySearchBBQ4Bit(scratch *SearchScratch, startIDs []u
 	query4Bit := idx.bbqQuery4BitPool.Get().([]byte)
 	defer idx.bbqQuery4BitPool.Put(query4Bit)
 
-	// 使用 4-bit 量化查询向量
-	queryCorr := idx.bbqQuantizer.Quantize(query, query4Bit, 4, idx.bbqCentroid)
-
-	// 一次性将 4-bit 查询转为 BitTranspose 布局，搜索过程中复用
-	queryTransposed := bbq.PackBitTranspose4(query4Bit)
+	queryTransposed, queryCorr := bbq.QuantizeAsymmetricQuery(idx.bbqQuantizer, query, idx.bbqCentroid, query4Bit)
 
 	// 执行搜索
 	return idx.greedySearchBBQWithQuantized(scratch, startIDs, queryTransposed, queryCorr)
@@ -222,59 +177,6 @@ func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, sta
 			}
 			if scratch.Visited.Insert(neighborID) {
 				dist := idx.bbqDistanceToQuery4Bit(neighborID, queryTransposed, queryCorr)
-				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
-				scratch.Cmps++
-			}
-		}
-		scratch.Hops++
-	}
-
-	return scratch.Best.All()
-}
-
-// greedySearchBBQ1BitWithQuantized 使用 1-bit + POPCNT 策略的 BBQ 搜索
-// 性能优化: 使用硬件 POPCNT 指令加速点积计算
-func (idx *VamanaIndex) greedySearchBBQ1BitWithQuantized(scratch *SearchScratch, startIDs []uint32, queryCodes []byte, queryCorr bbq.QuantizationResult) []Neighbor {
-	scratch.Reset()
-
-	idx.mu.RLock()
-	defer idx.mu.RUnlock()
-
-	scratch.Visited.EnsureCapacity(len(idx.vectors))
-
-	// 初始化: 从入口点开始
-	for _, startID := range startIDs {
-		if int(startID) >= len(idx.vectors) {
-			continue
-		}
-		// 跳过已删除节点
-		if idx.deleted.Test(startID) {
-			continue
-		}
-		scratch.Visited.Insert(startID)
-		dist := idx.bbqDistanceToQuery1Bit(startID, queryCodes, queryCorr)
-		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
-		scratch.Cmps++
-	}
-
-	// 贪婪搜索
-	for scratch.Best.HasUnvisited() {
-		// 获取最近的未访问节点
-		closest, ok := scratch.Best.PopClosestUnvisited()
-		if !ok {
-			break
-		}
-
-		// 展开邻居
-		neighbors := idx.neighbors[closest.ID]
-
-		for _, neighborID := range neighbors {
-			// 跳过已删除节点
-			if idx.deleted.Test(neighborID) {
-				continue
-			}
-			if scratch.Visited.Insert(neighborID) {
-				dist := idx.bbqDistanceToQuery1Bit(neighborID, queryCodes, queryCorr)
 				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 				scratch.Cmps++
 			}

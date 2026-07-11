@@ -53,6 +53,7 @@ type VamanaCollection struct {
 
 	Mu      sync.RWMutex
 	flushMu sync.Mutex
+	walFile *os.File // 由 flushMu 保护，集合生命周期内复用以降低同步写系统调用开销
 }
 
 type vamanaCollectionState struct {
@@ -223,8 +224,10 @@ func (vc *VamanaCollection) DeletePointWithError(id string) error {
 	if !ok {
 		return nil
 	}
-	if err := vc.Index.Delete(nodeID); err != nil {
-		return classifyPublicError(err)
+	if !vc.Index.IsDeleted(nodeID) {
+		if err := vc.Index.Delete(nodeID); err != nil {
+			return classifyPublicError(err)
+		}
 	}
 	delete(vc.IDMap, id)
 	delete(vc.DocMap, nodeID)
@@ -349,6 +352,10 @@ func OpenVamanaCollection(name string, basePath string, meta CollectionMeta) (*V
 		_ = idx.Close()
 		return nil, err
 	}
+	if err := LoadVamanaWAL(vc); err != nil {
+		_ = idx.Close()
+		return nil, err
+	}
 	return vc, nil
 }
 
@@ -356,23 +363,6 @@ func SaveVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	vc.Mu.RLock()
 	defer vc.Mu.RUnlock()
 	return saveVamanaCollectionStateLocked(vc, basePath)
-}
-
-// PersistState 原子保存外部 ID、元数据、增量向量和提交序号。
-// DiskVamanaIndex 已经在内存中维护增量图；普通提交无需全量重建磁盘图，重启时由 PendingVectors 恢复增量节点。
-func (vc *VamanaCollection) PersistState(sequence uint64) error {
-	vc.flushMu.Lock()
-	defer vc.flushMu.Unlock()
-	vc.Mu.Lock()
-	defer vc.Mu.Unlock()
-
-	previousSequence := vc.LastCommitSequence
-	vc.LastCommitSequence = sequence
-	if err := saveVamanaCollectionStateLocked(vc, vc.BasePath); err != nil {
-		vc.LastCommitSequence = previousSequence
-		return err
-	}
-	return nil
 }
 
 func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) error {
@@ -552,6 +542,9 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 			return err
 		}
 	}
+	if err := vc.closeWALLocked(); err != nil {
+		return err
+	}
 	if err := replaceVamanaFiles(tmpBasePath, basePath); err != nil {
 		return err
 	}
@@ -663,6 +656,7 @@ func vamanaFileSet(basePath string) []string {
 		basePath + ".bbq",
 		basePath + ".deleted",
 		basePath + VamanaStateFileExt,
+		basePath + VamanaWALFileExt,
 	}
 }
 
@@ -675,7 +669,13 @@ func (vc *VamanaCollection) Close() error {
 	if vc.Index == nil {
 		return nil
 	}
-	return vc.Index.Close()
+	if err := vc.syncWALLocked(); err != nil {
+		return err
+	}
+	if err := vc.Index.Close(); err != nil {
+		return err
+	}
+	return vc.closeWALLocked()
 }
 
 func (vc *VamanaCollection) GetVectorByID(id string) ([]float32, bool) {
@@ -723,7 +723,7 @@ func (vc *VamanaCollection) Dimension() int {
 }
 
 func (vc *VamanaCollection) Flush() error {
-	return vc.PersistState(collectionCommitSequence(vc))
+	return SyncVamanaWAL(vc)
 }
 
 func (vc *VamanaCollection) FetchPoints(ids []string) ([]Point, error) {

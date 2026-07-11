@@ -30,6 +30,7 @@ import (
 // 依赖外部数据集：test_data/sift/sift_base.fvecs（约 500MB），
 // 数据集不存在时自动跳过。
 func TestLoadSIFT1M_Verification(t *testing.T) {
+	requireScaleTest(t)
 	// 从 packages/vectordb 出发，两级目录到 s-forge 根目录
 	rootDir := filepath.Join("..", "..", "test_data", "sift")
 

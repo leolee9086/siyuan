@@ -125,7 +125,6 @@ func TestBBQ4BitComparison(t *testing.T) {
 
 	// ========== 定义测试配置 ==========
 	configs := []bbqTestConfig{
-		{Name: "1-bit, OSF=5.0", QueryBits: 1, OverSearchFactor: 5.0},
 		{Name: "4-bit, OSF=5.0", QueryBits: 4, OverSearchFactor: 5.0},
 		{Name: "4-bit, OSF=3.0", QueryBits: 4, OverSearchFactor: 3.0},
 		{Name: "4-bit, OSF=2.0", QueryBits: 4, OverSearchFactor: 2.0},
