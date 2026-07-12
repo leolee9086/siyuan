@@ -52,7 +52,11 @@ func TestWriteContractLastOperationWinsAndCompatibilityWrappers(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	col, err := db.CreateCollectionWithOptions("batch", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+	col, err := db.CreateCollectionWithOptions("batch", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "l2",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -531,7 +535,11 @@ func TestWriteContractSyncSurvivesReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	col, err := db.CreateCollectionWithOptions("sync-reopen", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
+	col, err := db.CreateCollectionWithOptions("sync-reopen", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "l2",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

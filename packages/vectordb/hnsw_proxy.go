@@ -46,7 +46,15 @@ func (c *Collection) InsertPoint(point Point) error {
 	if len(point.Vector) != c.ColDim {
 		return fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, c.ColDim, len(point.Vector))
 	}
+	prepared, err := prepareVectorForMetric(point.Vector, c.Config.MetricType)
+	if err != nil {
+		return err
+	}
+	point.Vector = prepared
+	return c.insertPreparedPoint(point)
+}
 
+func (c *Collection) insertPreparedPoint(point Point) error {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 
@@ -92,6 +100,13 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 
 // SearchWithError searches for k nearest neighbors and preserves the common error-aware collection contract.
 func (c *Collection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	if len(queryVec) != c.ColDim {
+		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, c.ColDim, len(queryVec))
+	}
+	queryVec, err := prepareVectorForMetric(queryVec, c.Config.MetricType)
+	if err != nil {
+		return nil, err
+	}
 	// Delegate to HNSWIndex
 	hnswResults := c.HNSWIdx.Search(queryVec, k, efSearch)
 	if hnswResults == nil {
@@ -354,6 +369,9 @@ func (c *Collection) ExtractPoints() []Point {
 
 // distanceToScore converts distance to a score in [0, 1]
 func distanceToScore(distance float32, metricType string) float32 {
+	if metricType == "ip" || metricType == "dot" || metricType == "innerproduct" {
+		return -distance
+	}
 	var score float32
 	if metricType == "cosine" {
 		score = 1.0 - distance/2.0

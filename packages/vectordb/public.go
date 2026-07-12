@@ -1,6 +1,7 @@
 package vectordb
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
+	"s-forge.local/vectordb/bbq"
 	"s-forge.local/vectordb/storage"
 	"s-forge.local/vectordb/vamana"
 )
@@ -34,6 +37,8 @@ var (
 	ErrDatabaseClosed         = errors.New("vector database closed")
 	ErrPointIDInvalid         = errors.New("vector point ID invalid")
 	ErrCollectionCapacity     = errors.New("vector collection capacity exceeded")
+	ErrVectorValueInvalid     = errors.New("vector contains an invalid value")
+	ErrMetricUnsupported      = errors.New("distance metric unsupported by engine")
 )
 
 type CollectionOptions struct {
@@ -75,6 +80,14 @@ type SearchOptions struct {
 	TopK           int
 	EfSearch       int
 	ScoreThreshold float32 // >=0 时仅返回 score >= threshold 的结果；0 或负数表示不启用阈值截断
+	// ExcludeIDs 从结果中排除指定外部 ID，适合相似内容推荐时排除查询来源。
+	ExcludeIDs []string
+	// GroupBy 按 Meta 中的 JSON 字段分组；支持使用点号访问嵌套字段。
+	GroupBy string
+	// MaxPerGroup 限制每组结果数；GroupBy 非空且该值小于 1 时默认为 1。
+	MaxPerGroup int
+	// CandidateMultiplier 控制分组搜索的候选放大倍数；零值默认为 4。
+	CandidateMultiplier int
 }
 
 type CollectionStats struct {
@@ -303,7 +316,11 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 	if dimension <= 0 {
 		return nil, ErrVectorDimensionInvalid
 	}
-	points, err := normalizeInitialPoints(opts.Points, dimension)
+	metric := opts.DistanceMetric
+	if metric == "" {
+		metric = "cosine"
+	}
+	points, err := normalizeInitialPoints(opts.Points, dimension, metric)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +339,7 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 		}
 	}
 	for _, point := range points {
-		if err := col.InsertPoint(point); err != nil {
+		if err := col.(*Collection).insertPreparedPoint(point); err != nil {
 			return nil, err
 		}
 	}
@@ -338,14 +355,12 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	}
 
 	dimension := len(opts.Points[0].Vector)
+	if dimension <= 0 {
+		return nil, ErrVectorDimensionInvalid
+	}
 	if opts.Dimension > 0 && opts.Dimension != dimension {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, opts.Dimension, dimension)
 	}
-	points, err := normalizeInitialPoints(opts.Points, dimension)
-	if err != nil {
-		return nil, err
-	}
-
 	config := vamana.DefaultDiskBuildConfig()
 	if opts.DiskBuildConfig != nil {
 		config = *opts.DiskBuildConfig
@@ -359,13 +374,20 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 		}
 		config.DistanceMetric = sim
 	}
+	if config.DistanceMetric == bbq.MaxInnerProduct {
+		return nil, fmt.Errorf("%w: %s does not implement the MIPS graph transform", ErrMetricUnsupported, EngineDiskVamana)
+	}
+	points, err := normalizeInitialPoints(opts.Points, dimension, similarityMetricName(config.DistanceMetric))
+	if err != nil {
+		return nil, err
+	}
 
 	basePath := db.vamanaBasePath(name)
 	if err := os.MkdirAll(filepath.Dir(basePath), 0755); err != nil {
 		return nil, err
 	}
 
-	vc, err := BuildVamanaCollection(name, points, basePath, config, opts.Meta)
+	vc, err := buildPreparedVamanaCollection(name, points, basePath, config, opts.Meta)
 	if err != nil {
 		return nil, err
 	}
@@ -390,8 +412,9 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	return &CollectionHandle{db: db, col: vc}, nil
 }
 
-func normalizeInitialPoints(points []Point, dimension int) ([]Point, error) {
+func normalizeInitialPoints(points []Point, dimension int, metric string) ([]Point, error) {
 	lastIndex := make(map[string]int, len(points))
+	prepared := make([]Point, len(points))
 	for index, point := range points {
 		if point.ID == "" {
 			return nil, fmt.Errorf("%w at point %d", ErrPointIDInvalid, index)
@@ -399,13 +422,19 @@ func normalizeInitialPoints(points []Point, dimension int) ([]Point, error) {
 		if len(point.Vector) != dimension {
 			return nil, fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, index, dimension, len(point.Vector))
 		}
+		vector, err := prepareVectorForMetric(point.Vector, metric)
+		if err != nil {
+			return nil, fmt.Errorf("point %d: %w", index, err)
+		}
+		point.Vector = vector
+		prepared[index] = point
 		lastIndex[point.ID] = index
 	}
 	if len(lastIndex) == len(points) {
-		return points, nil
+		return prepared, nil
 	}
 	normalized := make([]Point, 0, len(lastIndex))
-	for index, point := range points {
+	for index, point := range prepared {
 		if lastIndex[point.ID] == index {
 			normalized = append(normalized, point)
 		}
@@ -437,7 +466,7 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 	if err != nil {
 		return WriteResult{}, err
 	}
-	operations, err := validateWriteBatch(ctx, h.col.Dimension(), batch)
+	operations, err := validateWriteBatch(ctx, h.col.Dimension(), collectionMetricName(h.col), batch)
 	if err != nil {
 		return WriteResult{}, err
 	}
@@ -572,23 +601,107 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	if topK <= 0 {
 		topK = 10
 	}
-	results, err := h.col.SearchWithError(query, topK, opts.EfSearch)
+	diversified := len(opts.ExcludeIDs) > 0 || opts.GroupBy != ""
+	if !diversified {
+		results, err := h.col.SearchWithError(query, topK, opts.EfSearch)
+		if err != nil || opts.ScoreThreshold <= 0 {
+			return results, err
+		}
+		filtered := results[:0]
+		for _, result := range results {
+			if result.Score >= opts.ScoreThreshold {
+				filtered = append(filtered, result)
+			}
+		}
+		return filtered, nil
+	}
+
+	count := h.col.ItemCount()
+	candidateTopK := min(topK, count)
+	if excludedCount := len(opts.ExcludeIDs); excludedCount >= count-candidateTopK {
+		candidateTopK = count
+	} else {
+		candidateTopK += excludedCount
+	}
+	if opts.GroupBy != "" {
+		multiplier := opts.CandidateMultiplier
+		if multiplier < 1 {
+			multiplier = 4
+		}
+		expanded := count
+		if topK <= count/multiplier {
+			expanded = topK * multiplier
+		}
+		if expanded > candidateTopK {
+			candidateTopK = expanded
+		}
+	}
+	results, err := h.col.SearchWithError(query, candidateTopK, opts.EfSearch)
 	if err != nil {
 		return nil, err
 	}
-
-	// 按 ScoreThreshold 过滤
-	if opts.ScoreThreshold > 0 {
-		filtered := results[:0]
-		for _, r := range results {
-			if r.Score >= opts.ScoreThreshold {
-				filtered = append(filtered, r)
-			}
+	var excluded map[string]struct{}
+	if len(opts.ExcludeIDs) > 0 {
+		excluded = make(map[string]struct{}, len(opts.ExcludeIDs))
+		for _, id := range opts.ExcludeIDs {
+			excluded[id] = struct{}{}
 		}
-		results = filtered
 	}
+	maxPerGroup := opts.MaxPerGroup
+	var groupPath []string
+	var groupCounts map[string]int
+	if opts.GroupBy != "" {
+		if maxPerGroup < 1 {
+			maxPerGroup = 1
+		}
+		groupPath = strings.Split(opts.GroupBy, ".")
+		groupCounts = make(map[string]int)
+	}
+	filtered := results[:0]
+	for _, result := range results {
+		if opts.ScoreThreshold > 0 && result.Score < opts.ScoreThreshold {
+			continue
+		}
+		if _, skip := excluded[result.ID]; skip {
+			continue
+		}
+		if opts.GroupBy != "" {
+			group := searchResultGroup(result, groupPath)
+			if groupCounts[group] >= maxPerGroup {
+				continue
+			}
+			groupCounts[group]++
+		}
+		filtered = append(filtered, result)
+		if len(filtered) == topK {
+			break
+		}
+	}
+	return filtered, nil
+}
 
-	return results, nil
+func searchResultGroup(result SearchResult, path []string) string {
+	var value interface{}
+	decoder := json.NewDecoder(bytes.NewReader(result.Meta))
+	decoder.UseNumber()
+	if len(result.Meta) == 0 || decoder.Decode(&value) != nil {
+		return "\x00" + result.ID
+	}
+	for _, component := range path {
+		object, ok := value.(map[string]interface{})
+		if !ok {
+			return "\x00" + result.ID
+		}
+		value, ok = object[component]
+		if !ok {
+			return "\x00" + result.ID
+		}
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return "\x00" + result.ID
+	}
+	return string(encoded)
 }
 
 func (h *CollectionHandle) Delete(ids []string) error {
@@ -604,12 +717,19 @@ func (h *CollectionHandle) Delete(ids []string) error {
 }
 
 func (h *CollectionHandle) applyWriteOperations(ctx context.Context, operations []WriteOperation, progress func(WriteProgress)) (int, error) {
+	preparedInserter, hasPreparedInserter := h.col.(interface{ insertPreparedPoint(Point) error })
 	for index, operation := range operations {
 		if err := ctx.Err(); err != nil {
 			return index, err
 		}
 		if operation.Point != nil {
-			if err := h.col.InsertPoint(*operation.Point); err != nil {
+			var err error
+			if hasPreparedInserter {
+				err = preparedInserter.insertPreparedPoint(*operation.Point)
+			} else {
+				err = h.col.InsertPoint(*operation.Point)
+			}
+			if err != nil {
 				return index, err
 			}
 		} else if err := h.col.DeletePointWithError(operation.DeleteID); err != nil {

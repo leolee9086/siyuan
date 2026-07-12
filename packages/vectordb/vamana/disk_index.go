@@ -773,6 +773,14 @@ func (idx *DiskVamanaIndex) DistanceMetric() bbq.SimilarityType {
 	return idx.distanceMetric
 }
 
+// SetDistanceMetric 安装集合状态中持久化的距离度量。
+// 索引头尚未保存该字段，因此打开 generation 后由集合状态恢复查询语义。
+func (idx *DiskVamanaIndex) SetDistanceMetric(metric bbq.SimilarityType) {
+	idx.mu.Lock()
+	idx.distanceMetric = metric
+	idx.mu.Unlock()
+}
+
 // ============================================================================
 // Node Cache
 // ============================================================================

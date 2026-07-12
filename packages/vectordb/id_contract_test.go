@@ -60,7 +60,11 @@ func TestInitialPointsUseLastWriteWinsAcrossEngines(t *testing.T) {
 				{ID: "a", Vector: []float32{1, 1, 1, 1}},
 				{ID: "c", Vector: []float32{3, 3, 3, 3}},
 			}
-			collection, err := db.CreateCollectionWithOptions("deduplicated", CollectionOptions{Engine: engine, Points: points})
+			collection, err := db.CreateCollectionWithOptions("deduplicated", CollectionOptions{
+				Engine:         engine,
+				DistanceMetric: "l2",
+				Points:         points,
+			})
 			if err != nil {
 				t.Fatal(err)
 			}

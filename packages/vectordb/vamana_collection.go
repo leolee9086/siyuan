@@ -144,7 +144,15 @@ func (vc *VamanaCollection) InsertPoint(point Point) error {
 	if len(point.Vector) != vc.Dimension() {
 		return fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, vc.Dimension(), len(point.Vector))
 	}
+	prepared, err := prepareVectorForMetric(point.Vector, similarityMetricName(vc.Index.DistanceMetric()))
+	if err != nil {
+		return err
+	}
+	point.Vector = prepared
+	return vc.insertPreparedPoint(point)
+}
 
+func (vc *VamanaCollection) insertPreparedPoint(point Point) error {
 	vc.Mu.Lock()
 	defer vc.Mu.Unlock()
 
@@ -188,6 +196,15 @@ func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []Se
 
 // SearchWithError searches for k nearest neighbors and propagates disk index failures.
 func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	dimension := vc.Dimension()
+	if len(queryVec) != dimension {
+		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, dimension, len(queryVec))
+	}
+	metric := vc.Index.DistanceMetric()
+	queryVec, err := prepareVectorForMetric(queryVec, similarityMetricName(metric))
+	if err != nil {
+		return nil, err
+	}
 	vc.Mu.RLock()
 	defer vc.Mu.RUnlock()
 
@@ -206,7 +223,12 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 			continue
 		}
 
-		score := vamanaDistanceToScore(r.Distance, vc.Index.DistanceMetric())
+		distance := r.Distance
+		if metric == bbq.CosineSimilarity {
+			// 规范化向量的 squared L2 等于两倍 cosine distance。
+			distance *= 0.5
+		}
+		score := vamanaDistanceToScore(distance, metric)
 
 		var meta json.RawMessage
 		if metaBytes, metaOk := vc.Metas[r.ID]; metaOk {
@@ -216,7 +238,7 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 		results = append(results, SearchResult{
 			ID:       externalID,
 			Score:    score,
-			Distance: r.Distance,
+			Distance: distance,
 			Meta:     meta,
 		})
 	}
@@ -309,12 +331,44 @@ func BuildVamanaCollection(
 	name string, points []Point, basePath string,
 	config vamana.DiskBuildConfig, meta CollectionMeta,
 ) (*VamanaCollection, error) {
-	ensureDiskVamanaReader()
-
 	if len(points) == 0 {
 		return nil, nil
 	}
+	if config.DistanceMetric == bbq.MaxInnerProduct {
+		return nil, fmt.Errorf("%w: %s does not implement the MIPS graph transform", ErrMetricUnsupported, EngineDiskVamana)
+	}
 
+	dimension := len(points[0].Vector)
+	if dimension <= 0 {
+		return nil, ErrVectorDimensionInvalid
+	}
+	preparedPoints := make([]Point, len(points))
+	metric := similarityMetricName(config.DistanceMetric)
+	for index, point := range points {
+		if point.ID == "" {
+			return nil, ErrPointIDInvalid
+		}
+		if len(point.Vector) != dimension {
+			return nil, fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, index, dimension, len(point.Vector))
+		}
+		vector, err := prepareVectorForMetric(point.Vector, metric)
+		if err != nil {
+			return nil, fmt.Errorf("point %d: %w", index, err)
+		}
+		point.Vector = vector
+		preparedPoints[index] = point
+	}
+	return buildPreparedVamanaCollection(name, preparedPoints, basePath, config, meta)
+}
+
+func buildPreparedVamanaCollection(
+	name string, points []Point, basePath string,
+	config vamana.DiskBuildConfig, meta CollectionMeta,
+) (*VamanaCollection, error) {
+	ensureDiskVamanaReader()
+	if len(points) == 0 {
+		return nil, nil
+	}
 	dimension := len(points[0].Vector)
 
 	vectors := make([][]float32, len(points))
@@ -331,6 +385,7 @@ func BuildVamanaCollection(
 	if err != nil {
 		return nil, err
 	}
+	idx.SetDistanceMetric(config.DistanceMetric)
 
 	vc := NewVamanaCollection(name, dimension, idx, meta)
 	vc.RootPath = basePath
@@ -463,6 +518,7 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 	if state.Config.R > 0 {
 		vc.Config = state.Config
 	}
+	vc.Index.SetDistanceMetric(vc.Config.DistanceMetric)
 	vc.IDMap = state.IDMap
 	vc.DocMap = state.DocMap
 	vc.Metas = state.Metas

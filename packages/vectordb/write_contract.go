@@ -136,7 +136,7 @@ func normalizeWriteOptions(opts WriteOptions) (WriteOptions, error) {
 	}
 }
 
-func validateWriteBatch(ctx context.Context, dimension int, batch WriteBatch) ([]WriteOperation, error) {
+func validateWriteBatch(ctx context.Context, dimension int, metric string, batch WriteBatch) ([]WriteOperation, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -162,6 +162,16 @@ func validateWriteBatch(ctx context.Context, dimension int, batch WriteBatch) ([
 			}
 			if len(operation.Point.Vector) != dimension {
 				return nil, fmt.Errorf("%w at operation %d: expected %d, got %d", ErrVectorDimensionInvalid, index, dimension, len(operation.Point.Vector))
+			}
+			vector, err := prepareVectorForMetric(operation.Point.Vector, metric)
+			if err != nil {
+				return nil, fmt.Errorf("%w at operation %d: %w", ErrInvalidWriteBatch, index, err)
+			}
+			if &vector[0] != &operation.Point.Vector[0] {
+				point := *operation.Point
+				point.Vector = vector
+				operation.Point = &point
+				batch.Operations[index] = operation
 			}
 		}
 		lastOperation[id] = index
@@ -200,10 +210,17 @@ func (h *CollectionHandle) captureWriteRollback(operations []WriteOperation) []W
 }
 
 func (h *CollectionHandle) applyWriteRollback(operations []WriteOperation, applied int) error {
+	preparedInserter, hasPreparedInserter := h.col.(interface{ insertPreparedPoint(Point) error })
 	for index := applied - 1; index >= 0; index-- {
 		operation := operations[index]
 		if operation.Point != nil {
-			if err := h.col.InsertPoint(*operation.Point); err != nil {
+			var err error
+			if hasPreparedInserter {
+				err = preparedInserter.insertPreparedPoint(*operation.Point)
+			} else {
+				err = h.col.InsertPoint(*operation.Point)
+			}
+			if err != nil {
 				return err
 			}
 			continue

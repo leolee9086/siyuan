@@ -205,13 +205,13 @@ func replayVamanaWALEntry(vc *VamanaCollection, entry WALEntry) error {
 	if entry.Sequence == 0 {
 		return fmt.Errorf("%w: DiskVamana WAL sequence is zero", storage.ErrCorruptedFile)
 	}
-	operations, err := validateWriteBatch(context.Background(), vc.ColDim, WriteBatch{Operations: entry.Operations})
+	operations, err := validateWriteBatch(context.Background(), vc.ColDim, similarityMetricName(vc.Index.DistanceMetric()), WriteBatch{Operations: entry.Operations})
 	if err != nil || len(operations) != len(entry.Operations) {
 		return fmt.Errorf("%w: invalid DiskVamana WAL batch: %v", storage.ErrCorruptedFile, err)
 	}
 	for _, operation := range operations {
 		if operation.Point != nil {
-			if err := vc.InsertPoint(*operation.Point); err != nil {
+			if err := vc.insertPreparedPoint(*operation.Point); err != nil {
 				return err
 			}
 			continue

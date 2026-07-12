@@ -17,7 +17,10 @@
 package vectordb
 
 import (
+	"fmt"
 	"math"
+
+	"s-forge.local/vectordb/bbq"
 )
 
 // =========================================
@@ -173,6 +176,42 @@ func L2Distance(a, b []float32) float32 {
 	return sum
 }
 
+// DotProduct 计算向量点积，使用八路独立累加器缩短依赖链。
+func DotProduct(a, b []float32) float32 {
+	if len(a) != len(b) || len(a) == 0 {
+		return 0
+	}
+	n := len(a)
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
+	i := 0
+	for ; i <= n-8; i += 8 {
+		s0 += a[i] * b[i]
+		s1 += a[i+1] * b[i+1]
+		s2 += a[i+2] * b[i+2]
+		s3 += a[i+3] * b[i+3]
+		s4 += a[i+4] * b[i+4]
+		s5 += a[i+5] * b[i+5]
+		s6 += a[i+6] * b[i+6]
+		s7 += a[i+7] * b[i+7]
+	}
+	sum := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
+	for ; i < n; i++ {
+		sum += a[i] * b[i]
+	}
+	return sum
+}
+
+func vectorDistance(a, b []float32, metric string) float32 {
+	switch metric {
+	case "l2", "euclidean":
+		return L2Distance(a, b)
+	case "ip", "dot", "innerproduct":
+		return -DotProduct(a, b)
+	default:
+		return CosineDistance(a, b)
+	}
+}
+
 // ComputeNorm 计算向量模长
 func ComputeNorm(v []float32) float32 {
 	var sum float32
@@ -190,5 +229,52 @@ func NormalizeVector(v []float32) {
 	}
 	for i := range v {
 		v[i] /= norm
+	}
+}
+
+func prepareVectorForMetric(vector []float32, metric string) ([]float32, error) {
+	var normSquare float64
+	for dimension, value := range vector {
+		if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+			return nil, fmt.Errorf("%w at dimension %d", ErrVectorValueInvalid, dimension)
+		}
+		normSquare += float64(value) * float64(value)
+	}
+	if metric != "cosine" {
+		return vector, nil
+	}
+	if normSquare == 0 {
+		return nil, fmt.Errorf("%w: cosine vector has zero norm", ErrVectorValueInvalid)
+	}
+	if math.Abs(normSquare-1) <= 1e-6 {
+		return vector, nil
+	}
+	prepared := make([]float32, len(vector))
+	inverseNorm := float32(1 / math.Sqrt(normSquare))
+	for dimension, value := range vector {
+		prepared[dimension] = value * inverseNorm
+	}
+	return prepared, nil
+}
+
+func similarityMetricName(metric bbq.SimilarityType) string {
+	switch metric {
+	case bbq.CosineSimilarity:
+		return "cosine"
+	case bbq.MaxInnerProduct:
+		return "ip"
+	default:
+		return "l2"
+	}
+}
+
+func collectionMetricName(collection VectorCollection) string {
+	switch typed := collection.(type) {
+	case *Collection:
+		return typed.Config.MetricType
+	case *VamanaCollection:
+		return similarityMetricName(typed.Index.DistanceMetric())
+	default:
+		return "l2"
 	}
 }

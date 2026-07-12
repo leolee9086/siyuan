@@ -444,10 +444,7 @@ func (s *VectorStore) ComputeDistance(a, b DocID, metric string) float32 {
 	vecA := s.vectors[offsetA:endA]
 	vecB := s.vectors[offsetB:endB]
 
-	if metric == "l2" {
-		return L2Distance(vecA, vecB)
-	}
-	return CosineDistance(vecA, vecB)
+	return vectorDistance(vecA, vecB, metric)
 }
 
 // ComputeBBQDistance 计算两个已索引向量间的 BBQ 量化距离。
@@ -573,10 +570,7 @@ func (s *VectorStore) ComputeDistanceFromVector(query []float32, docID DocID, me
 
 	vec := s.vectors[offset:endOffset]
 
-	if metric == "l2" {
-		return L2Distance(query, vec)
-	}
-	return CosineDistance(query, vec)
+	return vectorDistance(query, vec, metric)
 }
 
 // ComputeDistancesFromVector 在一次读锁内批量计算距离，避免图遍历为每条边重复获取存储锁。
@@ -597,11 +591,7 @@ func (s *VectorStore) ComputeDistancesFromVector(query []float32, docIDs []DocID
 			continue
 		}
 		vector := s.vectors[offset:endOffset]
-		if metric == "l2" {
-			dst[index] = L2Distance(query, vector)
-		} else {
-			dst[index] = CosineDistance(query, vector)
-		}
+		dst[index] = vectorDistance(query, vector, metric)
 	}
 	return dst
 }
