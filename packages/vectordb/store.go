@@ -23,11 +23,10 @@ type VectorStore struct {
 	// vectors[docID * dim + i]
 	vectors []float32
 
-	// BBQ量化存储
-	// 1-bit量化结果 (未打包, 每维度1字节, quantized[docID * dim + i])
-	bbqQuantized []byte
-	// 1-bit打包数据 (每8维度1字节, packed[docID * packedSize + i])
-	bbqPacked []byte
+	// BBQ 量化存储。数据向量只常驻 1-bit 打包码；未打包码仅在写入时使用 bbqScratch 生成。
+	// 1-bit 打包数据（每 8 维度 1 字节，packed[docID * packedSize + i]）
+	bbqPacked  []byte
+	bbqScratch []byte
 	// 校正因子
 	bbqCorrections []bbq.QuantizationResult
 
@@ -61,8 +60,8 @@ func NewVectorStore(dimension int, metricType string) *VectorStore {
 	return &VectorStore{
 		Dimension:         dimension,
 		vectors:           make([]float32, 0),
-		bbqQuantized:      make([]byte, 0),
 		bbqPacked:         make([]byte, 0),
+		bbqScratch:        make([]byte, dimension),
 		bbqCorrections:    make([]bbq.QuantizationResult, 0),
 		packedSize:        packedSize,
 		quantizer:         bbq.NewScalarQuantizer(st),
@@ -180,7 +179,6 @@ func (s *VectorStore) Grow(n int) {
 	defer s.mu.Unlock()
 
 	s.vectors = growSlice(s.vectors, n*s.Dimension)
-	s.bbqQuantized = growSlice(s.bbqQuantized, n*s.Dimension)
 	s.bbqPacked = growSlice(s.bbqPacked, n*s.packedSize)
 	s.bbqCorrections = growSlice(s.bbqCorrections, n)
 	s.active = growSlice(s.active, n)
@@ -225,17 +223,6 @@ func (s *VectorStore) Set(docID DocID, vec []float32) {
 	}
 	s.active[id] = true
 	s.addCentroidSampleLocked(vec)
-
-	// BBQ量化: 确保容量
-	if len(s.bbqQuantized) < minLen {
-		if cap(s.bbqQuantized) < minLen {
-			newQuant := make([]byte, minLen, minLen*2)
-			copy(newQuant, s.bbqQuantized)
-			s.bbqQuantized = newQuant
-		} else {
-			s.bbqQuantized = s.bbqQuantized[:minLen]
-		}
-	}
 
 	minPackedLen := (id + 1) * s.packedSize
 	if len(s.bbqPacked) < minPackedLen {
@@ -307,7 +294,6 @@ func (s *VectorStore) maybeRebuildCentroidLocked() bool {
 		s.centroidEpoch++
 		s.centroidMutations = 0
 		s.centroidRebuildAt = 1
-		clear(s.bbqQuantized)
 		clear(s.bbqPacked)
 		clear(s.bbqCorrections)
 		return true
@@ -367,11 +353,10 @@ func (s *VectorStore) centroidDriftedLocked() bool {
 
 func (s *VectorStore) quantizeVectorLocked(id int) {
 	offset := id * s.Dimension
-	quantDest := s.bbqQuantized[offset : offset+s.Dimension]
-	correction := s.quantizer.Quantize(s.vectors[offset:offset+s.Dimension], quantDest, bbq.IndexQuantizationBits, s.centroid)
+	correction := s.quantizer.Quantize(s.vectors[offset:offset+s.Dimension], s.bbqScratch, bbq.IndexQuantizationBits, s.centroid)
 	s.bbqCorrections[id] = correction
 	packedOffset := id * s.packedSize
-	bbq.PackBinaryInto(quantDest, s.bbqPacked[packedOffset:packedOffset+s.packedSize])
+	bbq.PackBinaryInto(s.bbqScratch, s.bbqPacked[packedOffset:packedOffset+s.packedSize])
 }
 
 func (s *VectorStore) reencodeAllLocked() {
@@ -379,10 +364,6 @@ func (s *VectorStore) reencodeAllLocked() {
 		if active {
 			s.quantizeVectorLocked(id)
 			continue
-		}
-		offset := id * s.Dimension
-		if offset+s.Dimension <= len(s.bbqQuantized) {
-			clear(s.bbqQuantized[offset : offset+s.Dimension])
 		}
 		packedOffset := id * s.packedSize
 		if packedOffset+s.packedSize <= len(s.bbqPacked) {

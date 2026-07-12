@@ -32,6 +32,8 @@ var (
 	ErrPersistenceFailed      = errors.New("vector persistence failed")
 	ErrDatabaseLocked         = errors.New("vector database is locked by another process")
 	ErrDatabaseClosed         = errors.New("vector database closed")
+	ErrPointIDInvalid         = errors.New("vector point ID invalid")
+	ErrCollectionCapacity     = errors.New("vector collection capacity exceeded")
 )
 
 type CollectionOptions struct {
@@ -301,21 +303,25 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 	if dimension <= 0 {
 		return nil, ErrVectorDimensionInvalid
 	}
+	points, err := normalizeInitialPoints(opts.Points, dimension)
+	if err != nil {
+		return nil, err
+	}
 
 	col, err := db.CreateCollectionWithOptionsRaw(name, dimension, opts.Meta, opts.DistanceMetric)
 	if err != nil {
 		return nil, err
 	}
-	if len(opts.Points) > 0 {
-		vectors := make([][]float32, len(opts.Points))
-		for index := range opts.Points {
-			vectors[index] = opts.Points[index].Vector
+	if len(points) > 0 {
+		vectors := make([][]float32, len(points))
+		for index := range points {
+			vectors[index] = points[index].Vector
 		}
 		if centroidErr := col.(*Collection).Store.TrainBBQCentroid(vectors); centroidErr != nil {
 			return nil, centroidErr
 		}
 	}
-	for _, point := range opts.Points {
+	for _, point := range points {
 		if err := col.InsertPoint(point); err != nil {
 			return nil, err
 		}
@@ -335,10 +341,9 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	if opts.Dimension > 0 && opts.Dimension != dimension {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, opts.Dimension, dimension)
 	}
-	for i, point := range opts.Points {
-		if len(point.Vector) != dimension {
-			return nil, fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, i, dimension, len(point.Vector))
-		}
+	points, err := normalizeInitialPoints(opts.Points, dimension)
+	if err != nil {
+		return nil, err
 	}
 
 	config := vamana.DefaultDiskBuildConfig()
@@ -360,7 +365,7 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 		return nil, err
 	}
 
-	vc, err := BuildVamanaCollection(name, opts.Points, basePath, config, opts.Meta)
+	vc, err := BuildVamanaCollection(name, points, basePath, config, opts.Meta)
 	if err != nil {
 		return nil, err
 	}
@@ -383,6 +388,29 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	db.mu.Unlock()
 
 	return &CollectionHandle{db: db, col: vc}, nil
+}
+
+func normalizeInitialPoints(points []Point, dimension int) ([]Point, error) {
+	lastIndex := make(map[string]int, len(points))
+	for index, point := range points {
+		if point.ID == "" {
+			return nil, fmt.Errorf("%w at point %d", ErrPointIDInvalid, index)
+		}
+		if len(point.Vector) != dimension {
+			return nil, fmt.Errorf("%w at point %d: expected %d, got %d", ErrVectorDimensionInvalid, index, dimension, len(point.Vector))
+		}
+		lastIndex[point.ID] = index
+	}
+	if len(lastIndex) == len(points) {
+		return points, nil
+	}
+	normalized := make([]Point, 0, len(lastIndex))
+	for index, point := range points {
+		if lastIndex[point.ID] == index {
+			normalized = append(normalized, point)
+		}
+	}
+	return normalized, nil
 }
 
 func (db *Database) vamanaBasePath(name string) string {
@@ -635,7 +663,15 @@ func (h *CollectionHandle) Stats() CollectionStats {
 		Dimension: info.Dimension,
 		Count:     info.Count,
 	}
-	if collection, ok := h.col.(*VamanaCollection); ok {
+	if collection, ok := h.col.(*Collection); ok {
+		collection.Mu.RLock()
+		stats.TotalCount = len(collection.DocMap)
+		stats.DeletedCount = stats.TotalCount - len(collection.IDMap)
+		collection.Mu.RUnlock()
+		if h.db != nil {
+			stats.WALBytes = fileSizeOrZero(filepath.Join(h.db.Path, h.Name(), WALFileName))
+		}
+	} else if collection, ok := h.col.(*VamanaCollection); ok {
 		maintenance := collection.MaintenanceStats()
 		stats.TotalCount = int(maintenance.TotalPoints)
 		stats.DeletedCount = int(maintenance.DeletedPoints)

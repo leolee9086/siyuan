@@ -24,9 +24,12 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/vmihailenco/msgpack/v5"
 	"s-forge.local/vectordb/bbq"
 )
 
@@ -152,6 +155,50 @@ func TestHNSWBBQCentroidStateSurvivesReopen(t *testing.T) {
 		if math.Float32bits(reopened.Store.centroid[index]) != math.Float32bits(beforeCentroid[index]) {
 			t.Fatalf("重启后质心不一致：维度=%d", index)
 		}
+	}
+}
+
+func TestHNSWBBQSnapshotKeepsOnlyPackedDataCodes(t *testing.T) {
+	const dimension = 128
+	collection := NewCollectionWithMetric("packed-bbq", dimension, "l2")
+	for id := 0; id < 3; id++ {
+		vector := make([]float32, dimension)
+		for index := range vector {
+			vector[index] = float32(id*dimension + index)
+		}
+		if err := collection.InsertPoint(Point{ID: fmt.Sprintf("point-%d", id), Vector: vector}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, want := len(collection.Store.bbqPacked), 3*((dimension+7)/8); got != want {
+		t.Fatalf("1-bit data code 大小错误：实际=%d，期望=%d", got, want)
+	}
+	if got, want := len(collection.Store.bbqScratch), dimension; got != want {
+		t.Fatalf("量化 scratch 大小错误：实际=%d，期望=%d", got, want)
+	}
+
+	basePath := t.TempDir()
+	if err := SaveCollection(collection, basePath); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(basePath, collection.ColName, SnapshotFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot SnapshotData
+	if err := msgpack.Unmarshal(data, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.BBQQuantized) != 0 {
+		t.Fatalf("快照不应持久化未打包 BBQ 临时代码：%d bytes", len(snapshot.BBQQuantized))
+	}
+	reopened, err := LoadCollection(basePath, collection.ColName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := make([]float32, dimension)
+	if results := reopened.Search(query, 1, 32); len(results) != 1 {
+		t.Fatalf("移除未打包代码后重开查询失败：%d", len(results))
 	}
 }
 

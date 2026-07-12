@@ -18,6 +18,7 @@ package vectordb
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	"s-forge.local/vectordb/hnsw"
@@ -39,22 +40,27 @@ type SearchResult struct {
 
 // InsertPoint inserts or updates a point in the HNSW index.
 func (c *Collection) InsertPoint(point Point) error {
+	if point.ID == "" {
+		return ErrPointIDInvalid
+	}
+	if len(point.Vector) != c.ColDim {
+		return fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, c.ColDim, len(point.Vector))
+	}
+
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 
 	docID, exists := c.IDMap[point.ID]
 	if !exists {
-		found := false
-		for i, id := range c.DocMap {
-			if id == "" {
-				docID = DocID(i)
-				c.IDMap[point.ID] = docID
-				c.DocMap[i] = point.ID
-				found = true
-				break
+		if freeCount := len(c.freeDocIDs); freeCount > 0 {
+			docID = c.freeDocIDs[freeCount-1]
+			c.freeDocIDs = c.freeDocIDs[:freeCount-1]
+			c.IDMap[point.ID] = docID
+			c.DocMap[docID] = point.ID
+		} else {
+			if uint64(len(c.DocMap)) >= uint64(hnsw.InvalidEntryPoint) {
+				return ErrCollectionCapacity
 			}
-		}
-		if !found {
 			docID = DocID(len(c.DocMap))
 			c.IDMap[point.ID] = docID
 			c.DocMap = append(c.DocMap, point.ID)
@@ -140,6 +146,7 @@ func (c *Collection) DeletePointWithError(id string) error {
 	delete(c.IDMap, id)
 	if int(docID) < len(c.DocMap) {
 		c.DocMap[docID] = ""
+		c.freeDocIDs = append(c.freeDocIDs, docID)
 	}
 	if int(docID) < len(c.Metas) {
 		c.Metas[docID] = nil
@@ -188,6 +195,7 @@ func (c *Collection) RebuildIndex() error {
 		c.IDMap = make(map[string]DocID)
 		c.DocMap = make([]string, 0)
 		c.Metas = make([][]byte, 0)
+		c.freeDocIDs = nil
 		c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
 		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 		c.Mu.Unlock()
@@ -199,6 +207,7 @@ func (c *Collection) RebuildIndex() error {
 	c.IDMap = make(map[string]DocID)
 	c.DocMap = make([]string, 0)
 	c.Metas = make([][]byte, 0)
+	c.freeDocIDs = nil
 	c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
 	c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 	c.Mu.Unlock()

@@ -158,7 +158,7 @@ func validateWriteBatch(ctx context.Context, dimension int, batch WriteBatch) ([
 		if hasPoint {
 			id = operation.Point.ID
 			if id == "" {
-				return nil, fmt.Errorf("%w at operation %d: point ID is empty", ErrInvalidWriteBatch, index)
+				return nil, fmt.Errorf("%w at operation %d: %w", ErrInvalidWriteBatch, index, ErrPointIDInvalid)
 			}
 			if len(operation.Point.Vector) != dimension {
 				return nil, fmt.Errorf("%w at operation %d: expected %d, got %d", ErrVectorDimensionInvalid, index, dimension, len(operation.Point.Vector))

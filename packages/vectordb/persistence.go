@@ -67,8 +67,9 @@ type SnapshotData struct {
 	Neighbors [][][]DocID    `msgpack:"neighbors"`
 	Deleted   map[DocID]bool `msgpack:"deleted"`
 
-	Vectors        []float32                `msgpack:"vectors"`
-	BBQQuantized   []byte                   `msgpack:"bbqQuantized"`
+	Vectors []float32 `msgpack:"vectors"`
+	// BBQQuantized 是旧快照的兼容字段。未打包码不再持久化，运行时只保留写入 scratch。
+	BBQQuantized   []byte                   `msgpack:"bbqQuantized,omitempty"`
 	BBQPacked      []byte                   `msgpack:"bbqPacked"`
 	BBQCorrections []bbq.QuantizationResult `msgpack:"bbqCorrections"`
 	BBQCentroid    []float32                `msgpack:"bbqCentroid"`
@@ -118,8 +119,6 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	c.Store.mu.RLock()
 	vectors := make([]float32, len(c.Store.vectors))
 	copy(vectors, c.Store.vectors)
-	bbqQuantized := make([]byte, len(c.Store.bbqQuantized))
-	copy(bbqQuantized, c.Store.bbqQuantized)
 	bbqPacked := make([]byte, len(c.Store.bbqPacked))
 	copy(bbqPacked, c.Store.bbqPacked)
 	bbqCorrections := make([]bbq.QuantizationResult, len(c.Store.bbqCorrections))
@@ -161,7 +160,6 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 		Neighbors:      neighbors,
 		Deleted:        deleted,
 		Vectors:        vectors,
-		BBQQuantized:   bbqQuantized,
 		BBQPacked:      bbqPacked,
 		BBQCorrections: bbqCorrections,
 		BBQCentroid:    bbqCentroid,
@@ -222,7 +220,6 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 
 	store := NewVectorStore(snapshot.Dimension, snapshot.Config.MetricType)
 	store.vectors = snapshot.Vectors
-	store.bbqQuantized = snapshot.BBQQuantized
 	store.bbqPacked = snapshot.BBQPacked
 	store.bbqCorrections = snapshot.BBQCorrections
 	if len(snapshot.BBQCentroid) == snapshot.Dimension {
@@ -272,6 +269,15 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	if idMap == nil {
 		idMap = make(map[string]DocID)
 	}
+	if _, exists := idMap[""]; exists {
+		return nil, fmt.Errorf("%w: snapshot contains an empty point ID", ErrStorageCorrupted)
+	}
+	freeDocIDs := make([]DocID, 0)
+	for docID, id := range snapshot.DocMap {
+		if id == "" {
+			freeDocIDs = append(freeDocIDs, DocID(docID))
+		}
+	}
 
 	c = &Collection{
 		ColName:            snapshot.Name,
@@ -281,6 +287,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 		LastCommitSequence: snapshot.CommitSequence,
 		IDMap:              idMap,
 		DocMap:             snapshot.DocMap,
+		freeDocIDs:         freeDocIDs,
 		Store:              store,
 		Metas:              snapshot.Metas,
 		HNSWIdx:            hnswIdx,

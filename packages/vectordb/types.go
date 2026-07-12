@@ -84,6 +84,8 @@ type Collection struct {
 	IDMap  map[string]DocID
 	DocMap []string
 	Metas  [][]byte
+	// freeDocIDs 保存已删除节点的可复用内部 ID，避免新写入线性扫描 DocMap。
+	freeDocIDs []DocID
 
 	HNSWIdx *hnsw.HNSWIndex
 	Store   *VectorStore

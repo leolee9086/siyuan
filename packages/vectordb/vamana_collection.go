@@ -138,6 +138,13 @@ func (vc *VamanaCollection) GetMeta(nodeID uint64) (json.RawMessage, bool) {
 // For existing IDs: soft-deletes the old node and inserts a new one, updating
 // the ID mapping to point to the new node.
 func (vc *VamanaCollection) InsertPoint(point Point) error {
+	if point.ID == "" {
+		return ErrPointIDInvalid
+	}
+	if len(point.Vector) != vc.Dimension() {
+		return fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, vc.Dimension(), len(point.Vector))
+	}
+
 	vc.Mu.Lock()
 	defer vc.Mu.Unlock()
 
