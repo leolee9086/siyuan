@@ -19,6 +19,7 @@ package hnsw
 import (
 	"math"
 	"sync"
+	"sync/atomic"
 
 	"s-forge.local/vectordb/bbq"
 )
@@ -165,6 +166,8 @@ type HNSWIndex struct {
 	// 距离计算（由外部注入）
 	Distancer     Distancer
 	nodeDistancer NodeDistancer
+	// bbqHybridSearch 控制 BBQ 粗筛后是否用全精度距离驱动第 0 层扩张。
+	bbqHybridSearch atomic.Bool
 
 	// 并发控制
 	// Mu 保护元数据（EntryPoint、MaxLayer、Deleted）和 Neighbors/nodeLocks 切片。
@@ -193,6 +196,7 @@ func NewHNSWIndex(dimension int, config Config, distancer NodeDistancer) *HNSWIn
 		nodeLocks:     make([]*sync.RWMutex, 0),
 	}
 	idx.Distancer, _ = distancer.(Distancer)
+	idx.bbqHybridSearch.Store(true)
 	return idx
 }
 

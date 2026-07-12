@@ -193,6 +193,35 @@ func (idx *HNSWIndex) SetLevelNeighbors(docID DocID, level int, neighbors []Neig
 	lock.Unlock()
 }
 
+// addNeighborRecord 原子地合并一个反向边，并在需要时执行邻居剪枝。
+func (idx *HNSWIndex) addNeighborRecord(docID DocID, level int, record NeighborRecord, maxDegree, slackDegree int) {
+	idx.Mu.RLock()
+	if int(docID) >= len(idx.Neighbors) || idx.Neighbors[docID] == nil || level < 0 || level >= len(idx.Neighbors[docID]) {
+		idx.Mu.RUnlock()
+		return
+	}
+	lock := idx.nodeLocks[docID]
+	lock.Lock()
+	defer lock.Unlock()
+	defer idx.Mu.RUnlock()
+
+	current := idx.Neighbors[docID][level]
+	for _, existing := range current {
+		if existing.ID == record.ID {
+			return
+		}
+	}
+	if len(current)+1 <= slackDegree {
+		idx.Neighbors[docID][level] = append(current, record)
+		return
+	}
+
+	candidates := make([]NeighborRecord, 0, len(current)+1)
+	candidates = append(candidates, current...)
+	candidates = append(candidates, record)
+	idx.Neighbors[docID][level] = idx.selectNeighborsHeuristic(docID, candidates, maxDegree, idx.Config.MetricType, true, true)
+}
+
 // SetLevelNeighborIDs 直接设置邻居 ID（距离设为 0，用于删除路径）。
 func (idx *HNSWIndex) SetLevelNeighborIDs(docID DocID, level int, ids []DocID) {
 	records := make([]NeighborRecord, len(ids))

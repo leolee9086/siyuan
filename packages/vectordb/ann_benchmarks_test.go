@@ -352,6 +352,7 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 	}
 	exactAll := os.Getenv("VECTORDB_ANN_HNSW_EXACT") == "1"
 	exactBuild := exactAll || os.Getenv("VECTORDB_ANN_HNSW_EXACT_BUILD") == "1"
+	exactSearch := exactAll || os.Getenv("VECTORDB_ANN_HNSW_EXACT_SEARCH") == "1"
 	if exactBuild {
 		// HNSW 的 Dimension 只参与是否启用 BBQ 的判断；诊断模式保留真实向量维度并强制使用精确距离构图和导航。
 		collection.HNSWIdx.Dimension = 0
@@ -363,8 +364,13 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 		}
 	}
 	buildDuration := time.Since(buildStarted)
-	if exactBuild && !exactAll {
+	if exactSearch {
+		collection.HNSWIdx.Dimension = 0
+	} else if exactBuild {
 		collection.HNSWIdx.Dimension = dim
+	}
+	if os.Getenv("VECTORDB_ANN_HNSW_LEGACY_BBQ") == "1" {
+		collection.HNSWIdx.SetBBQHybridSearch(false)
 	}
 	runtime.GC()
 	var after runtime.MemStats

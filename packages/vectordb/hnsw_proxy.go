@@ -203,11 +203,11 @@ func (c *Collection) RebuildIndex() error {
 	c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 	c.Mu.Unlock()
 
-	// Re-insert all points
 	for _, point := range points {
-		c.InsertPoint(point)
+		if err := c.InsertPoint(point); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 

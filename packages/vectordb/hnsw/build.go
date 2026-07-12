@@ -98,48 +98,18 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 	for level := entryLevel; level > itemLevel; level-- {
 		currentBestID = idx.greedySearch(itemDocID, queryCode, queryCorrection, currentBestID, level, config.MetricType)
 	}
-
-	// 预分配双向连接维护的缓冲区，在层级循环外分配一次，循环内复用
-	// 最大容量 = 2*M + 1（Level 0 最大邻居数 + 新节点）
-	candidateBuf := make([]NeighborRecord, 0, config.M*2+1)
-
 	// Phase 2: 在每一层构建连接
 	for level := min(entryLevel, itemLevel); level >= 0; level-- {
 		candidates := idx.searchLevel(itemDocID, queryCode, queryCorrection, currentBestID, level, config.EfConstruction, config.MetricType)
-
 		M := ExpectedNeighborCount(level, config.M)
 		selected := idx.selectNeighborsHeuristic(itemDocID, candidates, M, config.MetricType, true, true)
 
 		idx.SetLevelNeighbors(itemDocID, level, selected)
 
-		// 添加双向连接
-		// 优化：直接使用邻居列表中缓存的距离，避免 O(M²) 距离重算
-		// 优化：复用预分配的 candidateBuf，避免循环内 make 分配
-		// 优化：松弛因子策略 — 当邻居度数未超过 SlackFactor×M 时直接 append，跳过 heuristic 剪枝
+		// 添加双向连接。节点锁覆盖读取、合并和剪枝，避免并发插入时丢失反向边。
 		slackM := int(config.GraphSlackFactor * float32(M))
 		for _, neighbor := range selected {
-			cachedRecords := idx.GetLevelNeighborRecords(neighbor.ID, level)
-
-			// 松弛因子判断：当前度数 + 1（新节点）<= slackM 时直接添加，跳过 heuristic
-			if len(cachedRecords)+1 <= slackM {
-				idx.SetLevelNeighbors(neighbor.ID, level, append(cachedRecords, NeighborRecord{
-					ID:       itemDocID,
-					Distance: neighbor.Distance,
-				}))
-				continue
-			}
-
-			// 超过松弛阈值，执行 heuristic 剪枝回到 M
-			// 复用缓冲区：重置长度，保留底层数组
-			candidateBuf = candidateBuf[:0]
-			candidateBuf = append(candidateBuf, cachedRecords...)
-			candidateBuf = append(candidateBuf, NeighborRecord{
-				ID:       itemDocID,
-				Distance: neighbor.Distance,
-			})
-
-			newNeighbors := idx.selectNeighborsHeuristic(neighbor.ID, candidateBuf, M, config.MetricType, true, true)
-			idx.SetLevelNeighbors(neighbor.ID, level, newNeighbors)
+			idx.addNeighborRecord(neighbor.ID, level, NeighborRecord{ID: itemDocID, Distance: neighbor.Distance}, M, slackM)
 		}
 
 		if len(candidates) > 0 {
@@ -235,6 +205,9 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrecti
 	if !useBQ && idx.Distancer == nil {
 		return idx.searchLevelByNode(queryID, entryPointID, level, ef, metricType)
 	}
+	if useBQ {
+		return idx.searchLevelBBQ(queryCode, queryCorrection, entryPointID, level, ef)
+	}
 	epoch := idx.Distancer.NewSearchEpoch()
 
 	candidates := minHeapPool.Get().(*MinHeap)
@@ -246,22 +219,13 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrecti
 	results.capacity = ef
 	defer maxHeapPool.Put(results)
 
-	// 非BBQ路径：预取 queryVec 避免重复查找
-	var queryVec []float32
-	if !useBQ {
-		var ok bool
-		queryVec, ok = idx.Distancer.GetUnsafe(queryID)
-		if !ok {
-			return nil
-		}
+	// 非 BBQ 路径：预取 queryVec 避免重复查找。
+	queryVec, ok := idx.Distancer.GetUnsafe(queryID)
+	if !ok {
+		return nil
 	}
 
-	var entryDist float32
-	if useBQ {
-		entryDist = idx.Distancer.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, entryPointID)
-	} else {
-		entryDist = idx.Distancer.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
-	}
+	entryDist := idx.Distancer.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
 
 	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
@@ -281,29 +245,6 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrecti
 			continue
 		}
 
-		if !useBQ {
-			neighborIDs = neighborIDs[:0]
-			for _, neighbor := range neighbors {
-				if idx.Distancer.IsVisited(neighbor.ID, epoch) {
-					continue
-				}
-				idx.Distancer.MarkVisited(neighbor.ID, epoch)
-				neighborIDs = append(neighborIDs, neighbor.ID)
-			}
-			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
-			for index, neighborID := range neighborIDs {
-				dist := distances[index]
-				if !results.IsFull() {
-					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
-					results.Push(HeapItem{ID: neighborID, Distance: dist})
-				} else if dist < results.Peek().Distance {
-					candidates.Push(HeapItem{ID: neighborID, Distance: dist})
-					results.Replace(HeapItem{ID: neighborID, Distance: dist})
-				}
-			}
-			continue
-		}
-
 		neighborIDs = neighborIDs[:0]
 		for _, neighbor := range neighbors {
 			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
@@ -312,7 +253,7 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrecti
 			idx.Distancer.MarkVisited(neighbor.ID, epoch)
 			neighborIDs = append(neighborIDs, neighbor.ID)
 		}
-		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
+		distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
 		for index, neighborID := range neighborIDs {
 			dist := distances[index]
 
@@ -341,6 +282,60 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, queryCode []byte, queryCorrecti
 		result[i], result[j] = result[j], result[i]
 	}
 
+	return result
+}
+
+func (idx *HNSWIndex) searchLevelBBQ(queryCode []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level, ef int) []NeighborRecord {
+	epoch := idx.Distancer.NewSearchEpoch()
+	candidates := minHeapPool.Get().(*MinHeap)
+	resetMinHeap(candidates)
+	defer minHeapPool.Put(candidates)
+	results := maxHeapPool.Get().(*MaxHeap)
+	resetMaxHeap(results)
+	results.capacity = ef
+	defer maxHeapPool.Put(results)
+
+	entryDist := idx.Distancer.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, entryPointID)
+	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	idx.Distancer.MarkVisited(entryPointID, epoch)
+	var neighborIDs []DocID
+	var distances []float32
+	for candidates.Len() > 0 {
+		current := candidates.Pop()
+		if results.IsFull() && current.Distance > results.Peek().Distance {
+			break
+		}
+		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
+		neighborIDs = neighborIDs[:0]
+		for _, neighbor := range neighbors {
+			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+				continue
+			}
+			idx.Distancer.MarkVisited(neighbor.ID, epoch)
+			neighborIDs = append(neighborIDs, neighbor.ID)
+		}
+		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
+		for index, neighborID := range neighborIDs {
+			distance := distances[index]
+			if !results.IsFull() {
+				candidates.Push(HeapItem{ID: neighborID, Distance: distance})
+				results.Push(HeapItem{ID: neighborID, Distance: distance})
+			} else if distance < results.Peek().Distance {
+				candidates.Push(HeapItem{ID: neighborID, Distance: distance})
+				results.Replace(HeapItem{ID: neighborID, Distance: distance})
+			}
+		}
+	}
+
+	result := make([]NeighborRecord, 0, results.Len())
+	for results.Len() > 0 {
+		item := results.Pop()
+		result = append(result, NeighborRecord{ID: item.ID, Distance: item.Distance})
+	}
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
 	return result
 }
 

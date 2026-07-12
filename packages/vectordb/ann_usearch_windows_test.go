@@ -66,11 +66,16 @@ func TestANNBenchmarksSIFTPairedUSearchRatio(t *testing.T) {
 
 	t.Logf("构建吞吐比值：vectordb/USearch=%.4f（vectordb %.0f，USearch %.0f vectors/s）", fixture.buildVectorsSec/competitor.vectorsPerSecond, fixture.buildVectorsSec, competitor.vectorsPerSecond)
 	for _, expansion := range []int{32, 64, 100, 200} {
+		oursRecall := annRecall(fixture, expansion)
+		theirsRecall, err := annUSearchRecall(fixture, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
 		paired, err := annMeasurePairedHNSWUSearch(fixture, competitor.index, expansion)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("ef=%d 逐查询交错比值：vectordb/USearch QPS=%.4f（vectordb %.2f，USearch %.2f）", expansion, paired.ratio, paired.oursQPS, paired.theirsQPS)
+		t.Logf("ef=%d Recall@10：vectordb %.2f%%，USearch %.2f%%；逐查询交错 QPS 比值 %.4f（%.2f/%.2f）", expansion, oursRecall*100, theirsRecall*100, paired.ratio, paired.oursQPS, paired.theirsQPS)
 	}
 }
 
