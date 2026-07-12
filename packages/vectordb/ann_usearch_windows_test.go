@@ -124,6 +124,26 @@ func TestANNBenchmarksDiskVamanaUSearchComparison(t *testing.T) {
 	}
 }
 
+// TestANNBenchmarksUSearchScaleReport 只构建 USearch，用于在大规模数据上建立可复用的直接目标。
+func TestANNBenchmarksUSearchScaleReport(t *testing.T) {
+	rand.Seed(1)
+	fixture := loadANNSIFTDataFixture(t)
+	competitor, err := buildANNUSearch(fixture.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = competitor.index.close() }()
+
+	t.Logf("USearch %s：base=%d，queries=%d，dim=%d，构建=%v，%.0f vectors/s，SIMD=%s，native=%.1f bytes/vector，serialized=%.1f bytes/vector", annUSearchVersion, len(fixture.base), len(fixture.queries), len(fixture.base[0]), competitor.duration, competitor.vectorsPerSecond, competitor.hardware, float64(competitor.memoryBytes)/float64(len(fixture.base)), float64(competitor.serializedBytes)/float64(len(fixture.base)))
+	for _, expansion := range []int{32, 64, 100, 200} {
+		measurement, err := annMeasureUSearch(fixture, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("USearch ef=%d：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, measurement.recall*100, measurement.qps, measurement.p50, measurement.p95, measurement.p99)
+	}
+}
+
 func TestANNBenchmarksDiskVamanaCheckpointUSearchRatio(t *testing.T) {
 	rand.Seed(1)
 	fixture := loadANNSIFTDataFixture(t)
