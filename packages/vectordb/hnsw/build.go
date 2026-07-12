@@ -306,15 +306,16 @@ func (idx *HNSWIndex) searchLevelBBQ(queryCode []byte, queryCorrection bbq.Quant
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
 		}
-		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
-		neighborIDs = neighborIDs[:0]
-		for _, neighbor := range neighbors {
-			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+		neighborIDs = idx.GetLevelNeighborIDsInto(current.ID, level, neighborIDs)
+		pendingIDs := neighborIDs[:0]
+		for _, neighborID := range neighborIDs {
+			if idx.Distancer.IsVisited(neighborID, epoch) {
 				continue
 			}
-			idx.Distancer.MarkVisited(neighbor.ID, epoch)
-			neighborIDs = append(neighborIDs, neighbor.ID)
+			idx.Distancer.MarkVisited(neighborID, epoch)
+			pendingIDs = append(pendingIDs, neighborID)
 		}
+		neighborIDs = pendingIDs
 		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
 		for index, neighborID := range neighborIDs {
 			distance := distances[index]

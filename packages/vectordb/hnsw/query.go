@@ -138,22 +138,20 @@ func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte,
 	var distances []float32
 	for improved {
 		improved = false
-		neighbors := idx.GetLevelNeighborRecords(currentBestID, level)
-		if neighbors == nil {
+		neighborIDs = idx.GetLevelNeighborIDsInto(currentBestID, level, neighborIDs)
+		if len(neighborIDs) == 0 {
 			break
 		}
-
-		neighborIDs = neighborRecordIDs(neighbors, neighborIDs)
 		if useBBQ {
 			distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryQuantized, queryCorrection, neighborIDs, distances)
 		} else {
 			distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
 		}
-		for index, neighbor := range neighbors {
+		for index, neighborID := range neighborIDs {
 			dist := distances[index]
 
 			if dist < currentDist {
-				currentBestID = neighbor.ID
+				currentBestID = neighborID
 				currentDist = dist
 				improved = true
 			}
@@ -197,19 +195,20 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 			break
 		}
 
-		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
-		if neighbors == nil {
+		neighborIDs = idx.GetLevelNeighborIDsInto(current.ID, level, neighborIDs)
+		if len(neighborIDs) == 0 {
 			continue
 		}
 
-		neighborIDs = neighborIDs[:0]
-		for _, neighbor := range neighbors {
-			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+		pendingIDs := neighborIDs[:0]
+		for _, neighborID := range neighborIDs {
+			if idx.Distancer.IsVisited(neighborID, epoch) {
 				continue
 			}
-			idx.Distancer.MarkVisited(neighbor.ID, epoch)
-			neighborIDs = append(neighborIDs, neighbor.ID)
+			idx.Distancer.MarkVisited(neighborID, epoch)
+			pendingIDs = append(pendingIDs, neighborID)
 		}
+		neighborIDs = pendingIDs
 		distances = idx.Distancer.ComputeDistancesFromVector(queryVec, neighborIDs, metricType, distances)
 		for index, neighborID := range neighborIDs {
 			dist := distances[index]
@@ -278,15 +277,16 @@ func (idx *HNSWIndex) searchLevelVecHybridBBQ(queryVec []float32, queryQuantized
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
 		}
-		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
-		neighborIDs = neighborIDs[:0]
-		for _, neighbor := range neighbors {
-			if idx.Distancer.IsVisited(neighbor.ID, epoch) {
+		neighborIDs = idx.GetLevelNeighborIDsInto(current.ID, level, neighborIDs)
+		pendingIDs := neighborIDs[:0]
+		for _, neighborID := range neighborIDs {
+			if idx.Distancer.IsVisited(neighborID, epoch) {
 				continue
 			}
-			idx.Distancer.MarkVisited(neighbor.ID, epoch)
-			neighborIDs = append(neighborIDs, neighbor.ID)
+			idx.Distancer.MarkVisited(neighborID, epoch)
+			pendingIDs = append(pendingIDs, neighborID)
 		}
+		neighborIDs = pendingIDs
 		approximateDistances = idx.Distancer.ComputeBBQDistancesFromQuery(queryQuantized, queryCorrection, neighborIDs, approximateDistances)
 		admittedIDs = admittedIDs[:0]
 		for index, neighborID := range neighborIDs {

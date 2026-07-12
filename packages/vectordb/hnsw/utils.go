@@ -153,15 +153,35 @@ func (idx *HNSWIndex) GetLevelNeighborRecords(docID DocID, level int) []Neighbor
 // GetLevelNeighborIDs 从邻居记录中提取 ID 列表
 // 返回新分配的切片，调用方可安全修改
 func (idx *HNSWIndex) GetLevelNeighborIDs(docID DocID, level int) []DocID {
-	records := idx.GetLevelNeighborRecords(docID, level)
-	if records == nil {
+	return idx.GetLevelNeighborIDsInto(docID, level, nil)
+}
+
+// GetLevelNeighborIDsInto 将邻居 ID 写入调用方缓冲区，避免查询热路径重复分配记录副本。
+func (idx *HNSWIndex) GetLevelNeighborIDsInto(docID DocID, level int, dst []DocID) []DocID {
+	idx.Mu.RLock()
+	if int(docID) >= len(idx.Neighbors) || level < 0 {
+		idx.Mu.RUnlock()
 		return nil
 	}
-	ids := make([]DocID, len(records))
-	for i, r := range records {
-		ids[i] = r.ID
+	lock := idx.nodeLocks[docID]
+	lock.RLock()
+	if level >= len(idx.Neighbors[docID]) {
+		lock.RUnlock()
+		idx.Mu.RUnlock()
+		return nil
 	}
-	return ids
+	records := idx.Neighbors[docID][level]
+	if cap(dst) < len(records) {
+		dst = make([]DocID, len(records))
+	} else {
+		dst = dst[:len(records)]
+	}
+	for index, record := range records {
+		dst[index] = record.ID
+	}
+	lock.RUnlock()
+	idx.Mu.RUnlock()
+	return dst
 }
 
 // GetLevelNeighbors 兼容版本：返回 NeighborRecord 的副本
