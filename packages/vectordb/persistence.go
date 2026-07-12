@@ -627,38 +627,5 @@ func SaveDatabase(db *Database) error {
 }
 
 func LoadDatabase(path string) (*Database, error) {
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return nil, err
-	}
-	db := NewDatabase(path)
-	if err := db.ensureDatabaseLock(); err != nil {
-		return nil, err
-	}
-	success := false
-	defer func() {
-		if !success {
-			db.closeAfterOpenFailure()
-		}
-	}()
-
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		collection, err := LoadCollection(path, entry.Name())
-		if err != nil {
-			continue
-		}
-		db.Collections[collection.ColName] = collection
-		db.ensureWriteStateLocked(collection.ColName).sequence = collectionCommitSequence(collection)
-	}
-
-	success = true
-	return db, nil
+	return Open(path)
 }
