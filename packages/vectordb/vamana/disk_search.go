@@ -87,7 +87,8 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	useBBQ := idx.bbqSearchEnabled && idx.bbqCodes != nil
 	bbqOverSearchFactor := idx.bbqOverSearchFactor
 	bbqRerankFactor := idx.bbqRerankFactor
-	bbqRefineNavigation := idx.bbqRefineNavigation
+	legacyCosine := idx.distanceMetric == bbq.CosineSimilarity && !idx.cosineNormalized
+	bbqRefineNavigation := idx.bbqRefineNavigation && !legacyCosine
 	if !hasEntryPoint {
 		return nil, nil
 	}
@@ -138,7 +139,9 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	// to transparently handle disk nodes, modified neighbors, and append buffer.
 	var candidates []Neighbor
 	if useBBQ {
-		candidates = idx.greedySearchBBQWithMeta(scratch, medoid, query, beamWidth)
+		candidates = idx.greedySearchBBQWithMeta(scratch, medoid, query, beamWidth, bbqRefineNavigation)
+	} else if legacyCosine {
+		candidates = idx.greedySearchDiskCosine(scratch, medoid, query, efSearch)
 	} else {
 		candidates = idx.greedySearchDisk(scratch, medoid, query, efSearch)
 	}
@@ -154,7 +157,12 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	}
 
 	// Phase 2: Rerank with original vectors (unified via getVector)
-	results := idx.rerankCandidates(candidates, query, topK)
+	var results []SearchResult
+	if legacyCosine {
+		results = idx.rerankCandidatesCosine(candidates, query, topK)
+	} else {
+		results = idx.rerankCandidates(candidates, query, topK)
+	}
 
 	return results, nil
 }
@@ -174,7 +182,8 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 		return nil
 	}
 
-	return idx.greedySearchBBQWithMeta(scratch, medoid, query, L)
+	refineNavigation := idx.bbqRefineNavigation && !(idx.distanceMetric == bbq.CosineSimilarity && !idx.cosineNormalized)
+	return idx.greedySearchBBQWithMeta(scratch, medoid, query, L, refineNavigation)
 }
 
 // greedySearchBBQWithMeta 使用量化校正的 BBQ 搜索（融合搜索版本）
@@ -183,7 +192,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 // 磁盘节点使用预计算的 BBQ 元数据，append 节点使用内存中的 BBQ 元数据。
 //
 // 查询固定量化为 4-bit BitTranspose，数据固定保持 1-bit packed。
-func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
+func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medoid uint64, query []float32, L int, refineNavigation bool) []Neighbor {
 	dimension := int(idx.metadata.Dims)
 
 	// 使用 BBQ 量化器量化查询向量
@@ -240,6 +249,9 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 		if vector == nil {
 			return LargeInvalidDistance
 		}
+		if idx.distanceMetric == bbq.CosineSimilarity && !idx.cosineNormalized {
+			return cosineDistance(vector, query)
+		}
 		return squaredL2Distance(vector, query)
 	}
 
@@ -256,7 +268,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 		if !ok {
 			break
 		}
-		if idx.bbqRefineNavigation && scratch.Refined.Insert(closest.ID) {
+		if refineNavigation && scratch.Refined.Insert(closest.ID) {
 			vector := idx.getVector(uint64(closest.ID))
 			if vector != nil {
 				closest.Distance = squaredL2Distance(vector, query)
@@ -331,6 +343,36 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 	return scratch.Best.allView()
 }
 
+func (idx *DiskVamanaIndex) greedySearchDiskCosine(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
+	if idx.closed {
+		return nil
+	}
+	queryNormSquare := computeNormSquare(query)
+	if !idx.deleted.IsDeletedUnsafe(medoid) {
+		scratch.Visited.Insert(uint32(medoid))
+		vector := idx.getVector(medoid)
+		if vector != nil {
+			scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: cosineDistanceWithNorm(vector, query, queryNormSquare)})
+		}
+	}
+	for scratch.Best.HasUnvisited() {
+		closest, ok := scratch.Best.PopClosestUnvisited()
+		if !ok {
+			break
+		}
+		for _, neighborID := range idx.getNeighbors(uint64(closest.ID)) {
+			if idx.deleted.IsDeletedUnsafe(uint64(neighborID)) || !scratch.Visited.Insert(neighborID) {
+				continue
+			}
+			vector := idx.getVector(uint64(neighborID))
+			if vector != nil {
+				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: cosineDistanceWithNorm(vector, query, queryNormSquare)})
+			}
+		}
+	}
+	return scratch.Best.allView()
+}
+
 // computeDistance 读取节点向量并计算与查询向量的精确欧氏距离平方。
 // 统一处理磁盘节点和 append buffer 节点。
 // 当向量无法获取时返回 LargeInvalidDistance 哨兵值。
@@ -358,30 +400,18 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 	limit := min(topK, len(candidates))
 	results := make([]SearchResult, 0, limit)
 	heapReady := false
-
 	if idx.closed {
 		return nil
 	}
-
 	for _, cand := range candidates {
-		// Skip deleted nodes (double check)
 		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			continue
 		}
-
-		// 使用统一的 getVector：磁盘节点走 mmap，append 节点走内存
 		vec := idx.getVector(uint64(cand.ID))
 		if vec == nil {
 			continue
 		}
-
-		// Compute exact distance
-		dist := squaredL2Distance(vec, query)
-
-		result := SearchResult{
-			ID:       uint64(cand.ID),
-			Distance: dist,
-		}
+		result := SearchResult{ID: uint64(cand.ID), Distance: squaredL2Distance(vec, query)}
 		if len(results) < limit {
 			results = append(results, result)
 			continue
@@ -397,7 +427,6 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 			heapifySearchResultDown(results, 0, len(results))
 		}
 	}
-
 	if heapReady {
 		for i := len(results) - 1; i > 0; i-- {
 			results[0], results[i] = results[i], results[0]
@@ -414,7 +443,68 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 			results[position] = value
 		}
 	}
+	return results
+}
 
+func (idx *DiskVamanaIndex) rerankCandidatesCosine(candidates []Neighbor, query []float32, topK int) []SearchResult {
+	if len(candidates) == 0 || topK <= 0 {
+		return nil
+	}
+
+	limit := min(topK, len(candidates))
+	results := make([]SearchResult, 0, limit)
+	heapReady := false
+	queryNormSquare := computeNormSquare(query)
+
+	if idx.closed {
+		return nil
+	}
+
+	for _, cand := range candidates {
+		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
+			continue
+		}
+
+		vec := idx.getVector(uint64(cand.ID))
+		if vec == nil {
+			continue
+		}
+
+		result := SearchResult{
+			ID:       uint64(cand.ID),
+			Distance: cosineDistanceWithNorm(vec, query, queryNormSquare),
+		}
+		if len(results) < limit {
+			results = append(results, result)
+			continue
+		}
+		if !heapReady {
+			for i := len(results)/2 - 1; i >= 0; i-- {
+				heapifySearchResultDown(results, i, len(results))
+			}
+			heapReady = true
+		}
+		if result.Distance < results[0].Distance {
+			results[0] = result
+			heapifySearchResultDown(results, 0, len(results))
+		}
+	}
+	if heapReady {
+		for i := len(results) - 1; i > 0; i-- {
+			results[0], results[i] = results[i], results[0]
+			heapifySearchResultDown(results, 0, i)
+		}
+	} else {
+		for i := 1; i < len(results); i++ {
+			value := results[i]
+			position := i
+			for position > 0 && value.Distance < results[position-1].Distance {
+				results[position] = results[position-1]
+				position--
+			}
+			results[position] = value
+		}
+	}
 	return results
 }
 

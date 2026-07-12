@@ -47,6 +47,7 @@ type VamanaCollection struct {
 	BasePath           string
 	Config             vamana.DiskBuildConfig
 	WALCheckpointBytes int64
+	CosineNormalized   bool
 	// LastCommitSequence 是最近一次成功公开提交的线性化序号。
 	LastCommitSequence uint64
 
@@ -75,6 +76,7 @@ type vamanaCollectionState struct {
 	Metas              map[uint64][]byte      `msgpack:"metas"`
 	PendingVectors     map[string][]float32   `msgpack:"pendingVectors"`
 	WALCheckpointBytes int64                  `msgpack:"walCheckpointBytes,omitempty"`
+	CosineNormalized   bool                   `msgpack:"cosineNormalized,omitempty"`
 }
 
 const VamanaStateFileExt = ".ids.msgpack"
@@ -201,6 +203,7 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, dimension, len(queryVec))
 	}
 	metric := vc.Index.DistanceMetric()
+	normalizedCosine := metric == bbq.CosineSimilarity && vc.CosineNormalized
 	queryVec, err := prepareVectorForMetric(queryVec, similarityMetricName(metric))
 	if err != nil {
 		return nil, err
@@ -224,7 +227,7 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 		}
 
 		distance := r.Distance
-		if metric == bbq.CosineSimilarity {
+		if normalizedCosine {
 			// 规范化向量的 squared L2 等于两倍 cosine distance。
 			distance *= 0.5
 		}
@@ -391,6 +394,8 @@ func buildPreparedVamanaCollection(
 	vc.RootPath = basePath
 	vc.BasePath = basePath
 	vc.Config = config
+	vc.CosineNormalized = config.DistanceMetric == bbq.CosineSimilarity
+	idx.SetCosineVectorsNormalized(vc.CosineNormalized)
 
 	// BuildFromVectors assigns sequential node IDs in input order.
 	for i, p := range points {
@@ -470,6 +475,7 @@ func saveVamanaCollectionStateLocked(vc *VamanaCollection, basePath string) erro
 		Metas:              make(map[uint64][]byte, len(vc.Metas)),
 		PendingVectors:     make(map[string][]float32, len(vc.PendingVectors)),
 		WALCheckpointBytes: vc.WALCheckpointBytes,
+		CosineNormalized:   vc.CosineNormalized,
 	}
 	for id, nodeID := range vc.IDMap {
 		state.IDMap[id] = nodeID
@@ -519,6 +525,8 @@ func LoadVamanaCollectionState(vc *VamanaCollection, basePath string) error {
 		vc.Config = state.Config
 	}
 	vc.Index.SetDistanceMetric(vc.Config.DistanceMetric)
+	vc.CosineNormalized = state.CosineNormalized
+	vc.Index.SetCosineVectorsNormalized(vc.CosineNormalized)
 	vc.IDMap = state.IDMap
 	vc.DocMap = state.DocMap
 	vc.Metas = state.Metas
@@ -642,6 +650,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	}
 	next.BasePath = basePath
 	next.Config = config
+	next.CosineNormalized = config.DistanceMetric == bbq.CosineSimilarity
 	next.LastCommitSequence = vc.LastCommitSequence
 	next.PendingVectors = make(map[string][]float32)
 	if err := SaveVamanaCollectionState(next, tmpBasePath); err != nil {
@@ -676,6 +685,7 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	vc.RootPath = reopened.RootPath
 	vc.BasePath = reopened.BasePath
 	vc.Config = reopened.Config
+	vc.CosineNormalized = reopened.CosineNormalized
 	vc.Index = reopened.Index
 	vc.IDMap = reopened.IDMap
 	vc.DocMap = reopened.DocMap

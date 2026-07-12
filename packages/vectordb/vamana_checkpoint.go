@@ -200,6 +200,7 @@ func (vc *VamanaCollection) Checkpoint(ctx context.Context) (CheckpointResult, e
 		BasePath:           generationPath,
 		Config:             vc.Config,
 		WALCheckpointBytes: vc.WALCheckpointBytes,
+		CosineNormalized:   vc.CosineNormalized,
 		LastCommitSequence: vc.LastCommitSequence,
 		IDMap:              remappedIDs,
 		DocMap:             remappedDocs,
@@ -248,6 +249,7 @@ func (vc *VamanaCollection) adoptCheckpointLocked(next *VamanaCollection) {
 	vc.BasePath = next.BasePath
 	vc.Config = next.Config
 	vc.WALCheckpointBytes = next.WALCheckpointBytes
+	vc.CosineNormalized = next.CosineNormalized
 	vc.LastCommitSequence = next.LastCommitSequence
 	vc.Index = next.Index
 	vc.IDMap = next.IDMap

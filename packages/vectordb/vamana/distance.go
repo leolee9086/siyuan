@@ -16,7 +16,10 @@
 
 package vamana
 
-import "sort"
+import (
+	"math"
+	"sort"
+)
 
 // ============================================================================
 // 距离计算函数
@@ -90,6 +93,53 @@ func squaredL2Distance(a, b []float32) float32 {
 		sum += delta * delta
 	}
 	return sum
+}
+
+func cosineDistance(a, b []float32) float32 {
+	return cosineDistanceWithNorm(a, b, computeNormSquare(b))
+}
+
+func cosineDistanceWithNorm(a, b []float32, bNormSquare float32) float32 {
+	n := len(a)
+	var dot0, dot1, dot2, dot3, dot4, dot5, dot6, dot7 float32
+	var norm0, norm1, norm2, norm3, norm4, norm5, norm6, norm7 float32
+	i := 0
+	for ; i <= n-8; i += 8 {
+		dot0 += a[i] * b[i]
+		dot1 += a[i+1] * b[i+1]
+		dot2 += a[i+2] * b[i+2]
+		dot3 += a[i+3] * b[i+3]
+		dot4 += a[i+4] * b[i+4]
+		dot5 += a[i+5] * b[i+5]
+		dot6 += a[i+6] * b[i+6]
+		dot7 += a[i+7] * b[i+7]
+		norm0 += a[i] * a[i]
+		norm1 += a[i+1] * a[i+1]
+		norm2 += a[i+2] * a[i+2]
+		norm3 += a[i+3] * a[i+3]
+		norm4 += a[i+4] * a[i+4]
+		norm5 += a[i+5] * a[i+5]
+		norm6 += a[i+6] * a[i+6]
+		norm7 += a[i+7] * a[i+7]
+	}
+	dot := dot0 + dot1 + dot2 + dot3 + dot4 + dot5 + dot6 + dot7
+	aNormSquare := norm0 + norm1 + norm2 + norm3 + norm4 + norm5 + norm6 + norm7
+	for ; i < n; i++ {
+		dot += a[i] * b[i]
+		aNormSquare += a[i] * a[i]
+	}
+	normProduct := float64(aNormSquare) * float64(bNormSquare)
+	if normProduct == 0 {
+		return 1
+	}
+	distance := 1 - dot/float32(math.Sqrt(normProduct))
+	if distance < 0 {
+		return 0
+	}
+	if distance > 2 {
+		return 2
+	}
+	return distance
 }
 
 // dotProduct 计算两个向量的点积

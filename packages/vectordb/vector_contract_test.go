@@ -1,6 +1,7 @@
 package vectordb
 
 import (
+	"context"
 	"errors"
 	"math"
 	"path/filepath"
@@ -130,7 +131,7 @@ func TestCosineMetricSurvivesReopenAcrossEngines(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = db.CreateCollectionWithOptions("reopen-cosine", CollectionOptions{
+			created, err := db.CreateCollectionWithOptions("reopen-cosine", CollectionOptions{
 				Engine:         engine,
 				DistanceMetric: "cosine",
 				Points: []Point{
@@ -140,6 +141,9 @@ func TestCosineMetricSurvivesReopenAcrossEngines(t *testing.T) {
 			})
 			if err != nil {
 				t.Fatal(err)
+			}
+			if engine == EngineDiskVamana && !created.(*CollectionHandle).col.(*VamanaCollection).CosineNormalized {
+				t.Fatal("新 DiskVamana cosine 集合必须记录归一化磁盘语义")
 			}
 			if err := db.Close(); err != nil {
 				t.Fatal(err)
@@ -153,6 +157,9 @@ func TestCosineMetricSurvivesReopenAcrossEngines(t *testing.T) {
 			collection, err := reopenedDB.OpenCollection("reopen-cosine")
 			if err != nil {
 				t.Fatal(err)
+			}
+			if engine == EngineDiskVamana && !collection.(*CollectionHandle).col.(*VamanaCollection).CosineNormalized {
+				t.Fatal("DiskVamana cosine 归一化语义未持久化")
 			}
 			results, err := collection.Search([]float32{5, 0, 0, 0}, SearchOptions{TopK: 2, EfSearch: 32})
 			if err != nil || len(results) != 2 || results[0].ID != "direction" {
@@ -207,5 +214,71 @@ func TestInnerProductMetricContract(t *testing.T) {
 	}, filepath.Join(t.TempDir(), "index"), config, CollectionMeta{})
 	if !errors.Is(err, ErrMetricUnsupported) {
 		t.Fatalf("直接构建 DiskVamana 也必须拒绝 ip：%v", err)
+	}
+}
+
+func TestDiskVamanaLegacyCosineVectorsRemainCorrect(t *testing.T) {
+	ensureDiskVamanaReader()
+	basePath := filepath.Join(t.TempDir(), "legacy-cosine")
+	vectors := [][]float32{
+		{100, 1, 0, 0},
+		{1, 1, 0, 0},
+		{-1, 0, 0, 0},
+	}
+	config := vamana.DefaultDiskBuildConfig()
+	config.DistanceMetric = bbq.CosineSimilarity
+	config.R = 2
+	config.L = 8
+	if _, err := vamana.BuildFromVectors(basePath, vectors, config); err != nil {
+		t.Fatal(err)
+	}
+	index, err := vamana.Open(basePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := NewVamanaCollection("legacy-cosine", 4, index, CollectionMeta{})
+	legacy.RootPath = basePath
+	legacy.BasePath = basePath
+	legacy.Config = config
+	legacy.IDMap = map[string]uint64{"direction": 0, "euclidean-near": 1, "opposite": 2}
+	legacy.DocMap = map[uint64]string{0: "direction", 1: "euclidean-near", 2: "opposite"}
+	if err := SaveVamanaCollectionState(legacy, basePath); err != nil {
+		t.Fatal(err)
+	}
+	if err := legacy.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := OpenVamanaCollection("legacy-cosine", basePath, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := reopened.SearchWithError([]float32{1, 0, 0, 0}, 3, 16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 3 || results[0].ID != "direction" {
+		t.Fatalf("旧 cosine 集合重开后排序受模长影响：%+v", results)
+	}
+	if err := reopened.InsertPoint(Point{ID: "new", Vector: []float32{0, 10, 0, 0}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.Checkpoint(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if reopened.CosineNormalized {
+		t.Fatal("包含旧原始向量的 checkpoint 不得错误标记为已归一化")
+	}
+	if err := reopened.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopenedAgain, err := OpenVamanaCollection("legacy-cosine", basePath, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopenedAgain.Close()
+	results, err = reopenedAgain.SearchWithError([]float32{1, 0, 0, 0}, 4, 16)
+	if err != nil || len(results) != 4 || results[0].ID != "direction" {
+		t.Fatalf("旧 cosine 集合 checkpoint 后兼容语义丢失：results=%+v，err=%v", results, err)
 	}
 }

@@ -98,6 +98,7 @@ type DiskVamanaIndex struct {
 	metadata            *storage.GraphMetadata // 磁盘图元数据
 	maxDegree           int                    // 最大出度（从元数据计算）
 	distanceMetric      bbq.SimilarityType     // BBQ 量化使用的距离度量
+	cosineNormalized    bool                   // cosine 原始向量是否已归一化
 	bbqOverSearchFactor float64                // BBQ 搜索过搜索因子（internalL = efSearch * factor）
 	bbqSearchEnabled    bool                   // 是否使用 BBQ 距离导航磁盘图
 	bbqRefineNavigation bool                   // 是否在扩张前用全精度距离校正候选顺序
@@ -778,6 +779,13 @@ func (idx *DiskVamanaIndex) DistanceMetric() bbq.SimilarityType {
 func (idx *DiskVamanaIndex) SetDistanceMetric(metric bbq.SimilarityType) {
 	idx.mu.Lock()
 	idx.distanceMetric = metric
+	idx.mu.Unlock()
+}
+
+// SetCosineVectorsNormalized 设置 cosine 原始向量的磁盘表示语义。
+func (idx *DiskVamanaIndex) SetCosineVectorsNormalized(normalized bool) {
+	idx.mu.Lock()
+	idx.cosineNormalized = normalized
 	idx.mu.Unlock()
 }
 
