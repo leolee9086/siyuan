@@ -74,9 +74,59 @@ func TestANNBenchmarksSIFTPairedUSearchRatio(t *testing.T) {
 	}
 }
 
+func TestANNBenchmarksDiskVamanaUSearchComparison(t *testing.T) {
+	rand.Seed(1)
+	fixture := loadANNSIFTDataFixture(t)
+	disk := loadANNDiskVamanaFixture(t, fixture)
+	defer disk.close()
+	competitor, err := buildANNUSearch(fixture.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = competitor.index.close() }()
+
+	t.Logf("协议：ANN-Benchmarks SIFT L2，base=%d，queries=%d，dim=%d，k=%d", len(fixture.base), len(fixture.queries), len(fixture.base[0]), annSIFTTopK)
+	t.Logf("构建 DiskVamana：%v，%.0f vectors/s，disk=%.1f bytes/vector", disk.buildDuration, disk.buildVectorsSec, float64(disk.indexBytes)/float64(len(fixture.base)))
+	t.Logf("构建 USearch %s：%v，%.0f vectors/s，SIMD=%s", annUSearchVersion, competitor.duration, competitor.vectorsPerSecond, competitor.hardware)
+	expansions := []int{32, 64, 100, 200}
+	oursRecalls := make(map[int]float64, len(expansions))
+	theirsRecalls := make(map[int]float64, len(expansions))
+	for _, expansion := range expansions {
+		oursRecall := annDiskVamanaRecall(fixture, disk.collection, expansion)
+		theirsRecall, err := annUSearchRecall(fixture, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		paired, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		oursRecalls[expansion] = oursRecall
+		theirsRecalls[expansion] = theirsRecall
+		t.Logf("ef=%d Recall@10：DiskVamana %.2f%%，USearch %.2f%%；逐查询交错 QPS：DiskVamana %.2f，USearch %.2f，比值 %.4f", expansion, oursRecall*100, theirsRecall*100, paired.oursQPS, paired.theirsQPS, paired.ratio)
+	}
+	for _, theirsExpansion := range expansions {
+		oursExpansion := 0
+		for _, candidate := range expansions {
+			if oursRecalls[candidate]+0.001 >= theirsRecalls[theirsExpansion] {
+				oursExpansion = candidate
+				break
+			}
+		}
+		if oursExpansion == 0 || oursExpansion == theirsExpansion {
+			continue
+		}
+		paired, err := annMeasurePairedDiskUSearchExpansions(fixture, disk.collection, competitor.index, oursExpansion, theirsExpansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("Recall 对齐：DiskVamana ef=%d %.2f%%，USearch ef=%d %.2f%%；逐查询交错 QPS 比值 %.4f（%.2f/%.2f）", oursExpansion, oursRecalls[oursExpansion]*100, theirsExpansion, theirsRecalls[theirsExpansion]*100, paired.ratio, paired.oursQPS, paired.theirsQPS)
+	}
+}
+
 func TestANNBenchmarksDiskVamanaCheckpointUSearchRatio(t *testing.T) {
 	rand.Seed(1)
-	fixture := loadANNSIFTFixture(t)
+	fixture := loadANNSIFTDataFixture(t)
 	disk := loadANNDiskVamanaFixture(t, fixture)
 	defer disk.close()
 	competitor, err := buildANNUSearch(fixture.base)
@@ -123,7 +173,7 @@ func TestANNBenchmarksDiskVamanaCheckpointUSearchRatio(t *testing.T) {
 
 func TestANNBenchmarksDiskVamanaStrategyCurveUSearchRatio(t *testing.T) {
 	rand.Seed(1)
-	fixture := loadANNSIFTFixture(t)
+	fixture := loadANNSIFTDataFixture(t)
 	disk := loadANNDiskVamanaFixture(t, fixture)
 	defer disk.close()
 	competitor, err := buildANNUSearch(fixture.base)
@@ -222,7 +272,11 @@ func annMeasurePairedHNSWUSearch(fixture *annSIFTFixture, index *annUSearchIndex
 }
 
 func annMeasurePairedDiskUSearch(fixture *annSIFTFixture, collection CollectionAPI, index *annUSearchIndex, expansion int) (annPairedMeasurement, error) {
-	if err := index.setExpansionSearch(expansion); err != nil {
+	return annMeasurePairedDiskUSearchExpansions(fixture, collection, index, expansion, expansion)
+}
+
+func annMeasurePairedDiskUSearchExpansions(fixture *annSIFTFixture, collection CollectionAPI, index *annUSearchIndex, oursExpansion, theirsExpansion int) (annPairedMeasurement, error) {
+	if err := index.setExpansionSearch(theirsExpansion); err != nil {
 		return annPairedMeasurement{}, err
 	}
 	var oursDuration time.Duration
@@ -232,7 +286,7 @@ func annMeasurePairedDiskUSearch(fixture *annSIFTFixture, collection CollectionA
 		for repetition := 0; repetition < annSIFTReportRepetitions; repetition++ {
 			measureOurs := func() error {
 				started := time.Now()
-				_, err := collection.Search(query, SearchOptions{TopK: annSIFTTopK, EfSearch: expansion})
+				_, err := collection.Search(query, SearchOptions{TopK: annSIFTTopK, EfSearch: oursExpansion})
 				oursDuration += time.Since(started)
 				return err
 			}
@@ -283,8 +337,8 @@ func BenchmarkANNBenchmarksSIFTUSearchComparison(b *testing.B) {
 		}
 		b.Run(fmt.Sprintf("vectordb/ef_%d", expansion), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ReportMetric(oursRecall*100, "recall@10_percent")
 			b.ResetTimer()
+			b.ReportMetric(oursRecall*100, "recall@10_percent")
 			for i := 0; i < b.N; i++ {
 				fixture.collection.Search(fixture.queries[i%len(fixture.queries)], annSIFTTopK, expansion)
 			}
@@ -294,8 +348,8 @@ func BenchmarkANNBenchmarksSIFTUSearchComparison(b *testing.B) {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()
-			b.ReportMetric(competitorRecall*100, "recall@10_percent")
 			b.ResetTimer()
+			b.ReportMetric(competitorRecall*100, "recall@10_percent")
 			for i := 0; i < b.N; i++ {
 				if _, err := competitor.index.search(fixture.queries[i%len(fixture.queries)], annSIFTTopK); err != nil {
 					b.Fatal(err)

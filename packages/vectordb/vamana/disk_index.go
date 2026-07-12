@@ -114,6 +114,11 @@ type DiskVamanaIndex struct {
 	// 磁盘 I/O
 	reader storage.DiskIndexReader // 磁盘索引读取器（基于 mmap）
 
+	// residentNeighbors 将固定图邻接表压成连续布局，避免导航读取交错节点记录时触碰全精度向量页。
+	residentNeighbors []uint32
+	residentStride    int
+	residentGraph     bool
+
 	// 应用层热节点缓存
 	nodeCache *NodeCache // holds frequently-visited nodes (vectors + neighbors)
 
@@ -249,6 +254,11 @@ func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, e
 		int(idx.metadata.Dims),
 		int(idx.metadata.AssocDataLength),
 	)
+	if err := idx.loadResidentNeighbors(); err != nil {
+		idx.reader.Close()
+		return nil, fmt.Errorf("failed to load resident graph: %w", err)
+	}
+	idx.residentGraph = true
 
 	// 加载 BBQ 码（可选）
 	bbqPath := path + diskBBQExt
@@ -307,6 +317,13 @@ func (idx *DiskVamanaIndex) SetInsertGraphSlackFactor(factor float32) {
 	}
 }
 
+// SetResidentGraphEnabled 控制查询是否使用常驻邻接表；关闭后回退到磁盘读取器。
+func (idx *DiskVamanaIndex) SetResidentGraphEnabled(enabled bool) {
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+	idx.residentGraph = enabled
+}
+
 // Close 释放磁盘索引关联的所有资源。
 //
 // 调用 Close 后，索引上的所有操作将返回 ErrDiskIndexClosed。
@@ -322,6 +339,8 @@ func (idx *DiskVamanaIndex) Close() error {
 	}
 
 	idx.closed = true
+	idx.residentNeighbors = nil
+	idx.residentStride = 0
 
 	var firstErr error
 
@@ -555,11 +574,7 @@ func (idx *DiskVamanaIndex) GetNeighbors(nodeID uint64) []uint32 {
 		return nil
 	}
 
-	neighbors, err := idx.reader.ReadNeighbors(nodeID)
-	if err != nil {
-		return nil
-	}
-	return neighbors
+	return idx.getNeighbors(nodeID)
 }
 
 // IsDeleted 检查节点是否已标记为删除。

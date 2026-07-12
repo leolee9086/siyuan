@@ -71,8 +71,8 @@ func BenchmarkANNBenchmarksSIFT(b *testing.B) {
 		recall := annRecall(fixture, efSearch)
 		b.Run(fmt.Sprintf("hnsw/ef_%d", efSearch), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ReportMetric(recall*100, "recall@10_percent")
 			b.ResetTimer()
+			b.ReportMetric(recall*100, "recall@10_percent")
 			for i := 0; i < b.N; i++ {
 				fixture.collection.Search(fixture.queries[i%len(fixture.queries)], annSIFTTopK, efSearch)
 			}
@@ -90,8 +90,78 @@ func BenchmarkANNBenchmarksSIFT(b *testing.B) {
 		recall := annDiskVamanaRecall(fixture, disk.collection, efSearch)
 		b.Run(fmt.Sprintf("disk-vamana/ef_%d", efSearch), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ReportMetric(recall*100, "recall@10_percent")
 			b.ResetTimer()
+			b.ReportMetric(recall*100, "recall@10_percent")
+			for i := 0; i < b.N; i++ {
+				if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+	diskIndex := disk.collection.(*CollectionHandle).col.(*VamanaCollection).Index
+	diskIndex.SetBBQSearchEnabled(false)
+	defer diskIndex.SetBBQSearchEnabled(true)
+	for _, efSearch := range []int{32, 64} {
+		recall := annDiskVamanaRecall(fixture, disk.collection, efSearch)
+		b.Run(fmt.Sprintf("disk-vamana/full-precision/ef_%d", efSearch), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			b.ReportMetric(recall*100, "recall@10_percent")
+			for i := 0; i < b.N; i++ {
+				if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkANNBenchmarksSIFTDiskVamana(b *testing.B) {
+	fixture := loadANNSIFTDataFixture(b)
+	disk := loadANNDiskVamanaFixture(b, fixture)
+	defer disk.close()
+	b.ReportMetric(float64(len(fixture.base)), "base_vectors")
+	b.ReportMetric(disk.buildDuration.Seconds(), "build_seconds")
+	b.ReportMetric(disk.buildVectorsSec, "build_vectors/s")
+	b.ReportMetric(float64(disk.indexBytes)/float64(len(fixture.base)), "disk_bytes/vector")
+
+	for _, efSearch := range []int{32, 64, 100, 200} {
+		recall := annDiskVamanaRecall(fixture, disk.collection, efSearch)
+		b.Run(fmt.Sprintf("bbq/ef_%d", efSearch), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			b.ReportMetric(recall*100, "recall@10_percent")
+			for i := 0; i < b.N; i++ {
+				if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+
+	diskIndex := disk.collection.(*CollectionHandle).col.(*VamanaCollection).Index
+	diskIndex.SetResidentGraphEnabled(false)
+	recall := annDiskVamanaRecall(fixture, disk.collection, 32)
+	b.Run("bbq-mmap/ef_32", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		b.ReportMetric(recall*100, "recall@10_percent")
+		for i := 0; i < b.N; i++ {
+			if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: 32}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	diskIndex.SetResidentGraphEnabled(true)
+	diskIndex.SetBBQSearchEnabled(false)
+	defer diskIndex.SetBBQSearchEnabled(true)
+	for _, efSearch := range []int{32, 64} {
+		recall := annDiskVamanaRecall(fixture, disk.collection, efSearch)
+		b.Run(fmt.Sprintf("full-precision/ef_%d", efSearch), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			b.ReportMetric(recall*100, "recall@10_percent")
 			for i := 0; i < b.N; i++ {
 				if _, err := disk.collection.Search(fixture.queries[i%len(fixture.queries)], SearchOptions{TopK: annSIFTTopK, EfSearch: efSearch}); err != nil {
 					b.Fatal(err)
@@ -268,33 +338,10 @@ func annBBQBruteForceCandidateRecall(fixture *annSIFTFixture, candidateCounts []
 }
 
 func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
-	tb.Helper()
-	if os.Getenv("VECTORDB_ANN_BENCH") != "1" {
-		tb.Skip("设置 VECTORDB_ANN_BENCH=1 后运行 ANN-Benchmarks SIFT 基准")
-	}
-	dataPath := getSIFTDataPath()
-	if dataPath == "" {
-		tb.Skip("缺少 SIFT1M 数据集，请下载 sift_base.fvecs 和 sift_query.fvecs 到 test_data/sift")
-	}
-
-	baseCount := annBenchmarkEnvInt(tb, "VECTORDB_ANN_BASE_COUNT", annSIFTDefaultBaseCount)
-	queryCount := annBenchmarkEnvInt(tb, "VECTORDB_ANN_QUERY_COUNT", annSIFTDefaultQueryCount)
-	base, dim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_base.fvecs"), baseCount)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	queries, queryDim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_query.fvecs"), queryCount)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	if len(base) != baseCount || len(queries) != queryCount || queryDim != dim {
-		tb.Fatalf("SIFT 数据规模不符合请求：base=%d/%d，queries=%d/%d，dim=%d/%d", len(base), baseCount, len(queries), queryCount, dim, queryDim)
-	}
-
-	groundTruth := make([][]int, len(queries))
-	for i, query := range queries {
-		groundTruth[i] = annExactKNN(base, query, annSIFTTopK)
-	}
+	fixture := loadANNSIFTDataFixture(tb)
+	base := fixture.base
+	queries := fixture.queries
+	dim := len(base[0])
 
 	runtime.GC()
 	var before runtime.MemStats
@@ -330,14 +377,61 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 	for i := 0; i < len(queries) && i < 10; i++ {
 		collection.Search(queries[i], annSIFTTopK, 200)
 	}
+	fixture.collection = collection
+	fixture.buildDuration = buildDuration
+	fixture.heapBytes = heapBytes
+	fixture.buildVectorsSec = float64(len(base)) / buildDuration.Seconds()
+	return fixture
+}
+
+func loadANNSIFTDataFixture(tb testing.TB) *annSIFTFixture {
+	tb.Helper()
+	if os.Getenv("VECTORDB_ANN_BENCH") != "1" {
+		tb.Skip("设置 VECTORDB_ANN_BENCH=1 后运行 ANN-Benchmarks SIFT 基准")
+	}
+	dataPath := getSIFTDataPath()
+	if dataPath == "" {
+		tb.Skip("缺少 SIFT1M 数据集，请下载 sift_base.fvecs 和 sift_query.fvecs 到 test_data/sift")
+	}
+
+	baseCount := annBenchmarkEnvInt(tb, "VECTORDB_ANN_BASE_COUNT", annSIFTDefaultBaseCount)
+	queryCount := annBenchmarkEnvInt(tb, "VECTORDB_ANN_QUERY_COUNT", annSIFTDefaultQueryCount)
+	base, dim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_base.fvecs"), baseCount)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	queries, queryDim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_query.fvecs"), queryCount)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	if len(base) != baseCount || len(queries) != queryCount || queryDim != dim {
+		tb.Fatalf("SIFT 数据规模不符合请求：base=%d/%d，queries=%d/%d，dim=%d/%d", len(base), baseCount, len(queries), queryCount, dim, queryDim)
+	}
+
+	groundTruth := make([][]int, len(queries))
+	if baseCount == 1000000 {
+		allGroundTruth, groundTruthK, err := loadIvecs(filepath.Join(dataPath, "sift_groundtruth.ivecs"))
+		if err != nil {
+			tb.Fatal(err)
+		}
+		if len(allGroundTruth) < len(queries) || groundTruthK < annSIFTTopK {
+			tb.Fatalf("SIFT1M ground truth 不完整：queries=%d/%d，k=%d/%d", len(allGroundTruth), len(queries), groundTruthK, annSIFTTopK)
+		}
+		for queryIndex := range queries {
+			groundTruth[queryIndex] = make([]int, annSIFTTopK)
+			for rank := 0; rank < annSIFTTopK; rank++ {
+				groundTruth[queryIndex][rank] = int(allGroundTruth[queryIndex][rank])
+			}
+		}
+	} else {
+		for i, query := range queries {
+			groundTruth[i] = annExactKNN(base, query, annSIFTTopK)
+		}
+	}
 	return &annSIFTFixture{
-		base:            base,
-		queries:         queries,
-		groundTruth:     groundTruth,
-		collection:      collection,
-		buildDuration:   buildDuration,
-		heapBytes:       heapBytes,
-		buildVectorsSec: float64(len(base)) / buildDuration.Seconds(),
+		base:        base,
+		queries:     queries,
+		groundTruth: groundTruth,
 	}
 }
 

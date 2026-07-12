@@ -300,12 +300,47 @@ func (idx *DiskVamanaIndex) getNeighbors(nodeID uint64) []uint32 {
 			return cached
 		}
 	}
+	if idx.residentGraph && idx.residentStride > 0 {
+		start := int(nodeID) * idx.residentStride
+		count := int(idx.residentNeighbors[start])
+		return idx.residentNeighbors[start+1 : start+1+count]
+	}
 
 	neighbors, err := idx.reader.ReadNeighbors(nodeID)
 	if err != nil {
 		return nil
 	}
 	return neighbors
+}
+
+// loadResidentNeighbors 把固定磁盘图读入紧凑的连续数组，查询导航只访问邻接数据。
+func (idx *DiskVamanaIndex) loadResidentNeighbors() error {
+	if idx.metadata.NumPoints == 0 || idx.maxDegree <= 0 {
+		return nil
+	}
+	if idx.metadata.NumPoints > uint64(int(^uint(0)>>1)/idx.maxDegree) {
+		return fmt.Errorf("resident graph is too large: points=%d degree=%d", idx.metadata.NumPoints, idx.maxDegree)
+	}
+	stride := idx.maxDegree + 1
+	if idx.metadata.NumPoints > uint64(int(^uint(0)>>1)/stride) {
+		return fmt.Errorf("resident graph is too large: points=%d stride=%d", idx.metadata.NumPoints, stride)
+	}
+	resident := make([]uint32, int(idx.metadata.NumPoints)*stride)
+	for nodeID := uint64(0); nodeID < idx.metadata.NumPoints; nodeID++ {
+		neighbors, err := idx.reader.ReadNeighbors(nodeID)
+		if err != nil {
+			return fmt.Errorf("read neighbors for node %d: %w", nodeID, err)
+		}
+		if len(neighbors) > idx.maxDegree {
+			return fmt.Errorf("node %d has %d neighbors, maximum is %d", nodeID, len(neighbors), idx.maxDegree)
+		}
+		start := int(nodeID) * stride
+		resident[start] = uint32(len(neighbors))
+		copy(resident[start+1:start+1+len(neighbors)], neighbors)
+	}
+	idx.residentNeighbors = resident
+	idx.residentStride = stride
+	return nil
 }
 
 // totalPoints returns the total number of points (disk + append).
