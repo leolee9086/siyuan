@@ -151,14 +151,19 @@ func (vc *VamanaCollection) Checkpoint(ctx context.Context) (CheckpointResult, e
 	walBytes := vc.walBytes
 	originalPoints := vc.Index.NumPointsTotal()
 
-	generationPath := fmt.Sprintf("%s.gen-%020d", rootPath, vc.LastCommitSequence)
-	if generationPath == vc.BasePath && walBytes == 0 && len(vc.PendingVectors) == 0 && vc.Index.NumPoints() == vc.Index.NumPointsTotal() {
+	desiredGenerationPath := fmt.Sprintf("%s.gen-%020d", rootPath, vc.LastCommitSequence)
+	activeIsGeneration := vc.BasePath != rootPath && strings.HasPrefix(filepath.Base(vc.BasePath), filepath.Base(rootPath)+".gen-")
+	if activeIsGeneration && walBytes == 0 && len(vc.PendingVectors) == 0 && vc.Index.NumPoints() == vc.Index.NumPointsTotal() {
 		return CheckpointResult{
 			Engine:          EngineDiskVamana,
 			CommitSequence:  vc.LastCommitSequence,
 			OriginalPoints:  originalPoints,
 			RemainingPoints: originalPoints,
 		}, nil
+	}
+	generationPath := desiredGenerationPath
+	if generationPath == vc.BasePath {
+		generationPath += ".next"
 	}
 	if err := removeVamanaFiles(generationPath); err != nil {
 		return CheckpointResult{}, err

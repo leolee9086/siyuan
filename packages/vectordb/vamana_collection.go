@@ -619,23 +619,8 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 	vc.Mu.Lock()
 	defer vc.Mu.Unlock()
 
-	if basePath == "" {
-		basePath = vc.BasePath
-	}
-	if basePath == "" {
-		return nil
-	}
-
 	points, err := vc.extractLivePointsLocked()
 	if err != nil {
-		return err
-	}
-	if len(points) == 0 {
-		return saveVamanaCollectionStateLocked(vc, basePath)
-	}
-
-	tmpBasePath := basePath + ".rebuild"
-	if err := removeVamanaFiles(tmpBasePath); err != nil {
 		return err
 	}
 
@@ -644,55 +629,77 @@ func (vc *VamanaCollection) FlushToDisk(basePath string) error {
 		config = vamana.DefaultDiskBuildConfig()
 	}
 
-	next, err := BuildVamanaCollection(vc.ColName, points, tmpBasePath, config, vc.Meta)
-	if err != nil {
-		return err
-	}
-	next.BasePath = basePath
-	next.Config = config
-	next.CosineNormalized = config.DistanceMetric == bbq.CosineSimilarity
-	next.LastCommitSequence = vc.LastCommitSequence
-	next.PendingVectors = make(map[string][]float32)
-	if err := SaveVamanaCollectionState(next, tmpBasePath); err != nil {
-		_ = next.Close()
-		return err
-	}
-	if err := next.Close(); err != nil {
-		return err
-	}
-
-	if vc.Index != nil {
-		if err := vc.Index.Close(); err != nil {
+	targetActivePath := ""
+	if exists, existsErr := hasVamanaCollection(basePath); existsErr != nil {
+		return existsErr
+	} else if exists {
+		targetActivePath, err = resolveVamanaGeneration(basePath)
+		if err != nil {
 			return err
 		}
 	}
-	if err := vc.closeWALLocked(); err != nil {
+	generationPath := fmt.Sprintf("%s.gen-%020d", basePath, vc.LastCommitSequence)
+	if generationPath == targetActivePath {
+		generationPath += ".next"
+	}
+	if err := removeVamanaFiles(generationPath); err != nil {
 		return err
 	}
-	if err := replaceVamanaFiles(tmpBasePath, basePath); err != nil {
+	if err := os.MkdirAll(filepath.Dir(generationPath), 0755); err != nil {
 		return err
 	}
 
-	reopened, err := OpenVamanaCollection(vc.ColName, basePath, vc.Meta)
+	var next *VamanaCollection
+	if len(points) > 0 {
+		next, err = BuildVamanaCollection(vc.ColName, points, generationPath, config, vc.Meta)
+	} else {
+		_, err = vc.Index.Compact(generationPath)
+		if err == nil {
+			var index *vamana.DiskVamanaIndex
+			index, err = vamana.Open(generationPath)
+			if err == nil {
+				index.SetDistanceMetric(config.DistanceMetric)
+				next = NewVamanaCollection(vc.ColName, vc.ColDim, index, vc.Meta)
+				next.CosineNormalized = config.DistanceMetric == bbq.CosineSimilarity
+				index.SetCosineVectorsNormalized(next.CosineNormalized)
+			}
+		}
+	}
 	if err != nil {
+		_ = removeVamanaFiles(generationPath)
 		return err
 	}
-	reopened.Config = config
-	reopened.BasePath = basePath
+	next.RootPath = basePath
+	next.BasePath = generationPath
+	next.Config = config
+	next.WALCheckpointBytes = vc.WALCheckpointBytes
+	next.LastCommitSequence = vc.LastCommitSequence
+	next.PendingVectors = make(map[string][]float32)
+	if err := SaveVamanaCollectionState(next, generationPath); err != nil {
+		_ = next.Close()
+		_ = removeVamanaFiles(generationPath)
+		return err
+	}
+	if err := publishVamanaGenerationFile(basePath, generationPath, vc.LastCommitSequence); err != nil {
+		_ = next.Close()
+		_ = removeVamanaFiles(generationPath)
+		return err
+	}
 
-	vc.ColDim = reopened.ColDim
-	vc.Meta = reopened.Meta
-	vc.RootPath = reopened.RootPath
-	vc.BasePath = reopened.BasePath
-	vc.Config = reopened.Config
-	vc.CosineNormalized = reopened.CosineNormalized
-	vc.Index = reopened.Index
-	vc.IDMap = reopened.IDMap
-	vc.DocMap = reopened.DocMap
-	vc.Metas = reopened.Metas
-	vc.PendingVectors = make(map[string][]float32)
-
-	return nil
+	closeErr := vc.Index.Close()
+	walCloseErr := vc.closeWALLocked()
+	vc.adoptCheckpointLocked(next)
+	var cleanupErr error
+	if targetActivePath != "" && targetActivePath != generationPath {
+		cleanupErr = removeVamanaFiles(targetActivePath)
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if walCloseErr != nil {
+		return walCloseErr
+	}
+	return cleanupErr
 }
 
 func (vc *VamanaCollection) extractLivePoints() ([]Point, error) {
@@ -748,28 +755,6 @@ func (vc *VamanaCollection) extractLivePointsLocked() ([]Point, error) {
 func removeVamanaFiles(basePath string) error {
 	for _, path := range vamanaFileSet(basePath) {
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
-	return nil
-}
-
-func replaceVamanaFiles(tmpBasePath, basePath string) error {
-	if err := removeVamanaFiles(basePath); err != nil {
-		return err
-	}
-	for _, ext := range []string{".index", ".bbq", ".deleted", VamanaStateFileExt} {
-		src := tmpBasePath + ext
-		if _, err := os.Stat(src); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-		if err := os.MkdirAll(filepath.Dir(basePath+ext), 0755); err != nil {
-			return err
-		}
-		if err := os.Rename(src, basePath+ext); err != nil {
 			return err
 		}
 	}

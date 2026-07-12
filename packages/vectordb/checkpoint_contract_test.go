@@ -249,6 +249,172 @@ func TestDiskVamanaCheckpointManifestFailureKeepsOldGeneration(t *testing.T) {
 	}
 }
 
+func TestDiskVamanaFlushToDiskPublishFailurePreservesExistingTarget(t *testing.T) {
+	path := t.TempDir()
+	db, sourceAPI := newCheckpointCollection(t, filepath.Join(path, "source-db"), "source", 6)
+	defer db.Close()
+	source := sourceAPI.(*CollectionHandle).col.(*VamanaCollection)
+	targetRoot := filepath.Join(path, "target", "vamana")
+	if err := os.MkdirAll(filepath.Dir(targetRoot), 0755); err != nil {
+		t.Fatal(err)
+	}
+	config := vamana.DefaultDiskBuildConfig()
+	config.R = 2
+	config.L = 8
+	target, err := BuildVamanaCollection("target", []Point{
+		{ID: "target-a", Vector: []float32{1, 0, 0, 0}},
+		{ID: "target-b", Vector: []float32{0, 1, 0, 0}},
+		{ID: "target-c", Vector: []float32{-1, 0, 0, 0}},
+	}, targetRoot, config, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.RootPath = targetRoot
+	target.BasePath = targetRoot
+	target.Config = config
+	if err := SaveVamanaCollectionState(target, targetRoot); err != nil {
+		t.Fatal(err)
+	}
+	if err := target.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	originalPublish := publishVamanaGenerationFile
+	publishVamanaGenerationFile = func(string, string, uint64) error {
+		return errors.New("injected FlushToDisk manifest failure")
+	}
+	flushErr := source.FlushToDisk(targetRoot)
+	publishVamanaGenerationFile = originalPublish
+	if flushErr == nil {
+		t.Fatal("FlushToDisk 必须通过 manifest 原子发布并传播发布失败")
+	}
+	if points, err := source.FetchPoints([]string{"point-0"}); err != nil || len(points) != 1 {
+		t.Fatalf("发布失败后源集合不可用：points=%+v，err=%v", points, err)
+	}
+	reopenedTarget, err := OpenVamanaCollection("target", targetRoot, CollectionMeta{})
+	if err != nil {
+		t.Fatalf("发布失败破坏了已有目标：%v", err)
+	}
+	points, err := reopenedTarget.FetchPoints([]string{"target-a", "point-0"})
+	if err != nil || len(points) != 1 || points[0].ID != "target-a" {
+		t.Fatalf("发布失败后目标内容被替换：points=%+v，err=%v", points, err)
+	}
+	if err := reopenedTarget.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := source.FlushToDisk(targetRoot); err != nil {
+		t.Fatalf("发布恢复后 FlushToDisk 应可重试：%v", err)
+	}
+	finalTarget, err := OpenVamanaCollection("source", targetRoot, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer finalTarget.Close()
+	points, err = finalTarget.FetchPoints([]string{"target-a", "point-0"})
+	if err != nil || len(points) != 1 || points[0].ID != "point-0" {
+		t.Fatalf("重试成功后目标未原子切换：points=%+v，err=%v", points, err)
+	}
+}
+
+func TestDiskVamanaFlushToDiskPublishesReopenableGeneration(t *testing.T) {
+	path := t.TempDir()
+	db, sourceAPI := newCheckpointCollection(t, filepath.Join(path, "source-db"), "source", 6)
+	defer db.Close()
+	source := sourceAPI.(*CollectionHandle).col.(*VamanaCollection)
+	targetRoot := filepath.Join(path, "export", "vamana")
+	if err := source.FlushToDisk(targetRoot); err != nil {
+		t.Fatal(err)
+	}
+	if source.RootPath != targetRoot || source.BasePath == targetRoot || !strings.Contains(filepath.Base(source.BasePath), ".gen-") {
+		t.Fatalf("FlushToDisk 未切换到 generation：root=%q，base=%q", source.RootPath, source.BasePath)
+	}
+	manifest, err := readVamanaGenerationManifest(targetRoot)
+	if err != nil || filepath.Base(source.BasePath) != manifest.Generation {
+		t.Fatalf("FlushToDisk manifest 错误：manifest=%+v，err=%v", manifest, err)
+	}
+	reopened, err := OpenVamanaCollection("source", targetRoot, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	points, err := reopened.FetchPoints([]string{"point-0", "point-5"})
+	if err != nil || len(points) != 2 {
+		t.Fatalf("FlushToDisk generation 无法重开：points=%+v，err=%v", points, err)
+	}
+}
+
+func TestDiskVamanaCheckpointSameSequenceUsesAlternateGeneration(t *testing.T) {
+	path := t.TempDir()
+	db, collectionAPI := newCheckpointCollection(t, path, "same-sequence", 6)
+	defer db.Close()
+	collection := collectionAPI.(*CollectionHandle).col.(*VamanaCollection)
+	if err := collection.InsertPoint(Point{ID: "first", Vector: []float32{20, 21, 22, 23}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := collection.Checkpoint(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	firstGeneration := collection.BasePath
+	if err := collection.InsertPoint(Point{ID: "second", Vector: []float32{30, 31, 32, 33}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := collection.Checkpoint(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if collection.BasePath == firstGeneration || !strings.HasSuffix(collection.BasePath, ".next") {
+		t.Fatalf("同序列 checkpoint 未切换备用 generation：first=%q，second=%q", firstGeneration, collection.BasePath)
+	}
+	points, err := collection.FetchPoints([]string{"first", "second"})
+	if err != nil || len(points) != 2 {
+		t.Fatalf("同序列 checkpoint 丢失增量：points=%+v，err=%v", points, err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	reopenedCollection, err := reopened.OpenCollection("same-sequence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	points, err = reopenedCollection.FetchPoints([]string{"first", "second"})
+	if err != nil || len(points) != 2 {
+		t.Fatalf("同序列 checkpoint 重开后丢失增量：points=%+v，err=%v", points, err)
+	}
+}
+
+func TestDiskVamanaFlushToDiskPublishesEmptyGeneration(t *testing.T) {
+	path := t.TempDir()
+	db, collectionAPI := newCheckpointCollection(t, filepath.Join(path, "source-db"), "empty-export", 4)
+	defer db.Close()
+	if err := collectionAPI.Delete([]string{"point-0", "point-1", "point-2", "point-3"}); err != nil {
+		t.Fatal(err)
+	}
+	collection := collectionAPI.(*CollectionHandle).col.(*VamanaCollection)
+	targetRoot := filepath.Join(path, "target", "vamana")
+	if err := collection.FlushToDisk(targetRoot); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenVamanaCollection("empty-export", targetRoot, CollectionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	if reopened.ItemCount() != 0 || reopened.Index.NumPointsTotal() != 0 {
+		t.Fatalf("空导出包含残留节点：count=%d，total=%d", reopened.ItemCount(), reopened.Index.NumPointsTotal())
+	}
+	if err := reopened.InsertPoint(Point{ID: "reborn", Vector: []float32{1, 2, 3, 4}}); err != nil {
+		t.Fatal(err)
+	}
+	points, err := reopened.FetchPoints([]string{"reborn"})
+	if err != nil || len(points) != 1 {
+		t.Fatalf("空导出重开后无法继续写入：points=%+v，err=%v", points, err)
+	}
+}
+
 func TestDiskVamanaFlushCheckpointsWhenRecommended(t *testing.T) {
 	path := t.TempDir()
 	db, collection := newCheckpointCollection(t, path, "flush-checkpoint", 10)
