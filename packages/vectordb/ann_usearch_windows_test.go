@@ -41,7 +41,7 @@ func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Logf("ef=%d vectordb：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, ours.recall*100, ours.qps, ours.p50, ours.p95, ours.p99)
-		t.Logf("ef=%d DiskVamana（内部 5× over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, diskMeasurement.recall*100, diskMeasurement.qps, diskMeasurement.p50, diskMeasurement.p95, diskMeasurement.p99)
+		t.Logf("ef=%d DiskVamana（自适应 BBQ over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, diskMeasurement.recall*100, diskMeasurement.qps, diskMeasurement.p50, diskMeasurement.p95, diskMeasurement.p99)
 		t.Logf("ef=%d USearch：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", expansion, theirs.recall*100, theirs.qps, theirs.p50, theirs.p95, theirs.p99)
 		paired, err := annMeasurePairedHNSWUSearch(fixture, competitor.index, expansion)
 		if err != nil {
@@ -118,6 +118,60 @@ func TestANNBenchmarksDiskVamanaCheckpointUSearchRatio(t *testing.T) {
 			t.Fatalf("ef=%d checkpoint 后 Recall@10 从 %.2f%% 降至 %.2f%%", expansion, beforeRecall[expansion]*100, afterRecall*100)
 		}
 		t.Logf("ef=%d checkpoint=%+v，Recall@10：前 %.2f%%，后 %.2f%%；DiskVamana/USearch QPS：前 %.4f，后 %.4f", expansion, checkpoint, beforeRecall[expansion]*100, afterRecall*100, before[expansion].ratio, after.ratio)
+	}
+}
+
+func TestANNBenchmarksDiskVamanaStrategyCurveUSearchRatio(t *testing.T) {
+	rand.Seed(1)
+	fixture := loadANNSIFTFixture(t)
+	disk := loadANNDiskVamanaFixture(t, fixture)
+	defer disk.close()
+	competitor, err := buildANNUSearch(fixture.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = competitor.index.close() }()
+
+	index := disk.collection.(*CollectionHandle).col.(*VamanaCollection).Index
+	for _, factor := range []float64{1, 1.5, 2, 3, 5} {
+		index.SetBBQOverSearchFactor(factor)
+		recall := annDiskVamanaRecall(fixture, disk.collection, 32)
+		paired, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=32，BBQ 4-bit×1-bit，over-search=%.1f：Recall@10=%.2f%%，DiskVamana/USearch QPS=%.4f", factor, recall*100, paired.ratio)
+	}
+	index.SetBBQOverSearchFactor(5)
+	for _, rerankFactor := range []int{4, 6, 8, 12} {
+		index.SetBBQRerankFactor(rerankFactor)
+		recall := annDiskVamanaRecall(fixture, disk.collection, 32)
+		paired, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=32，BBQ over-search=5.0，rerank=%d×topK：Recall@10=%.2f%%，DiskVamana/USearch QPS=%.4f", rerankFactor, recall*100, paired.ratio)
+	}
+	index.SetBBQRerankFactor(0)
+	index.SetBBQRefineNavigation(true)
+	for _, factor := range []float64{1.5, 2, 3} {
+		index.SetBBQOverSearchFactor(factor)
+		recall := annDiskVamanaRecall(fixture, disk.collection, 32)
+		paired, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=32，BBQ lazy refinement，over-search=%.1f：Recall@10=%.2f%%，DiskVamana/USearch QPS=%.4f", factor, recall*100, paired.ratio)
+	}
+	index.SetBBQRefineNavigation(false)
+	index.SetBBQSearchEnabled(false)
+	for _, expansion := range []int{32, 64, 100} {
+		recall := annDiskVamanaRecall(fixture, disk.collection, expansion)
+		paired, err := annMeasurePairedDiskUSearch(fixture, disk.collection, competitor.index, expansion)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("ef=%d，全精度图导航：Recall@10=%.2f%%，DiskVamana/USearch QPS=%.4f", expansion, recall*100, paired.ratio)
 	}
 }
 

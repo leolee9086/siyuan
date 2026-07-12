@@ -19,8 +19,29 @@ package vamana
 import (
 	"math"
 	"math/rand"
+	"slices"
 	"testing"
 )
+
+func TestBuildParallelSeededIsReproducible(t *testing.T) {
+	vectors := generateRandomVectors(128, 16)
+	first := New(16, DefaultConfig())
+	second := New(16, DefaultConfig())
+	if err := first.BuildParallelSeeded(vectors, 1, 42); err != nil {
+		t.Fatal(err)
+	}
+	if err := second.BuildParallelSeeded(vectors, 1, 42); err != nil {
+		t.Fatal(err)
+	}
+	if first.medoid != second.medoid {
+		t.Fatalf("固定种子的入口点不一致：%d != %d", first.medoid, second.medoid)
+	}
+	for id := range vectors {
+		if !slices.Equal(first.GetNeighbors(uint32(id)), second.GetNeighbors(uint32(id))) {
+			t.Fatalf("固定种子的节点 %d 邻接表不一致", id)
+		}
+	}
+}
 
 // generateRandomVectors 生成随机向量
 func generateRandomVectors(n, dim int) [][]float32 {
@@ -246,6 +267,29 @@ func TestNeighborPriorityQueue(t *testing.T) {
 	// 验证顺序
 	if top3[0].ID != 4 || top3[1].ID != 7 || top3[2].ID != 2 {
 		t.Errorf("Unexpected order: %v", top3)
+	}
+}
+
+func TestNeighborPriorityQueueReinsertLastPopped(t *testing.T) {
+	pq := NewNeighborPriorityQueue(4)
+	pq.Insert(Neighbor{ID: 1, Distance: 1})
+	pq.Insert(Neighbor{ID: 2, Distance: 2})
+	pq.Insert(Neighbor{ID: 3, Distance: 3})
+	pq.Insert(Neighbor{ID: 4, Distance: 4})
+
+	first, ok := pq.PopClosestUnvisited()
+	if !ok || first.ID != 1 {
+		t.Fatalf("首次弹出错误：%+v，%v", first, ok)
+	}
+	first.Distance = 3.5
+	if !pq.ReinsertLastPopped(first) || pq.Len() != 4 {
+		t.Fatalf("距离校正后候选数量错误：%d", pq.Len())
+	}
+	for _, expected := range []uint32{2, 3, 1, 4} {
+		neighbor, ok := pq.PopClosestUnvisited()
+		if !ok || neighbor.ID != expected {
+			t.Fatalf("校正后扩张顺序错误：期望 %d，实际 %+v，%v", expected, neighbor, ok)
+		}
 	}
 }
 

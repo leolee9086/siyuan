@@ -24,8 +24,8 @@ package vamana
 
 import (
 	"fmt"
-	"sort"
 	"sync"
+	"unsafe"
 
 	"s-forge.local/vectordb/bbq"
 )
@@ -72,20 +72,22 @@ func putDiskSearchScratch(s *SearchScratch) {
 // Thread-safety: Safe for concurrent calls.
 func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]SearchResult, error) {
 	idx.mu.RLock()
+	defer idx.mu.RUnlock()
 	if idx.closed {
-		idx.mu.RUnlock()
 		return nil, ErrDiskIndexClosed
 	}
 
 	total := idx.totalPoints()
 	if total == 0 {
-		idx.mu.RUnlock()
 		return nil, nil
 	}
 
 	medoid, hasEntryPoint := idx.liveEntryPointLocked()
 	dimension := int(idx.metadata.Dims)
-	idx.mu.RUnlock()
+	useBBQ := idx.bbqSearchEnabled && idx.bbqCodes != nil
+	bbqOverSearchFactor := idx.bbqOverSearchFactor
+	bbqRerankFactor := idx.bbqRerankFactor
+	bbqRefineNavigation := idx.bbqRefineNavigation
 	if !hasEntryPoint {
 		return nil, nil
 	}
@@ -103,10 +105,12 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	// BBQ 搜索路径使用扩大的 beam 宽度以补偿 1-bit 量化的分辨率损失。
 	// internalL = efSearch * bbqOverSearchFactor，确保 internalL >= efSearch。
 	// 非 BBQ 路径不受影响，直接使用 efSearch。
-	useBBQ := idx.HasBBQ()
 	beamWidth := efSearch
 	if useBBQ {
-		internalL := int(float64(efSearch) * idx.BBQOverSearchFactor())
+		internalL := int(float64(efSearch) * bbqOverSearchFactor)
+		if maximum := efSearch*3 + DefaultBBQOverSearchExtra; internalL > maximum {
+			internalL = maximum
+		}
 		if internalL < efSearch {
 			internalL = efSearch
 		}
@@ -119,6 +123,13 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 
 	// Ensure scratch capacity covers disk + append buffer nodes
 	scratch.Visited.EnsureCapacity(int(total))
+	if useBBQ && bbqRefineNavigation {
+		if scratch.Refined == nil {
+			scratch.Refined = NewEpochSet(int(total))
+		} else {
+			scratch.Refined.EnsureCapacity(int(total))
+		}
+	}
 	scratch.Best.SetCapacity(beamWidth)
 	scratch.Reset()
 
@@ -127,13 +138,19 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	// to transparently handle disk nodes, modified neighbors, and append buffer.
 	var candidates []Neighbor
 	if useBBQ {
-		candidates = idx.greedySearchBBQ(scratch, medoid, query, beamWidth)
+		candidates = idx.greedySearchBBQWithMeta(scratch, medoid, query, beamWidth)
 	} else {
 		candidates = idx.greedySearchDisk(scratch, medoid, query, efSearch)
 	}
 
 	if len(candidates) == 0 {
 		return nil, nil
+	}
+	if useBBQ && bbqRerankFactor > 0 {
+		rerankCount := topK * bbqRerankFactor
+		if rerankCount < len(candidates) {
+			candidates = candidates[:rerankCount]
+		}
 	}
 
 	// Phase 2: Rerank with original vectors (unified via getVector)
@@ -176,33 +193,84 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 
 	// 预分配 append 节点量化用的临时缓冲区，在整个搜索过程中复用，
 	// 避免每个 append 节点距离计算都分配新切片（规程 1.1: 禁止热循环内 make）
-	appendScratch := make([]byte, dimension)
-
-	query4Bit := make([]byte, dimension)
-	queryTransposed, queryCorr := bbq.QuantizeAsymmetricQuery(quantizer, query, idx.bbqCentroid, query4Bit)
+	if cap(scratch.QueryQuantized) < dimension {
+		scratch.QueryQuantized = make([]byte, dimension)
+	}
+	query4Bit := scratch.QueryQuantized[:dimension]
+	if cap(scratch.AppendQuantized) < dimension {
+		scratch.AppendQuantized = make([]byte, dimension)
+	}
+	appendScratch := scratch.AppendQuantized[:dimension]
+	queryTransposed, queryCorr := bbq.QuantizeAsymmetricQueryInto(quantizer, query, idx.bbqCentroid, query4Bit, scratch.QueryTransposed)
+	scratch.QueryTransposed = queryTransposed
+	var queryWords []uint64
+	if len(queryTransposed) > 0 {
+		queryWords = unsafe.Slice((*uint64)(unsafe.Pointer(&queryTransposed[0])), len(queryTransposed)/8)
+	}
+	preparedL2 := bbq.PrepareAsymmetricEuclideanQuery(queryCorr, dimension)
+	diskN := idx.metadata.NumPoints
+	packedSize := (dimension + 7) / 8
+	wordsPerVector := packedSize / 8
 	distFn := func(nodeID uint32) float32 {
-		return idx.fusedBBQDistance4Bit(queryTransposed, queryCorr, query, nodeID, scorer, quantizer, appendScratch)
+		if uint64(nodeID) < diskN {
+			indexCorr := bbq.QuantizationResult{
+				LowerBound:   idx.bbqLowerBounds[nodeID],
+				UpperBound:   idx.bbqUpperBounds[nodeID],
+				Correction:   idx.bbqCorrections[nodeID],
+				QuantizedSum: idx.bbqQuantizedSums[nodeID],
+			}
+			var dotProduct int
+			if len(idx.bbqCodeWords) > 0 {
+				wordStart := int(nodeID) * wordsPerVector
+				dotProduct = bbq.ComputeTransposedDotProductWords(queryWords, idx.bbqCodeWords[wordStart:wordStart+wordsPerVector])
+			} else {
+				codeStart := int(nodeID) * packedSize
+				dotProduct = bbq.ComputeTransposedDotProduct(queryTransposed, idx.bbqCodes[codeStart:codeStart+packedSize])
+			}
+			if idx.distanceMetric == bbq.EuclideanDistance {
+				return preparedL2.Distance(dotProduct, indexCorr)
+			}
+			return scorer.ComputeQuantizedDistance(dotProduct, queryCorr, indexCorr, dimension, 0, true)
+		}
+		appendIndex := int(uint64(nodeID) - diskN)
+		if appendIndex < len(idx.appendBBQLower) {
+			return idx.appendBBQCorrectedDistance4Bit(queryTransposed, queryCorr, appendIndex, scorer, quantizer, appendScratch)
+		}
+		vector := idx.getVector(uint64(nodeID))
+		if vector == nil {
+			return LargeInvalidDistance
+		}
+		return squaredL2Distance(vector, query)
 	}
 
 	// Initialize with medoid
-	if !idx.deleted.IsDeleted(medoid) {
+	// 整个遍历持有 idx.mu 读锁，删除写入必须持有 idx.mu 写锁，因此可直接读取位图。
+	if !idx.deleted.IsDeletedUnsafe(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
 		dist := distFn(uint32(medoid))
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
-
 	// Greedy search loop
 	for scratch.Best.HasUnvisited() {
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
 		}
+		if idx.bbqRefineNavigation && scratch.Refined.Insert(closest.ID) {
+			vector := idx.getVector(uint64(closest.ID))
+			if vector != nil {
+				closest.Distance = squaredL2Distance(vector, query)
+				if scratch.Best.ReinsertLastPopped(closest) {
+					continue
+				}
+			}
+		}
 
 		// 使用统一的 getNeighbors：自动处理 modifiedNeighbors、appendNeighbors、磁盘
 		neighbors := idx.getNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
-			if idx.deleted.IsDeleted(uint64(neighborID)) {
+			if idx.deleted.IsDeletedUnsafe(uint64(neighborID)) {
 				continue
 			}
 			if !scratch.Visited.Insert(neighborID) {
@@ -215,23 +283,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 		}
 	}
 
-	return scratch.Best.All()
-}
-
-// bbqCorrectedDistance4Bit 计算带 4-bit BitTranspose 量化校正的 BBQ 距离（磁盘节点，4-bit）。
-// 委托 bbqQueryDistance，与内存索引 bbqDistanceToQuery4Bit 共享同一实现。
-//
-// 查询向量已通过 PackBitTranspose4 转为 BitTranspose 布局，
-// 索引向量使用 packed 1-bit（bbqCodes，每 8 维 1 字节）。
-//
-// 调用方必须已持有 idx.mu 的读锁。
-func (idx *DiskVamanaIndex) bbqCorrectedDistance4Bit(
-	queryTransposed []byte,
-	queryCorr bbq.QuantizationResult,
-	nodeID uint32,
-	scorer *bbq.QuantizedScorer,
-) float32 {
-	return bbqQueryDistance(idx, scorer, nodeID, queryTransposed, queryCorr)
+	return scratch.Best.allView()
 }
 
 // ============================================================================
@@ -242,20 +294,14 @@ func (idx *DiskVamanaIndex) bbqCorrectedDistance4Bit(
 //
 // Uses unified getVector()/getNeighbors() to handle both disk and append buffer nodes.
 func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
-	idx.mu.RLock()
-	defer idx.mu.RUnlock()
-
 	if idx.closed {
 		return nil
 	}
 
-	// Precompute query norm for fast distance calculation
-	queryNormSq := computeNormSquare(query)
-
 	// Initialize with medoid
-	if !idx.deleted.IsDeleted(medoid) {
+	if !idx.deleted.IsDeletedUnsafe(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.computeDistance(medoid, query, queryNormSq)
+		dist := idx.computeDistance(medoid, query)
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -270,30 +316,30 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 		neighbors := idx.getNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
-			if idx.deleted.IsDeleted(uint64(neighborID)) {
+			if idx.deleted.IsDeletedUnsafe(uint64(neighborID)) {
 				continue
 			}
 			if !scratch.Visited.Insert(neighborID) {
 				continue
 			}
 
-			dist := idx.computeDistance(uint64(neighborID), query, queryNormSq)
+			dist := idx.computeDistance(uint64(neighborID), query)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
 
-	return scratch.Best.All()
+	return scratch.Best.allView()
 }
 
 // computeDistance 读取节点向量并计算与查询向量的精确欧氏距离平方。
 // 统一处理磁盘节点和 append buffer 节点。
 // 当向量无法获取时返回 LargeInvalidDistance 哨兵值。
-func (idx *DiskVamanaIndex) computeDistance(nodeID uint64, query []float32, queryNormSq float32) float32 {
+func (idx *DiskVamanaIndex) computeDistance(nodeID uint64, query []float32) float32 {
 	vec := idx.getVector(nodeID)
 	if vec == nil {
 		return LargeInvalidDistance
 	}
-	return euclideanDistanceWithNorm(vec, query, queryNormSq)
+	return squaredL2Distance(vec, query)
 }
 
 // ============================================================================
@@ -305,18 +351,13 @@ func (idx *DiskVamanaIndex) computeDistance(nodeID uint64, query []float32, quer
 // Uses unified getVector() to read vectors from disk or append buffer,
 // then computes exact distances and returns top-K.
 func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []float32, topK int) []SearchResult {
-	if len(candidates) == 0 {
+	if len(candidates) == 0 || topK <= 0 {
 		return nil
 	}
 
-	// Precompute query norm
-	queryNormSq := computeNormSquare(query)
-
-	// Recompute distances with original vectors
-	results := make([]SearchResult, 0, len(candidates))
-
-	idx.mu.RLock()
-	defer idx.mu.RUnlock()
+	limit := min(topK, len(candidates))
+	results := make([]SearchResult, 0, limit)
+	heapReady := false
 
 	if idx.closed {
 		return nil
@@ -324,7 +365,7 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 
 	for _, cand := range candidates {
 		// Skip deleted nodes (double check)
-		if idx.deleted.IsDeleted(uint64(cand.ID)) {
+		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			continue
 		}
 
@@ -335,68 +376,70 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 		}
 
 		// Compute exact distance
-		dist := euclideanDistanceWithNorm(vec, query, queryNormSq)
+		dist := squaredL2Distance(vec, query)
 
-		results = append(results, SearchResult{
+		result := SearchResult{
 			ID:       uint64(cand.ID),
 			Distance: dist,
-		})
+		}
+		if len(results) < limit {
+			results = append(results, result)
+			continue
+		}
+		if !heapReady {
+			for i := len(results)/2 - 1; i >= 0; i-- {
+				heapifySearchResultDown(results, i, len(results))
+			}
+			heapReady = true
+		}
+		if result.Distance < results[0].Distance {
+			results[0] = result
+			heapifySearchResultDown(results, 0, len(results))
+		}
 	}
 
-	// Sort by distance
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Distance < results[j].Distance
-	})
-
-	// Return top-K
-	if len(results) > topK {
-		results = results[:topK]
+	if heapReady {
+		for i := len(results) - 1; i > 0; i-- {
+			results[0], results[i] = results[i], results[0]
+			heapifySearchResultDown(results, 0, i)
+		}
+	} else {
+		for i := 1; i < len(results); i++ {
+			value := results[i]
+			position := i
+			for position > 0 && value.Distance < results[position-1].Distance {
+				results[position] = results[position-1]
+				position--
+			}
+			results[position] = value
+		}
 	}
 
 	return results
 }
 
+func heapifySearchResultDown(results []SearchResult, index, count int) {
+	for {
+		largest := index
+		left := index*2 + 1
+		right := left + 1
+		if left < count && results[left].Distance > results[largest].Distance {
+			largest = left
+		}
+		if right < count && results[right].Distance > results[largest].Distance {
+			largest = right
+		}
+		if largest == index {
+			return
+		}
+		results[index], results[largest] = results[largest], results[index]
+		index = largest
+	}
+}
+
 // ============================================================================
 // Fused Distance Computation (disk + append buffer)
 // ============================================================================
-
-// fusedBBQDistance4Bit 计算融合 4-bit BitTranspose BBQ 校正距离。
-//
-// 磁盘节点：使用 bbqCodes（packed 1-bit）与 BitTranspose 查询做 POPCNT 加速点积。
-// Append 节点：实时量化为 packed 1-bit 后与 BitTranspose 查询做 POPCNT 加速点积。
-// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离。
-// quantizer 和 appendScratch 由调用方预分配并在搜索过程中复用，避免热路径堆分配。
-func (idx *DiskVamanaIndex) fusedBBQDistance4Bit(
-	queryTransposed []byte,
-	queryCorr bbq.QuantizationResult,
-	query []float32,
-	nodeID uint32,
-	scorer *bbq.QuantizedScorer,
-	quantizer *bbq.ScalarQuantizer,
-	appendScratch []byte,
-) float32 {
-	diskN := idx.metadata.NumPoints
-
-	if uint64(nodeID) < diskN {
-		// 磁盘节点：使用 BitTranspose 4-bit 距离
-		return idx.bbqCorrectedDistance4Bit(queryTransposed, queryCorr, nodeID, scorer)
-	}
-
-	// Append 节点：使用内存中的 BBQ 元数据
-	appendIdx := int(uint64(nodeID) - diskN)
-	if appendIdx < len(idx.appendBBQLower) {
-		return idx.appendBBQCorrectedDistance4Bit(
-			queryTransposed, queryCorr, appendIdx, scorer, quantizer, appendScratch,
-		)
-	}
-
-	// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离
-	vec := idx.getVector(uint64(nodeID))
-	if vec == nil {
-		return LargeInvalidDistance
-	}
-	return euclideanDistance(vec, query)
-}
 
 // appendBBQCorrectedDistance4Bit 计算 append 节点的 4-bit BitTranspose BBQ 校正距离。
 //

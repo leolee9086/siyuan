@@ -56,10 +56,40 @@ func euclideanDistanceWithNorm(vec, query []float32, queryNormSq float32) float3
 	return dist
 }
 
-// euclideanDistance 计算欧氏距离的平方 (避免开方以提高性能)
-// 内部委托给 euclideanDistanceWithNorm，自动计算 b 的范数平方
+// euclideanDistance 计算欧氏距离的平方。
 func euclideanDistance(a, b []float32) float32 {
 	return euclideanDistanceWithNorm(a, b, computeNormSquare(b))
+}
+
+// squaredL2Distance 单遍计算查询热路径的欧氏距离平方，避免重复读取磁盘向量。
+func squaredL2Distance(a, b []float32) float32 {
+	n := len(a)
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
+	i := 0
+	for ; i <= n-8; i += 8 {
+		d0 := a[i] - b[i]
+		d1 := a[i+1] - b[i+1]
+		d2 := a[i+2] - b[i+2]
+		d3 := a[i+3] - b[i+3]
+		d4 := a[i+4] - b[i+4]
+		d5 := a[i+5] - b[i+5]
+		d6 := a[i+6] - b[i+6]
+		d7 := a[i+7] - b[i+7]
+		s0 += d0 * d0
+		s1 += d1 * d1
+		s2 += d2 * d2
+		s3 += d3 * d3
+		s4 += d4 * d4
+		s5 += d5 * d5
+		s6 += d6 * d6
+		s7 += d7 * d7
+	}
+	sum := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
+	for ; i < n; i++ {
+		delta := a[i] - b[i]
+		sum += delta * delta
+	}
+	return sum
 }
 
 // dotProduct 计算两个向量的点积

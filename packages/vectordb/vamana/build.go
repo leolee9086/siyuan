@@ -39,6 +39,19 @@ func (idx *VamanaIndex) Build(vectors [][]float32) error {
 // numWorkers: 并行工作线程数，建议设置为 CPU 核心数
 // 使用分块并行策略，每个 worker 独立处理一批节点
 func (idx *VamanaIndex) BuildParallel(vectors [][]float32, numWorkers int) error {
+	return idx.buildParallelWithOrder(vectors, numWorkers, rand.Perm(len(vectors)))
+}
+
+// BuildParallelSeeded 使用固定随机种子生成可复现的节点插入顺序。
+func (idx *VamanaIndex) BuildParallelSeeded(vectors [][]float32, numWorkers int, seed uint64) error {
+	if len(vectors) == 0 {
+		return nil
+	}
+	random := rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))
+	return idx.buildParallelWithOrder(vectors, numWorkers, random.Perm(len(vectors)))
+}
+
+func (idx *VamanaIndex) buildParallelWithOrder(vectors [][]float32, numWorkers int, order []int) error {
 	if len(vectors) == 0 {
 		return nil
 	}
@@ -54,9 +67,6 @@ func (idx *VamanaIndex) BuildParallel(vectors [][]float32, numWorkers int) error
 
 	// 计算质心并选择入口点
 	idx.medoid = idx.findMedoid()
-
-	// 随机打乱插入顺序 (提高图质量)
-	order := rand.Perm(len(vectors))
 
 	// 分块并行构建
 	chunkSize := 10000

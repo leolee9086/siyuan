@@ -64,6 +64,8 @@ go test -run '^$' -bench BenchmarkANNBenchmarksSIFT -benchmem -benchtime=3s -cou
 
 固定 USearch v2.22.0 的 C ABI 对照通过 `usearch_bench` build tag 启用；`TestANNBenchmarksSIFTPairedUSearchRatio`在逐查询粒度交错执行两个实现并轮换先后顺序，直接报告 `vectordb/USearch` 构建吞吐和 QPS 比值，减少背景负载对绝对时间的影响。
 
+SIFT10K 对照固定 `BuildSeed=1` 和单 worker 构图，使 Recall 与查询比值可复现。DiskVamana 查询使用固定的 4-bit query × 1-bit data 非对称 BBQ，并对高 `efSearch` 使用有上限的量化误差补偿，避免 Recall 饱和后继续按五倍扩大 beam。
+
 ## 已验证基线
 
 当前验证基线优先保证根包统一API和`EngineDiskVamana`主引擎可用。
@@ -88,5 +90,6 @@ go list -deps ./...
 | 核心race测试 | `go test -race . ./vamana -short -count=1 -timeout 240s`通过，Vamana用时约141s |
 | 显式规模门禁 | DiskVamana 10K构建Recall@10为100.00%；Insert后recall为0.9840；Delete后recall为0.9660；并发插查通过 |
 | 依赖污染扫描 | 无匹配，未发现SiYuan kernel、SiYuan logging、Gin、GlobalDB耦合 |
+| DiskVamana SIFT10K 查询 | 相对优化前同机基线，ef32/64/100/200 延迟分别下降约49%/55%/64%/73%，分配由12次降至2次；checkpoint 后相对 USearch QPS 中位比值约为0.63（ef32）和0.76（ef200），Recall@10为98.8%和100% |
 
 规模型和诊断型测试默认跳过，分别通过`VECTORDB_SCALE_TEST=1`和`VECTORDB_DIAGNOSTIC_TEST=1`显式开启。

@@ -125,7 +125,7 @@ func TestANNBenchmarksSIFTReport(t *testing.T) {
 	t.Logf("DiskVamana 公开 API 构建：%v，%.0f vectors/s，%.1f disk bytes/vector", disk.buildDuration, disk.buildVectorsSec, float64(disk.indexBytes)/float64(len(fixture.base)))
 	for _, efSearch := range []int{32, 64, 100, 200} {
 		measurement := annMeasureDiskVamana(fixture, disk.collection, efSearch)
-		t.Logf("DiskVamana ef=%d（内部 5× over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", efSearch, measurement.recall*100, measurement.qps, measurement.p50, measurement.p95, measurement.p99)
+		t.Logf("DiskVamana ef=%d（自适应 BBQ over-search）：Recall@10=%.2f%%，QPS=%.2f，p50=%v，p95=%v，p99=%v", efSearch, measurement.recall*100, measurement.qps, measurement.p50, measurement.p95, measurement.p99)
 	}
 }
 
@@ -144,6 +144,8 @@ func loadANNDiskVamanaFixture(tb testing.TB, fixture *annSIFTFixture) *annDiskVa
 	config.R = 16
 	config.L = 200
 	config.MaxBackedges = 16
+	config.NumWorkers = 1
+	config.BuildSeed = 1
 	started := time.Now()
 	collection, err := db.CreateCollectionWithOptions("ann-sift-disk", CollectionOptions{
 		Engine:          EngineDiskVamana,

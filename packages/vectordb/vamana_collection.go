@@ -214,10 +214,6 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 		})
 	}
 
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
-	})
-
 	return results, nil
 }
 

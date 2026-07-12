@@ -280,8 +280,10 @@ func getCachedNormSq(nodeID uint64, vec []float32, cache *normSqCache) float32 {
 // modifiedNeighbors uses sync.Map for lock-free atomic Load, eliminating the
 // RWMutex overhead that caused timeout under -race in the Delete path.
 func (idx *DiskVamanaIndex) getNeighbors(nodeID uint64) []uint32 {
-	if v, ok := idx.modifiedNeighbors.Load(nodeID); ok {
-		return v.([]uint32)
+	if idx.hasModifiedNeighbors.Load() {
+		if v, ok := idx.modifiedNeighbors.Load(nodeID); ok {
+			return v.([]uint32)
+		}
 	}
 
 	diskN := idx.metadata.NumPoints
@@ -320,7 +322,7 @@ func (idx *DiskVamanaIndex) isAppendNode(nodeID uint64) bool {
 // 内部委托给 computeDistance，自动计算 queryNormSq。
 // 适用于无法预计算查询范数的场景（如增量操作中查询向量频繁变化）。
 func (idx *DiskVamanaIndex) computeDistanceToQuery(nodeID uint64, query []float32) float32 {
-	return idx.computeDistance(nodeID, query, computeNormSquare(query))
+	return idx.computeDistance(nodeID, query)
 }
 
 // storeNeighbors stores a modified neighbor list for a node.
@@ -328,6 +330,7 @@ func (idx *DiskVamanaIndex) computeDistanceToQuery(nodeID uint64, query []float3
 // internally-synchronized Store operations without explicit locking.
 func (idx *DiskVamanaIndex) storeNeighbors(nodeID uint64, neighbors []uint32) {
 	idx.modifiedNeighbors.Store(nodeID, cloneUint32s(neighbors))
+	idx.hasModifiedNeighbors.Store(true)
 }
 
 func cloneUint32s(values []uint32) []uint32 {

@@ -155,9 +155,19 @@ const bitTransposeBlockBytes = 4 * 8
 // 这确保 ComputeTransposedDotProduct 可直接使用 PackBinary 输出的 packed 1-bit 数据。
 // 超出实际维度的填充位为0。
 func PackBitTranspose4(data []byte) []byte {
+	return PackBitTranspose4Into(data, nil)
+}
+
+// PackBitTranspose4Into 将 4-bit 数据写入可复用缓冲区。
+func PackBitTranspose4Into(data, out []byte) []byte {
 	dim := len(data)
 	numBlocks := (dim + bitTransposeBlockDims - 1) / bitTransposeBlockDims
-	out := make([]byte, numBlocks*bitTransposeBlockBytes)
+	required := numBlocks * bitTransposeBlockBytes
+	if cap(out) < required {
+		out = make([]byte, required)
+	} else {
+		out = out[:required]
+	}
 
 	for block := 0; block < numBlocks; block++ {
 		blockStart := block * bitTransposeBlockDims
@@ -236,6 +246,19 @@ func ComputeTransposedDotProduct(transposed []byte, packed []byte) int {
 		sum += bits.OnesCount64(bitsWord&b3) * 8
 	}
 
+	return sum
+}
+
+// ComputeTransposedDotProductWords 计算已按 uint64 对齐的 4-bit×1-bit 点积。
+func ComputeTransposedDotProductWords(queryWords, packedWords []uint64) int {
+	sum := 0
+	for block, bitsWord := range packedWords {
+		offset := block * 4
+		sum += bits.OnesCount64(bitsWord & queryWords[offset])
+		sum += bits.OnesCount64(bitsWord&queryWords[offset+1]) * 2
+		sum += bits.OnesCount64(bitsWord&queryWords[offset+2]) * 4
+		sum += bits.OnesCount64(bitsWord&queryWords[offset+3]) * 8
+	}
 	return sum
 }
 

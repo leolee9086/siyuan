@@ -125,6 +125,9 @@ const DefaultBBQQueryBits = 4
 // 这是 DiskANN 论文的标准做法。
 const DefaultBBQOverSearchFactor = 5.0
 
+// DefaultBBQOverSearchExtra 为次线性过搜索上限提供固定补偿，避免高 efSearch 被固定五倍过度放大。
+const DefaultBBQOverSearchExtra = 128
+
 // LargeInvalidDistance 用于表示无效或缺失节点的大距离值。
 // 当 BBQ 元数据缺失或向量无法获取时，返回此值以确保该节点在排序中排到最后。
 const LargeInvalidDistance float32 = 1e9

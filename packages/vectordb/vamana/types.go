@@ -236,6 +236,7 @@ type NeighborPriorityQueue struct {
 	capacity     int
 	currentIndex int // 当前遍历位置
 	count        int // 有效元素数量
+	lastPopped   int
 }
 
 // NewNeighborPriorityQueue 创建新的优先队列
@@ -246,6 +247,7 @@ func NewNeighborPriorityQueue(capacity int) *NeighborPriorityQueue {
 		capacity:     capacity,
 		currentIndex: 0,
 		count:        0,
+		lastPopped:   -1,
 	}
 }
 
@@ -253,6 +255,7 @@ func NewNeighborPriorityQueue(capacity int) *NeighborPriorityQueue {
 func (pq *NeighborPriorityQueue) Reset() {
 	pq.currentIndex = 0
 	pq.count = 0
+	pq.lastPopped = -1
 }
 
 // SetCapacity 设置队列容量 (性能优化: 允许复用时调整容量)
@@ -277,14 +280,12 @@ func (pq *NeighborPriorityQueue) Len() int {
 // Insert 插入邻居 (保持有序)
 // 使用二分查找插入，O(log n) 查找 + O(n) 移动
 func (pq *NeighborPriorityQueue) Insert(n Neighbor) bool {
+	pq.lastPopped = -1
 	// 如果数组未满，直接插入
 	if pq.count < pq.capacity {
 		pos := pq.binarySearchInsertPos(n.Distance)
-		// 移动元素
-		for i := pq.count; i > pos; i-- {
-			pq.data[i] = pq.data[i-1]
-			pq.flags[i] = pq.flags[i-1]
-		}
+		copy(pq.data[pos+1:pq.count+1], pq.data[pos:pq.count])
+		copy(pq.flags[pos+1:pq.count+1], pq.flags[pos:pq.count])
 		pq.data[pos] = n
 		pq.flags[pos] = true
 		pq.count++
@@ -303,11 +304,8 @@ func (pq *NeighborPriorityQueue) Insert(n Neighbor) bool {
 	// 如果数组已满，检查是否可以替换最后一个元素
 	if n.Distance < pq.data[pq.count-1].Distance {
 		pos := pq.binarySearchInsertPos(n.Distance)
-		// 移动元素（最后一个元素被丢弃）
-		for i := pq.count - 1; i > pos; i-- {
-			pq.data[i] = pq.data[i-1]
-			pq.flags[i] = pq.flags[i-1]
-		}
+		copy(pq.data[pos+1:pq.count], pq.data[pos:pq.count-1])
+		copy(pq.flags[pos+1:pq.count], pq.flags[pos:pq.count-1])
 		pq.data[pos] = n
 		pq.flags[pos] = true
 		// 同样的逻辑：如果pos < currentIndex, 回退currentIndex
@@ -349,6 +347,7 @@ func (pq *NeighborPriorityQueue) HasUnvisited() bool {
 func (pq *NeighborPriorityQueue) PopClosestUnvisited() (Neighbor, bool) {
 	for pq.currentIndex < pq.count {
 		if pq.flags[pq.currentIndex] {
+			pq.lastPopped = pq.currentIndex
 			pq.flags[pq.currentIndex] = false
 			n := pq.data[pq.currentIndex]
 			pq.currentIndex++
@@ -357,6 +356,22 @@ func (pq *NeighborPriorityQueue) PopClosestUnvisited() (Neighbor, bool) {
 		pq.currentIndex++
 	}
 	return Neighbor{}, false
+}
+
+// ReinsertLastPopped 用校正距离重新插入刚弹出的节点，不改变候选数量。
+func (pq *NeighborPriorityQueue) ReinsertLastPopped(n Neighbor) bool {
+	position := pq.lastPopped
+	if position < 0 || position >= pq.count || pq.data[position].ID != n.ID {
+		return false
+	}
+	copy(pq.data[position:pq.count-1], pq.data[position+1:pq.count])
+	copy(pq.flags[position:pq.count-1], pq.flags[position+1:pq.count])
+	pq.count--
+	if pq.currentIndex > position {
+		pq.currentIndex--
+	}
+	pq.lastPopped = -1
+	return pq.Insert(n)
 }
 
 // TopK 返回最近的K个邻居
@@ -376,10 +391,16 @@ func (pq *NeighborPriorityQueue) All() []Neighbor {
 	return result
 }
 
+// allView 返回队列的只读视图，仅允许在队列下次修改或归还对象池前使用。
+func (pq *NeighborPriorityQueue) allView() []Neighbor {
+	return pq.data[:pq.count]
+}
+
 // SearchScratch 搜索临时空间 (可复用)
 type SearchScratch struct {
 	// 已访问节点集合 (Epoch-based优化)
 	Visited *EpochSet
+	Refined *EpochSet
 
 	// 最佳候选优先队列
 	Best *NeighborPriorityQueue
@@ -389,28 +410,36 @@ type SearchScratch struct {
 	Hops uint32 // 跳数
 
 	// robustPrune 复用缓冲区（避免每次调用分配）
-	OccludeFactor []float32 // 遮挡因子
-	LastChecked   []int     // 增量检查位置
-	ResultPos     []int     // 结果位置
-
+	OccludeFactor   []float32 // 遮挡因子
+	LastChecked     []int     // 增量检查位置
+	ResultPos       []int     // 结果位置
+	QueryQuantized  []byte
+	QueryTransposed []byte
+	AppendQuantized []byte
 }
 
 // NewSearchScratch 创建新的搜索临时空间
 func NewSearchScratch(capacity int, searchListSize int) *SearchScratch {
 	return &SearchScratch{
-		Visited:       NewEpochSet(capacity),
-		Best:          NewNeighborPriorityQueue(searchListSize),
-		Cmps:          0,
-		Hops:          0,
-		OccludeFactor: make([]float32, 0, 256),
-		LastChecked:   make([]int, 0, 256),
-		ResultPos:     make([]int, 0, 64),
+		Visited:         NewEpochSet(capacity),
+		Best:            NewNeighborPriorityQueue(searchListSize),
+		Cmps:            0,
+		Hops:            0,
+		OccludeFactor:   make([]float32, 0, 256),
+		LastChecked:     make([]int, 0, 256),
+		ResultPos:       make([]int, 0, 64),
+		QueryQuantized:  make([]byte, 0, 256),
+		QueryTransposed: make([]byte, 0, 128),
+		AppendQuantized: make([]byte, 0, 256),
 	}
 }
 
 // Reset 重置临时空间
 func (s *SearchScratch) Reset() {
 	s.Visited.Reset()
+	if s.Refined != nil {
+		s.Refined.Reset()
+	}
 	s.Best.Reset()
 	s.Cmps = 0
 	s.Hops = 0

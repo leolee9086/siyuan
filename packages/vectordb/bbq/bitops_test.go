@@ -17,9 +17,36 @@
 package bbq
 
 import (
+	"encoding/binary"
 	"math/rand"
 	"testing"
 )
+
+func TestComputeTransposedDotProductWordsMatchesBytePath(t *testing.T) {
+	for _, dimension := range []int{64, 128, 384, 768} {
+		query := make([]byte, dimension)
+		data := make([]byte, dimension)
+		for index := range query {
+			query[index] = byte((index*7 + 3) & 15)
+			data[index] = byte((index*11 + 1) & 1)
+		}
+		transposed := PackBitTranspose4(query)
+		packed := PackBinary(data)
+		queryWords := make([]uint64, len(transposed)/8)
+		packedWords := make([]uint64, len(packed)/8)
+		for index := range queryWords {
+			queryWords[index] = binary.LittleEndian.Uint64(transposed[index*8:])
+		}
+		for index := range packedWords {
+			packedWords[index] = binary.LittleEndian.Uint64(packed[index*8:])
+		}
+		bytesResult := ComputeTransposedDotProduct(transposed, packed)
+		wordsResult := ComputeTransposedDotProductWords(queryWords, packedWords)
+		if wordsResult != bytesResult {
+			t.Fatalf("维度 %d 的 uint64 点积不一致：bytes=%d，words=%d", dimension, bytesResult, wordsResult)
+		}
+	}
+}
 
 // =========================================
 // bitops.go 单元测试

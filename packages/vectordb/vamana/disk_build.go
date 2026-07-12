@@ -50,8 +50,9 @@ type DiskBuildConfig struct {
 	Config // 嵌入图参数 (R, L, Alpha, MaxOcclusionSize 等)
 
 	// 构建参数
-	NumWorkers int // 并行工作线程数 (默认: NumCPU)
-	ChunkSize  int // 每批处理节点数 (默认: 10000)
+	NumWorkers int    // 并行工作线程数 (默认: NumCPU)
+	ChunkSize  int    // 每批处理节点数 (默认: 10000)
+	BuildSeed  uint64 // 构建顺序随机种子；零表示使用进程随机源
 
 	// 磁盘参数
 	BlockSize       int  // 磁盘对齐块大小 (默认: 4096)
@@ -319,7 +320,13 @@ func (b *diskBuilder) buildGraph() error {
 
 	// 直接使用嵌入的 Config 构建内存索引，无需手动拷贝字段
 	idx := New(b.dimension, b.config.Config)
-	if err := idx.BuildParallel(b.vectors, b.config.NumWorkers); err != nil {
+	var err error
+	if b.config.BuildSeed == 0 {
+		err = idx.BuildParallel(b.vectors, b.config.NumWorkers)
+	} else {
+		err = idx.BuildParallelSeeded(b.vectors, b.config.NumWorkers, b.config.BuildSeed)
+	}
+	if err != nil {
 		return err
 	}
 

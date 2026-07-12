@@ -32,6 +32,8 @@ import (
 	"math"
 	"os"
 	"sync"
+	"sync/atomic"
+	"unsafe"
 
 	"log"
 
@@ -97,6 +99,9 @@ type DiskVamanaIndex struct {
 	maxDegree           int                    // 最大出度（从元数据计算）
 	distanceMetric      bbq.SimilarityType     // BBQ 量化使用的距离度量
 	bbqOverSearchFactor float64                // BBQ 搜索过搜索因子（internalL = efSearch * factor）
+	bbqSearchEnabled    bool                   // 是否使用 BBQ 距离导航磁盘图
+	bbqRefineNavigation bool                   // 是否在扩张前用全精度距离校正候选顺序
+	bbqRerankFactor     int                    // 最终全精度重排候选数相对 topK 的倍数，零表示全部候选
 
 	// 删除修复参数（可通过 SetDeleteParams 配置）
 	deleteC                int     // 每个邻居的替换边数（默认 DefaultDeleteC）
@@ -114,6 +119,7 @@ type DiskVamanaIndex struct {
 
 	// 内存驻留数据
 	bbqCodes         []byte                 // 打包的 BBQ 码（每维 1-bit）
+	bbqCodeWords     []uint64               // 64 维对齐时对 bbqCodes 的零复制视图
 	bbqCentroid      []float32              // BBQ 质心向量
 	bbqLowerBounds   []float32              // 量化区间下界
 	bbqUpperBounds   []float32              // 量化区间上界
@@ -135,7 +141,8 @@ type DiskVamanaIndex struct {
 	// Uses sync.Map for lock-free reads (atomic Load) and internally-synchronized writes (Store).
 	// This eliminates the RWMutex overhead that caused timeout under -race in the Delete path,
 	// where thousands of getNeighbors calls per delete each acquired modifiedMu.RLock/RUnlock.
-	modifiedNeighbors sync.Map // map[uint64][]uint32
+	modifiedNeighbors    sync.Map // map[uint64][]uint32
+	hasModifiedNeighbors atomic.Bool
 
 	// 增量插入缓存池使用固定容量的直接映射缓存，空间不随索引总节点数增长。
 	insertVectorCachePool sync.Pool
@@ -151,6 +158,11 @@ type DiskVamanaIndex struct {
 
 const diskNodeLockShards = 1024
 
+func nativeLittleEndian() bool {
+	value := uint16(1)
+	return *(*byte)(unsafe.Pointer(&value)) == 1
+}
+
 func (idx *DiskVamanaIndex) nodeLock(nodeID uint64) *sync.RWMutex {
 	return &idx.nodeLocks[nodeID&(uint64(len(idx.nodeLocks))-1)]
 }
@@ -162,11 +174,11 @@ func (idx *DiskVamanaIndex) liveEntryPointLocked() (uint64, bool) {
 		return 0, false
 	}
 	medoid := idx.metadata.Medoid
-	if medoid < total && !idx.deleted.IsDeleted(medoid) {
+	if medoid < total && !idx.deleted.IsDeletedUnsafe(medoid) {
 		return medoid, true
 	}
 	for nodeID := uint64(0); nodeID < total; nodeID++ {
-		if !idx.deleted.IsDeleted(nodeID) {
+		if !idx.deleted.IsDeletedUnsafe(nodeID) {
 			return nodeID, true
 		}
 	}
@@ -214,6 +226,7 @@ func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, e
 		closed:                 false,
 		distanceMetric:         metric,
 		bbqOverSearchFactor:    DefaultBBQOverSearchFactor,
+		bbqSearchEnabled:       true,
 		bbqQueryBits:           DefaultBBQQueryBits,
 		deleteC:                DefaultDeleteC,
 		deleteK:                DefaultDeleteK,
@@ -329,6 +342,7 @@ func (idx *DiskVamanaIndex) Close() error {
 
 	// 清理内存驻留数据
 	idx.bbqCodes = nil
+	idx.bbqCodeWords = nil
 	idx.deleted = nil
 
 	return firstErr
@@ -426,6 +440,9 @@ func (idx *DiskVamanaIndex) loadBBQCodes(path string) error {
 	// 读取打包的 BBQ 码
 	idx.bbqCodes = make([]byte, codesSize)
 	copy(idx.bbqCodes, data[offset:offset+codesSize])
+	if codesSize > 0 && packedSize%8 == 0 && nativeLittleEndian() {
+		idx.bbqCodeWords = unsafe.Slice((*uint64)(unsafe.Pointer(&idx.bbqCodes[0])), codesSize/8)
+	}
 	offset += codesSize
 
 	// 读取 LowerBounds
@@ -599,6 +616,30 @@ func (idx *DiskVamanaIndex) SetBBQOverSearchFactor(factor float64) {
 
 	idx.mu.Lock()
 	idx.bbqOverSearchFactor = factor
+	idx.mu.Unlock()
+}
+
+// SetBBQSearchEnabled 控制图导航使用非对称 BBQ 距离还是全精度距离。
+func (idx *DiskVamanaIndex) SetBBQSearchEnabled(enabled bool) {
+	idx.mu.Lock()
+	idx.bbqSearchEnabled = enabled
+	idx.mu.Unlock()
+}
+
+// SetBBQRefineNavigation 控制 BBQ 候选首次出队时是否执行全精度优先级校正。
+func (idx *DiskVamanaIndex) SetBBQRefineNavigation(enabled bool) {
+	idx.mu.Lock()
+	idx.bbqRefineNavigation = enabled
+	idx.mu.Unlock()
+}
+
+// SetBBQRerankFactor 限制最终全精度重排候选数；零表示重排整个 beam。
+func (idx *DiskVamanaIndex) SetBBQRerankFactor(factor int) {
+	if factor < 0 {
+		factor = 0
+	}
+	idx.mu.Lock()
+	idx.bbqRerankFactor = factor
 	idx.mu.Unlock()
 }
 
