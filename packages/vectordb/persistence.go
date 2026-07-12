@@ -184,7 +184,13 @@ func SaveCollection(vc VectorCollection, basePath string) error {
 	}
 
 	walPath := filepath.Join(collectionPath, WALFileName)
-	os.Remove(walPath)
+	if err := os.Remove(walPath); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else if err := syncParentDirectory(walPath); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -375,6 +381,9 @@ func appendWALPath(walPath string, entry WALEntry, syncWrite bool) error {
 	}
 	if err == nil && syncWrite {
 		err = f.Sync()
+		if err == nil && originalSize == 0 {
+			err = syncParentDirectory(walPath)
+		}
 	}
 	if err == nil {
 		return nil
@@ -589,7 +598,7 @@ func atomicWriteFile(path string, data []byte) (err error) {
 		return err
 	}
 
-	if err := os.Rename(tmpFile.Name(), path); err != nil {
+	if err := durableRename(tmpFile.Name(), path); err != nil {
 		return err
 	}
 

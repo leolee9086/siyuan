@@ -49,6 +49,9 @@ func (vc *VamanaCollection) appendWALLocked(entry WALEntry, syncWrite bool) erro
 	written, err := appendFramedWALWithSize(file, originalSize, entry)
 	if err == nil && syncWrite {
 		err = syncVamanaWALFile(file)
+		if err == nil && originalSize == 0 {
+			err = syncParentDirectory(vc.BasePath + VamanaWALFileExt)
+		}
 	}
 	if err == nil {
 		vc.walBytes = originalSize + written

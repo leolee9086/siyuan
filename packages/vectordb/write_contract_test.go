@@ -327,6 +327,50 @@ func TestWriteContractDiskVamanaFsyncFailureRollsBackWALFrame(t *testing.T) {
 	}
 }
 
+func TestWriteContractDirectorySyncFailureDoesNotCommitAcrossEngines(t *testing.T) {
+	for _, engine := range []Engine{EngineHNSW, EngineDiskVamana} {
+		t.Run(string(engine), func(t *testing.T) {
+			db, err := Open(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			options := CollectionOptions{Engine: engine, Dimension: 2, DistanceMetric: "l2"}
+			if engine == EngineDiskVamana {
+				options.Points = []Point{
+					{ID: "a", Vector: []float32{1, 0}},
+					{ID: "b", Vector: []float32{0, 1}},
+					{ID: "c", Vector: []float32{-1, 0}},
+				}
+			}
+			collection, err := db.CreateCollectionWithOptions("directory-sync", options)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			originalSyncDirectory := syncParentDirectory
+			syncCalls := 0
+			syncParentDirectory = func(string) error {
+				syncCalls++
+				return errors.New("injected directory sync failure")
+			}
+			point := Point{ID: "not-durable", Vector: []float32{2, 3}}
+			result, writeErr := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync})
+			syncParentDirectory = originalSyncDirectory
+			if !errors.Is(writeErr, ErrPersistenceFailed) {
+				t.Fatalf("目录同步失败应返回 ErrPersistenceFailed：%v", writeErr)
+			}
+			if syncCalls != 1 || result.Committed || result.Applied != 0 || !result.IndexHealthy {
+				t.Fatalf("目录同步失败的提交结果错误：calls=%d，result=%+v", syncCalls, result)
+			}
+			points, fetchErr := collection.FetchPoints([]string{point.ID})
+			if fetchErr != nil || len(points) != 0 {
+				t.Fatalf("目录同步失败后索引被修改：points=%+v，err=%v", points, fetchErr)
+			}
+		})
+	}
+}
+
 func TestWriteContractDiskVamanaCancellationBeforeWALCommit(t *testing.T) {
 	db, err := Open(t.TempDir())
 	if err != nil {

@@ -149,6 +149,76 @@ func TestHNSWCheckpointTruncatesWAL(t *testing.T) {
 	}
 }
 
+func TestHNSWCheckpointReportsWALRemovalFailure(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	collection, err := db.CreateCollectionWithOptions("hnsw-checkpoint-remove-failure", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "l2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	point := Point{ID: "point", Vector: []float32{1, 2}}
+	if _, err := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	walPath := filepath.Join(path, "hnsw-checkpoint-remove-failure", WALFileName)
+	if err := os.Remove(walPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(walPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(walPath, "blocker"), []byte("block removal"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := collection.Checkpoint(context.Background()); !errors.Is(err, ErrPersistenceFailed) {
+		t.Fatalf("WAL 删除失败不得报告 checkpoint 成功：%v", err)
+	}
+}
+
+func TestHNSWCheckpointDirectorySyncFailureKeepsWAL(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	collection, err := db.CreateCollectionWithOptions("hnsw-checkpoint-sync-failure", CollectionOptions{
+		Engine:         EngineHNSW,
+		Dimension:      2,
+		DistanceMetric: "l2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	point := Point{ID: "point", Vector: []float32{1, 2}}
+	if _, err := collection.Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	walPath := filepath.Join(path, "hnsw-checkpoint-sync-failure", WALFileName)
+	originalSyncDirectory := syncParentDirectory
+	syncParentDirectory = func(string) error { return errors.New("injected directory sync failure") }
+	_, checkpointErr := collection.Checkpoint(context.Background())
+	syncParentDirectory = originalSyncDirectory
+	if !errors.Is(checkpointErr, ErrPersistenceFailed) {
+		t.Fatalf("快照目录同步失败应返回 ErrPersistenceFailed：%v", checkpointErr)
+	}
+	if fileSizeOrZero(walPath) == 0 {
+		t.Fatal("快照未完成持久化时不得删除 WAL")
+	}
+	if _, err := collection.Checkpoint(context.Background()); err != nil {
+		t.Fatalf("目录同步恢复后 checkpoint 应可重试：%v", err)
+	}
+}
+
 func TestDiskVamanaCheckpointManifestFailureKeepsOldGeneration(t *testing.T) {
 	path := t.TempDir()
 	db, collection := newCheckpointCollection(t, path, "checkpoint-failure", 12)
