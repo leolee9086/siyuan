@@ -591,6 +591,9 @@ func atomicWriteFile(path string, data []byte) (err error) {
 }
 
 func SaveDatabase(db *Database) error {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(db.Path, 0755); err != nil {
 		return err
 	}
@@ -608,13 +611,22 @@ func SaveDatabase(db *Database) error {
 }
 
 func LoadDatabase(path string) (*Database, error) {
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return nil, err
+	}
 	db := NewDatabase(path)
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
+	success := false
+	defer func() {
+		if !success {
+			db.closeAfterOpenFailure()
+		}
+	}()
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return db, nil
-		}
 		return nil, err
 	}
 
@@ -631,5 +643,6 @@ func LoadDatabase(path string) (*Database, error) {
 		db.ensureWriteStateLocked(collection.ColName).sequence = collectionCommitSequence(collection)
 	}
 
+	success = true
 	return db, nil
 }

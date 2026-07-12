@@ -104,6 +104,9 @@ type Database struct {
 	Collections map[string]VectorCollection
 	writeStates map[string]*collectionWriteState
 	mu          sync.RWMutex
+	lockMu      sync.Mutex
+	lock        *databaseLock
+	closed      bool
 }
 
 // VectorCollection is the common interface for both HNSW Collection and VamanaCollection.
@@ -252,6 +255,9 @@ func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta Co
 }
 
 func (db *Database) CreateCollectionWithOptionsRaw(name string, dimension int, meta CollectionMeta, metricType string) (VectorCollection, error) {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -282,6 +288,9 @@ func (db *Database) CreateCollectionWithOptionsRaw(name string, dimension int, m
 }
 
 func (db *Database) DeleteCollection(name string) error {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return err
+	}
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -319,6 +328,9 @@ func (db *Database) ListCollections() []CollectionInfo {
 // =========================================
 
 func (db *Database) MigrateToDisk(name string) (VectorCollection, error) {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
 	db.mu.RLock()
 	old := db.Collections[name]
 	db.mu.RUnlock()

@@ -30,6 +30,8 @@ var (
 	ErrCollectionBusy         = errors.New("collection busy")
 	ErrCollectionReadOnly     = errors.New("collection read-only")
 	ErrPersistenceFailed      = errors.New("vector persistence failed")
+	ErrDatabaseLocked         = errors.New("vector database is locked by another process")
+	ErrDatabaseClosed         = errors.New("vector database closed")
 )
 
 type CollectionOptions struct {
@@ -136,6 +138,15 @@ func Open(path string) (*Database, error) {
 	}
 
 	db := NewDatabase(path)
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
+	success := false
+	defer func() {
+		if !success {
+			db.closeAfterOpenFailure()
+		}
+	}()
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -174,10 +185,14 @@ func Open(path string) (*Database, error) {
 		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(c)
 	}
 
+	success = true
 	return db, nil
 }
 
 func (db *Database) CreateCollectionWithOptions(name string, opts CollectionOptions) (CollectionAPI, error) {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
 	if name == "" {
 		return nil, fmt.Errorf("collection name cannot be empty")
 	}
@@ -196,6 +211,9 @@ func (db *Database) CreateCollectionWithOptions(name string, opts CollectionOpti
 }
 
 func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
+	if err := db.ensureDatabaseLock(); err != nil {
+		return nil, err
+	}
 	db.mu.RLock()
 	col := db.Collections[name]
 	db.mu.RUnlock()
@@ -268,6 +286,9 @@ func (db *Database) Close() error {
 		if err := handle.Close(); err != nil && firstErr == nil {
 			firstErr = err
 		}
+	}
+	if err := db.releaseDatabaseLock(); err != nil && firstErr == nil {
+		firstErr = err
 	}
 	return firstErr
 }

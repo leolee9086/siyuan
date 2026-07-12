@@ -14,6 +14,7 @@ func TestWriteContractValidationAndCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("contract", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +51,7 @@ func TestWriteContractLastOperationWinsAndCompatibilityWrappers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("batch", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +105,7 @@ func TestWriteContractDurabilityModes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("durability", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -151,6 +154,7 @@ func TestWriteContractCancellationAndSyncFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("failures", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -482,6 +486,7 @@ func TestWriteContractCancellationDuringApplyRollsBackBatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("cancel-rollback", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)
@@ -543,6 +548,7 @@ func TestWriteContractSyncSurvivesReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer reopened.Close()
 	reopenedCol, err := reopened.OpenCollection("sync-reopen")
 	if err != nil {
 		t.Fatal(err)
@@ -589,6 +595,9 @@ func TestWriteContractWALTornTailAndCorruption(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := wal.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -647,6 +656,9 @@ func TestWriteContractWALTornTailAndCorruption(t *testing.T) {
 		}
 		data[len(data)-1] ^= 0xff
 		if err := os.WriteFile(walPath, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Open(path); !errors.Is(err, ErrStorageCorrupted) {
@@ -731,7 +743,6 @@ func TestWriteContractDiskVamanaWALTornTailAndCorruption(t *testing.T) {
 	t.Run("torn tail", func(t *testing.T) {
 		path := t.TempDir()
 		col := create(t, path, "vamana-wal-tail")
-		defer col.Close()
 		walPath := filepath.Join(path, "vamana-wal-tail", "vamana"+VamanaWALFileExt)
 		wal, err := os.OpenFile(walPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
@@ -742,6 +753,9 @@ func TestWriteContractDiskVamanaWALTornTailAndCorruption(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := wal.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := col.(*CollectionHandle).db.Close(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -783,7 +797,6 @@ func TestWriteContractDiskVamanaWALTornTailAndCorruption(t *testing.T) {
 	t.Run("checksum corruption", func(t *testing.T) {
 		path := t.TempDir()
 		col := create(t, path, "vamana-wal-corrupt")
-		defer col.Close()
 		walPath := filepath.Join(path, "vamana-wal-corrupt", "vamana"+VamanaWALFileExt)
 		data, err := os.ReadFile(walPath)
 		if err != nil {
@@ -791,6 +804,9 @@ func TestWriteContractDiskVamanaWALTornTailAndCorruption(t *testing.T) {
 		}
 		data[len(data)-1] ^= 0xff
 		if err := os.WriteFile(walPath, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := col.(*CollectionHandle).db.Close(); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Open(path); !errors.Is(err, ErrStorageCorrupted) {
@@ -804,6 +820,7 @@ func TestWriteContractCommitSequenceIsLinearized(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("linearized", CollectionOptions{Engine: EngineHNSW, Dimension: 2})
 	if err != nil {
 		t.Fatal(err)

@@ -85,7 +85,9 @@ func TestBug_VamanaInsertUpdateRace(t *testing.T) {
 		t.Errorf("BUG: 并发 Insert+Flush 后数据丢失！Count=%d（期望 3）", stats.Count)
 	}
 
-	_ = col.Close()
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	// 重新打开验证持久化完整性
 	db2, err := Open(dbPath)
@@ -96,7 +98,7 @@ func TestBug_VamanaInsertUpdateRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer col2.Close()
+	defer db2.Close()
 
 	stats2 := col2.Stats()
 	t.Logf("After reopen: Count=%d", stats2.Count)
@@ -222,6 +224,9 @@ func TestConcurrentStress_UpsertSearchFlushClose(t *testing.T) {
 	}
 	if _, err := col.Search([]float32{0, 1, 2, 3}, SearchOptions{TopK: 1}); !errors.Is(err, ErrCollectionClosed) {
 		t.Fatalf("expected stable closed error after close, got %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close database: %v", err)
 	}
 
 	reopenedDB, err := Open(dbPath)

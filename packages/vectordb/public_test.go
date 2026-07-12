@@ -76,8 +76,8 @@ func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
 	if stats := col.Stats(); stats.Count != 4 {
 		t.Fatalf("unexpected stats after delete: %+v", stats)
 	}
-	if err := col.Close(); err != nil {
-		t.Fatalf("close collection: %v", err)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close database: %v", err)
 	}
 
 	reloadedDB, err := Open(dbPath)
@@ -88,7 +88,7 @@ func TestUnifiedDB_DiskVamanaLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reopen disk-vamana collection: %v", err)
 	}
-	defer reopened.Close()
+	defer reloadedDB.Close()
 
 	if stats := reopened.Stats(); stats.Engine != EngineDiskVamana || stats.Count != 4 {
 		t.Fatalf("unexpected stats after reopen: %+v", stats)
@@ -148,7 +148,7 @@ func TestUnifiedDB_DiskVamanaSyncWriteDoesNotRebuildBaseIndex(t *testing.T) {
 	if after.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) {
 		t.Fatalf("普通同步写入不应全量重建基础索引：before=%d/%v，after=%d/%v", before.Size(), before.ModTime(), after.Size(), after.ModTime())
 	}
-	if err := collection.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -205,7 +205,7 @@ func TestUnifiedDB_DiskVamanaCheckpointTruncatesWAL(t *testing.T) {
 	if _, err := os.Stat(walPath); !os.IsNotExist(err) {
 		t.Fatalf("全量 checkpoint 成功后应移除旧 WAL，实际为 %v", err)
 	}
-	if err := collection.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -231,15 +231,15 @@ func TestUnifiedDB_DiskVamanaCloseReleasesFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration %d: open db: %v", i, err)
 		}
-		col, err := db.CreateCollectionWithOptions("disk-close", CollectionOptions{
+		_, err = db.CreateCollectionWithOptions("disk-close", CollectionOptions{
 			Engine: EngineDiskVamana,
 			Points: []Point{{ID: "p1", Vector: []float32{1, 2, 3, 4}}},
 		})
 		if err != nil {
 			t.Fatalf("iteration %d: create collection: %v", i, err)
 		}
-		if err := col.Close(); err != nil {
-			t.Fatalf("iteration %d: close collection: %v", i, err)
+		if err := db.Close(); err != nil {
+			t.Fatalf("iteration %d: close database: %v", i, err)
 		}
 
 		collectionPath := filepath.Join(dbPath, "disk-close")
@@ -312,7 +312,7 @@ func TestUnifiedDB_FetchPointsAfterSearch(t *testing.T) {
 		}
 	}
 
-	_ = col.Close()
+	_ = db.Close()
 
 	// 重新打开后 FetchPoints 仍可工作
 	db2, err := Open(dbPath)
@@ -323,7 +323,7 @@ func TestUnifiedDB_FetchPointsAfterSearch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reopen collection: %v", err)
 	}
-	defer col2.Close()
+	defer db2.Close()
 
 	fetched2, err := col2.FetchPoints([]string{"f3"})
 	if err != nil {
@@ -340,6 +340,7 @@ func TestUnifiedDB_FetchPoints_HNSW(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("hnsw-fetch", CollectionOptions{
 		Engine:    EngineHNSW,
 		Dimension: 3,
@@ -369,6 +370,7 @@ func TestUnifiedDB_SearchScoreThreshold(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 
 	// 插入距离分布不同的向量，使 ScoreThreshold 能截断部分结果
 	col, err := db.CreateCollectionWithOptions("score-test", CollectionOptions{
@@ -423,6 +425,7 @@ func TestUnifiedDB_Count(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 
 	col, err := db.CreateCollectionWithOptions("count-test", CollectionOptions{
 		Engine:    EngineHNSW,
@@ -542,6 +545,7 @@ func TestUnifiedDB_DiskVamanaRejectsEmptyInitialPoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 	_, err = db.CreateCollectionWithOptions("empty-disk", CollectionOptions{Engine: EngineDiskVamana})
 	if !errors.Is(err, ErrDiskVamanaNeedsPoints) {
 		t.Fatalf("expected ErrDiskVamanaNeedsPoints, got %v", err)
@@ -553,6 +557,7 @@ func TestUnifiedDB_HNSWLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 
 	col, err := db.CreateCollectionWithOptions("memory", CollectionOptions{
 		Engine:    EngineHNSW,
@@ -583,6 +588,7 @@ func TestUnifiedDB_DistanceMetricConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 
 	// 1) CollectionOptions 支持 DistanceMetric，HNSW 引擎使用 cosine
 	col, err := db.CreateCollectionWithOptions("metric-test", CollectionOptions{
@@ -664,6 +670,7 @@ func TestUnifiedDB_DiskVamanaClosedErrorsPropagate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	defer db.Close()
 	col, err := db.CreateCollectionWithOptions("closed-errors", CollectionOptions{
 		Engine: EngineDiskVamana,
 		Points: []Point{{ID: "a", Vector: []float32{1, 0}}, {ID: "b", Vector: []float32{0, 1}}},

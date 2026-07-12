@@ -42,6 +42,8 @@
 
 同一集合的公开批次写入按提交序号线性化；批次内同一外部 ID 的最后操作生效，搜索、统计和点读取不会观察批次中间状态。持久写入先追加包含整个批次的 CRC32C WAL 帧，达到请求的持久性级别后才修改索引；验证失败、WAL append/fsync 失败和提交前取消不会触碰图或 ID 映射。WAL 已提交但内存发布失败时当前实例进入 recovery-required，拒绝继续查询和写入，重开后从 WAL 完整重放。Windows 上的 WAL 回滚会先关闭长期复用的 `O_APPEND` 句柄，再按路径截断，防止延迟 append 在 `Truncate` 后重新扩展文件。
 
+`Open` 会持有数据库目录级跨进程独占锁直到 `Database.Close`，防止多个进程同时追加 WAL 或发布 generation；锁竞争返回 `ErrDatabaseLocked`。锁文件不会在关闭时删除，避免释放与删除之间产生不同文件对象上的分裂锁。
+
 HNSW 的 `Checkpoint` 生成原子快照并清理 WAL。DiskVamana 的 `Checkpoint` 使用原生 graph remap 合并磁盘图、append 节点和删除位，先完整写入并验证新 generation，再通过小型 manifest 原子切换；发布失败时旧 generation 保持可用。DiskVamana WAL 达到配置阈值后会安排后台 checkpoint，维护失败通过 `Stats().MaintenanceError` 暴露并在后续写入时重试；`Close` 会等待已登记的维护任务。提交序号写入 WAL、快照、Vamana state 和 generation manifest，重启后继续递增。
 
 HNSW 快照写入当前格式主版本和次版本。主版本不一致或存在未知必需特性位时拒绝打开；未来次版本可判定为只读并要求迁移，旧的无版本快照继续按兼容格式读取。
