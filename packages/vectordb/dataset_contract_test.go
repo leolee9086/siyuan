@@ -1,11 +1,16 @@
 package vectordb
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 func datasetContractOptions() DatasetOptions {
@@ -408,7 +413,7 @@ func TestDatasetBlocksSearchUntilFailedTransactionIsRecovered(t *testing.T) {
 		}
 		return originalPersist(handle, operations, sequence)
 	}
-	_, writeErr := dataset.UpsertEntities(context.Background(), []Entity{{
+	failedResult, writeErr := dataset.UpsertEntities(context.Background(), []Entity{{
 		ID: "pending",
 		Embeddings: map[string][]float32{
 			"title": {-1, 0},
@@ -418,6 +423,9 @@ func TestDatasetBlocksSearchUntilFailedTransactionIsRecovered(t *testing.T) {
 	persistWriteCollection = originalPersist
 	if writeErr == nil {
 		t.Fatal("故障注入未使数据集事务失败")
+	}
+	if !failedResult.Committed || failedResult.IndexHealthy || failedResult.CommitSequence == 0 || !errors.Is(writeErr, ErrIndexRecoveryRequired) {
+		t.Fatalf("跨视图失败事务结果未表达已提交但不健康：result=%+v，err=%v", failedResult, writeErr)
 	}
 	if _, err := dataset.SearchIndex("title-fast", []float32{-1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexRecoveryRequired) {
 		t.Fatalf("部分提交后查询未被阻断：%v", err)
@@ -473,5 +481,294 @@ func TestDatasetOpenFailureReleasesPreviouslyOpenedDatasetLocks(t *testing.T) {
 	defer db.Close()
 	if _, err := db.OpenDataset("a"); err != nil {
 		t.Fatalf("有效数据集无法重新打开：%v", err)
+	}
+}
+
+func TestDatasetMetadataUpdatesUseWALUntilCheckpoint(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	statePath := filepath.Join(dataset.path, datasetStateName)
+	before, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dataset.UpsertEntities(context.Background(), []Entity{{
+		ID: "consensus",
+		Embeddings: map[string][]float32{
+			"title": {0.9, 0.1},
+			"body":  {0.1, 0, 0},
+		},
+		Meta: MarshalMeta(map[string]any{"label": "wal-update"}),
+	}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(before) != string(after) {
+		t.Fatal("单实体更新不应重写完整 entities.msgpack 快照")
+	}
+	walPath := filepath.Join(dataset.path, datasetMetaWALName)
+	if info, err := os.Stat(walPath); err != nil || info.Size() == 0 {
+		t.Fatalf("单实体更新未追加 metadata WAL：info=%v，err=%v", info, err)
+	}
+	if err := dataset.Checkpoint(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(walPath); !os.IsNotExist(err) {
+		t.Fatalf("checkpoint 后 metadata WAL 未回收：%v", err)
+	}
+	checkpointed, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(checkpointed) == string(before) {
+		t.Fatal("checkpoint 未发布最新 meta 快照")
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	reopened, err := db.OpenDataset("documents")
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := reopened.SearchIndex("title-fast", []float32{0.9, 0.1}, SearchOptions{TopK: 1})
+	if err != nil || len(results) != 1 || !bytes.Contains(results[0].Meta, []byte("wal-update")) {
+		t.Fatalf("checkpoint 后 meta 未恢复：results=%+v，err=%v", results, err)
+	}
+}
+
+func TestDatasetAddIndexKeepsSearchesAvailableAndQueuesWrites(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	dataset, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	originalHook := datasetIndexBuildHook
+	started := make(chan struct{})
+	release := make(chan struct{})
+	datasetIndexBuildHook = func() {
+		close(started)
+		<-release
+	}
+	defer func() { datasetIndexBuildHook = originalHook }()
+	addDone := make(chan error, 1)
+	go func() {
+		addDone <- dataset.AddIndex("title-online", IndexViewOptions{Embedding: "title", Engine: EngineHNSW})
+	}()
+	<-started
+
+	searchDone := make(chan error, 1)
+	go func() {
+		results, searchErr := dataset.SearchIndex("title-fast", []float32{1, 0}, SearchOptions{TopK: 1})
+		if searchErr == nil && (len(results) != 1 || results[0].ID != "title-only") {
+			searchErr = errors.New("existing index returned an unexpected result")
+		}
+		searchDone <- searchErr
+	}()
+	select {
+	case err := <-searchDone:
+		if err != nil {
+			close(release)
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		close(release)
+		t.Fatal("动态索引构建阻塞了已有索引查询")
+	}
+
+	writeDone := make(chan error, 1)
+	go func() {
+		_, writeErr := dataset.UpsertEntities(context.Background(), []Entity{{
+			ID: "queued-write",
+			Embeddings: map[string][]float32{
+				"title": {-1, 0},
+				"body":  {-1, -1, -1},
+			},
+		}}, WriteOptions{Durability: DurabilitySync})
+		writeDone <- writeErr
+	}()
+	select {
+	case err := <-writeDone:
+		close(release)
+		t.Fatalf("索引构建发布前写入不应越过一致性屏障：%v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if err := <-addDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; err != nil {
+		t.Fatal(err)
+	}
+	results, err := dataset.SearchIndex("title-online", []float32{-1, 0}, SearchOptions{TopK: 1})
+	if err != nil || len(results) != 1 || results[0].ID != "queued-write" {
+		t.Fatalf("排队写入未同步到新索引：results=%+v，err=%v", results, err)
+	}
+}
+
+func TestDatasetMetadataWALTornTailIsTruncated(t *testing.T) {
+	path := t.TempDir()
+	if err := appendDatasetMetaWAL(path, 1, []Entity{{ID: "entity", Meta: MarshalMeta(map[string]any{"version": 1})}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	walPath := filepath.Join(path, datasetMetaWALName)
+	validInfo, err := os.Stat(walPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.OpenFile(walPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Write([]byte{1, 2, 3, 4, 5}); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	sequence := uint64(0)
+	metas := make(map[string]json.RawMessage)
+	if err := replayDatasetMetaWAL(path, &sequence, metas); err != nil {
+		t.Fatal(err)
+	}
+	if sequence != 1 || !bytes.Contains(metas["entity"], []byte("version")) {
+		t.Fatalf("撕裂尾截断后已同步记录丢失：sequence=%d，metas=%v", sequence, metas)
+	}
+	afterInfo, err := os.Stat(walPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterInfo.Size() != validInfo.Size() {
+		t.Fatalf("撕裂尾未截断到最后完整帧：want=%d，got=%d", validInfo.Size(), afterInfo.Size())
+	}
+}
+
+func TestDatasetMetadataWALRejectsCorruptionAndSequenceGaps(t *testing.T) {
+	t.Run("checksum", func(t *testing.T) {
+		path := t.TempDir()
+		if err := appendDatasetMetaWAL(path, 1, []Entity{{ID: "entity", Meta: MarshalMeta(map[string]any{"version": 1})}}, nil); err != nil {
+			t.Fatal(err)
+		}
+		walPath := filepath.Join(path, datasetMetaWALName)
+		data, err := os.ReadFile(walPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data[len(data)-1] ^= 0xff
+		if err := os.WriteFile(walPath, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+		sequence := uint64(0)
+		err = replayDatasetMetaWAL(path, &sequence, make(map[string]json.RawMessage))
+		if !errors.Is(err, ErrStorageCorrupted) {
+			t.Fatalf("完整 WAL 帧损坏未被拒绝：%v", err)
+		}
+	})
+
+	t.Run("sequence-gap", func(t *testing.T) {
+		path := t.TempDir()
+		if err := appendDatasetMetaWAL(path, 2, []Entity{{ID: "entity"}}, nil); err != nil {
+			t.Fatal(err)
+		}
+		sequence := uint64(0)
+		err := replayDatasetMetaWAL(path, &sequence, make(map[string]json.RawMessage))
+		if !errors.Is(err, ErrStorageCorrupted) {
+			t.Fatalf("WAL 序号缺口未被拒绝：%v", err)
+		}
+	})
+}
+
+func TestDatasetMetadataWALAutomaticallyCheckpointsAtLimit(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalThreshold := datasetMetaWALCheckpointBytes
+	datasetMetaWALCheckpointBytes = 1
+	defer func() { datasetMetaWALCheckpointBytes = originalThreshold }()
+	if _, err := dataset.UpsertEntities(context.Background(), []Entity{{
+		ID: "auto-checkpoint",
+		Embeddings: map[string][]float32{
+			"title": {-1, 0},
+			"body":  {-1, -1, -1},
+		},
+		Meta: MarshalMeta(map[string]any{"checkpoint": true}),
+	}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dataset.path, datasetMetaWALName)); !os.IsNotExist(err) {
+		t.Fatalf("达到阈值后 metadata WAL 未被回收：%v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(dataset.path, datasetStateName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state datasetState
+	if err := msgpack.Unmarshal(data, &state); err != nil {
+		t.Fatal(err)
+	}
+	if state.Sequence != 1 || !bytes.Contains(state.Metas["auto-checkpoint"], []byte("checkpoint")) {
+		t.Fatalf("自动 checkpoint 快照不完整：sequence=%d，metas=%v", state.Sequence, state.Metas)
+	}
+}
+
+func TestDatasetAddIndexReplacesUnpublishedPhysicalOrphan(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	physicalName := indexPhysicalName("title-clean")
+	if _, err := dataset.indexDB.CreateCollectionWithOptions(physicalName, CollectionOptions{
+		Engine: EngineHNSW, Dimension: 2, DistanceMetric: "cosine",
+		Points: []Point{{ID: "stale-orphan", Vector: []float32{-1, 0}}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := dataset.AddIndex("title-clean", IndexViewOptions{Embedding: "title", Engine: EngineHNSW}); err != nil {
+		t.Fatal(err)
+	}
+	results, err := dataset.SearchIndex("title-clean", []float32{-1, 0}, SearchOptions{TopK: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, result := range results {
+		if result.ID == "stale-orphan" {
+			t.Fatalf("同名重建复用了未发布 orphan 的陈旧 ID：%+v", results)
+		}
 	}
 }

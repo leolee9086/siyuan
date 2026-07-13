@@ -2,6 +2,7 @@ package vectordb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,8 +11,9 @@ import (
 )
 
 type datasetTransaction struct {
-	Upserts []Entity `msgpack:"upserts,omitempty"`
-	Deletes []string `msgpack:"deletes,omitempty"`
+	Sequence uint64   `msgpack:"sequence"`
+	Upserts  []Entity `msgpack:"upserts,omitempty"`
+	Deletes  []string `msgpack:"deletes,omitempty"`
 }
 
 // UpsertEntities 以替换语义将实体同步写入其所有索引视图。
@@ -25,7 +27,7 @@ func (d *Dataset) UpsertEntities(ctx context.Context, entities []Entity, opts Wr
 	if err := validateDatasetWriteOptions(opts); err != nil {
 		return DatasetWriteResult{}, err
 	}
-	d.mu.Lock()
+	d.lockForWrite()
 	defer d.mu.Unlock()
 	if d.closed {
 		return DatasetWriteResult{}, ErrCollectionClosed
@@ -36,15 +38,16 @@ func (d *Dataset) UpsertEntities(ctx context.Context, entities []Entity, opts Wr
 	if err := validateDatasetEntities(d.embeddings, entities); err != nil {
 		return DatasetWriteResult{}, err
 	}
-	transaction := datasetTransaction{Upserts: cloneEntities(entities)}
+	transaction := datasetTransaction{Sequence: d.sequence + 1, Upserts: cloneEntities(entities)}
 	if err := saveDatasetTransaction(d.path, transaction); err != nil {
-		return DatasetWriteResult{}, err
+		return DatasetWriteResult{IndexHealthy: true}, err
 	}
 	if err := d.applyTransactionLocked(ctx, transaction, opts); err != nil {
 		d.recoveryRequired = true
-		return DatasetWriteResult{Applied: 0, Committed: false}, err
+		return DatasetWriteResult{CommitSequence: transaction.Sequence, Committed: true, IndexHealthy: false},
+			fmt.Errorf("%w: dataset transaction %d requires recovery: %v", ErrIndexRecoveryRequired, transaction.Sequence, err)
 	}
-	return DatasetWriteResult{Applied: len(entities), Committed: true}, nil
+	return DatasetWriteResult{CommitSequence: transaction.Sequence, Applied: len(entities), Committed: true, IndexHealthy: true}, nil
 }
 
 // DeleteEntities 从实体真相和所有索引视图中同步删除 ID。
@@ -63,7 +66,7 @@ func (d *Dataset) DeleteEntities(ctx context.Context, ids []string, opts WriteOp
 			return DatasetWriteResult{}, ErrPointIDInvalid
 		}
 	}
-	d.mu.Lock()
+	d.lockForWrite()
 	defer d.mu.Unlock()
 	if d.closed {
 		return DatasetWriteResult{}, ErrCollectionClosed
@@ -71,20 +74,24 @@ func (d *Dataset) DeleteEntities(ctx context.Context, ids []string, opts WriteOp
 	if err := d.recoverPendingLocked(); err != nil {
 		return DatasetWriteResult{}, err
 	}
-	transaction := datasetTransaction{Deletes: append([]string(nil), ids...)}
+	transaction := datasetTransaction{Sequence: d.sequence + 1, Deletes: append([]string(nil), ids...)}
 	if err := saveDatasetTransaction(d.path, transaction); err != nil {
-		return DatasetWriteResult{}, err
+		return DatasetWriteResult{IndexHealthy: true}, err
 	}
 	if err := d.applyTransactionLocked(ctx, transaction, opts); err != nil {
 		d.recoveryRequired = true
-		return DatasetWriteResult{Committed: false}, err
+		return DatasetWriteResult{CommitSequence: transaction.Sequence, Committed: true, IndexHealthy: false},
+			fmt.Errorf("%w: dataset transaction %d requires recovery: %v", ErrIndexRecoveryRequired, transaction.Sequence, err)
 	}
-	return DatasetWriteResult{Applied: len(ids), Committed: true}, nil
+	return DatasetWriteResult{CommitSequence: transaction.Sequence, Applied: len(ids), Committed: true, IndexHealthy: true}, nil
 }
 
 func (d *Dataset) applyTransactionLocked(ctx context.Context, transaction datasetTransaction, opts WriteOptions) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if transaction.Sequence == 0 || transaction.Sequence < d.sequence || transaction.Sequence > d.sequence+1 {
+		return fmt.Errorf("%w: invalid pending dataset transaction sequence %d after %d", ErrStorageCorrupted, transaction.Sequence, d.sequence)
 	}
 	for indexName, view := range d.indexes {
 		operations := make([]WriteOperation, 0, len(transaction.Upserts)+len(transaction.Deletes))
@@ -107,14 +114,22 @@ func (d *Dataset) applyTransactionLocked(ctx context.Context, transaction datase
 			return fmt.Errorf("apply dataset transaction to index %q: %w", indexName, err)
 		}
 	}
+	if d.sequence < transaction.Sequence {
+		if err := appendDatasetMetaWAL(d.path, transaction.Sequence, transaction.Upserts, transaction.Deletes); err != nil {
+			return err
+		}
+	}
 	for _, entity := range transaction.Upserts {
 		d.metas[entity.ID] = append(d.metas[entity.ID][:0], entity.Meta...)
 	}
 	for _, id := range transaction.Deletes {
 		delete(d.metas, id)
 	}
-	if err := saveDatasetState(d.path, d.metas); err != nil {
-		return err
+	d.sequence = transaction.Sequence
+	if datasetMetaWALSize(d.path) >= datasetMetaWALCheckpointBytes {
+		if err := checkpointDatasetMetadata(d.path, d.sequence, d.metas); err != nil {
+			return err
+		}
 	}
 	if err := removeDatasetTransaction(d.path); err != nil {
 		return err
@@ -132,6 +147,9 @@ func (d *Dataset) recoverPendingLocked() error {
 		d.recoveryRequired = false
 		return nil
 	}
+	if transaction.Sequence == 0 {
+		transaction.Sequence = d.sequence + 1
+	}
 	if err := d.applyTransactionLocked(context.Background(), transaction, WriteOptions{Durability: DurabilitySync}); err != nil {
 		return fmt.Errorf("%w: dataset transaction recovery failed: %v", ErrIndexRecoveryRequired, err)
 	}
@@ -140,25 +158,32 @@ func (d *Dataset) recoverPendingLocked() error {
 
 // AddIndex 从同字段现有视图读取向量并原子发布新 ANN 视图。
 func (d *Dataset) AddIndex(name string, opts IndexViewOptions) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.closed {
-		return ErrCollectionClosed
+	done, err := d.beginIndexBuild()
+	if err != nil {
+		return err
 	}
+	defer d.endIndexBuild(done)
+	datasetIndexBuildHook()
+
+	d.mu.RLock()
 	if name == "" {
+		d.mu.RUnlock()
 		return ErrDatasetInvalid
 	}
 	if _, exists := d.indexes[name]; exists {
+		d.mu.RUnlock()
 		return fmt.Errorf("%w: %s", ErrDatasetExists, name)
 	}
 	schema, exists := d.embeddings[opts.Embedding]
 	if !exists {
+		d.mu.RUnlock()
 		return fmt.Errorf("%w: embedding %q", ErrDatasetInvalid, opts.Embedding)
 	}
 	if opts.Engine == "" {
 		opts.Engine = EngineHNSW
 	}
 	if opts.Engine != EngineHNSW && opts.Engine != EngineDiskVamana {
+		d.mu.RUnlock()
 		return fmt.Errorf("%w: %s", ErrUnsupportedEngine, opts.Engine)
 	}
 	var source CollectionAPI
@@ -169,39 +194,52 @@ func (d *Dataset) AddIndex(name string, opts IndexViewOptions) error {
 		}
 	}
 	if source == nil {
+		d.mu.RUnlock()
 		return fmt.Errorf("%w: no source index for embedding %q", ErrIndexViewNotFound, opts.Embedding)
 	}
 	ids := make([]string, 0, len(d.metas))
 	for id := range d.metas {
 		ids = append(ids, id)
 	}
+	d.mu.RUnlock()
 	points, err := source.FetchPoints(ids)
 	if err != nil {
 		return err
 	}
-	handle, err := d.indexDB.CreateCollectionWithOptions(indexPhysicalName(name), CollectionOptions{
+	physicalName := indexPhysicalName(name)
+	if _, openErr := d.indexDB.OpenCollection(physicalName); openErr == nil {
+		if err := d.indexDB.DeleteCollection(physicalName); err != nil {
+			return fmt.Errorf("remove unpublished index view %q: %w", name, err)
+		}
+	} else if !errors.Is(openErr, ErrCollectionNotFound) {
+		return openErr
+	}
+	handle, err := d.indexDB.CreateCollectionWithOptions(physicalName, CollectionOptions{
 		Engine: opts.Engine, Dimension: schema.Dimension, DistanceMetric: schema.DistanceMetric,
 		Points: points, DiskBuildConfig: opts.DiskBuildConfig, HNSWConfig: opts.HNSWConfig,
 	})
 	if err != nil {
 		return err
 	}
-	newIndexes := cloneIndexViews(d.indexes)
 	clonedOption := cloneIndexViews(map[string]IndexViewOptions{name: opts})
+	d.mu.Lock()
+	newIndexes := cloneIndexViews(d.indexes)
 	newIndexes[name] = clonedOption[name]
-	manifest := datasetManifest{FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name, Embeddings: d.embeddings, Indexes: newIndexes}
+	manifest := datasetManifest{FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name, Embeddings: cloneEmbeddingSchemas(d.embeddings), Indexes: newIndexes}
 	if err := saveDatasetManifest(d.path, manifest); err != nil {
-		_ = d.indexDB.DeleteCollection(indexPhysicalName(name))
+		d.mu.Unlock()
+		_ = d.indexDB.DeleteCollection(physicalName)
 		return err
 	}
 	d.indexes = newIndexes
 	d.handles[name] = handle
+	d.mu.Unlock()
 	return nil
 }
 
 // DropIndex 删除一个视图，但拒绝删除嵌入字段的最后一个视图。
 func (d *Dataset) DropIndex(name string) error {
-	d.mu.Lock()
+	d.lockForWrite()
 	defer d.mu.Unlock()
 	if d.closed {
 		return ErrCollectionClosed

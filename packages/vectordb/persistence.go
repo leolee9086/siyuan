@@ -94,9 +94,10 @@ type WALEntry struct {
 }
 
 const (
-	OpAdd    = 1
-	OpDelete = 2
-	OpBatch  = 3
+	OpAdd         = 1
+	OpDelete      = 2
+	OpBatch       = 3
+	OpDatasetMeta = 4
 )
 
 // SaveCollection saves a collection snapshot.

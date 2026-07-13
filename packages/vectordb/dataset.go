@@ -110,13 +110,16 @@ type DatasetAPI interface {
 	FetchEntities(ids []string) ([]Entity, error)
 	SearchIndex(index string, query []float32, opts SearchOptions) ([]SearchResult, error)
 	SearchFusion(ctx context.Context, request FusionSearchRequest) (FusionSearchResponse, error)
+	Checkpoint(ctx context.Context) error
 	Close() error
 }
 
 // DatasetWriteResult 描述跨视图实体事务的提交结果。
 type DatasetWriteResult struct {
-	Applied   int
-	Committed bool
+	CommitSequence uint64
+	Applied        int
+	Committed      bool
+	IndexHealthy   bool
 }
 
 // DatasetIndexInfo 描述一个已发布的 ANN 视图。
@@ -128,10 +131,14 @@ type DatasetIndexInfo struct {
 
 // DatasetStats 返回实体数量以及完整的字段和视图配置。
 type DatasetStats struct {
-	Name        string
-	EntityCount int
-	Embeddings  map[string]EmbeddingSchema
-	Indexes     map[string]IndexViewOptions
+	Name                  string
+	EntityCount           int
+	CommitSequence        uint64
+	MetadataWALBytes      int64
+	CheckpointRecommended bool
+	IndexBuilding         bool
+	Embeddings            map[string]EmbeddingSchema
+	Indexes               map[string]IndexViewOptions
 }
 
 // Dataset 管理实体真相、命名嵌入和多个物理 ANN 视图。
@@ -143,12 +150,65 @@ type Dataset struct {
 	indexes          map[string]IndexViewOptions
 	handles          map[string]CollectionAPI
 	metas            map[string]json.RawMessage
+	sequence         uint64
 	mu               sync.RWMutex
 	closed           bool
 	recoveryRequired bool
+	building         bool
+	buildDone        chan struct{}
 }
 
 var _ DatasetAPI = (*Dataset)(nil)
+
+// datasetIndexBuildHook 仅用于验证构建期间读路径不会被阻塞。
+var datasetIndexBuildHook = func() {}
+
+func (d *Dataset) lockForWrite() {
+	for {
+		d.mu.Lock()
+		if !d.building {
+			return
+		}
+		done := d.buildDone
+		d.mu.Unlock()
+		<-done
+	}
+}
+
+func (d *Dataset) beginIndexBuild() (chan struct{}, error) {
+	for {
+		d.mu.Lock()
+		if d.building {
+			done := d.buildDone
+			d.mu.Unlock()
+			<-done
+			continue
+		}
+		if d.closed {
+			d.mu.Unlock()
+			return nil, ErrCollectionClosed
+		}
+		if d.recoveryRequired {
+			d.mu.Unlock()
+			return nil, ErrIndexRecoveryRequired
+		}
+		d.building = true
+		d.buildDone = make(chan struct{})
+		done := d.buildDone
+		d.mu.Unlock()
+		return done, nil
+	}
+}
+
+func (d *Dataset) endIndexBuild(done chan struct{}) {
+	d.mu.Lock()
+	if d.building && d.buildDone == done {
+		d.building = false
+		d.buildDone = nil
+		close(done)
+	}
+	d.mu.Unlock()
+}
 
 func (d *Dataset) Name() string { return d.name }
 
@@ -156,9 +216,13 @@ func (d *Dataset) Name() string { return d.name }
 func (d *Dataset) Stats() DatasetStats {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	walBytes := datasetMetaWALSize(d.path)
 	return DatasetStats{
-		Name: d.name, EntityCount: len(d.metas),
-		Embeddings: cloneEmbeddingSchemas(d.embeddings), Indexes: cloneIndexViews(d.indexes),
+		Name: d.name, EntityCount: len(d.metas), CommitSequence: d.sequence,
+		MetadataWALBytes:      walBytes,
+		CheckpointRecommended: walBytes >= datasetMetaWALCheckpointBytes,
+		IndexBuilding:         d.building,
+		Embeddings:            cloneEmbeddingSchemas(d.embeddings), Indexes: cloneIndexViews(d.indexes),
 	}
 }
 
@@ -380,15 +444,50 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 	return response, nil
 }
 
-// Close 关闭数据集拥有的全部物理索引。
-func (d *Dataset) Close() error {
-	d.mu.Lock()
+// Checkpoint 将增量 meta WAL 合并为新的实体快照。
+func (d *Dataset) Checkpoint(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	d.lockForWrite()
 	defer d.mu.Unlock()
 	if d.closed {
+		return ErrCollectionClosed
+	}
+	if d.recoveryRequired {
+		return ErrIndexRecoveryRequired
+	}
+	return d.checkpointMetadataLocked()
+}
+
+func (d *Dataset) checkpointMetadataLocked() error {
+	if datasetMetaWALSize(d.path) == 0 {
+		return nil
+	}
+	return checkpointDatasetMetadata(d.path, d.sequence, d.metas)
+}
+
+// Close 关闭数据集拥有的全部物理索引。
+func (d *Dataset) Close() error {
+	d.lockForWrite()
+	if d.closed {
+		d.mu.Unlock()
 		return nil
 	}
 	d.closed = true
-	return d.indexDB.Close()
+	var checkpointErr error
+	if !d.recoveryRequired {
+		checkpointErr = d.checkpointMetadataLocked()
+	}
+	d.mu.Unlock()
+	closeErr := d.indexDB.Close()
+	if checkpointErr != nil {
+		return checkpointErr
+	}
+	return closeErr
 }
 
 func datasetPhysicalName(name string) string {
