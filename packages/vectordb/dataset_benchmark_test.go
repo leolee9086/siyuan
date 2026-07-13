@@ -49,3 +49,48 @@ func BenchmarkDatasetFetchEntities(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkDatasetAddHNSWIndex(b *testing.B) {
+	const (
+		entityCount = 10000
+		dimension   = 128
+	)
+	entities := make([]Entity, entityCount)
+	for entityIndex := range entities {
+		vector := make([]float32, dimension)
+		for dimensionIndex := range vector {
+			vector[dimensionIndex] = float32((entityIndex+1)*(dimensionIndex+3)%101) / 101
+		}
+		entities[entityIndex] = Entity{ID: fmt.Sprintf("entity-%05d", entityIndex), Embeddings: map[string][]float32{"vector": vector}}
+	}
+	config := DefaultConfig()
+	config.M = 8
+	config.EfConstruction = 64
+	config.MetricType = "l2"
+	for iteration := 0; iteration < b.N; iteration++ {
+		b.StopTimer()
+		db, err := Open(b.TempDir())
+		if err != nil {
+			b.Fatal(err)
+		}
+		dataset, err := db.CreateDataset("benchmark", DatasetOptions{
+			Embeddings: map[string]EmbeddingSchema{"vector": {Dimension: dimension, DistanceMetric: "l2"}},
+			Indexes:    map[string]IndexViewOptions{"base": {Embedding: "vector", Engine: EngineHNSW, HNSWConfig: &config}},
+			Entities:   entities,
+		})
+		if err != nil {
+			_ = db.Close()
+			b.Fatal(err)
+		}
+		b.StartTimer()
+		err = dataset.AddIndex("second", IndexViewOptions{Embedding: "vector", Engine: EngineHNSW, HNSWConfig: &config})
+		b.StopTimer()
+		if err != nil {
+			_ = db.Close()
+			b.Fatal(err)
+		}
+		if err := db.Close(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

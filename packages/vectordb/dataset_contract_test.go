@@ -401,6 +401,135 @@ func TestDatasetCanAddAnotherANNViewAndReopenIt(t *testing.T) {
 	}
 }
 
+func TestDatasetAddHNSWIndexFetchesBoundedBatchesWithExactCentroid(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalMaxBatch := datasetHNSWBuildMaxBatchPoints
+	originalFetchHook := datasetIndexBuildFetchHook
+	defer func() {
+		datasetHNSWBuildMaxBatchPoints = originalMaxBatch
+		datasetIndexBuildFetchHook = originalFetchHook
+	}()
+	datasetHNSWBuildMaxBatchPoints = 2
+	fetchSizes := make([]int, 0)
+	datasetIndexBuildFetchHook = func(size int) { fetchSizes = append(fetchSizes, size) }
+	if err := dataset.AddIndex("title-batched", IndexViewOptions{Embedding: "title", Engine: EngineHNSW}); err != nil {
+		t.Fatal(err)
+	}
+	if len(fetchSizes) != 2 || fetchSizes[0] != 2 || fetchSizes[1] != 2 {
+		t.Fatalf("HNSW 动态构建未限制读取批次：%v", fetchSizes)
+	}
+	source := dataset.handles["title-fast"].(*CollectionHandle).col.(*Collection)
+	target := dataset.handles["title-batched"].(*CollectionHandle).col.(*Collection)
+	sourceSums, sourceCount := source.Store.bbqCentroidSums()
+	targetSums, targetCount := target.Store.bbqCentroidSums()
+	if sourceCount != targetCount || len(sourceSums) != len(targetSums) {
+		t.Fatalf("批量构建质心统计量数量不一致：source=%d，target=%d", sourceCount, targetCount)
+	}
+	for dimension := range sourceSums {
+		if math.Abs(sourceSums[dimension]-targetSums[dimension]) > 1e-12 {
+			t.Fatalf("批量构建质心统计量不一致：source=%v，target=%v", sourceSums, targetSums)
+		}
+	}
+	results, err := dataset.SearchIndex("title-batched", []float32{1, 0}, SearchOptions{TopK: 2})
+	if err != nil || len(results) != 2 || results[0].ID != "title-only" {
+		t.Fatalf("批量构建的 HNSW 视图查询错误：results=%+v，err=%v", results, err)
+	}
+}
+
+func TestDatasetAddHNSWIndexCancellationCleansPartialBuild(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalMaxBatch := datasetHNSWBuildMaxBatchPoints
+	originalFetchHook := datasetIndexBuildFetchHook
+	defer func() {
+		datasetHNSWBuildMaxBatchPoints = originalMaxBatch
+		datasetIndexBuildFetchHook = originalFetchHook
+	}()
+	datasetHNSWBuildMaxBatchPoints = 2
+	ctx, cancel := context.WithCancel(context.Background())
+	fetches := 0
+	datasetIndexBuildFetchHook = func(int) {
+		fetches++
+		if fetches == 1 {
+			cancel()
+		}
+	}
+	err = dataset.AddIndexContext(ctx, "title-cancelled", IndexViewOptions{Embedding: "title", Engine: EngineHNSW})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("批量构建取消未返回 context.Canceled：%v", err)
+	}
+	if _, err := dataset.SearchIndex("title-cancelled", []float32{1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexViewNotFound) {
+		t.Fatalf("取消后的索引视图被发布：%v", err)
+	}
+	if _, err := dataset.indexDB.OpenCollection(indexPhysicalName("title-cancelled")); !errors.Is(err, ErrCollectionNotFound) {
+		t.Fatalf("取消后的物理索引未清理：%v", err)
+	}
+}
+
+func TestDatasetAddHNSWIndexStreamsDiskVamanaSourceInTwoPasses(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	entities := []Entity{
+		{ID: "a", Embeddings: map[string][]float32{"vector": {0, 0}}},
+		{ID: "b", Embeddings: map[string][]float32{"vector": {1, 0}}},
+		{ID: "c", Embeddings: map[string][]float32{"vector": {0, 1}}},
+		{ID: "d", Embeddings: map[string][]float32{"vector": {1, 1}}},
+	}
+	datasetAPI, err := db.CreateDataset("documents", DatasetOptions{
+		Embeddings: map[string]EmbeddingSchema{"vector": {Dimension: 2, DistanceMetric: "l2"}},
+		Indexes:    map[string]IndexViewOptions{"disk": {Embedding: "vector", Engine: EngineDiskVamana}},
+		Entities:   entities,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalMaxBatch := datasetHNSWBuildMaxBatchPoints
+	originalFetchHook := datasetIndexBuildFetchHook
+	defer func() {
+		datasetHNSWBuildMaxBatchPoints = originalMaxBatch
+		datasetIndexBuildFetchHook = originalFetchHook
+	}()
+	datasetHNSWBuildMaxBatchPoints = 2
+	fetches := 0
+	datasetIndexBuildFetchHook = func(size int) {
+		if size > 2 {
+			t.Fatalf("DiskVamana 来源读取批次超过上限：%d", size)
+		}
+		fetches++
+	}
+	if err := dataset.AddIndex("memory", IndexViewOptions{Embedding: "vector", Engine: EngineHNSW}); err != nil {
+		t.Fatal(err)
+	}
+	if fetches != 4 {
+		t.Fatalf("DiskVamana 来源未分别流式计算质心和构图：fetches=%d", fetches)
+	}
+	results, err := dataset.SearchIndex("memory", []float32{0, 0}, SearchOptions{TopK: 2})
+	if err != nil || len(results) != 2 || results[0].ID != "a" {
+		t.Fatalf("DiskVamana 来源构建的 HNSW 查询错误：results=%+v，err=%v", results, err)
+	}
+}
+
 func TestDatasetCanAddDiskVamanaViewThroughPublicAPI(t *testing.T) {
 	db, err := Open(t.TempDir())
 	if err != nil {

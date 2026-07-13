@@ -53,6 +53,7 @@ type CollectionOptions struct {
 	HNSWConfig      *CollectionConfig
 	// WALCheckpointBytes 达到该大小后 Stats 会建议执行 checkpoint；零值使用默认阈值。
 	WALCheckpointBytes int64
+	skipInitialSave    bool
 }
 
 // DB 是独立向量数据库包对宿主暴露的稳定入口。
@@ -422,8 +423,10 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 			return nil, err
 		}
 	}
-	if err := SaveCollection(col, db.Path); err != nil {
-		return nil, err
+	if !opts.skipInitialSave {
+		if err := SaveCollection(col, db.Path); err != nil {
+			return nil, err
+		}
 	}
 	return &CollectionHandle{db: db, col: col, state: db.writeState(name)}, nil
 }

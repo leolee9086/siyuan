@@ -218,8 +218,10 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 	var source CollectionAPI
 	for indexName, view := range d.indexes {
 		if view.Embedding == opts.Embedding {
-			source = d.handles[indexName]
-			break
+			candidate := d.handles[indexName]
+			if source == nil || source.Engine() != EngineHNSW && candidate.Engine() == EngineHNSW {
+				source = candidate
+			}
 		}
 	}
 	if source == nil {
@@ -231,10 +233,6 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 		ids = append(ids, id)
 	}
 	d.mu.RUnlock()
-	points, err := source.FetchPoints(ids)
-	if err != nil {
-		return err
-	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -246,10 +244,19 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 	} else if !errors.Is(openErr, ErrCollectionNotFound) {
 		return openErr
 	}
-	handle, err := d.indexDB.CreateCollectionWithOptions(physicalName, CollectionOptions{
-		Engine: opts.Engine, Dimension: schema.Dimension, DistanceMetric: schema.DistanceMetric,
-		Points: points, DiskBuildConfig: opts.DiskBuildConfig, HNSWConfig: opts.HNSWConfig,
-	})
+	var handle CollectionAPI
+	if opts.Engine == EngineHNSW {
+		handle, err = d.buildHNSWIndexView(ctx, physicalName, schema, opts, source, ids)
+	} else {
+		points, fetchErr := fetchDatasetIndexBuildPoints(ctx, source, ids)
+		if fetchErr != nil {
+			return fetchErr
+		}
+		handle, err = d.indexDB.CreateCollectionWithOptions(physicalName, CollectionOptions{
+			Engine: opts.Engine, Dimension: schema.Dimension, DistanceMetric: schema.DistanceMetric,
+			Points: points, DiskBuildConfig: opts.DiskBuildConfig, HNSWConfig: opts.HNSWConfig,
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -274,6 +281,107 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 	d.handles[name] = handle
 	d.mu.Unlock()
 	return publishErr
+}
+
+const datasetHNSWBuildBatchBytes = 8 << 20
+
+var datasetHNSWBuildMaxBatchPoints = 4096
+
+func fetchDatasetIndexBuildPoints(ctx context.Context, source CollectionAPI, ids []string) ([]Point, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	datasetIndexBuildFetchHook(len(ids))
+	return source.FetchPoints(ids)
+}
+
+func (d *Dataset) buildHNSWIndexView(
+	ctx context.Context,
+	physicalName string,
+	schema EmbeddingSchema,
+	opts IndexViewOptions,
+	source CollectionAPI,
+	ids []string,
+) (CollectionAPI, error) {
+	batchSize := datasetHNSWIndexBuildBatchSize(schema.Dimension)
+	var sums []float64
+	var count uint64
+	if sourceHandle, ok := source.(*CollectionHandle); ok {
+		if sourceCollection, ok := sourceHandle.col.(*Collection); ok {
+			sums, count = sourceCollection.Store.bbqCentroidSums()
+		}
+	}
+	if sums == nil {
+		sums = make([]float64, schema.Dimension)
+		for offset := 0; offset < len(ids); offset += batchSize {
+			end := min(offset+batchSize, len(ids))
+			points, err := fetchDatasetIndexBuildPoints(ctx, source, ids[offset:end])
+			if err != nil {
+				return nil, err
+			}
+			for _, point := range points {
+				for dimension, value := range point.Vector {
+					sums[dimension] += float64(value)
+				}
+				count++
+			}
+		}
+	}
+	handle, err := d.indexDB.CreateCollectionWithOptions(physicalName, CollectionOptions{
+		Engine: EngineHNSW, Dimension: schema.Dimension, DistanceMetric: schema.DistanceMetric,
+		HNSWConfig: opts.HNSWConfig, skipInitialSave: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success := false
+	defer func() {
+		if !success {
+			_ = d.indexDB.DeleteCollection(physicalName)
+		}
+	}()
+	collection := handle.(*CollectionHandle).col.(*Collection)
+	if count > 0 {
+		if err := collection.Store.trainBBQCentroidFromSums(sums, count); err != nil {
+			return nil, err
+		}
+	}
+	inserted := uint64(0)
+	for offset := 0; offset < len(ids); offset += batchSize {
+		end := min(offset+batchSize, len(ids))
+		points, err := fetchDatasetIndexBuildPoints(ctx, source, ids[offset:end])
+		if err != nil {
+			return nil, err
+		}
+		for _, point := range points {
+			if err := collection.insertPreparedPoint(point); err != nil {
+				return nil, err
+			}
+			inserted++
+		}
+	}
+	if inserted != count {
+		return nil, fmt.Errorf("%w: HNSW source changed during index build", ErrStorageCorrupted)
+	}
+	if err := SaveCollection(collection, d.indexDB.Path); err != nil {
+		return nil, err
+	}
+	success = true
+	return handle, nil
+}
+
+func datasetHNSWIndexBuildBatchSize(dimension int) int {
+	batchSize := datasetHNSWBuildMaxBatchPoints
+	if batchSize < 1 {
+		batchSize = 1
+	}
+	if dimension > datasetHNSWBuildBatchBytes/4 {
+		return 1
+	}
+	if byBytes := datasetHNSWBuildBatchBytes / (dimension * 4); byBytes < batchSize {
+		return max(1, byBytes)
+	}
+	return batchSize
 }
 
 // DropIndex 删除一个视图，但拒绝删除嵌入字段的最后一个视图。

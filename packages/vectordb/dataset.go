@@ -167,6 +167,9 @@ var _ DatasetAPI = (*Dataset)(nil)
 // datasetIndexBuildHook 仅用于验证构建期间读路径不会被阻塞。
 var datasetIndexBuildHook = func() {}
 
+// datasetIndexBuildFetchHook 仅用于验证动态索引构建的读取批次上限。
+var datasetIndexBuildFetchHook = func(int) {}
+
 // datasetFusionSourceHook 仅用于验证融合查询与数据集事务的线性化边界。
 var datasetFusionSourceHook = func(int, bool) {}
 

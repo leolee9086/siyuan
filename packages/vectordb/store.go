@@ -111,6 +111,31 @@ func (s *VectorStore) TrainBBQCentroid(vectors [][]float32) error {
 	return nil
 }
 
+func (s *VectorStore) bbqCentroidSums() ([]float64, uint64) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return append([]float64(nil), s.centroidSum...), s.centroidCount
+}
+
+func (s *VectorStore) trainBBQCentroidFromSums(sums []float64, count uint64) error {
+	if len(sums) != s.Dimension || count == 0 {
+		return errBBQCentroidDimension
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.vectors) != 0 {
+		return errors.New("BBQ centroid must be trained before inserting vectors")
+	}
+	inverseCount := 1 / float64(count)
+	for index, sum := range sums {
+		s.centroid[index] = float32(sum * inverseCount)
+	}
+	s.centroidEpoch = 1
+	s.centroidTrainingTarget = count
+	s.centroidRebuildAt = nextCentroidRebuildCount(count)
+	return nil
+}
+
 func nextCentroidRebuildCount(count uint64) uint64 {
 	if count == 0 {
 		return 1
