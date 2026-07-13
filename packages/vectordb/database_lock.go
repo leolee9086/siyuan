@@ -83,7 +83,14 @@ func (db *Database) closeAfterOpenFailure() {
 	for _, collection := range db.Collections {
 		collections = append(collections, collection)
 	}
+	datasets := make([]*Dataset, 0, len(db.Datasets))
+	for _, dataset := range db.Datasets {
+		datasets = append(datasets, dataset)
+	}
 	db.mu.RUnlock()
+	for _, dataset := range datasets {
+		_ = dataset.Close()
+	}
 	for _, collection := range collections {
 		_ = collection.Close()
 	}

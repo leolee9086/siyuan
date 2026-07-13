@@ -10,8 +10,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"s-forge.local/vectordb/bbq"
+	"s-forge.local/vectordb/hnsw"
 	"s-forge.local/vectordb/storage"
 	"s-forge.local/vectordb/vamana"
 )
@@ -48,6 +50,7 @@ type CollectionOptions struct {
 	Points          []Point
 	DistanceMetric  string // 距离度量："l2"、"cosine"、"ip"；空字符串表示使用引擎默认
 	DiskBuildConfig *vamana.DiskBuildConfig
+	HNSWConfig      *CollectionConfig
 	// WALCheckpointBytes 达到该大小后 Stats 会建议执行 checkpoint；零值使用默认阈值。
 	WALCheckpointBytes int64
 }
@@ -58,6 +61,9 @@ type DB interface {
 	OpenCollection(name string) (CollectionAPI, error)
 	DeleteCollection(name string) error
 	ListCollectionStats() []CollectionStats
+	CreateDataset(name string, opts DatasetOptions) (DatasetAPI, error)
+	OpenDataset(name string) (DatasetAPI, error)
+	DeleteDataset(name string) error
 	Close() error
 }
 
@@ -200,6 +206,9 @@ func Open(path string) (*Database, error) {
 		db.Collections[name] = c
 		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(c)
 	}
+	if err := db.loadDatasets(); err != nil {
+		return nil, err
+	}
 
 	success = true
 	return db, nil
@@ -297,9 +306,18 @@ func (db *Database) Close() error {
 	for _, col := range db.Collections {
 		handles = append(handles, &CollectionHandle{db: db, col: col, state: db.writeStates[col.Name()]})
 	}
+	datasets := make([]*Dataset, 0, len(db.Datasets))
+	for _, dataset := range db.Datasets {
+		datasets = append(datasets, dataset)
+	}
 	db.mu.RUnlock()
 
 	var firstErr error
+	for _, dataset := range datasets {
+		if err := dataset.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
 	for _, handle := range handles {
 		if err := handle.Close(); err != nil && firstErr == nil {
 			firstErr = err
@@ -327,10 +345,67 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 	if err != nil {
 		return nil, err
 	}
+	var effectiveHNSWConfig *CollectionConfig
+	if opts.HNSWConfig != nil {
+		config := *opts.HNSWConfig
+		defaults := DefaultConfig()
+		if config.M < 1 {
+			config.M = defaults.M
+		}
+		if config.EfConstruction < 1 {
+			config.EfConstruction = defaults.EfConstruction
+		}
+		if config.EfSearch < 1 {
+			config.EfSearch = defaults.EfSearch
+		}
+		if config.MaxLevel < 1 {
+			config.MaxLevel = defaults.MaxLevel
+		}
+		if config.MetricType == "" {
+			config.MetricType = metric
+		}
+		if config.MetricType != metric {
+			return nil, fmt.Errorf("%w: HNSW config metric %q does not match %q", ErrDatasetInvalid, config.MetricType, metric)
+		}
+		effectiveHNSWConfig = &config
+	}
 
-	col, err := db.CreateCollectionWithOptionsRaw(name, dimension, opts.Meta, opts.DistanceMetric)
-	if err != nil {
-		return nil, err
+	var col VectorCollection
+	if effectiveHNSWConfig == nil {
+		col, err = db.CreateCollectionWithOptionsRaw(name, dimension, opts.Meta, opts.DistanceMetric)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		config := *effectiveHNSWConfig
+		db.mu.Lock()
+		existing := db.Collections[name]
+		if existing != nil {
+			collection, ok := existing.(*Collection)
+			if !ok || collection.Dimension() != dimension || collection.Config != config {
+				db.mu.Unlock()
+				return nil, fmt.Errorf("%w: collection %q has a different HNSW configuration", ErrCollectionBusy, name)
+			}
+			col = collection
+		} else {
+			collection := NewCollectionWithMetric(name, dimension, metric)
+			collection.Config = config
+			collection.Store = NewVectorStore(dimension, metric)
+			collection.HNSWIdx = hnsw.NewHNSWIndex(dimension, hnsw.Config{
+				M: config.M, EfConstruction: config.EfConstruction, EfSearch: config.EfSearch,
+				MaxLevel: config.MaxLevel, MetricType: metric,
+			}, collection.Store)
+			meta := opts.Meta
+			if meta.Created == 0 {
+				meta.Created = time.Now().Unix()
+			}
+			meta.Updated = meta.Created
+			collection.Meta = meta
+			db.Collections[name] = collection
+			db.ensureWriteStateLocked(name)
+			col = collection
+		}
+		db.mu.Unlock()
 	}
 	if len(points) > 0 {
 		vectors := make([][]float32, len(points))

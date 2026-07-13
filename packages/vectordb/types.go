@@ -102,13 +102,15 @@ type CollectionInfo struct {
 
 // Database holds multiple named collections.
 type Database struct {
-	Path        string
-	Collections map[string]VectorCollection
-	writeStates map[string]*collectionWriteState
-	mu          sync.RWMutex
-	lockMu      sync.Mutex
-	lock        *databaseLock
-	closed      bool
+	Path             string
+	Collections      map[string]VectorCollection
+	Datasets         map[string]*Dataset
+	datasetsCreating map[string]bool
+	writeStates      map[string]*collectionWriteState
+	mu               sync.RWMutex
+	lockMu           sync.Mutex
+	lock             *databaseLock
+	closed           bool
 }
 
 // VectorCollection is the common interface for both HNSW Collection and VamanaCollection.
@@ -142,9 +144,11 @@ type VectorCollection interface {
 
 func NewDatabase(path string) *Database {
 	return &Database{
-		Path:        path,
-		Collections: make(map[string]VectorCollection),
-		writeStates: make(map[string]*collectionWriteState),
+		Path:             path,
+		Collections:      make(map[string]VectorCollection),
+		Datasets:         make(map[string]*Dataset),
+		datasetsCreating: make(map[string]bool),
+		writeStates:      make(map[string]*collectionWriteState),
 	}
 }
 
