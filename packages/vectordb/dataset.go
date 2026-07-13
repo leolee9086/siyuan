@@ -274,26 +274,39 @@ func (d *Dataset) FetchEntities(ids []string) ([]Entity, error) {
 	if d.recoveryRequired {
 		return nil, ErrIndexRecoveryRequired
 	}
-	result := make([]Entity, 0, len(ids))
-	for _, id := range ids {
-		entity := Entity{ID: id, Meta: append(json.RawMessage(nil), d.metas[id]...), Embeddings: make(map[string][]float32)}
-		for embedding := range d.embeddings {
-			for indexName, view := range d.indexes {
-				if view.Embedding != embedding {
-					continue
-				}
-				points, err := d.handles[indexName].FetchPoints([]string{id})
-				if err != nil {
-					return nil, err
-				}
-				if len(points) > 0 {
-					entity.Embeddings[embedding] = points[0].Vector
-				}
-				break
-			}
+	entities := make([]Entity, len(ids))
+	for position, id := range ids {
+		entities[position] = Entity{ID: id, Meta: append(json.RawMessage(nil), d.metas[id]...), Embeddings: make(map[string][]float32)}
+	}
+	sources := make(map[string]CollectionAPI, len(d.embeddings))
+	for indexName, view := range d.indexes {
+		if sources[view.Embedding] == nil {
+			sources[view.Embedding] = d.handles[indexName]
 		}
-		if len(entity.Embeddings) > 0 {
-			result = append(result, entity)
+	}
+	found := make([]bool, len(ids))
+	for embedding := range d.embeddings {
+		points, err := sources[embedding].FetchPoints(ids)
+		if err != nil {
+			return nil, err
+		}
+		position := 0
+		for _, point := range points {
+			for position < len(ids) && ids[position] != point.ID {
+				position++
+			}
+			if position == len(ids) {
+				continue
+			}
+			entities[position].Embeddings[embedding] = point.Vector
+			found[position] = true
+			position++
+		}
+	}
+	result := entities[:0]
+	for position := range entities {
+		if found[position] {
+			result = append(result, entities[position])
 		}
 	}
 	return result, nil

@@ -985,7 +985,7 @@ func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
 		return nil, ErrIndexRecoveryRequired
 	}
 
-	var points []Point
+	points := make([]Point, 0, len(ids))
 	for _, id := range ids {
 		vec, ok := h.col.GetVectorByID(id)
 		if !ok {

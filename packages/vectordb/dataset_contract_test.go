@@ -259,6 +259,33 @@ func TestDatasetEntityReplacementUpdatesEveryIndexView(t *testing.T) {
 	}
 }
 
+func TestDatasetFetchEntitiesPreservesOrderDuplicatesAndIsolation(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	dataset, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	entities, err := dataset.FetchEntities([]string{"consensus", "missing", "consensus", "title-only"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entities) != 3 || entities[0].ID != "consensus" || entities[1].ID != "consensus" || entities[2].ID != "title-only" {
+		t.Fatalf("批量读取未保持输入顺序和重复 ID：%+v", entities)
+	}
+	if len(entities[0].Embeddings) != 2 || len(entities[2].Embeddings) != 1 {
+		t.Fatalf("批量读取的命名嵌入不完整：%+v", entities)
+	}
+	original := entities[1].Embeddings["title"][0]
+	entities[0].Embeddings["title"][0] = original + 100
+	if entities[1].Embeddings["title"][0] != original {
+		t.Fatal("重复 ID 的返回向量共享了可变切片")
+	}
+}
+
 func TestDatasetCanAddAnotherANNViewAndReopenIt(t *testing.T) {
 	path := t.TempDir()
 	db, err := Open(path)

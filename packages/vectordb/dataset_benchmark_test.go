@@ -1,37 +1,51 @@
 package vectordb
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 )
 
-// BenchmarkDatasetMetadataPersistence100K 对比全量快照与增量 WAL 的同步持久化成本。
-func BenchmarkDatasetMetadataPersistence100K(b *testing.B) {
-	metas := make(map[string]json.RawMessage, 100000)
-	metaV1 := MarshalMeta(map[string]any{"kind": "note", "version": 1})
-	for index := 0; index < 100000; index++ {
-		metas[fmt.Sprintf("entity-%06d", index)] = metaV1
+func BenchmarkDatasetFetchEntities(b *testing.B) {
+	const entityCount = 2048
+	entities := make([]Entity, entityCount)
+	ids := make([]string, entityCount)
+	for index := range entities {
+		id := fmt.Sprintf("entity-%05d", index)
+		ids[index] = id
+		entities[index] = Entity{
+			ID: id,
+			Embeddings: map[string][]float32{
+				"title": {float32(index), 1, 2, 3},
+				"body":  {float32(index), 4, 5, 6},
+			},
+		}
 	}
-	b.Run("full-snapshot", func(b *testing.B) {
-		path := b.TempDir()
-		b.ReportAllocs()
-		b.ResetTimer()
-		for iteration := 0; iteration < b.N; iteration++ {
-			if err := saveDatasetState(path, uint64(iteration+1), metas); err != nil {
-				b.Fatal(err)
-			}
-		}
+	db, err := Open(b.TempDir())
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() { _ = db.Close() })
+	dataset, err := db.CreateDataset("benchmark", DatasetOptions{
+		Embeddings: map[string]EmbeddingSchema{
+			"title": {Dimension: 4, DistanceMetric: "l2"},
+			"body":  {Dimension: 4, DistanceMetric: "l2"},
+		},
+		Indexes: map[string]IndexViewOptions{
+			"title-main": {Embedding: "title", Engine: EngineHNSW},
+			"body-main":  {Embedding: "body", Engine: EngineHNSW},
+		},
+		Entities: entities,
 	})
-	b.Run("single-record-wal", func(b *testing.B) {
-		path := b.TempDir()
-		entity := Entity{ID: "entity-050000", Meta: MarshalMeta(map[string]any{"kind": "note", "version": 2})}
-		b.ReportAllocs()
-		b.ResetTimer()
-		for iteration := 0; iteration < b.N; iteration++ {
-			if err := appendDatasetMetaWAL(path, uint64(iteration+1), []Entity{entity}, nil); err != nil {
-				b.Fatal(err)
-			}
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for iteration := 0; iteration < b.N; iteration++ {
+		fetched, err := dataset.FetchEntities(ids)
+		if err != nil || len(fetched) != entityCount {
+			b.Fatalf("批量读取失败：count=%d，err=%v", len(fetched), err)
 		}
-	})
+	}
 }
