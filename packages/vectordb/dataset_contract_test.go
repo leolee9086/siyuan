@@ -365,6 +365,7 @@ func TestDatasetCanAddAnotherANNViewAndReopenIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
 	if err != nil {
 		t.Fatal(err)
@@ -886,6 +887,111 @@ func TestDatasetAddIndexReplacesUnpublishedPhysicalOrphan(t *testing.T) {
 		if result.ID == "stale-orphan" {
 			t.Fatalf("同名重建复用了未发布 orphan 的陈旧 ID：%+v", results)
 		}
+	}
+}
+
+func TestDatasetAddIndexRecoversVisibleManifestAfterDirectorySyncFailure(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalSyncDirectory := syncParentDirectory
+	failed := false
+	syncParentDirectory = func(path string) error {
+		if !failed && filepath.Base(path) == datasetManifestName {
+			failed = true
+			return errors.New("injected manifest directory sync failure")
+		}
+		return originalSyncDirectory(path)
+	}
+	err = dataset.AddIndex("title-synced", IndexViewOptions{Embedding: "title", Engine: EngineHNSW})
+	syncParentDirectory = originalSyncDirectory
+	if err != nil {
+		t.Fatalf("已可见 manifest 的目录同步重试未恢复：%v", err)
+	}
+	if !failed {
+		t.Fatal("未命中 manifest 目录同步故障注入")
+	}
+	results, err := dataset.SearchIndex("title-synced", []float32{1, 0}, SearchOptions{TopK: 1})
+	if err != nil || len(results) != 1 || results[0].ID != "title-only" {
+		t.Fatalf("同步重试后新索引不可用：results=%+v，err=%v", results, err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	reopened, err := db.OpenDataset("documents")
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err = reopened.SearchIndex("title-synced", []float32{1, 0}, SearchOptions{TopK: 1})
+	if err != nil || len(results) != 1 || results[0].ID != "title-only" {
+		t.Fatalf("重启后同步重试发布的索引不可用：results=%+v，err=%v", results, err)
+	}
+}
+
+func TestDatasetDropIndexRecoversVisibleManifestAfterDirectorySyncFailure(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	if err := dataset.AddIndex("title-drop", IndexViewOptions{Embedding: "title", Engine: EngineDiskVamana}); err != nil {
+		t.Fatal(err)
+	}
+	originalSyncDirectory := syncParentDirectory
+	failed := false
+	syncParentDirectory = func(path string) error {
+		if !failed && filepath.Base(path) == datasetManifestName {
+			failed = true
+			return errors.New("injected manifest directory sync failure")
+		}
+		return originalSyncDirectory(path)
+	}
+	err = dataset.DropIndex("title-drop")
+	syncParentDirectory = originalSyncDirectory
+	if err != nil {
+		t.Fatalf("已可见删除 manifest 的目录同步重试未恢复：%v", err)
+	}
+	if !failed {
+		t.Fatal("未命中删除 manifest 目录同步故障注入")
+	}
+	if _, err := dataset.SearchIndex("title-drop", []float32{1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexViewNotFound) {
+		t.Fatalf("同步重试后已删除索引仍可查询：%v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	reopened, err := db.OpenDataset("documents")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.SearchIndex("title-drop", []float32{1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexViewNotFound) {
+		t.Fatalf("重启后已删除索引复活：%v", err)
 	}
 }
 

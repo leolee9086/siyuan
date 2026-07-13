@@ -263,16 +263,17 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 		FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name,
 		Embeddings: cloneEmbeddingSchemas(d.embeddings), Indexes: newIndexes, IndexSequenceBases: newSequenceBases,
 	}
-	if err := saveDatasetManifest(d.path, manifest); err != nil {
+	published, publishErr := publishDatasetManifest(d.path, manifest)
+	if !published {
 		d.mu.Unlock()
 		_ = d.indexDB.DeleteCollection(physicalName)
-		return err
+		return publishErr
 	}
 	d.indexes = newIndexes
 	d.indexSequenceBases = newSequenceBases
 	d.handles[name] = handle
 	d.mu.Unlock()
-	return nil
+	return publishErr
 }
 
 // DropIndex 删除一个视图，但拒绝删除嵌入字段的最后一个视图。
@@ -299,19 +300,18 @@ func (d *Dataset) DropIndex(name string) error {
 	delete(newIndexes, name)
 	newSequenceBases := cloneDatasetSequenceBases(d.indexSequenceBases)
 	delete(newSequenceBases, name)
-	if err := saveDatasetManifest(d.path, datasetManifest{
+	published, publishErr := publishDatasetManifest(d.path, datasetManifest{
 		FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name,
 		Embeddings: d.embeddings, Indexes: newIndexes, IndexSequenceBases: newSequenceBases,
-	}); err != nil {
-		return err
+	})
+	if !published {
+		return publishErr
 	}
 	d.indexes = newIndexes
 	d.indexSequenceBases = newSequenceBases
 	delete(d.handles, name)
-	if err := d.indexDB.DeleteCollection(indexPhysicalName(name)); err != nil {
-		return err
-	}
-	return nil
+	deleteErr := d.indexDB.DeleteCollection(indexPhysicalName(name))
+	return errors.Join(publishErr, deleteErr)
 }
 
 func cloneDatasetSequenceBases(input map[string]uint64) map[string]uint64 {

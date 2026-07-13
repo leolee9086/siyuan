@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -454,6 +455,24 @@ func saveDatasetManifest(path string, manifest datasetManifest) error {
 		return err
 	}
 	return atomicWriteFile(filepath.Join(path, datasetManifestName), data)
+}
+
+func publishDatasetManifest(path string, manifest datasetManifest) (bool, error) {
+	manifestPath := filepath.Join(path, datasetManifestName)
+	if err := saveDatasetManifest(path, manifest); err != nil {
+		data, readErr := os.ReadFile(manifestPath)
+		if readErr != nil {
+			return false, err
+		}
+		var visible datasetManifest
+		if decodeErr := msgpack.Unmarshal(data, &visible); decodeErr != nil || !reflect.DeepEqual(visible, manifest) {
+			return false, err
+		}
+		if syncErr := syncParentDirectory(manifestPath); syncErr != nil {
+			return true, fmt.Errorf("dataset manifest is visible but directory sync failed: %v; retry: %w", err, syncErr)
+		}
+	}
+	return true, nil
 }
 
 func saveDatasetState(path string, sequence uint64, metas map[string]json.RawMessage) error {
