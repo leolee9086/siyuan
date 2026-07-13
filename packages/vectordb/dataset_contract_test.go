@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -139,6 +140,78 @@ func TestDatasetRRFUsesEntityIdentityWeightsAndSourceDetails(t *testing.T) {
 	}
 	if len(weighted.Results) == 0 || weighted.Results[0].ID != "title-only" {
 		t.Fatalf("RRF 权重未生效：%+v", weighted.Results)
+	}
+	request.Queries[0].Weight = math.NaN()
+	if _, err := dataset.SearchFusion(context.Background(), request); !errors.Is(err, ErrFusionQueryInvalid) {
+		t.Fatalf("RRF 接受了 NaN 权重：%v", err)
+	}
+}
+
+func TestDatasetFusionHoldsOneSnapshotAcrossAllSources(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	originalHook := datasetFusionSourceHook
+	defer func() { datasetFusionSourceHook = originalHook }()
+	firstSourceDone := make(chan struct{})
+	releaseSecondSource := make(chan struct{})
+	defer func() {
+		select {
+		case <-releaseSecondSource:
+		default:
+			close(releaseSecondSource)
+		}
+	}()
+	datasetFusionSourceHook = func(sourceIndex int, completed bool) {
+		if sourceIndex == 0 && completed {
+			close(firstSourceDone)
+		}
+		if sourceIndex == 1 && !completed {
+			<-releaseSecondSource
+		}
+	}
+	fusionDone := make(chan error, 1)
+	go func() {
+		_, fusionErr := dataset.SearchFusion(context.Background(), FusionSearchRequest{
+			TopK: 2,
+			Queries: []FusionQuery{
+				{Index: "title-fast", Vector: []float32{1, 0}, Options: SearchOptions{TopK: 2}},
+				{Index: "body-main", Vector: []float32{0, 0, 0}, Options: SearchOptions{TopK: 2}},
+			},
+		})
+		fusionDone <- fusionErr
+	}()
+	select {
+	case <-firstSourceDone:
+	case <-time.After(time.Second):
+		t.Fatal("第一路融合查询未完成")
+	}
+	writeDone := make(chan error, 1)
+	go func() {
+		_, writeErr := dataset.UpsertEntities(context.Background(), []Entity{{
+			ID:         "during-fusion",
+			Embeddings: map[string][]float32{"title": {-1, 0}, "body": {-1, -1, -1}},
+		}}, WriteOptions{Durability: DurabilitySync})
+		writeDone <- writeErr
+	}()
+	select {
+	case err := <-writeDone:
+		t.Fatalf("写事务穿过了同一次融合查询：%v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(releaseSecondSource)
+	if err := <-fusionDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-writeDone; err != nil {
+		t.Fatal(err)
 	}
 }
 

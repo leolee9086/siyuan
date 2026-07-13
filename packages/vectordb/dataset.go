@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -166,6 +167,9 @@ var _ DatasetAPI = (*Dataset)(nil)
 // datasetIndexBuildHook 仅用于验证构建期间读路径不会被阻塞。
 var datasetIndexBuildHook = func() {}
 
+// datasetFusionSourceHook 仅用于验证融合查询与数据集事务的线性化边界。
+var datasetFusionSourceHook = func(int, bool) {}
+
 func (d *Dataset) lockForWrite() {
 	_ = d.lockForWriteContext(context.Background())
 }
@@ -316,6 +320,10 @@ func (d *Dataset) FetchEntities(ids []string) ([]Entity, error) {
 func (d *Dataset) SearchIndex(index string, query []float32, opts SearchOptions) ([]SearchResult, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	return d.searchIndexLocked(index, query, opts)
+}
+
+func (d *Dataset) searchIndexLocked(index string, query []float32, opts SearchOptions) ([]SearchResult, error) {
 	if d.closed {
 		return nil, ErrCollectionClosed
 	}
@@ -397,7 +405,7 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 	sources := make([]sourceResult, len(request.Queries))
 	for queryIndex := range request.Queries {
 		query := request.Queries[queryIndex]
-		if query.Index == "" || query.Weight < 0 {
+		if query.Index == "" || query.Weight < 0 || math.IsNaN(query.Weight) || math.IsInf(query.Weight, 0) {
 			return FusionSearchResponse{}, ErrFusionQueryInvalid
 		}
 		if query.Weight == 0 {
@@ -409,14 +417,24 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 				query.Options.TopK = request.TopK
 			}
 		}
-		d.mu.RLock()
-		view, exists := d.indexes[query.Index]
-		d.mu.RUnlock()
-		if !exists {
-			return FusionSearchResponse{}, fmt.Errorf("%w: %s", ErrIndexViewNotFound, query.Index)
-		}
 		sources[queryIndex].query = query
-		sources[queryIndex].embedding = view.Embedding
+	}
+	d.mu.RLock()
+	if d.closed {
+		d.mu.RUnlock()
+		return FusionSearchResponse{}, ErrCollectionClosed
+	}
+	if d.recoveryRequired {
+		d.mu.RUnlock()
+		return FusionSearchResponse{}, ErrIndexRecoveryRequired
+	}
+	for sourceIndex := range sources {
+		view, exists := d.indexes[sources[sourceIndex].query.Index]
+		if !exists {
+			d.mu.RUnlock()
+			return FusionSearchResponse{}, fmt.Errorf("%w: %s", ErrIndexViewNotFound, sources[sourceIndex].query.Index)
+		}
+		sources[sourceIndex].embedding = view.Embedding
 	}
 	var wait sync.WaitGroup
 	for queryIndex := range sources {
@@ -425,14 +443,17 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 		wait.Add(1)
 		go func() {
 			defer wait.Done()
+			datasetFusionSourceHook(queryIndex, false)
+			defer datasetFusionSourceHook(queryIndex, true)
 			if err := ctx.Err(); err != nil {
 				sources[queryIndex].err = err
 				return
 			}
-			sources[queryIndex].results, sources[queryIndex].err = d.SearchIndex(query.Index, query.Vector, query.Options)
+			sources[queryIndex].results, sources[queryIndex].err = d.searchIndexLocked(query.Index, query.Vector, query.Options)
 		}()
 	}
 	wait.Wait()
+	d.mu.RUnlock()
 
 	response := FusionSearchResponse{}
 	for _, source := range sources {
@@ -457,7 +478,7 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 				fused = &FusedSearchResult{ID: result.ID, Meta: append(json.RawMessage(nil), result.Meta...)}
 				byID[result.ID] = fused
 			}
-			fused.Score += source.query.Weight / float64(rrfConstant+rank)
+			fused.Score += source.query.Weight / (float64(rrfConstant) + float64(rank))
 			fused.Sources = append(fused.Sources, FusionSource{
 				Index: source.query.Index, Embedding: source.embedding, Rank: rank,
 				Score: result.Score, Distance: result.Distance, Weight: source.query.Weight,
