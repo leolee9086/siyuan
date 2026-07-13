@@ -27,7 +27,9 @@ func (d *Dataset) UpsertEntities(ctx context.Context, entities []Entity, opts Wr
 	if err := validateDatasetWriteOptions(opts); err != nil {
 		return DatasetWriteResult{}, err
 	}
-	d.lockForWrite()
+	if err := d.lockForWriteContext(ctx); err != nil {
+		return DatasetWriteResult{}, err
+	}
 	defer d.mu.Unlock()
 	if d.closed {
 		return DatasetWriteResult{}, ErrCollectionClosed
@@ -66,7 +68,9 @@ func (d *Dataset) DeleteEntities(ctx context.Context, ids []string, opts WriteOp
 			return DatasetWriteResult{}, ErrPointIDInvalid
 		}
 	}
-	d.lockForWrite()
+	if err := d.lockForWriteContext(ctx); err != nil {
+		return DatasetWriteResult{}, err
+	}
 	defer d.mu.Unlock()
 	if d.closed {
 		return DatasetWriteResult{}, ErrCollectionClosed
@@ -158,11 +162,22 @@ func (d *Dataset) recoverPendingLocked() error {
 
 // AddIndex 从同字段现有视图读取向量并原子发布新 ANN 视图。
 func (d *Dataset) AddIndex(name string, opts IndexViewOptions) error {
-	done, err := d.beginIndexBuild()
+	return d.AddIndexContext(context.Background(), name, opts)
+}
+
+// AddIndexContext 支持在等待其他构建或开始构建前取消新增索引。
+func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexViewOptions) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	done, err := d.beginIndexBuildContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer d.endIndexBuild(done)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	datasetIndexBuildHook()
 
 	d.mu.RLock()
@@ -204,6 +219,9 @@ func (d *Dataset) AddIndex(name string, opts IndexViewOptions) error {
 	d.mu.RUnlock()
 	points, err := source.FetchPoints(ids)
 	if err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	physicalName := indexPhysicalName(name)

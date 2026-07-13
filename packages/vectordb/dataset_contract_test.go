@@ -577,6 +577,18 @@ func TestDatasetAddIndexKeepsSearchesAvailableAndQueuesWrites(t *testing.T) {
 		addDone <- dataset.AddIndex("title-online", IndexViewOptions{Embedding: "title", Engine: EngineHNSW})
 	}()
 	<-started
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := dataset.UpsertEntities(cancelled, []Entity{{
+		ID: "cancelled-write",
+		Embeddings: map[string][]float32{
+			"title": {-1, 0},
+			"body":  {-1, -1, -1},
+		},
+	}}, WriteOptions{Durability: DurabilitySync}); !errors.Is(err, context.Canceled) {
+		close(release)
+		t.Fatalf("索引构建期间已取消的写入未及时返回 context.Canceled：%v", err)
+	}
 
 	searchDone := make(chan error, 1)
 	go func() {

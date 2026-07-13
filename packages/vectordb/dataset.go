@@ -105,6 +105,7 @@ type DatasetAPI interface {
 	UpsertEntities(ctx context.Context, entities []Entity, opts WriteOptions) (DatasetWriteResult, error)
 	DeleteEntities(ctx context.Context, ids []string, opts WriteOptions) (DatasetWriteResult, error)
 	AddIndex(name string, opts IndexViewOptions) error
+	AddIndexContext(ctx context.Context, name string, opts IndexViewOptions) error
 	DropIndex(name string) error
 	ListIndexes() []DatasetIndexInfo
 	FetchEntities(ids []string) ([]Entity, error)
@@ -164,24 +165,46 @@ var _ DatasetAPI = (*Dataset)(nil)
 var datasetIndexBuildHook = func() {}
 
 func (d *Dataset) lockForWrite() {
+	_ = d.lockForWriteContext(context.Background())
+}
+
+func (d *Dataset) lockForWriteContext(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	for {
 		d.mu.Lock()
 		if !d.building {
-			return
+			return nil
 		}
 		done := d.buildDone
 		d.mu.Unlock()
-		<-done
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
 func (d *Dataset) beginIndexBuild() (chan struct{}, error) {
+	return d.beginIndexBuildContext(context.Background())
+}
+
+func (d *Dataset) beginIndexBuildContext(ctx context.Context) (chan struct{}, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	for {
 		d.mu.Lock()
 		if d.building {
 			done := d.buildDone
 			d.mu.Unlock()
-			<-done
+			select {
+			case <-done:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 			continue
 		}
 		if d.closed {
@@ -452,7 +475,9 @@ func (d *Dataset) Checkpoint(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	d.lockForWrite()
+	if err := d.lockForWriteContext(ctx); err != nil {
+		return err
+	}
 	defer d.mu.Unlock()
 	if d.closed {
 		return ErrCollectionClosed
