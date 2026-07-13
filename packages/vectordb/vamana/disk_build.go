@@ -210,27 +210,24 @@ func (b *diskBuilder) build() (*DiskBuildResult, error) {
 	// Step 1: Precompute norm squares for fast distance calculation
 	b.precomputeNormSquares()
 
-	// Step 2: Compute medoid
-	b.medoid = b.computeMedoid()
-
-	// Step 3: Build in-memory graph
+	// Step 2: Build in-memory graph and compute the medoid
 	if err := b.buildGraph(); err != nil {
 		return nil, fmt.Errorf("failed to build graph: %w", err)
 	}
 
-	// Step 4: Compute BBQ data if enabled
-	if b.config.EnableBBQ && b.dimension >= bbq.BBQEnableThreshold {
+	// Step 3: Compute BBQ data if enabled
+	if b.config.EnableBBQ && b.dimension >= bbq.BBQEnableThreshold && !b.bbqEnabled {
 		b.bbqEnabled = true
 		b.computeBBQData()
 	}
 
-	// Step 5: Write index file
+	// Step 4: Write index file
 	indexFileSize, err := b.writeIndexFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to write index file: %w", err)
 	}
 
-	// Step 6: Write BBQ file if enabled
+	// Step 5: Write BBQ file if enabled
 	if b.bbqEnabled {
 		if err := b.writeBBQFile(); err != nil {
 			return nil, fmt.Errorf("failed to write BBQ file: %w", err)
@@ -333,6 +330,15 @@ func (b *diskBuilder) buildGraph() error {
 	// Copy neighbors from memory index
 	for i := 0; i < n; i++ {
 		b.neighbors[i] = idx.GetNeighbors(uint32(i))
+	}
+	if b.config.EnableBBQ && b.dimension >= bbq.BBQEnableThreshold {
+		b.bbqEnabled = true
+		b.bbqPacked = idx.bbqPacked
+		b.bbqCentroid = idx.bbqCentroid
+		b.bbqLowerBounds = idx.bbqLowerBounds
+		b.bbqUpperBounds = idx.bbqUpperBounds
+		b.bbqCorrections = idx.bbqCorrections
+		b.bbqQuantizedSums = idx.bbqQuantizedSums
 	}
 
 	// Update medoid from the built index (it may have been refined)

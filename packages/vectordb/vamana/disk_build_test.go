@@ -19,11 +19,44 @@ package vamana
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"s-forge.local/vectordb/bbq"
 	"s-forge.local/vectordb/storage"
 )
+
+func TestDiskBuilderReusesGraphBBQWithoutChangingCodes(t *testing.T) {
+	const (
+		count     = 128
+		dimension = 64
+	)
+	vectors := make([][]float32, count)
+	for vectorIndex := range vectors {
+		vector := make([]float32, dimension)
+		for dimensionIndex := range vector {
+			vector[dimensionIndex] = float32((vectorIndex+1)*(dimensionIndex+5)%97) / 97
+		}
+		vectors[vectorIndex] = vector
+	}
+	config := DefaultDiskBuildConfig()
+	config.BuildSeed = 1
+	config.NumWorkers = 2
+	builder := &diskBuilder{vectors: vectors, dimension: dimension, config: config}
+	if err := builder.buildGraph(); err != nil {
+		t.Fatal(err)
+	}
+	expected := &diskBuilder{vectors: vectors, dimension: dimension, config: config}
+	expected.computeBBQData()
+	if !reflect.DeepEqual(builder.bbqCentroid, expected.bbqCentroid) ||
+		!reflect.DeepEqual(builder.bbqPacked, expected.bbqPacked) ||
+		!reflect.DeepEqual(builder.bbqLowerBounds, expected.bbqLowerBounds) ||
+		!reflect.DeepEqual(builder.bbqUpperBounds, expected.bbqUpperBounds) ||
+		!reflect.DeepEqual(builder.bbqCorrections, expected.bbqCorrections) ||
+		!reflect.DeepEqual(builder.bbqQuantizedSums, expected.bbqQuantizedSums) {
+		t.Fatal("复用的图构建 BBQ 数据与磁盘 builder 重新量化结果不一致")
+	}
+}
 
 // ============================================================================
 // BuildFromVectors Tests - Using SIFT Dataset
