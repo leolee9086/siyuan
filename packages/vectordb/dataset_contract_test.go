@@ -99,6 +99,12 @@ func TestDatasetSupportsNamedEmbeddingsAndMultipleIndexViews(t *testing.T) {
 	if len(grouped) != 2 || grouped[0].ID != "body-only" || grouped[1].ID != "consensus" {
 		t.Fatalf("数据集查询未使用实体级 meta 分组：%+v", grouped)
 	}
+	grouped, err = dataset.SearchIndex("body-main", []float32{0, 0, 0}, SearchOptions{
+		TopK: math.MaxInt, GroupBy: "kind", MaxPerGroup: 1, CandidateMultiplier: math.MaxInt,
+	})
+	if err != nil || len(grouped) != 2 {
+		t.Fatalf("极大分组候选参数发生整数溢出：results=%+v，err=%v", grouped, err)
+	}
 }
 
 func TestDatasetRRFUsesEntityIdentityWeightsAndSourceDetails(t *testing.T) {
@@ -212,6 +218,42 @@ func TestDatasetFusionHoldsOneSnapshotAcrossAllSources(t *testing.T) {
 	}
 	if err := <-writeDone; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDatasetFusionBoundsSourcesCandidatesAndWeights(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	dataset, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tooMany := make([]FusionQuery, MaxFusionSources+1)
+	for index := range tooMany {
+		tooMany[index] = FusionQuery{Index: "title-fast", Vector: []float32{1, 0}}
+	}
+	if _, err := dataset.SearchFusion(context.Background(), FusionSearchRequest{TopK: 1, Queries: tooMany}); !errors.Is(err, ErrFusionQueryInvalid) {
+		t.Fatalf("融合查询未限制来源数量：%v", err)
+	}
+	response, err := dataset.SearchFusion(context.Background(), FusionSearchRequest{
+		TopK: math.MaxInt,
+		Queries: []FusionQuery{
+			{Index: "title-fast", Vector: []float32{1, 0}, Options: SearchOptions{TopK: math.MaxInt}},
+			{Index: "body-main", Vector: []float32{0, 0, 0}},
+		},
+	})
+	if err != nil || len(response.Results) != 4 {
+		t.Fatalf("极大融合 TopK 未按实体数量安全截断：results=%+v，err=%v", response.Results, err)
+	}
+	queries := make([]FusionQuery, DefaultRRFConstant+2)
+	for index := range queries {
+		queries[index] = FusionQuery{Index: "title-fast", Vector: []float32{1, 0}, Weight: math.MaxFloat64}
+	}
+	if _, err := dataset.SearchFusion(context.Background(), FusionSearchRequest{TopK: 1, Queries: queries}); !errors.Is(err, ErrFusionQueryInvalid) {
+		t.Fatalf("融合查询接受了会使累计分数溢出的权重：%v", err)
 	}
 }
 

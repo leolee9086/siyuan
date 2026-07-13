@@ -14,8 +14,12 @@ import (
 	"s-forge.local/vectordb/vamana"
 )
 
-// DefaultRRFConstant 是业界常用的 RRF 排名平滑常数。
-const DefaultRRFConstant = 60
+const (
+	// DefaultRRFConstant 是业界常用的 RRF 排名平滑常数。
+	DefaultRRFConstant = 60
+	// MaxFusionSources 限制单次融合创建的并发 ANN 查询数量。
+	MaxFusionSources = 256
+)
 
 var (
 	ErrDatasetNotFound    = errors.New("dataset not found")
@@ -347,7 +351,10 @@ func (d *Dataset) searchIndexLocked(index string, query []float32, opts SearchOp
 		if multiplier < 1 {
 			multiplier = 4
 		}
-		searchOptions.TopK = requestedTopK * multiplier
+		searchOptions.TopK = len(d.metas)
+		if requestedTopK <= len(d.metas)/multiplier {
+			searchOptions.TopK = requestedTopK * multiplier
+		}
 		searchOptions.GroupBy = ""
 		searchOptions.MaxPerGroup = 0
 	}
@@ -388,7 +395,7 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if request.TopK < 1 || len(request.Queries) == 0 {
+	if request.TopK < 1 || len(request.Queries) == 0 || len(request.Queries) > MaxFusionSources {
 		return FusionSearchResponse{}, ErrFusionQueryInvalid
 	}
 	rrfConstant := request.RRFConstant
@@ -406,19 +413,18 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 		err       error
 	}
 	sources := make([]sourceResult, len(request.Queries))
+	maxWeight := math.MaxFloat64
+	minimumDenominator := float64(rrfConstant) + 1
+	if float64(len(request.Queries)) > minimumDenominator {
+		maxWeight = math.MaxFloat64 / float64(len(request.Queries)) * minimumDenominator
+	}
 	for queryIndex := range request.Queries {
 		query := request.Queries[queryIndex]
-		if query.Index == "" || query.Weight < 0 || math.IsNaN(query.Weight) || math.IsInf(query.Weight, 0) {
+		if query.Index == "" || query.Weight < 0 || query.Weight > maxWeight || math.IsNaN(query.Weight) || math.IsInf(query.Weight, 0) {
 			return FusionSearchResponse{}, ErrFusionQueryInvalid
 		}
 		if query.Weight == 0 {
 			query.Weight = 1
-		}
-		if query.Options.TopK < 1 {
-			query.Options.TopK = request.TopK * 4
-			if query.Options.TopK < request.TopK {
-				query.Options.TopK = request.TopK
-			}
 		}
 		sources[queryIndex].query = query
 	}
@@ -431,11 +437,24 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 		d.mu.RUnlock()
 		return FusionSearchResponse{}, ErrIndexRecoveryRequired
 	}
+	entityCount := len(d.metas)
 	for sourceIndex := range sources {
-		view, exists := d.indexes[sources[sourceIndex].query.Index]
+		query := &sources[sourceIndex].query
+		if query.Options.TopK < 1 {
+			query.Options.TopK = entityCount
+			if request.TopK <= entityCount/4 {
+				query.Options.TopK = request.TopK * 4
+			}
+		} else if query.Options.TopK > entityCount {
+			query.Options.TopK = entityCount
+		}
+		if query.Options.TopK < 1 {
+			query.Options.TopK = 1
+		}
+		view, exists := d.indexes[query.Index]
 		if !exists {
 			d.mu.RUnlock()
-			return FusionSearchResponse{}, fmt.Errorf("%w: %s", ErrIndexViewNotFound, sources[sourceIndex].query.Index)
+			return FusionSearchResponse{}, fmt.Errorf("%w: %s", ErrIndexViewNotFound, query.Index)
 		}
 		sources[sourceIndex].embedding = view.Embedding
 	}
