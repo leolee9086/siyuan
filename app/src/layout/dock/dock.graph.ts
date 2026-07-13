@@ -10,7 +10,7 @@ import { Graph } from "./Graph";
 export function handleGraphDestroy(
     type: string,
     dock: Dock
-): void {
+) {
     if (type !== "graph" && type !== "globalGraph") {
         return;
     }
@@ -30,7 +30,7 @@ export function handleGraphDestroy(
 /**
  * 处理 Graph 显示
  */
-export function handleGraphShow(type: string, dock: Dock): void {
+export function handleGraphShow(type: string, dock: Dock) {
     if (type !== "graph" && type !== "globalGraph") {
         return;
     }
@@ -44,7 +44,7 @@ export function handleGraphShow(type: string, dock: Dock): void {
 /**
  * 处理全屏 Graph 的拖动条显示/隐藏
  */
-export function handleGraphFullscreenDrag(type: string, dock: Dock, show: boolean): void {
+export function handleGraphFullscreenDrag(type: string, dock: Dock, show: boolean) {
     if (type !== "graph" && type !== "globalGraph") {
         return;
     }

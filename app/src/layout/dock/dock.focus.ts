@@ -16,7 +16,7 @@ export function handlePanelFocusSwitch(
     wnd: Wnd,
     target: HTMLElement,
     dock: Dock
-): boolean {
+) {
     const tabContainer = wnd.element.querySelector(".layout-tab-container");
     if (!tabContainer) {
         return false;
@@ -55,7 +55,7 @@ export function handlePanelFocusSwitch(
 /**
  * 关闭 dock 后设置光标
  */
-export function handlePostCloseFocus(isSaveLayout: boolean): void {
+export function handlePostCloseFocus(isSaveLayout: boolean) {
     if (!isSaveLayout) {
         return;
     }
@@ -86,7 +86,7 @@ export function handlePostCloseFocus(isSaveLayout: boolean): void {
 /**
  * 处理 tab 切换（显示/隐藏）
  */
-export function handleTabSwitch(wnd: Wnd, targetDataId: string | null): void {
+export function handleTabSwitch(wnd: Wnd, targetDataId: string | null) {
     const tabContainer = wnd.element.querySelector(".layout-tab-container");
     if (!tabContainer) {
         return;
@@ -110,7 +110,7 @@ export function handleTabSwitch(wnd: Wnd, targetDataId: string | null): void {
 /**
  * 模糊当前活动元素
  */
-export function blurActiveElement(): void {
+export function blurActiveElement() {
     const activeElement = document.activeElement;
     /**
      * 意图：类型守卫，确保 activeElement 是 HTMLElement 以便安全调用 blur()。
