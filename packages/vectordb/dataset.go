@@ -138,6 +138,7 @@ type DatasetStats struct {
 	MetadataWALBytes      int64
 	CheckpointRecommended bool
 	IndexBuilding         bool
+	RecoveryRequired      bool
 	Embeddings            map[string]EmbeddingSchema
 	Indexes               map[string]IndexViewOptions
 }
@@ -245,6 +246,7 @@ func (d *Dataset) Stats() DatasetStats {
 		MetadataWALBytes:      walBytes,
 		CheckpointRecommended: walBytes >= datasetMetaWALCheckpointBytes,
 		IndexBuilding:         d.building,
+		RecoveryRequired:      d.recoveryRequired,
 		Embeddings:            cloneEmbeddingSchemas(d.embeddings), Indexes: cloneIndexViews(d.indexes),
 	}
 }

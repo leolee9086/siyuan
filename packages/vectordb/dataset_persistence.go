@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/vmihailenco/msgpack/v5"
@@ -150,6 +151,22 @@ func (db *Database) OpenDataset(name string) (DatasetAPI, error) {
 		return nil, fmt.Errorf("%w: %s", ErrDatasetNotFound, name)
 	}
 	return dataset, nil
+}
+
+// ListDatasetStats 返回按名称排序的所有数据集健康和 schema 摘要。
+func (db *Database) ListDatasetStats() []DatasetStats {
+	db.mu.RLock()
+	datasets := make([]*Dataset, 0, len(db.Datasets))
+	for _, dataset := range db.Datasets {
+		datasets = append(datasets, dataset)
+	}
+	db.mu.RUnlock()
+	stats := make([]DatasetStats, 0, len(datasets))
+	for _, dataset := range datasets {
+		stats = append(stats, dataset.Stats())
+	}
+	sort.Slice(stats, func(i, j int) bool { return stats[i].Name < stats[j].Name })
+	return stats
 }
 
 // DeleteDataset 先发布删除意图，再关闭并清理全部物理视图。

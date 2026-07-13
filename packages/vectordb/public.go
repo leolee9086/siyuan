@@ -64,6 +64,7 @@ type DB interface {
 	CreateDataset(name string, opts DatasetOptions) (DatasetAPI, error)
 	OpenDataset(name string) (DatasetAPI, error)
 	DeleteDataset(name string) error
+	ListDatasetStats() []DatasetStats
 	Close() error
 }
 

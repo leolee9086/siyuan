@@ -427,6 +427,10 @@ func TestDatasetBlocksSearchUntilFailedTransactionIsRecovered(t *testing.T) {
 	if !failedResult.Committed || failedResult.IndexHealthy || failedResult.CommitSequence == 0 || !errors.Is(writeErr, ErrIndexRecoveryRequired) {
 		t.Fatalf("跨视图失败事务结果未表达已提交但不健康：result=%+v，err=%v", failedResult, writeErr)
 	}
+	stats := db.ListDatasetStats()
+	if len(stats) != 1 || !stats[0].RecoveryRequired || stats[0].CommitSequence != failedResult.CommitSequence-1 {
+		t.Fatalf("事务恢复健康状态未暴露：%+v", stats)
+	}
 	if _, err := dataset.SearchIndex("title-fast", []float32{-1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, ErrIndexRecoveryRequired) {
 		t.Fatalf("部分提交后查询未被阻断：%v", err)
 	}
