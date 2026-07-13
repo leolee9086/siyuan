@@ -17,9 +17,13 @@
 package bbq
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"sync"
 )
+
+var ErrQuantizerInput = errors.New("invalid quantizer input")
 
 // =========================================
 // BBQ 标量量化器
@@ -84,15 +88,38 @@ func NewScalarQuantizer(similarity SimilarityType) *ScalarQuantizer {
 	}
 }
 
-// Quantize 标量量化 对向量进行标量量化
-// 参数:
-//   - vector: 输入向量
-//   - dest: 量化结果存储数组 (会被修改)
-//   - bits: 量化位数 (1-8)
-//   - centroid: 质心向量 (用于中心化)
-//
-// 返回: 量化结果元数据
+// NewScalarQuantizerWithTuning 创建使用显式各向异性权重和优化轮数的量化器。
+// 它用于离线标定不同数据分布；非法参数保留默认值。
+func NewScalarQuantizerWithTuning(similarity SimilarityType, lambda float32, iterations int) *ScalarQuantizer {
+	quantizer := NewScalarQuantizer(similarity)
+	if lambda >= 0 && lambda <= 1 {
+		quantizer.lambda = lambda
+	}
+	if iterations >= 0 {
+		quantizer.iterations = iterations
+	}
+	return quantizer
+}
+
+// QuantizeChecked 严格校验输入后执行标量量化。
+func (q *ScalarQuantizer) QuantizeChecked(vector []float32, dest []byte, bits int, centroid []float32) (QuantizationResult, error) {
+	if len(vector) == 0 || len(vector) != len(centroid) || len(dest) != len(vector) {
+		return QuantizationResult{}, fmt.Errorf("%w: vector=%d centroid=%d destination=%d", ErrQuantizerInput, len(vector), len(centroid), len(dest))
+	}
+	if bits < 1 || bits > 8 {
+		return QuantizationResult{}, fmt.Errorf("%w: bits=%d", ErrQuantizerInput, bits)
+	}
+	return q.quantize(vector, dest, bits, centroid), nil
+}
+
+// Quantize 保留无错兼容签名；非法输入返回零校正结果而不触发 panic。
 func (q *ScalarQuantizer) Quantize(vector []float32, dest []byte, bits int, centroid []float32) QuantizationResult {
+	result, _ := q.QuantizeChecked(vector, dest, bits, centroid)
+	return result
+}
+
+// quantize 对已经验证的输入执行标量量化。
+func (q *ScalarQuantizer) quantize(vector []float32, dest []byte, bits int, centroid []float32) QuantizationResult {
 	dimension := len(vector)
 
 	// 1. 计算质心点积 (非欧氏距离需要)
