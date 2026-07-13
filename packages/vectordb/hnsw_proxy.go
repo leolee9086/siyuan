@@ -92,6 +92,44 @@ func (c *Collection) insertPreparedPoint(point Point) error {
 	return nil
 }
 
+func (c *Collection) borrowPointsForIndexBuild(ids []string) []Point {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	c.Store.mu.RLock()
+	defer c.Store.mu.RUnlock()
+	points := make([]Point, 0, len(ids))
+	for _, id := range ids {
+		docID, exists := c.IDMap[id]
+		if !exists {
+			continue
+		}
+		offset := int(docID) * c.ColDim
+		end := offset + c.ColDim
+		if end > len(c.Store.vectors) {
+			continue
+		}
+		vector := c.Store.vectors[offset:end:end]
+		var meta json.RawMessage
+		if int(docID) < len(c.Metas) {
+			meta = append(json.RawMessage(nil), c.Metas[docID]...)
+		}
+		points = append(points, Point{ID: id, Vector: vector, Meta: meta})
+	}
+	return points
+}
+
+func (c *Collection) orderedIDsForIndexBuild() []string {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	ids := make([]string, 0, len(c.IDMap))
+	for _, id := range c.DocMap {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
 // Search searches for k nearest neighbors.
 func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
 	results, _ := c.SearchWithError(queryVec, k, efSearch)

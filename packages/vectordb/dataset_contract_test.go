@@ -466,7 +466,7 @@ func TestDatasetAddHNSWIndexFetchesBoundedBatchesWithExactCentroid(t *testing.T)
 	if err := dataset.AddIndex("title-batched", IndexViewOptions{Embedding: "title", Engine: EngineHNSW}); err != nil {
 		t.Fatal(err)
 	}
-	if len(fetchSizes) != 2 || fetchSizes[0] != 2 || fetchSizes[1] != 2 {
+	if len(fetchSizes) != 2 || fetchSizes[0] != 2 || fetchSizes[1] != 1 {
 		t.Fatalf("HNSW 动态构建未限制读取批次：%v", fetchSizes)
 	}
 	source := dataset.handles["title-fast"].(*CollectionHandle).col.(*Collection)

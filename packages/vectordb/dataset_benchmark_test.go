@@ -2,6 +2,9 @@ package vectordb
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"testing"
 
 	"s-forge.local/vectordb/vamana"
@@ -53,18 +56,17 @@ func BenchmarkDatasetFetchEntities(b *testing.B) {
 }
 
 func BenchmarkDatasetAddHNSWIndex(b *testing.B) {
-	const (
-		entityCount = 10000
-		dimension   = 128
-	)
-	entities := make([]Entity, entityCount)
-	for entityIndex := range entities {
-		vector := make([]float32, dimension)
-		for dimensionIndex := range vector {
-			vector[dimensionIndex] = float32((entityIndex+1)*(dimensionIndex+3)%101) / 101
-		}
-		entities[entityIndex] = Entity{ID: fmt.Sprintf("entity-%05d", entityIndex), Embeddings: map[string][]float32{"vector": vector}}
+	for _, entityCount := range datasetIndexBenchmarkScales(b) {
+		entityCount := entityCount
+		b.Run(formatDatasetBenchmarkScale(entityCount), func(b *testing.B) {
+			benchmarkDatasetAddHNSWIndex(b, entityCount)
+		})
 	}
+}
+
+func benchmarkDatasetAddHNSWIndex(b *testing.B, entityCount int) {
+	const dimension = 128
+	entities := datasetBenchmarkEntities(entityCount, dimension)
 	config := DefaultConfig()
 	config.M = 8
 	config.EfConstruction = 64
@@ -98,23 +100,23 @@ func BenchmarkDatasetAddHNSWIndex(b *testing.B) {
 }
 
 func BenchmarkDatasetAddDiskVamanaIndex(b *testing.B) {
-	const (
-		entityCount = 10000
-		dimension   = 128
-	)
-	entities := make([]Entity, entityCount)
-	for entityIndex := range entities {
-		vector := make([]float32, dimension)
-		for dimensionIndex := range vector {
-			vector[dimensionIndex] = float32((entityIndex+1)*(dimensionIndex+3)%101) / 101
-		}
-		entities[entityIndex] = Entity{ID: fmt.Sprintf("entity-%05d", entityIndex), Embeddings: map[string][]float32{"vector": vector}}
+	for _, entityCount := range datasetIndexBenchmarkScales(b) {
+		entityCount := entityCount
+		b.Run(formatDatasetBenchmarkScale(entityCount), func(b *testing.B) {
+			benchmarkDatasetAddDiskVamanaIndex(b, entityCount)
+		})
 	}
+}
+
+func benchmarkDatasetAddDiskVamanaIndex(b *testing.B, entityCount int) {
+	const dimension = 128
+	entities := datasetBenchmarkEntities(entityCount, dimension)
 	hnswConfig := DefaultConfig()
 	hnswConfig.M = 8
 	hnswConfig.EfConstruction = 64
 	hnswConfig.MetricType = "l2"
 	diskConfig := vamana.DefaultDiskBuildConfig()
+	diskConfig.BuildSeed = 1
 	for iteration := 0; iteration < b.N; iteration++ {
 		b.StopTimer()
 		db, err := Open(b.TempDir())
@@ -141,4 +143,47 @@ func BenchmarkDatasetAddDiskVamanaIndex(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func datasetBenchmarkEntities(entityCount, dimension int) []Entity {
+	entities := make([]Entity, entityCount)
+	for entityIndex := range entities {
+		vector := make([]float32, dimension)
+		for dimensionIndex := range vector {
+			vector[dimensionIndex] = float32((entityIndex+1)*(dimensionIndex+3)%101) / 101
+		}
+		entities[entityIndex] = Entity{ID: fmt.Sprintf("entity-%07d", entityIndex), Embeddings: map[string][]float32{"vector": vector}}
+	}
+	return entities
+}
+
+func datasetIndexBenchmarkScales(b *testing.B) []int {
+	b.Helper()
+	if raw := os.Getenv("VECTORDB_DATASET_BENCH_SCALES"); raw != "" {
+		parts := strings.Split(raw, ",")
+		scales := make([]int, 0, len(parts))
+		for _, part := range parts {
+			scale, err := strconv.Atoi(strings.TrimSpace(part))
+			if err != nil || scale < 1 {
+				b.Fatalf("VECTORDB_DATASET_BENCH_SCALES 包含非法规模 %q", part)
+			}
+			scales = append(scales, scale)
+		}
+		return scales
+	}
+	scales := []int{10_000, 30_000, 100_000}
+	if os.Getenv("VECTORDB_SCALE_TEST") == "1" {
+		scales = append(scales, 300_000, 1_000_000)
+	}
+	return scales
+}
+
+func formatDatasetBenchmarkScale(scale int) string {
+	if scale%1_000_000 == 0 {
+		return fmt.Sprintf("%dM", scale/1_000_000)
+	}
+	if scale%1_000 == 0 {
+		return fmt.Sprintf("%dK", scale/1_000)
+	}
+	return strconv.Itoa(scale)
 }

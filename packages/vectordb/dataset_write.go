@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -228,9 +229,17 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 		d.mu.RUnlock()
 		return fmt.Errorf("%w: no source index for embedding %q", ErrIndexViewNotFound, opts.Embedding)
 	}
-	ids := make([]string, 0, len(d.metas))
-	for id := range d.metas {
-		ids = append(ids, id)
+	var ids []string
+	if sourceHandle, ok := source.(*CollectionHandle); ok {
+		if sourceCollection, ok := sourceHandle.col.(*Collection); ok {
+			ids = sourceCollection.orderedIDsForIndexBuild()
+		}
+	}
+	if ids == nil {
+		ids = make([]string, 0, len(d.metas))
+		for id := range d.metas {
+			ids = append(ids, id)
+		}
 	}
 	d.mu.RUnlock()
 	if err := ctx.Err(); err != nil {
@@ -287,12 +296,38 @@ const datasetHNSWBuildBatchBytes = 8 << 20
 
 var datasetHNSWBuildMaxBatchPoints = 4096
 
+const datasetIndexBuildWarmBytes = 8 << 20
+
 func fetchDatasetIndexBuildPoints(ctx context.Context, source CollectionAPI, ids []string) ([]Point, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	datasetIndexBuildFetchHook(len(ids))
+	if sourceHandle, ok := source.(*CollectionHandle); ok {
+		if sourceCollection, ok := sourceHandle.col.(*Collection); ok {
+			points := sourceCollection.borrowPointsForIndexBuild(ids)
+			warmBorrowedIndexBuildPoints(points)
+			return points, nil
+		}
+	}
 	return source.FetchPoints(ids)
+}
+
+func warmBorrowedIndexBuildPoints(points []Point) {
+	bytes := 0
+	for _, point := range points {
+		if len(point.Vector) > (datasetIndexBuildWarmBytes-bytes)/4 {
+			return
+		}
+		bytes += len(point.Vector) * 4
+	}
+	var sink float32
+	for _, point := range points {
+		for offset := 0; offset < len(point.Vector); offset += 16 {
+			sink += point.Vector[offset]
+		}
+	}
+	runtime.KeepAlive(sink)
 }
 
 func (d *Dataset) buildHNSWIndexView(
