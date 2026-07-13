@@ -788,3 +788,267 @@ func TestDatasetAddIndexReplacesUnpublishedPhysicalOrphan(t *testing.T) {
 		}
 	}
 }
+
+func TestDatasetRestartRecoverySkipsAppliedHNSWAndDiskVamanaViews(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := datasetContractOptions()
+	options.Indexes["title-second"] = IndexViewOptions{Embedding: "title", Engine: EngineDiskVamana}
+	datasetAPI, err := db.CreateDataset("documents", options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	entity := Entity{ID: "wal-applied", Embeddings: map[string][]float32{"title": {-1, 0}, "body": {-1, -1, -1}}, Meta: MarshalMeta(map[string]any{"recovered": true})}
+	titlePoint := Point{ID: entity.ID, Vector: entity.Embeddings["title"]}
+	for _, indexName := range []string{"title-fast", "title-second"} {
+		if _, err := dataset.handles[indexName].Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &titlePoint}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+			t.Fatalf("预应用视图 %q：%v", indexName, err)
+		}
+	}
+	if err := saveDatasetTransaction(dataset.path, datasetTransaction{Sequence: 1, Upserts: []Entity{entity}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	originalPersist := persistWriteCollection
+	defer func() { persistWriteCollection = originalPersist }()
+	persistCalls := make(map[string]int)
+	persistWriteCollection = func(handle *CollectionHandle, operations []WriteOperation, sequence uint64) error {
+		persistCalls[handle.Name()]++
+		return originalPersist(handle, operations, sequence)
+	}
+	db, err = Open(path)
+	persistWriteCollection = originalPersist
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if persistCalls[indexPhysicalName("title-fast")] != 0 || persistCalls[indexPhysicalName("title-second")] != 0 || persistCalls[indexPhysicalName("body-main")] != 1 {
+		t.Fatalf("重启恢复未跳过已应用的 HNSW 与 DiskVamana 视图：%v", persistCalls)
+	}
+	reopenedAPI, err := db.OpenDataset("documents")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened := reopenedAPI.(*Dataset)
+	for _, index := range []string{"title-fast", "title-second", "body-main"} {
+		results, err := reopened.SearchIndex(index, []float32{-1, 0}, SearchOptions{TopK: 1})
+		if index == "body-main" {
+			results, err = reopened.SearchIndex(index, []float32{-1, -1, -1}, SearchOptions{TopK: 1})
+		}
+		if err != nil || len(results) != 1 || results[0].ID != entity.ID {
+			t.Fatalf("视图 %q 恢复结果错误：results=%+v，err=%v", index, results, err)
+		}
+	}
+	if !bytes.Contains(reopened.metas[entity.ID], []byte("recovered")) {
+		t.Fatal("集合 WAL 已应用时中央 meta 未恢复")
+	}
+}
+
+func TestDatasetRestartRecoveryUsesDynamicIndexSequenceBase(t *testing.T) {
+	for _, engine := range []Engine{EngineHNSW, EngineDiskVamana} {
+		t.Run(string(engine), func(t *testing.T) {
+			path := t.TempDir()
+			db, err := Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+			if err != nil {
+				t.Fatal(err)
+			}
+			dataset := datasetAPI.(*Dataset)
+			if _, err := dataset.UpsertEntities(context.Background(), []Entity{{
+				ID: "before-late-index",
+				Embeddings: map[string][]float32{
+					"title": {-0.5, 0.5},
+					"body":  {-0.5, -0.5, -0.5},
+				},
+			}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+				t.Fatal(err)
+			}
+			if err := dataset.AddIndex("title-late", IndexViewOptions{Embedding: "title", Engine: engine}); err != nil {
+				t.Fatal(err)
+			}
+			if dataset.indexSequenceBases["title-late"] != 1 {
+				t.Fatalf("动态索引未记录当前数据集序号作为基线：%v", dataset.indexSequenceBases)
+			}
+			entity := Entity{
+				ID:         "late-index-applied",
+				Embeddings: map[string][]float32{"title": {-1, 0}, "body": {-1, -1, -1}},
+				Meta:       MarshalMeta(map[string]any{"dynamic": true}),
+			}
+			point := Point{ID: entity.ID, Vector: entity.Embeddings["title"]}
+			if _, err := dataset.handles["title-late"].Write(context.Background(), WriteBatch{Operations: []WriteOperation{{Point: &point}}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+				t.Fatal(err)
+			}
+			if err := saveDatasetTransaction(dataset.path, datasetTransaction{Sequence: 2, Upserts: []Entity{entity}}); err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			originalPersist := persistWriteCollection
+			persistCalls := make(map[string]int)
+			persistWriteCollection = func(handle *CollectionHandle, operations []WriteOperation, sequence uint64) error {
+				persistCalls[handle.Name()]++
+				return originalPersist(handle, operations, sequence)
+			}
+			db, err = Open(path)
+			persistWriteCollection = originalPersist
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			if persistCalls[indexPhysicalName("title-late")] != 0 {
+				t.Fatalf("动态 %s 索引因物理序号从零开始而被重复应用：%v", engine, persistCalls)
+			}
+			for _, indexName := range []string{"title-fast", "title-second", "body-main"} {
+				if persistCalls[indexPhysicalName(indexName)] != 1 {
+					t.Fatalf("落后视图 %q 未恢复一次：%v", indexName, persistCalls)
+				}
+			}
+			reopened, err := db.OpenDataset("documents")
+			if err != nil {
+				t.Fatal(err)
+			}
+			results, err := reopened.SearchIndex("title-late", []float32{-1, 0}, SearchOptions{TopK: 1})
+			if err != nil || len(results) != 1 || results[0].ID != entity.ID || !bytes.Contains(results[0].Meta, []byte("dynamic")) {
+				t.Fatalf("动态索引恢复结果错误：results=%+v，err=%v", results, err)
+			}
+		})
+	}
+}
+
+func TestDatasetOpenMigratesLegacyDynamicIndexSequenceBases(t *testing.T) {
+	path := t.TempDir()
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+	if _, err := dataset.UpsertEntities(context.Background(), []Entity{{
+		ID:         "before-legacy-index",
+		Embeddings: map[string][]float32{"title": {-1, 0}, "body": {-1, -1, -1}},
+	}}, WriteOptions{Durability: DurabilitySync}); err != nil {
+		t.Fatal(err)
+	}
+	if err := dataset.AddIndex("title-legacy", IndexViewOptions{Embedding: "title", Engine: EngineDiskVamana}); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(dataset.path, datasetManifestName)
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	manifestBytes, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest datasetManifest
+	if err := msgpack.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.IndexSequenceBases["title-legacy"] != 1 {
+		t.Fatalf("测试前动态索引基线错误：%v", manifest.IndexSequenceBases)
+	}
+	manifest.IndexSequenceBases = nil
+	if err := saveDatasetManifest(filepath.Dir(manifestPath), manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	reopenedAPI, err := db.OpenDataset("documents")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened := reopenedAPI.(*Dataset)
+	if reopened.indexSequenceBases["title-legacy"] != 1 {
+		t.Fatalf("旧 manifest 未推导动态索引基线：%v", reopened.indexSequenceBases)
+	}
+	manifestBytes, err = os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := msgpack.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.IndexSequenceBases["title-legacy"] != 1 || len(manifest.IndexSequenceBases) != len(manifest.Indexes) {
+		t.Fatalf("推导后的索引基线未持久化：bases=%v，indexes=%v", manifest.IndexSequenceBases, manifest.Indexes)
+	}
+}
+
+func TestDatasetRecoversMetadataWALSyncFailureWithoutRewritingViews(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	datasetAPI, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := datasetAPI.(*Dataset)
+
+	originalSyncDirectory := syncParentDirectory
+	defer func() { syncParentDirectory = originalSyncDirectory }()
+	injected := errors.New("injected metadata WAL directory sync failure")
+	failMetadataSync := true
+	syncParentDirectory = func(path string) error {
+		if failMetadataSync && filepath.Base(path) == datasetMetaWALName {
+			failMetadataSync = false
+			return injected
+		}
+		return originalSyncDirectory(path)
+	}
+	pending := Entity{
+		ID:         "metadata-pending",
+		Embeddings: map[string][]float32{"title": {-1, 0}, "body": {-1, -1, -1}},
+		Meta:       MarshalMeta(map[string]any{"transaction": 1}),
+	}
+	result, writeErr := dataset.UpsertEntities(context.Background(), []Entity{pending}, WriteOptions{Durability: DurabilitySync})
+	syncParentDirectory = originalSyncDirectory
+	if !errors.Is(writeErr, ErrIndexRecoveryRequired) || !result.Committed || result.IndexHealthy {
+		t.Fatalf("metadata WAL 同步失败未暴露待恢复事务：result=%+v，err=%v", result, writeErr)
+	}
+
+	originalPersist := persistWriteCollection
+	defer func() { persistWriteCollection = originalPersist }()
+	persistCalls := make(map[string]int)
+	persistWriteCollection = func(handle *CollectionHandle, operations []WriteOperation, sequence uint64) error {
+		persistCalls[handle.Name()]++
+		return originalPersist(handle, operations, sequence)
+	}
+	next := Entity{
+		ID:         "after-metadata-recovery",
+		Embeddings: map[string][]float32{"title": {0, -1}, "body": {-2, -2, -2}},
+		Meta:       MarshalMeta(map[string]any{"transaction": 2}),
+	}
+	result, err = dataset.UpsertEntities(context.Background(), []Entity{next}, WriteOptions{Durability: DurabilitySync})
+	persistWriteCollection = originalPersist
+	if err != nil || !result.Committed || !result.IndexHealthy || result.CommitSequence != 2 {
+		t.Fatalf("metadata WAL 故障后无法恢复并继续写入：result=%+v，err=%v", result, err)
+	}
+	for _, indexName := range []string{"title-fast", "title-second", "body-main"} {
+		if persistCalls[indexPhysicalName(indexName)] != 1 {
+			t.Fatalf("恢复旧事务时重复写入视图 %q：%v", indexName, persistCalls)
+		}
+	}
+	entities, err := dataset.FetchEntities([]string{pending.ID, next.ID})
+	if err != nil || len(entities) != 2 || !bytes.Contains(entities[0].Meta, []byte("transaction")) || !bytes.Contains(entities[1].Meta, []byte("transaction")) {
+		t.Fatalf("metadata WAL 恢复后实体真相不完整：entities=%+v，err=%v", entities, err)
+	}
+}

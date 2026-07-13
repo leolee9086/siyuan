@@ -27,11 +27,12 @@ const (
 )
 
 type datasetManifest struct {
-	FormatMajor uint32                      `msgpack:"formatMajor"`
-	FormatMinor uint32                      `msgpack:"formatMinor"`
-	Name        string                      `msgpack:"name"`
-	Embeddings  map[string]EmbeddingSchema  `msgpack:"embeddings"`
-	Indexes     map[string]IndexViewOptions `msgpack:"indexes"`
+	FormatMajor        uint32                      `msgpack:"formatMajor"`
+	FormatMinor        uint32                      `msgpack:"formatMinor"`
+	Name               string                      `msgpack:"name"`
+	Embeddings         map[string]EmbeddingSchema  `msgpack:"embeddings"`
+	Indexes            map[string]IndexViewOptions `msgpack:"indexes"`
+	IndexSequenceBases map[string]uint64           `msgpack:"indexSequenceBases,omitempty"`
 }
 
 type datasetState struct {
@@ -97,7 +98,8 @@ func (db *Database) CreateDataset(name string, opts DatasetOptions) (DatasetAPI,
 	dataset := &Dataset{
 		name: name, path: path, indexDB: indexDB, embeddings: opts.Embeddings,
 		indexes: opts.Indexes, handles: make(map[string]CollectionAPI, len(opts.Indexes)),
-		metas: make(map[string]json.RawMessage, len(opts.Entities)),
+		indexSequenceBases: make(map[string]uint64, len(opts.Indexes)),
+		metas:              make(map[string]json.RawMessage, len(opts.Entities)),
 	}
 	success := false
 	defer func() {
@@ -107,6 +109,7 @@ func (db *Database) CreateDataset(name string, opts DatasetOptions) (DatasetAPI,
 	}()
 
 	for indexName, view := range opts.Indexes {
+		dataset.indexSequenceBases[indexName] = 0
 		points := pointsForEmbedding(opts.Entities, view.Embedding)
 		schema := opts.Embeddings[view.Embedding]
 		handle, createErr := indexDB.CreateCollectionWithOptions(indexPhysicalName(indexName), CollectionOptions{
@@ -126,7 +129,7 @@ func (db *Database) CreateDataset(name string, opts DatasetOptions) (DatasetAPI,
 	}
 	if err := saveDatasetManifest(path, datasetManifest{
 		FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: name,
-		Embeddings: dataset.embeddings, Indexes: dataset.indexes,
+		Embeddings: dataset.embeddings, Indexes: dataset.indexes, IndexSequenceBases: dataset.indexSequenceBases,
 	}); err != nil {
 		return nil, err
 	}
@@ -264,6 +267,22 @@ func (db *Database) loadDatasets() error {
 		if _, err := CheckFormatCompatibility(manifest.FormatMajor, manifest.FormatMinor, 0, 0); err != nil {
 			return err
 		}
+		legacySequenceBases := manifest.IndexSequenceBases == nil
+		if legacySequenceBases {
+			manifest.IndexSequenceBases = make(map[string]uint64, len(manifest.Indexes))
+		}
+		for indexName := range manifest.IndexSequenceBases {
+			if _, exists := manifest.Indexes[indexName]; !exists {
+				return fmt.Errorf("%w: dataset manifest %q has sequence base for unknown index %q", ErrStorageCorrupted, manifest.Name, indexName)
+			}
+		}
+		if !legacySequenceBases {
+			for indexName := range manifest.Indexes {
+				if _, exists := manifest.IndexSequenceBases[indexName]; !exists {
+					manifest.IndexSequenceBases[indexName] = 0
+				}
+			}
+		}
 		stateBytes, err := os.ReadFile(filepath.Join(path, datasetStateName))
 		if err != nil {
 			return err
@@ -297,7 +316,8 @@ func (db *Database) loadDatasets() error {
 		dataset := &Dataset{
 			name: manifest.Name, path: path, indexDB: indexDB,
 			embeddings: manifest.Embeddings, indexes: manifest.Indexes,
-			handles: make(map[string]CollectionAPI, len(manifest.Indexes)), metas: state.Metas,
+			indexSequenceBases: manifest.IndexSequenceBases,
+			handles:            make(map[string]CollectionAPI, len(manifest.Indexes)), metas: state.Metas,
 		}
 		if dataset.metas == nil {
 			dataset.metas = make(map[string]json.RawMessage)
@@ -307,6 +327,14 @@ func (db *Database) loadDatasets() error {
 			_ = indexDB.Close()
 			return fmt.Errorf("open dataset %q metadata WAL: %w", manifest.Name, err)
 		}
+		if !legacySequenceBases {
+			for indexName, base := range dataset.indexSequenceBases {
+				if base > dataset.sequence {
+					_ = indexDB.Close()
+					return fmt.Errorf("%w: dataset %q index %q sequence base %d exceeds dataset sequence %d", ErrStorageCorrupted, manifest.Name, indexName, base, dataset.sequence)
+				}
+			}
+		}
 		for indexName := range manifest.Indexes {
 			handle, openErr := indexDB.OpenCollection(indexPhysicalName(indexName))
 			if openErr != nil {
@@ -315,9 +343,36 @@ func (db *Database) loadDatasets() error {
 			}
 			dataset.handles[indexName] = handle
 		}
+		if legacySequenceBases {
+			for indexName, handle := range dataset.handles {
+				physicalSequence := collectionCommitSequence(handle.(*CollectionHandle).col)
+				if physicalSequence > dataset.sequence+1 {
+					_ = indexDB.Close()
+					return fmt.Errorf("%w: dataset %q index %q sequence %d exceeds recoverable dataset sequence %d", ErrStorageCorrupted, manifest.Name, indexName, physicalSequence, dataset.sequence)
+				}
+				if physicalSequence <= dataset.sequence {
+					dataset.indexSequenceBases[indexName] = dataset.sequence - physicalSequence
+				}
+			}
+		}
 		if err := dataset.recoverPendingLocked(); err != nil {
 			_ = indexDB.Close()
 			return fmt.Errorf("open dataset %q: %w", manifest.Name, err)
+		}
+		if legacySequenceBases {
+			for indexName, handle := range dataset.handles {
+				physicalSequence := collectionCommitSequence(handle.(*CollectionHandle).col)
+				if physicalSequence > dataset.sequence {
+					_ = indexDB.Close()
+					return fmt.Errorf("%w: dataset %q index %q sequence %d exceeds dataset sequence %d after recovery", ErrStorageCorrupted, manifest.Name, indexName, physicalSequence, dataset.sequence)
+				}
+				dataset.indexSequenceBases[indexName] = dataset.sequence - physicalSequence
+			}
+			manifest.IndexSequenceBases = dataset.indexSequenceBases
+			if err := saveDatasetManifest(path, manifest); err != nil {
+				_ = indexDB.Close()
+				return fmt.Errorf("upgrade dataset %q sequence bases: %w", manifest.Name, err)
+			}
 		}
 		db.Datasets[manifest.Name] = dataset
 	}

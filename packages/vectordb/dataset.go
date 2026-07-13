@@ -145,19 +145,20 @@ type DatasetStats struct {
 
 // Dataset 管理实体真相、命名嵌入和多个物理 ANN 视图。
 type Dataset struct {
-	name             string
-	path             string
-	indexDB          *Database
-	embeddings       map[string]EmbeddingSchema
-	indexes          map[string]IndexViewOptions
-	handles          map[string]CollectionAPI
-	metas            map[string]json.RawMessage
-	sequence         uint64
-	mu               sync.RWMutex
-	closed           bool
-	recoveryRequired bool
-	building         bool
-	buildDone        chan struct{}
+	name               string
+	path               string
+	indexDB            *Database
+	embeddings         map[string]EmbeddingSchema
+	indexes            map[string]IndexViewOptions
+	indexSequenceBases map[string]uint64
+	handles            map[string]CollectionAPI
+	metas              map[string]json.RawMessage
+	sequence           uint64
+	mu                 sync.RWMutex
+	closed             bool
+	recoveryRequired   bool
+	building           bool
+	buildDone          chan struct{}
 }
 
 var _ DatasetAPI = (*Dataset)(nil)

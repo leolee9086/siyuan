@@ -98,6 +98,9 @@ func (d *Dataset) applyTransactionLocked(ctx context.Context, transaction datase
 		return fmt.Errorf("%w: invalid pending dataset transaction sequence %d after %d", ErrStorageCorrupted, transaction.Sequence, d.sequence)
 	}
 	for indexName, view := range d.indexes {
+		if datasetCollectionAppliedSequence(d.handles[indexName], d.indexSequenceBases[indexName]) >= transaction.Sequence {
+			continue
+		}
 		operations := make([]WriteOperation, 0, len(transaction.Upserts)+len(transaction.Deletes))
 		for _, entity := range transaction.Upserts {
 			vector, exists := entity.Embeddings[view.Embedding]
@@ -140,6 +143,17 @@ func (d *Dataset) applyTransactionLocked(ctx context.Context, transaction datase
 	}
 	d.recoveryRequired = false
 	return nil
+}
+
+func datasetCollectionAppliedSequence(handle CollectionAPI, base uint64) uint64 {
+	if typed, ok := handle.(*CollectionHandle); ok {
+		sequence := collectionCommitSequence(typed.col)
+		if sequence > ^uint64(0)-base {
+			return ^uint64(0)
+		}
+		return base + sequence
+	}
+	return 0
 }
 
 func (d *Dataset) recoverPendingLocked() error {
@@ -243,13 +257,19 @@ func (d *Dataset) AddIndexContext(ctx context.Context, name string, opts IndexVi
 	d.mu.Lock()
 	newIndexes := cloneIndexViews(d.indexes)
 	newIndexes[name] = clonedOption[name]
-	manifest := datasetManifest{FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name, Embeddings: cloneEmbeddingSchemas(d.embeddings), Indexes: newIndexes}
+	newSequenceBases := cloneDatasetSequenceBases(d.indexSequenceBases)
+	newSequenceBases[name] = d.sequence
+	manifest := datasetManifest{
+		FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name,
+		Embeddings: cloneEmbeddingSchemas(d.embeddings), Indexes: newIndexes, IndexSequenceBases: newSequenceBases,
+	}
 	if err := saveDatasetManifest(d.path, manifest); err != nil {
 		d.mu.Unlock()
 		_ = d.indexDB.DeleteCollection(physicalName)
 		return err
 	}
 	d.indexes = newIndexes
+	d.indexSequenceBases = newSequenceBases
 	d.handles[name] = handle
 	d.mu.Unlock()
 	return nil
@@ -277,15 +297,29 @@ func (d *Dataset) DropIndex(name string) error {
 	}
 	newIndexes := cloneIndexViews(d.indexes)
 	delete(newIndexes, name)
-	if err := saveDatasetManifest(d.path, datasetManifest{FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name, Embeddings: d.embeddings, Indexes: newIndexes}); err != nil {
+	newSequenceBases := cloneDatasetSequenceBases(d.indexSequenceBases)
+	delete(newSequenceBases, name)
+	if err := saveDatasetManifest(d.path, datasetManifest{
+		FormatMajor: CurrentFormatMajor, FormatMinor: CurrentFormatMinor, Name: d.name,
+		Embeddings: d.embeddings, Indexes: newIndexes, IndexSequenceBases: newSequenceBases,
+	}); err != nil {
 		return err
 	}
 	d.indexes = newIndexes
+	d.indexSequenceBases = newSequenceBases
 	delete(d.handles, name)
 	if err := d.indexDB.DeleteCollection(indexPhysicalName(name)); err != nil {
 		return err
 	}
 	return nil
+}
+
+func cloneDatasetSequenceBases(input map[string]uint64) map[string]uint64 {
+	output := make(map[string]uint64, len(input))
+	for name, sequence := range input {
+		output[name] = sequence
+	}
+	return output
 }
 
 func validateDatasetEntities(schemas map[string]EmbeddingSchema, entities []Entity) error {
