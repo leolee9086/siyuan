@@ -301,8 +301,20 @@ func (db *Database) DeleteCollection(name string) error {
 		return fmt.Errorf("%w: %s", ErrCollectionNotFound, name)
 	}
 
-	if err := c.Close(); err != nil {
-		return err
+	state := db.ensureWriteStateLocked(name)
+	state.mu.Lock()
+	state.closing = true
+	state.mu.Unlock()
+	state.checkpointWG.Wait()
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	state.waitAsync()
+	if !state.closed {
+		if err := c.Close(); err != nil {
+			return err
+		}
+		state.closed = true
 	}
 	delete(db.Collections, name)
 	delete(db.writeStates, name)

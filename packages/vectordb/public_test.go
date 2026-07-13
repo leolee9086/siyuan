@@ -1,6 +1,7 @@
 package vectordb
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -690,6 +691,72 @@ func TestUnifiedDB_DiskVamanaClosedErrorsPropagate(t *testing.T) {
 	}
 	if err := col.Flush(); !errors.Is(err, ErrCollectionClosed) {
 		t.Fatalf("expected ErrCollectionClosed from flush, got %v", err)
+	}
+}
+
+func TestDeleteCollectionInvalidatesOldHandlesAcrossRecreation(t *testing.T) {
+	for _, engine := range []Engine{EngineHNSW, EngineDiskVamana} {
+		t.Run(string(engine), func(t *testing.T) {
+			path := t.TempDir()
+			db, err := Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			options := CollectionOptions{Engine: engine, Dimension: 2, DistanceMetric: "l2"}
+			if engine == EngineHNSW {
+				options.Points = []Point{{ID: "old", Vector: []float32{1, 0}}}
+			} else {
+				options.Points = []Point{
+					{ID: "old", Vector: []float32{1, 0}},
+					{ID: "old-b", Vector: []float32{0, 1}},
+					{ID: "old-c", Vector: []float32{-1, 0}},
+				}
+			}
+			oldHandle, err := db.CreateCollectionWithOptions("replaceable", options)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := db.DeleteCollection("replaceable"); err != nil {
+				t.Fatal(err)
+			}
+			collectionPath := filepath.Join(path, "replaceable")
+			assertClosed := func(operation string, err error) {
+				t.Helper()
+				if !errors.Is(err, ErrCollectionClosed) {
+					t.Fatalf("删除后旧句柄 %s 应返回 ErrCollectionClosed：%v", operation, err)
+				}
+				if _, statErr := os.Stat(collectionPath); !os.IsNotExist(statErr) {
+					t.Fatalf("删除后旧句柄 %s 使目录复活：%v", operation, statErr)
+				}
+			}
+			_, err = oldHandle.Search([]float32{1, 0}, SearchOptions{TopK: 1})
+			assertClosed("Search", err)
+			_, err = oldHandle.FetchPoints([]string{"old"})
+			assertClosed("FetchPoints", err)
+			err = oldHandle.Upsert([]Point{{ID: "resurrected", Vector: []float32{2, 0}}})
+			assertClosed("Upsert", err)
+			err = oldHandle.Delete([]string{"old"})
+			assertClosed("Delete", err)
+			_, err = oldHandle.Checkpoint(context.Background())
+			assertClosed("Checkpoint", err)
+			err = oldHandle.Flush()
+			assertClosed("Flush", err)
+
+			newOptions := CollectionOptions{Engine: EngineHNSW, Dimension: 2, DistanceMetric: "l2", Points: []Point{{ID: "new", Vector: []float32{3, 0}}}}
+			newHandle, err := db.CreateCollectionWithOptions("replaceable", newOptions)
+			if err != nil {
+				t.Fatalf("同名集合无法重建：%v", err)
+			}
+			results, err := newHandle.Search([]float32{3, 0}, SearchOptions{TopK: 1})
+			if err != nil || len(results) != 1 || results[0].ID != "new" {
+				t.Fatalf("重建集合不可用：results=%+v，err=%v", results, err)
+			}
+			_, err = oldHandle.Search([]float32{1, 0}, SearchOptions{TopK: 1})
+			if !errors.Is(err, ErrCollectionClosed) {
+				t.Fatalf("同名重建后旧句柄绑定到了新代际：%v", err)
+			}
+		})
 	}
 }
 

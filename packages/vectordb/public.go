@@ -116,8 +116,9 @@ type CheckpointResult struct {
 }
 
 type CollectionHandle struct {
-	db  *Database
-	col VectorCollection
+	db    *Database
+	col   VectorCollection
+	state *collectionWriteState
 }
 
 var _ DB = (*Database)(nil)
@@ -138,7 +139,7 @@ var persistWriteAsyncCollection = func(h *CollectionHandle, operations []WriteOp
 }
 
 var asyncFlushCollection = func(h *CollectionHandle) {
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.scheduleAsync(func() error {
 		if collection, ok := h.col.(*Collection); ok {
 			return SyncCollectionWAL(collection, h.db.Path)
@@ -231,9 +232,10 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 	}
 	db.mu.RLock()
 	col := db.Collections[name]
+	state := db.writeStates[name]
 	db.mu.RUnlock()
 	if col != nil {
-		return &CollectionHandle{db: db, col: col}, nil
+		return &CollectionHandle{db: db, col: col, state: state}, nil
 	}
 
 	vamanaBasePath := db.vamanaBasePath(name)
@@ -248,9 +250,10 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = vc
-		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(vc)
+		state := db.ensureWriteStateLocked(name)
+		state.sequence = collectionCommitSequence(vc)
 		db.mu.Unlock()
-		return &CollectionHandle{db: db, col: vc}, nil
+		return &CollectionHandle{db: db, col: vc, state: state}, nil
 	}
 
 	snapshotPath := filepath.Join(db.Path, name, SnapshotFileName)
@@ -261,9 +264,10 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 		}
 		db.mu.Lock()
 		db.Collections[name] = c
-		db.ensureWriteStateLocked(name).sequence = collectionCommitSequence(c)
+		state := db.ensureWriteStateLocked(name)
+		state.sequence = collectionCommitSequence(c)
 		db.mu.Unlock()
-		return &CollectionHandle{db: db, col: c}, nil
+		return &CollectionHandle{db: db, col: c, state: state}, nil
 	}
 
 	return nil, fmt.Errorf("%w: %s", ErrCollectionNotFound, name)
@@ -271,15 +275,14 @@ func (db *Database) OpenCollection(name string) (CollectionAPI, error) {
 
 func (db *Database) ListCollectionStats() []CollectionStats {
 	db.mu.RLock()
-	collections := make([]VectorCollection, 0, len(db.Collections))
+	handles := make([]*CollectionHandle, 0, len(db.Collections))
 	for _, col := range db.Collections {
-		collections = append(collections, col)
+		handles = append(handles, &CollectionHandle{db: db, col: col, state: db.writeStates[col.Name()]})
 	}
 	db.mu.RUnlock()
 
-	stats := make([]CollectionStats, 0, len(collections))
-	for _, col := range collections {
-		handle := &CollectionHandle{db: db, col: col}
+	stats := make([]CollectionStats, 0, len(handles))
+	for _, handle := range handles {
 		stats = append(stats, handle.Stats())
 	}
 	sort.Slice(stats, func(i, j int) bool {
@@ -292,7 +295,7 @@ func (db *Database) Close() error {
 	db.mu.RLock()
 	handles := make([]*CollectionHandle, 0, len(db.Collections))
 	for _, col := range db.Collections {
-		handles = append(handles, &CollectionHandle{db: db, col: col})
+		handles = append(handles, &CollectionHandle{db: db, col: col, state: db.writeStates[col.Name()]})
 	}
 	db.mu.RUnlock()
 
@@ -346,7 +349,7 @@ func (db *Database) createHNSWCollectionHandle(name string, opts CollectionOptio
 	if err := SaveCollection(col, db.Path); err != nil {
 		return nil, err
 	}
-	return &CollectionHandle{db: db, col: col}, nil
+	return &CollectionHandle{db: db, col: col, state: db.writeState(name)}, nil
 }
 
 func (db *Database) createDiskVamanaCollectionHandle(name string, opts CollectionOptions) (*CollectionHandle, error) {
@@ -409,7 +412,7 @@ func (db *Database) createDiskVamanaCollectionHandle(name string, opts Collectio
 	db.ensureWriteStateLocked(name)
 	db.mu.Unlock()
 
-	return &CollectionHandle{db: db, col: vc}, nil
+	return &CollectionHandle{db: db, col: vc, state: db.writeState(name)}, nil
 }
 
 func normalizeInitialPoints(points []Point, dimension int, metric string) ([]Point, error) {
@@ -471,7 +474,7 @@ func (h *CollectionHandle) Write(ctx context.Context, batch WriteBatch, opts Wri
 		return WriteResult{}, err
 	}
 
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.Lock()
 	defer state.mu.Unlock()
 	if state.closed || state.closing {
@@ -584,7 +587,7 @@ func (h *CollectionHandle) Upsert(points []Point) error {
 }
 
 func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]SearchResult, error) {
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.RLock()
 	defer state.mu.RUnlock()
 	if state.closed || state.closing {
@@ -772,7 +775,7 @@ func (h *CollectionHandle) scheduleAutoCheckpointLocked(state *collectionWriteSt
 }
 
 func (h *CollectionHandle) Stats() CollectionStats {
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.RLock()
 	defer state.mu.RUnlock()
 
@@ -810,7 +813,7 @@ func (h *CollectionHandle) Flush() error {
 	if h.db == nil {
 		return fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
 	}
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.Lock()
 	defer state.mu.Unlock()
 	if state.closed || state.closing {
@@ -843,7 +846,7 @@ func (h *CollectionHandle) Checkpoint(ctx context.Context) (CheckpointResult, er
 	if h.db == nil {
 		return CheckpointResult{}, fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
 	}
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.Lock()
 	defer state.mu.Unlock()
 	if state.closed || state.closing {
@@ -896,7 +899,7 @@ func (h *CollectionHandle) persistWrite(operations []WriteOperation, sequence ui
 }
 
 func (h *CollectionHandle) FetchPoints(ids []string) ([]Point, error) {
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.RLock()
 	defer state.mu.RUnlock()
 	if state.closed || state.closing {
@@ -922,7 +925,7 @@ func (h *CollectionHandle) Close() error {
 	if h.db == nil {
 		return fmt.Errorf("%w: collection is detached from its database", ErrPersistenceFailed)
 	}
-	state := h.db.writeState(h.Name())
+	state := h.state
 	state.mu.Lock()
 	if state.closed {
 		state.mu.Unlock()
