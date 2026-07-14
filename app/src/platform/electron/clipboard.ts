@@ -9,6 +9,7 @@
 
 /** 用途：isElectron 环境检测标志。使用范围：剪贴板操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
+import {nativeRequire} from "../nativeRequire";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _clipboard: any = null;
@@ -21,7 +22,7 @@ function getClipboard() {
     if (!isElectron) {
         throw new Error("electron.clipboard is not available in browser environment");
     }
-    _clipboard = __non_webpack_require__("electron").clipboard;
+    _clipboard = nativeRequire<typeof import("electron")>("electron").clipboard;
     return _clipboard;
 }
 

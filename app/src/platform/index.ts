@@ -16,6 +16,9 @@ import type { Platform } from "./platform.types";
 /** 导出 Platform 类型，供外部模块使用 */
 export type { Platform };
 
+/** Webpack 在各构建目标中注入的编译期平台；源码运行时没有该值时使用 DOM/UA 兜底。 */
+declare const __SFORGE_PLATFORM__: Platform | undefined;
+
 /**
  * 运行时平台检测。
  *
@@ -37,8 +40,10 @@ function detectPlatform() {
     return "browser-desktop";
 }
 
-/** 当前运行平台，模块加载时确定，不可变 */
-export const platform: Platform = detectPlatform();
+/** 当前运行平台；生产构建优先使用目标常量，源码或未配置宿主时回退到运行时检测。 */
+export const platform: Platform = typeof __SFORGE_PLATFORM__ === "undefined"
+    ? detectPlatform()
+    : __SFORGE_PLATFORM__;
 
 /** 是否运行在浏览器环境（非 Electron），等价于原 BROWSER 分支 */
 export const isBrowser: boolean = platform !== "electron";

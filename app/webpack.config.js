@@ -14,12 +14,14 @@ function createConfig(targetName, argv) {
     const isProd = argv.mode === "production";
     const isElectron = t.platform === "electron";
     const isLibrary = !!t.library;
+    const isModuleLibrary = t.library?.format === "module";
 
     return {
         name: targetName,
         target: isElectron ? "electron-renderer" : "web",
         mode: argv.mode || "development",
         watch: !isProd,
+        cache: isProd ? undefined : false,
         devtool: isProd ? false : "eval-source-map",
         entry: t.entry,
         output: buildOutput(t, isLibrary),
@@ -30,11 +32,12 @@ function createConfig(targetName, argv) {
                 new EsbuildPlugin({
                     target: "es2020",
                     sourcemap: !isProd,
+                    ...(isModuleLibrary ? { format: "esm" } : {}),
                 }),
             ],
             // 把 webpack runtime 提到独立小文件，避免业务码变动连带改变 vendors/common 的 chunkhash
-            runtimeChunk: "single",
-            splitChunks: {
+            runtimeChunk: isModuleLibrary ? false : "single",
+            splitChunks: isModuleLibrary ? false : {
                 chunks: "all",
                 minSize: 20000,
                 cacheGroups: {
@@ -58,7 +61,8 @@ function createConfig(targetName, argv) {
             },
         },
         module: { rules: buildRules(t, isProd, isLibrary) },
-        plugins: buildPlugins(t, argv, isProd, isLibrary),
+        plugins: buildPlugins(t, argv, isProd, isLibrary, targetName),
+        experiments: isModuleLibrary ? { outputModule: true } : undefined,
     };
 }
 
@@ -69,9 +73,15 @@ function buildOutput(t, isLibrary) {
         path: path.resolve(__dirname, t.outputDir),
     };
     if (t.library) {
-        output.library = t.library.name;
-        output.libraryTarget = t.library.format;
-        output.libraryExport = t.library.export;
+        if (t.library.format === "module") {
+            output.module = true;
+            output.library = { type: "module" };
+            output.chunkFilename = "[name].js";
+        } else {
+            output.library = t.library.name;
+            output.libraryTarget = t.library.format;
+            output.libraryExport = t.library.export;
+        }
     }
     return output;
 }
@@ -80,6 +90,13 @@ function buildResolve(t, isElectron) {
     const alias = { "@": path.resolve(__dirname, "src") };
     if (!isElectron) {
         alias["vue"] = "vue/dist/vue.esm-bundler.js";
+        // Match the relative requests used by the platform boundary. Using an
+        // absolute filesystem path as an alias key makes Watchpack treat the
+        // file itself as a directory during its initial scan on Windows.
+        const browserNativeRequire = path.resolve(__dirname, "src/platform/nativeRequire.browser.ts");
+        alias["../platform/nativeRequire$"] = browserNativeRequire;
+        alias["../../platform/nativeRequire$"] = browserNativeRequire;
+        alias["../nativeRequire$"] = browserNativeRequire;
     }
     if (t.excludeModules) {
         for (const mod of t.excludeModules) {
@@ -169,7 +186,10 @@ function buildRules(t, isProd, isLibrary) {
     return rules;
 }
 
-function buildPlugins(t, argv, isProd, isLibrary) {
+function buildPlugins(t, argv, isProd, isLibrary, targetName) {
+    const targetPlatform = t.platform === "electron"
+        ? "electron"
+        : (targetName === "mobile" || targetName.endsWith("-mobile") ? "browser-mobile" : "browser-desktop");
     const plugins = [
         new PatchResolverPlugin(),
         new CleanWebpackPlugin({
@@ -181,6 +201,7 @@ function buildPlugins(t, argv, isProd, isLibrary) {
             NODE_ENV: JSON.stringify(argv.mode),
             __VUE_OPTIONS_API__: JSON.stringify(true),
             __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+            __SFORGE_PLATFORM__: JSON.stringify(targetPlatform),
         }),
         new VueLoaderPlugin(),
         new MiniCssExtractPlugin({

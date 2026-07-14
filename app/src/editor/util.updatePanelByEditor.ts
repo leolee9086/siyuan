@@ -131,12 +131,12 @@ const restoreFocus = (protyle: IProtyle) => {
     // 意图：如果工具栏上有选中范围，优先聚焦该范围。
     if (range) {
         focusByRange(range);
-        countSelectWord(range, protyle.block.rootID);
+        countSelectWord(range, protyle.block.rootID, protyle.options.status);
         return;
     }
 
     // 意图：如果没有选区，则聚焦第一个块。
-    countBlockWord([], protyle.block.rootID);
+    countBlockWord([], protyle.block.rootID, false, protyle.options.status);
     const firstElement = protyle.wysiwyg?.element.firstElementChild;
     if (firstElement) {
         focusBlock(firstElement);

@@ -966,6 +966,8 @@ interface IMenu {
     element?: HTMLElement
     ignore?: boolean
     warning?: boolean
+    /** Protyle 块标菜单的宿主环境和能力声明。 */
+    protyle?: import("../protyle/runtime/menu.visibility").IProtyleMenuVisibility
 }
 
 interface IBazaarItem {

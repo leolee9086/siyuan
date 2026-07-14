@@ -14,6 +14,7 @@ import { buildGutterAvMenu } from "./buildGutterAvMenu";
 import { buildGutterMediaMenu } from "./buildGutterHtmlMenu";
 import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
+import { isProtyleMenuItemVisible } from "../runtime/menu.visibility";
 
 
 interface ITypeSpecificMenuContext {
@@ -23,6 +24,8 @@ interface ITypeSpecificMenuContext {
     type: string;
     subType: string | null;
 }
+
+const shouldBuildFullAppMenu = () => isProtyleMenuItemVisible({protyle: {standalone: false}});
 
 /** 将菜单项数组追加到菜单 */
 function appendMenuItems(menu: Menu, items: IMenu[]): void {
@@ -88,6 +91,9 @@ return false;
 
 /** 处理属性视图菜单 */
 function handleAttributeViewMenu(protyle: IProtyle, nodeElement: Element, id: string): boolean {
+    if (!shouldBuildFullAppMenu()) {
+        return false;
+    }
     appendMenuItems(getSiyuanGlobalMenus().menu, buildGutterAvMenu(protyle, nodeElement, id));
     return true;
 }
@@ -97,6 +103,9 @@ function handleMediaMenu(protyle: IProtyle, nodeElement: Element, type: string):
     if (protyle.disabled) {
 return false;
 }
+    if (!shouldBuildFullAppMenu()) {
+        return false;
+    }
     appendMenuItems(getSiyuanGlobalMenus().menu, buildGutterMediaMenu(protyle, nodeElement, type));
     return true;
 }
@@ -106,6 +115,9 @@ function handleEmbedMenu(protyle: IProtyle, nodeElement: Element, id: string): b
     if (protyle.disabled) {
 return false;
 }
+    if (!shouldBuildFullAppMenu()) {
+        return false;
+    }
     const menu = getSiyuanGlobalMenus().menu;
     menu.append(new MenuItem({ id: "separator_blockEmbed", type: "separator" }).element);
     menu.append(new MenuItem(buildGutterEmbedMenu(protyle, nodeElement, id)).element);

@@ -336,7 +336,7 @@ export class Wnd {
                 const wnd = new Wnd(this.app);
                 window.siyuan.layout.centerLayout.addWnd(wnd);
                 wnd.addTab(newCenterEmptyTab(this.app), false, false);
-                clearCounter();
+                clearCounter("status");
                 setTitle("", true);
             }
         }

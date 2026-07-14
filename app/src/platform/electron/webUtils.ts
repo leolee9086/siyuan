@@ -8,6 +8,7 @@
  */
 
 import { isElectron } from "../index";
+import {nativeRequire} from "../nativeRequire";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _webUtils: any = null;
@@ -20,7 +21,7 @@ function getWebUtils() {
     if (!isElectron) {
         throw new Error("electron.webUtils is not available in browser environment");
     }
-    _webUtils = __non_webpack_require__("electron").webUtils;
+    _webUtils = nativeRequire<typeof import("electron")>("electron").webUtils;
     return _webUtils;
 }
 

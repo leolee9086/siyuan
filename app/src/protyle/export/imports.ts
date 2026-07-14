@@ -32,6 +32,8 @@ import {useShell} from "../../util/file/pathName";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 用途：Electron 环境判断；使用范围：导出后“在文件夹中显示”能力开关；解耦评估：平台能力判断，不宜在业务层重写。 */
 import {isElectron} from "../../platform";
+/** 用途：Electron 导出流程的 Node 模块加载边界；使用范围：仅导出文件定位和本地文件写入分支，浏览器构建由 resolver 替换为 stub；解耦评估：这些能力依赖宿主文件系统，后续可由 ExportPort 注入，但当前通过 imports 网关集中保留。 */
+import {nativeRequire} from "../../platform/nativeRequire";
 /** 用途：读取全局配置；使用范围：导出图片显示配置与水印配置；解耦评估：通过 environment 层已完成 window 解耦。 */
 import {getSiyuanConfig} from "../../layout/util.environment";
 /** 用途：读取全局存储；使用范围：导出图片本地选项读取；解耦评估：通过 environment 层已完成 window 解耦。 */
@@ -73,6 +75,8 @@ export {useShell};
 export {siyuanI18n};
 // 导出：Electron 判断
 export {isElectron};
+// 导出：Node 模块加载边界
+export {nativeRequire};
 // 导出：全局配置读取
 export {getSiyuanConfig};
 // 导出：全局存储读取

@@ -59,6 +59,16 @@
             { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/mobile/index.tpl" }
         ]
     },
+    "protyle-app": {
+        "platform": "web",
+        "entry": { "protyle": "./src/protyle-standalone/index.ts" },
+        "outputDir": "stage/build/protyle-app",
+        "publicPath": "/stage/build/protyle-app/",
+        "library": { "format": "module" },
+        "html": [
+            { "chunks": [], "filename": "index.html", "template": "src/assets/template/protyle/desktop/index.tpl" }
+        ]
+    },
     "bazaar-source": {
         "platform": "web",
         "entry": { "main": "./src/bazaar-source/index.ts" },

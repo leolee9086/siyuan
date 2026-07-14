@@ -32,6 +32,7 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
         },
         {
             id: "move",
+            protyle: {standalone: false, requires: ["navigation"]},
             icon: "iconMove",
             label: siyuanI18n.move,
             accelerator: config.keymap.general.move.custom,
@@ -48,6 +49,7 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
         },
         {
             id: "addToDatabase",
+            protyle: {standalone: false, requires: ["database"]},
             icon: "iconDatabase",
             label: siyuanI18n.addToDatabase,
             accelerator: config.keymap.general.addToDatabase.custom,

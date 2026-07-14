@@ -54,7 +54,7 @@ export const selectAll = (protyle: IProtyle, nodeElement: Element, range: Range)
                     range.setStart(cellElement.firstChild, 0);
                     range.setEndAfter(cellElement.lastChild);
                     protyle.toolbar.render(protyle, range);
-                    countSelectWord(range, protyle.block.rootID);
+                    countSelectWord(range, protyle.block.rootID, protyle.options.status);
                     return true;
                 }
             }
@@ -100,7 +100,7 @@ export const selectAll = (protyle: IProtyle, nodeElement: Element, range: Range)
                 // 列表回车后，左键全选无法选中
                 focusByRange(range);
                 protyle.toolbar.render(protyle, range);
-                countSelectWord(range, protyle.block.rootID);
+                countSelectWord(range, protyle.block.rootID, protyle.options.status);
                 return true;
             }
         }
@@ -119,7 +119,7 @@ export const selectAll = (protyle: IProtyle, nodeElement: Element, range: Range)
             ids.push(nodeId);
         }
     });
-    countBlockWord(ids, protyle.block.rootID);
+    countBlockWord(ids, protyle.block.rootID, false, protyle.options.status);
 };
 
 // https://github.com/siyuan-note/siyuan/issues/8196

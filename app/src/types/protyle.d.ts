@@ -490,6 +490,8 @@ interface IProtyleOptions {
     /** 是否启用打字机模式。默认值: false */
     typewriterMode?: boolean;
     toolbar?: Array<string | IMenuItem>;
+    /** 可选状态栏宿主；可传元素或其 id，省略时关闭字数统计能力。 */
+    status?: HTMLElement | string;
     /** @link https://ld246.com/article/1549638745630#options-preview */
     preview?: IPreview;
     /** @link https://ld246.com/article/1549638745630#options-hint */

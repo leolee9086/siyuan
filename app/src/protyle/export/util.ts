@@ -12,6 +12,8 @@ import {useShell} from "./imports";
 import {siyuanI18n} from "./imports";
 /** 用途：Electron 环境判断；使用范围：仅桌面端展示"在文件夹中显示"；解耦评估：平台判断基础能力，不应在业务层重写。 */
 import {isElectron} from "./imports";
+/** 用途：Node 模块加载边界；使用范围：仅 Electron 导出路径；解耦评估：Web 构建由 resolver 替换为浏览器 stub。 */
+import {nativeRequire} from "./imports";
 /** 用途：导出图片流程上下文创建器；使用范围：`exportImage` 入口创建弹窗与数据上下文；解耦评估：上下文创建独立便于 tab/dialog 宿主复用。 */
 import {createExportImageContext} from "./image/exportImage.context";
 /** 用途：导出图片共享 panel 初始化入口；使用范围：`exportImage` 入口完成背景/事件绑定与首次预览加载；解耦评估：面板初始化独立模块使 dialog/tab 两种宿主可复用同一套界面逻辑。 */
@@ -29,7 +31,7 @@ export const afterExport = async (exportPath: string, msgId: string) => {
         return;
     }
 
-    const path = __non_webpack_require__("path");
+    const path = nativeRequire<typeof import("path")>("path");
     showMessage(`${siyuanI18n.exported} ${escapeHtml(exportPath)}
 <div class="fn__space"></div>
 <button class="b3-button b3-button--white">${siyuanI18n.showInFolder}</button>`, 6000, "info", msgId);

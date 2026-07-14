@@ -172,7 +172,7 @@ export const upSelect = (options: {
     options.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
         ids.push(item.getAttribute("data-node-id"));
     });
-    countBlockWord(ids, options.protyle.block.rootID);
+    countBlockWord(ids, options.protyle.block.rootID, false, options.protyle.options.status);
     options.event.stopPropagation();
     options.event.preventDefault();
 };
@@ -226,7 +226,7 @@ export const downSelect = (options: {
     options.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
         ids.push(item.getAttribute("data-node-id"));
     });
-    countBlockWord(ids, options.protyle.block.rootID);
+    countBlockWord(ids, options.protyle.block.rootID, false, options.protyle.options.status);
     options.event.stopPropagation();
     options.event.preventDefault();
 };

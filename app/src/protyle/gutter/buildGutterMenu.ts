@@ -13,6 +13,7 @@ import { buildGutterEditMenu } from "./buildGutterEditMenu";
 import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
 import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
+import { createProtyleMenuContext, scheduleProtyleMenuTask, setProtyleMenuContext } from "../runtime/menu.visibility";
 
 export const buildGutterMenu = (options: {
     protyle: IProtyle;
@@ -30,6 +31,7 @@ export const buildGutterMenu = (options: {
     const id = buttonElement.getAttribute("data-node-id");
     const selectsElement = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
     if (selectsElement.length > 1) {
+        setProtyleMenuContext(getSiyuanGlobalMenus().menu, createProtyleMenuContext({protyle}));
         return buildMultipleMenu(protyle, selectsElement, id);
     }
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BLOCK_SINGLE);
@@ -55,13 +57,22 @@ const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string |
     }
     const type = nodeElement.getAttribute("data-type");
     const subType = nodeElement.getAttribute("data-subtype");
+    const menuContext = createProtyleMenuContext({
+        protyle,
+        nodeElement,
+        nodeType: type,
+        nodeSubType: subType,
+    });
+    setProtyleMenuContext(getSiyuanGlobalMenus().menu, menuContext);
     hideElements(["select"], protyle);
     nodeElement.classList.add("protyle-wysiwyg--select");
     addTurnIntoMenu(protyle, nodeElement, id, type, subType);
-    const aiMenuItem = buildGutterAiMenu({ protyle, nodeElement });
-    if (aiMenuItem) {
-        getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenuItem).element);
-    }
+    scheduleProtyleMenuTask(menuContext, () => {
+        const aiMenuItem = buildGutterAiMenu({protyle, nodeElement});
+        if (aiMenuItem) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenuItem).element);
+        }
+    });
 
     getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterCopyMenuItem({
         nodeElement,
@@ -74,8 +85,10 @@ const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string |
             getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
         }
     }
-    // 类型特定菜单
-    buildGutterTypeSpecificMenu({ protyle, nodeElement, id: id || "", type, subType });
+    // 类型特定菜单属于可选能力，首屏菜单显示后再构建，避免复杂块类型阻塞基础编辑操作。
+    scheduleProtyleMenuTask(menuContext, () => {
+        buildGutterTypeSpecificMenu({protyle, nodeElement, id: id || "", type, subType});
+    });
     // 通用操作菜单
     for (const item of buildGutterCommonMenu({ protyle, nodeElement, id: id || "", type })) {
         getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
@@ -87,7 +100,7 @@ const addTurnIntoMenu = (protyle: IProtyle, nodeElement: Element, id: string | n
     if (!id) {
         return;
     }
-    countBlockWord([id], protyle.block.rootID);
+    countBlockWord([id], protyle.block.rootID, false, protyle.options.status);
     const turnIntoSubmenu = buildGutterTurnIntoMenuItem({
         nodeElement,
         id,

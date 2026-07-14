@@ -44,7 +44,7 @@ export const promiseTransaction = () => {
             protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
                 ids.push(item.getAttribute("data-node-id"));
             });
-            countBlockWord(ids, protyle.block.rootID, true);
+            countBlockWord(ids, protyle.block.rootID, true, protyle.options.status);
         } else {
             promiseTransaction();
         }

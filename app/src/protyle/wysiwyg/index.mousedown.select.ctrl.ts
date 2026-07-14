@@ -104,7 +104,7 @@ function handleCtrlToggle(ctx: {
             }
         }
     }
-    countBlockWord(ids);
+    countBlockWord(ids, protyle.block.rootID, false, protyle.options.status);
 }
 
 /**

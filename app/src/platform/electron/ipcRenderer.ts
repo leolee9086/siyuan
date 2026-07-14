@@ -8,6 +8,7 @@
  */
 
 import { isElectron } from "../index";
+import {nativeRequire} from "../nativeRequire";
 import type { IpcListener } from "./electron.types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,7 +32,7 @@ function getIpcRenderer() {
     if (!isElectron) {
         throw new Error("ipcRenderer is not available in browser environment");
     }
-    _ipcRenderer = __non_webpack_require__("electron").ipcRenderer;
+    _ipcRenderer = nativeRequire<typeof import("electron")>("electron").ipcRenderer;
     return _ipcRenderer;
 }
 

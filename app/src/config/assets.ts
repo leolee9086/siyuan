@@ -8,6 +8,7 @@ import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {fetchPost} from "../util/network/fetch";
 import {getAllModels} from "../layout/getAll";
 import {isElectron} from "../platform";
+import {nativeRequire} from "../platform/nativeRequire";
 // S-forge: openBy 从重构后的模块导入
 import {openBy} from "../editor/utils.openBy";
 import {renderAssetsPreview} from "../asset/renderAssets";
@@ -223,7 +224,7 @@ const assets = {
                     break;
                 } else if (type === "open") {
                     if (isElectron) {
-                        const nodePath = __non_webpack_require__("path");
+                        const nodePath = nativeRequire<typeof import("path")>("path");
                         if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
                             openBy(nodePath.join(window.siyuan.config.system.dataDir, "storage", "av", target.parentElement.dataset.item) + ".json", "folder");
                         } else {

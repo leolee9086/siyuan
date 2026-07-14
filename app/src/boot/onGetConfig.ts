@@ -5,6 +5,7 @@ import { afterExport } from "../protyle/export/util";
 import { onWindowsMsg } from "../window/onWindowsMsg";
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
 import { isElectron } from "../platform";
+import {nativeRequire} from "../platform/nativeRequire";
 import { ipcSend, ipcInvoke, ipcOn } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
 import { Constants } from "../constants";
@@ -263,8 +264,8 @@ export const initWindow = async (app: App) => {
         });
     });
     ipcOn(Constants.SIYUAN_EXPORT_PDF, async (e, ipcData) => {
-        const fs = __non_webpack_require__("fs") as typeof import("fs");
-        const path = __non_webpack_require__("path") as typeof import("path");
+        const fs = nativeRequire<typeof import("fs")>("fs");
+        const path = nativeRequire<typeof import("path")>("path");
         const msgId = showMessage(siyuanI18n.exporting, -1);
         window.siyuan.storage[Constants.LOCAL_EXPORTPDF] = {
             removeAssets: ipcData.removeAssets,

@@ -277,7 +277,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 return;
             }
             hideElements(["gutter"], protyle);
-            countBlockWord([], protyle.block.rootID);
+            countBlockWord([], protyle.block.rootID, false, protyle.options.status);
             insertEmptyBlock(protyle, buttonElement.dataset.type === "gutterPlusBefore" ? "beforebegin" : "afterend", id);
             return;
         }

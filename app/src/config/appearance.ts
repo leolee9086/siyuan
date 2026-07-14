@@ -1,5 +1,6 @@
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
+import {nativeRequire} from "../platform/nativeRequire";
 import { exportLayout, resetLayout } from "../layout/util";
 import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
@@ -238,7 +239,7 @@ export const appearance = {
             });
         });
         if (isElectron) {
-            const path = __non_webpack_require__("path");
+            const path = nativeRequire<typeof import("path")>("path");
             appearance.element.querySelector("#appearanceOpenIcon").addEventListener("click", () => {
                 useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "icons"));
             });

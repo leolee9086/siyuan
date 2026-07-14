@@ -10,6 +10,7 @@ import {
 import { MenuItem } from "./Menu.Item";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { isHiddenProtyleMenuElement } from "../protyle/runtime/menu.visibility";
 
 export class Menu {
     public element: HTMLElement;
@@ -83,7 +84,7 @@ export class Menu {
     }
 
     public append(element?: HTMLElement, index?: number) {
-        if (!element) {
+        if (!element || isHiddenProtyleMenuElement(element)) {
             return;
         }
         if (!this.element.lastElementChild) {

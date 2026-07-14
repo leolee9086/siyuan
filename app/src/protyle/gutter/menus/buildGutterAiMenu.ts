@@ -192,6 +192,7 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
     // 异步检查配置并构建菜单
     return {
         id: "ai",
+        protyle: {standalone: false, requires: ["ai"]},
         icon: "iconSparkles",
         label: siyuanI18n.ai,
         submenu: [
@@ -247,6 +248,7 @@ export function buildMultiAiMenu(protyle: IProtyle, selectsElement: Element[]): 
     // 多块时只显示原 AI 菜单，不显示图片生成（需要单块场景）
     return {
         id: "ai",
+        protyle: {standalone: false, requires: ["ai"]},
         icon: "iconSparkles",
         label: siyuanI18n.ai,
         submenu: [原AI菜单项]

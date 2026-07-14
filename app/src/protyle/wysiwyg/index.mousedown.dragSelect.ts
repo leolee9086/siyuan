@@ -373,7 +373,7 @@ function handleMouseUpBlockCount(protyle: IProtyle) {
     selectElement.forEach(item => {
         ids.push(item.getAttribute("data-node-id"));
     });
-    countBlockWord(ids);
+    countBlockWord(ids, protyle.block.rootID, false, protyle.options.status);
 }
 
 function handleMouseUpRangeCleanup(

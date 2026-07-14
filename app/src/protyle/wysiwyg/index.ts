@@ -870,7 +870,7 @@ export class WYSIWYG {
                 selectElement.forEach(item => {
                     ids.push(item.getAttribute("data-node-id"));
                 });
-                countBlockWord(ids);
+                countBlockWord(ids, protyle.block.rootID, false, protyle.options.status);
                 // 划选后不能存在跨块的 range https://github.com/siyuan-note/siyuan/issues/4473
                 if (getSelection().rangeCount > 0) {
                     const range = getSelection().getRangeAt(0);
@@ -1122,7 +1122,7 @@ export class WYSIWYG {
             if ((event.shiftKey || isOnlyMeta(event)) && !event.isComposing && range.toString() !== "") {
                 // 工具栏
                 protyle.toolbar.render(protyle, range, event);
-                countSelectWord(range);
+                countSelectWord(range, protyle.block.rootID, protyle.options.status);
             }
 
             if (event.eventPhase !== 3 && !event.shiftKey && (event.key.indexOf("Arrow") > -1 || event.key === "Home" || event.key === "End" || event.key === "PageUp" || event.key === "PageDown") && !event.isComposing) {
@@ -1130,7 +1130,7 @@ export class WYSIWYG {
                     clearSelect(["img", "av"], protyle.wysiwyg.element);
                     this.setEmptyOutline(protyle, nodeElement);
                     if (range.toString() === "" && !nodeElement.classList.contains("protyle-wysiwyg--select")) {
-                        countSelectWord(range, protyle.block.rootID);
+                        countSelectWord(range, protyle.block.rootID, protyle.options.status);
                     }
                     if (protyle.breadcrumb) {
                         const indentElement = protyle.breadcrumb.element.parentElement.querySelector('[data-type="indent"]');

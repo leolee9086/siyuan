@@ -9,9 +9,15 @@ import { Constants } from "../constants";
 import { toggleDockBar } from "./dock/util";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
+import {resolveStatusElement} from "./statusPort";
+import type {StatusElementTarget} from "./statusPort";
 
-export const initStatus = (isWindow = false) => {
+export const initStatus = (isWindow = false, status: StatusElementTarget = "status") => {
     if (isMobile) {
+        return;
+    }
+    const statusElement = resolveStatusElement(status);
+    if (!statusElement) {
         return;
     }
     let barDockHTML = "";
@@ -22,7 +28,7 @@ export const initStatus = (isWindow = false) => {
     </svg>
 </div>`;
     }
-    document.getElementById("status").innerHTML = `${barDockHTML}
+    statusElement.innerHTML = `${barDockHTML}
 <div class="status__msg"></div>
 <div class="fn__flex-1"></div>
 <div class="status__backgroundtask fn__none"></div>
@@ -30,7 +36,7 @@ export const initStatus = (isWindow = false) => {
 <div id="statusHelp" class="toolbar__item ariaLabel" aria-label="${window.siyuan.languages.help}">
     <svg><use xlink:href="#iconHelp"></use></svg>
 </div>`;
-    document.querySelector("#status").addEventListener("click", (event) => {
+    statusElement.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
         while (target.id !== "status") {
             if (target.id === "barDock") {
@@ -128,7 +134,7 @@ export const initStatus = (isWindow = false) => {
         }
     });
     if (window.siyuan.config.appearance.hideStatusBar) {
-        document.getElementById("status").classList.add("fn__none");
+        statusElement.classList.add("fn__none");
     }
     // 渲染通过 StatusBarRegistry 注册的按钮
     渲染所有状态栏按钮();
@@ -138,7 +144,7 @@ let countTimeout: number;
 let countAbortController: AbortController | null = null;
 let lastRootId: string;
 
-const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) => {
+const scheduleStatusStat = (rootID: string, content?: string, ids?: string[], statusElement?: HTMLElement) => {
     clearTimeout(countTimeout);
     countTimeout = window.setTimeout(() => {
         if (countAbortController) {
@@ -153,7 +159,7 @@ const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) =>
             if (signal.aborted) {
                 return;
             }
-            renderStatusbarCounter(response.data.stat);
+            renderStatusbarCounter(response.data.stat, statusElement);
             if (countAbortController === capturedController) {
                 countAbortController = null;
             }
@@ -174,46 +180,48 @@ const scheduleStatusStat = (rootID: string, content?: string, ids?: string[]) =>
     }, Constants.TIMEOUT_COUNT);
 };
 
-export const countSelectWord = (range: Range, rootID?: string) => {
+export const countSelectWord = (range: Range, rootID?: string, status?: StatusElementTarget) => {
     if (isMobile) {
         return;
     }
-    if (document.getElementById("status").classList.contains("fn__none")) {
+    const statusElement = resolveStatusElement(status);
+    if (!statusElement || statusElement.classList.contains("fn__none")) {
         return;
     }
-    scheduleStatusStat(rootID, range.toString());
+    scheduleStatusStat(rootID, range.toString(), undefined, statusElement);
 };
 
-export const countBlockWord = (ids: string[], rootID?: string, clearCache = false) => {
+export const countBlockWord = (ids: string[], rootID?: string, clearCache = false, status?: StatusElementTarget) => {
     if (isMobile) {
         return;
     }
-    if (document.getElementById("status").classList.contains("fn__none")) {
+    const statusElement = resolveStatusElement(status);
+    if (!statusElement || statusElement.classList.contains("fn__none")) {
         return;
     }
     if (clearCache) {
         lastRootId = null;
     }
     if (ids.length > 0) {
-        scheduleStatusStat(rootID, undefined, ids);
+        scheduleStatusStat(rootID, undefined, ids, statusElement);
         return;
     }
     const selectText = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0).toString() : "";
     if (selectText) {
-        scheduleStatusStat(rootID, selectText);
+        scheduleStatusStat(rootID, selectText, undefined, statusElement);
         return;
     }
-    scheduleStatusStat(rootID);
+    scheduleStatusStat(rootID, undefined, undefined, statusElement);
 };
 
-export const clearCounter = () => {
+export const clearCounter = (status?: StatusElementTarget) => {
     lastRootId = null;
     clearTimeout(countTimeout);
     if (countAbortController) {
         countAbortController.abort();
         countAbortController = null;
     }
-    document.querySelector("#status .status__counter").innerHTML = "";
+    resolveStatusElement(status)?.querySelector(".status__counter")?.replaceChildren();
 };
 
 export const renderStatusbarCounter = (stat: {
@@ -223,8 +231,9 @@ export const renderStatusbarCounter = (stat: {
     imageCount: number,
     refCount: number,
     blockCount: number,
-}) => {
-    if (!stat) {
+}, status?: StatusElementTarget) => {
+    const statusElement = resolveStatusElement(status);
+    if (!stat || !statusElement) {
         return;
     }
     let html = `<span class="ft__on-surface">${window.siyuan.languages.runeCount}</span>&nbsp;${stat.runeCount}<span class="fn__space"></span>
@@ -241,5 +250,5 @@ export const renderStatusbarCounter = (stat: {
     if (0 < stat.blockCount) {
         html += `<span class="ft__on-surface">${window.siyuan.languages.blockCount}</span>&nbsp;${stat.blockCount}<span class="fn__space"></span>`;
     }
-    document.querySelector("#status .status__counter").innerHTML = html;
+    statusElement.querySelector(".status__counter")?.replaceChildren(document.createRange().createContextualFragment(html));
 };

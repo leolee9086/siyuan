@@ -549,10 +549,12 @@ function handleClickFinalize(
             } else {
                 // https://github.com/siyuan-note/siyuan/issues/9785
                 protyle.toolbar.range = newRange;
+                protyle.toolbar.element.classList.add("fn__none");
+                protyle.toolbar.subElement.classList.add("fn__none");
             }
         }
         if (!protyle.wysiwyg.element.querySelector(".protyle-wysiwyg--select")) {
-            countSelectWord(newRange, protyle.block.rootID);
+            countSelectWord(newRange, protyle.block.rootID, protyle.options.status);
         }
         if (getSelection().rangeCount === 0 && !clickState.mobileBlur) {
             // https://github.com/siyuan-note/siyuan/issues/14589

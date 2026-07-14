@@ -34,6 +34,7 @@ import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 import { exportImage } from "./imports";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
+import { getProtyleMenuContext, scheduleProtyleMenuTask } from "../runtime/menu.visibility";
 
 /**
  * 通用操作菜单构建上下文
@@ -54,6 +55,7 @@ export interface IGutterCommonMenuContext {
  */
 const 创建进入菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enter",
+    protyle: {standalone: false, requires: ["navigation"]},
     accelerator: `${getSiyuanConfig().keymap.general.enter.custom ? updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + siyuanI18n.click)}`,
     label: siyuanI18n.enter,
     click: () => {
@@ -66,6 +68,7 @@ const 创建进入菜单项 = (ctx: IGutterCommonMenuContext) => ({
  */
 const 创建返回菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enterBack",
+    protyle: {standalone: false, requires: ["navigation"]},
     accelerator: getSiyuanConfig().keymap.general.enterBack.custom,
     label: siyuanI18n.enterBack,
     click: () => {
@@ -78,6 +81,7 @@ const 创建返回菜单项 = (ctx: IGutterCommonMenuContext) => ({
  */
 const 创建反链打开菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "enter",
+    protyle: {standalone: false, requires: ["navigation"]},
     accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom)}/${updateHotkeyTip("⌘" + siyuanI18n.click)}`,
     label: siyuanI18n.openBy,
     click: () => {
@@ -106,7 +110,7 @@ const 创建插入上方菜单项 = (ctx: IGutterCommonMenuContext) => ({
     accelerator: getSiyuanConfig().keymap.editor.general.insertBefore.custom,
     click() {
         hideElements(["select"], ctx.protyle);
-        countBlockWord([], ctx.protyle.block.rootID);
+        countBlockWord([], ctx.protyle.block.rootID, false, ctx.protyle.options.status);
         insertEmptyBlock(ctx.protyle, "beforebegin", ctx.id);
     }
 });
@@ -121,7 +125,7 @@ const 创建插入下方菜单项 = (ctx: IGutterCommonMenuContext) => ({
     accelerator: getSiyuanConfig().keymap.editor.general.insertAfter.custom,
     click() {
         hideElements(["select"], ctx.protyle);
-        countBlockWord([], ctx.protyle.block.rootID);
+        countBlockWord([], ctx.protyle.block.rootID, false, ctx.protyle.options.status);
         insertEmptyBlock(ctx.protyle, "afterend", ctx.id);
     }
 });
@@ -181,6 +185,7 @@ const 创建折叠菜单项 = (ctx: IGutterCommonMenuContext) => ({
  */
 const 创建属性菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "attr",
+    protyle: {standalone: false, requires: ["dialogs"]},
     label: siyuanI18n.attr,
     icon: "iconAttr",
     accelerator: getSiyuanConfig().keymap.editor.general.attr.custom + "/" + updateHotkeyTip("⇧" + siyuanI18n.click),
@@ -221,6 +226,7 @@ const 创建外观菜单 = (ctx: IGutterCommonMenuContext) => ({
  */
 const 创建微信提醒菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "wechatReminder",
+    protyle: {standalone: false, requires: ["dialogs"]},
     icon: "iconMp",
     label: siyuanI18n.wechatReminder,
     ignore: getSiyuanConfig().readonly,
@@ -236,6 +242,7 @@ const 创建闪卡菜单项 = (ctx: IGutterCommonMenuContext) => {
     const isCardMade = ctx.nodeElement.hasAttribute(Constants.CUSTOM_RIFF_DECKS);
     return {
         id: isCardMade ? "removeCard" : "quickMakeCard",
+        protyle: {standalone: false, requires: ["flashcard"]},
         icon: "iconRiffCard",
         label: isCardMade ? siyuanI18n.removeCard : siyuanI18n.quickMakeCard,
         accelerator: getSiyuanConfig().keymap.editor.general.quickMakeCard.custom,
@@ -250,6 +257,7 @@ const 创建闪卡菜单项 = (ctx: IGutterCommonMenuContext) => {
  */
 const 创建添加到卡组菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "addToDeck",
+    protyle: {standalone: false, requires: ["flashcard"]},
     label: siyuanI18n.addToDeck,
     ignore: !getSiyuanConfig().flashcard.deck,
     icon: "iconRiffCard",
@@ -279,6 +287,7 @@ const 创建时间戳菜单项 = (ctx: IGutterCommonMenuContext) => {
  */
 const 创建导出图片菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "exportImage",
+    protyle: {standalone: false, requires: ["export"]},
     label: siyuanI18n.exportAsImage,
     icon: "iconImage",
     click() {
@@ -373,15 +382,18 @@ const 添加扩展菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
         menuItems.push(创建添加到卡组菜单项(ctx));
         menuItems.push({ id: "separator_5", type: "separator" });
     }
-    if (ctx.protyle?.app?.plugins) {
-        emitOpenMenu({
-            plugins: ctx.protyle.app.plugins,
-            type: "click-blockicon",
-            detail: {
-                protyle: ctx.protyle,
-                blockElements: [ctx.nodeElement]
-            },
-            separatorPosition: "bottom",
+    const menuContext = getProtyleMenuContext();
+    if (menuContext?.host === "full-app" && ctx.protyle?.app?.plugins?.length) {
+        scheduleProtyleMenuTask(menuContext, () => {
+            emitOpenMenu({
+                plugins: ctx.protyle.app.plugins,
+                type: "click-blockicon",
+                detail: {
+                    protyle: ctx.protyle,
+                    blockElements: [ctx.nodeElement]
+                },
+                separatorPosition: "bottom",
+            });
         });
     }
 };

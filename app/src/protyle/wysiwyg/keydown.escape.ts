@@ -54,7 +54,7 @@ const handleNormalEscape = (
     // 处理块选择状态
     if (nodeElement.classList.contains("protyle-wysiwyg--select")) {
         hideElements(["select"], protyle);
-        countBlockWord([], protyle.block.rootID);
+        countBlockWord([], protyle.block.rootID, false, protyle.options.status);
         return true;
     }
     
@@ -64,7 +64,7 @@ const handleNormalEscape = (
     nodeElement.classList.add("protyle-wysiwyg--select");
     const nodeId = nodeElement.getAttribute("data-node-id");
     if (nodeId) {
-        countBlockWord([nodeId], protyle.block.rootID);
+        countBlockWord([nodeId], protyle.block.rootID, false, protyle.options.status);
     }
     return true;
 };

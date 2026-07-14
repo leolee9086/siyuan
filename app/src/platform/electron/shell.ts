@@ -9,6 +9,7 @@
 
 /** 用途：isElectron 环境检测标志。使用范围：shell 操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
+import {nativeRequire} from "../nativeRequire";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _shell: any = null;
@@ -30,7 +31,7 @@ function getShell() {
     if (!isElectron) {
         throw new Error("electron.shell is not available in browser environment");
     }
-    _shell = __non_webpack_require__("electron").shell;
+    _shell = nativeRequire<typeof import("electron")>("electron").shell;
     return _shell;
 }
 

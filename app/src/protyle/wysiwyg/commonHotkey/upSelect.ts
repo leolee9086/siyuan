@@ -61,7 +61,7 @@ export const upSelect = async (options: {
             ids.push(id);
         }
     }
-    countBlockWord(ids, options.protyle.block.rootID);
+    countBlockWord(ids, options.protyle.block.rootID, false, options.protyle.options.status);
     options.event.stopPropagation();
     options.event.preventDefault();
 };

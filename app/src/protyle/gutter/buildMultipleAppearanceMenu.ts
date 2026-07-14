@@ -104,6 +104,7 @@ export const 构建闪卡菜单 = (protyle: IProtyle, selectsElement: Element[])
 
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: allCardsMade ? "removeCard" : "quickMakeCard",
+        protyle: {standalone: false, requires: ["flashcard"]},
         label: allCardsMade ? siyuanI18n.removeCard : siyuanI18n.quickMakeCard,
         accelerator: getSiyuanConfig().keymap.editor.general.quickMakeCard.custom,
         icon: "iconRiffCard",
@@ -114,6 +115,7 @@ export const 构建闪卡菜单 = (protyle: IProtyle, selectsElement: Element[])
 
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "addToDeck",
+        protyle: {standalone: false, requires: ["flashcard"]},
         label: siyuanI18n.addToDeck,
         icon: "iconRiffCard",
         ignore: !getSiyuanConfig().flashcard.deck,
@@ -134,7 +136,7 @@ export const 构建闪卡菜单 = (protyle: IProtyle, selectsElement: Element[])
  * 触发插件菜单事件
  */
 export const 触发插件菜单 = (protyle: IProtyle, selectsElement: Element[]): void => {
-    if (!protyle?.app?.plugins) {
+    if (!protyle?.app?.plugins?.length || window.siyuan?.standaloneProtyle) {
         return;
     }
 

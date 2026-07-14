@@ -229,7 +229,7 @@ export function bindInputEvents(
         if ((event.shiftKey || isOnlyMeta(event)) && !event.isComposing && range.toString() !== "") {
             // 工具栏
             protyle.toolbar.render(protyle, range, event);
-            countSelectWord(range);
+            countSelectWord(range, protyle.block.rootID, protyle.options.status);
         }
 
         if (event.eventPhase !== 3 && !event.shiftKey && (event.key.indexOf("Arrow") > -1 || event.key === "Home" || event.key === "End" || event.key === "PageUp" || event.key === "PageDown") && !event.isComposing) {
@@ -237,7 +237,7 @@ export function bindInputEvents(
                 clearSelect(["img", "av"], protyle.wysiwyg.element);
                 setEmptyOutline(protyle, nodeElement);
                 if (range.toString() === "" && !nodeElement.classList.contains("protyle-wysiwyg--select")) {
-                    countSelectWord(range, protyle.block.rootID);
+                    countSelectWord(range, protyle.block.rootID, protyle.options.status);
                 }
                 if (protyle.breadcrumb) {
                     const indentElement = protyle.breadcrumb.element.parentElement.querySelector('[data-type="indent"]');

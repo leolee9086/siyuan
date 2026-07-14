@@ -191,7 +191,7 @@ function markSelected(ctx: {
             subItem.classList.remove("protyle-wysiwyg--select");
         }
     }
-    countBlockWord(ids);
+    countBlockWord(ids, protyle.block.rootID, false, protyle.options.status);
     const wysiwygElement = protyle.wysiwyg?.element;
     if (!wysiwygElement || selectElements.length === 0) {
         return;

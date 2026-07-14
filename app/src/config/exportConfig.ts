@@ -2,6 +2,7 @@ import { fetchPost } from "../util/network/fetch";
 import { afterExport } from "../protyle/export/util";
 import {exportLayout} from "../layout/util";
 import { isElectron, isMobile } from "../platform";
+import {nativeRequire} from "../platform/nativeRequire";
 import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/platform/functions";
@@ -322,7 +323,7 @@ export const exportConfig = {
             if (result.canceled || result.filePaths.length === 0) {
                 return;
             }
-            const nodePath = __non_webpack_require__("path");
+            const nodePath = nativeRequire<typeof import("path")>("path");
             const msgId = showMessage(siyuanI18n.exporting, -1);
             fetchPost("/api/export/exportDataInFolder", {
                 folder: result.filePaths[0],

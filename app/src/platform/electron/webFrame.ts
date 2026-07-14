@@ -9,6 +9,7 @@
 
 /** 用途：isElectron 环境检测标志。使用范围：webFrame 操作判断是否在 Electron 环境下执行。解耦评估：通过目录 imports.ts 转发可降低路径耦合。 */
 import { isElectron } from "../index";
+import {nativeRequire} from "../nativeRequire";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _webFrame: any = null;
@@ -21,7 +22,7 @@ function getWebFrame() {
     if (!isElectron) {
         throw new Error("electron.webFrame is not available in browser environment");
     }
-    _webFrame = __non_webpack_require__("electron").webFrame;
+    _webFrame = nativeRequire<typeof import("electron")>("electron").webFrame;
     return _webFrame;
 }
 

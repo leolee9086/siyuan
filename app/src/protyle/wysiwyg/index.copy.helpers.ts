@@ -199,7 +199,7 @@ export function collectSelectElements(
     if (selectElements.length === 0 && range.toString() === "" && !range.cloneContents().querySelector("img") &&
         !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange) {
         nodeElement.classList.add("protyle-wysiwyg--select");
-        countBlockWord([nodeElement.getAttribute("data-node-id")]);
+        countBlockWord([nodeElement.getAttribute("data-node-id")], protyle.block.rootID, false, protyle.options.status);
         selectElements = [nodeElement];
     }
     return selectElements;

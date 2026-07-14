@@ -204,7 +204,7 @@ const selectAndScrollToBlock = (
     if (!dataNodeId) {
         throw new Error("块元素缺少data-node-id属性");
     }
-    countBlockWord([dataNodeId]);
+    countBlockWord([dataNodeId], protyle.block.rootID, false, protyle.options.status);
 
     const contentRect = contentElement.getBoundingClientRect();
 

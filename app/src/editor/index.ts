@@ -38,6 +38,7 @@ function initProtyle(self: Editor, options: {
             scroll: true,
         },
         typewriterMode: true,
+        status: "status",
         scrollPosition: options.scrollPosition,
         /** 编辑器初始化后的 UI 同步回调 */
         after: (editor) => {
@@ -46,7 +47,7 @@ function initProtyle(self: Editor, options: {
                 fullscreen(editor.protyle.element);
                 setPadding(editor.protyle);
             }
-            countBlockWord([], editor.protyle.block.rootID);
+            countBlockWord([], editor.protyle.block.rootID, false, options.status);
             if (isElectron) {
                 import("../window/setHeader").then(m => m.setModelsHash());
             }
@@ -91,6 +92,5 @@ export class Editor {
         fetchPost("/api/storage/updateRecentDocOpenTime", { rootID: options.rootId });
     }
 }
-
 
 

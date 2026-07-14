@@ -8,6 +8,7 @@ import { getFrontend } from "../../util/platform/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isElectron } from "../../platform";
+import {nativeRequire} from "../../platform/nativeRequire";
 import { openBazaarHubTab, openBazaarPublishTab } from "../../bazaar-hub/open";
 
 import { IBazaar, IBazaarDataObj } from "./types";
@@ -19,7 +20,7 @@ export const handleOpen = (dataObj: IBazaarDataObj) => {
     if (!dataObj.name) {
         return;
     }
-    const nodePath = __non_webpack_require__("path");
+    const nodePath = nativeRequire<typeof import("path")>("path");
     const dirName = dataObj.bazaarType;
     if (dirName === "icons" || dirName === "themes") {
         useShell("openPath", nodePath.join(getSiyuanConfig().system.confDir, "appearance", dirName, dataObj.name));

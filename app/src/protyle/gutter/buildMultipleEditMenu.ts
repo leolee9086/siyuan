@@ -33,6 +33,7 @@ export const 构建编辑操作菜单 = (protyle: IProtyle, selectsElement: Elem
 
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "move",
+        protyle: {standalone: false, requires: ["navigation"]},
         label: siyuanI18n.move,
         accelerator: getSiyuanConfig().keymap.general.move.custom,
         icon: "iconMove",
@@ -49,6 +50,7 @@ export const 构建编辑操作菜单 = (protyle: IProtyle, selectsElement: Elem
 
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "addToDatabase",
+        protyle: {standalone: false, requires: ["database"]},
         label: siyuanI18n.addToDatabase,
         accelerator: getSiyuanConfig().keymap.general.addToDatabase.custom,
         icon: "iconDatabase",

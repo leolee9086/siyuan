@@ -1,6 +1,7 @@
 import { hideMessage, showMessage } from "../../dialog/message";
 import { Constants } from "../../constants";
 import { isBrowser, isElectron } from "../../platform";
+import {nativeRequire} from "../../platform/nativeRequire";
 import { ipcInvoke, ipcSend } from "../../platform/electron/ipcRenderer";
 import { afterExport } from "./util";
 import { confirmDialog } from "../../dialog/confirmDialog";
@@ -749,7 +750,7 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
             }
             let savePath = result.filePaths[0];
             if (option.type !== "word" && !savePath.endsWith(response.data.rootTitle)) {
-                savePath = __non_webpack_require__("path").join(savePath, replaceLocalPath(response.data.rootTitle));
+                savePath = nativeRequire<typeof import("path")>("path").join(savePath, replaceLocalPath(response.data.rootTitle));
             }
             savePath = savePath.trim();
             fetchPost(url, {
@@ -864,8 +865,8 @@ ${getSnippetJS()}</body></html>`;
     }
     // Electron 环境下将 HTML 写入本地文件并触发导出完成提示
     if (isElectron) {
-        const path = __non_webpack_require__("path");
-        const fs = __non_webpack_require__("fs");
+        const path = nativeRequire<typeof import("path")>("path");
+        const fs = nativeRequire<typeof import("fs")>("fs");
         const htmlPath = path.join(filePath, "index.html");
         fs.writeFileSync(htmlPath, html);
         afterExport(htmlPath, msgId);

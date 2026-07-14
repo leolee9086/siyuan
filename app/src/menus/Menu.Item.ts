@@ -1,11 +1,16 @@
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
+import { createHiddenProtyleMenuElement, isProtyleMenuItemVisible } from "../protyle/runtime/menu.visibility";
 
 
 export class MenuItem {
     public element: HTMLElement;
 
     constructor(options: IMenu) {
+        if (!isProtyleMenuItemVisible(options)) {
+            this.element = createHiddenProtyleMenuElement();
+            return;
+        }
         //先去除,因为这个地方应该调用方处理是否ignore
         //if (options.ignore) {e
         //  return ;

@@ -88,7 +88,7 @@ export function removeTabAction(
     wnd.children.find((item, index) => {
         if (item.id === id) {
             if (item.model instanceof Editor) {
-                clearCounter(item.model.editor.protyle.block.rootID);
+                clearCounter(item.model.editor.protyle.options.status);
             }
             if (window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].length > Constants.SIZE_UNDO) {
                 window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].pop();
