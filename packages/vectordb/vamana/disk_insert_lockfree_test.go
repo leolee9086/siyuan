@@ -17,6 +17,8 @@
 package vamana
 
 import (
+	"context"
+	"errors"
 	"math/rand"
 	"path/filepath"
 	"sync"
@@ -65,6 +67,40 @@ func setupSmallDiskIndex(t *testing.T) *DiskVamanaIndex {
 	t.Cleanup(func() { idx.Close() })
 
 	return idx
+}
+
+func TestDiskSearchContextCancelsActiveTraversal(t *testing.T) {
+	idx := setupSmallDiskIndex(t)
+	query := append([]float32(nil), idx.getVector(0)...)
+	if len(query) == 0 {
+		t.Fatal("测试索引缺少入口向量")
+	}
+
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	originalHook := diskSearchContextLoopHook
+	diskSearchContextLoopHook = func() {
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		<-release
+	}
+	defer func() { diskSearchContextLoopHook = originalHook }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := idx.SearchContext(ctx, query, 1, 32)
+		done <- err
+	}()
+	<-started
+	cancel()
+	close(release)
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("磁盘图遍历中取消未返回 context.Canceled：%v", err)
+	}
 }
 
 // TestInsertLockFree_Basic verifies Insert works correctly after lock-free refactor.

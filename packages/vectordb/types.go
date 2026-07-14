@@ -17,6 +17,7 @@
 package vectordb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -118,6 +119,7 @@ type VectorCollection interface {
 	InsertPoint(point Point) error
 	Search(queryVec []float32, k int, efSearch int) []SearchResult
 	SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error)
+	SearchWithContext(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error)
 	DeletePoint(id string)
 	DeletePointWithError(id string) error
 	RebuildIndex() error

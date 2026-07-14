@@ -17,10 +17,14 @@
 package hnsw
 
 import (
+	"context"
 	"sort"
 
 	"s-forge.local/vectordb/bbq"
 )
+
+// searchContextLoopHook 仅用于验证取消能够进入图遍历循环。
+var searchContextLoopHook = func() {}
 
 // =========================================
 // HNSW Query (Search)
@@ -30,8 +34,24 @@ import (
 // 返回内部 SearchResult（包含 DocID 和精确距离），
 // 外部 ID 解析和元数据附加由调用方（Collection 代理层）负责。
 func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	results, _ := idx.search(nil, queryVec, k, efSearch)
+	return results
+}
+
+// SearchContext 在图遍历过程中观察调用方取消信号。
+func (idx *HNSWIndex) SearchContext(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	if ctx == nil {
+		return idx.search(nil, queryVec, k, efSearch)
+	}
+	return idx.search(ctx, queryVec, k, efSearch)
+}
+
+func (idx *HNSWIndex) search(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	if err := searchContextError(ctx); err != nil {
+		return nil, err
+	}
 	if idx.Distancer == nil {
-		return nil
+		return nil, nil
 	}
 	if efSearch <= 0 {
 		efSearch = idx.Config.EfSearch
@@ -42,7 +62,7 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 
 	entryPointID, ok := idx.SelectEntryPoint()
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	config := idx.Config
@@ -70,7 +90,11 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 		searchVec = contaminated
 	}
 	for level := entryLevel; level > 0; level-- {
-		currentBestID = idx.greedySearchVec(searchVec, queryQuantized, queryCorrection, currentBestID, level, config.MetricType)
+		var cancelled bool
+		currentBestID, cancelled = idx.greedySearchVec(ctx, searchVec, queryQuantized, queryCorrection, currentBestID, level, config.MetricType)
+		if cancelled {
+			return nil, searchContextError(ctx)
+		}
 		if alpha > 0 {
 			bestVec, ok := idx.Distancer.GetUnsafe(currentBestID)
 			if ok && len(bestVec) == len(searchVec) {
@@ -81,7 +105,10 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 		}
 	}
 
-	candidates := idx.searchLevelVec(searchVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
+	candidates, cancelled := idx.searchLevelVec(ctx, searchVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
+	if cancelled {
+		return nil, searchContextError(ctx)
+	}
 
 	// Filter deleted nodes under read lock to avoid concurrent map access.
 	idx.Mu.RLock()
@@ -118,11 +145,11 @@ func (idx *HNSWIndex) Search(queryVec []float32, k int, efSearch int) []SearchRe
 		results = results[:k]
 	}
 
-	return results
+	return results, nil
 }
 
 // greedySearchVec 使用原始向量在单层执行贪心搜索
-func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, metricType string) DocID {
+func (idx *HNSWIndex) greedySearchVec(ctx context.Context, queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, metricType string) (DocID, bool) {
 	currentBestID := entryPointID
 	useBBQ := len(queryQuantized) > 0
 
@@ -137,6 +164,9 @@ func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte,
 	var neighborIDs []DocID
 	var distances []float32
 	for improved {
+		if searchContextLoopError(ctx) != nil {
+			return currentBestID, true
+		}
 		improved = false
 		neighborIDs = idx.GetLevelNeighborIDsInto(currentBestID, level, neighborIDs)
 		if len(neighborIDs) == 0 {
@@ -158,16 +188,19 @@ func (idx *HNSWIndex) greedySearchVec(queryVec []float32, queryQuantized []byte,
 		}
 	}
 
-	return currentBestID
+	return currentBestID, false
 }
 
 // searchLevelVec 使用原始向量在指定层搜索 ef 个候选
-func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
+func (idx *HNSWIndex) searchLevelVec(ctx context.Context, queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef int, metricType string) ([]NeighborRecord, bool) {
 	if len(queryQuantized) > 0 && idx.bbqHybridSearch.Load() {
-		return idx.searchLevelVecHybridBBQ(queryVec, queryQuantized, queryCorrection, entryPointID, level, ef, ef*2, metricType)
+		return idx.searchLevelVecHybridBBQ(ctx, queryVec, queryQuantized, queryCorrection, entryPointID, level, ef, ef*2, metricType)
 	}
 	if len(queryQuantized) > 0 {
-		return idx.searchLevelBBQ(queryQuantized, queryCorrection, entryPointID, level, ef)
+		if ctx == nil {
+			return idx.searchLevelBBQ(queryQuantized, queryCorrection, entryPointID, level, ef), false
+		}
+		return idx.searchLevelBBQContext(ctx, queryQuantized, queryCorrection, entryPointID, level, ef)
 	}
 	epoch := idx.Distancer.NewSearchEpoch()
 
@@ -189,6 +222,9 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 	var distances []float32
 
 	for candidates.Len() > 0 {
+		if searchContextLoopError(ctx) != nil {
+			return nil, true
+		}
 		current := candidates.Pop()
 
 		if results.IsFull() && current.Distance > results.Peek().Distance {
@@ -236,7 +272,7 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 		result[i], result[j] = result[j], result[i]
 	}
 
-	return result
+	return result, false
 }
 
 // SetBBQHybridSearch 控制查询使用高召回混合导航还是旧版纯 BBQ 导航。
@@ -245,7 +281,7 @@ func (idx *HNSWIndex) SetBBQHybridSearch(enabled bool) {
 }
 
 // searchLevelVecHybridBBQ 使用非对称 BBQ 粗筛邻居，再用全精度距离驱动图扩张。
-func (idx *HNSWIndex) searchLevelVecHybridBBQ(queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef, coarseCapacity int, metricType string) []NeighborRecord {
+func (idx *HNSWIndex) searchLevelVecHybridBBQ(ctx context.Context, queryVec []float32, queryQuantized []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level int, ef, coarseCapacity int, metricType string) ([]NeighborRecord, bool) {
 	epoch := idx.Distancer.NewSearchEpoch()
 	candidates := minHeapPool.Get().(*MinHeap)
 	resetMinHeap(candidates)
@@ -273,6 +309,9 @@ func (idx *HNSWIndex) searchLevelVecHybridBBQ(queryVec []float32, queryQuantized
 	var admittedIDs []DocID
 	var exactDistances []float32
 	for candidates.Len() > 0 {
+		if searchContextLoopError(ctx) != nil {
+			return nil, true
+		}
 		current := candidates.Pop()
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
@@ -320,7 +359,80 @@ func (idx *HNSWIndex) searchLevelVecHybridBBQ(queryVec []float32, queryQuantized
 	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
 		result[i], result[j] = result[j], result[i]
 	}
-	return result
+	return result, false
+}
+
+func (idx *HNSWIndex) searchLevelBBQContext(ctx context.Context, queryCode []byte, queryCorrection bbq.QuantizationResult, entryPointID DocID, level, ef int) ([]NeighborRecord, bool) {
+	epoch := idx.Distancer.NewSearchEpoch()
+	candidates := minHeapPool.Get().(*MinHeap)
+	resetMinHeap(candidates)
+	defer minHeapPool.Put(candidates)
+	results := maxHeapPool.Get().(*MaxHeap)
+	resetMaxHeap(results)
+	results.capacity = ef
+	defer maxHeapPool.Put(results)
+
+	entryDist := idx.Distancer.ComputeBBQDistanceFromQuery(queryCode, queryCorrection, entryPointID)
+	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	idx.Distancer.MarkVisited(entryPointID, epoch)
+	var neighborIDs []DocID
+	var distances []float32
+	for candidates.Len() > 0 {
+		if searchContextLoopError(ctx) != nil {
+			return nil, true
+		}
+		current := candidates.Pop()
+		if results.IsFull() && current.Distance > results.Peek().Distance {
+			break
+		}
+		neighborIDs = idx.GetLevelNeighborIDsInto(current.ID, level, neighborIDs)
+		pendingIDs := neighborIDs[:0]
+		for _, neighborID := range neighborIDs {
+			if idx.Distancer.IsVisited(neighborID, epoch) {
+				continue
+			}
+			idx.Distancer.MarkVisited(neighborID, epoch)
+			pendingIDs = append(pendingIDs, neighborID)
+		}
+		neighborIDs = pendingIDs
+		distances = idx.Distancer.ComputeBBQDistancesFromQuery(queryCode, queryCorrection, neighborIDs, distances)
+		for index, neighborID := range neighborIDs {
+			distance := distances[index]
+			if !results.IsFull() {
+				candidates.Push(HeapItem{ID: neighborID, Distance: distance})
+				results.Push(HeapItem{ID: neighborID, Distance: distance})
+			} else if distance < results.Peek().Distance {
+				candidates.Push(HeapItem{ID: neighborID, Distance: distance})
+				results.Replace(HeapItem{ID: neighborID, Distance: distance})
+			}
+		}
+	}
+
+	result := make([]NeighborRecord, 0, results.Len())
+	for results.Len() > 0 {
+		item := results.Pop()
+		result = append(result, NeighborRecord{ID: item.ID, Distance: item.Distance})
+	}
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
+	return result, false
+}
+
+func searchContextError(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	return ctx.Err()
+}
+
+func searchContextLoopError(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	searchContextLoopHook()
+	return ctx.Err()
 }
 
 // =========================================

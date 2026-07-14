@@ -198,6 +198,21 @@ func (vc *VamanaCollection) Search(queryVec []float32, k int, efSearch int) []Se
 
 // SearchWithError searches for k nearest neighbors and propagates disk index failures.
 func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	return vc.search(nil, queryVec, k, efSearch)
+}
+
+// SearchWithContext 在调用方取消或超时时停止 DiskVamana 图遍历。
+func (vc *VamanaCollection) SearchWithContext(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	if ctx == nil {
+		return vc.search(nil, queryVec, k, efSearch)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return vc.search(ctx, queryVec, k, efSearch)
+}
+
+func (vc *VamanaCollection) search(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
 	dimension := vc.Dimension()
 	if len(queryVec) != dimension {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, dimension, len(queryVec))
@@ -211,7 +226,12 @@ func (vc *VamanaCollection) SearchWithError(queryVec []float32, k int, efSearch 
 	vc.Mu.RLock()
 	defer vc.Mu.RUnlock()
 
-	rawResults, err := vc.Index.Search(queryVec, k, efSearch)
+	var rawResults []vamana.SearchResult
+	if ctx == nil {
+		rawResults, err = vc.Index.Search(queryVec, k, efSearch)
+	} else {
+		rawResults, err = vc.Index.SearchContext(ctx, queryVec, k, efSearch)
+	}
 	if err != nil {
 		return nil, classifyPublicError(err)
 	}

@@ -374,6 +374,31 @@ func TestDatasetEntityReplacementUpdatesEveryIndexView(t *testing.T) {
 	}
 }
 
+func TestDatasetSearchContextRejectsCancellationEvenWithPartialResults(t *testing.T) {
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	dataset, err := db.CreateDataset("documents", datasetContractOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := dataset.SearchIndexContext(ctx, "title-fast", []float32{1, 0}, SearchOptions{TopK: 1}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("SearchIndexContext 未返回取消错误：%v", err)
+	}
+	_, err = dataset.SearchFusion(ctx, FusionSearchRequest{
+		TopK:         1,
+		AllowPartial: true,
+		Queries:      []FusionQuery{{Index: "title-fast", Vector: []float32{1, 0}}},
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("融合查询不能把调用方取消降级为部分成功：%v", err)
+	}
+}
+
 func TestDatasetFetchEntitiesPreservesOrderDuplicatesAndIsolation(t *testing.T) {
 	db, err := Open(t.TempDir())
 	if err != nil {

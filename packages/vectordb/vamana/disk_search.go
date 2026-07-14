@@ -23,6 +23,7 @@
 package vamana
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -40,6 +41,9 @@ var diskSearchScratchPool = sync.Pool{
 		return NewSearchScratch(1024, 256)
 	},
 }
+
+// diskSearchContextLoopHook 仅用于验证取消能够进入磁盘图遍历循环。
+var diskSearchContextLoopHook = func() {}
 
 // getDiskSearchScratch gets a search scratch from the pool
 func getDiskSearchScratch() *SearchScratch {
@@ -71,6 +75,21 @@ func putDiskSearchScratch(s *SearchScratch) {
 //
 // Thread-safety: Safe for concurrent calls.
 func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]SearchResult, error) {
+	return idx.search(nil, query, topK, efSearch)
+}
+
+// SearchContext 在图遍历和重排过程中观察调用方取消信号。
+func (idx *DiskVamanaIndex) SearchContext(ctx context.Context, query []float32, topK, efSearch int) ([]SearchResult, error) {
+	if ctx == nil {
+		return idx.search(nil, query, topK, efSearch)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return idx.search(ctx, query, topK, efSearch)
+}
+
+func (idx *DiskVamanaIndex) search(ctx context.Context, query []float32, topK, efSearch int) ([]SearchResult, error) {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 	if idx.closed {
@@ -138,12 +157,16 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	// All greedy search variants now use unified getNeighbors()/getVector()
 	// to transparently handle disk nodes, modified neighbors, and append buffer.
 	var candidates []Neighbor
+	var cancelled bool
 	if useBBQ {
-		candidates = idx.greedySearchBBQWithMeta(scratch, medoid, query, beamWidth, bbqRefineNavigation)
+		candidates, cancelled = idx.greedySearchBBQWithMeta(ctx, scratch, medoid, query, beamWidth, bbqRefineNavigation)
 	} else if legacyCosine {
-		candidates = idx.greedySearchDiskCosine(scratch, medoid, query, efSearch)
+		candidates, cancelled = idx.greedySearchDiskCosine(ctx, scratch, medoid, query, efSearch)
 	} else {
-		candidates = idx.greedySearchDisk(scratch, medoid, query, efSearch)
+		candidates, cancelled = idx.greedySearchDisk(ctx, scratch, medoid, query, efSearch)
+	}
+	if cancelled {
+		return nil, ctx.Err()
 	}
 
 	if len(candidates) == 0 {
@@ -159,9 +182,12 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 	// Phase 2: Rerank with original vectors (unified via getVector)
 	var results []SearchResult
 	if legacyCosine {
-		results = idx.rerankCandidatesCosine(candidates, query, topK)
+		results, cancelled = idx.rerankCandidatesCosine(ctx, candidates, query, topK)
 	} else {
-		results = idx.rerankCandidates(candidates, query, topK)
+		results, cancelled = idx.rerankCandidates(ctx, candidates, query, topK)
+	}
+	if cancelled {
+		return nil, ctx.Err()
 	}
 
 	return results, nil
@@ -183,7 +209,8 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 	}
 
 	refineNavigation := idx.bbqRefineNavigation && !(idx.distanceMetric == bbq.CosineSimilarity && !idx.cosineNormalized)
-	return idx.greedySearchBBQWithMeta(scratch, medoid, query, L, refineNavigation)
+	results, _ := idx.greedySearchBBQWithMeta(nil, scratch, medoid, query, L, refineNavigation)
+	return results
 }
 
 // greedySearchBBQWithMeta 使用量化校正的 BBQ 搜索（融合搜索版本）
@@ -192,7 +219,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 // 磁盘节点使用预计算的 BBQ 元数据，append 节点使用内存中的 BBQ 元数据。
 //
 // 查询固定量化为 4-bit BitTranspose，数据固定保持 1-bit packed。
-func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medoid uint64, query []float32, L int, refineNavigation bool) []Neighbor {
+func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(ctx context.Context, scratch *SearchScratch, medoid uint64, query []float32, L int, refineNavigation bool) ([]Neighbor, bool) {
 	dimension := int(idx.metadata.Dims)
 
 	// 使用 BBQ 量化器量化查询向量
@@ -264,6 +291,9 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 	}
 	// Greedy search loop
 	for scratch.Best.HasUnvisited() {
+		if diskSearchContextCancelled(ctx) {
+			return nil, true
+		}
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
@@ -295,7 +325,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 		}
 	}
 
-	return scratch.Best.allView()
+	return scratch.Best.allView(), false
 }
 
 // ============================================================================
@@ -305,9 +335,9 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 // greedySearchDisk performs greedy search by reading vectors (融合搜索版本).
 //
 // Uses unified getVector()/getNeighbors() to handle both disk and append buffer nodes.
-func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
+func (idx *DiskVamanaIndex) greedySearchDisk(ctx context.Context, scratch *SearchScratch, medoid uint64, query []float32, L int) ([]Neighbor, bool) {
 	if idx.closed {
-		return nil
+		return nil, false
 	}
 
 	// Initialize with medoid
@@ -319,6 +349,9 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 
 	// Greedy search loop
 	for scratch.Best.HasUnvisited() {
+		if diskSearchContextCancelled(ctx) {
+			return nil, true
+		}
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
@@ -340,12 +373,12 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 		}
 	}
 
-	return scratch.Best.allView()
+	return scratch.Best.allView(), false
 }
 
-func (idx *DiskVamanaIndex) greedySearchDiskCosine(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
+func (idx *DiskVamanaIndex) greedySearchDiskCosine(ctx context.Context, scratch *SearchScratch, medoid uint64, query []float32, L int) ([]Neighbor, bool) {
 	if idx.closed {
-		return nil
+		return nil, false
 	}
 	queryNormSquare := computeNormSquare(query)
 	if !idx.deleted.IsDeletedUnsafe(medoid) {
@@ -356,6 +389,9 @@ func (idx *DiskVamanaIndex) greedySearchDiskCosine(scratch *SearchScratch, medoi
 		}
 	}
 	for scratch.Best.HasUnvisited() {
+		if diskSearchContextCancelled(ctx) {
+			return nil, true
+		}
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
@@ -370,7 +406,7 @@ func (idx *DiskVamanaIndex) greedySearchDiskCosine(scratch *SearchScratch, medoi
 			}
 		}
 	}
-	return scratch.Best.allView()
+	return scratch.Best.allView(), false
 }
 
 // computeDistance 读取节点向量并计算与查询向量的精确欧氏距离平方。
@@ -392,18 +428,21 @@ func (idx *DiskVamanaIndex) computeDistance(nodeID uint64, query []float32) floa
 //
 // Uses unified getVector() to read vectors from disk or append buffer,
 // then computes exact distances and returns top-K.
-func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []float32, topK int) []SearchResult {
+func (idx *DiskVamanaIndex) rerankCandidates(ctx context.Context, candidates []Neighbor, query []float32, topK int) ([]SearchResult, bool) {
 	if len(candidates) == 0 || topK <= 0 {
-		return nil
+		return nil, false
 	}
 
 	limit := min(topK, len(candidates))
 	results := make([]SearchResult, 0, limit)
 	heapReady := false
 	if idx.closed {
-		return nil
+		return nil, false
 	}
 	for _, cand := range candidates {
+		if diskSearchContextCancelled(ctx) {
+			return nil, true
+		}
 		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			continue
 		}
@@ -443,12 +482,12 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 			results[position] = value
 		}
 	}
-	return results
+	return results, false
 }
 
-func (idx *DiskVamanaIndex) rerankCandidatesCosine(candidates []Neighbor, query []float32, topK int) []SearchResult {
+func (idx *DiskVamanaIndex) rerankCandidatesCosine(ctx context.Context, candidates []Neighbor, query []float32, topK int) ([]SearchResult, bool) {
 	if len(candidates) == 0 || topK <= 0 {
-		return nil
+		return nil, false
 	}
 
 	limit := min(topK, len(candidates))
@@ -457,10 +496,13 @@ func (idx *DiskVamanaIndex) rerankCandidatesCosine(candidates []Neighbor, query 
 	queryNormSquare := computeNormSquare(query)
 
 	if idx.closed {
-		return nil
+		return nil, false
 	}
 
 	for _, cand := range candidates {
+		if diskSearchContextCancelled(ctx) {
+			return nil, true
+		}
 		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			continue
 		}
@@ -505,7 +547,7 @@ func (idx *DiskVamanaIndex) rerankCandidatesCosine(candidates []Neighbor, query 
 			results[position] = value
 		}
 	}
-	return results
+	return results, false
 }
 
 func heapifySearchResultDown(results []SearchResult, index, count int) {
@@ -525,6 +567,14 @@ func heapifySearchResultDown(results []SearchResult, index, count int) {
 		results[index], results[largest] = results[largest], results[index]
 		index = largest
 	}
+}
+
+func diskSearchContextCancelled(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	diskSearchContextLoopHook()
+	return ctx.Err() != nil
 }
 
 // ============================================================================

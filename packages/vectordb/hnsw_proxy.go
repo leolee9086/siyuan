@@ -17,6 +17,7 @@
 package vectordb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -138,6 +139,21 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 
 // SearchWithError searches for k nearest neighbors and preserves the common error-aware collection contract.
 func (c *Collection) SearchWithError(queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	return c.search(nil, queryVec, k, efSearch)
+}
+
+// SearchWithContext 在调用方取消或超时时停止 HNSW 图遍历。
+func (c *Collection) SearchWithContext(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
+	if ctx == nil {
+		return c.search(nil, queryVec, k, efSearch)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return c.search(ctx, queryVec, k, efSearch)
+}
+
+func (c *Collection) search(ctx context.Context, queryVec []float32, k int, efSearch int) ([]SearchResult, error) {
 	if len(queryVec) != c.ColDim {
 		return nil, fmt.Errorf("%w: expected %d, got %d", ErrVectorDimensionInvalid, c.ColDim, len(queryVec))
 	}
@@ -146,7 +162,15 @@ func (c *Collection) SearchWithError(queryVec []float32, k int, efSearch int) ([
 		return nil, err
 	}
 	// Delegate to HNSWIndex
-	hnswResults := c.HNSWIdx.Search(queryVec, k, efSearch)
+	var hnswResults []hnsw.SearchResult
+	if ctx == nil {
+		hnswResults = c.HNSWIdx.Search(queryVec, k, efSearch)
+	} else {
+		hnswResults, err = c.HNSWIdx.SearchContext(ctx, queryVec, k, efSearch)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if hnswResults == nil {
 		return []SearchResult{}, nil
 	}

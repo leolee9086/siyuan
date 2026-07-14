@@ -115,6 +115,7 @@ type DatasetAPI interface {
 	ListIndexes() []DatasetIndexInfo
 	FetchEntities(ids []string) ([]Entity, error)
 	SearchIndex(index string, query []float32, opts SearchOptions) ([]SearchResult, error)
+	SearchIndexContext(ctx context.Context, index string, query []float32, opts SearchOptions) ([]SearchResult, error)
 	SearchFusion(ctx context.Context, request FusionSearchRequest) (FusionSearchResponse, error)
 	Checkpoint(ctx context.Context) error
 	Close() error
@@ -330,7 +331,24 @@ func (d *Dataset) SearchIndex(index string, query []float32, opts SearchOptions)
 	return d.searchIndexLocked(index, query, opts)
 }
 
+// SearchIndexContext 查询指定的物理索引视图，并在取消时停止 ANN 遍历。
+func (d *Dataset) SearchIndexContext(ctx context.Context, index string, query []float32, opts SearchOptions) ([]SearchResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.searchIndexLockedContext(ctx, index, query, opts, true)
+}
+
 func (d *Dataset) searchIndexLocked(index string, query []float32, opts SearchOptions) ([]SearchResult, error) {
+	return d.searchIndexLockedContext(context.Background(), index, query, opts, false)
+}
+
+func (d *Dataset) searchIndexLockedContext(ctx context.Context, index string, query []float32, opts SearchOptions, cancellable bool) ([]SearchResult, error) {
 	if d.closed {
 		return nil, ErrCollectionClosed
 	}
@@ -358,7 +376,13 @@ func (d *Dataset) searchIndexLocked(index string, query []float32, opts SearchOp
 		searchOptions.GroupBy = ""
 		searchOptions.MaxPerGroup = 0
 	}
-	results, err := handle.Search(query, searchOptions)
+	var results []SearchResult
+	var err error
+	if cancellable {
+		results, err = handle.SearchContext(ctx, query, searchOptions)
+	} else {
+		results, err = handle.Search(query, searchOptions)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -471,11 +495,14 @@ func (d *Dataset) SearchFusion(ctx context.Context, request FusionSearchRequest)
 				sources[queryIndex].err = err
 				return
 			}
-			sources[queryIndex].results, sources[queryIndex].err = d.searchIndexLocked(query.Index, query.Vector, query.Options)
+			sources[queryIndex].results, sources[queryIndex].err = d.searchIndexLockedContext(ctx, query.Index, query.Vector, query.Options, true)
 		}()
 	}
 	wait.Wait()
 	d.mu.RUnlock()
+	if err := ctx.Err(); err != nil {
+		return FusionSearchResponse{}, err
+	}
 
 	response := FusionSearchResponse{}
 	for _, source := range sources {

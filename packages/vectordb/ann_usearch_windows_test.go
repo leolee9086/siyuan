@@ -6,8 +6,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"testing"
 	"time"
+
+	"s-forge.local/vectordb/bbq"
 )
 
 func TestANNBenchmarksSIFTUSearchComparison(t *testing.T) {
@@ -76,6 +79,37 @@ func TestANNBenchmarksSIFTPairedUSearchRatio(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Logf("ef=%d Recall@10：vectordb %.2f%%，USearch %.2f%%；逐查询交错 QPS 比值 %.4f（%.2f/%.2f）", expansion, oursRecall*100, theirsRecall*100, paired.ratio, paired.oursQPS, paired.theirsQPS)
+	}
+}
+
+func TestANNBenchmarksBBQLambdaUSearchRatio(t *testing.T) {
+	data := loadANNSIFTDataFixture(t)
+	competitor, err := buildANNUSearch(data.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = competitor.index.close() }()
+
+	for step := 1; step <= 20; step++ {
+		lambda := float32(step) * 0.05
+		rand.Seed(1)
+		quantizer := bbq.NewScalarQuantizerWithTuning(bbq.EuclideanDistance, lambda, 5)
+		fixture := buildANNHNSWFixture(t, data, quantizer)
+		t.Logf("lambda=%.2f 构建吞吐比值：vectordb/USearch=%.4f（%.0f/%.0f vectors/s），heap=%.1f bytes/vector", lambda, fixture.buildVectorsSec/competitor.vectorsPerSecond, fixture.buildVectorsSec, competitor.vectorsPerSecond, float64(fixture.heapBytes)/float64(len(fixture.base)))
+		for _, expansion := range []int{32, 64, 100, 200} {
+			oursRecall := annRecall(fixture, expansion)
+			theirsRecall, err := annUSearchRecall(fixture, competitor.index, expansion)
+			if err != nil {
+				t.Fatal(err)
+			}
+			paired, err := annMeasurePairedHNSWUSearch(fixture, competitor.index, expansion)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("lambda=%.2f ef=%d：Recall@10 vectordb %.2f%%，USearch %.2f%%；逐查询交错 QPS 比值 %.4f（%.2f/%.2f）", lambda, expansion, oursRecall*100, theirsRecall*100, paired.ratio, paired.oursQPS, paired.theirsQPS)
+		}
+		fixture.collection = nil
+		runtime.GC()
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"s-forge.local/vectordb/bbq"
 	"s-forge.local/vectordb/vamana"
 )
 
@@ -199,6 +200,110 @@ func TestANNBenchmarksSIFTReport(t *testing.T) {
 	}
 }
 
+// TestANNBenchmarksHNSWNavigationDiagnostic 在同一张图上隔离查询导航误差与构图质量。
+func TestANNBenchmarksHNSWNavigationDiagnostic(t *testing.T) {
+	fixture := loadANNSIFTFixture(t)
+	index := fixture.collection.HNSWIdx
+	dimension := index.Dimension
+	defer func() {
+		index.Dimension = dimension
+		index.SetBBQHybridSearch(true)
+	}()
+
+	t.Logf("同图导航诊断：base=%d，queries=%d，dim=%d，构建=%v，%.0f vectors/s，%.1f heap bytes/vector", len(fixture.base), len(fixture.queries), len(fixture.base[0]), fixture.buildDuration, fixture.buildVectorsSec, float64(fixture.heapBytes)/float64(len(fixture.base)))
+	for _, efSearch := range []int{32, 64, 100, 200} {
+		measurement := annMeasureHNSW(fixture, efSearch)
+		t.Logf("非对称 BBQ 混合导航 ef=%d：Recall@10=%.2f%%，QPS=%.2f", efSearch, measurement.recall*100, measurement.qps)
+	}
+
+	index.Dimension = 0
+	for _, efSearch := range []int{32, 64, 100, 200} {
+		measurement := annMeasureHNSW(fixture, efSearch)
+		t.Logf("同图全精度导航 ef=%d：Recall@10=%.2f%%，QPS=%.2f", efSearch, measurement.recall*100, measurement.qps)
+	}
+}
+
+// TestANNBenchmarksBBQCandidateReport 衡量量化本身的候选覆盖率，不包含图导航误差。
+func TestANNBenchmarksBBQCandidateReport(t *testing.T) {
+	fixture := loadANNSIFTDataFixture(t)
+	collection := NewCollectionWithMetric("ann-sift-bbq", len(fixture.base[0]), "l2")
+	if err := collection.Store.TrainBBQCentroid(fixture.base); err != nil {
+		t.Fatal(err)
+	}
+	started := time.Now()
+	collection.Store.Grow(len(fixture.base))
+	for id, vector := range fixture.base {
+		collection.Store.Set(DocID(id), vector)
+	}
+	fixture.collection = collection
+	t.Logf("非对称 BBQ 编码：base=%d，queries=%d，4-bit query × 1-bit data，编码=%v，%.0f vectors/s", len(fixture.base), len(fixture.queries), time.Since(started), float64(len(fixture.base))/time.Since(started).Seconds())
+	candidateCounts := []int{10, 32, 64, 100, 200, 500, 1000}
+	recalls := annBBQBruteForceCandidateRecall(fixture, candidateCounts)
+	for _, candidateCount := range candidateCounts {
+		t.Logf("仅 BBQ 粗排 top-%d 的 exact Recall@10=%.2f%%", candidateCount, recalls[candidateCount]*100)
+	}
+}
+
+// TestANNBenchmarksBBQQuantizerSweep 在真实 SIFT 上标定量化器参数，不包含图导航误差。
+func TestANNBenchmarksBBQQuantizerSweep(t *testing.T) {
+	fixture := loadANNSIFTDataFixture(t)
+	type quantizerTuning struct {
+		name       string
+		lambda     float32
+		iterations int
+	}
+	tunings := make([]quantizerTuning, 0, 21)
+	for step := 0; step <= 20; step++ {
+		lambda := float32(step) * 0.05
+		tunings = append(tunings, quantizerTuning{name: fmt.Sprintf("lambda-%.2f", lambda), lambda: lambda, iterations: 5})
+	}
+	candidateCounts := []int{100, 200, 500, 1000}
+	for _, tuning := range tunings {
+		collection := NewCollectionWithMetric("ann-sift-bbq-"+tuning.name, len(fixture.base[0]), "l2")
+		collection.Store.quantizer = bbq.NewScalarQuantizerWithTuning(bbq.EuclideanDistance, tuning.lambda, tuning.iterations)
+		if err := collection.Store.TrainBBQCentroid(fixture.base); err != nil {
+			t.Fatal(err)
+		}
+		collection.Store.Grow(len(fixture.base))
+		started := time.Now()
+		for id, vector := range fixture.base {
+			collection.Store.Set(DocID(id), vector)
+		}
+		encodeDuration := time.Since(started)
+		fixture.collection = collection
+		recalls := annBBQBruteForceCandidateRecall(fixture, candidateCounts)
+		t.Logf("BBQ=%s，lambda=%.2f，iterations=%d，编码=%.0f vectors/s；top-100/200/500/1000 Recall@10=%.2f%%/%.2f%%/%.2f%%/%.2f%%", tuning.name, tuning.lambda, tuning.iterations, float64(len(fixture.base))/encodeDuration.Seconds(), recalls[100]*100, recalls[200]*100, recalls[500]*100, recalls[1000]*100)
+		fixture.collection = nil
+		collection = nil
+		runtime.GC()
+	}
+}
+
+// TestANNBenchmarksBBQQuantizerScaleFinalists 在完整规模上复核密集扫描的候选参数。
+func TestANNBenchmarksBBQQuantizerScaleFinalists(t *testing.T) {
+	fixture := loadANNSIFTDataFixture(t)
+	candidateCounts := []int{100, 200, 500, 1000}
+	for _, lambda := range []float32{0.05, 0.1, 0.35, 0.6, 0.65, 0.7} {
+		collection := NewCollectionWithMetric(fmt.Sprintf("ann-sift-bbq-%.2f", lambda), len(fixture.base[0]), "l2")
+		collection.Store.quantizer = bbq.NewScalarQuantizerWithTuning(bbq.EuclideanDistance, lambda, 5)
+		if err := collection.Store.TrainBBQCentroid(fixture.base); err != nil {
+			t.Fatal(err)
+		}
+		collection.Store.Grow(len(fixture.base))
+		started := time.Now()
+		for id, vector := range fixture.base {
+			collection.Store.Set(DocID(id), vector)
+		}
+		encodeDuration := time.Since(started)
+		fixture.collection = collection
+		recalls := annBBQBruteForceCandidateRecall(fixture, candidateCounts)
+		t.Logf("SIFT%d lambda=%.2f，编码=%.0f vectors/s；top-100/200/500/1000 Recall@10=%.2f%%/%.2f%%/%.2f%%/%.2f%%", len(fixture.base), lambda, float64(len(fixture.base))/encodeDuration.Seconds(), recalls[100]*100, recalls[200]*100, recalls[500]*100, recalls[1000]*100)
+		fixture.collection = nil
+		collection = nil
+		runtime.GC()
+	}
+}
+
 func loadANNDiskVamanaFixture(tb testing.TB, fixture *annSIFTFixture) *annDiskVamanaFixture {
 	tb.Helper()
 	path := tb.TempDir()
@@ -338,7 +443,16 @@ func annBBQBruteForceCandidateRecall(fixture *annSIFTFixture, candidateCounts []
 }
 
 func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
-	fixture := loadANNSIFTDataFixture(tb)
+	return buildANNHNSWFixture(tb, loadANNSIFTDataFixture(tb), nil)
+}
+
+func buildANNHNSWFixture(tb testing.TB, data *annSIFTFixture, quantizer *bbq.ScalarQuantizer) *annSIFTFixture {
+	tb.Helper()
+	fixture := &annSIFTFixture{
+		base:        data.base,
+		queries:     data.queries,
+		groundTruth: data.groundTruth,
+	}
 	base := fixture.base
 	queries := fixture.queries
 	dim := len(base[0])
@@ -347,6 +461,9 @@ func loadANNSIFTFixture(tb testing.TB) *annSIFTFixture {
 	var before runtime.MemStats
 	runtime.ReadMemStats(&before)
 	collection := NewCollectionWithMetric("ann-sift", dim, "l2")
+	if quantizer != nil {
+		collection.Store.quantizer = quantizer
+	}
 	if err := collection.Store.TrainBBQCentroid(base); err != nil {
 		tb.Fatal(err)
 	}

@@ -76,6 +76,7 @@ type CollectionAPI interface {
 	Write(ctx context.Context, batch WriteBatch, opts WriteOptions) (WriteResult, error)
 	Upsert(points []Point) error
 	Search(query []float32, opts SearchOptions) ([]SearchResult, error)
+	SearchContext(ctx context.Context, query []float32, opts SearchOptions) ([]SearchResult, error)
 	Delete(ids []string) error
 	Flush() error
 	Checkpoint(ctx context.Context) (CheckpointResult, error)
@@ -666,6 +667,23 @@ func (h *CollectionHandle) Upsert(points []Point) error {
 }
 
 func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]SearchResult, error) {
+	return h.search(context.Background(), query, opts, false)
+}
+
+// SearchContext 在调用方取消或超时时中止图遍历。
+func (h *CollectionHandle) SearchContext(ctx context.Context, query []float32, opts SearchOptions) ([]SearchResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return h.search(ctx, query, opts, true)
+}
+
+func (h *CollectionHandle) search(ctx context.Context, query []float32, opts SearchOptions, cancellable bool) ([]SearchResult, error) {
+	if cancellable {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+	}
 	state := h.state
 	state.mu.RLock()
 	defer state.mu.RUnlock()
@@ -685,7 +703,7 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 	}
 	diversified := len(opts.ExcludeIDs) > 0 || opts.GroupBy != ""
 	if !diversified {
-		results, err := h.col.SearchWithError(query, topK, opts.EfSearch)
+		results, err := h.searchCollection(ctx, query, topK, opts.EfSearch, cancellable)
 		if err != nil || opts.ScoreThreshold <= 0 {
 			return results, err
 		}
@@ -718,7 +736,7 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 			candidateTopK = expanded
 		}
 	}
-	results, err := h.col.SearchWithError(query, candidateTopK, opts.EfSearch)
+	results, err := h.searchCollection(ctx, query, candidateTopK, opts.EfSearch, cancellable)
 	if err != nil {
 		return nil, err
 	}
@@ -760,6 +778,13 @@ func (h *CollectionHandle) Search(query []float32, opts SearchOptions) ([]Search
 		}
 	}
 	return filtered, nil
+}
+
+func (h *CollectionHandle) searchCollection(ctx context.Context, query []float32, topK, efSearch int, cancellable bool) ([]SearchResult, error) {
+	if !cancellable {
+		return h.col.SearchWithError(query, topK, efSearch)
+	}
+	return h.col.SearchWithContext(ctx, query, topK, efSearch)
 }
 
 func searchResultGroup(result SearchResult, path []string) string {

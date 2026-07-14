@@ -18,9 +18,100 @@ package bbq
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"testing"
 )
+
+var benchmarkDotProductSink int
+
+// rustDirectPackedDotProduct4Bit 复现 rust-bbq 的未打包查询与打包数据八路展开路径。
+func rustDirectPackedDotProduct4Bit(query, packed []byte) int {
+	dimension := len(query)
+	fullBytes := dimension / 8
+	sum := 0
+	for byteIndex := 0; byteIndex < fullBytes; byteIndex++ {
+		value := packed[byteIndex]
+		offset := byteIndex * 8
+		sum += int(query[offset]) * int((value>>7)&1)
+		sum += int(query[offset+1]) * int((value>>6)&1)
+		sum += int(query[offset+2]) * int((value>>5)&1)
+		sum += int(query[offset+3]) * int((value>>4)&1)
+		sum += int(query[offset+4]) * int((value>>3)&1)
+		sum += int(query[offset+5]) * int((value>>2)&1)
+		sum += int(query[offset+6]) * int((value>>1)&1)
+		sum += int(query[offset+7]) * int(value&1)
+	}
+	for dimensionIndex := fullBytes * 8; dimensionIndex < dimension; dimensionIndex++ {
+		bitIndex := uint(7 - dimensionIndex%8)
+		sum += int(query[dimensionIndex]) * int((packed[fullBytes]>>bitIndex)&1)
+	}
+	return sum
+}
+
+func TestRustDirectPackedDotProduct4BitMatchesTransposed(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	for _, dimension := range []int{33, 128, 257, 768, 1536} {
+		query := make([]byte, dimension)
+		data := make([]byte, dimension)
+		for index := range query {
+			query[index] = byte(rng.Intn(16))
+			data[index] = byte(rng.Intn(2))
+		}
+		packed := PackBinary(data)
+		transposed := PackBitTranspose4(query)
+		direct := rustDirectPackedDotProduct4Bit(query, packed)
+		if got := ComputeTransposedDotProduct(transposed, packed); got != direct {
+			t.Fatalf("维度 %d 的 Rust direct 与位平面结果不一致：%d/%d", dimension, direct, got)
+		}
+	}
+}
+
+func BenchmarkRustDirectPackedVsTransposed4Bit(b *testing.B) {
+	for _, dimension := range []int{128, 768, 1536} {
+		for _, candidates := range []int{16, 64, 200} {
+			rng := rand.New(rand.NewSource(42))
+			query := make([]byte, dimension)
+			for index := range query {
+				query[index] = byte(rng.Intn(16))
+			}
+			packedSize := (dimension + 7) / 8
+			packed := make([]byte, candidates*packedSize)
+			for index := range packed {
+				packed[index] = byte(rng.Intn(256))
+			}
+			transposed := PackBitTranspose4(query)
+
+			name := fmt.Sprintf("dim_%d/candidates_%d", dimension, candidates)
+			b.Run(name+"/rust-direct", func(b *testing.B) {
+				b.ReportAllocs()
+				b.ResetTimer()
+				sum := 0
+				for iteration := 0; iteration < b.N; iteration++ {
+					for candidate := 0; candidate < candidates; candidate++ {
+						offset := candidate * packedSize
+						sum += rustDirectPackedDotProduct4Bit(query, packed[offset:offset+packedSize])
+					}
+				}
+				benchmarkDotProductSink = sum
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*candidates), "ns/distance")
+			})
+			b.Run(name+"/bitplane-popcnt", func(b *testing.B) {
+				b.ReportAllocs()
+				b.ResetTimer()
+				sum := 0
+				for iteration := 0; iteration < b.N; iteration++ {
+					for candidate := 0; candidate < candidates; candidate++ {
+						offset := candidate * packedSize
+						sum += ComputeTransposedDotProduct(transposed, packed[offset:offset+packedSize])
+					}
+				}
+				benchmarkDotProductSink = sum
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*candidates), "ns/distance")
+			})
+		}
+	}
+}
 
 func TestComputeTransposedDotProductWordsMatchesBytePath(t *testing.T) {
 	for _, dimension := range []int{64, 128, 384, 768} {

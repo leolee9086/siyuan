@@ -17,6 +17,8 @@
 package hnsw
 
 import (
+	"context"
+	"errors"
 	"math"
 	"math/rand"
 	"sort"
@@ -967,6 +969,41 @@ func TestSearch_SingleItem(t *testing.T) {
 	}
 	if results[0].ID != 0 {
 		t.Errorf("结果 ID 应为 0，实际: %d", results[0].ID)
+	}
+}
+
+func TestSearchContextCancelsActiveTraversal(t *testing.T) {
+	dist := newMockDistancer(euclideanDistance)
+	idx := newTestIndex(4, dist)
+	dist.AddVector(0, []float32{1, 0, 0, 0})
+	if !idx.Insert(0) {
+		t.Fatal("插入入口点失败")
+	}
+
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	originalHook := searchContextLoopHook
+	searchContextLoopHook = func() {
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		<-release
+	}
+	defer func() { searchContextLoopHook = originalHook }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := idx.SearchContext(ctx, []float32{1, 0, 0, 0}, 1, 16)
+		done <- err
+	}()
+	<-started
+	cancel()
+	close(release)
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("遍历中取消未返回 context.Canceled：%v", err)
 	}
 }
 
