@@ -173,8 +173,8 @@ export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: b
  * @同步豁免: UI构建 - HTML生成操作必须同步执行，否则Dialog构造函数中innerHTML赋值会拿到Promise对象
  */
 export function 生成对话框HTML(params: I对话框HTML参数) {
-    return `<div class="b3-dialog" style="z-index: ${params.zIndex};${typeof params.left === "string" ? "display:block" : ""};${params.scrimPointerEvents ? " pointer-events:none" : ""}">
-<div class="b3-dialog__scrim"${params.transparent ? 'style="background-color:transparent"' : ""}></div>
+    return `<div class="b3-dialog${params.rootClassName ? " " + params.rootClassName : ""}" style="z-index: ${params.zIndex};${typeof params.left === "string" ? "display:block" : ""};${params.scrimPointerEvents ? " pointer-events:none" : ""}">
+${params.showScrim ? `<div class="b3-dialog__scrim"${params.transparent ? 'style="background-color:transparent"' : ""}></div>` : ""}
 <div class="b3-dialog__container ${params.containerClassName || ""}" style="width:${params.width || "auto"};height:${params.height || "auto"};
 left:${params.left || "auto"};top:${params.top || "auto"};${params.scrimPointerEvents ? " pointer-events:auto" : ""}">
   ${params.closeButtonPosition === "outside" ? params.closeButtonHtml : ""}

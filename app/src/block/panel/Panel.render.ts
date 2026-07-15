@@ -24,7 +24,7 @@ import { isElectron } from "./imports";
 /**
  * 构建面板的 HTML 内容
  */
-export async function 构建面板HTML(refDefs: IRefDefs[]) {
+export function 构建面板HTML(refDefs: IRefDefs[]) {
     const config = getSiyuanConfig();
     let openHTML = "";
     // 仅有单个引用时显示"新标签页打开"按钮
@@ -51,9 +51,7 @@ export async function 构建面板HTML(refDefs: IRefDefs[]) {
     for (let i = 0; i < refDefs.length; i++) {
         html += `<div class="block__edit fn__flex-1 protyle" data-index="${i}"></div>`;
     }
-    if (html) {
-        html += '</div><div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>';
-    }
+    html += "</div>";
     return html;
 }
 
@@ -62,7 +60,7 @@ export async function 构建面板HTML(refDefs: IRefDefs[]) {
 /**
  * 设置面板位置（首个编辑器加载完成后调用）
  */
-export async function 设置面板位置(参数: 设置面板位置参数) {
+export function 设置面板位置(参数: 设置面板位置参数) {
     const { element, targetElement, x, y } = 参数;
     if (!document.contains(element)) {
         return;

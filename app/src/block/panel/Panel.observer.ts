@@ -28,7 +28,7 @@ import { 绑定滚动事件参数 } from "./Panel.observer.types";
 /**
  * 设置 ResizeObserver 和 IntersectionObserver
  */
-export async function 设置观察器(参数: 设置观察器参数) {
+export function 设置观察器(参数: 设置观察器参数) {
     const { element, editors, initProtyle } = 参数;
 
     let resizeTimeout: number;
@@ -62,7 +62,7 @@ export async function 设置观察器(参数: 设置观察器参数) {
 /**
  * 绑定滚动事件，隐藏 gutter
  */
-export async function 绑定滚动事件(参数: 绑定滚动事件参数) {
+export function 绑定滚动事件(参数: 绑定滚动事件参数) {
     const { element, editors } = 参数;
     const contentElement = element.querySelector(".block__content");
     if (!contentElement) {

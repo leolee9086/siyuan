@@ -24,6 +24,12 @@ export interface IDialogOptions {
     disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
     disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
     scrimPointerEvents?: boolean, // 是否允许遮罩层鼠标事件穿透
+    /** 是否渲染遮罩；默认为 true。非模态浮层可关闭遮罩但保留统一 Dialog 生命周期。 */
+    showScrim?: boolean,
+    /** 是否把实例加入 window.siyuan.dialogs；默认为 true。非模态宿主可关闭全局 Dialog 栈参与。 */
+    registerInDialogStack?: boolean,
+    /** Dialog 根节点附加 class，供非模态浮层选择自己的定位/交互样式。 */
+    rootClassName?: string,
     closeButtonPosition?: "outside" | "inside" | "inside-body", // 关闭按钮位置：外部(默认)、内部标题栏、内部内容区域
     data?: IObject // 自定义数据
 }
@@ -41,6 +47,8 @@ export interface I对话框HTML参数 {
     left?: string | undefined;
     top?: string | undefined;
     scrimPointerEvents: boolean;
+    showScrim: boolean;
+    rootClassName?: string | undefined;
     transparent?: boolean | undefined;
     containerClassName?: string | undefined;
     width?: string | undefined;

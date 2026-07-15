@@ -20,6 +20,21 @@
       opacity: 1;
     }
 
+    // BlockPanel 现在由标准 Dialog 提供根节点与 body；保持旧内容区的单层滚动模型。
+    & > .b3-dialog__body {
+      overflow: hidden;
+      padding: 0;
+    }
+
+    & > .b3-dialog__body > .block__icons {
+      border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0;
+
+      & > .resize__move {
+        height: 42px;
+        touch-action: none;
+      }
+    }
+
     & > .block__icons {
       border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0;
 

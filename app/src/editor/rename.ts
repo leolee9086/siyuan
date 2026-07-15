@@ -49,8 +49,8 @@ export const validateName = async (name: string, _targetElement?: HTMLElement) =
     return true;
 };
 
-/** 替换文件名中的非法字符 */
-export const replaceFileName = async (name: string) => {
+/** 替换文件名中的非法字符；函数无异步依赖，必须保持字符串返回值，避免标题收到 Promise。 */
+export const replaceFileName = (name: string) => {
     // 替换文件名中的斜杠为全角斜杠
     if (name.indexOf("/") > -1) {
         showMessage(getSiyuanLanguages().fileNameRule);

@@ -108,6 +108,8 @@ export function 初始化对话框内容(
         containerClassName: options.containerClassName,
         width: options.width,
         height: options.height,
+        rootClassName: options.rootClassName,
+        showScrim: options.showScrim ?? true,
         closeButtonPosition,
         closeButtonHtml,
         fullscreenButtonHtml,

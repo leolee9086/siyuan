@@ -19,11 +19,14 @@ import { EditorInitContext } from "./editor.types";
 /**
  * 初始化单个 Protyle 编辑器
  */
-export async function 初始化Protyle编辑器(
+export function 初始化Protyle编辑器(
     editorElement: HTMLElement,
     ctx: EditorInitContext,
     afterCB?: () => void
 ) {
+    if (ctx.isDestroyed?.() || !editorElement.isConnected) {
+        return;
+    }
     const index = parseInt(editorElement.getAttribute("data-index") ?? "0");
     const refDef = ctx.refDefs[index];
     if (!refDef) {
@@ -42,6 +45,9 @@ function 处理块信息响应(
     ctx: EditorInitContext,
     afterCB?: () => void
 ) {
+    if (ctx.isDestroyed?.() || !editorElement.isConnected) {
+        return;
+    }
     // 块不存在或已删除时显示错误
     if (response.code === 3) {
         showMessage(response.msg);
@@ -65,6 +71,11 @@ function 处理块信息响应(
         typewriterMode: false,
         /** 编辑器加载完成回调 */
         after: (editor) => {
+            // 子 Protyle 可能在网络请求完成后才回调；面板已销毁时立即释放新实例。
+            if (ctx.isDestroyed?.()) {
+                editor.destroy();
+                return;
+            }
             处理编辑器加载完成(editor, response.data.rootID, refDef, ctx, afterCB);
         }
     });

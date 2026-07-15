@@ -566,3 +566,4 @@ interface ResidualEvent {
 - [x] 2026-07-15：完成布局隔离第六小步：拖拽移动/清理模块不再直接导入 `layout/getAll`，宿主只通过 `findProtyleForElement` 暴露跨编辑器查找；生产体积基线已先记录，后续继续以生产包体积作为回归口径。
 - [x] 2026-07-15：修复浏览器宿主加载 `app` bundle 时 webpack runtime 直接读取未定义 `global` 的问题；统一 `output.globalObject = "globalThis"`，并为 Service Worker 提升缓存 schema、捕获资源请求失败，避免旧 chunk 缓存造成未处理 Promise。
 - [x] 2026-07-15：修复隔离生产构建误清理正式 Protyle 入口的问题；webpack 的 `outputDir` 环境参数现在同时控制输出和清理路径，`http://127.0.0.1:6806/stage/build/protyle-app/` 已验证返回 200。
+- [x] 2026-07-15：修复 toolbar 块引用“新建文档并引用”标题显示 `[object Promise]`；`replaceFileName` 无真实异步依赖，恢复为同步字符串转换，避免 Promise 泄漏到提示项、文档标题和引用值。

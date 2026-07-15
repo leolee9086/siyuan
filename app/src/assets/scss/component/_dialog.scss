@@ -135,4 +135,16 @@
       transition: all 0.2s ease-in-out;
     }
   }
+
+  // 非模态 Dialog 仍复用统一生命周期，但不拦截视口其它区域的事件。
+  &--popover {
+    align-items: initial;
+    justify-content: initial;
+    pointer-events: none;
+
+    .b3-dialog__container {
+      pointer-events: auto;
+      transform: none;
+    }
+  }
 }

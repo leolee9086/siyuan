@@ -134,6 +134,20 @@
 - 兼容策略：不修改 `Tab`/`Wnd` 构造器和布局 JSON；当前阶段不搬移原 `panelElement`，由下一阶段的副本工厂创建独立内容。
 - 后续：按 Dock 类型注册独立副本工厂，避免复杂 Model 对 `.layout__wnd` 祖先结构和共享可变状态产生隐式依赖；此项必须在插件和旧 JSON 回归覆盖后进行。
 
+### P1：`app/src/block` 的 BlockPanel 浮层曾自行实现，现已迁移到 Dialog
+
+- **历史结论**：迁移前生产路径使用的是 `app/src/block/panel/Panel.ts`，而不是 `app/src/dialog/Dialog`；旧实现直接创建根节点、插入 `document.body`，并自行处理 Resize 和最终销毁。
+- **当前实现**：`app/src/block/panel/Panel.ts` 通过 `new Dialog(...)` 创建非模态根容器，`BlockPanel.element` 继续指向 Dialog container 以保持插件和全局面板兼容，内容通过 `Dialog.bodyElement` 挂载；Dialog 负责根节点、Resize、监听器 AbortSignal 和最终 DOM 生命周期。
+- **证据：渲染与布局**：`app/src/block/panel/Panel.render.ts:40-67` 仍负责块引用工具栏、内容区和目标定位；八个 Resize 手柄已由标准 Dialog 生成，BlockPanel 只保留 `block__popover--open`、`z-index`、`maxHeight` 等块引用业务状态。
+- **证据：层级与交互协议**：`app/src/block/panel/Panel.helpers.ts:15-61` 自行通过 `data-level/data-oid/data-pin` 和全局 `blockPanels` 管理嵌套/清理；`Panel.actions.ts` 自行处理关闭、固定、打开新窗口和粘贴到页签。
+- **证据：子编辑器生命周期**：`app/src/block/panel/Panel.editor.ts:21-66` 继续创建 `new Protyle(...)` 并维护 BlockPanel 的编辑器数组；Dialog 销毁前由 BlockPanel 统一销毁这些业务子实例，异步响应会检查面板生命周期。
+- **调用链**：`app/src/block/popover.ts:328-355` 解析引用后直接 `new BlockPanel(...)` 并写入 `window.siyuan.blockPanels`；Protyle 点击、快捷键、插件和 Graph 均直接构造该类。
+- **遗留重复实现**：`app/src/block/Panel.ts` 也有一份旧版同名 `BlockPanel`，同样直接构造 `block__popover`；当前 `rg` 未发现生产代码导入该路径，实际调用均指向 `block/panel/Panel.ts`。需要保留兼容性验证后删除或明确标记为 legacy，避免两套浮层协议继续漂移。
+- **影响（迁移前）**：BlockPanel 与 Dialog 在定位坐标系、z-index、关闭/ESC、遮罩、拖拽缩放、嵌套层级、菜单清理、子 Protyle 销毁等方面存在两套生命周期和状态模型；独立 Protyle 或其它宿主若只提供 Dialog Port，无法自然复用块引用浮层。
+- **进度（2026-07-15）**：生产路径已迁移到标准 `Dialog`。Dialog 新增可选的非模态根类/遮罩开关/Dialog 栈注册开关，以及稳定的 `rootElement/containerElement/bodyElement` 内容入口、层级提升和幂等销毁；BlockPanel 保留嵌套层级、定位、固定、懒加载等业务语义，不再自行创建根节点、Resize 手柄或最终移除 DOM。异步编辑器初始化增加销毁状态防护。
+- **剩余解耦方向**：BlockPanel 仍保留块引用特有的嵌套层级、目标定位、固定、懒加载和多编辑器拼接，后续可在不改变 Dialog 适配的前提下抽出类型化 `BlockPopoverHostPort`/`BlockPopoverEvent`。旧版顶层 `app/src/block/Panel.ts` 仍需兼容性验证后处理，避免两套实现继续漂移。
+- **阶段验收**：生产迁移、`pnpm run typecheck:protyle-contract` 和 `pnpm run build:app` 已通过；BlockPanel 专属浏览器契约测试仍待测试配置先支持 `.vue` 编译或改用构建产物测试。
+
 ### P2：`Model` 混合同步传输和 App 生命周期
 
 - 证据：`app/src/layout/Model.ts:19-81` 构造 WebSocket、重连、读取 `window.siyuan.config` 并销毁 Dialog。

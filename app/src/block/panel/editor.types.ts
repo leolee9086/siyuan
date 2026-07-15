@@ -16,4 +16,6 @@ export interface EditorInitContext {
     y?: number | undefined;
     editors: Protyle[];
     onFirstEditorReady?: () => void;
+    /** 面板销毁后，异步块信息响应不得再创建编辑器。 */
+    isDestroyed?: () => boolean;
 }

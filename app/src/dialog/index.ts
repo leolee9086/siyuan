@@ -10,6 +10,8 @@ import { Constants } from "./imports";
 import type { App } from "./imports";
 /** 用途：推送对话框到全局列表。使用范围：构造函数注册。解耦评估：通过 ./imports 转发。 */
 import { pushSiyuanDialog } from "./imports";
+/** 用途：递增对话框层级。使用范围：非模态浮层点击提升。解耦评估：通过 ./imports 转发。 */
+import { incrementSiyuanZIndex } from "./imports";
 /** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
 /** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
 import { isNotCtrl } from "./imports";
@@ -43,6 +45,12 @@ export type { IDialogOptions };
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
+    /** 标准 Dialog 的实际定位根节点；`element` 保留外层包装兼容性。 */
+    public readonly rootElement: HTMLElement;
+    /** 标准 Dialog 内容容器；供需要自定义 body 结构的能力适配器使用。 */
+    public readonly containerElement: HTMLElement;
+    /** 标准 Dialog body；供内容编排器挂载自定义内容而无需依赖内部查询。 */
+    public readonly bodyElement: HTMLElement;
     public id: string;
     private disableClose: boolean;
     private disableScrimClose: boolean;
@@ -55,6 +63,7 @@ export class Dialog {
     private originalSize: { width: string; height: string; left: string; top: string } | null = null;
     private abortController: AbortController;
     private resizeCallback: (type: string) => void;
+    private destroyed = false;
 
     constructor(options: IDialogOptions) {
         this.resizeCallback = options.resizeCallback;
@@ -64,7 +73,10 @@ export class Dialog {
         this.scrimPointerEvents = options.scrimPointerEvents ?? false;
         this.id = genUUID();
         this.abortController = new AbortController();
-        pushSiyuanDialog(this);
+        // 非模态浮层不参与全局模态 Dialog 栈，避免影响全局快捷键和 ESC 路由。
+        if (options.registerInDialogStack !== false) {
+            pushSiyuanDialog(this);
+        }
         this.destroyCallback = options.destroyCallback ?? (() => { });
         this.data = options.data || {};
         this.element = document.createElement("div");
@@ -73,13 +85,27 @@ export class Dialog {
             disableClose: this.disableClose,
             scrimPointerEvents: this.scrimPointerEvents
         });
+        const containerElement = this.element.querySelector(".b3-dialog__container");
+        const rootElement = this.element.querySelector(".b3-dialog");
+        if (!isHTMLElement(rootElement)) {
+            throw new Error("Dialog root was not created");
+        }
+        this.rootElement = rootElement;
+        if (!isHTMLElement(containerElement)) {
+            throw new Error("Dialog container was not created");
+        }
+        this.containerElement = containerElement;
+        const bodyElement = containerElement.querySelector(".b3-dialog__body");
+        if (!isHTMLElement(bodyElement)) {
+            throw new Error("Dialog body was not created");
+        }
+        this.bodyElement = bodyElement;
         绑定对话框事件(this, this.element, this.disableClose, this.disableScrimClose, () => this.isFullscreen);
         添加对话框到DOM(this.element, options.disableAnimation);
         this.titleVueApp = 挂载标题Vue组件(this.element, options);
 
-        const containerElement = this.element.querySelector(".b3-dialog__container");
         // 桌面端启用对话框拖拽和缩放功能，querySelector 可能返回 null 需类型守卫
-        if (!isMobile() && isHTMLElement(containerElement)) {
+        if (!isMobile()) {
             moveResize(containerElement, options.resizeCallback);
         }
     }
@@ -93,6 +119,10 @@ export class Dialog {
      * @param options 可选的销毁参数，会传递给 destroyCallback
      */
     public destroy(options?: IObject) {
+        if (this.destroyed) {
+            return;
+        }
+        this.destroyed = true;
         // 中止所有通过 listen 方法添加的事件监听器
         this.abortController.abort();
         this.element.classList.remove("b3-dialog--open");
@@ -145,6 +175,13 @@ export class Dialog {
         if (containerElement instanceof HTMLElement && containerElement.style.maxWidth !== "none") {
             this.resizeCallback("l");
         }
+    }
+
+    /** 将 Dialog 根节点和可见容器同步提升到最前，适用于非模态浮层。 */
+    public bringToFront() {
+        const zIndex = incrementSiyuanZIndex().toString();
+        this.rootElement.style.zIndex = zIndex;
+        this.containerElement.style.zIndex = zIndex;
     }
 
     /**
