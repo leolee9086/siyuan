@@ -24,5 +24,4 @@ const tabFloatEvents = new SafeEventEmitter(tabFloatEventDefines, {
 });
 
 /** 导出共享的页签浮窗事件发射器，供 Port 层订阅和发射请求。 */
-/** 导出共享的页签浮窗事件发射器，供 Port 层订阅和发射请求。 */
 export {tabFloatEvents};

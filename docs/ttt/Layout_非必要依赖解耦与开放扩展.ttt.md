@@ -43,9 +43,15 @@
   - **结果**：确认 serializer/handler 通过具体类和 `instance` 字符串集中分派，并在同一流程中恢复 DOM、创建模型和触发 App 副作用；已形成第一版迁移映射，下一步转为注册表协议设计。
 
 - [x] **为所有 Tab 菜单增加 Dialog 浮窗入口**
-  - **行动**：`menus/tab.ts` 通过 `requestOpenTabAsDialog` 调用布局能力，不直接依赖 Dialog；完整 App 适配器暂时移动现有 `panelElement` 到 Dialog，销毁时恢复原位置；无适配器时发出 Zod 校验的 `tab-open-as-dialog-requested` 事件。
-  - **结果**：所有 Tab 的右键菜单都出现现有本地化“在浮窗中打开”菜单项；原 Electron “移动到新窗口”菜单和序列化路径不变。
+  - **行动**：`menus/tab.ts` 通过 `requestOpenTabAsDialog` 调用布局能力，不直接依赖 Dialog；无适配器时发出 Zod 校验的 `tab-open-as-dialog-requested` 事件。
+  - **结果**：所有 Tab 的右键菜单都出现现有本地化“在浮窗中打开”菜单项；原 Electron “移动到新窗口”菜单和序列化路径不变。通用搬移 DOM 的临时适配器已撤回，避免把“浮窗”错误实现为移动原 Tab。
   - **验证**：`app/test/browser/layout/tabFloat.browser.ts` 2 个浏览器契约用例通过；`pnpm run build:app` 通过。
+
+- [ ] **Phase 2：从 Agent Dock 开始实现 Tab/Dock 副本浮窗**
+  - **背景**：副本必须拥有独立 DOM、状态、事件监听、输入编辑器和销毁生命周期；不能使用 `panelElement` 搬移或 `cloneNode` 冒充可交互副本。
+  - **行动**：为 Agent Dock 定义 `TabFloatCopyFactory`，由 Dock 自己创建独立 `AgentChat`/会话状态并挂载到宿主 Dialog；Port 只负责能力调用和生命周期，不依赖 AgentChat 具体实现。
+  - **扩展**：后续为 Editor、Search、Custom、Graph、Outline、Backlink、Files 等 Dock 注册各自副本工厂；无法安全复制的模型必须明确返回“不支持”，不能静默共享可变状态。
+  - **验收**：原 Tab 保持可用；浮窗副本可独立交互和销毁；关闭副本不改变原 Tab；布局 JSON 和插件句柄不发生变化。
 
 - [ ] **定义布局核心最小协议**
   - **行动**：设计 `LayoutNode`、`WindowState`、`TabState`、`LayoutCommand`、`LayoutEvent` 和 `LayoutHostPort`，先只写类型与兼容适配，不替换现有实现。
@@ -112,9 +118,9 @@
 
 - 证据：`app/src/menus/tab.ts:242-253` 原菜单只在 `isElectron` 时直接调用 `openNewWindow(tab)`；这条路径序列化 Tab 并移除原页签，语义是“移动到新窗口”，不是 Dialog 浮层。
 - 影响：浏览器、独立宿主和插件无法获得统一的 Tab 浮窗入口；若直接复用 `openNewWindow`，会错误改变布局树和插件观察到的 Tab 生命周期。
-- 当前边界：新增 `app/src/layout/tabFloat.types.ts`、`tabFloat.port.ts` 和 `tabFloat.factory.ts`。菜单只发出能力请求；完整 App 适配器负责 Dialog DOM，外部宿主可以注册 Port 或订阅类型化事件。
-- 兼容策略：不修改 `Tab`/`Wnd` 构造器和布局 JSON；浮窗只暂时转移现有 `panelElement`，关闭时按原父节点和兄弟顺序恢复；已关闭 Tab 不恢复。
-- 后续：将“移动面板”替换为可序列化的独立 Tab 浮窗模型，避免复杂 Model 对 `.layout__wnd` 祖先结构的隐式依赖；此项必须在插件和旧 JSON 回归覆盖后进行。
+- 当前边界：新增 `app/src/layout/tabFloat.types.ts`、`tabFloat.port.ts` 和 `tabFloat.events.factory.ts`。菜单只发出能力请求；外部宿主可以注册副本 Port 或订阅类型化事件。
+- 兼容策略：不修改 `Tab`/`Wnd` 构造器和布局 JSON；当前阶段不搬移原 `panelElement`，由下一阶段的副本工厂创建独立内容。
+- 后续：按 Dock 类型注册独立副本工厂，避免复杂 Model 对 `.layout__wnd` 祖先结构和共享可变状态产生隐式依赖；此项必须在插件和旧 JSON 回归覆盖后进行。
 
 ### P2：`Model` 混合同步传输和 App 生命周期
 
@@ -138,4 +144,4 @@
 ## 已归档/已完成
 
 - [x] 创建本 TTT 并记录 layout 第一轮扫描结果（2026-07-15）。
-- [x] 增加所有 Tab 的 Dialog 浮窗菜单入口，并保留原序列化、反序列化和 Electron 新窗口兼容（2026-07-15）。
+- [x] 增加所有 Tab 的 Dialog 浮窗菜单入口，并保留原序列化、反序列化和 Electron 新窗口兼容；通用副本工厂转入 Phase 2（2026-07-15）。

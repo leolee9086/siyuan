@@ -54,7 +54,6 @@ import { setSForgeState } from "./config/sforge.global";
 import { SForgeSymbols } from "./config/sforge.symbols";
 import { setBodyHighlight } from "./util/assets/assets";
 import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
-import "./layout/tabFloat.factory";
 import type { Plugin } from "./plugin";
 
 export class App {

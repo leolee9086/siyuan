@@ -38,7 +38,7 @@ export const subscribeTabFloatRequest = (listener: (request: ILayoutTabFloatRequ
     tabFloatEvents.subscribe("tab-open-as-dialog-requested", listener);
 
 /**
- * 请求将页签作为 Dialog 浮窗打开。
+ * 请求将页签作为副本放入 Dialog 浮窗。
  * 已注册能力优先执行；没有能力时通过类型化事件交给外部宿主。
  */
 /** @同步豁免: UI构建 - 菜单动作必须在菜单关闭前同步发起宿主能力或事件请求，避免丢失当前 Tab 句柄。 */
