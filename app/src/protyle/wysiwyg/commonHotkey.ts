@@ -4,7 +4,7 @@ import {isMac, writeText} from "../util/compatibility";
 import {focusBlock, getSelectionOffset, setFirstNodeRange, setLastNodeRange,} from "../util/selection";
 import {getContenteditableElement, getNextBlock} from "./getBlock";
 import {hideElements} from "../ui/hideElements";
-import {countBlockWord} from "../../layout/status";
+import {countBlockWord} from "../runtime/status.port";
 import {scrollCenter} from "../../util/DOM/highlightById";
 import {transaction, updateTransaction} from "./transaction";
 import {onGet} from "../util/onGet";

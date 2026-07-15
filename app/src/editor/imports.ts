@@ -229,7 +229,7 @@ export { highlightById };
 export { scrollCenter };
 
 /** 用途：统计字数。使用范围：editor 聚焦时更新字数。解耦评估：通过 imports.ts 转发。 */
-import { countBlockWord } from "../layout/status";
+import { countBlockWord } from "../protyle/runtime/status.port";
 /** 导出 countBlockWord，供 editor 模块使用 */
 export { countBlockWord };
 
@@ -309,7 +309,7 @@ import { Forwardlink } from "../layout/dock/forwardlink/Forwardlink";
 export { Forwardlink };
 
 /** 用途：统计选中字数。使用范围：编辑器聚焦时更新统计。解耦评估：通过 imports.ts 转发。 */
-import { countSelectWord } from "../layout/status";
+import { countSelectWord } from "../protyle/runtime/status.port";
 /** 导出 countSelectWord，供 editor 模块使用 */
 export { countSelectWord };
 

@@ -1,51 +1,16 @@
 import {hideElements} from "../ui/hideElements";
 import {setPadding} from "../ui/initUI";
-import {hasClosestBlock, hasClosestByClassName} from "./hasClosest";
 import {Constants} from "../../constants";
 import {lineNumberRender} from "../render/highlightRender";
-import {getAllModels} from "../../layout/getAll";
 import {stickyRow} from "../render/av/row";
-import {isMobile} from "../../platform";
+import {clearProtyleBeforeResizeTop, recordProtyleBeforeResizeTop} from "../runtime/layout.port";
 
 export const clearBeforeResizeTop = () => {
-    if (isMobile) {
-        return;
-    }
-    getAllModels().editor.forEach((item) => {
-        if (item.editor && item.editor.protyle &&
-            item.element.parentElement && !item.element.classList.contains("fn__none")) {
-            item.editor.protyle.wysiwyg.element.querySelector("[data-resize-top]")?.removeAttribute("data-resize-top");
-        }
-    });
+    clearProtyleBeforeResizeTop();
 };
 
 export const recordBeforeResizeTop = () => {
-    if (isMobile) {
-        return;
-    }
-    getAllModels().editor.forEach((item) => {
-        if (item.editor && item.editor.protyle &&
-            item.element.parentElement && !item.element.classList.contains("fn__none")) {
-            item.editor.protyle.wysiwyg.element.querySelector("[data-resize-top]")?.removeAttribute("data-resize-top");
-            const contentRect = item.editor.protyle.contentElement.getBoundingClientRect();
-            let topElement = document.elementFromPoint(contentRect.left + (contentRect.width / 2), contentRect.top);
-            if (hasClosestByClassName(topElement, "b3-menu")) {
-                window.siyuan.menus.menu.remove();
-                topElement = document.elementFromPoint(contentRect.left + (contentRect.width / 2), contentRect.top);
-            }
-            if (!topElement) {
-                topElement = document.elementFromPoint(contentRect.left + (contentRect.width / 2), contentRect.top + 17);
-            }
-            if (!topElement) {
-                return;
-            }
-            topElement = hasClosestBlock(topElement) as HTMLElement;
-            if (!topElement) {
-                return;
-            }
-            topElement.setAttribute("data-resize-top", (contentRect.top - topElement.getBoundingClientRect().top).toString());
-        }
-    });
+    recordProtyleBeforeResizeTop();
 };
 
 export const resize = (protyle: IProtyle) => {

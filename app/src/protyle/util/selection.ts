@@ -2,7 +2,7 @@ import {
     getContenteditableElement,
 } from "../wysiwyg/getBlock";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByTag } from "./hasClosest";
-import { countBlockWord, countSelectWord } from "../../layout/status";
+import { countBlockWord, countSelectWord } from "../runtime/status.port";
 import { hideElements } from "../ui/hideElements";
 import { focusByRange, focusBlock } from "./selection.focus";
 import { setLastNodeRange } from "./selection.range";

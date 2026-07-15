@@ -2,7 +2,7 @@ import { hasClosestByTag } from "../util/hasClosest";
 import { Constants } from "../../constants";
 import { removeEmbed } from "./removeEmbed";
 import { fetchSyncPost } from "../../util/network/fetch";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { encodeBase64 } from "../util/compatibility";
 import { isIncludeCell } from "../util/table/table";
 import { getTableRangeHTML } from "../util/table";

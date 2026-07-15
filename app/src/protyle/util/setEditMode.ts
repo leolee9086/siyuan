@@ -1,8 +1,6 @@
 import {hideElements} from "../ui/hideElements";
-import {getAllModels} from "../../layout/getAll";
-import { updateOutline } from "../../editor/util.updateOutline";
 import {resize} from "./resize";
-import {isMobile} from "../../platform";
+import {updateProtyleOutline} from "../runtime/layout.port";
 
 // @内联数组 setEditMode 切换时需要隐藏的 UI 元素类型
 const HIDE_ELEMENT_TYPES: Parameters<typeof hideElements>[0] = ["gutterOnly", "toolbar", "select", "hint", "util"];
@@ -28,9 +26,7 @@ export const setEditMode = (protyle: IProtyle, _type: TEditorMode) => {
         protyle.breadcrumb?.element.classList.remove("fn__none");
         protyle.breadcrumb?.toggleExit(!protyle.block.showAll);
     }
-    if (!isMobile) {
-        updateOutline(getAllModels(), protyle, true);
-    }
+    updateProtyleOutline(protyle, true);
     resize(protyle);
     hideElements(HIDE_ELEMENT_TYPES, protyle);
     // @breaking-change: preview模式已剥离为独立的export-preview页签，

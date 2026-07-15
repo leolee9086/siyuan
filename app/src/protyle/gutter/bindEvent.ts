@@ -32,7 +32,7 @@ import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { insertEmptyBlock } from "../../block/util";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 
 export const isMatchNode = (item: Element, gutterElement: Element) => {
     const itemRect = item.getBoundingClientRect();

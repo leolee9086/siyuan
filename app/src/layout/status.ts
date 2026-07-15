@@ -11,6 +11,8 @@ import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
 import {resolveStatusElement} from "./statusPort";
 import type {StatusElementTarget} from "./statusPort";
+import {setProtyleStatusPort} from "../protyle/runtime/status.port";
+import type {IProtyleStatusPort} from "../protyle/runtime/status.types";
 
 export const initStatus = (isWindow = false, status: StatusElementTarget = "status") => {
     if (isMobile) {
@@ -252,3 +254,17 @@ export const renderStatusbarCounter = (stat: {
     }
     statusElement.querySelector(".status__counter")?.replaceChildren(document.createRange().createContextualFragment(html));
 };
+
+/**
+ * 完整思源 App 的状态统计适配器。
+ *
+ * Protyle 不再直接导入本模块；本适配器只在完整 App 加载状态栏模块时注册，
+ * 将原有统计行为保留在主应用边界内。
+ */
+const appStatusPort: IProtyleStatusPort = {
+    countSelection: countSelectWord,
+    countBlocks: countBlockWord,
+    clear: clearCounter,
+};
+
+setProtyleStatusPort(appStatusPort);

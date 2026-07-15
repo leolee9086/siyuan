@@ -19,6 +19,8 @@ import type { App } from "../index";
 /** 用途：拖拽提示框状态类型。使用范围：SForge 全局状态中拖拽提示状态映射。解耦评估：父目录类型导入，纯类型引用。 */
 import type { DragTipState } from "../protyle/util/dragTip.types";
 import type { IProtyleDialogPort } from "../protyle/runtime/dialog.types";
+import type { IProtyleStatusPort } from "../protyle/runtime/status.types";
+import type { IProtyleLayoutPort } from "../protyle/runtime/layout.types";
 
 /**
  * SForge 全局状态类型定义
@@ -41,6 +43,8 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.DRAG_TIP_STATE]?: DragTipState;
     [SForgeSymbols.CARET_LINE_ELEMENT]?: HTMLElement | null;
     [SForgeSymbols.DIALOG_PORT]?: IProtyleDialogPort;
+    [SForgeSymbols.STATUS_PORT]?: IProtyleStatusPort;
+    [SForgeSymbols.LAYOUT_PORT]?: IProtyleLayoutPort;
 }
 
 /**

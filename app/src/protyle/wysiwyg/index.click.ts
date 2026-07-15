@@ -31,7 +31,7 @@ import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
 import {updateTransaction} from "./transaction";
 import { updateTableTitle } from "../util/table/table.title.update";
-import {countSelectWord} from "../../layout/status";
+import {countSelectWord} from "../runtime/status.port";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";
 import {avClick} from "../render/av/action";

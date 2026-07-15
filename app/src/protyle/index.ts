@@ -24,8 +24,7 @@ import {
     updateTransaction
 } from "./wysiwyg/transaction";
 import { fetchPost } from "../util/network/fetch";
-import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
-import { setPanelFocus } from "../layout/utils/setPanelFocus";
+import { refreshProtyleBacklink, refreshProtyleOutline, updateProtylePanel, focusProtylePanel, clearProtylePanelFocus, updateProtyleTitle, removeProtyleTab } from "./runtime/layout.port";
 import { getDocDisplayName } from "../util/pathName";
 import { initMirror, refreshUndoButtons, syncMirrorFromBroadcast } from "./undo/globalUndo";
 import { Title } from "./header/Title";
@@ -43,7 +42,6 @@ import { focusBlock, getEditorRange } from "./util/selection";
 import { hasClosestBlock } from "./util/hasClosest";
 import { setStorageVal } from "./util/compatibility";
 import { merge } from "./util/merge";
-import { getAllModels } from "../layout/getAll";
 import { isSupportCSSHL } from "./render/searchMarkRender";
 import { renderAVAttribute } from "./render/av/blockAttr";
 import { setFoldById } from "../menus/protyle";
@@ -139,16 +137,7 @@ export class Protyle {
                             if (data.data === this.protyle.block.rootID) {
                                 reloadProtyle(this.protyle, false);
                                 if (!isMobile) {
-                                    getAllModels().outline.forEach(item => {
-                                        if (item.blockId === data.data) {
-                                            fetchPost("/api/outline/getDocOutline", {
-                                                id: item.blockId,
-                                                preview: item.isPreview
-                                            }, response => {
-                                                item.update(response);
-                                            });
-                                        }
-                                    });
+                                    refreshProtyleOutline(data.data);
                                 }
                             }
                             break;
@@ -188,8 +177,7 @@ export class Protyle {
                                 }
                                 if (!isMobile && data.cmd === "heading2doc") {
                                     // 文档标题互转后，需更新大纲
-                                    updatePanelByEditor({
-                                        protyle: this.protyle,
+                                    updateProtylePanel(this.protyle, {
                                         focus: false,
                                         pushBackStack: false,
                                         reload: true,
@@ -201,7 +189,7 @@ export class Protyle {
                         case "rename":
                             if (this.protyle.path === data.data.path) {
                                 if (this.protyle.model) {
-                                    this.protyle.model.parent.updateTitle(getDocDisplayName(data.data.title, data.data.empty));
+                                    updateProtyleTitle(this.protyle, getDocDisplayName(data.data.title, data.data.empty), data.data.empty);
                                 }
                                 if (this.protyle.background) {
                                     this.protyle.background.ial.title = data.data.title;
@@ -245,7 +233,7 @@ export class Protyle {
                                     setEmpty(app);
                                 }
                                 if (!isMobile && this.protyle.model) {
-                                    this.protyle.model.parent.parent.removeTab(this.protyle.model.parent.id);
+                                    removeProtyleTab(this.protyle);
                                 }
                             }
                             break;
@@ -255,7 +243,7 @@ export class Protyle {
                                     setEmpty(app);
                                 }
                                 if (!isMobile && this.protyle.model) {
-                                    this.protyle.model.parent.parent.removeTab(this.protyle.model.parent.id);
+                                    removeProtyleTab(this.protyle);
                                 }
                                 delete window.siyuan.storage[Constants.LOCAL_FILEPOSITION][this.protyle.block.rootID];
                                 setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
@@ -322,12 +310,7 @@ export class Protyle {
                         "delete" === data.data[0].doOperations[1].action) {
                         return true;
                     }
-                    getAllModels().backlink.find(backlinkItem => {
-                        if (backlinkItem.element.contains(this.protyle.element)) {
-                            backlinkItem.refresh();
-                            return true;
-                        }
-                    });
+                    refreshProtyleBacklink(this.protyle);
                 }
                 return true;
             } else {
@@ -404,12 +387,11 @@ export class Protyle {
         if (this.protyle.block?.rootID) {
             initMirror(this.protyle.block.rootID);
         }
-        if (this.protyle.model && !isMobile) {
+        if (!isMobile) {
             if (mergedOptions.action?.includes(Constants.CB_GET_FOCUS) || mergedOptions.action?.includes(Constants.CB_GET_OPENNEW)) {
-                setPanelFocus(this.protyle.model.element.parentElement.parentElement);
+                focusProtylePanel(this.protyle);
             }
-            updatePanelByEditor({
-                protyle: this.protyle,
+            updateProtylePanel(this.protyle, {
                 focus: false,
                 pushBackStack: false,
                 reload: false,
@@ -423,32 +405,21 @@ export class Protyle {
             if (isMobile) {
                 return;
             }
-            if (this.protyle && this.protyle.model) {
-                let needUpdate = true;
-                if (this.protyle.model.element.parentElement.parentElement.classList.contains("layout__wnd--active") &&
-                    this.protyle.model.headElement.classList.contains("item--focus")) {
-                    needUpdate = false;
-                }
-                if (!needUpdate) {
+            const focusResult = focusProtylePanel(this.protyle);
+            if (focusResult.handled) {
+                if (!focusResult.needsUpdate) {
                     return;
                 }
-                setPanelFocus(this.protyle.model.element.parentElement.parentElement);
-                updatePanelByEditor({
-                    protyle: this.protyle,
+                updateProtylePanel(this.protyle, {
                     focus: false,
                     pushBackStack: false,
                     reload: false,
                     resize: false,
                 });
             }
-            if (!this.protyle || !this.protyle.model) {
+            if (!focusResult.handled) {
                 // 悬浮层应移除其余面板高亮，否则按键会被面板监听到
-                document.querySelectorAll(".layout__tab--active").forEach(item => {
-                    item.classList.remove("layout__tab--active");
-                });
-                document.querySelectorAll(".layout__wnd--active").forEach(item => {
-                    item.classList.remove("layout__wnd--active");
-                });
+                clearProtylePanelFocus();
             }
         });
         // 需等渲染完后再回调，用于定位搜索字段 https://github.com/siyuan-note/siyuan/issues/3171

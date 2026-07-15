@@ -19,8 +19,7 @@
       "./node_modules/@types"
     ],
     "types": [
-      "./src/types",
-      "node",
+      "node"
     ],
     "declaration": true,
     "emitDeclarationOnly": true,

@@ -4,7 +4,7 @@ import { isInEmbedBlock } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../util/platform/functions";
 import { activeBlur } from "../../mobile/util/keyboardToolbar";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { MenuItem } from "../../menus/Menu.Item";
 import { buildGutterTurnIntoMenuItem } from "./buildGutterTurnIntoMenu";
 import { buildGutterAiMenu } from "./menus/buildGutterAiMenu";

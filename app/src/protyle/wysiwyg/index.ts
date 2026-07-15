@@ -17,7 +17,7 @@ import {
 import { Constants } from "../../constants";
 import { isMobile } from "../../util/platform/functions";
 import { isOnlyMeta, isMac, copyPlainText, readClipboard } from "../util/compatibility";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { dropEvent } from "../util/editorCommonEvent";
 import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";
@@ -44,7 +44,7 @@ import { previewDocImage } from "../preview/image";
 import { getDiagramBlock, previewDiagram } from "../preview/diagram";
 import { transaction, updateTransaction } from "./transaction";
 import { input } from "./input";
-import { countSelectWord } from "../../layout/status";
+import { countSelectWord } from "../runtime/status.port";
 import { paste } from "../util/paste";
 import { MenuItem } from "../../menus/Menu.Item";
 

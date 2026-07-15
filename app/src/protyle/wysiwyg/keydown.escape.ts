@@ -1,6 +1,6 @@
 import { hasClosestByClassName } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 
 /**
  * 处理重复按键时的ESC键逻辑

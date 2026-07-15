@@ -36,4 +36,8 @@ export const SForgeSymbols = {
     REQUEST_SEMAPHORE: Symbol.for("sforge.fetch.requestSemaphore"),
     /** Protyle Dialog/消息/Tooltip 宿主能力 */
     DIALOG_PORT: Symbol.for("sforge.protyle.dialogPort"),
+    /** Protyle 状态统计宿主能力 */
+    STATUS_PORT: Symbol.for("sforge.protyle.statusPort"),
+    /** Protyle 布局协同宿主能力 */
+    LAYOUT_PORT: Symbol.for("sforge.protyle.layoutPort"),
 } as const;

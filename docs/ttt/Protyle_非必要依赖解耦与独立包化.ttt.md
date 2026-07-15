@@ -158,6 +158,79 @@ const editor = await mountStandaloneProtyle({
 
 同一个内核地址应共享一个 `ProtyleRuntime`。运行时集中持有配置、Lute、HTTP 客户端、WebSocket、多实例事务调度和资源缓存；编辑器实例只持有 DOM、选区和局部交互状态。
 
+### 6.2A 主应用耦合扫描与下一优先级（2026-07-15）
+
+本轮扫描范围为 `app/src/protyle`，排除 `.bak`、`.backup`、`.old` 和 `.remote`。导入数量只作为证据，不作为排序依据；排序优先看以下三个条件：
+
+1. 是否把 Protyle 的实时路径绑定到主应用 DOM 结构或全局 DOM 查询。
+2. 是否通过一个看似窄的函数导入，传递性地拉入布局、停靠栏、菜单、Electron 或其它功能域。
+3. 独立入口缺少该宿主能力时，是否会在输入、选区、聚焦、事务或销毁路径中直接失败。
+
+类型依赖与运行时依赖必须分开判断：
+
+- `import type` 只要描述的是稳定抽象、兼容句柄或宿主协议，就属于健康依赖，不作为解耦指标。
+- 需要隔离的是运行时对具体类、构造函数、单例注册表、布局树和全局 DOM 查询的直接依赖。
+- 兼容层可以保留 `Editor`、`Model` 等类型名称；只有 `new Model()`、`instanceof Model`、遍历具体 `Layout/Wnd/Tab` 或操作 `.layout__*` DOM 才进入运行时迁移台账。
+
+扫描结果和决策如下：
+
+| 依赖类型 | 证据 | 独立入口风险 | 决策 |
+|---|---|---|---|
+| 状态栏/字数统计 | Protyle 原有 17 条 `layout/status` 导入、涉及 16 个文件，但实际只使用 `countBlockWord` 和 `countSelectWord`；`layout/status.ts` 还静态导入 `tabUtil`、停靠栏、`MenuItem`、Electron 和 `StatusBarRegistry` | 高。统计函数直接解析/写入状态栏 DOM，历史上曾在无状态栏时触发 `classList` 空引用；整个宿主状态栏实现被传递性带入 | **已完成：`IProtyleStatusPort`，下一步转向布局 DOM** |
+| 布局、面板焦点和多编辑器协调 | `protyle/index.ts`、`resize.ts`、`setEditMode.ts` 原先运行时调用 `getAllModels`、`updatePanelByEditor`、`setPanelFocus` 和 `updateOutline`；这些路径遍历 `Layout`、`Wnd`、`Tab`、Editor、Outline、Backlink 和各类 Dock | 高。依赖 `window.siyuan.layout`、`.layout__*` 激活类和主应用布局树；独立入口没有这些对象时会在首次加载、聚焦或 resize 失败 | **进行中：已完成 `index.ts`、`resize.ts`、`setEditMode.ts` 的 Port 边界，继续处理剩余触点** |
+| 导航、块面板和插件生命周期 | `openFileById`、`BlockPanel`、`app.plugins`、插件 EventBus 分布在点击、快捷键、提示、销毁路径 | 高但可分域。它们不是编辑核心语义，却会在块引用、打开方式、快捷键和 destroy 中触发主应用对象 | **作为 `NavigationPort`、`BlockPanelPort`、`ExtensionPort` 的可选能力；缺失时显式禁用** |
+| 菜单、弹窗和 Tooltip | 已完成 `IProtyleMenuPort`、`IProtyleDialogPort`，独立入口可以注入或使用回退宿主 | 已有能力边界，剩余风险主要是旧菜单项直接操作宿主 DOM | 保持当前迁移，继续清理菜单条目对 `Menu.element` 的反向依赖 |
+| 配置投影（`keymap`、`editor`、`appearance`、`readonly`） | `window.siyuan.config`/`getSiyuanConfig` 共 454 条文本引用、涉及 125 个文件；字段访问主要集中于 `keymap`（约 186 条/46 文件）和 `editor`（约 94 条/36 文件） | 中。大部分是数据读取，不直接要求主应用 DOM；但 `keymap.general` 中包含页签、Dock、全局命令，不能和编辑器快捷键混成一个 Port | **在宿主 DOM 能力收口后迁移；拆成 `EditorSettingsPort` 与 `EditorKeymapPort`，禁止暴露完整 `Config.IConf`** |
+| 国际化 | `siyuanI18n` 约 1,200 条引用、140 个文件 | 低到中。主要是字典读取，不依赖主应用 DOM；缺失文案通常可降级为 key | 作为后续 `I18nPort`，不作为下一项主应用解耦目标 |
+
+#### P0 第一刀：状态统计能力而不是整个状态栏
+
+Protyle 已经把 `options.status` 作为 `HTMLElement | string` 传入，这说明边界形态已经具备。下一步不应把完整 `layout/status.ts` 继续作为公共模块，而应：
+
+- 在 `app/src/protyle/runtime` 定义只包含编辑器需要的类型化能力，例如 `countSelection`、`countBlocks`、`clear`；参数使用 `StatusElementTarget` 或宿主句柄，不暴露 `#status`、`.status__counter` 等主应用选择器。
+- 保留 `layout/status.ts` 作为完整思源适配器，由它把 Port 调用委托给现有统计、状态栏按钮、Dock 菜单和 Electron 行为。
+- 独立入口注册无状态栏实现时，统计请求可以被忽略；传入 `status` 时由独立适配器只渲染编辑器所需计数，不初始化主应用状态栏。
+- 统计请求的 debounce、AbortSignal、内核错误和销毁语义归入 Port；不能让 Protyle 直接依赖 `layout/status.ts` 的模块初始化副作用。
+
+状态 Port 已完成后，下一步处理布局 DOM。`updatePanelByEditor`、`setPanelFocus`、`getAllModels` 等逻辑应整体属于主应用协调阶段，不能通过给独立页面补齐 `.layout__wnd--active` 等 DOM 来伪造兼容。
+
+布局阶段的边界应拆成两个方向：
+
+- `LayoutDomPort`：只处理宿主明确传入的面板/窗口句柄、激活状态、标题和 resize，不允许 Protyle 查询全局 `.layout__*` DOM。
+- `WorkspacePort`：处理多编辑器查找、Outline/Backlink 更新、文件树联动和布局广播；独立入口默认不提供这些能力。
+
+`Model` 的类型引用可以保留用于兼容；其 WebSocket 构造和消息生命周期属于 `SyncPort`，不能因为类型上出现 `Model` 就把它误判为问题，也不能让 Protyle 在运行时直接 `new Model()`。
+
+### 6.2B Dockview 参考与布局协同进化边界
+
+`mathuo/dockview` 仅作为布局设计参考，不作为当前 Protyle 或思源 App 的运行时依赖。参考源码已独立检出到：
+
+`D:\dev\dockview-reference`（当前浅克隆提交：`0eef758`）。
+
+Dockview 值得借鉴的是边界和生命周期，而不是直接替换当前布局实现：
+
+- **模型与渲染器分离**：面板/分组/网格模型保存稳定 ID、位置和状态；DOM 渲染器只负责创建、更新、隐藏和销毁视图。
+- **命令式布局 API**：通过 `addPanel`、`removePanel`、移动、激活和序列化 API 改变布局，调用方不需要搜索 `.layout__*` 再手工调整 DOM。
+- **可观察生命周期**：`onDidAddPanel`、`onDidRemovePanel`、激活变化、布局变化和拖拽事件都有明确的事件契约，并返回可销毁订阅句柄。
+- **状态与布局分层**：布局树、面板状态和渲染器参数分别序列化，反序列化通过稳定 ID 和显式 deserializer 恢复，不依赖临时 DOM 属性。
+- **可选能力通过 Host/Module Contract 注入**：浮动窗口、上下文菜单、拖拽、无障碍和弹出窗口等能力不要求核心模型直接知道具体宿主实现。
+- **模型级测试与 DOM 级测试分开**：布局计算和状态迁移可以在无浏览器环境中测试，拖拽和实际渲染再使用浏览器测试。
+
+当前布局的浅层协同改进只在 Protyle 触及相关路径时进行，不启动布局整体重写：
+
+1. `Layout`、`Wnd`、`Tab` 继续保持原有插件和布局 JSON 兼容，但新增稳定的面板/窗口句柄和最小生命周期事件。
+2. 将 Protyle 所需的激活、聚焦、resize 和销毁通知改为 `LayoutDomPort` 调用；Port 接收宿主明确传入的句柄，不通过全局选择器寻找布局节点。
+3. 将多编辑器、Outline、Backlink、FileTree 等协调保留在 `WorkspacePort`，Protyle 只发出语义事件，不遍历布局树。
+4. 后续修改布局序列化时，优先引入独立的纯数据快照和版本迁移函数；旧 `uiLayout` JSON、插件 API 和 `.layout__*` CSS 作为兼容输出继续保留。
+5. 拖拽、分割和窗口弹出只在现有代码被 Protyle 解耦触及时做局部命令化，不在当前阶段引入 Dockview 的完整 Grid/Popout 实现。
+
+禁止事项：
+
+- 不把 Dockview 作为 Protyle 的新硬依赖。
+- 不为了模拟完整 App 而在独立入口伪造 `Layout/Wnd/Tab` DOM 树。
+- 不把现有布局 JSON 一次性替换成新格式；必须支持双向读取、版本迁移和回滚。
+- 不把类型兼容引用误报为运行时耦合；门禁只检查具体实现导入、构造、全局布局 DOM 和未声明的副作用。
+
 ### 6.3 本地 RPC 参考实现
 
 SACAssetsManager 的 `02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 快照提供了比当前 `app/src/util/pathRouter` 更完整的本地请求模型，参考目录为 `src/utils/webKoa`：
@@ -283,7 +356,8 @@ interface ResidualEvent {
 
 ### Phase 1A：非必要静态导入压缩（P0，下一步）
 
-- [ ] 生成 `app/src/protyle` 的直接静态导入矩阵，按导入数量、初始化副作用、入口可达性和运行时调用频率排序。
+- [x] 完成主应用依赖扫描：按 DOM 结构耦合、传递性功能域、失败路径和能力可选性排序；确认下一项为状态统计能力，而不是按导入量最大的语言代理。[2026-07-15]
+- [ ] 生成 `app/src/protyle` 的直接静态导入矩阵，按 DOM 结构耦合、初始化副作用、入口可达性和运行时调用频率排序。
 - [ ] 首批处理 `menus`、`dialog`、`layout`、`editor`、`mobile`、`plugin` 等非核心宿主依赖；保持 `app/src/protyle` 原目录，不复制或搬迁实现。
 - [ ] 将菜单、弹窗、导航、插件生命周期和全局 UI 协调改为 `HostUIPort`、`NavigationPort`、`ExtensionPort` 或 `LocalRpcPort` 调用。
 - [ ] `imports.ts` 只能作为明确的边界聚合出口，禁止用它隐藏未解决的直接导入。
@@ -297,6 +371,31 @@ interface ResidualEvent {
 
 验收标准：非必要宿主模块的直接静态导入数量持续下降；独立入口不因缺失完整 App DOM 而加载失败；主应用行为和构建产物保持稳定。
 
+### Phase 1B：状态栏统计能力隔离（P0，已完成）
+
+- [x] 定义 `IProtyleStatusPort`，只覆盖 Protyle 的选区/块字数统计、清理和取消；保留 `HTMLElement | string` 作为兼容输入，但 Port 不依赖固定状态栏 ID 或 CSS 结构。[2026-07-15]
+- [x] 将 `countBlockWord`、`countSelectWord` 的调用转发到 Port；`layout/status.ts` 保留为完整 App 适配器。[2026-07-15]
+- [x] 独立入口未注册状态能力时使用显式 no-op，完整 App 注册原状态统计实现。[2026-07-15]
+- [x] 从 Protyle 的直接静态依赖和布局树传递路径移除 `layout/status.ts`；类型检查、独立入口构建和完整 App 构建通过。[2026-07-15]
+
+验收标准：独立入口没有状态栏时，输入、选区、事务提交和销毁不因统计能力缺失而失败；完整思源的状态栏统计行为保持不变。
+
+### Phase 1C：布局 DOM 与 Workspace 能力隔离（P0，进行中）
+
+- [x] 完成第一轮清点，确认 `protyle/index.ts` 的布局触点集中在面板刷新、聚焦、标题更新、页签移除和反链/大纲刷新。[2026-07-15]
+- [x] 定义并注册 `IProtyleLayoutPort`，完整 App 使用现有布局实现，独立入口使用 no-op；Protyle 不再直接导入 `getAllModels`、`updatePanelByEditor` 或 `setPanelFocus`。[2026-07-15]
+- [ ] 定义 `WorkspacePort`，承载多编辑器查找、Outline/Backlink/FileTree 更新和布局广播；独立入口提供单实例 no-op 或局部实现。
+- [x] 将 `protyle/index.ts` 中的加载完成、focusin、reload、remove 和 resize 前的布局协调分支改为 Port 调用；保留完整 App 适配器的现有行为。[2026-07-15]
+- [x] 将 `protyle/util/resize.ts` 中跨编辑器顶部块标记的记录/清理，以及 `setEditMode.ts` 中强制大纲刷新的布局协调改为 `IProtyleLayoutPort` 调用；完整 App 适配器保留原算法，独立入口使用 no-op。[2026-07-15]
+- [x] 将 `transaction.onTransaction.move.ts` 的跨编辑器/块面板块副本查找改为 Layout Port 能力调用；完整 App 适配器保留原查找顺序，独立入口返回空数组并继续使用内核 DOM 回退。[2026-07-15]
+- [ ] 继续迁移面包屑和其它事务广播中的布局触点；只在 Protyle 路径触及时做局部适配。
+- [ ] 将 `Model` 的运行时 WebSocket 创建从 Protyle 中移入 `SyncPort`；`import type` 的 `Model`/`Editor` 兼容类型不作为迁移目标。
+- [ ] 验证没有布局 DOM、没有 `window.siyuan.layout`、没有 Outline/Backlink/Dock 时，独立入口仍可加载、输入、保存、刷新和销毁。
+- [ ] 仅在触及对应布局代码时，借鉴 Dockview 的稳定句柄、可销毁生命周期事件和纯数据快照；不引入 Dockview 运行时或整体替换现有布局。
+- [ ] 为布局兼容层增加模型级状态迁移测试和浏览器级 DOM 回归测试，覆盖旧 `uiLayout` JSON、插件获取的 `Tab/Wnd` 句柄和主应用拖拽路径。
+
+验收标准：Protyle 核心运行路径不再静态导入具体布局实现或调用全局布局 DOM；完整思源通过适配器恢复面板焦点、布局同步和多编辑器协作。
+
 ### Phase 2：纯内核传输、事务和同步运行时（P0）
 
 - [ ] 实现不依赖 UI 的 `KernelClient`，支持基础地址、认证、取消和结构化错误。
@@ -309,7 +408,8 @@ interface ResidualEvent {
 
 ### Phase 3：配置、语言和存储去全局化（P0）
 
-- [ ] 定义并注入 `RuntimeConfigPort`、`I18nPort` 和 `StoragePort`。
+- [ ] 定义并注入拆分后的 `EditorSettingsPort`、`EditorKeymapPort`、`I18nPort` 和 `StoragePort`；完整 `Config.IConf` 可以保留为宿主适配器的类型来源，但 Protyle 运行时只通过能力投影读取配置。
+- [ ] `EditorKeymapPort` 先覆盖 `keymap.editor` 和 Protyle 实际使用的少量 `keymap.general` 项；页签、Dock、全局搜索等命令转由 `NavigationPort`/`WorkspacePort` 判断能力后再展示。
 - [ ] 先迁移 Options、Lute、事务和加载文档路径，再按访问频率迁移其余模块。
 - [ ] 区分内核文档状态、内核用户设置和宿主临时 UI 状态。
 - [ ] 删除独立入口对应的 `config/languages/storage` 全局垫片。
@@ -318,7 +418,8 @@ interface ResidualEvent {
 
 ### Phase 4：菜单、导航、布局和插件宿主化（P1）
 
-- [ ] 将菜单、对话框、消息提示和浮层改由 `HostUIPort` 提供。
+- [ ] 将菜单、消息提示和浮层改由 `HostUIPort` 提供。
+- [x] Dialog、confirm、message、Tooltip、资源选择和 `moveResize` 已通过 `IProtyleDialogPort` 提供，完整 App 与独立入口分别注册宿主实现。
 - [ ] 先将 `window.siyuan.menus.menu` 收口到 `IProtyleMenuPort`；独立入口提供 DOM 实现，思源宿主适配现有菜单实现。
 - [ ] 使用 Zod 在菜单宿主注册时执行一次运行时校验，错误必须包含缺失能力的字段路径，避免问题延迟到具体交互中才暴露。
 - [ ] 将打开文档、聚焦页签、大纲刷新和移动端空态移入思源适配器。
@@ -393,6 +494,9 @@ interface ResidualEvent {
 - **外部事件拖慢核心输入**：核心路由只消费一次状态快照，外部事件默认异步调度并受时间预算、优先级和 `delegationSignal` 控制。
 - **核心 Signal 与外部 Signal 语义混淆**：禁止用核心 `AbortController` 直接表示外部任务取消；两类 Signal 必须在契约中分开。
 - **插件越权修改 DOM 或默认行为**：`post-core` 只接收规范化快照和能力声明，菜单、弹窗、导航等行为必须通过 Host Port 或 Local RPC 执行。
+- **布局协同范围失控**：Dockview 只作为模型、API、生命周期和测试的参考；当前阶段以 Protyle 触及路径为边界，不进行布局整体替换。
+- **布局 JSON/插件兼容回归**：所有布局模型改进必须保留旧 JSON 双向迁移和旧 `Tab/Wnd` 句柄行为，新增能力通过适配器和事件叠加。
+- **TypeScript 检查 OOM**：本地门禁只检查稳定公共契约；全量类型图拆分为低频 CI 项目引用，禁止通过增加堆上限掩盖跨边界类型递归。
 
 ### Dialog 解耦门禁（当前阶段）
 
@@ -402,6 +506,14 @@ interface ResidualEvent {
 - 消息、确认框、Tooltip、资源选择器和 `moveResize` 均属于同一 Host UI Port；Protyle 业务只调用能力方法，不感知宿主的全局 DOM 容器、Vue 组件或窗口管理器。
 - Dialog Port 必须静态导入。禁止以 `dynamic import` 作为解耦手段；主应用和独立入口分别在构建期确定宿主适配器。
 - 兼容验收：主应用继续返回原版 Dialog 实例，插件可以继续使用 `dialog.element`、`destroyCallback` 和键盘确认；独立入口可以通过自定义 Port 替换默认弹窗，并且无 Dialog Port 时编辑器仍可加载和编辑。
+
+### TypeScript 检查门禁（当前阶段）
+
+- `app/tsconfig.json` 的 `compilerOptions.types` 只能填写类型包名，不能填写 `./src/types` 目录；`src/types/*.d.ts` 已由 `include: ["src"]` 自动纳入，错误的目录项已移除。
+- 全量 `tsc` 的主要阻断不是 Dialog 类型错误，而是类型图规模：根配置同时包含 `src`、`test`、`script`，且 `sforge.global -> sforge.types -> App` 会把完整应用、插件和测试依赖拉入同一检查进程。在当前开发进程占用下，该图会超出约 4GB V8 堆并 OOM/超时。
+- 已增加 `tsconfig.protyle-contract.json` 与 `pnpm run typecheck:protyle-contract`。该门禁只检查公开 Dialog Port 契约和最小宿主类型，不递归加载完整 App，适合本地开发和提交前快速检查。
+- 全量类型检查仍应作为低频 CI 任务，后续通过 TypeScript Project References、按运行时边界生成声明、排除测试/脚本入口和拆分 `sforge.types` 的 App 类型依赖来恢复；不能把提高 Node 堆上限或升级编译器当作唯一修复。
+- TypeScript `7.0.2` 已可用，预计能改善大型项目的内存/速度，但必须在同一依赖图上做基准和兼容性回归后再升级；TS 7 不能消除错误的 `types` 配置或跨边界类型递归。
 
 ---
 
@@ -414,3 +526,9 @@ interface ResidualEvent {
 - [x] 2026-07-15：将 SACAssetsManager commit `02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 独立检出到 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6`，未修改 `D:\dev\SACAssetsManager`。
 - [x] 2026-07-15：确定高频事件采用“状态快照 -> CaliburRouter 核心路由 -> 剩余状态委托”模型；类型化事件承载通知，动作表/tips 承载延迟扩展，Local RPC 承载外部行为执行。
 - [x] 2026-07-15：完成 Dialog Host Port：Protyle 全部 Dialog/confirm/message/Tooltip/资源选择触发改由类型化能力调用，完整 App 通过原版适配器注册，独立入口支持宿主注入和轻量 DOM 回退；移除 Protyle 内 Dialog 动态导入。
+- [x] 2026-07-15：修正 `tsconfig.json` 的非法 `types: ["./src/types"]` 配置，新增 `tsconfig.protyle-contract.json` 与 `typecheck:protyle-contract` 快速契约门禁；确认全量类型图仍需 Project References 拆分，TS 7.0.2 仅作为后续性能对照方案。
+- [x] 2026-07-15：按主应用 DOM 结构、传递性功能域和独立入口失败路径重新排序配置/宿主依赖；完成 `IProtyleStatusPort` 第一刀，确认下一项改为布局 DOM/Workspace 能力隔离。类型引用不作为负面门禁，运行时具体布局实现和全局布局 DOM 才是迁移对象。
+- [x] 2026-07-15：独立检出 `mathuo/dockview` 到 `D:\dev\dockview-reference`（提交 `0eef758`）作为布局参考；确认只借鉴模型/渲染分离、稳定面板 API、生命周期事件、状态快照和测试分层，不引入 Dockview 运行时或整体替换思源布局。
+- [x] 2026-07-15：完成布局 DOM 隔离第一小步：新增 `IProtyleLayoutPort` 和完整 App 适配器，`protyle/index.ts` 的面板刷新、聚焦、标题和页签操作改为能力调用；独立入口不加载布局适配器，后续仅继续处理 Protyle 触及的 `resize/setEditMode/事务` 触点。
+- [x] 2026-07-15：完成布局隔离第二小步：`resize.ts` 的跨编辑器顶部块标记与 `setEditMode.ts` 的 Outline 刷新改由 Layout Port 承载，保留原函数签名和完整 App 行为；新增浏览器契约测试验证无宿主时安全 no-op、注入宿主时参数完整转发。下一小片仍聚焦面包屑和事务触点，不启动 Layout/Wnd/Tab 整体重写。
+- [x] 2026-07-15：完成布局隔离第三小步：`transaction.onTransaction.move.ts` 不再直接遍历编辑器/块面板，新增 `findBlockCopies` 能力并保留完整 App 的跨窗口拖拽兼容；独立入口安全降级。布局 Port 浏览器契约扩展至 15 个用例，独立入口构建、完整 App 构建和契约类型检查均通过。

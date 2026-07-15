@@ -14,7 +14,7 @@ import {updateTransaction} from "./transaction";
 import {ipcSend} from "../../platform/electron/ipcRenderer";
 import {isElectron} from "../../platform";
 import {isMac, isOnlyMeta} from "../util/compatibility";
-import {countSelectWord} from "../../layout/status";
+import {countSelectWord} from "../runtime/status.port";
 import {clearSelect} from "../util/clearSelect";
 import {input} from "./input";
 import {escapeInline} from "./utils/rendercustomWithCtx";

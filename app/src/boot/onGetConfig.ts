@@ -18,6 +18,7 @@ import { openFile } from "../editor/util";
 import { exitSiYuan } from "../dialog/processSystem";
 import { isWindow, setToolbarLeftMac } from "../util/platform/functions";
 import { initStatus } from "../layout/status";
+import "../layout/protyleLayoutPort.factory";
 import { showMessage } from "../dialog/message";
 import { replaceLocalPath } from "../editor/rename";
 import { initBar } from "../layout/topBar";

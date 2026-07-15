@@ -9,7 +9,7 @@ import { avRender } from "../render/av/render";
 import { isMobile } from "../../platform";
 import { genEmptyElement } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { isPaidUser, needSubscribe } from "../../util/platform/needSubscribe";
 import { processClonePHElement } from "../render/util";
 import { getFirstBlock } from "./getBlock";

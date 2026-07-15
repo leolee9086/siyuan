@@ -26,7 +26,7 @@ import {
 } from "./util";
 import { setModelsHash, setTabPosition } from "../window/setHeader";
 import { getAllModels } from "./getAll";
-import { clearCounter } from "./status";
+import { clearCounter } from "../protyle/runtime/status.port";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { isWindow } from "../util/platform/functions";
 import { hideAllElements } from "../protyle/ui/hideElements";

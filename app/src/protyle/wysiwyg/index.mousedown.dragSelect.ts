@@ -12,7 +12,7 @@ import {
 import { getContenteditableElement } from "./getBlock";
 import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { buildTableCellMenu } from "./index.mousedown.tableMenu";
 /** 用途：Rect 矩形类型。使用范围：collectSelectedBlocks 等函数的参数类型。解耦评估：类型导入，通过 imports.ts 转发。 */
 import type { Rect } from "./imports";

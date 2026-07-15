@@ -29,7 +29,7 @@ export { focusBlock };
  * 使用范围：多选完成后调用
  * 解耦评估：集中转发
  */
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 /** 导出字数统计 */
 export { countBlockWord };
 

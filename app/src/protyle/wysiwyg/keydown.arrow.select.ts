@@ -1,4 +1,4 @@
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { hideElements } from "../ui/hideElements";
 import { Scroll } from "../scroll";
 import { isNotCtrl } from "../util/compatibility";

@@ -16,7 +16,7 @@ import { App } from "../index";
 import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { closeWindow } from "../window/closeWin";
-import { clearCounter } from "./status";
+import { clearCounter } from "../protyle/runtime/status.port";
 import { getWndByLayout } from "./window-utils";
 import { saveLayout } from "./layout-serialization";
 import { setModelsHash } from "../window/setHeader";

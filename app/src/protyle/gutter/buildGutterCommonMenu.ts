@@ -18,7 +18,7 @@ import { focusBlock } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
 import { insertEmptyBlock, jumpToParent } from "../../block/util";
-import { countBlockWord } from "../../layout/status";
+import { countBlockWord } from "../runtime/status.port";
 import { Constants } from "../../constants";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { transferBlockRef } from "../../menus/block";

@@ -3,8 +3,8 @@ import {focusBlock, focusByWbr} from "../util/selection";
 import {getContenteditableElement} from "./getBlock";
 import {blockRender} from "../render/blockRender";
 import {hasClosestBlock, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
-import {getAllModels} from "../../layout/getAll";
 import {isMobile} from "../../platform";
+import {findProtyleBlockCopies} from "../runtime/layout.port";
 import {processClonePHElement} from "../render/util";
 import {removeTopElement} from "./transaction";
 import {refreshSbs} from "./transaction.refreshSbs";
@@ -15,20 +15,8 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
     }
     if (!isMobile && updateElements.length === 0) {
         // 打开两个相同的文档 A、A1，从 A 拖拽块 B 到 A1，在后续 ws 处理中，无法获取到拖拽出去的 B
-        getAllModels().editor.forEach(editor => {
-            const updateCloneElement = editor.editor.protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
-            if (updateCloneElement) {
-                updateElements.push(updateCloneElement.cloneNode(true) as Element);
-            }
-        });
-    }
-    if (!isMobile && updateElements.length === 0) {
-        // 页签拖入浮窗 https://github.com/siyuan-note/siyuan/issues/6647
-        window.siyuan.blockPanels.forEach((item) => {
-            const updateCloneElement = item.element.querySelector(`[data-node-id="${operation.id}"]`);
-            if (updateCloneElement) {
-                updateElements.push(updateCloneElement.cloneNode(true) as Element);
-            }
+        findProtyleBlockCopies(operation.id).forEach(copy => {
+            updateElements.push(copy.cloneNode(true) as Element);
         });
     }
     // 折叠标题移动到横向超级块的第一个块上后撤销
