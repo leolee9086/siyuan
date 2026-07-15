@@ -10,7 +10,7 @@ import { hasClosestBlock } from "../hasClosest";
 import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { insertHTML } from "../insertHTML";
 import { onGet } from "../onGet";
-import { updatePanelByEditor } from "../../../editor/util.updatePanelByEditor";
+import { updateProtylePanel } from "../../runtime/layout.port";
 import { isMobile } from "../../../platform";
 import { getDynamicLoadBlocks } from "./onDrop.environment";
 import { focusAtDropPoint } from "./onDrop.helper.gutter";
@@ -187,8 +187,7 @@ const handleDocReloaded = (
     onGet({ data: getResponse, protyle });
     // 文档标题互转后，需更新大纲（移动端无大纲面板）
     if (!isMobile) {
-        updatePanelByEditor({
-            protyle,
+        updateProtylePanel(protyle, {
             focus: false,
             pushBackStack: false,
             reload: true,

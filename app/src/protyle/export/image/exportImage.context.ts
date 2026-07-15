@@ -20,7 +20,7 @@ import type {IExportImagePanelCallbacks} from "./exportImage.types";
 import type {IExportImageStorage} from "./exportImage.types";
 
 /** 作用：读取并复用导出图片配置。意图：将 storage 获取保持为单点，避免 dialog/tab 两边重复读取。调用时机：创建共享 panel 前。 */
-const loadExportImageStorage = async (): Promise<IExportImageStorage> => {
+const loadExportImageStorage = async ()=> {
     return getExportImageStorage();
 };
 

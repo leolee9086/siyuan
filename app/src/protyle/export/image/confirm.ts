@@ -28,7 +28,7 @@ import {exportImageBlobsByRatio} from "./exportImage.ratio.export";
 import type {IExportImageContext} from "./exportImage.types";
 
 /** 作用：内联 PlantUML object 内容。意图：确保截图阶段图表可见。调用时机：截图前。问题/改进：当前为串行请求。 */
-const inlinePlantumlObjects = async (previewElement: HTMLElement): Promise<void> => {
+const inlinePlantumlObjects = async (previewElement: HTMLElement)=> {
     for (const plantumlElement of previewElement.querySelectorAll("[data-subtype='plantuml']")) {
         const objectElement = plantumlElement.querySelector("object");
         if (!objectElement) {
@@ -45,7 +45,7 @@ const inlinePlantumlObjects = async (previewElement: HTMLElement): Promise<void>
 };
 
 /** 作用：重排代码块行号。意图：保证导出图片行号连续。调用时机：截图前。问题/改进：仅覆盖行号 DOM 选择器。 */
-const normalizeLineNumber = (previewElement: HTMLElement): void => {
+const normalizeLineNumber = (previewElement: HTMLElement) => {
     let lineNumber = 1;
     for (const lineElement of previewElement.querySelectorAll<HTMLElement>(".protyle-linenumber__rows span")) {
         lineElement.textContent = `${lineNumber}`;
@@ -59,7 +59,7 @@ const normalizeLineNumber = (previewElement: HTMLElement): void => {
  * 调用时机：截图 blob 生成完成后。
  * 问题/改进：当前后端接口只返回单文件 URL，后续可扩展批量上传接口减少往返次数。
  */
-const uploadExportImageBlob = async (blob: Blob, fileName: string, msgId: string): Promise<void> => {
+const uploadExportImageBlob = async (blob: Blob, fileName: string, msgId: string)=> {
     const formData = new FormData();
     formData.append("file", blob, fileName);
     formData.append("type", "image/png");
@@ -79,7 +79,7 @@ const uploadExportImageBlob = async (blob: Blob, fileName: string, msgId: string
  * 问题/改进：后端回调链路可进一步 Promise 化。
  */
 // 导出语句注释：确认导出流程执行器。
-export const handleConfirmExport = async (ctx: IExportImageContext): Promise<void> => {
+export const handleConfirmExport = async (ctx: IExportImageContext)=> {
     const msgId = showMessage(siyuanI18n.exporting, 0);
     ctx.containerElement.style.height = "";
 

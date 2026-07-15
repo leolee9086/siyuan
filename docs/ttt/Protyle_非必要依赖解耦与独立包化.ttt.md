@@ -388,6 +388,9 @@ interface ResidualEvent {
 - [x] 将 `protyle/index.ts` 中的加载完成、focusin、reload、remove 和 resize 前的布局协调分支改为 Port 调用；保留完整 App 适配器的现有行为。[2026-07-15]
 - [x] 将 `protyle/util/resize.ts` 中跨编辑器顶部块标记的记录/清理，以及 `setEditMode.ts` 中强制大纲刷新的布局协调改为 `IProtyleLayoutPort` 调用；完整 App 适配器保留原算法，独立入口使用 no-op。[2026-07-15]
 - [x] 将 `transaction.onTransaction.move.ts` 的跨编辑器/块面板块副本查找改为 Layout Port 能力调用；完整 App 适配器保留原查找顺序，独立入口返回空数组并继续使用内核 DOM 回退。[2026-07-15]
+- [x] 将 WYSIWYG 与预览中的 Outline 当前项/预览当前项同步改为可选 `setOutlineCurrent` 能力；完整 App 保留 Outline 实例更新，独立入口和无 Outline 宿主安全忽略。[2026-07-15]
+- [x] 将文件树拖拽完成文档标题转换后的面板刷新改为 `updateProtylePanel` 能力调用，移除 `onDrop.helper.fileTree.ts` 对 `updatePanelByEditor` 的直接导入。[2026-07-15]
+- [x] 将 WYSIWYG 删除流程中的反链编辑器销毁改为可选 `removeBacklinkEditor` 能力；Protyle 不再直接导入 `Tab`、`Backlink` 或查询 `window.siyuan.layout`。[2026-07-15]
 - [ ] 继续迁移面包屑和其它事务广播中的布局触点；只在 Protyle 路径触及时做局部适配。
 - [ ] 将 `Model` 的运行时 WebSocket 创建从 Protyle 中移入 `SyncPort`；`import type` 的 `Model`/`Editor` 兼容类型不作为迁移目标。
 - [ ] 验证没有布局 DOM、没有 `window.siyuan.layout`、没有 Outline/Backlink/Dock 时，独立入口仍可加载、输入、保存、刷新和销毁。
@@ -532,3 +535,7 @@ interface ResidualEvent {
 - [x] 2026-07-15：完成布局 DOM 隔离第一小步：新增 `IProtyleLayoutPort` 和完整 App 适配器，`protyle/index.ts` 的面板刷新、聚焦、标题和页签操作改为能力调用；独立入口不加载布局适配器，后续仅继续处理 Protyle 触及的 `resize/setEditMode/事务` 触点。
 - [x] 2026-07-15：完成布局隔离第二小步：`resize.ts` 的跨编辑器顶部块标记与 `setEditMode.ts` 的 Outline 刷新改由 Layout Port 承载，保留原函数签名和完整 App 行为；新增浏览器契约测试验证无宿主时安全 no-op、注入宿主时参数完整转发。下一小片仍聚焦面包屑和事务触点，不启动 Layout/Wnd/Tab 整体重写。
 - [x] 2026-07-15：完成布局隔离第三小步：`transaction.onTransaction.move.ts` 不再直接遍历编辑器/块面板，新增 `findBlockCopies` 能力并保留完整 App 的跨窗口拖拽兼容；独立入口安全降级。布局 Port 浏览器契约扩展至 15 个用例，独立入口构建、完整 App 构建和契约类型检查均通过。
+- [x] 2026-07-15：完成布局隔离第四小步：WYSIWYG/预览 Outline 高亮改由可选 `setOutlineCurrent` 能力承载，移动端既有 Outline 路径不变；布局 Port 继续保持静态加载、无宿主 no-op 和旧宿主兼容。
+- [x] 2026-07-15：完成布局隔离第四小步补充：文件树拖拽标题转换后的面板刷新改由 `updateProtylePanel` 转发，独立入口不加载完整面板更新实现。
+- [x] 2026-07-15：完成布局隔离第五小步：删除流程中的反链面板编辑器清理改由 `removeBacklinkEditor` 能力承载，完整 App 保留原 `Tab/Backlink` 清理行为，独立入口安全忽略。
+- [x] 2026-07-15：修复浏览器宿主加载 `app` bundle 时 webpack runtime 直接读取未定义 `global` 的问题；统一 `output.globalObject = "globalThis"`，并为 Service Worker 提升缓存 schema、捕获资源请求失败，避免旧 chunk 缓存造成未处理 Promise。

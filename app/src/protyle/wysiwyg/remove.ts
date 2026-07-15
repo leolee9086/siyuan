@@ -25,9 +25,7 @@ import { scrollCenter } from "../../util/DOM/highlightById";
 import { isMobile } from "../../util/platform/functions";
 import { mathRender } from "../render/mathRender";
 import { hasClosestBlock, hasClosestByClassName, isInEmbedBlock } from "../util/hasClosest";
-import { getInstanceById } from "../../layout/util";
-import { Tab } from "../../layout/Tab";
-import { Backlink } from "../../layout/dock/Backlink";
+import { removeProtyleBacklinkEditor } from "../runtime/layout.port";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
@@ -283,19 +281,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         if (!isMobile() && !sideElement) {
             const backlinkElement = hasClosestByClassName(protyle.element, "sy__backlink", true);
             if (backlinkElement) {
-                const backLinkTab = getInstanceById(backlinkElement.getAttribute("data-id"), window.siyuan.layout.layout);
-                if (backLinkTab instanceof Tab && backLinkTab.model instanceof Backlink) {
-                    const editors = backLinkTab.model.editors;
-                    editors.find((item, index) => {
-                        if (item.protyle.element === protyle.element) {
-                            item.destroy();
-                            editors.splice(index, 1);
-                            item.protyle.element.previousElementSibling.remove();
-                            item.protyle.element.remove();
-                            return true;
-                        }
-                    });
-                }
+                removeProtyleBacklinkEditor(protyle, backlinkElement);
             }
         }
         // https://github.com/siyuan-note/siyuan/issues/16767

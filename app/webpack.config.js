@@ -19,6 +19,10 @@ function createConfig(targetName, argv) {
     return {
         name: targetName,
         target: isElectron ? "electron-renderer" : "web",
+        // The app target is also served by the browser-based dev/core host.
+        // Keep webpack's runtime chunk loader valid when Electron's Node global
+        // is unavailable instead of emitting a bare `global` reference.
+        node: { global: true },
         mode: argv.mode || "development",
         watch: !isProd,
         cache: isProd ? undefined : false,
@@ -71,6 +75,9 @@ function buildOutput(t, isLibrary) {
         publicPath: t.publicPath,
         filename: isLibrary ? "[name].js" : "[name].[chunkhash].js",
         path: path.resolve(__dirname, t.outputDir),
+        // Electron and browser-hosted builds share the same chunks; use the
+        // standards-based root object so webpack never emits bare `global`.
+        globalObject: "globalThis",
     };
     if (t.library) {
         if (t.library.format === "module") {

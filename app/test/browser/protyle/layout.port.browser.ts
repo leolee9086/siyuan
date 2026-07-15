@@ -8,8 +8,10 @@ import {
     refreshProtyleBacklink,
     refreshProtyleOutline,
     removeProtyleTab,
+    removeProtyleBacklinkEditor,
     resetProtyleLayoutPort,
     setProtyleLayoutPort,
+    setProtyleOutlineCurrent,
     updateProtyleOutline,
     updateProtylePanel,
     updateProtyleTitle,
@@ -43,6 +45,8 @@ describe("Protyle layout host capability", () => {
             recordProtyleBeforeResizeTop();
             clearProtyleBeforeResizeTop();
             expect(findProtyleBlockCopies("block")).toEqual([]);
+            setProtyleOutlineCurrent(protyle, document.createElement("div"));
+            removeProtyleBacklinkEditor(protyle, document.createElement("div"));
         }).not.toThrow();
     });
 
@@ -50,6 +54,7 @@ describe("Protyle layout host capability", () => {
         const host: IProtyleLayoutPort = {
             refreshOutline: vi.fn(),
             updateOutline: vi.fn(),
+            setOutlineCurrent: vi.fn(),
             refreshBacklink: vi.fn(),
             updatePanel: vi.fn(),
             focus: vi.fn(() => ({handled: true, needsUpdate: true})),
@@ -59,6 +64,7 @@ describe("Protyle layout host capability", () => {
             recordBeforeResizeTop: vi.fn(),
             clearBeforeResizeTop: vi.fn(),
             findBlockCopies: vi.fn(() => [document.createElement("div")]),
+            removeBacklinkEditor: vi.fn(),
         };
         const options = {focus: true, pushBackStack: true, reload: true, resize: true};
 
@@ -74,6 +80,7 @@ describe("Protyle layout host capability", () => {
         recordProtyleBeforeResizeTop();
         clearProtyleBeforeResizeTop();
         expect(findProtyleBlockCopies("block")).toHaveLength(1);
+        setProtyleOutlineCurrent(protyle, document.createElement("div"), true);
 
         expect(host.refreshOutline).toHaveBeenCalledWith("root");
         expect(host.updateOutline).toHaveBeenCalledWith(protyle, true);
@@ -85,5 +92,8 @@ describe("Protyle layout host capability", () => {
         expect(host.recordBeforeResizeTop).toHaveBeenCalledOnce();
         expect(host.clearBeforeResizeTop).toHaveBeenCalledOnce();
         expect(host.findBlockCopies).toHaveBeenCalledWith("block");
+        expect(host.setOutlineCurrent).toHaveBeenCalledWith(expect.anything(), expect.any(Element), true);
+        removeProtyleBacklinkEditor(protyle, document.createElement("div"));
+        expect(host.removeBacklinkEditor).toHaveBeenCalledWith(protyle, expect.any(Element));
     });
 });

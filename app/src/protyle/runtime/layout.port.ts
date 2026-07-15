@@ -14,6 +14,7 @@ const fallbackFocusResult: IProtyleLayoutFocusResult = {
 const fallbackPort: IProtyleLayoutPort = {
     refreshOutline: () => undefined,
     updateOutline: () => undefined,
+    setOutlineCurrent: () => undefined,
     refreshBacklink: () => undefined,
     updatePanel: () => undefined,
     focus: () => fallbackFocusResult,
@@ -23,6 +24,7 @@ const fallbackPort: IProtyleLayoutPort = {
     recordBeforeResizeTop: () => undefined,
     clearBeforeResizeTop: () => undefined,
     findBlockCopies: () => [],
+    removeBacklinkEditor: () => undefined,
 };
 
 /** 获取当前宿主注册的布局协同能力。 */
@@ -44,6 +46,8 @@ export const resetProtyleLayoutPort = () => {
 export const refreshProtyleOutline = (rootId: string) => getProtyleLayoutPort().refreshOutline(rootId);
 /** 统一转发编辑器模式切换后的大纲同步请求。 */
 export const updateProtyleOutline = (protyle: IProtyle, reload: boolean) => getProtyleLayoutPort().updateOutline?.(protyle, reload);
+/** 统一转发编辑器 DOM 到宿主 Outline 的当前项同步。 */
+export const setProtyleOutlineCurrent = (protyle: IProtyle, element: Element, preview = false) => getProtyleLayoutPort().setOutlineCurrent?.(protyle, element, preview);
 /** 统一转发反链刷新请求。 */
 export const refreshProtyleBacklink = (protyle: IProtyle) => getProtyleLayoutPort().refreshBacklink(protyle);
 /** 统一转发编辑器面板同步请求。 */
@@ -62,3 +66,5 @@ export const recordProtyleBeforeResizeTop = () => getProtyleLayoutPort().recordB
 export const clearProtyleBeforeResizeTop = () => getProtyleLayoutPort().clearBeforeResizeTop?.();
 /** 统一转发跨编辑器块副本查找请求。 */
 export const findProtyleBlockCopies = (blockId: string) => getProtyleLayoutPort().findBlockCopies?.(blockId) || [];
+/** 统一转发反链编辑器销毁通知。 */
+export const removeProtyleBacklinkEditor = (protyle: IProtyle, backlinkElement: Element) => getProtyleLayoutPort().removeBacklinkEditor?.(protyle, backlinkElement);

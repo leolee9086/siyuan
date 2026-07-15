@@ -12,7 +12,7 @@ import {isElectron} from "../../platform";
 import {openExternal} from "../../platform/electron/shell";
 import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
-import {getAllModels} from "../../layout/getAll";
+import {setProtyleOutlineCurrent} from "../runtime/layout.port";
 import {fetchPost} from "../../util/fetch";
 import {processRender} from "../util/processCode";
 import {highlightRender} from "../render/highlightRender";
@@ -154,11 +154,7 @@ export class Preview {
                 if (isMobile()) {
                     window.siyuan.mobile.docks.outline?.setCurrentByPreview(nodeElement);
                 } else if (protyle.model) {
-                    getAllModels().outline.forEach(item => {
-                        if (item.blockId === protyle.block.rootID) {
-                            item.setCurrentByPreview(nodeElement);
-                        }
-                    });
+                    setProtyleOutlineCurrent(protyle, nodeElement, true);
                 }
                 const diagramElement = getDiagramBlock(nodeElement);
                 if (diagramElement) {

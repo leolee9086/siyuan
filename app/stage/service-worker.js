@@ -1,6 +1,8 @@
 // REF https://github.com/MicrosoftEdge/Demos/blob/main/pwamp/sw.js
 
-const CACHE_NAME = `siyuan-${new URL(location.href).searchParams.get("v")}`;
+// Bump when the static bundle/cache contract changes so development builds do
+// not mix resources from an older service-worker cache.
+const CACHE_NAME = `siyuan-${new URL(location.href).searchParams.get("v")}-2`;
 const INITIAL_CACHED_RESOURCES = [
     "/favicon.ico",
     "/stage/icon-large.png",
@@ -68,9 +70,16 @@ self.addEventListener("fetch", event => {
         if (cachedResponse && cachedResponse.type !== 'opaque') {
             return cachedResponse;
         } else {
-            const fetchResponse = await fetch(event.request);
-            cache.put(url.pathname, fetchResponse.clone());
-            return fetchResponse;
+            try {
+                const fetchResponse = await fetch(event.request);
+                if (fetchResponse.ok) {
+                    await cache.put(url.pathname, fetchResponse.clone());
+                }
+                return fetchResponse;
+            } catch (error) {
+                console.debug(`[service-worker] resource fetch failed: ${url.pathname}`, error);
+                return cachedResponse || new Response("", {status: 503, statusText: "Service Unavailable"});
+            }
         }
     })());
 });

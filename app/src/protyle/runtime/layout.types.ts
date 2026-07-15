@@ -22,6 +22,8 @@ export interface IProtyleLayoutPort {
     refreshOutline: (rootId: string) => void;
     /** 在编辑器模式切换后同步宿主中的大纲面板。 */
     updateOutline?: (protyle: IProtyle, reload: boolean) => void;
+    /** 更新宿主大纲当前项；preview 表示来自预览 DOM 的定位。 */
+    setOutlineCurrent?: (protyle: IProtyle, element: Element, preview: boolean) => void;
     refreshBacklink: (protyle: IProtyle) => void;
     updatePanel: (protyle: IProtyle, options: IProtyleLayoutUpdateOptions) => void | Promise<void>;
     focus: (protyle: IProtyle) => IProtyleLayoutFocusResult;
@@ -34,4 +36,6 @@ export interface IProtyleLayoutPort {
     clearBeforeResizeTop?: () => void;
     /** 查找其它编辑器或块面板中可复用的块 DOM 副本。 */
     findBlockCopies?: (blockId: string) => Element[];
+    /** 从完整 App 的反链面板中移除已销毁的 Protyle 实例。 */
+    removeBacklinkEditor?: (protyle: IProtyle, backlinkElement: Element) => void;
 }

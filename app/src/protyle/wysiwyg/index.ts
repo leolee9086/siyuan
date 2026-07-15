@@ -23,7 +23,7 @@ import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";
 import { isBrowserDesktop, isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";
-import { getAllModels } from "../../layout/getAll";
+import { setProtyleOutlineCurrent } from "../runtime/layout.port";
 import { stickyRow } from "../render/av/row";
 import { clearSelect } from "../util/clearSelect";
 import { renderCustomWithCtx, escapeInline } from "./utils/rendercustomWithCtx";
@@ -94,11 +94,7 @@ export class WYSIWYG {
         }
         if (!isMobile()) {
             if (protyle.model) {
-                getAllModels().outline.forEach(item => {
-                    if (item.blockId === protyle.block.rootID) {
-                        item.setCurrent(nodeElement);
-                    }
-                });
+                setProtyleOutlineCurrent(protyle, nodeElement);
             }
         } else if (protyle.disabled) {
             protyle.toolbar.range = getEditorRange(nodeElement);

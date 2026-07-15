@@ -7,6 +7,9 @@ import {isMobile} from "../platform";
 import {setProtyleLayoutPort} from "../protyle/runtime/layout.port";
 import type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions} from "../protyle/runtime/layout.types";
 import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest";
+import {getInstanceById} from "./util";
+import {Tab} from "./Tab";
+import {Backlink} from "./dock/Backlink";
 
 /** 完整 App 的布局协同适配器；具体布局树和 DOM 查询只允许出现在此边界内。 */
 const appLayoutPort: IProtyleLayoutPort = {
@@ -29,6 +32,21 @@ const appLayoutPort: IProtyleLayoutPort = {
             return;
         }
         updateOutlineForModels(getAllModels(), protyle, reload);
+    },
+    setOutlineCurrent(protyle: IProtyle, element: Element, preview: boolean) {
+        if (isMobile) {
+            return;
+        }
+        getAllModels().outline.forEach(item => {
+            if (item.blockId !== protyle.block.rootID) {
+                return;
+            }
+            if (preview) {
+                item.setCurrentByPreview(element);
+            } else if (element instanceof HTMLElement) {
+                item.setCurrent(element);
+            }
+        });
     },
     refreshBacklink(protyle: IProtyle) {
         if (isMobile) {
@@ -131,6 +149,26 @@ const appLayoutPort: IProtyleLayoutPort = {
             }
         });
         return copies;
+    },
+    removeBacklinkEditor(protyle: IProtyle, backlinkElement: Element) {
+        if (isMobile) {
+            return;
+        }
+        const backLinkTab = getInstanceById(backlinkElement.getAttribute("data-id"), window.siyuan.layout.layout);
+        if (!(backLinkTab instanceof Tab) || !(backLinkTab.model instanceof Backlink)) {
+            return;
+        }
+        const editors = backLinkTab.model.editors;
+        editors.find((item, index) => {
+            if (item.protyle.element !== protyle.element) {
+                return false;
+            }
+            item.destroy();
+            editors.splice(index, 1);
+            item.protyle.element.previousElementSibling?.remove();
+            item.protyle.element.remove();
+            return true;
+        });
     },
 };
 
