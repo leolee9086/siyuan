@@ -36,4 +36,19 @@ describe("Layout tab Dialog float capability", () => {
         expect(requestOpenTabAsDialog(tab)).toBe(true);
         expect(open).toHaveBeenCalledWith(tab);
     });
+
+    it("falls back to the typed request event when a host declines", () => {
+        const listener = vi.fn();
+        const unsubscribe = subscribeTabFloatRequest(listener);
+        setLayoutTabFloatPort({open: () => false});
+
+        expect(requestOpenTabAsDialog(makeTab("tab-2", "Declined tab"))).toBe(true);
+        expect(listener).toHaveBeenCalledWith({
+            tabId: "tab-2",
+            title: "Declined tab",
+            source: "tab-menu",
+        });
+
+        unsubscribe();
+    });
 });

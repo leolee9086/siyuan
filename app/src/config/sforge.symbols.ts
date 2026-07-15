@@ -42,4 +42,6 @@ export const SForgeSymbols = {
     LAYOUT_PORT: Symbol.for("sforge.protyle.layoutPort"),
     /** Layout 页签 Dialog 浮窗宿主能力 */
     TAB_FLOAT_PORT: Symbol.for("sforge.layout.tabFloatPort"),
+    /** Layout 页签浮窗副本工厂注册表 */
+    TAB_FLOAT_FACTORY_REGISTRY: Symbol.for("sforge.layout.tabFloatFactoryRegistry"),
 } as const;

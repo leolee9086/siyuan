@@ -139,6 +139,11 @@ export class AgentChat extends Model {
     // 上一个 thinking step 快照时 currentToolCalls 的长度基准，
     // 用于计算本轮新增的工具（避免 step.toolNames 累积重复历史工具）。
     private lastStepToolCount = 0;
+    /** 浮窗副本不属于布局树，不能把焦点/最小化动作转发给原始 Dock。 */
+    private isFloatingCopy = false;
+    private floatingCloseHandler: (() => void) | null = null;
+    private initialization: Promise<void> = Promise.resolve();
+    private agentDestroyed = false;
 
     constructor(app: App, tab: Tab) {
         super({app: app});
@@ -311,7 +316,96 @@ export class AgentChat extends Model {
                 },
             }
         );
-        this.initSessions();
+        this.initialization = this.initSessions();
+    }
+
+    /** 等待初始欢迎页和模型列表准备完成，供副本工厂使用。 */
+    public ready(): Promise<void> {
+        return this.initialization;
+    }
+
+    /** 配置浮窗副本的最小化/关闭行为，不影响原始 Dock。 */
+    public setFloatingCopyOptions(options: { onClose?: () => void } = {}) {
+        this.isFloatingCopy = true;
+        this.floatingCloseHandler = options.onClose || null;
+    }
+
+    /**
+     * 创建一个真正独立的 Agent Dock 副本。
+     * 副本拥有自己的 Tab、DOM、编辑器、WebSocket 和会话状态，不共享原实例的可变数组。
+     */
+    public async createFloatingCopy(tab: Tab): Promise<AgentChat> {
+        await this.ready();
+        // 当前会话可能刚刚完成一轮响应，先把已持久化的内容写入存储，
+        // 这样副本可以通过稳定的会话协议加载，而不复制内部 DOM/引用。
+        await this.saveSession();
+        const copy = new AgentChat(this.app, tab);
+        try {
+            await copy.ready();
+            copy.setFloatingCopyOptions();
+            if (this.entries.length > 0) {
+                const session = await SessionStore.load(this.sessionId);
+                if (session) {
+                    copy.loadSessionForFloating(session);
+                }
+            }
+            return copy;
+        } catch (error) {
+            copy.destroy();
+            throw error;
+        }
+    }
+
+    private loadSessionForFloating(session: AgentSession) {
+        this.sessionId = session.id;
+        this.sessionCreatedAt = session.createdAt || Date.now();
+        this.sessionTitle = session.title || this.defaultTitle;
+        this.hasTitled = session.titled !== false;
+        this.entries = this.buildEntriesFromSession(session);
+        this.contextTokens = session.contextTokens ?? 0;
+        this.contextTokenBreakdown = session.contextTokenBreakdown ?? {};
+        this.contextCachedTokens = session.contextCachedTokens ?? 0;
+        this.contextLimit = session.contextLimit ?? 0;
+        if (session.model) {
+            this.applySessionModelIfValid(session.model);
+        }
+        this.composer?.clearHistory();
+        this.composer?.restoreHistory(session.messageHistory || []);
+        this.titleElement.textContent = this.sessionTitle;
+        this.messagesContainer.innerHTML = "";
+        this.renderLoadedSession(session);
+        this.rebuildNavMarkers();
+        this.updateTokenDisplay();
+        this.scrollToBottom(true);
+    }
+
+    /** 释放副本的编辑器、网络连接、观察器和全局监听器。 */
+    public destroy() {
+        if (this.agentDestroyed) {
+            return;
+        }
+        this.agentDestroyed = true;
+        this.abortController?.abort();
+        this.abortController = null;
+        this.stopThinkingTimer();
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = 0;
+        }
+        this.closeTokenBreakdownPopup();
+        this.stickResizeObserver?.disconnect();
+        this.stickResizeObserver = null;
+        this.settingDialogObserver?.disconnect();
+        this.settingDialogObserver = null;
+        window.removeEventListener("focus", this.checkConfigChangedHandler);
+        this.sessionPanel?.destroy();
+        this.composer?.destroy();
+        this.composer = null;
+        if (this.ws) {
+            this.ws.onclose = null;
+            this.ws.close();
+        }
+        super.disposeConnection();
     }
 
     private initModelSelect() {
@@ -691,17 +785,29 @@ export class AgentChat extends Model {
         });
         this.newSessionBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
-            setPanelFocus(this.parent.panelElement);
+            if (!this.isFloatingCopy) {
+                setPanelFocus(this.parent.panelElement);
+            }
             this.createSession();
         });
         this.sessionMenuBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
-            setPanelFocus(this.parent.panelElement);
+            if (!this.isFloatingCopy) {
+                setPanelFocus(this.parent.panelElement);
+            }
             this.sessionPanel.toggle();
         });
 
         this.parent.panelElement.addEventListener("click", (e: MouseEvent) => {
-            setPanelFocus(this.parent.panelElement);
+            if (this.isFloatingCopy && this.floatingCloseHandler &&
+                (e.target as HTMLElement).closest('[data-type="min"]')) {
+                e.stopPropagation();
+                this.floatingCloseHandler();
+                return;
+            }
+            if (!this.isFloatingCopy) {
+                setPanelFocus(this.parent.panelElement);
+            }
             const t = e.target as HTMLElement;
             let target = t;
             while (target && !target.isEqualNode(this.parent.panelElement)) {
@@ -1126,8 +1232,9 @@ export class AgentChat extends Model {
     }
 
     private renderLoadedSession(session: AgentSession) {
-        for (let i = 0; i < session.entries.length; i++) {
-            const entry = session.entries[i];
+        const entries = session.entries || [];
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
             const entryId = (entry as { id?: string }).id;
             switch (entry.type) {
                 case "user":

@@ -4,6 +4,30 @@ import { getSiyuanGlobalMenusMenu } from "./imports";
 import { MenuItem } from "./Menu.Item";
 /** 用途：应用常量。使用范围：dock 模块菜单标识。解耦评估：通过 imports.ts 转发。 */
 import { Constants } from "./imports";
+/** 用途：请求 Agent Dock Tab 的浮窗副本。使用范围：Dock 图标右键菜单；解耦评估：能力通过 Port 注入，菜单不创建 Dialog。 */
+import { requestOpenTabAsDialog } from "./imports";
+/** 用途：校验 Dock 模型关联的 Tab 句柄。使用范围：浮窗菜单动作绑定；解耦评估：只依赖稳定 Tab 类型，不引入具体 Dock 类。 */
+import { Tab } from "./imports";
+/** 用途：在具体 Dock 布局树中按 data-id 查找 Tab。使用范围：模型缓存未建立时的菜单入口兜底。 */
+import { getInstanceById } from "./imports";
+
+/** 从 Dock 图标所属 Dock 的模型数据解析实际 Tab 句柄。 */
+const getDockTab = (target: Element) => {
+    const type = target.getAttribute("data-type");
+    const tabId = target.getAttribute("data-id");
+    if (!type) {
+        return undefined;
+    }
+    const docks = [window.siyuan.layout.leftDock, window.siyuan.layout.rightDock, window.siyuan.layout.bottomDock];
+    const dock = docks.find(item => item?.elements.some(elements => elements.contains(target)));
+    const model = dock?.data[type];
+    // Dock.data 在初始化和隐藏状态下可能只保存布尔标记，只有模型对象才能反向得到 Tab。
+    if (!model || typeof model !== "object" || !("parent" in model)) {
+        const instance = tabId && dock?.layout ? getInstanceById(tabId, dock.layout) : undefined;
+        return instance instanceof Tab ? instance : undefined;
+    }
+    return model.parent instanceof Tab ? model.parent : undefined;
+};
 
 /**
  * 创建移动菜单项
@@ -58,5 +82,17 @@ export const initDockMenu = (target: Element) => {
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToRightBottom", target).element);
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToBottomLeft", target).element);
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToBottomRight", target).element);
+    // Agent Dock 的右键入口不经过普通 Tab header 菜单，因此在这里显式提供浮窗副本动作。
+    const tab = getDockTab(target);
+    // 仅 Agent Dock 当前注册了副本工厂，其他 Dock 等待各自的副本能力声明。
+    if (target.getAttribute("data-type") === "agentChat" && tab) {
+        getSiyuanGlobalMenusMenu().append(new MenuItem({
+            id: "openAsPopover",
+            label: window.siyuan.languages.refPopover,
+            icon: "iconPictureInPicture",
+            /** 将当前 Agent Tab 委托给浮窗 Port，保持菜单层不依赖 Dialog 实现。 */
+            click: () => requestOpenTabAsDialog(tab),
+        }).element);
+    }
     return getSiyuanGlobalMenusMenu();
 };

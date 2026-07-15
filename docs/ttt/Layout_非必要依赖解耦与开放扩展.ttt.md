@@ -29,7 +29,7 @@
 - `Layout`、`Wnd`、`Tab` 同时持有业务状态、DOM 节点、事件监听、尺寸调整和持久化副作用。
 - `getAll.ts` 直接导入并通过 `instanceof` 分派所有内置模型，新增模型必须修改中央文件。
 - 序列化/反序列化通过具体类和 `instance` 字符串集中分派，创建实例时直接调用具体构造器。
-- `Model` 自己管理 WebSocket、重连和 `window.siyuan` 生命周期；该问题暂列后续边界，不在本阶段大规模重写。
+- `Model` 仍管理 WebSocket、重连和 `window.siyuan` 生命周期；本阶段只增加 `disposeConnection` 保护边界，供 Agent Dock 副本停止重连，完整 `SyncPort` 抽离仍留在后续阶段。
 
 ## 近期计划（Phase 0：扫描与契约）
 
@@ -45,13 +45,25 @@
 - [x] **为所有 Tab 菜单增加 Dialog 浮窗入口**
   - **行动**：`menus/tab.ts` 通过 `requestOpenTabAsDialog` 调用布局能力，不直接依赖 Dialog；无适配器时发出 Zod 校验的 `tab-open-as-dialog-requested` 事件。
   - **结果**：所有 Tab 的右键菜单都出现现有本地化“在浮窗中打开”菜单项；原 Electron “移动到新窗口”菜单和序列化路径不变。通用搬移 DOM 的临时适配器已撤回，避免把“浮窗”错误实现为移动原 Tab。
-  - **验证**：`app/test/browser/layout/tabFloat.browser.ts` 2 个浏览器契约用例通过；`pnpm run build:app` 通过。
+  - **验证**：`app/test/browser/layout/tabFloat.browser.ts` 基础入口、宿主转发和拒绝回退共 3 个契约用例通过；`pnpm run build:app` 通过。
 
-- [ ] **Phase 2：从 Agent Dock 开始实现 Tab/Dock 副本浮窗**
+- [x] **Phase 2：从 Agent Dock 开始实现 Tab/Dock 副本浮窗**
   - **背景**：副本必须拥有独立 DOM、状态、事件监听、输入编辑器和销毁生命周期；不能使用 `panelElement` 搬移或 `cloneNode` 冒充可交互副本。
-  - **行动**：为 Agent Dock 定义 `TabFloatCopyFactory`，由 Dock 自己创建独立 `AgentChat`/会话状态并挂载到宿主 Dialog；Port 只负责能力调用和生命周期，不依赖 AgentChat 具体实现。
-  - **扩展**：后续为 Editor、Search、Custom、Graph、Outline、Backlink、Files 等 Dock 注册各自副本工厂；无法安全复制的模型必须明确返回“不支持”，不能静默共享可变状态。
-  - **验收**：原 Tab 保持可用；浮窗副本可独立交互和销毁；关闭副本不改变原 Tab；布局 JSON 和插件句柄不发生变化。
+  - **行动**：新增 `layout/tabFloat.app.factory.ts`，完整 App 通过宿主 Port 调用模型副本工厂，创建临时 `Tab`、独立面板和模型，再挂载到 `Dialog`；原 Tab 的 `panelElement` 从不移动。AgentChat 增加 `ready/createFloatingCopy/destroy` 生命周期边界，并支持浮窗副本独立关闭。
+  - **行动**：`Model` 增加可禁止自动重连的销毁协议，避免浮窗副本关闭后 WebSocket 重新连接；`requestOpenTabAsDialog` 在 Port 返回 `false` 时继续发出类型化请求事件。
+  - **行动**：补齐 Agent Dock 实际右键路径 `menus/dock.ts` 的“在浮窗中打开”入口；菜单从 Dock 模型缓存或 Dock 布局树解析 Tab 句柄，避免依赖普通 Tab header 菜单。
+  - **扩展**：Editor 和 AgentChat 已注册首批副本工厂；后续为 Search、Custom、Graph、Outline、Backlink、Files 等 Dock 按同一协议接入。无法安全复制的模型必须明确返回“不支持”，不能静默共享可变状态。
+  - **验收**：Agent Dock 副本路径已实现；Editor 工厂已接入；原 Tab 保持可用；副本拥有独立 DOM、状态、编辑器、WebSocket 和销毁生命周期；关闭副本不改变原 Tab；布局 JSON 和插件句柄不发生变化。其余 Dock 当前明确返回未处理，等待各自副本协议。
+  - **验证**：`pnpm run build:app` 通过；`test/browser/layout/tabFloat.browser.ts` 3 个 Port/事件契约用例通过；Agent Dock 右键菜单入口已接入；`git diff --check` 通过。
+
+- [x] **修复 Editor Tab 浮窗静默无效，并统一副本能力分派（2026-07-15）**
+  - **根因**：完整 App 的 Tab 浮窗 Port 只识别 AgentChat；Editor Tab 返回未处理且当时没有事件订阅者，因此菜单点击没有可见动作。
+  - **行动**：新增 `layout/tabFloat.registry.ts` 和 `ILayoutTabFloatFactory`。Editor、AgentChat 在各自静态模块中注册 `canCreate/createTab/create/dispose` 能力；`tabFloat.app.factory.ts` 只负责通用 Dialog 容器、挂载目标 Tab、关闭回收和关闭动作转发，不再 `instanceof` 分派具体模型。
+  - **Editor 语义**：Editor 工厂复用现有 `copyTab`，保留 rootID/blockID、Protyle action 和滚动位置兼容；浮窗始终使用新 `Tab`、新 `panelElement` 和新 Protyle，原 Tab 的布局树和 DOM 不移动。
+  - **生命周期**：副本工厂返回统一 `ILayoutTabFloatCopy.dispose`；Dialog 销毁、创建失败和关闭竞态都走同一清理边界；Agent 的最小化动作通过 `setCloseHandler` 关闭当前 Dialog，不再切换原始 Dock。
+  - **兼容边界**：浮窗能力仍通过 `ILayoutTabFloatPort` 注入；没有工厂的模型返回 `false`，由原有类型化请求事件继续委托宿主；Electron `tabToWindow`、布局序列化/反序列化和插件 Tab 句柄不变。
+  - **验证**：`pnpm run build:app` 通过（main 入口约 6.41 MiB，common 4.21 MiB，vendors 2.15 MiB）；`pnpm run typecheck:protyle-contract` 通过；`test/browser/layout/tabFloat.browser.ts` 3/3 通过；`git diff --check` 通过。
+  - **待浏览器验收**：在真实文档上验证 Editor 浮窗的加载、点击、输入、快捷键、标题编辑、关闭后 Protyle/WebSocket 清理；重点观察 detached Tab 没有 `Wnd` parent 时，搜索/定位/错误响应等低频路径是否需要进一步能力事件化。
 
 - [ ] **定义布局核心最小协议**
   - **行动**：设计 `LayoutNode`、`WindowState`、`TabState`、`LayoutCommand`、`LayoutEvent` 和 `LayoutHostPort`，先只写类型与兼容适配，不替换现有实现。
@@ -131,6 +143,7 @@
 ## 中期计划（Phase 1：兼容边界）
 
 - [ ] **建立模型注册表**：先覆盖 Editor/Custom，保留旧分支回退；增加注册表单元测试。
+- [x] **建立浮窗副本能力注册表**：覆盖 Editor/AgentChat，保留未注册模型的事件回退；后续 Dock 通过同一工厂协议接入。
 - [ ] **建立布局命令与事件协议**：实现 add/remove/move/activate/split 的纯状态变更和可销毁事件订阅。
 - [ ] **接入兼容 DOM renderer**：让现有 Layout/Wnd/Tab 行为通过 renderer/port 执行，保持完整 App 的 CSS、resize 和插件行为。
 - [ ] **迁移序列化与反序列化**：按注册项分发，增加未知模型占位符，确保旧 JSON 可恢复。

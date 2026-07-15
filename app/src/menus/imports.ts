@@ -43,3 +43,18 @@ export { getEventName };
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 menus 模块祖先查找 */
 export { hasClosestByClassName };
+
+/** 用途：页签浮窗能力请求。使用范围：Dock 菜单把 Agent Tab 委托给宿主；解耦评估：菜单只发 Port 请求，不直接依赖 Dialog 或副本实现。 */
+import { requestOpenTabAsDialog } from "../layout/tabFloat.port";
+/** 导出 requestOpenTabAsDialog 供 Dock 菜单调用。 */
+export { requestOpenTabAsDialog };
+
+/** 用途：页签运行时类型。使用范围：从 Dock 模型句柄确认可浮窗的 Tab；解耦评估：仅作句柄校验，不引入具体 Dock 模型。 */
+import { Tab } from "../layout/Tab";
+/** 导出 Tab 供 Dock 菜单进行句柄校验。 */
+export { Tab };
+
+/** 用途：在 Dock 布局树中按 ID 找回页签。使用范围：Dock 图标缺少模型缓存时的浮窗入口兜底。解耦评估：只提供布局查询，不把 Dialog 或副本工厂引入菜单。 */
+import { getInstanceById } from "../layout/util";
+/** 导出 getInstanceById 供 Dock 菜单解析页签。 */
+export { getInstanceById };
