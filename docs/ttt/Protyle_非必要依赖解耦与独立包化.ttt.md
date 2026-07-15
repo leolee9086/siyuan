@@ -405,6 +405,7 @@ interface ResidualEvent {
 
 ### Phase 1C：布局 DOM 与 Workspace 能力隔离（P0，进行中）
 
+- [x] 建立独立的 [Layout 非必要依赖解耦与开放扩展 TTT](./Layout_非必要依赖解耦与开放扩展.ttt.md)，集中追踪 layout 模块扫描、模型注册、命令协议和 DOM renderer 兼容迁移。[2026-07-15]
 - [x] 完成第一轮清点，确认 `protyle/index.ts` 的布局触点集中在面板刷新、聚焦、标题更新、页签移除和反链/大纲刷新。[2026-07-15]
 - [x] 定义并注册 `IProtyleLayoutPort`，完整 App 使用现有布局实现，独立入口使用 no-op；Protyle 不再直接导入 `getAllModels`、`updatePanelByEditor` 或 `setPanelFocus`。[2026-07-15]
 - [ ] 定义 `WorkspacePort`，承载多编辑器查找、Outline/Backlink/FileTree 更新和布局广播；独立入口提供单实例 no-op 或局部实现。

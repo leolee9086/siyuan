@@ -40,4 +40,6 @@ export const SForgeSymbols = {
     STATUS_PORT: Symbol.for("sforge.protyle.statusPort"),
     /** Protyle 布局协同宿主能力 */
     LAYOUT_PORT: Symbol.for("sforge.protyle.layoutPort"),
+    /** Layout 页签 Dialog 浮窗宿主能力 */
+    TAB_FLOAT_PORT: Symbol.for("sforge.layout.tabFloatPort"),
 } as const;

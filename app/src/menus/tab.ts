@@ -15,6 +15,7 @@ import { writeText } from "../protyle/util/compatibility";
 import { getAssetName, pathPosix } from "../util/file/pathName";
 import { Constants } from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { requestOpenTabAsDialog } from "../layout/tabFloat.port";
 
 const closeMenu = (tab: Tab) => {
     const unmodifiedTabs: Tab[] = [];
@@ -240,6 +241,12 @@ export const initTabMenu = (app: App, tab: Tab) => {
             }
         }).element);
     }
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "openAsPopover",
+        label: siyuanI18n.refPopover,
+        icon: "iconPictureInPicture",
+        click: () => requestOpenTabAsDialog(tab)
+    }).element);
     if (isElectron) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "tabToWindow",

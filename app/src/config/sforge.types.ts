@@ -21,6 +21,8 @@ import type { DragTipState } from "../protyle/util/dragTip.types";
 import type { IProtyleDialogPort } from "../protyle/runtime/dialog.types";
 import type { IProtyleStatusPort } from "../protyle/runtime/status.types";
 import type { IProtyleLayoutPort } from "../protyle/runtime/layout.types";
+/** 用途：为 SForge 全局状态声明页签 Dialog 浮窗宿主能力；使用范围：layout 菜单请求、完整 App 适配器和独立宿主注册；解耦评估：仅为编译期 type-only 依赖，运行时通过 Symbol Port 注入，不能用事件替代状态契约，但不引入 Dialog/Tab 具体实现。 */
+import type { ILayoutTabFloatPort } from "../layout/tabFloat.types";
 
 /**
  * SForge 全局状态类型定义
@@ -45,6 +47,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.DIALOG_PORT]?: IProtyleDialogPort;
     [SForgeSymbols.STATUS_PORT]?: IProtyleStatusPort;
     [SForgeSymbols.LAYOUT_PORT]?: IProtyleLayoutPort;
+    [SForgeSymbols.TAB_FLOAT_PORT]?: ILayoutTabFloatPort;
 }
 
 /**
