@@ -15,6 +15,7 @@ import { Files } from "./dock/Files";
 import { Graph } from "./dock/Graph";
 import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
+import { AgentChat } from "./dock/agent/AgentChat";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
 import { createErrorPlaceholderFromData } from "./dock/ErrorPlaceholder";
@@ -331,5 +332,28 @@ export const handleErrorPlaceholderInstance = (app: App, json: { errorPlaceholde
         return;
     }
     layout.addModel(createErrorPlaceholderFromData(app, layout, json.errorPlaceholderData));
+};
+
+/** 创建并恢复 AgentChat 普通 Tab；正文从 SessionStore 异步恢复，布局树先保持稳定。 */
+export const handleAgentChatInstance = (
+    app: App,
+    json: { sessionId?: unknown },
+    layout: Tab
+): void => {
+    const model = new AgentChat(app, layout);
+    layout.addModel(model);
+    // 普通布局 Tab 也是独立副本；其最小化动作应关闭自身，不得切换原始 Agent Dock。
+    model.setFloatingCopyOptions({
+        onClose: () => {
+            if (layout.parent?.children.some((item) => item.id === layout.id)) {
+                layout.parent.removeTab(layout.id);
+            }
+        },
+    });
+    if (typeof json.sessionId === "string" && json.sessionId) {
+        void model.restoreSessionById(json.sessionId).catch((error) => {
+            console.error("[layout-agent-tab] failed to restore session", error);
+        });
+    }
 };
 

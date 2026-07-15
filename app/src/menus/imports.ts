@@ -48,6 +48,9 @@ export { hasClosestByClassName };
 import { requestOpenTabAsDialog } from "../layout/tabFloat.port";
 /** 导出 requestOpenTabAsDialog 供 Dock 菜单调用。 */
 export { requestOpenTabAsDialog };
+import { requestOpenTabAsTab } from "../layout/tabOpen.port";
+/** 导出 requestOpenTabAsTab 供 Dock 菜单调用。 */
+export { requestOpenTabAsTab };
 
 /** 用途：页签运行时类型。使用范围：从 Dock 模型句柄确认可浮窗的 Tab；解耦评估：仅作句柄校验，不引入具体 Dock 模型。 */
 import { Tab } from "../layout/Tab";

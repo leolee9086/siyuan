@@ -5,7 +5,7 @@ import { MenuItem } from "./Menu.Item";
 /** 用途：应用常量。使用范围：dock 模块菜单标识。解耦评估：通过 imports.ts 转发。 */
 import { Constants } from "./imports";
 /** 用途：请求 Agent Dock Tab 的浮窗副本。使用范围：Dock 图标右键菜单；解耦评估：能力通过 Port 注入，菜单不创建 Dialog。 */
-import { requestOpenTabAsDialog } from "./imports";
+import { requestOpenTabAsDialog, requestOpenTabAsTab } from "./imports";
 /** 用途：校验 Dock 模型关联的 Tab 句柄。使用范围：浮窗菜单动作绑定；解耦评估：只依赖稳定 Tab 类型，不引入具体 Dock 类。 */
 import { Tab } from "./imports";
 /** 用途：在具体 Dock 布局树中按 data-id 查找 Tab。使用范围：模型缓存未建立时的菜单入口兜底。 */
@@ -86,6 +86,13 @@ export const initDockMenu = (target: Element) => {
     const tab = getDockTab(target);
     // 仅 Agent Dock 当前注册了副本工厂，其他 Dock 等待各自的副本能力声明。
     if (target.getAttribute("data-type") === "agentChat" && tab) {
+        getSiyuanGlobalMenusMenu().append(new MenuItem({
+            id: "openAsTab",
+            label: window.siyuan.languages.openInNewTab || "Open in tab",
+            icon: "iconOpen",
+            /** 将 Agent Dock 副本委托给普通 Tab Port，保持菜单层不依赖 Wnd/Dialog。 */
+            click: () => requestOpenTabAsTab(tab, "dock-menu"),
+        }).element);
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "openAsPopover",
             label: window.siyuan.languages.refPopover,

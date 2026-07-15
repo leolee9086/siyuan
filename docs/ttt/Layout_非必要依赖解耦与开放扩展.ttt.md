@@ -52,7 +52,10 @@
   - **行动**：新增 `layout/tabFloat.app.factory.ts`，完整 App 通过宿主 Port 调用模型副本工厂，创建临时 `Tab`、独立面板和模型，再挂载到 `Dialog`；原 Tab 的 `panelElement` 从不移动。AgentChat 增加 `ready/createFloatingCopy/destroy` 生命周期边界，并支持浮窗副本独立关闭。
   - **行动**：`Model` 增加可禁止自动重连的销毁协议，避免浮窗副本关闭后 WebSocket 重新连接；`requestOpenTabAsDialog` 在 Port 返回 `false` 时继续发出类型化请求事件。
   - **行动**：补齐 Agent Dock 实际右键路径 `menus/dock.ts` 的“在浮窗中打开”入口；菜单从 Dock 模型缓存或 Dock 布局树解析 Tab 句柄，避免依赖普通 Tab header 菜单。
+  - **补充（2026-07-15）**：Agent Dock 标题栏新增与右键菜单一致的“在浮窗中打开”图标，直接委托 `requestOpenTabAsDialog(this.parent)`；浮窗副本隐藏该入口，避免副本递归创建。
+  - **补充（2026-07-15）**：Tab/Dock 副本 Dialog 采用非模态配置（`b3-dialog--popover`、无遮罩、不加入全局 Dialog 栈），不会阻塞原布局或抢占模态弹窗行为。
   - **扩展**：Editor 和 AgentChat 已注册首批副本工厂；后续为 Search、Custom、Graph、Outline、Backlink、Files 等 Dock 按同一协议接入。无法安全复制的模型必须明确返回“不支持”，不能静默共享可变状态。
+  - **持续追踪**：Agent Panel 的 Dock/浮窗/Tab 三种宿主形态由 [Agent Panel 持续改进 TTT](./AgentPanel_持续改进.ttt.md) 长期维护；本阶段只在 Layout 中保留能力协议和兼容边界。
   - **验收**：Agent Dock 副本路径已实现；Editor 工厂已接入；原 Tab 保持可用；副本拥有独立 DOM、状态、编辑器、WebSocket 和销毁生命周期；关闭副本不改变原 Tab；布局 JSON 和插件句柄不发生变化。其余 Dock 当前明确返回未处理，等待各自副本协议。
   - **验证**：`pnpm run build:app` 通过；`test/browser/layout/tabFloat.browser.ts` 3 个 Port/事件契约用例通过；Agent Dock 右键菜单入口已接入；`git diff --check` 通过。
 

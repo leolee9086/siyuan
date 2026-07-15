@@ -8,8 +8,8 @@ import {SForgeSymbols} from "./imports";
 import {bootstrapStandaloneProtyle} from "./bootstrap";
 /** 用途：解析未提供的块标为当天日记块；使用范围：独立挂载流程；解耦评估：日记选择属于内核能力，可由后续 KernelPort 替换。 */
 import {getStandaloneDailyNoteId} from "./bootstrap";
-/** 用途：创建独立入口菜单宿主；使用范围：独立挂载流程；解耦评估：通过 IProtyleMenuPort 可被外部宿主实现替换。 */
-import {createStandaloneProtyleMenu} from "./menu.factory";
+/** 用途：创建统一菜单宿主；使用范围：独立挂载流程；解耦评估：与完整 App 共用 Menu 实现，不复制菜单行为。 */
+import {createProtyleMenu} from "./imports";
 /** 用途：桥接遗留 App 类型；使用范围：迁移期挂载；解耦评估：ExtensionPort 完成实例注入后删除。 */
 import {asStandaloneApp} from "./standalone.guard";
 /** 用途：桥接遗留菜单全局；使用范围：迁移期挂载；解耦评估：菜单 Port 完成实例注入后删除。 */
@@ -57,7 +57,7 @@ export const mountStandaloneProtyle = async (options: IStandaloneProtyleOptions)
     const target = resolveTarget(options.target);
     const runtime = await bootstrapStandaloneProtyle();
     const blockId = options.blockId || await getStandaloneDailyNoteId(runtime);
-    const menu = options.menu || createStandaloneProtyleMenu();
+    const menu = options.menu || createProtyleMenu({closeOnOutsideClick: true});
     if (options.dialog) {
         setProtyleDialogPort(options.dialog);
     }

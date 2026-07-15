@@ -44,4 +44,6 @@ export const SForgeSymbols = {
     TAB_FLOAT_PORT: Symbol.for("sforge.layout.tabFloatPort"),
     /** Layout 页签浮窗副本工厂注册表 */
     TAB_FLOAT_FACTORY_REGISTRY: Symbol.for("sforge.layout.tabFloatFactoryRegistry"),
+    /** Layout 普通 Tab 打开宿主能力 */
+    TAB_OPEN_PORT: Symbol.for("sforge.layout.tabOpenPort"),
 } as const;

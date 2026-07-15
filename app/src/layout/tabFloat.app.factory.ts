@@ -52,6 +52,10 @@ const createAppTabFloatPort = () => ({
             width: "720px",
             height: "760px",
             containerClassName: "layout-tab-float-dialog",
+            // Tab 副本是页面内的非模态浮窗：不遮罩、不占用全局 Dialog 栈，但保留统一关闭和生命周期。
+            rootClassName: "b3-dialog--popover",
+            showScrim: false,
+            registerInDialogStack: false,
             /** 作用：Dialog 关闭后销毁副本资源；意图：避免副本 WebSocket/编辑器残留；调用时机：关闭按钮、遮罩或 ESC 触发 Dialog 销毁时。 */
             destroyCallback: () => {
                 closed = true;

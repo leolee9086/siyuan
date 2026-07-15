@@ -9,13 +9,15 @@ import type {IProtyleMenuPort} from "./imports";
 import type {IProtyleDialogPort} from "../protyle/runtime/dialog.types";
 /** 用途：导出挂载完成后的实例类型；使用范围：外部宿主编程控制菜单；解耦评估：仅类型依赖，不引入运行时模块。 */
 import type {IStandaloneProtyleInstance} from "./standalone.types";
-/** 用途：导出默认菜单宿主工厂；使用范围：外部应用保留菜单能力引用；解耦评估：宿主可用自定义 IProtyleMenuPort 替换。 */
-import {createStandaloneProtyleMenu} from "./menu.factory";
+/** 用途：导出统一菜单宿主工厂；使用范围：外部应用验证宿主能力契约；解耦评估：独立入口与完整 App 共用 Menu 实现。 */
+import {createProtyleMenu} from "./imports";
 
 /** 挂载使用独立运行时初始化的 Protyle 实例。 */
 export {mountStandaloneProtyle};
-/** 创建默认菜单能力宿主，供外部应用保留引用并编程控制菜单显示和隐藏。 */
-export {createStandaloneProtyleMenu};
+/** 创建统一菜单能力宿主，供外部应用验证接口契约并编程控制菜单显示和隐藏。 */
+export {createProtyleMenu};
+/** @deprecated 使用 createProtyleMenu；保留别名避免早期独立入口调用方断裂。 */
+export const createStandaloneProtyleMenu = createProtyleMenu;
 /** 独立 Protyle 入口的最小参数。 */
 export type {IStandaloneProtyleOptions};
 /** 独立挂载完成后返回的编辑器和菜单控制能力。 */

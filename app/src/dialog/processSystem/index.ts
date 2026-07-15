@@ -267,14 +267,15 @@ export const progressStatus = (data: IWebSocketData) => {
 };
 
 export const progressLoading = (data: IWebSocketData) => {
-    let progressElement = document.getElementById("progress");
+	// 结束消息应当是幂等的，不能因为页面没有进度 DOM 而先创建一个再删除。
+	if (data.code === 2) {
+		document.getElementById("progress")?.remove();
+		return;
+	}
+	let progressElement = document.getElementById("progress");
     if (!progressElement) {
         document.body.insertAdjacentHTML("beforeend", `<div id="progress" style="z-index: ${++window.siyuan.zIndex}"></div>`);
         progressElement = document.getElementById("progress");
-    }
-    if (data.code === 2) {
-        progressElement.remove();
-        return;
     }
     if (data.code === 0) {
         progressElement.innerHTML = `<div class="b3-dialog__scrim" style="opacity: 1"></div>

@@ -96,6 +96,11 @@ export const isCustomItem = (json: Config.TUILayoutItem): json is Config.IUILayo
     return json.instance === "Custom";
 };
 
+/** AgentChat 是 S-Forge 扩展实例，布局核心类型联合暂不收紧以保持旧 JSON 兼容。 */
+export const isAgentChatItem = (json: Config.TUILayoutItem): boolean => {
+    return (json as { instance?: unknown }).instance === "AgentChat";
+};
+
 /** ErrorPlaceholder 配置类型（扩展类型，不在标准定义中） */
 export interface IUILayoutTabErrorPlaceholder {
     instance: "ErrorPlaceholder";

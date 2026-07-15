@@ -798,6 +798,9 @@ func FullReindex(needResetScroll bool) {
 		ResetVirtualBlockRefCache()
 	}()
 	task.AppendTaskWithTimeout(task.DatabaseIndexEmbedBlock, 30*time.Second, autoIndexEmbedBlock)
+	// 任务队列是异步执行的，不能在 FullReindex 返回时清理进度；将结束事件
+	// 放入同一队列并置于 UI 重载之前，保证所有重建阶段完成后再关闭遮罩。
+	task.AppendTask(task.DatabaseIndexFullEnd, util.PushClearProgress)
 	if needResetScroll {
 		task.AppendTask(task.ReloadUI, util.ReloadUIResetScroll)
 	} else {
@@ -806,6 +809,7 @@ func FullReindex(needResetScroll bool) {
 }
 
 func FullReindexDirect() {
+	defer util.PushClearProgress()
 	fullReindex()
 }
 

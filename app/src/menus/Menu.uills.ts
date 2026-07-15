@@ -222,9 +222,14 @@ export const createSubmenuElement = (submenuItems: IMenu[]): HTMLElement => {
  * @param {PointerEvent|MouseEvent} event - Event object
  * @param {() => void} removeCallback - Callback to remove menu
  */
-export const handleMenuEvent = (menuElement: HTMLElement, event: PointerEvent | MouseEvent, removeCallback: () => void): void => {
+export const handleMenuEvent = (
+    menuElement: HTMLElement,
+    event: PointerEvent | MouseEvent,
+    removeCallback: () => void,
+    isMobileHost: () => boolean = isMobile,
+): void => {
     const target = event.target as Element;
-    if (isMobile()) {
+    if (isMobileHost()) {
         const titleElement = hasClosestByClassName(target, "b3-menu__title");
         if (titleElement || (typeof event.detail === "string" && event.detail === "back")) {
             const lastShowElements = menuElement.querySelectorAll(".b3-menu__item--show");

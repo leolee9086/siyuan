@@ -8,9 +8,34 @@ import {
     updateMaxHeight
 } from "./Menu.uills";
 import { MenuItem } from "./Menu.Item";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { isHiddenProtyleMenuElement } from "../protyle/runtime/menu.visibility";
+
+/** 菜单宿主可替换的最小运行时；未传入时保持思源主应用的现有行为。 */
+export interface IMenuHostOptions {
+    element?: HTMLElement;
+    document?: Document;
+    isMobile?: () => boolean;
+    backLabel?: string;
+    nextZIndex?: () => number;
+    closeOnOutsideClick?: boolean;
+}
+
+let fallbackZIndex = 10;
+
+const getDefaultZIndex = () => {
+    const siyuan = Reflect.get(globalThis, "siyuan");
+    if (siyuan && typeof siyuan.zIndex === "number") {
+        siyuan.zIndex += 1;
+        return siyuan.zIndex;
+    }
+    fallbackZIndex += 1;
+    return fallbackZIndex;
+};
+
+const getDefaultBackLabel = () => {
+    const languages = Reflect.get(Reflect.get(globalThis, "siyuan"), "languages");
+    return typeof languages?.back === "string" ? languages.back : "back";
+};
 
 export class Menu {
     public element: HTMLElement;
@@ -18,27 +43,55 @@ export class Menu {
     public removeCB: undefined | (() => void);
     private wheelEvent: string;
     private position?: IPosition;
+    private readonly document: Document;
+    private readonly isMobileHost: () => boolean;
+    private readonly nextZIndex: () => number;
 
-    constructor() {
-        //默认什么都不做
-        this.removeCB = () => { };
-        this.wheelEvent = "onwheel" in document.createElement("div") ? "wheel" : "mousewheel";
-        this.element = this.getContainer();
-        this.element.querySelector(".b3-menu__title .b3-menu__label").innerHTML = siyuanI18n.back;
-        this.element.addEventListener(isMobile() ? "click" : "mouseover", (event) => {
-            handleMenuEvent(this.element, event, () => this.remove());
-        });
-    }
-    private getContainer() {
-        const element = document.getElementById("commonMenu");
-        let result: HTMLElement = document.createElement("div");
-        //如果有元素直接使用
-        if (element) {
-            result = element;
+    constructor(idOrHost?: string | IMenuHostOptions, closeCB?: () => void, hostOptions?: IMenuHostOptions) {
+        const id = typeof idOrHost === "string" ? idOrHost : undefined;
+        const host = typeof idOrHost === "object" ? idOrHost : hostOptions;
+        this.document = host?.document || document;
+        this.isMobileHost = host?.isMobile || isMobile;
+        this.nextZIndex = host?.nextZIndex || getDefaultZIndex;
+        this.removeCB = undefined;
+        this.wheelEvent = "onwheel" in this.document.createElement("div") ? "wheel" : "mousewheel";
+        this.element = this.getContainer(host?.element);
+        const label = this.element.querySelector(".b3-menu__title .b3-menu__label");
+        if (label) {
+            label.textContent = host?.backLabel || getDefaultBackLabel();
         }
-        //如果没有就创建
-        if (!element) {
-            result.setAttribute("id", "commonMenu");
+        this.element.addEventListener(this.isMobileHost() ? "click" : "mouseover", (event) => {
+            handleMenuEvent(this.element, event, () => this.remove(), this.isMobileHost);
+        });
+        this.element.addEventListener("protyle-menu-request-remove", () => this.remove());
+        if (host?.closeOnOutsideClick) {
+            this.document.addEventListener("click", event => {
+                if (this.element.classList.contains("fn__none")) {
+                    return;
+                }
+                const target = event.target;
+                if (target instanceof Element && !this.element.contains(target) && !target.closest('[data-menu="true"]')) {
+                    this.remove();
+                }
+            });
+        }
+        if (id && this.element.getAttribute("data-name") !== id) {
+            this.remove();
+            this.element.setAttribute("data-name", id);
+        }
+        this.removeCB = closeCB;
+    }
+    private getContainer(hostElement?: HTMLElement) {
+        const existing = hostElement || this.document.getElementById("commonMenu");
+        if (existing) {
+            return existing;
+        }
+        const result = this.document.createElement("div");
+        result.id = "commonMenu";
+        result.className = "b3-menu fn__none";
+        result.innerHTML = '<div class="b3-menu__title fn__none"><span class="b3-menu__label"></span></div><div class="b3-menu__items"></div>';
+        if (this.document.body) {
+            this.document.body.append(result);
         }
         return result;
     }
@@ -59,12 +112,12 @@ export class Menu {
     }
 
     public removeScrollEvent() {
-        window.removeEventListener(isMobile() ? "touchmove" : this.wheelEvent, this.preventDefault, false);
+        window.removeEventListener(this.isMobileHost() ? "touchmove" : this.wheelEvent, this.preventDefault, false);
     }
 
     public remove(isKeyEvent = false) {
         if (isKeyEvent) {
-            const subElements = getSiyuanGlobalMenus().menu.element.querySelectorAll(".b3-menu__item--show");
+            const subElements = this.element.querySelectorAll(".b3-menu__item--show");
             if (subElements.length > 0) {
                 const subElement = subElements[subElements.length - 1];
                 subElement.classList.remove("b3-menu__item--show");
@@ -73,10 +126,10 @@ export class Menu {
                 return;
             }
         }
-        const removeCB = getSiyuanGlobalMenus().menu.removeCB;
+        const removeCB = this.removeCB;
         if (removeCB && typeof removeCB === "function") {
             removeCB();
-            getSiyuanGlobalMenus().menu.removeCB = undefined;
+            this.removeCB = undefined;
         }
         this.removeScrollEvent();
         resetMenuState(this.element);
@@ -108,8 +161,8 @@ export class Menu {
         if (this.element.lastElementChild.innerHTML === "") {
             return;
         }
-        window.addEventListener(isMobile() ? "touchmove" : this.wheelEvent, this.preventDefault, { passive: false });
-        this.element.style.zIndex = (++window.siyuan.zIndex).toString();
+        window.addEventListener(this.isMobileHost() ? "touchmove" : this.wheelEvent, this.preventDefault, { passive: false });
+        this.element.style.zIndex = this.nextZIndex().toString();
         this.element.classList.remove("fn__none");
         setPosition(this.element, options.x - (options.isLeft ? this.element.clientWidth : 0), options.y, options.h, options.w);
         updateMaxHeight(this.element, this.element.lastElementChild as HTMLElement);
@@ -145,7 +198,7 @@ export class Menu {
             return;
         }
         this.element.classList.add("b3-menu--fullscreen");
-        this.element.style.zIndex = (++window.siyuan.zIndex).toString();
+        this.element.style.zIndex = this.nextZIndex().toString();
         this.element.firstElementChild.classList.remove("fn__none");
         this.element.classList.remove("fn__none");
         window.addEventListener("touchmove", this.preventDefault, { passive: false });
@@ -171,3 +224,6 @@ export class Menu {
     }
 }
 export { MenuItem };
+
+/** 创建可作为 Protyle 菜单宿主的统一菜单实现；独立入口和完整 App 共用此实现。 */
+export const createProtyleMenu = (options?: IMenuHostOptions) => new Menu(undefined, undefined, options);

@@ -13,7 +13,7 @@ export interface IProtyleMenuPort {
 
     popup(position: IPosition): void;
 
-    fullscreen(): void;
+    fullscreen(position?: "bottom" | "all"): void;
 
     showSubMenu(subMenuElement: HTMLElement): void;
 }

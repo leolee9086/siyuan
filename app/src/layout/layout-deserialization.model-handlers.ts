@@ -21,6 +21,7 @@ import {
     handleSearchInstance,
     handleCustomInstance,
     handleErrorPlaceholderInstance,
+    handleAgentChatInstance,
 } from "./layout-deserialization.handlers";
 import {
     isEditorItem,
@@ -34,6 +35,7 @@ import {
     isSearchItem,
     isCustomItem,
     isErrorPlaceholderItem,
+    isAgentChatItem,
     asErrorPlaceholderItem,
     isTabContainer,
 } from "./layout-deserialization.guard";
@@ -131,6 +133,10 @@ const handleSearchAndCustomModels = (
     json: Config.TUILayoutItem,
     layout: Tab
 ): boolean => {
+    if (isAgentChatItem(json)) {
+        handleAgentChatInstance(app, json as { sessionId?: unknown }, layout);
+        return true;
+    }
     // Search 类型：显示搜索结果面板
     if (isSearchItem(json)) {
         handleSearchInstance(app, json, layout);

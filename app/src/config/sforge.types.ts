@@ -25,6 +25,8 @@ import type { IProtyleLayoutPort } from "../protyle/runtime/layout.types";
 import type { ILayoutTabFloatPort } from "../layout/tabFloat.types";
 /** 用途：声明 Tab 浮窗副本工厂注册表；使用范围：完整 App 静态能力注册；解耦评估：仅编译期类型依赖。 */
 import type { ILayoutTabFloatFactory } from "../layout/tabFloat.types";
+/** 用途：声明 Layout 普通 Tab 宿主能力；使用范围：能力注册和菜单请求；解耦评估：仅编译期依赖。 */
+import type { ILayoutTabOpenPort } from "../layout/tabOpen.types";
 
 /**
  * SForge 全局状态类型定义
@@ -51,6 +53,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.LAYOUT_PORT]?: IProtyleLayoutPort;
     [SForgeSymbols.TAB_FLOAT_PORT]?: ILayoutTabFloatPort;
     [SForgeSymbols.TAB_FLOAT_FACTORY_REGISTRY]?: Map<string, ILayoutTabFloatFactory>;
+    [SForgeSymbols.TAB_OPEN_PORT]?: ILayoutTabOpenPort;
 }
 
 /**

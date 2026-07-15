@@ -18,6 +18,7 @@ import { Tag } from "./dock/Tag";
 import { Search } from "../search";
 import { Custom } from "./dock/Custom";
 import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE } from "./dock/ErrorPlaceholder";
+import { AgentChat } from "./dock/agent/AgentChat";
 import { Constants } from "../constants";
 import { SerializationJSON, BreakObject } from "./layout-serialization.types";
 
@@ -84,6 +85,9 @@ const getTabLangFromModel = (model: Model | undefined): string | undefined => {
     // Tag 实例对应标签
     if (model instanceof Tag) {
         return "tag";
+    }
+    if (model instanceof AgentChat) {
+        return "agentChat";
     }
     return undefined;
 };
@@ -184,6 +188,12 @@ export const serializeErrorPlaceholderInstance = (
     json.errorPlaceholderData = layout.toJSON();
 };
 
+/** 序列化 AgentChat 普通 Tab 的会话句柄；消息正文仍以 SessionStore 为事实来源。 */
+export const serializeAgentChatInstance = (layout: AgentChat, json: SerializationJSON): void => {
+    json.instance = "AgentChat";
+    json.sessionId = layout.getSessionId();
+};
+
 /** @同步豁免: UI构建 - 数据序列化操作 */
 export const serializeSimpleInstance = (instanceName: string, json: SerializationJSON): void => {
     json.instance = instanceName;
@@ -273,6 +283,10 @@ const serializeSpecialInstance = (
     // ErrorPlaceholder 实例：错误占位符
     if (layout instanceof ErrorPlaceholder) {
         serializeErrorPlaceholderInstance(layout, json);
+        return true;
+    }
+    if (layout instanceof AgentChat) {
+        serializeAgentChatInstance(layout, json);
         return true;
     }
     return false;

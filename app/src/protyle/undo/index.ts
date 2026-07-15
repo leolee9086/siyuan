@@ -69,7 +69,7 @@ export class Undo {
             protyle.wysiwyg.lastHTMLs = {};
         }
         markLastInsertRange(operations);
-        onTransaction(protyle, operations, true);
+        operations.forEach(operation => onTransaction(protyle, operation, true));
         const avPanel = document.querySelector(".av__panel");
         avPanel?.remove();
         preventScroll(protyle);

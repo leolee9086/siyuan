@@ -179,7 +179,7 @@ const editor = await mountStandaloneProtyle({
 | 状态栏/字数统计 | Protyle 原有 17 条 `layout/status` 导入、涉及 16 个文件，但实际只使用 `countBlockWord` 和 `countSelectWord`；`layout/status.ts` 还静态导入 `tabUtil`、停靠栏、`MenuItem`、Electron 和 `StatusBarRegistry` | 高。统计函数直接解析/写入状态栏 DOM，历史上曾在无状态栏时触发 `classList` 空引用；整个宿主状态栏实现被传递性带入 | **已完成：`IProtyleStatusPort`，下一步转向布局 DOM** |
 | 布局、面板焦点和多编辑器协调 | `protyle/index.ts`、`resize.ts`、`setEditMode.ts` 原先运行时调用 `getAllModels`、`updatePanelByEditor`、`setPanelFocus` 和 `updateOutline`；这些路径遍历 `Layout`、`Wnd`、`Tab`、Editor、Outline、Backlink 和各类 Dock | 高。依赖 `window.siyuan.layout`、`.layout__*` 激活类和主应用布局树；独立入口没有这些对象时会在首次加载、聚焦或 resize 失败 | **进行中：已完成 `index.ts`、`resize.ts`、`setEditMode.ts` 的 Port 边界，继续处理剩余触点** |
 | 导航、块面板和插件生命周期 | `openFileById`、`BlockPanel`、`app.plugins`、插件 EventBus 分布在点击、快捷键、提示、销毁路径 | 高但可分域。它们不是编辑核心语义，却会在块引用、打开方式、快捷键和 destroy 中触发主应用对象 | **作为 `NavigationPort`、`BlockPanelPort`、`ExtensionPort` 的可选能力；缺失时显式禁用** |
-| 菜单、弹窗和 Tooltip | 已完成 `IProtyleMenuPort`、`IProtyleDialogPort`，独立入口可以注入或使用回退宿主 | 已有能力边界，剩余风险主要是旧菜单项直接操作宿主 DOM | 保持当前迁移，继续清理菜单条目对 `Menu.element` 的反向依赖 |
+| 菜单、弹窗和 Tooltip | Dialog 已完成 Port；菜单完成统一 `Menu` 宿主上下文、`IProtyleMenuPort` 校验和块标菜单可见性筛选，独立入口不再复制菜单实现 | Protyle 仍直接构造 `MenuItem`、读取 `menu.element`，完整 App 尚未通过统一 Port 注册；菜单条目树和 DOM 反向依赖仍需迁移 | Dialog 保持已完成状态；菜单仍进行中，先收口按协议的条目树/生命周期，再迁移 DOM 读取 |
 | 配置投影（`keymap`、`editor`、`appearance`、`readonly`） | `window.siyuan.config`/`getSiyuanConfig` 共 454 条文本引用、涉及 125 个文件；字段访问主要集中于 `keymap`（约 186 条/46 文件）和 `editor`（约 94 条/36 文件） | 中。大部分是数据读取，不直接要求主应用 DOM；但 `keymap.general` 中包含页签、Dock、全局命令，不能和编辑器快捷键混成一个 Port | **在宿主 DOM 能力收口后迁移；拆成 `EditorSettingsPort` 与 `EditorKeymapPort`，禁止暴露完整 `Config.IConf`** |
 | 国际化 | `siyuanI18n` 约 1,200 条引用、140 个文件 | 低到中。主要是字典读取，不依赖主应用 DOM；缺失文案通常可降级为 key | 作为后续 `I18nPort`，不作为下一项主应用解耦目标 |
 
@@ -337,7 +337,7 @@ interface ResidualEvent {
 - [x] 实现 bootstrap，按固定顺序准备配置、语言、Emoji、存储、主题、图标和 Lute。[2026-07-14]
 - [x] 通过标准模块导入当前 Protyle，并以最小 `App` 和最小渲染选项挂载。[2026-07-14]
 - [x] 建立兼容垫片台账和启动错误面板。[2026-07-14]
-- [x] 定义 `IProtyleMenuPort`，独立入口提供无主应用 `Menu` 依赖的 DOM 实现，并使用 Zod 在注册边界校验。[2026-07-14]
+- [x] 定义 `IProtyleMenuPort`，独立入口和完整 App 共用可注入宿主上下文的 `Menu` 实现，并使用 Zod 在注册边界校验。[2026-07-14]
 - [x] 建立独立 Vitest Playwright 浏览器测试层，菜单契约测试在 Chromium 通过。[2026-07-14]
 - [x] 增加生产构建产物的原生 ESM 冒烟检查：Chromium 直接加载未经过 Vite 改写的 `protyle.js`，并验证 `mountStandaloneProtyle` 命名导出。[2026-07-14]
 - [x] 连接真实思源核心完成独立入口编辑闭环冒烟检查：加载、输入、事务保存、刷新恢复和无 `blockId` 打开当天日记。[2026-07-15]
@@ -426,6 +426,10 @@ interface ResidualEvent {
 
 ### Phase 2：纯内核传输、事务和同步运行时（P0）
 
+- [x] 修复独立 Protyle 多实例事务广播落地失败：`app/src/protyle/index.ts` 在处理 `transactions` WebSocket 广播时误将单个 `IOperation` 包装为数组，导致 `onTransaction` 读取不到 `action/id/data`；已恢复为按 `IOperation` 调用。[2026-07-15]
+- [x] 修复撤销/重做本地渲染的同类参数错配：事务拆分后 `Undo.renderLocal` 仍将整个 `IOperation[]` 传给单操作 `onTransaction`，现按原顺序逐项应用。[2026-07-15]
+- [x] 使用当前运行内核完成双实例浏览器验证：两个实例各自建立 `type=protyle` WebSocket，实例 A 写入事务后实例 B 的对应块 DOM 更新；测试标记随后恢复为空块。[2026-07-15]
+- [ ] 增加自动化双实例同步回归测试，覆盖 `update`、`insert`、`delete`、撤销重放和实例销毁后的订阅清理。
 - [ ] 实现不依赖 UI 的 `KernelClient`，支持基础地址、认证、取消和结构化错误。
 - [ ] 将 `fetchPost` 的消息展示和 Electron 行为移出传输核心。
 - [ ] 抽出 `TransactionScheduler`，替代全局 `window.siyuan.transactions`。
@@ -448,8 +452,10 @@ interface ResidualEvent {
 
 - [ ] 将菜单、消息提示和浮层改由 `HostUIPort` 提供。
 - [x] Dialog、confirm、message、Tooltip、资源选择和 `moveResize` 已通过 `IProtyleDialogPort` 提供，完整 App 与独立入口分别注册宿主实现。
-- [ ] 先将 `window.siyuan.menus.menu` 收口到 `IProtyleMenuPort`；独立入口提供 DOM 实现，思源宿主适配现有菜单实现。
-- [ ] 使用 Zod 在菜单宿主注册时执行一次运行时校验，错误必须包含缺失能力的字段路径，避免问题延迟到具体交互中才暴露。
+- [x] 建立 `IProtyleMenuPort`，统一 `Menu` 提供宿主上下文注入；独立入口不再存在 `menu.factory.ts` 副本，并在注入边界使用 Zod 校验；覆盖追加、显示、全屏、子菜单定位和关闭。[2026-07-15]
+- [ ] 将 `window.siyuan.menus.menu` 在完整 App 和 Protyle 内部共同收口到 `IProtyleMenuPort`；当前仍有 `MenuItem` 构造和 `menu.element` DOM 反向依赖。
+- [x] 使用 Zod 在菜单宿主注册时执行一次运行时校验，错误包含缺失能力字段路径。[2026-07-15]
+- [ ] 将菜单项从具体 `MenuItem` DOM 构造迁移为类型化条目树/能力调用；保留插件现有 `MenuItem` 兼容适配器。
 - [ ] 将打开文档、聚焦页签、大纲刷新和移动端空态移入思源适配器。
 - [ ] 将 `App.plugins` 遍历改为 `ExtensionPort`。
 - [ ] 对无宿主实现的能力提供明确禁用态，不允许静默空对象吞错。
@@ -567,3 +573,7 @@ interface ResidualEvent {
 - [x] 2026-07-15：修复浏览器宿主加载 `app` bundle 时 webpack runtime 直接读取未定义 `global` 的问题；统一 `output.globalObject = "globalThis"`，并为 Service Worker 提升缓存 schema、捕获资源请求失败，避免旧 chunk 缓存造成未处理 Promise。
 - [x] 2026-07-15：修复隔离生产构建误清理正式 Protyle 入口的问题；webpack 的 `outputDir` 环境参数现在同时控制输出和清理路径，`http://127.0.0.1:6806/stage/build/protyle-app/` 已验证返回 200。
 - [x] 2026-07-15：修复 toolbar 块引用“新建文档并引用”标题显示 `[object Promise]`；`replaceFileName` 无真实异步依赖，恢复为同步字符串转换，避免 Promise 泄漏到提示项、文档标题和引用值。
+- [x] 2026-07-15：修复 Protyle WebSocket 广播事务未更新其它实例：`onTransaction` 收到单个操作时错误传入 `[item]`，现按 `IOperation` 传递；生产构建通过，并以两个独立页面实测跨实例输入同步和测试数据清理。
+- [x] 2026-07-15：复核事务拆分后的静默失败，修复 `app/src/protyle/undo/index.ts` 将操作数组直接传给单操作 `onTransaction` 的撤销/重做路径；现在逐项渲染，避免撤销按钮成功返回但 DOM 不变。
+- [x] 2026-07-15：复核菜单宿主的静默状态错误：独立菜单现在保留 `remove(true)` 的 Escape/返回上级语义，fullscreen 对齐上游支持 bottom/all 模式并显示返回标题，popup 支持 `isLeft`，销毁会清理 `data-name/data-from` 和 fullscreen 状态；新增菜单契约回归断言。菜单宿主化仍未完成，Protyle 对 `MenuItem` 和菜单 DOM 的直接依赖列为下一步。
+- [x] 2026-07-15：按上游 `Menu` 实现复核并撤除 `app/src/protyle-standalone/menu.factory.ts` 重复菜单；`Menu` 现在支持注入文档、移动端判定、z-index、返回文案和独立宿主外部点击关闭策略，独立入口直接复用统一实现，保留早期工厂名称的兼容别名。

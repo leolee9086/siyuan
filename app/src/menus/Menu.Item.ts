@@ -1,4 +1,3 @@
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
 import { createHiddenProtyleMenuElement, isProtyleMenuItemVisible } from "../protyle/runtime/menu.visibility";
 
@@ -55,7 +54,7 @@ export class MenuItem {
                 event.stopImmediatePropagation();
                 event.stopPropagation();
                 if (this.element.parentElement && !keepOpen) {
-                    getSiyuanGlobalMenus().menu.remove();
+                    this.element.closest<HTMLElement>(".b3-menu")?.dispatchEvent(new CustomEvent("protyle-menu-request-remove"));
                 }
             });
         }

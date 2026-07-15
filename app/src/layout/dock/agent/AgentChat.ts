@@ -11,6 +11,8 @@ import {listActions, lookupAction} from "./frontendActions";
 import {AgentSession, SessionStore} from "./SessionStore";
 import {AgentSessionPanel} from "./AgentSessionPanel";
 import {getDockByType} from "../../tabUtil";
+import {requestOpenTabAsDialog} from "../../tabFloat.port";
+import {requestOpenTabAsTab} from "../../tabOpen.port";
 import {MenuItem} from "../../../menus/Menu";
 import {updateHotkeyAfterTip} from "../../../protyle/util/compatibility";
 import {getLute} from "../../../protyle/render/setLute";
@@ -72,6 +74,8 @@ export class AgentChat extends Model {
     private newSessionBtn: HTMLElement;
     private titleElement: HTMLElement;
     private sessionMenuBtn: HTMLElement;
+    private floatingBtn: HTMLElement;
+    private tabBtn: HTMLElement;
     private sessionPanel: AgentSessionPanel;
     private sessionId = "";
     private sessionTitle = "";
@@ -227,6 +231,14 @@ export class AgentChat extends Model {
             '<svg><use xlink:href="#iconFolderClock"></use></svg>' +
             "</span>" +
             '<span class="fn__space"></span>' +
+            '<span data-type="open-as-tab" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.openInNewTab || "Open in tab") + '">' +
+            '<svg><use xlink:href="#iconOpen"></use></svg>' +
+            "</span>" +
+            '<span class="fn__space"></span>' +
+            '<span data-type="open-as-dialog" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.refPopover || "Open in popover") + '">' +
+            '<svg><use xlink:href="#iconPictureInPicture"></use></svg>' +
+            "</span>" +
+            '<span class="fn__space"></span>' +
             '<span data-type="min" class="block__icon ariaLabel" data-position="north" aria-label="' + window.siyuan.languages.min + updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom) + '">' +
             '<svg><use xlink:href="#iconMin"></use></svg>' +
             "</span>" +
@@ -260,6 +272,8 @@ export class AgentChat extends Model {
         this.stopBtn = panel.querySelector(".agent-chat__stop") as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
         this.sessionMenuBtn = panel.querySelector('.block__icon[data-type="session-menu"]') as HTMLElement;
+        this.tabBtn = panel.querySelector('.block__icon[data-type="open-as-tab"]') as HTMLElement;
+        this.floatingBtn = panel.querySelector('.block__icon[data-type="open-as-dialog"]') as HTMLElement;
         this.titleElement = panel.querySelector(".agent-chat__title") as HTMLElement;
         this.tokenDisplayEl = panel.querySelector(".agent-chat__tokens") as HTMLElement;
         this.modelSelect = panel.querySelector(".b3-select") as HTMLSelectElement;
@@ -328,6 +342,25 @@ export class AgentChat extends Model {
     public setFloatingCopyOptions(options: { onClose?: () => void } = {}) {
         this.isFloatingCopy = true;
         this.floatingCloseHandler = options.onClose || null;
+        this.tabBtn?.classList.add("fn__none");
+        this.floatingBtn?.classList.add("fn__none");
+    }
+
+    /** 当前会话 ID，用于普通 Tab 布局序列化和重启恢复。 */
+    public getSessionId(): string {
+        return this.sessionId;
+    }
+
+    /** 从布局快照恢复普通 Tab 的会话内容；不存在的会话保留欢迎页。 */
+    public async restoreSessionById(sessionId: string): Promise<void> {
+        if (!sessionId) {
+            return;
+        }
+        await this.ready();
+        const session = await SessionStore.load(sessionId);
+        if (session) {
+            this.loadSessionForFloating(session);
+        }
     }
 
     /**
@@ -796,6 +829,24 @@ export class AgentChat extends Model {
                 setPanelFocus(this.parent.panelElement);
             }
             this.sessionPanel.toggle();
+        });
+        this.floatingBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            if (this.isFloatingCopy) {
+                return;
+            }
+            void Promise.resolve(requestOpenTabAsDialog(this.parent)).catch((error) => {
+                console.error("[agent-chat] failed to open floating copy", error);
+            });
+        });
+        this.tabBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            if (this.isFloatingCopy) {
+                return;
+            }
+            void Promise.resolve(requestOpenTabAsTab(this.parent)).catch((error) => {
+                console.error("[agent-chat] failed to open tab copy", error);
+            });
         });
 
         this.parent.panelElement.addEventListener("click", (e: MouseEvent) => {
