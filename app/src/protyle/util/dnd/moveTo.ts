@@ -9,7 +9,7 @@ import {
     updateListAfterOperation
 } from "./moveTo.helper";
 import { getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
-import { getAllEditor } from "../../../layout/getAll";
+import { findProtyleForElement } from "../../runtime/layout.port";
 import { fetchSyncPost } from "../../../util/network/fetch";
 
 const captureSourcePositions = async (protyle: IProtyle, sourceElements: Element[]) => {
@@ -22,8 +22,8 @@ const captureSourcePositions = async (protyle: IProtyle, sourceElements: Element
         const parentBlock = getParentBlock(item);
         let parentID = parentBlock?.getAttribute("data-node-id") ?? "";
         if (!parentID) {
-            const sourceEditor = getAllEditor().find(editor => editor.protyle.wysiwyg.element === parentBlock);
-            parentID = sourceEditor?.protyle?.block?.rootID || "";
+            const sourceProtyle = findProtyleForElement(parentBlock, "wysiwyg");
+            parentID = sourceProtyle?.block?.rootID || "";
             if (!parentID) {
                 const response = await fetchSyncPost("/api/block/getBlockInfo", {id});
                 parentID = response?.data?.rootID || "";

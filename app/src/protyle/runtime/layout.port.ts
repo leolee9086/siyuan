@@ -1,9 +1,9 @@
 import {getSForgeState, setSForgeState} from "../../config/sforge.global";
 import {SForgeSymbols} from "../../config/sforge.symbols";
-import type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions} from "./layout.types";
+import type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions, ProtyleLayoutElementMatch} from "./layout.types";
 
 /** 导出布局宿主能力契约，供完整 App 适配器和外部宿主共享。 */
-export type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions} from "./layout.types";
+export type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions, ProtyleLayoutElementMatch} from "./layout.types";
 
 const fallbackFocusResult: IProtyleLayoutFocusResult = {
     handled: false,
@@ -25,6 +25,7 @@ const fallbackPort: IProtyleLayoutPort = {
     clearBeforeResizeTop: () => undefined,
     findBlockCopies: () => [],
     removeBacklinkEditor: () => undefined,
+    findProtyleForElement: () => undefined,
 };
 
 /** 获取当前宿主注册的布局协同能力。 */
@@ -68,3 +69,5 @@ export const clearProtyleBeforeResizeTop = () => getProtyleLayoutPort().clearBef
 export const findProtyleBlockCopies = (blockId: string) => getProtyleLayoutPort().findBlockCopies?.(blockId) || [];
 /** 统一转发反链编辑器销毁通知。 */
 export const removeProtyleBacklinkEditor = (protyle: IProtyle, backlinkElement: Element) => getProtyleLayoutPort().removeBacklinkEditor?.(protyle, backlinkElement);
+/** 统一转发跨编辑器元素到 Protyle 的查找请求。 */
+export const findProtyleForElement = (element: Element, match: ProtyleLayoutElementMatch) => getProtyleLayoutPort().findProtyleForElement?.(element, match);

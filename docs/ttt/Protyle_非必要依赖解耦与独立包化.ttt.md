@@ -347,12 +347,35 @@ interface ResidualEvent {
 
 ### Phase 1：依赖基线自动化与负面门禁（P0）
 
+- [x] 记录 `protyle-app` 当前构建体积基线：监听开发产物与生产产物分开统计，避免把 `eval-source-map` 内嵌源码体积当作发布体积。[2026-07-15]
+- [x] 修正 webpack 隔离输出目录能力：通过 `--env outputDir=...` 同时切换输出和 `CleanWebpackPlugin` 清理范围，避免生产体积测量清理正式 `stage/build/protyle-app` 导致 6806 入口 404。[2026-07-15]
 - [ ] 扫描跨目录导入、全局访问、API 路径和构建体积，生成 JSON 与 Markdown。
 - [ ] 在 CI 中禁止新增 `layout/menus/dialog/editor/mobile/plugin` 直接依赖。
 - [ ] 门禁先以当前基线为上限，再随迁移逐步下调。
 - [ ] `imports.ts` 只作为明确边界的聚合出口，不能用于隐藏未解决依赖。
 
 验收标准：每次提交都能回答独立入口新增、删除或保留了哪些宿主依赖。
+
+#### Protyle-app 体积基线（2026-07-15）
+
+测量口径：统计构建目录内所有产物的原始字节数，不包含 gzip/Brotli 压缩；生产构建使用与 `build:protyle-app` 相同的 webpack 配置，输出到临时目录 `stage/build/protyle-app-production`，未覆盖监听目录。
+
+| 构建口径 | 文件数 | JS | CSS | HTML | 总计 |
+|---|---:|---:|---:|---:|---:|
+| 当前监听开发产物 `stage/build/protyle-app` | 7 | 43,277,505 B（41.273 MiB） | 352,832 B（344.6 KiB） | 1,429 B | **43,631,766 B（41.610 MiB）** |
+| 生产产物 `stage/build/protyle-app-production` | 5 | 5,920,434 B（5.646 MiB） | 295,078 B（288.2 KiB） | 1,429 B | **6,216,941 B（5.929 MiB）** |
+
+生产文件明细：
+
+| 文件 | 原始大小 |
+|---|---:|
+| `protyle.js` | 5,634,978 B（5.374 MiB） |
+| `624.js` | 229,023 B（223.7 KiB） |
+| `563.js` | 56,433 B（55.1 KiB） |
+| `base.css` | 295,078 B（288.2 KiB） |
+| `index.html` | 1,429 B |
+
+解释：生产 `protyle.js` 占生产总产物约 90.6%，是后续静态导入压缩和可选能力隔离的主要体积目标；监听产物的额外约 35.7 MiB 主要来自 `eval-source-map` 内嵌源码，不能作为发布回归阈值。后续体积门禁应固定比较生产目录总计、`protyle.js` 和 CSS 三项，并同时记录压缩后体积。
 
 ### Phase 1A：非必要静态导入压缩（P0，下一步）
 
@@ -391,6 +414,7 @@ interface ResidualEvent {
 - [x] 将 WYSIWYG 与预览中的 Outline 当前项/预览当前项同步改为可选 `setOutlineCurrent` 能力；完整 App 保留 Outline 实例更新，独立入口和无 Outline 宿主安全忽略。[2026-07-15]
 - [x] 将文件树拖拽完成文档标题转换后的面板刷新改为 `updateProtylePanel` 能力调用，移除 `onDrop.helper.fileTree.ts` 对 `updatePanelByEditor` 的直接导入。[2026-07-15]
 - [x] 将 WYSIWYG 删除流程中的反链编辑器销毁改为可选 `removeBacklinkEditor` 能力；Protyle 不再直接导入 `Tab`、`Backlink` 或查询 `window.siyuan.layout`。[2026-07-15]
+- [x] 将拖拽移动路径中的跨编辑器 `getAllEditor()` 查找改为可选 `findProtyleForElement` 能力，区分 WYSIWYG 精确匹配和容器包含匹配；独立入口安全返回空。[2026-07-15]
 - [ ] 继续迁移面包屑和其它事务广播中的布局触点；只在 Protyle 路径触及时做局部适配。
 - [ ] 将 `Model` 的运行时 WebSocket 创建从 Protyle 中移入 `SyncPort`；`import type` 的 `Model`/`Editor` 兼容类型不作为迁移目标。
 - [ ] 验证没有布局 DOM、没有 `window.siyuan.layout`、没有 Outline/Backlink/Dock 时，独立入口仍可加载、输入、保存、刷新和销毁。
@@ -538,4 +562,6 @@ interface ResidualEvent {
 - [x] 2026-07-15：完成布局隔离第四小步：WYSIWYG/预览 Outline 高亮改由可选 `setOutlineCurrent` 能力承载，移动端既有 Outline 路径不变；布局 Port 继续保持静态加载、无宿主 no-op 和旧宿主兼容。
 - [x] 2026-07-15：完成布局隔离第四小步补充：文件树拖拽标题转换后的面板刷新改由 `updateProtylePanel` 转发，独立入口不加载完整面板更新实现。
 - [x] 2026-07-15：完成布局隔离第五小步：删除流程中的反链面板编辑器清理改由 `removeBacklinkEditor` 能力承载，完整 App 保留原 `Tab/Backlink` 清理行为，独立入口安全忽略。
+- [x] 2026-07-15：完成布局隔离第六小步：拖拽移动/清理模块不再直接导入 `layout/getAll`，宿主只通过 `findProtyleForElement` 暴露跨编辑器查找；生产体积基线已先记录，后续继续以生产包体积作为回归口径。
 - [x] 2026-07-15：修复浏览器宿主加载 `app` bundle 时 webpack runtime 直接读取未定义 `global` 的问题；统一 `output.globalObject = "globalThis"`，并为 Service Worker 提升缓存 schema、捕获资源请求失败，避免旧 chunk 缓存造成未处理 Promise。
+- [x] 2026-07-15：修复隔离生产构建误清理正式 Protyle 入口的问题；webpack 的 `outputDir` 环境参数现在同时控制输出和清理路径，`http://127.0.0.1:6806/stage/build/protyle-app/` 已验证返回 200。

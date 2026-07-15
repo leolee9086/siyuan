@@ -12,6 +12,9 @@ export interface IProtyleLayoutFocusResult {
     needsUpdate: boolean;
 }
 
+/** 跨编辑器 DOM 查找的匹配语义。 */
+export type ProtyleLayoutElementMatch = "contains" | "wysiwyg";
+
 /**
  * Protyle 使用的最小布局协同能力。
  *
@@ -38,4 +41,6 @@ export interface IProtyleLayoutPort {
     findBlockCopies?: (blockId: string) => Element[];
     /** 从完整 App 的反链面板中移除已销毁的 Protyle 实例。 */
     removeBacklinkEditor?: (protyle: IProtyle, backlinkElement: Element) => void;
+    /** 在完整 App 的其它编辑器中查找与元素关联的 Protyle。 */
+    findProtyleForElement?: (element: Element, match: ProtyleLayoutElementMatch) => IProtyle | undefined;
 }

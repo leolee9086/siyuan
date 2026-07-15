@@ -1,7 +1,7 @@
 import { genEmptyElement } from "../../../block/util";
 import { cancelSB } from "../../../block/util.cancelSB";
 import { getParentBlock, getPreviousBlockSibling, getSbChildBlockCount, getTopAloneElement } from "../../wysiwyg/getBlock";
-import { getAllEditor } from "../../../layout/getAll";
+import { findProtyleForElement } from "../../runtime/layout.port";
 import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../../../platform";
 import { IMoveContext } from "./moveTo.types";
@@ -91,53 +91,47 @@ const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
     if (isMobile) {
         return;
     }
-    const allEditor = getAllEditor();
-    for (const editor of allEditor) {
-        if (!editor.protyle.element.contains(element)) {
-            continue;
-        }
-
-        const otherSbData = await cancelSB(editor.protyle, element);
-        // @存疑: 同上，只取了前两个操作，可能丢失多子块场景的操作
-        const firstOtherDoOp = otherSbData.doOperations[0];
-        const secondOtherDoOp = otherSbData.doOperations[1];
-        const firstOtherUndoOp = otherSbData.undoOperations[0];
-        const secondOtherUndoOp = otherSbData.undoOperations[1];
-        if (!firstOtherDoOp || !secondOtherDoOp || !firstOtherUndoOp || !secondOtherUndoOp) {
-            continue;
-        }
-        context.doOperations.push(firstOtherDoOp, secondOtherDoOp);
-        context.undoOperations.push(secondOtherUndoOp, firstOtherUndoOp);
-        break;
+    const sourceProtyle = findProtyleForElement(element, "contains");
+    if (!sourceProtyle) {
+        return;
     }
+
+    const otherSbData = await cancelSB(sourceProtyle, element);
+    // @存疑: 同上，只取了前两个操作，可能丢失多子块场景的操作
+    const firstOtherDoOp = otherSbData.doOperations[0];
+    const secondOtherDoOp = otherSbData.doOperations[1];
+    const firstOtherUndoOp = otherSbData.undoOperations[0];
+    const secondOtherUndoOp = otherSbData.undoOperations[1];
+    if (!firstOtherDoOp || !secondOtherDoOp || !firstOtherUndoOp || !secondOtherUndoOp) {
+        return;
+    }
+    context.doOperations.push(firstOtherDoOp, secondOtherDoOp);
+    context.undoOperations.push(secondOtherUndoOp, firstOtherUndoOp);
 };
 
 const handleEmptyRoot = async (element: HTMLElement, context: IMoveContext) => {
     if (isMobile) {
         return;
     }
-    const allEditor = getAllEditor();
-    for (const item of allEditor) {
-        if (!item.protyle.element.contains(element)) {
-            continue;
-        }
-
-        if (item.protyle.block.showAll) {
-            zoomOut({ protyle: item.protyle, id: item.protyle.block.rootID });
-            break;
-        }
-
-        const newId = Lute.NewNodeID();
-        context.doOperations.splice(0, 0, {
-            action: "insert",
-            id: newId,
-            data: genEmptyElement(false, false, newId).outerHTML,
-            parentID: item.protyle.block.parentID
-        });
-        context.undoOperations.splice(0, 0, {
-            action: "delete",
-            id: newId,
-        });
-        break;
+    const sourceProtyle = findProtyleForElement(element, "contains");
+    if (!sourceProtyle) {
+        return;
     }
+
+    if (sourceProtyle.block.showAll) {
+        zoomOut({protyle: sourceProtyle, id: sourceProtyle.block.rootID});
+        return;
+    }
+
+    const newId = Lute.NewNodeID();
+    context.doOperations.splice(0, 0, {
+        action: "insert",
+        id: newId,
+        data: genEmptyElement(false, false, newId).outerHTML,
+        parentID: sourceProtyle.block.parentID
+    });
+    context.undoOperations.splice(0, 0, {
+        action: "delete",
+        id: newId,
+    });
 };

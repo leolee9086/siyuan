@@ -9,12 +9,15 @@ const { VueLoaderPlugin } = require("vue-loader");
 const PatchResolverPlugin = require("./webpack.patchResolver");
 const targets = require("./build.targets.json");
 
-function createConfig(targetName, argv) {
+function createConfig(targetName, argv, env = {}) {
     const t = targets[targetName];
     const isProd = argv.mode === "production";
     const isElectron = t.platform === "electron";
     const isLibrary = !!t.library;
     const isModuleLibrary = t.library?.format === "module";
+    const outputDir = env.outputDir
+        ? path.resolve(__dirname, env.outputDir)
+        : path.resolve(__dirname, t.outputDir);
 
     return {
         name: targetName,
@@ -28,7 +31,7 @@ function createConfig(targetName, argv) {
         cache: isProd ? undefined : false,
         devtool: isProd ? false : "eval-source-map",
         entry: t.entry,
-        output: buildOutput(t, isLibrary),
+        output: buildOutput(t, isLibrary, outputDir),
         resolve: buildResolve(t, isElectron),
         optimization: {
             minimize: isProd,
@@ -65,16 +68,16 @@ function createConfig(targetName, argv) {
             },
         },
         module: { rules: buildRules(t, isProd, isLibrary) },
-        plugins: buildPlugins(t, argv, isProd, isLibrary, targetName),
+        plugins: buildPlugins(t, argv, isProd, isLibrary, targetName, outputDir),
         experiments: isModuleLibrary ? { outputModule: true } : undefined,
     };
 }
 
-function buildOutput(t, isLibrary) {
+function buildOutput(t, isLibrary, outputDir) {
     const output = {
         publicPath: t.publicPath,
         filename: isLibrary ? "[name].js" : "[name].[chunkhash].js",
-        path: path.resolve(__dirname, t.outputDir),
+        path: outputDir,
         // Electron and browser-hosted builds share the same chunks; use the
         // standards-based root object so webpack never emits bare `global`.
         globalObject: "globalThis",
@@ -193,7 +196,7 @@ function buildRules(t, isProd, isLibrary) {
     return rules;
 }
 
-function buildPlugins(t, argv, isProd, isLibrary, targetName) {
+function buildPlugins(t, argv, isProd, isLibrary, targetName, outputDir) {
     const targetPlatform = t.platform === "electron"
         ? "electron"
         : (targetName === "mobile" || targetName.endsWith("-mobile") ? "browser-mobile" : "browser-desktop");
@@ -201,7 +204,7 @@ function buildPlugins(t, argv, isProd, isLibrary, targetName) {
         new PatchResolverPlugin(),
         new CleanWebpackPlugin({
             cleanStaleWebpackAssets: false,
-            cleanOnceBeforeBuildPatterns: [path.join(__dirname, t.outputDir)],
+            cleanOnceBeforeBuildPatterns: [outputDir],
         }),
         new webpack.DefinePlugin({
             SIYUAN_VERSION: JSON.stringify(pkg.version),
@@ -229,6 +232,6 @@ function buildPlugins(t, argv, isProd, isLibrary, targetName) {
 }
 
 module.exports = (env, argv) => {
-    if (env?.target) return createConfig(env.target, argv);
-    return Object.keys(targets).map(name => createConfig(name, argv));
+    if (env?.target) return createConfig(env.target, argv, env);
+    return Object.keys(targets).map(name => createConfig(name, argv, env));
 };

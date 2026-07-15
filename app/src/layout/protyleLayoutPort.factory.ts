@@ -1,5 +1,5 @@
 import {fetchPost} from "../util/network/fetch";
-import {getAllModels} from "./getAll";
+import {getAllEditor, getAllModels} from "./getAll";
 import {updatePanelByEditor} from "../editor/util.updatePanelByEditor";
 import {updateOutline as updateOutlineForModels} from "../editor/util.updateOutline";
 import {setPanelFocus} from "./utils/setPanelFocus";
@@ -169,6 +169,14 @@ const appLayoutPort: IProtyleLayoutPort = {
             item.protyle.element.remove();
             return true;
         });
+    },
+    findProtyleForElement(element: Element, match: "contains" | "wysiwyg") {
+        if (isMobile) {
+            return undefined;
+        }
+        return getAllEditor().find(item => match === "wysiwyg"
+            ? item.protyle.wysiwyg.element === element
+            : item.protyle.element.contains(element))?.protyle;
     },
 };
 

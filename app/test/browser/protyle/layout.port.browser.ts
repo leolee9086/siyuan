@@ -3,6 +3,7 @@ import {
     clearProtyleBeforeResizeTop,
     clearProtylePanelFocus,
     findProtyleBlockCopies,
+    findProtyleForElement,
     focusProtylePanel,
     recordProtyleBeforeResizeTop,
     refreshProtyleBacklink,
@@ -47,6 +48,7 @@ describe("Protyle layout host capability", () => {
             expect(findProtyleBlockCopies("block")).toEqual([]);
             setProtyleOutlineCurrent(protyle, document.createElement("div"));
             removeProtyleBacklinkEditor(protyle, document.createElement("div"));
+            expect(findProtyleForElement(document.createElement("div"), "contains")).toBeUndefined();
         }).not.toThrow();
     });
 
@@ -65,6 +67,7 @@ describe("Protyle layout host capability", () => {
             clearBeforeResizeTop: vi.fn(),
             findBlockCopies: vi.fn(() => [document.createElement("div")]),
             removeBacklinkEditor: vi.fn(),
+            findProtyleForElement: vi.fn(() => protyle),
         };
         const options = {focus: true, pushBackStack: true, reload: true, resize: true};
 
@@ -95,5 +98,7 @@ describe("Protyle layout host capability", () => {
         expect(host.setOutlineCurrent).toHaveBeenCalledWith(expect.anything(), expect.any(Element), true);
         removeProtyleBacklinkEditor(protyle, document.createElement("div"));
         expect(host.removeBacklinkEditor).toHaveBeenCalledWith(protyle, expect.any(Element));
+        expect(findProtyleForElement(document.createElement("div"), "wysiwyg")).toBe(protyle);
+        expect(host.findProtyleForElement).toHaveBeenCalledWith(expect.any(Element), "wysiwyg");
     });
 });
