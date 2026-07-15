@@ -1,5 +1,5 @@
 import { Constants, fetchPost } from "../../ai/imports";
-import { showMessage } from "../../dialog/message";
+import { showMessage } from "../runtime/dialog.port";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { addScriptSync } from "../util/addScript";
 import { writeText } from "../util/compatibility";

@@ -1,6 +1,6 @@
 import {Constants} from "../../constants";
-import {Dialog} from "../../dialog";
-import {showMessage} from "../../dialog/message";
+import {Dialog} from "../runtime/dialog.port";
+import {showMessage} from "../runtime/dialog.port";
 import {fetchPost, fetchSyncPost} from "../../util/fetch";
 import {isMobile} from "../../util/functions";
 import {saveExportFile} from "../util/compatibility";

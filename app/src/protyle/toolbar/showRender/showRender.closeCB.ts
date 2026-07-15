@@ -7,7 +7,7 @@ import { hasClosestByClassName } from "../../util/hasClosest";
 import { contentRendererRegistry } from "../../../registry/contentRenderer/ContentRendererRegistry";
 import { blockRender } from "../../render/blockRender";
 import { updateTransaction } from "../../wysiwyg/transaction";
-import { showMessage } from "../../../dialog/message";
+import { showMessage } from "../../runtime/dialog.port";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDOMPurify } from "../../../util/siyuanEnvironments/getDOMPurify.environment";
 import type { 渲染面板上下文 } from "./showRender.types";

@@ -68,6 +68,9 @@ const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string |
     nodeElement.classList.add("protyle-wysiwyg--select");
     addTurnIntoMenu(protyle, nodeElement, id, type, subType);
     scheduleProtyleMenuTask(menuContext, () => {
+        if (menuContext.host === "standalone") {
+            return;
+        }
         const aiMenuItem = buildGutterAiMenu({protyle, nodeElement});
         if (aiMenuItem) {
             getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenuItem).element);

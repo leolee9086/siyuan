@@ -57,7 +57,7 @@ import * as dayjs from "dayjs";
 export { dayjs };
 
 /** 用途：显示轻量消息提示。使用范围：标题超长提示。解耦评估：消息提示属于 UI 基础能力，继续复用即可。 */
-import { showMessage } from "../../../../dialog/message";
+import { showMessage } from "../../../runtime/dialog.port";
 /** 导出 showMessage 供 action 当前层级模块复用。 */
 export { showMessage };
 

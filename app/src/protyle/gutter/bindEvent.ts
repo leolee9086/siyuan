@@ -18,7 +18,7 @@ import * as dayjs from "dayjs";
 import { fetchPost } from "../../util/network/fetch";
 import { genEmptyElement, getLangByType } from "../../block/util";
 import { Constants } from "../../constants";
-import { hideTooltip } from "../../dialog/tooltip";
+import { hideTooltip } from "../runtime/dialog.port";
 import { insertAttrViewBlockAnimation, updateHeader } from "../render/av/row";
 import { avContextmenu } from "../render/av/action";
 import { transaction } from "../wysiwyg/transaction";

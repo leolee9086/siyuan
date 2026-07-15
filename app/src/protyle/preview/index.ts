@@ -1,7 +1,7 @@
 import {isOnlyMeta, writeText} from "../util/compatibility";
 import {focusByRange} from "../util/selection";
 import {openByMobile} from "../../editor/openLink";
-import {showMessage} from "../../dialog/message";
+import {showMessage} from "../runtime/dialog.port";
 import {isLocalPath, pathPosix} from "../../util/pathName";
 import {previewDocImage} from "./image";
 import {getDiagramBlock, previewDiagram} from "./diagram";

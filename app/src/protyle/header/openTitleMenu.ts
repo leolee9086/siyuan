@@ -15,7 +15,7 @@ import { getDisplayName, getNotebookName, pathPosix, useShell } from "../../util
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import * as dayjs from "dayjs";
-import { hideTooltip } from "../../dialog/tooltip";
+import { hideTooltip } from "../runtime/dialog.port";
 import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";

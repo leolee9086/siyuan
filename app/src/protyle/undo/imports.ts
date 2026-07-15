@@ -51,12 +51,12 @@ import { fetchPost } from "../../util/network/fetch";
 export { fetchPost };
 
 /** 用途：确认对话框。使用范围：跨文档撤销时提示用户确认。解耦评估：通过 imports.ts 转发。 */
-import { confirmDialog } from "../../dialog/confirmDialog";
+import { confirmDialog } from "../runtime/dialog.port";
 /** 导出 confirmDialog，供 undo 模块调用 */
 export { confirmDialog };
 
 /** 用途：消息提示。使用范围：撤销/重做失败时提示用户。解耦评估：通过 imports.ts 转发。 */
-import { showMessage } from "../../dialog/message";
+import { showMessage } from "../runtime/dialog.port";
 /** 导出 showMessage，供 undo 模块调用 */
 export { showMessage };
 

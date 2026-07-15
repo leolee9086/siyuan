@@ -1,6 +1,6 @@
 import { transaction } from "../../wysiwyg/transaction";
 import { setPosition } from "../../../util/DOM/setPosition";
-import { confirmDialog } from "../../../dialog/confirmDialog";
+import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";
 import {
     addFilter,

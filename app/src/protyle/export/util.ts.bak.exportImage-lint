@@ -1,7 +1,7 @@
 import {escapeHtml} from "../../util/DOM/escape";
-import {hideMessage, showMessage} from "../../dialog/message";
+import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {fetchPost} from "../../util/network/fetch";
-import {Dialog} from "../../dialog";
+import {Dialog} from "../runtime/dialog.port";
 import {addScript} from "../util/addScript";
 import {isMobile} from "../../util/platform/functions";
 import {Constants} from "../../constants";

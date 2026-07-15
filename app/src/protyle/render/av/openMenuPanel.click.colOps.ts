@@ -4,7 +4,7 @@ import { duplicateCol, removeCol } from "./col/col.operations";
 import { addCol } from "./col/addCol";
 import { bindEditEvent, getEditHTML } from "./col/col";
 import { Constants } from "../../../constants";
-import { Dialog } from "../../../dialog";
+import { Dialog } from "../../runtime/dialog.port";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isHTMLElement, isHTMLInputElement, isCustomEvent } from "../../../util/DOM/element.guard";
 import type { IMenuPanelContext } from "./openMenuPanel.types";

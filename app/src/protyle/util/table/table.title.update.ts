@@ -1,4 +1,4 @@
-import { Dialog } from "../../../dialog";
+import { Dialog } from "../../runtime/dialog.port";
 import { isMobile } from "../../../util/platform/functions";
 import { getSiyuanLanguages } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";

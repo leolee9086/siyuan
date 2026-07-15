@@ -6,7 +6,7 @@ import { Constants } from "../../../constants";
 import { Menu } from "../../../menus/Menu";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { RecordMedia } from "../../util/RecordMedia";
-import { hideMessage, showMessage } from "../../../dialog/message";
+import { hideMessage, showMessage } from "../../runtime/dialog.port";
 import { uploadFiles } from "../../upload";
 import { isElectron } from "../../../platform";
 import { ipcInvoke } from "../../../platform/electron/ipcRenderer";

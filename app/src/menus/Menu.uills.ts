@@ -4,7 +4,7 @@ import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { isMobile } from "../util/platform/functions";
 import { MenuItem } from "./Menu.Item";
-import { isHiddenProtyleMenuElement } from "../protyle/runtime/menu.visibility";
+import { filterProtyleMenuItems, isHiddenProtyleMenuElement } from "../protyle/runtime/menu.visibility";
 
 /**
  * 获取全局菜单的 DOM 元素
@@ -207,7 +207,7 @@ export const createSubmenuElement = (submenuItems: IMenu[]): HTMLElement => {
     const submenuElement = document.createElement("div");
     submenuElement.classList.add("b3-menu__submenu");
     submenuElement.innerHTML = '<div class="b3-menu__items"></div>';
-    submenuItems.forEach((item) => {
+    filterProtyleMenuItems(submenuItems).forEach((item) => {
         const element = new MenuItem(item).element;
         if (!isHiddenProtyleMenuElement(element)) {
             submenuElement.firstElementChild.append(element);

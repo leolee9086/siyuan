@@ -7,7 +7,7 @@ import {transaction} from "../../wysiwyg/transaction";
 import {unicode2Emoji} from "../../../emoji";
 import {getColId} from "./col/col";
 import {getColIconByType} from "./col/col.typeUtils";
-import {showMessage} from "../../../dialog/message";
+import {showMessage} from "../../runtime/dialog.port";
 import {getNameByOperator} from "./calc";
 import {getFieldsByData} from "./view";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

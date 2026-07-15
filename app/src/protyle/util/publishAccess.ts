@@ -1,4 +1,4 @@
-import {Dialog} from "../../dialog";
+import {Dialog} from "../runtime/dialog.port";
 import {isMobile} from "../../util/platform/functions";
 import {setPosition} from "../../util/DOM/setPosition";
 import {fetchPost} from "../../util/network/fetch";

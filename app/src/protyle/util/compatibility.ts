@@ -6,7 +6,7 @@ import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
 import {processSiYuanUri} from "../../editor/processSiYuanUri";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
-import {hideMessage, showMessage} from "../../dialog/message";
+import {hideMessage, showMessage} from "../runtime/dialog.port";
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();

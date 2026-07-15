@@ -86,7 +86,7 @@ export type { App };
  * 使用范围：AI图片生成进度显示
  * 解耦评估：可通过依赖注入解耦，但需要重构调用方
  */
-import { Dialog } from "../../../dialog";
+import { Dialog } from "../../runtime/dialog.port";
 // 导出对话框类
 export { Dialog };
 
@@ -124,7 +124,7 @@ export { uploadFiles };
  * 使用范围：块背景菜单从资源库中选择图片作为背景
  * 解耦评估：可通过依赖注入解耦，但当前全局单例对话框已是标准资源选择入口，直接复用更稳定
  */
-import { openAssetDialog } from "../../../asset/assetDialog";
+import { openAssetDialog } from "../../runtime/dialog.port";
 // 导出资源选择对话框
 export { openAssetDialog };
 
@@ -258,7 +258,7 @@ export type { ModelScopeAuthData };
  * 使用范围：AI图片生成失败时的错误提示
  * 解耦评估：可通过事件发射解耦，但当前架构中直接调用更简洁
  */
-import { showMessage } from "../../../dialog/message";
+import { showMessage } from "../../runtime/dialog.port";
 // 导出消息提示函数
 export { showMessage };
 

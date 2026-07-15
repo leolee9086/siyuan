@@ -285,7 +285,7 @@ export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPositi
 };
 
 /** 生成空块 HTML */
-export const genEmptyBlock = async (zwsp = true, wbr = true, string?: string) => {
+export const genEmptyBlock = (zwsp = true, wbr = true, string?: string) => {
     let html = "";
     if (zwsp) {
         html = Constants.ZWSP;
@@ -321,7 +321,7 @@ export const genHeadingElement = (headElement: Element, getHTML = false, addWbr 
 };
 
 /** 根据块类型获取语言名称 */
-export const getLangByType = async (type: string) => {
+export const getLangByType = (type: string) => {
     const langMap: { [key: string]: string } = {
         "NodeIFrame": "IFrame",
         "NodeAttributeView": siyuanI18n.database,

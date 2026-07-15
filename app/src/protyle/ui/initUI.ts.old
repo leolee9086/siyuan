@@ -6,14 +6,14 @@ import { isMac } from "../util/compatibility";
 import { setInlineStyle } from "../../util/assets";
 import { fetchPost } from "../../util/fetch";
 import { lineNumberRender } from "../render/highlightRender";
-import { hideMessage, showMessage } from "../../dialog/message";
+import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { genUUID } from "../../util/genID";
 import { getContenteditableElement, getLastBlock } from "../wysiwyg/getBlock";
 import { genEmptyElement, genHeadingElement } from "../../block/util";
 import { transaction } from "../wysiwyg/transaction";
 import { focusByRange } from "../util/selection";
 /// #if !MOBILE
-import { moveResize } from "../../dialog/moveResize";
+import { moveResize } from "../runtime/dialog.port";
 /// #endif
 import {
     hasClosestBlock,

@@ -1,5 +1,5 @@
 import { buildGutterHtml } from "./buildGutterHtml";
-import { setGutterPosition } from "./setGutterPosition";
+import { observeStandaloneGutterPosition, setGutterPosition } from "./setGutterPosition";
 
 /**
  * 渲染编辑器侧边栏（Gutter）内容
@@ -49,6 +49,14 @@ export const renderGutter = (protyle: IProtyle, element: Element, options: { tar
 
     // 设置 Gutter 位置
     setGutterPosition(protyle, result.element, gutterElement, result.listItem, result.nodeElement, result.space);
+    observeStandaloneGutterPosition({
+        protyle,
+        element: result.element,
+        gutterElement,
+        listItem: result.listItem,
+        nodeElement: result.nodeElement,
+        space: result.space,
+    });
 
     // 追加块标边缘的框线（悬浮块标显示）与+号（悬浮框线显示），默认隐藏，由 mousemove 定位
     // 双元素：框线贴块标边缘不移动（避免闪烁），+号独立定位在外偏位置

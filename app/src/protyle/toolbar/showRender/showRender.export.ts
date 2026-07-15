@@ -3,7 +3,7 @@
  */
 import { fetchPost } from "../../../util/network/fetch";
 import { saveExportFile } from "../../util/compatibility";
-import { hideMessage, showMessage } from "../../../dialog/message";
+import { hideMessage, showMessage } from "../../runtime/dialog.port";
 import { addScript } from "../../util/addScript";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

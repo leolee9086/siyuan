@@ -99,7 +99,7 @@ export const setProtyleMenuContext = (menu: MenuDataHost, context: IProtyleMenuC
  */
 export const scheduleProtyleMenuTask = (
     context: IProtyleMenuContext,
-    task: (context: IProtyleMenuContext) => void,
+    task: (context: IProtyleMenuContext) => void | Promise<void>,
 ) => {
     const run = () => {
         const current = getProtyleMenuContext();
@@ -107,7 +107,9 @@ export const scheduleProtyleMenuTask = (
             return;
         }
         try {
-            task(current);
+            Promise.resolve(task(current)).catch(error => {
+                console.warn("[protyle-menu] deferred menu task failed", error);
+            });
         } catch (error) {
             console.warn("[protyle-menu] deferred menu task failed", error);
         }

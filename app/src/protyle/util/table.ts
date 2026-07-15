@@ -8,7 +8,7 @@ import {insertEmptyBlock} from "../../block/util";
 import {removeBlock} from "../wysiwyg/remove";
 import {hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
-import {Dialog} from "../../dialog";
+import {Dialog} from "../runtime/dialog.port";
 import {isMobile} from "../../util/functions";
 
 const scrollToView = (nodeElement: Element, rowElement: HTMLElement, protyle: IProtyle) => {

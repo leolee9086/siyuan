@@ -45,7 +45,7 @@ import { needSubscribe } from "../../../util/platform/needSubscribe";
  * 使用范围：上传资源到CDN和分享到链滴菜单项中，在执行敏感操作前请求用户确认
  * 解耦评估：UI操作函数，可通过事件机制解耦，但作为全局UI基础设施直接导入更合理
  */
-import { confirmDialog } from "../../../dialog/confirmDialog";
+import { confirmDialog } from "../../runtime/dialog.port";
 /*
  * 用途：获取云服务 URL
  * 使用范围：分享到链滴菜单项中构建确认提示信息

@@ -34,4 +34,6 @@ export const SForgeSymbols = {
     CARET_LINE_ELEMENT: Symbol.for("sforge.dragTip.caretLineElement"),
     /** 请求信号量 (用于限制 API 最大并发) */
     REQUEST_SEMAPHORE: Symbol.for("sforge.fetch.requestSemaphore"),
+    /** Protyle Dialog/消息/Tooltip 宿主能力 */
+    DIALOG_PORT: Symbol.for("sforge.protyle.dialogPort"),
 } as const;

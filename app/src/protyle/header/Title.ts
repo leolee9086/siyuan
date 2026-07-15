@@ -26,7 +26,7 @@ import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";
 import { genEmptyElement } from "../../block/util";
 import { transaction } from "../wysiwyg/transaction";
-import { hideTooltip } from "../../dialog/tooltip";
+import { hideTooltip } from "../runtime/dialog.port";
 import { commonClick } from "../wysiwyg/commonClick";
 import { openTitleMenu } from "./openTitleMenu";
 import { electronUndo } from "../undo";

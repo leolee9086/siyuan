@@ -6,6 +6,7 @@ import {setSForgeState} from "./imports";
 import {SForgeSymbols} from "./imports";
 /** 用途：在构造编辑器前准备内核配置和资源；使用范围：独立挂载流程；解耦评估：未来仍保留但内部改由各 Runtime Port 实现。 */
 import {bootstrapStandaloneProtyle} from "./bootstrap";
+/** 用途：解析未提供的块标为当天日记块；使用范围：独立挂载流程；解耦评估：日记选择属于内核能力，可由后续 KernelPort 替换。 */
 import {getStandaloneDailyNoteId} from "./bootstrap";
 /** 用途：创建独立入口菜单宿主；使用范围：独立挂载流程；解耦评估：通过 IProtyleMenuPort 可被外部宿主实现替换。 */
 import {createStandaloneProtyleMenu} from "./menu.factory";
@@ -13,7 +14,11 @@ import {createStandaloneProtyleMenu} from "./menu.factory";
 import {asStandaloneApp} from "./standalone.guard";
 /** 用途：桥接遗留菜单全局；使用范围：迁移期挂载；解耦评估：菜单 Port 完成实例注入后删除。 */
 import {asStandaloneMenus} from "./standalone.guard";
+/** 用途：安装独立入口注入的 Dialog 宿主；使用范围：创建 Protyle 前注册弹窗、消息和 Tooltip 能力；解耦评估：仅依赖稳定 Port，宿主可通过参数替换。 */
+import {setProtyleDialogPort} from "./imports";
 /** 用途：固定公开挂载参数；使用范围：ESM 工厂签名；解耦评估：属于稳定公共契约。 */
+import type {IStandaloneProtyleInstance} from "./standalone.types";
+/** 用途：描述独立挂载调用参数；使用范围：ESM 工厂签名；解耦评估：属于稳定公开契约。 */
 import type {IStandaloneProtyleOptions} from "./standalone.types";
 
 /** 解析挂载元素，并在选择器无匹配时提供确定的启动错误。 */
@@ -53,6 +58,9 @@ export const mountStandaloneProtyle = async (options: IStandaloneProtyleOptions)
     const runtime = await bootstrapStandaloneProtyle();
     const blockId = options.blockId || await getStandaloneDailyNoteId(runtime);
     const menu = options.menu || createStandaloneProtyleMenu();
+    if (options.dialog) {
+        setProtyleDialogPort(options.dialog);
+    }
     runtime.menus = asStandaloneMenus(menu);
     setSForgeState(SForgeSymbols.MODEL_HANDLERS, {
         processMessage,
@@ -60,24 +68,22 @@ export const mountStandaloneProtyle = async (options: IStandaloneProtyleOptions)
         reloadSync,
     });
 
-    const app = asStandaloneApp({
-        appId: "protyle-standalone",
-        plugins: [],
-        eventBus: {
-            emit: ignoreEvent,
-            on: ignoreEvent,
-            off: ignoreEvent,
-        },
-    });
+    const app = asStandaloneApp({appId: "protyle-standalone", plugins: [], eventBus: {emit: ignoreEvent, on: ignoreEvent, off: ignoreEvent}});
     let readyTimer = 0;
-    const readyPromise = new Promise<Protyle>((resolve, reject) => {
+    const readyPromise = new Promise<IStandaloneProtyleInstance>((resolve, reject) => {
         // 当前 fetchPost 不向调用方暴露网络失败，固定超时是入口能够退出等待并显示错误的唯一机制。
         readyTimer = window.setTimeout(() => reject(new Error("Protyle initialization timed out")), 30000);
         /** getDoc 和首次 DOM 渲染结束后完成异步挂载。 */
         // @柯里化 ready 处理器必须捕获当前 Promise 和编辑器实例。
         const handleReady = (readyEditor: Protyle) => {
             window.clearTimeout(readyTimer);
-            resolve(readyEditor);
+            resolve(Object.assign(readyEditor, {
+                menu,
+                /** 以视口坐标显示当前编辑器菜单。 */
+                showMenu: (position: IPosition) => menu.popup(position),
+                /** 隐藏并清理当前编辑器菜单。 */
+                hideMenu: () => menu.remove(),
+            }));
         };
         const editor = new Protyle(app, target, {
             blockId,

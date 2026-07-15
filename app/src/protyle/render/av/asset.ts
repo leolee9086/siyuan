@@ -11,7 +11,7 @@ import { writeAssetToClipboard, copyPNGByLink, exportAsset } from "../../../menu
 import { setPosition } from "../../../util/DOM/setPosition";
 import { previewAttrViewImages } from "../../preview/image";
 import { genAVValueHTML } from "./blockAttr";
-import { hideMessage, showMessage } from "../../../dialog/message";
+import { hideMessage, showMessage } from "../../runtime/dialog.port";
 import { fetchPost } from "../../../util/network/fetch";
 import { hasClosestBlock } from "../../util/hasClosest";
 import { genCellValueByElement, getTypeByCellElement } from "./cell";
@@ -23,7 +23,7 @@ import { getColId } from "./col/col";
 import { getFieldIdByCellElement } from "./row";
 import { base64ToURL, getCompressURL, removeCompressURL } from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { confirmDialog } from "../../../dialog/confirmDialog";
+import { confirmDialog } from "../../runtime/dialog.port";
 import { filesize } from "filesize";
 
 export const bindAssetEvent = (options: {

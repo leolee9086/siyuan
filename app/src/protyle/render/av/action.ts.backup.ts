@@ -24,7 +24,7 @@ import {emitOpenMenu} from "../../../plugin/EventBus";
 import {openMenuPanel} from "./openMenuPanel";
 import { hintRef } from "../../hint/extend.hintRef";
 import {focusBlock, focusByRange} from "../../util/selection";
-import {showMessage} from "../../../dialog/message";
+import {showMessage} from "../../runtime/dialog.port";
 import {previewAttrViewImages} from "../../preview/image";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import * as dayjs from "dayjs";

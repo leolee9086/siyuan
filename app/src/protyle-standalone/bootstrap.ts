@@ -132,6 +132,11 @@ const loadKernelRuntime = async () => {
     };
     Reflect.set(window, "siyuan", runtime);
 
+    // 主应用通过运行时 inline style 注入编辑器字号；独立入口没有该启动链路，
+    // 这里直接建立 Protyle 基础 CSS 所需的同名变量，避免块标 SVG 回退为异常尺寸。
+    const editorFontSize = config.editor?.fontSize || 16;
+    document.documentElement.style.setProperty("--b3-font-size-editor", `${editorFontSize}px`);
+
     const darkMode = config.appearance?.mode === 1;
     const defaultTheme = darkMode ? "midnight" : "daylight";
     document.documentElement.lang = language.replace("_", "-");

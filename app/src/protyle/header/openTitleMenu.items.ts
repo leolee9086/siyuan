@@ -6,7 +6,7 @@ import { openDocHistory } from "../../history/doc";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../layout/dock/dock.environment";
 import { fetchSyncPost } from "../../util/network/fetch";
-import { showMessage } from "../../dialog/message";
+import { Dialog, showMessage } from "../runtime/dialog.port";
 import { encodeBase64 } from "../util/compatibility";
 
 /**
@@ -145,7 +145,6 @@ export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean)
                     return;
                 }
 
-                const { showMessage } = await import("../../dialog/message");
                 const msg = isRegistered ? "任务已更新" : "已注册为定时任务，可在侧边栏「定时任务」面板中管理";
                 showMessage(msg);
                 // 自动打开侧边栏面板
@@ -168,7 +167,6 @@ export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean)
                 }
                 const result = await 编译文档(protyle.block.rootID, "go");
                 if (result) {
-                    const { Dialog } = await import("../../dialog");
                     new Dialog({
                         title: "编译结果预览",
                         content: `<div class="b3-dialog__content">
@@ -212,7 +210,6 @@ export const createInNotePluginMenuItem = (protyle: IProtyle, isRegistered?: boo
                 ? [() => inNotePluginManager.重载插件(docId), "已重载", "重载失败"]
                 : [() => inNotePluginManager.启用插件(docId, name), "已启用", "启用失败"];
             const success = await 动作();
-            const { showMessage } = await import("../../dialog/message");
             const msg = success ? 成功消息 : 失败消息;
             showMessage(`笔记内插件 [${name}] ${msg}`, success ? undefined : 3000, success ? undefined : "error");
         }

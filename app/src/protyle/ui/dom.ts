@@ -1,7 +1,7 @@
 import { Constants } from "../../constants";
 import { scrollEvent } from "../scroll/event";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { moveResize } from "../../dialog/moveResize";
+import { moveResize } from "../runtime/dialog.port";
 import { isMobile } from "../../platform";
 
 /**

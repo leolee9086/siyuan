@@ -1,13 +1,13 @@
-import { hideMessage, showMessage } from "../../dialog/message";
+import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { Constants } from "../../constants";
 import { isBrowser, isElectron } from "../../platform";
 import {nativeRequire} from "../../platform/nativeRequire";
 import { ipcInvoke, ipcSend } from "../../platform/electron/ipcRenderer";
 import { afterExport } from "./util";
-import { confirmDialog } from "../../dialog/confirmDialog";
+import { confirmDialog } from "../runtime/dialog.port";
 import { getThemeMode, setInlineStyle } from "../../util/assets/assets";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
-import { Dialog } from "../../dialog";
+import { Dialog } from "../runtime/dialog.port";
 import { replaceLocalPath } from "../../editor/rename";
 import { getScreenWidth, isInMobileApp, setStorageVal } from "../util/compatibility";
 import { getFrontend } from "../../util/platform/functions";

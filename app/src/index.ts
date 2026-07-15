@@ -53,6 +53,7 @@ import { embeddingText } from "./util/lib/embedding/transformer";
 import { setSForgeState } from "./config/sforge.global";
 import { SForgeSymbols } from "./config/sforge.symbols";
 import { setBodyHighlight } from "./util/assets/assets";
+import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
 import type { Plugin } from "./plugin";
 
 export class App {
@@ -60,6 +61,8 @@ export class App {
     public appId: string;
     public eventBus: EventBus;
     constructor() {
+        // Protyle 通过 Port 请求完整 App 的 Dialog 能力，原版插件仍继续使用原有 Dialog/EventBus。
+        registerProtyleDialogPort();
         if (checkPublishServiceClosed()) {
             return;
         }

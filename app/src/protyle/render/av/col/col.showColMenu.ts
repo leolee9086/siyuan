@@ -7,7 +7,7 @@ import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
 import {updateAttrViewCellAnimation} from "../action";
-import {Dialog} from "../../../../dialog";
+import {Dialog} from "../../../runtime/dialog.port";
 import {isMobile} from "../../../../util/platform/functions";
 import {Constants} from "../../../../constants";
 import {removeColByMenu} from "./col.removeColByMenu";

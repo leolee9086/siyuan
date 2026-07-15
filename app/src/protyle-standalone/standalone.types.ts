@@ -27,6 +27,19 @@ export interface IStandaloneProtyleOptions {
     blockId?: string;
     status?: HTMLElement | string;
     menu?: IProtyleMenuPort;
+    /** 可选弹窗宿主；未提供时使用独立 DOM 回退实现。 */
+    dialog?: IProtyleDialogPort;
 }
 /** 用途：引用可选菜单宿主协议；使用范围：公开挂载参数；解耦评估：类型依赖不引入具体实现。 */
 import type {IProtyleMenuPort} from "./imports";
+/** 用途：引用可选弹窗宿主协议；使用范围：公开挂载参数；解耦评估：类型依赖不引入具体实现。 */
+import type {IProtyleDialogPort} from "../protyle/runtime/dialog.types";
+/** 用途：引用挂载完成后的 Protyle 实例类型；使用范围：公开返回值菜单控制 API；解耦评估：仅类型依赖，不增加运行时耦合。 */
+import type {Protyle} from "./imports";
+
+/** 独立挂载完成后暴露给宿主的编辑器实例和菜单能力。 */
+export type IStandaloneProtyleInstance = Protyle & {
+    menu: IProtyleMenuPort;
+    showMenu: (position: IPosition) => void;
+    hideMenu: () => void;
+};

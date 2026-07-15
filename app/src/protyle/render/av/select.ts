@@ -1,7 +1,7 @@
 import { Menu } from "../../../plugin/Menu";
 import { transaction } from "../../wysiwyg/transaction";
 import { hasClosestBlock, hasClosestByClassName } from "../../util/hasClosest";
-import { confirmDialog } from "../../../dialog/confirmDialog";
+import { confirmDialog } from "../../runtime/dialog.port";
 import { upDownHint } from "../../../util/DOM/upDownHint";
 import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { updateAttrViewCellAnimation } from "./action";

@@ -104,14 +104,14 @@ export { highlightRender };
  * 使用范围：需要向用户展示加载状态、操作结果等场景
  * 解耦评估：UI基础设施，通过 imports.ts 统一管理
  */
-import { showMessage } from "../../dialog/message";
+import { showMessage } from "../runtime/dialog.port";
 
 /**
  * 用途：隐藏消息提示框
  * 使用范围：异步操作完成后关闭提示框
  * 解耦评估：UI基础设施，通过 imports.ts 统一管理
  */
-import { hideMessage } from "../../dialog/message";
+import { hideMessage } from "../runtime/dialog.port";
 
 /** 导出消息提示工具 */
 export { showMessage };

@@ -9,7 +9,7 @@ import {genCellValue} from "./cell";
 import * as dayjs from "dayjs";
 import {unicode2Emoji} from "../../../emoji";
 import {openMenuPanel} from "./openMenuPanel";
-import {showMessage} from "../../../dialog/message";
+import {showMessage} from "../../runtime/dialog.port";
 import {fetchPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";

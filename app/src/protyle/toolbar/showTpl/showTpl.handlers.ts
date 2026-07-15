@@ -6,7 +6,7 @@ import { hasClosestByClassName, hasClosestByAttribute } from "../../util/hasClos
 import { upDownHint } from "../../../util/DOM/upDownHint";
 import { fetchPost } from "../../../util/network/fetch";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { confirmDialog } from "../../../dialog/confirmDialog";
+import { confirmDialog } from "../../runtime/dialog.port";
 import { previewTemplate } from "../util";
 import { hintRenderTemplate } from "../../hint/extend";
 import { 生成模板列表项HTML } from "./showTpl.template";

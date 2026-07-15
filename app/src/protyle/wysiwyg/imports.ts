@@ -38,7 +38,7 @@ export { countBlockWord };
  * 使用范围：跨懒加载区域选中时给出提示
  * 解耦评估：集中转发
  */
-import { showMessage } from "../../dialog/message";
+import { showMessage } from "../runtime/dialog.port";
 /** 导出消息提示 */
 export { showMessage };
 

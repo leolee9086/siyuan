@@ -2,6 +2,7 @@
 
 > **最终目标**：将 Protyle 演进为仅硬依赖思源核心协议和浏览器标准能力的富文本编辑器标准模块，并提供可被其他应用直接挂载的微前端入口。
 > **当前目标**：先建立可运行的 `protyle-app` 独立入口。独立入口既是第一项交付，也是后续所有渐进式解耦工作的持续验收基线。
+> **下一步任务**：在入口基线稳定后，优先压缩 Protyle 对非必要宿主模块的直接静态导入，并建立可复用的本地 RPC/宿主能力边界。
 > **领域约束**：Siyuan Kernel API、事务格式、块 DOM 和 WebSocket 推送协议是 Protyle 的领域核心，不属于去耦对象。
 > **最终量化指标**：核心包内 `window.siyuan` 直接访问为 `0`；对 `layout/menus/dialog/editor/mobile/plugin` 等宿主模块的直接静态导入为 `0`；独立入口仅传挂载点和块 ID 即可工作。
 
@@ -98,7 +99,7 @@ const editor = await mountStandaloneProtyle({
 3. 加载语言、Emoji 和内核本地存储。
 4. 加载默认主题、图标、Lute 和 `protyle-html`。
 5. 注册最小 WebSocket 消息处理器。
-6. 动态导入 Protyle，避免模块加载期读取未初始化全局。
+6. 通过静态 ESM 依赖加载 Protyle；不得使用 `dynamic import`，模块初始化期依赖必须通过运行时准备顺序和显式适配器解决。
 7. 创建编辑器并在 `after` 回调后进入 ready 状态。
 
 ---
@@ -117,6 +118,7 @@ const editor = await mountStandaloneProtyle({
 | `dialogs/blockPanels` | 遗留 UI 集合 | `HostUIPort` | Phase 4 |
 | `Model handlers` | WebSocket 消息预处理 | `SyncPort` | Phase 2 |
 | 最小 `App.plugins` | 构造和销毁时插件遍历 | `ExtensionPort` | Phase 4 |
+| `LocalRpc/Application` | 宿主能力的请求-响应、中间件和生命周期 | `LocalRpcPort`（可承载完整 Koa Context） | Phase 2/4 |
 
 垫片退出规则：某项能力完成 Port 迁移、主应用适配器回归、独立入口回归后，必须在同一阶段删除对应全局字段。
 
@@ -152,8 +154,105 @@ const editor = await mountStandaloneProtyle({
 - `NavigationPort`：打开块、文档和外部链接。
 - `ExtensionPort`：插件提供的工具栏、提示和生命周期钩子。
 - `RendererRegistry`：可选渲染器注册与按需加载。
+- `LocalRpcPort`：跨边界请求-响应、错误传播、取消、超时和宿主能力调用；允许直接使用完整 Koa Context，不要求当前阶段压缩为更小的上下文对象。
 
 同一个内核地址应共享一个 `ProtyleRuntime`。运行时集中持有配置、Lute、HTTP 客户端、WebSocket、多实例事务调度和资源缓存；编辑器实例只持有 DOM、选区和局部交互状态。
+
+### 6.3 本地 RPC 参考实现
+
+SACAssetsManager 的 `02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 快照提供了比当前 `app/src/util/pathRouter` 更完整的本地请求模型，参考目录为 `src/utils/webKoa`：
+
+- `Application` 提供 Koa 风格中间件、Context 创建、错误传播和真实 HTTP 入口。
+- `Router` 提供路径匹配、路由分组和洋葱模型执行。
+- `internalFetch` 在不经过网络的情况下构造请求上下文，直接调用同一套路由处理器，并支持 `AbortSignal`。
+- 同一套路由可以在本地函数调用和真实 HTTP 请求之间复用，适合作为 Protyle 宿主能力的请求-响应基础。
+
+当前阶段允许 Protyle 直接依赖完整 Koa Context。解耦目标不是缩减 Context，而是将 Protyle 对具体 `Application`/`Router` 实现的依赖收口到 `LocalRpcPort`，使主应用、独立页面和未来 iframe/Worker 宿主可以替换传输实现。RPC 合约仍需统一请求 ID、响应结构、错误序列化、超时、取消和生命周期语义。
+
+参考代码已在 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 以 detached worktree 形式检出；该目录独立于本地 `D:\dev\SACAssetsManager`，不得将参考代码合并回本地仓库。
+
+### 6.4 高频 DOM 事件、核心路由与剩余状态空间
+
+高频 DOM 事件不应全部直接进入事件总线。Protyle 应先在同步路径内完成状态提取和核心决策，再把未被核心消费的剩余状态委托给插件、tips 和外部模块：
+
+```text
+原生 DOM 事件
+  -> 一次性提取 EditorEventSnapshot
+  -> CaliburRouter 核心路由
+  -> 核心命令 / DOM 更新 / 事务
+  -> ResidualEvent 剩余状态空间
+  -> 类型化事件 + delegationSignal
+  -> 动作表 / tips / 插件
+  -> LocalRpc 宿主能力调用
+```
+
+#### 6.4.1 核心同步阶段
+
+- 原始 `KeyboardEvent`、`InputEvent`、`Range` 和 DOM 节点只在 Protyle 内部同步处理。
+- 状态提取器一次性生成不可变的 `EditorEventSnapshot`，避免每个插件重复遍历 DOM。
+- `CaliburRouter` 只负责 `EditorEventSnapshot -> CoreCommand | IGNORE` 的确定性路由，不负责插件发现、tips 渲染或宿主 UI。
+- 核心处理可以调用 `preventDefault`、`stopPropagation` 和核心 `coreSignal.abort()`；外部模块默认不能反向修改已经完成的核心编辑语义。
+- 当前 `keydown.list/unified` 的“状态提取 -> CaliburRouter -> executeCommand”模式作为后续其他键盘域的迁移模板。
+
+建议的核心状态契约如下，具体字段按事件类型拆分，不把完整 DOM 结构暴露给外部：
+
+```ts
+interface EditorEventSnapshot {
+    eventId: string;
+    seq: number;
+    type: "keydown" | "input" | "compositionend" | "click";
+    editorId: string;
+    rootId: string;
+    blockId?: string;
+    key?: string;
+    modifiers?: Record<string, boolean>;
+    selection: SelectionSnapshot;
+    context: EditorContextSnapshot;
+}
+
+interface CoreDecision {
+    handled: boolean;
+    command?: string;
+    preventedDefault: boolean;
+    residual: boolean;
+}
+```
+
+#### 6.4.2 剩余状态委托阶段
+
+核心路由结束后生成 `ResidualEvent`，通过类型化事件发射给外部模块。默认传递规范化快照，而不是原始 DOM 事件：
+
+```ts
+interface ResidualEvent {
+    snapshot: EditorEventSnapshot;
+    core: CoreDecision;
+    capabilities: readonly string[];
+    delegationSignal: AbortSignal;
+}
+```
+
+外部模块的职责分为三类：
+
+1. **观察型事件**：记录、统计、同步状态或生成建议，不阻塞核心路径。
+2. **tips 生成器**：接收快照后使用 `requestIdleCallback`、任务队列和 `signal` 延迟生成可选提示。
+3. **动作表**：依据快照匹配候选动作，按优先级、来源和能力声明筛选；用户确认后通过 `LocalRpcPort` 执行真实行为。
+
+动作表不是普通 EventBus。事件只负责广播“当前有一份剩余状态”，动作表负责描述“哪些行为可以处理该状态”，Local RPC 负责执行需要返回值、错误、取消或句柄的行为。
+
+#### 6.4.3 Signal 与优先级
+
+核心处理和外部委托必须使用不同的取消语义：
+
+- `coreSignal`：只控制当前 Protyle 核心中间件链；核心命令完成时可以中止后续核心路由。
+- `delegationSignal`：控制 tips、动作发现和异步 RPC；新事件、编辑器销毁或上下文失效时取消旧任务。
+
+事件委托分为三个阶段：
+
+1. `pre-core`：仅允许少量显式声明、受优先级和超时约束的扩展抢占核心事件。
+2. `core`：Protyle 内部必须实时完成的编辑语义。
+3. `post-core`：默认插件阶段，用于 tips、非核心菜单、统计和延迟动作。
+
+默认插件只能进入 `post-core`。外部模块不得在该阶段直接调用原始事件的 `preventDefault` 或修改核心 DOM；需要改变编辑行为时，必须注册明确的核心动作或通过 RPC 请求宿主能力。
 
 ---
 
@@ -181,6 +280,22 @@ const editor = await mountStandaloneProtyle({
 - [ ] `imports.ts` 只作为明确边界的聚合出口，不能用于隐藏未解决依赖。
 
 验收标准：每次提交都能回答独立入口新增、删除或保留了哪些宿主依赖。
+
+### Phase 1A：非必要静态导入压缩（P0，下一步）
+
+- [ ] 生成 `app/src/protyle` 的直接静态导入矩阵，按导入数量、初始化副作用、入口可达性和运行时调用频率排序。
+- [ ] 首批处理 `menus`、`dialog`、`layout`、`editor`、`mobile`、`plugin` 等非核心宿主依赖；保持 `app/src/protyle` 原目录，不复制或搬迁实现。
+- [ ] 将菜单、弹窗、导航、插件生命周期和全局 UI 协调改为 `HostUIPort`、`NavigationPort`、`ExtensionPort` 或 `LocalRpcPort` 调用。
+- [ ] `imports.ts` 只能作为明确的边界聚合出口，禁止用它隐藏未解决的直接导入。
+- [ ] 保持静态模块加载，不以 `dynamic import` 作为解耦手段；构建目标通过静态入口和平台适配器隔离 Node/Electron 依赖。
+- [ ] 定义并校验 `EditorEventSnapshot`、`CoreDecision` 和 `ResidualEvent`，禁止默认向外部模块广播原始 DOM 事件。
+- [ ] 将高频键盘域按“状态提取 -> `CaliburRouter` -> 核心命令 -> 剩余状态委托”迁移，保留核心同步路径的实时性。
+- [ ] 将核心 `coreSignal` 与外部 `delegationSignal` 分离；新事件、上下文失效和实例销毁必须取消过期 tips/动作任务。
+- [ ] 建立动作表注册协议，支持优先级、匹配条件、能力声明、来源和取消；动作执行统一通过 `LocalRpcPort` 或核心命令入口完成。
+- [ ] 默认插件只能注册 `post-core` 能力；`pre-core` 扩展必须显式声明抢占权限、优先级和超时。
+- [ ] 每迁移一个依赖域，必须同时通过主应用和独立入口回归，并更新直接导入基线。
+
+验收标准：非必要宿主模块的直接静态导入数量持续下降；独立入口不因缺失完整 App DOM 而加载失败；主应用行为和构建产物保持稳定。
 
 ### Phase 2：纯内核传输、事务和同步运行时（P0）
 
@@ -259,6 +374,9 @@ const editor = await mountStandaloneProtyle({
 6. 上传、属性视图、嵌入块和可选渲染器的能力测试。
 7. 桌面和移动视口布局。
 8. 思源主应用页签、菜单、插件事件和移动端行为。
+9. 核心路由消费事件后，外部模块不能改变已完成的核心编辑语义。
+10. 新键盘/输入事件到来或编辑器销毁后，旧的 tips 和动作任务必须被 `delegationSignal` 取消。
+11. `post-core` 动作可以延迟执行、失败或超时，不得阻塞核心输入；需要同步结果的动作必须通过 Local RPC 返回结构化结果。
 
 ---
 
@@ -270,6 +388,20 @@ const editor = await mountStandaloneProtyle({
 - **共享运行时串扰**：事务队列、WebSocket 订阅和资源缓存必须按内核地址与编辑器实例明确分区。
 - **样式污染宿主**：稳定独立模块前先形成 CSS 变量契约和最小样式入口。
 - **跨源认证复杂化**：首轮固定同源；跨源能力在 KernelPort 稳定后单独设计和验收。
+- **RPC 语义漂移**：以 `webKoa` 的本地请求模型为参考，但统一请求 ID、错误、超时、取消和销毁语义，避免各宿主自行约定。
+- **Node 依赖进入浏览器入口**：将 `Application` 的 HTTP `listen` 和 Node-only polyfill 与浏览器本地 RPC 核心分离，保持静态导入可构建。
+- **外部事件拖慢核心输入**：核心路由只消费一次状态快照，外部事件默认异步调度并受时间预算、优先级和 `delegationSignal` 控制。
+- **核心 Signal 与外部 Signal 语义混淆**：禁止用核心 `AbortController` 直接表示外部任务取消；两类 Signal 必须在契约中分开。
+- **插件越权修改 DOM 或默认行为**：`post-core` 只接收规范化快照和能力声明，菜单、弹窗、导航等行为必须通过 Host Port 或 Local RPC 执行。
+
+### Dialog 解耦门禁（当前阶段）
+
+- Protyle 内部禁止直接导入 `app/src/dialog`、`app/src/dialog/message`、`app/src/dialog/confirmDialog`、`app/src/dialog/tooltip` 和 `app/src/asset/assetDialog`。
+- Protyle 只依赖 `app/src/protyle/runtime/dialog.port.ts` 与 `dialog.types.ts`。`Dialog` 实例保留 `element`、`destroy`、`fullscreen`、`bindInput`、`listen` 等结构兼容能力，避免原版插件回调和现有 DOM 操作失效。
+- 完整思源通过 `app/src/dialog/protyleDialogPort.factory.ts` 注册原版实现；独立入口通过 `IStandaloneProtyleOptions.dialog` 注入宿主实现，未注入时使用轻量 DOM 回退实现。
+- 消息、确认框、Tooltip、资源选择器和 `moveResize` 均属于同一 Host UI Port；Protyle 业务只调用能力方法，不感知宿主的全局 DOM 容器、Vue 组件或窗口管理器。
+- Dialog Port 必须静态导入。禁止以 `dynamic import` 作为解耦手段；主应用和独立入口分别在构建期确定宿主适配器。
+- 兼容验收：主应用继续返回原版 Dialog 实例，插件可以继续使用 `dialog.element`、`destroyCallback` 和键盘确认；独立入口可以通过自定义 Port 替换默认弹窗，并且无 Dialog Port 时编辑器仍可加载和编辑。
 
 ---
 
@@ -278,3 +410,7 @@ const editor = await mountStandaloneProtyle({
 - [x] 2026-03-04：建立 Protyle 非必要依赖解耦与独立包化长期任务。
 - [x] 2026-07-14：重新采集当前依赖基线，确认采用“基础独立入口先行、持续驱动渐进式解耦”的实施顺序。
 - [x] 2026-07-14：完成 `protyle.js` ESM 入口、独立 bootstrap、菜单能力协议、Zod 宿主校验和 Chromium 浏览器契约测试；待运行思源核心后执行完整编辑闭环冒烟测试。
+- [x] 2026-07-15：确认下一阶段优先压缩非必要静态导入；允许 LocalRpc 使用完整 Koa Context，并将 SACAssetsManager 的 `webKoa` 作为本地 RPC 参考实现。
+- [x] 2026-07-15：将 SACAssetsManager commit `02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 独立检出到 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6`，未修改 `D:\dev\SACAssetsManager`。
+- [x] 2026-07-15：确定高频事件采用“状态快照 -> CaliburRouter 核心路由 -> 剩余状态委托”模型；类型化事件承载通知，动作表/tips 承载延迟扩展，Local RPC 承载外部行为执行。
+- [x] 2026-07-15：完成 Dialog Host Port：Protyle 全部 Dialog/confirm/message/Tooltip/资源选择触发改由类型化能力调用，完整 App 通过原版适配器注册，独立入口支持宿主注入和轻量 DOM 回退；移除 Protyle 内 Dialog 动态导入。

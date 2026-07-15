@@ -17,7 +17,7 @@ import {
 /**
  * 全局日志级别配置
  * 默认为 VERBOSE 模式
- * @AIDONE 不要试图使用模块级别变量作为共享变量,查看项目中目前的注册表机制
+ * @TODO 不要试图使用模块级别变量作为共享变量,查看项目中目前的注册表机制
  */
 let currentLogLevel: LogLevel = LogLevel.VERBOSE;
 
@@ -32,7 +32,7 @@ let currentLogLevel: LogLevel = LogLevel.VERBOSE;
  * 
  * @param level - 要设置的日志级别
  */
-export const setLogLevel = (level: LogLevel): void => {
+export const setLogLevel = (level: LogLevel) => {
     currentLogLevel = level;
 };
 
@@ -47,7 +47,7 @@ export const setLogLevel = (level: LogLevel): void => {
  *
  * @returns 当前的日志级别
  */
-export const getLogLevel = (): LogLevel => {
+export const getLogLevel = () => {
     return currentLogLevel;
 };
 
@@ -65,7 +65,7 @@ export const getLogLevel = (): LogLevel => {
  *
  * @param params - 日志参数
  */
-export const logCommandExecution = (params: CommandLogParams): void => {
+export const logCommandExecution = (params: CommandLogParams) => {
     const { command, event, nodeElement, result, context } = params;
     
     // 简洁模式：只输出基本信息
@@ -118,7 +118,7 @@ export const logTaskToggle = (
     params: Omit<CommandLogParams, "result">,
     oldStatus: boolean,
     newStatus: boolean
-): void => {
+) => {
     const oldStatusDesc = getTaskStatusDescription(oldStatus);
     const newStatusDesc = getTaskStatusDescription(newStatus);
     const result = `状态已从 ${oldStatusDesc} 切换为 ${newStatusDesc}`;

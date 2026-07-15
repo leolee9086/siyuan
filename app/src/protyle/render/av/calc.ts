@@ -4,7 +4,7 @@ import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";
-import {Dialog} from "../../../dialog";
+import {Dialog} from "../../runtime/dialog.port";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {escapeAttr} from "../../../util/DOM/escape";
 

@@ -4,7 +4,7 @@ import { isMac } from "../util/compatibility";
 import { isMobile } from "../../platform";
 import { isTouchDevice } from "../../util/platform/functions";
 import { setInlineStyle } from "../../util/assets/assets";
-import { hideMessage, showMessage } from "../../dialog/message";
+import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";
 import { getContenteditableElement, getLastBlock } from "../wysiwyg/getBlock";

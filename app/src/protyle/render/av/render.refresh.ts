@@ -2,7 +2,7 @@ import {Constants} from "../../../constants";
 import {addDragFill, popTextCell} from "./cell";
 import {renderAVAttribute} from "./blockAttr";
 import {clearSelect} from "../../util/clearSelect";
-import {showMessage} from "../../../dialog/message";
+import {showMessage} from "../../runtime/dialog.port";
 import {openMenuPanel} from "./openMenuPanel";
 import {avRender} from "./render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

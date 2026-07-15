@@ -1,7 +1,7 @@
 import { isMobile } from "../../../platform";
 import { getRandom } from "../../../util/platform/functions";
 import { fetchPost } from "../../../util/network/fetch";
-import { Dialog } from "../../../dialog";
+import { Dialog } from "../../runtime/dialog.port";
 import { Constants } from "../../../constants";
 import { assetMenu } from "../../../menus/protyleMenus/assetMenu/protyle.asset";
 import { previewImages } from "../../preview/image";

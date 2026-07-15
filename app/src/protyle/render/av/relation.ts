@@ -13,7 +13,7 @@ import {getFieldsByData, getViewName} from "./view";
 import {getColId} from "./col/col";
 import {getFieldIdByCellElement} from "./row";
 import {isMobile} from "../../../util/platform/functions";
-import {showMessage} from "../../../dialog/message";
+import {showMessage} from "../../runtime/dialog.port";
 import {writeText} from "../../util/compatibility";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

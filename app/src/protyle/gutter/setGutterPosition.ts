@@ -1,6 +1,60 @@
 import { isHTMLElement, isSVGElement } from "../../util/DOM/element.guard";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
+interface IGutterPositionState {
+    protyle: IProtyle;
+    element: Element;
+    gutterElement: HTMLElement;
+    listItem: Element | undefined;
+    nodeElement: Element | undefined;
+    space: number;
+    observer?: ResizeObserver;
+}
+
+const standalonePositionStates = new WeakMap<HTMLElement, IGutterPositionState>();
+
+const isStandaloneGutter = () => Reflect.get(globalThis, "siyuan")?.standaloneProtyle === true;
+
+const hasFixedContainingBlock = (style: CSSStyleDeclaration) =>
+    style.transform !== "none" ||
+    style.perspective !== "none" ||
+    style.filter !== "none" ||
+    (style.backdropFilter !== "" && style.backdropFilter !== "none") ||
+    style.contain.includes("paint") ||
+    style.willChange.split(",").some(value => ["transform", "perspective", "filter"].includes(value.trim()));
+
+/** 找到 fixed 元素实际使用的 containing block，兼容宿主页面的 transform/filter/contain。 */
+export const getGutterCoordinateOrigin = (gutterElement: HTMLElement) => {
+    if (!isStandaloneGutter()) {
+        return {left: 0, top: 0};
+    }
+    let parent = gutterElement.parentElement;
+    while (parent) {
+        if (hasFixedContainingBlock(getComputedStyle(parent))) {
+            const rect = parent.getBoundingClientRect();
+            const style = getComputedStyle(parent);
+            return {
+                left: rect.left + parseFloat(style.borderLeftWidth || "0"),
+                top: rect.top + parseFloat(style.borderTopWidth || "0"),
+            };
+        }
+        parent = parent.parentElement;
+    }
+    return {left: 0, top: 0};
+};
+
+const applyGutterCoordinates = (gutterElement: HTMLElement, top: number, left: number) => {
+    if (!isStandaloneGutter()) {
+        gutterElement.style.top = `${top}px`;
+        gutterElement.style.left = `${left}px`;
+        return;
+    }
+    const origin = getGutterCoordinateOrigin(gutterElement);
+    gutterElement.style.position = "fixed";
+    gutterElement.style.top = `${top - origin.top}px`;
+    gutterElement.style.left = `${left - origin.left}px`;
+};
+
 /**
  * 计算默认情况下的位置度量
  *
@@ -99,7 +153,7 @@ export const setGutterPosition = (protyle: IProtyle, element: Element, gutterEle
     const contentTop = protyle.contentElement.getBoundingClientRect().top;
 
     // 设置垂直位置
-    gutterElement.style.top = `${Math.max(rect.top, contentTop) + marginHeight}px`;
+    const top = Math.max(rect.top, contentTop) + marginHeight;
 
     // 计算初始水平位置
     let left = rect.left - gutterElement.clientWidth - space - pSpace;
@@ -117,13 +171,13 @@ export const setGutterPosition = (protyle: IProtyle, element: Element, gutterEle
         left = nodeElement.getBoundingClientRect().left - gutterElement.clientWidth - space + parseInt(getComputedStyle(nodeElement).paddingLeft);
     }
 
-    gutterElement.style.left = `${left}px`;
+    applyGutterCoordinates(gutterElement, top, left);
 
     // 处理空间不足的情况
     const parentElement = gutterElement.parentElement;
     if (parentElement && left < parentElement.getBoundingClientRect().left) {
         gutterElement.style.width = "24px";
-        gutterElement.style.left = `${rect.left - gutterElement.clientWidth - space / 2 + 3}px`;
+        applyGutterCoordinates(gutterElement, top, rect.left - gutterElement.clientWidth - space / 2 + 3);
 
         // 重新排列按钮，使其垂直堆叠
         // 跳过块标边缘框线与+号元素，避免被压缩重排
@@ -147,5 +201,26 @@ export const setGutterPosition = (protyle: IProtyle, element: Element, gutterEle
     const svgList = gutterElement.querySelectorAll("svg");
     for (const item of svgList) {
         item.style.height = "";
+    }
+};
+
+/** 独立入口在宿主布局变化后重测块标；完整 App 不安装额外观察器。 */
+export const observeStandaloneGutterPosition = (options: Omit<IGutterPositionState, "observer">) => {
+    if (!isStandaloneGutter()) {
+        return;
+    }
+    let state = standalonePositionStates.get(options.gutterElement);
+    if (!state) {
+        state = {...options};
+        standalonePositionStates.set(options.gutterElement, state);
+        if (typeof ResizeObserver !== "undefined") {
+            state.observer = new ResizeObserver(() => {
+                setGutterPosition(state!.protyle, state!.element, state!.gutterElement, state!.listItem, state!.nodeElement, state!.space);
+            });
+            state.observer.observe(options.protyle.element);
+            state.observer.observe(options.protyle.contentElement);
+        }
+    } else {
+        Object.assign(state, options);
     }
 };

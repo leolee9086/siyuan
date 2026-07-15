@@ -1,6 +1,7 @@
 import {describe, expect, it, vi} from "vitest";
 import {getStandaloneDailyNoteId} from "../../../src/protyle-standalone/bootstrap";
 import type {IStandaloneSiyuanRuntime} from "../../../src/protyle-standalone/standalone.types";
+import {Dialog, resetProtyleDialogPort} from "../../../src/protyle/runtime/dialog.port";
 
 const importNativeModule = async (url: string) => {
     const exportKey = `__protyleEntry${Date.now()}`;
@@ -27,6 +28,8 @@ describe("standalone Protyle ESM entry", () => {
 
         expect(entry).toHaveProperty("mountStandaloneProtyle");
         expect(entry.mountStandaloneProtyle).toBeTypeOf("function");
+        expect(entry).toHaveProperty("createStandaloneProtyleMenu");
+        expect(entry.createStandaloneProtyleMenu).toBeTypeOf("function");
     }, 10_000);
 
     it("resolves an omitted block ID through the daily note kernel contract", async () => {
@@ -56,5 +59,14 @@ describe("standalone Protyle ESM entry", () => {
         });
         expect(runtime.storage["local-dailynoteid"]).toBe("preferred");
         fetchMock.mockRestore();
+    });
+
+    it("keeps a usable fallback dialog when no host port is registered", () => {
+        resetProtyleDialogPort();
+        const dialog = new Dialog({content: "<button>content</button>"});
+        expect(dialog.element).toBeInstanceOf(HTMLElement);
+        expect(document.body.contains(dialog.element)).toBe(true);
+        dialog.destroy();
+        expect(document.body.contains(dialog.element)).toBe(false);
     });
 });

@@ -1,6 +1,6 @@
 // S-forge: 代码重构 - 保持本地的模块化导入风格，同时添加远程的新导入
 import { insertHTML } from "../util/insertHTML";
-import { hideMessage, showMessage } from "../../dialog/message";
+import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { Constants } from "../../constants";
 import { destroy } from "../util/destroy";
 import { fetchPost } from "../../util/network/fetch";
@@ -12,7 +12,7 @@ import { getContenteditableElement } from "../wysiwyg/getBlock";
 import { getTypeByCellElement, updateCellsValue } from "../render/av/cell";
 import { scrollCenter } from "../../util/DOM/highlightById";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { confirmDialog } from "../../dialog/confirmDialog";
+import { confirmDialog } from "../runtime/dialog.port";
 import { filesize } from "filesize";
 import { transaction } from "../wysiwyg/transaction";
 import * as dayjs from "dayjs";
