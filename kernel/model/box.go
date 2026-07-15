@@ -817,12 +817,18 @@ func ReindexFTS() {
 	defer logging.Recover()
 
 	util.PushEndlessProgress(Conf.language(296))
-	defer util.PushClearProgress()
+	fallbackToFullReindex := false
+	defer func() {
+		if !fallbackToFullReindex {
+			util.PushClearProgress()
+		}
+	}()
 
 	sql.FlushQueue()
 	FlushTxQueue()
 	if err := sql.RebuildFTSIndex(); err != nil {
 		logging.LogErrorf("rebuild fts index failed, falling back to full reindex: %s", err)
+		fallbackToFullReindex = true
 		FullReindex(false)
 	}
 }
