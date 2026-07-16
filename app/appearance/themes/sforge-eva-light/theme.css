@@ -1,0 +1,929 @@
+:root {
+    --sforge-accent: #007f96;
+    --sforge-accent-strong: #005568;
+    --sforge-accent-bright: #00b7ca;
+    --sforge-accent-soft: color-mix(in srgb, var(--sforge-accent) 15%, transparent);
+    --sforge-bg-app: #b8c3c6;
+    --sforge-bg-app-deep: color-mix(in srgb, var(--sforge-bg-app) 76%, #263c42 24%);
+    --sforge-glass-neutral: #f1f6f6;
+    --sforge-glass-cool: #dce7e8;
+    --sforge-glass-fill-base: color-mix(in srgb, var(--sforge-glass-neutral) 66%, var(--sforge-bg-app) 34%);
+    --sforge-glass-fill: color-mix(in srgb, var(--sforge-glass-fill-base) 54%, transparent);
+    --sforge-glass-fill-soft: color-mix(in srgb, var(--sforge-glass-fill-base) 34%, transparent);
+    --sforge-glass-fill-strong: color-mix(in srgb, var(--sforge-glass-fill-base) 78%, transparent);
+    --sforge-glass-chrome-base: color-mix(in srgb, var(--sforge-glass-cool) 62%, var(--sforge-bg-app-deep) 38%);
+    --sforge-glass-chrome: color-mix(in srgb, var(--sforge-glass-chrome-base) 76%, transparent);
+    --sforge-glass-chrome-strong: color-mix(in srgb, var(--sforge-glass-chrome-base) 86%, transparent);
+    --sforge-glass-specular: color-mix(in srgb, #ffffff 72%, transparent);
+    --sforge-glass-specular-soft: color-mix(in srgb, #ffffff 38%, transparent);
+    --sforge-bg-content: var(--sforge-glass-fill);
+    --sforge-bg-dock-base: color-mix(in srgb, var(--sforge-glass-cool) 54%, var(--sforge-bg-app-deep) 46%);
+    --sforge-bg-dock: color-mix(in srgb, var(--sforge-bg-dock-base) 66%, transparent);
+    --sforge-bg-dock-panel: color-mix(in srgb, var(--sforge-bg-dock-base) 76%, transparent);
+    --sforge-bg-dialog: color-mix(in srgb, var(--sforge-glass-fill-base) 80%, transparent);
+    --sforge-bg-dialog-panel: color-mix(in srgb, var(--sforge-glass-fill-base) 56%, transparent);
+    --sforge-bg-chrome: var(--sforge-glass-chrome-strong);
+    --sforge-bg-tab: var(--sforge-glass-chrome);
+    --sforge-bg-dock-rail: var(--sforge-glass-chrome-strong);
+    --sforge-bg-editor-base: color-mix(in srgb, var(--sforge-glass-neutral) 72%, var(--sforge-bg-app) 28%);
+    --sforge-bg-editor: color-mix(in srgb, var(--sforge-bg-editor-base) 52%, transparent);
+    --sforge-surface-1: var(--sforge-glass-fill-strong);
+    --sforge-surface-2: color-mix(in srgb, var(--sforge-glass-fill-base) 58%, transparent);
+    --sforge-surface-3: color-mix(in srgb, var(--sforge-glass-cool) 32%, transparent);
+    --sforge-fg-1: #10272c;
+    --sforge-fg-2: #36545b;
+    --sforge-fg-3: #647d83;
+    --sforge-fg-disabled: #82969a;
+    --sforge-signal-normal: #147e60;
+    --sforge-signal-running: #087f8c;
+    --sforge-signal-heartbeat: #c67500;
+    --sforge-signal-sleeping: #3a6f9e;
+    --sforge-signal-warning: #a56700;
+    --sforge-signal-error: #b34550;
+    --sforge-signal-special: #a33479;
+    --sforge-signal-eva: #74469a;
+    --sforge-signal-eva-soft: color-mix(in srgb, var(--sforge-signal-eva) 14%, transparent);
+    --sforge-border: color-mix(in srgb, var(--sforge-accent) 30%, #9eb4b8 70%);
+    --sforge-border-strong: var(--sforge-accent);
+    --sforge-grid-line: color-mix(in srgb, var(--sforge-accent) 16%, transparent);
+    --sforge-grid-major: color-mix(in srgb, var(--sforge-accent-strong) 30%, transparent);
+    --sforge-panel-highlight: var(--sforge-glass-specular-soft);
+    --sforge-glass-edge: color-mix(in srgb, var(--sforge-accent) 30%, transparent);
+    --sforge-glass-edge-dark: color-mix(in srgb, var(--sforge-bg-app-deep) 28%, transparent);
+    --sforge-console-edge: color-mix(in srgb, var(--sforge-accent-bright) 82%, transparent);
+    --sforge-console-edge-strong: color-mix(in srgb, var(--sforge-accent-strong) 92%, transparent);
+    --sforge-console-edge-alt: color-mix(in srgb, var(--sforge-signal-heartbeat) 84%, transparent);
+    --sforge-neon-cyan-soft: color-mix(in srgb, var(--sforge-accent-bright) 22%, transparent);
+    --sforge-neon-orange-soft: color-mix(in srgb, var(--sforge-signal-heartbeat) 18%, transparent);
+    --sforge-neon-violet-soft: color-mix(in srgb, var(--sforge-signal-eva) 14%, transparent);
+    --sforge-shadow-panel: 0 10px 28px color-mix(in srgb, var(--sforge-bg-app-deep) 18%, transparent), 0 0 16px var(--sforge-neon-cyan-soft);
+    --sforge-shadow-floating: 0 18px 42px color-mix(in srgb, var(--sforge-bg-app-deep) 28%, transparent), 0 4px 16px var(--sforge-neon-cyan-soft), 0 0 0 1px var(--sforge-neon-violet-soft);
+    --sforge-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--sforge-accent) 34%, transparent), 0 0 22px color-mix(in srgb, var(--sforge-accent-bright) 26%, transparent), 0 0 34px var(--sforge-neon-violet-soft);
+    --sforge-glass-blur-chrome: blur(12px) saturate(1.16) contrast(1.02);
+    --sforge-glass-blur-floating: blur(18px) saturate(1.2) contrast(1.03);
+    --sforge-glass-blur-dialog: blur(24px) saturate(1.22) contrast(1.03);
+    --sforge-border-inner: color-mix(in srgb, var(--sforge-accent) 18%, transparent);
+    --sforge-mask: color-mix(in srgb, #173239 38%, transparent);
+    --sforge-radius-sm: 2px;
+    --sforge-radius-md: 4px;
+    --sforge-glass-frame: var(--sforge-console-edge);
+    --sforge-glass-frame-soft: var(--sforge-glass-edge);
+    --sforge-text-glow: 0 0 9px color-mix(in srgb, var(--sforge-accent) 22%, transparent);
+    --sforge-motion-short: 120ms ease-out;
+    --sforge-motion-medium: 220ms ease;
+    --sforge-motion-panel: 280ms cubic-bezier(.2, .8, .2, 1);
+    --sforge-motion-pulse: 1.8s ease-in-out;
+    --sforge-type-ui: "Inter", "Segoe UI", sans-serif;
+    --sforge-type-body: "Inter", "Segoe UI", sans-serif;
+    --sforge-type-label: var(--sforge-font-mono);
+    --sforge-type-numeric: var(--sforge-font-mono);
+    --sforge-font-mono: "JetBrains Mono", "MS Gothic", ui-monospace, monospace;
+
+    --b3-theme-primary: var(--sforge-accent);
+    --b3-theme-primary-light: color-mix(in srgb, var(--sforge-accent) 56%, transparent);
+    --b3-theme-primary-lighter: color-mix(in srgb, var(--sforge-accent) 32%, transparent);
+    --b3-theme-primary-lightest: var(--sforge-accent-soft);
+    --b3-theme-secondary: var(--sforge-signal-heartbeat);
+    --b3-theme-on-primary: #ffffff;
+    --b3-theme-on-secondary: var(--sforge-fg-1);
+    --b3-theme-on-error: #ffffff;
+    --b3-theme-background: var(--sforge-bg-editor);
+    --b3-theme-background-light: var(--sforge-surface-2);
+    --b3-theme-surface: var(--sforge-surface-1);
+    --b3-theme-surface-light: var(--sforge-surface-1);
+    --b3-theme-surface-lighter: var(--sforge-surface-3);
+    --b3-theme-on-background: var(--sforge-fg-1);
+    --b3-theme-on-surface: var(--sforge-fg-2);
+    --b3-theme-on-surface-light: var(--sforge-fg-3);
+    --b3-theme-error: var(--sforge-signal-error);
+    --b3-theme-success: var(--sforge-signal-normal);
+    --b3-body-background: var(--sforge-bg-app);
+    --b3-border-color: var(--sforge-border);
+    --b3-mask-background: var(--sforge-mask);
+    --b3-toolbar-background: var(--sforge-bg-chrome);
+    --b3-toolbar-blur-background: var(--sforge-bg-chrome);
+    --b3-toolbar-color: var(--sforge-fg-2);
+    --b3-toolbar-hover: var(--sforge-accent-soft);
+    --b3-tab-background: var(--sforge-bg-tab);
+    --b3-tab-background-hover: var(--sforge-surface-3);
+    --b3-menu-background: var(--sforge-glass-fill-strong);
+    --b3-menu-icon-color: var(--sforge-fg-2);
+    --b3-menu-highlight-color: var(--sforge-accent-strong);
+    --b3-menu-highlight-background: var(--sforge-accent-soft);
+    --b3-tooltips-color: var(--sforge-fg-1);
+    --b3-tooltips-background: var(--sforge-surface-1);
+    --b3-tooltips-second-color: var(--sforge-fg-2);
+    --b3-card-error-color: var(--sforge-signal-error);
+    --b3-card-error-background: color-mix(in srgb, var(--sforge-signal-error) 12%, var(--sforge-surface-1));
+    --b3-card-warning-color: var(--sforge-signal-warning);
+    --b3-card-warning-background: color-mix(in srgb, var(--sforge-signal-warning) 12%, var(--sforge-surface-1));
+    --b3-card-success-color: var(--sforge-signal-normal);
+    --b3-card-success-background: color-mix(in srgb, var(--sforge-signal-normal) 12%, var(--sforge-surface-1));
+    --b3-scroll-color: color-mix(in srgb, var(--sforge-fg-1) 18%, transparent);
+    --b3-list-hover: color-mix(in srgb, var(--sforge-accent) 9%, transparent);
+    --b3-list-icon-hover: color-mix(in srgb, var(--sforge-accent) 13%, transparent);
+    --b3-dialog-shadow: var(--sforge-shadow-panel);
+    --b3-dock-shadow-color: color-mix(in srgb, var(--sforge-bg-app-deep) 20%, transparent);
+    --b3-highlight-color: var(--sforge-fg-1);
+    --b3-highlight-background: #f2d979;
+    --b3-protyle-code-background: var(--sforge-surface-2);
+    --b3-protyle-inline-code-color: var(--sforge-accent-strong);
+    --b3-protyle-inline-code-background: var(--sforge-accent-soft);
+    --b3-protyle-inline-mark-background: color-mix(in srgb, var(--sforge-signal-heartbeat) 34%, transparent);
+    --b3-protyle-inline-mark-color: var(--sforge-fg-1);
+    --b3-protyle-inline-link-color: var(--sforge-accent-strong);
+    --b3-protyle-inline-blockref-color: var(--sforge-signal-special);
+}
+
+html[data-light-theme="sforge-eva-light"] body,
+body[data-light-theme="sforge-eva-light"] {
+    background-color: var(--sforge-bg-app);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 18%),
+        linear-gradient(118deg, transparent 0 29%, color-mix(in srgb, var(--sforge-accent) 10%, transparent) 29.08% 29.18%, transparent 29.26% 51%, color-mix(in srgb, var(--sforge-signal-eva) 7%, transparent) 51.08% 51.16%, transparent 51.24% 71%, color-mix(in srgb, var(--sforge-signal-heartbeat) 8%, transparent) 71.08% 71.16%, transparent 71.24%),
+        linear-gradient(to right, var(--sforge-grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--sforge-grid-line) 1px, transparent 1px),
+        linear-gradient(to right, var(--sforge-grid-major) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--sforge-grid-major) 1px, transparent 1px);
+    background-size: auto, auto, 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+    animation: sforge-light-grid-drift 28s linear infinite;
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] #layouts {
+    background: transparent;
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl,
+[data-light-theme="sforge-eva-light"] .layout__dockr,
+[data-light-theme="sforge-eva-light"] .layout__center {
+    position: relative;
+    border: 0;
+    border-radius: var(--sforge-radius-md);
+    background-color: var(--sforge-bg-content);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular) 0, transparent 1px),
+        linear-gradient(105deg, color-mix(in srgb, var(--sforge-accent) 8%, transparent), transparent 28% 66%, var(--sforge-signal-eva-soft) 82%, transparent 94%),
+        repeating-linear-gradient(to right, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 9%, transparent) 40px, transparent 41px),
+        repeating-linear-gradient(to bottom, transparent 0 39px, var(--sforge-grid-line) 40px, transparent 41px);
+    box-shadow:
+        inset 1px 0 var(--sforge-glass-edge),
+        inset -1px 0 var(--sforge-glass-edge-dark),
+        inset 0 -1px var(--sforge-glass-edge-dark),
+        inset 0 1px var(--sforge-glass-specular),
+        var(--sforge-shadow-panel);
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl,
+[data-light-theme="sforge-eva-light"] .layout__dockr {
+    background-color: var(--sforge-bg-dock);
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl::before,
+[data-light-theme="sforge-eva-light"] .layout__dockl::after,
+[data-light-theme="sforge-eva-light"] .layout__dockr::before,
+[data-light-theme="sforge-eva-light"] .layout__dockr::after,
+[data-light-theme="sforge-eva-light"] .layout__center::before,
+[data-light-theme="sforge-eva-light"] .layout__center::after {
+    position: absolute;
+    z-index: 3;
+    width: 14px;
+    height: 14px;
+    content: "";
+    pointer-events: none;
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl::before,
+[data-light-theme="sforge-eva-light"] .layout__dockr::before,
+[data-light-theme="sforge-eva-light"] .layout__center::before {
+    top: 0;
+    left: 0;
+    background:
+        linear-gradient(var(--sforge-console-edge), var(--sforge-console-edge)) 0 0 / 14px 2px no-repeat,
+        linear-gradient(var(--sforge-console-edge), var(--sforge-console-edge)) 0 0 / 2px 14px no-repeat;
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl::after,
+[data-light-theme="sforge-eva-light"] .layout__dockr::after,
+[data-light-theme="sforge-eva-light"] .layout__center::after {
+    right: 0;
+    bottom: 0;
+    background:
+        linear-gradient(var(--sforge-console-edge-alt), var(--sforge-console-edge-alt)) 100% 100% / 14px 2px no-repeat,
+        linear-gradient(var(--sforge-console-edge-alt), var(--sforge-console-edge-alt)) 100% 100% / 2px 14px no-repeat;
+}
+
+[data-light-theme="sforge-eva-light"] .layout-tab-container {
+    background: transparent;
+}
+
+[data-light-theme="sforge-eva-light"] .layout-tab-bar {
+    border: 0;
+    background-color: var(--sforge-bg-tab);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 44%),
+        repeating-linear-gradient(90deg, transparent 0 47px, color-mix(in srgb, var(--sforge-accent) 7%, transparent) 48px);
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular),
+        inset 0 -1px var(--sforge-glass-edge);
+}
+
+[data-light-theme="sforge-eva-light"] .layout__dockl > .fn__flex,
+[data-light-theme="sforge-eva-light"] .layout__dockr > .fn__flex {
+    background: var(--sforge-bg-dock-panel);
+    border-color: transparent;
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular-soft),
+        inset 0 0 0 1px var(--sforge-glass-edge-dark);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container,
+[data-light-theme="sforge-eva-light"] .b3-menu,
+[data-light-theme="sforge-eva-light"] .b3-menu__submenu,
+[data-light-theme="sforge-eva-light"] .b3-tab-bar {
+    border: 1px solid var(--sforge-glass-edge);
+    background-color: var(--sforge-glass-fill-strong);
+    background-image:
+        linear-gradient(90deg, var(--sforge-console-edge) 0 28px, transparent 28px 74%, var(--sforge-signal-eva-soft) 88%, transparent 100%),
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 34%),
+        linear-gradient(105deg, color-mix(in srgb, var(--sforge-accent) 8%, transparent), transparent 34%),
+        repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 32px, transparent 33px);
+    background-size: 100% 2px, auto, auto, auto;
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular),
+        inset 0 -1px var(--sforge-glass-edge-dark),
+        var(--sforge-shadow-floating);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container,
+[data-light-theme="sforge-eva-light"] .b3-tab-bar {
+    position: relative;
+    border-radius: var(--sforge-radius-md);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container {
+    -webkit-backdrop-filter: var(--sforge-glass-blur-dialog);
+    backdrop-filter: var(--sforge-glass-blur-dialog);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-menu,
+[data-light-theme="sforge-eva-light"] .b3-menu__submenu {
+    isolation: isolate;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+}
+
+[data-light-theme="sforge-eva-light"] .b3-menu::after,
+[data-light-theme="sforge-eva-light"] .b3-menu__submenu::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background-color: color-mix(in srgb, var(--sforge-glass-fill-base) 84%, transparent);
+    background-image:
+        linear-gradient(90deg, var(--sforge-console-edge) 0 28px, transparent 28px 74%, var(--sforge-signal-eva-soft) 88%, transparent 100%),
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 34%),
+        repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 32px, transparent 33px);
+    background-size: 100% 2px, auto, auto;
+    background-repeat: no-repeat, no-repeat, repeat;
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular),
+        inset 0 -1px var(--sforge-glass-edge-dark),
+        var(--sforge-shadow-floating);
+    -webkit-backdrop-filter: var(--sforge-glass-blur-floating);
+    backdrop-filter: var(--sforge-glass-blur-floating);
+    content: "";
+    pointer-events: none;
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) {
+    background-color: var(--sforge-bg-dialog);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) .b3-dialog__content,
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) .config__panel {
+    background-color: var(--sforge-bg-dialog-panel);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 18%),
+        repeating-linear-gradient(to bottom, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 7%, transparent) 40px, transparent 41px);
+    box-shadow: inset 0 1px var(--sforge-glass-specular-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) .config__side {
+    background-color: var(--sforge-bg-dock-panel);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 22%),
+        repeating-linear-gradient(to bottom, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 40px, transparent 41px);
+    border-right-color: transparent;
+    box-shadow:
+        inset -1px 0 var(--sforge-glass-edge),
+        inset 0 1px var(--sforge-glass-specular-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) .config__tab-wrap,
+[data-light-theme="sforge-eva-light"] .b3-dialog__container:has(.config__panel) .config__tab-container {
+    background-color: transparent;
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__container::before,
+[data-light-theme="sforge-eva-light"] .b3-menu::before,
+[data-light-theme="sforge-eva-light"] .b3-menu__submenu::before,
+[data-light-theme="sforge-eva-light"] .b3-tab-bar::before {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--sforge-console-edge);
+    border-radius: inherit;
+    clip-path: polygon(0 0, 26px 0, 26px 1px, 0 1px, 0 26px, 1px 26px, 1px 0, 100% 0, 100% 100%, calc(100% - 26px) 100%, calc(100% - 26px) calc(100% - 1px), 100% calc(100% - 1px), 100% 0);
+    content: "";
+    pointer-events: none;
+}
+
+[data-light-theme="sforge-eva-light"] .b3-dialog__scrim {
+    background-color: var(--sforge-mask);
+}
+
+[data-light-theme="sforge-eva-light"] h1,
+[data-light-theme="sforge-eva-light"] h2,
+[data-light-theme="sforge-eva-light"] h3,
+[data-light-theme="sforge-eva-light"] .protyle-title,
+[data-light-theme="sforge-eva-light"] .layout-tab-bar__item--active {
+    text-shadow: var(--sforge-text-glow);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-button--outline,
+[data-light-theme="sforge-eva-light"] .b3-button--text,
+[data-light-theme="sforge-eva-light"] .b3-menu__item:hover,
+[data-light-theme="sforge-eva-light"] .b3-list-item:hover {
+    border-color: var(--sforge-accent);
+    color: var(--sforge-accent-strong);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-button--outline,
+[data-light-theme="sforge-eva-light"] .b3-button--text {
+    background-color: var(--sforge-glass-fill-soft);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 58%);
+    border-radius: var(--sforge-radius-sm);
+    box-shadow: inset 0 0 0 1px var(--sforge-glass-edge);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-button:hover:not(:disabled),
+[data-light-theme="sforge-eva-light"] .b3-button:focus-visible,
+[data-light-theme="sforge-eva-light"] .b3-button--outline:hover,
+[data-light-theme="sforge-eva-light"] .b3-button--text:hover {
+    box-shadow:
+        inset 0 0 0 1px var(--sforge-console-edge-strong),
+        0 0 14px var(--sforge-neon-cyan-soft),
+        0 0 24px var(--sforge-neon-violet-soft);
+    text-shadow: 0 0 9px var(--sforge-neon-cyan-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .toolbar,
+[data-light-theme="sforge-eva-light"] .status,
+[data-light-theme="sforge-eva-light"] .block__icons,
+[data-light-theme="sforge-eva-light"] .layout__dockb,
+[data-light-theme="sforge-eva-light"] .layout__empty {
+    border-color: transparent;
+    background-color: var(--sforge-bg-chrome);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 52%),
+        repeating-linear-gradient(90deg, transparent 0 63px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 64px);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .toolbar {
+    border-bottom: 0;
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular),
+        inset 0 -1px var(--sforge-console-edge);
+}
+
+[data-light-theme="sforge-eva-light"] .status {
+    border-top: 0;
+    box-shadow:
+        inset 0 1px var(--sforge-console-edge),
+        inset 0 -1px var(--sforge-glass-edge-dark);
+}
+
+[data-light-theme="sforge-eva-light"] .toolbar,
+[data-light-theme="sforge-eva-light"] .status,
+[data-light-theme="sforge-eva-light"] #dockLeft,
+[data-light-theme="sforge-eva-light"] #dockRight,
+[data-light-theme="sforge-eva-light"] #dockBottom,
+[data-light-theme="sforge-eva-light"] .layout-tab-bar,
+[data-light-theme="sforge-eva-light"] .protyle-breadcrumb {
+    -webkit-backdrop-filter: var(--sforge-glass-blur-chrome);
+    backdrop-filter: var(--sforge-glass-blur-chrome);
+}
+
+[data-light-theme="sforge-eva-light"] #dockLeft,
+[data-light-theme="sforge-eva-light"] #dockRight,
+[data-light-theme="sforge-eva-light"] #dockBottom {
+    border: 0;
+    background-color: var(--sforge-bg-dock-rail);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 46%),
+        repeating-linear-gradient(to bottom, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 7%, transparent) 40px);
+    box-shadow: inset 0 0 0 1px var(--sforge-glass-edge);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] #dockLeft {
+    box-shadow:
+        inset -1px 0 var(--sforge-console-edge),
+        inset 1px 0 var(--sforge-glass-specular-soft);
+}
+
+[data-light-theme="sforge-eva-light"] #dockRight {
+    box-shadow:
+        inset 1px 0 var(--sforge-console-edge),
+        inset -1px 0 var(--sforge-glass-specular-soft);
+}
+
+[data-light-theme="sforge-eva-light"] #dockBottom {
+    box-shadow:
+        inset 0 1px var(--sforge-console-edge),
+        inset 0 -1px var(--sforge-glass-specular-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .dock__item {
+    border-radius: var(--sforge-radius-sm);
+    background: transparent;
+    box-shadow: none;
+    color: var(--sforge-fg-2);
+    transition: background-color var(--sforge-motion-short), color var(--sforge-motion-short), box-shadow var(--sforge-motion-short);
+}
+
+[data-light-theme="sforge-eva-light"] .dock__item:hover:not(.dock__item--activefocus),
+[data-light-theme="sforge-eva-light"] .dock__item--active,
+[data-light-theme="sforge-eva-light"] .dock__item--activefocus {
+    background-color: var(--sforge-accent-soft);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 62%);
+    box-shadow: inset 0 0 0 1px var(--sforge-glass-edge);
+    color: var(--sforge-accent-strong);
+    text-shadow: 0 0 10px var(--sforge-neon-cyan-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .dock__item:hover:not(.dock__item--activefocus),
+[data-light-theme="sforge-eva-light"] .dock__item--activefocus {
+    animation: sforge-light-signal-pulse 1.8s ease-in-out infinite;
+}
+
+[data-light-theme="sforge-eva-light"] #dockLeft .dock__item--active,
+[data-light-theme="sforge-eva-light"] #dockLeft .dock__item--activefocus {
+    box-shadow: inset 2px 0 var(--sforge-console-edge-strong), inset 0 0 0 1px var(--sforge-glass-edge);
+}
+
+[data-light-theme="sforge-eva-light"] #dockRight .dock__item--active,
+[data-light-theme="sforge-eva-light"] #dockRight .dock__item--activefocus {
+    box-shadow: inset -2px 0 var(--sforge-console-edge-strong), inset 0 0 0 1px var(--sforge-glass-edge);
+}
+
+[data-light-theme="sforge-eva-light"] .toolbar__item,
+[data-light-theme="sforge-eva-light"] .block__icon,
+[data-light-theme="sforge-eva-light"] .layout-tab-bar .item,
+[data-light-theme="sforge-eva-light"] .status__msg,
+[data-light-theme="sforge-eva-light"] .status__backgroundtask {
+    color: var(--sforge-fg-2);
+}
+
+[data-light-theme="sforge-eva-light"] .toolbar__item:hover,
+[data-light-theme="sforge-eva-light"] .toolbar__item--active,
+[data-light-theme="sforge-eva-light"] .block__icon:hover,
+[data-light-theme="sforge-eva-light"] .layout-tab-bar .item:hover:not(.item--focus),
+[data-light-theme="sforge-eva-light"] .layout-tab-bar .item--focus {
+    background-color: var(--sforge-accent-soft);
+    background-image:
+        linear-gradient(110deg, transparent 28%, var(--sforge-glass-specular) 44%, transparent 60%),
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 62%);
+    background-size: 220% 100%, auto;
+    border-radius: var(--sforge-radius-sm) var(--sforge-radius-sm) 0 0;
+    box-shadow:
+        inset 0 2px var(--sforge-console-edge),
+        inset 0 -1px var(--sforge-console-edge-alt),
+        inset 1px 0 var(--sforge-glass-edge),
+        inset -1px 0 var(--sforge-glass-edge);
+    color: var(--sforge-accent-strong);
+    text-shadow: 0 0 10px var(--sforge-neon-cyan-soft);
+    animation: sforge-light-edge-scan 2.2s linear infinite, sforge-light-signal-pulse 1.8s ease-in-out infinite;
+}
+
+[data-light-theme="sforge-eva-light"] .layout__resize::after {
+    background-color: var(--sforge-border);
+}
+
+[data-light-theme="sforge-eva-light"] .layout__resize:hover::after {
+    background-color: var(--sforge-accent);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-menu__item,
+[data-light-theme="sforge-eva-light"] .b3-menu__separator,
+[data-light-theme="sforge-eva-light"] .b3-dialog__header,
+[data-light-theme="sforge-eva-light"] .b3-dialog__body,
+[data-light-theme="sforge-eva-light"] .b3-dialog__action {
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-menu__item:hover,
+[data-light-theme="sforge-eva-light"] .b3-menu__item--current,
+[data-light-theme="sforge-eva-light"] .b3-list-item:hover,
+[data-light-theme="sforge-eva-light"] .b3-list-item--focus {
+    background-color: var(--sforge-accent-soft);
+    box-shadow: inset 2px 0 var(--sforge-console-edge-strong), 0 0 14px var(--sforge-neon-cyan-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-list--background,
+[data-light-theme="sforge-eva-light"] .b3-list-item {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+[data-light-theme="sforge-eva-light"] .b3-list-item {
+    border-bottom: 1px solid color-mix(in srgb, var(--sforge-border-inner) 55%, transparent);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-menu__separator,
+[data-light-theme="sforge-eva-light"] .b3-dialog__header,
+[data-light-theme="sforge-eva-light"] .b3-dialog__footer {
+    border-color: var(--sforge-border);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-text-field,
+[data-light-theme="sforge-eva-light"] .b3-select,
+[data-light-theme="sforge-eva-light"] textarea,
+[data-light-theme="sforge-eva-light"] input {
+    border-color: var(--sforge-border);
+    background-color: var(--sforge-glass-fill-soft);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--sforge-bg-app-deep) 8%, transparent), var(--sforge-glass-specular-soft));
+    border-radius: var(--sforge-radius-sm);
+    box-shadow: inset 0 1px color-mix(in srgb, var(--sforge-bg-app-deep) 12%, transparent), inset 0 -1px var(--sforge-glass-specular-soft);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-text-field:focus,
+[data-light-theme="sforge-eva-light"] .b3-select:focus,
+[data-light-theme="sforge-eva-light"] textarea:focus,
+[data-light-theme="sforge-eva-light"] input:focus {
+    border-color: var(--sforge-accent);
+    box-shadow: var(--sforge-shadow-focus);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-switch {
+    border-color: color-mix(in srgb, var(--sforge-accent) 42%, var(--sforge-border));
+    background-color: color-mix(in srgb, var(--sforge-bg-app-deep) 10%, var(--sforge-glass-fill-soft));
+    background-image: none;
+    box-shadow:
+        inset 0 1px color-mix(in srgb, var(--sforge-bg-app-deep) 16%, transparent),
+        inset 0 -1px var(--sforge-glass-specular);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-switch:checked {
+    border-color: var(--sforge-accent-strong);
+    background-color: var(--sforge-accent);
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular-soft),
+        0 0 0 1px var(--sforge-accent-soft),
+        0 0 12px color-mix(in srgb, var(--sforge-accent-bright) 18%, transparent);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle {
+    background-color: var(--sforge-bg-editor);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 88px),
+        repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 9%, transparent) 40px, transparent 41px),
+        repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 9%, transparent) 40px, transparent 41px);
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular-soft),
+        inset 0 0 0 1px var(--sforge-glass-edge-dark);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-content,
+[data-light-theme="sforge-eva-light"] .protyle-background,
+[data-light-theme="sforge-eva-light"] .protyle-title {
+    background: transparent;
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-breadcrumb {
+    border-color: transparent;
+    background-color: var(--sforge-glass-chrome);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 58%),
+        repeating-linear-gradient(90deg, transparent 0 47px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 48px);
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular),
+        inset 0 -1px var(--sforge-console-edge);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-wysiwyg,
+[data-light-theme="sforge-eva-light"] .protyle-title__input {
+    color: var(--sforge-fg-1);
+    font-family: var(--sforge-type-body);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-wysiwyg.protyle-wysiwyg--attr {
+    border: 0;
+    box-shadow: none;
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-wysiwyg.protyle-wysiwyg--attr:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-breadcrumb,
+[data-light-theme="sforge-eva-light"] .protyle-title,
+[data-light-theme="sforge-eva-light"] .protyle-attr {
+    border-color: var(--sforge-border-inner);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-breadcrumb__item:hover,
+[data-light-theme="sforge-eva-light"] .protyle-breadcrumb__item--active,
+[data-light-theme="sforge-eva-light"] .protyle-icon:hover,
+[data-light-theme="sforge-eva-light"] .protyle-gutters button:hover::before {
+    background-color: var(--sforge-accent-soft);
+    color: var(--sforge-accent-strong);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-toolbar,
+[data-light-theme="sforge-eva-light"] .protyle-hint,
+[data-light-theme="sforge-eva-light"] .protyle-util {
+    border: 1px solid var(--sforge-glass-edge);
+    background-color: var(--sforge-glass-fill-strong);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 34%),
+        repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb, var(--sforge-accent) 6%, transparent) 32px, transparent 33px);
+    border-radius: var(--sforge-radius-md);
+    box-shadow: inset 0 1px var(--sforge-glass-specular), var(--sforge-shadow-floating);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-toolbar__item,
+[data-light-theme="sforge-eva-light"] .protyle-font__style {
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-toolbar__item:hover,
+[data-light-theme="sforge-eva-light"] .protyle-toolbar__item--current,
+[data-light-theme="sforge-eva-light"] .protyle-font__style:hover {
+    background-color: var(--sforge-accent-soft);
+    color: var(--sforge-accent-strong);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-gutters button.protyle-gutters__line {
+    background-color: color-mix(in srgb, var(--sforge-accent) 22%, transparent);
+    border-color: var(--sforge-accent);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-gutters button.protyle-gutters__plus svg {
+    color: var(--sforge-accent-strong);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-wysiwyg--select::after,
+[data-light-theme="sforge-eva-light"] .protyle-wysiwyg--hl::after,
+[data-light-theme="sforge-eva-light"] .protyle-select {
+    background-color: var(--sforge-accent-soft);
+    border-color: var(--sforge-accent);
+}
+
+[data-light-theme="sforge-eva-light"] .sy__agentChat,
+[data-light-theme="sforge-eva-light"] .agent-chat {
+    background-color: var(--sforge-glass-fill);
+    background-image:
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 14%),
+        repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 8%, transparent) 40px, transparent 41px),
+        repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--sforge-accent) 8%, transparent) 40px, transparent 41px);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__messages,
+[data-light-theme="sforge-eva-light"] .agent-chat__body,
+[data-light-theme="sforge-eva-light"] .agent-chat__thinking-card,
+[data-light-theme="sforge-eva-light"] .agent-chat__tool-card,
+[data-light-theme="sforge-eva-light"] .agent-chat__confirm-card,
+[data-light-theme="sforge-eva-light"] .agent-chat__question-card {
+    border-color: var(--sforge-border-inner);
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__msg--user .agent-chat__body {
+    background-color: color-mix(in srgb, var(--sforge-accent) 14%, transparent);
+    border-color: var(--sforge-glass-frame-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__msg--error .agent-chat__body {
+    background-color: color-mix(in srgb, var(--sforge-signal-error) 12%, transparent);
+    border-color: var(--sforge-signal-error);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-welcome__example {
+    border-color: var(--sforge-glass-edge);
+    border-radius: var(--sforge-radius-md);
+    background-color: var(--sforge-glass-fill-soft);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 72%);
+    transition: background-color var(--sforge-motion-short), border-color var(--sforge-motion-short), box-shadow var(--sforge-motion-short), color var(--sforge-motion-short), text-shadow var(--sforge-motion-short);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-welcome__example:hover {
+    border-color: var(--sforge-console-edge-strong);
+    background-color: var(--sforge-accent-soft);
+    background-image:
+        linear-gradient(110deg, transparent 26%, var(--sforge-glass-specular) 44%, transparent 62%),
+        linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 72%);
+    background-size: 220% 100%, auto;
+    box-shadow: inset 2px 0 var(--sforge-console-edge-strong), 0 0 16px var(--sforge-neon-cyan-soft), 0 0 26px var(--sforge-neon-violet-soft);
+    color: var(--sforge-accent-strong);
+    text-shadow: 0 0 9px var(--sforge-neon-cyan-soft);
+    animation: sforge-light-edge-scan 2.2s linear infinite, sforge-light-signal-pulse 1.8s ease-in-out infinite;
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__input-area,
+[data-light-theme="sforge-eva-light"] .agent-session-popup,
+[data-light-theme="sforge-eva-light"] .agent-mention-menu {
+    background-color: var(--sforge-glass-fill-strong);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 32%);
+    border-color: var(--sforge-glass-edge);
+    box-shadow: inset 0 1px var(--sforge-glass-specular), var(--sforge-shadow-floating);
+}
+
+[data-light-theme="sforge-eva-light"] .protyle-toolbar,
+[data-light-theme="sforge-eva-light"] .protyle-hint,
+[data-light-theme="sforge-eva-light"] .protyle-util,
+[data-light-theme="sforge-eva-light"] .agent-chat__input-area,
+[data-light-theme="sforge-eva-light"] .agent-session-popup,
+[data-light-theme="sforge-eva-light"] .agent-mention-menu {
+    -webkit-backdrop-filter: var(--sforge-glass-blur-floating);
+    backdrop-filter: var(--sforge-glass-blur-floating);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__input-area:focus-within {
+    border-color: color-mix(in srgb, var(--sforge-accent) 72%, var(--sforge-border));
+    box-shadow:
+        inset 0 1px var(--sforge-glass-specular-soft),
+        0 0 0 1px color-mix(in srgb, var(--sforge-accent) 18%, transparent),
+        0 0 10px color-mix(in srgb, var(--sforge-accent-bright) 14%, transparent);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__input-area :focus-visible {
+    box-shadow: none;
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__preview-notice {
+    background-color: color-mix(in srgb, var(--sforge-signal-warning) 12%, transparent);
+    color: var(--sforge-signal-warning);
+}
+
+[data-light-theme="sforge-eva-light"] .agent-chat__nav-rail--expanded {
+    background-color: var(--sforge-glass-chrome-strong);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 28%);
+    border-color: var(--sforge-glass-edge);
+    box-shadow: inset 0 1px var(--sforge-glass-specular), var(--sforge-shadow-floating);
+}
+
+[data-light-theme="sforge-eva-light"] #message .b3-snackbar__content {
+    border: 1px solid color-mix(in srgb, var(--sforge-accent) 52%, var(--sforge-border));
+    border-radius: var(--sforge-radius-md);
+    background-color: color-mix(in srgb, var(--sforge-glass-fill-base) 90%, transparent);
+    background-image:
+        linear-gradient(90deg, var(--sforge-console-edge-strong) 0 34px, transparent 34px 78%, var(--sforge-neon-violet-soft) 100%),
+        linear-gradient(180deg, var(--sforge-glass-specular), transparent 38%);
+    background-size: 100% 2px, auto;
+    background-repeat: no-repeat;
+    box-shadow:
+        inset 3px 0 var(--sforge-console-edge-strong),
+        inset 0 1px var(--sforge-glass-specular),
+        0 16px 34px color-mix(in srgb, var(--sforge-bg-app-deep) 28%, transparent),
+        0 0 22px var(--sforge-neon-cyan-soft);
+    -webkit-backdrop-filter: var(--sforge-glass-blur-floating);
+    backdrop-filter: var(--sforge-glass-blur-floating);
+    color: var(--sforge-fg-1);
+    animation: sforge-light-message-pulse 2.8s ease-in-out infinite;
+}
+
+[data-light-theme="sforge-eva-light"] #message .b3-snackbar--error .b3-snackbar__content {
+    border-color: color-mix(in srgb, var(--sforge-signal-error) 58%, var(--sforge-border));
+    background-color: color-mix(in srgb, var(--sforge-signal-error) 10%, var(--sforge-glass-fill-base));
+    box-shadow:
+        inset 3px 0 var(--sforge-signal-error),
+        inset 0 1px var(--sforge-glass-specular),
+        0 16px 34px color-mix(in srgb, var(--sforge-bg-app-deep) 30%, transparent),
+        0 0 24px color-mix(in srgb, var(--sforge-signal-heartbeat) 24%, transparent);
+}
+
+[data-light-theme="sforge-eva-light"] #message .b3-snackbar__content a,
+[data-light-theme="sforge-eva-light"] #message .b3-snackbar__close {
+    color: var(--sforge-fg-1);
+}
+
+[data-light-theme="sforge-eva-light"] #message .b3-snackbar__close:hover {
+    color: var(--sforge-accent-strong);
+    filter: drop-shadow(0 0 7px var(--sforge-accent-bright));
+}
+
+[data-light-theme="sforge-eva-light"] .b3-card {
+    border: 1px solid var(--sforge-glass-edge);
+    background-color: color-mix(in srgb, var(--sforge-glass-fill-base) 74%, transparent);
+    box-shadow: inset 0 1px var(--sforge-glass-specular-soft), 0 8px 22px color-mix(in srgb, var(--sforge-bg-app-deep) 18%, transparent);
+}
+
+[data-light-theme="sforge-eva-light"] .b3-card:hover,
+[data-light-theme="sforge-eva-light"] .b3-card--current {
+    border-color: var(--sforge-console-edge-strong);
+    box-shadow: inset 0 1px var(--sforge-glass-specular), 0 0 18px var(--sforge-neon-cyan-soft);
+}
+
+[data-light-theme="sforge-eva-light"] .keyboard,
+[data-light-theme="sforge-eva-light"] .side-panel,
+[data-light-theme="sforge-eva-light"] .b3-list--mobile {
+    background-color: var(--sforge-glass-fill-strong);
+    background-image: linear-gradient(180deg, var(--sforge-glass-specular-soft), transparent 22%);
+    color: var(--sforge-fg-1);
+}
+
+@media (max-width: 620px) {
+    [data-light-theme="sforge-eva-light"] .toolbar,
+    [data-light-theme="sforge-eva-light"] .toolbar--border,
+    [data-light-theme="sforge-eva-light"] .status,
+    [data-light-theme="sforge-eva-light"] .keyboard {
+        background-color: var(--sforge-bg-chrome);
+        border-color: var(--sforge-border);
+    }
+
+    [data-light-theme="sforge-eva-light"] .protyle-breadcrumb,
+    [data-light-theme="sforge-eva-light"] .protyle-title {
+        background-color: var(--sforge-glass-chrome);
+    }
+
+    [data-light-theme="sforge-eva-light"] .protyle-title {
+        background: transparent;
+    }
+
+    [data-light-theme="sforge-eva-light"] .protyle-wysiwyg {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    [data-light-theme="sforge-eva-light"] .agent-chat__input-area {
+        margin-left: 8px;
+        margin-right: 8px;
+    }
+
+    [data-light-theme="sforge-eva-light"] .agent-chat__buttons {
+        gap: 4px;
+    }
+}
+
+[data-light-theme="sforge-eva-light"] :focus-visible {
+    outline: none;
+    box-shadow: var(--sforge-shadow-focus);
+}
+
+@keyframes sforge-light-grid-drift {
+    from {
+        background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+    }
+    to {
+        background-position: 0 0, 0 0, 24px 0, 0 24px, 120px 0, 0 120px;
+    }
+}
+
+@keyframes sforge-light-edge-scan {
+    from {
+        background-position: 180% 0, 0 0;
+    }
+    to {
+        background-position: -80% 0, 0 0;
+    }
+}
+
+@keyframes sforge-light-signal-pulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px var(--sforge-neon-cyan-soft));
+        text-shadow: 0 0 7px var(--sforge-neon-cyan-soft);
+    }
+    50% {
+        filter: drop-shadow(0 0 8px var(--sforge-neon-cyan-soft));
+        text-shadow: 0 0 13px var(--sforge-neon-cyan-soft), 0 0 20px var(--sforge-neon-violet-soft);
+    }
+}
+
+@keyframes sforge-light-message-pulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 8px var(--sforge-neon-cyan-soft));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-light-theme="sforge-eva-light"] *,
+    [data-light-theme="sforge-eva-light"] *::before,
+    [data-light-theme="sforge-eva-light"] *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
+}

@@ -67,7 +67,7 @@ const loadScript = (src: string, id: string) => new Promise<void>((resolve, reje
     document.head.appendChild(script);
 });
 
-/** 加载独立入口所需的默认主题样式。 */
+/** 加载独立入口所需的主题样式。 */
 const loadStyle = (href: string, id: string) => new Promise<void>((resolve, reject) => {
     const existing = asLinkElement(document.getElementById(id));
     if (existing) {
@@ -94,6 +94,25 @@ const normalizeStorage = (storage: IObject | undefined) => ({
     },
     ...storage,
 });
+
+/** 根据独立入口配置加载默认主题和当前选中的主题覆盖层。 */
+const loadStandaloneTheme = async (config: Config.IConf, language: string) => {
+    const prefersDark = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const darkMode = config.appearance?.modeOS ? prefersDark : config.appearance?.mode === 1;
+    const defaultTheme = darkMode ? "midnight" : "daylight";
+    const selectedTheme = darkMode ? config.appearance?.themeDark : config.appearance?.themeLight;
+    document.documentElement.lang = language.replace("_", "-");
+    document.documentElement.dataset.themeMode = darkMode ? "dark" : "light";
+    document.documentElement.dataset.lightTheme = config.appearance?.themeLight || "daylight";
+    document.documentElement.dataset.darkTheme = config.appearance?.themeDark || "midnight";
+
+    await loadStyle(`/appearance/themes/${defaultTheme}/theme.css`, "themeDefaultStyle");
+    // 仅在用户选择了非默认主题时加载覆盖层，资源缺失仍保留默认主题以避免独立入口白屏。
+    if (selectedTheme && selectedTheme !== defaultTheme) {
+        await loadStyle(`/appearance/themes/${selectedTheme}/theme.css?v=${config.appearance?.themeVer || "standalone"}`, "themeStyle")
+            .catch(() => undefined);
+    }
+};
 
 /** 按固定顺序获取配置并加载资源，确保创建 Protyle 前运行环境已经就绪。 */
 const loadKernelRuntime = async () => {
@@ -137,15 +156,8 @@ const loadKernelRuntime = async () => {
     const editorFontSize = config.editor?.fontSize || 16;
     document.documentElement.style.setProperty("--b3-font-size-editor", `${editorFontSize}px`);
 
-    const darkMode = config.appearance?.mode === 1;
-    const defaultTheme = darkMode ? "midnight" : "daylight";
-    document.documentElement.lang = language.replace("_", "-");
-    document.documentElement.dataset.themeMode = darkMode ? "dark" : "light";
-    document.documentElement.dataset.lightTheme = config.appearance?.themeLight || "daylight";
-    document.documentElement.dataset.darkTheme = config.appearance?.themeDark || "midnight";
-
     await Promise.all([
-        loadStyle(`/appearance/themes/${defaultTheme}/theme.css`, "themeDefaultStyle"),
+        loadStandaloneTheme(config, language),
         loadScript("/appearance/icons/litheness/icon.js", "iconDefaultScript"),
         loadScript("/stage/protyle/js/lute/lute.min.js", "protyleLuteScript"),
     ]);

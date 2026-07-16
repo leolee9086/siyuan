@@ -219,3 +219,47 @@
 .main-panel-input {
   flex-shrink: 0;
 }
+
+/* Main output consumes the same semantic tokens as the MAGI shell and the
+   host window. This keeps status meaning stable when the theme changes. */
+.magi-root .main-output,
+.magi-root .magi-workspace-shell {
+  color: var(--sforge-fg-1);
+  background: var(--sforge-bg-content);
+}
+
+.magi-root .main-output .consensus-header,
+.magi-root .magi-workspace-shell .consensus-header {
+  background-color: var(--sforge-surface-1);
+  background-image: linear-gradient(to right, var(--sforge-grid-line), transparent 42%, var(--sforge-grid-line));
+  border-bottom-color: var(--sforge-border);
+}
+
+.magi-root .main-output .global-status,
+.magi-root .magi-workspace-shell .global-status {
+  background-color: var(--sforge-surface-2);
+  border-bottom-color: var(--sforge-border);
+}
+
+.magi-root .main-output .status-name,
+.magi-root .main-output .sync-rate,
+.magi-root .magi-workspace-shell .status-name,
+.magi-root .magi-workspace-shell .sync-rate { color: var(--sforge-signal-normal); }
+.magi-root .main-output .status-led.connected,
+.magi-root .magi-workspace-shell .status-led.connected { background: var(--sforge-signal-normal); box-shadow: 0 0 5px var(--sforge-signal-normal); }
+.magi-root .main-output .status-led.loading,
+.magi-root .magi-workspace-shell .status-led.loading { background: var(--sforge-signal-heartbeat); box-shadow: 0 0 5px var(--sforge-signal-heartbeat); }
+.magi-root .main-output .status-led.disconnected,
+.magi-root .magi-workspace-shell .status-led.disconnected { background: var(--sforge-signal-error); box-shadow: 0 0 5px var(--sforge-signal-error); }
+.magi-root .main-output .toggle-text,
+.magi-root .magi-workspace-shell .toggle-text { color: var(--sforge-accent); }
+.magi-root .main-output .neon-text,
+.magi-root .magi-workspace-shell .neon-text { color: var(--sforge-signal-normal); text-shadow: 0 0 10px color-mix(in srgb, var(--sforge-signal-normal) 65%, transparent); }
+.magi-root .main-message-container .scrollbar-thumb { background: var(--sforge-accent); }
+.magi-root .main-output .progress-container { background: var(--sforge-accent-soft); }
+.magi-root .main-output .progress-bar { background: linear-gradient(to right, var(--sforge-accent), var(--sforge-signal-normal)); }
+.magi-root .main-output .progress-text { color: var(--sforge-bg-app); }
+.magi-root .main-output .persona-button,
+.magi-root .magi-workspace-shell .persona-button { border-color: var(--sforge-signal-normal); color: var(--sforge-signal-normal); background: color-mix(in srgb, var(--sforge-signal-normal) 12%, transparent); }
+.magi-root .main-output .persona-button:hover,
+.magi-root .magi-workspace-shell .persona-button:hover { background: color-mix(in srgb, var(--sforge-signal-normal) 22%, transparent); box-shadow: 0 0 10px color-mix(in srgb, var(--sforge-signal-normal) 30%, transparent); }

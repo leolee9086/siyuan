@@ -1,5 +1,7 @@
-/** 用途：forgeI18n 国际化加载函数。使用范围：MAGI 独立入口的 i18n 初始化。解耦评估：环境工具函数，通过 imports.ts 转发可降低路径耦合。 */
-import { loadForgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
+/** 用途：forgeI18n 国际化加载函数。使用范围：MAGI 独立入口的 i18n 初始化。解耦评估：环境工具函数通过同目录 imports.ts 转发，避免入口直接跨层依赖。 */
+import { loadForgeI18n } from "./imports";
+/** 用途：MAGI 主题加载函数。使用范围：独立入口的主题初始化。解耦评估：环境层适配函数，通过独立资源加载避免耦合主窗口主题运行时。 */
+import { loadMagiTheme } from "./magiTheme";
 /** 用途：MagiBuildTarget 构建目标类型。使用范围：MAGI 入口配置参数类型。解耦评估：类型导入，不涉及运行时耦合。 */
 import type { MagiBuildTarget } from "./magiEntry.types";
 
@@ -97,6 +99,8 @@ export async function bootstrapMagiSiyuan(target: MagiBuildTarget) {
             isMobile: target === "magi-mobile",
         },
     });
+
+    await loadMagiTheme(config);
 
     try {
         await loadForgeI18n();

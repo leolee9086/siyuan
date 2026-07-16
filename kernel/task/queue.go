@@ -189,7 +189,9 @@ func getCurrentTasks() (ret []*Task) {
 
 	currentTaskLock.Lock()
 	if nil != currentTask {
-		ret = append(ret, currentTask)
+		if currentTask.Action != DatabaseIndexFullEnd {
+			ret = append(ret, currentTask)
+		}
 	}
 	currentTaskLock.Unlock()
 

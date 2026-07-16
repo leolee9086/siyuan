@@ -6,6 +6,34 @@ body,
   overflow: hidden;
 }
 
+/* Fallback values keep an independently opened MAGI page readable while the
+   host theme stylesheet is loading. The host theme replaces these tokens. */
+:root {
+  --sforge-bg-app: #050c0c;
+  --sforge-bg-content: #071516;
+  --sforge-surface-1: #0b2325;
+  --sforge-surface-2: #103236;
+  --sforge-fg-1: #d9f7f6;
+  --sforge-fg-2: #9deff2;
+  --sforge-fg-3: #73b9bc;
+  --sforge-accent: #66f7ff;
+  --sforge-accent-strong: #a1fbff;
+  --sforge-accent-soft: rgba(0, 255, 255, .14);
+  --sforge-signal-normal: #15ff56;
+  --sforge-signal-running: #66f7ff;
+  --sforge-signal-heartbeat: #ffe76e;
+  --sforge-signal-sleeping: #8fd8ff;
+  --sforge-signal-warning: #ffbd69;
+  --sforge-signal-error: #ff5775;
+  --sforge-border: rgba(0, 255, 255, .28);
+  --sforge-border-strong: #66f7ff;
+  --sforge-grid-line: rgba(102, 247, 255, .08);
+  --sforge-grid-major: rgba(102, 247, 255, .14);
+  --sforge-shadow-panel: 0 8px 24px rgba(0, 0, 0, .42);
+  --sforge-shadow-focus: 0 0 0 2px rgba(102, 247, 255, .3);
+  --sforge-font-mono: "MS Gothic", ui-monospace, monospace;
+}
+
 *,
 *::before,
 *::after {
@@ -16,14 +44,74 @@ body,
   width: 100%;
   height: 100%;
   min-height: 100%;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(0, 255, 180, 0.12), transparent 42%),
-    radial-gradient(circle at 82% 84%, rgba(0, 170, 255, 0.12), transparent 38%),
-    linear-gradient(180deg, #050c0c 0%, #020505 100%);
-  color: #9deff2;
+  background-color: var(--sforge-bg-app);
+  background-image:
+    linear-gradient(to right, var(--sforge-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--sforge-grid-line) 1px, transparent 1px),
+    linear-gradient(to right, var(--sforge-grid-major) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--sforge-grid-major) 1px, transparent 1px),
+    linear-gradient(135deg, color-mix(in srgb, var(--sforge-accent) 7%, transparent), transparent 52%);
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px, auto;
+  color: var(--sforge-fg-1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Shared state surface: MAGI uses the same semantic signals as the main
+   window, while retaining its compact console geometry. */
+.magi-root .magi-titlebar {
+  border-bottom-color: var(--sforge-border);
+  background: color-mix(in srgb, var(--sforge-surface-1) 88%, transparent);
+}
+
+.magi-root .magi-title,
+.magi-root .magi-titlebar-guard-label {
+  color: var(--sforge-accent-strong);
+  font-family: var(--sforge-font-mono);
+}
+
+.magi-root .magi-titlebar-content::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--sforge-accent) 55%, transparent);
+}
+
+.magi-root .magi-runtime-indicator,
+.magi-root .magi-runtime-button,
+.magi-root .magi-runtime-toggle,
+.magi-root .magi-control-button {
+  border-color: var(--sforge-border);
+  background: color-mix(in srgb, var(--sforge-surface-2) 70%, transparent);
+  color: var(--sforge-fg-2);
+}
+
+.magi-root .magi-runtime-indicator.sleeping { border-color: color-mix(in srgb, var(--sforge-signal-sleeping) 60%, transparent); color: var(--sforge-signal-sleeping); }
+.magi-root .magi-runtime-indicator.heartbeat { border-color: color-mix(in srgb, var(--sforge-signal-heartbeat) 70%, transparent); color: var(--sforge-signal-heartbeat); box-shadow: 0 0 10px color-mix(in srgb, var(--sforge-signal-heartbeat) 22%, transparent); }
+.magi-root .magi-runtime-indicator.external { border-color: color-mix(in srgb, var(--sforge-signal-normal) 70%, transparent); color: var(--sforge-signal-normal); box-shadow: 0 0 10px color-mix(in srgb, var(--sforge-signal-normal) 18%, transparent); }
+.magi-root .magi-runtime-indicator.unknown { border-color: color-mix(in srgb, var(--sforge-signal-error) 70%, transparent); color: var(--sforge-signal-error); }
+.magi-root .magi-status-name,
+.magi-root .magi-sync-rate { color: var(--sforge-signal-normal); }
+.magi-root .magi-status-led.connected { background: var(--sforge-signal-normal); box-shadow: 0 0 6px var(--sforge-signal-normal); }
+.magi-root .magi-status-led.loading { background: var(--sforge-signal-heartbeat); box-shadow: 0 0 6px var(--sforge-signal-heartbeat); }
+.magi-root .magi-status-led.disconnected { background: var(--sforge-signal-error); box-shadow: 0 0 6px var(--sforge-signal-error); }
+.magi-root .magi-runtime-button--persona { border-color: var(--sforge-signal-normal); color: var(--sforge-signal-normal); background: color-mix(in srgb, var(--sforge-signal-normal) 14%, transparent); }
+.magi-root .magi-runtime-button:hover,
+.magi-root .magi-runtime-toggle:hover,
+.magi-root .magi-control-button:hover { border-color: var(--sforge-border-strong); background: var(--sforge-accent-soft); }
+.magi-root .magi-runtime-toggle.active { color: var(--sforge-accent-strong); text-shadow: 0 0 6px color-mix(in srgb, var(--sforge-accent) 70%, transparent); }
+.magi-root .magi-window-control-button:hover { color: var(--sforge-accent-strong); }
+.magi-root .magi-window-control-button--close:hover { color: var(--sforge-signal-error); }
+.magi-root .magi-loading,
+.magi-root .magi-error { color: var(--sforge-accent-strong); }
+.magi-root .magi-error { border-color: var(--sforge-signal-error); color: var(--sforge-signal-error); }
+.magi-root :focus-visible { outline: none; box-shadow: var(--sforge-shadow-focus); }
+
+@media (prefers-reduced-motion: reduce) {
+  .magi-root *, .magi-root *::before, .magi-root *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .magi-titlebar {

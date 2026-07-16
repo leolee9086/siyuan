@@ -1,0 +1,31 @@
+{
+  "name": "sforge-eva-dark",
+  "displayName": {
+    "default": "S-Forge EVA Dark",
+    "en_US": "S-Forge EVA Dark",
+    "zh_CN": "S-Forge EVA 暗色"
+  },
+  "author": "S-Forge",
+  "url": "https://github.com/leolee9086/siyuan",
+  "version": "0.3.4",
+  "minAppVersion": "3.7.0",
+  "description": {
+    "default": "A dark S-Forge theme with EVA console-inspired information hierarchy.",
+    "en": "A dark S-Forge theme with EVA console-inspired information hierarchy.",
+    "zh-CN": "具有 EVA 控制台信息层级的 S-Forge 暗色主题。"
+  },
+  "readme": {
+    "default": "README.md",
+    "en": "README.md",
+    "zh-CN": "README.zh-CN.md"
+  },
+  "modes": [
+    "dark"
+  ],
+  "keywords": [
+    "S-Forge",
+    "EVA",
+    "dark",
+    "暗色"
+  ]
+}

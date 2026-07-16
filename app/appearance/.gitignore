@@ -2,6 +2,10 @@ themes/*/custom.css
 themes/*
 !themes/daylight/
 !themes/midnight/
+!themes/sforge-eva-light/
+!themes/sforge-eva-light/**
+!themes/sforge-eva-dark/
+!themes/sforge-eva-dark/**
 
 icons/*
 !icons/litheness/
