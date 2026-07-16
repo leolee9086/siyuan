@@ -50,6 +50,9 @@ func newBrowserClient(timeout time.Duration, proxyURL string) (tlsclient.HttpCli
 		tlsclient.WithTimeoutMilliseconds(milliseconds),
 		tlsclient.WithClientProfile(profiles.Chrome_133),
 		tlsclient.WithRandomTLSExtensionOrder(),
+		// Some protected endpoints accept the Chrome HTTP/1.1 fingerprint but
+		// leave the HTTP/2 connection idle indefinitely (Pinterest is one).
+		tlsclient.WithForceHttp1(),
 	}
 	if strings.TrimSpace(proxyURL) != "" {
 		options = append(options, tlsclient.WithProxyUrl(proxyURL))

@@ -3,6 +3,7 @@ package websearch
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -166,6 +167,14 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 	}
 	results, err := e.cfg.Parse(body, opts.NumResults)
 	if err != nil {
+		var captchaErr *CaptchaError
+		var accessDeniedErr *AccessDeniedError
+		var rateLimitErr *RateLimitError
+		var timeoutErr *TimeoutError
+		if errors.As(err, &captchaErr) || errors.As(err, &accessDeniedErr) ||
+			errors.As(err, &rateLimitErr) || errors.As(err, &timeoutErr) {
+			return nil, err
+		}
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
 	}
 	if results == nil {

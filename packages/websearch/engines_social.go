@@ -1973,37 +1973,94 @@ func newGrokipedia(config EngineConfig) SearchEngine {
 	})(config)
 }
 
+var (
+	sogouResultBlockRegexp = regexp.MustCompile(`(?is)<div[^>]*class="(?:rb|vrwrap[^"]*)"[^>]*>.*?</div>\s*</div>`)
+	sogouPTLinkRegexp      = regexp.MustCompile(`(?is)<h3[^>]*class="pt"[^>]*>.*?<a[^>]*href="([^"]*)"[^>]*>(.*?)</a>`)
+	sogouVRTitleLinkRegexp = regexp.MustCompile(`(?is)<h3[^>]*class="[^"]*vr-title[^"]*"[^>]*>.*?<a[^>]*href="([^"]*)"[^>]*>(.*?)</a>`)
+	sogouSnippetRegexp     = regexp.MustCompile(`(?is)<div[^>]*class="ft"[^>]*>(.*?)</div>`)
+	sogouDateRegexp        = regexp.MustCompile(`(?i)(\d{4}-\d{1,2}-\d{1,2})`)
+	sogouDataURLRegexp     = regexp.MustCompile(`(?i)data-url="([^"]+)"`)
+)
+
 func newSogou(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "sogou",
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.sogou.com/web?query=" + url.QueryEscape(q) + "&page=1"
 		},
-		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
-			pos := 0
-			re := regexp.MustCompile(`<(?:div|li)[^>]*class="(?:rb|vrwrap(?:[^"]*)?)"[^>]*>[\s\S]*?<h3[^>]*class="[^"]*(?:pt|vr-title)[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max {
-					break
-				}
-				title := StripHTML(m[2])
-				url := m[1]
-				if title == "" || url == "" {
-					continue
-				}
-				if strings.HasPrefix(url, "/link?url=") {
-					urlM := regexp.MustCompile(`data-url="([^"]+)"`).FindStringSubmatch(body)
-					if len(urlM) > 1 {
-						url = urlM[1]
-					}
-				}
-				pos++
-				results = append(results, SearchResult{Title: title, URL: url, Snippet: "", Engine: "sogou", Position: pos})
-			}
-			return results, nil
+		Headers: map[string]string{
+			"Accept-Language": "zh-CN,zh;q=0.9",
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
 		},
+		Parse: parseSogouResults,
 	})(config)
+}
+
+func parseSogouResults(body string, maxResults int) ([]SearchResult, error) {
+	results := make([]SearchResult, 0)
+	if maxResults <= 0 {
+		return results, nil
+	}
+
+	lowerBody := strings.ToLower(body)
+	if strings.Contains(lowerBody, "antispider") ||
+		strings.Contains(lowerBody, `id="seccodeform"`) ||
+		strings.Contains(lowerBody, "验证码用于确认这些请求") {
+		return nil, &CaptchaError{Engine: "sogou", Message: "sogou returned a CAPTCHA challenge"}
+	}
+
+	position := 0
+	for _, block := range sogouResultBlockRegexp.FindAllString(body, -1) {
+		if len(results) >= maxResults {
+			break
+		}
+		if strings.Contains(block, "special-wrap") {
+			continue
+		}
+
+		match := sogouPTLinkRegexp.FindStringSubmatch(block)
+		if len(match) == 0 {
+			match = sogouVRTitleLinkRegexp.FindStringSubmatch(block)
+		}
+		if len(match) < 3 {
+			continue
+		}
+
+		resultURL := strings.TrimSpace(match[1])
+		title := UnescapeHTML(StripHTML(match[2]))
+		if resultURL == "" || title == "" {
+			continue
+		}
+		if strings.HasPrefix(resultURL, "/link?url=") {
+			if dataURL := sogouDataURLRegexp.FindStringSubmatch(block); len(dataURL) > 1 {
+				resultURL = dataURL[1]
+			} else {
+				resultURL = "https://www.sogou.com" + resultURL
+			}
+		}
+
+		snippet := ""
+		if snippetMatch := sogouSnippetRegexp.FindStringSubmatch(block); len(snippetMatch) > 1 {
+			snippet = UnescapeHTML(StripHTML(snippetMatch[1]))
+			if len(snippet) > 300 {
+				snippet = snippet[:300]
+			}
+		}
+
+		var publishedDate int64
+		if dateMatch := sogouDateRegexp.FindStringSubmatch(block); len(dateMatch) > 1 {
+			if parsed, err := time.Parse("2006-1-2", dateMatch[1]); err == nil {
+				publishedDate = parsed.UnixMilli()
+			}
+		}
+
+		position++
+		results = append(results, SearchResult{
+			Title: title, URL: resultURL, Snippet: snippet,
+			Engine: "sogou", Position: position, PublishedDate: publishedDate,
+		})
+	}
+	return results, nil
 }
 
 func new360Search(config EngineConfig) SearchEngine {

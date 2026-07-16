@@ -199,6 +199,45 @@ func TestGoogleScholarParserSplitsBlocksWithoutUnsupportedRegexpFeatures(t *test
 	}
 }
 
+func TestSogouParserMatchesScodeResultContracts(t *testing.T) {
+	body := `<div class="vrwrap" data-url="https://example.com/redirected">` +
+		`<h3 class="vr-title"><a href="/link?url=opaque">First <em>result</em> &amp; details</a></h3>` +
+		`<div class="ft">A <b>useful</b> snippet</div><cite>2026-07-17</cite></div></div>` +
+		`<div class="rb"><h3 class="pt"><a href="https://example.com/direct">Second result</a></h3>` +
+		`<div class="ft">Second snippet</div></div></div>`
+
+	results, err := parseSogouResults(body, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("got %d results, want 2: %#v", len(results), results)
+	}
+	if results[0].Title != "First result & details" || results[0].URL != "https://example.com/redirected" ||
+		results[0].Snippet != "A useful snippet" || results[0].PublishedDate == 0 {
+		t.Fatalf("unexpected first Sogou result: %#v", results[0])
+	}
+	if results[1].Title != "Second result" || results[1].URL != "https://example.com/direct" {
+		t.Fatalf("unexpected second Sogou result: %#v", results[1])
+	}
+}
+
+func TestSogouParserReportsCaptchaAndNonNilEmptyResults(t *testing.T) {
+	_, err := parseSogouResults(`<form id="seccodeForm"><p>验证码用于确认这些请求是您的正常行为</p></form>`, 3)
+	var captchaErr *CaptchaError
+	if err == nil || !errors.As(err, &captchaErr) {
+		t.Fatalf("captcha response error=%v", err)
+	}
+
+	results, err := parseSogouResults(`<html><body>no results</body></html>`, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if results == nil || len(results) != 0 {
+		t.Fatalf("empty response parse returned %#v", results)
+	}
+}
+
 func TestCodeEngineParsersMatchReferenceContracts(t *testing.T) {
 	tests := []struct {
 		name    string
