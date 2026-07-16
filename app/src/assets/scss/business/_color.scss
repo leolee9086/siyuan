@@ -29,3 +29,253 @@
     box-shadow: 0 0 0 2px var(--b3-menu-background) inset, 0 0 0 3px var(--b3-list-hover);
   }
 }
+
+.sforge-color-tool {
+  display: flex;
+  flex-direction: column;
+  min-width: min(880px, 92vw);
+  max-width: 92vw;
+  max-height: 80vh;
+  color: var(--b3-theme-on-background);
+  background: var(--b3-theme-background);
+}
+
+.sforge-color-tool__header,
+.sforge-color-tool__toolbar,
+.sforge-color-tool__pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sforge-color-tool__header {
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-color-tool__subtitle,
+.sforge-color-tool__muted {
+  margin-left: 8px;
+  color: var(--b3-theme-on-surface-light);
+  font-size: 12px;
+}
+
+.sforge-color-tool__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-color-tool__tab {
+  padding: 6px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--b3-theme-on-surface);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sforge-color-tool__tab--active {
+  border-bottom-color: var(--b3-theme-primary);
+  color: var(--b3-theme-primary);
+}
+
+.sforge-color-tool__body {
+  overflow: auto;
+  padding: 0 16px 16px;
+}
+
+.sforge-color-tool__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sforge-color-tool__group {
+  padding-top: 12px;
+  border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-color-tool__group-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 0 8px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sforge-color-tool__group-toggle svg {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  flex: 0 0 auto;
+}
+
+.sforge-color-tool__group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sforge-color-tool__group-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 12px;
+}
+
+.sforge-color-tool__group-content > .sforge-color-tool__group,
+.sforge-color-tool__traditional-scroll,
+.sforge-color-tool__recent-scroll {
+  width: 100%;
+  min-width: 0;
+}
+
+.sforge-color-tool__recent-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.sforge-color-tool__recent-scroll > .sforge-color-tool__swatch {
+  flex: 0 0 auto;
+}
+
+.sforge-color-tool__pair {
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+.sforge-color-tool__color-input,
+.sforge-color-tool__alpha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sforge-color-tool__color-input input[type="color"] {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sforge-color-tool__alpha { min-width: 180px; }
+.sforge-color-tool__alpha input { width: 90px; }
+
+.sforge-color-tool__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sforge-color-tool__traditional-scroll {
+  flex: 1 1 100%;
+  max-height: 168px;
+  overflow: hidden;
+}
+
+.sforge-color-tool__traditional-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(24px, 1fr));
+  gap: 0;
+  align-content: start;
+}
+
+.sforge-color-tool__traditional-swatch {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  margin: 4px;
+}
+
+.sforge-color-tool__swatch {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--b3-border-color) 70%, transparent);
+  border-radius: 3px;
+  color: var(--b3-theme-on-background);
+  cursor: pointer;
+}
+
+.sforge-color-tool__swatch--add {
+  color: var(--b3-theme-primary);
+  background: transparent;
+  font-size: 18px;
+}
+
+.sforge-color-tool__search { width: 220px; }
+.sforge-color-tool__number { width: 72px; }
+
+.sforge-color-tool__clear-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.sforge-color-tool__hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.sforge-color-tool__dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  border: 1px dashed var(--b3-border-color);
+  background: var(--b3-theme-surface);
+}
+
+.sforge-color-tool__dropzone img {
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+}
+
+.sforge-color-tool__error { color: var(--b3-theme-error); }
+
+.sforge-color-tool__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.sforge-color-tool__preview img {
+  max-width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
+  border: 1px solid var(--b3-border-color);
+}
+
+.sforge-color-tool__empty { color: var(--b3-theme-on-surface-light); }
+.sforge-color-tool__empty--large { display: grid; min-height: 280px; place-items: center; }
+.sforge-color-dock { min-width: 0; min-height: 0; }
+.sforge-color-dock .sforge-color-tool { width: 100%; min-width: 0; max-width: none; max-height: none; }
+.sforge-color-dock .sforge-color-tool__body { min-height: 0; }
+.sforge-color-tool__export-labels { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; width: 100%; }
+.sforge-color-tool__export-labels label { display: flex; align-items: center; gap: 6px; }
+.sforge-color-tool__export-labels input { min-width: 0; flex: 1; }
+
+@media (max-width: 700px) {
+  .sforge-color-tool { min-width: 0; width: 92vw; }
+  .sforge-color-tool__toolbar { flex-wrap: wrap; }
+}
