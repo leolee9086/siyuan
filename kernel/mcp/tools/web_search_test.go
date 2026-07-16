@@ -34,6 +34,21 @@ func TestWebSearchHandlerPropagatesInvalidQuery(t *testing.T) {
 	}
 }
 
+func TestLatestSearchProgressResultsKeepsFiveNewest(t *testing.T) {
+	results := make([]shared.SearchResult, 7)
+	for i := range results {
+		results[i] = shared.SearchResult{Title: "title", URL: "https://example.com/" + strconv.Itoa(i), Engine: "engine"}
+	}
+
+	preview := latestSearchProgressResults(results)
+	if len(preview) != 5 {
+		t.Fatalf("progress preview should keep five results, got %d", len(preview))
+	}
+	if preview[0].URL != "https://example.com/6" || preview[4].URL != "https://example.com/2" {
+		t.Fatalf("progress preview must be newest-first: %+v", preview)
+	}
+}
+
 func TestWebSearchStatusHandlerReturnsStructuredUnknownEngine(t *testing.T) {
 	result, err := webSearchStatusHandler(map[string]interface{}{
 		"probe":   false,
