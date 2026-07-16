@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/siyuan-note/siyuan/kernel/mcp/tools"
@@ -37,5 +39,21 @@ func TestNativeAgentForgeWritesRequireConfirmation(t *testing.T) {
 	}
 	if needsConfirm(tools.ForgeDevRepoListToolName, "", map[string]bool{}) {
 		t.Fatal("forge read should not require confirmation")
+	}
+}
+
+func TestBuildToolResultOutputsPreservesCompleteDisplayPayload(t *testing.T) {
+	previousDataDir := util.DataDir
+	util.DataDir = t.TempDir()
+	t.Cleanup(func() { util.DataDir = previousDataDir })
+
+	raw := `{"results":[{"title":"complete"}],"padding":"` + strings.Repeat("x", util.MaxToolOutputChars+100) + `"}`
+	displayResult, modelResult := buildToolResultOutputs(raw, "session-test")
+	displayPayload := strings.TrimSuffix(strings.TrimPrefix(displayResult, "[tool_output]\n"), "\n[/tool_output]")
+	if !json.Valid([]byte(displayPayload)) {
+		t.Fatal("display result must preserve a complete JSON payload")
+	}
+	if !strings.Contains(modelResult, "content truncated") {
+		t.Fatal("model result should be truncated when it exceeds the context limit")
 	}
 }

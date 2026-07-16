@@ -249,6 +249,12 @@ func wrapToolOutput(result string) string {
 	return "[tool_output]\n" + result + "\n[/tool_output]"
 }
 
+// buildToolResultOutputs keeps the complete payload for the UI while bounding
+// the copy that is fed back into the model context.
+func buildToolResultOutputs(rawResult, sessionID string) (string, string) {
+	return wrapToolOutput(rawResult), wrapToolOutput(util.TruncateToolOutput(rawResult, sessionID))
+}
+
 type AgentEvent struct {
 	Type             string
 	Token            string
@@ -726,25 +732,23 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 							})
 						})
 					}
-					// rawResult 保留 wrap/truncate 之前的原始文本，用于判断是否为空。
+					// 保留完整结果给前端卡片；仅发送给模型的副本做截断，避免大搜索响应破坏 UI 的 JSON 解析。
 					rawResult := resultStr
-
-					resultStr = util.TruncateToolOutput(resultStr, sessionID)
-					resultStr = wrapToolOutput(resultStr)
+					displayResult, modelResult := buildToolResultOutputs(rawResult, sessionID)
 
 					sendEvent(ch, AgentEvent{
 						Type:   "tool_result",
 						Name:   tc.Function.Name,
 						CallID: tc.ID,
-						Result: resultStr,
+						Result: displayResult,
 					})
 
 					messages = append(messages, openai.ChatCompletionMessage{
 						Role:       openai.ChatMessageRoleTool,
-						Content:    resultStr,
+						Content:    modelResult,
 						ToolCallID: tc.ID,
 					})
-					checkpointMsgs[assistantIdx].ToolCalls[i].Result = resultStr
+					checkpointMsgs[assistantIdx].ToolCalls[i].Result = modelResult
 
 					// 死循环检测：只有 question/frontend 之外的普通工具参与，
 					// 且仅当本次调用失败或无返回（即"卡住反复重试"的真死循环特征）时才累加计数。
