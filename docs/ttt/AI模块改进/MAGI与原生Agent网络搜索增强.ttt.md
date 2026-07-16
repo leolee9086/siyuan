@@ -28,19 +28,19 @@
 
 ## 验证检查清单
 
-- [ ] 新配置位于 `conf.AI.webSearch`，密钥可保存、加载、加密和解密，运行时不依赖搜索环境变量。
-- [ ] kernel 正式依赖 `packages/websearch`，常规构建和独立 module 测试均通过。
-- [ ] s-code 适配器文件与 s-forge 引擎注册表有 100% 映射；缺失真实适配器已补齐。
-- [ ] 所有适配器的 HTTP 错误、空响应、解析错误、验证码、拒绝访问和缺失凭据都有明确状态。
+- [x] 新配置位于 `conf.AI.webSearch`，密钥可保存、加载、加密和解密，运行时不依赖搜索环境变量。
+- [x] kernel 正式依赖 `packages/websearch`，常规构建和独立 module 测试均通过。
+- [x] s-code 适配器文件与 s-forge 引擎注册表有 100% 映射；缺失真实适配器已补齐。
+- [x] 所有适配器的 HTTP 错误、空响应、解析错误、验证码、拒绝访问和缺失凭据都有明确状态。
 - [ ] 已配置引擎真实网络探测通过；未配置引擎不会被伪装成成功。
-- [ ] 原生 Agent `web_search` 支持多引擎、provider、查询类型、时间范围、语言和显式引擎选择。
-- [ ] 原生 Agent `web_fetch` 支持 markdown/text/html、超时、MIME/大小限制、Cloudflare 重试和截断。
-- [ ] 原生 Agent `web_search_status` 为只读诊断工具，不触发确认。
-- [ ] MAGI 暴露 `search_web`、`fetch_web_page` 和 `inspect_web_search_engines`，工具 executor 路由正确。
-- [ ] MAGI 普通会话、投票调查和非睡眠心跳读取可搜索；搜索/抓取不进入行动治理。
-- [ ] MAGI 搜索结果写入查询归档和紧凑历史摘要，fetch 保持现有 JSON 文件落盘协议。
+- [x] 原生 Agent `web_search` 支持多引擎、provider、查询类型、时间范围、语言和显式引擎选择。
+- [x] 原生 Agent `web_fetch` 支持 markdown/text/html、超时、MIME/大小限制、Cloudflare 重试和截断。
+- [x] 原生 Agent `web_search_status` 为只读诊断工具，不触发确认。
+- [x] MAGI 暴露 `search_web`、`fetch_web_page` 和 `inspect_web_search_engines`，工具 executor 路由正确。
+- [x] MAGI 普通会话、投票调查和非睡眠心跳读取可搜索；搜索/抓取不进入行动治理。
+- [x] MAGI 搜索结果写入查询归档和紧凑历史摘要，fetch 保持现有 JSON 文件落盘协议。
 - [ ] 搜索包单元测试、kernel 定向测试、fetch 测试和真实网络矩阵均通过。
-- [ ] 每个阶段均有独立原子提交、提交路径清单、测试证据和 TTT 状态记录。
+- [x] 已完成阶段均有独立原子提交、提交路径清单、测试证据和 TTT 状态记录。
 
 ## 近期计划
 
@@ -50,15 +50,12 @@
   - **验收标准**: 配置可持久化且不泄露密钥；kernel 可导入 websearch；服务能按配置选择本地多引擎、Exa 或 Parallel；相关编译测试通过。
   - **参考**: `packages/websearch`、`kernel/conf/ai.go`、`kernel/api/setting.go`。
 
-- [-] **Phase 4: MAGI 独立工具链与结果归档 (P1)**
-  - **背景**: MAGI 只有 `fetch_web_page`，且网络工具没有统一搜索能力和完整历史摘要。
-  - **行动**: 新增 `search_web` 与 `inspect_web_search_engines`；接入普通、投票和心跳读取工具集；保持三贤人治理边界；补充搜索归档和历史摘要。
-  - **验收标准**: MAGI 搜索和抓取可用且不触发行动治理；原生 Agent/MAGI executor 不串线；归档和恢复测试通过。
+- [-] **Phase 5: 全量真实网络验证与引擎健康运营 (P1)**
+  - **背景**: 代码阶段已完成，需要用真实配置验证并集引擎、凭据要求、失败原因、延迟和健康状态。
+  - **行动**: 执行配置驱动的全量真实探测；记录引擎矩阵、凭据要求、响应和失败原因；修复真实网络验证暴露的问题。
+  - **验收标准**: 已配置凭据的引擎请求和解析通过；未配置引擎明确为 `requires_credentials`；报告与测试输出写入 TTT；未完成前不归档。
 
 ## 中期计划
-
-- [ ] **Phase 5: 全量真实网络验证与引擎健康运营 (P1)**
-  - **行动**: 以正式配置执行并集引擎探测；记录响应、延迟、凭据要求、限流和暂停状态；修复所有真实失败适配器。
 
 - [ ] **Phase 6: 搜索结果质量和缓存优化 (P1)**
   - **行动**: 对齐 s-code 的意图识别、去重、评分、域名多样性、缓存和价格比较行为，使用真实回放数据验证结果质量。
@@ -67,6 +64,12 @@
   - **行动**: 完善配置字段文档、诊断使用说明、引擎新增准入规则和持续网络回归流程。
 
 ## 已归档/已完成
+
+- [x] **Phase 4: MAGI 独立工具链与结果归档** [已完成 2026-07-16]
+  - **完成情况**: 新增独立 `search_web`、`inspect_web_search_engines`，保留并增强 `fetch_web_page` 的 JSON 文件落盘协议；普通会话、投票调查和非睡眠心跳读取均接入只读搜索/抓取/诊断；MAGI 使用独立 executor，不复用原生 Agent 确认或 MCP 执行链路；搜索/诊断/抓取结果进入查询归档，非 Melchior 上下文使用紧凑历史摘要，Melchior 保留详细结果；Forge 写入工具的三贤人治理未改变。
+  - **成果文件**: `kernel/nerv/magi/config/toolset_web.go`、`kernel/nerv/magi/config/config.go`、`kernel/nerv/magi/config/manager.go`、`kernel/nerv/magi/coordinator/web_search_tool.go`、`kernel/nerv/magi/coordinator/web_fetch_tool.go`、`kernel/nerv/magi/coordinator/collector_sage.go`、`kernel/nerv/magi/coordinator/voting.go`、`kernel/nerv/magi/coordinator/heartbeat.go`、`kernel/nerv/magi/coordinator/tool_result_memory.go`
+  - **验证**: `go test ./nerv/magi/config -run 'TestWebToolDefinitions|TestDefaultCoreSageToolsExposeAllWebTools'` 通过；`go test ./nerv/magi/coordinator -run 'TestWebSearch|TestMAGIWeb|TestBuildHeartbeatRuntimeToolsBySage|TestAppendTurnToolCallsToContextWithExecutor_SummarizesQueryResultForNonMelchior'` 通过；编译检查通过。
+  - **提交**: `f52fee19c feat(magi): add independent web search tools`
 
 - [x] **Phase 3: 原生 Agent 搜索、抓取和诊断工具** [已完成 2026-07-16]
   - **完成情况**: 原生 `web_search` 支持结果数量、查询类型、时间范围、语言、provider、搜索深度、livecrawl 和显式引擎；新增只读 `web_search_status`；`web_fetch` 支持 markdown/text/html、超时、MIME/大小限制、Cloudflare challenge 重试、重定向 SSRF 检查和截断信息。所有能力通过现有 native 工具注册和执行链路暴露，未改变写操作确认规则。
