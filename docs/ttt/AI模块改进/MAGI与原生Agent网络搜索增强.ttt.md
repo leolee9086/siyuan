@@ -63,7 +63,8 @@
   - **浏览器代理与 TLS 修正（2026-07-17）**: 移除 websearch 自定义 CONNECT/uTLS Transport；改用成熟 `tls-client` 的 Chrome profile 和显式 `WithProxyUrl`，代理 URL 只由 `EngineConfig.Proxy`/调用方传入。标准直连 Transport 清除 `ProxyFromEnvironment`；`AutoDetect` 仅返回明确错误，不再探测 `7890` 或其它本地端口。真实单请求验证：GitHub 200、SourceHut 200、9GAG API 200；SourceHut 伪装 Chrome UA 会 418，改用 s-code 的 `opencode-search/1.0 (bot; +https://opencode.ai)` 后引擎返回 2 条结果。原子提交 `9d32117b8 fix(websearch): use explicit browser proxy transport`。
   - **当前全量矩阵（2026-07-17）**: `TestAllEnginesIntegration` 实测 210 个注册引擎：80 个成功、2 个真实零结果、110 个真实失败、18 个明确 `requires_credentials`；代理为调用方显式传入的 `http://127.0.0.1:7890`。失败仍包含站点 403/404/429/503、CAPTCHA、超时、协议解析失败和目标站点主动拒绝，未将失败或凭据缺失伪装成成功。
   - **细粒度 s-code 对照（2026-07-17）**: 新增 `packages/websearch/cmd/enginecompare`，按指定引擎分别调用 s-code 与 Go，单引擎超时会清理 Bun 进程树并输出独立错误。`github` 对照为 s-code/Go 均成功 3 条；`9gag`、`sourcehut`、`theguardian`（显式传入 `test` key）均成功；`pinterest` 在同一代理同一查询下 s-code 成功 3 条，Go 请求超时，仍是当前已确认差异。无 Guardian key 时 Go 明确为 `requires_credentials`，符合凭据契约。原子提交 `e6f0d60a5 fix(websearch): align real engine adapters`。
-  - **当前未完成项**: 必须继续用细粒度工具修复 Pinterest 及其它真实失败差异，完成配置驱动的已配置凭据探测，并补齐 kernel、Agent、MAGI、fetch 定向回归后，才能将本阶段从 `[-]` 移动到已归档。当前禁止标记 `[x]`。
+  - **浏览器传输与 Sogou 细粒度修正（2026-07-17）**: 使用调用方显式传入的 `http://127.0.0.1:7890` 复测，`9gag`、`pinterest`、`sourcehut` 三项 s-code/Go 状态均为 `success`，其中 SourceHut s-code 返回 3 条、Go 返回 2 条但状态一致；Pinterest 不再超时。Sogou 真实响应曾返回 200/488KB 结果页，也实测返回搜狗验证码页；解析器已按 s-code 的 `vrwrap`/`rb`、`pt`/`vr-title` 结果块、跳转 URL、摘要和日期结构对齐，验证码返回类型化 `CaptchaError`，解析无结果返回非 nil 空切片。定向 fixture、代理契约、错误传播和 enginecompare 编译测试通过。原子提交 `ee83b8dc6 fix(websearch): align sogou parser and captcha contract`。
+  - **当前未完成项**: 必须继续用细粒度工具修复尚未对齐的其它真实失败差异，完成配置驱动的已配置凭据探测，并补齐 kernel、Agent、MAGI、fetch 定向回归后，才能将本阶段从 `[-]` 移动到已归档。当前禁止标记 `[x]`。
 
 ## 中期计划
 
