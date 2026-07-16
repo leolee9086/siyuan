@@ -4,6 +4,7 @@ package websearch
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"math/rand/v2"
 	"net/url"
 	"regexp"
@@ -357,22 +358,44 @@ func (e *bitchuteEngine) Name() string         { return "bitchute" }
 func (e *bitchuteEngine) Config() EngineConfig { return e.config }
 func (e *bitchuteEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	client := NewEngineHTTPClient(e.config)
-	body := fmt.Sprintf(`{"offset":0,"limit":%d,"query":"%s","sensitivity_id":"normal","sort":"new"}`, minInt(opts.NumResults, 50), query)
-	status, resp, err := client.PostJSON("https://api.bitchute.com/api/beta/search/videos", body, nil)
-	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+	client.SetHeader("Accept", "application/json")
+	client.SetHeader("Origin", "https://www.bitchute.com")
+	client.SetHeader("Referer", "https://www.bitchute.com/")
+	request := struct {
+		Offset        int    `json:"offset"`
+		Limit         int    `json:"limit"`
+		Query         string `json:"query"`
+		SensitivityID string `json:"sensitivity_id"`
+		Sort          string `json:"sort"`
+	}{0, minInt(opts.NumResults, 50), query, "normal", "new"}
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		return nil, &ProtocolError{Engine: "bitchute", Message: "request encoding failed: " + err.Error()}
+	}
+	status, resp, err := client.PostJSON("https://api.bitchute.com/api/beta/search/videos", string(encoded), headers)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 400 {
+		return nil, &EngineError{Engine: "bitchute", Message: fmt.Sprintf("bitchute returned HTTP %d", status), Retryable: status == 429 || status >= 500}
 	}
 	var data struct {
 		Videos []struct {
-			VideoID, VideoName, Description, Duration, DatePublished string
-			ViewCount                                                int64
-			Channel                                                  *struct{ ChannelName string } `json:"channel"`
+			VideoID       string `json:"video_id"`
+			VideoName     string `json:"video_name"`
+			Description   string `json:"description"`
+			Duration      string `json:"duration"`
+			DatePublished string `json:"date_published"`
+			ViewCount     int64  `json:"view_count"`
+			Channel       *struct {
+				ChannelName string `json:"channel_name"`
+			} `json:"channel"`
 		} `json:"videos"`
 	}
 	if err := json.Unmarshal([]byte(resp), &data); err != nil {
-		return nil, nil
+		return nil, &ProtocolError{Engine: "bitchute", Message: "response parsing failed: " + err.Error()}
 	}
-	var results []SearchResult
+	results := make([]SearchResult, 0, minInt(opts.NumResults, len(data.Videos)))
 	for i, item := range data.Videos {
 		if i >= opts.NumResults || item.VideoID == "" || item.VideoName == "" {
 			break
@@ -421,40 +444,34 @@ func newAcfun(config EngineConfig) SearchEngine {
 			return "https://www.acfun.cn/search?keyword=" + url.QueryEscape(q) + "&pCursor=1"
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
-			pos := 0
-			pipeRe := regexp.MustCompile(`bigPipe\.onPageletArrive\((\{[\s\S]*?\})\);`)
-			for _, pm := range pipeRe.FindAllStringSubmatch(body, -1) {
+			results := make([]SearchResult, 0, max)
+			videoRe := regexp.MustCompile(`<div[^>]*class=\\"[^>]*search-video[^>]*\\"[^>]*data-exposure-log='(\{[\s\S]*?\})'[^>]*>([\s\S]*?)<\/div>\s*<\/div>`)
+			for _, vm := range videoRe.FindAllStringSubmatch(body, -1) {
 				if len(results) >= max {
 					break
 				}
-				var pagelet struct {
-					HTML string `json:"html"`
+				exposure := strings.ReplaceAll(vm[1], `\"`, `"`)
+				var expo struct {
+					ContentID int    `json:"content_id"`
+					Title     string `json:"title"`
 				}
-				if err := json.Unmarshal([]byte(pm[1]), &pagelet); err != nil || pagelet.HTML == "" {
+				if err := json.Unmarshal([]byte(exposure), &expo); err != nil || expo.ContentID == 0 || expo.Title == "" {
 					continue
 				}
-				videoRe := regexp.MustCompile(`<div[^>]*class="[^"]*search-video[^"]*"[^>]*data-exposure-log='([^']+)'[^>]*>([\s\S]*?)<\/div>\s*<\/div>`)
-				for _, vm := range videoRe.FindAllStringSubmatch(pagelet.HTML, -1) {
-					if len(results) >= max {
-						break
-					}
-					var expo struct{ ContentID, Title string }
-					if err := json.Unmarshal([]byte(vm[1]), &expo); err != nil || expo.ContentID == "" || expo.Title == "" {
-						continue
-					}
-					dur := regexp.MustCompile(`duration[^>]*>([^<]+)<`).FindStringSubmatch(vm[2])
-					tm := regexp.MustCompile(`create-time[^>]*>([^<]+)<`).FindStringSubmatch(vm[2])
-					parts := []string{}
-					if len(dur) > 1 {
-						parts = append(parts, strings.TrimSpace(dur[1]))
-					}
-					if len(tm) > 1 {
-						parts = append(parts, strings.TrimSpace(tm[1]))
-					}
-					pos++
-					results = append(results, SearchResult{Title: expo.Title, URL: "https://www.acfun.cn/v/ac" + expo.ContentID, Snippet: strings.Join(parts, " · "), Engine: "acfun", Position: pos, Category: "video"})
+				dur := regexp.MustCompile(`video__duration[^>]*>([^<]+)<`).FindStringSubmatch(vm[2])
+				tm := regexp.MustCompile(`info__create-time[^>]*>([^<]+)<`).FindStringSubmatch(vm[2])
+				intro := regexp.MustCompile(`video__main__intro[^>]*>([^<]+)<`).FindStringSubmatch(vm[2])
+				parts := []string{}
+				if len(dur) > 1 {
+					parts = append(parts, strings.TrimSpace(dur[1]))
 				}
+				if len(tm) > 1 {
+					parts = append(parts, strings.TrimSpace(tm[1]))
+				}
+				if len(intro) > 1 {
+					parts = append(parts, strings.TrimSpace(intro[1]))
+				}
+				results = append(results, SearchResult{Title: expo.Title, URL: fmt.Sprintf("https://www.acfun.cn/v/ac%d", expo.ContentID), Snippet: strings.Join(parts, " · "), Engine: "acfun", Position: len(results) + 1, Category: "video"})
 			}
 			return results, nil
 		},
@@ -705,10 +722,18 @@ func newBingVideos(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "bing-videos",
 		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://www.bing.com/videos/search?q=" + url.QueryEscape(q)
+			return "https://www.bing.com/videos/asyncv2?q=" + url.QueryEscape(q) + "&async=content&first=1&count=" + strconv.Itoa(minInt(opts.NumResults, 35))
+		},
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+			"Referer":         "https://www.bing.com/",
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			results, _ := parseBingResults(body, max)
+			results, err := parseBingVideoResults(body, max)
+			if err != nil {
+				return nil, err
+			}
 			for i := range results {
 				results[i].Engine = "bing-videos"
 				results[i].Category = "video"
@@ -716,6 +741,37 @@ func newBingVideos(config EngineConfig) SearchEngine {
 			return results, nil
 		},
 	})(config)
+}
+
+func parseBingVideoResults(body string, max int) ([]SearchResult, error) {
+	results := make([]SearchResult, 0, max)
+	metadataRe := regexp.MustCompile(`<div[^>]*class="vrhdata"[^>]*vrhm="([^"]*)"`)
+	for _, match := range metadataRe.FindAllStringSubmatch(body, -1) {
+		if len(results) >= max {
+			break
+		}
+		var metadata struct {
+			URL      string `json:"murl"`
+			Title    string `json:"vt"`
+			Duration string `json:"du"`
+		}
+		decoded := html.UnescapeString(match[1])
+		if err := json.Unmarshal([]byte(decoded), &metadata); err != nil {
+			continue
+		}
+		if metadata.Title == "" || metadata.URL == "" {
+			continue
+		}
+		snippet := ""
+		if metadata.Duration != "" {
+			snippet = "时长: " + metadata.Duration
+		}
+		results = append(results, SearchResult{
+			Title: metadata.Title, URL: metadata.URL, Snippet: snippet,
+			Engine: "bing-videos", Position: len(results) + 1, Category: "video",
+		})
+	}
+	return results, nil
 }
 
 // ── Piped ───────────────────────────────────────────────

@@ -44,6 +44,7 @@ func TestAllEnginesIntegration(t *testing.T) {
 	fmt.Fprintf(summaryFile, "|---|--------|--------|---------|----------|-------------|\n")
 
 	allResults := make([]testResult, len(engines))
+	testProxy := explicitTestProxy()
 	sem := make(chan struct{}, MAX_CONCURRENCY)
 	var wg sync.WaitGroup
 	for i, name := range engines {
@@ -58,7 +59,7 @@ func TestAllEnginesIntegration(t *testing.T) {
 				allResults[index] = testResult{Engine: engineName, Error: "not_registered"}
 				return
 			}
-			engine := factory(EngineConfig{Name: engineName, Weight: 1.0, Timeout: 15000, MaxResults: 5})
+			engine := factory(EngineConfig{Name: engineName, Weight: 1.0, Timeout: 15000, MaxResults: 5, Proxy: testProxy})
 			if engine.Config().RequiresKey && strings.TrimSpace(engine.Config().APIKey) == "" {
 				allResults[index] = testResult{Engine: engineName, RequiresCredentials: true, Error: "requires_credentials"}
 				return
@@ -131,7 +132,7 @@ func TestSCodeWorkingEnginesIntegration(t *testing.T) {
 	}
 	proxyURL := os.Getenv("WEBSEARCH_TEST_PROXY")
 	if proxyURL == "" {
-		proxyURL = "http://127.0.0.1:7890"
+		t.Fatal("WEBSEARCH_TEST_PROXY must be set to the caller-provided proxy endpoint")
 	}
 	baseline := []struct {
 		name  string
@@ -164,6 +165,14 @@ func TestSCodeWorkingEnginesIntegration(t *testing.T) {
 			t.Logf("%d results in %dms", result.ResultsCount, result.DurationMs)
 		})
 	}
+}
+
+func explicitTestProxy() ProxyConfig {
+	proxyURL := os.Getenv("WEBSEARCH_TEST_PROXY")
+	if proxyURL == "" {
+		return NewProxyConfig()
+	}
+	return NewExplicitProxy(proxyURL, proxyURL)
 }
 
 func runIntegrationEngine(engine SearchEngine, query string) testResult {

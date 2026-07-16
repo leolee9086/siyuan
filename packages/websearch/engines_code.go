@@ -496,28 +496,39 @@ func newMetacpan(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "metacpan", Category: "code", UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
-			return "https://api.metacpan.org/search?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 20))
+			return "https://fastapi.metacpan.org/v1/module/_search?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 20)) + "&from=0"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				HITS *struct {
 					HITS []struct {
 						Source struct {
-							Name, Description, URL, Author string `json:"name"`
-							Abstract, Release              string
+							Name        string `json:"name"`
+							Description string `json:"description"`
+							URL         string `json:"url"`
+							Author      string `json:"author"`
+							Abstract    string `json:"abstract"`
+							Release     string `json:"release"`
 						} `json:"_source"`
 					} `json:"hits"`
 				} `json:"hits"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil {
-				return nil, nil
+				if err != nil {
+					return nil, err
+				}
+				return []SearchResult{}, nil
 			}
-			var results []SearchResult
+			results := make([]SearchResult, 0, minInt(max, len(resp.HITS.HITS)))
 			for i, h := range resp.HITS.HITS {
 				if i >= max || h.Source.Name == "" {
 					break
 				}
-				results = append(results, SearchResult{Title: h.Source.Name + " (" + h.Source.Release + ")", URL: "https://metacpan.org/pod/" + h.Source.Name, Snippet: h.Source.Abstract, Engine: "metacpan", Position: i + 1, Category: "code"})
+				snippet := h.Source.Abstract
+				if snippet == "" {
+					snippet = h.Source.Description
+				}
+				results = append(results, SearchResult{Title: h.Source.Name + " (" + h.Source.Release + ")", URL: "https://metacpan.org/pod/" + h.Source.Name, Snippet: snippet, Engine: "metacpan", Position: i + 1, Category: "code"})
 			}
 			return results, nil
 		},
@@ -872,23 +883,27 @@ func newGitHubCode(config EngineConfig) SearchEngine {
 }
 func newGitHubIssues(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true,
+		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/issues?q=" + url.QueryEscape(q) + "+type:issue&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=relevance&order=desc"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Items []struct {
-					Title, HTMLURL, State string `json:"html_url"`
-					Comments              int
-					User                  *struct{ Login string } `json:"user"`
-					CreatedAt             string                  `json:"created_at"`
+					Title    string `json:"title"`
+					HTMLURL  string `json:"html_url"`
+					State    string `json:"state"`
+					Comments int    `json:"comments"`
+					User     *struct {
+						Login string `json:"login"`
+					} `json:"user"`
+					CreatedAt string `json:"created_at"`
 				} `json:"items"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
+				return nil, err
 			}
-			var results []SearchResult
+			results := make([]SearchResult, 0, minInt(max, len(resp.Items)))
 			for i, item := range resp.Items {
 				if i >= max || item.Title == "" || item.HTMLURL == "" {
 					break
@@ -1100,26 +1115,46 @@ func newGitea(config EngineConfig) SearchEngine {
 }
 func newSourceHut(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
-		Name:     "sourcehut",
-		BuildURL: func(q string, opts SearchOptions) string { return "https://sr.ht/search?q=" + url.QueryEscape(q) },
+		Name: "sourcehut",
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://sr.ht/projects?search=" + url.QueryEscape(q) + "&sort=recently-updated"
+		},
+		Headers: map[string]string{
+			"User-Agent": "opencode-search/1.0 (bot; +https://opencode.ai)",
+			"Accept":     "text/html",
+			"Referer":    "https://sr.ht/",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
-			pos := 0
-			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*class="[^"]*search-result[^"]*"[^>]*>[\s\S]*?<h[^>]*>([\s\S]*?)<\/h`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max {
+			results := make([]SearchResult, 0, max)
+			eventRe := regexp.MustCompile(`<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<h4[^>]*>([\s\S]*?)<\/h4>[\s\S]*?(?:<p[^>]*>([\s\S]*?)<\/p>)?[\s\S]*?<\/div>\s*<\/div>`)
+			for _, m := range eventRe.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(m) < 2 {
 					break
 				}
-				title := StripHTML(m[2])
-				href := m[1]
-				if title == "" || href == "" {
+				header := m[1]
+				links := regexp.MustCompile(`<a[^>]*href="/([^"]+)"[^>]*>([^<]+)<\/a>`).FindAllStringSubmatch(header, -1)
+				if len(links) < 2 {
 					continue
 				}
-				if !strings.HasPrefix(href, "http") {
-					href = "https://sr.ht" + href
+				username := strings.TrimPrefix(strings.TrimSpace(links[0][1]), "~")
+				project := strings.TrimSpace(links[1][2])
+				if username == "" || project == "" {
+					continue
 				}
-				pos++
-				results = append(results, SearchResult{Title: title, URL: href, Snippet: "SourceHut project", Engine: "sourcehut", Position: pos, Category: "code"})
+				snippet := "SourceHut project by ~" + username
+				if len(m) > 2 && strings.TrimSpace(m[2]) != "" {
+					snippet = StripHTML(m[2])
+				}
+				results = append(results, SearchResult{Title: "~" + username + "/" + project, URL: "https://sr.ht/~" + username + "/" + project, Snippet: snippet, Engine: "sourcehut", Position: len(results) + 1, Category: "code"})
+			}
+			if len(results) == 0 {
+				fallbackRe := regexp.MustCompile(`<a[^>]*href="/(~[^"/]+/[^"/]+)"[^>]*>([^<]+)<\/a>`)
+				for _, m := range fallbackRe.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max || len(m) < 3 {
+						break
+					}
+					results = append(results, SearchResult{Title: m[1] + " - " + strings.TrimSpace(m[2]), URL: "https://sr.ht/" + m[1], Snippet: "SourceHut project", Engine: "sourcehut", Position: len(results) + 1, Category: "code"})
+				}
 			}
 			return results, nil
 		},

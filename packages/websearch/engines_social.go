@@ -470,16 +470,30 @@ func newLemmy(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Posts []struct {
-					Post      *struct{ ApID, Name, Body, Published string } `json:"post"`
-					Creator   *struct{ Name, DisplayName string }
-					Community *struct{ Title string }
-					Counts    *struct{ Upvotes, Downvotes, Comments int }
+					Post *struct {
+						ApID      string `json:"ap_id"`
+						Name      string `json:"name"`
+						Body      string `json:"body"`
+						Published string `json:"published"`
+					} `json:"post"`
+					Creator *struct {
+						Name        string `json:"name"`
+						DisplayName string `json:"display_name"`
+					} `json:"creator"`
+					Community *struct {
+						Title string `json:"title"`
+					} `json:"community"`
+					Counts *struct {
+						Upvotes   int `json:"upvotes"`
+						Downvotes int `json:"downvotes"`
+						Comments  int `json:"comments"`
+					} `json:"counts"`
 				} `json:"posts"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
+				return nil, err
 			}
-			var results []SearchResult
+			results := make([]SearchResult, 0, minInt(max, len(resp.Posts)))
 			for i, p := range resp.Posts {
 				if i >= max || p.Post == nil || p.Post.ApID == "" || p.Post.Name == "" {
 					break
@@ -534,18 +548,25 @@ func newDiscourse(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Topics []struct {
-					ID                        int
-					Title, CreatedAt          string
-					PostsCount                int  `json:"posts_count"`
-					Closed, HasAcceptedAnswer bool `json:"has_accepted_answer"`
+					ID                int    `json:"id"`
+					Title             string `json:"title"`
+					CreatedAt         string `json:"created_at"`
+					PostsCount        int    `json:"posts_count"`
+					Closed            bool   `json:"closed"`
+					HasAcceptedAnswer bool   `json:"has_accepted_answer"`
 				} `json:"topics"`
 				Posts []struct {
-					ID, TopicID     int
-					Username, Blurb string
+					ID       int    `json:"id"`
+					TopicID  int    `json:"topic_id"`
+					Username string `json:"username"`
+					Blurb    string `json:"blurb"`
 				} `json:"posts"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil || resp.Posts == nil {
-				return nil, nil
+				if err != nil {
+					return nil, err
+				}
+				return []SearchResult{}, nil
 			}
 			topicMap := map[int]struct {
 				Title, CreatedAt string
@@ -559,7 +580,7 @@ func newDiscourse(config EngineConfig) SearchEngine {
 					Closed, Answered bool
 				}{t.Title, t.CreatedAt, t.PostsCount, t.Closed, t.HasAcceptedAnswer}
 			}
-			var results []SearchResult
+			results := make([]SearchResult, 0, minInt(max, len(resp.Posts)))
 			for i, p := range resp.Posts {
 				if i >= max || p.ID == 0 || p.TopicID == 0 {
 					break
@@ -1164,29 +1185,78 @@ func newFlickr(config EngineConfig) SearchEngine {
 }
 
 func newPinterest(config EngineConfig) SearchEngine {
-	return newHTMLScraperEngine(htmlScraperConfig{
-		Name: "pinterest",
-		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://www.pinterest.com/search/pins/?q=" + url.QueryEscape(q)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "pinterest", Category: "image",
+		UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+		Headers: map[string]string{
+			"X-Pinterest-AppState":    "active",
+			"X-Pinterest-Source-Url":  "/ideas/",
+			"X-Pinterest-PWS-Handler": "www/ideas.js",
+			"Referer":                 "https://www.pinterest.com/ideas/",
 		},
-		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
-			pos := 0
-			re := regexp.MustCompile(`<div[^>]*data-test-id="[^"]*pinWrapper[^"]*"[^>]*>[\s\S]*?<img[^>]*alt="([^"]*)"[^>]*src="([^"]*)"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max {
-					break
-				}
-				title := m[1]
-				if title == "" {
+		URL: func(q string, _ int) string {
+			payload := fmt.Sprintf(`{"options":{"query":%q,"bookmarks":[""]},"context":{}}`, q)
+			return "https://www.pinterest.com/resource/BaseSearchResource/get/?data=" + url.QueryEscape(payload)
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				ResourceResponse *struct {
+					Data *struct {
+						Results []struct {
+							ID        string `json:"id"`
+							Type      string `json:"type"`
+							Link      string `json:"link"`
+							Title     string `json:"title"`
+							GridTitle string `json:"grid_title"`
+							Rich      *struct {
+								Description string `json:"display_description"`
+								SiteName    string `json:"site_name"`
+							} `json:"rich_summary"`
+							Pinner *struct {
+								FullName string `json:"full_name"`
+							} `json:"pinner"`
+						} `json:"results"`
+					} `json:"data"`
+				} `json:"resource_response"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, err
+			}
+			if resp.ResourceResponse == nil || resp.ResourceResponse.Data == nil {
+				return []SearchResult{}, nil
+			}
+			results := make([]SearchResult, 0, minInt(max, len(resp.ResourceResponse.Data.Results)))
+			for _, pin := range resp.ResourceResponse.Data.Results {
+				if len(results) >= max || pin.Type == "story" || pin.ID == "" {
 					continue
 				}
-				href := m[3]
-				if !strings.HasPrefix(href, "http") {
-					href = "https://www.pinterest.com" + href
+				title := pin.Title
+				if title == "" {
+					title = pin.GridTitle
 				}
-				pos++
-				results = append(results, SearchResult{Title: title, URL: href, Snippet: "", Engine: "pinterest", Position: pos, Category: "image"})
+				if title == "" {
+					title = "Pinterest pin " + pin.ID
+				}
+				href := pin.Link
+				if href == "" {
+					href = "https://www.pinterest.com/pin/" + pin.ID + "/"
+				}
+				snippet := "Pinterest"
+				if pin.Rich != nil {
+					parts := []string{}
+					if pin.Pinner != nil && pin.Pinner.FullName != "" {
+						parts = append(parts, "by "+pin.Pinner.FullName)
+					}
+					if pin.Rich.SiteName != "" {
+						parts = append(parts, pin.Rich.SiteName)
+					}
+					if len(parts) > 0 {
+						snippet = strings.Join(parts, " · ")
+					} else if pin.Rich.Description != "" {
+						snippet = pin.Rich.Description
+					}
+				}
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: snippet, Engine: "pinterest", Position: len(results) + 1, Category: "image"})
 			}
 			return results, nil
 		},

@@ -999,24 +999,34 @@ func newRottenTomatoes(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.rottentomatoes.com/search?search=" + url.QueryEscape(q)
 		},
+		Headers: map[string]string{
+			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Referer":    "https://www.rottentomatoes.com/",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
-			pos := 0
-			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*[Pp]title[^"]*"[^>]*>([\s\S]*?)<\/span>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max {
+			results := make([]SearchResult, 0, max)
+			rowRe := regexp.MustCompile(`<search-page-media-row[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<img[^>]*alt="([^"]*)"[^>]*>[\s\S]*?<\/search-page-media-row>`)
+			for _, m := range rowRe.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(m) < 3 {
 					break
 				}
-				title := StripHTML(m[2])
-				href := m[1]
-				if title == "" || href == "" {
+				href, title := strings.TrimSpace(m[1]), strings.TrimSpace(m[2])
+				if href == "" || title == "" {
 					continue
 				}
 				if !strings.HasPrefix(href, "http") {
 					href = "https://www.rottentomatoes.com" + href
 				}
-				pos++
-				results = append(results, SearchResult{Title: title, URL: href, Snippet: "Rotten Tomatoes", Engine: "rottentomatoes", Position: pos, Category: "video"})
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: "Rotten Tomatoes", Engine: "rottentomatoes", Position: len(results) + 1, Category: "video"})
+			}
+			if len(results) == 0 {
+				fallbackRe := regexp.MustCompile(`href="(https://www\.rottentomatoes\.com/m/[^"]*)"[^>]*>[\s\S]*?<img[^>]*alt="([^"]*)"`)
+				for _, m := range fallbackRe.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max || len(m) < 3 || strings.TrimSpace(m[2]) == "" {
+						break
+					}
+					results = append(results, SearchResult{Title: strings.TrimSpace(m[2]), URL: m[1], Snippet: "Movie on Rotten Tomatoes", Engine: "rottentomatoes", Position: len(results) + 1, Category: "video"})
+				}
 			}
 			return results, nil
 		},
@@ -1141,19 +1151,20 @@ func newFrinkiac(config EngineConfig) SearchEngine {
 		URL: func(q string, n int) string { return "https://frinkiac.com/api/search?q=" + url.QueryEscape(q) },
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp []struct {
-				ID                 int `json:"Id"`
-				Episode, Timestamp string
+				ID        int    `json:"Id"`
+				Episode   string `json:"Episode"`
+				Timestamp int64  `json:"Timestamp"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
+				return nil, err
 			}
-			var results []SearchResult
+			results := make([]SearchResult, 0, minInt(max, len(resp)))
 			for i, f := range resp {
 				if i >= max || f.ID == 0 {
 					break
 				}
 				ep := f.Episode
-				results = append(results, SearchResult{Title: "Simpsons " + ep, URL: fmt.Sprintf("https://frinkiac.com/img/%s/%s.jpg", f.Episode, f.Timestamp), Snippet: "Frinkiac Simpsons meme", Engine: "frinkiac", Position: i + 1, Category: "image"})
+				results = append(results, SearchResult{Title: "Simpsons " + ep, URL: fmt.Sprintf("https://frinkiac.com/img/%s/%d.jpg", f.Episode, f.Timestamp), Snippet: "Frinkiac Simpsons meme", Engine: "frinkiac", Position: i + 1, Category: "image"})
 			}
 			return results, nil
 		},
