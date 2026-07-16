@@ -148,7 +148,7 @@ func handleInitialize(req *JsonRpcRequest, session *Session) *JsonRpcResponse {
 }
 
 func handleToolsList(id any) *JsonRpcResponse {
-	toolList := tools.GetAllTools()
+	toolList := tools.GetAvailableTools()
 	return &JsonRpcResponse{
 		JsonRpc: "2.0",
 		Result:  map[string]interface{}{"tools": toolList},
@@ -229,10 +229,7 @@ func handleDiscover(req *JsonRpcRequest) *JsonRpcResponse {
 }
 
 func handleToolsList2026(id any) *JsonRpcResponse {
-	toolList := make([]*tools.Tool, 0, len(tools.Registry))
-	for _, t := range tools.Registry {
-		toolList = append(toolList, t)
-	}
+	toolList := tools.GetAvailableTools()
 	return &JsonRpcResponse{
 		JsonRpc: "2.0",
 		Result: map[string]interface{}{

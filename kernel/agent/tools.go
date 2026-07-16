@@ -25,7 +25,7 @@ import (
 )
 
 func convertMCPToolsToOpenAI() []openai.Tool {
-	allTools := tools.GetAllTools()
+	allTools := tools.GetAvailableTools()
 	result := make([]openai.Tool, 0, len(allTools))
 	for _, t := range allTools {
 		result = append(result, openai.Tool{
@@ -46,6 +46,9 @@ func executeTool(tc openai.ToolCall, sessionID string) (string, bool) {
 	t := tools.GetTool(tc.Function.Name)
 	if t == nil {
 		return "unknown tool: " + tc.Function.Name, true
+	}
+	if tools.IsForgeTool(t.Name) && !tools.IsForgeModeAvailable() {
+		return "forge tool is only available in forge mode", true
 	}
 
 	args := parseToolArgs(tc.Function.Arguments)

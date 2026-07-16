@@ -35,6 +35,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/filelock"
 	mcpclient "github.com/siyuan-note/siyuan/kernel/mcp/client"
+	mcpTools "github.com/siyuan-note/siyuan/kernel/mcp/tools"
 	kernelModel "github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -672,7 +673,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						}
 					}
 
-					if !snapshotCreated && action != "" && !safeActions[action] && tc.Function.Name != "frontend" && !(tc.Function.Name == "repo" && action == "create") {
+					if !mcpTools.IsForgeTool(tc.Function.Name) && !snapshotCreated && action != "" && !safeActions[action] && tc.Function.Name != "frontend" && !(tc.Function.Name == "repo" && action == "create") {
 						id, err := kernelModel.IndexRepo("AI agent auto snapshot")
 						if err != nil {
 							logging.LogErrorf("agent auto snapshot failed: %s", err)
@@ -853,9 +854,21 @@ var safeActions = map[string]bool{
 	"md": true, "query": true,
 }
 
+var forgeWriteTools = map[string]bool{
+	mcpTools.ForgeDevRepoWriteToolName:        true,
+	mcpTools.ForgeDevRepoDeleteToolName:       true,
+	mcpTools.ForgeDevRepoEditToolName:         true,
+	mcpTools.ForgeDevRepoBatchReplaceToolName: true,
+	mcpTools.ForgeDevRepoBashToolName:         true,
+	mcpTools.ForgeDevRepoGitToolName:          true,
+}
+
 func needsConfirm(toolName string, action string, alwaysAllow map[string]bool) bool {
 	if alwaysAllow["*"] {
 		return false
+	}
+	if forgeWriteTools[toolName] {
+		return !alwaysAllow[toolName+"::*"]
 	}
 	if action == "" {
 		return false
@@ -979,6 +992,16 @@ func buildSystemPrompt(language string, references []Reference, editorCtx Editor
 	sb.WriteString("\nContainer: ")
 	sb.WriteString(util.Container)
 	sb.WriteString("\n</env>")
+	if util.IsForgeMode() {
+		sb.WriteString("\n\n## Forge Source Repository\n")
+		sb.WriteString("This is the native SiYuan agent running in forge mode. The development source repository is available through the forge_dev_repo_* tools. It is separate from MAGI: native agent writes use user confirmation, while nerv/magi uses its own three-sage governance and must not be invoked by this agent.\n")
+		if root, err := mcpTools.ForgeDevRepoRoot(); err == nil {
+			sb.WriteString("Source repository root: ")
+			sb.WriteString(root)
+			sb.WriteString("\n")
+		}
+		sb.WriteString("Use forge_dev_repo_list/read/search to inspect source files, forge_dev_repo_write/delete/edit/batch_replace to change them, and forge_dev_repo_bash only for bounded commands. For Git commits, use forge_dev_repo_git action=commit with an explicit paths list and one logical change per commit. Never use git add ., git add -A, git commit -a, or a commit without explicit paths.\n")
+	}
 
 	skills := util.DiscoverSkills()
 	if len(skills) > 0 {

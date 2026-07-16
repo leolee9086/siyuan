@@ -19,6 +19,8 @@ package tools
 import (
 	"strings"
 	"sync"
+
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 var registryMu sync.RWMutex
@@ -62,6 +64,20 @@ func GetAllTools() []*Tool {
 	defer registryMu.RUnlock()
 	result := make([]*Tool, 0, len(Registry))
 	for _, t := range Registry {
+		result = append(result, t)
+	}
+	return result
+}
+
+// GetAvailableTools 返回当前运行模式允许 agent/MCP 暴露的工具。
+func GetAvailableTools() []*Tool {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	result := make([]*Tool, 0, len(Registry))
+	for _, t := range Registry {
+		if t.Source == "forge" && !util.IsForgeMode() {
+			continue
+		}
 		result = append(result, t)
 	}
 	return result
