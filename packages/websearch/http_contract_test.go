@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -39,6 +40,74 @@ func TestHTTPClientRetriesUnexpectedEOF(t *testing.T) {
 	}
 	if status != http.StatusOK || body != "ok" || attempts.Load() != 2 {
 		t.Fatalf("status=%d body=%q attempts=%d", status, body, attempts.Load())
+	}
+}
+
+func TestHTTPClientRetriesTransientServerStatus(t *testing.T) {
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if attempts.Add(1) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("temporary"))
+			return
+		}
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	client := NewHTTPClient(time.Second)
+	status, body, err := client.Get(server.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != http.StatusOK || body != "ok" || attempts.Load() != 2 {
+		t.Fatalf("status=%d body=%q attempts=%d", status, body, attempts.Load())
+	}
+}
+
+func TestHTTPClientDoesNotUseEnvironmentProxy(t *testing.T) {
+	oldHTTP, hadHTTP := os.LookupEnv("HTTP_PROXY")
+	oldHTTPS, hadHTTPS := os.LookupEnv("HTTPS_PROXY")
+	defer func() {
+		if hadHTTP {
+			_ = os.Setenv("HTTP_PROXY", oldHTTP)
+		} else {
+			_ = os.Unsetenv("HTTP_PROXY")
+		}
+		if hadHTTPS {
+			_ = os.Setenv("HTTPS_PROXY", oldHTTPS)
+		} else {
+			_ = os.Unsetenv("HTTPS_PROXY")
+		}
+	}()
+	_ = os.Setenv("HTTP_PROXY", "http://127.0.0.1:7890")
+	_ = os.Setenv("HTTPS_PROXY", "http://127.0.0.1:7890")
+
+	client := NewHTTPClient(time.Second)
+	transport, ok := client.client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("unexpected transport type %T", client.client.Transport)
+	}
+	if transport.Proxy != nil {
+		t.Fatal("NewHTTPClient must not inherit ProxyFromEnvironment")
+	}
+}
+
+func TestUseProxyRequiresCallerEndpoint(t *testing.T) {
+	client := NewHTTPClient(time.Second)
+	if err := client.UseProxy(NewAutoDetectProxy()); err == nil || !strings.Contains(err.Error(), "provided explicitly") {
+		t.Fatalf("unexpected automatic proxy result: %v", err)
+	}
+
+	proxy := NewExplicitProxy("http://127.0.0.1:7890", "http://127.0.0.1:7890")
+	if err := client.UseProxy(proxy); err != nil {
+		t.Fatal(err)
+	}
+	for _, scheme := range []string{"http", "https"} {
+		browserClient := client.browserClient[scheme]
+		if browserClient == nil || browserClient.GetProxy() != proxy.HTTP {
+			t.Fatalf("scheme=%s did not retain caller proxy: %#v", scheme, browserClient)
+		}
 	}
 }
 

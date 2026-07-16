@@ -3,32 +3,103 @@ package websearch
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	fhttp "github.com/bogdanfinn/fhttp"
+	tlsclient "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 )
 
 // HTTPClient 封装 HTTP 请求，支持超时和代理
 type HTTPClient struct {
-	client  *http.Client
-	headers map[string]string
-	proxy   *ProxyConfig // 当前代理配置
-	timeout time.Duration
-	baseURL string
+	client        *http.Client
+	browserClient map[string]tlsclient.HttpClient
+	headers       map[string]string
+	proxy         *ProxyConfig
+	noProxy       string
+	timeout       time.Duration
+	baseURL       string
+	setupErr      error
 }
 
 // NewHTTPClient 创建 HTTP 客户端
-// 代理优先级：UseProxy() > HTTP_PROXY 环境变量 > 直连
+// 代理必须通过 UseProxy 显式传入；未配置时使用直连。
 func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.Proxy = http.ProxyFromEnvironment
+	transport.Proxy = nil
 	return &HTTPClient{
-		client:  &http.Client{Transport: transport},
-		headers: make(map[string]string),
-		timeout: timeout,
+		client:        &http.Client{Transport: transport},
+		browserClient: make(map[string]tlsclient.HttpClient),
+		headers:       make(map[string]string),
+		timeout:       timeout,
+	}
+}
+
+func newBrowserClient(timeout time.Duration, proxyURL string) (tlsclient.HttpClient, error) {
+	milliseconds := int(timeout / time.Millisecond)
+	if milliseconds <= 0 {
+		milliseconds = 30000
+	}
+	options := []tlsclient.HttpClientOption{
+		tlsclient.WithTimeoutMilliseconds(milliseconds),
+		tlsclient.WithClientProfile(profiles.Chrome_133),
+		tlsclient.WithRandomTLSExtensionOrder(),
+	}
+	if strings.TrimSpace(proxyURL) != "" {
+		options = append(options, tlsclient.WithProxyUrl(proxyURL))
+	}
+	return tlsclient.NewHttpClient(tlsclient.NewNoopLogger(), options...)
+}
+
+func copyHeaders(source http.Header) fhttp.Header {
+	target := make(fhttp.Header, len(source))
+	for key, values := range source {
+		target[key] = append([]string(nil), values...)
+	}
+	return target
+}
+
+func toFingerprintRequest(req *http.Request) (*fhttp.Request, error) {
+	converted, err := fhttp.NewRequest(req.Method, req.URL.String(), req.Body)
+	if err != nil {
+		return nil, err
+	}
+	converted = converted.WithContext(req.Context())
+	converted.Header = copyHeaders(req.Header)
+	converted.Host = req.Host
+	converted.ContentLength = req.ContentLength
+	return converted, nil
+}
+
+func fromFingerprintResponse(resp *fhttp.Response, request *http.Request) *http.Response {
+	header := make(http.Header, len(resp.Header))
+	for key, values := range resp.Header {
+		header[key] = append([]string(nil), values...)
+	}
+	trailer := make(http.Header, len(resp.Trailer))
+	for key, values := range resp.Trailer {
+		trailer[key] = append([]string(nil), values...)
+	}
+	return &http.Response{
+		Status:           resp.Status,
+		StatusCode:       resp.StatusCode,
+		Proto:            resp.Proto,
+		ProtoMajor:       resp.ProtoMajor,
+		ProtoMinor:       resp.ProtoMinor,
+		Header:           header,
+		Body:             resp.Body,
+		ContentLength:    resp.ContentLength,
+		TransferEncoding: append([]string(nil), resp.TransferEncoding...),
+		Close:            resp.Close,
+		Uncompressed:     resp.Uncompressed,
+		Trailer:          trailer,
+		Request:          request,
 	}
 }
 
@@ -41,40 +112,53 @@ func NewEngineHTTPClient(config EngineConfig) *HTTPClient {
 		client.SetHeader(key, value)
 	}
 	if config.Proxy.HTTP != "" || config.Proxy.HTTPS != "" || config.Proxy.AutoDetect {
-		_ = client.UseProxy(config.Proxy)
+		if err := client.UseProxy(config.Proxy); err != nil {
+			client.setupErr = err
+		}
 	}
 	return client
 }
 
 // UseProxy 为客户端配置代理
-// 优先级：显式 URL > AutoDetect > 无代理
-// 同时设置显式 URL 和 AutoDetect 时，显式 URL 优先
+// 代理端点必须由调用方显式传入；websearch 不读取环境变量或探测本地端口。
 func (c *HTTPClient) UseProxy(config ProxyConfig) error {
-	if config.HTTP != "" || config.HTTPS != "" {
-		c.proxy = &config
-		return c.applyProxyURL(config.HTTP)
-	}
 	if config.AutoDetect {
-		detected := ProbeCommonProxy()
-		if detected != nil {
-			c.proxy = detected
-			return c.applyProxyURL(detected.HTTP)
-		}
+		return errors.New("proxy endpoint must be provided explicitly; automatic proxy detection is disabled")
 	}
-	c.proxy = nil
-	return nil
-}
 
-func (c *HTTPClient) applyProxyURL(proxyURL string) error {
-	if proxyURL == "" {
-		return nil
+	browserClients := make(map[string]tlsclient.HttpClient)
+	for _, scheme := range []string{"http", "https"} {
+		proxyURL := config.HTTP
+		if scheme == "https" && config.HTTPS != "" {
+			proxyURL = config.HTTPS
+		}
+		if strings.TrimSpace(proxyURL) == "" {
+			continue
+		}
+		parsed, err := url.Parse(proxyURL)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+			if err == nil {
+				err = errors.New("proxy URL must include a scheme and host")
+			}
+			return fmt.Errorf("invalid %s proxy URL: %w", scheme, err)
+		}
+		browserClient, err := newBrowserClient(c.timeout, proxyURL)
+		if err != nil {
+			return fmt.Errorf("create %s proxy client: %w", scheme, err)
+		}
+		browserClients[scheme] = browserClient
 	}
-	parsed, err := url.Parse(proxyURL)
-	if err != nil {
-		return err
+
+	c.browserClient = browserClients
+	c.noProxy = config.NoProxy
+	c.proxy = nil
+	if config.HTTP != "" || config.HTTPS != "" {
+		copy := config
+		c.proxy = &copy
 	}
-	if t, ok := c.client.Transport.(*http.Transport); ok {
-		t.Proxy = http.ProxyURL(parsed)
+	c.setupErr = nil
+	if transport, ok := c.client.Transport.(*http.Transport); ok {
+		transport.Proxy = nil
 	}
 	return nil
 }
@@ -188,6 +272,9 @@ func (c *HTTPClient) resolveURL(rawURL string) (string, error) {
 }
 
 func (c *HTTPClient) do(req *http.Request) (int, string, error) {
+	if c.setupErr != nil {
+		return 0, "", c.setupErr
+	}
 	ctx := req.Context()
 	cancel := func() {}
 	if c.timeout > 0 {
@@ -205,11 +292,21 @@ func (c *HTTPClient) do(req *http.Request) (int, string, error) {
 			}
 			attemptReq.Body = body
 		}
-		resp, err := c.client.Do(attemptReq)
+		resp, err := c.doRequest(attemptReq)
 		if err == nil {
 			body, readErr := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			if readErr == nil {
+				if attempt == 0 && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError) {
+					timer := time.NewTimer(150 * time.Millisecond)
+					select {
+					case <-timer.C:
+					case <-ctx.Done():
+						timer.Stop()
+						return 0, "", ctx.Err()
+					}
+					continue
+				}
 				return resp.StatusCode, string(body), nil
 			}
 			err = readErr
@@ -229,6 +326,37 @@ func (c *HTTPClient) do(req *http.Request) (int, string, error) {
 	return 0, "", lastErr
 }
 
+func (c *HTTPClient) doRequest(req *http.Request) (*http.Response, error) {
+	if req.URL != nil && !proxyBypassed(req.URL.Hostname(), c.noProxy) {
+		if browserClient := c.browserClient[req.URL.Scheme]; browserClient != nil {
+			converted, err := toFingerprintRequest(req)
+			if err != nil {
+				return nil, err
+			}
+			response, err := browserClient.Do(converted)
+			if err != nil {
+				return nil, err
+			}
+			return fromFingerprintResponse(response, req), nil
+		}
+	}
+	return c.client.Do(req)
+}
+
+func proxyBypassed(host, noProxy string) bool {
+	for _, item := range strings.Split(noProxy, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		item = strings.TrimPrefix(item, "*")
+		if item == host || (strings.HasPrefix(item, ".") && strings.HasSuffix(host, item)) {
+			return true
+		}
+	}
+	return false
+}
+
 func isRetryableHTTPError(err error) bool {
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		return true
@@ -239,12 +367,5 @@ func isRetryableHTTPError(err error) bool {
 
 // SetProxy 设置代理
 func (c *HTTPClient) SetProxy(proxyURL string) error {
-	proxyParsed, err := url.Parse(proxyURL)
-	if err != nil {
-		return err
-	}
-	if transport, ok := c.client.Transport.(*http.Transport); ok {
-		transport.Proxy = http.ProxyURL(proxyParsed)
-	}
-	return nil
+	return c.UseProxy(NewExplicitProxy(proxyURL, proxyURL))
 }
