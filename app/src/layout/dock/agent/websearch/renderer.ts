@@ -1,0 +1,129 @@
+/** 用途：搜索卡片 HTML 渲染。使用范围：原生 Agent 运行中和完成态展示。解耦评估：仅接收结构化数据并返回 HTML，不依赖 Agent 会话或 MAGI 执行链路。 */
+import {escapeHtml} from "./imports";
+/** 用途：搜索事件数据类型。使用范围：renderer 与 AgentChat 的边界。解耦评估：纯类型依赖，无运行时耦合。 */
+import type {AgentWebSearchProgress} from "./types";
+
+/** Allow only HTTP(S) links in user-visible search cards. */
+const safeWebURL = (value: string) => {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+    } catch {
+        return "";
+    }
+};
+
+/** Convert a backend phase into a compact running-card heading. */
+const webSearchStatusText = (progress: AgentWebSearchProgress) => {
+    if (progress.phase === "done") {
+        return "Search complete";
+    }
+    if (progress.phase === "start") {
+        return "Starting search";
+    }
+    return "Searching";
+};
+
+/** Render the recent result rows shown while one or more engines are running. */
+const renderPreviewRows = (results: Array<{title: string; url: string; engine: string}>) => {
+    let html = "";
+    for (const result of results) {
+        const url = safeWebURL(result.url || "");
+        const title = escapeHtml(result.title || result.url || "Untitled result");
+        const label = "<span class=\"agent-chat__web-search-result-title\">" + title + "</span>";
+        html += '<div class="agent-chat__web-search-result">' +
+            (url ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noreferrer noopener">' + label + "</a>" : label) +
+            (result.engine ? '<span class="agent-chat__web-search-result-engine">' + escapeHtml(result.engine) + "</span>" : "") +
+            "</div>";
+    }
+    return html;
+};
+
+/**
+ * Render the live progress card for a native Agent web_search call.
+ * @同步豁免: UI构建
+ * AgentChat replaces this HTML synchronously for each ordered SSE progress event.
+ */
+export const renderWebSearchProgress = (query: string, progress: AgentWebSearchProgress) => {
+    const total = Math.max(0, progress.total || 0);
+    const done = Math.max(0, Math.min(progress.done || 0, total || progress.done || 0));
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+    const rows = renderPreviewRows(Array.isArray(progress.latestResults) ? progress.latestResults : []);
+    return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-progress">' +
+        '<div class="agent-chat__web-search-header">' +
+        '<svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg>' +
+        '<span class="agent-chat__tool-title">' + escapeHtml(webSearchStatusText(progress)) + "</span>" +
+        '<span class="agent-chat__web-search-query">' + escapeHtml(query || "") + "</span>" +
+        "</div>" +
+        '<div class="agent-chat__web-search-progress">' +
+        '<div class="agent-chat__web-search-progress-label"><span>' + escapeHtml(progress.current || "") +
+        "</span><span>" + done + "/" + total + " · " + (progress.partialCount || 0) + " results</span></div>" +
+        '<div class="agent-chat__web-search-progress-track"><div class="agent-chat__web-search-progress-bar" style="width:' + percent + '%"></div></div>' +
+        "</div>" +
+        (rows ? '<div class="agent-chat__web-search-results">' + rows + "</div>" : "") +
+        "</div>";
+};
+
+/** Parse the native Agent tool output envelope without trusting its contents. */
+const parseWebSearchResponse = (raw: string) => {
+    const wrapped = raw.match(/^\s*\[tool_output\]\s*([\s\S]*?)\s*\[\/tool_output\]\s*$/);
+    const payload = wrapped ? wrapped[1] : raw;
+    try {
+        const parsed = JSON.parse(payload);
+        return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Render completed results and retain per-engine errors instead of hiding partial failures.
+ * @同步豁免: UI构建
+ * AgentChat inserts the completed card synchronously in the closing SSE event.
+ */
+export const renderWebSearchResult = (query: string, raw: string) => {
+    const response = parseWebSearchResponse(raw);
+    if (!response) {
+        return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-error">' +
+            '<div class="agent-chat__web-search-header"><svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg><span class="agent-chat__tool-title">Web search</span></div>' +
+            '<pre class="agent-chat__web-search-error-text">' + escapeHtml(raw || "Search returned no readable response") + "</pre></div>";
+    }
+    const results = Array.isArray(response.results) ? response.results : [];
+    const engines = Array.isArray(response.usedEngines) ? response.usedEngines : [];
+    const errors = Array.isArray(response.errors) ? response.errors : [];
+    let resultHTML = "";
+    for (const result of results) {
+        const url = safeWebURL(result.url || "");
+        const title = escapeHtml(result.title || result.url || "Untitled result");
+        const snippet = escapeHtml(result.snippet || "");
+        const engineNames = Array.isArray(result.engines) ? result.engines.filter(Boolean).join(", ") : "";
+        resultHTML += '<article class="agent-chat__web-search-result">' +
+            (url ? '<a class="agent-chat__web-search-result-title" href="' + escapeHtml(url) + '" target="_blank" rel="noreferrer noopener">' + title + "</a>" : '<span class="agent-chat__web-search-result-title">' + title + "</span>") +
+            (snippet ? '<div class="agent-chat__web-search-result-snippet">' + snippet + "</div>" : "") +
+            (engineNames ? '<div class="agent-chat__web-search-result-engine">' + escapeHtml(engineNames) + "</div>" : "") +
+            "</article>";
+    }
+    let errorHTML = "";
+    for (const error of errors) {
+        const label = [error.engine, error.message].filter(Boolean).join(": ");
+        if (label) {
+            errorHTML += '<div class="agent-chat__web-search-error-item">' + escapeHtml(label) + "</div>";
+        }
+    }
+    const statusText = response.noResults && results.length === 0
+        ? "No results"
+        : results.length + " result" + (results.length === 1 ? "" : "s");
+    return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-complete">' +
+        '<div class="agent-chat__web-search-header">' +
+        '<svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg>' +
+        '<span class="agent-chat__tool-title">Web search</span>' +
+        '<span class="agent-chat__web-search-query">' + escapeHtml(query || response.query || "") + "</span>" +
+        "</div>" +
+        '<div class="agent-chat__web-search-summary"><span>' + escapeHtml(statusText) + "</span>" +
+        (response.provider ? "<span>" + escapeHtml(response.provider) + "</span>" : "") +
+        (engines.length ? "<span>" + escapeHtml(engines.join(", ")) + "</span>" : "") +
+        "</div>" +
+        (resultHTML ? '<div class="agent-chat__web-search-results">' + resultHTML + "</div>" : "") +
+        (errorHTML ? '<div class="agent-chat__web-search-errors">' + errorHTML + "</div>" : "") +
+        "</div>";
+};

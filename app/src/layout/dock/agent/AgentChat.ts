@@ -33,11 +33,10 @@ import {
     renderRetryCardHTML,
     renderTodoList,
     renderToolsLineHTML,
-    renderWelcomeHTML,
-    renderWebSearchProgress,
-    renderWebSearchResult,
-    type AgentWebSearchProgress
+    renderWelcomeHTML
 } from "./AgentMessageRenderer";
+import {renderWebSearchProgress, renderWebSearchResult} from "./websearch/renderer";
+import type {AgentWebSearchProgress} from "./websearch/types";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
 // Mirrors kernel/agent/agent.go maxVisibleBlockIDs.
