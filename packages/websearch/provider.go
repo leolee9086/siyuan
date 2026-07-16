@@ -1,7 +1,6 @@
 package websearch
 
 import (
-	"os"
 	"strconv"
 	"strings"
 )
@@ -10,6 +9,8 @@ import (
 type WebSearchProvider string
 
 const (
+	ProviderAuto       WebSearchProvider = "auto"
+	ProviderMeta       WebSearchProvider = "meta"
 	ProviderDuckDuckGo WebSearchProvider = "duckduckgo"
 	ProviderExa        WebSearchProvider = "exa"
 	ProviderParallel   WebSearchProvider = "parallel"
@@ -17,50 +18,45 @@ const (
 
 // SelectProvider 选择搜索提供商
 func SelectProvider(sessionID string, flags struct{ Exa, Parallel bool }) WebSearchProvider {
-	override := os.Getenv("OPENCODE_WEBSEARCH_PROVIDER")
-	switch override {
-	case "exa":
-		return ProviderExa
-	case "parallel":
-		return ProviderParallel
-	case "duckduckgo":
-		return ProviderDuckDuckGo
-	}
-
 	if flags.Parallel {
 		return ProviderParallel
 	}
 	if flags.Exa {
 		return ProviderExa
 	}
-	return ProviderDuckDuckGo
+	return ProviderMeta
 }
 
-// ProviderAvailable 检查提供商是否有可用的 API key
-func ProviderAvailable(provider WebSearchProvider) bool {
+// ProviderAvailable 检查提供商是否有可用的 API key。运行时凭据必须由
+// 配置层显式传入，websearch 不再读取环境变量。
+func ProviderAvailable(provider WebSearchProvider, exaAPIKey, parallelAPIKey string) bool {
 	switch provider {
 	case ProviderParallel:
-		return os.Getenv("PARALLEL_API_KEY") != ""
+		return strings.TrimSpace(parallelAPIKey) != ""
 	case ProviderExa:
-		return os.Getenv("EXA_API_KEY") != ""
-	case ProviderDuckDuckGo:
-		return true // 无需 API key
+		return strings.TrimSpace(exaAPIKey) != ""
+	case ProviderAuto, ProviderMeta, ProviderDuckDuckGo:
+		return true
 	}
 	return false
 }
 
 // ProviderLabel 返回提供商的中文标签
-func ProviderLabel(provider WebSearchProvider) string {
+func ProviderLabel(provider WebSearchProvider, exaAPIKey, parallelAPIKey string) string {
 	switch provider {
+	case ProviderAuto:
+		return "自动网络搜索"
+	case ProviderMeta:
+		return "本地多引擎网络搜索"
 	case ProviderDuckDuckGo:
 		return "DuckDuckGo 网络搜索"
 	case ProviderParallel:
-		if env := os.Getenv("PARALLEL_API_KEY"); env != "" {
+		if strings.TrimSpace(parallelAPIKey) != "" {
 			return "Parallel 网络搜索"
 		}
 		return "Parallel 网络搜索（未配置 API key）"
 	case ProviderExa:
-		if env := os.Getenv("EXA_API_KEY"); env != "" {
+		if strings.TrimSpace(exaAPIKey) != "" {
 			return "Exa 网络搜索"
 		}
 		return "Exa 网络搜索（未配置 API key）"

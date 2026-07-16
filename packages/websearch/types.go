@@ -77,12 +77,17 @@ type AggregatedResult struct {
 
 // EngineConfig 搜索引擎配置
 type EngineConfig struct {
-	Name        string  `json:"name"`
-	Weight      float64 `json:"weight"`
-	Timeout     int     `json:"timeout"`     // 毫秒
-	MaxResults  int     `json:"maxResults"`
-	RequiresKey bool    `json:"requiresKey"`
-	Priority    int     `json:"priority"`
+	Name        string            `json:"name"`
+	Category    string            `json:"category,omitempty"`
+	Weight      float64           `json:"weight"`
+	Timeout     int               `json:"timeout"` // 毫秒
+	MaxResults  int               `json:"maxResults"`
+	RequiresKey bool              `json:"requiresKey"`
+	Priority    int               `json:"priority"`
+	APIKey      string            `json:"-"`
+	BaseURL     string            `json:"baseUrl,omitempty"`
+	Headers     map[string]string `json:"-"`
+	Proxy       ProxyConfig       `json:"-"`
 }
 
 // DefaultEngineConfig 创建默认引擎配置
@@ -105,6 +110,10 @@ type SearchOptions struct {
 	TimeRange  string // "day" | "week" | "month" | "year"
 	Lang       string
 	Livecrawl  bool
+	Provider   WebSearchProvider
+	QueryType  string
+	Engines    []string
+	SearchType string // "auto" | "fast" | "deep"
 }
 
 // DefaultSearchOptions 创建默认搜索选项
@@ -112,6 +121,8 @@ func DefaultSearchOptions() SearchOptions {
 	return SearchOptions{
 		NumResults: 8,
 		SafeSearch: 1,
+		Provider:   ProviderAuto,
+		SearchType: "auto",
 	}
 }
 
@@ -174,6 +185,23 @@ type EngineError struct {
 }
 
 func (e *EngineError) Error() string { return e.Message }
+
+// MissingCredentialError 表示引擎需要配置凭据才能发起真实请求。
+type MissingCredentialError struct {
+	Engine string
+}
+
+func (e *MissingCredentialError) Error() string {
+	return e.Engine + " requires credentials configured in AI.webSearch"
+}
+
+// ProtocolError 表示远端响应不符合引擎协议，不能被当作空结果处理。
+type ProtocolError struct {
+	Engine  string
+	Message string
+}
+
+func (e *ProtocolError) Error() string { return e.Engine + ": " + e.Message }
 
 // CaptchaError CAPTCHA 验证错误
 type CaptchaError struct {
@@ -376,7 +404,7 @@ func DeserializeResults(raw string) ([]SearchResult, error) {
 type ProgressPhase int
 
 const (
-	PhaseStart  ProgressPhase = iota
+	PhaseStart ProgressPhase = iota
 	PhaseResult
 	PhaseDone
 )

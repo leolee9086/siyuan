@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func init() {
@@ -59,10 +58,10 @@ func newDuckDuckGo(config EngineConfig) SearchEngine {
 
 type ddgEngine struct{ config EngineConfig }
 
-func (e *ddgEngine) Name() string        { return "duckduckgo" }
+func (e *ddgEngine) Name() string         { return "duckduckgo" }
 func (e *ddgEngine) Config() EngineConfig { return e.config }
 func (e *ddgEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	// 对应 TS: headers
 	client.SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
 	client.SetHeader("Content-Type", "application/x-www-form-urlencoded")
@@ -133,10 +132,16 @@ func newBing(config EngineConfig) SearchEngine {
 			pos := 0
 			re := regexp.MustCompile(`<h2[^>]*>[\s\S]*?<a[^>]*href="(https?://[^"]*)"[^>]*>([\s\S]*?)<\/a>`)
 			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results2) >= max { break }
-				title := StripHTML(m[2]); u := m[1]
-				if title == "" || u == "" || strings.Contains(u, "bing.com") { continue }
-				pos++; results2 = append(results2, SearchResult{Title: title, URL: u, Snippet: "", Engine: "bing", Position: pos})
+				if len(results2) >= max {
+					break
+				}
+				title := StripHTML(m[2])
+				u := m[1]
+				if title == "" || u == "" || strings.Contains(u, "bing.com") {
+					continue
+				}
+				pos++
+				results2 = append(results2, SearchResult{Title: title, URL: u, Snippet: "", Engine: "bing", Position: pos})
 			}
 			if len(results2) > 0 {
 				return results2, nil
@@ -155,8 +160,7 @@ func newBrave(config EngineConfig) SearchEngine {
 		Headers: map[string]string{
 			"Accept-Encoding": "gzip",
 		},
-		RequiresKey: true,
-		APIKeyEnv:   "BRAVE_API_KEY",
+		RequiresKey:  true,
 		APIKeyHeader: "X-Subscription-Token",
 		URL: func(q string, n int) string {
 			// 对应 TS: q, count, safesearch
@@ -306,7 +310,7 @@ func newGoogle(config EngineConfig) SearchEngine {
 
 type googleEngine struct{ config EngineConfig }
 
-func (e *googleEngine) Name() string        { return "google" }
+func (e *googleEngine) Name() string         { return "google" }
 func (e *googleEngine) Config() EngineConfig { return e.config }
 func (e *googleEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	// 对应 TS: getGoogleInfo(lang)
@@ -361,7 +365,7 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 	u := fmt.Sprintf("https://%s/search?%s", subdomain, params.Encode())
 
 	// 对应 TS: headers
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	// 对应 TS: lang?.replace("_", "-") || "en-US,en;q=0.9"
 	if langParam != "" {
@@ -396,7 +400,7 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 
 func newBaidu(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "baidu",
+		Name:      "baidu",
 		UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
 		Headers: map[string]string{
 			"Accept":          "application/json, text/javascript, */*; q=0.01",
@@ -445,7 +449,7 @@ func newBaidu(config EngineConfig) SearchEngine {
 				results = append(results, SearchResult{
 					Title: title, URL: entry.URL,
 					Snippet: strings.TrimSpace(UnescapeHTML(entry.Abs)),
-					Engine: "baidu", Position: len(results) + 1,
+					Engine:  "baidu", Position: len(results) + 1,
 					PublishedDate: pubDate,
 				})
 			}

@@ -186,9 +186,9 @@ func newCrossref(config EngineConfig) SearchEngine {
 							Family string `json:"family"`
 						} `json:"author"`
 						ContainerTitle []string    `json:"container-title"`
-						Type          string      `json:"type"`
-						Published     interface{} `json:"published"`
-						URL           string      `json:"URL"`
+						Type           string      `json:"type"`
+						Published      interface{} `json:"published"`
+						URL            string      `json:"URL"`
 					} `json:"items"`
 				} `json:"message"`
 			}
@@ -258,17 +258,29 @@ func newCrossref(config EngineConfig) SearchEngine {
 func newPubMed(config EngineConfig) SearchEngine { return &pubmedEngine{config: config} }
 
 type pubmedEngine struct{ config EngineConfig }
-func (e *pubmedEngine) Name() string        { return "pubmed" }
+
+func (e *pubmedEngine) Name() string         { return "pubmed" }
 func (e *pubmedEngine) Config() EngineConfig { return e.config }
 func (e *pubmedEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	status, body, err := client.Get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term="+url.QueryEscape(query)+"&retmax="+strconv.Itoa(minInt(opts.NumResults, 50))+"&retmode=json&sort=relevance", map[string]string{"Accept": "application/json"})
-	if err != nil || status < 200 || status >= 400 { return nil, nil }
-	var resp struct{ ESearchResult *struct{ IDList []string `json:"idlist"`; Count string } `json:"esearchresult"` }
-	if err := json.Unmarshal([]byte(body), &resp); err != nil || resp.ESearchResult == nil { return nil, nil }
+	if err != nil || status < 200 || status >= 400 {
+		return nil, nil
+	}
+	var resp struct {
+		ESearchResult *struct {
+			IDList []string `json:"idlist"`
+			Count  string
+		} `json:"esearchresult"`
+	}
+	if err := json.Unmarshal([]byte(body), &resp); err != nil || resp.ESearchResult == nil {
+		return nil, nil
+	}
 	var results []SearchResult
 	for i, id := range resp.ESearchResult.IDList {
-		if i >= opts.NumResults { break }
+		if i >= opts.NumResults {
+			break
+		}
 		results = append(results, SearchResult{Title: "PubMed ID: " + id, URL: "https://pubmed.ncbi.nlm.nih.gov/" + id + "/", Snippet: "Total results: " + resp.ESearchResult.Count, Engine: "pubmed", Position: i + 1, Category: "academic"})
 	}
 	return results, nil
@@ -289,32 +301,56 @@ func newOpenAlex(config EngineConfig) SearchEngine {
 					PubDate      string `json:"publication_date"`
 					CitedByCount int    `json:"cited_by_count"`
 					Authorships  []struct {
-						Author *struct{ DisplayName string `json:"display_name"` } `json:"author"`
+						Author *struct {
+							DisplayName string `json:"display_name"`
+						} `json:"author"`
 					} `json:"authorships"`
 					PrimaryLocation *struct {
 						LandingPageURL string `json:"landing_page_url"`
 					} `json:"primary_location"`
 				} `json:"results"`
 			}
-			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, w := range resp.Results {
-				if i >= max || w.Title == "" { break }
+				if i >= max || w.Title == "" {
+					break
+				}
 				url := w.ID
-				if w.PrimaryLocation != nil && w.PrimaryLocation.LandingPageURL != "" { url = w.PrimaryLocation.LandingPageURL }
+				if w.PrimaryLocation != nil && w.PrimaryLocation.LandingPageURL != "" {
+					url = w.PrimaryLocation.LandingPageURL
+				}
 				doi := ""
-				if w.DOI != "" { doi = "DOI: " + strings.TrimPrefix(w.DOI, "https://doi.org/") }
+				if w.DOI != "" {
+					doi = "DOI: " + strings.TrimPrefix(w.DOI, "https://doi.org/")
+				}
 				authors := make([]string, 0, 3)
 				for _, a := range w.Authorships {
-					if len(authors) >= 3 { break }
-					if a.Author != nil && a.Author.DisplayName != "" { authors = append(authors, a.Author.DisplayName) }
+					if len(authors) >= 3 {
+						break
+					}
+					if a.Author != nil && a.Author.DisplayName != "" {
+						authors = append(authors, a.Author.DisplayName)
+					}
 				}
 				parts := make([]string, 0, 3)
-				if len(authors) > 0 { parts = append(parts, strings.Join(authors, ", ")) }
-				if doi != "" { parts = append(parts, doi) }
-				if w.CitedByCount > 0 { parts = append(parts, strconv.Itoa(w.CitedByCount)+" citations") }
+				if len(authors) > 0 {
+					parts = append(parts, strings.Join(authors, ", "))
+				}
+				if doi != "" {
+					parts = append(parts, doi)
+				}
+				if w.CitedByCount > 0 {
+					parts = append(parts, strconv.Itoa(w.CitedByCount)+" citations")
+				}
 				var publishedDate int64
-				if w.PubDate != "" { if t, err := time.Parse("2006-01-02", w.PubDate); err == nil { publishedDate = t.UnixMilli() } }
+				if w.PubDate != "" {
+					if t, err := time.Parse("2006-01-02", w.PubDate); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
 				results = append(results, SearchResult{Title: w.Title, URL: url, Snippet: strings.Join(parts, " · "), Engine: "openalex", Position: i + 1, Category: "academic", PublishedDate: publishedDate})
 			}
 			return results, nil
@@ -324,20 +360,43 @@ func newOpenAlex(config EngineConfig) SearchEngine {
 func newCore(config EngineConfig) SearchEngine { return &coreEngine{config: config} }
 
 type coreEngine struct{ config EngineConfig }
-func (e *coreEngine) Name() string        { return "core" }
+
+func (e *coreEngine) Name() string         { return "core" }
 func (e *coreEngine) Config() EngineConfig { return e.config }
 func (e *coreEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	status, body, err := client.Get("https://api.core.ac.uk/v3/search/works?q="+url.QueryEscape(query)+"&limit="+strconv.Itoa(minInt(opts.NumResults, 50)), map[string]string{"Accept": "application/json"})
-	if err != nil || status < 200 || status >= 400 { return nil, nil }
-	var resp struct{ Results []struct{ Title, DownloadURL, Doi, PublishedDate string `json:"downloadUrl"`; Authors []struct{ Name string } `json:"authors"` } `json:"results"` }
-	if err := json.Unmarshal([]byte(body), &resp); err != nil { return nil, nil }
+	if err != nil || status < 200 || status >= 400 {
+		return nil, nil
+	}
+	var resp struct {
+		Results []struct {
+			Title, DownloadURL, Doi, PublishedDate string                  `json:"downloadUrl"`
+			Authors                                []struct{ Name string } `json:"authors"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		return nil, nil
+	}
 	var results []SearchResult
 	for i, r := range resp.Results {
-		if i >= opts.NumResults || r.Title == "" { break }
-		authors := []string{}; for _, a := range r.Authors { authors = append(authors, a.Name) }
-		url := r.DownloadURL; if url == "" && r.Doi != "" { url = "https://doi.org/" + r.Doi }
-		var ts int64; if r.PublishedDate != "" { if t, err := time.Parse("2006-01-02", r.PublishedDate); err == nil { ts = t.UnixMilli() } }
+		if i >= opts.NumResults || r.Title == "" {
+			break
+		}
+		authors := []string{}
+		for _, a := range r.Authors {
+			authors = append(authors, a.Name)
+		}
+		url := r.DownloadURL
+		if url == "" && r.Doi != "" {
+			url = "https://doi.org/" + r.Doi
+		}
+		var ts int64
+		if r.PublishedDate != "" {
+			if t, err := time.Parse("2006-01-02", r.PublishedDate); err == nil {
+				ts = t.UnixMilli()
+			}
+		}
 		results = append(results, SearchResult{Title: r.Title, URL: url, Snippet: strings.Join(authors, ", "), Engine: "core", Position: i + 1, Category: "academic", PublishedDate: ts})
 	}
 	return results, nil
@@ -349,19 +408,46 @@ func newOpenLibrary(config EngineConfig) SearchEngine {
 			return "https://openlibrary.org/search.json?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 50)) + "&fields=*"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var r struct{ Docs []struct{ Key, Title string; AuthorName []string `json:"author_name"`; FirstPublishYear int `json:"first_publish_year"`; Isbn []string `json:"isbn"` } `json:"docs"` }
-			if err := json.Unmarshal(data, &r); err != nil || r.Docs == nil { return nil, nil }
+			var r struct {
+				Docs []struct {
+					Key, Title       string
+					AuthorName       []string `json:"author_name"`
+					FirstPublishYear int      `json:"first_publish_year"`
+					Isbn             []string `json:"isbn"`
+				} `json:"docs"`
+			}
+			if err := json.Unmarshal(data, &r); err != nil || r.Docs == nil {
+				return nil, nil
+			}
 			var res []SearchResult
 			for i, b := range r.Docs {
-				if i >= max || b.Title == "" || b.Key == "" { break }
-				year := ""; if b.FirstPublishYear > 0 { year = strconv.Itoa(b.FirstPublishYear) }
+				if i >= max || b.Title == "" || b.Key == "" {
+					break
+				}
+				year := ""
+				if b.FirstPublishYear > 0 {
+					year = strconv.Itoa(b.FirstPublishYear)
+				}
 				parts := make([]string, 0, 3)
-				if len(b.AuthorName) > 0 { parts = append(parts, strings.Join(b.AuthorName[:minInt(3, len(b.AuthorName))], ", ")) }
-				if year != "" { parts = append(parts, year) }
-				if len(b.Isbn) > 0 { parts = append(parts, "ISBN: "+b.Isbn[0]) }
+				if len(b.AuthorName) > 0 {
+					parts = append(parts, strings.Join(b.AuthorName[:minInt(3, len(b.AuthorName))], ", "))
+				}
+				if year != "" {
+					parts = append(parts, year)
+				}
+				if len(b.Isbn) > 0 {
+					parts = append(parts, "ISBN: "+b.Isbn[0])
+				}
 				var publishedDate int64
-				if b.FirstPublishYear > 0 { if t, err := time.Parse("2006-01-02", strconv.Itoa(b.FirstPublishYear)+"-01-01"); err == nil { publishedDate = t.UnixMilli() } }
-				title := b.Title; if year != "" { title += " (" + year + ")" }
+				if b.FirstPublishYear > 0 {
+					if t, err := time.Parse("2006-01-02", strconv.Itoa(b.FirstPublishYear)+"-01-01"); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
+				title := b.Title
+				if year != "" {
+					title += " (" + year + ")"
+				}
 				res = append(res, SearchResult{Title: title, URL: "https://openlibrary.org" + b.Key, Snippet: strings.Join(parts, " · "), Engine: "openlibrary", Position: i + 1, Category: "academic", PublishedDate: publishedDate})
 			}
 			return res, nil
@@ -371,15 +457,27 @@ func newOpenLibrary(config EngineConfig) SearchEngine {
 func newGoodreads(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "goodreads",
-		BuildURL: func(q string, opts SearchOptions) string { return "https://www.goodreads.com/search?q=" + url.QueryEscape(q) },
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://www.goodreads.com/search?q=" + url.QueryEscape(q)
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult; pos := 0
+			var results []SearchResult
+			pos := 0
 			re := regexp.MustCompile(`<a[^>]*class="bookTitle"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*itemprop="name"[^>]*>([\s\S]*?)<\/span>`)
 			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max { break }
-				title := StripHTML(m[2]); url := m[1]; if title == "" || url == "" { continue }
-				if !strings.HasPrefix(url, "http") { url = "https://www.goodreads.com" + url }
-				pos++; results = append(results, SearchResult{Title: title, URL: url, Snippet: "Goodreads book", Engine: "goodreads", Position: pos, Category: "academic"})
+				if len(results) >= max {
+					break
+				}
+				title := StripHTML(m[2])
+				url := m[1]
+				if title == "" || url == "" {
+					continue
+				}
+				if !strings.HasPrefix(url, "http") {
+					url = "https://www.goodreads.com" + url
+				}
+				pos++
+				results = append(results, SearchResult{Title: title, URL: url, Snippet: "Goodreads book", Engine: "goodreads", Position: pos, Category: "academic"})
 			}
 			return results, nil
 		},
@@ -388,14 +486,31 @@ func newGoodreads(config EngineConfig) SearchEngine {
 func newZenodo(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "zenodo", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://zenodo.org/api/records?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 50)) + "&sort=mostrecent" },
+		URL: func(q string, n int) string {
+			return "https://zenodo.org/api/records?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 50)) + "&sort=mostrecent"
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ HITS *struct{ HITS []struct{ ID int; Metadata struct{ Title, Description, DOI string } `json:"metadata"`; Links struct{ Self string } `json:"links"` } `json:"hits"` } `json:"hits"` }
-			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil { return nil, nil }
+			var resp struct {
+				HITS *struct {
+					HITS []struct {
+						ID       int
+						Metadata struct{ Title, Description, DOI string } `json:"metadata"`
+						Links    struct{ Self string }                    `json:"links"`
+					} `json:"hits"`
+				} `json:"hits"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, h := range resp.HITS.HITS {
-				if i >= max || h.Metadata.Title == "" { break }
-				url := h.Links.Self; if url == "" && h.Metadata.DOI != "" { url = "https://doi.org/" + h.Metadata.DOI }
+				if i >= max || h.Metadata.Title == "" {
+					break
+				}
+				url := h.Links.Self
+				if url == "" && h.Metadata.DOI != "" {
+					url = "https://doi.org/" + h.Metadata.DOI
+				}
 				results = append(results, SearchResult{Title: h.Metadata.Title, URL: url, Snippet: truncate(h.Metadata.Description, 200), Engine: "zenodo", Position: i + 1, Category: "academic"})
 			}
 			return results, nil
@@ -405,13 +520,26 @@ func newZenodo(config EngineConfig) SearchEngine {
 func newAds(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "ads", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://api.adsabs.harvard.edu/v1/search/query?q=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 50)) },
+		URL: func(q string, n int) string {
+			return "https://api.adsabs.harvard.edu/v1/search/query?q=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 50))
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ Response *struct{ Docs []struct{ Title []string `json:"title"`; Bibcode, URL, Abstract string } `json:"docs"` } `json:"response"` }
-			if err := json.Unmarshal(data, &resp); err != nil || resp.Response == nil { return nil, nil }
+			var resp struct {
+				Response *struct {
+					Docs []struct {
+						Title                  []string `json:"title"`
+						Bibcode, URL, Abstract string
+					} `json:"docs"`
+				} `json:"response"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil || resp.Response == nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, d := range resp.Response.Docs {
-				if i >= max || len(d.Title) == 0 || d.Title[0] == "" { break }
+				if i >= max || len(d.Title) == 0 || d.Title[0] == "" {
+					break
+				}
 				results = append(results, SearchResult{Title: d.Title[0], URL: d.URL, Snippet: truncate(d.Abstract, 200), Engine: "ads", Position: i + 1, Category: "academic"})
 			}
 			return results, nil
@@ -421,13 +549,28 @@ func newAds(config EngineConfig) SearchEngine {
 func newPdbe(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "pdbe", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://www.ebi.ac.uk/pdbe/api/search/pdb/elasticsearch?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 20)) },
+		URL: func(q string, n int) string {
+			return "https://www.ebi.ac.uk/pdbe/api/search/pdb/elasticsearch?q=" + url.QueryEscape(q) + "&size=" + strconv.Itoa(minInt(n, 20))
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ HITS *struct{ HITS []struct{ ID string `json:"_id"`; Source struct{ Title, Description string `json:"title"` } `json:"_source"` } `json:"hits"` } `json:"hits"` }
-			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil { return nil, nil }
+			var resp struct {
+				HITS *struct {
+					HITS []struct {
+						ID     string `json:"_id"`
+						Source struct {
+							Title, Description string `json:"title"`
+						} `json:"_source"`
+					} `json:"hits"`
+				} `json:"hits"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil || resp.HITS == nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, h := range resp.HITS.HITS {
-				if i >= max || h.ID == "" { break }
+				if i >= max || h.ID == "" {
+					break
+				}
 				results = append(results, SearchResult{Title: h.Source.Title, URL: "https://www.ebi.ac.uk/pdbe/entry/pdb/" + h.ID, Snippet: truncate(h.Source.Description, 200), Engine: "pdbe", Position: i + 1, Category: "academic"})
 			}
 			return results, nil
@@ -437,13 +580,21 @@ func newPdbe(config EngineConfig) SearchEngine {
 func newScanr(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "scanr", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://scanr.io/api/search?q=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 20)) },
+		URL: func(q string, n int) string {
+			return "https://scanr.io/api/search?q=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 20))
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ Results []struct{ Title, URL, Abstract string } `json:"results"` }
-			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var resp struct {
+				Results []struct{ Title, URL, Abstract string } `json:"results"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, r := range resp.Results {
-				if i >= max || r.Title == "" { break }
+				if i >= max || r.Title == "" {
+					break
+				}
 				results = append(results, SearchResult{Title: r.Title, URL: r.URL, Snippet: truncate(r.Abstract, 200), Engine: "scanr", Position: i + 1, Category: "academic"})
 			}
 			return results, nil
@@ -548,38 +699,65 @@ func newOpenAirePublications(config EngineConfig) SearchEngine {
 func newAnnasArchive(config EngineConfig) SearchEngine { return &annasArchiveEngine{config: config} }
 
 type annasArchiveEngine struct{ config EngineConfig }
-func (e *annasArchiveEngine) Name() string        { return "annas-archive" }
+
+func (e *annasArchiveEngine) Name() string         { return "annas-archive" }
 func (e *annasArchiveEngine) Config() EngineConfig { return e.config }
 func (e *annasArchiveEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	mirrors := []string{"https://annas-archive.gl", "https://annas-archive.vg", "https://annas-archive.pk", "https://annas-archive.gd"}
 	for _, base := range mirrors {
-		client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+		client := NewEngineHTTPClient(e.config)
 		status, body, err := client.Get(base+"/search?q="+url.QueryEscape(query)+"&page=1", nil)
-		if err != nil || status < 200 || status >= 400 { continue }
-		var results []SearchResult; pos := 0
+		if err != nil || status < 200 || status >= 400 {
+			continue
+		}
+		var results []SearchResult
+		pos := 0
 		re := regexp.MustCompile(`<div[^>]*class="[^"]*flex[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<a[^>]*class="[^"]*js-vim-focus[^"]*"[^>]*>([\s\S]*?)<\/a>`)
 		for _, m := range re.FindAllStringSubmatch(body, -1) {
-			if len(results) >= opts.NumResults { break }
-			title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
-			if strings.HasPrefix(href, "/") { href = base + href }
-			pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "Anna's Archive book", Engine: "annas-archive", Position: pos})
+			if len(results) >= opts.NumResults {
+				break
+			}
+			title := StripHTML(m[2])
+			href := m[1]
+			if title == "" || href == "" {
+				continue
+			}
+			if strings.HasPrefix(href, "/") {
+				href = base + href
+			}
+			pos++
+			results = append(results, SearchResult{Title: title, URL: href, Snippet: "Anna's Archive book", Engine: "annas-archive", Position: pos})
 		}
-		if len(results) > 0 { return results, nil }
+		if len(results) > 0 {
+			return results, nil
+		}
 	}
 	return nil, nil
 }
 func newMoviepilot(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "moviepilot",
-		BuildURL: func(q string, opts SearchOptions) string { return "https://www.moviepilot.de/search?q=" + url.QueryEscape(q) },
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://www.moviepilot.de/search?q=" + url.QueryEscape(q)
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult; pos := 0
+			var results []SearchResult
+			pos := 0
 			re := regexp.MustCompile(`<a[^>]*class="[^"]*title[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>`)
 			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max { break }
-				title := StripHTML(m[2]); href := m[1]; if title == "" || href == "" { continue }
-				if !strings.HasPrefix(href, "http") { href = "https://www.moviepilot.de" + href }
-				pos++; results = append(results, SearchResult{Title: title, URL: href, Snippet: "", Engine: "moviepilot", Position: pos, Category: "academic"})
+				if len(results) >= max {
+					break
+				}
+				title := StripHTML(m[2])
+				href := m[1]
+				if title == "" || href == "" {
+					continue
+				}
+				if !strings.HasPrefix(href, "http") {
+					href = "https://www.moviepilot.de" + href
+				}
+				pos++
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: "", Engine: "moviepilot", Position: pos, Category: "academic"})
 			}
 			return results, nil
 		},
@@ -588,13 +766,24 @@ func newMoviepilot(config EngineConfig) SearchEngine {
 func newWikidata(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "wikidata", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 50)) + "&language=en&format=json" },
+		URL: func(q string, n int) string {
+			return "https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 50)) + "&language=en&format=json"
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ Search []struct{ ID, Title, URL, Description string; Match *struct{ Text string } `json:"match"` } `json:"search"` }
-			if err := json.Unmarshal(data, &resp); err != nil { return nil, nil }
+			var resp struct {
+				Search []struct {
+					ID, Title, URL, Description string
+					Match                       *struct{ Text string } `json:"match"`
+				} `json:"search"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, s := range resp.Search {
-				if i >= max || s.ID == "" { break }
+				if i >= max || s.ID == "" {
+					break
+				}
 				results = append(results, SearchResult{Title: s.Title, URL: "https://www.wikidata.org/wiki/" + s.ID, Snippet: s.Description, Engine: "wikidata", Position: i + 1, Category: "academic"})
 			}
 			return results, nil
@@ -604,13 +793,23 @@ func newWikidata(config EngineConfig) SearchEngine {
 func newWikimediaCommons(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "wikicommons", Category: "academic", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string { return "https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=" + url.QueryEscape(q) + "&srlimit=" + strconv.Itoa(minInt(n, 50)) + "&format=json&origin=*" },
+		URL: func(q string, n int) string {
+			return "https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=" + url.QueryEscape(q) + "&srlimit=" + strconv.Itoa(minInt(n, 50)) + "&format=json&origin=*"
+		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct{ Query *struct{ Search []struct{ Title, Snippet string } `json:"search"` } `json:"query"` }
-			if err := json.Unmarshal(data, &resp); err != nil || resp.Query == nil { return nil, nil }
+			var resp struct {
+				Query *struct {
+					Search []struct{ Title, Snippet string } `json:"search"`
+				} `json:"query"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil || resp.Query == nil {
+				return nil, nil
+			}
 			var results []SearchResult
 			for i, s := range resp.Query.Search {
-				if i >= max || s.Title == "" { break }
+				if i >= max || s.Title == "" {
+					break
+				}
 				results = append(results, SearchResult{Title: s.Title, URL: "https://commons.wikimedia.org/wiki/" + url.QueryEscape(strings.ReplaceAll(s.Title, " ", "_")), Snippet: StripHTML(s.Snippet), Engine: "wikicommons", Position: i + 1, Category: "academic"})
 			}
 			return results, nil

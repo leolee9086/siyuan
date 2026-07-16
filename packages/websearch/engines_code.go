@@ -52,7 +52,7 @@ func newGitHub(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "github", Category: "code",
 		UserAgent:   "opencode-search/1.0",
-		RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/repositories?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=stars&order=desc"
 		},
@@ -809,7 +809,7 @@ func newMicrosoftLearn(config EngineConfig) SearchEngine {
 func newGitHubCode(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "github-code", Category: "code",
-		UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		UserAgent: "opencode-search/1.0", RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/code?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=indexed&order=desc"
 		},
@@ -867,7 +867,7 @@ func newGitHubCode(config EngineConfig) SearchEngine {
 }
 func newGitHubIssues(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/issues?q=" + url.QueryEscape(q) + "+type:issue&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=relevance&order=desc"
 		},
@@ -906,7 +906,7 @@ func newGitHubIssues(config EngineConfig) SearchEngine {
 }
 func newGitHubRepoFiles(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "github-repo-files", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true, APIKeyEnv: "GITHUB_TOKEN",
+		Name: "github-repo-files", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/repositories?q=" + url.QueryEscape(q) + "+in:name&per_page=" + strconv.Itoa(minInt(n, 20)) + "&sort=stars&order=desc"
 		},
@@ -936,7 +936,7 @@ func newGitLab(config EngineConfig) SearchEngine {
 		Name: "gitlab", Category: "code",
 		UserAgent: "opencode-search/1.0",
 		// 对应 TS: PRIVATE-TOKEN header（不是 Authorization Bearer）
-		RequiresKey: true, APIKeyEnv: "GITLAB_TOKEN", APIKeyHeader: "PRIVATE-TOKEN",
+		RequiresKey: true, APIKeyHeader: "PRIVATE-TOKEN",
 		URL: func(q string, n int) string {
 			return "https://gitlab.com/api/v4/projects?search=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&order_by=star_count&sort=desc"
 		},

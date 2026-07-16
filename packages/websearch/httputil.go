@@ -31,6 +31,16 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	}
 }
 
+// NewEngineHTTPClient applies the configured engine timeout and proxy without
+// consulting search API-key environment variables.
+func NewEngineHTTPClient(config EngineConfig) *HTTPClient {
+	client := NewHTTPClient(time.Duration(config.Timeout) * time.Millisecond)
+	if config.Proxy.HTTP != "" || config.Proxy.HTTPS != "" || config.Proxy.AutoDetect {
+		_ = client.UseProxy(config.Proxy)
+	}
+	return client
+}
+
 // UseProxy 为客户端配置代理
 // 优先级：显式 URL > AutoDetect > 无代理
 // 同时设置显式 URL 和 AutoDetect 时，显式 URL 优先

@@ -35,6 +35,34 @@ type AI struct {
 	Agent     *Agent      `json:"agent"`
 	Editing   *Editing    `json:"editing"`
 	Providers []*Provider `json:"providers"`
+	WebSearch *WebSearch  `json:"webSearch"`
+}
+
+// WebSearch contains runtime settings shared by the native Agent and MAGI.
+// Secret fields are encrypted together with the existing AI credentials.
+type WebSearch struct {
+	Enabled         bool                        `json:"enabled"`
+	Provider        string                      `json:"provider"`
+	QueryType       string                      `json:"queryType"`
+	Lang            string                      `json:"lang"`
+	MaxResults      int                         `json:"maxResults"`
+	TimeoutMs       int                         `json:"timeoutMs"`
+	CacheTTLSeconds int                         `json:"cacheTtlSeconds"`
+	Proxy           string                      `json:"proxy"`
+	ExaAPIKey       string                      `json:"exaApiKey"`
+	ParallelAPIKey  string                      `json:"parallelApiKey"`
+	Engines         map[string]*WebSearchEngine `json:"engines"`
+}
+
+type WebSearchEngine struct {
+	Enabled    bool              `json:"enabled"`
+	APIKey     string            `json:"apiKey"`
+	BaseURL    string            `json:"baseUrl"`
+	TimeoutMs  int               `json:"timeoutMs"`
+	MaxResults int               `json:"maxResults"`
+	Weight     float64           `json:"weight"`
+	Priority   int               `json:"priority"`
+	Headers    map[string]string `json:"headers"`
 }
 
 type OpenAI struct {
@@ -155,6 +183,18 @@ func defaultEditing() *Editing {
 	}
 }
 
+func defaultWebSearch() *WebSearch {
+	return &WebSearch{
+		Enabled:         true,
+		Provider:        "auto",
+		QueryType:       "general",
+		MaxResults:      8,
+		TimeoutMs:       15000,
+		CacheTTLSeconds: 60,
+		Engines:         map[string]*WebSearchEngine{},
+	}
+}
+
 func NewAI() *AI {
 	ai := &AI{
 		OpenAI:    defaultOpenAI(),
@@ -163,6 +203,7 @@ func NewAI() *AI {
 		Embedding: defaultEmbedding(),
 		Agent:     defaultAgent(),
 		Editing:   defaultEditing(),
+		WebSearch: defaultWebSearch(),
 	}
 
 	apiKey := os.Getenv("SIYUAN_OPENAI_API_KEY")
@@ -389,6 +430,11 @@ func (ai *AI) Normalize() {
 			ai.Editing.MaxHistoryMessages = 64
 		}
 	}
+	if ai.WebSearch == nil {
+		ai.WebSearch = defaultWebSearch()
+	} else {
+		normalizeWebSearch(ai.WebSearch)
+	}
 	providers := make([]*Provider, 0, len(ai.Providers))
 	for _, p := range ai.Providers {
 		if p == nil {
@@ -465,6 +511,43 @@ func normalizeOpenAI(openAI *OpenAI) {
 	}
 }
 
+func normalizeWebSearch(search *WebSearch) {
+	if search.Provider == "" {
+		search.Provider = "auto"
+	}
+	if search.MaxResults < 1 {
+		search.MaxResults = 8
+	} else if search.MaxResults > 50 {
+		search.MaxResults = 50
+	}
+	if search.TimeoutMs < 1000 {
+		search.TimeoutMs = 15000
+	} else if search.TimeoutMs > 120000 {
+		search.TimeoutMs = 120000
+	}
+	if search.CacheTTLSeconds < 0 {
+		search.CacheTTLSeconds = 0
+	}
+	if search.Engines == nil {
+		search.Engines = map[string]*WebSearchEngine{}
+	}
+	for name, engine := range search.Engines {
+		if engine == nil {
+			delete(search.Engines, name)
+			continue
+		}
+		if engine.TimeoutMs < 1000 {
+			engine.TimeoutMs = search.TimeoutMs
+		}
+		if engine.MaxResults < 1 {
+			engine.MaxResults = search.MaxResults
+		}
+		if engine.Headers == nil {
+			engine.Headers = map[string]string{}
+		}
+	}
+}
+
 func (ai *AI) DecryptAPIKeys() {
 	if ai.OpenAI != nil && ai.OpenAI.APIKey != "" {
 		dec := util.AESDecrypt(ai.OpenAI.APIKey)
@@ -495,6 +578,15 @@ func (ai *AI) DecryptAPIKeys() {
 			ai.Embedding.APIKey = string(plain)
 		}
 	}
+	if ai.WebSearch != nil {
+		ai.WebSearch.ExaAPIKey = decryptAPIKey(ai.WebSearch.ExaAPIKey)
+		ai.WebSearch.ParallelAPIKey = decryptAPIKey(ai.WebSearch.ParallelAPIKey)
+		for _, engine := range ai.WebSearch.Engines {
+			if engine != nil {
+				engine.APIKey = decryptAPIKey(engine.APIKey)
+			}
+		}
+	}
 }
 
 func (ai *AI) EncryptAPIKeys() {
@@ -510,6 +602,37 @@ func (ai *AI) EncryptAPIKeys() {
 	if ai.Embedding != nil && ai.Embedding.APIKey != "" {
 		ai.Embedding.APIKey = util.AESEncrypt(ai.Embedding.APIKey)
 	}
+	if ai.WebSearch != nil {
+		ai.WebSearch.ExaAPIKey = encryptAPIKey(ai.WebSearch.ExaAPIKey)
+		ai.WebSearch.ParallelAPIKey = encryptAPIKey(ai.WebSearch.ParallelAPIKey)
+		for _, engine := range ai.WebSearch.Engines {
+			if engine != nil {
+				engine.APIKey = encryptAPIKey(engine.APIKey)
+			}
+		}
+	}
+}
+
+func decryptAPIKey(value string) string {
+	if value == "" {
+		return ""
+	}
+	dec := util.AESDecrypt(value)
+	if dec == nil {
+		return value
+	}
+	plain, err := hex.DecodeString(string(dec))
+	if err != nil {
+		return value
+	}
+	return string(plain)
+}
+
+func encryptAPIKey(value string) string {
+	if value == "" {
+		return ""
+	}
+	return util.AESEncrypt(value)
 }
 
 func NeedsAIMigration(data []byte) bool {

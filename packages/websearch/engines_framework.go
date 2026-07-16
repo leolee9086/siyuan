@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,16 +18,16 @@ import (
 // ── JSON API 引擎 ─────────────────────────────────────
 
 type jsonAPIConfig struct {
-	Name         string
-	URL          func(query string, numResults int) string
-	Parse        func(data []byte, maxResults int) ([]SearchResult, error)
-	Category     string
-	UserAgent    string
-	Headers      map[string]string // 额外的自定义请求头
-	RequiresKey  bool
-	APIKeyEnv    string
-	APIKeyHeader string
-	APIKeyPrefix string
+	Name             string
+	URL              func(query string, numResults int) string
+	Parse            func(data []byte, maxResults int) ([]SearchResult, error)
+	Category         string
+	UserAgent        string
+	Headers          map[string]string // 额外的自定义请求头
+	RequiresKey      bool
+	APIKeyHeader     string
+	APIKeyPrefix     string
+	APIKeyQueryParam string
 }
 
 func newJSONAPIEngine(cfg jsonAPIConfig) EngineFactory {
@@ -45,8 +44,18 @@ type jsonAPIEngine struct {
 func (e *jsonAPIEngine) Name() string         { return e.config.Name }
 func (e *jsonAPIEngine) Config() EngineConfig { return e.config }
 func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
-	url := e.cfg.URL(query, opts.NumResults)
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	rawURL := e.cfg.URL(query, opts.NumResults)
+	if e.cfg.APIKeyQueryParam != "" {
+		parsed, err := url.Parse(rawURL)
+		if err != nil {
+			return nil, &ProtocolError{Engine: e.config.Name, Message: "invalid request URL: " + err.Error()}
+		}
+		values := parsed.Query()
+		values.Set(e.cfg.APIKeyQueryParam, e.config.APIKey)
+		parsed.RawQuery = values.Encode()
+		rawURL = parsed.String()
+	}
+	client := NewEngineHTTPClient(e.config)
 	client.SetHeader("Accept", "application/json")
 	if e.cfg.UserAgent != "" {
 		client.SetHeader("User-Agent", e.cfg.UserAgent)
@@ -54,28 +63,32 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 	for k, v := range e.cfg.Headers {
 		client.SetHeader(k, v)
 	}
-	if e.cfg.RequiresKey && e.cfg.APIKeyEnv != "" {
-		if key := os.Getenv(e.cfg.APIKeyEnv); key != "" {
-			h := e.cfg.APIKeyHeader
-			if h == "" {
-				h = "Authorization"
-			}
-			prefix := e.cfg.APIKeyPrefix
-			if prefix == "" && h == "Authorization" {
-				prefix = "Bearer "
-			}
-			client.SetHeader(h, prefix+key)
+	if e.cfg.RequiresKey && strings.TrimSpace(e.config.APIKey) == "" {
+		return nil, &MissingCredentialError{Engine: e.config.Name}
+	}
+	if strings.TrimSpace(e.config.APIKey) != "" {
+		h := e.cfg.APIKeyHeader
+		if h == "" {
+			h = "Authorization"
 		}
+		prefix := e.cfg.APIKeyPrefix
+		if prefix == "" && h == "Authorization" {
+			prefix = "Bearer "
+		}
+		client.SetHeader(h, prefix+e.config.APIKey)
+	}
+	for k, v := range e.config.Headers {
+		client.SetHeader(k, v)
 	}
 	for k, v := range headers {
 		client.SetHeader(k, v)
 	}
-	status, body, err := client.Get(url, nil)
+	status, body, err := client.Get(rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, fmt.Errorf("%s returned HTTP %d", e.config.Name, status)
+		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
 	}
 	if strings.TrimSpace(body) == "" {
 		return nil, fmt.Errorf("%s returned an empty response", e.config.Name)
@@ -121,7 +134,7 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 		}
 	}
 	url := e.cfg.BuildURL(query, opts)
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	client.SetHeader("Accept", "text/html")
 	for k, v := range headers {
 		client.SetHeader(k, v)
@@ -131,7 +144,7 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, fmt.Errorf("%s returned HTTP %d", e.config.Name, status)
+		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
 	}
 	return e.cfg.Parse(body, opts.NumResults)
 }
@@ -153,7 +166,7 @@ func (e *siteScopedEngine) Name() string         { return e.config.Name }
 func (e *siteScopedEngine) Config() EngineConfig { return e.config }
 func (e *siteScopedEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	scopedQuery := "site:" + e.domain + " " + query
-	client := NewHTTPClient(time.Duration(e.config.Timeout) * time.Millisecond)
+	client := NewEngineHTTPClient(e.config)
 	client.SetHeader("Accept", "text/html")
 	client.SetHeader("Content-Type", "application/x-www-form-urlencoded")
 	for k, v := range headers {
@@ -165,10 +178,10 @@ func (e *siteScopedEngine) Search(query string, opts SearchOptions, headers map[
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, nil
+		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
 	}
 	if strings.Contains(body, "challenge-form") {
-		return nil, nil
+		return nil, &CaptchaError{Engine: e.config.Name, Message: e.config.Name + " returned a CAPTCHA challenge"}
 	}
 	return parseDdgHTML(body, opts.NumResults, e.engineName, e.domain)
 }

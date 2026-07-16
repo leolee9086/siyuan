@@ -4,6 +4,7 @@ go 1.25.4
 
 require (
 	code.sajari.com/docconv v1.3.8
+	github.com/siyuan-note/siyuan/packages/websearch v0.0.0
 	github.com/88250/clipboard v0.1.5
 	github.com/88250/epub v0.0.0-20230830085737-c19055cd1f48
 	github.com/88250/go-humanize v0.0.0-20240424102817-4f78fac47ea7
@@ -233,6 +234,8 @@ replace github.com/pdfcpu/pdfcpu => github.com/88250/pdfcpu v0.3.14-0.2025042412
 replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-20260701212244-81e833cf739b
 
 replace github.com/leolee9086/string-metrics-damerau-levenshtein => ../packages/string-metrics-damerau-levenshtein
+
+replace github.com/siyuan-note/siyuan/packages/websearch => ../packages/websearch
 
 replace github.com/siyuan-note/logging => ./logging
 
