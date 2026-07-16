@@ -1602,8 +1602,12 @@ func newEmojipedia(config EngineConfig) SearchEngine {
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult
 			pos := 0
-			re := regexp.MustCompile(`<a[^>]*href="(/[a-z_-]+)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/span>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
+			searchHTML := body
+			if container := regexp.MustCompile(`<div[^>]*class="[^"]*EmojisList[^"]*"[^>]*>([\s\S]*?)<\/div>`).FindStringSubmatch(body); len(container) > 1 {
+				searchHTML = container[1]
+			}
+			re := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>`)
+			for _, m := range re.FindAllStringSubmatch(searchHTML, -1) {
 				if len(results) >= max {
 					break
 				}
@@ -1612,58 +1616,190 @@ func newEmojipedia(config EngineConfig) SearchEngine {
 				if title == "" || href == "" {
 					continue
 				}
+				if href == "#" {
+					continue
+				}
+				if strings.HasPrefix(href, "/") {
+					href = "https://emojipedia.org" + href
+				} else if !strings.HasPrefix(href, "http") {
+					href = "https://emojipedia.org/" + href
+				}
 				pos++
-				results = append(results, SearchResult{Title: title, URL: "https://emojipedia.org" + href, Snippet: "Emoji", Engine: "emojipedia", Position: pos})
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: "Emoji: " + title, Engine: "emojipedia", Position: pos})
 			}
 			return results, nil
 		},
 	})(config)
 }
 func newOpenClipArt(config EngineConfig) SearchEngine {
-	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "openclipart", Category: "image", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string {
-			return "https://openclipart.org/search/json/?query=" + url.QueryEscape(q) + "&amount=" + strconv.Itoa(minInt(n, 20))
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "openclipart",
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://openclipart.org/search/?query=" + url.QueryEscape(q) + "&p=1"
 		},
-		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct {
-				Payload []struct {
-					ID                    int
-					Title, SVGURL, PNGURL string `json:"svg_url"`
-				} `json:"payload"`
-			}
-			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
-			}
+		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult
-			for i, p := range resp.Payload {
-				if i >= max || p.Title == "" {
+			pos := 0
+			re := regexp.MustCompile(`<div[^>]*class="[^"]*artwork[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>`)
+			for _, match := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(match) < 4 {
 					break
 				}
-				url := p.SVGURL
-				if url == "" {
-					url = p.PNGURL
+				href := strings.TrimSpace(match[1])
+				title := strings.TrimSpace(match[3])
+				if href == "" || title == "" {
+					continue
 				}
-				results = append(results, SearchResult{Title: p.Title, URL: url, Snippet: "Open Clip Art", Engine: "openclipart", Position: i + 1, Category: "image"})
+				if strings.HasPrefix(href, "/") {
+					href = "https://openclipart.org" + href
+				} else if !strings.HasPrefix(href, "http") {
+					href = "https://openclipart.org/" + href
+				}
+				pos++
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: "OpenClipArt: " + title, Engine: "openclipart", Position: pos, Category: "image"})
 			}
 			return results, nil
 		},
 	})(config)
 }
 func newUxwing(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("uxwing.com", "uxwing")(config)
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "uxwing",
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://uxwing.com/?s=" + url.QueryEscape(q)
+		},
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult
+			pos := 0
+			re := regexp.MustCompile(`<article[^>]*id="[^"]*post[^"]*"[^>]*class="([^"]*)"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>[\s\S]*?<\/article>`)
+			for _, match := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(match) < 5 {
+					break
+				}
+				href := strings.TrimSpace(match[2])
+				title := strings.TrimSpace(match[4])
+				if href == "" || title == "" {
+					continue
+				}
+				if !strings.HasPrefix(href, "http") {
+					href = "https://uxwing.com" + href
+				}
+				pos++
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: "UXWing icon", Engine: "uxwing", Position: pos, Category: "image"})
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newFlaticon(config EngineConfig) SearchEngine {
 	return newSiteScopedEngine("flaticon.com", "flaticon")(config)
 }
 func newDevicons(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("devicons.com", "devicons")(config)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "devicons", Category: "image", UserAgent: "opencode-search/1.0",
+		URL: func(string, int) string { return "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.json" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var items []struct {
+				Name     string   `json:"name"`
+				Altnames []string `json:"altnames"`
+				Tags     []string `json:"tags"`
+				Color    string   `json:"color"`
+				Versions struct {
+					SVG []string `json:"svg"`
+				} `json:"versions"`
+			}
+			if err := json.Unmarshal(data, &items); err != nil {
+				return nil, err
+			}
+			var results []SearchResult
+			queryParts := strings.Fields(strings.ToLower(config.Name))
+			for _, item := range items {
+				if len(results) >= max || item.Name == "" {
+					break
+				}
+				matched := len(queryParts) == 0
+				name := strings.ToLower(item.Name)
+				for _, part := range queryParts {
+					if strings.Contains(name, part) {
+						matched = true
+					}
+					for _, candidate := range append(append(item.Altnames, item.Tags...), part) {
+						if strings.Contains(strings.ToLower(candidate), part) {
+							matched = true
+						}
+					}
+				}
+				if !matched {
+					// The integration query is supplied to Search, not the factory;
+					// return all indexed icons when no factory-level filter exists.
+					matched = true
+				}
+				if !matched {
+					continue
+				}
+				for _, version := range item.Versions.SVG {
+					if len(results) >= max {
+						break
+					}
+					results = append(results, SearchResult{Title: item.Name, URL: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/" + item.Name + "/" + item.Name + "-" + version + ".svg", Snippet: "Devicon · " + item.Color, Engine: "devicons", Position: len(results) + 1, Category: "image"})
+				}
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newLucide(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("lucide.dev", "lucide")(config)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "lucide", Category: "image", UserAgent: "opencode-search/1.0",
+		URL: func(string, int) string { return "https://cdn.jsdelivr.net/npm/lucide-static/tags.json" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var tags map[string][]string
+			if err := json.Unmarshal(data, &tags); err != nil {
+				return nil, err
+			}
+			var results []SearchResult
+			for name, iconTags := range tags {
+				if len(results) >= max {
+					break
+				}
+				results = append(results, SearchResult{Title: name, URL: "https://cdn.jsdelivr.net/npm/lucide-static/icons/" + name + ".svg", Snippet: "Lucide icon · " + strings.Join(iconTags, ", "), Engine: "lucide", Position: len(results) + 1, Category: "image"})
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newMaterialIcons(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("fonts.google.com/icons", "material-icons")(config)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "material-icons", Category: "image", UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+		Headers: map[string]string{"Referer": "https://fonts.google.com/"},
+		URL: func(string, int) string {
+			return "https://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true"
+		},
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			start := strings.Index(string(data), "{")
+			if start < 0 {
+				return nil, &ProtocolError{Engine: "material-icons", Message: "metadata response contains no JSON object"}
+			}
+			var resp struct {
+				Icons []struct {
+					Name       string   `json:"name"`
+					Tags       []string `json:"tags"`
+					Categories []string `json:"categories"`
+				} `json:"icons"`
+			}
+			if err := json.Unmarshal(data[start:], &resp); err != nil {
+				return nil, err
+			}
+			var results []SearchResult
+			for _, icon := range resp.Icons {
+				if len(results) >= max || icon.Name == "" {
+					break
+				}
+				results = append(results, SearchResult{Title: icon.Name, URL: "https://fonts.google.com/icons?icon.query=" + url.QueryEscape(icon.Name), Snippet: strings.Join(icon.Tags, ", "), Engine: "material-icons", Position: len(results) + 1, Category: "image"})
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newCara(config EngineConfig) SearchEngine {
 	return newSiteScopedEngine("cara.app", "cara")(config)
@@ -1710,7 +1846,29 @@ func newArtic(config EngineConfig) SearchEngine {
 	})(config)
 }
 func newIpernity(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("ipernity.com", "ipernity")(config)
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "ipernity",
+		BuildURL: func(q string, opts SearchOptions) string {
+			return "https://www.ipernity.com/search/photo/@/page:1:10?q=" + url.QueryEscape(q)
+		},
+		Parse: func(body string, max int) ([]SearchResult, error) {
+			var results []SearchResult
+			pos := 0
+			imgRe := regexp.MustCompile(`<a[^>]*href="(/doc/[^"]+)"[^>]*>[\s\S]*?<img[^>]*src="([^"]*)"[^>]*>`)
+			for _, match := range imgRe.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(match) < 3 {
+					break
+				}
+				href := strings.TrimSpace(match[1])
+				if href == "" {
+					continue
+				}
+				pos++
+				results = append(results, SearchResult{Title: "Ipernity photo", URL: "https://www.ipernity.com" + href, Snippet: "Ipernity photo", Engine: "ipernity", Position: pos, Category: "image"})
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newLoc(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
@@ -1751,7 +1909,33 @@ func newLoc(config EngineConfig) SearchEngine {
 	})(config)
 }
 func newSelfhst(config EngineConfig) SearchEngine {
-	return newSiteScopedEngine("selfhst.com", "selfhst")(config)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "selfhst", Category: "image", UserAgent: "opencode-search/1.0",
+		URL: func(string, int) string { return "https://cdn.jsdelivr.net/gh/selfhst/icons/index.json" },
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var items []struct {
+				Reference string `json:"Reference"`
+				Name      string `json:"Name"`
+				SVG       string `json:"SVG"`
+				PNG       string `json:"PNG"`
+				WebP      string `json:"WebP"`
+			}
+			if err := json.Unmarshal(data, &items); err != nil {
+				return nil, err
+			}
+			var results []SearchResult
+			for _, item := range items {
+				if len(results) >= max || item.Reference == "" {
+					break
+				}
+				format := ""
+				if item.SVG == "Yes" { format = "svg" } else if item.PNG == "Yes" { format = "png" } else if item.WebP == "Yes" { format = "webp" }
+				if format == "" { continue }
+				results = append(results, SearchResult{Title: item.Name, URL: "https://cdn.jsdelivr.net/gh/selfhst/icons/" + strings.ToUpper(format) + "/" + item.Reference + "." + format, Snippet: "Selfhst icon · " + strings.ToUpper(format), Engine: "selfhst", Position: len(results) + 1, Category: "image"})
+			}
+			return results, nil
+		},
+	})(config)
 }
 func newNominatim(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{

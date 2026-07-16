@@ -298,8 +298,20 @@
 - [x] 新增 `--sforge-glass-*`、`--sforge-console-edge-*` 相对颜色 token，并将主布局、页签、Dock、顶部/底部铬层、Protyle、菜单、设置 Dialog、输入框和 Agent 浮层统一映射到同一材质体系。
 - [x] Protyle 改为单一主玻璃承载层，`.protyle-content/.protyle-background/.protyle-title` 保持透明；面包屑独立使用高强度玻璃铬层，避免多层半透明叠加后重新变成实色。
 - [x] 主布局圆角收紧至 `5px`，活动页签和 Dock 活动按钮增加盒内导轨、冷白高光与小范围阴影；布局边界继续使用盒内阴影和伪元素，不增加真实外边框。
-- [x] 未向布局祖先、菜单或 Dialog 引入 `transform`、`filter`、`backdrop-filter`、`contain` 或裁剪；菜单 fixed 浮层、Dialog 遮罩、块标和 `#layouts` 溢出需要在本轮浏览器回归中继续逐项确认。
+- [x] 布局祖先继续禁止 `transform`、`filter`、`backdrop-filter`、`contain` 和裁剪；后续仅在确认无 fixed 后代的 Dialog 容器上使用真实背景模糊，菜单宿主仍保持无滤镜，雾化由无后代伪元素承载，避免改变子菜单定位上下文。
 - [x] 浅色/深色主题元数据同步提升至 `0.2.0`，用于刷新主题资源缓存。
+
+### 2026-07-16：双主题霓虹动效、网格与角标收敛
+
+- [x] 深色交互改为青色主光、橙色警戒外溢和少量紫色余辉；活动 Dock、页签、按钮、Agent 建议项、开关和消息卡片使用扫描/呼吸动效，并继续由 `prefers-reduced-motion` 提供静态替代。
+- [x] 浅色区域底色降低饱和度，青/橙/紫只承担导轨、焦点和状态标识；背景基础网格和主布局、Protyle、Agent 局部双向网格分别增强，避免只在 `body` 上绘制后被玻璃面板遮没。
+- [x] 所有主布局面板角标统一收敛为 `14px × 14px` 的纯 `L` 形，只保留一条短水平线和一条短垂直线；删除斜切段、续接短横线和右 Dock 特例。右 Dock 角标右缘与标题左缘实测保留 `2px` 间隔。
+- [x] 修复消息提示卡片在深色主题下使用 `--b3-theme-on-primary` 导致深字叠深底的问题；消息卡片现在显式使用主题前景色、可读玻璃背景、青色普通状态边界和橙红错误状态边界。
+- [x] AI 输入区聚焦态不再复用全局强焦点阴影和大范围霓虹脉冲；改为独立的小范围呼吸脉冲，外层保留窄青边、约 `8px` 青色余辉和极弱橙色环境光，内部 ProseMirror 的重复 `:focus-visible` 阴影显式清除。
+- [x] 主题资源版本同步提升至 `0.3.5`，并通过 `/api/ui/reloadTheme` 刷新运行时主题元数据；浏览器确认浅色/深色链接均使用新版资源。
+- [x] 运行时回归：`.layout__center/.layout__dockl/.layout__dockr` 仍无真实边框、`transform`、`filter`、`backdrop-filter` 或 `contain`；`#commonMenu` 仍挂在 `body` 下并保持 `position: fixed`；`#layouts.scrollWidth === clientWidth` 且 `scrollHeight === clientHeight`。
+- [x] 验证通过：`pnpm run typecheck:protyle-contract`、`git diff --check`、主题 JSON 解析。
+- [x] 新增截图：`assets/sforge-eva/main-light-neon-grid-1280x720.png`、`assets/sforge-eva/main-dark-neon-grid-1280x720.png`、`assets/sforge-eva/main-dark-simple-corners-1280x720.png`、`assets/sforge-eva/main-dark-agent-input-focus-1280x720.png`、`assets/sforge-eva/main-dark-agent-input-focus-pulse-1280x720.png`。
 
 ## 9. 已归档/已完成
 

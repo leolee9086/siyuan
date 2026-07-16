@@ -40,6 +40,12 @@ func newYouTube(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://www.youtube.com/results?search_query=" + url.QueryEscape(q)
 		},
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+			"Accept":          "text/html",
+			"Cookie":          "CONSENT=YES+",
+		},
 		Parse: parseYouTubeResults,
 	})(config)
 }
@@ -62,7 +68,7 @@ func parseYouTubeResults(body string, maxResults int) ([]SearchResult, error) {
 									}
 									if m, ok := item.(map[string]interface{}); ok {
 										if vr, ok := m["videoRenderer"].(map[string]interface{}); ok {
-											title := nestedStr(vr, "title", "runs", "0", "text")
+											title := youtubeRendererText(vr["title"])
 											videoID := nestedStr(vr, "videoId")
 											if title != "" && videoID != "" {
 												results = append(results, SearchResult{
@@ -94,6 +100,26 @@ func parseYouTubeResults(body string, maxResults int) ([]SearchResult, error) {
 		}
 	}
 	return results, nil
+}
+
+func youtubeRendererText(value interface{}) string {
+		object, ok := value.(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		if simple, ok := object["simpleText"].(string); ok {
+			return simple
+		}
+		runs, ok := object["runs"].([]interface{})
+		if !ok || len(runs) == 0 {
+			return ""
+		}
+		first, ok := runs[0].(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		text, _ := first["text"].(string)
+		return text
 }
 
 // ── Bilibili ──────────────────────────────────────────

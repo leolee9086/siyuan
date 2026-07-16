@@ -764,6 +764,7 @@ body[data-light-theme="sforge-eva-light"] {
         inset 0 1px var(--sforge-glass-specular-soft),
         0 0 0 1px color-mix(in srgb, var(--sforge-accent) 18%, transparent),
         0 0 10px color-mix(in srgb, var(--sforge-accent-bright) 14%, transparent);
+    animation: sforge-light-input-pulse 1.8s ease-in-out infinite;
 }
 
 [data-light-theme="sforge-eva-light"] .agent-chat__input-area :focus-visible {
@@ -906,6 +907,15 @@ body[data-light-theme="sforge-eva-light"] {
     50% {
         filter: drop-shadow(0 0 8px var(--sforge-neon-cyan-soft));
         text-shadow: 0 0 13px var(--sforge-neon-cyan-soft), 0 0 20px var(--sforge-neon-violet-soft);
+    }
+}
+
+@keyframes sforge-light-input-pulse {
+    0%, 100% {
+        box-shadow: inset 0 1px var(--sforge-glass-specular-soft), 0 0 0 1px color-mix(in srgb, var(--sforge-accent) 14%, transparent), 0 0 6px color-mix(in srgb, var(--sforge-accent-bright) 10%, transparent);
+    }
+    50% {
+        box-shadow: inset 0 1px var(--sforge-glass-specular-soft), 0 0 0 1px color-mix(in srgb, var(--sforge-accent) 24%, transparent), 0 0 12px color-mix(in srgb, var(--sforge-accent-bright) 18%, transparent), 0 0 16px var(--sforge-neon-violet-soft);
     }
 }
 
