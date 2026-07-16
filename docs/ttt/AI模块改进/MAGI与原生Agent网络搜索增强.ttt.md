@@ -54,6 +54,9 @@
   - **背景**: 代码阶段已完成，需要用真实配置验证并集引擎、凭据要求、失败原因、延迟和健康状态。
   - **行动**: 执行配置驱动的全量真实探测；记录引擎矩阵、凭据要求、响应和失败原因；修复真实网络验证暴露的问题。
   - **验收标准**: 已配置凭据的引擎请求和解析通过；未配置引擎明确为 `requires_credentials`；报告与测试输出写入 TTT；未完成前不归档。
+  - **当前证据（2026-07-16）**: 第二轮 `TestAllEnginesIntegration` 实际探测 207 个已注册引擎：36 个成功、1 个真实零结果、150 个真实失败、20 个明确 `requires_credentials`。失败原因包含网络超时、HTTP 403/404/429 及目标站点拒绝访问；没有将失败或缺少凭据伪装成成功，因此本阶段仍保持 `[-]`。
+  - **本轮修正**: 共享 HTTP 客户端现在实际应用每个引擎的运行时 `BaseURL` 和 headers，并补充空结果/协议契约测试；提交 `776891533 fix(websearch): apply runtime engine endpoints and headers`。定向契约测试命令 `go test . -run '^(TestEngineRegistryRejectsSilentNilResults|TestHTTPClientRetriesUnexpectedEOF|TestJSONAPIEngineReportsProtocolFailures|TestEngineHTTPClientAppliesConfiguredBaseURLAndHeaders|TestCodeEngineParsersMatchReferenceContracts|TestServiceDiagnoseReportsMissingCredentials|TestServiceDiagnoseMarksProtectedEnginesAsCredentialBound|TestServiceSearchReportsUnknownExplicitEngine|TestMCPResponseParserRejectsMalformedPayload)$' -count=1 -timeout=2m` 通过。
+  - **未完成项**: 仍需逐项核对真实失败的可修复协议/解析问题，完成配置驱动的已配置凭据探测，并补齐 kernel、Agent、MAGI、fetch 定向回归后，才能将本阶段归档。
 
 ## 中期计划
 
