@@ -55,9 +55,9 @@ type voteDecision struct {
 }
 
 const (
-	voteApprove                = prompts.VoteApprove
-	voteReject                 = prompts.VoteReject
-	maxVoteInvestigationTurns  = 3                 // 投票前允许的最大调查工具调用次数
+	voteApprove               = prompts.VoteApprove
+	voteReject                = prompts.VoteReject
+	maxVoteInvestigationTurns = 3 // 投票前允许的最大调查工具调用次数
 )
 
 // ProcessVoting 处理投票决策
@@ -320,6 +320,9 @@ func buildVoteInvestigationTools() []openai.Tool {
 		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
 		buildRuntimeTool(config.BuildNoteByIDReadToolDef()),
 		buildRuntimeTool(config.BuildRecallCrossSessionMemoriesToolDef()),
+		buildRuntimeTool(config.BuildSearchWebToolDef()),
+		buildRuntimeTool(config.BuildFetchWebPageToolDef()),
+		buildRuntimeTool(config.BuildInspectWebSearchEnginesToolDef()),
 		buildRuntimeTool(config.BuildListMagiChannelsToolDef()),
 		buildRuntimeTool(config.BuildListMagiContactsToolDef()),
 	}
@@ -338,6 +341,10 @@ func buildVoteInvestigationToolExecutor(sageName string) ToolCallResultExecutor 
 	executors = append(executors, newNoteKeywordToolResultExecutor().ExecuteToolCall)
 	executors = append(executors, newNoteByIDReadToolResultExecutor().ExecuteToolCall)
 	executors = append(executors, newCrossSessionMemoryToolExecutor(sageName).ExecuteToolCall)
+	webFetchExecutor := newWebFetchToolResultExecutor()
+	executors = append(executors, webFetchExecutor.ExecuteToolCall)
+	webSearchExecutor := newWebSearchToolResultExecutor()
+	executors = append(executors, webSearchExecutor.ExecuteToolCall)
 	executors = append(executors, newListMagiChannelsResultExecutor().ExecuteToolCall)
 	executors = append(executors, newListMagiContactsResultExecutor().ExecuteToolCall)
 	if util.IsForgeMode() {
@@ -448,8 +455,8 @@ func buildGovernedActionReviewInput(toolCall types.ToolCall, voteCtx VoteContext
 	}
 
 	payload := map[string]interface{}{
-		"type": "pending_action_review",
-		"originalMessage":   strings.TrimSpace(voteCtx.UserMessage),
+		"type":               "pending_action_review",
+		"originalMessage":    strings.TrimSpace(voteCtx.UserMessage),
 		"proposerConclusion": strings.TrimSpace(voteCtx.ProposerConclusion),
 		"toolCall": map[string]interface{}{
 			"id":   strings.TrimSpace(toolCall.ID),

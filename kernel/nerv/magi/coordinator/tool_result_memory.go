@@ -116,9 +116,15 @@ func materializeToolResultForContext(
 		logging.LogWarnf("归档查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, err)
 	}
 
-	_ = archiveLocation
-
-	return detailedResult
+	if sage == nil || sage.GetName() == "melchior" {
+		return detailedResult
+	}
+	compact, compactErr := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
+	if compactErr != nil {
+		logging.LogWarnf("压缩查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, compactErr)
+		return detailedResult
+	}
+	return compact
 }
 
 // compressArchivedQueryResults 遍历上下文，压缩非 Melchior sage 的查询工具结果。
@@ -175,7 +181,9 @@ func isArchivedQueryTool(toolName string) bool {
 		config.ForgeDevRepoReadToolName,
 		config.ForgeDevRepoSearchToolName,
 		config.NoteByIDReadToolName,
-		config.FetchWebPageToolName:
+		config.FetchWebPageToolName,
+		config.SearchWebToolName,
+		config.InspectWebSearchEnginesToolName:
 		return true
 	default:
 		return false
@@ -517,6 +525,10 @@ func buildQueryArchiveCalloutMarkdown(
 		return buildForgeArchiveCallout("代码仓库文本搜索", purpose, toolCall, detailedResult, storedAt)
 	case config.FetchWebPageToolName:
 		return buildWebFetchArchiveCallout(toolCall, purpose, storedAt)
+	case config.SearchWebToolName:
+		return buildWebSearchArchiveCallout(toolCall, purpose, detailedResult, storedAt)
+	case config.InspectWebSearchEnginesToolName:
+		return buildWebSearchStatusArchiveCallout(toolCall, purpose, detailedResult, storedAt)
 	default:
 		return buildGenericArchiveCallout(toolName, purpose, storedAt)
 	}
@@ -582,7 +594,8 @@ func buildGenericArchiveCallout(toolName, purpose, storedAt string) string {
 
 func buildWebFetchArchiveCallout(toolCall types.ToolCall, purpose, storedAt string) string {
 	var args struct {
-		URL string `json:"url"`
+		URL    string `json:"url"`
+		Format string `json:"format"`
 	}
 	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
 
@@ -591,7 +604,105 @@ func buildWebFetchArchiveCallout(toolCall types.ToolCall, purpose, storedAt stri
 		{Label: "获取目的", Value: purpose},
 		{Label: "获取时间", Value: storedAt},
 	}
+	if format := strings.TrimSpace(args.Format); format != "" {
+		fields = append(fields, CalloutField{Label: "格式", Value: format})
+	}
 	return BuildCalloutMarkdown("QUERY_RESULT", "网页内容获取", fields...)
+}
+
+func buildWebSearchArchiveCallout(toolCall types.ToolCall, purpose, detailedResult, storedAt string) string {
+	var args struct {
+		Query      string   `json:"query"`
+		Provider   string   `json:"provider"`
+		QueryType  string   `json:"queryType"`
+		TimeRange  string   `json:"timeRange"`
+		Lang       string   `json:"lang"`
+		SearchType string   `json:"searchType"`
+		Engines    []string `json:"engines"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+
+	var payload struct {
+		Provider    string     `json:"provider"`
+		Results     []struct{} `json:"results"`
+		UsedEngines []string   `json:"usedEngines"`
+		NoResults   bool       `json:"noResults"`
+		Errors      []struct{} `json:"errors"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+	provider := strings.TrimSpace(args.Provider)
+	if provider == "" {
+		provider = strings.TrimSpace(payload.Provider)
+	}
+	fields := []CalloutField{
+		{Label: "查询", Value: strings.TrimSpace(args.Query)},
+		{Label: "搜索目的", Value: purpose},
+		{Label: "提供商", Value: provider},
+		{Label: "结果数", Value: strconv.Itoa(len(payload.Results))},
+		{Label: "搜索时间", Value: storedAt},
+	}
+	if len(payload.UsedEngines) > 0 {
+		fields = append(fields, CalloutField{Label: "使用引擎", Value: strings.Join(dedupeStrings(payload.UsedEngines), ", ")})
+	}
+	if len(args.Engines) > 0 {
+		fields = append(fields, CalloutField{Label: "指定引擎", Value: strings.Join(dedupeStrings(args.Engines), ", ")})
+	}
+	if strings.TrimSpace(args.QueryType) != "" {
+		fields = append(fields, CalloutField{Label: "查询类型", Value: strings.TrimSpace(args.QueryType)})
+	}
+	if strings.TrimSpace(args.TimeRange) != "" {
+		fields = append(fields, CalloutField{Label: "时间范围", Value: strings.TrimSpace(args.TimeRange)})
+	}
+	if strings.TrimSpace(args.Lang) != "" {
+		fields = append(fields, CalloutField{Label: "语言", Value: strings.TrimSpace(args.Lang)})
+	}
+	if strings.TrimSpace(args.SearchType) != "" {
+		fields = append(fields, CalloutField{Label: "搜索深度", Value: strings.TrimSpace(args.SearchType)})
+	}
+	if payload.NoResults {
+		fields = append(fields, CalloutField{Label: "状态", Value: "没有可用结果"})
+	}
+	if len(payload.Errors) > 0 {
+		fields = append(fields, CalloutField{Label: "引擎错误数", Value: strconv.Itoa(len(payload.Errors))})
+	}
+	return BuildCalloutMarkdown("QUERY_RESULT", "网页搜索", fields...)
+}
+
+func buildWebSearchStatusArchiveCallout(toolCall types.ToolCall, purpose, detailedResult, storedAt string) string {
+	var args struct {
+		Probe   bool     `json:"probe"`
+		Query   string   `json:"query"`
+		Engines []string `json:"engines"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+	var payload []struct {
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+	ready, failed := 0, 0
+	for _, item := range payload {
+		if item.Status == "ready" {
+			ready++
+		} else {
+			failed++
+		}
+	}
+	fields := []CalloutField{
+		{Label: "搜索目的", Value: purpose},
+		{Label: "真实探测", Value: fmt.Sprintf("%t", args.Probe)},
+		{Label: "引擎数", Value: strconv.Itoa(len(payload))},
+		{Label: "可用数", Value: strconv.Itoa(ready)},
+		{Label: "非就绪数", Value: strconv.Itoa(failed)},
+		{Label: "诊断时间", Value: storedAt},
+	}
+	if strings.TrimSpace(args.Query) != "" {
+		fields = append(fields, CalloutField{Label: "探测查询", Value: strings.TrimSpace(args.Query)})
+	}
+	if len(args.Engines) > 0 {
+		fields = append(fields, CalloutField{Label: "指定引擎", Value: strings.Join(dedupeStrings(args.Engines), ", ")})
+	}
+	return BuildCalloutMarkdown("QUERY_RESULT", "网页搜索引擎诊断", fields...)
 }
 
 func extractForgeArchivePath(toolCall types.ToolCall, detailedResult string) string {
@@ -666,6 +777,10 @@ func buildCompactToolHistorySummary(
 		summary = buildNoteByIDReadHistorySummary(toolCall, purpose, detailedResult, location)
 	case config.FetchWebPageToolName:
 		summary = buildWebFetchHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.SearchWebToolName:
+		summary = buildWebSearchHistorySummary(toolCall, purpose, detailedResult, location)
+	case config.InspectWebSearchEnginesToolName:
+		summary = buildWebSearchStatusHistorySummary(toolCall, purpose, detailedResult, location)
 	default:
 		return detailedResult, nil
 	}
@@ -894,6 +1009,10 @@ func inferToolCallPurpose(toolName string, assistantContent string) string {
 		return "搜索仓库文本以定位相关实现"
 	case config.FetchWebPageToolName:
 		return "获取网页内容以获取外部信息"
+	case config.SearchWebToolName:
+		return "搜索网络以获取外部信息"
+	case config.InspectWebSearchEnginesToolName:
+		return "诊断网络搜索引擎可用性"
 	default:
 		return "支撑当前分析"
 	}
@@ -1013,7 +1132,8 @@ func buildWebFetchHistorySummary(
 	location *queryToolArchiveLocation,
 ) map[string]interface{} {
 	var args struct {
-		URL string `json:"url"`
+		URL    string `json:"url"`
+		Format string `json:"format"`
 	}
 	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
 
@@ -1034,6 +1154,101 @@ func buildWebFetchHistorySummary(
 	}
 	if payload.CharCount > 0 {
 		summary["charCount"] = payload.CharCount
+	}
+	if payload.Format != "" {
+		summary["format"] = payload.Format
+	}
+	if payload.ContentType != "" {
+		summary["contentType"] = payload.ContentType
+	}
+	if payload.Truncated {
+		summary["truncated"] = true
+	}
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
+	return summary
+}
+
+func buildWebSearchHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	var args searchWebToolArgs
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+	var payload struct {
+		Provider    string     `json:"provider"`
+		Results     []struct{} `json:"results"`
+		UsedEngines []string   `json:"usedEngines"`
+		NoResults   bool       `json:"noResults"`
+		Errors      []struct{} `json:"errors"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+	query := map[string]interface{}{"query": strings.TrimSpace(args.Query)}
+	if args.NumResults > 0 {
+		query["numResults"] = args.NumResults
+	}
+	if args.QueryType != "" {
+		query["queryType"] = strings.TrimSpace(args.QueryType)
+	}
+	if args.TimeRange != "" {
+		query["timeRange"] = strings.TrimSpace(args.TimeRange)
+	}
+	if args.Lang != "" {
+		query["lang"] = strings.TrimSpace(args.Lang)
+	}
+	if args.Provider != "" {
+		query["provider"] = strings.TrimSpace(args.Provider)
+	} else if payload.Provider != "" {
+		query["provider"] = payload.Provider
+	}
+	if args.SearchType != "" {
+		query["searchType"] = strings.TrimSpace(args.SearchType)
+	}
+	if len(args.Engines) > 0 {
+		query["engines"] = dedupeStrings(args.Engines)
+	}
+	summary := map[string]interface{}{
+		"purpose":     purpose,
+		"query":       query,
+		"resultCount": len(payload.Results),
+		"usedEngines": dedupeStrings(payload.UsedEngines),
+		"noResults":   payload.NoResults,
+		"errorCount":  len(payload.Errors),
+	}
+	if location != nil && location.BlockID != "" {
+		summary["archiveBlockID"] = location.BlockID
+	}
+	return summary
+}
+
+func buildWebSearchStatusHistorySummary(
+	toolCall types.ToolCall,
+	purpose string,
+	detailedResult string,
+	location *queryToolArchiveLocation,
+) map[string]interface{} {
+	var args inspectWebSearchEnginesToolArgs
+	_ = json.Unmarshal([]byte(strings.TrimSpace(toolCall.Function.Arguments)), &args)
+	var payload []struct {
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	_ = json.Unmarshal([]byte(strings.TrimSpace(detailedResult)), &payload)
+	statuses := make([]map[string]string, 0, len(payload))
+	for _, item := range payload {
+		statuses = append(statuses, map[string]string{"name": item.Name, "status": item.Status})
+	}
+	summary := map[string]interface{}{
+		"purpose": purpose,
+		"query": map[string]interface{}{
+			"probe":   args.Probe,
+			"query":   strings.TrimSpace(args.Query),
+			"engines": dedupeStrings(args.Engines),
+		},
+		"statuses": statuses,
 	}
 	if location != nil && location.BlockID != "" {
 		summary["archiveBlockID"] = location.BlockID

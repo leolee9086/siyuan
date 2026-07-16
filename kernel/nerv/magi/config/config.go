@@ -1,4 +1,4 @@
-﻿// Package config 定义MAGI配置相关类型
+// Package config 定义MAGI配置相关类型
 package config
 
 import (
@@ -87,13 +87,13 @@ type ToolMeta struct {
 	RequiresPeerVote bool // 需要同级贤者投票
 
 	// ── 可用场景（三个独立的布尔字段，互不推导）──
-	AvailableDirectReply  bool // 正常用户消息/直接回复时可用
-	AvailableSleepHB      bool // 睡眠心跳时可用
-	AvailableWorkHB       bool // 工作心跳时可用
+	AvailableDirectReply bool // 正常用户消息/直接回复时可用
+	AvailableSleepHB     bool // 睡眠心跳时可用
+	AvailableWorkHB      bool // 工作心跳时可用
 
 	// ── 运行条件 ──
-	Mode      ToolMode      // 运行模式依赖
-	Platforms ToolPlatform  // 平台可用性，0 表示全平台
+	Mode      ToolMode     // 运行模式依赖
+	Platforms ToolPlatform // 平台可用性，0 表示全平台
 
 	// ── 结果处理（三个独立属性）──
 	EntersUnifiedContext bool // 工具调用结果进入统一上下文，三贤人间可共享/压缩
@@ -110,9 +110,9 @@ type ToolMeta struct {
 // 声明该工具在持续多少轮未被调用时向持有者发出提醒。
 // 当前仅实现了主导者提醒钩子，全局提醒、辅助者提醒等更多钩子待实现。
 type ToolRemindPolicy struct {
-	AfterRounds uint64              // 超过多少轮未调用则触发提醒
-	Templates   map[uint64]string   // 超出轮数 → 提醒模板，key 递增匹配，取≤实际超出轮数的最大 key
-	ContextKeys []string            // 需要从调用参数中提取并保存到记录的字段名
+	AfterRounds uint64            // 超过多少轮未调用则触发提醒
+	Templates   map[uint64]string // 超出轮数 → 提醒模板，key 递增匹配，取≤实际超出轮数的最大 key
+	ContextKeys []string          // 需要从调用参数中提取并保存到记录的字段名
 }
 
 // ToolDef 工具定义
@@ -467,7 +467,6 @@ func ResolveWannaSleepToolNameForSage(sageName string) string {
 	}
 }
 
-
 // BuildForgeDevRepoReadToolDef 构建 forge 模式开发仓库文件读取工具定义。
 // BuildForgeDevRepoSearchToolDef 构建 forge 模式开发仓库文本搜索工具定义。
 // BuildForgeDevRepoEditToolDef 构建 forge 模式开发仓库文件编辑工具定义。
@@ -668,14 +667,13 @@ func BuildVoteToolDef() ToolDef {
 	}
 }
 
-
 // BuildFetchWebPageToolDef 构建网页内容获取工具定义。
 func BuildFetchWebPageToolDef() ToolDef {
 	return ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        FetchWebPageToolName,
-			Description: "获取指定 URL 的网页内容。拉取完成后将网页的纯文本版本保存到工作空间 temp/raw/ 目录下的 .md 文件中供你前往阅读。适用于阅读文档、新闻、技术文章等在线内容。",
+			Description: "获取指定 URL 的网页内容。拉取完成后将指定格式保存到工作空间 temp/raw/ 目录下的 .md 文件中供你前往阅读。该工具只读取外部信息，不触发行动治理。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -689,9 +687,21 @@ func BuildFetchWebPageToolDef() ToolDef {
 						"minimum":     5,
 						"maximum":     60,
 					},
+					"format": map[string]interface{}{
+						"type":        "string",
+						"enum":        []string{"markdown", "text", "html"},
+						"description": "保存格式，默认 markdown",
+					},
 				},
 				"required": []string{"url"},
 			},
+		},
+		Meta: ToolMeta{
+			ReadsWebContent:      true,
+			AvailableDirectReply: true,
+			AvailableWorkHB:      true,
+			EntersUnifiedContext: true,
+			ResultArchived:       true,
 		},
 	}
 }

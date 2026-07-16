@@ -25,31 +25,34 @@ import (
 )
 
 const (
-	defaultFetchWebPageTimeout    = 15
-	minFetchWebPageTimeout        = 5
-	maxFetchWebPageTimeout        = 60
-	defaultFetchWebPageMaxLength  = 100000
-	fetchWebPageUserAgent         = "MAGI/1.0"
-	fetchWebPageRawDir            = "raw"
-	fetchWebPageMaxRetries        = 2
-	fetchWebPageMaxRedirects      = 10
+	defaultFetchWebPageTimeout   = 15
+	minFetchWebPageTimeout       = 5
+	maxFetchWebPageTimeout       = 60
+	defaultFetchWebPageMaxLength = 100000
+	fetchWebPageUserAgent        = "MAGI/1.0"
+	fetchWebPageRawDir           = "raw"
+	fetchWebPageMaxRetries       = 2
+	fetchWebPageMaxRedirects     = 10
 )
 
 type fetchWebPageToolArgs struct {
 	URL     string `json:"url"`
 	Timeout int    `json:"timeout,omitempty"`
+	Format  string `json:"format,omitempty"`
 }
 
 type fetchWebPageResultPayload struct {
-	OK        bool   `json:"ok"`
-	URL       string `json:"url"`
-	FilePath  string `json:"filePath"`
-	Title     string `json:"title,omitempty"`
-	CharCount int    `json:"charCount"`
-	Truncated bool   `json:"truncated,omitempty"`
-	Error     string `json:"error,omitempty"`
-	ErrorCode string `json:"errorCode,omitempty"`
-	ReadHint  string `json:"readHint"`
+	OK          bool   `json:"ok"`
+	URL         string `json:"url"`
+	FilePath    string `json:"filePath"`
+	Title       string `json:"title,omitempty"`
+	CharCount   int    `json:"charCount"`
+	Format      string `json:"format,omitempty"`
+	ContentType string `json:"contentType,omitempty"`
+	Truncated   bool   `json:"truncated,omitempty"`
+	Error       string `json:"error,omitempty"`
+	ErrorCode   string `json:"errorCode,omitempty"`
+	ReadHint    string `json:"readHint"`
 }
 
 type webFetchToolResultExecutor struct{}
@@ -86,53 +89,37 @@ func (e *webFetchToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (r
 }
 
 func executeWebFetch(args fetchWebPageToolArgs) (string, error) {
-	timeout := normalizeFetchWebPageTimeout(args.Timeout)
-	baseURL, parseErr := url.ParseRequestURI(args.URL)
+	_, parseErr := url.ParseRequestURI(args.URL)
 	if parseErr != nil {
 		return marshalWebFetchFailure("INVALID_URL", fmt.Errorf("无效的 URL %q: %w", args.URL, parseErr)), nil
 	}
-	if baseURL.Scheme != "http" && baseURL.Scheme != "https" {
+	parsedURL, _ := url.Parse(args.URL)
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return marshalWebFetchFailure("UNSUPPORTED_PROTOCOL",
-			fmt.Errorf("不支持的协议 %q，仅支持 http/https", baseURL.Scheme)), nil
+			fmt.Errorf("不支持的协议 %q，仅支持 http/https", parsedURL.Scheme)), nil
+	}
+	result, fetchErr := util.FetchWebPage(args.URL, util.WebFetchOptions{
+		Format: normalizeFetchWebPageFormat(args.Format), TimeoutSeconds: normalizeFetchWebPageTimeout(args.Timeout),
+	})
+	if fetchErr != nil {
+		return marshalWebFetchFailure("NETWORK_ERROR", fetchErr), nil
 	}
 
-	rawBytes, contentType, retryErr := fetchFetchWebPageWithRetry(args.URL, timeout)
-	if retryErr != nil {
-		return marshalWebFetchFailure("NETWORK_ERROR", retryErr), nil
-	}
-	if !isFetchWebPageAcceptableContentType(contentType) {
-		return marshalWebFetchFailure("UNSUPPORTED_CONTENT_TYPE",
-			fmt.Errorf("不支持的内容类型 %q", contentType)), nil
-	}
-
-	truncated := len(rawBytes) > defaultFetchWebPageMaxLength
-	if truncated {
-		rawBytes = rawBytes[:defaultFetchWebPageMaxLength]
-	}
-
-	textContent, title := extractFetchWebPageText(rawBytes, baseURL)
-	if strings.TrimSpace(textContent) == "" {
-		return marshalWebFetchFailure("EMPTY_CONTENT", fmt.Errorf("网页内容为空或无法解析为文本")), nil
-	}
-
-	charCount := len([]rune(textContent))
-
-	savePath, saveErr := saveFetchWebPageResult(args.URL, title, textContent)
+	savePath, saveErr := saveFetchWebPageResult(args.URL, "", result.Output)
 	if saveErr != nil {
 		logging.LogWarnf("%s 保存结果失败 [%s]: %v", config.FetchWebPageToolName, args.URL, saveErr)
 		return marshalWebFetchFailure("SAVE_FAILED", fmt.Errorf("保存结果失败: %w", saveErr)), nil
 	}
 
 	payload := fetchWebPageResultPayload{
-		OK:        true,
-		URL:       args.URL,
-		FilePath:  savePath,
-		CharCount: charCount,
-		Truncated: truncated,
-		ReadHint:  fmt.Sprintf("内容已保存至 %s，请前往该路径阅读完整内容。", savePath),
-	}
-	if title != "" {
-		payload.Title = title
+		OK:          true,
+		URL:         args.URL,
+		FilePath:    savePath,
+		CharCount:   len([]rune(result.Output)),
+		Format:      result.Format,
+		ContentType: result.ContentType,
+		Truncated:   result.Truncated,
+		ReadHint:    fmt.Sprintf("内容已保存至 %s，请前往该路径阅读完整内容。", savePath),
 	}
 
 	resultBytes, marshalErr := json.Marshal(payload)
@@ -140,6 +127,15 @@ func executeWebFetch(args fetchWebPageToolArgs) (string, error) {
 		return "", fmt.Errorf("%s 结果序列化失败: %w", config.FetchWebPageToolName, marshalErr)
 	}
 	return string(resultBytes), nil
+}
+
+func normalizeFetchWebPageFormat(format string) string {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "text", "html":
+		return strings.ToLower(strings.TrimSpace(format))
+	default:
+		return "markdown"
+	}
 }
 
 func normalizeFetchWebPageTimeout(timeout int) int {

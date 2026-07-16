@@ -648,6 +648,10 @@ func (rc *ResponseCollector) buildToolResultExecutor(sage *sages.Sage, runtimeTo
 		webFetchExecutor := newWebFetchToolResultExecutor()
 		executors = append(executors, webFetchExecutor.ExecuteToolCall)
 	}
+	if toolSetHasAllFunctionTools(effectiveTools, config.SearchWebToolName, config.InspectWebSearchEnginesToolName) {
+		webSearchExecutor := newWebSearchToolResultExecutor()
+		executors = append(executors, webSearchExecutor.ExecuteToolCall)
+	}
 	if toolSetHasAllFunctionTools(effectiveTools, config.CreateNoteDocumentToolName) {
 		noteEditExecutor := newNoteEditToolResultExecutor()
 		executors = append(executors, noteEditExecutor.ExecuteToolCall)

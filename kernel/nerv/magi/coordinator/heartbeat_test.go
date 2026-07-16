@@ -242,8 +242,8 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	}
 	for sageName := range toolsBySage {
 		tools := toolsBySage[sageName]
-		if len(tools) != 5 {
-			t.Fatalf("%s 期望1个睡眠+4个阅读=5个工具（无主导时无行动工具），实际=%d", sageName, len(tools))
+		if len(tools) != 7 {
+			t.Fatalf("%s 期望7个只读工具（无主导时无行动工具），实际=%d", sageName, len(tools))
 		}
 	}
 
@@ -272,12 +272,12 @@ func TestBuildHeartbeatRuntimeToolsBySage_ExposesDedicatedSleepTools(t *testing.
 	toolsBySageWithDominant := buildHeartbeatRuntimeToolsBySage(false, dominantSage)
 	for sageName, tools := range toolsBySageWithDominant {
 		if sageName == dominantSage.GetName() {
-			if len(tools) != 11 {
-				t.Fatalf("主导 %s 期望1睡眠+4阅读+6行动=11，实际=%d", sageName, len(tools))
+			if len(tools) != 13 {
+				t.Fatalf("主导 %s 期望7阅读+6行动=13，实际=%d", sageName, len(tools))
 			}
 		} else {
-			if len(tools) != 5 {
-				t.Fatalf("非主导 %s 期望1睡眠+4阅读=5，实际=%d", sageName, len(tools))
+			if len(tools) != 7 {
+				t.Fatalf("非主导 %s 期望7个只读工具=7，实际=%d", sageName, len(tools))
 			}
 		}
 	}
@@ -301,14 +301,14 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 
 	toolsBySage := buildHeartbeatRuntimeToolsBySage(false, nil)
 
-	// 无主导时：1睡眠 + 7阅读（4基础+3 forge）= 8
+	// 无主导时：10个只读工具（7基础+3 forge）
 	for sageName, tools := range toolsBySage {
-		if len(tools) != 8 {
-			t.Fatalf("%s 无主导时期望1睡眠+7阅读=8，实际=%d", sageName, len(tools))
+		if len(tools) != 10 {
+			t.Fatalf("%s 无主导时期望10个只读工具，实际=%d", sageName, len(tools))
 		}
 	}
 
-	// 验证有主导时主导 sage 包含 forge 行动工具：1+7+9=17
+	// 验证有主导时主导 sage 包含 forge 行动工具：10+9=19
 	profile := buildDominantReplyTestProfile()
 	melchior := createDominantReplyTestSage("melchior", "Melchior", profile, &scriptedDominantClient{}, nil)
 	balthazar := createDominantReplyTestSage("balthazar", "Balthazar", profile, &scriptedDominantClient{}, nil)
@@ -319,12 +319,12 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 	toolsBySageWithDominant := buildHeartbeatRuntimeToolsBySage(false, melchior)
 	for sageName, tools := range toolsBySageWithDominant {
 		if sageName == "melchior" {
-			if len(tools) != 17 {
-				t.Fatalf("主导 melchior 期望1睡眠+7阅读+9行动=17，实际=%d", len(tools))
+			if len(tools) != 19 {
+				t.Fatalf("主导 melchior 期望10阅读+9行动=19，实际=%d", len(tools))
 			}
 		} else {
-			if len(tools) != 8 {
-				t.Fatalf("非主导 %s 期望1睡眠+7阅读=8，实际=%d", sageName, len(tools))
+			if len(tools) != 10 {
+				t.Fatalf("非主导 %s 期望10个只读工具=10，实际=%d", sageName, len(tools))
 			}
 		}
 	}

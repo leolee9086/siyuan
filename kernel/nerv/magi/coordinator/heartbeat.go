@@ -18,13 +18,13 @@ import (
 )
 
 type HeartbeatDecisionResult struct {
-	RoundID        string
-	Downtime       bool
-	DowntimeSage   string
+	RoundID         string
+	Downtime        bool
+	DowntimeSage    string
 	DowntimeSummary string
-	DominantSeel   string
-	DominantStance string
-	Responses      []types.SageResponse
+	DominantSeel    string
+	DominantStance  string
+	Responses       []types.SageResponse
 }
 
 func (c *Coordinator) CoordinateHeartbeat(
@@ -125,13 +125,13 @@ func (c *Coordinator) CoordinateHeartbeat(
 			c.updateToolCallRecords(collection.Responses, sessionID)
 			compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 			return &HeartbeatDecisionResult{
-				RoundID:        roundID,
-				Downtime:       false,
-				DowntimeSage:   "",
+				RoundID:         roundID,
+				Downtime:        false,
+				DowntimeSage:    "",
 				DowntimeSummary: "",
-				DominantSeel:   "",
-				DominantStance: "",
-				Responses:      collection.Responses,
+				DominantSeel:    "",
+				DominantStance:  "",
+				Responses:       collection.Responses,
 			}, context.Canceled
 		} else {
 			if pushErr := websocket.PushRoundFailed(sessionID, roundID, err.Error()); pushErr != nil {
@@ -175,13 +175,13 @@ func (c *Coordinator) CoordinateHeartbeat(
 	compressArchivedQueryResults(sessionID, melchior, balthazar, casper)
 
 	return &HeartbeatDecisionResult{
-		RoundID:        roundID,
-		Downtime:       collection.AllDowntime,
-		DowntimeSage:   sleeper,
+		RoundID:         roundID,
+		Downtime:        collection.AllDowntime,
+		DowntimeSage:    sleeper,
 		DowntimeSummary: sleepSummary,
-		DominantSeel:   dominantSeel,
-		DominantStance: dominantStance,
-		Responses:      collection.Responses,
+		DominantSeel:    dominantSeel,
+		DominantStance:  dominantStance,
+		Responses:       collection.Responses,
 	}, nil
 }
 
@@ -255,6 +255,9 @@ func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 	tools := []openai.Tool{
 		buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
 		buildRuntimeTool(config.BuildNoteByIDReadToolDef()),
+		buildRuntimeTool(config.BuildSearchWebToolDef()),
+		buildRuntimeTool(config.BuildFetchWebPageToolDef()),
+		buildRuntimeTool(config.BuildInspectWebSearchEnginesToolDef()),
 		buildRuntimeTool(config.BuildListMagiChannelsToolDef()),
 		buildRuntimeTool(config.BuildListMagiContactsToolDef()),
 	}
