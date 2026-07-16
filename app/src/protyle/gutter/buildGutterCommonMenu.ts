@@ -35,6 +35,7 @@ import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 import { exportImage } from "./imports";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 import { getProtyleMenuContext, scheduleProtyleMenuTask } from "../runtime/menu.visibility";
+import { createBlockColorMenuItem } from "../../sforge/colors/menu";
 
 /**
  * 通用操作菜单构建上下文
@@ -374,6 +375,7 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
  * 添加扩展菜单项（微信/闪卡/插件）
  */
 const 添加扩展菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
+    menuItems.push(createBlockColorMenuItem(ctx.nodeElement));
     if (应该显示微信提醒(ctx)) {
         menuItems.push(创建微信提醒菜单项(ctx));
     }

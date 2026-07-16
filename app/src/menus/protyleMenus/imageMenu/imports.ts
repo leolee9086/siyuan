@@ -255,3 +255,8 @@ export { exportAsset };
 import { MenuItem } from "../../Menu.Item";
 /** 导出 MenuItem 供 imageMenu 子模块复用 */
 export { MenuItem };
+
+/** 用途：构建 s-forge 原生图片取色菜单项；使用范围：图片菜单主体流程。 */
+import { createImageColorMenuItem } from "../../../sforge/colors/menu";
+/** 导出原生图片取色菜单项构造器。 */
+export { createImageColorMenuItem };

@@ -5,7 +5,7 @@
 
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat", "sforge-colors"];
 
 /**
  * 生成单个按钮的 HTML

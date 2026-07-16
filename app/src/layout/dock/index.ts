@@ -24,7 +24,7 @@ import { setSizeForItem } from "./dock.size";
 import { handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat", "sforge-colors"];
 /**
  * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
  * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠

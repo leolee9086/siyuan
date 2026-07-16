@@ -21,7 +21,7 @@ import { isHTMLElement } from "./imports";
 /** 导出 DOM 类型守卫，供外部模块使用 */
 export { isStylableElement, isHTMLElement };
 
-const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat"];
+const DOCK_TYPES = "file|outline|inbox|bookmark|tag|graph|globalGraph|backlink|forwardlink|embedding_dock|cronjob|agentChat|sforge-colors";
 
 /**
  * 判断是否为 Model 构造函数
@@ -54,7 +54,7 @@ export function isWnd(child: Layout | Wnd | unknown): child is Wnd {
  * 调用时机：在创建 Dock、解析配置或处理 Dock 相关事件时调用。
  */
 export function isTDock(type: string | null | undefined): type is TDock {
-    return type !== null && type !== undefined && (DOCK_TYPES.includes(type) || type.startsWith("custom_list:"));
+    return type !== null && type !== undefined && (DOCK_TYPES.split("|").includes(type) || type.startsWith("custom_list:"));
 }
 
 /** @简洁函数 这是一个简单的 undefined 或 string 类型检查辅助函数 */

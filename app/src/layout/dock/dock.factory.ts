@@ -10,6 +10,8 @@ import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
 import { AgentChat } from "./agent/AgentChat";
+/** 用途：创建 s-forge 原生颜色 Dock；使用范围：MODEL_FACTORIES 的内建颜色类型；解耦评估：不经过插件列表，直接由颜色模块提供 Custom Model。 */
+import { createColorToolDockModel } from "../../sforge/colors/init";
 import { Tab } from "./imports";
 import type { App } from "./imports";
 import type { Protyle } from "./imports";
@@ -157,6 +159,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
     embedding_dock: EmbeddingDock,
     cronjob: Cronjob,
     agentChat: AgentChat,
+    "sforge-colors": createColorToolDockModel,
 };
 
 /**

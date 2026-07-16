@@ -219,6 +219,10 @@ export function initDockData(
     恢复缺失面板(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
     const embeddingTitle = forgeI18n.embedding;
     恢复缺失面板(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
+    /** 颜色工具遵循 TEColors 的 LeftBottom 位置，缺失时由内建 Dock 自愈恢复。 */
+    if (position === "Left") {
+        恢复缺失面板(data[1], seenGlobalTypes, "sforge-colors", "iconImage", "颜色工具", position);
+    }
     /**
      * 作用：限制定时任务面板的初始化位置。
      * 意图：维护界面布局规范，确保定时任务面板（Cronjob）默认仅出现在右侧边栏，避免左右两侧同时出现造成混乱。

@@ -27,7 +27,7 @@ import { getSiyuanGlobalMenusMenu } from "./imports";
 /** 用途：打开资源菜单；使用范围：src 存在时追加 openMenu 子项；解耦评估：资源动作入口独立封装。 */
 import { openMenu } from "./imports";
 /** 用途：菜单项构造器；使用范围：分隔符等基础菜单项创建；解耦评估：组件能力统一来源。 */
-import { MenuItem } from "./imports";
+import { MenuItem, createImageColorMenuItem } from "./imports";
 
 /** 用途：构建复制/剪切/删除/重命名等动作；使用范围：imgMenu 菜单项追加；解耦评估：动作模块按关注点拆分。 */
 import { genCopyItem } from "./protyle.imgMenu.actions";
@@ -301,6 +301,7 @@ export const imgMenu = (
 
     追加资源打开菜单项(protyle, src);
     追加资源导出菜单项(imgElement);
+    menu.append(createImageColorMenuItem(imgElement).element);
     触发图片插件菜单扩展(protyle, assetElement);
     展示图片菜单(position);
 

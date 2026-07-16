@@ -726,6 +726,14 @@ export abstract class Constants {
                     show: false,
                     icon: "iconTag",
                     hotkeyLangId: "tag",
+                }, {
+                    type: "sforge-colors",
+                    size: { width: 232, height: 0 },
+                    show: false,
+                    icon: "iconImage",
+                    title: "颜色工具",
+                    hotkey: "",
+                    hotkeyLangId: "",
                 }]
             ]
         },

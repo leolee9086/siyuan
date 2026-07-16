@@ -54,6 +54,10 @@ async function 注册通用功能() {
     // 注册内置内容渲染器（9 个子渲染器）
     const { registerBuiltinRenderers } = await import("../registry/contentRenderer/registerBuiltinRenderers");
     await registerBuiltinRenderers();
+
+    // 注册 s-forge 原生颜色工具
+    const { initColorTool } = await import("../sforge/colors/init");
+    initColorTool();
 }
 
 // ============ 主初始化函数 ============
