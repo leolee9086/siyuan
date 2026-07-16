@@ -1,6 +1,10 @@
 package websearch
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
 func TestEngineRegistryRejectsSilentNilResults(t *testing.T) {
 	registry := NewEngineRegistry()
@@ -17,6 +21,33 @@ func TestEngineRegistryRejectsSilentNilResults(t *testing.T) {
 	}
 	if _, ok := err.(*ProtocolError); !ok {
 		t.Fatalf("expected ProtocolError, got %T: %v", err, err)
+	}
+}
+
+func TestJSONAPIEnginePassesQueryToQueryAwareParser(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[{"title":"matched"}]}`))
+	}))
+	defer server.Close()
+
+	engine := newJSONAPIEngine(jsonAPIConfig{
+		Name: "query-aware",
+		URL:  func(string, int) string { return server.URL },
+		ParseQuery: func(data []byte, query string, max int) ([]SearchResult, error) {
+			if query != "browser query" {
+				t.Fatalf("parser received query %q", query)
+			}
+			return []SearchResult{{Title: "matched", URL: "https://example.test", Engine: "query-aware", Position: 1}}, nil
+		},
+	})(DefaultEngineConfig("query-aware"))
+
+	results, err := engine.Search("browser query", SearchOptions{NumResults: 1}, nil)
+	if err != nil {
+		t.Fatalf("query-aware search failed: %v", err)
+	}
+	if len(results) != 1 || results[0].Title != "matched" {
+		t.Fatalf("unexpected query-aware results: %+v", results)
 	}
 }
 

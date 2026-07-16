@@ -1698,7 +1698,7 @@ func newDevicons(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "devicons", Category: "image", UserAgent: "opencode-search/1.0",
 		URL: func(string, int) string { return "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.json" },
-		Parse: func(data []byte, max int) ([]SearchResult, error) {
+		ParseQuery: func(data []byte, query string, max int) ([]SearchResult, error) {
 			var items []struct {
 				Name     string   `json:"name"`
 				Altnames []string `json:"altnames"`
@@ -1712,10 +1712,10 @@ func newDevicons(config EngineConfig) SearchEngine {
 				return nil, err
 			}
 			var results []SearchResult
-			queryParts := strings.Fields(strings.ToLower(config.Name))
+			queryParts := strings.Fields(strings.ToLower(query))
 			for _, item := range items {
 				if len(results) >= max || item.Name == "" {
-					break
+					continue
 				}
 				matched := len(queryParts) == 0
 				name := strings.ToLower(item.Name)
@@ -1723,16 +1723,11 @@ func newDevicons(config EngineConfig) SearchEngine {
 					if strings.Contains(name, part) {
 						matched = true
 					}
-					for _, candidate := range append(append(item.Altnames, item.Tags...), part) {
+					for _, candidate := range append(append(append([]string{}, item.Altnames...), item.Tags...), item.Name) {
 						if strings.Contains(strings.ToLower(candidate), part) {
 							matched = true
 						}
 					}
-				}
-				if !matched {
-					// The integration query is supplied to Search, not the factory;
-					// return all indexed icons when no factory-level filter exists.
-					matched = true
 				}
 				if !matched {
 					continue
@@ -1752,15 +1747,31 @@ func newLucide(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "lucide", Category: "image", UserAgent: "opencode-search/1.0",
 		URL: func(string, int) string { return "https://cdn.jsdelivr.net/npm/lucide-static/tags.json" },
-		Parse: func(data []byte, max int) ([]SearchResult, error) {
+		ParseQuery: func(data []byte, query string, max int) ([]SearchResult, error) {
 			var tags map[string][]string
 			if err := json.Unmarshal(data, &tags); err != nil {
 				return nil, err
 			}
 			var results []SearchResult
+			queryParts := strings.Fields(strings.ToLower(query))
 			for name, iconTags := range tags {
 				if len(results) >= max {
 					break
+				}
+				matched := len(queryParts) == 0
+				lowerName := strings.ToLower(name)
+				for _, part := range queryParts {
+					if strings.Contains(lowerName, part) {
+						matched = true
+					}
+					for _, tag := range iconTags {
+						if strings.Contains(strings.ToLower(tag), part) {
+							matched = true
+						}
+					}
+				}
+				if !matched {
+					continue
 				}
 				results = append(results, SearchResult{Title: name, URL: "https://cdn.jsdelivr.net/npm/lucide-static/icons/" + name + ".svg", Snippet: "Lucide icon · " + strings.Join(iconTags, ", "), Engine: "lucide", Position: len(results) + 1, Category: "image"})
 			}
@@ -1775,7 +1786,7 @@ func newMaterialIcons(config EngineConfig) SearchEngine {
 		URL: func(string, int) string {
 			return "https://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true"
 		},
-		Parse: func(data []byte, max int) ([]SearchResult, error) {
+		ParseQuery: func(data []byte, query string, max int) ([]SearchResult, error) {
 			start := strings.Index(string(data), "{")
 			if start < 0 {
 				return nil, &ProtocolError{Engine: "material-icons", Message: "metadata response contains no JSON object"}
@@ -1791,9 +1802,25 @@ func newMaterialIcons(config EngineConfig) SearchEngine {
 				return nil, err
 			}
 			var results []SearchResult
+			queryParts := strings.Fields(strings.ToLower(query))
 			for _, icon := range resp.Icons {
 				if len(results) >= max || icon.Name == "" {
-					break
+					continue
+				}
+				matched := len(queryParts) == 0
+				name := strings.ToLower(icon.Name)
+				for _, part := range queryParts {
+					if strings.Contains(name, part) {
+						matched = true
+					}
+					for _, value := range append(append([]string{}, icon.Tags...), icon.Categories...) {
+						if strings.Contains(strings.ToLower(value), part) {
+							matched = true
+						}
+					}
+				}
+				if !matched {
+					continue
 				}
 				results = append(results, SearchResult{Title: icon.Name, URL: "https://fonts.google.com/icons?icon.query=" + url.QueryEscape(icon.Name), Snippet: strings.Join(icon.Tags, ", "), Engine: "material-icons", Position: len(results) + 1, Category: "image"})
 			}

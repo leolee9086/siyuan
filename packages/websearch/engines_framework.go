@@ -21,6 +21,7 @@ type jsonAPIConfig struct {
 	Name             string
 	URL              func(query string, numResults int) string
 	Parse            func(data []byte, maxResults int) ([]SearchResult, error)
+	ParseQuery       func(data []byte, query string, maxResults int) ([]SearchResult, error)
 	Category         string
 	UserAgent        string
 	Headers          map[string]string // 额外的自定义请求头
@@ -97,7 +98,14 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 	if strings.TrimSpace(body) == "" {
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "returned an empty response"}
 	}
-	results, err := e.cfg.Parse([]byte(body), opts.NumResults)
+	var results []SearchResult
+	if e.cfg.ParseQuery != nil {
+		results, err = e.cfg.ParseQuery([]byte(body), query, opts.NumResults)
+	} else if e.cfg.Parse != nil {
+		results, err = e.cfg.Parse([]byte(body), opts.NumResults)
+	} else {
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "no response parser configured"}
+	}
 	if err != nil {
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
 	}
