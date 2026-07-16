@@ -17,17 +17,20 @@
 package tools
 
 import (
+	"encoding/json"
+
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 var WebFetchTool = &Tool{
 	Name:        "web_fetch",
-	Description: "Fetch a web page and convert to Markdown or text. url (http/https), format: markdown (default) or text.",
+	Description: "Fetch a web page and return markdown, text, or HTML. The tool is read-only and enforces HTTP(S), SSRF, MIME, size, and timeout limits.",
 	InputSchema: ToolSchema{
 		Type: "object",
 		Properties: map[string]Property{
-			"url":    {Type: "string", Description: "The page URL to fetch (must start with http:// or https://)"},
-			"format": {Type: "string", Description: "Output format: 'markdown' or 'text' (default 'markdown')", Enum: []string{"markdown", "text"}},
+			"url":     {Type: "string", Description: "The page URL to fetch (must start with http:// or https://)"},
+			"format":  {Type: "string", Description: "Output format: markdown, text, or html (default markdown)", Enum: []string{"markdown", "text", "html"}},
+			"timeout": {Type: "number", Description: "Timeout in seconds, default 30, maximum 120"},
 		},
 		Required: []string{"url"},
 	},
@@ -41,11 +44,12 @@ func init() {
 func webFetchHandler(args map[string]interface{}) (CallToolResult, error) {
 	rawURL, _ := args["url"].(string)
 	format, _ := args["format"].(string)
-	if format == "" {
-		format = "markdown"
+	timeout := 0
+	if value, ok := args["timeout"].(float64); ok {
+		timeout = int(value)
 	}
 
-	result, err := util.WebFetch(rawURL, format)
+	result, err := util.FetchWebPage(rawURL, util.WebFetchOptions{Format: format, TimeoutSeconds: timeout})
 	if err != nil {
 		return CallToolResult{
 			Content: []ContentItem{{Type: "text", Text: "web_fetch error: " + err.Error()}},
@@ -53,7 +57,9 @@ func webFetchHandler(args map[string]interface{}) (CallToolResult, error) {
 		}, nil
 	}
 
-	return CallToolResult{
-		Content: []ContentItem{{Type: "text", Text: result}},
-	}, nil
+	data, marshalErr := json.Marshal(result)
+	if marshalErr != nil {
+		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "web_fetch error: " + marshalErr.Error()}}, IsError: true}, nil
+	}
+	return CallToolResult{Content: []ContentItem{{Type: "text", Text: string(data)}}}, nil
 }

@@ -21,102 +21,173 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute"
-	"github.com/siyuan-note/httpclient"
 )
 
 const (
-	maxWebFetchBytes     = 5 * 1024 * 1024  // text/html, text/plain
-	maxWebFetchFileBytes = 10 * 1024 * 1024 // file/image download
-	maxWebFetchChars     = 50000
+	maxWebFetchBytes              = 5 * 1024 * 1024  // text/html, text/plain
+	maxWebFetchFileBytes          = 10 * 1024 * 1024 // file/image download
+	maxWebFetchChars              = 50000
+	defaultWebFetchTimeoutSeconds = 30
+	maxWebFetchTimeoutSeconds     = 120
+	maxWebFetchRedirects          = 10
 )
 
+type WebFetchOptions struct {
+	Format         string
+	TimeoutSeconds int
+	MaxChars       int
+}
+
+type WebFetchResult struct {
+	URL         string `json:"url"`
+	ContentType string `json:"contentType"`
+	Format      string `json:"format"`
+	Output      string `json:"output"`
+	Truncated   bool   `json:"truncated"`
+}
+
 func WebFetch(rawURL, format string) (string, error) {
+	result, err := FetchWebPage(rawURL, WebFetchOptions{Format: format})
+	if err != nil {
+		return "", err
+	}
+	return result.Output, nil
+}
+
+func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		return "", errors.New("URL must start with http:// or https://")
+		return WebFetchResult{}, errors.New("URL must start with http:// or https://")
 	}
 	if u.Host == "" {
-		return "", errors.New("URL has no host")
+		return WebFetchResult{}, errors.New("URL has no host")
 	}
 
 	if err := CheckHostSSRF(u.Hostname()); err != nil {
-		return "", err
+		return WebFetchResult{}, err
 	}
 
-	resp, err := httpclient.NewBrowserRequest().Get(rawURL)
-	if err != nil {
-		return "", errors.New("fetch failed: " + err.Error())
+	timeout := options.TimeoutSeconds
+	if timeout <= 0 {
+		timeout = defaultWebFetchTimeoutSeconds
+	}
+	if timeout > maxWebFetchTimeoutSeconds {
+		timeout = maxWebFetchTimeoutSeconds
+	}
+	format := strings.ToLower(strings.TrimSpace(options.Format))
+	if format == "" {
+		format = "markdown"
+	}
+	if format != "markdown" && format != "text" && format != "html" {
+		return WebFetchResult{}, errors.New("format must be markdown, text, or html")
+	}
+	maxChars := options.MaxChars
+	if maxChars <= 0 || maxChars > maxWebFetchChars {
+		maxChars = maxWebFetchChars
+	}
+
+	var resp *http.Response
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		req, requestErr := http.NewRequest(http.MethodGet, rawURL, nil)
+		if requestErr != nil {
+			return WebFetchResult{}, requestErr
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/143.0 Safari/537.36")
+		req.Header.Set("Accept", acceptWebFetch(format))
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+		client := &http.Client{
+			Timeout: time.Duration(timeout) * time.Second,
+			CheckRedirect: func(redirectReq *http.Request, via []*http.Request) error {
+				if len(via) >= maxWebFetchRedirects {
+					return fmt.Errorf("redirect limit exceeded (%d)", maxWebFetchRedirects)
+				}
+				if redirectReq.URL.Scheme != "http" && redirectReq.URL.Scheme != "https" {
+					return fmt.Errorf("redirected to unsupported protocol: %s", redirectReq.URL.Scheme)
+				}
+				if err := CheckHostSSRF(redirectReq.URL.Hostname()); err != nil {
+					return fmt.Errorf("redirect blocked by SSRF policy: %w", err)
+				}
+				return nil
+			},
+		}
+		resp, lastErr = client.Do(req)
+		if lastErr == nil && resp.StatusCode == http.StatusForbidden && resp.Header.Get("cf-mitigated") == "challenge" && attempt == 0 {
+			resp.Body.Close()
+			continue
+		}
+		break
+	}
+	if lastErr != nil {
+		return WebFetchResult{}, errors.New("fetch failed: " + lastErr.Error())
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return WebFetchResult{}, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	contentType := resp.Header.Get("Content-Type")
-	maxReadBytes := int64(maxWebFetchBytes)
-	if !strings.HasPrefix(contentType, "text/html") && !strings.HasPrefix(contentType, "text/plain") {
-		maxReadBytes = maxWebFetchFileBytes
+	contentType := strings.ToLower(strings.SplitN(resp.Header.Get("Content-Type"), ";", 2)[0])
+	if !isTextWebFetchContentType(contentType) {
+		return WebFetchResult{}, fmt.Errorf("unsupported fetched content type: %s", contentType)
 	}
-	if resp.ContentLength > maxReadBytes {
-		return "", errors.New("response too large")
+	if resp.ContentLength > maxWebFetchBytes {
+		return WebFetchResult{}, errors.New("response too large")
 	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxReadBytes))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxWebFetchBytes+1))
 	if err != nil {
-		return "", errors.New("read body failed: " + err.Error())
+		return WebFetchResult{}, errors.New("read body failed: " + err.Error())
 	}
-
-	if !strings.HasPrefix(contentType, "text/html") && !strings.HasPrefix(contentType, "text/plain") {
-		importDir := filepath.Join(TempDir, "import")
-		if merr := os.MkdirAll(importDir, 0755); merr != nil {
-			return "", errors.New("create import dir failed: " + merr.Error())
-		}
-		filename := extractFilename(rawURL, contentType)
-		filePath := filepath.Join(importDir, filename)
-		if werr := os.WriteFile(filePath, body, 0644); werr != nil {
-			return "", errors.New("write file failed: " + werr.Error())
-		}
-		return fmt.Sprintf("Saved to: %s (%d bytes)", filePath, len(body)), nil
+	if int64(len(body)) > maxWebFetchBytes {
+		return WebFetchResult{}, errors.New("response too large")
 	}
 
 	htmlStr := string(body)
-
-	isHTML := strings.HasPrefix(contentType, "text/html")
-	if !isHTML {
-		return truncateRunes(htmlStr, maxWebFetchChars), nil
-	}
-
-	if htmlStr == "" {
-		return "", nil
-	}
-
-	engine := NewLute()
-	var result string
-	switch format {
-	case "text":
-		result, _ = safeHTML2Text(engine, htmlStr)
-	default: // markdown
-		md, mdErr := safeHTML2Markdown(engine, htmlStr)
-		if mdErr != nil {
-			return "", errors.New("HTML to Markdown conversion failed: " + mdErr.Error())
+	result := htmlStr
+	if contentType == "text/html" || contentType == "application/xhtml+xml" {
+		if format == "text" {
+			result, err = safeHTML2Text(NewLute(), htmlStr)
+		} else if format == "markdown" {
+			result, err = safeHTML2Markdown(NewLute(), htmlStr)
 		}
-		result = md
+		if err != nil {
+			return WebFetchResult{}, errors.New("HTML conversion failed: " + err.Error())
+		}
 	}
-
-	if result == "" {
-		return htmlStr, nil
+	if strings.TrimSpace(result) == "" {
+		return WebFetchResult{}, errors.New("fetched page has empty text content")
 	}
+	truncated := len([]rune(result)) > maxChars
+	if truncated {
+		result = truncateRunes(result, maxChars)
+	}
+	return WebFetchResult{URL: rawURL, ContentType: contentType, Format: format, Output: result, Truncated: truncated}, nil
+}
 
-	return truncateRunes(result, maxWebFetchChars), nil
+func acceptWebFetch(format string) string {
+	switch format {
+	case "html":
+		return "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.1"
+	case "text":
+		return "text/plain,text/markdown,text/html;q=0.8,*/*;q=0.1"
+	default:
+		return "text/markdown,text/plain,text/html;q=0.8,*/*;q=0.1"
+	}
+}
+
+func isTextWebFetchContentType(contentType string) bool {
+	return contentType == "" || strings.HasPrefix(contentType, "text/") ||
+		contentType == "application/json" || strings.HasSuffix(contentType, "+json") ||
+		contentType == "application/xml" || strings.HasSuffix(contentType, "+xml") ||
+		contentType == "application/javascript" || contentType == "application/x-javascript"
 }
 
 func safeHTML2Markdown(engine *lute.Lute, htmlStr string) (result string, err error) {
