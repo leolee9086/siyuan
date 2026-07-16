@@ -78,6 +78,46 @@ func TestJSONAPIEngineReportsProtocolFailures(t *testing.T) {
 	}
 }
 
+func TestEngineHTTPClientAppliesConfiguredBaseURLAndHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/search" {
+			t.Errorf("path=%q, want /api/search", r.URL.Path)
+		}
+		if r.URL.Query().Get("q") != "query" {
+			t.Errorf("query=%q, want query", r.URL.Query().Get("q"))
+		}
+		if r.Header.Get("X-Engine-Test") != "configured" {
+			t.Errorf("X-Engine-Test=%q, want configured", r.Header.Get("X-Engine-Test"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[{"title":"result","url":"https://example.com"}]}`))
+	}))
+	defer server.Close()
+
+	engine := newJSONAPIEngine(jsonAPIConfig{
+		Name: "configured",
+		URL:  func(string, int) string { return "https://upstream.invalid/search?q=query" },
+		Parse: func(data []byte, _ int) ([]SearchResult, error) {
+			if !strings.Contains(string(data), `"items"`) {
+				return nil, errors.New("unexpected fixture")
+			}
+			return []SearchResult{{Title: "result", URL: "https://example.com"}}, nil
+		},
+	})(EngineConfig{
+		Name:    "configured",
+		Timeout: 1000,
+		BaseURL: server.URL + "/api",
+		Headers: map[string]string{"X-Engine-Test": "configured"},
+	})
+	results, err := engine.Search("query", SearchOptions{NumResults: 1}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || results[0].Title != "result" {
+		t.Fatalf("unexpected results: %#v", results)
+	}
+}
+
 func TestCodeEngineParsersMatchReferenceContracts(t *testing.T) {
 	tests := []struct {
 		name    string

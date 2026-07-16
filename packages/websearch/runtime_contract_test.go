@@ -19,6 +19,30 @@ func TestServiceDiagnoseReportsMissingCredentials(t *testing.T) {
 	}
 }
 
+func TestServiceDiagnoseMarksProtectedEnginesAsCredentialBound(t *testing.T) {
+	service := NewService(RuntimeConfig{
+		Enabled:        true,
+		Provider:       ProviderMeta,
+		DefaultOptions: DefaultSearchOptions(),
+		Engines:        map[string]EngineRuntimeConfig{},
+	})
+	names := []string{
+		"ads", "brave", "context7", "flickr", "fred", "freesound", "github",
+		"github-code", "github-issues", "github-repo-files", "gitlab", "igdb",
+		"openweather", "pexels", "pixabay", "rawg", "soundcloud", "spotify",
+		"theguardian", "unsplash",
+	}
+	statuses := service.Diagnose(names, false, "")
+	if len(statuses) != len(names) {
+		t.Fatalf("expected one diagnostic per protected engine: got %d want %d", len(statuses), len(names))
+	}
+	for _, status := range statuses {
+		if !status.RequiresKey || status.Status != "requires_credentials" {
+			t.Fatalf("protected engine must require configured credentials: %+v", status)
+		}
+	}
+}
+
 func TestServiceSearchReportsUnknownExplicitEngine(t *testing.T) {
 	service := NewService(RuntimeConfig{
 		Enabled:        true,

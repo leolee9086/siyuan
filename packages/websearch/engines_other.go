@@ -1023,6 +1023,7 @@ func newRottenTomatoes(config EngineConfig) SearchEngine {
 func newIgdb(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "igdb", Category: "video", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyHeader: "Authorization", APIKeyPrefix: "Bearer ",
 		URL: func(q string, n int) string {
 			return "https://api.igdb.com/v4/games?search=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20))
 		},
@@ -1048,8 +1049,9 @@ func newIgdb(config EngineConfig) SearchEngine {
 func newRawg(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "rawg", Category: "video", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "key",
 		URL: func(q string, n int) string {
-			return "https://api.rawg.io/api/games?key=&search=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20))
+			return "https://api.rawg.io/api/games?search=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20))
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
@@ -1225,8 +1227,9 @@ func newYahooFinance(config EngineConfig) SearchEngine {
 func newFred(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "fred", Category: "finance", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "api_key",
 		URL: func(q string, n int) string {
-			return "https://api.stlouisfed.org/fred/series/search?search_text=" + url.QueryEscape(q) + "&api_key=&file_type=json&limit=" + strconv.Itoa(minInt(n, 20))
+			return "https://api.stlouisfed.org/fred/series/search?search_text=" + url.QueryEscape(q) + "&file_type=json&limit=" + strconv.Itoa(minInt(n, 20))
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
@@ -2194,7 +2197,11 @@ func newSensCritique(config EngineConfig) SearchEngine {
 		},
 	})(config)
 }
-func newContext7(config EngineConfig) SearchEngine { return &context7Engine{config: config} }
+func newContext7(config EngineConfig) SearchEngine {
+	config.Category = "code"
+	config.RequiresKey = true
+	return &context7Engine{config: config}
+}
 
 type context7Engine struct{ config EngineConfig }
 

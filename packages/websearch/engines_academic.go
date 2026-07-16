@@ -520,6 +520,7 @@ func newZenodo(config EngineConfig) SearchEngine {
 func newAds(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "ads", Category: "academic", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyHeader: "Authorization", APIKeyPrefix: "Bearer ",
 		URL: func(q string, n int) string {
 			return "https://api.adsabs.harvard.edu/v1/search/query?q=" + url.QueryEscape(q) + "&rows=" + strconv.Itoa(minInt(n, 50))
 		},

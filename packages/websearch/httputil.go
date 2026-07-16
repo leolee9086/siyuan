@@ -17,6 +17,7 @@ type HTTPClient struct {
 	headers map[string]string
 	proxy   *ProxyConfig // 当前代理配置
 	timeout time.Duration
+	baseURL string
 }
 
 // NewHTTPClient 创建 HTTP 客户端
@@ -35,6 +36,10 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 // consulting search API-key environment variables.
 func NewEngineHTTPClient(config EngineConfig) *HTTPClient {
 	client := NewHTTPClient(time.Duration(config.Timeout) * time.Millisecond)
+	client.baseURL = strings.TrimSpace(config.BaseURL)
+	for key, value := range config.Headers {
+		client.SetHeader(key, value)
+	}
 	if config.Proxy.HTTP != "" || config.Proxy.HTTPS != "" || config.Proxy.AutoDetect {
 		_ = client.UseProxy(config.Proxy)
 	}
@@ -81,7 +86,11 @@ func (c *HTTPClient) SetHeader(key, value string) {
 
 // Get 执行 GET 请求
 func (c *HTTPClient) Get(urlStr string, extraHeaders map[string]string) (int, string, error) {
-	req, err := http.NewRequest("GET", urlStr, nil)
+	resolvedURL, err := c.resolveURL(urlStr)
+	if err != nil {
+		return 0, "", err
+	}
+	req, err := http.NewRequest("GET", resolvedURL, nil)
 	if err != nil {
 		return 0, "", err
 	}
@@ -103,7 +112,11 @@ func (c *HTTPClient) PostForm(urlStr string, formData map[string]string, extraHe
 	for k, v := range formData {
 		vals.Set(k, v)
 	}
-	req, err := http.NewRequest("POST", urlStr, strings.NewReader(vals.Encode()))
+	resolvedURL, err := c.resolveURL(urlStr)
+	if err != nil {
+		return 0, "", err
+	}
+	req, err := http.NewRequest("POST", resolvedURL, strings.NewReader(vals.Encode()))
 	if err != nil {
 		return 0, "", err
 	}
@@ -124,7 +137,11 @@ func (c *HTTPClient) PostForm(urlStr string, formData map[string]string, extraHe
 
 // PostJSON 执行 POST JSON 请求
 func (c *HTTPClient) PostJSON(urlStr string, jsonBody string, extraHeaders map[string]string) (int, string, error) {
-	req, err := http.NewRequest("POST", urlStr, strings.NewReader(jsonBody))
+	resolvedURL, err := c.resolveURL(urlStr)
+	if err != nil {
+		return 0, "", err
+	}
+	req, err := http.NewRequest("POST", resolvedURL, strings.NewReader(jsonBody))
 	if err != nil {
 		return 0, "", err
 	}
@@ -140,6 +157,34 @@ func (c *HTTPClient) PostJSON(urlStr string, jsonBody string, extraHeaders map[s
 		req.Header.Set("User-Agent", RandomUserAgent())
 	}
 	return c.do(req)
+}
+
+// resolveURL applies a configured API root while preserving the adapter's
+// endpoint path and query parameters. This keeps per-engine endpoints
+// configurable without requiring every adapter to duplicate URL plumbing.
+func (c *HTTPClient) resolveURL(rawURL string) (string, error) {
+	if strings.TrimSpace(c.baseURL) == "" {
+		return rawURL, nil
+	}
+	base, err := url.Parse(c.baseURL)
+	if err != nil || base.Scheme == "" || base.Host == "" {
+		if err == nil {
+			err = errors.New("base URL must include a scheme and host")
+		}
+		return "", err
+	}
+	target, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	if target.Path == "" {
+		target.Path = "/"
+	}
+	base.Path = strings.TrimRight(base.Path, "/") + "/" + strings.TrimLeft(target.Path, "/")
+	base.RawPath = ""
+	base.RawQuery = target.RawQuery
+	base.Fragment = target.Fragment
+	return base.String(), nil
 }
 
 func (c *HTTPClient) do(req *http.Request) (int, string, error) {

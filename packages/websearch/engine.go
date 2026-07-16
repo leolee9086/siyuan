@@ -18,6 +18,7 @@ type EngineRegistry struct {
 func register(name string, factory EngineFactory) {
 	GlobalEngineRegistry.Register(name, factory)
 }
+
 var GlobalEngineRegistry = NewEngineRegistry()
 
 // NewEngineRegistry 创建注册表
@@ -31,7 +32,45 @@ func NewEngineRegistry() *EngineRegistry {
 func (r *EngineRegistry) Register(name string, factory EngineFactory) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.engines[name] = factory
+	r.engines[name] = func(config EngineConfig) SearchEngine {
+		return &contractSearchEngine{delegate: factory(config)}
+	}
+}
+
+// contractSearchEngine prevents any registered adapter from exposing a silent
+// nil result. Empty slices remain valid no-match responses; nil is always a
+// protocol failure because callers cannot distinguish it from a swallowed
+// parser error.
+type contractSearchEngine struct {
+	delegate SearchEngine
+}
+
+func (e *contractSearchEngine) Name() string {
+	if e == nil || e.delegate == nil {
+		return "unknown"
+	}
+	return e.delegate.Name()
+}
+
+func (e *contractSearchEngine) Config() EngineConfig {
+	if e == nil || e.delegate == nil {
+		return DefaultEngineConfig("unknown")
+	}
+	return e.delegate.Config()
+}
+
+func (e *contractSearchEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
+	if e == nil || e.delegate == nil {
+		return nil, &ProtocolError{Engine: "unknown", Message: "engine factory returned nil adapter"}
+	}
+	results, err := e.delegate.Search(query, opts, headers)
+	if err != nil {
+		return nil, err
+	}
+	if results == nil {
+		return nil, &ProtocolError{Engine: e.delegate.Name(), Message: "search returned nil results without an error"}
+	}
+	return results, nil
 }
 
 // Get 获取引擎工厂
@@ -507,15 +546,15 @@ func SelectEngines(flags *SelectFlags) []SearchEngine {
 
 // SelectFlags 引擎选择标志
 type SelectFlags struct {
-	Exa        bool
-	Parallel   bool
-	Brave      bool
+	Exa         bool
+	Parallel    bool
+	Brave       bool
 	Xiaohongshu bool
-	Zhihu      bool
-	Bilibili   bool
-	QueryType  string // "general" | "code" | "news" | "academic" | "social" | "video" | "shopping"
-	TimeRange  string
-	Lang       string
+	Zhihu       bool
+	Bilibili    bool
+	QueryType   string // "general" | "code" | "news" | "academic" | "social" | "video" | "shopping"
+	TimeRange   string
+	Lang        string
 }
 
 // HasAny 检查是否有任何标志被设置

@@ -43,84 +43,66 @@ func TestAllEnginesIntegration(t *testing.T) {
 	fmt.Fprintf(summaryFile, "| # | Engine | Status | Results | Time(ms) | First Title |\n")
 	fmt.Fprintf(summaryFile, "|---|--------|--------|---------|----------|-------------|\n")
 
-	var allResults []testResult
-	passCount, failCount, zeroCount, credentialCount := 0, 0, 0, 0
-
+	allResults := make([]testResult, len(engines))
+	sem := make(chan struct{}, MAX_CONCURRENCY)
+	var wg sync.WaitGroup
 	for i, name := range engines {
-		factory, ok := GlobalEngineRegistry.Get(name)
-		if !ok {
-			continue
-		}
+		wg.Add(1)
+		go func(index int, engineName string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		engine := factory(EngineConfig{
-			Name: name, Weight: 1.0, Timeout: 15000, MaxResults: 5,
-		})
-		if engine.Config().RequiresKey && strings.TrimSpace(engine.Config().APIKey) == "" {
-			allResults = append(allResults, testResult{
-				Engine: name, RequiresCredentials: true, Error: "requires_credentials",
-			})
-			credentialCount++
-			fmt.Fprintf(summaryFile, "| %d | %s | 🔐 | - | - | requires_credentials |\n", i+1, name)
-			t.Logf("[%3d/%d] 🔐 %-30s requires_credentials", i+1, len(engines), name)
-			continue
-		}
+			factory, ok := GlobalEngineRegistry.Get(engineName)
+			if !ok {
+				allResults[index] = testResult{Engine: engineName, Error: "not_registered"}
+				return
+			}
+			engine := factory(EngineConfig{Name: engineName, Weight: 1.0, Timeout: 15000, MaxResults: 5})
+			if engine.Config().RequiresKey && strings.TrimSpace(engine.Config().APIKey) == "" {
+				allResults[index] = testResult{Engine: engineName, RequiresCredentials: true, Error: "requires_credentials"}
+				return
+			}
+			allResults[index] = runIntegrationEngine(engine, "test search")
+		}(i, name)
+	}
+	wg.Wait()
 
-		start := time.Now()
-		results, err := engine.Search("test search", SearchOptions{NumResults: 3}, nil)
-		duration := time.Since(start).Milliseconds()
-
-		tr := testResult{
-			Engine:     name,
-			DurationMs: duration,
-		}
-
+	passCount, failCount, zeroCount, credentialCount := 0, 0, 0, 0
+	for i, tr := range allResults {
 		firstTitle := "-"
-		if err != nil {
-			tr.Error = err.Error()
-			tr.Success = false
-			failCount++
-		} else if results == nil {
-			tr.Error = "nil results"
-			tr.Success = false
-			failCount++
-		} else {
-			tr.ResultsCount = len(results)
-			tr.Results = results
-			tr.Success = len(results) > 0
-			if len(results) > 0 {
-				firstTitle = truncateStr(results[0].Title, 60)
-				if firstTitle == "" {
-					firstTitle = "(empty title)"
-				}
-			}
-			if tr.Success {
-				passCount++
-			} else {
-				zeroCount++
+		if len(tr.Results) > 0 {
+			firstTitle = truncateStr(tr.Results[0].Title, 60)
+			if firstTitle == "" {
+				firstTitle = "(empty title)"
 			}
 		}
-
-		allResults = append(allResults, tr)
-
+		if tr.RequiresCredentials {
+			credentialCount++
+			fmt.Fprintf(summaryFile, "| %d | %s | 🔐 | - | - | requires_credentials |\n", i+1, tr.Engine)
+			t.Logf("[%3d/%d] 🔐 %-30s requires_credentials", i+1, len(engines), tr.Engine)
+			continue
+		}
+		if tr.Success {
+			passCount++
+		} else if tr.Error == "" {
+			zeroCount++
+		} else {
+			failCount++
+		}
 		statusIcon := "✅"
 		if !tr.Success && tr.Error != "" {
 			statusIcon = "❌"
 		} else if !tr.Success {
-			statusIcon = "⚠️" // 0 results but no error
+			statusIcon = "⚠️"
 		}
-
-		fmt.Fprintf(summaryFile, "| %d | %s | %s | %d | %d | %s |\n",
-			i+1, name, statusIcon, tr.ResultsCount, tr.DurationMs, firstTitle)
-
+		fmt.Fprintf(summaryFile, "| %d | %s | %s | %d | %d | %s |\n", i+1, tr.Engine, statusIcon, tr.ResultsCount, tr.DurationMs, firstTitle)
 		if tr.Success {
-			t.Logf("[%3d/%d] ✅ %-30s %d results %4dms  %s",
-				i+1, len(engines), name, tr.ResultsCount, tr.DurationMs, firstTitle)
+			t.Logf("[%3d/%d] ✅ %-30s %d results %4dms  %s", i+1, len(engines), tr.Engine, tr.ResultsCount, tr.DurationMs, firstTitle)
 		} else if tr.Error != "" {
-			t.Logf("[%3d/%d] ❌ %-30s %4dms  ERROR: %v",
-				i+1, len(engines), name, tr.DurationMs, truncateStr(tr.Error, 80))
+			t.Logf("[%3d/%d] ❌ %-30s %4dms  ERROR: %v", i+1, len(engines), tr.Engine, tr.DurationMs, truncateStr(tr.Error, 80))
 		} else {
-			t.Logf("[%3d/%d] ⚠️ %-30s 0 results %4dms",
-				i+1, len(engines), name, tr.DurationMs)
+			t.Logf("[%3d/%d] ⚠️ %-30s 0 results %4dms", i+1, len(engines), tr.Engine, tr.DurationMs)
 		}
 	}
 
@@ -138,6 +120,44 @@ func TestAllEnginesIntegration(t *testing.T) {
 
 	t.Logf("\n=== Summary ===\nTotal: %d, Passed: %d, ZeroResults: %d, Failed: %d, Rate: %.1f%%\nResults: %s",
 		len(allResults), passCount, zeroCount, failCount, float64(passCount)/float64(len(allResults))*100, resultsDir)
+}
+
+func runIntegrationEngine(engine SearchEngine, query string) testResult {
+	result := testResult{Engine: engine.Name()}
+	started := time.Now()
+	type outcome struct {
+		results []SearchResult
+		err     error
+	}
+	outcomeCh := make(chan outcome, 1)
+	go func() {
+		results, err := engine.Search(query, SearchOptions{NumResults: 3}, nil)
+		outcomeCh <- outcome{results: results, err: err}
+	}()
+	timeout := time.Duration(engine.Config().Timeout) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+	select {
+	case outcome := <-outcomeCh:
+		result.DurationMs = time.Since(started).Milliseconds()
+		if outcome.err != nil {
+			result.Error = outcome.err.Error()
+			return result
+		}
+		if outcome.results == nil {
+			result.Error = "nil results"
+			return result
+		}
+		result.Results = outcome.results
+		result.ResultsCount = len(outcome.results)
+		result.Success = len(outcome.results) > 0
+		return result
+	case <-time.After(timeout + 2*time.Second):
+		result.DurationMs = time.Since(started).Milliseconds()
+		result.Error = (&TimeoutError{Engine: engine.Name(), Message: "integration probe exceeded hard timeout"}).Error()
+		return result
+	}
 }
 
 // TestEngineBatches 分批次测试引擎组

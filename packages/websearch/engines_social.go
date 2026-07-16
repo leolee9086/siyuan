@@ -812,8 +812,9 @@ func newMixcloud(config EngineConfig) SearchEngine {
 func newSoundCloud(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "soundcloud", Category: "music", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "client_id",
 		URL: func(q string, n int) string {
-			return "https://api-v2.soundcloud.com/search?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20)) + "&client_id=YOUR_CLIENT_ID"
+			return "https://api-v2.soundcloud.com/search?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20))
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
@@ -824,7 +825,7 @@ func newSoundCloud(config EngineConfig) SearchEngine {
 				} `json:"collection"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
+				return nil, err
 			}
 			var results []SearchResult
 			for i, c := range resp.Collection {
@@ -847,6 +848,7 @@ func newSoundCloud(config EngineConfig) SearchEngine {
 func newSpotify(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "spotify", Category: "music", UserAgent: "opencode-search/1.0",
+		RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.spotify.com/v1/search?q=" + url.QueryEscape(q) + "&type=track,album,artist&limit=" + strconv.Itoa(minInt(n, 20))
 		},
@@ -953,6 +955,7 @@ func newFyyd(config EngineConfig) SearchEngine {
 func newFreesound(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "freesound", Category: "music", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "token",
 		URL: func(q string, n int) string {
 			return "https://freesound.org/apiv2/search/text?query=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20))
 		},
@@ -1015,6 +1018,7 @@ func newRadioBrowser(config EngineConfig) SearchEngine {
 func newUnsplash(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "unsplash", Category: "image", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyHeader: "Authorization", APIKeyPrefix: "Client-ID ",
 		URL: func(q string, n int) string {
 			return "https://api.unsplash.com/search/photos?query=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20))
 		},
@@ -1049,8 +1053,9 @@ func newUnsplash(config EngineConfig) SearchEngine {
 func newPixabay(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "pixabay", Category: "image", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "key",
 		URL: func(q string, n int) string {
-			return "https://pixabay.com/api/?key=&q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) + "&safesearch=true"
+			return "https://pixabay.com/api/?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) + "&safesearch=true"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
@@ -1089,6 +1094,7 @@ func newPixabay(config EngineConfig) SearchEngine {
 func newPexels(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "pexels", Category: "image", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyHeader: "Authorization", APIKeyPrefix: "",
 		URL: func(q string, n int) string {
 			return "https://api.pexels.com/v1/search?query=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20))
 		},
@@ -1119,8 +1125,9 @@ func newPexels(config EngineConfig) SearchEngine {
 func newFlickr(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "flickr", Category: "image", UserAgent: "opencode-search/1.0",
+		RequiresKey: true, APIKeyQueryParam: "api_key",
 		URL: func(q string, n int) string {
-			return "https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=&text=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) + "&format=json&nojsoncallback=1"
+			return "https://api.flickr.com/services/rest/?method=flickr.photos.search&text=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 20)) + "&format=json&nojsoncallback=1"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
