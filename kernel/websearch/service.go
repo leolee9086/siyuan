@@ -30,6 +30,7 @@ func RuntimeConfig() shared.RuntimeConfig {
 	}
 	config.Enabled = settings.Enabled
 	config.Provider = shared.WebSearchProvider(strings.TrimSpace(settings.Provider))
+	config.TimeoutMs = settings.TimeoutMs
 	config.ExaAPIKey = settings.ExaAPIKey
 	config.ParallelAPIKey = settings.ParallelAPIKey
 	config.DefaultOptions.NumResults = settings.MaxResults

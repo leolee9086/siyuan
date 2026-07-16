@@ -2,8 +2,15 @@ package tools
 
 import (
 	"encoding/json"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/model"
+	shared "github.com/siyuan-note/siyuan/packages/websearch"
 )
 
 func TestWebSearchToolSchemaIncludesSearchControls(t *testing.T) {
@@ -54,5 +61,66 @@ func TestWebFetchHandlerRejectsInvalidURLWithoutNetwork(t *testing.T) {
 	}
 	if !result.IsError || len(result.Content) == 0 || !strings.Contains(result.Content[0].Text, "URL") {
 		t.Fatalf("invalid protocol must be explicit: %+v", result)
+	}
+}
+
+func TestWebSearchHandlerRealKernelPath(t *testing.T) {
+	if os.Getenv("WEBSEARCH_RUN_REAL_NETWORK") != "1" {
+		t.Skip("set WEBSEARCH_RUN_REAL_NETWORK=1 to run the real kernel tool path")
+	}
+	proxy := strings.TrimSpace(os.Getenv("WEBSEARCH_TEST_PROXY"))
+	if proxy == "" {
+		t.Fatal("WEBSEARCH_TEST_PROXY must be set to the caller-provided proxy endpoint")
+	}
+	timeoutMs := 30000
+	if rawTimeout := strings.TrimSpace(os.Getenv("WEBSEARCH_KERNEL_TIMEOUT_MS")); rawTimeout != "" {
+		parsed, err := strconv.Atoi(rawTimeout)
+		if err != nil || parsed <= 0 {
+			t.Fatalf("WEBSEARCH_KERNEL_TIMEOUT_MS must be positive: %q", rawTimeout)
+		}
+		timeoutMs = parsed
+	}
+	expectTimeout := os.Getenv("WEBSEARCH_EXPECT_TIMEOUT") == "1"
+
+	previousConf := model.Conf
+	defer func() { model.Conf = previousConf }()
+
+	appConf := model.NewAppConf()
+	appConf.AI = conf.NewAI()
+	appConf.AI.WebSearch.Enabled = true
+	appConf.AI.WebSearch.Provider = "meta"
+	appConf.AI.WebSearch.Proxy = proxy
+	appConf.AI.WebSearch.MaxResults = 3
+	appConf.AI.WebSearch.TimeoutMs = timeoutMs
+	model.Conf = appConf
+
+	started := time.Now()
+	result, err := webSearchHandler(map[string]interface{}{
+		"query":      "React 19 new features",
+		"numResults": float64(3),
+		"provider":   "meta",
+		"engines":    []interface{}{"github"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.IsError || len(result.Content) == 0 {
+		t.Fatalf("real kernel web_search failed after %s: %+v", time.Since(started), result)
+	}
+
+	var response shared.SearchResponse
+	if err := json.Unmarshal([]byte(result.Content[0].Text), &response); err != nil {
+		t.Fatalf("kernel tool returned invalid SearchResponse: %v; text=%s", err, result.Content[0].Text)
+	}
+	elapsed := time.Since(started)
+	t.Logf("kernel web_search completed in %s with timeout=%dms: provider=%s results=%d errors=%d details=%v used=%v", elapsed, timeoutMs, response.Provider, len(response.Results), len(response.Errors), response.Errors, response.UsedEngines)
+	if expectTimeout {
+		if elapsed > time.Duration(timeoutMs+5000)*time.Millisecond {
+			t.Fatalf("configured kernel timeout was not enforced: elapsed=%s timeout=%dms response=%+v", elapsed, timeoutMs, response)
+		}
+		return
+	}
+	if len(response.Results) == 0 {
+		t.Fatalf("kernel web_search returned no results: %+v", response)
 	}
 }

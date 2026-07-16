@@ -23,6 +23,7 @@ type EngineRuntimeConfig struct {
 type RuntimeConfig struct {
 	Enabled        bool
 	Provider       WebSearchProvider
+	TimeoutMs      int
 	ExaAPIKey      string
 	ParallelAPIKey string
 	Proxy          ProxyConfig
@@ -257,6 +258,9 @@ func (e diagnosticSearchEngine) Search(string, SearchOptions, map[string]string)
 }
 
 func (s *Service) engineConfig(name string, base EngineConfig) EngineConfig {
+	if s.config.TimeoutMs > 0 {
+		base.Timeout = s.config.TimeoutMs
+	}
 	runtime, ok := s.config.Engines[name]
 	if !ok {
 		return base

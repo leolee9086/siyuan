@@ -63,6 +63,29 @@ func TestServiceSearchReportsUnknownExplicitEngine(t *testing.T) {
 	}
 }
 
+func TestServiceAppliesDefaultAndPerEngineTimeouts(t *testing.T) {
+	service := NewService(RuntimeConfig{
+		Enabled:   true,
+		TimeoutMs: 2100,
+		Engines:   map[string]EngineRuntimeConfig{},
+	})
+	base := DefaultEngineConfig("github")
+	if got := service.engineConfig("github", base).Timeout; got != 2100 {
+		t.Fatalf("default runtime timeout=%d, want 2100", got)
+	}
+
+	service = NewService(RuntimeConfig{
+		Enabled:   true,
+		TimeoutMs: 2100,
+		Engines: map[string]EngineRuntimeConfig{
+			"github": {TimeoutMs: 3200},
+		},
+	})
+	if got := service.engineConfig("github", base).Timeout; got != 3200 {
+		t.Fatalf("per-engine runtime timeout=%d, want 3200", got)
+	}
+}
+
 func TestMCPResponseParserRejectsMalformedPayload(t *testing.T) {
 	if parsed := parseMCPResponse(`{"result":{"content":[{"type":"text","text":"ok"}]}}`); parsed != "ok" {
 		t.Fatalf("valid MCP response was not parsed: %q", parsed)
