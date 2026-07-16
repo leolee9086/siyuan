@@ -50,12 +50,7 @@
   - **验收标准**: 配置可持久化且不泄露密钥；kernel 可导入 websearch；服务能按配置选择本地多引擎、Exa 或 Parallel；相关编译测试通过。
   - **参考**: `packages/websearch`、`kernel/conf/ai.go`、`kernel/api/setting.go`。
 
-- [-] **Phase 3: 原生 Agent 搜索、抓取和诊断工具 (P0)**
-  - **背景**: 原生 Agent 的 `web_search` 只支持单一 Exa 查询，`web_fetch` 能力弱于 s-code。
-  - **行动**: 扩展工具 schema 和执行器；接入统一 service；增强 fetch；增加 `web_search_status`。
-  - **验收标准**: native 工具覆盖 s-code 的搜索控制项和抓取格式；读取不触发确认；错误和引擎状态结构化返回。
-
-- [ ] **Phase 4: MAGI 独立工具链与结果归档 (P1)**
+- [-] **Phase 4: MAGI 独立工具链与结果归档 (P1)**
   - **背景**: MAGI 只有 `fetch_web_page`，且网络工具没有统一搜索能力和完整历史摘要。
   - **行动**: 新增 `search_web` 与 `inspect_web_search_engines`；接入普通、投票和心跳读取工具集；保持三贤人治理边界；补充搜索归档和历史摘要。
   - **验收标准**: MAGI 搜索和抓取可用且不触发行动治理；原生 Agent/MAGI executor 不串线；归档和恢复测试通过。
@@ -72,6 +67,12 @@
   - **行动**: 完善配置字段文档、诊断使用说明、引擎新增准入规则和持续网络回归流程。
 
 ## 已归档/已完成
+
+- [x] **Phase 3: 原生 Agent 搜索、抓取和诊断工具** [已完成 2026-07-16]
+  - **完成情况**: 原生 `web_search` 支持结果数量、查询类型、时间范围、语言、provider、搜索深度、livecrawl 和显式引擎；新增只读 `web_search_status`；`web_fetch` 支持 markdown/text/html、超时、MIME/大小限制、Cloudflare challenge 重试、重定向 SSRF 检查和截断信息。所有能力通过现有 native 工具注册和执行链路暴露，未改变写操作确认规则。
+  - **成果文件**: `kernel/mcp/tools/web_search.go`、`kernel/mcp/tools/web_search_status.go`、`kernel/mcp/tools/web_fetch.go`、`kernel/mcp/tools/web_search_test.go`、`kernel/util/webfetch.go`
+  - **验证**: `go test ./mcp/tools -run 'TestWebSearch|TestWebFetchHandler'` 通过；`go test ./mcp/tools ./util -run '^$'` 通过；无效查询、未知引擎和不支持协议均返回明确错误/状态。
+  - **提交**: `1dc6d275d feat(agent): expand web search and fetch tools`
 
 - [x] **Phase 2: 引擎契约、缺失适配器与真实诊断** [已完成 2026-07-16]
   - **完成情况**: 补齐 `lib-rs`、`niconico`、`nvd`、`repology` 四个真实适配器；JSON/HTML 通用框架、执行器和 MCP 响应对 HTTP 错误、空响应、解析失败、`nil` 结果和非法 MCP 内容返回明确协议错误；引擎元数据进入运行时诊断，缺失凭据标记为 `requires_credentials`，显式未知引擎标记为 `not_registered`；集成报告改用测试临时目录。
