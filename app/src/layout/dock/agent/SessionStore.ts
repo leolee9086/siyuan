@@ -25,7 +25,7 @@ export interface AgentSession {
     title: string;
     titled?: boolean;
     model?: string;
-    messages?: Array<{role: string; content: string; toolCalls?: Array<{name: string; arguments?: Record<string, unknown>; result?: string}>}>;
+    messages?: Array<{role: string; content: string; toolCalls?: Array<{id?: string; name: string; arguments?: Record<string, unknown>; result?: string}>}>;
     entries?: Array<{
         id?: string;
         type: "user" | "thinking" | "assistant" | "confirm" | "question" | "snapshot" | "rollback";
@@ -41,7 +41,7 @@ export interface AgentSession {
             toolCalls?: Array<{name: string; result?: string}>
         }>;
         reasoningContent?: string;
-        toolCalls?: Array<{name: string; arguments?: Record<string, unknown>; result?: string}>;
+        toolCalls?: Array<{id?: string; name: string; arguments?: Record<string, unknown>; result?: string}>;
         duration?: number;
         confirmName?: string;
         confirmArgs?: Record<string, unknown>;

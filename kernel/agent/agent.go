@@ -269,6 +269,7 @@ type AgentEvent struct {
 	RetryAttempt     int
 	RetryMax         int
 	SnapshotID       string
+	ToolProgress     *mcpTools.ToolProgress
 }
 
 type AgentMessage struct {
@@ -602,6 +603,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						Type:      "tool_call",
 						Name:      tc.Function.Name,
 						Arguments: args,
+						CallID:    tc.ID,
 					})
 
 					if needsConfirm(tc.Function.Name, action, alwaysAllow) {
@@ -632,7 +634,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 								Content:    wrapToolOutput(cancelMsg),
 								ToolCallID: tc.ID,
 							})
-							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, Result: cancelMsg})
+							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: cancelMsg})
 
 							for j := i + 1; j < len(aggregatedToolCalls); j++ {
 								checkpointMsgs[assistantIdx].ToolCalls[j].Result = cancelMsg
@@ -641,7 +643,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 									Content:    wrapToolOutput(cancelMsg),
 									ToolCallID: aggregatedToolCalls[j].ID,
 								})
-								sendEvent(ch, AgentEvent{Type: "tool_result", Name: aggregatedToolCalls[j].Function.Name, Result: cancelMsg})
+								sendEvent(ch, AgentEvent{Type: "tool_result", Name: aggregatedToolCalls[j].Function.Name, CallID: aggregatedToolCalls[j].ID, Result: cancelMsg})
 							}
 							finalCheckpoint()
 							return
@@ -651,13 +653,13 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 							confirmChannelsMu.Unlock()
 							timedOut = true
 							rejectionMsg = "Confirmation timed out, operation skipped automatically"
-							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, Result: rejectionMsg})
+							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: rejectionMsg})
 						}
 
 						if timedOut || !result.approved {
 							if rejectionMsg == "" {
 								rejectionMsg = "User rejected this operation"
-								sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, Result: rejectionMsg})
+								sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: rejectionMsg})
 							}
 							messages = append(messages, openai.ChatCompletionMessage{
 								Role:       openai.ChatMessageRoleTool,
@@ -689,7 +691,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 								Content:    wrapToolOutput(abortMsg),
 								ToolCallID: tc.ID,
 							})
-							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, Result: abortMsg})
+							sendEvent(ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: abortMsg})
 
 							for j := i + 1; j < len(aggregatedToolCalls); j++ {
 								checkpointMsgs[assistantIdx].ToolCalls[j].Result = abortMsg
@@ -698,7 +700,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 									Content:    wrapToolOutput(abortMsg),
 									ToolCallID: aggregatedToolCalls[j].ID,
 								})
-								sendEvent(ch, AgentEvent{Type: "tool_result", Name: aggregatedToolCalls[j].Function.Name, Result: abortMsg})
+								sendEvent(ch, AgentEvent{Type: "tool_result", Name: aggregatedToolCalls[j].Function.Name, CallID: aggregatedToolCalls[j].ID, Result: abortMsg})
 							}
 							finalCheckpoint()
 							return
@@ -715,7 +717,14 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					} else if tc.Function.Name == "frontend" {
 						resultStr = handleFrontendTool(ctx, tc, ch, confirmTimeout)
 					} else {
-						resultStr, isErr = executeTool(tc, sessionID)
+						resultStr, isErr = executeTool(tc, sessionID, func(progress mcpTools.ToolProgress) {
+							sendEvent(ch, AgentEvent{
+								Type:         "tool_progress",
+								Name:         tc.Function.Name,
+								CallID:       tc.ID,
+								ToolProgress: &progress,
+							})
+						})
 					}
 					// rawResult 保留 wrap/truncate 之前的原始文本，用于判断是否为空。
 					rawResult := resultStr
@@ -726,6 +735,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					sendEvent(ch, AgentEvent{
 						Type:   "tool_result",
 						Name:   tc.Function.Name,
+						CallID: tc.ID,
 						Result: resultStr,
 					})
 

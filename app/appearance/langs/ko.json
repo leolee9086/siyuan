@@ -91,6 +91,7 @@
   "workspace": "작업 공간",
   "addAiProvider": "제공자 추가",
   "addAiModel": "모델 추가",
+  "addAllAiModels": "모든 모델 추가",
   "aiProviderSettings": "제공자 설정",
   "customDisplayName": "사용자 지정 표시 이름",
   "aiProviderDisplayNameTip": "제공자 목록에 표시할 이름, 비워두면 API URL 사용",

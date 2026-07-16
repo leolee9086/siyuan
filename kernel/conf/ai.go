@@ -119,6 +119,10 @@ type Provider struct {
 	BaseURL        string   `json:"baseURL"`
 	RequestTimeout int      `json:"requestTimeout"`
 	Models         []*Model `json:"models"`
+	// CachedModels 保存最近一次成功从 Provider /v1/models 拉取的模型 ID 列表。
+	CachedModels   []string `json:"cachedModels,omitempty"`
+	// CachedModelsAt 保存模型列表缓存的 Unix 时间戳（毫秒）。
+	CachedModelsAt int64    `json:"cachedModelsAt,omitempty"`
 }
 
 // Model is the provider-scoped model registry entry. MaxTokens/Temperature/
@@ -468,6 +472,23 @@ func (ai *AI) Normalize() {
 				m.ID = ast.NewNodeID()
 			}
 			models = append(models, m)
+		}
+		cachedModels := make([]string, 0, len(p.CachedModels))
+		seenCachedModels := make(map[string]struct{}, len(p.CachedModels))
+		for _, name := range p.CachedModels {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			if _, exists := seenCachedModels[name]; exists {
+				continue
+			}
+			seenCachedModels[name] = struct{}{}
+			cachedModels = append(cachedModels, name)
+		}
+		p.CachedModels = cachedModels
+		if len(cachedModels) == 0 {
+			p.CachedModelsAt = 0
 		}
 		p.Models = models
 		providers = append(providers, p)

@@ -7,6 +7,7 @@ export type ISSEResult = {
 } | {
     type: "tool_call";
     name: string;
+    callID: string;
     arguments: Record<string, unknown>;
 } | {
     type: "confirm";
@@ -16,7 +17,24 @@ export type ISSEResult = {
 } | {
     type: "tool_result";
     name: string;
+    callID: string;
     result: string;
+} | {
+    type: "tool_progress";
+    name: string;
+    callID: string;
+    progress: {
+        phase: string;
+        done: number;
+        total: number;
+        current?: string;
+        partialCount?: number;
+        latestResults?: Array<{
+            title: string;
+            url: string;
+            engine: string;
+        }>;
+    };
 } | {
     type: "error";
     message: string;
@@ -220,6 +238,7 @@ function buildSSEResult(event: string, data: Record<string, unknown>): ISSEResul
             return {
                 type: "tool_call",
                 name: data.name as string,
+                callID: (data.callID as string) || "",
                 arguments: (data.arguments || {}) as Record<string, unknown>,
             };
         case "confirm":
@@ -233,8 +252,30 @@ function buildSSEResult(event: string, data: Record<string, unknown>): ISSEResul
             return {
                 type: "tool_result",
                 name: data.name as string,
+                callID: (data.callID as string) || "",
                 result: data.result as string,
             };
+        case "tool_progress": {
+            const rawProgress = (data.progress || {}) as Record<string, unknown>;
+            const rawResults = Array.isArray(rawProgress.latestResults) ? rawProgress.latestResults : [];
+            return {
+                type: "tool_progress",
+                name: data.name as string,
+                callID: (data.callID as string) || "",
+                progress: {
+                    phase: String(rawProgress.phase || "update"),
+                    done: Number(rawProgress.done) || 0,
+                    total: Number(rawProgress.total) || 0,
+                    current: typeof rawProgress.current === "string" ? rawProgress.current : undefined,
+                    partialCount: Number(rawProgress.partialCount) || 0,
+                    latestResults: rawResults.filter((item): item is Record<string, unknown> => !!item && typeof item === "object").map(item => ({
+                        title: typeof item.title === "string" ? item.title : "",
+                        url: typeof item.url === "string" ? item.url : "",
+                        engine: typeof item.engine === "string" ? item.engine : "",
+                    })),
+                },
+            };
+        }
         case "error":
             return {type: "error", message: data.message as string};
         case "done":

@@ -91,6 +91,7 @@
   "workspace": "مساحة العمل",
   "addAiProvider": "إضافة مزود",
   "addAiModel": "إضافة نموذج",
+  "addAllAiModels": "إضافة جميع النماذج",
   "aiProviderSettings": "إعدادات المزود",
   "customDisplayName": "اسم العرض المخصص",
   "aiProviderDisplayNameTip": "الاسم المعروض في قائمة المزودين؛ اتركه فارغًا لاستخدام عنوان API",

@@ -91,6 +91,7 @@
   "workspace": "Ruang Kerja",
   "addAiProvider": "Tambah penyedia",
   "addAiModel": "Tambah model",
+  "addAllAiModels": "Tambahkan semua model",
   "aiProviderSettings": "Pengaturan penyedia",
   "customDisplayName": "Nama tampilan kustom",
   "aiProviderDisplayNameTip": "Nama yang ditampilkan di daftar penyedia; kosongkan untuk menggunakan URL API",

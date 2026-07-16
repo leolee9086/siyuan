@@ -91,6 +91,7 @@
   "workspace": "Робочий простір",
   "addAiProvider": "Додати постачальника",
   "addAiModel": "Додати модель",
+  "addAllAiModels": "Додати всі моделі",
   "aiProviderSettings": "Налаштування постачальника",
   "customDisplayName": "Користувацька назва для відображення",
   "aiProviderDisplayNameTip": "Назва в списку постачальників; залиште порожнім, щоб використовувати URL API",

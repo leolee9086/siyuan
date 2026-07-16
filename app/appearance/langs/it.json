@@ -91,6 +91,7 @@
   "workspace": "Area di lavoro",
   "addAiProvider": "Aggiungi fornitore",
   "addAiModel": "Aggiungi modello",
+  "addAllAiModels": "Aggiungi tutti i modelli",
   "aiProviderSettings": "Impostazioni fornitore",
   "customDisplayName": "Nome visualizzato personalizzato",
   "aiProviderDisplayNameTip": "Nome mostrato nell'elenco fornitori; lasciare vuoto per usare l'URL API",

@@ -91,6 +91,7 @@
   "workspace": "พื้นที่ทำงาน",
   "addAiProvider": "เพิ่มผู้ให้บริการ",
   "addAiModel": "เพิ่มโมเดล",
+  "addAllAiModels": "เพิ่มโมเดลทั้งหมด",
   "aiProviderSettings": "การตั้งค่าผู้ให้บริการ",
   "customDisplayName": "ชื่อที่แสดงแบบกำหนดเอง",
   "aiProviderDisplayNameTip": "ชื่อที่แสดงในรายการผู้ให้บริการ เว้นว่างเพื่อใช้ URL ของ API",

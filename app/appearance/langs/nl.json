@@ -91,6 +91,7 @@
   "workspace": "Werkruimte",
   "addAiProvider": "Provider toevoegen",
   "addAiModel": "Model toevoegen",
+  "addAllAiModels": "Alle modellen toevoegen",
   "aiProviderSettings": "Providerinstellingen",
   "customDisplayName": "Aangepaste weergavenaam",
   "aiProviderDisplayNameTip": "Naam weergegeven in de providerlijst; leeg laten om de API-URL te gebruiken",

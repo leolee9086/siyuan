@@ -45,6 +45,139 @@ export const renderTodoList = (result: string): string => {
     return html;
 };
 
+export type AgentWebSearchProgress = {
+    phase: string;
+    done: number;
+    total: number;
+    current?: string;
+    partialCount?: number;
+    latestResults?: Array<{title: string; url: string; engine: string}>;
+};
+
+type AgentWebSearchResponse = {
+    query?: string;
+    provider?: string;
+    results?: Array<{
+        title?: string;
+        url?: string;
+        snippet?: string;
+        engines?: string[];
+    }>;
+    usedEngines?: string[];
+    errors?: Array<{engine?: string; message?: string}>;
+    noResults?: boolean;
+};
+
+const safeWebURL = (value: string): string => {
+    try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return "";
+        }
+        return parsed.href;
+    } catch (e) {
+        return "";
+    }
+};
+
+const webSearchStatusText = (progress: AgentWebSearchProgress): string => {
+    if (progress.phase === "done") {
+        return "Search complete";
+    }
+    if (progress.phase === "start") {
+        return "Starting search";
+    }
+    return "Searching";
+};
+
+export const renderWebSearchProgress = (query: string, progress: AgentWebSearchProgress): string => {
+    const total = Math.max(0, progress.total || 0);
+    const done = Math.max(0, Math.min(progress.done || 0, total || progress.done || 0));
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+    const results = Array.isArray(progress.latestResults) ? progress.latestResults : [];
+    let resultHTML = "";
+    for (const result of results) {
+        const url = safeWebURL(result.url || "");
+        const title = escapeHtml(result.title || result.url || "Untitled result");
+        const label = "<span class=\"agent-chat__web-search-result-title\">" + title + "</span>";
+        resultHTML += '<div class="agent-chat__web-search-result">' +
+            (url ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noreferrer noopener">' + label + "</a>" : label) +
+            (result.engine ? '<span class="agent-chat__web-search-result-engine">' + escapeHtml(result.engine) + "</span>" : "") +
+            "</div>";
+    }
+    return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-progress">' +
+        '<div class="agent-chat__web-search-header">' +
+        '<svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg>' +
+        '<span class="agent-chat__tool-title">' + escapeHtml(webSearchStatusText(progress)) + "</span>" +
+        '<span class="agent-chat__web-search-query">' + escapeHtml(query || "") + "</span>" +
+        "</div>" +
+        '<div class="agent-chat__web-search-progress">' +
+        '<div class="agent-chat__web-search-progress-label"><span>' +
+        escapeHtml(progress.current || "") + "</span><span>" + done + "/" + total + " · " +
+        (progress.partialCount || 0) + " results</span></div>" +
+        '<div class="agent-chat__web-search-progress-track"><div class="agent-chat__web-search-progress-bar" style="width:' + percent + '%"></div></div>' +
+        "</div>" +
+        (resultHTML ? '<div class="agent-chat__web-search-results">' + resultHTML + "</div>" : "") +
+        "</div>";
+};
+
+const parseWebSearchResponse = (raw: string): AgentWebSearchResponse | null => {
+    const wrapped = raw.match(/^\s*\[tool_output\]\s*([\s\S]*?)\s*\[\/tool_output\]\s*$/);
+    const payload = wrapped ? wrapped[1] : raw;
+    try {
+        const parsed = JSON.parse(payload);
+        return parsed && typeof parsed === "object" ? parsed as AgentWebSearchResponse : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+export const renderWebSearchResult = (query: string, raw: string): string => {
+    const response = parseWebSearchResponse(raw);
+    if (!response) {
+        return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-error">' +
+            '<div class="agent-chat__web-search-header"><svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg><span class="agent-chat__tool-title">Web search</span></div>' +
+            '<pre class="agent-chat__web-search-error-text">' + escapeHtml(raw || "Search returned no readable response") + "</pre></div>";
+    }
+    const results = Array.isArray(response.results) ? response.results : [];
+    const engines = Array.isArray(response.usedEngines) ? response.usedEngines : [];
+    const errors = Array.isArray(response.errors) ? response.errors : [];
+    let resultHTML = "";
+    for (const result of results) {
+        const url = safeWebURL(result.url || "");
+        const title = escapeHtml(result.title || result.url || "Untitled result");
+        const snippet = escapeHtml(result.snippet || "");
+        const engineNames = Array.isArray(result.engines) ? result.engines.filter(Boolean).join(", ") : "";
+        resultHTML += '<article class="agent-chat__web-search-result">' +
+            (url ? '<a class="agent-chat__web-search-result-title" href="' + escapeHtml(url) + '" target="_blank" rel="noreferrer noopener">' + title + "</a>" : '<span class="agent-chat__web-search-result-title">' + title + "</span>") +
+            (snippet ? '<div class="agent-chat__web-search-result-snippet">' + snippet + "</div>" : "") +
+            (engineNames ? '<div class="agent-chat__web-search-result-engine">' + escapeHtml(engineNames) + "</div>" : "") +
+            "</article>";
+    }
+    let errorHTML = "";
+    for (const error of errors) {
+        const label = [error.engine, error.message].filter(Boolean).join(": ");
+        if (label) {
+            errorHTML += '<div class="agent-chat__web-search-error-item">' + escapeHtml(label) + "</div>";
+        }
+    }
+    const countText = results.length + " result" + (results.length === 1 ? "" : "s");
+    const statusText = response.noResults && results.length === 0 ? "No results" : countText;
+    return '<div class="agent-chat__tool-card agent-chat__tool-card--web-search agent-chat__tool-card--web-search-complete">' +
+        '<div class="agent-chat__web-search-header">' +
+        '<svg class="agent-chat__tool-icon"><use xlink:href="#iconSearch"></use></svg>' +
+        '<span class="agent-chat__tool-title">Web search</span>' +
+        '<span class="agent-chat__web-search-query">' + escapeHtml(query || response.query || "") + "</span>" +
+        "</div>" +
+        '<div class="agent-chat__web-search-summary"><span>' + escapeHtml(statusText) + "</span>" +
+        (response.provider ? '<span>' + escapeHtml(response.provider) + "</span>" : "") +
+        (engines.length ? '<span>' + escapeHtml(engines.join(", ")) + "</span>" : "") +
+        "</div>" +
+        (resultHTML ? '<div class="agent-chat__web-search-results">' + resultHTML + "</div>" : "") +
+        (errorHTML ? '<div class="agent-chat__web-search-errors">' + errorHTML + "</div>" : "") +
+        "</div>";
+};
+
 // hasModel=false 时渲染"未配置模型"提示块替代示例，避免用户点击示例后卡死。
 export const renderWelcomeHTML = (hasModel = true): string => {
     const L = window.siyuan.languages ?? {};

@@ -42,7 +42,7 @@ func convertMCPToolsToOpenAI() []openai.Tool {
 
 // executeTool 执行单次工具调用。
 // 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果。
-func executeTool(tc openai.ToolCall, sessionID string) (string, bool) {
+func executeTool(tc openai.ToolCall, sessionID string, emitProgress tools.ToolProgressCallback) (string, bool) {
 	t := tools.GetTool(tc.Function.Name)
 	if t == nil {
 		return "unknown tool: " + tc.Function.Name, true
@@ -59,7 +59,13 @@ func executeTool(tc openai.ToolCall, sessionID string) (string, bool) {
 	if t.Source == "native" || t.Source == "" {
 		args["_sessionID"] = sessionID
 	}
-	result, err := t.Handler(args)
+	var result tools.CallToolResult
+	var err error
+	if t.ProgressHandler != nil && emitProgress != nil {
+		result, err = t.ProgressHandler(args, emitProgress)
+	} else {
+		result, err = t.Handler(args)
+	}
 	if err != nil {
 		return "tool execution error: " + err.Error(), true
 	}

@@ -91,6 +91,7 @@
   "workspace": "कार्यक्षेत्र",
   "addAiProvider": "प्रदाता जोड़ें",
   "addAiModel": "मॉडल जोड़ें",
+  "addAllAiModels": "सभी मॉडल जोड़ें",
   "aiProviderSettings": "प्रदाता सेटिंग्स",
   "customDisplayName": "कस्टम प्रदर्शन नाम",
   "aiProviderDisplayNameTip": "प्रदाता सूची में दिखाया जाने वाला नाम; API URL उपयोग करने के लिए खाली छोड़ें",

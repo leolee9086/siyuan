@@ -26,8 +26,29 @@ type Tool struct {
 	// 用于 token 分类统计按来源拆分。空值按 "native" 处理（兼容旧调用方）。
 	Source string `json:"source,omitempty"`
 
-	Handler func(args map[string]interface{}) (CallToolResult, error) `json:"-"`
+	Handler         func(args map[string]interface{}) (CallToolResult, error)                            `json:"-"`
+	ProgressHandler func(args map[string]interface{}, emit ToolProgressCallback) (CallToolResult, error) `json:"-"`
 }
+
+// ToolProgress is a transport-neutral progress snapshot emitted while a
+// native tool is running. It is intentionally generic so the Agent can stream
+// progress without importing a specific tool implementation.
+type ToolProgress struct {
+	Phase         string               `json:"phase"`
+	Done          int                  `json:"done"`
+	Total         int                  `json:"total"`
+	Current       string               `json:"current,omitempty"`
+	PartialCount  int                  `json:"partialCount,omitempty"`
+	LatestResults []ToolProgressResult `json:"latestResults,omitempty"`
+}
+
+type ToolProgressResult struct {
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+	Engine string `json:"engine"`
+}
+
+type ToolProgressCallback func(progress ToolProgress)
 
 type ToolSchema struct {
 	Type       string                `json:"type,omitempty"`

@@ -91,6 +91,7 @@
   "workspace": "Çalışma alanı",
   "addAiProvider": "Sağlayıcı ekle",
   "addAiModel": "Model ekle",
+  "addAllAiModels": "Tüm modelleri ekle",
   "aiProviderSettings": "Sağlayıcı ayarları",
   "customDisplayName": "Özel görünen ad",
   "aiProviderDisplayNameTip": "Sağlayıcı listesinde gösterilen ad; API URL'sini kullanmak için boş bırakın",

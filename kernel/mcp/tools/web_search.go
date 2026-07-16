@@ -42,7 +42,8 @@ var WebSearchTool = &Tool{
 		},
 		Required: []string{"query"},
 	},
-	Handler: webSearchHandler,
+	Handler:         webSearchHandler,
+	ProgressHandler: webSearchHandlerWithProgress,
 }
 
 func init() {
@@ -50,6 +51,10 @@ func init() {
 }
 
 func webSearchHandler(args map[string]interface{}) (CallToolResult, error) {
+	return webSearchHandlerWithProgress(args, nil)
+}
+
+func webSearchHandlerWithProgress(args map[string]interface{}, emit ToolProgressCallback) (CallToolResult, error) {
 	query, _ := args["query"].(string)
 	opts := shared.DefaultSearchOptions()
 	opts.NumResults = intArg(args, "numResults", opts.NumResults)
@@ -63,7 +68,19 @@ func webSearchHandler(args map[string]interface{}) (CallToolResult, error) {
 	}
 	opts.Engines = stringSliceArg(args["engines"])
 
-	response, err := kernelwebsearch.NewService().Search(query, opts, nil)
+	response, err := kernelwebsearch.NewService().Search(query, opts, func(info shared.ProgressInfo) {
+		if emit == nil {
+			return
+		}
+		emit(ToolProgress{
+			Phase:         searchProgressPhase(info.Phase),
+			Done:          info.Done,
+			Total:         info.Total,
+			Current:       info.Current,
+			PartialCount:  len(info.PartialResults),
+			LatestResults: latestSearchProgressResults(info.PartialResults),
+		})
+	})
 	if err != nil {
 		return CallToolResult{
 			Content: []ContentItem{{Type: "text", Text: "web_search error: " + err.Error()}},
@@ -76,6 +93,33 @@ func webSearchHandler(args map[string]interface{}) (CallToolResult, error) {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "web_search error: " + marshalErr.Error()}}, IsError: true}, nil
 	}
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: string(data)}}}, nil
+}
+
+func searchProgressPhase(phase shared.ProgressPhase) string {
+	switch phase {
+	case shared.PhaseStart:
+		return "start"
+	case shared.PhaseResult:
+		return "result"
+	case shared.PhaseDone:
+		return "done"
+	default:
+		return "update"
+	}
+}
+
+func latestSearchProgressResults(results []shared.SearchResult) []ToolProgressResult {
+	const maxPreviewResults = 5
+	start := len(results) - maxPreviewResults
+	if start < 0 {
+		start = 0
+	}
+	preview := make([]ToolProgressResult, 0, len(results)-start)
+	for index := len(results) - 1; index >= start; index-- {
+		result := results[index]
+		preview = append(preview, ToolProgressResult{Title: result.Title, URL: result.URL, Engine: result.Engine})
+	}
+	return preview
 }
 
 func intArg(args map[string]interface{}, key string, fallback int) int {

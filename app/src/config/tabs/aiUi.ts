@@ -212,6 +212,15 @@ export const mountProvidersBlock = (root: HTMLElement) => {
             event.stopPropagation();
             return;
         }
+        if (type === "addAllAiModels") {
+            const providerId = getProviderId(actionEl);
+            if (providerId) {
+                addAllModelsForProvider(root, providerId);
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
         if (type === "editAiModel") {
             const providerId = getProviderId(actionEl);
             const modelId = getModelId(actionEl);
@@ -366,6 +375,10 @@ const renderProviderList = (root: HTMLElement) => {
             <svg class="b3-list-item__arrow${isExpanded ? " b3-list-item__arrow--open" : ""}"><use xlink:href="#iconRight"></use></svg>
         </span>
         <span class="b3-list-item__text">${Lute.EscapeHTMLStr((provider.displayName || provider.baseURL))}</span>
+        <button type="button" data-type="addAllAiModels" class="b3-button b3-button--outline b3-button--small fn__flex-center" style="margin-left: 8px; flex-shrink: 0;" title="${window.siyuan.languages.addAllAiModels || "全部添加模型"}" aria-label="${window.siyuan.languages.addAllAiModels || "全部添加模型"}">
+            <svg class="b3-button__icon"><use xlink:href="#iconAdd"></use></svg>
+            <span>${window.siyuan.languages.addAllAiModels || "全部添加模型"}</span>
+        </button>
         <span data-type="deleteAiProvider" class="b3-list-item__action b3-list-item__action--warning b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.delete}">
             <svg><use xlink:href="#iconTrashcan"></use></svg>
         </span>
@@ -461,12 +474,15 @@ const openProviderDialog = (root: HTMLElement, providerId: string | null) => {
     const btns = dialog.element.querySelectorAll(".b3-dialog__action .b3-button");
     btns[0].addEventListener("click", () => dialog.destroy());
     btns[1].addEventListener("click", () => {
+        const baseURL = dialog.element.querySelector<HTMLInputElement>("#aiProviderBaseURL").value;
         const nextProvider: Config.IProvider = {
             ...initialProvider,
-            baseURL: dialog.element.querySelector<HTMLInputElement>("#aiProviderBaseURL").value,
+            baseURL,
             displayName: dialog.element.querySelector<HTMLInputElement>("#aiProviderDisplayName").value,
             apiKey: dialog.element.querySelector<HTMLInputElement>("#aiProviderApiKey").value,
             requestTimeout: dialog.element.querySelector<HTMLInputElement>("#aiProviderRequestTimeout").valueAsNumber,
+            // baseURL 变更时缓存的远程列表不再有效，清除以避免误导
+            ...(baseURL !== initialProvider.baseURL ? {cachedModels: undefined, cachedModelsAt: undefined} : {}),
         };
         const providers = window.siyuan.config.ai.providers;
         const nextProviders = isNew
@@ -487,6 +503,57 @@ const saveProviders = (root: HTMLElement, providers: Config.IProvider[]) => {
     aiConfigApi.patch("providers", providers, () => {
         renderProviderList(root);
         syncModelPickerSelects(root);
+    });
+};
+
+/** 将 Provider 缓存的远程模型列表中尚未添加的模型全部一次性添加为已启用的新模型。 */
+const addAllCachedModelsForProvider = (root: HTMLElement, providerId: string): void => {
+    const provider = findProvider(providerId);
+    if (!provider || !Array.isArray(provider.cachedModels) || provider.cachedModels.length === 0) {
+        return;
+    }
+    const existingNames = new Set(provider.models.map((m) => m.name));
+    const newModels: Config.IModel[] = [];
+    for (const name of provider.cachedModels) {
+        const trimmed = name.trim();
+        if (trimmed && !existingNames.has(trimmed)) {
+            newModels.push({id: "", name: trimmed, enabled: true});
+            existingNames.add(trimmed);
+        }
+    }
+    if (newModels.length === 0) {
+        showMessage("所有缓存模型均已添加。", undefined, "info");
+        return;
+    }
+    const nextProviders = window.siyuan.config.ai.providers.map((item) => item.id === providerId
+        ? {...item, models: [...item.models, ...newModels]}
+        : item);
+    saveProviders(root, nextProviders);
+    showMessage(`已添加 ${newModels.length} 个模型。`, undefined, "info");
+};
+
+/** 快速添加 Provider 的全部模型；无缓存时自动拉取一次并持久化后再执行批量添加。 */
+const addAllModelsForProvider = (root: HTMLElement, providerId: string): void => {
+    const provider = findProvider(providerId);
+    if (!provider) {
+        return;
+    }
+    if (Array.isArray(provider.cachedModels) && provider.cachedModels.length > 0) {
+        addAllCachedModelsForProvider(root, providerId);
+        return;
+    }
+    showMessage("正在获取该提供商的模型列表…", undefined, "info");
+    fetchPost("/api/ai/listModels", {provider: providerId}, (response) => {
+        const data = response.data || {};
+        const models: string[] = Array.isArray(data.models) ? data.models : [];
+        if (models.length === 0) {
+            showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + data.msg : ""}`, undefined, "error");
+            return;
+        }
+        const nextProviders = window.siyuan.config.ai.providers.map((item) => item.id === providerId
+            ? {...item, cachedModels: models, cachedModelsAt: Date.now()}
+            : item);
+        aiConfigApi.patch("providers", nextProviders, () => addAllCachedModelsForProvider(root, providerId));
     });
 };
 
@@ -564,6 +631,43 @@ const buildModelOptionsHtml = (enabledModels: Config.IModel[], modelId: string):
         `<option value="${Lute.EscapeHTMLStr(model.id)}"${model.id === modelId ? " selected" : ""}>${Lute.EscapeHTMLStr(model.displayName || model.name)}</option>`
     ).join("");
 
+/** 构造供应商远程模型列表下拉框；当前配置模型缺失时保留并标记为可能不可用。 */
+const buildFetchedModelOptionsHtml = (models: string[], current: string): {html: string; missing: boolean} => {
+    const normalized = models.map((model) => model.trim()).filter(Boolean);
+    const missing = Boolean(current) && !normalized.includes(current);
+    const values = missing ? [current, ...normalized] : normalized;
+    const options = values.map((model) => {
+        const isMissing = model === current && missing;
+        const label = isMissing ? `${model}（可能不可用）` : model;
+        return `<option value="${Lute.EscapeHTMLStr(model)}"${model === current ? " selected" : ""}>${Lute.EscapeHTMLStr(label)}</option>`;
+    }).join("");
+    return {
+        html: `<option value="">${window.siyuan.languages.selectModel}</option>${options}`,
+        missing,
+    };
+};
+
+/** 将缓存或最新拉取结果显示到模型字段，并同步缺失模型提示。 */
+const renderFetchedModels = (dialog: Dialog, models: string[], current: string): boolean => {
+    const inputEl = dialog.element.querySelector<HTMLElement>("#aiModelName");
+    if (!inputEl) {
+        return false;
+    }
+    const selectEl = document.createElement("select");
+    selectEl.className = "b3-select fn__flex-1";
+    selectEl.id = "aiModelName";
+    const result = buildFetchedModelOptionsHtml(models, current);
+    selectEl.innerHTML = result.html;
+    selectEl.value = current;
+    inputEl.replaceWith(selectEl);
+    const warningEl = dialog.element.querySelector<HTMLElement>("#aiModelAvailabilityWarning");
+    if (warningEl) {
+        warningEl.textContent = result.missing ? "当前模型不在供应商返回的列表中，可能不可用，建议检查。" : "";
+        warningEl.classList.toggle("fn__none", !result.missing);
+    }
+    return result.missing;
+};
+
 // 在已启用提供商列表中按优先级选取 providerId，均无效时返回空
 const pickProviderId = (enabledProviders: Config.IProvider[], preferredProviderIds: string[]): string => {
     for (const preferredProviderId of preferredProviderIds) {
@@ -616,6 +720,7 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
             <span class="fn__space"></span>
             <input class="b3-text-field fn__flex-1" id="aiModelName" type="text" spellcheck="false" value="${Lute.EscapeHTMLStr(initialModel.name)}"/>
         </div>
+        <div id="aiModelAvailabilityWarning" class="b3-label__text fn__none" style="color: var(--b3-theme-error);">当前模型不在供应商返回的列表中，可能不可用，建议检查。</div>
     </div>
     <div class="b3-label b3-label--inner">
         <div class="config-name">${window.siyuan.languages.customDisplayName}</div>
@@ -640,8 +745,12 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
         const el = dialog.element.querySelector<HTMLInputElement | HTMLSelectElement>("#aiModelName");
         return (el?.value ?? "").trim();
     };
+    // 打开对话框时优先显示该 Provider 最近一次成功拉取的缓存结果，不主动访问网络。
+    if (Array.isArray(provider.cachedModels) && provider.cachedModels.length > 0) {
+        renderFetchedModels(dialog, provider.cachedModels, initialModel.name.trim());
+    }
     btns[0].addEventListener("click", () => dialog.destroy());
-    // 拉取 Provider 可用模型清单，成功后把文本框替换为下拉框供选择
+    // 拉取 Provider 可用模型清单，成功后替换列表并更新 Provider 缓存
     dialog.element.querySelector<HTMLElement>("#aiModelFetchBtn")?.addEventListener("click", () => {
         const fetchBtn = dialog.element.querySelector<HTMLButtonElement>("#aiModelFetchBtn");
         const fetchSvg = fetchBtn.querySelector("svg");
@@ -660,18 +769,13 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
                 showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + data.msg : ""}`, undefined, "error");
                 return;
             }
-            // 用下拉框替换原文本框，保留当前已填值
+            // 用最新结果替换当前列表，保留当前已填值；若当前模型缺失则追加并警告。
             const current = getModelName();
-            const inputEl = dialog.element.querySelector<HTMLElement>("#aiModelName");
-            const selectEl = document.createElement("select");
-            selectEl.className = "b3-select fn__flex-1";
-            selectEl.id = "aiModelName";
-            selectEl.innerHTML = `<option value="">${window.siyuan.languages.selectModel}</option>` +
-                models.map((m) => `<option value="${Lute.EscapeHTMLStr(m)}"${m === current ? " selected" : ""}>${Lute.EscapeHTMLStr(m)}</option>`).join("");
-            if (current && models.includes(current)) {
-                selectEl.value = current;
-            }
-            inputEl.replaceWith(selectEl);
+            renderFetchedModels(dialog, models, current);
+            const nextProviders = window.siyuan.config.ai.providers.map((item) => item.id === providerId
+                ? {...item, cachedModels: models, cachedModelsAt: Date.now()}
+                : item);
+            aiConfigApi.patch("providers", nextProviders);
             showMessage(window.siyuan.languages.fetchAvailableModelsSuccess, undefined, "info");
         });
     });

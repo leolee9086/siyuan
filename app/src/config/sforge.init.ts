@@ -17,7 +17,7 @@ import type { ISForgeInitOptions } from "./sforge.types";
 
 // ============ 初始化状态 ============
 
-let 已初始化 = false;
+const 初始化状态 = {已初始化: false};
 
 // ============ 功能注册 ============
 
@@ -75,7 +75,7 @@ async function 注册通用功能() {
  */
 export async function initSForge(options?: ISForgeInitOptions) {
     // 幂等性守卫：initSForge 可能被多个入口重复调用，此处确保实际初始化逻辑只执行一次
-    if (已初始化) {
+    if (初始化状态.已初始化) {
         console.debug("[S-Forge] 已经初始化过，跳过");
         return;
     }
@@ -97,7 +97,7 @@ export async function initSForge(options?: ISForgeInitOptions) {
         // initSmartToolbox();
         // initAssetManager();
 
-        已初始化 = true;
+        初始化状态.已初始化 = true;
         console.log(`[S-Forge] 初始化完成，耗时 ${Date.now() - startTime}ms`);
 
     } catch (error) {
@@ -108,5 +108,5 @@ export async function initSForge(options?: ISForgeInitOptions) {
 
 /** 查询 S-Forge 是否已完成初始化 */
 export async function isSForgeInitialized() {
-    return 已初始化;
+    return 初始化状态.已初始化;
 }

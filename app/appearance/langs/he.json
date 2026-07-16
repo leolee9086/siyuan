@@ -91,6 +91,7 @@
   "workspace": "מקום עבודה",
   "addAiProvider": "הוסף ספק",
   "addAiModel": "הוסף מודל",
+  "addAllAiModels": "הוסף את כל הדגמים",
   "aiProviderSettings": "הגדרות ספק",
   "customDisplayName": "שם תצוגה מותאם אישית",
   "aiProviderDisplayNameTip": "שם המוצג ברשימת הספקים; השאר ריק לשימוש בכתובת ה-API",

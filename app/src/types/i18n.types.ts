@@ -98,6 +98,7 @@ dragTip2DocAfter: `转换为文档并移动到 \$\{x\} 的下方`
 workspace: `工作空间`
 addAiProvider: `添加提供商`
 addAiModel: `添加模型`
+addAllAiModels: `全部添加模型`
 aiProviderSettings: `提供商设置`
 customDisplayName: `自定义显示名称`
 aiProviderDisplayNameTip: `在提供商列表中展示的名称，留空则使用 API 地址`

@@ -91,6 +91,7 @@
   "workspace": "Espace de travail",
   "addAiProvider": "Ajouter un fournisseur",
   "addAiModel": "Ajouter un modèle",
+  "addAllAiModels": "Ajouter tous les modèles",
   "aiProviderSettings": "Paramètres du fournisseur",
   "customDisplayName": "Nom d'affichage personnalisé",
   "aiProviderDisplayNameTip": "Nom affiché dans la liste des fournisseurs ; laisser vide pour utiliser l'URL de l'API",

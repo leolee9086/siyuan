@@ -187,6 +187,10 @@ declare namespace Config {
         apiKey: string;
         requestTimeout: number;
         models: IModel[];
+        /** Provider /v1/models 最近一次成功拉取的模型列表。 */
+        cachedModels?: string[];
+        /** Provider 模型列表缓存的 Unix 时间戳（毫秒）。 */
+        cachedModelsAt?: number;
     }
 
     /**

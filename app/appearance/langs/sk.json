@@ -91,6 +91,7 @@
   "workspace": "Pracovný priestor",
   "addAiProvider": "Pridať poskytovateľa",
   "addAiModel": "Pridať model",
+  "addAllAiModels": "Pridať všetky modely",
   "aiProviderSettings": "Nastavenia poskytovateľa",
   "customDisplayName": "Vlastný zobrazovaný názov",
   "aiProviderDisplayNameTip": "Názov zobrazený v zozname poskytovateľov; nechajte prázdne pre použitie URL API",

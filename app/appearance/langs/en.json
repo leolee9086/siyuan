@@ -91,6 +91,7 @@
   "workspace": "Workspace",
   "addAiProvider": "Add provider",
   "addAiModel": "Add model",
+  "addAllAiModels": "Add all models",
   "aiProviderSettings": "Provider settings",
   "customDisplayName": "Custom display name",
   "aiProviderDisplayNameTip": "Name shown in the provider list; leave empty to use the API URL",

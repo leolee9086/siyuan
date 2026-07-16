@@ -33,7 +33,10 @@ import {
     renderRetryCardHTML,
     renderTodoList,
     renderToolsLineHTML,
-    renderWelcomeHTML
+    renderWelcomeHTML,
+    renderWebSearchProgress,
+    renderWebSearchResult,
+    type AgentWebSearchProgress
 } from "./AgentMessageRenderer";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
@@ -57,7 +60,7 @@ type SessionEntry =
     | (EntryBase & {
     type: "assistant";
     content?: string;
-    toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result?: string }>;
+    toolCalls?: Array<{ id?: string; name: string; arguments: Record<string, unknown>; result?: string }>;
     timestamp?: number
 })
     | (EntryBase & { type: "confirm"; name: string; args: Record<string, unknown>; confirmID: string; status?: string })
@@ -101,7 +104,7 @@ export class AgentChat extends Model {
     private requestStartTime = 0;
     private tokenDisplayEl: HTMLElement;
     private defaultTitle = "";
-    private currentToolCalls: Array<{ name: string; arguments: Record<string, unknown>; result?: string }> = [];
+    private currentToolCalls: Array<{ id?: string; name: string; arguments: Record<string, unknown>; result?: string }> = [];
     private abortController: AbortController | null = null;
     private currentThinkingText = "";
     private currentThinkingReasoning = "";
@@ -123,6 +126,7 @@ export class AgentChat extends Model {
     private modelSelect: HTMLSelectElement;
     private selectedModel: string;
     private modelOptions: Array<{ id: string; name: string }> = [];
+    private modelOptionsSignature = "";
     // 推理努力度按钮（iconBrain + 当前值），仅实例记忆，刷新后回到默认 medium。
     private reasoningEffortBtn: HTMLElement;
     private reasoningEffortLabel: HTMLElement;
@@ -184,12 +188,12 @@ export class AgentChat extends Model {
         this.checkConfigChanged();
     };
 
-    // 比较 window.siyuan.config.ai 实际可用模型数与缓存 modelOptions，不一致则刷新。
+    // 比较 window.siyuan.config.ai 实际可用模型签名与缓存 modelOptions，不一致则刷新。
     // 仅当处于欢迎页（无会话内容）时重渲染，以便从无模型提示块切回示例或反之；
     // 有会话内容时不重绘（避免破坏对话），refreshModelOptions 内已刷新 trigger 显示。
     private checkConfigChanged() {
-        const actualCount = AgentChat.countUsableModels(window.siyuan.config.ai);
-        if (actualCount === this.modelOptions.length) {
+        const signature = AgentChat.getUsableModelSignature(window.siyuan.config.ai);
+        if (signature === this.modelOptionsSignature) {
             return;
         }
         this.refreshModelOptions();
@@ -198,20 +202,14 @@ export class AgentChat extends Model {
         }
     }
 
-    // 与 refreshModelOptions / 后端 HasAnyProvider() 一致的"可用模型"计数。
-    private static countUsableModels(aiConfig: Config.IAI): number {
-        let count = 0;
-        for (const prov of aiConfig.providers || []) {
+    // 与 refreshModelOptions / 后端 HasAnyProvider() 判定一致的模型身份签名。
+    private static getUsableModelSignature(aiConfig: Config.IAI): string {
+        return (aiConfig.providers || []).flatMap((prov) => {
             if (!prov.enabled || !prov.apiKey) {
-                continue;
+                return [];
             }
-            for (const m of prov.models) {
-                if (m.enabled && (m.displayName || m.name)) {
-                    count++;
-                }
-            }
-        }
-        return count;
+            return prov.models.filter((m) => m.enabled && (m.displayName || m.name)).map((m) => `${prov.id}:${m.id || m.name}:${m.displayName || ""}`);
+        }).join("|");
     }
 
     private initUI() {
@@ -1159,6 +1157,7 @@ export class AgentChat extends Model {
     }
 
     private appendPersistedToolCalls(content: string, toolCalls: Array<{
+        id?: string;
         name: string;
         arguments: Record<string, unknown>;
         result?: string
@@ -1172,6 +1171,16 @@ export class AgentChat extends Model {
                 // todo 卡片是 assistant entry 的附属展示，不单独持有 entryId
                 // （entryId 属于后续的 AI 消息元素），避免多个 todo 共享同一 id。
                 rel.innerHTML = renderTodoList(tc.result);
+                this.messagesContainer.appendChild(rel);
+                hasRendered = true;
+            } else if (tc.result && tc.name === "web_search") {
+                const rel = document.createElement("div");
+                rel.className = "agent-chat__msg agent-chat__msg--tool";
+                if (tc.id) {
+                    rel.setAttribute("data-tool-call-id", tc.id);
+                }
+                const query = typeof tc.arguments?.query === "string" ? tc.arguments.query : "";
+                rel.innerHTML = renderWebSearchResult(query, tc.result);
                 this.messagesContainer.appendChild(rel);
                 hasRendered = true;
             }
@@ -1223,10 +1232,11 @@ export class AgentChat extends Model {
     // 持久化前精简 toolCalls：question 工具的完整 questions 参数已由独立的 question entry 存储，
     // assistant entry 的 toolCalls 里只需保留工具名和结果（供 LLM 上下文恢复），避免重复存储。
     private slimToolCallsForPersistence(toolCalls: Array<{
+        id?: string;
         name: string;
         arguments: Record<string, unknown>;
         result?: string
-    }>): Array<{ name: string; arguments: Record<string, unknown>; result?: string }> {
+    }>): Array<{ id?: string; name: string; arguments: Record<string, unknown>; result?: string }> {
         return toolCalls.map(tc => {
             if (tc.name === "question" && tc.arguments && tc.arguments.questions) {
                 const slim = {...tc};
@@ -1333,7 +1343,7 @@ export class AgentChat extends Model {
                 case "assistant": {
                     const a = entry as {
                         content: string;
-                        toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result?: string }>;
+                        toolCalls?: Array<{ id?: string; name: string; arguments: Record<string, unknown>; result?: string }>;
                         timestamp?: number
                     };
                     if (a.toolCalls && a.toolCalls.length > 0) {
@@ -1386,6 +1396,7 @@ export class AgentChat extends Model {
                             type: "assistant",
                             content: msg.content,
                             toolCalls: msg.toolCalls ? msg.toolCalls.map(tc => ({
+                                id: (tc as {id?: string}).id,
                                 name: tc.name,
                                 arguments: tc.arguments || {},
                                 result: tc.result,
@@ -1735,16 +1746,31 @@ export class AgentChat extends Model {
                     this.appendThinking(event.reasoning);
                     break;
                 case "tool_call":
-                    this.currentToolCalls.push({name: event.name, arguments: event.arguments});
+                    this.currentToolCalls.push({id: event.callID, name: event.name, arguments: event.arguments});
+                    if (event.name === "web_search") {
+                        this.appendWebSearchCall(event.callID, event.arguments);
+                    }
+                    break;
+                case "tool_progress":
+                    if (event.name === "web_search") {
+                        this.updateWebSearchProgress(event.callID, event.progress);
+                    }
                     break;
                 case "confirm":
                     this.appendConfirm(event.name, event.arguments, event.confirmID);
                     break;
                 case "tool_result":
-                    if (this.currentToolCalls.length > 0) {
-                        this.currentToolCalls[this.currentToolCalls.length - 1].result = event.result;
+                    {
+                        const toolCall = this.findCurrentToolCall(event.callID, event.name);
+                        if (toolCall) {
+                            toolCall.result = event.result;
+                        }
                     }
-                    this.appendToolResult(event.name, event.result);
+                    if (event.name === "web_search") {
+                        this.completeWebSearch(event.callID, event.result);
+                    } else {
+                        this.appendToolResult(event.name, event.result);
+                    }
                     break;
                 case "done":
                     this.flushTokenUpdate();
@@ -1971,6 +1997,85 @@ export class AgentChat extends Model {
                 bodyEl.textContent = this.currentContent;
             }
         }
+    }
+
+    private findCurrentToolCall(callID: string, name: string) {
+        if (callID) {
+            const byID = this.currentToolCalls.find(tc => tc.id === callID);
+            if (byID) {
+                return byID;
+            }
+        }
+        for (let i = this.currentToolCalls.length - 1; i >= 0; i--) {
+            if (this.currentToolCalls[i].name === name && !this.currentToolCalls[i].result) {
+                return this.currentToolCalls[i];
+            }
+        }
+        return undefined;
+    }
+
+    private webSearchQuery(callID: string): string {
+        const call = this.findCurrentToolCall(callID, "web_search");
+        return call && typeof call.arguments?.query === "string" ? call.arguments.query : "";
+    }
+
+    private findWebSearchCard(callID: string): HTMLElement | null {
+        if (!callID) {
+            return null;
+        }
+        const cards = this.messagesContainer.querySelectorAll<HTMLElement>("[data-tool-call-id]");
+        for (const card of cards) {
+            if (card.getAttribute("data-tool-call-id") === callID) {
+                return card;
+            }
+        }
+        return null;
+    }
+
+    private appendWebSearchCall(callID: string, args: Record<string, unknown>) {
+        const el = document.createElement("div");
+        el.className = "agent-chat__msg agent-chat__msg--tool";
+        if (callID) {
+            el.setAttribute("data-tool-call-id", callID);
+        }
+        const query = typeof args.query === "string" ? args.query : "";
+        el.innerHTML = renderWebSearchProgress(query, {
+            phase: "start",
+            done: 0,
+            total: 0,
+            partialCount: 0,
+            latestResults: [],
+        });
+        this.insertBeforeAI(el);
+        this.hasInterveningCard = true;
+        this.scrollToBottom(true);
+    }
+
+    private updateWebSearchProgress(callID: string, progress: AgentWebSearchProgress) {
+        const card = this.findWebSearchCard(callID);
+        if (!card) {
+            return;
+        }
+        card.innerHTML = renderWebSearchProgress(this.webSearchQuery(callID), progress);
+        this.scrollToBottom();
+    }
+
+    private completeWebSearch(callID: string, result: string) {
+        const card = this.findWebSearchCard(callID);
+        if (card) {
+            card.innerHTML = renderWebSearchResult(this.webSearchQuery(callID), result);
+            this.scrollToBottom();
+            return;
+        }
+        const fallback = document.createElement("div");
+        fallback.className = "agent-chat__msg agent-chat__msg--tool";
+        if (callID) {
+            fallback.setAttribute("data-tool-call-id", callID);
+        }
+        fallback.innerHTML = renderWebSearchResult(this.webSearchQuery(callID), result);
+        this.insertBeforeAI(fallback);
+        this.hasInterveningCard = true;
+        this.scrollToBottom(true);
     }
 
     private appendToolResult(name: string, result: string) {

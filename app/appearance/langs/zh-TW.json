@@ -91,6 +91,7 @@
   "workspace": "工作空間",
   "addAiProvider": "新增提供商",
   "addAiModel": "新增模型",
+  "addAllAiModels": "新增全部模型",
   "aiProviderSettings": "提供商設定",
   "customDisplayName": "自訂顯示名稱",
   "aiProviderDisplayNameTip": "在提供商清單中顯示的名稱，留空則使用 API 位址",

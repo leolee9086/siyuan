@@ -400,11 +400,19 @@ func writeSSE(c *gin.Context, event agent.AgentEvent) error {
 		return writeSSEEvent(c, "tool_call", map[string]interface{}{
 			"name":      event.Name,
 			"arguments": event.Arguments,
+			"callID":    event.CallID,
+		})
+	case "tool_progress":
+		return writeSSEEvent(c, "tool_progress", map[string]interface{}{
+			"name":     event.Name,
+			"callID":   event.CallID,
+			"progress": event.ToolProgress,
 		})
 	case "tool_result":
 		return writeSSEEvent(c, "tool_result", map[string]string{
 			"name":   event.Name,
 			"result": event.Result,
+			"callID": event.CallID,
 		})
 	case "error":
 		return writeSSEEvent(c, "error", map[string]string{"message": event.Error})

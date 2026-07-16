@@ -91,6 +91,7 @@
   "workspace": "ワークスペース",
   "addAiProvider": "プロバイダーを追加",
   "addAiModel": "モデルを追加",
+  "addAllAiModels": "すべてのモデルを追加",
   "aiProviderSettings": "プロバイダー設定",
   "customDisplayName": "カスタム表示名",
   "aiProviderDisplayNameTip": "プロバイダー一覧に表示する名前。空欄の場合は API URL を使用します",
