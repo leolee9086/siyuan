@@ -27,6 +27,14 @@ import type { SpecialDialogType } from "./imports";
  * 使用范围：仅供 `state/index.ts` 内部使用。
  */
 import type { WindowKeyDownState } from "./imports";
+/**
+ * 用途：引入对话框快捷键纯函数，供状态收集阶段把事件和键位配置转换为路由辨识值。
+ * 使用范围：仅在 collectDialogFacts 内调用，不向其它状态域暴露对话框匹配细节。
+ * 解耦评估：实际匹配器通过参数注入，纯函数可独立测试；保留此导入只承担组合状态，不适合改为事件发射。
+ */
+import { findPressedDialogHotkey } from "./dialogHotkey";
+/** 用途：约束导航快捷键表的成员只能来自导航辨识联合。使用范围：仅供本文件的状态收集扫描使用；这是编译期约束，不能由运行时注入替代。 */
+import type {NavigationPressedHotkey} from "../types";
 
 /**
  * 用途：引入 Constants 常量枚举，用于对话框 data-key 属性值的引用比较。
@@ -111,12 +119,6 @@ import { matchHotKey } from "./imports";
  * 解耦评估：通过 `./imports` 桶转发，不直接耦合对话框切换模块。
  */
 import { switchDialog } from "./imports";
-/**
- * 用途：引入 `NavigationPressedHotkey` 辨识联合类型，用于标注状态收集阶段计算的单值导航快捷键事实。
- * 使用范围：仅用于 `findPressedNavigationHotkey` 的返回值类型推导辅助。
- * 解耦评估：纯类型依赖，不形成运行时耦合；继续经由 types barrel 转发即可。
- */
-import type { NavigationPressedHotkey } from "../types";
 
 /**
  * 用途：将 KeyboardEvent 的 target 解析为 HTMLElement，若不存在则回退到 document.body。
@@ -226,66 +228,36 @@ const findPluginCommand = (app: WindowKeyDownState["app"], event: KeyboardEvent)
     return null;
 };
 
-// 对话框 aux 匹配项：[config key, pressedDialogHotkey 值]
-const DIALOG_AUX_MATCHES = [
-    ["goToEditTabNext", "switchDialogNextAux" as const],
-    ["goToEditTabPrev", "switchDialogPrevAux" as const],
-] as const;
-
-// 对话框直接匹配项：[config key, pressedDialogHotkey 值]
-const DIALOG_DIRECT_MATCHES = [
-    ["goToEditTabNext", "openSwitchDialog" as const],
-    ["goToEditTabPrev", "openSwitchDialog" as const],
-    ["recentDocs", "openRecentDocs" as const],
-] as const;
-
-/**
- * 用途：按优先级检测当前事件命中的对话框快捷键（至多一个），以 early-return 线性扫描实现。
- * 优先级顺序：aux 匹配 > 直接匹配 > specialDialog 导航键
- * 使用范围：仅供 `collectDialogFacts` 调用。
- * 问题/改进：若未来增加新对话框快捷键，应在上方 DIALOG_AUX_MATCHES/DIALOG_DIRECT_MATCHES 中按优先级插入新的匹配项。
- */
-const findPressedDialogHotkey = (
-    generalKeymap: WindowKeyDownState["generalKeymap"],
-    event: KeyboardEvent,
-) => {
-    for (const [key, value] of DIALOG_AUX_MATCHES) {
-        const hotkeyConfig = generalKeymap?.[key];
-        if (hotkeyConfig?.custom && matchAuxiliaryHotKey(hotkeyConfig.custom, event)) {
-            return value;
-        }
-    }
-    for (const [key, value] of DIALOG_DIRECT_MATCHES) {
-        const hotkeyConfig = generalKeymap?.[key];
-        if (hotkeyConfig?.custom && matchHotKey(hotkeyConfig.custom, event)) {
-            return value;
-        }
-    }
-    if (isSpecialDialogNavigationKey(event.key)) {
-        return "specialDialogNavigation";
-    }
-    return null;
-};
-
 /**
  * 用途：收集对话框域的显式事实集合。
  * 意图：主路由字段 `pressedDialogHotkey` 由 `findPressedDialogHotkey` 计算，
  * 其余字段（hasSwitchDialog/isArrowKey 等）保持独立供路由阶段组合判断。
  * 使用范围：仅供 `collectWindowKeyDownState` 调用。
  */
-const collectDialogFacts = (
-    generalKeymap: WindowKeyDownState["generalKeymap"],
-    event: KeyboardEvent,
-    currentSwitchDialog: WindowKeyDownState["switchDialog"],
-    recentDocsDialog: WindowKeyDownState["recentDocsDialog"],
-    specialDialog: WindowKeyDownState["specialDialog"],
-) => {
+const collectDialogFacts = ({
+    generalKeymap,
+    event,
+    currentSwitchDialog,
+    recentDocsDialog,
+    specialDialog,
+}: {
+    generalKeymap: WindowKeyDownState["generalKeymap"];
+    event: KeyboardEvent;
+    currentSwitchDialog: WindowKeyDownState["switchDialog"];
+    recentDocsDialog: WindowKeyDownState["recentDocsDialog"];
+    specialDialog: WindowKeyDownState["specialDialog"];
+}) => {
     const isArrowKey = event.key.startsWith("Arrow");
     return {
         hasSwitchDialog: !!currentSwitchDialog,
         switchDialogMounted: !!currentSwitchDialog?.element.parentElement,
         isArrowKey,
-        pressedDialogHotkey: findPressedDialogHotkey(generalKeymap, event),
+        pressedDialogHotkey: findPressedDialogHotkey({
+            generalKeymap,
+            event,
+            matchAuxiliaryHotKey,
+            matchHotKey,
+        }),
         isArrowOrEnterWithoutModifiers: isNotCtrl(event) && !event.shiftKey && !event.altKey && (isArrowKey || event.key === "Enter"),
         hasRecentDocsDialog: !!recentDocsDialog,
         hasSpecialDialog: !!specialDialog,
@@ -320,12 +292,17 @@ const collectUIFacts = (event: KeyboardEvent, target: HTMLElement) => {
  * 以及缩放/同步/命令面板/锁定等系统级快捷键匹配结果。
  * 使用范围：仅供 `collectWindowKeyDownState` 调用。
  */
-const collectSystemFacts = (
-    state: Pick<WindowKeyDownState, "event" | "target">,
-    generalKeymap: WindowKeyDownState["generalKeymap"],
-    confirmDialogElement: HTMLElement | null,
-    isReadonlyConfig: boolean,
-) => {
+const collectSystemFacts = ({
+    state,
+    generalKeymap,
+    confirmDialogElement,
+    isReadonlyConfig,
+}: {
+    state: Pick<WindowKeyDownState, "event" | "target">;
+    generalKeymap: WindowKeyDownState["generalKeymap"];
+    confirmDialogElement: HTMLElement | null;
+    isReadonlyConfig: boolean;
+}) => {
     const targetIsTextInput = ["INPUT", "TEXTAREA"].includes(state.target.tagName);
     const targetInPdf = !!hasClosestByClassName(state.target, "pdf__outer");
     const isEnterKey = state.event.key === "Enter";
@@ -364,42 +341,24 @@ const collectSystemFacts = (
  * 避免在状态收集阶段预计算所有布尔值、将路由降格为布尔查表。
  * 使用范围：仅供 `collectNavigationFacts` 调用。
  */
-/** @note: 所有元素必须是 NavigationPressedHotkey 的字面值且为 WindowGeneralKeymap 的键。 */
-const NAVIGATION_REPEAT_HOTKEYS = [
-    "mainMenu",
-    "goForward",
-    "goBack",
-    "recentClosed",
-    "stickSearch",
-] as const satisfies readonly NavigationPressedHotkey[];
+/** @note: 所有元素必须是 WindowGeneralKeymap 的键，并与导航路由命令保持一一对应。 */
+const getNavigationRepeatHotkeys = () => {
+    const hotkeys: Array<Exclude<NavigationPressedHotkey, null>> = [];
+    hotkeys.push("mainMenu", "goForward", "goBack", "recentClosed", "stickSearch");
+    return hotkeys;
+};
 
-/** @note: 所有元素必须是 NavigationPressedHotkey 的字面值且为 WindowGeneralKeymap 的键。 */
-const NAVIGATION_SINGLE_SHOT_HOTKEYS = [
-    "closeTab",
-    "closeOthers",
-    "closeAll",
-    "closeUnmodified",
-    "closeLeft",
-    "closeRight",
-    "goToTab1",
-    "goToTab2",
-    "goToTab3",
-    "goToTab4",
-    "goToTab5",
-    "goToTab6",
-    "goToTab7",
-    "goToTab8",
-    "goToTab9",
-    "goToTabNext",
-    "goToTabPrev",
-    "splitLR",
-    "splitMoveR",
-    "splitTB",
-    "tabToWindow",
-    "splitMoveB",
-    "unsplit",
-    "unsplitAll",
-] as const satisfies readonly NavigationPressedHotkey[];
+/** @note: 所有元素必须是 WindowGeneralKeymap 的键，并与导航路由命令保持一一对应。 */
+const getNavigationSingleShotHotkeys = () => {
+    const hotkeys: Array<Exclude<NavigationPressedHotkey, null>> = [];
+    hotkeys.push(
+        "closeTab", "closeOthers", "closeAll", "closeUnmodified", "closeLeft", "closeRight",
+        "goToTab1", "goToTab2", "goToTab3", "goToTab4", "goToTab5", "goToTab6",
+        "goToTab7", "goToTab8", "goToTab9", "goToTabNext", "goToTabPrev", "splitLR",
+        "splitMoveR", "splitTB", "tabToWindow", "splitMoveB", "unsplit", "unsplitAll",
+    );
+    return hotkeys;
+};
 
 /**
  * 用途：检测当前事件命中了哪个导航快捷键（至多一个），以 early-return 线性扫描实现。
@@ -411,13 +370,13 @@ const findPressedNavigationHotkey = (
     generalKeymap: WindowKeyDownState["generalKeymap"],
     event: KeyboardEvent,
 ) => {
-    for (const key of NAVIGATION_REPEAT_HOTKEYS) {
+    for (const key of getNavigationRepeatHotkeys()) {
         const hotkeyConfig = generalKeymap?.[key];
         if (matchesConfiguredHotkey(hotkeyConfig?.custom, event)) {
             return key;
         }
     }
-    for (const key of NAVIGATION_SINGLE_SHOT_HOTKEYS) {
+    for (const key of getNavigationSingleShotHotkeys()) {
         const hotkeyConfig = generalKeymap?.[key];
         if (matchesConfiguredSingleShotHotkey(hotkeyConfig?.custom, event)) {
             return key;
@@ -443,8 +402,8 @@ const collectNavigationFacts = (
     saveHotkey: matchHotKey("⌘S", state.event),
 } satisfies WindowKeyDownState["navigation"]);
 
-/** @同步豁免: 需要绝对同步的 DOM 访问与事件现场读取。 */
-export const collectWindowKeyDownState = async (app: WindowKeyDownState["app"], event: KeyboardEvent) => {
+/** @同步豁免: 需要绝对同步的DOM访问 */
+export const collectWindowKeyDownState = (app: WindowKeyDownState["app"], event: KeyboardEvent) => {
     const config = getSafeSiyuanConfig();
     const generalKeymap = config?.keymap?.general;
     const target = resolveEventTarget(event);
@@ -469,9 +428,20 @@ export const collectWindowKeyDownState = async (app: WindowKeyDownState["app"], 
 
     return {
         ...baseState,
-        dialog: collectDialogFacts(generalKeymap, event, switchDialog, recentDocsDialog, specialDialog),
+        dialog: collectDialogFacts({
+            generalKeymap,
+            event,
+            currentSwitchDialog: switchDialog,
+            recentDocsDialog,
+            specialDialog,
+        }),
         ui: collectUIFacts(event, target),
-        system: collectSystemFacts(baseState, generalKeymap, confirmDialogElement ?? null, !!config?.readonly),
+        system: collectSystemFacts({
+            state: baseState,
+            generalKeymap,
+            confirmDialogElement: confirmDialogElement ?? null,
+            isReadonlyConfig: !!config?.readonly,
+        }),
         navigation: collectNavigationFacts(baseState, generalKeymap),
     } satisfies WindowKeyDownState;
 };
