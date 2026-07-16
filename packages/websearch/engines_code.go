@@ -756,53 +756,56 @@ func newPythonDocs(config EngineConfig) SearchEngine {
 	})(config)
 }
 func newPkgGoDev(config EngineConfig) SearchEngine {
-	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "pkg-go-dev", Category: "code", UserAgent: "opencode-search/1.0",
-		URL: func(q string, n int) string {
-			return "https://pkg.go.dev/search?q=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(minInt(n, 20))
+	return newHTMLScraperEngine(htmlScraperConfig{
+		Name: "pkg-go-dev", BuildURL: func(q string, opts SearchOptions) string {
+			return "https://pkg.go.dev/search?q=" + url.QueryEscape(q) + "&m=package"
 		},
-		Parse: func(data []byte, max int) ([]SearchResult, error) {
-			var resp struct {
-				Results []struct {
-					Name, Path, Synopsis string
-					Version              string
-				} `json:"results"`
-			}
-			if err := json.Unmarshal(data, &resp); err != nil {
-				return nil, nil
-			}
+		Parse: func(body string, max int) ([]SearchResult, error) {
 			var results []SearchResult
-			for i, r := range resp.Results {
-				if i >= max || r.Name == "" {
+			pos := 0
+			re := regexp.MustCompile(`<div[^>]*class="[^"]*SearchSnippet[^"]*"[^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h2>[\s\S]*?<p[^>]*class="[^"]*SearchSnippet-synopsis[^"]*"[^>]*>([\s\S]*?)<\/p>`)
+			for _, match := range re.FindAllStringSubmatch(body, -1) {
+				if len(results) >= max || len(match) < 4 {
 					break
 				}
-				results = append(results, SearchResult{Title: r.Path, URL: "https://pkg.go.dev/" + r.Path, Snippet: r.Synopsis, Engine: "pkg-go-dev", Position: i + 1, Category: "code"})
+				href := strings.TrimSpace(match[1])
+				title := StripHTML(match[2])
+				if href == "" || title == "" {
+					continue
+				}
+				if !strings.HasPrefix(href, "http") {
+					href = "https://pkg.go.dev" + href
+				}
+				pos++
+				results = append(results, SearchResult{Title: title, URL: href, Snippet: StripHTML(match[3]), Engine: "pkg-go-dev", Position: pos, Category: "code"})
 			}
 			return results, nil
 		},
 	})(config)
 }
 func newMicrosoftLearn(config EngineConfig) SearchEngine {
-	return newHTMLScraperEngine(htmlScraperConfig{
-		Name: "microsoft-learn",
-		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://learn.microsoft.com/en-us/search/?terms=" + url.QueryEscape(q)
+	return newJSONAPIEngine(jsonAPIConfig{
+		Name: "microsoft-learn", Category: "code", UserAgent: "opencode-search/1.0",
+		URL: func(q string, n int) string {
+			return "https://learn.microsoft.com/api/search?search=" + url.QueryEscape(q) + "&locale=en-us&$top=" + strconv.Itoa(minInt(n, 10)) + "&$skip=0&partnerId=LearnSite"
 		},
-		Parse: func(body string, max int) ([]SearchResult, error) {
+		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			var resp struct {
+				Results []struct {
+					URL, Title, Description string
+				} `json:"results"`
+			}
+			if err := json.Unmarshal(data, &resp); err != nil {
+				return nil, err
+			}
 			var results []SearchResult
 			pos := 0
-			re := regexp.MustCompile(`<a[^>]*href="(/en-us/[^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/span>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
-				if len(results) >= max {
+			for _, item := range resp.Results {
+				if len(results) >= max || item.URL == "" || item.Title == "" {
 					break
 				}
-				title := StripHTML(m[2])
-				href := m[1]
-				if title == "" || href == "" {
-					continue
-				}
 				pos++
-				results = append(results, SearchResult{Title: title, URL: "https://learn.microsoft.com" + href, Snippet: "Microsoft Learn", Engine: "microsoft-learn", Position: pos, Category: "code"})
+				results = append(results, SearchResult{Title: item.Title, URL: item.URL, Snippet: item.Description, Engine: "microsoft-learn", Position: pos, Category: "code"})
 			}
 			return results, nil
 		},

@@ -987,12 +987,20 @@ func newRadioBrowser(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "radio-browser", Category: "music", UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
-			return "https://at1.api.radio-browser.info/json/stations/byname/" + url.QueryEscape(q)
+			return "https://de1.api.radio-browser.info/json/stations?search=" + url.QueryEscape(q) + "&order=clickcount&reverse=true&limit=" + strconv.Itoa(minInt(n, 30))
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp []struct {
-				ID, Name, URL, URLResolved, Homepage, Country, Tags, Codec, Language string `json:"url_resolved"`
-				Votes                                                                int
+				ID          string `json:"stationuuid"`
+				Name        string `json:"name"`
+				URL         string `json:"url"`
+				URLResolved string `json:"url_resolved"`
+				Homepage    string `json:"homepage"`
+				Country     string `json:"country"`
+				Tags        string `json:"tags"`
+				Codec       string `json:"codec"`
+				Language    string `json:"language"`
+				Votes       int    `json:"votes"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
 				return nil, nil

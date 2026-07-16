@@ -100,6 +100,8 @@ func init() {
 	register("openfoodfacts", newOpenFoodFacts)
 	register("musicbrainz", newMusicBrainz)
 	register("mediawiki", newMediaWiki)
+	register("britannica-wiki", newBritannicaWiki)
+	register("wikivoyage", newWikiVoyage)
 	register("senscritique", newSensCritique)
 	register("context7", newContext7)
 }
@@ -1676,8 +1678,11 @@ func newArtic(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Data []struct {
-					ID                                             int
-					Title, ArtistTitle, DateDisplay, MediumDisplay string `json:"artist_title"`
+					ID            int    `json:"id"`
+					Title         string `json:"title"`
+					ArtistTitle   string `json:"artist_title"`
+					DateDisplay   string `json:"date_display"`
+					MediumDisplay string `json:"medium_display"`
 				} `json:"data"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -2062,12 +2067,16 @@ func newOpenFoodFacts(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "openfoodfacts", Category: "general", UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
-			return "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20)) + "&json=true"
+			return "https://world.openfoodfacts.org/api/v2/search?search_terms=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20)) + "&json=1"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Products []struct {
-					ID, ProductName, Brands, Quantity, NutrimentGrade string `json:"product_name"`
+					ID             string `json:"code"`
+					ProductName    string `json:"product_name"`
+					Brands         string `json:"brands"`
+					Quantity       string `json:"quantity"`
+					NutrimentGrade string `json:"nutriscore_grade"`
 				} `json:"products"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -2126,9 +2135,24 @@ func newMusicBrainz(config EngineConfig) SearchEngine {
 	})(config)
 }
 func newMediaWiki(config EngineConfig) SearchEngine {
-	wikiHost := "en.wikipedia.org"
+	return newMediaWikiFor(config, "en.wikipedia.org")
+}
+
+func newBritannicaWiki(config EngineConfig) SearchEngine {
+	return newMediaWikiFor(config, "en.wiktionary.org")
+}
+
+func newWikiVoyage(config EngineConfig) SearchEngine {
+	return newMediaWikiFor(config, "en.wikivoyage.org")
+}
+
+func newMediaWikiFor(config EngineConfig, wikiHost string) SearchEngine {
+	engineName := config.Name
+	if engineName == "" {
+		engineName = "mediawiki"
+	}
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "mediawiki", Category: "general",
+		Name: engineName, Category: "general",
 		UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
 			return "https://" + wikiHost + "/w/api.php?action=query&list=search&srsearch=" + url.QueryEscape(q) + "&srlimit=" + strconv.Itoa(minInt(n, 50)) + "&format=json&origin=*"
@@ -2160,7 +2184,7 @@ func newMediaWiki(config EngineConfig) SearchEngine {
 				}
 				results = append(results, SearchResult{
 					Title: r.Title, URL: "https://" + wikiHost + "/wiki/" + encodedTitle,
-					Snippet: StripHTML(r.Snippet), Engine: "mediawiki",
+					Snippet: StripHTML(r.Snippet), Engine: engineName,
 					Position: i + 1, PublishedDate: publishedDate,
 				})
 			}

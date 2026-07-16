@@ -26,6 +26,7 @@ func init() {
 	register("pdbe", newPdbe)
 	register("scanr", newScanr)
 	register("openaire-publications", newOpenAirePublications)
+	register("openaire", newOpenAirePublications)
 	register("annas-archive", newAnnasArchive)
 	register("moviepilot", newMoviepilot)
 	register("wikidata", newWikidata)
@@ -603,6 +604,10 @@ func newScanr(config EngineConfig) SearchEngine {
 	})(config)
 }
 func newOpenAirePublications(config EngineConfig) SearchEngine {
+	engineName := config.Name
+	if engineName == "" {
+		engineName = "openaire-publications"
+	}
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "openaire-publications", Category: "academic",
 		UserAgent: "opencode-search/1.0",
@@ -690,7 +695,7 @@ func newOpenAirePublications(config EngineConfig) SearchEngine {
 				}
 				results = append(results, SearchResult{
 					Title: title, URL: url, Snippet: snippet,
-					Engine: "openaire-publications", Position: i + 1, Category: "academic",
+					Engine: engineName, Position: i + 1, Category: "academic",
 				})
 			}
 			return results, nil
