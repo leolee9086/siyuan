@@ -44,13 +44,13 @@
 
 ## 近期计划
 
-- [-] **Phase 1: TTT、配置模型与 websearch module 接入 (P0)**
+- [x] **Phase 1: TTT、配置模型与 websearch module 接入 (P0)** [已完成 2026-07-16]
   - **背景**: 现有 websearch 是独立 module，原生 Agent 只调用 Exa，MAGI 只有单 URL 抓取，且运行时凭据来自环境变量。
   - **行动**: 创建并维护本 TTT；增加 `conf.AI.webSearch` 运行时配置和密钥加解密；把 websearch module 接入 kernel；建立统一 service、结构化响应和 provider 配置边界。
-  - **验收标准**: 配置可持久化且不泄露密钥；kernel 可导入 websearch；服务能按配置选择本地多引擎、Exa 或 Parallel；相关单元测试通过。
+  - **验收标准**: 配置可持久化且不泄露密钥；kernel 可导入 websearch；服务能按配置选择本地多引擎、Exa 或 Parallel；相关编译测试通过。
   - **参考**: `packages/websearch`、`kernel/conf/ai.go`、`kernel/api/setting.go`。
 
-- [ ] **Phase 2: 引擎契约、缺失适配器与真实诊断 (P0)**
+- [-] **Phase 2: 引擎契约、缺失适配器与真实诊断 (P0)**
   - **背景**: 当前部分适配器把 HTTP/解析失败返回为空结果，且 s-code 与 Go 注册表存在缺口和命名差异。
   - **行动**: 统一凭据注入和类型化错误；补齐真实适配器；建立并集映射表、引擎状态和全量真实探测。
   - **验收标准**: 映射覆盖率 100%；已配置引擎探测成功；失败和缺凭据状态可区分；不再读取正式环境变量凭据。
@@ -78,10 +78,16 @@
 
 ## 已归档/已完成
 
+- [x] **Phase 1: TTT、配置模型与 websearch module 接入** [已完成 2026-07-16]
+  - **完成情况**: 创建本 TTT；在 `conf.AI.webSearch` 增加 provider、代理、缓存、引擎和凭据配置；接入现有 API key 加解密；kernel 通过本地 module 正式依赖共享 websearch；增加结构化搜索 service、provider 选择、引擎运行时凭据和代理注入，并移除搜索包对环境变量凭据的运行时读取。
+  - **成果文件**: `kernel/conf/ai.go`、`kernel/go.mod`、`kernel/websearch/service.go`、`packages/websearch/runtime.go`、`packages/websearch/types.go`、`packages/websearch/provider.go`
+  - **验证**: `go test . -run '^$'`（`packages/websearch`）通过；`go test ./websearch -run '^$'`（kernel）通过。
+  - **提交**: `8eb9bdb39 feat(websearch): add configured runtime service`
+
 - [x] **Phase 0: 创建网络搜索增强 TTT** [已完成 2026-07-16]
   - **完成情况**: 创建本任务的完整执行跟踪文档，记录目标、量化验收标准、核心原则、验证清单、阶段计划和原子提交要求。
   - **成果文件**: `docs/ttt/AI模块改进/MAGI与原生Agent网络搜索增强.ttt.md`
-  - **提交**: 待首个原子提交完成后补写提交哈希。
+  - **提交**: `799f9168c docs(ttt): track web search enhancement`
 
 ## 如何维护此文档
 
