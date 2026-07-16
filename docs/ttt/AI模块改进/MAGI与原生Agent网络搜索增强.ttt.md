@@ -50,12 +50,7 @@
   - **验收标准**: 配置可持久化且不泄露密钥；kernel 可导入 websearch；服务能按配置选择本地多引擎、Exa 或 Parallel；相关编译测试通过。
   - **参考**: `packages/websearch`、`kernel/conf/ai.go`、`kernel/api/setting.go`。
 
-- [-] **Phase 2: 引擎契约、缺失适配器与真实诊断 (P0)**
-  - **背景**: 当前部分适配器把 HTTP/解析失败返回为空结果，且 s-code 与 Go 注册表存在缺口和命名差异。
-  - **行动**: 统一凭据注入和类型化错误；补齐真实适配器；建立并集映射表、引擎状态和全量真实探测。
-  - **验收标准**: 映射覆盖率 100%；已配置引擎探测成功；失败和缺凭据状态可区分；不再读取正式环境变量凭据。
-
-- [ ] **Phase 3: 原生 Agent 搜索、抓取和诊断工具 (P0)**
+- [-] **Phase 3: 原生 Agent 搜索、抓取和诊断工具 (P0)**
   - **背景**: 原生 Agent 的 `web_search` 只支持单一 Exa 查询，`web_fetch` 能力弱于 s-code。
   - **行动**: 扩展工具 schema 和执行器；接入统一 service；增强 fetch；增加 `web_search_status`。
   - **验收标准**: native 工具覆盖 s-code 的搜索控制项和抓取格式；读取不触发确认；错误和引擎状态结构化返回。
@@ -77,6 +72,13 @@
   - **行动**: 完善配置字段文档、诊断使用说明、引擎新增准入规则和持续网络回归流程。
 
 ## 已归档/已完成
+
+- [x] **Phase 2: 引擎契约、缺失适配器与真实诊断** [已完成 2026-07-16]
+  - **完成情况**: 补齐 `lib-rs`、`niconico`、`nvd`、`repology` 四个真实适配器；JSON/HTML 通用框架、执行器和 MCP 响应对 HTTP 错误、空响应、解析失败、`nil` 结果和非法 MCP 内容返回明确协议错误；引擎元数据进入运行时诊断，缺失凭据标记为 `requires_credentials`，显式未知引擎标记为 `not_registered`；集成报告改用测试临时目录。
+  - **映射证据**: `s-code` 搜索适配器文件 186 个；Go 注册表 207 个唯一引擎；`google-traits`、`json-api`、`open-api`、`site-scoped`、`site-search` 保持通用辅助实现，不冒充独立注册引擎。
+  - **成果文件**: `packages/websearch/engines_missing.go`、`packages/websearch/engines_framework.go`、`packages/websearch/executor.go`、`packages/websearch/runtime.go`、`packages/websearch/mcp.go`、`packages/websearch/engines_test.go`、`packages/websearch/runtime_contract_test.go`
+  - **验证**: `go test . -run '^$'`（`packages/websearch`）通过；定向契约测试通过；无正式 API key 的诊断返回 `requires_credentials`，未知显式引擎返回 `not_registered`。
+  - **提交**: `aefd65210 feat(websearch): enforce engine runtime contracts`
 
 - [x] **Phase 1: TTT、配置模型与 websearch module 接入** [已完成 2026-07-16]
   - **完成情况**: 创建本 TTT；在 `conf.AI.webSearch` 增加 provider、代理、缓存、引擎和凭据配置；接入现有 API key 加解密；kernel 通过本地 module 正式依赖共享 websearch；增加结构化搜索 service、provider 选择、引擎运行时凭据和代理注入，并移除搜索包对环境变量凭据的运行时读取。
