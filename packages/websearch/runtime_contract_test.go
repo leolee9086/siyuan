@@ -27,7 +27,7 @@ func TestServiceDiagnoseMarksProtectedEnginesAsCredentialBound(t *testing.T) {
 		Engines:        map[string]EngineRuntimeConfig{},
 	})
 	names := []string{
-		"ads", "brave", "context7", "flickr", "fred", "freesound", "github",
+		"ads", "brave", "context7", "flickr", "fred", "freesound",
 		"github-code", "github-issues", "github-repo-files", "gitlab", "igdb",
 		"openweather", "pexels", "pixabay", "rawg", "soundcloud", "spotify",
 		"theguardian", "unsplash",

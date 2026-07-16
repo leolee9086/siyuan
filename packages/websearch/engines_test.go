@@ -122,6 +122,50 @@ func TestAllEnginesIntegration(t *testing.T) {
 		len(allResults), passCount, zeroCount, failCount, float64(passCount)/float64(len(allResults))*100, resultsDir)
 }
 
+// TestSCodeWorkingEnginesIntegration verifies the explicit working-engine
+// baseline documented by s-code through the same real HTTP path used by the
+// shared Go service. It is opt-in because it performs external requests.
+func TestSCodeWorkingEnginesIntegration(t *testing.T) {
+	if os.Getenv("WEBSEARCH_RUN_REAL_NETWORK") != "1" {
+		t.Skip("set WEBSEARCH_RUN_REAL_NETWORK=1 to run the s-code baseline")
+	}
+	proxyURL := os.Getenv("WEBSEARCH_TEST_PROXY")
+	if proxyURL == "" {
+		proxyURL = "http://127.0.0.1:7890"
+	}
+	baseline := []struct {
+		name  string
+		query string
+	}{
+		{name: "github", query: "React 19 new features"},
+		{name: "crates", query: "fast JSON parser Rust"},
+		{name: "imdb", query: "Inception movie"},
+		{name: "bilibili", query: "React 19 new features"},
+		{name: "stackexchange", query: "Python requests library"},
+		{name: "hackernews", query: "latest technology"},
+	}
+	for _, item := range baseline {
+		t.Run(item.name, func(t *testing.T) {
+			factory, ok := GlobalEngineRegistry.Get(item.name)
+			if !ok {
+				t.Fatalf("engine is not registered")
+			}
+			engine := factory(EngineConfig{
+				Name: item.name, Timeout: 30000, MaxResults: 5,
+				Proxy: NewExplicitProxy(proxyURL, proxyURL),
+			})
+			if engine.Config().RequiresKey {
+				t.Fatalf("s-code baseline engine unexpectedly requires credentials")
+			}
+			result := runIntegrationEngine(engine, item.query)
+			if !result.Success {
+				t.Fatalf("real baseline probe failed after %dms: %s", result.DurationMs, result.Error)
+			}
+			t.Logf("%d results in %dms", result.ResultsCount, result.DurationMs)
+		})
+	}
+}
+
 func runIntegrationEngine(engine SearchEngine, query string) testResult {
 	result := testResult{Engine: engine.Name()}
 	started := time.Now()

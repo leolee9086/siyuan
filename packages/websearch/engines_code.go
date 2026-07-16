@@ -51,8 +51,10 @@ func init() {
 func newGitHub(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "github", Category: "code",
-		UserAgent:   "opencode-search/1.0",
-		RequiresKey: true,
+		UserAgent: "opencode-search/1.0",
+		// GitHub's repository search API is publicly callable. A token is
+		// optional and only increases the rate limit, matching s-code.
+		RequiresKey: false,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/repositories?q=" + url.QueryEscape(q) + "&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=stars&order=desc"
 		},

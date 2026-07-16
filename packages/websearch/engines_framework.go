@@ -442,12 +442,17 @@ func rxReplaceAllString(s, pattern, repl string) string {
 
 func parseGoogleScholarResults(body string, maxResults int) ([]SearchResult, error) {
 	var results []SearchResult
-	blockRegex := regexp.MustCompile(`<div[^>]*class="gs_ri"[^>]*>[\s\S]*?(?=<div[^>]*class="gs_ri"|$)`)
-	blocks := blockRegex.FindAllString(body, -1)
-	for _, block := range blocks {
+	blockStartRegex := regexp.MustCompile(`<div[^>]*class="gs_ri"[^>]*>`)
+	starts := blockStartRegex.FindAllStringIndex(body, -1)
+	for i, match := range starts {
 		if len(results) >= maxResults {
 			break
 		}
+		blockEnd := len(body)
+		if i+1 < len(starts) {
+			blockEnd = starts[i+1][0]
+		}
+		block := body[match[0]:blockEnd]
 		titleMatch := regexp.MustCompile(`<h3[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>`).FindStringSubmatch(block)
 		if titleMatch == nil {
 			continue

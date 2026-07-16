@@ -118,6 +118,18 @@ func TestEngineHTTPClientAppliesConfiguredBaseURLAndHeaders(t *testing.T) {
 	}
 }
 
+func TestGoogleScholarParserSplitsBlocksWithoutUnsupportedRegexpFeatures(t *testing.T) {
+	body := `<div class="gs_ri"><h3><a href="https://example.com/one">First paper</a></h3><div class="gs_a">A Author - 2024</div><div class="gs_rs">First abstract</div></div>` +
+		`<div class="gs_ri"><h3><a href="https://example.com/two">Second paper</a></h3><div class="gs_a">B Author - 2023</div><div class="gs_rs">Second abstract</div></div>`
+	results, err := parseGoogleScholarResults(body, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 || results[0].Title != "First paper" || results[1].Title != "Second paper" {
+		t.Fatalf("unexpected Google Scholar results: %#v", results)
+	}
+}
+
 func TestCodeEngineParsersMatchReferenceContracts(t *testing.T) {
 	tests := []struct {
 		name    string
