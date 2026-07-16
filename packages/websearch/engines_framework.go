@@ -32,6 +32,10 @@ type jsonAPIConfig struct {
 
 func newJSONAPIEngine(cfg jsonAPIConfig) EngineFactory {
 	return func(config EngineConfig) SearchEngine {
+		if config.Category == "" {
+			config.Category = cfg.Category
+		}
+		config.RequiresKey = cfg.RequiresKey
 		return &jsonAPIEngine{cfg: cfg, config: config}
 	}
 }
@@ -91,11 +95,14 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
 	}
 	if strings.TrimSpace(body) == "" {
-		return nil, fmt.Errorf("%s returned an empty response", e.config.Name)
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "returned an empty response"}
 	}
 	results, err := e.cfg.Parse([]byte(body), opts.NumResults)
 	if err != nil {
-		return nil, fmt.Errorf("%s response parsing failed: %w", e.config.Name, err)
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
+	}
+	if results == nil {
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parser returned nil results"}
 	}
 	return results, nil
 }
@@ -146,7 +153,17 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 	if status < 200 || status >= 400 {
 		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
 	}
-	return e.cfg.Parse(body, opts.NumResults)
+	if strings.TrimSpace(body) == "" {
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "returned an empty response"}
+	}
+	results, err := e.cfg.Parse(body, opts.NumResults)
+	if err != nil {
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
+	}
+	if results == nil {
+		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parser returned nil results"}
+	}
+	return results, nil
 }
 
 // ── DuckDuckGo Site 引擎 ──────────────────────────────

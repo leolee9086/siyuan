@@ -13,23 +13,23 @@ import (
 
 // testResult 记录单个引擎的测试结果
 type testResult struct {
-	Engine       string         `json:"engine"`
-	Success      bool           `json:"success"`
-	ResultsCount int            `json:"resultsCount"`
-	StatusCode   int            `json:"statusCode,omitempty"`
-	Error        string         `json:"error,omitempty"`
-	Results      []SearchResult `json:"results,omitempty"`
-	DurationMs   int64          `json:"durationMs"`
+	Engine              string         `json:"engine"`
+	Success             bool           `json:"success"`
+	RequiresCredentials bool           `json:"requiresCredentials,omitempty"`
+	ResultsCount        int            `json:"resultsCount"`
+	StatusCode          int            `json:"statusCode,omitempty"`
+	Error               string         `json:"error,omitempty"`
+	Results             []SearchResult `json:"results,omitempty"`
+	DurationMs          int64          `json:"durationMs"`
 }
 
 // TestAllEnginesIntegration 对所有已注册引擎进行实际网络调用测试
-// 结果保存到 test_results/ 目录供人工审查
+// 结果保存到测试临时目录供人工审查，避免污染版本控制目录。
 func TestAllEnginesIntegration(t *testing.T) {
 	engines := GlobalEngineRegistry.List()
 	t.Logf("Total registered engines: %d", len(engines))
 
-	resultsDir := filepath.Join(".", "test_results")
-	os.MkdirAll(resultsDir, 0755)
+	resultsDir := t.TempDir()
 
 	sumPath := filepath.Join(resultsDir, "SUMMARY.md")
 	summaryFile, err := os.Create(sumPath)
@@ -44,7 +44,7 @@ func TestAllEnginesIntegration(t *testing.T) {
 	fmt.Fprintf(summaryFile, "|---|--------|--------|---------|----------|-------------|\n")
 
 	var allResults []testResult
-	passCount, failCount, zeroCount := 0, 0, 0
+	passCount, failCount, zeroCount, credentialCount := 0, 0, 0, 0
 
 	for i, name := range engines {
 		factory, ok := GlobalEngineRegistry.Get(name)
@@ -55,6 +55,15 @@ func TestAllEnginesIntegration(t *testing.T) {
 		engine := factory(EngineConfig{
 			Name: name, Weight: 1.0, Timeout: 15000, MaxResults: 5,
 		})
+		if engine.Config().RequiresKey && strings.TrimSpace(engine.Config().APIKey) == "" {
+			allResults = append(allResults, testResult{
+				Engine: name, RequiresCredentials: true, Error: "requires_credentials",
+			})
+			credentialCount++
+			fmt.Fprintf(summaryFile, "| %d | %s | 🔐 | - | - | requires_credentials |\n", i+1, name)
+			t.Logf("[%3d/%d] 🔐 %-30s requires_credentials", i+1, len(engines), name)
+			continue
+		}
 
 		start := time.Now()
 		results, err := engine.Search("test search", SearchOptions{NumResults: 3}, nil)
@@ -124,6 +133,7 @@ func TestAllEnginesIntegration(t *testing.T) {
 	fmt.Fprintf(summaryFile, "- ✅ Passed (with results): %d\n", passCount)
 	fmt.Fprintf(summaryFile, "- ⚠️ Zero results (no error): %d\n", zeroCount)
 	fmt.Fprintf(summaryFile, "- ❌ Failed (error): %d\n", failCount)
+	fmt.Fprintf(summaryFile, "- 🔐 Requires credentials: %d\n", credentialCount)
 	fmt.Fprintf(summaryFile, "- Success rate: %.1f%%\n", float64(passCount)/float64(len(allResults))*100)
 
 	t.Logf("\n=== Summary ===\nTotal: %d, Passed: %d, ZeroResults: %d, Failed: %d, Rate: %.1f%%\nResults: %s",
@@ -185,6 +195,11 @@ func TestEngineBatches(t *testing.T) {
 				engine := factory(EngineConfig{
 					Name: engineName, Weight: 1.0, Timeout: 10000, MaxResults: 5,
 				})
+				if engine.Config().RequiresKey && strings.TrimSpace(engine.Config().APIKey) == "" {
+					fmt.Fprintf(batchFile, "| %s | REQUIRES_CREDENTIALS | - | - | - |\n", engineName)
+					t.Logf("[%s] 🔐 %s: requires_credentials", batch.name, engineName)
+					continue
+				}
 
 				wg.Add(1)
 				sem <- struct{}{}

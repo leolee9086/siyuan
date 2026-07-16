@@ -126,7 +126,11 @@ func callMCPHTTP(url, tool string, args interface{}, timeout time.Duration) (str
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return "", &EngineError{Engine: tool, Message: "MCP request failed: HTTP " + resp.Status, Retryable: true}
 	}
-	return parseMCPResponse(string(body)), nil
+	text := parseMCPResponse(string(body))
+	if strings.TrimSpace(text) == "" {
+		return "", &ProtocolError{Engine: tool, Message: "empty or invalid MCP response"}
+	}
+	return text, nil
 }
 
 func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Duration, headers map[string]string) (string, error) {
@@ -163,7 +167,11 @@ func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Dur
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return "", &EngineError{Engine: tool, Message: "MCP request failed: HTTP " + resp.Status, Retryable: true}
 	}
-	return parseMCPResponse(string(body)), nil
+	text := parseMCPResponse(string(body))
+	if strings.TrimSpace(text) == "" {
+		return "", &ProtocolError{Engine: tool, Message: "empty or invalid MCP response"}
+	}
+	return text, nil
 }
 
 // parseMCPResponse 解析 MCP 响应（支持完整 JSON 和 SSE data: 格式）

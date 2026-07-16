@@ -182,6 +182,14 @@ func executeEngineSafely(
 		handleEngineError(status, engine.Name(), searchErr)
 		return nil, &EngineError{Engine: engine.Name(), Message: searchErr.Error(), Retryable: isRetryable(searchErr)}
 	}
+	if results == nil {
+		searchErr = &ProtocolError{Engine: engine.Name(), Message: "search returned nil results without an error"}
+	}
+	if searchErr != nil {
+		status.Metrics.TotalRequests++
+		handleEngineError(status, engine.Name(), searchErr)
+		return nil, &EngineError{Engine: engine.Name(), Message: searchErr.Error(), Retryable: isRetryable(searchErr)}
+	}
 
 	status.ConsecutiveFailures = 0
 	status.Metrics.TotalRequests++

@@ -1,6 +1,7 @@
 package websearch
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -154,7 +155,8 @@ func (s *Service) Diagnose(names []string, probe bool, query string) []EngineDia
 			result = append(result, EngineDiagnostic{Name: name, Status: "not_registered"})
 			continue
 		}
-		cfg := s.engineConfig(name, DefaultEngineConfig(name))
+		base := factory(DefaultEngineConfig(name)).Config()
+		cfg := s.engineConfig(name, base)
 		engine := factory(cfg)
 		diagnostic := EngineDiagnostic{
 			Name: name, Category: cfg.Category, Enabled: true,
@@ -205,8 +207,11 @@ func (s *Service) selectEngines(opts SearchOptions) ([]SearchEngine, []EngineDia
 	if len(opts.Engines) > 0 {
 		selected = selected[:0]
 		for _, name := range opts.Engines {
-			if factory, ok := GlobalEngineRegistry.Get(strings.TrimSpace(name)); ok {
-				selected = append(selected, factory(DefaultEngineConfig(strings.TrimSpace(name))))
+			name = strings.TrimSpace(name)
+			if factory, ok := GlobalEngineRegistry.Get(name); ok {
+				selected = append(selected, factory(DefaultEngineConfig(name)))
+			} else if name != "" {
+				selected = append(selected, diagnosticSearchEngine{name: name})
 			}
 		}
 	}
@@ -214,6 +219,10 @@ func (s *Service) selectEngines(opts SearchOptions) ([]SearchEngine, []EngineDia
 	diagnostics := make([]EngineDiagnostic, 0)
 	for _, selectedEngine := range selected {
 		name := selectedEngine.Name()
+		if _, registered := GlobalEngineRegistry.Get(name); !registered {
+			diagnostics = append(diagnostics, EngineDiagnostic{Name: name, Status: "not_registered"})
+			continue
+		}
 		runtime, configured := s.config.Engines[name]
 		if configured && !runtime.Enabled {
 			diagnostics = append(diagnostics, EngineDiagnostic{Name: name, Status: "disabled", Enabled: false})
@@ -231,6 +240,20 @@ func (s *Service) selectEngines(opts SearchOptions) ([]SearchEngine, []EngineDia
 		engines = append(engines, factory(cfg))
 	}
 	return engines, diagnostics
+}
+
+type diagnosticSearchEngine struct {
+	name string
+}
+
+func (e diagnosticSearchEngine) Name() string { return e.name }
+
+func (e diagnosticSearchEngine) Config() EngineConfig {
+	return DefaultEngineConfig(e.name)
+}
+
+func (e diagnosticSearchEngine) Search(string, SearchOptions, map[string]string) ([]SearchResult, error) {
+	return nil, fmt.Errorf("engine %s is not registered", e.name)
 }
 
 func (s *Service) engineConfig(name string, base EngineConfig) EngineConfig {
