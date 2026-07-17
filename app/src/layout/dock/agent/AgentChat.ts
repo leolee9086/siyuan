@@ -44,6 +44,11 @@ import {
     resolveMappedWebReferences,
 } from "./websearch/renderer";
 import type {AgentWebSearchProgress} from "./websearch/types";
+import {
+    renderToolCallProgress,
+    renderToolCallResult,
+    renderToolCallStart,
+} from "./toolcall/renderer";
 import {ScalableBloomFilter} from "@leolee9086/bloom-filter";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
@@ -1271,6 +1276,17 @@ export class AgentChat extends Model {
                 rel.innerHTML = renderWebSearchResult(query, tc.result);
                 this.messagesContainer.appendChild(rel);
                 hasRendered = true;
+            } else if (tc.result && tc.name !== "question" && tc.name !== "frontend") {
+                const rel = document.createElement("div");
+                rel.className = "agent-chat__msg agent-chat__msg--tool";
+                if (tc.id) {
+                    rel.setAttribute("data-tool-call-id", tc.id);
+                }
+                rel.innerHTML = tc.name === "todo_write"
+                    ? renderTodoList(tc.result)
+                    : renderToolCallResult(tc.name, tc.arguments || {}, tc.result);
+                this.messagesContainer.appendChild(rel);
+                hasRendered = true;
             }
         }
         if (content && content.trim()) {
@@ -1839,11 +1855,15 @@ export class AgentChat extends Model {
                     this.currentToolCalls.push({id: event.callID, name: event.name, arguments: event.arguments});
                     if (event.name === "web_search") {
                         this.appendWebSearchCall(event.callID, event.arguments);
+                    } else if (event.name !== "question" && event.name !== "frontend") {
+                        this.appendToolCall(event.callID, event.name, event.arguments);
                     }
                     break;
                 case "tool_progress":
                     if (event.name === "web_search") {
                         this.updateWebSearchProgress(event.callID, event.progress);
+                    } else {
+                        this.updateToolCallProgress(event.callID, event.name, event.progress);
                     }
                     break;
                 case "confirm":
@@ -1858,8 +1878,8 @@ export class AgentChat extends Model {
                     }
                     if (event.name === "web_search") {
                         this.completeWebSearch(event.callID, event.result);
-                    } else {
-                        this.appendToolResult(event.name, event.result);
+                    } else if (event.name !== "question" && event.name !== "frontend") {
+                        this.completeToolCall(event.callID, event.name, event.result);
                     }
                     break;
                 case "done":
@@ -2109,7 +2129,7 @@ export class AgentChat extends Model {
         return call && typeof call.arguments?.query === "string" ? call.arguments.query : "";
     }
 
-    private findWebSearchCard(callID: string): HTMLElement | null {
+    private findToolCallCard(callID: string): HTMLElement | null {
         if (!callID) {
             return null;
         }
@@ -2142,7 +2162,7 @@ export class AgentChat extends Model {
     }
 
     private updateWebSearchProgress(callID: string, progress: AgentWebSearchProgress) {
-        const card = this.findWebSearchCard(callID);
+        const card = this.findToolCallCard(callID);
         if (!card) {
             return;
         }
@@ -2152,7 +2172,7 @@ export class AgentChat extends Model {
 
     private completeWebSearch(callID: string, result: string) {
         this.registerWebSearchReferences(result);
-        const card = this.findWebSearchCard(callID);
+        const card = this.findToolCallCard(callID);
         if (card) {
             card.innerHTML = renderWebSearchResult(this.webSearchQuery(callID), result);
             this.scrollToBottom();
@@ -2169,18 +2189,47 @@ export class AgentChat extends Model {
         this.scrollToBottom(true);
     }
 
-    private appendToolResult(name: string, result: string) {
-        if (name !== "todo_write") {
-            return;
-        }
-
+    private appendToolCall(callID: string, name: string, args: Record<string, unknown>) {
         const el = document.createElement("div");
         el.className = "agent-chat__msg agent-chat__msg--tool";
-        el.setAttribute("data-message-id", SessionStore.newSessionId());
-        el.innerHTML = renderTodoList(result);
+        if (callID) {
+            el.setAttribute("data-tool-call-id", callID);
+        }
+        el.innerHTML = renderToolCallStart(name, args);
         this.insertBeforeAI(el);
         this.scrollToBottom(true);
         this.hasInterveningCard = true;
+    }
+
+    private updateToolCallProgress(callID: string, name: string, progress: AgentWebSearchProgress) {
+        const card = this.findToolCallCard(callID);
+        const call = this.findCurrentToolCall(callID, name);
+        if (!card || !call) {
+            return;
+        }
+        card.innerHTML = renderToolCallProgress(name, call.arguments, progress);
+        this.scrollToBottom();
+    }
+
+    private completeToolCall(callID: string, name: string, result: string) {
+        const card = this.findToolCallCard(callID);
+        const call = this.findCurrentToolCall(callID, name);
+        if (card && call) {
+            card.innerHTML = name === "todo_write"
+                ? renderTodoList(result)
+                : renderToolCallResult(name, call.arguments, result);
+            this.scrollToBottom();
+            return;
+        }
+        if (name === "todo_write") {
+            const el = document.createElement("div");
+            el.className = "agent-chat__msg agent-chat__msg--tool";
+            el.setAttribute("data-message-id", SessionStore.newSessionId());
+            el.innerHTML = renderTodoList(result);
+            this.insertBeforeAI(el);
+            this.scrollToBottom(true);
+            this.hasInterveningCard = true;
+        }
     }
 
     private appendThinking(reasoning: string) {
