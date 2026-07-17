@@ -138,7 +138,7 @@ function buildRules(t, isProd, isLibrary) {
         },
         {
             test: /\.ts(x?)$/,
-            include: [path.resolve(__dirname, "src")],
+            include: [path.resolve(__dirname, "src"), path.resolve(__dirname, "../packages/bloom-filter/src")],
             use: [{
                 loader: "esbuild-loader",
                 options: { target: "es2020", sourcemap: !isProd, loader: "ts" },

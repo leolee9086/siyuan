@@ -1,0 +1,17 @@
+{
+  "name": "@leolee9086/bloom-filter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A scalable Bloom filter for trusted reference pre-filtering",
+  "license": "AGPL-3.0-or-later",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bloomFilter": "./src/bloomFilter.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}
