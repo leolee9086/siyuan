@@ -19,6 +19,8 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -98,8 +100,12 @@ func executeWebFetch(args fetchWebPageToolArgs) (string, error) {
 		return marshalWebFetchFailure("UNSUPPORTED_PROTOCOL",
 			fmt.Errorf("不支持的协议 %q，仅支持 http/https", parsedURL.Scheme)), nil
 	}
+	proxyURL := ""
+	if model.Conf != nil {
+		proxyURL = conf.EffectiveProxyURL(model.Conf.System)
+	}
 	result, fetchErr := util.FetchWebPage(args.URL, util.WebFetchOptions{
-		Format: normalizeFetchWebPageFormat(args.Format), TimeoutSeconds: normalizeFetchWebPageTimeout(args.Timeout),
+		Format: normalizeFetchWebPageFormat(args.Format), TimeoutSeconds: normalizeFetchWebPageTimeout(args.Timeout), ProxyURL: proxyURL,
 	})
 	if fetchErr != nil {
 		return marshalWebFetchFailure("NETWORK_ERROR", fetchErr), nil

@@ -45,6 +45,7 @@ type WebFetchOptions struct {
 	Format         string
 	TimeoutSeconds int
 	MaxChars       int
+	ProxyURL       string
 }
 
 type WebFetchResult struct {
@@ -105,9 +106,8 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/143.0 Safari/537.36")
 		req.Header.Set("Accept", acceptWebFetch(format))
 		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-		client := &http.Client{
-			Timeout: time.Duration(timeout) * time.Second,
-			CheckRedirect: func(redirectReq *http.Request, via []*http.Request) error {
+		client, clientErr := newWebFetchClient(time.Duration(timeout)*time.Second, options.ProxyURL,
+			func(redirectReq *http.Request, via []*http.Request) error {
 				if len(via) >= maxWebFetchRedirects {
 					return fmt.Errorf("redirect limit exceeded (%d)", maxWebFetchRedirects)
 				}
@@ -118,7 +118,9 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 					return fmt.Errorf("redirect blocked by SSRF policy: %w", err)
 				}
 				return nil
-			},
+			})
+		if clientErr != nil {
+			return WebFetchResult{}, clientErr
 		}
 		resp, lastErr = client.Do(req)
 		if lastErr == nil && resp.StatusCode == http.StatusForbidden && resp.Header.Get("cf-mitigated") == "challenge" && attempt == 0 {
@@ -170,6 +172,26 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 		result = truncateRunes(result, maxChars)
 	}
 	return WebFetchResult{URL: rawURL, ContentType: contentType, Format: format, Output: result, Truncated: truncated}, nil
+}
+
+func newWebFetchClient(timeout time.Duration, proxyURL string, checkRedirect func(*http.Request, []*http.Request) error) (*http.Client, error) {
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("unexpected default HTTP transport type %T", http.DefaultTransport)
+	}
+	transport = transport.Clone()
+	transport.Proxy = nil
+	if strings.TrimSpace(proxyURL) != "" {
+		parsedProxy, err := url.Parse(proxyURL)
+		if err != nil || parsedProxy.Scheme == "" || parsedProxy.Host == "" {
+			if err == nil {
+				err = errors.New("proxy URL must include a scheme and host")
+			}
+			return nil, fmt.Errorf("invalid web fetch proxy URL: %w", err)
+		}
+		transport.Proxy = http.ProxyURL(parsedProxy)
+	}
+	return &http.Client{Timeout: timeout, Transport: transport, CheckRedirect: checkRedirect}, nil
 }
 
 func acceptWebFetch(format string) string {

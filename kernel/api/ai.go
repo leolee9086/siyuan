@@ -95,7 +95,8 @@ func testModel(c *gin.Context) {
 		return
 	}
 
-	available, matched, err := util.TestModel(provider.APIKey, provider.BaseURL, modelName, provider.RequestTimeout)
+	available, matched, err := util.TestModel(provider.APIKey, provider.BaseURL, modelName, provider.RequestTimeout,
+		model.Conf.AI.EffectiveAPIProxy(model.Conf.System))
 	// 可用模型清单裁剪到前 50 条，避免响应体过大
 	if 50 < len(available) {
 		available = available[:50]
@@ -146,7 +147,8 @@ func listModels(c *gin.Context) {
 		return
 	}
 
-	models, err := util.ListAvailableModels(provider.APIKey, provider.BaseURL, provider.RequestTimeout)
+	models, err := util.ListAvailableModels(provider.APIKey, provider.BaseURL, provider.RequestTimeout,
+		model.Conf.AI.EffectiveAPIProxy(model.Conf.System))
 	result := map[string]any{
 		"models": models,
 	}

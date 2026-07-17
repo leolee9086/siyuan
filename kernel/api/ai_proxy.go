@@ -71,7 +71,8 @@ func aiChatProxy(c *gin.Context) {
 
 	client := llm.GetActiveClient()
 	if client == nil {
-		client = llm.NewClientFromConf(model.Conf.AI.OpenAI)
+		client = llm.NewClientFromConf(model.Conf.AI.OpenAI,
+			model.Conf.AI.EffectiveAPIProxy(model.Conf.System))
 	}
 
 	if req.Stream {

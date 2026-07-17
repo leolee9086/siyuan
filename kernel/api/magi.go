@@ -236,7 +236,8 @@ func initMagiComponents() error {
 	// 创建 LLM 客户端，直接从 providers 读取 agent 模型，与 agentChat 一致
 	var llmClient llm.Client
 	if p, m := model.Conf.AI.GetAgentModel(); p != nil && m != nil {
-		llmClient = llm.NewClientFromProvider(p, m, util.UserAgent)
+		llmClient = llm.NewClientFromProvider(p, m, util.UserAgent,
+			model.Conf.AI.EffectiveAPIProxy(model.Conf.System))
 	}
 	if llmClient == nil {
 		return fmt.Errorf("MAGI agent model is not configured")

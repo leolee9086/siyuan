@@ -2,8 +2,11 @@ package websearch
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -56,10 +59,10 @@ type mcpContent struct {
 }
 
 // CallExa 调用 Exa MCP 搜索
-func CallExa(query string, searchType string, numResults int, livecrawl string, contextMaxChars *int, apiKey string) (string, error) {
-	url := ExaURL
+func CallExa(query string, searchType string, numResults int, livecrawl string, contextMaxChars *int, apiKey string, proxy ...ProxyConfig) (string, error) {
+	endpoint := ExaURL
 	if apiKey != "" {
-		url += "?exaApiKey=" + strings.TrimSpace(apiKey)
+		endpoint += "?exaApiKey=" + strings.TrimSpace(apiKey)
 	}
 	args := MCPSearchArgs{
 		Query:      query,
@@ -70,11 +73,11 @@ func CallExa(query string, searchType string, numResults int, livecrawl string, 
 	if contextMaxChars != nil {
 		args.ContextMaxCharacters = contextMaxChars
 	}
-	return callMCPHTTP(url, "web_search_exa", args, 25*time.Second)
+	return callMCPHTTP(endpoint, "web_search_exa", args, 25*time.Second, proxyConfigValue(proxy))
 }
 
 // CallParallel 调用 Parallel MCP 搜索
-func CallParallel(query string, sessionID, modelName, apiKey string) (string, error) {
+func CallParallel(query string, sessionID, modelName, apiKey string, proxy ...ProxyConfig) (string, error) {
 	args := MCPParallelArgs{
 		Objective:     query,
 		SearchQueries: []string{query},
@@ -91,10 +94,10 @@ func CallParallel(query string, sessionID, modelName, apiKey string) (string, er
 	if apiKey != "" {
 		headers["Authorization"] = "Bearer " + apiKey
 	}
-	return callMCPHTTPWithHeaders(ParallelURL, "web_search", args, 25*time.Second, headers)
+	return callMCPHTTPWithHeaders(ParallelURL, "web_search", args, 25*time.Second, headers, proxyConfigValue(proxy))
 }
 
-func callMCPHTTP(url, tool string, args interface{}, timeout time.Duration) (string, error) {
+func callMCPHTTP(endpoint, tool string, args interface{}, timeout time.Duration, proxy ProxyConfig) (string, error) {
 	req := mcpRequest{
 		JSONRPC: "2.0", ID: 1, Method: "tools/call",
 		Params: mcpParams{Name: tool, Arguments: args},
@@ -104,7 +107,7 @@ func callMCPHTTP(url, tool string, args interface{}, timeout time.Duration) (str
 		return "", err
 	}
 
-	httpReq, err := http.NewRequest("POST", url, strings.NewReader(string(reqBody)))
+	httpReq, err := http.NewRequest("POST", endpoint, strings.NewReader(string(reqBody)))
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +115,10 @@ func callMCPHTTP(url, tool string, args interface{}, timeout time.Duration) (str
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("User-Agent", RandomUserAgent())
 
-	client := &http.Client{Timeout: timeout}
+	client, err := newMCPHTTPClient(endpoint, timeout, proxy)
+	if err != nil {
+		return "", err
+	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return "", err
@@ -133,7 +139,7 @@ func callMCPHTTP(url, tool string, args interface{}, timeout time.Duration) (str
 	return text, nil
 }
 
-func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Duration, headers map[string]string) (string, error) {
+func callMCPHTTPWithHeaders(endpoint, tool string, args interface{}, timeout time.Duration, headers map[string]string, proxy ProxyConfig) (string, error) {
 	req := mcpRequest{
 		JSONRPC: "2.0", ID: 1, Method: "tools/call",
 		Params: mcpParams{Name: tool, Arguments: args},
@@ -142,7 +148,7 @@ func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Dur
 	if err != nil {
 		return "", err
 	}
-	httpReq, err := http.NewRequest("POST", url, strings.NewReader(string(reqBody)))
+	httpReq, err := http.NewRequest("POST", endpoint, strings.NewReader(string(reqBody)))
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +160,10 @@ func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Dur
 	for k, v := range headers {
 		httpReq.Header.Set(k, v)
 	}
-	client := &http.Client{Timeout: timeout}
+	client, err := newMCPHTTPClient(endpoint, timeout, proxy)
+	if err != nil {
+		return "", err
+	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return "", err
@@ -172,6 +181,49 @@ func callMCPHTTPWithHeaders(url, tool string, args interface{}, timeout time.Dur
 		return "", &ProtocolError{Engine: tool, Message: "empty or invalid MCP response"}
 	}
 	return text, nil
+}
+
+func proxyConfigValue(values []ProxyConfig) ProxyConfig {
+	if len(values) == 0 {
+		return NewProxyConfig()
+	}
+	return values[0]
+}
+
+func newMCPHTTPClient(endpoint string, timeout time.Duration, proxy ProxyConfig) (*http.Client, error) {
+	if proxy.AutoDetect {
+		return nil, errors.New("proxy endpoint must be provided explicitly; automatic proxy detection is disabled")
+	}
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("unexpected default HTTP transport type %T", http.DefaultTransport)
+	}
+	transport = transport.Clone()
+	transport.Proxy = nil
+	target, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	proxyURL := proxy.HTTP
+	if target.Scheme == "https" && proxy.HTTPS != "" {
+		proxyURL = proxy.HTTPS
+	}
+	if strings.TrimSpace(proxyURL) != "" {
+		parsedProxy, err := url.Parse(proxyURL)
+		if err != nil || parsedProxy.Scheme == "" || parsedProxy.Host == "" {
+			if err == nil {
+				err = errors.New("proxy URL must include a scheme and host")
+			}
+			return nil, fmt.Errorf("invalid MCP proxy URL: %w", err)
+		}
+		transport.Proxy = func(req *http.Request) (*url.URL, error) {
+			if proxyBypassed(req.URL.Hostname(), proxy.NoProxy) {
+				return nil, nil
+			}
+			return parsedProxy, nil
+		}
+	}
+	return &http.Client{Timeout: timeout, Transport: transport}, nil
 }
 
 // parseMCPResponse 解析 MCP 响应（支持完整 JSON 和 SSE data: 格式）

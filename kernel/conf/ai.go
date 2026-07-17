@@ -38,6 +38,15 @@ type AI struct {
 	WebSearch *WebSearch  `json:"webSearch"`
 }
 
+// EffectiveAPIProxy returns the AI-specific proxy override when configured;
+// otherwise it inherits the system-wide proxy used by all network clients.
+func (ai *AI) EffectiveAPIProxy(system *System) string {
+	if ai == nil || ai.OpenAI == nil {
+		return EffectiveProxyURL(system)
+	}
+	return EffectiveProxyURLWithOverride(system, ai.OpenAI.APIProxy)
+}
+
 // WebSearch contains runtime settings shared by the native Agent and MAGI.
 // Secret fields are encrypted together with the existing AI credentials.
 type WebSearch struct {
@@ -120,9 +129,9 @@ type Provider struct {
 	RequestTimeout int      `json:"requestTimeout"`
 	Models         []*Model `json:"models"`
 	// CachedModels 保存最近一次成功从 Provider /v1/models 拉取的模型 ID 列表。
-	CachedModels   []string `json:"cachedModels,omitempty"`
+	CachedModels []string `json:"cachedModels,omitempty"`
 	// CachedModelsAt 保存模型列表缓存的 Unix 时间戳（毫秒）。
-	CachedModelsAt int64    `json:"cachedModelsAt,omitempty"`
+	CachedModelsAt int64 `json:"cachedModelsAt,omitempty"`
 }
 
 // Model is the provider-scoped model registry entry. MaxTokens/Temperature/

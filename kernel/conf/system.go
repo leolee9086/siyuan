@@ -17,6 +17,8 @@
 package conf
 
 import (
+	"strings"
+
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -81,13 +83,25 @@ func (np *NetworkProxy) String() string {
 // EffectiveProxyURL 返回实际生效的代理 URL。
 // 优先级：手动配置 > 自动探测 > 空（直连）。
 func EffectiveProxyURL(s *System) string {
+	if s == nil {
+		return ""
+	}
 	if s.NetworkProxy != nil {
-		if manualURL := s.NetworkProxy.String(); manualURL != "" {
+		if manualURL := strings.TrimSpace(s.NetworkProxy.String()); manualURL != "" {
 			return manualURL
 		}
 	}
-	if s.AutoDetectProxy && s.DetectedProxyURL != "" {
-		return s.DetectedProxyURL
+	if s.AutoDetectProxy {
+		return strings.TrimSpace(s.DetectedProxyURL)
 	}
 	return ""
+}
+
+// EffectiveProxyURLWithOverride applies a component-specific proxy override;
+// an empty override inherits the system-wide effective proxy.
+func EffectiveProxyURLWithOverride(s *System, override string) string {
+	if override = strings.TrimSpace(override); override != "" {
+		return override
+	}
+	return EffectiveProxyURL(s)
 }

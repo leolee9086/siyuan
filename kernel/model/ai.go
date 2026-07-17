@@ -165,16 +165,15 @@ func newOpenAIGPT() (*OpenAIGPT, int, error) {
 			temperature = ai.Editing.Temperature
 		}
 		apiProvider := "OpenAI"
-		apiProxy := ""
 		if ai.OpenAI != nil {
 			apiProvider = ai.OpenAI.APIProvider
-			apiProxy = ai.OpenAI.APIProxy
 		}
 		if apiProvider == "" {
 			apiProvider = "OpenAI"
 		}
+		apiProxy := ai.EffectiveAPIProxy(Conf.System)
 		return &OpenAIGPT{
-			c:                   util.NewOpenAIClient(prov.APIKey, prov.BaseURL),
+			c:                   util.NewOpenAIClient(prov.APIKey, apiProxy, prov.BaseURL),
 			modelName:           m.Name,
 			timeout:             timeout,
 			maxCompletionTokens: maxCompletionTokens,
@@ -195,15 +194,16 @@ func newOpenAIGPT() (*OpenAIGPT, int, error) {
 		if apiProvider == "" {
 			apiProvider = "OpenAI"
 		}
+		apiProxy := ai.EffectiveAPIProxy(Conf.System)
 		return &OpenAIGPT{
-			c:                   util.NewOpenAIClient(ai.OpenAI.APIKey, ai.OpenAI.APIBaseURL),
+			c:                   util.NewOpenAIClient(ai.OpenAI.APIKey, apiProxy, ai.OpenAI.APIBaseURL),
 			modelName:           ai.OpenAI.APIModel,
 			timeout:             ai.OpenAI.APITimeout,
 			maxCompletionTokens: ai.OpenAI.APIMaxTokens,
 			temperature:         ai.OpenAI.APITemperature,
 			apiProvider:         apiProvider,
 			apiKey:              ai.OpenAI.APIKey,
-			apiProxy:            ai.OpenAI.APIProxy,
+			apiProxy:            apiProxy,
 			apiBaseURL:          ai.OpenAI.APIBaseURL,
 		}, maxHistoryMessages, nil
 	}

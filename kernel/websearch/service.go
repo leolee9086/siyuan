@@ -6,6 +6,7 @@ package websearch
 import (
 	"strings"
 
+	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	shared "github.com/siyuan-note/siyuan/packages/websearch"
 )
@@ -21,7 +22,12 @@ func RuntimeConfig() shared.RuntimeConfig {
 		DefaultOptions: shared.DefaultSearchOptions(),
 		Engines:        map[string]shared.EngineRuntimeConfig{},
 	}
-	if model.Conf == nil || model.Conf.AI == nil {
+	if model.Conf == nil {
+		return config
+	}
+	proxyURL := conf.EffectiveProxyURL(model.Conf.System)
+	config.Proxy = shared.NewExplicitProxy(proxyURL, proxyURL)
+	if model.Conf.AI == nil {
 		return config
 	}
 	settings := model.Conf.AI.WebSearch
@@ -37,7 +43,8 @@ func RuntimeConfig() shared.RuntimeConfig {
 	config.DefaultOptions.Lang = settings.Lang
 	config.DefaultOptions.QueryType = settings.QueryType
 	config.DefaultOptions.Provider = config.Provider
-	config.Proxy = shared.NewExplicitProxy(settings.Proxy, settings.Proxy)
+	proxyURL = conf.EffectiveProxyURLWithOverride(model.Conf.System, settings.Proxy)
+	config.Proxy = shared.NewExplicitProxy(proxyURL, proxyURL)
 	for name, engine := range settings.Engines {
 		if engine == nil {
 			continue

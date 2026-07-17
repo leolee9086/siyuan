@@ -7,14 +7,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
 )
 
 type ProfileManager struct {
-	mu         sync.RWMutex
-	activeID   string
+	mu           sync.RWMutex
+	activeID     string
 	activeClient Client
-	onChange   func(name string)
+	onChange     func(name string)
 }
 
 var globalPool = &ProfileManager{}
@@ -99,8 +100,8 @@ func RegisterOnChange(fn func(name string)) {
 }
 
 type ModelSelectOpts struct {
-	Model       string
-	Modalities  []string
+	Model      string
+	Modalities []string
 }
 
 func SelectClient(opts ModelSelectOpts) (Client, string, error) {
@@ -115,8 +116,8 @@ func SelectClient(opts ModelSelectOpts) (Client, string, error) {
 	}
 
 	type candidate struct {
-		profile *model.Profile
-		pm      *model.ProfileModel
+		profile  *model.Profile
+		pm       *model.ProfileModel
 		priority int
 	}
 
@@ -203,11 +204,15 @@ func hasAllModalities(available, required []string) bool {
 }
 
 func newClientFromProfile(p *model.Profile) Client {
+	apiProxy := p.APIProxy
+	if model.Conf != nil {
+		apiProxy = conf.EffectiveProxyURLWithOverride(model.Conf.System, apiProxy)
+	}
 	cfg := &Config{
 		Provider:    p.Provider,
 		APIKey:      p.APIKey,
 		APIBaseURL:  p.BaseURL,
-		APIProxy:    p.APIProxy,
+		APIProxy:    apiProxy,
 		APIModel:    p.Model,
 		MaxTokens:   p.MaxTokens,
 		Temperature: p.Temperature,

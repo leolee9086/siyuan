@@ -139,12 +139,16 @@ func newOpenAIClient(cfg *Config) *openaiClient {
 }
 
 // NewClientFromConf 从全局配置创建客户端（兼容旧版）
-func NewClientFromConf(aiConf *conf.OpenAI) Client {
+func NewClientFromConf(aiConf *conf.OpenAI, effectiveProxy ...string) Client {
+	apiProxy := aiConf.APIProxy
+	if len(effectiveProxy) > 0 {
+		apiProxy = effectiveProxy[0]
+	}
 	cfg := &Config{
 		Provider:    aiConf.APIProvider,
 		APIKey:      aiConf.APIKey,
 		APIBaseURL:  aiConf.APIBaseURL,
-		APIProxy:    aiConf.APIProxy,
+		APIProxy:    apiProxy,
 		APIModel:    aiConf.APIModel,
 		MaxTokens:   aiConf.APIMaxTokens,
 		Temperature: aiConf.APITemperature,
@@ -156,10 +160,11 @@ func NewClientFromConf(aiConf *conf.OpenAI) Client {
 }
 
 // NewClientFromProvider 从 Provider 配置创建客户端，替代 NewClientFromConf。
-func NewClientFromProvider(provider *conf.Provider, model *conf.Model, userAgent string) Client {
+func NewClientFromProvider(provider *conf.Provider, model *conf.Model, userAgent, apiProxy string) Client {
 	cfg := &Config{
 		APIKey:     provider.APIKey,
 		APIBaseURL: provider.BaseURL,
+		APIProxy:   apiProxy,
 		APIModel:   model.Name,
 		Timeout:    provider.RequestTimeout,
 		UserAgent:  userAgent,

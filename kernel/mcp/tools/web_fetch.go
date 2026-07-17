@@ -19,6 +19,8 @@ package tools
 import (
 	"encoding/json"
 
+	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -49,7 +51,11 @@ func webFetchHandler(args map[string]interface{}) (CallToolResult, error) {
 		timeout = int(value)
 	}
 
-	result, err := util.FetchWebPage(rawURL, util.WebFetchOptions{Format: format, TimeoutSeconds: timeout})
+	proxyURL := ""
+	if model.Conf != nil {
+		proxyURL = conf.EffectiveProxyURL(model.Conf.System)
+	}
+	result, err := util.FetchWebPage(rawURL, util.WebFetchOptions{Format: format, TimeoutSeconds: timeout, ProxyURL: proxyURL})
 	if err != nil {
 		return CallToolResult{
 			Content: []ContentItem{{Type: "text", Text: "web_fetch error: " + err.Error()}},

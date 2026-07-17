@@ -121,6 +121,11 @@ func NewOpenAIClient(apiKey string, args ...string) *openai.Client {
 		config.APIVersion = apiVersion
 	}
 	config.BaseURL = apiBaseURL
+	config.HTTPClient = newOpenAIHTTPClient(apiProxy, apiUserAgent)
+	return openai.NewClientWithConfig(config)
+}
+
+func newOpenAIHTTPClient(apiProxy, apiUserAgent string) *http.Client {
 	transport := &http.Transport{}
 	if "" != apiProxy {
 		proxyURL, err := url.Parse(apiProxy)
@@ -130,8 +135,7 @@ func NewOpenAIClient(apiKey string, args ...string) *openai.Client {
 			transport.Proxy = http.ProxyURL(proxyURL)
 		}
 	}
-	config.HTTPClient = &http.Client{Transport: newAddHeaderTransport(transport, apiUserAgent)}
-	return openai.NewClientWithConfig(config)
+	return &http.Client{Transport: newAddHeaderTransport(transport, apiUserAgent)}
 }
 
 type AddHeaderTransport struct {
@@ -154,11 +158,11 @@ func newAddHeaderTransport(transport *http.Transport, userAgent string) *AddHead
 // 校验 model 是否在其中；若该端点不可用（部分 OpenAI 兼容服务未实现），则回退到极简 Chat Completion。
 // 返回值：available 为可用模型清单（仅 ListModels 成功时填充），matched 表示 model 是否可用，
 // err 为请求错误（鉴权失败、网络异常、模型不存在等，原样返回便于调用方展示原因）。
-func TestModel(apiKey, apiBaseURL, model string, timeout int) (available []string, matched bool, err error) {
+func TestModel(apiKey, apiBaseURL, model string, timeout int, apiProxy ...string) (available []string, matched bool, err error) {
 	if 1 > timeout {
 		timeout = 30
 	}
-	client := NewOpenAIClient(apiKey, apiBaseURL)
+	client := NewOpenAIClient(apiKey, firstOptionalString(apiProxy), apiBaseURL)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -197,11 +201,11 @@ func TestModel(apiKey, apiBaseURL, model string, timeout int) (available []strin
 
 // ListAvailableModels 拉取 Provider 的可用模型清单（GET /v1/models），仅返回模型 ID 列表。
 // 用于填充前端模型名称下拉框。不支持该端点的服务会返回错误，由调用方回退为手动输入。
-func ListAvailableModels(apiKey, apiBaseURL string, timeout int) (models []string, err error) {
+func ListAvailableModels(apiKey, apiBaseURL string, timeout int, apiProxy ...string) (models []string, err error) {
 	if 1 > timeout {
 		timeout = 30
 	}
-	client := NewOpenAIClient(apiKey, apiBaseURL)
+	client := NewOpenAIClient(apiKey, firstOptionalString(apiProxy), apiBaseURL)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -214,6 +218,13 @@ func ListAvailableModels(apiKey, apiBaseURL string, timeout int) (models []strin
 		models = append(models, m.ID)
 	}
 	return
+}
+
+func firstOptionalString(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
 }
 
 func IsNetworkError(err error) bool {

@@ -110,11 +110,11 @@ func (s *Service) Search(query string, opts SearchOptions, onProgress ProgressCa
 	}
 
 	if provider == ProviderExa && strings.TrimSpace(s.config.ExaAPIKey) != "" {
-		text, err := CallExa(query, opts.SearchType, opts.NumResults, livecrawlValue(opts.Livecrawl), nil, s.config.ExaAPIKey)
+		text, err := CallExa(query, opts.SearchType, opts.NumResults, livecrawlValue(opts.Livecrawl), nil, s.config.ExaAPIKey, s.config.Proxy)
 		return SearchResponse{Query: query, Provider: ProviderExa, Text: text}, err
 	}
 	if provider == ProviderParallel && strings.TrimSpace(s.config.ParallelAPIKey) != "" {
-		text, err := CallParallel(query, "", "", s.config.ParallelAPIKey)
+		text, err := CallParallel(query, "", "", s.config.ParallelAPIKey, s.config.Proxy)
 		return SearchResponse{Query: query, Provider: ProviderParallel, Text: text}, err
 	}
 	if provider == ProviderExa || provider == ProviderParallel {
@@ -259,6 +259,7 @@ func (e diagnosticSearchEngine) Search(string, SearchOptions, map[string]string)
 }
 
 func (s *Service) engineConfig(name string, base EngineConfig) EngineConfig {
+	base.Proxy = s.config.Proxy
 	if s.config.TimeoutMs > 0 {
 		base.Timeout = s.config.TimeoutMs
 	}
@@ -281,7 +282,6 @@ func (s *Service) engineConfig(name string, base EngineConfig) EngineConfig {
 	base.APIKey = runtime.APIKey
 	base.BaseURL = runtime.BaseURL
 	base.Headers = runtime.Headers
-	base.Proxy = s.config.Proxy
 	return base
 }
 
