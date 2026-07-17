@@ -142,7 +142,6 @@
   "dependencies": {
     "@electron/remote": "^2.1.3",
     "@leolee9086/everything-client-http": "link:../packages/everything-client-http",
-    "@leolee9086/bloom-filter": "link:../packages/bloom-filter",
     "@leolee9086/image-dehazing": "link:../packages/dehaze/",
     "@leolee9086/siyuan-kernel-sdk": "link:../kernelSDKTS",
     "@modelcontextprotocol/sdk": "^1.20.2",

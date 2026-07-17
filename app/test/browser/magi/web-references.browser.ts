@@ -22,7 +22,7 @@ describe("MAGI web source references", () => {
         expect(host.querySelector("a[data-unverified-href=\"ref:web-unknown\"]")).not.toBeNull();
     });
 
-    it("keeps large historical maps exact after pre-filtering", () => {
+    it("keeps large historical maps exact", () => {
         const links: Record<string, string> = {};
         for (let i = 0; i < 10000; i++) {
             links[`ref:web-${i.toString(16)}`] = `https://example.com/history/${i}`;

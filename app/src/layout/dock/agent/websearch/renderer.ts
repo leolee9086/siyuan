@@ -1,14 +1,13 @@
 /** 用途：搜索卡片 HTML 渲染。使用范围：原生 Agent 运行中和完成态展示。解耦评估：仅接收结构化数据并返回 HTML，不依赖 Agent 会话或 MAGI 执行链路。 */
 import {escapeHtml} from "./imports";
-import type {BloomFilter} from "@leolee9086/bloom-filter";
 /** 用途：搜索进度类型。使用范围：原生 Agent 的运行中进度卡片。解耦评估：纯类型依赖，无运行时耦合。 */
 import type {AgentWebSearchProgress} from "./types";
 /** 用途：验证不可信工具载荷。使用范围：JSON 解析边界。解耦评估：类型守卫取代渲染模块内的断言。 */
 import {isAgentWebSearchResponse} from "./renderer.guard";
 
+/** 用途：配置可信网页链接保护回调。使用场景：原生 Agent 渲染助手消息时处理未验证链接。关联类型：与精确 URL 集合配合使用；不再依赖概率过滤器。 */
 export interface WebLinkProtectionOptions {
     onUnverified: (url: string) => void;
-    urlFilter?: BloomFilter;
 }
 
 /** Allow only HTTP(S) links in user-visible search cards. */
@@ -177,7 +176,6 @@ export const collectWebSearchReferences = (raw: string) => {
 export const resolveMappedWebReferences = (
     content: string,
     linkMap: Record<string, string>,
-    tokenFilter?: BloomFilter,
 ) => {
     const tokens = content.match(/ref:web-[0-9a-f]+/g);
     if (!tokens) {
@@ -185,9 +183,6 @@ export const resolveMappedWebReferences = (
     }
     let resolvedContent = content;
     for (const token of tokens) {
-        if (tokenFilter && !tokenFilter.mayContain(token)) {
-            continue;
-        }
         const target = safeWebURL(linkMap[token] || "");
         if (target) {
             resolvedContent = resolvedContent.split(token).join(encodeURI(target));
@@ -219,14 +214,6 @@ export const protectUnverifiedWebLinks = (
     for (const anchor of container.querySelectorAll<HTMLAnchorElement>("a")) {
         const href = anchor.getAttribute("href") || "";
         const safeURL = safeWebURL(href);
-        // Bloom can reject a URL immediately; a Bloom hit still requires the exact Set check below.
-        if (safeURL && options.urlFilter && !options.urlFilter.mayContain(safeURL)) {
-            anchor.removeAttribute("href");
-            anchor.setAttribute("data-unverified-href", href);
-            anchor.title = "This link was not returned by web search";
-            anchor.addEventListener("click", (event) => handleUnverifiedLinkClick(event, safeURL, options.onUnverified));
-            continue;
-        }
         if (safeURL && normalizedVerifiedURLs.has(safeURL)) {
             continue;
         }

@@ -49,7 +49,6 @@ import {
     renderToolCallResult,
     renderToolCallStart,
 } from "./toolcall/renderer";
-import {ScalableBloomFilter} from "@leolee9086/bloom-filter";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
 // Mirrors kernel/agent/agent.go maxVisibleBlockIDs.
@@ -166,8 +165,6 @@ export class AgentChat extends Model {
     private agentDestroyed = false;
     private webReferenceMap: Record<string, string> = {};
     private webReferenceURLs = new Set<string>();
-    private webReferenceTokenFilter = new ScalableBloomFilter();
-    private webReferenceURLFilter = new ScalableBloomFilter();
 
     constructor(app: App, tab: Tab) {
         super({app: app});
@@ -1191,8 +1188,6 @@ export class AgentChat extends Model {
     private resetWebReferenceIndex() {
         this.webReferenceMap = {};
         this.webReferenceURLs.clear();
-        this.webReferenceTokenFilter.clear();
-        this.webReferenceURLFilter.clear();
     }
 
     private registerWebSearchReferences(raw: string) {
@@ -1207,14 +1202,12 @@ export class AgentChat extends Model {
             }
             this.webReferenceMap[token] = url;
             this.webReferenceURLs.add(normalizedURL);
-            this.webReferenceTokenFilter.add(token);
-            this.webReferenceURLFilter.add(normalizedURL);
         }
     }
 
     /** Resolve trusted refs before Markdown parsing so only returned sources become anchors. */
     private renderAssistantMarkdown(content: string) {
-        const resolved = resolveMappedWebReferences(content, this.webReferenceMap, this.webReferenceTokenFilter);
+        const resolved = resolveMappedWebReferences(content, this.webReferenceMap);
         return this.lute.ProtylePreviewStr("", resolved) || escapeHtml(resolved);
     }
 
@@ -1222,7 +1215,6 @@ export class AgentChat extends Model {
     private postRenderAssistant(container: HTMLElement) {
         postRender(container, this.app);
         protectUnverifiedWebLinks(container, this.webReferenceURLs, {
-            urlFilter: this.webReferenceURLFilter,
             onUnverified: (url) => {
                 confirmDialog(
                     "Unverified web link",

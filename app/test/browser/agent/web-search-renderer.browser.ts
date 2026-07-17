@@ -1,5 +1,4 @@
 import {describe, expect, it} from "vitest";
-import {ScalableBloomFilter} from "@leolee9086/bloom-filter";
 import {
     protectUnverifiedWebLinks,
     renderWebSearchProgress,
@@ -82,15 +81,4 @@ describe("native Agent web search cards", () => {
         })).toBe("[source](https://example.com/verified)");
     });
 
-    it("keeps exact verification after a Bloom pre-filter hit", () => {
-        const host = document.createElement("div");
-        host.innerHTML = '<a href="https://example.com/verified">verified</a><a href="https://example.com/invented">invented</a>';
-        const exact = new Set(["https://example.com/verified"]);
-        const filter = new ScalableBloomFilter({initialCapacity: 8, falsePositiveRate: 0.5});
-        filter.add("https://example.com/verified");
-        filter.add("https://example.com/invented");
-        protectUnverifiedWebLinks(host, exact, {onUnverified: () => undefined, urlFilter: filter});
-        expect(host.querySelector("a[href=\"https://example.com/verified\"]")).not.toBeNull();
-        expect(host.querySelector("a[data-unverified-href=\"https://example.com/invented\"]")).not.toBeNull();
-    });
 });

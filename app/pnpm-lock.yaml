@@ -14,9 +14,6 @@ importers:
       '@electron/remote':
         specifier: ^2.1.3
         version: 2.1.3(electron@42.5.0)
-      '@leolee9086/bloom-filter':
-        specifier: link:../packages/bloom-filter
-        version: link:../packages/bloom-filter
       '@leolee9086/everything-client-http':
         specifier: link:../packages/everything-client-http
         version: link:../packages/everything-client-http
