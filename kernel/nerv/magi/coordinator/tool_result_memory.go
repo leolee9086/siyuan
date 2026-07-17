@@ -16,6 +16,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	shared "github.com/siyuan-note/siyuan/packages/websearch"
 )
 
 const (
@@ -71,6 +72,10 @@ func materializeToolResultForContext(
 	detailedResult string,
 ) string {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
+	contextResult := detailedResult
+	if toolName == config.SearchWebToolName {
+		contextResult = shared.RemoveSearchLinkMap(detailedResult)
+	}
 	if config.IsWannaSleepOrRestToolName(toolName) {
 		return materializeWannaDowntimeToolResultForContext(sessionID, roundID, sage, toolCall, detailedResult)
 	}
@@ -101,7 +106,7 @@ func materializeToolResultForContext(
 		return materializeSendChannelMessageResult(ctx, sessionID, roundID, sage, assistantContent, toolCall, detailedResult)
 	}
 	if !isArchivedQueryTool(toolName) {
-		return detailedResult
+		return contextResult
 	}
 
 	archiveLocation, err := persistQueryToolResultToNotebook(
@@ -117,12 +122,15 @@ func materializeToolResultForContext(
 	}
 
 	if sage == nil || sage.GetName() == "melchior" {
-		return detailedResult
+		return contextResult
 	}
 	compact, compactErr := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
 	if compactErr != nil {
 		logging.LogWarnf("压缩查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, compactErr)
-		return detailedResult
+		return contextResult
+	}
+	if toolName == config.SearchWebToolName {
+		compact = shared.RemoveSearchLinkMap(compact)
 	}
 	return compact
 }

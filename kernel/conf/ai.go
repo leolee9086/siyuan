@@ -350,6 +350,22 @@ func (ai *AI) GetModel(id string) (*Provider, *Model) {
 		return nil, nil
 	}
 
+	// Agent 面板在不同 Provider 存在同名模型时使用 providerID:modelID 作为唯一值。
+	// 先解析这个复合 ID，避免按普通模型 ID 回退到第一个同名模型。
+	if separator := strings.IndexByte(id, ':'); separator > 0 {
+		providerID, modelID := id[:separator], id[separator+1:]
+		for _, p := range ai.Providers {
+			if p == nil || p.ID != providerID || len(p.APIKey) == 0 || !p.Enabled {
+				continue
+			}
+			for _, m := range p.Models {
+				if m != nil && m.ID == modelID && m.Enabled {
+					return p, m
+				}
+			}
+		}
+	}
+
 	for _, p := range ai.Providers {
 		if p == nil || len(p.APIKey) == 0 || !p.Enabled {
 			continue

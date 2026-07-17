@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -29,6 +30,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	shared "github.com/siyuan-note/siyuan/packages/websearch"
 )
 
 // MagiRequest 代表一个入队的任务请求
@@ -68,12 +70,12 @@ type DispatcherTask struct {
 
 	// 心跳字段（TaskTypeHeartbeat）
 	// 所有数据在 tryStartHeartbeat 中捕获，分发器直接使用，不再访问 runtime manager。
-	Run                        *magiHeartbeatRun
-	HeartbeatCtx               context.Context
-	HeartbeatPrompt            string
-	HeartbeatSourceCtx         *types.RequestSourceContext
+	Run                         *magiHeartbeatRun
+	HeartbeatCtx                context.Context
+	HeartbeatPrompt             string
+	HeartbeatSourceCtx          *types.RequestSourceContext
 	HeartbeatPassiveRecallBasis *types.PassiveRecallBasis
-	HeartbeatIsSleepTime       bool
+	HeartbeatIsSleepTime        bool
 }
 
 type magiPersonaRuntimeStatus struct {
@@ -97,8 +99,8 @@ const (
 )
 
 var (
-	dispQueue   = NewDispatcherRingQueue(100) // 按保护环分级的优先队列
-	onceMagi    sync.Once
+	dispQueue       = NewDispatcherRingQueue(100) // 按保护环分级的优先队列
+	onceMagi        sync.Once
 	magiSessionMgr  *session.SessionManager
 	magiSourceSID   sync.Map // sourceSessionKey -> sessionID
 	magiCoordinator *coordinator.Coordinator
@@ -235,6 +237,9 @@ func initMagiComponents() error {
 	var llmClient llm.Client
 	if p, m := model.Conf.AI.GetAgentModel(); p != nil && m != nil {
 		llmClient = llm.NewClientFromProvider(p, m, util.UserAgent)
+	}
+	if llmClient == nil {
+		return fmt.Errorf("MAGI agent model is not configured")
 	}
 
 	// 创建四个 Sage 实例
@@ -1079,7 +1084,21 @@ func sendSyncResponse(c *gin.Context, msg *types.Message, modelName string) {
 		},
 	}
 
-	c.JSON(http.StatusOK, resp)
+	links := magiWebSearchLinks(msg)
+	if len(links) == 0 {
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	// Keep the OpenAI-compatible response shape while exposing renderer-only
+	// targets outside the model message. The map is never sent to an LLM.
+	payload := make(map[string]interface{})
+	raw, _ := json.Marshal(resp)
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	payload["webSearchLinks"] = links
+	c.JSON(http.StatusOK, payload)
 }
 
 // sendStreamResponse 发送流式响应
@@ -1134,8 +1153,45 @@ func sendStreamResponse(c *gin.Context, msg *types.Message, modelName string) {
 			},
 		},
 	}
-	c.Render(-1, sse.Event{Data: finalChunk})
+	if links := magiWebSearchLinks(msg); len(links) > 0 {
+		payload := make(map[string]interface{})
+		raw, _ := json.Marshal(finalChunk)
+		if err := json.Unmarshal(raw, &payload); err == nil {
+			payload["webSearchLinks"] = links
+			c.Render(-1, sse.Event{Data: payload})
+		} else {
+			c.Render(-1, sse.Event{Data: finalChunk})
+		}
+	} else {
+		c.Render(-1, sse.Event{Data: finalChunk})
+	}
 	c.Render(-1, sse.Event{Data: "[DONE]"})
+}
+
+func magiWebSearchLinks(msg *types.Message) map[string]string {
+	if msg == nil || msg.Meta == nil {
+		return nil
+	}
+	links := make(map[string]string)
+	switch raw := msg.Meta["webSearchLinks"].(type) {
+	case map[string]string:
+		for token, target := range raw {
+			if strings.HasPrefix(token, "ref:web-") && shared.IsSearchResultURL(target) {
+				links[token] = target
+			}
+		}
+	case map[string]interface{}:
+		for token, value := range raw {
+			target, ok := value.(string)
+			if ok && strings.HasPrefix(token, "ref:web-") && shared.IsSearchResultURL(target) {
+				links[token] = target
+			}
+		}
+	}
+	if len(links) == 0 {
+		return nil
+	}
+	return links
 }
 
 func magiListModels(c *gin.Context) {

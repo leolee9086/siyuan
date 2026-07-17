@@ -81,6 +81,8 @@ export interface ChatResponseData {
             cached_tokens?: number;
         };
     };
+    /** Renderer-only search targets returned beside the OpenAI response. */
+    webSearchLinks?: Record<string, string>;
     error?: {
         message: string;
         type?: string;
@@ -117,6 +119,7 @@ export const chatResponseDataSchema = z.object({
             cached_tokens: z.number().optional(),
         }).optional(),
     }).optional(),
+    webSearchLinks: z.record(z.string(), z.string()).optional(),
     error: z.object({
         message: z.string(),
         type: z.string().optional(),

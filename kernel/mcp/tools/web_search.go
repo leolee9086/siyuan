@@ -87,6 +87,9 @@ func webSearchHandlerWithProgress(args map[string]interface{}, emit ToolProgress
 			IsError: true,
 		}, nil
 	}
+	// AI receives opaque references and the UI receives the private link map.
+	// This prevents a model from turning an unverified URL into a clickable source.
+	shared.ProtectSearchResponse(&response)
 
 	data, marshalErr := json.Marshal(response)
 	if marshalErr != nil {

@@ -74,6 +74,9 @@ func (e *webSearchToolResultExecutor) executeSearch(toolCall types.ToolCall) (st
 	if searchErr != nil {
 		return "", true, searchErr
 	}
+	// Keep real source targets in the archived/display payload, while giving the
+	// model only opaque references that it can quote without inventing URLs.
+	shared.ProtectSearchResponse(&response)
 	data, marshalErr := json.Marshal(response)
 	if marshalErr != nil {
 		return "", true, fmt.Errorf("%s 结果序列化失败: %w", config.SearchWebToolName, marshalErr)

@@ -35,7 +35,13 @@ import {
     renderToolsLineHTML,
     renderWelcomeHTML
 } from "./AgentMessageRenderer";
-import {renderWebSearchProgress, renderWebSearchResult} from "./websearch/renderer";
+import {
+    collectWebSearchReferences,
+    protectUnverifiedWebLinks,
+    renderWebSearchProgress,
+    renderWebSearchResult,
+    resolveMappedWebReferences,
+} from "./websearch/renderer";
 import type {AgentWebSearchProgress} from "./websearch/types";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
@@ -151,6 +157,7 @@ export class AgentChat extends Model {
     private floatingCloseHandler: (() => void) | null = null;
     private initialization: Promise<void> = Promise.resolve();
     private agentDestroyed = false;
+    private webReferenceMap: Record<string, string> = {};
 
     constructor(app: App, tab: Tab) {
         super({app: app});
@@ -207,7 +214,8 @@ export class AgentChat extends Model {
             if (!prov.enabled || !prov.apiKey) {
                 return [];
             }
-            return prov.models.filter((m) => m.enabled && (m.displayName || m.name)).map((m) => `${prov.id}:${m.id || m.name}:${m.displayName || ""}`);
+            const providerLabel = prov.displayName || prov.baseURL;
+            return prov.models.filter((m) => m.enabled && (m.displayName || m.name)).map((m) => `${prov.id}:${m.id || m.name}:${providerLabel}:${m.displayName || ""}`);
         }).join("|");
     }
 
@@ -528,11 +536,31 @@ export class AgentChat extends Model {
     // 零模型时显式置空 selectedModel（避免 undefined 透传到后端），失效选择自动重置。
     refreshModelOptions() {
         const aiConfig = window.siyuan.config.ai;
+        // 按最终展示名称区分模型冲突：模型显示名优先，只有同名模型来自不同供应商时才追加供应商名。
+        const modelProviders = new Map<string, Set<string>>();
+        const modelIDs = new Map<string, number>();
+        for (const prov of aiConfig.providers || []) {
+            if (!prov.enabled || !prov.apiKey) {
+                continue;
+            }
+            for (const m of prov.models) {
+                const displayName = m.displayName || m.name;
+                if (!m.enabled || !displayName) {
+                    continue;
+                }
+                const modelID = m.id || m.name;
+                const providers = modelProviders.get(displayName) || new Set<string>();
+                providers.add(prov.id);
+                modelProviders.set(displayName, providers);
+                modelIDs.set(modelID, (modelIDs.get(modelID) || 0) + 1);
+            }
+        }
         const newOptions: Array<{ id: string; name: string }> = [];
         for (const prov of aiConfig.providers || []) {
             if (!prov.enabled || !prov.apiKey) {
                 continue;
             }
+            const providerName = prov.displayName || prov.baseURL;
             for (const m of prov.models) {
                 if (!m.enabled) {
                     continue;
@@ -541,10 +569,17 @@ export class AgentChat extends Model {
                 if (!displayName) {
                     continue;
                 }
-                newOptions.push({id: m.id || m.name, name: displayName});
+                const modelID = m.id || m.name;
+                const sameNameInOtherProvider = (modelProviders.get(displayName)?.size || 0) > 1;
+                const hasDuplicateID = (modelIDs.get(modelID) || 0) > 1;
+                const needsProvider = sameNameInOtherProvider || hasDuplicateID;
+                const name = needsProvider ? `${displayName}（${providerName}）` : displayName;
+                // 复合 ID 只用于界面和会话选择，后端会将其解析回具体 Provider 与模型 ID。
+                newOptions.push({id: needsProvider ? `${prov.id}:${modelID}` : modelID, name});
             }
         }
         this.modelOptions = newOptions;
+        this.modelOptionsSignature = AgentChat.getUsableModelSignature(aiConfig);
         // 若当前选择已失效（不在新列表中），则重置：有模型取第一个，无模型显式置空。
         const stillValid = this.selectedModel && newOptions.some(o => o.id === this.selectedModel);
         if (!stillValid) {
@@ -1087,6 +1122,7 @@ export class AgentChat extends Model {
         this.currentContent = "";
         this.fullContent = "";
         this.currentToolCalls = [];
+        this.webReferenceMap = {};
         this.pendingConfirms = [];
         this.messagesContainer.innerHTML = "";
         this.rebuildNavMarkers();
@@ -1099,6 +1135,7 @@ export class AgentChat extends Model {
         this.setStreaming(false);
         this.mirrorLocked = false;
         this.removeMirrorPlaceholder();
+        this.webReferenceMap = {};
         this.finishActiveThinking();
         this.flushThinkingStep();
         await this.saveSession();
@@ -1140,6 +1177,30 @@ export class AgentChat extends Model {
         }, {once: true});
     }
 
+    /** Register source targets before a search tool result is rendered or persisted. */
+    private registerWebSearchReferences(raw: string) {
+        Object.assign(this.webReferenceMap, collectWebSearchReferences(raw));
+    }
+
+    /** Resolve trusted refs before Markdown parsing so only returned sources become anchors. */
+    private renderAssistantMarkdown(content: string) {
+        const resolved = resolveMappedWebReferences(content, this.webReferenceMap);
+        return this.lute.ProtylePreviewStr("", resolved) || escapeHtml(resolved);
+    }
+
+    /** Render assistant markup and quarantine external links not returned by web_search. */
+    private postRenderAssistant(container: HTMLElement) {
+        postRender(container, this.app);
+        const verifiedURLs = new Set(Object.values(this.webReferenceMap));
+        protectUnverifiedWebLinks(container, verifiedURLs, (url) => {
+            confirmDialog(
+                "Unverified web link",
+                "This URL was not returned by the web search tool. It may have been invented by the model. Open it anyway?",
+                () => window.open(url, "_blank", "noopener,noreferrer"),
+            );
+        });
+    }
+
     private appendPersistedAssistant(content: string, timestamp?: number, entryId?: string) {
         if (!content || !content.trim()) {
             return;
@@ -1149,9 +1210,9 @@ export class AgentChat extends Model {
         if (entryId) {
             el.setAttribute("data-message-id", entryId);
         }
-        el.innerHTML = '<div class="agent-chat__body b3-typography">' + (this.lute.ProtylePreviewStr("", content) || escapeHtml(content)) + "</div>";
+        el.innerHTML = '<div class="agent-chat__body b3-typography">' + this.renderAssistantMarkdown(content) + "</div>";
         this.messagesContainer.appendChild(el);
-        postRender(el, this.app);
+        this.postRenderAssistant(el);
         this.addCopyButton(el, content, timestamp);
     }
 
@@ -1173,6 +1234,7 @@ export class AgentChat extends Model {
                 this.messagesContainer.appendChild(rel);
                 hasRendered = true;
             } else if (tc.result && tc.name === "web_search") {
+                this.registerWebSearchReferences(tc.result);
                 const rel = document.createElement("div");
                 rel.className = "agent-chat__msg agent-chat__msg--tool";
                 if (tc.id) {
@@ -1292,6 +1354,7 @@ export class AgentChat extends Model {
     }
 
     private renderLoadedSession(session: AgentSession) {
+        this.webReferenceMap = {};
         const entries = session.entries || [];
         for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
@@ -1441,6 +1504,7 @@ export class AgentChat extends Model {
         this.currentToolCalls = [];
         this.lastStepToolCount = 0;
         this.renderedToolNames = {};
+        this.webReferenceMap = {};
         this.hasInterveningCard = false;
         if (this.tokenDisplayEl) {
             this.tokenDisplayEl.classList.add("fn__none");
@@ -2060,6 +2124,7 @@ export class AgentChat extends Model {
     }
 
     private completeWebSearch(callID: string, result: string) {
+        this.registerWebSearchReferences(result);
         const card = this.findWebSearchCard(callID);
         if (card) {
             card.innerHTML = renderWebSearchResult(this.webSearchQuery(callID), result);
@@ -2416,8 +2481,8 @@ export class AgentChat extends Model {
         bodyEl.classList.remove("agent-chat__body--streaming");
         if (content) {
             // 富渲染只在此处执行一次，避免流式期间每帧 O(n²) 重建带来的卡顿。
-            bodyEl.innerHTML = this.lute.ProtylePreviewStr("", content) || escapeHtml(content);
-            postRender(bodyEl, this.app);
+            bodyEl.innerHTML = this.renderAssistantMarkdown(content);
+            this.postRenderAssistant(bodyEl);
             this.addCopyButton(this.currentAIElement, undefined, ts);
             this.scrollToBottom(true);
         }
@@ -2446,9 +2511,9 @@ export class AgentChat extends Model {
             const el = document.createElement("div");
             el.className = "agent-chat__msg agent-chat__msg--ai";
             el.setAttribute("data-message-id", this.currentAssistantEntryId);
-            el.innerHTML = '<div class="agent-chat__body b3-typography">' + (this.lute.ProtylePreviewStr("", savedContent) || escapeHtml(savedContent)) + "</div>";
+            el.innerHTML = '<div class="agent-chat__body b3-typography">' + this.renderAssistantMarkdown(savedContent) + "</div>";
             this.messagesContainer.appendChild(el);
-            postRender(el, this.app);
+            this.postRenderAssistant(el);
             this.currentAIElement = el;
             this.currentContent = savedContent;
             this.fullContent = savedFullContent;
@@ -2683,9 +2748,9 @@ export class AgentChat extends Model {
             const el = document.createElement("div");
             el.className = "agent-chat__msg agent-chat__msg--ai";
             el.setAttribute("data-message-id", this.currentAssistantEntryId);
-            el.innerHTML = '<div class="agent-chat__body b3-typography">' + (this.lute.ProtylePreviewStr("", savedContent) || escapeHtml(savedContent)) + "</div>";
+            el.innerHTML = '<div class="agent-chat__body b3-typography">' + this.renderAssistantMarkdown(savedContent) + "</div>";
             this.messagesContainer.appendChild(el);
-            postRender(el, this.app);
+            this.postRenderAssistant(el);
             this.currentAIElement = el;
             this.currentContent = savedContent;
             this.fullContent = savedFullContent;

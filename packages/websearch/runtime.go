@@ -37,6 +37,7 @@ type SearchResponse struct {
 	Provider    WebSearchProvider  `json:"provider"`
 	Results     []AggregatedResult `json:"results,omitempty"`
 	Text        string             `json:"text,omitempty"`
+	LinkMap     map[string]string  `json:"linkMap,omitempty"`
 	UsedEngines []string           `json:"usedEngines,omitempty"`
 	Errors      []EngineError      `json:"errors,omitempty"`
 	Diagnostics []EngineDiagnostic `json:"diagnostics,omitempty"`

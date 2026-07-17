@@ -49,11 +49,11 @@ type Coordinator struct {
 
 	runtimeMu                 sync.Mutex
 	dominantSelectionObserver DominantSelectionObserver
-	clockRoundBySession     map[string]uint64 // 心跳总轮数（睡眠+清醒混合），仅用于时钟展示
-	awakeRoundBySession       map[string]uint64        // 清醒心跳轮数，用于提醒系统计算
-	sleepRoundBySession       map[string]uint64        // 睡眠心跳轮数
+	clockRoundBySession       map[string]uint64 // 心跳总轮数（睡眠+清醒混合），仅用于时钟展示
+	awakeRoundBySession       map[string]uint64 // 清醒心跳轮数，用于提醒系统计算
+	sleepRoundBySession       map[string]uint64 // 睡眠心跳轮数
 	workspaceSnapshotInterval uint64
-	toolCallRecords           map[string]*ToolCallSnapshot       // tool name → 最近一次调用快照
+	toolCallRecords           map[string]*ToolCallSnapshot        // tool name → 最近一次调用快照
 	toolRemindPolicies        map[string]*config.ToolRemindPolicy // tool name → 提醒策略（初始化时构建）
 }
 
@@ -63,7 +63,7 @@ func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 		collector: NewResponseCollector(collectionTimeout),
 		avatar:    NewAvatarRuntime(),
 
-		clockRoundBySession:            map[string]uint64{},
+		clockRoundBySession:       map[string]uint64{},
 		awakeRoundBySession:       map[string]uint64{},
 		sleepRoundBySession:       map[string]uint64{},
 		workspaceSnapshotInterval: defaultWorkspaceSnapshotInterval,
@@ -189,6 +189,7 @@ func (c *Coordinator) CoordinateDecision(
 				err,
 			)
 		}
+		attachWebSearchMeta(msg, collectWebSearchMetaFromSages(sessionId, melchior, balthazar, casper))
 		if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {
 			logging.LogWarnf("推送共识发出失败: %v", err)
 		}
@@ -212,6 +213,7 @@ func (c *Coordinator) CoordinateDecision(
 		}
 		return nil, err
 	}
+	attachWebSearchMeta(msg, collectWebSearchMetaFromSages(sessionId, melchior, balthazar, casper))
 
 	// 推送共识发出
 	if err := websocket.PushConsensusEmitted(websocket.RuntimeMonitorSessionID, roundId, msg); err != nil {

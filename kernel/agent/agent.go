@@ -18,6 +18,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -54,6 +55,7 @@ const systemPrompt = `You are a SiYuan AI assistant. You help users manage their
 
 ## Tool Usage Patterns
 - Find: search.fulltext (keyword) → block.get (by ID). For semantic search use search.semantic.
+- Web sources: web_search returns opaque ref:web-... source tokens. Copy those exact tokens when citing a search result; never invent or substitute an external URL. Only mapped references are trusted by the UI.
 - Explore structure: document.list (children under an hPath) → document.get → block.get_children → block.get. Use block breadcrumb to trace a block's location.
 - Create content: document.create (notebook + hPath) → block.append/prepend/insert (dataType "markdown").
 - Modify: block.update replaces ONE block's content with new markdown — it does NOT create or append new blocks. To both modify and add, call block.update first, then block.append/prepend/insert as separate calls.
@@ -252,7 +254,30 @@ func wrapToolOutput(result string) string {
 // buildToolResultOutputs keeps the complete payload for the UI while bounding
 // the copy that is fed back into the model context.
 func buildToolResultOutputs(rawResult, sessionID string) (string, string) {
-	return wrapToolOutput(rawResult), wrapToolOutput(util.TruncateToolOutput(rawResult, sessionID))
+	return wrapToolOutput(rawResult), wrapToolOutput(util.TruncateToolOutput(stripSearchLinkMap(rawResult), sessionID))
+}
+
+// stripSearchLinkMap removes UI-only source targets before a tool result enters
+// model context. The model keeps the opaque ref token but cannot copy a target
+// that was not returned by the search tool.
+func stripSearchLinkMap(rawResult string) string {
+	trimmed := strings.TrimSpace(rawResult)
+	if trimmed == "" {
+		return rawResult
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
+		return rawResult
+	}
+	if _, ok := payload["linkMap"]; !ok {
+		return rawResult
+	}
+	delete(payload, "linkMap")
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return rawResult
+	}
+	return string(encoded)
 }
 
 type AgentEvent struct {

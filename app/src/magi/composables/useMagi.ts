@@ -496,6 +496,12 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
                 const response = await llmAdapter.createChatCompletion(request);
                 const reply = response.choices?.[0]?.message?.content ?? "";
                 pendingAssistant.content = reply || "[empty response]";
+                if (response.webSearchLinks && Object.keys(response.webSearchLinks).length > 0) {
+                    pendingAssistant.meta = {
+                        ...(pendingAssistant.meta || {}),
+                        webSearchLinks: response.webSearchLinks,
+                    };
+                }
                 pendingAssistant.status = "success";
                 pendingAssistant.timestamp = Date.now();
                 return reply;

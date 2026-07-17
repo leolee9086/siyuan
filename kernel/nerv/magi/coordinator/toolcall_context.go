@@ -198,6 +198,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 
 	for _, call := range toolCalls {
 		toolResult := `{"ok":true}`
+		var toolMeta map[string]interface{}
 		handled := false
 		if resultExecutor != nil {
 			if result, executorHandled, execErr := resultExecutor(call); executorHandled {
@@ -212,6 +213,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 						toolResult = `{"ok":false}`
 					}
 				} else if parsed := strings.TrimSpace(result); parsed != "" {
+					toolMeta = webSearchMetaFromResult(parsed)
 					toolResult = materializeToolResultForContext(ctx, sessionID, roundID, sage, assistantContent, call, parsed)
 				}
 			} else if ackBuilder != nil {
@@ -240,6 +242,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 			Role:    types.RoleTool,
 			Content: toolResult,
 			ToolID:  call.ID,
+			Meta:    toolMeta,
 		})
 
 		control := parseGovernedActionToolControl(call.Function.Name, toolResult)

@@ -57,3 +57,14 @@ func TestBuildToolResultOutputsPreservesCompleteDisplayPayload(t *testing.T) {
 		t.Fatal("model result should be truncated when it exceeds the context limit")
 	}
 }
+
+func TestBuildToolResultOutputsKeepsOpaqueSearchReferencesPrivate(t *testing.T) {
+	raw := `{"results":[{"url":"ref:web-1234"}],"linkMap":{"ref:web-1234":"https://example.com/source"}}`
+	displayResult, modelResult := buildToolResultOutputs(raw, "session-test")
+	if !strings.Contains(displayResult, "https://example.com/source") {
+		t.Fatal("display result must retain the private link map")
+	}
+	if strings.Contains(modelResult, "https://example.com/source") || !strings.Contains(modelResult, "ref:web-1234") {
+		t.Fatalf("model result must retain only the opaque reference: %s", modelResult)
+	}
+}

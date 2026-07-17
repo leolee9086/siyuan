@@ -234,6 +234,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				Content:   response.Content,
 				Status:    types.StatusSuccess,
 				Timestamp: time.Now().UnixMilli(),
+				Meta:      webSearchMetaFromSage(sage, sessionId),
 			}
 			if pushErr := websocket.PushSeelReplyCompleted(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), msg); pushErr != nil {
 				logging.LogWarnf("推送%s响应完成失败: %v", sage.GetDisplayName(), pushErr)

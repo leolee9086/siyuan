@@ -165,6 +165,9 @@ func Aggregate(allResults []SearchResult, ctx *AggregateContext, query string) [
 	// 阶段 1: URL 去重
 	urlMap := make(map[string][]SearchResult)
 	for _, r := range allResults {
+		if !IsSearchResultURL(r.URL) {
+			continue
+		}
 		key := NormalizeURL(r.URL)
 		urlMap[key] = append(urlMap[key], r)
 	}

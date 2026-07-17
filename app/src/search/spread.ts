@@ -115,8 +115,8 @@ export const openSearch = async (options: {
         }
     });
     dialog.element.setAttribute("data-key", options.hotkey);
-    dialog.editors = genSearch(options.app, config, dialog.element.querySelector(".b3-dialog__body"), () => {
+    dialog.editors = genSearch({app: options.app, config, element: dialog.element.querySelector(".b3-dialog__body"), closeCB: () => {
         dialog.destroy({ focus: "false" });
-    });
+    }});
     dialog.data = config;
 };

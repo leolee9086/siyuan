@@ -13,50 +13,99 @@ import { initSearchEditors } from "./genSearch/initSearchEditors";
 import { setupDragHandler } from "./genSearch/setupDragHandler";
 import { setupInputHandlers } from "./genSearch/setupInputHandlers";
 import { setupClickHandler } from "./genSearch/setupClickHandler";
+import { initWebSearch } from "../webSearch";
+import type { Protyle } from "../../protyle";
+
+/** Bind local and web search interactions after the shared DOM has been created. */
+const setupSearchInteractions = (context: {
+    element: HTMLElement;
+    app: App;
+    config: Config.IUILayoutTabSearchConfig;
+    edit: Protyle;
+    unRefEdit: Protyle;
+    criteriaData: Config.IUILayoutTabSearchConfig[];
+    searchInputElement: HTMLInputElement;
+    replaceInputElement: HTMLInputElement;
+    searchPanelElement: Element;
+    assetsElement: HTMLElement;
+    unRefPanelElement: HTMLElement;
+    localSearch: ISearchAssetOption;
+    closeCB?: () => void;
+    updateCB?: (config: Config.IUILayoutTabSearchConfig) => void;
+}) => {
+    const {element, app, config, edit, unRefEdit, criteriaData, searchInputElement, replaceInputElement,
+        searchPanelElement, assetsElement, unRefPanelElement, localSearch, closeCB, updateCB} = context;
+    setupDragHandler(element, edit, !!closeCB, localSearch);
+    setupClickHandler({
+        element,
+        searchInputElement,
+        replaceInputElement,
+        searchPanelElement,
+        assetsElement,
+        unRefPanelElement,
+    }, {
+        app,
+        config,
+        edit,
+        unRefEdit,
+        criteriaData,
+        localSearch,
+    }, {closeCB, updateCB});
+    setupInputHandlers(element, searchInputElement, replaceInputElement, config, edit, updateCB);
+    initWebSearch(element, config, edit);
+};
+
+/** Resolve a required search control with a typed selector and a useful startup error. */
+const requiredSearchElement = <T extends Element>(element: HTMLElement, selector: string) => {
+    const result = element.querySelector<T>(selector);
+    if (!result) {
+        throw new Error("Search control not found: " + selector);
+    }
+    return result;
+};
 
 /**
  * 生成搜索面板
  * 
- * @param app - 应用实例
- * @param config - 搜索配置
- * @param element - 根容器元素
- * @param closeCB - 关闭回调（不存在时为页签搜索）
- * @param updateCB - 配置更新回调
+ * @param context - 应用实例、搜索配置、容器和可选回调
  * @returns 编辑器实例
  */
-export const genSearch = (
-    app: App,
-    config: Config.IUILayoutTabSearchConfig,
-    element: HTMLElement,
-    closeCB?: () => void,
-    updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
-) => {
+export const genSearch = (context: {
+    app: App;
+    config: Config.IUILayoutTabSearchConfig;
+    element: HTMLElement;
+    closeCB?: () => void;
+    updateCB?: (config: Config.IUILayoutTabSearchConfig) => void;
+}) => {
+    const {app, config, element, closeCB, updateCB} = context;
     // 计算初始状态
     let includeChild = true;
     let enableIncludeChild = false;
-    config.idPath.forEach(item => {
+    for (const item of config.idPath) {
+        // A document path disables the child-document scope toggle.
         if (item.endsWith(".sy")) {
             includeChild = false;
         }
+        // Nested paths allow the user to select a narrower child scope.
         if (item.split("/").length > 1) {
             enableIncludeChild = true;
         }
-    });
+    }
 
     // 生成 HTML
-    element.innerHTML = genSearchHTML(config, !!closeCB, includeChild, enableIncludeChild);
+    element.innerHTML = genSearchHTML({config, closeCB: !!closeCB, includeChild, enableIncludeChild});
 
     // 初始化搜索条件菜单
     const criteriaData: Config.IUILayoutTabSearchConfig[] = [];
     initCriteriaMenu(element.querySelector("#criteria"), criteriaData, config);
 
     // 获取DOM元素引用
-    const searchPanelElement = element.querySelector("#searchList") as Element;
-    const searchInputElement = element.querySelector("#searchInput") as HTMLInputElement;
-    const replaceInputElement = element.querySelector("#replaceInput") as HTMLInputElement;
-    const assetsElement = element.querySelector("#searchAssets") as HTMLElement;
-    const unRefPanelElement = element.querySelector("#searchUnRefPanel") as HTMLElement;
-    const localSearch = window.siyuan.storage[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
+    const searchPanelElement = requiredSearchElement(element, "#searchList");
+    const searchInputElement = requiredSearchElement<HTMLInputElement>(element, "#searchInput");
+    const replaceInputElement = requiredSearchElement<HTMLInputElement>(element, "#replaceInput");
+    const assetsElement = requiredSearchElement<HTMLElement>(element, "#searchAssets");
+    const unRefPanelElement = requiredSearchElement<HTMLElement>(element, "#searchUnRefPanel");
+    const localSearch: ISearchAssetOption = window.siyuan.storage[Constants.LOCAL_SEARCHASSET];
 
     // 初始化编辑器
     const { edit, unRefEdit } = initSearchEditors(app, element, !!closeCB);
@@ -66,38 +115,9 @@ export const genSearch = (
     replaceInputElement.value = config.r || "";
     searchInputElement.select();
 
-    // 设置拖拽处理
-    setupDragHandler(element, edit, !!closeCB, localSearch);
-
-    // 设置点击事件处理
-    setupClickHandler(
-        // UI 元素
-        {
-            element,
-            searchInputElement,
-            replaceInputElement,
-            searchPanelElement,
-            assetsElement,
-            unRefPanelElement,
-        },
-        // 状态数据
-        {
-            app,
-            config,
-            edit,
-            unRefEdit,
-            criteriaData,
-            localSearch,
-        },
-        // 回调函数
-        {
-            closeCB,
-            updateCB,
-        }
-    );
-
-    // 设置输入事件处理
-    setupInputHandlers(element, searchInputElement, replaceInputElement, config, edit, updateCB);
+    setupSearchInteractions({element, app, config, edit, unRefEdit, criteriaData,
+        searchInputElement, replaceInputElement, searchPanelElement, assetsElement, unRefPanelElement,
+        localSearch, closeCB, updateCB});
 
     // 触发初始搜索
     inputEvent(element, config, edit);

@@ -308,6 +308,7 @@ func getRealVote(
 				Role:    types.RoleTool,
 				Content: resContent,
 				ToolID:  tc.ID,
+				Meta:    webSearchMetaFromResult(toolRes),
 			})
 		}
 	}

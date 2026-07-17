@@ -104,7 +104,11 @@
                 </details>
               </template>
               <template v-else>
-                <div class="protyle-wysiwyg" v-html="renderContent(item.message.content)"></div>
+                <MagiWebContent
+                  class="protyle-wysiwyg"
+                  :content="item.message.content"
+                  :meta="item.message.meta"
+                />
               </template>
             </MessageBubble>
           </template>
@@ -124,9 +128,9 @@ import SeelPanelSvgFrame from "./SeelPanelSvgFrame.vue";
 import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
+import MagiWebContent from "../message-bubble/MagiWebContent.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
 import VirtualMasonryGrid from "../../../components/masonry/components/VirtualMasonryGrid.vue";
-import { renderMarkdown } from "../../utils/lute";
 import { computed, onUnmounted, ref, watch, type PropType } from "vue";
 import "./SeelPanel.css";
 
@@ -439,7 +443,4 @@ function eventSummaryTitle(message: SeelPanelProps["ai"]["messages"][number]): s
     return `${getRawEventType(message)} | seq=${getRawEventSeq(message)} | eventId=${getRawEventId(message)}`;
 }
 
-function renderContent(content: string): string {
-    return renderMarkdown(content);
-}
 </script>

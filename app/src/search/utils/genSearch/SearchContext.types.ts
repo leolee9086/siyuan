@@ -6,6 +6,14 @@
 import type { App } from "../../..";
 import type { Protyle } from "../../../protyle";
 
+/** Inputs shared by the local search template and the source selector controls. */
+export interface SearchHTMLContext {
+    config: Config.IUILayoutTabSearchConfig;
+    closeCB: boolean;
+    includeChild: boolean;
+    enableIncludeChild: boolean;
+}
+
 
 
 /**

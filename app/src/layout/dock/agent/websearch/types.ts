@@ -12,6 +12,7 @@ export type AgentWebSearchProgress = {
 export type AgentWebSearchResponse = {
     query?: string;
     provider?: string;
+    linkMap?: Record<string, string>;
     results?: Array<{
         title?: string;
         url?: string;

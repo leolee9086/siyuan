@@ -3,7 +3,11 @@
         class="sse-stream"
         v-if="msg.status !== 'pending' && (trimmedContent || msg.status === 'loading')"
     >
-        <span class="stream-content protyle-wysiwyg" v-html="renderedContent"></span>
+        <MagiWebContent
+            class="stream-content protyle-wysiwyg"
+            :content="msg.content || processingText"
+            :meta="msg.meta"
+        />
         <span
             v-if="msg.status === 'loading'"
             class="stream-cursor"
@@ -16,7 +20,7 @@
 import { computed } from "vue";
 import type { MagiMessageView } from "../../entry/magiView.types";
 import { getMagiI18nText } from "../../utils/magiI18n";
-import { renderMarkdown } from "../../utils/lute";
+import MagiWebContent from "../message-bubble/MagiWebContent.vue";
 
 const props = defineProps<{
     /** 消息对象 */
@@ -28,5 +32,4 @@ const props = defineProps<{
 /** 去除空白后的内容，用于判断是否有实际内容 */
 const trimmedContent = computed(() => props.msg.content.trim());
 const processingText = getMagiI18nText("processing");
-const renderedContent = computed(() => renderMarkdown(props.msg.content || processingText));
 </script>

@@ -92,7 +92,7 @@ class Search extends Model {
         }
         this.element = panelElement;
         this.config = options.config;
-        this.editors = genSearch(options.app, this.config, this.element);
+        this.editors = genSearch({app: options.app, config: this.config, element: this.element});
         this.element.addEventListener("click", () => {
             handleSearchElementClick(this.element);
         });

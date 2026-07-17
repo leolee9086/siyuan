@@ -94,9 +94,9 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
                         currentConfig = config;
                     };
 
-                    genSearch(app, currentConfig, searchContainer, () => {
+                    genSearch({app, config: currentConfig, element: searchContainer, closeCB: () => {
                         dialog.destroy();
-                    }, updateCB);
+                    }, updateCB});
 
                     const cancelBtn = dialog.element.querySelector(".b3-button--cancel");
                     cancelBtn.addEventListener("click", () => {

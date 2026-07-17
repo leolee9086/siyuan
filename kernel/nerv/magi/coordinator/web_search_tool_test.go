@@ -35,6 +35,17 @@ func TestWebSearchToolResultExecutor_RejectsEmptySearchQuery(t *testing.T) {
 	}
 }
 
+func TestWebSearchReferenceMetadataRejectsUntrustedTargets(t *testing.T) {
+	meta := webSearchMetaFromResult(`{"linkMap":{"ref:web-good":"https://example.com/source","ref:web-bad":"javascript:alert(1)","fake":"https://example.com/fake"}}`)
+	if meta == nil {
+		t.Fatal("expected trusted web search metadata")
+	}
+	links, ok := meta[webSearchLinksMetaKey].(map[string]string)
+	if !ok || len(links) != 1 || links["ref:web-good"] != "https://example.com/source" {
+		t.Fatalf("unexpected trusted link metadata: %+v", meta)
+	}
+}
+
 func TestWebSearchToolResultExecutor_InspectsExplicitEnginesWithoutProbe(t *testing.T) {
 	executor := newWebSearchToolResultExecutor()
 	result, handled, err := executor.ExecuteToolCall(types.ToolCall{

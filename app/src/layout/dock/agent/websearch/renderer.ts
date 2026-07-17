@@ -1,7 +1,9 @@
 /** 用途：搜索卡片 HTML 渲染。使用范围：原生 Agent 运行中和完成态展示。解耦评估：仅接收结构化数据并返回 HTML，不依赖 Agent 会话或 MAGI 执行链路。 */
 import {escapeHtml} from "./imports";
-/** 用途：搜索事件数据类型。使用范围：renderer 与 AgentChat 的边界。解耦评估：纯类型依赖，无运行时耦合。 */
+/** 用途：搜索进度类型。使用范围：原生 Agent 的运行中进度卡片。解耦评估：纯类型依赖，无运行时耦合。 */
 import type {AgentWebSearchProgress} from "./types";
+/** 用途：验证不可信工具载荷。使用范围：JSON 解析边界。解耦评估：类型守卫取代渲染模块内的断言。 */
+import {isAgentWebSearchResponse} from "./renderer.guard";
 
 /** Allow only HTTP(S) links in user-visible search cards. */
 const safeWebURL = (value: string) => {
@@ -11,6 +13,26 @@ const safeWebURL = (value: string) => {
     } catch {
         return "";
     }
+};
+
+/** Normalize trusted targets exactly as browser URL parsing normalizes anchors. */
+const normalizeVerifiedURLs = (urls: Set<string>) => {
+    const normalized = new Set<string>();
+    for (const url of urls) {
+        const safeURL = safeWebURL(url);
+        if (safeURL) {
+            normalized.add(safeURL);
+        }
+    }
+    return normalized;
+};
+
+/** Resolve an opaque search reference only through the map returned by web_search. */
+const resolveWebURL = (value: string, linkMap: Record<string, string> | undefined) => {
+    if (!value.startsWith("ref:")) {
+        return value;
+    }
+    return linkMap?.[value] || "";
 };
 
 /** Convert a backend phase into a compact running-card heading. */
@@ -69,8 +91,8 @@ const parseWebSearchResponse = (raw: string) => {
     const wrapped = raw.match(/^\s*\[tool_output\]\s*([\s\S]*?)\s*\[\/tool_output\]\s*$/);
     const payload = wrapped ? wrapped[1] : raw;
     try {
-        const parsed = JSON.parse(payload);
-        return parsed && typeof parsed === "object" ? parsed : null;
+        const parsed: unknown = JSON.parse(payload);
+        return isAgentWebSearchResponse(parsed) ? parsed : null;
     } catch {
         return null;
     }
@@ -93,7 +115,7 @@ export const renderWebSearchResult = (query: string, raw: string) => {
     const errors = Array.isArray(response.errors) ? response.errors : [];
     let resultHTML = "";
     for (const result of results) {
-        const url = safeWebURL(result.url || "");
+        const url = safeWebURL(resolveWebURL(result.url || "", response.linkMap));
         const title = escapeHtml(result.title || result.url || "Untitled result");
         const snippet = escapeHtml(result.snippet || "");
         const engineNames = Array.isArray(result.engines) ? result.engines.filter(Boolean).join(", ") : "";
@@ -126,4 +148,70 @@ export const renderWebSearchResult = (query: string, raw: string) => {
         (resultHTML ? '<div class="agent-chat__web-search-results">' + resultHTML + "</div>" : "") +
         (errorHTML ? '<div class="agent-chat__web-search-errors">' + errorHTML + "</div>" : "") +
         "</div>";
+};
+
+/**
+ * Extract the UI-only source map from a completed native Agent search result.
+ * @同步豁免: 生命周期
+ * tool_result 到达后必须在下一条 assistant 内容渲染前同步登记映射。
+ */
+export const collectWebSearchReferences = (raw: string) => {
+    const response = parseWebSearchResponse(raw);
+    return response?.linkMap || {};
+};
+
+/**
+ * Replace only mapped ref tokens before Markdown turns them into anchors.
+ * @同步豁免: UI构建
+ * Markdown 解析前必须同步完成引用替换，异步化会产生短暂的错误链接。
+ */
+export const resolveMappedWebReferences = (content: string, linkMap: Record<string, string>) => {
+    const tokens = content.match(/ref:web-[0-9a-f]+/g);
+    if (!tokens) {
+        return content;
+    }
+    let resolvedContent = content;
+    for (const token of tokens) {
+        const target = safeWebURL(linkMap[token] || "");
+        if (target) {
+            resolvedContent = resolvedContent.split(token).join(encodeURI(target));
+        }
+    }
+    return resolvedContent;
+};
+
+/** Handle an unverified anchor click without allowing browser navigation. */
+const handleUnverifiedLinkClick = (event: MouseEvent, safeURL: string, onUnverified: (url: string) => void) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (safeURL) {
+        onUnverified(safeURL);
+    }
+};
+
+/**
+ * Remove unverified external anchors so model-invented sources cannot navigate silently.
+ * @同步豁免: UI构建
+ * DOM 事件绑定必须在同一次渲染中完成，避免链接在保护前可点击。
+ */
+export const protectUnverifiedWebLinks = (
+    container: HTMLElement,
+    verifiedURLs: Set<string>,
+    onUnverified: (url: string) => void,
+) => {
+    const normalizedVerifiedURLs = normalizeVerifiedURLs(verifiedURLs);
+    for (const anchor of container.querySelectorAll<HTMLAnchorElement>("a")) {
+        const href = anchor.getAttribute("href") || "";
+        const safeURL = safeWebURL(href);
+        if (safeURL && normalizedVerifiedURLs.has(safeURL)) {
+            continue;
+        }
+        if (!safeURL && !href.startsWith("ref:")) {
+            continue;
+        }
+        anchor.removeAttribute("href");
+        anchor.setAttribute("data-unverified-href", href);
+        anchor.title = "This link was not returned by web search";
+        anchor.addEventListener("click", (event) => handleUnverifiedLinkClick(event, safeURL, onUnverified));
+    }
 };
