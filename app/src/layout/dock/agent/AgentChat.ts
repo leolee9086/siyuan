@@ -37,12 +37,14 @@ import {
 } from "./AgentMessageRenderer";
 import {
     collectWebSearchReferences,
+    normalizeWebURL,
     protectUnverifiedWebLinks,
     renderWebSearchProgress,
     renderWebSearchResult,
     resolveMappedWebReferences,
 } from "./websearch/renderer";
 import type {AgentWebSearchProgress} from "./websearch/types";
+import {ScalableBloomFilter} from "@leolee9086/bloom-filter";
 
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
 // Mirrors kernel/agent/agent.go maxVisibleBlockIDs.
@@ -158,6 +160,9 @@ export class AgentChat extends Model {
     private initialization: Promise<void> = Promise.resolve();
     private agentDestroyed = false;
     private webReferenceMap: Record<string, string> = {};
+    private webReferenceURLs = new Set<string>();
+    private webReferenceTokenFilter = new ScalableBloomFilter();
+    private webReferenceURLFilter = new ScalableBloomFilter();
 
     constructor(app: App, tab: Tab) {
         super({app: app});
@@ -1122,7 +1127,7 @@ export class AgentChat extends Model {
         this.currentContent = "";
         this.fullContent = "";
         this.currentToolCalls = [];
-        this.webReferenceMap = {};
+        this.resetWebReferenceIndex();
         this.pendingConfirms = [];
         this.messagesContainer.innerHTML = "";
         this.rebuildNavMarkers();
@@ -1135,7 +1140,7 @@ export class AgentChat extends Model {
         this.setStreaming(false);
         this.mirrorLocked = false;
         this.removeMirrorPlaceholder();
-        this.webReferenceMap = {};
+        this.resetWebReferenceIndex();
         this.finishActiveThinking();
         this.flushThinkingStep();
         await this.saveSession();
@@ -1178,26 +1183,48 @@ export class AgentChat extends Model {
     }
 
     /** Register source targets before a search tool result is rendered or persisted. */
+    private resetWebReferenceIndex() {
+        this.webReferenceMap = {};
+        this.webReferenceURLs.clear();
+        this.webReferenceTokenFilter.clear();
+        this.webReferenceURLFilter.clear();
+    }
+
     private registerWebSearchReferences(raw: string) {
-        Object.assign(this.webReferenceMap, collectWebSearchReferences(raw));
+        const references = collectWebSearchReferences(raw);
+        for (const [token, url] of Object.entries(references)) {
+            if (this.webReferenceMap[token] === url) {
+                continue;
+            }
+            const normalizedURL = normalizeWebURL(url);
+            if (!normalizedURL) {
+                continue;
+            }
+            this.webReferenceMap[token] = url;
+            this.webReferenceURLs.add(normalizedURL);
+            this.webReferenceTokenFilter.add(token);
+            this.webReferenceURLFilter.add(normalizedURL);
+        }
     }
 
     /** Resolve trusted refs before Markdown parsing so only returned sources become anchors. */
     private renderAssistantMarkdown(content: string) {
-        const resolved = resolveMappedWebReferences(content, this.webReferenceMap);
+        const resolved = resolveMappedWebReferences(content, this.webReferenceMap, this.webReferenceTokenFilter);
         return this.lute.ProtylePreviewStr("", resolved) || escapeHtml(resolved);
     }
 
     /** Render assistant markup and quarantine external links not returned by web_search. */
     private postRenderAssistant(container: HTMLElement) {
         postRender(container, this.app);
-        const verifiedURLs = new Set(Object.values(this.webReferenceMap));
-        protectUnverifiedWebLinks(container, verifiedURLs, (url) => {
-            confirmDialog(
-                "Unverified web link",
-                "This URL was not returned by the web search tool. It may have been invented by the model. Open it anyway?",
-                () => window.open(url, "_blank", "noopener,noreferrer"),
-            );
+        protectUnverifiedWebLinks(container, this.webReferenceURLs, {
+            urlFilter: this.webReferenceURLFilter,
+            onUnverified: (url) => {
+                confirmDialog(
+                    "Unverified web link",
+                    "This URL was not returned by the web search tool. It may have been invented by the model. Open it anyway?",
+                    () => window.open(url, "_blank", "noopener,noreferrer"),
+                );
+            },
         });
     }
 
@@ -1354,7 +1381,7 @@ export class AgentChat extends Model {
     }
 
     private renderLoadedSession(session: AgentSession) {
-        this.webReferenceMap = {};
+        this.resetWebReferenceIndex();
         const entries = session.entries || [];
         for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
@@ -1504,7 +1531,7 @@ export class AgentChat extends Model {
         this.currentToolCalls = [];
         this.lastStepToolCount = 0;
         this.renderedToolNames = {};
-        this.webReferenceMap = {};
+        this.resetWebReferenceIndex();
         this.hasInterveningCard = false;
         if (this.tokenDisplayEl) {
             this.tokenDisplayEl.classList.add("fn__none");
