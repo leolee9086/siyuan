@@ -807,17 +807,6 @@ body,
   overflow: hidden;
 }
 
-.magi-main-pane--identity {
-  align-items: flex-start;
-  overflow: auto;
-  padding: 8px;
-}
-
-.magi-main-pane--identity .magi-identity-panel {
-  width: 100%;
-  min-width: 0;
-}
-
 .magi-main-pane--source .source-sim-container,
 .magi-main-pane--chat .main-output {
   flex: 1;

@@ -40,6 +40,8 @@ import "./assets/scss/base.scss";
 import "./export-preview/register";
 // 注册集市广场/发布设置页签类型
 import "./bazaar-hub/register";
+// 注册 MAGI Identity Access 页签类型
+import "./magi/identity-access/adapters/register";
 import { isBrowser, isBrowserDesktop } from "./platform";
 import { ipcSend } from "./platform/electron/ipcRenderer";
 import { reloadEmoji } from "./emoji";

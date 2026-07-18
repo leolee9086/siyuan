@@ -11,6 +11,9 @@ import (
 	shared "github.com/siyuan-note/siyuan/packages/websearch"
 )
 
+type DiagnosticProgress = shared.DiagnosticProgress
+type DiagnosticProgressCallback = shared.DiagnosticProgressCallback
+
 func NewService() *shared.Service {
 	return shared.NewService(RuntimeConfig())
 }

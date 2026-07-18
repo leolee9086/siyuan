@@ -16,7 +16,7 @@
 4. UA/IP 等弱信号仅用于审计，不作为身份判定依据。
 5. 记忆作用域遵循主设计：Melchior 按界面工作台；Balthazar/Casper 跨界面连续（同一主体）。
 6. API 层只做解析与门禁：仅拒绝鉴权错误来源，并严格限制“MAGI 直答”只对主界面可信请求开放。
-7. 是否派出 Avatar 由 MAGI 内部自主判定，API 层不做 Avatar 派发决策。
+7. 是否派出 Avatar 由 MAGI 内部自主判定，API 层不做 Avatar 派发决策；Avatar 是所有非 MAGI 且向 MAGI 汇报的协议角色，内部复用上游思源普通 Agent，外部由未来 LLM 转发服务接入。
 
 ## 背景与当前问题
 
@@ -34,7 +34,7 @@
 
 1. 路由决策：
    - `Trinity 直答`
-   - `Avatar 通道委派`
+   - `Avatar 委派（内部普通 Agent 或外部转发 Agent）`
    - `拒绝/降级`
 2. 策略决策：
    - 工具权限矩阵
@@ -307,7 +307,7 @@ IP/UA 只记录到 `RawAttributes`：
 
 1. 普通笔记界面标记为 `interface_kind=siyuan-note-upstream`（或等价约定值）。
 2. API 层对该入口固定 `directResponseAllowed=false`（即便鉴权合法）。
-3. 请求进入 MAGI 后，默认走 Avatar 执行路径（avatar-first），由 MAGI 内部完成派发判定与执行。
+3. 请求进入 MAGI 后，默认走 Avatar 执行路径（avatar-first），由 MAGI 内部完成派发判定与执行；Avatar 通过 `report2magi` 汇报，MAGI 可读取其完整会话历史。
 4. 该入口不模拟主界面身份，不共享主界面直答权限。
 
 ## 6. 工作空间管理 AI 主界面为何不做严格信息隔离
@@ -343,7 +343,7 @@ IP/UA 只记录到 `RawAttributes`：
 2. 在贤者输入层注入规范化 `<request_source>`。
 3. 在路由与策略层接入 `channel/trust/risk/interface`。
 4. 在贤者上下文管理层接入 `MemoryScopeResolver`，按贤者选择对应 scope key。
-5. 在 coordinator 层消费 `directResponseAllowed`，并由 MAGI 内部决定 Avatar 派发与执行路径（对上游普通笔记入口采用 avatar-first 默认模板）。
+5. 在 coordinator 层消费 `directResponseAllowed`，并由 MAGI 内部决定 Avatar 派发与执行路径（对上游普通笔记入口采用 avatar-first 默认模板）；内部 Avatar 复用普通 Agent 会话和 `report2magi` 工具，外部 Avatar 通过转发服务的等价报告适配器接入。
 
 ## Phase 4: 主界面可信化
 
@@ -381,7 +381,7 @@ IP/UA 只记录到 `RawAttributes`：
    - Balthazar/Casper 跨界面连续有效
 3. 审计记录字段完整可追踪。
 4. 普通笔记界面入口在两端点均固定 `directResponseAllowed=false`。
-5. 是否派出 Avatar 的决策在 MAGI 内部一致，不在 API 层分叉。
+5. 是否派出 Avatar 的决策在 MAGI 内部一致，不在 API 层分叉；MAGI 对全部 Avatar 历史拥有受保护的读取和分析能力。
 
 ## 参考策略来源
 

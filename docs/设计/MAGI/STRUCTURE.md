@@ -2,9 +2,9 @@
 
 ## 架构核心理念
 
-**关键认知**：MAGI的三贤人（Melchior/Balthazar/Casper）、Trinity和所有Avatar都是**独立的agent实例**，而非简单的函数调用。它们：
+**关键认知**：MAGI的三贤人（Melchior/Balthazar/Casper）和Trinity是MAGI核心实例；Avatar是所有非 MAGI 且向 MAGI 汇报的协议角色。内部 Avatar 复用上游思源 Agent 系统的普通 Agent 会话，未来外部 Avatar 通过 LLM 转发服务接入；Avatar 不是 MAGI 内部的特殊运行时。它们：
 - 各自维护独立的上下文和状态
-- 通过消息总线相互通信
+- MAGI 核心实例通过消息总线通信；Avatar 消息经过 guardian 或 MAGI 的通信 ACL
 - 可以并发执行，异步协作
 - 前端面板独立监听每个agent的状态
 
@@ -34,8 +34,8 @@ kernel已经实现了MAGI的基础代理功能：
 ## 新模块目录结构（基于独立Agent架构）
 
 **设计原则**：
-1. 每个agent（三贤人、Trinity、Avatar）都是独立实例
-2. 通过消息总线（Bus）进行通信
+1. 三贤人、Trinity 和 Avatar 都通过明确的 Agent 会话边界运行；内部 Avatar复用上游普通 Agent，外部 Avatar 使用转发适配器
+2. MAGI 核心通过消息总线（Bus）进行通信；Avatar 的消息必须经过 guardian 或 MAGI 的通信 ACL，不允许 Agent 间直连
 3. 复用现有LLM客户端和API基础设施
 4. 参考myclaw的Gateway编排 + nanoClaw的Agent实现
 

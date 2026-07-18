@@ -1,0 +1,92 @@
+.identity-access-host {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 100%;
+  padding: 12px;
+  color: var(--b3-theme-on-background, #e7edf1);
+  background:
+    linear-gradient(90deg, rgba(230, 57, 70, 0.08) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(rgba(230, 57, 70, 0.05) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--b3-theme-background, #101418);
+  overflow: auto;
+}
+
+.identity-access-host__masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto 12px;
+  padding: 10px 12px 9px;
+  border-left: 4px solid #e63946;
+  border-bottom: 1px solid color-mix(in srgb, var(--b3-theme-on-background, #e7edf1) 20%, transparent);
+  background: color-mix(in srgb, var(--b3-theme-surface, #181d22) 92%, transparent);
+}
+
+.identity-access-host__eyebrow {
+  color: #ffb703;
+  font: 600 10px/1.2 var(--b3-font-family, sans-serif);
+  letter-spacing: 0;
+}
+
+.identity-access-host__title {
+  margin: 3px 0 0;
+  color: var(--b3-theme-on-background, #f4f7f8);
+  font: 700 20px/1.1 var(--b3-font-family, sans-serif);
+  letter-spacing: 0;
+}
+
+.identity-access-host__mark {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 4px;
+}
+
+.identity-access-host__mark span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid currentColor;
+  color: #5bd6e8;
+  font: 700 9px/1 monospace;
+}
+
+.identity-access-host--dock {
+  padding: 8px;
+}
+
+.identity-access-host--dock .identity-access-host__masthead {
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.identity-access-host--dock .identity-access-host__title {
+  font-size: 15px;
+}
+
+.identity-access-host--dock .identity-access-host__mark {
+  grid-template-columns: repeat(3, 18px);
+}
+
+.identity-access-host--dock .identity-access-host__mark span {
+  width: 18px;
+  height: 18px;
+  font-size: 8px;
+}
+
+@media (max-width: 520px) {
+  .identity-access-host {
+    padding: 8px;
+  }
+
+  .identity-access-host__masthead {
+    align-items: center;
+  }
+
+  .identity-access-host__title {
+    font-size: 17px;
+  }
+}

@@ -18,7 +18,7 @@ import { Tag } from "./dock/Tag";
 import { AgentChat } from "./dock/agent/AgentChat";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
-import { createErrorPlaceholderFromData } from "./dock/ErrorPlaceholder";
+import { createErrorPlaceholderFromData } from "./dock/ErrorPlaceholder.factory";
 import { isErrorPlaceholderData } from "./dock/dock.guard";
 import {
     getSiyuanLanguages,

@@ -18,10 +18,12 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +34,107 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
+
+const agentOwnerTokenHeader = "X-SiYuan-Agent-Owner-Token"
+
+type agentOwnerAuthorization struct {
+	IdentityID string
+	ExpiresAt  int64
+}
+
+func optionalAgentOwnerAuthorization(c *gin.Context) (*agentOwnerAuthorization, *magiSourceAuthError) {
+	rawToken := strings.TrimSpace(c.GetHeader(agentOwnerTokenHeader))
+	if rawToken == "" {
+		return nil, nil
+	}
+	if !isAgentOwnerTransportSecure(c) {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "agent_owner_secure_transport_required",
+			Message:    "verified owner access requires HTTPS or a local desktop connection",
+		}
+	}
+	claims, authErr := verifyMagiArmorToken(rawToken)
+	if authErr != nil {
+		return nil, authErr
+	}
+	if claims.Chn != magiRequestChannelMainUI || claims.Rtc != magiRouteClassGuardian {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "agent_owner_guardian_required",
+			Message:    "a guardian identity verified for magi-main-ui is required",
+		}
+	}
+	identity, authErr := ensureMagiArmorIdentityConsistency(claims)
+	if authErr != nil {
+		return nil, authErr
+	}
+	if identity.RouteClass != magiRouteClassGuardian {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "agent_owner_guardian_required",
+			Message:    "a guardian identity is required",
+		}
+	}
+	return &agentOwnerAuthorization{IdentityID: claims.Sub, ExpiresAt: claims.Exp}, nil
+}
+
+func isAgentOwnerTransportSecure(c *gin.Context) bool {
+	if c == nil || c.Request == nil {
+		return false
+	}
+	if c.Request.TLS != nil {
+		return true
+	}
+	return util.IsLocalHost(c.Request.RemoteAddr) && util.IsLocalHost(c.Request.Host)
+}
+
+func requireAgentSessionAccess(c *gin.Context, sessionID string) (*agentOwnerAuthorization, *agent.TaskDirectoryBinding, bool) {
+	binding, err := agent.GetTaskDirectoryBinding(sessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "failed to inspect agent session"})
+		return nil, nil, false
+	}
+	ownerAuth, authErr := optionalAgentOwnerAuthorization(c)
+	if authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return nil, binding, false
+	}
+	if binding == nil {
+		return ownerAuth, nil, true
+	}
+	if ownerAuth == nil || !subtleConstantTimeStringEqual(binding.OwnerIdentityID, ownerAuth.IdentityID) {
+		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "verified device owner access is required"})
+		return nil, binding, false
+	}
+	return ownerAuth, binding, true
+}
+
+func subtleConstantTimeStringEqual(left, right string) bool {
+	if len(left) != len(right) || left == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
+}
+
+func requireRunningAgentAccess(c *gin.Context, sessionID string) bool {
+	ownerAuth, binding, ok := requireAgentSessionAccess(c, sessionID)
+	if !ok {
+		return false
+	}
+	sessionsMu.Lock()
+	running := runningSessions[sessionID]
+	sessionsMu.Unlock()
+	if running == nil {
+		c.JSON(http.StatusConflict, gin.H{"code": -1, "msg": "agent session is not running"})
+		return false
+	}
+	if binding != nil && (ownerAuth == nil || !subtleConstantTimeStringEqual(running.ownerIdentityID, ownerAuth.IdentityID)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "verified device owner access is required"})
+		return false
+	}
+	return true
+}
 
 type agentChatReq struct {
 	SessionID       string               `json:"sessionID"`
@@ -46,11 +149,18 @@ type agentChatReq struct {
 }
 
 type runningSession struct {
-	eventCh <-chan agent.AgentEvent
+	eventCh         <-chan agent.AgentEvent
+	ownerIdentityID string
 }
 
 var sessionsMu sync.Mutex
 var runningSessions = map[string]*runningSession{}
+
+func isAgentSessionRunning(sessionID string) bool {
+	sessionsMu.Lock()
+	defer sessionsMu.Unlock()
+	return runningSessions[sessionID] != nil
+}
 
 func agentChat(c *gin.Context) {
 	if !model.Conf.AI.HasAnyProvider() {
@@ -67,6 +177,11 @@ func agentChat(c *gin.Context) {
 		ret.Code = -1
 		ret.Msg = "invalid request: " + err.Error()
 		c.JSON(http.StatusOK, ret)
+		return
+	}
+
+	ownerAuth, taskDirectory, authorized := requireAgentSessionAccess(c, req.SessionID)
+	if !authorized {
 		return
 	}
 
@@ -98,11 +213,15 @@ func agentChat(c *gin.Context) {
 
 	app := c.GetHeader("X-SiYuan-App-ID")
 
+	ownerIdentityID := ""
+	ownerExpiresAt := int64(0)
+	if ownerAuth != nil {
+		ownerIdentityID = ownerAuth.IdentityID
+		ownerExpiresAt = ownerAuth.ExpiresAt
+	}
 	ctx, cancel := context.WithCancel(c.Request.Context())
-	eventCh := agent.AgentChat(ctx, client, selectedModel.Name, req.SessionID, req.Message, req.Language, req.References, req.EditorContext, req.PluginActions, req.Regenerate, confirmTimeout, maxRetries, req.ReasoningEffort)
 
-	// 实例级互斥：同一 session 同时只允许一个活跃流。
-	// 检查+占用在同一把锁内（compare-and-set），失败时 cancel 释放刚启动的 goroutine 防泄漏。
+	// 实例级互斥：先占用会话，再启动 Agent，避免竞争失败时短暂执行工具或发起模型请求。
 	sessionsMu.Lock()
 	if _, ok := runningSessions[req.SessionID]; ok {
 		sessionsMu.Unlock()
@@ -113,7 +232,13 @@ func agentChat(c *gin.Context) {
 		c.JSON(http.StatusConflict, ret)
 		return
 	}
-	runningSessions[req.SessionID] = &runningSession{eventCh: eventCh}
+	runningSessions[req.SessionID] = &runningSession{ownerIdentityID: ownerIdentityID}
+	sessionsMu.Unlock()
+	eventCh := agent.AgentChat(ctx, client, selectedModel.Name, req.SessionID, req.Message, req.Language, req.References, req.EditorContext, req.PluginActions, req.Regenerate, confirmTimeout, maxRetries, req.ReasoningEffort, taskDirectory, ownerIdentityID, ownerExpiresAt)
+	sessionsMu.Lock()
+	if running := runningSessions[req.SessionID]; running != nil {
+		running.eventCh = eventCh
+	}
 	sessionsMu.Unlock()
 	defer cancel()
 	defer func() {
@@ -143,6 +268,15 @@ func agentChat(c *gin.Context) {
 		totalTimeout = 3600 * time.Second
 	}
 	deadline := time.After(totalTimeout)
+	var ownerAuthorizationDeadline <-chan time.Time
+	if taskDirectory != nil {
+		remaining := time.Until(time.Unix(ownerExpiresAt, 0))
+		if remaining <= 0 {
+			writeSSEError(c, "verified device owner authorization expired")
+			return
+		}
+		ownerAuthorizationDeadline = time.After(remaining)
+	}
 
 	// 通知其他实例：该会话的流已开始，镜像端可显示"对话进行中"占位。
 	broadcastAgentSessionChanged(app, req.SessionID, "streamStart")
@@ -173,11 +307,16 @@ func agentChat(c *gin.Context) {
 			writeSSEError(c, model.Conf.Language(24))
 			flusher.Flush()
 			return
+		case <-ownerAuthorizationDeadline:
+			writeSSEError(c, "verified device owner authorization expired")
+			flusher.Flush()
+			return
 		}
 	}
 }
 
 type agentConfirmReq struct {
+	SessionID string `json:"sessionID"`
 	ConfirmID string `json:"confirmID"`
 	Approved  bool   `json:"approved"`
 	Always    bool   `json:"always"`
@@ -192,12 +331,16 @@ func agentChatConfirm(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	agent.ConfirmSession(req.ConfirmID, req.Approved, req.Always)
+	if !requireRunningAgentAccess(c, req.SessionID) {
+		return
+	}
+	agent.ConfirmSession(req.SessionID, req.ConfirmID, req.Approved, req.Always)
 	ret := gulu.Ret.NewResult()
 	c.JSON(http.StatusOK, ret)
 }
 
 type agentQuestionReq struct {
+	SessionID  string   `json:"sessionID"`
 	QuestionID string   `json:"questionID"`
 	Answers    []string `json:"answers"`
 }
@@ -211,15 +354,19 @@ func agentChatQuestion(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	agent.AnswerQuestion(req.QuestionID, req.Answers)
+	if !requireRunningAgentAccess(c, req.SessionID) {
+		return
+	}
+	agent.AnswerQuestion(req.SessionID, req.QuestionID, req.Answers)
 	ret := gulu.Ret.NewResult()
 	c.JSON(http.StatusOK, ret)
 }
 
 type agentFrontendResultReq struct {
-	CallID  string `json:"callID"`
-	Result  string `json:"result"`
-	IsError bool   `json:"isError"`
+	SessionID string `json:"sessionID"`
+	CallID    string `json:"callID"`
+	Result    string `json:"result"`
+	IsError   bool   `json:"isError"`
 }
 
 func agentChatFrontendResult(c *gin.Context) {
@@ -231,15 +378,19 @@ func agentChatFrontendResult(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	agent.FrontendToolResult(req.CallID, req.Result, req.IsError)
+	if !requireRunningAgentAccess(c, req.SessionID) {
+		return
+	}
+	agent.FrontendToolResult(req.SessionID, req.CallID, req.Result, req.IsError)
 	ret := gulu.Ret.NewResult()
 	c.JSON(http.StatusOK, ret)
 }
 
 type agentTitleReq struct {
-	Message  string `json:"message"`
-	Model    string `json:"model"`
-	Language string `json:"language"`
+	SessionID string `json:"sessionID"`
+	Message   string `json:"message"`
+	Model     string `json:"model"`
+	Language  string `json:"language"`
 }
 
 func agentChatTitle(c *gin.Context) {
@@ -249,6 +400,9 @@ func agentChatTitle(c *gin.Context) {
 		ret.Code = -1
 		ret.Msg = "invalid request: " + err.Error()
 		c.JSON(http.StatusOK, ret)
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
 		return
 	}
 
@@ -291,14 +445,80 @@ func lsSessions(c *gin.Context) {
 		return
 	}
 
-	result := agent.ListSessions(req.Page, req.PageSize, req.Keyword)
+	ownerIdentityID := ""
+	if ownerAuth, authErr := optionalAgentOwnerAuthorization(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	} else if ownerAuth != nil {
+		ownerIdentityID = ownerAuth.IdentityID
+	}
+	result, err := agent.ListSessions(req.Page, req.PageSize, req.Keyword, ownerIdentityID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "failed to inspect protected agent sessions"})
+		return
+	}
 	ret := gulu.Ret.NewResult()
-	ret.Data = result
+	ret.Data = agent.RedactSessionList(result)
 	c.JSON(http.StatusOK, ret)
 }
 
 type agentSessionGetReq struct {
 	ID string `json:"id"`
+}
+
+func listAgentTaskDirectories(c *gin.Context) {
+	req := &agentSessionGetReq{}
+	if err := c.ShouldBindJSON(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	_, binding, ok := requireAgentSessionAccess(c, req.ID)
+	if !ok {
+		return
+	}
+	ret := gulu.Ret.NewResult()
+	if binding != nil {
+		ret.Data = binding.Redacted()
+	} else {
+		ret.Data = &agent.TaskDirectoryBinding{Directories: []*agent.TaskDirectoryGrant{}}
+	}
+	c.JSON(http.StatusOK, ret)
+}
+
+func sanitizeSessionForResponse(session map[string]interface{}) map[string]interface{} {
+	if session == nil {
+		return nil
+	}
+	if _, ok := session["taskDirectory"].(map[string]interface{}); !ok {
+		return session
+	}
+	session["taskDirectory"] = sanitizeTaskDirectoryResponseValue(session["taskDirectory"])
+	return session
+}
+
+// sanitizeTaskDirectoryResponseValue removes sensitive fields at every nested
+// level because the client-owned session payload may contain main/directories
+// grant objects even though the authoritative capability store is separate.
+func sanitizeTaskDirectoryResponseValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		redacted := make(map[string]interface{}, len(typed))
+		for key, nested := range typed {
+			if key == "path" || key == "ownerIdentityId" {
+				continue
+			}
+			redacted[key] = sanitizeTaskDirectoryResponseValue(nested)
+		}
+		return redacted
+	case []interface{}:
+		redacted := make([]interface{}, len(typed))
+		for index, nested := range typed {
+			redacted[index] = sanitizeTaskDirectoryResponseValue(nested)
+		}
+		return redacted
+	default:
+		return value
+	}
 }
 
 func getSession(c *gin.Context) {
@@ -311,6 +531,9 @@ func getSession(c *gin.Context) {
 		return
 	}
 
+	if _, _, ok := requireAgentSessionAccess(c, req.ID); !ok {
+		return
+	}
 	session, err := agent.GetSession(req.ID)
 	if err != nil {
 		ret := gulu.Ret.NewResult()
@@ -321,7 +544,7 @@ func getSession(c *gin.Context) {
 	}
 
 	ret := gulu.Ret.NewResult()
-	ret.Data = session
+	ret.Data = sanitizeSessionForResponse(session)
 	c.JSON(http.StatusOK, ret)
 }
 
@@ -339,9 +562,19 @@ func removeSession(c *gin.Context) {
 		return
 	}
 
+	_, binding, ok := requireAgentSessionAccess(c, req.ID)
+	if !ok {
+		return
+	}
+	if isAgentSessionRunning(req.ID) {
+		c.JSON(http.StatusConflict, gin.H{"code": -1, "msg": "running agent session cannot be deleted"})
+		return
+	}
 	_ = agent.DeleteSession(req.ID)
-	// 通知其他实例：会话已删除，刷新列表；若为当前会话则清空视图。
-	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.ID, "delete")
+	// 外部会话删除后 capability 已移除，不能再通过通用广播函数判断敏感性。
+	if binding == nil {
+		broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.ID, "delete")
+	}
 	ret := gulu.Ret.NewResult()
 	c.JSON(http.StatusOK, ret)
 }
@@ -356,21 +589,32 @@ func saveSession(c *gin.Context) {
 		return
 	}
 
-	_ = agent.SaveSession(body)
-	// 从 body 解出 sessionID 用于广播。update 仅触发其他实例刷新会话列表元数据，
-	// 不触发当前视图重绘（重绘由 streamEnd 负责），回避流式中途半截数据的时序问题。
 	var meta sessionMeta
-	if gulu.JSON.UnmarshalJSON(body, &meta) == nil && meta.ID != "" {
-		broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), meta.ID, "update")
+	if gulu.JSON.UnmarshalJSON(body, &meta) != nil || meta.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid agent session payload"})
+		return
 	}
+	if _, _, ok := requireAgentSessionAccess(c, meta.ID); !ok {
+		return
+	}
+	if err := agent.SaveSession(body); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "failed to save agent session"})
+		return
+	}
+	// update 只广播会话 ID 和动作，不携带任务目录、标题或消息内容。
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), meta.ID, "update")
 	ret := gulu.Ret.NewResult()
 	c.JSON(http.StatusOK, ret)
 }
 
-// broadcastAgentSessionChanged 向除发起者 app 外、所有打开了 agentChat dock 的实例推送会话变更通知。
-// action: streamStart / streamEnd / update / delete。排除发起者 app（它已通过 SSE 自渲染或本地持有最新状态）。
+// broadcastAgentSessionChanged 只广播普通会话。外部目录会话的 ID、活动状态和时序
+// 都不能进入未携带 owner capability 的全局 WebSocket 通道。
 func broadcastAgentSessionChanged(app, sessionID, action string) {
 	if "" == app || "" == sessionID {
+		return
+	}
+	binding, err := agent.GetTaskDirectoryBinding(sessionID)
+	if err != nil || binding != nil {
 		return
 	}
 	data := map[string]string{"sessionID": sessionID, "action": action}
@@ -380,6 +624,87 @@ func broadcastAgentSessionChanged(app, sessionID, action string) {
 // sessionMeta 用于从 saveSession 的 body 中解析出会话 ID，agent 包内也有同名字段，此处独立定义避免循环依赖。
 type sessionMeta struct {
 	ID string `json:"id"`
+}
+
+type agentTaskDirectoryReq struct {
+	SessionID   string `json:"sessionID"`
+	Path        string `json:"path"`
+	Permission  string `json:"permission,omitempty"`
+	DirectoryID string `json:"directoryID,omitempty"`
+}
+
+func bindAgentTaskDirectory(c *gin.Context) {
+	bindAgentTaskDirectoryGrant(c, true)
+}
+
+func addAgentTaskDirectory(c *gin.Context) {
+	bindAgentTaskDirectoryGrant(c, false)
+}
+
+func bindAgentTaskDirectoryGrant(c *gin.Context, main bool) {
+	var req agentTaskDirectoryReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	ownerAuth, _, ok := requireAgentSessionAccess(c, req.SessionID)
+	if !ok {
+		return
+	}
+	if ownerAuth == nil {
+		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "verified guardian identity is required"})
+		return
+	}
+	if isAgentSessionRunning(req.SessionID) {
+		c.JSON(http.StatusConflict, gin.H{"code": -1, "msg": "task directory cannot be changed while the agent session is running"})
+		return
+	}
+	var binding *agent.TaskDirectoryBinding
+	var err error
+	if main {
+		binding, err = agent.BindTaskDirectory(req.SessionID, req.Path, ownerAuth.IdentityID)
+	} else {
+		binding, err = agent.AddTaskDirectory(req.SessionID, req.Path, agent.TaskDirectoryPermission(req.Permission), ownerAuth.IdentityID)
+	}
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
+		return
+	}
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.SessionID, "update")
+	ret := gulu.Ret.NewResult()
+	ret.Data = binding.Redacted()
+	c.JSON(http.StatusOK, ret)
+}
+
+func unbindAgentTaskDirectory(c *gin.Context) {
+	var req agentTaskDirectoryReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	_, binding, ok := requireAgentSessionAccess(c, req.SessionID)
+	if !ok {
+		return
+	}
+	if binding == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "task directory is not bound"})
+		return
+	}
+	if binding.Grant(req.DirectoryID) == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": -1, "msg": "task directory grant is not bound"})
+		return
+	}
+	if isAgentSessionRunning(req.SessionID) {
+		c.JSON(http.StatusConflict, gin.H{"code": -1, "msg": "task directory cannot be changed while the agent session is running"})
+		return
+	}
+	if err := agent.UnbindTaskDirectory(req.SessionID, req.DirectoryID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
+		return
+	}
+	// 解除前属于敏感会话，不广播其 ID。
+	ret := gulu.Ret.NewResult()
+	c.JSON(http.StatusOK, ret)
 }
 
 func writeSSE(c *gin.Context, event agent.AgentEvent) error {

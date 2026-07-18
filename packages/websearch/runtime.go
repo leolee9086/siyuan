@@ -142,62 +142,161 @@ func (s *Service) Search(query string, opts SearchOptions, onProgress ProgressCa
 	return response, nil
 }
 
+const (
+	diagnosticProbeConcurrency = 20
+	diagnosticProbeTimeout     = 5 * time.Second
+)
+
+type DiagnosticProgress struct {
+	Done       int
+	Total      int
+	Current    string
+	Diagnostic EngineDiagnostic
+}
+
+type DiagnosticProgressCallback func(progress DiagnosticProgress)
+
 func (s *Service) Diagnose(names []string, probe bool, query string) []EngineDiagnostic {
+	return s.DiagnoseWithProgress(names, probe, query, nil)
+}
+
+// DiagnoseWithProgress keeps the final result stable while probing engines with
+// bounded concurrency. Each probe also has a hard timeout so a broken adapter
+// cannot block the entire diagnostic run.
+func (s *Service) DiagnoseWithProgress(names []string, probe bool, query string, onProgress DiagnosticProgressCallback) []EngineDiagnostic {
 	if len(names) == 0 {
 		names = GlobalEngineRegistry.List()
+	} else {
+		names = append([]string(nil), names...)
 	}
 	sort.Strings(names)
+	query = strings.TrimSpace(query)
 	if query == "" {
 		query = "test search"
 	}
-	result := make([]EngineDiagnostic, 0, len(names))
-	for _, name := range names {
-		factory, ok := GlobalEngineRegistry.Get(name)
-		if !ok {
-			result = append(result, EngineDiagnostic{Name: name, Status: "not_registered"})
-			continue
-		}
-		base := factory(DefaultEngineConfig(name)).Config()
-		cfg := s.engineConfig(name, base)
-		engine := factory(cfg)
-		diagnostic := EngineDiagnostic{
-			Name: name, Category: cfg.Category, Enabled: true,
-			RequiresKey: cfg.RequiresKey, CredentialsReady: !cfg.RequiresKey || strings.TrimSpace(cfg.APIKey) != "",
-			Status: "ready",
-		}
-		if runtime, configured := s.config.Engines[name]; configured && !runtime.Enabled {
-			diagnostic.Enabled = false
-			diagnostic.Status = "disabled"
-		}
-		if diagnostic.RequiresKey && !diagnostic.CredentialsReady {
-			diagnostic.Status = "requires_credentials"
-		}
-		if status, ok := GlobalExecutorState.EngineStatuses[name]; ok {
-			diagnostic.LastError = status.LastError
-			diagnostic.TotalRequests = status.Metrics.TotalRequests
-			diagnostic.SuccessfulRequests = status.Metrics.SuccessfulRequests
-			diagnostic.AvgLatencyMs = status.Metrics.AvgLatency
-			if status.Suspended {
-				diagnostic.Status = "suspended"
+
+	total := len(names)
+	if onProgress != nil {
+		onProgress(DiagnosticProgress{Total: total})
+	}
+	if total == 0 {
+		return nil
+	}
+
+	result := make([]EngineDiagnostic, total)
+	if !probe {
+		for index, name := range names {
+			diagnostic := s.diagnoseEngine(name, false, query)
+			result[index] = diagnostic
+			if onProgress != nil {
+				onProgress(DiagnosticProgress{Done: index + 1, Total: total, Current: name, Diagnostic: diagnostic})
 			}
 		}
-		if probe && diagnostic.Enabled && diagnostic.Status != "requires_credentials" {
-			started := time.Now()
-			probed, err := engine.Search(query, SearchOptions{NumResults: 1}, nil)
-			diagnostic.ProbeDurationMs = time.Since(started).Milliseconds()
-			diagnostic.ProbeResults = len(probed)
-			if err != nil {
-				diagnostic.Status = "probe_failed"
-				diagnostic.LastError = err.Error()
-			} else if len(probed) == 0 {
-				diagnostic.Status = "empty_results"
-			} else {
-				diagnostic.Status = "ready"
+		return result
+	}
+
+	type diagnosticOutcome struct {
+		index      int
+		diagnostic EngineDiagnostic
+	}
+	jobs := make(chan int, total)
+	outcomes := make(chan diagnosticOutcome, total)
+	for index := range names {
+		jobs <- index
+	}
+	close(jobs)
+
+	workerCount := diagnosticProbeConcurrency
+	if total < workerCount {
+		workerCount = total
+	}
+	for worker := 0; worker < workerCount; worker++ {
+		go func() {
+			for index := range jobs {
+				outcomes <- diagnosticOutcome{index: index, diagnostic: s.diagnoseEngine(names[index], true, query)}
 			}
+		}()
+	}
+
+	for done := 1; done <= total; done++ {
+		outcome := <-outcomes
+		result[outcome.index] = outcome.diagnostic
+		if onProgress != nil {
+			onProgress(DiagnosticProgress{
+				Done: done, Total: total, Current: outcome.diagnostic.Name, Diagnostic: outcome.diagnostic,
+			})
 		}
-		result = append(result, diagnostic)
 	}
 	return result
+}
+
+func (s *Service) diagnoseEngine(name string, probe bool, query string) EngineDiagnostic {
+	factory, ok := GlobalEngineRegistry.Get(name)
+	if !ok {
+		return EngineDiagnostic{Name: name, Status: "not_registered"}
+	}
+	base := factory(DefaultEngineConfig(name)).Config()
+	cfg := s.engineConfig(name, base)
+	diagnostic := EngineDiagnostic{
+		Name: name, Category: cfg.Category, Enabled: true,
+		RequiresKey: cfg.RequiresKey, CredentialsReady: !cfg.RequiresKey || strings.TrimSpace(cfg.APIKey) != "",
+		Status: "ready",
+	}
+	if runtime, configured := s.config.Engines[name]; configured && !runtime.Enabled {
+		diagnostic.Enabled = false
+		diagnostic.Status = "disabled"
+	}
+	if diagnostic.RequiresKey && !diagnostic.CredentialsReady {
+		diagnostic.Status = "requires_credentials"
+	}
+
+	GlobalExecutorState.mu.RLock()
+	if status, ok := GlobalExecutorState.EngineStatuses[name]; ok {
+		diagnostic.LastError = status.LastError
+		diagnostic.TotalRequests = status.Metrics.TotalRequests
+		diagnostic.SuccessfulRequests = status.Metrics.SuccessfulRequests
+		diagnostic.AvgLatencyMs = status.Metrics.AvgLatency
+		if status.Suspended {
+			diagnostic.Status = "suspended"
+		}
+	}
+	GlobalExecutorState.mu.RUnlock()
+
+	if !probe || !diagnostic.Enabled || diagnostic.Status == "requires_credentials" {
+		return diagnostic
+	}
+	if cfg.Timeout <= 0 || time.Duration(cfg.Timeout)*time.Millisecond > diagnosticProbeTimeout {
+		cfg.Timeout = int(diagnosticProbeTimeout / time.Millisecond)
+	}
+	engine := factory(cfg)
+	started := time.Now()
+	resultCh := make(chan searchResultOrError, 1)
+	go func() {
+		probed, err := engine.Search(query, SearchOptions{NumResults: 1}, nil)
+		resultCh <- searchResultOrError{results: probed, err: err}
+	}()
+
+	var probed []SearchResult
+	var err error
+	timer := time.NewTimer(time.Duration(cfg.Timeout) * time.Millisecond)
+	select {
+	case outcome := <-resultCh:
+		timer.Stop()
+		probed, err = outcome.results, outcome.err
+	case <-timer.C:
+		err = &TimeoutError{Engine: name, Message: fmt.Sprintf("diagnostic probe timed out after %dms", cfg.Timeout)}
+	}
+	diagnostic.ProbeDurationMs = time.Since(started).Milliseconds()
+	diagnostic.ProbeResults = len(probed)
+	if err != nil {
+		diagnostic.Status = "probe_failed"
+		diagnostic.LastError = err.Error()
+	} else if len(probed) == 0 {
+		diagnostic.Status = "empty_results"
+	} else {
+		diagnostic.Status = "ready"
+	}
+	return diagnostic
 }
 
 func (s *Service) selectEngines(opts SearchOptions) ([]SearchEngine, []EngineDiagnostic) {

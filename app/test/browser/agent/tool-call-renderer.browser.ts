@@ -21,6 +21,17 @@ describe("native Agent tool-call cards", () => {
         });
         expect(host.textContent).toContain("1/2");
         expect(host.textContent).toContain("fixture");
+        expect(host.textContent).toContain("1 result");
+
+        host.innerHTML = renderToolCallProgress("web_search_status", {probe: true}, {
+            phase: "update",
+            done: 7,
+            total: 210,
+            current: "github",
+        });
+        expect(host.textContent).toContain("7/210");
+        expect(host.textContent).toContain("github");
+        expect(host.textContent).not.toContain("results");
 
         host.innerHTML = renderToolCallResult("fixture_tool", {path: "src/main.go"}, "<script>alert(1)</script>");
         expect(host.textContent).toContain("<script>alert(1)</script>");

@@ -38,7 +38,7 @@ const renderProgress = (progress: AgentWebSearchProgress) => {
     const total = Math.max(0, progress.total || 0);
     const done = Math.max(0, Math.min(progress.done || 0, total || progress.done || 0));
     const current = progress.current ? "<span>" + escapeHtml(progress.current) + "</span>" : "";
-    const count = progress.partialCount === undefined ? "" : progress.partialCount + " results";
+    const count = progress.partialCount === undefined ? "" : progress.partialCount + (progress.partialCount === 1 ? " result" : " results");
     const progressText = total > 0 ? done + "/" + total : "Working";
     const percent = total > 0 ? Math.round((done / total) * 100) : 0;
     return '<div class="agent-chat__tool-call-progress">' +

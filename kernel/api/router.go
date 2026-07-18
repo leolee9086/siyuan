@@ -554,8 +554,12 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/ai/agent/title", model.CheckAuth, model.CheckAdminRole, agentChatTitle)
 	ginServer.Handle("POST", "/api/ai/agent/lsSessions", model.CheckAuth, model.CheckAdminRole, lsSessions)
 	ginServer.Handle("POST", "/api/ai/agent/getSession", model.CheckAuth, model.CheckAdminRole, getSession)
+	ginServer.Handle("POST", "/api/ai/agent/lsTaskDirectories", model.CheckAuth, model.CheckAdminRole, listAgentTaskDirectories)
 	ginServer.Handle("POST", "/api/ai/agent/saveSession", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, saveSession)
 	ginServer.Handle("POST", "/api/ai/agent/removeSession", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, removeSession)
+	ginServer.Handle("POST", "/api/ai/agent/bindTaskDirectory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, bindAgentTaskDirectory)
+	ginServer.Handle("POST", "/api/ai/agent/addTaskDirectory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, addAgentTaskDirectory)
+	ginServer.Handle("POST", "/api/ai/agent/unbindTaskDirectory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, unbindAgentTaskDirectory)
 	ginServer.Handle("POST", "/api/ai/agent/lsSkills", model.CheckAuth, model.CheckAdminRole, lsSkills)
 	ginServer.Handle("POST", "/api/ai/agent/getSkill", model.CheckAuth, model.CheckAdminRole, getSkill)
 	ginServer.Handle("POST", "/api/ai/agent/saveSkill", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, saveSkill)
@@ -731,7 +735,7 @@ func deprecated(c *gin.Context) {
 
 	msg := fmt.Sprintf("[%s] is deprecated, visit [https://github.com/siyuan-note/siyuan/issues/15727] for details",
 		c.Request.RequestURI)
-	logging.LogWarnf(msg)
+	logging.LogWarnf("%s", msg)
 
 	ret.Code = -1
 	ret.Msg = msg

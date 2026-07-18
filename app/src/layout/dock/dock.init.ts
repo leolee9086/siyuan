@@ -229,6 +229,7 @@ export function initDockData(
      * 生效场景：当前正在初始化右侧 Dock 且数据中缺失定时任务面板时。
      */
     if (position === "Right") {
+        恢复缺失面板(data[0], seenGlobalTypes, "magi-identity-access", "iconLock", "Identity Access", position);
         恢复缺失面板(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
     }
 

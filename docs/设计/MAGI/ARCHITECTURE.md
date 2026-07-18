@@ -14,9 +14,11 @@ MAGI采用**独立Agent + 消息总线**架构，参考myclaw和nanoClaw的最�
 - **WebSocket**: 前端独立监听每个agent的事件流
 
 **Avatar说明**：
-- Avatar不属于MAGI的一部分
-- Avatar是独立的agent实例，有自己的运行时
-- Avatar通过内部工具向MAGI汇报，MAGI通过工具调用Avatar
+- Avatar 是所有非 MAGI 且向 MAGI 汇报的协议角色；不限定为某一种运行时或部署位置
+- 内部 Avatar 复用上游思源 Agent 系统的普通 Agent；未来外部 Avatar 通过 LLM 转发服务接入
+- Avatar不使用独立的权限角色；是否可读写外部目录由后端 capability 决定，capability 不是 Avatar 的必要条件
+- 内部 Avatar 通过 `report2magi`、外部 Avatar 通过等价转发适配器向 MAGI 汇报，MAGI 可以读取和分析全部 Avatar 会话历史
+- Avatar 只能通过 guardian 或 MAGI 通道通信，禁止 Agent 间直连和向其它角色发送消息
 
 ## 架构图
 
@@ -33,11 +35,11 @@ MAGI采用**独立Agent + 消息总线**架构，参考myclaw和nanoClaw的最�
 │                                                               │
 │  Channels:                                                    │
 │  - "magi"      → MAGI核心（用户输入）                        │
-│  - "task_123"  → Avatar_123（MAGI创建并绑定）                │
-│  - "task_456"  → Avatar_456（MAGI创建并绑定）                │
+│  - "task_123"  → 内部 Avatar 会话（MAGI创建并绑定）          │
+│  - "task_456"  → 外部 Avatar 转发会话（未来接入）             │
 └──┬──────────┬──────────┬──────────┬──────────┬─────────────┘
    │          │          │          │          │
-   │  MAGI核心（4个固定agent）      │  Avatar（动态创建）
+   │  MAGI核心（4个固定agent）      │  Avatar（协议角色）
    │          │          │          │          │
    ▼          ▼          ▼          ▼          ▼
 ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐
@@ -46,19 +48,21 @@ MAGI采用**独立Agent + 消息总线**架构，参考myclaw和nanoClaw的最�
 └──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘
    │         │         │         │         │
    └─────────┴─────────┴─────────┴─────────┘
-                     │
-                     ▼
+              │
+              ▼
               ┌─────────────┐
               │ Coordinator │
               │ (决策协调)   │
               └─────────────┘
 ```
 
+图中的 Avatar 通道表示后端路由和会话边界，不表示 Avatar 与其它 Agent 直接通信；所有 Avatar 消息都必须经过 guardian 或 MAGI 的通信 ACL。外部 Avatar 的通道由未来 LLM 转发服务映射。
+
 ## 消息总线与接口设计
 
 ### 关键设计理念
 
-**对外伪装**：MAGI和Avatar对外通过裸LLM接口伪装
+**对外伪装**：MAGI和已接入的 Avatar 对外通过裸LLM接口伪装；外部 Avatar 由转发服务提供兼容入口
 - 前端调用现有的`/api/magi/chat`或`/api/magi/messages`接口
 - 后端识别请求，路由到MAGI或Avatar
 - 返回标准LLM响应格式
@@ -108,55 +112,43 @@ func magiChat(c *gin.Context) {
 }
 ```
 
-### 2. MAGI创建Avatar并绑定Channel
+### 2. MAGI派出或复用Avatar
 
-**触发**：MAGI决策需要创建Avatar执行任务
+**触发**：MAGI决策需要普通 Agent 执行任务
 
 **流程**：
 ```go
-// MAGI通过工具创建Avatar
+// 内部 Avatar：MAGI通过上游 Agent 系统创建或复用普通 Agent 会话
 tool := tools.GetTool("create_avatar")
 avatarID := tool.Execute(ctx, map[string]interface{}{
     "task": "监控GitHub仓库",
-    "channel": "github_monitor", // 绑定到特定channel
+    "channel": "github_monitor",
 })
 
-// Avatar创建后，订阅指定channel
-avatar := NewAvatar(avatarID)
-bus.Subscribe("github_monitor", avatar.HandleMessage)
-
-// 该channel的消息会路由到这个Avatar
+// 后端为 Avatar 会话绑定 owner、任务上下文和必要 capability
+// Avatar 通过 report2magi 向 MAGI 汇报，不与其它 Agent 直连
+// 外部 Avatar：由未来 LLM 转发服务建立等价受控报告通道
 ```
 
 ### 3. Avatar响应（通过LLM接口）
 
-**接口**：同样是`POST /api/magi/chat`，但路由到Avatar
+**接口**：内部 Avatar 复用上游 Agent 的标准会话接口；外部 Avatar 通过 LLM 转发服务的兼容接口接入
 
 **流程**：
 ```go
-// 前端调用（指定Avatar的channel）
+// 前端或 MAGI 调用（指定已授权的 Avatar 会话）
 POST /api/magi/chat
 {
   "model": "gpt-4",
   "messages": [...],
-  "metadata": {"channel": "github_monitor"} // 指定channel
+  "metadata": {"session_id": "avatar-session"}
 }
 
 // 后端路由到Avatar
 func magiChat(c *gin.Context) {
-    channel := extractChannel(req)
-    
-    if channel == "magi" || channel == "" {
-        // 路由到MAGI核心
-        bus.Send(InboundMessage{Target: "magi", ...})
-    } else {
-        // 路由到对应channel的Avatar
-        bus.Send(InboundMessage{
-            Channel: channel,
-            Target: "avatar",
-            ...
-        })
-    }
+    sessionID := extractAuthorizedSessionID(req)
+    // 后端校验 guardian owner 与 session capability 后路由到普通 Agent
+    bus.Send(InboundMessage{Target: "avatar", SessionID: sessionID, ...})
 }
 ```
 
@@ -384,5 +376,6 @@ func magiWebSocket(c *gin.Context) {
 1. **决策逻辑不变**: 与前端实现完全一致
 2. **审慎决策入口**: 严格只看Melchior工具调用的`requiresDeliberation`
 3. **禁止语义兜底**: 不允许后端新增语义判断规则
-4. **独立agent**: 三贤人、Trinity、Avatar都是独立实例
-5. **消息总线通信**: 所有agent通过Bus通信
+4. **协议角色落地**: Avatar覆盖内部普通 Agent 与未来外部转发 Agent，不创建专用 Avatar 运行时
+5. **通信边界**: Avatar 只能经过 guardian 或 MAGI 通道通信，Agent-Agent 直连禁止
+6. **历史分析**: MAGI可以读取和分析全部 Avatar 会话历史，但不能因此取得外部目录 capability

@@ -8,7 +8,7 @@
 `Source Simulation Panels` 不是普通聊天窗口，而是来源仿真台。它用于验证：
 
 1. 来源身份解析是否正确（channel/source/trust/risk/caller）。
-2. 入口策略是否按来源分流（放行/拦截/Avatar-only）。
+2. 入口策略是否按来源分流（放行/拦截/Avatar-only）；Avatar-only 表示路由到 Avatar 协议角色，当前内部实现使用上游普通 Agent 会话，未来也可通过 LLM 转发服务接入，不表示独立 Avatar 运行时。
 3. 多来源并发请求时，路由与会话绑定是否稳定。
 
 ## 2. 前端输入契约
@@ -46,7 +46,7 @@
 1. 来源面板构造来源上下文。
 2. 前端发起 OpenAI-compatible 请求到后端 MAGI 接口。
 3. 后端解析来源上下文并执行入口策略。
-4. 后端按策略走 Avatar 或主 MAGI 决策。
+4. 后端按策略走 Avatar 或主 MAGI 决策；内部 Avatar 通过 `report2magi`、外部 Avatar 通过等价转发适配器向 MAGI 汇报。
 5. 前端来源面板显示该来源请求结果；主面板/贤者面板通过事件流投影状态。
 
 ## 5. 分阶段落地

@@ -3,6 +3,7 @@ import { getSafeSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConf
 
 const MAGI_IDENTITY_API_ROOT = "/api/s-forge/magi/v1/identity";
 export const MAGI_IDENTITY_REQUIRED_EVENT = "magi:identity-required";
+export const MAGI_IDENTITY_SESSION_CHANGED_EVENT = "magi:identity-session-changed";
 export const MAGI_WRITE_AVATAR_EVENT = "magi:write-avatar";
 
 export type MagiRouteClass = "guardian" | "avatar-only";
@@ -70,6 +71,57 @@ const magiIdentitySessionState = reactive<MagiIdentitySessionState>({
     activeSession: null,
     lastError: null,
 });
+let identitySessionExpiryTimer = 0;
+
+const MAGI_IDENTITY_SYNC_CHANNEL = "siyuan:magi-identity-session";
+const identitySessionSyncSender = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let identitySessionSyncChannel: BroadcastChannel | null = null;
+let identityAccessRequestedUntil = 0;
+
+type MagiIdentitySyncMessage = {
+    type: "request" | "session" | "identity-required";
+    sender: string;
+    session?: MagiArmorSession | null;
+};
+
+function normalizeSyncedMagiArmorSession(value: unknown): MagiArmorSession | null {
+    if (!value || typeof value !== "object") {
+        return null;
+    }
+    const armorToken = String(Reflect.get(value, "armorToken") ?? "").trim();
+    const identityId = String(Reflect.get(value, "identityId") ?? "").trim();
+    const displayName = String(Reflect.get(value, "displayName") ?? identityId).trim();
+    const nickname = String(Reflect.get(value, "nickname") ?? "").trim();
+    const routeClass = String(Reflect.get(value, "routeClass") ?? "").trim();
+    const channel = String(Reflect.get(value, "channel") ?? "").trim();
+    const expiresAt = Number(Reflect.get(value, "expiresAt") ?? 0);
+    const validChannels: MagiRequestChannel[] = [
+        "magi-main-ui",
+        "tool-claude-code",
+        "tool-openai-sdk",
+        "tool-claude-sdk",
+        "tool-custom",
+        "system-cron",
+    ];
+    if (!armorToken || !identityId || !nickname || expiresAt <= Date.now()) {
+        return null;
+    }
+    if (routeClass !== "guardian" && routeClass !== "avatar-only") {
+        return null;
+    }
+    if (!validChannels.includes(channel as MagiRequestChannel)) {
+        return null;
+    }
+    return {
+        armorToken,
+        identityId,
+        displayName: displayName || identityId,
+        nickname,
+        routeClass,
+        channel: channel as MagiRequestChannel,
+        expiresAt,
+    };
+}
 
 function resolveWorkspaceAPIToken(): string {
     try {
@@ -309,7 +361,7 @@ export async function removeMagiIdentity(identityId: string): Promise<void> {
     ensureIdentityResponseOK(response, payload);
     await refreshMagiIdentities();
     if (magiIdentitySessionState.activeSession?.identityId === identityId) {
-        magiIdentitySessionState.activeSession = null;
+        clearActiveMagiArmorSession();
     }
 }
 
@@ -340,17 +392,60 @@ export async function loginMagiIdentity(input: {
     ensureIdentityResponseOK(response, payload);
     const session = normalizeLoginSession(payload);
     if (input.activate !== false) {
-        magiIdentitySessionState.activeSession = session;
+        setActiveMagiArmorSession(session);
     }
     return session;
 }
 
-export function setActiveMagiArmorSession(session: MagiArmorSession | null): void {
+function emitIdentitySessionChanged(): void {
+    window.dispatchEvent(new CustomEvent(MAGI_IDENTITY_SESSION_CHANGED_EVENT));
+}
+
+function clearIdentitySessionExpiryTimer(): void {
+    if (identitySessionExpiryTimer) {
+        window.clearTimeout(identitySessionExpiryTimer);
+        identitySessionExpiryTimer = 0;
+    }
+}
+
+function publishMagiIdentitySession(session: MagiArmorSession | null): void {
+    identitySessionSyncChannel?.postMessage({
+        type: "session",
+        sender: identitySessionSyncSender,
+        session,
+    } satisfies MagiIdentitySyncMessage);
+}
+
+function publishMagiIdentityAccessRequest(): void {
+    identitySessionSyncChannel?.postMessage({
+        type: "identity-required",
+        sender: identitySessionSyncSender,
+    } satisfies MagiIdentitySyncMessage);
+}
+
+function applyActiveMagiArmorSession(session: MagiArmorSession | null, publish: boolean): void {
+    clearIdentitySessionExpiryTimer();
     magiIdentitySessionState.activeSession = session;
+    if (session) {
+        const delay = Math.max(0, session.expiresAt - Date.now());
+        identitySessionExpiryTimer = window.setTimeout(() => clearActiveMagiArmorSession(), delay);
+    }
+    emitIdentitySessionChanged();
+    if (publish) {
+        publishMagiIdentitySession(session);
+    }
+}
+
+export function setActiveMagiArmorSession(session: MagiArmorSession | null): void {
+    applyActiveMagiArmorSession(session, true);
 }
 
 export function clearActiveMagiArmorSession(): void {
-    magiIdentitySessionState.activeSession = null;
+    clearIdentitySessionExpiryTimer();
+    if (!magiIdentitySessionState.activeSession) {
+        return;
+    }
+    applyActiveMagiArmorSession(null, true);
 }
 
 export function getActiveMagiArmorSession(): MagiArmorSession | null {
@@ -359,7 +454,7 @@ export function getActiveMagiArmorSession(): MagiArmorSession | null {
         return null;
     }
     if (activeSession.expiresAt <= Date.now()) {
-        magiIdentitySessionState.activeSession = null;
+        clearActiveMagiArmorSession();
         return null;
     }
     return activeSession;
@@ -368,6 +463,62 @@ export function getActiveMagiArmorSession(): MagiArmorSession | null {
 export function getActiveMagiArmorToken(): string {
     return getActiveMagiArmorSession()?.armorToken ?? "";
 }
+
+export function requestMagiIdentityAccess(): void {
+    identityAccessRequestedUntil = Date.now() + 15_000;
+    window.dispatchEvent(new CustomEvent(MAGI_IDENTITY_REQUIRED_EVENT));
+    publishMagiIdentityAccessRequest();
+}
+
+function initializeMagiIdentitySessionSync(): void {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+        return;
+    }
+    try {
+        identitySessionSyncChannel = new BroadcastChannel(MAGI_IDENTITY_SYNC_CHANNEL);
+        identitySessionSyncChannel.onmessage = (event: MessageEvent<MagiIdentitySyncMessage>) => {
+            const message = event.data;
+            if (!message || message.sender === identitySessionSyncSender) {
+                return;
+            }
+            if (message.type === "request") {
+                const session = getActiveMagiArmorSession();
+                if (session) {
+                    publishMagiIdentitySession(session);
+                }
+                if (identityAccessRequestedUntil > Date.now()) {
+                    publishMagiIdentityAccessRequest();
+                }
+                return;
+            }
+            if (message.type === "identity-required") {
+                window.dispatchEvent(new CustomEvent(MAGI_IDENTITY_REQUIRED_EVENT));
+                return;
+            }
+            if (message.type !== "session") {
+                return;
+            }
+            if (message.session === null) {
+                if (magiIdentitySessionState.activeSession) {
+                    applyActiveMagiArmorSession(null, false);
+                }
+                return;
+            }
+            const session = normalizeSyncedMagiArmorSession(message.session);
+            if (session) {
+                applyActiveMagiArmorSession(session, false);
+            }
+        };
+        identitySessionSyncChannel.postMessage({
+            type: "request",
+            sender: identitySessionSyncSender,
+        } satisfies MagiIdentitySyncMessage);
+    } catch {
+        identitySessionSyncChannel = null;
+    }
+}
+
+initializeMagiIdentitySessionSync();
 
 export async function issueAvatarToken(input: {
     identityId: string;

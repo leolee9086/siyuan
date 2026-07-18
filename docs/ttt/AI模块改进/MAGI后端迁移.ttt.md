@@ -142,11 +142,11 @@ MAGI 系统当前完全在前端实现，存在以下问题：
   - 设计 Go 项目结构（基于独立Agent架构）
   - 定义架构文档
   - **产出**:
-    - `kernel/magi/README.md`: 项目概述
-    - `kernel/magi/STRUCTURE.md`: 详细结构设计
-    - `kernel/magi/ARCHITECTURE.md`: 架构概览
-    - `kernel/magi/AVATAR.md`: Avatar详细说明
-    - `kernel/magi/AGENT_COGNITION.md`: Agent认知模型
+    - `docs/设计/MAGI/README.md`: 项目概述
+    - `docs/设计/MAGI/STRUCTURE.md`: 详细结构设计
+    - `docs/设计/MAGI/ARCHITECTURE.md`: 架构概览
+    - `docs/设计/MAGI/AVATAR.md`: Avatar说明
+    - `docs/设计/MAGI/AGENT_COGNITION.md`: Agent认知模型
   - **完成时间**: 2026-03-06
 
 - [x] **T0.2: 定义 WebSocket 协议**
@@ -154,7 +154,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
   - 定义状态推送机制
   - 编写协议文档
   - **产出**:
-    - `kernel/magi/WEBSOCKET_PROTOCOL.md`: WebSocket协议完整规范
+    - `docs/技术文档/MAGI/WEBSOCKET_PROTOCOL.md`: WebSocket协议完整规范
     - 定义了9种事件类型（轮次、贤者响应、投票、统合、共识、错误）
     - 定义了会话管理和错误处理机制
     - 包含完整示例流程和消息格式
@@ -477,7 +477,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
 ### Phase 7: Avatar运行时基础 (P0)
 
 > **背景**: Avatar是nerv框架下dummysys(傀儡系统)内部注册的执行实体，用于为特定通道(channel)创建持续处理该通道请求的执行分身。Avatar不属于MAGI包，是独立的agent实例。
-> **参考**: `kernel/nerv/dummysys/AVATAR.md`、`kernel/nerv/magi/ARCHITECTURE.md`、`docs/设计/MAGI_NERV_Avatar池化与内外工具隔离.design.md`
+> **参考**: `kernel/nerv/dummysys/AVATAR.md`、`docs/设计/MAGI/ARCHITECTURE.md`、`docs/设计/MAGI_NERV_Avatar池化与内外工具隔离.design.md`
 > **架构关系**: nerv(框架) → dummysys(傀儡系统) → avatar(实体)
 
 - [-] **T7.1: 实现Avatar运行时核心**
@@ -614,7 +614,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
 ### Phase 9: Avatar工具与通信 (P0)
 
 > **背景**: Avatar需要通过内部工具与MAGI通信，并实现工具分域隔离。Avatar通过report_to_core工具向MAGI汇报，MAGI通过工具调用Avatar。
-> **参考**: `kernel/nerv/dummysys/AVATAR.md` 第32-44行、`kernel/nerv/magi/ARCHITECTURE.md` 第16-19行、`docs/设计/MAGI_NERV_Avatar池化与内外工具隔离.design.md` 第7节
+> **参考**: `kernel/nerv/dummysys/AVATAR.md` 第32-44行、`docs/设计/MAGI/ARCHITECTURE.md` 第16-19行、`docs/设计/MAGI_NERV_Avatar池化与内外工具隔离.design.md` 第7节
 > **架构说明**: Avatar与MAGI通过工具接口交互，不通过消息总线
 
 - [ ] **T9.1: 实现report_to_core工具**
@@ -673,7 +673,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
     - Avatar收到任务包并处理
     - 处理结果正确回报给MAGI
   - **依赖**: T7.3, T9.1
-  - **架构说明**: MAGI通过工具调用Avatar，参考`kernel/nerv/dummysys/AVATAR.md`第121-131行和`kernel/nerv/magi/ARCHITECTURE.md`第16-19行
+  - **架构说明**: MAGI通过工具调用Avatar，参考`kernel/nerv/dummysys/AVATAR.md`第121-131行和`docs/设计/MAGI/ARCHITECTURE.md`第16-19行
 
 ### Phase 10: 审批与安全 (P1)
 
@@ -728,7 +728,7 @@ MAGI 系统当前完全在前端实现，存在以下问题：
 ### Phase 11: Avatar集成与测试 (P1)
 
 > **背景**: 将Avatar集成到现有HTTP接口，并完善测试覆盖。Avatar作为dummysys实体，通过路由层与MAGI协同工作。
-> **参考**: `kernel/nerv/dummysys/AVATAR.md` 第133-151行、`kernel/nerv/magi/ARCHITECTURE.md`
+> **参考**: `kernel/nerv/dummysys/AVATAR.md` 第133-151行、`docs/设计/MAGI/ARCHITECTURE.md`
 > **架构说明**: HTTP接口通过路由层识别channel，查询Avatar池获取绑定的Avatar，实现MAGI与Avatar的协同
 
 - [ ] **T11.1: 集成Avatar到HTTP接口**

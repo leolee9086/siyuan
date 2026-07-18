@@ -6,10 +6,12 @@
  * 用户可以通过关闭 tab 或删除 dock 项来手动清理。
  */
 
-import { Model } from "./imports";
-import { Tab } from "./imports";
-import type { App } from "./imports";
-import type { IErrorPlaceholderData } from "./ErrorPlaceholder.types";
+/** 用途：约束错误占位模型的宿主应用参数；使用范围：仅构造参数类型；解耦评估：已使用纯类型导入，不产生运行时耦合或聚合入口循环。 */
+import type { App } from "../../index";
+// eslint-disable-next-line restrictions/no-parent-import -- 用途：继承布局模型生命周期；使用范围：错误占位模型运行时基类；解耦评估：框架要求继承 Model，且 dock/imports.ts 会经 Wnd 和布局工具回到 dock.factory，必须直接导入以切断已复现的初始化循环。
+import { Model } from "../Model";
+/** 用途：约束占位模型对应的页签；使用范围：仅构造参数类型；解耦评估：已使用纯类型导入，不加载 Tab 运行时模块。 */
+import type { Tab } from "../Tab";
 
 /** 错误占位符类型标识 */
 export const ERROR_PLACEHOLDER_TYPE = "error_placeholder";
@@ -43,6 +45,7 @@ export class ErrorPlaceholder extends Model {
         this.element = options.tab.panelElement;
         this.原始类型 = options.原始类型;
         this.错误信息 = options.错误信息;
+        // 仅在工厂捕获到可用堆栈时持久化详情，避免把缺失值写入布局配置。
         if (options.错误堆栈 !== undefined) {
             this.错误堆栈 = options.错误堆栈;
         }
@@ -54,7 +57,7 @@ export class ErrorPlaceholder extends Model {
      * 用于布局保存时生成配置
      * 保存原始类型信息，以便识别这是一个错误占位符
      */
-    public toJSON(): IErrorPlaceholderData {
+    public toJSON() {
         return {
             原始类型: this.原始类型,
             错误信息: this.错误信息,
@@ -66,7 +69,7 @@ export class ErrorPlaceholder extends Model {
 /**
  * HTML 转义，防止 XSS
  */
-function 转义HTML(text: string): string {
+function 转义HTML(text: string) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
@@ -80,7 +83,7 @@ function 转义HTML(text: string): string {
 function 渲染错误占位符(
     element: HTMLElement,
     data: Pick<ErrorPlaceholder, "原始类型" | "错误信息" | "错误堆栈">,
-): void {
+) {
     element.classList.add("fn__flex-column", "error-placeholder");
 
     const 堆栈显示 = data.错误堆栈
@@ -116,26 +119,3 @@ function 渲染错误占位符(
     `;
 }
 
-/**
- * 判断是否为错误占位符类型
- */
-export function isErrorPlaceholderType(type: string): boolean {
-    return type === ERROR_PLACEHOLDER_TYPE;
-}
-
-/**
- * 从已保存的配置创建错误占位符
- */
-export function createErrorPlaceholderFromData(
-    app: App,
-    tab: Tab,
-    data: IErrorPlaceholderData
-): ErrorPlaceholder {
-    return new ErrorPlaceholder({
-        app,
-        tab,
-        原始类型: data.原始类型,
-        错误信息: data.错误信息,
-        ...(data.错误堆栈 !== undefined ? { 错误堆栈: data.错误堆栈 } : {}),
-    });
-}

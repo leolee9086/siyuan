@@ -59,6 +59,15 @@
             { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/mobile/index.tpl" }
         ]
     },
+    "magi-identity": {
+        "platform": "web",
+        "entry": { "main": "./src/magi/identity-access/standalone.ts" },
+        "outputDir": "stage/build/magi-identity",
+        "publicPath": "/stage/build/magi-identity/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/identity/index.tpl" }
+        ]
+    },
     "protyle-app": {
         "platform": "web",
         "entry": { "protyle": "./src/protyle-standalone/index.ts" },

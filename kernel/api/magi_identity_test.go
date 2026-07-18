@@ -31,9 +31,12 @@ func TestMagiIdentityStorePasswordStoredAsHash(t *testing.T) {
 	record, err := globalMagiIdentityStore.upsert(
 		"alice",
 		"Alice",
+		"",
 		rawPassword,
 		magiRouteClassGuardian,
 		true,
+		0,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("upsert identity failed: %v", err)

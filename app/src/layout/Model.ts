@@ -75,7 +75,7 @@ export class Model {
 
     /** 向模型 WebSocket 发送内核命令；Inbox 等无连接模型会直接忽略请求。 */
     public send(cmd: string, param: Record<string, unknown>, process = false) {
-        if (!this.ws) { // Inbox 无 ws
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) { // Inbox 无 ws；连接建立前不能调用 send
             return;
         }
         this.reqId = process ? 0 : Date.now();
@@ -124,13 +124,30 @@ export class Model {
         }
     }
 
+    /** 通知内核关闭模型连接并释放本地 socket；可在 CONNECTING/CLOSING 阶段安全调用。 */
+    public dispose() {
+        // 只有已建立连接时 closews 才能发送；连接中的 socket 直接在本地关闭。
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            this.send("closews", {});
+        }
+        this.disposeConnection();
+    }
+
     /** 关闭网络连接并禁止自动重连；具体模型的公开销毁方法可调用此保护边界。 */
     protected disposeConnection() {
         this.destroyed = true;
         this.clearReconnectTimer();
-        if (this.ws) {
-            this.ws.onclose = null;
-            this.ws.close();
+        const socket = this.ws;
+        if (!socket) {
+            return;
+        }
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onclose = null;
+        socket.onerror = null;
+        // 已关闭的 socket 无需重复 close，其余状态均终止以防销毁后继续连接。
+        if (socket.readyState !== WebSocket.CLOSED) {
+            socket.close();
         }
     }
 }

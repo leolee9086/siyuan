@@ -70,6 +70,7 @@ export type ISSEResult = {
 };
 
 import {Constants} from "../../../constants";
+import {agentOwnerHeaders} from "./SessionStore";
 
 export type IEditorContext = {
     activeDocID?: string;
@@ -115,11 +116,11 @@ export async function fetchAgentSSE(
 
         const response = await fetch("/api/ai/agent/chat", {
             method: "POST",
-            headers: {
+            headers: agentOwnerHeaders({
                 "Content-Type": "application/json",
                 // 标识发起者 app，后端据此排除发起者自身的 ws 广播，并做实例级互斥。
                 "X-SiYuan-App-ID": Constants.SIYUAN_APPID,
-            },
+            }),
             body: JSON.stringify(body),
             signal: signal,
         });
@@ -267,7 +268,7 @@ function buildSSEResult(event: string, data: Record<string, unknown>): ISSEResul
                     done: Number(rawProgress.done) || 0,
                     total: Number(rawProgress.total) || 0,
                     current: typeof rawProgress.current === "string" ? rawProgress.current : undefined,
-                    partialCount: Number(rawProgress.partialCount) || 0,
+                    partialCount: typeof rawProgress.partialCount === "number" ? rawProgress.partialCount : undefined,
                     latestResults: rawResults.filter((item): item is Record<string, unknown> => !!item && typeof item === "object").map(item => ({
                         title: typeof item.title === "string" ? item.title : "",
                         url: typeof item.url === "string" ? item.url : "",

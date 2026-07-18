@@ -255,9 +255,12 @@ func issueTestArmorToken(
 	_, err := globalMagiIdentityStore.upsert(
 		identityID,
 		identityID,
+		"tester",
 		"pass123456",
 		routeClass,
 		true,
+		0,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to upsert identity: %v", err)

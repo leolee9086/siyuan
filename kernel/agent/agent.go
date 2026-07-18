@@ -184,9 +184,9 @@ func buildDoomSignature(name, action string, args map[string]interface{}) string
 var confirmChannelsMu sync.Mutex
 var confirmChannels = make(map[string]chan confirmResult)
 
-func ConfirmSession(id string, approved bool, always bool) {
+func ConfirmSession(sessionID, id string, approved bool, always bool) {
 	confirmChannelsMu.Lock()
-	ch, ok := confirmChannels[id]
+	ch, ok := confirmChannels[sessionID+"\x00"+id]
 	confirmChannelsMu.Unlock()
 	if ok {
 		ch <- confirmResult{approved: approved, always: always}
@@ -200,9 +200,9 @@ type QuestionAnswer struct {
 var questionChannelsMu sync.Mutex
 var questionChannels = make(map[string]chan QuestionAnswer)
 
-func AnswerQuestion(id string, answers []string) {
+func AnswerQuestion(sessionID, id string, answers []string) {
 	questionChannelsMu.Lock()
-	ch, ok := questionChannels[id]
+	ch, ok := questionChannels[sessionID+"\x00"+id]
 	questionChannelsMu.Unlock()
 	if ok {
 		ch <- QuestionAnswer{Answers: answers}
@@ -220,9 +220,9 @@ var frontendCallChannels = make(map[string]chan frontendCallResult)
 
 // FrontendToolResult is called by the API handler when the browser POSTs the outcome of a
 // frontend tool action. It unblocks the agent goroutine waiting in handleFrontendTool.
-func FrontendToolResult(callID string, result string, isError bool) {
+func FrontendToolResult(sessionID, callID string, result string, isError bool) {
 	frontendCallChannelsMu.Lock()
-	ch, ok := frontendCallChannels[callID]
+	ch, ok := frontendCallChannels[sessionID+"\x00"+callID]
 	frontendCallChannelsMu.Unlock()
 	if ok {
 		ch <- frontendCallResult{result: result, isError: isError}
@@ -389,7 +389,7 @@ type agentCheckpoint struct {
 	ContextLimit          int            `json:"contextLimit,omitempty"`
 }
 
-func AgentChat(ctx context.Context, client *openai.Client, model string, sessionID string, userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, regenerate bool, confirmTimeout time.Duration, maxRetries int, reasoningEffort string) <-chan AgentEvent {
+func AgentChat(ctx context.Context, client *openai.Client, model string, sessionID string, userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, regenerate bool, confirmTimeout time.Duration, maxRetries int, reasoningEffort string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64) <-chan AgentEvent {
 	ch := make(chan AgentEvent, 256)
 
 	go func() {
@@ -409,7 +409,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 		// 在此统一解析一次，后续 checkpoint 与消息重建均使用解析后的值，保证全链路一致。
 		userMessage = kernelModel.Conf.Variables.Resolve(userMessage)
 
-		tools := convertMCPToolsToOpenAI()
+		tools := convertMCPToolsToOpenAI(taskDirectory != nil && taskDirectory.HasExternal())
 		var messages []openai.ChatCompletionMessage
 		var checkpointMsgs []AgentMessage
 		var totalPrompt, totalCompletion, lastPromptTokens, lastCachedTokens int
@@ -453,14 +453,14 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					}
 					checkpointMsgs = truncated
 					checkpointMsgs = append(checkpointMsgs, AgentMessage{Role: "user", Content: userMessage})
-					messages = checkpointMessagesToOpenAI(checkpointMsgs, language, references, editorCtx, pluginActions)
+					messages = checkpointMessagesToOpenAI(checkpointMsgs, language, references, editorCtx, pluginActions, taskDirectory)
 				}
 			}
 		}
 
 		if messages == nil {
 			checkpointMsgs = []AgentMessage{{Role: "user", Content: userMessage}}
-			messages = buildInitialMessages(userMessage, language, references, editorCtx, pluginActions)
+			messages = buildInitialMessages(userMessage, language, references, editorCtx, pluginActions, taskDirectory)
 		}
 
 		temperature := kernelModel.Conf.AI.Agent.Temperature
@@ -647,7 +647,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						sendCriticalEvent(ctx, ch, AgentEvent{Type: "confirm", Name: tc.Function.Name, Arguments: args, ConfirmID: confirmID})
 						ch2 := make(chan confirmResult, 1)
 						confirmChannelsMu.Lock()
-						confirmChannels[confirmID] = ch2
+						confirmChannels[sessionID+"\x00"+confirmID] = ch2
 						confirmChannelsMu.Unlock()
 						var rejectionMsg string
 						var result confirmResult
@@ -656,11 +656,11 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						select {
 						case result = <-ch2:
 							confirmChannelsMu.Lock()
-							delete(confirmChannels, confirmID)
+							delete(confirmChannels, sessionID+"\x00"+confirmID)
 							confirmChannelsMu.Unlock()
 						case <-ctx.Done():
 							confirmChannelsMu.Lock()
-							delete(confirmChannels, confirmID)
+							delete(confirmChannels, sessionID+"\x00"+confirmID)
 							confirmChannelsMu.Unlock()
 
 							cancelMsg := "Operation cancelled"
@@ -685,7 +685,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 							return
 						case <-time.After(confirmTimeout):
 							confirmChannelsMu.Lock()
-							delete(confirmChannels, confirmID)
+							delete(confirmChannels, sessionID+"\x00"+confirmID)
 							confirmChannelsMu.Unlock()
 							timedOut = true
 							rejectionMsg = "Confirmation timed out, operation skipped automatically"
@@ -749,11 +749,11 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					var resultStr string
 					isErr := false
 					if tc.Function.Name == "question" {
-						resultStr = handleQuestion(ctx, tc.Function.Arguments, ch, 5*time.Minute)
+						resultStr = handleQuestion(ctx, sessionID, tc.Function.Arguments, ch, 5*time.Minute)
 					} else if tc.Function.Name == "frontend" {
-						resultStr = handleFrontendTool(ctx, tc, ch, confirmTimeout)
+						resultStr = handleFrontendTool(ctx, sessionID, tc, ch, confirmTimeout)
 					} else {
-						resultStr, isErr = executeTool(tc, sessionID, func(progress mcpTools.ToolProgress) {
+						resultStr, isErr = executeTool(tc, sessionID, taskDirectory, ownerIdentityID, ownerAuthorizationExpiresAt, func(progress mcpTools.ToolProgress) {
 							sendCriticalEvent(ctx, ch, AgentEvent{
 								Type:         "tool_progress",
 								Name:         tc.Function.Name,
@@ -899,12 +899,17 @@ var safeActions = map[string]bool{
 }
 
 var forgeWriteTools = map[string]bool{
-	mcpTools.ForgeDevRepoWriteToolName:        true,
-	mcpTools.ForgeDevRepoDeleteToolName:       true,
-	mcpTools.ForgeDevRepoEditToolName:         true,
-	mcpTools.ForgeDevRepoBatchReplaceToolName: true,
-	mcpTools.ForgeDevRepoBashToolName:         true,
-	mcpTools.ForgeDevRepoGitToolName:          true,
+	mcpTools.ForgeDevRepoWriteToolName:         true,
+	mcpTools.ForgeDevRepoDeleteToolName:        true,
+	mcpTools.ForgeDevRepoEditToolName:          true,
+	mcpTools.ForgeDevRepoBatchReplaceToolName:  true,
+	mcpTools.ForgeDevRepoBashToolName:          true,
+	mcpTools.ForgeDevRepoGitToolName:           true,
+	mcpTools.TaskDirectoryWriteToolName:        true,
+	mcpTools.TaskDirectoryDeleteToolName:       true,
+	mcpTools.TaskDirectoryEditToolName:         true,
+	mcpTools.TaskDirectoryBatchReplaceToolName: true,
+	mcpTools.TaskDirectoryCommandToolName:      true,
 }
 
 func needsConfirm(toolName string, action string, alwaysAllow map[string]bool) bool {
@@ -932,7 +937,7 @@ func needsConfirm(toolName string, action string, alwaysAllow map[string]bool) b
 	return true
 }
 
-func handleQuestion(ctx context.Context, argsJSON string, ch chan<- AgentEvent, timeout time.Duration) string {
+func handleQuestion(ctx context.Context, sessionID, argsJSON string, ch chan<- AgentEvent, timeout time.Duration) string {
 	args := parseToolArgs(argsJSON)
 	questionID := fmt.Sprintf("%d", time.Now().UnixNano())
 	if len(questionID) > 10 {
@@ -947,7 +952,7 @@ func handleQuestion(ctx context.Context, argsJSON string, ch chan<- AgentEvent, 
 
 	ch2 := make(chan QuestionAnswer, 1)
 	questionChannelsMu.Lock()
-	questionChannels[questionID] = ch2
+	questionChannels[sessionID+"\x00"+questionID] = ch2
 	questionChannelsMu.Unlock()
 
 	var answer QuestionAnswer
@@ -955,18 +960,18 @@ func handleQuestion(ctx context.Context, argsJSON string, ch chan<- AgentEvent, 
 	case answer = <-ch2:
 	case <-ctx.Done():
 		questionChannelsMu.Lock()
-		delete(questionChannels, questionID)
+		delete(questionChannels, sessionID+"\x00"+questionID)
 		questionChannelsMu.Unlock()
 		return "Question cancelled."
 	case <-time.After(timeout):
 		questionChannelsMu.Lock()
-		delete(questionChannels, questionID)
+		delete(questionChannels, sessionID+"\x00"+questionID)
 		questionChannelsMu.Unlock()
 		return "No answer received (timed out)."
 	}
 
 	questionChannelsMu.Lock()
-	delete(questionChannels, questionID)
+	delete(questionChannels, sessionID+"\x00"+questionID)
 	questionChannelsMu.Unlock()
 
 	if len(answer.Answers) == 0 {
@@ -980,7 +985,7 @@ func handleQuestion(ctx context.Context, argsJSON string, ch chan<- AgentEvent, 
 // the browser POSTs the result (or the context is cancelled / timeout fires). It mirrors
 // handleQuestion's structure exactly — the only difference is the channel registry and the
 // event type ("frontend_tool_call").
-func handleFrontendTool(ctx context.Context, tc openai.ToolCall, ch chan<- AgentEvent, timeout time.Duration) string {
+func handleFrontendTool(ctx context.Context, sessionID string, tc openai.ToolCall, ch chan<- AgentEvent, timeout time.Duration) string {
 	args := parseToolArgs(tc.Function.Arguments)
 	callID := fmt.Sprintf("%d", time.Now().UnixNano())
 	if len(callID) > 12 {
@@ -996,7 +1001,7 @@ func handleFrontendTool(ctx context.Context, tc openai.ToolCall, ch chan<- Agent
 
 	ch2 := make(chan frontendCallResult, 1)
 	frontendCallChannelsMu.Lock()
-	frontendCallChannels[callID] = ch2
+	frontendCallChannels[sessionID+"\x00"+callID] = ch2
 	frontendCallChannelsMu.Unlock()
 
 	var fr frontendCallResult
@@ -1004,18 +1009,18 @@ func handleFrontendTool(ctx context.Context, tc openai.ToolCall, ch chan<- Agent
 	case fr = <-ch2:
 	case <-ctx.Done():
 		frontendCallChannelsMu.Lock()
-		delete(frontendCallChannels, callID)
+		delete(frontendCallChannels, sessionID+"\x00"+callID)
 		frontendCallChannelsMu.Unlock()
 		return "Frontend action cancelled."
 	case <-time.After(timeout):
 		frontendCallChannelsMu.Lock()
-		delete(frontendCallChannels, callID)
+		delete(frontendCallChannels, sessionID+"\x00"+callID)
 		frontendCallChannelsMu.Unlock()
 		return "Frontend action timed out (no response from the editor)."
 	}
 
 	frontendCallChannelsMu.Lock()
-	delete(frontendCallChannels, callID)
+	delete(frontendCallChannels, sessionID+"\x00"+callID)
 	frontendCallChannelsMu.Unlock()
 
 	if fr.isError {
@@ -1024,7 +1029,7 @@ func handleFrontendTool(ctx context.Context, tc openai.ToolCall, ch chan<- Agent
 	return fr.result
 }
 
-func buildSystemPrompt(language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction) string {
+func buildSystemPrompt(language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) string {
 	var sb strings.Builder
 	sb.WriteString(systemPrompt)
 	sb.WriteString("\n\n<env>\nWorkspace: ")
@@ -1045,6 +1050,27 @@ func buildSystemPrompt(language string, references []Reference, editorCtx Editor
 			sb.WriteString("\n")
 		}
 		sb.WriteString("Use forge_dev_repo_list/read/search to inspect source files, forge_dev_repo_write/delete/edit/batch_replace to change them, and forge_dev_repo_bash only for bounded commands. For Git commits, use forge_dev_repo_git action=commit with an explicit paths list and one logical change per commit. Never use git add ., git add -A, git commit -a, or a commit without explicit paths.\n")
+	}
+	if taskDirectory != nil && taskDirectory.HasExternal() {
+		sb.WriteString("\n\n## Bound Task Directory\n")
+		sb.WriteString("This session has owner-authorized task directories outside the SiYuan workspace. Select a directory with the directoryID argument on task_directory_* tools. Use read-only directories only with list/read/search, read-write directories for file changes, and command directories only with task_directory_command. All paths must be relative to the selected root. Never expose absolute paths, infer sibling paths, follow links outside the root, or use general file/HTTP/frontend tools to bypass these boundaries. Write and command operations still require explicit user confirmation.\n")
+		if taskDirectory.Main != nil {
+			sb.WriteString("Main task directory label: ")
+			sb.WriteString(taskDirectory.Main.Name)
+			sb.WriteString(" (directoryID=main, permission=read-write)\n")
+		}
+		for _, grant := range taskDirectory.Directories {
+			if grant == nil {
+				continue
+			}
+			sb.WriteString("Additional directory: ")
+			sb.WriteString(grant.Name)
+			sb.WriteString(" (directoryID=")
+			sb.WriteString(grant.ID)
+			sb.WriteString(", permission=")
+			sb.WriteString(string(grant.Permission))
+			sb.WriteString(")\n")
+		}
 	}
 
 	skills := util.DiscoverSkills()
@@ -1168,9 +1194,9 @@ func buildSystemPrompt(language string, references []Reference, editorCtx Editor
 	return sb.String()
 }
 
-func buildInitialMessages(userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction) []openai.ChatCompletionMessage {
+func buildInitialMessages(userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) []openai.ChatCompletionMessage {
 	return []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, references, editorCtx, pluginActions)},
+		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, references, editorCtx, pluginActions, taskDirectory)},
 		{Role: openai.ChatMessageRoleUser, Content: userMessage},
 	}
 }
@@ -1255,9 +1281,9 @@ func entriesToAgentMessages(entries []SessionEntry) []AgentMessage {
 	return msgs
 }
 
-func checkpointMessagesToOpenAI(checkpointMsgs []AgentMessage, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction) []openai.ChatCompletionMessage {
+func checkpointMessagesToOpenAI(checkpointMsgs []AgentMessage, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) []openai.ChatCompletionMessage {
 	msgs := []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, references, editorCtx, pluginActions)},
+		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, references, editorCtx, pluginActions, taskDirectory)},
 	}
 
 	for cmi := range checkpointMsgs {

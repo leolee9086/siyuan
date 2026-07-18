@@ -332,20 +332,35 @@ func initWorkspaceDir(workspaceArg string) {
 
 	// S-forge: forge 模式使用独立的工作空间管理，不读写全局 workspace.json。
 	if IsForgeMode() {
+		rawWorkingDir := WorkingDir
+		var err error
+		WorkingDir, err = normalizeAbsolutePath(rawWorkingDir)
+		if err != nil {
+			logging.LogErrorf("resolve forge working path [%s] failed: %s", rawWorkingDir, err)
+			os.Exit(logging.ExitCodeInitWorkspaceErr)
+		}
 		if "" != workspaceArg {
 			WorkspaceDir = workspaceArg
 		} else {
 			// forge 模式默认使用项目根目录下的 .dev-workspace
 			WorkspaceDir = filepath.Join(WorkingDir, ".dev-workspace")
 		}
-		WorkspaceDir = filepath.Clean(WorkspaceDir)
+		rawWorkspaceDir := WorkspaceDir
+		WorkspaceDir, err = normalizeAbsolutePath(rawWorkspaceDir)
+		if err != nil {
+			logging.LogErrorf("resolve forge workspace path [%s] failed: %s", rawWorkspaceDir, err)
+			os.Exit(logging.ExitCodeInitWorkspaceErr)
+		}
 
 		// 确保 forge 工作空间目录存在
 		if !gulu.File.IsDir(WorkspaceDir) {
-			if err := os.MkdirAll(WorkspaceDir, 0755); err != nil && !os.IsExist(err) {
+			if err = os.MkdirAll(WorkspaceDir, 0755); err != nil && !os.IsExist(err) {
 				logging.LogErrorf("create forge workspace folder [%s] failed: %s", WorkspaceDir, err)
 				os.Exit(logging.ExitCodeInitWorkspaceErr)
 			}
+		}
+		if evaluated, evalErr := filepath.EvalSymlinks(WorkspaceDir); evalErr == nil {
+			WorkspaceDir = filepath.Clean(evaluated)
 		}
 	} else {
 		var workspacePaths []string
@@ -407,6 +422,14 @@ func initWorkspaceDir(workspaceArg string) {
 	BlockTreeDBPath = filepath.Join(TempDir, "blocktree.db")
 	SnippetsPath = filepath.Join(DataDir, "snippets")
 	ShortcutsPath = filepath.Join(userHomeConfDir, "shortcuts")
+}
+
+func normalizeAbsolutePath(path string) (string, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(absPath), nil
 }
 
 func DeduplicateWorkspacePaths(paths []string) []string {

@@ -89,13 +89,6 @@
 
         <div class="magi-main-mode-content">
           <div
-            v-show="activeMainMode === 'identity'"
-            class="magi-main-pane magi-main-pane--identity"
-          >
-            <MagiIdentityPanel />
-          </div>
-
-          <div
             v-show="activeMainMode === 'source'"
             class="magi-main-pane magi-main-pane--source"
           >
@@ -141,12 +134,12 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 import ExternalChannelsPanel from "../components/external-channels/ExternalChannelsPanel.vue";
-import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPanel.vue";
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
 import MagiMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
 import { getColor } from "../components/seel-panel/SeelPanel.ctx";
+import { openIdentityAccessStandalone } from "../identity-access/adapters/open";
 import { MAGI_IDENTITY_REQUIRED_EVENT, MAGI_WRITE_AVATAR_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 
@@ -354,12 +347,11 @@ const {
     onSubmitSourceSimulationPanel,
 } = ctx;
 
-type MagiMainMode = "chat" | "source" | "identity" | "channels";
+type MagiMainMode = "chat" | "source" | "channels";
 
 const magiMainModes: Array<{ id: MagiMainMode; label: string }> = [
     { id: "chat", label: "MAIN CHAT" },
     { id: "source", label: "SOURCE SIMULATION" },
-    { id: "identity", label: "IDENTITY ACCESS" },
     { id: "channels", label: "CHANNELS" },
 ];
 
@@ -375,7 +367,7 @@ function dismissSageVoteBadges(token: string): void {
 }
 
 function handleIdentityRequiredEvent(): void {
-    activeMainMode.value = "identity";
+    openIdentityAccessStandalone();
 }
 
 function handleWriteAvatarEvent(e: Event): void {

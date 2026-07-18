@@ -14,7 +14,7 @@ MAGI系统采用**"对外伪装"**设计理念：对外通过标准LLM接口伪�
 
 ### 1.1 "对外伪装"原则
 
-**来源**: [`kernel/magi/ARCHITECTURE.md`](../../kernel/magi/ARCHITECTURE.md) 第58-65行
+**来源**: [`docs/设计/MAGI/ARCHITECTURE.md`](../设计/MAGI/ARCHITECTURE.md) 第58-65行
 
 **核心理念**：
 - MAGI和Avatar对外通过**裸LLM接口伪装**
@@ -437,12 +437,12 @@ func (c *Coordinator) ProcessChat(ctx context.Context, sessionID, input string) 
 
 ### 9.1 核心设计文档
 
-1. **[`kernel/magi/ARCHITECTURE.md`](../../kernel/magi/ARCHITECTURE.md)**
+1. **[`docs/设计/MAGI/ARCHITECTURE.md`](../设计/MAGI/ARCHITECTURE.md)**
    - 第58-65行: 对外伪装设计理念
    - 第71-109行: HTTP接口设计
    - 第163-209行: WebSocket状态监听
 
-2. **[`kernel/magi/WEBSOCKET_PROTOCOL.md`](../../kernel/magi/WEBSOCKET_PROTOCOL.md)**
+2. **[`docs/技术文档/MAGI/WEBSOCKET_PROTOCOL.md`](../技术文档/MAGI/WEBSOCKET_PROTOCOL.md)**
    - 第1-25行: 协议概述和架构原则
    - 第68-368行: 事件类型定义
    - 第479-537行: 完整决策流程示例

@@ -69,6 +69,28 @@ func TestWebSearchStatusHandlerReturnsStructuredUnknownEngine(t *testing.T) {
 	}
 }
 
+func TestWebSearchStatusHandlerEmitsProgress(t *testing.T) {
+	if WebSearchStatusTool.ProgressHandler == nil {
+		t.Fatal("web_search_status must register a progress handler")
+	}
+	var progress []ToolProgress
+	result, err := webSearchStatusHandlerWithProgress(map[string]interface{}{
+		"probe":   false,
+		"engines": []interface{}{"missing-b", "missing-a"},
+	}, func(update ToolProgress) {
+		progress = append(progress, update)
+	})
+	if err != nil || result.IsError {
+		t.Fatalf("status progress handler failed: result=%+v err=%v", result, err)
+	}
+	if len(progress) != 3 || progress[0].Phase != "start" || progress[0].Done != 0 || progress[0].Total != 2 {
+		t.Fatalf("status handler must emit initial progress: %+v", progress)
+	}
+	if progress[1].Done != 1 || progress[1].Current != "missing-a" || progress[2].Phase != "done" || progress[2].Done != 2 {
+		t.Fatalf("status handler progress must be ordered and complete: %+v", progress)
+	}
+}
+
 func TestWebFetchHandlerRejectsInvalidURLWithoutNetwork(t *testing.T) {
 	result, err := webFetchHandler(map[string]interface{}{"url": "file:///etc/passwd"})
 	if err != nil {

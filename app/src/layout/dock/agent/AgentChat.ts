@@ -8,7 +8,8 @@ import {getAllEditor} from "../../getAll";
 import {isMobile} from "../../../platform";
 import "./frontendActions";
 import {listActions, lookupAction} from "./frontendActions";
-import {AgentSession, SessionStore} from "./SessionStore";
+import {agentOwnerHeaders, SessionStore, setAgentOwnerTokenProvider} from "./SessionStore";
+import type {AgentSession} from "./SessionStore.types";
 import {AgentSessionPanel} from "./AgentSessionPanel";
 import {getDockByType} from "../../tabUtil";
 import {requestOpenTabAsDialog} from "../../tabFloat.port";
@@ -50,6 +51,18 @@ import {
     renderToolCallStart,
 } from "./toolcall/renderer";
 
+import {
+    getActiveMagiArmorSession,
+    MAGI_IDENTITY_SESSION_CHANGED_EVENT,
+    requestMagiIdentityAccess,
+} from "../../../magi/service/magiIdentitySession";
+import {openIdentityAccessTab} from "../../../magi/identity-access/adapters/open";
+
+setAgentOwnerTokenProvider(() => {
+    const session = getActiveMagiArmorSession();
+    return session?.routeClass === "guardian" && session.channel === "magi-main-ui" ? session.armorToken : "";
+});
+
 // Limit on the number of visible block IDs injected into the system prompt to control token usage.
 // Mirrors kernel/agent/agent.go maxVisibleBlockIDs.
 const maxVisibleBlockIDs = 50;
@@ -86,6 +99,7 @@ export class AgentChat extends Model {
     private sendBtn: HTMLElement;
     private stopBtn: HTMLElement;
     private newSessionBtn: HTMLElement;
+    private guardianAuthBtn: HTMLElement;
     private titleElement: HTMLElement;
     private sessionMenuBtn: HTMLElement;
     private floatingBtn: HTMLElement;
@@ -195,11 +209,32 @@ export class AgentChat extends Model {
             }
         });
         this.settingDialogObserver.observe(document.body, {childList: true, subtree: false});
+        window.addEventListener(MAGI_IDENTITY_SESSION_CHANGED_EVENT, this.handleMagiIdentitySessionChanged);
     }
 
     private checkConfigChangedHandler = () => {
         this.checkConfigChanged();
     };
+
+    private handleMagiIdentitySessionChanged = () => {
+        this.updateGuardianAuthButton();
+        void this.sessionPanel?.refresh();
+    };
+
+    private updateGuardianAuthButton() {
+        if (!this.guardianAuthBtn) {
+            return;
+        }
+        const session = getActiveMagiArmorSession();
+        const authorized = session?.routeClass === "guardian" && session.channel === "magi-main-ui";
+        const icon = this.guardianAuthBtn.querySelector("use");
+        icon?.setAttribute("xlink:href", authorized ? "#iconKey" : "#iconLock");
+        this.guardianAuthBtn.setAttribute(
+            "aria-label",
+            authorized ? `Guardian: ${session.displayName}` : "登录 Guardian Armor",
+        );
+        this.guardianAuthBtn.classList.toggle("ft__primary", authorized);
+    }
 
     // 比较 window.siyuan.config.ai 实际可用模型签名与缓存 modelOptions，不一致则刷新。
     // 仅当处于欢迎页（无会话内容）时重渲染，以便从无模型提示块切回示例或反之；
@@ -235,6 +270,10 @@ export class AgentChat extends Model {
         panel.innerHTML = '<div class="agent-chat fn__flex-column fn__flex-1">' +
             '<div class="block__icons fn__hidescrollbar">' +
             '<div class="block__logo fn__flex-1 agent-chat__title">' + (L.agentChat || "Agent") + "</div>" +
+            '<span data-type="guardian-auth" class="block__icon block__icon--show ariaLabel" data-position="north" aria-label="登录 Guardian Armor">' +
+            '<svg><use xlink:href="#iconLock"></use></svg>' +
+            "</span>" +
+            '<span class="fn__space"></span>' +
             '<span data-type="new-session" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.agentNewSession || "New Session") + '">' +
             '<svg><use xlink:href="#iconAdd"></use></svg>' +
             "</span>" +
@@ -282,6 +321,7 @@ export class AgentChat extends Model {
         this.composerHost = panel.querySelector(".agent-chat__composer-host") as HTMLElement;
         this.sendBtn = panel.querySelector(".agent-chat__send") as HTMLElement;
         this.stopBtn = panel.querySelector(".agent-chat__stop") as HTMLElement;
+        this.guardianAuthBtn = panel.querySelector('.block__icon[data-type="guardian-auth"]') as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
         this.sessionMenuBtn = panel.querySelector('.block__icon[data-type="session-menu"]') as HTMLElement;
         this.tabBtn = panel.querySelector('.block__icon[data-type="open-as-tab"]') as HTMLElement;
@@ -291,6 +331,7 @@ export class AgentChat extends Model {
         this.modelSelect = panel.querySelector(".b3-select") as HTMLSelectElement;
         this.reasoningEffortBtn = panel.querySelector(".agent-chat__reasoning-effort") as HTMLElement;
         this.reasoningEffortLabel = panel.querySelector(".agent-chat__reasoning-effort-label") as HTMLElement;
+        this.updateGuardianAuthButton();
         this.updateReasoningEffortLabel();
         this.scrollBottomBtn = panel.querySelector(".agent-chat__scroll-bottom") as HTMLElement;
         this.messagesContainer.addEventListener("scroll", () => {
@@ -340,7 +381,11 @@ export class AgentChat extends Model {
                         this.titleElement.textContent = title;
                     }
                 },
-            }
+            },
+            () => {
+                const session = getActiveMagiArmorSession();
+                return session?.routeClass === "guardian" && session.channel === "magi-main-ui";
+            },
         );
         this.initialization = this.initSessions();
     }
@@ -443,6 +488,7 @@ export class AgentChat extends Model {
         this.settingDialogObserver?.disconnect();
         this.settingDialogObserver = null;
         window.removeEventListener("focus", this.checkConfigChangedHandler);
+        window.removeEventListener(MAGI_IDENTITY_SESSION_CHANGED_EVENT, this.handleMagiIdentitySessionChanged);
         this.sessionPanel?.destroy();
         this.composer?.destroy();
         this.composer = null;
@@ -450,7 +496,7 @@ export class AgentChat extends Model {
             this.ws.onclose = null;
             this.ws.close();
         }
-        super.disposeConnection();
+        super.dispose();
     }
 
     private initModelSelect() {
@@ -861,6 +907,10 @@ export class AgentChat extends Model {
                 setPanelFocus(this.parent.panelElement);
             }
             this.createSession();
+        });
+        this.guardianAuthBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            void openIdentityAccessTab({app: this.app}).then(() => requestMagiIdentityAccess());
         });
         this.sessionMenuBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
@@ -2687,8 +2737,9 @@ export class AgentChat extends Model {
         const userMsg = userEntry?.content?.slice(0, 500) || "";
         fetch("/api/ai/agent/title", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: agentOwnerHeaders({"Content-Type": "application/json"}),
             body: JSON.stringify({
+                sessionID: this.sessionId,
                 message: userMsg,
                 model: this.getSelectedModel(),
                 language: window.siyuan.config.appearance.lang
@@ -2932,8 +2983,8 @@ export class AgentChat extends Model {
         try {
             const resp = await fetch("/api/ai/agent/confirm", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(body),
+                headers: agentOwnerHeaders({"Content-Type": "application/json"}),
+                body: JSON.stringify({...body, sessionID: this.sessionId}),
             });
             if (!resp.ok) {
                 console.error("agent confirm request failed:", resp.status);
@@ -2972,8 +3023,8 @@ export class AgentChat extends Model {
         try {
             const resp = await fetch("/api/ai/agent/frontendToolResult", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({callID, result, isError}),
+                headers: agentOwnerHeaders({"Content-Type": "application/json"}),
+                body: JSON.stringify({sessionID: this.sessionId, callID, result, isError}),
             });
             if (!resp.ok) {
                 console.error("agent frontend result request failed:", resp.status);
@@ -3064,8 +3115,8 @@ export class AgentChat extends Model {
         try {
             const resp = await fetch("/api/ai/agent/question", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({questionID: questionID, answers: answers}),
+                headers: agentOwnerHeaders({"Content-Type": "application/json"}),
+                body: JSON.stringify({sessionID: this.sessionId, questionID: questionID, answers: answers}),
             });
             if (!resp.ok) {
                 console.error("agent question request failed:", resp.status);

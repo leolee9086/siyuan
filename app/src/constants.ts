@@ -747,6 +747,14 @@ export abstract class Constants {
                     icon: "iconSparkles",
                     hotkeyLangId: "agentChat",
                 }, {
+                    type: "magi-identity-access",
+                    size: {width: 360, height: 0},
+                    show: false,
+                    icon: "iconLock",
+                    title: "Identity Access",
+                    hotkey: "",
+                    hotkeyLangId: "",
+                }, {
                     type: "graph",
                     size: { width: 320, height: 0 },
                     show: false,

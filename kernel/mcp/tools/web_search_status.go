@@ -17,7 +17,8 @@ var WebSearchStatusTool = &Tool{
 			"engines": {Type: "array", Description: "Optional engine names", Items: &Property{Type: "string"}},
 		},
 	},
-	Handler: webSearchStatusHandler,
+	Handler:         webSearchStatusHandler,
+	ProgressHandler: webSearchStatusHandlerWithProgress,
 }
 
 func init() {
@@ -25,9 +26,24 @@ func init() {
 }
 
 func webSearchStatusHandler(args map[string]interface{}) (CallToolResult, error) {
+	return webSearchStatusHandlerWithProgress(args, nil)
+}
+
+func webSearchStatusHandlerWithProgress(args map[string]interface{}, emit ToolProgressCallback) (CallToolResult, error) {
 	probe, _ := args["probe"].(bool)
 	query, _ := args["query"].(string)
-	status := kernelwebsearch.NewService().Diagnose(stringSliceArg(args["engines"]), probe, query)
+	status := kernelwebsearch.NewService().DiagnoseWithProgress(stringSliceArg(args["engines"]), probe, query, func(progress kernelwebsearch.DiagnosticProgress) {
+		if emit == nil {
+			return
+		}
+		phase := "update"
+		if progress.Done == 0 {
+			phase = "start"
+		} else if progress.Done == progress.Total {
+			phase = "done"
+		}
+		emit(ToolProgress{Phase: phase, Done: progress.Done, Total: progress.Total, Current: progress.Current})
+	})
 	data, err := json.Marshal(status)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "web_search_status error: " + err.Error()}}, IsError: true}, nil

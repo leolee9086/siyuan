@@ -2,7 +2,7 @@
 
 ## 动机
 
-MAGI 目前缺少文档创建和修改能力。avatar token 绑定文档、身份文档编写等场景需要 MAGI 能在 AI 主笔记本中创建和修改笔记。
+MAGI 目前缺少文档创建和修改能力。Avatar 是所有非 MAGI 且向 MAGI 汇报的 Agent；内部 Avatar 复用普通 Agent，未来外部 Avatar 可通过 LLM 转发服务接入。Avatar 的身份、任务和报告文档由 MAGI 在 AI 主笔记本中创建和修改；Avatar 不直接取得 MAGI 主笔记的写权限，外部任务目录的修改通过自身 task-directory capability 完成。
 
 ## 设计约束
 

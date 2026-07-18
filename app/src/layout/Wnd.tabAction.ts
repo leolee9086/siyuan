@@ -38,6 +38,7 @@ import { clearOBG } from "./dock/util";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { showMessage } from "../dialog/message";
+import { disposeModelResources } from "./lifecycle/model";
 
 /**
  * 销毁标签页关联的模型实例，释放资源
@@ -66,12 +67,7 @@ export function destroyModel(model: Model): void {
             model.pdfObject.pdfLoadingTask.destroy();
         }
     }
-    if (model instanceof Custom) {
-        if (model.destroy) {
-            model.destroy();
-        }
-    }
-    model.send("closews", {});
+    disposeModelResources(model);
 }
 
 /**

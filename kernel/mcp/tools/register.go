@@ -78,7 +78,27 @@ func GetAvailableTools() []*Tool {
 		if t.Source == "forge" && !util.IsForgeMode() {
 			continue
 		}
+		// 任务目录工具只允许 Agent 在已绑定会话上下文中按需暴露。
+		// 通用 MCP 列表永远不返回，避免外部客户端探测本机目录能力。
+		if t.Source == "task-directory" {
+			continue
+		}
 		result = append(result, t)
+	}
+	return result
+}
+
+func GetAgentTools(includeTaskDirectory bool) []*Tool {
+	result := GetAvailableTools()
+	if !includeTaskDirectory {
+		return result
+	}
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	for _, t := range Registry {
+		if t.Source == "task-directory" {
+			result = append(result, t)
+		}
 	}
 	return result
 }

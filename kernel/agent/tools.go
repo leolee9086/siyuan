@@ -19,13 +19,14 @@ package agent
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/mcp/tools"
 )
 
-func convertMCPToolsToOpenAI() []openai.Tool {
-	allTools := tools.GetAvailableTools()
+func convertMCPToolsToOpenAI(includeTaskDirectory bool) []openai.Tool {
+	allTools := tools.GetAgentTools(includeTaskDirectory)
 	result := make([]openai.Tool, 0, len(allTools))
 	for _, t := range allTools {
 		result = append(result, openai.Tool{
@@ -42,16 +43,47 @@ func convertMCPToolsToOpenAI() []openai.Tool {
 
 // executeTool 执行单次工具调用。
 // 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果。
-func executeTool(tc openai.ToolCall, sessionID string, emitProgress tools.ToolProgressCallback) (string, bool) {
+func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, emitProgress tools.ToolProgressCallback) (string, bool) {
 	t := tools.GetTool(tc.Function.Name)
 	if t == nil {
 		return "unknown tool: " + tc.Function.Name, true
+	}
+	if taskDirectory != nil && taskDirectory.HasExternal() && tc.Function.Name == "frontend" {
+		return "frontend actions are disabled for sessions bound to external task directories", true
 	}
 	if tools.IsForgeTool(t.Name) && !tools.IsForgeModeAvailable() {
 		return "forge tool is only available in forge mode", true
 	}
 
 	args := parseToolArgs(tc.Function.Arguments)
+	if t.Source == "task-directory" {
+		// 每次工具调用都重新读取并校验 capability，避免会话开始后目录被替换、删除
+		// 或 store 被外部修改时继续使用旧 root。
+		currentBinding, bindingErr := GetTaskDirectoryBinding(sessionID)
+		if bindingErr != nil || currentBinding == nil {
+			return "task directory capability is unavailable", true
+		}
+		taskDirectory = currentBinding
+		if ownerIdentityID == "" || !subtleOwnerEqual(taskDirectoryBindingOwner(taskDirectory), ownerIdentityID) {
+			return "verified device owner access is required", true
+		}
+		if taskDirectory == nil || !taskDirectory.HasExternal() {
+			return "task directory is not bound to this session", true
+		}
+		if ownerAuthorizationExpiresAt <= time.Now().Unix() {
+			return "verified device owner authorization expired", true
+		}
+		directoryID, _ := args["directoryID"].(string)
+		grant := taskDirectory.Grant(directoryID)
+		if grant == nil {
+			return "requested task directory is not bound to this session", true
+		}
+		requiredPermission := tools.TaskDirectoryToolPermission(t.Name)
+		if requiredPermission == "" {
+			return "unknown task directory permission", true
+		}
+		tools.WithTaskDirectoryGrant(args, grant.ID, grant.Path, string(grant.Permission))
+	}
 	// _sessionID 是原生工具（如 todo_write）专用的内部字段，用于关联会话状态。
 	// 仅注入给原生工具；MCP/插件工具的参数会原样转发给外部服务端，
 	// 严格校验（additionalProperties:false）的服务端（如 Flomo MCP）会因这个多余字段报错。

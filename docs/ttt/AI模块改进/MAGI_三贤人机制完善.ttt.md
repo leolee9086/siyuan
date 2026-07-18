@@ -17,7 +17,7 @@
 > **关联设计/文档**:
 > - [`docs/设计/MAGI认知架构.design.md`](../设计/MAGI认知架构.design.md)
 > - [`docs/设计/MAGI_Go后端落实工程设计.design.md`](../设计/MAGI_Go后端落实工程设计.design.md)
-> - [`kernel/nerv/magi/ARCHITECTURE.md`](../../kernel/nerv/magi/ARCHITECTURE.md)
+> - [`docs/设计/MAGI/ARCHITECTURE.md`](../../设计/MAGI/ARCHITECTURE.md)
 >
 > **关联 ttt**:
 > - [`docs/ttt/MAGI_后端核心引擎落地.ttt.md`](./MAGI_后端核心引擎落地.ttt.md)
@@ -93,9 +93,9 @@
    - 影响范围：入口门禁与来源上下文计算回归验证（包括 direct-main 策略约束）。
 5. `kernel/nerv/magi/coordinator/coordinator_test.go`
    - 影响范围：协调器在不同来源门禁下的路径选择与行为稳定性验证。
-6. `kernel/nerv/magi/docs/SOURCE_SIMULATION_PANELS_INTEGRATION.md`
+6. `docs/技术文档/MAGI/SOURCE_SIMULATION_PANELS_INTEGRATION.md`
    - 影响范围：来源仿真面板的字段契约与联调口径（`trustBase/riskLevel/channel`）。
-7. `kernel/nerv/magi/docs/REQUEST_SOURCE_IDENTITY_PLAN.md`
+7. `docs/技术文档/MAGI/REQUEST_SOURCE_IDENTITY_PLAN.md`
    - 影响范围：来源身份体系设计口径、字段语义和策略边界文档对齐。
 
 ### speak 与决策结束信号代码参考（仅位置与影响范围）

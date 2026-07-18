@@ -1,4 +1,5 @@
-import {SessionIndexItem, SessionStore} from "./SessionStore";
+import {SessionStore} from "./SessionStore";
+import type {SessionIndexItem} from "./SessionStore.types";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {setPosition} from "../../../util/DOM/setPosition";
 import {hasClosestByClassName} from "../../../protyle/util/hasClosest";
@@ -6,6 +7,8 @@ import {upDownHint} from "../../../util/DOM/upDownHint";
 import * as path from "path";
 import {useShell} from "../../../util/pathName";
 import {isElectron} from "../../../platform";
+import {ipcInvoke} from "../../../platform/electron/ipcRenderer";
+import {Constants} from "../../../constants";
 
 export class AgentSessionPanel {
     private popup: HTMLElement | null = null;
@@ -26,7 +29,8 @@ export class AgentSessionPanel {
             onSwitch: (id: string) => Promise<void>;
             onDelete: (id: string) => Promise<void>;
             onRename: (id: string, title: string) => Promise<void>;
-        }
+        },
+        private canManageTaskDirectories: () => boolean,
     ) {
     }
 
@@ -146,18 +150,21 @@ export class AgentSessionPanel {
             const currentId = this.getCurrentSessionId();
             const defaultTitle = this.getDefaultTitle();
             const isDesktop = isElectron;
+            const canManageTaskDirectories = this.canManageTaskDirectories();
             const L = window.siyuan.languages;
             for (let i = 0; i < listItems.length; i++) {
                 const s = listItems[i];
                 const isActive = s.id === currentId;
+                const taskDirectoryActions = canManageTaskDirectories ? this.renderTaskDirectoryActions(s) : "";
                 html += '<div class="b3-list-item  b3-list-item--hide-action' + (isActive ? " b3-list-item--focus" : "") + '" data-id="' + s.id + '">' +
                     '<span class="b3-list-item__text ariaLabel" data-position="parentW" aria-label="' + escapeHtml(s.title || defaultTitle) + '">' + escapeHtml(s.title || defaultTitle) + "</span>" +
                     '<span class="b3-list-item__action b3-tooltips b3-tooltips__nw" data-id="' + s.id + '" aria-label="' + window.siyuan.languages.rename + '"><svg><use xlink:href="#iconEdit"></use></svg></span>' +
-                    '<span class="b3-list-item__action b3-tooltips b3-tooltips__nw agent-session-more" data-id="' + s.id + '" aria-label="' + (L.more || "More") + '">' +
+                    '<span class="b3-list-item__action b3-tooltips b3-tooltips__nw agent-session-more" data-id="' + s.id + '" aria-label="' + (L.more || "More") + '" aria-haspopup="menu" aria-expanded="false">' +
                         '<svg><use xlink:href="#iconMore"></use></svg>' +
                         '<div class="b3-menu__submenu">' +
                             '<div class="b3-menu__items">' +
                             (isDesktop ? '<button class="b3-menu__item" data-action="folder"><svg class="b3-menu__icon"><use xlink:href="#iconFolder"></use></svg><span class="b3-menu__label">' + escapeHtml(L.showInFolder) + "</span></button>" : "") +
+                            taskDirectoryActions +
                             '<button class="b3-menu__item b3-menu__item--warning" data-action="delete"><svg class="b3-menu__icon"><use xlink:href="#iconTrashcan"></use></svg><span class="b3-menu__label">' + escapeHtml(L.delete) + "</span></button>" +
                             "</div>" +
                         "</div>" +
@@ -175,6 +182,23 @@ export class AgentSessionPanel {
         }
         this.bindEvents(container);
         this.highlightCurrent();
+    }
+
+    private renderTaskDirectoryActions(session: SessionIndexItem): string {
+        const binding = session.taskDirectory;
+        let html = '<button class="b3-menu__item" data-action="bind-task-directory-main"><svg class="b3-menu__icon"><use xlink:href="#iconWorkspace"></use></svg><span class="b3-menu__label">' + escapeHtml(binding?.main ? "更换主任务目录" : "绑定主任务目录") + "</span></button>";
+        if (binding?.main) {
+            html += '<button class="b3-menu__item" data-action="add-task-directory" data-permission="read-only"><svg class="b3-menu__icon"><use xlink:href="#iconPreview"></use></svg><span class="b3-menu__label">添加只读目录</span></button>';
+            html += '<button class="b3-menu__item" data-action="add-task-directory" data-permission="read-write"><svg class="b3-menu__icon"><use xlink:href="#iconEdit"></use></svg><span class="b3-menu__label">添加读写目录</span></button>';
+            html += '<button class="b3-menu__item" data-action="add-task-directory" data-permission="command"><svg class="b3-menu__icon"><use xlink:href="#iconTerminal"></use></svg><span class="b3-menu__label">添加命令目录</span></button>';
+        }
+        if (binding?.main && !(binding.directories && binding.directories.length > 0)) {
+            html += '<button class="b3-menu__item" data-action="unbind-task-directory" data-directory-id="main"><svg class="b3-menu__icon"><use xlink:href="#iconClose"></use></svg><span class="b3-menu__label">解除主任务目录</span></button>';
+        }
+        for (const grant of binding?.directories || []) {
+            html += '<button class="b3-menu__item" data-action="unbind-task-directory" data-directory-id="' + escapeHtml(grant.id) + '"><svg class="b3-menu__icon"><use xlink:href="#iconClose"></use></svg><span class="b3-menu__label">解除目录：' + escapeHtml(grant.name) + ' (' + escapeHtml(grant.permission) + ')</span></button>';
+        }
+        return html;
     }
 
     private bindEvents(container: HTMLElement) {
@@ -321,10 +345,12 @@ export class AgentSessionPanel {
         // 内嵌子菜单（b3-menu__submenu），点击 toggle 展开/关闭。
         if (anchor.classList.contains("b3-menu__item--show")) {
             anchor.classList.remove("b3-menu__item--show");
+            anchor.setAttribute("aria-expanded", "false");
             return;
         }
         this.closeAllSubmenus(anchor);
         anchor.classList.add("b3-menu__item--show");
+        anchor.setAttribute("aria-expanded", "true");
         const submenu = anchor.querySelector(".b3-menu__submenu") as HTMLElement | null;
         if (submenu) {
             // 使用 position: fixed 定位子菜单，避免在可滚动列表内触发滚动条。
@@ -363,6 +389,7 @@ export class AgentSessionPanel {
             // 关闭子菜单：点击子菜单项执行操作后关闭，或点击外部关闭。
             const onClose = () => {
                 anchor.classList.remove("b3-menu__item--show");
+                anchor.setAttribute("aria-expanded", "false");
                 submenu.querySelectorAll(".b3-menu__item--current").forEach((el) => {
                     el.classList.remove("b3-menu__item--current");
                 });
@@ -391,16 +418,55 @@ export class AgentSessionPanel {
                     if (action === "folder" && isElectron) {
                         useShell("openPath", path.join(window.siyuan.config.system.dataDir, "storage", "ai", "agent", "sessions", id));
                     }
+                    if (action === "bind-task-directory-main") {
+                        void this.bindTaskDirectory(id, true, "");
+                    }
+                    if (action === "add-task-directory") {
+                        void this.bindTaskDirectory(id, false, btn.getAttribute("data-permission") || "read-only");
+                    }
+                    if (action === "unbind-task-directory") {
+                        void SessionStore.unbindTaskDirectory(id, btn.getAttribute("data-directory-id") || "main").then(() => this.refresh());
+                    }
                     onClose();
                 });
             }
         }
     }
 
+    private async bindTaskDirectory(id: string, main: boolean, permission: string) {
+        if (!this.canManageTaskDirectories()) {
+            return;
+        }
+        let selectedPath = "";
+        if (isElectron) {
+            const result = await ipcInvoke<{canceled: boolean; filePaths: string[]}>(Constants.SIYUAN_GET, {
+                cmd: "showOpenDialog",
+                defaultPath: window.siyuan.config.system.homeDir,
+                properties: ["openDirectory"],
+            });
+            if (result.canceled || result.filePaths.length !== 1) {
+                return;
+            }
+            selectedPath = result.filePaths[0];
+        } else {
+            selectedPath = (window.prompt("输入 s-forge 主机上的任务目录绝对路径", "") || "").trim();
+        }
+        if (!selectedPath) {
+            return;
+        }
+        if (main) {
+            await SessionStore.bindTaskDirectory(id, selectedPath);
+        } else {
+            await SessionStore.addTaskDirectory(id, selectedPath, permission);
+        }
+        await this.refresh();
+    }
+
 	private closeAllSubmenus(except?: HTMLElement) {
         this.host.querySelectorAll(".agent-session-more.b3-menu__item--show").forEach((el) => {
             if (el !== except) {
                 el.classList.remove("b3-menu__item--show");
+                el.setAttribute("aria-expanded", "false");
             }
         });
     }

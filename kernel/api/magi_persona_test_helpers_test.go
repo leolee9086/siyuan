@@ -40,7 +40,7 @@ func issueLiveArmorTokenForIdentity(t *testing.T, identityID, nickname string) s
 		nickname = identityID
 	}
 
-	_, err := globalMagiIdentityStore.upsert(identityID, identityID, "live-pass", magiRouteClassGuardian, true)
+	_, err := globalMagiIdentityStore.upsert(identityID, identityID, nickname, "live-pass", magiRouteClassGuardian, true, 0, nil)
 	if err != nil {
 		t.Fatalf("failed to upsert live test identity %q: %v", identityID, err)
 	}

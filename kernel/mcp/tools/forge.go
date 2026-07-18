@@ -209,7 +209,7 @@ func forgeError(message string) (CallToolResult, error) {
 }
 
 func forgeListHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -259,7 +259,7 @@ func forgeListHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeReadHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -300,7 +300,7 @@ func forgeReadHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeSearchHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -410,7 +410,7 @@ func forgeSearchHandler(args map[string]interface{}) (CallToolResult, error) {
 var errForgeSearchLimit = errors.New("forge search limit reached")
 
 func forgeWriteHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -435,7 +435,7 @@ func forgeWriteHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeDeleteHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -463,7 +463,7 @@ func forgeDeleteHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeEditHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -500,7 +500,7 @@ func forgeEditHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeBatchReplaceHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -586,7 +586,7 @@ func forgeBatchReplaceHandler(args map[string]interface{}) (CallToolResult, erro
 }
 
 func forgeBashHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -626,7 +626,7 @@ func forgeBashHandler(args map[string]interface{}) (CallToolResult, error) {
 }
 
 func forgeGitHandler(args map[string]interface{}) (CallToolResult, error) {
-	root, err := ForgeDevRepoRoot()
+	root, err := repositoryToolRoot(args)
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -743,6 +743,9 @@ func resolveForgeDevRepoTarget(root, rawPath string) (string, string, error) {
 	cleanRoot, err := filepath.Abs(root)
 	if err != nil {
 		return "", "", err
+	}
+	if evaluated, evalErr := filepath.EvalSymlinks(cleanRoot); evalErr == nil {
+		cleanRoot = filepath.Clean(evaluated)
 	}
 	relative := strings.TrimSpace(rawPath)
 	if relative == "" {

@@ -14,7 +14,7 @@ func TestNativeAgentForgeToolsAreModeScoped(t *testing.T) {
 	t.Cleanup(func() { util.Mode = previousMode })
 
 	util.Mode = util.ModeProd
-	for _, tool := range convertMCPToolsToOpenAI() {
+	for _, tool := range convertMCPToolsToOpenAI(false) {
 		if tools.IsForgeTool(tool.Function.Name) {
 			t.Fatalf("forge tool %q exposed outside forge mode", tool.Function.Name)
 		}
@@ -22,7 +22,7 @@ func TestNativeAgentForgeToolsAreModeScoped(t *testing.T) {
 
 	util.Mode = util.ModeForge
 	found := false
-	for _, tool := range convertMCPToolsToOpenAI() {
+	for _, tool := range convertMCPToolsToOpenAI(false) {
 		if tool.Function.Name == tools.ForgeDevRepoGitToolName {
 			found = true
 			break
@@ -36,6 +36,9 @@ func TestNativeAgentForgeToolsAreModeScoped(t *testing.T) {
 func TestNativeAgentForgeWritesRequireConfirmation(t *testing.T) {
 	if !needsConfirm(tools.ForgeDevRepoWriteToolName, "", map[string]bool{}) {
 		t.Fatal("forge write should require confirmation")
+	}
+	if !needsConfirm(tools.TaskDirectoryCommandToolName, "", map[string]bool{}) {
+		t.Fatal("task directory command should require confirmation")
 	}
 	if needsConfirm(tools.ForgeDevRepoListToolName, "", map[string]bool{}) {
 		t.Fatal("forge read should not require confirmation")
