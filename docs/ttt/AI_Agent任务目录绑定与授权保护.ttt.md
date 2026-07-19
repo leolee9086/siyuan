@@ -41,8 +41,8 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
 
 ## 当前同步状态 (2026-07-19)
 
-- **总体状态**: workspace 自持、多目录 capability、远程 guardian 绑定、目录工具权限和后端 owner 矩阵已落地；真实手机/Web 端到端交互仍需用户验收，尚不能归档整个任务。
-- **当前残余**: 需要在真实远程设备上完成 guardian 登录、会话发现、发任务和目录增删查改验收；用户实测发现会话“更多”子菜单未显示，已定位为触发器类型与全局展开选择器不匹配并修复，仍待刷新客户端后确认已登录目录项。完整 `go test ./api` 的 MAGI runtime/vector 测试和前端模块级状态 lint 仍有既有失败。
+- **总体状态**: workspace 自持、多目录 capability、远程 guardian 绑定、目录工具权限和后端 owner 矩阵已落地；真实 Electron 已完成登录、菜单绑定、脱敏查询、workspace store 校验、解除与清理闭环；手机/Web 端到端交互仍需用户验收，尚不能归档整个任务。
+- **当前残余**: 需要在真实远程设备上完成 guardian 登录、会话发现、发任务和目录增删查改验收；完整 `go test ./api` 的 MAGI runtime/vector 测试，以及 `AgentChat.ts`/`SessionStore.ts` 的仓库级前端 lint 仍有既有失败。Electron 菜单裁剪、前端授权门禁和会话面板代码规模问题已修复，不再列为待验收项。
 - **工作区约束**: 当前未提交修改全部视为本任务内容，不回退、不覆盖无关改动。
 - **验证基线**: `go test ./agent`、`go test ./mcp/tools` 和目录绑定相关 API 测试已通过；完整 API 测试已完成编译，但仍有 MAGI runtime/vector 运行失败。
 
@@ -61,8 +61,8 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
   - **验收结果**: `go test ./api -run 'TestAgentTaskDirectory|TestMagiIdentityStorePasswordStoredAsHash|TestSetupMagiPersonaPreset'` 通过；`go build ./agent ./api ./mcp/tools` 通过。
 
 - [ ] **Phase 4.4 前端与全量验证 (P1)**
-  - **当前状态**: 后端专项验证和三包编译已完成；前端 lint 仍被 `SessionStore.ts` 的模块级状态容器规则阻断，完整 API 测试仍有 MAGI runtime/vector 既有失败。
-  - **行动**: 后续如要清零仓库级 lint，需要将 Agent 会话 store 的可变状态迁移到 factory 或类实例，并单独修复 runtime/vector 测试；不属于本轮目录安全逻辑的必要改动。
+  - **当前状态**: 后端专项验证和三包编译已完成；原 `AgentSessionPanel.ts` 已改为无 class 的 controller/view/types/imports/menu actions 模块，五个新模块完整 lint 通过。`AgentChat.ts` 的历史大文件/类设计问题与 `SessionStore.ts` 的模块级状态容器规则仍阻断仓库级前端 lint；完整 API 测试仍有 MAGI runtime/vector 既有失败。
+  - **行动**: 后续如要清零仓库级 lint，需要继续拆分 `AgentChat.ts`，并将 Agent 会话 store 的可变状态迁移到显式 factory/state holder；不要以 class 豁免替代可以消除的类。另需单独修复 runtime/vector 测试；这些不属于本轮目录安全逻辑的必要改动。
   - **验收标准**: 本任务专项测试与编译通过；上述仓库既有失败在验证记录和风险项中明确列出。
 
 - [-] **Phase 5 架构边界修正：workspace 自持与后端鉴权为唯一事实源 (P0)**
@@ -75,7 +75,7 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
     - **行动**: 直接采用 version 2 workspace 私有 store，不读取旧用户配置路径；每次 bind、list、get、chat、工具执行前重新检查目录存在性、工作空间边界、符号链接和 `OwnerIdentityID`；新 store 损坏、路径逸出或身份不匹配时默认拒绝。
     - **验收结果**: malformed store、目录失效、符号链接、owner 不匹配和过期 token 默认拒绝；删除会话会清理主目录和全部附加 grant；不存在旧路径 fallback。
   - [ ] **Phase 5.3 全客户端 Agent 入口与授权判断解耦 (P1)**
-    - **当前状态**: 已完成入口改造、workspace API token 透传、MAGI 身份会话变化后的列表刷新，以及会话“更多”子菜单展开修复；待用户刷新后确认 guardian 目录项，并完成实际手机/Web 操作验收。
+    - **当前状态**: 已完成入口改造、workspace API token 透传、MAGI 身份会话变化后的列表刷新；所有客户端常显目录命令，会话“更多”由顶层标准菜单承载。真实 Electron 已验证 Agent 钥匙入口、guardian `magi-main-ui` 登录、菜单绑定、绑定后菜单刷新和解除流程；仅剩手机/Web 远程操作验收。
     - **行动**: 所有支持 Agent 的客户端都允许发现会话和任务目录操作入口；前端不以 Electron、移动端或菜单隐藏判断授权，绑定结果、错误和可用能力以后端鉴权响应为准。Electron 只提供可选的原生目录选择器，非 Electron 使用路径输入或后端目录管理交互。普通 Agent（含 Avatar）均可在获得 capability 后读写目录；MAGI 不暴露 task-directory capability。Agent chat、SSE、confirm、question 和工具结果回传在手机端与桌面端使用同一 owner headers 链路。
     - **验收标准**: 后端远程 HTTPS guardian 绑定主目录和附加目录测试已通过；仍需在手机/Web 客户端验证加载、查看、发任务和目录操作，且无 owner authorization 时由后端拒绝。
   - [ ] **Phase 5.4 后端鉴权矩阵回归 (P0)**
@@ -112,7 +112,7 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
   - 普通 WebSocket 会话广播跳过外部目录会话。
 
 - [x] **Phase 3 前端接入**
-  - `SessionStore`、`AgentChat`、`agentSSE` 和 `AgentSessionPanel` 已接入 owner headers、MAGI armor session、Electron 原生目录选择器、移动/Web 路径输入、多目录权限入口及绑定/解除流程。
+  - `SessionStore`、`AgentChat`、`agentSSE` 和 `session-panel` controller/view 已接入 owner headers、MAGI armor session、Electron 原生目录选择器、移动/Web 路径输入、多目录权限入口及绑定/解除流程。
 
 ## 验证记录
 
@@ -140,14 +140,24 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
 | 2026-07-19 | `cd app && pnpm exec vitest --run test/layout/Model.lifecycle.test.ts test/layout/LayoutModel.contract.test.ts test/magi/identityAccess.mount.test.ts test/magi/identityAccess.adapters.test.ts test/magi/magiIdentitySession.sync.test.ts test/layout/dock/agent/SessionStore.headers.test.ts` | 通过 | 6 个文件、20 项测试覆盖模型接口形状、挂载、错误恢复数据、序列化、可选销毁、身份多宿主、armor 同步和 owner headers |
 | 2026-07-19 | 目标模块 ESLint 与独立严格 TypeScript 检查 | 通过 | `layout/lifecycle` 与 `dock/errorPlaceholder` 接口、守卫、挂载、序列化模块无 lint 或类型错误；仓库级 `tsc` 两次运行 5 分钟仍未结束，未作为完成门禁 |
 | 2026-07-19 | 浏览器加载 `/stage/build/magi-desktop/` 与 `/stage/build/desktop/` 并检查控制台 | 通过 | 最终生产哈希完整加载；无 `Model` 未定义、`InvalidStateError` 或布局初始化失败，desktop 无重置对话框 |
+| 2026-07-19 | `cd app && pnpm exec vitest --run test/layout/dock/agent/AgentSessionMenu.actions.test.ts test/layout/dock/agent/SessionStore.headers.test.ts` | 通过 | 5 项测试确认目录命令不受前端授权门禁控制，并继续携带 workspace token 与 guardian owner armor |
+| 2026-07-19 | `cd app && pnpm run build:desktop && pnpm run build:app && pnpm run build:magi-desktop` | 通过 | 会话面板改为函数式 controller/view 并将“更多”改为顶层标准菜单后，三目标均成功构建；最终入口分别为 `main.8d209841d3f3820a7ec1.js`、`main.b11be4faebb68d64bbb4.js`、`main.e01b8490132cbb41714e.js` |
+| 2026-07-19 | 真实 Electron + Playwright CDP 临时 guardian/会话/目录闭环 | 通过 | 从 Agent 钥匙入口打开 Identity Access，激活 `guardian + magi-main-ui`；会话“更多”显示“绑定主任务目录”，将 Electron 目录选择 IPC 结果注入为临时目录后完成真实后端绑定；菜单刷新为“更换/解除”，API 仅返回空 `path/ownerIdentityId` 的脱敏摘要 |
+| 2026-07-19 | 实际 workspace capability 与清理校验 | 通过 | 内核实际使用 `D:\dev\s-forge\.dev-workspace`；version 2 store 的临时记录持有正确 owner 和路径。随后通过菜单解除，并删除临时会话、身份和目录；四项残留复查均为空，渲染进程无 console error |
+| 2026-07-19 | 五个 `session-panel` 文件 `lint:file --show-all` | 通过 | controller、view、types、imports 和 menu actions 无 lint 错误；旧 `AgentSessionPanel` class 已删除，未使用 class 豁免掩盖代码规模问题 |
+| 2026-07-19 | `node --test test/lint/class-policy.test.mjs` | 通过 | 5 项规则测试确认普通类和抽象类默认禁止，充分的 `@允许类:` 可豁免；`private`/`#` 字段允许，`private`/`#` 方法仍禁止 |
+| 2026-07-19 | 8 文件 Vitest、Agent/MCP/API 专项 Go 测试 | 通过 | 前端 24 项覆盖目录菜单、owner headers、布局模型、armor 同步和独立 Identity Access 刷新合并；后端三个目标包专项测试通过 |
+| 2026-07-19 | 最新 Electron 完整重载与会话菜单复验 | 通过 | `/stage/build/app/` 正常重载，Agent Dock、会话弹层和挂载在 `BODY` 的“绑定主任务目录”菜单正常；无白屏、循环依赖、WebSocket CONNECTING 或布局重置错误，仅有 ONNX Runtime 执行器分配性能警告 |
+| 2026-07-19 | `pnpm run build:desktop && pnpm run build:magi-identity` | 通过 | Web Agent 路径输入改为统一应用 Dialog；desktop 最终入口为 `main.b43154839914d29a33a0.js`，magi-identity 最终入口为 `main.09cb4f1d4694c5060169.js` |
+| 2026-07-19 | `http://127.0.0.1:6806/stage/build/magi-identity/` 强制重载观察 | 通过 | 2.5 秒观察窗内独立入口执行日志只增加 1 次，未发生二次文档加载；启动期重复 `identity-required` 广播由 in-flight 与注意态双重合并，不再重复加载身份列表和统计 |
 
 ## 已知问题与风险
 
-1. 手机/Web 客户端的实际远程交互和前端 lint 仍需验收，见 Phase 5.3。
+1. 手机/Web 客户端的实际远程交互仍需验收，见 Phase 5.3；Electron 桌面绑定闭环已完成。
 2. Phase 5.4 的成功 owner chat 需要真实模型配置做端到端验证；当前自动测试证明跨 owner chat 在模型执行前被拒绝，并覆盖其余控制接口。
 3. MAGI 尚未在 task-directory 工具注册、全量 Avatar 历史读取、`report2magi` 和 Agent 通信层显式落实特殊边界，见 Phase 5.6-5.7；这些不影响当前普通 Agent 目录验收。
 4. 完整 API 测试仍有 `magi_runtime_test.go` 和 `vector_test.go` 的既有行为失败；它们不涉及目录绑定鉴权。
-5. `AgentSessionPanel.ts` 和 `SessionStore.ts` 的模块级状态/代码规模 lint 仍未清零，需要单独的前端状态容器和菜单模块重构。
+5. 会话面板五个新模块的 lint 已清零；整份 `AgentChat.ts` 仍有历史大文件/类设计等规则错误，`SessionStore.ts` 仍有模块级状态容器错误，需要后续独立重构。
 
 ## 待用户远程验收
 
@@ -182,8 +192,12 @@ app/src/magi/identity-access/
 app/src/layout/dock/agent/SessionStore.ts
 app/src/layout/dock/agent/AgentChat.ts
 app/src/layout/dock/agent/agentSSE.ts
-app/src/layout/dock/agent/AgentSessionPanel.ts
+app/src/layout/dock/agent/session-panel/
 app/test/layout/dock/agent/SessionStore.headers.test.ts
+app/test/layout/dock/agent/AgentSessionMenu.actions.test.ts
+app/test/magi/identityAccess.refresh.test.ts
+app/0_lints/no-class.mjs
+app/test/lint/class-policy.test.mjs
 ```
 
 ## 更新日志
@@ -206,3 +220,10 @@ app/test/layout/dock/agent/SessionStore.headers.test.ts
 - 2026-07-19：修复布局恢复删除未固定 Agent Tab 时的 WebSocket 竞态。通用销毁器现在调用 AgentChat/Graph/Cronjob/Custom 等模型的资源钩子并最终释放基础连接；`Model.send()` 仅在 OPEN 状态发送，CONNECTING socket 销毁时直接关闭。新增 5 项生命周期测试并完成干净桌面启动复验。
 - 2026-07-19：修正此前把 `dock/imports.ts` 误判为根因并用父级直接导入绕过架构约束的错误方案。新增不含 WebSocket 的 `ILayoutModel` 最小契约和结构守卫；`Model` 与纯工厂错误占位成为并列实现，`Tab` 挂载、Dock 尺寸、布局序列化/恢复和通用销毁均按接口形状或实际能力工作。父级导入豁免、`ErrorPlaceholder extends Model`、相关 `instanceof` 和临时工厂已移除；最终双构建、20 项测试和两入口浏览器复验通过。
 - 2026-07-19：完成布局模型最小契约最终审计：Dock 不再重复实现 `isLayoutModel`，统一由 `lifecycle/model.guard.ts` 定义并经 `dock/imports.ts` 合法转发；新抽象模块 ESLint、独立严格 TypeScript、20 项回归、desktop/magi-desktop 双构建和最新生产入口运行时复验通过，目标启动错误为零。
+- 2026-07-19：用户登录 guardian 后再次实测仍无法配置外部目录，证明先前仅增加嵌套子菜单展开样式的修复结论错误。根因是目录项仍受前端 `canManageTaskDirectories` 状态门禁控制，且菜单 DOM 嵌套在右侧 Dock 的可滚动裁剪上下文。现已删除前端可见性门禁，所有客户端始终生成目录管理命令；点击“更多”使用全局顶层标准菜单，owner armor 只用于请求并由后端完成授权。新增 3 项菜单策略测试，desktop/app/magi-desktop 构建及最新 desktop 入口运行时复验通过；后续真实 Electron 绑定结果见下一条。
+- 2026-07-19：使用真实 Electron 完成临时 guardian 和 Agent 会话验收；通过 Agent 钥匙入口登录 `magi-main-ui`，从顶层“更多”菜单绑定临时外部目录，验证绑定后菜单、脱敏 API 摘要与 workspace version 2 capability 记录。验收后从菜单解除并删除临时会话、身份和目录，无残留且无 renderer console error。
+- 2026-07-19：桌面白屏诊断确认两种状态：正常启动时渲染页会在 `boot.html` 后载入主应用；测试过程关闭 Electron 会按端口停止 6806 kernel，随后启动若未先恢复 kernel，窗口会停在空白 `boot.html` 并持续 `ERR_CONNECTION_REFUSED`。验收时已按 kernel 实际工作空间 `D:\dev\s-forge\.dev-workspace` 重新启动，主页与 MAGI 页均正常渲染。
+- 2026-07-19：删除仅用于组织会话面板状态的 `AgentSessionPanel` class，将其拆为函数式 controller、view、types、imports 和 menu actions；五个模块完整 lint 通过，最新三目标生产构建及真实 Electron 会话菜单复验通过。
+- 2026-07-19：明确 class 策略为“最好不存在，存在则必须长得漂亮”：`no-class` 保留默认禁令和至少 500 字符的 `@允许类:` 显式豁免，移除 abstract class 自动豁免；类豁免只允许 class 存在，私有字段可保存状态，TypeScript `private` 与 ES `#` 私有方法仍被独立规则禁止。新增 5 项规则测试并通过。
+- 2026-07-19：替换 Web/移动端 task-directory 的原生 `window.prompt`，新增统一主题 Dialog、文件夹图标、等宽路径输入、空值错误态和主机路径提示；Electron 继续使用原生目录选择器，后端仍负责路径与授权校验。
+- 2026-07-19：修复独立 `magi-identity` 启动时重复加载身份数据：刷新函数拒绝并发重入，同一注意态窗口合并多个 BroadcastChannel `identity-required` 回放，并在首次刷新前注册监听以免产生竞态。清理 2026-07-19 遗留的第二套 `pnpm dev` watcher，保留 2026-07-17 原开发 watcher，避免两个 Webpack 实例同时清理和写入同一构建目录。

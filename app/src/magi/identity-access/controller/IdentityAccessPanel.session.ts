@@ -14,6 +14,10 @@ async function loadStats(panel: ReturnType<typeof createIdentityAccessPanelState
 
 /** 刷新身份列表和统计，并在首次加载时选择第一个身份。 */
 async function refreshPanel(panel: ReturnType<typeof createIdentityAccessPanelState>) {
+    // 独立入口启动时可能同时收到多个 identity-required 广播；只允许一个刷新占用当前面板。
+    if (panel.loading.value) {
+        return;
+    }
     panel.loading.value = true;
     panel.statusText.value = "";
     try {

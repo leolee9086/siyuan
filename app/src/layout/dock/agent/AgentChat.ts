@@ -10,7 +10,8 @@ import "./frontendActions";
 import {listActions, lookupAction} from "./frontendActions";
 import {agentOwnerHeaders, SessionStore, setAgentOwnerTokenProvider} from "./SessionStore";
 import type {AgentSession} from "./SessionStore.types";
-import {AgentSessionPanel} from "./AgentSessionPanel";
+import {createAgentSessionPanelController} from "./session-panel/controller";
+import type {AgentSessionPanelController} from "./session-panel/types";
 import {getDockByType} from "../../tabUtil";
 import {requestOpenTabAsDialog} from "../../tabFloat.port";
 import {requestOpenTabAsTab} from "../../tabOpen.port";
@@ -104,7 +105,7 @@ export class AgentChat extends Model {
     private sessionMenuBtn: HTMLElement;
     private floatingBtn: HTMLElement;
     private tabBtn: HTMLElement;
-    private sessionPanel: AgentSessionPanel;
+    private sessionPanel: AgentSessionPanelController;
     private sessionId = "";
     private sessionTitle = "";
     private entries: SessionEntry[] = [];
@@ -366,12 +367,12 @@ export class AgentChat extends Model {
         });
         // 支持从编辑器块标或文档面板拖拽块到输入框，效果等同于 @ 引用。
         this.bindComposerDragDrop();
-        this.sessionPanel = new AgentSessionPanel(
-            this.sessionMenuBtn,
-            this.parent.panelElement,
-            () => this.sessionId,
-            () => this.defaultTitle,
-            {
+        this.sessionPanel = createAgentSessionPanelController({
+            triggerBtn: this.sessionMenuBtn,
+            host: this.parent.panelElement,
+            getCurrentSessionId: () => this.sessionId,
+            getDefaultTitle: () => this.defaultTitle,
+            callbacks: {
                 onSwitch: (id) => this.switchSession(id),
                 onDelete: (id) => this.deleteSession(id),
                 onRename: async (id, title) => {
@@ -382,11 +383,7 @@ export class AgentChat extends Model {
                     }
                 },
             },
-            () => {
-                const session = getActiveMagiArmorSession();
-                return session?.routeClass === "guardian" && session.channel === "magi-main-ui";
-            },
-        );
+        });
         this.initialization = this.initSessions();
     }
 

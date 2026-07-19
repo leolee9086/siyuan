@@ -7,6 +7,7 @@ export interface TaskDirectoryGrant {
     boundAt: number;
 }
 
+/** 表示一个 Agent 会话的主目录和附加目录 capability 摘要，不包含真实路径或 owner 身份。 */
 export interface TaskDirectoryBinding {
     main?: TaskDirectoryGrant;
     directories?: TaskDirectoryGrant[];
@@ -27,6 +28,15 @@ export interface SessionListResult {
     total: number;
     page: number;
     pageSize: number;
+}
+
+/** 表示标准会话菜单中的目录操作描述，供视图映射为命令并由后端执行授权校验。 */
+export interface TaskDirectoryMenuAction {
+    action: "bind-main" | "add" | "unbind";
+    icon: string;
+    label: string;
+    permission?: "read-only" | "read-write" | "command";
+    directoryID?: string;
 }
 
 /** 表示 Agent 会话的持久化消息、工具和上下文状态。 */

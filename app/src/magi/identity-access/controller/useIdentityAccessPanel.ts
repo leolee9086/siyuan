@@ -33,9 +33,9 @@ async function handleIdentityRequired(
 ) {
     panel.statusText.value = "Main chat requires identity login.";
     panel.panelRef.value?.scrollIntoView({ block: "start", behavior: "smooth" });
-    // 重复请求时取消旧的视觉计时，确保注意态从最近一次请求重新计算。
-    if (panel.attentionTimer.value) {
-        clearTimeout(panel.attentionTimer.value);
+    // 同一注意态窗口内的 BroadcastChannel 回放属于同一登录请求，不重复刷新列表和统计。
+    if (panel.attention.value) {
+        return;
     }
     panel.attention.value = true;
     // 该延迟是用户可感知的注意态展示时长，不依赖异步任务完成时序；1800ms 后只移除视觉强调。
@@ -43,7 +43,10 @@ async function handleIdentityRequired(
         panel.attention.value = false;
         panel.attentionTimer.value = null;
     }, 1800);
-    await refreshPanel();
+    // 首次挂载刷新仍在执行时只保留注意态；刷新函数自身也会拒绝并发重入。
+    if (!panel.loading.value) {
+        await refreshPanel();
+    }
 }
 
 /**
@@ -63,8 +66,8 @@ export const useIdentityAccessPanel = () => {
     const identityRequiredHandler = handleIdentityRequired.bind(null, panel, sessionActions.onRefresh);
 
     imports.onMounted(async () => {
-        await sessionActions.onRefresh();
         window.addEventListener(imports.MAGI_IDENTITY_REQUIRED_EVENT, identityRequiredHandler);
+        await sessionActions.onRefresh();
     });
 
     imports.onBeforeUnmount(() => {

@@ -910,19 +910,6 @@
   margin: 0 8px 4px;
 }
 
-// 会话条目"更多"按钮的子菜单定位：使用 position: fixed（默认），位置由 JS 动态计算。
-.agent-session-more {
-  position: relative;
-
-  &.b3-menu__item--show > .b3-menu__submenu {
-    display: block;
-  }
-
-  .b3-menu__submenu {
-    white-space: nowrap;
-  }
-}
-
 // Todo list styles
 
 .agent-chat__todo-header {
@@ -1221,4 +1208,55 @@
   font-weight: 500;
   white-space: nowrap;
   user-select: all;
+}
+
+.agent-task-directory-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 24px 18px;
+}
+
+.agent-task-directory-dialog__label {
+  color: var(--b3-theme-on-background);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.agent-task-directory-dialog__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  > svg {
+    position: absolute;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    color: var(--b3-theme-on-surface-light);
+    pointer-events: none;
+  }
+}
+
+.agent-task-directory-dialog__input {
+  height: 38px;
+  padding: 0 12px 0 38px;
+  border-radius: var(--b3-border-radius);
+  font-family: var(--b3-font-family-code);
+  font-size: 13px;
+}
+
+.agent-task-directory-dialog__input:focus {
+  border-color: var(--b3-theme-primary);
+  box-shadow: 0 0 0 2px var(--b3-theme-primary-lightest);
+}
+
+.agent-task-directory-dialog__input--invalid {
+  border-color: var(--b3-theme-error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--b3-theme-error) 18%, transparent);
+}
+
+.agent-task-directory-dialog__hint {
+  color: var(--b3-theme-on-surface-light);
+  font-size: 12px;
 }

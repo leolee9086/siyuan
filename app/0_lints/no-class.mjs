@@ -1,8 +1,9 @@
 /**
  * 禁止使用 class 关键字
  *
- * class 只在经由充分论证并附有详细说明后才允许豁免，
- * 豁免注释必须不少于 500 字符。
+ * class（包括 abstract class）只在经由充分论证并附有详细说明后才允许豁免，
+ * 豁免注释必须不少于 500 字符。豁免只允许 class 存在，不会关闭类设计规则：
+ * 私有字段可以保存实例状态，私有方法和静态方法仍由 restrictions 插件禁止。
  *
  * 豁免格式：
  *   // @允许类: <详细的解释说明，不少于 500 字符>
@@ -97,11 +98,6 @@ export const noClassPlugin = {
                      * 在 class 前寻找豁免注释，如果没有或长度不足则报错。
                      */
                     "ClassDeclaration, ClassExpression"(node) {
-                        // abstract class 默认豁免
-                        if (node.abstract === true) {
-                            return;
-                        }
-
                         const exemptionComment = findExemptionComment(node);
 
                         if (exemptionComment) {
