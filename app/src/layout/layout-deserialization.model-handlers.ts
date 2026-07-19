@@ -8,7 +8,7 @@ import { App } from "../index";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
 import { Bookmark } from "./dock/Bookmark";
 import { Files } from "./dock/Files";
 import { Tag } from "./dock/Tag";
@@ -149,7 +149,7 @@ const handleSearchAndCustomModels = (
     }
     // ErrorPlaceholder 类型：显示错误占位符
     if (isErrorPlaceholderItem(json)) {
-        handleErrorPlaceholderInstance(app, asErrorPlaceholderItem(json), layout);
+        handleErrorPlaceholderInstance(asErrorPlaceholderItem(json), layout);
         return true;
     }
     return false;
@@ -169,7 +169,7 @@ const handleSearchAndCustomModels = (
 export const processModelItem = (
     app: App,
     json: Config.TUILayoutItem,
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): void => {
     // Model 必须添加到 Tab 容器中，非 Tab 容器直接返回
     if (!isTabContainer(layout)) {

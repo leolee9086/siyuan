@@ -13,16 +13,15 @@ import { AgentChat } from "./agent/AgentChat";
 /** 用途：创建 s-forge 原生颜色 Dock；使用范围：MODEL_FACTORIES 的内建颜色类型；解耦评估：不经过插件列表，直接由颜色模块提供 Custom Model。 */
 import { createColorToolDockModel } from "../../sforge/colors/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
-import type { App } from "../../index";
-import type { Protyle } from "../../protyle";
-import type { Model } from "../Model";
-import { Tab } from "../Tab";
-import { ErrorPlaceholder } from "./ErrorPlaceholder";
-import { ERROR_PLACEHOLDER_TYPE } from "./ErrorPlaceholder";
-import { createErrorPlaceholderFromData } from "./ErrorPlaceholder.factory";
+import { Tab } from "./imports";
+import type { App } from "./imports";
+import type { Protyle } from "./imports";
+import type { ILayoutModel } from "./imports";
+import { createErrorPlaceholder } from "./errorPlaceholder/ErrorPlaceholder";
+import { ERROR_PLACEHOLDER_TYPE } from "./errorPlaceholder/ErrorPlaceholder";
 import { getSiyuanLanguages } from "./dock.environment";
 import { getSiyuanStorage } from "./dock.environment";
-import { isErrorPlaceholderData } from "./dock.guard";
+import { isErrorPlaceholderData } from "./errorPlaceholder/ErrorPlaceholder.guard";
 import { isModelConstructor } from "./dock.guard";
 import { isICustomList } from "./dock.guard";
 import { ModelFactory } from "./dock.types";
@@ -172,7 +171,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
  * 调用时机：当 Dock 类型为非内置类型时尝试加载插件
  */
 const initPlugin = (app: App, tab: Tab, type: string) => {
-    let customModel: Model | undefined;
+    let customModel: ILayoutModel | undefined;
     for (const item of app.plugins) {
         const dock = item.docks[type];
         // dock.model 为可选属性，需同时校验 dock 与 dock.model，避免调用未定义函数
@@ -232,7 +231,10 @@ export const createModel = (options: {
 }) => {
     // 处理已保存的错误占位符
     if (options.type === ERROR_PLACEHOLDER_TYPE && isErrorPlaceholderData(options.data)) {
-        return createErrorPlaceholderFromData(options.app, options.tab, options.data);
+        return createErrorPlaceholder({
+            element: options.tab.panelElement,
+            data: options.data,
+        });
     }
 
     const factory = MODEL_FACTORIES[options.type];
@@ -273,12 +275,13 @@ export const safeCreateModel = (options: {
 
         console.error("[safeCreateModel] 创建失败:", options.type, error);
 
-        return new ErrorPlaceholder({
-            app: options.app,
-            tab: options.tab,
-            原始类型: options.type,
-            错误信息: errorMessage,
-            ...(errorStack ? { 错误堆栈: errorStack } : {}),
+        return createErrorPlaceholder({
+            element: options.tab.panelElement,
+            data: {
+                原始类型: options.type,
+                错误信息: errorMessage,
+                ...(errorStack ? { 错误堆栈: errorStack } : {}),
+            },
         });
     }
 };

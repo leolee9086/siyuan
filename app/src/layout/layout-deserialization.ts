@@ -8,7 +8,7 @@ import { Constants } from "../constants";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
 import { afterLoadPlugin } from "../plugin/loader";
 import { saveLayout } from "./layout-serialization";
 import { JSONToDock } from "./dock-utils";
@@ -70,7 +70,7 @@ const collapseEmptyDockLayouts = (): void => {
  */
 const processLayoutItem = (
     json: Config.IUILayoutLayout,
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Layout | undefined => {
     // 类型守卫确保 layout 是 Layout 或 undefined
     if (layout && !isLayoutContainer(layout)) {
@@ -86,7 +86,7 @@ const processLayoutItem = (
 const processWndItem = (
     app: App,
     json: Config.IUILayoutWnd,
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Wnd | undefined => {
     // Wnd 必须添加到 Layout 容器中
     if (!isLayoutContainer(layout)) {
@@ -102,7 +102,7 @@ const processWndItem = (
 const processTabItem = (
     app: App,
     json: Config.IUILayoutTab,
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Tab | undefined => {
     // Tab 必须添加到 Wnd 容器中
     if (!isWndContainer(layout)) {
@@ -118,7 +118,7 @@ const processTabItem = (
 const dispatchInstanceHandler = (
     app: App,
     json: Config.TUILayoutItem,
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Layout | Wnd | Tab | undefined => {
     // Layout 实例（类型守卫收窄为 Config.IUILayoutLayout）
     if (isLayoutItem(json)) {
@@ -144,7 +144,7 @@ const dispatchInstanceHandler = (
 const processChildren = (
     app: App,
     json: Config.TUILayoutItem,
-    layout: Layout | Wnd | Tab | Model | undefined,
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined,
     child: Layout | Wnd | Tab | undefined
 ): void => {
     // 无 children 属性时直接返回
@@ -182,7 +182,7 @@ const processChildren = (
 export const JSONToCenter = (
     app: App,
     json: Config.TUILayoutItem,
-    layout?: Layout | Wnd | Tab | Model,
+    layout?: Layout | Wnd | Tab | ILayoutModel,
 ): void => {
     // 分发处理并获取创建的子元素
     const child = dispatchInstanceHandler(app, json, layout);

@@ -1,6 +1,7 @@
 import { Wnd } from "./Wnd";
 import { genUUID } from "../util/platform/genID";
-import type { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
+import {attachLayoutModel} from "./lifecycle/model.mount";
 import { hasClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
 import { escapeHtml } from "../util/DOM/escape";
@@ -19,7 +20,7 @@ export class Tab {
     public headElement: HTMLElement;
     public panelElement: HTMLElement;
     public callback: (tab: Tab) => void;
-    public model: Model;
+    public model: ILayoutModel;
     public title: string;
     public icon: string;
     public docIcon: string;
@@ -128,9 +129,9 @@ export class Tab {
         }
     }
 
-    public addModel(model: Model) {
+    public addModel(model: ILayoutModel) {
         this.model = model;
-        model.parent = this;
+        attachLayoutModel(this, model);
     }
 
     public pin() {

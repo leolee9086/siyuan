@@ -5,7 +5,8 @@
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
+import {isLayoutModel} from "./lifecycle/model.guard";
 
 // ============ 实例类型守卫 ============
 
@@ -25,8 +26,8 @@ export const isTabInstance = (obj: unknown): obj is Tab => {
 };
 
 /** 检查是否为 Model 实例 */
-export const isModelInstance = (obj: unknown): obj is Model => {
-    return obj instanceof Model;
+export const isModelInstance = (obj: unknown): obj is ILayoutModel => {
+    return isLayoutModel(obj);
 };
 
 // ============ JSON instance 字段类型守卫 ============
@@ -122,21 +123,21 @@ export const asErrorPlaceholderItem = (json: Config.TUILayoutItem): IUILayoutTab
 
 /** 检查布局容器是否为 Layout 类型（用于添加子 Layout 或 Wnd） */
 export const isLayoutContainer = (
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): layout is Layout => {
     return layout instanceof Layout;
 };
 
 /** 检查布局容器是否为 Wnd 类型（用于添加 Tab） */
 export const isWndContainer = (
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): layout is Wnd => {
     return layout instanceof Wnd;
 };
 
 /** 检查布局容器是否为 Tab 类型（用于添加 Model） */
 export const isTabContainer = (
-    layout: Layout | Wnd | Tab | Model | undefined
+    layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): layout is Tab => {
     return layout instanceof Tab;
 };

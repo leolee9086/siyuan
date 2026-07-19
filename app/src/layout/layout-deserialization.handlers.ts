@@ -18,8 +18,8 @@ import { Tag } from "./dock/Tag";
 import { AgentChat } from "./dock/agent/AgentChat";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
-import { createErrorPlaceholderFromData } from "./dock/ErrorPlaceholder.factory";
-import { isErrorPlaceholderData } from "./dock/dock.guard";
+import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";
+import { isErrorPlaceholderData } from "./dock/errorPlaceholder/ErrorPlaceholder.guard";
 import {
     getSiyuanLanguages,
     getSiyuanConfig,
@@ -327,11 +327,14 @@ export const handleCustomInstance = (json: Config.IUILayoutTabCustom, layout: Ta
  * 处理 ErrorPlaceholder 实例
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleErrorPlaceholderInstance = (app: App, json: { errorPlaceholderData?: unknown }, layout: Tab): void => {
+export const handleErrorPlaceholderInstance = (json: { errorPlaceholderData?: unknown }, layout: Tab): void => {
     if (!isErrorPlaceholderData(json.errorPlaceholderData)) {
         return;
     }
-    layout.addModel(createErrorPlaceholderFromData(app, layout, json.errorPlaceholderData));
+    layout.addModel(createErrorPlaceholder({
+        element: layout.panelElement,
+        data: json.errorPlaceholderData,
+    }));
 };
 
 /** 创建并恢复 AgentChat 普通 Tab；正文从 SessionStore 异步恢复，布局树先保持稳定。 */

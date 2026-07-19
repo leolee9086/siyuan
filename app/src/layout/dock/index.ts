@@ -4,7 +4,7 @@
  */
 import { setStorageVal } from "../../protyle/util/compatibility";
 import { Layout } from "../index";
-import { Model } from "../Model";
+import type {ILayoutModel} from "./imports";
 import { saveLayout } from "../util";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustDockPadding, resetFloatDockSize } from "./util";
@@ -37,7 +37,7 @@ export class Dock {
     public app: App;
     public resizeElement!: HTMLElement;
     public pin = true;
-    public data: { [key in TDock | string]?: Model | boolean } = {};
+    public data: { [key in TDock | string]?: ILayoutModel | boolean } = {};
     public hideResizeTimeout = 0;
 
     constructor(options: { app: App, data: { pin: boolean, data: Config.IUILayoutDockTab[][] }, position: TDockPosition }) {

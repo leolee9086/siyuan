@@ -6,6 +6,7 @@ vi.mock("../../src/constants", () => ({
 
 import {Model} from "../../src/layout/Model";
 import {disposeModelResources} from "../../src/layout/lifecycle/model";
+import type {ILayoutModel} from "../../src/layout/lifecycle/model.types";
 
 function createSocket(readyState: number) {
     return {
@@ -72,9 +73,10 @@ describe("Model WebSocket lifecycle", () => {
     it("runs an Agent-like destroy hook before disposing its base connection", () => {
         const order: string[] = [];
         const model = {
+            layoutModel: true,
             destroy: vi.fn(() => order.push("destroy")),
             dispose: vi.fn(() => order.push("dispose")),
-        } as unknown as Model;
+        } satisfies ILayoutModel;
 
         disposeModelResources(model);
 
@@ -84,13 +86,20 @@ describe("Model WebSocket lifecycle", () => {
     it("still disposes the connection when a model destroy hook fails", () => {
         const dispose = vi.fn();
         const model = {
+            layoutModel: true,
             destroy: vi.fn(() => {
                 throw new Error("destroy failed");
             }),
             dispose,
-        } as unknown as Model;
+        } satisfies ILayoutModel;
 
         expect(() => disposeModelResources(model)).toThrow("destroy failed");
         expect(dispose).toHaveBeenCalledOnce();
+    });
+
+    it("accepts a layout model without resource lifecycle capabilities", () => {
+        const model = {layoutModel: true} satisfies ILayoutModel;
+
+        expect(() => disposeModelResources(model)).not.toThrow();
     });
 });

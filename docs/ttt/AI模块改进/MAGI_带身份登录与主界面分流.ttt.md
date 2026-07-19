@@ -48,7 +48,7 @@
 - Identity Access 已从 MAGI 工作区移出，使用同一共享组件接入思源 Tab、右侧 Dock 和独立 Web 页面；原身份 upsert 面板的无效类型、函数和表单字段已清理。
 - 真实桌面 Web 宿主已验证：Tab 与 Dock 可同时挂载，382px Dock 内容宽度无水平溢出，重复点击 Agent 身份入口仍保持一个 Tab 实例；修复了 Dock/Tab 同类型查重冲突，并将 Guardian 登录入口改为常显。
 - 修复布局恢复阶段删除未固定 Agent Tab 时的 WebSocket 生命周期竞态：模型销毁现在先执行专用 `destroy()`，再安全释放基础连接；CONNECTING socket 不再调用 `send()`。干净桌面启动实测无布局重置对话框或同类控制台错误。
-- 修复 `ErrorPlaceholder`、`Custom` 和 `dock.factory` 通过 `dock/imports.ts` 聚合入口加载 `Model`/`Tab` 形成的初始化循环；基础类改为直接导入、纯类型依赖改为 `import type`。`magi-desktop` 实际产物入口已可完整渲染，控制台无 `Model` 未定义错误。
+- 修复错误占位被迫继承 WebSocket `Model` 所暴露的布局抽象缺陷：新增不含网络能力的最小布局模型接口，以结构守卫替代通用 `instanceof Model`；`Model` 与纯工厂错误占位并列实现，错误占位只保留挂载、渲染和自描述序列化数据。未绕过 `imports.ts` 架构边界，`magi-desktop` 与 desktop 最终产物均已实机加载且无目标启动错误。
 - `build:app`、`build:desktop`、`build:magi-identity`、新模块目标 lint 和 6 个挂载/适配器测试已通过；独立页浏览器实测 1440px 双列与 390px 单列均无水平溢出。
 - 关联任务: [`AI Agent 会话外部任务目录绑定与所有者授权保护`](../AI_Agent任务目录绑定与授权保护.ttt.md)。该任务消费本任务签发和同步的 guardian armor，但目录 capability 的保存、权限和 owner 隔离仍由后端独立负责。
 
@@ -88,7 +88,7 @@
 - [x] **Phase 7: Identity Access 独立模块与多容器接入** [已完成 2026-07-19]
   - **完成情况**: 身份面板已重构为容器中立的共享 Vue 模块；接入思源 Tab、右侧 Dock 和 `/stage/build/magi-identity/` 独立页面；Agent 常显锁形入口直接打开 Identity Access；MAGI 缺少身份时打开独立页，不再切换内嵌模式；同时修复 upsert 面板编译残留、窄屏长渠道标识溢出和 Dock/Tab Custom Model 查重冲突。
   - **成果文件**: `app/src/magi/identity-access/`、`app/src/layout/dock/agent/AgentChat.ts`、`app/src/magi/entry/MagiWorkspace.vue`、`app/build.targets.json`、`app/src/constants.ts`。
-  - **验证结果**: `build:app`、`build:desktop`、`build:magi-desktop`、`build:magi-identity`、Identity Access 目标 lint、6 个挂载/适配器测试、5 个模型生命周期测试、armor 同步测试和 Agent owner headers 测试通过；真实桌面宿主验证 Tab/Dock 共存、Tab 单实例复用、Dock 无水平溢出及布局恢复无 WebSocket CONNECTING 异常，MAGI 桌面实际产物入口无 `Model` 初始化错误，独立页 1440x900 与 390x844 实测无水平溢出。
+  - **验证结果**: `build:app`、`build:desktop`、`build:magi-desktop`、`build:magi-identity`、Identity Access 目标 lint、布局模型目标 lint/严格类型检查、20 项相关前端测试、armor 同步测试和 Agent owner headers 测试通过；真实桌面宿主验证 Tab/Dock 共存、Tab 单实例复用、Dock 无水平溢出及布局恢复无 WebSocket CONNECTING 异常，MAGI 与 desktop 最终生产入口无 `Model` 初始化、`InvalidStateError` 或布局重置错误，独立页 1440x900 与 390x844 实测无水平溢出。
   - **参考文档**: `../AI_Agent任务目录绑定与授权保护.ttt.md`
 
 - [x] **Phase 1: 身份模型与 claims 冻结** [已完成 2026-03-12]

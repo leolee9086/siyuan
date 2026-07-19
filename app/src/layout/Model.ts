@@ -2,6 +2,7 @@ import { Constants } from "../constants";
 import { getModelHandlers } from "./Model.registry";
 import type { Tab } from "./Tab";
 import type { App } from "../index";
+import type {ILayoutModel} from "./lifecycle/model.types";
 
 /** Model WebSocket 连接参数；由具体 Dock 保存稳定 ID 和消息处理器，用于首次连接与重连。 */
 interface IConnectOptions {
@@ -12,7 +13,8 @@ interface IConnectOptions {
 }
 
 /** 布局模型基类，统一管理 App 引用、WebSocket 传输及可停止的重连生命周期。 */
-export class Model {
+export class Model implements ILayoutModel {
+    public readonly layoutModel = true as const;
     public ws: WebSocket;
     public reqId: number;
     public parent: Tab;

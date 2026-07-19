@@ -136,9 +136,10 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
 | 2026-07-19 | `cd kernel && go test ./agent ./mcp/tools ./api -run 'TestAgentTaskDirectory\|TestTaskDirectory\|TestMagiIdentityStorePasswordStoredAsHash\|TestSetupMagiPersonaPreset'` | 通过 | task-directory、MAGI identity/upsert 专项测试通过 |
 | 2026-07-19 | `cd app && pnpm exec vitest --run test/layout/Model.lifecycle.test.ts` | 通过 | 5 项测试覆盖 CONNECTING/OPEN/CLOSED 发送与销毁、Agent 类资源钩子和异常时最终释放 |
 | 2026-07-19 | `cd app && pnpm run build:desktop` | 通过 | 模型销毁与 WebSocket 生命周期修复通过桌面构建；干净启动无布局重置对话框、CONNECTING 或 resetLayout 错误 |
-| 2026-07-19 | `cd app && pnpm run build:desktop && pnpm run build:magi-desktop` | 通过 | 拆除 Dock 基础模型对聚合入口的运行时依赖后，两类桌面包均成功构建 |
-| 2026-07-19 | `cd app && pnpm exec vitest --run test/layout/Model.lifecycle.test.ts test/magi/identityAccess.mount.test.ts test/magi/identityAccess.adapters.test.ts test/magi/magiIdentitySession.sync.test.ts test/layout/dock/agent/SessionStore.headers.test.ts` | 通过 | 5 个文件、14 项测试覆盖布局生命周期、身份多宿主、armor 同步和 Agent owner headers |
-| 2026-07-19 | 浏览器加载 `/stage/build/magi-desktop/` 并检查控制台 | 通过 | MAGI 桌面完整渲染；无 `Model` 未定义、布局重置或其它控制台错误 |
+| 2026-07-19 | `cd app && pnpm run build:desktop && pnpm run build:magi-desktop` | 通过 | `ILayoutModel` 接口化、错误占位去继承及结构守卫迁移后，两类最终生产包均成功构建；最终入口分别为 `main.c8f646052f4533e7a164.js` 和 `main.93c8858d752c6a8e5fe5.js` |
+| 2026-07-19 | `cd app && pnpm exec vitest --run test/layout/Model.lifecycle.test.ts test/layout/LayoutModel.contract.test.ts test/magi/identityAccess.mount.test.ts test/magi/identityAccess.adapters.test.ts test/magi/magiIdentitySession.sync.test.ts test/layout/dock/agent/SessionStore.headers.test.ts` | 通过 | 6 个文件、20 项测试覆盖模型接口形状、挂载、错误恢复数据、序列化、可选销毁、身份多宿主、armor 同步和 owner headers |
+| 2026-07-19 | 目标模块 ESLint 与独立严格 TypeScript 检查 | 通过 | `layout/lifecycle` 与 `dock/errorPlaceholder` 接口、守卫、挂载、序列化模块无 lint 或类型错误；仓库级 `tsc` 两次运行 5 分钟仍未结束，未作为完成门禁 |
+| 2026-07-19 | 浏览器加载 `/stage/build/magi-desktop/` 与 `/stage/build/desktop/` 并检查控制台 | 通过 | 最终生产哈希完整加载；无 `Model` 未定义、`InvalidStateError` 或布局初始化失败，desktop 无重置对话框 |
 
 ## 已知问题与风险
 
@@ -203,4 +204,5 @@ app/test/layout/dock/agent/SessionStore.headers.test.ts
 - 2026-07-19：真实桌面宿主复验修复两项运行问题：Agent Guardian 入口改为常显；Tab 与 Dock 使用明确宿主数据并仅复用 Tab 宿主，避免同类型 Dock 截获打开请求。实测 Tab/Dock 共存、382px Dock 无水平溢出且重复打开保持单实例。
 - 2026-07-19：根据用户已登录截图定位会话“更多”菜单不显示：触发器为 `b3-list-item__action`，但原展开样式只匹配 `b3-menu__item--show`。已增加 Agent 会话子菜单专用展开规则和 `aria-expanded` 同步；目录项仍只由 guardian 会话状态生成，后端鉴权不变，待用户刷新客户端确认。
 - 2026-07-19：修复布局恢复删除未固定 Agent Tab 时的 WebSocket 竞态。通用销毁器现在调用 AgentChat/Graph/Cronjob/Custom 等模型的资源钩子并最终释放基础连接；`Model.send()` 仅在 OPEN 状态发送，CONNECTING socket 销毁时直接关闭。新增 5 项生命周期测试并完成干净桌面启动复验。
-- 2026-07-19：修复 MAGI 桌面启动时 `ErrorPlaceholder -> dock.factory -> dock/imports.ts` 形成的 `Model` 初始化循环；`ErrorPlaceholder`、`Custom` 和 `dock.factory` 改用基础模块直接导入及纯类型导入。两类桌面构建、14 项相关前端测试和 `/stage/build/magi-desktop/` 浏览器控制台复验通过。
+- 2026-07-19：修正此前把 `dock/imports.ts` 误判为根因并用父级直接导入绕过架构约束的错误方案。新增不含 WebSocket 的 `ILayoutModel` 最小契约和结构守卫；`Model` 与纯工厂错误占位成为并列实现，`Tab` 挂载、Dock 尺寸、布局序列化/恢复和通用销毁均按接口形状或实际能力工作。父级导入豁免、`ErrorPlaceholder extends Model`、相关 `instanceof` 和临时工厂已移除；最终双构建、20 项测试和两入口浏览器复验通过。
+- 2026-07-19：完成布局模型最小契约最终审计：Dock 不再重复实现 `isLayoutModel`，统一由 `lifecycle/model.guard.ts` 定义并经 `dock/imports.ts` 合法转发；新抽象模块 ESLint、独立严格 TypeScript、20 项回归、desktop/magi-desktop 双构建和最新生产入口运行时复验通过，目标启动错误为零。

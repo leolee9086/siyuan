@@ -5,7 +5,7 @@
 import type { Wnd } from "./Wnd";
 import { removeOverCounter } from "./Wnd.tab";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
 import { Editor } from "../editor";
 import { Search } from "../search";
 import { Asset } from "../asset";
@@ -44,7 +44,7 @@ import { disposeModelResources } from "./lifecycle/model";
  * 销毁标签页关联的模型实例，释放资源
  * @同步豁免: 遗留代码
  */
-export function destroyModel(model: Model): void {
+export function destroyModel(model: ILayoutModel): void {
     if (!model) {
         return;
     }

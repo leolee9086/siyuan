@@ -22,6 +22,8 @@ import { saveLayout } from "./layout-serialization";
 import { setModelsHash } from "../window/setHeader";
 import { setTitle } from "../util/processTitle";
 import { bindHeaderDragEvents, bindPanelDragEvents } from "./Wnd.drag";
+import type {ILayoutModel} from "./lifecycle/model.types";
+import {disposeModelResources} from "./lifecycle/model";
 import {
     wndSwitchTab,
     wndAddTab,
@@ -206,7 +208,7 @@ export class Wnd {
         }
     }
 
-    private destroyModel(model: Model) {
+    private destroyModel(model: ILayoutModel) {
         if (!model) {
             return;
         }
@@ -229,12 +231,7 @@ export class Wnd {
                 model.pdfObject.pdfLoadingTask.destroy();
             }
         }
-        if (model instanceof Custom) {
-            if (model.destroy) {
-                model.destroy();
-            }
-        }
-        model.send("closews", {});
+        disposeModelResources(model);
     }
 
     private removeTabAction = (id: string, isBatchClose = false, animate = true, isSaveLayout = true) => {

@@ -11,6 +11,8 @@ import type { Layout } from "./imports";
 import type { ModelConstructor } from "./dock.types";
 /** 用途：Model 工厂函数类型。使用范围：dock.guard 类型守卫。解耦评估：同目录类型文件。 */
 import type { ModelFactory } from "./dock.types";
+/** 用途：布局模型结构守卫。使用范围：Dock 数据结构守卫。解耦评估：通过 imports.ts 转发最小契约守卫，不依赖具体 Model 类。 */
+import { isLayoutModel } from "./imports";
 /** 用途：自定义列表类型。使用范围：dock.guard 类型检查。解耦评估：同目录模块。 */
 import type { ICustomList } from "./customBlockLists/CustomLists";
 /** 用途：DOM 元素类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
@@ -33,6 +35,9 @@ const DOCK_TYPES = "file|outline|inbox|bookmark|tag|graph|globalGraph|backlink|f
 export function isModelConstructor(factory: ModelFactory | ModelConstructor): factory is ModelConstructor {
     return !!factory.prototype;
 }
+
+/** 导出统一布局模型结构守卫，供 Dock 模块使用。 */
+export { isLayoutModel };
 
 
 /**
@@ -151,21 +156,6 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
     return typeof item.id === "string" || typeof item.name === "string" || typeof item.label === "string";
 }
 
-
-/**
- * 判断是否为错误占位符数据。
- * 
- * 作用：验证对象是否符合 IErrorPlaceholderData 接口（包含"原始类型"和"错误信息"属性）。
- * 意图：用于识别和处理错误状态的数据对象，以便在 UI 上显示错误占位符。
- * 调用时机：在渲染流程中遇到无法解析的数据块或捕获到异常数据时调用。
- */
-export function isErrorPlaceholderData(data: unknown): data is import("./ErrorPlaceholder").IErrorPlaceholderData {
-    if (typeof data !== "object" || data === null) {
-        return false;
-    }
-    const d = data as Record<string, unknown>;
-    return typeof d.原始类型 === "string" && typeof d.错误信息 === "string";
-}
 
 /** 有效的 Dock 位置值 */
 const VALID_DOCK_POSITIONS = ["Left", "Right", "Bottom"] as const;

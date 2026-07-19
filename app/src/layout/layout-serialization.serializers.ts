@@ -6,7 +6,8 @@
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
+import {applyLayoutModelSerialization} from "./lifecycle/model.serialization";
 import { Editor } from "../editor";
 import { Asset } from "../asset";
 import { Backlink } from "./dock/Backlink";
@@ -17,7 +18,6 @@ import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
 import { Search } from "../search";
 import { Custom } from "./dock/Custom";
-import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE } from "./dock/ErrorPlaceholder";
 import { AgentChat } from "./dock/agent/AgentChat";
 import { Constants } from "../constants";
 import { SerializationJSON, BreakObject } from "./layout-serialization.types";
@@ -61,7 +61,7 @@ export const serializeWndInstance = (layout: Wnd, json: SerializationJSON): void
 };
 
 /** 根据 Tab 的 model 类型获取语言标识 */
-const getTabLangFromModel = (model: Model | undefined): string | undefined => {
+const getTabLangFromModel = (model: ILayoutModel | undefined): string | undefined => {
     // Files 实例对应文件树
     if (model instanceof Files) {
         return "fileTree";
@@ -179,15 +179,6 @@ export const serializeCustomInstance = (layout: Custom, json: SerializationJSON)
     json.customModelData = Object.assign({}, layout.data);
 };
 
-/** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeErrorPlaceholderInstance = (
-    layout: ErrorPlaceholder, json: SerializationJSON
-): void => {
-    json.instance = "ErrorPlaceholder";
-    json.errorPlaceholderType = ERROR_PLACEHOLDER_TYPE;
-    json.errorPlaceholderData = layout.toJSON();
-};
-
 /** 序列化 AgentChat 普通 Tab 的会话句柄；消息正文仍以 SessionStore 为事实来源。 */
 export const serializeAgentChatInstance = (layout: AgentChat, json: SerializationJSON): void => {
     json.instance = "AgentChat";
@@ -220,7 +211,7 @@ const serializeContainerInstance = (layout: Layout | Wnd | Tab, json: Serializat
 };
 
 /** 序列化面板类实例，返回是否匹配 */
-const serializePanelInstance = (layout: Model, json: SerializationJSON): boolean => {
+const serializePanelInstance = (layout: ILayoutModel, json: SerializationJSON): boolean => {
     // Backlink 实例：反向链接面板
     if (layout instanceof Backlink) {
         serializeBacklinkInstance(layout, json);
@@ -254,12 +245,16 @@ const serializePanelInstance = (layout: Model, json: SerializationJSON): boolean
     return false;
 };
 
-/** 序列化特殊类实例（Editor/Asset/Search/Custom/ErrorPlaceholder） */
+/** 序列化特殊模型实例和提供自描述序列化能力的模型。 */
 const serializeSpecialInstance = (
-    layout: Model,
+    layout: ILayoutModel,
     json: SerializationJSON,
     breakObj?: BreakObject
 ): boolean => {
+    // 自描述模型由接口形状提供完整布局数据，不要求继承任何具体模型类。
+    if (applyLayoutModelSerialization(layout, json)) {
+        return true;
+    }
     // Editor 实例：编辑器，包含文档ID、模式等
     if (layout instanceof Editor) {
         serializeEditorInstance(layout, json, breakObj);
@@ -280,11 +275,6 @@ const serializeSpecialInstance = (
         serializeCustomInstance(layout, json);
         return true;
     }
-    // ErrorPlaceholder 实例：错误占位符
-    if (layout instanceof ErrorPlaceholder) {
-        serializeErrorPlaceholderInstance(layout, json);
-        return true;
-    }
     if (layout instanceof AgentChat) {
         serializeAgentChatInstance(layout, json);
         return true;
@@ -297,7 +287,7 @@ const serializeSpecialInstance = (
  * @同步豁免: UI构建 - 需要同步访问实例类型进行分发
  */
 export const serializeInstance = (
-    layout: Layout | Wnd | Tab | Model,
+    layout: Layout | Wnd | Tab | ILayoutModel,
     json: SerializationJSON,
     breakObj?: BreakObject
 ): void => {

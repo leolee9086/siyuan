@@ -43,6 +43,16 @@ import type { BaseJSONSerializableObject } from "../../types/JSONSerializable-ty
 /** 导出 BaseJSONSerializableObject 类型，供 dock 模块使用 */
 export type { BaseJSONSerializableObject };
 
+/** 用途：布局模型最小接口。使用范围：Dock 模型实现与工厂类型。解耦评估：纯类型契约，不加载布局 Model 具体实现。 */
+import type { ILayoutModel } from "../lifecycle/model.types";
+/** 导出布局模型最小接口，供 Dock 模块使用 */
+export type { ILayoutModel };
+
+/** 用途：布局模型结构守卫。使用范围：Dock 模型识别。解耦评估：通过 imports.ts 转发最小契约守卫，不加载具体 Model。 */
+import { isLayoutModel } from "../lifecycle/model.guard";
+/** 导出布局模型结构守卫，供 Dock 模块使用 */
+export { isLayoutModel };
+
 /** 用途：DOM 元素附近查找特定 class 的工具函数。使用范围：dock 模块 DOM 操作。解耦评估：通过 imports.ts 转发。 */
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 dock 模块使用 */

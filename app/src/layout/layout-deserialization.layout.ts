@@ -13,7 +13,7 @@ import { getAllTabs } from "./getAll";
 import { getInstanceById } from "./util";
 import { Constants } from "../constants";
 import { tabRegistry } from "../registry";
-import { ErrorPlaceholder } from "./dock/ErrorPlaceholder";
+import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";
 import {
     isTabInstance,
     isNonCardCustomInitData,
@@ -71,14 +71,15 @@ export const isPluginModelRegistered = (app: App, modelType: string): boolean =>
  * 为缺失插件的Tab创建错误占位符
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const createMissingPluginPlaceholder = (app: App, tab: Tab, modelType: string): void => {
+export const createMissingPluginPlaceholder = (tab: Tab, modelType: string): void => {
     const languages = getSiyuanLanguages();
     const errorMessage = languages?.pluginNotFound || "Plugin not found";
-    tab.addModel(new ErrorPlaceholder({
-        app,
-        tab,
-        原始类型: modelType,
-        错误信息: errorMessage
+    tab.addModel(createErrorPlaceholder({
+        element: tab.panelElement,
+        data: {
+            原始类型: modelType,
+            错误信息: errorMessage,
+        },
     }));
 };
 
@@ -122,7 +123,7 @@ export const handleMissingPluginTabs = (app: App): void => {
             continue;
         }
         // 创建错误占位符
-        createMissingPluginPlaceholder(app, tab, modelType);
+        createMissingPluginPlaceholder(tab, modelType);
     }
 };
 

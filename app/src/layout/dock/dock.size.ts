@@ -4,8 +4,8 @@
  */
 
 import type { Dock } from "./index";
-import { Model } from "../Model";
 import { isTDock } from "./dock.guard";
+import { isLayoutModel } from "./dock.guard";
 
 const GRAPH_TYPES = ["graph", "globalGraph", "backlink"];
 
@@ -39,7 +39,8 @@ function setHorizontalSize(
 ): void {
     const shouldSetHeight = index === "1" && totalActive > 1;
     const model = dock.data[type];
-    if (shouldSetHeight && model instanceof Model) {
+    // 只有已挂载的布局模型才能沿 parent 链读取所属 Dock 的实际高度。
+    if (shouldSetHeight && isLayoutModel(model) && model.parent?.parent) {
         const dockElement = model.parent.parent.element;
         const height = dockElement.style.height ? dockElement.clientHeight.toString() : "";
         item.setAttribute("data-height", height);
@@ -59,7 +60,8 @@ function setVerticalSize(
 ): void {
     const shouldSetWidth = index === "1" && totalActive > 1;
     const model = dock.data[type];
-    if (shouldSetWidth && model instanceof Model) {
+    // 只有已挂载的布局模型才能沿 parent 链读取所属 Dock 的实际宽度。
+    if (shouldSetWidth && isLayoutModel(model) && model.parent?.parent) {
         const dockElement = model.parent.parent.element;
         const width = dockElement.style.width ? dockElement.clientWidth.toString() : "";
         item.setAttribute("data-width", width);

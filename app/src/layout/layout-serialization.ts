@@ -6,7 +6,7 @@
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
-import { Model } from "./Model";
+import type {ILayoutModel} from "./lifecycle/model.types";
 import { fetchPost } from "../util/network/fetch";
 import { isWindow } from "../util/platform/functions";
 import { Constants } from "../constants";
@@ -77,7 +77,7 @@ const serializeTabChildren = (layout: Tab, json: SerializationJSON, breakObj?: B
 
 /** 将布局实例递归转换为 JSON 格式 @同步豁免: UI构建 - 需要同步遍历整个布局树并访问DOM属性 */
 export const layoutToJSON = (
-    layout: Layout | Wnd | Tab | Model,
+    layout: Layout | Wnd | Tab | ILayoutModel,
     json: SerializationJSON,
     breakObj?: BreakObject
 ): void => {
