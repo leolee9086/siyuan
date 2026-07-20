@@ -9,7 +9,7 @@ const (
 
 // BuildSearchWebToolDef 构建 MAGI 独立网页搜索工具定义。
 func BuildSearchWebToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        SearchWebToolName,
@@ -69,12 +69,12 @@ func BuildSearchWebToolDef() ToolDef {
 			EntersUnifiedContext: true,
 			ResultArchived:       true,
 		},
-	}
+	})
 }
 
 // BuildInspectWebSearchEnginesToolDef 构建 MAGI 网页搜索引擎诊断工具定义。
 func BuildInspectWebSearchEnginesToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        InspectWebSearchEnginesToolName,
@@ -105,5 +105,5 @@ func BuildInspectWebSearchEnginesToolDef() ToolDef {
 			EntersUnifiedContext: true,
 			ResultArchived:       true,
 		},
-	}
+	})
 }

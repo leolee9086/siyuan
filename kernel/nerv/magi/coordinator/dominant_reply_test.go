@@ -451,7 +451,6 @@ func TestCoordinateDominantDirectReply_SanitizesMelchiorQueryHistoryForPeers(t *
 		sessionID, roundID string,
 		sage *sages.Sage,
 		toolCall types.ToolCall,
-		assistantContent string,
 		detailedResult string,
 	) (*queryToolArchiveLocation, error) {
 		return nil, nil
@@ -466,7 +465,7 @@ func TestCoordinateDominantDirectReply_SanitizesMelchiorQueryHistoryForPeers(t *
 			{
 				content: "我先查看一下代码仓库目录。",
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.ForgeDevRepoListToolName, `{"input":"path=.\nlimit=5"}`),
+					toolCallDelta(0, config.ForgeDevRepoListToolName, `{"purpose":"确认代码仓库目录结构","input":"path=.\nlimit=5"}`),
 				},
 			},
 			completedSpeakTurn("目录已检查完毕。"),

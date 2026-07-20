@@ -33,6 +33,7 @@ func (e *avatarToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (res
 
 type avatarBuildArgs struct {
 	Initiate             bool   `json:"initiate"`
+	Motivation           string `json:"motivation"`
 	Reason               string `json:"reason"`
 	SystemPromptProposal string `json:"systemPromptProposal"`
 	Requirements         string `json:"requirements"`
@@ -46,6 +47,9 @@ func (e *avatarToolResultExecutor) executeBuildAvatar(toolCall types.ToolCall) (
 	var args avatarBuildArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.AvatarBuildToolName, err)
+	}
+	if strings.TrimSpace(args.Motivation) == "" {
+		return "", true, fmt.Errorf("%s 的 motivation 不能为空", config.AvatarBuildToolName)
 	}
 	if args.Reason == "" {
 		return "", true, fmt.Errorf("%s 的 reason 不能为空", config.AvatarBuildToolName)
@@ -63,6 +67,7 @@ func (e *avatarToolResultExecutor) executeBuildAvatar(toolCall types.ToolCall) (
 
 type avatarModifyArgs struct {
 	Decision             string `json:"decision"`
+	Motivation           string `json:"motivation"`
 	Reason               string `json:"reason"`
 	SystemPromptProposal string `json:"systemPromptProposal"`
 	Requirements         string `json:"requirements"`
@@ -77,6 +82,9 @@ func (e *avatarToolResultExecutor) executeModifyAvatar(toolCall types.ToolCall) 
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.AvatarModifyToolName, err)
 	}
+	if strings.TrimSpace(args.Motivation) == "" {
+		return "", true, fmt.Errorf("%s 的 motivation 不能为空", config.AvatarModifyToolName)
+	}
 	if args.Decision == "" {
 		return "", true, fmt.Errorf("%s 的 decision 不能为空", config.AvatarModifyToolName)
 	}
@@ -90,6 +98,7 @@ func (e *avatarToolResultExecutor) executeModifyAvatar(toolCall types.ToolCall) 
 
 type avatarSynthesizeArgs struct {
 	FinalSystemPrompt string `json:"finalSystemPrompt"`
+	Motivation        string `json:"motivation"`
 }
 
 func (e *avatarToolResultExecutor) executeSynthesizeAvatar(toolCall types.ToolCall) (string, bool, error) {
@@ -100,6 +109,9 @@ func (e *avatarToolResultExecutor) executeSynthesizeAvatar(toolCall types.ToolCa
 	var args avatarSynthesizeArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.AvatarSynthesizeToolName, err)
+	}
+	if strings.TrimSpace(args.Motivation) == "" {
+		return "", true, fmt.Errorf("%s 的 motivation 不能为空", config.AvatarSynthesizeToolName)
 	}
 	if strings.TrimSpace(args.FinalSystemPrompt) == "" {
 		return "", true, fmt.Errorf("%s 的 finalSystemPrompt 不能为空", config.AvatarSynthesizeToolName)
@@ -176,7 +188,7 @@ func extractAvatarToolMotivation(toolCall types.ToolCall) string {
 	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 		return ""
 	}
-	motivation, _ := args["reason"].(string)
+	motivation, _ := args["motivation"].(string)
 	return motivation
 }
 

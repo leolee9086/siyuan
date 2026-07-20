@@ -25,6 +25,9 @@ func (e *listMagiContactsResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	}
 
 	rawArgs := strings.TrimSpace(toolCall.Function.Arguments)
+	if _, err := requireExplicitToolPurpose(rawArgs, config.ListMagiContactsToolName); err != nil {
+		return "", true, err
+	}
 	var args listMagiContactsArgs
 	if rawArgs != "" {
 		_ = json.Unmarshal([]byte(rawArgs), &args)

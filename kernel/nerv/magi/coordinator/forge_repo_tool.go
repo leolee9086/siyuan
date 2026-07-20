@@ -136,10 +136,19 @@ func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 
 	switch toolName {
 	case config.ForgeDevRepoListToolName:
+		if _, purposeErr := requireExplicitToolPurpose(toolCall.Function.Arguments, toolName); purposeErr != nil {
+			return "", true, purposeErr
+		}
 		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoList)
 	case config.ForgeDevRepoReadToolName:
+		if _, purposeErr := requireExplicitToolPurpose(toolCall.Function.Arguments, toolName); purposeErr != nil {
+			return "", true, purposeErr
+		}
 		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoRead)
 	case config.ForgeDevRepoSearchToolName:
+		if _, purposeErr := requireExplicitToolPurpose(toolCall.Function.Arguments, toolName); purposeErr != nil {
+			return "", true, purposeErr
+		}
 		result, handled, err = e.executeCached(toolName, toolCall.Function.Arguments, executeForgeDevRepoSearch)
 	case config.ForgeDevRepoEditToolName:
 		var execErr error

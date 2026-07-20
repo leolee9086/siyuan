@@ -77,6 +77,9 @@ func (e *crossSessionMemoryToolExecutor) ExecuteToolCall(toolCall types.ToolCall
 }
 
 func (e *crossSessionMemoryToolExecutor) handlePersist(toolCall types.ToolCall) (string, bool, error) {
+	if _, err := requireExplicitToolMotivation(toolCall.Function.Arguments, config.PersistSessionMemoryToolName); err != nil {
+		return "", true, err
+	}
 	var args persistSessionMemoryArgs
 	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.PersistSessionMemoryToolName, err)
@@ -146,6 +149,9 @@ func (e *crossSessionMemoryToolExecutor) handlePersist(toolCall types.ToolCall) 
 }
 
 func (e *crossSessionMemoryToolExecutor) handleRecall(toolCall types.ToolCall) (string, bool, error) {
+	if _, err := requireExplicitToolPurpose(toolCall.Function.Arguments, config.RecallCrossSessionMemoriesToolName); err != nil {
+		return "", true, err
+	}
 	var args recallCrossSessionMemoriesArgs
 	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.RecallCrossSessionMemoriesToolName, err)

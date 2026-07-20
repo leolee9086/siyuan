@@ -125,6 +125,24 @@ type ToolDef struct {
 // AddMotivationParam 为工具定义统一添加 motivation 参数，用于行动工具复核。
 // 所有受治理的行动工具都应通过此函数添加 motivation，而非在各 Build* 中零散添加。
 func AddMotivationParam(td ToolDef) ToolDef {
+	return addRequiredStringParam(
+		td,
+		"motivation",
+		"为什么现在要执行这次行动，以及它与当前任务的关系。用于行动工具复核。",
+	)
+}
+
+// AddPurposeParam 为只读或查询工具统一添加显式 purpose 参数。
+// purpose 会进入归档、审计和历史摘要，禁止从相邻回复文本推断。
+func AddPurposeParam(td ToolDef) ToolDef {
+	return addRequiredStringParam(
+		td,
+		"purpose",
+		"本次读取或查询要解决的具体问题，以及结果将用于什么判断。",
+	)
+}
+
+func addRequiredStringParam(td ToolDef, name, description string) ToolDef {
 	params := td.Function.Parameters
 	if params == nil {
 		params = map[string]interface{}{}
@@ -135,40 +153,40 @@ func AddMotivationParam(td ToolDef) ToolDef {
 		props = map[string]interface{}{}
 		params["properties"] = props
 	}
-	if _, exists := props["motivation"]; !exists {
-		props["motivation"] = map[string]interface{}{
+	if _, exists := props[name]; !exists {
+		props[name] = map[string]interface{}{
 			"type":        "string",
-			"description": "为什么现在要执行这次行动，以及它与当前任务的关系。用于行动工具复核。",
+			"description": description,
 		}
 	}
 	if params["type"] == nil {
 		params["type"] = "object"
 	}
-	appendMotivationToRequired(params)
+	appendStringToRequired(params, name)
 	return td
 }
 
-func appendMotivationToRequired(params map[string]interface{}) {
+func appendStringToRequired(params map[string]interface{}, name string) {
 	raw := params["required"]
 	if raw == nil {
-		params["required"] = []string{"motivation"}
+		params["required"] = []string{name}
 		return
 	}
 	switch list := raw.(type) {
 	case []string:
 		for _, r := range list {
-			if r == "motivation" {
+			if r == name {
 				return
 			}
 		}
-		params["required"] = append(list, "motivation")
+		params["required"] = append(list, name)
 	case []interface{}:
 		for _, r := range list {
-			if s, ok := r.(string); ok && s == "motivation" {
+			if s, ok := r.(string); ok && s == name {
 				return
 			}
 		}
-		params["required"] = append(list, "motivation")
+		params["required"] = append(list, name)
 	}
 }
 
@@ -474,7 +492,7 @@ func ResolveWannaSleepToolNameForSage(sageName string) string {
 // BuildForgeDevRepoBashToolDef 构建 forge 模式开发仓库安全 Bash 命令执行工具定义。
 // BuildAvatarBuildToolDef 构建 Avatar 创建工具定义。
 func BuildAvatarBuildToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        AvatarBuildToolName,
@@ -498,12 +516,12 @@ func BuildAvatarBuildToolDef() ToolDef {
 				"required": []string{"initiate", "reason", "systemPromptProposal", "requirements"},
 			},
 		},
-	}
+	})
 }
 
 // BuildAvatarModifyToolDef 构建 Avatar 修改工具定义。
 func BuildAvatarModifyToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        AvatarModifyToolName,
@@ -528,12 +546,12 @@ func BuildAvatarModifyToolDef() ToolDef {
 				"required": []string{"decision", "reason", "systemPromptProposal", "requirements"},
 			},
 		},
-	}
+	})
 }
 
 // BuildAvatarSynthesizeToolDef 构建 Avatar 综合工具定义。
 func BuildAvatarSynthesizeToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        AvatarSynthesizeToolName,
@@ -548,7 +566,7 @@ func BuildAvatarSynthesizeToolDef() ToolDef {
 				"required": []string{"finalSystemPrompt"},
 			},
 		},
-	}
+	})
 }
 
 // BuildSpeakStartToolDef 构建统合输出 speak_start 工具定义。
@@ -588,7 +606,7 @@ func BuildDeliberationSignalToolDef() ToolDef {
 
 // BuildPersistSessionMemoryToolDef 构建跨session对话记忆持久化落盘工具定义。
 func BuildPersistSessionMemoryToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        PersistSessionMemoryToolName,
@@ -609,12 +627,12 @@ func BuildPersistSessionMemoryToolDef() ToolDef {
 				"required": []string{"summary", "tags"},
 			},
 		},
-	}
+	})
 }
 
 // BuildRecallCrossSessionMemoriesToolDef 构建跨session对话记忆查询工具定义。
 func BuildRecallCrossSessionMemoriesToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        RecallCrossSessionMemoriesToolName,
@@ -639,7 +657,7 @@ func BuildRecallCrossSessionMemoriesToolDef() ToolDef {
 				"required": []string{"query"},
 			},
 		},
-	}
+	})
 }
 
 // BuildVoteToolDef 构建内部审批投票工具定义。
@@ -669,7 +687,7 @@ func BuildVoteToolDef() ToolDef {
 
 // BuildFetchWebPageToolDef 构建网页内容获取工具定义。
 func BuildFetchWebPageToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        FetchWebPageToolName,
@@ -703,7 +721,7 @@ func BuildFetchWebPageToolDef() ToolDef {
 			EntersUnifiedContext: true,
 			ResultArchived:       true,
 		},
-	}
+	})
 }
 
 // MAGIConfig MAGI系统完整配置

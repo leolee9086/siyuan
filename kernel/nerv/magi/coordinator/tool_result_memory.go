@@ -114,7 +114,6 @@ func materializeToolResultForContext(
 		roundID,
 		sage,
 		toolCall,
-		assistantContent,
 		detailedResult,
 	)
 	if err != nil {
@@ -124,7 +123,7 @@ func materializeToolResultForContext(
 	if sage == nil || sage.GetName() == "melchior" {
 		return contextResult
 	}
-	compact, compactErr := buildCompactToolHistorySummary(toolCall, assistantContent, detailedResult, archiveLocation)
+	compact, compactErr := buildCompactToolHistorySummary(toolCall, detailedResult, archiveLocation)
 	if compactErr != nil {
 		logging.LogWarnf("压缩查询工具结果失败 [%s/%s]: %v", toolName, toolCall.ID, compactErr)
 		return contextResult
@@ -168,7 +167,7 @@ func compressArchivedQueryResults(sessionID string, melchior, balthazar, casper 
 			if !ok || !isArchivedQueryTool(tc.Function.Name) {
 				continue
 			}
-			summary, err := buildCompactToolHistorySummary(tc, "", msg.Content, nil)
+			summary, err := buildCompactToolHistorySummary(tc, msg.Content, nil)
 			if err != nil {
 				logging.LogWarnf("compressArchivedQueryResults: %v", err)
 				continue
@@ -202,9 +201,12 @@ func persistDetailedQueryToolResultToNotebook(
 	sessionID, roundID string,
 	sage *sages.Sage,
 	toolCall types.ToolCall,
-	assistantContent string,
 	detailedResult string,
 ) (*queryToolArchiveLocation, error) {
+	purpose, purposeErr := explicitToolCallPurpose(toolCall)
+	if purposeErr != nil {
+		return nil, purposeErr
+	}
 	accessScope, _ := resolveWorkspaceAIMainNotebookAccessScope()
 	if accessScope == nil || accessScope.ActiveNotebook == nil || strings.TrimSpace(accessScope.ActiveNotebook.ID) == "" {
 		return nil, nil
@@ -219,7 +221,7 @@ func persistDetailedQueryToolResultToNotebook(
 		return nil, fmt.Errorf("未能定位查询结果归档文档")
 	}
 
-	markdown := buildQueryArchiveCalloutMarkdown(toolCall, assistantContent, detailedResult, now)
+	markdown := buildQueryArchiveCalloutMarkdown(toolCall, purpose, detailedResult, now)
 	blockID, err := appendMarkdownBlock(docID, markdown)
 	if err != nil {
 		return nil, err
@@ -241,9 +243,7 @@ func persistDetailedQueryToolResultToNotebook(
 	if sage != nil && strings.TrimSpace(sage.GetName()) != "" {
 		attrs[magiSageAttr] = strings.TrimSpace(sage.GetName())
 	}
-	if purpose := truncatePurpose(inferToolCallPurpose(toolCall.Function.Name, assistantContent)); purpose != "" {
-		attrs[magiPurposeAttr] = purpose
-	}
+	attrs[magiPurposeAttr] = purpose
 	if err := model.SetBlockAttrs(blockID, attrs); err != nil {
 		return nil, fmt.Errorf("设置查询结果归档块属性失败: %w", err)
 	}
@@ -514,12 +514,11 @@ func buildDowntimeNoteCalloutMarkdown(
 
 func buildQueryArchiveCalloutMarkdown(
 	toolCall types.ToolCall,
-	assistantContent string,
+	purpose string,
 	detailedResult string,
 	now time.Time,
 ) string {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
-	purpose := inferToolCallPurpose(toolName, assistantContent)
 	storedAt := now.Format(time.RFC3339)
 
 	switch toolName {
@@ -764,12 +763,14 @@ func extractForgeArchiveMatchCount(detailedResult string) int {
 
 func buildCompactToolHistorySummary(
 	toolCall types.ToolCall,
-	assistantContent string,
 	detailedResult string,
 	location *queryToolArchiveLocation,
 ) (string, error) {
 	toolName := strings.TrimSpace(toolCall.Function.Name)
-	purpose := inferToolCallPurpose(toolName, assistantContent)
+	purpose, purposeErr := explicitToolCallPurpose(toolCall)
+	if purposeErr != nil {
+		return "", purposeErr
+	}
 	var summary map[string]interface{}
 
 	switch toolName {
@@ -998,44 +999,6 @@ func buildForgeSearchHistorySummary(
 		summary["archiveBlockID"] = location.BlockID
 	}
 	return summary
-}
-
-func inferToolCallPurpose(toolName string, assistantContent string) string {
-	compact := strings.TrimSpace(strings.Join(strings.Fields(assistantContent), " "))
-	if compact != "" {
-		return truncatePurpose(compact)
-	}
-
-	switch strings.TrimSpace(toolName) {
-	case config.NoteKeywordSearchToolName:
-		return "检索相关笔记以支撑当前判断"
-	case config.ForgeDevRepoListToolName:
-		return "查看目录结构以定位相关文件"
-	case config.ForgeDevRepoReadToolName:
-		return "读取文件内容以提取实现细节"
-	case config.ForgeDevRepoSearchToolName:
-		return "搜索仓库文本以定位相关实现"
-	case config.FetchWebPageToolName:
-		return "获取网页内容以获取外部信息"
-	case config.SearchWebToolName:
-		return "搜索网络以获取外部信息"
-	case config.InspectWebSearchEnginesToolName:
-		return "诊断网络搜索引擎可用性"
-	default:
-		return "支撑当前分析"
-	}
-}
-
-func truncatePurpose(text string) string {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return ""
-	}
-	runes := []rune(text)
-	if len(runes) <= 120 {
-		return text
-	}
-	return string(runes[:120]) + "..."
 }
 
 func decodeJSONOrString(raw string) interface{} {

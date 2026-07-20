@@ -260,6 +260,13 @@ func TestBuildNoteKeywordSearchToolDef_Structure(t *testing.T) {
 	if _, ok := params["query"]; !ok {
 		t.Fatal("Parameters 缺少 query")
 	}
+	if _, ok := params["purpose"]; !ok {
+		t.Fatal("Parameters 缺少 purpose")
+	}
+	required, ok := tool.Function.Parameters["required"].([]string)
+	if !ok || !reflect.DeepEqual(required, []string{"query", "purpose"}) {
+		t.Fatalf("required 应包含 query 和 purpose，实际=%v", tool.Function.Parameters["required"])
+	}
 	limit, ok := params["limit"].(map[string]interface{})
 	if !ok {
 		t.Fatal("Parameters 缺少 limit")
@@ -329,6 +336,13 @@ func TestBuildForgeDevRepoToolDefs_Structure(t *testing.T) {
 		if _, ok := params["input"]; !ok {
 			t.Fatalf("工具[%d] Parameters 缺少 input", idx)
 		}
+		if _, ok := params["purpose"]; !ok {
+			t.Fatalf("工具[%d] Parameters 缺少 purpose", idx)
+		}
+		required, ok := tool.Function.Parameters["required"].([]string)
+		if !ok || !reflect.DeepEqual(required, []string{"input", "purpose"}) {
+			t.Fatalf("工具[%d] required 应包含 input 和 purpose，实际=%v", idx, tool.Function.Parameters["required"])
+		}
 	}
 
 	// edit 工具使用结构化 JSON 参数
@@ -390,6 +404,66 @@ func TestBuildWriteDiaryToolDef_Structure(t *testing.T) {
 	}
 	if required[0] != "markdown" && required[1] != "markdown" {
 		t.Fatal("required 应包含 markdown")
+	}
+}
+
+func TestToolIntentParametersAreExplicitAndRequired(t *testing.T) {
+	assertRequired := func(tool ToolDef, field string) {
+		t.Helper()
+		properties, ok := tool.Function.Parameters["properties"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("%s 缺少 properties", tool.Function.Name)
+		}
+		if _, ok := properties[field]; !ok {
+			t.Fatalf("%s 缺少显式 %s", tool.Function.Name, field)
+		}
+		required, ok := tool.Function.Parameters["required"].([]string)
+		if !ok {
+			t.Fatalf("%s 缺少 required", tool.Function.Name)
+		}
+		for _, name := range required {
+			if name == field {
+				return
+			}
+		}
+		t.Fatalf("%s 未强制 %s: %v", tool.Function.Name, field, required)
+	}
+
+	queryTools := []ToolDef{
+		BuildNoteKeywordSearchToolDef(),
+		BuildNoteByIDReadToolDef(),
+		BuildForgeDevRepoListToolDef(),
+		BuildForgeDevRepoReadToolDef(),
+		BuildForgeDevRepoSearchToolDef(),
+		BuildSearchWebToolDef(),
+		BuildFetchWebPageToolDef(),
+		BuildInspectWebSearchEnginesToolDef(),
+		BuildRecallCrossSessionMemoriesToolDef(),
+		BuildListMagiChannelsToolDef(),
+		BuildFetchChannelMessagesToolDef(),
+		BuildListMagiContactsToolDef(),
+	}
+	for _, tool := range queryTools {
+		assertRequired(tool, "purpose")
+	}
+
+	actionTools := []ToolDef{
+		BuildWriteDiaryToolDef(),
+		BuildCreateNoteDocumentToolDef(),
+		BuildAppendNoteBlocksToolDef(),
+		BuildModifyNoteBlockToolDef(),
+		BuildRevertNoteBlockToolDef(),
+		BuildForgeDevRepoEditToolDef(),
+		BuildForgeDevRepoBatchReplaceToolDef(),
+		BuildForgeDevRepoBashToolDef(),
+		BuildAvatarBuildToolDef(),
+		BuildAvatarModifyToolDef(),
+		BuildAvatarSynthesizeToolDef(),
+		BuildSendChannelMessageToolDef(),
+		BuildPersistSessionMemoryToolDef(),
+	}
+	for _, tool := range actionTools {
+		assertRequired(tool, "motivation")
 	}
 }
 

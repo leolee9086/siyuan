@@ -16,7 +16,7 @@ const (
 //	  如需访问更深层内容需对容器类子块另行调用本工具。支持 start/limit 分页。子块不含 IAL/Name/Alias 等属性。
 //	kramdown：将目标块及其整个子树完整渲染为思源 Kramdown 格式（含 AST 块 ID 内联属性），保留 ID 引用能力。
 func BuildNoteByIDReadToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        NoteByIDReadToolName,
@@ -47,12 +47,12 @@ func BuildNoteByIDReadToolDef() ToolDef {
 				"required": []string{"id"},
 			},
 		},
-	}
+	})
 }
 
 // BuildNoteKeywordSearchToolDef 构建三贤人笔记关键词查询工具定义（词法查询）。
 func BuildNoteKeywordSearchToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        NoteKeywordSearchToolName,
@@ -74,7 +74,7 @@ func BuildNoteKeywordSearchToolDef() ToolDef {
 				"required": []string{"query"},
 			},
 		},
-	}
+	})
 }
 
 // ── 笔记写入工具 ──
@@ -118,7 +118,7 @@ func BuildWriteDiaryToolDef() ToolDef {
 
 // BuildCreateNoteDocumentToolDef 构建创建文档工具定义。
 func BuildCreateNoteDocumentToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        CreateNoteDocumentToolName,
@@ -142,12 +142,12 @@ func BuildCreateNoteDocumentToolDef() ToolDef {
 				"required": []string{"title", "content"},
 			},
 		},
-	}
+	})
 }
 
 // BuildAppendNoteBlocksToolDef 构建追加叶子块工具定义。
 func BuildAppendNoteBlocksToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        AppendNoteBlocksToolName,
@@ -171,12 +171,12 @@ func BuildAppendNoteBlocksToolDef() ToolDef {
 				"required": []string{"parent_id", "content"},
 			},
 		},
-	}
+	})
 }
 
 // BuildModifyNoteBlockToolDef 构建修改叶子块工具定义。
 func BuildModifyNoteBlockToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ModifyNoteBlockToolName,
@@ -203,12 +203,12 @@ func BuildModifyNoteBlockToolDef() ToolDef {
 				"required": []string{"block_id", "content"},
 			},
 		},
-	}
+	})
 }
 
 // BuildRevertNoteBlockToolDef 构建回滚 pending 修改工具定义。
 func BuildRevertNoteBlockToolDef() ToolDef {
-	return ToolDef{
+	return AddMotivationParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        RevertNoteBlockToolName,
@@ -224,5 +224,5 @@ func BuildRevertNoteBlockToolDef() ToolDef {
 				"required": []string{"block_id"},
 			},
 		},
-	}
+	})
 }

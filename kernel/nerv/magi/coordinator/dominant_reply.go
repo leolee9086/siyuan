@@ -374,7 +374,6 @@ func sanitizeSharedContextMessages(
 	}
 
 	toolCallsByID := map[string]types.ToolCall{}
-	assistantContentByToolID := map[string]string{}
 	for index := range cloned {
 		msg := &cloned[index]
 		if msg.Role == types.RoleAssistant && len(msg.ToolCalls) > 0 {
@@ -383,7 +382,6 @@ func sanitizeSharedContextMessages(
 					continue
 				}
 				toolCallsByID[strings.TrimSpace(call.ID)] = call
-				assistantContentByToolID[strings.TrimSpace(call.ID)] = strings.TrimSpace(msg.Content)
 			}
 			continue
 		}
@@ -399,7 +397,6 @@ func sanitizeSharedContextMessages(
 
 		summary, err := buildCompactToolHistorySummary(
 			call,
-			assistantContentByToolID[toolID],
 			msg.Content,
 			nil,
 		)

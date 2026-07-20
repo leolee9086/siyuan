@@ -13,11 +13,11 @@ const (
 
 // BuildForgeDevRepoListToolDef 构建 forge 模式开发仓库目录查看工具定义。
 func BuildForgeDevRepoListToolDef() ToolDef {
-	return AddMotivationParam(ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoListToolName,
-			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi\\nlimit=200。支持 typeFilter=file|dir 按类型过滤，namePattern=*.go 按名称模式过滤。表达状态中调用时必须填写本次查询动机。",
+			Description: "仅在 forge 模式可用。只读列出开发代码仓库中的目录内容。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi\\nlimit=200。支持 typeFilter=file|dir 按类型过滤，namePattern=*.go 按名称模式过滤。调用时必须显式填写本次查询目的。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -34,11 +34,11 @@ func BuildForgeDevRepoListToolDef() ToolDef {
 
 // BuildForgeDevRepoReadToolDef 构建 forge 模式开发仓库文件读取工具定义。
 func BuildForgeDevRepoReadToolDef() ToolDef {
-	return AddMotivationParam(ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoReadToolName,
-			Description: "仅在 forge 模式可用。只读读取开发代码仓库中的文本文件。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi/coordinator/coordinator.go 或 path=kernel/nerv/magi/coordinator/coordinator.go\\nstart=1\\nlimit=120。表达状态中调用时必须填写本次查询动机。",
+			Description: "仅在 forge 模式可用。只读读取开发代码仓库中的文本文件。input 为纯文本，使用相对仓库根目录的 key=value 行，例如：path=kernel/nerv/magi/coordinator/coordinator.go 或 path=kernel/nerv/magi/coordinator/coordinator.go\\nstart=1\\nlimit=120。调用时必须显式填写本次读取目的。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -55,11 +55,11 @@ func BuildForgeDevRepoReadToolDef() ToolDef {
 
 // BuildForgeDevRepoSearchToolDef 构建 forge 模式开发仓库文本搜索工具定义。
 func BuildForgeDevRepoSearchToolDef() ToolDef {
-	return AddMotivationParam(ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoSearchToolName,
-			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。表达状态中调用时必须填写本次查询动机。",
+			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。调用时必须显式填写本次搜索目的。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

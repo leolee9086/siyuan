@@ -96,6 +96,9 @@ func (e *noteByIDReadToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 }
 
 func executeNoteByIDRead(rawArgs string) (string, error) {
+	if _, err := requireExplicitToolPurpose(rawArgs, config.NoteByIDReadToolName); err != nil {
+		return "", err
+	}
 	var args noteByIDReadToolArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", fmt.Errorf("%s 参数解析失败: %w", config.NoteByIDReadToolName, err)

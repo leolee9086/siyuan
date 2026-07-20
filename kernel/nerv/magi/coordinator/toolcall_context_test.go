@@ -17,7 +17,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_UseExecutorResult(t *testing.T
 	defer func() {
 		persistQueryToolResultToNotebook = originalPersistFn
 	}()
-	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, assistantContent string, detailedResult string) (*queryToolArchiveLocation, error) {
+	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, detailedResult string) (*queryToolArchiveLocation, error) {
 		return nil, nil
 	}
 
@@ -28,7 +28,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_UseExecutorResult(t *testing.T
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.NoteKeywordSearchToolName,
-				Arguments: `{"query":"测试"}`,
+				Arguments: `{"purpose":"验证查询结果回写","query":"测试"}`,
 			},
 		},
 	}
@@ -64,7 +64,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_FallbackAck(t *testing.T) {
 	defer func() {
 		persistQueryToolResultToNotebook = originalPersistFn
 	}()
-	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, assistantContent string, detailedResult string) (*queryToolArchiveLocation, error) {
+	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, detailedResult string) (*queryToolArchiveLocation, error) {
 		return nil, nil
 	}
 
@@ -108,7 +108,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_ExecutorError(t *testing.T) {
 	defer func() {
 		persistQueryToolResultToNotebook = originalPersistFn
 	}()
-	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, assistantContent string, detailedResult string) (*queryToolArchiveLocation, error) {
+	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, detailedResult string) (*queryToolArchiveLocation, error) {
 		return nil, nil
 	}
 
@@ -119,7 +119,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_ExecutorError(t *testing.T) {
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.NoteKeywordSearchToolName,
-				Arguments: `{"query":"测试"}`,
+				Arguments: `{"purpose":"验证查询错误回写","query":"测试"}`,
 			},
 		},
 	}
@@ -152,7 +152,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_SummarizesQueryResultForNonMel
 	defer func() {
 		persistQueryToolResultToNotebook = originalPersistFn
 	}()
-	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, assistantContent string, detailedResult string) (*queryToolArchiveLocation, error) {
+	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, detailedResult string) (*queryToolArchiveLocation, error) {
 		return &queryToolArchiveLocation{
 			BlockID:  "archive-block-1",
 			DocHPath: "/MAGI查询结果/2026-03-22",
@@ -166,7 +166,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_SummarizesQueryResultForNonMel
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.NoteKeywordSearchToolName,
-				Arguments: `{"query":"Marduk","limit":5}`,
+				Arguments: `{"purpose":"确认人格档案关联笔记","query":"Marduk","limit":5}`,
 			},
 		},
 	}
@@ -201,8 +201,8 @@ func TestAppendTurnToolCallsToContextWithExecutor_SummarizesQueryResultForNonMel
 	if err := json.Unmarshal([]byte(ctx[1].Content), &summary); err != nil {
 		t.Fatalf("期望历史中写入摘要JSON，实际=%s, err=%v", ctx[1].Content, err)
 	}
-	if !strings.Contains(summary.Purpose, "为了确认人格档案关联笔记") {
-		t.Fatalf("期望保留简要目的，实际=%s", summary.Purpose)
+	if summary.Purpose != "确认人格档案关联笔记" {
+		t.Fatalf("期望保留显式 purpose，实际=%s", summary.Purpose)
 	}
 	if summary.Query.Query != "Marduk" || summary.Query.Limit != 5 {
 		t.Fatalf("期望保留查询参数，实际=%+v", summary.Query)
@@ -220,7 +220,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_KeepsDetailedQueryResultForMel
 	defer func() {
 		persistQueryToolResultToNotebook = originalPersistFn
 	}()
-	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, assistantContent string, detailedResult string) (*queryToolArchiveLocation, error) {
+	persistQueryToolResultToNotebook = func(sessionID, roundID string, sage *sages.Sage, toolCall types.ToolCall, detailedResult string) (*queryToolArchiveLocation, error) {
 		return &queryToolArchiveLocation{BlockID: "archive-block-2"}, nil
 	}
 
@@ -231,7 +231,7 @@ func TestAppendTurnToolCallsToContextWithExecutor_KeepsDetailedQueryResultForMel
 			Type: "function",
 			Function: types.ToolCallFunction{
 				Name:      config.ForgeDevRepoReadToolName,
-				Arguments: `{"input":"path=kernel/nerv/magi/coordinator/collector.go\nstart=1\nlimit=20"}`,
+				Arguments: `{"purpose":"确认工具结果回写逻辑","input":"path=kernel/nerv/magi/coordinator/collector.go\nstart=1\nlimit=20"}`,
 			},
 		},
 	}

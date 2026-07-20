@@ -24,7 +24,7 @@ func TestWebSearchToolResultExecutor_RejectsEmptySearchQuery(t *testing.T) {
 	result, handled, err := executor.ExecuteToolCall(types.ToolCall{
 		Function: types.ToolCallFunction{
 			Name:      config.SearchWebToolName,
-			Arguments: `{"query":"  "}`,
+			Arguments: `{"purpose":"验证空搜索词拒绝","query":"  "}`,
 		},
 	})
 	if !handled || err == nil || result != "" {
@@ -51,7 +51,7 @@ func TestWebSearchToolResultExecutor_InspectsExplicitEnginesWithoutProbe(t *test
 	result, handled, err := executor.ExecuteToolCall(types.ToolCall{
 		Function: types.ToolCallFunction{
 			Name:      config.InspectWebSearchEnginesToolName,
-			Arguments: `{"engines":["nvd","nvd","missing-engine"],"probe":false}`,
+			Arguments: `{"purpose":"检查搜索引擎状态","engines":["nvd","nvd","missing-engine"],"probe":false}`,
 		},
 	})
 	if err != nil || !handled {
@@ -78,7 +78,7 @@ func TestWebSearchHistorySummaryKeepsQueryAndDropsDetailedResults(t *testing.T) 
 	call := types.ToolCall{
 		Function: types.ToolCallFunction{
 			Name:      config.SearchWebToolName,
-			Arguments: `{"query":"Go release","provider":"meta","engines":["nvd"]}`,
+			Arguments: `{"purpose":"查找 Go 发布信息","query":"Go release","provider":"meta","engines":["nvd"]}`,
 		},
 	}
 	summary := buildWebSearchHistorySummary(call, "查找版本信息", `{"provider":"meta","results":[{"title":"one"},{"title":"two"}],"usedEngines":["nvd"],"noResults":false}`, nil)
@@ -128,7 +128,7 @@ func TestMAGIWebFetchUsesStructuredProtocolFailure(t *testing.T) {
 	result, handled, err := executor.ExecuteToolCall(types.ToolCall{
 		Function: types.ToolCallFunction{
 			Name:      config.FetchWebPageToolName,
-			Arguments: `{"url":"file:///etc/passwd"}`,
+			Arguments: `{"purpose":"验证不支持的网页协议","url":"file:///etc/passwd"}`,
 		},
 	})
 	if err != nil || !handled {
@@ -147,7 +147,7 @@ func TestMAGIWebSearchArchiveCalloutContainsQueryAndResultCount(t *testing.T) {
 	callout := buildWebSearchArchiveCallout(
 		types.ToolCall{Function: types.ToolCallFunction{
 			Name:      config.SearchWebToolName,
-			Arguments: `{"query":"release notes","provider":"meta"}`,
+			Arguments: `{"purpose":"查找发布说明","query":"release notes","provider":"meta"}`,
 		}},
 		"检索发布说明",
 		`{"provider":"meta","results":[{},{}],"usedEngines":["nvd"]}`,

@@ -55,7 +55,7 @@ func BuildSendChannelMessageToolDef() ToolDef {
 
 // BuildListMagiChannelsToolDef 构建列出所有已注册外部渠道的工具定义。
 func BuildListMagiChannelsToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ListMagiChannelsToolName,
@@ -65,12 +65,12 @@ func BuildListMagiChannelsToolDef() ToolDef {
 				"properties": map[string]interface{}{},
 			},
 		},
-	}
+	})
 }
 
 // BuildFetchChannelMessagesToolDef 构建查看指定渠道最近消息的工具定义。
 func BuildFetchChannelMessagesToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        FetchChannelMessagesToolName,
@@ -109,12 +109,12 @@ func BuildFetchChannelMessagesToolDef() ToolDef {
 				"required": []string{"channelId", "accountId"},
 			},
 		},
-	}
+	})
 }
 
 // BuildListMagiContactsToolDef 构建列出所有已知外部联系人的工具定义。
 func BuildListMagiContactsToolDef() ToolDef {
-	return ToolDef{
+	return AddPurposeParam(ToolDef{
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ListMagiContactsToolName,
@@ -129,5 +129,5 @@ func BuildListMagiContactsToolDef() ToolDef {
 				},
 			},
 		},
-	}
+	})
 }

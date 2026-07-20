@@ -59,7 +59,7 @@ func TestExecuteNoteByIDRead_InvalidArgs(t *testing.T) {
 	if _, err := executeNoteByIDRead(`{invalid`); err == nil {
 		t.Fatal("期望非法JSON报错，实际成功")
 	}
-	if _, err := executeNoteByIDRead(`{"id":"   "}`); err == nil {
+	if _, err := executeNoteByIDRead(`{"purpose":"验证空块 ID 拒绝","id":"   "}`); err == nil {
 		t.Fatal("期望空id报错，实际成功")
 	}
 }
@@ -84,7 +84,7 @@ func TestExecuteNoteByIDRead_ScopeConflict(t *testing.T) {
 		}, model.ErrWorkspaceAIMainNotebookConflict
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-1"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取指定笔记块","id":"block-1"}`)
 	if err != nil {
 		t.Fatalf("期望冲突状态下执行成功，实际错误: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestExecuteNoteByIDRead_ScopeInactive(t *testing.T) {
 		}, model.ErrWorkspaceAIMainNotebookInactive
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-1"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取指定笔记块","id":"block-1"}`)
 	if err != nil {
 		t.Fatalf("期望非活动状态下执行成功，实际错误: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestExecuteNoteByIDRead_GetBlockError(t *testing.T) {
 		return nil, fmt.Errorf("数据库错误")
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-err"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证读取错误返回","id":"block-err"}`)
 	if err != nil {
 		t.Fatalf("期望 GetBlock 错误时仍返回 payload，实际错误: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestExecuteNoteByIDRead_BlockNotFound(t *testing.T) {
 		return nil, nil
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-missing"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证缺失块返回","id":"block-missing"}`)
 	if err != nil {
 		t.Fatalf("期望 block 为 nil 时仍返回 payload，实际错误: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestExecuteNoteByIDRead_RestrictedDocument(t *testing.T) {
 		return &model.Block{ID: "block-hidden", RootID: "doc-hidden", Type: "p", Content: "secret"}, nil
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-hidden"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证受限笔记读取","id":"block-hidden"}`)
 	if err != nil {
 		t.Fatalf("期望受限文档仍返回 payload，实际错误: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestExecuteNoteByIDRead_Success(t *testing.T) {
 		}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取笔记块结构","id":"block-main","format":"tree"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestExecuteNoteByIDRead_PartialChildren(t *testing.T) {
 		return children
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree","start":3,"limit":3}`)
+	result, err := executeNoteByIDRead(`{"purpose":"分页读取笔记块结构","id":"block-main","format":"tree","start":3,"limit":3}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -464,7 +464,7 @@ func TestExecuteNoteByIDRead_StartBeyondTotal(t *testing.T) {
 		}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"b","start":10,"limit":5}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证读取分页边界","id":"b","start":10,"limit":5}`)
 	if err != nil {
 		t.Fatalf("期望 start 超出范围时仍返回 payload，实际错误: %v", err)
 	}
@@ -490,7 +490,7 @@ func TestNoteByIDReadToolResultExecutor_HandlesOnlyOwnTool(t *testing.T) {
 	result, handled, err := executor.ExecuteToolCall(types.ToolCall{
 		Function: types.ToolCallFunction{
 			Name:      config.NoteKeywordSearchToolName,
-			Arguments: `{"query":"test"}`,
+			Arguments: `{"purpose":"验证执行器路由","query":"test"}`,
 		},
 	})
 	if handled {
@@ -650,7 +650,7 @@ func TestExecuteNoteByIDRead_MarkdownFormat(t *testing.T) {
 		return "# 标题内容\n\n这是 markdown 渲染后的内容。"
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"markdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取完整 Markdown","id":"block-main","format":"markdown"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -718,7 +718,7 @@ func TestExecuteNoteByIDRead_KramdownFormat(t *testing.T) {
 		return "{: id=\"block-main\"}\n# 标题内容\n\n{: id=\"child-1\"}\n这是 kramdown 渲染后的内容。"
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"kramdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取完整 Kramdown","id":"block-main","format":"kramdown"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -767,7 +767,7 @@ func TestExecuteNoteByIDRead_MarkdownFormatWithScopeConflict(t *testing.T) {
 		}, model.ErrWorkspaceAIMainNotebookConflict
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-1","format":"markdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取叶子块 Markdown","id":"block-1","format":"markdown"}`)
 	if err != nil {
 		t.Fatalf("期望冲突状态下执行成功，实际错误: %v", err)
 	}
@@ -807,7 +807,7 @@ func TestExecuteNoteByIDRead_MarkdownFormatRestricted(t *testing.T) {
 		return &model.Block{ID: "block-hidden", RootID: "doc-hidden", Type: "p", Content: "secret"}, nil
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-hidden","format":"markdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证受限 Markdown 读取","id":"block-hidden","format":"markdown"}`)
 	if err != nil {
 		t.Fatalf("期望受限文档仍返回 payload，实际错误: %v", err)
 	}
@@ -861,7 +861,7 @@ func TestExecuteNoteByIDRead_DefaultFormatIsMarkdown(t *testing.T) {
 		return "rendered markdown content"
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"b1"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取引用关系","id":"b1"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -917,7 +917,7 @@ func TestExecuteNoteByIDRead_ExplicitTreeFormat(t *testing.T) {
 		}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"b1","format":"tree"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取结构与引用关系","id":"b1","format":"tree"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -961,7 +961,7 @@ func TestExecuteNoteByIDRead_MarkdownFormatGetBlockError(t *testing.T) {
 		return nil, fmt.Errorf("数据库错误")
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-err","format":"markdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"验证 Markdown 渲染错误","id":"block-err","format":"markdown"}`)
 	if err != nil {
 		t.Fatalf("期望错误时仍返回 payload，实际错误: %v", err)
 	}
@@ -1212,7 +1212,7 @@ func TestExecuteNoteByIDRead_RefsDefsInTreeFormat(t *testing.T) {
 		return &sql.Block{ID: "def-1", RootID: "doc-visible", Type: "h"}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"tree"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取笔记树与反向链接","id":"block-main","format":"tree"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -1314,7 +1314,7 @@ func TestExecuteNoteByIDRead_RefsDefsInMarkdownFormat(t *testing.T) {
 		return &sql.Block{ID: "def-1", RootID: "doc-visible", Type: "h"}
 	}
 
-	result, err := executeNoteByIDRead(`{"id":"block-main","format":"markdown"}`)
+	result, err := executeNoteByIDRead(`{"purpose":"读取笔记 Markdown 与引用","id":"block-main","format":"markdown"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}

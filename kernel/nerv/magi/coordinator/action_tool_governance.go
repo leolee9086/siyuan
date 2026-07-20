@@ -352,12 +352,10 @@ func buildGovernedActionToolCall(toolCall types.ToolCall) (*types.ToolCall, stri
 	if err != nil {
 		return nil, "", fmt.Errorf("%s 参数解析失败: %w", toolName, err)
 	}
-	motivation := normalizeGovernedActionMotivation(fmt.Sprintf("%v", args["motivation"]))
+	motivationArg, _ := args["motivation"].(string)
+	motivation := normalizeGovernedActionMotivation(motivationArg)
 	if motivation == "" {
-		motivation = normalizeGovernedActionMotivation(fmt.Sprintf("%v", args["description"]))
-	}
-	if motivation == "" {
-		return nil, "", fmt.Errorf("%s 的 motivation/description 不能为空", toolName)
+		return nil, "", fmt.Errorf("%s 的 motivation 不能为空", toolName)
 	}
 
 	normalizedArguments, err := json.Marshal(args)

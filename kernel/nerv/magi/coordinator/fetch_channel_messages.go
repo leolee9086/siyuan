@@ -30,6 +30,9 @@ func (e *fetchChannelMessagesResultExecutor) ExecuteToolCall(toolCall types.Tool
 	if strings.TrimSpace(toolCall.Function.Name) != config.FetchChannelMessagesToolName {
 		return "", false, nil
 	}
+	if _, err := requireExplicitToolPurpose(toolCall.Function.Arguments, config.FetchChannelMessagesToolName); err != nil {
+		return "", true, err
+	}
 
 	args, err := parseFetchChannelMessagesArgs(toolCall.Function.Arguments)
 	if err != nil {

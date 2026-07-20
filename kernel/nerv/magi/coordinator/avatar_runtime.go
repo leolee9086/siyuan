@@ -367,6 +367,7 @@ const (
 
 type melchiorBuildAvatar struct {
 	Initiate             bool
+	Motivation           string
 	Reason               string
 	SystemPromptProposal string
 	Requirements         string
@@ -376,6 +377,7 @@ type avatarCreationProposal struct {
 	SageName             string
 	DisplayName          string
 	Decision             avatarCreateDecision
+	Motivation           string
 	Reason               string
 	SystemPromptProposal string
 	Requirements         string
@@ -383,6 +385,7 @@ type avatarCreationProposal struct {
 
 type dominantSynthesizeAvatar struct {
 	FinalSystemPrompt string
+	Motivation        string
 }
 
 type avatarPrototype struct {
@@ -521,6 +524,7 @@ func requestAvatarPrototypeByMAGI(
 			SageName:             melchior.GetName(),
 			DisplayName:          melchior.GetDisplayName(),
 			Decision:             avatarDecisionApproved,
+			Motivation:           melchiorBuild.Motivation,
 			Reason:               melchiorBuild.Reason,
 			SystemPromptProposal: melchiorBuild.SystemPromptProposal,
 			Requirements:         melchiorBuild.Requirements,
@@ -679,9 +683,13 @@ func parseMelchiorBuildAvatar(rawArgs string) (*melchiorBuildAvatar, error) {
 	}
 	result := &melchiorBuildAvatar{
 		Initiate:             parseBool(payload["initiate"]) || parseBool(payload["createAvatar"]),
+		Motivation:           pickString(payload, "motivation"),
 		Reason:               strings.TrimSpace(fmt.Sprintf("%v", payload["reason"])),
 		SystemPromptProposal: pickString(payload, "systemPromptProposal", "system_prompt_proposal", "prompt"),
 		Requirements:         pickString(payload, "requirements", "requirement"),
+	}
+	if result.Motivation == "" {
+		return nil, fmt.Errorf("melchior buildAvatar missing motivation")
 	}
 	if result.Reason == "" || result.Reason == "<nil>" {
 		result.Reason = "no-reason"
@@ -698,11 +706,16 @@ func parseDominantSynthesizeAvatar(rawArgs string) (*dominantSynthesizeAvatar, e
 		return nil, fmt.Errorf("parse dominant synthesizeAvatar args failed: %w", err)
 	}
 	finalSystemPrompt := pickString(payload, "finalSystemPrompt", "systemPrompt", "system_prompt", "prompt", "content")
+	motivation := pickString(payload, "motivation")
+	if motivation == "" {
+		return nil, fmt.Errorf("dominant synthesizeAvatar missing motivation")
+	}
 	if strings.TrimSpace(finalSystemPrompt) == "" {
 		return nil, fmt.Errorf("dominant synthesizeAvatar missing finalSystemPrompt")
 	}
 	return &dominantSynthesizeAvatar{
 		FinalSystemPrompt: strings.TrimSpace(finalSystemPrompt),
+		Motivation:        motivation,
 	}, nil
 }
 
@@ -714,6 +727,7 @@ func buildSageProposalPayload(proposals []avatarCreationProposal) string {
 			"sageName":             proposal.SageName,
 			"displayName":          proposal.DisplayName,
 			"decision":             proposal.Decision,
+			"motivation":           proposal.Motivation,
 			"reason":               proposal.Reason,
 			"systemPromptProposal": proposal.SystemPromptProposal,
 			"requirements":         proposal.Requirements,

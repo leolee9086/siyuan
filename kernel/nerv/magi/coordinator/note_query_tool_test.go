@@ -101,7 +101,7 @@ func TestExecuteNoteKeywordSearch_ReRankAndLimitClamp(t *testing.T) {
 		}, 3, 2, 1, false
 	}
 
-	result, err := executeNoteKeywordSearch(`{"query":"alpha beta","limit":999}`)
+	result, err := executeNoteKeywordSearch(`{"purpose":"验证查询结果排序","query":"alpha beta","limit":999}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestExecuteNoteKeywordSearch_FiltersRestrictedDocsToIDs(t *testing.T) {
 		}, 3, 2, 1, false
 	}
 
-	result, err := executeNoteKeywordSearch(`{"query":"inside","limit":10}`)
+	result, err := executeNoteKeywordSearch(`{"purpose":"查找主笔记本内容","query":"inside","limit":10}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestExecuteNoteKeywordSearch_ReturnsScopeMessageWhenConflict(t *testing.T) 
 		return nil, 0, 0, 0, false
 	}
 
-	result, err := executeNoteKeywordSearch(`{"query":"inside","limit":10}`)
+	result, err := executeNoteKeywordSearch(`{"purpose":"确认受限文档过滤","query":"inside","limit":10}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestExecuteNoteKeywordSearch_EnrichedStructure(t *testing.T) {
 		}, 1, 1, 1, false
 	}
 
-	result, err := executeNoteKeywordSearch(`{"query":"content"}`)
+	result, err := executeNoteKeywordSearch(`{"purpose":"确认笔记本作用域错误返回","query":"content"}`)
 	if err != nil {
 		t.Fatalf("期望执行成功，实际错误: %v", err)
 	}
@@ -343,7 +343,7 @@ func TestExecuteNoteKeywordSearch_InvalidArgs(t *testing.T) {
 	if _, err := executeNoteKeywordSearch(`{invalid`); err == nil {
 		t.Fatal("期望非法JSON报错，实际成功")
 	}
-	if _, err := executeNoteKeywordSearch(`{"query":"   "}`); err == nil {
+	if _, err := executeNoteKeywordSearch(`{"purpose":"验证空查询拒绝","query":"   "}`); err == nil {
 		t.Fatal("期望空query报错，实际成功")
 	}
 }

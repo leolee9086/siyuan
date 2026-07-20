@@ -119,6 +119,9 @@ func (e *noteKeywordToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall)
 }
 
 func executeNoteKeywordSearch(rawArgs string) (string, error) {
+	if _, err := requireExplicitToolPurpose(rawArgs, config.NoteKeywordSearchToolName); err != nil {
+		return "", err
+	}
 	var args noteKeywordSearchToolArgs
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", fmt.Errorf("%s 参数解析失败: %w", config.NoteKeywordSearchToolName, err)

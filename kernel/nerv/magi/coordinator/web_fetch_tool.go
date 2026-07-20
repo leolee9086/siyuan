@@ -77,6 +77,9 @@ func (e *webFetchToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall) (r
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.FetchWebPageToolName, err)
 	}
+	if _, err := requireExplicitToolPurpose(rawArgs, config.FetchWebPageToolName); err != nil {
+		return "", true, err
+	}
 
 	args.URL = strings.TrimSpace(args.URL)
 	if args.URL == "" {

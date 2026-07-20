@@ -19,6 +19,9 @@ func (e *listMagiChannelsResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	if strings.TrimSpace(toolCall.Function.Name) != config.ListMagiChannelsToolName {
 		return "", false, nil
 	}
+	if _, err := requireExplicitToolPurpose(toolCall.Function.Arguments, config.ListMagiChannelsToolName); err != nil {
+		return "", true, err
+	}
 
 	adapters := channel.All()
 	type channelView struct {
@@ -68,5 +71,4 @@ func (e *listMagiChannelsResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	}
 	return string(resultBytes), true, nil
 }
-
 

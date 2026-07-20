@@ -55,6 +55,9 @@ func (e *webSearchToolResultExecutor) executeSearch(toolCall types.ToolCall) (st
 	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.SearchWebToolName, err)
 	}
+	if _, err := requireExplicitToolPurpose(rawArgs, config.SearchWebToolName); err != nil {
+		return "", true, err
+	}
 	args.Query = strings.TrimSpace(args.Query)
 	if args.Query == "" {
 		return "", true, fmt.Errorf("%s 的 query 不能为空", config.SearchWebToolName)
@@ -86,11 +89,12 @@ func (e *webSearchToolResultExecutor) executeSearch(toolCall types.ToolCall) (st
 
 func (e *webSearchToolResultExecutor) executeInspect(toolCall types.ToolCall) (string, bool, error) {
 	rawArgs := strings.TrimSpace(toolCall.Function.Arguments)
+	if _, err := requireExplicitToolPurpose(rawArgs, config.InspectWebSearchEnginesToolName); err != nil {
+		return "", true, err
+	}
 	var args inspectWebSearchEnginesToolArgs
-	if rawArgs != "" {
-		if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
-			return "", true, fmt.Errorf("%s 参数解析失败: %w", config.InspectWebSearchEnginesToolName, err)
-		}
+	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
+		return "", true, fmt.Errorf("%s 参数解析失败: %w", config.InspectWebSearchEnginesToolName, err)
 	}
 	status := kernelwebsearch.NewService().Diagnose(
 		cleanWebSearchEngineNames(args.Engines),

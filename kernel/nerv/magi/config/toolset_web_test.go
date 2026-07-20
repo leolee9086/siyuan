@@ -20,6 +20,18 @@ func TestWebToolDefinitionsAreReadOnlyAndAvailableInWorkHeartbeat(t *testing.T) 
 		if tool.Meta.RequiresPeerVote || tool.Meta.ModifiesNotes || tool.Meta.ModifiesFilesystem {
 			t.Fatalf("%s must not be an action tool: %+v", tool.Function.Name, tool.Meta)
 		}
+		properties := tool.Function.Parameters["properties"].(map[string]interface{})
+		if _, ok := properties["purpose"]; !ok {
+			t.Fatalf("%s must declare explicit purpose", tool.Function.Name)
+		}
+		required := tool.Function.Parameters["required"].([]string)
+		foundPurpose := false
+		for _, name := range required {
+			foundPurpose = foundPurpose || name == "purpose"
+		}
+		if !foundPurpose {
+			t.Fatalf("%s must require explicit purpose: %v", tool.Function.Name, required)
+		}
 	}
 
 	fetch := BuildFetchWebPageToolDef()

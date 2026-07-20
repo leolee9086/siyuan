@@ -289,10 +289,6 @@ func extractGovernedActionMotivation(toolCall types.ToolCall) string {
 		return ""
 	}
 	motivation, _ := args["motivation"].(string)
-	if motivation == "" {
-		description, _ := args["description"].(string)
-		return description
-	}
 	return motivation
 }
 
