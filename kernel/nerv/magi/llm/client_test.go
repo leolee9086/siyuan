@@ -1,11 +1,96 @@
 package llm
 
 import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
+
+func TestOpenAIClientToolChoiceFailureIsReturnedWithoutRetry(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":{"message":"Upstream request failed","type":"invalid_request_error"}}`))
+	}))
+	defer server.Close()
+
+	client := newOpenAIClient(&Config{
+		APIKey:     "test-key",
+		APIBaseURL: server.URL + "/v1",
+		APIModel:   "test-model",
+	})
+	_, err := client.SendChatRequestSyncDetailed(
+		context.Background(),
+		[]types.ContextMessage{{Role: types.RoleUser, Content: "test"}},
+		[]openai.Tool{{
+			Type: openai.ToolTypeFunction,
+			Function: &openai.FunctionDefinition{
+				Name:       "test_tool",
+				Parameters: map[string]interface{}{"type": "object"},
+			},
+		}},
+		"required",
+	)
+	if err == nil || !strings.Contains(err.Error(), "Upstream request failed") {
+		t.Fatalf("expected explicit upstream error, got %v", err)
+	}
+	if requestCount != 1 {
+		t.Fatalf("failed request must not be retried with a different payload, requests=%d", requestCount)
+	}
+}
+
+func TestOpenAIClientOmitsNilToolChoice(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read request body failed: %v", err)
+		}
+		var payload map[string]interface{}
+		if err = json.Unmarshal(body, &payload); err != nil {
+			t.Fatalf("decode request body failed: %v", err)
+		}
+		if _, exists := payload["tool_choice"]; exists {
+			t.Fatalf("tool_choice must be omitted, payload keys=%v", payload)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"id":"call-1","type":"function","function":{"name":"test_tool","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}`))
+	}))
+	defer server.Close()
+
+	client := newOpenAIClient(&Config{
+		APIKey:     "test-key",
+		APIBaseURL: server.URL + "/v1",
+		APIModel:   "test-model",
+	})
+	result, err := client.SendChatRequestSyncDetailed(
+		context.Background(),
+		[]types.ContextMessage{{Role: types.RoleUser, Content: "test"}},
+		[]openai.Tool{{
+			Type: openai.ToolTypeFunction,
+			Function: &openai.FunctionDefinition{
+				Name:       "test_tool",
+				Parameters: map[string]interface{}{"type": "object"},
+			},
+		}},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if len(result.ToolCalls) != 1 || result.ToolCalls[0].Function.Name != "test_tool" {
+		t.Fatalf("unexpected tool result: %+v", result)
+	}
+}
 
 func TestConvertToOpenAIMessages(t *testing.T) {
 	tests := []struct {

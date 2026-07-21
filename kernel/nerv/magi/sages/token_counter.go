@@ -41,7 +41,16 @@ func InitTokenEncodersWithDir(tiktokenDir string) error {
 		tiktokenDir = absDir
 	}
 	os.MkdirAll(tiktokenDir, 0755)
+
+	encoderMu.Lock()
+	defer encoderMu.Unlock()
 	tiktokenDirPath = tiktokenDir
+	encoderMap = map[string]*tiktoken.Tiktoken{}
+	gpt35Encoder = nil
+	gpt4oEncoder = nil
+	gpt4Encoder = nil
+	defaultEncoder = nil
+	encodersReady = false
 
 	defaultLoader := tiktoken.NewDefaultBpeLoader()
 	tiktoken.SetBpeLoader(&localRedirectLoader{dir: tiktokenDir, fallback: defaultLoader})
@@ -123,6 +132,11 @@ func getTokenEncoder(model string) *tiktoken.Tiktoken {
 	}
 	encoderMu.RUnlock()
 
+	encoderMu.Lock()
+	defer encoderMu.Unlock()
+	if enc, ok := encoderMap[model]; ok {
+		return enc
+	}
 	if !encodersReady {
 		return nil
 	}
@@ -213,10 +227,10 @@ func countContextTokens(messages []types.ContextMessage, enc *tiktoken.Tiktoken)
 
 // roundGroup 裁剪时使用的轮次分组。
 type roundGroup struct {
-	RoundID  string
-	Messages []types.ContextMessage
-	Tokens   int
-	Dominant bool
+	RoundID   string
+	Messages  []types.ContextMessage
+	Tokens    int
+	Dominant  bool
 	Heartbeat bool
 }
 

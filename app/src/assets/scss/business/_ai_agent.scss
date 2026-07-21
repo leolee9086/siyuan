@@ -359,6 +359,16 @@
   border-radius: var(--b3-border-radius);
 }
 
+.agent-chat__msg--error .agent-chat__body > span:not(.agent-chat__error-retry) {
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-chat__error-retry {
+  flex: 0 0 auto;
+  color: var(--b3-theme-error);
+}
+
 .agent-chat__error-icon {
   width: 14px;
   height: 14px;

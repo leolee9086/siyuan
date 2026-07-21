@@ -13,58 +13,12 @@ import type { StreamRequestConfig } from "./types";
  *   回调函数的类型签名是API契约的核心部分，不能通过参数传递等方式解耦。
  */
 import type { StreamCallbacks } from "./types";
-
 /**
- * 用途：定义流数据处理过程中的内部上下文类型，封装reader、decoder和回调引用
- * 使用范围：在 processStreamData 和 processResponse 内部函数间传递，将流读取逻辑与业务回调解耦
- * 解耦评估：理论上可在本文件内定义，但保持从types导入的原因：
- *   1. 与StreamCallbacks高度相关，统一管理便于维护类型一致性
- *   2. 作为内部实现细节的类型定义，集中管理符合单一职责原则
- *   3. 类型定义不产生运行时耦合，导入位置不影响代码执行
+ * 用途：导入共享 SSE data 流解析器，避免通用网络层和 MAGI adapter 各自解析协议。
+ * 使用范围：仅用于成功 HTTP 响应的 body 消费。
+ * 解耦评估：这是无业务状态的协议工具，直接模块依赖比回调注入更清晰。
  */
-import type { StreamProcessContext } from "./types";
-
-/**
- * 作用：处理SSE流数据，解析事件并调用回调
- * 意图：将流式数据读取和SSE协议解析逻辑封装为独立函数，避免在主函数中混杂底层细节
- * 调用时机：在processResponse中，当HTTP响应成功后调用，持续读取直到流结束或遇到[DONE]标记
- * 问题/改进：当前假设所有事件以\n\n分隔且以"data: "开头，不支持其他SSE字段（如id、event）
- */
-const processStreamData = async (
-    ctx: StreamProcessContext,
-)=> {
-    let buffer = "";
-    
-    while (true) {
-        const { done, value } = await ctx.reader.read();
-        // 流已结束，退出循环
-        if (done) {
-            break;
-        }
-
-        buffer += ctx.decoder.decode(value, { stream: true });
-        const events = buffer.split("\n\n");
-        buffer = events.pop() || "";
-
-        for (const event of events) {
-            // 跳过非data字段的事件行
-            if (!event.startsWith("data: ")) {
-                continue;
-            }
-            
-            const dataStr = event.substring(6);
-            
-            // OpenAI等API使用[DONE]标记流结束
-            if (dataStr === "[DONE]") {
-                ctx.onDone();
-                return;
-            }
-            
-            ctx.onMessage(dataStr);
-            ctx.resetTimeout();
-        }
-    }
-};
+import { consumeSSEDataStream } from "./sse/consumeSSEDataStream";
 
 /**
  * 作用：准备fetch请求的headers和body参数
@@ -97,8 +51,9 @@ const prepareRequestParams = (
  * 问题/改进：当前仅检查response.ok，不处理重定向等特殊状态码
  */
 const processResponse = async (
-    ctx: StreamProcessContext,
-    response: Response
+    response: Response,
+    onMessage: (data: string) => void,
+    resetTimeout: () => void,
 )=> {
     // HTTP状态码非2xx时抛出错误
     if (!response.ok) {
@@ -110,11 +65,10 @@ const processResponse = async (
         throw new Error("Response body is null");
     }
 
-    try {
-        await processStreamData(ctx);
-    } finally {
-        ctx.reader.releaseLock();
-    }
+    await consumeSSEDataStream(response.body, (data) => {
+        onMessage(data);
+        resetTimeout();
+    });
 };
 
 /**
@@ -136,23 +90,25 @@ const isTimeoutAbort = (lastEventTime: number, timeout: number)=> {
  */
 const handleError = (
     error: unknown,
-    onError: (error: Error) => void,
-    lastEventTime: number,
-    timeout: number
+    context: {
+        onError: (error: Error) => void;
+        lastEventTime: number;
+        timeout: number;
+    },
 )=> {
     // 非Error类型的异常（如throw "string"）统一包装
     if (!(error instanceof Error)) {
-        onError(new Error("未知错误"));
+        context.onError(new Error("未知错误"));
         return;
     }
     
     // AbortError可能由用户取消或超时触发，需区分处理
-    if (error.name === "AbortError" && isTimeoutAbort(lastEventTime, timeout)) {
-        onError(new Error("响应超时，但已保留已有内容"));
+    if (error.name === "AbortError" && isTimeoutAbort(context.lastEventTime, context.timeout)) {
+        context.onError(new Error("响应超时，但已保留已有内容"));
         return;
     }
     
-    onError(error);
+    context.onError(error);
 };
 
 /**
@@ -232,24 +188,14 @@ export const universalStreamRequest = async (
             signal,
         });
 
-        const reader = response.body?.getReader();
-        // response.body为null时在processResponse中会抛出错误
-        if (!reader) {
-            throw new Error("Failed to get response reader");
-        }
-
-        const streamCtx: StreamProcessContext = {
-            reader,
-            decoder: new TextDecoder("utf-8"),
-            onMessage,
-            onDone,
-            resetTimeout: timeoutManager.resetTimeout
-        };
-        
-        await processResponse(streamCtx, response);
+        await processResponse(response, onMessage, timeoutManager.resetTimeout);
         onDone();
     } catch (error) {
-        handleError(error, onError, timeoutManager.getLastEventTime(), timeout);
+        handleError(error, {
+            onError,
+            lastEventTime: timeoutManager.getLastEventTime(),
+            timeout,
+        });
     } finally {
         timeoutManager.cleanup();
     }

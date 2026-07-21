@@ -30,12 +30,18 @@ type CollectResponsesOptions struct {
 	RuntimeToolChoiceBySage    map[string]any
 	ModelInputBySage           map[string]string
 	IsExternalMessageTriggered bool
+	ReplyStreamObserver        ReplyStreamObserver
 }
 
+// ReplyStreamObserver receives the cumulative public reply assembled from
+// wanna_speak_continue tool arguments. It is set only for the response that is
+// delivered to the current external requester.
+type ReplyStreamObserver func(content string) error
+
 type HeartbeatCollectionResult struct {
-	Responses      []types.SageResponse
-	AllDowntime    bool
-	DowntimeSage   string
+	Responses       []types.SageResponse
+	AllDowntime     bool
+	DowntimeSage    string
 	DowntimeSummary string
 }
 

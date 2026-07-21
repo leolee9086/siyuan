@@ -44,6 +44,22 @@ function createRequest(
     };
 }
 
+function createSSEResponse(events: string[], includeDone = true): Response {
+    const encoder = new TextEncoder();
+    const payload = events.map((event) => `data: ${event}\n\n`).join("") + (includeDone ? "data: [DONE]\n\n" : "");
+    const splitAt = Math.max(1, Math.floor(payload.length / 2));
+    return new Response(new ReadableStream<Uint8Array>({
+        start(controller) {
+            controller.enqueue(encoder.encode(payload.slice(0, splitAt)));
+            controller.enqueue(encoder.encode(payload.slice(splitAt)));
+            controller.close();
+        },
+    }), {
+        status: 200,
+        headers: {"Content-Type": "text/event-stream; charset=utf-8"},
+    });
+}
+
 describe("standard-llm-adapter contract", () => {
     beforeEach(() => {
         mockedGetAIConfigFromSiyuan.mockReset();
@@ -95,33 +111,99 @@ describe("standard-llm-adapter contract", () => {
             apiModel: "gpt-test",
             apiTimeout: 12000,
         });
-        vi.stubGlobal(
-            "fetch",
-            vi.fn().mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    id: "chatcmpl-magi-backend-2",
-                    model: "magi-trinity",
-                    choices: [{ message: { role: "assistant", content: "stream-final" }, finish_reason: "stop" }],
-                }),
+        const fetchMock = vi.fn().mockResolvedValue(createSSEResponse([
+            JSON.stringify({
+                id: "chatcmpl-magi-backend-2",
+                model: "magi-trinity",
+                choices: [{delta: {role: "assistant", content: "stream-"}, finish_reason: null}],
             }),
-        );
+            JSON.stringify({
+                id: "chatcmpl-magi-backend-2",
+                model: "magi-trinity",
+                choices: [{delta: {content: "final"}, finish_reason: null}],
+            }),
+            JSON.stringify({
+                id: "chatcmpl-magi-backend-2",
+                model: "magi-trinity",
+                choices: [{delta: {}, finish_reason: "stop"}],
+            }),
+        ]));
+        vi.stubGlobal("fetch", fetchMock);
 
         const adapter = await createMagiStandardLLMAdapter({
             model: "magi-trinity",
             connectionStatus: { value: "connected" },
         });
 
-        const chunks: Array<string | undefined> = [];
+        const lifecycle: string[] = [];
         await adapter.streamChatCompletion(createRequest("streaming", { sourceSimulation: true }), {
-            onChunk(chunk) {
-                chunks.push(chunk.choices?.[0]?.delta?.content);
+            async onStart() {
+                lifecycle.push("start");
+            },
+            async onChunk(chunk) {
+                await Promise.resolve();
+                lifecycle.push(`chunk:${chunk.choices?.[0]?.delta?.content ?? "finish"}`);
+            },
+            async onDone() {
+                lifecycle.push("done");
             },
         });
 
-        expect(chunks).toHaveLength(2);
-        expect(chunks[0]).toBe("stream-final");
-        expect(chunks[1]).toBeUndefined();
+        expect(lifecycle).toEqual(["start", "chunk:stream-", "chunk:final", "chunk:finish", "done"]);
+        const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+        const requestBody = JSON.parse(String(requestInit.body)) as {stream?: boolean};
+        expect(requestBody.stream).toBe(true);
+        expect((requestInit.headers as Record<string, string>).Accept).toBe("text/event-stream");
+    });
+
+    it("magi adapter should report a stream that ends without DONE", async () => {
+        mockedGetAIConfigFromSiyuan.mockReturnValue({apiBaseURL: "https://example.com/v1"});
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createSSEResponse([
+            JSON.stringify({choices: [{delta: {content: "partial"}, finish_reason: null}]}),
+        ], false)));
+        const adapter = await createMagiStandardLLMAdapter({
+            model: "magi-trinity",
+            connectionStatus: { value: "connected" },
+        });
+        const errors: string[] = [];
+        let done = false;
+
+        await adapter.streamChatCompletion(createRequest("missing done"), {
+            onDone() {
+                done = true;
+            },
+            onError(error) {
+                errors.push(error.message);
+            },
+        });
+
+        expect(done).toBe(false);
+        expect(errors).toEqual(["MAGI backend stream failed: backend-stream-done-missing"]);
+    });
+
+    it("magi adapter should surface an SSE error event without completing", async () => {
+        mockedGetAIConfigFromSiyuan.mockReturnValue({apiBaseURL: "https://example.com/v1"});
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createSSEResponse([
+            JSON.stringify({error: {message: "coordinator failed", type: "magi_stream_error"}}),
+        ])));
+        const adapter = await createMagiStandardLLMAdapter({
+            model: "magi-trinity",
+            connectionStatus: { value: "connected" },
+        });
+        const errors: string[] = [];
+        let done = false;
+
+        await adapter.streamChatCompletion(createRequest("stream error"), {
+            onDone() {
+                done = true;
+            },
+            onError(error) {
+                errors.push(error.message);
+            },
+        });
+
+        expect(done).toBe(false);
+        expect(errors).toEqual(["MAGI backend stream failed: coordinator failed"]);
     });
 
     it("magi adapter should forward the caller abort signal to the backend request", async () => {
@@ -131,14 +213,10 @@ describe("standard-llm-adapter contract", () => {
             apiModel: "gpt-test",
             apiTimeout: 12000,
         });
-        const fetchMock = vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                id: "chatcmpl-magi-abort",
-                model: "magi-trinity",
-                choices: [{ message: { role: "assistant", content: "done" }, finish_reason: "stop" }],
-            }),
-        });
+        const fetchMock = vi.fn().mockResolvedValue(createSSEResponse([
+            JSON.stringify({choices: [{delta: {content: "done"}, finish_reason: null}]}),
+            JSON.stringify({choices: [{delta: {}, finish_reason: "stop"}]}),
+        ]));
         vi.stubGlobal("fetch", fetchMock);
         const controller = new AbortController();
         const adapter = await createMagiStandardLLMAdapter({

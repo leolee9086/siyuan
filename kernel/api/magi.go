@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/88250/gulu"
-	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
@@ -62,11 +60,12 @@ type DispatcherTask struct {
 	Type DispatcherTaskType
 
 	// 外部消息字段（TaskTypeUserMessage）
-	Req        *openai.ChatCompletionRequest
-	SessionID  string
-	SourceCtx  *types.RequestSourceContext
-	RequestCtx context.Context
-	ResultChan chan MagiTaskResult
+	Req                 *openai.ChatCompletionRequest
+	SessionID           string
+	SourceCtx           *types.RequestSourceContext
+	RequestCtx          context.Context
+	ResultChan          chan MagiTaskResult
+	ReplyStreamObserver coordinator.ReplyStreamObserver
 
 	// 心跳字段（TaskTypeHeartbeat）
 	// 所有数据在 tryStartHeartbeat 中捕获，分发器直接使用，不再访问 runtime manager。
@@ -454,6 +453,11 @@ func magiChat(c *gin.Context) {
 	}
 
 	logging.LogInfof("magiChat received request: model=[%s] stream=[%v] msgs_count=[%d]", req.Model, req.Stream, len(req.Messages))
+	modelName := req.Model
+	if req.Stream {
+		sendLiveMagiStreamResponse(c, req, sourceCtx, modelName)
+		return
+	}
 
 	consensusMsg, err := submitMagiTask(c, req, sourceCtx)
 	if err != nil {
@@ -461,16 +465,27 @@ func magiChat(c *gin.Context) {
 		return
 	}
 
-	modelName := req.Model
-
-	if req.Stream {
-		sendStreamResponse(c, consensusMsg, modelName)
-	} else {
-		sendSyncResponse(c, consensusMsg, modelName)
-	}
+	sendSyncResponse(c, consensusMsg, modelName)
 }
 
 func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx *types.RequestSourceContext) (*types.Message, error) {
+	return submitMagiTaskWithContext(c.Request.Context(), req, sourceCtx)
+}
+
+func submitMagiTaskWithContext(
+	requestCtx context.Context,
+	req openai.ChatCompletionRequest,
+	sourceCtx *types.RequestSourceContext,
+) (*types.Message, error) {
+	return submitMagiTaskWithReplyStream(requestCtx, req, sourceCtx, nil)
+}
+
+func submitMagiTaskWithReplyStream(
+	requestCtx context.Context,
+	req openai.ChatCompletionRequest,
+	sourceCtx *types.RequestSourceContext,
+	replyStreamObserver coordinator.ReplyStreamObserver,
+) (*types.Message, error) {
 	if magiInitErr != nil {
 		return nil, fmt.Errorf("MAGI system not initialized: %w", magiInitErr)
 	}
@@ -480,18 +495,19 @@ func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx 
 
 	magiRuntimeMgr.InterruptHeartbeat()
 
-	sessionID := getOrCreateSession(c, sourceCtx)
+	sessionID := getOrCreateSession(nil, sourceCtx)
 	if sessionID == "" {
 		return nil, errors.New("MAGI session manager is not ready")
 	}
 
 	task := &DispatcherTask{
-		Type:       TaskTypeUserMessage,
-		Req:        &req,
-		SessionID:  sessionID,
-		SourceCtx:  sourceCtx,
-		RequestCtx: c.Request.Context(),
-		ResultChan: make(chan MagiTaskResult, 1),
+		Type:                TaskTypeUserMessage,
+		Req:                 &req,
+		SessionID:           sessionID,
+		SourceCtx:           sourceCtx,
+		RequestCtx:          requestCtx,
+		ResultChan:          make(chan MagiTaskResult, 1),
+		ReplyStreamObserver: replyStreamObserver,
 	}
 
 	if !dispQueue.Push(Ring0ExternalMessage, task) {
@@ -501,8 +517,8 @@ func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx 
 	select {
 	case result := <-task.ResultChan:
 		return result.ConsensusMsg, result.Err
-	case <-c.Request.Context().Done():
-		return nil, c.Request.Context().Err()
+	case <-requestCtx.Done():
+		return nil, requestCtx.Err()
 	}
 }
 
@@ -570,7 +586,7 @@ func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 		ctx = context.Background()
 	}
 
-	consensusMsg, err := magiCoordinator.CoordinateDecision(
+	consensusMsg, err := magiCoordinator.CoordinateDecisionWithOptions(
 		ctx,
 		task.SessionID,
 		magiMelchior,
@@ -579,6 +595,7 @@ func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 		userMessage,
 		task.SourceCtx,
 		claimedRecentHistory,
+		coordinator.DecisionOptions{ReplyStreamObserver: task.ReplyStreamObserver},
 	)
 
 	if err != nil {
@@ -1090,83 +1107,13 @@ func sendSyncResponse(c *gin.Context, msg *types.Message, modelName string) {
 		c.JSON(http.StatusOK, resp)
 		return
 	}
-	// Keep the OpenAI-compatible response shape while exposing renderer-only
-	// targets outside the model message. The map is never sent to an LLM.
-	payload := make(map[string]interface{})
-	raw, _ := json.Marshal(resp)
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		c.JSON(http.StatusOK, resp)
-		return
-	}
-	payload["webSearchLinks"] = links
-	c.JSON(http.StatusOK, payload)
-}
-
-// sendStreamResponse 发送流式响应
-func sendStreamResponse(c *gin.Context, msg *types.Message, modelName string) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Transfer-Encoding", "chunked")
-
-	// 分块发送内容
-	content := msg.Content
-	chunkSize := 10 // 每次发送10个字符
-	chunkID := "chatcmpl-magi-" + gulu.Rand.String(12)
-
-	for i := 0; i < len(content); i += chunkSize {
-		end := i + chunkSize
-		if end > len(content) {
-			end = len(content)
-		}
-
-		chunk := openai.ChatCompletionStreamResponse{
-			ID:      chunkID,
-			Object:  "chat.completion.chunk",
-			Created: time.Now().Unix(),
-			Model:   modelName,
-			Choices: []openai.ChatCompletionStreamChoice{
-				{
-					Index: 0,
-					Delta: openai.ChatCompletionStreamChoiceDelta{
-						Content: content[i:end],
-					},
-				},
-			},
-		}
-
-		c.Render(-1, sse.Event{Data: chunk})
-		c.Writer.Flush()
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	// 发送结束标记
-	finalChunk := openai.ChatCompletionStreamResponse{
-		ID:      chunkID,
-		Object:  "chat.completion.chunk",
-		Created: time.Now().Unix(),
-		Model:   modelName,
-		Choices: []openai.ChatCompletionStreamChoice{
-			{
-				Index:        0,
-				Delta:        openai.ChatCompletionStreamChoiceDelta{},
-				FinishReason: "stop",
-			},
-		},
-	}
-	if links := magiWebSearchLinks(msg); len(links) > 0 {
-		payload := make(map[string]interface{})
-		raw, _ := json.Marshal(finalChunk)
-		if err := json.Unmarshal(raw, &payload); err == nil {
-			payload["webSearchLinks"] = links
-			c.Render(-1, sse.Event{Data: payload})
-		} else {
-			c.Render(-1, sse.Event{Data: finalChunk})
-		}
-	} else {
-		c.Render(-1, sse.Event{Data: finalChunk})
-	}
-	c.Render(-1, sse.Event{Data: "[DONE]"})
+	c.JSON(http.StatusOK, struct {
+		openai.ChatCompletionResponse
+		WebSearchLinks map[string]string `json:"webSearchLinks"`
+	}{
+		ChatCompletionResponse: resp,
+		WebSearchLinks:         links,
+	})
 }
 
 func magiWebSearchLinks(msg *types.Message) map[string]string {

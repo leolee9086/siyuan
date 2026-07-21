@@ -95,27 +95,6 @@ export interface StreamCallbacks {
     onAbort?: () => void;
 }
 
-/**
- * 流数据处理上下文
- *
- * 用途：封装流式数据读取与处理过程中所需的读取器、解码器及回调引用
- * 使用场景：在 {@link processStreamData} 和 {@link processResponse} 内部传递，
- *   将流读取逻辑与业务回调解耦
- * 关联类型：由 {@link StreamCallbacks} 中的 onMessage / onDone 回调和内部 resetTimeout 组合而成
- */
-export interface StreamProcessContext {
-    /** 从 Response.body 获取的可读流读取器 */
-    reader: ReadableStreamDefaultReader<Uint8Array>;
-    /** UTF-8 文本解码器，用于将二进制块转为字符串 */
-    decoder: TextDecoder;
-    /** 收到消息时的回调，透传自 {@link StreamCallbacks.onMessage} */
-    onMessage: (content: string) => void;
-    /** 流结束时的回调，透传自 {@link StreamCallbacks.onDone} */
-    onDone: () => void;
-    /** 重置超时计时器，每次收到有效数据时调用 */
-    resetTimeout: () => void;
-}
-
 // ============================================================================
 // cronjob 相关类型
 // ============================================================================

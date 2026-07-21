@@ -18,13 +18,14 @@ import (
 )
 
 type scriptedDominantClient struct {
-	mu             sync.Mutex
-	syncResponses  []string
-	streamTurns    []mockTurn
-	syncIndex      int
-	streamIndex    int
-	lastTools      []openai.Tool
-	lastToolChoice any
+	mu              sync.Mutex
+	syncResponses   []string
+	streamTurns     []mockTurn
+	syncIndex       int
+	streamIndex     int
+	lastTools       []openai.Tool
+	lastToolChoice  any
+	syncToolChoices []any
 }
 
 func (m *scriptedDominantClient) SendChatRequest(
@@ -104,6 +105,10 @@ func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
 	tools []openai.Tool,
 	toolChoice any,
 ) (*types.SyncChatResult, error) {
+	m.mu.Lock()
+	m.syncToolChoices = append(m.syncToolChoices, toolChoice)
+	m.mu.Unlock()
+
 	content, err := m.SendChatRequestSync(ctx, messages, tools, toolChoice)
 	if err != nil {
 		return nil, err
@@ -125,6 +130,40 @@ func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
 		}, nil
 	}
 	return &types.SyncChatResult{Content: content}, nil
+}
+
+func TestCollectActionPlansOmitsToolChoice(t *testing.T) {
+	profile := buildDominantReplyTestProfile()
+	clients := []*scriptedDominantClient{
+		{syncResponses: []string{buildPlanProposalResponse("分析当前情境")}},
+		{syncResponses: []string{buildPlanProposalResponse("检查约束条件")}},
+		{syncResponses: []string{buildPlanProposalResponse("观察交互风险")}},
+	}
+	sagesUnderTest := []*sages.Sage{
+		createDominantReplyTestSage("melchior", "Melchior", profile, clients[0], nil),
+		createDominantReplyTestSage("balthazar", "Balthazar", profile, clients[1], nil),
+		createDominantReplyTestSage("casper", "Casper", profile, clients[2], nil),
+	}
+
+	plans, err := collectActionPlans(
+		context.Background(),
+		"tool-contract-session",
+		sagesUnderTest[0],
+		sagesUnderTest[1],
+		sagesUnderTest[2],
+		"测试情境",
+	)
+	if err != nil {
+		t.Fatalf("collectActionPlans() error = %v", err)
+	}
+	if len(plans) != 3 {
+		t.Fatalf("expected three plans, got %d", len(plans))
+	}
+	for index, client := range clients {
+		if len(client.syncToolChoices) != 1 || client.syncToolChoices[0] != nil {
+			t.Fatalf("sage %d must omit tool_choice, got %#v", index, client.syncToolChoices)
+		}
+	}
 }
 
 func (m *scriptedDominantClient) GetModel() string {
@@ -554,9 +593,9 @@ func TestCoordinateDominantDirectReply_InjectsDiaryToolIntoDominantRuntimeTools(
 	balthazarClient := &scriptedDominantClient{}
 	casperClient := &scriptedDominantClient{}
 
-	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
-	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
-	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, nil)
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, nil)
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, nil)
 
 	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
 	if err != nil {
@@ -596,8 +635,8 @@ func TestCoordinateDominantDirectReply_InjectsDiaryToolIntoDominantRuntimeTools(
 	if !hasOpenAITool(melchiorClient.lastTools, config.WriteDiaryToolName) {
 		t.Fatalf("期望主导者运行时工具集中包含 diary 工具，实际=%v", collectOpenAIToolNames(melchiorClient.lastTools))
 	}
-	if melchiorClient.lastToolChoice != "required" {
-		t.Fatalf("期望沿用 required toolChoice，实际=%v", melchiorClient.lastToolChoice)
+	if melchiorClient.lastToolChoice != nil {
+		t.Fatalf("期望主导者请求省略 tool_choice，实际=%v", melchiorClient.lastToolChoice)
 	}
 }
 
@@ -673,9 +712,9 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectedTwiceTriggersReelection(
 	}
 	casperClient := &scriptedDominantClient{}
 
-	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
-	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
-	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, nil)
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, nil)
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, nil)
 
 	initialCandidates, err := buildDominantCandidates(melchior, balthazar, casper)
 	if err != nil {
@@ -828,9 +867,9 @@ func TestCoordinateDominantDirectReply_DiaryToolRejectThenApproveKeepsDominance(
 	balthazarClient := &scriptedDominantClient{}
 	casperClient := &scriptedDominantClient{}
 
-	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, "required")
-	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, "required")
-	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, "required")
+	melchior := createDominantReplyTestSageWithToolChoice("melchior", "Melchior", profile, melchiorClient, coreToolDefs, nil)
+	balthazar := createDominantReplyTestSageWithToolChoice("balthazar", "Balthazar", profile, balthazarClient, coreToolDefs, nil)
+	casper := createDominantReplyTestSageWithToolChoice("casper", "Casper", profile, casperClient, coreToolDefs, nil)
 
 	candidates, err := buildDominantCandidates(melchior, balthazar, casper)
 	if err != nil {

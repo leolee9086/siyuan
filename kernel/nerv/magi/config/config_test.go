@@ -68,6 +68,14 @@ func TestApplyRequiredAvatarTools_EnsuresPairedSpeechTools(t *testing.T) {
 			hasMelchiorStop,
 		)
 	}
+	if cfg.Melchior.ToolChoice != nil || cfg.Balthazar.ToolChoice != nil || cfg.Casper.ToolChoice != nil {
+		t.Fatalf(
+			"标准化后的 MAGI 工具请求必须省略 tool_choice: melchior=%v balthazar=%v casper=%v",
+			cfg.Melchior.ToolChoice,
+			cfg.Balthazar.ToolChoice,
+			cfg.Casper.ToolChoice,
+		)
+	}
 
 }
 

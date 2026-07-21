@@ -154,6 +154,31 @@ func (r *AvatarRuntime) DispatchForSource(
 	collector *ResponseCollector,
 	melchior, balthazar, casper *sages.Sage,
 ) (*types.Message, error) {
+	return r.DispatchForSourceWithReplyStream(
+		ctx,
+		sessionID,
+		roundID,
+		userMessage,
+		sourceAwareInput,
+		sourceCtx,
+		collector,
+		melchior,
+		balthazar,
+		casper,
+		nil,
+	)
+}
+
+func (r *AvatarRuntime) DispatchForSourceWithReplyStream(
+	ctx context.Context,
+	sessionID, roundID string,
+	userMessage string,
+	sourceAwareInput string,
+	sourceCtx *types.RequestSourceContext,
+	collector *ResponseCollector,
+	melchior, balthazar, casper *sages.Sage,
+	replyStreamObserver ReplyStreamObserver,
+) (*types.Message, error) {
 	if collector == nil {
 		return nil, fmt.Errorf("avatar collector is nil")
 	}
@@ -179,7 +204,9 @@ func (r *AvatarRuntime) DispatchForSource(
 		logging.LogWarnf("推送Avatar开始响应失败: %v", err)
 	}
 
-	resp, err := collector.collectSingleSageResponse(ctx, sessionID, roundID, binding.Agent, sourceAwareInput, CollectResponsesOptions{})
+	resp, err := collector.collectSingleSageResponse(ctx, sessionID, roundID, binding.Agent, sourceAwareInput, CollectResponsesOptions{
+		ReplyStreamObserver: replyStreamObserver,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("avatar dispatch failed: %w", err)
 	}
@@ -582,7 +609,7 @@ func collectDominantSynthesizeAvatar(
 		task,
 		avatarSynthesizeToolName,
 		[]openai.Tool{buildRuntimeTool(config.BuildAvatarSynthesizeToolDef())},
-		"required",
+		nil,
 	)
 	if err != nil {
 		return nil, err

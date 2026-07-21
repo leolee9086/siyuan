@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -48,22 +47,6 @@ type Config struct {
 	APIVersion  string // Azure专用
 
 	OmitToolChoice bool
-}
-
-// toolChoiceIncompatibleConfigs 记录已验证为不兼容 tool_choice 参数的配置（APIBaseURL + APIModel 指纹）。
-// 首次请求失败后永久标记，后续请求直接跳过 tool_choice，避免重复报错。
-var toolChoiceIncompatibleConfigs sync.Map
-
-func configFingerprint(cfg *Config) string {
-	return cfg.APIBaseURL + "|" + cfg.APIModel
-}
-
-func isToolChoiceIncompatibleError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "tool_choice") || strings.Contains(msg, "tool choice")
 }
 
 // NewClient 创建LLM客户端
@@ -185,13 +168,6 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 	if c.config.OmitToolChoice {
 		tc = nil
 	}
-	// 检查该配置是否已被标记为 tool_choice 不兼容（之前请求失败过）
-	if tc != nil {
-		fp := configFingerprint(c.config)
-		if _, loaded := toolChoiceIncompatibleConfigs.Load(fp); loaded {
-			tc = nil
-		}
-	}
 	req := openai.ChatCompletionRequest{
 		Model:               c.config.APIModel,
 		Messages:            reqMsgs,
@@ -204,20 +180,6 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 
 	stream, err := c.client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
-		// tool_choice 不兼容错误：标记此配置，回退到 auto 重试一次
-		if tc != nil && isToolChoiceIncompatibleError(err) {
-			fp := configFingerprint(c.config)
-			toolChoiceIncompatibleConfigs.Store(fp, true)
-			c.config.OmitToolChoice = true
-
-			req.ToolChoice = nil
-			retryStream, retryErr := c.client.CreateChatCompletionStream(ctx, req)
-			if retryErr == nil {
-				return c.startChunkProcessor(ctx, retryStream), nil
-			}
-			err = retryErr
-		}
-
 		// 失败时打印完整消息序列用于诊断
 		if debugJSON, jsonErr := json.MarshalIndent(reqMsgs, "", "  "); jsonErr == nil {
 			fmt.Printf("\n[LLM Client Error] API request failed: %v\n", err)
@@ -333,13 +295,6 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 	if c.config.OmitToolChoice {
 		tc = nil
 	}
-	// 检查该配置是否已被标记为 tool_choice 不兼容
-	if tc != nil {
-		fp := configFingerprint(c.config)
-		if _, loaded := toolChoiceIncompatibleConfigs.Load(fp); loaded {
-			tc = nil
-		}
-	}
 	req := openai.ChatCompletionRequest{
 		Model:               c.config.APIModel,
 		Messages:            reqMsgs,
@@ -351,24 +306,8 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 
 	resp, err := c.client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		// tool_choice 不兼容错误：标记此配置，回退到 auto 重试一次
-		if tc != nil && isToolChoiceIncompatibleError(err) {
-			fp := configFingerprint(c.config)
-			toolChoiceIncompatibleConfigs.Store(fp, true)
-			c.config.OmitToolChoice = true
-
-			req.ToolChoice = nil
-			retryResp, retryErr := c.client.CreateChatCompletion(ctx, req)
-			if retryErr == nil {
-				resp = retryResp
-				goto processResponse
-			}
-			err = retryErr
-		}
 		return nil, fmt.Errorf("create completion failed: %w", err)
 	}
-
-processResponse:
 
 	if len(resp.Choices) == 0 {
 		return nil, fmt.Errorf("no response choices")

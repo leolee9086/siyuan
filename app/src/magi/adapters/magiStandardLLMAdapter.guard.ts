@@ -1,23 +1,33 @@
 /**
- * 用途：导入SafeSourceChannel类型用于类型守卫
- * 使用范围：isSafeSourceChannel函数的返回类型
- * 解耦评估：类型定义无法解耦
+ * 用途：导入标准 LLM 流式 chunk 契约，用于把未知 JSON 值收窄为业务类型。
+ * 使用范围：仅用于 MAGI 后端 SSE 边界校验。
+ * 解耦评估：这是编译期契约依赖，参数注入不会减少运行时耦合。
  */
-import type { SafeSourceChannel } from "./magiStandardLLMAdapter.types";
+import type { StandardLLMStreamChunk } from "./imports";
 
 /**
- * 检查值是否为安全源通道类型
- * 
- * 作用：类型守卫函数，验证值是否为有效的源通道类型
- * 意图：在运行时确保源通道类型的安全性
- * 调用时机：解析源模拟上下文时验证sourceChannel字段
- * 
- * @param value - 待检查的值
- * @returns 是否为安全源通道类型
+ * 作用：验证未知值是否符合 Agent Panel 消费所需的最小 OpenAI chunk 结构。
+ * 意图：阻止畸形或非对象 SSE JSON 通过类型断言进入消息链路。
+ * 调用时机：MAGI backend adapter 解析每个 SSE data 事件后调用。
  */
-export function isSafeSourceChannel(value: unknown): value is SafeSourceChannel {
-    return value === "guardian"
-        || value === "external-agent"
-        || value === "system-cron"
-        || value === "unknown";
+export function isStandardLLMStreamChunk(value: unknown): value is StandardLLMStreamChunk {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+    const error = Reflect.get(value, "error");
+    if (error && typeof error === "object" && typeof Reflect.get(error, "message") === "string") {
+        return true;
+    }
+    const choices = Reflect.get(value, "choices");
+    if (!Array.isArray(choices) || choices.length === 0) {
+        return false;
+    }
+    const choice = choices[0];
+    if (!choice || typeof choice !== "object") {
+        return false;
+    }
+    const delta = Reflect.get(choice, "delta");
+    const finishReason = Reflect.get(choice, "finish_reason");
+    return Boolean(delta && typeof delta === "object") &&
+        (finishReason === undefined || finishReason === null || typeof finishReason === "string");
 }

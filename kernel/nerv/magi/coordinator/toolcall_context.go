@@ -116,6 +116,14 @@ func (c *streamedToolCallCollector) GetFirstDetectedTime(toolName string) int64 
 	return time.Now().UnixMilli()
 }
 
+func (c *streamedToolCallCollector) Get(index int) (types.ToolCall, bool) {
+	call, ok := c.byIndex[index]
+	if !ok || call == nil {
+		return types.ToolCall{}, false
+	}
+	return *call, true
+}
+
 func (c *streamedToolCallCollector) BuildSorted() []types.ToolCall {
 	if len(c.byIndex) == 0 {
 		return nil

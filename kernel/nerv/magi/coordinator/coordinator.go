@@ -141,6 +141,32 @@ func (c *Coordinator) CoordinateDecision(
 	sourceCtx *types.RequestSourceContext,
 	claimedRecentHistory []types.ClaimedHistoryMessage,
 ) (*types.Message, error) {
+	return c.CoordinateDecisionWithOptions(
+		ctx,
+		sessionId,
+		melchior,
+		balthazar,
+		casper,
+		userMessage,
+		sourceCtx,
+		claimedRecentHistory,
+		DecisionOptions{},
+	)
+}
+
+type DecisionOptions struct {
+	ReplyStreamObserver ReplyStreamObserver
+}
+
+func (c *Coordinator) CoordinateDecisionWithOptions(
+	ctx context.Context,
+	sessionId string,
+	melchior, balthazar, casper *sages.Sage,
+	userMessage string,
+	sourceCtx *types.RequestSourceContext,
+	claimedRecentHistory []types.ClaimedHistoryMessage,
+	options DecisionOptions,
+) (*types.Message, error) {
 	// 生成roundId
 	roundId := util.RandString(16)
 
@@ -161,7 +187,7 @@ func (c *Coordinator) CoordinateDecision(
 
 	// 非绝对可信来源优先走 Avatar 路径：若无绑定则创建，有绑定则复用直答。
 	if sourceCtx != nil && !sourceCtx.DirectResponseAllowed {
-		msg, err := c.avatar.DispatchForSource(
+		msg, err := c.avatar.DispatchForSourceWithReplyStream(
 			ctx,
 			sessionId,
 			roundId,
@@ -172,6 +198,7 @@ func (c *Coordinator) CoordinateDecision(
 			melchior,
 			balthazar,
 			casper,
+			options.ReplyStreamObserver,
 		)
 		if err != nil {
 			if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {
@@ -196,7 +223,7 @@ func (c *Coordinator) CoordinateDecision(
 		return msg, nil
 	}
 
-	msg, _, err := c.coordinateDominantDirectReply(
+	msg, _, err := c.coordinateDominantDirectReplyWithReplyStream(
 		ctx,
 		sessionId,
 		roundId,
@@ -206,6 +233,7 @@ func (c *Coordinator) CoordinateDecision(
 		userMessage,
 		sourceAwareUserInputBySage,
 		sourceCtx,
+		options.ReplyStreamObserver,
 	)
 	if err != nil {
 		if pushErr := websocket.PushRoundFailed(websocket.RuntimeMonitorSessionID, roundId, err.Error()); pushErr != nil {

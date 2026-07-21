@@ -100,6 +100,12 @@ import type { StandardLLMStreamCallbacks } from "../types/llmAdapter.types";
  * 解耦评估：类型定义无法解耦。
  */
 import type { StandardLLMStreamChunk } from "../types/llmAdapter.types";
+/**
+ * 用途：导入共享 SSE data 流解析器。
+ * 使用范围：backend adapter 消费 MAGI OpenAI 流。
+ * 解耦评估：通用协议实现应集中复用，不在 MAGI 内复制。
+ */
+import { consumeSSEDataStream } from "../../util/network/sse/consumeSSEDataStream";
 
 // ============================================================================
 // 导出
@@ -135,3 +141,5 @@ export type { StandardLLMAdapter };
 export type { StandardLLMStreamCallbacks };
 /** 导出标准流式 chunk 类型。 */
 export type { StandardLLMStreamChunk };
+/** 导出共享 SSE data 流解析器。 */
+export { consumeSSEDataStream };

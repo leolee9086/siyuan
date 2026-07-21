@@ -1,8 +1,8 @@
 # Agent Panel 多端统一、MAGI 聊天替换与独立入口（TikTocTak）
 
 > **最终目标**：以唯一 Agent Panel 实现覆盖主应用 Dock、普通 Tab、非模态浮窗、MAGI 桌面/移动端 CHAT 和独立网页，并允许在同一面板中切换 MAGI 与普通 Agent 会话。
-> **当前目标**：完成主应用 Dock、Tab、浮窗真实交互回归，以及 MAGI/普通 Agent 双向会话验证和最终多视口视觉验收。
-> **下一步任务**：在最新主应用开发构建中验证 Dock 完整能力入口、普通 Tab 与浮窗三实例并存，然后补齐请求过期事件隔离测试。
+> **当前目标**：完成主应用 Dock、Tab、浮窗真实交互回归，以及 MAGI/普通 Agent 双向会话验证和最终多视口视觉验收；MAGI 的 `wanna_speak_continue.content` 已接入请求级 SSE 转发，Agent 错误卡已增加受副作用策略约束的重发入口。
+> **下一步任务**：在已登录 Guardian Armor 的真实 MAGI desktop/mobile 页面确认工具参数增量逐段进入统一面板、错误重发和结束内容严格一致，再验证 Dock、Tab 与浮窗三实例并存。
 > **完成条件**：全部宿主可正常打开和交互，自动化检查通过，桌面/移动端多视口截图达到专业可用标准。
 
 ---
@@ -25,6 +25,9 @@
 - Dock 已支持新会话、会话管理、模型、推理强度、发送/停止、工具卡片、确认/问答、任务目录、普通 Tab、非模态浮窗和最小化。
 - MAGI CHAT 已挂载统一 `AgentPanelHost`；旧 `MagiMainPanel`、`MagiInputBar`、`mainPanelMessages` 和聊天缓存已删除，`useMagi` 只保留监控事件源。
 - MAGI 已有 `StandardLLMAdapter`、Identity Access 和独立桌面/移动构建入口。
+- MAGI 主聊天 adapter 已发送 `stream:true` 并消费后端 SSE；后端对外正文只来自 `wanna_speak_continue.content` 的流式工具参数，不从监控 WebSocket 猜测贤者输出，也不在任务完成后伪造正文 chunk。
+- 请求级 `ReplyStreamObserver` 只注入最终主导贤者或 Avatar 的公开回复收集器；行动计划、选举、安全审查、其它贤者输出和心跳事件不会进入当前 HTTP SSE。
+- 工具参数投影器支持跨 chunk UTF-8、JSON 转义、Unicode 转义和多次 continue 调用，输出保持追加式；工具流缺失、参数畸形、内容改写或最终共识不一致均显式失败。
 - Protyle 已提供 ESM 独立入口、最小运行时 bootstrap 和浏览器契约测试，可作为入口结构参考。
 - 工作区已有 MAGI 后端改动；本任务与其协同演进，不覆盖或回退这些修改。
 
@@ -92,6 +95,10 @@ interface AgentPanelHandle {
   - [x] 移除旧主聊天消息与输入状态，保留监控和来源模拟。
   - [x] 验证 MAGI 与普通 Agent 会话双向切换。
   - [ ] 使用已登录 Guardian Armor 完成 MAGI 多轮消息与刷新恢复验收。
+  - [x] 修复裸 LLM 模拟回复链路：MAGI adapter 改为 `stream:true`，直接消费后端 SSE；chunk JSON、Content-Type、body、`[DONE]` 缺失均显式失败。
+  - [x] 修复流式生命周期竞态：统一 SSE 消费器等待每个 `onChunk` Promise，再等待 `onDone`；缺少结束标记时不进入完成态。
+  - [x] 修复后端公开回复数据源：从 `wanna_speak_continue.content` 的增量 JSON 参数直接生成请求级累计正文，API 转为 OpenAI SSE delta。
+  - [x] 删除任务完成后字符串切片的伪流函数；流式结束仅校验已推送工具正文与最终共识完全一致并发送 finish chunk，缺少工具正文时返回 `magi_stream_error`。
 
 - [x] **Phase 5：独立 ESM 与网页入口**
   - [x] 增加 `agent-app` 构建目标、模板、bootstrap 和公开挂载函数。
@@ -135,6 +142,8 @@ interface AgentPanelHandle {
 - **功能弱化**：先锁定 Dock 回归基线，再逐项迁移；App 适配器始终注入完整能力集合；Agent 核心工具栏动作常显以支持鼠标、键盘和自动化访问，缺失 capability 的动作继续由 `fn__none` 隐藏。
 - **会话串线**：所有异步结果携带目标和会话 ID，切换后仅当前请求可以写入界面。
 - **双消息源**：MAGI CHAT 接线完成后移除旧 `mainPanelMessages` 写入链路。
+- **流式语义漂移**：公开正文只接受 `wanna_speak_continue.content`；普通模型文本、监控事件和最终结果补发均不作为第二数据源，一致性失败直接进入可见错误态。
+- **重发副作用**：重发只允许最近用户轮次之后没有工具调用、确认、问答、快照或回滚事件的请求；运行中工具和待确认动作同样关闭入口。完整检查点机制建立前，不重放带副作用的工具轮次。
 - **独立入口膨胀**：入口只引入 Agent Panel、必要渲染器和运行时资源，不引入完整布局启动链。
 - **过度统一**：Native SSE 的工具/确认/问答事件与 MAGI 标准 LLM 响应保留独立执行链路；仅共享请求身份、交互锁和公共消息呈现规则，不通过参数上下文强行合并差异逻辑。
 
@@ -162,6 +171,17 @@ interface AgentPanelHandle {
 - [x] 2026-07-21：标准 LLM 适配器契约增加可选 `AbortSignal`，MAGI Agent Panel 的停止动作现在中止实际后端 `fetch`，不再只丢弃晚到回调；适配器契约测试验证信号透传。
 - [x] 2026-07-21：Native SSE 与 MAGI 标准 LLM 保留各自适合的执行链路，共享边界限定为请求身份守卫和交互锁；相关 Adapter、请求隔离、生命周期与 Dock 测试累计 8 个文件 19 项通过。
 - [x] 2026-07-21：最新主应用 desktop bundle 真实发送“Agent Panel 验收：请只回复 OK”；请求中目标、新会话和会话菜单进入锁定且停止按钮可见，约 3 秒后收到 `OK` 并恢复交互，会话标题自动生成。
+- [x] 2026-07-21：真实 `deepseek-v4-flash` 工具契约复现确认：同一 `conf.AI` 解密/规范化配置和同一工具 schema 下，具体函数 `tool_choice` 与 `required` 稳定 400；显式 `auto` 与省略字段成功返回工具调用。MAGI 生产链路现统一省略 `tool_choice`，删除错误文本兼容重试；LLM、配置、协调器定向测试通过。
+- [x] 2026-07-21：修复 MAGI 裸 LLM 回复转发：新增共享 `app/src/util/network/sse/consumeSSEDataStream.ts`（经 `magi/adapters/imports.ts` 网关复用），adapter 发送 `stream:true` 并严格消费 SSE；标准 adapter 契约测试验证任意网络分块、chunk 顺序、异步回调顺序、`Accept: text/event-stream` 和缺失 `[DONE]` 显式错误，8 项通过。
+- [x] 2026-07-21：复现并确认 MAGI 对外回复正文来自流式工具 `wanna_speak_continue.content`，旧 `SEEL_REPLY_CHUNK` 只覆盖普通文本 delta，不能代表公开回复；新增 `reply_stream.go` 将工具参数增量确定性投影为累计正文。
+- [x] 2026-07-21：请求级 `ReplyStreamObserver` 已贯通 `DispatcherTask -> Coordinator -> dominant/avatar collector -> API SSE`；监控 Pusher 保持独立职责，未增加全局订阅、请求 ID 猜测或首个贤者绑定逻辑。
+- [x] 2026-07-21：删除完成后伪造 SSE 的 `sendStreamResponse`；`magi_live_stream.go` 在无工具流、非追加内容和最终共识分歧时发送可见 `magi_stream_error`，不存在最终正文补发路径。
+- [x] 2026-07-21：`reply_stream_test.go` 覆盖中文增量、分裂 Unicode/转义、多 continue 段、内容改写和非法转义；collector mock 按多个 provider chunk 发送同一 `wanna_speak_continue` 参数并验证 observer 快照为 `中 -> 中文`；API 状态测试确认累计 delta、分歧和工具流缺失。相关 Go 定向测试通过。
+- [x] 2026-07-21：前端 Standard LLM adapter 契约测试 7 项通过，新增 SSE/adapter 源文件定向 ESLint 0 error；`git diff --check` 通过，仅报告工作区既有行尾转换提示。
+- [ ] 2026-07-21：扩大到 coordinator/api 全包测试时仍有独立基线阻塞：Avatar mock 未调用 `buildAvatar`、笔记搜索环境未初始化、心跳状态断言和向量 API 参数测试失败；未将这些失败计入本次通过证据，待对应模块分别修复。
+- [x] 2026-07-22：修复 `getTokenEncoder` 未知模型缓存并发写崩溃：初始化和 cache miss 写入统一受 `encoderMu` 写锁保护，写锁内二次检查；使用 `deepseek-v4-flash` 进行 64 路并发，普通测试 100 轮与 race 测试 20 轮通过，协调器行动计划定向测试通过。`sages` 全包曾运行约 124 秒后超时，未计入通过证据。
+- [x] 2026-07-22：统一 Agent Panel 错误卡增加重新回答入口；`agentPanel.retryPolicy` 以纯函数判断最近用户轮次，仅无工具调用、确认、问答、快照和回滚时允许重发，且点击时再次校验。成功回复同样隐藏带工具轮次的重做按钮；Dock、Tab、浮窗、MAGI 与独立页共享该策略和交互。策略测试 5 项和新增模块定向 ESLint 通过；`agent-app` 开发目标重建完成，独立页、MAGI desktop/mobile HTTP 入口均返回 200。
+- [x] 2026-07-22：浏览器契约验收 MAGI desktop `1280x720`：身份缺失错误卡显示可见刷新动作，DOM 暴露 `aria-label="重新回答"`，点击后用户消息数保持 1、错误卡重新生成且按钮仍可用；截图确认动作位于错误卡右侧且未遮挡正文。浏览器自动化会话已清理。
 - [x] 2026-07-21：结构化读取会话文件确认本轮真实交互以 `targetKind=native-agent` 落盘，用户消息、assistant `OK`、标题和更新时间完整；Dock 刷新按既有行为进入新会话，不作为最近会话恢复入口。
 - [x] 2026-07-21：MAGI desktop 最新 bundle 确认统一面板数量为 1、旧聊天组件为 0、默认目标为 `magi`；切换到 `native-agent` 后真实发送并收到 `NATIVE OK`，模型控件和请求解锁正常。
 - [x] 2026-07-21：从普通 Agent 切回 MAGI 后，身份缺失错误完整显示且交互恢复，宿主自动打开 `/stage/build/magi-identity/`；Identity Access 页面非空，`LOGIN & ACTIVATE` 入口存在。已登录 MAGI 多轮对话仍待具备有效 Guardian Armor 会话后验收。

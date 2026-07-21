@@ -12,6 +12,8 @@ import {createAgentSessionPanelController} from "./session-panel/controller";
 import type {AgentSessionPanelController} from "./session-panel/types";
 import {isActiveAgentPanelRequest} from "./runtime/agentPanel.request.guard";
 import {applyAgentPanelInteractionLock} from "./runtime/agentPanel.interactionLock";
+import {canRetryLastUserTurn} from "./runtime/agentPanel.retryPolicy";
+import {resolveAgentPanelTargetPolicy} from "./runtime/agentPanel.targetPolicy";
 import {updateHotkeyAfterTip} from "../../../protyle/util/compatibility";
 import {getLute} from "../../../protyle/render/setLute";
 import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
@@ -98,6 +100,7 @@ export class AgentChat extends Model {
     private stopBtn: HTMLElement;
     private newSessionBtn: HTMLElement;
     private guardianAuthBtn: HTMLElement;
+    private identityLabelElement: HTMLElement;
     private titleElement: HTMLElement;
     private sessionMenuBtn: HTMLElement;
     private floatingBtn: HTMLElement;
@@ -183,6 +186,9 @@ export class AgentChat extends Model {
     private enableSessionWebSocket: boolean;
     private initialSessionId: string;
     private capabilitiesFactory?: (tab: Tab) => AgentPanelCapabilities;
+    private magiIdentityId = "";
+    private magiConversationLoading = false;
+    private magiConversationLoadVersion = 0;
 
     constructor(app: App | undefined, tab: Tab, options: {
         capabilities?: AgentPanelCapabilities;
@@ -245,12 +251,21 @@ export class AgentChat extends Model {
     }
 
     private applyConversationCapabilityVisibility() {
+        const policy = this.resolveTargetPolicy();
         const nativeAgent = this.conversationKind === "native-agent";
-        this.defaultTitle = nativeAgent ? (window.siyuan.languages.agentChat || "Agent") : "MAGI";
+        this.defaultTitle = policy.title;
         this.modelSelect?.classList.toggle("fn__none", !nativeAgent);
         this.reasoningEffortBtn?.classList.toggle("fn__none", !nativeAgent);
         this.tokenDisplayEl?.classList.toggle("agent-chat__tokens--target-hidden", !nativeAgent);
         this.parent.panelElement.classList.toggle("agent-chat-host--magi", !nativeAgent);
+        this.newSessionBtn?.classList.toggle("fn__none", !policy.sessionActionsVisible);
+        this.sessionMenuBtn?.classList.toggle("fn__none", !policy.sessionActionsVisible);
+        this.identityLabelElement?.classList.toggle("fn__none", !policy.identityVisible);
+        if (this.identityLabelElement) {
+            this.identityLabelElement.textContent = policy.identityLabel;
+            this.identityLabelElement.setAttribute("title", policy.identityLabel);
+        }
+        this.guardianAuthBtn?.classList.toggle("fn__none", !policy.identityVisible || !this.capabilities.identityAccess);
         if (this.targetSelect) {
             this.targetSelect.value = this.conversationKind;
             this.targetSelect.disabled = this.isStreaming;
@@ -260,8 +275,22 @@ export class AgentChat extends Model {
 
     private handleMagiIdentitySessionChanged = () => {
         this.updateGuardianAuthButton();
-        void this.sessionPanel?.refresh();
+        if (this.conversationKind === "magi") {
+            void this.loadMagiIdentityConversation();
+        }
     };
+
+    private resolveTargetPolicy() {
+        const identity = getActiveMagiArmorSession();
+        const magiIdentityReady = identity?.routeClass === "guardian" && identity.channel === "magi-main-ui";
+        return resolveAgentPanelTargetPolicy({
+            kind: this.conversationKind,
+            nativeTitle: window.siyuan.languages.agentChat || "Agent",
+            magiIdentityDisplayName: identity?.displayName || identity?.nickname,
+            magiIdentityReady,
+            magiConversationLoading: this.magiConversationLoading,
+        });
+    }
 
     private updateGuardianAuthButton() {
         if (!this.guardianAuthBtn) {
@@ -276,6 +305,7 @@ export class AgentChat extends Model {
             authorized ? `Guardian: ${session.displayName}` : "登录 Guardian Armor",
         );
         this.guardianAuthBtn.classList.toggle("ft__primary", authorized);
+        this.applyConversationCapabilityVisibility();
     }
 
     // 比较 window.siyuan.config.ai 实际可用模型签名与缓存 modelOptions，不一致则刷新。
@@ -322,6 +352,7 @@ export class AgentChat extends Model {
             '<span data-type="guardian-auth" class="block__icon block__icon--show ariaLabel" data-position="north" aria-label="登录 Guardian Armor">' +
             '<svg><use xlink:href="#iconLock"></use></svg>' +
             "</span>" +
+            '<span data-type="magi-identity-label" class="agent-chat__identity-label fn__none"></span>' +
             '<span class="fn__space"></span>' +
             '<span data-type="new-session" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.agentNewSession || "New Session") + '">' +
             '<svg><use xlink:href="#iconAdd"></use></svg>' +
@@ -371,6 +402,7 @@ export class AgentChat extends Model {
         this.sendBtn = panel.querySelector(".agent-chat__send") as HTMLElement;
         this.stopBtn = panel.querySelector(".agent-chat__stop") as HTMLElement;
         this.guardianAuthBtn = panel.querySelector('.block__icon[data-type="guardian-auth"]') as HTMLElement;
+        this.identityLabelElement = panel.querySelector('[data-type="magi-identity-label"]') as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
         this.sessionMenuBtn = panel.querySelector('.block__icon[data-type="session-menu"]') as HTMLElement;
         this.tabBtn = panel.querySelector('.block__icon[data-type="open-as-tab"]') as HTMLElement;
@@ -1396,7 +1428,7 @@ export class AgentChat extends Model {
         });
     }
 
-    private appendPersistedAssistant(content: string, timestamp?: number, entryId?: string) {
+    private appendPersistedAssistant(content: string, timestamp?: number, entryId?: string, allowRegenerate = true) {
         if (!content || !content.trim()) {
             return;
         }
@@ -1408,7 +1440,7 @@ export class AgentChat extends Model {
         el.innerHTML = '<div class="agent-chat__body b3-typography">' + this.renderAssistantMarkdown(content) + "</div>";
         this.messagesContainer.appendChild(el);
         this.postRenderAssistant(el);
-        this.addCopyButton(el, content, timestamp);
+        this.addCopyButton(el, content, timestamp, allowRegenerate);
     }
 
     private appendPersistedToolCalls(content: string, toolCalls: Array<{
@@ -1453,7 +1485,7 @@ export class AgentChat extends Model {
             }
         }
         if (content && content.trim()) {
-            this.appendPersistedAssistant(content, timestamp, entryId);
+            this.appendPersistedAssistant(content, timestamp, entryId, false);
             hasRendered = true;
         }
         if (!hasRendered) {
@@ -1861,23 +1893,23 @@ export class AgentChat extends Model {
             messages,
             stream: true,
         }, {
-            onChunk: (chunk) => {
+            onChunk: async (chunk) => {
                 if (signal.aborted || this.sessionId !== requestSessionId || this.conversationKind !== "magi") {
                     return;
                 }
                 const token = chunk.choices?.[0]?.delta?.content;
                 if (typeof token === "string" && token) {
-                    void this.handleSSEEvent({type: "content", token});
+                    await this.handleSSEEvent({type: "content", token});
                 }
             },
-            onDone: () => {
+            onDone: async () => {
                 if (!signal.aborted && this.sessionId === requestSessionId && this.conversationKind === "magi") {
-                    void this.handleSSEEvent({type: "done"});
+                    await this.handleSSEEvent({type: "done"});
                 }
             },
-            onError: (error) => {
+            onError: async (error) => {
                 if (!signal.aborted && this.sessionId === requestSessionId && this.conversationKind === "magi") {
-                    void this.handleError(error);
+                    await this.handleError(error);
                 }
             },
         }, signal);
@@ -2652,7 +2684,7 @@ export class AgentChat extends Model {
         }
     }
 
-    private addCopyButton(el: HTMLElement, contentOverride?: string, timestamp?: number) {
+    private addCopyButton(el: HTMLElement, contentOverride?: string, timestamp?: number, allowRegenerate = true) {
         const content = contentOverride || this.fullContent || el.querySelector(".agent-chat__body")?.textContent || "";
         const L = window.siyuan.languages;
 
@@ -2681,6 +2713,10 @@ export class AgentChat extends Model {
         });
         actions.appendChild(copyBtn);
 
+        if (!allowRegenerate) {
+            el.appendChild(actions);
+            return;
+        }
         const regenBtn = document.createElement("span");
         regenBtn.className = "block__icon block__icon--show ariaLabel";
         regenBtn.setAttribute("data-position", "north");
@@ -2696,7 +2732,7 @@ export class AgentChat extends Model {
     }
 
     private async regenerateResponse() {
-        if (this.isStreaming || (this.conversationKind === "native-agent" && this.modelOptions.length === 0)) {
+        if (this.isStreaming || !this.canRetryLastUserTurn() || (this.conversationKind === "native-agent" && this.modelOptions.length === 0)) {
             return;
         }
         // Pop all entries after the last user entry
@@ -2795,7 +2831,7 @@ export class AgentChat extends Model {
             // 富渲染只在此处执行一次，避免流式期间每帧 O(n²) 重建带来的卡顿。
             bodyEl.innerHTML = this.renderAssistantMarkdown(content);
             this.postRenderAssistant(bodyEl);
-            this.addCopyButton(this.currentAIElement, undefined, ts);
+            this.addCopyButton(this.currentAIElement, undefined, ts, this.currentToolCalls.length === 0);
             this.scrollToBottom(true);
         }
     }
@@ -2829,7 +2865,7 @@ export class AgentChat extends Model {
             this.currentAIElement = el;
             this.currentContent = savedContent;
             this.fullContent = savedFullContent;
-            this.addCopyButton(el, undefined, ts);
+            this.addCopyButton(el, undefined, ts, this.currentToolCalls.length === 0);
             // 思考结束场景：定位到思考卡片下方（卡片贴顶、正文向下展开），而非直接滚到对话最底部。
             if (activeThinkCard) {
                 this.scrollToThinkingCardBelow(activeThinkCard);
@@ -2955,6 +2991,30 @@ export class AgentChat extends Model {
         });
     }
 
+    private canRetryLastUserTurn(): boolean {
+        return canRetryLastUserTurn({
+            entries: this.entries,
+            activeToolCallCount: this.currentToolCalls.length,
+            pendingConfirmationCount: this.pendingConfirms.length,
+        });
+    }
+
+    private appendErrorActions(el: HTMLElement) {
+        if (!this.canRetryLastUserTurn()) {
+            return;
+        }
+        const button = document.createElement("span");
+        button.className = "block__icon block__icon--show ariaLabel agent-chat__error-retry";
+        button.setAttribute("data-position", "north");
+        button.setAttribute("aria-label", window.siyuan.languages.agentRegenerate || "Retry");
+        button.innerHTML = '<svg><use xlink:href="#iconRefresh"></use></svg>';
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            void this.regenerateResponse();
+        });
+        el.appendChild(button);
+    }
+
     private async appendError(message: string) {
         this.finishActiveThinking();
         this.clearThinking();
@@ -2964,7 +3024,11 @@ export class AgentChat extends Model {
         this.currentAIElement = null;
         const el = document.createElement("div");
         el.className = "agent-chat__msg agent-chat__msg--error";
-        el.innerHTML = '<div class="agent-chat__body agent-chat__body--error"><svg class="agent-chat__error-icon"><use xlink:href="#iconTriangleAlert"></use></svg><span>' + escapeHtml(message) + "</span></div>";
+        const body = document.createElement("div");
+        body.className = "agent-chat__body agent-chat__body--error";
+        body.innerHTML = '<svg class="agent-chat__error-icon"><use xlink:href="#iconTriangleAlert"></use></svg><span>' + escapeHtml(message) + "</span>";
+        this.appendErrorActions(body);
+        el.appendChild(body);
         this.messagesContainer.appendChild(el);
         this.scrollToBottom(true);
         this.flushThinkingStep();
@@ -3073,7 +3137,7 @@ export class AgentChat extends Model {
             this.currentAIElement = el;
             this.currentContent = savedContent;
             this.fullContent = savedFullContent;
-            this.addCopyButton(el, undefined, ts);
+            this.addCopyButton(el, undefined, ts, this.currentToolCalls.length === 0);
             this.scrollToBottom(true);
         }
         this.flushThinkingStep();

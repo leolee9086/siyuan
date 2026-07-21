@@ -33,6 +33,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	options CollectResponsesOptions,
 ) (*types.SageResponse, error) {
 	processor := utilstream.NewProcessor()
+	replyStream := newReplyToolStreamProjector(options.ReplyStreamObserver)
 	wannaSpeakTracker := newWannaSpeakStateTracker()
 	toolResultExecutor := rc.buildToolResultExecutor(sage, options.RuntimeTools)
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
@@ -62,7 +63,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			return nil, err
 		}
 
-		turnCollector, turnContent, reasoningContent, err := rc.processSageStreamChunks(ctx, sage, sessionId, roundId, streamCh, streamMessageID, processor, indexOffset)
+		turnCollector, turnContent, reasoningContent, err := rc.processSageStreamChunks(ctx, sage, sessionId, roundId, streamCh, streamMessageID, processor, replyStream, indexOffset)
 		if err != nil {
 			return nil, err
 		}
@@ -362,6 +363,7 @@ func (rc *ResponseCollector) processSageStreamChunks(
 	streamCh <-chan types.StreamChunk,
 	streamMessageID string,
 	processor *utilstream.Processor,
+	replyStream *replyToolStreamProjector,
 	indexOffset int,
 ) (*streamedToolCallCollector, string, string, error) {
 	turnCollector := newStreamedToolCallCollector()
@@ -431,6 +433,16 @@ func (rc *ResponseCollector) processSageStreamChunks(
 			choice := chunk.Choices[0]
 			if len(choice.Delta.ToolCalls) > 0 {
 				turnCollector.Merge(choice.Delta.ToolCalls)
+				for _, delta := range choice.Delta.ToolCalls {
+					call, exists := turnCollector.Get(delta.Index)
+					if !exists {
+						continue
+					}
+					if err := replyStream.update(indexOffset+delta.Index, call.Function.Name, call.Function.Arguments); err != nil {
+						rc.pushFailed(sage, roundId, err.Error())
+						return nil, "", "", err
+					}
+				}
 				shifted := withToolCallIndexOffset(choice.Delta.ToolCalls, indexOffset)
 				utilToolCalls := convertToolCallDeltasForCollector(shifted)
 				processor.MergeToolCalls(utilToolCalls)

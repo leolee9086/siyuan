@@ -272,19 +272,8 @@ func buildHeartbeatReadingRuntimeTools() []openai.Tool {
 	return tools
 }
 
-func buildHeartbeatRuntimeToolChoiceBySage(sleepMode bool) map[string]any {
-	if sleepMode {
-		return map[string]any{
-			"melchior":  "required",
-			"balthazar": "required",
-			"casper":    "required",
-		}
-	}
-	return map[string]any{
-		"melchior":  "required",
-		"balthazar": "required",
-		"casper":    "required",
-	}
+func buildHeartbeatRuntimeToolChoiceBySage(_ bool) map[string]any {
+	return nil
 }
 
 // updateToolCallRecords 遍历贤者响应，提取有提醒策略的工具调用并更新快照。
@@ -346,6 +335,7 @@ func extractToolCallContext(rawArgs string, keys []string) map[string]string {
 //   - RemindScopeGlobal：所有贤者
 //   - RemindScopeDominant：仅主导贤者
 //   - RemindScopeAssistant：仅辅助贤者
+//
 // TODO: 当前 RemindPolicy 尚未声明 Scope，统一按主导者分发。后续在 ToolRemindPolicy 中加入 Scope 字段后，此处应区分三种钩子。
 func (c *Coordinator) buildHeartbeatReminders(sessionID string, dominantSage *sages.Sage) map[string]string {
 	result := map[string]string{"melchior": "", "balthazar": "", "casper": ""}

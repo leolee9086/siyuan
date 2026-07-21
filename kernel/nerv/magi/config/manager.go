@@ -281,10 +281,10 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 		buildDefaultCoreSageTools()...,
 	)
 
-	// 通过 continue 工具承载正文后，可强制工具调用，避免纯文本旁路。
-	cfg.Melchior.ToolChoice = "required"
-	cfg.Balthazar.ToolChoice = "required"
-	cfg.Casper.ToolChoice = "required"
+	// 工具调用由系统提示和结果校验约束。请求体省略 tool_choice，与原生 Agent 使用同一协议形态。
+	cfg.Melchior.ToolChoice = nil
+	cfg.Balthazar.ToolChoice = nil
+	cfg.Casper.ToolChoice = nil
 }
 
 func ensureExclusiveTools(existing []ToolDef, required ...ToolDef) []ToolDef {

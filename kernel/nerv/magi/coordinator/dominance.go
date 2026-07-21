@@ -342,11 +342,10 @@ func scoreDominantCandidate(
 
 	toolDef := config.BuildDominantElectionToolDef()
 	tools := []openai.Tool{buildRuntimeTool(toolDef)}
-	toolChoice := buildRequiredFunctionToolChoice(config.DominantElectionToolName)
 
 	// 首次调用
 	displayName := voter.GetDisplayName()
-	result, err := voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+	result, err := voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, nil)
 	if err != nil {
 		return nil, fmt.Errorf("[%s] dominant election request failed: %w", displayName, err)
 	}
@@ -362,7 +361,7 @@ func scoreDominantCandidate(
 
 	var lastErr error
 	for retry := 0; retry < maxDominantElectionRetries; retry++ {
-		result, err = voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, currentMessages, tools, toolChoice)
+		result, err = voter.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, currentMessages, tools, nil)
 		if err != nil {
 			lastErr = fmt.Errorf("[%s] dominant election retry %d failed: %w", displayName, retry+1, err)
 			logging.LogWarnf("%v", lastErr)
@@ -624,9 +623,8 @@ func collectActionPlans(
 
 		toolDef := config.BuildProposeActionPlanToolDef()
 		tools := []openai.Tool{buildRuntimeTool(toolDef)}
-		toolChoice := buildRequiredFunctionToolChoice(config.ProposeActionPlanToolName)
 
-		result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+		result, err := sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, nil)
 		if err != nil {
 			ch <- planResult{nil, fmt.Errorf("[%s] plan proposal failed: %w", sage.GetName(), err)}
 			return

@@ -5,23 +5,11 @@
  */
 import type { ChatRequestParams } from "./imports";
 /**
- * 用途：导入ChatResponseData类型用于函数返回值
- * 使用范围：createMagiChatCompletion等函数的返回类型
- * 解耦评估：类型定义无法解耦
- */
-import type { ChatResponseData } from "./imports";
-/**
  * 用途：导入ConnectionStatus类型用于适配器参数
  * 使用范围：createMagiStandardLLMAdapter函数的参数类型
  * 解耦评估：类型定义无法解耦
  */
 import type { ConnectionStatus } from "./imports";
-/**
- * 用途：导入StandardLLMAdapter类型用于适配器返回值
- * 使用范围：createMagiStandardLLMAdapter函数的返回类型
- * 解耦评估：类型定义无法解耦
- */
-import type { StandardLLMAdapter } from "./imports";
 /**
  * 用途：导入StandardLLMStreamCallbacks类型用于流式回调
  * 使用范围：streamMagiChatCompletion函数的参数类型
@@ -47,29 +35,23 @@ import { extractLatestUserInput } from "./magiStandardLLMAdapter.helpers";
  */
 import { buildOpenAICompatibleResponse } from "./magiStandardLLMAdapter.helpers";
 /**
- * 用途：导入buildFullContentChunk函数用于构建流式内容块
- * 使用范围：streamMagiChatCompletion函数中调用
- * 解耦评估：辅助函数可通过模块化解耦
- */
-import { buildFullContentChunk } from "./magiStandardLLMAdapter.helpers";
-/**
- * 用途：导入buildFinishChunk函数用于构建流式结束块
- * 使用范围：streamMagiChatCompletion函数中调用
- * 解耦评估：辅助函数可通过模块化解耦
- */
-import { buildFinishChunk } from "./magiStandardLLMAdapter.helpers";
-/**
- * 用途：导入buildRuntimeMainInterfaceIdentity函数用于构建运行时身份
- * 使用范围：createMagiStandardLLMAdapter函数中调用
+ * 用途：导入 MAGI 主界面运行时身份构建函数。
+ * 使用范围：createMagiStandardLLMAdapter 初始化阶段。
  * 解耦评估：后端逻辑可通过模块化解耦
  */
 import { buildRuntimeMainInterfaceIdentity } from "./magiStandardLLMAdapter.backend";
 /**
- * 用途：导入tryForwardMagiRequestToBackend函数用于转发请求
- * 使用范围：createMagiChatCompletion函数中调用
- * 解耦评估：后端逻辑可通过模块化解耦
+ * 用途：导入 MAGI 同步请求函数。
+ * 使用范围：createMagiChatCompletion。
+ * 解耦评估：adapter 主实现依赖该后端 Port，继续拆分不会降低业务耦合。
  */
 import { tryForwardMagiRequestToBackend } from "./magiStandardLLMAdapter.backend";
+/**
+ * 用途：导入 MAGI SSE 请求函数。
+ * 使用范围：streamMagiChatCompletion。
+ * 解耦评估：adapter 主实现依赖该后端 Port，继续拆分不会降低业务耦合。
+ */
+import { tryStreamMagiRequestToBackend } from "./magiStandardLLMAdapter.backend";
 /**
  * 用途：导入dispatchCustomEvent函数用于触发全局事件
  * 使用范围：createMagiChatCompletion函数中触发身份认证事件
@@ -108,25 +90,31 @@ export async function createMagiStandardLLMAdapter(params: {
          * 作用：处理聊天请求并返回完整响应
          * 意图：提供标准LLM适配器的同步接口
          * 调用时机：上层需要获取完整响应时调用
-         */
+        */
         createChatCompletion: async (request, signal) =>
-            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, params.connectionStatus, signal),
+            createMagiChatCompletion({
+                request,
+                model,
+                runtimeMainInterfaceIdentity,
+                connectionStatus: params.connectionStatus,
+                signal,
+            }),
         /**
          * 流式聊天完成
          *
          * 作用：处理聊天请求并通过回调逐步返回响应
          * 意图：提供标准LLM适配器的流式接口
          * 调用时机：上层需要流式接收响应时调用
-         */
+        */
         streamChatCompletion: async (request, callbacks, signal) =>
-            streamMagiChatCompletion(
+            streamMagiChatCompletion({
                 request,
                 callbacks,
                 model,
                 runtimeMainInterfaceIdentity,
-                params.connectionStatus,
+                connectionStatus: params.connectionStatus,
                 signal,
-            ),
+            }),
     };
 }
 
@@ -155,9 +143,9 @@ function readBackendHttpStatus(reason: string) {
  */
 function syncBackendConnectionStatus(
     connectionStatus: { value: ConnectionStatus },
-    backendResult: { response: ChatResponseData | null; reason: string },
+    backendResult: { success: boolean; reason: string },
 ) {
-    if (backendResult.response) {
+    if (backendResult.success) {
         connectionStatus.value = "connected";
         return;
     }
@@ -174,6 +162,20 @@ function syncBackendConnectionStatus(
 }
 
 /**
+ * 作用：把流式后端失败原因转换为面板可见错误，并在身份缺失时触发登录入口。
+ * 意图：同步与流式请求都必须显式失败，不以空回复结束。
+ * 调用时机：MAGI SSE 消费未完整成功时调用。
+ */
+function throwMagiStreamFailure(reason: string) {
+    // 身份缺失需要同时打开登录入口，并把该状态作为可见错误返回给当前消息。
+    if (reason === "magi-armor-token-missing") {
+        dispatchCustomEvent(MAGI_IDENTITY_REQUIRED_EVENT, { reason: "main-chat-missing-armor-session" });
+        throw new Error("MAGI identity session missing. Please login in Identity Access Control panel.");
+    }
+    throw new Error(`MAGI backend stream failed: ${reason}`);
+}
+
+/**
  * 创建MAGI聊天完成
  *
  * 作用：处理MAGI聊天请求并返回响应
@@ -185,24 +187,27 @@ function syncBackendConnectionStatus(
  * @param runtimeMainInterfaceIdentity - 运行时主接口身份
  * @returns 聊天响应数据
  */
-async function createMagiChatCompletion(
-    request: ChatRequestParams,
-    model: string,
-    runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
-    connectionStatus: { value: ConnectionStatus },
-    signal?: AbortSignal,
-) {
-    const userInput = extractLatestUserInput(request.messages);
+async function createMagiChatCompletion(params: {
+    request: ChatRequestParams;
+    model: string;
+    runtimeMainInterfaceIdentity: MagiInterfaceIdentity;
+    connectionStatus: { value: ConnectionStatus };
+    signal?: AbortSignal;
+}) {
+    const userInput = extractLatestUserInput(params.request.messages);
     if (!userInput) {
-        return buildOpenAICompatibleResponse("", request.model ?? model, "stop");
+        return buildOpenAICompatibleResponse("", params.request.model ?? params.model, "stop");
     }
-    const backendResult = await tryForwardMagiRequestToBackend(
-        request,
-        request.model ?? model,
-        runtimeMainInterfaceIdentity,
-        signal,
-    );
-    syncBackendConnectionStatus(connectionStatus, backendResult);
+    const backendResult = await tryForwardMagiRequestToBackend({
+        request: params.request,
+        fallbackModel: params.request.model ?? params.model,
+        mainIdentity: params.runtimeMainInterfaceIdentity,
+        signal: params.signal,
+    });
+    syncBackendConnectionStatus(params.connectionStatus, {
+        success: backendResult.response !== null,
+        reason: backendResult.reason,
+    });
     // 后端成功返回响应，直接返回
     if (backendResult.response) {
         return backendResult.response;
@@ -228,31 +233,32 @@ async function createMagiChatCompletion(
  * @param model - 模型名称
  * @param runtimeMainInterfaceIdentity - 运行时主接口身份
  */
-async function streamMagiChatCompletion(
-    request: ChatRequestParams,
-    callbacks: StandardLLMStreamCallbacks,
-    model: string,
-    runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
-    connectionStatus: { value: ConnectionStatus },
-    signal?: AbortSignal,
-) {
-    callbacks.onStart?.();
+async function streamMagiChatCompletion(params: {
+    request: ChatRequestParams;
+    callbacks: StandardLLMStreamCallbacks;
+    model: string;
+    runtimeMainInterfaceIdentity: MagiInterfaceIdentity;
+    connectionStatus: { value: ConnectionStatus };
+    signal?: AbortSignal;
+}) {
+    await params.callbacks.onStart?.();
     try {
-        const response = await createMagiChatCompletion(
-            request,
-            model,
-            runtimeMainInterfaceIdentity,
-            connectionStatus,
-            signal,
-        );
-        const firstChoice = response.choices?.[0];
-        const content = firstChoice?.message?.content ?? "";
-        callbacks.onChunk?.(buildFullContentChunk(content, response.model ?? model));
-        callbacks.onChunk?.(buildFinishChunk(response.model ?? model));
-        callbacks.onDone?.();
+        const backendResult = await tryStreamMagiRequestToBackend({
+            request: params.request,
+            fallbackModel: params.request.model ?? params.model,
+            mainIdentity: params.runtimeMainInterfaceIdentity,
+            /** 顺序等待 Agent Panel 消费当前 chunk 后再读取下一条 SSE data。 */
+            onChunk: async (chunk) => params.callbacks.onChunk?.(chunk),
+            signal: params.signal,
+        });
+        syncBackendConnectionStatus(params.connectionStatus, backendResult);
+        if (!backendResult.success) {
+            throwMagiStreamFailure(backendResult.reason);
+        }
+        await params.callbacks.onDone?.();
     } catch (error) {
         const normalizedError = error instanceof Error ? error : new Error(String(error));
-        callbacks.onError?.(normalizedError);
+        await params.callbacks.onError?.(normalizedError);
     }
 }
 

@@ -246,19 +246,17 @@ func getRealVote(
 
 	for turn := 0; turn <= maxVoteInvestigationTurns; turn++ {
 		var tools []openai.Tool
-		var toolChoice any
 		if turn < maxVoteInvestigationTurns {
 			tools = append([]openai.Tool(nil), voteTool...)
 			tools = append(tools, investigationTools...)
 		} else {
 			tools = voteTool
-			toolChoice = buildRequiredFunctionToolChoice(config.VoteToolName)
 		}
 
 		var result *types.SyncChatResult
 		var llmErr error
 		for attempt := 0; attempt <= votingCfg.MaxRetries; attempt++ {
-			result, llmErr = sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, toolChoice)
+			result, llmErr = sage.GetLLMClient().SendChatRequestSyncDetailed(timeoutCtx, messages, tools, nil)
 			if llmErr == nil {
 				break
 			}

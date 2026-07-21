@@ -27,6 +27,29 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	sourceAwareUserInputBySage map[string]string,
 	sourceCtx *types.RequestSourceContext,
 ) (*types.Message, *DominantElectionResult, error) {
+	return c.coordinateDominantDirectReplyWithReplyStream(
+		ctx,
+		sessionID,
+		roundID,
+		melchior,
+		balthazar,
+		casper,
+		userMessage,
+		sourceAwareUserInputBySage,
+		sourceCtx,
+		nil,
+	)
+}
+
+func (c *Coordinator) coordinateDominantDirectReplyWithReplyStream(
+	ctx context.Context,
+	sessionID, roundID string,
+	melchior, balthazar, casper *sages.Sage,
+	userMessage string,
+	sourceAwareUserInputBySage map[string]string,
+	sourceCtx *types.RequestSourceContext,
+	replyStreamObserver ReplyStreamObserver,
+) (*types.Message, *DominantElectionResult, error) {
 	excludedDominants := map[string]struct{}{}
 
 	defaultSituation := resolveSourceAwareInputForSage(sourceAwareUserInputBySage, "melchior", userMessage)
@@ -59,7 +82,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 			return nil, nil, err
 		}
 
-		msg, _, collectErr := c.executeDominantReply(ctx, sessionID, roundID, dominantSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper)
+		msg, _, collectErr := c.executeDominantReply(ctx, sessionID, roundID, dominantSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper, replyStreamObserver)
 		if collectErr != nil {
 			var revokedErr *dominantActionRevokedError
 			if errors.As(collectErr, &revokedErr) {
@@ -139,7 +162,7 @@ func (c *Coordinator) coordinateDominantDirectReply(
 	// 注入安全质疑
 	injectPeerDoubts(fallbackSage, sessionID, election)
 
-	msg, _, err := c.executeDominantReply(ctx, sessionID, roundID, fallbackSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper)
+	msg, _, err := c.executeDominantReply(ctx, sessionID, roundID, fallbackSage, election, userMessage, sourceAwareUserInputBySage, sourceCtx, melchior, balthazar, casper, replyStreamObserver)
 	if err != nil {
 		dominantActionToolGovernance.UnregisterRound(sessionID, roundID)
 		return nil, nil, fmt.Errorf("随机主导者直答失败: %w", err)
@@ -159,6 +182,7 @@ func (c *Coordinator) executeDominantReply(
 	sourceAwareUserInputBySage map[string]string,
 	sourceCtx *types.RequestSourceContext,
 	melchior, balthazar, casper *sages.Sage,
+	replyStreamObserver ReplyStreamObserver,
 ) (*types.Message, *DominantElectionResult, error) {
 	beforeContext := dominantSage.GetContextForSession(sessionID)
 	streamMessage := buildSeelStreamMessageWithMeta(roundID, dominantSage, buildDominantRuntimeMeta(roundID, election))
@@ -191,6 +215,7 @@ func (c *Coordinator) executeDominantReply(
 			RuntimeTools:               buildDominantDirectReplyRuntimeTools(dominantSage),
 			RuntimeToolChoice:          dominantSage.GetToolChoice(),
 			IsExternalMessageTriggered: true,
+			ReplyStreamObserver:        replyStreamObserver,
 		},
 	)
 

@@ -6,6 +6,16 @@
 import type { ChatResponseData } from "./imports";
 
 /**
+ * 用途：表示 MAGI 流式后端请求是否完整通过协议校验。
+ * 使用场景：backend adapter 向主 adapter 返回成功状态或明确失败原因。
+ * 关联类型：与 BackendForwardResult 分别承载流式和同步请求结果。
+ */
+export interface BackendStreamResult {
+    reason: string;
+    success: boolean;
+}
+
+/**
  * 后端转发结果接口
  * 
  * 作用：封装后端请求的响应结果和失败原因

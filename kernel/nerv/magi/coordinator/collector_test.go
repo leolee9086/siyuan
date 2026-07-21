@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -43,6 +44,7 @@ func toolCallDelta(index int, name, args string) types.ToolCallDelta {
 type mockTurn struct {
 	content   string
 	toolCalls []types.ToolCallDelta
+	chunks    []types.StreamChunk
 	object    string
 }
 
@@ -108,6 +110,12 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 					},
 				}
 			}
+			if len(turn.chunks) > 0 {
+				for _, chunk := range turn.chunks {
+					ch <- chunk
+				}
+				return
+			}
 			if len(turn.toolCalls) > 0 {
 				ch <- types.StreamChunk{
 					Choices: []types.ChunkChoice{
@@ -158,6 +166,22 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 	}()
 
 	return ch, nil
+}
+
+func streamToolCallChunk(index int, name, arguments string) types.StreamChunk {
+	return types.StreamChunk{
+		Choices: []types.ChunkChoice{{
+			Delta: types.ChunkDelta{
+				ToolCalls: []types.ToolCallDelta{{
+					Index: index,
+					Function: &types.ToolCallFunctionDelta{
+						Name:      name,
+						Arguments: arguments,
+					},
+				}},
+			},
+		}},
+	}
 }
 
 func (m *mockLLMClient) nextTurn() (mockTurn, bool) {
@@ -347,7 +371,13 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 	melchior := sages.NewSage("melchior", cfg, client, strategy)
 
 	ctx := context.Background()
-	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息", CollectResponsesOptions{})
+	var replySnapshots []string
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息", CollectResponsesOptions{
+		ReplyStreamObserver: func(content string) error {
+			replySnapshots = append(replySnapshots, content)
+			return nil
+		},
+	})
 
 	if err != nil {
 		t.Fatalf("期望成功，但得到错误: %v", err)
@@ -367,6 +397,48 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 
 	if response.Content != "整理后的内部结论" {
 		t.Fatalf("期望Content为整理后的内部结论，得到 '%s'", response.Content)
+	}
+	if len(replySnapshots) != 1 || replySnapshots[0] != response.Content {
+		t.Fatalf("wanna_speak_continue 未进入对外流: snapshots=%#v response=%q", replySnapshots, response.Content)
+	}
+}
+
+func TestCollectSingleSageResponseStreamsIncrementalWannaSpeakArguments(t *testing.T) {
+	collector := NewResponseCollector(5 * time.Second)
+	cfg := &config.AgentConfig{SEELConfig: config.SEELConfig{Name: "Melchior"}}
+	strategy := &config.ContextStrategy{Type: "message_count", Count: 7}
+	client := &mockLLMClient{scriptedTurns: []mockTurn{{
+		chunks: []types.StreamChunk{
+			streamToolCallChunk(0, config.WannaSpeakStartToolName, `{}`),
+			streamToolCallChunk(1, config.WannaSpeakContinueToolName, `{"content":"中`),
+			streamToolCallChunk(1, "", `文`),
+			streamToolCallChunk(1, "", `"}`),
+			streamToolCallChunk(2, config.WannaSpeakStopToolName, `{}`),
+		},
+	}}}
+	sage := sages.NewSage("melchior", cfg, client, strategy)
+
+	var snapshots []string
+	response, err := collector.collectSingleSageResponse(
+		context.Background(),
+		"test-session",
+		"test-round",
+		sage,
+		"测试消息",
+		CollectResponsesOptions{ReplyStreamObserver: func(content string) error {
+			snapshots = append(snapshots, content)
+			return nil
+		}},
+	)
+	if err != nil {
+		t.Fatalf("collect streamed response failed: %v", err)
+	}
+	if response.Content != "中文" {
+		t.Fatalf("unexpected final response: %q", response.Content)
+	}
+	want := []string{"中", "中文"}
+	if !reflect.DeepEqual(snapshots, want) {
+		t.Fatalf("unexpected observer snapshots: got %#v, want %#v", snapshots, want)
 	}
 }
 
