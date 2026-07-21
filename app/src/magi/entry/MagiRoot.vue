@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide } from "vue";
+import { computed, onBeforeUnmount, provide } from "vue";
 import { getMagiI18nText } from "../utils/magiI18n";
 import MagiWorkspace from "./MagiWorkspace.vue";
 import PersonaSeedPanel from "./persona-seed-panel/PersonaSeedPanel.vue";
@@ -170,6 +170,7 @@ import "./MagiRoot.css";
 
 const ctx = useMagiRootContext();
 provide(MAGI_ROOT_CTX_KEY, ctx);
+onBeforeUnmount(ctx.destroy);
 
 const {
     ready,
@@ -178,7 +179,7 @@ const {
     showSeels,
     showQuestionnairePanel,
     showWindowControls,
-    mainPanelSeels,
+    seelConnectionViews,
     runtimeStatus,
     workspaceAIMainNotebookState,
     workspaceAIMainNotebookStatus,
@@ -203,11 +204,11 @@ const personaEntryText = getMagiI18nText("personaEntry");
 const syncRateText = getMagiI18nText("syncRate");
 
 const syncRate = computed<number>(() => {
-    if (mainPanelSeels.value.length === 0) {
+    if (seelConnectionViews.value.length === 0) {
         return 0;
     }
-    const connectedCount = mainPanelSeels.value.filter((seel) => seel.connectionStatus === "connected").length;
-    return Math.round((connectedCount / mainPanelSeels.value.length) * 100);
+    const connectedCount = seelConnectionViews.value.filter((seel) => seel.connectionStatus === "connected").length;
+    return Math.round((connectedCount / seelConnectionViews.value.length) * 100);
 });
 
 const runtimeIndicatorText = computed<string>(() => {

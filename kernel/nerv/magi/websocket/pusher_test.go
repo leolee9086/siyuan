@@ -17,6 +17,8 @@
 package websocket
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -24,6 +26,42 @@ func TestNewPusher(t *testing.T) {
 	pusher := NewPusher()
 	if pusher == nil {
 		t.Fatal("NewPusher() returned nil")
+	}
+}
+
+func TestPusherWritesFullPayloadToDetailLog(t *testing.T) {
+	var detail string
+	pusher := &Pusher{detailLogf: func(format string, v ...interface{}) {
+		detail = fmt.Sprintf(format, v...)
+	}}
+
+	err := pusher.Push("session-detail", EventRoundStarted, map[string]interface{}{
+		"content": "full prompt content",
+	})
+	if err != nil {
+		t.Fatalf("Push failed: %v", err)
+	}
+	if !strings.Contains(detail, "full prompt content") {
+		t.Fatalf("detail log did not receive full payload: %s", detail)
+	}
+}
+
+func TestShouldLogEventSummary(t *testing.T) {
+	quietEvents := []string{
+		EventSeelReplyChunk,
+		EventRuntimeStatusUpdated,
+		EventLLMRequestSent,
+		EventToolCallDetected,
+		EventContextHistoryTrimmed,
+	}
+	for _, eventType := range quietEvents {
+		if shouldLogEventSummary(eventType) {
+			t.Fatalf("high-frequency event %s must not create CLI summaries", eventType)
+		}
+	}
+	if !shouldLogEventSummary(EventRoundStarted) || !shouldLogEventSummary(EventRoundFailed) ||
+		!shouldLogEventSummary(EventConsensusEmitted) {
+		t.Fatal("round lifecycle events must remain visible as CLI summaries")
 	}
 }
 

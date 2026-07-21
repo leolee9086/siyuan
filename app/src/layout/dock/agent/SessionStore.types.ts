@@ -17,6 +17,7 @@ export interface TaskDirectoryBinding {
 export interface SessionIndexItem {
     id: string;
     title: string;
+    targetKind?: "native-agent" | "magi";
     createdAt: number;
     updatedAt: number;
     taskDirectory?: TaskDirectoryBinding;
@@ -43,6 +44,7 @@ export interface TaskDirectoryMenuAction {
 export interface AgentSession {
     id: string;
     title: string;
+    targetKind?: "native-agent" | "magi";
     titled?: boolean;
     model?: string;
     taskDirectory?: TaskDirectoryBinding;

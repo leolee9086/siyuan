@@ -17,31 +17,6 @@ function getErrorMessage(error: unknown) {
 }
 
 /**
- * 作用：处理主输入框提交动作。
- * 意图：把“工作空间守卫 + 发送消息 + 清空输入框”收敛到单一入口。
- * 调用时机：主面板触发 `submit-input` 事件时调用。
- */
-async function handleSubmitInput(
-    state: ReturnType<typeof createMagiRootState>,
-    value: string,
-) {
-    if (!state.magiState.value) {
-        return;
-    }
-
-    if (!await ensureWorkspaceAIMainNotebookReady(state)) {
-        return;
-    }
-
-    try {
-        await state.magiState.value.sendUserMessage(value);
-        state.inputValue.value = "";
-    } catch {
-        // sendUserMessage 已在消息流中写回失败状态，这里保留输入内容方便用户修正后重试。
-    }
-}
-
-/**
  * 作用：打开人格问卷入口面板。
  * 意图：把问卷入口状态切换从入口层抽离出来，保持事件语义清晰。
  * 调用时机：标题栏点击 Persona 按钮时调用。
@@ -104,10 +79,6 @@ async function handleExportSessionRecord(state: ReturnType<typeof createMagiRoot
  * 意图：让入口层只负责装配，而不直接关心动作实现细节。
  * 调用时机：`createMagiRootHandlers` 组装最终 handler 时调用。
  */
-function createSubmitInputHandler(state: ReturnType<typeof createMagiRootState>) {
-    return async (value: string) => handleSubmitInput(state, value);
-}
-
 /**
  * 作用：创建“打开问卷入口面板” handler。
  * 意图：把问卷入口动作与 rootctx 状态闭包绑定，同时避免入口层直接书写匿名箭头函数。
@@ -156,7 +127,6 @@ export function createMagiRootActionHandlers(
     state: ReturnType<typeof createMagiRootState>,
 ) {
     return {
-        onSubmitInput: createSubmitInputHandler(state),
         onShowQuestionnaire: createShowQuestionnaireHandler(state),
         onCloseQuestionnaire: createCloseQuestionnaireHandler(state),
         onReconnect: createReconnectHandler(state),

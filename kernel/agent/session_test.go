@@ -35,9 +35,21 @@ func TestListSessionsReturnsTaskDirectoryStoreError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := ListSessions(1, 30, "", "")
+	result, err := ListSessions(1, 30, "", "", "native-agent")
 	if err == nil || result != nil {
 		t.Fatalf("malformed capability store must fail ListSessions: result=%+v err=%v", result, err)
+	}
+}
+
+func TestNormalizeSessionTargetKind(t *testing.T) {
+	if got := normalizeSessionTargetKind(""); got != "native-agent" {
+		t.Fatalf("legacy session target = %q, want native-agent", got)
+	}
+	if got := normalizeSessionTargetKind("magi"); got != "magi" {
+		t.Fatalf("magi session target = %q, want magi", got)
+	}
+	if got := normalizeSessionTargetKind("unknown"); got != "native-agent" {
+		t.Fatalf("unknown session target = %q, want native-agent", got)
 	}
 }
 
@@ -127,7 +139,7 @@ func TestTaskDirectoryBindingIsWorkspaceOwnedAndSupportsMultiplePermissions(t *t
 	if loaded.Main == nil || len(loaded.Directories) != 3 {
 		t.Fatalf("loaded binding lost grants: %+v", loaded)
 	}
-	if _, err := ListSessions(1, 30, "", "owner-a"); err != nil {
+	if _, err := ListSessions(1, 30, "", "owner-a", "native-agent"); err != nil {
 		t.Fatal(err)
 	}
 	indexData, err := os.ReadFile(sessionsIndexPath())

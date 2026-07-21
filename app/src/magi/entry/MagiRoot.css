@@ -808,73 +808,9 @@ body,
 }
 
 .magi-main-pane--source .source-sim-container,
-.magi-main-pane--chat .main-output {
+.magi-main-pane--chat .main-output,
+.magi-main-pane--chat .magi-agent-panel-host {
   flex: 1;
   min-height: 0;
 }
 
-@media (max-width: 980px) {
-  .magi-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .magi-seel-cluster,
-  .magi-seel-cluster.sages-only,
-  .magi-seel-cluster.monitor-only {
-    position: relative;
-    display: grid;
-    gap: 10px;
-    grid-template-columns: 1fr;
-    grid-auto-rows: minmax(240px, auto);
-    overflow: auto;
-    align-content: start;
-  }
-
-  .magi-seel-cluster-connectors {
-    display: none;
-  }
-
-  .magi-seel-slot,
-  .magi-monitor {
-    position: relative;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    width: auto;
-    height: auto;
-    transform: none;
-  }
-
-  .magi-seel-slot .seel-panel,
-  .magi-monitor .seel-panel,
-  .magi-seel-slot .magi-monitor-panel,
-  .magi-monitor .magi-monitor-panel {
-    height: clamp(240px, 35vh, 360px);
-  }
-
-  .magi-main-modebar {
-    padding: 4px;
-    gap: 6px;
-  }
-
-  .magi-main-mode-button {
-    flex: 1 1 calc(33.333% - 6px);
-    min-width: 0;
-    font-size: 10px;
-    letter-spacing: 0.04em;
-    padding: 0 6px;
-  }
-
-  .magi-main-pane--identity {
-    padding: 6px;
-  }
-
-  .magi-guard {
-    padding: 16px;
-  }
-
-  .magi-guard-panel {
-    padding: 20px;
-  }
-}

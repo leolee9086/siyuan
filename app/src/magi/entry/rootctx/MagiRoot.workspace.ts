@@ -109,6 +109,9 @@ function setWorkspaceAIMainNotebookState(
  * 调用时机：工作空间守卫 ready 且尚未完成运行时初始化时调用。
  */
 export async function bootstrapMagiState(state: ReturnType<typeof createMagiRootState>) {
+    if (state.destroyed.value) {
+        return;
+    }
     // 如果运行时已经初始化完成，则无需再次触发 useMagi，只同步 ready/error 即可。
     if (state.magiState.value) {
         state.ready.value = true;
@@ -118,7 +121,13 @@ export async function bootstrapMagiState(state: ReturnType<typeof createMagiRoot
 
     state.bootError.value = null;
     try {
-        state.magiState.value = await useMagi();
+        const runtime = await useMagi();
+        // Vue 宿主可能在异步初始化期间卸载，此时立即释放刚创建的运行时，避免 websocket 残留。
+        if (state.destroyed.value) {
+            runtime.destroy();
+            return;
+        }
+        state.magiState.value = runtime;
         state.ready.value = true;
     } catch (error) {
         state.ready.value = false;

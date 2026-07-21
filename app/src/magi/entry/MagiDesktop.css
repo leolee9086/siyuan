@@ -1,0 +1,41 @@
+.magi-titlebar {
+  min-height: 44px;
+  gap: 8px;
+  padding: 5px 8px;
+}
+
+.magi-titlebar-content {
+  gap: 6px;
+  overflow-x: hidden;
+}
+
+.magi-status-strip {
+  gap: 8px;
+}
+
+.magi-runtime-controls,
+.magi-titlebar-controls {
+  gap: 4px;
+}
+
+.magi-runtime-button,
+.magi-runtime-toggle {
+  height: 26px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.magi-security-level-label,
+.magi-sync-rate {
+  font-size: 11px;
+}
+
+.magi-titlebar-actions {
+  gap: 6px;
+}
+
+.magi-control-button {
+  height: 28px;
+  padding: 0 7px;
+  font-size: 11px;
+}

@@ -19,6 +19,7 @@ import (
 
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -172,7 +173,8 @@ func (e *forgeDevRepoToolResultExecutor) ExecuteToolCall(toolCall types.ToolCall
 	if err != nil {
 		auditFields["error"] = err.Error()
 	}
-	logging.LogInfof("forge_dev_repo audit: %s", marshalAuditLog(auditFields))
+	logging.LogInfof("forge_dev_repo: tool=%s success=%v elapsed=%s", toolName, err == nil, elapsed)
+	observability.Detailf("forge_dev_repo audit: %s", marshalAuditLog(auditFields))
 
 	return result, handled, err
 }

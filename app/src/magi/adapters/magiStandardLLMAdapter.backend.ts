@@ -204,6 +204,7 @@ export async function tryForwardMagiRequestToBackend(
     request: ChatRequestParams,
     fallbackModel: string,
     mainIdentity: MagiInterfaceIdentity,
+    signal?: AbortSignal,
 ): Promise<BackendForwardResult> {
     const armorToken = getActiveMagiArmorToken();
     if (!armorToken) {
@@ -232,6 +233,7 @@ export async function tryForwardMagiRequestToBackend(
             credentials: "include",
             headers: buildMagiBackendHeaders(armorToken),
             body: JSON.stringify(requestBody),
+            signal,
         });
         if (!response.ok) {
             return { response: null, reason: `backend-http-${response.status}` };

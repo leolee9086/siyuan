@@ -11,6 +11,7 @@ export interface AgentSessionPanelOptions {
     host: HTMLElement;
     getCurrentSessionId: () => string;
     getDefaultTitle: () => string;
+    getTargetKind: () => "native-agent" | "magi";
     callbacks: AgentSessionPanelCallbacks;
 }
 

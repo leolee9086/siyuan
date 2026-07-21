@@ -5,6 +5,7 @@ import {
     resolveMagiDesktopTargetFromPathname,
 } from "../utils/environment/magiEntry.environment";
 import "../../assets/scss/base.scss";
+import "./MagiDesktop.css";
 
 const rootElement = document.getElementById("magi-root");
 

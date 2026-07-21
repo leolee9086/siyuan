@@ -55,11 +55,17 @@ export const SessionStore = {
     },
 
     /** 按页读取会话，并根据 owner token 过滤受保护的外部目录会话。 */
-    async list(opts?: {page?: number, pageSize?: number, keyword?: string}) {
+    async list(opts?: {
+        page?: number,
+        pageSize?: number,
+        keyword?: string,
+        targetKind?: "native-agent" | "magi",
+    }) {
         const resp = await fetchSyncPost(API + "/lsSessions", {
             page: opts?.page || 1,
             pageSize: opts?.pageSize || 30,
             keyword: opts?.keyword || "",
+            targetKind: opts?.targetKind || "native-agent",
         }, agentOwnerHeaders());
         if (resp && resp.code === 0) {
  return resp.data; 

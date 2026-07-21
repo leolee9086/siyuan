@@ -109,8 +109,8 @@ export async function createMagiStandardLLMAdapter(params: {
          * 意图：提供标准LLM适配器的同步接口
          * 调用时机：上层需要获取完整响应时调用
          */
-        createChatCompletion: async (request) =>
-            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, params.connectionStatus),
+        createChatCompletion: async (request, signal) =>
+            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, params.connectionStatus, signal),
         /**
          * 流式聊天完成
          *
@@ -118,13 +118,14 @@ export async function createMagiStandardLLMAdapter(params: {
          * 意图：提供标准LLM适配器的流式接口
          * 调用时机：上层需要流式接收响应时调用
          */
-        streamChatCompletion: async (request, callbacks) =>
+        streamChatCompletion: async (request, callbacks, signal) =>
             streamMagiChatCompletion(
                 request,
                 callbacks,
                 model,
                 runtimeMainInterfaceIdentity,
                 params.connectionStatus,
+                signal,
             ),
     };
 }
@@ -189,6 +190,7 @@ async function createMagiChatCompletion(
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
     connectionStatus: { value: ConnectionStatus },
+    signal?: AbortSignal,
 ) {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
@@ -198,6 +200,7 @@ async function createMagiChatCompletion(
         request,
         request.model ?? model,
         runtimeMainInterfaceIdentity,
+        signal,
     );
     syncBackendConnectionStatus(connectionStatus, backendResult);
     // 后端成功返回响应，直接返回
@@ -231,6 +234,7 @@ async function streamMagiChatCompletion(
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
     connectionStatus: { value: ConnectionStatus },
+    signal?: AbortSignal,
 ) {
     callbacks.onStart?.();
     try {
@@ -239,6 +243,7 @@ async function streamMagiChatCompletion(
             model,
             runtimeMainInterfaceIdentity,
             connectionStatus,
+            signal,
         );
         const firstChoice = response.choices?.[0];
         const content = firstChoice?.message?.content ?? "";

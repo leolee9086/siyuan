@@ -124,6 +124,34 @@ describe("standard-llm-adapter contract", () => {
         expect(chunks[1]).toBeUndefined();
     });
 
+    it("magi adapter should forward the caller abort signal to the backend request", async () => {
+        mockedGetAIConfigFromSiyuan.mockReturnValue({
+            apiBaseURL: "https://example.com/v1",
+            apiKey: "test-source-key",
+            apiModel: "gpt-test",
+            apiTimeout: 12000,
+        });
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                id: "chatcmpl-magi-abort",
+                model: "magi-trinity",
+                choices: [{ message: { role: "assistant", content: "done" }, finish_reason: "stop" }],
+            }),
+        });
+        vi.stubGlobal("fetch", fetchMock);
+        const controller = new AbortController();
+        const adapter = await createMagiStandardLLMAdapter({
+            model: "magi-trinity",
+            connectionStatus: { value: "connected" },
+        });
+
+        await adapter.streamChatCompletion(createRequest("abortable"), {}, controller.signal);
+
+        const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+        expect(requestInit.signal).toBe(controller.signal);
+    });
+
     it("magi adapter should forward non-source request with main-ui identity", async () => {
         mockedGetAIConfigFromSiyuan.mockReturnValue({
             apiBaseURL: "https://example.com/v1",

@@ -20,15 +20,18 @@ import (
 	"encoding/json"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 const MAGIAppID = "magi"
 
-type Pusher struct{}
+type Pusher struct {
+	detailLogf func(format string, v ...interface{})
+}
 
 func NewPusher() *Pusher {
-	return &Pusher{}
+	return &Pusher{detailLogf: observability.Detailf}
 }
 
 // Push 推送MAGI事件到指定会话
@@ -55,10 +58,37 @@ func (p *Pusher) Push(sessionId string, eventType string, data map[string]interf
 	event.Data = payload
 	util.PushEvent(event)
 
-	if payloadJSON, err := json.Marshal(payload); err == nil {
-		logging.LogInfof("MAGI WebSocket push payload=%s", payloadJSON)
-	} else {
-		logging.LogInfof("MAGI WebSocket push: sessionId=%s, eventType=%s", sessionId, eventType)
+	detailLogf := p.detailLogf
+	if detailLogf == nil {
+		detailLogf = observability.Detailf
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		detailLogf("websocket push payload marshal failed: sessionId=%s eventType=%s error=%v payload=%#v",
+			sessionId, eventType, err, payload)
+		logging.LogWarnf("MAGI event payload logging failed: type=[%s] session=[%s] fields=[%d]",
+			eventType, sessionId, len(payload))
+		return nil
+	}
+	detailLogf("websocket push payload=%s", payloadJSON)
+	if shouldLogEventSummary(eventType) {
+		logging.LogInfof("MAGI event pushed: type=[%s] session=[%s] fields=[%d] payload=[%dB]",
+			eventType, sessionId, len(payload), len(payloadJSON))
 	}
 	return nil
+}
+
+func shouldLogEventSummary(eventType string) bool {
+	switch eventType {
+	case EventRoundStarted,
+		EventSeelReplyFailed,
+		EventDominantSynthesisCompleted,
+		EventConsensusEmitted,
+		EventRoundFailed,
+		EventRoundCancelled,
+		EventDeliberationSignalRaised:
+		return true
+	default:
+		return false
+	}
 }

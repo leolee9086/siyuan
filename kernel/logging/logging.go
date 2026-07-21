@@ -28,8 +28,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/88250/gulu"
 )
 
 const (
@@ -61,18 +59,150 @@ func ShortStack() string {
 	return buf.String()
 }
 
-const shardMaxSize = 100 * 1024
+const shardMaxSize int64 = 100 * 1024
+
+type FileLoggerConfig struct {
+	Path         string
+	LogToStdout  bool
+	ShardMaxSize int64
+	Level        string
+}
+
+// FileLogger 为需要独立落盘的日志通道提供与主日志一致的分片和级别能力。
+type FileLogger struct {
+	lock         sync.Mutex
+	path         string
+	logDir       string
+	logName      string
+	logExt       string
+	logToStdout  bool
+	shardMaxSize int64
+	level        int
+	currentDate  string
+	fileIndex    int
+}
+
+func NewFileLogger(config FileLoggerConfig) (*FileLogger, error) {
+	path := strings.TrimSpace(config.Path)
+	if path == "" {
+		return nil, fmt.Errorf("log path is empty")
+	}
+
+	shardSize := config.ShardMaxSize
+	if shardSize <= 0 {
+		shardSize = shardMaxSize
+	}
+	level := logLevel
+	if strings.TrimSpace(config.Level) != "" {
+		level = getLevel(config.Level)
+	}
+	dir, name := filepath.Split(path)
+	ext := filepath.Ext(name)
+	return &FileLogger{
+		path:         path,
+		logDir:       dir,
+		logName:      strings.TrimSuffix(name, ext),
+		logExt:       ext,
+		logToStdout:  config.LogToStdout,
+		shardMaxSize: shardSize,
+		level:        level,
+	}, nil
+}
+
+func (l *FileLogger) Path() string {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	return l.path
+}
+
+func (l *FileLogger) SetLevel(level string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	l.level = getLevel(level)
+}
+
+func (l *FileLogger) isEnabled(level int) bool {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	return l.level <= level
+}
+
+func (l *FileLogger) dailyLogPath(idx int) string {
+	today := time.Now().Format("2006-01-02")
+	if idx == 0 {
+		return filepath.Join(l.logDir, l.logName+"-"+today+l.logExt)
+	}
+	return filepath.Join(l.logDir, fmt.Sprintf("%s-%s-%d%s", l.logName, today, idx, l.logExt))
+}
+
+func (l *FileLogger) write(level int, prefix, format string, v ...interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	if level < l.level {
+		return
+	}
+
+	today := time.Now().Format("2006-01-02")
+	if l.currentDate != today {
+		l.currentDate = today
+		l.fileIndex = 0
+	}
+
+	var logFile *os.File
+	for {
+		actualPath := l.dailyLogPath(l.fileIndex)
+		if err := os.MkdirAll(filepath.Dir(actualPath), 0755); err != nil {
+			stdlog.Printf("create log dir [%s] failed: %s", filepath.Dir(actualPath), err)
+			return
+		}
+		if info, err := os.Stat(actualPath); err == nil && l.shardMaxSize <= info.Size() {
+			l.fileIndex++
+			continue
+		}
+		var err error
+		logFile, err = os.OpenFile(actualPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			stdlog.Printf("create log file [%s] failed: %s", actualPath, err)
+			return
+		}
+		break
+	}
+	defer logFile.Close()
+
+	writers := []io.Writer{logFile}
+	if l.logToStdout {
+		writers = append([]io.Writer{os.Stdout}, writers...)
+	}
+	output := stdlog.New(io.MultiWriter(writers...), prefix, stdlog.Ldate|stdlog.Ltime|stdlog.Lshortfile)
+	_ = output.Output(4, fmt.Sprintf(format, v...))
+}
+
+func (l *FileLogger) Tracef(format string, v ...interface{}) {
+	l.write(Trace, "T ", format, v...)
+}
+
+func (l *FileLogger) Debugf(format string, v ...interface{}) {
+	l.write(Debug, "D ", format, v...)
+}
+
+func (l *FileLogger) Infof(format string, v ...interface{}) {
+	l.write(Info, "I ", format, v...)
+}
+
+func (l *FileLogger) Warnf(format string, v ...interface{}) {
+	l.write(Warn, "W ", format, v...)
+}
+
+func (l *FileLogger) Errorf(format string, v ...interface{}) {
+	l.write(Error, "E ", format, v...)
+}
+
+var LogPath string
 
 var (
-	logger      *Logger
-	logFile     *os.File
-	LogPath     string
-	logToStdout = true
-	logDir      string
-	logName     string
-	logExt      string
-	currentDate string
-	fileIndex   int
+	defaultLoggerLock sync.RWMutex
+	defaultLogger     *FileLogger
+	logToStdout       = true
 )
 
 func init() {
@@ -82,198 +212,110 @@ func init() {
 		dir = "./"
 	}
 	LogPath = filepath.Join(dir, "logging.log")
-	initLogParts(LogPath)
-}
-
-func initLogParts(path string) {
-	dir, name := filepath.Split(path)
-	logDir = dir
-	ext := filepath.Ext(name)
-	logName = strings.TrimSuffix(name, ext)
-	logExt = ext
-}
-
-func dailyLogPath(idx int) string {
-	today := time.Now().Format("2006-01-02")
-	if idx == 0 {
-		return filepath.Join(logDir, logName+"-"+today+logExt)
-	}
-	return filepath.Join(logDir, fmt.Sprintf("%s-%s-%d%s", logName, today, idx, logExt))
+	defaultLogger, _ = NewFileLogger(FileLoggerConfig{Path: LogPath, LogToStdout: logToStdout})
 }
 
 func SetLogPath(path string) {
+	defaultLoggerLock.Lock()
+	defer defaultLoggerLock.Unlock()
+	created, err := NewFileLogger(FileLoggerConfig{Path: path, LogToStdout: logToStdout})
+	if err != nil {
+		stdlog.Printf("set log path [%s] failed: %s", path, err)
+		return
+	}
 	LogPath = path
-	initLogParts(path)
+	defaultLogger = created
 }
 
 func SetLogToStdout(enabled bool) {
+	defaultLoggerLock.Lock()
+	defer defaultLoggerLock.Unlock()
+	created, err := NewFileLogger(FileLoggerConfig{Path: LogPath, LogToStdout: enabled})
+	if err != nil {
+		stdlog.Printf("configure stdout logging failed: %s", err)
+		return
+	}
 	logToStdout = enabled
+	defaultLogger = created
+}
+
+func getDefaultLogger() *FileLogger {
+	defaultLoggerLock.RLock()
+	defer defaultLoggerLock.RUnlock()
+	return defaultLogger
 }
 
 func LogTracef(format string, v ...interface{}) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsTraceEnabled() {
-		return
-	}
-	logger.Tracef(format, v...)
+	getDefaultLogger().Tracef(format, v...)
 }
 
 func LogTrace(content string) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsTraceEnabled() {
-		return
+	current := getDefaultLogger()
+	if current.isEnabled(Trace) {
+		current.Tracef("%s", content)
 	}
-	logger.Tracef(content)
 }
 
 func LogDebugf(format string, v ...interface{}) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsDebugEnabled() {
-		return
-	}
-	logger.Debugf(format, v...)
+	getDefaultLogger().Debugf(format, v...)
 }
 
 func LogDebug(content string) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsDebugEnabled() {
-		return
+	current := getDefaultLogger()
+	if current.isEnabled(Debug) {
+		current.Debugf("%s", content)
 	}
-	logger.Debugf(content)
 }
 
 func LogInfof(format string, v ...interface{}) {
-	defer closeLogger()
-	openLogger()
-	logger.Infof(format, v...)
+	getDefaultLogger().Infof(format, v...)
 }
 
 func LogInfo(content string) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsDebugEnabled() {
-		return
+	current := getDefaultLogger()
+	if current.isEnabled(Debug) {
+		current.Infof("%s", content)
 	}
-	logger.Infof(content)
 }
 
 func LogErrorf(format string, v ...interface{}) {
-	defer closeLogger()
-	openLogger()
-	logger.Errorf(format, v...)
+	getDefaultLogger().Errorf(format, v...)
 }
 
 func LogError(content string) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsDebugEnabled() {
-		return
+	current := getDefaultLogger()
+	if current.isEnabled(Debug) {
+		current.Errorf("%s", content)
 	}
-	logger.Errorf(content)
 }
 
 func LogWarnf(format string, v ...interface{}) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsWarnEnabled() {
-		return
-	}
-	logger.Warnf(format, v...)
+	getDefaultLogger().Warnf(format, v...)
 }
 
 func LogWarn(content string) {
-	defer closeLogger()
-	openLogger()
-
-	if !logger.IsWarnEnabled() {
-		return
+	current := getDefaultLogger()
+	if current.isEnabled(Warn) {
+		current.Warnf("%s", content)
 	}
-	logger.Warnf(content)
 }
 
 func LogFatalf(exitCode int, format string, v ...interface{}) {
-	openLogger()
-	logger.Fatalf(exitCode, format, v...)
+	format += "\n%s"
+	v = append(v, shortStack())
+	getDefaultLogger().write(Fatal, "F ", format, v...)
+	os.Exit(exitCode)
 }
 
 func LogFatal(exitCode int, content string) {
-	openLogger()
-	logger.Fatalf(exitCode, content)
-}
-
-var lock = sync.Mutex{}
-
-func openLogger() {
-	lock.Lock()
-
-	today := time.Now().Format("2006-01-02")
-	if currentDate != today {
-		if logFile != nil {
-			logFile.Close()
-		}
-		currentDate = today
-		fileIndex = 0
-	}
-
-	for {
-		actualPath := dailyLogPath(fileIndex)
-		dir, _ := filepath.Split(actualPath)
-		if !gulu.File.IsExist(dir) {
-			if err := os.MkdirAll(dir, 0755); nil != err {
-				stdlog.Printf("create log dir [%s] failed: %s", dir, err)
-			}
-		}
-
-		if gulu.File.IsExist(actualPath) {
-			if size := gulu.File.GetFileSize(actualPath); shardMaxSize <= size {
-				fileIndex++
-				continue
-			}
-		}
-
-		var err error
-		logFile, err = os.OpenFile(actualPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-		if nil != err {
-			stdlog.Printf("create log file [%s] failed: %s", actualPath, err)
-		}
-		logger = NewLogger(io.MultiWriter(getWriters(logFile)...))
-		break
-	}
-}
-
-func closeLogger() {
-	logFile.Close()
-	lock.Unlock()
-}
-
-func getWriters(logFile *os.File) []io.Writer {
-	if logFile == nil {
-		return []io.Writer{os.Stdout}
-	}
-	writers := make([]io.Writer, 0, 2)
-	if logToStdout {
-		writers = append(writers, os.Stdout)
-	}
-	writers = append(writers, logFile)
-	return writers
+	LogFatalf(exitCode, "%s", content)
 }
 
 func Recover() {
 	if e := recover(); nil != e {
 		stack := stack()
 		msg := fmt.Sprintf("PANIC RECOVERED: %v\n\t%s\n", e, stack)
-		LogErrorf(msg)
+		LogErrorf("%s", msg)
 	}
 }
 
@@ -355,6 +397,9 @@ func NewLogger(out io.Writer) *Logger {
 
 func SetLogLevel(level string) {
 	logLevel = getLevel(level)
+	if current := getDefaultLogger(); current != nil {
+		current.SetLevel(level)
+	}
 }
 
 func getLevel(level string) int {
@@ -453,7 +498,6 @@ func (l *Logger) Fatalf(exitCode int, format string, v ...interface{}) {
 	v = append(v, shortStack())
 	msg := fmt.Sprintf(format, v...)
 	l.logger.Output(3, msg)
-	closeLogger()
 	os.Exit(exitCode)
 }
 

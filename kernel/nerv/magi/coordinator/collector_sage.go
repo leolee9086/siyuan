@@ -13,6 +13,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
@@ -584,7 +585,8 @@ func (rc *ResponseCollector) buildSageResponse(
 				response.DeliberationReason = signal.Reason
 				response.ProposedAction = signal.ProposedAction
 
-				logging.LogInfof("审慎决策信号已提取: RequiresDeliberation=%v, Reason=%s, ProposedAction=%s",
+				logging.LogInfof("审慎决策信号已提取: requiresDeliberation=%v", signal.RequiresDeliberation)
+				observability.Detailf("审慎决策信号: requiresDeliberation=%v reason=%s proposedAction=%s",
 					signal.RequiresDeliberation, signal.Reason, signal.ProposedAction)
 
 				if err := websocket.PushDeliberationSignalRaised(
@@ -594,7 +596,8 @@ func (rc *ResponseCollector) buildSageResponse(
 					logging.LogWarnf("推送审慎决策信号事件失败: %v", err)
 				}
 			} else {
-				logging.LogWarnf("解析deliberation_signal参数失败: %v, args=%s", err, args[0])
+				logging.LogWarnf("解析deliberation_signal参数失败: %v, argsLength=%d", err, len(args[0]))
+				observability.Detailf("解析deliberation_signal参数失败: error=%v args=%s", err, args[0])
 			}
 		}
 	}

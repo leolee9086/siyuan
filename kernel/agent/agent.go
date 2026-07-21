@@ -1487,7 +1487,7 @@ func writeCheckpointLocked(sessionID string, messages []AgentMessage, promptToke
 	if err := filelock.WriteFile(path, data); err != nil {
 		logging.LogErrorf("save checkpoint file failed: %s", err)
 	}
-	UpdateSessionIndex(sessionID, cp.Title, cp.CreatedAt, cp.UpdatedAt)
+	UpdateSessionIndex(sessionID, cp.Title, "native-agent", cp.CreatedAt, cp.UpdatedAt)
 }
 
 func createStreamWithRetry(ctx context.Context, client *openai.Client, req openai.ChatCompletionRequest, maxRetries int, ch chan<- AgentEvent) (*openai.ChatCompletionStream, error) {

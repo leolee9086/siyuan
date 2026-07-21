@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
@@ -241,7 +242,7 @@ func PushVotingResult(
 	}
 	if deliberationReason != "" {
 		data["deliberationReason"] = deliberationReason
-		logging.LogInfof("PushVotingResult: 包含审慎决策原因=%s", deliberationReason)
+		observability.Detailf("PushVotingResult: deliberationReason=%s", deliberationReason)
 	}
 	return globalPusher.Push(sessionId, EventSeelVoteUpdated, data)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -473,7 +474,7 @@ func injectPeerDoubts(dominantSage *sages.Sage, sessionID string, election *Domi
 	}
 	logging.LogInfof("安全审查结果: votes=%d doubts=%d", len(election.Votes), len(allDoubts))
 	for _, d := range allDoubts {
-		logging.LogInfof("  安全审查: %s", d)
+		observability.Detailf("安全审查质疑: %s", d)
 	}
 	if len(allDoubts) > 0 {
 		_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
@@ -501,7 +502,7 @@ func runPeerSecurityReview(
 		return nil, err
 	}
 	content := strings.TrimSpace(result.Content)
-	logging.LogInfof("  审查回复 %s: %s", peer.GetName(), content)
+	observability.Detailf("安全审查回复: sage=%s content=%s", peer.GetName(), content)
 	if content == "" {
 		return nil, fmt.Errorf("peer security review returned empty content")
 	}

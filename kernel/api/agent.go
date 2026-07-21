@@ -430,9 +430,10 @@ func agentChatTitle(c *gin.Context) {
 }
 
 type agentSessionsReq struct {
-	Page     int    `json:"page"`
-	PageSize int    `json:"pageSize"`
-	Keyword  string `json:"keyword"`
+	Page       int    `json:"page"`
+	PageSize   int    `json:"pageSize"`
+	Keyword    string `json:"keyword"`
+	TargetKind string `json:"targetKind"`
 }
 
 func lsSessions(c *gin.Context) {
@@ -452,7 +453,7 @@ func lsSessions(c *gin.Context) {
 	} else if ownerAuth != nil {
 		ownerIdentityID = ownerAuth.IdentityID
 	}
-	result, err := agent.ListSessions(req.Page, req.PageSize, req.Keyword, ownerIdentityID)
+	result, err := agent.ListSessions(req.Page, req.PageSize, req.Keyword, ownerIdentityID, req.TargetKind)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "failed to inspect protected agent sessions"})
 		return

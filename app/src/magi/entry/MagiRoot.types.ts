@@ -9,8 +9,7 @@ import type {
     WorkspaceAIMainNotebookStatus,
 } from "../service/aiMainNotebook.types";
 import type {
-    MagiMainPanelMessageView,
-    MagiMainPanelSeelView,
+    MagiSeelConnectionView,
     MagiSeelPanelView,
 } from "./magiView.types";
 import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPanel.types";
@@ -20,12 +19,11 @@ import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPane
  *
  * 用途：定义 `MagiRoot.vue` 模板所需的状态与交互方法。
  * 使用场景：`useMagiRootContext` 返回对象的类型约束。
- * 关联类型：`UseMagiReturn`、`WrappedSeel`、`MagiMainPanelMessageView`。
+ * 关联类型：`UseMagiReturn`、`WrappedSeel`、`MagiSeelPanelView`。
  */
 export interface MagiRootContext {
     ready: Ref<boolean>;
     bootError: Ref<string | null>;
-    inputValue: Ref<string>;
     showMessages: Ref<boolean>;
     showSeels: Ref<boolean>;
     showMonitor: Ref<boolean>;
@@ -39,16 +37,13 @@ export interface MagiRootContext {
     sourceSimulationProfiles: Ref<SourceSimulationProfileView[]>;
     sourceSimulationPanels: Ref<SourceSimulationPanelView[]>;
     seels: ComputedRef<WrappedSeel[]>;
-    mainPanelSeels: ComputedRef<MagiMainPanelSeelView[]>;
+    seelConnectionViews: ComputedRef<MagiSeelConnectionView[]>;
     sageSeels: ComputedRef<WrappedSeel[]>;
     monitorHostSeel: ComputedRef<WrappedSeel | null>;
     sageSeelViews: ComputedRef<MagiSeelPanelView[]>;
     monitorSeelView: ComputedRef<MagiSeelPanelView | null>;
-    displayMessages: ComputedRef<MagiMainPanelMessageView[]>;
-    isMainPanelRequestPending: ComputedRef<boolean>;
     isAnySeelLoading: ComputedRef<boolean>;
     runtimeStatus: ComputedRef<MagiRuntimeStatus | null>;
-    onSubmitInput: (value: string) => Promise<void>;
     onShowQuestionnaire: () => Promise<void>;
     onCloseQuestionnaire: () => void;
     onQuestionnaireSaved: (saved: PersonaSeedSavedEvent) => Promise<void>;
@@ -71,8 +66,8 @@ export interface MagiRootContext {
         value: string,
     ) => void;
     onSubmitSourceSimulationPanel: (panelId: string) => Promise<void>;
-    onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;
+    destroy: () => void;
 }
 
 /** 来源模拟画像视图 */

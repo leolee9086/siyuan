@@ -11,7 +11,6 @@ import { ref, reactive, computed, watch } from "vue";
 import type {
     ConnectionStatus,
     MagiRuntimeStatus,
-    SendUserMessageOptions,
     WrappedSeel,
     UseMagiOptions,
     UseMagiReturn,
@@ -19,7 +18,6 @@ import type {
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
-import { createMessage } from "../utils/messageFactory";
 import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
@@ -30,94 +28,40 @@ import type {
     MagiRuntimeStatusUpdatedEvent,
     MagiSeelReplyStartedEvent,
 } from "../events/magiEventBus.types";
-import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
-import type { ChatRequestParams } from "../../ai/types";
 import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
 import { appendConsensusMessage } from "./useMagi.consensus";
-import {
-    buildRuntimeMainInterfaceIdentity,
-    MAGI_RUNTIME_MONITOR_SESSION_ID,
-} from "../adapters/magiStandardLLMAdapter.backend";
-
-const SOURCE_SIMULATION_TAG = "magi_request_source";
-
-/** 将来源模拟上下文编码为标准 system 消息（保持 OpenAI-compatible 外观）。 */
-function buildSourceSimulationSystemMessage(
-    options?: SendUserMessageOptions,
-): ChatRequestParams["messages"][number] | null {
-    const sourceSimulation = options?.sourceSimulation;
-    if (!sourceSimulation) {
-        return null;
-    }
-    const payload = JSON.stringify(sourceSimulation);
-    return {
-        role: "system",
-        content: `<${SOURCE_SIMULATION_TAG}>${payload}</${SOURCE_SIMULATION_TAG}>`,
-    };
-}
+import { MAGI_RUNTIME_MONITOR_SESSION_ID } from "../adapters/magiStandardLLMAdapter.backend";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
     seels: WrappedSeel[],
     consensusMessages: MagiMessage[],
-    mainPanelMessages: MagiMessage[],
     clearMessages = true,
 ): Promise<void> {
     seels.splice(0, seels.length);
     // 需要保留对话消息时仅重置贤者实例，不清空消息数组。
     if (clearMessages) {
         consensusMessages.splice(0, consensusMessages.length);
-        mainPanelMessages.splice(0, mainPanelMessages.length);
     }
 }
 
-function toMainPanelChatMessage(
-    message: MagiMessage,
-): ChatRequestParams["messages"][number] | null {
-    const content = String(message.content ?? "").trim();
-    if (!content) {
-        return null;
-    }
-    switch (message.type) {
-    case "user":
-        return { role: "user", content };
-    case "assistant":
-        return { role: "assistant", content };
-    case "system":
-        return { role: "system", content };
-    default:
-        return null;
-    }
-}
-
-function buildMainPanelRequestMessages(
-    mainPanelMessages: MagiMessage[],
-    options?: SendUserMessageOptions,
-): ChatRequestParams["messages"] {
-    const messages: ChatRequestParams["messages"] = [];
-    const sourceSystemMessage = buildSourceSimulationSystemMessage(options);
-    if (sourceSystemMessage) {
-        messages.push(sourceSystemMessage);
-    }
-    for (const message of mainPanelMessages) {
-        const mapped = toMainPanelChatMessage(message);
-        if (mapped) {
-            messages.push(mapped);
+/**
+ * 作用：把 MAGI 运行时的多个取消订阅函数组合成幂等销毁器。
+ * 意图：初始化失败和 Vue 卸载必须走同一条资源释放路径。
+ * 调用时机：websocket、事件总线和 projector 完成绑定后创建一次。
+ */
+function createMagiRuntimeDisposer(disposers: Array<() => void>) {
+    let disposed = false;
+    return () => {
+        // 同一运行时可能同时收到初始化失败和宿主卸载，只执行一次底层释放。
+        if (disposed) {
+            return;
         }
-    }
-    return messages;
-}
-
-async function appendMainPanelMessage(
-    messages: MagiMessage[],
-    type: string,
-    content: string,
-    status: string,
-): Promise<MagiMessage> {
-    const message = await createMessage(type, content);
-    message.status = status;
-    messages.push(message);
-    return message;
+        disposed = true;
+        for (const dispose of disposers) {
+            dispose();
+        }
+    };
 }
 
 /** 将底层 MockMessage 规范化为 UI 所需的 MagiMessage */
@@ -340,7 +284,7 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
         /**
          * 作用：代理底层 `reply` 并在前后同步 wrapped 状态。
          * 意图：确保消息流与 loading 状态对 Vue 响应式可见。
-         * 调用时机：`sendUserMessageInternal` 与共识模块发起回复时。
+         * 调用时机：共识与运行时流程请求单个贤者回复时。
          */
         async reply(userInput, options) {
             await syncWrappedSeelState(wrapped, ai);
@@ -394,28 +338,26 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
  *
  * 作用：封装MAGI系统的初始化、贤者实例管理和连接状态
  * 意图：为Vue组件提供响应式的MAGI系统接口
- * 调用时机：MagiMainPanel组件setup阶段调用
+ * 调用时机：MagiRoot 工作空间守卫通过后调用
  */
 export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
     const connectionStatus = ref<ConnectionStatus>("connecting");
     const websocketConnectionStatus = ref<ConnectionStatus>("connecting");
-    const isMainPanelRequestPending = ref(false);
-    const mainPanelMessages: MagiMessage[] = reactive([]);
     const consensusMessages: MagiMessage[] = reactive([]);
     const runtimeStatus = ref<MagiRuntimeStatus | null>(null);
     const isAnySeelLoading = computed(() =>
         seels.some((seel) => seel.loading),
     );
     const eventBus = await createMagiEventBus();
-    watch(
+    const stopConnectionWatch = watch(
         websocketConnectionStatus,
         (nextStatus) => {
             syncWrappedSeelConnectionStatus(seels, nextStatus);
         },
         { immediate: true },
     );
-    bindMagiWebSocketEventBridge(eventBus, {
+    const websocketBridge = bindMagiWebSocketEventBridge(eventBus, {
         sessionId: MAGI_RUNTIME_MONITOR_SESSION_ID,
         onConnecting: () => {
             websocketConnectionStatus.value = "connecting";
@@ -428,94 +370,48 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
             websocketConnectionStatus.value = "disconnected";
         },
     });
-    const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
-    eventBus.subscribe("RUNTIME_STATUS_UPDATED", (payload) => {
+    const stopRuntimeStatusSubscription = eventBus.subscribe("RUNTIME_STATUS_UPDATED", (payload) => {
         runtimeStatus.value = buildRuntimeStatusFromEvent(payload);
     });
-    eventBus.subscribe("SEEL_REPLY_STARTED", (payload) => {
+    const stopReplyStartedSubscription = eventBus.subscribe("SEEL_REPLY_STARTED", (payload) => {
         runtimeStatus.value = applyDominantRuntimeHintFromReplyStarted(runtimeStatus.value, payload);
     });
     const stopProjector = await bindMagiProjector(eventBus, {
         seels,
         consensusMessages,
     });
-    void stopProjector;
+    const disposeRuntimeBindings = createMagiRuntimeDisposer([
+        stopConnectionWatch,
+        websocketBridge.disconnect,
+        stopRuntimeStatusSubscription,
+        stopReplyStartedSubscription,
+        stopProjector,
+    ]);
 
-    const initialPersonaStatus = await fetchMagiPersonaStatus();
-    if (initialPersonaStatus?.runtimeStatus) {
-        runtimeStatus.value = cloneRuntimeStatus(initialPersonaStatus.runtimeStatus);
+    try {
+        const initialPersonaStatus = await fetchMagiPersonaStatus();
+        if (initialPersonaStatus?.runtimeStatus) {
+            runtimeStatus.value = cloneRuntimeStatus(initialPersonaStatus.runtimeStatus);
+        }
+        await appendBlockedPersonaMessageIfNeeded(consensusMessages, initialPersonaStatus);
+        connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
+            connectionStatus.value,
+            initialPersonaStatus,
+        );
+        const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
+        const runtimePersonaName = resolvePersonaNameFromStatus(initialPersonaStatus);
+        await initializeWrappedSeels(seels, websocketConnectionStatus, startupPromptInjections, runtimePersonaName);
+    } catch (error) {
+        disposeRuntimeBindings();
+        throw error;
     }
-    await appendBlockedPersonaMessageIfNeeded(consensusMessages, initialPersonaStatus);
-    connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
-        connectionStatus.value,
-        initialPersonaStatus,
-    );
-    const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-    const runtimePersonaName = resolvePersonaNameFromStatus(initialPersonaStatus);
-    await initializeWrappedSeels(seels, websocketConnectionStatus, startupPromptInjections, runtimePersonaName);
-    const llmAdapter = await createStandardLLMAdapter({
-        model: "magi-trinity",
-        connectionStatus,
-        mainInterfaceIdentity: runtimeMainInterfaceIdentity,
-    });
-
     return {
         seels,
         connectionStatus,
         websocketConnectionStatus,
-        mainPanelMessages,
         consensusMessages,
-        isMainPanelRequestPending,
         isAnySeelLoading,
         runtimeStatus,
-        /**
-         * 作用：把主面板输入作为标准 HTTP 聊天请求发送，并在本地维护 user/assistant 历史。
-         * 意图：主面板必须像普通 LLM chat panel 一样工作；前端只发送标准消息历史，不承担历史清洗或后端特判职责。
-         * 调用时机：`MagiMainPanel` 的 `submit-input` 事件上抛到容器后调用。
-         */
-        sendUserMessage: async (text: string, options?: SendUserMessageOptions) => {
-            const userInput = text.trim();
-            if (!userInput) {
-                return "";
-            }
-            await appendMainPanelMessage(mainPanelMessages, "user", userInput, "success");
-            const messages = buildMainPanelRequestMessages(mainPanelMessages, options);
-            const pendingAssistant = await appendMainPanelMessage(
-                mainPanelMessages,
-                "assistant",
-                "Waiting response...",
-                "loading",
-            );
-            const request: ChatRequestParams = {
-                model: "magi-trinity",
-                messages,
-                stream: false,
-            };
-            isMainPanelRequestPending.value = true;
-            try {
-                const response = await llmAdapter.createChatCompletion(request);
-                const reply = response.choices?.[0]?.message?.content ?? "";
-                pendingAssistant.content = reply || "[empty response]";
-                if (response.webSearchLinks && Object.keys(response.webSearchLinks).length > 0) {
-                    pendingAssistant.meta = {
-                        ...(pendingAssistant.meta || {}),
-                        webSearchLinks: response.webSearchLinks,
-                    };
-                }
-                pendingAssistant.status = "success";
-                pendingAssistant.timestamp = Date.now();
-                return reply;
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                pendingAssistant.type = "error";
-                pendingAssistant.content = message;
-                pendingAssistant.status = "error";
-                pendingAssistant.timestamp = Date.now();
-                throw error;
-            } finally {
-                isMainPanelRequestPending.value = false;
-            }
-        },
         /**
          * 作用：重新初始化 MAGI 实例并清空消息。
          * 意图：支持连接恢复与状态重建。
@@ -528,9 +424,15 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
                 websocketConnectionStatus,
                 runtimeStatus,
                 consensusMessages,
-                mainPanelMessages,
                 options,
             );
+        },
+        destroy: () => {
+            disposeRuntimeBindings();
+            seels.splice(0, seels.length);
+            consensusMessages.splice(0, consensusMessages.length);
+            runtimeStatus.value = null;
+            websocketConnectionStatus.value = "disconnected";
         },
     };
 }
@@ -548,7 +450,6 @@ async function reinitializeMAGI(
     websocketConnectionStatus: { value: ConnectionStatus },
     runtimeStatus: { value: MagiRuntimeStatus | null },
     consensusMessages: MagiMessage[],
-    mainPanelMessages: MagiMessage[],
     options?: {
         promptInjections?: MagiPromptSet;
         preserveConsensusMessages?: boolean;
@@ -559,7 +460,6 @@ async function reinitializeMAGI(
         await clearReactiveArrays(
             seels,
             consensusMessages,
-            mainPanelMessages,
             shouldClearMessages,
         );
         const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);

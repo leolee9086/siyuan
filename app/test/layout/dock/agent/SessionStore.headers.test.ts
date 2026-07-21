@@ -40,4 +40,26 @@ describe("Agent owner request headers", () => {
             Authorization: "Bearer explicit-token",
         });
     });
+
+    it("forwards the requested conversation target when listing sessions", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
+        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost.mockResolvedValue({
+            code: 0,
+            data: {sessions: [], total: 0, page: 1, pageSize: 30},
+        });
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await SessionStore.list({targetKind: "magi"});
+
+        expect(fetchSyncPost).toHaveBeenCalledWith("/api/ai/agent/lsSessions", {
+            page: 1,
+            pageSize: 30,
+            keyword: "",
+            targetKind: "magi",
+        }, {
+            Authorization: "Bearer workspace-api-token",
+        });
+    });
 });

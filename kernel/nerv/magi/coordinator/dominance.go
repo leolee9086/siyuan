@@ -10,6 +10,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -37,20 +38,20 @@ type dominantVoteScore struct {
 }
 
 type dominantVotePayload struct {
-	Scores        []dominantVoteScore `json:"scores"`
-	Reason        string              `json:"reason"`
-	Doubts        []string            `json:"doubts"`
-	SelectedPlan  string              `json:"selected_plan"`
+	Scores       []dominantVoteScore `json:"scores"`
+	Reason       string              `json:"reason"`
+	Doubts       []string            `json:"doubts"`
+	SelectedPlan string              `json:"selected_plan"`
 }
 
 type DominantElectionVote struct {
-	VoterSeelName       string
-	VoterDisplayName    string
-	Profession          int
-	SocialRelation      int
-	SelfName            int
-	Reason              string
-	Doubts              []string
+	VoterSeelName        string
+	VoterDisplayName     string
+	Profession           int
+	SocialRelation       int
+	SelfName             int
+	Reason               string
+	Doubts               []string
 	SelectedPlanProposer string
 }
 
@@ -211,8 +212,10 @@ func electDominantSageWithExclusionsAndSituations(
 			for _, candidate := range candidates {
 				if candidate.SeelName == selectedPlan.ProposerSeelName {
 					totals[string(candidate.Key)] += actionPlanScoreBonus
-					logging.LogInfof("行动计划「%s」中选（提出者=%s），获得 +%d 隐性加分",
-						selectedPlan.Plan, selectedPlan.ProposerSeelName, actionPlanScoreBonus)
+					logging.LogInfof("行动计划中选: proposer=%s bonus=%d",
+						selectedPlan.ProposerSeelName, actionPlanScoreBonus)
+					observability.Detailf("中选行动计划: proposer=%s plan=%s bonus=%d",
+						selectedPlan.ProposerSeelName, selectedPlan.Plan, actionPlanScoreBonus)
 					break
 				}
 			}
@@ -455,13 +458,13 @@ func finalizeDominantVote(
 
 	selectedPlan := strings.TrimSpace(payload.SelectedPlan)
 	return &DominantElectionVote{
-		VoterSeelName:       voterName,
-		VoterDisplayName:    displayName,
-		Profession:          scoreByKey[string(marduk.CognitiveStanceProfession)],
-		SocialRelation:      scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
-		SelfName:            scoreByKey[string(marduk.CognitiveStanceSelfName)],
-		Reason:              strings.TrimSpace(payload.Reason),
-		Doubts:              doubts,
+		VoterSeelName:        voterName,
+		VoterDisplayName:     displayName,
+		Profession:           scoreByKey[string(marduk.CognitiveStanceProfession)],
+		SocialRelation:       scoreByKey[string(marduk.CognitiveStancePrimarySocialRelation)],
+		SelfName:             scoreByKey[string(marduk.CognitiveStanceSelfName)],
+		Reason:               strings.TrimSpace(payload.Reason),
+		Doubts:               doubts,
 		SelectedPlanProposer: selectedPlan,
 	}, nil
 }
@@ -690,7 +693,7 @@ func collectActionPlans(
 
 	logging.LogInfof("collectActionPlans: collected %d plans", len(plans))
 	for _, p := range plans {
-		logging.LogInfof("  %s: %s", p.ProposerSeelName, p.Plan)
+		observability.Detailf("候选行动计划: proposer=%s plan=%s", p.ProposerSeelName, p.Plan)
 	}
 
 	return plans, nil

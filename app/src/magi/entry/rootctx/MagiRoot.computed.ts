@@ -1,7 +1,5 @@
 /** 用途：创建计算属性；使用范围：MagiRoot 视图派生状态；解耦评估：Vue 计算属性 API 已通过 imports.ts 收口，当前依赖边界清晰。 */
 import { computed } from "./imports";
-/** 用途：标注主面板消息视图结构；使用范围：displayMessages 辅助函数参数类型约束；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
-import type { MagiMainPanelMessageView } from "./imports";
 /** 用途：标注 MAGI 运行时返回结构；使用范围：连接状态类型别名与 rootctx 视图推导；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
 import type { UseMagiReturn } from "./imports";
 /** 用途：标注运行时贤者结构；使用范围：Seel 视图映射；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
@@ -37,9 +35,9 @@ function mapWrappedSeelMessage(message: WrappedSeel["messages"][number]) {
 /**
  * 作用：把运行时贤者映射为主面板摘要视图。
  * 意图：主面板只展示名字、连接状态和 loading，不直接暴露完整运行时结构。
- * 调用时机：构建 `mainPanelSeels` 计算属性时调用。
+ * 调用时机：构建 `seelConnectionViews` 计算属性时调用。
  */
-function buildMainPanelSeelView(
+function buildSeelConnectionView(
     seel: WrappedSeel,
     connectionStatus: UseMagiReturn["websocketConnectionStatus"]["value"],
 ) {
@@ -97,18 +95,6 @@ function buildSageSeels(seels: readonly WrappedSeel[]) {
 }
 
 /**
- * 作用：根据开关返回主面板消息列表。
- * 意图：让“显示/隐藏 MAGI 输出”按钮只影响视图层，不改动底层消息状态。
- * 调用时机：构建 `displayMessages` 计算属性时调用。
- */
-function buildDisplayMessages(
-    showMessages: boolean,
-    messages: readonly MagiMainPanelMessageView[],
-) {
-    return showMessages ? messages : [];
-}
-
-/**
  * 作用：构建 MagiRoot 视图层计算属性集合。
  * 意图：将运行时到 UI 的映射逻辑与入口装配分离，降低 `useMagiRootContext` 复杂度。
  * 调用时机：`useMagiRootContext` 初始化时调用一次。
@@ -121,9 +107,6 @@ export function createMagiRootComputed(
     const websocketConnectionStatus = computed(
         () => state.magiState.value?.websocketConnectionStatus ?? "disconnected",
     );
-    const mainPanelMessages = computed(
-        () => state.magiState.value?.mainPanelMessages ?? [],
-    );
     const sageSeels = computed(() => buildSageSeels(seels.value));
     const monitorHostSeel = computed(
         () => seels.value.find((seel) => isMonitorHostSeel(seel.config.name)) ?? null,
@@ -131,8 +114,8 @@ export function createMagiRootComputed(
 
     return {
         seels,
-        mainPanelSeels: computed(
-            () => seels.value.map((seel) => buildMainPanelSeelView(seel, websocketConnectionStatus.value)),
+        seelConnectionViews: computed(
+            () => seels.value.map((seel) => buildSeelConnectionView(seel, websocketConnectionStatus.value)),
         ),
         sageSeels,
         sageSeelViews: computed(
@@ -144,17 +127,11 @@ export function createMagiRootComputed(
                 ? mapWrappedSeelToPanelView(monitorHostSeel.value, websocketConnectionStatus.value)
                 : null,
         ),
-        isMainPanelRequestPending: computed(
-            () => state.magiState.value?.isMainPanelRequestPending ?? false,
-        ),
         isAnySeelLoading: computed(
             () => state.magiState.value?.isAnySeelLoading ?? false,
         ),
         runtimeStatus: computed(
             () => state.magiState.value?.runtimeStatus ?? null,
-        ),
-        displayMessages: computed(
-            () => buildDisplayMessages(state.showMessages.value, mainPanelMessages.value),
         ),
         workspaceAIMainNotebookStatus: computed(
             () => state.workspaceAIMainNotebookState.value?.status ?? null,

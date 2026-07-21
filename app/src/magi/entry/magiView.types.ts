@@ -2,7 +2,7 @@
  * MAGI 界面层视图模型类型
  *
  * 用途：为 UI 提供独立于运行时内核实现的稳定展示类型。
- * 使用场景：MagiMainPanel/MagiRoot 等界面组件之间传递数据。
+ * 使用场景：MagiRoot、SeelPanel 与 Trinity Monitor 之间传递数据。
  */
 
 /** 用途：连接状态类型定义。使用范围：MAGI 界面视图模型状态管理。解耦评估：通过 composables 目录导入，保持类型与逻辑分离。 */
@@ -21,14 +21,9 @@ export interface MagiMessageView {
 }
 
 /**
- * 主面板消息视图
- */
-export type MagiMainPanelMessageView = MagiMessageView;
-
-/**
  * 主面板贤者连接视图
  */
-export interface MagiMainPanelSeelView {
+export interface MagiSeelConnectionView {
     config: {
         name: string;
         displayName: string;

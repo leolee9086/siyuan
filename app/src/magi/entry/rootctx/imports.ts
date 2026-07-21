@@ -136,15 +136,10 @@ import { showMessage } from "../../../dialog/message";
 /** 导出 showMessage。 */
 export { showMessage };
 
-/** 用途：标注主面板消息视图；使用范围：displayMessages 计算属性类型约束；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
-import type { MagiMainPanelMessageView } from "../magiView.types";
-/** 导出类型 MagiMainPanelMessageView。 */
-export type { MagiMainPanelMessageView };
-
-/** 用途：标注主面板贤者摘要视图；使用范围：mainPanelSeels 计算属性类型约束；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
-import type { MagiMainPanelSeelView } from "../magiView.types";
-/** 导出类型 MagiMainPanelSeelView。 */
-export type { MagiMainPanelSeelView };
+/** 用途：标注贤者连接摘要视图；使用范围：标题栏同步率计算；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
+import type { MagiSeelConnectionView } from "../magiView.types";
+/** 导出类型 MagiSeelConnectionView。 */
+export type { MagiSeelConnectionView };
 
 /** 用途：标注贤者面板视图；使用范围：sage/monitor 视图映射；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
 import type { MagiSeelPanelView } from "../magiView.types";

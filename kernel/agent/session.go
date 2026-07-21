@@ -137,6 +137,7 @@ func saveTaskDirectoryStoreLocked(store *taskDirectoryStore) error {
 type SessionIndexItem struct {
 	ID            string                `json:"id"`
 	Title         string                `json:"title"`
+	TargetKind    string                `json:"targetKind,omitempty"`
 	CreatedAt     int64                 `json:"createdAt"`
 	UpdatedAt     int64                 `json:"updatedAt"`
 	TaskDirectory *TaskDirectoryBinding `json:"taskDirectory,omitempty"`
@@ -150,10 +151,11 @@ type SessionListResult struct {
 }
 
 type sessionMeta struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	CreatedAt int64  `json:"createdAt"`
-	UpdatedAt int64  `json:"updatedAt"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	TargetKind string `json:"targetKind,omitempty"`
+	CreatedAt  int64  `json:"createdAt"`
+	UpdatedAt  int64  `json:"updatedAt"`
 }
 
 func loadSessionIndex() map[string]*SessionIndexItem {
@@ -167,16 +169,20 @@ func loadSessionIndex() map[string]*SessionIndexItem {
 	}
 	index := make(map[string]*SessionIndexItem, len(records))
 	for id, record := range records {
-		index[id] = &SessionIndexItem{ID: record.ID, Title: record.Title, CreatedAt: record.CreatedAt, UpdatedAt: record.UpdatedAt}
+		index[id] = &SessionIndexItem{
+			ID: record.ID, Title: record.Title, TargetKind: normalizeSessionTargetKind(record.TargetKind),
+			CreatedAt: record.CreatedAt, UpdatedAt: record.UpdatedAt,
+		}
 	}
 	return index
 }
 
 type sessionIndexRecord struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	CreatedAt int64  `json:"createdAt"`
-	UpdatedAt int64  `json:"updatedAt"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	TargetKind string `json:"targetKind,omitempty"`
+	CreatedAt  int64  `json:"createdAt"`
+	UpdatedAt  int64  `json:"updatedAt"`
 }
 
 func saveSessionIndex(index map[string]*SessionIndexItem) {
@@ -185,7 +191,10 @@ func saveSessionIndex(index map[string]*SessionIndexItem) {
 		if item == nil {
 			continue
 		}
-		records[id] = sessionIndexRecord{ID: item.ID, Title: item.Title, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt}
+		records[id] = sessionIndexRecord{
+			ID: item.ID, Title: item.Title, TargetKind: normalizeSessionTargetKind(item.TargetKind),
+			CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
+		}
 	}
 	data, err := gulu.JSON.MarshalIndentJSON(records, "", "\t")
 	if err != nil {
@@ -222,10 +231,11 @@ func rebuildSessionIndex() map[string]*SessionIndexItem {
 			title = "AI Agent"
 		}
 		index[id] = &SessionIndexItem{
-			ID:        meta.ID,
-			Title:     title,
-			CreatedAt: meta.CreatedAt,
-			UpdatedAt: meta.UpdatedAt,
+			ID:         meta.ID,
+			Title:      title,
+			TargetKind: normalizeSessionTargetKind(meta.TargetKind),
+			CreatedAt:  meta.CreatedAt,
+			UpdatedAt:  meta.UpdatedAt,
 		}
 	}
 	saveSessionIndex(index)
@@ -468,7 +478,14 @@ func validateTaskDirectoryBinding(binding *TaskDirectoryBinding) error {
 	return nil
 }
 
-func UpdateSessionIndex(id, title string, createdAt, updatedAt int64) {
+func normalizeSessionTargetKind(targetKind string) string {
+	if targetKind == "magi" {
+		return targetKind
+	}
+	return "native-agent"
+}
+
+func UpdateSessionIndex(id, title, targetKind string, createdAt, updatedAt int64) {
 	if id == "" {
 		return
 	}
@@ -483,15 +500,16 @@ func UpdateSessionIndex(id, title string, createdAt, updatedAt int64) {
 		title = "AI Agent"
 	}
 	index[id] = &SessionIndexItem{
-		ID:        id,
-		Title:     title,
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
+		ID:         id,
+		Title:      title,
+		TargetKind: normalizeSessionTargetKind(targetKind),
+		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
 	}
 	saveSessionIndex(index)
 }
 
-func ListSessions(page, pageSize int, keyword, ownerIdentityID string) (*SessionListResult, error) {
+func ListSessions(page, pageSize int, keyword, ownerIdentityID, targetKind string) (*SessionListResult, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -549,10 +567,11 @@ func ListSessions(page, pageSize int, keyword, ownerIdentityID string) (*Session
 							title = "AI Agent"
 						}
 						snapshot[id] = &SessionIndexItem{
-							ID:        meta.ID,
-							Title:     title,
-							CreatedAt: meta.CreatedAt,
-							UpdatedAt: meta.UpdatedAt,
+							ID:         meta.ID,
+							Title:      title,
+							TargetKind: normalizeSessionTargetKind(meta.TargetKind),
+							CreatedAt:  meta.CreatedAt,
+							UpdatedAt:  meta.UpdatedAt,
 						}
 						needsSave = true
 					}
@@ -574,8 +593,13 @@ func ListSessions(page, pageSize int, keyword, ownerIdentityID string) (*Session
 	}
 
 	items := make([]*SessionIndexItem, 0, len(index))
+	targetKind = normalizeSessionTargetKind(targetKind)
 	for _, item := range index {
 		itemCopy := *item
+		itemCopy.TargetKind = normalizeSessionTargetKind(itemCopy.TargetKind)
+		if itemCopy.TargetKind != targetKind {
+			continue
+		}
 		itemCopy.TaskDirectory = cloneTaskDirectoryBinding(bindings[item.ID])
 		if itemCopy.TaskDirectory != nil && ownerIdentityID != "" && !subtleOwnerEqual(taskDirectoryBindingOwner(itemCopy.TaskDirectory), ownerIdentityID) {
 			continue
@@ -875,7 +899,7 @@ func SaveSession(data []byte) error {
 	if title == "" {
 		title = "AI Agent"
 	}
-	UpdateSessionIndex(meta.ID, title, meta.CreatedAt, meta.UpdatedAt)
+	UpdateSessionIndex(meta.ID, title, meta.TargetKind, meta.CreatedAt, meta.UpdatedAt)
 
 	return nil
 }

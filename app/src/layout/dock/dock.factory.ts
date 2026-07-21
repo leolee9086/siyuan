@@ -9,7 +9,7 @@ import { Inbox } from "./Inbox";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
-import { AgentChat } from "./agent/AgentChat";
+import { createAgentDockModel } from "./agent/dockModel.factory";
 /** 用途：创建 s-forge 原生颜色 Dock；使用范围：MODEL_FACTORIES 的内建颜色类型；解耦评估：不经过插件列表，直接由颜色模块提供 Custom Model。 */
 import { createColorToolDockModel } from "../../sforge/colors/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
@@ -158,7 +158,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
     inbox: Inbox,
     embedding_dock: EmbeddingDock,
     cronjob: Cronjob,
-    agentChat: AgentChat,
+    agentChat: createAgentDockModel,
     "magi-identity-access": createIdentityAccessDockModel,
     "sforge-colors": createColorToolDockModel,
 };

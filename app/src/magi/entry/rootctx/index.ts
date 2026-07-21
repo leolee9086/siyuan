@@ -1,7 +1,5 @@
 /** 用途：创建计算属性；使用范围：showWindowControls 视图开关；解耦评估：Vue 计算属性 API 已通过 imports.ts 收口，当前依赖边界清晰。 */
 import { computed } from "./imports";
-/** 用途：侦听响应式变化；使用范围：showWindowControls 视图开关的副作用；解耦评估：Vue 侦听 API 已通过 imports.ts 收口，当前依赖边界清晰。 */
-import { watch } from "./imports";
 /** 用途：读取 Electron 环境标志；使用范围：窗口控制显示条件；解耦评估：平台能力已通过 imports.ts 收口，当前依赖边界清晰。 */
 import { isElectron } from "./imports";
 /** 用途：读取移动端环境标志；使用范围：窗口控制显示条件；解耦评估：平台能力已通过 imports.ts 收口，当前依赖边界清晰。 */
@@ -16,22 +14,16 @@ import { createMagiRootComputed } from "./MagiRoot.computed";
 import { createMagiRootHandlers } from "./MagiRoot.handlers";
 /** 用途：执行启动阶段工作空间守卫；使用范围：MagiRoot 上下文构造完成后的异步引导；解耦评估：同目录 workspace 模块已封装守卫逻辑，直接依赖合理。 */
 import { bootstrapWorkspaceAIMainNotebookGuard } from "./MagiRoot.workspace";
-/** 用途：主面板聊天记录前端缓存；使用范围：useMagiRootContext 中挂载缓存持久化逻辑；解耦评估：utils 层已封装 localStorage 操作，直接依赖合理。 */
-import { loadChatHistory } from "../../utils/chatHistoryCache";
-/** 用途：主面板聊天记录前端缓存；使用范围：useMagiRootContext 中挂载缓存持久化逻辑；解耦评估：utils 层已封装 localStorage 操作，直接依赖合理。 */
-import { saveChatHistory } from "../../utils/chatHistoryCache";
-/** 用途：标注缓存消息类型；使用范围：缓存加载时的类型适配；解耦评估：纯类型依赖，直接导入合理。 */
-import type { CachedMessage } from "../../utils/chatHistoryCache";
 
 /**
- * 作用：创建占位的停止输入 handler。
- * 意图：为模板保留统一事件接口，同时明确当前实现尚无实际停止逻辑。
- * 调用时机：上下文装配最终 handler 集合时调用。
+ * 作用：销毁 MagiRoot 持有的运行时并阻止异步启动结果重新挂载。
+ * 意图：让 Vue 卸载时完整释放 MAGI websocket 与事件订阅。
+ * 调用时机：`MagiRoot` 宿主卸载时通过上下文的 `destroy` 调用。
  */
-function createStopInputHandler() {
-    return () => {
-        // no-op
-    };
+function destroyMagiRootState(state: ReturnType<typeof createMagiRootState>) {
+    state.destroyed.value = true;
+    state.magiState.value?.destroy();
+    state.magiState.value = null;
 }
 
 /**
@@ -43,7 +35,6 @@ function createCoreContext(state: ReturnType<typeof createMagiRootState>) {
     return {
         ready: state.ready,
         bootError: state.bootError,
-        inputValue: state.inputValue,
         showMessages: state.showMessages,
         showSeels: state.showSeels,
         showMonitor: state.showMonitor,
@@ -51,6 +42,7 @@ function createCoreContext(state: ReturnType<typeof createMagiRootState>) {
         sourceSimulationProfiles: state.sourceSimulationProfiles,
         sourceSimulationPanels: state.sourceSimulationPanels,
         magiState: state.magiState,
+        destroy: destroyMagiRootState.bind(null, state),
     };
 }
 
@@ -82,13 +74,11 @@ function createRuntimeViewContext(
 ) {
     return {
         seels: computedState.seels,
-        mainPanelSeels: computedState.mainPanelSeels,
+        seelConnectionViews: computedState.seelConnectionViews,
         sageSeels: computedState.sageSeels,
         monitorHostSeel: computedState.monitorHostSeel,
         sageSeelViews: computedState.sageSeelViews,
         monitorSeelView: computedState.monitorSeelView,
-        displayMessages: computedState.displayMessages,
-        isMainPanelRequestPending: computedState.isMainPanelRequestPending,
         isAnySeelLoading: computedState.isAnySeelLoading,
         runtimeStatus: computedState.runtimeStatus,
         showWindowControls: computed(() => isElectron && !isMobile),
@@ -102,7 +92,6 @@ function createRuntimeViewContext(
  */
 function createHandlerContext(handlers: ReturnType<typeof createMagiRootHandlers>) {
     return {
-        onSubmitInput: handlers.onSubmitInput,
         onShowQuestionnaire: handlers.onShowQuestionnaire,
         onCloseQuestionnaire: handlers.onCloseQuestionnaire,
         onQuestionnaireSaved: handlers.onQuestionnaireSaved,
@@ -121,7 +110,6 @@ function createHandlerContext(handlers: ReturnType<typeof createMagiRootHandlers
         onUpdateSourceSimulationProfile: handlers.onUpdateSourceSimulationProfile,
         onUpdateSourceSimulationRequestField: handlers.onUpdateSourceSimulationRequestField,
         onSubmitSourceSimulationPanel: handlers.onSubmitSourceSimulationPanel,
-        onStopInput: createStopInputHandler(),
     };
 }
 

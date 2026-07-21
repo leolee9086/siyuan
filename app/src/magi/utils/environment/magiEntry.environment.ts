@@ -1,5 +1,7 @@
-/** 用途：forgeI18n 国际化加载函数。使用范围：MAGI 独立入口的 i18n 初始化。解耦评估：环境工具函数通过同目录 imports.ts 转发，避免入口直接跨层依赖。 */
-import { loadForgeI18n } from "./imports";
+/** 用途：forgeI18n 国际化加载函数。使用范围：MAGI 独立入口的 i18n 初始化。解耦评估：通过同目录网关隔离跨层路径。 */
+import {loadForgeI18n} from "./imports";
+/** 用途：Kernel 环境请求能力。使用范围：MAGI 独立入口的配置初始化。解耦评估：通过同目录网关隔离跨层路径。 */
+import {postStandaloneKernel} from "./imports";
 /** 用途：MAGI 主题加载函数。使用范围：独立入口的主题初始化。解耦评估：环境层适配函数，通过独立资源加载避免耦合主窗口主题运行时。 */
 import { loadMagiTheme } from "./magiTheme";
 /** 用途：MagiBuildTarget 构建目标类型。使用范围：MAGI 入口配置参数类型。解耦评估：类型导入，不涉及运行时耦合。 */
@@ -48,25 +50,8 @@ function getSiyuanRuntime() {
  */
 async function fetchBackendConf(){
     try {
-        const response = await fetch("/api/system/getConf", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({}),
-        });
-        if (!response.ok) {
-            return null;
-        }
-        const payload: unknown = await response.json();
-        if (!payload || typeof payload !== "object") {
-            return null;
-        }
-        const data = Reflect.get(payload, "data");
-        if (!data || typeof data !== "object") {
-            return null;
-        }
-        const conf = Reflect.get(data, "conf");
+        const data = await postStandaloneKernel<{conf: unknown}>("/api/system/getConf");
+        const conf = data.conf;
         if (!conf || typeof conf !== "object") {
             return null;
         }
@@ -88,6 +73,7 @@ export async function bootstrapMagiSiyuan(target: MagiBuildTarget) {
     const backendConfig = await fetchBackendConf();
     const fallbackConfig = existing.config ?? { appearance: { lang: resolveDefaultLang() } };
     const config = backendConfig ?? fallbackConfig;
+    document.documentElement.dataset.magiTarget = target;
 
     Reflect.set(window, "siyuan", {
         ...existing,

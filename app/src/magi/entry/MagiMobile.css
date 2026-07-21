@@ -1,0 +1,266 @@
+.magi-workspace-shell {
+  gap: 6px;
+  padding: 6px;
+}
+
+.magi-agent-panel-host .agent-chat__title {
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.magi-mobile-workspace-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.magi-mobile-workspace-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.magi-mobile-workspace-tab {
+  min-width: max-content;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--sforge-border);
+  background: color-mix(in srgb, var(--sforge-surface-2) 70%, transparent);
+  color: var(--sforge-fg-3);
+  font-family: var(--sforge-font-mono);
+  font-size: 11px;
+}
+
+.magi-mobile-workspace-tab.active {
+  border-color: var(--sforge-signal-normal);
+  background: color-mix(in srgb, var(--sforge-signal-normal) 14%, transparent);
+  color: var(--sforge-fg-1);
+}
+
+.magi-workspace,
+.magi-workspace.with-seel-cluster,
+.magi-workspace--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.magi-main-stack {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  gap: 6px;
+}
+
+.magi-main-modebar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  gap: 6px;
+  padding: 4px;
+}
+
+.magi-main-mode-button {
+  flex: 1 1 calc(33.333% - 6px);
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.magi-main-mode-content {
+  min-height: 0;
+}
+
+.magi-mobile-monitor-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.magi-mobile-orb-selector {
+  --magi-mobile-orbit-radius: 88px;
+  --magi-mobile-orbit-x: 76px;
+  --magi-mobile-orbit-y: 44px;
+  --magi-mobile-selector-bg: color-mix(in srgb, var(--sforge-surface-1) 74%, transparent);
+  position: relative;
+  order: 2;
+  flex: 0 0 190px;
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid color-mix(in srgb, var(--sforge-accent) 38%, transparent);
+  background: var(--magi-mobile-selector-bg);
+}
+
+.magi-mobile-orb {
+  --magi-mobile-orb-color: var(--sforge-accent);
+  position: absolute;
+  width: 84px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sforge-fg-1);
+  font-family: var(--sforge-font-mono);
+  font-size: 8px;
+  line-height: 1.1;
+  white-space: nowrap;
+  isolation: isolate;
+  transform: translate(-50%, -50%);
+  transition: top 260ms ease, left 260ms ease, color 160ms ease;
+}
+
+.magi-mobile-orb:focus {
+  outline: none;
+}
+
+.magi-mobile-orb[data-position="top"] {
+  top: 0;
+  left: 50%;
+}
+
+.magi-mobile-orb[data-position="left"] {
+  top: calc(var(--magi-mobile-orbit-radius) + var(--magi-mobile-orbit-y));
+  left: calc(50% - var(--magi-mobile-orbit-x));
+}
+
+.magi-mobile-orb[data-position="right"] {
+  top: calc(var(--magi-mobile-orbit-radius) + var(--magi-mobile-orbit-y));
+  left: calc(50% + var(--magi-mobile-orbit-x));
+}
+
+.magi-mobile-orb--trinity {
+  --magi-mobile-orb-color: var(--sforge-signal-normal);
+  top: var(--magi-mobile-orbit-radius);
+  left: 50%;
+  width: 78px;
+  height: 68px;
+}
+
+.magi-mobile-orb.active {
+  color: color-mix(in srgb, var(--magi-mobile-orb-color) 74%, white);
+}
+
+.magi-mobile-orb-shell,
+.magi-mobile-orb-shell::before,
+.magi-mobile-orb-shell::after,
+.magi-mobile-orb-core,
+.magi-mobile-orb-focus::before,
+.magi-mobile-orb-focus::after {
+  position: absolute;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  pointer-events: none;
+}
+
+.magi-mobile-orb-shell {
+  inset: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--magi-mobile-orb-color) 76%, transparent);
+}
+
+.magi-mobile-orb-shell::before,
+.magi-mobile-orb-shell::after,
+.magi-mobile-orb-focus::before,
+.magi-mobile-orb-focus::after {
+  content: "";
+}
+
+.magi-mobile-orb-shell::before {
+  inset: 1px;
+  background: var(--sforge-surface-1);
+}
+
+.magi-mobile-orb-shell::after {
+  inset: 5px;
+  background: var(--magi-mobile-orb-color);
+}
+
+.magi-mobile-orb-core {
+  inset: 8px;
+  z-index: 1;
+  background: var(--sforge-surface-1);
+}
+
+.magi-mobile-orb-label {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.magi-mobile-orb-focus {
+  position: absolute;
+  display: none;
+  inset: -10px;
+  z-index: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--magi-mobile-orb-color) 28%, transparent));
+}
+
+.magi-mobile-orb-focus::before {
+  inset: 0;
+  background: color-mix(in srgb, var(--magi-mobile-orb-color) 82%, transparent);
+}
+
+.magi-mobile-orb-focus::after {
+  inset: 2px;
+  background: var(--sforge-surface-1);
+}
+
+.magi-mobile-orb.active .magi-mobile-orb-focus,
+.magi-mobile-orb:focus-visible .magi-mobile-orb-focus {
+  display: block;
+}
+
+.magi-mobile-monitor-content {
+  display: flex;
+  order: 1;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.magi-mobile-monitor-content > .seel-panel,
+.magi-mobile-monitor-content > .magi-monitor-panel {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.magi-mobile-monitor-content > .seel-panel {
+  background: transparent;
+  clip-path: none;
+}
+
+.magi-mobile-monitor-content > .seel-panel::before {
+  background: transparent;
+  clip-path: none;
+}
+
+
+.magi-main-pane--identity {
+  padding: 6px;
+}
+
+.magi-guard {
+  padding: 16px;
+}
+
+.magi-guard-panel {
+  padding: 20px;
+}

@@ -1,11 +1,28 @@
 <template>
   <div class="magi-workspace-shell">
+    <div v-if="isMobileTarget" class="magi-mobile-workspace-tabs" role="tablist" aria-label="MAGI workspace">
+      <button
+        v-for="tab in mobileWorkspaceTabs"
+        :key="tab.id"
+        type="button"
+        class="magi-mobile-workspace-tab"
+        :class="{ active: activeMobileWorkspaceTab === tab.id }"
+        :aria-selected="activeMobileWorkspaceTab === tab.id"
+        role="tab"
+        @click="activeMobileWorkspaceTab = tab.id"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
     <div
       class="magi-workspace"
-      :class="{ 'with-seel-cluster': hasSeelCluster }"
+      :class="{
+        'with-seel-cluster': hasSeelCluster && !isMobileTarget,
+        'magi-workspace--mobile': isMobileTarget,
+      }"
     >
       <div
-        v-if="hasSeelCluster"
+        v-if="hasSeelCluster && !isMobileTarget"
         class="magi-seel-cluster"
         :class="{
           'svg-layout': useSvgClusterLayout,
@@ -72,7 +89,93 @@
         </svg>
       </div>
 
-      <div class="magi-main-stack">
+      <div
+        v-if="isMobileTarget"
+        v-show="activeMobileWorkspaceTab !== 'chat'"
+        class="magi-mobile-monitor-pane"
+      >
+        <div class="magi-mobile-orb-selector" aria-label="MAGI monitor selector">
+          <button
+            v-for="orb in mobileSageOrbs"
+            :key="orb.id"
+            type="button"
+            class="magi-mobile-orb magi-mobile-orb--sage"
+            :class="{
+              active: activeMobileMonitorKey === orb.id,
+              dominant: dominantNodeKey === orb.id,
+            }"
+            :data-position="orb.position"
+            :aria-label="orb.label"
+            :aria-pressed="activeMobileMonitorKey === orb.id"
+            :style="{ '--magi-mobile-orb-color': getColor(orb.seel.config.color) }"
+            @click="activeMobileMonitorKey = orb.id"
+          >
+            <span class="magi-mobile-orb-shell" aria-hidden="true">
+              <span class="magi-mobile-orb-core" />
+            </span>
+            <span class="magi-mobile-orb-label">{{ orb.displayLabel }}</span>
+            <span class="magi-mobile-orb-focus" aria-hidden="true" />
+          </button>
+          <button
+            v-if="monitorSeelView"
+            type="button"
+            class="magi-mobile-orb magi-mobile-orb--trinity"
+            :class="{ active: activeMobileMonitorKey === 'monitor' }"
+            aria-label="TRINITY"
+            :aria-pressed="activeMobileMonitorKey === 'monitor'"
+            @click="activeMobileMonitorKey = 'monitor'"
+          >
+            <span class="magi-mobile-orb-shell" aria-hidden="true">
+              <span class="magi-mobile-orb-core" />
+            </span>
+            <span class="magi-mobile-orb-label">TRINITY</span>
+            <span class="magi-mobile-orb-focus" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div class="magi-mobile-monitor-content">
+          <SeelPanel
+            v-if="balthasarSeelView"
+            v-show="activeMobileMonitorKey === 'balthasar'"
+            :ai="balthasarSeelView"
+            :show-messages="showMessages"
+            :is-dominant="dominantNodeKey === 'balthasar'"
+            :show-frame="false"
+            :dismissed-vote-badge-token="dismissedSageVoteBadgeToken"
+            @dismiss-vote-badges="dismissSageVoteBadges"
+          />
+          <SeelPanel
+            v-if="casperSeelView"
+            v-show="activeMobileMonitorKey === 'casper'"
+            :ai="casperSeelView"
+            :show-messages="showMessages"
+            :is-dominant="dominantNodeKey === 'casper'"
+            :show-frame="false"
+            :dismissed-vote-badge-token="dismissedSageVoteBadgeToken"
+            @dismiss-vote-badges="dismissSageVoteBadges"
+          />
+          <SeelPanel
+            v-if="melchiorSeelView"
+            v-show="activeMobileMonitorKey === 'melchior'"
+            :ai="melchiorSeelView"
+            :show-messages="showMessages"
+            :is-dominant="dominantNodeKey === 'melchior'"
+            :show-frame="false"
+            :dismissed-vote-badge-token="dismissedSageVoteBadgeToken"
+            @dismiss-vote-badges="dismissSageVoteBadges"
+          />
+          <MagiMonitorPanel
+            v-if="monitorSeelView"
+            v-show="activeMobileMonitorKey === 'monitor'"
+            :ai="monitorSeelView"
+            :runtime-status="runtimeStatus"
+            :show-messages="showMessages"
+            :accent-color="clusterAccentColor"
+          />
+        </div>
+      </div>
+
+      <div v-show="!isMobileTarget || activeMobileWorkspaceTab === 'chat'" class="magi-main-stack">
         <div class="magi-main-modebar">
           <button
             v-for="mode in magiMainModes"
@@ -115,15 +218,7 @@
             v-show="activeMainMode === 'chat'"
             class="magi-main-pane magi-main-pane--chat"
           >
-            <MagiMainPanel
-              :messages="displayMessages"
-              :seels="mainPanelSeels"
-              :input-value="inputValue"
-              :is-request-pending="isMainPanelRequestPending"
-              @update:inputValue="inputValue = $event"
-              @submit-input="onSubmitInput"
-              @stop-input="onStopInput"
-            />
+            <AgentPanelHost />
           </div>
         </div>
       </div>
@@ -134,7 +229,7 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 import ExternalChannelsPanel from "../components/external-channels/ExternalChannelsPanel.vue";
-import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
+import AgentPanelHost from "../components/agent-panel-host/AgentPanelHost.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
 import MagiMonitorPanel from "../components/trinity-monitor-panel/TrinityMonitorPanel.vue";
@@ -326,19 +421,13 @@ if (!ctx) {
     throw new Error("MagiWorkspace must be used inside MagiRoot");
 }
 const {
-    inputValue,
     showMessages,
     showSeels,
     sourceSimulationProfiles,
     sourceSimulationPanels,
-    mainPanelSeels,
     sageSeelViews,
     monitorSeelView,
-    displayMessages,
-    isMainPanelRequestPending,
     runtimeStatus,
-    onSubmitInput,
-    onStopInput,
     onCreateSourceSimulationPanel,
     onRemoveSourceSimulationPanel,
     onUpdateSourceSimulationInput,
@@ -356,6 +445,9 @@ const magiMainModes: Array<{ id: MagiMainMode; label: string }> = [
 ];
 
 const activeMainMode = ref<MagiMainMode>("chat");
+const isMobileTarget = typeof document !== "undefined" && document.documentElement.dataset.magiTarget === "magi-mobile";
+const activeMobileWorkspaceTab = ref("chat");
+const activeMobileMonitorKey = ref("monitor");
 const dismissedSageVoteBadgeToken = ref("");
 
 function setMainMode(mode: MagiMainMode): void {
@@ -370,12 +462,9 @@ function handleIdentityRequiredEvent(): void {
     openIdentityAccessStandalone();
 }
 
-function handleWriteAvatarEvent(e: Event): void {
-    const prompt = (e as CustomEvent).detail;
-    if (typeof prompt === "string" && prompt.trim()) {
-        inputValue.value = prompt.trim();
-        activeMainMode.value = "chat";
-    }
+function handleWriteAvatarModeEvent(): void {
+    activeMainMode.value = "chat";
+    activeMobileWorkspaceTab.value = "chat";
 }
 
 onMounted(() => {
@@ -383,7 +472,7 @@ onMounted(() => {
         return;
     }
     window.addEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
-    window.addEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarEvent);
+    window.addEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarModeEvent);
 });
 
 onBeforeUnmount(() => {
@@ -391,7 +480,7 @@ onBeforeUnmount(() => {
         return;
     }
     window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
-    window.removeEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarEvent);
+    window.removeEventListener(MAGI_WRITE_AVATAR_EVENT, handleWriteAvatarModeEvent);
 });
 
 const hasSeelCluster = computed<boolean>(() =>
@@ -413,6 +502,25 @@ const casperSeelView = computed(() =>
 const melchiorSeelView = computed(() =>
     findSageByKeywords(["MELCHIOR"]),
 );
+
+const mobileWorkspaceTabs = computed(() => [
+    {id: "chat", label: "CHAT"},
+    {id: "monitor", label: "MONITOR"},
+]);
+
+const mobileSageOrbs = computed(() => {
+    const sages = [
+        balthasarSeelView.value ? {id: "balthasar", label: "BALTHASAR", displayLabel: balthasarSeelView.value.config.name, seel: balthasarSeelView.value} : null,
+        casperSeelView.value ? {id: "casper", label: "CASPER", displayLabel: casperSeelView.value.config.name, seel: casperSeelView.value} : null,
+        melchiorSeelView.value ? {id: "melchior", label: "MELCHIOR", displayLabel: melchiorSeelView.value.config.name, seel: melchiorSeelView.value} : null,
+    ].filter((sage) => sage !== null);
+    const dominantIndex = sages.findIndex((sage) => sage.id === dominantNodeKey.value);
+    const ordered = dominantIndex > 0
+        ? [sages[dominantIndex], ...sages.slice(0, dominantIndex), ...sages.slice(dominantIndex + 1)]
+        : sages;
+    const positions = ["top", "left", "right"];
+    return ordered.map((sage, index) => ({...sage, position: positions[index] || "right"}));
+});
 
 /**
  * 作用：统一集群视觉主色。

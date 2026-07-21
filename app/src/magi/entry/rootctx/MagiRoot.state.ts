@@ -19,8 +19,8 @@ export function createMagiRootState() {
     const profiles = createSourceSimulationProfileOptions();
     return {
         ready: ref(false),
+        destroyed: ref(false),
         bootError: ref<string | null>(null),
-        inputValue: ref(""),
         showMessages: ref(true),
         showSeels: ref(true),
         showMonitor: ref(true),

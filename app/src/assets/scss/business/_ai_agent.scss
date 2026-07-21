@@ -1,11 +1,45 @@
 
-.file-tree.sy__agentChat .block__icons .block__icon[data-type="guardian-auth"] {
+.file-tree.sy__agentChat .block__icons .block__icon {
   display: flex;
+  opacity: 1;
 }
 
 .agent-chat__title {
   font-size: 14px;
   color: var(--b3-theme-on-background);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-chat__target-wrap {
+  display: flex;
+  align-items: center;
+  flex: 0 1 132px;
+  min-width: 74px;
+}
+
+.agent-chat__target {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  font-weight: 600;
+}
+
+.agent-chat__tokens--target-hidden {
+  display: none !important;
+}
+
+.agent-chat-host--magi .agent-chat__title {
+  color: var(--b3-theme-primary);
+}
+
+.agent-panel-runtime--no-menu {
+  .agent-chat__reasoning-effort,
+  .agent-session-more {
+    display: none;
+  }
 }
 
 .agent-chat__tokens {

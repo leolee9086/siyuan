@@ -23,7 +23,7 @@ export interface IMenuHostOptions {
 let fallbackZIndex = 10;
 
 const getDefaultZIndex = () => {
-    const siyuan = Reflect.get(globalThis, "siyuan");
+    const siyuan = window.siyuan;
     if (siyuan && typeof siyuan.zIndex === "number") {
         siyuan.zIndex += 1;
         return siyuan.zIndex;
@@ -33,7 +33,8 @@ const getDefaultZIndex = () => {
 };
 
 const getDefaultBackLabel = () => {
-    const languages = Reflect.get(Reflect.get(globalThis, "siyuan"), "languages");
+    const siyuan = window.siyuan;
+    const languages = siyuan?.languages;
     return typeof languages?.back === "string" ? languages.back : "back";
 };
 

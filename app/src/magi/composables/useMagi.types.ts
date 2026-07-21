@@ -143,7 +143,7 @@ export interface WrappedSeel {
  * useMagi composable 返回值
  *
  * 用途：封装MAGI系统的全部响应式状态和操作方法
- * 使用场景：MagiMainPanel组件通过解构获取状态和方法
+ * 使用场景：MagiRoot 与监控面板通过解构获取状态和方法
  */
 export interface UseMagiReturn {
     /** 所有贤者实例列表（响应式） */
@@ -152,18 +152,12 @@ export interface UseMagiReturn {
     connectionStatus: Ref<ConnectionStatus>;
     /** 监控 websocket 连接状态（用于贤者卡片指示） */
     websocketConnectionStatus: Ref<ConnectionStatus>;
-    /** 主聊天面板本地消息列表（HTTP 请求/响应） */
-    mainPanelMessages: MagiMessage[];
     /** 共识消息列表 */
     consensusMessages: MagiMessage[];
-    /** 主聊天面板是否存在进行中的普通 LLM 请求 */
-    isMainPanelRequestPending: Ref<boolean>;
     /** 是否存在任一贤者正在响应 */
     isAnySeelLoading: Ref<boolean>;
     /** MAGI 全局运行态 */
     runtimeStatus: Ref<MagiRuntimeStatus | null>;
-    /** 发送用户消息并触发三贤者并行响应 */
-    sendUserMessage: (text: string, options?: SendUserMessageOptions) => Promise<string>;
     /** 初始化MAGI系统 */
     initializeMAGI: (options?: {
         /** 在基础提示词后追加的人格注入文本 */
@@ -171,6 +165,8 @@ export interface UseMagiReturn {
         /** 是否保留既有共识消息 */
         preserveConsensusMessages?: boolean;
     }) => Promise<void>;
+    /** 释放 websocket、事件订阅和响应式运行态。 */
+    destroy: () => void;
 }
 
 /**
@@ -207,7 +203,3 @@ export interface SourceSimulationContext {
     sourcePanelTitle?: string;
 }
 
-/** sendUserMessage 可选扩展参数 */
-export interface SendUserMessageOptions {
-    sourceSimulation?: SourceSimulationContext;
-}

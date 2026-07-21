@@ -1,0 +1,20 @@
+.magi-agent-panel-host {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--b3-theme-background);
+}
+
+.magi-agent-panel-host > .agent-panel-runtime {
+  flex: 1;
+}
+
+.magi-agent-panel-host .agent-chat .block__icons {
+  border-bottom: 1px solid rgba(84, 229, 255, 0.2);
+}
+
+.magi-agent-panel-host .agent-chat__target {
+  color: var(--b3-theme-primary);
+  font-weight: 600;
+}

@@ -16,6 +16,7 @@ import { Graph } from "./dock/Graph";
 import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
 import { AgentChat } from "./dock/agent/AgentChat";
+import {createAppAgentPanelCapabilities} from "./dock/agent/runtime/agentPanel.capabilities.app";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
 import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";
@@ -343,7 +344,10 @@ export const handleAgentChatInstance = (
     json: { sessionId?: unknown },
     layout: Tab
 ): void => {
-    const model = new AgentChat(app, layout);
+    const model = new AgentChat(app, layout, {
+        capabilities: createAppAgentPanelCapabilities(app, layout),
+        capabilitiesFactory: (target) => createAppAgentPanelCapabilities(app, target),
+    });
     layout.addModel(model);
     // 普通布局 Tab 也是独立副本；其最小化动作应关闭自身，不得切换原始 Agent Dock。
     model.setFloatingCopyOptions({

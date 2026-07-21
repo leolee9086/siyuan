@@ -78,6 +78,16 @@
             { "chunks": [], "filename": "index.html", "template": "src/assets/template/protyle/desktop/index.tpl" }
         ]
     },
+    "agent-app": {
+        "platform": "web",
+        "entry": { "agent-panel": "./src/agent-standalone/index.ts" },
+        "outputDir": "stage/build/agent-app",
+        "publicPath": "/stage/build/agent-app/",
+        "library": { "format": "module" },
+        "html": [
+            { "chunks": [], "filename": "index.html", "template": "src/assets/template/agent/desktop/index.tpl" }
+        ]
+    },
     "bazaar-source": {
         "platform": "web",
         "entry": { "main": "./src/bazaar-source/index.ts" },

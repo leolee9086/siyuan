@@ -14,7 +14,7 @@ import type {
  * SeelPanel 组件 Props
  *
  * 用途：定义三贤人面板组件的输入属性
- * 使用场景：MagiMainPanel 中为每个贤者渲染一个 SeelPanel
+ * 使用场景：MagiWorkspace 中为每个贤者渲染一个 SeelPanel
  */
 export interface SeelPanelProps {
     /** 贤者数据 */

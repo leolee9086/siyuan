@@ -70,7 +70,11 @@ async function renderAgentSessionPanel(state: types.AgentSessionPanelState) {
     state.isRendering = true;
     closeAgentSessionPanel(state);
     try {
-        const result = await imports.SessionStore.list({page: 1, pageSize: 30});
+        const result = await imports.SessionStore.list({
+            page: 1,
+            pageSize: 30,
+            targetKind: state.options.getTargetKind(),
+        });
         state.items = result.sessions;
         state.total = result.total;
         state.page = 1;
@@ -111,7 +115,12 @@ async function loadMoreAgentSessions(state: types.AgentSessionPanelState, contai
     }
     state.isLoadingMore = true;
     try {
-        const result = await imports.SessionStore.list({page: state.page + 1, pageSize: 30, keyword: state.searchKeyword});
+        const result = await imports.SessionStore.list({
+            page: state.page + 1,
+            pageSize: 30,
+            keyword: state.searchKeyword,
+            targetKind: state.options.getTargetKind(),
+        });
         state.page = result.page;
         state.items = state.items.concat(result.sessions);
         state.total = result.total;
@@ -134,7 +143,12 @@ function filterAgentSessions(state: types.AgentSessionPanelState, keyword: strin
 
 /** 执行最新搜索并用首页结果重置列表。 */
 async function applyAgentSessionFilter(state: types.AgentSessionPanelState, container: HTMLElement) {
-    const result = await imports.SessionStore.list({page: 1, pageSize: 30, keyword: state.searchKeyword});
+    const result = await imports.SessionStore.list({
+        page: 1,
+        pageSize: 30,
+        keyword: state.searchKeyword,
+        targetKind: state.options.getTargetKind(),
+    });
     state.items = result.sessions;
     state.total = result.total;
     state.page = 1;
@@ -174,7 +188,12 @@ async function refreshAgentSessionPanel(state: types.AgentSessionPanelState) {
     if (!container) {
         return;
     }
-    const result = await imports.SessionStore.list({page: 1, pageSize: 30, keyword: state.searchKeyword});
+    const result = await imports.SessionStore.list({
+        page: 1,
+        pageSize: 30,
+        keyword: state.searchKeyword,
+        targetKind: state.options.getTargetKind(),
+    });
     state.items = result.sessions;
     state.total = result.total;
     state.page = 1;
@@ -187,12 +206,16 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
     if (!session) {
         return;
     }
-    const menu = window.siyuan.menus.menu;
+    const menu = window.siyuan.menus?.menu;
+    if (!menu) {
+        return;
+    }
     menu.remove();
     menu.element.setAttribute("data-name", AGENT_SESSION_MENU_NAME);
     anchor.setAttribute("aria-expanded", "true");
     menu.removeCB = () => anchor.setAttribute("aria-expanded", "false");
-    if (imports.isElectron) {
+    const nativeAgent = state.options.getTargetKind() === "native-agent";
+    if (nativeAgent && imports.isElectron) {
         menu.addItem({
             icon: "iconFolder",
             label: window.siyuan.languages.showInFolder,
@@ -202,12 +225,14 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
             )),
         });
     }
-    for (const action of buildTaskDirectoryMenuActions(session)) {
-        menu.addItem({
-            icon: action.icon,
-            label: action.label,
-            click: runTaskDirectoryAction.bind(null, state, id, action),
-        });
+    if (nativeAgent) {
+        for (const action of buildTaskDirectoryMenuActions(session)) {
+            menu.addItem({
+                icon: action.icon,
+                label: action.label,
+                click: runTaskDirectoryAction.bind(null, state, id, action),
+            });
+        }
     }
     menu.addItem({
         icon: "iconTrashcan",
@@ -279,7 +304,10 @@ async function selectAgentTaskDirectoryPath() {
 
 /** 仅在全局菜单属于会话动作时关闭，不干扰其它业务菜单。 */
 function closeAgentSessionMoreMenu() {
-    const menu = window.siyuan.menus.menu;
+    const menu = window.siyuan.menus?.menu;
+    if (!menu) {
+        return;
+    }
     // data-name 区分共用的全局菜单当前是否由会话面板持有。
     if (menu.element.getAttribute("data-name") === AGENT_SESSION_MENU_NAME) {
         menu.remove();

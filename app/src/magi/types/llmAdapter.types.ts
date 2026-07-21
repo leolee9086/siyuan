@@ -38,9 +38,10 @@ export interface StandardLLMStreamCallbacks {
  * 约束：契约形态与常见 LLM 适配器一致，调用方无需感知底层是否为 MAGI。
  */
 export interface StandardLLMAdapter {
-    createChatCompletion(request: ChatRequestParams): Promise<ChatResponseData>;
+    createChatCompletion(request: ChatRequestParams, signal?: AbortSignal): Promise<ChatResponseData>;
     streamChatCompletion(
         request: ChatRequestParams,
-        callbacks: StandardLLMStreamCallbacks
+        callbacks: StandardLLMStreamCallbacks,
+        signal?: AbortSignal,
     ): Promise<void>;
 }

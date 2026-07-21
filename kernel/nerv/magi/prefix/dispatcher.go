@@ -9,6 +9,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/channel/trust"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 )
 
 // ReplyFunc 是向渠道发送回复消息的函数签名。
@@ -20,11 +21,11 @@ type MagiNotifyFunc func(ctx context.Context, inbound *channel.InboundMessage, m
 // Dispatcher 前缀指令路由器。
 // 在 handleChannelInbound 中最前置调用，命中前缀则执行 handler 不走 MAGI 对话流程。
 type Dispatcher struct {
-	mu          sync.RWMutex
-	commands    []*PrefixCommand
-	goHandlers  map[string]GoHandlerFunc // builtin → handler
-	trustMgr    *trust.Manager
-	notifyMagi  MagiNotifyFunc
+	mu         sync.RWMutex
+	commands   []*PrefixCommand
+	goHandlers map[string]GoHandlerFunc // builtin → handler
+	trustMgr   *trust.Manager
+	notifyMagi MagiNotifyFunc
 }
 
 // NewDispatcher 创建前缀指令路由器。
@@ -181,7 +182,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, inbound *channel.InboundMessa
 		}
 	}
 
-	logging.LogInfof("prefix dispatch: cmd=%s args=%q channel=%s user=%s",
+	logging.LogInfof("prefix dispatch: cmd=%s argsLength=%d channel=%s user=%s",
+		match.Command.ID, len(match.Args), inbound.ChannelType, inbound.UserID)
+	observability.Detailf("prefix dispatch: cmd=%s args=%q channel=%s user=%s",
 		match.Command.ID, match.Args, inbound.ChannelType, inbound.UserID)
 	return true, nil
 }

@@ -21,6 +21,7 @@ interface ComposerHandle {
     destroy: () => void;
     getSendData: () => {text: string; references: {id: string; title: string}[]};
     clear: () => void;
+    setText: (text: string) => void;
     pushHistory: (text: string) => void;
     getHistory: () => string[];
     clearHistory: () => void;
@@ -400,6 +401,13 @@ export function mountComposer(host: HTMLElement, onSend: () => void, onChange?: 
             return {text: textParts.join("").trim(), references: refs};
         },
         clear: function () { editor.commands.clearContent(); },
+        setText: function (text: string) {
+            const content = text.split("\n").map((line) => ({
+                type: "paragraph",
+                content: line ? [{type: "text", text: line}] : [],
+            }));
+            editor.commands.setContent({type: "doc", content});
+        },
         pushHistory: function (text: string) {
             if (!text || history[history.length - 1] === text) { return; }
             history.push(text);
