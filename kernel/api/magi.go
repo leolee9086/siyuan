@@ -451,6 +451,11 @@ func magiChat(c *gin.Context) {
 		writeMagiSourceAuthError(c, authErr)
 		return
 	}
+	if err := persistMagiMainUIInbound(c.Request.Context(), &req, sourceCtx); err != nil {
+		logging.LogErrorf("MAGI main UI inbound persistence failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "code": "magi_main_ui_persistence_failed"})
+		return
+	}
 
 	logging.LogInfof("magiChat received request: model=[%s] stream=[%v] msgs_count=[%d]", req.Model, req.Stream, len(req.Messages))
 	modelName := req.Model
@@ -462,6 +467,11 @@ func magiChat(c *gin.Context) {
 	consensusMsg, err := submitMagiTask(c, req, sourceCtx)
 	if err != nil {
 		writeMagiTaskError(c, err)
+		return
+	}
+	if err := persistMagiMainUIOutbound(c.Request.Context(), consensusMsg, sourceCtx); err != nil {
+		logging.LogErrorf("MAGI main UI outbound persistence failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "code": "magi_main_ui_persistence_failed"})
 		return
 	}
 

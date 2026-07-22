@@ -58,7 +58,8 @@ func TestBuildWakeupSequenceFallsBackWhenProfileMissing(t *testing.T) {
 	if !strings.Contains(joined, "助手；我的目标是完成当前任务") {
 		t.Fatalf("expected fallback role/careerGoal when preset profile has no role fields, got: %s", joined)
 	}
-	if !strings.Contains(joined, "作为专业人员，我的职责是执行收到任务") {
+	wantProfessional := marduk.GetReiSubmissionPayload().Descriptions.ProfessionalDescription
+	if !strings.Contains(joined, wantProfessional) {
 		t.Fatalf("expected melchior identity use professional description, got: %s", joined)
 	}
 }
@@ -70,14 +71,15 @@ func TestBuildWakeupIdentityUsesDifferentFacetBySage(t *testing.T) {
 	melchior := BuildWakeupSequence(dataDir, "melchior", profile)
 	balthazar := BuildWakeupSequence(dataDir, "balthazar", profile)
 	casper := BuildWakeupSequence(dataDir, "casper", profile)
+	descriptions := marduk.ResolvePersonaSeedDescriptions(dataDir, profile)
 
-	if !strings.Contains(melchior[7].Content, "作为专业人员，我的职责是执行收到任务") {
+	if !strings.Contains(melchior[7].Content, descriptions.ProfessionalDescription) {
 		t.Fatalf("melchior should use ProfessionalDescription, got: %s", melchior[7].Content)
 	}
-	if !strings.Contains(balthazar[7].Content, "我的基础需求是完成被赋予的使命") {
+	if !strings.Contains(balthazar[7].Content, descriptions.InstinctNeedsDescription) {
 		t.Fatalf("balthazar should use InstinctNeedsDescription, got: %s", balthazar[7].Content)
 	}
-	if !strings.Contains(casper[7].Content, "我的日常生活简单而有序") {
+	if !strings.Contains(casper[7].Content, descriptions.LifeDescription) {
 		t.Fatalf("casper should use LifeDescription, got: %s", casper[7].Content)
 	}
 }

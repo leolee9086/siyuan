@@ -14,11 +14,12 @@ class FakeBroadcastChannel {
     }
 
     postMessage(data: unknown): void {
+        const clonedData = structuredClone(data);
         for (const peer of FakeBroadcastChannel.channels.get(this.name) ?? []) {
             if (peer === this) {
                 continue;
             }
-            queueMicrotask(() => peer.onmessage?.({data} as MessageEvent));
+            queueMicrotask(() => peer.onmessage?.({data: clonedData} as MessageEvent));
         }
     }
 

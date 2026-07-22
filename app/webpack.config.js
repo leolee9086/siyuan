@@ -31,7 +31,7 @@ function createConfig(targetName, argv, env = {}) {
         cache: isProd ? undefined : false,
         devtool: isProd ? false : "eval-source-map",
         entry: t.entry,
-        output: buildOutput(t, isLibrary, outputDir),
+        output: buildOutput(t, isLibrary, isProd, outputDir),
         resolve: buildResolve(t, isElectron),
         optimization: {
             minimize: isProd,
@@ -73,10 +73,12 @@ function createConfig(targetName, argv, env = {}) {
     };
 }
 
-function buildOutput(t, isLibrary, outputDir) {
+function buildOutput(t, isLibrary, isProd, outputDir) {
     const output = {
         publicPath: t.publicPath,
-        filename: isLibrary ? "[name].js" : "[name].[chunkhash].js",
+        filename: isLibrary
+            ? (pathData) => pathData.chunk?.name === "agent-panel" ? "agent-panel.js" : "[name].[contenthash].js"
+            : "[name].[chunkhash].js",
         path: outputDir,
         // Electron and browser-hosted builds share the same chunks; use the
         // standards-based root object so webpack never emits bare `global`.
@@ -86,7 +88,7 @@ function buildOutput(t, isLibrary, outputDir) {
         if (t.library.format === "module") {
             output.module = true;
             output.library = { type: "module" };
-            output.chunkFilename = "[name].js";
+            output.chunkFilename = isProd ? "[name].[contenthash].js" : "[name].js";
         } else {
             output.library = t.library.name;
             output.libraryTarget = t.library.format;
@@ -225,6 +227,7 @@ function buildPlugins(t, argv, isProd, isLibrary, targetName, outputDir) {
             chunks: h.chunks,
             filename: h.filename,
             template: h.template,
+            ...(t.library?.format === "module" ? {scriptLoading: "module"} : {}),
         }));
     }
 

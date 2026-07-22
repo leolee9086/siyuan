@@ -36,6 +36,9 @@ import (
 // This test sweeps efSearch ∈ {10, 20, 40, 80, 160, 320} and
 // bbqOverSearchFactor ∈ {1, 2, 3, 5(default), 8} to find the sweet spot.
 func TestDiskVamanaEfSearchSweep(t *testing.T) {
+	if testing.Short() {
+		t.Skip("search parameter sweep")
+	}
 	total := 50000
 	dim := 768
 	queryCnt := 50

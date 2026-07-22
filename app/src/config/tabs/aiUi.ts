@@ -557,10 +557,12 @@ const addAllModelsForProvider = (root: HTMLElement, providerId: string): void =>
     });
 };
 
-// 提供商/模型变更后，将 editing 与 agent 两组模型选择器与配置对齐，并在必要时修正已保存的 modelId
+type ModelPickerGroup = "editing" | "agent" | "commandReview";
+
+// 提供商/模型变更后，将各场景模型选择器与配置对齐，并在必要时修正已保存的 modelId
 const syncModelPickerSelects = (root: HTMLElement) => {
     const enabledProviders = getEnabledProviders();
-    (["editing", "agent"] as const).forEach((group) => {
+    (["editing", "agent", "commandReview"] as const).forEach((group) => {
         const blockEl = root.querySelector<HTMLElement>(`#${CSS.escape(`aiModelPickerBlock-${group}`)}`);
         if (!blockEl) {
             return;
@@ -840,7 +842,7 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
     });
 };
 
-export const getModelPickerKeywords = (group: "editing" | "agent"): string[] => {
+export const getModelPickerKeywords = (group: ModelPickerGroup): string[] => {
     const keywords = [
         window.siyuan.languages.defaultModel,
         window.siyuan.languages.apiProvider,
@@ -852,16 +854,18 @@ export const getModelPickerKeywords = (group: "editing" | "agent"): string[] => 
         keywords.push(
             window.siyuan.languages.aiEditingModelPickerTip
         );
-    } else {
+    } else if (group === "agent") {
         keywords.push(
             window.siyuan.languages.aiAgentModelPickerTip,
             window.siyuan.languages.agentChat,
         );
+    } else {
+        keywords.push("命令审核", "Bash 安全审核", "重启绕过审核");
     }
     return keywords;
 };
 
-export const genModelPickerHtml = (group: "editing" | "agent"): string => {
+export const genModelPickerHtml = (group: ModelPickerGroup): string => {
     const savedModelId = window.siyuan.config.ai[group].modelId;
     const {providerId, modelId: storedModelId} = lookupModelOwner(savedModelId);
     const enabledProviders = getEnabledProviders();
@@ -872,6 +876,8 @@ export const genModelPickerHtml = (group: "editing" | "agent"): string => {
         desc = window.siyuan.languages.aiEditingModelPickerTip;
     } else if (group === "agent") {
         desc = window.siyuan.languages.aiAgentModelPickerTip;
+    } else {
+        desc = "独立用于审核 Bash 命令；Forge 源码场景会额外检查绕过受控重启的意图。";
     }
 
     return `<div class="b3-label config-item" id="aiModelPickerBlock-${group}" data-type="aiModelPicker" data-name="${group}">
@@ -892,7 +898,7 @@ export const genModelPickerHtml = (group: "editing" | "agent"): string => {
 </div>`;
 };
 
-export const mountModelPickerBlock = (root: HTMLElement, group: "editing" | "agent") => {
+export const mountModelPickerBlock = (root: HTMLElement, group: ModelPickerGroup) => {
     const blockEl = root.querySelector(`#${CSS.escape(`aiModelPickerBlock-${group}`)}`);
     if (!blockEl) {
         return;

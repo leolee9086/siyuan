@@ -32,6 +32,9 @@ import (
 // TestDiskIndex_EndToEnd_SIFT10K 使用 SIFT 10K 进行端到端测试
 // 验证完整流程：构建内存索引 → 保存到磁盘 → 加载磁盘索引 → 查询并验证召回率
 func TestDiskIndex_EndToEnd_SIFT10K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset end-to-end test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found. Download from: ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz")

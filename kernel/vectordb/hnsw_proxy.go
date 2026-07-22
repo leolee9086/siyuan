@@ -39,6 +39,12 @@ type SearchResult struct {
 
 // InsertPoint inserts or updates a point in the HNSW index.
 func (c *Collection) InsertPoint(point Point) error {
+	c.operationMu.Lock()
+	defer c.operationMu.Unlock()
+	return c.insertPointLocked(point)
+}
+
+func (c *Collection) insertPointLocked(point Point) error {
 	var docID DocID
 	exists := false
 
@@ -92,6 +98,8 @@ func (c *Collection) InsertPoint(point Point) error {
 
 // Search searches for k nearest neighbors
 func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
+	c.operationMu.Lock()
+	defer c.operationMu.Unlock()
 	// Delegate to HNSWIndex
 	hnswResults := c.HNSWIdx.Search(queryVec, k, efSearch)
 	if hnswResults == nil {
@@ -128,6 +136,8 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 
 // DeleteItemWithIndex deletes an item and updates the HNSW index
 func (c *Collection) DeleteItemWithIndex(id string) {
+	c.operationMu.Lock()
+	defer c.operationMu.Unlock()
 	docID, ok := c.GetDocID(id)
 	if !ok {
 		return
@@ -148,6 +158,8 @@ func (c *Collection) DeleteItemWithIndex(id string) {
 
 // RebuildIndex rebuilds the HNSW index
 func (c *Collection) RebuildIndex() error {
+	c.operationMu.Lock()
+	defer c.operationMu.Unlock()
 	// Collect all valid points
 	points := make([]Point, 0)
 
@@ -184,8 +196,8 @@ func (c *Collection) RebuildIndex() error {
 		c.IDMap = make(map[string]DocID)
 		c.DocMap = make([]string, 0)
 		c.Metas = make([][]byte, 0)
-	c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
-	c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
+		c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
+		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 		c.Mu.Unlock()
 		return nil
 	}
@@ -195,13 +207,15 @@ func (c *Collection) RebuildIndex() error {
 	c.IDMap = make(map[string]DocID)
 	c.DocMap = make([]string, 0)
 	c.Metas = make([][]byte, 0)
-		c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
-		c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
+	c.Store = NewVectorStore(c.ColDim, c.Config.MetricType)
+	c.HNSWIdx = hnsw.NewHNSWIndex(c.ColDim, c.hnswConfig(), c.Store)
 	c.Mu.Unlock()
 
 	// Re-insert all points
 	for _, point := range points {
-		c.InsertPoint(point)
+		if err := c.insertPointLocked(point); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -222,9 +236,9 @@ func (c *Collection) hnswConfig() hnsw.Config {
 // VectorCollection interface methods
 // =========================================
 
-func (c *Collection) Name() string     { return c.ColName }
+func (c *Collection) Name() string { return c.ColName }
 
-func (c *Collection) Dimension() int   { return c.ColDim }
+func (c *Collection) Dimension() int { return c.ColDim }
 
 func (c *Collection) ListIDs() []string {
 	c.Mu.RLock()

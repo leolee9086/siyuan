@@ -17,13 +17,15 @@ type InboundMessage struct {
 
 // OutboundMessage 通道无关的标准化出站消息。
 type OutboundMessage struct {
-	ChannelID         string            `json:"channelId"`
-	ChannelType       string            `json:"channelType"`
-	AccountID         string            `json:"accountId"`
-	UserID            string            `json:"userId"`
-	Text              string            `json:"text,omitempty"`
-	Media             []MediaAttachment `json:"media,omitempty"`
-	ConversationToken string            `json:"conversationToken,omitempty"`
+	ChannelID           string            `json:"channelId"`
+	ChannelType         string            `json:"channelType"`
+	AccountID           string            `json:"accountId"`
+	UserID              string            `json:"userId"`
+	IdentityID          string            `json:"identityId,omitempty"`
+	IdentityDisplayName string            `json:"identityDisplayName,omitempty"`
+	Text                string            `json:"text,omitempty"`
+	Media               []MediaAttachment `json:"media,omitempty"`
+	ConversationToken   string            `json:"conversationToken,omitempty"`
 }
 
 // MediaAttachment 媒体附件。

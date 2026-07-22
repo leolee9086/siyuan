@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "scope": "all-packages",
+  "command": ["go", "test", "-short", "-tags", "fts5", "./..."],
+  "coreDefinition": "All tests in all Kernel packages are mandatory by default. A performance or availability test is non-core only when its own implementation explicitly skips under testing.Short()."
+}

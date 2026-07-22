@@ -29,13 +29,14 @@ import (
 )
 
 type AI struct {
-	OpenAI    *OpenAI     `json:"openAI,omitempty"`
-	MCP       *MCP        `json:"mcp"`
-	Embedding *Embedding  `json:"embedding"`
-	Agent     *Agent      `json:"agent"`
-	Editing   *Editing    `json:"editing"`
-	Providers []*Provider `json:"providers"`
-	WebSearch *WebSearch  `json:"webSearch"`
+	OpenAI        *OpenAI        `json:"openAI,omitempty"`
+	MCP           *MCP           `json:"mcp"`
+	Embedding     *Embedding     `json:"embedding"`
+	Agent         *Agent         `json:"agent"`
+	CommandReview *CommandReview `json:"commandReview"`
+	Editing       *Editing       `json:"editing"`
+	Providers     []*Provider    `json:"providers"`
+	WebSearch     *WebSearch     `json:"webSearch"`
 }
 
 // EffectiveAPIProxy returns the AI-specific proxy override when configured;
@@ -99,6 +100,13 @@ type Agent struct {
 	Temperature         float64 `json:"temperature"`
 	MaxCompletionTokens int     `json:"maxCompletionTokens"`
 	MaxToolCallRounds   int     `json:"maxToolCallRounds"`
+}
+
+// CommandReview holds the independently selected model used to review shell
+// commands before the user confirmation and command execution stages.
+type CommandReview struct {
+	ModelID string `json:"modelId"`
+	Timeout int    `json:"timeout"`
 }
 
 // Editing holds behavior parameters used by the in-editor chat scenario. They
@@ -196,6 +204,10 @@ func defaultEditing() *Editing {
 	}
 }
 
+func defaultCommandReview() *CommandReview {
+	return &CommandReview{Timeout: 30}
+}
+
 func defaultWebSearch() *WebSearch {
 	return &WebSearch{
 		Enabled:         true,
@@ -210,13 +222,14 @@ func defaultWebSearch() *WebSearch {
 
 func NewAI() *AI {
 	ai := &AI{
-		OpenAI:    defaultOpenAI(),
-		Providers: []*Provider{},
-		MCP:       &MCP{Servers: []MCPServer{}},
-		Embedding: defaultEmbedding(),
-		Agent:     defaultAgent(),
-		Editing:   defaultEditing(),
-		WebSearch: defaultWebSearch(),
+		OpenAI:        defaultOpenAI(),
+		Providers:     []*Provider{},
+		MCP:           &MCP{Servers: []MCPServer{}},
+		Embedding:     defaultEmbedding(),
+		Agent:         defaultAgent(),
+		CommandReview: defaultCommandReview(),
+		Editing:       defaultEditing(),
+		WebSearch:     defaultWebSearch(),
 	}
 
 	apiKey := os.Getenv("SIYUAN_OPENAI_API_KEY")
@@ -425,6 +438,13 @@ func (ai *AI) GetAgentModel() (*Provider, *Model) {
 	return ai.GetModel(ai.Agent.ModelID)
 }
 
+func (ai *AI) GetCommandReviewModel() (*Provider, *Model) {
+	if ai.CommandReview == nil || ai.CommandReview.ModelID == "" {
+		return nil, nil
+	}
+	return ai.GetModel(ai.CommandReview.ModelID)
+}
+
 func (ai *AI) Normalize() {
 	if ai.OpenAI == nil {
 		ai.OpenAI = defaultOpenAI()
@@ -441,6 +461,17 @@ func (ai *AI) Normalize() {
 	}
 	if ai.Agent == nil {
 		ai.Agent = defaultAgent()
+	}
+	if ai.CommandReview == nil {
+		ai.CommandReview = defaultCommandReview()
+	}
+	if ai.CommandReview.Timeout < 1 {
+		ai.CommandReview.Timeout = 30
+	} else if ai.CommandReview.Timeout > 120 {
+		ai.CommandReview.Timeout = 120
+	}
+	if ai.CommandReview.ModelID == "" && ai.Agent != nil {
+		ai.CommandReview.ModelID = ai.Agent.ModelID
 	}
 	if ai.Editing == nil {
 		ai.Editing = defaultEditing()
@@ -773,7 +804,8 @@ func MigrateAI(data []byte) *AI {
 }
 
 func assignDefaultModelIDs(ai *AI) {
-	if (ai.Editing != nil && ai.Editing.ModelID != "") || (ai.Agent != nil && ai.Agent.ModelID != "") {
+	if (ai.Editing != nil && ai.Editing.ModelID != "") || (ai.Agent != nil && ai.Agent.ModelID != "") ||
+		(ai.CommandReview != nil && ai.CommandReview.ModelID != "") {
 		return
 	}
 	var m *Model
@@ -808,6 +840,12 @@ func assignDefaultModelIDs(ai *AI) {
 	}
 	if ai.Agent.ModelID == "" {
 		ai.Agent.ModelID = m.ID
+	}
+	if ai.CommandReview == nil {
+		ai.CommandReview = defaultCommandReview()
+	}
+	if ai.CommandReview.ModelID == "" {
+		ai.CommandReview.ModelID = m.ID
 	}
 }
 

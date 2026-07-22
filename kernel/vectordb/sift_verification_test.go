@@ -7,6 +7,9 @@ import (
 )
 
 func TestLoadSIFT1M_Verification(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external million-vector dataset verification")
+	}
 	// 预期路径: d:\dev\siyuan-note\test_data\sift\sift_base.fvecs
 	// 运行路径: d:\dev\siyuan-note\kernel\vectordb
 	rootDir := filepath.Join("..", "..", "test_data", "sift")

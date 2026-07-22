@@ -135,7 +135,7 @@ func BenchmarkRenderAttributeViewTable_PlainText(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				attrView.RenderedViewables = map[string]av.Viewable{}
 				cachedAttrViews := map[string]*av.AttributeView{}
-				RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews)
+				RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews, false)
 			}
 		})
 	}
@@ -164,13 +164,16 @@ func BenchmarkRenderAttributeViewTable_WithTemplate(b *testing.B) {
 				attrView.RenderedViewables = map[string]av.Viewable{}
 				cachedAttrViews := map[string]*av.AttributeView{}
 
-				RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews)
+				RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews, false)
 			}
 		})
 	}
 }
 
 func TestRenderAttributeViewTable_Performance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("performance test")
+	}
 	// 验证模板列性能
 	rowCount := 1000
 	colCount := 5
@@ -179,7 +182,7 @@ func TestRenderAttributeViewTable_Performance(t *testing.T) {
 	cachedAttrViews := map[string]*av.AttributeView{}
 
 	start := time.Now()
-	RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews)
+	RenderAttributeViewTable(attrView, view, "", &depth, cachedAttrViews, false)
 	elapsed := time.Since(start)
 
 	t.Logf("RenderAttributeViewTable (With Template) %d rows x %d cols took %v", rowCount, colCount, elapsed)

@@ -426,12 +426,29 @@ func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *te
 		if message.Role == types.RoleUser && message.Content == "把这次进展记下来。" {
 			foundOriginalUser = true
 		}
-		if message.Role == types.RoleUser &&
-			strings.Contains(message.Content, `"type":"pending_action_review"`) &&
-			strings.Contains(message.Content, `"name":"write_diary_entry"`) &&
-			strings.Contains(message.Content, `"motivation":"记录当前推进"`) &&
-			strings.Contains(message.Content, `"instruction":"查看行动计划,仔细考虑你要不要这样做。发起动机以 arguments.motivation 为准。"`) {
-			foundReviewPayload = true
+		if message.Role == types.RoleUser {
+			var payload struct {
+				Type        string `json:"type"`
+				Instruction string `json:"instruction"`
+				ToolCall    struct {
+					ID       string `json:"id"`
+					Type     string `json:"type"`
+					Function struct {
+						Name      string                 `json:"name"`
+						Arguments map[string]interface{} `json:"arguments"`
+					} `json:"function"`
+				} `json:"toolCall"`
+			}
+			if json.Unmarshal([]byte(message.Content), &payload) == nil && payload.Type == "pending_action_review" {
+				foundReviewPayload = payload.Instruction != "" &&
+					payload.ToolCall.ID == pendingToolCall.ID &&
+					payload.ToolCall.Type == pendingToolCall.Type &&
+					payload.ToolCall.Function.Name == pendingToolCall.Function.Name &&
+					payload.ToolCall.Function.Arguments["motivation"] == "记录当前推进" &&
+					payload.ToolCall.Function.Arguments["markdown"] == "# 进展\n\n- 已完成接线" &&
+					payload.ToolCall.Function.Arguments["calloutType"] == "NOTE" &&
+					payload.ToolCall.Function.Arguments["title"] == "行动日志"
+			}
 		}
 	}
 	if !foundOriginalSystem {

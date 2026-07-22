@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,6 +50,15 @@ func TestResolveOpenAISourceContext_DirectAllowed(t *testing.T) {
 	}
 	if sourceCtx.Nickname != "tester" {
 		t.Fatalf("unexpected nickname: %s", sourceCtx.Nickname)
+	}
+	if sourceCtx.InterfaceID != magiMainUIChannelID || sourceCtx.InterfaceKind != magiMainUIChannelID {
+		t.Fatalf("main UI source must use the built-in channel identity: %+v", sourceCtx)
+	}
+	if sourceCtx.ConversationID != magiMainUIConversationID("guardian-main") {
+		t.Fatalf("main UI conversation must be derived from verified identity: %s", sourceCtx.ConversationID)
+	}
+	if strings.Contains(sourceCtx.SourceSessionKey, "desktop-main") || strings.Contains(sourceCtx.SourceSessionKey, "conv-1") {
+		t.Fatalf("client panel identity leaked into the continuous source key: %s", sourceCtx.SourceSessionKey)
 	}
 }
 

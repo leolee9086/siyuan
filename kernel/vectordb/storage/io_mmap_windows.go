@@ -2,8 +2,7 @@
 
 // Package storage provides a unified I/O abstraction layer for disk-based indexes.
 //
-// This file implements Windows platform mmap reader using native Windows API
-// (CreateFileMapping + MapViewOfFile) via golang.org/x/sys/windows.
+// This file implements Windows platform mmap reader using mmap-go.
 // Supports both read-only and read-write modes.
 package storage
 
@@ -14,7 +13,7 @@ import (
 	"os"
 	"unsafe"
 
-	"golang.org/x/sys/windows"
+	mmap "github.com/edsrzf/mmap-go"
 )
 
 // windowsReader implements mmap-based disk index reader for Windows.
@@ -22,12 +21,11 @@ import (
 // Uses Windows native API (CreateFileMapping + MapViewOfFile) for memory mapping.
 // Supports both read-only and read-write modes.
 type windowsReader struct {
-	file      *os.File       // underlying file handle
-	mapping   windows.Handle // file mapping handle
-	data      []byte         // mapped memory region
-	meta      GraphMetadata  // parsed graph metadata
-	blockSize uint64         // data block size
-	readOnly  bool           // read-only mode flag
+	file      *os.File      // underlying file handle
+	data      mmap.MMap     // mapped memory region
+	meta      GraphMetadata // parsed graph metadata
+	blockSize uint64        // data block size
+	readOnly  bool          // read-only mode flag
 }
 
 // platformOpenReader creates Windows platform mmap reader.
@@ -68,51 +66,21 @@ func platformOpenReader(path string, readOnly bool) (DiskIndexReader, error) {
 	}
 
 	// Create file mapping
-	protect := uint32(windows.PAGE_READONLY)
+	protect := mmap.RDONLY
 	if !readOnly {
-		protect = windows.PAGE_READWRITE
+		protect = mmap.RDWR
 	}
 
-	mapping, err := windows.CreateFileMapping(
-		windows.Handle(f.Fd()),
-		nil,
-		protect,
-		uint32(fileSize>>32),
-		uint32(fileSize),
-		nil,
-	)
+	mappedData, err := mmap.Map(f, protect, 0)
 	if err != nil {
 		f.Close()
 		return nil, fmt.Errorf("create file mapping failed: %w", err)
 	}
 
-	// Map view of file
-	access := uint32(windows.FILE_MAP_READ)
-	if !readOnly {
-		access = windows.FILE_MAP_READ | windows.FILE_MAP_WRITE
-	}
-
-	addr, err := windows.MapViewOfFile(
-		mapping,
-		access,
-		0,
-		0,
-		uintptr(fileSize),
-	)
-	if err != nil {
-		windows.CloseHandle(mapping)
-		f.Close()
-		return nil, fmt.Errorf("map view of file failed: %w", err)
-	}
-
-	// Create byte slice from mapped memory
-	data := unsafe.Slice((*byte)(unsafe.Pointer(addr)), fileSize)
-
 	// Create reader instance
 	r := &windowsReader{
 		file:     f,
-		mapping:  mapping,
-		data:     data,
+		data:     mappedData,
 		readOnly: readOnly,
 	}
 
@@ -386,21 +354,12 @@ func (r *windowsReader) Warmup(nodeIDs []uint64) error {
 func (r *windowsReader) Close() error {
 	var firstErr error
 
-	// Unmap view of file
+	// Unmap view of file and release the mapping handle
 	if r.data != nil {
-		addr := uintptr(unsafe.Pointer(&r.data[0]))
-		if err := windows.UnmapViewOfFile(addr); err != nil {
+		if err := r.data.Unmap(); err != nil {
 			firstErr = fmt.Errorf("unmap view of file failed: %w", err)
 		}
 		r.data = nil
-	}
-
-	// Close file mapping handle
-	if r.mapping != 0 {
-		if err := windows.CloseHandle(r.mapping); err != nil && firstErr == nil {
-			firstErr = fmt.Errorf("close file mapping failed: %w", err)
-		}
-		r.mapping = 0
 	}
 
 	// Close file

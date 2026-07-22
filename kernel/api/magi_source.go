@@ -192,6 +192,12 @@ func buildRequestSourceContext(
 		sourcePayload["conversationId"],
 		sourcePayload["conversation_id"],
 	)
+	if claims.Chn == magiRequestChannelMainUI {
+		// 内置聊天是一个身份级渠道。客户端的面板实例和本地 session 不参与会话归属。
+		interfaceKind = magiMainUIChannelID
+		interfaceID = magiMainUIChannelID
+		conversationID = magiMainUIConversationID(identityID)
+	}
 
 	callerID := firstNonEmpty(sourcePayload["callerId"], sourcePayload["caller_id"])
 	requestID := firstNonEmpty(

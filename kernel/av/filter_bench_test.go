@@ -525,6 +525,9 @@ func BenchmarkFilter_ColumnCount(b *testing.B) {
 
 // TestFilterPerformanceRegression 性能问题验证测试
 func TestFilterPerformanceRegression(t *testing.T) {
+	if testing.Short() {
+		t.Skip("performance regression test")
+	}
 	t.Run("VerifyComplexity", func(t *testing.T) {
 		// 验证 O(n×m) 复杂度问题
 		// 测试不同数据规模下的性能差异

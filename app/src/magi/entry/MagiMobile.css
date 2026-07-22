@@ -4,7 +4,17 @@
 }
 
 .magi-agent-panel-host .agent-chat__title {
-  max-width: 34vw;
+  flex: 0 0 38px;
+  width: 38px;
+  max-width: 38px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.magi-agent-panel-host .agent-chat__identity-label {
+  min-width: 0;
+  max-width: 132px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -630,6 +630,8 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 
 				for i, tc := range aggregatedToolCalls {
 					args := parsedArgs[i]
+					confirmedByUser := false
+					freshConfirmationRequired := requiresFreshConfirmation(tc.Function.Name) || mcpTools.RequiresFreshForgeApproval(tc.Function.Name, args)
 					action := ""
 					if a, ok := args["action"]; ok {
 						action, _ = a.(string)
@@ -642,7 +644,20 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						CallID:    tc.ID,
 					})
 
-					if needsConfirm(tc.Function.Name, action, alwaysAllow) {
+					if reviewErr := reviewCommandToolCall(ctx, tc.Function.Name, args, userMessage,
+						reasoningBuilder.String()+"\n"+contentBuilder.String()); reviewErr != nil {
+						rejectionMsg := reviewErr.Error()
+						messages = append(messages, openai.ChatCompletionMessage{
+							Role:       openai.ChatMessageRoleTool,
+							Content:    wrapToolOutput(rejectionMsg),
+							ToolCallID: tc.ID,
+						})
+						checkpointMsgs[assistantIdx].ToolCalls[i].Result = rejectionMsg
+						sendCriticalEvent(ctx, ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: rejectionMsg})
+						continue
+					}
+
+					if freshConfirmationRequired || needsConfirm(tc.Function.Name, action, alwaysAllow) {
 						confirmID := fmt.Sprintf("%s_%d", tc.ID, i)
 						sendCriticalEvent(ctx, ch, AgentEvent{Type: "confirm", Name: tc.Function.Name, Arguments: args, ConfirmID: confirmID})
 						ch2 := make(chan confirmResult, 1)
@@ -706,9 +721,10 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 							continue
 						}
 
-						if result.always {
+						if result.always && !freshConfirmationRequired {
 							alwaysAllow["*"] = true
 						}
+						confirmedByUser = true
 					}
 
 					if !mcpTools.IsForgeTool(tc.Function.Name) && !snapshotCreated && action != "" && !safeActions[action] && tc.Function.Name != "frontend" && !(tc.Function.Name == "repo" && action == "create") {
@@ -753,7 +769,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					} else if tc.Function.Name == "frontend" {
 						resultStr = handleFrontendTool(ctx, sessionID, tc, ch, confirmTimeout)
 					} else {
-						resultStr, isErr = executeTool(tc, sessionID, taskDirectory, ownerIdentityID, ownerAuthorizationExpiresAt, func(progress mcpTools.ToolProgress) {
+						resultStr, isErr = executeTool(tc, sessionID, taskDirectory, ownerIdentityID, ownerAuthorizationExpiresAt, confirmedByUser, func(progress mcpTools.ToolProgress) {
 							sendCriticalEvent(ctx, ch, AgentEvent{
 								Type:         "tool_progress",
 								Name:         tc.Function.Name,
@@ -764,6 +780,9 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					}
 					// 保留完整结果给前端卡片；仅发送给模型的副本做截断，避免大搜索响应破坏 UI 的 JSON 解析。
 					rawResult := resultStr
+					if isErr && strings.Contains(rawResult, "forge_protected_approval_required") {
+						delete(alwaysAllow, "*")
+					}
 					displayResult, modelResult := buildToolResultOutputs(rawResult, sessionID)
 
 					sendCriticalEvent(ctx, ch, AgentEvent{
@@ -896,6 +915,7 @@ var safeActions = map[string]bool{
 	"file_get": true, "file_open": true, "file_export": true,
 	"open": true, "close": true, "batch-get": true, "question": true, "todo_write": true,
 	"md": true, "query": true,
+	"reload_app": true,
 }
 
 var forgeWriteTools = map[string]bool{
@@ -913,6 +933,9 @@ var forgeWriteTools = map[string]bool{
 }
 
 func needsConfirm(toolName string, action string, alwaysAllow map[string]bool) bool {
+	if requiresFreshConfirmation(toolName) {
+		return true
+	}
 	if alwaysAllow["*"] {
 		return false
 	}
@@ -935,6 +958,10 @@ func needsConfirm(toolName string, action string, alwaysAllow map[string]bool) b
 		return true
 	}
 	return true
+}
+
+func requiresFreshConfirmation(toolName string) bool {
+	return toolName == mcpTools.ForgeRuntimeRestartToolName || toolName == mcpTools.ForgeRuntimeApproveTestsToolName
 }
 
 func handleQuestion(ctx context.Context, sessionID, argsJSON string, ch chan<- AgentEvent, timeout time.Duration) string {

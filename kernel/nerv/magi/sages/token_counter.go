@@ -379,14 +379,9 @@ func trimByRoundTokenPercent(messages []types.ContextMessage, percent float64, m
 
 // ─── 疲劳值/唤醒值算法 ───
 
-// countContextTokensFallback 统计上下文 token 数，优先使用 tiktoken 编码器，
-// 编码器未就绪时回退到字符估算。
-func countContextTokensFallback(messages []types.ContextMessage, model string) int {
-	enc := getTokenEncoder(model)
-	if enc != nil {
-		return countContextTokens(messages, enc)
-	}
-	logging.LogWarnf("countContextTokensFallback: 编码器未就绪 [%s]，tiktoken 目录 [%s]，回退到字符估算", model, tiktokenDirPath)
+// countContextLoadTokens 为疲劳/唤醒启发式指标提供稳定的线性复杂度估算。
+// 精确 token 计算仅用于真正执行上下文裁剪，避免指标刷新被超长文本拖慢。
+func countContextLoadTokens(messages []types.ContextMessage) int {
 	return estimateContextTokens(messages)
 }
 
@@ -464,7 +459,7 @@ func CalculateFatigue(messages []types.ContextMessage, strategy *config.ContextS
 		if limit <= 0 {
 			return 0
 		}
-		actual := float64(countContextTokensFallback(messages, model))
+		actual := float64(countContextLoadTokens(messages))
 		ratio := actual / limit
 		return clampTo100(math.Pow(ratio, 1.5) * 100)
 
@@ -515,7 +510,7 @@ func CalculateWakefulness(messages []types.ContextMessage, strategy *config.Cont
 		if sweet <= 0 {
 			return 0
 		}
-		actual := float64(countContextTokensFallback(messages, model))
+		actual := float64(countContextLoadTokens(messages))
 		ratio := actual / sweet
 		return clampTo100(math.Sqrt(ratio) * 100)
 

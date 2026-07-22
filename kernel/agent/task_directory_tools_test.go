@@ -57,14 +57,14 @@ func TestExecuteToolUsesCurrentDirectoryGrantAndOwner(t *testing.T) {
 		Name:      mcpTools.TaskDirectoryReadToolName,
 		Arguments: fmt.Sprintf(`{"directoryID":%q,"path":"note.txt"}`, readGrantID),
 	}}
-	result, isErr := executeTool(readCall, sessionID, binding, "owner-a", expiresAt, nil)
+	result, isErr := executeTool(readCall, sessionID, binding, "owner-a", expiresAt, false, nil)
 	if isErr || !strings.Contains(result, "read-only-content") {
 		t.Fatalf("bound read grant should be usable through Agent execution: result=%s isErr=%v", result, isErr)
 	}
-	if result, isErr = executeTool(readCall, sessionID, binding, "owner-b", expiresAt, nil); !isErr || !strings.Contains(result, "owner") {
+	if result, isErr = executeTool(readCall, sessionID, binding, "owner-b", expiresAt, false, nil); !isErr || !strings.Contains(result, "owner") {
 		t.Fatalf("cross-owner Agent execution must be rejected: result=%s isErr=%v", result, isErr)
 	}
-	if result, isErr = executeTool(readCall, sessionID, binding, "owner-a", time.Now().Add(-time.Second).Unix(), nil); !isErr || !strings.Contains(result, "expired") {
+	if result, isErr = executeTool(readCall, sessionID, binding, "owner-a", time.Now().Add(-time.Second).Unix(), false, nil); !isErr || !strings.Contains(result, "expired") {
 		t.Fatalf("expired owner authorization must stop Agent tools: result=%s isErr=%v", result, isErr)
 	}
 
@@ -72,7 +72,7 @@ func TestExecuteToolUsesCurrentDirectoryGrantAndOwner(t *testing.T) {
 		Name:      mcpTools.TaskDirectoryWriteToolName,
 		Arguments: fmt.Sprintf(`{"directoryID":%q,"path":"blocked.txt","content":"blocked"}`, readGrantID),
 	}}
-	if result, isErr = executeTool(writeCall, sessionID, binding, "owner-a", expiresAt, nil); !isErr || !strings.Contains(result, "不允许") {
+	if result, isErr = executeTool(writeCall, sessionID, binding, "owner-a", expiresAt, false, nil); !isErr || !strings.Contains(result, "不允许") {
 		t.Fatalf("read-only grant must reject Agent writes: result=%s isErr=%v", result, isErr)
 	}
 	if _, err := os.Stat(filepath.Join(readDir, "blocked.txt")); !os.IsNotExist(err) {

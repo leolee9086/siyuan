@@ -38,8 +38,8 @@ func InitMessageStore() error {
 	_msgStoreMu.Lock()
 	defer _msgStoreMu.Unlock()
 
-	store := &MessageStore{}
-	if err := store.init(); err != nil {
+	store, err := OpenMessageStore(filepath.Join(util.TempDir, "s-forge-channel-msgs.db"))
+	if err != nil {
 		return err
 	}
 	_msgStore = store
@@ -58,13 +58,22 @@ func CloseMessageStore() {
 
 // MessageStore 渠道消息 SQLite 持久化存储。
 type MessageStore struct {
-	mu       sync.RWMutex
-	db       *sql.DB
-	saveStmt *sql.Stmt
+	mu              sync.Mutex
+	db              *sql.DB
+	saveStmt        *sql.Stmt
+	lastPersistedAt int64
 }
 
-func (s *MessageStore) init() error {
-	dbPath := filepath.Join(util.TempDir, "s-forge-channel-msgs.db")
+// OpenMessageStore 打开指定路径的渠道消息库。全局运行时与测试夹具共享同一初始化路径。
+func OpenMessageStore(dbPath string) (*MessageStore, error) {
+	store := &MessageStore{}
+	if err := store.init(dbPath); err != nil {
+		return nil, err
+	}
+	return store, nil
+}
+
+func (s *MessageStore) init(dbPath string) error {
 	util.LogDatabaseSize(dbPath)
 
 	dsn := dbPath + "?_journal_mode=WAL" +
@@ -98,6 +107,11 @@ func (s *MessageStore) init() error {
 	}
 
 	return nil
+}
+
+// Close 释放独立 MessageStore；全局实例仍由 CloseMessageStore 管理。
+func (s *MessageStore) Close() {
+	s.close()
 }
 
 func (s *MessageStore) close() {
@@ -210,6 +224,11 @@ func (s *MessageStore) save(ctx context.Context, inbound *InboundMessage, outbou
 	if err != nil {
 		return fmt.Errorf("serialize message: %w", err)
 	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin message transaction: %w", err)
+	}
+	defer tx.Rollback()
 
 	mediaJSON := marshalToJSON(p.Media)
 	mentionsJSON := marshalToJSON(p.Mentions)
@@ -227,7 +246,7 @@ func (s *MessageStore) save(ctx context.Context, inbound *InboundMessage, outbou
 	isDeleted := boolToInt(p.IsDeleted)
 	isPinned := boolToInt(p.IsPinned)
 
-	_, execErr := s.saveStmt.ExecContext(ctx,
+	_, execErr := tx.StmtContext(ctx, s.saveStmt).ExecContext(ctx,
 		p.ID, p.ChannelID, p.ChannelType, p.AccountID, p.UserID, p.Nickname,
 		p.IdentityID, p.IdentityDisplayName, p.ConversationID,
 		string(p.Direction), string(p.ContentType), p.CreatedAt, p.EditedAt, p.PersistedAt,
@@ -241,13 +260,18 @@ func (s *MessageStore) save(ctx context.Context, inbound *InboundMessage, outbou
 		return fmt.Errorf("insert message: %w", execErr)
 	}
 
-	_ = s.upsertConversationMeta(ctx, p)
+	if err := s.upsertConversationMeta(ctx, tx, p); err != nil {
+		return fmt.Errorf("update conversation metadata: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit message transaction: %w", err)
+	}
 	return nil
 }
 
 func (s *MessageStore) toPersisted(inbound *InboundMessage, outbound *OutboundMessage) (*PersistedMessage, error) {
 	p := &PersistedMessage{
-		PersistedAt: time.Now().UnixMilli(),
+		PersistedAt: s.nextPersistedAt(),
 	}
 
 	if inbound != nil {
@@ -275,6 +299,8 @@ func (s *MessageStore) toPersisted(inbound *InboundMessage, outbound *OutboundMe
 		p.ChannelType = truncateStr(outbound.ChannelType, maxIDLen)
 		p.AccountID = truncateStr(outbound.AccountID, maxIDLen)
 		p.UserID = truncateStr(outbound.UserID, maxIDLen)
+		p.IdentityID = truncateStr(outbound.IdentityID, maxIDLen)
+		p.IdentityDisplayName = truncateStr(outbound.IdentityDisplayName, maxNicknameLen)
 		p.ConversationID = truncateStr(outbound.ConversationToken, maxIDLen)
 		p.Direction = DirOutbound
 		p.CreatedAt = p.PersistedAt
@@ -290,11 +316,22 @@ func (s *MessageStore) toPersisted(inbound *InboundMessage, outbound *OutboundMe
 	return p, nil
 }
 
-func (s *MessageStore) upsertConversationMeta(ctx context.Context, p *PersistedMessage) error {
+func (s *MessageStore) nextPersistedAt() int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now().UnixMilli()
+	if now <= s.lastPersistedAt {
+		now = s.lastPersistedAt + 1
+	}
+	s.lastPersistedAt = now
+	return now
+}
+
+func (s *MessageStore) upsertConversationMeta(ctx context.Context, tx *sql.Tx, p *PersistedMessage) error {
 	if p.ConversationID == "" {
 		return nil
 	}
-	_, err := s.db.ExecContext(ctx, `
+	_, err := tx.ExecContext(ctx, `
 	INSERT INTO channel_conversations (channel_id, account_id, conversation_id, total_count, oldest_at, newest_at)
 	VALUES (?, ?, ?, 1, ?, ?)
 	ON CONFLICT(channel_id, account_id, conversation_id) DO UPDATE SET
@@ -329,6 +366,10 @@ func (s *MessageStore) Query(ctx context.Context, opts QueryOptions) (*QueryResu
 		where += " AND user_id = ?"
 		args = append(args, opts.UserID)
 	}
+	if opts.ConversationID != "" {
+		where += " AND conversation_id = ?"
+		args = append(args, opts.ConversationID)
+	}
 	if opts.Direction != "" {
 		where += " AND direction = ?"
 		args = append(args, string(opts.Direction))
@@ -349,7 +390,7 @@ func (s *MessageStore) Query(ctx context.Context, opts QueryOptions) (*QueryResu
 	}
 
 	querySQL := "SELECT " + messageSelectColumns + " FROM channel_messages " + where +
-		" ORDER BY persisted_at DESC LIMIT ?"
+		" ORDER BY persisted_at DESC, rowid DESC LIMIT ?"
 	queryArgs := append(append([]interface{}{}, args...), opts.Limit)
 	rows, err := s.db.QueryContext(ctx, querySQL, queryArgs...)
 	if err != nil {

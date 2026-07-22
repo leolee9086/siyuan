@@ -414,6 +414,9 @@ func TestBBQRecallVsNormalSearch(t *testing.T) {
 // 对于 128 维向量：原始 512B -> BBQ 编码 16B (2 * uint64)
 // 理论压缩比约为 32:1
 func TestBBQMemoryUsage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("BBQ memory usage measurement")
+	}
 	const numVectors = 10000
 	const dimension = 128
 
@@ -479,6 +482,9 @@ func TestBBQMemoryUsage(t *testing.T) {
 
 // TestBBQMemoryUsageVariousDimensions 测试不同维度下的内存压缩比
 func TestBBQMemoryUsageVariousDimensions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("BBQ memory usage matrix")
+	}
 	dimensions := []int{64, 128, 256, 512, 768, 1024}
 	const numVectors = 1000
 
@@ -509,6 +515,9 @@ func TestBBQMemoryUsageVariousDimensions(t *testing.T) {
 
 // TestBBQSearchSpeed 比较 BBQ 搜索与普通搜索的速度
 func TestBBQSearchSpeed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("BBQ search speed measurement")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")

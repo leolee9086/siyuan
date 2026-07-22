@@ -2,9 +2,9 @@
 
 > **最终目标**：沿“扩展 Agent Panel 能力”的方向，建立可组合的行为扩展点、目标适配器和会话策略，使 Dock、Tab、浮窗、MAGI desktop/mobile 与独立网页能够通过配置和 hook 获得不同能力，而不依赖在核心面板中持续增加目标分支。
 >
-> **当前目标**：完成 MAGI 持续会话界面改造与身份隔离；同一身份只加载一条连续时间线，身份切换时卸载旧记录，不同身份的记录在服务端存储、列表和读取边界上严格分离。
+> **当前目标**：完成 MAGI 内置渠道持续会话的多宿主验收；同一验证身份只加载渠道消息库中的一条连续时间线，身份切换时立即卸载旧记录。
 >
-> **下一步任务**：为 MAGI 会话增加经 armor 验证的身份归属，前端按当前 `identityId` 恢复唯一会话并隐藏多会话动作，再完成 desktop/mobile/Dock/独立页身份切换验收。
+> **下一步任务**：补齐 `clientMessageId`、接收/完成状态和服务端幂等协议；获得有效 Guardian 会话后完成身份 A/B、历史恢复、发送后刷新以及 Dock/Tab/浮窗实机验收。
 >
 > **本轮范围**：优先完成 MAGI 持续会话和身份隔离；工具包、竞赛模式及新增消息动作继续保留在后续阶段，本轮不并行实现。
 
@@ -18,7 +18,7 @@
 - 发送结果不明确时，前端先查询原消息的投递状态；没有幂等确认前，不创建第二个 MAGI 轮次。
 - 同一用户身份在 Dock、Tab、浮窗、MAGI desktop、MAGI mobile 和独立 Agent 页面中只对应一份 MAGI 连续记录。
 - 身份标识使用稳定的身份 subject 或服务端分配的稳定 key，不使用会过期、轮换或泄露权限的 armor token 作为会话主键。
-- MAGI 会话的保存、索引、列表、读取和删除都必须验证身份归属；前端过滤只承担界面职责，不作为隔离边界。
+- MAGI 内置聊天按 `magi-main-ui` 渠道保存；入站、出站和历史查询都必须同时验证身份归属与服务端 conversation key，前端过滤只承担界面职责。
 - 身份退出或切换后立即清空内存中的旧消息、Composer 历史和请求身份；新身份完成权威会话加载前保持明确加载状态。
 - MAGI 的“新会话、删除会话、重新回答”不是普通 Agent 动作的别名；是否显示必须由目标策略和 capability registry 决定。
 - Agent Panel 核心只依赖抽象 port、adapter、policy 和 hook；不得直接导入 Layout、Vue、Dialog、Menu、完整 App 或具体身份页面。
@@ -38,8 +38,10 @@
 - `NativeAgentTargetAdapter` 和 `MagiTargetAdapter` 已分别承载普通 Agent SSE 与 MAGI 标准流式响应。
 - 当前重发策略 `agentPanel.retryPolicy` 以工具、确认、问答、快照和回滚事件判断普通 Agent 是否可重放。
 - 现有策略仍以“没有可见副作用即可重发”为基础，MAGI 内部主管 AI、三贤人协调和事件推进不应继续套用该条件。
-- 当前 MAGI 面板仍沿用 `sessionId` 作为请求身份和会话记录边界；需要确认其是否应升级为“身份 subject -> 唯一 MAGI conversation”映射。
-- `SessionStore` 主要服务普通 Agent 的会话列表和多会话操作；MAGI 应建立独立的连续记录查询和投递状态接口。
+- MAGI 内置聊天已复用 `kernel/nerv/magi/channel/message_store.go`：与微信/CLI 一样保存标准化入站和出站消息；`IdentityID + ConversationID` 是服务端查询边界。
+- 服务端忽略主界面提交的随机 interface/conversation 镜像，按 armor claims 中的稳定 subject 生成唯一 conversation key；显示名和 token 不参与归属。
+- `SessionStore` 仅服务普通 Agent。MAGI 的历史读取由 `/api/s-forge/magi/v1/main-ui/history` 和 `app/src/magi/conversation/magiMainUIConversation.ts` 承担。
+- 渠道存储为每次写入分配严格单调的 `persistedAt`，避免同毫秒内入站/出站顺序不确定；历史接口将倒序存储查询投影为聊天正序。
 - 既有总体 TTT：[AgentPanel 多端统一、MAGI 聊天替换与独立入口](./AgentPanel_多端统一_MAGI聊天替换与独立入口.ttt.md)。本文件只追踪扩展能力与 MAGI 持续会话语义，不重复记录已完成的宿主迁移。
 
 ## 3. 目标架构
@@ -97,6 +99,9 @@ type MagiDeliveryState =
 - `accepted` 表示 MAGI 已接收并可能进入内部协调；从此状态起不显示重发。
 - `delivery-unknown` 仅进入投递状态查询或恢复流程，禁止直接新建请求。
 - MAGI 面板不显示普通 Agent 的新会话列表；需要切换身份时，切换的是身份时间线而不是新建空会话。
+- 内置聊天采用与微信渠道一致的 `InboundMessage`/`OutboundMessage` 和 `MessageStore`，不写入普通 Agent session 文件或索引。
+- 主界面渠道常量为 `channelId=magi-main-ui`、`channelType=magi-main-ui`、`accountId=workspace`；conversation key 由服务端对验证身份 subject 确定性派生。
+- 后端在进入 MAGI 调度前保存入站消息，在最终共识通过流式一致性校验后保存出站消息；存储故障通过 HTTP/SSE 明确返回。
 
 ### 3.3 可扩展行为策略
 
@@ -236,12 +241,16 @@ type MessageActionExtension = {
   - [ ] 为每个扩展点增加无 DOM 单元测试和销毁测试。
 
 - [-] **Phase 2：MAGI 单一连续记录（当前唯一在途阶段）**
-  - [ ] 建立 `identitySubject -> conversationId` 的稳定映射。
+  - [x] 建立 `identitySubject -> conversationId` 的服务端稳定映射，客户端 panel/session id 不参与归属。
   - [ ] 增加 `clientMessageId`、服务端序号和投递状态持久化。
-  - [ ] 在服务端会话索引、读取、保存和删除边界验证 MAGI 身份归属。
-  - [ ] 让所有 MAGI 宿主加载同一份权威记录，禁止通过新建普通 session 形成第二条时间线。
-  - [ ] 隐藏 MAGI 的新会话、删除会话和会话级重放动作。
-  - [ ] 身份切换时卸载旧时间线，按新身份重新解析唯一会话；加载期间不显示旧身份消息。
+  - [x] 将内置聊天作为渠道写入统一 MessageStore，并以 `IdentityID + ConversationID` 校验历史读取边界。
+  - [x] 入站消息在调度前持久化，出站消息在最终共识及流式一致性校验通过后持久化；失败明确返回。
+  - [x] 单条消息及会话元数据在同一 SQLite 事务中提交；元数据失败明确上抛且不留下半写入消息。
+  - [x] 历史接口在访问消息库前校验 Guardian 直接对话能力；avatar-only 身份固定返回 `403/magi_main_ui_history_forbidden`。
+  - [x] Agent Panel 从渠道历史恢复权威记录，MAGI 不再调用普通 Agent SessionStore 保存或创建时间线。
+  - [x] 隐藏 MAGI 的新会话、删除会话和会话级重放动作；普通 Agent 策略保持原状。
+  - [x] 身份切换时中止旧请求、清空旧消息及 Composer 历史，并以加载版本和 identity 双重隔离迟到结果。
+  - [ ] 完成 desktop/mobile/Dock/Tab/浮窗/独立页实际打开及身份 A/B 切换验收。
   - [ ] 为跨宿主并发发送增加序列冲突和重复消息测试。
 
 - [ ] **Phase 3：MAGI 投递恢复**
@@ -335,6 +344,9 @@ type MessageActionExtension = {
 - [Agent Panel runtime ports](../../app/src/layout/dock/agent/runtime/agentPanel.ports.types.ts)
 - [Agent Panel retry policy](../../app/src/layout/dock/agent/runtime/agentPanel.retryPolicy.ts)
 - [SessionStore](../../app/src/layout/dock/agent/SessionStore.ts)
+- [MAGI 内置渠道前端服务](../../app/src/magi/conversation/magiMainUIConversation.ts)
+- [渠道消息存储](../../kernel/nerv/magi/channel/message_store.go)
+- [MAGI 内置渠道 API](../../kernel/api/magi_main_ui_channel.go)
 
 ## 10. 已归档/已完成
 
@@ -343,3 +355,16 @@ type MessageActionExtension = {
 - [x] 2026-07-22：登记会话级工具可用性、工具包继承与本地覆盖、多只读 AI 并行响应、导出图片和追加当前笔记需求；分别归入工具配置、响应编排和消息动作扩展，代码保持原状。
 - [x] 2026-07-22：修正竞赛模式设计：只读约束改为服务端每次工具执行前的运行时闸门；允许向竞赛组追加不同历史上下文，并为来源 provenance、分支状态、阻断事件和移动端响应组视图补充 UX 约束，代码保持原状。
 - [x] 2026-07-22：将当前唯一在途目标调整为 MAGI 持续会话界面与身份隔离；工具配置、竞赛编排和消息动作阶段保留但暂不展开。
+- [x] 2026-07-22：放弃将 MAGI 持续记录写入 Agent SessionStore 的方案，确认内置聊天与微信/CLI 同属渠道消息语义，并定向清理相关半成品。
+- [x] 2026-07-22：渠道 MessageStore 增加出站身份字段、conversation 查询、独立测试数据库入口和严格单调持久化顺序；身份/会话隔离与双向消息测试通过。
+- [x] 2026-07-22：新增主界面渠道历史 API；服务端按 armor subject 生成稳定 conversation key，在调度前保存入站、成功完成后保存出站，存储失败通过 HTTP/SSE 明确报告。
+- [x] 2026-07-22：Agent Panel 的 MAGI 目标改从渠道历史加载；身份切换立即清空旧时间线并取消旧请求，MAGI 会话动作和重发动作由 target policy 隐藏。
+- [x] 2026-07-22：验证证据：Go 渠道/API 定向测试通过；前端历史分页与 target policy 共 5 项 Vitest 通过；`agent-app` 生产构建通过。
+- [x] 2026-07-22：独立 ESM 保留稳定入口 `agent-panel.js`，网页入口和内部生产 chunk 改为内容哈希文件；浏览器 ESM 导出契约以及 `agent-app`、`magi-desktop`、`magi-mobile` 生产构建通过，消除旧 chunk 缓存遮蔽新实现的问题。
+- [x] 2026-07-22：视觉证据：实际打开 `1440x900` 独立页、`1280x720` MAGI desktop 和 `390x844` MAGI mobile；移动端 CHAT/MONITOR Tab、四个监控选择器、普通 Agent/MAGI 目标控件切换均可交互，页面无横向溢出且移动端标题不再裁切。
+- [x] 2026-07-22：渠道保存改为消息与会话元数据原子事务；元数据写入失败会显式返回且事务回滚。主界面历史在查询前拒绝非 Guardian 身份并返回稳定 `403` 错误码。
+- [x] 2026-07-22：验证证据：`go test -tags fts5 ./nerv/magi/channel ./api -run "Test(MessageStore|MagiMainUI|AuthorizeMagiMainUI)" -count=1` 通过；相同范围 `-race` 通过。运行中 `6806` 端点缺少 armor 时返回 `401/magi_armor_missing`。
+- [x] 2026-07-22：全量 `go test ./api` 仍存在本次范围外的既有失败：heartbeat 合并休眠断言、Vector API 流程及其后续 panic；定向主界面渠道测试不受影响，不将全 API 包记录为通过。
+- [x] 2026-07-22：使用 `fts5` 标签重建并重启开发 Kernel（PID `45052`）；`agent-app`、`magi-desktop`、`magi-mobile` 三个运行地址均返回 `200`，未认证历史请求返回 `401/magi_armor_missing`。
+- [x] 2026-07-22：最终前端回归：历史加载与 target policy 共 5 项 Vitest 通过；独立 ESM 浏览器契约 1 项通过；`agent-app`、`magi-desktop`、`magi-mobile` 生产构建通过；两个 conversation 模块及 adapter guard 的 `lint:file --show-all` 无问题。构建仍有既有 bundle size 警告。
+- [x] 2026-07-22：修复登录后持续会话加载的两条浏览器边界错误：默认历史传输改用 `window.fetch.bind(window)` 保留 Window 接收者；BroadcastChannel 发布前将 Vue reactive 会话投影为字段级普通对象，避免 Proxy 触发 `DataCloneError`。回归夹具以严格 Window 接收者和真实 `structuredClone` 复现并覆盖问题，相关 3 个测试文件共 7 项测试及三端生产构建通过。

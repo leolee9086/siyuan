@@ -328,6 +328,9 @@ func percentile(values []float64, p float64) float64 {
 
 // TestSIFT10K 测试 SIFT 数据集 (1万向量) - 快速验证
 func TestSIFT10K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset benchmark")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found. Download from: ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz")
@@ -713,6 +716,9 @@ func BenchmarkSIFTSearch(b *testing.B) {
 
 // TestRecallVsSearchL 测试不同 SearchL 参数对召回率的影响
 func TestRecallVsSearchL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("search recall parameter comparison")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")
@@ -785,6 +791,9 @@ func TestRecallVsSearchL(t *testing.T) {
 
 // TestBuildParallel 测试并行构建功能
 func TestBuildParallel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("parallel build performance test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")

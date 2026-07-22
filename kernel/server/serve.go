@@ -1005,7 +1005,7 @@ func serveWebDAV(ginServer *gin.Engine) {
 				MethodLock,
 				MethodUnlock,
 				MethodPropPatch:
-				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				c.AbortWithError(http.StatusForbidden, errors.New(model.Conf.Language(34)))
 				return
 			}
 		}
@@ -1039,7 +1039,7 @@ func serveCalDAV(ginServer *gin.Engine) {
 				MethodLock,
 				MethodUnlock,
 				MethodPropPatch:
-				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				c.AbortWithError(http.StatusForbidden, errors.New(model.Conf.Language(34)))
 				return
 			}
 		}
@@ -1073,7 +1073,7 @@ func serveCardDAV(ginServer *gin.Engine) {
 				MethodLock,
 				MethodUnlock,
 				MethodPropPatch:
-				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				c.AbortWithError(http.StatusForbidden, errors.New(model.Conf.Language(34)))
 				return
 			}
 		}

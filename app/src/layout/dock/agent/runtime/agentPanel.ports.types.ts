@@ -72,6 +72,11 @@ export interface PanelFocusPort {
     focus: (panel: HTMLElement) => void;
 }
 
+/** 提供当前浏览器宿主重载能力，不包含 Kernel 重启语义。 */
+export interface FrontendReloadPort {
+    reload: () => void | Promise<void>;
+}
+
 /** 提供 Dock 可见性控制，独立页面可省略。 */
 export interface DockVisibilityPort {
     minimize: () => void;
@@ -110,6 +115,7 @@ export interface AgentPanelCapabilities {
     editorContext?: EditorContextPort;
     pluginActions?: PluginActionPort;
     focus?: PanelFocusPort;
+    frontendReload?: FrontendReloadPort;
     dockVisibility?: DockVisibilityPort;
     tabOpen?: PanelTabOpenPort;
     floatOpen?: PanelFloatOpenPort;

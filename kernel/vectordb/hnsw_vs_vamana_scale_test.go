@@ -33,26 +33,26 @@ import (
 
 // scaleBenchConfig holds parameters for a single scale point.
 type scaleBenchConfig struct {
-	total     int    // total vectors to insert
-	dim       int    // vector dimension
-	queryCnt  int    // number of queries for latency measurement
-	topK      int    // search top-K
-	efSearch  int    // search ef
-	seedSize  int    // DiskVamana seed index size (BuildFromVectors)
+	total    int // total vectors to insert
+	dim      int // vector dimension
+	queryCnt int // number of queries for latency measurement
+	topK     int // search top-K
+	efSearch int // search ef
+	seedSize int // DiskVamana seed index size (BuildFromVectors)
 }
 
 // scaleResult holds metrics for a single scale run on one engine.
 type scaleResult struct {
-	engine       string
-	total        int
-	buildDur     time.Duration
-	buildRate    float64 // items/s
-	queryAvgUs   float64 // average query latency in microseconds
-	queryP99Us   float64 // P99 query latency
-	queryQPS     float64 // queries per second
-	recallRate   float64 // fraction of top-K
-	insertAvgUs  float64 // incremental insert latency (after build)
-	heapAllocMB  float64 // heap allocation after build
+	engine      string
+	total       int
+	buildDur    time.Duration
+	buildRate   float64 // items/s
+	queryAvgUs  float64 // average query latency in microseconds
+	queryP99Us  float64 // P99 query latency
+	queryQPS    float64 // queries per second
+	recallRate  float64 // fraction of top-K
+	insertAvgUs float64 // incremental insert latency (after build)
+	heapAllocMB float64 // heap allocation after build
 }
 
 // TestHNSWvsVamanaSmallScale compares HNSW (Collection) and DiskVamana
@@ -64,6 +64,9 @@ type scaleResult struct {
 //
 // Run with: go test -run TestHNSWvsVamanaSmallScale -v -timeout 30m
 func TestHNSWvsVamanaSmallScale(t *testing.T) {
+	if testing.Short() {
+		t.Skip("multi-scale performance comparison")
+	}
 	scales := []int{1000, 5000, 10000, 25000, 50000, 100000}
 	dim := 768
 	queryCnt := 200

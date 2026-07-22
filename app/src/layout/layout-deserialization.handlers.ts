@@ -16,7 +16,7 @@ import { Graph } from "./dock/Graph";
 import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
 import { AgentChat } from "./dock/agent/AgentChat";
-import {createAppAgentPanelCapabilities} from "./dock/agent/runtime/agentPanel.capabilities.app";
+import {createAppAgentPanelCapabilities} from "./dock/agent/runtime/host/agentPanel.capabilities.app";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
 import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";

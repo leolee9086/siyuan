@@ -53,7 +53,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 	// 主导AI开始输出前排 #todo# 快照 A
 	var preTodoBlocks []*model.Block
-	if !options.IsSleepMode && requireActionTool {
+	if options.AllowWannaSleep && !options.IsSleepMode && requireActionTool {
 		preTodoBlocks, _, _, _, _ = runNoteKeywordFullTextSearch(`"#todo#"`, 50)
 	}
 

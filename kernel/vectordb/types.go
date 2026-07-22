@@ -85,7 +85,8 @@ type Collection struct {
 	HNSWIdx *hnsw.HNSWIndex
 	Store   *VectorStore
 
-	Mu sync.RWMutex
+	Mu          sync.RWMutex
+	operationMu sync.Mutex
 }
 
 // CollectionInfo holds summary info for a collection.

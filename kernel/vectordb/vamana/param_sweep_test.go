@@ -26,6 +26,9 @@ import (
 // TestParamSweep 扫描 MaxBackedges × GraphSlackFactor 参数组合，
 // 测量 Insert 吞吐量、Recall@10 和平均出度。
 func TestParamSweep(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Vamana parameter sweep")
+	}
 	const (
 		numVectors = 20000
 		dim        = 128

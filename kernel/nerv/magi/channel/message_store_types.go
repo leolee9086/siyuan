@@ -98,9 +98,9 @@ type SharedContact struct {
 
 // Poll 投票
 type Poll struct {
-	Question string     `json:"question"`
+	Question string       `json:"question"`
 	Options  []PollOption `json:"options"`
-	IsClosed bool       `json:"isClosed,omitempty"`
+	IsClosed bool         `json:"isClosed,omitempty"`
 }
 
 // PollOption 投票选项
@@ -111,10 +111,10 @@ type PollOption struct {
 
 // StickerInfo 表情包/贴纸
 type StickerInfo struct {
-	ID       string `json:"id"`
-	Emoji    string `json:"emoji,omitempty"`
-	SetName  string `json:"setName,omitempty"`
-	FileID   string `json:"fileId,omitempty"`
+	ID      string `json:"id"`
+	Emoji   string `json:"emoji,omitempty"`
+	SetName string `json:"setName,omitempty"`
+	FileID  string `json:"fileId,omitempty"`
 }
 
 // Interactive 交互组件
@@ -140,15 +140,16 @@ type ForwardInfo struct {
 
 // QueryOptions 消息查询参数
 type QueryOptions struct {
-	ChannelID   string
-	ChannelType string
-	AccountID   string
-	UserID      string
-	IdentityID  string
-	Direction   MessageDirection
-	Limit       int
-	Before      int64
-	After       int64
+	ChannelID      string
+	ChannelType    string
+	AccountID      string
+	UserID         string
+	IdentityID     string
+	ConversationID string
+	Direction      MessageDirection
+	Limit          int
+	Before         int64
+	After          int64
 }
 
 // QueryResult 消息查询结果

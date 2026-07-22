@@ -614,6 +614,7 @@ func ServeAPI(ginServer *gin.Engine) {
 
 	// ========== S-forge 扩展接口 ==========
 	// 以下接口为 S-forge 额外扩展，官方 siyuan-note/siyuan 中不存在
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/shutdown", forgeRuntimeShutdown)
 
 	// 向量数据库
 	ginServer.Handle("POST", "/api/vector/collections/build", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, vectorBuildCollection)
@@ -678,6 +679,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/channel-unbind", model.CheckAuth, magiIdentityChannelUnbind)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/persona/status", model.CheckAuth, magiPersonaStatus)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", magiChat)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/main-ui/history", magiMainUIHistory)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
 	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/messages", magiMessages)

@@ -120,6 +120,9 @@ func BenchmarkInsertTotal(b *testing.B) {
 // TestInsertThroughputCurve 非 benchmark 测试，输出分阶段吞吐量衰减曲线数据。
 // 使用 go test -run TestInsertThroughputCurve -v 运行。
 func TestInsertThroughputCurve(t *testing.T) {
+	if testing.Short() {
+		t.Skip("insertion throughput test")
+	}
 	dist, vectors := newBenchDistancer(benchMaxTotal, benchDim)
 	idx := newBenchIndex(benchDim, dist)
 
@@ -156,6 +159,9 @@ func TestInsertThroughputCurve(t *testing.T) {
 // TestInsertCPUProfile 收集插入过程的 CPU profile。
 // 将 profile 写入 testdata/insert_cpu.prof。
 func TestInsertCPUProfile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("CPU profile generation")
+	}
 	dist, vectors := newBenchDistancer(benchMaxTotal, benchDim)
 	idx := newBenchIndex(benchDim, dist)
 

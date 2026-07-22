@@ -85,6 +85,9 @@ func BenchmarkValueRollup_CacheMiss(b *testing.B) {
 
 // TestValueRollup_CachePerformanceComparison 性能对比测试
 func TestValueRollup_CachePerformanceComparison(t *testing.T) {
+	if testing.Short() {
+		t.Skip("performance comparison test")
+	}
 	keyValues := createBenchmarkKeyValues(100)
 	destKey := &Key{
 		ID:           "numKey",

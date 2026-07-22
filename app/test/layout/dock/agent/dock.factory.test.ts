@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from "vitest";
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 const dockSpies = vi.hoisted(() => ({
     agentConstructor: vi.fn(),
@@ -13,13 +13,18 @@ vi.mock("../../../../src/layout/dock/agent/AgentChat", () => ({
     },
 }));
 
-vi.mock("../../../../src/layout/dock/agent/runtime/agentPanel.capabilities.app", () => ({
+vi.mock("../../../../src/layout/dock/agent/runtime/host/agentPanel.capabilities.app", () => ({
     createAppAgentPanelCapabilities: dockSpies.createCapabilities,
 }));
 
 describe("Agent Dock factory", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.stubGlobal("document", {getElementById: vi.fn(() => null)});
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it("injects the complete App capability adapter and copy factory", async () => {

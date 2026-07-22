@@ -161,7 +161,7 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 func (idx *HNSWIndex) RebuildIndex(validDocIDs []DocID) {
 	idx.Mu.Lock()
 	idx.Neighbors = make([][][]NeighborRecord, 0)
-	idx.nodeLocks = make([]sync.Mutex, 0)
+	idx.nodeLocks = make([]*sync.RWMutex, 0)
 	idx.Deleted = make(map[DocID]bool)
 	idx.EntryPoint = InvalidEntryPoint
 	idx.MaxLayer = -1

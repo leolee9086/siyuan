@@ -45,6 +45,21 @@ func TestNativeAgentForgeWritesRequireConfirmation(t *testing.T) {
 	}
 }
 
+func TestForgeRuntimeRestartAlwaysRequiresFreshConfirmation(t *testing.T) {
+	if !needsConfirm(tools.ForgeRuntimeRestartToolName, "", map[string]bool{"*": true}) {
+		t.Fatal("runtime restart must ignore session-wide always allow")
+	}
+	if !requiresFreshConfirmation(tools.ForgeRuntimeRestartToolName) {
+		t.Fatal("runtime restart is not classified as a fresh-confirmation operation")
+	}
+	if requiresFreshConfirmation(tools.ForgeRuntimeStatusToolName) {
+		t.Fatal("runtime status should remain read-only")
+	}
+	if !requiresFreshConfirmation(tools.ForgeRuntimeApproveTestsToolName) {
+		t.Fatal("protected test restart approval must always require fresh confirmation")
+	}
+}
+
 func TestBuildToolResultOutputsPreservesCompleteDisplayPayload(t *testing.T) {
 	previousDataDir := util.DataDir
 	util.DataDir = t.TempDir()

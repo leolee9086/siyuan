@@ -34,6 +34,9 @@ import (
 //   - TopK=10, search_list sweep, L2 distance
 
 func TestDiskVamanaVsDiskANN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("DiskVamana and DiskANN comparison")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")

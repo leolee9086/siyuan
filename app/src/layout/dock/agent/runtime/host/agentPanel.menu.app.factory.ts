@@ -1,5 +1,7 @@
-import {MenuItem} from "../../../../menus/Menu";
-import type {PanelMenuItem} from "./agentPanel.ports.types";
+/** 用途：创建主应用原生菜单项；使用范围：仅 App 宿主菜单 Port；解耦评估：经宿主网关收口，面板核心仅依赖 PanelMenuPort。 */
+import {MenuItem} from "./imports";
+/** 用途：约束菜单 Port 输入；使用范围：仅本 App 适配器；解耦评估：纯类型依赖，不引入面板运行时实现。 */
+import type {PanelMenuItem} from "./imports";
 
 /** 使用主应用公共 Menu 渲染并定位一组细粒度面板动作。 */
 const popupAppPanelMenu = (name: string, anchor: HTMLElement, items: PanelMenuItem[]) => {
@@ -28,7 +30,10 @@ const closeAppPanelMenu = (name?: string) => {
     }
 };
 
-/** 创建主应用菜单能力，使其它面板也能复用同一锚点菜单边界。 */
+/**
+ * 创建主应用菜单能力，使其它面板也能复用同一锚点菜单边界。
+ * @同步豁免: UI构建 需要同步组装 capability，只返回已有函数引用，不执行异步业务。
+ */
 export const createAppPanelMenuPort = () => ({
     popup: popupAppPanelMenu,
     close: closeAppPanelMenu,

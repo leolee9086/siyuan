@@ -232,6 +232,9 @@ func BenchmarkVamanaCollectionInsertOverhead(b *testing.B) {
 // result enrichment (DocMap lookup + score conversion + sort), delaying concurrent
 // Search and InsertPoint operations.
 func TestVamanaCollectionConcurrentSearchContention(t *testing.T) {
+	if testing.Short() {
+		t.Skip("concurrent search contention measurement")
+	}
 	dim := 64
 	baseSize := 20000
 	numQueries := 100
@@ -376,6 +379,9 @@ func TestVamanaCollectionConcurrentSearchContention(t *testing.T) {
 // by score is redundant — score is a monotonic transform of distance,
 // so distance-ascending and score-descending orders are identical.
 func TestSearchSortRedundancy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("search sort redundancy measurement")
+	}
 	dim := 64
 	baseSize := 2000
 	k := 10

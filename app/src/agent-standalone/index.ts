@@ -14,13 +14,26 @@ export type {AgentPanelConversation, AgentPanelHandle, AgentPanelMountOptions};
 
 /** 准备浏览器运行时并挂载唯一 Agent Panel 实现。 */
 export const mountStandaloneAgentPanel = async (options: AgentPanelMountOptions) => {
-    await bootstrapAgentPanelRuntime();
-    const {mountAgentPanel, createBrowserAgentPanelCapabilities} = await import("./panel-runtime");
-    return mountAgentPanel({
-        ...options,
-        capabilities: options.capabilities ?? createBrowserAgentPanelCapabilities(),
-        enableSessionWebSocket: options.enableSessionWebSocket ?? false,
-    });
+    try {
+        await bootstrapAgentPanelRuntime();
+    } catch (error) {
+        throw new Error("Agent runtime bootstrap failed", {cause: error});
+    }
+    let runtime: typeof import("./panel-runtime");
+    try {
+        runtime = await import("./panel-runtime");
+    } catch (error) {
+        throw new Error("Agent panel runtime module failed to load", {cause: error});
+    }
+    try {
+        return await runtime.mountAgentPanel({
+            ...options,
+            capabilities: options.capabilities ?? runtime.createBrowserAgentPanelCapabilities(),
+            enableSessionWebSocket: options.enableSessionWebSocket ?? false,
+        });
+    } catch (error) {
+        throw new Error("Agent panel instance failed to initialize", {cause: error});
+    }
 };
 
 /** 在独立入口启动异常时渲染可诊断错误，同时避免把原始文本拼入 HTML。 */

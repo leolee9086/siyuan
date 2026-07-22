@@ -11,6 +11,9 @@ import (
 )
 
 func TestBBQ_RebuildStrategy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("BBQ accuracy diagnostic")
+	}
 	const dim = 128
 	const N = 5000
 	const K = 10
@@ -47,7 +50,7 @@ func TestBBQ_RebuildStrategy(t *testing.T) {
 
 	// ---- Eager ----
 	type result struct {
-		recall float64
+		recall  float64
 		quantNs int64
 	}
 	eagerRes := make([]result, len(checkpoints))

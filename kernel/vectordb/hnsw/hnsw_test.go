@@ -435,6 +435,9 @@ func TestRandomLevel(t *testing.T) {
 }
 
 func TestPaperMLQuality(t *testing.T) {
+	if testing.Short() {
+		t.Skip("multi-scale HNSW quality comparison")
+	}
 	scales := []struct {
 		total int
 		dim   int

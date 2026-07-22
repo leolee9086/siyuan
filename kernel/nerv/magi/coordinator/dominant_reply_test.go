@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -113,7 +114,8 @@ func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
 	if err != nil {
 		return nil, err
 	}
-	if len(tools) == 1 && tools[0].Function != nil && strings.TrimSpace(tools[0].Function.Name) != "" && strings.TrimSpace(content) != "" {
+	toolName := scriptedSyncToolName(content, tools)
+	if toolName != "" {
 		return &types.SyncChatResult{
 			ToolCalls: []types.ToolCall{
 				{
@@ -121,7 +123,7 @@ func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
 					Type:  "function",
 					Index: 0,
 					Function: types.ToolCallFunction{
-						Name:      strings.TrimSpace(tools[0].Function.Name),
+						Name:      toolName,
 						Arguments: content,
 					},
 				},
@@ -130,6 +132,23 @@ func (m *scriptedDominantClient) SendChatRequestSyncDetailed(
 		}, nil
 	}
 	return &types.SyncChatResult{Content: content}, nil
+}
+
+func scriptedSyncToolName(content string, tools []openai.Tool) string {
+	if strings.TrimSpace(content) == "" {
+		return ""
+	}
+	if len(tools) == 1 && tools[0].Function != nil {
+		return strings.TrimSpace(tools[0].Function.Name)
+	}
+
+	var vote struct {
+		Decision string `json:"decision"`
+	}
+	if json.Unmarshal([]byte(content), &vote) == nil && strings.TrimSpace(vote.Decision) != "" && hasOpenAITool(tools, config.VoteToolName) {
+		return config.VoteToolName
+	}
+	return ""
 }
 
 func TestCollectActionPlansOmitsToolChoice(t *testing.T) {
@@ -338,6 +357,16 @@ func hasToolContentContaining(messages []types.ContextMessage, needle string) bo
 }
 
 func TestCoordinateDominantDirectReply_SharesDominantReplyToAllSages(t *testing.T) {
+	originalSearch := runNoteKeywordFullTextSearch
+	searchCalls := 0
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		searchCalls++
+		return nil, 0, 0, 0, false
+	}
+	t.Cleanup(func() {
+		runNoteKeywordFullTextSearch = originalSearch
+	})
+
 	coordinator := NewCoordinator(5 * time.Second)
 	profile := buildDominantReplyTestProfile()
 
@@ -396,6 +425,9 @@ func TestCoordinateDominantDirectReply_SharesDominantReplyToAllSages(t *testing.
 	}
 	if got := strings.TrimSpace(message.Meta["dominantSeel"].(string)); got != "melchior" {
 		t.Fatalf("expected meta dominantSeel=melchior, got %s", got)
+	}
+	if searchCalls != 0 {
+		t.Fatalf("direct reply must not collect heartbeat todo snapshots, got %d searches", searchCalls)
 	}
 
 	for _, sage := range []*sages.Sage{balthazar, casper} {

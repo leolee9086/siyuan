@@ -105,6 +105,25 @@ const registerAiAgentGroup = (tab: SettingTabBuilder) => {
     });
 };
 
+const registerAiCommandReviewGroup = (tab: SettingTabBuilder) => {
+    const groupId = "commandReview";
+    const group = tab.group(groupId, "命令审核");
+
+    group.slot({
+        key: "commandReviewModelPicker",
+        keywords: getModelPickerKeywords(groupId),
+        html: () => genModelPickerHtml(groupId),
+        afterMount: (root) => mountModelPickerBlock(root, groupId),
+    });
+    group.number("ai.commandReview.timeout", {
+        title: window.siyuan.languages.apiTimeout,
+        desc: "命令审核模型的单次响应时限；超时会明确阻断命令。",
+        min: 1,
+        max: 120,
+        unit: "s",
+    });
+};
+
 const registerAiMcpGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("mcp", "智能体 MCP 服务");
 
@@ -177,6 +196,7 @@ export const registerAiTab = (tab: SettingTabBuilder) => {
     registerAiProvidersGroup(tab);
     registerAiEditingGroup(tab);
     registerAiAgentGroup(tab);
+    registerAiCommandReviewGroup(tab);
     registerAiMcpGroup(tab);
     // TODO: add skills group?
     registerAiEmbeddingGroup(tab);

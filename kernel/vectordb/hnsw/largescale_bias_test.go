@@ -7,6 +7,9 @@ import (
 )
 
 func TestBiasByEfSearch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large-scale efSearch bias test")
+	}
 	const personaCount = 200
 	const memCount = 5000
 	const dim = 128

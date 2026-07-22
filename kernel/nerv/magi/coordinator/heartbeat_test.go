@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -54,7 +55,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查未完成待办","query":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"我把这一轮检查结果梳理清楚了","nextStepPlan":"下一轮先确认新事件，再决定是否继续追踪仓库变化"}`),
 				},
 			},
@@ -64,7 +65,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查未完成待办","query":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepDreamToolName, `{"summary":"情绪上已经从紧绷回落到安静","dreamScene":"深夜的桌面被台灯照亮，玻璃窗外残留雨痕，屏幕上的待办清单泛着冷白色微光，屋里只剩轻微风声"}`),
 				},
 			},
@@ -74,7 +75,7 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 		streamTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查未完成待办","query":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有新的紧急事项，我先把已经看见的线索和状态记下"}`),
 				},
 			},
@@ -169,13 +170,21 @@ func TestCoordinateHeartbeat_MergesSleepNotesIntoSharedHistory(t *testing.T) {
 }
 
 func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
+	originalSearch := runNoteKeywordFullTextSearch
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		return nil, 0, 0, 0, false
+	}
+	t.Cleanup(func() {
+		runNoteKeywordFullTextSearch = originalSearch
+	})
+
 	coordinator := NewCoordinator(5 * time.Second)
 
 	melchiorClient := &mockLLMClient{
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查未完成待办","query":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepPlanToolName, `{"summary":"先记录检查结论","nextStepPlan":"继续看一下剩余事件"}`),
 				},
 			},
@@ -188,7 +197,7 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 		scriptedTurns: []mockTurn{
 			{
 				toolCalls: []types.ToolCallDelta{
-					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"input":"#todo#"}`),
+					toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查未完成待办","query":"#todo#"}`),
 					toolCallDelta(1, config.WannaSleepRecordToolName, `{"summary":"当前没有更多异常，我先记下来"}`),
 				},
 			},
@@ -203,9 +212,18 @@ func TestCoordinateHeartbeat_RemainsAwakeWhenAnySleepNoteMissing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildDominantCandidates() error = %v", err)
 	}
-	melchiorClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 95, 20, 10)}
-	balthazarClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 80, 35, 25)}
-	casperClient.syncResponses = []string{buildDominantVoteResponse(t, candidates, 75, 30, 40)}
+	melchiorClient.syncResponses = []string{
+		buildPlanProposalResponse("检查待办并判断是否休眠"),
+		buildDominantVoteResponse(t, candidates, 95, 20, 10),
+	}
+	balthazarClient.syncResponses = []string{
+		buildPlanProposalResponse("保持清醒并继续观察"),
+		buildDominantVoteResponse(t, candidates, 80, 35, 25),
+	}
+	casperClient.syncResponses = []string{
+		buildPlanProposalResponse("记录当前心跳状态"),
+		buildDominantVoteResponse(t, candidates, 75, 30, 40),
+	}
 
 	result, err := coordinator.CoordinateHeartbeat(
 		context.Background(),

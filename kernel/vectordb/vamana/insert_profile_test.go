@@ -28,6 +28,9 @@ import (
 // TestInsertCPUProfile 对 Vamana Insert 路径进行 CPU Profile 分析
 // 插入 20K 条 128 维向量，收集 CPU profile 数据
 func TestInsertCPUProfile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("CPU profile generation")
+	}
 	const (
 		dim   = 128
 		total = 20000

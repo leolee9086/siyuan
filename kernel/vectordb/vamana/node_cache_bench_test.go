@@ -283,6 +283,9 @@ func BenchmarkFlatCacheFullLookup768(b *testing.B) {
 // ── Memory footprint ──
 
 func TestCacheMemoryFootprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("node cache memory footprint measurement")
+	}
 	dim := 768
 	maxDegree := 64
 	nodes := 10000

@@ -19,17 +19,17 @@ import (
 )
 
 const (
-	defaultMagiHeartbeatInterval             = 5 * time.Minute
-	magiHeartbeatSleepIntervalFirst          = 30 * time.Minute
-	magiHeartbeatSleepIntervalSecond         = 45 * time.Minute
-	magiHeartbeatSleepIntervalSubsequent     = 60 * time.Minute
-	defaultMagiHeartbeatInitialDelay         = 30 * time.Second
-	magiRuntimeMonitorSessionID              = websocket.RuntimeMonitorSessionID
-	magiHeartbeatPrincipalID                 = "system-cron"
-	magiHeartbeatInterfaceID                 = "magi-heartbeat"
-	magiHeartbeatConversationID              = "heartbeat-loop"
-	magiDefaultSleepScheduleStartHour        = 0  // 午夜
-	magiDefaultSleepScheduleEndHour          = 8  // 早上
+	defaultMagiHeartbeatInterval         = 5 * time.Minute
+	magiHeartbeatSleepIntervalFirst      = 30 * time.Minute
+	magiHeartbeatSleepIntervalSecond     = 45 * time.Minute
+	magiHeartbeatSleepIntervalSubsequent = 60 * time.Minute
+	defaultMagiHeartbeatInitialDelay     = 30 * time.Second
+	magiRuntimeMonitorSessionID          = websocket.RuntimeMonitorSessionID
+	magiHeartbeatPrincipalID             = "system-cron"
+	magiHeartbeatInterfaceID             = "magi-heartbeat"
+	magiHeartbeatConversationID          = "heartbeat-loop"
+	magiDefaultSleepScheduleStartHour    = 0 // 午夜
+	magiDefaultSleepScheduleEndHour      = 8 // 早上
 )
 
 type magiHeartbeatRun struct {
@@ -304,7 +304,9 @@ func (m *magiRuntimeManager) finishHeartbeat(
 		m.status.Awake = true
 		m.status.Reason = "heartbeat-failed"
 	case result != nil && result.Downtime:
-
+		m.status.State = types.RuntimeStateDowntime
+		m.status.Awake = false
+		m.status.LastDowntimeAt = nowMillis
 		m.status.LastDowntimeSummary = strings.TrimSpace(result.DowntimeSummary)
 		m.lastRoundHasUser = false
 		m.lastRoundUser = ""
@@ -526,8 +528,8 @@ func (m *magiRuntimeManager) buildHeartbeatPassiveRecallBasisLocked() *types.Pas
 		return nil
 	}
 	return &types.PassiveRecallBasis{
-		Type:         types.PassiveRecallBasisPreviousDowntime,
-		Query:        sleepSummary,
+		Type:            types.PassiveRecallBasisPreviousDowntime,
+		Query:           sleepSummary,
 		DowntimeSummary: sleepSummary,
 	}
 }

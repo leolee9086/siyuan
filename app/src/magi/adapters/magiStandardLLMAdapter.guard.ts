@@ -4,6 +4,22 @@
  * 解耦评估：这是编译期契约依赖，参数注入不会减少运行时耦合。
  */
 import type { StandardLLMStreamChunk } from "./imports";
+/**
+ * 用途：导入来源渠道的封闭联合类型，用于未知输入的运行时收窄。
+ * 使用范围：仅用于 `isSafeSourceChannel` 的类型谓词返回值。
+ * 解耦评估：这是编译期协议契约，复制字面量类型会造成定义漂移。
+ */
+import type {SafeSourceChannel} from "./magiStandardLLMAdapter.types";
+
+/**
+ * 作用：判断未知值是否属于来源模拟协议声明的渠道集合。
+ * 意图：让来源上下文规范化复用一个确定守卫，避免在 helper 中使用类型断言。
+ * 调用时机：解析系统消息中的 sourceChannel 以及回看标准 source 字段时。
+ */
+export function isSafeSourceChannel(value: unknown): value is SafeSourceChannel {
+    return value === "guardian" || value === "external-agent" ||
+        value === "system-cron" || value === "unknown";
+}
 
 /**
  * 作用：验证未知值是否符合 Agent Panel 消费所需的最小 OpenAI chunk 结构。

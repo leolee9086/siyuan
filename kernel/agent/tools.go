@@ -43,7 +43,7 @@ func convertMCPToolsToOpenAI(includeTaskDirectory bool) []openai.Tool {
 
 // executeTool 执行单次工具调用。
 // 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果。
-func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, emitProgress tools.ToolProgressCallback) (string, bool) {
+func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, agentApproved bool, emitProgress tools.ToolProgressCallback) (string, bool) {
 	t := tools.GetTool(tc.Function.Name)
 	if t == nil {
 		return "unknown tool: " + tc.Function.Name, true
@@ -56,6 +56,10 @@ func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirect
 	}
 
 	args := parseToolArgs(tc.Function.Arguments)
+	if agentApproved {
+		tools.WithForgeRuntimeApproval(args)
+		tools.WithForgeProtectedApproval(args)
+	}
 	if t.Source == "task-directory" {
 		// 每次工具调用都重新读取并校验 capability，避免会话开始后目录被替换、删除
 		// 或 store 被外部修改时继续使用旧 root。

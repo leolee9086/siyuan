@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -223,6 +224,9 @@ func TestNodeCacheHitRate(t *testing.T) {
 // ============================================================================
 
 func TestNodeCachePerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("node cache performance test")
+	}
 	cfg := defaultCacheTestConfig()
 	cfg.total = 50000
 	cfg.dim = 128
@@ -284,6 +288,9 @@ func TestNodeCachePerformance(t *testing.T) {
 
 // TestNodeCachePerformance768Dim measures cache effect at production dimension.
 func TestNodeCachePerformance768Dim(t *testing.T) {
+	if testing.Short() {
+		t.Skip("high-dimensional node cache performance test")
+	}
 	cfg := testCacheConfig{total: 30000, dim: 768, R: 32, L: 200}
 	idx, cleanup := buildTestIndex(t, cfg)
 	defer cleanup()
@@ -360,10 +367,13 @@ func TestNodeCacheConcurrent(t *testing.T) {
 	}
 
 	done := make(chan struct{})
+	var wg sync.WaitGroup
 	const numSearchers = 4
 
+	wg.Add(numSearchers)
 	for i := 0; i < numSearchers; i++ {
 		go func(worker int) {
+			defer wg.Done()
 			for {
 				select {
 				case <-done:
@@ -377,8 +387,11 @@ func TestNodeCacheConcurrent(t *testing.T) {
 	}
 
 	const numInserters = 8
+	wg.Add(numInserters)
 	for i := 0; i < numInserters; i++ {
 		go func(iter int) {
+			defer wg.Done()
+			workerRNG := rand.New(rand.NewSource(1000 + int64(iter)))
 			for {
 				select {
 				case <-done:
@@ -386,7 +399,7 @@ func TestNodeCacheConcurrent(t *testing.T) {
 				default:
 					vec := make([]float32, cfg.dim)
 					for j := 0; j < cfg.dim; j++ {
-						vec[j] = rng.Float32()*2 - 1
+						vec[j] = workerRNG.Float32()*2 - 1
 					}
 					_, _ = idx.Insert(vec)
 				}
@@ -396,6 +409,7 @@ func TestNodeCacheConcurrent(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 	close(done)
+	wg.Wait()
 
 	stats := idx.CacheStats()
 	t.Logf("concurrent test: cached=%d/%d", stats.Cached, stats.MaxSize)
@@ -535,6 +549,9 @@ func TestNodeCacheStats(t *testing.T) {
 // ============================================================================
 
 func TestNodeCacheWithSIFT10K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset cache test")
+	}
 	dim := 128
 	total := 10000
 

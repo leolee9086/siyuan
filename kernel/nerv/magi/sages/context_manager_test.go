@@ -139,6 +139,7 @@ func TestTokenPercent_RoundBasedDiscard(t *testing.T) {
 	}
 
 	longContent := strings.Repeat("The quick brown fox jumps over the lazy dog. ", 80)
+	shortContent := strings.Repeat("The quick brown fox jumps over the lazy dog. ", 8)
 
 	var messages []types.ContextMessage
 	for i := 0; i < 3; i++ {
@@ -158,7 +159,7 @@ func TestTokenPercent_RoundBasedDiscard(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		messages = append(messages, types.ContextMessage{
 			Role:     types.RoleUser,
-			Content:  longContent,
+			Content:  shortContent,
 			RoundID:  "round-3",
 			Dominant: true,
 		})
@@ -166,7 +167,7 @@ func TestTokenPercent_RoundBasedDiscard(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		messages = append(messages, types.ContextMessage{
 			Role:    types.RoleUser,
-			Content: longContent,
+			Content: shortContent,
 			RoundID: "round-4",
 		})
 	}
@@ -322,6 +323,9 @@ func TestMessageCount_Strategy(t *testing.T) {
 
 // TestTokenPercent_LargeScale 压力测试：大量轮次、大量 token。
 func TestTokenPercent_LargeScale(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large-scale token trimming stress test")
+	}
 	InitTokenEncodersWithDir(testTiktokenDir(t))
 	if !encodersReady {
 		t.Skip("token encoders not ready, skipping token-based test")

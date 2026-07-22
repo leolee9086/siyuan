@@ -45,28 +45,23 @@ func (idx *HNSWIndex) RandomLevel() int {
 // 使用全局锁保护 Neighbors/nodeLocks 切片的扩展
 func (idx *HNSWIndex) InitItemNeighbors(docID DocID) int {
 	level := idx.RandomLevel()
-
-	idx.Mu.Lock()
-
-	// 确保 Neighbors 和 nodeLocks 数组容量足够
-	for int(docID) >= len(idx.Neighbors) {
-		idx.Neighbors = append(idx.Neighbors, nil)
-	}
-	for int(docID) >= len(idx.nodeLocks) {
-		idx.nodeLocks = append(idx.nodeLocks, sync.Mutex{})
-	}
-
-	idx.Mu.Unlock()
-
-	// 初始化各层邻居列表（在节点锁下操作）
 	neighbors := make([][]NeighborRecord, level+1)
 	for l := 0; l <= level; l++ {
 		neighbors[l] = make([]NeighborRecord, 0, idx.Config.M)
 	}
 
-	idx.nodeLocks[docID].Lock()
+	idx.Mu.Lock()
+	for int(docID) >= len(idx.Neighbors) {
+		idx.Neighbors = append(idx.Neighbors, nil)
+	}
+	for int(docID) >= len(idx.nodeLocks) {
+		idx.nodeLocks = append(idx.nodeLocks, &sync.RWMutex{})
+	}
+	nodeLock := idx.nodeLocks[docID]
+	nodeLock.Lock()
 	idx.Neighbors[docID] = neighbors
-	idx.nodeLocks[docID].Unlock()
+	nodeLock.Unlock()
+	idx.Mu.Unlock()
 
 	return level
 }
@@ -75,32 +70,44 @@ func (idx *HNSWIndex) InitItemNeighbors(docID DocID) int {
 // restore; must only be called with no concurrent access.
 func (idx *HNSWIndex) SetNodeLocks(locks []sync.Mutex) {
 	idx.Mu.Lock()
-	idx.nodeLocks = locks
+	idx.nodeLocks = make([]*sync.RWMutex, len(locks))
+	for i := range idx.nodeLocks {
+		idx.nodeLocks[i] = &sync.RWMutex{}
+	}
 	idx.Mu.Unlock()
 }
 
 // GetItemLevel 获取节点最大层级
 // 读取 Neighbors[docID] 的长度，使用节点锁保护
 func (idx *HNSWIndex) GetItemLevel(docID DocID) int {
-	if int(docID) >= len(idx.Neighbors) {
+	idx.Mu.RLock()
+	defer idx.Mu.RUnlock()
+	if int(docID) >= len(idx.Neighbors) || int(docID) >= len(idx.nodeLocks) {
 		return -1
 	}
-	idx.nodeLocks[docID].Lock()
+	idx.nodeLocks[docID].RLock()
+	defer idx.nodeLocks[docID].RUnlock()
 	l := len(idx.Neighbors[docID]) - 1
-	idx.nodeLocks[docID].Unlock()
 	return l
 }
 
-// GetLevelNeighborRecords 零分配版本：直接返回邻居记录切片（含缓存距离）
-// 调用方不得修改返回的切片！
+// GetLevelNeighborRecords 返回邻居记录快照（含缓存距离）。
+// 快照避免调用方在节点锁释放后读取并发修改中的底层切片。
 func (idx *HNSWIndex) GetLevelNeighborRecords(docID DocID, level int) []NeighborRecord {
-	if int(docID) >= len(idx.Neighbors) {
+	idx.Mu.RLock()
+	defer idx.Mu.RUnlock()
+	if int(docID) >= len(idx.Neighbors) || int(docID) >= len(idx.nodeLocks) {
 		return nil
 	}
+	idx.nodeLocks[docID].RLock()
+	defer idx.nodeLocks[docID].RUnlock()
 	if level >= len(idx.Neighbors[docID]) || level < 0 {
 		return nil
 	}
-	return idx.Neighbors[docID][level]
+	records := idx.Neighbors[docID][level]
+	ret := make([]NeighborRecord, len(records))
+	copy(ret, records)
+	return ret
 }
 
 // GetLevelNeighborIDs 从邻居记录中提取 ID 列表
@@ -117,21 +124,17 @@ func (idx *HNSWIndex) GetLevelNeighborIDs(docID DocID, level int) []DocID {
 	return ids
 }
 
-// GetLevelNeighbors 兼容版本：返回 NeighborRecord 的副本
+// GetLevelNeighbors 兼容版本：GetLevelNeighborRecords 已返回独立快照。
 func (idx *HNSWIndex) GetLevelNeighbors(docID DocID, level int) []NeighborRecord {
-	records := idx.GetLevelNeighborRecords(docID, level)
-	if records == nil {
-		return nil
-	}
-	result := make([]NeighborRecord, len(records))
-	copy(result, records)
-	return result
+	return idx.GetLevelNeighborRecords(docID, level)
 }
 
 // SetLevelNeighbors 设置指定层级的邻居（含距离缓存）
 // 使用节点级锁保护单个节点的邻居列表
 func (idx *HNSWIndex) SetLevelNeighbors(docID DocID, level int, neighbors []NeighborRecord) {
-	if int(docID) >= len(idx.Neighbors) {
+	idx.Mu.RLock()
+	defer idx.Mu.RUnlock()
+	if int(docID) >= len(idx.Neighbors) || int(docID) >= len(idx.nodeLocks) {
 		return
 	}
 
@@ -139,17 +142,19 @@ func (idx *HNSWIndex) SetLevelNeighbors(docID DocID, level int, neighbors []Neig
 	copy(records, neighbors)
 
 	idx.nodeLocks[docID].Lock()
+	defer idx.nodeLocks[docID].Unlock()
 	for level >= len(idx.Neighbors[docID]) {
 		idx.Neighbors[docID] = append(idx.Neighbors[docID], nil)
 	}
 	idx.Neighbors[docID][level] = records
-	idx.nodeLocks[docID].Unlock()
 }
 
 // SetLevelNeighborIDs 直接设置邻居 ID（距离设为 0，用于 delete 路径）
 // 使用节点级锁保护
 func (idx *HNSWIndex) SetLevelNeighborIDs(docID DocID, level int, ids []DocID) {
-	if int(docID) >= len(idx.Neighbors) {
+	idx.Mu.RLock()
+	defer idx.Mu.RUnlock()
+	if int(docID) >= len(idx.Neighbors) || int(docID) >= len(idx.nodeLocks) {
 		return
 	}
 
@@ -159,23 +164,25 @@ func (idx *HNSWIndex) SetLevelNeighborIDs(docID DocID, level int, ids []DocID) {
 	}
 
 	idx.nodeLocks[docID].Lock()
+	defer idx.nodeLocks[docID].Unlock()
 	for level >= len(idx.Neighbors[docID]) {
 		idx.Neighbors[docID] = append(idx.Neighbors[docID], nil)
 	}
 	idx.Neighbors[docID][level] = records
-	idx.nodeLocks[docID].Unlock()
 }
 
 // RemoveNeighbor 从邻居列表中移除指定节点
 // 使用节点级锁保护
 func (idx *HNSWIndex) RemoveNeighbor(docID DocID, level int, neighborID DocID) {
-	if int(docID) >= len(idx.Neighbors) {
+	idx.Mu.RLock()
+	defer idx.Mu.RUnlock()
+	if int(docID) >= len(idx.Neighbors) || int(docID) >= len(idx.nodeLocks) {
 		return
 	}
 
 	idx.nodeLocks[docID].Lock()
+	defer idx.nodeLocks[docID].Unlock()
 	if level >= len(idx.Neighbors[docID]) {
-		idx.nodeLocks[docID].Unlock()
 		return
 	}
 
@@ -187,7 +194,6 @@ func (idx *HNSWIndex) RemoveNeighbor(docID DocID, level int, neighborID DocID) {
 		}
 	}
 	idx.Neighbors[docID][level] = newRecords
-	idx.nodeLocks[docID].Unlock()
 }
 
 // =========================================

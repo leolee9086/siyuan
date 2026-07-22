@@ -33,6 +33,9 @@ import (
 // Uses BuildFromVectors for ALL vectors (no incremental insert),
 // same as the SIFT end-to-end test pattern.
 func TestHNSWvsVamanaScaleCorrected(t *testing.T) {
+	if testing.Short() {
+		t.Skip("multi-scale performance comparison")
+	}
 	scales := []int{5000, 10000, 25000, 50000, 100000, 200000, 500000}
 	dim := 768 // production Ollama dimension
 	queryCnt := 100

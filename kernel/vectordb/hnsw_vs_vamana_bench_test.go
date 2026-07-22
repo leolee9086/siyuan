@@ -169,6 +169,9 @@ type phaseResult struct {
 //
 // 使用 go test -run TestHNSWvsVamanaInsertThroughput -v -timeout 30m 运行。
 func TestHNSWvsVamanaInsertThroughput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("insertion throughput comparison")
+	}
 	vectors := generateBenchVectors(benchCompTotal, benchCompDim)
 	phases := benchCompTotal / benchCompPhaseSize
 	numCPU := runtime.NumCPU()

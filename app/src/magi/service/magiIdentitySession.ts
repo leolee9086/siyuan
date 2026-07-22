@@ -408,11 +408,27 @@ function clearIdentitySessionExpiryTimer(): void {
     }
 }
 
+/**
+ * 创建可由 BroadcastChannel 结构化克隆的身份会话快照。
+ * Vue reactive 状态返回的会话可能是 Proxy，禁止直接跨窗口发送。
+ */
+function createMagiArmorSessionSnapshot(session: MagiArmorSession): MagiArmorSession {
+    return {
+        armorToken: session.armorToken,
+        expiresAt: session.expiresAt,
+        identityId: session.identityId,
+        displayName: session.displayName,
+        routeClass: session.routeClass,
+        channel: session.channel,
+        nickname: session.nickname,
+    };
+}
+
 function publishMagiIdentitySession(session: MagiArmorSession | null): void {
     identitySessionSyncChannel?.postMessage({
         type: "session",
         sender: identitySessionSyncSender,
-        session,
+        session: session ? createMagiArmorSessionSnapshot(session) : null,
     } satisfies MagiIdentitySyncMessage);
 }
 

@@ -80,12 +80,15 @@
     },
     "agent-app": {
         "platform": "web",
-        "entry": { "agent-panel": "./src/agent-standalone/index.ts" },
+        "entry": {
+            "agent-panel": "./src/agent-standalone/index.ts",
+            "agent-page": "./src/agent-standalone/index.ts"
+        },
         "outputDir": "stage/build/agent-app",
         "publicPath": "/stage/build/agent-app/",
         "library": { "format": "module" },
         "html": [
-            { "chunks": [], "filename": "index.html", "template": "src/assets/template/agent/desktop/index.tpl" }
+            { "chunks": ["agent-page"], "filename": "index.html", "template": "src/assets/template/agent/desktop/index.tpl" }
         ]
     },
     "bazaar-source": {

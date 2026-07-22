@@ -57,14 +57,8 @@ func (s *magiLiveStreamState) appendCumulative(c *gin.Context, content string) e
 }
 
 func (s *magiLiveStreamState) finish(c *gin.Context, message *types.Message) error {
-	if message == nil {
-		return fmt.Errorf("MAGI stream completed without consensus")
-	}
-	if s.streamedContent == "" {
-		return fmt.Errorf("MAGI stream completed without wanna_speak_continue content")
-	}
-	if strings.TrimSpace(message.Content) != s.streamedContent {
-		return fmt.Errorf("MAGI streamed reply diverged from final consensus")
+	if err := s.validateCompletion(message); err != nil {
+		return err
 	}
 	finalChunk := openai.ChatCompletionStreamResponse{
 		ID:      s.chunkID,
@@ -90,6 +84,19 @@ func (s *magiLiveStreamState) finish(c *gin.Context, message *types.Message) err
 	}
 	c.Render(-1, sse.Event{Data: "[DONE]"})
 	c.Writer.Flush()
+	return nil
+}
+
+func (s *magiLiveStreamState) validateCompletion(message *types.Message) error {
+	if message == nil {
+		return fmt.Errorf("MAGI stream completed without consensus")
+	}
+	if s.streamedContent == "" {
+		return fmt.Errorf("MAGI stream completed without wanna_speak_continue content")
+	}
+	if strings.TrimSpace(message.Content) != s.streamedContent {
+		return fmt.Errorf("MAGI streamed reply diverged from final consensus")
+	}
 	return nil
 }
 
@@ -157,6 +164,14 @@ func sendLiveMagiStreamResponse(
 			}
 			if event.result.Err != nil {
 				writeMagiLiveStreamError(c, event.result.Err)
+				return
+			}
+			if err := state.validateCompletion(event.result.ConsensusMsg); err != nil {
+				writeMagiLiveStreamError(c, err)
+				return
+			}
+			if err := persistMagiMainUIOutbound(requestCtx, event.result.ConsensusMsg, sourceCtx); err != nil {
+				writeMagiLiveStreamError(c, err)
 				return
 			}
 			if err := state.finish(c, event.result.ConsensusMsg); err != nil {

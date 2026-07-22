@@ -8,6 +8,9 @@ import (
 )
 
 func TestEfSearchNeighborhoodConstraint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("multi-scale neighborhood quality test")
+	}
 	const dim = 128
 	const M = 16
 	const efConstruction = 100

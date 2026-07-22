@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -48,14 +47,12 @@ func TestExtractClaimedRecentHistory_TrimsAndSkipsTransportMessages(t *testing.T
 
 func TestGetOrCreateSession_UsesDeterministicSourceSessionKeyWithoutHeader(t *testing.T) {
 	oldMgr := magiSessionMgr
-	oldSourceSID := magiSourceSID
+	isolateMagiSourceSID(t)
 	defer func() {
 		magiSessionMgr = oldMgr
-		magiSourceSID = oldSourceSID
 	}()
 
 	magiSessionMgr = session.NewSessionManager(time.Minute)
-	magiSourceSID = sync.Map{}
 
 	sourceCtx := &types.RequestSourceContext{
 		PrincipalID:      "principal-a",
@@ -78,14 +75,12 @@ func TestGetOrCreateSession_UsesDeterministicSourceSessionKeyWithoutHeader(t *te
 
 func TestGetOrCreateSession_IgnoresLegacySessionHeader(t *testing.T) {
 	oldMgr := magiSessionMgr
-	oldSourceSID := magiSourceSID
+	isolateMagiSourceSID(t)
 	defer func() {
 		magiSessionMgr = oldMgr
-		magiSourceSID = oldSourceSID
 	}()
 
 	magiSessionMgr = session.NewSessionManager(time.Minute)
-	magiSourceSID = sync.Map{}
 
 	sourceCtx := &types.RequestSourceContext{
 		PrincipalID:      "principal-a",
@@ -107,14 +102,12 @@ func TestGetOrCreateSession_IgnoresLegacySessionHeader(t *testing.T) {
 
 func TestGetOrCreateSession_ReturnsEmptyWhenSessionManagerUnavailable(t *testing.T) {
 	oldMgr := magiSessionMgr
-	oldSourceSID := magiSourceSID
+	isolateMagiSourceSID(t)
 	defer func() {
 		magiSessionMgr = oldMgr
-		magiSourceSID = oldSourceSID
 	}()
 
 	magiSessionMgr = nil
-	magiSourceSID = sync.Map{}
 
 	sessionID := getOrCreateSession(newTestGinContext(), &types.RequestSourceContext{
 		PrincipalID:      "principal-a",
@@ -123,6 +116,26 @@ func TestGetOrCreateSession_ReturnsEmptyWhenSessionManagerUnavailable(t *testing
 	if sessionID != "" {
 		t.Fatalf("expected empty session id when session manager is unavailable, got %s", sessionID)
 	}
+}
+
+func isolateMagiSourceSID(t *testing.T) {
+	t.Helper()
+	type entry struct {
+		key   interface{}
+		value interface{}
+	}
+	var snapshot []entry
+	magiSourceSID.Range(func(key, value interface{}) bool {
+		snapshot = append(snapshot, entry{key: key, value: value})
+		return true
+	})
+	magiSourceSID.Clear()
+	t.Cleanup(func() {
+		magiSourceSID.Clear()
+		for _, item := range snapshot {
+			magiSourceSID.Store(item.key, item.value)
+		}
+	})
 }
 
 func TestSubmitMagiTask_ReturnsInitErrorBeforeSessionLookup(t *testing.T) {

@@ -7,6 +7,9 @@ import (
 )
 
 func TestContaminationBias(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large-scale contamination quality test")
+	}
 	const personaCount = 200
 	const memCount = 5000
 	const dim = 128

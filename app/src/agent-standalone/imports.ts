@@ -20,6 +20,12 @@ import type {AgentPanelConversation} from "../layout/dock/agent/runtime/agentPan
 import type {AgentPanelHandle} from "../layout/dock/agent/runtime/agentPanel.ports.types";
 /** 用途：转发面板挂载选项；使用范围：独立 ESM 公共函数参数；解耦评估：type-only 依赖不会使核心在 bootstrap 前求值。 */
 import type {AgentPanelMountOptions} from "../layout/dock/agent/runtime/agentPanel.ports.types";
+/** 用途：转发独立页消息渲染能力；使用范围：浏览器 capability；解耦评估：具体渲染器经 ContentRenderPort 注入核心。 */
+import {postRender} from "../layout/dock/agent/AgentMessageRenderer";
+/** 用途：转发独立身份入口；使用范围：浏览器 IdentityAccessPort；解耦评估：具体导航不进入面板核心。 */
+import {openIdentityAccessStandalone} from "../magi/identity-access/adapters/open";
+/** 用途：转发浏览器重载工厂；使用范围：浏览器 FrontendReloadPort；解耦评估：核心只接收无参重载函数。 */
+import {createBrowserHostReload} from "../layout/dock/agent/runtime/host/agentPanel.reload.browser.factory";
 
 /** 导出脚本加载能力供 Agent 启动流程使用。 */
 export {loadStandaloneScript};
@@ -41,3 +47,9 @@ export type {AgentPanelConversation};
 export type {AgentPanelHandle};
 /** 导出面板挂载选项。 */
 export type {AgentPanelMountOptions};
+/** 导出消息渲染能力供浏览器 capability 使用。 */
+export {postRender};
+/** 导出独立身份入口供浏览器 capability 使用。 */
+export {openIdentityAccessStandalone};
+/** 导出浏览器重载工厂供浏览器 capability 使用。 */
+export {createBrowserHostReload};

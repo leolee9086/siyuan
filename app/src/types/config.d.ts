@@ -127,6 +127,7 @@ declare namespace Config {
         providers: IProvider[];
         editing: IEditing;
         agent: IAgent;
+        commandReview: ICommandReview;
         mcp: IMCP;
         embedding: IEmbedding;
     }
@@ -142,6 +143,11 @@ declare namespace Config {
         temperature: number;
         maxCompletionTokens: number;
         maxToolCallRounds: number;
+    }
+
+    export interface ICommandReview {
+        modelId: string;
+        timeout: number;
     }
 
     /**

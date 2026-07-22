@@ -49,6 +49,7 @@
     "make:installer": "node ../build.js",
     "test": "vitest --run --browser=chrome",
     "test:browser": "pnpm run build:protyle-app && pnpm run build:agent-app && vitest --run --config vitest.browser.config.ts",
+    "test:agent-panel": "vitest --run test/layout/dock/agent test/magi",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "typecheck:protyle-contract": "tsc -p tsconfig.protyle-contract.json --pretty false",

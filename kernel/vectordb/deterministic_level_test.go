@@ -27,6 +27,9 @@ import (
 // geometric filling) produces working HNSW graphs with correct level
 // distribution and acceptable performance.
 func TestDeterministicLevelQuality(t *testing.T) {
+	if testing.Short() {
+		t.Skip("multi-scale quality and performance diagnostic")
+	}
 	scales := []struct {
 		total int
 		dim   int

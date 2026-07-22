@@ -8,10 +8,5 @@
 </head>
 <body>
 <main id="agent-panel"></main>
-<script type="module">
-    const entryURL = new URL("./agent-panel.js", import.meta.url);
-    entryURL.searchParams.set("v", Date.now().toString());
-    import(entryURL.href);
-</script>
 </body>
 </html>

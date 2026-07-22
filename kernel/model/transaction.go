@@ -202,7 +202,7 @@ func performTx(tx *Transaction) (ret *TxErr) {
 	defer func() {
 		if e := recover(); nil != e {
 			msg := fmt.Sprintf("PANIC RECOVERED: %v\n\t%s\n", e, logging.ShortStack())
-			logging.LogErrorf(msg)
+			logging.LogError(msg)
 
 			if 1 == tx.state.Load() {
 				tx.rollback()
@@ -683,7 +683,7 @@ func (tx *Transaction) doPrependInsert(operation *Operation) (ret *TxErr) {
 	tree, err := tx.loadTree(block.ID)
 	if err != nil {
 		msg := fmt.Sprintf("load tree [%s] failed: %s", block.ID, err)
-		logging.LogErrorf(msg)
+		logging.LogError(msg)
 		return &TxErr{code: TxErrCodeBlockNotFound, id: block.ID}
 	}
 
@@ -779,7 +779,7 @@ func (tx *Transaction) doAppendInsert(operation *Operation) (ret *TxErr) {
 	tree, err := tx.loadTree(block.ID)
 	if err != nil {
 		msg := fmt.Sprintf("load tree [%s] failed: %s", block.ID, err)
-		logging.LogErrorf(msg)
+		logging.LogError(msg)
 		return &TxErr{code: TxErrCodeBlockNotFound, id: block.ID}
 	}
 
@@ -983,7 +983,7 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 		}
 
 		msg := fmt.Sprintf("load tree [%s] failed: %s", id, err)
-		logging.LogErrorf(msg)
+		logging.LogError(msg)
 		return &TxErr{code: TxErrCodeBlockNotFound, id: id}
 	}
 
@@ -993,7 +993,7 @@ func (tx *Transaction) doDelete(operation *Operation) (ret *TxErr) {
 	}
 	// 同步清理被删除容器块的索引节点及其子节点，否则删除列表/超级块等容器块后其子节点依然存在，ExistBlockTree 仍返回 true
 	// Improve editor state synchronization when deleting blocks https://github.com/siyuan-note/siyuan/issues/17742
-deletedIDs := deletedNode.BlockIDs()
+	deletedIDs := deletedNode.BlockIDs()
 	treenode.RemoveBlockTreesByIDs(deletedIDs)
 	tx.writeTree(tree)
 	return
@@ -1255,7 +1255,7 @@ func (tx *Transaction) doInsert(operation *Operation) (ret *TxErr) {
 	tree, err := tx.loadTreeByBlockTree(bt)
 	if err != nil {
 		msg := fmt.Sprintf("load tree [%s] failed: %s", bt.ID, err)
-		logging.LogErrorf(msg)
+		logging.LogError(msg)
 		return &TxErr{code: TxErrCodeBlockNotFound, id: bt.ID}
 	}
 

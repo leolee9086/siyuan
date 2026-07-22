@@ -31,6 +31,9 @@ import (
 
 // TestBuildFromVectors_SIFT tests BuildFromVectors with real SIFT dataset
 func TestBuildFromVectors_SIFT(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found. Download from: ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz")
@@ -320,6 +323,9 @@ func TestComputeMedoid_EmptyVectors(t *testing.T) {
 // ============================================================================
 
 func TestComputeBBQData_SIFT(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")
@@ -395,6 +401,9 @@ func TestComputeBBQData_SIFT(t *testing.T) {
 // ============================================================================
 
 func TestBuildFromVectors_CompatibleWithDiskIndex_SIFT(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset compatibility test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found")
@@ -514,6 +523,9 @@ var _ = bbq.BBQEnableThreshold
 // with acceptable recall rate using SIFT dataset (10K vectors)
 // Validates recall >= 70% @ L=50
 func TestBuildFromVectors_Recall_10K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("external SIFT dataset recall test")
+	}
 	dataPath := getSIFTDataPath()
 	if dataPath == "" {
 		t.Skip("SIFT dataset not found. Download from: ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz")

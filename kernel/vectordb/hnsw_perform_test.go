@@ -10,6 +10,9 @@ import (
 // TestHNSW1MPerformance tests performance with larger datasets.
 // By default, it runs with a smaller dataset (e.g., 10k) to verify logic quickly.
 func TestHNSW1MPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large-scale performance test")
+	}
 	numItems := 200000
 	dimension := 128
 	collection := NewCollection("perf-1m", dimension)
@@ -78,6 +81,9 @@ func TestHNSW1MPerformance(t *testing.T) {
 }
 
 func TestHNSW1024DimPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("high-dimensional performance test")
+	}
 	numItems := 10000
 	dimension := 1024
 	collection := NewCollection("perf-1024", dimension)

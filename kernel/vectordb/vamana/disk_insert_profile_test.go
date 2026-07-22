@@ -37,6 +37,9 @@ import (
 //
 // 运行: go test -v -run TestDiskInsertCPUProfile -timeout 600s -count 1
 func TestDiskInsertCPUProfile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("CPU profile generation")
+	}
 	const (
 		dim       = 128
 		seedSize  = 10000

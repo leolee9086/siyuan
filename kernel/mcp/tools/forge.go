@@ -52,6 +52,7 @@ var forgeWriteToolNames = map[string]bool{
 	ForgeDevRepoBatchReplaceToolName: true,
 	ForgeDevRepoBashToolName:         true,
 	ForgeDevRepoGitToolName:          true,
+	ForgeRuntimeRestartToolName:      true,
 }
 
 var ForgeDevRepoListTool = &Tool{
@@ -418,6 +419,9 @@ func forgeWriteHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err != nil {
 		return forgeError(err.Error())
 	}
+	if err := requireProtectedForgeApproval(args, root, target); err != nil {
+		return forgeError(err.Error())
+	}
 	if info, statErr := os.Stat(target); statErr == nil && info.IsDir() {
 		return forgeError("目标路径是目录，不能写入")
 	}
@@ -441,6 +445,9 @@ func forgeDeleteHandler(args map[string]interface{}) (CallToolResult, error) {
 	}
 	target, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", ""))
 	if err != nil {
+		return forgeError(err.Error())
+	}
+	if err := requireProtectedForgeApproval(args, root, target); err != nil {
 		return forgeError(err.Error())
 	}
 	info, err := os.Stat(target)
@@ -469,6 +476,9 @@ func forgeEditHandler(args map[string]interface{}) (CallToolResult, error) {
 	}
 	target, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", ""))
 	if err != nil {
+		return forgeError(err.Error())
+	}
+	if err := requireProtectedForgeApproval(args, root, target); err != nil {
 		return forgeError(err.Error())
 	}
 	data, err := readForgeTextFile(target)
@@ -558,6 +568,11 @@ func forgeBatchReplaceHandler(args map[string]interface{}) (CallToolResult, erro
 	if err != nil {
 		return forgeError(fmt.Sprintf("匹配文件失败: %v", err))
 	}
+	if !preview {
+		if err := requireProtectedForgeApproval(args, root, files...); err != nil {
+			return forgeError(err.Error())
+		}
+	}
 	changed := make([]string, 0, len(files))
 	if !preview {
 		for _, path := range files {
@@ -597,14 +612,22 @@ func forgeBashHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err := validateForgeCommand(command, root); err != nil {
 		return forgeError(err.Error())
 	}
+	if err := validateForgeRuntimeLifecycleCommand(command, root); err != nil {
+		return forgeError(err.Error())
+	}
 	if containsGitCommit(command) {
 		return forgeError("禁止通过 forge_dev_repo_bash 提交 Git。请使用 forge_dev_repo_git action=commit，并显式提供本次逻辑变更的 paths")
 	}
+	if err := requireForgeCommandApproval(args, root); err != nil {
+		return forgeError(err.Error())
+	}
+	beforeGitStatus, beforeGitErr := runForgeGit(root, "status", "--short", "--untracked-files=all")
 	timeout := boundedInt(args, "timeout", 30, 120)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", command)
 	cmd.Dir = root
+	cmd.Env = forgeCommandEnvironment()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -613,6 +636,12 @@ func forgeBashHandler(args map[string]interface{}) (CallToolResult, error) {
 		return forgeResult(map[string]interface{}{"state": "timeout", "command": command, "timeout": timeout}, nil)
 	}
 	result := map[string]interface{}{"state": "executed", "command": command, "exitCode": 0, "stdout": truncateForgeOutput(stdout.String()), "stderr": truncateForgeOutput(stderr.String())}
+	if beforeGitErr == nil {
+		result["gitStatusBefore"] = beforeGitStatus["stdout"]
+	}
+	if afterGitStatus, afterGitErr := runForgeGit(root, "status", "--short", "--untracked-files=all"); afterGitErr == nil {
+		result["gitStatusAfter"] = afterGitStatus["stdout"]
+	}
 	if runErr != nil {
 		result["state"] = "executed_with_errors"
 		if exitErr, ok := runErr.(*exec.ExitError); ok {
@@ -648,6 +677,13 @@ func forgeGitHandler(args map[string]interface{}) (CallToolResult, error) {
 		}
 		for _, path := range paths {
 			if err := validateForgeGitPath(root, path); err != nil {
+				return forgeError(err.Error())
+			}
+			target, _, resolveErr := resolveForgeDevRepoTarget(root, path)
+			if resolveErr != nil {
+				return forgeError(resolveErr.Error())
+			}
+			if err := requireProtectedForgeApproval(args, root, target); err != nil {
 				return forgeError(err.Error())
 			}
 		}
@@ -700,7 +736,8 @@ func isForgeToolName(name string) bool {
 	switch strings.TrimSpace(name) {
 	case ForgeDevRepoListToolName, ForgeDevRepoReadToolName, ForgeDevRepoSearchToolName,
 		ForgeDevRepoWriteToolName, ForgeDevRepoDeleteToolName, ForgeDevRepoEditToolName,
-		ForgeDevRepoBatchReplaceToolName, ForgeDevRepoBashToolName, ForgeDevRepoGitToolName:
+		ForgeDevRepoBatchReplaceToolName, ForgeDevRepoBashToolName, ForgeDevRepoGitToolName,
+		ForgeRuntimeStatusToolName, ForgeRuntimeRestartToolName, ForgeRuntimeApproveTestsToolName:
 		return true
 	default:
 		return false
@@ -848,6 +885,46 @@ func validateForgeCommand(command, root string) error {
 	}
 	_ = root
 	return nil
+}
+
+func validateForgeRuntimeLifecycleCommand(command, root string) error {
+	if !isForgeSourceCommandRoot(root) {
+		return nil
+	}
+	forbidden := regexp.MustCompile(`(?i)(` +
+		`\b(stop-process|start-process|start-job|taskkill|tskill|wmic|kill|pkill|killall)\b|` +
+		`\.kill\s*\(|process\.kill|syscall\.kill|` +
+		`siyuan-kernel|forge-start|forge_runtime|forge/runtime/shutdown|api/system/exit|` +
+		`\b(pnpm|npm|yarn)\s+(run\s+)?forge\b|\bgo\s+run\b|--mode(?:=|\s+)forge\b|` +
+		`\b(curl|wget|invoke-webrequest|invoke-restmethod)\b[^\r\n]*(127\.0\.0\.1|localhost)|` +
+		`s_forge_supervisor)`)
+	if forbidden.MatchString(command) {
+		return errors.New("禁止通过源码命令控制 Kernel 或 Forge Supervisor 生命周期，请使用 forge_runtime_restart")
+	}
+	return nil
+}
+
+func forgeCommandEnvironment() []string {
+	blockedPrefixes := []string{
+		strings.ToUpper(util.ForgeSupervisorURLEnv) + "=",
+		strings.ToUpper(util.ForgeSupervisorTokenEnv) + "=",
+		strings.ToUpper(util.ForgeSupervisorRootEnv) + "=",
+	}
+	ret := make([]string, 0, len(os.Environ()))
+	for _, entry := range os.Environ() {
+		upper := strings.ToUpper(entry)
+		blocked := false
+		for _, prefix := range blockedPrefixes {
+			if strings.HasPrefix(upper, prefix) {
+				blocked = true
+				break
+			}
+		}
+		if !blocked {
+			ret = append(ret, entry)
+		}
+	}
+	return ret
 }
 
 func containsGitCommit(command string) bool {

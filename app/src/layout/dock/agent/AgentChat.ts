@@ -52,6 +52,10 @@ import {
 } from "../../../magi/service/magiIdentitySession";
 import {createMagiStandardLLMAdapter} from "../../../magi/adapters/magiStandardLLMAdapter";
 import {buildRuntimeMainInterfaceIdentity} from "../../../magi/adapters/magiStandardLLMAdapter.backend";
+import {
+    loadMagiMainUIConversation,
+    type MagiMainUIConversationHistory,
+} from "../../../magi/conversation/magiMainUIConversation";
 import type {
     AgentPanelCapabilities,
     AgentPanelConversation,
@@ -189,6 +193,7 @@ export class AgentChat extends Model {
     private magiIdentityId = "";
     private magiConversationLoading = false;
     private magiConversationLoadVersion = 0;
+    private magiConversationLoadController: AbortController | null = null;
 
     constructor(app: App | undefined, tab: Tab, options: {
         capabilities?: AgentPanelCapabilities;
@@ -482,6 +487,10 @@ export class AgentChat extends Model {
     }
 
     public async refreshSessions(): Promise<void> {
+        if (this.conversationKind === "magi") {
+            await this.loadMagiIdentityConversation();
+            return;
+        }
         await this.sessionPanel?.refresh();
     }
 
@@ -503,6 +512,10 @@ export class AgentChat extends Model {
         await this.saveSession();
         this.conversationKind = conversation.kind;
         this.applyConversationCapabilityVisibility();
+        if (conversation.kind === "magi") {
+            await this.loadMagiIdentityConversation();
+            return;
+        }
         if (conversation.sessionId) {
             const session = await SessionStore.load(conversation.sessionId);
             const targetKind = session?.targetKind ?? "native-agent";
@@ -605,6 +618,8 @@ export class AgentChat extends Model {
         this.agentDestroyed = true;
         this.abortController?.abort();
         this.abortController = null;
+        this.magiConversationLoadController?.abort();
+        this.magiConversationLoadController = null;
         this.stopThinkingTimer();
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
@@ -732,6 +747,8 @@ export class AgentChat extends Model {
             }
         }
         const newOptions: Array<{ id: string; name: string }> = [];
+        // 暂存条目，附上排序所需的供应商名和模型名
+        const sortableEntries: Array<{ id: string; name: string; providerName: string; modelDisplayName: string }> = [];
         for (const prov of aiConfig.providers || []) {
             if (!prov.enabled || !prov.apiKey) {
                 continue;
@@ -751,8 +768,21 @@ export class AgentChat extends Model {
                 const needsProvider = sameNameInOtherProvider || hasDuplicateID;
                 const name = needsProvider ? `${displayName}（${providerName}）` : displayName;
                 // 复合 ID 只用于界面和会话选择，后端会将其解析回具体 Provider 与模型 ID。
-                newOptions.push({id: needsProvider ? `${prov.id}:${modelID}` : modelID, name});
+                sortableEntries.push({
+                    id: needsProvider ? `${prov.id}:${modelID}` : modelID,
+                    name,
+                    providerName,
+                    modelDisplayName: displayName,
+                });
             }
+        }
+        // 按供应商名 → 模型名字母排序（localeCompare 支持中英文混合）
+        sortableEntries.sort((a, b) => {
+            const pc = a.providerName.localeCompare(b.providerName);
+            return pc !== 0 ? pc : a.modelDisplayName.localeCompare(b.modelDisplayName);
+        });
+        for (const e of sortableEntries) {
+            newOptions.push({id: e.id, name: e.name});
         }
         this.modelOptions = newOptions;
         this.modelOptionsSignature = AgentChat.getUsableModelSignature(aiConfig);
@@ -851,7 +881,7 @@ export class AgentChat extends Model {
             const ex = example as HTMLElement;
             ex.addEventListener("click", () => {
                 const text = ex.getAttribute("data-text") || "";
-                if (text && this.composer) {
+                if (text && this.composer && this.resolveTargetPolicy().sendingAvailable) {
                     this.messagesContainer.innerHTML = "";
                     const userEntryId = SessionStore.newSessionId();
                     this.entries.push({id: userEntryId, type: "user", content: text, timestamp: Date.now()});
@@ -1123,6 +1153,10 @@ export class AgentChat extends Model {
     }
 
     private async initSessions() {
+        if (this.conversationKind === "magi") {
+            await this.loadMagiIdentityConversation();
+            return;
+        }
         // 启动时始终进入新会话界面（欢迎页），不自动加载上次会话内容。
         // 历史会话仍可通过会话面板点击切换查看。
         await SessionStore.list({page: 1, pageSize: 1, targetKind: this.conversationKind});
@@ -1142,7 +1176,7 @@ export class AgentChat extends Model {
     }
 
     private async saveSession() {
-        if (this.entries.length === 0) {
+        if (this.conversationKind === "magi" || this.entries.length === 0) {
             return;
         }
         const session: AgentSession = {
@@ -1161,6 +1195,103 @@ export class AgentChat extends Model {
             model: this.getSelectedModel(),
         };
         await SessionStore.save(session);
+    }
+
+    private resetMagiConversationView() {
+        this.entries = [];
+        this.sessionId = "";
+        this.sessionCreatedAt = Date.now();
+        this.sessionTitle = "MAGI";
+        this.hasTitled = true;
+        this.currentAIElement = null;
+        this.currentContent = "";
+        this.fullContent = "";
+        this.currentToolCalls = [];
+        this.currentThinkingSteps = [];
+        this.currentThinkingStepContent = "";
+        this.pendingConfirms = [];
+        this.resetWebReferenceIndex();
+        this.composer?.clear();
+        this.composer?.clearHistory();
+        this.messagesContainer.innerHTML = "";
+        this.titleElement.textContent = "MAGI";
+        this.rebuildNavMarkers();
+        this.updateTokenDisplay();
+    }
+
+    private renderMagiConversation(history: MagiMainUIConversationHistory) {
+        this.sessionId = history.conversationId;
+        this.entries = history.messages.map((message): SessionEntry => ({
+            id: message.id,
+            type: message.role,
+            content: message.content,
+            timestamp: message.createdAt,
+        }));
+        this.composer?.restoreHistory(history.messages
+            .filter((message) => message.role === "user")
+            .map((message) => message.content));
+        this.messagesContainer.innerHTML = "";
+        if (this.entries.length === 0) {
+            this.showWelcome();
+        } else {
+            this.renderLoadedSession({entries: this.entries} as AgentSession);
+        }
+        this.rebuildNavMarkers();
+        this.scrollToBottom(true);
+    }
+
+    private renderMagiConversationState(title: string, description: string) {
+        this.messagesContainer.innerHTML = '<div class="agent-welcome">' +
+            '<div class="agent-welcome__title">' + escapeHtml(title) + "</div>" +
+            '<div class="agent-welcome__desc">' + escapeHtml(description) + "</div>" +
+            "</div>";
+    }
+
+    private async loadMagiIdentityConversation() {
+        const loadVersion = ++this.magiConversationLoadVersion;
+        this.abortController?.abort();
+        this.abortController = null;
+        this.magiConversationLoadController?.abort();
+        this.magiConversationLoadController = null;
+        this.setStreaming(false);
+        this.resetMagiConversationView();
+
+        const identity = getActiveMagiArmorSession();
+        const identityReady = identity?.routeClass === "guardian" && identity.channel === "magi-main-ui";
+        this.magiIdentityId = identityReady ? identity.identityId : "";
+        this.magiConversationLoading = identityReady;
+        this.applyConversationCapabilityVisibility();
+        this.updateSendButtonState();
+        if (!identityReady) {
+            this.renderMagiConversationState("MAGI", "请先登录 Guardian Armor");
+            return;
+        }
+
+        const controller = new AbortController();
+        this.magiConversationLoadController = controller;
+        this.renderMagiConversationState("MAGI", "正在加载对话记录...");
+        try {
+            const history = await loadMagiMainUIConversation({session: identity, signal: controller.signal});
+            const activeIdentity = getActiveMagiArmorSession();
+            if (this.agentDestroyed || controller.signal.aborted || loadVersion !== this.magiConversationLoadVersion ||
+                this.conversationKind !== "magi" || activeIdentity?.identityId !== identity.identityId) {
+                return;
+            }
+            this.renderMagiConversation(history);
+        } catch (error) {
+            if (controller.signal.aborted || loadVersion !== this.magiConversationLoadVersion) {
+                return;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            this.renderMagiConversationState("MAGI 对话加载失败", message);
+        } finally {
+            if (loadVersion === this.magiConversationLoadVersion) {
+                this.magiConversationLoading = false;
+                this.magiConversationLoadController = null;
+                this.applyConversationCapabilityVisibility();
+                this.updateSendButtonState();
+            }
+        }
     }
 
     // 处理 ws 推送的跨实例会话变更通知。核心时序控制：
@@ -1649,7 +1780,12 @@ export class AgentChat extends Model {
                     if (a.toolCalls && a.toolCalls.length > 0) {
                         this.appendPersistedToolCalls(a.content, a.toolCalls, a.timestamp, entryId);
                     } else {
-                        this.appendPersistedAssistant(a.content, a.timestamp, entryId);
+                        this.appendPersistedAssistant(
+                            a.content,
+                            a.timestamp,
+                            entryId,
+                            this.resolveTargetPolicy().regenerationVisible,
+                        );
                     }
                     break;
                 }
@@ -1797,7 +1933,8 @@ export class AgentChat extends Model {
         const refs = sendData.references;
         const editorContext = this.capabilities.editorContext?.capture();
         const pluginActions = this.capabilities.pluginActions?.list() ?? [];
-        if (!text || this.isStreaming || (this.conversationKind === "native-agent" && this.modelOptions.length === 0)) {
+        if (!text || this.isStreaming || !this.resolveTargetPolicy().sendingAvailable ||
+            (this.conversationKind === "native-agent" && this.modelOptions.length === 0)) {
             return;
         }
 
@@ -2713,7 +2850,7 @@ export class AgentChat extends Model {
         });
         actions.appendChild(copyBtn);
 
-        if (!allowRegenerate) {
+        if (!allowRegenerate || !this.resolveTargetPolicy().regenerationVisible) {
             el.appendChild(actions);
             return;
         }
@@ -2966,9 +3103,6 @@ export class AgentChat extends Model {
         const userEntry = this.entries.find((e): e is { type: "user"; content: string } => e.type === "user");
         const userMsg = userEntry?.content?.slice(0, 500) || "";
         if (this.conversationKind === "magi") {
-            this.sessionTitle = userMsg.slice(0, 36) || "MAGI";
-            this.titleElement.textContent = this.sessionTitle;
-            void this.saveSession();
             return;
         }
         fetch("/api/ai/agent/title", {
@@ -2992,7 +3126,7 @@ export class AgentChat extends Model {
     }
 
     private canRetryLastUserTurn(): boolean {
-        return canRetryLastUserTurn({
+        return this.resolveTargetPolicy().regenerationVisible && canRetryLastUserTurn({
             entries: this.entries,
             activeToolCallCount: this.currentToolCalls.length,
             pendingConfirmationCount: this.pendingConfirms.length,
@@ -3183,13 +3317,16 @@ export class AgentChat extends Model {
         el.className = "agent-chat__msg agent-chat__msg--confirm";
         const argsStr = JSON.stringify(args, null, 2);
         const desc = (L.agentConfirmDesc || "Agent: {category} operation").replace("{category}", escapeHtml(this.toolCategory(name)));
+        const sessionAllowButton = name === "forge_runtime_restart" || name === "forge_runtime_approve_tests" ? "" :
+            '<button class="b3-button b3-button--text agent-chat__confirm-always ariaLabel" data-position="n" aria-label="' +
+            (L.agentConfirmAlwaysDesc || "Session Allow") + '">' + (L.agentConfirmAlways || "Session Allow") + "</button>";
         el.innerHTML = '<div class="agent-chat__confirm-card">' +
             '<div class="agent-chat__confirm-header"><svg class="agent-chat__confirm-icon"><use xlink:href="#iconInfo"></use></svg> ' + desc + "</div>" +
             '<pre class="agent-chat__confirm-args">' + escapeHtml(argsStr) + "</pre>" +
             '<div class="agent-chat__confirm-actions">' +
             '<button class="b3-button b3-button--cancel agent-chat__confirm-reject">' + (L.agentConfirmReject || "Reject") + "</button>" +
             '<button class="b3-button b3-button--text agent-chat__confirm-approve">' + (L.agentConfirmApprove || "Approve") + "</button>" +
-            '<button class="b3-button b3-button--text agent-chat__confirm-always ariaLabel" data-position="n" aria-label="' + (L.agentConfirmAlwaysDesc || "Session Allow") + '">' + (L.agentConfirmAlways || "Session Allow") + "</button>" +
+            sessionAllowButton +
             "</div>" +
             "</div>";
         const approveBtn = el.querySelector(".agent-chat__confirm-approve");
@@ -3268,6 +3405,16 @@ export class AgentChat extends Model {
     private async handleFrontendToolCall(callID: string, args: Record<string, unknown>) {
         // Resolve the action name ("frontend" tool calls carry the action in args.action).
         const action = (args.action as string | undefined) || "";
+        if (action === "reload_app") {
+            const frontendReload = this.capabilities.frontendReload;
+            if (!frontendReload) {
+                await this.postFrontendResult(callID, "Frontend reload is unavailable in this host.", true);
+                return;
+            }
+            await this.postFrontendResult(callID, "Frontend reload scheduled.", false);
+            await frontendReload.reload();
+            return;
+        }
         const pluginActions = this.capabilities.pluginActions;
         if (!pluginActions) {
             await this.postFrontendResult(callID, `Unknown frontend action: ${action}`, true);
@@ -3764,7 +3911,8 @@ export class AgentChat extends Model {
     // 根据"是否流式中"、"是否有可用模型"、"输入框是否有内容"综合决定发送按钮与输入框可用性。
     // 无模型时一并禁用发送按钮与输入框（attr disabled + 灰样式 + composer-host 禁用态），从源头阻止无效请求。
     private updateSendButtonState() {
-        const targetUnavailable = this.conversationKind === "native-agent" && this.modelOptions.length === 0;
+        const targetUnavailable = !this.resolveTargetPolicy().sendingAvailable ||
+            (this.conversationKind === "native-agent" && this.modelOptions.length === 0);
         const disabled = this.isStreaming || targetUnavailable || !this.hasComposerInput();
         if (disabled) {
             this.sendBtn.setAttribute("disabled", "disabled");
