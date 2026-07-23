@@ -11,6 +11,7 @@ import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboar
 import { isMobile } from "../../../platform";
 import { openGlobalSearch } from "../../../search/util";
 import { popSearch } from "../../../mobile/menu/search";
+import {Constants} from "../../../constants";
 
 /**
  * 作用：从 DOM 元素中获取标签列表。
@@ -27,6 +28,130 @@ const getTags = (tagsElement: HTMLElement) => {
         }
     }
     return tags;
+};
+
+/** 作用：保存拖拽后的标签顺序；意图：仅在顺序真实变化时写入属性；调用时机：标签拖拽结束时。 */
+const persistTagOrder = (background: Background, protyle: IProtyle) => {
+    const tagsString = getTags(background.tagsElement).toString();
+    if (tagsString === background.ial.tags) {
+        return;
+    }
+    background.ial.tags = tagsString;
+    fetchPost("/api/attr/setBlockAttrs", {
+        id: protyle.block.rootID,
+        attrs: {tags: tagsString},
+    });
+};
+
+/** 作用：在指针位置附近定位可拖拽标签；意图：点击标签间隙时仍可选中距离最近的标签；调用时机：mousedown 初始化拖拽前。 */
+const findTagAtPointer = (background: Background, target: HTMLElement, clientX: number) => {
+    const directTag = target.closest<HTMLElement>(".b3-chip");
+    if (directTag) {
+        return directTag;
+    }
+    if (!target.closest(".b3-chips__doctag")) {
+        return;
+    }
+    const tags = Array.from(background.tagsElement.querySelectorAll<HTMLElement>(".b3-chip"));
+    return tags.reduce<HTMLElement | undefined>((nearest, item) => {
+        if (!nearest) {
+            return item;
+        }
+        const itemRect = item.getBoundingClientRect();
+        const nearestRect = nearest.getBoundingClientRect();
+        return Math.abs(itemRect.left + itemRect.width / 2 - clientX) <
+            Math.abs(nearestRect.left + nearestRect.width / 2 - clientX) ? item : nearest;
+    }, undefined);
+};
+
+/** 作用：创建跟随指针的标签视觉副本；意图：原标签留在文档流中作为排序占位；调用时机：移动距离首次超过拖拽阈值时。 */
+const createTagDragClone = (tagElement: HTMLElement, event: MouseEvent, offsetX: number, offsetY: number) => {
+    const clone = tagElement.cloneNode(true) as HTMLElement;
+    const rect = tagElement.getBoundingClientRect();
+    clone.classList.add("b3-chip--dragclone");
+    Object.assign(clone.style, {
+        position: "fixed",
+        left: `${event.clientX - offsetX}px`,
+        top: `${event.clientY - offsetY}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+        margin: "0",
+        zIndex: "9999",
+        pointerEvents: "none",
+        transition: "none",
+        opacity: "0.8",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    });
+    document.body.appendChild(clone);
+    tagElement.classList.add("b3-chip--dragging");
+    document.body.style.cursor = "grabbing";
+    return clone;
+};
+
+/** 作用：根据指针与目标标签中心的相对位置更新 DOM 顺序；意图：以实时 DOM 作为拖拽排序状态；调用时机：有效拖拽的 mousemove 阶段。 */
+const reorderTagAtPointer = (background: Background, tagElement: HTMLElement, event: MouseEvent) => {
+    const pointTarget = document.elementFromPoint(event.clientX, event.clientY);
+    const targetTag = pointTarget?.closest<HTMLElement>(".b3-chip");
+    if (!targetTag || targetTag === tagElement || !background.tagsElement.contains(targetTag)) {
+        return;
+    }
+    const rect = targetTag.getBoundingClientRect();
+    if (event.clientX > rect.left + rect.width / 2) {
+        targetTag.after(tagElement);
+        return;
+    }
+    targetTag.before(tagElement);
+};
+
+/** 作用：绑定文档标签的指针拖拽排序；意图：保留标签点击/删除交互并使用项目统一拖拽阈值；调用时机：Background 实例初始化时。 */
+export const bindTagSortEvent = (background: Background, protyle: IProtyle) => {
+    background.element.addEventListener("mousedown", (event: MouseEvent) => {
+        background.dragOccurred = false;
+        if (protyle.disabled || !(event.target instanceof HTMLElement)) {
+            return;
+        }
+        const closeButton = event.target.closest<HTMLElement>(".b3-chip__close");
+        const tagElement = findTagAtPointer(background, event.target, event.clientX);
+        if (!tagElement) {
+            return;
+        }
+        event.preventDefault();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const initialRect = tagElement.getBoundingClientRect();
+        const offsetX = startX - initialRect.left;
+        const offsetY = startY - initialRect.top;
+        let dragClone: HTMLElement | undefined;
+
+        document.onmousemove = (moveEvent) => {
+            const movedPastThreshold = Math.abs(moveEvent.clientX - startX) >= Constants.SIZE_DRAG_THRESHOLD ||
+                Math.abs(moveEvent.clientY - startY) >= Constants.SIZE_DRAG_THRESHOLD;
+            if (!dragClone && movedPastThreshold) {
+                dragClone = createTagDragClone(tagElement, moveEvent, offsetX, offsetY);
+            }
+            if (!dragClone) {
+                return;
+            }
+            dragClone.style.left = `${moveEvent.clientX - offsetX}px`;
+            dragClone.style.top = `${moveEvent.clientY - offsetY}px`;
+            reorderTagAtPointer(background, tagElement, moveEvent);
+        };
+        document.onmouseup = (upEvent) => {
+            document.onmousemove = null;
+            document.onmouseup = null;
+            document.body.style.cursor = "";
+            if (!dragClone) {
+                closeButton?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+                return;
+            }
+            background.dragOccurred = true;
+            upEvent.preventDefault();
+            upEvent.stopPropagation();
+            dragClone.remove();
+            tagElement.classList.remove("b3-chip--dragging");
+            persistTagOrder(background, protyle);
+        };
+    });
 };
 
 /**

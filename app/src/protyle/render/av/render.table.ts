@@ -12,6 +12,7 @@ import {updateSearch} from "./render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {initVirtualScroll} from "./virtualScroll";
 import {bindAvSearch} from "./search";
+import {finishAVLocate} from "./locate";
 
 export interface ITableOptions {
     protyle: IProtyle,
@@ -74,7 +75,7 @@ export const getTableHTMLs = async (data: IAVTable, e: HTMLElement, virtualData?
         }
         contentHTML += `<div class="av__cell av__cell--header" data-col-id="${column.id}"  draggable="true" 
 data-icon="${column.icon}" data-dtype="${column.type}" data-wrap="${column.wrap}" data-pin="${column.pin}" 
-data-desc="${escapeAttr(column.desc)}" data-position="north" 
+data-desc="${escapeAttr(column.desc)}" data-align="${column.align || ""}" data-position="north"
 style="width: ${column.width || "200px"};">
     ${column.icon ? unicode2Emoji(column.icon, "av__cellheadericon", true) : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(column.type)}"></use></svg>`}
     <span class="av__celltext fn__flex-1">${escapeHtml(column.name)}</span>
@@ -114,14 +115,18 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
             if (rowIndex === 0) {
                 e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
             }
-            if (rowIndex > virtualData.renderedEnd || rowIndex < virtualData.renderedStart) {
+            if (rowIndex > virtualData.renderedEnd) {
+                break;
+            }
+            if (rowIndex < virtualData.renderedStart) {
                 continue;
             }
         } else if (data.pageSize > 100 && rowIndex > 99) {
             e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
             break;
         }
-        contentHTML += `<div class="av__row" data-id="${row.id}" data-index="${rowIndex}">`;
+        const absoluteRowIndex = rowIndex + (virtualData?.rowOffset || 0);
+        contentHTML += `<div class="av__row" data-id="${row.id}" data-index="${absoluteRowIndex}">`;
         if (pinIndex > -1) {
             contentHTML += '<div class="av__colsticky"><div class="av__firstcol"><svg><use xlink:href="#iconUncheck"></use></svg></div>';
         } else {
@@ -137,7 +142,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
             if (cell.valueType === "checkbox") {
                 checkClass = cell.value?.checkbox?.checked ? " av__cell-check" : " av__cell-uncheck";
             }
-            const rendered = await renderCell(cell.value, rowIndex, data.showIcon);
+            const rendered = await renderCell(cell.value, absoluteRowIndex, data.showIcon);
             contentHTML += `<div class="av__cell${checkClass}" data-id="${cell.id}" data-col-id="${data.columns[index].id}" 
 data-wrap="${data.columns[index].wrap}" 
 data-dtype="${data.columns[index].type}" 
@@ -203,7 +208,7 @@ export const renderGroupTable = async (options: ITableOptions) => {
         if (group.groupHidden === 0) {
             const tableHTMLs = await getTableHTMLs(group, options.blockElement, options.resetData.virtualData[group.id]);
             avBodyHTML += `${getGroupTitleHTML(group, group.rowCount)}
-<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" style="float: left" class="av__body${group.groupFolded ? " fn__none" : ""}">${tableHTMLs}</div>`;
+<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}"${options.resetData.virtualData[group.id]?.locate ? ' data-av-locate-window="true"' : ""} style="float: left" class="av__body${group.groupFolded ? " fn__none" : ""}">${tableHTMLs}</div>`;
         }
     }
     if (options.renderAll) {
@@ -322,6 +327,7 @@ export const afterRenderTable = (options: ITableOptions) => {
         options.cb(options.data);
     }
     if (!options.renderAll) {
+        finishAVLocate(options.blockElement, options.protyle, options.data);
         return;
     }
     bindAvSearch({
@@ -331,4 +337,5 @@ export const afterRenderTable = (options: ITableOptions) => {
         onChange: () => updateSearch(options.blockElement, options.protyle),
     });
     initVirtualScroll(options);
+    finishAVLocate(options.blockElement, options.protyle, options.data);
 };

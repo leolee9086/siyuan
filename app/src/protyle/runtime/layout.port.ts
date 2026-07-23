@@ -13,6 +13,7 @@ const fallbackFocusResult: IProtyleLayoutFocusResult = {
 /** 独立入口没有主应用布局树时的明确降级实现。 */
 const fallbackPort: IProtyleLayoutPort = {
     refreshOutline: () => undefined,
+    refreshDatabaseRows: () => undefined,
     updateOutline: () => undefined,
     setOutlineCurrent: () => undefined,
     refreshBacklink: () => undefined,
@@ -44,7 +45,9 @@ export const resetProtyleLayoutPort = () => {
 };
 
 /** 统一转发面板刷新请求。 */
-export const refreshProtyleOutline = (rootId: string) => getProtyleLayoutPort().refreshOutline(rootId);
+export const refreshProtyleOutline = (rootId: string, notebookId?: string) => getProtyleLayoutPort().refreshOutline(rootId, notebookId);
+/** 统一转发独立数据库条目视图刷新请求。 */
+export const refreshProtyleDatabaseRows = (avID: string) => getProtyleLayoutPort().refreshDatabaseRows?.(avID);
 /** 统一转发编辑器模式切换后的大纲同步请求。 */
 export const updateProtyleOutline = (protyle: IProtyle, reload: boolean) => getProtyleLayoutPort().updateOutline?.(protyle, reload);
 /** 统一转发编辑器 DOM 到宿主 Outline 的当前项同步。 */

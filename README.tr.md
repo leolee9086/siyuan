@@ -38,7 +38,6 @@
 - [💡 Giriş](#-giriş)
 - [🔮 Özellikler](#-özellikler)
 - [🏗️ Mimari ve Ekosistem](#-mimari-ve-ekosistem)
-- [🌟 Yıldız Geçmişi](#-yıldız-geçmişi)
 - [🗺️ Yol Haritası](#️-yol-haritası)
 - [🚀 İndirme ve Kurulum](#-indirme-ve-kurulum)
   - [Uygulama Mağazası](#uygulama-mağazası)
@@ -130,16 +129,6 @@ Bazı özellikler yalnızca ücretli üyeler için geçerlidir. Detaylar için [
 | [ios](https://github.com/siyuan-note/siyuan-ios)         | iOS uygulaması        | ![GitHub forks](https://img.shields.io/github/forks/siyuan-note/siyuan-ios)    | ![GitHub Repo stars](https://img.shields.io/github/stars/siyuan-note/siyuan-ios)   |
 | [harmony](https://github.com/siyuan-note/siyuan-harmony) | HarmonyOS uygulaması  | ![GitHub forks](https://img.shields.io/github/forks/siyuan-note/siyuan-harmony)| ![GitHub Repo stars](https://img.shields.io/github/stars/siyuan-note/siyuan-harmony)|
 | [riff](https://github.com/siyuan-note/riff)              | Aralıklı tekrar motoru| ![GitHub forks](https://img.shields.io/github/forks/siyuan-note/riff)          | ![GitHub Repo stars](https://img.shields.io/github/stars/siyuan-note/riff)         |
-
-## 🌟 Yıldız Geçmişi
-
-<a href="https://star-history.com/#siyuan-note/siyuan&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=siyuan-note/siyuan&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=siyuan-note/siyuan&type=Date" />
-   <img alt="Yıldız Geçmişi Grafiği" src="https://api.star-history.com/svg?repos=siyuan-note/siyuan&type=Date" />
- </picture>
-</a>
 
 ## 🗺️ Yol Haritası
 
@@ -379,6 +368,9 @@ Yerleşik CLI ile sunucu başlatmadan çalışma alanı verilerine doğrudan eri
 ```bash
 siyuan notebook list -w ~/SiYuan
 siyuan search "keyword" -w ~/SiYuan -f json
+# Varlık dosyalarının içinde ara (PDF/Word/Excel/txt vb.)
+siyuan search "ifade" --asset -w ~/SiYuan
+siyuan search "ifade" --asset --ext pdf --ext docx -w ~/SiYuan
 siyuan export md --id <block-id> -w ~/SiYuan
 ```
 
@@ -389,9 +381,9 @@ siyuan export md --id <block-id> -w ~/SiYuan
 | Defterler ve Belgeler | `notebook`, `document`, `dailynote` — CRUD ve günlük notlar |
 | İçerik | `block`, `attr`, `outline` — blok okuma/yazma, nitelikler, ana hat |
 | Meta Veri | `tag`, `bookmark`, `template` — etiketler, yer imleri, şablon parçacıkları |
-| Sorgular | `search`, `sql` — tam metin ve SQL sorguları |
+| Sorgular | `search`, `sql` — tam metin, anlamsal, varlık içeriği ve SQL sorguları |
 | Referanslar | `ref` — geri bağlantılar ve bahsetmeler |
-| İçe/Dışa Aktarma | `export`, `import` — Markdown, HTML, preview, Word, .sy.zip, Data |
+| İçe/Dışa Aktarma | `export`, `import`, `inbox` — Markdown, HTML, preview, Word, .sy.zip, Data, bulut gelen kutusu |
 | Veri Yönetimi | `repo`, `history`, `sync` — anlık görüntüler, sürümler, bulut senkronizasyonu |
 | Araçlar | `asset`, `file` — kaynaklar ve dosya sistemi |
 | Veritabanı | `database` — öznitelik görünümü yönetimi |
@@ -451,11 +443,6 @@ Veriler, çalışma alanı klasöründeki `data` klasöründe saklanır:
 
 Bununla birlikte, üyelik avantajları kapsamında **üçüncü taraf bulut depolama hizmetleriyle bağlantı** desteklenmektedir.
 
-Alternatif olarak, verileri **elle dışa aktarıp içe aktararak** senkronizasyon sağlayabilirsin:
-
-- Masaüstü: <kbd>Ayarlar</kbd> → <kbd>Dışa Aktar</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>  
-- Mobil: <kbd>Sağ panel</kbd> → <kbd>Hakkında</kbd> → <kbd>Verileri Dışa Aktar / Verileri İçe Aktar</kbd>
-
 ### SiYuan açık kaynak mı?
 
 Evet, SiYuan tamamen açık kaynaklıdır ve katkılara açıktır:
@@ -471,7 +458,7 @@ Daha fazla bilgi için [Geliştirme Rehberi](https://github.com/siyuan-note/siyu
 ### Yeni bir sürüme nasıl yükseltilir?
 
 - Uygulama mağazası üzerinden kurduysanız, güncellemeyi yine uygulama mağazası üzerinden yapın.  
-- Masaüstü kurulum paketiyle yüklediyseniz, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Güncelleme kurulum paketini otomatik indir</kbd> seçeneğini etkinleştirin. Böylece SiYuan, en son sürüm kurulum paketini otomatik indirip yükleme uyarısı gösterecektir.  
+- Windows veya macOS'te masaüstü kurulum paketiyle yüklediyseniz, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Güncelleme kurulum paketini otomatik indir</kbd> seçeneğini etkinleştirin. Böylece SiYuan, en son sürüm kurulum paketini otomatik indirip yükleme uyarısı gösterecektir.
 - Manuel yükleme yaptıysanız, en son kurulum paketini indirip yeniden yüklemeniz gerekir.
 
 Ayrıca, <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Geçerli Sürüm</kbd> sekmesinden <kbd>Güncellemeyi kontrol et</kbd> seçeneğini kullanabilir veya [Resmî İndirme Sayfası](https://b3log.org/siyuan/en/download.html) ya da [GitHub Sürümleri](https://github.com/siyuan-note/siyuan/releases) sayfalarını takip edebilirsiniz.
@@ -483,12 +470,12 @@ Liste öğesinin altındaki ilk alt blok, blok simgesi görünmeyen bloktur. İm
 ### Veri deposu anahtarı (data repo key) kaybolursa ne yapmalıyım?
 
 - Eğer daha önce birden fazla cihazda doğru şekilde başlatıldıysa, tüm cihazlarda aynı anahtar kullanılır. Bu durumda anahtarı şu adımlarla kopyalayabilirsin:
-  <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Anahtar dizgesini kopyala</kbd>  
+  <kbd>Ayarlar</kbd> → <kbd>Hesap ve Senkronizasyon</kbd> → <kbd>Yerel Veri Deposu</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Anahtar dizgesini kopyala</kbd>
 
 - Eğer cihazlar arasında farklı anahtarlar kullanılmışsa veya hiçbiri erişilebilir değilse, aşağıdaki adımlarla yeni bir anahtar oluşturabilirsin:
 
   1. Verilerini manuel olarak yedekle (<kbd>Verileri Dışa Aktar</kbd> seçeneğiyle veya dosya sisteminde `workspace/data/` klasörünü kopyalayarak).  
-  2. <kbd>Ayarlar</kbd> → <kbd>Hakkında</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Veri deposunu sıfırla</kbd>.  
+  2. <kbd>Ayarlar</kbd> → <kbd>Hesap ve Senkronizasyon</kbd> → <kbd>Yerel Veri Deposu</kbd> → <kbd>Veri deposu anahtarı</kbd> → <kbd>Veri deposunu sıfırla</kbd>.
   3. Anahtarı yeniden başlat. Bir cihazda oluşturduktan sonra diğer cihazlara bu anahtarı aktar.  
   4. Bulutta yeni senkronizasyon dizinini kullan; eski dizin artık erişilemez ve silinebilir.  
   5. Mevcut bulut anlık görüntüleri (snapshot) artık geçerli değildir, bunlar da silinebilir.

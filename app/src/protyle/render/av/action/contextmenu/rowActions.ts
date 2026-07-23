@@ -231,7 +231,13 @@ const handleAddToDatabaseClick = (protyle: IProtyle, state: AttrViewContextmenuS
     if (!avID) {
         return;
     }
-    openSearchAV(avID, state.keyRow.rowElement, handleAddToDatabaseTargetSelected.bind(undefined, protyle, state));
+    openSearchAV(
+        avID,
+        state.keyRow.rowElement,
+        handleAddToDatabaseTargetSelected.bind(undefined, protyle, state),
+        true,
+        state.blockElement.dataset.nodeId,
+    );
 };
 
 /**
@@ -258,6 +264,7 @@ const appendSingleRowEditableItems = (menu: Menu, protyle: IProtyle, state: Attr
         icon: "iconLinkOff",
         /** 点击解绑块，清理关联并提交事务 */
         click: () => {
+            updateCellsValue(protyle, state.blockElement, unbindValue, [state.keyRow.keyCellElement]);
         },
     });
 };

@@ -5,8 +5,6 @@
 
 // 用途：块面板类，用于创建和管理浮窗面板；使用范围：target.ts 中进行类型检查和面板清理操作；解耦评估：核心业务类，可通过接口抽象解耦，但作为模块核心依赖直接导入更合理
 import { BlockPanel } from "../panel/Panel";
-// 用途：判断元素是否在块级元素内；使用范围：refDefs.ts 中获取虚拟块引用时需要找到最近的块元素；解耦评估：工具函数，通过参数传递元素即可使用，已充分解耦
-import { hasClosestBlock } from "../../protyle/util/hasClosest";
 // 用途：判断元素是否包含指定属性的祖先元素；使用范围：target.ts 中查找块引用和链接元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦
 import { hasClosestByAttribute } from "../../protyle/util/hasClosest";
 // 用途：判断祖先是否有指定类名；使用范围：tooltip.ts 查找特定类名父元素；解耦评估：DOM查询工具，通过参数传递即可使用
@@ -39,6 +37,8 @@ import { escapeHtml } from "../../util/DOM/escape";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 // 用途：获取思源全局配置；使用范围：target.ts 中检查编辑器浮窗模式配置；解耦评估：全局配置访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：获取发布模式状态。使用范围：禁止发布端发起受限的 Popover 请求。解耦评估：通过环境访问器隔离全局状态。 */
+import { getSiyuanIsPublish } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：获取当前所有块面板实例；使用范围：target.ts 中遍历块面板进行层级检查和清理操作；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanBlockPanels } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：获取当前菜单实例；使用范围：target.ts 中检查菜单层级和数据状态；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
@@ -54,8 +54,6 @@ import { setSForgeState } from "../../config/sforge";
 
 // 块面板类导出
 export { BlockPanel };
-// DOM 工具函数导出
-export { hasClosestBlock };
 // DOM 工具函数导出
 export { hasClosestByAttribute };
 // DOM 工具函数导出
@@ -88,6 +86,8 @@ export { escapeHtml };
 export { siyuanI18n };
 // 环境配置访问器导出
 export { getSiyuanConfig };
+/** 导出发布模式状态访问器。 */
+export { getSiyuanIsPublish };
 // 环境状态访问器导出
 export { getSiyuanBlockPanels };
 // 环境状态访问器导出

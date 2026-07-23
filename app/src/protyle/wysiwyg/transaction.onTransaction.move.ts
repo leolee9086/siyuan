@@ -27,6 +27,7 @@ export const handleMove = (operation: IOperation, protyle: IProtyle, updateEleme
         updateElements.push(tempEl);
         fetchPost("/api/block/getBlockDOM", {
             id: operation.id,
+            notebook: protyle.notebookId,
         }, (response) => {
             document.querySelectorAll(`.protyle-wysiwyg [data-node-id="${response.data.id}"]`).forEach(item => {
                 if (item.getAttribute("data-protyle-id")) {

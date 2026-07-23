@@ -9,18 +9,31 @@ import {App} from "../../index";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {showMessage} from "../../dialog/message";
-import {genNotebook, updateItemArrow, onMove, onRemove, onRename, onMount, onReloadDocInfo} from "./MobileFiles.ws";
+import {
+    genNotebook,
+    updateItemArrow,
+    updateSubFileCount,
+    onMove,
+    onRemove,
+    onRename,
+    onRenameNotebook,
+    onMount,
+    onReloadDocInfo
+} from "./MobileFiles.ws";
 import {bindClickEvent} from "./MobileFiles.event";
 import {onLsHTML, onLsSelect} from "./MobileFiles.render";
 import {
     getPublishAccessLevel,
     getPublishAccessOptionByLevel
 } from "../../protyle/util/publishAccess";
+import {cancelFileTreeCollapse} from "../../layout/dock/fileTreeAnimation";
+import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";
 
 export class MobileFiles extends Model {
     public element: HTMLElement;
-    private actionsElement: HTMLElement;
-    private closeElement: HTMLElement;
+    public actionsElement: HTMLElement;
+    public closeElement: HTMLElement;
+    private reloadNotebookInfoTimeout: number;
     private touchDragState: {
         selectedElement: HTMLElement;
         startX: number;
@@ -65,6 +78,7 @@ export class MobileFiles extends Model {
         this.closeElement = this.element.nextElementSibling as HTMLElement;
         bindClickEvent(this, app, filesElement, this.actionsElement);
         this.bindTouchDrag(filesElement);
+        bindMousePointerTouchBridge(filesElement);
     }
 
     private handleMsgCallback(data: IWebSocketData) {
@@ -79,6 +93,21 @@ export class MobileFiles extends Model {
                 setNoteBook(() => {
                     this.init(false);
                 });
+                break;
+            case "reloadNotebookInfo":
+                window.clearTimeout(this.reloadNotebookInfoTimeout);
+                this.reloadNotebookInfoTimeout = window.setTimeout(() => {
+                    setNoteBook((notebooks) => {
+                        notebooks.forEach((notebook) => {
+                            const liElement = this.element.querySelector<HTMLElement>(
+                                `ul[data-url="${notebook.id}"] > li[data-type="navigation-root"]`
+                            );
+                            if (liElement) {
+                                updateSubFileCount(liElement, notebook.subFileCount);
+                            }
+                        });
+                    });
+                }, 128);
                 break;
             case "mount":
                 onMount(this, data);
@@ -122,7 +151,7 @@ export class MobileFiles extends Model {
                 onReloadDocInfo(this, data);
                 break;
             case "renamenotebook":
-                this.element.querySelector(`[data-url="${data.data.box}"] .b3-list-item__text`).innerHTML = data.data.name;
+                onRenameNotebook(this, data.data);
                 break;
             case "rename":
                 onRename(this, data.data);
@@ -189,10 +218,17 @@ export class MobileFiles extends Model {
 
     public getLeaf(liElement: Element, notebookId: string, focusUpdate = false) {
         const toggleElement = liElement.querySelector(".b3-list-item__arrow");
+        if (cancelFileTreeCollapse(liElement)) {
+            this.persistOpenPaths();
+            if (!focusUpdate) {
+                return;
+            }
+        }
+        const leafElement = liElement.nextElementSibling as HTMLElement;
         if (toggleElement.classList.contains("b3-list-item__arrow--open") && !focusUpdate) {
             toggleElement.classList.remove("b3-list-item__arrow--open");
-            liElement.nextElementSibling?.remove();
-            this.getOpenPaths();
+            leafElement?.remove();
+            this.persistOpenPaths();
             return;
         }
         fetchPost("/api/filetree/listDocsByPath", {
@@ -205,7 +241,7 @@ export class MobileFiles extends Model {
                 return;
             }
             onLsHTML(this, response.data);
-            this.getOpenPaths();
+            this.persistOpenPaths();
         });
     }
 
@@ -218,6 +254,14 @@ export class MobileFiles extends Model {
         if (!treeElement) {
             // 有文件树和编辑器的布局初始化时，文件树还未挂载
             return;
+        }
+        const boxDocID = window.siyuan.config.fileTree.boxDocEnabled ? notebookId : "";
+        if (boxDocID && filePath === `/${boxDocID}.sy`) {
+            const boxDocElement = treeElement.querySelector<HTMLElement>('[data-type="navigation-root"]');
+            if (isSetCurrent) {
+                this.setCurrent(boxDocElement);
+            }
+            return boxDocElement;
         }
         let currentPath = filePath;
         let liElement: HTMLElement;
@@ -235,7 +279,7 @@ export class MobileFiles extends Model {
 
         if (liElement.getAttribute("data-path") === filePath) {
             if (setStorage) {
-                this.getOpenPaths();
+                this.persistOpenPaths();
             }
             if (isSetCurrent) {
                 this.setCurrent(liElement);
@@ -256,7 +300,7 @@ export class MobileFiles extends Model {
         return liElement;
     }
 
-    private getOpenPaths() {
+    public persistOpenPaths() {
         const filesPaths: IFilesPath[] = [];
         this.element.querySelectorAll(".b3-list[data-url]").forEach((item: HTMLElement) => {
             const notebookPaths: IFilesPath = {
@@ -298,7 +342,7 @@ export class MobileFiles extends Model {
         }
         const ids: string[] = [];
         this.element.querySelectorAll("[data-url]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-url")));
-        this.element.querySelectorAll("[data-node-id]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-node-id")));
+        this.element.querySelectorAll('[data-type="navigation-file"][data-node-id]').forEach((element: HTMLElement) => ids.push(element.getAttribute("data-node-id")));
         fetchPost("/api/filetree/getPublishAccess", {
             ids
         }, response => {
@@ -309,6 +353,34 @@ export class MobileFiles extends Model {
                 }
             });
         });
+    }
+
+    public onFiletreeSortChanged(data: {notebook: string, parentPath: string}) {
+        const notebookElement = this.element.querySelector(`ul[data-url="${data.notebook}"]`);
+        if (!notebookElement) {
+            return;
+        }
+        const sortMode = notebookElement.getAttribute("data-sortmode");
+        if (sortMode !== "6" && !(sortMode === "15" && window.siyuan.config.fileTree.sort === 6)) {
+            return;
+        }
+        const listPath = data.parentPath === "/" ? "/" : `${data.parentPath}.sy`;
+        const liElement = notebookElement.querySelector(`li[data-path="${listPath}"]`);
+        if (!liElement?.nextElementSibling || liElement.nextElementSibling.tagName !== "UL") {
+            return;
+        }
+        fetchPost("/api/filetree/listDocsByPath", {
+            notebook: data.notebook,
+            path: listPath,
+            app: Constants.SIYUAN_APPID,
+        }, (response) => onLsHTML(this, response.data));
+    }
+
+    public onNotebookSortChanged() {
+        if (window.siyuan.config.fileTree.sort !== 6) {
+            return;
+        }
+        setNoteBook(() => this.init(false));
     }
 
     private clearDragIndicators = () => {
@@ -344,7 +416,7 @@ export class MobileFiles extends Model {
                 startX: touch.clientX,
                 startY: touch.clientY,
                 ghostElement: null,
-                startTime: Date.now(),
+                startTime: Date.now() - (isMousePointerTouchEvent(event) ? Constants.TIMEOUT_LONGPRESS : 0),
             };
         }, {passive: false});
 
@@ -358,7 +430,8 @@ export class MobileFiles extends Model {
                     this.touchDragState = null;
                     return;
                 }
-                if (Math.abs(touch.clientX - state.startX) < 5 && Math.abs(touch.clientY - state.startY) < 5) return;
+                if (Math.abs(touch.clientX - state.startX) < Constants.SIZE_DRAG_THRESHOLD &&
+                    Math.abs(touch.clientY - state.startY) < Constants.SIZE_DRAG_THRESHOLD) return;
                 state.isDragging = true;
 
                 const ghostElement = document.createElement("ul");
@@ -375,6 +448,8 @@ export class MobileFiles extends Model {
             }
 
             if (state.isDragging) {
+                event.preventDefault();
+                event.stopPropagation();
                 state.ghostElement.style.left = `${touch.clientX}px`;
                 state.ghostElement.style.top = `${touch.clientY}px`;
 

@@ -1,16 +1,18 @@
 import {Constants} from "../../constants";
 import {showMessage} from "../../dialog/message";
 import {isMobile} from "../platform/functions";
-import {platform} from "../../platform";
-import {fetchPost} from "../network/fetch";
+import {isElectron, platform} from "../../platform";
+import {fetchPost, fetchSyncPost} from "../network/fetch";
 import {Dialog} from "../../dialog";
 import {getOpenNotebookCount} from "./pathName";
 import {replaceFileName, validateName} from "../../editor/rename";
 import {setStorageVal} from "../../protyle/util/compatibility";
-import { openFileById } from "../../editor/utils.openFileById";
+import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
 import {App} from "../../index";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../siyuanEnvironments/i18n.getI18n.environment";
+import {ipcInvoke} from "../../platform/electron/ipcRenderer";
+import {importObsidianVault} from "../../menus/importObsidian";
 
 export const fetchNewDailyNote = (app: App, notebook: string) => {
     fetchPost("/api/filetree/createDailyNote", {
@@ -105,26 +107,36 @@ export const mountHelp = () => {
 };
 
 export const newNotebook = () => {
+    const importObsidianHTML = isElectron
+        ? "<div class=\"b3-list-item fn__pointer\" data-type=\"import-obsidian\" role=\"button\" tabindex=\"0\"><svg class=\"b3-list-item__graphic\"><use xlink:href=\"#iconObsidian\"></use></svg><span class=\"b3-list-item__text\">Obsidian Vault</span></div>"
+        : "";
     const dialog = new Dialog({
         title: siyuanI18n.newNotebook,
         content: `<div class="b3-dialog__content">
     <input placeholder="${siyuanI18n.notebookName}" class="b3-text-field fn__block">
+    <div class="fn__hr"></div>
+    <div class="b3-label__text fn__pointer fn__flex" style="align-items: center;gap: 4px" data-type="toggle-import" role="button" tabindex="0" aria-expanded="false"><svg class="b3-list-item__arrow" style="display: block;flex: none;height: 14px;width: 14px" data-type="import-arrow"><use xlink:href="#iconRight"></use></svg><span style="line-height: 20px">${siyuanI18n.importFromMoreApps}</span></div>
+    <div class="b3-list--background fn__none" data-type="import-options" style="padding-top: 8px">
+        <label class="b3-list-item fn__pointer" data-type="import-sy"><svg class="b3-list-item__graphic"><use xlink:href="#iconSiYuan"></use></svg><span class="b3-list-item__text">SiYuan .sy.zip</span><input class="b3-form__upload" type="file" accept="application/zip"></label>
+        ${importObsidianHTML}
+    </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
+    <button class="b3-button b3-button--cancel" data-type="cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text" data-type="confirm">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px"
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_CREATENOTEBOOK);
-    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+    const cancelElement = dialog.element.querySelector('[data-type="cancel"]');
+    const confirmElement = dialog.element.querySelector('[data-type="confirm"]');
     dialog.bindInput(dialog.element.querySelector("input"), () => {
-        btnsElement[1].dispatchEvent(new CustomEvent("click"));
+        confirmElement.dispatchEvent(new CustomEvent("click"));
     });
-    btnsElement[0].addEventListener("click", () => {
+    cancelElement.addEventListener("click", () => {
         dialog.destroy();
     });
-    btnsElement[1].addEventListener("click", () => {
+    confirmElement.addEventListener("click", () => {
         let name = dialog.element.querySelector("input").value;
         if (!validateName(name)) {
             return false;
@@ -134,5 +146,161 @@ export const newNotebook = () => {
             name
         });
         dialog.destroy();
+    });
+    const toggleImportElement = dialog.element.querySelector('[data-type="toggle-import"]') as HTMLElement;
+    const importOptionsElement = dialog.element.querySelector('[data-type="import-options"]') as HTMLElement;
+    const importArrowElement = toggleImportElement.querySelector('[data-type="import-arrow"]') as SVGElement;
+    const toggleImportOptions = () => {
+        const expanded = importOptionsElement.classList.toggle("fn__none") === false;
+        toggleImportElement.setAttribute("aria-expanded", expanded.toString());
+        importArrowElement.classList.toggle("b3-list-item__arrow--open", expanded);
+    };
+    toggleImportElement.addEventListener("click", toggleImportOptions);
+    toggleImportElement.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggleImportOptions();
+        }
+    });
+    dialog.element.querySelector('[data-type="import-sy"] .b3-form__upload').addEventListener("change", (event: InputEvent & {
+        target: HTMLInputElement
+    }) => {
+        if (!event.target.files?.[0]) {
+            return;
+        }
+        const formData = new FormData();
+        formData.append("file", event.target.files[0]);
+        dialog.destroy();
+        fetchPost("/api/import/importSYNotebook", formData);
+    });
+    if (isElectron) {
+        const importObsidianElement = dialog.element.querySelector('[data-type="import-obsidian"]') as HTMLElement;
+        let selectingObsidianVault = false;
+        const selectObsidianVault = async () => {
+            if (selectingObsidianVault) {
+                return;
+            }
+            selectingObsidianVault = true;
+            try {
+                const localPath = await ipcInvoke<{ filePaths: string[] }>(Constants.SIYUAN_GET, {
+                    cmd: "showOpenDialog",
+                    singleton: "obsidianVault",
+                    defaultPath: window.siyuan.config.system.homeDir,
+                    properties: ["openDirectory"],
+                });
+                if (localPath.filePaths.length === 0) {
+                    return;
+                }
+                dialog.destroy();
+                await importObsidianVault(localPath.filePaths[0]);
+            } finally {
+                selectingObsidianVault = false;
+            }
+        };
+        importObsidianElement.addEventListener("click", selectObsidianVault);
+        importObsidianElement.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void selectObsidianVault();
+            }
+        });
+    }
+};
+
+export const newEncryptedNotebook = () => {
+    // 先检查加密功能是否已启用；未启用则提示去设置页启用
+    fetchPost("/api/notebook/getEncryptedNotebookStatus", {}, (response) => {
+        if (!response.data.enabled) {
+            showMessage(window.siyuan.languages.encryptedNotebookTip, 6000);
+            return;
+        }
+        const dialog = new Dialog({
+            title: window.siyuan.languages.newEncryptedNotebook,
+            content: `<div class="b3-dialog__content">
+    <input placeholder="${window.siyuan.languages.notebookName}" class="b3-text-field fn__block">
+    <div class="fn__hr"></div>
+    <input type="password" placeholder="${window.siyuan.languages.masterPassword}" class="b3-text-field fn__block">
+    <div class="fn__hr--b"></div>
+    <div>${window.siyuan.languages.encryptedNotebookRiskTip}</div>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+</div>`,
+            width: isMobile() ? "92vw" : "520px"
+        });
+        const btnsElement = dialog.element.querySelectorAll<HTMLButtonElement>(".b3-button");
+        const inputs = dialog.element.querySelectorAll("input");
+        dialog.bindInput(inputs[0], () => {
+            btnsElement[1].dispatchEvent(new CustomEvent("click"));
+        });
+        btnsElement[0].addEventListener("click", () => {
+            dialog.destroy();
+        });
+        btnsElement[1].addEventListener("click", async () => {
+            const name = inputs[0].value;
+            const password = inputs[1].value;
+            if (!validateName(name)) {
+                return false;
+            }
+            if (!password) {
+                showMessage(window.siyuan.languages.masterPassword);
+                return false;
+            }
+            btnsElement[1].disabled = true;
+            const response = await fetchSyncPost("/api/notebook/createEncryptedNotebook", {
+                name: replaceFileName(name),
+                password
+            });
+            if (response.code === 0) {
+                // createEncryptedNotebook 内核已原子完成创建+挂载，无需再单独 openNotebook
+                dialog.destroy();
+            } else {
+                btnsElement[1].disabled = false;
+            }
+        });
+    });
+};
+
+export const openEncryptedNotebook = (app: App, notebookId: string, name: string) => {
+    const dialog = new Dialog({
+        title: window.siyuan.languages.unlockEncryptedNotebook.replace("${x}", name),
+        content: `<div class="b3-dialog__content">
+    <input type="password" placeholder="${window.siyuan.languages.masterPassword}" class="b3-text-field fn__block">
+    <div class="fn__hr--b"></div>
+    <div>${window.siyuan.languages.encryptedNotebookRiskTip}</div>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+</div>`,
+        width: isMobile() ? "92vw" : "520px"
+    });
+    const btnsElement = dialog.element.querySelectorAll<HTMLButtonElement>(".b3-button");
+    const inputElement = dialog.element.querySelector("input");
+    dialog.bindInput(inputElement, () => {
+        btnsElement[1].dispatchEvent(new CustomEvent("click"));
+    });
+    btnsElement[0].addEventListener("click", () => {
+        dialog.destroy();
+    });
+    btnsElement[1].addEventListener("click", async () => {
+        const password = inputElement.value;
+        if (!password) {
+            return false;
+        }
+        btnsElement[1].disabled = true;
+        // 原子化解锁并挂载：UnlockBox 成功后立即 Mount，Mount 失败则后端自动 LockBox 回滚，避免 DEK 残留
+        const response = await fetchSyncPost("/api/notebook/unlockAndOpenNotebook", {
+            notebook: notebookId,
+            password
+        });
+        if (response.code === 0) {
+            dialog.destroy();
+        } else {
+            btnsElement[1].disabled = false;
+            inputElement.value = "";
+            inputElement.focus();
+        }
     });
 };

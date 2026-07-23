@@ -13,15 +13,19 @@ import {
     parseHexColor,
 } from "./util";
 import { IDndState } from "./onDrop.types";
-import { hideCaretLine, hideDragTip, showCaretLine, showDragTip } from "../dragTip";
-import { getContenteditableElement } from "../../wysiwyg/getBlock";
-import { getRangeByPoint } from "../selection";
+import { hideCaretLine, hideDragTip, showDragTip } from "../dragTip";
+import { getContenteditableElement, getNextBlockSibling } from "../../wysiwyg/getBlock";
+import {
+    handleBlockReferenceDragover,
+    renderBlockReferenceDropIndicator,
+} from "./onDrop.helper.blockRef";
 
 const applyLiTarget = (
     editorElement: HTMLElement,
     htmlTarget: HTMLElement,
     event: DragEvent,
     state: IDndState,
+    canDropAsSibling = true,
 ) => {
     cleanupDragIndicators(editorElement);
     const nodeId = htmlTarget.getAttribute("data-node-id") || "";
@@ -55,6 +59,10 @@ const applyLiTarget = (
     const position = isFirstLi && !isBottom ? "top" : "bottom";
     const hasChildList = !!Array.from(htmlTarget.children).find(item => item.classList.contains("list"));
     const isChild = position === "bottom" && !hasChildList && offsetX >= indent;
+    if (!canDropAsSibling && !isChild) {
+        hideDragTip();
+        return;
+    }
     const sourceElements = Array.from(editorElement.querySelectorAll(".protyle-wysiwyg--select")) as HTMLElement[];
     const isNoOp = sourceElements.some(source =>
         source === htmlTarget ||
@@ -78,11 +86,11 @@ const applyLiTarget = (
 
     const targetText = (getContenteditableElement(htmlTarget)?.textContent?.trim() || "").slice(0, 20);
     let action: string;
-    if (event.altKey) {
+    if (event.altKey || (event.shiftKey && protyle.lite)) {
         action = window.siyuan.languages.dragTipRef;
     } else if (event.shiftKey) {
         action = window.siyuan.languages.dragTipEmbed;
-    } else if (event.ctrlKey) {
+    } else if (event.ctrlKey || protyle.lite) {
         action = window.siyuan.languages.duplicate;
     } else if (isChild) {
         action = window.siyuan.languages.dragTipListItemChild.replace("${x}", targetText);
@@ -99,6 +107,9 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
         event.stopPropagation();
         event.dataTransfer.dropEffect = "none";
         hideDragTip();
+        return;
+    }
+    if (handleBlockReferenceDragover(protyle, editorElement, event)) {
         return;
     }
     let gutterType = "";
@@ -129,12 +140,12 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
         let action: string;
         if (isAvTarget) {
             action = window.siyuan.languages.addToDatabase;
-        } else if (event.ctrlKey) {
-            action = window.siyuan.languages.duplicate;
-        } else if (event.altKey) {
+        } else if (event.altKey || (event.shiftKey && protyle.lite)) {
             action = window.siyuan.languages.dragTipRef;
         } else if (event.shiftKey) {
             action = window.siyuan.languages.dragTipEmbed;
+        } else if (event.ctrlKey || protyle.lite) {
+            action = window.siyuan.languages.duplicate;
         } else {
             action = window.siyuan.languages.move;
         }
@@ -181,31 +192,7 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     }
     const fileTreeIds = (event.dataTransfer.types.includes(Constants.SIYUAN_DROP_FILE) && window.siyuan.dragElement) ? window.siyuan.dragElement.innerText : "";
     if (event.altKey && fileTreeIds.indexOf("-") === -1) {
-        // Alt=插入引用（行级）：走光标定位语义，清除全部拖拽指示。
-        // 复用 cleanupDragIndicators 以覆盖列表专属指示类（--sibling/--child）与 --drag-* 变量
-        cleanupDragIndicators(editorElement);
-        editorElement.querySelectorAll("[select-start], [select-end]").forEach((item: HTMLElement) => {
-            item.removeAttribute("select-start");
-            item.removeAttribute("select-end");
-        });
-        // 绘制行级竖线指示：定位到光标位置（最后一个块下方是新建块，不显示竖线）
-        if (event.y <= protyle.wysiwyg.element.lastElementChild.getBoundingClientRect().bottom) {
-            const range = getRangeByPoint(event.clientX, event.clientY);
-            if (range && !hasClosestByAttribute(range.startContainer, "data-type", "NodeBlockQueryEmbed")) {
-                const rect = range.getBoundingClientRect();
-                if (rect.height > 0) {
-                    showCaretLine(rect.left, rect.top, rect.height);
-                }
-            }
-        } else {
-            // 最后一个块下方：新建块，显示水平插入线
-            hideCaretLine();
-            const lastBlock = protyle.wysiwyg.element.lastElementChild as HTMLElement;
-            if (lastBlock && lastBlock.hasAttribute("data-node-id")) {
-                lastBlock.classList.add("dragover__bottom");
-            }
-        }
-        event.preventDefault();
+        renderBlockReferenceDropIndicator(protyle, editorElement, event);
         return;
     }
     // 非 Alt 路径：清除可能残留的 Alt 竖线指示
@@ -215,6 +202,7 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     targetElement = hasClosestByClassName(event.target, "av__gallery-item") || hasClosestByClassName(event.target, "av__gallery-add") ||
         hasClosestByClassName(event.target, "av__row") || hasClosestByClassName(event.target, "av__row--util") ||
         hasClosestBlock(event.target);
+    const directTargetElement = targetElement;
     if (targetElement && ["gallery", "kanban"].includes(targetElement.getAttribute("data-av-type")) && event.target.classList.contains("av__gallery")) {
         // 拖拽到属性视图 gallery 内，但没选中 item
         return;
@@ -225,7 +213,7 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     if (targetElement && (targetElement.classList.contains("bq") || targetElement.classList.contains("sb") || targetElement.classList.contains("list") || targetElement.classList.contains("li"))) {
         let prevElement = hasClosestBlock(document.elementFromPoint(point.x, point.y - 6));
         while (prevElement && targetElement.contains(prevElement)) {
-            if (prevElement.nextElementSibling?.getAttribute("data-node-id")) {
+            if (getNextBlockSibling(prevElement)) {
                 targetElement = prevElement;
             }
             prevElement = prevElement.parentElement;
@@ -403,17 +391,27 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
             const isFirstBlock = targetElement === firstBlock || firstBlock.contains(targetElement);
             const isLastBlock = targetElement === lastBlock || lastBlock.contains(targetElement);
             const childRect = targetElement.getBoundingClientRect();
-            if ((isFirstBlock && event.clientX < childRect.left + 8) ||
-                (isLastBlock && event.clientX > childRect.right - 8)) {
-                targetElement = ancestorSb;
+                if ((isFirstBlock && event.clientX < childRect.left + 8) ||
+                    (isLastBlock && event.clientX > childRect.right - 8)) {
+                    targetElement = ancestorSb;
+                }
+                if (gutterTypes[0] === "nodelist" &&
+                    ancestorSb.getAttribute("data-sb-layout") === "col" && targetElement !== ancestorSb) {
+                    const columnList = targetElement.closest(".list");
+                    if (columnList instanceof HTMLElement && columnList.parentElement === ancestorSb) {
+                        targetElement = columnList;
+                    }
+                }
             }
         }
-    }
-    let liTarget = targetElement.classList.contains("list") ? null :
+    const isListSource = gutterTypes[0] === "nodelistitem" || gutterTypes[0] === "nodelist";
+    const isContentBlockSource = Boolean(gutterType) && !isListSource && !isAvSubType;
+    const keepLiContentTarget = targetElement === directTargetElement && isContentBlockSource &&
+        targetElement.parentElement?.getAttribute("data-type") === "NodeListItem";
+    let liTarget = targetElement.classList.contains("list") || keepLiContentTarget ? null :
         (targetElement.getAttribute("data-type") === "NodeListItem"
             ? targetElement : targetElement.parentElement?.getAttribute("data-type") === "NodeListItem"
                 ? targetElement.parentElement : null);
-    const isListSource = gutterTypes[0] === "nodelistitem" || gutterTypes[0] === "nodelist";
     if (isListSource && !liTarget) {
         const sourceSelected = editorElement.querySelector(".protyle-wysiwyg--select") as HTMLElement;
         if (sourceSelected && (sourceSelected.classList.contains("li") || sourceSelected.classList.contains("list"))) {
@@ -495,7 +493,7 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
         if (isLeftEdge || isRightEdge) {
             liTarget = null;
         } else {
-            applyLiTarget(editorElement, liTarget, event, state);
+            applyLiTarget(editorElement, liTarget, event, state, !isContentBlockSource);
             return;
         }
     }

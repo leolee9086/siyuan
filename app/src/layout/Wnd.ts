@@ -142,7 +142,6 @@ export class Wnd {
                 target = target.parentElement;
             }
         });
-
         // 拖拽事件委托到 Wnd.drag.ts
         bindHeaderDragEvents(this, app);
         bindPanelDragEvents(this, app, dragElement);

@@ -19,11 +19,14 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/conf"
+	mcpclient "github.com/siyuan-note/siyuan/kernel/mcp/client"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/server/proxy"
 	"github.com/siyuan-note/siyuan/kernel/sql"
@@ -163,20 +166,19 @@ func setBazaar(c *gin.Context) {
 	}
 	bazaar.Normalize()
 
-	if bazaar.PetalDisabled || !bazaar.Trust {
-		// disable all kernel plugins
-		if model.OnKernelPluginsStop != nil {
-			model.OnKernelPluginsStop()
-		}
-	} else {
-		// enable all kernel plugins
-		if model.OnKernelPluginsStart != nil {
-			model.OnKernelPluginsStart()
-		}
-	}
-
+	petalsEnabled := model.IsPetalsEnabled()
 	model.Conf.Bazaar = bazaar
 	model.Conf.Save()
+	newPetalsEnabled := model.IsPetalsEnabled()
+	if petalsEnabled != newPetalsEnabled {
+		if newPetalsEnabled {
+			if model.OnKernelPluginsStart != nil {
+				model.OnKernelPluginsStart()
+			}
+		} else if model.OnKernelPluginsStop != nil {
+			model.OnKernelPluginsStop()
+		}
+	}
 
 	ret.Data = bazaar
 }
@@ -204,12 +206,61 @@ func setAI(c *gin.Context) {
 		return
 	}
 
-	model.Conf.AI = ai
+	var oldServers []conf.MCPServer
+	if model.Conf.AI != nil && model.Conf.AI.MCP != nil {
+		oldServers = append(oldServers, model.Conf.AI.MCP.Servers...)
+	}
+	if ai.MCP != nil {
+		preserveMCPServerIDs(oldServers, ai.MCP.Servers)
+	}
+	ai.Normalize()
+	model.Conf.SetAI(ai)
 
-	model.Conf.AI.Normalize()
-	model.Conf.Save()
+	// MCP 配置可能变更（开关切换、编辑、增删 server），异步重连让连接立即跟上。
+	if model.Conf.AI.MCP != nil {
+		newServers := model.Conf.AI.MCP.Servers
+		oldByID := make(map[string]conf.MCPServer, len(oldServers))
+		newByID := make(map[string]conf.MCPServer, len(newServers))
+		for _, server := range oldServers {
+			oldByID[server.ID] = server
+		}
+		for _, server := range newServers {
+			newByID[server.ID] = server
+		}
+
+		var interactiveServerIDs []string
+		for _, server := range newServers {
+			old, existed := oldByID[server.ID]
+			if server.Enabled && server.Type == "http" && (!existed || !reflect.DeepEqual(old, server)) {
+				interactiveServerIDs = append(interactiveServerIDs, server.ID)
+			}
+		}
+		for _, server := range oldServers {
+			updated, exists := newByID[server.ID]
+			if !exists || (server.Type == "http" && (updated.Type != "http" || updated.URL != server.URL)) {
+				if revokeErr := mcpclient.DisconnectMCPOAuth(server.ID); revokeErr != nil {
+					logging.LogWarnf("mcp oauth: disconnect server [%s] failed: %s", server.Name, revokeErr)
+				}
+			}
+		}
+		if !reflect.DeepEqual(oldServers, newServers) {
+			mcpclient.ReconnectMCPAsync(newServers, nil, interactiveServerIDs)
+		}
+	}
 
 	ret.Data = model.Conf.AI
+}
+
+func preserveMCPServerIDs(oldServers, newServers []conf.MCPServer) {
+	oldIDsByName := make(map[string]string, len(oldServers))
+	for _, server := range oldServers {
+		oldIDsByName[server.Name] = server.ID
+	}
+	for i := range newServers {
+		if newServers[i].ID == "" {
+			newServers[i].ID = oldIDsByName[newServers[i].Name]
+		}
+	}
 }
 
 func setSecrets(c *gin.Context) {
@@ -476,11 +527,20 @@ func setFiletree(c *gin.Context) {
 	}
 
 	fileTree := conf.NewFileTree()
+	fileTree.BoxDocEnabled = nil
 	if err = gulu.JSON.UnmarshalJSON(param, fileTree); err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
 		return
 	}
+	if nil == fileTree.BoxDocEnabled {
+		if nil != model.Conf.FileTree && nil != model.Conf.FileTree.BoxDocEnabled {
+			fileTree.BoxDocEnabled = model.Conf.FileTree.BoxDocEnabled
+		} else {
+			fileTree.BoxDocEnabled = func() *bool { b := false; return &b }()
+		}
+	}
+	oldBoxDocEnabled := model.IsBoxDocEnabled()
 
 	fileTree.DocCreateSavePath = util.TrimSpaceInPath(fileTree.DocCreateSavePath)
 
@@ -509,6 +569,9 @@ func setFiletree(c *gin.Context) {
 
 	model.Conf.FileTree = fileTree
 	model.Conf.Save()
+	if oldBoxDocEnabled != model.IsBoxDocEnabled() {
+		model.RefreshBoxDocFeature()
+	}
 
 	util.UseSingleLineSave = model.Conf.FileTree.UseSingleLineSave
 	util.LargeFileWarningSize = model.Conf.FileTree.LargeFileWarningSize
@@ -632,6 +695,14 @@ func setAppearance(c *gin.Context) {
 
 	model.Conf.Appearance = appearance
 	util.StatusBarCfg = model.Conf.Appearance.StatusBar
+	if nil == util.StatusBarCfg {
+		util.StatusBarCfg = &util.StatusBar{}
+	}
+	if nil == model.Conf.Appearance.Notifications {
+		// 旧配置未迁移，按默认全部启用处理
+		model.Conf.Appearance.Notifications = util.NewNotifications()
+	}
+	util.NotificationsCfg = model.Conf.Appearance.Notifications
 	model.Conf.Lang = util.LangToBCP47(appearance.Lang) // 兼容历史下划线值，如 zh_CN → zh-CN
 	util.Lang = model.Conf.Lang
 	model.Conf.Save()

@@ -16,6 +16,7 @@ export {renderTextMenu} from "./keyboardToolbar.menu";
 import {KEYBOARD_TOOLBAR_HTML} from "./keyboardToolbar.menu";
 
 let renderKeyboardToolbarTimeout: number;
+let scrollSelectionIntoViewTimeout: number;
 let showUtil = false;
 
 export const showKeyboardToolbarUtil = (oldScrollTop: number) => {
@@ -154,6 +155,7 @@ export const showKeyboardToolbar = () => {
         hideKeyboardToolbarUtil();
     }
     const toolbarElement = document.getElementById("keyboardToolbar");
+    window.dispatchEvent(new CustomEvent("siyuan-mobile-keyboard-change", {detail: true}));
     if (!toolbarElement.classList.contains("fn__none") || getSelection().rangeCount === 0) {
         return;
     }
@@ -173,7 +175,11 @@ export const showKeyboardToolbar = () => {
             item.eventBus.emit("mobile-keyboard-show");
         });
     }
-    setTimeout(() => {
+    clearTimeout(scrollSelectionIntoViewTimeout);
+    scrollSelectionIntoViewTimeout = window.setTimeout(() => {
+        if (editor?.protyle.toolbar.isMultiSelectMode()) {
+            return;
+        }
         const contentElement = hasClosestByClassName(range.startContainer, "protyle-content", true);
         if (contentElement) {
             let cursorTop = getSelectionPosition(contentElement).top;
@@ -202,21 +208,24 @@ export const showKeyboardToolbar = () => {
 };
 
 export const hideKeyboardToolbar = () => {
+    clearTimeout(renderKeyboardToolbarTimeout);
+    clearTimeout(scrollSelectionIntoViewTimeout);
+    window.dispatchEvent(new CustomEvent("siyuan-mobile-keyboard-change", {detail: false}));
     if (showUtil) {
         return;
     }
     const toolbarElement = document.getElementById("keyboardToolbar");
-    if (toolbarElement.classList.contains("fn__none")) {
-        return;
-    }
+    const toolbarHidden = toolbarElement.classList.contains("fn__none");
     toolbarElement.classList.add("fn__none");
     toolbarElement.style.height = "";
     const editor = getCurrentEditor();
     if (editor) {
         editor.protyle.element.parentElement.style.paddingBottom = "";
-        editor.protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("mobile-keyboard-hide");
-        });
+        if (!toolbarHidden) {
+            editor.protyle.app.plugins.forEach(item => {
+                item.eventBus.emit("mobile-keyboard-hide");
+            });
+        }
     }
     const modelElement = document.getElementById("model");
     if (modelElement.style.transform === "translateY(0px)") {

@@ -26,6 +26,7 @@ import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {isEncryptedBox, withEncryptedNotebook} from "../../util/pathName";
 const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     if (isMobile) {
         return;
@@ -85,14 +86,15 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     if (closeTitleMenuIfOpened()) {
         return;
     }
-    fetchPost("/api/block/getDocInfo", {
+    fetchPost("/api/block/getDocInfo", withEncryptedNotebook(protyle.notebookId, {
         id: protyle.block.rootID
-    }, async (response) => {
+    }), async (response) => {
         window.siyuan.menus.menu.remove();
         window.siyuan.menus.menu.element.setAttribute("data-name", "titleMenu");
+        const isBoxDoc = protyle.notebookId === protyle.block.rootID;
         window.siyuan.menus.menu.append(createProtyleCopyMenu(protyle).element);
         if (!protyle.disabled) {
-            appendFileOperationsMenuItemGroup(protyle);
+            appendFileOperationsMenuItemGroup(protyle, isBoxDoc);
         }
         appendDesktopOnlyMenuItemGroup(protyle);
         // 定时任务菜单（仅非只读模式）
@@ -130,6 +132,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                 }).element);
             }
             const isCardMade = !!response.data.ial[Constants.CUSTOM_RIFF_DECKS];
+            if (!isEncryptedBox(protyle.notebookId)) {
             const riffCardMenu: IMenu[] = [{
                 id: "spaceRepetition",
                 iconHTML: "",
@@ -183,6 +186,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                 icon: "iconRiffCard",
                 submenu: riffCardMenu,
             }).element);
+            }
         }
         window.siyuan.menus.menu.append(new MenuItem({
             id: "search",
@@ -190,16 +194,16 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             icon: "iconSearch",
             accelerator: window.siyuan.config.keymap.general.search.custom,
             async click() {
-                const searchPath = getDisplayName(protyle.path, false, true);
+                const searchPath = isBoxDoc ? "" : getDisplayName(protyle.path, false, true);
                 if (isMobile) {
-                    const pathResponse = await fetchSyncPost("/api/filetree/getHPathByPath", {
+                    const pathResponse = isBoxDoc ? undefined : await fetchSyncPost("/api/filetree/getHPathByPath", {
                         notebook: protyle.notebookId,
                         path: searchPath + ".sy"
                     });
                     popSearch(protyle.app, {
                         hasReplace: false,
-                        hPath: pathPosix().join(getNotebookName(protyle.notebookId), pathResponse.data),
-                        idPath: [pathPosix().join(protyle.notebookId, searchPath)],
+                        hPath: isBoxDoc ? getNotebookName(protyle.notebookId) : pathPosix().join(getNotebookName(protyle.notebookId), pathResponse.data),
+                        idPath: [isBoxDoc ? protyle.notebookId : pathPosix().join(protyle.notebookId, searchPath)],
                         page: 1,
                     });
                 }

@@ -78,6 +78,8 @@ func TestForgeCommandsCannotControlRuntimeOrReadSupervisorCredentials(t *testing
 		"go build -o candidate.exe .; .\\candidate.exe serve --mode=forge",
 		"Invoke-RestMethod http://127.0.0.1:6806/api/system/exit",
 		"Get-ChildItem Env:S_FORGE_SUPERVISOR_TOKEN",
+		"Get-Content .forge-runtime/supervisor.json",
+		"node -e \"fetch('http://127.0.0.1:6806', {headers:{'x-s-forge-supervisor-token':'x'}})\"",
 	} {
 		if err := validateForgeRuntimeLifecycleCommand(command, root); err == nil {
 			t.Fatalf("runtime lifecycle command accepted: %s", command)

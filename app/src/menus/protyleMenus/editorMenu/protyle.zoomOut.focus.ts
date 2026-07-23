@@ -46,6 +46,8 @@ import { Constants } from "./imports";
  * 解耦评估：类型定义独立在 *.types.ts，遵守架构约束。
  */
 import type { ZoomOutOptions } from "./protyle.zoomOut.types";
+/** 用途：统一构造加密感知的 getDoc 参数。使用范围：两条焦点补偿加载。解耦评估：同目录请求 helper。 */
+import { createZoomOutGetDocParams } from "./protyle.zoomOut.request";
 
 const FOCUS_ACTION_PUSH = [Constants.CB_GET_FOCUS];
 const FOCUS_ACTION_NO_PUSH = [Constants.CB_GET_FOCUS, Constants.CB_GET_UNUNDO];
@@ -163,10 +165,10 @@ export const 处理ZoomOut焦点恢复 = async (options: ZoomOutOptions) => {
     if (!options.focusId) {
         fetchPost(
             "/api/filetree/getDoc",
-            {
+            createZoomOutGetDocParams(options, {
                 id: options.protyle.block.rootID,
                 size: getSiyuanConfig().editor.dynamicLoadBlocks,
-            },
+            }),
             创建聚焦补偿回调(options)
         );
         return true;
@@ -178,11 +180,11 @@ export const 处理ZoomOut焦点恢复 = async (options: ZoomOutOptions) => {
 
     fetchPost(
         "/api/filetree/getDoc",
-        {
+        createZoomOutGetDocParams(options, {
             id: options.focusId,
             mode: 3,
             size: getSiyuanConfig().editor.dynamicLoadBlocks,
-        },
+        }),
         创建聚焦补偿回调(options)
     );
     return true;

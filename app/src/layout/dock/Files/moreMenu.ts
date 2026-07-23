@@ -10,7 +10,7 @@ import type { InitMoreMenuDeps } from "./moreMenu.types";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { sortMenu } from "../../../menus/navigation";
 import { fetchPost } from "../../../util/network/fetch";
-import { newNotebook } from "../../../util/file/mount";
+import { newEncryptedNotebook, newNotebook } from "../../../util/file/mount";
 import { setNoteBook } from "../../../util/file/pathName";
 import { refreshFileTree } from "../../../dialog/processSystem";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -44,6 +44,15 @@ function createNewNotebookMenuItem(): HTMLElement {
     }).element;
 }
 
+/** 创建加密笔记本菜单项，调用方负责检查功能开关。 */
+function createNewEncryptedNotebookMenuItem(): HTMLElement {
+    return new MenuItem({
+        icon: "iconLock",
+        label: siyuanI18n.newEncryptedNotebook,
+        click: () => newEncryptedNotebook(),
+    }).element;
+}
+
 /**
  * 创建重建索引菜单项
  *
@@ -59,7 +68,7 @@ function createRebuildIndexMenuItem(deps: InitMoreMenuDeps): HTMLElement {
     const { element, init } = deps;
     return new MenuItem({
         icon: "iconRefresh",
-        label: siyuanI18n.rebuildIndex,
+        label: siyuanI18n.rebuildDataIndex,
         /**
          * 点击回调
          * @description
@@ -142,7 +151,7 @@ function createSortMenuItem(init: (isInitialCall?: boolean) => void): HTMLElemen
  * @returns 构建好的菜单实例
  */
 export function initMoreMenu(deps: InitMoreMenuDeps) {
-    const { init, element, refreshPublishAccessSwitch } = deps;
+    const { init, element, refreshPublishAccessSwitch, updateDocActions } = deps;
     const menu = getSiyuanGlobalMenusMenu();
     const config = getSiyuanConfig();
 
@@ -151,13 +160,16 @@ export function initMoreMenu(deps: InitMoreMenuDeps) {
     // 新建笔记本菜单项（只读模式下不显示）
     if (!config.readonly) {
         menu.append(createNewNotebookMenuItem());
+        if (config.notebookCrypto?.enabled) {
+            menu.append(createNewEncryptedNotebookMenuItem());
+        }
     }
 
     // 重建索引菜单项
     menu.append(createRebuildIndexMenuItem(deps));
 
     // 发布权限切换菜单项（只读且非发布模式下不显示）
-    if (!config.readonly && !config.publish?.enable) {
+    if (!config.readonly && config.publish?.enable) {
         menu.append(new MenuItem({
             icon: "iconEye",
             label: siyuanI18n.publishAccess,
@@ -171,6 +183,7 @@ export function initMoreMenu(deps: InitMoreMenuDeps) {
                 element.querySelectorAll(".b3-list-item__switch").forEach(item => {
                     item.classList.toggle("fn__none", !editingPublishAccess);
                 });
+                updateDocActions?.();
                 refreshPublishAccessSwitch?.();
             }
         }).element);

@@ -27,6 +27,7 @@ import { saveExportFile } from "./imports";
  * 解耦评估：通过 imports.ts 统一管理
  */
 import { useShell } from "./imports";
+import {isEncryptedBox} from "../../util/pathName";
 /**
  * 用途：获取系统配置
  * 使用范围：获取数据目录路径
@@ -89,7 +90,10 @@ export const buildGutterAvMenu = async (nodeElement: Element, id: string) => {
          */
         click() {
             const config = getSiyuanConfig();
-            useShell("showItemInFolder", path.join(config.system.dataDir, "storage", "av", nodeElement.getAttribute("data-av-id") || "") + ".json");
+            const avRoot = isEncryptedBox(protyle.notebookId)
+                ? path.join(config.system.dataDir, protyle.notebookId, "storage", "av")
+                : path.join(config.system.dataDir, "storage", "av");
+            useShell("showItemInFolder", path.join(avRoot, nodeElement.getAttribute("data-av-id") || "") + ".json");
         }
     });
 

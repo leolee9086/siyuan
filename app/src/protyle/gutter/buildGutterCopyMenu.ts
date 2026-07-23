@@ -53,6 +53,7 @@ export interface IGutterCopyMenuContext {
     id: string;
     /** Protyle 实例 */
     protyle: IProtyle;
+    allowDuplicate?: boolean;
 }
 
 /**
@@ -165,7 +166,7 @@ const appendAttributeViewItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext
     copyMenu.splice(6, 0, createCopyAVIDItem(ctx));
 
     // 禁用状态下不添加复制副本菜单项
-    if (ctx.protyle.disabled) {
+    if (ctx.protyle.disabled || ctx.allowDuplicate === false) {
         return;
     }
 
@@ -180,7 +181,7 @@ const appendAttributeViewItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext
  */
 const appendNormalBlockItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext): void => {
     // 禁用状态下不添加
-    if (ctx.protyle.disabled) {
+    if (ctx.protyle.disabled || ctx.allowDuplicate === false) {
         return;
     }
 

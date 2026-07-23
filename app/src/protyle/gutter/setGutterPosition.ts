@@ -1,5 +1,6 @@
 import { isHTMLElement, isSVGElement } from "../../util/DOM/element.guard";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {hasClosestByAttribute} from "../util/hasClosest";
 
 interface IGutterPositionState {
     protyle: IProtyle;
@@ -150,10 +151,18 @@ export const setGutterPosition = (protyle: IProtyle, element: Element, gutterEle
 
     // 计算位置度量信息
     const { rect, marginHeight, space: pSpace } = calculatePositionMetrics(protyle, element, gutterElement, listItem, nodeElement);
-    const contentTop = protyle.contentElement.getBoundingClientRect().top;
+    let contentTop = protyle.contentElement.getBoundingClientRect().top;
+    if (protyle.options.backlinkData) {
+        const backlinkElement = protyle.element.closest(".backlinkList, .backlinkMList");
+        if (backlinkElement) {
+            contentTop = Math.max(contentTop, backlinkElement.getBoundingClientRect().top);
+        }
+    }
 
     // 设置垂直位置
-    const top = Math.max(rect.top, contentTop) + marginHeight;
+    const foldElement = hasClosestByAttribute(element.parentElement, "fold", "1");
+    const foldTop = foldElement ? foldElement.getBoundingClientRect().top : 0;
+    const top = Math.max(rect.top + marginHeight, contentTop, foldTop);
 
     // 计算初始水平位置
     let left = rect.left - gutterElement.clientWidth - space - pSpace;

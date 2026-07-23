@@ -22,6 +22,8 @@ import {isHTMLElement} from "./imports";
 import {IUndoStateMirror} from "./undo.types";
 /** 用途：判断模型对象是否包含 editor.protyle 属性。使用范围：getActiveProtyle 类型收窄。解耦评估：同目录守卫文件。 */
 import {hasEditorProtyle} from "./globalUndo.guard";
+/** 用途：等待当前输入事务提交完成。使用范围：撤销和重做请求发出前。解耦评估：通过 imports.ts 转发。 */
+import {waitForPendingTransactions} from "./imports";
 
 /** 全局镜像缓存：按 rootID 缓存 {canUndo, canRedo}，零 fetch 读取撤销状态 */
 const undoStateMirror = new Map<string, IUndoStateMirror>();
@@ -47,7 +49,6 @@ const updateButton = (parent: HTMLElement, selector: string, canDo: boolean) => 
     }
     element.setAttribute("disabled", "disabled");
 };
-
 /** 跨文档提示确认期间拦截编辑器键盘输入 */
 const blockInput = (e: Event) => {
     e.stopImmediatePropagation();
@@ -297,6 +298,7 @@ export const requestUndo = async (protyle: IProtyle) => {
     }
     // 尽早置锁，阻止确认对话框期间触发新的撤销/重做（含 peek 与确认阶段）
     isUndoing = true;
+    await waitForPendingTransactions(protyle);
     // 跨文档提示：先 peek 栈顶的 mutatedRootIDs（超过 1 个说明涉及跨文档撤销，需要用户确认）
     const mutatedRootIDs = await fetchPeekMutatedRootIDs(rootID);
     // 仅当栈顶操作涉及多个文档时才弹出跨文档确认对话框；用户拒绝则复位锁
@@ -361,6 +363,7 @@ export const requestRedo = async (protyle: IProtyle) => {
         return;
     }
     isUndoing = true;
+    await waitForPendingTransactions(protyle);
     fetchPost("/api/transactions/redo", {
         rootID,
         app: Constants.SIYUAN_APPID,

@@ -15,10 +15,13 @@ import {showMessage} from "../dialog/message";
 import {App} from "../index";
 import {initMirror} from "../protyle/undo/globalUndo";
 import {getDocByScroll, saveScroll} from "../protyle/scroll/saveScroll";
+import {isEncryptedBox} from "../util/pathName";
 
 // getCurrentEditor 已提取到 ./util/getCurrentEditor.ts
 // 目的：打断 closePanel → keyboardToolbar → mobile/editor → closePanel 循环依赖
-export const openMobileFileById = (app: App, id: string, action: TProtyleAction[] = [Constants.CB_GET_HL], scrollPosition?: ScrollLogicalPosition) => {
+export const openMobileFileById = (app: App, id: string, action: TProtyleAction[] = [Constants.CB_GET_HL],
+                                   scrollPosition?: ScrollLogicalPosition, notebookId?: string,
+                                   afterOpen?: (protyle: IProtyle) => void, forceReload = false) => {
     window.siyuan.storage[Constants.LOCAL_DOCINFO] = {id};
     setStorageVal(Constants.LOCAL_DOCINFO, window.siyuan.storage[Constants.LOCAL_DOCINFO]);
     const avPanelElement = document.querySelector(".av__panel");
@@ -38,7 +41,7 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
                 return true;
             }
         });
-        if (blockElement) {
+        if (blockElement && !forceReload) {
             pushBack();
             if (action.includes(Constants.CB_GET_HL)) {
                 highlightById(window.siyuan.mobile.editor.protyle, id, scrollPosition);
@@ -48,18 +51,26 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
             closePanel();
             // 更新文档浏览时间
             fetchPost("/api/storage/updateRecentDocViewTime", {rootID: window.siyuan.mobile.editor.protyle.block.rootID});
+            afterOpen?.(window.siyuan.mobile.editor.protyle);
             return;
         }
     }
 
-    fetchPost("/api/block/getBlockInfo", {id}, (data) => {
+    const targetNotebookId = notebookId || window.siyuan.mobile.editor?.protyle?.notebookId;
+    const blockInfoParam: IObject = {id};
+    if (isEncryptedBox(targetNotebookId)) {
+        blockInfoParam.notebook = targetNotebookId;
+    }
+    fetchPost("/api/block/getBlockInfo", blockInfoParam, (data) => {
         if (data.code === 3) {
             showMessage(data.msg);
             return;
         }
         const protyleOptions: IProtyleOptions = {
+            databaseAttr: true,
             blockId: id,
             rootId: data.data.rootID,
+            notebookId: data.data.box,
             scrollPosition,
             action,
             render: {
@@ -72,9 +83,11 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
             typewriterMode: true,
             preview: {
                 actions: ["mp-wechat", "zhihu", "yuque"]
-            }
+            },
+            after: (editor) => afterOpen?.(editor.protyle),
         };
         if (window.siyuan.mobile.editor) {
+            window.siyuan.mobile.editor.protyle.notebookId = data.data.box;
             window.siyuan.mobile.editor.protyle.title.element.removeAttribute("data-render");
             pushBack();
             addLoading(window.siyuan.mobile.editor.protyle);
@@ -93,14 +106,19 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
                         app.plugins.forEach(item => {
                             item.eventBus.emit("switch-protyle", {protyle: window.siyuan.mobile.editor.protyle});
                         });
+                        afterOpen?.(window.siyuan.mobile.editor.protyle);
                     }
                 });
             } else {
-                fetchPost("/api/filetree/getDoc", {
+                const getDocParam: IObject = {
                     id,
                     size: action.includes(Constants.CB_GET_ALL) ? Constants.SIZE_GET_MAX : window.siyuan.config.editor.dynamicLoadBlocks,
                     mode: action.includes(Constants.CB_GET_CONTEXT) ? 3 : 0,
-                }, getResponse => {
+                };
+                if (isEncryptedBox(window.siyuan.mobile.editor.protyle.notebookId)) {
+                    getDocParam.notebook = window.siyuan.mobile.editor.protyle.notebookId;
+                }
+                fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
                     onGet({
                         data: getResponse,
                         protyle: window.siyuan.mobile.editor.protyle,
@@ -110,6 +128,7 @@ export const openMobileFileById = (app: App, id: string, action: TProtyleAction[
                             app.plugins.forEach(item => {
                                 item.eventBus.emit("switch-protyle", {protyle: window.siyuan.mobile.editor.protyle});
                             });
+                            afterOpen?.(window.siyuan.mobile.editor.protyle);
                         }
                     });
                 });

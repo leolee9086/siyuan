@@ -9,7 +9,7 @@ import { avRender, refreshAV } from "../render/av/render";
 import { removeFoldHeading } from "../util/heading";
 import { reloadProtyle } from "../util/reload";
 import { getTopAloneElement } from "./getBlock";
-import { removeUnfoldRepeatBlock } from "./transaction.fold";
+import { removeUnfoldRepeatBlock, syncFoldAttr } from "./transaction.fold";
 import { handleUpdateAttrs } from "./transaction.onTransaction.attrs";
 import { handleMove } from "./transaction.onTransaction.move";
 import { handleInsert } from "./transaction.onTransaction.insert";
@@ -48,54 +48,54 @@ const deleteBlock = (updateElements: Element[], id: string, protyle: IProtyle, i
 };
 
 const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IOperation, isUndo: boolean) => {
-    // 表格出现滚动条，更新块后需还原横向滚动位置 https://github.com/siyuan-note/siyuan/issues/3650
-    let tableScrollLeft = 0;
-    const tableItem = updateElements.find(item => item.classList.contains("table"));
-    if (tableItem) {
-        tableScrollLeft = (tableItem.firstElementChild as HTMLElement).scrollLeft;
-    }
+    const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : null;
     updateElements.forEach(item => {
-        // 图标撤销后无法渲染
-        if (item.getAttribute("data-subtype") === "echarts") {
-            item.outerHTML = protyle.lute.SpinBlockDOM(operation.data);
-        } else {
-            item.outerHTML = operation.data;
-        }
-    });
-    Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)).find(item => {
-        if (!isInEmbedBlock(item)) {
-            if (item.getAttribute("data-type") === "NodeBlockQueryEmbed") {
-                item.removeAttribute("data-render");
+        const isRangeBlock = !!range && item.contains(range.startContainer);
+        let tableScrollLeft: number;
+        let tableScrollTop: number;
+        let contentScrollTop: number;
+        if (item.classList.contains("table")) {
+            tableScrollLeft = item.firstElementChild.scrollLeft;
+            tableScrollTop = item.firstElementChild.scrollTop;
+            if (isRangeBlock) {
+                contentScrollTop = protyle.contentElement.scrollTop;
             }
-            updateElements[0] = item;
-            return true;
         }
+        const html = item.getAttribute("data-subtype") === "echarts" ?
+            protyle.lute.SpinBlockDOM(operation.data) : operation.data;
+        item.insertAdjacentHTML("afterend", html);
+        const replacement = item.nextElementSibling;
+        item.remove();
+
+        const wbrElement = replacement.querySelector("wbr");
+        if (isRangeBlock && isUndo) {
+            if (wbrElement) {
+                focusByWbr(replacement, range || getEditorRange(replacement));
+            } else {
+                focusBlock(replacement);
+            }
+        }
+        wbrElement?.remove();
+        if (tableScrollLeft > 0) {
+            replacement.firstElementChild.scrollLeft = tableScrollLeft;
+        }
+        if (tableScrollTop > 0) {
+            replacement.firstElementChild.scrollTop = tableScrollTop;
+        }
+        if (contentScrollTop > 0) {
+            protyle.contentElement.scrollTop = contentScrollTop;
+            protyle.scroll.lastScrollTop = contentScrollTop - 1;
+        }
+        contentRendererRegistry.renderBatch(replacement);
+        highlightRender(replacement);
+        avRender(replacement, protyle);
+        blockRender(protyle, replacement);
+        refreshSbs(replacement);
     });
-    if (tableScrollLeft > 0) {
-        (updateElements[0].firstElementChild as HTMLElement).scrollLeft = tableScrollLeft;
-    }
-    const wbrElement = updateElements[0].querySelector("wbr");
-    if (isUndo) {
-        const range = getEditorRange(updateElements[0]);
-        if (wbrElement) {
-            focusByWbr(updateElements[0], range);
-        } else {
-            focusBlock(updateElements[0]);
-        }
-    } else if (wbrElement) {
-        wbrElement.remove();
-    }
-    contentRendererRegistry.renderBatch(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
-    highlightRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
-    avRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element, protyle);
-    blockRender(protyle, updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
-    // 更新 ws 嵌入块
-    updateEmbed(protyle, operation);
-    refreshSbs(updateElements[0]);
 };
 
 // 用于推送和撤销
-export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: boolean) => {
+const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isUndo: boolean) => {
     if (protyle.wysiwyg.element.firstElementChild?.classList.contains("protyle-password")) {
         return;
     }
@@ -106,25 +106,15 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
         }
     });
     if (operation.action === "setAttrs") {
-        protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach(item => {
-            if (JSON.parse(operation.data).fold === "1") {
-                item.setAttribute("fold", "1");
-            } else {
-                item.removeAttribute("fold");
-            }
-        });
+        syncFoldAttr(protyle.wysiwyg.element, operation);
         return;
     }
     if (operation.action === "unfoldHeading") {
         protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach(item => {
             item.removeAttribute("fold");
-            // undo 会走 transaction
-            if (isUndo) {
-                if (operation.retData) {
-                    removeUnfoldRepeatBlock(operation.retData, protyle);
-                    item.insertAdjacentHTML("afterend", operation.retData);
-                }
-                return;
+            if (isUndo && operation.retData) {
+                removeUnfoldRepeatBlock(operation.retData, protyle);
+                item.insertAdjacentHTML("afterend", operation.retData);
             }
             const embedElement = isInEmbedBlock(item);
             if (embedElement) {
@@ -132,7 +122,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
                 blockRender(protyle, embedElement);
                 return;
             }
-            if (operation.retData) {
+            if (operation.retData && !isUndo) {
                 removeUnfoldRepeatBlock(operation.retData, protyle);
                 item.insertAdjacentHTML("afterend", operation.retData);
             }
@@ -277,8 +267,8 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
     }
     if (["addAttrViewCol", "updateAttrViewCol", "updateAttrViewColOptions",
         "updateAttrViewColOption", "updateAttrViewCell", "sortAttrViewRow", "sortAttrViewCol", "setAttrViewColHidden",
-        "setAttrViewColWrap", "setAttrViewColWidth", "removeAttrViewColOption", "setAttrViewName", "setAttrViewFilters",
-        "setAttrViewSorts", "setAttrViewColCalc", "removeAttrViewCol", "updateAttrViewColNumberFormat", "removeAttrViewBlock",
+        "setAttrViewColWrap", "setAttrViewColWidth", "setAttrViewColAlign", "removeAttrViewColOption", "setAttrViewName", "setAttrViewFilters",
+        "setAttrViewSorts", "setAttrViewNewItemTemplates", "setAttrViewColCalc", "removeAttrViewCol", "updateAttrViewColNumberFormat", "removeAttrViewBlock",
         "replaceAttrViewBlock", "updateAttrViewColTemplate", "setAttrViewColPin", "addAttrViewView", "setAttrViewColIcon",
         "removeAttrViewView", "setAttrViewViewName", "setAttrViewViewIcon", "duplicateAttrViewView", "sortAttrViewView",
         "updateAttrViewColRelation", "setAttrViewPageSize", "updateAttrViewColRollup", "sortAttrViewKey", "setAttrViewColDesc",
@@ -302,6 +292,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
                 titleElement.dataset.title = operation.data;
             });
         }
+        protyle.databaseAttributePanel?.refreshForOperation(operation);
         return;
     }
     if (operation.action === "doUpdateUpdated") {
@@ -309,5 +300,12 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
             item.setAttribute("updated", operation.data);
         });
         return;
+    }
+};
+
+export const onTransaction = (protyle: IProtyle, operations: IOperation | IOperation[], isUndo: boolean) => {
+    const operationList = Array.isArray(operations) ? operations : [operations];
+    for (const operation of operationList) {
+        applyTransactionOperation(protyle, operation, isUndo);
     }
 };

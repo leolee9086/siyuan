@@ -46,7 +46,7 @@ func init() {
 	register(NotebookTool)
 }
 
-func notebookHandler(args map[string]interface{}) (CallToolResult, error) {
+func notebookHandler(args map[string]any) (CallToolResult, error) {
 	action, _ := args["action"].(string)
 	switch action {
 	case "list":
@@ -72,7 +72,7 @@ func notebookHandler(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func notebookList(args map[string]interface{}) (CallToolResult, error) {
+func notebookList(args map[string]any) (CallToolResult, error) {
 	notebooks, err := model.ListNotebooks()
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "list notebooks failed: " + err.Error()}}, IsError: true}, nil
@@ -86,7 +86,7 @@ func notebookList(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func notebookCreate(args map[string]interface{}) (CallToolResult, error) {
+func notebookCreate(args map[string]any) (CallToolResult, error) {
 	name, _ := args["name"].(string)
 	if name == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "name is required"}}, IsError: true}, nil
@@ -106,7 +106,7 @@ func notebookCreate(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook created: " + name + " (id: " + id + ")"}}}, nil
 }
 
-func notebookRename(args map[string]interface{}) (CallToolResult, error) {
+func notebookRename(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	name, _ := args["name"].(string)
 	if id == "" || name == "" {
@@ -117,14 +117,17 @@ func notebookRename(args map[string]interface{}) (CallToolResult, error) {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "rename notebook failed: " + err.Error()}}, IsError: true}, nil
 	}
 
-	evt := util.NewCmdResult("renamenotebook", 0, util.PushModeBroadcast)
-	evt.Data = map[string]any{"box": id}
-	util.PushEvent(evt)
+	if box := model.Conf.Box(id); nil != box {
+		name = box.Name
+		evt := util.NewCmdResult("renamenotebook", 0, util.PushModeBroadcast)
+		evt.Data = map[string]any{"box": id, "name": name}
+		util.PushEvent(evt)
+	}
 
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook renamed: " + id + " -> " + name}}}, nil
 }
 
-func notebookRemove(args map[string]interface{}) (CallToolResult, error) {
+func notebookRemove(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -141,7 +144,7 @@ func notebookRemove(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook removed: " + id}}}, nil
 }
 
-func notebookOpen(args map[string]interface{}) (CallToolResult, error) {
+func notebookOpen(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -167,7 +170,7 @@ func notebookOpen(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook opened: " + id}}}, nil
 }
 
-func notebookClose(args map[string]interface{}) (CallToolResult, error) {
+func notebookClose(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -181,7 +184,7 @@ func notebookClose(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook closed: " + id}}}, nil
 }
 
-func notebookSetIcon(args map[string]interface{}) (CallToolResult, error) {
+func notebookSetIcon(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	icon, _ := args["icon"].(string)
 	if id == "" {
@@ -209,7 +212,7 @@ func notebookSetIcon(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "notebook icon set: " + id + " -> " + icon}}}, nil
 }
 
-func notebookRandomIcon(args map[string]interface{}) (CallToolResult, error) {
+func notebookRandomIcon(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 
 	notebooks, err := model.ListNotebooks()

@@ -1,30 +1,28 @@
 import { Constants } from "../../constants";
 import { isMobile } from "../../util/platform/functions";
 
-/**
- * 计算非移动端的 padding
- */
-const 计算非移动端Padding = (protyle: IProtyle): { left: number; right: number } => {
-    let isFullWidth = protyle.wysiwyg.element.getAttribute(Constants.CUSTOM_SY_FULLWIDTH);
-    if (!isFullWidth) {
-        isFullWidth = window.siyuan.config.editor.fullWidth ? "true" : "false";
+/** 计算编辑器内容区域的水平边距，供 Protyle 与数据库属性面板复用。 */
+export const getEditorHorizontalPadding = (width: number, fullWidth: boolean) => {
+    let left = 24;
+    let right = 16;
+    let padding = (width - Constants.SIZE_EDITOR_WIDTH) / 2;
+    // 超宽屏采用黄金比例缩放，避免编辑区在极宽窗口中失去可读宽度。
+    if (!fullWidth && padding > 96 && padding > Constants.SIZE_EDITOR_WIDTH) {
+        padding = width * .382 / 1.382;
     }
-    let padding = (protyle.element.clientWidth - Constants.SIZE_EDITOR_WIDTH) / 2;
-
-    // 窄屏情况
-    if (isFullWidth === "false" && padding > 96) {
-        // 超宽屏调整 https://ld246.com/article/1668266637363
-        if (padding > Constants.SIZE_EDITOR_WIDTH) {
-            padding = protyle.element.clientWidth * .382 / 1.382;
-        }
+    // 窄屏/非全宽模式使用对称边距。
+    if (!fullWidth && padding > 96) {
         padding = Math.ceil(padding);
-        return { left: padding, right: padding };
+        left = padding;
+        right = padding;
+        return {left, right};
     }
-
-    if (protyle.element.clientWidth > Constants.SIZE_EDITOR_WIDTH) {
-        return { left: 96, right: 96 };
+    // 全宽编辑器在宽窗口中保留固定 96px 边距，避免内容紧贴宿主边缘。
+    if (width > Constants.SIZE_EDITOR_WIDTH) {
+        left = 96;
+        right = 96;
     }
-    return { left: 24, right: 16 };
+    return {left, right};
 };
 
 /**
@@ -36,6 +34,7 @@ const 计算非移动端Padding = (protyle: IProtyle): { left: number; right: nu
  */
 export const getPadding = (protyle: IProtyle) => {
     let bottom = 16;
+    // 打字机模式需要扩大底部空间，使当前行可滚动到可视区域中部。
     if (protyle.options.typewriterMode) {
         bottom = isMobile() ? window.innerHeight / 5 : protyle.element.clientHeight / 2;
     }
@@ -44,7 +43,9 @@ export const getPadding = (protyle: IProtyle) => {
         return { left: 24, right: 16, bottom, top: 16 };
     }
 
-    const { left, right } = 计算非移动端Padding(protyle);
+    const fullWidthAttr = protyle.wysiwyg.element.getAttribute(Constants.CUSTOM_SY_FULLWIDTH);
+    const fullWidth = fullWidthAttr ? fullWidthAttr === "true" : window.siyuan.config.editor.fullWidth;
+    const {left, right} = getEditorHorizontalPadding(protyle.element.clientWidth, fullWidth);
     return { left, right, bottom, top: 16 };
 };
 
@@ -71,15 +72,19 @@ export const setPadding = (protyle: IProtyle) => {
         : `${padding.top}px ${paddingRight}px ${padding.bottom}px ${paddingLeft}px`;
     protyle.wysiwyg.element.style.padding = wysiwygPadding;
 
-    if (protyle.options.render?.background && protyle.background) {
-        const backgroundIa = protyle.background.element.querySelector(".protyle-background__ia");
-        if (backgroundIa) {
-            backgroundIa.setAttribute("style", `margin-left:${paddingLeft}px;margin-right:${paddingRight}px`);
-        }
+    const backgroundIa = protyle.background?.element.querySelector(".protyle-background__ia");
+    // 仅在宿主声明渲染背景且背景信息区已挂载时同步水平边距。
+    if (protyle.options.render?.background && backgroundIa) {
+        backgroundIa.setAttribute("style", `margin-left:${paddingLeft}px;margin-right:${paddingRight}px`);
     }
+    // 仅为启用标题渲染且标题实例存在的编辑器同步标题边距。
     if (protyle.options.render?.title && protyle.title) {
         // pc 端 文档名 attr 过长和添加标签等按钮重合
         protyle.title.element.style.margin = `16px ${paddingRight}px 0 ${paddingLeft}px`;
+    }
+    // 数据库属性面板与正文共用同一水平内容边界。
+    if (protyle.databaseAttributePanel) {
+        protyle.databaseAttributePanel.element.style.margin = `8px ${paddingRight}px 8px ${paddingLeft}px`;
     }
 
     // https://github.com/siyuan-note/siyuan/issues/15021

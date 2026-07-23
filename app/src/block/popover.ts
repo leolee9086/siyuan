@@ -11,8 +11,6 @@ import { hasClosestByAttribute } from "./imports";
 import { hasClosestByClassName } from "./imports";
 /** 用途：隐藏 Tooltip。使用范围：Popover 关闭时清理。解耦评估：通过 ./imports 转发。 */
 import { hideTooltip } from "./imports";
-/** 用途：当前 tooltip 触发元素。使用范围：Popover 判断鼠标是否已离开触发区域。解耦评估：通过 ./imports 转发。 */
-import { tooltipTargetElement } from "./imports";
 /** 用途：应用实例类型。使用范围：Popover 上下文。解耦评估：通过 ./imports 转发。 */
 import { App } from "./imports";
 /** 用途：系统常量。使用范围：Popover 配置。解耦评估：通过 ./imports 转发。 */
@@ -39,9 +37,6 @@ import { asMouseEventWithPath } from "./imports";
 import { isMouseEventWithHTMLTarget } from "./imports";
 /** 用途：鼠标事件路径类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
 import type { MouseEventWithPath } from "./imports";
-/** 用途：HTML 目标鼠标事件类型。使用范围：Popover 事件类型标注。解耦评估：通过 ./imports 转发。 */
-import type { MouseEventWithHTMLTarget } from "./imports";
-// MouseEventWithHTMLTarget used in event handler type annotations below
 /** 用途：HTMLElement 类型守卫。使用范围：Popover DOM 操作。解耦评估：通过 ./imports 转发。 */
 import { isHTMLElement } from "./imports";
 
@@ -119,13 +114,8 @@ function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: H
 /** 处理非 tooltip 元素，检查是否应该隐藏 tooltip */
 function 处理非Tooltip元素(target: HTMLElement) {
     const tipElement = hasClosestByAttribute(target, "id", "tooltip", true);
-    if (!tipElement) {
-        hideTooltip();
-        return;
-    }
-    // 鼠标已移到 #tooltip 浮层上：若已离开触发元素范围则正常隐藏；
-    // 仍在触发元素范围内（触发元素自身含 #tooltip）时不隐藏，避免 showTooltip 与 hideTooltip 循环闪烁
-    if (tooltipTargetElement && !tooltipTargetElement.contains(target)) {
+    // 鼠标位于可滚动 Tooltip 内时保持显示，其他非触发区域沿用即时隐藏行为。
+    if (!tipElement || tipElement.clientHeight >= tipElement.scrollHeight) {
         hideTooltip();
     }
 }
@@ -135,18 +125,26 @@ const 创建隐藏Popover回调 = (event: MouseEventWithPath) => () => {
     hidePopover(event);
 };
 
+/** 表示一次 Popover 触发模式计算所需的应用、事件、链接目标和计时器状态。 */
+interface IPopoverModeContext {
+    app: App;
+    event: MouseEventWithPath;
+    aElement: HTMLElement | false;
+    timeoutManager: TimeoutManager;
+}
+
+/** 表示全局 mouseover 入口传入业务处理器的稳定依赖，关联同一 Popover 计时器实例。 */
+interface IMouseoverContext {
+    app: App;
+    event: MouseEvent;
+    timeoutManager: TimeoutManager;
+}
 /**
  * 按键触发模式(模式1)处理，返回 true 表示已处理完毕
  * 当用户配置为按键触发模式或按住 Shift 键时调用
  */
-const 处理按键触发模式 = (
-    app: App,
-    event: MouseEventWithPath,
-    target: HTMLElement,
-    aElement: HTMLElement | false,
-    clearTimeoutHide: () => void
-) => {
-    clearTimeoutHide();
+const 处理按键触发模式 = ({app, event, aElement, timeoutManager}: IPopoverModeContext) => {
+    timeoutManager.clearHide();
     // @setTimeout豁免: 用户感知延迟 - 需要等待用户输入稳定后再隐藏 popover，防止快速移动鼠标时闪烁
     setTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
 
@@ -164,13 +162,13 @@ const 处理按键触发模式 = (
 
     const keyboardState = getSiyuanKeyboardState();
     if (keyboardState.ctrlIsPressed) {
-        clearTimeoutHide();
+        timeoutManager.clearHide();
         showPopover(app);
         return true;
     }
 
     if (keyboardState.shiftIsPressed) {
-        clearTimeoutHide();
+        timeoutManager.clearHide();
         showPopover(app, true);
     }
     return true;
@@ -193,31 +191,18 @@ const 创建延迟隐藏回调 = (
 };
 
 /** 创建延迟显示 Popover 的回调 */
-const 创建延迟显示回调 = (
-    app: App,
-    event: MouseEventWithPath,
-    target: HTMLElement,
-    aElement: HTMLElement | false,
-    getTimeoutHide: () => number
-) => () => {
+const 创建延迟显示回调 = ({app, event, aElement, timeoutManager}: IPopoverModeContext) => () => {
     const eventWithTarget = asEventWithHTMLTarget(event);
     if (!eventWithTarget || !getTarget(eventWithTarget, aElement) || isTouchDevice()) {
         return;
     }
-    clearTimeout(getTimeoutHide());
+    timeoutManager.clearHide();
     showPopover(app);
 };
 
 /** 延迟触发模式(模式0)处理 */
-const 处理延迟触发模式 = (
-    app: App,
-    event: MouseEventWithPath,
-    target: HTMLElement,
-    aElement: HTMLElement | false,
-    setTimeouts: (t: number, th: number) => void,
-    clearTimeouts: () => void
-) => {
-    clearTimeouts();
+const 处理延迟触发模式 = ({app, event, aElement, timeoutManager}: IPopoverModeContext) => {
+    timeoutManager.clearAll();
 
     // 使用对象包装以避免闭包中的相互引用问题
     const timeoutRefs = { timeout: 0, timeoutHide: 0 };
@@ -230,21 +215,15 @@ const 处理延迟触发模式 = (
 
     // @setTimeout豁免: 用户感知延迟 - 悬停延迟显示，避免鼠标快速划过时频繁弹出 popover
     timeoutRefs.timeout = setTimeout(
-        创建延迟显示回调(app, event, target, aElement, () => timeoutRefs.timeoutHide),
+        创建延迟显示回调({app, event, aElement, timeoutManager}),
         getSiyuanConfig().editor.floatWindowDelay
     );
 
-    setTimeouts(timeoutRefs.timeout, timeoutRefs.timeoutHide);
+    timeoutManager.set(timeoutRefs.timeout, timeoutRefs.timeoutHide);
 };
 
 /** 处理 mouseover 事件 */
-const 处理Mouseover事件 = (
-    app: App,
-    event: MouseEvent,
-    clearTimeouts: () => void,
-    setTimeouts: (t: number, th: number) => void,
-    clearTimeoutHide: () => void
-) => {
+const 处理Mouseover事件 = ({app, event, timeoutManager}: IMouseoverContext) => {
     // 鼠标进入新元素时中断上一轮尚未完成的 tooltip 信息请求
     abortPendingTooltipRequest();
 
@@ -280,11 +259,11 @@ const 处理Mouseover事件 = (
     const keyboardState = getSiyuanKeyboardState();
     // 当浮窗模式为按键触发(模式1)或用户按住 Shift 键时，使用按键触发模式
     if (getSiyuanConfig().editor.floatWindowMode === 1 || keyboardState.shiftIsPressed) {
-        处理按键触发模式(app, eventWithPath, target, aElement, clearTimeoutHide);
+        处理按键触发模式({app, event: eventWithPath, aElement, timeoutManager});
         return;
     }
 
-    处理延迟触发模式(app, eventWithPath, target, aElement, setTimeouts, clearTimeouts);
+    处理延迟触发模式({app, event: eventWithPath, aElement, timeoutManager});
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -318,7 +297,7 @@ export const initBlockPopover = (app: App) => {
     const timeoutManager = new TimeoutManager();
 
     document.addEventListener("mouseover", (event: MouseEvent) => {
-        处理Mouseover事件(app, event, timeoutManager.clearAll, timeoutManager.set, timeoutManager.clearHide);
+        处理Mouseover事件({app, event, timeoutManager});
     });
 };
 

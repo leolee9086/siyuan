@@ -3,7 +3,7 @@ import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";
-import { bindInlineFilterEvents, getFiltersHTML } from "./filter";
+import { bindInlineFilterEvents, getFiltersHTML, prepareFilterColumns } from "./filter";
 import { bindSortsEvent, getSortsHTML } from "./sort";
 import { bindDateEvent, getDateHTML } from "./date";
 import { bindAssetEvent, getAssetHTML } from "./asset";
@@ -87,6 +87,7 @@ export const openMenuPanel = (options: {
         colData: IAVColumn,
     },
     cellElements?: HTMLElement[],   // for select & date & relation & asset
+    data?: IAV,
     cb?: (avPanelElement: Element) => void
 }) => {
     let avPanelElement = document.querySelector(".av__panel");
@@ -98,14 +99,15 @@ export const openMenuPanel = (options: {
     const avPageSize = getPageSize(options.blockElement);
     // config/properties/sorts/filters/switcher 菜单只需要字段/视图元数据，不需要行数据，跳过行渲染以提升大体量视图下的响应速度
     const ignoreRows = ["config", "properties", "sorts", "filters", "switcher"].includes(options.type);
-    fetchPost("/api/av/renderAttributeView", {
+    const fetchPayload = {
         id: avID,
         query: options.blockElement.querySelector('[data-type="av-search"]')?.textContent.trim() || "",
         pageSize: avPageSize.unGroupPageSize,
         groupPaging: avPageSize.groupPageSize,
         viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW),
         ignoreRows,
-    }, (response) => {
+    };
+    const renderData = async (data: IAV) => {
         avPanelElement = document.querySelector(".av__panel");
         if (avPanelElement) {
             avPanelElement.remove();
@@ -115,7 +117,9 @@ export const openMenuPanel = (options: {
         const blockID = options.blockElement.getAttribute("data-node-id");
 
         const isCustomAttr = !options.blockElement.classList.contains("av");
-        const data = response.data as IAV;
+        if (options.type === "filters") {
+            await prepareFilterColumns(data);
+        }
         let html;
         const fields = getFieldsByData(data);
         if (options.type === "config") {
@@ -366,5 +370,12 @@ export const openMenuPanel = (options: {
                 target = target.parentElement;
             }
         });
-    });
+    };
+    if (options.data) {
+        void renderData(options.data);
+    } else {
+        fetchPost("/api/av/renderAttributeView", fetchPayload, (response) => {
+            void renderData(response.data as IAV);
+        });
+    }
 };

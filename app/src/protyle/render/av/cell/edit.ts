@@ -15,7 +15,9 @@ import {callMobileAppShowKeyboard} from "../../../../mobile/util/mobileAppUtil";
 import {cellScrollIntoView, getTypeByCellElement, addDragFill} from "./position";
 import {updateCellsValue} from "../cell.update";
 
-export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[], type?: TAVCol) => {
+export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[], type?: TAVCol, options?: {
+    scrollIntoView?: boolean;
+}) => {
     if (cellElements.length === 0 || (cellElements.length === 1 && !cellElements[0])) {
         return;
     }
@@ -32,7 +34,7 @@ export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[], type
     const viewType = blockElement.getAttribute("data-av-type") as TAVView;
     let cellRect = cellElements[0].getBoundingClientRect();
     const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
-    if (viewType === "table") {
+    if (viewType === "table" && options?.scrollIntoView !== false) {
         cellScrollIntoView(blockElement, cellElements[0], false);
     }
     cellRect = cellElements[0].getBoundingClientRect();

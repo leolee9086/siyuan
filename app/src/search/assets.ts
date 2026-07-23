@@ -344,7 +344,7 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
     }
     globalMenu.append(new MenuItem({
         iconHTML: "",
-        label: siyuanI18n.rebuildIndex,
+        label: siyuanI18n.rebuildAssetContentIndex,
         click() {
             const loadingElement = element.parentElement?.querySelector<HTMLElement>(".fn__loading");
             loadingElement?.classList.remove("fn__none");

@@ -34,6 +34,11 @@ var SQLTool = &Tool{
 		},
 		Required: []string{"action", "stmt"},
 	},
+	EffectScope: EffectScopeLocal,
+	ActionEffects: map[string]ToolEffects{
+		"":      {LocalRead: true},
+		"query": {LocalRead: true},
+	},
 	Handler: sqlHandler,
 }
 
@@ -41,7 +46,7 @@ func init() {
 	register(SQLTool)
 }
 
-func sqlHandler(args map[string]interface{}) (CallToolResult, error) {
+func sqlHandler(args map[string]any) (CallToolResult, error) {
 	action, _ := args["action"].(string)
 	if action != "query" {
 		if stmt, ok := args["stmt"].(string); ok && stmt != "" {
@@ -55,7 +60,7 @@ func sqlHandler(args map[string]interface{}) (CallToolResult, error) {
 	return sqlQuery(args)
 }
 
-func sqlQuery(args map[string]interface{}) (CallToolResult, error) {
+func sqlQuery(args map[string]any) (CallToolResult, error) {
 	stmt, _ := args["stmt"].(string)
 	if stmt == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "stmt is required"}}, IsError: true}, nil

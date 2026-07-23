@@ -239,3 +239,4 @@ export { focusByRange, focusBlock, setLastNodeRange };
 export { focusSideBlock, focusToolbarRange, 聚焦工具栏范围 } from "./selection.focus";
 export { setFirstNodeRange, focusByOffset, setInsertWbrHTML, focusByWbr } from "./selection.range";
 export { getSelectionPosition } from "./selection.position";
+export { getUndoFocusContext, restoreUndoFocus } from "./selection.undo";

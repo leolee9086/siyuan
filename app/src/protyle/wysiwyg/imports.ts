@@ -104,3 +104,21 @@ export { createPoint };
 export { createBoundingRect };
 /** 导出 createRect */
 export { createRect };
+
+/** 用途：匹配编辑器快捷键。使用范围：WYSIWYG guard 与键盘中间件。解耦评估：无状态按键匹配能力适合经目录入口复用。 */
+import {matchHotKey} from "../util/hotKey";
+/** 导出快捷键匹配能力。 */
+export {matchHotKey};
+
+/** 用途：为加密笔记本请求附加 notebook。使用范围：WYSIWYG 文档信息请求。解耦评估：复用唯一加密参数构造器，避免各中间件重复判断。 */
+import {withEncryptedNotebook} from "../../util/pathName";
+/** 用途：刷新数据库视图表头选中状态。使用范围：Gallery 多选。解耦评估：通过目录网关转发。 */
+import {updateHeader} from "../render/av/row";
+/** 用途：同步数据库虚拟滚动行选中快照。使用范围：Gallery 多选。解耦评估：通过目录网关转发。 */
+import {updateAVRowSelect} from "../render/av/virtualScroll";
+/** 导出加密 notebook 参数能力。 */
+export {withEncryptedNotebook};
+/** 导出数据库虚拟滚动选中快照能力。 */
+export {updateAVRowSelect};
+/** 导出数据库表头选中状态刷新能力。 */
+export {updateHeader};

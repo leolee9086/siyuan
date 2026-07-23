@@ -81,7 +81,9 @@ export function 生成关闭按钮HTML(options: {
         return "";
     }
     if (options.closeButtonPosition === "outside") {
-        return `<svg ${(isMobile() && options.hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close"><use xlink:href="#iconCloseRound"></use></svg>`;
+        return isMobile()
+            ? "<svg class=\"b3-dialog__close\"><use xlink:href=\"#iconCloseRound\"></use></svg>"
+            : "";
     }
     if (options.closeButtonPosition === "inside" && options.hasTitle) {
         return "<svg class=\"b3-dialog__close b3-dialog__close--inside\" style=\"position: absolute; top: 50%; right: 0px; transform: translateY(-50%);\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
@@ -130,6 +132,9 @@ export function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: st
     if (!hasTitle) {
         return "";
     }
+    if (isMobile() && closeButtonPosition === "outside") {
+        return "position: relative; padding-right: 38px;";
+    }
     return closeButtonPosition === "inside"
         ? "position: relative; padding-right: 60px;"
         : "position: relative; padding-right: 30px;";
@@ -174,7 +179,7 @@ export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: b
  */
 export function 生成对话框HTML(params: I对话框HTML参数) {
     return `<div class="b3-dialog${params.rootClassName ? " " + params.rootClassName : ""}" style="z-index: ${params.zIndex};${typeof params.left === "string" ? "display:block" : ""};${params.scrimPointerEvents ? " pointer-events:none" : ""}">
-${params.showScrim ? `<div class="b3-dialog__scrim"${params.transparent ? 'style="background-color:transparent"' : ""}></div>` : ""}
+${params.showScrim ? `<div class="b3-dialog__scrim"${params.transparent ? ' style="background-color:transparent"' : ""}></div>` : ""}
 <div class="b3-dialog__container ${params.containerClassName || ""}" style="width:${params.width || "auto"};height:${params.height || "auto"};
 left:${params.left || "auto"};top:${params.top || "auto"};${params.scrimPointerEvents ? " pointer-events:auto" : ""}">
   ${params.closeButtonPosition === "outside" ? params.closeButtonHtml : ""}

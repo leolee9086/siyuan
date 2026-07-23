@@ -144,7 +144,7 @@ func BootSyncData() {
 	lockSync()
 	defer unlockSync()
 
-	util.IncBootProgress(3, "Syncing data from the cloud...")
+	util.IncBootProgress(3, Conf.Language(307))
 	BootSyncSucc = 0
 	logging.LogInfof("sync before boot")
 
@@ -287,7 +287,7 @@ func incReindex(upserts, removes []string) (upsertRootIDs, removeRootIDs []strin
 	upsertRootIDs = []string{}
 	removeRootIDs = []string{}
 
-	util.IncBootProgress(3, "Sync reindexing...")
+	util.IncBootProgress(3, Conf.Language(308))
 	removeRootIDs = removeIndexes(removes) // 先执行 remove，否则移动文档时 upsert 会被忽略，导致未被索引
 	upsertRootIDs = upsertIndexes(upserts)
 
@@ -315,15 +315,18 @@ func removeIndexes(removeFilePaths []string) (removeRootIDs []string) {
 		util.PushStatusBar(msg)
 
 		cache.RemoveTreeData(rootID)
-		sql.RemoveTreeQueue(rootID)
-		bts := treenode.GetBlockTreesByRootID(rootID)
+		block := treenode.GetBlockTree(rootID)
+		boxID := ""
+		if nil != block {
+			boxID = block.BoxID
+			cache.RemoveDocIAL(block.Path)
+		}
+		sql.RemoveTreeQueue(boxID, rootID)
+		bts := treenode.GetBlockTreesByRootIDInBox(rootID, boxID)
 		for _, b := range bts {
 			cache.RemoveBlockIAL(b.ID)
 		}
-		if block := treenode.GetBlockTree(rootID); nil != block {
-			cache.RemoveDocIAL(block.Path)
-		}
-		treenode.RemoveBlockTreesByRootID(rootID)
+		treenode.RemoveBlockTreesByRootID(boxID, rootID)
 	}
 
 	if 1 > len(removeRootIDs) {
@@ -363,7 +366,7 @@ func upsertIndexes(upsertFilePaths []string) (upsertRootIDs []string) {
 		treenode.UpsertBlockTree(tree)
 		sql.UpsertTreeQueue(tree)
 
-		bts := treenode.GetBlockTreesByRootID(rootID)
+		bts := treenode.GetBlockTreesByRootIDInBox(rootID, tree.Box)
 		for _, b := range bts {
 			cache.RemoveBlockIAL(b.ID)
 		}
@@ -910,7 +913,7 @@ func connectSyncWebSocket() {
 				}
 
 				reconnected := false
-				for retries := 0; retries < 7; retries++ {
+				for range 7 {
 					time.Sleep(7 * time.Second)
 					if nil == Conf.GetUser() {
 						return

@@ -126,6 +126,10 @@ import { getDisplayName, getNotebookName } from "../util/file/pathName";
 export { getDisplayName };
 /** 导出 getNotebookName，供 editor 模块使用 */
 export { getNotebookName };
+/** 用途：判断笔记本是否加密。使用范围：编辑器文档查询需选择普通或 InBox 数据源。解耦评估：当前唯一实现仍位于兼容路径，先由 editor 网关转发，避免复制实现。 */
+import { isEncryptedBox } from "../util/pathName";
+/** 导出加密笔记本判断，供 editor 模块使用 */
+export { isEncryptedBox };
 
 /** 用途：获取资产名称。使用范围：editor 重命名资产时显示旧名称。解耦评估：通过 imports.ts 转发。 */
 import { getAssetName } from "../util/file/pathName";

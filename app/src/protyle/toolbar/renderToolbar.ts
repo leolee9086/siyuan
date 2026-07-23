@@ -1,19 +1,17 @@
 import { hasClosestBlock, hasClosestByTag } from "../util/hasClosest";
 import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
-import { setLastNodeRange, setFirstNodeRange, focusByRange, getSelectionPosition } from "../util/selection";
-import { getContenteditableElement } from "../wysiwyg/getBlock";
+import { getSelectionPosition } from "../util/selection";
 import { setPosition } from "../../util/DOM/setPosition";
 
 export function renderToolbar(
     protyle: IProtyle,
     range: Range,
-    event: KeyboardEvent | undefined,
     element: HTMLElement,
     setRange: (range: Range) => void
 ): { range: Range, toolbarHeight: number } | undefined {
-    let currentRange = range;
-    let nodeElement = hasClosestBlock(range.startContainer);
+    const currentRange = range;
+    const nodeElement = hasClosestBlock(range.startContainer);
     if (isMobile() || !nodeElement || protyle.disabled || nodeElement.classList.contains("av") ||
         hasClosestByTag(range.startContainer, "CAPTION")) {
         element.classList.add("fn__none");
@@ -38,40 +36,6 @@ export function renderToolbar(
         element.classList.add("fn__none");
         return;
     }
-    // shift+方向键或三击选中，不同的块 https://github.com/siyuan-note/siyuan/issues/3891
-    const startElement = hasClosestBlock(range.startContainer);
-    const endElement = hasClosestBlock(range.endContainer);
-    if (startElement && endElement && startElement !== endElement) {
-        if (event) { // 在 keyup 中使用 shift+方向键选中
-            if (event.key === "ArrowLeft") {
-                currentRange = setLastNodeRange(getContenteditableElement(startElement), range, false);
-                setRange(currentRange);
-            } else if (event.key === "ArrowRight") {
-                currentRange = setFirstNodeRange(getContenteditableElement(endElement), range);
-                currentRange.collapse(false);
-                setRange(currentRange);
-            } else if (event.key === "ArrowUp") {
-                currentRange = setFirstNodeRange(getContenteditableElement(endElement), range);
-                setRange(currentRange);
-                nodeElement = hasClosestBlock(endElement);
-                if (!nodeElement) {
-                    return;
-                }
-            } else if (event.key === "ArrowDown") {
-                currentRange = setLastNodeRange(getContenteditableElement(startElement), range, false);
-                setRange(currentRange);
-            }
-        } else {
-            currentRange = setLastNodeRange(getContenteditableElement(nodeElement), range, false);
-            setRange(currentRange);
-        }
-        focusByRange(currentRange);
-        if (currentRange.toString() === "") {
-            element.classList.add("fn__none");
-            return;
-        }
-    }
-    // 需放在 range 修改之后，否则 https://github.com/siyuan-note/siyuan/issues/4726
     if (nodeElement.getAttribute("data-type") === "NodeCodeBlock") {
         element.classList.add("fn__none");
         return;
@@ -79,9 +43,14 @@ export function renderToolbar(
     const rangePosition = getSelectionPosition(nodeElement, currentRange, true);
     element.classList.remove("fn__none");
     const toolbarHeight = element.clientHeight;
+    const protyleRect = protyle.element.getBoundingClientRect();
+    const rangeRects = range.getClientRects();
+    const rangeRect = (rangePosition.isBottom ? rangeRects[rangeRects.length - 1] : rangeRects[0]) || range.getBoundingClientRect();
+    const above = rangeRect.top - toolbarHeight - 4;
+    const below = rangeRect.bottom + 4;
     const y = rangePosition.isBottom ?
-        Math.min(rangePosition.top + 4, protyle.element.getBoundingClientRect().bottom - toolbarHeight) :
-        Math.max(rangePosition.top - toolbarHeight - 4, protyle.element.getBoundingClientRect().top + 30);
+        (below + toolbarHeight <= protyleRect.bottom ? below : Math.max(above, protyleRect.top + 30)) :
+        (above >= protyleRect.top + 30 ? above : Math.min(below, protyleRect.bottom - toolbarHeight));
     element.setAttribute("data-inity", y + Constants.ZWSP + protyle.contentElement.scrollTop.toString());
     setPosition(element, rangePosition.left - element.clientWidth / 4, y);
 

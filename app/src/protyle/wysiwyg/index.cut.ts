@@ -43,7 +43,7 @@ export async function handleCut(
     }
     // https://github.com/siyuan-note/siyuan/issues/11793
     const embedElement = isInEmbedBlock(nodeElement);
-    if (embedElement) {
+    if (embedElement && !embedElement.classList.contains("protyle-wysiwyg--select")) {
         nodeElement = embedElement;
     }
     event.stopPropagation();
@@ -107,6 +107,7 @@ export async function handleCut(
                 needClipboardWrite = true;
                 const response = await fetchSyncPost("/api/block/getBlockDOM", {
                     id: item.getAttribute("data-node-id"),
+                    notebook: protyle.notebookId,
                 });
                 itemHTML = response.data.dom;
             } else {
@@ -224,29 +225,40 @@ export async function handleCut(
             range.deleteContents();
             tempElement.append(newSpanElement);
         } else {
-            if (selectTableRange) {
-                const tableElement = tableRangeElement.querySelector("table");
-                const newTableHTML = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
-                tempElement.innerHTML = newTableHTML;
-                textPlain = protyle.lute.HTML2Md(newTableHTML);
-                const wbrElement = document.createElement("wbr");
-                range.insertNode(wbrElement);
-                range.setStartAfter(wbrElement);
-                range.extractContents();
+            if (selectTableRange || cloneElement.querySelectorAll("td, th").length > 0) {
+                const tableScrollLeft = nodeElement.firstElementChild.scrollLeft;
+                const tableScrollTop = nodeElement.firstElementChild.scrollTop;
+                const contentScrollTop = protyle.contentElement.scrollTop;
+                if (selectTableRange) {
+                    const tableElement = tableRangeElement.querySelector("table");
+                    const newTableHTML = getTableRangeHTML(tableElement, tableRangeStartCell, tableRangeEndCell);
+                    tempElement.innerHTML = newTableHTML;
+                    textPlain = protyle.lute.HTML2Md(newTableHTML);
+                    const wbrElement = document.createElement("wbr");
+                    range.insertNode(wbrElement);
+                    range.setStartAfter(wbrElement);
+                    range.extractContents();
+                } else {
+                    // 表格内多格子 cut https://github.com/siyuan-note/siyuan/issues/564
+                    const wbrElement = document.createElement("wbr");
+                    range.insertNode(wbrElement);
+                    range.setStartAfter(wbrElement);
+                    tempElement.append(range.extractContents());
+                }
                 nodeElement.outerHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
                 nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) as HTMLElement;
                 mathRender(nodeElement);
                 focusByWbr(nodeElement, range);
-            } else if (cloneElement.querySelectorAll("td, th").length > 0) {
-                // 表格内多格子 cut https://github.com/siyuan-note/siyuan/issues/564
-                const wbrElement = document.createElement("wbr");
-                range.insertNode(wbrElement);
-                range.setStartAfter(wbrElement);
-                tempElement.append(range.extractContents());
-                nodeElement.outerHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
-                nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) as HTMLElement;
-                mathRender(nodeElement);
-                focusByWbr(nodeElement, range);
+                if (tableScrollLeft > 0) {
+                    nodeElement.firstElementChild.scrollLeft = tableScrollLeft;
+                }
+                if (tableScrollTop > 0) {
+                    nodeElement.firstElementChild.scrollTop = tableScrollTop;
+                }
+                if (contentScrollTop > 0) {
+                    protyle.contentElement.scrollTop = contentScrollTop;
+                    protyle.scroll.lastScrollTop = contentScrollTop - 1;
+                }
             } else {
                 const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
                 if (inlineMathElement) {

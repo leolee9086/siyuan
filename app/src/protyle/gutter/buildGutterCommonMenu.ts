@@ -36,11 +36,13 @@ import { exportImage } from "./imports";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 import { getProtyleMenuContext, scheduleProtyleMenuTask } from "../runtime/menu.visibility";
 import { createBlockColorMenuItem } from "../../sforge/colors/menu";
+import {isEncryptedBox} from "../../util/pathName";
+import type {IGutterMenuCapabilities} from "./gutter.types";
 
 /**
  * 通用操作菜单构建上下文
  */
-export interface IGutterCommonMenuContext {
+export interface IGutterCommonMenuContext extends IGutterMenuCapabilities {
     /** Protyle 实例 */
     protyle: IProtyle;
     /** 目标节点元素 */
@@ -333,7 +335,7 @@ const 添加导航菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
  * 添加编辑菜单项（插入/引用计数）
  */
 const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
-    if (ctx.protyle.disabled) {
+    if (!ctx.allowStructuralMutation) {
         return;
     }
     menuItems.push(创建插入上方菜单项(ctx));
@@ -352,7 +354,7 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
     if (ctx.type !== "NodeThematicBreak") {
         menuItems.push(创建折叠菜单项(ctx));
     }
-    if (ctx.type !== "NodeThematicBreak" && !ctx.protyle.disabled) {
+    if (ctx.type !== "NodeThematicBreak" && !ctx.protyle.disabled && !isEncryptedBox(ctx.protyle.notebookId)) {
         menuItems.push(创建属性菜单项(ctx));
     }
     if (!ctx.protyle.disabled) {
@@ -379,13 +381,13 @@ const 添加扩展菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
     if (应该显示微信提醒(ctx)) {
         menuItems.push(创建微信提醒菜单项(ctx));
     }
-    if (ctx.type !== "NodeThematicBreak" && !getSiyuanConfig().readonly) {
+    if (ctx.type !== "NodeThematicBreak" && !getSiyuanConfig().readonly && !isEncryptedBox(ctx.protyle.notebookId)) {
         menuItems.push(创建闪卡菜单项(ctx));
         menuItems.push(创建添加到卡组菜单项(ctx));
         menuItems.push({ id: "separator_5", type: "separator" });
     }
     const menuContext = getProtyleMenuContext();
-    if (menuContext?.host === "full-app" && ctx.protyle?.app?.plugins?.length) {
+    if (!ctx.isEmbedMenu && menuContext?.host === "full-app" && ctx.protyle?.app?.plugins?.length) {
         scheduleProtyleMenuTask(menuContext, () => {
             emitOpenMenu({
                 plugins: ctx.protyle.app.plugins,
@@ -412,7 +414,9 @@ export const buildGutterCommonMenu = (ctx: IGutterCommonMenuContext): IMenu[] =>
     menuItems.push({ id: "separator_2", type: "separator" });
     添加导航菜单(ctx, menuItems);
     添加编辑菜单(ctx, menuItems);
-    menuItems.push(创建跳转菜单(ctx));
+    if (!ctx.isEmbedMenu) {
+        menuItems.push(创建跳转菜单(ctx));
+    }
     menuItems.push({ id: "separator_3", type: "separator" });
     添加视图菜单(ctx, menuItems);
     menuItems.push(创建导出图片菜单项(ctx));

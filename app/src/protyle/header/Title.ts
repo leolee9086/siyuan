@@ -19,7 +19,7 @@ import { isMobile } from "../../platform";
 // S-forge: openFileById 路径重构
 import { openFileById } from "../../editor/utils.openFileById";
 // 上游: getDocDisplayName 用于 render() 中标签页标题更新
-import { getDocDisplayName } from "../../util/pathName";
+import { getDocDisplayName, withEncryptedNotebook } from "../../util/pathName";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
 // S-forge: commonHotkey 路径重构
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
@@ -179,9 +179,9 @@ export class Title {
                     event.preventDefault();
                     event.stopPropagation();
                 } else if (matchHotKey(window.siyuan.config.keymap.editor.general.attr.custom, event)) {
-                    fetchPost("/api/block/getDocInfo", {
+                    fetchPost("/api/block/getDocInfo", withEncryptedNotebook(protyle.notebookId, {
                         id: protyle.block.rootID
-                    }, (response) => {
+                    }), (response) => {
                         openFileAttr(response.data.ial, "bookmark", protyle);
                     });
                     event.preventDefault();
@@ -196,9 +196,9 @@ export class Title {
             iconElement.addEventListener("click", (event) => {
                 // 不使用 window.siyuan.shiftIsPressed ，否则窗口未激活时按 Shift 点击块标无法打开属性面板 https://github.com/siyuan-note/siyuan/issues/15075
                 if (event.shiftKey) {
-                    fetchPost("/api/block/getDocInfo", {
+                    fetchPost("/api/block/getDocInfo", withEncryptedNotebook(protyle.notebookId, {
                         id: protyle.block.rootID
-                    }, (response) => {
+                    }), (response) => {
                         openFileAttr(response.data.ial, "bookmark", protyle);
                     });
                 } else {
@@ -310,9 +310,9 @@ export class Title {
         this.element.querySelector(".protyle-attr").addEventListener("click", (event: MouseEvent & {
             target: HTMLElement
         }) => {
-            fetchPost("/api/block/getDocInfo", {
+            fetchPost("/api/block/getDocInfo", withEncryptedNotebook(protyle.notebookId, {
                 id: protyle.block.rootID
-            }, (response) => {
+            }), (response) => {
                 commonClick(event, protyle, response.data.ial);
             });
         });

@@ -11,6 +11,8 @@ import { fetchPost } from "./imports";
 import { showTooltip } from "./imports";
 // 用途：判断路径是否为本地路径；使用范围：判断链接是否需要显示本地资源信息；解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦
 import { isLocalPath } from "./imports";
+/** 用途：发布模式状态。使用范围：阻止发布端查询本地资源元数据。解耦评估：通过同目录 imports 转发。 */
+import { getSiyuanIsPublish } from "./imports";
 // 用途：提供全局常量配置；使用范围：使用标题长度限制等常量；解耦评估：全局配置，可通过配置注入解耦，但作为全局常量直接导入更合理
 import { Constants } from "./imports";
 // 用途：获取属性视图单元格的文本内容；使用范围：获取AV单元格文本用于tooltip显示；解耦评估：业务逻辑函数，可通过参数传递解耦，但作为protyle核心功能直接导入更合理
@@ -32,7 +34,7 @@ import { Tab } from "./imports";
 // 用途：转义小于号用于安全显示 HTML；使用范围：Tab 标签页 tooltip；解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦
 import { escapeLessThans } from "./imports";
 // 用途：导入 TooltipInfo 类型定义；使用范围：类型标注；解耦评估：类型定义，无需解耦
-import { TooltipInfo } from "./types";
+import {IStatAssetResponseContext, TooltipInfo} from "./types";
 // 用途：导出 TooltipInfo 类型供外部使用；使用范围：类型导出；解耦评估：类型定义，无需解耦
 export type { TooltipInfo };
 
@@ -286,7 +288,7 @@ export const getTooltipInfo = (aElement: HTMLElement, target: HTMLElement): Tool
 /**
  * 处理 statAsset 请求响应
  */
-const handleStatAssetResponse = (response: IWebSocketData, tip: string, title: string | null, aElement: HTMLElement, tooltipClass: string) => {
+const handleStatAssetResponse = ({response, tip, title, aElement, tooltipClass}: IStatAssetResponseContext) => {
     let assetTip = tip;
     // 检查响应码是否为 1（错误），如果是则只显示基本信息
     if (response.code === 1) {
@@ -320,7 +322,7 @@ const handleLocalPathTooltip = (aElement: HTMLElement, tip: string, tooltipClass
         if (signal.aborted) {
             return;
         }
-        handleStatAssetResponse(response, tip, title, aElement, tooltipClass);
+        handleStatAssetResponse({response, tip, title, aElement, tooltipClass});
         // 通过 signal 对象引用判断此回调是否对应最新请求，避免旧请求误清理
         if (tooltipAbortController?.signal === signal) {
             tooltipAbortController = null;
@@ -449,7 +451,8 @@ export const handleTooltipDisplay = (
     const { tip, tooltipClass, tooltipSpace } = tooltipInfo;
 
     // 处理本地路径 tooltip（异步，回调驱动）
-    if (tip && isLocalPath(aElement.getAttribute("data-href") || "") && !aElement.classList.contains("b3-tooltips")) {
+    if (!getSiyuanIsPublish() && tip && isLocalPath(aElement.getAttribute("data-href") || "") &&
+        !aElement.classList.contains("b3-tooltips")) {
         handleLocalPathTooltip(aElement, tip, tooltipClass);
         return true;
     }

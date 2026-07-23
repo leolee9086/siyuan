@@ -1,10 +1,10 @@
 import { setFold } from "../util/blockFold";
 import { focusByRange } from "../util/selection.focus";
 import { focusByWbr, setLastNodeRange } from "../util/selection.range";
-import { getParentBlock, getContenteditableElement, getPreviousBlockSibling } from "./getBlock";
+import { getContenteditableElement, getPreviousBlockSibling } from "./getBlock";
 import { listOutdent } from "./list";
 import { updateListOrder } from "./list.updateOrder";
-import { moveToPrevious } from "./remove";
+import { getOperationParentID, moveToPrevious } from "./remove";
 import { transaction, updateTransaction } from "./transaction";
 import { turnsIntoOneTransaction } from "./transaction.turns";
 import { Constants } from "../../constants";
@@ -157,7 +157,7 @@ const topListFirstLineToBlock = async (protyle: IProtyle, blockEl: Element, rang
     for (const item of Array.from(tempEl.children)) {
         const id = item.getAttribute("data-node-id") || "";
         const pIdLocal = getTopListPreviousId(index, listEl, doOps);
-        const pId = getParentBlock(listEl)?.getAttribute("data-node-id") || protyle.block.parentID;
+        const pId = getOperationParentID(listEl, protyle.block.parentID);
         doOps.push({ action: "insert", id, data: item.outerHTML, previousID: pIdLocal, parentID: pId });
         undoOps.push({ action: "delete", id });
         index++;

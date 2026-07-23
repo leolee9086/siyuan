@@ -27,6 +27,16 @@ import {exportImageBlobsByRatio} from "./exportImage.ratio.export";
 /** 用途：导出图片上下文类型；使用范围：确认导出流程参数；解耦评估：类型依赖无运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 
+const IMAGE_PLACEHOLDER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+/** 作用：将截图期间加载失败的图片替换为透明像素；意图：单个图片错误不应中断其余内容的图片导出；调用时机：html-to-image 报告图片资源错误时。 */
+const handleCaptureImageError = (event: Event) => {
+    // 回调 target 可能是非图片节点，仅对 HTMLImageElement 替换 src。
+    if (event.target instanceof HTMLImageElement) {
+        event.target.src = IMAGE_PLACEHOLDER;
+    }
+};
+
 /** 作用：内联 PlantUML object 内容。意图：确保截图阶段图表可见。调用时机：截图前。问题/改进：当前为串行请求。 */
 const inlinePlantumlObjects = async (previewElement: HTMLElement)=> {
     for (const plantumlElement of previewElement.querySelectorAll("[data-subtype='plantuml']")) {
@@ -100,16 +110,21 @@ export const handleConfirmExport = async (ctx: IExportImageContext)=> {
         showMessage(siyuanI18n._kernel[14], 3000, "error");
         return;
     }
+    const captureOptions = {
+        imagePlaceholder: IMAGE_PLACEHOLDER,
+        onImageErrorHandler: handleCaptureImageError,
+    };
+    const capture = {runtime: htmlToImage, options: captureOptions};
 
     // 预热同样需要针对最终导出节点执行，避免背景图只出现在预览里却未进入截图管线。
     // iPhone/Safari 首次截图偶现不完整，需预热渲染管线。
     if (isIPhone() || isSafari()) {
-        await htmlToImage.toBlob(ctx.exportImageElement);
-        await htmlToImage.toBlob(ctx.exportImageElement);
-        await htmlToImage.toBlob(ctx.exportImageElement);
+        await capture.runtime.toBlob(ctx.exportImageElement, capture.options);
+        await capture.runtime.toBlob(ctx.exportImageElement, capture.options);
+        await capture.runtime.toBlob(ctx.exportImageElement, capture.options);
     }
 
-    const ratioFiles = await exportImageBlobsByRatio(ctx, htmlToImage);
+    const ratioFiles = await exportImageBlobsByRatio(ctx, capture);
     // 选择了具体比例且内容被分页时，优先上传分页结果，避免再回退到整图导出。
     if (0 < ratioFiles.length) {
         for (const file of ratioFiles) {
@@ -120,7 +135,7 @@ export const handleConfirmExport = async (ctx: IExportImageContext)=> {
     }
 
     // 自动比例导出也必须截图带背景的画布节点，而不是外围内容容器。
-    const blob = await htmlToImage.toBlob(ctx.exportImageElement);
+    const blob = await capture.runtime.toBlob(ctx.exportImageElement, capture.options);
     await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`, msgId);
 
     ctx.finish();

@@ -12,7 +12,8 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { App } from "../../index";
 import { isSupportCSSHL, searchMarkRender } from "../../protyle/render/searchMarkRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDocDisplayName } from "../../util/pathName";
+import {getDocDisplayName, isEncryptedBox} from "../../util/pathName";
+import {getAllModels} from "../getAll";
 
 export class Backlink extends Model {
     public element: HTMLElement;
@@ -519,13 +520,28 @@ export class Backlink extends Model {
             return;
         }
         element.classList.add("fn__rotate");
-        fetchPost("/api/ref/getBacklink2", {
+        // 首次查询尚无响应中的 box，需从承载该根文档的编辑器确定加密数据源。
+        let notebookId = this.notebookId;
+        const contextRootId = this.rootId || this.blockId;
+        if (!notebookId && contextRootId) {
+            getAllModels().editor.some(item => {
+                if (item.editor.protyle.block.rootID === contextRootId) {
+                    notebookId = item.editor.protyle.notebookId;
+                    return true;
+                }
+            });
+        }
+        const param: IObject = {
             sort: parseInt(this.tree.element.previousElementSibling.querySelector('[data-type="sort"]').getAttribute("data-sort")).toString(),
             mSort: parseInt(this.mTree.element.previousElementSibling.querySelector('[data-type="mSort"]').getAttribute("data-sort")).toString(),
             k: this.inputsElement[0].value,
             mk: this.inputsElement[1].value,
             id: this.blockId,
-        }, response => {
+        };
+        if (isEncryptedBox(notebookId)) {
+            param.notebook = notebookId;
+        }
+        fetchPost("/api/ref/getBacklink2", param, response => {
             if (!init) {
                 this.saveStatus();
             }

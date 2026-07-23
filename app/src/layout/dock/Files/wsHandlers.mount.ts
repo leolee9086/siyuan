@@ -95,7 +95,8 @@ export const createMountCallback = (
     data: { data: { box: INotebook; existed?: boolean } },
     genNotebook: (notebook: INotebook) => string
 ) => (notebooks: INotebook[]): void => {
-    const html = genNotebook(data.data.box);
+    const notebook = notebooks.find(item => item.id === data.data.box.id) || data.data.box;
+    const html = genNotebook(notebook);
     
     // 如果打开列表为空，直接设置innerHTML
     if (element.childElementCount === 0) {

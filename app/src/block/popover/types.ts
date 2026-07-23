@@ -26,3 +26,12 @@ export interface TooltipInfo {
     tooltipClass: string;
     tooltipSpace?: number;
 }
+
+/** 表示资源元数据请求回调渲染 Tooltip 所需的响应、原始文本、目标元素和样式上下文。 */
+export interface IStatAssetResponseContext {
+    response: IWebSocketData;
+    tip: string;
+    title: string | null;
+    aElement: HTMLElement;
+    tooltipClass: string;
+}

@@ -66,6 +66,10 @@ const handleClickItem = (background: Background, protyle: IProtyle, target: HTML
  * 意图：执行事件委托循环，查找并处理点击目标。
  */
 const handleBackgroundClick = (event: Event, background: Background, protyle: IProtyle) => {
+    if (background.dragOccurred) {
+        background.dragOccurred = false;
+        return;
+    }
     // 卫语句：确保事件类型
     if (!(event instanceof MouseEvent)) {
         return;

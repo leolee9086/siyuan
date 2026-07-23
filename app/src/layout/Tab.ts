@@ -4,7 +4,7 @@ import type {ILayoutModel} from "./lifecycle/model.types";
 import {attachLayoutModel} from "./lifecycle/model.mount";
 import { hasClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
-import { escapeHtml } from "../util/DOM/escape";
+import { escapeAttr, escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
 import { hideTooltip } from "../dialog/tooltip";
 import { isElectron } from "../platform";
@@ -39,7 +39,7 @@ export class Tab {
             this.headElement.classList.add("item", "item--focus");
             let iconHTML = "";
             if (options.icon) {
-                iconHTML = `<svg class="item__graphic"><use xlink:href="#${options.icon}"></use></svg>`;
+                iconHTML = `<svg class="item__graphic"><use xlink:href="#${escapeAttr(escapeHtml(options.icon))}"></use></svg>`;
             } else if (options.docIcon) {
                 iconHTML = `<span class="item__icon">${unicode2Emoji(options.docIcon)}</span>`;
             }

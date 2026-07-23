@@ -32,16 +32,16 @@ import (
 
 // serve 子命令自己的 flag 值。--workspace 复用 rootCmd 的 persistent flag，不再重复声明。
 var (
-serveWdPath          string
-	servePort            string
-	serveReadOnly        string
-	serveAccessAuthCode  string
-	serveLang            string
-	serveMode            string
-	serveSSL             bool
-	serveAttachUI        bool
-	serveNoBrowser       bool
-	serveSafeMode        bool
+	serveWdPath         string
+	servePort           string
+	serveReadOnly       string
+	serveAccessAuthCode string
+	serveLang           string
+	serveMode           string
+	serveSSL            bool
+	serveAttachUI       bool
+	serveNoBrowser      bool
+	serveSafeMode       bool
 )
 
 var serveCmd = &cobra.Command{
@@ -50,13 +50,19 @@ var serveCmd = &cobra.Command{
 	Long:  "Start kernel HTTP server. All serving-related options below are passed to the kernel boot.",
 	// 这些 flag 由 cobra 解析（见 init），serve -h 可直接列出全部参数。
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// serve 绕过 root 的初始化，但 --log-level 需在 BootWithFlags（含 logBootInfo 等启动日志）之前应用，
+		// 否则命令行指定的级别会被丢弃；同时记入 util.CLILogLevel，使随后的 model.InitConf 不再用 conf.json 覆盖。
+		if "" != logLevel {
+			logging.SetLogLevel(logLevel)
+			util.CLILogLevel = logLevel
+		}
 		return nil // bypass root's init — BootWithFlags() handles it
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// --workspace 优先取 serve 自己的（rootCmd 的 persistent flag），兜底环境变量与默认值交给 util.BootWithFlags 内部处理（与原 Boot() 行为一致）。
 		ws := workspacePath
 
-util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser, serveSafeMode)
+		util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser, serveSafeMode)
 
 		model.InitJwtKey()
 		model.InitConf()
@@ -107,7 +113,7 @@ func init() {
 	serveCmd.Flags().StringVar(&serveMode, "mode", util.ModeProd, "dev/prod/forge")
 	serveCmd.Flags().BoolVar(&serveSSL, "ssl", false, "for https and wss")
 	serveCmd.Flags().BoolVar(&serveAttachUI, "attach-ui", false, "attach kernel lifecycle to desktop UI process (used by Electron)")
-serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
+	serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
 	serveCmd.Flags().BoolVar(&serveSafeMode, "safe-mode", false, "boot in safe mode")
 
 	rootCmd.AddCommand(serveCmd)

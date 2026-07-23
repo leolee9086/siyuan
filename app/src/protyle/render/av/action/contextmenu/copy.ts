@@ -4,6 +4,8 @@ import { fetchSyncPost } from "./imports";
 import { siyuanI18n } from "./imports";
 /** 用途：写入系统剪贴板。使用范围：所有 copy 子菜单动作。解耦评估：剪贴板兼容逻辑不应在子模块重复实现。 */
 import { writeText } from "./imports";
+/** 用途：读取 AV view 属性并定位分组。使用范围：数据库条目协议链接。解耦评估：均由共享网关转发。 */
+import {Constants, hasClosestByClassName} from "./imports";
 /** 用途：读取右键菜单共享上下文类型。使用范围：copy 子菜单构建阶段。解耦评估：类型集中在同层 types.ts 能避免局部重复定义。 */
 import type { AttrViewContextmenuState } from "./types";
 /** 用途：读取已选记录结构类型。使用范围：copy 文本拼装阶段。解耦评估：类型集中在同层 types.ts 能避免局部重复定义。 */
@@ -200,6 +202,26 @@ export const buildCopyMenu = (state: AttrViewContextmenuState) => {
         iconHTML: "",
         label: siyuanI18n.copyKeyContent,
         click: handleCopyKeyContent.bind(undefined, state.selectedRows),
+    }, {
+        id: "copyDatabaseItemLink",
+        iconHTML: "",
+        label: siyuanI18n.copyDatabaseItemLink,
+        click: () => {
+            const viewID = state.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ||
+                state.blockElement.querySelector(".layout-tab-bar .item--focus")?.getAttribute("data-id") || "";
+            const links = state.selectedRows.map((selectedRow) => {
+                const params = new URLSearchParams({
+                    avViewID: viewID,
+                    avItemID: selectedRow.rowId,
+                });
+                const groupID = (hasClosestByClassName(selectedRow.rowElement, "av__body") as HTMLElement)?.dataset.groupId;
+                if (groupID) {
+                    params.set("avGroupID", groupID);
+                }
+                return `siyuan://blocks/${state.blockElement.dataset.nodeId}?${params.toString()}`;
+            });
+            writeText(links.join("\n"));
+        },
     }];
     if (!state.hasAttachedBlock) {
         return copyMenu;

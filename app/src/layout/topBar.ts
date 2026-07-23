@@ -27,6 +27,7 @@ import {commandPanel} from "../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../plugin/openTopBarMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openBazaarHubTab } from "../bazaar-hub/open";
+import {setTitle} from "../util/processTitle";
 
 const sendTrafficLightPosition = (zoom: number) => {
     if (!isElectron) {
@@ -52,6 +53,10 @@ export const syncHideToolbarLayout = () => {
     resizeTopBar();
     if (!isWindow()) {
         sendTrafficLightPosition(window.siyuan.storage[Constants.LOCAL_ZOOM]);
+        if (!window.siyuan.config.appearance.hideToolbar) {
+            const title = document.querySelector('.layout-tab-bar .item--focus[data-type="tab-header"] .item__text')?.textContent || "";
+            setTitle(title, title ? false : true);
+        }
     } else {
         return;
     }

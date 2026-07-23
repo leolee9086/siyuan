@@ -4,7 +4,7 @@ import { Tab } from "./imports";
 import { Editor } from "./index";
 /** 用途：窗口类。使用范围：获取目标窗口。解耦评估：通过 ./imports 转发。 */
 import { Wnd } from "./imports";
-/** 用途：获取窗口实例、布局查询和 PDF 加载状态。使用范围：editor 页签切换操作。解耦评估：通过 ./imports 转发。 */
+/** 用途：获取窗口实例。使用范围：editor 页签切换操作。解耦评估：通过 ./imports 转发。 */
 import { getInstanceById } from "./imports";
 /** 用途：通过布局获取窗口实例。使用范围：获取中心布局对应窗口。解耦评估：通过 ./imports 转发。 */
 import { getWndByLayout } from "./imports";
@@ -39,16 +39,16 @@ import { findAndOpenEditor } from "./util.find";
 /** 用途：查找并打开搜索页签。使用范围：遍历搜索模型查找匹配项。解耦评估：同目录模块直接导入。 */
 import { findAndOpenSearch } from "./util.find";
 
-/**  设置 keep-cursor 属性 */
+/** 设置 keep-cursor 属性 */
 const setKeepCursorAttr = (element: HTMLElement, id?: string) => {
     if (id) {
         element.setAttribute("keep-cursor", id);
     }
 };
 
-/**  准备 UI 环境 */
+/** 准备 UI 环境 */
 const prepareUI = (options: IOpenFileOptions) => {
-    // 默认移除当前页签
+    // 未指定时沿用历史行为：新页签创建后替换当前可复用页签。
     if (typeof options.removeCurrentTab === "undefined") {
         options.removeCurrentTab = true;
     }
@@ -57,14 +57,13 @@ const prepareUI = (options: IOpenFileOptions) => {
     for (const item of avPanelsAndMasks) {
         item.remove();
     }
-    // 打开 PDF 时移除文档光标
+    // 打开 PDF 时移除文档光标。
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
 };
 
-
-/**  在 Electron 中打开 */
+/** 在 Electron 中打开 */
 const openInElectron = async (options: IOpenFileOptions) => {
     if (!isElectron) {
         return false;
@@ -75,7 +74,7 @@ const openInElectron = async (options: IOpenFileOptions) => {
     }
     const optionsClone: IObject = {};
     for (const [key, value] of Object.entries(options)) {
-        // 排除不可序列化的 app 实例和函数类型值
+        // IPC 只传递可序列化的打开参数，不复制应用实例与回调。
         if (key !== "app" && value && typeof value !== "function") {
             optionsClone[key] = JSON.parse(JSON.stringify(value));
         }
@@ -91,10 +90,10 @@ const openInElectron = async (options: IOpenFileOptions) => {
     return false;
 };
 
-/**  获取目标窗口 */
+/** 获取目标窗口 */
 const getTargetWnd = (options: IOpenFileOptions, wnd: Wnd) => {
     const direction = options.position === "right" ? "lr" : "tb";
-    let targetWnd: Wnd | undefined = undefined;
+    let targetWnd: Wnd | undefined;
     if (!(wnd.parent instanceof Layout && wnd.parent.children && wnd.parent.children.length > 1 && wnd.parent.direction === direction)) {
         return targetWnd;
     }
@@ -106,7 +105,6 @@ const getTargetWnd = (options: IOpenFileOptions, wnd: Wnd) => {
         }
         let nextWnd = children[index + 1];
         if (!nextWnd) {
-            // wnd 为右侧时，应设置其为目标
             nextWnd = wnd;
         }
         while (nextWnd instanceof Layout) {
@@ -118,7 +116,20 @@ const getTargetWnd = (options: IOpenFileOptions, wnd: Wnd) => {
     return targetWnd;
 };
 
-/**  打开分屏页签 */
+/** 在目标分屏中查找可复用的编辑器或未初始化页签。 */
+const findReusableSplitTab = (options: IOpenFileOptions, targetWnd: Wnd, allModels: ReturnType<typeof getAllModels>) => {
+    const children = targetWnd.children || [];
+    for (const item of children) {
+        if (!item.model || !(item.model instanceof Editor) || item.model.editor.protyle.block.rootID !== options.rootID) {
+            continue;
+        }
+        void switchEditor(item.model, options, allModels);
+        return item;
+    }
+    return getUnInitTab(options) || undefined;
+};
+
+/** 打开分屏页签 */
 const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType<typeof getAllModels>) => {
     const direction = options.position === "right" ? "lr" : "tb";
     const targetWnd = getTargetWnd(options, wnd);
@@ -130,26 +141,12 @@ const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType
         return createdTab;
     }
 
-    // PDF 加载中时跳过页签切换
+    // PDF 正在加载时保持目标窗口不变，避免切换破坏加载状态。
     if (pdfIsLoading(targetWnd.element)) {
         options.afterOpen?.();
         return;
     }
-    // 在右侧/下侧打开已有页签将进行页签切换 https://github.com/siyuan-note/siyuan/issues/5366
-    let createdTab: Tab | undefined;
-    const children = targetWnd.children || [];
-    for (const item of children) {
-        if (!item.model || !(item.model instanceof Editor) || item.model.editor.protyle.block.rootID !== options.rootID) {
-            continue;
-        }
-        switchEditor(item.model, options, allModels);
-        createdTab = item;
-        break;
-    }
-
-    if (!createdTab) {
-        createdTab = getUnInitTab(options) || undefined;
-    }
+    let createdTab = options.openNewTab ? undefined : findReusableSplitTab(options, targetWnd, allModels);
 
     if (!createdTab) {
         createdTab = newTab(options);
@@ -163,13 +160,13 @@ const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType
 /** 在窗口中打开页签 */
 const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
     let createdTab: Tab;
-    // PDF 加载中时跳过页签操作
+    // PDF 正在加载时保持当前窗口不变，避免切换破坏加载状态。
     if (pdfIsLoading(wnd.element)) {
         options.afterOpen?.();
         return;
     }
     const firstChild = wnd.children[0];
-    // keepCursor 模式：保留光标位置打开新页签
+    // keepCursor 请求必须创建页签并记录恢复光标所需的块 ID。
     if (options.keepCursor && firstChild && firstChild.headElement) {
         createdTab = newTab(options);
         setKeepCursorAttr(createdTab.headElement, options.id);
@@ -179,7 +176,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
         return createdTab;
     }
 
-    // 配置为不使用当前页签时，直接新建页签添加
+    // 未启用当前页签复用时直接追加新页签。
     if (!getSafeSiyuanConfig()?.fileTree?.openFilesUseCurrentTab) {
         createdTab = newTab(options);
         wnd.addTab(createdTab);
@@ -189,24 +186,18 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
     }
 
     let unUpdateTab: Tab | undefined;
-    // 不能 reverse, 找到也不能提前退出循环，否则 https://github.com/siyuan-note/siyuan/issues/3271
-    // 解释: 这里原文并没有使用 find 的返回值，而是遍历所有，但 `find` 只要返回 true 就会停止。
-    // 根据注释意思 "找到也不能提前退出循环"，原来的 `find` 其实有 bug（如果找到了就退出了，除非没有 return true）。
-    // 实际上原来的代码： `if (...) { unUpdateTab = item; if(...) return true; }`
-    // 也就是如果 unupdate 且 focus，就停止。否则继续找。
-    // 这里改写为 for 循环。
     for (const item of wnd.children) {
         const isTarget = item.headElement && item.headElement.classList.contains("item--unupdate") && !item.headElement.classList.contains("item--pin");
         if (isTarget) {
             unUpdateTab = item;
         }
-        if (isTarget && item.headElement && item.headElement.classList.contains("item--focus")) {
+        if (isTarget && item.headElement?.classList.contains("item--focus")) {
             break;
         }
     }
     createdTab = newTab(options);
     wnd.addTab(createdTab);
-    // 存在未更新的旧页签且配置为移除时，清理旧页签
+    // 仅在调用方允许时移除已被新页签替代的临时页签。
     if (unUpdateTab && options.removeCurrentTab) {
         wnd.removeTab(unUpdateTab.id, false, false);
     }
@@ -218,14 +209,12 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
 /** 获取用于打开新页签的目标窗口 */
 const getActiveOrCenterWnd = () => {
     let wnd: Wnd | undefined;
-    // 获取光标所在 tab
     const activeWndElement = document.querySelector(".layout__wnd--active");
     if (activeWndElement) {
         const instance = getInstanceById(activeWndElement.getAttribute("data-id") || "");
-        wnd = (instance instanceof Wnd) ? instance : undefined;
+        wnd = instance instanceof Wnd ? instance : undefined;
     }
 
-    // 中心 tab
     const centerLayout = !wnd ? getSafeSiyuanLayout()?.centerLayout : undefined;
     if (centerLayout) {
         wnd = getWndByLayout(centerLayout);
@@ -264,9 +253,17 @@ export const openFile = async (options: IOpenFileOptions) => {
     }
 
     const firstChild = wnd.children[0];
-    if ((options.position === "right" || options.position === "bottom") && firstChild && firstChild.headElement) {
+    if ((options.position === "right" || options.position === "bottom") && firstChild?.headElement) {
         return openSplitTab(options, wnd, allModels);
     }
     return openTabInWindow(options, wnd);
 };
 
+/** 兼容入口：转发唯一的按 ID 打开文件实现。 */
+export {openFileById} from "./utils.openFileById";
+/** 兼容入口：转发唯一的系统路径打开实现。 */
+export {openBy} from "./utils.openBy";
+/** 兼容入口：转发唯一的编辑器面板更新实现。 */
+export {updatePanelByEditor} from "./util.updatePanelByEditor";
+/** 兼容入口：转发唯一的反链与关系图更新实现。 */
+export {updateBacklinkGraph} from "./util.updateBacklinkGraph";

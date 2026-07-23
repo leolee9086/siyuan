@@ -222,22 +222,22 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 		return body
 	}
 	confirmPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "confirmID": "confirm-1", "approved": true, "always": false})
-	if result := callJSON(agentChatConfirm, confirmPayload, token, true); result.Code != http.StatusOK {
-		t.Fatalf("owner confirm should be accepted: status=%d body=%s", result.Code, result.Body.String())
+	if result := callJSON(agentChatConfirm, confirmPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "confirmation expired") {
+		t.Fatalf("owner confirm should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
 	if result := callJSON(agentChatConfirm, confirmPayload, wrongToken, true); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner confirm must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
 	questionPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "questionID": "question-1", "answers": []string{"yes"}})
-	if result := callJSON(agentChatQuestion, questionPayload, token, true); result.Code != http.StatusOK {
-		t.Fatalf("owner question answer should be accepted: status=%d body=%s", result.Code, result.Body.String())
+	if result := callJSON(agentChatQuestion, questionPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "question expired") {
+		t.Fatalf("owner question should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
 	if result := callJSON(agentChatQuestion, questionPayload, wrongToken, true); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner question answer must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
 	frontendPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "callID": "call-1", "result": "ok", "isError": false})
-	if result := callJSON(agentChatFrontendResult, frontendPayload, token, true); result.Code != http.StatusOK {
-		t.Fatalf("owner frontend result should be accepted: status=%d body=%s", result.Code, result.Body.String())
+	if result := callJSON(agentChatFrontendResult, frontendPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "frontend tool call expired") {
+		t.Fatalf("owner frontend result should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
 	if result := callJSON(agentChatFrontendResult, frontendPayload, wrongToken, true); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner frontend result must be rejected: status=%d body=%s", result.Code, result.Body.String())

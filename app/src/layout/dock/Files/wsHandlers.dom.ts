@@ -8,6 +8,7 @@ import { unicode2Emoji } from "../../../emoji";
 import { Constants } from "../../../constants";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isHTMLElement } from "./wsHandlers.guard";
+import {updateDocActionElement} from "./docActions";
 
 // ============================================================================
 // 图标处理
@@ -103,7 +104,7 @@ export const decrementCounter = (counterElement: Element | null): string => {
  * 隐藏展开按钮、收起箭头、更新图标
  */
 /** @同步豁免: UI构建 - 需要同步更新DOM元素的类和属性 */
-export const updateParentStateAfterChildRemoval = (parentElement: Element | null): void => {
+export const updateParentStateAfterChildRemoval = (treeElement: HTMLElement, parentElement: Element | null): void => {
     // 父元素不存在时直接返回
     if (!parentElement) {
         return;
@@ -116,8 +117,12 @@ export const updateParentStateAfterChildRemoval = (parentElement: Element | null
     // 如果不是根节点，隐藏展开按钮
     const parentDataset = isHTMLElement(parentElement) ? parentElement.dataset : null;
     // 根节点需要保留展开按钮，非根节点则隐藏
-    if (parentDataset?.type !== "navigation-root") {
+    if (parentDataset?.type !== "navigation-root" || parentDataset.nodeId) {
         iconElement?.parentElement?.classList.add("fn__hidden");
+    }
+    if (isHTMLElement(parentElement)) {
+        parentElement.dataset.count = "0";
+        updateDocActionElement(treeElement, parentElement);
     }
     
     // 更新图标（从文件夹变为文件）
@@ -129,7 +134,7 @@ export const updateParentStateAfterChildRemoval = (parentElement: Element | null
  * 从文件树中移除单个文档节点
  */
 /** @同步豁免: UI构建 - 需要同步从DOM中移除元素 */
-export const removeDocumentNode = (targetElement: Element): void => {
+export const removeDocumentNode = (treeElement: HTMLElement, targetElement: Element): void => {
     // 如果子节点已展开，先删除子节点列表
     if (targetElement.nextElementSibling?.tagName === "UL") {
         targetElement.nextElementSibling.remove();
@@ -141,7 +146,7 @@ export const removeDocumentNode = (targetElement: Element): void => {
     
     // 当前节点是父节点下的唯一子节点
     if (parentUl?.childElementCount === 1) {
-        updateParentStateAfterChildRemoval(parentLi);
+        updateParentStateAfterChildRemoval(treeElement, parentLi);
         parentUl.remove();
         return;
     }

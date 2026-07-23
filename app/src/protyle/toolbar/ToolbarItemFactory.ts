@@ -46,3 +46,17 @@ export function genToolbarItem(protyle: IProtyle, menuItem: IMenuItem) {
     const factory = toolbarItemFactoryMap[menuItem.name];
     return factory ? factory(protyle, menuItem) : createToolbarItemElement(protyle, menuItem);
 }
+
+/** 把插件工具项注册到移动键盘工具栏，已存在同名按钮时保持唯一实例。 */
+/** @同步豁免: UI构建 - 必须同步创建并挂载移动键盘工具项。 */
+export function appendMobilePluginToolbarItem(protyle: IProtyle, toolbarItem: IMenuItem, inlineToolbarElement?: Element | null) {
+    if (!inlineToolbarElement || inlineToolbarElement.querySelector(`[data-type="${toolbarItem.name}"]`)) {
+        return;
+    }
+    const itemElement = genToolbarItem(protyle, toolbarItem);
+    if (!itemElement) {
+        return;
+    }
+    itemElement.className = "keyboard__action";
+    inlineToolbarElement.appendChild(itemElement);
+}

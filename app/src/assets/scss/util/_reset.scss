@@ -64,7 +64,7 @@ body {
   }
 
   &.body--win32 {
-    --b3-toolbar-left-mac: 0;
+    --b3-toolbar-left-mac: 8px;
     -webkit-font-smoothing: auto;
 
     .toolbar {
@@ -74,7 +74,6 @@ body {
     .fullscreen {
       & > .protyle-breadcrumb,
       & > .block__icons {
-        padding-left: 10px;
         padding-right: 126px;
       }
 
@@ -123,16 +122,29 @@ body {
     }
   }
 
+  &:not(.body--toolbar-hide):not(.body--window) {
+    .fullscreen > .protyle-breadcrumb,
+    .fullscreen > .block__icons {
+      min-height: 32px;
+    }
+  }
+
   &.body--toolbar-hide {
 
     #dockLeft, #dockRight {
-      padding-top: 42px;
+      height: calc(100% - 42px);
+      margin-top: 42px;
     }
 
     .toolbar {
       height: 42px;
       position: absolute;
       width: 100%;
+
+      & > :not(#drag) {
+        position: relative;
+        z-index: 1;
+      }
     }
 
     .layout__dockl:not(.layout--float),
@@ -149,7 +161,7 @@ body {
     }
 
     .layout__wnd--center .layout-tab-bar .item {
-      margin: 7px 4px 6px 4px;
+      margin: 6px 4px;
     }
 
     .toolbar #drag {
@@ -176,7 +188,8 @@ body {
       }
     }
 
-    .fullscreen > .protyle-breadcrumb, .fullscreen > .block__icons {
+    .fullscreen > .protyle-breadcrumb,
+    .fullscreen > .block__icons {
       padding-left: var(--b3-toolbar-left-mac);
     }
 

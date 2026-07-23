@@ -587,7 +587,14 @@ func collectMelchiorBuildAvatar(
 	melchior *sages.Sage,
 	task string,
 ) (*melchiorBuildAvatar, error) {
-	rawArgs, err := runSageToolCall(ctx, melchior, task, avatarBuildToolName)
+	rawArgs, err := runSageToolCallWithRuntimeTools(
+		ctx,
+		melchior,
+		task,
+		avatarBuildToolName,
+		[]openai.Tool{buildRuntimeTool(config.BuildAvatarBuildToolDef())},
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -615,15 +622,6 @@ func collectDominantSynthesizeAvatar(
 		return nil, err
 	}
 	return parseDominantSynthesizeAvatar(rawArgs)
-}
-
-func runSageToolCall(
-	ctx context.Context,
-	sage *sages.Sage,
-	userInput string,
-	expectedToolName string,
-) (string, error) {
-	return runSageToolCallWithRuntimeTools(ctx, sage, userInput, expectedToolName, nil, nil)
 }
 
 func runSageToolCallWithRuntimeTools(

@@ -537,8 +537,11 @@ export const uploadFiles = (protyle: IProtyle, files: FileList | DataTransferIte
             msg += siyuanI18n.uploadFileTooLarge.replace("${x}", file.name).replace("${y}", filesize(file.size, { standard: "iec" })) + "<br>";
         }
     }
-
-    formData.append("id", protyle.block.rootID);
+    if (protyle.lite) {
+        formData.append("assetsDirPath", "/assets/");
+    } else {
+        formData.append("id", protyle.block?.rootID);
+    }
 
     const startUpload = () => {
         performXHRUpload(protyle, formData, validateResult.msgId, protyle.wysiwyg.element, fileList, validateResult.files, element, successCB);

@@ -34,7 +34,7 @@ function onElementMousedown(event: MouseEvent, files: Files, app: App): void {
 
     while (target && !target.isEqualNode(files.element)) {
         // 检查是否为 LI 元素且未在打开中
-        if (target.tagName === "LI" && !target.getAttribute("data-opening")) {
+        if (target.tagName === "LI" && target.getAttribute("data-node-id") && !target.getAttribute("data-opening")) {
             target.setAttribute("data-opening", "true");
             const nodeId = target.getAttribute("data-node-id") ?? "";
             openFileById({

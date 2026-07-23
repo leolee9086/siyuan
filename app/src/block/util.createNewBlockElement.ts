@@ -16,6 +16,7 @@ import { genEmptyElement } from "./util";
  * 解耦评估：可通过策略对象注入解耦；但其属于块语义核心逻辑，在 block 内部直接复用 util 实现更稳定。
  */
 import { genHeadingElement } from "./util";
+import { getPreviousBlockSibling } from "./imports";
 
 /**
  * 导出说明：创建插入新块时所需的 DOM 元素与有序列表序号信息。
@@ -40,7 +41,7 @@ export const createNewBlockElement = (blockElement: Element, position: InsertPos
         return { newElement, orderIndex };
     }
 
-    const previousElementSibling = blockElement.previousElementSibling;
+    const previousElementSibling = getPreviousBlockSibling(blockElement);
     const beforeHeadingElement = position === "beforebegin" && previousElementSibling?.getAttribute("data-type") === "NodeHeading" &&
         previousElementSibling.getAttribute("fold") === "1"
         ? genHeadingElement(previousElementSibling, false, true)

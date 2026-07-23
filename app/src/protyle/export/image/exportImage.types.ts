@@ -80,11 +80,17 @@ export interface IExportImageBlobFile {
 }
 
 /**
- * 用途：html-to-image 最小能力约束。
- * 使用场景：比例分页导出时仅依赖 `toBlob` 能力完成截图。
- * 关联模块：导出确认流程会把运行时 html-to-image 对象注入到比例模块。
- * 问题/改进：若未来切换截图实现，可继续维持最小接口解耦。
+ * 用途：表示 html-to-image 最小运行时与本次导出选项的组合。
+ * 使用场景：比例分页导出时仅依赖 `toBlob` 和图片错误选项完成截图。
+ * 关联模块：导出确认流程创建该对象，再注入比例模块。
+ * 问题/改进：若未来切换截图实现，可继续维持该最小结构解耦。
  */
-export interface IExportImageBlobGenerator {
-    toBlob: (element: Element) => Promise<Blob | null | undefined>;
+export interface IExportImageCapture {
+    runtime: {
+        toBlob: (element: Element, options: IExportImageCapture["options"]) => Promise<Blob | null | undefined>;
+    };
+    options: {
+        imagePlaceholder: string;
+        onImageErrorHandler: (event: Event) => void;
+    };
 }

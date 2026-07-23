@@ -12,7 +12,7 @@ import { siyuanI18n } from "./imports";
 export const generateBuildingMenuHTML = (customHTML: string) => {
     const clearContext = "Clear context";
     return /*html*/`<div class="fn__flex-column b3-menu__filter">
-    <input class="b3-text-field fn__flex-shrink" placeholder="${siyuanI18n.ai}"/>
+    <input class="b3-text-field fn__flex-shrink"/>
     <div class="fn__hr"></div>
     <div class="b3-list fn__flex-1 b3-list--background">
        <div class="b3-list-item b3-list-item--narrow b3-list-item--focus" data-action="Continue writing">

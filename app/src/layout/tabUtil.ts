@@ -1,5 +1,4 @@
 import { Tab } from "./Tab";
-import { createTabModel } from "../registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
@@ -16,7 +15,6 @@ import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Search } from "../search";
 import { Custom } from "./dock/Custom";
-import { newCardModel } from "../card/newCardTab";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { openSearch } from "../search/spread";
 import { openRecentDocs } from "../business/openRecentDocs";
@@ -336,31 +334,11 @@ export const copyTab = (app: App, tab: Tab) => {
                 });
             } else if (tab.model instanceof Custom) {
                 const custom = tab.model as Custom;
-                const registryModel = createTabModel({
-                    app,
-                    tab: newTab,
-                    type: custom.type,
-                    data: custom.data
+                model = newModelByInitData(app, newTab, {
+                    instance: "Custom",
+                    customModelType: custom.type,
+                    customModelData: custom.data,
                 });
-                if (registryModel) {
-                    model = registryModel;
-                } else if (custom.type === "siyuan-card") {
-                    model = newCardModel({
-                        app,
-                        tab: newTab,
-                        data: custom.data
-                    });
-                } else {
-                    app.plugins.find(item => {
-                        if (item.models[custom.type]) {
-                            model = item.models[custom.type]({
-                                tab: newTab,
-                                data: custom.data
-                            });
-                            return true;
-                        }
-                    });
-                }
             } else if (!tab.model && tab.headElement) {
                 const initData = JSON.parse(tab.headElement.getAttribute("data-initdata") || "{}");
                 if (initData) {

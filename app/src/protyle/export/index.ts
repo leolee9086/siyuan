@@ -9,8 +9,9 @@ import { getThemeMode, setInlineStyle } from "../../util/assets/assets";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { Dialog } from "../runtime/dialog.port";
 import { replaceLocalPath } from "../../editor/rename";
-import { getScreenWidth, isInMobileApp, setStorageVal } from "../util/compatibility";
+import { getScreenWidth, isInMobileApp, saveExportFile, setStorageVal } from "../util/compatibility";
 import { getFrontend } from "../../util/platform/functions";
+import { isEncryptedBox } from "../../util/pathName";
 // S-forge: 使用统一的i18n环境抽象
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -33,30 +34,38 @@ const getIconScript = (servePath: string) => {
 export const saveExport = (option: IExportOptions) => {
     // 浏览器环境仅支持 HTML 导出，通过 API 打包下载
     if (isBrowser && ["html", "htmlmd"].includes(option.type)) {
-        const msgId = showMessage(siyuanI18n.exporting, -1);
-        // 浏览器环境：先调用 API 生成资源文件，再在前端生成完整的 HTML
-        const url = option.type === "htmlmd" ? "/api/export/exportMdHTML" : "/api/export/exportHTML";
-        fetchPost(url, {
-            id: option.id,
-            pdf: false,
-            removeAssets: false,
-            merge: true,
-            savePath: ""
-        }, async exportResponse => {
-            const html = await onExport(exportResponse, undefined, "", option);
-            fetchPost("/api/export/exportBrowserHTML", {
-                folder: exportResponse.data.folder,
-                html: html,
-                name: exportResponse.data.name
-            }, zipResponse => {
-                hideMessage(msgId);
-                if (zipResponse.code === -1) {
-                    showMessage(siyuanI18n._kernel[14] + ": " + zipResponse.msg, 0, "error");
-                    return;
-                }
-                window.open(zipResponse.data.zip);
-                showMessage(siyuanI18n.exported);
+        const startExport = () => {
+            const msgId = showMessage(siyuanI18n.exporting, -1);
+            // 浏览器环境：先调用 API 生成资源文件，再在前端生成完整的 HTML
+            const url = option.type === "htmlmd" ? "/api/export/exportMdHTML" : "/api/export/exportHTML";
+            fetchPost(url, {
+                id: option.id,
+                pdf: false,
+                removeAssets: false,
+                merge: true,
+                savePath: ""
+            }, async exportResponse => {
+                const html = await onExport(exportResponse, undefined, "", option);
+                fetchPost("/api/export/exportBrowserHTML", {
+                    folder: exportResponse.data.folder,
+                    html: html,
+                    name: exportResponse.data.name
+                }, zipResponse => {
+                    if (zipResponse.code === -1) {
+                        hideMessage(msgId);
+                        showMessage(siyuanI18n._kernel[14] + ": " + zipResponse.msg, 0, "error");
+                        return;
+                    }
+                    saveExportFile(zipResponse.data.zip, msgId);
+                });
             });
+        };
+        fetchPost("/api/block/getBlockInfo", {id: option.id}, (response) => {
+            if (response.code === 0 && isEncryptedBox(response.data.box)) {
+                confirmDialog("⚠️ " + siyuanI18n.export, siyuanI18n.encryptedExportRiskTip, startExport);
+                return;
+            }
+            startExport();
         });
         return;
     }
@@ -706,12 +715,12 @@ ${getIconScript(servePath)}
 </script>
 ${getSnippetJS()}
 </body></html>`;
-    fetchPost("/api/export/exportTempContent", { content: html }, (response) => {
+    fetchPost("/api/export/exportTempContent", {content: html, id}, (response) => {
         ipcSend(Constants.SIYUAN_EXPORT_NEWWINDOW, response.data.url);
     });
 };
 
-const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubdocs?: boolean) => {
+const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubdocs?: boolean, confirmed = false) => {
     if (isBrowser) {
         return;
     }
@@ -720,6 +729,12 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
     }, async (response) => {
         if (response.code === 3) {
             showMessage(response.msg);
+            return;
+        }
+        if (!confirmed && isEncryptedBox(response.data.box)) {
+            confirmDialog("⚠️ " + siyuanI18n.export, siyuanI18n.encryptedExportRiskTip, () => {
+                getExportPath(option, removeAssets, mergeSubdocs, true);
+            });
             return;
         }
         let exportType = "HTML (SiYuan)";

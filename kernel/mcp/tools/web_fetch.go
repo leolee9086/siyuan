@@ -43,7 +43,7 @@ func init() {
 	register(WebFetchTool)
 }
 
-func webFetchHandler(args map[string]interface{}) (CallToolResult, error) {
+func webFetchHandler(args map[string]any) (CallToolResult, error) {
 	rawURL, _ := args["url"].(string)
 	format, _ := args["format"].(string)
 	timeout := 0

@@ -6,9 +6,11 @@
   width: 80vw;
 }
 
-.fn__flex-column[data-type="sidebar-file"] {
+.fn__flex-column[data-type="sidebar-file"],
+.fn__flex-column[data-type="sidebar-outline"] {
   .b3-list-item {
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 }
 
@@ -69,12 +71,6 @@
       }
     }
   }
-}
-
-.file-tree__sliderDown {
-  height: 0;
-  overflow: hidden;
-  transition: var(--b3-transition);
 }
 
 .counter {
@@ -197,11 +193,6 @@
 
 #model {
   box-sizing: border-box;
-
-  .toolbar__text {
-    min-height: 48px;
-    line-height: 48px;
-  }
 
   .config-group {
     margin: 24px 0;
@@ -463,6 +454,66 @@
 
     & > div {
       margin-right: 0;
+      // 桌面端拖拽后子块带内联 calc(%) 宽度，移动端垂直堆叠时需重置以铺满
+      width: auto !important;
+      flex: 0 1 auto;
     }
+  }
+}
+
+.protyle-db-attr__header {
+  min-height: 40px;
+}
+
+.av__row-actions {
+  .av__row-action {
+    height: 28px;
+    width: 28px;
+
+    svg {
+      height: 16px;
+      width: 16px;
+    }
+  }
+}
+
+.av__cell[data-dtype="block"]:not(.av__cell--header) {
+  padding-right: 68px;
+
+  & > .av__row-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &[data-align="center"] {
+    padding-left: 68px;
+  }
+
+  &[data-align="right"] {
+    padding-left: 68px;
+    padding-right: 8px;
+  }
+}
+
+.av__cell:not([data-dtype="block"]) .av__row-actions {
+  display: none;
+}
+
+.b3-dialog__container--database-row {
+  background-color: var(--b3-theme-background);
+  border: 0;
+  border-radius: 0;
+  max-width: none;
+}
+
+.protyle-db-row--mobile {
+  min-height: 100%;
+
+  .protyle-db-row__title {
+    padding: 24px 48px 8px 16px;
+  }
+
+  .protyle-db-row__body {
+    margin: 8px;
   }
 }

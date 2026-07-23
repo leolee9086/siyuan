@@ -33,6 +33,7 @@ import { focusByWbr } from "./imports";
  * 函数内部就地解析可确保一致性。
  */
 import { getParentBlock } from "./imports";
+import { getEmbedChildOperationParentID, getPreviousBlockSibling } from "./imports";
 /*
  * 用途：请求后端获取块的兄弟/父级 ID。
  * 使用范围：仅在 cancelSB 的 showAll 或反链模式下兜底定位。
@@ -88,7 +89,10 @@ const resolvePositionIDs = async (
     }
     // 说明：showAll/反链模式下，当前块可能脱离常规文档树，需要后端返回真实位置。
     if (protyle.block.showAll || protyle.options.backlinkData) {
-        const idData = await fetchSyncPost("/api/block/getBlockSiblingID", { id });
+        const idData = await fetchSyncPost("/api/block/getBlockSiblingID", {
+            id,
+            notebook: protyle.notebookId,
+        });
         return {
             previousId: toOptionalId(idData.data.previous),
             parentID: toOptionalId(idData.data.parent),
@@ -137,7 +141,7 @@ const appendMoveOperations = (
         undoOperations.push({
             action: "move",
             id: itemId,
-            previousID: toOptionalId(item.previousElementSibling?.getAttribute("data-node-id")),
+            previousID: toOptionalId(getPreviousBlockSibling(item)?.getAttribute("data-node-id")),
             parentID: id,
         });
         currentPreviousId = itemId;
@@ -216,7 +220,7 @@ export const cancelSB = async (
 ) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
-    let previousId = toOptionalId(nodeElement.previousElementSibling?.getAttribute("data-node-id"));
+    let previousId = toOptionalId(getPreviousBlockSibling(nodeElement)?.getAttribute("data-node-id"));
     nodeElement.classList.remove("protyle-wysiwyg--select");
     nodeElement.removeAttribute("select-start");
     nodeElement.removeAttribute("select-end");
@@ -227,7 +231,9 @@ export const cancelSB = async (
     }
     // 先清理拖拽手柄，避免手柄被克隆进撤销用的超级块副本，导致恢复后残留多余手柄。
     nodeElement.querySelectorAll(":scope > .sb__resize").forEach(handle => handle.remove());
-    const parentFromDom = toOptionalId(getParentBlock(nodeElement)?.getAttribute("data-node-id"));
+    const parentFromDom = toOptionalId(
+        getEmbedChildOperationParentID(nodeElement) || getParentBlock(nodeElement)?.getAttribute("data-node-id")
+    );
     const snapshotHtml = buildSuperBlockSnapshot(nodeElement);
     const position = await resolvePositionIDs(protyle, id, previousId, parentFromDom);
     previousId = position.previousId;

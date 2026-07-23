@@ -9,6 +9,7 @@ import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
 import type { Files } from "../Files";
+import {openEncryptedNotebook} from "../../../util/file/mount";
 
 /**
  * 处理 closeElement 中的图标点击
@@ -123,7 +124,8 @@ function handleCloseElementToggleClick(
  */
 function handleCloseElementOpenClick(
     event: MouseEvent,
-    target: Element
+    target: Element,
+    files: Files
 ): boolean {
     const type = target.getAttribute("data-type");
     // 检查是否点击了 open 按钮
@@ -131,9 +133,15 @@ function handleCloseElementOpenClick(
         return false;
     }
 
-    fetchPost("/api/notebook/openNotebook", {
-        notebook: target.getAttribute("data-url")
-    });
+    const notebookId = target.getAttribute("data-url") ?? "";
+    const liElement = target.closest("li");
+    if (liElement?.getAttribute("data-encrypted") === "true") {
+        const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
+        openEncryptedNotebook(files.app, notebookId, name);
+    }
+    if (liElement?.getAttribute("data-encrypted") !== "true") {
+        fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
+    }
     removeSiyuanMenu();
     event.stopPropagation();
     event.preventDefault();
@@ -170,7 +178,7 @@ function onCloseElementClick(event: MouseEvent, files: Files): void {
         }
 
         // 处理 open 按钮点击
-        if (handleCloseElementOpenClick(event, target)) {
+        if (handleCloseElementOpenClick(event, target, files)) {
             break;
         }
 

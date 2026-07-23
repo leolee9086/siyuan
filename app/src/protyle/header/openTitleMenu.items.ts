@@ -21,7 +21,10 @@ export const createProtyleCopyMenu = (protyle: IProtyle) => {
         accelerator: undefined,
         click: async () => {
             const [responseHTML, responseText] = await Promise.all([
-                fetchSyncPost("/api/block/getBlockDOM", { id: protyle.block.rootID }),
+                fetchSyncPost("/api/block/getBlockDOM", {
+                    id: protyle.block.rootID,
+                    notebook: protyle.notebookId,
+                }),
                 fetchSyncPost("/api/export/exportMdContent", {
                     id: protyle.block.rootID,
                     refMode: 3,

@@ -61,3 +61,33 @@ export interface I对话框HTML参数 {
     title?: string | undefined;
     content: string;
 }
+
+/** 表示单个方向定位策略共享的 Tooltip 尺寸、目标矩形、方向和间距。 */
+export interface ITooltipPositionContext {
+    messageElement: HTMLElement;
+    targetRect: DOMRect;
+    position: string | null;
+    space: number;
+}
+
+/** 表示 Tooltip 垂直溢出调整所需的目标、间距、元素和视口高度。 */
+export interface ITooltipOverflowContext {
+    targetRect: DOMRect;
+    positionDiff: number;
+    messageElement: HTMLElement;
+    windowHeight: number;
+}
+
+/** 表示总定位分派器使用的方向上下文，并补充实际目标元素。 */
+export interface ITooltipCalculationContext extends ITooltipPositionContext {
+    target: Element;
+}
+
+/** 保持公共 showTooltip 位置参数调用方式的元组类型，同时让实现使用单个 rest 参数。 */
+export type TShowTooltipArguments = [
+    message: string,
+    target: Element,
+    tooltipClass?: string,
+    event?: MouseEvent,
+    space?: number,
+];

@@ -8,6 +8,7 @@
 
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
 import { genFileHTML } from "./htmlGenerators";
+import {expandFileTree} from "../fileTreeAnimation";
 
 /**
  * 保持已展开文件夹的状态
@@ -105,31 +106,22 @@ export function expandFileList(
     if (arrowElement) {
         arrowElement.classList.add("b3-list-item__arrow--open");
     }
-    liElement.insertAdjacentHTML("afterend", `<ul class="file-tree__sliderDown">${fileHTML}</ul>`);
+    liElement.insertAdjacentHTML("afterend", `<ul>${fileHTML}</ul>`);
     const nextElement = liElement.nextElementSibling;
     // nextElement 不存在时直接返回（理论上不会发生）
     if (!nextElement) {
         return;
     }
-    // @内联回调
-    // @setTimeout 用于实现展开动画效果，需要等待 DOM 更新后设置高度
-    setTimeout(() => {
-        const height = nextElement.childElementCount * (liElement.clientHeight + 1) - 1;
-        nextElement.setAttribute("style", `top: -1px;position: relative;height:${height}px;`);
-        // @内联回调
-        // @setTimeout 动画完成后移除临时样式类
-        setTimeout(() => {
-            const sliderDownElements = containerElement.querySelectorAll(".file-tree__sliderDown");
-            for (const item of sliderDownElements) {
-                item.classList.remove("file-tree__sliderDown");
-                item.removeAttribute("style");
-            }
-            // 指定了滚动位置时，平滑滚动到该位置
-            if (typeof scrollTop === "number") {
-                containerElement.scroll({ top: scrollTop, behavior: "smooth" });
-            }
-        }, 120);
-    }, 2);
+    if (!(nextElement instanceof HTMLElement)) {
+        return;
+    }
+    nextElement.setAttribute("style", "top: -1px;position: relative;");
+    expandFileTree(nextElement, () => {
+        nextElement.removeAttribute("style");
+        if (typeof scrollTop === "number") {
+            containerElement.scroll({top: scrollTop, behavior: "smooth"});
+        }
+    });
 }
 
 /**
@@ -149,7 +141,8 @@ export function expandFileList(
 export function onLsHTMLHandler(
     containerElement: HTMLElement,
     data: { files: IFile[], box: string, path: string },
-    scrollTop?: number
+    scrollTop?: number,
+    afterRender?: () => void
 ): void {
     // 没有文件时直接返回
     if (data.files.length === 0) {
@@ -168,7 +161,9 @@ export function onLsHTMLHandler(
     // 如果下一个兄弟元素是 UL，说明文件夹已展开，需要刷新内容
     if (nextElement && nextElement.tagName === "UL") {
         refreshExpandedFileList(nextElement, fileHTML, containerElement, scrollTop);
+        afterRender?.();
         return;
     }
     expandFileList(liElement, fileHTML, containerElement, scrollTop);
+    afterRender?.();
 }

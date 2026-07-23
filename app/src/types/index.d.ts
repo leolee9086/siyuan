@@ -5,6 +5,8 @@ type TDock = "file" | "outline" | "inbox" | "bookmark" | "tag" | "graph" | "glob
 type TTab = "Outline" | "Graph" | "Backlink" | "Asset" | "Editor" | "Search" | "siyuan-card"
 type TOperation =
     "insert"
+    | "restoreCreatedDoc"
+    | "removeCreatedDoc"
     | "update"
     | "delete"
     | "move"
@@ -29,10 +31,12 @@ type TOperation =
     | "setAttrViewColHidden"
     | "setAttrViewColWrap"
     | "setAttrViewColWidth"
+    | "setAttrViewColAlign"
     | "updateAttrViewColOptions"
     | "removeAttrViewColOption"
     | "updateAttrViewColOption"
     | "setAttrViewName"
+    | "setAttrViewNewItemTemplates"
     | "doUpdateUpdated"
     | "duplicateAttrViewKey"
     | "setAttrViewColIcon"
@@ -97,6 +101,7 @@ type TEventBus = "ws-main" | "sync-start" | "sync-end" | "sync-fail" |
     "app-ready" |
     "kernel-plugin-state-change"
 type TAVView = "table" | "gallery" | "kanban"
+type TAVAlign = "" | "left" | "center" | "right"
 type TAVCol =
     "text"
     | "date"
@@ -283,8 +288,8 @@ interface Window {
         }
     };
     htmlToImage: {
-        toCanvas: (element: Element, options?: Partial<IObject>) => Promise<HTMLCanvasElement>
-        toBlob: (element: Element, options?: Partial<IObject>) => Promise<Blob>
+        toCanvas: (element: Element, options?: IHtmlToImageOptions) => Promise<HTMLCanvasElement>
+        toBlob: (element: Element, options?: IHtmlToImageOptions) => Promise<Blob>
     };
     siyuan: ISiyuan;
     JSAndroid: {
@@ -368,7 +373,10 @@ interface IClipboardData {
 
 interface IRefDefs {
     refID: string,
-    defIDs?: string[]
+    defIDs?: string[],
+    avItemID?: string,
+    avViewID?: string,
+    avGroupID?: string,
 }
 
 interface IFilesPath {
@@ -407,7 +415,7 @@ interface ICard {
     deckID: string;
     cardID: string;
     blockID: string;
-    nextDues: IObject;
+    nextDues: Record<string, string>;
     lapses: number;  // 遗忘次数
     lastReview: number;  // 最后复习时间
     reps: number;  // 复习次数
@@ -552,10 +560,12 @@ interface INotebook {
     icon: string;
     sort: number;
     aiMainNotebook?: boolean;
+    subFileCount: number;
     dueFlashcardCount?: string;
     newFlashcardCount?: string;
     flashcardCount?: string;
     sortMode: number;
+    encrypted?: boolean;
 }
 
 interface ISiyuan {
@@ -677,7 +687,7 @@ interface ISiyuan {
 interface IOperation {
     action: TOperation, // move， delete 不需要传 data
     id?: string,
-    context?: IObject,  // focusId, message, ignoreProcess, setRange
+    context?: Record<string, string>,  // focusId, message, ignoreProcess, setRange
     blockID?: string,
     isTwoWay?: boolean, // 是否双向关联
     backRelationKeyID?: string, // 双向关联的目标关联列 ID
@@ -713,7 +723,13 @@ interface IOperationSrcs {
 }
 
 interface IObject {
-    [key: string]: string;
+    [key: string]: string | number | boolean;
+}
+
+interface IHtmlToImageOptions {
+    [key: string]: unknown;
+    imagePlaceholder?: string;
+    onImageErrorHandler?: (event: Event) => void;
 }
 
 interface ILayoutJSON extends ILayoutOptions {
@@ -731,6 +747,7 @@ interface ILayoutJSON extends ILayoutOptions {
     action?: TProtyleAction
     icon?: string
     rootId?: string
+    databaseRowId?: string
     active?: boolean
     pin?: boolean
     isPreview?: boolean
@@ -757,7 +774,7 @@ interface IPluginData {
     name: string,
     js: string,
     css: string,
-    i18n: IObject
+    i18n: Record<string, string>
 }
 
 interface IPluginDockTab {
@@ -923,7 +940,7 @@ interface IBlock {
     refs?: IBlock[];
     children?: IBlock[]
     length?: number
-    ial: IObject
+    ial: Record<string, string>
     refCount?: number
 }
 
@@ -1013,6 +1030,42 @@ interface IAV {
     viewType: TAVView;
     views: IAVView[];
     isMirror?: boolean;
+    newItemTemplates?: IAVNewItemTemplate[];
+    defaultTemplateID?: string;
+    target?: IAVRenderTarget;
+}
+
+interface IAVRenderTarget {
+    status: "visible" | "filtered" | "itemNotFound" | "viewNotFound" | "groupHidden";
+    itemID: string;
+    groupID?: string;
+    index: number;
+    offset: number;
+    pageSize: number;
+}
+
+type TAVNewItemTarget = "detached" | "document";
+type TAVNewItemFieldValueMode = "static" | "currentTime";
+
+interface IAVNewItemSaveLocation {
+    boxID?: string;
+    pathTemplate: string;
+}
+
+interface IAVNewItemFieldValue {
+    mode: TAVNewItemFieldValueMode;
+    value?: IAVCellValue;
+}
+
+interface IAVNewItemTemplate {
+    id: string;
+    name: string;
+    icon?: string;
+    targetType: TAVNewItemTarget;
+    primaryKeyTemplate?: string;
+    fieldValues?: Record<string, IAVNewItemFieldValue>;
+    saveLocation?: IAVNewItemSaveLocation;
+    contentTemplatePath?: string;
 }
 
 interface IAVView {
@@ -1045,6 +1098,8 @@ interface IAVVirtualData {
     renderedStart: number;
     renderedEnd: number;
     topSpacerHeight: number;
+    rowOffset?: number;
+    locate?: boolean;
 }
 
 interface IAVGallery extends IAVView {
@@ -1110,6 +1165,7 @@ interface IAVSort {
 
 interface IAVColumn {
     width: string,
+    align: TAVAlign,
     icon: string,
     id: string,
     name: string,
@@ -1382,4 +1438,7 @@ interface ISiYuanUriBlockInfo {
      * @defaultValue false
      */
     fullscreen: boolean;
+    avItemID?: string;
+    avViewID?: string;
+    avGroupID?: string;
 }

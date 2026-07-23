@@ -23,6 +23,7 @@ interface ITypeSpecificMenuContext {
     id: string;
     type: string;
     subType: string | null;
+    isEmbedMenu?: boolean;
 }
 
 const shouldBuildFullAppMenu = () => isProtyleMenuItemVisible({protyle: {standalone: false}});
@@ -36,7 +37,7 @@ function appendMenuItems(menu: Menu, items: IMenu[]): void {
 
 
 /** 处理超级块菜单 */
-function handleSuperBlockMenu(protyle: IProtyle, nodeElement: Element, id: string): boolean {
+function handleSuperBlockMenu(protyle: IProtyle, nodeElement: Element): boolean {
     if (protyle.disabled) {
 return false;
 }
@@ -45,7 +46,7 @@ return false;
         id: "separator_cancelSuperBlock",
         type: "separator"
     }).element);
-    appendMenuItems(menu, buildGutterSuperBlockMenu(protyle, nodeElement, id));
+    appendMenuItems(menu, buildGutterSuperBlockMenu(protyle, nodeElement));
     return true;
 }
 
@@ -129,7 +130,8 @@ function handleHeadingMenu(
     protyle: IProtyle,
     nodeElement: Element,
     id: string,
-    subType: string | null
+    subType: string | null,
+    isEmbedMenu: boolean,
 ): boolean {
     if (protyle.disabled) {
 return false;
@@ -139,7 +141,8 @@ return false;
         protyle,
         id,
         subType: subType as "h1" | "h2" | "h3" | "h4" | "h5" | "h6",
-        nodeElement
+        nodeElement,
+        isEmbedMenu,
     });
 
     if (标题级别转换.length > 0) {
@@ -164,11 +167,11 @@ return false;
  * 根据不同的块类型添加相应的特殊操作菜单
  */
 export function buildGutterTypeSpecificMenu(context: ITypeSpecificMenuContext): void {
-    const { protyle, nodeElement, id, type, subType } = context;
+    const { protyle, nodeElement, id, type, subType, isEmbedMenu = false } = context;
 
     // 使用策略模式处理不同类型
     const handlers: Record<string, () => boolean> = {
-        "NodeSuperBlock": () => handleSuperBlockMenu(protyle, nodeElement, id),
+        "NodeSuperBlock": () => handleSuperBlockMenu(protyle, nodeElement),
         "NodeCodeBlock": () => handleCodeBlockMenu(protyle, nodeElement, id),
         "NodeTable": () => handleTableMenu(protyle, nodeElement),
         "NodeAttributeView": () => handleAttributeViewMenu(protyle, nodeElement, id),
@@ -178,7 +181,7 @@ export function buildGutterTypeSpecificMenu(context: ITypeSpecificMenuContext): 
         "NodeWidget": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeHTMLBlock": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeBlockQueryEmbed": () => handleEmbedMenu(protyle, nodeElement, id),
-        "NodeHeading": () => handleHeadingMenu(protyle, nodeElement, id, subType),
+        "NodeHeading": () => handleHeadingMenu(protyle, nodeElement, id, subType, isEmbedMenu),
     };
 
     const handler = handlers[type];

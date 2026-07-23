@@ -7,6 +7,7 @@ import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";
 import { goEnd } from "../wysiwyg/commonHotkey/goEnd";
 import { showTooltip } from "../runtime/dialog.port";
 import { isBrowser } from "../../platform";
+import {withEncryptedNotebook} from "../../util/pathName";
 
 export class Scroll {
     public element: HTMLElement;
@@ -71,12 +72,13 @@ export class Scroll {
         }
         protyle.wysiwyg.element.setAttribute("data-top", protyle.wysiwyg.element.scrollTop.toString());
         protyle.contentElement.style.overflow = "hidden";
-        fetchPost("/api/filetree/getDoc", {
+        const getDocParam = withEncryptedNotebook(protyle.notebookId, {
             index: parseInt(this.inputElement.value),
             id: protyle.block.parentID,
             mode: 0,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
-        }, getResponse => {
+        });
+        fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
             onGet({
                 data: getResponse,
                 protyle,

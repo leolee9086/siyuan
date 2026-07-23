@@ -17,9 +17,9 @@ import type { IGutterEditMenuContext } from "./gutter.types";
 export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
     const { protyle, nodeElement } = context;
     const config = getSiyuanConfig();
-
-    return [
-        {
+    const items: IMenu[] = [];
+    if (!context.isEmbedMenu && !protyle.disabled) {
+        items.push({
             id: "cut",
             icon: "iconCut",
             label: siyuanI18n.cut,
@@ -29,8 +29,7 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
                 // @全局对象
                 document.execCommand("cut");
             }
-        },
-        {
+        }, {
             id: "move",
             protyle: {standalone: false, requires: ["navigation"]},
             icon: "iconMove",
@@ -46,8 +45,10 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
                     flashcard: false,
                 });
             }
-        },
-        {
+        });
+    }
+    if (!protyle.disabled) {
+        items.push({
             id: "addToDatabase",
             protyle: {standalone: false, requires: ["database"]},
             icon: "iconDatabase",
@@ -56,8 +57,10 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
             click: () => {
                 addEditorToDatabase(protyle, getEditorRange(nodeElement));
             }
-        },
-        {
+        });
+    }
+    if (context.allowRemoval ?? !protyle.disabled) {
+        items.push({
             id: "delete",
             icon: "iconTrashcan",
             label: siyuanI18n.delete,
@@ -66,6 +69,7 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
                 protyle.breadcrumb?.hide();
                 removeBlock(protyle, nodeElement, getEditorRange(nodeElement), "Backspace");
             }
-        }
-    ];
+        });
+    }
+    return items;
 }

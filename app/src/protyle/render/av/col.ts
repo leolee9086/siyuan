@@ -1,7 +1,7 @@
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {fetchPost, fetchSyncPost} from "../../../util/fetch";
-import {getDefaultOperatorByType, getEditableFilters} from "./filter";
+import {getDefaultOperatorByType, getEditableFilters, hasFilterForColumn} from "./filter";
 import {genCellValue} from "./cell";
 import {getPropertiesHTML, openMenuPanel} from "./openMenuPanel";
 import {getLabelByNumberFormat} from "./number";
@@ -639,7 +639,7 @@ const addAttrViewColAnimation = (options: {
             }
             let html = "";
             if (item.classList.contains("av__row--header")) {
-                html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${options.icon || ""}" data-col-id="${options.id}" data-dtype="${options.type}" data-wrap="false" style="width: 200px;">
+                html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${options.icon || ""}" data-col-id="${options.id}" data-dtype="${options.type}" data-wrap="false" data-align="" style="width: 200px;">
     ${options.icon ? unicode2Emoji(options.icon, "av__cellheadericon", true) : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(options.type)}"></use></svg>`}
     <span class="av__celltext fn__flex-1">${options.name}</span>
     <div class="av__widthdrag"></div>
@@ -750,7 +750,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
     <div class="fn__space"></div>
     <span class="b3-menu__avemoji">${cellElement.dataset.icon ? unicode2Emoji(cellElement.dataset.icon) : `<svg style="height: 14px;width: 14px;"><use xlink:href="#${getColIconByType(type)}"></use></svg>`}</span>
     <div class="b3-form__icona fn__block">
-        <input class="b3-text-field b3-form__icona-input" type="text">
+        <input ${Constants.ATTRIBUTE_MENU_KEYMAP}="true" class="b3-text-field b3-form__icona-input" type="text">
         <svg data-position="north" class="b3-form__icona-icon ariaLabel" aria-label="${oldDesc ? escapeAriaLabel(oldDesc) : window.siyuan.languages.addDesc}"><use xlink:href="#iconInfo"></use></svg>
     </div>
     <div class="fn__space"></div>
@@ -793,15 +793,6 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             });
             const inputElement = element.querySelector("input");
             inputElement.value = oldValue;
-            inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-                if (event.isComposing) {
-                    return;
-                }
-                if (event.key === "Enter") {
-                    menu.close();
-                    event.preventDefault();
-                }
-            });
             const descElement = element.querySelector("textarea");
             inputElement.nextElementSibling.addEventListener("click", () => {
                 const descPanelElement = descElement.parentElement.parentElement;
@@ -855,33 +846,39 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             click() {
                 fetchPost("/api/av/renderAttributeView", {
                     id: avID,
+                    viewID,
+                    ignoreRows: true,
                 }, (response) => {
                     const avData = response.data as IAV;
-                    // 始终新建一个占位条件（允许同列多条件，支持“主键包含111 OR 主键包含222”等组合）
-                    const filter: IAVFilter = {
-                        column: colId,
-                        operator: getDefaultOperatorByType(type),
-                        value: genCellValue(type, ""),
-                    };
-                    // 深拷贝旧值用于 undo，撤销时恢复完整筛选状态而非清空全部
-                    const oldFilters = JSON.parse(JSON.stringify(avData.view.filters));
-                    getEditableFilters(avData).push(filter);
-                    transaction(protyle, [{
-                        action: "setAttrViewFilters",
-                        avID,
-                        data: avData.view.filters,
-                        blockID: blockElement.getAttribute("data-node-id")
-                    }], [{
-                        action: "setAttrViewFilters",
-                        avID,
-                        data: oldFilters,
-                        blockID: blockElement.getAttribute("data-node-id")
-                    }]);
-                    // 打开筛选面板，用户在内联控件中编辑（替代原 setFilter 弹层）
+                    // 该字段还没有筛选条件时，创建它的默认筛选条件（其它字段的筛选不影响）；
+                    // 已有该字段筛选时直接打开总筛选配置面板，避免每次重复新建
+                    if (!hasFilterForColumn(avData.view.filters, colId)) {
+                        const filter: IAVFilter = {
+                            column: colId,
+                            operator: getDefaultOperatorByType(type),
+                            value: genCellValue(type, ""),
+                        };
+                        // 深拷贝旧值用于 undo，撤销时恢复完整筛选状态而非清空全部
+                        const oldFilters = JSON.parse(JSON.stringify(avData.view.filters));
+                        getEditableFilters(avData).push(filter);
+                        transaction(protyle, [{
+                            action: "setAttrViewFilters",
+                            avID,
+                            data: avData.view.filters,
+                            blockID: blockElement.getAttribute("data-node-id")
+                        }], [{
+                            action: "setAttrViewFilters",
+                            avID,
+                            data: oldFilters,
+                            blockID: blockElement.getAttribute("data-node-id")
+                        }]);
+                    }
+                    // 打开总筛选配置面板，复用已含新筛选条件的 avData，避免 openMenuPanel 二次 fetch 与刚提交的事务竞争而读到旧数据
                     openMenuPanel({
                         protyle,
                         blockElement,
                         type: "filters",
+                        data: avData,
                     });
                 });
             }
@@ -958,6 +955,69 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             }]);
             updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {pin: !isPin});
         }
+    });
+    const align = (cellElement.dataset.align || "") as TAVAlign;
+    const setAlign = (newAlign: TAVAlign) => {
+        if (newAlign === align) {
+            return;
+        }
+        transaction(protyle, [{
+            action: "setAttrViewColAlign",
+            id: colId,
+            avID,
+            data: newAlign,
+            blockID,
+            viewID
+        }], [{
+            action: "setAttrViewColAlign",
+            id: colId,
+            avID,
+            data: align,
+            blockID,
+            viewID
+        }]);
+    };
+    menu.addItem({
+        id: "alignment",
+        icon: "iconAlignSettings",
+        label: window.siyuan.languages.alignment,
+        type: "submenu",
+        submenu: [{
+            id: "alignLeft",
+            icon: "iconAlignLeft",
+            label: window.siyuan.languages.alignLeft,
+            checked: align === "left",
+            click() {
+                setAlign("left");
+            }
+        }, {
+            id: "alignCenter",
+            icon: "iconAlignCenter",
+            label: window.siyuan.languages.alignCenter,
+            checked: align === "center",
+            click() {
+                setAlign("center");
+            }
+        }, {
+            id: "alignRight",
+            icon: "iconAlignRight",
+            label: window.siyuan.languages.alignRight,
+            checked: align === "right",
+            click() {
+                setAlign("right");
+            }
+        }, {
+            id: "separator_1",
+            type: "separator"
+        }, {
+            id: "useDefaultAlign",
+            icon: "",
+            label: window.siyuan.languages.useDefaultAlign,
+            checked: align === "",
+            click() {
+                setAlign("");
+            }
+        }]
     });
     if (type !== "block") {
         menu.addItem({
@@ -1910,6 +1970,7 @@ const genColDataByType = (type: TAVCol, id: string, name: string) => {
         template: "",
         type,
         width: "",
+        align: "",
         wrap: undefined,
         calc: null
     };

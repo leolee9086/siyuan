@@ -126,6 +126,12 @@ func TimeFromID(id string) (ret string) {
 	return
 }
 
+// NodeIDByTime 根据指定时间生成符合块 ID 格式的字符串，算法与 ast.NewNodeID() 一致，
+// 仅时间源不同：用于让历史输入（如移动端速记暂存文件名时间戳）回填为块 ID。
+func NodeIDByTime(t time.Time) string {
+	return t.Format("20060102150405") + "-" + RandString(7)
+}
+
 func GetChildDocDepth(treeAbsPath string) (ret int) {
 	dir := strings.TrimSuffix(treeAbsPath, ".sy")
 	if !gulu.File.IsDir(dir) {
@@ -399,10 +405,34 @@ func IsPartitionRootPath(path string) bool {
 }
 
 // IsSensitivePath 对传入路径做统一的敏感性检测。
+//
+// 为防止通过符号链接绕过黑名单，对工作空间外的路径会额外解析符号链接后再检查一次：这是
+// globalCopyFiles 等接受工作空间外绝对路径的接口的攻击面。工作空间内的路径不解析符号链接，
+// 一是因为工作空间内文件（如 assets 中指向外部目录的符号链接）可能合法地指向工作空间外，
+// 对其解析后执行系统目录前缀检查会误伤；二是避免在高 QPS 的伺服热路径上引入额外的 stat 开销。
+// 解析失败（如路径不存在）时回退到仅检查原始路径。
 func IsSensitivePath(p string) bool {
 	if p == "" {
 		return false
 	}
+	if isSensitivePath(p) {
+		return true
+	}
+	// 仅对工作空间外的路径解析符号链接，防止用符号链接绕过黑名单指向敏感目标。
+	if gulu.File.IsSubPath(WorkspaceDir, p) {
+		return false
+	}
+	resolved, err := filepath.EvalSymlinks(p)
+	if err == nil && resolved != p {
+		if isSensitivePath(resolved) {
+			return true
+		}
+	}
+	return false
+}
+
+// isSensitivePath 执行实际的敏感性黑名单匹配，不解析符号链接。
+func isSensitivePath(p string) bool {
 	toCheckPathLower := filepath.Clean(strings.ToLower(p))
 	toCheckNameLower := filepath.Base(toCheckPathLower)
 
@@ -473,13 +503,26 @@ func IsSensitivePath(p string) bool {
 		return true
 	}
 
-	// 用户家目录下的敏感目录（小写比较）
+	// 用户家目录下的敏感目录与凭据文件（小写比较）。
+	// 覆盖常见凭据 dotfile，防止通过 globalCopyFiles 等接受工作空间外绝对路径的接口把内核用户
+	// 家目录下的凭据复制进工作空间后外泄：Git push token、HTTP/API 凭据、Postgres 密码、
+	// K8s/Docker/容器仓库配置、GPG 私钥环、云厂商 CLI 凭据、包管理器 token 等。
 	homePrefixes := []string{
 		strings.ToLower(filepath.Join(HomeDir, ".ssh")),
 		strings.ToLower(filepath.Join(HomeDir, ".config")),
 		strings.ToLower(filepath.Join(HomeDir, ".bashrc")),
 		strings.ToLower(filepath.Join(HomeDir, ".zshrc")),
 		strings.ToLower(filepath.Join(HomeDir, ".profile")),
+		strings.ToLower(filepath.Join(HomeDir, ".git-credentials")),
+		strings.ToLower(filepath.Join(HomeDir, ".netrc")),
+		strings.ToLower(filepath.Join(HomeDir, ".pgpass")),
+		strings.ToLower(filepath.Join(HomeDir, ".kube")),
+		strings.ToLower(filepath.Join(HomeDir, ".docker")),
+		strings.ToLower(filepath.Join(HomeDir, ".gnupg")),
+		strings.ToLower(filepath.Join(HomeDir, ".aws")),
+		strings.ToLower(filepath.Join(HomeDir, ".azure")),
+		strings.ToLower(filepath.Join(HomeDir, ".npmrc")),
+		strings.ToLower(filepath.Join(HomeDir, ".pypirc")),
 	}
 	for _, hp := range homePrefixes {
 		if strings.HasPrefix(toCheckPathLower, hp) {
@@ -487,7 +530,7 @@ func IsSensitivePath(p string) bool {
 		}
 	}
 
-	// 特定的文件名（小写比较）
+	// 特定的文件名前缀（小写比较）
 	namePrefixes := []string{
 		strings.ToLower("credentials"),
 		strings.ToLower("id_"),
@@ -498,4 +541,38 @@ func IsSensitivePath(p string) bool {
 		}
 	}
 	return false
+}
+
+// ResolveLongestExistingParent 解析 absPath 中最长已存在部分的 symlink，拼回剩余路径。
+// 例如 absPath = /workspace/data/link/newdir/file，其中 /workspace/data/link 是指向
+// /workspace/data/<encBoxID>/ 的 symlink，newdir/file 尚不存在：
+// 返回 /workspace/data/<encBoxID>/newdir/file。
+func ResolveLongestExistingParent(absPath string) string {
+	cleaned := filepath.Clean(absPath)
+	dir := cleaned
+	for {
+		if _, err := os.Lstat(dir); err == nil {
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return cleaned
+		}
+		dir = parent
+	}
+	if dir == cleaned {
+		if resolved, err := filepath.EvalSymlinks(cleaned); err == nil {
+			return resolved
+		}
+		return cleaned
+	}
+	if dir == "/" || dir == "." {
+		return cleaned
+	}
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return cleaned
+	}
+	remaining := strings.TrimPrefix(cleaned, dir)
+	return resolvedDir + remaining
 }

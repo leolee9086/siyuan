@@ -13,7 +13,7 @@ import {MenuItem} from "../../menus/Menu.Item";
 import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
 import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/util";
-import {focusBlock, focusByWbr} from "../../protyle/util/selection";
+import {focusBlock} from "../../protyle/util/selection";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {collapseSameLevel, collapseChildren, getHeadingLevel} from "./MobileOutline.expand";
 import type {MobileOutline} from "./MobileOutline";
@@ -35,6 +35,16 @@ export function getProtyleAndBlockElement(outline: MobileOutline, element: HTMLE
     };
 }
 
+const focusInsertedHeading = (element: Element | null) => {
+    if (!element) {
+        throw new Error("Inserted outline heading is missing from the editor DOM");
+    }
+    element.scrollIntoView();
+    element.querySelector("wbr")?.remove();
+    (element.querySelector('[contenteditable="true"]') as HTMLElement)?.focus({preventScroll: true});
+    focusBlock(element);
+};
+
 /**
  * 生成标题级别转换菜单项
  */
@@ -46,13 +56,19 @@ export function genHeadingTransform(id: string, level: number) {
         label: siyuanI18n["heading" + level],
         click: () => {
             const protyle = window.siyuan.mobile.editor?.protyle;
-            if (!protyle) {
+            if (!protyle || !outline.tree.element.querySelector(`[data-node-id="${id}"]`)) {
                 return;
             }
+            const rootID = protyle.block.rootID;
+            getSelection()?.removeAllRanges();
             fetchPost("/api/block/getHeadingLevelTransaction", {
                 id,
                 level
             }, (response) => {
+                if (window.siyuan.mobile.editor?.protyle !== protyle || outline.blockId !== rootID ||
+                    !response.data?.doOperations || !response.data?.undoOperations) {
+                    return;
+                }
                 response.data.doOperations.forEach((operation: any, index: number) => {
                     protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
                         itemElement.outerHTML = operation.data;
@@ -95,11 +111,13 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
                 click: () => {
                     const data = getProtyleAndBlockElement(outline, element);
                     if (data) {
+                        getSelection()?.removeAllRanges();
                         turnsIntoTransaction({
                             protyle: data.protyle,
                             selectsElement: [data.blockElement],
                             type: "Blocks2Hs",
-                            level: currentLevel - 1
+                            level: currentLevel - 1,
+                            unfocus: true,
                         });
                     }
                 }
@@ -115,11 +133,13 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
                 click: () => {
                     const data = getProtyleAndBlockElement(outline, element);
                     if (data) {
+                        getSelection()?.removeAllRanges();
                         turnsIntoTransaction({
                             protyle: data.protyle,
                             selectsElement: [data.blockElement],
                             type: "Blocks2Hs",
-                            level: currentLevel + 1
+                            level: currentLevel + 1,
+                            unfocus: true,
                         });
                     }
                 }
@@ -152,21 +172,24 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
             label: siyuanI18n.insertSameLevelHeadingBefore,
             click: () => {
                 const data = getProtyleAndBlockElement(outline, element);
+                if (!data) {
+                    return;
+                }
                 const newId = Lute.NewNodeID();
                 const html = `<div data-subtype="h${currentLevel}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                const previousID = data.blockElement.previousElementSibling?.getAttribute("data-node-id");
+                data.blockElement.insertAdjacentHTML("beforebegin", html);
+                focusInsertedHeading(data.blockElement.previousElementSibling);
                 transaction(data.protyle, [{
                     action: "insert",
                     data: html,
                     id: newId,
-                    previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                    previousID,
                     parentID: data.blockElement.parentElement.getAttribute("data-node-id") || data.protyle.block.parentID,
                 }], [{
                     action: "delete",
                     id: newId
                 }]);
-                data.blockElement.insertAdjacentHTML("beforebegin", html);
-                data.blockElement.previousElementSibling.scrollIntoView();
-                focusByWbr(data.blockElement.previousElementSibling, document.createRange());
             }
         }).element);
 
@@ -176,14 +199,28 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
             icon: "iconAfter",
             label: siyuanI18n.insertSameLevelHeadingAfter,
             click: () => {
+                const data = getProtyleAndBlockElement(outline, element);
+                if (!data) {
+                    return;
+                }
+                const rootID = data.protyle.block.rootID;
+                focusBlock(data.blockElement);
                 fetchPost("/api/block/getHeadingDeleteTransaction", {
                     id,
                 }, (deleteResponse) => {
-                    const data = getProtyleAndBlockElement(outline, element);
+                    if (window.siyuan.mobile.editor?.protyle !== data.protyle || outline.blockId !== rootID ||
+                        !deleteResponse.data?.doOperations?.length) {
+                        return;
+                    }
                     const previousID = deleteResponse.data.doOperations[deleteResponse.data.doOperations.length - 1].id;
 
                     const newId = Lute.NewNodeID();
                     const html = `<div data-subtype="h${currentLevel}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                    const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
+                    if (previousElement) {
+                        previousElement.insertAdjacentHTML("afterend", html);
+                        focusInsertedHeading(previousElement.nextElementSibling);
+                    }
                     transaction(data.protyle, [{
                         action: "insert",
                         data: html,
@@ -193,12 +230,6 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
                         action: "delete",
                         id: newId
                     }]);
-                    const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-                    if (previousElement) {
-                        previousElement.insertAdjacentHTML("afterend", html);
-                        previousElement.nextElementSibling.scrollIntoView();
-                        focusByWbr(previousElement.nextElementSibling, document.createRange());
-                    }
                 });
             }
         }).element);
@@ -210,21 +241,34 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
                 icon: "iconAdd",
                 label: siyuanI18n.addChildHeading,
                 click: () => {
+                    const data = getProtyleAndBlockElement(outline, element);
+                    if (!data) {
+                        return;
+                    }
+                    const rootID = data.protyle.block.rootID;
+                    focusBlock(data.blockElement);
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
                         id,
                     }, (deleteResponse) => {
+                        if (window.siyuan.mobile.editor?.protyle !== data.protyle || outline.blockId !== rootID ||
+                            !deleteResponse.data?.doOperations?.length || !deleteResponse.data?.undoOperations) {
+                            return;
+                        }
                         let previousID = deleteResponse.data.doOperations[deleteResponse.data.doOperations.length - 1].id;
                         deleteResponse.data.undoOperations.find((operationsItem: IOperation, index: number) => {
                             const startIndex = operationsItem.data.indexOf(' data-subtype="h');
-                            if (startIndex > -1 && startIndex < 260 && parseInt(operationsItem.data.substring(startIndex + 16, startIndex + 17)) === currentLevel + 1) {
+                            if (index > 0 && startIndex > -1 && startIndex < 260 && parseInt(operationsItem.data.substring(startIndex + 16, startIndex + 17)) === currentLevel + 1) {
                                 previousID = deleteResponse.data.undoOperations[index - 1].id;
                                 return true;
                             }
                         });
-
-                        const data = getProtyleAndBlockElement(outline, element);
                         const newId = Lute.NewNodeID();
                         const html = `<div data-subtype="h${currentLevel + 1}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel + 1}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                        const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
+                        if (previousElement) {
+                            previousElement.insertAdjacentHTML("afterend", html);
+                            focusInsertedHeading(previousElement.nextElementSibling);
+                        }
                         transaction(data.protyle, [{
                             action: "insert",
                             data: html,
@@ -234,12 +278,6 @@ export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
                             action: "delete",
                             id: newId
                         }]);
-                        const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-                        if (previousElement) {
-                            previousElement.insertAdjacentHTML("afterend", html);
-                            previousElement.nextElementSibling.scrollIntoView();
-                            focusByWbr(previousElement.nextElementSibling, document.createRange());
-                        }
                     });
                 }
             }).element);

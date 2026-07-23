@@ -10,6 +10,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type { Background } from "../Background";
 import { renderBackground } from "./render";
+import {fetchCoverData, getCategoryLabel} from "../coverData";
 
 /**
  * 作用：处理题头图点击事件。
@@ -107,24 +108,125 @@ const onBackgroundDialogClick = (background: Background, protyle: IProtyle, dial
     dialog.destroy();
 };
 
-/**
- * 作用：处理“内置背景图”点击。
- */
-export const clickShowRandom = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+/** 作用：持久化题头图样式并刷新当前背景；意图：内置图片和 CSS 图案共享唯一更新路径；调用时机：用户选择或随机生成题头图后。 */
+const applyTitleImage = (background: Background, protyle: IProtyle, style: string) => {
+    background.ial["title-img"] = style;
+    renderBackground(background, background.ial, protyle.block.rootID);
+    fetchPost("/api/attr/setBlockAttrs", {
+        id: protyle.block.rootID,
+        attrs: {"title-img": style},
+    });
+};
+
+/** 作用：把内置封面资源复制到当前文档并设为题头图；意图：文档不直接依赖应用静态资源路径；调用时机：封面卡片被选中或随机选中时。 */
+const insertCover = (background: Background, protyle: IProtyle, name: string) => {
+    fetchPost("/api/asset/insertCover", {id: protyle.block.rootID, name}, (response) => {
+        const succMap = response.data?.succMap;
+        const firstKey = succMap ? Object.keys(succMap)[0] : undefined;
+        if (!firstKey) {
+            console.error(`insert cover failed: ${name}`);
+            return;
+        }
+        applyTitleImage(background, protyle, `background-image:url("${succMap[firstKey]}")`);
+    });
+};
+
+/** 作用：生成指定分类的封面卡片；意图：分类切换时只替换卡片区；调用时机：初始打开与分类切换时。 */
+const buildCoverCards = (category: string, coverData: Awaited<ReturnType<typeof fetchCoverData>>) => {
+    if (!coverData) {
+        return "";
+    }
+    const covers = category === "all" ? coverData.allCovers : (coverData.coversByCategory.get(category) || []);
+    return covers.map((cover) => `<div class="b3-card b3-cover__card" data-name="${cover.file}"><img src="/appearance/covers/${cover.file}" loading="lazy"></div>`).join("");
+};
+
+/** 作用：生成封面分类选择器；意图：保持 manifest 分类顺序与当前选中态；调用时机：封面对话框渲染时。 */
+const buildCoverTabs = (activeCategory: string, categories: string[]) => {
+    let tabs = `<span class="b3-chip b3-chip--hover${activeCategory === "all" ? " b3-chip--current" : ""}" data-category="all">${siyuanI18n.coverAll}</span>`;
+    for (const category of categories) {
+        tabs += `<span class="b3-chip b3-chip--hover${activeCategory === category ? " b3-chip--current" : ""}" data-category="${category}">${getCategoryLabel(category)}</span>`;
+    }
+    return `<div class="b3-cover__tabs">${tabs}</div>`;
+};
+
+/** 作用：打开现有 CSS 图案选择器；意图：当图片 manifest 未加载时仍保留原有内置图案能力；调用时机：封面数据请求无结果时。 */
+const renderCssPatternDialog = (background: Background, protyle: IProtyle, dialog: Dialog) => {
     let html = "";
     for (let index = 0; index < bgs.length; index++) {
-        const item = bgs[index];
-        html += `<div data-index="${index}" style="height: 128px;${item}" class="b3-card"></div>`;
+        html += `<div data-index="${index}" style="height: 128px;${bgs[index]}" class="b3-card"></div>`;
     }
+    const bodyElement = dialog.element.querySelector(".b3-dialog__body");
+    if (!bodyElement) {
+        console.error("background dialog body is missing");
+        return;
+    }
+    bodyElement.innerHTML = `<div class="b3-cards" style="padding: 16px">${html}</div>`;
+    dialog.element.addEventListener("click", (event) => onBackgroundDialogClick(background, protyle, dialog, event));
+};
+
+/** 作用：以分类小组呈现图片封面并处理切换/选中；意图：使用事件委托支持内容重渲染；调用时机：manifest 成功加载后。 */
+const renderCoverDialog = (
+    background: Background,
+    protyle: IProtyle,
+    dialog: Dialog,
+    coverData: NonNullable<Awaited<ReturnType<typeof fetchCoverData>>>,
+) => {
+    const bodyElement = dialog.element.querySelector<HTMLElement>(".b3-dialog__body");
+    if (!bodyElement) {
+        console.error("cover dialog body is missing");
+        return;
+    }
+    let activeCategory = "all";
+    const renderContent = () => {
+        bodyElement.innerHTML = `${buildCoverTabs(activeCategory, coverData.categories)}
+<div class="b3-cards b3-cover__cards" style="padding:16px">${buildCoverCards(activeCategory, coverData)}</div>`;
+    };
+    renderContent();
+    bodyElement.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const categoryElement = target.closest<HTMLElement>("[data-category]");
+        if (categoryElement) {
+            activeCategory = categoryElement.dataset.category || "all";
+            renderContent();
+            bodyElement.scrollTop = 0;
+            return;
+        }
+        const coverElement = target.closest<HTMLElement>(".b3-cover__card");
+        const name = coverElement?.dataset.name;
+        if (!name) {
+            return;
+        }
+        insertCover(background, protyle, name);
+        dialog.destroy();
+    });
+};
+
+/** 作用：创建并填充内置题头图对话框；意图：将数据加载与点击分发留在图片模块；调用时机：用户点击内置背景入口时。 */
+const openBuiltInBackgroundDialog = async (background: Background, protyle: IProtyle) => {
     const dialog = new Dialog({
         title: siyuanI18n.builtIn,
-        content: `<div class="b3-cards" style="padding: 16px">${html}</div>`,
+        content: '<div class="b3-cards" style="padding:16px"><img style="margin:auto;width:64px;height:64px" src="/stage/loading-pure.svg"></div>',
         width: isMobile ? "92vw" : "912px",
         height: isMobile ? "80vh" : "70vh",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDRANDOM);
-    dialog.element.addEventListener("click", (event) => {
-        onBackgroundDialogClick(background, protyle, dialog, event);
+    const coverData = await fetchCoverData();
+    if (!coverData) {
+        renderCssPatternDialog(background, protyle, dialog);
+        return;
+    }
+    renderCoverDialog(background, protyle, dialog, coverData);
+};
+
+/**
+ * 作用：处理“内置背景图”点击。
+ */
+export const clickShowRandom = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+    void openBuiltInBackgroundDialog(background, protyle).catch((error) => {
+        console.error("open built-in background dialog failed", error);
     });
     event.preventDefault();
     event.stopPropagation();
@@ -137,11 +239,13 @@ export const clickShowRandom = (background: Background, protyle: IProtyle, event
  * 调用时机：点击题头图下方工具栏的随机按钮时调用。
  */
 export const clickRandom = (background: Background, protyle: IProtyle, event: MouseEvent) => {
-    background.ial["title-img"] = bgs[getRandom(0, bgs.length - 1)] || "";
-    renderBackground(background, background.ial, protyle.block.rootID);
-    fetchPost("/api/attr/setBlockAttrs", {
-        id: protyle.block.rootID,
-        attrs: { "title-img": background.ial["title-img"] }
+    void fetchCoverData().then((coverData) => {
+        if (coverData && coverData.allCovers.length > 0) {
+            const randomCover = coverData.allCovers[getRandom(0, coverData.allCovers.length - 1)];
+            insertCover(background, protyle, randomCover.file);
+            return;
+        }
+        applyTitleImage(background, protyle, bgs[getRandom(0, bgs.length - 1)] || "");
     });
     event.preventDefault();
     event.stopPropagation();

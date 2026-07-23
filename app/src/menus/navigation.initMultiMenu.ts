@@ -16,7 +16,12 @@ import { copySubMenu } from "./commonMenuItem/copy";
 import { MenuItem } from "./Menu.Item";
 import { openEditorTab } from "./util";
 
-export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App) => {
+export const initMultiMenu = (
+    selectItemElements: NodeListOf<Element>,
+    app: App,
+    confirmExport: (notebookId: string, callback: () => void) => void,
+    isEncryptedNotebook: (notebookId: string) => boolean,
+) => {
     window.siyuan.menus.menu.element.setAttribute("data-from", Constants.MENU_FROM_DOC_TREE_MORE_ITEMS);
     const fileItemElement = Array.from(selectItemElements).find(item => {
         if (item.getAttribute("data-type") === "navigation-file") {
@@ -27,6 +32,7 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
         return window.siyuan.menus.menu;
     }
     const blockIDs: string[] = [];
+    const notebookId = fileItemElement.parentElement?.getAttribute("data-url") || "";
     selectItemElements.forEach(item => {
         const id = item.getAttribute("data-node-id");
         if (id) {
@@ -85,7 +91,7 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
         return window.siyuan.menus.menu;
     }
     window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
-    if (!window.siyuan.config.readonly) {
+    if (!window.siyuan.config.readonly && !isEncryptedNotebook(notebookId)) {
         const riffCardMenu = [{
             id: "quickMakeCard",
             iconHTML: "",
@@ -147,11 +153,13 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
             label: "SiYuan .sy.zip",
             icon: "iconSiYuan",
             click: () => {
-                const msgId = showMessage(window.siyuan.languages.exporting, -1);
-                fetchPost("/api/export/exportSYs", {
-                    ids: blockIDs,
-                }, response => {
-                    saveExportFile(response.data.zip, msgId);
+                confirmExport(notebookId, () => {
+                    const msgId = showMessage(window.siyuan.languages.exporting, -1);
+                    fetchPost("/api/export/exportSYs", {
+                        ids: blockIDs,
+                    }, response => {
+                        saveExportFile(response.data.zip, msgId);
+                    });
                 });
             }
         }, {
@@ -159,7 +167,7 @@ export const initMultiMenu = (selectItemElements: NodeListOf<Element>, app: App)
             label: "Markdown .zip",
             icon: "iconMarkdown",
             click: () => {
-                exportMarkdownZip({ids: blockIDs});
+                confirmExport(notebookId, () => exportMarkdownZip({ids: blockIDs}));
             }
         }]
     }).element);

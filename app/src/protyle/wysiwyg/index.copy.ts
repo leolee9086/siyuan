@@ -219,7 +219,7 @@ async function routeCopyContent(params: RouteContentParams) {
     }
     // 属性视图单元格复制
     if (selectAVElement) {
-        const avResult = processSelectAV(nodeElement, selectAVElement);
+        const avResult = processSelectAV(nodeElement);
         return { html: avResult.html, textPlain: avResult.textPlain, isInCodeBlock: false, needClipboardWrite: false };
     }
     // 表格选择区域复制

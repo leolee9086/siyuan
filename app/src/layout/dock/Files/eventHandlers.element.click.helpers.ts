@@ -15,6 +15,9 @@ import {
 import { getPublishAccessLevel, getPublishAccessOptionByLevel, openPublishAccessDialog } from "../../../protyle/util/publishAccess";
 import type { App } from "../../../index";
 import type { Files } from "../Files";
+import {handleFileClick} from "./eventHandlers.element.click.file";
+import {collapseFileTree, isFileTreeCollapsing} from "../fileTreeAnimation";
+import {saveOpenPaths} from "./treeOperations";
 
 // ============================================================================
 // 图标点击处理
@@ -76,41 +79,59 @@ function handleNotebookIconClick(
  */
 function handleIconClick(
     event: MouseEvent,
-    target: Element
-){
+    target: Element,
+    files: Files,
+    app: App,
+    notebookId: string
+): "unhandled" | "handled" | "opened" {
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
-        return false;
+        return "unhandled";
     }
     // 检查是否在 iOS 上
     if (getSiyuanConfig().system.container === "ios") {
-        return false;
+        return "unhandled";
     }
     // 检查是否点击了图标
     if (!target.classList.contains("b3-list-item__icon")) {
-        return false;
+        return "unhandled";
     }
 
     const parentElement = target.parentElement;
     // 父元素不存在时跳过
     if (!parentElement) {
-        return true;
+        return "handled";
     }
 
-    // 检查是否为文件类型
-    if (parentElement.getAttribute("data-type") === "navigation-file") {
+    const isFile = parentElement.getAttribute("data-type") === "navigation-file";
+    const isBoxDoc = parentElement.getAttribute("data-type") === "navigation-root" &&
+        Boolean(parentElement.getAttribute("data-node-id"));
+    if ((isFile || isBoxDoc) && getSiyuanConfig().fileTree.docIconClickExpand) {
+        if (Number(parentElement.getAttribute("data-count")) > 0) {
+            files.getLeaf(parentElement, notebookId);
+            return "handled";
+        }
+        if (parentElement instanceof HTMLElement) {
+            files.lastSelectedElement = parentElement;
+            files.setCurrent(parentElement, false);
+            handleFileClick(event, parentElement, app);
+            return "opened";
+        }
+    }
+
+    if (isFile) {
         handleFileIconClick(event, target, parentElement);
-        return true;
+        return "handled";
     }
 
     // 否则为笔记本类型
     const grandParent = parentElement.parentElement;
     // 祖父元素不存在时跳过
     if (!grandParent) {
-        return true;
+        return "handled";
     }
     handleNotebookIconClick(event, target, grandParent);
-    return true;
+    return "handled";
 }
 
 // ============================================================================
@@ -145,7 +166,13 @@ function handleToggleClick(
     if (!parentElement) {
         return true;
     }
-    files.getLeaf(parentElement, notebookId);
+    const isOpen = Boolean(parentElement.querySelector(".b3-list-item__arrow--open"));
+    if (isOpen) {
+        collapseFileTree(parentElement, () => saveOpenPaths(files.element));
+    }
+    if (!isOpen && !isFileTreeCollapsing(parentElement)) {
+        files.getLeaf(parentElement, notebookId);
+    }
     event.preventDefault();
     event.stopPropagation();
     removeSiyuanMenu();
@@ -164,7 +191,6 @@ function handleToggleClick(
  * @param notebookId - 笔记本 ID
  * @param pathString - 路径字符串
  * @param parentElement - 父元素
- * @param element - 容器元素
  */
 function handleWritableActions(
     event: MouseEvent,
@@ -172,8 +198,7 @@ function handleWritableActions(
     app: App,
     notebookId: string,
     pathString: string | null,
-    parentElement: HTMLElement,
-    element: HTMLElement
+    parentElement: HTMLElement
 ) {
     // 处理新建文件
     if (type === "new") {
@@ -196,15 +221,13 @@ function handleWritableActions(
  * @param target - 目标元素
  * @param app - App 实例
  * @param notebookId - 笔记本 ID
- * @param element - 容器元素
  * @returns 是否已处理该事件
  */
 function handleActionClick(
     event: MouseEvent,
     target: Element,
     app: App,
-    notebookId: string,
-    element: HTMLElement
+    notebookId: string
 ) {
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
@@ -225,7 +248,7 @@ function handleActionClick(
 
     // 非只读模式下处理新建、更多菜单、添加本地快捷方式
     if (!getSiyuanConfig().readonly) {
-        handleWritableActions(event, type, app, notebookId, pathString, parentElement, element);
+        handleWritableActions(event, type, app, notebookId, pathString, parentElement);
     }
 
     // 处理文件更多菜单

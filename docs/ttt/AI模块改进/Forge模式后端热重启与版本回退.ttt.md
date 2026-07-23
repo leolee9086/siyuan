@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 发起、用户逐次复核、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：Phase 6 重新打开：修复 Forge 默认工作空间路径回归，完成真实默认启动重验后再归档。
+> **当前目标**：Phase 6 重新打开：补齐在线服务单实例发现、认证控制租约与 `pnpm forge` 的受控热替换语义；完成真实默认启动与一次受控迁移重验后再归档。
 >
-> **下一步任务**：验证默认启动参数固定指向仓库内 `.dev-workspace`，重跑 Supervisor 测试和真实默认启动，核对 Kernel 进程命令行后恢复服务。
+> **下一步任务**：在现有旧 Supervisor 通过界面正常退出后，以新控制租约启动一次；确认后续 `pnpm forge` 对已提交 Kernel 变更附着到该 Supervisor、执行门禁并完成候选切换或可查询回退。
 
 ---
 
@@ -20,6 +20,7 @@
 8. Bash/命令工具在人工确认前必须先经独立配置的审核模型判断；Forge 源码命令额外审查绕过重启门禁的意图。审核请求失败、超时或返回格式异常时明确阻断，不静默放行。
 9. 前端刷新只以前端测试结果作为门禁证据；lint 仅用于开发质量反馈，不得阻断前端刷新。
 10. 用户从现有界面执行正常退出时必须同时结束 Kernel 与 Forge Supervisor；仅非零退出或信号终止按崩溃恢复，不得让 Supervisor 把正常退出重新拉起。
+11. Forge 运行时只有一个认证控制面：新 CLI 发现同工作空间的健康 Supervisor 时必须复用其控制面并请求受控更新，不得因端口冲突创建第二个 Kernel；控制租约失联时仅在其记录 PID 已退出后隔离陈旧租约，PID 仍存活则明确阻断。
 
 ## 现状基线
 
@@ -68,9 +69,9 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **行动**：参考 `D:/dev/s-code/packages/opencode/src/session/bash-review.ts` 的独立纯文本审核会话语义，为所有原生 Agent 命令工具增加通用风险审核；Forge 源码命令追加绕过 Supervisor、门禁、受保护测试审批、版本切换或回退链的专项判断。审核模型在 AI 设置中独立选择，不继承当前会话临时选模；保留确定性生命周期阻断、Supervisor 凭据隔离与意外退出后同版本恢复作为纵深约束。
   - **验收标准**：安全命令放行；危险命令、重启绕过意图、审核网络错误、超时和无效格式均明确阻断；单元测试不调用真实模型且覆盖各分支。
 
-- [ ] **Phase 6：集成与运行验收（P0）** [路径回归修复与重验中 2026-07-22]
-  - **行动**：执行 Go 单元测试、目标全量门禁测试和前端测试；在不直接读取开发工作空间配置与凭据的前提下验证 Supervisor 启动和状态查询。前端 lint 结果可记录，但不属于刷新门禁。
-  - **验收标准**：测试证据写入本文；当前工作树未满足清洁门禁时明确记录预期阻断，不伪造真实核心切换成功。
+- [ ] **Phase 6：集成与运行验收（P0）** [在线控制面与迁移重验中 2026-07-24]
+  - **行动**：执行 Go 单元测试、目标全量门禁测试和前端测试；在不直接读取开发工作空间配置与凭据的前提下验证 Supervisor 启动、认证控制租约、同工作空间复用和已提交 Kernel 更新的受控切换。前端 lint 结果可记录，但不属于刷新门禁。
+  - **验收标准**：测试证据写入本文；当前工作树未满足清洁门禁时明确记录预期阻断，不伪造真实核心切换成功；旧控制面无租约时明确要求一次正常退出迁移，不创建第二 Kernel。
 
 ## 中期计划
 
@@ -93,6 +94,7 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 ## 验收标准
 
 - [ ] `pnpm forge` 使用仓库内 `.dev-workspace` 启动，且由 Supervisor 持有 Kernel 子进程；Kernel 意外退出不会被误判为成功切换。
+- [ ] 再次执行 `pnpm forge` 时，认证控制租约存在则对比活动版本与当前提交：Kernel 运行时代码变化走同一 Supervisor 的门禁、构建、切换与回退链；无 Kernel 变化直接附着；旧无租约进程明确提示迁移，不以新端口绕过工作空间锁。
 - [ ] 界面“退出应用”可结束 Kernel 和 Supervisor；正常退出不自动恢复，崩溃退出仍恢复当前已验证版本。
 - [x] Agent 可自行调用 `frontend(action=reload_app)` 重载当前页面。
 - [x] Agent 发起 Kernel 重启时每次出现人在回路复核，直接 MCP 调用不能触发。
@@ -166,3 +168,4 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - **2026-07-22**：默认路径回归测试与既有 Supervisor 单测合计 15/15 通过。真实临时工作空间集成测试没有通过：Kernel 接受优雅停机请求后与 Pandoc 延迟初始化发生交错，30 秒内未退出；清理钩子已终止 PID 47088，临时目录已删除，随机端口与 `6806` 均已释放。该失败保持可见并继续调查，不计作验收通过。
 - **2026-07-22**：补充界面退出语义。复用现有“退出应用”界面入口：Kernel 以退出码 0 正常结束时，Supervisor 关闭自身控制服务并结束 Forge 进程链；非零退出或信号终止仍执行已验证版本恢复。增加进程替身测试，防止正常退出被错误重启。
 - **2026-07-22**：路径和退出语义变更后的 Supervisor 单测 16/16 通过。重新加载新代码后的真实 Supervisor PID 24480、Kernel PID 62244；Kernel 实际参数为 `--workspace=D:/dev/s-forge/.dev-workspace`，`6806` 监听且 `/api/system/version` 返回 HTTP 200 与版本 `3.7.1-alpha.1`。Phase 6 仍因临时工作空间集成测试的停机竞态保持打开，不提前归档。
+- **2026-07-24**：发现 `pnpm forge` 在 6806 已有 Forge Kernel 时递增到 6807 后重新构建，最终被同一 `.dev-workspace` 的 Kernel 锁拒绝。修复为在线服务控制面语义：Supervisor 在 `.forge-runtime/supervisor.json` 以排他创建方式持久化认证租约（PID、仓库、工作空间、端口、控制地址和最小权限 CLI 凭据）；Kernel 环境中的 Supervisor 根令牌不落盘，CLI 凭据只能查询状态和请求受控重启，不能批准受保护测试或调用内部停机动作。新 CLI 先认证现有控制面，比较活动版本与当前提交，发现已提交 Kernel 运行时代码变化即请求原 Supervisor 运行完整门禁、候选构建、短停机切换和健康失败回退，而非保留旧 Kernel；并发 CLI 附着已有重启任务，不重复创建。未提交 Kernel 改动、租约 PID 仍存活但失联、多个同工作空间 Kernel 和健康失败都形成明确错误；死 PID 租约隔离后可恢复启动。`.lock` 为持久锁文件，已从在线状态判断中移除。旧版 Supervisor 没有租约时，通过 Windows/Posix 进程参数精确识别其工作空间和端口，并明确要求一次由现有界面完成的正常退出迁移，禁止另起第二实例。为避免 Agent Bash 读取/使用该受限凭据绕过控制面，命令确定性拦截同步覆盖租约文件和控制请求头。实现：`app/scripts/forge-start.js`、`app/scripts/forge-runtime-supervisor.js`、`app/test/forge-runtime-supervisor.test.js`、`kernel/mcp/tools/forge.go`、`kernel/mcp/tools/forge_protection_test.go`；验证：Supervisor/启动编排测试 29/29 通过，`go test ./mcp/tools` 通过，实际发现现有 Kernel PID 62244、父 `forge-start.js`、`--workspace=D:/dev/s-forge/.dev-workspace`、6806 健康；在该旧实例上运行 `pnpm forge -- --no-browser` 明确报告迁移要求且不再构建第二 Kernel。待完成一次租约化启动后的真实受控更新验收。

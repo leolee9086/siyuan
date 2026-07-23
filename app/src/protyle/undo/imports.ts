@@ -1,9 +1,21 @@
 // 跨目录依赖转发：undo 模块的上游依赖网关
 
 /** 用途：事务处理核心函数。使用范围：undo 模块 renderLocal 本地乐观应用操作。解耦评估：通过 imports.ts 转发。 */
-import { onTransaction } from "../wysiwyg/transaction";
+import { onTransaction, transaction } from "../wysiwyg/transaction";
+/** 用途：等待编辑器事务队列清空。使用范围：仅供全局撤销请求建立提交屏障。解耦评估：队列属于 Protyle 事务基础设施，经本依赖网关转发比向调用方注入更细且不暴露实现。 */
+import {waitForPendingTransactions} from "../util/transactionQueue";
+/** 用途：从事务上下文恢复撤销焦点。使用范围：仅供两种撤销回放实现。解耦评估：焦点恢复依赖 Protyle DOM 语义，经本依赖网关转发可避免 undo 模块直连跨目录实现。 */
+import {restoreUndoFocus} from "../util/selection";
 /** 导出 onTransaction 事务函数，供 undo 模块调用 */
 export { onTransaction };
+/** 导出 transaction，供 lite 撤销回放跳过远端同步地提交本地操作。 */
+export { transaction };
+
+/** 用途：等待当前编辑器事务队列清空。使用范围：发起 kernel 撤销/重做前建立提交屏障。解耦评估：通过 imports.ts 转发。 */
+export {waitForPendingTransactions};
+
+/** 用途：按事务上下文恢复撤销焦点。使用范围：kernel 与 lite 回放完成后。解耦评估：通过 imports.ts 转发。 */
+export {restoreUndoFocus};
 
 /** 用途：阻止滚动容器在操作应用期间滚动。使用范围：renderLocal 操作应用前后。解耦评估：通过 imports.ts 转发。 */
 import { preventScroll } from "../scroll/preventScroll";

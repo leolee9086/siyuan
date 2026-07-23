@@ -22,7 +22,9 @@ export type ProtyleLayoutElementMatch = "contains" | "wysiwyg";
  * 实现；独立入口使用 no-op，从而不需要伪造主应用布局结构。
  */
 export interface IProtyleLayoutPort {
-    refreshOutline: (rootId: string) => void;
+    refreshOutline: (rootId: string, notebookId?: string) => void;
+    /** 刷新宿主中引用指定数据库的独立条目视图。 */
+    refreshDatabaseRows?: (avID: string) => void;
     /** 在编辑器模式切换后同步宿主中的大纲面板。 */
     updateOutline?: (protyle: IProtyle, reload: boolean) => void;
     /** 更新宿主大纲当前项；preview 表示来自预览 DOM 的定位。 */

@@ -10,6 +10,8 @@ import { Graph } from "./imports";
 import { Backlink } from "./imports";
 /** 用途：前链面板模型。使用范围：更新前链数据。解耦评估：通过 ./imports 转发。 */
 import { Forwardlink } from "./imports";
+/** 用途：判断笔记本是否加密。使用范围：反链查询选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */
+import { isEncryptedBox } from "./imports";
 
 /**
  * 获取当前编辑器的活动块 ID
@@ -104,13 +106,19 @@ const updateBacklink = (item: Backlink, protyle: IProtyle | undefined) => {
     const secondInput = item.inputsElement[1];
     const keyword = firstInput.value;
     const mentionKeyword = secondInput.value;
-    fetchPost("/api/ref/getBacklink2", {
+    const backlinkParams: IObject = {
         sort,
         mSort,
         id: blockId || "",
         k: keyword,
         mk: mentionKeyword,
-    }, (response) => handleBacklinkResponse(response, item, blockId, refreshElement));
+    };
+    // 加密笔记本的反链位于独立数据源，必须携带 notebook 才能读取正确内容。
+    if (protyle && isEncryptedBox(protyle.notebookId)) {
+        backlinkParams.notebook = protyle.notebookId;
+    }
+    fetchPost("/api/ref/getBacklink2", backlinkParams,
+        (response) => handleBacklinkResponse(response, item, blockId, refreshElement));
 };
 
 /**

@@ -4,11 +4,13 @@ import {fetchPost} from "../../util/network/fetch";
 import {setNoteBook} from "../../util/file/pathName";
 import {openMobileFileById} from "../editor";
 import {Constants} from "../../constants";
-import {mountHelp, newNotebook} from "../../util/file/mount";
+import {newNotebook, openEncryptedNotebook} from "../../util/file/mount";
 import {newFileInTree} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {refreshFileTree} from "../../dialog/processSystem";
+import {openPublishAccessDialog} from "../../protyle/util/publishAccess";
+import {collapseFileTree, isFileTreeCollapsing} from "../../layout/dock/fileTreeAnimation";
 import type {MobileFiles} from "./MobileFiles";
 
 /**
@@ -56,7 +58,30 @@ export function bindClickEvent(
                 target = target.previousElementSibling as HTMLElement;
             }
             const type = target.getAttribute("data-type");
-            if (type === "refresh") {
+            if (target.classList.contains("b3-list-item__switch")) {
+                const rect = target.getBoundingClientRect();
+                const rootUL = hasTopClosestByTag(target, "UL");
+                const id = target.parentElement.getAttribute("data-type") === "navigation-root"
+                    ? rootUL?.getAttribute("data-url") ?? ""
+                    : target.parentElement.getAttribute("data-node-id");
+                openPublishAccessDialog(id, {
+                    x: rect.left,
+                    y: rect.bottom,
+                    h: rect.height,
+                    w: rect.width,
+                }, (access) => {
+                    target.innerHTML = access.iconHTML;
+                    fetchPost("/api/filetree/setPublishAccess", {
+                        id: access.id,
+                        visible: access.visible,
+                        password: access.password,
+                        disable: access.disable,
+                    });
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                break;
+            } else if (type === "refresh") {
                 if (!target.getAttribute("disabled")) {
                     target.setAttribute("disabled", "disabled");
                     const notebooks: string[] = [];
@@ -108,7 +133,12 @@ export function bindClickEvent(
                 const ulElement = hasTopClosestByTag(target, "UL");
                 if (ulElement) {
                     const notebookId = ulElement.getAttribute("data-url");
-                    files.getLeaf(target.parentElement, notebookId);
+                    const liElement = target.parentElement;
+                    if (liElement.querySelector(".b3-list-item__arrow--open")) {
+                        collapseFileTree(liElement, () => files.persistOpenPaths());
+                    } else if (!isFileTreeCollapsing(liElement)) {
+                        files.getLeaf(liElement, notebookId);
+                    }
                     files.setCurrent(target.parentElement);
                     window.siyuan.menus.menu.remove();
                 }
@@ -130,9 +160,14 @@ export function bindClickEvent(
                 event.preventDefault();
                 break;
             } else if (type === "open") {
-                fetchPost("/api/notebook/openNotebook", {
-                    notebook: target.getAttribute("data-url")
-                });
+                const notebookId = target.getAttribute("data-url");
+                const liElement = target.closest("li");
+                if (liElement?.getAttribute("data-encrypted") === "true") {
+                    const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
+                    openEncryptedNotebook(files.app, notebookId, name);
+                } else {
+                    fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
+                }
                 event.stopPropagation();
                 event.preventDefault();
                 break;
@@ -167,12 +202,15 @@ export function bindClickEvent(
                 break;
             } else if (target.tagName === "LI") {
                 files.setCurrent(target);
+                const ulElement = hasTopClosestByTag(target, "UL");
+                const notebookId = ulElement?.getAttribute("data-url") ?? "";
                 if (target.getAttribute("data-type") === "navigation-file") {
-                    openMobileFileById(app, target.getAttribute("data-node-id"), [Constants.CB_GET_SCROLL]);
+                    openMobileFileById(app, target.getAttribute("data-node-id"), [Constants.CB_GET_SCROLL], undefined, notebookId);
                 } else if (target.getAttribute("data-type") === "navigation-root") {
-                    const ulElement = hasTopClosestByTag(target, "UL");
-                    if (ulElement) {
-                        const notebookId = ulElement.getAttribute("data-url");
+                    const boxDocID = target.getAttribute("data-node-id");
+                    if (boxDocID) {
+                        openMobileFileById(app, boxDocID, [Constants.CB_GET_SCROLL], undefined, notebookId);
+                    } else if (ulElement) {
                         files.getLeaf(target, notebookId);
                     }
                 }
@@ -183,7 +221,4 @@ export function bindClickEvent(
         }
     });
     files.init();
-    if (window.siyuan.config.openHelp) {
-        mountHelp();
-    }
 }

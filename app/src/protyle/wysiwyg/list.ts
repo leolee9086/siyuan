@@ -6,7 +6,7 @@ import { Constants } from "../../constants";
 import { moveToPrevious, removeBlock } from "./remove";
 import { hasClosestByClassName, isBlockElement } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
-import { getParentBlock } from "./getBlock";
+import {getEmbedChildOperationContext, getParentBlock, getPreviousBlockSibling} from "./getBlock";
 import { updateListOrder } from "./list.updateOrder";
 import { scrollCenter } from "../../util/DOM/highlightById";
 
@@ -425,8 +425,8 @@ export const breakList = (protyle: IProtyle, blockElement: Element, range: Range
             id: parentId,
             action: "insert",
             data: listItemElement.parentElement.outerHTML,
-            previousID: listItemElement.parentElement.previousElementSibling?.getAttribute("data-node-id"),
-            parentID: listItemElement.parentElement.parentElement.getAttribute("data-node-id") || protyle.block.rootID
+            previousID: getPreviousBlockSibling(listItemElement.parentElement)?.getAttribute("data-node-id"),
+            parentID: getParentBlock(listItemElement.parentElement).getAttribute("data-node-id") || protyle.block.rootID
         });
         listItemElement.parentElement.remove();
         doOperations.push({
@@ -438,7 +438,7 @@ export const breakList = (protyle: IProtyle, blockElement: Element, range: Range
             id: listItemId,
             action: "insert",
             data: listItemElement.outerHTML,
-            previousID: listItemElement.previousElementSibling?.getAttribute("data-node-id"),
+            previousID: getPreviousBlockSibling(listItemElement)?.getAttribute("data-node-id"),
             parentID: parentId
         });
         listItemElement.remove();
@@ -483,8 +483,11 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
     }
     const parentLiItemElement = getParentBlock(liElement);
     const parentParentElement = parentLiItemElement.parentElement;
-    if (parentLiItemElement.classList.contains("protyle-wysiwyg__embed") ||
-        parentParentElement.classList.contains("protyle-wysiwyg__embed")) {
+    const embedContext = getEmbedChildOperationContext(liElement);
+    if (embedContext?.targetElement === parentLiItemElement ||
+        (embedContext && !embedContext.boundaryElement.contains(parentLiItemElement)) ||
+        (!embedContext && (parentLiItemElement.classList.contains("protyle-wysiwyg__embed") ||
+            parentParentElement.classList.contains("protyle-wysiwyg__embed")))) {
         return;
     }
     if (liElement.previousElementSibling?.classList.contains("protyle-action") && !parentParentElement.getAttribute("data-node-id")) {
@@ -570,7 +573,7 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
                     action: "move",
                     id: nextElement.getAttribute("data-node-id"),
                     parentID: lastBlockElement.getAttribute("data-node-id"),
-                    previousID: topOldPreviousID || nextElement.previousElementSibling?.getAttribute("data-node-id"),
+                    previousID: topOldPreviousID || getPreviousBlockSibling(nextElement)?.getAttribute("data-node-id"),
                 });
                 topOldPreviousID = nextElement.getAttribute("data-node-id");
                 const tempElement = nextElement;
@@ -636,7 +639,7 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
                 action: "insert",
                 data: movedHTML,
                 id: liId,
-                previousID: liElement.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: getPreviousBlockSibling(liElement)?.getAttribute("data-node-id"),
                 parentID: parentLiItemElement.getAttribute("data-node-id") || protyle.block.parentID
             });
             liElement.remove();
@@ -674,8 +677,11 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
         return;
     }
 
-    if (liElement.childElementCount === 2 && parentLiItemElement.childElementCount === 3) {
-        // 列表项里仅有包含一个列表项的列表，如 1. 1. 1 https://github.com/siyuan-note/insider/issues/494
+    if (liElement.childElementCount === 2 &&
+        (parentLiItemElement.childElementCount === 3 ||
+            (window.siyuan.config.editor.listLogicalOutdent &&
+                liElement.previousElementSibling?.classList.contains("protyle-action")))) {
+        // 父列表项仅包含单项子列表，或开启大纲反向缩进且单项子列表为首个内容块时，原地展开子列表
         range.collapse(false);
         moveToPrevious(deleteElement, range, isDelete);
         range.insertNode(document.createElement("wbr"));
@@ -693,7 +699,7 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
     range.insertNode(document.createElement("wbr"));
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
-    const previousID = liItemElements[0].previousElementSibling?.getAttribute("data-node-id");
+    const previousID = getPreviousBlockSibling(liItemElements[0])?.getAttribute("data-node-id");
     let startIndex;
     if (!liItemElements[0].previousElementSibling && liElement.getAttribute("data-subtype") === "o") {
         startIndex = parseInt(liItemElements[0].getAttribute("data-marker"));
@@ -893,9 +899,9 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
             action: "insert",
             id: parentLiItemElement.getAttribute("data-node-id"),
             data: parentLiItemElement.outerHTML,
-            previousID: parentLiItemElement.previousElementSibling?.getAttribute("data-node-id"),
+            previousID: getPreviousBlockSibling(parentLiItemElement)?.getAttribute("data-node-id"),
             // https://github.com/siyuan-note/siyuan/issues/9237 无 previousID
-            parentID: parentLiItemElement.parentElement.getAttribute("data-node-id"),
+            parentID: getParentBlock(parentLiItemElement).getAttribute("data-node-id"),
         });
         parentLiItemElement.remove();
     } else if (liElement.childElementCount === 1) {
@@ -907,7 +913,7 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
             action: "insert",
             id: liElement.getAttribute("data-node-id"),
             data: liElement.outerHTML,
-            previousID: liElement.previousElementSibling.getAttribute("data-node-id")
+            previousID: getPreviousBlockSibling(liElement)?.getAttribute("data-node-id")
         });
         liElement.remove();
     } else if (liElement.getAttribute("data-subtype") === "o") {

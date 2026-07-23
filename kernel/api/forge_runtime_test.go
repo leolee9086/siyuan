@@ -24,12 +24,12 @@ func TestForgeRuntimeShutdownRequiresAuthenticatedLoopbackSupervisor(t *testing.
 	_ = os.Setenv(util.ForgeSupervisorTokenEnv, "shutdown-token")
 
 	called := make(chan struct{}, 1)
-	forgeRuntimeClose = func(force, setCurrentWorkspace bool, execInstallPkg int) int {
+	forgeRuntimeClose = func(force, setCurrentWorkspace bool, execInstallPkg int) (int, string) {
 		if force || setCurrentWorkspace || execInstallPkg != 1 {
 			t.Errorf("unexpected close arguments: force=%v setCurrentWorkspace=%v execInstallPkg=%d", force, setCurrentWorkspace, execInstallPkg)
 		}
 		called <- struct{}{}
-		return 0
+		return 0, ""
 	}
 
 	invalidRequest := httptest.NewRequest(http.MethodPost, "/api/s-forge/forge/runtime/shutdown", nil)

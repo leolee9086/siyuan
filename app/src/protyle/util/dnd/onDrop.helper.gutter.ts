@@ -20,6 +20,7 @@ import {
     handleLiGapDrop,
     handleListItemChildDrop,
     isListSourceType,
+    resolveListTarget,
     shouldSkipListSourceDrop,
 } from "./onDrop.helper.list";
 import { getDragElement, getWorkspaceDir } from "./onDrop.environment";
@@ -72,9 +73,9 @@ export const insertAsRef = async (
     protyle: IProtyle,
     selectedIds: string[],
 ): Promise<void> => {
-    // lute 未初始化时无法生成 DOM，直接返回
+    // 引用 DOM 必须由当前编辑器的 Lute 生成，缺失时终止并暴露初始化错误。
     if (!protyle.lute) {
-        return;
+        throw new Error("Cannot insert block references before Protyle Lute is initialized");
     }
     let html = "";
     for (const id of selectedIds) {
@@ -98,9 +99,9 @@ export const insertAsEmbed = async (
     protyle: IProtyle,
     selectedIds: string[],
 ): Promise<void> => {
-    // lute 或 wysiwyg 未初始化时无法生成嵌入块
+    // 嵌入块需要 Lute 和编辑器 DOM，缺失时终止并暴露初始化错误。
     if (!protyle.lute || !protyle.wysiwyg) {
-        return;
+        throw new Error("Cannot insert embedded blocks before Protyle is initialized");
     }
     let html = "";
     for (const id of selectedIds) {
@@ -212,7 +213,7 @@ export const prepareSourceData = async (
  * @param sourceElements 源元素列表
  * @param targetElement 拖拽目标元素
  * @param targetClass 目标元素的 CSS 类名列表
- * @param ctrlKey 是否按住 Ctrl 键
+ * @param isCopy 是否使用复制语义（Ctrl 或 lite 模式）
  * @param editorElement 编辑器容器元素
  */
 export const handleBlockDrag = async (
@@ -220,7 +221,7 @@ export const handleBlockDrag = async (
     sourceElements: Element[],
     targetElement: Element,
     targetClass: string[],
-    ctrlKey: boolean,
+    isCopy: boolean,
     editorElement: HTMLElement,
     gutterTypes: string[],
 ): Promise<void> => {
@@ -232,53 +233,62 @@ export const handleBlockDrag = async (
     const isSbCol = parentEl?.getAttribute("data-type") === "NodeSuperBlock"
         && parentEl?.getAttribute("data-sb-layout") === "col";
     const isListSource = isListSourceType(gutterTypes);
+    const keepColumnListTarget = gutterTypes[0] === "nodelist" && isSbCol;
+    const resolvedTarget = isListSource && targetElement.classList.contains("list") && !keepColumnListTarget
+        ? resolveListTarget(targetElement, isBottom) || targetElement
+        : targetElement;
     if (isListSource && shouldSkipListSourceDrop(
-        sourceElements, targetElement, isChild, isBottom, ctrlKey, editorElement,
+        sourceElements, resolvedTarget, isChild, isBottom, isCopy, editorElement,
     )) {
         return;
     }
-    expandListBlockSources(sourceElements, targetElement);
-    if (!isListSource && handleLiGapDrop(
-        protyle, sourceElements, targetElement, targetClass, isChild, isBottom, ctrlKey,
+    expandListBlockSources(sourceElements, resolvedTarget);
+    const hasContentBlockSource = sourceElements.some(item =>
+        !["NodeList", "NodeListItem"].includes(item.getAttribute("data-type") || ""));
+    if (hasContentBlockSource && await handleLiGapDrop(
+        protyle, sourceElements, resolvedTarget, targetClass, isChild, isBottom, isCopy,
     )) {
         return;
     }
-    if (handleListItemChildDrop(protyle, sourceElements, targetElement, isChild, isBottom, ctrlKey)) {
+    if (hasContentBlockSource && !isChild && resolvedTarget.getAttribute("data-type") === "NodeListItem") {
+        return;
+    }
+    if (await handleListItemChildDrop(protyle, sourceElements, resolvedTarget, isChild, isBottom, isCopy)) {
         return;
     }
 
-    executeBlockMove(protyle, sourceElements, targetElement, gutterTypes, {
+    await executeBlockMove(protyle, sourceElements, resolvedTarget, gutterTypes, {
         isAfter,
         isHorizontal,
         isSbCol,
-        ctrlKey,
+        isCopy,
     });
     cleanupAfterBlockMove(protyle, editorElement);
 };
 
-const executeBlockMove = (
+const executeBlockMove = async (
     protyle: IProtyle,
     sourceElements: Element[],
     targetElement: Element,
     gutterTypes: string[],
-    options: { isAfter: boolean; isHorizontal: boolean; isSbCol: boolean; ctrlKey: boolean },
-): void => {
+    options: { isAfter: boolean; isHorizontal: boolean; isSbCol: boolean; isCopy: boolean },
+): Promise<void> => {
     if (options.isSbCol && options.isHorizontal) {
-        dragSame(protyle, sourceElements, targetElement, options.isAfter, options.ctrlKey);
+        await dragSame(protyle, sourceElements, targetElement, options.isAfter, options.isCopy);
         return;
     }
     if (options.isSbCol) {
-        dragSb(protyle, sourceElements, targetElement, options.isAfter, "row", options.ctrlKey);
+        await dragSb(protyle, sourceElements, targetElement, options.isAfter, "row", options.isCopy);
         return;
     }
     if (options.isHorizontal && gutterTypes[0] !== "nodelistitem") {
-        dragSb(protyle, sourceElements, targetElement, options.isAfter, "col", options.ctrlKey);
+        await dragSb(protyle, sourceElements, targetElement, options.isAfter, "col", options.isCopy);
         return;
     }
     if (options.isHorizontal && targetElement.classList.contains("list")) {
         return;
     }
-    dragSame(protyle, sourceElements, targetElement, options.isAfter, options.ctrlKey);
+    await dragSame(protyle, sourceElements, targetElement, options.isAfter, options.isCopy);
 };
 
 const cleanupAfterBlockMove = (protyle: IProtyle, editorElement: HTMLElement): void => {

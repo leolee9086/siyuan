@@ -23,14 +23,17 @@ function initProtyle(self: Editor, options: {
     blockId: string;
     action?: TProtyleAction[];
     rootId: string;
+    notebookId?: string;
     mode?: TEditorMode;
     scrollPosition?: ScrollLogicalPosition;
     afterInitProtyle?: (editor: Protyle) => void;
 }) {
     self.editor = new Protyle(self.app, self.element, {
+        databaseAttr: true,
         action: options.action || [],
         blockId: options.blockId,
         rootId: options.rootId,
+        notebookId: options.notebookId,
         mode: options.mode,
         render: {
             title: true,
@@ -47,7 +50,7 @@ function initProtyle(self: Editor, options: {
                 fullscreen(editor.protyle.element);
                 setPadding(editor.protyle);
             }
-            countBlockWord([], editor.protyle.block.rootID, false, options.status);
+            countBlockWord([], editor.protyle.block.rootID, false, editor.protyle.options.status);
             if (isElectron) {
                 import("../window/setHeader").then(m => m.setModelsHash());
             }
@@ -84,6 +87,7 @@ export class Editor {
             blockId: options.blockId,
             action: options.action,
             rootId: options.rootId,
+            notebookId: options.notebookId,
             mode: options.mode,
             scrollPosition: options.scrollPosition,
             afterInitProtyle: options.afterInitProtyle,
@@ -92,5 +96,3 @@ export class Editor {
         fetchPost("/api/storage/updateRecentDocOpenTime", { rootID: options.rootId });
     }
 }
-
-

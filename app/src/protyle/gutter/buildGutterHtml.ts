@@ -6,7 +6,7 @@ import {
     isInAVBlock,
     isInEmbedBlock
 } from "../util/hasClosest";
-import { getParentBlock, getTopAloneElement } from "../wysiwyg/getBlock";
+import { getEmbedChildOperationContext, getParentBlock, getTopAloneElement } from "../wysiwyg/getBlock";
 import { handleAttributeView } from "./handleAttributeView";
 
 /**
@@ -23,34 +23,52 @@ import { handleAttributeView } from "./handleAttributeView";
  * @returns 包含 HTML 内容、匹配状态和其他信息的对象
  */
 export const buildGutterHtml = (protyle: IProtyle, element: Element, target: Element | undefined, gutterTip: string, gutterElement: HTMLElement) => {
+    const embedContext = getEmbedChildOperationContext(element);
+    const embedElement = embedContext ? isInEmbedBlock(element, false) : false;
+    const embedID = embedElement ? embedElement.getAttribute("data-node-id") || undefined : undefined;
     // 处理属性视图（Attribute View）的特殊情况
-    const avResult = handleAttributeView(target, element, protyle, element.getAttribute("data-type"));
+    const avResult = embedContext ? undefined : handleAttributeView(target, element, protyle, element.getAttribute("data-type"));
     if (avResult) {
         return { html: avResult.html, match: false, space: 0, element: avResult.element, nodeElement: avResult.nodeElement };
     }
 
     // 计算初始节点和列表项
-    const initial = calculateInitialNode(element, target);
+    const initial = calculateInitialNode(element, target, embedContext);
     if (initial.shouldReturn) {
         return { html: "", match: false, space: 0, element: element };
     }
 
     // 遍历元素的父级链，生成 Gutter 内容
-    const result = processGutterNodes(protyle, initial.nodeElement, initial.listItem, gutterTip);
+    const result = processGutterNodes(protyle, initial.nodeElement, initial.listItem, gutterTip, embedContext, embedID);
     if (result.shouldReturn) {
         return { html: "", match: false, space: 0, element: element };
     }
 
     // 检查生成的 HTML 是否与现有按钮匹配
-    const match = isGutterMatch(gutterElement, result.html);
+    const match = isGutterMatch(gutterElement, result.html, embedID);
 
-    return { html: result.html, match, listItem: result.listItem, nodeElement: result.nodeElement || undefined, space: result.space, element };
+    return {
+        html: result.html,
+        match,
+        listItem: result.listItem,
+        nodeElement: result.nodeElement || undefined,
+        space: result.space,
+        element,
+        embedContext,
+    };
 };
 
 /**
  * 遍历节点处理 Gutter 按钮生成
  */
-const processGutterNodes = (protyle: IProtyle, initialNodeElement: Element, initialListItem: Element | undefined, gutterTip: string) => {
+const processGutterNodes = (
+    protyle: IProtyle,
+    initialNodeElement: Element,
+    initialListItem: Element | undefined,
+    gutterTip: string,
+    embedContext: IEmbedChildOperationContext | undefined,
+    embedID: string | undefined,
+) => {
     let nodeElement: Element = initialNodeElement;
     const state = {
         html: "",
@@ -66,19 +84,24 @@ const processGutterNodes = (protyle: IProtyle, initialNodeElement: Element, init
             break;
         }
         const inputParent = hasClosestBlock(nodeElement.parentElement);
-        const parentElement = inputParent === false ? undefined : inputParent;
+        let parentElement = inputParent === false ? undefined : inputParent;
+        if (embedContext && parentElement && !embedContext.boundaryElement.contains(parentElement)) {
+            parentElement = undefined;
+        }
 
         // 检查是否为嵌入块
-        const embedCheck = checkEmbedBlock(nodeElement, parentElement);
-        if (embedCheck.shouldBreak) {
-            break;
-        }
-        if (embedCheck.shouldContinue && embedCheck.nodeElement) {
-            nodeElement = embedCheck.nodeElement;
-            continue;
+        if (!embedContext) {
+            const embedCheck = checkEmbedBlock(nodeElement, parentElement);
+            if (embedCheck.shouldBreak) {
+                break;
+            }
+            if (embedCheck.shouldContinue && embedCheck.nodeElement) {
+                nodeElement = embedCheck.nodeElement;
+                continue;
+            }
         }
 
-        accumulateGutterHtml(protyle, nodeElement, gutterTip, state);
+        accumulateGutterHtml(protyle, nodeElement, gutterTip, state, embedContext, embedID);
 
         // 处理父级逻辑
         const parentLogic = handleParentLogic(nodeElement, parentElement);
@@ -110,7 +133,14 @@ const processGutterNodes = (protyle: IProtyle, initialNodeElement: Element, init
  * @param gutterTip Gutter 的提示文本
  * @param state 累积状态对象，包含 HTML、缩进、列表项等信息
  */
-const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip: string, state: { html: string, space: number, listItem: Element | undefined, index: number, hideParent: boolean }) => {
+const accumulateGutterHtml = (
+    protyle: IProtyle,
+    nodeElement: Element,
+    gutterTip: string,
+    state: { html: string, space: number, listItem: Element | undefined, index: number, hideParent: boolean },
+    embedContext: IEmbedChildOperationContext | undefined,
+    embedID: string | undefined,
+) => {
     let type: string | null = null;
     if (!state.hideParent) {
         type = nodeElement.getAttribute("data-type");
@@ -123,7 +153,15 @@ const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip
     state.index += 1;
 
     // 生成按钮 HTML
-    const { buttonHTML, foldHTML } = generateButtonHtml(protyle, nodeElement, type, gutterTip, nodeElement.getAttribute("data-node-id"));
+    const { buttonHTML, foldHTML } = generateButtonHtml(
+        protyle,
+        nodeElement,
+        type,
+        gutterTip,
+        nodeElement.getAttribute("data-node-id"),
+        embedContext,
+        embedID,
+    );
     if (!state.hideParent) {
         state.html = buttonHTML + state.html;
     }
@@ -151,7 +189,7 @@ const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip
  * 检查生成的 HTML 是否与现有 Gutter 按钮匹配
  * 统计时排除块标边缘框线与+号元素，它们由 render 末尾单独追加，不参与防抖比较
  */
-const isGutterMatch = (gutterElement: HTMLElement, html: string) => {
+const isGutterMatch = (gutterElement: HTMLElement, html: string, embedID: string | undefined) => {
     let match = true;
     const buttonsElement = gutterElement.querySelectorAll("button:not(.protyle-gutters__line):not(.protyle-gutters__plus)");
     if (buttonsElement.length !== html.split("</button>").length - 1) {
@@ -161,7 +199,7 @@ const isGutterMatch = (gutterElement: HTMLElement, html: string) => {
     if (match) {
         for (const item of Array.from(buttonsElement)) {
             const id = item.getAttribute("data-node-id");
-            if (id && html.indexOf(id) === -1) {
+            if (id && (html.indexOf(id) === -1 || (item as HTMLElement).dataset.embedId !== embedID)) {
                 match = false;
                 break;
             }
@@ -209,7 +247,11 @@ const checkEmbedBlock = (nodeElement: Element, parentElement: Element | undefine
  * @param target 可选的目标子元素，用于精确定位
  * @returns 包含节点元素、列表项和是否应该返回标志的对象
  */
-const calculateInitialNode = (element: Element, _target: Element | undefined) => {
+const calculateInitialNode = (
+    element: Element,
+    _target: Element | undefined,
+    embedContext: IEmbedChildOperationContext | undefined,
+) => {
     let nodeElement = element;
     const type = nodeElement.getAttribute("data-type");
 
@@ -221,6 +263,9 @@ const calculateInitialNode = (element: Element, _target: Element | undefined) =>
 
     // 获取顶级独立元素
     let topElement = getTopAloneElement(nodeElement);
+    if (embedContext && !embedContext.boundaryElement.contains(topElement)) {
+        topElement = embedContext.targetElement || nodeElement;
+    }
 
     // 处理标注块的特殊情况
     if (topElement.classList.contains("callout") && !nodeElement.classList.contains("callout") &&
@@ -230,7 +275,7 @@ const calculateInitialNode = (element: Element, _target: Element | undefined) =>
 
     // 查找列表项
     let listItem = topElement.querySelector(".li") || topElement.querySelector(".list") || undefined;
-    if (listItem && (isInEmbedBlock(listItem) || isInAVBlock(listItem))) {
+    if (listItem && ((!embedContext && isInEmbedBlock(listItem)) || isInAVBlock(listItem))) {
         listItem = undefined;
     }
 
@@ -295,11 +340,21 @@ const handleParentLogic = (nodeElement: Element, parentElement: Element | undefi
  * @param dataNodeId 元素的节点 ID
  * @returns 包含按钮 HTML 和折叠按钮 HTML 的对象
  */
-const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: string | null, gutterTip: string, dataNodeId: string | null) => {
+const generateButtonHtml = (
+    protyle: IProtyle,
+    nodeElement: Element,
+    type: string | null,
+    gutterTip: string,
+    dataNodeId: string | null,
+    embedContext: IEmbedChildOperationContext | undefined,
+    embedID: string | undefined,
+) => {
     // 根据编辑器状态调整提示文本
-    let currentGutterTip = gutterTip;
-    if (protyle.disabled) {
-        currentGutterTip = gutterTip.split("<br>").splice(0, 2).join("<br>");
+    let currentGutterTip = gutterTip.replace("${x}", () => getLangByType(type || ""));
+    if (embedContext) {
+        currentGutterTip = currentGutterTip.split("<br>")[0];
+    } else if (protyle.disabled) {
+        currentGutterTip = currentGutterTip.split("<br>").splice(0, 2).join("<br>");
     }
 
     // 处理反向链接数据的情况
@@ -309,10 +364,11 @@ const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: strin
     }
 
     // 生成主按钮 HTML，使用 data-delay 实现提示延迟以避免干扰
+    const embedHTML = embedID ? ` data-embed-id="${embedID}"` : "";
     const buttonHTML = type ? `<button class="ariaLabel" data-delay="500" data-position="parentW" aria-label="${currentGutterTip}"
-data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" data-node-id="${dataNodeId}">
+data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" data-node-id="${dataNodeId}"${embedHTML}>
 <svg><use xlink:href="#${getIconByType(type || "", nodeElement.getAttribute("data-subtype") || undefined)}"></use></svg>
-<span ${popoverHTML} ${protyle.disabled ? "" : 'draggable="true"'}></span>
+<span ${popoverHTML} ${protyle.disabled || embedContext ? "" : 'draggable="true"'}></span>
 </button>` : "";
 
     // 生成折叠按钮 HTML（如果需要）

@@ -853,19 +853,24 @@ type ValueRollup struct {
 	cacheMutex       sync.RWMutex `json:"-"` // 并发安全锁
 }
 
-// calculateFingerprint 计算数据指纹，用于判断数据是否变化
-// 指纹基于：关联字段的BlockIDs、目标字段ID、计算类型
-func (r *ValueRollup) calculateFingerprint(relationVal *Value, destKey *Key, calc *RollupCalc) string {
+// calculateFingerprint 计算数据指纹，用于判断数据是否变化。
+// 指纹同时包含关联目标值，避免目标单元格更新后继续复用旧汇总结果。
+func (r *ValueRollup) calculateFingerprint(keyValues []*KeyValues, destKey *Key, relationVal *Value, calc *RollupCalc, furtherCollection Collection) string {
 	if nil == relationVal || nil == relationVal.Relation {
 		return ""
 	}
 
-	// 构建指纹字符串：blockIDs + destKeyID + calcOperator
 	fingerprintData := strings.Join(relationVal.Relation.BlockIDs, ",")
-	fingerprintData += "|" + destKey.ID
+	fingerprintData += "|" + destKey.ID + "|" + string(destKey.Type) + "|" + string(destKey.NumberFormat)
 
 	if nil != calc {
 		fingerprintData += "|" + string(calc.Operator)
+	}
+	for _, blockID := range relationVal.Relation.BlockIDs {
+		fingerprintData += "|" + blockID + "="
+		if destVal := resolveRollupDestValue(keyValues, destKey, blockID, furtherCollection); nil != destVal {
+			fingerprintData += destVal.ToJSONString()
+		}
 	}
 
 	// 使用MD5生成指纹
@@ -892,7 +897,7 @@ func (r *ValueRollup) isCacheValid(fingerprint string) bool {
 
 func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relationVal *Value, calc *RollupCalc, furtherCollection Collection) {
 	// 计算数据指纹
-	fingerprint := r.calculateFingerprint(relationVal, destKey, calc)
+	fingerprint := r.calculateFingerprint(keyValues, destKey, relationVal, calc, furtherCollection)
 
 	// 使用写锁保护所有对r.Contents的访问，确保并发安全
 	r.cacheMutex.Lock()
@@ -911,10 +916,7 @@ func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relati
 	// 开始计算
 	r.Contents = nil
 	for _, blockID := range relationVal.Relation.BlockIDs {
-		destVal := GetValue(keyValues, destKey.ID, blockID)
-		if nil != furtherCollection && (KeyTypeTemplate == destKey.Type || KeyTypeUpdated == destKey.Type || KeyTypeCreated == destKey.Type) {
-			destVal = furtherCollection.GetValue(blockID, destKey.ID)
-		}
+		destVal := resolveRollupDestValue(keyValues, destKey, blockID, furtherCollection)
 
 		if nil == destVal {
 			if KeyTypeCheckbox == destKey.Type {
@@ -930,12 +932,16 @@ func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relati
 			continue
 		}
 
+		destVal = destVal.Clone()
+		if nil == destVal {
+			continue
+		}
 		if KeyTypeNumber == destKey.Type {
 			destVal.Number.Format = destKey.NumberFormat
 			destVal.Number.FormatNumber()
 		}
 
-		r.Contents = append(r.Contents, destVal.Clone())
+		r.Contents = append(r.Contents, destVal)
 	}
 
 	r.calcContents(calc, destKey)
@@ -950,6 +956,13 @@ func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relati
 	r.cacheTimestamp = time.Now().UnixMilli()
 }
 
+func resolveRollupDestValue(keyValues []*KeyValues, destKey *Key, blockID string, furtherCollection Collection) *Value {
+	if nil != furtherCollection && (KeyTypeTemplate == destKey.Type || KeyTypeUpdated == destKey.Type || KeyTypeCreated == destKey.Type) {
+		return furtherCollection.GetValue(blockID, destKey.ID)
+	}
+	return GetValue(keyValues, destKey.ID, blockID)
+}
+
 func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
 	if nil == calc {
 		return
@@ -958,6 +971,7 @@ func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
 	switch calc.Operator {
 	case CalcOperatorNone:
 	case CalcOperatorUniqueValues:
+		var newContents []*Value
 		uniqueValues := map[string]bool{}
 		for _, content := range r.Contents {
 			switch content.Type {
@@ -971,6 +985,9 @@ func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
 					}
 				}
 				content.Relation.Contents = newRelationContents
+				if 0 < len(newRelationContents) {
+					newContents = append(newContents, content)
+				}
 			case KeyTypeMSelect:
 				var newMSelect []*ValueSelect
 				for _, mSelect := range content.MSelect {
@@ -980,6 +997,9 @@ func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
 					}
 				}
 				content.MSelect = newMSelect
+				if 0 < len(newMSelect) {
+					newContents = append(newContents, content)
+				}
 			case KeyTypeMAsset:
 				var newMAsset []*ValueAsset
 				for _, mAsset := range content.MAsset {
@@ -989,10 +1009,29 @@ func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
 					}
 				}
 				content.MAsset = newMAsset
+				if 0 < len(newMAsset) {
+					newContents = append(newContents, content)
+				}
+			default:
+				key := content.String(true)
+				if !uniqueValues[key] {
+					uniqueValues[key] = true
+					newContents = append(newContents, content)
+				}
 			}
 		}
+		r.Contents = newContents
 	case CalcOperatorCountAll:
-		r.Contents = []*Value{{Type: KeyTypeNumber, Number: NewFormattedValueNumber(float64(len(r.Contents)), NumberFormatNone)}}
+		countAll := len(r.Contents)
+		if KeyTypeRelation == destKey.Type {
+			countAll = 0
+			for _, content := range r.Contents {
+				if nil != content.Relation {
+					countAll += len(content.Relation.BlockIDs)
+				}
+			}
+		}
+		r.Contents = []*Value{{Type: KeyTypeNumber, Number: NewFormattedValueNumber(float64(countAll), NumberFormatNone)}}
 	case CalcOperatorCountValues:
 		r.Contents = []*Value{{Type: KeyTypeNumber, Number: NewFormattedValueNumber(float64(len(r.Contents)), NumberFormatNone)}}
 	case CalcOperatorCountUniqueValues:

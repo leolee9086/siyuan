@@ -143,6 +143,7 @@ class ForgeRuntimeSupervisor {
         this.versionsDir = path.join(this.runtimeDir, "versions");
         this.jobsDir = path.join(this.runtimeDir, "jobs");
         this.statePath = path.join(this.runtimeDir, "state.json");
+        this.ownershipPath = path.join(this.runtimeDir, "supervisor.json");
         this.port = String(options.port);
         this.workspace = options.workspace;
         this.noBrowser = Boolean(options.noBrowser);
@@ -155,6 +156,7 @@ class ForgeRuntimeSupervisor {
         this.delay = options.delay || delay;
         this.now = options.now || (() => new Date());
         this.token = options.token || crypto.randomBytes(32).toString("hex");
+        this.cliToken = options.cliToken || crypto.randomBytes(32).toString("hex");
         this.activeVersion = undefined;
         this.kernelProcess = undefined;
         this.currentJob = undefined;
@@ -165,6 +167,7 @@ class ForgeRuntimeSupervisor {
         this.closing = false;
         this.expectedKernelExit = false;
         this.pendingProtectedApproval = undefined;
+        this.ownsRuntime = false;
     }
 
     async initialize() {
@@ -172,6 +175,7 @@ class ForgeRuntimeSupervisor {
         fs.mkdirSync(this.jobsDir, {recursive: true});
         await this.startControlServer();
         try {
+            this.claimRuntimeOwnership();
             const revision = await this.gitOutput(["rev-parse", "HEAD"]);
             const version = await this.buildVersion(revision, "initial");
             await this.launchAndRequireHealthy(version, !this.noBrowser);
@@ -207,22 +211,82 @@ class ForgeRuntimeSupervisor {
         if (this.controlServer) {
             await new Promise((resolve) => this.controlServer.close(resolve));
         }
+        this.releaseRuntimeOwnership();
     }
 
     status() {
         return {
             mode: "forge-source-supervisor",
+            processId: process.pid,
+            repoRoot: this.repoRoot,
+            workspace: this.workspace,
+            port: Number(this.port),
             activeVersion: this.activeVersion || null,
             job: this.currentJob || null,
             retainedVersions: this.listVersions(),
         };
     }
 
+    claimRuntimeOwnership() {
+        const ownership = {
+            schemaVersion: 1,
+            processId: process.pid,
+            repoRoot: this.repoRoot,
+            workspace: this.workspace,
+            port: Number(this.port),
+            controlURL: this.controlURL,
+            cliToken: this.cliToken,
+            startedAt: this.now().toISOString(),
+        };
+        let descriptor;
+        try {
+            descriptor = fs.openSync(this.ownershipPath, "wx", 0o600);
+            fs.writeFileSync(descriptor, `${JSON.stringify(ownership, null, 2)}\n`, "utf8");
+            this.ownsRuntime = true;
+        } catch (error) {
+            if (error.code === "EEXIST") {
+                throw new Error(`Forge runtime ownership already exists at ${this.ownershipPath}`);
+            }
+            if (descriptor !== undefined) {
+                fs.rmSync(this.ownershipPath, {force: true});
+            }
+            throw error;
+        } finally {
+            if (descriptor !== undefined) {
+                fs.closeSync(descriptor);
+            }
+        }
+    }
+
+    releaseRuntimeOwnership() {
+        if (!this.ownsRuntime) {
+            return;
+        }
+        try {
+            const ownership = JSON.parse(fs.readFileSync(this.ownershipPath, "utf8"));
+            if (timingSafeTokenEqual(ownership.cliToken, this.cliToken)) {
+                fs.rmSync(this.ownershipPath, {force: true});
+            }
+        } finally {
+            this.ownsRuntime = false;
+        }
+    }
+
     async handleControlRequest(request, response) {
         response.setHeader("Content-Type", "application/json; charset=utf-8");
-        if (!timingSafeTokenEqual(request.headers[SUPERVISOR_TOKEN_HEADER], this.token)) {
+        const suppliedToken = request.headers[SUPERVISOR_TOKEN_HEADER];
+        const hasSupervisorToken = timingSafeTokenEqual(suppliedToken, this.token);
+        const hasCLIToken = timingSafeTokenEqual(suppliedToken, this.cliToken);
+        if (!hasSupervisorToken && !hasCLIToken) {
             response.statusCode = 401;
             response.end(JSON.stringify({error: "invalid supervisor token"}));
+            return;
+        }
+        const cliAllowed = (request.method === "GET" && request.url === "/status") ||
+            (request.method === "POST" && request.url === "/restart");
+        if (!hasSupervisorToken && !cliAllowed) {
+            response.statusCode = 403;
+            response.end(JSON.stringify({error: "CLI credential is not permitted for this Supervisor action"}));
             return;
         }
         if (request.method === "GET" && request.url === "/status") {

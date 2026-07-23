@@ -1,7 +1,7 @@
 /** 用途：导出图片文件描述类型；使用范围：比例分页导出的返回值约束。 */
 import type {IExportImageBlobFile} from "./exportImage.types";
-/** 用途：html-to-image 最小能力类型；使用范围：比例分页截图依赖注入。 */
-import type {IExportImageBlobGenerator} from "./exportImage.types";
+/** 用途：html-to-image 截图运行时与选项类型；使用范围：比例分页截图依赖注入。 */
+import type {IExportImageCapture} from "./exportImage.types";
 /** 用途：导出图片上下文类型；使用范围：比例分页导出流程参数约束。 */
 import type {IExportImageContext} from "./exportImage.types";
 /** 用途：比例字符串解析函数；使用范围：分页导出前解析宽高比；解耦评估：解析规则集中在 ratio 模块后，此处直接复用可避免重复实现。 */
@@ -177,12 +177,12 @@ const exportSingleStageBlob = async (
     stagePreviewElement: HTMLElement,
     maxPreviewHeight: number,
     targetFrameHeight: number,
-    htmlToImage: IExportImageBlobGenerator,
+    capture: IExportImageCapture,
     fileName: string,
 ): Promise<IExportImageBlobFile[]> => {
     applyStageFrameSize(stageElement, stagePreviewElement, maxPreviewHeight, targetFrameHeight);
     await waitForNextFrame();
-    const blob = await htmlToImage.toBlob(stageElement);
+    const blob = await capture.runtime.toBlob(stageElement, capture.options);
     return blob ? [{blob, fileName}] : [];
 };
 
@@ -195,7 +195,7 @@ const exportPagedStageBlobs = async (
     originalDisplayMap: Map<HTMLElement, string>,
     frameChromeHeight: number,
     maxPreviewHeight: number,
-    htmlToImage: IExportImageBlobGenerator,
+    capture: IExportImageCapture,
     fileName: string,
 ): Promise<IExportImageBlobFile[]> => {
     hidePreviewChildren(childElements);
@@ -207,7 +207,7 @@ const exportPagedStageBlobs = async (
         const frameHeight = previewHeight + frameChromeHeight;
         applyStageFrameSize(stageElement, stagePreviewElement, previewHeight, frameHeight);
         await waitForNextFrame();
-        const blob = await htmlToImage.toBlob(stageElement);
+        const blob = await capture.runtime.toBlob(stageElement, capture.options);
         if (blob) {
             files.push({
                 blob,
@@ -223,7 +223,7 @@ const exportStageBlobs = async (
     ctx: Pick<IExportImageContext, "id" | "confirmButton">,
     stage: {stageWrapperElement: HTMLElement; stageElement: HTMLElement; stagePreviewElement: HTMLElement},
     ratio: {width: number; height: number},
-    htmlToImage: IExportImageBlobGenerator,
+    capture: IExportImageCapture,
 ): Promise<IExportImageBlobFile[]> => {
     const {stageWrapperElement, stageElement, stagePreviewElement} = stage;
     try {
@@ -234,12 +234,12 @@ const exportStageBlobs = async (
 
         // 空预览场景仍需导出一张满足比例的图片，避免结果为空。
         if (0 === childElements.length) {
-            return await exportSingleStageBlob(stageElement, stagePreviewElement, maxPreviewHeight, targetFrameHeight, htmlToImage, fileName);
+            return await exportSingleStageBlob(stageElement, stagePreviewElement, maxPreviewHeight, targetFrameHeight, capture, fileName);
         }
 
         const originalDisplayMap = createOriginalDisplayMap(childElements);
         const batches = splitPreviewChildrenIntoBatches(childElements, maxPreviewHeight);
-        return await exportPagedStageBlobs(stageElement, stagePreviewElement, childElements, batches, originalDisplayMap, frameChromeHeight, maxPreviewHeight, htmlToImage, fileName);
+        return await exportPagedStageBlobs(stageElement, stagePreviewElement, childElements, batches, originalDisplayMap, frameChromeHeight, maxPreviewHeight, capture, fileName);
     } finally {
         stageWrapperElement.remove();
     }
@@ -248,7 +248,7 @@ const exportStageBlobs = async (
 /** 作用：按选定比例导出一张或多张图片。意图：内容过长时自动分页避免裁切。 */
 export const exportImageBlobsByRatio = async (
     ctx: Pick<IExportImageContext, "id" | "contentElement" | "exportImageElement" | "ratioElement" | "confirmButton">,
-    htmlToImage: IExportImageBlobGenerator,
+    capture: IExportImageCapture,
 ): Promise<IExportImageBlobFile[]> => {
     const ratio = await parseExportImageRatio(ctx.ratioElement.value);
     if (!ratio) {
@@ -260,5 +260,5 @@ export const exportImageBlobsByRatio = async (
         return [];
     }
 
-    return await exportStageBlobs(ctx, stage, ratio, htmlToImage);
+    return await exportStageBlobs(ctx, stage, ratio, capture);
 };

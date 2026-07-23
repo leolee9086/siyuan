@@ -1,6 +1,7 @@
 import { fetchSyncPost } from "../../../util/network/fetch";
 import { IMoveContext } from "./moveTo.types";
 import { getPreviousBlockSibling } from "../../wysiwyg/getBlock";
+import {convertListItemSubtype} from "./moveTo.helper.list";
 
 export const handleCopyOperation = (item: Element, id: string, context: IMoveContext) => {
     const copyNewId = Lute.NewNodeID();
@@ -25,6 +26,13 @@ export const handleCopyOperation = (item: Element, id: string, context: IMoveCon
         const updatedTimestamp = newId.split("-")[0] ?? "";
         e.setAttribute("data-node-id", newId);
         e.setAttribute("updated", updatedTimestamp);
+    }
+
+    const targetSubtype = context.targetElement.getAttribute("data-subtype");
+    if (copyElement.getAttribute("data-type") === "NodeListItem" &&
+        context.targetElement.getAttribute("data-type") === "NodeListItem" && targetSubtype &&
+        copyElement.getAttribute("data-subtype") !== targetSubtype) {
+        convertListItemSubtype(copyElement, targetSubtype);
     }
 
     if (context.newListId) {

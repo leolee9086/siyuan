@@ -17,6 +17,7 @@ export interface IEditorOptions {
     tab: Tab;
     blockId: string;
     rootId: string;
+    notebookId?: string;
     mode?: TEditorMode;
     action?: TProtyleAction[];
     afterInitProtyle?: (editor: Protyle) => void;
@@ -36,6 +37,7 @@ export interface ITabInitData {
     blockId?: string | undefined;
     mode?: TEditorMode | undefined;
     action?: TProtyleAction | TProtyleAction[] | undefined;
+    scrollPosition?: ScrollLogicalPosition | undefined;
     customModelData?: unknown; // Keep any for now as it can be complex, or unknown
     customModelType?: string | undefined;
 }

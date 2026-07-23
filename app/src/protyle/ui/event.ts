@@ -2,12 +2,11 @@ import { Constants } from "../../constants";
 import { genUUID } from "../../util/platform/genID";
 import { isMac } from "../util/compatibility";
 import { isMobile } from "../../platform";
-import { isTouchDevice } from "../../util/platform/functions";
 import { setInlineStyle } from "../../util/assets/assets";
 import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";
-import { getContenteditableElement, getLastBlock } from "../wysiwyg/getBlock";
+import { getContenteditableElement, getEmbedChildOperationContext, getLastBlock } from "../wysiwyg/getBlock";
 import { transaction } from "../wysiwyg/transaction";
 import { genEmptyElement, genHeadingElement } from "../../block/util";
 import { focusByRange } from "../util/selection";
@@ -297,7 +296,8 @@ const 处理Gutter悬停 = (protyle: IProtyle, nodeElement: HTMLElement, target:
 
     const embedElement = isInEmbedBlock(nodeElement);
     if (embedElement) {
-        protyle.gutter.render(protyle, embedElement);
+        const embedContext = getEmbedChildOperationContext(nodeElement);
+        protyle.gutter.render(protyle, embedContext ? nodeElement : embedElement, target);
         return true;
     }
 
@@ -325,12 +325,10 @@ const 处理高亮移除 = (
 
 /**
  * 处理 gutter 按钮的鼠标悬停高亮
- * @param isTouch 是否为触摸设备，触摸设备跳过此处理
  */
-const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event: Event, isTouch: boolean): boolean => {
+const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event: Event): boolean => {
     const buttonElement = hasClosestByTag(target, "BUTTON");
-    // 触摸设备或非 gutter 按钮时跳过处理
-    const 不是Gutter按钮 = isTouch || !buttonElement || !buttonElement.parentElement.classList.contains("protyle-gutters");
+    const 不是Gutter按钮 = !buttonElement || !buttonElement.parentElement.classList.contains("protyle-gutters");
     if (不是Gutter按钮) {
         return false;
     }
@@ -343,24 +341,21 @@ const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event:
         return true;
     }
 
-    Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${buttonElement.getAttribute("data-node-id")}"]`)).find(item => {
-        if (isInEmbedBlock(item) || !protyle.gutter.isMatchNode(item)) {
-            return false;
-        }
+    const gutterNodeElement = protyle.gutter.getNodeElement(protyle, buttonElement);
+    if (gutterNodeElement) {
         const bodyQueryClass = (buttonElement.dataset.groupId && buttonElement.dataset.groupId !== "undefined")
             ? `.av__body[data-group-id="${buttonElement.dataset.groupId}"] `
             : "";
-        const rowItem = item.querySelector(bodyQueryClass + `.av__row[data-id="${buttonElement.dataset.rowId}"]`);
+        const rowItem = gutterNodeElement.querySelector(bodyQueryClass + `.av__row[data-id="${buttonElement.dataset.rowId}"]`);
 
-        处理高亮移除(protyle, item, rowItem);
+        处理高亮移除(protyle, gutterNodeElement, rowItem);
 
         if (type === "NodeAttributeViewRowMenu" && rowItem) {
             rowItem.classList.add("av__row--hl");
-            return true;
+        } else {
+            gutterNodeElement.classList.add("protyle-wysiwyg--hl");
         }
-        item.classList.add("protyle-wysiwyg--hl");
-        return true;
-    });
+    }
 
     event.preventDefault();
     return true;
@@ -400,10 +395,18 @@ const 处理面包屑高亮 = (protyle: IProtyle, target: HTMLElement) => {
  */
 export const 绑定悬停事件 = (protyle: IProtyle) => {
     const overAttr = { value: false };
-    const isTouch = isTouchDevice();
+    const eventName = isMobile ? "pointerover" : "mouseover";
 
     // @内联回调 悬停/触摸事件处理
-    protyle.element.addEventListener(isTouch ? "touchend" : "mouseover", (event: Event & { target: HTMLElement }) => {
+    protyle.element.addEventListener(eventName, (event: PointerEvent & { target: HTMLElement }) => {
+        // 移动宿主只响应外接鼠标悬停，手指/触控笔不应显示桌面 gutter。
+        if (isMobile && event.pointerType !== "mouse") {
+            return;
+        }
+        // 数据库属性面板拥有独立交互，禁止正文 gutter 高亮侵入。
+        if (hasClosestByClassName(event.target, "protyle-db-attr")) {
+            return;
+        }
         // 1. 处理 attr 高亮
         if (处理Attr高亮(protyle, event.target, overAttr)) {
             return;
@@ -415,8 +418,8 @@ export const 绑定悬停事件 = (protyle: IProtyle) => {
             return;
         }
 
-        // 3. 处理 gutter 按钮高亮（触摸设备跳过）
-        if (处理Gutter按钮高亮(protyle, event.target, event, isTouch)) {
+        // 3. 处理 gutter 按钮高亮
+        if (处理Gutter按钮高亮(protyle, event.target, event)) {
             return;
         }
 

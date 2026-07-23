@@ -7,7 +7,7 @@ import { setFold } from "../../util/blockFold";
 /** 用途：提交事务与合并超级块事务。使用范围：拖拽事务提交及超级块合并。解耦评估：通过 transaction 直接导入。 */
 import { transaction, turnsIntoOneTransaction } from "../../wysiwyg/transaction";
 /** 用途：获取父块与前继块。使用范围：构建移动操作时定位锚点。解耦评估：通过 getBlock 直接导入。 */
-import { getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
+import { getNextBlockSibling, getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 /** 用途：重排有序列表序号。使用范围：有序列表拖拽后重排序号。解耦评估：通过 list.updateOrder 直接导入。 */
 import { updateListOrder } from "../../wysiwyg/list.updateOrder";
 /** 用途：拖拽相关类型定义。使用范围：drag.helpers/drag.ts 类型标注。解耦评估：同目录类型文件直接导入。 */
@@ -80,7 +80,7 @@ export function buildSbInsertOperation(sbElement: Element, protyle: IProtyle) {
         previousID: getPreviousBlockSibling(sbElement)?.getAttribute("data-node-id") ?? undefined,
         parentID: getParentBlock(sbElement)?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID
     };
-    const nextID = sbElement.nextElementSibling?.getAttribute("data-node-id");
+    const nextID = getNextBlockSibling(sbElement)?.getAttribute("data-node-id");
     // 存在后继块时才写入 nextID，避免向可选 string 字段写入 undefined
     if (nextID) {
         operation.nextID = nextID;
@@ -181,7 +181,7 @@ export function headingNeedsRefold(item: Element) {
     if (item.getAttribute("data-type") !== "NodeHeading" || item.getAttribute("fold") !== "1") {
         return false;
     }
-    const nextSibling = item.nextElementSibling;
+    const nextSibling = getNextBlockSibling(item);
     return !!nextSibling && (
         nextSibling.getAttribute("data-type") !== "NodeHeading" ||
         (nextSibling.getAttribute("data-subtype") || "") > (item.getAttribute("data-subtype") || "")
@@ -282,7 +282,7 @@ export function unfoldTargetHeading(protyle: IProtyle, targetElement: Element, i
         targetElement.getAttribute("fold") === "1") {
         return setFold(protyle, targetElement, true, false, false, true);
     }
-    const previousSibling = targetElement.previousElementSibling;
+    const previousSibling = getPreviousBlockSibling(targetElement);
     // 顶部且前继为折叠标题时展开前继
     if (!isBottom && previousSibling &&
         previousSibling.getAttribute("data-type") === "NodeHeading" &&

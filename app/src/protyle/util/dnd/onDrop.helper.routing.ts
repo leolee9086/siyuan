@@ -152,6 +152,7 @@ export const handleGutterNormalDrop = async (
     gutterTypes: string[],
     selectedIds: string[],
     state: IDndState,
+    isCopy: boolean,
 ): Promise<void> => {
     const sourceElements = await collectSourceElements(
         selectedIds, gutterType, gutterTypes, event,
@@ -204,7 +205,7 @@ export const handleGutterNormalDrop = async (
     if (sourceElements.length > 0) {
         await handleBlockDrag(
             protyle, sourceElements, targetElement,
-            targetClass, event.ctrlKey, editorElement, gutterTypes,
+            targetClass, isCopy, editorElement, gutterTypes,
         );
     }
     state.dragoverElement = undefined;
@@ -234,19 +235,21 @@ export const handleGutterDrop = async (
 ): Promise<void> => {
     const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
     const selectedIds = (gutterTypes[2] ?? "").split(",");
+    const insertReference = event.altKey || (event.shiftKey && protyle.lite);
+    const insertEmbed = event.shiftKey && !protyle.lite;
 
     // alt/shift 键拖拽：先定位焦点，落点在嵌入块内则中止
-    if ((event.altKey || event.shiftKey)
+    if ((insertReference || insertEmbed)
         && await focusAtDropPoint(protyle, event) === "embed") {
         return;
     }
-    // alt 键：插入为引用
-    if (event.altKey) {
+    // Alt 为引用；lite 不支持后端查询嵌入块，因此 Shift 也使用引用语义。
+    if (insertReference) {
         await insertAsRef(protyle, selectedIds);
         return;
     }
     // shift 键：插入为嵌入块
-    if (event.shiftKey) {
+    if (insertEmbed) {
         await insertAsEmbed(protyle, selectedIds);
         return;
     }
@@ -256,6 +259,6 @@ export const handleGutterDrop = async (
     }
     await handleGutterNormalDrop(
         protyle, editorElement, event, targetElement,
-        gutterType, gutterTypes, selectedIds, state,
+        gutterType, gutterTypes, selectedIds, state, protyle.lite || event.ctrlKey,
     );
 };

@@ -1,6 +1,7 @@
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { isStylableElement } from "../../util/DOM/element.guard";
 import type { Dock } from "./index";
+import {Constants} from "../../constants";
 
 export const initDockDnD = (dock: Dock) => {
     if (dock.position === "Bottom") {
@@ -25,7 +26,8 @@ export const initDockDnD = (dock: Dock) => {
         moveItem.id = "dockMoveItem";
         documentSelf.onmousemove = (moveEvent: MouseEvent) => {
             if (window.siyuan.config.readonly ||
-                Math.abs(moveEvent.clientY - event.clientY) < 5 && Math.abs(moveEvent.clientX - event.clientX) < 5) {
+                Math.abs(moveEvent.clientY - event.clientY) < Constants.SIZE_DRAG_THRESHOLD &&
+                Math.abs(moveEvent.clientX - event.clientX) < Constants.SIZE_DRAG_THRESHOLD) {
                 return;
             }
             moveEvent.preventDefault();

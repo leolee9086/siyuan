@@ -11,6 +11,7 @@ import {
 import { getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 import { findProtyleForElement } from "../../runtime/layout.port";
 import { fetchSyncPost } from "../../../util/network/fetch";
+import {convertListItemSubtype} from "./moveTo.helper.list";
 
 const captureSourcePositions = async (protyle: IProtyle, sourceElements: Element[]) => {
     const sourcePositions = new Map<string, { previousID: string; parentID: string }>();
@@ -48,8 +49,7 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
 
     let isSameLi = true;
     for (const item of sourceElements) {
-        if (!item.classList.contains("li") || !targetElement.classList.contains("li") ||
-            targetElement.getAttribute("data-subtype") !== item.getAttribute("data-subtype")) {
+        if (!item.classList.contains("li") || !targetElement.classList.contains("li")) {
             isSameLi = false;
             break;
         }
@@ -60,6 +60,7 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
         doOperations,
         undoOperations,
         tempTargetElement: targetElement,
+        targetElement,
         targetId,
         isSameLi,
         newListId: "",
@@ -86,6 +87,7 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
         if (!parentElement) {
             throw new Error("拖拽的块元素缺少父元素");
         }
+        const originalSubtype = item.getAttribute("data-subtype");
 
         handleNewListCreation(item, context);
 
@@ -99,10 +101,20 @@ export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targe
 
             handleMoveOperation(item, id, oldSourceParentElement, context);
 
+            const targetSubtype = context.targetElement.getAttribute("data-subtype");
+            if (item.getAttribute("data-type") === "NodeListItem" &&
+                context.targetElement.getAttribute("data-type") === "NodeListItem" && targetSubtype &&
+                originalSubtype !== targetSubtype) {
+                const originalHTML = item.outerHTML;
+                convertListItemSubtype(item, targetSubtype);
+                context.doOperations.push({action: "update", id, data: item.outerHTML});
+                context.undoOperations.push({action: "update", id, data: originalHTML});
+            }
+
             await cleanupSourceElement(item, oldSourceParentElement, context);
         }
 
-        updateListAfterOperation(item, sourceElements[index - 1], context);
+        updateListAfterOperation(sourceElements[index - 1], context, originalSubtype);
     }
 
     finalizeListOrders(orderListElements, doOperations, undoOperations);

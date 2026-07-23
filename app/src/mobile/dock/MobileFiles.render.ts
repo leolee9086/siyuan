@@ -5,6 +5,7 @@ import {fetchSyncPost} from "../../util/network/fetch";
 import {unicode2Emoji} from "../../emoji";
 import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
 import type {MobileFiles} from "./MobileFiles";
+import {expandFileTree} from "../../layout/dock/fileTreeAnimation";
 
 /**
  * 作用：生成单个文件项的 HTML 片段。
@@ -65,8 +66,10 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
             const openLiElement = hasClosestByClassName(item, "b3-list-item");
             if (openLiElement) {
                 const tempOpenLiElement = tempElement.content.querySelector(`.b3-list-item[data-node-id="${openLiElement.getAttribute("data-node-id")}"]`);
-                tempOpenLiElement.after(openLiElement.nextElementSibling);
-                tempOpenLiElement.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
+                if (tempOpenLiElement) {
+                    tempOpenLiElement.after(openLiElement.nextElementSibling);
+                    tempOpenLiElement.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
+                }
             }
         });
         nextElement.innerHTML = tempElement.innerHTML;
@@ -77,17 +80,13 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
         return;
     }
     liElement.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
-    liElement.insertAdjacentHTML("afterend", `<ul class="file-tree__sliderDown">${fileHTML}</ul>`);
+    liElement.insertAdjacentHTML("afterend", `<ul>${fileHTML}</ul>`);
     nextElement = liElement.nextElementSibling;
-    setTimeout(() => {
-        nextElement.setAttribute("style", `height:${nextElement.childElementCount * liElement.clientHeight}px;`);
-        setTimeout(() => {
-            files.element.querySelectorAll(".file-tree__sliderDown").forEach(item => {
-                item.classList.remove("file-tree__sliderDown");
-                item.removeAttribute("style");
-            });
-        }, 120);
-    }, 2);
+    expandFileTree(nextElement as HTMLElement, () => {
+        if (typeof scrollTop === "number") {
+            files.element.scroll({top: scrollTop, behavior: "smooth"});
+        }
+    });
     files.refreshPublishAccessSwitch();
 }
 

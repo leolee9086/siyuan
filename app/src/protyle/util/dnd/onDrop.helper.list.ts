@@ -32,7 +32,8 @@ export const isListSourceType = (gutterTypes: string[]): boolean => {
  * @param isBottom 是否命中目标下半部
  * @returns 对应列表项，不存在时返回 undefined
  */
-const resolveListTarget = (targetElement: Element, isBottom: boolean): Element | undefined => {
+/** @同步豁免: 需要绝对同步的DOM访问 - drop 路由必须在移动 DOM 前确定当前列表项。 */
+export const resolveListTarget = (targetElement: Element, isBottom: boolean): Element | undefined => {
     if (targetElement.classList.contains("li")) {
         return targetElement;
     }
@@ -124,7 +125,7 @@ export const shouldSkipListSourceDrop = (
     targetElement: Element,
     isChild: boolean,
     isBottom: boolean,
-    ctrlKey: boolean,
+    isCopy: boolean,
     editorElement: HTMLElement,
 ): boolean => {
     if (targetElement.classList.contains("list") &&
@@ -138,7 +139,7 @@ export const shouldSkipListSourceDrop = (
             sourceElement.contains(targetLi) ||
             (!isChild && isBottom && sourceElement === targetLi.nextElementSibling) ||
             (!isChild && !isBottom && sourceElement === targetLi.previousElementSibling));
-        return isNoOpDrop && !ctrlKey;
+        return isNoOpDrop && !isCopy;
     }
     return shouldSkipListHierarchyAdjacentDrop(sourceElements[0], targetElement, editorElement);
 };
@@ -191,15 +192,15 @@ export const expandListBlockSources = (sourceElements: Element[], targetElement:
  * @param ctrlKey 是否按住 Ctrl 键
  * @returns 是否已处理该拖拽
  */
-export const handleLiGapDrop = (
+export const handleLiGapDrop = async (
     protyle: IProtyle,
     sourceElements: Element[],
     targetElement: Element,
     targetClass: string[],
     isChild: boolean,
     isBottom: boolean,
-    ctrlKey: boolean,
-): boolean => {
+    isCopy: boolean,
+) => {
     if (isChild || targetElement.getAttribute("data-type") !== "NodeListItem") {
         return false;
     }
@@ -212,10 +213,10 @@ export const handleLiGapDrop = (
         item.hasAttribute("data-node-id") && !item.classList.contains("list"));
     const anchorBlock = contentBlocks.length > 0 ? contentBlocks[contentBlocks.length - 1] : null;
     if (anchorBlock) {
-        dragSame(protyle, sourceElements, anchorBlock, true, ctrlKey);
+        await dragSame(protyle, sourceElements, anchorBlock, true, isCopy);
         return true;
     }
-    dragSame(protyle, sourceElements, parentLi, isBottom, ctrlKey);
+    await dragSame(protyle, sourceElements, parentLi, isBottom, isCopy);
     return true;
 };
 
@@ -234,14 +235,14 @@ export const handleLiGapDrop = (
  * @param ctrlKey 是否按住 Ctrl 键
  * @returns 是否已处理该拖拽
  */
-export const handleListItemChildDrop = (
+export const handleListItemChildDrop = async (
     protyle: IProtyle,
     sourceElements: Element[],
     targetElement: Element,
     isChild: boolean,
     isBottom: boolean,
-    ctrlKey: boolean,
-): boolean => {
+    isCopy: boolean,
+) => {
     if (!isChild || targetElement.getAttribute("data-type") !== "NodeListItem") {
         return false;
     }
@@ -252,7 +253,7 @@ export const handleListItemChildDrop = (
         nestedTarget = isBottom ? liChildren[liChildren.length - 1] : liChildren[0];
     }
     if (nestedTarget && !sourceElements.includes(nestedTarget)) {
-        dragSame(protyle, sourceElements, nestedTarget, isBottom, ctrlKey);
+        await dragSame(protyle, sourceElements, nestedTarget, isBottom, isCopy);
         return true;
     }
     if (nestedTarget) {
@@ -261,6 +262,12 @@ export const handleListItemChildDrop = (
     const contentBlocks = Array.from(targetElement.children).filter(item =>
         item.hasAttribute("data-node-id") && !item.classList.contains("list"));
     const lastContentBlock = contentBlocks[contentBlocks.length - 1];
-    dragSame(protyle, sourceElements, lastContentBlock || targetElement, !!lastContentBlock || isBottom, ctrlKey);
+    await dragSame(
+        protyle,
+        sourceElements,
+        lastContentBlock || targetElement,
+        Boolean(lastContentBlock) || isBottom,
+        isCopy,
+    );
     return true;
 };

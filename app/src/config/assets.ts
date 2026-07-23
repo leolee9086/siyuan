@@ -1,5 +1,5 @@
 // S-forge: 使用格式化的导入风格
-import {escapeHtml} from "../util/DOM/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {confirmDialog} from "../dialog/confirmDialog";
 // S-forge: pathPosix 用于文件名提取
 import {pathPosix} from "../util/file/pathName";
@@ -25,6 +25,8 @@ import {Plugin} from "../plugin";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {switchSettingPanelSubTab} from "./setting/mount";
+import {openMobileFileById} from "../mobile/editor";
+import {BlockPanel} from "../block/panel/Panel";
 
 /** 资源 Tab 侧栏 / 全局搜索索引文案 */
 export const collectAssetsTabSearchStrings = (): string[] => [
@@ -212,6 +214,23 @@ const assets = {
                     event.preventDefault();
                     event.stopPropagation();
                     break;
+                } else if (type === "openFloat") {
+                    const blockIDs = JSON.parse(target.getAttribute("data-id")) as string[];
+                    if (blockIDs.length > 0) {
+                        if (isMobile()) {
+                            openMobileFileById(app, blockIDs[0], [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                        } else {
+                            window.siyuan.blockPanels.push(new BlockPanel({
+                                app,
+                                isBacklink: false,
+                                targetElement: target,
+                                refDefs: blockIDs.map(refID => ({refID})),
+                            }));
+                        }
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (type === "copy") {
                     if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
                         writeText(`<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${target.parentElement.dataset.item}" data-type="NodeAttributeView" data-av-type="table"></div>`);
@@ -305,7 +324,8 @@ const assets = {
     },
     _renderList: (data: {
         item: string,
-        name: string
+        name: string,
+        blockIDs?: string[]
     }[], element: Element, type: "unRefAV" | "unrefAssets" | "lostAssets") => {
         let html = "";
         let boxOpenHTML = "";
@@ -322,8 +342,14 @@ const assets = {
         }
         const mobile = isMobile();
         data.forEach((item) => {
+            const blockPopoverHTML = type === "lostAssets" && item.blockIDs?.length > 0
+                ? `<span data-type="openFloat" data-id="${escapeAttr(JSON.stringify(item.blockIDs))}" class="ariaLabel b3-list-item__action" aria-label="${window.siyuan.languages.refPopover}">
+        <svg><use xlink:href="#iconPictureInPicture"></use></svg>
+    </span>`
+                : "";
             html += `<li data-tab-type="${type}" data-item="${item.item}"  class="b3-list-item${mobile ? "" : " b3-list-item--hide-action"}">
     <span class="b3-list-item__text">${escapeHtml(item.name || item.item)}</span>
+    ${blockPopoverHTML}
     <span data-type="copy" class="ariaLabel b3-list-item__action" aria-label="${type === "unRefAV" ? window.siyuan.languages.copyMirror : window.siyuan.languages.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>

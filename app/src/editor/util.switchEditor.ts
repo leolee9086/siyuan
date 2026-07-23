@@ -26,6 +26,8 @@ import { highlightById } from "./imports";
 import { scrollCenter } from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：读取动态加载块配置。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
+/** 用途：判断笔记本是否加密。使用范围：动态加载块时选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */
+import { isEncryptedBox } from "./imports";
 /** 用途：更新反链关系图。使用范围：动态加载后刷新反链面板。解耦评估：同目录模块直接导入。 */
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 
@@ -123,7 +125,14 @@ export const switchEditor = async (editor: Editor, options: IOpenFileOptions, al
     if (needsLoad && options.id !== options.rootID) {
         const mode = (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0;
         const size = getSiyuanConfig().editor.dynamicLoadBlocks;
-        fetchPost("/api/filetree/getDoc", { id: options.id, mode, size }, (getResponse) => {
+        const notebookId = editor.editor.protyle.notebookId;
+        const getDocParams: IObject = {
+            id: options.id,
+            mode,
+            size,
+            ...(isEncryptedBox(notebookId) ? {notebook: notebookId} : {}),
+        };
+        fetchPost("/api/filetree/getDoc", getDocParams, (getResponse) => {
             handleGetResponse(getResponse, editor, options, allModels);
         });
         return;

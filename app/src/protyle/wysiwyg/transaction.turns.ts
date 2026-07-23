@@ -1,6 +1,13 @@
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {focusBlock, focusByWbr, getEditorRange} from "../util/selection";
-import {getContenteditableElement, getSbChildBlockCount} from "./getBlock";
+import {
+    getContenteditableElement,
+    getEmbedChildOperationParentID,
+    getNextBlockSibling,
+    getParentBlock,
+    getPreviousBlockSibling,
+    getSbChildBlockCount,
+} from "./getBlock";
 import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
@@ -72,7 +79,8 @@ export const turnsIntoOneTransaction = async (options: {
         parentElement.innerHTML = html + '<div class="protyle-attr" contenteditable="false"></div>';
     }
     const previousId = options.selectsElement[0].getAttribute("data-node-id");
-    const parentId = options.selectsElement[0].parentElement.getAttribute("data-node-id") || options.protyle.block.parentID;
+    const parentId = getEmbedChildOperationParentID(options.selectsElement[0]) ||
+        getParentBlock(options.selectsElement[0])?.getAttribute("data-node-id") || options.protyle.block.parentID;
     const doOperations: IOperation[] = [{
         action: "insert",
         id,
@@ -167,7 +175,8 @@ export const turnsIntoTransaction = (options: {
     type: TTurnInto,
     level?: number,
     isContinue?: boolean,
-    range?: Range
+    range?: Range,
+    unfocus?: boolean,
 }) => {
     // https://github.com/siyuan-note/siyuan/issues/14505
     options.protyle.observerLoad?.disconnect();
@@ -188,8 +197,7 @@ export const turnsIntoTransaction = (options: {
                 isList = true;
                 return true;
             }
-            if (item.nextElementSibling && selectsElement[index + 1] &&
-                item.nextElementSibling === selectsElement[index + 1]) {
+            if (selectsElement[index + 1] && getNextBlockSibling(item) === selectsElement[index + 1]) {
                 isContinue = true;
             } else if (index !== selectsElement.length - 1) {
                 isContinue = false;
@@ -229,18 +237,20 @@ export const turnsIntoTransaction = (options: {
                 undoOperations.push({
                     action: "insert",
                     id,
-                    previousID: previousId || item.previousElementSibling?.getAttribute("data-node-id"),
+                    previousID: previousId || getPreviousBlockSibling(item)?.getAttribute("data-node-id"),
                     data: item.outerHTML,
-                    parentID: item.parentElement?.getAttribute("data-node-id") || options.protyle.block.parentID || options.protyle.block.rootID,
+                    parentID: getEmbedChildOperationParentID(item) || getParentBlock(item)?.getAttribute("data-node-id") ||
+                        options.protyle.block.parentID || options.protyle.block.rootID,
                 });
                 Array.from(tempElement.content.children).forEach((tempItem: HTMLElement) => {
                     const tempItemId = tempItem.getAttribute("data-node-id");
                     doOperations.push({
                         action: "insert",
                         id: tempItemId,
-                        previousID: tempItem.previousElementSibling?.getAttribute("data-node-id") || item.previousElementSibling?.getAttribute("data-node-id"),
+                        previousID: tempItem.previousElementSibling?.getAttribute("data-node-id") || getPreviousBlockSibling(item)?.getAttribute("data-node-id"),
                         data: tempItem.outerHTML,
-                        parentID: item.parentElement?.getAttribute("data-node-id") || options.protyle.block.parentID || options.protyle.block.rootID,
+                        parentID: getEmbedChildOperationParentID(item) || getParentBlock(item)?.getAttribute("data-node-id") ||
+                            options.protyle.block.parentID || options.protyle.block.rootID,
                     });
                     undoOperations.splice(0, 0, {
                         action: "delete",
@@ -251,7 +261,7 @@ export const turnsIntoTransaction = (options: {
                     action: "delete",
                     id,
                 });
-                if (item === selectsElement[index + 1]?.previousElementSibling) {
+                if (selectsElement[index + 1] && item === getPreviousBlockSibling(selectsElement[index + 1])) {
                     previousId = id;
                 } else {
                     previousId = undefined;
@@ -285,9 +295,10 @@ export const turnsIntoTransaction = (options: {
             undoOperations.push({
                 action: "insert",
                 id,
-                previousID: doOperations[doOperations.length - 1]?.id || item.previousElementSibling?.getAttribute("data-node-id"),
+                previousID: doOperations[doOperations.length - 1]?.id || getPreviousBlockSibling(item)?.getAttribute("data-node-id"),
                 data: item.outerHTML,
-                parentID: item.parentElement?.getAttribute("data-node-id") || options.protyle.block.parentID || options.protyle.block.rootID,
+                parentID: getEmbedChildOperationParentID(item) || getParentBlock(item)?.getAttribute("data-node-id") ||
+                    options.protyle.block.parentID || options.protyle.block.rootID,
             });
             doOperations.push({
                 action: "delete",
@@ -302,9 +313,10 @@ export const turnsIntoTransaction = (options: {
                     doOperations.push({
                         action: "insert",
                         id: tempItemId,
-                        previousID: tempItem.previousElementSibling?.getAttribute("data-node-id") || item.previousElementSibling?.getAttribute("data-node-id"),
+                        previousID: tempItem.previousElementSibling?.getAttribute("data-node-id") || getPreviousBlockSibling(item)?.getAttribute("data-node-id"),
                         data: tempItem.outerHTML,
-                        parentID: item.parentElement?.getAttribute("data-node-id") || options.protyle.block.parentID || options.protyle.block.rootID,
+                        parentID: getEmbedChildOperationParentID(item) || getParentBlock(item)?.getAttribute("data-node-id") ||
+                            options.protyle.block.parentID || options.protyle.block.rootID,
                     });
                     undoOperations.splice(0, 0, {
                         action: "delete",
@@ -322,10 +334,12 @@ export const turnsIntoTransaction = (options: {
     highlightRender(options.protyle.wysiwyg.element);
     avRender(options.protyle.wysiwyg.element, options.protyle);
     blockRender(options.protyle, options.protyle.wysiwyg.element);
-    if (range || options.range) {
-        focusByWbr(options.protyle.wysiwyg.element, range || options.range);
-    } else {
-        focusBlock(options.protyle.wysiwyg.element.querySelector(`[data-node-id="${selectsElement[0].getAttribute("data-node-id")}"]`));
+    if (!options.unfocus) {
+        if (range || options.range) {
+            focusByWbr(options.protyle.wysiwyg.element, range || options.range);
+        } else {
+            focusBlock(options.protyle.wysiwyg.element.querySelector(`[data-node-id="${selectsElement[0].getAttribute("data-node-id")}"]`));
+        }
     }
     hideElements(["gutter"], options.protyle);
 };
@@ -369,12 +383,17 @@ export const turnsOneInto = async (options: {
         }
     }
     const oldHTML = options.nodeElement.outerHTML;
-    let previousId = options.nodeElement.previousElementSibling?.getAttribute("data-node-id");
-    if (!options.nodeElement.previousElementSibling && options.protyle.block.showAll) {
-        const response = await fetchSyncPost("/api/block/getBlockRelevantIDs", {id: options.id});
+    const previousBlockElement = getPreviousBlockSibling(options.nodeElement);
+    let previousId = previousBlockElement?.getAttribute("data-node-id");
+    if (!previousBlockElement && options.protyle.block.showAll) {
+        const response = await fetchSyncPost("/api/block/getBlockRelevantIDs", {
+            id: options.id,
+            notebook: options.protyle.notebookId,
+        });
         previousId = response.data.previousID;
     }
-    const parentId = options.nodeElement.parentElement.getAttribute("data-node-id") || options.protyle.block.parentID;
+    const parentId = getEmbedChildOperationParentID(options.nodeElement) ||
+        getParentBlock(options.nodeElement)?.getAttribute("data-node-id") || options.protyle.block.parentID;
     // @ts-ignore
     const newHTML = options.protyle.lute[options.type](options.nodeElement.outerHTML, options.level);
     options.nodeElement.outerHTML = newHTML;

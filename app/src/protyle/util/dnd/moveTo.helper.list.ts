@@ -3,6 +3,47 @@ import { updateListOrder } from "../../wysiwyg/list.updateOrder";
 import { IMoveContext } from "./moveTo.types";
 import { getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 
+/** 将列表项的标记、任务状态和 subtype 原子转换为目标列表类型。 */
+/** @同步豁免: 需要绝对同步的DOM访问 - 必须在生成移动事务 HTML 前同步更新列表项 DOM。 */
+export const convertListItemSubtype = (listItem: Element, subtype: string) => {
+    const actionElement = listItem.querySelector(".protyle-action");
+    if (!["u", "o", "t"].includes(subtype)) {
+        throw new TypeError(`Unsupported list subtype: ${subtype}`);
+    }
+    if (!actionElement) {
+        throw new Error("List item is missing its protyle action element");
+    }
+    const definitions = new Map<string, {actionHTML: string; marker: string; task?: string}>([
+        ["o", {
+            actionHTML: '<div contenteditable="false" draggable="true" class="protyle-action protyle-action--order">1.</div>',
+            marker: "1.",
+        }],
+        ["t", {
+            actionHTML: '<div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>',
+            marker: "*",
+            task: " ",
+        }],
+        ["u", {
+            actionHTML: '<div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>',
+            marker: "*",
+        }],
+    ]);
+    const definition = definitions.get(subtype);
+    if (!definition) {
+        throw new Error(`Missing list subtype definition: ${subtype}`);
+    }
+    actionElement.outerHTML = definition.actionHTML;
+    listItem.setAttribute("data-marker", definition.marker);
+    listItem.removeAttribute("data-task");
+    // 任务列表需要显式未完成状态，其余类型保持无 data-task。
+    if (definition.task !== undefined) {
+        listItem.setAttribute("data-task", definition.task);
+    }
+    listItem.setAttribute("data-subtype", subtype);
+    listItem.classList.remove("protyle-task--done");
+    listItem.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
+};
+
 export const handleNewListCreation = (item: Element, context: IMoveContext) => {
     if (item.getAttribute("data-type") !== "NodeListItem" || context.newListId || context.isSameLi) {
         return;
@@ -54,10 +95,14 @@ const getParentIDForNewList = (context: IMoveContext): string | undefined => {
     return parent?.getAttribute("data-node-id") || context.protyle.block.parentID || context.protyle.block.rootID;
 };
 
-export const updateListAfterOperation = (currentItem: Element, prevItem: Element | undefined, context: IMoveContext) => {
+export const updateListAfterOperation = (
+    prevItem: Element | undefined,
+    context: IMoveContext,
+    originalSubtype: string | null,
+) => {
     const isValidListOp = context.newListId && (!prevItem ||
         prevItem.getAttribute("data-type") !== "NodeListItem" ||
-        prevItem.getAttribute("data-subtype") !== currentItem.getAttribute("data-subtype"));
+        prevItem.getAttribute("data-subtype") !== originalSubtype);
 
     if (isValidListOp) {
         handleValidListUpdate(context);

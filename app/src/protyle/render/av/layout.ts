@@ -4,6 +4,7 @@ import {fetchSyncPost} from "../../../util/network/fetch";
 import {getCardAspectRatio} from "./gallery/util";
 import {getFieldsByData} from "./view";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {setPosition} from "../../../util/DOM/setPosition";
 
 export const getLayoutHTML = (data: IAV) => {
     let html = "";
@@ -257,6 +258,8 @@ export const updateLayout = async (options: {
     });
     const menuElement = document.querySelector(".av__panel").lastElementChild as HTMLElement;
     menuElement.innerHTML = getLayoutHTML(response.data);
+    const tabRect = options.nodeElement.querySelector(".av__views").getBoundingClientRect();
+    setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height, 0, true);
     bindLayoutEvent({
         protyle: options.protyle,
         data: response.data,

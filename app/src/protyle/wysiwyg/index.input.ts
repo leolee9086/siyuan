@@ -6,8 +6,6 @@ import {
     setInsertWbrHTML,
 } from "../util/selection";
 import {Constants} from "../../constants";
-import {isMobile} from "../../util/platform/functions";
-import {previewDocImage} from "../preview/image";
 import {beforePaste, paste} from "../util/paste";
 import {getContenteditableElement} from "./getBlock";
 import {updateTransaction} from "./transaction";
@@ -18,6 +16,7 @@ import {countSelectWord} from "../runtime/status.port";
 import {clearSelect} from "../util/clearSelect";
 import {input} from "./input";
 import {escapeInline} from "./utils/rendercustomWithCtx";
+import type {PendingInputScheduler} from "./index.input.scheduler";
 
 /**
  * 绑定 paste/compositionstart/compositionend/input/keyup/dblclick 事件。
@@ -37,8 +36,15 @@ export function bindInputEvents(
     getPreventKeyup: () => boolean,
     setPreventKeyup: (v: boolean) => void,
     setEmptyOutline: (protyle: IProtyle, el: HTMLElement) => void,
+    isInputSuppressed: () => boolean,
+    scheduler: PendingInputScheduler,
 ) {
     element.addEventListener("paste", (event: ClipboardEvent & { target: HTMLElement }) => {
+        if (protyle.toolbar.isMultiSelectMode()) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
         // https://github.com/siyuan-note/siyuan/issues/11241
         // 上游 #17098: 使用 hasClosestByAttribute 替代直接判断
         if (hasClosestByAttribute(event.target, "data-type", "av-search")) {
@@ -149,8 +155,11 @@ export function bindInputEvents(
         }
     });
 
-    let timeout: number;
     element.addEventListener("input", (event: InputEvent) => {
+        if (isInputSuppressed()) {
+            event.stopPropagation();
+            return;
+        }
         const target = event.target as HTMLElement;
         if (target.tagName === "VIDEO" || target.tagName === "AUDIO" || event.inputType === "historyRedo") {
             return;
@@ -182,18 +191,16 @@ export function bindInputEvents(
             // 百度输入法中文反双引号 https://github.com/siyuan-note/siyuan/issues/9686
             event.data === "\u201d" ||
             event.data === "「")) {
-            clearTimeout(timeout);  // https://github.com/siyuan-note/siyuan/issues/9179
-            timeout = window.setTimeout(() => {
+            scheduler.schedule(() => {
                 input(protyle, blockElement, range, true); // 搜狗拼音数字后面句号变为点；Mac 反向双引号无法输入
             });
         } else {
             if (isMac() && event.data === "【】") {
-                setTimeout(() => {
+                scheduler.schedule(() => {
                     input(protyle, blockElement, range, true, event);
-                }, Constants.TIMEOUT_INPUT);
+                }, Constants.TIMEOUT_INPUT, false);
             } else {
-                clearTimeout(timeout);
-                timeout = window.setTimeout(() => {
+                scheduler.schedule(() => {
                     input(protyle, blockElement, range, true, event);
                 });
             }
@@ -273,13 +280,6 @@ export function bindInputEvents(
                 });
                 nodeElement.classList.add("protyle-wysiwyg--select");
             }
-        }
-    });
-
-    element.addEventListener("dblclick", (event: MouseEvent & { target: HTMLElement }) => {
-        if (event.target.tagName === "IMG" && !event.target.classList.contains("emoji")) {
-            previewDocImage(event.target.getAttribute("src"), protyle.block.rootID);
-            return;
         }
     });
 }

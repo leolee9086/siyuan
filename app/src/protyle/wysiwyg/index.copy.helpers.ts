@@ -7,10 +7,10 @@ import { encodeBase64 } from "../util/compatibility";
 import { isIncludeCell } from "../util/table/table";
 import { getTableRangeHTML } from "../util/table";
 import { genCellValueByElement, getCellText, getTypeByCellElement } from "../render/av/cell";
-import { nbsp2space, removeZWJ } from "../util/normalizeText";
+import { removeZWJ } from "../util/normalizeText";
 import { enableLuteMarkdownSyntax, getTextStar, restoreLuteMarkdownSyntax } from "../util/paste";
 
-export function processSelectAV(nodeElement: HTMLElement, selectAVElement: HTMLElement) {
+export function processSelectAV(nodeElement: HTMLElement) {
     let html = "";
     let textPlain = "";
     const cellElements: Element[] = Array.from(nodeElement.querySelectorAll(".av__cell--active, .av__cell--select")) || [];
@@ -78,7 +78,7 @@ export function processSelectTable(protyle: IProtyle, nodeElement: HTMLElement) 
     return { html, textPlain };
 }
 
-export async function processSingleBlock(item: HTMLElement) {
+export async function processSingleBlock(item: HTMLElement, notebookId: string) {
     let needClipboardWrite = false;
     let itemHTML: string;
     if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
@@ -92,6 +92,7 @@ export async function processSingleBlock(item: HTMLElement) {
         needClipboardWrite = true;
         const response = await fetchSyncPost("/api/block/getBlockDOM", {
             id: item.getAttribute("data-node-id"),
+            notebook: notebookId,
         });
         itemHTML = response.data.dom;
     } else {
@@ -142,7 +143,7 @@ export async function processSelectElements(
         if (isRefText) {
             html += getTextStar(item) + "\n\n";
         } else {
-            const result = await processSingleBlock(item);
+            const result = await processSingleBlock(item, protyle.notebookId);
             needClipboardWrite = needClipboardWrite || result.needClipboardWrite;
             if (item.getAttribute("data-type") === "NodeListItem") {
                 const isLastInGroup = i === selectElements.length - 1 ||

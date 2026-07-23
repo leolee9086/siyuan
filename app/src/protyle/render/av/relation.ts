@@ -27,9 +27,11 @@ interface IAVItem {
     viewLayout: string;
 }
 
-const genSearchList = (element: Element, keyword: string, avId?: string, excludes = true, cb?: () => void) => {
+const genSearchList = (element: Element, keyword: string, avId?: string, excludes = true, blockID?: string, cb?: () => void) => {
     fetchPost("/api/av/searchAttributeView", {
         keyword,
+        avID: avId,
+        blockID,
         excludes: (excludes && avId) ? [avId] : undefined
     }, (response) => {
         let html = "";
@@ -77,7 +79,7 @@ const setDatabase = (avId: string, element: HTMLElement, item: HTMLElement) => {
     }
 };
 
-export const openSearchAV = (avId: string, target: HTMLElement, cb?: (element: HTMLElement) => void, excludes = true) => {
+export const openSearchAV = (avId: string, target: HTMLElement, cb?: (element: HTMLElement) => void, excludes = true, blockID?: string) => {
     window.siyuan.menus.menu.remove();
     const menu = new Menu();
     menu.addItem({
@@ -115,10 +117,10 @@ export const openSearchAV = (avId: string, target: HTMLElement, cb?: (element: H
                 if (event.isComposing) {
                     return;
                 }
-                genSearchList(listElement, inputElement.value, avId, excludes);
+                genSearchList(listElement, inputElement.value, avId, excludes, blockID);
             });
             inputElement.addEventListener("compositionend", () => {
-                genSearchList(listElement, inputElement.value, avId, excludes);
+                genSearchList(listElement, inputElement.value, avId, excludes, blockID);
             });
             element.lastElementChild.addEventListener("click", (event) => {
                 let clickTarget = event.target as HTMLElement;
@@ -148,7 +150,7 @@ export const openSearchAV = (avId: string, target: HTMLElement, cb?: (element: H
                     clickTarget = clickTarget.parentElement;
                 }
             });
-            genSearchList(listElement, "", avId, excludes, () => {
+            genSearchList(listElement, "", avId, excludes, blockID, () => {
                 const rect = target.getBoundingClientRect();
                 menu.open({
                     x: rect.left,

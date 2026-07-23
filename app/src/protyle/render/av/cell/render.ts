@@ -101,19 +101,17 @@ export const renderCellURL = (urlContent: string) => {
     let suffix = "";
     try {
         const urlObj = new URL(urlContent);
-        // 仅处理HTTP协议的URL，其他协议保持原样，同时截断过长路径
-        if (urlObj.protocol.startsWith("http") && urlObj.href.replace(urlObj.origin, "").length > 12) {
+        if (urlObj.protocol.startsWith("http")) {
             host = urlObj.host;
             suffix = urlObj.href.replace(urlObj.origin, "");
-            // 路径过长时截断中间部分，保留首尾便于识别
-            suffix = suffix.substring(0, 4) + "..." + suffix.substring(suffix.length - 6);
+            if (suffix.length > 12) {
+                suffix = suffix.substring(0, 4) + "..." + suffix.substring(suffix.length - 6);
+            }
         }
     } catch (e) {
         // 不是 url 地址
-        host = Lute.EscapeHTMLStr(urlContent);
     }
-    // https://github.com/siyuan-note/siyuan/issues/9291
-    return `<span class="av__celltext av__celltext--url" data-type="url" data-href="${escapeAttr(urlContent)}"><span>${host}</span><span class="ft__on-surface">${suffix}</span></span>`;
+    return `<span class="av__celltext av__celltext--url" data-type="url" data-href="${escapeAttr(urlContent)}"><span>${Lute.EscapeHTMLStr(host)}</span><span class="ft__on-surface">${Lute.EscapeHTMLStr(suffix)}</span></span>`;
 };
 
 /**
@@ -374,8 +372,7 @@ export const renderCell = async (cellValue: IAVCellValue, rowIndex = 0, showIcon
     
     // 为支持复制的单元格类型添加复制按钮
     if (shouldShowCopyButton(cellValue)) {
-        const style = cellValue.type !== "number" ? "" : 'style="right:auto;left:5px"';
-        text += `<span ${style} data-type="copy" class="block__icon"><svg><use xlink:href="#iconCopy"></use></svg></span>`;
+        text += '<span data-type="copy" class="block__icon"><svg><use xlink:href="#iconCopy"></use></svg></span>';
     }
     
     return text;

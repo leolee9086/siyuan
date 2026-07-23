@@ -167,6 +167,15 @@ import { fetchPost } from "../../../ai/imports";
 export { fetchPost };
 
 /**
+ * 用途：判断笔记本是否加密。
+ * 使用范围：zoomOut 三条 getDoc 请求统一附加 notebook 参数。
+ * 解耦评估：加密状态属于请求契约前置条件，经转发层集中提供。
+ */
+import { isEncryptedBox } from "../../../util/pathName";
+/** 导出 isEncryptedBox 供 zoomOut 请求参数构造器使用 */
+export { isEncryptedBox };
+
+/**
  * 用途：更新反向链接图
  * 使用范围：zoomOut 非移动端完成加载后同步 backlink graph
  * 解耦评估：功能依赖编辑器视图模型，转发层减少业务层路径耦合

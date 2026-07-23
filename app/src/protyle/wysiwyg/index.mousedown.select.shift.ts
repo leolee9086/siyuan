@@ -34,6 +34,18 @@ import {showMessage} from "./imports";
  * 解耦评估：可通过参数传递，通过 imports.ts 转发
  */
 import {siyuanI18n} from "./imports";
+/**
+ * 用途：同步 Gallery DOM 与虚拟滚动选中状态。
+ * 使用范围：仅处理 Shift 范围选择。
+ * 解耦评估：这是同一选择状态机的共享实现，参数传递会复制状态同步逻辑，直接依赖更清晰。
+ */
+import {setGalleryItemSelected} from "./index.mousedown.select.gallery";
+/**
+ * 用途：刷新 Gallery 表头聚合选中态。
+ * 使用范围：Shift 范围选择完成后调用一次。
+ * 解耦评估：表头由 AV 渲染层持有，通过既有目录网关访问比向通用选择函数注入 UI 回调更细粒度。
+ */
+import {updateHeader} from "./imports";
 
 /** 查找最近块元素，无则返回 null */
 function getClosestBlock(node: Node | null) {
@@ -274,10 +286,13 @@ export function handleShiftSelect(
     }
     // gallery 模式下 shift 选中
     if (galleryItemElement && !hasSelectClassElement) {
-        galleryItemElement.classList.add("av__gallery-item--select");
-        for (const item of collectPrevSiblings(galleryItemElement).concat(collectNextSiblings(galleryItemElement))) {
-            item.classList.add("av__gallery-item--select");
+        const selectedItems: Element[] = [galleryItemElement,
+            ...collectPrevSiblings(galleryItemElement),
+            ...collectNextSiblings(galleryItemElement)];
+        for (const item of selectedItems) {
+            setGalleryItemSelected(item, true);
         }
+        updateHeader(galleryItemElement);
         event.preventDefault();
         return true;
     }

@@ -12,6 +12,7 @@ import { isStringArray, isHTMLElement } from "./wsHandlers.guard";
 import { removeDocumentNode, incrementCounter, decrementCounter } from "./wsHandlers.dom";
 import { removeFromClosedList, createMountCallback, createCreateNotebookCallback } from "./wsHandlers.mount";
 import { handleSourceElementExists, handleSourceElementNotExists, updateTargetParentState } from "./wsHandlers.move";
+import {updateSubFileCount} from "./docActions";
 
 // ----------------------------------------------------------------------------
 // handleUpdateDocInfo
@@ -38,23 +39,25 @@ export const handleUpdateDocInfo = (
     data: IWebSocketData,
     genDocAriaLabel: (item: IFile, escapeMethod: (text: string) => string) => string
 ): void => {
-    const liElement = element.querySelector(`li[data-node-id="${data.data?.rootID}"]`);
+    const notebook = window.siyuan.notebooks.find(item => item.id === data.data?.rootID);
+    const subFileCount = notebook && window.siyuan.isPublish ? notebook.subFileCount : data.data?.subFileCount;
+    if (notebook) {
+        notebook.subFileCount = subFileCount;
+    }
+    const liElement = element.querySelector<HTMLElement>(
+        `li[data-node-id="${data.data?.rootID}"][data-type="navigation-file"], ` +
+        `li[data-node-id="${data.data?.rootID}"][data-type="navigation-root"]`
+    );
     // 找不到对应元素时直接返回
     if (!liElement) {
         return;
     }
     
-    liElement.setAttribute("data-count", data.data?.subFileCount ?? "0");
-    const ariaLabelElement = liElement.querySelector(".ariaLabel");
-    ariaLabelElement?.setAttribute("aria-label", genDocAriaLabel(data.data, escapeLessThans));
-    
-    const toggleElement = liElement.querySelector(".b3-list-item__toggle");
-    // 没有子文件时隐藏展开箭头，有子文件时显示
-    if (data.data?.subFileCount === 0) {
-        toggleElement?.classList.add("fn__hidden");
-        return;
+    if (liElement.dataset.type === "navigation-file") {
+        liElement.querySelector(".b3-list-item__text.ariaLabel")
+            ?.setAttribute("aria-label", genDocAriaLabel(data.data, escapeLessThans));
     }
-    toggleElement?.classList.remove("fn__hidden");
+    updateSubFileCount(element, liElement, Number(subFileCount) || 0);
 };
 
 // ----------------------------------------------------------------------------
@@ -258,7 +261,7 @@ const handleRemoveDoc = (element: HTMLElement, ids: string[]): void => {
             continue;
         }
         
-        removeDocumentNode(targetElement);
+        removeDocumentNode(element, targetElement);
     }
 };
 
@@ -401,7 +404,7 @@ export const handleMove = (
 
     // 源文件元素存在时处理移除
     if (isHTMLElement(sourceElement)) {
-        handleSourceElementExists(sourceElement);
+        handleSourceElementExists(element, sourceElement);
     }
 
     // 源文件元素不存在时，更新父节点状态
@@ -425,6 +428,7 @@ export const handleMove = (
 
     // 更新目标文件夹状态
     updateTargetParentState(
+        element,
         newElement,
         response.data?.toNotebook ?? "",
         response.data?.callback,

@@ -16,6 +16,16 @@ import type { ProfileManager } from "../../config/profileManager";
 export interface IGutterEditMenuContext {
     protyle: IProtyle;
     nodeElement: Element;
+    isEmbedMenu?: boolean;
+    allowStructuralMutation?: boolean;
+    allowRemoval?: boolean;
+}
+
+/** Gutter 菜单在普通文档或嵌入查询边界内的操作能力。 */
+export interface IGutterMenuCapabilities {
+    isEmbedMenu: boolean;
+    allowStructuralMutation: boolean;
+    allowRemoval: boolean;
 }
 
 /**

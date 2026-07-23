@@ -327,7 +327,7 @@ interface IUpload {
     /** 跨站点访问控制。默认值: false */
     withCredentials?: boolean;
     /** 请求头设置 */
-    headers?: IObject;
+    headers?: Record<string, string>;
     /** 额外请求参数 */
     extraData?: { [key: string]: string | Blob };
     /** 上传字段名。默认值：file[] */
@@ -386,6 +386,8 @@ interface IMenuItem {
     hotkey?: string;
     /** 提示的位置 */
     tipPosition?: string;
+    /** 是否在精简版中显示。默认值：false */
+    showInLite?: boolean;
 
     click?(protyle: import("../protyle").Protyle): void;
 }
@@ -458,6 +460,7 @@ interface IHint {
 
 /** @link https://ld246.com/article/1549638745630#options */
 interface IProtyleOptions {
+    databaseAttr?: boolean,
     history?: {
         created?: string
         snapshot?: string
@@ -472,6 +475,7 @@ interface IProtyleOptions {
     mode?: TEditorMode,
     blockId?: string
     rootId?: string
+    notebookId?: string
     originalRefBlockIDs?: IObject
     key?: string
     defIds?: string[]
@@ -511,6 +515,9 @@ interface IProtyleOptions {
 
     /** 编辑器异步渲染完成后的回调方法 */
     after?(protyle: import("../protyle").Protyle): void;
+
+    /** 精简版本 */
+    lite?: boolean;
 }
 
 interface IProtyle {
@@ -544,6 +551,7 @@ interface IProtyle {
         action?: TProtyleAction[]
     },
     disabled: boolean,
+    lite?: boolean,
     selectElement?: HTMLElement,
     ws?: import("../layout/Model").Model,
     notebookId?: string
@@ -556,13 +564,14 @@ interface IProtyle {
     breadcrumb?: import("../protyle/breadcrumb").Breadcrumb,
     title?: import("../protyle/header/Title").Title,
     background?: import("../protyle/header/Background").Background,
+    databaseAttributePanel?: import("../protyle/render/av/attributePanel").AVAttributePanel,
     contentElement?: HTMLElement,
     options: IProtyleOptions;
     lute?: Lute;
     toolbar?: import("../protyle/toolbar").Toolbar,
     hint?: import("../protyle/hint").Hint;
     upload?: import("../protyle/upload").Upload;
-    undo?: import("../protyle/undo").Undo;
+    undo?: import("../protyle/undo").IUndo;
     wysiwyg?: import("../protyle/wysiwyg").WYSIWYG
     /** 加载动画控制器，用于确定性地取消待执行的 loading 显示 */
     loadingController?: AbortController | undefined

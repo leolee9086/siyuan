@@ -1,6 +1,6 @@
 import {popSearch} from "./search";
 import {closePanel} from "../util/closePanel";
-import {mountHelp, newDailyNote, newNotebook} from "../../util/file/mount";
+import {mountHelp, newDailyNote, newEncryptedNotebook, newNotebook} from "../../util/file/mount";
 import {exitSiYuan, processSync} from "../../dialog/processSystem";
 import { lockScreen } from "../../dialog/processSystem/lockScreen";
 import {openHistory} from "../../history/history";
@@ -16,7 +16,7 @@ import {
     isInMobileApp
 } from "../../protyle/util/compatibility";
 import {newFile} from "../../util/file/newFile";
-import {afterLoadPlugin} from "../../plugin/loader";
+import {afterLayoutReady} from "../../plugin/loader";
 import {commandPanel} from "../../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";
 import {
@@ -31,6 +31,7 @@ import {isMobile} from "../../util/platform/functions";
 import {getCurrentEditor} from "../util/getCurrentEditor";
 // S-forge: 本地i18n封装，替代直接访问 window.siyuan.languages
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {openDataMigration} from "../../menus/dataMigration";
 
 // S-forge: 保留本地运行时 AI 可见性判断，避免移动端菜单显示被禁用功能。
 const isSettingTabHidden = (def: ISettingTabShell<TSettingTab>) => {
@@ -113,6 +114,12 @@ export const initRightMenu = (app: App) => {
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuNewNotebook">
         <svg class="b3-menu__icon"><use xlink:href="#iconNewNoteBook"></use></svg><span class="b3-menu__label">${window.siyuan.languages.newNotebook}</span>
     </div>
+    <div class="b3-menu__item${(window.siyuan.config.readonly || !window.siyuan.config.notebookCrypto?.enabled) ? " fn__none" : ""}" id="menuNewEncryptedNotebook">
+        <svg class="b3-menu__icon"><use xlink:href="#iconLock"></use></svg><span class="b3-menu__label">${window.siyuan.languages.newEncryptedNotebook}</span>
+    </div>
+    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuImport">
+        <svg class="b3-menu__icon"><use xlink:href="#iconDatabaseBackup"></use></svg><span class="b3-menu__label">${window.siyuan.languages.dataMigration}</span>
+    </div>
     <div class="b3-menu__separator"></div>
     <div id="menuNewDaily" class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}">
         <svg class="b3-menu__icon"><use xlink:href="#iconCalendar"></use></svg><span class="b3-menu__label">${siyuanI18n.dailyNote}</span>
@@ -145,9 +152,7 @@ export const initRightMenu = (app: App) => {
     </a>
 </div>`;
     processSync();
-    app.plugins.forEach(item => {
-        afterLoadPlugin(item);
-    });
+    afterLayoutReady(app);
     // 只能用 click，否则无法上下滚动 https://github.com/siyuan-note/siyuan/issues/6628
     menuElement.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
@@ -191,6 +196,18 @@ export const initRightMenu = (app: App) => {
                 event.preventDefault();
                 event.stopPropagation();
                 break;
+            } else if (target.id === "menuNewEncryptedNotebook") {
+                newEncryptedNotebook();
+                closePanel();
+                event.preventDefault();
+                event.stopPropagation();
+                break;
+            } else if (target.id === "menuImport") {
+                closePanel();
+                openDataMigration();
+                event.preventDefault();
+                event.stopPropagation();
+                break;
             } else if (target.id === "menuNewDaily") {
                 newDailyNote(app);
                 closePanel();
@@ -230,6 +247,11 @@ export const initRightMenu = (app: App) => {
                 }
                 event.preventDefault();
                 event.stopPropagation();
+                break;
+            } else if (target.id === "menuSafeQuit") {
+                event.preventDefault();
+                event.stopPropagation();
+                exitSiYuan();
                 break;
             } else if ((settingTabDef = getSettingTabFromMenuTarget(target))) {
                 openSettingTabModel(app, settingTabDef);

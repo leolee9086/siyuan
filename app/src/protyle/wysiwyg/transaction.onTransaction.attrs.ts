@@ -5,7 +5,7 @@ import {resize} from "../util/resize";
 
 export const handleUpdateAttrs = (action: IOperation, protyle: IProtyle): void => {
     const data = action.data as any;
-    const attrsResult: IObject = {};
+    const attrsResult: Record<string, string> = {};
     let bookmarkHTML = "";
     let nameHTML = "";
     let aliasHTML = "";

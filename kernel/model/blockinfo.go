@@ -17,6 +17,7 @@
 package model
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -54,11 +55,20 @@ type AttrView struct {
 }
 
 func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
+	return GetDocInfoInBox(blockID, "")
+}
+
+// GetDocInfoInBox 与 GetDocInfo 一致，但按 boxID 路由 blocktree/refs 查询到加密 db 或全局 db。
+func GetDocInfoInBox(blockID, boxID string) (ret *BlockInfo, err error) {
 	FlushTxQueue()
 
-	tree, err := LoadTreeByBlockID(blockID)
+	tree, err := loadTreeByBlockIDInBox(blockID, boxID)
 	if err != nil {
-		logging.LogErrorf("load tree by root id [%s] failed: %s", blockID, err)
+		if errors.Is(err, ErrIndexing) {
+			logging.LogWarnf("load tree by root id [%s] failed: %s", blockID, err)
+		} else {
+			logging.LogErrorf("load tree by root id [%s] failed: %s", blockID, err)
+		}
 		return
 	}
 
@@ -69,7 +79,7 @@ func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
 	if 0 < len(scrollData) {
 		// scroll 属性值在持久化时会被 html.EscapeAttrVal() 进行 HTML 转义（如 " 变为 &quot;），
 		// 虽然 parse.IAL2Map() 中会调用 html.UnescapeAttrVal() 进行反转义，
-		// 但部分历史数据或某些路径下可能出现反转义不完整的情况，导致 JSON 解析失败，
+		// 但部分历史数据或某些历史路径下可能出现反转义不完整的情况，导致 JSON 解析失败，
 		// 这里做一次防御性反转义，确保 JSON 解析不会因为残留的 HTML 实体而报错
 		scrollData = util.UnescapeHTML(scrollData)
 		scroll := map[string]any{}
@@ -78,17 +88,17 @@ func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
 			delete(ret.IAL, "scroll")
 		} else {
 			if zoomInId := scroll["zoomInId"]; nil != zoomInId {
-				if !treenode.ExistBlockTree(zoomInId.(string)) {
+				if !treenode.ExistBlockTreeInBox(zoomInId.(string), boxID) {
 					delete(ret.IAL, "scroll")
 				}
 			} else {
 				if startId := scroll["startId"]; nil != startId {
-					if !treenode.ExistBlockTree(startId.(string)) {
+					if !treenode.ExistBlockTreeInBox(startId.(string), boxID) {
 						delete(ret.IAL, "scroll")
 					}
 				}
 				if endId := scroll["endId"]; nil != endId {
-					if !treenode.ExistBlockTree(endId.(string)) {
+					if !treenode.ExistBlockTreeInBox(endId.(string), boxID) {
 						delete(ret.IAL, "scroll")
 					}
 				}
@@ -96,9 +106,9 @@ func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
 		}
 	}
 
-	bt := treenode.GetBlockTree(blockID)
-	refDefs := queryBlockRefDefs(bt)
-	buildBacklinkListItemRefs(refDefs)
+	bt := treenode.GetBlockTreeInBox(blockID, boxID)
+	refDefs := queryBlockRefDefsInBox(bt, bt.BoxID)
+	buildBacklinkListItemRefsInBox(refDefs, bt.BoxID)
 	var refIDs []string
 	for _, refDef := range refDefs {
 		refIDs = append(refIDs, refDef.RefID)
@@ -110,8 +120,8 @@ func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
 	ret.RefCount = len(ret.RefIDs)
 
 	// 填充属性视图角标 Display the database title on the block superscript https://github.com/siyuan-note/siyuan/issues/10545
-	avIDs := strings.Split(ret.IAL[av.NodeAttrNameAvs], ",")
-	for _, avID := range avIDs {
+	avIDs := strings.SplitSeq(ret.IAL[av.NodeAttrNameAvs], ",")
+	for avID := range avIDs {
 		if !ast.IsNodeIDPattern(avID) {
 			continue
 		}
@@ -130,12 +140,16 @@ func GetDocInfo(blockID string) (ret *BlockInfo, err error) {
 	}
 
 	var subFileCount int
-	boxLocalPath := filepath.Join(util.DataDir, tree.Box)
-	subFiles, err := os.ReadDir(filepath.Join(boxLocalPath, strings.TrimSuffix(tree.Path, ".sy")))
-	if err == nil {
-		for _, subFile := range subFiles {
-			if strings.HasSuffix(subFile.Name(), ".sy") {
-				subFileCount++
+	if IsBoxDoc(tree.Box, tree.ID) {
+		subFileCount = BoxDocSubFileCount(tree.Box)
+	} else {
+		boxLocalPath := filepath.Join(util.DataDir, tree.Box)
+		subFiles, readErr := os.ReadDir(filepath.Join(boxLocalPath, strings.TrimSuffix(tree.Path, ".sy")))
+		if readErr == nil {
+			for _, subFile := range subFiles {
+				if strings.HasSuffix(subFile.Name(), ".sy") {
+					subFileCount++
+				}
 			}
 		}
 	}
@@ -149,6 +163,16 @@ func GetDocsInfo(blockIDs []string, queryRefCount bool, queryAv bool) (rets []*B
 
 	trees := filesys.LoadTrees(blockIDs)
 	bts := treenode.GetBlockTrees(blockIDs)
+	for _, id := range blockIDs {
+		if _, ok := bts[id]; !ok {
+			for _, encBoxID := range treenode.GetOpenedEncryptedBoxIDs() {
+				if encBT := treenode.GetBlockTreeInBox(id, encBoxID); nil != encBT {
+					bts[id] = encBT
+					break
+				}
+			}
+		}
+	}
 	for _, blockID := range blockIDs {
 		tree := trees[blockID]
 		if nil == tree {
@@ -203,8 +227,8 @@ func GetDocsInfo(blockIDs []string, queryRefCount bool, queryAv bool) (rets []*B
 
 		if queryAv {
 			// 填充属性视图角标 Display the database title on the block superscript https://github.com/siyuan-note/siyuan/issues/10545
-			avIDs := strings.Split(ret.IAL[av.NodeAttrNameAvs], ",")
-			for _, avID := range avIDs {
+			avIDs := strings.SplitSeq(ret.IAL[av.NodeAttrNameAvs], ",")
+			for avID := range avIDs {
 				if !ast.IsNodeIDPattern(avID) {
 					continue
 				}
@@ -224,12 +248,16 @@ func GetDocsInfo(blockIDs []string, queryRefCount bool, queryAv bool) (rets []*B
 		}
 
 		var subFileCount int
-		boxLocalPath := filepath.Join(util.DataDir, tree.Box)
-		subFiles, err := os.ReadDir(filepath.Join(boxLocalPath, strings.TrimSuffix(tree.Path, ".sy")))
-		if err == nil {
-			for _, subFile := range subFiles {
-				if strings.HasSuffix(subFile.Name(), ".sy") {
-					subFileCount++
+		if IsBoxDoc(tree.Box, tree.ID) {
+			subFileCount = BoxDocSubFileCount(tree.Box)
+		} else {
+			boxLocalPath := filepath.Join(util.DataDir, tree.Box)
+			subFiles, readErr := os.ReadDir(filepath.Join(boxLocalPath, strings.TrimSuffix(tree.Path, ".sy")))
+			if readErr == nil {
+				for _, subFile := range subFiles {
+					if strings.HasSuffix(subFile.Name(), ".sy") {
+						subFileCount++
+					}
 				}
 			}
 		}
@@ -368,19 +396,30 @@ type RefDefs struct {
 }
 
 func GetBlockRefs(defID string) (refDefs []*RefDefs, originalRefBlockIDs map[string]string) {
+	return GetBlockRefsInBox(defID, "")
+}
+
+// GetBlockRefsInBox 获取指定笔记本内的块引用关系。空 box 不回退搜索加密笔记本。
+func GetBlockRefsInBox(defID, boxID string) (refDefs []*RefDefs, originalRefBlockIDs map[string]string) {
 	refDefs = []*RefDefs{}
 	originalRefBlockIDs = map[string]string{}
-	bt := treenode.GetBlockTree(defID)
+	bt := treenode.GetBlockTreeInBox(defID, boxID)
 	if nil == bt {
 		return
 	}
 
-	refDefs = queryBlockRefDefs(bt)
-	originalRefBlockIDs = buildBacklinkListItemRefs(refDefs)
+	// 加密笔记本的 refs 在加密 db，用 bt.BoxID 路由
+	refDefs = queryBlockRefDefsInBox(bt, bt.BoxID)
+	originalRefBlockIDs = buildBacklinkListItemRefsInBox(refDefs, bt.BoxID)
 	return
 }
 
 func queryBlockRefDefs(bt *treenode.BlockTree) (refDefs []*RefDefs) {
+	return queryBlockRefDefsInBox(bt, bt.BoxID)
+}
+
+// queryBlockRefDefsInBox 与 queryBlockRefDefs 一致，但按 boxID 路由到加密 db 或全局 db。
+func queryBlockRefDefsInBox(bt *treenode.BlockTree, boxID string) (refDefs []*RefDefs) {
 	refDefs = []*RefDefs{}
 	if nil == bt {
 		return
@@ -388,7 +427,7 @@ func queryBlockRefDefs(bt *treenode.BlockTree) (refDefs []*RefDefs) {
 
 	isDoc := bt.ID == bt.RootID
 	if isDoc {
-		refDefIDs := sql.QueryChildRefDefIDsByRootDefID(bt.RootID)
+		refDefIDs := sql.QueryChildRefDefIDsByRootDefIDInBox(bt.RootID, boxID)
 		for rID, dIDs := range refDefIDs {
 			var defIDs []string
 			for _, dID := range dIDs {
@@ -400,7 +439,7 @@ func queryBlockRefDefs(bt *treenode.BlockTree) (refDefs []*RefDefs) {
 			refDefs = append(refDefs, &RefDefs{RefID: rID, DefIDs: defIDs})
 		}
 	} else {
-		refIDs := sql.QueryRefIDsByDefID(bt.ID, false)
+		refIDs := sql.QueryRefIDsByDefIDInBox(bt.ID, false, boxID)
 		for _, refID := range refIDs {
 			refDefs = append(refDefs, &RefDefs{RefID: refID, DefIDs: []string{bt.ID}})
 		}
@@ -412,8 +451,8 @@ func GetBlockRefIDsByFileAnnotationID(id string) []string {
 	return sql.QueryRefIDsByAnnotationID(id)
 }
 
-func GetBlockDefIDsByRefText(refText string, excludeIDs []string) (ret []string) {
-	ret = sql.QueryBlockDefIDsByRefText(refText, excludeIDs)
+func GetBlockDefIDsByRefText(refText string) (ret []string) {
+	ret = sql.QueryBlockDefIDsByRefText(refText)
 	sort.Sort(sort.Reverse(sort.StringSlice(ret)))
 	if 1 > len(ret) {
 		ret = []string{}
@@ -498,8 +537,13 @@ type BlockPath struct {
 }
 
 func BuildBlockBreadcrumb(id string, excludeTypes []string) (ret []*BlockPath, err error) {
+	return BuildBlockBreadcrumbInBox(id, excludeTypes, "")
+}
+
+// BuildBlockBreadcrumbInBox 与 BuildBlockBreadcrumb 一致，但按 boxID 路由 blocktree 查询到加密 db 或全局 db。
+func BuildBlockBreadcrumbInBox(id string, excludeTypes []string, boxID string) (ret []*BlockPath, err error) {
 	ret = []*BlockPath{}
-	tree, err := LoadTreeByBlockID(id)
+	tree, err := loadTreeByBlockIDInBox(id, boxID)
 	if nil == tree {
 		err = nil
 		return
@@ -545,7 +589,11 @@ func buildBlockBreadcrumb(node *ast.Node, excludeTypes []string, isEmbedBlock bo
 
 		name := parent.IALAttr("name")
 		if ast.NodeDocument == parent.Type {
-			name = box.Name + hPath
+			if IsBoxDoc(node.Box, parent.ID) {
+				name = box.Name
+			} else {
+				name = box.Name + hPath
+			}
 		} else if ast.NodeAttributeView == parent.Type {
 			name, _ = av.GetAttributeViewName(parent.AttributeViewID)
 		} else {
@@ -647,13 +695,17 @@ func buildBlockBreadcrumb(node *ast.Node, excludeTypes []string, isEmbedBlock bo
 }
 
 func buildBacklinkListItemRefs(refDefs []*RefDefs) (originalRefBlockIDs map[string]string) {
+	return buildBacklinkListItemRefsInBox(refDefs, "")
+}
+
+func buildBacklinkListItemRefsInBox(refDefs []*RefDefs, boxID string) (originalRefBlockIDs map[string]string) {
 	originalRefBlockIDs = map[string]string{}
 
 	var refIDs []string
 	for _, refDef := range refDefs {
 		refIDs = append(refIDs, refDef.RefID)
 	}
-	sqlRefBlocks := sql.GetBlocks(refIDs)
+	sqlRefBlocks := sql.GetBlocksInBox(refIDs, boxID)
 	refBlocks := fromSQLBlocks(&sqlRefBlocks, "", 12)
 
 	parentRefParagraphs := map[string]*Block{}
@@ -664,7 +716,7 @@ func buildBacklinkListItemRefs(refDefs []*RefDefs) (originalRefBlockIDs map[stri
 			paragraphParentIDs = append(paragraphParentIDs, ref.ParentID)
 		}
 	}
-	sqlParagraphParents := sql.GetBlocks(paragraphParentIDs)
+	sqlParagraphParents := sql.GetBlocksInBox(paragraphParentIDs, boxID)
 	paragraphParents := fromSQLBlocks(&sqlParagraphParents, "", 12)
 
 	luteEngine := util.NewLute()

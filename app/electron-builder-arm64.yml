@@ -1,5 +1,6 @@
 productName: "S-Forge"
 appId: "org.b3log.sforge"
+publish: null
 asar: false
 compression: "normal"
 copyright: "© 2020-present Yunnan Liandi Technology Co., Ltd."
@@ -53,6 +54,9 @@ extraResources:
     filter: "!**/{.DS_Store,.git,.gitignore,.idea}"
   - from: "appearance/boot"
     to: "appearance/boot"
+    filter: "!**/{.DS_Store}"
+  - from: "appearance/covers"
+    to: "appearance/covers"
     filter: "!**/{.DS_Store}"
   - from: "appearance/icons"
     to: "appearance/icons"

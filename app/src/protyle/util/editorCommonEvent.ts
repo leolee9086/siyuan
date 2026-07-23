@@ -19,7 +19,6 @@ const handleDragEnd = (state: IDndState, editorElement: HTMLElement) => {
     hideDragTip();
     window.siyuan.dragTitle = "";
 };
-
 export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
     const state: IDndState = {
         counter: 0,
@@ -35,8 +34,12 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (!isDragEventWithHTMLElement(event)) {
             return;
         }
-        await onDrop(protyle, editorElement, event, state);
-        cleanupDragIndicators(document);
+        try {
+            await onDrop(protyle, editorElement, event, state);
+        } finally {
+            cleanupDragIndicators(document);
+            handleDragEnd(state, editorElement);
+        }
     });
     // @内联回调
     editorElement.addEventListener("dragover", (event: DragEvent) => {

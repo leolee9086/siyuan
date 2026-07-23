@@ -12,8 +12,6 @@ import { popSearch } from "./imports";
 import { emitOpenMenu } from "./imports";
 /** 用途：隐藏干扰浮层；使用范围：标签菜单打开前隐藏 util/toolbar/hint；解耦评估：UI 协作逻辑集中在工具层。 */
 import { hideElements } from "./imports";
-/** 用途：处理 Electron 撤销快捷键；使用范围：标签输入框 keydown 事件；解耦评估：平台差异逻辑封装在 undo 工具。 */
-import { electronUndo } from "./imports";
 /** 用途：查找标签所在块节点；使用范围：读取 node-id 与 outerHTML 事务更新；解耦评估：DOM 查找工具复用。 */
 import { hasClosestBlock } from "./imports";
 /** 用途：查找顶层 popover 祖先；使用范围：设置菜单 data-from 来源；解耦评估：DOM 工具复用，降低路径耦合。 */
@@ -40,131 +38,6 @@ import { setPosition } from "./imports";
 import { upDownHint } from "./imports";
 /** 用途：查找 class 祖先；使用范围：标签联想列表点击事件；解耦评估：DOM 工具复用。 */
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
-
-/**
- * 作用：把输入框值安全写回标签节点。
- * 意图：集中处理 ZWSP 与 HTML 转义，避免逻辑散落。
- * 调用时机：输入框 composition/input 事件。
- * 问题/改进：依赖 `Lute.EscapeHTMLStr` 全局对象，后续可评估显式注入。
- */
-const 更新标签文本 = (tagElement: HTMLElement, inputElement: HTMLInputElement): void => {
-    tagElement.innerHTML = Constants.ZWSP + Lute.EscapeHTMLStr(inputElement.value || "");
-};
-
-/**
- * 作用：提交标签节点事务并更新 htmlState。
- * 意图：统一事务提交流程，避免每个动作重复写模板代码。
- * 调用时机：标签变更动作执行后。
- * 问题/改进：`id` 仍可能为空字符串，后续可补更严格的 ID 校验。
- */
-const 提交标签事务 = (
-    protyle: IProtyle,
-    id: string | null,
-    nodeElement: HTMLElement,
-    htmlState: { value: string }
-): void => {
-    updateTransaction(protyle, nodeElement, htmlState.value);
-    htmlState.value = nodeElement.outerHTML;
-};
-
-/**
- * 作用：删除标签并恢复光标位置。
- * 意图：集中封装删除后的统一行为（插入 wbr、写 updated、提交事务、恢复焦点）。
- * 调用时机：标签菜单 remove、输入确认空值分支。
- * 问题/改进：删除后焦点依赖 toolbar.range，后续可评估更稳妥的选区回退策略。
- */
-const 删除标签并恢复光标 = (
-    protyle: IProtyle,
-    id: string | null,
-    nodeElement: HTMLElement,
-    tagElement: HTMLElement
-): void => {
-    const oldHTML = nodeElement.outerHTML;
-    tagElement.insertAdjacentHTML("afterend", "<wbr>");
-    tagElement.remove();
-    nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(protyle, nodeElement, oldHTML);
-    const toolbarRange = protyle.toolbar?.range;
-    if (toolbarRange) {
-        focusByWbr(nodeElement, toolbarRange);
-    }
-};
-
-/**
- * 作用：处理输入框 keydown。
- * 意图：统一 Enter/Escape 确认逻辑，并兼容 Electron 撤销。
- * 调用时机：标签输入框 keydown 事件。
- * 问题/改进：目前只处理 Enter/Escape，后续可按需要扩展快捷键映射。
- */
-const 处理标签输入按键 = (
-    protyle: IProtyle,
-    id: string | null,
-    nodeElement: HTMLElement,
-    tagElement: HTMLElement,
-    inputElement: HTMLInputElement,
-    event: KeyboardEvent
-): void => {
-    if (event.isComposing) {
-        return;
-    }
-
-    const isConfirmKey = event.key === "Enter" || event.key === "Escape";
-    if (!isConfirmKey) {
-        electronUndo(event);
-        return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const toolbarRange = protyle.toolbar?.range;
-    // 确认输入且工具栏选区可用时，先把光标定位到当前标签末尾，再关闭菜单。
-    if (inputElement.value && toolbarRange) {
-        toolbarRange.selectNodeContents(tagElement);
-        toolbarRange.collapse(false);
-        focusByRange(toolbarRange);
-    }
-    if (inputElement.value) {
-        getSiyuanGlobalMenusMenu().remove();
-        return;
-    }
-
-    删除标签并恢复光标(protyle, id, nodeElement, tagElement);
-    getSiyuanGlobalMenusMenu().remove();
-};
-
-/**
- * 作用：绑定标签输入框事件并初始化值。
- * 意图：把输入框行为集中，减轻菜单构建函数复杂度。
- * 调用时机：标签编辑菜单项 bind 回调中。
- * 问题/改进：输入行为依赖 DOM 事件，后续可评估抽离为可测试的状态层。
- */
-const 绑定标签输入框 = (
-    protyle: IProtyle,
-    id: string | null,
-    nodeElement: HTMLElement,
-    htmlState: { value: string },
-    tagElement: HTMLElement,
-    menuItemElement: HTMLElement
-): void => {
-    const inputElement = menuItemElement.querySelector("input");
-    if (!(inputElement instanceof HTMLInputElement)) {
-        return;
-    }
-
-    inputElement.value = tagElement.textContent.replace(Constants.ZWSP, "");
-    inputElement.addEventListener("change", 提交标签事务.bind(null, protyle, id, nodeElement, htmlState));
-    inputElement.addEventListener("compositionend", 更新标签文本.bind(null, tagElement, inputElement));
-    inputElement.addEventListener("input", 更新标签文本.bind(null, tagElement, inputElement));
-    inputElement.addEventListener("keydown", 处理标签输入按键.bind(
-        null,
-        protyle,
-        id,
-        nodeElement,
-        tagElement,
-        inputElement
-    ));
-};
 
 /**
  * 作用：执行复制或剪切命令。
@@ -200,6 +73,12 @@ const 执行标签搜索 = (protyle: IProtyle, tagElement: HTMLElement): void =>
         r: "",
         page: 1,
     });
+};
+
+const 执行重命名标签 = (tagElement: HTMLElement) => {
+    const tagName = tagElement.textContent.replace(Constants.ZWSP, "");
+    getSiyuanGlobalMenusMenu().remove();
+    renameTag(tagName);
 };
 
 /**
@@ -290,7 +169,7 @@ const 追加标签菜单动作项 = (
         id: "rename",
         label: siyuanI18n.rename,
         icon: "iconEdit",
-        click: renameTag.bind(null, tagElement.textContent.replace(Constants.ZWSP, ""))
+        click: 执行重命名标签.bind(null, tagElement)
     }).element);
     getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_2", type: "separator" }).element);
     getSiyuanGlobalMenusMenu().append(new MenuItem({
@@ -354,13 +233,11 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     };
 
     hideElements(["util", "toolbar", "hint"], protyle);
-    const htmlState = { value: nodeElement.outerHTML };
-
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "tag",
         iconHTML: "",
         type: "readonly",
-        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">
+        label: `<input ${Constants.ATTRIBUTE_MENU_KEYMAP}="true" class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">
 <div class="fn__none b3-list fn__flex-1 b3-list--background protyle-hint" style="position: fixed"></div>`,
         bind(element) {
             const listElement = element.querySelector(".b3-list") as HTMLElement;
@@ -378,27 +255,23 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
                 }
             });
             inputElement.addEventListener("keydown", (event) => {
-                event.stopPropagation();
                 if (event.isComposing) {
                     return;
                 }
-                if (event.key === "Enter" || event.key === "Escape") {
-                    if (!listElement.classList.contains("fn__none")) {
-                        listElement.classList.add("fn__none");
-                        if (event.key === "Enter") {
-                            const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
-                            inputElement.value = currentElement.dataset.type === "new" ? currentElement.querySelector("mark").textContent.trim() : currentElement.textContent.trim();
-                        }
-                        return;
-                    }
-                    if (event.key === "Escape") {
-                        getSiyuanGlobalMenusMenu().removeCB = null;
-                    }
-                    getSiyuanGlobalMenusMenu().remove();
-                    event.preventDefault();
-                } else {
-                    electronUndo(event);
+                if (!listElement.classList.contains("fn__none")) {
                     upDownHint(listElement, event);
+                    if (event.key === "Enter" || event.key === "Escape") {
+                        listElement.classList.add("fn__none");
+                    }
+                    if (event.key === "Enter") {
+                        const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
+                        inputElement.value = currentElement.dataset.type === "new" ? currentElement.querySelector("mark").textContent.trim() : currentElement.textContent.trim();
+                    }
+                    event.stopPropagation();
+                    return;
+                }
+                if (event.key === "Escape") {
+                    getSiyuanGlobalMenusMenu().removeCB = null;
                 }
             });
             listElement.addEventListener("click", (event) => {

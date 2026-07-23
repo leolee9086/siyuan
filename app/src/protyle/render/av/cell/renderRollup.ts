@@ -38,7 +38,7 @@ import { getDefaultFileIcon } from "./storage.environment";
 /** @同步豁免: UI构建 */
 const renderTextCell = (cellValue: IAVCellValue): string => {
     const textValue = cellValue.text;
-    return textValue?.content || "";
+    return Lute.EscapeHTMLStr(textValue?.content || "");
 };
 
 /**
@@ -57,7 +57,7 @@ const renderEmailOrPhoneCell = (cellValue: IAVCellValue): string => {
         return "";
     }
     
-    return `<span class="av__celltext av__celltext--url" data-type="${type}">${content}</span>`;
+    return `<span class="av__celltext av__celltext--url" data-type="${type}">${Lute.EscapeHTMLStr(content)}</span>`;
 };
 
 /**

@@ -14,6 +14,7 @@ import * as dayjs from "dayjs";
 // 使用范围：仅在 handleTableColResize 中调用。
 // 解耦评估：类型定义是编译时产物，不产生运行时依赖；函数调用在同步事件流中委托执行，属于同一职责范围内拆分。
 import {createTableColResizeContext, updateTableColDragWidth, finalizeTableColDrag} from "./index.mousedown.resize.table";
+import {focusBlock} from "../util/selection";
 
 interface ISuperBlockResizeTip {
     child: HTMLElement;
@@ -36,6 +37,7 @@ interface ISuperBlockResizeContext {
     previousElement: HTMLElement;
     rightIdx: number;
     sbWidth: number;
+    totalChildWidth: number;
     shares: number[];
     tips: ISuperBlockResizeTip[];
     x: number;
@@ -70,26 +72,22 @@ function createSuperBlockResizeTips(sbChildren: HTMLElement[]) {
 }
 
 /**
- * 根据现有 calc 百分比或实测宽度创建总和为 100 的份额池。
+ * 根据实测宽度创建总和为 1000 的份额池，以整数保存一位小数精度。
  */
-function createSuperBlockResizeShares(sbChildren: HTMLElement[], sbWidth: number) {
-    const rawPcts: number[] = [];
-    for (const child of sbChildren) {
-        const match = child.style.width.match(/^calc\(([\d.]+)%/);
-        rawPcts.push(match ? parseFloat(match[1]) : child.getBoundingClientRect().width / sbWidth * 100);
-    }
-    const totalRaw = rawPcts.reduce((sum, pct) => sum + pct, 0) || 1;
-    const normalized = rawPcts.map(pct => pct / totalRaw * 100);
-    const shares = normalized.map(pct => Math.floor(pct));
-    const deficit = 100 - shares.reduce((sum, pct) => sum + pct, 0);
-    const remainders = normalized
-        .map((pct, index) => ({index, frac: pct - Math.floor(pct)}))
-        .sort((a, b) => b.frac - a.frac);
+function createSuperBlockResizeShares(sbChildren: HTMLElement[]) {
+    const widths = sbChildren.map(child => child.getBoundingClientRect().width);
+    const totalWidth = widths.reduce((sum, width) => sum + width, 0) || 1;
+    const scaled = widths.map(width => width / totalWidth * 1000);
+    const shares = scaled.map(value => Math.floor(value));
+    const deficit = 1000 - shares.reduce((sum, value) => sum + value, 0);
+    const remainders = scaled
+        .map((value, index) => ({index, fraction: value - Math.floor(value)}))
+        .sort((a, b) => b.fraction - a.fraction);
     for (let index = 0; index < deficit && index < remainders.length; index++) {
         const remainder = remainders[index];
         shares[remainder.index]++;
     }
-    return shares;
+    return {shares, totalWidth};
 }
 
 /**
@@ -101,7 +99,7 @@ function updateSuperBlockResizeTips(tips: ISuperBlockResizeTip[], shares: number
         if (!tip) {
             continue;
         }
-        tip.el.textContent = `${shares[index]}%`;
+        tip.el.textContent = `${(shares[index] / 10).toFixed(1)}%`;
     }
 }
 
@@ -127,7 +125,7 @@ function createSuperBlockResizeContext(target: HTMLElement, x: number) {
         return;
     }
     const tips = createSuperBlockResizeTips(sbChildren);
-    const shares = createSuperBlockResizeShares(sbChildren, sbWidth);
+    const {shares, totalWidth} = createSuperBlockResizeShares(sbChildren);
     const oldLeftWidth = previousElement.getBoundingClientRect().width;
     const oldRightWidth = nextElement.getBoundingClientRect().width;
     return {
@@ -145,6 +143,7 @@ function createSuperBlockResizeContext(target: HTMLElement, x: number) {
         previousElement,
         rightIdx,
         sbWidth,
+        totalChildWidth: totalWidth,
         shares,
         tips,
         x,
@@ -173,12 +172,12 @@ function updateSuperBlockResizeWidth(context: ISuperBlockResizeContext, clientX:
     context.previousElement.style.flex = "none";
     context.nextElement.style.width = newRightWidth + "px";
     context.nextElement.style.flex = "none";
-    const newLeftShare = Math.max(1, Math.round(newLeftWidth / context.sbWidth * 100));
+    const newLeftShare = Math.max(1, Math.round(newLeftWidth / context.totalChildWidth * 1000));
     const othersSum = context.shares.reduce((sum, pct, index) => {
         return index === context.leftIdx || index === context.rightIdx ? sum : sum + pct;
     }, 0);
     context.shares[context.leftIdx] = newLeftShare;
-    context.shares[context.rightIdx] = Math.max(1, 100 - othersSum - newLeftShare);
+    context.shares[context.rightIdx] = Math.max(1, 1000 - othersSum - newLeftShare);
     updateSuperBlockResizeTips(context.tips, context.shares);
 }
 
@@ -361,6 +360,7 @@ export function handleMediaResize(
         documentSelf.onselectstart = null;
         documentSelf.onselect = null;
         if (target.classList.contains("protyle-action__drag") && nodeElement) {
+            focusBlock(nodeElement);
             updateTransaction(protyle, nodeElement, html);
         }
         nodeElement.classList.remove("iframe--drag");

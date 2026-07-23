@@ -27,7 +27,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/88250/lute"
 	"github.com/88250/lute/parse"
 	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/logging"
@@ -44,16 +43,40 @@ var (
 
 type dbQueueOperation struct {
 	inQueueTime                   time.Time
-	action                        string      // upsert/delete/delete_id/rename/move/delete_box/delete_box_refs/index/delete_ids/update_block_content/delete_assets
+	action                        string      // upsert/delete/delete_id/rename/move/delete_box/delete_box_refs/index/delete_ids/update_block_content/delete_assets/index_node
 	indexTree                     *parse.Tree // index/rename/move
 	upsertTree                    *parse.Tree // upsert/update_refs/delete_refs
 	removeTreeBox, removeTreePath string      // delete
 	removeTreeID                  string      // delete_id
 	removeTreeIDs                 []string    // delete_ids
-	box                           string      // delete_box/delete_box_refs/index
+	box                           string      // delete_box/delete_box_refs/index/index_node
 	block                         *Block      // update_block_content
 	id                            string      // index_node
 	removeAssetHashes             []string    // delete_assets
+}
+
+// boxID 从 op 提取目标 boxID，供 beginTxForBox 路由到加密 db 或全局 db。
+// delete_ids/delete_assets 无 box 上下文，返回空串 → 走全局 db。
+func (op *dbQueueOperation) boxID() string {
+	switch op.action {
+	case "index", "rename", "move":
+		if op.indexTree != nil {
+			return op.indexTree.Box
+		}
+	case "upsert", "update_refs", "delete_refs":
+		if op.upsertTree != nil {
+			return op.upsertTree.Box
+		}
+	case "delete", "delete_id":
+		return op.removeTreeBox
+	case "delete_box", "delete_box_refs", "index_node":
+		return op.box
+	case "update_block_content":
+		if op.block != nil {
+			return op.block.Box
+		}
+	}
+	return ""
 }
 
 func FlushTxJob() {
@@ -108,7 +131,6 @@ func FlushQueue() {
 	ops, indexSnapshot := getOperations()
 	total := len(ops)
 	if 1 > total && !flushingTx.Load() {
-		processDiskQueue()
 		return
 	}
 
@@ -132,7 +154,7 @@ func FlushQueue() {
 		}
 	}
 	if nil != renameTreeOp {
-		childCount := treenode.CountBlockTreesByPathPrefix(path.Dir(renameTreeOp.indexTree.Path))
+		childCount := treenode.CountBlockTreesByPathPrefix(renameTreeOp.indexTree.Box, path.Dir(renameTreeOp.indexTree.Path))
 		if 512 < childCount {
 			scale := math.Log(float64(childCount)/512.0+1.0) / math.Log(2.0)
 			secs := 1.0 * scale
@@ -173,7 +195,7 @@ func FlushQueue() {
 
 		opStart := time.Now()
 
-		tx, err := beginTx()
+		tx, err := beginTxForBox(op.boxID())
 		if err != nil {
 			return
 		}
@@ -238,8 +260,8 @@ func FlushQueue() {
 
 	eventbus.Publish(eventbus.EvtSQLIndexFlushed)
 
+	// 刷新期间追加的操作仍在内存队列中，磁盘队列仅用于进程重启恢复，不能在这里重复执行。
 	clearIndexQueue(indexSnapshot)
-	processDiskQueue()
 }
 
 func execOp(op *dbQueueOperation, tx *sql.Tx, context map[string]any) (err error) {
@@ -281,6 +303,10 @@ func execOp(op *dbQueueOperation, tx *sql.Tx, context map[string]any) (err error
 			tx.Exec("UPDATE block_embeddings SET box = ?, path = ? WHERE root_id = ?", op.indexTree.Box, op.indexTree.Path, op.indexTree.ID)
 		}
 	case "delete_box":
+		// 清理 box 的内容索引。事务由 beginTxForBox(op.boxID()) 按所属库路由：
+		// 普通 box 落到全局 siyuan.db，加密笔记本落到其独立 content db，删除均生效。
+		// 注意加密笔记本关闭时必须清空 content db 数据，否则下次 Mount 的全量 Index
+		// 会用纯 INSERT 在无主键的 blocks 表上叠加重复行，导致搜索结果翻倍。
 		err = deleteByBoxTx(tx, op.box)
 		if nil == err {
 			tx.Exec("DELETE FROM block_embeddings WHERE box = ?", op.box)
@@ -296,7 +322,7 @@ func execOp(op *dbQueueOperation, tx *sql.Tx, context map[string]any) (err error
 	case "delete_assets":
 		err = deleteAssetsByHashes(tx, op.removeAssetHashes)
 	case "index_node":
-		err = indexNode(tx, op.id)
+		err = indexNode(tx, op.id, op.box)
 	default:
 		msg := fmt.Sprintf("unknown operation [%s]", op.action)
 		logging.LogErrorf("%s", msg)
@@ -309,7 +335,11 @@ func IndexNodeQueue(id string) {
 	dbQueueLock.Lock()
 	defer dbQueueLock.Unlock()
 
-	newOp := &dbQueueOperation{id: id, inQueueTime: time.Now(), action: "index_node"}
+	boxID := ""
+	if bt := treenode.GetBlockTree(id); bt != nil {
+		boxID = bt.BoxID
+	}
+	newOp := &dbQueueOperation{id: id, box: boxID, inQueueTime: time.Now(), action: "index_node"}
 	for i, op := range operationQueue {
 		if "index_node" == op.action && op.id == id {
 			operationQueue[i] = newOp
@@ -465,11 +495,11 @@ func MoveTreeQueue(tree *parse.Tree) {
 	appendOperation(newOp)
 }
 
-func RemoveTreeQueue(rootID string) {
+func RemoveTreeQueue(boxID, rootID string) {
 	dbQueueLock.Lock()
 	defer dbQueueLock.Unlock()
 
-	newOp := &dbQueueOperation{removeTreeID: rootID, inQueueTime: time.Now(), action: "delete_id"}
+	newOp := &dbQueueOperation{removeTreeBox: boxID, removeTreeID: rootID, inQueueTime: time.Now(), action: "delete_id"}
 	for i, op := range operationQueue {
 		if "delete_id" == op.action && op.removeTreeID == rootID {
 			operationQueue[i] = newOp
@@ -519,42 +549,4 @@ func appendOperation(op *dbQueueOperation) {
 	operationQueue = append(operationQueue, op)
 	appendToIndexQueue(op)
 	eventbus.Publish(eventbus.EvtSQLIndexChanged)
-}
-
-func processDiskQueue() {
-	entries := loadIndexQueue()
-	if 1 > len(entries) {
-		return
-	}
-
-	logging.LogInfof("flushing [%d] disk index queue operations", len(entries))
-
-	luteEngine := lute.New()
-	context := map[string]any{eventbus.CtxPushMsg: eventbus.CtxPushMsgToStatusBar}
-	groupOpsCurrent := map[string]int{}
-	for _, e := range entries {
-		op := indexEntryToOp(e, luteEngine, "flush disk queue")
-		if nil == op {
-			continue
-		}
-		tx, err := beginTx()
-		if err != nil {
-			return
-		}
-		groupOpsCurrent[op.action]++
-		context["current"] = groupOpsCurrent[op.action]
-		context["total"] = len(entries)
-		if err = execOp(op, tx, context); err != nil {
-			tx.Rollback()
-			closeTxPreparedStmts(tx)
-			logging.LogErrorf("queue operation [%s] failed: %s", op.action, err)
-			continue
-		}
-		if err = commitTx(tx); err != nil {
-			logging.LogErrorf("commit tx failed: %s", err)
-			continue
-		}
-	}
-
-	clearIndexQueueEntries()
 }

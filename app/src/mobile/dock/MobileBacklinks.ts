@@ -4,6 +4,7 @@ import {Constants} from "../../constants";
 import {openMobileFileById} from "../editor";
 import {App} from "../../index";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {isEncryptedBox} from "../../util/pathName";
 export class MobileBacklinks {
     public element: HTMLElement;
     private tree: Tree;
@@ -106,12 +107,16 @@ export class MobileBacklinks {
     }
 
     public update() {
-        fetchPost("/api/ref/getBacklink", {
+        const param: IObject = {
             id: window.siyuan.mobile.editor.protyle.block.id,
             beforeLen: this.beforeLen,
             k: "",
             mk: "",
-        }, response => {
+        };
+        if (isEncryptedBox(window.siyuan.mobile.editor.protyle.notebookId)) {
+            param.notebook = window.siyuan.mobile.editor.protyle.notebookId;
+        }
+        fetchPost("/api/ref/getBacklink", param, response => {
             this.notebookId = response.data.box;
             this.tree.updateData(response.data.backlinks);
             this.mTree.updateData(response.data.backmentions);

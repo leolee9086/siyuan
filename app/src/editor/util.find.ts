@@ -9,7 +9,7 @@ import { objEquals } from "./imports";
 /** 用途：通过类名查找祖先元素。使用范围：判断编辑器所在窗口是否激活。解耦评估：通过 ./imports 转发。 */
 import { hasClosestByClassName } from "./imports";
 /** 用途：获取未初始化的页签。使用范围：找不到打开的编辑器时尝试初始化。解耦评估：同目录模块直接导入。 */
-import { getUnInitTab } from "./util.getUnInitTab";
+import { getUnInitTab, isSameCustomTab } from "./util.getUnInitTab";
 /** 用途：切换到指定编辑器。使用范围：查找到编辑器后切换焦点。解耦评估：同目录模块直接导入。 */
 import { switchEditor } from "./util.switchEditor";
 /** 用途：编辑器类型。使用范围：查找编辑器函数的返回值类型。解耦评估：同目录模块直接导入。 */
@@ -57,8 +57,11 @@ export const findAndOpenCustom = (options: IOpenFileOptions, allModels: ReturnTy
         return;
     }
     clearOBG();
+    if (options.openNewTab) {
+        return;
+    }
     for (const item of allModels.custom) {
-        if (!objEquals(item.data, options.custom.data) || (options.custom.id && options.custom.id !== item.type)) {
+        if (!isSameCustomTab(item.type, item.data, options)) {
             continue;
         }
         // 仅在 PDF 未加载时切换页签

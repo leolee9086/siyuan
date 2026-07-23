@@ -27,7 +27,7 @@ func TestValueRollup_CacheFingerprint(t *testing.T) {
 	rollup := &ValueRollup{}
 
 	// 测试场景1：空关联值
-	fingerprint1 := rollup.calculateFingerprint(nil, &Key{ID: "key1"}, nil)
+	fingerprint1 := rollup.calculateFingerprint(nil, &Key{ID: "key1"}, nil, nil, nil)
 	if fingerprint1 != "" {
 		t.Errorf("空关联值应该返回空指纹，实际: %s", fingerprint1)
 	}
@@ -39,16 +39,21 @@ func TestValueRollup_CacheFingerprint(t *testing.T) {
 			BlockIDs: []string{"block1", "block2", "block3"},
 		},
 	}
-	destKey := &Key{ID: "destKey1"}
+	destKey := &Key{ID: "destKey1", Type: KeyTypeNumber}
 	calc := &RollupCalc{Operator: CalcOperatorSum}
+	keyValues := []*KeyValues{{Key: destKey, Values: []*Value{
+		{KeyID: destKey.ID, BlockID: "block1", Type: KeyTypeNumber, Number: &ValueNumber{Content: 1, IsNotEmpty: true}},
+		{KeyID: destKey.ID, BlockID: "block2", Type: KeyTypeNumber, Number: &ValueNumber{Content: 2, IsNotEmpty: true}},
+		{KeyID: destKey.ID, BlockID: "block3", Type: KeyTypeNumber, Number: &ValueNumber{Content: 3, IsNotEmpty: true}},
+	}}}
 
-	fingerprint2 := rollup.calculateFingerprint(relationVal, destKey, calc)
+	fingerprint2 := rollup.calculateFingerprint(keyValues, destKey, relationVal, calc, nil)
 	if fingerprint2 == "" {
 		t.Error("正常关联值应该返回非空指纹")
 	}
 
 	// 测试场景3：相同输入应该产生相同指纹
-	fingerprint3 := rollup.calculateFingerprint(relationVal, destKey, calc)
+	fingerprint3 := rollup.calculateFingerprint(keyValues, destKey, relationVal, calc, nil)
 	if fingerprint2 != fingerprint3 {
 		t.Errorf("相同输入应该产生相同指纹，fingerprint2=%s, fingerprint3=%s", fingerprint2, fingerprint3)
 	}
@@ -60,16 +65,22 @@ func TestValueRollup_CacheFingerprint(t *testing.T) {
 			BlockIDs: []string{"block1", "block2", "block4"}, // block4 不同
 		},
 	}
-	fingerprint4 := rollup.calculateFingerprint(relationVal2, destKey, calc)
+	fingerprint4 := rollup.calculateFingerprint(keyValues, destKey, relationVal2, calc, nil)
 	if fingerprint2 == fingerprint4 {
 		t.Error("不同BlockIDs应该产生不同指纹")
 	}
 
 	// 测试场景5：不同计算类型应该产生不同指纹
 	calc2 := &RollupCalc{Operator: CalcOperatorAverage}
-	fingerprint5 := rollup.calculateFingerprint(relationVal, destKey, calc2)
+	fingerprint5 := rollup.calculateFingerprint(keyValues, destKey, relationVal, calc2, nil)
 	if fingerprint2 == fingerprint5 {
 		t.Error("不同计算类型应该产生不同指纹")
+	}
+
+	keyValues[0].Values[0].Number.Content = 10
+	fingerprint6 := rollup.calculateFingerprint(keyValues, destKey, relationVal, calc, nil)
+	if fingerprint2 == fingerprint6 {
+		t.Error("目标字段内容变化应该产生不同指纹")
 	}
 }
 

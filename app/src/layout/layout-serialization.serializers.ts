@@ -118,8 +118,8 @@ export const serializeTabInstance = (layout: Tab, json: SerializationJSON): void
 export const serializeEditorInstance = (
     layout: Editor, json: SerializationJSON, breakObj?: BreakObject
 ): void => {
-    // 如果编辑器没有 notebookId，标记为需要重试
-    if (!layout.editor.protyle.notebookId && breakObj) {
+    // notebook、块或根块尚未加载完整时，延后持久化，避免刷新后出现空白页签。
+    if ((!layout.editor.protyle.notebookId || !layout.editor.protyle.block.id || !layout.editor.protyle.block.rootID) && breakObj) {
         breakObj.editor = "true";
     }
     json.notebookId = layout.editor.protyle.notebookId;
@@ -129,6 +129,7 @@ export const serializeEditorInstance = (
     const showAll = layout.editor.protyle.block.showAll;
     const isNotRoot = layout.editor.protyle.block.id !== layout.editor.protyle.block.rootID;
     json.action = (showAll && isNotRoot) ? Constants.CB_GET_ALL : Constants.CB_GET_SCROLL;
+    json.databaseRowId = layout.editor.protyle.element.dataset.databaseRowId;
     json.instance = "Editor";
 };
 

@@ -39,6 +39,11 @@ import { getEventName } from "../protyle/util/compatibility";
 /** 导出 getEventName，供 menus 模块派发点击事件 */
 export { getEventName };
 
+/** 用途：Electron 输入框撤销/重做。使用范围：带菜单键盘映射的输入控件。解耦评估：编辑器平台能力经 imports 转发。 */
+import { electronUndo } from "../protyle/undo";
+/** 导出 electronUndo，供菜单键盘模块处理输入框快捷键。 */
+export { electronUndo };
+
 /** 用途：按 class 向上查找祖先。使用范围：菜单左键返回父级菜单项。解耦评估：DOM 查找工具职责清晰，经 imports 转发避免业务直连 protyle。 */
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 menus 模块祖先查找 */

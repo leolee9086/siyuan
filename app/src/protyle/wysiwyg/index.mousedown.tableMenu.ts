@@ -38,7 +38,7 @@ export function buildTableCellMenu(
             type: "separator"
         }).element);
     }
-    appendCopyMenuItems(protyle, tableBlockElement, tableSelectElement);
+    appendCopyMenuItems(protyle, tableBlockElement);
     if (!protyle.disabled) {
         appendEditMenuItems(protyle, tableBlockElement);
     }
@@ -161,7 +161,9 @@ function executeMergeCell(
             selectCellElements[0].colSpan = colSpan;
             selectCellElements[0].rowSpan = rowSpan;
             focusByWbr(selectCellElements[0], document.createRange());
-            document.execCommand("insertHTML", false, "");
+            protyle.wysiwyg.withInputSuppressed(() => {
+                document.execCommand("insertHTML", false, "");
+            });
             updateTransaction(protyle, tableBlockElement.getAttribute("data-node-id"), tableBlockElement.outerHTML, oldHTML);
         }
     });
@@ -219,7 +221,6 @@ function appendAlignMenuItems(
 function appendCopyMenuItems(
     protyle: IProtyle,
     tableBlockElement: HTMLElement | false,
-    tableSelectElement: HTMLElement,
 ) {
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copyPlainText",

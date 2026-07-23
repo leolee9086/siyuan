@@ -19,8 +19,9 @@ package sql
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
+	"maps"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/88250/gulu"
@@ -35,75 +36,6 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
-
-// ftsRowidPair 记录一个 block 在 blocks_fts 表中的 rowid。
-// rowid 在 INSERT 时由 SQLite 自动分配，后续 UPDATE 用 rowid 可避免全表扫描（WHERE id = ? 在 FTS5 中无索引）。
-type ftsRowidPair struct {
-	rowid int64 // blocks_fts.rowid
-}
-
-var (
-	blockFTSRowIDs     map[string]*ftsRowidPair
-	blockFTSRowIDsLock sync.RWMutex
-)
-
-func init() {
-	clearFTSRowIDs()
-}
-
-func storeFTSRowIDs(blockIDs []string, ftsFirst int64) {
-	blockFTSRowIDsLock.Lock()
-	defer blockFTSRowIDsLock.Unlock()
-	for i, id := range blockIDs {
-		blockFTSRowIDs[id] = &ftsRowidPair{rowid: ftsFirst + int64(i)}
-	}
-}
-
-func getFTSRowIDs(blockID string) (pair *ftsRowidPair, ok bool) {
-	blockFTSRowIDsLock.RLock()
-	defer blockFTSRowIDsLock.RUnlock()
-	pair, ok = blockFTSRowIDs[blockID]
-	return
-}
-
-func clearFTSRowIDs() {
-	blockFTSRowIDsLock.Lock()
-	defer blockFTSRowIDsLock.Unlock()
-	blockFTSRowIDs = make(map[string]*ftsRowidPair)
-}
-
-// storeFTSRowIDMap 批量存储预填充的 rowid 映射，不依赖 rowid 连续性。
-func storeFTSRowIDMap(entries map[string]*ftsRowidPair) {
-	blockFTSRowIDsLock.Lock()
-	defer blockFTSRowIDsLock.Unlock()
-	for id, pair := range entries {
-		blockFTSRowIDs[id] = pair
-	}
-}
-
-// buildFTSRowIDMapping 扫描 blocks_fts 为所有存量 block 构建 rowid 映射。
-// 确保部署后存量 block 的第一次 UPDATE 不会退化到全表扫描。
-func buildFTSRowIDMapping() {
-	entries := map[string]*ftsRowidPair{}
-
-	rows, err := db.Query("SELECT rowid, id FROM blocks_fts")
-	if err != nil {
-		logging.LogErrorf("build FTS rowid mapping failed: %s", err)
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var rowid int64
-		var id string
-		if err := rows.Scan(&rowid, &id); err != nil {
-			continue
-		}
-		entries[id] = &ftsRowidPair{rowid: rowid}
-	}
-
-	storeFTSRowIDMap(entries)
-	logging.LogInfof("built FTS rowid mapping for [%d] blocks", len(entries))
-}
 
 type Block struct {
 	ID       string
@@ -129,22 +61,73 @@ type Block struct {
 	Updated  string
 }
 
-func updateRootContent(tx *sql.Tx, content, updated, ialContent, id string) (err error) {
-	stmt := "UPDATE blocks SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, content, content, updated, ialContent, id); err != nil {
+// blockRowIDByBlockID 返回指定 block 的 blocks 表隐式 rowid。
+// external content 模式下，blocks_fts 的写操作需以此为定位键。
+func blockRowIDByBlockID(tx *sql.Tx, id string) (rowID int64, err error) {
+	stmt := "SELECT ROWID FROM blocks WHERE id = ?"
+	rows, err := tx.Query(stmt, id)
+	if err != nil {
+		logging.LogErrorf("query block rowid failed: %s", err)
 		return
 	}
+	defer rows.Close()
+	if !rows.Next() {
+		logging.LogErrorf("query block rowid failed: id=%s not found", id)
+		err = fmt.Errorf("block rowid not found: %s", id)
+		return
+	}
+	if err = rows.Scan(&rowID); err != nil {
+		logging.LogErrorf("scan block rowid failed: %s", err)
+		return
+	}
+	return
+}
 
-	if pair, ok := getFTSRowIDs(id); ok {
-		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE rowid = ?"
-		if err = execStmtTx(tx, stmt, content, content, updated, ialContent, pair.rowid); err != nil {
+// queryBlockRowIDsTx 批量返回 ids 对应的 blocks rowid，按 id 索引。
+// 与 deleteBlocksByIDs 一致，采用字符串内插 IN 列表（ids 为内核生成的 block id，非用户输入）。
+func queryBlockRowIDsTx(tx *sql.Tx, blocks []*Block) (ret map[string]int64, err error) {
+	ret = map[string]int64{}
+	if 1 > len(blocks) {
+		return
+	}
+	var ids []string
+	for _, b := range blocks {
+		ids = append(ids, "\""+b.ID+"\"")
+	}
+	stmt := "SELECT id, ROWID FROM blocks WHERE id IN (" + strings.Join(ids, ",") + ")"
+	rows, err := tx.Query(stmt)
+	if err != nil {
+		logging.LogErrorf("query block rowids failed: %s", err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var rowID int64
+		if err = rows.Scan(&id, &rowID); err != nil {
+			logging.LogErrorf("scan block rowid failed: %s", err)
 			return
 		}
-	} else {
-		stmt = "UPDATE blocks_fts SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE id = ?"
-		if err = execStmtTx(tx, stmt, content, content, updated, ialContent, id); err != nil {
-			return
-		}
+		ret[id] = rowID
+	}
+	return
+}
+
+// 下列局部更新索引列的路径（updateRootContent、updateBlockContent、indexNode）须先写 blocks_fts、再写 blocks，
+// 以便 FTS 删除旧 token 时仍能从 blocks 读到旧值。
+
+func updateRootContent(tx *sql.Tx, content, updated, ialContent, id string) (err error) {
+	var rowID int64
+	if rowID, err = blockRowIDByBlockID(tx, id); err != nil {
+		return
+	}
+	stmt := "UPDATE blocks_fts SET content = ?, fcontent = ?, ial = ? WHERE rowid = ?"
+	if err = execStmtTx(tx, stmt, content, content, ialContent, rowID); err != nil {
+		return
+	}
+	stmt = "UPDATE blocks SET content = ?, fcontent = ?, updated = ?, ial = ? WHERE id = ?"
+	if err = execStmtTx(tx, stmt, content, content, updated, ialContent, id); err != nil {
+		return
 	}
 
 	removeBlockCache(id)
@@ -154,28 +137,21 @@ func updateRootContent(tx *sql.Tx, content, updated, ialContent, id string) (err
 
 func updateBlockContent(tx *sql.Tx, block *Block) (err error) {
 	t0 := time.Now()
-
-	stmt := "UPDATE blocks SET content = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
+	var rowID int64
+	if rowID, err = blockRowIDByBlockID(tx, block.ID); err != nil {
+		tx.Rollback()
+		return
+	}
+	stmt := "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
+	if err = execStmtTx(tx, stmt, block.Content, rowID); err != nil {
 		tx.Rollback()
 		return
 	}
 	t1 := time.Now()
-
-	// FTS 表改用 rowid 更新（O(1)），避免 WHERE id = ? 全表扫描
-	if pair, ok := getFTSRowIDs(block.ID); ok {
-		stmt = "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
-		if err = execStmtTx(tx, stmt, block.Content, pair.rowid); err != nil {
-			tx.Rollback()
-			return
-		}
-	} else {
-		// fallback: 映射不存在时退化到 WHERE id = ?
-		stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
-		if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
-			tx.Rollback()
-			return
-		}
+	stmt = "UPDATE blocks SET content = ? WHERE id = ?"
+	if err = execStmtTx(tx, stmt, block.Content, block.ID); err != nil {
+		tx.Rollback()
+		return
 	}
 	t2 := time.Now()
 
@@ -184,15 +160,15 @@ func updateBlockContent(tx *sql.Tx, block *Block) (err error) {
 
 	elapsed := t3.Sub(t0)
 	if 500 < elapsed.Milliseconds() {
-		logging.LogWarnf("slow update_block_content [id=%s] content_len=%d took [%dms]: blocks=%d fts=%d cache=%d",
+		logging.LogWarnf("slow update_block_content [id=%s] content_len=%d took [%dms]: rowid_fts=%d blocks=%d cache=%d",
 			block.ID, len(block.Content), elapsed.Milliseconds(),
 			t1.Sub(t0).Milliseconds(), t2.Sub(t1).Milliseconds(), t3.Sub(t2).Milliseconds())
 	}
 	return
 }
 
-func indexNode(tx *sql.Tx, id string) (err error) {
-	bt := treenode.GetBlockTree(id)
+func indexNode(tx *sql.Tx, id, boxID string) (err error) {
+	bt := treenode.GetBlockTreeInBox(id, boxID)
 	if nil == bt {
 		return
 	}
@@ -207,31 +183,31 @@ func indexNode(tx *sql.Tx, id string) (err error) {
 		return
 	}
 
-	content := NodeStaticContent(node, nil, true, indexAssetPath, true)
+	content := nodeStaticContent(node, nil, true, indexAssetPath, true, true)
 	content = strings.ReplaceAll(content, editor.Zwsp, "")
-	stmt := "UPDATE blocks SET content = ? WHERE id = ?"
-	if err = execStmtTx(tx, stmt, content, id); err != nil {
+	var rowID int64
+	if rowID, err = blockRowIDByBlockID(tx, id); err != nil {
 		tx.Rollback()
 		return
 	}
-
-	if pair, ok := getFTSRowIDs(id); ok {
-		stmt = "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
-		if err = execStmtTx(tx, stmt, content, pair.rowid); err != nil {
-			tx.Rollback()
-			return
-		}
-	} else {
-		stmt = "UPDATE blocks_fts SET content = ? WHERE id = ?"
-		if err = execStmtTx(tx, stmt, content, id); err != nil {
-			tx.Rollback()
-			return
-		}
+	stmt := "UPDATE blocks_fts SET content = ? WHERE rowid = ?"
+	if err = execStmtTx(tx, stmt, content, rowID); err != nil {
+		tx.Rollback()
+		return
+	}
+	stmt = "UPDATE blocks SET content = ? WHERE id = ?"
+	if err = execStmtTx(tx, stmt, content, id); err != nil {
+		tx.Rollback()
+		return
 	}
 	return
 }
 
 func NodeStaticContent(node *ast.Node, excludeTypes []string, includeTextMarkATitleURL, includeAssetPath, fullAttrView bool) string {
+	return nodeStaticContent(node, excludeTypes, includeTextMarkATitleURL, includeAssetPath, fullAttrView, false)
+}
+
+func nodeStaticContent(node *ast.Node, excludeTypes []string, includeTextMarkATitleURL, includeAssetPath, fullAttrView, unescapeBlockRef bool) string {
 	if nil == node {
 		return ""
 	}
@@ -369,7 +345,11 @@ func NodeStaticContent(node *ast.Node, excludeTypes []string, includeTextMarkATi
 			if n.IsTextMarkType("tag") {
 				buf.WriteByte('#')
 			}
-			buf.WriteString(n.Content())
+			content := n.Content()
+			if unescapeBlockRef && treenode.IsBlockRef(n) {
+				content = util.UnescapeHTML(content)
+			}
+			buf.WriteString(content)
 			if n.IsTextMarkType("tag") {
 				buf.WriteByte('#')
 			}
@@ -404,7 +384,11 @@ func BatchGetBlockAttrsWitTrees(ids []string, trees map[string]*parse.Tree) (ret
 
 	hitCache := true
 	for _, id := range ids {
-		ial := cache.GetBlockIAL(id)
+		boxID := ""
+		if tree := trees[id]; nil != tree {
+			boxID = tree.Box
+		}
+		ial := cache.GetBlockIALWithBoxFallback(id, boxID)
 		if nil != ial {
 			ret[id] = ial
 			continue
@@ -432,7 +416,11 @@ func BatchGetBlockAttrs(ids []string) (ret map[string]map[string]string) {
 
 	hitCache := true
 	for _, id := range ids {
-		ial := cache.GetBlockIAL(id)
+		boxID := ""
+		if bt := treenode.GetBlockTree(id); nil != bt {
+			boxID = bt.BoxID
+		}
+		ial := cache.GetBlockIALWithBoxFallback(id, boxID)
 		if nil != ial {
 			ret[id] = ial
 			continue
@@ -458,12 +446,24 @@ func BatchGetBlockAttrs(ids []string) (ret map[string]map[string]string) {
 
 func GetBlockAttrs(id string) (ret map[string]string) {
 	ret = map[string]string{}
-	if cached := cache.GetBlockIAL(id); nil != cached {
+	// 写入端部分路径用 box-aware key、部分用 bare key，这里按 box-aware 优先、bare key 回退查询，
+	// 避免漏掉任一命名空间的更新（如块绑定数据库后写 box-aware key，但旧 bare key 仍是绑定前旧值）。
+	bt := treenode.GetBlockTree(id)
+	boxID := ""
+	if nil != bt {
+		boxID = bt.BoxID
+	}
+	if cached := cache.GetBlockIALWithBoxFallback(id, boxID); nil != cached {
 		ret = cached
 		return
 	}
 
-	tree := loadTreeByBlockID(id)
+	var tree *parse.Tree
+	if nil != bt {
+		tree, _ = filesys.LoadTree(bt.BoxID, bt.Path, luteEngine)
+	} else {
+		tree = loadTreeByBlockID(id)
+	}
 	if nil == tree {
 		return
 	}
@@ -475,11 +475,9 @@ func GetBlockAttrs(id string) (ret map[string]string) {
 func getBlockAttrsFromTree(id string, tree *parse.Tree) (ret map[string]string) {
 	ret = map[string]string{}
 
-	ial := cache.GetBlockIAL(id)
+	ial := cache.GetBlockIALWithBoxFallback(id, tree.Box)
 	if nil != ial {
-		for k, v := range ial {
-			ret[k] = v
-		}
+		maps.Copy(ret, ial)
 		return
 	}
 
@@ -492,7 +490,7 @@ func getBlockAttrsFromTree(id string, tree *parse.Tree) (ret map[string]string) 
 	for _, kv := range node.KramdownIAL {
 		ret[kv[0]] = html.UnescapeAttrVal(kv[1])
 	}
-	cache.PutBlockIAL(id, ret)
+	cache.PutBlockIALInBox(id, tree.Box, ret)
 	return
 }
 

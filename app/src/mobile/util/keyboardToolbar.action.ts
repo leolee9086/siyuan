@@ -218,5 +218,7 @@ export const handleToolbarClick = (
         }
         focusByRange(range);
         return;
+    } else if (type) {
+        protyle.toolbar.element.querySelector(`[data-type="${type}"]`)?.dispatchEvent(new CustomEvent("click"));
     }
 };

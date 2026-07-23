@@ -17,6 +17,8 @@ import { isTouchDevice } from "./imports";
 import { isHTMLElement } from "./imports";
 // 用途：获取思源全局配置；使用范围：target.ts 中检查编辑器浮窗模式配置；解耦评估：全局配置访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanConfig } from "./imports";
+/** 用途：发布模式状态。使用范围：阻止发布端请求镜像数据库浮窗。解耦评估：通过同目录 imports 转发。 */
+import { getSiyuanIsPublish } from "./imports";
 // 用途：获取当前所有块面板实例；使用范围：target.ts 中遍历块面板进行层级检查和清理操作；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanBlockPanels } from "./imports";
 // 用途：获取当前菜单实例；使用范围：target.ts 中检查菜单层级和数据状态；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
@@ -365,6 +367,7 @@ export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement:
 
     // 检查是否应该显示 popover：无目标、按住 Alt、或在模式0下按住 Ctrl、或元素标记了 prevent-popover
     if (!targetElement || getSiyuanKeyboardState().altIsPressed ||
+        (getSiyuanIsPublish() && targetElement.dataset.popoverUrl === "/api/av/getMirrorDatabaseBlocks") ||
         (getSiyuanConfig().editor.floatWindowMode === 0 && getSiyuanKeyboardState().ctrlIsPressed) ||
         targetElement?.getAttribute("prevent-popover") === "true") {
         return false;
@@ -378,4 +381,3 @@ export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement:
 
     return true;
 };
-

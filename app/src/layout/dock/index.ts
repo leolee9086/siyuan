@@ -79,12 +79,12 @@ export class Dock {
         this.pin = !this.pin;
         const hasActive = this.elements[0].querySelector(".dock__item--active") ||
             this.elements[1].querySelector(".dock__item--active");
+        this.resetDockPosition(Boolean(hasActive));
+        this.layout.element.style.opacity = "";
         if (!this.pin) {
-            this.resetDockPosition(Boolean(hasActive));
             this.resizeElement.classList.add("fn__none");
             this.hideDock(true);
         } else {
-            this.layout.element.style.opacity = "";
             this.layout.element.style.transform = "";
             this.layout.element.style.zIndex = "";
             if (hasActive) {
@@ -105,11 +105,11 @@ export class Dock {
      */
     private resetDockPosition(show: boolean): void {
         if (this.position === "Left") {
-            this.layout.element.setAttribute("style", `margin-right: var(--b3-layout-space);width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `${show ? "margin-right: var(--b3-layout-space);" : ""}width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};min-height:8px;`);
         } else if (this.position === "Right") {
-            this.layout.element.setAttribute("style", `margin-left: var(--b3-layout-space);width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `${show ? "margin-left: var(--b3-layout-space);" : ""}width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};min-height:8px;`);
         } else {
-            this.layout.element.setAttribute("style", `margin-top: var(--b3-layout-space);height:${this.layout.element.clientHeight}px;opacity:${show ? 1 : 0};`);
+            this.layout.element.setAttribute("style", `${show ? "margin-top: var(--b3-layout-space);" : ""}height:${this.layout.element.clientHeight}px;opacity:${show ? 1 : 0};`);
         }
     }
 

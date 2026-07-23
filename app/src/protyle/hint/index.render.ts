@@ -7,6 +7,7 @@ import {hasPreviousSibling} from "../wysiwyg/getBlock";
 import {filterEmoji, getEmojiDesc, getEmojiTitle, lazyLoadEmoji, lazyLoadEmojiImg, unicode2Emoji} from "../../emoji";
 import {isMobile} from "../../platform";
 import {fetchPost} from "../../util/network/fetch";
+import {withEncryptedNotebook} from "../../util/pathName";
 import type {Hint} from "./index";
 
 /** @同步豁免: 遗留代码 — 从 Hint.render 原样提取的渲染逻辑 */
@@ -78,6 +79,15 @@ export function handleRender(hint: Hint, protyle: IProtyle) {
     // https://github.com/siyuan-note/siyuan/issues/5083
     if (hint.splitChar === "/" || hint.splitChar === "、") {
         clearTimeout(hint.timeId);
+        if (protyle.lite) {
+            protyle.options.hint.extend.find((item) => {
+                if (item.key === "/" && item.hint) {
+                    item.hint(key, protyle, "hint");
+                    return true;
+                }
+            });
+            return;
+        }
         const blockElement = hasClosestBlock(protyle.toolbar.range.startContainer);
         if (hint.enableSlash && !isMobile && blockElement && !isInEmbedBlock(blockElement)) {
             hint.genHTML(hintSlash(key, protyle), protyle, false, "hint");
@@ -199,13 +209,13 @@ export function handleGenEmojiHTML(hint: Hint, protyle: IProtyle, value = "") {
 /** @同步豁免: 遗留代码 — 从 Hint.genSearchHTML 原样提取的搜索引用块逻辑 */
 export function handleGenSearchHTML(hint: Hint, protyle: IProtyle, searchElement: HTMLInputElement, nodeElement: false | HTMLElement, oldValue: string, source: THintSource) {
     hint.element.lastElementChild.innerHTML = '<div class="ft__center"><img style="height:32px;width:32px;" src="/stage/loading-pure.svg"></div>';
-    fetchPost("/api/search/searchRefBlock", {
+    fetchPost("/api/search/searchRefBlock", withEncryptedNotebook(protyle.notebookId, {
         k: searchElement.value,
         id: nodeElement ? nodeElement.getAttribute("data-node-id") : protyle.block.parentID,
         beforeLen: Math.floor((Math.max(protyle.element.clientWidth / 2, 320) - 58) / 28.8),
         rootID: source === "av" ? "" : protyle.block.rootID,
         isDatabase: source === "av",
-    }, (response) => {
+    }), (response) => {
         let searchHTML = "";
         if (response.data.newDoc) {
             const blockRefText = `((newFile "${oldValue}"${Constants.ZWSP}'${response.data.k}${Lute.Caret}'))`;

@@ -99,7 +99,7 @@ const getCalloutDialogHTML = (subtype: string, iconHTML: string) => {
             ${siyuanI18n.icon}
         </div>
         <span class="fn__space"></span>
-        <div class="protyle-wysiwyg" style="padding: 0" data-readonly="false">
+        <div class="protyle-wysiwyg" style="padding: 0;font-size: 16px" data-readonly="false">
             <span class="callout-icon">${iconHTML}</span>
         </div>
     </label>

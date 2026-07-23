@@ -3,6 +3,7 @@ import { bindDropEvent, bindUploadEvent } from "./background/upload";
 import { bindImgMoveEvent } from "./background/image";
 import { initBackgroundElement } from "./background/init";
 import { renderBackground } from "./background/render";
+import {bindTagSortEvent} from "./background/tags";
 
 export class Background {
     public element!: HTMLElement;
@@ -12,6 +13,7 @@ export class Background {
     public actionElements!: NodeListOf<Element>;
     public tagsElement!: HTMLElement;
     public transparentData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    public dragOccurred = false;
 
     constructor(protyle: IProtyle) {
         initBackgroundElement(this);
@@ -19,6 +21,7 @@ export class Background {
         bindImgMoveEvent(this);
         bindUploadEvent(this, protyle);
         bindClickEvent(this, protyle);
+        bindTagSortEvent(this, protyle);
     }
     /**
      * 作用：渲染题头图。

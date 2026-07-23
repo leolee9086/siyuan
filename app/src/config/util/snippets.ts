@@ -1,6 +1,6 @@
 import {fetchPost} from "../../util/network/fetch";
 import {Dialog} from "../../dialog";
-import {objEquals} from "../../util/platform/functions";
+import {isMobile, objEquals} from "../../util/platform/functions";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Constants} from "../../constants";
 
@@ -56,9 +56,9 @@ export const openSnippets = () => {
             }
         });
         const dialog = new Dialog({
-            width: "70vw",
-            height: "80vh",
-            content: `<div class="layout-tab-bar fn__flex fn__flex-shrink" style="border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0">
+            width: isMobile() ? "100vw" : "50vw",
+            height: isMobile() ? "100vh" : "80vh",
+            content: `<div class="layout-tab-bar fn__flex fn__flex-shrink" style="${isMobile() ? "padding-right: 38px;" : ""}border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0">
     <div data-type="css" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">CSS</span><span class="fn__flex-1"></span></div>
     <div data-type="js" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">JS</span><span class="fn__flex-1"></span></div>
 </div>
@@ -100,7 +100,7 @@ export const openSnippets = () => {
             }
         });
         response.data.snippets.forEach((item: ISnippet) => {
-            const nameElement = (dialog.element.querySelector(`[data-id="${item.id}"] input`) as HTMLInputElement);
+            const nameElement = (dialog.element.querySelector(`[data-id="${item.id}"] input.b3-text-field`) as HTMLInputElement);
             nameElement.value = item.name;
             const contentElement = dialog.element.querySelector(`[data-id="${item.id}"] textarea`) as HTMLTextAreaElement;
             contentElement.textContent = item.content;
@@ -173,7 +173,7 @@ export const openSnippets = () => {
 
 const filterSnippet = (dialog: Dialog, inputItem: HTMLInputElement) => {
     dialog.element.querySelectorAll(`.fn__flex-1 > div > [data-type="${inputItem.dataset.type}"]`).forEach((snippetPanel: Element) => {
-        const snippetName = snippetPanel.querySelector("input").value.toLowerCase();
+        const snippetName = (snippetPanel.querySelector("input.b3-text-field") as HTMLInputElement).value.toLowerCase();
         const snippetContent = snippetPanel.querySelector("textarea").value.toLowerCase();
         const searchValue = inputItem.value.toLowerCase();
         if (!searchValue ||
@@ -189,15 +189,14 @@ const filterSnippet = (dialog: Dialog, inputItem: HTMLInputElement) => {
 const genSnippet = (options: ISnippet) => {
     return `<div data-id="${options.id || ""}" data-type="${options.type}">
     <div class="fn__hr--b"></div>
-    <div class="fn__flex">
-        <input type="text" class="fn__size200 b3-text-field" placeholder="${window.siyuan.languages.title}">
+    <label class="fn__flex${window.siyuan.config.publish.enable ? "" : " fn__none"}">
+        <input data-type="disabledInPublish" type="checkbox" class="b3-switch fn__flex-center" ${options.disabledInPublish ? "" : " checked"}>
         <div class="fn__space"></div>
-        <label class="fn__flex${window.siyuan.config.publish.enable ? "" : " fn__none"}">
-            <input data-type="disabledInPublish" type="checkbox" class="b3-switch fn__flex-center" ${options.disabledInPublish ? "" : " checked"}>
-            <div class="fn__space"></div>
-            <span class="fn__flex-center">${window.siyuan.languages.publishService}</span>
-        </label>
-        <div class="fn__flex-1"></div>
+        <span class="fn__flex-center">${window.siyuan.languages.publishService}</span>
+    </label>
+    <div class="fn__hr"></div>
+    <div class="fn__flex">
+        <input type="text" class="fn__flex-1 b3-text-field" placeholder="${window.siyuan.languages.title}">
         <div class="fn__space"></div>
         <span aria-label="${window.siyuan.languages.remove}" data-action="remove" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show">
             <svg><use xlink:href="#iconTrashcan"></use></svg>
@@ -232,7 +231,7 @@ const setSnippet = (dialog: Dialog, oldSnippets: ISnippet[], removeIds: string[]
         snippets.push({
             disabledInPublish: !(item.querySelector('.b3-switch[data-type="disabledInPublish"]') as HTMLInputElement).checked,
             id: item.getAttribute("data-id"),
-            name: item.querySelector("input").value,
+            name: (item.querySelector("input.b3-text-field") as HTMLInputElement).value,
             type: item.getAttribute("data-type"),
             content: item.querySelector("textarea").value,
             enabled: (item.querySelector('.b3-switch[data-type="snippet"]') as HTMLInputElement).checked

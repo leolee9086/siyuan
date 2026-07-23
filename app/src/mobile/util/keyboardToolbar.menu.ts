@@ -217,6 +217,7 @@ export const renderSlashMenu = (protyle: IProtyle, toolbarElement: Element) => {
 </div>
 <div class="keyboard__slash-title"></div>
 <div class="keyboard__slash-block">
+    ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconImage", siyuanI18n.insertImage + '<input class="b3-form__upload" type="file" multiple="multiple" accept="image/*,application/x-siyuan-image-picker"/>', "true") : ""}
     ${getSlashItem(Constants.ZWSP + 3, "iconDownload", siyuanI18n.insertAsset + '<input class="b3-form__upload" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true")}
     ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconCamera", siyuanI18n.insertPhoto + '<input class="b3-form__upload" capture="user" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true") : ""}
     ${getSlashItem('<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups allow-storage-access-by-user-activation" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>', "iconGlobe", siyuanI18n.insertIframeURL, "true")}
@@ -299,11 +300,10 @@ export const KEYBOARD_TOOLBAR_HTML = `<div class="fn__flex keyboard__bar">
             <button class="keyboard__action" data-type="sub"><svg><use xlink:href="#iconSub"></use></svg></button>
             <button class="keyboard__action" data-type="clear"><svg><use xlink:href="#iconClear"></use></svg></button>
             <button class="keyboard__action" data-type="code"><svg><use xlink:href="#iconInlineCode"></use></svg></button>
-            <button class="keyboard__action" data-type="kbd"<use xlink:href="#iconKeymap"></use></svg></button>
+            <button class="keyboard__action" data-type="kbd"><svg><use xlink:href="#iconKeymap"></use></svg></button>
             <button class="keyboard__action" data-type="tag"><svg><use xlink:href="#iconTag"></use></svg></button>
             <button class="keyboard__action" data-type="inline-math"><svg><use xlink:href="#iconMath"></use></svg></button>
             <button class="keyboard__action" data-type="inline-memo"><svg><use xlink:href="#iconM"></use></svg></button>
-            <button class="keyboard__action" data-type="goback"><svg><use xlink:href="#iconCloseRound"></use></svg></button>
         </div>
     </div>
     <span class="keyboard__split"></span>

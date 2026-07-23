@@ -3,16 +3,12 @@
  * 从 popover.ts 拆分出来，处理各种来源的 refDefs 获取逻辑
  */
 
-// 用途：判断元素是否在块级元素内；使用范围：getRefDefsFromVirtualBlockRef 函数中查找最近的块元素；解耦评估：工具函数，通过参数传递即可，已充分解耦
-import { hasClosestBlock } from "./imports";
 // 用途：发送同步 POST 请求到后端 API；使用范围：所有需要从后端获取引用定义数据的函数；解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { fetchSyncPost } from "./imports";
 // 用途：解析思源协议 URL；使用范围：getRefDefs 函数中处理思源协议链接时解析 ID；解耦评估：纯函数工具，通过参数传递即可，已充分解耦
 import { parseSiYuanUriInfo } from "./imports";
 // 用途：获取当前 popover 的目标元素；使用范围：本文件所有需要访问触发 popover 的 DOM 元素的场景；解耦评估：可通过参数传递解耦，但作为模块内共享状态，直接导入更合理
 import { getPopoverTargetElement } from "./target";
-// 用途：定义 RefDefs 相关的类型；使用范围：本文件所有函数的返回值类型；解耦评估：类型定义，无需解耦
-import { RefDefsResult } from "./types";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // RefDefs 获取函数
@@ -53,15 +49,21 @@ const getRefDefsFromVirtualBlockRef = async () => {
     if (!popoverTargetElement) {
         return { refDefs: [], originalRefBlockIDs: {} };
     }
-    const nodeElement = hasClosestBlock(popoverTargetElement);
-    if (nodeElement) {
-        const postResponse = await fetchSyncPost("/api/block/getBlockDefIDsByRefText", {
-            anchor: popoverTargetElement?.textContent,
-            excludeIDs: [nodeElement.getAttribute("data-node-id")]
-        });
-        return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: {} };
-    }
-    return { refDefs: [], originalRefBlockIDs: {} };
+    const postResponse = await fetchSyncPost("/api/block/getBlockDefIDsByRefText", {
+        anchor: popoverTargetElement.textContent,
+    });
+    return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: {} };
+};
+
+/** 将思源链接中的块和数据库定位信息投影为浮窗引用。 */
+const getRefDefFromSiYuanURI = (uri: string | null | undefined) => {
+    const blockInfo = parseSiYuanUriInfo(uri);
+    return {
+        refID: blockInfo?.id ?? "",
+        avItemID: blockInfo?.avItemID,
+        avViewID: blockInfo?.avViewID,
+        avGroupID: blockInfo?.avGroupID,
+    };
 };
 
 /**
@@ -138,7 +140,7 @@ export const getRefDefs = async (showRef: boolean) => {
     // 思源协议链接
     if (popoverTargetElement.getAttribute("data-type")?.split(" ").includes("a")) {
         return {
-            refDefs: [{ refID: parseSiYuanUriInfo(popoverTargetElement.getAttribute("data-href"))?.id ?? "" }],
+            refDefs: [getRefDefFromSiYuanURI(popoverTargetElement.getAttribute("data-href"))],
             originalRefBlockIDs: {}
         };
     }
@@ -146,7 +148,7 @@ export const getRefDefs = async (showRef: boolean) => {
     // database URL 列中的思源协议链接
     if (popoverTargetElement.dataset.type === "url") {
         return {
-            refDefs: [{ refID: parseSiYuanUriInfo(popoverTargetElement.textContent.trim())?.id ?? "" }],
+            refDefs: [getRefDefFromSiYuanURI(popoverTargetElement.dataset.href || popoverTargetElement.textContent.trim())],
             originalRefBlockIDs: {}
         };
     }

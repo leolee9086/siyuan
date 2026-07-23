@@ -1,19 +1,16 @@
 import {hasClosestBlock, hasClosestByClassName} from "../../../util/hasClosest";
 import {Constants} from "../../../../constants";
 import {fetchSyncPost} from "../../../../util/network/fetch";
-import {escapeAttr} from "../../../../util/DOM/escape";
-import {unicode2Emoji} from "../../../../emoji";
-import {cellValueIsEmpty, renderCell} from "../cell";
 import {focusBlock} from "../../../util/selection";
 import {avRender, genTabHeaderHTML, getGroupTitleHTML, updateSearch} from "../render";
 import {contentRendererRegistry} from "../../../../registry/contentRenderer/ContentRendererRegistry";
-import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
-import {getCompressURL} from "../../../../util/assets/image";
 import {getPageSize} from "../groups";
 import {bindAvSearch} from "../search";
 import {renderKanban} from "../kanban/render";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {initVirtualScroll} from "../virtualScroll";
+import {getBodyVirtualData, initVirtualScroll} from "../virtualScroll";
+import {getRowHTML, updateHeader} from "../row";
+import {beginAVRender, finishAVLocate, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "../locate";
 
 interface IIds {
     groupId: string,
@@ -41,91 +38,31 @@ interface ITableOptions {
 
 const getGalleryHTML = async (data: IAVGallery, e: HTMLElement, virtualData: IAVVirtualData) => {
     let galleryHTML = "";
-    // body
     for (const [rowIndex, item] of data.cards.entries()) {
-        if (virtualData && virtualData.renderedEnd) {
+        if (virtualData && typeof virtualData.renderedEnd === "number") {
             if (rowIndex === 0) {
                 e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
             }
-            if (rowIndex > virtualData.renderedEnd || rowIndex < virtualData.renderedStart) {
+            if (rowIndex > virtualData.renderedEnd) {
+                break;
+            }
+            if (rowIndex < virtualData.renderedStart) {
                 continue;
             }
         } else if (data.pageSize > 100 && rowIndex > 99) {
             e.setAttribute(Constants.ATTRIBUTE_V_SCROLL, "true");
-            continue;
+            break;
         }
-        galleryHTML += `<div data-id="${item.id}" data-index="${rowIndex}" draggable="true" class="av__gallery-item">`;
-        if (data.coverFrom !== 0) {
-            const coverClass = "av__gallery-cover av__gallery-cover--" + data.cardAspectRatio;
-            if (item.coverURL) {
-                if (item.coverURL.startsWith("background")) {
-                    galleryHTML += `<div class="${coverClass}"><img class="av__gallery-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="${item.coverURL}"></div>`;
-                } else {
-                    galleryHTML += `<div class="${coverClass}"><img loading="lazy" class="av__gallery-img${data.fitImage ? " av__gallery-img--fit" : ""}" src="${getCompressURL(item.coverURL)}"></div>`;
-                }
-            } else if (item.coverContent) {
-                galleryHTML += `<div class="${coverClass}"><div class="av__gallery-content">${item.coverContent}</div><div></div></div>`;
-            } else {
-                galleryHTML += `<div class="${coverClass}"></div>`;
-            }
-        }
-        galleryHTML += '<div class="av__gallery-fields">';
-        for (const [fieldsIndex, cell] of item.values.entries()) {
-            if (data.fields[fieldsIndex].hidden) {
-                continue;
-            }
-            let checkClass = "";
-            if (cell.valueType === "checkbox") {
-                checkClass = cell.value?.checkbox?.checked ? " av__cell-check" : " av__cell-uncheck";
-            }
-            const isEmpty = cellValueIsEmpty(cell.value);
-            // NOTE: innerHTML 中不能换行否则 https://github.com/siyuan-note/siyuan/issues/15132
-            let ariaLabel = escapeAttr(data.fields[fieldsIndex].name) || getColNameByType(data.fields[fieldsIndex].type);
-            if (data.fields[fieldsIndex].desc) {
-                ariaLabel += escapeAttr(`<div class="ft__on-surface">${data.fields[fieldsIndex].desc}</div>`);
-            }
-
-            if (cell.valueType === "checkbox" && !data.displayFieldName) {
-                cell.value.checkbox.content = data.fields[fieldsIndex].name || getColNameByType(data.fields[fieldsIndex].type);
-            }
-            const renderedCell = await renderCell(cell.value, rowIndex, data.showIcon, "gallery");
-            const cellHTML = `<div class="av__cell${checkClass}${data.displayFieldName ? "" : " ariaLabel"}" 
-data-wrap="${data.fields[fieldsIndex].wrap}" 
-aria-label="${ariaLabel}" 
-data-position="5west"
-data-id="${cell.id}" 
-data-field-id="${data.fields[fieldsIndex].id}" 
-data-dtype="${cell.valueType}" 
-${cell.value?.isDetached ? ' data-detached="true"' : ""} 
-style="${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
-${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
-            if (data.displayFieldName) {
-                galleryHTML += `<div class="av__gallery-field av__gallery-field--name" data-empty="${isEmpty}">
-    <div class="av__gallery-name">
-        ${data.fields[fieldsIndex].icon ? unicode2Emoji(data.fields[fieldsIndex].icon, undefined, true) : `<svg><use xlink:href="#${getColIconByType(data.fields[fieldsIndex].type)}"></use></svg>`}${Lute.EscapeHTMLStr(data.fields[fieldsIndex].name)}
-        ${data.fields[fieldsIndex].desc ? `<svg aria-label="${data.fields[fieldsIndex].desc}" data-position="north" class="ariaLabel"><use xlink:href="#iconInfo"></use></svg>` : ""}
-    </div>
-    ${cellHTML}
-</div>`;
-            } else {
-                galleryHTML += `<div class="av__gallery-field" data-empty="${isEmpty}">
-    <div class="av__gallery-tip">
-        ${data.fields[fieldsIndex].icon ? unicode2Emoji(data.fields[fieldsIndex].icon, undefined, true) : `<svg><use xlink:href="#${getColIconByType(data.fields[fieldsIndex].type)}"></use></svg>`}${siyuanI18n.edit} ${Lute.EscapeHTMLStr(data.fields[fieldsIndex].name)}
-    </div>
-    ${cellHTML}
-</div>`;
-            }
-        }
-        galleryHTML += `</div>
-    <div class="av__gallery-actions">
-        <span class="protyle-icon protyle-icon--first ariaLabel" data-position="4north" aria-label="${siyuanI18n.displayEmptyFields}" data-type="av-gallery-edit"><svg><use xlink:href="#iconEdit"></use></svg></span>
-        <span class="protyle-icon protyle-icon--last ariaLabel" data-position="4north" aria-label="${siyuanI18n.more}" data-type="av-gallery-more"><svg><use xlink:href="#iconMore"></use></svg></span>
-    </div>
-</div>`;
+        galleryHTML += await getRowHTML({
+            data,
+            row: item,
+            rowIndex: rowIndex + (virtualData?.rowOffset || 0),
+            type: "gallery",
+        });
     }
     galleryHTML += `<div class="av__gallery-add" data-type="av-add-bottom"><svg class="svg"><use xlink:href="#iconAdd"></use></svg><span class="fn__space"></span>${siyuanI18n.newRow}</div>`;
     return `<div class="av__gallery${data.cardSize === 0 ? " av__gallery--small" : (data.cardSize === 2 ? " av__gallery--big" : "")}">
-    ${galleryHTML}
+    ${virtualData?.topSpacerHeight ? `<div class="av__spacer" style="height: ${virtualData.topSpacerHeight}px;"></div>` : ""}${galleryHTML}
 </div>
 <div class="av__gallery-load${data.cardCount > data.cards.length ? "" : " fn__none"}">
     <button class="b3-button av__button" data-type="av-load-more">
@@ -145,7 +82,7 @@ const renderGroupGallery = async (options: ITableOptions) => {
     for (const group of options.data.view.groups) {
         if (group.groupHidden === 0) {
             avBodyHTML += `${getGroupTitleHTML(group, group.cardCount)}
-<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body${group.groupFolded ? " fn__none" : ""}">${await getGalleryHTML(group, options.blockElement, options.resetData.virtualData[group.id])}</div>`;
+<div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}"${options.resetData.virtualData[group.id]?.locate ? ' data-av-locate-window="true"' : ""} class="av__body${group.groupFolded ? " fn__none" : ""}">${await getGalleryHTML(group, options.blockElement, options.resetData.virtualData[group.id])}</div>`;
         }
     }
     if (options.renderAll) {
@@ -190,6 +127,11 @@ export const afterRenderGallery = (options: ITableOptions) => {
             itemElement.classList.add("av__gallery-item--select");
         }
     });
+    // 重渲后恢复的选中态需刷新计数器显示
+    const restoredItem = options.blockElement.querySelector(".av__gallery-item--select") as HTMLElement;
+    if (restoredItem) {
+        updateHeader(restoredItem);
+    }
     options.resetData.editIds.find(selectId => {
         let itemElement = options.blockElement.querySelector(`.av__body[data-group-id="${selectId.groupId}"] .av__gallery-item[data-id="${selectId.fieldId}"]`) as HTMLElement;
         if (!itemElement) {
@@ -221,6 +163,7 @@ export const afterRenderGallery = (options: ITableOptions) => {
         options.cb(options.data);
     }
     if (!options.renderAll) {
+        finishAVLocate(options.blockElement, options.protyle, options.data);
         return;
     }
     bindAvSearch({
@@ -230,6 +173,7 @@ export const afterRenderGallery = (options: ITableOptions) => {
         onChange: () => updateSearch(options.blockElement, options.protyle),
     });
     initVirtualScroll(options);
+    finishAVLocate(options.blockElement, options.protyle, options.data);
 };
 
 export const renderGallery = async (options: {
@@ -239,6 +183,7 @@ export const renderGallery = async (options: {
     renderAll: boolean,
     data?: IAV,
 }) => {
+    const renderToken = beginAVRender(options.blockElement);
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const editIds: IIds[] = [];
     options.blockElement.querySelectorAll(".av__gallery-fields--edit").forEach(item => {
@@ -261,14 +206,20 @@ export const renderGallery = async (options: {
     const virtualData: { [key: string]: IAVVirtualData } = {};
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
         pageSizes[item.dataset.groupId || "unGroup"] = item.dataset.pageSize;
+        if (item.dataset.avLocateWindow === "true") {
+            return;
+        }
         if (!item.querySelector(".av__gallery-item") || options.blockElement.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
             return;
         }
-        virtualData[item.getAttribute("data-group-id") || "all"] = ({
-            renderedStart: parseInt(item.querySelector(".av__gallery-item").getAttribute("data-index")),
-            renderedEnd: parseInt(item.querySelector(".av__gallery-add").previousElementSibling.getAttribute("data-index")),
-            topSpacerHeight: item.querySelector(".av__spacer")?.clientHeight || 0,
-        });
+        // 守卫只保证至少 1 个 .av__gallery-item，但首行索引用 :not([data-type=ghost]) 过滤。
+        // body 内全是 ghost 占位行（插入动画进行中）时查询返回 null，需跳过避免解引用 null.getAttribute
+        const firstItem = item.querySelector(".av__gallery-item:not([data-type=ghost])") as HTMLElement;
+        if (!firstItem) {
+            return;
+        }
+        const firstItemIndex = parseInt(firstItem.getAttribute("data-index"));
+        virtualData[item.getAttribute("data-group-id") || "all"] = getBodyVirtualData(item, ".av__gallery-add", firstItemIndex);
     });
     const resetData = {
         isSearching: searchInputElement && document.activeElement === searchInputElement,
@@ -294,17 +245,25 @@ export const renderGallery = async (options: {
     let data: IAV = options.data;
     if (!data) {
         const avPageSize = getPageSize(options.blockElement);
+        const locateParams = getAVLocateParams(options.blockElement, !created && !snapshot);
         const response = await fetchSyncPost(created ? "/api/av/renderHistoryAttributeView" : (snapshot ? "/api/av/renderSnapshotAttributeView" : "/api/av/renderAttributeView"), {
             id: options.blockElement.getAttribute("data-av-id"),
             created,
             snapshot,
             pageSize: avPageSize.unGroupPageSize,
             groupPaging: avPageSize.groupPageSize,
-            viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
-            query: resetData.query.trim()
+            viewID: locateParams?.viewID || options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
+            query: resetData.query.trim(),
+            blockID: options.blockElement.getAttribute("data-node-id"),
+            targetItemID: locateParams?.targetItemID || "",
+            targetGroupID: locateParams?.targetGroupID || "",
         });
         data = response.data;
     }
+    if (!isCurrentAVRender(options.blockElement, renderToken)) {
+        return;
+    }
+    prepareAVLocate(options.blockElement, data, resetData);
     if (data.viewType === "table") {
         options.blockElement.setAttribute("data-av-type", data.viewType);
         avRender(options.blockElement, options.protyle, options.cb, options.renderAll, data);
@@ -338,7 +297,7 @@ export const renderGallery = async (options: {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
     ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled)}
     <div>
-        <div class="av__body" data-group-id="" data-page-size="${view.pageSize}">
+        <div class="av__body" data-group-id="" data-page-size="${view.pageSize}"${virtualData.all?.locate ? ' data-av-locate-window="true"' : ""}>
             ${bodyHTML}
         </div>
     </div>
@@ -348,6 +307,11 @@ export const renderGallery = async (options: {
         const bodyElement = options.blockElement.querySelector(".av__body") as HTMLElement;
         bodyElement.innerHTML = bodyHTML;
         bodyElement.dataset.pageSize = view.pageSize.toString();
+        if (virtualData.all?.locate) {
+            bodyElement.dataset.avLocateWindow = "true";
+        } else {
+            bodyElement.removeAttribute("data-av-locate-window");
+        }
     }
     afterRenderGallery({
         resetData,

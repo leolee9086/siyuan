@@ -3,13 +3,10 @@ import { genEmptyElement } from "../../block/util";
 import { getTopAloneElement } from "./getBlock";
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
-import { blockRender } from "../render/blockRender";
-import { processFold } from "./transaction.fold";
 import { promiseTransaction } from "./transaction.promise";
 
-let transactionsTimeout: number;
-
-export const transaction = (protyle: IProtyle, doOperations: IOperation[], undoOperations?: IOperation[]) => {
+export const transaction = (protyle: IProtyle, doOperations: IOperation[], undoOperations?: IOperation[],
+                            options?: {skipSync?: boolean; callback?: () => void}) => {
     if (doOperations.length === 0) {
         return;
     }
@@ -20,77 +17,26 @@ export const transaction = (protyle: IProtyle, doOperations: IOperation[], undoO
             transactions: [{
                 doOperations
             }]
-        });
+        }, options?.callback);
         return;
-    }
-
-    const lastTransaction = window.siyuan.transactions[window.siyuan.transactions.length - 1];
-    let needDebounce = false;
-    const time = Date.now();
-    if (lastTransaction && lastTransaction.doOperations.length === 1 && lastTransaction.doOperations[0].action === "update" &&
-        doOperations.length === 1 && doOperations[0].action === "update" &&
-        lastTransaction.doOperations[0].id === doOperations[0].id &&
-        protyle.transactionTime - time < Constants.TIMEOUT_INPUT) {
-        needDebounce = true;
     }
     if (undoOperations) {
         if (window.siyuan.config.fileTree.openFilesUseCurrentTab && protyle.model) {
             protyle.model.headElement.classList.remove("item--unupdate");
         }
         protyle.updated = true;
-        if (needDebounce) {
-            protyle.undo.replace(doOperations, protyle);
-        } else {
-            protyle.undo.add(doOperations, undoOperations, protyle);
-        }
+        protyle.undo.add(doOperations, undoOperations, protyle);
     }
-    if ((doOperations.length === 1 && (
-        doOperations[0].action === "unfoldHeading" || doOperations[0].action === "setAttrViewBlockView" ||
-        (doOperations[0].action === "setAttrs" && doOperations[0].data.startsWith('{"fold":'))
-    )) || (doOperations.length === 2 && doOperations[0].action === "insertAttrViewBlock")) {
-        protyle.transactionTime = time + Constants.TIMEOUT_INPUT * 2;
-        fetchPost("/api/transactions", {
-            session: protyle.id,
-            app: Constants.SIYUAN_APPID,
-            transactions: [{
-                doOperations,
-                undoOperations
-            }]
-        }, (response) => {
-            response.data[0].doOperations.forEach((operation: IOperation) => {
-                if (operation.action === "unfoldHeading" || operation.action === "foldHeading") {
-                    processFold(operation, protyle);
-                } else if (operation.action === "setAttrs") {
-                    const gutterFoldElement = protyle.gutter.element.querySelector('[data-type="fold"]');
-                    if (gutterFoldElement) {
-                        gutterFoldElement.removeAttribute("disabled");
-                    }
-                    protyle.wysiwyg.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]').forEach((item) => {
-                        if (item.querySelector(`[data-node-id="${operation.id}"]`)) {
-                            item.removeAttribute("data-render");
-                            blockRender(protyle, item);
-                        }
-                    });
-                }
-            });
-        });
+    if (protyle.lite) {
         return;
     }
-    window.clearTimeout(transactionsTimeout);
-    if (needDebounce) {
-        window.siyuan.transactions[window.siyuan.transactions.length - 1].protyle = protyle;
-        window.siyuan.transactions[window.siyuan.transactions.length - 1].doOperations = doOperations;
-    } else {
-        window.siyuan.transactions.push({
-            protyle,
-            doOperations,
-            undoOperations
-        });
-    }
-    protyle.transactionTime = time;
-    transactionsTimeout = window.setTimeout(() => {
-        promiseTransaction();
-    }, Constants.TIMEOUT_INPUT * 2);
+    promiseTransaction({
+        protyle,
+        doOperations,
+        undoOperations,
+        skipSync: options?.skipSync,
+        callback: options?.callback,
+    });
 
     doOperations.find(item => {
         if (item.action === "insert") {
@@ -142,7 +88,8 @@ export { turnsIntoOneTransaction, turnsIntoTransaction, turnsOneInto } from "./t
 export { processFold, removeUnfoldRepeatBlock } from "./transaction.fold";
 export { onTransaction } from "./transaction.onTransaction";
 
-export const updateTransaction = (protyle: IProtyle, element: Element, oldHTML: string) => {
+export const updateTransaction = (protyle: IProtyle, element: Element, oldHTML: string,
+                                  undoContext?: Record<string, string>) => {
     const id = element.getAttribute("data-node-id");
     const newHTML = element.outerHTML;
     if (newHTML === oldHTML.replace("<wbr>", "")) {
@@ -156,7 +103,8 @@ export const updateTransaction = (protyle: IProtyle, element: Element, oldHTML: 
     }], [{
         id,
         data: oldHTML,
-        action: "update"
+        action: "update",
+        context: undoContext,
     }]);
 };
 

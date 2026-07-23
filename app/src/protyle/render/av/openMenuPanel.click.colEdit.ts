@@ -10,6 +10,7 @@ import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { asTAVCol } from "./openMenuPanel.click.guard";
 import { hasFilterForColumn, removeFiltersByColumn } from "./filter";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
+import {removeSiyuanMenu} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /** 从 menuElement 获取当前列ID @同步豁免: UI构建 */
 const getMenuColId = (menuElement: HTMLElement): string => {
@@ -173,6 +174,7 @@ const handleUpdateColType = (ctx: IMenuPanelContext, target: HTMLElement, event:
 
 /** 前往类型选择子面板 @同步豁免: UI构建 */
 const handleGoUpdateColType = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+    removeSiyuanMenu();
     const editMenuElement = hasClosestByClassName(target, "b3-menu");
     if (editMenuElement) {
         editMenuElement.firstElementChild?.classList.add("fn__none");

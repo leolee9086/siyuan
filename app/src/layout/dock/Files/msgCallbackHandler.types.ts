@@ -20,4 +20,5 @@ export interface IFilesContext {
     selectItem: (notebookId: string, filePath: string) => Promise<HTMLElement | undefined>;
     getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void;
     onRename: (data: { box: string; path: string; title: string; }) => void;
+    reloadNotebookInfo: () => void;
 }

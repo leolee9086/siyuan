@@ -14,14 +14,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package util
+package sql
 
-// StatusBar 底部状态栏配置。https://github.com/siyuan-note/siyuan/issues/16236
-type StatusBar struct {
-	MsgTaskDatabaseIndexCommitDisabled        bool `json:"msgTaskDatabaseIndexCommitDisabled"`
-	MsgTaskHistoryDatabaseIndexCommitDisabled bool `json:"msgTaskHistoryDatabaseIndexCommitDisabled"`
-	MsgTaskAssetDatabaseIndexCommitDisabled   bool `json:"msgTaskAssetDatabaseIndexCommitDisabled"`
-	MsgTaskHistoryGenerateFileDisabled        bool `json:"msgTaskHistoryGenerateFileDisabled"`
+import "testing"
+
+func TestRootBlockExactMatchCondition(t *testing.T) {
+	condition, arg := rootBlockExactMatchCondition("Math%_\\", true)
+	if "content = ?" != condition || "Math%_\\" != arg {
+		t.Fatalf("unexpected case-sensitive exact match: condition=%q arg=%q", condition, arg)
+	}
+
+	condition, arg = rootBlockExactMatchCondition("Math%_\\", false)
+	if "content LIKE ? ESCAPE '\\'" != condition || "Math\\%\\_\\\\" != arg {
+		t.Fatalf("unexpected case-insensitive exact match: condition=%q arg=%q", condition, arg)
+	}
 }
-
-var StatusBarCfg *StatusBar

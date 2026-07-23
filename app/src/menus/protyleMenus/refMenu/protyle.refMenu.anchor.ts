@@ -1,9 +1,7 @@
-/** 用途：读取菜单单例；使用范围：anchor 输入框按键与选择行为；解耦评估：菜单容器由环境层统一管理。 */
-import { getSiyuanGlobalMenus } from "./imports";
 /** 用途：请求后端引用文本；使用范围：anchor 为空时回填动态引用文本；解耦评估：请求能力由 imports.ts 统一转发。 */
 import { fetchPost } from "./imports";
-/** 用途：处理 Electron 撤销快捷键；使用范围：anchor 输入框 keydown；解耦评估：平台兼容逻辑集中封装。 */
-import { electronUndo } from "./imports";
+/** 用途：菜单键盘映射属性。使用范围：anchor 输入由统一菜单键盘状态机处理。解耦评估：稳定常量经 imports 转发。 */
+import { Constants } from "./imports";
 /** 用途：构造菜单项；使用范围：创建 anchor 只读输入项；解耦评估：菜单组件能力集中维护。 */
 import { MenuItem } from "./imports";
 /** 用途：读取 anchor 文案；使用范围：anchor 输入框 placeholder；解耦评估：i18n 统一来源。 */
@@ -34,24 +32,6 @@ const 处理锚点输入变化 = (refElement: HTMLElement, refBlockId: string, i
 };
 
 /**
- * 作用：处理 anchor 输入框键盘事件，包括确认关闭与撤销兼容。
- * 意图：保证输入体验和编辑器主流程一致，避免 Enter 与撤销行为分散到调用处。
- * 调用时机：anchor 输入框触发 `keydown` 事件时。
- * 问题/改进：目前只处理 Enter，后续可按需求增加 Esc 等快捷键策略。
- */
-const 处理锚点输入按键 = (event: KeyboardEvent) => {
-    if (event.isComposing) {
-        return;
-    }
-    // Enter 表示确认输入并关闭菜单。
-    if (event.key === "Enter") {
-        getSiyuanGlobalMenus().menu.remove();
-        return;
-    }
-    electronUndo(event);
-};
-
-/**
  * 作用：在菜单项 DOM 挂载后绑定 anchor 输入框初始值与事件监听。
  * 意图：将输入框查找、初始化和事件 wiring 封装成单点逻辑，降低菜单创建函数复杂度。
  * 调用时机：anchor 菜单项 `bind` 回调执行时。
@@ -64,7 +44,6 @@ const 绑定锚点输入框 = (refElement: HTMLElement, refBlockId: string, menu
     }
     inputElement.value = refElement.getAttribute("data-subtype") === "d" ? "" : refElement.textContent;
     inputElement.addEventListener("input", 处理锚点输入变化.bind(null, refElement, refBlockId, inputElement));
-    inputElement.addEventListener("keydown", 处理锚点输入按键);
 };
 
 /**
@@ -104,7 +83,7 @@ export const 创建锚点编辑菜单项 = (refElement: HTMLElement, refBlockId:
         id: "anchor",
         iconHTML: "",
         type: "readonly",
-        label: `<input style="margin: 4px 0" class="b3-text-field fn__block" placeholder="${siyuanI18n.anchor}">`,
+        label: `<input ${Constants.ATTRIBUTE_MENU_KEYMAP}="true" style="margin: 4px 0" class="b3-text-field fn__block" placeholder="${siyuanI18n.anchor}">`,
         bind: 绑定锚点输入框.bind(null, refElement, refBlockId)
     });
 };

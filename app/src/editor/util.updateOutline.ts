@@ -6,6 +6,8 @@ import { hasClosestByAttribute } from "./imports";
 import { fetchPost } from "./imports";
 /** 用途：判断当前编辑器是否激活。使用范围：大纲更新前检查。解耦评估：同目录模块直接导入。 */
 import { isCurrentEditor } from "./util.isCurrentEditor";
+/** 用途：判断笔记本是否加密。使用范围：大纲查询选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */
+import { isEncryptedBox } from "./imports";
 
 /**
  * 高亮当前大纲项
@@ -132,10 +134,15 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
         return;
     }
 
-    fetchPost("/api/outline/getDocOutline", {
+    const outlineParams: IObject = {
         id: blockId,
         preview: isPreview
-    }, response => {
+    };
+    // 加密笔记本的大纲位于独立数据源，必须携带 notebook 才能读取正确内容。
+    if (protyle && isEncryptedBox(protyle.notebookId)) {
+        outlineParams.notebook = protyle.notebookId;
+    }
+    fetchPost("/api/outline/getDocOutline", outlineParams, response => {
         handleOutlineResponse(response, item, blockId, isPreview, reload, protyle);
     });
 };

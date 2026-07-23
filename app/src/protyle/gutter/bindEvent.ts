@@ -33,6 +33,8 @@ import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { insertEmptyBlock } from "../../block/util";
 import { countBlockWord } from "../runtime/status.port";
+import {isEncryptedBox} from "../../util/pathName";
+import {getGutterNodeElement} from "./gutter.node";
 
 export const isMatchNode = (item: Element, gutterElement: Element) => {
     const itemRect = item.getBoundingClientRect();
@@ -49,6 +51,10 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
         hideTooltip();
         getSiyuanGlobalMenus().menu.remove();
         const buttonElement = event.target.parentElement;
+        if (buttonElement.dataset.embedId) {
+            event.preventDefault();
+            return;
+        }
         let selectIds: string[] = [];
         let selectElements: Element[] = [];
         let avElement: Element;
@@ -188,7 +194,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                     event.clientY >= br.top && event.clientY <= br.bottom) {
                     buildGutterMenu({ protyle, buttonElement: activeBlockButton as HTMLElement });
                     if (!protyle.toolbar.range) {
-                        protyle.toolbar.range = getEditorRange(protyle.wysiwyg.element.querySelector(`[data-node-id="${activeBlockButton.getAttribute("data-node-id")}"]`) || protyle.wysiwyg.element.firstElementChild);
+                        protyle.toolbar.range = getEditorRange(getGutterNodeElement(protyle, activeBlockButton) || protyle.wysiwyg.element.firstElementChild);
                     }
                     getSiyuanGlobalMenus().menu.popup({ x: br.left, y: br.bottom, isLeft: true });
                     focusByRange(protyle.toolbar.range);
@@ -202,13 +208,8 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 return;
             }
             buttonElement.setAttribute("disabled", "disabled");
-            let foldElement: Element;
-            Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${(buttonElement.previousElementSibling || buttonElement.nextElementSibling).getAttribute("data-node-id")}"]`)).find(item => {
-                if (!isInEmbedBlock(item) && isMatchNode(item, gutterElement)) {
-                    foldElement = item;
-                    return true;
-                }
-            });
+            const blockButtonElement = buttonElement.previousElementSibling || buttonElement.nextElementSibling;
+            const foldElement = blockButtonElement ? getGutterNodeElement(protyle, blockButtonElement) : undefined;
             if (!foldElement) {
                 return;
             }
@@ -366,13 +367,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 zoomOut({ protyle, id });
             }
         } else if (event.altKey) {
-            let foldElement: Element;
-            Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${id}"]`)).find(item => {
-                if (!isInEmbedBlock(item) && isMatchNode(item, gutterElement)) {
-                    foldElement = item;
-                    return true;
-                }
-            });
+            const foldElement = getGutterNodeElement(protyle, buttonElement);
             if (!foldElement) {
                 return;
             }
@@ -419,14 +414,14 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 }
             }
             foldElement.classList.remove("protyle-wysiwyg--hl");
-        } else if (event.shiftKey && !protyle.disabled) {
+        } else if (event.shiftKey && !protyle.disabled && !isEncryptedBox(protyle.notebookId)) {
             // 不使用 window.siyuan.shiftIsPressed ，否则窗口未激活时按 Shift 点击块标无法打开属性面板 https://github.com/siyuan-note/siyuan/issues/15075
-            openAttr(protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`), "bookmark", protyle);
+            openAttr(getGutterNodeElement(protyle, buttonElement), "bookmark", protyle);
         } else if (!window.siyuan.ctrlIsPressed && !window.siyuan.altIsPressed && !window.siyuan.shiftIsPressed) {
             buildGutterMenu({ protyle, buttonElement });
             // https://ld246.com/article/1648433751993
             if (!protyle.toolbar.range) {
-                protyle.toolbar.range = getEditorRange(protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) || protyle.wysiwyg.element.firstElementChild);
+                protyle.toolbar.range = getEditorRange(getGutterNodeElement(protyle, buttonElement) || protyle.wysiwyg.element.firstElementChild);
             }
             if (isMobile) {
                 getSiyuanGlobalMenus().menu.fullscreen();
@@ -467,7 +462,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 buildGutterMenu({ protyle, buttonElement });
                 if (!protyle.toolbar.range) {
                     protyle.toolbar.range = getEditorRange(
-                        protyle.wysiwyg.element.querySelector(`[data-node-id="${buttonElement.getAttribute("data-node-id")}"]`) ||
+                        getGutterNodeElement(protyle, buttonElement) ||
                         protyle.wysiwyg.element.firstElementChild);
                 }
                 if (isMobile) {
@@ -557,29 +552,29 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
         if (compressed) {
             const iconRect = buttonElement.querySelector("svg")!.getBoundingClientRect();
             const centerY = iconRect.top + iconRect.height / 2;
-            const lineH = 12;
-            const top = centerY - lineH / 2;
+            const lineH = Math.max(8, iconRect.height / 2 - 1);
             const plusSize = 16;
+            const rightX = rect.right + 1;
             lineBefore.style.display = "";
             lineBefore.style.opacity = "1";
             lineBefore.style.width = "2px";
             lineBefore.style.height = `${lineH}px`;
-            lineBefore.style.left = `${rect.left - 4}px`;
-            lineBefore.style.top = `${top}px`;
+            lineBefore.style.left = `${rightX}px`;
+            lineBefore.style.top = `${iconRect.top - 1}px`;
             lineAfter.style.display = "";
             lineAfter.style.opacity = "1";
             lineAfter.style.width = "2px";
             lineAfter.style.height = `${lineH}px`;
-            lineAfter.style.left = `${rect.right + 2}px`;
-            lineAfter.style.top = `${top}px`;
+            lineAfter.style.left = `${rightX}px`;
+            lineAfter.style.top = `${centerY + 1}px`;
             plusBefore.style.width = `${plusSize}px`;
             plusBefore.style.height = `${plusSize}px`;
-            plusBefore.style.left = `${rect.left - 6 - plusSize / 2}px`;
-            plusBefore.style.top = `${centerY - plusSize / 2}px`;
+            plusBefore.style.left = `${rightX + 4}px`;
+            plusBefore.style.top = `${iconRect.top + lineH / 2 - plusSize / 2}px`;
             plusAfter.style.width = `${plusSize}px`;
             plusAfter.style.height = `${plusSize}px`;
-            plusAfter.style.left = `${rect.right + 4 - plusSize / 2}px`;
-            plusAfter.style.top = `${centerY - plusSize / 2}px`;
+            plusAfter.style.left = `${rightX + 4}px`;
+            plusAfter.style.top = `${centerY + 1 + lineH / 2 - plusSize / 2}px`;
             hideTooltip();
         } else {
             const lineW = 10;

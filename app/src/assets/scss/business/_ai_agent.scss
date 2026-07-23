@@ -244,6 +244,23 @@
   box-sizing: border-box;
 }
 
+.agent-chat__msg--editing .agent-chat__body {
+  width: min(100%, 560px);
+}
+
+.agent-chat__edit-textarea {
+  display: block;
+  min-height: 96px;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.agent-chat__msg--editing .agent-chat__msg-actions {
+  margin-top: 8px;
+  opacity: 1;
+}
+
 .agent-chat__msg-meta {
   font-size: 13px;
   color: var(--b3-theme-on-surface-light);
@@ -294,9 +311,10 @@
   }
 }
 
-// 覆盖 b3-typography 的基础字号：b3-typography 默认用 --b3-font-size-editor（跟随编辑器字号，默认 16px），
+// 覆盖消息排版的基础字号：b3-typography 和 protyle-wysiwyg 默认使用编辑器字号，
 // 在 dock 面板里偏大。压回面板级 14px，与大纲/书签等其他 dock 面板对齐。
-// 排版（行高、段落间距等）仍沿用 b3-typography 全局规范。
+// 行高、段落间距等仍沿用各自的全局排版规范。
+.agent-chat__msg--user .agent-chat__body.protyle-wysiwyg,
 .agent-chat__body.b3-typography,
 .agent-chat__thinking-chat.b3-typography {
   font-size: var(--b3-font-size);
@@ -340,6 +358,10 @@
 
 .agent-chat__body .protyle-icons {
   display: flex;
+}
+
+.agent-chat__msg--user .agent-chat__body .protyle-icons {
+  display: none;
 }
 
 // hover 显隐：对齐原 agent-chat__copy-wrap 行为，opacity 渐显。
@@ -677,7 +699,7 @@
 .agent-chat__thinking-body--preview {
   max-height: 120px;
   overflow-y: auto;
-  contain: none;  // 覆盖 base 的 contain:layout paint，该值会阻止 JS 设置 scrollTop 生效
+  contain: none; // 覆盖 base 的 contain:layout paint，该值会阻止 JS 设置 scrollTop 生效
 
   // 隐藏滚动条，保持预览态视觉干净（内容通过 JS 自动滚到底部）。
   scrollbar-width: none;
@@ -739,6 +761,33 @@
   white-space: nowrap;
 }
 
+.agent-chat__thinking-tool--running::after {
+  content: "...";
+  display: inline-block;
+  width: 1.2em;
+  margin-left: 3px;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: agent-tool-running 1.2s steps(4, end) infinite;
+}
+
+@keyframes agent-tool-running {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-chat__thinking-tool--running::after {
+    animation: none;
+    opacity: 0.65;
+  }
+}
+
 .agent-chat__confirm-card {
   font-size: 13px;
 }
@@ -773,6 +822,16 @@
   max-height: 120px;
   overflow-y: auto;
   border-top: 1px solid var(--b3-border-color);
+}
+
+.agent-chat__confirm-effects {
+  margin: 0;
+  padding: 8px 12px 8px 30px;
+  border-top: 1px solid var(--b3-border-color);
+  background: color-mix(in srgb, var(--b3-theme-warning) 10%, transparent);
+  color: var(--b3-theme-on-background);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .agent-chat__confirm-actions {
@@ -836,38 +895,33 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  overflow: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-// 思考强度按钮：iconBrain 图标 + 当前值文字，外观与旁边的模型 .b3-select--noborder 对齐。
+// 思考强度：iconBrain 图标嵌入原生 select 左侧，与旁边的模型 select 外观一致。
 .agent-chat__reasoning-effort {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 4px 8px;
-  box-sizing: border-box;
-  border: 0;
-  border-radius: var(--b3-border-radius);
-  line-height: 20px;
-  font-size: 14px;
-  color: var(--b3-theme-on-background);
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color .2s cubic-bezier(0, 0, .2, 1) 0ms;
 
-  &:hover,
-  &:focus {
-    background-color: var(--b3-list-hover);
-  }
-
-  svg {
+  // iconBrain 绝对定位到 select 左内侧，不拦截 select 点击。
+  & > svg {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
     height: 14px;
     width: 14px;
-    flex-shrink: 0;
+    color: var(--b3-theme-on-surface);
+    pointer-events: none;
   }
 
-  .agent-chat__reasoning-effort-label {
-    white-space: nowrap;
+  // 文字右移让出图标空间（b3-select 原始左 padding 为 8px）。
+  .agent-chat__reasoning-effort-select {
+    padding-left: 26px;
   }
 }
 
@@ -1219,7 +1273,8 @@
   }
 }
 
-.agent-composer__pm {
+// 迷你 protyle 输入框：复用 .protyle-wysiwyg，此处只约束尺寸（min/max-height、滚动）。
+.agent-chat__composer-host .protyle-wysiwyg {
   outline: none;
   font-size: 14px;
   line-height: 1.6;
@@ -1227,31 +1282,7 @@
   min-height: 24px;
   max-height: 120px;
   overflow-y: auto;
-}
-
-.agent-composer__pm p {
-  margin: 0;
-}
-
-.agent-composer__pm p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: var(--b3-theme-on-surface-light);
-  pointer-events: none;
-  float: left;
-  height: 0;
-}
-
-.agent-mention-chip {
-  display: inline;
-  padding: 1px 4px;
-  margin: 0 2px;
-  background: var(--b3-theme-primary-lightest);
-  color: var(--b3-theme-primary);
-  border-radius: var(--b3-border-radius);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  user-select: all;
+  padding: 0;
 }
 
 .agent-task-directory-dialog {

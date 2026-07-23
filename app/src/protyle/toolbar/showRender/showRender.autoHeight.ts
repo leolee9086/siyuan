@@ -1,9 +1,13 @@
 /**
  * showRender 模块 - 自动高度调整
  */
-import { isMobile } from "../../../util/platform/functions";
-import { setPosition } from "../../../util/DOM/setPosition";
-import { getWindowInnerHeight } from "../../../util/siyuanEnvironments/getWindowInnerHeight.environment";
+/** 用途：区分全屏移动面板与桌面浮层定位。使用范围：仅源码面板位置计算。解耦评估：平台判断是无状态运行时能力，直接经平台模块读取比逐层参数传递更细。 */
+import {isMobile} from "./imports";
+/** 用途：约束源码面板落在视口内。使用范围：仅自动定位回调。解耦评估：统一 DOM 定位工具已是细粒度依赖，无需引入宿主对象。 */
+import {setPosition} from "./imports";
+/** 用途：读取当前宿主视口高度。使用范围：仅桌面源码面板边界计算。解耦评估：环境访问器隔离 window，适合直接复用。 */
+import {getWindowInnerHeight} from "./imports";
+/** 用途：约束自动定位输入。使用范围：仅本模块。解耦评估：同目录纯类型依赖，不产生运行时耦合。 */
 import type { 自动高度上下文 } from "./showRender.types";
 
 /**
@@ -12,15 +16,15 @@ import type { 自动高度上下文 } from "./showRender.types";
  * @param subElement 子元素
  * @returns 自动高度调整函数
  */
+/** @同步豁免: UI构建 */
 export function 创建自动高度函数(
     上下文: 自动高度上下文,
     subElement: HTMLElement
-): () => void {
+) {
     const { textElement, nodeRect, types, 是否行内备注 } = 上下文;
 
     return () => {
-        textElement.style.height = textElement.scrollHeight + "px";
-
+        // 移动端源码面板固定铺满视口，不执行桌面端上下空间判断。
         if (isMobile()) {
             setPosition(subElement, 0, 0);
             return;
@@ -33,6 +37,7 @@ export function 创建自动高度函数(
         const 正在拖拽 = firstChild?.getAttribute("data-drag") === "true";
         const 超出窗口 = textElement.getBoundingClientRect().bottom > 窗口高度;
 
+        // 拖动后的面板越过视口底部时仅校正 top，保留用户选择的横向位置。
         if (正在拖拽 && 超出窗口) {
             subElement.style.top = 窗口高度 - subElement.clientHeight + "px";
             return;

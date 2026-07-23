@@ -97,6 +97,22 @@ export const isCustomItem = (json: Config.TUILayoutItem): json is Config.IUILayo
     return json.instance === "Custom";
 };
 
+/** 获取需要加密笔记本门禁的 Editor 或数据库行布局项 notebook ID。 */
+export const getEncryptedLayoutNotebookId = (json: Config.TUILayoutItem) => {
+    if (json.instance === "Editor") {
+        return typeof json.notebookId === "string" ? json.notebookId : undefined;
+    }
+    if (json.instance !== "Custom" || json.customModelType !== "siyuan-database-row") {
+        return undefined;
+    }
+    const data = json.customModelData;
+    if (!data || typeof data !== "object") {
+        return undefined;
+    }
+    const record = data as Record<string, unknown>;
+    return typeof record.notebookId === "string" ? record.notebookId : undefined;
+};
+
 /** AgentChat 是 S-Forge 扩展实例，布局核心类型联合暂不收紧以保持旧 JSON 兼容。 */
 export const isAgentChatItem = (json: Config.TUILayoutItem): boolean => {
     return (json as { instance?: unknown }).instance === "AgentChat";
@@ -211,13 +227,14 @@ export const needsFlattenNestedLayout = (json: Config.TUILayoutItem): boolean =>
 
 // ============ Custom Tab 类型守卫 ============
 
-/** 检查初始化数据是否为 Custom 类型且非卡片 */
+/** 检查初始化数据是否为需要插件提供模型的 Custom 类型。 */
 export const isNonCardCustomInitData = (initDataObj: unknown): boolean => {
     if (!initDataObj || typeof initDataObj !== "object") {
         return false;
     }
     const data = initDataObj as Record<string, unknown>;
-    return data.instance === "Custom" && data.customModelType !== "siyuan-card";
+    return data.instance === "Custom" && data.customModelType !== "siyuan-card" &&
+        data.customModelType !== "siyuan-database-row";
 };
 
 /** 获取 Custom 类型的 customModelType */

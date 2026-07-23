@@ -9,7 +9,8 @@ import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
 import type {ILayoutModel} from "./lifecycle/model.types";
-import { afterLoadPlugin } from "../plugin/loader";
+import { afterLayoutReady } from "../plugin/loader";
+import { isEncryptedBox } from "../util/pathName";
 import { saveLayout } from "./layout-serialization";
 import { JSONToDock } from "./dock-utils";
 import { setTabPosition } from "./tabUtil";
@@ -28,6 +29,7 @@ import {
     isTabInstance,
     isLayoutContainer,
     isWndContainer,
+    getEncryptedLayoutNotebookId,
 } from "./layout-deserialization.guard";
 import {
     getSiyuanLayout,
@@ -42,6 +44,21 @@ import {
 
 /** 存储需要移除的空Tab，在布局恢复完成后统一处理 */
 const removedTabs: Tab[] = [];
+
+/** 关闭的加密笔记本不能恢复编辑器或数据库行页签。 */
+const shouldRemoveClosedEncryptedTab = (json: Config.TUILayoutItem, layout: Layout | Wnd | Tab | ILayoutModel | undefined) => {
+    if (!(layout instanceof Tab)) {
+        return false;
+    }
+    const notebookId = getEncryptedLayoutNotebookId(json);
+    const notebook = window.siyuan.notebooks.find((item) => item.id === notebookId);
+    if (!notebook?.closed || !isEncryptedBox(notebookId)) {
+        return false;
+    }
+    layout.headElement.removeAttribute("data-init-active");
+    removedTabs.push(layout);
+    return true;
+};
 
 const collapseEmptyDockLayouts = (): void => {
     const layout = getSiyuanLayout();
@@ -184,6 +201,9 @@ export const JSONToCenter = (
     json: Config.TUILayoutItem,
     layout?: Layout | Wnd | Tab | ILayoutModel,
 ): void => {
+    if (shouldRemoveClosedEncryptedTab(json, layout)) {
+        return;
+    }
     // 分发处理并获取创建的子元素
     const child = dispatchInstanceHandler(app, json, layout);
     // 递归处理子元素
@@ -215,10 +235,8 @@ export const JSONToLayout = (app: App, isStart: boolean): void => {
     if (!handleUrlFileOpen(app)) {
         activateInitialTabs(removedTabs);
     }
-    // 加载插件（需在switchTab后执行，否则当前tab永远为最后一个）
-    for (const item of app.plugins) {
-        afterLoadPlugin(item);
-    }
+    // 需在 switchTab 后通知布局就绪，否则插件读取到的当前 tab 永远为最后一个。
+    afterLayoutReady(app);
     // 保存布局并调整顶栏
     saveLayout();
     collapseEmptyDockLayouts();

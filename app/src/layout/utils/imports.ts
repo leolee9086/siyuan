@@ -20,6 +20,11 @@ import { newCardModel } from "../../card/newCardTab";
 /** 导出 newCardModel，供 utils 模块使用 */
 export { newCardModel };
 
+/** 用途：创建数据库行页签模型。使用范围：newTab 模块创建数据库行页签。解耦评估：通过 imports.ts 转发。 */
+import { newDatabaseRowModel } from "../../editor/databaseRow";
+/** 导出 newDatabaseRowModel，供 utils 模块使用 */
+export { newDatabaseRowModel };
+
 /** 用途：应用常量定义。使用范围：newTab 模块使用常量配置。解耦评估：通过 imports.ts 转发。 */
 import { Constants } from "../../constants";
 /** 导出 Constants，供 utils 模块使用 */

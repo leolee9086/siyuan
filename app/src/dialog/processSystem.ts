@@ -4,7 +4,7 @@ import {exportLayout} from "../layout/util";
 import {getAllEditor} from "../layout/getAll";
 import {getDockByType} from "../layout/tabUtil";
 import {Files} from "../layout/dock/Files";
-import {ipcSend} from "../platform/electron/ipcRenderer";
+import {ipcInvoke, ipcSend} from "../platform/electron/ipcRenderer";
 import {isElectron} from "../platform";
 import {hideMessage, showMessage} from "./message";
 import {Dialog} from "./index";
@@ -83,9 +83,9 @@ export const setDefRefCount = (data: {
         });
     });
 
-    const liElement = isMobile() ?
-        window.siyuan.mobile.docks.file.element.querySelector(`li[data-node-id="${data.rootID}"]`) :
-        (getDockByType("file").data.file as Files).element.querySelector(`li[data-node-id="${data.rootID}"]`);
+    const liElement = isMobile()
+        ? window.siyuan.mobile.docks.file.element.querySelector(`li[data-node-id="${data.rootID}"]`)
+        : (getDockByType("file")?.data["file"] as Files)?.element.querySelector(`li[data-node-id="${data.rootID}"]`);
     if (liElement) {
         const counterElement = liElement.querySelector(".counter");
         if (counterElement) {
@@ -146,6 +146,33 @@ export const forceQuit = () => {
     window.close();
 };
 
+const installNewVersion = (installPkgPath: string, setCurrentWorkspace: boolean) => {
+    if (!installPkgPath) {
+        showMessage(window.siyuan.languages._kernel[104], 7000, "error");
+        return;
+    }
+    if (isElectron) {
+        ipcInvoke<boolean>(Constants.SIYUAN_INSTALL_UPDATE, {
+            port: location.port,
+            setCurrentWorkspace,
+        }).then((accepted) => {
+            if (!accepted) {
+                showMessage(window.siyuan.languages._kernel[104], 7000, "error");
+            }
+        }).catch(() => {
+            showMessage(window.siyuan.languages._kernel[104], 7000, "error");
+        });
+        return;
+    }
+    fetchPost("/api/system/exit", {
+        force: true,
+        setCurrentWorkspace,
+        execInstallPkg: 1,
+    }, () => {
+        forceQuit();
+    });
+};
+
 export const exitSiYuan = async (setCurrentWorkspace = true) => {
     hideAllElements(["util"]);
     if (isMobile() && window.siyuan.mobile.editor) {
@@ -157,6 +184,10 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
             const buttonElement = document.querySelector(`#message [data-id="${msgId}"] button`);
             if (buttonElement) {
                 buttonElement.addEventListener("click", () => {
+                    if (response.data.installPkgPath) {
+                        installNewVersion(response.data.installPkgPath, setCurrentWorkspace);
+                        return;
+                    }
                     fetchPost("/api/system/exit", {force: true, setCurrentWorkspace}, () => {
                         forceQuit();
                     });
@@ -170,32 +201,14 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
             }
 
             confirmDialog(window.siyuan.languages.updateVersion, response.msg, () => {
-                fetchPost("/api/system/exit", {
-                    force: true,
-                    setCurrentWorkspace,
-                    execInstallPkg: 2 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
-                }, () => {
-                    if (isElectron) {
-                        // 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
-                        // 这里先将主界面隐藏
-                        setTimeout(() => {
-                            ipcSend(Constants.SIYUAN_CMD, "hide");
-                        }, 2000);
-                        // 然后等待一段时间后再退出，避免界面主进程退出以后内核子进程被杀死
-                        setTimeout(() => {
-                            ipcSend(Constants.SIYUAN_QUIT, location.port);
-                        }, 4000);
-                    }
-                });
+                installNewVersion(response.data.installPkgPath, setCurrentWorkspace);
             }, () => {
                 fetchPost("/api/system/exit", {
                     force: true,
                     setCurrentWorkspace,
-                    execInstallPkg: 1 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
+                    execInstallPkg: 1 // 0：默认检查新版本，1：不返回安装包，2：返回安装包路径并退出
                 }, () => {
-                    if (isElectron) {
-                        ipcSend(Constants.SIYUAN_QUIT, location.port);
-                    }
+                    forceQuit();
                 });
             });
         } else { // 正常退出
@@ -218,7 +231,7 @@ export const transactionError = (msg?: string) => {
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--text">${window.siyuan.languages._kernel[97]}</button>
     <div class="fn__space"></div>
-    <button class="b3-button">${window.siyuan.languages.rebuildIndex}</button>
+    <button class="b3-button">${window.siyuan.languages.rebuildDataIndex}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });
@@ -343,6 +356,9 @@ export const downloadProgress = (data: { id: string, percent: number }) => {
 };
 
 export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
+    if (data?.code === 1) {
+        window.dispatchEvent(new CustomEvent("siyuan-sync-success"));
+    }
     if (isMobile()) {
         const menuSyncUseElement = document.querySelector("#menuSyncNow use");
         const barSyncUseElement = document.querySelector("#toolbarSync use");

@@ -30,7 +30,7 @@ const getCellElements = (ctx: IMenuPanelContext): HTMLElement[] => {
 
 /** 搜索属性视图 @同步豁免: UI构建 */
 const handleGoSearchAV = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
-    openSearchAV(ctx.avID, target, undefined, false);
+    openSearchAV(ctx.avID, target, undefined, false, ctx.options.blockElement.getAttribute("data-node-id"));
     event.preventDefault();
     event.stopPropagation();
 };
@@ -179,7 +179,7 @@ const handleOpenAssetItem = (ctx: IMenuPanelContext, target: HTMLElement, event:
         return;
     }
     // 其他类型：使用统一的链接打开逻辑
-    openLink(ctx.options.protyle, assetLink, event, event.ctrlKey || event.metaKey);
+    openLink(ctx.options.protyle.app, assetLink, event, event.ctrlKey || event.metaKey);
     event.preventDefault();
     event.stopPropagation();
 };

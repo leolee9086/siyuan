@@ -10,16 +10,16 @@ import { focusBlock, focusByRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import * as dayjs from "dayjs";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {getEmbedChildOperationContext} from "../wysiwyg/getBlock";
 
 /**
  * 构建 Gutter 超级块子菜单
  * 
  * @param protyle Protyle 实例
  * @param nodeElement 节点元素
- * @param id 节点 ID
  * @returns 菜单项数组
  */
-export const buildGutterSuperBlockMenu = (protyle: IProtyle, nodeElement: Element, id: string): IMenu[] => {
+export const buildGutterSuperBlockMenu = (protyle: IProtyle, nodeElement: Element): IMenu[] => {
     const isCol = nodeElement.getAttribute("data-sb-layout") === "col";
     const menus: IMenu[] = [];
     const config = getSiyuanConfig();
@@ -31,11 +31,11 @@ export const buildGutterSuperBlockMenu = (protyle: IProtyle, nodeElement: Elemen
         async click() {
             const sbData = await cancelSB(protyle, nodeElement);
             transaction(protyle, sbData.doOperations, sbData.undoOperations);
-            if (protyle.wysiwyg) {
-                const prevElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${sbData.previousId}"]`);
-                if (prevElement) {
-                    focusBlock(prevElement);
-                }
+            const embedContext = getEmbedChildOperationContext(nodeElement);
+            const prevElement = embedContext?.resultElement.querySelector(`[data-node-id="${sbData.previousId}"]`) ||
+                protyle.wysiwyg?.element.querySelector(`[data-node-id="${sbData.previousId}"]`);
+            if (prevElement) {
+                focusBlock(prevElement);
             }
             hideElements(["gutter"], protyle);
         }

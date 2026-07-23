@@ -125,6 +125,18 @@ import { callMobileAppShowKeyboard } from "../../../../../mobile/util/mobileAppU
 /** 导出 callMobileAppShowKeyboard 供 click 子模块复用。 */
 export { callMobileAppShowKeyboard };
 
+/** 用途：按默认模板新增数据库条目。使用范围：新增按钮已配置默认模板时。解耦评估：模板创建由 AV 模板模块维护，点击层只提供位置。 */
+import {createAttributeViewItem, openNewItemTemplateMenu} from "../../newItemTemplate";
+/** 导出 createAttributeViewItem 供 click 子模块复用。 */
+export {createAttributeViewItem};
+/** 导出 openNewItemTemplateMenu 供 click 子模块复用。 */
+export {openNewItemTemplateMenu};
+
+/** 用途：打开数据库条目详情。使用范围：主键行打开动作。解耦评估：条目宿主选择由专用模块维护。 */
+import {openDatabaseRowByData} from "../../openDatabaseRow";
+/** 导出 openDatabaseRowByData 供 click 子模块复用。 */
+export {openDatabaseRowByData};
+
 /** 用途：显示轻量消息提示。使用范围：copy 成功反馈。解耦评估：消息提示属于 UI 基础能力，继续复用即可。 */
 import { showMessage } from "../../../../runtime/dialog.port";
 /** 导出 showMessage 供 click 子模块复用。 */

@@ -6,6 +6,8 @@ import { getTopAloneElement } from "./getBlock";
 import { getContentByInlineHTML } from "./keydown";
 import { updateTransaction } from "./transaction";
 import { Constants } from "../../constants";
+/** 用途：为文档重命名信息请求附加加密 notebook。使用范围：rename 中间件。解耦评估：经目录入口复用唯一参数构造器。 */
+import {withEncryptedNotebook} from "./imports";
 
 export const attrMiddleware = (
     event: KeyboardEvent,
@@ -58,9 +60,8 @@ export const renameMiddleware = (
     const selectText =range.toString();
     if (matchHotKey(window.siyuan.config.keymap.editor.general.rename.custom, event) && !protyle.disabled) {
         if (selectText === "") {
-            fetchPost("/api/block/getDocInfo", {
-                id: protyle.block.rootID
-            }, (response) => {
+            const docInfoParams = withEncryptedNotebook(protyle.notebookId, {id: protyle.block.rootID});
+            fetchPost("/api/block/getDocInfo", docInfoParams, (response) => {
                 rename({
                     notebookId: protyle.notebookId,
                     path: protyle.path,

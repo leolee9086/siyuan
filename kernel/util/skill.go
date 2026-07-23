@@ -188,7 +188,7 @@ func parseSkillFrontmatter(text string) (fm map[string]string, body string) {
 	}
 	raw := text[3 : 3+end]
 	body = strings.TrimSpace(text[3+end+4:])
-	for _, line := range strings.Split(raw, "\n") {
+	for line := range strings.SplitSeq(raw, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -421,7 +421,7 @@ func fetchBytes(rawURL string) (data []byte, contentType string, err error) {
 
 // installFromZip 解压 zip 并安装其中的 skill
 func installFromZip(data []byte) (*InstallSkillResult, error) {
-	tmpRoot := filepath.Join(TempDir, "skill-install", gulu.Rand.String(7))
+	tmpRoot := filepath.Join(TempDir, "ai", "skill-install", gulu.Rand.String(7))
 	if err := os.MkdirAll(tmpRoot, 0755); err != nil {
 		return nil, err
 	}

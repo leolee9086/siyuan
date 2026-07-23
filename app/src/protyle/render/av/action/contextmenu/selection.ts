@@ -8,6 +8,7 @@ import { isHTMLElement } from "./imports";
 import { toAttrViewType } from "./imports";
 /** 用途：刷新表格头部选择态。使用范围：表格行被右键选中后。解耦评估：头部状态刷新继续复用 row 模块能力更一致。 */
 import { updateHeader } from "./imports";
+import {hasClosestByClassName, updateAVRowSelect} from "./imports";
 /** 用途：读取已选记录结构类型。使用范围：selection 模块内部构造主键上下文。解耦评估：类型集中在同层 types.ts 能避免局部重复定义。 */
 import type { SelectedAttrViewRow } from "./types";
 
@@ -45,6 +46,12 @@ const syncCardContextmenuSelection = (rowElement: HTMLElement, blockElement: Ele
         clearSelect(["galleryItem"], blockElement);
     }
     rowElement.classList.add("av__gallery-item--select");
+    const bodyElement = hasClosestByClassName(rowElement, "av__body");
+    const rowID = rowElement.dataset.id;
+    if (isHTMLElement(bodyElement) && rowID) {
+        updateAVRowSelect(bodyElement, rowID, true);
+    }
+    updateHeader(rowElement);
 };
 
 const CONTEXTMENU_SELECTION_HANDLERS = new Map<TAVView, (rowElement: HTMLElement, blockElement: Element) => void>([

@@ -15,6 +15,7 @@ import {resize} from "../protyle/util/resize";
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
 import {getTopBarHeight} from "../layout/getTopBarHeight";
+import {activateAVLocateWithRetry} from "../protyle/render/av/locate";
 
 export class BlockPanel {
     public element: HTMLElement;
@@ -173,6 +174,7 @@ export class BlockPanel {
                 action.push(Constants.CB_GET_BACKLINK);
             }
             const editor = new Protyle(this.app, editorElement, {
+                databaseAttr: true,
                 blockId: this.refDefs[index].refID,
                 defIds: this.refDefs[index].defIDs || [],
                 originalRefBlockIDs: this.isBacklink ? this.originalRefBlockIDs : undefined,
@@ -185,6 +187,17 @@ export class BlockPanel {
                 },
                 typewriterMode: false,
                 after: (editor) => {
+                    const refDef = this.refDefs[index];
+                    if (refDef.avItemID) {
+                        activateAVLocateWithRetry(editor.protyle, refDef.refID, {
+                            itemID: refDef.avItemID,
+                            viewID: refDef.avViewID,
+                            groupID: refDef.avGroupID,
+                            select: false,
+                            highlight: true,
+                            persistView: false,
+                        });
+                    }
                     if (response.data.rootID !== this.refDefs[index].refID) {
                         editor.protyle.breadcrumb.element.parentElement.lastElementChild.classList.remove("fn__none");
                     }

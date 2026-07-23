@@ -38,6 +38,16 @@ var SkillTool = &Tool{
 		},
 		Required: []string{"action"},
 	},
+	EffectScope: EffectScopeLocal,
+	ActionEffects: map[string]ToolEffects{
+		"":        {LocalRead: true},
+		"load":    {LocalRead: true},
+		"save":    {LocalWrite: true},
+		"install": {LocalWrite: true},
+		"remove":  {LocalWrite: true},
+		"rename":  {LocalWrite: true},
+		"list":    {LocalRead: true},
+	},
 	Handler: skillHandler,
 }
 
@@ -45,7 +55,7 @@ func init() {
 	register(SkillTool)
 }
 
-func skillHandler(args map[string]interface{}) (CallToolResult, error) {
+func skillHandler(args map[string]any) (CallToolResult, error) {
 	action, _ := args["action"].(string)
 	switch action {
 	case "load", "":
@@ -67,7 +77,7 @@ func skillHandler(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillLoad(args map[string]interface{}) (CallToolResult, error) {
+func skillLoad(args map[string]any) (CallToolResult, error) {
 	name, _ := args["name"].(string)
 	if name == "" {
 		return CallToolResult{
@@ -93,7 +103,7 @@ func skillLoad(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillSave(args map[string]interface{}) (CallToolResult, error) {
+func skillSave(args map[string]any) (CallToolResult, error) {
 	name, _ := args["name"].(string)
 	if name == "" {
 		return CallToolResult{
@@ -121,7 +131,7 @@ func skillSave(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillInstall(args map[string]interface{}) (CallToolResult, error) {
+func skillInstall(args map[string]any) (CallToolResult, error) {
 	rawURL, _ := args["url"].(string)
 	if rawURL == "" {
 		return CallToolResult{
@@ -152,7 +162,7 @@ func skillInstall(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillRemove(args map[string]interface{}) (CallToolResult, error) {
+func skillRemove(args map[string]any) (CallToolResult, error) {
 	name, _ := args["name"].(string)
 	if name == "" {
 		return CallToolResult{
@@ -173,7 +183,7 @@ func skillRemove(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillRename(args map[string]interface{}) (CallToolResult, error) {
+func skillRename(args map[string]any) (CallToolResult, error) {
 	name, _ := args["name"].(string)
 	if name == "" {
 		return CallToolResult{
@@ -201,7 +211,7 @@ func skillRename(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func skillList(args map[string]interface{}) (CallToolResult, error) {
+func skillList(args map[string]any) (CallToolResult, error) {
 	skills := util.DiscoverSkills()
 	if len(skills) == 0 {
 		return CallToolResult{

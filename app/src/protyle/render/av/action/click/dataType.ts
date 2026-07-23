@@ -29,13 +29,28 @@ import { consumeClickEvent } from "./shared";
 /** 用途：映射 data-type 到配置面板类型。使用范围：配置类按钮点击。解耦评估：这是 click 子目录内部规则，集中在 shared.ts 更利于统一维护。 */
 import { getMenuPanelType } from "./shared";
 /** 用途：处理较长的高级 data-type 分支。使用范围：block-more、分组折叠、load-more 和搜索图标。解耦评估：这些分支副作用更重，拆到专门模块更利于控制复杂度。 */
-import { handleBlockMoreClick } from "./dataType.advanced";
 /** 用途：处理较长的高级 data-type 分支。使用范围：分组折叠箭头点击。解耦评估：延时事务提交逻辑已经下沉到专门模块，当前文件只负责调度。 */
 import { handleGroupFoldClick } from "./dataType.advanced";
 /** 用途：处理较长的高级 data-type 分支。使用范围：load-more 点击。解耦评估：局部 DOM 修复和重渲染逻辑拆出后更便于审计。 */
 import { handleLoadMoreClick } from "./dataType.advanced";
 /** 用途：处理较长的高级 data-type 分支。使用范围：搜索图标点击。解耦评估：移动端键盘和焦点时序逻辑拆出后更便于维护。 */
 import { handleSearchIconClick } from "./dataType.advanced";
+import {addDragFill, createAttributeViewItem, focusByRange, hintRef, openDatabaseRowByData, openNewItemTemplateMenu} from "./imports";
+
+const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {previousID?: string; groupID?: string}) => {
+    const templateID = blockElement.querySelector<HTMLElement>(".av__header")?.dataset.defaultTemplateId;
+    if (templateID) {
+        createAttributeViewItem({blockElement, protyle, templateID, position});
+        return;
+    }
+    insertRows({
+        blockElement,
+        protyle,
+        count: 1,
+        previousID: position.previousID,
+        groupID: position.groupID || "",
+    });
+};
 
 /**
  * 作用：处理新增列按钮点击。
@@ -74,10 +89,7 @@ const handleMenuPanelClick = (
  */
 const handleAddMoreClick = (protyle: IProtyle, blockElement: HTMLElement, event: MouseEvent) => {
     const bodyElement = blockElement.querySelector(".av__body");
-    insertRows({
-        blockElement,
-        protyle,
-        count: 1,
+    createItem(protyle, blockElement, {
         previousID: "",
         groupID: bodyElement?.getAttribute("data-group-id") || "",
     });
@@ -120,12 +132,9 @@ const handleAddBottomClick = (protyle: IProtyle, target: HTMLElement, blockEleme
     const bodyCandidate = hasClosestByClassName(target, "av__body");
     const utilRow = isHTMLElement(bodyCandidate) ? bodyCandidate.querySelector(".av__row--util") : null;
     const previousID = utilRow?.previousElementSibling?.getAttribute("data-id") || target.previousElementSibling?.getAttribute("data-id") || undefined;
-    insertRows({
-        blockElement,
-        protyle,
-        count: 1,
+    createItem(protyle, blockElement, {
         previousID: previousID ?? undefined,
-        groupID: isHTMLElement(bodyCandidate) ? bodyCandidate.getAttribute("data-group-id") || "" : ""
+        groupID: isHTMLElement(bodyCandidate) ? bodyCandidate.getAttribute("data-group-id") || "" : "",
     });
     return consumeClickEvent(event);
 };
@@ -139,12 +148,9 @@ const handleAddBottomClick = (protyle: IProtyle, target: HTMLElement, blockEleme
 const handleAddTopClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
     const titleCandidate = hasClosestByClassName(target, "av__group-title");
     const bodyElement = isHTMLElement(titleCandidate) ? titleCandidate.nextElementSibling : null;
-    insertRows({
-        blockElement,
-        protyle,
-        count: 1,
+    createItem(protyle, blockElement, {
         previousID: "",
-        groupID: bodyElement?.getAttribute("data-group-id") || ""
+        groupID: bodyElement?.getAttribute("data-group-id") || "",
     });
     return consumeClickEvent(event);
 };
@@ -188,6 +194,54 @@ const handleCopyClick = (target: HTMLElement, event: MouseEvent) => {
     return consumeClickEvent(event);
 };
 
+const handleAddTemplateClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
+    openNewItemTemplateMenu({protyle, blockElement, target});
+    return consumeClickEvent(event);
+};
+
+const getDatabaseRowElements = (target: HTMLElement) => {
+    const cellElement = hasClosestByClassName(target, "av__cell");
+    const rowElement = hasClosestByClassName(target, "av__row") || hasClosestByClassName(target, "av__gallery-item");
+    if (!isHTMLElement(cellElement) || !isHTMLElement(rowElement)) {
+        return;
+    }
+    return {cellElement, rowElement};
+};
+
+const handleOpenDatabaseRow = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
+    const elements = getDatabaseRowElements(target);
+    if (!elements) {
+        return false;
+    }
+    const textElement = elements.cellElement.querySelector<HTMLElement>(".av__celltext");
+    openDatabaseRowByData(protyle, {
+        avID: blockElement.dataset.avId,
+        databaseBlockID: blockElement.dataset.nodeId,
+        notebookID: protyle.notebookId,
+        itemID: elements.rowElement.dataset.id,
+        valueID: elements.cellElement.dataset.id,
+        title: textElement?.textContent.trim(),
+        boundBlockID: elements.cellElement.querySelector<HTMLElement>(".av__celltext--ref")?.dataset.id,
+        isDetached: elements.cellElement.dataset.detached === "true" || !elements.cellElement.querySelector(".av__celltext--ref"),
+    });
+    return consumeClickEvent(event);
+};
+
+const handleUpdateDatabaseRow = (protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+    const cellElement = hasClosestByClassName(target, "av__cell");
+    const textElement = cellElement?.querySelector<HTMLElement>(".av__celltext");
+    if (!isHTMLElement(cellElement) || !textElement || !protyle.toolbar) {
+        return false;
+    }
+    protyle.toolbar.range = document.createRange();
+    protyle.toolbar.range.selectNodeContents(textElement);
+    focusByRange(protyle.toolbar.range);
+    cellElement.classList.add("av__cell--select");
+    addDragFill(cellElement);
+    hintRef(textElement.textContent.trim(), protyle, "av");
+    return consumeClickEvent(event);
+};
+
 const DATA_TYPE_HANDLERS = new Map<string, (
     protyle: IProtyle,
     target: HTMLElement,
@@ -197,8 +251,10 @@ const DATA_TYPE_HANDLERS = new Map<string, (
 ) => boolean>([
     ["av-header-add", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleHeaderAddClick(protyle, target, blockElement, event)],
     ["av-add-more", (protyle, _target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddMoreClick(protyle, blockElement, event)],
+    ["av-add-template", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddTemplateClick(protyle, target, blockElement, event)],
     ["av-add", (protyle, _target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddViewClick(protyle, blockElement, event)],
-    ["block-more", (protyle, target, _blockElement, viewType, event) => protyle.disabled ? false : handleBlockMoreClick(protyle, target, viewType, event)],
+    ["av-row-open", (protyle, target, blockElement, _viewType, event) => handleOpenDatabaseRow(protyle, target, blockElement, event)],
+    ["av-row-update", (protyle, target, _blockElement, _viewType, event) => protyle.disabled ? false : handleUpdateDatabaseRow(protyle, target, event)],
     ["set-page-size", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleSetPageSizeClick(protyle, target, blockElement, event)],
     ["av-add-bottom", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddBottomClick(protyle, target, blockElement, event)],
     ["av-add-top", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddTopClick(protyle, target, blockElement, event)],

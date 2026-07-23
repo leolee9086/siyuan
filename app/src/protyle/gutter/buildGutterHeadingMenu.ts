@@ -29,6 +29,7 @@ export interface IGutterHeadingMenuContext {
     subType: string;
     /** Protyle 实例 */
     protyle: IProtyle;
+    isEmbedMenu?: boolean;
 }
 
 /**
@@ -301,6 +302,12 @@ const 创建删除标题及下级菜单项 = (ctx: IGutterHeadingMenuContext): I
  * ```
  */
 export const buildGutterHeadingMenu = (ctx: IGutterHeadingMenuContext): IGutterHeadingMenuResult => {
+    if (ctx.isEmbedMenu) {
+        return {
+            标题级别转换: [],
+            其他操作: [创建复制标题及下级菜单项(ctx)],
+        };
+    }
     return {
         标题级别转换: 构建标题级别转换子菜单(ctx),
         其他操作: [

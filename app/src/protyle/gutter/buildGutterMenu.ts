@@ -1,6 +1,5 @@
 import { Constants } from "../../constants";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
-import { isInEmbedBlock } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../util/platform/functions";
 import { activeBlur } from "../../mobile/util/keyboardToolbar";
@@ -14,6 +13,11 @@ import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
 import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { createProtyleMenuContext, scheduleProtyleMenuTask, setProtyleMenuContext } from "../runtime/menu.visibility";
+import {getGutterNodeElement} from "./gutter.node";
+import {getEmbedChildOperationContext} from "../wysiwyg/getBlock";
+import {isEncryptedBox} from "../../util/pathName";
+import {createAddBlocksToAgentMenuItem} from "./addBlockToAgent";
+import type {IGutterMenuCapabilities} from "./gutter.types";
 
 export const buildGutterMenu = (options: {
     protyle: IProtyle;
@@ -29,15 +33,35 @@ export const buildGutterMenu = (options: {
         activeBlur();
     }
     const id = buttonElement.getAttribute("data-node-id");
+    const nodeElement = getGutterNodeElement(protyle, buttonElement);
+    if (!nodeElement) {
+        return;
+    }
+    const capabilities = getMenuCapabilities(protyle, nodeElement);
     const selectsElement = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-    if (selectsElement.length > 1) {
+    if (!capabilities.isEmbedMenu && selectsElement.length > 1) {
         setProtyleMenuContext(getSiyuanGlobalMenus().menu, createProtyleMenuContext({protyle}));
         return buildMultipleMenu(protyle, selectsElement, id);
     }
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BLOCK_SINGLE);
-    return buildSingleMenu(protyle, buttonElement, id);
+    return buildSingleMenu(protyle, nodeElement, id, capabilities);
 };
 
+/** 作用：计算嵌入查询边界内的结构修改与删除能力；调用时机：单块菜单构建前。 */
+const getMenuCapabilities = (protyle: IProtyle, nodeElement: Element): IGutterMenuCapabilities => {
+    const embedContext = getEmbedChildOperationContext(nodeElement);
+    const allowStructuralMutation = !protyle.disabled &&
+        (!embedContext || embedContext.targetElement !== nodeElement);
+    const isOnlyTargetListItem = embedContext?.targetElement?.getAttribute("data-type") === "NodeList" &&
+        nodeElement.getAttribute("data-type") === "NodeListItem" &&
+        nodeElement.parentElement === embedContext.targetElement &&
+        embedContext.targetElement.querySelectorAll(':scope > [data-type="NodeListItem"]').length === 1;
+    return {
+        isEmbedMenu: !!embedContext,
+        allowStructuralMutation,
+        allowRemoval: allowStructuralMutation && !isOnlyTargetListItem,
+    };
+};
 const buildMultipleMenu = (protyle: IProtyle, selectsElement: NodeListOf<Element>, id: string | null) => {
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BLOCK_MULTI);
     const match = Array.from(selectsElement).find(item => {
@@ -50,11 +74,12 @@ const buildMultipleMenu = (protyle: IProtyle, selectsElement: NodeListOf<Element
     }
 };
 
-const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string | null) => {
-    const nodeElement = findNodeElement(protyle, buttonElement, id);
-    if (!nodeElement) {
-        return;
-    }
+const buildSingleMenu = (
+    protyle: IProtyle,
+    nodeElement: Element,
+    id: string | null,
+    capabilities: IGutterMenuCapabilities,
+) => {
     const type = nodeElement.getAttribute("data-type");
     const subType = nodeElement.getAttribute("data-subtype");
     const menuContext = createProtyleMenuContext({
@@ -66,9 +91,11 @@ const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string |
     setProtyleMenuContext(getSiyuanGlobalMenus().menu, menuContext);
     hideElements(["select"], protyle);
     nodeElement.classList.add("protyle-wysiwyg--select");
-    addTurnIntoMenu(protyle, nodeElement, id, type, subType);
+    if (capabilities.allowStructuralMutation) {
+        addTurnIntoMenu(protyle, nodeElement, id, type, subType);
+    }
     scheduleProtyleMenuTask(menuContext, () => {
-        if (menuContext.host === "standalone") {
+        if (menuContext.host === "standalone" || capabilities.isEmbedMenu || isEncryptedBox(protyle.notebookId)) {
             return;
         }
         const aiMenuItem = buildGutterAiMenu({protyle, nodeElement});
@@ -81,19 +108,25 @@ const buildSingleMenu = (protyle: IProtyle, buttonElement: Element, id: string |
         nodeElement,
         type,
         id: id || "",
-        protyle
+        protyle,
+        allowDuplicate: capabilities.allowStructuralMutation,
     })).element);
-    if (!protyle.disabled) {
-        for (const item of buildGutterEditMenu({ protyle, nodeElement })) {
+    if (!capabilities.isEmbedMenu && !isMobile() && !isEncryptedBox(protyle.notebookId)) {
+        getSiyuanGlobalMenus().menu.append(new MenuItem(createAddBlocksToAgentMenuItem([id || ""])).element);
+    }
+    if (!protyle.disabled || capabilities.isEmbedMenu) {
+        for (const item of buildGutterEditMenu({protyle, nodeElement, ...capabilities})) {
             getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
         }
     }
     // 类型特定菜单属于可选能力，首屏菜单显示后再构建，避免复杂块类型阻塞基础编辑操作。
     scheduleProtyleMenuTask(menuContext, () => {
-        buildGutterTypeSpecificMenu({protyle, nodeElement, id: id || "", type, subType});
+        if (capabilities.allowStructuralMutation) {
+            buildGutterTypeSpecificMenu({protyle, nodeElement, id: id || "", type, subType, isEmbedMenu: capabilities.isEmbedMenu});
+        }
     });
     // 通用操作菜单
-    for (const item of buildGutterCommonMenu({ protyle, nodeElement, id: id || "", type })) {
+    for (const item of buildGutterCommonMenu({protyle, nodeElement, id: id || "", type, ...capabilities})) {
         getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
     }
     return getSiyuanGlobalMenus().menu;
@@ -114,18 +147,4 @@ const addTurnIntoMenu = (protyle: IProtyle, nodeElement: Element, id: string | n
     if (turnIntoSubmenu) {
         getSiyuanGlobalMenus().menu.append(new MenuItem(turnIntoSubmenu).element);
     }
-};
-
-const findNodeElement = (protyle: IProtyle, buttonElement: Element, id: string | null) => {
-    if (buttonElement.tagName !== "BUTTON") {
-        return buttonElement;
-    }
-    if (!id || !protyle.wysiwyg?.element || !protyle.gutter) {
-        return;
-    }
-    return Array.from(protyle.wysiwyg!.element.querySelectorAll(`[data-node-id="${id}"]`)).find(item => {
-        if (!isInEmbedBlock(item) && protyle.gutter!.isMatchNode(item)) {
-            return true;
-        }
-    });
 };

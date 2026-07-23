@@ -4,7 +4,7 @@ import {focusByRange, focusByWbr, focusBlock} from "../util/selection";
 import {getSelectionPosition} from "../util/selection";
 import {hintEmbed} from "./extend";
 import {hintRef} from "./extend.hintRef";
-import {newFileInProtyle} from "../../util/file/newFile";
+import {getBlockRefAnchorText, newFileInProtyle} from "../../util/file/newFile";
 import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import {transaction, updateTransaction} from "../wysiwyg/transaction";
 import {insertHTML} from "../util/insertHTML";
@@ -61,6 +61,10 @@ export function handleFillSlash(ctx: IFillSlashContext): void {
     const {hint, value, protyle, range, id, html, genEmojiHTML} = ctx;
     const nodeElement = ctx.nodeElement;
 
+    if (protyle.lite) {
+        insertHTML(value, protyle);
+        return;
+    }
     if (value === "((" || value === "{{") {
         hint.enableExtend = true;
         handleRefOrEmbed(hint, value, protyle, range);
@@ -160,7 +164,7 @@ function handleRefOrEmbed(hint: Hint, value: string, protyle: IProtyle, range: R
 /** @同步豁免: 遗留代码 — 新建文档，回调中同步插入 DOM */
 function handleNewDoc(protyle: IProtyle) {
     newFileInProtyle(protyle, (createDocId, createDocTitle) => {
-        insertHTML(`<span data-type="block-ref" data-id="${createDocId}" data-subtype="d">${createDocTitle}</span>`, protyle);
+        insertHTML(`<span data-type="block-ref" data-id="${createDocId}" data-subtype="d">${getBlockRefAnchorText(createDocTitle)}</span>`, protyle);
     });
 }
 
@@ -170,10 +174,10 @@ function handleNewSubDoc(protyle: IProtyle) {
     fetchPost("/api/filetree/createDoc", {
         notebook: protyle.notebookId,
         path: pathPosix().join(getDisplayName(protyle.path, false, true), newSubDocId + ".sy"),
-        title: window.siyuan.languages.untitled,
+        title: "",
         md: ""
     }, () => {
-        insertHTML(`<span data-type="block-ref" data-id="${newSubDocId}" data-subtype="d">${window.siyuan.languages.untitled}</span>`, protyle);
+        insertHTML(`<span data-type="block-ref" data-id="${newSubDocId}" data-subtype="d">${getBlockRefAnchorText("")}</span>`, protyle);
         if (isMobile) {
             openMobileFileById(protyle.app, newSubDocId, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
         }

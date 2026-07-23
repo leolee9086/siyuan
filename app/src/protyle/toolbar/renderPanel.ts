@@ -3,7 +3,6 @@ import { hideElements } from "../ui/hideElements";
 import {
     确定渲染标题,
     获取文本框初始值,
-    检查固定状态,
     生成渲染面板HTML,
     处理头部按钮点击,
     处理文本输入,
@@ -14,6 +13,8 @@ import {
     创建自动高度函数,
     type 渲染面板上下文
 } from "./showRender";
+import {isMobile} from "../../platform";
+import {createLineNumberRenderer} from "./showRender/showRender.lineNumbers";
 
 export function showRender(
     protyle: IProtyle,
@@ -23,7 +24,8 @@ export function showRender(
     subElement: HTMLElement,
     element: HTMLElement,
     range: Range | undefined,
-    setSubElementCloseCB: (cb: (() => void) | undefined) => void
+    setSubElementCloseCB: (cb: (() => void) | undefined) => void,
+    setSubElementResizeCB: (cb: (() => void) | undefined) => void
 ) {
     const nodeElement = hasClosestBlock(renderElement);
     if (!nodeElement) {
@@ -42,29 +44,25 @@ export function showRender(
     // 确定标题和占位符
     const { 标题, 占位符 } = 确定渲染标题(subtype, types, 是否行内备注);
 
-    // 检查固定状态
-    const { 是否固定, 固定样式, 是否拖拽中, 刷新按钮激活 } = 检查固定状态(subElement);
-
-    if (!是否固定) {
-        subElement.style.width = "";
-        subElement.style.padding = "0";
+    subElement.style.padding = "0";
+    subElement.style.display = "flex";
+    subElement.style.flexDirection = "column";
+    if (!isMobile) {
+        subElement.style.width = Math.max(480, renderElement.clientWidth * 0.7) + "px";
     }
 
     // 生成面板 HTML
     subElement.innerHTML = 生成渲染面板HTML({
         标题,
         占位符,
-        是否固定,
         是否禁用: protyle.disabled,
         是否行内备注,
         类型列表: types,
-        渲染元素宽度: renderElement.clientWidth,
-        是否拖拽中,
-        刷新按钮激活
     });
 
     // 获取元素引用
     const textElement = subElement.querySelector(".b3-text-field") as HTMLTextAreaElement;
+    const lineNumberElement = subElement.querySelector(".protyle-linenumber__rows") as HTMLElement;
     const headerElement = subElement.querySelector(".block__icons");
     if (!headerElement) {
         return;
@@ -100,6 +98,11 @@ export function showRender(
         { textElement, nodeRect, types, 是否行内备注 },
         subElement
     );
+    const renderLineNumbers = createLineNumberRenderer(textElement, lineNumberElement);
+    const updatePanelLayout = () => {
+        renderLineNumbers();
+        autoHeight();
+    };
 
     // 创建导出图片回调
     const exportImg = () => 导出为图片(renderElement);
@@ -110,7 +113,7 @@ export function showRender(
     });
 
     textElement.addEventListener("input", (event) => {
-        处理文本输入(event, 上下文, autoHeight);
+        处理文本输入(event, 上下文, updatePanelLayout);
     });
 
     textElement.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -119,14 +122,9 @@ export function showRender(
 
     // 设置关闭回调
     setSubElementCloseCB(创建关闭回调(上下文, oldTextValue, range));
+    setSubElementResizeCB(renderLineNumbers);
 
-    // 应用固定样式或自动高度
-    if (是否固定 && 固定样式) {
-        textElement.style.width = 固定样式.宽度;
-        textElement.style.height = 固定样式.高度;
-    } else {
-        autoHeight();
-    }
+    updatePanelLayout();
 
     // 选中文本
     if (!protyle.disabled) {

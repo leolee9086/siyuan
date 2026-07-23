@@ -1,42 +1,43 @@
-import { Tab } from "../Tab";
-import { Model } from "../Model";
-import { Tree } from "../../util/file/Tree";
-import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
-import { fetchPost } from "../../util/network/fetch";
-import { openFileById } from "../../editor/utils.openFileById";
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { openBookmarkMenu } from "../../menus/bookmark";
-import { App } from "../../index";
-import { Constants } from "../../constants";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
-import { isOperations } from "./dock.guard";
-import { Protyle } from "../../protyle";
-import { getBookmarkPanelHTML, shouldReloadBookmark } from "./bookmark.util";
-/**
- * @AIDONE 书签本质上也是查询结果列表,因此,应该像反向链接面板一样,初始化protyle
- * 让查询结果能够直接快速编辑,注意需要避免循环更新等边界情况
- */
-export class Bookmark extends Model {
+import {Tab} from "../Tab";
+import {Model} from "../Model";
+import {Tree} from "../../util/file/Tree";
+import {setPanelFocus} from "../utils/setPanelFocus";
+import {getDockByType} from "../tabUtil";
+import {fetchPost} from "../../util/network/fetch";
+import {openFileById} from "../../editor/utils.openFileById";
+import {hasClosestByClassName} from "../../protyle/util/hasClosest";
+import {openBookmarkMenu} from "../../menus/bookmark";
+import {App} from "../../index";
+import {Constants} from "../../constants";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {isOperations, isBlockTreeArray} from "./dock.guard";
+import {Protyle} from "../../protyle";
+import {
+    getBookmarkPanelHTML, shouldReloadBookmark,
+} from "./bookmark.util";
+import {BookmarkDropController} from "./bookmarkDrop";
+import {filterBookmarkData, getBookmarkFilterKeywords} from "./bookmarkFilter";
 
+export class Bookmark extends Model {
+    private openNodes: string[] | undefined;
+    private preFilterOpenNodes: string[] | undefined;
+    private data: IBlockTree[] = [];
+    private updating = false;
+    private updatePending = false;
+    private dropController: BookmarkDropController;
     public tree: Tree;
     public editors: Protyle[] = [];
     private element: HTMLElement;
 
     constructor(app: App, tab: Tab) {
         super({app});
-        this.connect({
-            id: tab.id,
-            type: "bookmark",
-            msgCallback: (data) => {
-                this._处理消息(data);
-            }
-        });
+        this.connect({id: tab.id, type: "bookmark", msgCallback: (data) => this._处理消息(data)});
         this.element = tab.panelElement;
         this._初始化外观();
         this.tree = this._生成树对象(app);
+        this.dropController = new BookmarkDropController({element: this.tree.element, onChanged: () => this.update()});
+        this.dropController.bind();
         this._绑定事件();
-
         this.update();
     }
 
@@ -48,42 +49,21 @@ export class Bookmark extends Model {
             this._处理事务(data);
             return;
         }
-        if (
-            (data.cmd === "closeBox" || data.cmd === "removeBox" || data.cmd === "unmount" ||
-                data.cmd === "removeDoc" || data.cmd === "mount") &&
-            (data.cmd !== "mount" || data.code !== 1)
-        ) {
-            fetchPost("/api/bookmark/getBookmark", {}, response => {
-                this.update(response.data);
-            });
+        const changesNotebook = data.cmd === "closeBox" || data.cmd === "removeBox" || data.cmd === "unmount" ||
+            data.cmd === "removeDoc" || data.cmd === "mount";
+        if (changesNotebook && (data.cmd !== "mount" || data.code !== 1)) {
+            this.update();
         }
     }
 
     private _处理事务(data: IWebSocketData) {
-        const itemData = data.data;
-        if (!Array.isArray(itemData) || itemData.length === 0) {
-            return;
-        }
-        const firstDataItem = itemData[0];
-        const operations = firstDataItem?.doOperations;
-        if (!isOperations(operations)) {
-            return;
-        }
-        for (const item of operations) {
-            this._执行操作检查(item);
-        }
-    }
-
-    private _执行操作检查(item: IOperation) {
-        if (shouldReloadBookmark(item)) {
-            fetchPost("/api/bookmark/getBookmark", {}, response => {
-                this.update(response.data);
-            });
+        const operations = Array.isArray(data.data) ? data.data[0]?.doOperations : undefined;
+        if (isOperations(operations) && operations.some(shouldReloadBookmark)) {
+            this.update();
         }
     }
 
     private _初始化外观() {
-        // S-forge: 使用通用 dock 面板样式类
         this.element.classList.add("fn__flex-column", "file-tree", "sy__bookmark", "dockPanel");
         this.element.innerHTML = getBookmarkPanelHTML();
     }
@@ -103,14 +83,17 @@ export class Bookmark extends Model {
             shiftClick: (element: HTMLElement) => Bookmark._onTreeAltShiftClick(app, element),
             blockExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
             topExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
-            toggleClick: (element: HTMLElement) => this._toggleItem(element)
+            blockDraggable: !window.siyuan.config.readonly,
+            dragStart: (element, event) => this.dropController.handleDragStart(element, event),
+            dragEnd: (element) => this.dropController.handleDragEnd(element),
+            toggleClick: (element: HTMLElement) => this._toggleItem(element),
         });
     }
 
     private _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
-        const eventTarget = event?.target;
-        const actionElement = eventTarget instanceof HTMLElement ? hasClosestByClassName(eventTarget, "b3-list-item__action") : null;
-        if (event && actionElement && actionElement.parentElement instanceof HTMLElement) {
+        const target = event?.target;
+        const actionElement = target instanceof HTMLElement ? hasClosestByClassName(target, "b3-list-item__action") : null;
+        if (event && actionElement?.parentElement instanceof HTMLElement) {
             openBookmarkMenu(actionElement.parentElement, event, this);
             return;
         }
@@ -118,15 +101,8 @@ export class Bookmark extends Model {
         if (!id) {
             return;
         }
-        // @内联回调
         checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
-            openFileById({
-                app,
-                id,
-                action,
-                zoomIn,
-                position: undefined
-            });
+            openFileById({app, id, action, zoomIn});
         });
     }
 
@@ -135,14 +111,14 @@ export class Bookmark extends Model {
         if (!id) {
             return;
         }
-        // @内联回调
         checkFold(id, (zoomIn: boolean) => {
             openFileById({
                 app,
                 id,
                 keepCursor: true,
-                action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                zoomIn
+                action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] :
+                    [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                zoomIn,
             });
         });
     }
@@ -153,26 +129,15 @@ export class Bookmark extends Model {
             return;
         }
         checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
-            openFileById({
-                app,
-                id,
-                action,
-                zoomIn,
-                position: "bottom",
-            });
+            openFileById({app, id, action, zoomIn, position: "bottom"});
         });
     }
 
     private _toggleItem(liElement: HTMLElement) {
-        const toggleElement = liElement.firstElementChild;
-        if (!toggleElement) {
-            return;
-        }
-        const svgElement = toggleElement.firstElementChild;
+        const svgElement = liElement.firstElementChild?.firstElementChild;
         if (!svgElement) {
             return;
         }
-
         if (svgElement.classList.contains("b3-list-item__arrow--open")) {
             this._collapseItem(liElement, svgElement);
             return;
@@ -183,33 +148,36 @@ export class Bookmark extends Model {
     private _collapseItem(liElement: HTMLElement, svgElement: Element) {
         svgElement.classList.remove("b3-list-item__arrow--open");
         const nextSibling = liElement.nextElementSibling;
-        if (nextSibling && nextSibling.tagName === "DIV") {
+        if (nextSibling?.tagName === "DIV") {
             this._destroyEditor(nextSibling);
             nextSibling.remove();
         }
-
-        const childrenList = liElement.nextElementSibling;
-        if (childrenList?.tagName === "UL") {
-            childrenList.classList.add("fn__none");
+        if (liElement.nextElementSibling?.tagName === "UL") {
+            liElement.nextElementSibling.classList.add("fn__none");
         }
     }
 
     private _destroyEditor(element: Element) {
-        const index = this.editors.findIndex(e => e.protyle.element === element);
-        if (index > -1) {
-            const editor = this.editors[index];
-            editor?.destroy();
-            this.editors.splice(index, 1);
+        const index = this.editors.findIndex(editor => editor.protyle.element === element);
+        if (index < 0) {
+            return;
         }
+        this.editors[index].destroy();
+        this.editors.splice(index, 1);
+    }
+
+    private _destroyAllEditors() {
+        for (const editor of this.editors) {
+            editor.destroy();
+        }
+        this.editors = [];
     }
 
     private _expandItem(liElement: HTMLElement, svgElement: Element) {
         svgElement.classList.add("b3-list-item__arrow--open");
-        const nextSibling = liElement.nextElementSibling;
-        if (nextSibling && nextSibling.tagName === "UL") {
-            nextSibling.classList.remove("fn__none");
+        if (liElement.nextElementSibling?.tagName === "UL") {
+            liElement.nextElementSibling.classList.remove("fn__none");
         }
-
         const id = liElement.getAttribute("data-node-id");
         if (!id) {
             return;
@@ -217,69 +185,72 @@ export class Bookmark extends Model {
         const editorElement = document.createElement("div");
         editorElement.style.minHeight = "auto";
         liElement.after(editorElement);
-        const editor = new Protyle(this.app, editorElement, {
+        this.editors.push(new Protyle(this.app, editorElement, {
             blockId: id,
-            click: {
-                preventInsetEmptyBlock: true
-            },
-            render: {
-                background: false,
-                gutter: true,
-                scroll: false,
-                breadcrumb: false,
-            }
-        });
-        this.editors.push(editor);
+            click: {preventInsetEmptyBlock: true},
+            render: {background: false, gutter: true, scroll: false, breadcrumb: false},
+        }));
     }
 
     private _绑定事件() {
-        const collapseElement = this.element.querySelector('[data-type="collapse"]');
-        if (collapseElement) {
-            collapseElement.addEventListener("click", () => {
-                this._onCollapseClick();
-            });
-        }
-        const expandElement = this.element.querySelector('[data-type="expand"]');
-        if (expandElement) {
-            expandElement.addEventListener("click", () => {
-                this.tree.expandAll();
-            });
-        }
+        this.element.querySelector('[data-type="collapse"]')?.addEventListener("click", () => this._onCollapseClick());
+        this.element.querySelector('[data-type="expand"]')?.addEventListener("click", () => this.tree.expandAll());
+        const inputElement = this._getFilterInput();
+        inputElement.addEventListener("blur", () => this._syncFilterIndicator(inputElement));
+        inputElement.addEventListener("input", (event: InputEvent) => {
+            if (!event.isComposing) {
+                this._filter();
+            }
+        });
+        inputElement.addEventListener("compositionend", () => this._filter());
         this.element.addEventListener("click", (event) => {
             if (event instanceof MouseEvent) {
                 this._onElementClick(event);
             }
         });
-        this.tree.element.addEventListener("scroll", () => {
-            this._onTreeScroll();
-        });
+        this.tree.element.addEventListener("scroll", () => this._onTreeScroll());
+    }
+
+    private _getFilterInput() {
+        const inputElement = this.element.querySelector<HTMLInputElement>("input.search__label");
+        if (!inputElement) {
+            throw new Error("bookmark filter input not found");
+        }
+        return inputElement;
+    }
+
+    private _syncFilterIndicator(inputElement: HTMLInputElement) {
+        inputElement.classList.add("fn__none");
+        const filterElement = inputElement.nextElementSibling;
+        if (!(filterElement instanceof HTMLElement)) {
+            return;
+        }
+        const value = inputElement.value.trim();
+        filterElement.classList.toggle("block__icon--active", Boolean(value));
+        filterElement.setAttribute("aria-label", value ? `${window.siyuan.languages.filter} ${value}` : window.siyuan.languages.filter);
     }
 
     private _onCollapseClick() {
         this.tree.collapseAll();
-        for (const item of this.editors) {
-            item.protyle.element.remove();
-            item.destroy();
-        }
-        this.editors = [];
+        this._destroyAllEditors();
     }
 
     private _onTreeScroll() {
-        for (const item of Array.from(this.tree.element.querySelectorAll(".protyle-gutters"))) {
+        for (const item of this.tree.element.querySelectorAll(".protyle-gutters")) {
             item.classList.add("fn__none");
             item.innerHTML = "";
         }
-        for (const item of Array.from(this.tree.element.querySelectorAll(".protyle-wysiwyg--hl"))) {
+        for (const item of this.tree.element.querySelectorAll(".protyle-wysiwyg--hl")) {
             item.classList.remove("protyle-wysiwyg--hl");
         }
     }
 
     private _onElementClick(event: MouseEvent) {
-        setPanelFocus(this.element);
         const target = event.target;
-        if (!(target instanceof HTMLElement)) {
+        if (!(target instanceof HTMLElement) || target.tagName === "INPUT") {
             return;
         }
+        setPanelFocus(this.element);
         const iconElement = hasClosestByClassName(target, "block__icon");
         if (iconElement && this.element.contains(iconElement)) {
             this._handleIconClick(iconElement.getAttribute("data-type"));
@@ -293,40 +264,89 @@ export class Bookmark extends Model {
         }
         if (type === "refresh") {
             this.update();
+            return;
+        }
+        if (type === "search") {
+            const inputElement = this._getFilterInput();
+            inputElement.classList.remove("fn__none");
+            inputElement.select();
         }
     }
 
     public update(data?: IBlockTree[]) {
-        for (const item of this.editors) {
-            item.destroy();
-        }
-        this.editors = [];
-        const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (!element || element.classList.contains("fn__rotate")) {
-            return;
-        }
         if (data) {
-            this.tree.updateData(data);
+            this.data = data;
+            this._filter();
             return;
         }
-        element.classList.add("fn__rotate");
-        fetchPost("/api/bookmark/getBookmark", {}, response => {
-            this._handleUpdateResponse(response.data, element);
+        if (this.updating) {
+            this.updatePending = true;
+            return;
+        }
+        this.updating = true;
+        const refreshElement = this.element.querySelector('.block__icon[data-type="refresh"] svg');
+        refreshElement?.classList.add("fn__rotate");
+        fetchPost("/api/bookmark/getBookmark", {}, response => this._handleUpdateResponse(response.data, refreshElement));
+    }
+
+    private _handleUpdateResponse(data: unknown, refreshElement: Element | null) {
+        if (this.updatePending) {
+            this.updatePending = false;
+            this.updating = false;
+            this.update();
+            return;
+        }
+        if (isBlockTreeArray(data)) {
+            this.data = data;
+        }
+        this.updating = false;
+        refreshElement?.classList.remove("fn__rotate");
+        this._filter();
+    }
+
+    private _filter() {
+        const keywords = getBookmarkFilterKeywords(this._getFilterInput().value);
+        const hasKeyword = keywords.length > 0;
+        if (hasKeyword && this.preFilterOpenNodes === undefined && this.openNodes !== undefined) {
+            this.preFilterOpenNodes = this.tree.getExpandIds();
+        }
+        if (!hasKeyword && this.preFilterOpenNodes === undefined && this.openNodes !== undefined) {
+            this.openNodes = this.tree.getExpandIds();
+        }
+        const nextData = hasKeyword ? filterBookmarkData(this.data, keywords) : this.data;
+        this._destroyAllEditors();
+        this.tree.updateData(nextData);
+        this._restoreExpansion(hasKeyword);
+        this._assignBookmarkTargets(nextData);
+    }
+
+    private _restoreExpansion(hasKeyword: boolean) {
+        if (hasKeyword) {
+            this.tree.expandAll();
+            return;
+        }
+        if (this.preFilterOpenNodes !== undefined) {
+            this.tree.collapseAll();
+            this.tree.setExpandIds(this.preFilterOpenNodes);
+            this.openNodes = this.preFilterOpenNodes;
+            this.preFilterOpenNodes = undefined;
+            return;
+        }
+        if (this.openNodes !== undefined) {
+            this.tree.collapseAll();
+            this.tree.setExpandIds(this.openNodes);
+            return;
+        }
+        this.openNodes = this.tree.getExpandIds();
+    }
+
+    private _assignBookmarkTargets(data: IBlockTree[]) {
+        const groups = this.tree.element.querySelectorAll<HTMLElement>(':scope > ul > li[data-treetype="bookmark"]:not([data-node-id])');
+        groups.forEach((item, index) => {
+            const bookmark = data[index];
+            if (bookmark) {
+                item.dataset.bookmark = bookmark.name;
+            }
         });
     }
-
-    private _handleUpdateResponse(data: IBlockTree[], element: Element) {
-        if (!element) {
-            return;
-        }
-        const openNodes = this.tree.getExpandIds();
-        this.tree.updateData(data);
-        if (openNodes) {
-            this.tree.setExpandIds(openNodes);
-        }
-        element.classList.remove("fn__rotate");
-    }
-
-
-
 }

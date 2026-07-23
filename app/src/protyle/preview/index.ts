@@ -3,6 +3,7 @@ import {focusByRange} from "../util/selection";
 import {openByMobile} from "../../editor/openLink";
 import {showMessage} from "../runtime/dialog.port";
 import {isLocalPath, pathPosix} from "../../util/pathName";
+import {processSiYuanUri} from "../../util/uri";
 import {previewDocImage} from "./image";
 import {getDiagramBlock, previewDiagram} from "./diagram";
 import {needSubscribe} from "../../util/platform/needSubscribe";
@@ -102,6 +103,9 @@ export class Preview {
                             openAsset(protyle.app, linkAddress.split("?page")[0], parseInt(getSearch("page", linkAddress)));
                         }
                     } else {
+                        if (processSiYuanUri(protyle.app, linkAddress)) {
+                            break;
+                        }
                         if (isElectron) {
                             openExternal(linkAddress).catch((e) => {
                                 showMessage(e);

@@ -12,9 +12,6 @@ import type { App } from "./imports";
 import { pushSiyuanDialog } from "./imports";
 /** 用途：递增对话框层级。使用范围：非模态浮层点击提升。解耦评估：通过 ./imports 转发。 */
 import { incrementSiyuanZIndex } from "./imports";
-/** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
-/** 用途：键盘组合键判断。使用范围：对话框键盘事件。解耦评估：通过 ./imports 转发。 */
-import { isNotCtrl } from "./imports";
 /** 用途：对话框事件和渲染函数。使用范围：对话框初始化。解耦评估：同目录模块。 */
 import { 绑定对话框事件 } from "./dialogHelpers.events";
 /** 用途：挂载 Vue 标题组件。使用范围：对话框标题渲染。解耦评估：同目录模块。 */
@@ -238,6 +235,7 @@ export class Dialog {
      *     }
      * });
      */
+    /** @参数豁免: 第三方接口适配 */
     public listen(
         target: EventTarget,
         type: string,

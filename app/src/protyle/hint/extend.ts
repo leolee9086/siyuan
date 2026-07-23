@@ -11,6 +11,7 @@ import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlock";
 import { transaction } from "../wysiwyg/transaction";
 import { getAssetName, getDisplayName, pathPosix } from "../../util/file/pathName";
+import { withEncryptedNotebook } from "../../util/pathName";
 import { genEmptyElement } from "../../block/util";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";
@@ -470,13 +471,13 @@ export const hintEmbed = (key: string, protyle: IProtyle): IHintData[] => {
     }
     protyle.hint.genLoading(protyle);
     const nodeElement = hasClosestBlock(getEditorRange(protyle.wysiwyg.element).startContainer);
-    fetchPost("/api/search/searchRefBlock", {
+    fetchPost("/api/search/searchRefBlock", withEncryptedNotebook(protyle.notebookId, {
         k: key,
         isDatabase: false,
         beforeLen: Math.floor((Math.max(protyle.element.clientWidth / 2, 320) - 58) / 28.8),
         id: nodeElement ? nodeElement.getAttribute("data-node-id") : protyle.block.parentID,
         rootID: protyle.block.rootID,
-    }, (response) => {
+    }), (response) => {
         const dataList: IHintData[] = [];
         response.data.blocks.forEach((item: IBlock) => {
             dataList.push({

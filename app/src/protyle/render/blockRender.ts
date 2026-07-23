@@ -11,15 +11,25 @@ import type { SearchContext, SemanticSearchResultItem } from "./render.types";
 import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isStylableElement } from "../../util/DOM/element.guard";
+import {withEncryptedNotebook} from "../../util/pathName";
+
+/**
+ * 表示嵌入查询返回或本地搜索合成的一项块结果。
+ * 所有查询模式在进入统一 DOM 渲染前都转换为此结构；服务端结果可额外声明子块操作能力。
+ */
+interface IEmbedBlockResult {
+    block: IBlock;
+    blockPaths: IBreadcrumb[];
+    allowChildOperation?: boolean;
+}
 
 const getHeadingMode = (item: HTMLElement) => {
     const headingModeAttr = item.getAttribute("custom-heading-mode");
     return ["0", "1", "2"].includes(headingModeAttr || "") ? parseInt(headingModeAttr || "0", 10) : getSiyuanConfig()?.editor?.headingEmbedMode;
 };
-
 /** 处理 JS 脚本搜索 (//!js) */
 const handleJsScriptSearch = (ctx: SearchContext): boolean => {
-    const { protyle, item, content, breadcrumb, top } = ctx;
+    const { protyle, item, content, breadcrumb, top, onEmbedRender } = ctx;
     if (!content.startsWith("//!js")) {
         return false;
     }
@@ -41,9 +51,9 @@ const handleJsScriptSearch = (ctx: SearchContext): boolean => {
                     headingMode: getHeadingMode(item),
                     breadcrumb
                 }, (response) => {
-                    renderEmbed(response.data.blocks || [], protyle, item, top);
+                    renderEmbed(response.data.blocks || [], protyle, item, top, undefined, onEmbedRender);
                 });
-            }).catch((e) => renderEmbed([], protyle, item, top, e));
+            }).catch((e) => renderEmbed([], protyle, item, top, String(e), onEmbedRender));
             return true;
         }
         if (Array.isArray(includeIDs)) {
@@ -53,18 +63,18 @@ const handleJsScriptSearch = (ctx: SearchContext): boolean => {
                 headingMode: getHeadingMode(item),
                 breadcrumb
             }, (response) => {
-                renderEmbed(response.data.blocks || [], protyle, item, top);
+                renderEmbed(response.data.blocks || [], protyle, item, top, undefined, onEmbedRender);
             });
         }
     } catch (e) {
-        renderEmbed([], protyle, item, top, String(e));
+        renderEmbed([], protyle, item, top, String(e), onEmbedRender);
     }
     return true;
 };
 
 /** 处理关键词/语法/正则搜索 (k:/s:/r:) */
 const handleKeywordSearch = (ctx: SearchContext): boolean => {
-    const { protyle, item, content, top } = ctx;
+    const { protyle, item, content, top, onEmbedRender } = ctx;
     const isKeyword = content.startsWith("k:");
     const isSyntax = content.startsWith("s:");
     const isRegex = content.startsWith("r:");
@@ -93,7 +103,7 @@ const handleKeywordSearch = (ctx: SearchContext): boolean => {
             block: b,
             blockPaths: []
         }));
-        renderEmbed(blocks, protyle, item, top);
+        renderEmbed(blocks, protyle, item, top, undefined, onEmbedRender);
     });
     return true;
 };
@@ -127,7 +137,7 @@ const convertSemanticResult = (r: SemanticSearchResultItem): { block: IBlock; bl
 
 /** 处理语义搜索 (n:) */
 const handleSemanticSearch = (ctx: SearchContext): boolean => {
-    const { protyle, item, content, top } = ctx;
+    const { protyle, item, content, top, onEmbedRender } = ctx;
     if (!content.startsWith("n:")) {
         return false;
     }
@@ -136,10 +146,10 @@ const handleSemanticSearch = (ctx: SearchContext): boolean => {
         try {
             const results = await 语义搜索(query, 获取语义搜索配置());
             const blocks = results.map(convertSemanticResult);
-            renderEmbed(blocks, protyle, item, top);
+            renderEmbed(blocks, protyle, item, top, undefined, onEmbedRender);
         } catch (err) {
             console.error("[SemanticSearch] 嵌入块语义搜索失败:", err);
-            renderEmbed([], protyle, item, top, "语义搜索失败");
+            renderEmbed([], protyle, item, top, "语义搜索失败", onEmbedRender);
         }
     })();
     return true;
@@ -147,21 +157,20 @@ const handleSemanticSearch = (ctx: SearchContext): boolean => {
 
 /** 处理 SQL 查询（默认方式） */
 const handleSqlSearch = (ctx: SearchContext): void => {
-    const { protyle, item, content, breadcrumb, top } = ctx;
-    fetchPost("/api/search/searchEmbedBlock", {
+    const { protyle, item, content, breadcrumb, top, onEmbedRender } = ctx;
+    fetchPost("/api/search/searchEmbedBlock", withEncryptedNotebook(protyle.notebookId, {
         embedBlockID: item.getAttribute("data-node-id"),
         stmt: content,
         headingMode: getHeadingMode(item),
         excludeIDs: [item.getAttribute("data-node-id"), protyle.block.rootID || ""],
         breadcrumb
-    }, (response) => {
-        renderEmbed(response.data.blocks, protyle, item, top);
+    }), (response) => {
+        renderEmbed(response.data.blocks, protyle, item, top, undefined, onEmbedRender);
     });
 };
 
 /** 分发搜索请求到对应的处理函数 */
-const dispatchSearch = (protyle: IProtyle, item: HTMLElement, content: string, breadcrumb: boolean, top?: number) => {
-    const ctx: SearchContext = { protyle, item, content, breadcrumb, top };
+const dispatchSearch = (ctx: SearchContext) => {
     if (handleJsScriptSearch(ctx)) {
         return;
     }
@@ -174,7 +183,12 @@ const dispatchSearch = (protyle: IProtyle, item: HTMLElement, content: string, b
     handleSqlSearch(ctx);
 };
 
-export const blockRender = (protyle: IProtyle, element: Element, top?: number) => {
+/**
+ * 扫描并异步渲染指定范围内尚未处理的嵌入块。
+ * `onEmbedRender` 用于 Agent 等宿主等待每一项异步查询完成 DOM 写入。
+ */
+/** @参数豁免: 生命周期 */
+export const blockRender = (protyle: IProtyle, element: Element, top?: number, onEmbedRender?: () => void) => {
     // 默认：查询子元素中的嵌入块
     let blockElements: Element[] = Array.from(element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]:not([data-render="true"])'));
     // 卫语句：如果元素本身就是嵌入块，则只处理它
@@ -209,12 +223,12 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number) =
             ? breadcrumbAttr === "true"
             : (getSiyuanConfig()?.editor?.embedBlockBreadcrumb || false);
 
-        dispatchSearch(protyle, item, content, breadcrumb, top);
+        dispatchSearch({protyle, item, content, breadcrumb, top, onEmbedRender});
     }
 };
 
 /** 生成嵌入块的 HTML，非首个嵌入块额外生成浮窗图标 */
-const generateEmbedBlocksHtml = (blocks: { block: IBlock; blockPaths: IBreadcrumb[] }[]): string => {
+const generateEmbedBlocksHtml = (blocks: IEmbedBlockResult[]): string => {
     let html = "";
     for (let i = 0; i < blocks.length; i++) {
         const blocksItem = blocks[i];
@@ -229,7 +243,8 @@ const generateEmbedBlocksHtml = (blocks: { block: IBlock; blockPaths: IBreadcrum
         if (i !== 0) {
             popover = `<div class="protyle-icons"><span data-id="${block.id}" data-action="openFloat" aria-label="${siyuanI18n.refPopover}" data-position="4north" class="ariaLabel protyle-icon protyle-icon--last protyle-icon--first"><svg><use xlink:href="#iconPictureInPicture"></use></svg></span></div>`;
         }
-        html += `<div class="protyle-wysiwyg__embed" data-id="${block.id}">
+        const childOperationAttr = blocksItem.allowChildOperation ? ' data-allow-child-operation="true"' : "";
+        html += `<div class="protyle-wysiwyg__embed" data-id="${block.id}"${childOperationAttr}>
 ${popover}${breadcrumbHTML}${block.content}
 </div>`;
     }
@@ -237,18 +252,18 @@ ${popover}${breadcrumbHTML}${block.content}
 };
 
 /** 渲染嵌入块，更新首个嵌入块浮窗图标 ID，并改善面包屑外观 */
-const renderBlocksAndImproveBreadcrumb = (item: HTMLElement, blocks: { block: IBlock; blockPaths: IBreadcrumb[] }[]): void => {
+const renderBlocksAndImproveBreadcrumb = (item: HTMLElement, blocks: IEmbedBlockResult[]): void => {
     const html = generateEmbedBlocksHtml(blocks);
     if (!item.firstElementChild) {
         return;
     }
     item.firstElementChild.insertAdjacentHTML("afterend", html);
     // 更新第一个嵌入块的浮窗图标 data-id（复用框架内已有的图标）
-    if (blocks.length > 0 && blocks[0]) {
-        const popoverElement = item.querySelectorAll(".protyle-icon")[2];
-        if (popoverElement) {
-            popoverElement.setAttribute("data-id", blocks[0].block.id || "");
-        }
+    const firstBlock = blocks[0];
+    const popoverElement = firstBlock ? item.querySelectorAll(".protyle-icon")[2] : undefined;
+    // 首项复用框架自带的浮窗按钮，仅在块和按钮均存在时更新目标。
+    if (firstBlock && popoverElement) {
+        popoverElement.setAttribute("data-id", firstBlock.block.id || "");
     }
     const firstEmbedElement = item.querySelector(".protyle-wysiwyg__embed");
     if (!firstEmbedElement || !isStylableElement(firstEmbedElement)) {
@@ -277,13 +292,13 @@ const calculateEmbedDepth = (item: HTMLElement): number => {
 };
 
 /** 渲染嵌套的嵌入块 */
-const renderNestedEmbeds = (protyle: IProtyle, item: HTMLElement) => {
+const renderNestedEmbeds = (protyle: IProtyle, item: HTMLElement, onEmbedRender?: () => void) => {
     if (calculateEmbedDepth(item) >= 4) {
         return;
     }
     const nestedEmbeds = item.querySelectorAll('[data-type="NodeBlockQueryEmbed"]');
     for (const embedElement of Array.from(nestedEmbeds)) {
-        blockRender(protyle, embedElement);
+        blockRender(protyle, embedElement, undefined, onEmbedRender);
     }
 };
 
@@ -295,11 +310,11 @@ const renderNestedEmbeds = (protyle: IProtyle, item: HTMLElement) => {
  * 调用时机：当嵌入块查询完成后，需要将结果渲染到DOM中时调用
  * 问题/改进：需要处理深度嵌套可能导致的性能问题
  */
-const renderEmbed = (blocks: {
-    block: IBlock,
-    blockPaths: IBreadcrumb[]
-}[], protyle: IProtyle, item: HTMLElement, top?: number, errorTip?: string) => {
+/** @参数豁免: 生命周期 */
+const renderEmbed = (blocks: IEmbedBlockResult[], protyle: IProtyle, item: HTMLElement, top?: number,
+                     errorTip?: string, onEmbedRender?: () => void) => {
     if (!item.firstElementChild) {
+        onEmbedRender?.();
         return;
     }
     const rotateElement = item.querySelector(".fn__rotate");
@@ -323,6 +338,7 @@ const renderEmbed = (blocks: {
     if (top && protyle.contentElement) {
         protyle.contentElement.scrollTop = top;
     }
-    renderNestedEmbeds(protyle, item);
+    renderNestedEmbeds(protyle, item, onEmbedRender);
     item.style.height = "";
+    onEmbedRender?.();
 };

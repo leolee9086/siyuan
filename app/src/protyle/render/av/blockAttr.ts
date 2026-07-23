@@ -3,7 +3,7 @@ import {addCol} from "./col/addCol";
 import {getColIconByType} from "./col/col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import * as dayjs from "dayjs";
-import {popTextCell, updateCellsValue} from "./cell";
+import {cellValueIsEmpty, popTextCell, updateCellsValue} from "./cell";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {transaction} from "../../wysiwyg/transaction";
@@ -17,6 +17,59 @@ import {isBrowser} from "../../../platform";
 import {Constants} from "../../../constants";
 import {getCompressURL, removeCompressURL} from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {openDatabaseRowByData} from "./openDatabaseRow";
+import {confirmDialog} from "../../../dialog/confirmDialog";
+
+interface IAVAttributeTableData {
+    avID: string;
+    blockIDs: string[];
+    itemPositions?: {
+        viewID: string;
+        previousID: string;
+        groups?: {
+            groupID: string;
+            previousID: string;
+        }[];
+    }[];
+    keyValues: {
+        key: {
+            id: string;
+            type: TAVCol;
+        };
+        values: IAVCellValue[];
+    }[];
+}
+
+const attributeTableData = new WeakMap<HTMLElement, IAVAttributeTableData>();
+
+const createEmptyAVValue = (keyID: string, type: TAVCol, blockID?: string) => ({
+    type,
+    keyID,
+    blockID,
+    block: {id: "", content: ""},
+    text: {content: ""},
+    number: {content: 0, isNotEmpty: false, formattedContent: ""},
+    url: {content: ""},
+    phone: {content: ""},
+    email: {content: ""},
+    template: {content: ""},
+    date: {isNotEmpty: false, isNotEmpty2: false},
+    created: {isNotEmpty: false},
+    updated: {isNotEmpty: false},
+    checkbox: {checked: false},
+    mSelect: [],
+    mAsset: [],
+    relation: {blockIDs: [], contents: []},
+    rollup: {contents: []},
+} as IAVCellValue);
+
+export const getAVTemplateHTML = (content: string) => {
+    if (window.siyuan.config.editor.allowHTMLBLockScript) {
+        return content;
+    }
+    // 默认过滤危险标签和事件属性，避免数据库模板字段中的代码直接执行
+    return window.DOMPurify.sanitize(content);
+};
 
 const genAVRollupHTML = (value: IAVCellValue) => {
     let html = "";
@@ -126,7 +179,7 @@ export const genAVValueHTML = (value: IAVCellValue) => {
             html = `<svg class="av__checkbox"><use xlink:href="#icon${value.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
             break;
         case "template":
-            html = `<div class="fn__flex-1" placeholder="${siyuanI18n.empty}">${value.template.content}</div>`;
+            html = `<div class="fn__flex-1" placeholder="${siyuanI18n.empty}">${getAVTemplateHTML(value.template.content)}</div>`;
             break;
         case "email":
             html = `<input value="${escapeAttr(value.email.content)}" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${siyuanI18n.empty}">
@@ -164,10 +217,19 @@ export const genAVValueHTML = (value: IAVCellValue) => {
     return html;
 };
 
-export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IProtyle, cb?: (element: HTMLElement) => void) => {
-    fetchPost("/api/av/getAttributeViewKeys", {id}, (response) => {
+let attributeViewRenderID = 0;
+
+export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IProtyle, cb?: (element: HTMLElement) => void,
+                                  row?: { avID: string, itemID: string, valueID: string }) => {
+    const renderID = (++attributeViewRenderID).toString();
+    element.dataset.avAttributeRenderId = renderID;
+    fetchPost("/api/av/getAttributeViewKeys", row ? {id, avID: row.avID, itemID: row.itemID, valueID: row.valueID} : {id}, (response) => {
+        if (element.dataset.avAttributeRenderId !== renderID) {
+            return;
+        }
         let html = "";
-        response.data.forEach((table: {
+        const tables = Array.isArray(response.data) ? response.data : [];
+        tables.forEach((table: {
             keyValues: {
                 key: {
                     type: TAVCol,
@@ -184,32 +246,35 @@ export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IPr
                     keyID: string,
                     id: string,
                     blockID: string,
+                    isDetached?: boolean,
                     type: TAVCol & IAVCellValue
-                }  []
+                }[]
             }[],
             blockIDs: string[],
             avID: string
             avName: string
         }) => {
+            const primaryValue = table.keyValues.find(item => item.key.type === "block")?.values[0] || table.keyValues[0]?.values[0];
             let innerHTML = `<div class="custom-attr__avheader">
     <div class="block__logo block__logo--icon popover__block" style="max-width:calc(100% - 40px)" data-id='${JSON.stringify(table.blockIDs)}'>
         <svg class="block__logoicon"><use xlink:href="#iconDatabase"></use></svg>
         <span class="fn__ellipsis">${table.avName || siyuanI18n.database}</span>
     </div>
     <div class="fn__flex-1"></div>
-    <span data-type="remove" data-row-id="${table.keyValues && table.keyValues[0].values[0].blockID}" class="block__icon block__icon--warning block__icon--show b3-tooltips__w b3-tooltips" aria-label="${siyuanI18n.removeAV}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
+    <span data-type="remove" data-row-id="${primaryValue?.blockID || ""}" class="block__icon block__icon--warning block__icon--show b3-tooltips__w b3-tooltips" aria-label="${siyuanI18n.removeAV}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
 </div>`;
             table.keyValues?.forEach(item => {
-                innerHTML += `<div class="block__icons av__row" data-id="${id}" data-col-id="${item.key.id}">
+                const value = item.values[0] || createEmptyAVValue(item.key.id, item.key.type, primaryValue?.blockID);
+                innerHTML += `<div class="block__icons av__row" data-id="${id}" data-col-id="${item.key.id}" data-empty="${cellValueIsEmpty(value)}"${item.key.type === "block" ? ' data-primary="true"' : ""}>
     <div class="block__icon" draggable="true"><svg><use xlink:href="#iconDrag"></use></svg></div>
     <div class="block__logo block__logo--icon ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${escapeAriaLabel(item.key.name)}<div class='ft__on-surface'>${escapeAriaLabel(item.key.desc)}</div>">
         ${item.key.icon ? unicode2Emoji(item.key.icon, "block__logoicon", true) : `<svg class="block__logoicon"><use xlink:href="#${getColIconByType(item.key.type)}"></use></svg>`}
         <span>${escapeHtml(item.key.name)}</span>
     </div>
-    <div data-av-id="${table.avID}" data-col-id="${item.values[0].keyID}" data-row-id="${item.values[0].blockID}" data-id="${item.values[0].id}" data-type="${item.values[0].type}" 
-data-options="${item.key?.options ? escapeAttr(JSON.stringify(item.key.options)) : "[]"}" 
-${["text", "number", "date", "url", "phone", "template", "email"].includes(item.values[0].type) ? "" : `placeholder="${siyuanI18n.empty}"`}  
-class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"].includes(item.values[0].type) ? "" : " custom-attr__avvalue"}${["created", "updated"].includes(item.values[0].type) ? " custom-attr__avvalue--readonly" : ""}">${genAVValueHTML(item.values[0])}</div>
+    <div data-av-id="${table.avID}" data-col-id="${value.keyID}" data-row-id="${value.blockID}" data-id="${value.id}" data-type="${value.type}"${value.isDetached ? ' data-detached="true"' : ""}
+data-options="${item.key?.options ? escapeAttr(JSON.stringify(item.key.options)) : "[]"}"
+${["text", "number", "date", "url", "phone", "template", "email"].includes(value.type) ? "" : `placeholder="${siyuanI18n.empty}"`}
+class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"].includes(value.type) ? "" : " custom-attr__avvalue"}${["created", "updated"].includes(value.type) ? " custom-attr__avvalue--readonly" : ""}">${genAVValueHTML(value)}</div>
 </div>`;
             });
             innerHTML += `<div class="fn__hr"></div>
@@ -219,7 +284,12 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
 
             if (element.innerHTML) {
                 // 防止 blockElement 找不到
-                element.querySelector(`[data-node-id="${id}"][data-av-id="${table.avID}"]`).innerHTML = innerHTML;
+                const blockElement = element.querySelector(`[data-node-id="${id}"][data-av-id="${table.avID}"]`);
+                if (blockElement) {
+                    blockElement.innerHTML = innerHTML;
+                } else {
+                    element.insertAdjacentHTML("beforeend", `<div data-av-id="${table.avID}" data-av-type="table" data-node-id="${id}" data-type="NodeAttributeView">${innerHTML}</div>`);
+                }
             }
         });
         if (element.innerHTML === "") {
@@ -364,28 +434,117 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 }
             });
             element.addEventListener("click", (event) => {
+                const backlinkToggleElement = hasClosestByAttribute(event.target as HTMLElement, "data-type", "av-backlinks-toggle");
+                if (backlinkToggleElement) {
+                    const backlinksElement = hasClosestByClassName(backlinkToggleElement, "custom-attr__avbacklinks");
+                    if (backlinksElement) {
+                        const expanded = backlinksElement.dataset.expanded !== "true";
+                        backlinksElement.dataset.expanded = expanded.toString();
+                        backlinkToggleElement.setAttribute("aria-expanded", expanded.toString());
+                        backlinkToggleElement.querySelector("use").setAttribute("xlink:href", expanded ? "#iconDown" : "#iconRight");
+                        event.stopPropagation();
+                        return;
+                    }
+                }
+                const backlinkOpenElement = hasClosestByAttribute(event.target as HTMLElement, "data-type", "av-backlink-open");
+                if (backlinkOpenElement) {
+                    openDatabaseRowByData(protyle, {
+                        avID: backlinkOpenElement.dataset.avId,
+                        databaseBlockID: backlinkOpenElement.dataset.databaseBlockId,
+                        notebookID: backlinkOpenElement.dataset.boxId,
+                        itemID: backlinkOpenElement.dataset.itemId,
+                        valueID: backlinkOpenElement.dataset.valueId,
+                        title: backlinkOpenElement.dataset.title,
+                        boundBlockID: backlinkOpenElement.dataset.boundBlockId,
+                        isDetached: backlinkOpenElement.dataset.detached === "true",
+                    });
+                    event.stopPropagation();
+                    return;
+                }
                 const removeElement = hasClosestByAttribute(event.target as HTMLElement, "data-type", "remove");
                 if (removeElement) {
                     const blockElement = hasClosestBlock(removeElement);
                     if (blockElement) {
-                        transaction(protyle, [{
+                        const table = attributeTableData.get(blockElement as HTMLElement);
+                        const rowID = removeElement.dataset.rowId;
+                        const avID = blockElement.dataset.avId;
+                        const primaryKeyValues = table?.keyValues.find(item => item.key.type === "block");
+                        const primaryValue = primaryKeyValues?.values.find(item => item.blockID === rowID) || primaryKeyValues?.values[0];
+                        if (!table || !rowID || !avID || !primaryValue || !table.blockIDs[0]) {
+                            event.stopPropagation();
+                            return;
+                        }
+                        const isDetached = primaryValue?.isDetached === true || !primaryValue?.block?.id;
+                        const restoreBlockID = primaryValue?.block?.id || Lute.NewNodeID();
+                        const undoOperations: IOperation[] = [];
+                        undoOperations.push({
+                            action: "insertAttrViewBlock",
+                            avID,
+                            blockID: table.blockIDs[0],
+                            ignoreDefaultFill: true,
+                            srcs: [{
+                                itemID: rowID,
+                                id: restoreBlockID,
+                                isDetached,
+                                content: primaryValue.block?.content || "",
+                            }],
+                        });
+                        table.keyValues.forEach(item => {
+                            const value = item.values.find(itemValue => itemValue.blockID === rowID) || item.values[0];
+                            if (!value || item.key.type === "rollup") {
+                                return;
+                            }
+                            const valueData = JSON.parse(JSON.stringify(value)) as IAVCellValue;
+                            undoOperations.push({
+                                action: "updateAttrViewCell",
+                                avID,
+                                keyID: item.key.id,
+                                rowID,
+                                data: valueData,
+                            });
+                        });
+                        table.itemPositions?.forEach(position => {
+                            undoOperations.push({
+                                action: "sortAttrViewRow",
+                                avID,
+                                viewID: position.viewID,
+                                id: rowID,
+                                previousID: position.previousID,
+                            });
+                            position.groups?.forEach(group => {
+                                undoOperations.push({
+                                    action: "sortAttrViewRow",
+                                    avID,
+                                    viewID: position.viewID,
+                                    id: rowID,
+                                    previousID: group.previousID,
+                                    groupID: group.groupID,
+                                    targetGroupID: group.groupID,
+                                });
+                            });
+                        });
+                        const doOperations: IOperation[] = [{
                             action: "removeAttrViewBlock",
-                            srcIDs: [removeElement.dataset.rowId],
-                            avID: blockElement.dataset.avId,
-                        }, {
-                            action: "doUpdateUpdated",
-                            id: removeElement.dataset.rowId,
-                            data: dayjs().format("YYYYMMDDHHmmss"),
-                        }]);
-                        blockElement.remove();
-                        if (!element.innerHTML) {
-                            window.siyuan.dialogs.find(item => {
-                                if (item.element.getAttribute("data-key") === Constants.DIALOG_ATTR) {
-                                    item.destroy();
-                                    return true;
+                            srcIDs: [rowID],
+                            avID,
+                        }];
+                        confirmDialog(window.siyuan.languages.removeAV, window.siyuan.languages.confirmDelete + "?", () => {
+                            removeElement.setAttribute("disabled", "true");
+                            transaction(protyle, doOperations, undoOperations.length > 0 ? undoOperations : undefined, {
+                                callback: () => {
+                                    blockElement.remove();
+                                    protyle.databaseAttributePanel?.refresh();
+                                    if (!element.querySelector("[data-av-id]")) {
+                                        window.siyuan.dialogs.find(item => {
+                                            if (item.element.getAttribute("data-key") === Constants.DIALOG_ATTR) {
+                                                item.destroy();
+                                                return true;
+                                            }
+                                        });
+                                    }
                                 }
                             });
-                        }
+                        }, undefined, true);
                     }
                     event.stopPropagation();
                     return;
@@ -397,6 +556,12 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
             });
             element.innerHTML = html;
         }
+        tables.forEach((table: IAVAttributeTableData) => {
+            const blockElement = element.querySelector<HTMLElement>(`[data-node-id="${id}"][data-av-id="${table.avID}"]`);
+            if (blockElement) {
+                attributeTableData.set(blockElement, table);
+            }
+        });
         element.querySelectorAll(".b3-text-field--text").forEach((item: HTMLInputElement) => {
             item.addEventListener("change", () => {
                 let value;
@@ -435,9 +600,9 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                     value = {
                         block: {
                             content: item.value,
-                            id: item.dataset.id,
+                            id: item.parentElement.dataset.detached === "true" ? "" : item.dataset.id,
                         },
-                        isDetached: false
+                        isDetached: item.parentElement.dataset.detached === "true"
                     };
                 }
                 fetchPost("/api/av/setAttributeViewBlockAttr", {
@@ -454,9 +619,70 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 });
             });
         });
-        if (cb) {
-            cb(element);
+        renderAttributeViewBacklinks(element, id, renderID, row, cb);
+    });
+};
+
+const renderAttributeViewBacklinks = (element: HTMLElement, id: string, renderID: string,
+                                      row?: { avID: string, itemID: string, valueID: string },
+                                      cb?: (element: HTMLElement) => void) => {
+    const oldBacklinksElement = element.querySelector<HTMLElement>(".custom-attr__avbacklinks");
+    const expanded = oldBacklinksElement?.dataset.expanded === "true";
+    fetchPost("/api/av/getAttributeViewBacklinks", row ? {
+        id,
+        avID: row.avID,
+        itemID: row.itemID,
+        valueID: row.valueID,
+    } : {id}, (response) => {
+        if (element.dataset.avAttributeRenderId !== renderID) {
+            return;
         }
+        const currentBacklinksElement = element.querySelector<HTMLElement>(".custom-attr__avbacklinks");
+        const currentExpanded = currentBacklinksElement ? currentBacklinksElement.dataset.expanded === "true" : expanded;
+        currentBacklinksElement?.remove();
+        const data = response.data as {
+            total: number,
+            items: {
+                avID: string,
+                avName: string,
+                databaseBlockID: string,
+                boxID: string,
+                databasePath: string,
+                itemID: string,
+                valueID: string,
+                title: string,
+                icon: string,
+                boundBlockID: string,
+                isDetached: boolean,
+            }[]
+        };
+        if (data?.total > 0) {
+            const countLabel = window.siyuan.languages.avBacklinks.replace("${count}", data.total.toString());
+            let itemsHTML = "";
+            data.items.forEach((item) => {
+                const title = item.title || window.siyuan.languages.untitled;
+                const databasePath = item.databasePath ? `${item.databasePath} / ${item.avName}` : item.avName;
+                itemsHTML += `<button type="button" class="custom-attr__avbacklink" data-type="av-backlink-open" data-av-id="${escapeAttr(item.avID)}" data-database-block-id="${escapeAttr(item.databaseBlockID)}" data-box-id="${escapeAttr(item.boxID)}" data-item-id="${escapeAttr(item.itemID)}" data-value-id="${escapeAttr(item.valueID)}" data-title="${escapeAttr(title)}" data-bound-block-id="${escapeAttr(item.boundBlockID)}" data-detached="${item.isDetached}">
+    ${item.icon ? `<span class="custom-attr__avbacklinkicon">${unicode2Emoji(item.icon, "", true)}</span>` : ""}
+    <span class="fn__flex-1 fn__ellipsis">
+        <span class="custom-attr__avbacklinktitle fn__ellipsis">${escapeHtml(title)}</span>
+        <span class="custom-attr__avbacklinkpath fn__ellipsis">${escapeHtml(databasePath || window.siyuan.languages.database)}</span>
+    </span>
+    <span class="custom-attr__avbacklinkopen b3-tooltips b3-tooltips__w" aria-label="${escapeAttr(window.siyuan.languages.openBy)}"><svg><use xlink:href="#iconOpen"></use></svg></span>
+</button>`;
+            });
+            element.insertAdjacentHTML("afterbegin", `<div class="custom-attr__avbacklinks" data-expanded="${currentExpanded}">
+    <button type="button" class="custom-attr__avbacklinks-toggle" data-type="av-backlinks-toggle" aria-expanded="${currentExpanded}">
+        <svg><use xlink:href="${currentExpanded ? "#iconDown" : "#iconRight"}"></use></svg>
+        <svg><use xlink:href="#iconLink"></use></svg>
+        <span class="fn__flex-1">${escapeHtml(countLabel)}</span>
+    </button>
+    <div class="custom-attr__avbacklinks-body">
+        ${itemsHTML}
+    </div>
+</div>`);
+        }
+        cb?.(element);
     });
 };
 
@@ -504,7 +730,7 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
                 if (target.tagName === "IMG") {
                     previewImages([removeCompressURL(target.getAttribute("src"))]);
                 } else {
-                    openLink(protyle, target.dataset.url, event, event.ctrlKey || event.metaKey);
+                    openLink(protyle.app, target.dataset.url, event, event.ctrlKey || event.metaKey);
                 }
             }
             event.stopPropagation();

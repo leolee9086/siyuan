@@ -40,6 +40,12 @@ import {countBlockWord} from "./imports";
  * 解耦评估：通过 imports.ts 转发
  */
 import {isOnlyMeta} from "./imports";
+/**
+ * 用途：同步 Gallery DOM 与虚拟滚动选中状态。
+ * 使用范围：仅处理 Ctrl/Cmd 单项切换。
+ * 解耦评估：这是 Shift/Ctrl 共用的选择状态机，不应由宿主重复注入等价回调。
+ */
+import {toggleGalleryItemSelected} from "./index.mousedown.select.gallery";
 
 /** 清除单个元素的选中样式和属性 */
 function clearElementSelect(element: Element) {
@@ -51,13 +57,10 @@ function clearElementSelect(element: Element) {
 /** 处理 gallery 或 av 行的 ctrl 多选 */
 function handleGalleryOrRow(galleryItemElement: HTMLElement | false, rowElement: false | Element) {
     if (galleryItemElement) {
-        galleryItemElement.classList.toggle("av__gallery-item--select");
+        toggleGalleryItemSelected(galleryItemElement);
         return;
     }
-    if (!rowElement) {
-        return;
-    }
-    const firstColumn = rowElement.querySelector(".av__firstcol");
+    const firstColumn = rowElement?.querySelector(".av__firstcol");
     if (firstColumn) {
         selectRow(firstColumn, "toggle");
     }

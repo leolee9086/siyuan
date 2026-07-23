@@ -3,6 +3,7 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {onGet} from "../util/onGet";
 import {hideTooltip} from "../runtime/dialog.port";
+import {withEncryptedNotebook} from "../../util/pathName";
 
 /**
  * 绑定 mousewheel 事件，处理动态加载和表格横向滚动。
@@ -24,11 +25,11 @@ export function bindScrollEvent(protyle: IProtyle, element: HTMLElement) {
         if (!preventGetTopHTML && !protyle.scroll.element.classList.contains("fn__none")) {
             if (event.deltaY < 0 && protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") !== "1" &&
                 (protyle.contentElement.clientHeight === protyle.contentElement.scrollHeight || protyle.contentElement.scrollTop === 0)) {
-                fetchPost("/api/filetree/getDoc", {
+                fetchPost("/api/filetree/getDoc", withEncryptedNotebook(protyle.notebookId, {
                     id: protyle.wysiwyg.element.firstElementChild.getAttribute("data-node-id"),
                     mode: 1,
                     size: window.siyuan.config.editor.dynamicLoadBlocks,
-                }, getResponse => {
+                }), getResponse => {
                     preventGetTopHTML = false;
                     onGet({
                         data: getResponse,
@@ -40,11 +41,11 @@ export function bindScrollEvent(protyle: IProtyle, element: HTMLElement) {
             } else if (event.deltaY > 0 && protyle.wysiwyg.element.lastElementChild.getAttribute("data-eof") !== "2" &&
                 (protyle.contentElement.clientHeight === protyle.contentElement.scrollHeight ||
                     protyle.contentElement.clientHeight + Math.ceil(protyle.contentElement.scrollTop) >= protyle.contentElement.scrollHeight)) {
-                fetchPost("/api/filetree/getDoc", {
+                fetchPost("/api/filetree/getDoc", withEncryptedNotebook(protyle.notebookId, {
                     id: protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"),
                     mode: 2,
                     size: window.siyuan.config.editor.dynamicLoadBlocks,
-                }, getResponse => {
+                }), getResponse => {
                     preventGetTopHTML = false;
                     onGet({
                         data: getResponse,

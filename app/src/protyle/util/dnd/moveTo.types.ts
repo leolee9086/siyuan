@@ -3,6 +3,7 @@ export interface IMoveContext {
     doOperations: IOperation[];
     undoOperations: IOperation[];
     tempTargetElement: Element;
+    targetElement: Element;
     targetId: string;
     isSameLi: boolean;
     newListId: string;

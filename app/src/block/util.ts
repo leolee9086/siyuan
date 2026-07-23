@@ -2,6 +2,7 @@
 import { focusByWbr } from "./imports";
 /** 用途：编辑器选区范围获取。使用范围：插入块后获取选区。解耦评估：通过 ./imports 转发。 */
 import { getEditorRange } from "./imports";
+import { getUndoFocusContext } from "./imports";
 /** 用途：列表排序更新。使用范围：插入有序列表项后更新编号。解耦评估：通过 ./imports 转发。 */
 import { updateListOrder } from "./imports";
 /** 用途：事务处理。使用范围：块插入/更新操作。解耦评估：通过 ./imports 转发。 */
@@ -195,7 +196,10 @@ export const jumpToParent = (
     nodeElement: Element,
     type: "parent" | "next" | "previous"
 ) => {
-    fetchPost("/api/block/getBlockSiblingID", {id: nodeElement.getAttribute("data-node-id")},
+    fetchPost("/api/block/getBlockSiblingID", {
+        id: nodeElement.getAttribute("data-node-id"),
+        notebook: protyle.notebookId,
+    },
         response => handleBlockSiblingResponse(protyle, type, response));
 };
 
@@ -228,11 +232,17 @@ const buildInsertOperations = (
 };
 
 /** 插入空块 */
-export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPosition, id?: string) => {
-    const blockElement = getInsertTargetBlock(protyle, id, position);
+export const insertEmptyBlock = async (
+    protyle: IProtyle,
+    position: InsertPosition,
+    target?: string | Element
+) => {
+    const range = getEditorRange(protyle.wysiwyg.element);
+    const blockElement = getInsertTargetBlock(protyle, target, position);
     if (!blockElement) {
         return;
     }
+    const undoFocusContext = getUndoFocusContext(protyle.wysiwyg.element, range);
     protyle.observerLoad?.disconnect();
     const { newElement, orderIndex } = createNewBlockElement(blockElement, position);
     const blockParent = blockElement.parentElement;
@@ -247,12 +257,16 @@ export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPositi
     if (isOrderedListItem && newElement.parentElement) {
         const listParent = newElement.parentElement;
         updateListOrder(listParent, orderIndex);
-        updateTransaction(protyle, listParent, parentOldHTML);
+        updateTransaction(protyle, listParent, parentOldHTML, undoFocusContext);
     }
     // 非列表项场景通过事务记录插入操作，支持撤销
     if (!isOrderedListItem) {
         const doOperations = buildInsertOperations(newElement, newId || "", blockElement, position);
-        const undoOperations: IOperation[] = [{ action: "delete", id: newId || "" }];
+        const undoOperations: IOperation[] = [{
+            action: "delete",
+            id: newId || "",
+            context: undoFocusContext,
+        }];
         if (blockElement.parentElement?.classList.contains("sb") &&
             blockElement.parentElement.getAttribute("data-sb-layout") === "col") {
             // 合并到同一个 transaction，避免新超级块 id 在第二个 transaction 中找不到。
@@ -278,7 +292,6 @@ export const insertEmptyBlock = async (protyle: IProtyle, position: InsertPositi
     }
     // 插入后恢复光标位置
     if (protyle.wysiwyg?.element) {
-        const range = getEditorRange(protyle.wysiwyg.element);
         focusByWbr(protyle.wysiwyg.element, range);
     }
     scrollCenter(protyle);

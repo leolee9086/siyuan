@@ -13,6 +13,8 @@ import { exportLayout } from "./layout/layout-serialization";
 import { getDocDisplayName, parseSiYuanUriInfo } from "./util/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "./protyle/render/av/locate";
+import {activateOnboarding, ensureOnboarding} from "./onboarding";
 import {
     bootSync,
     kernelError,
@@ -47,11 +49,11 @@ import { ipcSend } from "./platform/electron/ipcRenderer";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
 import { getDockByType } from "./layout/tabUtil";
+import { Files } from "./layout/dock/Files";
 import { Tag } from "./layout/dock/Tag";
 import { EventBus } from "./plugin/EventBus";
 import { appearanceConfigApi } from "./config/tabs/appearanceRuntime";
 import { renderSnippet } from "./config/util/snippets";
-import { embeddingText } from "./util/lib/embedding/transformer";
 import { setSForgeState } from "./config/sforge.global";
 import { SForgeSymbols } from "./config/sforge.symbols";
 import { setBodyHighlight } from "./util/assets/assets";
@@ -200,6 +202,13 @@ export class App {
                                     }
                                 }
                             });
+                            if (window.siyuan.config.onboarding?.newUser && !window.siyuan.config.onboarding.dismissed &&
+                                data.data.ids.includes(window.siyuan.config.onboarding.documentID)) {
+                                void activateOnboarding(this, window.siyuan.config.onboarding);
+                            }
+                            break;
+                        case "onboarding":
+                            void activateOnboarding(this, data.data);
                             break;
                         case "statusbar":
                             progressStatus(data);
@@ -226,6 +235,20 @@ export class App {
                         case "openFileById":
                             openFileById({app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS]});
                             break;
+                        case "filetreeSortChanged": {
+                            const fileDock = getDockByType("file");
+                            if (fileDock) {
+                                (fileDock.data.file as Files).onFiletreeSortChanged(data.data);
+                            }
+                            break;
+                        }
+                        case "notebookSortChanged": {
+                            const fileDock = getDockByType("file");
+                            if (fileDock) {
+                                (fileDock.data.file as Files).onNotebookSortChanged();
+                            }
+                            break;
+                        }
                         case "exit":
                             if (isBrowser && !isInMobileApp()) {
                                 window.location.href = "about:blank";
@@ -287,16 +310,19 @@ export class App {
                     initMagiStatusButton();
                     window.siyuan.menus = new Menus(this);
                     bootSync();
-                    fetchPost("/api/setting/getCloudUser", {}, userResponse => {
+                    fetchPost("/api/setting/getCloudUser", {}, async userResponse => {
                         window.siyuan.user = userResponse.data;
-                        onGetConfig(response.data.start, this);
-                        onSetaccount();
-                        setTitle("", true);
-                        initMessage();
-                        // 浏览器桌面端检查是否使用 Chrome，非 Chrome 时提示用户
-                        if (isBrowserDesktop && !isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
-                            showMessage(window.siyuan.languages.useChrome, 0, "error");
-                        }
+                        await ensureOnboarding();
+                        setNoteBook(() => {
+                            onGetConfig(response.data.start, this);
+                            onSetaccount();
+                            setTitle("", true);
+                            initMessage();
+                            if (isBrowserDesktop && !isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()
+                                && window.siyuan.config.appearance.notifications?.browserCompatibility !== false) {
+                                showMessage(window.siyuan.languages.useChrome, 0, "error");
+                            }
+                        });
                     });
                 });
             });
@@ -312,11 +338,25 @@ const siyuanApp = new App();
 window.openFileByURL = (openURL) => {
     const blockInfo = parseSiYuanUriInfo(openURL);
     if (blockInfo != null) {
+        if (blockInfo.avItemID) {
+            queueAVLocateRequest(blockInfo.id, {
+                itemID: blockInfo.avItemID,
+                viewID: blockInfo.avViewID,
+                groupID: blockInfo.avGroupID,
+            });
+        }
         openFileById({
             app: siyuanApp,
             id: blockInfo.id,
-            action: blockInfo.focus ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-            zoomIn: blockInfo.focus
+            action: blockInfo.avItemID ? [Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL] :
+                (blockInfo.focus ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]),
+            zoomIn: blockInfo.avItemID ? false : blockInfo.focus,
+            afterOpen: (model) => {
+                const protyle = (model as { editor?: { protyle?: IProtyle } })?.editor?.protyle;
+                if (protyle) {
+                    activateQueuedAVLocate(protyle, blockInfo.id);
+                }
+            },
         });
         return true;
     }
@@ -328,7 +368,12 @@ if (isBrowser) {
         // 防止 Pad 端报错
     };
     window.processIOSPurchaseResponse = processIOSPurchaseResponse;
+    // 桌面 bundle 运行在移动壳中时，将软键盘控制权交还给 WebView。
+    if (window.JSAndroid?.setWebViewFocusable) {
+        window.JSAndroid.setWebViewFocusable(true);
+    } else if (window.JSHarmony?.setWebViewFocusable) {
+        window.JSHarmony.setWebViewFocusable(true);
+    }
 } else {
     ipcSend(Constants.SIYUAN_READY_TO_SHOW);
 }
-console.log(embeddingText("测试"));

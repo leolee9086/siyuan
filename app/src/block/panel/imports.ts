@@ -129,3 +129,8 @@ export { fetchPost };
 import { showMessage } from "../../dialog/message";
 /** 导出 showMessage，供 panel 模块使用 */
 export { showMessage };
+
+/** 用途：在异步渲染完成后定位数据库条目。使用范围：链接浮窗编辑器加载。解耦评估：通过 panel 边界集中转发。 */
+import { activateAVLocateWithRetry } from "../../protyle/render/av/locate";
+/** 导出数据库条目定位能力。 */
+export { activateAVLocateWithRetry };

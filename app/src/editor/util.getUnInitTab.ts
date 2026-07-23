@@ -9,7 +9,7 @@ import type { Tab } from "./imports";
 /** 用途：页签初始化数据类型。使用范围：getUnInitTab 内部类型检查。解耦评估：同目录类型文件，直接同层导入。 */
 import type { ITabInitData } from "./types";
 /** 用途：页签初始化数据类型守卫。使用范围：getUnInitTab JSON 解析后验证。解耦评估：同目录守卫文件，直接同层导入。 */
-import { isTabInitData } from "./editor.guard";
+import { isDatabaseRowTabData, isTabInitData } from "./editor.guard";
 
 /**
  * 查找并更新未初始化的页签
@@ -31,6 +31,18 @@ import { isTabInitData } from "./editor.guard";
  */
 export const getUnInitTab = (options: IOpenFileOptions) => {
     return getAllTabs().find(isMatchingUnInitTab(options));
+};
+
+/** 判断已存在的自定义页签是否与打开请求表示同一对象。 */
+export const isSameCustomTab = (type: string | undefined, data: unknown, options: IOpenFileOptions) => {
+    if (!options.custom || (options.custom.id && options.custom.id !== type)) {
+        return false;
+    }
+    if (type === "siyuan-database-row") {
+        return isDatabaseRowTabData(data) && isDatabaseRowTabData(options.custom.data) &&
+            data.avID === options.custom.data.avID && data.itemID === options.custom.data.itemID;
+    }
+    return objEquals(data, options.custom.data);
 };
 
 /**
@@ -64,7 +76,7 @@ const isMatchingUnInitTab = (options: IOpenFileOptions) => {
         }
 
         // 处理 Custom 类型的页签
-        if (initObj.instance === "Custom" && options.custom && objEquals(initObj.customModelData, options.custom.data)) {
+        if (initObj.instance === "Custom" && isSameCustomTab(initObj.customModelType, initObj.customModelData, options)) {
             item.parent.switchTab(item.headElement);
             return true;
         }
@@ -90,6 +102,7 @@ const isMatchingUnInitTab = (options: IOpenFileOptions) => {
 const handleEditorTab = (item: Tab, initObj: ITabInitData, options: IOpenFileOptions) => {
     initObj.blockId = options.id;
     initObj.mode = options.mode;
+    initObj.scrollPosition = options.scrollPosition;
 
     // 使用卫语句设置 action
     if (options.zoomIn) {

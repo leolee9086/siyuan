@@ -269,13 +269,17 @@ export const getArticle = (options: {
         }
         options.edit.protyle.scroll.lastScrollTop = 0;
         addLoading(options.edit.protyle);
-        fetchPost("/api/block/getDocInfo", {
+        const docInfoParam: IObject = {
             id: options.id,
-        }, (response) => {
+        };
+        if (isEncryptedBox(options.edit.protyle.notebookId)) {
+            docInfoParam.notebook = options.edit.protyle.notebookId;
+        }
+        fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
             if (articleId !== options.id) {
                 return;
             }
-            fetchPost("/api/filetree/getDoc", {
+            const getDocParam: Record<string, any> = {
                 id: options.id,
                 query: options.value || null,
                 queryMethod: options.config?.method || null,
@@ -285,7 +289,11 @@ export const getArticle = (options: {
                 size: zoomIn ? Constants.SIZE_GET_MAX : window.siyuan.config.editor.dynamicLoadBlocks,
                 zoom: zoomIn,
                 highlight: !isSupportCSSHL(),
-            }, getResponse => {
+            };
+            if (isEncryptedBox(options.edit.protyle.notebookId)) {
+                getDocParam.notebook = options.edit.protyle.notebookId;
+            }
+            fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
                 if (articleId !== options.id) {
                     return;
                 }

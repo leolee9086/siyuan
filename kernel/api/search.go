@@ -17,12 +17,14 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -92,6 +94,32 @@ func getAssetContent(c *gin.Context) {
 	return
 }
 
+func getAssetContentByPath(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	path := arg["path"].(string)
+	assetContent := model.GetAssetContentByPath(path)
+	if model.IsReadOnlyRoleContext(c) && assetContent != nil {
+		publishAccess := model.GetPublishAccess()
+		filteredAssetContents := model.FilterAssetContentByPublishAccess(c, publishAccess, []*model.AssetContent{assetContent})
+		if len(filteredAssetContents) > 0 {
+			assetContent = filteredAssetContents[0]
+		} else {
+			assetContent = nil
+		}
+	}
+	ret.Data = map[string]any{
+		"assetContent": assetContent,
+	}
+	return
+}
+
 func fullTextSearchAssetContent(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -102,10 +130,36 @@ func fullTextSearchAssetContent(c *gin.Context) {
 	}
 
 	page, pageSize, query, types, method, orderBy := parseSearchAssetContentArgs(arg)
-	assetContents, matchedAssetCount, pageCount := model.FullTextSearchAssetContent(query, types, method, orderBy, page, pageSize)
-	if model.IsReadOnlyRoleContext(c) {
+	if method == 2 && !model.IsAdminRoleContext(c) {
+		ret.Code = -1
+		ret.Msg = "SQL search requires administrator privileges"
+		return
+	}
+
+	isReadOnlyRole := model.IsReadOnlyRoleContext(c)
+	searchPage, searchPageSize := page, pageSize
+	if isReadOnlyRole {
+		searchPage = 1
+		searchPageSize = model.Conf.Search.Limit
+	}
+	assetContents, matchedAssetCount, pageCount, err := model.FullTextSearchAssetContent(query, types, method, orderBy, searchPage, searchPageSize)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	if isReadOnlyRole {
 		publishAccess := model.GetPublishAccess()
 		assetContents = model.FilterAssetContentByPublishAccess(c, publishAccess, assetContents)
+		matchedAssetCount = len(assetContents)
+		pageCount = (matchedAssetCount + pageSize - 1) / pageSize
+		if page > pageCount {
+			assetContents = []*model.AssetContent{}
+		} else {
+			from := (page - 1) * pageSize
+			to := min(from+pageSize, matchedAssetCount)
+			assetContents = assetContents[from:to]
+		}
 	}
 	ret.Data = map[string]any{
 		"assetContents":     assetContents,
@@ -274,10 +328,19 @@ func getEmbedBlock(c *gin.Context) {
 		breadcrumb = breadcrumbArg.(bool)
 	}
 
-	blocks := model.GetEmbedBlock(embedBlockID, includeIDs, headingMode, breadcrumb)
-	if model.IsReadOnlyRoleContext(c) {
+	isReadOnlyRole := model.IsReadOnlyRoleContext(c)
+	var blocks []*model.EmbedBlock
+	if isReadOnlyRole {
 		publishAccess := model.GetPublishAccess()
+		if !model.CheckBlockIdAccessableByPublishAccess(c, publishAccess, embedBlockID) {
+			ret.Code = -1
+			ret.Msg = fmt.Sprintf(model.Conf.Language(15), embedBlockID)
+			return
+		}
+		blocks = model.GetEmbedBlockForPublish(embedBlockID, includeIDs, headingMode, breadcrumb)
 		blocks = model.FilterEmbedBlocksByPublishAccess(c, publishAccess, blocks)
+	} else {
+		blocks = model.GetEmbedBlock(embedBlockID, includeIDs, headingMode, breadcrumb)
 	}
 	ret.Data = map[string]any{
 		"blocks": blocks,
@@ -319,6 +382,7 @@ func searchEmbedBlock(c *gin.Context) {
 
 	embedBlockID := arg["embedBlockID"].(string)
 	stmt := arg["stmt"].(string)
+	boxID, _ := arg["notebook"].(string)
 	excludeIDsArg := arg["excludeIDs"].([]any)
 	var excludeIDs []string
 	for _, excludeID := range excludeIDsArg {
@@ -338,10 +402,41 @@ func searchEmbedBlock(c *gin.Context) {
 		breadcrumb = breadcrumbArg.(bool)
 	}
 
-	blocks := model.SearchEmbedBlock(embedBlockID, stmt, excludeIDs, headingMode, breadcrumb)
-	if model.IsReadOnlyRoleContext(c) {
-		publishAccess := model.GetPublishAccess()
+	isReadOnlyRole := model.IsReadOnlyRoleContext(c)
+	var publishAccess model.PublishAccess
+	if isReadOnlyRole {
+		publishAccess = model.GetPublishAccess()
+		if !model.CheckBlockIdAccessableByPublishAccess(c, publishAccess, embedBlockID) {
+			ret.Code = -1
+			ret.Msg = fmt.Sprintf(model.Conf.Language(15), embedBlockID)
+			return
+		}
+		var err error
+		stmt, boxID, err = model.GetQueryEmbedStatement(embedBlockID)
+		if nil != err {
+			ret.Code = -1
+			ret.Msg = err.Error()
+			return
+		}
+	}
+
+	if err := sql.CheckSingleStatement(stmt); nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	if err := sql.CheckReadonlyStatementInBox(stmt, boxID); nil != err {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	var blocks []*model.EmbedBlock
+	if isReadOnlyRole {
+		blocks = model.SearchEmbedBlockForPublish(embedBlockID, stmt, excludeIDs, headingMode, breadcrumb, boxID)
 		blocks = model.FilterEmbedBlocksByPublishAccess(c, publishAccess, blocks)
+	} else {
+		blocks = model.SearchEmbedBlockInBox(embedBlockID, stmt, excludeIDs, headingMode, breadcrumb, boxID)
 	}
 	ret.Data = map[string]any{
 		"blocks": blocks,
@@ -377,7 +472,14 @@ func searchRefBlock(c *gin.Context) {
 	id := arg["id"].(string)
 	keyword := arg["k"].(string)
 	beforeLen := int(arg["beforeLen"].(float64))
-	blocks, newDoc := model.SearchRefBlock(id, rootID, keyword, beforeLen, isSquareBrackets, isDatabase)
+	// 加密笔记本内的块引搜索走 InBox 版（只搜该 box 自己的加密 db，阻止跨加密边界引用）
+	var blocks []*model.Block
+	var newDoc bool
+	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
+		blocks, newDoc = model.SearchRefBlockInBox(id, rootID, keyword, beforeLen, isSquareBrackets, isDatabase, notebook)
+	} else {
+		blocks, newDoc = model.SearchRefBlock(id, rootID, keyword, beforeLen, isSquareBrackets, isDatabase)
+	}
 	if model.IsReadOnlyRoleContext(c) {
 		publishAccess := model.GetPublishAccess()
 		blocks = model.FilterBlocksByPublishAccess(c, publishAccess, blocks)
@@ -408,7 +510,20 @@ func fullTextSearchBlock(c *gin.Context) {
 		return
 	}
 
-	blocks, matchedBlockCount, matchedRootCount, pageCount, docMode := model.FullTextSearchBlock(query, boxes, paths, types, subTypes, method, orderBy, groupBy, page, pageSize)
+	var blocks []*model.Block
+	var matchedBlockCount, matchedRootCount, pageCount int
+	var docMode bool
+	// 加密笔记本的全文搜索走 InBox 版（查加密 content db + blocks_fts）
+	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
+		if !model.IsBoxUnlocked(notebook) {
+			ret.Code = -1
+			ret.Msg = "encrypted notebook locked"
+			return
+		}
+		blocks, matchedBlockCount, matchedRootCount, pageCount, docMode = model.FullTextSearchBlockInBox(query, boxes, paths, types, subTypes, method, orderBy, groupBy, page, pageSize, notebook)
+	} else {
+		blocks, matchedBlockCount, matchedRootCount, pageCount, docMode = model.FullTextSearchBlock(query, boxes, paths, types, subTypes, method, orderBy, groupBy, page, pageSize)
+	}
 	if model.IsReadOnlyRoleContext(c) {
 		publishAccess := model.GetPublishAccess()
 		blocks = model.FilterBlocksByPublishAccess(c, publishAccess, blocks)
@@ -449,10 +564,15 @@ func parseSearchBlockArgs(arg map[string]any) (page, pageSize int, query string,
 		for _, p := range pathsArg.([]any) {
 			path := p.(string)
 			box := strings.TrimSpace(strings.Split(path, "/")[0])
+			path = strings.TrimSpace(strings.TrimPrefix(path, box))
+			// 入口校验：拒绝带 SQL 元字符的非法笔记本 ID 与文档路径，阻止 SQL 注入。
+			// 与既有静默去重风格一致，对非法整条丢弃而非中断请求。
+			if !model.IsValidSearchBoxPath(box, path) {
+				continue
+			}
 			if "" != box {
 				boxes = append(boxes, box)
 			}
-			path = strings.TrimSpace(strings.TrimPrefix(path, box))
 			if "" != path {
 				paths = append(paths, path)
 			}

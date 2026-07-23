@@ -9,6 +9,21 @@ import {disabledProtyle, onGet} from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {scrollCenter} from "../../util/DOM/highlightById";
 import {refreshSbs} from "./transaction.refreshSbs";
+import {withEncryptedNotebook} from "../../util/pathName";
+
+export const syncFoldAttr = (element: Element, operation: IOperation) => {
+    const attrs = JSON.parse(operation.data);
+    if (!Object.prototype.hasOwnProperty.call(attrs, "fold")) {
+        return;
+    }
+    element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach(item => {
+        if (attrs.fold === "1") {
+            item.setAttribute("fold", "1");
+        } else {
+            item.removeAttribute("fold");
+        }
+    });
+};
 
 export const removeUnfoldRepeatBlock = (html: string, protyle: IProtyle) => {
     const temp = document.createElement("template");
@@ -34,6 +49,7 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
                     blockRender(protyle, embedElement);
                     return;
                 }
+                item.removeAttribute("fold");
                 if (!item.lastElementChild.classList.contains("protyle-attr")) {
                     item.lastElementChild.remove();
                 }
@@ -79,11 +95,11 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
             !protyle.scroll.element.classList.contains("fn__none") &&
             protyle.contentElement.scrollHeight - protyle.contentElement.scrollTop < protyle.contentElement.clientHeight * 2    // https://github.com/siyuan-note/siyuan/issues/7785
         ) {
-            fetchPost("/api/filetree/getDoc", {
+            fetchPost("/api/filetree/getDoc", withEncryptedNotebook(protyle.notebookId, {
                 id: protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"),
                 mode: 2,
                 size: window.siyuan.config.editor.dynamicLoadBlocks,
-            }, getResponse => {
+            }), getResponse => {
                 onGet({
                     data: getResponse,
                     protyle,

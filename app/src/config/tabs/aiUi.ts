@@ -6,6 +6,13 @@ import {Constants} from "../../constants";
 import {isMobile} from "../../util/functions";
 import {fetchPost} from "../../util/fetch";
 import {aiConfigApi} from "./aiRuntime";
+import {openByMobile} from "../../editor/openLink";
+import {Menu} from "../../plugin/Menu";
+import {upDownHint} from "../../util/DOM/upDownHint";
+import {isElectron} from "../../platform";
+import {openExternal} from "../../platform/electron/shell";
+
+type ModelPickerGroup = "editing" | "agent" | "commandReview" | "vision" | "imageGeneration";
 
 export const getProvidersBlockKeywords = (): string[] => [
     window.siyuan.languages.apiProvider,
@@ -69,8 +76,14 @@ export const mountEmbeddingStatsBlock = (root: HTMLElement) => {
             const stat = response.data as {
                 total: number, indexed: number, pending: number, failed: number, ignoredByLen: number, ignoredByConfig: number, enabled: boolean,
             };
-            const contentEl = block.querySelector("#aiEmbeddingStatsContent") as HTMLElement;
-            const disabledEl = block.querySelector("#aiEmbeddingStatsDisabled") as HTMLElement;
+            if (!stat) {
+                return;
+            }
+            const contentEl = block.querySelector("#aiEmbeddingStatsContent");
+            const disabledEl = block.querySelector("#aiEmbeddingStatsDisabled");
+            if (!contentEl || !disabledEl) {
+                return;
+            }
             if (!stat.enabled) {
                 // 未启用：隐藏进度区，显示提示
                 contentEl.classList.add("fn__none");
@@ -88,6 +101,9 @@ export const mountEmbeddingStatsBlock = (root: HTMLElement) => {
             const effectiveTotal = Math.max(0, total - ignored);
             const percent = effectiveTotal > 0 ? Math.min(100, indexed / effectiveTotal * 100) : 0;
             const fillEl = block.querySelector("#aiEmbeddingProgressFill") as HTMLElement;
+            if (!fillEl) {
+                return;
+            }
             fillEl.style.width = `${percent}%`;
 
             const done = indexed >= effectiveTotal && pending === 0;
@@ -103,6 +119,9 @@ export const mountEmbeddingStatsBlock = (root: HTMLElement) => {
             }
 
             const numEl = block.querySelector("#aiEmbeddingStatsNum");
+            if (!numEl) {
+                return;
+            }
             // 每个统计项独立一行，避免单行过长被截断
             numEl.innerHTML = `<div>${window.siyuan.languages.embeddingIndexed}<b>${indexed}</b> / ${total}</div>
                 <div>${window.siyuan.languages.embeddingPending}<b>${pending}</b></div>
@@ -140,6 +159,111 @@ export const mountEmbeddingStatsBlock = (root: HTMLElement) => {
         window.requestAnimationFrame(cleanup);
     };
     window.requestAnimationFrame(cleanup);
+};
+
+// mountEmbeddingTestBtn 在嵌入「模型」输入框下方注入测试连接按钮，点击后用极简文本请求嵌入端点验证连通性。
+// 嵌入配置即时保存，点测试时内核已持最新配置，故无需前端传参。
+export const mountEmbeddingTestBtn = (root: HTMLElement) => {
+    const inputEl = root.querySelector<HTMLInputElement>('[id="ai.embedding.name"]');
+    if (!inputEl) {
+        return;
+    }
+    // input 自身带 fn__block class，closest 会命中自身，故从 .config-item 往下精确定位外层容器
+    const wrapper = inputEl.closest(".config-item")?.querySelector(".fn__block");
+    if (!wrapper) {
+        return;
+    }
+    const btnContainer = document.createElement("div");
+    btnContainer.style.textAlign = "right";
+    btnContainer.style.marginTop = "8px";
+    btnContainer.innerHTML = `<button class="b3-button b3-button--outline" id="aiEmbeddingTestBtn"><svg class="b3-button__icon"><use xlink:href="#iconPlugZap"></use></svg><span>${window.siyuan.languages.testConnection}</span></button>`;
+    wrapper.appendChild(btnContainer);
+
+    const testBtn = btnContainer.querySelector<HTMLButtonElement>("#aiEmbeddingTestBtn");
+    const iconUse = testBtn.querySelector("use");
+    const svgEl = testBtn.querySelector("svg");
+    const labelSpan = testBtn.querySelector("span");
+    testBtn.addEventListener("click", () => {
+        testBtn.disabled = true;
+        iconUse.setAttribute("xlink:href", "#iconRefresh");
+        svgEl.style.animation = "agent-mirror-spin 0.8s linear infinite";
+        labelSpan.textContent = window.siyuan.languages.testConnectionTesting;
+        const restoreBtn = () => {
+            testBtn.disabled = false;
+            iconUse.setAttribute("xlink:href", "#iconPlugZap");
+            svgEl.style.animation = "";
+            labelSpan.textContent = window.siyuan.languages.testConnection;
+        };
+        fetchPost("/api/ai/testEmbeddingModel", {}, (response) => {
+            restoreBtn();
+            const data = response.data || {};
+            if (data.matched) {
+                const dims = data.dimensions;
+                showMessage(
+                    dims
+                        ? window.siyuan.languages.testConnectionSuccessDimensions.replace("${dimensions}", String(dims))
+                        : window.siyuan.languages.testConnectionSuccess,
+                    undefined, "info",
+                );
+                return;
+            }
+            showMessage(
+                data.msg
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    : window.siyuan.languages.testConnectionFail,
+                undefined, "error",
+            );
+        });
+    });
+};
+
+// mountRerankTestBtn 在重排「模型」输入框下方注入测试连接按钮，点击后用极简 query+documents 请求重排端点验证连通性。
+// 重排配置即时保存，点测试时内核已持最新配置，故无需前端传参。
+export const mountRerankTestBtn = (root: HTMLElement) => {
+    const inputEl = root.querySelector<HTMLInputElement>('[id="ai.rerank.name"]');
+    if (!inputEl) {
+        return;
+    }
+    const wrapper = inputEl.closest(".config-item")?.querySelector(".fn__block");
+    if (!wrapper) {
+        return;
+    }
+    const btnContainer = document.createElement("div");
+    btnContainer.style.textAlign = "right";
+    btnContainer.style.marginTop = "8px";
+    btnContainer.innerHTML = `<button class="b3-button b3-button--outline" id="aiRerankTestBtn"><svg class="b3-button__icon"><use xlink:href="#iconPlugZap"></use></svg><span>${window.siyuan.languages.testConnection}</span></button>`;
+    wrapper.appendChild(btnContainer);
+
+    const testBtn = btnContainer.querySelector<HTMLButtonElement>("#aiRerankTestBtn");
+    const iconUse = testBtn.querySelector("use");
+    const svgEl = testBtn.querySelector("svg");
+    const labelSpan = testBtn.querySelector("span");
+    testBtn.addEventListener("click", () => {
+        testBtn.disabled = true;
+        iconUse.setAttribute("xlink:href", "#iconRefresh");
+        svgEl.style.animation = "agent-mirror-spin 0.8s linear infinite";
+        labelSpan.textContent = window.siyuan.languages.testConnectionTesting;
+        const restoreBtn = () => {
+            testBtn.disabled = false;
+            iconUse.setAttribute("xlink:href", "#iconPlugZap");
+            svgEl.style.animation = "";
+            labelSpan.textContent = window.siyuan.languages.testConnection;
+        };
+        fetchPost("/api/ai/testRerankModel", {}, (response) => {
+            restoreBtn();
+            const data = response.data || {};
+            if (data.matched) {
+                showMessage(window.siyuan.languages.testConnectionSuccess, undefined, "info");
+                return;
+            }
+            showMessage(
+                data.msg
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    : window.siyuan.languages.testConnectionFail,
+                undefined, "error",
+            );
+        });
+    });
 };
 
 export const genProvidersBlockHtml = (): string => `<div class="b3-label config-item" id="aiProvidersBlock">
@@ -421,7 +545,7 @@ const openProviderDialog = (root: HTMLElement, providerId: string | null) => {
         id: "",
         apiKey: "",
         baseURL: "",
-        requestTimeout: 30,
+        requestTimeout: 120,
         enabled: true,
         models: [],
     } : existingProvider;
@@ -557,12 +681,10 @@ const addAllModelsForProvider = (root: HTMLElement, providerId: string): void =>
     });
 };
 
-type ModelPickerGroup = "editing" | "agent" | "commandReview";
-
 // 提供商/模型变更后，将各场景模型选择器与配置对齐，并在必要时修正已保存的 modelId
 const syncModelPickerSelects = (root: HTMLElement) => {
     const enabledProviders = getEnabledProviders();
-    (["editing", "agent", "commandReview"] as const).forEach((group) => {
+    (["editing", "agent", "commandReview", "vision", "imageGeneration"] as const).forEach((group) => {
         const blockEl = root.querySelector<HTMLElement>(`#${CSS.escape(`aiModelPickerBlock-${group}`)}`);
         if (!blockEl) {
             return;
@@ -618,7 +740,10 @@ const getEnabledProviders = () =>
 
 const getEnabledModels = (providerId: string): Config.IModel[] => {
     const provider = findProvider(providerId);
-    return provider ? provider.models.filter((model) => model.enabled) : [];
+    if (!provider) {
+        return [];
+    }
+    return provider.models.filter((model) => model.enabled);
 };
 
 const buildProviderOptionsHtml = (enabledProviders: Config.IProvider[], providerId: string): string =>
@@ -633,41 +758,43 @@ const buildModelOptionsHtml = (enabledModels: Config.IModel[], modelId: string):
         `<option value="${Lute.EscapeHTMLStr(model.id)}"${model.id === modelId ? " selected" : ""}>${Lute.EscapeHTMLStr(model.displayName || model.name)}</option>`
     ).join("");
 
-/** 构造供应商远程模型列表下拉框；当前配置模型缺失时保留并标记为可能不可用。 */
-const buildFetchedModelOptionsHtml = (models: string[], current: string): {html: string; missing: boolean} => {
-    const normalized = models.map((model) => model.trim()).filter(Boolean);
-    const missing = Boolean(current) && !normalized.includes(current);
-    const values = missing ? [current, ...normalized] : normalized;
-    const options = values.map((model) => {
-        const isMissing = model === current && missing;
-        const label = isMissing ? `${model}（可能不可用）` : model;
-        return `<option value="${Lute.EscapeHTMLStr(model)}"${model === current ? " selected" : ""}>${Lute.EscapeHTMLStr(label)}</option>`;
-    }).join("");
-    return {
-        html: `<option value="">${window.siyuan.languages.selectModel}</option>${options}`,
-        missing,
-    };
-};
-
-/** 将缓存或最新拉取结果显示到模型字段，并同步缺失模型提示。 */
+/** 将缓存或最新拉取结果显示为可搜索选择器，并同步缺失模型提示。 */
 const renderFetchedModels = (dialog: Dialog, models: string[], current: string): boolean => {
     const inputEl = dialog.element.querySelector<HTMLElement>("#aiModelName");
     if (!inputEl) {
         return false;
     }
-    const selectEl = document.createElement("select");
-    selectEl.className = "b3-select fn__flex-1";
-    selectEl.id = "aiModelName";
-    const result = buildFetchedModelOptionsHtml(models, current);
-    selectEl.innerHTML = result.html;
-    selectEl.value = current;
-    inputEl.replaceWith(selectEl);
+    const normalizedModels = [...new Set(models.map((model) => model.trim()).filter(Boolean))];
+    const missing = Boolean(current) && !normalizedModels.includes(current);
+    const modelInput = document.createElement("input");
+    modelInput.className = "b3-select fn__flex-1";
+    modelInput.id = "aiModelName";
+    modelInput.type = "text";
+    modelInput.spellcheck = false;
+    modelInput.readOnly = true;
+    modelInput.placeholder = window.siyuan.languages.selectModel;
+    modelInput.value = current;
+    const openMenu = () => openAvailableModelMenu(modelInput, normalizedModels);
+    modelInput.addEventListener("click", openMenu);
+    modelInput.addEventListener("keydown", (event) => {
+        if (["Enter", " ", "ArrowDown"].includes(event.key)) {
+            event.preventDefault();
+            openMenu();
+        }
+    });
     const warningEl = dialog.element.querySelector<HTMLElement>("#aiModelAvailabilityWarning");
+    modelInput.addEventListener("change", () => {
+        if (warningEl) {
+            warningEl.textContent = "";
+            warningEl.classList.add("fn__none");
+        }
+    });
+    inputEl.replaceWith(modelInput);
     if (warningEl) {
-        warningEl.textContent = result.missing ? "当前模型不在供应商返回的列表中，可能不可用，建议检查。" : "";
-        warningEl.classList.toggle("fn__none", !result.missing);
+        warningEl.textContent = missing ? "当前模型不在供应商返回的列表中，可能不可用，建议检查。" : "";
+        warningEl.classList.toggle("fn__none", !missing);
     }
-    return result.missing;
+    return missing;
 };
 
 // 在已启用提供商列表中按优先级选取 providerId，均无效时返回空
@@ -691,6 +818,85 @@ const pickModelId = (enabledModels: Config.IModel[], preferredModelIds: string[]
         }
     }
     return enabledModels[0].id ?? "";
+};
+
+const openAvailableModelMenu = (modelInput: HTMLInputElement, models: string[]) => {
+    const menu = new Menu();
+    menu.addItem({
+        iconHTML: "",
+        type: "empty",
+        label: `<div class="fn__flex-column b3-menu__filter">
+    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.search}">
+    <div class="fn__hr"></div>
+    <div class="b3-list fn__flex-1 b3-list--background">
+        ${models.map((model) => `<div class="b3-list-item b3-list-item--narrow" data-model="${Lute.EscapeHTMLStr(model)}">
+    <span class="b3-list-item__text">${Lute.EscapeHTMLStr(model)}</span>
+    ${model === modelInput.value ? '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg>' : ""}
+</div>`).join("")}
+        <div class="b3-list--empty fn__none" data-type="empty">${window.siyuan.languages.emptyContent}</div>
+    </div>
+</div>`,
+        bind(element) {
+            const listElement = element.querySelector<HTMLElement>(".b3-list");
+            const searchInput = element.querySelector<HTMLInputElement>("input");
+            const emptyElement = element.querySelector<HTMLElement>("[data-type='empty']");
+            const selectModel = (item: HTMLElement) => {
+                modelInput.value = item.dataset.model;
+                modelInput.dispatchEvent(new Event("change"));
+                menu.close();
+                modelInput.focus();
+            };
+            const filterModels = () => {
+                const keyword = searchInput.value.toLowerCase().trim();
+                let firstVisibleItem: HTMLElement;
+                listElement.querySelectorAll<HTMLElement>(".b3-list-item").forEach((item) => {
+                    item.classList.remove("b3-list-item--focus");
+                    const hidden = !item.dataset.model.toLowerCase().includes(keyword);
+                    item.classList.toggle("fn__none", hidden);
+                    if (!hidden && !firstVisibleItem) {
+                        firstVisibleItem = item;
+                    }
+                });
+                firstVisibleItem?.classList.add("b3-list-item--focus");
+                emptyElement.classList.toggle("fn__none", !!firstVisibleItem);
+            };
+            filterModels();
+            searchInput.addEventListener("keydown", (event: KeyboardEvent) => {
+                event.stopPropagation();
+                if (event.isComposing) {
+                    return;
+                }
+                upDownHint(listElement, event);
+                if (event.key === "Enter") {
+                    const item = listElement.querySelector<HTMLElement>(".b3-list-item--focus");
+                    if (item) {
+                        selectModel(item);
+                    }
+                    event.preventDefault();
+                } else if (event.key === "Escape") {
+                    menu.close();
+                    modelInput.focus();
+                    event.preventDefault();
+                }
+            });
+            searchInput.addEventListener("input", (event: InputEvent) => {
+                if (!event.isComposing) {
+                    filterModels();
+                }
+            });
+            searchInput.addEventListener("compositionend", filterModels);
+            listElement.addEventListener("click", (event) => {
+                const item = (event.target as HTMLElement).closest<HTMLElement>(".b3-list-item");
+                if (item) {
+                    selectModel(item);
+                }
+            });
+        },
+    });
+    const rect = modelInput.getBoundingClientRect();
+    menu.open({x: rect.left, y: rect.bottom, h: rect.height, w: rect.width});
+    menu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
+    menu.element.querySelector<HTMLInputElement>("input").focus();
 };
 
 const openModelDialog = (root: HTMLElement, providerId: string, modelId: string | null) => {
@@ -814,7 +1020,12 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
                 showMessage(`${window.siyuan.languages.testConnectionFailModelNotFound}（${available.slice(0, 10).join(", ")}）`, undefined, "error");
                 return;
             }
-            showMessage(`${window.siyuan.languages.testConnectionFail}${data.msg ? "：" + data.msg : ""}`, undefined, "error");
+            showMessage(
+                data.msg
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    : window.siyuan.languages.testConnectionFail,
+                undefined, "error",
+            );
         });
     });
     btns[1].addEventListener("click", () => {
@@ -859,8 +1070,12 @@ export const getModelPickerKeywords = (group: ModelPickerGroup): string[] => {
             window.siyuan.languages.aiAgentModelPickerTip,
             window.siyuan.languages.agentChat,
         );
-    } else {
+    } else if (group === "commandReview") {
         keywords.push("命令审核", "Bash 安全审核", "重启绕过审核");
+    } else if (group === "vision") {
+        keywords.push(window.siyuan.languages.aiImageUnderstanding, window.siyuan.languages.aiImageUnderstandingTip);
+    } else if (group === "imageGeneration") {
+        keywords.push(window.siyuan.languages.aiImageGeneration, window.siyuan.languages.aiImageGenerationTip);
     }
     return keywords;
 };
@@ -876,8 +1091,12 @@ export const genModelPickerHtml = (group: ModelPickerGroup): string => {
         desc = window.siyuan.languages.aiEditingModelPickerTip;
     } else if (group === "agent") {
         desc = window.siyuan.languages.aiAgentModelPickerTip;
-    } else {
+    } else if (group === "commandReview") {
         desc = "独立用于审核 Bash 命令；Forge 源码场景会额外检查绕过受控重启的意图。";
+    } else if (group === "vision") {
+        desc = window.siyuan.languages.aiImageUnderstandingTip;
+    } else if (group === "imageGeneration") {
+        desc = window.siyuan.languages.aiImageGenerationTip;
     }
 
     return `<div class="b3-label config-item" id="aiModelPickerBlock-${group}" data-type="aiModelPicker" data-name="${group}">
@@ -933,6 +1152,13 @@ export const mountModelPickerBlock = (root: HTMLElement, group: ModelPickerGroup
 };
 
 export const getMcpServersBlockKeywords = (): string[] => [
+    window.siyuan.languages.mcpStatusConnected,
+    window.siyuan.languages.mcpStatusConnecting,
+    window.siyuan.languages.mcpStatusAuthorizing,
+    window.siyuan.languages.mcpStatusAuthorizationRequired,
+    window.siyuan.languages.mcpStatusFailed,
+    window.siyuan.languages.mcpStatusDisabled,
+    window.siyuan.languages.mcpStatusTools,
     window.siyuan.languages.aiMcpServersTip,
     window.siyuan.languages.addAiMcpServer,
     window.siyuan.languages.aiMcpServerSettings,
@@ -949,10 +1175,18 @@ export const getMcpServersBlockKeywords = (): string[] => [
     window.siyuan.languages.aiMcpUrlTip,
     window.siyuan.languages.aiMcpHttpHeaders,
     window.siyuan.languages.apiTimeout,
+    window.siyuan.languages.mcpAuthorize,
+    window.siyuan.languages.mcpDisconnectAuthorization,
 ];
 
+const openedMcpOAuthURLs = new Map<string, string>();
+
 export const genMcpServersBlockHtml = (): string => `<div class="b3-label config-item" id="aiMcpServersBlock">
-    <div class="b3-label__text">${window.siyuan.languages.aiMcpServersTip}</div>
+    <div class="fn__flex" style="align-items:center;">
+        <span class="b3-label__text">${window.siyuan.languages.aiMcpServersTip}</span>
+        <span class="fn__flex-1"></span>
+        <span id="aiMcpStatusSummary" class="b3-label__text ft__on-surface fn__none"></span>
+    </div>
     <div class="fn__hr--small"></div>
     <div id="aiMcpServerList"></div>
     <div class="fn__hr"></div>
@@ -971,8 +1205,121 @@ export const mountMcpServersBlock = (root: HTMLElement) => {
     }
     renderMcpServerList(root);
 
+    // 轮询 MCP 连接状态，刷新每个 server 名称旁的状态圆点颜色、tooltip，以及标题右侧的汇总。
+    const renderMcpStatus = () => {
+        fetchPost("/api/ai/mcpStatus", {}, (response) => {
+            const items = response.data as Array<{
+                id: string;
+                name: string;
+                status: string;
+                tools: number;
+                error?: string;
+                authorizationURL?: string;
+                authorized: boolean;
+            }>;
+            if (!items) {
+                return;
+            }
+            const colorMap: Record<string, string> = {
+                connected: "#65b84f",
+                connecting: "#d97706",
+                authorizing: "#d97706",
+                authorization_required: "#d97706",
+                failed: "#d23f31",
+                disabled: "var(--b3-theme-on-surface-light)",
+            };
+            let connectedCount = 0;
+            let totalTools = 0;
+            for (const item of items) {
+                if (item.status === "connected") {
+                    connectedCount++;
+                    totalTools += item.tools;
+                }
+                if (item.authorizationURL && openedMcpOAuthURLs.get(item.id) !== item.authorizationURL) {
+                    openedMcpOAuthURLs.set(item.id, item.authorizationURL);
+                    if (isElectron) {
+                        void openExternal(item.authorizationURL).catch((error: Error) => {
+                            if (openedMcpOAuthURLs.get(item.id) === item.authorizationURL) {
+                                openedMcpOAuthURLs.delete(item.id);
+                            }
+                            showMessage(error.message);
+                        });
+                    } else {
+                        openByMobile(item.authorizationURL);
+                    }
+                }
+                const dotWrap = block.querySelector<HTMLElement>(`[data-mcp-status-id="${CSS.escape(item.id)}"]`);
+                if (!dotWrap) {
+                    continue;
+                }
+                const dot = dotWrap.firstElementChild as HTMLElement;
+                if (dot) {
+                    dot.style.backgroundColor = colorMap[item.status] || colorMap.disabled;
+                }
+                // 每个 server 行上显示其工具数（仅已连接且有工具时）。
+                const toolsEl = block.querySelector<HTMLElement>(`[data-mcp-tools-count="${CSS.escape(item.id)}"]`);
+                if (toolsEl) {
+                    toolsEl.textContent = item.status === "connected" && item.tools > 0 ? window.siyuan.languages.mcpStatusTools.replace("${x}", String(item.tools)) : "";
+                }
+                let label: string;
+                switch (item.status) {
+                    case "connected":
+                        label = window.siyuan.languages.mcpStatusConnected;
+                        break;
+                    case "connecting":
+                        label = window.siyuan.languages.mcpStatusConnecting;
+                        break;
+                    case "authorizing":
+                        label = window.siyuan.languages.mcpStatusAuthorizing;
+                        break;
+                    case "authorization_required":
+                        label = window.siyuan.languages.mcpStatusAuthorizationRequired;
+                        break;
+                    case "failed":
+                        label = window.siyuan.languages.mcpStatusFailed;
+                        break;
+                    default:
+                        label = window.siyuan.languages.mcpStatusDisabled;
+                }
+                dotWrap.setAttribute("aria-label", item.error ? `${label}: ${item.error}` : label);
+                block.querySelector<HTMLElement>(`[data-mcp-authorize-id="${CSS.escape(item.id)}"]`)?.classList.toggle("fn__none", item.status !== "authorization_required");
+                block.querySelector<HTMLElement>(`[data-mcp-disconnect-oauth-id="${CSS.escape(item.id)}"]`)?.classList.toggle("fn__none", !item.authorized);
+            }
+            const configuredServerIDs = new Set(items.map((item) => item.id));
+            for (const serverID of openedMcpOAuthURLs.keys()) {
+                if (!configuredServerIDs.has(serverID)) {
+                    openedMcpOAuthURLs.delete(serverID);
+                }
+            }
+            // 标题右侧汇总：已连接 server 数 + 总工具数。
+            const summaryEl = block.querySelector<HTMLElement>("#aiMcpStatusSummary");
+            if (summaryEl) {
+                if (connectedCount > 0) {
+                    summaryEl.textContent = window.siyuan.languages.mcpStatusConnected + " " + connectedCount + "/" + items.length + " · " + window.siyuan.languages.mcpStatusTools.replace("${x}", String(totalTools));
+                    summaryEl.classList.remove("fn__none");
+                } else {
+                    summaryEl.classList.add("fn__none");
+                }
+            }
+        });
+    };
+    renderMcpStatus();
+    const statusTimer = window.setInterval(renderMcpStatus, 3000);
+    // 设置页关闭/切换时清理定时器，避免内存泄漏（与 embedding 轮询清理模式一致）。
+    const cleanupStatus = () => {
+        if (!document.contains(block)) {
+            window.clearInterval(statusTimer);
+            return;
+        }
+        window.requestAnimationFrame(cleanupStatus);
+    };
+    window.requestAnimationFrame(cleanupStatus);
+
     const getMcpServerName = (el: HTMLElement): string | undefined => {
         return el.closest<HTMLElement>("[data-mcp-server-name]")?.dataset.mcpServerName;
+    };
+    const getMcpServerID = (el: HTMLElement): string | undefined => {
+        return el.closest<HTMLElement>("[data-mcp-server-id]")?.dataset.mcpServerId;
     };
     block.addEventListener("click", (event) => {
         const target = event.target as HTMLElement;
@@ -1009,6 +1356,35 @@ export const mountMcpServersBlock = (root: HTMLElement) => {
             });
             return;
         }
+        if (type === "authorizeAiMcpServer") {
+            const serverID = getMcpServerID(actionEl);
+            if (serverID) {
+                fetchPost("/api/ai/mcpOAuthAuthorize", {id: serverID}, (response) => {
+                    if (response.code !== 0) {
+                        showMessage(response.msg);
+                    }
+                });
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        if (type === "disconnectAiMcpOAuth") {
+            const serverID = getMcpServerID(actionEl);
+            if (serverID) {
+                confirmDialog(window.siyuan.languages.mcpDisconnectAuthorization,
+                    window.siyuan.languages.mcpDisconnectAuthorizationConfirm, () => {
+                        fetchPost("/api/ai/mcpOAuthDisconnect", {id: serverID}, (response) => {
+                            if (response.code !== 0) {
+                                showMessage(response.msg);
+                            }
+                        });
+                    });
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
     });
 
     block.addEventListener("change", (event) => {
@@ -1042,8 +1418,16 @@ const renderMcpServerList = (root: HTMLElement) => {
         return;
     }
     const serversHtml = servers.map((server) => {
-        return `<div class="b3-list-item b3-list-item--narrow${hideActionClass}" data-type="aiMcpServer" data-mcp-server-name="${Lute.EscapeHTMLStr(server.name)}">
+        return `<div class="b3-list-item b3-list-item--narrow${hideActionClass}" data-type="aiMcpServer" data-mcp-server-id="${Lute.EscapeHTMLStr(server.id)}" data-mcp-server-name="${Lute.EscapeHTMLStr(server.name)}">
+    <span class="mcp-status-dot b3-tooltips b3-tooltips__n" data-mcp-status-id="${Lute.EscapeHTMLStr(server.id)}" aria-label="${server.enabled ? window.siyuan.languages.mcpStatusConnecting : window.siyuan.languages.mcpStatusDisabled}" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;margin-right:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${server.enabled ? "#d97706" : "var(--b3-theme-on-surface-light)"};"></span></span>
     <span class="b3-list-item__text">${Lute.EscapeHTMLStr(server.name)}</span>
+    <span class="ft__on-surface fn__flex-center" data-mcp-tools-count="${Lute.EscapeHTMLStr(server.id)}" style="font-size:12px;margin-right:8px;"></span>
+    <span data-type="authorizeAiMcpServer" data-mcp-authorize-id="${Lute.EscapeHTMLStr(server.id)}" class="fn__none b3-list-item__action b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.mcpAuthorize}">
+        <svg><use xlink:href="#iconKey"></use></svg>
+    </span>
+    <span data-type="disconnectAiMcpOAuth" data-mcp-disconnect-oauth-id="${Lute.EscapeHTMLStr(server.id)}" class="fn__none b3-list-item__action b3-list-item__action--warning b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.mcpDisconnectAuthorization}">
+        <svg><use xlink:href="#iconLinkOff"></use></svg>
+    </span>
     <span data-type="deleteAiMcpServer" class="b3-list-item__action b3-list-item__action--warning b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.delete}">
         <svg><use xlink:href="#iconTrashcan"></use></svg>
     </span>
@@ -1064,6 +1448,7 @@ const openMcpServerDialog = (root: HTMLElement, serverName: string | null) => {
         return;
     }
     const initialServer: Config.IMCPServer = isNew ? {
+        id: "",
         name: "",
         enabled: true,
         type: "stdio",
@@ -1072,6 +1457,7 @@ const openMcpServerDialog = (root: HTMLElement, serverName: string | null) => {
         url: "",
         headers: {},
         timeout: 30,
+        trustToolAnnotations: false,
     } : existingServer;
     const mcpTypeHidden = (fieldType: string) => initialServer.type !== fieldType ? " fn__none" : "";
     const argsText = (initialServer.args ?? []).join("\n");
@@ -1131,6 +1517,14 @@ const openMcpServerDialog = (root: HTMLElement, serverName: string | null) => {
             <span class="ft__on-surface fn__flex-center">s</span>
         </div>
     </div>
+    <div class="b3-label b3-label--inner fn__flex">
+        <div class="fn__flex-1">
+            <div class="config-name">${window.siyuan.languages.aiMcpTrustToolAnnotations}</div>
+            <div class="b3-label__text">${window.siyuan.languages.aiMcpTrustToolAnnotationsTip}</div>
+        </div>
+        <span class="fn__space"></span>
+        <input class="b3-switch fn__flex-center" id="aiMcpTrustToolAnnotations" type="checkbox"${initialServer.trustToolAnnotations ? " checked" : ""}/>
+    </div>
 </div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
@@ -1167,6 +1561,7 @@ const openMcpServerDialog = (root: HTMLElement, serverName: string | null) => {
             url: dialog.element.querySelector<HTMLInputElement>("#aiMcpServerUrl").value,
             headers,
             timeout: dialog.element.querySelector<HTMLInputElement>("#aiMcpServerTimeout").valueAsNumber,
+            trustToolAnnotations: dialog.element.querySelector<HTMLInputElement>("#aiMcpTrustToolAnnotations").checked,
         };
         if (!nextServer.name) {
             showMessage(window.siyuan.languages.aiMcpServerNameRequired);

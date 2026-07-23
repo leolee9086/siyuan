@@ -1,6 +1,6 @@
 import {Constants} from "../../constants";
-import {toolbarKeyToMenu} from "./util";
-import {genToolbarItem} from "./ToolbarItemFactory";
+import {filterPluginToolbar, resetToolbarSubElement, toolbarKeyToMenu} from "./util";
+import {appendMobilePluginToolbarItem, genToolbarItem} from "./ToolbarItemFactory";
 import {updateLanguage} from "./updateLanguage";
 import {showRender} from "./renderPanel";
 import {setInlineMark} from "./setInlineMark";
@@ -86,6 +86,13 @@ const handleMultiSelectModeClick = (
     }
 };
 
+/** 清理可复用子面板的 DOM 样式和上一个面板注册的生命周期回调。 */
+const clearSubElement = (toolbar: Toolbar) => {
+    resetToolbarSubElement(toolbar.subElement);
+    toolbar.subElementCloseCB = undefined;
+    toolbar.subElementResizeCB = undefined;
+};
+
 /**
  * Toolbar 重构版本
  * 逻辑已拆分至各个独立模块
@@ -95,6 +102,7 @@ export class Toolbar {
     public element: HTMLElement;
     public subElement: HTMLElement;
     public subElementCloseCB: (() => void) | undefined;
+    public subElementResizeCB: (() => void) | undefined;
     public range: Range | undefined;
     public toolbarHeight: number;
 
@@ -111,10 +119,11 @@ export class Toolbar {
             this.subElement.className = "protyle-util fn__none";
         }
         this.toolbarHeight = 29;
+        const inlineToolbarElement = document.querySelector('#keyboardToolbar .keyboard__action[data-type="inline-memo"]')?.parentElement;
         for (const item of protyle.app.plugins) {
-            const pluginToolbar = item.updateProtyleToolbar(options.toolbar || []);
+            const pluginToolbar = filterPluginToolbar(item.updateProtyleToolbar(options.toolbar || []), protyle.lite);
             for (const toolbarItem of pluginToolbar) {
-                if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
+                if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name)) {
                     continue;
                 }
                 if (typeof toolbarItem.hotkey !== "string") {
@@ -123,6 +132,9 @@ export class Toolbar {
                 const customHotkey = getPluginCustomHotkey(item.name, toolbarItem.name);
                 if (customHotkey) {
                     toolbarItem.hotkey = customHotkey;
+                }
+                if (isMobile) {
+                    appendMobilePluginToolbarItem(protyle, toolbarItem, inlineToolbarElement);
                 }
             }
             options.toolbar = toolbarKeyToMenu(pluginToolbar);
@@ -148,9 +160,9 @@ export class Toolbar {
         this.element.innerHTML = "";
         protyle.options.toolbar = getDefaultToolbar();
         for (const item of protyle.app.plugins) {
-            const pluginToolbar = item.updateProtyleToolbar(protyle.options.toolbar);
+            const pluginToolbar = filterPluginToolbar(item.updateProtyleToolbar(protyle.options.toolbar), protyle.lite);
             for (const toolbarItem of pluginToolbar) {
-                if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
+                if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name)) {
                     continue;
                 }
                 if (typeof toolbarItem.hotkey !== "string") {
@@ -183,7 +195,8 @@ export class Toolbar {
     // S-forge: render方法委托给renderToolbar子模块
     public render(protyle: IProtyle, range: Range, event?: KeyboardEvent) {
         this.range = range;
-        const result = renderToolbar(protyle, range, event, this.element, (r) => this.range = r);
+        void event;
+        const result = renderToolbar(protyle, range, this.element, (r) => this.range = r);
         if (result) {
             this.range = result.range;
             this.toolbarHeight = result.toolbarHeight;
@@ -229,6 +242,7 @@ export class Toolbar {
      */
     // S-forge: showRender方法委托给renderPanel子模块（含showRender/子目录）
     public showRender(protyle: IProtyle, renderElement: Element, updateElements?: Element[], oldHTML?: string) {
+        clearSubElement(this);
         showRender(
             protyle,
             renderElement,
@@ -239,6 +253,9 @@ export class Toolbar {
             this.range,
             (cb) => {
                 this.subElementCloseCB = cb;
+            },
+            (cb) => {
+                this.subElementResizeCB = cb;
             }
         );
     }
@@ -251,6 +268,7 @@ export class Toolbar {
      */
     // S-forge: showCodeLanguage方法委托给showCodeLanguage子模块
     public showCodeLanguage(protyle: IProtyle, languageElements: HTMLElement[]) {
+        clearSubElement(this);
         显示代码语言选择(protyle, languageElements, this.subElement, this.element, (range: Range) => {
             this.range = range;
         }, (languageElements, protyle, selectedLang) => {
@@ -268,7 +286,7 @@ export class Toolbar {
         }
         blockElement.classList.add("protyle-wysiwyg--select");
         menu.remove();
-
+        clearSubElement(this);
         this.subElement.style.width = window.innerWidth - 16 + "px";
         this.subElement.style.padding = "0";
         this.subElement.innerHTML = `<div class="block__icons">
@@ -283,7 +301,6 @@ export class Toolbar {
 </div>`;
         this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
         this.subElement.classList.remove("fn__none");
-        this.subElementCloseCB = undefined;
         this.subElement.firstElementChild?.addEventListener("click", (event) => {
             handleMultiSelectModeClick(event, protyle, this.subElement, wysiwygElement, menu);
         });
@@ -308,6 +325,7 @@ export class Toolbar {
      */
     // S-forge: showTpl方法委托给showTpl子模块
     public showTpl(protyle: IProtyle, nodeElement: HTMLElement, range: Range) {
+        clearSubElement(this);
         显示模板选择(protyle, nodeElement, range, this.subElement, this.element, (range: Range) => {
             this.range = range;
         });
@@ -321,6 +339,7 @@ export class Toolbar {
      */
     // S-forge: showWidget方法委托给showWidget子模块
     public showWidget(protyle: IProtyle, nodeElement: HTMLElement, range: Range) {
+        clearSubElement(this);
         显示挂件选择(
             protyle,
             nodeElement,
@@ -331,7 +350,6 @@ export class Toolbar {
                 this.range = r;
             }
         );
-        this.subElementCloseCB = undefined;
     }
 
     /**
@@ -342,6 +360,7 @@ export class Toolbar {
      */
     // S-forge: showContent方法委托给showContent子模块
     public showContent(protyle: IProtyle, range: Range, nodeElement: Element) {
+        clearSubElement(this);
         显示内容操作(
             protyle,
             range,
@@ -352,6 +371,5 @@ export class Toolbar {
                 this.range = r;
             }
         );
-        this.subElementCloseCB = undefined;
     }
 }

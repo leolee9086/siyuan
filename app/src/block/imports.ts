@@ -32,6 +32,7 @@ import { moveResize } from "../dialog/moveResize";
  * 直接导入可减少样板代码。
  */
 import { getEditorRange } from "../protyle/util/selection";
+import { getUndoFocusContext } from "../protyle/util/selection";
 // 用途：将块元素提升到可独立操作的顶层块；使用范围：块插入目标解析流程中规范化插入锚点；解耦评估：可通过策略函数注入解耦，但该规则属于编辑器核心语义，集中复用该工具更一致
 import { getTopAloneElement } from "../protyle/wysiwyg/getBlock";
 // 用途：获取全局浮窗面板列表；使用范围：Panel.ts 中管理浮窗层级和清理；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
@@ -94,6 +95,7 @@ import { focusByWbr } from "../protyle/util/selection.range";
  * 由函数内部实时解析更能保证一致性。
  */
 import { getParentBlock } from "../protyle/wysiwyg/getBlock";
+import { getEmbedChildOperationParentID, getPreviousBlockSibling } from "../protyle/wysiwyg/getBlock";
 /*
  * 用途：在特殊视图下查询块的兄弟与父级 ID。
  * 使用范围：block/util.cancelSB.ts showAll/反链模式下兜底定位。
@@ -126,6 +128,7 @@ export { hideElements };
 export { moveResize };
 // 编辑器选区工具导出
 export { getEditorRange };
+export { getUndoFocusContext };
 // 块归一化工具导出
 export { getTopAloneElement };
 // 全局浮窗面板列表访问导出
@@ -158,15 +161,14 @@ export { mathRender };
 export { focusByWbr };
 // 父块解析工具导出
 export { getParentBlock };
+export { getEmbedChildOperationParentID, getPreviousBlockSibling };
 // 同步请求工具导出
 export { fetchSyncPost };
 
 // 用途：隐藏 Tooltip 与读取当前触发元素；使用范围：Popover 相关模块；解耦评估：UI 工具函数
-import { hideTooltip, tooltipTargetElement } from "../dialog/tooltip";
+import { hideTooltip } from "../dialog/tooltip";
 // 导出 hideTooltip
 export { hideTooltip };
-// 导出 tooltipTargetElement
-export { tooltipTargetElement };
 
 // 用途：触屏设备判断；使用范围：block 模块交互适配；解耦评估：平台检测工具
 import { isTouchDevice } from "../util/platform/functions";

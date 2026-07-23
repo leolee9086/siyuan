@@ -12,4 +12,6 @@ export interface InitMoreMenuDeps {
     init: (isInitialCall?: boolean) => void;
     /** 发布权限开关刷新函数 */
     refreshPublishAccessSwitch?: () => void;
+    /** 按当前设置和发布权限编辑状态刷新文档动作区域 */
+    updateDocActions?: () => void;
 }

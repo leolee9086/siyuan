@@ -2,13 +2,11 @@
  * MobileOutline 筛选/展开/折叠/事务相关逻辑
  * 从 MobileOutline.ts 拆分
  */
-import {fetchPost} from "../../util/network/fetch";
 import {hasClosestBlock, hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import type {App} from "../../index";
 import type {MobileOutline} from "./MobileOutline";
 
 /**
@@ -232,15 +230,7 @@ export function handleOutlineTransaction(outline: MobileOutline, data: IWebSocke
         });
     }
     if (needReload) {
-        fetchPost("/api/outline/getDocOutline", {
-            id: outline.blockId,
-            preview: outline.isPreview
-        }, response => {
-            // 文档切换后不再更新原有推送 https://github.com/siyuan-note/siyuan/issues/13409
-            if (data.data.rootID !== outline.blockId) {
-                return;
-            }
-            outline.update(response);
+        outline.reload(() => {
             // https://github.com/siyuan-note/siyuan/issues/8372
             if (getSelection().rangeCount > 0) {
                 const blockElement = hasClosestBlock(getSelection().getRangeAt(0).startContainer);

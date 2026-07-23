@@ -10,14 +10,25 @@ import { App } from "../../index";
 import { openTagMenu } from "../../menus/tag";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
-
 import { isOperations, isBlockTreeArray } from "./dock.guard";
 import { Protyle } from "../../protyle";
-import { getSiyuanConfig, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getTagPanelHTML, getTagSortOptions, shouldReloadTag, TAG_EDITOR_RENDER_CONFIG, genTagBlockListHTML } from "./tag.util";
+import {
+    getSiyuanConfig, getSiyuanMenus, getSiyuanKeyboardState,
+} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {
+    getTagPanelHTML, getTagSortOptions, shouldReloadTag,
+    TAG_EDITOR_RENDER_CONFIG, genTagBlockListHTML,
+} from "./tag.util";
+import { filterTagData, getTagFilterKeywords } from "./tagFilter";
 
 export class Tag extends Model {
-    private openNodes: string[] = [];
+    private openNodes: string[] | undefined;
+    private preFilterOpenNodes: string[] | undefined;
+    private data: IBlockTree[] = [];
+    private filterData: IBlockTree[] | undefined;
+    private updating = false;
+    private pendingUpdate: boolean | undefined;
+    private filterLoadPending = false;
     public tree: Tree;
     public editors: Protyle[] = [];
     private element: HTMLElement;
@@ -27,9 +38,7 @@ export class Tag extends Model {
         this.connect({
             id: tab.id,
             type: "tag",
-            msgCallback: (data) => {
-                this._处理消息(data);
-            }
+            msgCallback: (data) => this._处理消息(data),
         });
         this.element = tab.panelElement;
         this._初始化外观();
@@ -44,7 +53,8 @@ export class Tag extends Model {
         }
         if (data.cmd === "unmount" || data.cmd === "closeBox" || data.cmd === "removeBox" ||
             data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) {
-            this.update(); return;
+            this.update();
+            return;
         }
         if (data.cmd !== "transactions") {
             return;
@@ -57,7 +67,6 @@ export class Tag extends Model {
     }
 
     private _初始化外观() {
-        // S-forge: 合并远程新增的 "dockPanel" 类
         this.element.classList.add("fn__flex-column", "file-tree", "sy__tag", "dockPanel");
         this.element.innerHTML = getTagPanelHTML();
     }
@@ -76,7 +85,7 @@ export class Tag extends Model {
             rightClick: (element: HTMLElement, event: MouseEvent) => openTagMenu(element, event, element.getAttribute("data-label") ?? ""),
             blockExtHTML: isReadonly ? "" : extHTML,
             topExtHTML: isReadonly ? "" : extHTML,
-            toggleClick: (element: HTMLElement) => this._toggleItem(element)
+            toggleClick: (element: HTMLElement) => this._toggleItem(element),
         });
     }
 
@@ -92,15 +101,15 @@ export class Tag extends Model {
         liElement.after(container);
         this.editors.push(new Protyle(this.app, container, {
             blockId: id,
-            click: { preventInsetEmptyBlock: true },
-            render: TAG_EDITOR_RENDER_CONFIG
+            click: {preventInsetEmptyBlock: true},
+            render: TAG_EDITOR_RENDER_CONFIG,
         }));
     }
 
     private _collapseBlock(liElement: HTMLElement, svgElement: Element) {
         svgElement.classList.remove("b3-list-item__arrow--open");
         const nextSibling = liElement.nextElementSibling;
-        if (nextSibling && nextSibling.classList.contains("tag-editor-container")) {
+        if (nextSibling?.classList.contains("tag-editor-container")) {
             const protyleElement = nextSibling.firstElementChild;
             if (protyleElement) {
                 this._destroyEditor(protyleElement);
@@ -117,15 +126,11 @@ export class Tag extends Model {
             return;
         }
         const label = element.getAttribute("data-label") ?? "";
-        openGlobalSearch(app, `#${label}#`, !getSiyuanKeyboardState().ctrlIsPressed, { method: 0 });
+        openGlobalSearch(app, `#${label}#`, !getSiyuanKeyboardState().ctrlIsPressed, {method: 0});
     }
 
     private _toggleItem(liElement: HTMLElement) {
-        const toggleElement = liElement.firstElementChild;
-        if (!toggleElement) {
-            return;
-        }
-        const svgElement = toggleElement.firstElementChild;
+        const svgElement = liElement.firstElementChild?.firstElementChild;
         if (!svgElement) {
             return;
         }
@@ -137,112 +142,97 @@ export class Tag extends Model {
             }
             return;
         }
-
         if (svgElement.classList.contains("b3-list-item__arrow--open")) {
             this._collapseTag(liElement, svgElement);
-        } else {
-            this._expandTag(liElement, svgElement);
+            return;
         }
+        this._expandTag(liElement, svgElement);
     }
 
     private _collapseTag(liElement: HTMLElement, svgElement: Element) {
         svgElement.classList.remove("b3-list-item__arrow--open");
         const nextSibling = liElement.nextElementSibling;
-        if (nextSibling && nextSibling.tagName === "UL") {
+        if (nextSibling?.tagName === "UL") {
             nextSibling.classList.add("fn__none");
             this._destroyEditorsInBlockList(nextSibling);
         }
     }
 
     private _destroyEditor(element: Element) {
-        const index = this.editors.findIndex(e => e.protyle.element === element);
-        if (index > -1) {
-            this.editors[index].destroy();
-            this.editors.splice(index, 1);
+        const index = this.editors.findIndex(editor => editor.protyle.element === element);
+        if (index < 0) {
+            return;
+        }
+        this.editors[index].destroy();
+        this.editors.splice(index, 1);
+    }
+
+    private _destroyEditorsInBlockList(element: Element) {
+        for (const container of element.querySelectorAll(".tag-editor-container")) {
+            const protyleElement = container.firstElementChild;
+            if (protyleElement) {
+                this._destroyEditor(protyleElement);
+            }
         }
     }
 
-    private _destroyEditorsInBlockList(ulElement: Element) {
-        const containers = ulElement.querySelectorAll(".tag-editor-container");
-        for (const container of containers) {
-            if (container instanceof HTMLElement) {
-                const protyleElement = container.firstElementChild;
-                if (protyleElement) {
-                    this._destroyEditor(protyleElement);
-                }
-            }
+    private _destroyAllEditors() {
+        for (const editor of this.editors) {
+            editor.destroy();
         }
+        this.editors = [];
     }
 
     private _expandTag(liElement: HTMLElement, svgElement: Element) {
         svgElement.classList.add("b3-list-item__arrow--open");
-        // 显示子标签列表
         const nextSibling = liElement.nextElementSibling;
-        if (nextSibling && nextSibling.tagName === "UL") {
+        if (nextSibling?.tagName === "UL") {
             nextSibling.classList.remove("fn__none");
-            // 如果已经是加载过的块列表，则不需要重新加载
             if (nextSibling.getAttribute("data-loaded") === "true") {
                 return;
             }
         }
-
-        // 获取标签名并搜索对应的块
         const label = liElement.getAttribute("data-label");
         if (!label) {
             return;
         }
-
-        // @内联回调
         fetchPost("/api/search/fullTextSearchBlock", {
             query: `#${label}#`,
             method: 0,
-            pageSize: 30 // 增加数量
+            pageSize: 30,
         }, (response) => {
             const blocks = response.data?.blocks;
-            if (!blocks || blocks.length === 0) {
+            if (!blocks?.length) {
                 return;
             }
             const html = genTagBlockListHTML(blocks);
-            let targetUL = nextSibling;
-            if (targetUL && targetUL.tagName === "UL") {
-                // 如果已有子列表，追加块（去掉ul标签仅追加li）
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = html;
-                const lis = tempDiv.querySelectorAll("li");
-                for (const li of lis) {
-                    if (targetUL) {
-                        targetUL.appendChild(li);
-                    }
+            let targetList = nextSibling;
+            if (targetList?.tagName === "UL") {
+                const holder = document.createElement("div");
+                holder.innerHTML = html;
+                for (const item of holder.querySelectorAll("li")) {
+                    targetList.appendChild(item);
                 }
             } else {
-                // 如果没有子列表，插入新列表
                 liElement.insertAdjacentHTML("afterend", html);
-                targetUL = liElement.nextElementSibling;
+                targetList = liElement.nextElementSibling;
             }
-
-            if (targetUL) {
-                targetUL.setAttribute("data-loaded", "true");
-                targetUL.classList.remove("fn__none");
-            }
+            targetList?.setAttribute("data-loaded", "true");
+            targetList?.classList.remove("fn__none");
         });
     }
 
-
-
-
     private _绑定事件() {
-        const collapseElement = this.element.querySelector('[data-type="collapse"]');
-        if (collapseElement) {
-            collapseElement.addEventListener("click", () => {
-                this.tree.collapseAll();
-            });
-        }
-        const expandElement = this.element.querySelector('[data-type="expand"]');
-        if (expandElement) {
-            expandElement.addEventListener("click", () => {
-                this.tree.expandAll();
-            });
-        }
+        this.element.querySelector('[data-type="collapse"]')?.addEventListener("click", () => this.tree.collapseAll());
+        this.element.querySelector('[data-type="expand"]')?.addEventListener("click", () => this.tree.expandAll());
+        const inputElement = this._getFilterInput();
+        inputElement.addEventListener("blur", () => this._syncFilterIndicator(inputElement));
+        inputElement.addEventListener("input", (event: InputEvent) => {
+            if (!event.isComposing) {
+                this._filter();
+            }
+        });
+        inputElement.addEventListener("compositionend", () => this._filter());
         this.element.addEventListener("click", (event) => {
             if (event instanceof MouseEvent) {
                 this._onElementClick(event);
@@ -250,12 +240,31 @@ export class Tag extends Model {
         });
     }
 
-    private _onElementClick(event: MouseEvent) {
-        setPanelFocus(this.element);
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
+    private _getFilterInput() {
+        const inputElement = this.element.querySelector<HTMLInputElement>("input.search__label");
+        if (!inputElement) {
+            throw new Error("tag filter input not found");
+        }
+        return inputElement;
+    }
+
+    private _syncFilterIndicator(inputElement: HTMLInputElement) {
+        inputElement.classList.add("fn__none");
+        const filterElement = inputElement.nextElementSibling;
+        if (!(filterElement instanceof HTMLElement)) {
             return;
         }
+        const value = inputElement.value.trim();
+        filterElement.classList.toggle("block__icon--active", Boolean(value));
+        filterElement.setAttribute("aria-label", value ? `${window.siyuan.languages.filter} ${value}` : window.siyuan.languages.filter);
+    }
+
+    private _onElementClick(event: MouseEvent) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement) || target.tagName === "INPUT") {
+            return;
+        }
+        setPanelFocus(this.element);
         const iconElement = hasClosestByClassName(target, "block__icon");
         if (iconElement && this.element.contains(iconElement)) {
             this._handleIconClick(iconElement.getAttribute("data-type"), event);
@@ -271,32 +280,32 @@ export class Tag extends Model {
             this.update();
             return;
         }
+        if (type === "search") {
+            const inputElement = this._getFilterInput();
+            inputElement.classList.remove("fn__none");
+            inputElement.select();
+            return;
+        }
         if (type === "sort") {
             this._显示排序菜单(event);
         }
     }
 
     private _显示排序菜单(event: MouseEvent) {
-        const config = getSiyuanConfig();
-        const currentSort = config?.tag?.sort ?? 0;
+        const currentSort = getSiyuanConfig()?.tag?.sort ?? 0;
         const menus = getSiyuanMenus();
         if (!menus) {
             return;
         }
         menus.menu.remove();
-
-        const sortOptions = getTagSortOptions(currentSort);
-        for (const option of sortOptions) {
+        for (const option of getTagSortOptions(currentSort)) {
             menus.menu.append(new MenuItem({
                 icon: option.isSelected ? "iconSelect" : "",
                 label: option.label,
-                click: () => {
-                    this._设置排序(option.sortValue);
-                },
+                click: () => this._设置排序(option.sortValue),
             }).element);
         }
-
-        menus.menu.popup({ x: event.clientX, y: event.clientY });
+        menus.menu.popup({x: event.clientX, y: event.clientY});
         event.preventDefault();
         event.stopPropagation();
     }
@@ -310,41 +319,116 @@ export class Tag extends Model {
     }
 
     public update(ignoreMaxListHint = true) {
-        const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (!element) {
+        if (this.updating) {
+            this.pendingUpdate = ignoreMaxListHint;
             return;
         }
-        if (element.classList.contains("fn__rotate")) {
-            return;
-        }
-        element.classList.add("fn__rotate");
-        const config = getSiyuanConfig();
-        const sortValue = config?.tag?.sort ?? 0;
+        this.updating = true;
+        const refreshElement = this.element.querySelector('.block__icon[data-type="refresh"] svg');
+        const hasFilter = getTagFilterKeywords(this._getFilterInput().value).length > 0;
+        refreshElement?.classList.add("fn__rotate");
         fetchPost("/api/tag/getTag", {
-            sort: sortValue,
+            sort: getSiyuanConfig()?.tag?.sort ?? 0,
             app: Constants.SIYUAN_APPID,
-            ignoreMaxListHint
-        }, response => {
-            this._handleUpdateResponse(response.data, element);
-        });
+            ignoreMaxListHint: hasFilter || ignoreMaxListHint,
+        }, response => this._handleUpdateResponse(response.data, refreshElement, hasFilter || ignoreMaxListHint));
     }
 
-    private _handleUpdateResponse(data: unknown, element: Element) {
-        if (!element) {
+    private _handleUpdateResponse(data: unknown, refreshElement: Element | null, completeData: boolean) {
+        if (this.pendingUpdate !== undefined) {
+            const pendingUpdate = this.pendingUpdate;
+            this.pendingUpdate = undefined;
+            this.updating = false;
+            this.update(pendingUpdate);
             return;
         }
-        if (this.openNodes && this.openNodes.length > 0) {
+        if (isBlockTreeArray(data)) {
+            this.data = data;
+            this.filterData = completeData ? data : undefined;
+        }
+        this.updating = false;
+        refreshElement?.classList.remove("fn__rotate");
+        this._filter();
+        if (this.filterLoadPending) {
+            this.filterLoadPending = false;
+            this._loadFilterData();
+        }
+    }
+
+    private _loadFilterData() {
+        const keywords = getTagFilterKeywords(this._getFilterInput().value);
+        if (keywords.length === 0 || this.filterData) {
+            this._filter();
+            return;
+        }
+        if (this.updating) {
+            this.filterLoadPending = true;
+            return;
+        }
+        this.updating = true;
+        const refreshElement = this.element.querySelector('.block__icon[data-type="refresh"] svg');
+        refreshElement?.classList.add("fn__rotate");
+        fetchPost("/api/tag/getTag", {
+            sort: getSiyuanConfig()?.tag?.sort ?? 0,
+            app: Constants.SIYUAN_APPID,
+            ignoreMaxListHint: true,
+        }, response => this._handleFilterLoadResponse(response.data, refreshElement));
+    }
+
+    private _handleFilterLoadResponse(data: unknown, refreshElement: Element | null) {
+        if (this.pendingUpdate !== undefined) {
+            const pendingUpdate = this.pendingUpdate;
+            this.pendingUpdate = undefined;
+            this.filterLoadPending = false;
+            this.updating = false;
+            this.update(pendingUpdate);
+            return;
+        }
+        if (isBlockTreeArray(data)) {
+            this.filterData = data;
+        }
+        this.filterLoadPending = false;
+        this.updating = false;
+        refreshElement?.classList.remove("fn__rotate");
+        this._filter();
+    }
+
+    private _filter() {
+        const keywords = getTagFilterKeywords(this._getFilterInput().value);
+        const hasKeyword = keywords.length > 0;
+        if (hasKeyword && this.preFilterOpenNodes === undefined && this.openNodes !== undefined) {
+            this.preFilterOpenNodes = this.tree.getExpandIds();
+        }
+        if (!hasKeyword && this.preFilterOpenNodes === undefined && this.openNodes !== undefined) {
             this.openNodes = this.tree.getExpandIds();
         }
-        // 使用类型守卫验证数据
-        if (isBlockTreeArray(data)) {
-            this.tree.updateData(data);
+        if (hasKeyword && !this.filterData) {
+            this._loadFilterData();
+            return;
         }
-        if (this.openNodes && this.openNodes.length > 0) {
+        const nextData = hasKeyword ? filterTagData(this.filterData ?? [], keywords) : this.data;
+        this._destroyAllEditors();
+        this.tree.updateData(nextData);
+        this._restoreFilterExpansion(hasKeyword);
+    }
+
+    private _restoreFilterExpansion(hasKeyword: boolean) {
+        if (hasKeyword) {
+            this.tree.expandAll();
+            return;
+        }
+        if (this.preFilterOpenNodes !== undefined) {
+            this.tree.collapseAll();
+            this.tree.setExpandIds(this.preFilterOpenNodes);
+            this.openNodes = this.preFilterOpenNodes;
+            this.preFilterOpenNodes = undefined;
+            return;
+        }
+        if (this.openNodes !== undefined) {
+            this.tree.collapseAll();
             this.tree.setExpandIds(this.openNodes);
             return;
         }
         this.openNodes = this.tree.getExpandIds();
-        element.classList.remove("fn__rotate");
     }
 }

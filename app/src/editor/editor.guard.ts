@@ -15,3 +15,12 @@ export const isTabInitData = (obj: unknown): obj is ITabInitData => {
     const data = obj as Record<string, unknown>;
     return typeof data.instance === "string";
 };
+
+/** 判断值是否包含数据库行页签的稳定身份字段。 */
+export const isDatabaseRowTabData = (value: unknown): value is {avID: string; itemID: string} => {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+    const data = value as Record<string, unknown>;
+    return typeof data.avID === "string" && typeof data.itemID === "string";
+};

@@ -74,16 +74,22 @@ export const handleCreate = (
 /** @同步豁免: UI构建 - WebSocket消息处理需要同步更新DOM以保持UI一致性 */
 export const handleRenameNotebook = (
     element: HTMLElement,
+    closeElement: HTMLElement,
     boxId: string,
-    newName: string,
-    escapeHtmlFn: (text: string) => string
+    newName: unknown
 ): void => {
-    const textElement = element.querySelector(`[data-url="${boxId}"] .b3-list-item__text`);
-    // 找不到元素时直接返回
-    if (!textElement) {
+    if (typeof newName !== "string") {
         return;
     }
-    textElement.innerHTML = escapeHtmlFn(newName);
+    const notebook = window.siyuan.notebooks.find(item => item.id === boxId);
+    if (notebook) {
+        notebook.name = newName;
+    }
+    const textElement = element.querySelector(`[data-url="${boxId}"] .b3-list-item__text`) ||
+        closeElement.querySelector(`[data-url="${boxId}"] .b3-list-item__text`);
+    if (textElement) {
+        textElement.textContent = newName;
+    }
 };
 
 /**

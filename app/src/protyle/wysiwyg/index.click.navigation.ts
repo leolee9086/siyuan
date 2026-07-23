@@ -1,4 +1,4 @@
-import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock } from "../util/hasClosest";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
@@ -14,7 +14,8 @@ import { popSearch } from "../../mobile/menu/search";
 import { BlockPanel } from "../../block/panel/Panel";
 import { editAssetItem } from "../render/av/asset";
 import { fetchPost } from "../../util/network/fetch";
-import { isOnlyMeta } from "../util/compatibility";
+import { parseSiYuanUriInfo } from "../../util/pathName";
+import { processSiYuanUri } from "../../util/uri";
 
 /**
  * 处理 click 事件中的导航类逻辑：块引用跳转、链接打开、标签搜索、嵌入块点击等。
@@ -41,6 +42,14 @@ export function handleClickNavigation(
     clickState: { mobileBlur: boolean },
 ): boolean {
     const blockRefElement = hasClosestByAttribute(event.target, "data-type", "block-ref");
+    const siyuanURIInfo = aLink.startsWith("siyuan://blocks/") ? parseSiYuanUriInfo(aLink) : undefined;
+    if (siyuanURIInfo?.avItemID && (range.toString() === "" || event.shiftKey)) {
+        event.stopPropagation();
+        event.preventDefault();
+        hideElements(["dialog", "toolbar"], protyle);
+        processSiYuanUri(protyle.app, aLink);
+        return true;
+    }
     if (blockRefElement || aLink.startsWith("siyuan://blocks/")) {
         event.stopPropagation();
         event.preventDefault();
@@ -120,19 +129,15 @@ export function handleClickNavigation(
         if (virtualRefElement && range.toString() === "") {
             event.stopPropagation();
             event.preventDefault();
-            const blockElement = hasClosestBlock(virtualRefElement);
-            if (blockElement) {
-                fetchPost("/api/block/getBlockDefIDsByRefText", {
-                    anchor: virtualRefElement.textContent,
-                    excludeIDs: [blockElement.getAttribute("data-node-id")]
-                }, (response) => {
-                    checkFold(response.data.refDefs[0].refID, (zoomIn) => {
-                        clickState.mobileBlur = true;
-                        activeBlur();
-                        openMobileFileById(protyle.app, response.data.refDefs[0].refID, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
-                    });
+            fetchPost("/api/block/getBlockDefIDsByRefText", {
+                anchor: virtualRefElement.textContent,
+            }, (response) => {
+                checkFold(response.data.refDefs[0].refID, (zoomIn) => {
+                    clickState.mobileBlur = true;
+                    activeBlur();
+                    openMobileFileById(protyle.app, response.data.refDefs[0].refID, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
                 });
-            }
+            });
             return true;
         }
     }

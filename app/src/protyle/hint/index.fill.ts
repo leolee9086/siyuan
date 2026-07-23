@@ -9,9 +9,8 @@ import {pathPosix} from "../../util/file/pathName";
 import {addEmoji, unicode2Emoji} from "../../emoji";
 import {blockRender} from "../render/blockRender";
 import {isMobile} from "../../platform";
-import {getSiyuanConfig} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {isHTMLElement, isTextNode} from "../../util/DOM/element.guard";
-import {newFileByRefHint} from "../../util/file/newFile";
+import {getBlockRefAnchorText, newFileByRefHint} from "../../util/file/newFile";
 import {handleFillSlash} from "./index.fill.slash";
 import type {IFillSlashContext} from "./index.fill.slash";
 import type {Hint} from "./index";
@@ -137,7 +136,6 @@ function adjustRangeForEndSplit(hint: Hint, range: Range) {
 function handleNewFileBlockRef(hint: Hint, value: string, protyle: IProtyle, range: Range, refIsS: boolean) {
     const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
     const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
-    const anchorTextMaxLen = getSiyuanConfig().editor?.blockRefDynamicAnchorTextMaxLen ?? 64;
     newFileByRefHint(protyle, realFileName, (id) => {
         // https://github.com/siyuan-note/siyuan/issues/10133
         const toolbar = protyle.toolbar;
@@ -145,7 +143,7 @@ function handleNewFileBlockRef(hint: Hint, value: string, protyle: IProtyle, ran
             return;
         }
         toolbar.range = range;
-        const anchorText = (refIsS ? fileNames[0] : realFileName)?.substring(0, anchorTextMaxLen) ?? "";
+        const anchorText = getBlockRefAnchorText((refIsS ? fileNames[0] : realFileName) ?? "");
         const refElement = toolbar.setInlineMark(protyle, "block-ref", "range", {
             type: "id",
             color: `${id}${Constants.ZWSP}${refIsS ? "s" : "d"}${Constants.ZWSP}${anchorText}`

@@ -32,28 +32,28 @@ var DatabaseTool = &Tool{
 	InputSchema: ToolSchema{
 		Type: "object",
 		Properties: map[string]Property{
-			"action":            {Type: "string", Description: "Operation", Enum: []string{"search", "get", "render", "keys", "key_add", "key_remove", "item_add", "item_remove", "item_update", "unused", "clean"}},
-			"keyword":           {Type: "string", Description: "Search keyword (for search)"},
-			"id":                {Type: "string", Description: "Attribute view ID (for get, render, keys, key_add, key_remove, item_add, item_remove, item_update, clean)"},
-			"viewID":            {Type: "string", Description: "View ID (for render, item_add)"},
-			"query":             {Type: "string", Description: "Filter query (for render)"},
-			"page":              {Type: "number", Description: "Page number (default 1)"},
-			"pageSize":          {Type: "number", Description: "Results per page (default 50)"},
-			"name":              {Type: "string", Description: "Key name (for key_add)"},
-			"type":              {Type: "string", Description: "Key type: block/text/number/date/select/mSelect/url/email/phone/mAsset/template/created/updated/checkbox/relation/rollup/lineNumber (for key_add)"},
-			"icon":              {Type: "string", Description: "Key icon (for key_add, optional)"},
-			"prev":              {Type: "string", Description: "Previous key ID for ordering (for key_add, optional)"},
-			"keyID":             {Type: "string", Description: "Key ID (for key_remove, item_update)"},
+			"action":             {Type: "string", Description: "Operation", Enum: []string{"search", "get", "render", "keys", "key_add", "key_remove", "item_add", "item_remove", "item_update", "unused", "clean"}},
+			"keyword":            {Type: "string", Description: "Search keyword (for search)"},
+			"id":                 {Type: "string", Description: "Attribute view ID (for get, render, keys, key_add, key_remove, item_add, item_remove, item_update, clean)"},
+			"viewID":             {Type: "string", Description: "View ID (for render, item_add)"},
+			"query":              {Type: "string", Description: "Filter query (for render)"},
+			"page":               {Type: "number", Description: "Page number (default 1)"},
+			"pageSize":           {Type: "number", Description: "Results per page (default 50)"},
+			"name":               {Type: "string", Description: "Key name (for key_add)"},
+			"type":               {Type: "string", Description: "Key type: block/text/number/date/select/mSelect/url/email/phone/mAsset/template/created/updated/checkbox/relation/rollup/lineNumber (for key_add)"},
+			"icon":               {Type: "string", Description: "Key icon (for key_add, optional)"},
+			"prev":               {Type: "string", Description: "Previous key ID for ordering (for key_add, optional)"},
+			"keyID":              {Type: "string", Description: "Key ID (for key_remove, item_update)"},
 			"removeRelationDest": {Type: "boolean", Description: "Also remove related data in linked databases (for key_remove, optional)"},
-			"blockID":           {Type: "string", Description: "Block ID to bind (for item_add, optional)"},
-			"content":           {Type: "string", Description: "Block column text content (for item_add, optional)"},
-			"groupID":           {Type: "string", Description: "Group ID for positioning (for item_add, optional)"},
-			"previousID":        {Type: "string", Description: "Previous item ID for positioning (for item_add, optional)"},
-			"detached":          {Type: "boolean", Description: "Create detached row (for item_add, optional)"},
+			"blockID":            {Type: "string", Description: "Block ID to bind (for item_add, optional)"},
+			"content":            {Type: "string", Description: "Block column text content (for item_add, optional)"},
+			"groupID":            {Type: "string", Description: "Group ID for positioning (for item_add, optional)"},
+			"previousID":         {Type: "string", Description: "Previous item ID for positioning (for item_add, optional)"},
+			"detached":           {Type: "boolean", Description: "Create detached row (for item_add, optional)"},
 			"ignoreDefaultFill":  {Type: "boolean", Description: "Skip filling default values (for item_add, optional)"},
-			"itemID":            {Type: "string", Description: "Item ID (for item_update)"},
-			"itemIDs":           {Type: "string", Description: "Comma-separated item IDs (for item_remove)"},
-			"value":             {Type: "string", Description: "JSON value for the cell (for item_update)"},
+			"itemID":             {Type: "string", Description: "Item ID (for item_update)"},
+			"itemIDs":            {Type: "string", Description: "Comma-separated item IDs (for item_remove)"},
+			"value":              {Type: "string", Description: "JSON value for the cell (for item_update)"},
 		},
 		Required: []string{"action"},
 	},
@@ -64,7 +64,7 @@ func init() {
 	register(DatabaseTool)
 }
 
-func databaseHandler(args map[string]interface{}) (CallToolResult, error) {
+func databaseHandler(args map[string]any) (CallToolResult, error) {
 	action, _ := args["action"].(string)
 	switch action {
 	case "search":
@@ -96,13 +96,13 @@ func databaseHandler(args map[string]interface{}) (CallToolResult, error) {
 	}, nil
 }
 
-func databaseSearch(args map[string]interface{}) (CallToolResult, error) {
+func databaseSearch(args map[string]any) (CallToolResult, error) {
 	keyword, _ := args["keyword"].(string)
 	if keyword == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "keyword is required"}}, IsError: true}, nil
 	}
 
-	results := model.SearchAttributeView(keyword, nil)
+	results := model.SearchAttributeView(keyword, nil, "", "")
 	if len(results) == 0 {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "no attribute views found"}}}, nil
 	}
@@ -115,7 +115,7 @@ func databaseSearch(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func databaseGet(args map[string]interface{}) (CallToolResult, error) {
+func databaseGet(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -140,7 +140,7 @@ func databaseGet(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func databaseRender(args map[string]interface{}) (CallToolResult, error) {
+func databaseRender(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -177,7 +177,7 @@ func databaseRender(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func databaseKeys(args map[string]interface{}) (CallToolResult, error) {
+func databaseKeys(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -194,7 +194,7 @@ func databaseKeys(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func databaseKeyAdd(args map[string]interface{}) (CallToolResult, error) {
+func databaseKeyAdd(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	name, _ := args["name"].(string)
 	keyType, _ := args["type"].(string)
@@ -211,7 +211,7 @@ func databaseKeyAdd(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf("key added: %s (%s)", keyID, name)}}}, nil
 }
 
-func databaseKeyRemove(args map[string]interface{}) (CallToolResult, error) {
+func databaseKeyRemove(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	keyID, _ := args["keyID"].(string)
 	if id == "" || keyID == "" {
@@ -228,7 +228,7 @@ func databaseKeyRemove(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "key removed: " + keyID}}}, nil
 }
 
-func databaseItemAdd(args map[string]interface{}) (CallToolResult, error) {
+func databaseItemAdd(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "id is required"}}, IsError: true}, nil
@@ -264,7 +264,7 @@ func databaseItemAdd(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "item added"}}}, nil
 }
 
-func databaseItemRemove(args map[string]interface{}) (CallToolResult, error) {
+func databaseItemRemove(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	itemIDsStr, _ := args["itemIDs"].(string)
 	if id == "" || itemIDsStr == "" {
@@ -281,7 +281,7 @@ func databaseItemRemove(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf("%d item(s) removed", len(itemIDs))}}}, nil
 }
 
-func databaseItemUpdate(args map[string]interface{}) (CallToolResult, error) {
+func databaseItemUpdate(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	keyID, _ := args["keyID"].(string)
 	itemID, _ := args["itemID"].(string)
@@ -300,7 +300,7 @@ func databaseItemUpdate(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "cell updated"}}}, nil
 }
 
-func databaseUnused(args map[string]interface{}) (CallToolResult, error) {
+func databaseUnused(args map[string]any) (CallToolResult, error) {
 	items := model.UnusedAttributeViews(true)
 	if len(items) == 0 {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "no unused databases found"}}}, nil
@@ -313,7 +313,7 @@ func databaseUnused(args map[string]interface{}) (CallToolResult, error) {
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
 }
 
-func databaseClean(args map[string]interface{}) (CallToolResult, error) {
+func databaseClean(args map[string]any) (CallToolResult, error) {
 	id, _ := args["id"].(string)
 	if id != "" {
 		model.RemoveUnusedAttributeView(id)

@@ -1,4 +1,6 @@
 import { editorContext } from "./types";
+/** 用途：放行框选复制快捷键。使用范围：选区 guard。解耦评估：经 WYSIWYG 目录入口复用无状态匹配器。 */
+import {matchHotKey} from "./imports";
 
 export const htmlBlockGuard = async (
     event: KeyboardEvent,
@@ -51,6 +53,10 @@ export const protyleHaveSelectedGuard = async (
     controller: AbortController
 ) => {
     if (protyle.selectElement?.getAttribute("data-empty")) {
+        return;
+    }
+    // 框选块时保留系统复制快捷键，由后续复制中间件消费选区。
+    if (matchHotKey("⌘C", event)) {
         return;
     }
     event.stopPropagation();

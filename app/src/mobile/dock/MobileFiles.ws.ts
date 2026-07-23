@@ -14,10 +14,16 @@ import type {MobileFiles} from "./MobileFiles";
 export function genNotebook(item: INotebook) {
     const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
     const editingPublishAccess = document.querySelector('[data-type="publish-access"]')?.classList.contains("block__icon--active") || false;
-    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e${editingPublishAccess ? " fn__none" : ""}" aria-label="${window.siyuan.languages.changeIcon}">${unicode2Emoji(item.icon || localImages.note)}</span>`;
+    const iconContent = item.encrypted && item.closed ? "🔒️" : unicode2Emoji(item.icon || localImages.note);
+    const isBoxDoc = !item.closed && window.siyuan.config.fileTree.boxDocEnabled;
+    const hasChildren = isBoxDoc && item.subFileCount > 0;
+    const iconAriaLabel = isBoxDoc
+        ? (hasChildren ? window.siyuan.languages.docIconClickExpand : window.siyuan.languages.openDocument)
+        : window.siyuan.languages.changeIcon;
+    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e${editingPublishAccess ? " fn__none" : ""}" aria-label="${iconAriaLabel}">${iconContent}</span>`;
     const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__e${editingPublishAccess ? "" : " fn__none"}" aria-label="${window.siyuan.languages.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
     if (item.closed) {
-        return `<li data-url="${item.id}" class="b3-list-item">
+        return `<li data-url="${item.id}" class="b3-list-item"${item.encrypted ? ' data-encrypted="true"' : ""}>
     <span class="b3-list-item__toggle fn__hidden">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
@@ -30,8 +36,8 @@ export function genNotebook(item: INotebook) {
 </li>`;
     }
     return `<ul class="b3-list b3-list--background" data-url="${item.id}" data-sortmode="${item.sortMode}">
-<li class="b3-list-item" data-type="navigation-root" data-path="/">
-    <span class="b3-list-item__toggle${item.closed ? " fn__hidden" : ""}">
+<li class="b3-list-item" data-type="navigation-root" data-path="/" data-count="${item.subFileCount || 0}" data-node-id="${isBoxDoc ? item.id : ""}">
+    <span class="b3-list-item__toggle${isBoxDoc && !hasChildren ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}
@@ -44,6 +50,32 @@ export function genNotebook(item: INotebook) {
         <svg><use xlink:href="#iconAdd"></use></svg>
     </span>
 </li></ul>`;
+}
+
+export function updateDocActionElement(liElement: HTMLElement) {
+    if (liElement.getAttribute("data-type") !== "navigation-root" || !liElement.getAttribute("data-node-id")) {
+        return;
+    }
+    liElement.querySelector(".b3-list-item__icon")?.setAttribute(
+        "aria-label",
+        Number(liElement.getAttribute("data-count")) > 0
+            ? window.siyuan.languages.docIconClickExpand
+            : window.siyuan.languages.openDocument
+    );
+}
+
+export function updateSubFileCount(liElement: HTMLElement, subFileCount: number) {
+    liElement.setAttribute("data-count", subFileCount.toString());
+    if (subFileCount === 0) {
+        liElement.querySelector(".b3-list-item__toggle")?.classList.add("fn__hidden");
+        liElement.querySelector(".b3-list-item__arrow")?.classList.remove("b3-list-item__arrow--open");
+        if (liElement.nextElementSibling?.tagName === "UL") {
+            liElement.nextElementSibling.remove();
+        }
+    } else {
+        liElement.querySelector(".b3-list-item__toggle")?.classList.remove("fn__hidden");
+    }
+    updateDocActionElement(liElement);
 }
 
 /**
@@ -65,8 +97,9 @@ export function updateItemArrow(files: MobileFiles, notebookId: string, filePath
             const dirname = pathPosix().dirname(currentPath);
             // 已到达根路径，刷新根节点的子列表
             if (dirname === "/") {
-                if (treeElement.firstElementChild?.querySelector(".b3-list-item__arrow--open")) {
-                    files.getLeaf(treeElement.firstElementChild, notebookId, true);
+                const rootElement = treeElement.firstElementChild as HTMLElement;
+                if (rootElement?.querySelector(".b3-list-item__arrow--open")) {
+                    files.getLeaf(rootElement, notebookId, true);
                 }
                 break;
             }
@@ -106,9 +139,14 @@ export function onMove(files: MobileFiles, data: {
         // 源节点是父容器中唯一子节点时，需要更新父节点箭头状态
         if (sourceElement.parentElement.childElementCount === 1) {
             if (sourceElement.parentElement.previousElementSibling) {
-                sourceElement.parentElement.previousElementSibling.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
-                sourceElement.parentElement.previousElementSibling.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
-                const emojiElement = sourceElement.parentElement.previousElementSibling.querySelector(".b3-list-item__icon");
+                const parentLiElement = sourceElement.parentElement.previousElementSibling as HTMLElement;
+                if (parentLiElement.getAttribute("data-type") !== "navigation-root" || parentLiElement.dataset.nodeId) {
+                    parentLiElement.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
+                }
+                parentLiElement.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
+                parentLiElement.setAttribute("data-count", "0");
+                updateDocActionElement(parentLiElement);
+                const emojiElement = parentLiElement.querySelector(".b3-list-item__icon");
                 const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
                 // 无子文档时将文件夹图标改回文件图标
                 if (emojiElement.innerHTML === unicode2Emoji(localImages.folder)) {
@@ -122,13 +160,21 @@ export function onMove(files: MobileFiles, data: {
     } else {
         const parentElement = files.element.querySelector(`ul[data-url="${data.fromNotebook}"] li[data-path="${pathPosix().dirname(data.fromPath)}.sy"]`) as HTMLElement;
         if (parentElement && parentElement.getAttribute("data-count") === "1") {
-            parentElement.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
+            if (parentElement.dataset.type !== "navigation-root" || parentElement.dataset.nodeId) {
+                parentElement.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
+            }
             parentElement.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
+            parentElement.setAttribute("data-count", "0");
+            updateDocActionElement(parentElement);
         }
     }
     const newElement = files.element.querySelector(`[data-url="${data.toNotebook}"] li[data-path="${data.toPath}"]`) as HTMLElement;
     // 重新展开移动到的新文件夹
     if (newElement) {
+        if (newElement.getAttribute("data-type") === "navigation-root") {
+            newElement.setAttribute("data-count", Math.max(1, Number(newElement.getAttribute("data-count"))).toString());
+            updateDocActionElement(newElement);
+        }
         const emojiElement = newElement.querySelector(".b3-list-item__icon");
         const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
         // 目标位置有子文档，将文件图标改为文件夹图标
@@ -197,9 +243,11 @@ export function onRemove(files: MobileFiles, data: IWebSocketData) {
                 if (parentElement) {
                     const iconElement = parentElement.querySelector("svg");
                     iconElement.classList.remove("b3-list-item__arrow--open");
-                    if (parentElement.dataset.type !== "navigation-root") {
+                    if (parentElement.dataset.type !== "navigation-root" || parentElement.dataset.nodeId) {
                         iconElement.parentElement.classList.add("fn__hidden");
                     }
+                    parentElement.setAttribute("data-count", "0");
+                    updateDocActionElement(parentElement);
                     const emojiElement = iconElement.parentElement.nextElementSibling;
                     const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
                     // 无子文档时将文件夹图标改回文件图标
@@ -230,6 +278,21 @@ export function onRename(files: MobileFiles, data: { path: string, title: string
     fileItemElement.querySelector(".b3-list-item__text").innerHTML = escapeHtml(data.title);
 }
 
+export function onRenameNotebook(files: MobileFiles, data: {box: string, name: unknown}) {
+    if (typeof data.name !== "string") {
+        return;
+    }
+    const notebook = window.siyuan.notebooks.find((item) => item.id === data.box);
+    if (notebook) {
+        notebook.name = data.name;
+    }
+    const textElement = files.element.querySelector(`[data-url="${data.box}"] .b3-list-item__text`) ||
+        files.closeElement.querySelector(`[data-url="${data.box}"] .b3-list-item__text`);
+    if (textElement) {
+        textElement.textContent = data.name;
+    }
+}
+
 /**
  * 作用：处理笔记本挂载后的文件树 DOM 更新。
  * 意图：将新挂载的笔记本从关闭列表移到打开列表，并插入正确位置。
@@ -250,7 +313,8 @@ export function onMount(files: MobileFiles, data: IWebSocketData) {
         }
     }
     setNoteBook((notebooks: INotebook[]) => {
-        const html = genNotebook(data.data.box);
+        const notebook = notebooks.find((item) => item.id === data.data.box.id) || data.data.box;
+        const html = genNotebook(notebook);
         if (files.element.childElementCount === 0) {
             files.element.innerHTML = html;
         } else {
@@ -284,13 +348,16 @@ export function onMount(files: MobileFiles, data: IWebSocketData) {
  * @同步豁免: UI构建
  */
 export function onReloadDocInfo(files: MobileFiles, data: IWebSocketData) {
-    const liElement = files.element.querySelector(`li[data-node-id="${data.data.rootID}"]`);
+    const notebook = window.siyuan.notebooks.find((item) => item.id === data.data.rootID);
+    const subFileCount = notebook && window.siyuan.isPublish ? notebook.subFileCount : data.data.subFileCount;
+    if (notebook) {
+        notebook.subFileCount = subFileCount;
+    }
+    const liElement = files.element.querySelector(
+        `li[data-node-id="${data.data.rootID}"][data-type="navigation-file"], ` +
+        `li[data-node-id="${data.data.rootID}"][data-type="navigation-root"]`
+    );
     if (liElement) {
-        liElement.setAttribute("data-count", data.data.subFileCount);
-        if (data.data.subFileCount === 0) {
-            liElement.querySelector(".b3-list-item__toggle")?.classList.add("fn__hidden");
-        } else {
-            liElement.querySelector(".b3-list-item__toggle")?.classList.remove("fn__hidden");
-        }
+        updateSubFileCount(liElement as HTMLElement, subFileCount);
     }
 }

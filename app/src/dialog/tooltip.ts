@@ -22,9 +22,14 @@ import { getWindowHeight } from "./imports";
  * 解耦评估：DOMPurify 读取已被 environment 层封装。
  */
 import { getDOMPurify } from "./imports";
-
-// 记录当前 tooltip 对应的触发元素，便于判断鼠标是否已离开触发区域
-export let tooltipTargetElement: Element | null = null;
+/** 用途：Tooltip 定位和公共调用参数类型。使用范围：本模块内部定位策略。解耦评估：同目录类型契约。 */
+import type {ITooltipCalculationContext} from "./dialog.types";
+/** 用途：Tooltip 溢出参数类型。使用范围：本模块垂直边界调整。解耦评估：纯类型契约无需运行时注入。 */
+import type {ITooltipOverflowContext} from "./dialog.types";
+/** 用途：Tooltip 方向定位参数类型。使用范围：本模块四向定位策略。解耦评估：纯类型契约无需运行时注入。 */
+import type {ITooltipPositionContext} from "./dialog.types";
+/** 用途：Tooltip 公共调用元组。使用范围：保持现有位置参数 API。解耦评估：纯类型契约无需运行时注入。 */
+import type {TShowTooltipArguments} from "./dialog.types";
 
 /**
  * 用途：解析 position 属性中的偏移量数值部分
@@ -33,7 +38,6 @@ export let tooltipTargetElement: Element | null = null;
 const parsePositionDiff = (position: string | null, space: number) => {
     return (position ? parseInt(position) : NaN) || space;
 };
-
 /**
  * 用途：获取消息元素容器，清空之前的位置样式
  * 使用范围：showTooltip 中每次显示前重置 tooltip 位置
@@ -123,7 +127,7 @@ const positionParentW = (messageElement: HTMLElement, parentRect: DOMRect) => {
  * 用途：在目标元素左侧定位（west）
  * 使用范围：gutter、标题图标、av relation 等
  */
-const positionWest = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+const positionWest = ({messageElement, targetRect, position, space}: ITooltipPositionContext) => {
     const positionDiff = parsePositionDiff(position, space);
     const windowHeight = getWindowHeight();
     // 垂直居中于目标元素
@@ -144,7 +148,7 @@ const positionWest = (messageElement: HTMLElement, targetRect: DOMRect, position
  * 用途：在目标元素右侧定位（east）
  * 使用范围：布局菜单等
  */
-const positionEast = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+const positionEast = ({messageElement, targetRect, position, space}: ITooltipPositionContext) => {
     const positionDiff = parsePositionDiff(position, space);
     const windowHeight = getWindowHeight();
     const windowWidth = getWindowWidth();
@@ -165,7 +169,12 @@ const positionEast = (messageElement: HTMLElement, targetRect: DOMRect, position
 /**
  * 用途：当 north 定位上方空间不足时，选择下方或置顶
  */
-const handleNorthTopOverflow = (targetRect: DOMRect, positionDiff: number, messageElement: HTMLElement, windowHeight: number) => {
+const handleNorthTopOverflow = ({
+    targetRect,
+    positionDiff,
+    messageElement,
+    windowHeight,
+}: ITooltipOverflowContext) => {
     // 下方空间更多时显示在元素下方
     if (targetRect.top < windowHeight - targetRect.bottom) {
         const top = targetRect.bottom + positionDiff;
@@ -181,7 +190,7 @@ const handleNorthTopOverflow = (targetRect: DOMRect, positionDiff: number, messa
  * 用途：在目标元素上方定位（north）
  * 使用范围：属性视图、列、多选描述、protyle-icon 等
  */
-const positionNorth = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+const positionNorth = ({messageElement, targetRect, position, space}: ITooltipPositionContext) => {
     const positionDiff = parsePositionDiff(position, space);
     const windowHeight = getWindowHeight();
     const windowWidth = getWindowWidth();
@@ -190,7 +199,7 @@ const positionNorth = (messageElement: HTMLElement, targetRect: DOMRect, positio
 
     // 若上方空间不足则根据可用空间决定显示位置
     if (top < 0) {
-        top = handleNorthTopOverflow(targetRect, positionDiff, messageElement, windowHeight);
+        top = handleNorthTopOverflow({targetRect, positionDiff, messageElement, windowHeight});
     }
     // 防止 tooltip 超出视口右边界
     if (left + messageElement.clientWidth > windowWidth) {
@@ -202,7 +211,13 @@ const positionNorth = (messageElement: HTMLElement, targetRect: DOMRect, positio
 /**
  * 用途：当 south 定位下方空间不足时，选择上方或限制高度
  */
-const handleSouthBottomOverflow = (targetRect: DOMRect, positionDiff: number, top: number, messageElement: HTMLElement, windowHeight: number) => {
+const handleSouthBottomOverflow = ({
+    targetRect,
+    positionDiff,
+    top,
+    messageElement,
+    windowHeight,
+}: ITooltipOverflowContext & {top: number}) => {
     // 上方空间更多时显示在元素上方
     if (targetRect.top - positionDiff > windowHeight - top) {
         const newTop = Math.max(0, targetRect.top - positionDiff - messageElement.clientHeight);
@@ -218,7 +233,7 @@ const handleSouthBottomOverflow = (targetRect: DOMRect, positionDiff: number, to
  * 用途：在目标元素下方定位（south / 默认值）
  * 使用范围：默认定位方式
  */
-const positionSouth = (messageElement: HTMLElement, targetRect: DOMRect, position: string | null, space: number) => {
+const positionSouth = ({messageElement, targetRect, position, space}: ITooltipPositionContext) => {
     const positionDiff = parsePositionDiff(position, space);
     const windowHeight = getWindowHeight();
     const windowWidth = getWindowWidth();
@@ -227,7 +242,7 @@ const positionSouth = (messageElement: HTMLElement, targetRect: DOMRect, positio
 
     // 若下方空间不足则调整显示位置
     if (top + messageElement.clientHeight > windowHeight) {
-        top = handleSouthBottomOverflow(targetRect, positionDiff, top, messageElement, windowHeight);
+        top = handleSouthBottomOverflow({targetRect, positionDiff, top, messageElement, windowHeight});
     }
     // 防止 tooltip 超出视口右边界
     if (left + messageElement.clientWidth > windowWidth) {
@@ -240,7 +255,13 @@ const positionSouth = (messageElement: HTMLElement, targetRect: DOMRect, positio
  * 用途：根据 position 属性选择对应的定位策略并计算最终位置
  * 使用范围：showTooltip 中确定 tooltip 展示位置
  */
-const calculateTooltipPosition = (messageElement: HTMLElement, target: Element, targetRect: DOMRect, position: string | null, event: MouseEvent | undefined, space: number) => {
+const calculateTooltipPosition = ({
+    messageElement,
+    target,
+    targetRect,
+    position,
+    space,
+}: ITooltipCalculationContext) => {
     const parentRect = target.parentElement.getBoundingClientRect();
 
     if (position === "parentE") {
@@ -250,40 +271,40 @@ const calculateTooltipPosition = (messageElement: HTMLElement, target: Element, 
         return positionParentW(messageElement, parentRect);
     }
     if (position?.endsWith("west")) {
-        return positionWest(messageElement, targetRect, position, space);
+        return positionWest({messageElement, targetRect, position, space});
     }
     if (position?.endsWith("east")) {
-        return positionEast(messageElement, targetRect, position, space);
+        return positionEast({messageElement, targetRect, position, space});
     }
     if (position?.endsWith("north")) {
-        return positionNorth(messageElement, targetRect, position, space);
+        return positionNorth({messageElement, targetRect, position, space});
     }
     // south / 默认值
-    return positionSouth(messageElement, targetRect, position, space);
+    return positionSouth({messageElement, targetRect, position, space});
 };
 
 /**
  * 用途：显示 tooltip 提示信息，根据目标元素位置自动计算最佳展示方向
  * 调用时机：当用户悬停或聚焦到需要提示信息的 UI 元素时调用
+ * @同步豁免: UI构建 - 必须在当前鼠标事件内完成尺寸读取和定位，延后会使用到变化后的目标布局
  */
-export const showTooltip = async (
-    message: string,
-    target: Element,
-    tooltipClass?: string,
-    event?: MouseEvent,
-    space: number = 0.5,
-) => {
+export const showTooltip = (...[
+    message,
+    target,
+    tooltipClass,
+    event,
+    space = 0.5,
+]: TShowTooltipArguments) => {
     if (isMobile() || !message) {
         return;
     }
-    tooltipTargetElement = target;
     let targetRect = target.getBoundingClientRect();
     // 处理跨行元素，选择合适的矩形
     targetRect = findTargetRect(target, event, targetRect);
 
     // 目标元素不可见时隐藏 tooltip
     if (targetRect.height === 0) {
-        await hideTooltip();
+        hideTooltip();
         return;
     }
     const messageElement = getTooltipElement();
@@ -292,7 +313,7 @@ export const showTooltip = async (
     messageElement.innerHTML = getDOMPurify().sanitize(message);
 
     const position = target.getAttribute("data-position");
-    const { left, top } = calculateTooltipPosition(messageElement, target, targetRect, position, event, space);
+    const { left, top } = calculateTooltipPosition({messageElement, target, targetRect, position, space});
 
     messageElement.style.top = top + "px";
     messageElement.style.left = Math.max(0, left) + "px";
@@ -306,9 +327,9 @@ export const showTooltip = async (
 /**
  * 用途：隐藏 tooltip 提示信息
  * 调用时机：当用户移出目标元素或 tooltip 超时时调用
+ * @同步豁免: UI构建 - 必须在当前鼠标事件内立即隐藏，避免后续事件重新显示时出现竞态闪烁
  */
-export const hideTooltip = async () => {
+export const hideTooltip = () => {
     const tooltipElement = document.getElementById("tooltip");
-    tooltipTargetElement = null;
     tooltipElement.classList.add("fn__none");
 };

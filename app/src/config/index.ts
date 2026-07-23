@@ -6,7 +6,8 @@ import {bindSettingSaveDelegation} from "./setting/save";
 import {Dialog} from "./imports";
 import {Constants} from "./imports";
 import {focusByRange} from "./imports";
-import {getSettingTabDefs} from "./setting/tabs";
+import {escapeHtml, getFrontend, showMessage} from "./imports";
+import {getSettingTabDefs, settingTabToMenuId} from "./setting/tabs";
 import type {TSettingTab} from "./setting/tabs";
 import {clearAccessTabElement} from "./tabs/accessRuntime";
 import {clearSyncTabElement} from "./tabs/syncRuntime";
@@ -105,7 +106,7 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
         ${tabPanels.join("")}
     </div>
 </div>`,
-        width: "70vw",
+        width: "max(70vw, min(90vw, 900px))",
         height: "90vh",
         destroyCallback() {
             clearSyncTabElement();
@@ -123,41 +124,69 @@ const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
     return dialog;
 };
 
+/** 打开移动端设置菜单，并在调用方指定 Tab 时延迟激活对应菜单项。 */
+const openMobileSetting = (tab?: TSettingTab) => {
+    popMenu();
+    // 未指定 Tab 时保留移动设置菜单的默认选中状态。
+    if (!tab) {
+        return;
+    }
+    document.getElementById(settingTabToMenuId(tab))?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+};
+
 export const openSetting = (app: App, tab?: TSettingTab) => {
     if (isMobile) {
-        popMenu();
+        openMobileSetting(tab);
         return;
     }
     return openSettingDialog(app, tab);
 };
 
-const BAZAAR_RESOURCES_URL: Record<TBazaarType, string> = {
-    templates: "/api/bazaar/getBazaarTemplate",
-    icons: "/api/bazaar/getBazaarIcon",
-    widgets: "/api/bazaar/getBazaarWidget",
-    themes: "/api/bazaar/getBazaarTheme",
-    plugins: "/api/bazaar/getBazaarPlugin",
+const BAZAAR_RESOURCES_URL: Record<"bazaar" | "downloaded", Record<TBazaarType, string>> = {
+    bazaar: {
+        templates: "/api/bazaar/getBazaarTemplate",
+        icons: "/api/bazaar/getBazaarIcon",
+        widgets: "/api/bazaar/getBazaarWidget",
+        themes: "/api/bazaar/getBazaarTheme",
+        plugins: "/api/bazaar/getBazaarPlugin",
+    },
+    downloaded: {
+        templates: "/api/bazaar/getInstalledTemplate",
+        icons: "/api/bazaar/getInstalledIcon",
+        widgets: "/api/bazaar/getInstalledWidget",
+        themes: "/api/bazaar/getInstalledTheme",
+        plugins: "/api/bazaar/getInstalledPlugin",
+    },
 };
 
-export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemName: string) => {
+export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemName: string, from: "bazaar" | "downloaded" = "bazaar") => {
     if (isMobile) {
         return;
     }
-    const getResourcesUrl = BAZAAR_RESOURCES_URL[bazaarType];
+    // 未信任社区集市时只打开设置页，由用户先明确启用信任，不发起包内容请求。
+    if (!window.siyuan.config.bazaar.trust) {
+        openSettingDialog(app, "bazaar");
+        return;
+    }
+    const getResourcesUrl = BAZAAR_RESOURCES_URL[from][bazaarType];
     if (!getResourcesUrl) {
         return;
     }
 
-    const response = await fetchSyncPost(getResourcesUrl, {frontend: "all", keyword: itemName});
+    const response = await fetchSyncPost(getResourcesUrl, {
+        frontend: getFrontend(),
+        keyword: itemName,
+    });
     if (response.code !== 0) {
         return;
     }
     const packages: IBazaarItem[] = response.data.packages;
     const resource = packages.find((item: IBazaarItem) => item.name === itemName);
     if (!resource) {
+        showMessage(`Package not found: ${escapeHtml(itemName)}`);
         return;
     }
 
     openSettingDialog(app, "bazaar");
-    bazaar._renderReadme(bazaarType, resource, false);
+    bazaar._renderReadme(bazaarType, resource, from === "downloaded");
 };

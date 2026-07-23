@@ -26,6 +26,8 @@ import {runAfterLoadPlugin} from "./loader.afterLoad";
 /** @导入用途: 插件停靠栏动态添加 @使用范围: 插件初始化时挂载 UI @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
 import {addPluginDock} from "./loader.afterLoad";
 
+const pluginLoadPromises = new WeakMap<Plugin, Promise<void>>();
+
 /** 作用: 构建插件 require 注入层; 意图: 统一第三方插件模块解析; 调用时机: 插件入口执行时 */
 const requireFunc = (key: string) => {
     const modules: Record<string, unknown> = {siyuan: API};
@@ -134,13 +136,16 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
     }
 
     app.plugins.push(validPlugin);
-    try {
-        await validPlugin.onload();
-    } catch (error) {
-        console.error(`plugin ${item.name} onload error:`, error);
-    }
-    // S-forge: 移植上游 plugin.kernel.init() 调用
-    await validPlugin.kernel.init();
+    const loadPromise = (async () => {
+        try {
+            await validPlugin.onload();
+        } catch (error) {
+            console.error(`plugin ${item.name} onload error:`, error);
+        }
+        await validPlugin.kernel.init();
+    })();
+    pluginLoadPromises.set(validPlugin, loadPromise);
+    await loadPromise;
     return validPlugin;
 };
 
@@ -157,7 +162,9 @@ export const loadPlugins = async (app: App, names?: string[], init = true) => {
             continue;
         }
         if (init) {
-            void loadPluginJS(app, item);
+            void loadPluginJS(app, item).catch((error) => {
+                console.error(`plugin ${item.name} initialization error:`, error);
+            });
         }
         if (!init) {
             await loadPluginJS(app, item);
@@ -186,6 +193,21 @@ export const loadPlugin = async (app: App, item: IPluginData) => {
 export const afterLoadPlugin = (plugin: Plugin) => {
     runAfterLoadPlugin(plugin);
     return;
+};
+
+export const afterLayoutReady = (app: App) => {
+    for (const plugin of app.plugins) {
+        const loadPromise = pluginLoadPromises.get(plugin);
+        if (!loadPromise) {
+            afterLoadPlugin(plugin);
+            continue;
+        }
+        void loadPromise.then(() => {
+            afterLoadPlugin(plugin);
+        }).catch((error) => {
+            console.error(`plugin ${plugin.name} layout initialization error:`, error);
+        });
+    }
 };
 /** 导出 addPluginDock 供插件系统外部模块使用 */
 export { addPluginDock };

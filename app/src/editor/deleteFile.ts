@@ -16,6 +16,8 @@ import { escapeHtml } from "./imports";
 import { getSiyuanConfig } from "./imports";
 /** 用途：获取 SiYuan 国际化文案。使用范围：删除确认对话框文案。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanLanguages } from "./imports";
+/** 用途：判断加密笔记本。使用范围：文档信息查询附带 notebook 上下文。解耦评估：通过 ./imports 转发唯一实现。 */
+import { isEncryptedBox } from "./imports";
 
 /**
  * 处理文档信息响应，显示删除确认对话框
@@ -54,8 +56,14 @@ export const deleteFile = async (notebookId: string, pathString: string) => {
         fetchPost("/api/filetree/removeDoc", { notebook: notebookId, path: pathString });
         return;
     }
-
-    fetchPost("/api/block/getDocInfo", { id: getDisplayName(pathString, true, true) }, (response) => {
+    const docInfoParam: {id: string; notebook?: string} = {
+        id: getDisplayName(pathString, true, true),
+    };
+    // 加密笔记本的块树与内容位于 InBox 数据源，查询必须携带 notebook 以选择正确存储边界。
+    if (isEncryptedBox(notebookId)) {
+        docInfoParam.notebook = notebookId;
+    }
+    fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
         if (!response.data) {
             return;
         }

@@ -7,6 +7,8 @@ import {processSiYuanUri} from "../../editor/processSiYuanUri";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
+import {isSiYuanUriProtocol} from "../../util/pathName";
+import type {App} from "../../index";
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
@@ -74,7 +76,11 @@ export const openByMobile = (uri: string) => {
     if (isInIOS()) {
         if (uri.startsWith("assets/")) {
             // iOS 16.7 之前的版本，uri 需要 encodeURIComponent
-            window.webkit.messageHandlers.openLink.postMessage(location.origin + "/assets/" + encodeURIComponent(uri.replace("assets/", "")));
+            const assetPathAndQuery = uri.substring("assets/".length);
+            const queryIndex = assetPathAndQuery.indexOf("?");
+            const assetPath = queryIndex < 0 ? assetPathAndQuery : assetPathAndQuery.substring(0, queryIndex);
+            const query = queryIndex < 0 ? "" : assetPathAndQuery.substring(queryIndex);
+            window.webkit.messageHandlers.openLink.postMessage(location.origin + "/assets/" + encodeURIComponent(assetPath) + query);
         } else if (uri.startsWith("/")) {
             // 导出 zip 返回的是已经 encode 过的，因此不能再 encode
             window.webkit.messageHandlers.openLink.postMessage(location.origin + uri);
@@ -680,6 +686,23 @@ export const setStorageVal = (key: string, val: any, cb?: () => void) => {
             cb();
         }
     });
+};
+
+export const initWindowOpenOverride = (app: App, openExternal?: (url: string) => void) => {
+    const originalOpen = window.open;
+    window.open = function (url?: string | URL, target?: string, features?: string): WindowProxy | null {
+        const urlStr = typeof url === "string" ? url : (url ? String(url) : "");
+        if (isSiYuanUriProtocol(urlStr) && (!isBrowser || isInMobileApp() || target !== "_blank")) {
+            processSiYuanUri(app, urlStr);
+            return null;
+        }
+        if (isInMobileApp() && urlStr && openExternal) {
+            openExternal(urlStr);
+            return null;
+        }
+        // 浏览器可通过 window.open("siyuan://blocks/20221031001313-rk7sd0e", "_blank") 打开本地客户端
+        return originalOpen.call(window, url, target, features);
+    };
 };
 
 export const initNativeDialogOverride = () => {

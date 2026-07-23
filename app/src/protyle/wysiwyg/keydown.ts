@@ -77,7 +77,6 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
         cb(response.data);
     });
 };
-
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     //@ts-ignore
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {

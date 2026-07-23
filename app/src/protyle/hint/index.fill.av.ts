@@ -42,10 +42,10 @@ export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, sourc
     }
     // value 匹配 newFile 模式时走新建文档分支，否则走已有块替换
     if (value.startsWith("((newFile ") && value.endsWith(`${Lute.Caret}'))`)) {
-        handleFillAvNewFile(protyle, value, rowElement, previousID, avID, cellElement);
+        handleFillAvNewFile(protyle, value, nodeElement, previousID, avID, cellElement);
         return true;
     }
-    handleFillAvExisting(protyle, rowElement, previousID, avID, cellElement, tempElement);
+    handleFillAvExisting(protyle, nodeElement, previousID, avID, cellElement, tempElement);
     return true;
 }
 
@@ -64,13 +64,12 @@ function findAvCell(range: Range, nodeElement: HTMLElement) {
 
 /** @同步豁免: 遗留代码 — av 新建文档填充 */
 function handleFillAvNewFile(
-    protyle: IProtyle, value: string, rowElement: HTMLElement,
+    protyle: IProtyle, value: string, nodeElement: HTMLElement,
     previousID: string, avID: string, cellElement: HTMLElement
 ) {
     const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
     const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
     const newID = Lute.NewNodeID();
-    rowElement.dataset.id = newID;
     // @内联回调 — newFileByRefHint 回调需要闭包访问 protyle、avID、previousID、newID 等多个局部变量
     newFileByRefHint(protyle, realFileName ?? "", () => {
         transaction(protyle, [{
@@ -79,12 +78,15 @@ function handleFillAvNewFile(
             previousID,
             nextID: newID,
             isDetached: false,
+            blockID: nodeElement.dataset.nodeId,
+            context: {protyleID: protyle.id},
         }], [{
             action: "replaceAttrViewBlock",
             avID,
-            previousID: newID,
-            nextID: previousID,
+            previousID,
             isDetached: true,
+            blockID: nodeElement.dataset.nodeId,
+            context: {protyleID: protyle.id},
         }]);
     }, newID);
     updateAttrViewCellAnimation(cellElement, {
@@ -96,26 +98,28 @@ function handleFillAvNewFile(
 
 /** @同步豁免: 遗留代码 — av 已有块替换填充 */
 function handleFillAvExisting(
-    protyle: IProtyle, rowElement: HTMLElement,
+    protyle: IProtyle, nodeElement: HTMLElement,
     previousID: string, avID: string, cellElement: HTMLElement, tempElement: HTMLElement
 ) {
     const sourceId = tempElement.getAttribute("data-id");
     if (!sourceId) {
         return;
     }
-    rowElement.dataset.id = sourceId;
     transaction(protyle, [{
         action: "replaceAttrViewBlock",
         avID,
         previousID,
         nextID: sourceId,
         isDetached: false,
+        blockID: nodeElement.dataset.nodeId,
+        context: {protyleID: protyle.id},
     }], [{
         action: "replaceAttrViewBlock",
         avID,
-        previousID: sourceId,
-        nextID: previousID,
+        previousID,
         isDetached: true,
+        blockID: nodeElement.dataset.nodeId,
+        context: {protyleID: protyle.id},
     }]);
     updateAttrViewCellAnimation(cellElement, {
         type: "block",

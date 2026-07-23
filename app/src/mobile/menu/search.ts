@@ -5,6 +5,7 @@ import {getIconByType} from "../../editor/getIcon";
 import {openModel} from "./model";
 import {getDisplayName, getNotebookName} from "../../util/file/pathName";
 import {escapeHtml} from "../../util/DOM/escape";
+import {isEncryptedBox} from "../../util/pathName";
 import {unicode2Emoji} from "../../emoji";
 import {newFile} from "../../util/file/newFile";
 import {activeBlur} from "../util/keyboardToolbar";
@@ -51,7 +52,7 @@ export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, elem
                 previousElement.setAttribute("disabled", "disabled");
             }
             const endpoint = config.method === 4 ? "/api/search/semanticSearchBlock" : "/api/search/fullTextSearchBlock";
-            fetchPost(endpoint, {
+            const searchParam: IObject = {
                 query: config.query,
                 method: config.method,
                 types: config.types,
@@ -61,7 +62,16 @@ export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, elem
                 orderBy: config.sort,
                 page: config.page,
                 pageSize: 32,
-            }, (response) => {
+            };
+            // 限定在单个加密 box 内搜索时带 notebook，让内核走加密 db；跨 box 或全局搜索走原函数
+            const idPaths = config.idPath || [];
+            if (idPaths.length > 0) {
+                const box = idPaths[0].split("/")[0];
+                if (isEncryptedBox(box) && idPaths.every(p => p.split("/")[0] === box)) {
+                    searchParam.notebook = box;
+                }
+            }
+            fetchPost(endpoint, searchParam, (response) => {
                 onRecentBlocks(response.data.blocks, config, response, focusId);
                 loadingElement.classList.add("fn__none");
                 if (config.page < response.data.pageCount) {

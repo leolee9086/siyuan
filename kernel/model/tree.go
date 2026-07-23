@@ -172,6 +172,24 @@ func loadTree(localPath string, luteEngine *lute.Lute) (ret *parse.Tree, err err
 		return
 	}
 
+	// 加密笔记本的 .sy 是密文，需先解密。从路径反推 boxID，已解锁的加密笔记本用 fileKey 解密；
+	// 加密笔记本未解锁时返回错误（fail-closed）；非加密笔记本原样 data。
+	if boxID := extractBoxIDFromPath(localPath); boxID != "" && IsEncryptedBox(boxID) {
+		HoldBoxReadLock(boxID)
+		defer ReleaseBoxReadLock(boxID)
+		dek, dekErr := GetDEKIfUnlocked(boxID)
+		if dekErr != nil {
+			err = dekErr
+			return
+		}
+		// 从绝对路径推导 box 内相对路径作为 AAD
+		relPath := filepath.ToSlash(strings.TrimPrefix(localPath, filepath.Join(util.DataDir, boxID)+string(os.PathSeparator)))
+		if data, err = DecryptFile(boxID, relPath, dek, data); err != nil {
+			logging.LogErrorf("decrypt tree [path=%s] failed: %s", localPath, err)
+			return
+		}
+	}
+
 	ret, err = dataparser.ParseJSONWithoutFix(data, luteEngine.ParseOptions)
 	if err != nil {
 		logging.LogErrorf("parse json to tree [%s] failed: %s", localPath, err)
@@ -190,12 +208,26 @@ var (
 )
 
 func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
+	return LoadTreeByBlockIDWithReindexInBox(id, "")
+}
+
+// LoadTreeByBlockIDWithReindexInBox 与 LoadTreeByBlockIDWithReindex 一致，但按 boxID 路由 blocktree 查询。
+func LoadTreeByBlockIDWithReindexInBox(id, boxID string) (ret *parse.Tree, err error) {
 	if "" == id {
 		logging.LogWarnf("block id is empty")
 		return nil, ErrTreeNotFound
 	}
 
-	bt := treenode.GetBlockTree(id)
+	bt := treenode.GetBlockTreeInBox(id, boxID)
+	if nil == bt && "" == boxID {
+		// boxID 未知时（如通用打开入口），遍历所有已打开的加密笔记本查找
+		for _, encBoxID := range treenode.GetOpenedEncryptedBoxIDs() {
+			if encBT := treenode.GetBlockTreeInBox(id, encBoxID); nil != encBT {
+				bt = encBT
+				break
+			}
+		}
+	}
 	if nil == bt {
 		if task.ContainIndexTask() {
 			err = ErrIndexing
@@ -204,7 +236,7 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 
 		// 尝试从文件系统加载并建立索引
 		err = indexTreeInFilesystem(id)
-		bt = treenode.GetBlockTree(id)
+		bt = treenode.GetBlockTreeInBox(id, boxID)
 		if nil == bt {
 			if util.IsDevOrForgeMode() {
 				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, logging.ShortStack())
@@ -219,30 +251,11 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 }
 
 func LoadTreeByBlockID(id string) (ret *parse.Tree, err error) {
-	if !ast.IsNodeIDPattern(id) {
-		stack := logging.ShortStack()
-		logging.LogErrorf("block id is invalid [id=%s], stack: [%s]", id, stack)
-		return nil, ErrTreeNotFound
-	}
+	return loadTreeByBlockIDInBox(id, "")
+}
 
-	bt := treenode.GetBlockTree(id)
-	if nil == bt {
-		if task.ContainIndexTask() {
-			err = ErrIndexing
-			return
-		}
-
-		stack := logging.ShortStack()
-		if !strings.Contains(stack, "BuildBlockBreadcrumb") {
-			if util.IsDevOrForgeMode() {
-				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, stack)
-			}
-		}
-		return nil, ErrTreeNotFound
-	}
-
-	ret, err = loadTreeByBlockTree(bt)
-	return
+func loadTreeByBlockIDWithoutNotFoundLog(id string) (ret *parse.Tree, err error) {
+	return loadTreeByBlockIDInBox0(id, "", false)
 }
 
 func loadTreeByBlockTree(bt *treenode.BlockTree) (ret *parse.Tree, err error) {
@@ -255,6 +268,47 @@ func loadTreeByBlockTree(bt *treenode.BlockTree) (ret *parse.Tree, err error) {
 		treenode.UpsertBlockTree(ret)
 		sql.IndexTreeQueue(ret)
 	}
+	return
+}
+
+// loadTreeByBlockIDInBox 与 LoadTreeByBlockID 一致，但按 boxID 路由 blocktree 查询到加密 db 或全局 db。
+func loadTreeByBlockIDInBox(id, boxID string) (ret *parse.Tree, err error) {
+	return loadTreeByBlockIDInBox0(id, boxID, true)
+}
+
+func loadTreeByBlockIDInBox0(id, boxID string, logNotFound bool) (ret *parse.Tree, err error) {
+	if !ast.IsNodeIDPattern(id) {
+		stack := logging.ShortStack()
+		logging.LogErrorf("block id is invalid [id=%s], stack: [%s]", id, stack)
+		return nil, ErrTreeNotFound
+	}
+
+	bt := treenode.GetBlockTreeInBox(id, boxID)
+	if nil == bt && "" == boxID {
+		// boxID 未知时（如通用打开入口），遍历所有已打开的加密笔记本查找
+		for _, encBoxID := range treenode.GetOpenedEncryptedBoxIDs() {
+			if encBT := treenode.GetBlockTreeInBox(id, encBoxID); nil != encBT {
+				bt = encBT
+				break
+			}
+		}
+	}
+	if nil == bt {
+		if task.ContainIndexTask() {
+			err = ErrIndexing
+			return
+		}
+
+		if logNotFound && "dev" == util.Mode {
+			stack := logging.ShortStack()
+			if !strings.Contains(stack, "BuildBlockBreadcrumb") {
+				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, stack)
+			}
+		}
+		return nil, ErrTreeNotFound
+	}
+
+	ret, err = loadTreeByBlockTree(bt)
 	return
 }
 
@@ -328,6 +382,7 @@ func loadParentTree(tree *parse.Tree) (ret *parse.Tree) {
 
 func findUnindexedTreePathInAllBoxes(id string) (ret string) {
 	boxes := Conf.GetBoxes()
+	luteEngine := util.NewLute()
 	for _, box := range boxes {
 		root := filepath.Join(util.DataDir, box.ID)
 		paths := search.FindAllMatchedPaths(root, []string{id})
@@ -351,10 +406,36 @@ func findUnindexedTreePathInAllBoxes(id string) (ret string) {
 
 		result := treenode.ExistBlockTrees(rootIDs)
 		for rootID, exist := range result {
-			if !exist {
-				return rootIDPaths[rootID]
+			if exist {
+				continue
+			}
+
+			matchedPath := rootIDPaths[rootID]
+			relPath, relErr := filepath.Rel(root, matchedPath)
+			if nil != relErr {
+				return matchedPath
+			}
+			// 全文匹配只用于筛选候选文件，解析树后再确认是否存在真实块 ID。
+			treePath := "/" + filepath.ToSlash(relPath)
+			tree, loadErr := filesys.LoadTree(box.ID, treePath, luteEngine)
+			if nil != loadErr || treeContainsBlockID(tree, id) {
+				return matchedPath
 			}
 		}
 	}
+	return
+}
+
+func treeContainsBlockID(tree *parse.Tree, id string) (ret bool) {
+	if nil == tree || nil == tree.Root || "" == id {
+		return
+	}
+	ast.Walk(tree.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
+		if entering && n.IsBlock() && n.ID == id {
+			ret = true
+			return ast.WalkStop
+		}
+		return ast.WalkContinue
+	})
 	return
 }

@@ -26,6 +26,7 @@ import {
     checkAndMarkFirstLoad,
 } from "./layout-deserialization.environment";
 import { isMobile } from "../platform";
+import { activateQueuedAVLocate, queueAVLocateRequest } from "../protyle/render/av/locate";
 
 // Tab 移除处理
 
@@ -140,11 +141,31 @@ export const handleUrlFileOpen = (app: App): boolean => {
     if (!info.id) {
         return false;
     }
-    // 根据是否缩放选择不同的打开方式
-    const action: TProtyleAction[] = info.focus
-        ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS]
-        : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL];
-    openFileById({ app, id: info.id, action, zoomIn: info.focus });
+    if (info.avItemID) {
+        queueAVLocateRequest(info.id, {
+            itemID: info.avItemID,
+            viewID: info.avViewID,
+            groupID: info.avGroupID,
+        });
+    }
+    const action: TProtyleAction[] = info.avItemID
+        ? [Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]
+        : (info.focus
+            ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS]
+            : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+    openFileById({
+        app,
+        id: info.id,
+        action,
+        zoomIn: info.avItemID ? false : info.focus,
+        /** 编辑器建立后执行排队的数据库条目定位。 */
+        afterOpen: (model) => {
+            const protyle = model && "editor" in model ? model.editor?.protyle : undefined;
+            if (protyle) {
+                activateQueuedAVLocate(protyle, info.id);
+            }
+        },
+    });
     return true;
 };
 

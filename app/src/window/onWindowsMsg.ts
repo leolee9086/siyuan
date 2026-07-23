@@ -13,13 +13,6 @@ import { getInstanceById } from "./imports";
 import { Tab } from "./imports";
 
 /**
- * 用途：从统一转发模块导入平台检测功能
- * 使用范围：handleResetTabsStyle 函数中用于判断是否为桌面端
- * 解耦评估：依赖平台工具，当前无法解耦
- */
-import { isWindow } from "./imports";
-
-/**
  * 用途：从统一转发模块导入配置访问功能
  * 使用范围：lockScreenByMode 函数中用于读取锁屏模式配置
  * 解耦评估：依赖环境配置系统，当前无法解耦
@@ -85,12 +78,8 @@ const handleResetTabsStyle = (ipcData: IWebSocketData) => {
         return;
     }
 
-    if (!isWindow()) {
-        return;
-    }
-
     for (const item of document.querySelectorAll<HTMLElement>(".layout-tab-bar--readonly .fn__flex-1")) {
-        const isTopMost = item.getBoundingClientRect().top <= 0;
+        const isTopMost = item.getBoundingClientRect().top <= 6;
         if (!isTopMost || !isElectronStyle(item.style)) {
             continue;
         }

@@ -7,7 +7,9 @@ import {updateHotkeyTip} from "../../protyle/util/compatibility";
 import {desktopModeCookie} from "../../util/cookie";
 import {isMobile, objEquals} from "../../util/functions";
 import {isElectron} from "../../platform";
+import {exitSiYuan} from "../../dialog/processSystem";
 import {fetchPost} from "../../util/fetch";
+import {openByMobile} from "../../editor/openLink";
 import {openSnippets} from "../util/snippets";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
@@ -53,8 +55,8 @@ const registerAppearanceContentGroup = (tab: SettingTabBuilder) => {
     group.range("editor.fontSize", {
         title: window.siyuan.languages.editorFontSize,
         desc: window.siyuan.languages.fontSizeTip,
-        min: 12,
-        max: 48,
+        min: 9,
+        max: 72,
         step: 1,
         save: (value) => editorConfigApi.patch("editor.fontSize", value),
     });
@@ -378,6 +380,26 @@ const registerAppearanceControlsGroup = (tab: SettingTabBuilder) => {
             icon: "iconSettings",
         });
     });
+    group.stack({
+        key: "notifications",
+        keywords: [
+            window.siyuan.languages.notifications,
+            window.siyuan.languages.notificationsMsgPushTip,
+            window.siyuan.languages.msgDocTreeMaxList,
+            window.siyuan.languages.msgTagMaxList,
+            window.siyuan.languages.msgWorkspaceNotSSD,
+            window.siyuan.languages.msgBrowserCompatibility,
+        ],
+        afterMount: mountAppearanceSetNotifications,
+    }, (stack) => {
+        stack.title(window.siyuan.languages.notifications);
+        stack.button({
+            id: "notificationsSetting",
+            label: window.siyuan.languages.config,
+            icon: "iconSettings",
+        });
+        stack.desc(window.siyuan.languages.notificationsMsgPushTip);
+    });
     const desktopModeControl = controlBoolean("desktopMode", {
         readConfig: () => desktopModeCookie.read(),
     });
@@ -403,18 +425,22 @@ const registerAppearanceControlsGroup = (tab: SettingTabBuilder) => {
                 left: {kind: "desc", text: window.siyuan.languages.mobileModeTip},
                 right: desktopModeControl,
             },
+            {
+                left: {kind: "desc", text: window.siyuan.languages.desktopModeRestartTip},
+            },
         ]),
         controls: [{
             control: desktopModeControl,
             save: (value) => {
                 desktopModeCookie.set(value as boolean);
-                window.location.href = "/";
+                // 切换桌面/移动模式需要重启应用才能加载对应 bundle，走正常退出流程后由用户手动重启
+                void exitSiYuan();
             },
         }],
         afterMount: (root) => {
             root.querySelector("#resetDesktopMode")?.addEventListener("click", () => {
                 desktopModeCookie.remove();
-                window.location.href = "/";
+                void exitSiYuan();
             });
         },
     });
@@ -498,6 +524,57 @@ const mountAppearanceSetStatusBar = (root: HTMLElement) => {
     });
 };
 
+const NOTIFICATIONS_ITEMS: { field: keyof Config.IAppearanceNotifications; labelKey: "msgDocTreeMaxList" | "msgTagMaxList" | "msgWorkspaceNotSSD" | "msgBrowserCompatibility" }[] = [
+    {field: "docTreeMaxList", labelKey: "msgDocTreeMaxList"},
+    {field: "tagMaxList", labelKey: "msgTagMaxList"},
+    {field: "workspaceNotSSD", labelKey: "msgWorkspaceNotSSD"},
+    {field: "browserCompatibility", labelKey: "msgBrowserCompatibility"},
+];
+
+const genNotificationsDialogHtml = (): string => {
+    const notifications = window.siyuan.config.appearance.notifications;
+    // 默认启用：字段为 undefined（旧配置未迁移）或 true 时开关勾选
+    const listItems = NOTIFICATIONS_ITEMS.map(({field, labelKey}) =>
+        genListSwitchItemHtml(field, window.siyuan.languages[labelKey], notifications?.[field] !== false)
+    ).join("");
+    return `<div class="fn__hr"></div>
+<div class="b3-label">
+    ${window.siyuan.languages.notificationsMsgPushTip}
+    <div class="fn__hr"></div>
+    <div class="b3-list b3-list--background">${listItems}</div>
+</div>`;
+};
+
+const readNotificationsFromDialog = (root: HTMLElement): Config.IAppearanceNotifications => {
+    return {
+        docTreeMaxList: (root.querySelector("#docTreeMaxList") as HTMLInputElement).checked,
+        tagMaxList: (root.querySelector("#tagMaxList") as HTMLInputElement).checked,
+        workspaceNotSSD: (root.querySelector("#workspaceNotSSD") as HTMLInputElement).checked,
+        browserCompatibility: (root.querySelector("#browserCompatibility") as HTMLInputElement).checked,
+    };
+};
+
+const mountAppearanceSetNotifications = (root: HTMLElement) => {
+    root.querySelector("#notificationsSetting")?.addEventListener("click", () => {
+        const dialog = new Dialog({
+            height: "80vh",
+            width: isMobile() ? "92vw" : "360px",
+            title: "🔔 " + window.siyuan.languages.notifications,
+            content: genNotificationsDialogHtml(),
+            destroyCallback() {
+                const notifications = readNotificationsFromDialog(dialog.element);
+                if (objEquals(notifications, window.siyuan.config.appearance.notifications)) {
+                    return;
+                }
+                fetchPost("/api/setting/setAppearance", {
+                    ...window.siyuan.config.appearance,
+                    notifications
+                });
+            }
+        });
+    });
+};
+
 const registerAppearancePersonalizationGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("personalization", window.siyuan.languages.configGroupPersonalization);
 
@@ -544,7 +621,7 @@ const registerAppearancePersonalizationGroup = (tab: SettingTabBuilder) => {
 
 const mountAppearanceCodeSnippet = (root: HTMLElement) => {
     root.querySelector("#codeSnippetCommunityShare")?.addEventListener("click", () => {
-        window.open("https://ld246.com/tag/code-snippet", "_blank");
+        openByMobile("https://ld246.com/tag/code-snippet");
     });
     root.querySelector("#codeSnippet")?.addEventListener("click", () => {
         openSnippets();

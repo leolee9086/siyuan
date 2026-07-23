@@ -130,6 +130,13 @@ export const genFileHTML = (item: IFile): string => {
     // 获取只读配置
     const config = getSiyuanConfig();
     const isReadonly = config?.readonly ?? false;
+    const iconExpands = config.fileTree.docIconClickExpand;
+    const iconAriaLabel = iconExpands ?
+        (item.subFileCount > 0 ? siyuanI18n.docIconClickExpand : siyuanI18n.openDocument) :
+        siyuanI18n.changeIcon;
+    const actionClasses = `${iconExpands && item.subFileCount > 0 && !editingPublishAccess ? " file-tree__item--icon-expand" : ""}${
+        iconExpands && item.subFileCount === 0 && !editingPublishAccess ? " file-tree__item--icon-open" : ""}${
+        config.fileTree.parentDocClickExpand && item.subFileCount > 0 ? " file-tree__item--title-expand" : ""}`;
     
     // 生成折叠按钮的隐藏类（无子文件时隐藏）
     const toggleHiddenClass = item.subFileCount === 0 ? " fn__hidden" : "";
@@ -142,14 +149,14 @@ export const genFileHTML = (item: IFile): string => {
     const switchHiddenClass = editingPublishAccess ? "" : " fn__none";
     const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__n${switchHiddenClass}" aria-label="${siyuanI18n.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
     
-    return `<li data-node-id="${item.id ?? ""}" data-name="${item.name ?? ""}" draggable="true" data-count="${item.subFileCount ?? 0}" 
+    return `<li data-node-id="${item.id ?? ""}" data-name="${Lute.EscapeHTMLStr(item.name ?? "")}" draggable="true" data-count="${item.subFileCount ?? 0}"
 data-type="navigation-file" 
-style="--file-toggle-width:${paddingLeft + 18}px" 
-class="b3-list-item b3-list-item--hide-action" data-path="${item.path ?? ""}">
+style="--file-toggle-width:${paddingLeft + 18}px;--file-action-offset:${paddingLeft + 20}px"
+class="b3-list-item b3-list-item--hide-action${actionClasses}" data-path="${item.path ?? ""}">
     <span style="padding-left: ${paddingLeft}px" class="b3-list-item__toggle b3-list-item__toggle--hl${toggleHiddenClass}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
-    <span class="b3-list-item__icon b3-tooltips b3-tooltips__n popover__block${iconHiddenClass}" data-id="${item.id ?? ""}" aria-label="${siyuanI18n.changeIcon}">${iconEmoji}</span>
+    <span class="b3-list-item__icon ariaLabel popover__block${iconHiddenClass}" data-position="8east" data-id="${item.id ?? ""}" aria-label="${iconAriaLabel}">${iconEmoji}</span>
     ${switchHTML}
     <span class="b3-list-item__text ariaLabel" data-position="parentE"
 aria-label="${ariaLabel}">${getDocDisplayName(item.name ?? "", item.titleEmpty, true)}</span>
@@ -199,17 +206,24 @@ export const genNotebook = (item: INotebook): string => {
     const switchHiddenClass = editingPublishAccess ? "" : " fn__none";
     const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__e${switchHiddenClass}" aria-label="${siyuanI18n.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
     
-    // 生成图标HTML
-    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e${iconHiddenClass}" aria-label="${siyuanI18n.changeIcon}">${unicode2Emoji(item.icon || defaultNoteIcon)}</span>`;
-    
     // 获取只读配置
     const config = getSiyuanConfig();
     const isReadonly = config?.readonly ?? false;
     const readonlyClass = isReadonly ? " fn__none" : "";
+    const iconContent = item.encrypted && item.closed ? "🔒️" : unicode2Emoji(item.icon || defaultNoteIcon);
+    const isBoxDoc = !item.closed && config.fileTree.boxDocEnabled;
+    const hasChildren = isBoxDoc && item.subFileCount > 0;
+    const iconUsesDocAction = isBoxDoc && config.fileTree.docIconClickExpand;
+    const iconAriaLabel = iconUsesDocAction ?
+        (hasChildren ? siyuanI18n.docIconClickExpand : siyuanI18n.openDocument) : siyuanI18n.changeIcon;
+    const actionClasses = `${iconUsesDocAction && hasChildren && !editingPublishAccess ? " file-tree__item--icon-expand" : ""}${
+        iconUsesDocAction && !hasChildren && !editingPublishAccess ? " file-tree__item--icon-open" : ""}${
+        hasChildren && config.fileTree.parentDocClickExpand ? " file-tree__item--title-expand" : ""}`;
+    const emojiHTML = `<span class="b3-list-item__icon ariaLabel${isBoxDoc ? " popover__block" : ""}${iconHiddenClass}" data-position="8east"${isBoxDoc ? ` data-id="${item.id}"` : ""} aria-label="${iconAriaLabel}">${iconContent}</span>`;
     
     // 已关闭的笔记本：显示简化的UI，只有打开按钮
     if (item.closed) {
-        return `<li data-url="${item.id ?? ""}" class="b3-list-item b3-list-item--hide-action">
+        return `<li data-url="${item.id ?? ""}" class="b3-list-item b3-list-item--hide-action"${item.encrypted ? ' data-encrypted="true"' : ""}>
     <span class="b3-list-item__toggle fn__hidden">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
@@ -228,10 +242,10 @@ export const genNotebook = (item: INotebook): string => {
     const draggableAttr = fileTreeSort === 6 ? 'draggable="true"' : "";
     
     return `<ul class="b3-list b3-list--background" data-url="${item.id ?? ""}" data-sort="${item.sort ?? ""}" data-sortmode="${item.sortMode ?? ""}">
-<li class="b3-list-item b3-list-item--hide-action" ${draggableAttr} 
-style="--file-toggle-width:22px" 
-data-type="navigation-root" data-path="/">
-    <span class="b3-list-item__toggle b3-list-item__toggle--hl">
+<li class="b3-list-item b3-list-item--hide-action${actionClasses}" ${draggableAttr}
+style="--file-toggle-width:22px;--file-action-offset:22px"
+data-type="navigation-root" data-path="/" data-count="${item.subFileCount || 0}" data-node-id="${config.fileTree.boxDocEnabled ? item.id : ""}">
+    <span class="b3-list-item__toggle b3-list-item__toggle--hl${isBoxDoc && !hasChildren ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}

@@ -11,6 +11,11 @@ import {genUUID} from "../../util/platform/genID";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {showContextMenu} from "./MobileOutline.contextMenu";
 import {setFilter, showExpandLevelMenu, handleOutlineTransaction, bindKeepCurrentExpandEvent} from "./MobileOutline.expand";
+import {getDocDisplayName} from "../../util/file/pathName";
+import {isEncryptedBox} from "../../util/pathName";
+import {escapeHtml} from "../../util/DOM/escape";
+import {unicode2Emoji} from "../../emoji";
+import {bindOutlineSort} from "./MobileOutline.sort";
 
 export class MobileOutline extends Model {
     public tree: Tree;
@@ -18,6 +23,7 @@ export class MobileOutline extends Model {
     public blockId: string;
     public isPreview: boolean;
     public preFilterExpandIds: string[] | null = null;
+    private reloadId = 0;
 
     constructor(options: {
         app: App,
@@ -47,6 +53,7 @@ export class MobileOutline extends Model {
     <svg data-type="expand" class="toolbar__icon"><use xlink:href="#iconExpand"></use></svg>
     <svg data-type="collapse" class="toolbar__icon"><use xlink:href="#iconContract"></use></svg>
 </div>
+<div class="b3-list-item fn__none" data-type="doc-title"></div>
 <div class="fn__flex-1" style="padding: 3px 0 8px"></div>`;
         const inputElement = this.element.querySelector("input.b3-text-field.search__label") as HTMLInputElement;
         inputElement.addEventListener("blur", () => {
@@ -58,16 +65,13 @@ export class MobileOutline extends Model {
             } else {
                 filterIconElement.classList.remove("toolbar__icon--active");
             }
-            if (inputElement.dataset.value !== value) {
+        });
+        inputElement.addEventListener("input", (event: InputEvent) => {
+            if (!event.isComposing) {
                 setFilter(this);
             }
         });
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            if (!event.isComposing && event.key === "Enter") {
-                inputElement.dataset.value = inputElement.value;
-                setFilter(this);
-            }
-        });
+        inputElement.addEventListener("compositionend", () => setFilter(this));
         this.tree = new Tree({
             element: this.element.lastElementChild as HTMLElement,
             data: null,
@@ -116,6 +120,7 @@ export class MobileOutline extends Model {
                 this.saveExpendIds();
             },
             blockExtHTML: window.siyuan.config.readonly ? undefined : '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
+            topExtHTML: window.siyuan.config.readonly ? undefined : '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
         });
         // 为了快捷键的 dispatch
         this.element.querySelector('[data-type="collapse"]').addEventListener("click", () => {
@@ -156,12 +161,11 @@ export class MobileOutline extends Model {
             }
         });
 
-        fetchPost("/api/outline/getDocOutline", {
-            id: this.blockId,
-            preview: this.isPreview
-        }, response => {
-            this.update(response);
+        bindOutlineSort(this);
+        this.element.querySelector('[data-type="doc-title"]').addEventListener("click", () => {
+            openMobileFileById(this.app, this.blockId);
         });
+        this.reload();
     }
 
     private handleMsgCallback(data: IWebSocketData) {
@@ -169,6 +173,15 @@ export class MobileOutline extends Model {
             switch (data.cmd) {
                 case "savedoc":
                     this.onTransaction(data);
+                    break;
+                case "rename":
+                    if (this.blockId === data.data.id) {
+                        this.updateDocTitle({
+                            title: data.data.title,
+                            icon: Constants.ZWSP,
+                            [Constants.CUSTOM_SY_TITLE_EMPTY]: data.data.empty ? "true" : "false",
+                        }, -1);
+                    }
                     break;
             }
         }
@@ -178,7 +191,9 @@ export class MobileOutline extends Model {
         if (!nodeElement) {
             return;
         }
-        if (nodeElement.getAttribute("data-type") === "NodeHeading") {
+        if (nodeElement.getAttribute("data-type") === "NodeHeading" &&
+            !hasClosestByClassName(nodeElement, "bq") &&
+            !hasClosestByClassName(nodeElement, "callout-content")) {
             this.setCurrentById(nodeElement.getAttribute("data-node-id"));
         } else {
             let previousElement = getPreviousBlock(nodeElement);
@@ -192,10 +207,15 @@ export class MobileOutline extends Model {
             if (previousElement) {
                 this.setCurrentById(previousElement.getAttribute("data-node-id"));
             } else {
-                fetchPost("/api/block/getBlockBreadcrumb", {
+                const breadcrumbParam: IObject = {
                     id: nodeElement.getAttribute("data-node-id"),
-                    excludeTypes: []
-                }, (response) => {
+                    excludeTypes: [],
+                };
+                const mobileProtyle = window.siyuan.mobile.editor?.protyle;
+                if (mobileProtyle && mobileProtyle.block.rootID === this.blockId && isEncryptedBox(mobileProtyle.notebookId)) {
+                    breadcrumbParam.notebook = mobileProtyle.notebookId;
+                }
+                fetchPost("/api/block/getBlockBreadcrumb", breadcrumbParam, (response) => {
                     response.data.reverse().find((item: IBreadcrumb) => {
                         if (item.type === "NodeHeading") {
                             this.setCurrentById(item.id);
@@ -229,6 +249,9 @@ export class MobileOutline extends Model {
             item.classList.remove("b3-list-item--focus");
         });
         let currentElement = this.element.querySelector(`.b3-list-item[data-node-id="${id}"]`) as HTMLElement;
+        if (!currentElement) {
+            return;
+        }
         if (window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand) {
             let ulElement = currentElement.parentElement;
             while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
@@ -244,33 +267,61 @@ export class MobileOutline extends Model {
         }
         if (currentElement) {
             currentElement.classList.add("b3-list-item--focus");
-            const elementRect = this.element.getBoundingClientRect();
-            this.element.scrollTop = this.element.scrollTop + (currentElement.getBoundingClientRect().top - (elementRect.top + elementRect.height / 2));
+            const elementRect = this.tree.element.getBoundingClientRect();
+            this.tree.element.scrollTop += currentElement.getBoundingClientRect().top -
+                (elementRect.top + elementRect.height / 2);
         }
     }
 
-    public update(data: IWebSocketData, callbackId?: string) {
+    public reload(callback?: () => void) {
+        const protyle = window.siyuan.mobile.editor?.protyle;
+        const blockId = protyle?.block.rootID || this.blockId;
+        if (!blockId) {
+            return;
+        }
+        const isPreview = protyle ? !protyle.preview.element.classList.contains("fn__none") : this.isPreview;
+        if (blockId !== this.blockId) {
+            this.tree.updateData(null);
+            this.updateDocTitle();
+            this.tree.element.scrollTop = 0;
+        }
+        this.blockId = blockId;
+        this.isPreview = isPreview;
+        const reloadId = ++this.reloadId;
+        const outlineParam: IObject = {id: blockId, preview: isPreview};
+        if (protyle && isEncryptedBox(protyle.notebookId)) {
+            outlineParam.notebook = protyle.notebookId;
+        }
+        fetchPost("/api/outline/getDocOutline", outlineParam, (response) => {
+            const currentProtyle = window.siyuan.mobile.editor?.protyle;
+            if (reloadId !== this.reloadId || (currentProtyle && currentProtyle.block.rootID !== blockId)) {
+                return;
+            }
+            this.update(response);
+            this.updateDocTitle(protyle?.background?.ial, response.data?.length || 0);
+            callback?.();
+        });
+    }
+
+    public update(data: IWebSocketData) {
         let currentElement = this.element.querySelector(".b3-list-item--focus");
         let currentId;
         if (currentElement) {
             currentId = currentElement.getAttribute("data-node-id");
         }
-        const scrollTop = this.element.scrollTop;
-        if (typeof callbackId !== "undefined") {
-            this.blockId = callbackId;
-        }
+        const scrollTop = this.tree.element.scrollTop;
         this.tree.updateData(data.data);
 
         if (this.isPreview) {
             this.tree.element.querySelectorAll(".popover__block").forEach(item => {
                 item.classList.remove("popover__block");
             });
-            this.element.scrollTop = scrollTop;
+            this.tree.element.scrollTop = scrollTop;
         } else if (this.blockId) {
             if ((this.element.querySelector("input.b3-text-field.search__label") as HTMLInputElement).value) {
                 setFilter(this);
             }
-            this.element.scrollTop = scrollTop;
+            this.tree.element.scrollTop = scrollTop;
         }
         if (currentId) {
             currentElement = this.element.querySelector(`[data-node-id="${currentId}"]`);
@@ -279,6 +330,40 @@ export class MobileOutline extends Model {
             }
         }
         this.element.removeAttribute("data-loading");
+    }
+
+    public updateDocTitle(ial?: Record<string, string>, count?: number) {
+        const docTitleElement = this.element.querySelector<HTMLElement>('[data-type="doc-title"]');
+        if (this.isPreview || !ial) {
+            docTitleElement.classList.add("fn__none");
+            return;
+        }
+        let iconHTML = unicode2Emoji(
+            ial.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file,
+            "b3-list-item__graphic",
+            true
+        );
+        if (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) {
+            iconHTML = docTitleElement.firstElementChild.outerHTML;
+        }
+        const title = getDocDisplayName(ial.title, ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
+        const counterHTML = docTitleElement.querySelector(".counter")?.outerHTML || "";
+        docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(title)}</span>${counterHTML}`;
+        docTitleElement.title = title;
+        docTitleElement.classList.remove("fn__none");
+        if (typeof count !== "number" || count === -1) {
+            return;
+        }
+        const counterElement = docTitleElement.querySelector<HTMLElement>(".counter");
+        if (count > 0) {
+            if (counterElement) {
+                counterElement.textContent = count.toString();
+            } else {
+                docTitleElement.insertAdjacentHTML("beforeend", `<span class="counter">${count}</span>`);
+            }
+        } else {
+            counterElement?.remove();
+        }
     }
 
     public saveExpendIds() {

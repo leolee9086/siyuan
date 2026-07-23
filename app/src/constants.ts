@@ -26,6 +26,7 @@ export abstract class Constants {
     // drop 事件
     public static readonly SIYUAN_DROP_FILE: string = "application/siyuan-file";
     public static readonly SIYUAN_DROP_GUTTER: string = "application/siyuan-gutter";
+    public static readonly SIYUAN_DROP_BLOCK_REF: string = "application/siyuan-block-ref";
     public static readonly SIYUAN_DROP_TAB: string = "application/siyuan-tab";
     public static readonly SIYUAN_DROP_EDITOR: string = "application/siyuan-editor";
 
@@ -36,6 +37,7 @@ export abstract class Constants {
 
     public static readonly SIYUAN_CONFIG_TRAY: string = "siyuan-config-tray";
     public static readonly SIYUAN_QUIT: string = "siyuan-quit";
+    public static readonly SIYUAN_INSTALL_UPDATE: string = "siyuan-install-update";
     public static readonly SIYUAN_HOTKEY: string = "siyuan-hotkey";
     public static readonly SIYUAN_INIT: string = "siyuan-init";
     public static readonly SIYUAN_READY_TO_SHOW: string = "siyuan-ready-to-show";
@@ -70,10 +72,12 @@ export abstract class Constants {
     public static readonly ATTRIBUTE_EDITING = "data-editing";
     public static readonly ATTRIBUTE_V_SCROLL = "data-v-scroll";
     public static readonly ATTRIBUTE_DOCK_WIDTH = "data-dock-width";
+    public static readonly ATTRIBUTE_MENU_KEYMAP = "data-menu-keymap";
 
     // size
     public static readonly SIZE_DATABASE_MAZ_SIZE: number = 102400;
     public static readonly SIZE_UPLOAD_TIP_SIZE: number = 268435456; // 256 M
+    public static readonly SIZE_DRAG_THRESHOLD: number = 5;
     public static readonly SIZE_SCROLL_TB: number = 24;
     public static readonly SIZE_SCROLL_STEP: number = 256;
     public static readonly SIZE_LINK_TEXT_MAX: number = 64;
@@ -311,6 +315,8 @@ export abstract class Constants {
     public static readonly TIMEOUT_INPUT = 256;
     public static readonly TIMEOUT_LOAD = 300;
     public static readonly TIMEOUT_LONGPRESS = 400;
+    // 鼠标拖拽启动的短暂时间下限：平板鼠标合成 touch 拖拽文件树/画廊/列表操作等元素时，按下后需经过该时间才进拖拽，避免点击 + 号/箭头时抖动误触发 dragstart
+    public static readonly TIMEOUT_MOUSE_DRAG_DELAY = 150;
     public static readonly TIMEOUT_MULTIPLE_SELECT = 1500;
     public static readonly TIMEOUT_TRANSITION = 300;
     public static readonly TIMEOUT_COUNT = 1000;
@@ -485,6 +491,9 @@ export abstract class Constants {
             recentClosed: { default: "⇧⌘T", custom: "⇧⌘T" },
             move: { default: "", custom: "" },
             selectOpen1: { default: "", custom: "" },
+            switchLeftDock: { default: "", custom: "" },
+            switchRightDock: { default: "", custom: "" },
+            switchBottomDock: { default: "", custom: "" },
             toggleDock: { default: "", custom: "" },
             splitLR: { default: "", custom: "" },
             splitMoveR: { default: "", custom: "" },
@@ -891,7 +900,7 @@ export abstract class Constants {
     public static readonly ZWSP: string = "\u200b";
     public static readonly INLINE_TYPE: string[] = ["block-ref", "kbd", "text", "file-annotation-ref", "a", "strong", "em", "u", "s", "mark", "sup", "sub", "tag", "code", "inline-math", "inline-memo", "clear"];
     public static readonly BLOCK_HINT_KEYS: string[] = ["((", "[[", "（（", "【【"];
-    public static readonly BLOCK_HINT_CLOSE_KEYS: IObject = { "((": "))", "[[": "]]", "（（": "））", "【【": "】】" };
+    public static readonly BLOCK_HINT_CLOSE_KEYS: Record<string, string> = { "((": "))", "[[": "]]", "（（": "））", "【【": "】】" };
     // common: "bash", "c", "csharp", "cpp", "css", "diff", "go", "xml", "json", "java", "javascript", "kotlin", "less", "lua", "makefile", "markdown", "objectivec", "php", "php-template", "perl", "plaintext", "python", "python-repl", "r", "ruby", "rust", "scss", "sql", "shell", "swift", "ini", "typescript", "vbnet", "yaml", "properties", "1c", "armasm", "avrasm", "actionscript", "ada", "angelscript", "accesslog", "apache", "applescript", "arcade", "arduino", "asciidoc", "aspectj", "abnf", "autohotkey", "autoit", "awk", "basic", "bnf", "dos", "brainfuck", "cal", "cmake", "csp", "cos", "capnproto", "ceylon", "clean", "clojure", "clojure-repl", "coffeescript", "coq", "crystal", "d", "dns", "dart", "delphi", "dts", "django", "dockerfile", "dust", "erb", "elixir", "elm", "erlang", "erlang-repl", "excel", "ebnf", "fsharp", "fix", "flix", "fortran", "gcode", "gams", "gauss", "glsl", "gml", "gherkin", "golo", "gradle", "groovy", "haml", "hsp", "http", "handlebars", "haskell", "haxe", "hy", "irpf90", "isbl", "inform7", "x86asm", "jboss-cli", "julia", "julia-repl", "ldif", "llvm", "lsl", "latex", "lasso", "leaf", "lisp", "livecodeserver", "livescript", "mel", "mipsasm", "matlab", "maxima", "mercury", "axapta", "routeros", "mizar", "mojolicious", "monkey", "moonscript", "n1ql", "nsis", "nestedtext", "nginx", "nim", "nix", "node-repl", "ocaml", "openscad", "ruleslanguage", "oxygene", "pf", "parser3", "pony", "pgsql", "powershell", "processing", "prolog", "protobuf", "puppet", "purebasic", "profile", "q", "qml", "reasonml", "rib", "rsl", "roboconf", "sas", "sml", "sqf", "step21", "scala", "scheme", "scilab", "smali", "smalltalk", "stan", "stata", "stylus", "subunit", "tp", "taggerscript", "tcl", "tap", "thrift", "twig", "vbscript", "vbscript-html", "vhdl", "vala", "verilog", "vim", "wasm", "mathematica", "wren", "xl", "xquery", "zephir", "crmsh", "dsconfig", "graphql",
     // third: "yul", "solidity", "abap", "hlsl", "gdscript", "moonbit", "mlir"
     public static readonly ALIAS_CODE_LANGUAGES: string[] = [

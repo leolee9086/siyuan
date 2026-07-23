@@ -1110,6 +1110,7 @@ password_label: `输入密码以打开此 PDF 文件。`
 password_invalid: `密码无效。请重试。`
 stateExcepted: `🚧 状态异常`
 rebuildIndex: `重建索引`
+rebuildAssetContentIndex: `重建资源内容索引`
 rebuildIndexTip: `发现了一个系统运行时错误，请选择需要退出还是重建索引进行修复`
 closeNotebook: `已关闭的笔记本`
 widget: `挂件`
@@ -2412,4 +2413,3 @@ export interface Kernel {
 '297': `输出已达到最大补全 Token 数限制`
 '298': `你曾经试用订阅过，不支持重复试用订阅`
 }
-

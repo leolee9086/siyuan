@@ -12,6 +12,9 @@ import {reloadPlugin} from "../../plugin/loader";
 import {reloadEmoji} from "../../emoji";
 import {renderSnippet} from "../../config/util/snippets";
 import {redirectToCheckAuth} from "../../util/file/pathName";
+import {setEmpty} from "./setEmpty";
+import {activateOnboarding} from "../../onboarding";
+import {clearMobileBackForward} from "./MobileBackFoward";
 
 let statusTimeout: number;
 const statusElement = document.querySelector("#status") as HTMLElement;
@@ -73,6 +76,27 @@ export const onMessage = (app: App, data: IWebSocketData) => {
             case "readonly":
                 window.siyuan.config.editor.readOnly = data.data;
                 break;
+            case "closeBox":
+            case "removeBox": {
+                const closesCurrentEditor = window.siyuan.mobile.editor?.protyle.notebookId === data.data.box;
+                clearMobileBackForward(closesCurrentEditor ? undefined : data.data.box);
+                if (closesCurrentEditor) {
+                    window.siyuan.mobile.editor.destroy();
+                    window.siyuan.mobile.editor.protyle.element.innerHTML = "";
+                    window.siyuan.mobile.editor = undefined;
+                    setEmpty(app);
+                }
+                break;
+            }
+            case "onboarding":
+                void activateOnboarding(app, data.data);
+                break;
+            case "removeDoc":
+                if (window.siyuan.config.onboarding?.newUser && !window.siyuan.config.onboarding.dismissed &&
+                    data.data.ids.includes(window.siyuan.config.onboarding.documentID)) {
+                    void activateOnboarding(app, window.siyuan.config.onboarding);
+                }
+                break;
             case "setLocalStorageVal":
                 window.siyuan.storage[data.data.key] = data.data.val;
                 break;
@@ -100,6 +124,12 @@ export const onMessage = (app: App, data: IWebSocketData) => {
                 break;
             case "openFileById":
                 openMobileFileById(app, data.data.id);
+                break;
+            case "filetreeSortChanged":
+                window.siyuan.mobile.docks.file?.onFiletreeSortChanged(data.data);
+                break;
+            case "notebookSortChanged":
+                window.siyuan.mobile.docks.file?.onNotebookSortChanged();
                 break;
             case"txerr":
                 transactionError(data.msg);

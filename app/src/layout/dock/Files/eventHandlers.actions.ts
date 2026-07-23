@@ -154,6 +154,7 @@ function handleMoreClick(
         element: files.element,
         init: files.init.bind(files),
         refreshPublishAccessSwitch: files.refreshPublishAccessSwitch?.bind(files),
+        updateDocActions: files.updateDocActions?.bind(files),
     }).popup({ x: event.clientX, y: event.clientY });
     event.preventDefault();
     event.stopPropagation();

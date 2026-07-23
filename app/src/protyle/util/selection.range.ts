@@ -209,16 +209,26 @@ export const setInsertWbrHTML = (nodeElement: HTMLElement, range: Range, protyle
         const cellElement = hasClosestByTag(range.startContainer, "TH") || hasClosestByTag(range.startContainer, "TD");
         if (cellElement) {
             const offset = getSelectionOffset(cellElement, nodeElement, range);
-            cellElement.classList.add("range");
             const cloneNode = nodeElement.cloneNode(true) as HTMLElement;
-            // 仅移除临时标记，保留合并单元格等场景依赖的原有 class。
-            cellElement.classList.remove("range");
-            const cloneCellElement = cloneNode.querySelector(".range");
+            const cellIndex = Array.from(cellElement.parentElement.children).indexOf(cellElement);
+            const sourceTable = nodeElement.querySelector("table");
+            const cloneTable = cloneNode.querySelector("table");
+            if (!sourceTable || !cloneTable) {
+                throw new Error("Table selection clone is missing its table element");
+            }
+            const sourceRow = cellElement.parentElement;
+            if (!(sourceRow instanceof HTMLTableRowElement)) {
+                throw new Error("Table selection cell is missing its row element");
+            }
+            const rowIndex = Array.from(sourceTable.rows).indexOf(sourceRow);
+            const cloneCellElement = cloneTable.rows[rowIndex]?.cells[cellIndex];
+            if (!cloneCellElement) {
+                throw new Error(`Table selection clone is missing cell ${rowIndex}:${cellIndex}`);
+            }
             const cloneRange = focusByOffset(cloneCellElement, offset.end, offset.end, false);
             if (cloneRange) {
                 cloneRange.insertNode(document.createElement("wbr"));
             }
-            cloneCellElement.classList.remove("range");
             protyle.wysiwyg.lastHTMLs[nodeElement.getAttribute("data-node-id")] = cloneNode.outerHTML;
         }
     } else {

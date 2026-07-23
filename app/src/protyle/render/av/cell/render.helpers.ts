@@ -46,13 +46,14 @@ import { siyuanI18n } from "./imports";
  * 解耦评估：通过storage.environment.ts封装window访问
  */
 import { getDefaultFileIcon } from "./storage.environment";
+import {getAVTemplateHTML} from "../blockAttr";
 
 /**
  * 辅助函数：渲染template类型单元格
  * @同步豁免: UI构建
  */
 export const renderTemplateCell = (cellValue: IAVCellValue) => {
-    return `<span class="av__celltext">${cellValue.template?.content || ""}</span>`;
+    return `<span class="av__celltext">${getAVTemplateHTML(cellValue.template?.content || "")}</span>`;
 };
 
 /**
@@ -80,15 +81,18 @@ export const renderContactCell = (cellValue: IAVCellValue) => {
  */
 export const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean) => {
     // 不可使用换行 https://github.com/siyuan-note/siyuan/issues/11365
-    // detached状态：block已被删除或分离
+    let text: string;
     if (cellValue.isDetached) {
-        return `<span class="av__celltext">${Lute.EscapeHTMLStr(cellValue.block?.content || "")}</span><span class="b3-chip b3-chip--info b3-chip--small" data-type="block-more">${siyuanI18n.more}</span>`;
+        text = `<span class="av__celltext">${Lute.EscapeHTMLStr(cellValue.block?.content || "")}</span>`;
+    } else {
+        const icon = cellValue.block?.icon || getDefaultFileIcon();
+        const content = cellValue.block?.content || "";
+        const blockId = cellValue.block?.id || "";
+        text = `<span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${cellValue.block?.icon || ""}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span>`;
     }
-    
-    const icon = cellValue.block?.icon || getDefaultFileIcon();
-    const content = cellValue.block?.content || "";
-    const blockId = cellValue.block?.id || "";
-    return `<span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${cellValue.block?.icon || ""}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span><span class="b3-chip b3-chip--info b3-chip--small" data-type="block-more">${siyuanI18n.update}</span>`;
+    const updateLabel = cellValue.isDetached ? siyuanI18n.bind : siyuanI18n.update;
+    const updateIcon = cellValue.isDetached ? "iconLink" : "iconRefresh";
+    return `${text}<span class="av__row-actions"><button class="av__row-action ariaLabel" type="button" data-position="4north" aria-label="${siyuanI18n.openBy}" data-type="av-row-open"><svg><use xlink:href="#iconOpen"></use></svg></button><button class="av__row-action ariaLabel" type="button" data-position="4north" aria-label="${updateLabel}" data-type="av-row-update"><svg><use xlink:href="#${updateIcon}"></use></svg></button></span>`;
 };
 
 /**

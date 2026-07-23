@@ -10,6 +10,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { 语义搜索, 获取语义搜索配置 } from "../layout/dock/embeddingDock/semanticSearch.api";
 import type { ISemanticSearchResult } from "../layout/dock/embeddingDock/embeddingDock.types";
 import { onSearch } from "./utils/onSearch";
+import {isEncryptedBox} from "../util/pathName";
 
 /**
  * 用途：描述本地块搜索接口的可选响应字段。
@@ -62,6 +63,15 @@ type ExecuteSearchContext = {
     focusId?: SearchFocusId;
 };
 
+/** Return the only encrypted box represented by the active path filter. */
+const getScopedEncryptedBox = (idPaths: string[]) => {
+    const scopedBox = idPaths[0]?.split("/")[0];
+    if (!scopedBox || !isEncryptedBox(scopedBox) || !idPaths.every(path => path.split("/")[0] === scopedBox)) {
+        return;
+    }
+    return scopedBox;
+};
+
 /** Resolve a search control and fail early if the generated search template is incomplete. */
 const requiredSearchElement = <T extends Element>(element: Element, selector: string) => {
     const result = element.querySelector<T>(selector);
@@ -103,8 +113,10 @@ const semanticSearchResultsToBlocks = (results: ISemanticSearchResult[]) => {
 /** Run Embedding Dock search only when the kernel semantic endpoint has no usable rows. */
 const runLocalSemanticSearch = async (context: LocalSemanticSearchContext) => {
     const results = await 语义搜索(context.query, 获取语义搜索配置());
-    onSearch(semanticSearchResultsToBlocks(results), context.edit, context.element, context.config, context.focusId);
-    return results.length;
+    const scopedBox = getScopedEncryptedBox(context.config.idPath || []);
+    const scopedResults = scopedBox ? results.filter(result => result.box === scopedBox) : results;
+    onSearch(semanticSearchResultsToBlocks(scopedResults), context.edit, context.element, context.config, context.focusId);
+    return scopedResults.length;
 };
 
 /** Compare request timestamps so an older local-search response cannot overwrite a newer one. */
@@ -182,10 +194,16 @@ const updateSearchSummary = (element: Element, config: Config.IUILayoutTabSearch
 const finishBlockSearch = (context: BlockSearchContext) => {
     const {element, edit, config, focusId} = context;
     const endpoint = config.method === 4 ? "/api/search/semanticSearchBlock" : "/api/search/fullTextSearchBlock";
-    fetchPost(endpoint, {
+    const searchParam: Record<string, unknown> = {
         query: config.query, method: config.method, types: config.types, subTypes: config.subTypes,
         paths: config.idPath || [], groupBy: config.group, orderBy: config.sort, page: config.page || 1, pageSize: 32,
-    }, (response) => {
+    };
+    const idPaths = config.idPath || [];
+    const scopedBox = getScopedEncryptedBox(idPaths);
+    if (scopedBox) {
+        searchParam.notebook = scopedBox;
+    }
+    fetchPost(endpoint, searchParam, (response) => {
         const requestKey = config.method === 4 ? "/api/search/semanticSearchBlock" : "/api/search/fullTextSearchBlock";
         // Ignore an older block response when the recent-block request already moved on.
         if (searchIsStale("/api/block/getRecentUpdatedBlocks", requestKey)) {
@@ -226,7 +244,7 @@ const executeSearch = (context: ExecuteSearchContext) => {
         finishRecentSearch(element, edit, config);
         return;
     }
-    finishBlockSearch(element, edit, config, focusId);
+    finishBlockSearch({element, edit, config, focusId});
 };
 
 /**

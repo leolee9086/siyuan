@@ -18,6 +18,7 @@ package av
 
 import (
 	"testing"
+	"time"
 )
 
 // leaf 构造一个叶子过滤节点。
@@ -121,6 +122,69 @@ func TestEvalNode_GroupSemantics(t *testing.T) {
 	}
 }
 
+func TestIsRollupFilterValueEmpty(t *testing.T) {
+	filter := &ViewFilter{
+		Value: &Value{Type: KeyTypeRollup, Rollup: &ValueRollup{Contents: []*Value{{Type: KeyTypeDate}}}},
+	}
+	if !isRollupFilterValueEmpty(filter) {
+		t.Fatalf("rollup filter without an absolute value should be empty")
+	}
+
+	filter.RelativeDate = &RelativeDate{Unit: RelativeDateUnitDay, Direction: RelativeDateDirectionThis}
+	if isRollupFilterValueEmpty(filter) {
+		t.Fatalf("rollup filter with a relative date should not be empty")
+	}
+
+	filter.RelativeDate = nil
+	filter.Value.Rollup.Contents[0].Date = &ValueDate{Content: 1, IsNotEmpty: true}
+	if isRollupFilterValueEmpty(filter) {
+		t.Fatalf("rollup filter with an absolute date should not be empty")
+	}
+
+	filter.RelativeDate = &RelativeDate{Unit: RelativeDateUnitDay, Direction: RelativeDateDirectionThis}
+	filter.Value.Rollup.Contents[0] = &Value{Type: KeyTypeNumber}
+	if !isRollupFilterValueEmpty(filter) {
+		t.Fatalf("relative date should not configure a non-date rollup filter")
+	}
+}
+
+func TestRollupRelativeDateFilter(t *testing.T) {
+	relationKey := NewKey("relation", "关联", "", KeyTypeRelation)
+	relationKey.Relation = &Relation{AvID: "target"}
+	rollupKey := NewKey("rollup", "汇总", "", KeyTypeRollup)
+	rollupKey.Rollup = &Rollup{RelationKeyID: relationKey.ID, KeyID: "date"}
+	attrView := &AttributeView{KeyValues: []*KeyValues{
+		{Key: relationKey, Values: []*Value{{
+			KeyID: relationKey.ID, BlockID: "source-item", Type: KeyTypeRelation,
+			Relation: &ValueRelation{BlockIDs: []string{"target-item"}},
+		}}},
+		{Key: rollupKey},
+	}}
+
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	targetDate := &Value{
+		KeyID: "date", BlockID: "target-item", Type: KeyTypeDate,
+		Date: &ValueDate{Content: today.AddDate(0, 0, -1).UnixMilli(), IsNotEmpty: true},
+	}
+	targetView := &AttributeView{KeyValues: []*KeyValues{{Key: NewKey("date", "日期", "", KeyTypeDate), Values: []*Value{targetDate}}}}
+	value := &Value{KeyID: rollupKey.ID, BlockID: "source-item", Type: KeyTypeRollup, Rollup: &ValueRollup{}}
+	filter := &ViewFilter{
+		Qualifier:    FilterQuantifierAny,
+		Operator:     FilterOperatorIsLess,
+		Value:        &Value{Type: KeyTypeRollup, Rollup: &ValueRollup{Contents: []*Value{{Type: KeyTypeDate}}}},
+		RelativeDate: &RelativeDate{Count: 1, Unit: RelativeDateUnitDay, Direction: RelativeDateDirectionThis},
+	}
+
+	if !value.Filter(filter, attrView, "source-item", map[string]Collection{}, map[string]*AttributeView{"target": targetView}) {
+		t.Fatalf("rollup date before today should pass the relative date filter")
+	}
+	targetDate.Date.Content = today.AddDate(0, 0, 1).UnixMilli()
+	if value.Filter(filter, attrView, "source-item", map[string]Collection{}, map[string]*AttributeView{"target": targetView}) {
+		t.Fatalf("future rollup date should not pass the before-today filter")
+	}
+}
+
 func TestRemoveFiltersByColumn(t *testing.T) {
 	// 树结构：root(AND) → [leaf(c1), group(OR) → [leaf(c2), leaf(c1)]]
 	root := group(FilterCombinationAnd, leaf("c1"), group(FilterCombinationOr, leaf("c2"), leaf("c1")))
@@ -150,7 +214,7 @@ func TestRemoveFiltersByColumn(t *testing.T) {
 
 func TestRemoveSelectOptionFromFilters(t *testing.T) {
 	sel := &ViewFilter{Column: "c1", Operator: FilterOperatorContains, Value: &Value{
-		Type:   KeyTypeSelect,
+		Type:    KeyTypeSelect,
 		MSelect: []*ValueSelect{{Content: "A", Color: "1"}, {Content: "B", Color: "2"}},
 	}}
 	root := group(FilterCombinationAnd, sel)
@@ -173,7 +237,7 @@ func TestRemoveSelectOptionFromFilters(t *testing.T) {
 
 func TestRenameSelectOptionInFilters(t *testing.T) {
 	sel := &ViewFilter{Column: "c1", Operator: FilterOperatorContains, Value: &Value{
-		Type:   KeyTypeMSelect,
+		Type:    KeyTypeMSelect,
 		MSelect: []*ValueSelect{{Content: "old", Color: "1"}},
 	}}
 	nestedSel := &ViewFilter{Column: "c1", Value: &Value{Type: KeyTypeSelect, MSelect: []*ValueSelect{{Content: "old", Color: "1"}}}}
@@ -262,8 +326,8 @@ func TestUpgradeSpec5(t *testing.T) {
 	// spec 4 + 扁平叶子 → 包装成根组
 	av4 := &AttributeView{Spec: 4, Views: []*View{{Filters: []*ViewFilter{leaf("c1"), leaf("c2")}}}}
 	UpgradeSpec(av4)
-	if av4.Spec != 5 {
-		t.Fatalf("spec should be upgraded to 5, got %d", av4.Spec)
+	if av4.Spec != CurrentSpec {
+		t.Fatalf("spec should be upgraded to %d, got %d", CurrentSpec, av4.Spec)
 	}
 	filters := av4.Views[0].Filters
 	if len(filters) != 1 || !filters[0].IsGroup() || FilterCombinationAnd != filters[0].Combination {

@@ -11,13 +11,13 @@ import { renderSnippet } from "../config/util/snippets";
 import { getSearch } from "../util/platform/functions";
 import { initWindow } from "../boot/onGetConfig";
 import { App } from "../index";
-import { afterLoadPlugin } from "../plugin/loader";
+import { afterLayoutReady } from "../plugin/loader";
 import { initWindowEvent } from "../boot/globalEvent/event";
 import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, setSiyuanLayoutCenterLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { getAllEditor } from "../layout/getAll";
 import { isEmojiArray, isTab } from "./init.guard";
-import { initNativeDialogOverride } from "../protyle/util/compatibility";
+import { initNativeDialogOverride, initWindowOpenOverride } from "../protyle/util/compatibility";
 import { isElectron } from "../platform";
 
 /** 处理获取Emoji配置的响应 */
@@ -66,14 +66,15 @@ const resize = () => {
     if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         for (const item of getAllEditor()) {
+            // 仅重绘包含当前选区的编辑器工具栏，避免其他页签使用无关 Range 定位。
             if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
                 item.protyle.toolbar?.render(item.protyle, range);
             }
         }
     }
-    window.siyuan.dialogs.forEach(item => {
+    for (const item of window.siyuan.dialogs) {
         item.resize();
-    });
+    }
 };
 
 /**
@@ -117,6 +118,7 @@ export const init = async (app: App) => {
     fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
     initStatus(true);
     initWindow(app);
+    initWindowOpenOverride(app);
     // S-forge: 仅桌面端覆盖原生对话框行为
     if (isElectron) {
         initNativeDialogOverride();
@@ -147,9 +149,7 @@ export const init = async (app: App) => {
  * @param app - 应用实例
  */
 const afterLayout = (app: App) => {
-    for (const item of app.plugins) {
-        afterLoadPlugin(item);
-    }
+    afterLayoutReady(app);
     const tabHeaders = document.querySelectorAll<HTMLLIElement>('li[data-type="tab-header"][data-init-active="true"]');
     for (const item of tabHeaders) {
         const tab = getInstanceById(item.getAttribute("data-id") || "");
@@ -159,6 +159,7 @@ const afterLayout = (app: App) => {
             tab.parent.switchTab(item, false, false);
         }
     }
+    // 标签位置依赖布局 Dock 的统一 CSS 过渡结束；该过渡没有单一 DOM 事件源，使用与样式一致的全局时长。
     setTimeout(() => {
         setTabPosition();
     }, Constants.TIMEOUT_TRANSITION);

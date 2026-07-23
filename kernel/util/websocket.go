@@ -19,6 +19,7 @@ package util
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/88250/gulu"
@@ -33,6 +34,10 @@ var (
 	// map[string]map[string]*melody.Session{}
 	sessions     = sync.Map{} // {appId, {sessionId, session}}
 	authSessions = sync.Map{}
+
+	// ReloadDocInfoGuard 由 model 层注入，在广播 docInfo 前检查 box 是否仍处于可广播状态。
+	// 加密笔记本锁定后返回 false，防止 500ms 延迟任务在锁定后泄漏明文元数据。
+	ReloadDocInfoGuard func(boxID string) bool
 )
 
 func BroadcastByTypeAndExcludeApp(excludeApp, typ, cmd string, code int, msg string, data any) {
@@ -344,6 +349,14 @@ func PushSaveDoc(rootID, typ string, sources any) {
 }
 
 func PushReloadDocInfo(docInfo map[string]any) {
+	// 加密笔记本锁定后丢弃延迟广播，避免泄漏明文元数据（title/alias/memo/bookmark）
+	if ReloadDocInfoGuard != nil {
+		if boxID, ok := docInfo["box"].(string); ok && boxID != "" {
+			if !ReloadDocInfoGuard(boxID) {
+				return
+			}
+		}
+	}
 	BroadcastByType("filetree", "reloadDocInfo", 0, "", docInfo)
 }
 
@@ -351,7 +364,13 @@ func PushReloadProtyle(rootID string) {
 	BroadcastByType("protyle", "reload", 0, "", rootID)
 }
 
-func PushSetRefDynamicText(rootID, blockID, defBlockID, refText string) {
+func PushSetRefDynamicText(rootID, blockID, defBlockID, refText, boxID string) {
+	// 加密笔记本锁定后丢弃延迟广播，避免泄漏明文 refText
+	if ReloadDocInfoGuard != nil && boxID != "" {
+		if !ReloadDocInfoGuard(boxID) {
+			return
+		}
+	}
 	BroadcastByType("main", "setRefDynamicText", 0, "", map[string]any{"rootID": rootID, "blockID": blockID, "defBlockID": defBlockID, "refText": refText})
 }
 
@@ -547,4 +566,38 @@ func ClosePublishServiceSessions() {
 		session.CloseWithMsg([]byte("  close websocket: publish service closed"))
 		RemovePushChan(session)
 	}
+}
+
+var (
+	// lastActivityNs 记录最近一次用户写操作（前端发送 /api/transactions* 请求）的纳秒时间戳。
+	lastActivityNs atomic.Int64
+	// indexFixDirty 标记索引可能已脏（上次订正后用户又有新的写操作），需要再次订正。
+	indexFixDirty atomic.Bool
+)
+
+func init() {
+	// 初始化为启动时间，避免启动瞬间被判定为空闲
+	lastActivityNs.Store(time.Now().UnixNano())
+}
+
+// RefreshActivity 刷新用户最近活动时间，并标记索引可能已脏（需要订正）。
+// 在 model.Activity 中间件中，对 /api/transactions* 写操作请求调用。
+func RefreshActivity() {
+	lastActivityNs.Store(time.Now().UnixNano())
+	indexFixDirty.Store(true)
+}
+
+// MarkIndexClean 标记索引已订正完成，清除脏标志。订正流水线结束后调用。
+func MarkIndexClean() {
+	indexFixDirty.Store(false)
+}
+
+// IsIdle 自上次用户活动以来是否已超过 idleThreshold。
+func IsIdle(idleThreshold time.Duration) bool {
+	return time.Since(time.Unix(0, lastActivityNs.Load())) >= idleThreshold
+}
+
+// IsIndexFixDirty 返回是否存在未订正的变更（上次订正后有新用户活动）。
+func IsIndexFixDirty() bool {
+	return indexFixDirty.Load()
 }

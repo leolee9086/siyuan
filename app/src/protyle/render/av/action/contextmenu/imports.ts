@@ -32,6 +32,10 @@ export { hideElements };
 import { hasClosestBlock } from "../../../../util/hasClosest";
 /** 导出 hasClosestBlock 供 contextmenu 子模块复用。 */
 export { hasClosestBlock };
+/** 用途：定位卡片所属虚拟滚动 body。使用范围：右键选择卡片时同步选中快照。解耦评估：DOM 定位继续复用统一工具。 */
+import {hasClosestByClassName} from "../../../../util/hasClosest";
+/** 导出 hasClosestByClassName 供 contextmenu 子模块复用。 */
+export {hasClosestByClassName};
 
 /** 用途：提交事务。使用范围：添加到数据库、删除、解绑等需要写回文档状态的菜单动作。解耦评估：事务是 action 层的主要副作用出口，当前子模块直接消费更利于审计。 */
 import { transaction } from "../../../../wysiwyg/transaction";
@@ -109,6 +113,15 @@ export { deleteRow };
 export { insertRows };
 /** 导出 updateHeader 供 contextmenu 子模块复用。 */
 export { updateHeader };
+/** 用途：同步虚拟滚动选择快照。使用范围：卡片右键选择。解耦评估：选择快照由 virtualScroll 唯一维护。 */
+import {updateAVRowSelect} from "../../virtualScroll";
+/** 导出 updateAVRowSelect 供 contextmenu 子模块复用。 */
+export {updateAVRowSelect};
+
+/** 用途：读取 AV view 属性名。使用范围：生成数据库条目协议链接。解耦评估：协议键由常量统一维护。 */
+import {Constants} from "../../../../../constants";
+/** 导出 Constants 供 contextmenu 子模块复用。 */
+export {Constants};
 
 /** 用途：读取国际化文案。使用范围：copy/openBy/fields 等整条右键菜单链路。解耦评估：文案对象属于只读全局上下文，通过网关统一转发即可。 */
 import { siyuanI18n } from "../../../../../util/siyuanEnvironments/i18n.getI18n.environment";

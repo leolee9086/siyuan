@@ -5,6 +5,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { hasClosestBlock } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import { genHintItemHTML } from "./extend";
+import { withEncryptedNotebook } from "../../util/pathName";
 
 const genNewFileItem = (k: string) => {
     const newFileName = Lute.UnEscapeHTMLStr(replaceFileName(k));
@@ -53,14 +54,22 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
         throw new Error("hintRef 方法调用时, protyle.hint 未定义");
     }
     protyle.hint.genLoading(protyle);
-    fetchPost("/api/search/searchRefBlock", {
+    const refParams = protyle.lite ? {
+        k: key,
+        id: "",
+        rootID: "",
+        beforeLen: 48,
+        isDatabase: false,
+        isSquareBrackets: true,
+    } : withEncryptedNotebook(protyle.notebookId, {
         k: key,
         id: nodeElement ? nodeElement.getAttribute("data-node-id") : protyle.block.parentID,
         beforeLen: Math.floor((Math.max(protyle.element.clientWidth / 2, 320) - 58) / 28.8),
         rootID: source === "av" ? "" : protyle.block.rootID,
         isDatabase: source === "av",
-        isSquareBrackets: ["[[", "【【"].includes(protyle.hint.splitChar)
-    }, (response) => {
+        isSquareBrackets: ["[[", "【【"].includes(protyle.hint.splitChar),
+    });
+    fetchPost("/api/search/searchRefBlock", refParams, (response) => {
         if (!protyle.hint) {
             throw new Error("hintRef 方法调用时, protyle.hint 未定义");
         }

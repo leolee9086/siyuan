@@ -107,6 +107,27 @@ export const resetMenuState = (menuElement: HTMLElement): void => {
     menuElement.removeAttribute("data-from");    // Flag for whether opened in floating window
 };
 
+const positionActionAnchoredSubMenu = (subMenuElement: HTMLElement, subMenuRect: DOMRect): boolean => {
+    const menuElement = subMenuElement.closest(".b3-menu");
+    if (subMenuElement.dataset.anchor !== "action" || menuElement?.classList.contains("b3-menu--fullscreen")) {
+        return false;
+    }
+    const actionElement = subMenuElement.parentElement.querySelector(":scope > .b3-menu__action");
+    if (!(actionElement instanceof HTMLElement)) {
+        return false;
+    }
+    const actionRect = actionElement.getBoundingClientRect();
+    if (actionRect.right + subMenuRect.width <= window.innerWidth) {
+        subMenuElement.style.left = `${actionRect.right}px`;
+        subMenuElement.style.top = `${Math.max(getTopBarHeight(), Math.min(actionRect.top - 9, window.innerHeight - subMenuRect.height - 1))}px`;
+        return true;
+    }
+    subMenuElement.style.left = `${Math.max(0, Math.min(actionRect.right - subMenuRect.width, window.innerWidth - subMenuRect.width))}px`;
+    const below = actionRect.bottom;
+    subMenuElement.style.top = `${below + subMenuRect.height <= window.innerHeight ? below : Math.max(getTopBarHeight(), actionRect.top - subMenuRect.height)}px`;
+    return true;
+};
+
 /**
  * Position submenu to ensure it's visible within viewport
  * @param {HTMLElement} subMenuElement - Submenu element to position
@@ -121,6 +142,10 @@ export const positionSubMenu = (subMenuElement: HTMLElement | null): void => {
     }
     const itemRect = subMenuElement.parentElement.getBoundingClientRect();
     const subMenuRect = subMenuElement.getBoundingClientRect();
+
+    if (positionActionAnchoredSubMenu(subMenuElement, subMenuRect)) {
+        return;
+    }
 
     // 垂直方向位置调整
     // 减 9px 是为了尽量对齐菜单选项（b3-menu__submenu 的默认 padding-top 加上子菜单首个 b3-menu__item 的默认 margin-top）
@@ -252,7 +277,11 @@ export const handleMenuEvent = (
     if (itemElement.classList.contains("b3-menu__item--readonly")) {
         return;
     }
-    const subMenuElement = itemElement.querySelector(".b3-menu__submenu") as HTMLElement;
+    const subMenuElement = itemElement.querySelector(":scope > .b3-menu__submenu") as HTMLElement;
+    if (subMenuElement?.contains(target)) {
+        return;
+    }
+    const isSubMenuShown = itemElement.classList.contains("b3-menu__item--show");
     menuElement.querySelectorAll(".b3-menu__item--show").forEach((item) => {
         if (!item.contains(itemElement) && item !== itemElement && !itemElement.contains(item)) {
             item.classList.remove("b3-menu__item--show");
@@ -266,7 +295,7 @@ export const handleMenuEvent = (
         return;
     }
     itemElement.classList.add("b3-menu__item--show");
-    if (!menuElement.classList.contains("b3-menu--fullscreen")) {
+    if (!isSubMenuShown && !menuElement.classList.contains("b3-menu--fullscreen")) {
         positionSubMenu(subMenuElement);
     }
 };

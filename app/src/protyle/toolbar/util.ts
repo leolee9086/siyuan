@@ -3,6 +3,29 @@ import {Constants} from "../../constants";
 import {focusByRange, focusByWbr} from "../util/selection";
 import {writeText} from "../util/compatibility";
 
+/** lite 编辑器仅保留行内能力及插件显式声明的工具项，并清理无效分隔线。 */
+export const filterPluginToolbar = (toolbar: Array<string | IMenuItem>, lite: boolean) => {
+    if (!lite) {
+        return toolbar;
+    }
+    const filtered = toolbar.filter(item => typeof item === "string" ||
+        Constants.INLINE_TYPE.concat("|").includes(item.name) || item.showInLite);
+    return filtered.filter((item, index) => {
+        const name = typeof item === "string" ? item : item.name;
+        if (name !== "|") {
+            return true;
+        }
+        const previous = filtered[index - 1];
+        const next = filtered[index + 1];
+        return previous && next && (typeof previous === "string" ? previous : previous.name) !== "|";
+    });
+};
+
+/** 清除工具栏复用子面板的内联布局，避免前一种面板状态污染下一种面板。 */
+export const resetToolbarSubElement = (subElement: HTMLElement) => {
+    subElement.removeAttribute("style");
+};
+
 export const previewTemplate = (pathString: string, element: Element, parentId: string) => {
     if (!pathString) {
         element.innerHTML = "";

@@ -17,6 +17,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -42,17 +43,25 @@ func convertMCPToolsToOpenAI(includeTaskDirectory bool) []openai.Tool {
 }
 
 // executeTool 执行单次工具调用。
-// 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果。
-func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, agentApproved bool, emitProgress tools.ToolProgressCallback) (string, bool) {
+// 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果，executionUnknown 表示副作用结果无法确定。
+func executeTool(ctx context.Context, tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding,
+	ownerIdentityID string, ownerAuthorizationExpiresAt int64, agentApproved bool,
+	emitProgress tools.ToolProgressCallback) (resultText string, isErr, executionUnknown bool) {
 	t := tools.GetTool(tc.Function.Name)
 	if t == nil {
-		return "unknown tool: " + tc.Function.Name, true
+		return "unknown tool: " + tc.Function.Name, true, false
+	}
+	if t.ContextHandler == nil && t.Handler == nil && t.ProgressHandler == nil {
+		return "tool handler unavailable: " + tc.Function.Name, true, false
+	}
+	if ctx.Err() != nil {
+		return "tool execution was cancelled before it started", true, false
 	}
 	if taskDirectory != nil && taskDirectory.HasExternal() && tc.Function.Name == "frontend" {
-		return "frontend actions are disabled for sessions bound to external task directories", true
+		return "frontend actions are disabled for sessions bound to external task directories", true, false
 	}
 	if tools.IsForgeTool(t.Name) && !tools.IsForgeModeAvailable() {
-		return "forge tool is only available in forge mode", true
+		return "forge tool is only available in forge mode", true, false
 	}
 
 	args := parseToolArgs(tc.Function.Arguments)
@@ -65,48 +74,72 @@ func executeTool(tc openai.ToolCall, sessionID string, taskDirectory *TaskDirect
 		// 或 store 被外部修改时继续使用旧 root。
 		currentBinding, bindingErr := GetTaskDirectoryBinding(sessionID)
 		if bindingErr != nil || currentBinding == nil {
-			return "task directory capability is unavailable", true
+			return "task directory capability is unavailable", true, false
 		}
 		taskDirectory = currentBinding
 		if ownerIdentityID == "" || !subtleOwnerEqual(taskDirectoryBindingOwner(taskDirectory), ownerIdentityID) {
-			return "verified device owner access is required", true
+			return "verified device owner access is required", true, false
 		}
 		if taskDirectory == nil || !taskDirectory.HasExternal() {
-			return "task directory is not bound to this session", true
+			return "task directory is not bound to this session", true, false
 		}
 		if ownerAuthorizationExpiresAt <= time.Now().Unix() {
-			return "verified device owner authorization expired", true
+			return "verified device owner authorization expired", true, false
 		}
 		directoryID, _ := args["directoryID"].(string)
 		grant := taskDirectory.Grant(directoryID)
 		if grant == nil {
-			return "requested task directory is not bound to this session", true
+			return "requested task directory is not bound to this session", true, false
 		}
 		requiredPermission := tools.TaskDirectoryToolPermission(t.Name)
 		if requiredPermission == "" {
-			return "unknown task directory permission", true
+			return "unknown task directory permission", true, false
 		}
 		tools.WithTaskDirectoryGrant(args, grant.ID, grant.Path, string(grant.Permission))
 	}
-	// _sessionID 是原生工具（如 todo_write）专用的内部字段，用于关联会话状态。
+	// _sessionID 和 _toolCallID 是原生工具专用的内部字段，用于关联会话状态和实现幂等操作。
 	// 仅注入给原生工具；MCP/插件工具的参数会原样转发给外部服务端，
 	// 严格校验（additionalProperties:false）的服务端（如 Flomo MCP）会因这个多余字段报错。
 	// https://github.com/siyuan-note/siyuan/issues/17927
 	if t.Source == "native" || t.Source == "" {
 		args["_sessionID"] = sessionID
+		args["_toolCallID"] = tc.ID
 	}
-	var result tools.CallToolResult
-	var err error
-	if t.ProgressHandler != nil && emitProgress != nil {
-		result, err = t.ProgressHandler(args, emitProgress)
-	} else {
-		result, err = t.Handler(args)
+	type executionResult struct {
+		result tools.CallToolResult
+		err    error
 	}
+	executionCh := make(chan executionResult, 1)
+	go func() {
+		var result tools.CallToolResult
+		var err error
+		if t.ProgressHandler != nil && emitProgress != nil {
+			result, err = t.ProgressHandler(args, emitProgress)
+		} else if t.ContextHandler != nil {
+			result, err = t.ContextHandler(ctx, args)
+		} else if t.Handler != nil {
+			result, err = t.Handler(args)
+		} else {
+			result, err = t.ProgressHandler(args, nil)
+		}
+		executionCh <- executionResult{result: result, err: err}
+	}()
+
+	var execution executionResult
+	select {
+	case execution = <-executionCh:
+	case <-ctx.Done():
+		return "tool execution was interrupted; execution result is unknown and must not be retried automatically", true, true
+	}
+	result, err := execution.result, execution.err
 	if err != nil {
-		return "tool execution error: " + err.Error(), true
+		if ctx.Err() != nil {
+			return "tool execution was interrupted; execution result is unknown and must not be retried automatically", true, true
+		}
+		return "tool execution error: " + err.Error(), true, false
 	}
 
-	return resultToString(result), result.IsError
+	return resultToString(result), result.IsError, result.ExecutionUnknown
 }
 
 func convertSchema(schema tools.ToolSchema) any {
@@ -245,8 +278,8 @@ func resultToString(result tools.CallToolResult) string {
 	return strings.Join(parts, "\n")
 }
 
-func parseToolArgs(argsJSON string) map[string]interface{} {
-	args := map[string]interface{}{}
+func parseToolArgs(argsJSON string) map[string]any {
+	args := map[string]any{}
 	if argsJSON == "" {
 		return args
 	}

@@ -14,6 +14,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getSiyuanConfig, getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 录音器上下文 } from "../breadcrumb.types";
 import { isHTMLInputElement } from "../imports";
+import { isInAndroid } from "../../util/compatibility";
 
 // ==================== 上传菜单项 ====================
 
@@ -37,24 +38,27 @@ function 处理上传变更事件(protyle: IProtyle, event: Event): void {
 }
 
 /**
- * 向面包屑菜单添加"插入资源"上传菜单项
+ * 向面包屑菜单添加指定类型的文件选择项
  *
- * 作用：创建包含 file input 的菜单项，用户点击后可选择文件上传到当前文档
- * 意图：将上传菜单项的构建逻辑从 showBreadcrumbMenu 中解耦，保持单一职责
+ * 作用：根据配置创建包含 file input 的菜单项，并复用统一的上传事件处理。
+ * 意图：让 Android 图片选择与通用资源选择共享完全相同的 DOM 和上传逻辑。
  * 调用时机：由 menuItems.misc.ts 的 添加上传与录音组 在构建面包屑右键菜单时调用
  *
  * @同步豁免: UI构建 - 函数职责是同步构建 MenuItem DOM 元素并 append 到菜单，
  *   调用方 添加上传与录音组 按顺序同步组装菜单，无法使用异步
  */
-export function 添加上传菜单项(protyle: IProtyle, menu: Menu): void {
-    const accept = protyle.options?.upload?.accept;
-    const acceptAttr = accept ? ` accept="${accept}"` : "";
+function 添加文件选择菜单项(
+    protyle: IProtyle,
+    menu: Menu,
+    options: {id: string; icon: string; label: string; accept?: string},
+) {
+    const acceptAttr = options.accept ? ` accept="${options.accept}"` : "";
     const uploadHTML = `<input class="b3-form__upload" type="file" multiple="multiple"${acceptAttr}>`;
 
     const uploadMenu = new MenuItem({
-        id: "insertAsset",
-        icon: "iconDownload",
-        label: `${siyuanI18n.insertAsset}${uploadHTML}`,
+        id: options.id,
+        icon: options.icon,
+        label: `${options.label}${uploadHTML}`,
     }).element;
 
     const inputElement = uploadMenu.querySelector("input");
@@ -63,6 +67,30 @@ export function 添加上传菜单项(protyle: IProtyle, menu: Menu): void {
     }
 
     menu.append(uploadMenu);
+}
+
+/**
+ * 作用：添加当前宿主可用的资源选择入口。
+ * 意图：Android 额外提供系统图片选择器，其他宿主仍保持通用资源选择。
+ * 调用时机：面包屑菜单构建上传分组时。
+ */
+// 导出说明：面包屑菜单的统一上传入口构建器。
+export function 添加上传菜单项(protyle: IProtyle, menu: Menu) {
+    // Android 支持原生图片选择协议，因此在通用资源入口之前增加专用图片入口。
+    if (isInAndroid()) {
+        添加文件选择菜单项(protyle, menu, {
+            id: "insertImage",
+            icon: "iconImage",
+            label: siyuanI18n.insertImage,
+            accept: "image/*,application/x-siyuan-image-picker",
+        });
+    }
+    添加文件选择菜单项(protyle, menu, {
+        id: "insertAsset",
+        icon: "iconDownload",
+        label: siyuanI18n.insertAsset,
+        accept: protyle.options?.upload?.accept,
+    });
 }
 
 // ==================== 录音菜单项 ====================

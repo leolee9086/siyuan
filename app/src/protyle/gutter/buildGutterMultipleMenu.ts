@@ -6,7 +6,7 @@ import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.envi
 import { 检查选中元素状态, 构建转换菜单 } from "./buildMultipleTurnIntoMenu";
 import { 构建复制菜单 } from "./buildMultipleCopyMenu";
 import { 构建编辑操作菜单 } from "./buildMultipleEditMenu";
-import { 构建AI菜单, 构建外观菜单, 构建闪卡菜单, 触发插件菜单 } from "./buildMultipleAppearanceMenu";
+import { 构建Agent菜单, 构建AI菜单, 构建外观菜单, 构建闪卡菜单, 触发插件菜单 } from "./buildMultipleAppearanceMenu";
 
 /**
  * 多选块菜单的上下文参数
@@ -30,6 +30,7 @@ export const buildGutterMultipleMenu = (ctx: IGutterMultipleMenuContext) => {
 
     // 2. AI 菜单
     构建AI菜单(protyle, selectsElement);
+    构建Agent菜单(protyle, selectsElement);
 
     // 3. 复制菜单
     构建复制菜单(protyle, selectsElement);

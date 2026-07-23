@@ -157,7 +157,8 @@ function handleNormalClick(
     files.setCurrent(target, false);
     const dataType = target.getAttribute("data-type");
     // 检查是否为文件类型
-    if (dataType === "navigation-file") {
+    const isBoxDoc = dataType === "navigation-root" && Boolean(target.getAttribute("data-node-id"));
+    if (dataType === "navigation-file" || isBoxDoc) {
         handleFileClick(event, target, app);
         return false;
     }
@@ -165,6 +166,27 @@ function handleNormalClick(
     if (dataType === "navigation-root") {
         files.getLeaf(target, notebookId);
     }
+    return true;
+}
+
+/** 普通左键点击有子项的文档标题时，根据配置切换展开状态。 */
+function handleTitleExpandClick(event: MouseEvent, target: Element, files: Files, notebookId: string): boolean {
+    if (event.button !== 0 || !isNotCtrl(event) || event.altKey || event.shiftKey ||
+        !target.classList.contains("b3-list-item__text")) {
+        return false;
+    }
+    const liElement = target.parentElement;
+    const dataType = liElement?.getAttribute("data-type");
+    const isDocument = dataType === "navigation-file" ||
+        (dataType === "navigation-root" && Boolean(liElement?.getAttribute("data-node-id")));
+    if (!liElement || !isDocument || !window.siyuan.config.fileTree.parentDocClickExpand ||
+        Number(liElement.getAttribute("data-count")) <= 0) {
+        return false;
+    }
+    files.getLeaf(liElement, notebookId);
+    event.preventDefault();
+    event.stopPropagation();
+    removeSiyuanMenu();
     return true;
 }
 
@@ -240,7 +262,9 @@ function onElementClick(event: MouseEvent, files: Files, app: App): void {
     const notebookId = ulElement.getAttribute("data-url") ?? "";
     while (target && !target.isEqualNode(files.element)) {
         // 处理图标点击
-        if (handleIconClick(event, target)) {
+        const iconResult = handleIconClick(event, target, files, app, notebookId);
+        if (iconResult !== "unhandled") {
+            needFocus = iconResult !== "opened";
             break;
         }
         // 处理 toggle 点击
@@ -248,11 +272,14 @@ function onElementClick(event: MouseEvent, files: Files, app: App): void {
             break;
         }
         // 处理 action 按钮点击
-        if (handleActionClick(event, target, app, notebookId, files.element)) {
+        if (handleActionClick(event, target, app, notebookId)) {
             break;
         }
         // 处理发布权限开关点击
         if (handleSwitchClick(event, target)) {
+            break;
+        }
+        if (handleTitleExpandClick(event, target, files, notebookId)) {
             break;
         }
         // 处理 LI 元素点击

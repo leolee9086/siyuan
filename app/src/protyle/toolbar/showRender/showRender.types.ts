@@ -6,7 +6,6 @@
 export interface 渲染面板配置 {
     标题: string;
     占位符: string;
-    是否固定: boolean;
     固定时的样式?: {
         宽度: string;
         高度: string;
@@ -14,9 +13,6 @@ export interface 渲染面板配置 {
     是否禁用: boolean;
     是否行内备注: boolean;
     类型列表: string[];
-    渲染元素宽度: number;
-    是否拖拽中: boolean;
-    刷新按钮激活: boolean;
 }
 
 /** 渲染面板上下文 - 供事件处理器使用 */

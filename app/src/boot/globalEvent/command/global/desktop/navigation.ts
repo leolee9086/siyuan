@@ -20,6 +20,8 @@ import { openRecentDocs } from "./imports";
 import { executeRecentClosedGlobalCommand } from "./imports";
 /** 用途：引入 Dock 栏切换工具。使用范围：toggleDock 命令。解耦评估：布局 Dock 层负责具体显示状态。 */
 import { toggleDockBar } from "./imports";
+/** 用途：引入布局访问器。使用范围：三个 Dock 固定状态切换命令。解耦评估：避免命令层直接读取全局布局对象。 */
+import { getSiyuanLayout } from "./imports";
 /** 用途：引入 Electron 环境判断。使用范围：toggleWin 命令。解耦评估：桌面专属命令需要同步环境分支。 */
 import { isElectron } from "./imports";
 /** 用途：引入 Electron IPC 发送入口。使用范围：toggleWin 命令。解耦评估：命令层通过 IPC 协议触发主进程行为。 */
@@ -92,6 +94,23 @@ const executeToggleDockDesktopGlobalCommand = () => {
     return true;
 };
 
+/** 切换指定方位 Dock 的固定状态。 */
+const executeSwitchDockDesktopGlobalCommand = ({ command }: GlobalCommandContext) => {
+    const layout = getSiyuanLayout();
+    // 左侧 Dock 命令只切换 leftDock，处理后立即结束，避免落入其它方位。
+    if (command === DESKTOP_GLOBAL_COMMANDS.SWITCH_LEFT_DOCK) {
+        layout.leftDock.togglePin();
+        return true;
+    }
+    // 右侧 Dock 命令只切换 rightDock；路由保证剩余分支仅为底部 Dock 命令。
+    if (command === DESKTOP_GLOBAL_COMMANDS.SWITCH_RIGHT_DOCK) {
+        layout.rightDock.togglePin();
+        return true;
+    }
+    layout.bottomDock.togglePin();
+    return true;
+};
+
 /** 执行窗口隐藏与最小化命令。 */
 const executeToggleWinDesktopGlobalCommand = () => {
     // toggleWin 只在 Electron 桌面端生效，非 Electron 环境保持已处理但不发送 IPC。
@@ -114,6 +133,7 @@ const desktopNavigationCommandRouter = calibur
     .split(type({ command: `'${DESKTOP_GLOBAL_COMMANDS.RECENT_DOCS}'` }), () => executeRecentDocsDesktopGlobalCommand)
     .split(type({ command: `'${DESKTOP_GLOBAL_COMMANDS.RECENT_CLOSED}'` }), () => executeRecentClosedGlobalCommand)
     .split(type({ command: `'${DESKTOP_GLOBAL_COMMANDS.TOGGLE_DOCK}'` }), () => executeToggleDockDesktopGlobalCommand)
+    .split(type({ command: `'${DESKTOP_GLOBAL_COMMANDS.SWITCH_LEFT_DOCK}' | '${DESKTOP_GLOBAL_COMMANDS.SWITCH_RIGHT_DOCK}' | '${DESKTOP_GLOBAL_COMMANDS.SWITCH_BOTTOM_DOCK}'` }), () => executeSwitchDockDesktopGlobalCommand)
     .remain(() => executeToggleWinDesktopGlobalCommand)
     .build();
 

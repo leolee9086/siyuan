@@ -16,6 +16,7 @@ import type { 面包屑点击上下文, 面包屑点击处理器 } from "./bread
 import { openFileById } from "../../editor/utils.openFileById";
 import { getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../../platform";
+import {withEncryptedNotebook} from "../../util/pathName";
 
 // ============================================================
 // 节点 ID 点击处理 (data-node-id)
@@ -71,9 +72,8 @@ function 处理文档按钮(ctx: 面包屑点击上下文): boolean {
     // 不使用 window.siyuan.shiftIsPressed，否则窗口未激活时按 Shift 点击块标无法打开属性面板
     // https://github.com/siyuan-note/siyuan/issues/15075
     if (event.shiftKey) {
-        fetchPost("/api/block/getDocInfo", {
-            id: protyle.block.rootID
-        }, (response) => {
+        const docInfoParam = withEncryptedNotebook(protyle.notebookId, {id: protyle.block.rootID});
+        fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
             openFileAttr(response.data.ial, "bookmark", protyle);
         });
         event.stopPropagation();
@@ -135,11 +135,12 @@ function 处理上下文切换(ctx: 面包屑点击上下文): boolean {
     }
 
     const siyuanConfig = getSiyuanConfig();
-    fetchPost("/api/filetree/getDoc", {
+    const getDocParam = withEncryptedNotebook(protyle.notebookId, {
         id: blockId,
         mode: 3,
         size: siyuanConfig.editor?.dynamicLoadBlocks ?? 48,
-    }, getResponse => {
+    });
+    fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
         onGet({ data: getResponse, protyle, action: [Constants.CB_GET_HL] });
     });
     target.classList.add("block__icon--active");

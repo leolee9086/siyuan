@@ -141,8 +141,9 @@ export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, ap
                                 frontend: getFrontend(),
                                 app: Constants.SIYUAN_APPID,
                             }, (response) => {
-                                loadPlugin(app, response.data);
-                                bazaar._genMyHTML(bazaarType, app, false);
+                                loadPlugin(app, response.data).then(() => {
+                                    bazaar._genMyHTML(bazaarType, app, false);
+                                });
                             });
                         });
                     }
@@ -158,7 +159,7 @@ export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, ap
     }
 };
 
-export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, app: App) => {
+export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, bazaar: any, app: App) => {
     if (target.getAttribute("disabled")) {
         return;
     }
@@ -172,15 +173,12 @@ export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, app: 
     }, (response) => {
         target.removeAttribute("disabled");
         if (enabled) {
-            loadPlugin(app, response.data).then((plugin: Plugin | undefined) => {
-                if (plugin) {
-                    // @ts-ignore
-                    if (plugin.setting || plugin.__proto__.hasOwnProperty("openSetting")) {
-                        target.parentElement?.querySelector('[data-type="setting"]')?.classList.remove("fn__none");
-                    } else {
-                        target.parentElement?.querySelector('[data-type="setting"]')?.classList.add("fn__none");
-                    }
-                }
+            if (getSiyuanConfig().bazaar.petalDisabled) {
+                target.parentElement?.querySelector('[data-type="setting"]')?.classList.add("fn__none");
+                return;
+            }
+            loadPlugin(app, response.data).then(() => {
+                bazaar._genMyHTML("plugins", app, false);
             });
         } else {
             uninstall(app, dataObj.name, true);
@@ -199,23 +197,21 @@ export const handlePluginsEnable = (target: HTMLInputElement, bazaar: any, app: 
         target.removeAttribute("disabled");
         if (getSiyuanConfig().bazaar.petalDisabled) {
             bazaar.element.querySelectorAll("#configBazaarDownloaded .b3-card").forEach((item: HTMLElement) => {
-                item.classList.add("b3-card--disabled");
+                item.querySelector('[data-type="setting"]')?.classList.add("fn__none");
                 const objStr = item.getAttribute("data-obj");
                 if (objStr) {
                     uninstall(app, JSON.parse(objStr).name, true);
                 }
             });
-        } else {
-            bazaar.element.querySelectorAll("#configBazaarDownloaded .b3-card").forEach((item: HTMLElement) => {
-                item.classList.remove("b3-card--disabled");
-            });
-            loadPlugins(app, null, false).then(() => {
-                app.plugins.forEach(item => {
-                    afterLoadPlugin(item);
-                });
-            });
-            saveLayout();
+            return;
         }
+        loadPlugins(app, null, false).then(() => {
+            app.plugins.forEach(item => {
+                afterLoadPlugin(item);
+            });
+            bazaar._genMyHTML("plugins", app, false);
+        });
+        saveLayout();
     });
 };
 
@@ -263,6 +259,11 @@ export const handleBazaarInstallClick = (type: string, target: HTMLElement, data
         event.stopPropagation();
         return true;
     } else if (type === "setting") {
+        if (getSiyuanConfig().bazaar.petalDisabled) {
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
         app.plugins.find((item: Plugin) => {
             if (item.name === dataObj.name) {
                 item.openSetting();
@@ -277,7 +278,7 @@ export const handleBazaarInstallClick = (type: string, target: HTMLElement, data
         event.stopPropagation();
         return true;
     } else if (type === "plugin-enable") {
-        handlePluginEnable(target as HTMLInputElement, dataObj, app);
+        handlePluginEnable(target as HTMLInputElement, dataObj, bazaar, app);
         event.stopPropagation();
         return true;
     } else if (type === "export-local-package") {

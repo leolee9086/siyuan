@@ -1,4 +1,4 @@
-import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
+import {hasClosestBlock, hasClosestByClassName, hasTopClosestByAttribute} from "../../util/hasClosest";
 import {focusBlock} from "../../util/selection";
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
@@ -21,6 +21,7 @@ import {unicode2Emoji} from "../../../emoji";
 import {escapeAttr} from "../../../util/DOM/escape";
 import {getCompressURL} from "../../../util/assets/image";
 import {getAVSelectStat, getAvBodyData, resetAVRowSelect, updateAVRowSelect} from "./virtualScroll";
+import {getCardCoverImageHTML} from "./cover";
 
 export const getRowHTML = async (options: {
     data: IAVView
@@ -37,11 +38,8 @@ export const getRowHTML = async (options: {
         if (kanbanData.coverFrom !== 0) {
             const coverClass = "av__gallery-cover av__gallery-cover--" + kanbanData.cardAspectRatio;
             if (galleryRow.coverURL) {
-                if (galleryRow.coverURL.startsWith("background")) {
-                    html += `<div class="${coverClass}"><img class="av__gallery-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="${galleryRow.coverURL}"></div>`;
-                } else {
-                    html += `<div class="${coverClass}"><img loading="lazy" class="av__gallery-img${kanbanData.fitImage ? " av__gallery-img--fit" : ""}" src="${await getCompressURL(galleryRow.coverURL)}"></div>`;
-                }
+                const compressedURL = await getCompressURL(galleryRow.coverURL);
+                html += `<div class="${coverClass}">${getCardCoverImageHTML(galleryRow.coverURL, compressedURL, kanbanData.fitImage)}</div>`;
             } else if (galleryRow.coverContent) {
                 html += `<div class="${coverClass}"><div class="av__gallery-content">${galleryRow.coverContent}</div><div></div></div>`;
             } else {
@@ -110,11 +108,8 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
         if (kanbanData.coverFrom !== 0) {
             const coverClass = "av__gallery-cover av__gallery-cover--" + kanbanData.cardAspectRatio;
             if (kanbanRow.coverURL) {
-                if (kanbanRow.coverURL.startsWith("background")) {
-                    html += `<div class="${coverClass}"><img class="av__gallery-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="${kanbanRow.coverURL}"></div>`;
-                } else {
-                    html += `<div class="${coverClass}"><img loading="lazy" class="av__gallery-img${kanbanData.fitImage ? " av__gallery-img--fit" : ""}" src="${await getCompressURL(kanbanRow.coverURL)}"></div>`;
-                }
+                const compressedURL = await getCompressURL(kanbanRow.coverURL);
+                html += `<div class="${coverClass}">${getCardCoverImageHTML(kanbanRow.coverURL, compressedURL, kanbanData.fitImage)}</div>`;
             } else if (kanbanRow.coverContent.trim()) {
                 html += `<div class="${coverClass}"><div class="av__gallery-content">${kanbanRow.coverContent}</div><div></div></div>`;
             }
@@ -198,9 +193,9 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
         html += `<div class="av__cell${checkClass}" data-id="${cell.id}" data-col-id="${column.id}"
 data-wrap="${column.wrap}"
 data-dtype="${column.type}"
+data-align="${column.align || ""}"
 ${cell.value?.isDetached ? ' data-detached="true"' : ""}
 style="width: ${column.width || "200px"};
-${cell.valueType === "number" ? "text-align: right;" : ""}
 ${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
 ${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
 
@@ -286,24 +281,33 @@ export const updateHeader = (rowElement: HTMLElement) => {
     if (!blockElement) {
         return;
     }
-    const bodyElement = rowElement.parentElement as HTMLElement;
-    // 虚拟滚动下 DOM 内只有渲染窗口的行，直接计数会低估；优先用选中快照与已加载行总数。
-    const stat = getAVSelectStat(bodyElement);
-    const selectCount = stat ? stat.selectCount : bodyElement.querySelectorAll(".av__row--select:not(.av__row--header)").length;
-    const count = stat ? stat.loadedCount : bodyElement.querySelectorAll(".av__row:not(.av__row--header)").length;
-
-    const headElement = bodyElement.firstElementChild;
-    const headUseElement = headElement.querySelector("use");
-
-    if (count === selectCount && count !== 0) {
-        headElement.classList.add("av__row--select");
-        headUseElement.setAttribute("xlink:href", "#iconCheck");
-    } else if (selectCount === 0) {
-        headElement.classList.remove("av__row--select");
-        headUseElement.setAttribute("xlink:href", "#iconUncheck");
-    } else if (selectCount > 0) {
-        headElement.classList.add("av__row--select");
-        headUseElement.setAttribute("xlink:href", "#iconIndeterminateCheck");
+    const avType = blockElement.getAttribute("data-av-type") as TAVView;
+    let selectCount: number;
+    if (avType === "table") {
+        const bodyElement = rowElement.parentElement as HTMLElement;
+        // 虚拟滚动下 DOM 内只有渲染窗口的行，直接计数会低估；优先用选中快照与已加载行总数。
+        const stat = getAVSelectStat(bodyElement);
+        selectCount = stat ? stat.selectCount : bodyElement.querySelectorAll(".av__row--select:not(.av__row--header)").length;
+        const count = stat ? stat.loadedCount : bodyElement.querySelectorAll(".av__row:not(.av__row--header)").length;
+        const headElement = bodyElement.firstElementChild as HTMLElement;
+        const headUseElement = headElement.querySelector("use");
+        if (count === selectCount && count !== 0) {
+            headElement.classList.add("av__row--select");
+            headUseElement.setAttribute("xlink:href", "#iconCheck");
+        } else if (selectCount === 0) {
+            headElement.classList.remove("av__row--select");
+            headUseElement.setAttribute("xlink:href", "#iconUncheck");
+        } else if (selectCount > 0) {
+            headElement.classList.add("av__row--select");
+            headUseElement.setAttribute("xlink:href", "#iconIndeterminateCheck");
+        }
+    } else {
+        // 卡片/看板视图按分组（.av__body）聚合选中数，看板与分组卡片视图存在多个 body。
+        selectCount = 0;
+        blockElement.querySelectorAll(".av__body").forEach((bodyItem: HTMLElement) => {
+            const stat = getAVSelectStat(bodyItem);
+            selectCount += stat ? stat.selectCount : bodyItem.querySelectorAll(".av__gallery-item--select").length;
+        });
     }
 
     const counterElement = blockElement.querySelector(".av__counter");
@@ -378,7 +382,8 @@ export const insertAttrViewBlockAnimation = async (options: {
         cellsHTML += `<div class="av__cell${colType === "checkbox" ? " av__cell-uncheck" : ""}" data-col-id="${item.dataset.colId}" 
 data-wrap="${item.dataset.wrap}" 
 data-dtype="${item.dataset.dtype}" 
-style="width: ${item.style.width};${item.dataset.dtype === "number" ? "text-align: right;" : ""}" 
+data-align="${item.dataset.align || ""}"
+style="width: ${item.style.width};"
 ${colType === "block" ? ' data-detached="true"' : ""}>${renderedCell}</div>`;
         if (pinIndex === index) {
             cellsHTML += "</div>";
@@ -489,6 +494,16 @@ const syncFixedRowPos = (item: HTMLElement, bodyRect: DOMRect, scrollLeft: numbe
 
 export const stickyRow = (blockElement: HTMLElement, scrollElement: HTMLElement, status: "top" | "bottom" | "all") => {
     if (blockElement.dataset.avType !== "table") {
+        return;
+    }
+    const skipFixed = hasTopClosestByAttribute(blockElement, "fold", "1");
+    if (skipFixed) {
+        blockElement.querySelectorAll(".av__row--header--fixed").forEach((item: HTMLElement) => {
+            removeFixedRow(item, "av__row--header--fixed", "av__row--header-placeholder");
+        });
+        blockElement.querySelectorAll(".av__row--footer--fixed").forEach((item: HTMLElement) => {
+            removeFixedRow(item, "av__row--footer--fixed", "av__row--footer-placeholder");
+        });
         return;
     }
     const scrollEl = blockElement.querySelector(".av__scroll") as HTMLElement;
@@ -734,12 +749,15 @@ export const deleteRow = (blockElement: HTMLElement, protyle: IProtyle) => {
     });
     rowElements.forEach(item => {
         const blockValue = genCellValueByElement("block", item.querySelector('.av__cell[data-dtype="block"]'));
+        const itemID = Lute.NewNodeID();
+        // 撤销会使用新的条目 ID 恢复该行，重做时需要同时删除这个新条目。
+        blockIds.push(itemID);
         undoOperations.push({
             action: "insertAttrViewBlock",
             avID,
             previousID: item.previousElementSibling?.getAttribute("data-id") || "",
             srcs: [{
-                itemID: Lute.NewNodeID(),
+                itemID,
                 id: item.getAttribute("data-id"),
                 isDetached: blockValue.isDetached,
                 content: blockValue.block.content

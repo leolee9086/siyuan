@@ -2,6 +2,7 @@ import { Editor } from "./imports";
 import type { IEditorOptions } from "./imports";
 import { Asset } from "./imports";
 import { newCardModel } from "./imports";
+import { newDatabaseRowModel } from "./imports";
 import { Constants } from "./imports";
 import { Tab } from "./imports";
 import { setPanelFocus } from "./setPanelFocus";
@@ -142,6 +143,15 @@ const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: NonNull
         }));
         return;
     }
+    // 数据库行需要专用模型维护属性渲染、幽灵 Protyle 与销毁生命周期。
+    if (custom.id === "siyuan-database-row") {
+        tab.addModel(newDatabaseRowModel({
+            app: options.app,
+            tab,
+            data: custom.data,
+        }));
+        return;
+    }
     // 优先从全局 TabRegistry 查找
     const registryModel = tabRegistry.createModel({
         app: options.app,
@@ -225,6 +235,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
                     blockId: id,
                     rootId: rootID,
                     action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
+                    scrollPosition: options.scrollPosition,
                 }));
                 return;
             }
@@ -233,6 +244,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
                 tab,
                 blockId: id,
                 rootId: rootID,
+                scrollPosition: options.scrollPosition,
             };
             if (options.mode) {
                 editorOptions.mode = options.mode;

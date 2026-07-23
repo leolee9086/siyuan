@@ -11,6 +11,17 @@ export interface IOperations {
     undoOperations: IOperation[];
 }
 
+/** kernel 全局撤销与 lite 本地撤销共同遵循的编辑器能力契约。 */
+export interface IUndo {
+    undo(protyle: IProtyle): void;
+    redo(protyle: IProtyle): void;
+    add(doOperations: IOperation[], undoOperations: IOperation[], protyle: IProtyle): void;
+    replace(doOperations: IOperation[], protyle: IProtyle): void;
+    clear(): void;
+    /** kernel 模式用于应用服务端已提交的乐观结果。 */
+    renderLocal?(protyle: IProtyle, operations: IOperation[]): void;
+}
+
 /**
  * 撤销/重做状态本地镜像。
  *

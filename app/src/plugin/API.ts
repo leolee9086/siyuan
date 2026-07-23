@@ -46,7 +46,7 @@ import { openEmojiPanel } from "../emoji";
  * 调用时机：插件通过 API.openAttributePanel 调用
  */
 const openAttributePanel = (options: {
-    data?: IObject  // 块属性值
+    data?: Record<string, string>  // 块属性值
     nodeElement?: HTMLElement,  // 块元素
     focusName: "bookmark" | "name" | "alias" | "memo" | "av" | "custom",    // av 为数据库页签，custom 为自定义页签，其余为内置输入框
     protyle?: IProtyle, // 有数据库时需要传入 protyle

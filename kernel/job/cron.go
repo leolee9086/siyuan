@@ -45,8 +45,10 @@ func StartCron() {
 	go every(30*time.Second, model.FlushAssetsTextsJob)
 	go every(30*time.Second, model.HookDesktopUIProcJob)
 	go every(24*time.Hour, model.AutoPurgeRepoJob)
+	go every(1*time.Minute, model.AutoFixIndex)
 	go every(30*time.Minute, model.AutoCheckMicrosoftDefenderJob)
 	go every(24*time.Hour, model.ClearOutdatedHistoryDirJob)
+	go every(1*time.Minute, model.AutoLockIdleEncryptedBoxesJob)
 	if util.IsMobileContainer() {
 		go every(3*time.Second, model.AutoConsumeShorthandsJob)
 	}

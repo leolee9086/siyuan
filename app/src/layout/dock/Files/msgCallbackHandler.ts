@@ -6,7 +6,6 @@
  * 意图：将消息处理逻辑从 Files 类中分离，减少主文件行数
  */
 
-import { escapeHtml } from "../../../util/DOM/escape";
 import { setNoteBook } from "../../../util/file/pathName";
 import { App } from "../../../index";
 import { handleCreateNotebook, handleUpdateDocInfo, handleRemove, handleMount, handleMove } from "./wsHandlers";
@@ -43,6 +42,8 @@ function buildHandlersMap(
         moveDoc: () => handleMove(context.element, data, context.getLeaf.bind(context)),
         /** 重新加载文件树：刷新整个笔记本列表 */
         reloadFiletree: () => setNoteBook(() => context.init(false)),
+        /** 合并短时间内的笔记本顶层文档计数更新。 */
+        reloadNotebookInfo: () => context.reloadNotebookInfo(),
         /** 挂载笔记本：添加笔记本到文件树并触发插件事件 */
         mount: () => {
             handleMount(context.element, context.closeElement, data, genNotebook);
@@ -91,7 +92,7 @@ function buildHandlersMap(
         /** 列表转文档：选中从列表转换生成的新文档 */
         li2doc: () => context.selectItem(data.data.box.id, data.data.path),
         /** 重命名笔记本：更新笔记本在文件树中的显示名称 */
-        renamenotebook: () => handleRenameNotebook(context.element, data.data.box, data.data.name, escapeHtml),
+        renamenotebook: () => handleRenameNotebook(context.element, context.closeElement, data.data.box, data.data.name),
         /** 重命名文档：调用上下文的重命名处理方法 */
         rename: () => context.onRename(data.data),
     };

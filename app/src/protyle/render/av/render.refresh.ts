@@ -1,11 +1,13 @@
 import {Constants} from "../../../constants";
-import {addDragFill, popTextCell} from "./cell";
+import {addDragFill, cellScrollIntoView, popTextCell} from "./cell";
 import {renderAVAttribute} from "./blockAttr";
 import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../runtime/dialog.port";
 import {openMenuPanel} from "./openMenuPanel";
 import {avRender} from "./render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {hasClosestByClassName} from "../../util/hasClosest";
+import {setAVLocateRequest} from "./locate";
 
 const refreshTimeouts: {
     [key: string]: number;
@@ -23,6 +25,92 @@ const getViewIDByAVElement = (avElement: HTMLElement): string | null => {
     return avElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW)
         || avElement.querySelector(".layout-tab-bar .item--focus")?.getAttribute("data-id") // 旧版本的数据库块没有 CUSTOM_SY_AV_VIEW 属性，所以在视图元素上获取 viewID
         || null;
+};
+
+const isItemInData = (data: IAV, itemID: string): boolean => {
+    const view = data.view as IAVTable & IAVGallery;
+    if (view.groups?.length > 0) {
+        return view.groups.some((group: IAVTable & IAVGallery) => {
+            const items = data.viewType === "table" ? group.rows : group.cards;
+            return items?.some((item: IAVRow | IAVGalleryItem) => item.id === itemID);
+        });
+    }
+    const items = data.viewType === "table" ? view.rows : view.cards;
+    return items?.some((item: IAVRow | IAVGalleryItem) => item.id === itemID);
+};
+
+const addingFocusTokens = new Map<string, symbol>();
+
+const scrollAddingCellIntoView = (protyle: IProtyle, blockElement: HTMLElement, cellElement: HTMLElement) => {
+    const rowElement = hasClosestByClassName(cellElement, "av__row");
+    const bodyElement = hasClosestByClassName(cellElement, "av__body");
+    if (rowElement && rowElement.dataset.index === "0" && bodyElement && !bodyElement.dataset.groupId) {
+        const contentRect = protyle.contentElement.getBoundingClientRect();
+        const blockRect = blockElement.getBoundingClientRect();
+        protyle.contentElement.scrollTop += blockRect.top - contentRect.top;
+        return;
+    }
+    cellScrollIntoView(blockElement, cellElement, false);
+};
+
+interface IAddingCellOptions {
+    protyle: IProtyle;
+    avID: string;
+    blockID: string;
+    itemID: string;
+    groupID?: string;
+}
+
+const getAddingCellElement = (options: IAddingCellOptions) => {
+    const blockElement = Array.from(options.protyle.wysiwyg.element.querySelectorAll(`.av[data-av-id="${options.avID}"]`)).find((item: HTMLElement) => {
+        return item.dataset.nodeId === options.blockID;
+    }) as HTMLElement;
+    if (!blockElement) {
+        return;
+    }
+    const groupQuery = options.groupID ? `[data-group-id="${options.groupID}"]` : "";
+    let cellElement = blockElement.querySelector(`.av__body${groupQuery} [data-id="${options.itemID}"] .av__cell[data-dtype="block"]`) as HTMLElement;
+    if (!cellElement) {
+        const cellElements = blockElement.querySelectorAll(`.av__body [data-id="${options.itemID}"] .av__cell[data-dtype="block"]`);
+        if (cellElements.length === 1) {
+            cellElement = cellElements[0] as HTMLElement;
+        }
+    }
+    if (!cellElement) {
+        return;
+    }
+    return {blockElement, cellElement};
+};
+
+const waitForAddingCellPosition = async (options: IAddingCellOptions) => {
+    let previousRect: DOMRect;
+    let previousScrollTop: number;
+    let stableFrames = 0;
+    for (let i = 0; i < 120; i++) {
+        await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+        });
+        const result = getAddingCellElement(options);
+        if (!result || result.cellElement.getBoundingClientRect().height === 0) {
+            stableFrames = 0;
+            continue;
+        }
+        const rect = result.cellElement.getBoundingClientRect();
+        const scrollTop = options.protyle.contentElement.scrollTop;
+        if (!options.protyle.wysiwyg.element.hasAttribute("data-top") && previousRect &&
+            Math.abs(previousRect.top - rect.top) < 0.5 && Math.abs(previousRect.left - rect.left) < 0.5 &&
+            Math.abs(previousRect.width - rect.width) < 0.5 && Math.abs(previousRect.height - rect.height) < 0.5 &&
+            previousScrollTop === scrollTop) {
+            stableFrames++;
+            if (stableFrames === 2) {
+                return result;
+            }
+        } else {
+            stableFrames = 0;
+        }
+        previousRect = rect;
+        previousScrollTop = scrollTop;
+    }
 };
 
 export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
@@ -45,6 +133,14 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
             }
             item.querySelectorAll(".av__row").forEach(rowItem => {
                 (rowItem.querySelector(`[data-col-id="${operation.id}"]`) as HTMLElement).style.width = operation.data;
+            });
+        });
+        return;
+    }
+    if (operation.action === "setAttrViewColAlign") {
+        getAVElements(protyle, operation.avID, operation.viewID).forEach((item) => {
+            item.querySelectorAll(`.av__cell[data-col-id="${operation.id}"]`).forEach((cellElement: HTMLElement) => {
+                cellElement.dataset.align = operation.data;
             });
         });
         return;
@@ -149,12 +245,11 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
     }
     if (operation.action === "setAttrViewShowIcon") {
         getAVElements(protyle, operation.avID, operation.viewID).forEach((item) => {
-            item.querySelectorAll('.av__cell[data-dtype="block"] .b3-menu__avemoji, .av__cell[data-dtype="relation"] .b3-menu__avemoji').forEach(cellItem => {
-                if (operation.data) {
-                    cellItem.classList.remove("fn__none");
-                } else {
-                    cellItem.classList.add("fn__none");
-                }
+            item.querySelectorAll('.av__cell[data-dtype="block"] .b3-menu__avemoji').forEach(cellItem => {
+                cellItem.classList.toggle("fn__none", !operation.data);
+            });
+            item.querySelectorAll('.av__cell[data-dtype="relation"] .av__cell--relation').forEach(cellItem => {
+                cellItem.firstElementChild.classList.toggle("fn__none", !operation.data);
             });
         });
         return;
@@ -187,6 +282,13 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
         });
         return;
     }
+    const addingFocusKey = `${protyle.id}-${operation.avID}`;
+    const addingFocusToken = Symbol();
+    if (operation.action === "insertAttrViewBlock") {
+        addingFocusTokens.set(addingFocusKey, addingFocusToken);
+    } else {
+        addingFocusTokens.delete(addingFocusKey);
+    }
     // 只能 setTimeout，以前方案快速输入后最后一次修改会被忽略；必须为每一个 protyle 单独设置，否则有多个 protyle 时，其余无法被执行
     clearTimeout(refreshTimeouts[protyle.id]);
     refreshTimeouts[protyle.id] = window.setTimeout(() => {
@@ -200,6 +302,14 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
         }
         getAVElements(protyle, avID).forEach((item) => {
             item.removeAttribute("data-render");
+            if (operation.action === "replaceAttrViewBlock" && operation.retData?.duplicate &&
+                (!operation.blockID || operation.blockID === item.dataset.nodeId) &&
+                (!operation.context?.protyleID || operation.context.protyleID === protyle.id)) {
+                setAVLocateRequest(item, {
+                    itemID: operation.retData.targetItemID,
+                    select: true,
+                });
+            }
             if (operation.action === "sortAttrViewRow") {
                 clearSelect(["cell"], item);
             } else if (operation.action === "sortAttrViewCol") {
@@ -232,7 +342,7 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
                 }
             }
             const hasGhost = item.querySelector('[data-type="ghost"]');
-            avRender(item, protyle, () => {
+            avRender(item, protyle, (data: IAV) => {
                 if (operation.action === "insertAttrViewBlock" && operation.context?.ignoreTip !== "true") {
                     if (operation.context?.message) {
                         showMessage(operation.context.message);
@@ -246,6 +356,7 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
                                 }
                             });
                         }
+                        let isAddingFocusPending = false;
                         if (operation.srcs.length === 1) {
                             let popCellElement = item.querySelector(`.av__body${groupQuery} [data-id="${operation.srcs[0].itemID}"] .av__cell[data-dtype="block"]`) as HTMLElement;
                             if (!popCellElement) {
@@ -257,13 +368,42 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
                             if (popCellElement && popCellElement.getAttribute("data-detached") === "true" &&
                                 popCellElement.querySelector(".av__celltext").textContent === "" &&
                                 popCellElement.getBoundingClientRect().height !== 0 && hasGhost) {
-                                popTextCell(protyle, [popCellElement], "block");
+                                if (item.getAttribute("data-av-type") !== "table") {
+                                    if (addingFocusTokens.get(addingFocusKey) === addingFocusToken) {
+                                        addingFocusTokens.delete(addingFocusKey);
+                                        popTextCell(protyle, [popCellElement], "block");
+                                    }
+                                } else {
+                                    isAddingFocusPending = true;
+                                    const addingCellOptions = {
+                                        protyle,
+                                        avID,
+                                        blockID: item.dataset.nodeId,
+                                        itemID: operation.srcs[0].itemID,
+                                        groupID: operation.groupID,
+                                    };
+                                    scrollAddingCellIntoView(protyle, item, popCellElement);
+                                    waitForAddingCellPosition(addingCellOptions).then((result) => {
+                                        if (addingFocusTokens.get(addingFocusKey) !== addingFocusToken) {
+                                            return;
+                                        }
+                                        addingFocusTokens.delete(addingFocusKey);
+                                        if (!result || result.cellElement.getAttribute("data-detached") !== "true" ||
+                                            result.cellElement.querySelector(".av__celltext").textContent !== "") {
+                                            return;
+                                        }
+                                        popTextCell(protyle, [result.cellElement], "block", {scrollIntoView: false});
+                                    });
+                                }
                             }
                         }
+                        if (hasGhost && !isAddingFocusPending &&
+                            addingFocusTokens.get(addingFocusKey) === addingFocusToken) {
+                            addingFocusTokens.delete(addingFocusKey);
+                        }
                         operation.srcs.find((srcItem) => {
-                            if (!item.querySelector(`.av__body [data-id="${srcItem.itemID}"]`) &&
-                                !item.querySelector(`.av__body [data-dtype="block"] .av__celltext--ref[data-id="${srcItem.id}"]`)) {
-                                showMessage(siyuanI18n.insertRowTip);
+                            if (!isItemInData(data, srcItem.itemID)) {
+                                showMessage(siyuanI18n.databaseItemFiltered);
                                 return true;
                             }
                         });

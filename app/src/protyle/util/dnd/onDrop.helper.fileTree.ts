@@ -18,6 +18,7 @@ import {
     resolveAvItemPreviousId,
     executeAvInsert,
 } from "./onDrop.helper.avDrop";
+import {withEncryptedNotebook} from "../../../util/pathName";
 
 /**
  * 文件树拖拽到非 AV 区域：插入引用链接
@@ -215,8 +216,10 @@ export const reloadDocAfterConvert = async (
 ): Promise<void> => {
     const blockId = protyle.block?.id ?? "";
     const dynamicLoadBlocks = getDynamicLoadBlocks();
-    fetchPost("/api/filetree/getDoc", {
+    const getDocParams = withEncryptedNotebook(protyle.notebookId, {
         id: blockId,
         size: dynamicLoadBlocks,
-    }, (getResponse) => handleDocReloaded(protyle, scrollTop, getResponse));
+    });
+    fetchPost("/api/filetree/getDoc", getDocParams,
+        (getResponse) => handleDocReloaded(protyle, scrollTop, getResponse));
 };

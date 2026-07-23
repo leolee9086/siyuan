@@ -220,7 +220,6 @@
         line-height: 22px;
         cursor: pointer;
         user-select: none;
-        touch-action: none;
         display: flex;
         align-items: center;
         transition: var(--b3-transition);
@@ -361,6 +360,15 @@
   width: 42px;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   &__split {
     height: 17px;
@@ -368,12 +376,13 @@
 
     &::after {
       height: 1px;
-      background: var(--b3-theme-on-surface-light);
+      width: 22px;
+      background: var(--b3-theme-on-surface-lighter);
       content: "";
       position: absolute;
-      top: 8px;
-      width: 28px;
-      left: 7px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       border-radius: var(--b3-border-radius);
     }
   }

@@ -76,6 +76,8 @@ import { getSafeSiyuanMobile } from "./imports";
  * 解耦评估：配置读取经环境层封装，边界清晰。
  */
 import { getSiyuanConfig } from "./imports";
+/** 用途：统一构造加密感知的 getDoc 参数。使用范围：zoomOut 主文档加载。解耦评估：同目录请求 helper。 */
+import { createZoomOutGetDocParams } from "./protyle.zoomOut.request";
 /**
  * 用途：读取运行时存储对象。
  * 使用范围：写入 LOCAL_DOCINFO 前后同步。
@@ -325,10 +327,10 @@ export const zoomOut = (options: ZoomOutOptions) => {
 
     fetchPost(
         "/api/filetree/getDoc",
-        {
+        createZoomOutGetDocParams(options, {
             id: options.id,
             size: 获取主文档请求大小(options),
-        },
+        }),
         (getResponse: IWebSocketData) => {
             void 处理主文档响应(options, getResponse);
         }

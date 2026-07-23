@@ -10,10 +10,11 @@ import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest
 import {getInstanceById} from "./util";
 import {Tab} from "./Tab";
 import {Backlink} from "./dock/Backlink";
+import {withEncryptedNotebook} from "../util/pathName";
 
 /** 完整 App 的布局协同适配器；具体布局树和 DOM 查询只允许出现在此边界内。 */
 const appLayoutPort: IProtyleLayoutPort = {
-    refreshOutline(rootId: string) {
+    refreshOutline(rootId: string, notebookId?: string) {
         if (isMobile) {
             return;
         }
@@ -21,10 +22,21 @@ const appLayoutPort: IProtyleLayoutPort = {
             if (item.blockId !== rootId) {
                 return;
             }
-            fetchPost("/api/outline/getDocOutline", {
+            fetchPost("/api/outline/getDocOutline", withEncryptedNotebook(notebookId || "", {
                 id: item.blockId,
                 preview: item.isPreview,
-            }, response => item.update(response));
+            }), response => item.update(response));
+        });
+    },
+    refreshDatabaseRows(avID: string) {
+        if (isMobile) {
+            return;
+        }
+        getAllModels().custom.forEach((item) => {
+            if (item.type === "siyuan-database-row" && (item.data.avID === avID ||
+                item.element.querySelector(`[data-av-id="${avID}"]`))) {
+                item.update?.();
+            }
         });
     },
     updateOutline(protyle: IProtyle, reload: boolean) {

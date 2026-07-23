@@ -649,7 +649,9 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
         transaction(protyle, cellDoOperations, cellUndoOperations);
     }
     if (colData.type === "select") {
-        blockElement.setAttribute("data-rendering", "true");
+        if (blockElement.classList.contains("av")) {
+            blockElement.setAttribute("data-rendering", "true");
+        }
         menuElement.parentElement.dispatchEvent(new CustomEvent("click", { detail: "close" }));
     } else {
         const oldScroll = menuElement.querySelector(".b3-menu__items").scrollTop;
@@ -683,7 +685,7 @@ export const getSelectHTML = (fields: IAVColumn[], cellElements: HTMLElement[], 
     const selected: string[] = [];
     cellValues[0].mSelect?.forEach((item) => {
         selected.push(item.content);
-        selectedHTML += `<div class="b3-chip b3-chip--middle" data-content="${escapeAttr(item.content)}" style="white-space: nowrap;max-width:100%;background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})"><span class="fn__ellipsis">${escapeHtml(item.content)}</span><svg class="b3-chip__close" data-type="removeCellOption"><use xlink:href="#iconClose"></use></svg></div>`;
+        selectedHTML += `<div class="b3-chip b3-chip--middle fn__grab" data-content="${escapeAttr(item.content)}" style="white-space: nowrap;max-width:100%;background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})"><span class="fn__ellipsis">${escapeHtml(item.content)}</span><svg class="b3-chip__close" data-type="removeCellOption"><use xlink:href="#iconClose"></use></svg></div>`;
     });
 
     return `<div class="b3-menu__items" style="display: flex;flex-direction: column;flex: 1;">

@@ -64,6 +64,7 @@ const handleGutterDropNode = (newElement: Element, gutterTypes: string[], params
         srcListItemID?: string;
         targetPath?: string;
         previousPath?: string;
+        toTop?: boolean;
     } = {
         targetNoteBook: params.toURL,
         pushMode: 0,
@@ -84,6 +85,7 @@ const handleGutterDropNode = (newElement: Element, gutterTypes: string[], params
     const topTargetPath = (isTop && !newElement.previousElementSibling && newElement.parentElement && newElement.parentElement.previousElementSibling) ? newElement.parentElement.previousElementSibling.getAttribute("data-path") : null;
     if (topTargetPath) {
         toDocOptions.targetPath = topTargetPath;
+        toDocOptions.toTop = true;
     }
 
     const gutterType2 = gutterTypes[2];
@@ -298,5 +300,5 @@ const onListDocs = (files: Files, oldScrollTop: number, response: IWebSocketData
         showMessage(siyuanI18n.emptyContent);
         return;
     }
-    onLsHTMLHandler(files.element, response.data, oldScrollTop);
+    onLsHTMLHandler(files.element, response.data, oldScrollTop, () => files.refreshPublishAccessSwitch());
 };

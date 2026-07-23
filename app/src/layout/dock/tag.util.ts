@@ -20,9 +20,9 @@ export function getTagPanelHTML(): string {
     const minHotkey = updateHotkeyAfterTip(config?.keymap?.general?.closeTab?.custom ?? "");
 
     return `<div class="block__icons">
-    <div class="block__logo">${siyuanI18n.tag}
-    </div>
-    <span class="fn__flex-1"></span>
+    <div class="block__logo fn__flex-1">${siyuanI18n.tag}</div>
+    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
+    <span data-type="search" class="block__icon ariaLabel" data-position="north" aria-label="${siyuanI18n.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
     <span class="fn__space"></span>
     <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
     <span class="fn__space"></span>

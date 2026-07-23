@@ -32,6 +32,7 @@ export interface SearchContext {
     content: string;
     breadcrumb: boolean;
     top?: number | undefined;
+    onEmbedRender?: () => void;
 }
 
 /** 语义搜索结果项 */

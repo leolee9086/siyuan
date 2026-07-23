@@ -18,7 +18,7 @@ export const fetchPost = (
     url: string,
     data?: any,
     cb?: (response: IWebSocketData) => void,
-    headers?: IObject,
+    headers?: Record<string, string>,
     failCallback?: (response: IWebSocketData) => void,
     signal?: AbortSignal) => {
     const init: RequestInit = {
@@ -51,7 +51,7 @@ export const fetchPost = (
         init.signal = signal;
     }
     let isGetFile202 = false;
-    fetch(url, init).then((response) => {
+    return fetch(url, init).then((response) => {
         switch (response.status) {
             case 403:
             case 404:

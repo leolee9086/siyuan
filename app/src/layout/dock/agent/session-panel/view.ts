@@ -195,6 +195,9 @@ export function startAgentSessionRename(
 
 /** 处理重命名键盘提交和取消，两者都通过 blur 统一完成流程。 */
 function handleAgentSessionRenameKeydown(oldTitle: string, input: HTMLInputElement, event: KeyboardEvent) {
+    if (event.isComposing) {
+        return;
+    }
     // Enter 提交当前值，通过 blur 统一走完成回调。
     if (event.key === "Enter") {
         input.blur();

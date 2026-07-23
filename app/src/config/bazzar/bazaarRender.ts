@@ -362,21 +362,18 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: App, u
                     repoHash: item.repoHash,
                     downloaded: true
                 };
-                let hasSetting = false;
-                if (bazaarType === "plugins") {
-                    app.plugins.find((plugin: Plugin) => {
-                        if (plugin.name === dataObj.name) {
-                            // "setting" in item check... item here is different from Plugin
-                            // We are checking if the plugin instance has setting.
-                            if ("setting" in plugin || Object.prototype.hasOwnProperty.call(plugin, "openSetting")) {
-                                hasSetting = true;
-                            }
-                            return true;
-                        }
-                    });
-                }
+                const plugin = bazaarType === "plugins"
+                    ? app.plugins.find((item: Plugin) => item.name === dataObj.name)
+                    : undefined;
+                const hasSetting = !!plugin &&
+                    ("setting" in plugin || Object.prototype.hasOwnProperty.call(Object.getPrototypeOf(plugin), "openSetting"));
+                const settingActionHTML = hasSetting
+                    ? `<span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${window.siyuan.config.bazaar.petalDisabled ? " fn__none" : ""}" data-type="setting" aria-label="${siyuanI18n.config}">
+        <svg><use xlink:href="#iconSettings"></use></svg>
+    </span>`
+                    : "";
 
-                html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}${(window.siyuan.config.bazaar.petalDisabled && bazaarType === "plugins") ? " b3-card--disabled" : ""}">
+                html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}">
 <div class="b3-card__img"><img src="${item.iconURL}" onerror="this.src='/stage/images/icon.png'"/></div>
 <div class="fn__flex-1 fn__flex-column">
     <div class="b3-card__info b3-card__info--left fn__flex-1">
@@ -387,9 +384,7 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: App, u
 <div class="b3-card__actions b3-card__actions--right">
     ${item.incompatible ? `<span class="fn__space"></span><span class="fn__flex-center b3-tooltips b3-tooltips__nw b3-chip b3-chip--error b3-chip--small" aria-label="${siyuanI18n.incompatiblePluginTip}">${siyuanI18n.incompatible}</span>` : ""}
     ${genFundingHTML(item.preferredFunding)}
-    <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${hasSetting ? "" : " fn__none"}" data-type="setting" aria-label="${siyuanI18n.config}">
-        <svg><use xlink:href="#iconSettings"></use></svg>
-    </span>
+    ${settingActionHTML}
     <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show" data-type="uninstall" aria-label="${siyuanI18n.uninstall}">
         <svg><use xlink:href="#iconTrashcan"></use></svg>
     </span>

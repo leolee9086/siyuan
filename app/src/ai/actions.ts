@@ -136,8 +136,10 @@ const handleKeyDown = (
 
     event.preventDefault();
     event.stopPropagation();
-    const focusedElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
-
+    const focusedElement = listElement.querySelector<HTMLElement>(".b3-list-item--focus");
+    if (!focusedElement) {
+        return;
+    }
     处理Enter键按下(focusedElement, protyle, ids, elements, menu, clearContext);
 };
 

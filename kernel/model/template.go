@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
@@ -34,6 +35,7 @@ import (
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/av"
+	"github.com/siyuan-note/siyuan/kernel/bazaar"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/search"
 	"github.com/siyuan-note/siyuan/kernel/sql"
@@ -44,13 +46,20 @@ import (
 
 // TemplateSearchResult 描述了模板搜索结果。
 type TemplateSearchResult struct {
-	Path    string `json:"path"`
-	Content string `json:"content"`
+	Path         string `json:"path"`
+	RelativePath string `json:"relativePath"`
+	Content      string `json:"content"`
 }
 
 func RenderGoTemplate(templateContent string) (ret string, err error) {
+	return RenderGoTemplateAt(templateContent, time.Now())
+}
+
+// RenderGoTemplateAt 使用固定时间渲染 Go 模板，保证同一次业务操作中的多个模板结果一致。
+func RenderGoTemplateAt(templateContent string, now time.Time) (ret string, err error) {
 	tmpl := template.New("")
 	tplFuncMap := filesys.BuiltInTemplateFuncs()
+	tplFuncMap["now"] = func() time.Time { return now }
 	sql.SQLTemplateFuncs(&tplFuncMap)
 	tmpl = tmpl.Funcs(tplFuncMap)
 	tpl, err := tmpl.Parse(templateContent)
@@ -74,6 +83,22 @@ func RemoveTemplate(p string) (err error) {
 		logging.LogErrorf("remove template failed: %s", err)
 	}
 	return
+}
+
+// getTemplateReadmePaths 返回模板包 README 的相对包根路径集合：恒含 README.md，并合并 template.json 的 readme 字段（大小写敏感）。
+func getTemplateReadmePaths(templateDir string) map[string]struct{} {
+	paths := map[string]struct{}{"README.md": {}}
+	pkg, err := bazaar.ParsePackageJSON(filepath.Join(templateDir, "template.json"))
+	if err != nil {
+		return paths
+	}
+	for _, v := range pkg.Readme {
+		v = strings.TrimSpace(v)
+		if "" != v {
+			paths[v] = struct{}{}
+		}
+	}
+	return paths
 }
 
 func SearchTemplate(keyword string) (ret []*TemplateSearchResult) {
@@ -108,6 +133,7 @@ func SearchTemplate(keyword string) (ret []*TemplateSearchResult) {
 
 		if group.IsDir() {
 			templateDir := filepath.Join(templates, group.Name())
+			readmePaths := getTemplateReadmePaths(templateDir)
 			filelock.Walk(templateDir, func(path string, d fs.DirEntry, err error) error {
 				name := strings.ToLower(d.Name())
 				if strings.HasPrefix(name, ".") {
@@ -117,7 +143,14 @@ func SearchTemplate(keyword string) (ret []*TemplateSearchResult) {
 					return nil
 				}
 
-				if !strings.HasSuffix(name, ".md") || strings.HasPrefix(name, "readme") {
+				if !strings.HasSuffix(name, ".md") {
+					return nil
+				}
+				rel, relErr := filepath.Rel(templateDir, path)
+				if relErr != nil {
+					return nil
+				}
+				if _, skip := readmePaths[filepath.ToSlash(rel)]; skip {
 					return nil
 				}
 
@@ -139,14 +172,18 @@ func SearchTemplate(keyword string) (ret []*TemplateSearchResult) {
 					content = strings.TrimSuffix(content, ".md")
 					content = filepath.ToSlash(content)
 					_, content = search.MarkText(content, strings.Join(keywords, search.TermSep), 32, Conf.Search.CaseSensitive)
-					b := &TemplateSearchResult{Path: path, Content: content}
+					relativePath, relErr := filepath.Rel(templates, path)
+					if nil != relErr {
+						return nil
+					}
+					b := &TemplateSearchResult{Path: path, RelativePath: filepath.ToSlash(relativePath), Content: content}
 					results = append(results, &result{item: b, score: score})
 				}
 				return nil
 			})
 		} else {
 			name := strings.ToLower(group.Name())
-			if strings.HasPrefix(name, ".") || !strings.HasSuffix(name, ".md") || "readme.md" == name {
+			if strings.HasPrefix(name, ".") || !strings.HasSuffix(name, ".md") || "README.md" == group.Name() {
 				continue
 			}
 
@@ -165,7 +202,7 @@ func SearchTemplate(keyword string) (ret []*TemplateSearchResult) {
 			if hit {
 				content = filepath.ToSlash(content)
 				_, content = search.MarkText(content, strings.Join(keywords, search.TermSep), 32, Conf.Search.CaseSensitive)
-				b := &TemplateSearchResult{Path: filepath.Join(templates, group.Name()), Content: content}
+				b := &TemplateSearchResult{Path: filepath.Join(templates, group.Name()), RelativePath: group.Name(), Content: content}
 				results = append(results, &result{item: b, score: score})
 			}
 		}
@@ -362,14 +399,18 @@ func RenderTemplate(p, id string, preview bool) (tree *parse.Tree, dom string, e
 	}
 
 	var nodesNeedAppendChild, unlinks []*ast.Node
+	// 模板内部块旧 ID 到新 ID 的映射，用于成套改写模板内部的自引用
+	blockIDs := map[string]string{}
 	ast.Walk(tree.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.WalkContinue
 		}
 
 		if "" != n.ID {
-			// 重新生成 ID
+			// 重新生成 ID，并记录旧 ID 到新 ID 的映射，用于后续成套改写模板内部的自引用
+			oldID := n.ID
 			n.ID = ast.NewNodeID()
+			blockIDs[oldID] = n.ID
 			n.SetIALAttr("id", n.ID)
 			n.RemoveIALAttr(av.NodeAttrNameAvs)
 
@@ -444,10 +485,7 @@ func RenderTemplate(p, id string, preview bool) (tree *parse.Tree, dom string, e
 
 					table := getAttrViewTable(attrView, view, "")
 
-					var aligns []int
-					for range table.Columns {
-						aligns = append(aligns, 0)
-					}
+					aligns := getAttrViewTableAligns(table, false)
 					mdTable := &ast.Node{Type: ast.NodeTable, TableAligns: aligns}
 					mdTableHead := &ast.Node{Type: ast.NodeTableHead}
 					mdTable.AppendChild(mdTableHead)
@@ -465,6 +503,63 @@ func RenderTemplate(p, id string, preview bool) (tree *parse.Tree, dom string, e
 			}
 		}
 
+		return ast.WalkContinue
+	})
+
+	// 用映射成套改写模板内部的自引用，并补全指向外部块的引用锚文本
+	// 仅命中 blockIDs 的引用（模板内部块）才会改写 ID；未命中的（外部块）保持不变
+	ast.Walk(tree.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.WalkContinue
+		}
+
+		if n.IsTextMarkType("block-ref") {
+			defID := n.TextMarkBlockRefID
+			if newDefID, internal := blockIDs[defID]; internal {
+				// 模板内部自引用：成套改写为新 ID
+				n.TextMarkBlockRefID = newDefID
+			} else {
+				// 外部引用：保持 ID 不变，补全空锚文本
+				if refText := n.Text(); "" == refText {
+					refText = strings.TrimSpace(sql.GetRefText(defID))
+					if "" != refText {
+						treenode.SetDynamicBlockRefText(n, refText)
+					} else {
+						unlinks = append(unlinks, n)
+					}
+				}
+			}
+		} else if ast.NodeBlockRef == n.Type {
+			// 兼容遗留块引用节点
+			if refID := n.ChildByType(ast.NodeBlockRefID); nil != refID {
+				defID := refID.TokensStr()
+				if newDefID, internal := blockIDs[defID]; internal {
+					// 模板内部自引用：成套改写为新 ID
+					refID.Tokens = []byte(newDefID)
+				} else {
+					// 外部引用：保持 ID 不变，补全空锚文本
+					if refText := n.Text(); "" == refText {
+						refText = strings.TrimSpace(sql.GetRefText(defID))
+						if "" != refText {
+							treenode.SetDynamicBlockRefText(n, refText)
+						} else {
+							unlinks = append(unlinks, n)
+						}
+					}
+				}
+			}
+		} else if treenode.IsBlockLink(n) {
+			// 块超链接指向模板内部块时成套改写
+			defID := strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
+			if newDefID, internal := blockIDs[defID]; internal {
+				n.TextMarkAHref = "siyuan://blocks/" + newDefID
+			}
+		} else if ast.NodeBlockQueryEmbedScript == n.Type {
+			// 嵌入块查询脚本中引用模板内部块时成套改写
+			for oldID, newID := range blockIDs {
+				n.Tokens = bytes.ReplaceAll(n.Tokens, []byte(oldID), []byte(newID))
+			}
+		}
 		return ast.WalkContinue
 	})
 	for _, n := range nodesNeedAppendChild {

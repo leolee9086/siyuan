@@ -4,7 +4,16 @@ import * as dayjs from "dayjs";
 import {transaction, updateTransaction} from "./transaction";
 import {mathRender} from "../render/mathRender";
 import {highlightRender} from "../render/highlightRender";
-import {getContenteditableElement, hasNextSibling, hasPreviousSibling, isNotEditBlock} from "./getBlock";
+import {
+    fixAdjacentTags,
+    getContenteditableElement,
+    getNextBlockSibling,
+    getParentBlock,
+    getPreviousBlockSibling,
+    hasNextSibling,
+    hasPreviousSibling,
+    isNotEditBlock
+} from "./getBlock";
 import {genEmptyBlock} from "../../block/util";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
@@ -146,13 +155,15 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
             refElement.setAttribute("data-subtype", "s");
         }
     }
+    // 相邻标签之间插入空格区隔，避免 SpinBlockDOM 解析时合并为一个标签 https://github.com/siyuan-note/siyuan/issues/18191
+    fixAdjacentTags(editElement);
     let html = blockElement.outerHTML;
     let focusHR = false;
     if (["---", "___", "***"].includes(editElement.textContent) && type !== "NodeCodeBlock") {
         html = `<div data-node-id="${id}" data-type="NodeThematicBreak" class="hr"><div></div></div>`;
         // https://github.com/siyuan-note/siyuan/issues/12593
-        const nextBlockElement = blockElement.nextElementSibling;
-        if (nextBlockElement && nextBlockElement.getAttribute("data-node-id")) {
+        const nextBlockElement = getNextBlockSibling(blockElement);
+        if (nextBlockElement) {
             if (!isNotEditBlock(nextBlockElement)) {
                 focusBlock(nextBlockElement);
             } else {
@@ -183,19 +194,17 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
                 html = blockElement.outerHTML;
             }
         }
+        // 相邻标签之间插入空格区隔，避免 SpinBlockDOM 解析时合并为一个标签 https://github.com/siyuan-note/siyuan/issues/18191
+        // 使用迭代替换处理多个连续相邻标签（全局正则无法匹配重叠情况）
+        // 若中间含有 <wbr>（光标标记），替换后需保留 <wbr>，否则 focusByWbr 无法定位光标
+        let prevHTML: string;
+        do {
+            prevHTML = html;
+            html = html.replace(/(data-type="tag[^"]*">[\s\S]*?<\/span>)((?:\u200b|<wbr>)*)(<span data-type="tag[^"]*">)/, (match, before, between, after) => {
+                return before + (between.indexOf("<wbr>") > -1 ? " <wbr>" : " ") + after;
+            });
+        } while (html !== prevHTML);
         html = protyle.lute.SpinBlockDOM(html);
-        // 列表项内紧挨标记的第一个段落块不允许产生子列表 https://github.com/siyuan-note/siyuan/issues/17890
-        if (blockElement.closest('[data-type="NodeListItem"]') &&
-            blockElement.previousElementSibling?.classList.contains("protyle-action")) {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = html;
-            const firstChild = tempDiv.firstElementChild;
-            if (firstChild?.getAttribute("data-type") === "NodeList" ||
-                firstChild?.getAttribute("data-type") === "NodeListItem") {
-                const p = firstChild.querySelector('[data-type="NodeParagraph"]');
-                if (p) html = p.outerHTML;
-            }
-        }
     }
     // 在数学公式输入框中撤销到最后一步，再继续撤销会撤销编辑器正文内容，从而出发 input 事件
     hideElements(["util"], protyle, true);
@@ -204,6 +213,15 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
     }
     const tempElement = document.createElement("template");
     tempElement.innerHTML = html;
+    // 列表项内紧挨标记的第一个段落块不允许产生子列表 https://github.com/siyuan-note/siyuan/issues/17890
+    if (blockElement.closest('[data-type="NodeListItem"]') &&
+        blockElement.previousElementSibling?.classList.contains("protyle-action")) {
+        if (tempElement.content.firstElementChild.classList.contains("list")) {
+            getContenteditableElement(blockElement).innerHTML = "<wbr>";
+            html = blockElement.outerHTML;
+            tempElement.innerHTML = html;
+        }
+    }
     if (needRender && (
             getContenteditableElement(tempElement.content.firstElementChild)?.innerHTML !== getContenteditableElement(blockElement).innerHTML ||
             // 内容删空后使用上下键，光标无法到达 https://github.com/siyuan-note/siyuan/issues/4167 https://ld246.com/article/1636256333803
@@ -218,8 +236,14 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
             protyle.wysiwyg.lastHTMLs[id] = blockElement.outerHTML;
         }
         let scrollLeft: number;
+        let scrollTop: number;
+        let contentScrollTop: number;
         if (blockElement.classList.contains("table")) {
+            // 表格的横向、纵向滚动均发生在首个子节点（contenteditable 容器，overflow:auto）上，
+            // 重建 DOM 后需一并还原，否则固定表头长表格输入会跳回开头 https://github.com/siyuan-note/siyuan/issues/18035
             scrollLeft = blockElement.firstElementChild.scrollLeft;
+            scrollTop = blockElement.firstElementChild.scrollTop;
+            contentScrollTop = protyle.contentElement.scrollTop;
         }
         if (!/<span data-type="backslash">.{1,8}<\/span><wbr>/.test(html)) {
             // 使用 md 闭合后继续输入应为普通文本, 转义不需要添加 zwsp
@@ -299,6 +323,16 @@ export const input = async (protyle: IProtyle, blockElement: HTMLElement, range:
                     if (scrollLeft > 0) {
                         blockElement.firstElementChild.scrollLeft = scrollLeft;
                     }
+                    if (scrollTop > 0) {
+                        blockElement.firstElementChild.scrollTop = scrollTop;
+                    }
+                    // SpinBlockDOM 会生成新表格并替换旧节点，旧节点移除时外层编辑器的滚动锚点会失效，
+                    // 因此需在恢复光标后还原滚动位置
+                    // https://github.com/siyuan-note/siyuan/issues/18235
+                    if (contentScrollTop > 0) {
+                        protyle.contentElement.scrollTop = contentScrollTop;
+                        protyle.scroll.lastScrollTop = contentScrollTop - 1;
+                    }
                 }
             }
             // https://github.com/siyuan-note/siyuan/issues/14766
@@ -346,8 +380,8 @@ const updateInput = (html: string, protyle: IProtyle, id: string) => {
                 action: "insert",
                 data: item.outerHTML,
                 id: tempId,
-                previousID: index === 0 ? firstElement?.previousElementSibling?.getAttribute("data-node-id") : item.previousElementSibling.getAttribute("data-node-id"),
-                parentID: firstElement?.parentElement.getAttribute("data-node-id") || protyle.block.parentID
+                previousID: index === 0 ? (firstElement ? getPreviousBlockSibling(firstElement)?.getAttribute("data-node-id") : undefined) : item.previousElementSibling.getAttribute("data-node-id"),
+                parentID: firstElement ? (getParentBlock(firstElement).getAttribute("data-node-id") || protyle.block.parentID) : protyle.block.parentID
             });
             undoOperations.push({
                 id: tempId,

@@ -22,6 +22,8 @@ import {showMessage} from "./imports";
 import {openByMobile} from "../protyle/util/compatibility";
 /** 用途：安全获取 window 对象。使用范围：避免直接访问全局 window。解耦评估：通过 ./imports 转发。 */
 import {getWindow} from "./imports";
+/** 用途：处理 SiYuan 协议链接。使用范围：所有宿主在普通链接分流前统一处理。解耦评估：同目录模块。 */
+import {processSiYuanUri} from "./processSiYuanUri";
 
 export {processSiYuanUri, processSYLink} from "./processSiYuanUri";
 
@@ -91,6 +93,9 @@ export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, c
         pdfParams = result.params;
     }
 
+    if (processSiYuanUri(protyle.app, linkAddress)) {
+        return;
+    }
     if (isMobile) {
         openByMobile(linkAddress);
         return;

@@ -98,16 +98,21 @@ export class Asset extends Model {
 
   private render(_isInit = true) {
     const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0] || "";
+    const assetURL = this.path.startsWith("file")
+      ? this.path
+      : document.getElementById("baseURL")?.getAttribute("href") + "/" + this.path;
+    // 音视频路径会进入 HTML 属性，必须在模板拼接前转义以防止属性闭合。
+    const escapedAssetURL = Lute.EscapeHTMLStr(assetURL);
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
       render(this.element, this.path);
       return;
     }
     if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
-      this.element.innerHTML = `<div class="asset"><audio controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL")?.getAttribute("href") + "/" + this.path}"></audio></div>`;
+      this.element.innerHTML = `<div class="asset"><audio controls="controls" src="${escapedAssetURL}"></audio></div>`;
       return;
     }
     if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
-      this.element.innerHTML = `<div class="asset"><video controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL")?.getAttribute("href") + "/" + this.path}"></video></div>`;
+      this.element.innerHTML = `<div class="asset"><video controls="controls" src="${escapedAssetURL}"></video></div>`;
       return;
     }
     if (type === ".pdf" && !isMobile) {

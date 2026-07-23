@@ -3,6 +3,25 @@ import { scrollEvent } from "../scroll/event";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { moveResize } from "../runtime/dialog.port";
 import { isMobile } from "../../platform";
+import { AVAttributePanel } from "../render/av/attributePanel";
+
+/** 在非历史、非反链编辑器中创建并挂载数据库属性面板。 */
+const 挂载数据库属性面板 = (protyle: IProtyle) => {
+    const shouldMount = protyle.options.databaseAttr &&
+        !protyle.options.action.includes(Constants.CB_GET_HISTORY) &&
+        !protyle.options.backlinkData;
+    if (!shouldMount) {
+        return;
+    }
+    let topElement = protyle.contentElement.querySelector(".protyle-top");
+    if (!topElement) {
+        topElement = document.createElement("div");
+        topElement.className = "protyle-top";
+        protyle.contentElement.appendChild(topElement);
+    }
+    protyle.databaseAttributePanel = new AVAttributePanel(protyle);
+    topElement.appendChild(protyle.databaseAttributePanel.element);
+};
 
 /**
  * 初始化 ContentElement 及其顶部区域。
@@ -30,6 +49,7 @@ const 初始化ProtyleContent = (protyle: IProtyle) => {
         topElement.appendChild(protyle.title.element);
     }
 
+    挂载数据库属性面板(protyle);
     if (protyle.wysiwyg) {
         protyle.contentElement.appendChild(protyle.wysiwyg.element);
     }
@@ -65,7 +85,10 @@ const 挂载子组件 = (protyle: IProtyle) => {
 
     protyle.selectElement = document.createElement("div");
     protyle.selectElement.className = "protyle-select fn__none";
-    parentElement.appendChild(protyle.selectElement);
+    const selectContainer = document.createElement("div");
+    selectContainer.className = "protyle-select__container";
+    selectContainer.appendChild(protyle.selectElement);
+    parentElement.appendChild(selectContainer);
 };
 
 /**
@@ -82,24 +105,22 @@ const 初始化Toolbar = (protyle: IProtyle) => {
     // 非移动端下启用工具栏子面板的拖拽移动和缩放功能
     if (!isMobile) {
         // @内联回调 moveResize 的回调函数
-        moveResize(protyle.toolbar.subElement, () => {
+        moveResize(protyle.toolbar.subElement, (type) => {
             // 回调是异步执行的，需要再次检查 toolbar 是否存在
             if (!protyle.toolbar) {
                 return;
             }
             const subElement = protyle.toolbar.subElement;
             const pinElement = subElement.querySelector('.block__icons [data-type="pin"]');
-            if (!pinElement) {
-                return;
+            if (pinElement) {
+                const useElement = pinElement.querySelector("svg use");
+                useElement?.setAttribute("xlink:href", "#iconUnpin");
+                pinElement.setAttribute("aria-label", siyuanI18n.unpin);
+                subElement.firstElementChild?.setAttribute("data-drag", "true");
             }
-            const useElement = pinElement.querySelector("svg use");
-            if (useElement) {
-                useElement.setAttribute("xlink:href", "#iconUnpin");
-            }
-            pinElement.setAttribute("aria-label", siyuanI18n.unpin);
-            const firstChild = subElement.firstElementChild;
-            if (firstChild) {
-                firstChild.setAttribute("data-drag", "true");
+            // 只有实际缩放而非移动时，才重新计算依赖子面板尺寸的内容。
+            if (type !== "move" && protyle.toolbar.subElementResizeCB) {
+                protyle.toolbar.subElementResizeCB();
             }
         });
     }

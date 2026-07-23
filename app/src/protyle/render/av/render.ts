@@ -11,6 +11,8 @@ import {getPageSize} from "./groups";
 import {renderKanban} from "./kanban/render";
 import {getTableHTMLs, renderGroupTable, afterRenderTable} from "./render.table";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {getBodyVirtualData} from "./virtualScroll";
+import {beginAVRender, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "./locate";
 
 export {getGroupTitleHTML} from "./render.table";
 export {refreshAV} from "./render.refresh";
@@ -45,7 +47,10 @@ export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boole
             viewData = item;
         }
     });
-    return `<div class="av__header">
+    const defaultTemplate = data.newItemTemplates?.find(item => item.id === data.defaultTemplateID);
+    const defaultTemplateID = defaultTemplate && (defaultTemplate.targetType !== "detached" ||
+        defaultTemplate.primaryKeyTemplate || Object.keys(defaultTemplate.fieldValues || {}).length) ? defaultTemplate.id : "";
+    return `<div class="av__header" data-default-template-id="${defaultTemplateID}">
         <div class="fn__flex av__views${showSearch ? " av__views--show" : ""}">
             <div class="layout-tab-bar fn__flex">
                 ${tabHTML}
@@ -81,12 +86,13 @@ export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boole
                 <svg><use xlink:href="#iconSettings"></use></svg>
             </span>
             <div class="fn__space"></div>
-            <span data-type="av-add-more" class="block__icon ariaLabel" data-position="8south" aria-label="${siyuanI18n.newRow}">
-                <svg><use xlink:href="#iconAdd"></use></svg>
-            </span>
-            <div class="fn__space"></div>
-            ${data.isMirror ? ` <span data-av-id="${data.id}" data-popover-url="/api/av/getMirrorDatabaseBlocks" class="popover__block block__icon block__icon--show ariaLabel" data-position="8south" aria-label="${siyuanI18n.mirrorTip}">
-    <svg><use xlink:href="#iconSplitLR"></use></svg></span><div class="fn__space"></div>` : ""}
+            ${data.isMirror ? `<span data-av-id="${data.id}" data-popover-url="/api/av/getMirrorDatabaseBlocks" class="popover__block block__icon block__icon--show ariaLabel" data-position="8south" aria-label="${siyuanI18n.mirrorTip}">
+                <svg><use xlink:href="#iconSplitLR"></use></svg>
+            </span><div class="fn__space"></div>` : ""}
+            ${editable ? `<div class="av__new fn__flex">
+                <button data-type="av-add-more" class="b3-button">${siyuanI18n.new}</button>
+                <button data-type="av-add-template" class="b3-button ariaLabel" data-position="8south" aria-label="${siyuanI18n.template}"><svg><use xlink:href="#iconDown"></use></svg></button>
+            </div>` : ""}
         </div>
         <div contenteditable="${editable}" spellcheck="${window.siyuan.config.editor.spellcheck.toString()}" class="av__title${viewData.hideAttrViewName ? " fn__none" : ""}" data-title="${Lute.EscapeHTMLStr(data.name || "")}" data-tip="${siyuanI18n._kernel[267]}">${Lute.EscapeHTMLStr(data.name || "")}</div>
         <div class="av__counter fn__none"></div>
@@ -112,6 +118,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         if (isMobile || isInMobileApp()) {
             e.classList.add("av--touch");
         }
+        const renderToken = beginAVRender(e);
 
         if (e.getAttribute("data-av-type") === "gallery") {
             await renderGallery({blockElement: e, protyle, cb, renderAll});
@@ -163,19 +170,15 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         const virtualData: { [key: string]: IAVVirtualData } = {};
         e.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
             pageSizes[item.dataset.groupId || "unGroup"] = item.dataset.pageSize;
-            if (e.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
+            if (item.dataset.avLocateWindow === "true") {
                 return;
             }
             const firstRow = item.querySelectorAll(".av__row")[1] as HTMLElement;
-            const lastRow = item.querySelector(".av__row--util")?.previousElementSibling as HTMLElement;
-            if (!firstRow || !lastRow) {
+            if (!firstRow || e.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
                 return;
             }
-            virtualData[item.getAttribute("data-group-id") || "all"] = {
-                renderedStart: parseInt(firstRow.getAttribute("data-index")),
-                renderedEnd: parseInt(lastRow.getAttribute("data-index")),
-                topSpacerHeight: item.querySelector(".av__spacer")?.clientHeight || 0,
-            };
+            virtualData[item.getAttribute("data-group-id") || "all"] = getBodyVirtualData(
+                item, ".av__row--util", parseInt(firstRow.getAttribute("data-index")));
         });
         const headerTransformElement = e.querySelector('.av__row--header[style^="transform"]') as HTMLElement;
         const footerTransformElement = e.querySelector('.av__row--footer[style^="transform"]') as HTMLElement;
@@ -214,25 +217,32 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             e.firstElementChild.innerHTML = html;
         }
         const avPageSize = getPageSize(e);
+        const created = protyle.options.history?.created;
+        const snapshot = protyle.options.history?.snapshot;
+        const locateParams = getAVLocateParams(e, !created && !snapshot);
         let data: IAV;
         if (!avData) {
-            const created = protyle.options.history?.created;
-            const snapshot = protyle.options.history?.snapshot;
             const response = await fetchSyncPost(created ? "/api/av/renderHistoryAttributeView" : (snapshot ? "/api/av/renderSnapshotAttributeView" : "/api/av/renderAttributeView"), {
                 id: e.getAttribute("data-av-id"),
                 created,
                 snapshot,
                 pageSize: avPageSize.unGroupPageSize,
                 groupPaging: avPageSize.groupPageSize,
-                viewID: e.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
+                viewID: locateParams?.viewID || e.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
                 query: resetData.query.trim(),
                 blockID: e.getAttribute("data-node-id"),
                 createIfNotExist: !protyle.block.action?.includes(Constants.CB_GET_AV_NO_CREATE),
+                targetItemID: locateParams?.targetItemID || "",
+                targetGroupID: locateParams?.targetGroupID || "",
             });
             data = response.data;
         } else {
             data = avData;
         }
+        if (!isCurrentAVRender(e, renderToken)) {
+            continue;
+        }
+        prepareAVLocate(e, data, resetData);
         if (data.viewType === "gallery") {
             e.setAttribute("data-av-type", data.viewType);
             await renderGallery({blockElement: e, protyle, cb, renderAll, data});
@@ -249,7 +259,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             continue;
         }
         const tableHTMLs = await getTableHTMLs(view, e, resetData.virtualData.all);
-        const avBodyHTML = `<div class="av__body" data-group-id="" data-page-size="${view.pageSize}" style="float: left">
+        const avBodyHTML = `<div class="av__body" data-group-id="" data-page-size="${view.pageSize}"${resetData.virtualData.all?.locate ? ' data-av-locate-window="true"' : ""} style="float: left">
     ${tableHTMLs}
 </div>`;
         if (renderAll) {

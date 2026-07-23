@@ -1,6 +1,6 @@
 import { adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar } from "../layout/util";
 import { resizeTabs, setTabPosition } from "../layout/tabUtil";
-import { isWindows, setStorageVal } from "../protyle/util/compatibility";
+import { initWindowOpenOverride, isWindows, setStorageVal } from "../protyle/util/compatibility";
 import { afterExport } from "../protyle/export/util";
 import { onWindowsMsg } from "../window/onWindowsMsg";
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
@@ -31,11 +31,12 @@ import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKe
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
-import { processSiYuanUri } from "../util/uri";
+import { processSiYuanUri } from "../editor/processSiYuanUri";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
 import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuanEnvironments/windowTimer.environment";
+import { openDesktopOnboarding } from "../onboarding";
 
 /**
  * 初始化 IPC 通信（仅桌面端）
@@ -129,10 +130,12 @@ const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData)
         const error = e instanceof Error ? e : new Error(String(e));
         resetLayout(error);
     }
+    openDesktopOnboarding(app);
 };
 
 export const onGetConfig = (isStart: boolean, app: App) => {
     correctHotkey(app);
+    document.body.classList.toggle("body--windows", isWindows());
     初始化IPC();
     const uiLayout = getSiyuanUILayout();
     if (!uiLayout || (uiLayout && !uiLayout.left)) {
@@ -143,6 +146,7 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     initBar(app);
     initStatus();
     initWindow(app);
+    initWindowOpenOverride(app);
     // 仅桌面端：覆盖原生对话框
     if (isElectron) {
         initNativeDialogOverride();
@@ -364,6 +368,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             cmd: "isAlwaysOnTop",
         });
         document.body.insertAdjacentHTML("beforeend", `<div class="toolbar__window">
+<div class="toolbar__window-drag"></div>
 <div class="toolbar__item ariaLabel" aria-label="${siyuanI18n[isAlwaysOnTop ? "unpin" : "pin"]}" id="pinWindow">
     <svg>
         <use xlink:href="#icon${isAlwaysOnTop ? "Unpin" : "Pin"}"></use>

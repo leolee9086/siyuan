@@ -8,13 +8,15 @@ import { pathPosix } from "../../../util/file/pathName";
 import { Constants } from "../../../constants";
 import { isHTMLElement } from "./wsHandlers.guard";
 import { updateFolderToFileIcon, updateFileToFolderIcon } from "./wsHandlers.dom";
+import {updateDocActionElement} from "./docActions";
 
 /**
  * 更新父节点状态（移动操作后）
  */
-const updateParentLiState = (parentLiElement: Element): void => {
+const updateParentLiState = (treeElement: HTMLElement, parentLiElement: Element): void => {
     // 如果父节点不是根节点，隐藏展开按钮
-    if (parentLiElement.getAttribute("data-type") !== "navigation-root") {
+    if (parentLiElement.getAttribute("data-type") !== "navigation-root" ||
+        parentLiElement.getAttribute("data-node-id")) {
         const toggleElement = parentLiElement.querySelector(".b3-list-item__toggle");
         toggleElement?.classList.add("fn__hidden");
     }
@@ -22,6 +24,10 @@ const updateParentLiState = (parentLiElement: Element): void => {
     // 收起展开箭头
     const arrowElement = parentLiElement.querySelector(".b3-list-item__arrow");
     arrowElement?.classList.remove("b3-list-item__arrow--open");
+    if (parentLiElement instanceof HTMLElement) {
+        parentLiElement.dataset.count = "0";
+        updateDocActionElement(treeElement, parentLiElement);
+    }
     
     // 更新图标
     const emojiElement = parentLiElement.querySelector(".b3-list-item__icon");
@@ -32,7 +38,7 @@ const updateParentLiState = (parentLiElement: Element): void => {
  * 处理源文档存在的情况
  */
 /** @同步豁免: UI构建 - 需要同步从DOM中移除元素并更新状态 */
-export const handleSourceElementExists = (sourceElement: HTMLElement): void => {
+export const handleSourceElementExists = (treeElement: HTMLElement, sourceElement: HTMLElement): void => {
     // 如果源文档有展开的子节点，先移除子节点列表
     if (sourceElement.nextElementSibling?.tagName === "UL") {
         sourceElement.nextElementSibling.remove();
@@ -50,7 +56,7 @@ export const handleSourceElementExists = (sourceElement: HTMLElement): void => {
     
     // 源文档是唯一子节点，需要更新父节点状态
     if (parentLiElement) {
-        updateParentLiState(parentLiElement);
+        updateParentLiState(treeElement, parentLiElement);
     }
     
     parentUl?.remove();
@@ -92,6 +98,7 @@ export const handleSourceElementNotExists = (
  */
 /** @同步豁免: UI构建 - 需要同步更新DOM元素状态 */
 export const updateTargetParentState = (
+    treeElement: HTMLElement,
     newElement: HTMLElement,
     toNotebook: string,
     callback: string | undefined,
@@ -100,6 +107,10 @@ export const updateTargetParentState = (
     // 显示目标父节点的展开按钮
     const toggleElement = newElement.querySelector(".b3-list-item__toggle");
     toggleElement?.classList.remove("fn__hidden");
+    if (newElement.dataset.type === "navigation-root") {
+        newElement.dataset.count = Math.max(1, Number(newElement.dataset.count)).toString();
+        updateDocActionElement(treeElement, newElement);
+    }
     
     // 更新目标父节点的图标
     const emojiElement = newElement.querySelector(".b3-list-item__icon");

@@ -32,6 +32,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/job"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/plugin"
 	"github.com/siyuan-note/siyuan/kernel/server"
 	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -71,6 +72,7 @@ func StartKernel(container, appDir, workspaceBaseDir, timezoneID, localIPs, lang
 		job.StartCron()
 		go model.AutoGenerateFileHistory()
 		go cache.LoadAssets()
+		go plugin.InitManager()
 	}()
 }
 
@@ -172,6 +174,15 @@ func GetExportFilePath(exportPath *C.char) *C.char {
 		if strings.HasPrefix(fileName, "..") {
 			logging.LogWarnf("get export file path [%s] blocked: path traversal attempt [%s]", pathStr, fileName)
 			return nil
+		}
+		// 加密导出受控路径（<boxID>/<kind>/<file>）：必须经注册表校验且 box 已解锁，否则 fail-closed
+		if model.IsManagedEncryptedExportPath(fileName) {
+			artifact, ok := model.ResolveManagedExportForMobile(fileName)
+			if !ok {
+				logging.LogWarnf("get export file path [%s] blocked: managed export not available or box locked", pathStr)
+				return nil
+			}
+			return C.CString(artifact)
 		}
 		absPath = filepath.Join(util.TempDir, "export", fileName)
 		exportBaseDir := filepath.Join(util.TempDir, "export")

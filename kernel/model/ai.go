@@ -173,7 +173,7 @@ func newOpenAIGPT() (*OpenAIGPT, int, error) {
 		}
 		apiProxy := ai.EffectiveAPIProxy(Conf.System)
 		return &OpenAIGPT{
-			c:                   util.NewOpenAIClient(prov.APIKey, apiProxy, prov.BaseURL),
+			c:                   util.NewOpenAIClientWithModel(prov.APIKey, prov.BaseURL, m.Name, apiProxy),
 			modelName:           m.Name,
 			timeout:             timeout,
 			maxCompletionTokens: maxCompletionTokens,
@@ -196,7 +196,7 @@ func newOpenAIGPT() (*OpenAIGPT, int, error) {
 		}
 		apiProxy := ai.EffectiveAPIProxy(Conf.System)
 		return &OpenAIGPT{
-			c:                   util.NewOpenAIClient(ai.OpenAI.APIKey, apiProxy, ai.OpenAI.APIBaseURL),
+			c:                   util.NewOpenAIClientWithModel(ai.OpenAI.APIKey, ai.OpenAI.APIBaseURL, ai.OpenAI.APIModel, apiProxy),
 			modelName:           ai.OpenAI.APIModel,
 			timeout:             ai.OpenAI.APITimeout,
 			maxCompletionTokens: ai.OpenAI.APIMaxTokens,

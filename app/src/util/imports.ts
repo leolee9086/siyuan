@@ -38,3 +38,10 @@ export { ipcSend };
 import type { App } from "../index";
 /** 导出 App 类型，供 util 模块使用 */
 export type { App };
+
+/** 用途：数据库项目 URI 定位。使用范围：uri 模块排队并激活 AV 定位请求。解耦评估：通过 imports.ts 转发。 */
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate";
+/** 导出 AV 排队能力，供 util 模块使用 */
+export {queueAVLocateRequest};
+/** 导出 AV 激活能力，供 util 模块使用 */
+export {activateQueuedAVLocate};

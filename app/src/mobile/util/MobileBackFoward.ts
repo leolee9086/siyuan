@@ -13,8 +13,23 @@ import { showMessage } from "../../dialog/message";
 import { getCurrentEditor } from "./getCurrentEditor"; // 独立模块，打断循环依赖
 import { avRender } from "../../protyle/render/av/render";
 import { setTitle } from "../../util/processTitle";
+import {isEncryptedBox} from "../../util/pathName";
 
 const forwardStack: IBackStack[] = [];
+
+export const clearMobileBackForward = (notebookId?: string) => {
+    if (!notebookId) {
+        window.siyuan.backStack = [];
+        forwardStack.length = 0;
+        return;
+    }
+    window.siyuan.backStack = window.siyuan.backStack.filter(item => item.data?.notebookId !== notebookId);
+    for (let i = forwardStack.length - 1; i >= 0; i--) {
+        if (forwardStack[i].data?.notebookId === notebookId) {
+            forwardStack.splice(i, 1);
+        }
+    }
+};
 
 const focusStack = (backStack: IBackStack) => {
     const protyle = getCurrentEditor().protyle;
@@ -43,9 +58,13 @@ const focusStack = (backStack: IBackStack) => {
     }
 
     if (backStack.id !== protyle.block.rootID) {
-        fetchPost("/api/block/getDocInfo", {
+        const docInfoParam: IObject = {
             id: backStack.id,
-        }, (response) => {
+        };
+        if (isEncryptedBox(protyle.notebookId)) {
+            docInfoParam.notebook = protyle.notebookId;
+        }
+        fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
             setTitle(response.data.name);
             protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
             protyle.background.render(response.data.ial, protyle.block.rootID);
@@ -74,11 +93,15 @@ const focusStack = (backStack: IBackStack) => {
         return;
     }
 
-    fetchPost("/api/filetree/getDoc", {
+    const getDocParam: IObject = {
         id: backStack.id,
         startID: backStack.data.startId,
         endID: backStack.data.endId,
-    }, getResponse => {
+    };
+    if (isEncryptedBox(protyle.notebookId)) {
+        getDocParam.notebook = protyle.notebookId;
+    }
+    fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
         protyle.block.parentID = getResponse.data.parentID;
         protyle.block.parent2ID = getResponse.data.parent2ID;
         protyle.block.rootID = getResponse.data.rootID;
@@ -93,6 +116,7 @@ const focusStack = (backStack: IBackStack) => {
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
         blockRender(protyle, protyle.wysiwyg.element, backStack.scrollTop);
+        protyle.databaseAttributePanel?.render();
         if (getResponse.data.isSyncing) {
             disabledForeverProtyle(protyle);
         } else {

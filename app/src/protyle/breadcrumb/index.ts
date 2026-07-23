@@ -26,6 +26,7 @@ import {
     生成平板按钮HTML,
 } from "./breadcrumb.helpers";
 import type { 录音器上下文 } from "./breadcrumb.types";
+import {withEncryptedNotebook} from "../../util/pathName";
 
 // ==================== 录音相关函数 ====================
 
@@ -96,7 +97,6 @@ function 处理移动端菜单响应(
             }
         });
     }
-    menu.fullscreen();
 }
 
 /**
@@ -108,10 +108,36 @@ function 生成移动端菜单(protyle: IProtyle) {
     if (!blockElement) {
         blockElement = 获取默认块元素(protyle);
     }
+    if (!blockElement) {
+        return;
+    }
     const id = blockElement.getAttribute("data-node-id") || "";
-    fetchPost("/api/block/getBlockBreadcrumb", { id, excludeTypes: [] }, (response) => {
+    const breadcrumbParam = withEncryptedNotebook(protyle.notebookId, {id, excludeTypes: []});
+    fetchPost("/api/block/getBlockBreadcrumb", breadcrumbParam, (response) => {
         处理移动端菜单响应(protyle, menu, response);
     });
+    if (!protyle.disabled) {
+        const siyuanConfig = getSiyuanConfig();
+        menu.addItem({
+            id: "netImg2LocalAsset",
+            label: siyuanI18n.netImg2LocalAsset,
+            icon: "iconImgDown",
+            accelerator: siyuanConfig.keymap.editor.general.netImg2LocalAsset.custom,
+            click() {
+                net2LocalAssets(protyle, "Img");
+            }
+        });
+        menu.addItem({
+            id: "netAssets2LocalAssets",
+            label: siyuanI18n.netAssets2LocalAssets,
+            icon: "iconDownloadAssets",
+            accelerator: siyuanConfig.keymap.editor.general.netAssets2LocalAssets.custom,
+            click() {
+                net2LocalAssets(protyle, "Assets");
+            }
+        });
+    }
+    menu.fullscreen("bottom");
 }
 
 // ==================== 事件处理函数 ====================
@@ -227,41 +253,6 @@ export class Breadcrumb {
         exitFocusElement.classList.remove("fn__none");
     }
 
-    private genMobileMenu(protyle: IProtyle) {
-        if (protyle.toolbar.isMultiSelectMode()) {
-            return;
-        }
-        const menu = new Menu(Constants.MENU_BREADCRUMB_MOBILE_PATH);
-        const blockElement = 获取默认块元素(protyle) || protyle.wysiwyg.element.firstElementChild;
-        if (!blockElement) {
-            return;
-        }
-        const id = blockElement.getAttribute("data-node-id") || "";
-
-        if (!protyle.disabled) {
-            const siyuanConfig = getSiyuanConfig();
-            menu.append(new MenuItem({
-                id: "netImg2LocalAsset",
-                label: siyuanI18n.netImg2LocalAsset,
-                icon: "iconImgDown",
-                accelerator: siyuanConfig.keymap.editor.general.netImg2LocalAsset.custom,
-                click() {
-                    net2LocalAssets(protyle, "Img");
-                }
-            }).element);
-            menu.append(new MenuItem({
-                id: "netAssets2LocalAssets",
-                label: siyuanI18n.netAssets2LocalAssets,
-                icon: "iconDownloadAssets",
-                accelerator: siyuanConfig.keymap.editor.general.netAssets2LocalAssets.custom,
-                click() {
-                    net2LocalAssets(protyle, "Assets");
-                }
-            }).element);
-        }
-        menu.fullscreen("bottom");
-    }
-
     public showMenu(protyle: IProtyle, position: IPosition) {
         const 录音上下文: 录音器上下文 = {
             mediaRecorder: this.mediaRecorder,
@@ -303,7 +294,8 @@ export class Breadcrumb {
 
         const excludeTypes = 获取排除类型(this.element);
 
-        fetchPost("/api/block/getBlockBreadcrumb", { id, excludeTypes }, (response) => {
+        const breadcrumbParam = withEncryptedNotebook(protyle.notebookId, {id, excludeTypes});
+        fetchPost("/api/block/getBlockBreadcrumb", breadcrumbParam, (response) => {
             处理渲染响应(this.element, protyle, response);
         });
     }

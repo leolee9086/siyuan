@@ -18,6 +18,7 @@ import {
 import { resizeTabs, setTabPosition } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { App } from "../index";
+import { dragOverScroll } from "../boot/globalEvent/dragover";
 
 function isPointWithinLines(
     x: number, y: number,
@@ -89,6 +90,8 @@ export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
             return;
         }
         event.preventDefault();
+        const tabBarElement = it.firstElementChild as HTMLElement;
+        dragOverScroll(event, tabBarElement.getBoundingClientRect(), tabBarElement, "x");
         let oldTabHeaderElement = window.siyuan.dragElement;
         let exitDrag = false;
         Array.from(it.firstElementChild.childNodes).find((item: HTMLElement) => {

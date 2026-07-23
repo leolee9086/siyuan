@@ -27,6 +27,7 @@ import {
 } from "./onDrop.helper.external";
 import { IDndState } from "./onDrop.types";
 import { hideDragTip } from "../dragTip";
+import {handleBlockReferenceDrop} from "./onDrop.helper.blockRef";
 
 export type { IDndState };
 
@@ -209,6 +210,10 @@ export const onDrop = async (
     if (protyle.disabled || event.dataTransfer.getData(Constants.SIYUAN_DROP_EDITOR)) {
         event.preventDefault();
         event.stopPropagation();
+        return;
+    }
+    if (await handleBlockReferenceDrop(protyle, editorElement, event)) {
+        clearDragElement();
         return;
     }
     const gutterType = findGutterType(event.dataTransfer);

@@ -6,6 +6,8 @@ import { getSiyuanGlobalMenusMenu } from "./imports";
 import { isHTMLInputElement } from "./imports";
 /** 用途：获取兼容的点击事件名。使用范围：回车激活菜单项时派发点击。解耦评估：兼容层经 imports 转发。 */
 import { getEventName } from "./imports";
+/** 用途：Electron 输入框撤销/重做。使用范围：带 data-menu-keymap 的输入控件。解耦评估：平台能力经 imports 转发。 */
+import { electronUndo } from "./imports";
 /** 用途：按 class 向上查找祖先。使用范围：左键返回父级菜单项。解耦评估：DOM 查找经 imports 转发。 */
 import { hasClosestByClassName } from "./imports";
 /** 用途：跳过分隔符/只读/零高度项查找可操作菜单项。使用范围：上下键与子菜单首项选中。解耦评估：同目录工具函数，无需解耦。 */
@@ -144,11 +146,12 @@ const resolveUpDownActionMenu = (
  * @param {Element} actionMenuElement - 要选中的菜单项元素
  */
 const handleMenuItemSelection = (actionMenuElement: Element) => {
-    // 仅对标准菜单项设置 current 样式
-    if (actionMenuElement.classList.contains("b3-menu__item")) {
+    const keymapInputCandidate = actionMenuElement.querySelector(`[${Constants.ATTRIBUTE_MENU_KEYMAP}]`);
+    // 独立输入行没有标准菜单项 class，也需要把所在行标记为当前项。
+    if (actionMenuElement.classList.contains("b3-menu__item") || isHTMLInputElement(keymapInputCandidate)) {
         setCurrent(actionMenuElement);
     }
-    const inputCandidate = actionMenuElement.querySelector(":scope > .b3-text-field");
+    const inputCandidate = actionMenuElement.querySelector(":scope > .b3-text-field") || keymapInputCandidate;
     // 菜单项内含直接子级输入框时聚焦，便于键盘继续输入
     if (isHTMLInputElement(inputCandidate)) {
         inputCandidate.focus();
@@ -297,6 +300,42 @@ const handleUpDownKey = (eventCode: string) => {
 };
 
 /**
+ * 处理带 data-menu-keymap 的菜单输入控件。
+ * 意图：保留输入框撤销/重做，并让回车和方向键参与菜单导航。
+ * 调用时机：可见菜单收到 keydown 且目标可能是输入控件时。
+ */
+const handleKeymapInputEvent = (
+    event: KeyboardEvent,
+    target: Element,
+    eventCode: string | undefined,
+) => {
+    if (!isTargetInMenu(target) || !isInputAbleMenuItemElement(target)) {
+        return undefined;
+    }
+    if (!target.getAttribute(Constants.ATTRIBUTE_MENU_KEYMAP)) {
+        return false;
+    }
+    const currentElement = getCurrentMenuItem();
+    const inputItemElement = Array.from(target.closest(".b3-menu__items")?.children || [])
+        .find(item => item.contains(target));
+    const inputItemIsCurrent = !currentElement || currentElement === inputItemElement;
+    // 当前输入行回车表示完成编辑并关闭菜单。
+    if (inputItemIsCurrent && eventCode === "↩") {
+        getSiyuanGlobalMenusMenu().remove();
+        return true;
+    }
+    if (inputItemIsCurrent && (eventCode === "→" || eventCode === "←")) {
+        return false;
+    }
+    // 首次从输入框进入键盘导航时建立当前项，供后续方向键继续移动。
+    if (!currentElement && inputItemElement) {
+        setCurrent(inputItemElement);
+    }
+    electronUndo(event);
+    return undefined;
+};
+
+/**
  * 绑定菜单键盘导航
  * 意图：在菜单可见且无修饰键时，将方向键/回车映射到菜单焦点与激活行为
  * 调用时机：全局或菜单相关的 keydown 处理链路中
@@ -305,8 +344,7 @@ const handleUpDownKey = (eventCode: string) => {
  * @同步豁免: 需要绝对同步的DOM访问 keydown 同步路径完成焦点切换与事件消费判定，异步会错过 preventDefault 时机
  */
 export const bindMenuKeydown = (event: KeyboardEvent) => {
-    if (isMenuElementHidden()
-        || event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) {
+    if (isMenuElementHidden() || event.isComposing) {
         return false;
     }
     const target = event.target;
@@ -316,11 +354,14 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
     if (!(target instanceof Element)) {
         return false;
     }
-    // 焦点在菜单内可输入控件时，交由输入控件自身处理按键
-    if (isTargetInMenu(target) && isInputAbleMenuItemElement(target)) {
+    const eventCode = Constants.KEYCODELIST[event.keyCode];
+    const inputResult = handleKeymapInputEvent(event, target, eventCode);
+    if (typeof inputResult === "boolean") {
+        return inputResult;
+    }
+    if (event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) {
         return false;
     }
-    const eventCode = Constants.KEYCODELIST[event.keyCode];
     // isEventUpDown 已保证方向为上下键，空值兜底仅满足类型收窄
     if (isEventUpDown(event)) {
         return handleUpDownKey(eventCode || "");

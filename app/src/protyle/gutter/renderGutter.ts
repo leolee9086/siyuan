@@ -14,7 +14,12 @@ import { observeStandaloneGutterPosition, setGutterPosition } from "./setGutterP
  * @param options.gutterElement Gutter 的 DOM 元素容器
  * @param options.gutterTip Gutter 的提示文本，包含快捷键信息
  */
-export const renderGutter = (protyle: IProtyle, element: Element, options: { target?: Element | undefined, gutterElement: HTMLElement, gutterTip: string }) => {
+export const renderGutter = (protyle: IProtyle, element: Element, options: {
+    target?: Element | undefined;
+    gutterElement: HTMLElement;
+    gutterTip: string;
+    gutterTipBacklink: string;
+}) => {
     // 检查标题是否已渲染完成，防止在标题未渲染时显示 Gutter
     // 参考: https://github.com/siyuan-note/siyuan/issues/4659
     if (protyle.title && protyle.title.element.getAttribute("data-render") !== "true") {
@@ -32,7 +37,8 @@ export const renderGutter = (protyle: IProtyle, element: Element, options: { tar
         return;
     }
 
-    const { target, gutterElement, gutterTip } = options;
+    const { target, gutterElement } = options;
+    const gutterTip = protyle.options.backlinkData ? options.gutterTipBacklink : options.gutterTip;
     const result = buildGutterHtml(protyle, element, target, gutterTip, gutterElement);
 
     // 防止 Gutter 抖动，如果内容匹配且已有子元素，则不重新渲染
@@ -60,5 +66,7 @@ export const renderGutter = (protyle: IProtyle, element: Element, options: { tar
 
     // 追加块标边缘的框线（悬浮块标显示）与+号（悬浮框线显示），默认隐藏，由 mousemove 定位
     // 双元素：框线贴块标边缘不移动（避免闪烁），+号独立定位在外偏位置
-    gutterElement.insertAdjacentHTML("beforeend", `<button class="protyle-gutters__line" data-type="gutterLineBefore" style="display:none"></button><button class="protyle-gutters__line" data-type="gutterLineAfter" style="display:none"></button><button class="protyle-gutters__plus ariaLabel" data-type="gutterPlusBefore" data-position="4west" aria-label="${window.siyuan.languages.insertBefore}" style="display:none"><svg><use xlink:href="#iconAdd"></use></svg></button><button class="protyle-gutters__plus ariaLabel" data-type="gutterPlusAfter" data-position="4west" aria-label="${window.siyuan.languages.insertAfter}" style="display:none"><svg><use xlink:href="#iconAdd"></use></svg></button>`);
+    if (!result.embedContext) {
+        gutterElement.insertAdjacentHTML("beforeend", `<button class="protyle-gutters__line" data-type="gutterLineBefore" style="display:none"></button><button class="protyle-gutters__line" data-type="gutterLineAfter" style="display:none"></button><button class="protyle-gutters__plus ariaLabel" data-type="gutterPlusBefore" data-position="4west" aria-label="${window.siyuan.languages.insertBefore}" style="display:none"><svg><use xlink:href="#iconAdd"></use></svg></button><button class="protyle-gutters__plus ariaLabel" data-type="gutterPlusAfter" data-position="4west" aria-label="${window.siyuan.languages.insertAfter}" style="display:none"><svg><use xlink:href="#iconAdd"></use></svg></button>`);
+    }
 };

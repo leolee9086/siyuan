@@ -897,7 +897,8 @@ func validateForgeRuntimeLifecycleCommand(command, root string) error {
 		`siyuan-kernel|forge-start|forge_runtime|forge/runtime/shutdown|api/system/exit|` +
 		`\b(pnpm|npm|yarn)\s+(run\s+)?forge\b|\bgo\s+run\b|--mode(?:=|\s+)forge\b|` +
 		`\b(curl|wget|invoke-webrequest|invoke-restmethod)\b[^\r\n]*(127\.0\.0\.1|localhost)|` +
-		`s_forge_supervisor)`)
+		`s_forge_supervisor|\.forge-runtime[\\/]supervisor(?:\.stale-[^\\/\s]+)?\.json|` +
+		`x-s-forge-supervisor-token)`)
 	if forbidden.MatchString(command) {
 		return errors.New("禁止通过源码命令控制 Kernel 或 Forge Supervisor 生命周期，请使用 forge_runtime_restart")
 	}

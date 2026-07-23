@@ -53,6 +53,16 @@ export interface AgentSession {
         id?: string;
         type: "user" | "thinking" | "assistant" | "confirm" | "question" | "snapshot" | "rollback";
         content?: string;
+        blockHTML?: string;
+        references?: Array<{id: string; title: string}>;
+        editorContext?: {
+            activeDocID?: string;
+            activeDocTitle?: string;
+            notebookID?: string;
+            focusedBlockID?: string;
+            selectedBlockIDs?: string[];
+            visibleBlockIDs?: string[];
+        };
         steps?: Array<{
             reasoning: string;
             reasoningContent: string;
@@ -62,8 +72,11 @@ export interface AgentSession {
             toolCalls?: Array<{name: string; result?: string}>
         }>;
         reasoningContent?: string;
-        toolCalls?: Array<{id?: string; name: string; arguments?: Record<string, unknown>; result?: string}>;
+        toolCalls?: Array<{id?: string; name: string; arguments?: Record<string, unknown>; result?: string; state?: string}>;
         duration?: number;
+        timestamp?: number;
+        name?: string;
+        args?: Record<string, unknown>;
         confirmName?: string;
         confirmArgs?: Record<string, unknown>;
         confirmID?: string;
@@ -85,4 +98,12 @@ export interface AgentSession {
     messageHistory?: string[];
     createdAt: number;
     updatedAt: number;
+    revision?: number;
+    expectedRevision?: number;
+    commitTurnID?: string;
+    lastCommittedTurnID?: string;
+    recoveryTurnID?: string;
+    recoveryState?: string;
+    recoveryRevision?: number;
+    agentRunning?: boolean;
 }

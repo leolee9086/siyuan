@@ -29,7 +29,7 @@ import (
 )
 
 func BootMobile(container, appDir, workspaceBaseDir, lang string) {
-	IncBootProgress(3, "Booting kernel...")
+	IncBootProgress(3, BootL10n(299, "Booting kernel..."))
 	initMime()
 	initHttpClient()
 	ServerPort = FixedPort
@@ -61,7 +61,7 @@ func BootMobile(container, appDir, workspaceBaseDir, lang string) {
 
 	initPathDir()
 	bootBanner := figure.NewFigure("SiYuan", "", true)
-	logging.LogInfof("\n%s", bootBanner.String())
+	logging.LogInfo("\n" + bootBanner.String())
 	logBootInfo()
 }
 

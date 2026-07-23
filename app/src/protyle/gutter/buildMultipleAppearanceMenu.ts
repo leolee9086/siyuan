@@ -16,12 +16,17 @@ import { showMobileAppearance } from "./showMobileAppearance";
 import { Constants } from "../../constants";
 import { buildMultiAiMenu } from "./menus/buildGutterAiMenu";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
+import {isEncryptedBox} from "../../util/pathName";
+import {createAddBlocksToAgentMenuItem} from "./addBlockToAgent";
 
 /**
  * 构建AI菜单（多块选择时）
  * 使用统一的 buildMultiAiMenu 保持子菜单结构一致性
  */
 export const 构建AI菜单 = (protyle: IProtyle, selectsElement: Element[]): void => {
+    if (isEncryptedBox(protyle.notebookId)) {
+        return;
+    }
     const aiMenu = buildMultiAiMenu(protyle, selectsElement);
     if (!aiMenu) {
         return;
@@ -84,11 +89,21 @@ export const 构建外观菜单 = (protyle: IProtyle, selectsElement: Element[])
     }
 };
 
+/** 作用：为多选块追加“添加到 Agent”入口；调用时机：桌面完整宿主的多选菜单构建时。 */
+export const 构建Agent菜单 = (protyle: IProtyle, selectsElement: Element[]): void => {
+    if (isMobile || isEncryptedBox(protyle.notebookId)) {
+        return;
+    }
+    getSiyuanGlobalMenus().menu.append(new MenuItem(createAddBlocksToAgentMenuItem(
+        selectsElement.map((item) => item.getAttribute("data-node-id") || ""),
+    )).element);
+};
+
 /**
  * 构建闪卡菜单
  */
 export const 构建闪卡菜单 = (protyle: IProtyle, selectsElement: Element[]): void => {
-    if (getSiyuanConfig().readonly) {
+    if (getSiyuanConfig().readonly || isEncryptedBox(protyle.notebookId)) {
         return;
     }
 
