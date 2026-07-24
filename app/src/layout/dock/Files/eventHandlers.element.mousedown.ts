@@ -8,7 +8,7 @@ import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
 import type { App } from "../../../index";
-import type { Files } from "../Files";
+import type {FilesEventHost} from "./eventHandlers.types";
 
 /**
  * element 的 mousedown 事件处理函数（鼠标滚轮点击打开文件）
@@ -16,7 +16,7 @@ import type { Files } from "../Files";
  * @param files - Files 实例
  * @param app - App 实例
  */
-function onElementMousedown(event: MouseEvent, files: Files, app: App): void {
+function onElementMousedown(event: MouseEvent, files: FilesEventHost, app: App): void {
     // 检查是否为鼠标中键点击
     if (event.button !== 1) {
         return;
@@ -59,7 +59,7 @@ function onElementMousedown(event: MouseEvent, files: Files, app: App): void {
  * @returns 事件处理函数
  */
 function createElementMousedownHandler(
-    files: Files,
+    files: FilesEventHost,
     app: App
 ): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
@@ -73,7 +73,7 @@ function createElementMousedownHandler(
  * @param app - App 实例
  * @同步豁免: UI构建
  */
-export function setupElementMousedownHandler(files: Files, app: App): void {
+export function setupElementMousedownHandler(files: FilesEventHost, app: App): void {
     const handler = createElementMousedownHandler(files, app);
     files.element.addEventListener("mousedown", handler);
 }

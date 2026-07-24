@@ -1,20 +1,18 @@
 import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
-import {
-    updateFileTreeEmoji,
-    updateOutlineEmoji,
-    addEmoji,
-} from "./index";
+import type {EmojiPanelOperations} from "./emoji.panel.types";
 
 export const handleEmojiKeydown = (
     event: KeyboardEvent,
     dialog: Dialog,
     emojisContentElement: Element,
     emojiSearchInputElement: HTMLInputElement,
+    operations: EmojiPanelOperations,
     id: string,
     type: "doc" | "notebook" | "av",
     callback?: (emoji: string) => void,
 ) => {
+    const {addEmoji, updateFileTreeEmoji, updateOutlineEmoji} = operations;
     if (event.isComposing) {
         return;
     }

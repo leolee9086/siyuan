@@ -1,15 +1,5 @@
 // 跨目录依赖转发
 
-/** 用途：编辑器类。使用范围：newTab 模块创建编辑器页签。解耦评估：通过 imports.ts 转发。 */
-import { Editor } from "../../editor";
-/** 导出 Editor，供 utils 模块使用 */
-export { Editor };
-
-/** 用途：编辑器选项接口。使用范围：newTab 模块编辑器配置类型。解耦评估：通过 imports.ts 转发。 */
-import type { IEditorOptions } from "../../editor/types";
-/** 导出 IEditorOptions 类型，供 utils 模块使用 */
-export type { IEditorOptions };
-
 /** 用途：资源模型类。使用范围：newTab 模块创建资源页签。解耦评估：通过 imports.ts 转发。 */
 import { Asset } from "../../asset";
 /** 导出 Asset，供 utils 模块使用 */
@@ -64,3 +54,7 @@ export { getDocDisplayName };
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 导出 siyuanI18n，供 utils 模块使用 */
 export { siyuanI18n };
+/** 用途：创建已注入宿主能力的编辑器；使用范围：newTab 编辑器页签；解耦评估：创建逻辑集中在 Editor 工厂。 */
+import {createEditor} from "../../editor/factory/createEditor.factory";
+/** 导出编辑器创建工厂，供布局页签装配使用。 */
+export {createEditor};

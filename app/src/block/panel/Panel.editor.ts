@@ -3,8 +3,6 @@
  * 从 Panel.ts 中提取，用于管理 Protyle 编辑器的创建和配置
  */
 
-/** 用途：Protyle 编辑器类型。使用范围：编辑器初始化。解耦评估：通过 ./imports 转发。 */
-import { Protyle } from "./imports";
 /** 用途：系统常量。使用范围：编辑器配置。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
 /** 用途：网络请求。使用范围：获取块内容。解耦评估：通过 ./imports 转发。 */
@@ -17,6 +15,7 @@ import { getWindowInnerHeight } from "./imports";
 import { activateAVLocateWithRetry } from "./imports";
 /** 用途：编辑器初始化上下文。使用范围：编辑器参数。解耦评估：同目录模块直接导入。 */
 import { EditorInitContext } from "./editor.types";
+import type { IBlockPanelEditor } from "./editor.types";
 
 /** 表示块信息响应进入编辑器构造阶段所需的完整上下文，仅在本模块的异步回调边界使用。 */
 interface IBlockInfoResponseContext {
@@ -29,7 +28,7 @@ interface IBlockInfoResponseContext {
 
 /** 表示 Protyle 完成加载后的收尾上下文，关联引用定义、根块和可选外部回调。 */
 interface IEditorLoadedContext {
-    editor: Protyle;
+    editor: IBlockPanelEditor;
     rootID: string;
     refDef: IRefDefs;
     afterCB?: () => void;
@@ -70,7 +69,7 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
         return;
     }
     const action: TProtyleAction[] = 构建编辑器操作(response.data.rootID, refDef, ctx);
-    const editor = new Protyle(ctx.app, editorElement, {
+    const editor = ctx.createEditor(editorElement, {
         databaseAttr: true,
         blockId: refDef.refID,
         defIds: refDef.defIDs || [],

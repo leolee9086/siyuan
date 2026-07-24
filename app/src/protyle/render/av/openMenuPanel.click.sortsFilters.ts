@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/DOM/setPosition";
+import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";
 import {

@@ -592,7 +592,16 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
         let target = event.target as HTMLElement;
         while (target && !target.isEqualNode(element)) {
             const type = target.getAttribute("data-type");
-            if (handleDocClick(target, type, event, element, firstPanelElement, historyEditor, dialog)) {
+            if (handleDocClick({
+                target,
+                type,
+                event,
+                element,
+                firstPanelElement,
+                historyEditor,
+                dialog,
+                clearHistoryEditor,
+            })) {
                 break;
             }
             if (handleRepoClick(target, type, event, app, element, repoElement, repoSelectElement)) {

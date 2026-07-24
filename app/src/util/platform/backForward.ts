@@ -11,7 +11,7 @@ let previousIsBack = false;
 export const goBack = async (app: App) => {
     if (window.siyuan.backStack.length === 0) {
         if (forwardStack.length > 0) {
-            await focusStack(app, forwardStack[forwardStack.length - 1]);
+            await focusStack(app, forwardStack[forwardStack.length - 1], forwardStack);
         }
         return;
     }
@@ -23,7 +23,7 @@ export const goBack = async (app: App) => {
     }
     let stack = window.siyuan.backStack.pop();
     while (stack) {
-        const isFocus = await focusStack(app, stack);
+        const isFocus = await focusStack(app, stack, forwardStack);
         if (isFocus) {
             forwardStack.push(stack);
             break;
@@ -40,7 +40,7 @@ export const goBack = async (app: App) => {
 export const goForward = async (app: App) => {
     if (forwardStack.length === 0) {
         if (window.siyuan.backStack.length > 0) {
-            await focusStack(app, window.siyuan.backStack[window.siyuan.backStack.length - 1]);
+            await focusStack(app, window.siyuan.backStack[window.siyuan.backStack.length - 1], forwardStack);
         }
         return;
     }
@@ -51,7 +51,7 @@ export const goForward = async (app: App) => {
 
     let stack = forwardStack.pop();
     while (stack) {
-        const isFocus = await focusStack(app, stack);
+        const isFocus = await focusStack(app, stack, forwardStack);
         if (isFocus) {
             window.siyuan.backStack.push(stack);
             break;

@@ -15,7 +15,7 @@ import {Constants} from "../../../../constants";
 /** 用途：转义会话标题；使用范围：列表 HTML；解耦评估：复用通用 DOM 安全边界。 */
 import {escapeHtml} from "../../../../util/DOM/escape";
 /** 用途：定位会话弹层；使用范围：弹层挂载；解耦评估：复用现有布局定位规则。 */
-import {setPosition} from "../../../../util/DOM/setPosition";
+import {setPosition} from "../../../../util/DOM/positioning/setPosition";
 /** 用途：从委托事件中找到行动作；使用范围：列表点击；解耦评估：复用统一的 class 向上查找语义。 */
 import {hasClosestByClassName} from "../../../../protyle/util/hasClosest";
 /** 用途：提供搜索结果键盘导航；使用范围：搜索输入框；解耦评估：保持与其它列表一致的交互。 */

@@ -1,4 +1,4 @@
-import type { MatchResult } from "./types";
+import type { MatchResult } from "../routerCore.port.types";
 import { LayerLike } from "./layerLike.types";
 
 const debug = (...args: any[]) => {

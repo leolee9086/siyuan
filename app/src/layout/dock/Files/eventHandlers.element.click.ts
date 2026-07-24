@@ -16,8 +16,7 @@ import {
 } from "./eventHandlers.element.click.helpers";
 import { handleFileClick } from "./eventHandlers.element.click.file";
 import type { App } from "../../../index";
-import type { Files } from "../Files";
-import type { FilesEventContext } from "./eventHandlers.types";
+import type { FilesEventContext, FilesEventHost } from "./eventHandlers.types";
 
 // ============================================================================
 // Shift+Click 多选处理
@@ -30,7 +29,7 @@ import type { FilesEventContext } from "./eventHandlers.types";
  * @param target - 当前点击的目标元素
  */
 function initShiftClickStartElement(
-    files: Files,
+    files: FilesEventHost,
     target: HTMLElement
 ): void {
     const lastSelected = files.lastSelectedElement;
@@ -66,7 +65,7 @@ function initShiftClickStartElement(
  * @param target - 当前点击的目标元素
  * @param files - Files 实例
  */
-function handleShiftClick(target: HTMLElement, files: Files): void {
+function handleShiftClick(target: HTMLElement, files: FilesEventHost): void {
     initShiftClickStartElement(files, target);
 
     // 清除所有焦点
@@ -121,7 +120,7 @@ function clearSelectionMarkers(element: HTMLElement): void {
  * 处理 Ctrl/Cmd+Click 切换选中状态
  * @returns 是否已处理
  */
-function handleCtrlClick(event: MouseEvent, target: HTMLElement, files: Files): boolean {
+function handleCtrlClick(event: MouseEvent, target: HTMLElement, files: FilesEventHost): boolean {
     if (!isOnlyMeta(event) || event.altKey || event.shiftKey) {
         return false;
     }
@@ -134,7 +133,7 @@ function handleCtrlClick(event: MouseEvent, target: HTMLElement, files: Files): 
  * 处理 Shift+Click 多选
  * @returns 是否已处理
  */
-function handleShiftClickSelection(event: MouseEvent, target: HTMLElement, files: Files): boolean {
+function handleShiftClickSelection(event: MouseEvent, target: HTMLElement, files: FilesEventHost): boolean {
     if (!event.shiftKey || event.altKey || !isNotCtrl(event)) {
         return false;
     }
@@ -149,7 +148,7 @@ function handleShiftClickSelection(event: MouseEvent, target: HTMLElement, files
 function handleNormalClick(
     event: MouseEvent,
     target: HTMLElement,
-    files: Files,
+    files: FilesEventHost,
     app: App,
     notebookId: string
 ): boolean {
@@ -170,7 +169,7 @@ function handleNormalClick(
 }
 
 /** 普通左键点击有子项的文档标题时，根据配置切换展开状态。 */
-function handleTitleExpandClick(event: MouseEvent, target: Element, files: Files, notebookId: string): boolean {
+function handleTitleExpandClick(event: MouseEvent, target: Element, files: FilesEventHost, notebookId: string): boolean {
     if (event.button !== 0 || !isNotCtrl(event) || event.altKey || event.shiftKey ||
         !target.classList.contains("b3-list-item__text")) {
         return false;
@@ -197,7 +196,7 @@ function handleTitleExpandClick(event: MouseEvent, target: Element, files: Files
 function handleLiClick(
     event: MouseEvent,
     target: Element,
-    files: Files,
+    files: FilesEventHost,
     app: App,
     notebookId: string
 ): { handled: boolean; needFocus: boolean } {
@@ -233,7 +232,7 @@ function handleLiClick(
 /**
  * 设置面板焦点
  */
-function setFocusIfNeeded(files: Files): void {
+function setFocusIfNeeded(files: FilesEventHost): void {
     const parentElement = files.element.parentElement;
     // 父元素存在时设置焦点
     if (parentElement) {
@@ -244,7 +243,7 @@ function setFocusIfNeeded(files: Files): void {
 /**
  * element 的 click 事件处理函数
  */
-function onElementClick(event: MouseEvent, files: Files, app: App): void {
+function onElementClick(event: MouseEvent, files: FilesEventHost, app: App): void {
     // 使用类型守卫获取事件目标（支持 SVG 图标元素）
     if (!isStylableElement(event.target)) {
         return;
@@ -301,7 +300,7 @@ function onElementClick(event: MouseEvent, files: Files, app: App): void {
  * 设置 element 的 click 事件处理
  * @同步豁免: UI构建
  */
-export function setupElementClickHandler(ctx: FilesEventContext): void {
+export function setupElementClickHandler(ctx: FilesEventContext<App>): void {
     const { files, app } = ctx;
 
     files.element.addEventListener("click", (event) => {

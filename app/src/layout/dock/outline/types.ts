@@ -1,6 +1,3 @@
-/** 用途：Outline 大纲视图类型定义。使用范围：拖拽状态和节点交互类型。解耦评估：类型导入，不涉及运行时耦合。 */
-import type { Outline } from "./Outline";
-
 /**
  * 拖拽状态类型定义
  * @property item 被拖拽的元素
@@ -14,7 +11,7 @@ import type { Outline } from "./Outline";
  */
 export type DragState = {
     item: HTMLElement;
-    outline: Outline;
+    outline: {element: HTMLElement};
     editor?: IProtyle;
     ghostElement?: HTMLElement;
     selectItem?: HTMLElement;

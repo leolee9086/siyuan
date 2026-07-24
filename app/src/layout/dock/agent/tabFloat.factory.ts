@@ -13,6 +13,9 @@ const agentTabFloatFactory: ILayoutTabFloatFactory = {
         docIcon: source.docIcon,
     }),
     async create(source, target): Promise<ILayoutTabFloatCopy> {
+        if (!(target instanceof Tab)) {
+            throw new Error("Agent tab float target is not a layout Tab");
+        }
         const model = source.model as AgentChat;
         const copy = await model.createFloatingCopy(target);
         target.addModel(copy);

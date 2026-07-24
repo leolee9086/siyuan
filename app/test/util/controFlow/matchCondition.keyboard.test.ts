@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { createTypedMatcher } from "../../../src/util/controFlow/matchCondition";
+import { createTypedMatcher } from "../../../src/util/lib/matchCondition";
 
 
 // 模拟平台检测

@@ -21,9 +21,9 @@ import { showToolbar } from "./anno.showToolbar";
 /** 用途：通过类名查找祖先元素。使用范围：点击目标定位。解耦评估：通过 ./imports 转发。 */
 import { hasClosestByClassName } from "./imports";
 /** 用途：rect 元素引用。使用范围：点击处理。解耦评估：同目录模块。 */
-import { rectElement } from ".";
+import { rectElement } from "./state/selection";
 /** 用途：设置 rect 元素。使用范围：点击处理。解耦评估：同目录模块。 */
-import { setRectElement } from ".";
+import { setRectElement } from "./state/selection";
 /** 用途：标注常量。使用范围：点击处理。解耦评估：同目录常量文件。 */
 import { AnnoConstants } from "./constants";
 /** 用途：PDF 实例类型。使用范围：点击处理类型标注。解耦评估：同目录类型文件。 */

@@ -4,7 +4,7 @@ import type {
     MiddlewareFunction,
 } from "./types";
 import { LayerLike } from "./layerLike.types";
-import baseRouter from "./router.base";
+import type { RouterDispatchPort } from "../routerCore.port.types";
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
@@ -75,7 +75,7 @@ function createLayerChain(layers: LayerLike[], path: string): MiddlewareFunction
     }, []);
 }
 
-export function routes(router: baseRouter): MiddlewareFunction {
+export function routes(router: RouterDispatchPort): MiddlewareFunction {
     const dispatch = function dispatch(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
         debug("%s %s", ctx.method, ctx.path);
         

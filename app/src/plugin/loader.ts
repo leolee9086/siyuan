@@ -25,6 +25,8 @@ import {evaluatePluginCode} from "./API.environment";
 import {runAfterLoadPlugin} from "./loader.afterLoad";
 /** @导入用途: 插件停靠栏动态添加 @使用范围: 插件初始化时挂载 UI @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
 import {addPluginDock} from "./loader.afterLoad";
+/** @导入用途: Plugin 宿主运行时契约 @使用范围: 构造器能力注入 @解耦评估: 纯类型不反向依赖 Plugin class */
+import type {IPluginRuntime} from "./runtime/pluginRuntime.types";
 
 const pluginLoadPromises = new WeakMap<Plugin, Promise<void>>();
 
@@ -86,6 +88,29 @@ const refreshAllEditorToolbars = () => {
     }
 };
 
+/** 处理 Plugin.onDataChanged 的既有卸载、重载、挂载和工具栏刷新时序。 */
+const reloadPluginData = (app: App, sourcePlugin: Plugin) => {
+    uninstall(app, sourcePlugin.name, true);
+    void loadPlugins(app, [sourcePlugin.name], false).then(() => {
+        app.plugins.find((plugin) => {
+            if (sourcePlugin.name !== plugin.name) {
+                return false;
+            }
+            afterLoadPlugin(plugin);
+            for (const editor of getAllEditor()) {
+                editor.protyle.toolbar.update(editor.protyle);
+            }
+            return true;
+        });
+    });
+};
+
+/** 为每个 Plugin 构造参数创建完整宿主运行时。 @同步豁免: 生命周期 */
+export const createPluginRuntime = () => ({
+    reloadData: reloadPluginData,
+    addDock: addPluginDock,
+} satisfies IPluginRuntime<App, Plugin>);
+
 /** 作用: 校验并返回插件实例; 意图: 统一构造结果合法性检查; 调用时机: loadPluginJS 中构造后 */
 const getValidatedPluginInstance = (pluginInstance: unknown, pluginName: string) => {
     const isValidPlugin = pluginInstance instanceof Plugin;
@@ -128,7 +153,8 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
         app,
         displayName: item.displayName,
         name: item.name,
-        i18n: item.i18n
+        i18n: item.i18n,
+        runtime: createPluginRuntime(),
     }]);
     const validPlugin = getValidatedPluginInstance(pluginInstance, item.name);
     if (!validPlugin) {

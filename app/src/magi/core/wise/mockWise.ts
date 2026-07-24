@@ -8,11 +8,9 @@
 
 // [TASK] T2.1 迁移MAGI核心系统 - wise/mockWise
 import { getSafeSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import type { StreamCallbacks, StreamRequestConfig } from "../../../util/network/types";
-import { 是AI响应Chunk } from "./wise.guard";
-import { 提取桥接Chunk数据, 构建桥接SSE行, 执行追加上下文消息, 执行替换最近Assistant上下文消息 } from "./mockWise.streamBridge";
-import type { MockWISEConfig, ContextMessage, OpenAICompatConfig, ReplyOptions } from "../core.types";
-import type { MockWISE完整配置, MockWISE实例, SSE桥接状态, MockWISE内部状态 } from "./wise.types";
+import { 执行追加上下文消息, 执行替换最近Assistant上下文消息 } from "./mockWise.streamBridge";
+import type { MockWISEConfig, OpenAICompatConfig } from "../core.types";
+import type { MockWISE完整配置, MockWISE实例, MockWISE内部状态 } from "./wise.types";
 import {
     执行投票操作,
     执行回复操作,
@@ -86,138 +84,6 @@ export const 合并MockWISE配置 = async (
     merged.sseConfig.chunkInterval = Math.max(50, merged.sseConfig.chunkInterval ?? 300);
     return merged;
 };
-
-// ────────────────────────────────────────────────────────────────────────────
-// SSE 桥接工具函数（供 mockWise.ops.ts 和子类使用）
-// ────────────────────────────────────────────────────────────────────────────
-
-/**
- * 构建OpenAI格式的SSE流式请求配置
- *
- * 作用：将 MockWISE 配置和上下文转换为 universalStreamRequest 可接受的配置对象
- * 意图：集中管理 OpenAI SSE 请求的构建逻辑，与请求发送解耦
- * 调用时机：在 mockWise.ops.ts 的 创建流式响应Generator 中调用
- */
-export const 构建SSE请求配置 = async (
-    openAIConfig: OpenAICompatConfig,
-    messages: ContextMessage[],
-    systemPrompt: string,
-    abortSignal: AbortSignal,
-    toolOptions?: {
-        tools?: ReplyOptions["tools"];
-        toolChoice?: ReplyOptions["toolChoice"];
-    },
-): Promise<StreamRequestConfig> => ({
-    url: `${openAIConfig.base_url.replace(/\/$/, "")}/chat/completions`,
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openAIConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-        model: openAIConfig.model,
-        temperature: openAIConfig.temperature,
-        max_tokens: openAIConfig.max_tokens,
-        stream: true,
-        messages: [
-            { role: "system", content: systemPrompt },
-            ...messages.map((m) => ({ role: m.role, content: m.content })),
-        ],
-        ...(Array.isArray(toolOptions?.tools) && toolOptions.tools.length > 0
-            ? { tools: toolOptions.tools }
-            : {}),
-        ...(toolOptions?.toolChoice ? { tool_choice: toolOptions.toolChoice } : {}),
-    }),
-    signal: abortSignal,
-    timeout: 30000,
-});
-
-/**
- * 处理SSE消息数据并写入桥接状态
- *
- * 作用：解析 onMessage 收到的 dataStr，提取内容片段写入缓冲队列
- * 意图：提取 onMessage 逻辑以减少内联回调体积，同时替代 as 断言
- * 调用时机：仅在 创建SSE桥接回调 的 onMessage 中调用
- */
-const 处理SSE消息数据 = (
-    dataStr: string,
-    状态: SSE桥接状态,
-    通知有新数据: () => void
-): void => {
-    // 解析 dataStr 并做结构检查，安全提取内容片段
-    const parsed: unknown = JSON.parse(dataStr);
-    if (!是AI响应Chunk(parsed)) {
-        return;
-    }
-    if (parsed.error) {
-        状态.流错误 = new Error(parsed.error.message);
-        通知有新数据();
-        return;
-    }
-    const 首个选择 = parsed.choices?.[0];
-    // choices 为空时说明当前 chunk 不含有效增量，直接跳过。
-    if (!首个选择) {
-        return;
-    }
-    const bridgedChoice = 提取桥接Chunk数据(首个选择);
-    // 无内容、无工具调用且无显式 finish_reason 时视为心跳包，不写入缓冲。
-    if (!bridgedChoice.hasPayload) {
-        return;
-    }
-    // 仅把可见文本片段累积到上下文记忆，工具参数解析由上层流处理器完成。
-    if (bridgedChoice.content) {
-        状态.累积响应内容 += bridgedChoice.content;
-    }
-    const SSE行 = 构建桥接SSE行(
-        { id: parsed.id, created: parsed.created, model: parsed.model },
-        bridgedChoice,
-    );
-    状态.缓冲队列.push(SSE行);
-    通知有新数据();
-};
-
-/**
- * 创建SSE桥接回调（将 universalStreamRequest 的回调桥接到 AsyncGenerator 状态）
- *
- * 作用：将 universalStreamRequest 的事件回调与 AsyncGenerator 的内部状态关联
- * 意图：实现"回调模式→AsyncGenerator"的桥接，让调用方可以 for await 消费SSE流
- * 调用时机：在 mockWise.ops.ts 的 创建流式响应Generator 中调用
- *
- * @param 状态 - 桥接状态对象（由 generator 闭包持有）
- * @param 通知有新数据 - 每次状态变更后调用，唤醒等待中的 generator
- */
-export const 创建SSE桥接回调 = async (
-    状态: SSE桥接状态,
-    通知有新数据: () => void
-): Promise<StreamCallbacks> => ({
-    /**
-     * onMessage——接收单条SSE数据并写入桥接缓冲队列
-     * 调用时机：由 universalStreamRequest 每收到一个完整SSE数据行时触发
-     */
-    onMessage(dataStr: string) {
-        try {
-            处理SSE消息数据(dataStr, 状态, 通知有新数据);
-        } catch {
-            // 忽略无法解析的chunk（如心跳包或非JSON行）
-        }
-    },
-    /**
-     * onDone——SSE流正常结束信号
-     * 调用时机：收到 [DONE] 事件或连接正常关闭时由 universalStreamRequest 触发
-     */
-    onDone() {
-        状态.流已完成 = true;
-        通知有新数据();
-    },
-    /**
-     * onError——SSE流异常信号
-     * 调用时机：网络错误或服务端主动断连时由 universalStreamRequest 触发
-     */
-    onError(error: Error) {
-        状态.流错误 = error;
-        通知有新数据();
-    },
-});
 
 // ────────────────────────────────────────────────────────────────────────────
 // MockWISE 实例公共方法构建函数（外部化，减少工厂函数实际代码行）

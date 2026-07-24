@@ -96,15 +96,6 @@ export const NAVIGATION_WINDOW_KEY_COMMANDS = {
 } as const;
 
 /**
- * 用途：引入统一状态类型 [`WindowKeyDownState`]，用于定义 [`WindowKeyDownExecutor`] 回调签名。
- * 使用范围：仅在本文件中用于 [`WindowKeyDownExecutor`] 类型定义。
- * 解耦评估：[`WindowKeyDownState`] 是统一状态契约，执行器回调必须持有该类型才能消费状态空间分割结果；
- * 当前通过 type-only import 保持编译期依赖，不引入运行时耦合。如果将执行器改为泛型或用参数对象替代直接引用，可以进一步解耦，
- * 但会损失类型安全性，当前设计可接受。
- */
-import type { WindowKeyDownState } from "./types";
-
-/**
  * 用途：表示对话框阶段命令的受控联合类型。
  * 使用场景：供对话框执行器与命令映射表标注命令入参。
  * 关联类型：来自 [`DIALOG_WINDOW_KEY_COMMANDS`]。
@@ -171,4 +162,4 @@ export type UIWindowKeyHandledCommand = Exclude<UIWindowKeyCommand, typeof UI_WI
  * 关联类型：消费 [`WindowKeyDownState`]。
  * 问题/改进：若未来执行器需要携带更多诊断信息，可在不引入新分发轴的前提下为返回值增加结构化元数据。
  */
-export type WindowKeyDownExecutor = (state: WindowKeyDownState) => boolean | Promise<boolean>;
+export type WindowKeyDownExecutor<TState> = (state: TState) => boolean | Promise<boolean>;

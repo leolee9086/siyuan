@@ -1,5 +1,5 @@
 
-import { Files } from "../Files";
+import type {FilesDragContext} from "./dnd.types";
 
 import { onDragStart } from "./dnd.onDragStart";
 import { onDragOver } from "./dnd.onDragOver";
@@ -7,7 +7,7 @@ import { onDrop } from "./dnd.onDrop";
 import { onDragEnd } from "./dnd.onDragEnd";
 import { hideDragTip } from "../../../protyle/util/dragTip";
 
-export const initFilesDrag = (files: Files) => {
+export const initFilesDrag = (files: FilesDragContext) => {
     files.element.addEventListener("dragstart", (event: DragEvent) => {
         onDragStart(files, event);
     });

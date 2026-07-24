@@ -1,23 +1,20 @@
-/** 用途：Layout 布局类型。使用范围：布局停靠栏类型守卫。解耦评估：类型导入，不涉及运行时耦合。 */
-import type { Layout } from "./index";
-
 /**
  * 布局停靠栏接口定义
  * 对应 Config.IUILayoutDock，但包含 layout 属性用于运行时布局对象
  */
-interface ILayoutDock {
-    layout?: Layout;
+interface ILayoutDock<TLayout extends object> {
+    layout?: TLayout;
 }
 
 /**
  * 带有停靠栏的布局接口
  */
-export interface ILayoutWithDocks {
-    layout?: Layout;
-    centerLayout?: Layout;
-    left?: ILayoutDock;
-    right?: ILayoutDock;
-    bottom?: ILayoutDock;
+export interface ILayoutWithDocks<TLayout extends object> {
+    layout?: TLayout;
+    centerLayout?: TLayout;
+    left?: ILayoutDock<TLayout>;
+    right?: ILayoutDock<TLayout>;
+    bottom?: ILayoutDock<TLayout>;
 }
 
 /**
@@ -28,7 +25,7 @@ export interface ILayoutWithDocks {
  * 2. 检查是否具有 layout 属性
  * 3. 如果有 layout 属性，检查它是否为 Layout 实例或 undefined
  */
-function isLayoutDock(obj: unknown): obj is ILayoutDock {
+function isLayoutDock<TLayout extends object>(obj: unknown): obj is ILayoutDock<TLayout> {
     if (!obj || typeof obj !== "object") {
         return false;
     }
@@ -59,7 +56,7 @@ function validateDockProperty(value: unknown): boolean {
  * 1. 检查对象是否为非空对象
  * 2. 检查 left、right、bottom 属性（如果存在）是否符合 ILayoutDock 接口
  */
-export function hasLayoutDocks(obj: unknown): obj is ILayoutWithDocks {
+export function hasLayoutDocks<TLayout extends object>(obj: unknown): obj is ILayoutWithDocks<TLayout> {
     if (!obj || typeof obj !== "object") {
         return false;
     }

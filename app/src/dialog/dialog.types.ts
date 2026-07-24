@@ -1,7 +1,7 @@
-/** 用途：Vue 组件挂载配置类型。使用范围：dialog.types 接口定义。解耦评估：通过 imports.ts 转发。 */
-import type { VueComponentMountConfig } from "./imports";
-/** 用途：Vue 组件加载上下文类型。使用范围：dialog.types 接口定义。解耦评估：通过 imports.ts 转发。 */
-import type { VueComponentLoaderContext } from "./imports";
+/** 用途：Vue 组件挂载配置类型。使用范围：Dialog 公共选项；解耦评估：经类型专用网关依赖纯契约，不加载 Vue 挂载实现。 */
+import type {VueComponentMountConfig} from "./types/imports";
+/** 用途：Vue 组件加载上下文类型。使用范围：Dialog 公共选项；解耦评估：与挂载配置共用纯类型网关，不依赖 Vue 加载器实现。 */
+import type {VueComponentLoaderContext} from "./types/imports";
 
 /**
  * 对话框选项接口
@@ -37,6 +37,8 @@ export interface IDialogOptions {
 /** 对话框接口，用于辅助函数引用 */
 export interface IDialog {
     id: string;
+    /** Dialog 生命周期内稳定存在的根元素。 */
+    element: HTMLElement;
     destroy: (options?: IObject) => void;
     fullscreen: () => void;
 }

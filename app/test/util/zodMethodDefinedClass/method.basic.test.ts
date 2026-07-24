@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
-import { createRouterClass } from "../../../src/util/zodMethodDefinedClass/modeRouter";
+import { createRouterClass } from "../../../src/util/lib/zodMethodDefinedClass/modeRouter";
 import z from "zod";
 
 describe("createRouterClass 基本类型安全测试", () => {

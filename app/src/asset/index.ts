@@ -12,13 +12,18 @@ import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
 import { getDisplayName } from "../util/file/pathName";
 import { isMobile } from "../platform";
+import type {IWindowHashModel} from "../window/modelHash/modelHash.types";
 
-export class Asset extends Model {
+export class Asset extends Model implements IWindowHashModel {
   public path: string;
   public element: HTMLElement;
   private pdfId: number | string | undefined;
   private pdfPage: number | undefined;
   public pdfObject: any;
+
+  public get windowHashIdentity() {
+    return {kind: "asset-path", value: this.path} as const;
+  }
 
   constructor(options: { app: App, tab: Tab, path: string, page?: number | string }) {
     super({ app: options.app, id: options.tab.id });

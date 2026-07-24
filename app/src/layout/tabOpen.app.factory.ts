@@ -6,6 +6,7 @@ import {Tab} from "./Tab";
 import {getTabFloatFactory} from "./tabFloat.registry";
 import {setLayoutTabOpenPort} from "./tabOpen.port";
 import type {ILayoutTabOpenRequest} from "./tabOpen.types";
+import type {ILayoutTabHandle} from "./tabFloat.types";
 
 // 静态加载内建模型副本工厂，避免动态 import 造成初始化和构建时序不稳定。
 import "./dock/agent/tabFloat.factory";
@@ -27,14 +28,14 @@ const findCenterWnd = (): Wnd | undefined => {
 };
 
 const createAppTabOpenPort = () => ({
-    async open(source: Tab, _requestSource: ILayoutTabOpenRequest["source"] = "agent-dock") {
+    async open(source: ILayoutTabHandle, _requestSource: ILayoutTabOpenRequest["source"] = "agent-dock") {
         const factory = getTabFloatFactory(source);
         const wnd = findCenterWnd();
         if (!factory || !wnd) {
             return false;
         }
 
-        let target: Tab;
+        let target: ILayoutTabHandle;
         try {
             target = factory.createTab(source);
         } catch (error) {
@@ -52,6 +53,10 @@ const createAppTabOpenPort = () => ({
             if (!target.model) {
                 copy.dispose();
                 return true;
+            }
+            if (!(target instanceof Tab)) {
+                copy.dispose();
+                throw new Error("Tab open factory returned a non-layout tab handle");
             }
             wnd.addTab(target, false, true);
             copy.setCloseHandler?.(() => {

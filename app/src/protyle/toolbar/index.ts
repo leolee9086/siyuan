@@ -14,7 +14,7 @@ import {getPluginCustomHotkey} from "../../util/siyuanEnvironments/getSiyuanConf
 import {isMobile} from "../../platform";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import {hideElements} from "../ui/hideElements";
-import {setPosition} from "../../util/DOM/setPosition";
+import {setPosition} from "../../util/DOM/positioning/setPosition";
 const getDefaultToolbar = () => toolbarKeyToMenu(isMobile ? [
     "block-ref",
     "a",

@@ -3,10 +3,10 @@ import { fetchPost } from "../util/network/fetch";
 /** 导出 fetchPost，供 boot 模块使用 */
 export { fetchPost };
 
-/** 用途：Dialog 对话框组件。使用范围：boot 模块打开更新日志对话框。解耦评估：通过 imports.ts 转发。 */
-import { Dialog } from "../dialog";
-/** 导出 Dialog，供 boot 模块使用 */
-export { Dialog };
+/** 用途：宿主 Dialog 完整端口。使用范围：boot 模块由宿主注入更新日志呈现能力。解耦评估：仅依赖稳定领域契约。 */
+import type {IProtyleDialogPort} from "../protyle/runtime/dialog.types";
+/** 导出 Dialog Port 类型，供 boot 模块声明宿主能力。 */
+export type {IProtyleDialogPort};
 
 /** 用途：代码高亮渲染器。使用范围：boot 模块对更新日志内容进行高亮渲染。解耦评估：通过 imports.ts 转发。 */
 import { highlightRender } from "../protyle/render/highlightRender";

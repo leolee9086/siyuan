@@ -1,9 +1,9 @@
 /** 用途：设置元素位置。使用范围：工具栏定位。解耦评估：通过 ./imports 转发。 */
 import { setPosition } from "./imports";
 /** 用途：清除 rect 元素。使用范围：工具栏状态管理。解耦评估：同目录模块。 */
-import { clearRectElement } from ".";
+import { clearRectElement } from "./state/selection";
 /** 用途：设置 rect 元素。使用范围：工具栏状态管理。解耦评估：同目录模块。 */
-import { setRectElement } from ".";
+import { setRectElement } from "./state/selection";
 
 /**
  * 处理文本选区范围的工具栏定位

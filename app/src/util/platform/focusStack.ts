@@ -3,6 +3,7 @@ import { getContenteditableElement, focusByRange } from "../../ai/imports";
 import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
 import { Editor } from "../../editor";
+import {createEditor} from "../../editor/factory/createEditor.factory";
 import { getAllModels } from "../../layout/getAll";
 import { Tab } from "../../layout/Tab";
 import { getInstanceById, getWndByLayout } from "../../layout/util";
@@ -13,10 +14,10 @@ import { hideElements } from "../../protyle/ui/hideElements";
 import { isInEmbedBlock } from "../../protyle/util/hasClosest";
 import { onGet } from "../../protyle/util/onGet";
 import { focusByOffset } from "../../protyle/util/selection";
-import { forwardStack } from "./backForward";
 import { fetchSyncPost, fetchPost } from "../network/fetch";
 import { scrollCenter } from "../DOM/highlightById";
 import { getSiyuanBackStack, getSiyuanConfig, getSiyuanLayout, getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
+import {replaceNavigationHistoryProtyle} from "./navigation/replaceHistoryProtyle";
 
 const getBlockElement = (protyle: IProtyle, id: string) => {
     let blockElement: HTMLElement | undefined;
@@ -203,7 +204,7 @@ const createTabForStack = (app: App, stack: IBackStack, info: any) => {
             } catch (e) {
                 // ignore
             }
-            const editor = new Editor({
+            const editor = createEditor({
                 app: app,
                 tab,
                 blockId: stack.zoomId || stack.id || stack.protyle.block.rootID || "",
@@ -214,19 +215,6 @@ const createTabForStack = (app: App, stack: IBackStack, info: any) => {
             tab.addModel(editor);
         }
     });
-};
-
-const replaceStackProtyle = (stack: IBackStack, newProtyle: IProtyle, rootID: string) => {
-    for (const item of forwardStack) {
-        if (item.protyle && !document.contains(item.protyle.element) && item.protyle.block.rootID === rootID) {
-            item.protyle = newProtyle;
-        }
-    }
-    for (const item of getSiyuanBackStack()) {
-        if (item.protyle && !document.contains(item.protyle.element) && item.protyle.block.rootID === rootID) {
-            item.protyle = newProtyle;
-        }
-    }
 };
 
 const findTargetWnd = () => {
@@ -282,7 +270,11 @@ const focusAfterTabCreation = (stack: IBackStack, protyle: IProtyle, rootID: str
     }
 };
 
-const openProtyleInNewTab = async (app: App, stack: IBackStack) => {
+const openProtyleInNewTab = async (
+    app: App,
+    stack: IBackStack,
+    navigationForwardStack: IBackStack[],
+) => {
     if (!stack.protyle) {
         return false;
     }
@@ -308,19 +300,24 @@ const openProtyleInNewTab = async (app: App, stack: IBackStack) => {
 
     const protyle = (tab.model as Editor).editor.protyle;
     stack.protyle = protyle;
-    replaceStackProtyle(stack, protyle, info.data.rootID);
+    replaceNavigationHistoryProtyle({
+        forwardEntries: navigationForwardStack,
+        backEntries: getSiyuanBackStack(),
+        newProtyle: protyle,
+        rootID: info.data.rootID,
+    });
 
     focusAfterTabCreation(stack, protyle, info.data.rootID);
     return true;
 };
 
-export const focusStack = async (app: App, stack: IBackStack) => {
+export const focusStack = async (app: App, stack: IBackStack, navigationForwardStack: IBackStack[]) => {
     if (!stack.protyle) {
         return;
     }
     hideElements(["gutter", "toolbar", "hint", "util", "dialog"], stack.protyle);
     if (!document.contains(stack.protyle.element)) {
-        return await openProtyleInNewTab(app, stack);
+        return await openProtyleInNewTab(app, stack, navigationForwardStack);
     }
     if (stack.protyle.block.rootID === stack.id) {
         return focusRoot(stack);

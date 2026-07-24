@@ -14,12 +14,17 @@ import type { IBrushSession } from "../registry/TriggerRegistry.types";
 import type { IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
 /** 用途：内容渲染器注册类型。使用范围：全局状态中内容渲染器注册表。解耦评估：父目录类型导入，纯类型引用。 */
 import type { ContentRendererRegistration } from "../registry/contentRenderer/ContentRendererRegistry.types";
-/** 用途：应用实例类型。使用范围：openMobileFileById 函数签名中 App 参数类型。解耦评估：父目录类型导入，纯类型引用。 */
-import type { App } from "../index";
+/** 用途：Model WebSocket 抽象能力；使用范围：全局能力槽；解耦评估：仅包含数据与回调，不依赖 App/Model class。 */
+import type { IModelHandlers } from "../layout/modelRegistry/types";
+/** 用途：移动文件打开抽象能力；使用范围：全局能力槽；解耦评估：宿主实例由注册闭包绑定，不依赖 App class。 */
+import type { IMobileFileOpenPort } from "../plugin/api/openMobileFile.types";
 /** 用途：拖拽提示框状态类型。使用范围：SForge 全局状态中拖拽提示状态映射。解耦评估：父目录类型导入，纯类型引用。 */
 import type { DragTipState } from "../protyle/util/dragTip.types";
+/** 用途：Protyle Dialog 宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
 import type { IProtyleDialogPort } from "../protyle/runtime/dialog.types";
+/** 用途：Protyle 状态统计宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
 import type { IProtyleStatusPort } from "../protyle/runtime/status.types";
+/** 用途：Protyle 布局宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
 import type { IProtyleLayoutPort } from "../protyle/runtime/layout.types";
 /** 用途：为 SForge 全局状态声明页签 Dialog 浮窗宿主能力；使用范围：layout 菜单请求、完整 App 适配器和独立宿主注册；解耦评估：仅为编译期 type-only 依赖，运行时通过 Symbol Port 注入，不能用事件替代状态契约，但不引入 Dialog/Tab 具体实现。 */
 import type { ILayoutTabFloatPort } from "../layout/tabFloat.types";
@@ -43,7 +48,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.STYLE_BRUSH_HANDLERS]?: IStyleBrushHandlers;
     [SForgeSymbols.POPOVER_TARGET_ELEMENT]?: HTMLElement;
     [SForgeSymbols.MODEL_HANDLERS]?: IModelHandlers;
-    [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: TOpenMobileFileById;
+    [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: IMobileFileOpenPort;
     [SForgeSymbols.CONTENT_RENDERER_REGISTRY]?: Map<string, ContentRendererRegistration>;
     [SForgeSymbols.REQUEST_SEMAPHORE]?: IRequestSemaphore;
     [SForgeSymbols.DRAG_TIP_STATE]?: DragTipState;
@@ -65,26 +70,6 @@ export interface ISForgeGlobalState {
 export interface IRequestSemaphore {
     current: number;
     pending: Array<() => void>;
-}
-
-/**
- * openMobileFileById 函数签名
- *
- * 用途：通过注册表注入，打断 mobile/editor ↔ plugin/API 循环依赖
- * 使用场景：plugin/API.ts 中暴露给插件的 openMobileFileById 方法
- */
-export type TOpenMobileFileById = (app: App, id: string, action?: TProtyleAction[], scrollPosition?: ScrollLogicalPosition) => void;
-
-/**
- * Model WebSocket 处理器接口
- *
- * 用途：通过注册表注入 Model 的运行时依赖，打断 Model ↔ processSystem/processMessage 循环依赖
- * 使用场景：Model.ts 的 WebSocket 回调中调用这些处理器
- */
-export interface IModelHandlers {
-    processMessage: (response: IWebSocketData) => IWebSocketData | false;
-    kernelError: () => void;
-    reloadSync: (app: App, data: { upsertRootIDs: string[], removeRootIDs: string[] }) => void;
 }
 
 /**

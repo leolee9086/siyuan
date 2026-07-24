@@ -37,7 +37,10 @@ import type { PluginCommandMatch } from "../types";
 /** 用途：引入 SpecialDialogType 类型用于特殊对话框类型的辨识联合标注。使用范围：仅 state/index.ts 中 resolveSpecialDialogType 的返回值类型标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
 import type { SpecialDialogType } from "../types";
 /** 用途：引入 WindowKeyDownState 类型用于整个状态收集阶段的类型契约。使用范围：state/index.ts 中 collect/resolve 系列函数的 satisfies 类型标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
-import type { WindowKeyDownState } from "../types";
+import type { WindowKeyDownState as WindowKeyDownStateContract } from "../types";
+
+/** 状态收集阶段绑定主应用与统一 Dialog 的具体身份。 */
+type WindowKeyDownState = WindowKeyDownStateContract<App, Dialog>;
 
 // 导出：App 类型
 export type { App };

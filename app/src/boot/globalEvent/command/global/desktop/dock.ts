@@ -8,6 +8,8 @@ import { type } from "./imports";
 import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：标注 Dock 执行器参数。解耦评估：复用全局命令边界。 */
 import type { GlobalCommandContext } from "./imports";
+/** 用途：主应用宿主身份；使用范围：桌面 Dock 命令上下文绑定；解耦评估：具体类型只在实现模块使用。 */
+import type {App} from "./imports";
 
 /** 切换指定 Dock 模型。 */
 const toggleDockModel = (type: string) => {
@@ -30,7 +32,7 @@ const desktopDockTypeRouter = calibur
  * 执行桌面 Dock 命令。
  * @同步豁免: UI构建 - Dock 切换是同步 UI 响应，命令入口需要立即返回处理状态。
  */
-export const executeDesktopDockGlobalCommand = (context: GlobalCommandContext) => {
+export const executeDesktopDockGlobalCommand = (context: GlobalCommandContext<App>) => {
     const dockType = desktopDockTypeRouter({ command: context.command });
     return toggleDockModel(dockType);
 };

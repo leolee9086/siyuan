@@ -32,7 +32,9 @@ const DOCK_TYPES = "file|outline|inbox|bookmark|tag|graph|globalGraph|backlink|f
  * 意图：区分 MODEL_FACTORIES 中的函数式工厂和类式工厂。
  * 调用时机：在 createModel 中实例化 Model 时调用。
  */
-export function isModelConstructor(factory: ModelFactory | ModelConstructor): factory is ModelConstructor {
+export function isModelConstructor<TApplication, TTab, TEditor, TData>(
+    factory: ModelFactory<TApplication, TTab, TEditor, TData> | ModelConstructor<TApplication, TTab, TEditor, TData>
+): factory is ModelConstructor<TApplication, TTab, TEditor, TData> {
     return !!factory.prototype;
 }
 
@@ -157,9 +159,6 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
 }
 
 
-/** 有效的 Dock 位置值 */
-const VALID_DOCK_POSITIONS = ["Left", "Right", "Bottom"] as const;
-
 /**
  * 判断值是否为有效的 TDockPosition。
  *
@@ -167,7 +166,7 @@ const VALID_DOCK_POSITIONS = ["Left", "Right", "Bottom"] as const;
  * 调用时机：由 isDockTypeRegistryMap 内部调用，验证 Map 值的类型。
  */
 function isTDockPosition(value: unknown): value is TDockPosition {
-    return typeof value === "string" && VALID_DOCK_POSITIONS.includes(value as TDockPosition);
+    return value === "Left" || value === "Right" || value === "Bottom";
 }
 
 /**

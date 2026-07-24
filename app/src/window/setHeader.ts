@@ -1,12 +1,10 @@
 import { isWindow } from "../util/platform/functions";
-import { Wnd } from "../layout/Wnd";
-import { getAllTabs, getAllWnds } from "../layout/getAll";
-import { Editor } from "../editor";
-import { Asset } from "../asset";
 import { Constants } from "../constants";
 import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { Tab } from "../layout/Tab";
+import {readWindowHashIdentity} from "./modelHash/readWindowHashIdentity";
+import {collectLayoutTabs, collectLayoutWindows} from "../layout/traversal/collectLayout";
+import type {ILayoutTraversalTab, ILayoutTraversalWindow} from "../layout/traversal/layoutTraversal.types";
 
 /**
  * 用途：提供 Electron 样式类型守卫，用于判断 CSSStyleDeclaration 是否支持 WebkitAppRegion
@@ -33,7 +31,7 @@ interface ITabPositionContext {
 }
 
 /** 处理单个窗口的标签页位置设置 */
-const processWndForTabPosition = (item: Wnd, context: ITabPositionContext) => {
+const processWndForTabPosition = (item: ILayoutTraversalWindow, context: ITabPositionContext) => {
     const { centerRect, isWindowMode, onlyPadding, toolbarDragElement, toolbarDragRect } = context;
     const headerElement = item.headersElement.parentElement;
     if (!headerElement) {
@@ -157,8 +155,8 @@ export const setTabPosition = (onlyPadding = false, onlyClear = false) => {
     if (!layout) {
         return;
     }
-    const wndsTemp: Wnd[] = [];
-    getAllWnds(layout, wndsTemp);
+    const wndsTemp: ILayoutTraversalWindow[] = [];
+    collectLayoutWindows(layout, wndsTemp);
     if (wndsTemp.length === 0) {
         return;
     }
@@ -196,18 +194,15 @@ const getHashFromInitData = (headElement: HTMLElement) => {
 };
 
 /** 处理单个 tab 并返回对应的 hash 值 */
-const processTabForHash = (tab: Tab) => {
+const processTabForHash = (tab: ILayoutTraversalTab) => {
     // 卫语句：处理 tab.model 不存在的情况
     if (!tab.model) {
         return getHashFromInitData(tab.headElement);
     }
-    // 卫语句：处理 Editor 类型
-    if (tab.model instanceof Editor) {
-        return tab.model.editor.protyle.block.rootID + Constants.ZWSP;
-    }
-    // 卫语句：处理 Asset 类型
-    if (tab.model instanceof Asset) {
-        return tab.model.path + Constants.ZWSP;
+    // 只有显式声明窗口恢复身份的模型才参与 hash 持久化。
+    const identity = readWindowHashIdentity(tab.model);
+    if (identity) {
+        return identity.value + Constants.ZWSP;
     }
     // 其他类型返回空字符串
     return "";
@@ -235,7 +230,12 @@ export const setModelsHash = () => {
         return;
     }
     let hash = "";
-    const tabs = getAllTabs();
+    const layout = getSiyuanLayout().centerLayout;
+    if (!layout) {
+        return;
+    }
+    const tabs: ILayoutTraversalTab[] = [];
+    collectLayoutTabs(layout, tabs);
     for (const tab of tabs) {
         hash += processTabForHash(tab);
     }

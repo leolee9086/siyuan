@@ -14,30 +14,30 @@ const getViewportSize = (): { width: number; height: number } => ({ width: getWi
  * 问题/改进：当前策略优先维持元素完整显示，若未来需要跟随不同菜单样式可继续细化。
  * @显式返回类型原因: 返回 top CSS 值或 undefined，调用方需处理 undefined 分支以决定是否覆盖默认 top。显式联合类型可防止遗漏空值处理。
  */
-const resolveTopPosition = (
-    y: number,
-    elementHeight: number,
-    elementTop: number,
-    elementBottom: number,
-    targetHeight: number,
-    viewportHeight: number
-): string | undefined => {
-    const touchesToolbar = elementTop < Constants.SIZE_TOOLBAR_HEIGHT;
+const resolveTopPosition = (input: {
+    y: number;
+    elementHeight: number;
+    elementTop: number;
+    elementBottom: number;
+    targetHeight: number;
+    viewportHeight: number;
+}): string | undefined => {
+    const touchesToolbar = input.elementTop < Constants.SIZE_TOOLBAR_HEIGHT;
     if (touchesToolbar) {
         return `${Constants.SIZE_TOOLBAR_HEIGHT}px`;
     }
-    const exceedsViewportBottom = elementBottom > viewportHeight;
+    const exceedsViewportBottom = input.elementBottom > input.viewportHeight;
     if (!exceedsViewportBottom) {
         return undefined;
     }
-    const shiftedTop = y - elementHeight - targetHeight;
+    const shiftedTop = input.y - input.elementHeight - input.targetHeight;
     const staysBelowToolbar = shiftedTop > Constants.SIZE_TOOLBAR_HEIGHT;
-    const fitsAfterShift = shiftedTop + elementHeight < viewportHeight;
+    const fitsAfterShift = shiftedTop + input.elementHeight < input.viewportHeight;
     const canMoveAboveTarget = staysBelowToolbar && fitsAfterShift;
     if (canMoveAboveTarget) {
         return `${shiftedTop}px`;
     }
-    const clampedTop = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, viewportHeight - elementHeight);
+    const clampedTop = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, input.viewportHeight - input.elementHeight);
     return `${clampedTop}px`;
 };
 
@@ -60,14 +60,14 @@ const calculatePosition = (input: {
     viewport: { width: number; height: number };
 }): { top?: string; left?: string } => {
     const position: { top?: string; left?: string } = {};
-    const nextTop = resolveTopPosition(
-        input.y,
-        input.elementHeight,
-        input.elementTop,
-        input.elementBottom,
-        input.targetHeight,
-        input.viewport.height
-    );
+    const nextTop = resolveTopPosition({
+        y: input.y,
+        elementHeight: input.elementHeight,
+        elementTop: input.elementTop,
+        elementBottom: input.elementBottom,
+        targetHeight: input.targetHeight,
+        viewportHeight: input.viewport.height,
+    });
     const hasTopAdjustment = nextTop !== undefined;
     if (hasTopAdjustment) {
         position.top = nextTop;
@@ -89,9 +89,10 @@ const calculatePosition = (input: {
  * 调用时机：菜单、面板、提示层渲染完成并拿到尺寸后立即调用。
  * 问题/改进：当前依赖同步布局读取，如果未来能提前拿到尺寸可减少一次回流。
  * @同步豁免: 需要绝对同步的DOM访问
- * @显式返回类型原因: 对外公开 API，void 显式标注确保调用方不依赖返回值。避免被误认为有隐含返回值。
+ * 公共定位 API 被菜单、工具栏和浮层广泛调用，保持签名可避免把无关迁移扩散到调用语义。
  */
-export const setPosition = (element: HTMLElement, x: number, y: number, targetHeight = 0, targetLeft = 0): void => {
+/** @参数豁免: 遗留代码 - 公共定位 API 签名 */
+export function setPosition(element: HTMLElement, x: number, y: number, targetHeight = 0, targetLeft = 0) {
     element.style.top = `${y}px`;
     element.style.left = `${x}px`;
     const rect = element.getBoundingClientRect();
@@ -117,4 +118,4 @@ export const setPosition = (element: HTMLElement, x: number, y: number, targetHe
         return;
     }
     element.style.left = nextLeft;
-};
+}

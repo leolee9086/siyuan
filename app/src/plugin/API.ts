@@ -13,8 +13,8 @@ import { Protyle } from "../protyle";
 import ProtyleMethod from "../protyle/method";
 import { getSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
-import { isOpenMobileFileById } from "../config/sforge.guard";
-import type { TOpenMobileFileById } from "../config/sforge.types";
+import { isMobileFileOpenPort } from "./api/openMobileFile.guard";
+import type { App } from "../index";
 import { getMobileEditor, getMobilePopEditor } from "./API.environment";
 import { isHTMLElement } from "../util/DOM/element.guard";
 import { exitSiYuan } from "../dialog/processSystem";
@@ -203,11 +203,11 @@ const resolveTabHeader = (item: ReturnType<typeof getAllEditor>[number]): HTMLEl
  * 意图：打断 mobile/editor ↔ plugin/API 循环依赖
  * 调用时机：插件通过 API.openMobileFileById 调用时
  */
-const openMobileFileByIdProxy: TOpenMobileFileById = (...args) => {
-    const fn = getSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID);
+const openMobileFileByIdProxy = (_app: App, id: string, action?: TProtyleAction[], scrollPosition?: ScrollLogicalPosition) => {
+    const port = getSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID);
     // 仅在移动端注册了处理器时才执行，桌面端不注册此处理器
-    if (isOpenMobileFileById(fn)) {
-        fn(...args);
+    if (isMobileFileOpenPort(port)) {
+        port.open(id, action, scrollPosition);
     }
 };
 

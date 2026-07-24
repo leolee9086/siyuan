@@ -5,20 +5,6 @@
  */
 
 /**
- * 用途：引入应用实例类型，标注统一状态中必备的应用上下文。
- * 使用范围：仅用于 [`WindowKeyDownState`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts) 的 `app` 字段。
- * 解耦评估：纯类型依赖，不形成运行时耦合；继续经由同层网关复用即可。
- */
-import type { App } from "./imports";
-
-/**
- * 用途：引入对话框类型，标注统一状态中可能持有的切换对话框、最近文档对话框和特殊对话框实例。
- * 使用范围：仅用于统一状态结构中的对话框字段。
- * 解耦评估：纯类型依赖，不形成运行时耦合；继续经由同层网关复用即可。
- */
-import type { Dialog } from "./imports";
-
-/**
  * 用途：表示窗口级对话框阶段需要区分的特殊对话框种类。
  * 使用场景：在统一状态中记录卡片浏览与历史比较对话框，供对话框执行器做差异化处理。
  * 关联类型：被 [`WindowKeyDownState`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts) 的 `specialDialogType` 字段引用。
@@ -193,22 +179,26 @@ export interface WindowKeyDownNavigationFacts {
  * 关联类型：聚合了 [`WindowKeyDownDialogFacts`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts)、[`WindowKeyDownUIFacts`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts)、[`WindowKeyDownSystemFacts`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts) 与 [`WindowKeyDownNavigationFacts`](d:/dev/siyuan-note/app/src/boot/globalEvent/keydown/windowKeyDown/types.ts)。
  * 问题/改进：当前搜索与全局过滤器仍保留为入口前置短路；若未来也完全状态化，可继续并入这份统一状态。
  */
-export interface WindowKeyDownState {
-    app: App;
-    event: KeyboardEvent;
-    target: HTMLElement;
+export interface WindowKeyDownRouteState {
     isTabWindow: boolean;
-    generalKeymap: WindowGeneralKeymap | undefined;
-    switchDialog: Dialog | undefined;
-    recentDocsDialog: Dialog | undefined;
-    specialDialog: Dialog | undefined;
     specialDialogType: SpecialDialogType;
     dockHotkeyType: string | null;
-    confirmDialogElement: HTMLElement | null;
-    pluginCommand: PluginCommandMatch | null;
     dialog: WindowKeyDownDialogFacts;
     ui: WindowKeyDownUIFacts;
     system: WindowKeyDownSystemFacts;
     navigation: WindowKeyDownNavigationFacts;
+}
+
+/** 窗口键运行状态；应用与对话框身份由状态收集实现边界绑定。 */
+export interface WindowKeyDownState<TApplication, TDialog> extends WindowKeyDownRouteState {
+    app: TApplication;
+    event: KeyboardEvent;
+    target: HTMLElement;
+    generalKeymap: WindowGeneralKeymap | undefined;
+    switchDialog: TDialog | undefined;
+    recentDocsDialog: TDialog | undefined;
+    specialDialog: TDialog | undefined;
+    confirmDialogElement: HTMLElement | null;
+    pluginCommand: PluginCommandMatch | null;
 }
 

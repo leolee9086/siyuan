@@ -165,3 +165,8 @@ export type { SourceSimulationPanelView };
 import type { SourceSimulationProfileView } from "../MagiRoot.types";
 /** 导出类型 SourceSimulationProfileView。 */
 export type { SourceSimulationProfileView };
+
+/** 用途：标注来源模拟最小状态端口；使用范围：来源模拟操作参数；解耦评估：通过 imports.ts 转发纯类型契约，避免反向导入状态工厂。 */
+import type { SourceSimulationStatePort } from "../MagiRoot.types";
+/** 导出类型 SourceSimulationStatePort。 */
+export type { SourceSimulationStatePort };

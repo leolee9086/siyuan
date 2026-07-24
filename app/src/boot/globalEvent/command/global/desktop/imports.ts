@@ -55,6 +55,8 @@ import { DESKTOP_GLOBAL_COMMANDS } from "../commands";
 /** 用途：引入最近关闭恢复执行器；使用范围：navigation.ts；解耦评估：复杂恢复流程独立模块承接。 */
 import { executeRecentClosedGlobalCommand } from "../recentClosed";
 /** 用途：引入全局命令上下文类型；使用范围：桌面执行器签名；解耦评估：复用 global/types.ts 契约。 */
+import type { App } from "../imports";
+/** 用途：泛型全局命令上下文协议；使用范围：桌面命令实现；解耦评估：纯同域契约由桌面网关转发。 */
 import type { GlobalCommandContext } from "../types";
 
 /** 导出编辑器模型类型。 */
@@ -127,3 +129,5 @@ export { DESKTOP_GLOBAL_COMMANDS };
 export { executeRecentClosedGlobalCommand };
 /** 导出全局命令上下文类型。 */
 export type { GlobalCommandContext };
+/** 导出主应用宿主身份，供桌面命令绑定泛型上下文。 */
+export type { App };

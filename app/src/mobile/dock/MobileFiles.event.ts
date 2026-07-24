@@ -11,7 +11,7 @@ import {App} from "../../index";
 import {refreshFileTree} from "../../dialog/processSystem";
 import {openPublishAccessDialog} from "../../protyle/util/publishAccess";
 import {collapseFileTree, isFileTreeCollapsing} from "../../layout/dock/fileTreeAnimation";
-import type {MobileFiles} from "./MobileFiles";
+import type {MobileFilesEventPort} from "./files/ports.types";
 
 /**
  * 作用：生成排序菜单并应用排序设置。
@@ -19,7 +19,7 @@ import type {MobileFiles} from "./MobileFiles";
  * 调用时机：用户点击工具栏排序按钮时。
  * @同步豁免: UI构建
  */
-export function genSort(files: MobileFiles) {
+export function genSort(files: MobileFilesEventPort) {
     window.siyuan.menus.menu.remove();
     const subMenu = sortMenu("notebooks", window.siyuan.config.fileTree.sort, (sort: number) => {
         fetchPost("/api/setting/setFiletree", {
@@ -46,7 +46,7 @@ export function genSort(files: MobileFiles) {
  * @同步豁免: UI构建
  */
 export function bindClickEvent(
-    files: MobileFiles,
+    files: MobileFilesEventPort,
     app: App,
     filesElement: Element,
     actionsElement: HTMLElement
@@ -164,7 +164,7 @@ export function bindClickEvent(
                 const liElement = target.closest("li");
                 if (liElement?.getAttribute("data-encrypted") === "true") {
                     const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
-                    openEncryptedNotebook(files.app, notebookId, name);
+                    openEncryptedNotebook(app, notebookId, name);
                 } else {
                     fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
                 }

@@ -45,7 +45,11 @@ class App {
         this.appId = Constants.SIYUAN_APPID;
         setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
         const processMessage = createProcessMessage({ fetchPost });
-        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
+        setSForgeState(SForgeSymbols.MODEL_HANDLERS, {
+            processMessage,
+            kernelError,
+            reloadSync: (data) => reloadSync(this, data),
+        });
 
         const mainWs = new Model({app: this});
         mainWs.connect({

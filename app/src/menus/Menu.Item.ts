@@ -1,9 +1,32 @@
-import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
-import { createHiddenProtyleMenuElement, isProtyleMenuItemVisible } from "../protyle/runtime/menu.visibility";
+import { generateMenuItemHTML } from "./Menu.uills";
+import {
+    createHiddenProtyleMenuElement,
+    filterProtyleMenuItems,
+    isHiddenProtyleMenuElement,
+    isProtyleMenuItemVisible,
+} from "../protyle/runtime/menu.visibility";
 
+/** 创建递归子菜单；过滤与顶层菜单项使用相同的可见性规则。 */
+const createSubmenuElement = (submenuItems: IMenu[]) => {
+    const submenuElement = document.createElement("div");
+    submenuElement.classList.add("b3-menu__submenu");
+    submenuElement.innerHTML = '<div class="b3-menu__items"></div>';
+    for (const item of filterProtyleMenuItems(submenuItems)) {
+        const element = new MenuItem(item).element;
+        if (!isHiddenProtyleMenuElement(element)) {
+            submenuElement.firstElementChild.append(element);
+        }
+    }
+    return submenuElement;
+};
 
 export class MenuItem {
     public element: HTMLElement;
+
+    /** 在菜单领域所有者内部集中实例化菜单项，供受 factory 门禁的行为模块调用。 */
+    public static create(options: IMenu) {
+        return new MenuItem(options);
+    }
 
     constructor(options: IMenu) {
         if (!isProtyleMenuItemVisible(options)) {

@@ -1,7 +1,7 @@
 /** 用途：创建完整 App 的 Dialog 浮层。使用范围：Tab 浮窗宿主适配器；解耦评估：仅此 App 边界依赖具体 Dialog，核心通过 Port 隔离。 */
 import {Dialog} from "../dialog";
 /** 用途：承载副本面板 DOM 的临时页签。使用范围：浮窗生命周期；解耦评估：Tab 是稳定句柄，宿主不移动原始页签。 */
-import type {Tab} from "./Tab";
+import type {ILayoutTabHandle} from "./tabFloat.types";
 /** 用途：向布局能力注册表写入完整 App 实现。使用范围：入口初始化；解耦评估：菜单只依赖 Port，不直接依赖该注册模块。 */
 import {setLayoutTabFloatPort} from "./tabFloat.port";
 /** 用途：查找模型声明的浮窗副本能力；使用范围：完整 App Dialog 适配器。 */
@@ -29,13 +29,13 @@ const createAppTabFloatPort = () => ({
      * 意图：保持原始 Tab 在布局树中的位置，同时提供可交互的独立实例。
      * 调用时机：完整 App 注册此 Port 后，用户从 Tab 菜单选择“作为浮窗打开”时调用。
      */
-    async open(tab: Tab) {
+    async open(tab: ILayoutTabHandle) {
         const factory = getTabFloatFactory(tab);
         if (!factory) {
             return false;
         }
 
-        let temporaryTab: Tab;
+        let temporaryTab: ILayoutTabHandle;
         try {
             temporaryTab = factory.createTab(tab);
         } catch (error) {

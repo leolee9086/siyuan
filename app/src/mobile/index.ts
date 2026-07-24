@@ -35,6 +35,7 @@ import { openMobileFileById } from "./editor";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
+import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { registerServiceWorker } from "../util/network/serviceWorker";
 import { loadPlugins } from "../plugin/loader";
 import { saveScroll } from "../protyle/scroll/saveScroll";
@@ -70,8 +71,14 @@ class App {
         this.appId = Constants.SIYUAN_APPID;
         setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
         const processMessage = createProcessMessage({ fetchPost });
-        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
-        setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, openMobileFileById);
+        setSForgeState(SForgeSymbols.MODEL_HANDLERS, {
+            processMessage,
+            kernelError,
+            reloadSync: (data) => reloadSync(this, data),
+        });
+        setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, {
+            open: (id, action, scrollPosition) => openMobileFileById(this, id, action, scrollPosition),
+        });
 
         const mainWs = new Model({app: this});
         mainWs.connect({
@@ -213,7 +220,7 @@ class App {
                             setNoteBook(() => {
                                 initFramework(this, confResponse.data.start);
                                 initRightMenu(this);
-                                openChangelog();
+                                openChangelog(getProtyleDialogPort());
                             });
                         });
                     });

@@ -18,7 +18,7 @@ import {resolveAgentPanelTargetPolicy} from "./runtime/agentPanel.targetPolicy";
 import {updateHotkeyAfterTip} from "../../../protyle/util/compatibility";
 import {getAgentLute} from "../../../protyle/render/setLute";
 import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
-import {setPosition} from "../../../util/DOM/setPosition";
+import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {fetchPost} from "../../../util/fetch";
 import * as dayjs from "dayjs";
 import {

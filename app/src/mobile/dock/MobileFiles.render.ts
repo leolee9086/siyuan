@@ -4,7 +4,7 @@ import {getDocDisplayName} from "../../util/file/pathName";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {unicode2Emoji} from "../../emoji";
 import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
-import type {MobileFiles} from "./MobileFiles";
+import type {MobileFilesRenderPort} from "./files/ports.types";
 import {expandFileTree} from "../../layout/dock/fileTreeAnimation";
 
 /**
@@ -43,7 +43,7 @@ class="b3-list-item" data-path="${item.path}" style="--file-toggle-width:${paddi
  * 调用时机：getLeaf 获取到文件列表数据后调用。
  * @同步豁免: UI构建
  */
-export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string, path: string }, scrollTop?: number) {
+export function onLsHTML(files: MobileFilesRenderPort, data: { files: IFile[], box: string, path: string }, scrollTop?: number) {
     if (data.files.length === 0) {
         return;
     }
@@ -95,7 +95,7 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
  * 意图：在文件树中定位并选中指定文件，自动展开所有父级目录。
  * 调用时机：selectItem 需要展开未加载的子目录时调用。
  */
-export async function onLsSelect(files: MobileFiles, data: {
+export async function onLsSelect(files: MobileFilesRenderPort, data: {
     files: IFile[],
     box: string,
     path: string

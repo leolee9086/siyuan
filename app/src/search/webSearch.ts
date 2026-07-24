@@ -83,7 +83,7 @@ const getWebSearchElements = (root: HTMLElement) => ({
 });
 
 /** Switch the source view and restore local search state when the user switches back. */
-const setWebSearchMode = (state: WebSearchState, next: boolean) => {
+const setWebSearchMode = (state: WebSearchState<Protyle>, next: boolean) => {
     const elements = state.elements;
     state.webMode = next;
     elements.root.dataset.searchSource = next ? "web" : "local";
@@ -106,7 +106,7 @@ const setWebSearchMode = (state: WebSearchState, next: boolean) => {
 };
 
 /** Execute one real network request and render structured results or diagnostics. */
-const requestWebSearch = async (state: WebSearchState) => {
+const requestWebSearch = async (state: WebSearchState<Protyle>) => {
     const elements = state.elements;
     const query = elements.input.value.trim();
     if (!query || !state.webMode) {
@@ -152,7 +152,7 @@ const requestWebSearch = async (state: WebSearchState) => {
 };
 
 /** Bind result actions so each search item can be inserted without leaving the search view. */
-const bindWebSearchResultActions = (state: WebSearchState) => {
+const bindWebSearchResultActions = (state: WebSearchState<Protyle>) => {
     state.elements.webPanel.addEventListener("click", (event: MouseEvent) => {
         if (!(event.target instanceof HTMLElement)) {
             return;
@@ -181,7 +181,7 @@ const bindWebSearchResultActions = (state: WebSearchState) => {
 };
 
 /** Bind source switching, debounce typing, explicit submit, and keyboard submit. */
-const bindWebSearchInputs = (state: WebSearchState, setMode: (next: boolean) => void) => {
+const bindWebSearchInputs = (state: WebSearchState<Protyle>, setMode: (next: boolean) => void) => {
     const elements = state.elements;
     elements.sourceLocal.addEventListener("click", () => setMode(false));
     elements.sourceWeb.addEventListener("click", () => setMode(true));
@@ -206,7 +206,7 @@ const bindWebSearchInputs = (state: WebSearchState, setMode: (next: boolean) => 
 
 /** Initialize the human-facing web source in the existing global search dialog. */
 export const initWebSearch = (element: HTMLElement, config: Config.IUILayoutTabSearchConfig, edit: Protyle) => {
-    let state: WebSearchState;
+    let state: WebSearchState<Protyle>;
     /** Run the current web request after state and DOM handlers have been initialized. */
     const runSearch = () => requestWebSearch(state);
     state = {

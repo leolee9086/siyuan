@@ -20,8 +20,9 @@ import {App} from "../index";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/initUI";
 // S-forge: Plugin 系统支持
-import {Custom} from "../layout/dock/Custom";
+import type {ICustomTabModel} from "../registry/TabRegistry.types";
 import {Plugin} from "../plugin";
+import {createPluginRuntime} from "../plugin/loader";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {switchSettingPanelSubTab} from "./setting/mount";
@@ -503,13 +504,14 @@ document.addEventListener(
                 app: window.siyuan.ws.app,
                 displayName: "资源管理内部插件",
                 name: "internal-plugin-image",
-                i18n: {}
+                i18n: {},
+                runtime: createPluginRuntime(),
             }
         );
         plugin.addTab(
             {
                 type: "internal-image",
-                init: (model: Custom) => {
+                init: (model: ICustomTabModel) => {
                     const tab = model.tab;
                     if (tab) {
                         tab.panelElement.innerHTML = assets.genHTML();
@@ -523,7 +525,7 @@ document.addEventListener(
         plugin.addTab(
             {
                 type: "internal-image-remove",
-                init: (model: Custom) => {
+                init: (model: ICustomTabModel) => {
                     const tab = model.tab;
                     if (tab) {
                         // 生成未引用资源页签的HTML
@@ -537,7 +539,7 @@ document.addEventListener(
         plugin.addTab(
             {
                 type: "internal-image-missing",
-                init: (model: Custom) => {
+                init: (model: ICustomTabModel) => {
                     const tab = model.tab;
                     if (tab) {
                         // 生成缺失资源页签的HTML

@@ -104,5 +104,14 @@ export interface SourceSimulationPanelView {
     messages: SourceSimulationPanelMessageView[];
 }
 
+/**
+ * 来源模拟状态操作所需的最小端口。
+ * rootctx 状态工厂以结构类型满足该端口，来源模拟操作无需反向依赖完整状态工厂。
+ */
+export interface SourceSimulationStatePort {
+    sourceSimulationProfiles: Ref<SourceSimulationProfileView[]>;
+    sourceSimulationPanels: Ref<SourceSimulationPanelView[]>;
+}
+
 /** provide/inject key for MagiRoot context */
 export const MAGI_ROOT_CTX_KEY: InjectionKey<MagiRootContext> = Symbol("MagiRootContext");

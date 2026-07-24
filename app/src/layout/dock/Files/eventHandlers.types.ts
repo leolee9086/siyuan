@@ -3,9 +3,6 @@
  * @module eventHandlers.types
  */
 
-import type { App } from "../../../index";
-import type { Files } from "../Files";
-
 // ============================================================================
 // 初始化相关类型
 // ============================================================================
@@ -38,14 +35,30 @@ export type SelectItemFn = (
 // ============================================================================
 
 /**
- * 事件处理器所需的上下文
- * 包含 Files 实例和 App 实例的引用
+ * 用途：表示文件树事件域所需的完整组件状态与行为。
+ * 使用场景：工具栏、关闭区、鼠标选择和文件打开事件共享同一宿主。
+ * 关联类型：Files class 以结构化类型实现该契约，不包含应用宿主身份。
  */
-export interface FilesEventContext {
-    /** Files 组件实例 */
-    files: Files;
-    /** 应用实例 */
-    app: App;
+export interface FilesEventHost {
+    readonly element: HTMLElement;
+    readonly actionsElement: HTMLElement;
+    readonly closeElement: HTMLElement;
+    lastSelectedElement: Element | null;
+    init: (isInitialCall?: boolean) => void;
+    refreshPublishAccessSwitch: () => void;
+    updateDocActions: () => void;
+    setCurrent: (target: HTMLElement, isScroll?: boolean) => void;
+    getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void;
+}
+
+/**
+ * 用途：组合文件树事件宿主与应用身份。
+ * 使用场景：事件聚合入口将同一上下文交给各类事件处理器。
+ * 关联类型：文件树能力固定为 FilesEventHost，TApplication 由主应用实现绑定。
+ */
+export interface FilesEventContext<TApplication> {
+    files: FilesEventHost;
+    app: TApplication;
 }
 
 

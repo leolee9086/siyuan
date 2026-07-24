@@ -1,5 +1,5 @@
 import { fetchPost } from "../../ai/imports";
-import { rectElement } from ".";
+import { rectElement } from "./state/selection";
 import { getConfig } from "./config";
 import { AnnoConstants } from "./constants";
 import { copyAnno } from "./anno.copy";

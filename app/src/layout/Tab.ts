@@ -134,6 +134,11 @@ export class Tab {
         attachLayoutModel(this, model);
     }
 
+    /** 执行页签创建时注册的初始化动作，供副本工厂通过抽象句柄调用。 */
+    public initialize() {
+        this.callback?.(this);
+    }
+
     public pin() {
         if (!this.headElement.previousElementSibling || (this.headElement.previousElementSibling && this.headElement.previousElementSibling.classList.contains("item--pin"))) {
             // 如果是第一个，或者前一个是 pinned，则不处理

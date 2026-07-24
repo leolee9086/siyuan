@@ -13,17 +13,21 @@ import {closeModel} from "../mobile/util/closePanel";
 import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {renderDoc, renderRmNotebook, renderRepo} from "./history.render";
-import {clearHistoryEditor} from "./history";
+import type {IHistoryDocClickContext} from "./history.docEvent.types";
 
 export const handleDocClick = (
-    target: HTMLElement,
-    type: string,
-    event: MouseEvent,
-    element: Element,
-    firstPanelElement: HTMLElement,
-    historyEditor: Protyle,
-    dialog: Dialog | undefined,
+    context: IHistoryDocClickContext<Protyle, Dialog>,
 ): boolean => {
+    const {
+        target,
+        type,
+        event,
+        element,
+        firstPanelElement,
+        historyEditor,
+        dialog,
+        clearHistoryEditor,
+    } = context;
     const docElement = firstPanelElement.querySelector('.history__text[data-type="docPanel"]') as HTMLElement;
     const assetElement = firstPanelElement.querySelector('.history__text[data-type="assetPanel"]');
     const mdElement = firstPanelElement.querySelector('.history__text[data-type="mdPanel"]') as HTMLTextAreaElement;

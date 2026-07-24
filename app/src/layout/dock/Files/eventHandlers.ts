@@ -5,7 +5,7 @@
  */
 
 // 导出类型
-export type { FilesEventContext } from "./eventHandlers.types";
+export type { FilesEventContext, FilesEventHost } from "./eventHandlers.types";
 
 // 导出 closeElement 事件处理
 export { setupCloseElementClickHandler } from "./eventHandlers.closeElement";
@@ -28,15 +28,16 @@ import { setupCollapseClickHandler, setupActionsClickHandler } from "./eventHand
 import { setupElementMousedownHandler } from "./eventHandlers.element.mousedown";
 import { setupElementClickHandler } from "./eventHandlers.element.click";
 import type { FilesEventContext } from "./eventHandlers.types";
+import type {App} from "../../../index";
 
 /**
  * 初始化所有事件监听器
  * @同步豁免: UI构建
  * @param ctx - 事件上下文，包含 files 实例和 app 实例
  */
-export function initAllEventHandlers(ctx: FilesEventContext): void {
+export function initAllEventHandlers(ctx: FilesEventContext<App>): void {
     const { files, app } = ctx;
-    setupCloseElementClickHandler(files);
+    setupCloseElementClickHandler(files, app);
     setupCollapseClickHandler(files);
     setupActionsClickHandler(files);
     setupElementMousedownHandler(files, app);

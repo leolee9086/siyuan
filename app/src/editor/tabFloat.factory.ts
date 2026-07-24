@@ -3,15 +3,21 @@ import {Editor} from "./index";
 import {copyTab} from "../layout/tabUtil";
 import {registerTabFloatFactory} from "../layout/tabFloat.registry";
 import type {ILayoutTabFloatCopy, ILayoutTabFloatFactory} from "../layout/tabFloat.types";
+import {Tab} from "../layout/Tab";
 
 const editorTabFloatFactory: ILayoutTabFloatFactory = {
     id: "editor",
     canCreate: (tab) => tab.model instanceof Editor,
-    createTab: (source) => copyTab(source.model.app, source),
+    createTab: (source) => {
+        if (!(source instanceof Tab)) {
+            throw new Error("Editor tab float source is not a layout Tab");
+        }
+        return copyTab(source.model.app, source);
+    },
     create: (_source, target): ILayoutTabFloatCopy => {
         // copyTab 已经集中维护 root/block/action/滚动位置兼容语义，
         // 这里仅触发既有初始化回调，不复制源编辑器 DOM 或可变状态。
-        target.callback?.(target);
+        target.initialize();
         const model = target.model;
         if (!(model instanceof Editor)) {
             throw new Error("Editor tab float factory did not create an Editor model");

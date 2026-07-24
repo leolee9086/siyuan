@@ -1,10 +1,9 @@
-import Router from "./router.htttpRouter";
 import Layer from "./layer";
 import {pathToRegexp, Key} from "path-to-regexp";
-import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from "./types";
+import type { MiddlewareFunction } from "./types";
+import type { CloneRouterType, MiddlewareWithRouter, RouterMountTargetPort } from "../routerCore.port.types";
 import { z } from "zod";
 import { LayerLike } from "./layerLike.types";
-import baseRouter from "./router.base";
 
 /**
  * 克隆路由器的层并设置前缀
@@ -28,7 +27,7 @@ import baseRouter from "./router.base";
 function cloneRouterLayers<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny,
->(cloneRouter: CloneRouterType, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
+>(cloneRouter: CloneRouterType, router: RouterMountTargetPort<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     for (let j = 0; j < cloneRouter.stack.length; j++) {
         const nestedLayer = cloneRouter.stack[j];
         const cloneLayer = Object.assign(
@@ -69,7 +68,7 @@ cloneLayer.setPrefix(router.opts.prefix);
 function setRouterParams<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(cloneRouter: CloneRouterType, router: baseRouter<TRequestBodySchema, TResponseBodySchema>): void {
+>(cloneRouter: CloneRouterType, router: RouterMountTargetPort<TRequestBodySchema, TResponseBodySchema>): void {
     if (router.params) {
         const paramKeys = Object.keys(router.params);
         for (const key of paramKeys) {
@@ -102,9 +101,9 @@ function setRouterParams<
 function handleMiddlewareRouter<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(m: MiddlewareWithRouter, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
+>(m: MiddlewareWithRouter, router: RouterMountTargetPort<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     const cloneRouter = Object.assign(
-        Object.create(Router.prototype),
+        Object.create(Object.getPrototypeOf(m.router)),
         m.router,
         {
             stack: [...m.router.stack]
@@ -141,7 +140,7 @@ function handleMiddlewareRouter<
 function handleRegularMiddleware<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
+>(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: RouterMountTargetPort<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
     const keys: Key[] = [];
     pathToRegexp(router.opts.prefix || "", keys);
     const routerPrefixHasParam = router.opts.prefix && keys.length;
@@ -186,14 +185,15 @@ function handleRegularMiddleware<
  */
 export function use<
     TRequestBodySchema extends z.ZodTypeAny,
-    TResponseBodySchema extends z.ZodTypeAny
->(router: baseRouter<TRequestBodySchema, TResponseBodySchema>, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): baseRouter<TRequestBodySchema, TResponseBodySchema> {
+    TResponseBodySchema extends z.ZodTypeAny,
+    TRouter extends RouterMountTargetPort<TRequestBodySchema, TResponseBodySchema>,
+>(router: TRouter, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]) {
     const middleware = Array.prototype.slice.call(args);
     let path;
     if (Array.isArray(middleware[0]) && typeof middleware[0][0] === "string") {
         const arrPaths = middleware[0];
         for (const p of arrPaths) {
-            router.use.apply(router, [p].concat(middleware.slice(1)));
+            use(router, p, ...middleware.slice(1));
         }
         return router;
     }

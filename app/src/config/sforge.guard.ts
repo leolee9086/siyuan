@@ -26,40 +26,10 @@ export function asStyleBrushHandlers(val: unknown): IStyleBrushHandlers | undefi
     return val as IStyleBrushHandlers | undefined;
 }
 
-/** 用途：Model 处理器接口。使用范围：类型守卫运行时校验注册表值。解耦评估：同目录类型文件，类型导入。 */
-import type { IModelHandlers } from "./sforge.types";
-/** 用途：openMobileFileById 函数签名。使用范围：类型守卫运行时校验注册表值。解耦评估：同目录类型文件，类型导入。 */
-import type { TOpenMobileFileById } from "./sforge.types";
 /** 用途：Profile 类型。使用范围：配置文件解析类型守卫。解耦评估：同目录类型文件，类型导入。 */
 import type { Profile } from "./profile.types";
 /** 用途：NamespaceState 类型。使用范围：配置文件解析类型守卫。解耦评估：同目录类型文件，类型导入。 */
 import type { NamespaceState } from "./profile.types";
-
-/**
- * 类型守卫：检查值是否为 IModelHandlers
- *
- * 意图：运行时校验从 SForge 注册表取出的值确实包含 Model 所需的三个处理器函数
- * 调用时机：Model.registry.ts 中 getModelHandlers 读取注册表后
- */
-export function isModelHandlers(val: unknown): val is IModelHandlers {
-    if (!val || typeof val !== "object") {
-        return false;
-    }
-    const obj = val as Record<string, unknown>;
-    return typeof obj.processMessage === "function"
-        && typeof obj.kernelError === "function"
-        && typeof obj.reloadSync === "function";
-}
-
-/**
- * 类型守卫：检查值是否为 TOpenMobileFileById
- *
- * 意图：运行时校验从 SForge 注册表取出的值确实是 openMobileFileById 函数
- * 调用时机：plugin/API.ts 中通过注册表获取 openMobileFileById 时
- */
-export function isOpenMobileFileById(val: unknown): val is TOpenMobileFileById {
-    return typeof val === "function";
-}
 
 /**
  * 类型守卫：检测对象是否包含 code 属性（API 响应类型守卫）

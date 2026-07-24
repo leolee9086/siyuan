@@ -1,5 +1,4 @@
-import { Editor } from "./imports";
-import type { IEditorOptions } from "./imports";
+import { createEditor } from "./imports";
 import { Asset } from "./imports";
 import { newCardModel } from "./imports";
 import { newDatabaseRowModel } from "./imports";
@@ -229,7 +228,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
          */
         callback(tab) {
             if (options.zoomIn) {
-                tab.addModel(new Editor({
+                tab.addModel(createEditor({
                     app: app,
                     tab,
                     blockId: id,
@@ -239,7 +238,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
                 }));
                 return;
             }
-            const editorOptions: IEditorOptions = {
+            const editorOptions = {
                 app,
                 tab,
                 blockId: id,
@@ -252,7 +251,7 @@ const newEditorTab = (options: IOpenFileOptions) => {
             if (options.action) {
                 editorOptions.action = options.action;
             }
-            tab.addModel(new Editor(editorOptions));
+            tab.addModel(createEditor(editorOptions));
         }
     });
 };

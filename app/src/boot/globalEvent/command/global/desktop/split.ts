@@ -24,6 +24,8 @@ import { type } from "./imports";
 import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：标注拆分执行器参数。解耦评估：复用全局命令边界。 */
 import type { GlobalCommandContext } from "./imports";
+/** 用途：主应用宿主身份；使用范围：桌面拆分命令上下文绑定；解耦评估：具体类型只在实现模块使用。 */
+import type {App} from "./imports";
 
 /** 执行取消所有拆分命令。 */
 const executeUnsplitAllDesktopGlobalCommand = () => {
@@ -79,7 +81,7 @@ const executeUnsplitDesktopGlobalCommand = () => {
 };
 
 /** 执行复制标签到左右拆分命令。 */
-const executeSplitCopyDesktopGlobalCommand = ({ app, command }: GlobalCommandContext) => {
+const executeSplitCopyDesktopGlobalCommand = ({ app, command }: GlobalCommandContext<App>) => {
     const tab = getActiveTab(false);
     // 存在活动标签时才能复制到新拆分窗口。
     if (tab) {
@@ -89,7 +91,7 @@ const executeSplitCopyDesktopGlobalCommand = ({ app, command }: GlobalCommandCon
 };
 
 /** 执行移动标签到新拆分命令。 */
-const executeSplitMoveDesktopGlobalCommand = ({ command }: GlobalCommandContext) => {
+const executeSplitMoveDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
     const tab = getActiveTab(false);
     // 只有同一窗口内至少两个标签时，移动当前标签到新拆分才有意义。
     if (tab && tab.parent.children.length > 1) {
@@ -126,7 +128,7 @@ const desktopSplitCommandRouter = calibur
  * 执行桌面拆分命令。
  * @同步豁免: UI构建 - 拆分和取消拆分是同步布局操作，命令入口需要立即返回处理状态。
  */
-export const executeDesktopSplitGlobalCommand = (context: GlobalCommandContext) => {
+export const executeDesktopSplitGlobalCommand = (context: GlobalCommandContext<App>) => {
     const executor = desktopSplitCommandRouter({ command: context.command });
     return executor(context);
 };

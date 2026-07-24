@@ -168,7 +168,7 @@ function subscribeInternal<K extends MagiEventName>(
     event: K,
     listener: (payload: MagiEventPayloadMap[K]) => void | Promise<void>,
 ) {
-    const safeListener = toEmitterListener(listener);
+    const safeListener = toEmitterListener<typeof magiEventDefines, K>(listener);
     return emitter.subscribe(event, safeListener);
 }
 

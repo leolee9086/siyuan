@@ -24,7 +24,7 @@ import { getWindowSelection } from "./imports";
  * 使用范围：getEndSelected和getHightlightCoordsByRange中获取页面的首尾文本节点
  * 解耦评估：anno模块内部工具函数，直接导入符合模块内聚原则
  */
-import { getTextNode } from ".";
+import { getTextNode } from "./text/getTextNode";
 
 /**
  * 用途：设置PDF注释配置，保存注释数据到PDF实例

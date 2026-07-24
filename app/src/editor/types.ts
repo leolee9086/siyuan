@@ -1,26 +1,39 @@
-/** 用途：应用实例类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "./imports";
-/** 用途：页签类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
-import type { Tab } from "./imports";
-/** 用途：Protyle 编辑器类型。使用范围：types.ts 接口定义。解耦评估：通过 imports.ts 转发。 */
-import type { Protyle } from "./imports";
+/** Editor 页签宿主的完整 DOM 能力。 */
+export interface IEditorTabHost {
+    readonly headElement: HTMLElement;
+    readonly panelElement: HTMLElement;
+}
+
+/** Editor 持有的编辑引擎身份；具体引擎必须公开现有 Protyle 状态。 */
+export interface IEditorEngine {
+    readonly protyle: IProtyle;
+}
+
+/** 编辑引擎创建选项保持完整 Protyle 配置，只参数化初始化回调中的引擎身份。 */
+export type EditorEngineOptions<TEditor extends IEditorEngine> =
+    Omit<IProtyleOptions, "after"> & {after: (editor: TEditor) => void};
 
 /**
- * 编辑器构造函数选项接口
+ * 编辑器构造函数选项接口。
  *
- * 用途：定义创建 Editor 实例时所需的参数结构。
- * 使用场景：Editor 类构造函数、newTab 等创建编辑器的场景。
- * 关联类型：Editor 类。
+ * 用途：定义创建 Editor 实例时所需的业务参数，并分别保留应用、页签和引擎身份。
+ * 使用场景：Editor 模型构造、布局页签创建、复制和恢复。
+ * 关联类型：IEditorTabHost、IEditorEngine 和具体宿主工厂。
+ * 问题/改进：运行时创建与宿主动作由工厂另行注入，不进入业务选项。
  */
-export interface IEditorOptions {
-    app: App;
-    tab: Tab;
+export interface IEditorOptions<
+    TApplication extends object,
+    TTab extends IEditorTabHost,
+    TEditor extends IEditorEngine,
+> {
+    app: TApplication;
+    tab: TTab;
     blockId: string;
     rootId: string;
     notebookId?: string;
     mode?: TEditorMode;
     action?: TProtyleAction[];
-    afterInitProtyle?: (editor: Protyle) => void;
+    afterInitProtyle?: (editor: TEditor) => void;
     scrollPosition?: ScrollLogicalPosition;
 }
 

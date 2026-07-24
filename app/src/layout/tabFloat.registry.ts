@@ -2,7 +2,7 @@
 import {getSForgeState, setSForgeState} from "../config/sforge.global";
 import {SForgeSymbols} from "../config/sforge.symbols";
 import type {ILayoutTabFloatFactory} from "./tabFloat.types";
-import type {Tab} from "./Tab";
+import type {ILayoutTabHandle} from "./tabFloat.types";
 
 const getRegistry = () => {
     const current = getSForgeState(SForgeSymbols.TAB_FLOAT_FACTORY_REGISTRY);
@@ -28,7 +28,7 @@ export const registerTabFloatFactory = (factory: ILayoutTabFloatFactory) => {
 export const unregisterTabFloatFactory = (id: string) => getRegistry().delete(id);
 
 /** 按声明顺序查找能够创建当前 Tab 副本的工厂。 */
-export const getTabFloatFactory = (tab: Tab) => {
+export const getTabFloatFactory = (tab: ILayoutTabHandle) => {
     for (const factory of getRegistry().values()) {
         if (factory.canCreate(tab)) {
             return factory;

@@ -138,11 +138,6 @@ import type { Protyle } from "../protyle";
 /** 导出 Protyle 类型，供 dialog 模块使用 */
 export type { Protyle };
 
-/** 用途：对话框拖拽/调整大小。使用范围：Dialog 初始化。解耦评估：通过 imports.ts 转发。 */
-import { moveResize } from "./moveResize";
-/** 导出 moveResize，供 dialog 模块使用 */
-export { moveResize };
-
 /** 用途：推送对话框到全局列表。使用范围：Dialog 构造函数。解耦评估：通过 imports.ts 转发。 */
 import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 /** 导出 pushSiyuanDialog，供 dialog 模块使用 */
@@ -181,11 +176,6 @@ export { getDOMPurify };
 import { fetchPost } from "../util/network/fetch";
 /** 导出 fetchPost，供 dialog 目录复用。 */
 export { fetchPost };
-
-/** 用途：对话框基类。使用范围：openTransferBlockRefDialog 等需要创建对话框实例的模块。解耦评估：对话框基类在同目录内，直接导入。 */
-import { Dialog } from "../dialog";
-/** 导出 Dialog，供 dialog 目录复用。 */
-export { Dialog };
 
 /** 用途：获取工具栏高度，用于 moveResize 中的拖拽边界计算。使用范围：moveResize 中的位置/尺寸约束。解耦评估：布局查询被 environment 层封装。 */
 import { getTopBarHeight } from "../layout/getTopBarHeight";

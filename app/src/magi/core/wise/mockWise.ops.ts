@@ -8,7 +8,7 @@
 // [TASK] T2.1 迁移MAGI核心系统 - wise/mockWise.ops
 
 import { universalStreamRequest } from "../../../util/network/fetchStream";
-import { 构建SSE请求配置, 创建SSE桥接回调 } from "./mockWise";
+import { 构建SSE请求配置, 创建SSE桥接回调 } from "./mockWise.sseClient";
 import type {
     MockWISE内部状态,
     MockWISE完整配置,
@@ -151,13 +151,13 @@ export async function* 创建流式响应Generator(
     };
 
     const 通知有新数据 = 创建通知函数(桥接状态);
-    const 请求配置 = await 构建SSE请求配置(
-        config.openAIConfig,
-        context,
-        systemPromptForChat ?? config.systemPromptForChat,
-        abortController.signal,
+    const 请求配置 = await 构建SSE请求配置({
+        openAIConfig: config.openAIConfig,
+        messages: context,
+        systemPrompt: systemPromptForChat ?? config.systemPromptForChat,
+        abortSignal: abortController.signal,
         toolOptions,
-    );
+    });
 
     const 回调 = await 创建SSE桥接回调(桥接状态, 通知有新数据);
 

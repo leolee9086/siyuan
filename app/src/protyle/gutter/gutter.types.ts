@@ -3,12 +3,8 @@
  * 包含 gutter 相关的接口和类型定义
  */
 
-/**
- * 用途：配置管理器类型，用于 AI 认证配置
- * 使用范围：生成块内容图片参数接口
- * 解耦评估：类型定义本身不产生运行时依赖，通过 type import 可被 tree-shaking；若需解耦可将 ProfileManager 改为通用接口
- */
-import type { ProfileManager } from "../../config/profileManager";
+/** 用途：读取图像生成所需的当前认证配置；使用范围：块内容图像生成参数；解耦评估：只读能力由调用方注入，不依赖 ProfileManager 的文件存储实现。 */
+import type {ProfileReader} from "../../config/profile.types";
 
 /**
  * Gutter 编辑菜单上下文接口
@@ -47,7 +43,7 @@ export interface 生成块内容图片参数 {
     /** 当前块元素 */
     nodeElement: Element;
     /** Auth 配置管理器 */
-    authManager: ProfileManager;
+    authManager: ProfileReader;
     /** 进度回调 */
     onProgress?: (msg: string) => void;
     /** 完成回调，传入生成的图片 base64 数据 */

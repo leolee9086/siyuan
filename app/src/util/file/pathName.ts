@@ -1,5 +1,3 @@
-import * as path from "path";
-
 import { fetchPost } from "../network/fetch";
 import { getSearch } from "../platform/functions";
 import { unicode2Emoji } from "../../emoji";
@@ -9,10 +7,22 @@ import { isElectron } from "../../platform";
 import { showMessage } from "../../dialog/message";
 import { isWindows } from "../../protyle/util/compatibility";
 import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref } from "../siyuanEnvironments/windowLocation.environment";
-import { getSiyuanNotebooks, setSiyuanNotebooks, getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { getWindowJSAndroid } from "../siyuanEnvironments/windowNative.environment";
 import { generateCountHTML, generateFileItemHTML, generateFlashcardFileItemHTML } from "./fileHtmlGenerator";
+import {getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix} from "./path/operations";
+import {
+    getNotebookIcon,
+    getNotebookName,
+    getOpenNotebookCount,
+    setNoteBook,
+    setNotebookName,
+} from "./notebook/store";
+
+/** 保持既有路径工具公共入口；实现由稳定 path 子域唯一持有。 */
+export {getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix};
+/** 保持既有笔记本工具公共入口；状态实现由 notebook 子域唯一持有。 */
+export {getNotebookIcon, getNotebookName, getOpenNotebookCount, setNoteBook, setNotebookName};
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
     if (isElectron) {
@@ -86,32 +96,6 @@ export const addBaseURL = () => {
     }
 };
 
-export const getDisplayName = (filePath: string, basename = true, removeSY = false) => {
-    let name = filePath;
-    if (basename) {
-        name = pathPosix().basename(filePath);
-    }
-    if (removeSY && name.endsWith(".sy")) {
-        name = name.substr(0, name.length - 3);
-    }
-    return name;
-};
-
-export const getDocDisplayName = (name: string, titleEmpty?: boolean, escape?: boolean) => {
-    if (titleEmpty) {
-        return window.siyuan.languages["_kernel"][16];
-    }
-    const displayName = getDisplayName(name, true, true);
-    if (escape) {
-        return Lute.EscapeHTMLStr(displayName);
-    }
-    return displayName;
-};
-
-export const getAssetName = (assetPath: string) => {
-    return pathPosix().basename(assetPath, pathPosix().extname(assetPath)).replace(/-\d{14}-\w{7}/, "");
-};
-
 export const isLocalPath = (link: string) => {
     if (!link) {
         return false;
@@ -132,17 +116,6 @@ export const isLocalPath = (link: string) => {
         return 1 === colonIdx; // 冒号前面只有一个字符认为是 Windows 盘符而不是网络协议
     }
     return link.startsWith("/");
-};
-
-export const pathPosix = () => {
-    if (path.posix) {
-        return path.posix;
-    }
-    return path;
-};
-
-export const originalPath = () => {
-    return path;
 };
 
 /**
@@ -292,61 +265,6 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     }, response => {
         liElement.removeAttribute("data-loading");
         handleLeafResponse(response, liElement, notebookId, toggleElement, flashcard);
-    });
-};
-
-/**
- * 根据ID查找笔记本
- * @param id 笔记本ID
- * @returns 找到的笔记本项，未找到则返回undefined
- */
-const findNotebookById = (id: string): INotebook | undefined => {
-    const notebooks = getSiyuanNotebooks();
-    return notebooks.find(item => item.id === id);
-};
-
-export const getNotebookName = (id: string): string => {
-    const notebook = findNotebookById(id);
-    return notebook ? notebook.name : "";
-};
-
-export const getNotebookIcon = (id: string): string => {
-    const notebook = findNotebookById(id);
-    return notebook ? notebook.icon : "";
-};
-
-export const setNotebookName = (id: string, name: string): void => {
-    const notebook = findNotebookById(id);
-    if (notebook) {
-        notebook.name = name;
-    }
-};
-
-export const getOpenNotebookCount = (): number => {
-    const notebooks = getSiyuanNotebooks();
-    return notebooks.filter(item => !item.closed).length;
-};
-
-const handleNotebookResponse = (response: IWebSocketData, cb?: (notebook: INotebook[]) => void, flashcard = false) => {
-    if (flashcard && cb) {
-        cb(response.data.notebooks);
-        return;
-    }
-
-    if (!flashcard) {
-        setSiyuanNotebooks(response.data.notebooks);
-    }
-
-    if (!flashcard && cb) {
-        cb(response.data.notebooks);
-    }
-};
-
-export const setNoteBook = (cb?: (notebook: INotebook[]) => void, flashcard = false) => {
-    fetchPost("/api/notebook/lsNotebooks", {
-        flashcard
-    }, (response) => {
-        handleNotebookResponse(response, cb, flashcard);
     });
 };
 

@@ -87,12 +87,12 @@ export interface AgentSessionPanelController {
 }
 /** 表示 Web/移动端任务目录路径对话框的局部状态。 */
 export interface AgentTaskDirectoryPathDialogState {
-    dialog: Dialog | null;
+    dialog: IDialog | null;
     input: HTMLInputElement | null;
     resolve: (path: string) => void;
     settled: boolean;
 }
 /** 用途：约束面板状态中的会话摘要；使用范围：控制器分页状态；解耦评估：纯类型依赖。 */
 import type {SessionIndexItem} from "../SessionStore.types";
-/** 用途：约束路径输入框持有的统一对话框；使用范围：局部状态类型；解耦评估：仅类型依赖，不引入运行时环。 */
-import type {Dialog} from "./imports";
+/** 用途：约束路径输入状态持有的对话框生命周期；使用范围：目录路径确认流程；解耦评估：复用纯 Dialog 领域契约，不依赖具体监听器实现。 */
+import type {IDialog} from "../../../../dialog/dialog.types";

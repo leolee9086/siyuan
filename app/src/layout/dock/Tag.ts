@@ -81,8 +81,12 @@ export class Tag extends Model {
         return new Tree({
             element: treeElement,
             data: [],
-            click: (element: HTMLElement, event?: MouseEvent) => Tag._onTreeClick(app, element, event),
-            rightClick: (element: HTMLElement, event: MouseEvent) => openTagMenu(element, event, element.getAttribute("data-label") ?? ""),
+            click: (element: HTMLElement, event?: MouseEvent) => this._onTreeClick(app, element, event),
+            rightClick: (element: HTMLElement, event: MouseEvent) => openTagMenu({
+                event,
+                labelName: element.getAttribute("data-label") ?? "",
+                refresh: () => this.update(),
+            }),
             blockExtHTML: isReadonly ? "" : extHTML,
             topExtHTML: isReadonly ? "" : extHTML,
             toggleClick: (element: HTMLElement) => this._toggleItem(element),
@@ -118,11 +122,15 @@ export class Tag extends Model {
         }
     }
 
-    private static _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
+    private _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
         const eventTarget = event?.target;
         const actionElement = eventTarget instanceof HTMLElement && hasClosestByClassName(eventTarget, "b3-list-item__action");
         if (actionElement && actionElement.parentElement && event) {
-            openTagMenu(actionElement.parentElement, event, element.getAttribute("data-label") ?? "");
+            openTagMenu({
+                event,
+                labelName: element.getAttribute("data-label") ?? "",
+                refresh: () => this.update(),
+            });
             return;
         }
         const label = element.getAttribute("data-label") ?? "";

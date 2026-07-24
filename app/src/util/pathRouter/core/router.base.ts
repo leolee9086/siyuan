@@ -1,7 +1,6 @@
 import { use } from "./router.use";
 import { routes } from "./router.routes";
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from "./router.allowedMethods";
-import { createHttpMethodHandler } from "./router.httpMethod";
 import { register } from "./router.register";
 import { match } from "./router.match";
 import { all } from "./router.all";
@@ -12,14 +11,11 @@ import type {
     ParamMiddlewareFunction,
     RouteOptions,
     RouterOptions,
-    MatchResult,
     AllowedMethodsOptions,
     HttpErrors,
     RouteParamType,
-    MiddlewareWithRouter,
-    HttpMethod,
-    HttpMethodHandler,
 } from "./types";
+import type { MatchResult, MiddlewareWithRouter } from "../routerCore.port.types";
 
 const Errors: HttpErrors = {
     NotImplemented: () => {

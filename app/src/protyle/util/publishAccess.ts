@@ -1,6 +1,6 @@
 import {Dialog} from "../runtime/dialog.port";
 import {isMobile} from "../../util/platform/functions";
-import {setPosition} from "../../util/DOM/setPosition";
+import {setPosition} from "../../util/DOM/positioning/setPosition";
 import {fetchPost} from "../../util/network/fetch";
 
 export const getPublishAccessOptionByLevel = (level: TPublishAccessLevel) => {

@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { getHightlightCoordsByRect } from "./anno.getHightlightCoordsByRect";
 import { showHighlight } from "./anno.showHighlight";
 import { copyAnno } from "./anno.copy";
-import { setRectElement } from ".";
+import { setRectElement } from "./state/selection";
 import { getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { IAnnoCoords, IPdfInstance, IPdfConfig } from "./anno.types";
 

@@ -1,8 +1,8 @@
 import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
-import { unicode2Emoji } from "../../emoji";
+import { unicode2Emoji } from "../../emoji/emoji.render";
 import { Constants } from "../../constants";
-import { getDisplayName } from "./pathName";
+import { getDisplayName } from "./path/operations";
 
 /**
  * 生成文件项的计数HTML

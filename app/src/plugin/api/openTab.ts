@@ -4,6 +4,10 @@
  * 解耦评估：通过imports.ts转发
  */
 import type { Tab } from "./imports";
+/** 用途：应用主类类型。使用范围：OpenTab 命令的宿主绑定。解耦评估：具体身份仅在实现边界绑定。 */
+import type {App} from "./imports";
+/** 用途：布局模型类型。使用范围：OpenTab 回调的宿主绑定。解耦评估：具体身份仅在实现边界绑定。 */
+import type {Model} from "./imports";
 
 /**
  * 用途：常量定义，包含编辑器动作常量
@@ -47,8 +51,15 @@ import { isMobile } from "./imports";
  */
 import type { IOpenTabOptions } from "./openTab.types";
 
+/**
+ * 用途：表示插件 API 在主应用宿主中执行的打开页签命令。
+ * 使用场景：openTab 入口及各类页签处理函数共享同一组选项。
+ * 关联类型：将通用 IOpenTabOptions 绑定到 App 和 Model 领域身份。
+ */
+type OpenTabOptions = IOpenTabOptions<App, Model>;
+
 /** 处理文档打开 */
-const 处理文档打开 = async (options: IOpenTabOptions) => {
+const 处理文档打开 = async (options: OpenTabOptions) => {
     const doc = options.doc;
     if (!doc) {
         return;
@@ -77,7 +88,7 @@ const 处理文档打开 = async (options: IOpenTabOptions) => {
 };
 
 /** 处理资源文件打开 */
-const 处理资源打开 = async (options: IOpenTabOptions) => {
+const 处理资源打开 = async (options: OpenTabOptions) => {
     const asset = options.asset;
     if (!asset) {
         return;
@@ -94,7 +105,7 @@ const 处理资源打开 = async (options: IOpenTabOptions) => {
 };
 
 /** 处理PDF打开 */
-const 处理PDF打开 = async (options: IOpenTabOptions) => {
+const 处理PDF打开 = async (options: OpenTabOptions) => {
     const pdf = options.pdf;
     if (!pdf) {
         return;
@@ -122,7 +133,7 @@ const 初始化搜索配置 = (search: Config.IUILayoutTabSearchConfig) => {
 };
 
 /** 处理搜索打开 */
-const 处理搜索打开 = async (options: IOpenTabOptions) => {
+const 处理搜索打开 = async (options: OpenTabOptions) => {
     const search = options.search;
     if (!search) {
         return;
@@ -141,7 +152,7 @@ const 处理搜索打开 = async (options: IOpenTabOptions) => {
 };
 
 /** 处理闪卡打开 */
-const 处理闪卡打开 = async (options: IOpenTabOptions) => {
+const 处理闪卡打开 = async (options: OpenTabOptions) => {
     const card = options.card;
     if (!card) {
         return;
@@ -171,7 +182,7 @@ const 处理闪卡打开 = async (options: IOpenTabOptions) => {
  * 支持打开文档、PDF、资源、搜索、闪卡、自定义等多种页签类型
  */
 /** @显式返回类型原因: 异步函数返回 Tab 实例或 undefined，调用方需要根据返回值判断打开结果。显式标注确保类型安全，防止调用方遗漏 undefined 分支。 */
-export const openTab = async (options: IOpenTabOptions): Promise<Tab | undefined> => {
+export const openTab = async (options: OpenTabOptions): Promise<Tab | undefined> => {
     // 移动端暂不支持Tab页签打开 TODO: Mobile
     if (isMobile()) {
         return;

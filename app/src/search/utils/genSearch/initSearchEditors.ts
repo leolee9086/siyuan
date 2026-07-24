@@ -22,7 +22,7 @@ export function initSearchEditors(
     app: App,
     element: HTMLElement,
     closeCB: boolean
-): IEditorInitResult {
+): IEditorInitResult<Protyle> {
     const data: ILayoutData = getSiyuanStorage()[Constants.LOCAL_SEARCHKEYS];
 
     // 创建主搜索预览编辑器

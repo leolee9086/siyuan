@@ -1,4 +1,6 @@
 import { Menu as SiyuanMenu } from "../menus/Menu";
+/** 用途：约束插件菜单对外公开的完整能力；使用范围：Menu class 公共 API；解耦评估：纯领域契约，具体菜单继续由本类封装。 */
+import type {IPluginMenu} from "./menu/menu.types";
 
 interface PendingMenuItem {
     option: IMenu | Promise<IMenu>;
@@ -8,7 +10,7 @@ interface PendingMenuItem {
     timeoutId?: number | NodeJS.Timeout;
 }
 
-export class Menu {
+export class Menu implements IPluginMenu {
     private menu: SiyuanMenu;
     public isOpen: boolean;
     public element: HTMLElement;

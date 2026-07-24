@@ -4,7 +4,7 @@ import { handleBazaarInstallClick } from "./bazaarInstallHandlers";
 import { handleBazaarNavClick, handleBazaarUIInteraction } from "./bazaarUIHandlers";
 import { IBazaar, IBazaarDataObj } from "./types";
 
-export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar, app: App) {
+export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar<App>, app: App) {
     let target = event.target as HTMLElement;
     const dataElement = hasClosestByAttribute(target, "data-obj", null);
     let dataObj: IBazaarDataObj | undefined;

@@ -1,13 +1,13 @@
 
-// 用途：Protyle 编辑器类型定义；使用范围：观察器参数中标注编辑器实例数组类型；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { Protyle } from "../imports";
+// 用途：BlockPanel 编辑器结构；使用范围：观察器参数；解耦评估：纯能力接口，不依赖 Protyle class。
+import type { IBlockPanelEditor } from "./editor.types";
 
 /**
  * 设置观察器的参数
  */
 export interface 设置观察器参数 {
     element: HTMLElement;
-    editors: Protyle[];
+    editors: IBlockPanelEditor[];
     initProtyle: (editorElement: HTMLElement, afterCB?: () => void) => void;
 }
 
@@ -24,5 +24,5 @@ export interface 观察器实例 {
  */
 export interface 绑定滚动事件参数 {
     element: HTMLElement;
-    editors: Protyle[];
+    editors: IBlockPanelEditor[];
 }

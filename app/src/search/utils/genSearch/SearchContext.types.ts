@@ -3,9 +3,6 @@
  * @description 用于在各个拆分后的处理器之间传递共享状态
  */
 
-import type { App } from "../../..";
-import type { Protyle } from "../../../protyle";
-
 /** Inputs shared by the local search template and the source selector controls. */
 export interface SearchHTMLContext {
     config: Config.IUILayoutTabSearchConfig;
@@ -37,15 +34,15 @@ export interface IClickHandlerUIElements {
 /**
  * 状态数据
  */
-export interface IClickHandlerState {
+export interface IClickHandlerState<TApplication, TEditor> {
     /** 应用实例 */
-    app: App;
+    app: TApplication;
     /** 搜索配置 */
     config: Config.IUILayoutTabSearchConfig;
     /** 搜索预览编辑器 */
-    edit: Protyle;
+    edit: TEditor;
     /** 无效引用预览编辑器 */
-    unRefEdit: Protyle;
+    unRefEdit: TEditor;
     /** 搜索条件数据 */
     criteriaData: Config.IUILayoutTabSearchConfig[];
     /** 本地搜索配置 */
@@ -63,12 +60,12 @@ export interface IClickHandlerCallbacks {
 }
 
 /** 点击事件处理上下文 */
-export interface IClickContext {
+export interface IClickContext<TApplication, TEditor> {
     target: HTMLElement;
     type: string | null;
     targetId: string;
     ui: IClickHandlerUIElements;
-    state: IClickHandlerState;
+    state: IClickHandlerState<TApplication, TEditor>;
     callbacks: IClickHandlerCallbacks;
     event: MouseEvent;
     clickTimeout: number;
@@ -98,11 +95,11 @@ export interface ILayoutConfig {
 }
 
 /** 列表项点击上下文 */
-export interface IListItemClickContext {
-    app: App;
+export interface IListItemClickContext<TApplication, TEditor> {
+    app: TApplication;
     element: HTMLElement;
-    edit: Protyle;
-    unRefEdit: Protyle;
+    edit: TEditor;
+    unRefEdit: TEditor;
     config: Config.IUILayoutTabSearchConfig;
     searchInputElement: HTMLInputElement;
     searchPanelElement: Element;

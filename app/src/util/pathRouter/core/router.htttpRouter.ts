@@ -12,14 +12,12 @@ import type {
     ParamMiddlewareFunction,
     RouteOptions,
     RouterOptions,
-    MatchResult,
     AllowedMethodsOptions,
     HttpErrors,
     RouteParamType,
-    MiddlewareWithRouter,
     HttpMethod,
-    HttpMethodHandler,
 } from "./types";
+import type { HttpMethodHandler, MiddlewareWithRouter } from "../routerCore.port.types";
 
 const Errors: HttpErrors = {
     /**
@@ -64,32 +62,32 @@ class Router<
 > extends baseRouter {
 
     // 泛型HTTP方法定义
-    public get: HttpMethodHandler<"get", TRequestBodySchema, TResponseBodySchema>;
-    public post: HttpMethodHandler<"post", TRequestBodySchema, TResponseBodySchema>;
-    public put: HttpMethodHandler<"put", TRequestBodySchema, TResponseBodySchema>;
-    public head: HttpMethodHandler<"head", TRequestBodySchema, TResponseBodySchema>;
-    public delete: HttpMethodHandler<"delete", TRequestBodySchema, TResponseBodySchema>;
-    public options: HttpMethodHandler<"options", TRequestBodySchema, TResponseBodySchema>;
-    public trace: HttpMethodHandler<"trace", TRequestBodySchema, TResponseBodySchema>;
-    public copy: HttpMethodHandler<"copy", TRequestBodySchema, TResponseBodySchema>;
-    public lock: HttpMethodHandler<"lock", TRequestBodySchema, TResponseBodySchema>;
-    public mkcol: HttpMethodHandler<"mkcol", TRequestBodySchema, TResponseBodySchema>;
-    public move: HttpMethodHandler<"move", TRequestBodySchema, TResponseBodySchema>;
-    public purge: HttpMethodHandler<"purge", TRequestBodySchema, TResponseBodySchema>;
-    public propfind: HttpMethodHandler<"propfind", TRequestBodySchema, TResponseBodySchema>;
-    public proppatch: HttpMethodHandler<"proppatch", TRequestBodySchema, TResponseBodySchema>;
-    public unlock: HttpMethodHandler<"unlock", TRequestBodySchema, TResponseBodySchema>;
-    public report: HttpMethodHandler<"report", TRequestBodySchema, TResponseBodySchema>;
-    public mkactivity: HttpMethodHandler<"mkactivity", TRequestBodySchema, TResponseBodySchema>;
-    public checkout: HttpMethodHandler<"checkout", TRequestBodySchema, TResponseBodySchema>;
-    public merge: HttpMethodHandler<"merge", TRequestBodySchema, TResponseBodySchema>;
-    public "m-search": HttpMethodHandler<"m-search", TRequestBodySchema, TResponseBodySchema>;
-    public notify: HttpMethodHandler<"notify", TRequestBodySchema, TResponseBodySchema>;
-    public subscribe: HttpMethodHandler<"subscribe", TRequestBodySchema, TResponseBodySchema>;
-    public unsubscribe: HttpMethodHandler<"unsubscribe", TRequestBodySchema, TResponseBodySchema>;
-    public patch: HttpMethodHandler<"patch", TRequestBodySchema, TResponseBodySchema>;
-    public search: HttpMethodHandler<"search", TRequestBodySchema, TResponseBodySchema>;
-    public connect: HttpMethodHandler<"connect", TRequestBodySchema, TResponseBodySchema>;
+    public get: HttpMethodHandler<"get", TRequestBodySchema, TResponseBodySchema, this>;
+    public post: HttpMethodHandler<"post", TRequestBodySchema, TResponseBodySchema, this>;
+    public put: HttpMethodHandler<"put", TRequestBodySchema, TResponseBodySchema, this>;
+    public head: HttpMethodHandler<"head", TRequestBodySchema, TResponseBodySchema, this>;
+    public delete: HttpMethodHandler<"delete", TRequestBodySchema, TResponseBodySchema, this>;
+    public options: HttpMethodHandler<"options", TRequestBodySchema, TResponseBodySchema, this>;
+    public trace: HttpMethodHandler<"trace", TRequestBodySchema, TResponseBodySchema, this>;
+    public copy: HttpMethodHandler<"copy", TRequestBodySchema, TResponseBodySchema, this>;
+    public lock: HttpMethodHandler<"lock", TRequestBodySchema, TResponseBodySchema, this>;
+    public mkcol: HttpMethodHandler<"mkcol", TRequestBodySchema, TResponseBodySchema, this>;
+    public move: HttpMethodHandler<"move", TRequestBodySchema, TResponseBodySchema, this>;
+    public purge: HttpMethodHandler<"purge", TRequestBodySchema, TResponseBodySchema, this>;
+    public propfind: HttpMethodHandler<"propfind", TRequestBodySchema, TResponseBodySchema, this>;
+    public proppatch: HttpMethodHandler<"proppatch", TRequestBodySchema, TResponseBodySchema, this>;
+    public unlock: HttpMethodHandler<"unlock", TRequestBodySchema, TResponseBodySchema, this>;
+    public report: HttpMethodHandler<"report", TRequestBodySchema, TResponseBodySchema, this>;
+    public mkactivity: HttpMethodHandler<"mkactivity", TRequestBodySchema, TResponseBodySchema, this>;
+    public checkout: HttpMethodHandler<"checkout", TRequestBodySchema, TResponseBodySchema, this>;
+    public merge: HttpMethodHandler<"merge", TRequestBodySchema, TResponseBodySchema, this>;
+    public "m-search": HttpMethodHandler<"m-search", TRequestBodySchema, TResponseBodySchema, this>;
+    public notify: HttpMethodHandler<"notify", TRequestBodySchema, TResponseBodySchema, this>;
+    public subscribe: HttpMethodHandler<"subscribe", TRequestBodySchema, TResponseBodySchema, this>;
+    public unsubscribe: HttpMethodHandler<"unsubscribe", TRequestBodySchema, TResponseBodySchema, this>;
+    public patch: HttpMethodHandler<"patch", TRequestBodySchema, TResponseBodySchema, this>;
+    public search: HttpMethodHandler<"search", TRequestBodySchema, TResponseBodySchema, this>;
+    public connect: HttpMethodHandler<"connect", TRequestBodySchema, TResponseBodySchema, this>;
 
     constructor(opts: RouterOptions = {}) {
         super();
@@ -165,7 +163,7 @@ class Router<
      * @param method HTTP方法名
      * @returns HTTP方法处理器
      */
-    public createHttpMethod<T extends HttpMethod>(method: T): HttpMethodHandler<T> {
+    public createHttpMethod<T extends HttpMethod>(method: T): HttpMethodHandler<T, TRequestBodySchema, TResponseBodySchema, this> {
         return createHttpMethodHandler(this, method);
     }
     // 静态url方法

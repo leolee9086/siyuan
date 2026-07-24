@@ -134,6 +134,6 @@ export { siyuanI18n };
  * 使用范围：anno模块中弹出面板或提示需要精确定位时使用
  * 解耦评估：DOM定位是通用UI工具，直接导入最合理
  */
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 // 导出元素定位工具
 export { setPosition };

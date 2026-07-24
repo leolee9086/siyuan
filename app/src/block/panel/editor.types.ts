@@ -1,20 +1,24 @@
-/** 用途：应用实例类型。使用范围：编辑器上下文参数。解耦评估：通过 ./imports 转发。 */
-import { App } from "./imports";
-/** 用途：Protyle 编辑器类型。使用范围：编辑器上下文参数。解耦评估：通过 ./imports 转发。 */
-import { Protyle } from "./imports";
+/** BlockPanel 管理编辑器所需的稳定结构，不依赖 Protyle class。 */
+export interface IBlockPanelEditor {
+    protyle: IProtyle;
+    destroy: () => void;
+}
+
+/** BlockPanel 创建子编辑器的能力；具体 App 在面板装配闭包中绑定。 */
+export type CreateBlockPanelEditor = (element: HTMLElement, options: IProtyleOptions) => IBlockPanelEditor;
 
 /**
  * 初始化编辑器的上下文参数
  */
 export interface EditorInitContext {
-    app: App;
+    createEditor: CreateBlockPanelEditor;
     refDefs: IRefDefs[];
     isBacklink: boolean;
     originalRefBlockIDs?: IObject | undefined;
     targetElement?: HTMLElement | undefined;
     x?: number | undefined;
     y?: number | undefined;
-    editors: Protyle[];
+    editors: IBlockPanelEditor[];
     onFirstEditorReady?: () => void;
     /** 面板销毁后，异步块信息响应不得再创建编辑器。 */
     isDestroyed?: () => boolean;

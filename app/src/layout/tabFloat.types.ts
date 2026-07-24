@@ -1,5 +1,18 @@
-/** 用途：浮窗 Port 需要接收稳定的 Tab 句柄；使用范围：菜单请求和完整 App Dialog 适配器；解耦评估：仅保留 type-only 依赖，运行时由 Port/事件承载，避免能力接口直接实例化或导入具体 Tab 实现。 */
-import type {Tab} from "./Tab";
+/** 用途：布局模型抽象；使用范围：页签句柄的模型挂载能力；解耦评估：纯接口，不依赖具体 Model class。 */
+import type {ILayoutModel} from "./lifecycle/model.types";
+
+/** 页签副本流程实际使用的结构与能力，不依赖 Tab class。 */
+export interface ILayoutTabHandle {
+    id: string;
+    title: string;
+    icon: string;
+    docIcon: string;
+    headElement: HTMLElement;
+    panelElement: HTMLElement;
+    model: ILayoutModel;
+    initialize: () => void;
+    addModel: (model: ILayoutModel) => void;
+}
 
 /** 浮窗副本的统一生命周期句柄；宿主不需要知道具体模型类型。 */
 export interface ILayoutTabFloatCopy {
@@ -19,11 +32,11 @@ export interface ILayoutTabFloatFactory {
     /** 稳定的调试/替换标识，不能与其它工厂重复。 */
     id: string;
     /** 判断当前模型是否声明了该副本能力。 */
-    canCreate: (tab: Tab) => boolean;
+    canCreate: (tab: ILayoutTabHandle) => boolean;
     /** 创建独立 Tab，不得返回或复用源 Tab 的 DOM。 */
-    createTab: (source: Tab) => Tab;
+    createTab: (source: ILayoutTabHandle) => ILayoutTabHandle;
     /** 在目标 Tab 中初始化副本模型。 */
-    create: (source: Tab, target: Tab) => ILayoutTabFloatCopy | Promise<ILayoutTabFloatCopy>;
+    create: (source: ILayoutTabHandle, target: ILayoutTabHandle) => ILayoutTabFloatCopy | Promise<ILayoutTabFloatCopy>;
 }
 
 /** 布局页签作为 Dialog 浮窗打开时的宿主能力；宿主必须创建副本，不得搬移原 Tab 的 DOM。 */
@@ -32,7 +45,7 @@ export interface ILayoutTabFloatPort {
      * 打开一个页签副本浮窗。
      * 返回 false 表示宿主没有处理该请求，调用方可继续走事件委托。
      */
-    open: (tab: Tab) => boolean | void | Promise<boolean | void>;
+    open: (tab: ILayoutTabHandle) => boolean | void | Promise<boolean | void>;
 }
 
 /** 未注册浮窗宿主时发出的类型化请求事件。 */

@@ -1,5 +1,7 @@
 
-export const bazaarData = {
+import type {IBazaarData} from "./types";
+
+export const bazaarData: IBazaarData = {
     themes: [] as IBazaarItem[],
     templates: [] as IBazaarItem[],
     icons: [] as IBazaarItem[],

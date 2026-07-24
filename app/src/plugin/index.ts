@@ -5,7 +5,7 @@ import { EventBus } from "./EventBus";
 import { fetchPost } from "../util/network/fetch";
 import { isMobile, isWindow } from "../util/platform/functions";
 import { Custom } from "../layout/dock/Custom";
-import { getAllEditor, getAllModels } from "../layout/getAll";
+import { getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
 import { resizeTopBar } from "../layout/util";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
@@ -18,16 +18,16 @@ import { Setting } from "./Setting";
 import { clearOBG } from "../layout/dock/util";
 import { settingTabToMenuId } from "../config/setting/tabs";
 import { Constants } from "../constants";
-import { uninstall } from "./uninstall";
-import { addPluginDock, afterLoadPlugin, loadPlugins } from "./loader";
 import { normalizeStoragePath } from "../util/file/pathName";
 import { Kernel } from "./kernel";
 import { registerAction } from "../layout/dock/agent/frontendActions";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { isElectron } from "../platform";
+import type {IPluginRuntime} from "./runtime/pluginRuntime.types";
 
 export class Plugin {
     private app: App;
+    private runtime: IPluginRuntime<App, Plugin>;
     public i18n: Record<string, string>;
     public eventBus: EventBus;
     public kernel: Kernel;
@@ -72,9 +72,11 @@ export class Plugin {
         app: App,
         name: string,
         displayName: string,
-        i18n: Record<string, string>
+        i18n: Record<string, string>,
+        runtime: IPluginRuntime<App, Plugin>,
     }) {
         this.app = options.app;
+        this.runtime = options.runtime;
         this.i18n = options.i18n;
         this.displayName = options.displayName;
         this.eventBus = new EventBus(options.name);
@@ -134,18 +136,7 @@ export class Plugin {
     public onDataChanged() {
         // 存储数据变更
         // 兼容 3.4.1 以前同步数据使用重载插件的问题
-        uninstall(this.app, this.name, true);
-        loadPlugins(this.app, [this.name], false).then(() => {
-            this.app.plugins.find(item => {
-                if (this.name === item.name) {
-                    afterLoadPlugin(item);
-                    getAllEditor().forEach(editor => {
-                        editor.protyle.toolbar.update(editor.protyle);
-                    });
-                    return true;
-                }
-            });
-        });
+        this.runtime.reloadData(this.app, this);
     }
 
     public async updateCards(options: ICardData) {
@@ -391,7 +382,12 @@ export class Plugin {
         // 委托给 TabRegistry 注册
         tabRegistry.register({
             type: type2,
-            init: options.init,
+            init: (model) => {
+                if (!(model instanceof Custom)) {
+                    throw new Error(`Tab registry returned a non-Custom model for ${type2}`);
+                }
+                options.init(model);
+            },
             destroy: options.destroy,
             beforeDestroy: options.beforeDestroy,
             resize: options.resize,
@@ -509,7 +505,7 @@ export class Plugin {
             }
             window.siyuan.config.keymap.plugin[this.name][type2]["default"] = hotkey;
         }
-        addPluginDock(this);
+        this.runtime.addDock(this);
         return this.docks[type2];
     }
 

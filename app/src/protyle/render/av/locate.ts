@@ -1,9 +1,9 @@
 import {Constants} from "../../../constants";
 import {showMessage} from "../../../dialog/message";
 import {transaction} from "../../wysiwyg/transaction";
-import {clearSelect} from "../../util/clear";
+import {clearSelect} from "../../util/clearSelect";
 import {addDragFill} from "./cell";
-import {scrollCenter} from "../../../util/highlightById";
+import {scrollCenter} from "../../../util/DOM/highlightById";
 
 export interface IAVLocateRequest {
     itemID: string;

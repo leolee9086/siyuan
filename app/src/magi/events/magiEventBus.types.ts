@@ -171,6 +171,13 @@ export interface MagiEventPayloadMap {
     RUNTIME_STATUS_UPDATED: MagiRuntimeStatusUpdatedEvent;
 }
 
+/**
+ * 业务层 MAGI 事件监听器签名。
+ * 供 guard 与事件总线之间传递已映射的业务载荷，避免依赖运行时 schema 定义。
+ */
+export type MagiEventListener<K extends MagiEventName> =
+    (payload: MagiEventPayloadMap[K]) => void | Promise<void>;
+
 /** 对外暴露的 MAGI 事件总线接口。 */
 export interface MagiEventBus {
     emitWithMeta<K extends MagiEventName>(

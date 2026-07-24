@@ -1,5 +1,5 @@
 import { fetchPost } from "../network/fetch";
-import { getDisplayName, pathPosix } from "./pathName";
+import { getDisplayName, pathPosix } from "./path/operations";
 
 
 const 创建保存路径响应处理器 = (

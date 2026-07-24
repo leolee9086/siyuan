@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
-import { SecureModuleCreator } from "../../../src/util/code/executor";
+import { SecureModuleCreator } from "../../../src/util/lib/code/executor";
 
 describe("SecureModuleCreator 修复测试", () => {
   it("应该能够处理没有导入的代码", async () => {

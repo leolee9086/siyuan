@@ -333,7 +333,7 @@ export { genTagList };
  * 使用范围：标签联想列表在输入框旁定位。
  * 解耦评估：定位逻辑已封装为通用工具，业务层只传坐标参数。
  */
-import { setPosition } from "../../../util/DOM/setPosition";
+import { setPosition } from "../../../util/DOM/positioning/setPosition";
 /** 导出 setPosition 供 refMenu 子模块复用 */
 export { setPosition };
 

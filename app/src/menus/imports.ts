@@ -66,3 +66,20 @@ export { Tab };
 import { getInstanceById } from "../layout/util";
 /** 导出 getInstanceById 供 Dock 菜单解析页签。 */
 export { getInstanceById };
+
+/** 用途：标签删除请求；使用范围：标签菜单；解耦评估：网络基础设施经菜单网关显式暴露。 */
+import {fetchPost} from "../util/network/fetch";
+/** 导出标签菜单使用的网络请求。 */
+export {fetchPost};
+/** 用途：标签删除确认；使用范围：标签菜单；解耦评估：Dialog 交互边界经菜单网关显式暴露。 */
+import {confirmDialog} from "../dialog/confirmDialog";
+/** 导出标签菜单使用的确认对话框。 */
+export {confirmDialog};
+/** 用途：标签名 HTML 转义；使用范围：标签删除文案；解耦评估：纯 DOM 安全工具。 */
+import {escapeHtml} from "../util/DOM/escape";
+/** 导出标签菜单使用的 HTML 转义。 */
+export {escapeHtml};
+/** 用途：统一标签重命名；使用范围：标签菜单；解耦评估：业务操作唯一实现经菜单网关暴露。 */
+import {renameTag} from "../util/platform/noRelyPCFunction";
+/** 导出标签菜单使用的重命名行为。 */
+export {renameTag};

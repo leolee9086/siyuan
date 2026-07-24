@@ -64,7 +64,11 @@ export class MobileTags {
                 if (event) {
                     const actionElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item__action");
                     if (actionElement) {
-                        openTagMenu(actionElement.parentElement, event, labelName);
+                        openTagMenu({
+                            event,
+                            labelName: labelName ?? "",
+                            refresh: () => this.update(),
+                        });
                         return;
                     }
                 }

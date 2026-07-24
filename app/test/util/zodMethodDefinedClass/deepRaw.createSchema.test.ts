@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
 import { z } from "zod";
-import { createZodSchemaFromDeepRaw, ZodDeepRaw } from "../../../src/util/zodMethodDefinedClass/deepRaw";
+import { createZodSchemaFromDeepRaw, ZodDeepRaw } from "../../../src/util/lib/zodMethodDefinedClass/deepRaw";
 
 describe("createZodSchemaFromDeepRaw", () => {
   it("应该能够创建简单的对象schema", () => {

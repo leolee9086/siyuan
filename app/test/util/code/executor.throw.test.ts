@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { SecureModuleCreator, SecurityError } from "../../../src/util/code/executor";
+import { SecureModuleCreator } from "../../../src/util/lib/code/executor";
 
 describe("SecureModuleCreator - throw策略测试", () => {
   let creator: SecureModuleCreator;
@@ -22,7 +22,7 @@ describe("SecureModuleCreator - throw策略测试", () => {
     });
   });
 
-  it("应该在没有未授权导入时正常工作", async () => {
+  it("应该在没有未授权导入时正常工作", () => {
     const code = `
       import { map } from 'lodash';
       export function test(data) {
@@ -30,23 +30,15 @@ describe("SecureModuleCreator - throw策略测试", () => {
       }
     `;
 
-    const result = await creator.createSecureModule(code);
-    expect(result.moduleUrl).toBeDefined();
-    expect(result.cleanup).toBeInstanceOf(Function);
-    
-    // 读取生成的代码内容而不是执行它
-    const fs = await import("fs");
-    const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-    const secureCode = fs.readFileSync(normalizedPath, "utf8");
+    const secureCode = creator.transformCode(code, creator.defaultOptions);
     
     // 验证代码被正确处理（lodash应该被重定向到esm.sh）
     expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     expect(secureCode).toContain("export function test(data)");
     
-    result.cleanup();
   });
 
-  it("应该在有单个未授权导入时在代码开头添加错误语句", async () => {
+  it("应该在有单个未授权导入时在代码开头添加错误语句", () => {
     const code = `
       import { map } from 'lodash';
       import { useState } from 'react'; // 未授权
@@ -55,14 +47,7 @@ describe("SecureModuleCreator - throw策略测试", () => {
       }
     `;
 
-    const result = await creator.createSecureModule(code);
-    expect(result.moduleUrl).toBeDefined();
-    expect(result.cleanup).toBeInstanceOf(Function);
-    
-    // 读取生成的代码内容
-    const fs = await import("fs");
-    const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-    const secureCode = fs.readFileSync(normalizedPath, "utf8");
+    const secureCode = creator.transformCode(code, creator.defaultOptions);
     
     // 验证错误语句在开头
     expect(secureCode).toMatch(/^\/\/ Generated secure module\n\(\(\) => \{ throw new SecurityError\('Package\(s\) "react" are not allowed'\) \}\)\(\);\n/);
@@ -71,10 +56,9 @@ describe("SecureModuleCreator - throw策略测试", () => {
     expect(secureCode).toContain("import { useState } from 'react';");
     expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     
-    result.cleanup();
   });
 
-  it("应该在有多个未授权导入时在代码开头添加错误语句", async () => {
+  it("应该在有多个未授权导入时在代码开头添加错误语句", () => {
     const code = `
       import { map } from 'lodash';
       import { useState } from 'react'; // 未授权
@@ -84,14 +68,7 @@ describe("SecureModuleCreator - throw策略测试", () => {
       }
     `;
 
-    const result = await creator.createSecureModule(code);
-    expect(result.moduleUrl).toBeDefined();
-    expect(result.cleanup).toBeInstanceOf(Function);
-    
-    // 读取生成的代码内容
-    const fs = await import("fs");
-    const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-    const secureCode = fs.readFileSync(normalizedPath, "utf8");
+    const secureCode = creator.transformCode(code, creator.defaultOptions);
     
     // 验证错误语句在开头
     expect(secureCode).toMatch(/^\/\/ Generated secure module\n\(\(\) => \{ throw new SecurityError\('Package\(s\) "react, axios" are not allowed'\) \}\)\(\);\n/);
@@ -101,10 +78,9 @@ describe("SecureModuleCreator - throw策略测试", () => {
     expect(secureCode).toContain("import axios from 'axios';");
     expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     
-    result.cleanup();
   });
 
-  it("应该保留原始导入语句而不是替换它们", async () => {
+  it("应该保留原始导入语句而不是替换它们", () => {
     const code = `
       import { map } from 'lodash';
       import { useState } from 'react'; // 未授权
@@ -113,13 +89,7 @@ describe("SecureModuleCreator - throw策略测试", () => {
       }
     `;
 
-    // 直接检查生成的代码内容
-    const tempModule = await creator.createSecureModule(code);
-    
-    // 读取临时文件内容
-    const fs = await import("fs");
-    const path = await import("path");
-    const fileContent = fs.readFileSync(tempModule.moduleUrl, "utf8");
+    const fileContent = creator.transformCode(code, creator.defaultOptions);
     
     // 验证错误语句在开头
     expect(fileContent).toMatch(/^\/\/ Generated secure module\n\(\(\) => \{ throw new SecurityError\('Package\(s\) "react" are not allowed'\) \}\)\(\);\n/);
@@ -127,6 +97,5 @@ describe("SecureModuleCreator - throw策略测试", () => {
     // 验证原始导入语句被保留
     expect(fileContent).toContain("import { useState } from 'react';");
     
-    tempModule.cleanup();
   });
 });

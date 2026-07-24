@@ -65,7 +65,7 @@ export const mountStandaloneProtyle = async (options: IStandaloneProtyleOptions)
     setSForgeState(SForgeSymbols.MODEL_HANDLERS, {
         processMessage,
         kernelError: createKernelErrorHandler(target),
-        reloadSync,
+        reloadSync: () => reloadSync(),
     });
 
     const app = asStandaloneApp({appId: "protyle-standalone", plugins: [], eventBus: {emit: ignoreEvent, on: ignoreEvent, off: ignoreEvent}});

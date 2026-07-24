@@ -5,14 +5,18 @@ import {Files} from "../layout/dock/Files";
 import {getDockByType} from "../layout/tabUtil";
 import {platform} from "../platform";
 import {getAllEditor, getAllModels} from "../layout/getAll";
-import {setNoteBook} from "../util/file/pathName";
+import {setNoteBook} from "../util/file/notebook/store";
 import {Dialog} from "../dialog";
-import {setPosition} from "../util/DOM/setPosition";
-import {setStorageVal} from "../protyle/util/compatibility";
+import {setPosition} from "../util/DOM/positioning/setPosition";
 import {parseDynamicState, bindDynamicEvents} from "./emoji.dynamic";
 import {buildDialogHTML, bindEmojiPanelEvents} from "./emoji.panel";
 import {getLuteInstance} from "../protyle/render/setLute";
-export {filterEmoji} from "./emoji.filter";
+import {filterEmoji} from "./emoji.filter";
+import {getEmojiDesc, getEmojiTitle, unicode2Emoji} from "./emoji.render";
+import type {EmojiPanelOperations} from "./emoji.panel.types";
+
+export {filterEmoji};
+export {getEmojiDesc, getEmojiTitle, unicode2Emoji};
 
 export const getRandomEmoji = () => {
     const emojis = window.siyuan.emojis[getRandom(0, window.siyuan.emojis.length - 1)];
@@ -20,37 +24,6 @@ export const getRandomEmoji = () => {
         return "1f600";
     }
     return emojis.items[getRandom(0, emojis.items.length - 1)].unicode;
-};
-
-export const unicode2Emoji = (unicode: string, className = "", needSpan = false, lazy = false) => {
-    if (!unicode) {
-        return "";
-    }
-    let emoji = "";
-    if (unicode.startsWith("api/icon/getDynamicIcon")) {
-        emoji = `<img class="${className}" ${lazy ? "data-" : ""}src="${unicode}"/>`;
-        emoji = Lute.Sanitize(emoji);
-    } else if (unicode.indexOf(".") > -1) {
-        emoji = `<img class="${className}" ${lazy ? "data-" : ""}src="/emojis/${unicode}"/>`;
-        emoji = Lute.Sanitize(emoji);
-    } else {
-        try {
-            unicode.split("-").forEach(item => {
-                if (item.length < 5) {
-                    emoji += String.fromCodePoint(parseInt("0" + item, 16));
-                } else {
-                    emoji += String.fromCodePoint(parseInt(item, 16));
-                }
-            });
-            if (needSpan) {
-                emoji = `<span class="${className}">${emoji}</span>`;
-            }
-        } catch (e) {
-            // 自定义表情搜索报错 https://github.com/siyuan-note/siyuan/issues/5883
-            // 这里忽略错误不做处理
-        }
-    }
-    return emoji;
 };
 
 export const lazyLoadEmoji = (element: HTMLElement) => {
@@ -117,6 +90,18 @@ export const openEmojiPanel = (
 
     const dynamicURL = "api/icon/getDynamicIcon?";
     const dynamicCurrentObj = parseDynamicState(dynamicURL, dynamicImgElement);
+    const operations: EmojiPanelOperations = {
+        addEmoji,
+        filterEmoji,
+        getEmojiDesc,
+        getEmojiTitle,
+        getRandomEmoji,
+        lazyLoadEmoji,
+        lazyLoadEmojiImg,
+        unicode2Emoji,
+        updateFileTreeEmoji,
+        updateOutlineEmoji,
+    };
 
     const dialog = new Dialog({
         disableAnimation: true,
@@ -124,7 +109,7 @@ export const openEmojiPanel = (
         hideCloseIcon: true,
         width: isMobile() ? "80vw" : "368px",
         height: "50vh",
-        content: buildDialogHTML(dynamicURL, dynamicCurrentObj, id, hide)
+        content: buildDialogHTML(dynamicURL, dynamicCurrentObj, id, operations, hide)
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_EMOJIS);
     dialog.element.querySelector(".b3-dialog__container").setAttribute("data-menu", "true");
@@ -143,7 +128,7 @@ export const openEmojiPanel = (
 
     bindEmojiPanelEvents(
         dialog, dialogElement, emojisContentElement, emojiSearchInputElement,
-        id, type, callback, dynamicTextElements, dynamicDateElement, dynamicURL, hide
+        operations, id, type, callback, dynamicTextElements, dynamicDateElement, dynamicURL, hide
     );
 
     if (!isMobile() && currentTab === "emoji") {
@@ -187,26 +172,6 @@ export const updateFileTreeEmoji = (unicode: string, id: string, icon = "iconFil
     if (icon !== "iconFile") {
         setNoteBook();
     }
-};
-
-export const getEmojiDesc = (emoji: IEmojiItem) => {
-    if (window.siyuan.config.lang === "zh-CN") {
-        return emoji.description_zh_cn;
-    }
-    if (window.siyuan.config.lang === "ja") {
-        return emoji.description_ja_jp;
-    }
-    return emoji.description;
-};
-
-export const getEmojiTitle = (index: number) => {
-    if (window.siyuan.config.lang === "zh-CN") {
-        return window.siyuan.emojis[index].title_zh_cn;
-    }
-    if (window.siyuan.config.lang === "ja") {
-        return window.siyuan.emojis[index].title_ja_jp;
-    }
-    return window.siyuan.emojis[index].title;
 };
 
 const putEmojis = (protyle: IProtyle) => {

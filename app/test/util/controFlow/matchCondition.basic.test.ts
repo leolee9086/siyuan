@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { createTypedMatcher } from "../../../src/util/controFlow/matchCondition";
+import { createTypedMatcher } from "../../../src/util/lib/matchCondition";
 
 describe("matchCondition - 基础匹配功能测试", () => {
   // 测试基本字符串匹配

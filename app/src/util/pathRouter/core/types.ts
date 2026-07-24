@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import type Router from "./router.htttpRouter";
-import { LayerLike } from "./layerLike.types";
 
 
 
@@ -314,13 +312,6 @@ export type MiddlewareFunction<
 // 参数中间件函数类型
 export type ParamMiddlewareFunction = (param: any, ctx: Context, next: () => Promise<void> | void) => Promise<void> | void
 
-// 路由匹配结果类型
-export interface MatchResult {
-  path: LayerLike[]
-  pathAndMethod: LayerLike[]
-  route: boolean
-}
-
 // 错误类型
 export interface HttpErrors {
   NotImplemented: () => Error
@@ -336,18 +327,6 @@ export interface AllowedMethodsOptions {
 
 
 
-// 包含路由器的中间件接口
-export interface MiddlewareWithRouter {
-  /** 路由器实例 */
-  router: Router;
-}
-
-// 可克隆的路由器类型，扩展了Router接口
-export interface CloneRouterType extends Router {
-  /** 路由器栈，包含所有层 */
-  stack: LayerLike[];
-}
-
 // 路径类型定义
 export type PathType = string | RegExp | string[];
 
@@ -361,16 +340,3 @@ export type RouteParamType<
   TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
   TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
 > = PathType | MiddlewareType<TRequestBodySchema, TResponseBodySchema> | null;
-
-/**
- * HTTP方法处理函数类型
- */
-export type HttpMethodHandler<
-  T extends HttpMethod = HttpMethod,
-  TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
-  TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
-> = (
-  nameOrPath: string | RegExp | string[] | null,
-  pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[],
-  ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]
-) => Router<TRequestBodySchema, TResponseBodySchema>;

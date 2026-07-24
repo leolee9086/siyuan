@@ -1,7 +1,7 @@
 /**
  * 移动端内容操作面板
  */
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 import {
     focusByRange,
     focusByWbr,

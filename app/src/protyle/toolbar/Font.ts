@@ -1,6 +1,6 @@
 import { setStorageVal, updateHotkeyTip } from "../util/compatibility";
 import { createToolbarItemElement } from "./ToolbarItem";
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { Constants } from "../../constants";
 import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";

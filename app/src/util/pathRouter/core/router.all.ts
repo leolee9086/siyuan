@@ -1,6 +1,5 @@
-import Router from "./router.htttpRouter";
-import baseRouter from "./router.base";
 import type { RouteParamType } from "./types";
+import type { RouterRegistrarPort } from "../routerCore.port.types";
 import { z } from "zod";
 import { isMiddleware, isMiddlewareArray, isPath } from "./router.guard";
 // HTTP方法列表
@@ -65,11 +64,12 @@ const methods = [
  */
 export function all<
     TRequestBodySchema extends z.ZodTypeAny,
-    TResponseBodySchema extends z.ZodTypeAny
+    TResponseBodySchema extends z.ZodTypeAny,
+    TRouter extends RouterRegistrarPort<TRequestBodySchema, TResponseBodySchema>,
 >(
-    router: baseRouter<TRequestBodySchema, TResponseBodySchema>,
+    router: TRouter,
     ...args: (RouteParamType<TRequestBodySchema, TResponseBodySchema>)[]
-): baseRouter<TRequestBodySchema, TResponseBodySchema> {
+) {
     // 处理命名路由的情况: router.all('name', '/path', middleware)
     if (args.length >= 2 && isPath(args[1])) {
         const nameOrPath = args[0];

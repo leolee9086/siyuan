@@ -28,10 +28,10 @@ import { 初始化对话框内容 } from "./dialogHelpers.lifecycle";
 import { 添加对话框到DOM } from "./dialogHelpers.lifecycle";
 /** 用途：执行销毁清理。使用范围：对话框销毁。解耦评估：同目录模块。 */
 import { 执行销毁清理 } from "./dialogHelpers.lifecycle";
-/** 用途：HTMLElement 类型守卫。使用范围：对话框 DOM 操作。解耦评估：同目录守卫文件。 */
-import { isHTMLElement } from "./dialog.guard";
+/** 用途：HTMLElement 类型守卫。使用范围：对话框 DOM 操作。解耦评估：直接依赖基础 DOM 守卫，避免经过废弃转发层。 */
+import { isHTMLElement } from "../util/DOM/element.guard";
 /** 用途：对话框拖拽调整大小。使用范围：对话框初始化。解耦评估：同目录模块。 */
-import { moveResize } from "./imports";
+import { moveResize } from "./moveResize";
 
 /** 用途：对话框选项类型。使用范围：Dialog 构造函数。解耦评估：同目录类型文件。 */
 import { IDialogOptions } from "./dialog.types";

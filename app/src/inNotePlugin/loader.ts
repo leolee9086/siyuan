@@ -63,7 +63,7 @@ export async function 加载笔记内插件(
     app: App,
     config: 笔记内插件配置
 ) {
-    const state: 笔记内插件运行状态 = {
+    const state: 笔记内插件运行状态<Plugin> = {
         config,
         instance: null,
         status: "loading"
@@ -131,7 +131,7 @@ export async function 加载笔记内插件(
  * @param state 插件运行状态
  * @同步豁免: 生命周期 — 在插件卸载流程中同步执行清理
  */
-export function 卸载笔记内插件(state: 笔记内插件运行状态) {
+export function 卸载笔记内插件(state: 笔记内插件运行状态<Plugin>) {
     if (state.instance) {
         try {
             state.instance.onunload();

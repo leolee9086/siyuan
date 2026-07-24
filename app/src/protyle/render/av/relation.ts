@@ -7,7 +7,7 @@ import {transaction} from "../../wysiwyg/transaction";
 import {updateCellsValue} from "./cell";
 import {updateAttrViewCellAnimation} from "./action";
 import {focusBlock} from "../../util/selection";
-import {setPosition} from "../../../util/DOM/setPosition";
+import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import * as dayjs from "dayjs";
 import {getFieldsByData, getViewName} from "./view";
 import {getColId} from "./col/col";

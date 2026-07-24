@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
-import { SecureModuleCreator } from "../../../src/util/code/executor";
+import { SecureModuleCreator } from "../../../src/util/lib/code/executor";
 
 // 模拟 Node.js 环境
 

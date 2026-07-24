@@ -2,7 +2,7 @@ import { hasClosestBlock, hasClosestByTag } from "../util/hasClosest";
 import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import { getSelectionPosition } from "../util/selection";
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 
 export function renderToolbar(
     protyle: IProtyle,

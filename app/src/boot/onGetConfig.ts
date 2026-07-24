@@ -25,6 +25,7 @@ import { showMessage } from "../dialog/message";
 import { replaceLocalPath } from "../editor/rename";
 import { initBar } from "../layout/topBar";
 import { openChangelog } from "./openChangelog";
+import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { App } from "../index";
 import { initWindowEvent } from "./globalEvent/event";
 import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKeyDown";
@@ -125,7 +126,7 @@ const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData)
         if (isElectron) {
             sendGlobalShortcut(app);
         }
-        openChangelog();
+        openChangelog(getProtyleDialogPort());
     } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
         resetLayout(error);

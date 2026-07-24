@@ -4,8 +4,6 @@
  * @同步豁免: 遗留代码 - 此模块从 util.ts 迁移，保持原有同步行为以确保兼容性
  */
 
-import type { Layout } from "./index";
-
 // ============ Window 相关访问 ============
 
 /** @同步豁免: UI构建 - 需要同步访问视口尺寸 */
@@ -41,7 +39,7 @@ export const getUnpinnedPlugins = (): string[] => {
  * @同步豁免: UI构建 - 布局调整需要同步访问布局树
  * @returns 中心布局的父布局，如果不存在则返回 undefined
  */
-export const getCenterLayoutParent = (): Layout | undefined =>
+export const getCenterLayoutParent = () =>
     window.siyuan?.layout?.centerLayout?.parent;
 
 /**

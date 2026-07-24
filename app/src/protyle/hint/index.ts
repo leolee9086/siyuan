@@ -1,7 +1,7 @@
 import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "../util/hasClosest";
 import {focusByRange, getEditorRange, getSelectionPosition} from "../util/selection";
 import {isAbnormalItem, upDownHint} from "../../util/DOM/upDownHint";
-import {setPosition} from "../../util/DOM/setPosition";
+import {setPosition} from "../../util/DOM/positioning/setPosition";
 import {insertHTML} from "../util/insertHTML";
 import {hideElements} from "../ui/hideElements";
 import {addEmoji, getEmojiDesc, unicode2Emoji} from "../../emoji";

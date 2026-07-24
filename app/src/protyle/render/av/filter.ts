@@ -2,7 +2,7 @@ import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {getColIconByType} from "./col/col.typeUtils";
-import {setPosition} from "../../../util/DOM/setPosition";
+import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {objEquals} from "../../../util/platform/functions";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {genCellValue} from "./cell";

@@ -16,12 +16,12 @@ import {genEmptyElement} from "../../block/util";
 import {focusBlock} from "../../protyle/util/selection";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {collapseSameLevel, collapseChildren, getHeadingLevel} from "./MobileOutline.expand";
-import type {MobileOutline} from "./MobileOutline";
+import type {MobileOutlineContextMenuPort, MobileOutlineTreePort} from "./outline/ports.types";
 
 /**
  * 获取 Protyle 和块元素
  */
-export function getProtyleAndBlockElement(outline: MobileOutline, element: HTMLElement) {
+export function getProtyleAndBlockElement(outline: MobileOutlineTreePort, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
     if (!window.siyuan.mobile.editor?.protyle) {
         return;
@@ -93,7 +93,7 @@ export function genHeadingTransform(id: string, level: number) {
 /**
  * 显示右键菜单
  */
-export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
+export function showContextMenu(outline: MobileOutlineContextMenuPort, element: HTMLElement) {
     if (outline.isPreview) {
         return; // 预览模式下不显示右键菜单
     }

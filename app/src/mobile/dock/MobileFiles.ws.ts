@@ -3,7 +3,7 @@ import {Constants} from "../../constants";
 import {pathPosix, setNoteBook} from "../../util/file/pathName";
 import {unicode2Emoji} from "../../emoji";
 import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
-import type {MobileFiles} from "./MobileFiles";
+import type {MobileFilesWebSocketPort} from "./files/ports.types";
 
 /**
  * 作用：生成笔记本的 HTML 片段（开启或关闭状态）。
@@ -84,7 +84,7 @@ export function updateSubFileCount(liElement: HTMLElement, subFileCount: number)
  * 调用时机：收到 WebSocket "create" 消息且 listDocTree 为 false 时。
  * @同步豁免: UI构建
  */
-export function updateItemArrow(files: MobileFiles, notebookId: string, filePath: string) {
+export function updateItemArrow(files: MobileFilesWebSocketPort, notebookId: string, filePath: string) {
     const treeElement = files.element.querySelector(`[data-url="${notebookId}"]`);
     if (!treeElement) {
         return;
@@ -124,7 +124,7 @@ export function updateItemArrow(files: MobileFiles, notebookId: string, filePath
  * 调用时机：收到 WebSocket "moveDoc" 消息时。
  * @同步豁免: UI构建
  */
-export function onMove(files: MobileFiles, data: {
+export function onMove(files: MobileFilesWebSocketPort, data: {
     fromNotebook: string,
     toNotebook: string,
     fromPath: string
@@ -196,7 +196,7 @@ export function onMove(files: MobileFiles, data: {
  * 调用时机：收到 WebSocket "closeBox"、"removeBox" 或 "removeDoc" 消息时。
  * @同步豁免: UI构建
  */
-export function onRemove(files: MobileFiles, data: IWebSocketData) {
+export function onRemove(files: MobileFilesWebSocketPort, data: IWebSocketData) {
     // "doc2heading" 后删除文件或挂载帮助文档前的 unmount
     if (data.cmd === "closeBox" || data.cmd === "removeBox") {
         setNoteBook((notebooks) => {
@@ -269,7 +269,7 @@ export function onRemove(files: MobileFiles, data: IWebSocketData) {
  * 调用时机：收到 WebSocket "rename" 消息时。
  * @同步豁免: UI构建
  */
-export function onRename(files: MobileFiles, data: { path: string, title: string, box: string }) {
+export function onRename(files: MobileFilesWebSocketPort, data: { path: string, title: string, box: string }) {
     const fileItemElement = files.element.querySelector(`ul[data-url="${data.box}"] li[data-path="${data.path}"]`);
     if (!fileItemElement) {
         return;
@@ -278,7 +278,7 @@ export function onRename(files: MobileFiles, data: { path: string, title: string
     fileItemElement.querySelector(".b3-list-item__text").innerHTML = escapeHtml(data.title);
 }
 
-export function onRenameNotebook(files: MobileFiles, data: {box: string, name: unknown}) {
+export function onRenameNotebook(files: MobileFilesWebSocketPort, data: {box: string, name: unknown}) {
     if (typeof data.name !== "string") {
         return;
     }
@@ -299,7 +299,7 @@ export function onRenameNotebook(files: MobileFiles, data: {box: string, name: u
  * 调用时机：收到 WebSocket "mount" 消息时。
  * @同步豁免: UI构建
  */
-export function onMount(files: MobileFiles, data: IWebSocketData) {
+export function onMount(files: MobileFilesWebSocketPort, data: IWebSocketData) {
     if (data.data.existed) {
         return;
     }
@@ -347,7 +347,7 @@ export function onMount(files: MobileFiles, data: IWebSocketData) {
  * 调用时机：收到 WebSocket "reloadDocInfo" 消息时。
  * @同步豁免: UI构建
  */
-export function onReloadDocInfo(files: MobileFiles, data: IWebSocketData) {
+export function onReloadDocInfo(files: MobileFilesWebSocketPort, data: IWebSocketData) {
     const notebook = window.siyuan.notebooks.find((item) => item.id === data.data.rootID);
     const subFileCount = notebook && window.siyuan.isPublish ? notebook.subFileCount : data.data.subFileCount;
     if (notebook) {

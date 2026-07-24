@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 // Let's modify transformer.ts to export `splitText` and `calculateWeightedAverageVector` as well.
 // But first, let's just write the test assuming they are exported.
 
-import { splitText, calculateWeightedAverageVector, normalizeVector } from "../../../src/util/embedding/transformer";
+import { splitText, calculateWeightedAverageVector, normalizeVector } from "../../../src/util/lib/embedding/transformer";
 
 describe("Text Splitter", () => {
     it("should split text by newlines (paragraphs)", () => {

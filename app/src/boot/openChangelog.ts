@@ -1,7 +1,7 @@
 /** 用途：网络请求工具（POST）。使用范围：获取更新日志数据。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
-/** 用途：Dialog 对话框组件。使用范围：展示更新日志内容。解耦评估：通过 ./imports 转发。 */
-import { Dialog } from "./imports";
+/** 用途：宿主 Dialog 完整端口。使用范围：由桌面或移动宿主呈现更新日志。解耦评估：通过 ./imports 转发稳定领域契约。 */
+import type {IProtyleDialogPort} from "./imports";
 /** 用途：代码高亮渲染器。使用范围：对更新日志 HTML 内容进行代码高亮。解耦评估：通过 ./imports 转发。 */
 import { highlightRender } from "./imports";
 /** 用途：移动端判断工具。使用范围：根据平台适配对话框尺寸。解耦评估：通过 ./imports 转发。 */
@@ -19,11 +19,11 @@ import { getSiyuanConfig } from "./imports";
  * 作用：解析 fetchPost 返回的更新日志数据，构建并展示对话框
  * 意图：提取公共回调逻辑，避免内联回调导致的可读性下降
  */
-function 处理更新日志响应(response: { data: { show: boolean; html: string } }) {
+function 处理更新日志响应(dialogPort: IProtyleDialogPort, response: { data: { show: boolean; html: string } }) {
     if (!response.data.show) {
         return;
     }
-    const dialog = new Dialog({
+    const dialog = dialogPort.create({
         title: `✨ ${siyuanI18n.whatsNewInSiYuan} v${getSiyuanConfig().system.kernelVersion}`,
         width: isMobile() ? "92vw" : "768px",
         height: isMobile() ? "80vh" : "70vh",
@@ -39,7 +39,11 @@ function 处理更新日志响应(response: { data: { show: boolean; html: strin
  * 作用：向服务端请求更新日志数据并展示
  * 意图：移动端和桌面端在初始化完成后均可调用此函数显示更新日志
  * 调用时机：应用启动时检测到版本更新后，或用户在设置中手动查看更新日志
+ * @柯里化 宿主端口由响应回调闭包捕获，确保一次请求始终使用发起时的 Dialog 能力。
  */
-export async function openChangelog() {
-    fetchPost("/api/system/getChangelog", {}, 处理更新日志响应);
-}
+// @柯里化 宿主端口需要由响应回调闭包捕获，不能在响应到达时重新读取可变宿主状态。
+export const openChangelog = async (dialogPort: IProtyleDialogPort) => {
+    fetchPost("/api/system/getChangelog", {},
+        // @柯里化
+        (response: { data: { show: boolean; html: string } }) => 处理更新日志响应(dialogPort, response));
+};

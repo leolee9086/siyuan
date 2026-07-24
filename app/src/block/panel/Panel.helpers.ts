@@ -6,8 +6,8 @@ import { getSiyuanBlockPanels } from "./imports";
 import { 切换固定状态 } from "./actions";
 /** 用途：执行图标点击操作。使用范围：处理浮窗工具栏图标点击。解耦评估：同目录模块直接导入。 */
 import { 执行图标操作 } from "./actions";
-/** 用途：App 应用实例类型。使用范围：函数参数类型标注。解耦评估：通过 ./imports 转发。 */
-import type { App } from "./imports";
+/** 用途：面板图标能力签名；使用范围：转发打开引用页签动作；解耦评估：纯能力契约。 */
+import type { headIconCtx } from "../Panel.types";
 
 /**
  * 作用：初始化浮窗的层级关系和数据属性
@@ -94,7 +94,7 @@ export function 处理图标点击(
     event: MouseEvent,
     element: HTMLElement,
     refDefs: IRefDefs[],
-    app: App,
+    openRefInTab: headIconCtx["openRefInTab"],
     onDestroy: () => void
 ) {
     const eventTarget = event.target;
@@ -119,7 +119,7 @@ export function 处理图标点击(
             target,
             element,
             refDefs,
-            app,
+            openRefInTab,
             onDestroy
         });
         event.preventDefault();

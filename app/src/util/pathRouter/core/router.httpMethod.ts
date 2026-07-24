@@ -2,9 +2,8 @@ import type {
     MiddlewareFunction,
     RouteOptions,
     HttpMethod,
-    HttpMethodHandler,
 } from "./types";
-import type Router from "./router.htttpRouter";
+import type { HttpMethodHandler, RouterRegistrarPort } from "../routerCore.port.types";
 import { z } from "zod";
 
 
@@ -18,9 +17,10 @@ import { z } from "zod";
 export function createHttpMethodHandler<
     T extends HttpMethod,
     TRequestBodySchema extends z.ZodTypeAny,
-    TResponseBodySchema extends z.ZodTypeAny
->(router: Router<TRequestBodySchema, TResponseBodySchema>, method: T): HttpMethodHandler<T, TRequestBodySchema, TResponseBodySchema> {
-    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[], ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]): Router<TRequestBodySchema, TResponseBodySchema> => {
+    TResponseBodySchema extends z.ZodTypeAny,
+    TRouter,
+>(router: TRouter & RouterRegistrarPort<TRequestBodySchema, TResponseBodySchema>, method: T): HttpMethodHandler<T, TRequestBodySchema, TResponseBodySchema, TRouter> {
+    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[], ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]): TRouter => {
         let actualPath: string | RegExp | string[];
         let actualName: string | null = null;
         let middleware: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];

@@ -4,21 +4,15 @@ import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {buildDynamicTabHTML} from "./emoji.dynamic";
 import {handleEmojiKeydown} from "./emoji.panel.keyboard";
-import {
-    unicode2Emoji,
-    filterEmoji,
-    lazyLoadEmoji,
-    lazyLoadEmojiImg,
-    addEmoji,
-    getRandomEmoji,
-    updateFileTreeEmoji,
-    updateOutlineEmoji,
-    getEmojiDesc,
-    getEmojiTitle,
-} from "./index";
+import type {EmojiPanelOperations} from "./emoji.panel.types";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
-const renderEmojiContent = (previousIndex: string, previousContentElement: Element) => {
+const renderEmojiContent = (
+    previousIndex: string,
+    previousContentElement: Element,
+    operations: EmojiPanelOperations
+) => {
+    const {getEmojiDesc, unicode2Emoji} = operations;
     if (!previousIndex) {
         return;
     }
@@ -31,7 +25,14 @@ const renderEmojiContent = (previousIndex: string, previousContentElement: Eleme
     previousContentElement.removeAttribute("style");
 };
 
-export const buildDialogHTML = (dynamicURL: string, dynamicCurrentObj: IObject, id: string, hide?: { dynamic: boolean, custom: boolean }) => {
+export const buildDialogHTML = (
+    dynamicURL: string,
+    dynamicCurrentObj: IObject,
+    id: string,
+    operations: EmojiPanelOperations,
+    hide?: { dynamic: boolean, custom: boolean }
+) => {
+    const {filterEmoji, getEmojiTitle, unicode2Emoji} = operations;
     return `<div class="emojis">
     <div class="emojis__tabheader">
         <div data-type="tab-emoji" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.emoji}"><svg><use xlink:href="#iconEmoji"></use></svg></div>
@@ -86,6 +87,7 @@ export const bindEmojiPanelEvents = (
     dialogElement: HTMLElement,
     emojisContentElement: Element,
     emojiSearchInputElement: HTMLInputElement,
+    operations: EmojiPanelOperations,
     id: string,
     type: "doc" | "notebook" | "av",
     callback?: (emoji: string) => void,
@@ -94,6 +96,15 @@ export const bindEmojiPanelEvents = (
     dynamicURL?: string,
     hide?: { dynamic: boolean, custom: boolean }
 ) => {
+    const {
+        addEmoji,
+        filterEmoji,
+        getRandomEmoji,
+        lazyLoadEmoji,
+        lazyLoadEmojiImg,
+        updateFileTreeEmoji,
+        updateOutlineEmoji,
+    } = operations;
     emojiSearchInputElement.addEventListener("compositionend", () => {
         emojisContentElement.innerHTML = filterEmoji(emojiSearchInputElement.value, undefined, hide?.custom);
         if (emojiSearchInputElement.value) {
@@ -126,7 +137,7 @@ export const bindEmojiPanelEvents = (
         lazyLoadEmojiImg(dialog.element);
     });
     emojiSearchInputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-        handleEmojiKeydown(event, dialog, emojisContentElement, emojiSearchInputElement, id, type, callback);
+        handleEmojiKeydown(event, dialog, emojisContentElement, emojiSearchInputElement, operations, id, type, callback);
     });
     // 不能使用 getEventName 否则 https://github.com/siyuan-note/siyuan/issues/5472
     dialog.element.addEventListener("click", (event) => {
@@ -137,8 +148,8 @@ export const bindEmojiPanelEvents = (
                 if (titleElement) {
                     const index = titleElement.nextElementSibling.getAttribute("data-index");
                     if (index) {
-                        renderEmojiContent(titleElement.previousElementSibling?.getAttribute("data-index"), titleElement.previousElementSibling);
-                        renderEmojiContent(index, titleElement.nextElementSibling);
+                        renderEmojiContent(titleElement.previousElementSibling?.getAttribute("data-index"), titleElement.previousElementSibling, operations);
+                        renderEmojiContent(index, titleElement.nextElementSibling, operations);
                     }
                     emojisContentElement.scrollTo({
                         top: titleElement.offsetTop - 77,

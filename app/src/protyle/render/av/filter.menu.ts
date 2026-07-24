@@ -1,6 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {hasClosestByClassName} from "../../util/hasClosest";
-import {setPosition} from "../../../util/DOM/setPosition";
+import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import * as dayjs from "dayjs";

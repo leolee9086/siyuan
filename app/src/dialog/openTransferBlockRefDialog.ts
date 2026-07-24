@@ -3,7 +3,7 @@ import { fetchPost } from "./imports";
 /** 用途：系统常量。使用范围：DIALOG_TRANSFERBLOCKREF 等。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
 /** 用途：对话框类。使用范围：创建转移块引用对话框。解耦评估：通过 ./imports 转发。 */
-import { Dialog } from "./imports";
+import { Dialog } from "./index";
 /** 用途：移动端判断。使用范围：适配对话框宽度。解耦评估：通过 ./imports 转发。 */
 import { isMobile } from "./imports";
 /** 用途：国际化文案。使用范围：对话框按钮和提示文案。解耦评估：通过 ./imports 转发。 */

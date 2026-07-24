@@ -19,6 +19,7 @@ import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.envir
 import { hasLayoutDocks } from "./getAll.guard";
 import { isMobile } from "../platform";
 import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environment";
+import {collectLayoutTabs, collectLayoutWindows} from "./traversal/collectLayout";
 
 /**
  * 获取当前应用中所有活跃的编辑器实例 (Protyle)。
@@ -198,7 +199,7 @@ export const getAllModels = () => {
         getTabsForModels(layout.layout, models);
     }
     // 遍历左、右、底部停靠栏的布局
-    if (hasLayoutDocks(layout)) {
+    if (hasLayoutDocks<Layout>(layout)) {
         const docks = [layout.left, layout.right, layout.bottom];
         for (const dock of docks) {
             // 检查停靠栏是否存在且有布局，存在则遍历收集模型
@@ -222,21 +223,7 @@ export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
     if (isMobile) {
         return;
     }
-    const children = layout.children;
-    if (!children) {
-        return;
-    }
-    for (const item of children) {
-        // @无需注释
-        if (item instanceof Wnd) {
-            wnds.push(item);
-            continue;
-        }
-        // @无需注释
-        if (item instanceof Layout) {
-            getAllWnds(item, wnds);
-        }
-    }
+    collectLayoutWindows(layout, wnds);
 };
 
 const matchesTabModel = (model: Tab["model"], type: TTab | string) => {
@@ -306,25 +293,6 @@ const pushTabByType = (tab: Tab, tabs: Tab[], type?: TTab | string) => {
     }
 };
 
-/** 递归遍历布局获取 Tab */
-const getTabsForTabs = (layout: Layout | Wnd, tabs: Tab[], type?: TTab | string) => {
-    const children = layout.children;
-    if (!children) {
-        return;
-    }
-    for (const item of children) {
-        // @无需注释
-        if (item instanceof Tab) {
-            pushTabByType(item, tabs, type);
-            continue;
-        }
-        // @无需注释
-        if (item instanceof Wnd || item instanceof Layout) {
-            getTabsForTabs(item, tabs, type);
-        }
-    }
-};
-
 /**
  * 获取中心布局区域内的所有标签页 (Tab)。
  *
@@ -341,7 +309,11 @@ export const getAllTabs = (type?: TTab | string) => {
     const layout = getSafeSiyuanLayout();
     // 检查中心布局是否存在，存在则遍历收集所有 Tab
     if (layout?.centerLayout) {
-        getTabsForTabs(layout.centerLayout, tabs, type);
+        const allTabs: Tab[] = [];
+        collectLayoutTabs(layout.centerLayout, allTabs);
+        for (const tab of allTabs) {
+            pushTabByType(tab, tabs, type);
+        }
     }
     return tabs;
 };

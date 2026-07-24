@@ -28,8 +28,3 @@ export { getSafeSiyuanUser };
 import { getSiyuanConfig } from "../siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanConfig，供 platform 模块使用 */
 export { getSiyuanConfig };
-
-/** 用途：拼音转换库。使用范围：platform 模块中文拼音搜索。解耦评估：通过 imports.ts 转发。 */
-import { pinyin } from "pinyin-pro";
-/** 导出 pinyin 函数，供 platform 模块使用 */
-export { pinyin };

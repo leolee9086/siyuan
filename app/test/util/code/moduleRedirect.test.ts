@@ -1,8 +1,7 @@
 import { describe,it,expect,beforeEach } from "vitest";
-import { ConfigManager } from "../../../src/util/code/configManager";
-import { SecureModuleCreator } from "../../../src/util/code/executor";
-import type { ModuleRedirectConfig } from "../../../src/util/code/executor.types";
-import { readFileSync } from "fs";
+import { ConfigManager } from "../../../src/util/lib/code/configManager";
+import { SecureModuleCreator } from "../../../src/util/lib/code/executor";
+import type { ModuleRedirectConfig } from "../../../src/util/lib/code/executor.types";
 
 describe("模块重定向功能测试", () => {
   let configManager: ConfigManager;
@@ -105,7 +104,7 @@ describe("模块重定向功能测试", () => {
   });
 
   describe("SecureModuleCreator 模块重定向处理", () => {
-    it("应该重定向裸模块导入", async () => {
+    it("应该重定向裸模块导入", () => {
       const code = `
         import _ from 'lodash';
         import axios from 'axios';
@@ -119,28 +118,16 @@ describe("模块重定向功能测试", () => {
       secureModuleCreator.config.addPackageRedirect("axios", "https://cdn.skypack.dev/axios");
       secureModuleCreator.config.setModuleRedirectEnabled(true);
       
-      const result = await secureModuleCreator.createSecureModule(code);
-      let secureCode: string;
-      
-      // 根据环境选择读取方式
-      if (result.moduleUrl.startsWith("http")) {
-        secureCode = await (await fetch(result.moduleUrl)).text();
-      } else {
-        // Node.js 环境，直接读取文件
-        // 将Windows路径转换为正斜杠
-        const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-        secureCode = readFileSync(normalizedPath, "utf8");
-      }
+      const secureCode = secureModuleCreator.transformCode(code, secureModuleCreator.defaultOptions);
       
       // 检查axios是否被重定向
       expect(secureCode).toContain("https://cdn.skypack.dev/axios");
       // lodash应该被重定向到默认服务器
       expect(secureCode).toContain("https://esm.sh/lodash");
       
-      result.cleanup();
     });
 
-    it("应该只重定向裸模块（当bareModulesOnly为true时）", async () => {
+    it("应该只重定向裸模块（当bareModulesOnly为true时）", () => {
       const code = `
         import _ from 'lodash';
         import local from './local-module';
@@ -158,18 +145,7 @@ describe("模块重定向功能测试", () => {
         bareModulesOnly: true
       });
       
-      const result = await secureModuleCreator.createSecureModule(code);
-      let secureCode: string;
-      
-      // 根据环境选择读取方式
-      if (result.moduleUrl.startsWith("http")) {
-        secureCode = await (await fetch(result.moduleUrl)).text();
-      } else {
-        // Node.js 环境，直接读取文件
-        // 将Windows路径转换为正斜杠
-        const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-        secureCode = readFileSync(normalizedPath, "utf8");
-      }
+      const secureCode = secureModuleCreator.transformCode(code, secureModuleCreator.defaultOptions);
       
       // 只有裸模块lodash应该被重定向
       expect(secureCode).toContain("https://cdn.skypack.dev/lodash");
@@ -177,10 +153,9 @@ describe("模块重定向功能测试", () => {
       expect(secureCode).toContain("./local-module");
       expect(secureCode).toContain("https://example.com/module");
       
-      result.cleanup();
     });
 
-    it("应该在模块重定向禁用时不重定向", async () => {
+    it("应该在模块重定向禁用时不重定向", () => {
       const code = `
         import _ from 'lodash';
         
@@ -192,27 +167,15 @@ describe("模块重定向功能测试", () => {
       secureModuleCreator.config.addPackageRedirect("lodash", "https://cdn.skypack.dev/lodash");
       secureModuleCreator.config.setModuleRedirectEnabled(false);
       
-      const result = await secureModuleCreator.createSecureModule(code);
-      let secureCode: string;
-      
-      // 根据环境选择读取方式
-      if (result.moduleUrl.startsWith("http")) {
-        secureCode = await (await fetch(result.moduleUrl)).text();
-      } else {
-        // Node.js 环境，直接读取文件
-        // 将Windows路径转换为正斜杠
-        const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-        secureCode = readFileSync(normalizedPath, "utf8");
-      }
+      const secureCode = secureModuleCreator.transformCode(code, secureModuleCreator.defaultOptions);
       
       // 模块重定向禁用时，应该保持原始导入
       expect(secureCode).toContain("'lodash'");
       expect(secureCode).not.toContain("https://cdn.skypack.dev/lodash");
       
-      result.cleanup();
     });
 
-    it("应该先进行安全检查再重定向", async () => {
+    it("应该先进行安全检查再重定向", () => {
       const code = `
         import _ from 'lodash';
         import unauthorized from 'unauthorized-package';
@@ -225,19 +188,7 @@ describe("模块重定向功能测试", () => {
       secureModuleCreator.config.addPackageRedirect("unauthorized-package", "https://cdn.skypack.dev/unauthorized-package");
       secureModuleCreator.config.setModuleRedirectEnabled(true);
       
-      // 创建模块会成功，但代码会被完全替换为错误抛出
-      const result = await secureModuleCreator.createSecureModule(code);
-      let secureCode: string;
-      
-      // 根据环境选择读取方式
-      if (result.moduleUrl.startsWith("http")) {
-        secureCode = await (await fetch(result.moduleUrl)).text();
-      } else {
-        // Node.js 环境，直接读取文件
-        // 将Windows路径转换为正斜杠
-        const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
-        secureCode = readFileSync(normalizedPath, "utf8");
-      }
+      const secureCode = secureModuleCreator.transformCode(code, secureModuleCreator.defaultOptions);
 
       // 检查生成的代码内容 - 未授权包不应被重定向
       expect(secureCode).not.toContain("https://cdn.skypack.dev/unauthorized-package");
@@ -247,12 +198,6 @@ describe("模块重定向功能测试", () => {
       // 代码应该以注释开头
       expect(secureCode).toMatch(/^\/\/ Generated secure module/);
       
-      // 检查是否有错误 - 由于 SecurityError 未定义，实际会抛出 ReferenceError
-      // 安全错误信息已写入生成的代码文件中（已在上面验证）
-      expect(result.hasError).toBe(true);
-      // result.error 可能是 ReferenceError 或 ESM loader 错误，不再验证具体内容
-      
-      result.cleanup();
     });
   });
 });

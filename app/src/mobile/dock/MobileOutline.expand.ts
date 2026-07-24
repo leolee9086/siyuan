@@ -7,7 +7,13 @@ import {setStorageVal} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import type {MobileOutline} from "./MobileOutline";
+import type {
+    MobileOutlineExpansionPort,
+    MobileOutlineExpansionPersistencePort,
+    MobileOutlineFilterPort,
+    MobileOutlineKeepCurrentExpandPort,
+    MobileOutlineTransactionPort
+} from "./outline/ports.types";
 
 /**
  * 获取标题元素的实际标题级别（H1=1, H2=2, 等等）
@@ -21,7 +27,7 @@ export function getHeadingLevel(element: HTMLElement) {
 /**
  * 应用大纲筛选
  */
-export function setFilter(outline: MobileOutline) {
+export function setFilter(outline: MobileOutlineFilterPort) {
     // 还原 display
     outline.element.querySelectorAll('li.b3-list-item[style$="display: none;"]').forEach((item: HTMLElement) => {
         item.style.display = "";
@@ -99,7 +105,7 @@ export function setFilter(outline: MobileOutline) {
  * 展开到指定标题级别
  * @param targetLevel 目标标题级别，1-6级（H1-H6），6级表示全部展开
  */
-export function expandToLevel(outline: MobileOutline, targetLevel: number) {
+export function expandToLevel(outline: MobileOutlineExpansionPort, targetLevel: number) {
     if (targetLevel >= 6) {
         // 全部展开
         outline.tree.expandAll();
@@ -127,7 +133,7 @@ export function expandToLevel(outline: MobileOutline, targetLevel: number) {
 /**
  * 显示展开层级菜单
  */
-export function showExpandLevelMenu(outline: MobileOutline) {
+export function showExpandLevelMenu(outline: MobileOutlineExpansionPort) {
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_EXPAND_LEVEL);
     for (let i = 1; i <= 6; i++) {
@@ -145,7 +151,7 @@ export function showExpandLevelMenu(outline: MobileOutline) {
 /**
  * 切换同层级的所有标题的展开/折叠状态（基于标题级别而不是DOM层级）
  */
-export function collapseSameLevel(outline: MobileOutline, element: HTMLElement, expand?: boolean) {
+export function collapseSameLevel(outline: MobileOutlineExpansionPort, element: HTMLElement, expand?: boolean) {
     // 获取所有相同标题级别的元素
     outline.element.querySelectorAll(`li.b3-list-item[data-subtype="${element.getAttribute("data-subtype")}"]`).forEach(item => {
         const arrowElement = item.querySelector(".b3-list-item__arrow");
@@ -176,7 +182,7 @@ export function collapseSameLevel(outline: MobileOutline, element: HTMLElement, 
 /**
  * 折叠/展开子标题
  */
-export function collapseChildren(outline: MobileOutline, element: HTMLElement, expand?: boolean) {
+export function collapseChildren(outline: MobileOutlineExpansionPersistencePort, element: HTMLElement, expand?: boolean) {
     const nextElement = element.nextElementSibling;
     if (!nextElement || nextElement.tagName !== "UL") {
         return;
@@ -202,7 +208,7 @@ export function collapseChildren(outline: MobileOutline, element: HTMLElement, e
 /**
  * 处理WebSocket事务，检测标题变更并刷新大纲
  */
-export function handleOutlineTransaction(outline: MobileOutline, data: IWebSocketData) {
+export function handleOutlineTransaction(outline: MobileOutlineTransactionPort, data: IWebSocketData) {
     if (data.data.rootID !== outline.blockId) {
         return;
     }
@@ -245,7 +251,7 @@ export function handleOutlineTransaction(outline: MobileOutline, data: IWebSocke
 /**
  * 绑定keepCurrentExpand按钮事件
  */
-export function bindKeepCurrentExpandEvent(outline: MobileOutline) {
+export function bindKeepCurrentExpandEvent(outline: MobileOutlineKeepCurrentExpandPort) {
     outline.element.querySelector('[data-type="keepCurrentExpand"]').addEventListener("click", (event: MouseEvent & {
         target: Element
     }) => {

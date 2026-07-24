@@ -1,16 +1,12 @@
 //@AIDONE 检查App等导入被用作值还是类型,如果仅用作类型则改为 type 导入以优化性能
 /** 用途：在新窗口中打开指定块。使用范围：Electron 下打开引用块。解耦评估：通过 ./imports 转发。 */
 import { openNewWindowById } from "./imports";
-/** 用途：在编辑器中打开指定文件。使用范围：粘贴标签页操作。解耦评估：通过 ./imports 转发。 */
-import { openFileById } from "./imports";
 /** 用途：检查块是否折叠并执行回调。使用范围：粘贴标签页前检查折叠。解耦评估：通过 ./imports 转发。 */
 import { checkFold } from "./imports";
 /** 用途：判断当前是否为 Electron 环境。使用范围：判断是否支持新窗口。解耦评估：通过 ./imports 转发。 */
 import { isElectron } from "./imports";
 /** 用途：获取国际化文本。使用范围：固定按钮 aria-label。解耦评估：通过 ./imports 转发。 */
 import { siyuanI18n } from "./imports";
-/** 用途：App 类型定义。使用范围：函数参数类型标注。解耦评估：通过 ./imports 转发。 */
-import type { App } from "./imports";
 // 用途：面板头部图标上下文类型；使用范围：执行图标操作函数的参数类型；解耦评估：本地类型定义，作为类型导入不影响运行时
 import type { headIconCtx } from "../Panel.types";
 // 用途：固定操作固定的 DOM 元素上下文；使用范围：应用固定状态函数参数类型；解耦评估：本地类型，通过类型文件集中管理
@@ -69,7 +65,7 @@ function 应用固定状态(
  * @同步豁免: UI构建 - 事件处理器必须同步响应用户点击，立即执行对应操作
  */
 export function 执行图标操作(ctx: headIconCtx) {
-    const { type, target, element, refDefs, app, onDestroy } = ctx;
+    const { type, target, element, refDefs, openRefInTab, onDestroy } = ctx;
     const firstRef = refDefs[0];
 
     // 判断是否为关闭操作：当用户点击关闭图标时，调用销毁回调关闭面板
@@ -92,7 +88,7 @@ export function 执行图标操作(ctx: headIconCtx) {
     }
     // 判断是否为粘贴标签页操作：当用户点击粘贴标签页图标时，在编辑器中打开引用块并关闭浮窗
     if (type === "stickTab") {
-        执行粘贴标签页操作(refDefs, app, onDestroy);
+        执行粘贴标签页操作(refDefs, openRefInTab, onDestroy);
     }
 }
 
@@ -118,20 +114,18 @@ function 执行固定操作(target: HTMLElement, element: HTMLElement) {
  * 意图：响应 'stickTab' 操作，将当前内容以标签页形式打开
  * 调用时机：在 执行图标操作 中，当 type 为 'stickTab' 时调用
  */
-function 执行粘贴标签页操作(refDefs: IRefDefs[], app: App, onDestroy: () => void) {
+function 执行粘贴标签页操作(
+    refDefs: IRefDefs[],
+    openRefInTab: headIconCtx["openRefInTab"],
+    onDestroy: () => void,
+) {
     const firstRef = refDefs[0];
     if (!firstRef) {
         return;
     }
     // @内联回调
     checkFold(firstRef.refID, (zoomIn, action) => {
-        openFileById({
-            app: app,
-            id: firstRef.refID,
-            action,
-            zoomIn,
-            openNewTab: true
-        });
+        openRefInTab(firstRef.refID, action, zoomIn);
     });
     onDestroy();
 }

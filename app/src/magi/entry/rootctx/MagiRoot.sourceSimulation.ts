@@ -4,8 +4,8 @@ import type { SourceSimulationPanelMessageView } from "./imports";
 import type { SourceSimulationPanelView } from "./imports";
 /** 用途：标注来源模拟画像结构；使用范围：默认画像配置与选择逻辑；解耦评估：纯类型依赖，通过 imports.ts 转发即可。 */
 import type { SourceSimulationProfileView } from "./imports";
-/** 用途：标注 rootctx 状态工厂；使用范围：来源模拟模块通过 ReturnType 推导完整状态结构；解耦评估：纯类型依赖，直接依赖同目录状态模块合理。 */
-import type { createMagiRootState } from "./MagiRoot.state";
+/** 用途：标注来源模拟所需最小状态；使用范围：来源模拟查询和更新操作；解耦评估：通过 imports.ts 注入结构契约，不反向依赖状态工厂。 */
+import type { SourceSimulationStatePort } from "./imports";
 
 const DEFAULT_SOURCE_SIMULATION_PROFILES: SourceSimulationProfileView[] = [
     {
@@ -140,7 +140,7 @@ export function createDefaultSourceSimulationPanels(
  * 调用时机：所有按 panelId 更新状态的来源模拟动作中调用。
  */
 function findSourcePanel(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     panelId: string,
 ) {
     return state.sourceSimulationPanels.value.find((panel) => panel.id === panelId) ?? null;
@@ -152,7 +152,7 @@ function findSourcePanel(
  * 调用时机：来源模拟画像切换时调用。
  */
 function findSourceProfile(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     profileId: string,
 ) {
     return state.sourceSimulationProfiles.value.find((profile) => profile.id === profileId) ?? null;
@@ -229,7 +229,7 @@ function updateSourceSimulationRequestField(
  */
 /** @同步豁免: UI构建 — 来源模拟面板新增属于同步状态变更。 */
 export function handleCreateSourceSimulationPanel(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
 ) {
     const defaultProfile = state.sourceSimulationProfiles.value[0];
     const defaultProfileId = defaultProfile ? defaultProfile.id : "unknown-probe";
@@ -246,7 +246,7 @@ export function handleCreateSourceSimulationPanel(
  */
 /** @同步豁免: UI构建 — 来源模拟面板删除属于同步状态变更。 */
 export function handleRemoveSourceSimulationPanel(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     panelId: string,
 ) {
     state.sourceSimulationPanels.value = state.sourceSimulationPanels.value.filter(
@@ -261,7 +261,7 @@ export function handleRemoveSourceSimulationPanel(
  */
 /** @同步豁免: UI构建 — 输入框内容更新属于同步状态变更。 */
 export function handleUpdateSourceSimulationInput(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     panelId: string,
     value: string,
 ) {
@@ -279,7 +279,7 @@ export function handleUpdateSourceSimulationInput(
  */
 /** @同步豁免: UI构建 — 画像切换属于同步状态变更。 */
 export function handleUpdateSourceSimulationProfile(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     panelId: string,
     profileId: string,
 ) {
@@ -301,7 +301,7 @@ export function handleUpdateSourceSimulationProfile(
  */
 /** @同步豁免: UI构建 — 请求字段更新属于同步状态变更。 */
 export function handleUpdateSourceSimulationRequestField(
-    state: ReturnType<typeof createMagiRootState>,
+    state: SourceSimulationStatePort,
     panelId: string,
     field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
     value: string,

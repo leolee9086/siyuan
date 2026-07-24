@@ -1,6 +1,6 @@
 import {Dialog} from "../dialog";
 import {Constants} from "../constants";
-import {escapeHtml} from "../util/escape";
+import {escapeHtml} from "../util/DOM/escape";
 import {fetchPost} from "../util/fetch";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {showMessage} from "../dialog/message";

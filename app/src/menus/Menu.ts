@@ -1,4 +1,4 @@
-import { setPosition } from "../util/DOM/setPosition";
+import { setPosition } from "../util/DOM/positioning/setPosition";
 import { isMobile } from "../util/platform/functions";
 import {
     resetMenuState,

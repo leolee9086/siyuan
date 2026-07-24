@@ -1,6 +1,6 @@
 import {stopScrollAnimation} from "../boot/globalEvent/dragover";
 import {Constants} from "../constants";
-import {isInAndroid} from "../plugin/platformUtils";
+import {isInAndroid} from "../protyle/util/compatibility";
 
 // 长按门槛共享状态：触摸后短时间内滑动视为滚动放行原生滚动，长按静止后再滑动才进入拖拽
 interface LongPressGate {

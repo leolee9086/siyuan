@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/DOM/setPosition";
+import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { getFieldsByData } from "./view";
 import {
     bindGroupsEvent, bindGroupsNumber,

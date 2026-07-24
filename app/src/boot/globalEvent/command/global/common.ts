@@ -24,15 +24,17 @@ import { type } from "./imports";
 import { COMMON_GLOBAL_COMMANDS } from "./commands";
 /** 用途：引入全局命令上下文类型。使用范围：仅作为执行器签名类型使用。解耦评估：类型契约来自同目录命令边界。 */
 import type { GlobalCommandContext } from "./types";
+/** 用途：主应用宿主身份；使用范围：通用命令上下文泛型绑定；解耦评估：具体类型只在实现模块使用。 */
+import type {App} from "./imports";
 
 /** 执行每日笔记命令。 */
-const executeDailyNoteCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeDailyNoteCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     newDailyNote(app);
     return true;
 };
 
 /** 执行数据历史命令。 */
-const executeDataHistoryCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeDataHistoryCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     openHistory(app);
     return true;
 };
@@ -44,19 +46,19 @@ const executeEditReadonlyCommonGlobalCommand = () => {
 };
 
 /** 执行锁屏命令。 */
-const executeLockScreenCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeLockScreenCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     lockScreen(app);
     return true;
 };
 
 /** 执行新建文档命令。 */
-const executeNewFileCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeNewFileCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     newFile(app);
     return true;
 };
 
 /** 执行闪卡命令。 */
-const executeRiffCardCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeRiffCardCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     openCard(app);
     return true;
 };
@@ -68,7 +70,7 @@ const executeSelectOpenCommonGlobalCommand = () => {
 };
 
 /** 执行立即同步命令。 */
-const executeSyncNowCommonGlobalCommand = ({ app }: GlobalCommandContext) => {
+const executeSyncNowCommonGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
     syncGuide(app);
     return true;
 };
@@ -90,7 +92,7 @@ const commonGlobalCommandRouter = calibur
  * 执行通用全局命令。
  * @同步豁免: UI构建 - globalCommand 是同步入口，通用命令需要立即触发 UI 或配置状态变更并返回已处理状态。
  */
-export const executeCommonGlobalCommand = (context: GlobalCommandContext) => {
+export const executeCommonGlobalCommand = (context: GlobalCommandContext<App>) => {
     const executor = commonGlobalCommandRouter({ command: context.command });
     return executor(context);
 };

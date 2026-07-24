@@ -3,14 +3,14 @@ import {showMessage} from "../../../dialog/message";
 import {Menu} from "../../../plugin/Menu";
 import {MenuItem} from "../../../menus/Menu";
 import {Constants} from "../../../constants";
-import {escapeAttr, escapeHtml} from "../../../util/escape";
+import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
 import {transaction} from "../../wysiwyg/transaction";
 import {avRender} from "./render";
 import {getFieldsByData} from "./view";
 import {getColIconByType} from "./col";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
-import {upDownHint} from "../../../util/upDownHint";
+import {upDownHint} from "../../../util/DOM/upDownHint";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import * as dayjs from "dayjs";
 

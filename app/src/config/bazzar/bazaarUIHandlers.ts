@@ -29,32 +29,32 @@ export const handleOpen = (dataObj: IBazaarDataObj) => {
     }
 };
 
-const initBazaarActions: Record<string, (bazaar: IBazaar) => void> = {
-    template: (bazaar: IBazaar) => {
+const initBazaarActions: Record<string, (bazaar: IBazaar<App>) => void> = {
+    template: (bazaar: IBazaar<App>) => {
         fetchPost("/api/bazaar/getBazaarTemplate", {}, response => {
             bazaar._onBazaar(response, "templates");
             bazaar._data.templates = response.data.packages;
         });
     },
-    icon: (bazaar: IBazaar) => {
+    icon: (bazaar: IBazaar<App>) => {
         fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
             bazaar._onBazaar(response, "icons");
             bazaar._data.icons = response.data.packages;
         });
     },
-    widget: (bazaar: IBazaar) => {
+    widget: (bazaar: IBazaar<App>) => {
         fetchPost("/api/bazaar/getBazaarWidget", {}, response => {
             bazaar._onBazaar(response, "widgets");
             bazaar._data.widgets = response.data.packages;
         });
     },
-    theme: (bazaar: IBazaar) => {
+    theme: (bazaar: IBazaar<App>) => {
         fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
             bazaar._onBazaar(response, "themes");
             bazaar._data.themes = response.data.packages;
         });
     },
-    plugin: (bazaar: IBazaar) => {
+    plugin: (bazaar: IBazaar<App>) => {
         fetchPost("/api/bazaar/getBazaarPlugin", {
             frontend: getFrontend()
         }, response => {
@@ -64,7 +64,7 @@ const initBazaarActions: Record<string, (bazaar: IBazaar) => void> = {
     }
 };
 
-export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar) => {
+export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar<App>) => {
     bazaar.element?.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
     const panels = bazaar.element?.querySelectorAll(".config-bazaar__panel");
@@ -88,7 +88,7 @@ return;
     }
 };
 
-export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: IBazaarDataObj, bazaar: IBazaar, app: App, event: MouseEvent): boolean => {
+export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: IBazaarDataObj, bazaar: IBazaar<App>, app: App, event: MouseEvent): boolean => {
     if (type === "copy-funding") {
         const funding = target.getAttribute("data-funding");
         if (funding) {
@@ -131,7 +131,7 @@ export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj:
     return false;
 };
 
-const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar, event: MouseEvent) => {
+const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar<App>, event: MouseEvent) => {
     if (hasClosestByClassName(event.target as HTMLElement, "b3-card__actions--right")) {
         return;
     }
@@ -152,7 +152,7 @@ const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar, event: Mous
     }
 };
 
-export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar, app: App, event: MouseEvent): boolean => {
+export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar<App>, app: App, event: MouseEvent): boolean => {
     if (target.classList.contains("b3-card")) {
         handleBazaarCardClick(target, bazaar, event);
         event.preventDefault();

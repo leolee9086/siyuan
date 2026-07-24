@@ -49,7 +49,7 @@ import { hasClosestByClassName } from "../imports";
 export { hasClosestByClassName };
 
 /** 用途：设置元素位置。使用范围：panel 模块浮窗定位。解耦评估：直接导入工具。 */
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 /** 导出 setPosition，供 panel 模块使用 */
 export { setPosition };
 

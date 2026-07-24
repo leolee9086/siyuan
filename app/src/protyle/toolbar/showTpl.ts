@@ -5,7 +5,7 @@
 import { getSelectionPosition } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../platform";
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 import { fetchPost } from "../../util/network/fetch";
 import { previewTemplate } from "./util";
 import { resizeSide } from "../../history/resizeSide";

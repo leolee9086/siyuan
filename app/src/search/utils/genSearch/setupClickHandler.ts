@@ -52,12 +52,21 @@ import type {
     IClassClickResult,
     IClickListenerState,
 } from "./SearchContext.types";
+/** 用途：绑定搜索点击状态的应用身份；使用范围：点击分发实现；解耦评估：具体 class 仅在实现层绑定。 */
+import type {App} from "../../..";
+/** 用途：绑定搜索点击状态的编辑器身份；使用范围：点击分发实现；解耦评估：具体 class 仅在实现层绑定。 */
+import type {Protyle} from "../../../protyle";
+
+/** 搜索点击分发实现使用的完整状态，绑定主应用与 Protyle 实例身份。 */
+type SearchClickHandlerState = IClickHandlerState<App, Protyle>;
+/** 搜索点击分发实现使用的事件上下文，与具体状态绑定保持一致。 */
+type SearchClickContext = IClickContext<App, Protyle>;
 
 // 重新导出类型以便外部使用
 export type { IClickHandlerUIElements, IClickHandlerState, IClickHandlerCallbacks };
 
 /** 基于 ID 的简单处理器映射 */
-const idHandlers: Record<string, (ctx: IClickContext) => void> = {
+const idHandlers: Record<string, (ctx: SearchClickContext) => void> = {
     searchExpand: (ctx) => handleSearchExpand(ctx.ui.searchPanelElement),
     searchCollapse: (ctx) => handleSearchCollapse(ctx.ui.searchPanelElement),
     searchPin: (ctx) => handleSearchPin(ctx.target, ctx.ui.element, ctx.ui.searchInputElement),
@@ -82,14 +91,14 @@ const idHandlers: Record<string, (ctx: IClickContext) => void> = {
 };
 
 /** 基于 ID 的历史按钮处理器（需要特殊的事件处理） */
-const historyHandlers: Record<string, (ctx: IClickContext) => void> = {
+const historyHandlers: Record<string, (ctx: SearchClickContext) => void> = {
     searchHistoryBtn: (ctx) => toggleSearchHistory(ctx.ui.element, ctx.state.config, ctx.state.edit),
     assetHistoryBtn: (ctx) => toggleAssetHistory(ctx.ui.assetsElement),
     replaceHistoryBtn: (ctx) => handleReplaceHistoryBtn(ctx.ui.element),
 };
 
 /** 基于 data-type 的处理器映射 */
-const typeHandlers: Record<string, (ctx: IClickContext) => void> = {
+const typeHandlers: Record<string, (ctx: SearchClickContext) => void> = {
     removeCriterion: (ctx) => {
         ctx.state.config = handleRemoveCriterion(ctx.ui.element, ctx.state.config, ctx.state.edit, ctx.callbacks.updateCB);
     },
@@ -104,14 +113,14 @@ const typeHandlers: Record<string, (ctx: IClickContext) => void> = {
 };
 
 /** 需要更新 config 的 ID 处理器 */
-const configUpdatingIdHandlers: Record<string, (ctx: IClickContext) => Config.IUILayoutTabSearchConfig> = {
+const configUpdatingIdHandlers: Record<string, (ctx: SearchClickContext) => Config.IUILayoutTabSearchConfig> = {
     searchMore: (ctx) => handleSearchMore(ctx.target, ctx.state.config, ctx.state.criteriaData, ctx.ui.element, ctx.state.edit, ctx.callbacks.updateCB),
 };
 
 
 
 /** 处理基于 CSS 类名的特殊情况 */
-function handleClassBasedClick(ctx: IClickContext): IClassClickResult {
+function handleClassBasedClick(ctx: SearchClickContext): IClassClickResult {
     if (ctx.target.classList.contains("search__rmpath")) {
         handleRemovePath(ctx.state.config, ctx.ui.element, ctx.state.edit, ctx.callbacks.updateCB);
         return { handled: true, clickTimeout: ctx.clickTimeout, lastClickTime: ctx.lastClickTime };
@@ -151,8 +160,8 @@ function handleClassBasedClick(ctx: IClickContext): IClassClickResult {
 
 /** 分发点击事件到对应的处理器 */
 function dispatchClick(
-    ctx: IClickContext,
-    state: IClickHandlerState,
+    ctx: SearchClickContext,
+    state: SearchClickHandlerState,
     listenerState: IClickListenerState
 ): boolean {
     const { targetId, type } = ctx;
@@ -182,7 +191,7 @@ function dispatchClick(
 /** 创建点击事件处理函数 */
 function createClickListener(
     ui: IClickHandlerUIElements,
-    state: IClickHandlerState,
+    state: SearchClickHandlerState,
     callbacks: IClickHandlerCallbacks,
     listenerState: IClickListenerState
 ): (event: MouseEvent) => void {
@@ -202,7 +211,7 @@ function createClickListener(
 
             const type = target.getAttribute("data-type");
             const targetId = target.id;
-            const ctx: IClickContext = {
+            const ctx: SearchClickContext = {
                 target, type, targetId, ui, state, callbacks, event,
                 clickTimeout: listenerState.clickTimeout,
                 lastClickTime: listenerState.lastClickTime,
@@ -234,7 +243,7 @@ function createClickListener(
  */
 export function setupClickHandler(
     ui: IClickHandlerUIElements,
-    state: IClickHandlerState,
+    state: SearchClickHandlerState,
     callbacks: IClickHandlerCallbacks
 ): void {
     const listenerState: IClickListenerState = {

@@ -54,8 +54,7 @@ import { Tag } from "./layout/dock/Tag";
 import { EventBus } from "./plugin/EventBus";
 import { appearanceConfigApi } from "./config/tabs/appearanceRuntime";
 import { renderSnippet } from "./config/util/snippets";
-import { setSForgeState } from "./config/sforge.global";
-import { SForgeSymbols } from "./config/sforge.symbols";
+import { registerModelHandlers } from "./layout/modelRegistry";
 import { setBodyHighlight } from "./util/assets/assets";
 import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
 import type { Plugin } from "./plugin";
@@ -76,7 +75,7 @@ export class App {
         setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
         const processMessage = createProcessMessage({ fetchPost });
         // 注册 Model WebSocket 处理器，打断 Model ↔ processSystem/processMessage 循环依赖
-        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
+        registerModelHandlers({ processMessage, kernelError, reloadSync: (data) => reloadSync(this, data) });
 
         this.appId = Constants.SIYUAN_APPID;
 

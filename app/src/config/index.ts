@@ -15,7 +15,7 @@ import {INTERNAL_FILETREE_TAB_TYPE} from "./fileTree";
 import {fileTreeConfigPanel} from "./imports";
 import {tabRegistry} from "./imports";
 import {createApp} from "./imports";
-import type {Custom} from "../layout/dock/Custom";
+import type {ICustomTabModel} from "../registry/TabRegistry.types";
 import {bazaar} from "./bazzar/bazaar";
 import {fetchSyncPost} from "./imports";
 import type {App} from "../index";
@@ -33,7 +33,7 @@ const registerFileTreeTab = () => {
     _fileTreeTabRegistered = true;
     tabRegistry.register({
         type: INTERNAL_FILETREE_TAB_TYPE,
-        init: (model: Custom) => {
+        init: (model: ICustomTabModel) => {
             const tab = model.tab;
             const app = createApp(fileTreeConfigPanel);
             if (tab) {

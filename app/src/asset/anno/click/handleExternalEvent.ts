@@ -1,6 +1,6 @@
 import { Constants, setStorageVal } from "../../../ai/imports";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setRectElement } from "..";
+import { setRectElement } from "../state/selection";
 import { AnnoConstants } from "../constants";
 import { copyAnno } from "../anno.copy";
 import { getHightlightCoordsByRange } from "../anno.getHightlightCoordsByRange";

@@ -25,7 +25,7 @@ import { clearOBG } from "./dock/util";
 import { MenuItem } from "../menus/Menu.Item";
 import { escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
-import { setPosition } from "../util/DOM/setPosition";
+import { setPosition } from "../util/DOM/positioning/setPosition";
 
 /**
  * 切换标签页

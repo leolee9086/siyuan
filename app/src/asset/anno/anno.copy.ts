@@ -1,7 +1,7 @@
 import { fetchPost } from "../../ai/imports";
 import { Constants } from "../../constants";
 import { writeText } from "../../protyle/util/compatibility";
-import { rectElement } from ".";
+import { rectElement } from "./state/selection";
 import { getRectImgData } from "./anno.getRectImgData";
 import type { IPdfInstance, 复制注释参数 } from "./anno.types";
 

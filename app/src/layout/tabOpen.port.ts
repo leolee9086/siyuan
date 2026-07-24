@@ -1,7 +1,7 @@
 /** Layout 普通 Tab 能力的 Port/事件边界。 */
 import {getSForgeState, setSForgeState} from "../config/sforge.global";
 import {SForgeSymbols} from "../config/sforge.symbols";
-import type {Tab} from "./Tab";
+import type {ILayoutTabHandle} from "./tabFloat.types";
 import type {ILayoutTabOpenPort, ILayoutTabOpenRequest} from "./tabOpen.types";
 import {tabOpenEvents} from "./tabOpen.events.factory";
 
@@ -21,7 +21,7 @@ export const subscribeTabOpenRequest = (
     listener: (request: ILayoutTabOpenRequest) => void | Promise<void>
 ) => tabOpenEvents.subscribe("tab-open-requested", listener);
 
-const emitTabOpenRequest = (tab: Tab, source: ILayoutTabOpenRequest["source"]) => tabOpenEvents.emit(
+const emitTabOpenRequest = (tab: ILayoutTabHandle, source: ILayoutTabOpenRequest["source"]) => tabOpenEvents.emit(
     "tab-open-requested",
     {
         tabId: tab.id,
@@ -33,7 +33,7 @@ const emitTabOpenRequest = (tab: Tab, source: ILayoutTabOpenRequest["source"]) =
 
 /** 请求在普通布局 Tab 中打开来源 Dock 的独立副本。 */
 export const requestOpenTabAsTab = (
-    tab: Tab,
+    tab: ILayoutTabHandle,
     source: ILayoutTabOpenRequest["source"] = "agent-dock"
 ) => {
     const port = getLayoutTabOpenPort();

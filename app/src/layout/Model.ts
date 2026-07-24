@@ -1,5 +1,5 @@
 import { Constants } from "../constants";
-import { getModelHandlers } from "./Model.registry";
+import { getModelHandlers } from "./modelRegistry";
 import type { Tab } from "./Tab";
 import type { App } from "../index";
 import type {ILayoutModel} from "./lifecycle/model.types";
@@ -41,7 +41,7 @@ export class Model implements ILayoutModel {
             const logElement = document.getElementById("errorLog");
             if (logElement) {
                 // 内核中断后无法 catch fetch 请求错误，重连会导致无法执行 transactionsTimeout
-                getModelHandlers().reloadSync(this.app, { upsertRootIDs: [], removeRootIDs: [] });
+                getModelHandlers().reloadSync({ upsertRootIDs: [], removeRootIDs: [] });
                 window.siyuan.dialogs.find(item => {
                     // 只关闭内核错误提示 Dialog，避免触碰其它正在显示的宿主窗口。
                     if (item.element.id === "errorLog") {

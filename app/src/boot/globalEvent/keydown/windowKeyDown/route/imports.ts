@@ -26,7 +26,7 @@ import type { DialogWindowKeyCommand, NavigationWindowKeyCommand, SystemWindowKe
  * 使用范围：route/ 目录下所有子路由共享使用。
  * 解耦评估：纯类型依赖，仅用于 arktype `type(...)` schema 的类型推导，不形成运行时耦合。
  */
-import type { WindowKeyDownState } from "../types";
+import type { WindowKeyDownRouteState } from "../types";
 
 // 导出：路由 DSL calibur-router
 export { calibur };
@@ -52,5 +52,5 @@ export type { UIWindowKeyCommand };
 export type { WindowKeyDownResolvedCommands };
 // 导出：窗口键路由域联合类型
 export type { WindowKeyDownRouteDomain };
-// 导出：统一状态类型
-export type { WindowKeyDownState };
+// 导出：路由阶段只消费事实视图，不持有应用和对话框实现身份
+export type WindowKeyDownState = WindowKeyDownRouteState;

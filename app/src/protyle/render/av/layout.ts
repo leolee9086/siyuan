@@ -4,7 +4,7 @@ import {fetchSyncPost} from "../../../util/network/fetch";
 import {getCardAspectRatio} from "./gallery/util";
 import {getFieldsByData} from "./view";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {setPosition} from "../../../util/DOM/setPosition";
+import {setPosition} from "../../../util/DOM/positioning/setPosition";
 
 export const getLayoutHTML = (data: IAV) => {
     let html = "";

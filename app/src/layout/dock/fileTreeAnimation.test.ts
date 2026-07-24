@@ -9,12 +9,21 @@ import {
 
 let reduceMotion = false;
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+const originalHTMLElement = Object.getOwnPropertyDescriptor(globalThis, "HTMLElement");
 
 before(() => {
     Object.defineProperty(globalThis, "window", {
         configurable: true,
         value: {
             matchMedia: () => ({matches: reduceMotion}),
+        },
+    });
+    Object.defineProperty(globalThis, "HTMLElement", {
+        configurable: true,
+        value: class HTMLElementStub {
+            static [Symbol.hasInstance](value: unknown) {
+                return Boolean(value && typeof value === "object" && (value as {tagName?: string}).tagName === "UL");
+            }
         },
     });
 });
@@ -28,6 +37,11 @@ after(() => {
         Object.defineProperty(globalThis, "window", originalWindow);
     } else {
         Reflect.deleteProperty(globalThis, "window");
+    }
+    if (originalHTMLElement) {
+        Object.defineProperty(globalThis, "HTMLElement", originalHTMLElement);
+    } else {
+        Reflect.deleteProperty(globalThis, "HTMLElement");
     }
 });
 

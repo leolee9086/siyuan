@@ -1,15 +1,15 @@
-/** 用途：EventData 事件数据类型。使用范围：MAGI 事件监听器签名转换。解耦评估：类型导入，不涉及运行时耦合。 */
-import type {
-    EventData,
-} from "../../util/lib/events/eventEmitter.types";
-/** 用途：MagiEventName 事件名称联合类型。使用范围：监听器签名的泛型约束。解耦评估：类型导入，不涉及运行时耦合。 */
+/** 用途：事件定义映射约束。使用范围：业务监听器适配；解耦评估：纯类型依赖，不引用具体事件总线。 */
+import type { IEventDefines } from "../../util/lib/events/eventEmitter.types";
+/** 用途：底层事件监听器签名。使用范围：guard 返回类型；解耦评估：纯类型依赖，不引用运行时 emitter。 */
+import type { EventListener } from "../../util/lib/events/eventEmitter.types";
+/** 用途：业务监听器签名。使用范围：适配输入；解耦评估：纯类型契约。 */
+import type { MagiEventListener } from "./magiEventBus.types";
+/** 用途：MAGI 事件名称。使用范围：适配泛型约束；解耦评估：纯类型契约。 */
 import type { MagiEventName } from "./magiEventBus.types";
-/** 用途：MagiEventPayloadMap 事件载荷映射类型。使用范围：监听器签名的泛型约束。解耦评估：类型导入，不涉及运行时耦合。 */
-import type { MagiEventPayloadMap } from "./magiEventBus.types";
 
 /** 将业务监听器转为 SafeEventEmitter 监听器签名。 */
-export function toEmitterListener<K extends MagiEventName>(
-    listener: (payload: MagiEventPayloadMap[K]) => void | Promise<void>,
-): (payload: EventData<typeof import("./magiEventBus").magiEventDefines, K>) => void | Promise<void> {
-    return listener as (payload: EventData<typeof import("./magiEventBus").magiEventDefines, K>) => void | Promise<void>;
+export function toEmitterListener<T extends IEventDefines, K extends MagiEventName & keyof T>(
+    listener: MagiEventListener<K>,
+): EventListener<T, K> {
+    return listener as EventListener<T, K>;
 }

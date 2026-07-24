@@ -1,18 +1,4 @@
 /**
- * 用途：应用主类类型，用于类型定义
- * 使用范围：openTab相关类型定义
- * 解耦评估：通过imports.ts转发
- */
-import type { App } from "./imports";
-
-/**
- * 用途：布局模型类型，用于类型定义
- * 使用范围：openTab相关类型定义
- * 解耦评估：通过imports.ts转发
- */
-import type { Model } from "./imports";
-
-/**
  * 用途：文档打开选项配置
  * 使用场景：通过openTab打开文档类型页签时使用
  * 关联类型：作为IOpenTabOptions.doc字段的类型
@@ -88,9 +74,9 @@ export interface IOpenTabCustomOptions {
  * 关联类型：包含IOpenTabDocOptions、IOpenTabPdfOptions等子配置类型
  * 注意：doc/pdf/asset/search/card/custom字段互斥，只能指定其中一个
  */
-export interface IOpenTabOptions {
+export interface IOpenTabOptions<TApplication, TModel> {
     /** 应用实例，用于访问全局状态和布局管理器 */
-    app: App;
+    app: TApplication;
     /** 文档打开配置 */
     doc?: IOpenTabDocOptions;
     /** PDF打开配置 */
@@ -110,5 +96,5 @@ export interface IOpenTabOptions {
     /** 是否移除当前页签 */
     removeCurrentTab?: boolean;
     /** 页签打开后的回调函数 */
-    afterOpen?: (model?: Model) => void;
+    afterOpen?: (model?: TModel) => void;
 }

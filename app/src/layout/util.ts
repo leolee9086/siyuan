@@ -12,6 +12,7 @@ import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { Editor } from "../editor";
+import {createEditor} from "../editor/factory/createEditor.factory";
 import { newCardModel } from "../card/newCardTab";
 import { newDatabaseRowModel } from "../editor/databaseRow";
 import { App } from "../index";
@@ -122,7 +123,7 @@ const createEditorModel = (app: App, tab: Tab, json: IObject): Model => {
     const blockId = toString(json.blockId);
     const notebookId = typeof json.notebookId === "string" ? json.notebookId : undefined;
     const databaseRowId = typeof json.databaseRowId === "string" ? json.databaseRowId : undefined;
-    const editorModel = new Editor({
+    const editorModel = createEditor({
         app,
         tab,
         rootId,

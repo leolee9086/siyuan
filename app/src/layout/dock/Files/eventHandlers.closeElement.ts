@@ -8,7 +8,8 @@ import { fetchPost } from "../../../util/network/fetch";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
-import type { Files } from "../Files";
+import type {FilesEventHost} from "./eventHandlers.types";
+import type {App} from "../../../index";
 import {openEncryptedNotebook} from "../../../util/file/mount";
 
 /**
@@ -50,7 +51,7 @@ function handleCloseElementIconClick(
  * @param files - Files 实例
  * @param svgElement - SVG 元素
  */
-function collapseCloseElement(files: Files, svgElement: SVGSVGElement): void {
+function collapseCloseElement(files: FilesEventHost, svgElement: SVGSVGElement): void {
     files.closeElement.style.height = "30px";
     svgElement.classList.remove("b3-list-item__arrow--open");
     const lastChild = files.closeElement.lastElementChild;
@@ -65,7 +66,7 @@ function collapseCloseElement(files: Files, svgElement: SVGSVGElement): void {
  * @param files - Files 实例
  * @param svgElement - SVG 元素
  */
-function expandCloseElement(files: Files, svgElement: SVGSVGElement): void {
+function expandCloseElement(files: FilesEventHost, svgElement: SVGSVGElement): void {
     files.closeElement.style.height = "40%";
     svgElement.classList.add("b3-list-item__arrow--open");
     const lastChild = files.closeElement.lastElementChild;
@@ -85,7 +86,7 @@ function expandCloseElement(files: Files, svgElement: SVGSVGElement): void {
 function handleCloseElementToggleClick(
     event: MouseEvent,
     target: Element,
-    files: Files
+    files: FilesEventHost
 ): boolean {
     const type = target.getAttribute("data-type");
     // 检查是否点击了 toggle 按钮
@@ -125,7 +126,7 @@ function handleCloseElementToggleClick(
 function handleCloseElementOpenClick(
     event: MouseEvent,
     target: Element,
-    files: Files
+    app: App
 ): boolean {
     const type = target.getAttribute("data-type");
     // 检查是否点击了 open 按钮
@@ -137,7 +138,7 @@ function handleCloseElementOpenClick(
     const liElement = target.closest("li");
     if (liElement?.getAttribute("data-encrypted") === "true") {
         const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
-        openEncryptedNotebook(files.app, notebookId, name);
+        openEncryptedNotebook(app, notebookId, name);
     }
     if (liElement?.getAttribute("data-encrypted") !== "true") {
         fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
@@ -153,7 +154,7 @@ function handleCloseElementOpenClick(
  * @param event - 鼠标事件
  * @param files - Files 实例
  */
-function onCloseElementClick(event: MouseEvent, files: Files): void {
+function onCloseElementClick(event: MouseEvent, files: FilesEventHost, app: App): void {
     const parentElement = files.element.parentElement;
     // 父元素存在时设置焦点
     if (parentElement) {
@@ -178,7 +179,7 @@ function onCloseElementClick(event: MouseEvent, files: Files): void {
         }
 
         // 处理 open 按钮点击
-        if (handleCloseElementOpenClick(event, target, files)) {
+        if (handleCloseElementOpenClick(event, target, app)) {
             break;
         }
 
@@ -193,9 +194,9 @@ function onCloseElementClick(event: MouseEvent, files: Files): void {
  * @returns 事件处理函数
  * @同步豁免: UI构建
  */
-export function createCloseElementClickHandler(files: Files): (event: MouseEvent) => void {
+export function createCloseElementClickHandler(files: FilesEventHost, app: App): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
-        onCloseElementClick(event, files);
+        onCloseElementClick(event, files, app);
     };
 }
 
@@ -204,7 +205,7 @@ export function createCloseElementClickHandler(files: Files): (event: MouseEvent
  * @param files - Files 实例
  * @同步豁免: UI构建
  */
-export function setupCloseElementClickHandler(files: Files): void {
-    const handler = createCloseElementClickHandler(files);
+export function setupCloseElementClickHandler(files: FilesEventHost, app: App): void {
+    const handler = createCloseElementClickHandler(files, app);
     files.closeElement.addEventListener("click", handler);
 }

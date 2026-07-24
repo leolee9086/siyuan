@@ -1,6 +1,6 @@
 import {Dialog} from "../dialog";
 import {showMessage} from "../dialog/message";
-import {escapeAttr, escapeHtml} from "../util/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {fetchSyncPost} from "../util/fetch";
 
 interface IObsidianAnalysis {

@@ -1,5 +1,5 @@
-/** 用途：Protyle编辑器类型。使用范围：编辑器实例数组类型标注。解耦评估：通过 ./imports 转发。 */
-import type { Protyle } from "./imports";
+/** 用途：创建 BlockPanel 子编辑器；使用范围：宿主能力装配闭包；解耦评估：具体 class 仅留在实现层，不进入类型契约。 */
+import { Protyle } from "./imports";
 /** 用途：标准 Dialog 生命周期和非模态浮层能力。使用范围：BlockPanel 根容器与销毁协议。 */
 import { Dialog } from "../../dialog";
 /** 用途：生成唯一ID。使用范围：为浮窗实例生成唯一标识。解耦评估：通过 ./imports 转发。 */
@@ -34,6 +34,10 @@ import { 清理同级浮窗 } from "./Panel.helpers";
 import { 处理双击事件 } from "./Panel.helpers";
 // 用途：处理图标点击；使用范围：点击工具栏图标执行操作；解耦评估：事件处理逻辑已分离到Panel.helpers模块
 import { 处理图标点击 } from "./Panel.helpers";
+/** 用途：打开引用块到普通页签；使用范围：BlockPanel 宿主能力适配；解耦评估：具体 App 仅在此装配层闭包中使用。 */
+import { openFileById } from "./imports";
+/** 用途：BlockPanel 编辑器结构；使用范围：实例生命周期数组；解耦评估：不依赖 Protyle class。 */
+import type { IBlockPanelEditor } from "./editor.types";
 
 /**
  * 作用：构建编辑器初始化所需的上下文对象
@@ -43,7 +47,7 @@ import { 处理图标点击 } from "./Panel.helpers";
  */
 function 获取编辑器上下文(panel: BlockPanel) {
     return {
-        app: panel.app,
+        createEditor: (element: HTMLElement, options: IProtyleOptions) => new Protyle(panel.app, element, options),
         refDefs: panel.refDefs,
         isBacklink: panel.isBacklink,
         originalRefBlockIDs: panel.originalRefBlockIDs,
@@ -124,7 +128,7 @@ export class BlockPanel {
     public x: number | undefined;
     public y: number | undefined;
     public isBacklink: boolean;
-    public editors: Protyle[] = [];
+    public editors: IBlockPanelEditor[] = [];
     public observerResize: ResizeObserver | undefined;
     public observerLoad: IntersectionObserver | undefined;
     public originalRefBlockIDs: IObject | undefined;
@@ -187,7 +191,19 @@ export class BlockPanel {
                 this.dialog.bringToFront();
             }
             if (this.element) {
-                处理图标点击(event as MouseEvent, this.element, this.refDefs, options.app, () => this.destroy());
+                处理图标点击(
+                    event as MouseEvent,
+                    this.element,
+                    this.refDefs,
+                    (id, action, zoomIn) => openFileById({
+                        app: options.app,
+                        id,
+                        action,
+                        zoomIn,
+                        openNewTab: true,
+                    }),
+                    () => this.destroy(),
+                );
             }
         });
         render(this);

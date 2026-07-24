@@ -1,5 +1,5 @@
 /** 用途：拼音转换库。使用范围：pinyin 模块中文拼音搜索。解耦评估：通过 imports.ts 转发。 */
-import { pinyin } from "./imports";
+import { pinyin } from "./pinyin/imports";
 
 /**
  * 将中文字符串转换为拼音字符串

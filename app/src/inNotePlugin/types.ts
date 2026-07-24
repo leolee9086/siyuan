@@ -1,9 +1,6 @@
 /**
  * 笔记内插件类型定义
  */
-/** 用途：Plugin 类型定义。使用范围：笔记内插件类型依赖。解耦评估：通过目录网关导入可降低路径耦合。 */
-import type { Plugin } from "../plugin";
-
 /**
  * 笔记内插件配置
  */
@@ -25,11 +22,11 @@ export interface 笔记内插件配置 {
 /**
  * 笔记内插件运行状态
  */
-export interface 笔记内插件运行状态 {
+export interface 笔记内插件运行状态<TPlugin> {
     /** 配置信息 */
     config: 笔记内插件配置;
     /** 插件实例 */
-    instance: Plugin | null;
+    instance: TPlugin | null;
     /** 运行状态 */
     status: "idle" | "loading" | "running" | "error";
     /** 模块清理函数 */

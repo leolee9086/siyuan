@@ -6,6 +6,7 @@ import { pdfResize } from "../asset/renderAssets";
 import { App } from "../index";
 import { Model } from "./Model";
 import { Editor } from "../editor";
+import {createEditor} from "../editor/factory/createEditor.factory";
 import { Asset } from "../asset";
 import { Graph } from "./dock/Graph";
 import { Files } from "./dock/Files";
@@ -265,7 +266,7 @@ export const copyTab = (app: App, tab: Tab) => {
                         newAction.push(item);
                     }
                 });
-                model = new Editor({
+                model = createEditor({
                     app,
                     tab: newTab,
                     blockId: tab.model.editor.protyle.block.id,

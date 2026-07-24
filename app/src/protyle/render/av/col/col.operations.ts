@@ -4,7 +4,7 @@ import {getPropertiesHTML} from "../openMenuPanel";
 import {removeAttrViewColAnimation} from "../action";
 import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
 import {duplicateNameAddOne} from "../../../../util/platform/functions";
-import {setPosition} from "../../../../util/DOM/setPosition";
+import {setPosition} from "../../../../util/DOM/positioning/setPosition";
 import {getFieldsByData} from "../view";
 
 /**

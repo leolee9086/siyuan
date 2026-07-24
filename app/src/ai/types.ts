@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Menu } from "../plugin/Menu";
+/** 用途：描述 AI 菜单上下文可使用的菜单能力；使用范围：AI 动作构建流程；解耦评估：依赖插件菜单领域契约，不引用具体队列和 DOM 封装 class。 */
+import type {IPluginMenu} from "../plugin/menu/menu.types";
 
 /**
  * AI配置接口定义
@@ -208,7 +209,7 @@ export interface AIMenuContext {
     protyle: IProtyle;
     ids: string[];
     elements: Element[];
-    menu: Menu;
+    menu: IPluginMenu;
     clearContext: string;
 }
 

@@ -15,7 +15,7 @@ import { unicode2Emoji } from "../../../../emoji";
  * 使用范围：在打开编辑面板时定位面板位置
  * 解耦评估：这是纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { setPosition } from "../../../../util/DOM/setPosition";
+import { setPosition } from "../../../../util/DOM/positioning/setPosition";
 
 /**
  * 用途：获取列编辑的 HTML 内容

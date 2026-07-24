@@ -187,6 +187,79 @@ export class SecurityError extends Error {
   }
 }
 
-// 从工厂模块重新导出便捷函数（保持向后兼容）
-import { createTemporaryModule, createSecureTemporaryModule, createDynamicSecureTemporaryModule } from "./executor.factory";
-export { createTemporaryModule, createSecureTemporaryModule, createDynamicSecureTemporaryModule };
+/** 创建默认安全配置的临时 ESM 模块，保留原工厂模块的公开入口语义。 */
+export async function createTemporaryModule(code: string): Promise<TemporaryModule> {
+  const creator = new SecureModuleCreator({
+    allowedPackages: [],
+    packagePatterns: [],
+    autoAllowScoped: false,
+    defaultOptions: {
+      onUnauthorizedImport: "throw",
+      customMocks: {}
+    },
+    moduleRedirectConfig: {
+      defaultServer: "https://esm.sh",
+      packageRedirects: {},
+      enabled: false,
+      bareModulesOnly: true
+    }
+  });
+  return creator.createSecureModule(code);
+}
+
+/** 创建带调用方提供安全配置的临时 ESM 模块。 */
+export async function createSecureTemporaryModule(
+  code: string,
+  options: {
+    allowedPackages?: string[];
+    packagePatterns?: RegExp[];
+    autoAllowScoped?: boolean;
+    onUnauthorizedImport?: "throw" | "mock" | "remove";
+    customMocks?: Record<string, unknown>;
+    moduleRedirectConfig?: {
+      defaultServer?: string;
+      packageRedirects?: Record<string, string>;
+      enabled?: boolean;
+      bareModulesOnly?: boolean;
+    };
+  } = {}
+): Promise<TemporaryModule> {
+  const creator = new SecureModuleCreator({
+    allowedPackages: options.allowedPackages ?? [],
+    packagePatterns: options.packagePatterns ?? [],
+    autoAllowScoped: options.autoAllowScoped ?? false,
+    defaultOptions: {
+      onUnauthorizedImport: options.onUnauthorizedImport ?? "throw",
+      customMocks: options.customMocks ?? {}
+    },
+    moduleRedirectConfig: {
+      defaultServer: options.moduleRedirectConfig?.defaultServer ?? "https://esm.sh",
+      packageRedirects: options.moduleRedirectConfig?.packageRedirects ?? {},
+      enabled: options.moduleRedirectConfig?.enabled ?? false,
+      bareModulesOnly: options.moduleRedirectConfig?.bareModulesOnly ?? true
+    }
+  });
+  return creator.createSecureModule(code);
+}
+
+/** 创建支持动态白名单的临时 ESM 模块。 */
+export async function createDynamicSecureTemporaryModule(
+  code: string,
+  options: {
+    allowedPackages?: string[];
+    packagePatterns?: RegExp[];
+    autoAllowScoped?: boolean;
+    onUnauthorizedImport?: "throw" | "mock" | "remove";
+    customMocks?: Record<string, unknown>;
+  } = {}
+): Promise<TemporaryModule> {
+  return createSecureTemporaryModule(code, {
+    ...options,
+    moduleRedirectConfig: {
+      defaultServer: "https://esm.sh",
+      packageRedirects: {},
+      enabled: false,
+      bareModulesOnly: true
+    }
+  });
+}

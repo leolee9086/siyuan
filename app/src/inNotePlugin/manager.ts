@@ -4,6 +4,8 @@
  */
 /** 用途：应用实例类型。使用范围：manager 插件管理。解耦评估：通过 imports.ts 转发。 */
 import type { App } from "./imports";
+/** 用途：绑定笔记内插件状态的运行时实例类型；使用范围：manager 状态集合；解耦评估：具体 class 仅在管理实现中绑定，不进入状态契约。 */
+import type {Plugin} from "./imports";
 /** 用途：同步 POST 请求函数。使用范围：manager 获取文档数据。解耦评估：通过 imports.ts 转发。 */
 import { fetchSyncPost } from "./imports";
 /** 用途：插件加载/卸载函数。使用范围：manager 生命周期管理。解耦评估：同目录模块。 */
@@ -22,7 +24,7 @@ const STORAGE_KEY = "in-note-plugins";
 
 let app: App | null = null;
 let initialized = false;
-const plugins = new Map<string, 笔记内插件运行状态>();
+const plugins = new Map<string, 笔记内插件运行状态<Plugin>>();
 
 // ============ 内部辅助函数（替代私有方法） ============
 

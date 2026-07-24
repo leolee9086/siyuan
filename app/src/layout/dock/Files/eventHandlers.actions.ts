@@ -14,7 +14,7 @@ import {
 } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
 import { initMoreMenu } from "./moreMenu";
-import type { Files } from "../Files";
+import type {FilesEventHost} from "./eventHandlers.types";
 
 // ============================================================================
 // collapse 按钮点击事件处理
@@ -54,7 +54,7 @@ function collapseNotebookItem(item: Element): void {
  * collapse 按钮的 click 事件处理函数
  * @param files - Files 实例
  */
-function onCollapseClick(files: Files): void {
+function onCollapseClick(files: FilesEventHost): void {
     for (const item of Array.from(files.element.children)) {
         collapseNotebookItem(item);
     }
@@ -67,7 +67,7 @@ function onCollapseClick(files: Files): void {
  * @param files - Files 实例
  * @returns 事件处理函数
  */
-function createCollapseClickHandler(files: Files): () => void {
+function createCollapseClickHandler(files: FilesEventHost): () => void {
     return () => {
         onCollapseClick(files);
     };
@@ -78,7 +78,7 @@ function createCollapseClickHandler(files: Files): () => void {
  * @param files - Files 实例
  * @同步豁免: UI构建
  */
-export function setupCollapseClickHandler(files: Files): void {
+export function setupCollapseClickHandler(files: FilesEventHost): void {
     const collapseButton = files.actionsElement.querySelector('[data-type="collapse"]');
     // collapseButton 不存在时跳过
     if (!collapseButton) {
@@ -143,7 +143,7 @@ function handleFocusClick(event: MouseEvent, type: string | null): boolean {
 function handleMoreClick(
     event: MouseEvent,
     type: string | null,
-    files: Files
+    files: FilesEventHost
 ): boolean {
     // 检查是否点击了 more 按钮
     if (type !== "more") {
@@ -166,7 +166,7 @@ function handleMoreClick(
  * @param event - 鼠标事件
  * @param files - Files 实例
  */
-function onActionsClick(event: MouseEvent, files: Files): void {
+function onActionsClick(event: MouseEvent, files: FilesEventHost): void {
     if (!isStylableElement(event.target)) {
         return;
     }
@@ -203,7 +203,7 @@ function onActionsClick(event: MouseEvent, files: Files): void {
  * @param files - Files 实例
  * @returns 事件处理函数
  */
-function createActionsClickHandler(files: Files): (event: MouseEvent) => void {
+function createActionsClickHandler(files: FilesEventHost): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
         onActionsClick(event, files);
     };
@@ -214,7 +214,7 @@ function createActionsClickHandler(files: Files): (event: MouseEvent) => void {
  * @param files - Files 实例
  * @同步豁免: UI构建
  */
-export function setupActionsClickHandler(files: Files): void {
+export function setupActionsClickHandler(files: FilesEventHost): void {
     const handler = createActionsClickHandler(files);
     files.actionsElement.addEventListener("click", handler);
 }

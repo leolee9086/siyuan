@@ -15,7 +15,7 @@ import {showMessage} from "../../../dialog/message";
 import {openLink} from "../../../editor/openLink";
 import {previewImages} from "../../../protyle/preview/image";
 import {getDiagramBlock, previewDiagram} from "../../../protyle/preview/diagram";
-import {removeCompressURL} from "../../../util/image";
+import {removeCompressURL} from "../../../util/assets/image";
 /// #if !MOBILE
 import {openGlobalSearch} from "../../../search/util";
 /// #else

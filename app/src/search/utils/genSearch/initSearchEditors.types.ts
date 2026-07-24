@@ -2,16 +2,14 @@
  * @fileoverview initSearchEditors 函数的类型定义
  */
 
-import type { Protyle } from "../../../protyle";
-
 /**
  * 编辑器初始化结果
  */
-export interface IEditorInitResult {
+export interface IEditorInitResult<TEditor> {
     /** 搜索预览编辑器 */
-    edit: Protyle;
+    edit: TEditor;
     /** 无效引用预览编辑器 */
-    unRefEdit: Protyle;
+    unRefEdit: TEditor;
 }
 
 /**

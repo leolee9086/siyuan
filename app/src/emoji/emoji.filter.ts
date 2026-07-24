@@ -1,4 +1,4 @@
-import {unicode2Emoji, getEmojiDesc, getEmojiTitle} from "./index";
+import {unicode2Emoji, getEmojiDesc, getEmojiTitle} from "./emoji.render";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const filterEmoji = (key = "", max?: number, hideCustom = false) => {

@@ -54,7 +54,7 @@ const globalCommandRouter = calibur
  * @同步豁免: UI构建 - 该函数是既有同步公共入口，调用方依赖立即返回命令是否已处理。
  */
 export const globalCommand = (command: string, app: App) => {
-    const context: GlobalCommandContext = {
+    const context: GlobalCommandContext<App> = {
         app,
         command,
     };

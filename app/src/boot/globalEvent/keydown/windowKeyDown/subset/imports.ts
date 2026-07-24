@@ -68,14 +68,19 @@ import { setSwitchDialog } from "../switchDialog.global";
  * 不直接读写路由阶段的内部结构。
  */
 import { DIALOG_WINDOW_KEY_COMMANDS, NAVIGATION_WINDOW_KEY_COMMANDS, SYSTEM_WINDOW_KEY_COMMANDS, UI_WINDOW_KEY_COMMANDS } from "../commands.types";
-import type { DialogWindowKeyCommand, NavigationWindowKeyCommand, SystemWindowKeyCommand, UIWindowKeyCommand, WindowKeyDownExecutor, WindowKeyDownResolvedCommands, WindowKeyDownRouteDomain } from "../commands.types";
+import type { DialogWindowKeyCommand, NavigationWindowKeyCommand, SystemWindowKeyCommand, UIWindowKeyCommand, WindowKeyDownExecutor as WindowKeyDownExecutorContract, WindowKeyDownResolvedCommands, WindowKeyDownRouteDomain } from "../commands.types";
 
 /**
  * 用途：引入统一状态类型 [`WindowKeyDownState`]，供所有子集执行器签名使用。
  * 使用范围：subset/ 目录下所有执行器共享使用。
  * 解耦评估：纯类型依赖，仅用于执行器回调签名标注，不形成运行时耦合。
  */
-import type { WindowKeyDownState } from "../types";
+import type {WindowKeyDownState as WindowKeyDownStateContract} from "../types";
+import type {App} from "../imports";
+
+/** 子集执行阶段绑定真实应用与 Dialog，并据此固定执行器签名。 */
+type WindowKeyDownState = WindowKeyDownStateContract<App, Dialog>;
+type WindowKeyDownExecutor = WindowKeyDownExecutorContract<WindowKeyDownState>;
 
 export { bindAVPanelKeydown };
 export { bindMenuKeydown };

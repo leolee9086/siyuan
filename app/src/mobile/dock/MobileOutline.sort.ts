@@ -3,7 +3,7 @@ import {transaction} from "../../protyle/wysiwyg/transaction";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";
-import type {MobileOutline} from "./MobileOutline";
+import type {MobileOutlineElementPort, MobileOutlineSortPort} from "./outline/ports.types";
 
 interface OutlineTouchDragState {
     selectedElement: HTMLElement;
@@ -15,7 +15,7 @@ interface OutlineTouchDragState {
     selectItem: HTMLElement | null;
 }
 
-const clearDragIndicators = (outline: MobileOutline) => {
+const clearDragIndicators = (outline: MobileOutlineElementPort) => {
     outline.element.querySelectorAll(".dragover__top, .dragover__bottom, .dragover, .dragover__current").forEach((item) => {
         item.classList.remove("dragover__top", "dragover__bottom", "dragover", "dragover__current");
     });
@@ -33,7 +33,7 @@ const createGhostElement = (selectedElement: HTMLElement, x: number, y: number) 
     return ghostElement;
 };
 
-const markDropTarget = (outline: MobileOutline, state: OutlineTouchDragState, touch: Touch) => {
+const markDropTarget = (outline: MobileOutlineSortPort, state: OutlineTouchDragState, touch: Touch) => {
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
     const selectItem = target?.closest(".b3-list-item") as HTMLElement;
     if (!selectItem || selectItem.tagName !== "LI" || !outline.tree.element.contains(selectItem)) {
@@ -59,7 +59,7 @@ const markDropTarget = (outline: MobileOutline, state: OutlineTouchDragState, to
     state.selectItem = selectItem;
 };
 
-const moveOutlineItem = (outline: MobileOutline, state: OutlineTouchDragState) => {
+const moveOutlineItem = (outline: MobileOutlineElementPort, state: OutlineTouchDragState) => {
     const item = state.selectedElement;
     const selectItem = state.selectItem || outline.element.querySelector<HTMLElement>(".dragover__top, .dragover__bottom, .dragover");
     const editor = window.siyuan.mobile.editor?.protyle;
@@ -119,7 +119,7 @@ const moveOutlineItem = (outline: MobileOutline, state: OutlineTouchDragState) =
     });
 };
 
-export function bindOutlineSort(outline: MobileOutline) {
+export function bindOutlineSort(outline: MobileOutlineSortPort) {
     const scrollElement = outline.tree.element;
     let touchDragState: OutlineTouchDragState | null = null;
     outline.element.addEventListener("touchstart", (event: TouchEvent) => {

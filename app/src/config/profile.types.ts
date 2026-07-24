@@ -10,6 +10,12 @@ export interface NamespaceState {
     activeProfileId: string;
 }
 
+/** 只读配置访问能力；调用方不依赖 ProfileManager 的存储实现。 */
+export interface ProfileReader {
+    getActiveProfileId: () => Promise<string>;
+    loadProfile: <T>(id: string) => Promise<Profile<T> | null>;
+}
+
 /**
  * /api/file/getFile 的响应类型
  * 可能返回：

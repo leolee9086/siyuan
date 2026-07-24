@@ -28,8 +28,10 @@ import {
 import {cancelFileTreeCollapse} from "./fileTreeAnimation";
 import {updateAllDocActions, updateSubFileCount} from "./Files/docActions";
 import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/sortRefresh";
+import type {FilesEventHost} from "./Files/eventHandlers.types";
+import type {FilesDragContext} from "./Files/dnd.types";
 
-export class Files extends Model {
+export class Files extends Model implements FilesEventHost, FilesDragContext {
     public element: HTMLElement;
     public parent: Tab;
     public closeElement: HTMLElement;

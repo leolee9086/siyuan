@@ -3,7 +3,7 @@
  */
 import { fetchPost } from "../../util/network/fetch";
 import { isMobile } from "../../platform";
-import { setPosition } from "../../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/positioning/setPosition";
 import { upDownHint } from "../../util/DOM/upDownHint";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { hasClosestByClassName } from "../util/hasClosest";
