@@ -54,7 +54,7 @@ export { showMessage };
  * 使用范围：image menu 构建完成后的插件扩展入口。
  * 解耦评估：事件总线协议稳定，业务层通过事件语义解耦插件实现。
  */
-import { emitOpenMenu } from "../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../plugin/menu/emitOpenMenu.factory";
 /** 导出 emitOpenMenu 供 imageMenu 子模块复用 */
 export { emitOpenMenu };
 

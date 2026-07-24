@@ -9,11 +9,10 @@ import {
     isInHarmony,
     isInIOS,
     isInMobileApp,
-    isIPad,
-    isIPhone,
-    isMac,
     isWin11
 } from "../protyle/util/compatibility";
+import {isMac} from "./platform/hotkey/format";
+import {isIPad, isIPhone} from "./platform/functions";
 import {setCodeTheme} from "../protyle/render/util";
 import {getBackend, getFrontend, isBrowser, isMobile} from "./functions";
 import {getWorkspaceName} from "./processTitle";

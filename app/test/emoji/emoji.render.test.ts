@@ -1,6 +1,6 @@
 import {describe, it} from "node:test";
 import * as assert from "node:assert/strict";
-import {unicode2Emoji} from "./emoji.render";
+import {unicode2Emoji} from "../../src/emoji/emoji.render";
 
 describe("emoji rendering", () => {
     it("renders a Unicode code point", () => {

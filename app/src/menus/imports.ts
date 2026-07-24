@@ -35,7 +35,7 @@ import { isHTMLInputElement } from "../util/DOM/element.guard";
 export { isHTMLInputElement };
 
 /** 用途：获取兼容的点击事件名。使用范围：菜单回车激活菜单项时派发点击。解耦评估：兼容层封装平台差异，经 imports 转发统一入口。 */
-import { getEventName } from "../protyle/util/compatibility";
+import { getEventName } from "../util/platform/functions";
 /** 导出 getEventName，供 menus 模块派发点击事件 */
 export { getEventName };
 

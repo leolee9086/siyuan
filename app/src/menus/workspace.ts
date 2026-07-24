@@ -11,10 +11,10 @@ import {
     isInAndroid,
     isInHarmony,
     isInMobileApp,
-    isIPad,
     setStorageVal,
     writeText
 } from "../protyle/util/compatibility";
+import {isIPad} from "../util/platform/functions";
 import {openCard} from "../card/openCard";
 import {openSetting} from "../config";
 import {getAllDocks} from "../layout/getAll";

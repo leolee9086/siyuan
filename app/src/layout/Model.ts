@@ -1,39 +1,35 @@
 import { Constants } from "../constants";
 import { getModelHandlers } from "./modelRegistry";
-import type { Tab } from "./Tab";
-import type { App } from "../index";
 import type {ILayoutModel} from "./lifecycle/model.types";
-
-/** Model WebSocket 连接参数；由具体 Dock 保存稳定 ID 和消息处理器，用于首次连接与重连。 */
-interface IConnectOptions {
-    id: string,
-    type?: TWS,
-    callback?: () => void,
-    msgCallback?: (data: IWebSocketData) => void
-}
+import type {ILayoutModelHost} from "./lifecycle/model.types";
+import type {IModelConnectOptions} from "./lifecycle/model.types";
+import {createModelWebSocket} from "./modelWebSocket.factory";
 
 /** 布局模型基类，统一管理 App 引用、WebSocket 传输及可停止的重连生命周期。 */
-export class Model implements ILayoutModel {
+export class Model<
+    TApplication extends object = object,
+    TParent extends ILayoutModelHost = ILayoutModelHost,
+> implements ILayoutModel {
     public readonly layoutModel = true as const;
     public ws: WebSocket;
     public reqId: number;
-    public parent: Tab;
-    public app: App;
+    public parent: TParent;
+    public app: TApplication;
     private reconnectTimer: number | null = null;
     private destroyed = false;
 
     constructor(options: {
-        app: App,
+        app: TApplication,
     }) {
         this.app = options.app;
     }
 
     /** 建立模型同步连接；重连时复用相同参数并替换旧连接。 */
-    public connect(options: IConnectOptions) {
+    public connect(options: IModelConnectOptions) {
         this.destroyed = false;
         this.clearReconnectTimer();
         const websocketURL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
-        const ws = new WebSocket(`${websocketURL}?app=${Constants.SIYUAN_APPID}&id=${options.id}${options.type ? "&type=" + options.type : ""}`);
+        const ws = createModelWebSocket(`${websocketURL}?app=${Constants.SIYUAN_APPID}&id=${options.id}${options.type ? "&type=" + options.type : ""}`);
         ws.onopen = () => {
             if (options.callback) {
                 options.callback.call(this);
@@ -96,7 +92,7 @@ export class Model implements ILayoutModel {
     }
 
     /** 处理连接关闭并按原有规则安排重连；销毁中的模型不会再次建立连接。 */
-    private handleSocketClose(ev: CloseEvent, options: IConnectOptions) {
+    private handleSocketClose(ev: CloseEvent, options: IModelConnectOptions) {
         if (this.destroyed || 0 <= ev.reason.indexOf("unauthenticated") ||
             0 <= ev.reason.indexOf("close websocket")) {
             return;
@@ -110,7 +106,7 @@ export class Model implements ILayoutModel {
     }
 
     /** 在定时器触发时确认模型仍然存活，然后恢复原有连接参数。 */
-    private reconnect(options: IConnectOptions) {
+    private reconnect(options: IModelConnectOptions) {
         if (this.destroyed) {
             return;
         }

@@ -1,8 +1,14 @@
-import { Outline } from "./Outline";
+/** 用途：Outline 树交互领域根；使用范围：高亮与滚动同步；解耦评估：替代具体 Outline class 反向依赖。 */
+import type {IOutlineTreePanel} from "./types";
+/** 用途：查找前一个编辑器块；使用范围：从普通块回溯标题；解耦评估：纯 DOM 遍历。 */
 import { getPreviousBlock } from "../../../protyle/wysiwyg/getBlock";
+/** 用途：请求块面包屑；使用范围：DOM 中没有前置标题时；解耦评估：稳定网络边界。 */
 import { fetchPost } from "../../../util/network/fetch";
+/** 用途：大纲存储键；使用范围：读取保持展开配置；解耦评估：稳定常量。 */
 import { Constants } from "../../../constants";
+/** 用途：DOM 元素守卫；使用范围：高亮目标收窄；解耦评估：纯类型守卫。 */
 import { isHTMLElement } from "../../../util/DOM/element.guard";
+/** 用途：读取大纲偏好；使用范围：高亮时展开父级；解耦评估：只读配置环境。 */
 import { getSafeSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const 标题标签 = ["H1", "H2", "H3", "H4", "H5", "H6"];
@@ -13,9 +19,9 @@ const 标题标签 = ["H1", "H2", "H3", "H4", "H5", "H6"];
  * 调用时机：编辑器光标位置变更或点击块时。
  * @param outline Outline 实例
  * @param nodeElement 编辑器中的块元素。
- * @同步豁免: DOM访问
+ * @同步豁免: 需要绝对同步的DOM访问 - 光标变化时必须在当前事件栈同步解析标题。
  */
-export function setCurrent(outline: Outline, nodeElement: HTMLElement) {
+export function setCurrent(outline: IOutlineTreePanel, nodeElement: HTMLElement) {
     if (!nodeElement) {
         return;
     }
@@ -89,9 +95,9 @@ export function setCurrent(outline: Outline, nodeElement: HTMLElement) {
  * 调用时机：预览视图滚动或交互时。
  * @param outline Outline 实例
  * @param nodeElement 预览视图中的元素。
- * @同步豁免: DOM访问
+ * @同步豁免: 需要绝对同步的DOM访问 - 预览滚动时必须同步读取相邻标题。
  */
-export function setCurrentByPreview(outline: Outline, nodeElement: Element) {
+export function setCurrentByPreview(outline: IOutlineTreePanel, nodeElement: Element) {
     if (!nodeElement) {
         return;
     }
@@ -116,9 +122,9 @@ export function setCurrentByPreview(outline: Outline, nodeElement: Element) {
  * 调用时机：内部调用，或明确知道目标 ID 时调用。
  * @param outline Outline 实例
  * @param id 目标大纲节点的 ID。
- * @同步豁免: DOM访问
+ * @同步豁免: 需要绝对同步的DOM访问 - 高亮与滚动位置必须在同一布局快照中更新。
  */
-export function setCurrentById(outline: Outline, id: string) {
+export function setCurrentById(outline: IOutlineTreePanel, id: string) {
     const focusElements = outline.element.querySelectorAll(".b3-list-item.b3-list-item--focus");
     for (const item of focusElements) {
         item.classList.remove("b3-list-item--focus");

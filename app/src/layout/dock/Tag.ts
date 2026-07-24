@@ -21,7 +21,7 @@ import {
 } from "./tag.util";
 import { filterTagData, getTagFilterKeywords } from "./tagFilter";
 
-export class Tag extends Model {
+export class Tag extends Model<App, Tab> {
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];

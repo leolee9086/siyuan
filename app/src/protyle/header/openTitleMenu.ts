@@ -13,7 +13,7 @@ import { openCardByData } from "../../card/openCard";
 import { viewCards } from "../../card/viewCards";
 import { getDisplayName, getNotebookName, pathPosix, useShell } from "../../util/file/pathName";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
-import { emitOpenMenu } from "../../plugin/EventBus";
+import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 import * as dayjs from "dayjs";
 import { hideTooltip } from "../runtime/dialog.port";
 import { popSearch } from "../../mobile/menu/search";

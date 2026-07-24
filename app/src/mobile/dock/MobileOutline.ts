@@ -17,7 +17,7 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {bindOutlineSort} from "./MobileOutline.sort";
 
-export class MobileOutline extends Model {
+export class MobileOutline extends Model<App> {
     public tree: Tree;
     public element: HTMLElement;
     public blockId: string;

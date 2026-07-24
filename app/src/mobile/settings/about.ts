@@ -6,10 +6,10 @@ import { confirmDialog } from "../../dialog/confirmDialog";
 import { showMessage } from "../../dialog/message";
 import {
     isInMobileApp,
-    isIPad,
     saveExportFile,
     writeText
 } from "../../protyle/util/compatibility";
+import {isIPad} from "../../util/platform/functions";
 import { exitSiYuan, processSync } from "../../dialog/processSystem";
 import { pathPosix } from "../../util/file/pathName";
 import { openModel } from "../menu/model";

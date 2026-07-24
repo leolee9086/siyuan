@@ -255,7 +255,7 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
     `;
 };
 
-export class EmbeddingDock extends Model {
+export class EmbeddingDock extends Model<App, Tab> {
     public element: HTMLElement;
     private datasets: IEmbeddingDataset[] = [];
     private statuses: Map<string, IDatasetStatus> = new Map();

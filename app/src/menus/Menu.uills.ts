@@ -1,6 +1,6 @@
 import { Constants } from "../constants";
 import { getTopBarHeight } from "../layout/getTopBarHeight";
-import { updateHotkeyTip } from "../protyle/util/compatibility";
+import { updateHotkeyTip } from "../util/platform/hotkey/format";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { isMobile } from "../util/platform/functions";
 

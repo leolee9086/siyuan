@@ -6,7 +6,8 @@ import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/p
 import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/file/mount";
 import {fetchPost} from "../util/fetch";
 import {Constants} from "../constants";
-import {isInAndroid, isInHarmony, isInMobileApp, isIPad, setStorageVal, writeText} from "../protyle/util/compatibility";
+import {isInAndroid, isInHarmony, isInMobileApp, setStorageVal, writeText} from "../protyle/util/compatibility";
+import {isIPad} from "../util/platform/functions";
 import {openCard} from "../card/openCard";
 import {openSetting} from "../config";
 import {getAllDocks} from "../layout/getAll";

@@ -58,8 +58,11 @@ import { registerModelHandlers } from "./layout/modelRegistry";
 import { setBodyHighlight } from "./util/assets/assets";
 import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
 import type { Plugin } from "./plugin";
+/** 用途：为完整 App 实例附加 AppFacade 厂牌；使用范围：应用组合根与下层宿主类型边界；解耦评估：仅导入稳定厂牌值，不反向加载具体业务实现。 */
+import {appFacadeBrand} from "./app/AppFacade.types";
 
 export class App {
+    readonly [appFacadeBrand] = "AppFacade" as const;
     public plugins: Plugin[] = [];
     public appId: string;
     public eventBus: EventBus;

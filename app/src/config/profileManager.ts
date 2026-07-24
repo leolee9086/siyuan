@@ -3,19 +3,19 @@
  * 使用范围：配置文件的读写操作（putFile / getFile / readDir / removeFile）。
  * 解耦评估：网络请求是基础设施访问，通过 imports.ts 转发避免路径耦合。
  */
-import { fetchSyncPost } from "./imports";
+import { fetchSyncPost } from "./profile/imports";
 /**
  * 用途：提供 HTTP POST 请求的封装，返回原始响应（用于文件读取）。
  * 使用范围：配置文件的读取操作（getFile），需要获取原始响应而非标准包裹格式。
  * 解耦评估：同 fetchSyncPost，通过 imports.ts 转发。
  */
-import { fetchSyncPostRaw } from "./imports";
+import { fetchSyncPostRaw } from "./profile/imports";
 /**
  * 用途：生成全局唯一标识符，用于创建新的 Profile ID。
  * 使用范围：createProfile 方法。
  * 解耦评估：UUID 生成是通用工具，通过 imports.ts 转发。
  */
-import { genUUID } from "./imports";
+import { genUUID } from "./profile/imports";
 /**
  * 用途：Profile 数据相关的类型定义。
  * 使用范围：ProfileManager 类的所有方法签名。

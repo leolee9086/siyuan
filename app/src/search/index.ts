@@ -71,9 +71,9 @@ const selectInputField = (element: HTMLElement) => {
     }
 };
 
-// @允许继承: 框架要求 (FrameworkRequired)
 /** 用途：搜索面板，管理搜索界面的生命周期和事件。使用范围：布局系统初始化搜索面板时实例化。 */
-class Search extends Model {
+// @允许继承: 框架要求 (FrameworkRequired)
+class Search extends Model<App, Tab> {
     public element: HTMLElement;
     public config: Config.IUILayoutTabSearchConfig;
     public editors: { edit: Protyle, unRefEdit: Protyle };

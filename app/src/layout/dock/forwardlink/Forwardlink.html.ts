@@ -1,6 +1,6 @@
 import { forgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
+import {updateHotkeyAfterTip} from "../../../util/platform/hotkey/format";
 
 export const genForwardlinkHTML = (type: "pin" | "local", defaultSort: string) => {
     return `<div class="block__icons">

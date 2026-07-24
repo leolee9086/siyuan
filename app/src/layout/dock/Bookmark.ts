@@ -18,7 +18,7 @@ import {
 import {BookmarkDropController} from "./bookmarkDrop";
 import {filterBookmarkData, getBookmarkFilterKeywords} from "./bookmarkFilter";
 
-export class Bookmark extends Model {
+export class Bookmark extends Model<App, Tab> {
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];

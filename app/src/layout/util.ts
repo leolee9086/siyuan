@@ -17,6 +17,7 @@ import { newCardModel } from "../card/newCardTab";
 import { newDatabaseRowModel } from "../editor/databaseRow";
 import { App } from "../index";
 import { tabRegistry } from "../registry";
+import {createCustomTabModel} from "./dock/dock.factory";
 import {
     getCenterLayout, getPdfLoadingMessage, isReadOnlyMode, reloadWindow,
     resetFilePositionStorage, resetDialogPositionStorage, getFilePositionStorage, getDialogPositionStorage,
@@ -93,7 +94,7 @@ const createCustomModel = (app: App, tab: Tab, json: IObject): Model | undefined
     if (typeof modelType !== "string") {
         return undefined;
     }
-    const registryModel = tabRegistry.createModel({app, tab, type: modelType, data: modelData});
+    const registryModel = tabRegistry.createModel({app, tab, type: modelType, data: modelData}, createCustomTabModel);
     if (registryModel) {
         return registryModel;
     }

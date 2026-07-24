@@ -4,7 +4,8 @@
 
 import * as path from "path";
 import { Constants } from "../../../../constants";
-import { isIPad, isNotCtrl } from "../../../../protyle/util/compatibility";
+import {isNotCtrl} from "../../../../util/platform/hotkey/format";
+import {isIPad} from "../../../../util/platform/functions";
 import { useShell } from "../../../../util/file/pathName";
 import { newFile } from "../../../../util/file/newFile";
 import { renderPreview, renderNextAssetMark } from "../../../assets";

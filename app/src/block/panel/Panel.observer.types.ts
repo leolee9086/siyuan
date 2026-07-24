@@ -9,6 +9,7 @@ export interface 设置观察器参数 {
     element: HTMLElement;
     editors: IBlockPanelEditor[];
     initProtyle: (editorElement: HTMLElement, afterCB?: () => void) => void;
+    resizeEditor: (protyle: IProtyle) => void;
 }
 
 /**
@@ -25,4 +26,5 @@ export interface 观察器实例 {
 export interface 绑定滚动事件参数 {
     element: HTMLElement;
     editors: IBlockPanelEditor[];
+    hideGutter: (protyle: IProtyle) => void;
 }

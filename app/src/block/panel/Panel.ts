@@ -6,6 +6,10 @@ import { Dialog } from "../../dialog";
 import { genUUID } from "./imports";
 /** 用途：隐藏编辑器工具栏元素。使用范围：销毁编辑器时隐藏工具栏。解耦评估：通过 ./imports 转发。 */
 import { hideElements } from "./imports";
+/** 用途：调整子编辑器布局；使用范围：观察器宿主动作；解耦评估：在 BlockPanel 组合边界绑定。 */
+import { resize } from "./imports";
+/** 用途：定位数据库条目；使用范围：子编辑器加载完成；解耦评估：在 BlockPanel 组合边界绑定。 */
+import { activateAVLocateWithRetry } from "./imports";
 /** 用途：App类型定义。使用范围：构造函数参数和实例属性类型标注。解耦评估：通过 ./imports 转发。 */
 import type { App } from "./imports";
 /** 用途：获取全局浮窗面板列表。使用范围：管理浮窗层级和清理。解耦评估：通过 ./imports 转发。 */
@@ -24,8 +28,6 @@ import { 设置观察器 } from "./Panel.observer";
 import { 绑定滚动事件 } from "./Panel.observer";
 // 用途：初始化Protyle编辑器；使用范围：render函数中为每个引用块创建编辑器；解耦评估：编辑器初始化逻辑已分离到Panel.editor模块
 import { 初始化Protyle编辑器 } from "./Panel.editor";
-// 用途：编辑器初始化上下文类型；使用范围：构建编辑器初始化参数；解耦评估：类型定义已分离到Panel.editor.types模块
-import type { EditorInitContext } from "./editor.types";
 // 用途：初始化浮窗层级；使用范围：构造函数中设置层级关系；解耦评估：层级管理逻辑已分离到Panel.helpers模块
 import { 初始化层级 } from "./Panel.helpers";
 // 用途：清理同级浮窗；使用范围：初始化层级时清理旧浮窗；解耦评估：清理逻辑已分离到Panel.helpers模块
@@ -48,6 +50,7 @@ import type { IBlockPanelEditor } from "./editor.types";
 function 获取编辑器上下文(panel: BlockPanel) {
     return {
         createEditor: (element: HTMLElement, options: IProtyleOptions) => new Protyle(panel.app, element, options),
+        locateAttributeView: activateAVLocateWithRetry,
         refDefs: panel.refDefs,
         isBacklink: panel.isBacklink,
         originalRefBlockIDs: panel.originalRefBlockIDs,
@@ -79,6 +82,7 @@ function render(panel: BlockPanel) {
         element: panel.element,
         editors: panel.editors,
         initProtyle,
+        resizeEditor: resize,
     });
     panel.observerResize = observers.observerResize;
     panel.observerLoad = observers.observerLoad;
@@ -113,6 +117,7 @@ function render(panel: BlockPanel) {
     绑定滚动事件({
         element: panel.element,
         editors: panel.editors,
+        hideGutter: (protyle) => hideElements(["gutter"], protyle),
     });
 }
 

@@ -1,4 +1,6 @@
-import { isIPad, isIPhone, isMac, isWin11 } from "../../protyle/util/compatibility";
+import {isWin11} from "../../protyle/util/compatibility";
+import {isMac} from "../platform/hotkey/format";
+import {isIPad, isIPhone} from "../platform/functions";
 import { getSiyuanConfig } from "../siyuanEnvironments/getSiyuanConfig.environment";
 
 export const setInlineStyle = async (set = true, servePath = "../../../") => {

@@ -1,4 +1,6 @@
-import {isMac, isNotCtrl, isOnlyMeta} from "./compatibility";
+import {isMac} from "../../util/platform/hotkey/format";
+import {isNotCtrl} from "../../util/platform/hotkey/format";
+import {isOnlyMeta} from "../../util/platform/hotkey/format";
 import {Constants} from "../../constants";
 
 // 是否匹配辅助键 ⌃⌥⇧⌘

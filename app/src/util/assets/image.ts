@@ -1,7 +1,7 @@
 /** 用途：同步 POST 请求函数。使用范围：assets 模块上传图片资源。解耦评估：通过 imports.ts 转发。 */
-import { fetchSyncPost } from "./imports";
+import { fetchSyncPost } from "./image/imports";
 /** 用途：全局常量配置。使用范围：图片处理常量。解耦评估：通过 imports.ts 转发。 */
-import { Constants } from "./imports";
+import { Constants } from "./image/imports";
 
 /**
  * 为图片 URL 添加压缩参数

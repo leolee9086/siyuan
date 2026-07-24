@@ -1,5 +1,5 @@
 import { getAllEditor } from "../../layout/getAll";
-import { isIPhone } from "../util/compatibility";
+import {isIPhone} from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

@@ -1,25 +1,25 @@
 /** 用途：DOM 元素定位。使用范围：浮窗面板位置设置。解耦评估：通过 ./imports 转发。 */
-import { hasClosestByClassName } from "./imports";
+import { hasClosestByClassName } from "./render/imports";
 /** 用途：设置元素位置。使用范围：浮窗面板位置计算。解耦评估：通过 ./imports 转发。 */
-import { setPosition } from "./imports";
+import { setPosition } from "./render/imports";
 /** 用途：系统常量。使用范围：面板配置和快捷键。解耦评估：通过 ./imports 转发。 */
-import { Constants } from "./imports";
+import { Constants } from "./render/imports";
 /** 用途：更新快捷键提示。使用范围：面板按钮提示更新。解耦评估：通过 ./imports 转发。 */
-import { updateHotkeyAfterTip } from "./imports";
+import { updateHotkeyAfterTip } from "./render/imports";
 /** 用途：国际化文案。使用范围：面板按钮文案。解耦评估：通过 ./imports 转发。 */
-import { siyuanI18n } from "./imports";
+import { siyuanI18n } from "./render/imports";
 /** 用途：SiYuan 配置。使用范围：面板行为配置。解耦评估：通过 ./imports 转发。 */
-import { getSiyuanConfig } from "./imports";
+import { getSiyuanConfig } from "./render/imports";
 /** 用途：递增 z-index。使用范围：面板层级提升。解耦评估：通过 ./imports 转发。 */
-import { incrementSiyuanZIndex } from "./imports";
+import { incrementSiyuanZIndex } from "./render/imports";
 /** 用途：窗口内高度。使用范围：面板位置计算。解耦评估：通过 ./imports 转发。 */
-import { getWindowInnerHeight } from "./imports";
+import { getWindowInnerHeight } from "./render/imports";
 /** 用途：检查类名包含。使用范围：面板 DOM 判断。解耦评估：通过 ./imports 转发。 */
-import { checkClassListContain } from "./imports";
+import { checkClassListContain } from "./render/imports";
 /** 用途：渲染参数类型。使用范围：面板位置参数。解耦评估：同目录模块直接导入。 */
 import { 设置面板位置参数 } from "./Panel.render.types";
 /** 用途：Electron 环境判断。使用范围：面板平台适配。解耦评估：通过 ./imports 转发。 */
-import { isElectron } from "./imports";
+import { isElectron } from "./render/imports";
 
 /**
  * 构建面板的 HTML 内容

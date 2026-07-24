@@ -147,7 +147,7 @@ import { fullscreen } from "../action";
  * 使用范围：面包屑菜单构建时通知插件系统添加自定义菜单项
  * 解耦评估：事件发射函数，已经是解耦的事件机制实现，直接导入合理
  */
-import { emitOpenMenu } from "../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../plugin/menu/emitOpenMenu.factory";
 /*
  * 用途：获取思源菜单系统实例
  * 使用范围：面包屑菜单显示和构建时获取全局Menu实例

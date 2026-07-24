@@ -43,6 +43,11 @@ import type { BaseJSONSerializableObject } from "../../types/JSONSerializable-ty
 /** 导出 BaseJSONSerializableObject 类型，供 dock 模块使用 */
 export type { BaseJSONSerializableObject };
 
+/** 用途：自定义 Tab 模型工厂上下文。使用范围：Dock 组合工厂创建 Custom。解耦评估：依赖稳定注册表领域契约。 */
+import type {TabModelFactoryContext} from "../../registry/TabRegistry.types";
+/** 导出自定义 Tab 模型工厂上下文。 */
+export type {TabModelFactoryContext};
+
 /** 用途：布局模型最小接口。使用范围：Dock 模型实现与工厂类型。解耦评估：纯类型契约，不加载布局 Model 具体实现。 */
 import type { ILayoutModel } from "../lifecycle/model.types";
 /** 导出布局模型最小接口，供 Dock 模块使用 */

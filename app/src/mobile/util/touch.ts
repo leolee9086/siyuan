@@ -8,7 +8,8 @@ import {
 import {closeModel, closePanel} from "./closePanel";
 import {popMenu} from "../menu";
 import {activeBlur} from "./keyboardToolbar";
-import {isChromeBrowser, isInAndroid, isInHarmony, isIPhone} from "../../protyle/util/compatibility";
+import {isChromeBrowser, isInAndroid, isInHarmony} from "../../protyle/util/compatibility";
+import {isIPhone} from "../../util/platform/functions";
 import {getRangeByPoint} from "../../protyle/util/selection";
 import {getCurrentEditor} from "./getCurrentEditor";
 import {Constants} from "../../constants";

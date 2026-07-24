@@ -35,7 +35,8 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 /**
  * 正向链接 Dock 组件
  */
-export class Forwardlink extends Model {
+// @允许继承: 框架要求 (FrameworkRequired)
+export class Forwardlink extends Model<App, Tab> {
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
     public type: "pin" | "local";

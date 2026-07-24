@@ -111,7 +111,7 @@ type SessionEntry =
     | (EntryBase & { type: "snapshot"; snapshotID: string })
     | (EntryBase & { type: "rollback"; snapshotID: string });
 
-export class AgentChat extends Model {
+export class AgentChat extends Model<App, Tab> {
     private messagesContainer: HTMLElement;
     private composerHost: HTMLElement;
     private composer: ReturnType<typeof mountComposer> | null = null;

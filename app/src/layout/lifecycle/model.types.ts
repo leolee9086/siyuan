@@ -28,3 +28,11 @@ export interface ILayoutDisposableModel extends ILayoutModel {
 export interface ILayoutDestroyableModel extends ILayoutModel {
     destroy: () => void;
 }
+
+/** Model WebSocket 连接参数；具体模型以稳定 ID 和回调恢复同一连接语义。 */
+export interface IModelConnectOptions {
+    id: string;
+    type?: TWS;
+    callback?: () => void;
+    msgCallback?: (data: IWebSocketData) => void;
+}

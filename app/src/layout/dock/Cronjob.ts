@@ -226,7 +226,7 @@ function 处理点击(cronjob: Cronjob, event: MouseEvent) {
 /**
  * 定时任务侧边栏面板
  */
-export class Cronjob extends Model {
+export class Cronjob extends Model<App, Tab> {
     /** 面板根元素 */
     public element: HTMLElement;
     /** 任务列表数据 */

@@ -45,7 +45,7 @@ export { isMobile };
  * 使用范围：内容菜单构建完成后通知插件追加菜单项
  * 解耦评估：事件总线能力通过转发层统一，便于替换实现
  */
-import { emitOpenMenu } from "../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../plugin/menu/emitOpenMenu.factory";
 /** 导出 emitOpenMenu 供内容菜单插件扩展 */
 export { emitOpenMenu };
 

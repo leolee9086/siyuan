@@ -10,6 +10,7 @@
  * - 纯函数定义：const fn = () => {} / const fn = function() {}
  * - 纯字面量常量：const URL = "..."，const MAX = 100
  * - 正则表达式：const RE = /pattern/
+ * - 不可变身份键：const brand = Symbol("Brand") / Symbol.for("Brand")
  * - 业务文件顶层的兼容性常量：const isBrowser = typeof window !== "undefined"
  *
  * 自定义豁免注释格式：
@@ -52,11 +53,27 @@ function isInitExempt(init) {
     if (INIT_TYPE_EXEMPTIONS.has(init.type)) {
         return true;
     }
+    if (init.type === "CallExpression" && isSymbolFactory(init.callee)) {
+        return true;
+    }
     // 负值字面量：const NEG = -1
     if (init.type === "UnaryExpression" && init.argument.type === "Literal") {
         return true;
     }
     return false;
+}
+
+/** 判断调用是否为不会持有可变对象状态的 Symbol 身份键工厂。 */
+function isSymbolFactory(callee) {
+    if (callee.type === "Identifier") {
+        return callee.name === "Symbol";
+    }
+    if (callee.type !== "MemberExpression" || callee.computed ||
+        callee.object.type !== "Identifier" || callee.object.name !== "Symbol" ||
+        callee.property.type !== "Identifier") {
+        return false;
+    }
+    return callee.property.name === "for";
 }
 
 /**
@@ -93,6 +110,7 @@ export const noModuleLevelVarPlugin = {
                         "  - 函数定义：const fn = () => {}",
                         "  - 原始值常量：const URL = '...' / const MAX = 100",
                         "  - 正则表达式：const RE = /pattern/",
+                        "  - 不可变身份键：const brand = Symbol('Brand') / Symbol.for('Brand')",
                         "",
                         "替代方案：将可变状态封装为 factory 函数，在首次使用时惰性初始化。",
                         "",

@@ -4,38 +4,23 @@
  */
 
 /** 用途：系统常量。使用范围：编辑器配置。解耦评估：通过 ./imports 转发。 */
-import { Constants } from "./imports";
+import { Constants } from "./editor/imports";
 /** 用途：网络请求。使用范围：获取块内容。解耦评估：通过 ./imports 转发。 */
-import { fetchPost } from "./imports";
+import { fetchPost } from "./editor/imports";
 /** 用途：提示消息。使用范围：加载失败提示。解耦评估：通过 ./imports 转发。 */
-import { showMessage } from "./imports";
+import { showMessage } from "./editor/imports";
 /** 用途：窗口内高度。使用范围：编辑器尺寸计算。解耦评估：通过 ./imports 转发。 */
-import { getWindowInnerHeight } from "./imports";
-/** 用途：数据库条目定位。使用范围：思源链接浮窗加载完成后定位目标条目。解耦评估：通过 ./imports 转发。 */
-import { activateAVLocateWithRetry } from "./imports";
+import { getWindowInnerHeight } from "./editor/imports";
 /** 用途：编辑器初始化上下文。使用范围：编辑器参数。解耦评估：同目录模块直接导入。 */
-import { EditorInitContext } from "./editor.types";
-import type { IBlockPanelEditor } from "./editor.types";
-
-/** 表示块信息响应进入编辑器构造阶段所需的完整上下文，仅在本模块的异步回调边界使用。 */
-interface IBlockInfoResponseContext {
-    response: IWebSocketData;
-    editorElement: HTMLElement;
-    refDef: IRefDefs;
-    ctx: EditorInitContext;
-    afterCB?: () => void;
-}
-
-/** 表示 Protyle 完成加载后的收尾上下文，关联引用定义、根块和可选外部回调。 */
-interface IEditorLoadedContext {
-    editor: IBlockPanelEditor;
-    rootID: string;
-    refDef: IRefDefs;
-    afterCB?: () => void;
-}
+import type {EditorInitContext} from "./editor.types";
+/** 用途：块信息异步响应上下文。使用范围：网络回调边界；解耦评估：同域完整参数类型。 */
+import type {IBlockInfoResponseContext} from "./editor.types";
+/** 用途：子编辑器加载完成上下文。使用范围：Protyle after 回调；解耦评估：同域完整参数类型。 */
+import type {IEditorLoadedContext} from "./editor.types";
 
 /**
  * 初始化单个 Protyle 编辑器
+ * @同步豁免: UI构建 - 请求发起和编辑器占位必须在当前面板渲染调用栈内完成。
  */
 export function 初始化Protyle编辑器(
     editorElement: HTMLElement,
@@ -89,7 +74,13 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
                 editor.destroy();
                 return;
             }
-            处理编辑器加载完成({editor, rootID: response.data.rootID, refDef, afterCB});
+            处理编辑器加载完成({
+                editor,
+                rootID: response.data.rootID,
+                refDef,
+                locateAttributeView: ctx.locateAttributeView,
+                afterCB,
+            });
         }
     });
     ctx.editors.push(editor);
@@ -106,9 +97,9 @@ function 构建编辑器操作(rootID: string, refDef: IRefDefs, ctx: EditorInit
 }
 
 /** 处理编辑器加载完成 */
-function 处理编辑器加载完成({editor, rootID, refDef, afterCB}: IEditorLoadedContext) {
+function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeView, afterCB}: IEditorLoadedContext) {
     if (refDef.avItemID) {
-        activateAVLocateWithRetry(editor.protyle, refDef.refID, {
+        locateAttributeView(editor.protyle, refDef.refID, {
             itemID: refDef.avItemID,
             viewID: refDef.avViewID,
             groupID: refDef.avGroupID,

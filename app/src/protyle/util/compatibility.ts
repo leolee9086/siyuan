@@ -9,6 +9,23 @@ import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {isSiYuanUriProtocol} from "../../util/pathName";
 import type {App} from "../../index";
+import {isMac} from "../../util/platform/hotkey/format";
+import {isNotCtrl} from "../../util/platform/hotkey/format";
+import {isOnlyMeta} from "../../util/platform/hotkey/format";
+import {updateHotkeyAfterTip} from "../../util/platform/hotkey/format";
+import {updateHotkeyTip} from "../../util/platform/hotkey/format";
+import {getEventName} from "../../util/platform/functions";
+import {isIPad} from "../../util/platform/functions";
+import {isIPhone} from "../../util/platform/functions";
+
+export {getEventName};
+export {isIPad};
+export {isIPhone};
+export {isMac};
+export {isNotCtrl};
+export {isOnlyMeta};
+export {updateHotkeyAfterTip};
+export {updateHotkeyTip};
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
@@ -347,37 +364,6 @@ export const copyPlainText = (text: string) => {
     writeText(text);
 };
 
-// 用户 iPhone 点击延迟/需要双击的处理
-export const getEventName = () => {
-    if (isIPhone()) {
-        return "touchstart";
-    } else {
-        return "click";
-    }
-};
-
-export const isOnlyMeta = (event: KeyboardEvent | MouseEvent) => {
-    if (isMac()) {
-        // mac
-        if (event.metaKey && !event.ctrlKey) {
-            return true;
-        }
-        return false;
-    } else {
-        if (!event.metaKey && event.ctrlKey) {
-            return true;
-        }
-        return false;
-    }
-};
-
-export const isNotCtrl = (event: KeyboardEvent | MouseEvent) => {
-    if (!event.metaKey && !event.ctrlKey) {
-        return true;
-    }
-    return false;
-};
-
 export const isHuawei = () => {
     return window.siyuan.config.system.osPlatform.toLowerCase().indexOf("huawei") > -1;
 };
@@ -386,21 +372,9 @@ export const isDisabledFeature = (feature: string): boolean => {
     return window.siyuan.config.system.disabledFeatures?.indexOf(feature) > -1;
 };
 
-export const isIPhone = () => {
-    return navigator.userAgent.indexOf("iPhone") > -1;
-};
-
 export const isSafari = () => {
     const userAgent = navigator.userAgent;
     return userAgent.includes("Safari") && !userAgent.includes("Chrome") && !userAgent.includes("Chromium");
-};
-
-export const isIPad = () => {
-    return navigator.userAgent.indexOf("iPad") > -1;
-};
-
-export const isMac = () => {
-    return navigator.platform.toUpperCase().indexOf("MAC") > -1;
 };
 
 export const isWin11 = async () => {
@@ -478,42 +452,6 @@ export function isChromeBrowser(): boolean {
 
     return isChromium && !isEdge && !isOpera;
 }
-
-export const updateHotkeyAfterTip = (hotkey: string, split = " ") => {
-    if (hotkey) {
-        return split + updateHotkeyTip(hotkey);
-    }
-    return "";
-};
-
-// Mac，Windows 快捷键展示
-export const updateHotkeyTip = (hotkey: string) => {
-    if (!hotkey || isMac()) {
-        return hotkey;
-    }
-    const keys = [];
-    if ((hotkey.indexOf("⌘") > -1 || hotkey.indexOf("⌃") > -1)) {
-        keys.push("Ctrl");
-    }
-    if (hotkey.indexOf("⇧") > -1) {
-        keys.push("Shift");
-    }
-    if (hotkey.indexOf("⌥") > -1) {
-        keys.push("Alt");
-    }
-
-    // 不能去最后一个，需匹配 F2
-    const lastKey = hotkey.replace(/[⌘⇧⌥⌃]/g, "");
-    if (lastKey) {
-        keys.push({
-            "⇥": "Tab",
-            "⌫": "Backspace",
-            "⌦": "Delete",
-            "↩": "Enter"
-        }[lastKey] || lastKey);
-    }
-    return keys.join("+");
-};
 
 export const getLocalStorage = (cb: () => void) => {
     fetchPost("/api/storage/getLocalStorage", undefined, (response) => {

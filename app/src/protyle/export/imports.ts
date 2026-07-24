@@ -19,7 +19,7 @@ import {highlightRender} from "../render/highlightRender";
 /** 用途：批量内容渲染注册表；使用范围：预览内容组件渲染；解耦评估：渲染编排核心，直接依赖是合理边界。 */
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 /** 用途：iPhone 判断；使用范围：截图兼容预热分支；解耦评估：平台判断工具，保持直接调用可读性最佳。 */
-import {isIPhone} from "../util/compatibility";
+import {isIPhone} from "../../util/platform/functions";
 /** 用途：Safari 判断；使用范围：截图兼容预热分支；解耦评估：平台判断工具，保持直接调用可读性最佳。 */
 import {isSafari} from "../util/compatibility";
 /** 用途：移动端打开导出文件；使用范围：导出完成后打开图片结果；解耦评估：平台适配能力，不适合在业务层重复实现。 */

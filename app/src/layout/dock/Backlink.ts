@@ -15,7 +15,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import {getDocDisplayName, isEncryptedBox} from "../../util/pathName";
 import {getAllModels} from "../getAll";
 
-export class Backlink extends Model {
+export class Backlink extends Model<App, Tab> {
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
     public type: "pin" | "local";

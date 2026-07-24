@@ -5,7 +5,7 @@ import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
 import { fetchPost } from "../util/network/fetch";
-import { App } from "../index";
+import type { App } from "../index";
 import { clearOBG } from "../layout/dock/util";
 import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
@@ -14,7 +14,7 @@ import { getDisplayName } from "../util/file/pathName";
 import { isMobile } from "../platform";
 import type {IWindowHashModel} from "../window/modelHash/modelHash.types";
 
-export class Asset extends Model implements IWindowHashModel {
+export class Asset extends Model<App, Tab> implements IWindowHashModel {
   public path: string;
   public element: HTMLElement;
   private pdfId: number | string | undefined;

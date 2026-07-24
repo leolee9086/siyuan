@@ -6,7 +6,9 @@ import { getIconByType } from "../../editor/getIcon";
 import { hasClosestBlock } from "../util/hasClosest";
 import { isMobile, isBrowserDesktop } from "../../platform";
 import { getNoContainerElement } from "../wysiwyg/getBlock";
-import { isInAndroid, isInHarmony, isIPad, isMac, updateHotkeyTip } from "../util/compatibility";
+import {isInAndroid, isInHarmony} from "../util/compatibility";
+import {isMac, updateHotkeyTip} from "../../util/platform/hotkey/format";
+import {isIPad} from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 

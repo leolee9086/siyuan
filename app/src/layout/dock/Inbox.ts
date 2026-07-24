@@ -15,9 +15,9 @@ import { App } from "../../index";
 import { getCloudURL } from "../../config/util/about";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { escapeHtml } from "../../util/DOM/escape";
-import { emitOpenMenu } from "../../plugin/EventBus";
+import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 
-export class Inbox extends Model {
+export class Inbox extends Model<App, Tab> {
     private element: Element;
     private selectIds: string[] = [];
     private currentPage = 1;

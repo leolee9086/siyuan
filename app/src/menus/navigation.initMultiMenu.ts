@@ -3,7 +3,7 @@ import { makeCard } from "../card/makeCard";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { deleteFiles } from "../editor/deleteFile";
-import { emitOpenMenu } from "../plugin/EventBus";
+import { emitOpenMenu } from "../plugin/menu/emitOpenMenu.factory";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
 import { exportMarkdownZip } from "../protyle/export/exportMd";
 import { saveExportFile } from "../protyle/util/compatibility";

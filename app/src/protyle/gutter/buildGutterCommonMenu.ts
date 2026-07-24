@@ -24,7 +24,7 @@ import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { transferBlockRef } from "../../menus/block";
 import { appearanceMenu } from "../toolbar/Font";
 import { setPosition } from "../../util/DOM/positioning/setPosition";
-import { emitOpenMenu } from "../../plugin/EventBus";
+import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 import { getSiyuanConfig, incrementSiyuanZIndex } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";

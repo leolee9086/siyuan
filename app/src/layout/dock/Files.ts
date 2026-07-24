@@ -31,7 +31,7 @@ import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/so
 import type {FilesEventHost} from "./Files/eventHandlers.types";
 import type {FilesDragContext} from "./Files/dnd.types";
 
-export class Files extends Model implements FilesEventHost, FilesDragContext {
+export class Files extends Model<App, Tab> implements FilesEventHost, FilesDragContext {
     public element: HTMLElement;
     public parent: Tab;
     public closeElement: HTMLElement;

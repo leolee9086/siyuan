@@ -20,7 +20,7 @@ import {showColMenu} from "./col/col";
 import {getColIconByType} from "./col/col.typeUtils";
 import {deleteRow, duplicateRows, insertRows, selectRow, setPageSize, updateHeader} from "./row";
 import {resetAVRowSelect, updateAVRowSelect} from "./virtualScroll";
-import {emitOpenMenu} from "../../../plugin/EventBus";
+import {emitOpenMenu} from "../../../plugin/menu/emitOpenMenu.factory";
 import {openMenuPanel} from "./openMenuPanel";
 import { hintRef } from "../../hint/extend.hintRef";
 import {focusBlock, focusByRange} from "../../util/selection";

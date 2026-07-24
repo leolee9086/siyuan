@@ -31,7 +31,7 @@ import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {getDocDisplayName} from "../../util/pathName";
 
-export class Outline extends Model {
+export class Outline extends Model<App, Tab> {
     public tree: Tree;
     public element: HTMLElement;
     public headerElement: HTMLElement;

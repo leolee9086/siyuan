@@ -6,6 +6,8 @@ import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
+import {Custom} from "./Custom";
+import {clearOBG} from "./util";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
@@ -17,6 +19,8 @@ import { Tab } from "./imports";
 import type { App } from "./imports";
 import type { Protyle } from "./imports";
 import type { ILayoutModel } from "./imports";
+import type {TabModelFactoryContext} from "./imports";
+import {setPanelFocus} from "./imports";
 import { createErrorPlaceholder } from "./errorPlaceholder/ErrorPlaceholder";
 import { ERROR_PLACEHOLDER_TYPE } from "./errorPlaceholder/ErrorPlaceholder";
 import { getSiyuanLanguages } from "./dock.environment";
@@ -27,18 +31,28 @@ import { isICustomList } from "./dock.guard";
 import { ModelFactory } from "./dock.types";
 import { ModelConstructor } from "./dock.types";
 
-/**
- * 用途：表示当前应用宿主中的 Dock 模型工厂。
- * 使用场景：注册和调用函数式 Dock 模型创建器。
- * 关联类型：将通用 ModelFactory 绑定到 App、Tab、Protyle 和动态反序列化数据。
- */
-type DockModelFactory = ModelFactory<App, Tab, Protyle, unknown>;
-/**
- * 用途：表示当前应用宿主中的 Dock 模型构造器。
- * 使用场景：注册和调用类式 Dock 模型创建器。
- * 关联类型：与 DockModelFactory 共同组成 MODEL_FACTORIES 的可调用项。
- */
-type DockModelConstructor = ModelConstructor<App, Tab, Protyle, unknown>;
+/** 由布局组合层创建注册表声明的 Custom，并保持插件页签原有聚焦行为。 */
+export const createCustomTabModel = <TData>(context: TabModelFactoryContext<App, Tab, TData>) => {
+    const custom = new Custom<TData>({
+        app: context.app,
+        tab: context.tab,
+        type: context.type,
+        data: context.data,
+        init: context.registration.init,
+        ...(context.registration.destroy ? {destroy: context.registration.destroy} : {}),
+        ...(context.registration.beforeDestroy ? {beforeDestroy: context.registration.beforeDestroy} : {}),
+        ...(context.registration.resize ? {resize: context.registration.resize} : {}),
+        ...(context.registration.update ? {update: context.registration.update} : {}),
+    });
+    const parentElement = custom.element.parentElement?.parentElement;
+    if (parentElement) {
+        custom.element.addEventListener("click", () => {
+            clearOBG();
+            setPanelFocus(parentElement);
+        });
+    }
+    return custom;
+};
 
 /**
  * 初始化文件树 Dock
@@ -47,7 +61,7 @@ type DockModelConstructor = ModelConstructor<App, Tab, Protyle, unknown>;
  * 意图：提供文件系统的可视化展示和操作
  * 调用时机：加载文件树 Dock 时
  */
-const initFile: DockModelFactory = (app, tab) => {
+const initFile: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => {
     return new Files({ tab, app });
 };
 
@@ -58,7 +72,7 @@ const initFile: DockModelFactory = (app, tab) => {
  * 意图：展示文档的标题结构大纲
  * 调用时机：加载大纲 Dock 时
  */
-const initOutline: DockModelFactory = (app, tab, editor) => {
+const initOutline: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
     const isPreview = false;
     const outline = new Outline({
@@ -87,7 +101,7 @@ const initOutline: DockModelFactory = (app, tab, editor) => {
  * 意图：展示当前文档的相关引用关系
  * 调用时机：加载关系图 Dock 时
  */
-const initGraph: DockModelFactory = (app, tab, editor) => {
+const initGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Graph({
         app,
         tab,
@@ -103,7 +117,7 @@ const initGraph: DockModelFactory = (app, tab, editor) => {
  * 意图：展示整个知识库的引用网络
  * 调用时机：加载全局关系图 Dock 时
  */
-const initGlobalGraph: DockModelFactory = (app, tab) => {
+const initGlobalGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => {
     return new Graph({
         app,
         tab,
@@ -118,7 +132,7 @@ const initGlobalGraph: DockModelFactory = (app, tab) => {
  * 意图：展示引用当前文档的其他文档列表
  * 调用时机：加载反向链接 Dock 时
  */
-const initBacklink: DockModelFactory = (app, tab, editor) => {
+const initBacklink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Backlink({
         app,
         type: "pin",
@@ -134,7 +148,7 @@ const initBacklink: DockModelFactory = (app, tab, editor) => {
  * 意图：显示当前文档引用的其他文档/块列表
  * 调用时机：加载正向链接 Dock 时
  */
-const initForwardlink: DockModelFactory = (app, tab, editor) => {
+const initForwardlink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Forwardlink({
         app,
         type: "pin",
@@ -150,8 +164,8 @@ const initForwardlink: DockModelFactory = (app, tab, editor) => {
  * 意图：支持用户自定义的数据列表展示
  * 调用时机：加载自定义列表 Dock 时
  */
-/** @参数豁免: 布局反序列化生命周期要求所有模型工厂遵守统一的四参数调用协议。 */
-const initCustomList: DockModelFactory = (app, tab, editor, data) => {
+/** @参数豁免: 生命周期 - 布局反序列化要求所有模型工厂遵守统一的四参数调用协议。 */
+const initCustomList: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor, data) => {
     // isICustomList 已排除 null/undefined/非对象，无需额外 !data 真值检查；
     // 否则 !data 会将 unknown 先收窄为 {}，导致类型守卫无法在 || 否定分支中收窄为 ICustomList
     if (!isICustomList(data)) {
@@ -160,7 +174,7 @@ const initCustomList: DockModelFactory = (app, tab, editor, data) => {
     return new CustomLists(app, tab, data);
 };
 
-const MODEL_FACTORIES: Record<string, DockModelFactory | DockModelConstructor> = {
+const MODEL_FACTORIES: Record<string, ModelFactory<App, Tab, Protyle, unknown> | ModelConstructor<App, Tab, Protyle, unknown>> = {
     file: initFile,
     bookmark: Bookmark,
     tag: Tag,

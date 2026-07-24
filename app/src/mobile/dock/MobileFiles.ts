@@ -29,7 +29,7 @@ import {
 import {cancelFileTreeCollapse} from "../../layout/dock/fileTreeAnimation";
 import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";
 
-export class MobileFiles extends Model {
+export class MobileFiles extends Model<App> {
     public element: HTMLElement;
     public actionsElement: HTMLElement;
     public closeElement: HTMLElement;

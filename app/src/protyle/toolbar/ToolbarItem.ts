@@ -1,4 +1,5 @@
-import { getEventName, updateHotkeyTip } from "../util/compatibility";
+import {getEventName} from "../../util/platform/functions";
+import {updateHotkeyTip} from "../../util/platform/hotkey/format";
 import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

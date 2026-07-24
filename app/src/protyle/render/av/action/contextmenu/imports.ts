@@ -9,7 +9,7 @@ import { Menu } from "../../../../../plugin/Menu";
 export { Menu };
 
 /** 用途：向插件系统广播菜单扩展事件。使用范围：右键菜单主项构建完成后。解耦评估：插件扩展点属于宿主协议，继续通过网关集中接入能减少子模块对宿主细节的直接感知。 */
-import { emitOpenMenu } from "../../../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../../../plugin/menu/emitOpenMenu.factory";
 /** 导出 emitOpenMenu 供 contextmenu 子模块复用。 */
 export { emitOpenMenu };
 

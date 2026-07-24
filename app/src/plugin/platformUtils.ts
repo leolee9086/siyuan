@@ -7,12 +7,9 @@ export {
     readText,
     writeText,
     copyPlainText,
-    getEventName,
     isOnlyMeta,
     isNotCtrl,
     isHuawei,
-    isIPhone,
-    isIPad,
     isMac,
     isInAndroid,
     isInIOS,
@@ -20,6 +17,7 @@ export {
     getLocalStorage,
     setStorageVal,
 } from "../protyle/util/compatibility";
+export {getEventName, isIPad, isIPhone} from "../util/platform/functions";
 
 export const getStorageVal = (key: string): any => {
     return window.siyuan.storage?.[key] ?? null; // 不存在时与接口响应一致使用 null

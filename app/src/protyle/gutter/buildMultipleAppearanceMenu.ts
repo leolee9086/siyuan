@@ -6,7 +6,7 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { isMobile } from "../../platform";
 import { appearanceMenu } from "../toolbar/Font";
 import { setPosition } from "../../util/DOM/positioning/setPosition";
-import { emitOpenMenu } from "../../plugin/EventBus";
+import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { getSiyuanConfig, incrementSiyuanZIndex } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";

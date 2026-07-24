@@ -193,7 +193,7 @@ const sqlTypeToNodeType = (type: string) => {
 };
 
 // @允许继承: FrameworkRequired - Model 是框架要求的基类，所有面板类都必须继承
-export class CustomLists extends Model {
+export class CustomLists extends Model<App, Tab> {
     public element: HTMLElement;
     public tree: Tree;
     public listData: ICustomList;

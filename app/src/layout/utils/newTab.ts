@@ -6,6 +6,7 @@ import { Constants } from "./imports";
 import { Tab } from "./imports";
 import { setPanelFocus } from "./setPanelFocus";
 import { tabRegistry } from "./imports";
+import {createCustomTabModel} from "./imports";
 import { Search } from "./imports";
 import { pathPosix } from "./imports";
 import { getDisplayName } from "./imports";
@@ -157,7 +158,7 @@ const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: NonNull
         tab,
         type: custom.id,
         data: custom.data,
-    });
+    }, createCustomTabModel);
     if (registryModel) {
         tab.addModel(registryModel);
         return;

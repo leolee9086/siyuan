@@ -1,10 +1,12 @@
 // S-forge: 保留本地重构后的 import 结构（去除条件编译、平台封装、util 目录重组）
 // 上游 ed77bd609 将 frontendActions 迁入 dock/agent/，registerAction 路径同步更新
-import { App } from "../index";
+/** 用途：提供插件宿主应用的抽象外观；使用范围：Plugin 内部状态、插件回调和运行时能力参数；解耦评估：type-only 依赖，不加载应用入口，具体 App 仅在初始化边界满足该契约。 */
+import type {AppFacade} from "../app/AppFacade.types";
 import { EventBus } from "./EventBus";
 import { fetchPost } from "../util/network/fetch";
 import { isMobile, isWindow } from "../util/platform/functions";
 import { Custom } from "../layout/dock/Custom";
+import {createCustomTabModel} from "../layout/dock/dock.factory";
 import { getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
 import { resizeTopBar } from "../layout/util";
@@ -25,9 +27,11 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { isElectron } from "../platform";
 import type {IPluginRuntime} from "./runtime/pluginRuntime.types";
 
+type PluginApp = AppFacade<Plugin, EventBus>;
+
 export class Plugin {
-    private app: App;
-    private runtime: IPluginRuntime<App, Plugin>;
+    private app: PluginApp;
+    private runtime: IPluginRuntime<PluginApp, Plugin>;
     public i18n: Record<string, string>;
     public eventBus: EventBus;
     public kernel: Kernel;
@@ -46,7 +50,7 @@ export class Plugin {
             icon: string,
             action: "edit" | "more"[],
             genCursor: boolean,
-            render: (options: { app: App, element: Element }) => void
+            render: (options: { app: PluginApp, element: Element }) => void
         }
     } = {};
     public topBarIcons: Element[] = [];
@@ -69,11 +73,11 @@ export class Plugin {
     private protyleOptionsValue: IProtyleOptions;
 
     constructor(options: {
-        app: App,
+        app: PluginApp,
         name: string,
         displayName: string,
         i18n: Record<string, string>,
-        runtime: IPluginRuntime<App, Plugin>,
+        runtime: IPluginRuntime<PluginApp, Plugin>,
     }) {
         this.app = options.app;
         this.runtime = options.runtime;
@@ -401,7 +405,7 @@ export class Plugin {
                 tab: arg.tab,
                 type: type2,
                 data: arg.data,
-            });
+            }, createCustomTabModel);
         };
         return this.models[type2];
     }
@@ -430,7 +434,7 @@ export class Plugin {
     public addAgentAction(options: {
         name: string,
         description: string,
-        handler: (args: Record<string, unknown>, app: App) => Promise<{result?: string; error?: string}>
+        handler: (args: Record<string, unknown>, app: PluginApp) => Promise<{result?: string; error?: string}>
     }): string {
         const fullName = "plugin__" + this.name + "__" + options.name;
         if (!this.agentActions.includes(fullName)) {

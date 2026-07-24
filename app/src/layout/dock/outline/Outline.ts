@@ -20,10 +20,12 @@ import { 生成面板HTML, 检查本地文档及其Tab存在的逻辑, 分发消
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
 import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：Outline 树交互领域根；使用范围：class 对外状态契约；解耦评估：纯类型，不依赖 helper 实现。 */
+import type {IOutlineTreePanel} from "./types";
 
 
 
-export class Outline extends Model {
+export class Outline extends Model<App, Tab> implements IOutlineTreePanel {
     public tree!: Tree;
     public element: HTMLElement;
     public headerElement: HTMLElement;

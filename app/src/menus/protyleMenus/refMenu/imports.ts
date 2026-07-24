@@ -81,7 +81,7 @@ export { openGraph };
  * 使用范围：三类菜单在末尾挂载插件菜单项。
  * 解耦评估：事件总线能力稳定，业务层只负责触发语义事件。
  */
-import { emitOpenMenu } from "../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../plugin/menu/emitOpenMenu.factory";
 /** 导出 emitOpenMenu 供 refMenu 子模块复用 */
 export { emitOpenMenu };
 

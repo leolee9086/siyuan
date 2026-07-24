@@ -47,7 +47,7 @@ export { hideTooltip };
  * 使用范围：链接菜单打开时向插件系统广播 open-menu-link
  * 解耦评估：插件扩展点需要稳定事件总线；通过转发层集中依赖边界
  */
-import { emitOpenMenu } from "../../../plugin/EventBus";
+import { emitOpenMenu } from "../../../plugin/menu/emitOpenMenu.factory";
 /** 导出 emitOpenMenu 供链接菜单触发插件扩展 */
 export { emitOpenMenu };
 

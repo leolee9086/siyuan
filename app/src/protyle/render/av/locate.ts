@@ -4,17 +4,9 @@ import {transaction} from "../../wysiwyg/transaction";
 import {clearSelect} from "../../util/clearSelect";
 import {addDragFill} from "./cell";
 import {scrollCenter} from "../../../util/DOM/highlightById";
+import type {IAVLocateRequest} from "./locate/locate.types";
 
-export interface IAVLocateRequest {
-    itemID: string;
-    groupID?: string;
-    viewID?: string;
-    select?: boolean;
-    highlight?: boolean;
-    persistView?: boolean;
-    previousViewID?: string;
-    messageShown?: boolean;
-}
+export type {IAVLocateRequest} from "./locate/locate.types";
 
 const locateRequests = new WeakMap<HTMLElement, IAVLocateRequest>();
 const locateQueueTimeout = 30000;

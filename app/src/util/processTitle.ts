@@ -1,6 +1,6 @@
 import {escapeHtml} from "./DOM/escape";
 import {Constants} from "../constants";
-import {pathPosix} from "./pathName";
+import {pathPosix} from "./file/path/operations";
 
 export const getWorkspaceName = () => {
     const dir = window.siyuan.config.system.workspaceDir;

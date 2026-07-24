@@ -4,7 +4,7 @@ import {getCurrentEditor} from "./getCurrentEditor";
 import {openMobileFileById} from "../editor";
 import {openMobileOnboarding} from "../../onboarding";
 import {validateName} from "../../editor/rename";
-import {getEventName} from "../../protyle/util/compatibility";
+import {getEventName} from "../../util/platform/functions";
 import {fetchPost} from "../../util/network/fetch";
 import {setInlineStyle} from "../../util/assets/assets";
 import {renderSnippet} from "../../config/util/snippets";

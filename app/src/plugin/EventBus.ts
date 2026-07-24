@@ -1,43 +1,19 @@
 /**
- * @导入用途: 菜单项构建类，用于创建菜单项和分隔符
- * @使用范围: emitOpenMenu函数中构建插件子菜单的菜单项
- * @解耦评估: 核心UI组件，菜单系统必须依赖，无法解耦
- */
-import { MenuItem } from "./imports";
-
-/**
- * @导入用途: 子菜单容器类，用于收集插件注册的菜单项
- * @使用范围: emitOpenMenu函数中作为插件菜单项的容器
- * @解耦评估: 核心UI组件，菜单系统必须依赖，无法解耦
- */
-import { subMenu } from "./imports";
-
-/**
- * @导入用途: 获取全局菜单实例，用于向全局菜单添加内容
- * @使用范围: emitOpenMenu函数中向全局菜单追加插件子菜单
- * @解耦评估: 可通过依赖注入解耦，但当前全局访问更简洁
- */
-import { getSiyuanGlobalMenus } from "./imports";
-
-/**
- * @导入用途: 获取国际化文本，用于显示多语言标签
- * @使用范围: emitOpenMenu函数中显示"插件"菜单标签
- * @解耦评估: 可通过参数传递解耦，但当前全局访问更符合国际化模式
- */
-import { siyuanI18n } from "./imports";
-
-/**
- * @导入用途: Plugin类型定义，用于插件实例的类型标注
- * @使用范围: emitOpenMenu函数的参数类型定义
- * @解耦评估: 核心类型依赖，插件事件系统必须依赖插件类型，无法解耦
- */
-import type { Plugin } from "./index";
-
-/**
  * 事件总线类，提供基于DOM的发布订阅机制
  * 
  * 用于插件系统和应用内部的事件通信，支持类型安全的事件监听和触发
  */
+/* @允许类: EventBus 是插件公开 API 中已经发布的运行时身份，第三方插件和应用核心都直接构造该类型，
+ * 并可能依赖 instanceof、构造器引用以及原型方法身份，因此改写为对象工厂会破坏既有插件兼容性。该对象必须在
+ * 多个 on、once、off、emit 调用之间长期持有同一个私有 EventTarget，负责监听器注册、一次性监听、移除和同步
+ * 派发的完整生命周期；闭包工厂会改变公开构造方式、方法原型和序列化观察结果，也会迫使所有插件调用点迁移。
+ * 这里保留 class 并非为了复用 UI 编排：插件菜单构建已经迁出本模块，EventBus 不再导入 Plugin、MenuItem、
+ * subMenu 或全局菜单实现，只保留事件通道领域本身。泛型 DetailType 继续约束每个实例的消息载荷，TEventBus
+ * 继续约束事件名，DOM EventTarget 则保证浏览器原生的监听顺序、once 语义、取消语义和 removeEventListener
+ * 身份匹配。Kernel、Plugin 与 App 共享这一稳定领域身份，但 EventBus 不反向依赖这些具体实现，从而形成单向
+ * 依赖。后续若公开 API 出现大版本迁移窗口，可以另行设计函数式事件通道并提供明确迁移期；在当前版本直接替换
+ * 会造成真实行为与生态兼容回归，所以保留该 class 是必要的领域建模和兼容边界，而不是可由普通对象字面量等价
+ * 取代的状态容器。事件目标还必须随实例长期存活，不能由每次调用临时创建，否则监听器身份和注销语义都会失真。 */
 export class EventBus<DetailType = unknown> {
     private eventTarget: EventTarget;
 
@@ -112,48 +88,3 @@ export class EventBus<DetailType = unknown> {
         return this.eventTarget.dispatchEvent(new CustomEvent(type, { detail, cancelable: true }));
     }
 }
-
-/**
- * 触发插件菜单打开事件并构建插件子菜单
- * 
- * 作用：向所有插件广播菜单打开事件，收集插件注册的菜单项，并将其添加到全局菜单中
- * 意图：为插件提供统一的菜单扩展机制，允许插件在各种上下文菜单中注入自定义菜单项
- * 调用时机：在需要显示可扩展菜单时调用（如编辑器右键菜单、块图标菜单等）
- * 
- * @同步豁免: UI构建 - 菜单构建是同步的DOM操作，必须立即完成以保证用户交互响应
- */
-export const emitOpenMenu = (options: {
-    plugins: Plugin[],
-    type: TEventBus,
-    detail: { menu?: subMenu } & Record<string, unknown>,
-    separatorPosition?: "top" | "bottom",
-}) => {
-    const pluginSubMenu = new subMenu();
-    options.detail.menu = pluginSubMenu;
-    
-    // 遍历所有插件，触发事件让插件注册菜单项
-    for (const plugin of options.plugins) {
-        plugin.eventBus.emit(options.type, options.detail);
-    }
-    
-    // 当插件注册了菜单项且需要顶部分隔符时添加
-    if (pluginSubMenu.menus.length > 0 && options.separatorPosition === "top") {
-        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_pluginTop", type: "separator" }).element);
-    }
-    
-    // 当插件注册了菜单项时添加插件子菜单
-    if (pluginSubMenu.menus.length > 0) {
-        getSiyuanGlobalMenus().menu.append(new MenuItem({
-            id: "plugin",
-            label: siyuanI18n.plugin,
-            icon: "iconPlugin",
-            type: "submenu",
-            submenu: pluginSubMenu.menus,
-        }).element);
-    }
-    
-    // 当插件注册了菜单项且需要底部分隔符时添加
-    if (pluginSubMenu.menus.length > 0 && options.separatorPosition === "bottom") {
-        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_pluginBottom", type: "separator" }).element);
-    }
-};

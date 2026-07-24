@@ -19,7 +19,7 @@ import { getDocDisplayName } from "../../util/pathName";
 
 declare const vis: any;
 
-export class Graph extends Model {
+export class Graph extends Model<App, Tab> {
     public inputElement: HTMLInputElement;
     private graphElement: HTMLDivElement;
     private panelElement: HTMLElement;

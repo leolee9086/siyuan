@@ -19,3 +19,26 @@ export type DragState = {
     startX: number;
     startY: number;
 };
+
+/** Outline 树组件对展开状态提供的完整操作集合。 */
+export interface IOutlineTreeState {
+    getExpandIds: () => string[];
+    setExpandIds: (ids: string[]) => void;
+    expandAll: () => void;
+    collapseAll: () => void;
+}
+
+/**
+ * Outline 树交互领域根。
+ *
+ * 筛选、高亮、层级展开和右键树动作共享这一状态所有者；应用、页签、编辑器和网络身份不属于该领域。
+ */
+export interface IOutlineTreePanel {
+    element: HTMLElement;
+    headerElement: HTMLElement;
+    tree: IOutlineTreeState;
+    preFilterExpandIds: string[] | null;
+    saveExpendIds: () => void;
+    collapseChildren: (element: HTMLElement, expand?: boolean) => void;
+    collapseSameLevel: (element: HTMLElement, expand?: boolean) => void;
+}

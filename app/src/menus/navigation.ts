@@ -27,7 +27,7 @@ import { openDocHistory } from "../history/doc";
 import { openEditorTab } from "./util";
 import { makeCard } from "../card/makeCard";
 import { transaction } from "../protyle/wysiwyg/transaction";
-import { emitOpenMenu } from "../plugin/EventBus";
+import { emitOpenMenu } from "../plugin/menu/emitOpenMenu.factory";
 import { saveExportFile } from "../protyle/util/compatibility";
 import { exportMarkdownZip } from "../protyle/export/exportMd";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";

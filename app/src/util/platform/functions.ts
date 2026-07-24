@@ -52,6 +52,15 @@ export const isTouchDevice = () => {
     return isTouchDeviceEnv();
 };
 
+/** 判断当前浏览器 User-Agent 是否为 iPhone。 */
+export const isIPhone = () => navigator.userAgent.includes("iPhone");
+
+/** 判断当前浏览器 User-Agent 是否为 iPad。 */
+export const isIPad = () => navigator.userAgent.includes("iPad");
+
+/** iPhone 使用 touchstart 消除历史点击延迟，其余平台保持 click。 */
+export const getEventName = () => isIPhone() ? "touchstart" : "click";
+
 /** 判断字符串数组是否相等 */
 export const isArrayEqual = (arr1: string[], arr2: string[]) => {
     return arr1.length === arr2.length && arr1.every((item) => arr2.includes(item));

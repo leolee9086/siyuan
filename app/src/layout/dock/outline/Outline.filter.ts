@@ -2,13 +2,14 @@
  * Outline 筛选功能
  */
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
-import type { Outline } from "./Outline";
+/** 用途：Outline 树交互领域根；使用范围：筛选状态与树展开恢复；解耦评估：替代具体 Outline class。 */
+import type {IOutlineTreePanel} from "./types";
 
 /**
  * 应用大纲筛选
- * @同步豁免: DOM访问
+ * @同步豁免: 需要绝对同步的DOM访问 - 输入事件必须同步更新当前树 DOM。
  */
-export function setFilter(outline: Outline) {
+export function setFilter(outline: IOutlineTreePanel) {
     // 还原 display
     const hiddenItems = outline.element.querySelectorAll('li.b3-list-item[style$="display: none;"]');
     for (const item of hiddenItems) {
@@ -53,7 +54,7 @@ export function setFilter(outline: Outline) {
 /**
  * 重置筛选状态，恢复之前的折叠情况
  */
-function resetFilter(outline: Outline) {
+function resetFilter(outline: IOutlineTreePanel) {
     if (outline.preFilterExpandIds) {
         outline.tree.setExpandIds(outline.preFilterExpandIds);
     }
@@ -62,6 +63,7 @@ function resetFilter(outline: Outline) {
 
 /**
  * 递归筛选列表项
+ * @显式返回类型原因: 递归调用需要固定匹配结果，避免自引用推导为隐式 any。
  */
 function filterListItems(ul: Element | null, keyword: string): { hasMatch: boolean, hasChildMatch: boolean } {
     if (!ul) {
@@ -89,6 +91,7 @@ function filterListItems(ul: Element | null, keyword: string): { hasMatch: boole
 
 /**
  * 检查单个列表项是否匹配
+ * @显式返回类型原因: 与递归筛选共享稳定的匹配结果协议。
  */
 function checkListItem(liItem: HTMLElement, keyword: string): { isMatch: boolean, hasChildMatch: boolean } {
     const nextSibling = liItem.nextElementSibling;
