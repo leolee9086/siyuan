@@ -17,16 +17,23 @@ import {
 } from "./bookmark.util";
 import {BookmarkDropController} from "./bookmarkDrop";
 import {filterBookmarkData, getBookmarkFilterKeywords} from "./bookmarkFilter";
+import {bookmarkModelBrand} from "./bookmark/bookmark.types";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
+import type {TreeDomain} from "../../util/file/tree.types";
 
 export class Bookmark extends Model<AppFacade, Tab> {
+    public get [bookmarkModelBrand]() {
+        return "Bookmark" as const;
+    }
+
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];
     private updating = false;
     private updatePending = false;
     private dropController: BookmarkDropController;
-    public tree: Tree;
-    public editors: Protyle[] = [];
+    public tree: TreeDomain;
+    public editors: ProtyleDomain[] = [];
     private element: HTMLElement;
 
     constructor(app: AppFacade, tab: Tab) {

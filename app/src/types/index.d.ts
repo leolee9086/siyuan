@@ -957,7 +957,7 @@ interface IModels {
     forwardlink: import("../layout/dock/forwardlink/Forwardlink.types").ForwardlinkDomain[]
     inbox: import("../layout/dock/Inbox").Inbox[]
     files: import("../layout/dock/Files/eventHandlers.types").FilesDomain[]
-    bookmark: import("../layout/dock/Bookmark").Bookmark[]
+    bookmark: import("../layout/dock/bookmark/bookmark.types").BookmarkDomain[]
     tag: import("../layout/dock/Tag").Tag[]
     asset: import("../asset/asset.types").AssetDomain[]
     search: import("../search").Search[]

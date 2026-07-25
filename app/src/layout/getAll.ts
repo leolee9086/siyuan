@@ -7,7 +7,7 @@ import {isBacklinkDomain} from "./dock/backlink/backlink.types";
 import {isAssetDomain} from "../asset/asset.types";
 import { Search } from "../search";
 import {isFilesDomain} from "./dock/Files/eventHandlers.types";
-import { Bookmark } from "./dock/Bookmark";
+import {isBookmarkDomain} from "./dock/bookmark/bookmark.types";
 import { Tag } from "./dock/Tag";
 import { Custom } from "./dock/Custom";
 import {isForwardlinkDomain} from "./dock/forwardlink/Forwardlink.types";
@@ -137,7 +137,7 @@ const pushModel = (models: IModels, model: LayoutTab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Bookmark) {
+    if (isBookmarkDomain(model)) {
         models.bookmark.push(model);
         return;
     }

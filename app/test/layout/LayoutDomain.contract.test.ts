@@ -34,6 +34,9 @@ import {outlineModelBrand, isOutlineDomain} from "../../src/layout/dock/outline/
 import {backlinkModelBrand, isBacklinkDomain} from "../../src/layout/dock/backlink/backlink.types";
 import {filesModelBrand, isFilesDomain} from "../../src/layout/dock/Files/eventHandlers.types";
 import {forwardlinkModelBrand, isForwardlinkDomain} from "../../src/layout/dock/forwardlink/Forwardlink.types";
+import type {Bookmark} from "../../src/layout/dock/Bookmark";
+import type {BookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
+import {bookmarkModelBrand, isBookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -52,6 +55,7 @@ type BacklinkContract = PublicInstanceLooksLike<typeof Backlink, BacklinkDomain<
 type ForwardlinkContract = PublicInstanceLooksLike<typeof Forwardlink, ForwardlinkDomain<AppFacade, Tab>>;
 type FilesContract = PublicInstanceLooksLike<typeof Files, FilesDomain<AppFacade, Tab>>;
 type AssetContract = PublicInstanceLooksLike<typeof Asset, AssetDomain<AppFacade, Tab>>;
+type BookmarkContract = PublicInstanceLooksLike<typeof Bookmark, BookmarkDomain<AppFacade, Tab>>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -67,6 +71,7 @@ const backlinkContract: BacklinkContract = true;
 const forwardlinkContract: ForwardlinkContract = true;
 const filesContract: FilesContract = true;
 const assetContract: AssetContract = true;
+const bookmarkContract: BookmarkContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -84,6 +89,7 @@ describe("layout domain contracts", () => {
         assert.equal(forwardlinkContract, true);
         assert.equal(filesContract, true);
         assert.equal(assetContract, true);
+        assert.equal(bookmarkContract, true);
     });
 
     it("classifies Asset models through the stable domain brand", () => {
@@ -97,5 +103,6 @@ describe("layout domain contracts", () => {
         assert.equal(isBacklinkDomain({[backlinkModelBrand]: "Backlink"}), true);
         assert.equal(isFilesDomain({[filesModelBrand]: "Files"}), true);
         assert.equal(isForwardlinkDomain({[forwardlinkModelBrand]: "Forwardlink"}), true);
+        assert.equal(isBookmarkDomain({[bookmarkModelBrand]: "Bookmark"}), true);
     });
 });
