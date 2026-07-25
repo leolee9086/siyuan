@@ -1,7 +1,7 @@
 /**
- * 用途：页签类型定义。使用范围：CustomLists 类构造参数。解耦评估：通过 imports 引入，是稳定的类型依赖。
+ * 用途：页签完整领域抽象。使用范围：CustomLists 的父宿主和公开契约。解耦评估：纯类型依赖，不加载 Tab class。
  */
-import { Tab } from "../../Tab";
+import type {LayoutTab} from "../../layout.types";
 /**
  * 用途：模型基类。使用范围：CustomLists 继承自 Model。解耦评估：框架基类，必须继承。
  */
@@ -15,9 +15,9 @@ import type { AppFacade } from "../../../app/AppFacade.types";
  */
 import { fetchPost } from "../../../util/network/fetch";
 /**
- * 用途：树形列表组件。使用范围：CustomLists 数据展示。解耦评估：通过构造函数注入。
+ * 用途：树形列表完整领域抽象。使用范围：CustomLists 数据展示。解耦评估：具体 Tree 由组合工厂注入。
  */
-import { Tree } from "../../../util/file/Tree";
+import type {TreeDomain, TreeOptions} from "../../../util/file/tree.types";
 /**
  * 用途：检查块折叠状态。使用范围：树节点点击时判断是否需要 zoomIn。解耦评估：平台工具函数，通过参数传递解耦。
  */
@@ -27,28 +27,29 @@ import { checkFold } from "../../../util/platform/noRelyPCFunction";
  */
 import { openFileById } from "../../../editor/utils.openFileById";
 /**
- * 用途：块编辑器。使用范围：展开树节点时创建内嵌编辑器。解耦评估：通过构造函数注入。
+ * 用途：块编辑器完整领域抽象。使用范围：展开树节点时创建内嵌编辑器。解耦评估：具体 Protyle 由组合工厂注入。
  */
-import { Protyle } from "../../../protyle";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /**
- * 用途：Dock 实例查找。使用范围：更新 dock 图标和关闭面板。解耦评估：通过 getDockByType 参数注入。
+ * 用途：Dock 完整领域抽象。使用范围：注入的 Dock 查找结果。解耦评估：纯类型依赖，不加载 Dock class。
  */
-import { getDockByType } from "../../tabUtil";
+import type {DockDomain} from "../dock.types";
 /**
  * 用途：自定义列表工具函数。使用范围：图标、扩展 HTML、存储操作。解耦评估：工具函数集合。
  */
 import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList } from "./customLists.util";
-/**
- * 用途：自定义列表菜单。使用范围：更多操作菜单。解耦评估：通过事件和参数传递。
- */
-import { showCustomListMenu } from "./customLists.menu";
 /**
  * 用途：类型定义。使用范围：类型约束。解耦评估：纯类型定义。
  */
 import { ICustomList, IBlock } from "./customLists.types";
 
 /** @同步豁免: UI构建 - 更新 dock 图标必须同步操作 DOM */
-const updateDockIcon = (tab: Tab, icon: string, listData: ICustomList) => {
+const updateDockIcon = (
+    tab: LayoutTab,
+    icon: string,
+    listData: ICustomList,
+    getDockByType: (type: string) => DockDomain | undefined,
+) => {
     const key = `custom_list:${listData.type}:${listData.id}`;
     const dock = getDockByType(key);
     if (!dock) {
@@ -94,7 +95,7 @@ const renderHeader = (element: HTMLElement, icon: string, title: string) => {
 };
 
 /** @同步豁免: UI构建 - 树数据更新必须同步完成 */
-const renderData = (blocks: IBlock[], tree: Tree) => {
+const renderData = (blocks: IBlock[], tree: TreeDomain) => {
     const sqlTypeMap: Record<string, string> = {
         d: "NodeDocument", h: "NodeHeading", p: "NodeParagraph",
         l: "NodeList", i: "NodeListItem", q: "NodeBlockquote",
@@ -119,7 +120,11 @@ const renderData = (blocks: IBlock[], tree: Tree) => {
     tree.updateData(treeData);
 };
 
-const handleContainerClick = (event: MouseEvent, owner: CustomLists) => {
+const handleContainerClick = (
+    event: MouseEvent,
+    owner: CustomLists,
+    showMenu: (app: AppFacade, customList: CustomLists, event: MouseEvent) => void,
+) => {
     let target = event.target;
     if (!(target instanceof HTMLElement)) {
         return;
@@ -128,7 +133,11 @@ const handleContainerClick = (event: MouseEvent, owner: CustomLists) => {
     while (target && !target.isEqualNode(owner.element)) {
         if (target.classList.contains("block__icon")) {
             const type = target.getAttribute("data-type");
-            owner.handleIconClick(type, event);
+            if (type === "more") {
+                showMenu(owner.app, owner, event);
+            } else {
+                owner.handleIconClick(type, event);
+            }
             event.preventDefault();
             event.stopPropagation();
             break;
@@ -137,13 +146,20 @@ const handleContainerClick = (event: MouseEvent, owner: CustomLists) => {
     }
 };
 
-const handleItemRemoveOnTree = (target: HTMLElement, element: HTMLElement, event: MouseEvent, id: string, owner: CustomLists) => {
+const handleItemRemoveOnTree = (
+    target: HTMLElement,
+    element: HTMLElement,
+    event: MouseEvent,
+    id: string,
+    owner: CustomLists,
+    saveCustomLists: (customLists: Record<string, ICustomList>) => void,
+) => {
     let current = target;
     // 沿 DOM 冒泡查找列表项删除按钮
     while (current && !current.isEqualNode(element)) {
         if (current.classList.contains("b3-list-item__action")) {
             // 从静态列表的 ID 数组中移除并持久化
-            if (handleRemoveItemFromList(id, owner.listData)) {
+            if (handleRemoveItemFromList(id, owner.listData, saveCustomLists)) {
                 owner.update();
             }
             event.preventDefault();
@@ -159,7 +175,11 @@ const handleItemRemoveOnTree = (target: HTMLElement, element: HTMLElement, event
  * 图标工具栏操作映射表
  * key: data-type 属性值，value: 处理函数
  */
-const getIconHandlers = (owner: CustomLists, event?: MouseEvent): Record<string, () => void> => ({
+const getIconHandlers = (
+    owner: CustomLists,
+    getDockByType: (type: string) => DockDomain | undefined,
+    saveCustomLists: (customLists: Record<string, ICustomList>) => void,
+): Record<string, () => void> => ({
     refresh: () => owner.update(),
     collapse: () => owner.tree.collapseAll(),
     min: () => {
@@ -168,12 +188,8 @@ const getIconHandlers = (owner: CustomLists, event?: MouseEvent): Record<string,
     },
     remove: () => {
         if (owner.listData.id) {
-            handleRemoveFromStorage(owner.listData.id, owner.listData);
-        }
-    },
-    more: () => {
-        if (event) {
-            showCustomListMenu(owner.app, owner, event);
+            const key = `custom_list:${owner.listData.type}:${owner.listData.id}`;
+            handleRemoveFromStorage(owner.listData.id, owner.listData, getDockByType(key), saveCustomLists);
         }
     },
 });
@@ -193,13 +209,24 @@ const sqlTypeToNodeType = (type: string) => {
 };
 
 // @允许继承: FrameworkRequired - Model 是框架要求的基类，所有面板类都必须继承
-export class CustomLists extends Model<AppFacade, Tab> {
+export class CustomLists extends Model<AppFacade, LayoutTab> {
     public element: HTMLElement;
-    public tree: Tree;
+    public tree: TreeDomain;
     public listData: ICustomList;
-    public editors: Protyle[] = [];
+    public editors: ProtyleDomain[] = [];
+    private readonly getDockByType: (type: string) => DockDomain | undefined;
+    private readonly saveCustomLists: (customLists: Record<string, ICustomList>) => void;
 
-    constructor(app: AppFacade, tab: Tab, data: ICustomList) {
+    constructor(
+        app: AppFacade,
+        tab: LayoutTab,
+        data: ICustomList,
+        getDockByType: (type: string) => DockDomain | undefined,
+        saveCustomLists: (customLists: Record<string, ICustomList>) => void,
+        createTree: (options: TreeOptions) => TreeDomain,
+        createProtyle: (app: AppFacade, element: HTMLElement, options: IProtyleOptions) => ProtyleDomain,
+        showMenu: (app: AppFacade, customList: CustomLists, event: MouseEvent) => void,
+    ) {
         super({
             app,
             id: tab.id,
@@ -212,17 +239,19 @@ export class CustomLists extends Model<AppFacade, Tab> {
         });
         this.element = tab.panelElement;
         this.listData = data;
+        this.getDockByType = getDockByType;
+        this.saveCustomLists = saveCustomLists;
 
         this.element.classList.add("fn__flex-column", "file-tree", "sy__custom-list");
         const icon = getCustomListIcon(this.listData.type);
-        updateDockIcon(tab, icon, data);
+        updateDockIcon(tab, icon, data, getDockByType);
         renderHeader(this.element, icon, data.title);
 
         const treeElement = this.element.querySelector(":scope > :last-child");
         if (!(treeElement instanceof HTMLElement)) {
             throw new Error("CustomLists: tree container not found");
         }
-        this.tree = new Tree({
+        this.tree = createTree({
             element: treeElement,
             data: [],
             topExtHTML: getTopExtHTML(this.listData.type),
@@ -234,7 +263,7 @@ export class CustomLists extends Model<AppFacade, Tab> {
                 }
                 // 检查是否为列表项删除操作
                 if (clickEvent && clickEvent.target instanceof HTMLElement) {
-                    if (handleItemRemoveOnTree(clickEvent.target, element, clickEvent, id, this)) {
+                    if (handleItemRemoveOnTree(clickEvent.target, element, clickEvent, id, this, saveCustomLists)) {
                         return;
                     }
                 }
@@ -296,7 +325,7 @@ export class CustomLists extends Model<AppFacade, Tab> {
                 editorElement.style.minHeight = "auto";
                 liElement.after(editorElement);
                 try {
-                    const editor = new Protyle(this.app, editorElement, {
+                    const editor = createProtyle(this.app, editorElement, {
                         blockId: blockId,
                         click: { preventInsetEmptyBlock: true },
                         render: { background: false, gutter: true, scroll: false, breadcrumb: false },
@@ -307,7 +336,7 @@ export class CustomLists extends Model<AppFacade, Tab> {
                 }
             }
         });
-        this.element.addEventListener("click", (event) => handleContainerClick(event, this));
+        this.element.addEventListener("click", (event) => handleContainerClick(event, this, showMenu));
         this.update();
     }
 
@@ -394,11 +423,11 @@ export class CustomLists extends Model<AppFacade, Tab> {
      * @param type - data-type 属性值
      * @param event - 原始鼠标事件
      */
-    public handleIconClick(type: string | null, event?: MouseEvent) {
+    public handleIconClick(type: string | null, _event?: MouseEvent) {
         if (!type) {
             return;
         }
-        const handler = getIconHandlers(this, event)[type];
+        const handler = getIconHandlers(this, this.getDockByType, this.saveCustomLists)[type];
         if (handler) {
             handler();
         }

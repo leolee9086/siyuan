@@ -105,11 +105,11 @@ import { hasInitMethod } from "./mount.guard";
  */
 import { isHTMLElement } from "./mount.guard";
 /**
- * 用途：对话框实例类型，用于读取对话框主体元素以承载 Vue 应用。
+ * 用途：完整对话框领域根，用于读取对话框主体元素以承载 Vue 应用。
  * 使用范围：createVueComponentInDialog 参数。
- * 解耦评估：父级类型导入，无运行时耦合。
+ * 解耦评估：纯类型依赖，不加载 Dialog class。
  */
-import type { Dialog } from "../../dialog";
+import type {IDialog} from "../../dialog/dialog.types";
 
 /**
  * 对组件应用包装器
@@ -244,7 +244,7 @@ export const createVueComponentLoader = (
  * @显式返回类型原因: 复用 createVueComponentLoader 的返回契约，调用方依赖固定的 App 类型来销毁与卸载
  */
 export const createVueComponentInDialog = (
-    dialogInstance: Dialog,
+    dialogInstance: IDialog,
     config: VueComponentMountConfig,
     context?: VueComponentLoaderContext
 ): App => {

@@ -9,6 +9,7 @@ import { Inbox } from "./Inbox";
 import {Custom} from "./Custom";
 import {clearOBG} from "./util";
 import { CustomLists } from "./customBlockLists/CustomLists";
+import {showCustomListMenu} from "./customBlockLists/customLists.menu";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
 import { createAgentDockModel } from "./agent/dockModel.factory";
@@ -18,9 +19,13 @@ import { createIdentityAccessDockModel } from "../../magi/identity-access/adapte
 import { Tab } from "./imports";
 import type { AppFacade } from "./imports";
 import type { Protyle } from "./imports";
+import {Protyle as ProtyleConstructor} from "./imports";
+import {Tree} from "./imports";
 import type { ILayoutModel } from "./imports";
 import type {TabModelFactoryContext} from "./imports";
 import {setPanelFocus} from "./imports";
+import {getDockByType} from "./imports";
+import {setStorageVal} from "./imports";
 import { createErrorPlaceholder } from "./errorPlaceholder/ErrorPlaceholder";
 import { ERROR_PLACEHOLDER_TYPE } from "./errorPlaceholder/ErrorPlaceholder";
 import { getSiyuanLanguages } from "./dock.environment";
@@ -171,7 +176,16 @@ const initCustomList: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab
     if (!isICustomList(data)) {
         return undefined;
     }
-    return new CustomLists(app, tab, data);
+    return new CustomLists(
+        app,
+        tab,
+        data,
+        getDockByType,
+        (customLists) => setStorageVal("local-customlists", customLists),
+        (options) => new Tree(options),
+        (customListApp, element, options) => new ProtyleConstructor(customListApp, element, options),
+        showCustomListMenu,
+    );
 };
 
 const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, Protyle, unknown> | ModelConstructor<AppFacade, Tab, Protyle, unknown>> = {

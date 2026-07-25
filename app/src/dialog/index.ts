@@ -1,7 +1,7 @@
 /** 用途：生成唯一 ID。使用范围：对话框实例标识。解耦评估：通过 ./imports 转发。 */
 import { genUUID } from "./imports";
-/** 用途：Protyle 编辑器类型。使用范围：Dialog 类属性类型。解耦评估：通过 ./imports 转发。 */
-import type { Protyle } from "./imports";
+/** 用途：Protyle 完整领域抽象。使用范围：Dialog 编辑器集合类型。解耦评估：通过 ./imports 转发且不加载具体 class。 */
+import type {ProtyleDomain} from "./imports";
 /** 用途：移动端判断。使用范围：对话框尺寸适配。解耦评估：通过 ./imports 转发。 */
 import { isMobile } from "./imports";
 /** 用途：系统常量。使用范围：对话框配置。解耦评估：通过 ./imports 转发。 */
@@ -53,7 +53,7 @@ export class Dialog {
     private disableScrimClose: boolean;
     private disableEscapeClose: boolean;
     private scrimPointerEvents: boolean;
-    public editors: { [key: string]: Protyle } = {};
+    public editors: { [key: string]: ProtyleDomain } = {};
     public data: IObject = {};
     private titleVueApp: App | null = null;
     private isFullscreen: boolean = false;

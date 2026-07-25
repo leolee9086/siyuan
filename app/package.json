@@ -14,7 +14,7 @@
     "lint:top": "node ./scripts/lint-top-errors.js",
     "lint:rules": "node ./scripts/lint-rule-stats.js",
     "lint:imports-gateway": "node ./scripts/check-imports-gateway-usage.js",
-    "lint:cycles": "madge --circular --extensions ts,tsx --ts-config tsconfig.json src",
+    "lint:cycles": "node ./scripts/check-source-cycles.mjs",
     "forge": "node ./scripts/forge-start.js",
     "test": "pnpm run test:node && pnpm run test:vitest",
     "test:node": "node scripts/run-node-tests.mjs",

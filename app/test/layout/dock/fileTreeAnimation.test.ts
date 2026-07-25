@@ -5,7 +5,7 @@ import {
     collapseFileTree,
     expandFileTree,
     isFileTreeCollapsing
-} from "./fileTreeAnimation";
+} from "../../../src/layout/dock/fileTreeAnimation";
 
 let reduceMotion = false;
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -75,7 +75,7 @@ const createTreeElements = () => {
     let arrowClosed = false;
     const style = {
         overflow: "",
-        removeProperty(property: string) {
+        removeProperty(this: {overflow: string}, property: string) {
             if (property === "overflow") {
                 this.overflow = "";
             }
@@ -89,10 +89,10 @@ const createTreeElements = () => {
         isConnected: true,
         animate(animationFrames: Keyframe[] | PropertyIndexedKeyframes, animationOptions?: number | KeyframeAnimationOptions) {
             frames = animationFrames;
-            options = animationOptions;
+            options = animationOptions ?? {};
             return animation.animation;
         },
-        remove() {
+        remove(this: {isConnected: boolean}) {
             this.isConnected = false;
         },
     } as unknown as HTMLElement;

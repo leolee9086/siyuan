@@ -1,4 +1,4 @@
-import type { Dialog } from "../../dialog";
+import type {IDialog} from "../../dialog/dialog.types";
 
 /**
  * 获取当前 window.siyuan.zIndex
@@ -20,7 +20,7 @@ export const incrementSiyuanZIndex = () => {
  * 将对话框推入 window.siyuan.dialogs
  * @param dialog 对话框实例
  */
-export const pushSiyuanDialog = (dialog: Dialog) => {
+export const pushSiyuanDialog = (dialog: IDialog) => {
     window.siyuan.dialogs.push(dialog);
 };
 

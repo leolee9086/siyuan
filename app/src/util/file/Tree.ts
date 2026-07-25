@@ -5,6 +5,7 @@ import { unicode2Emoji } from "../../emoji/emoji.render";
 import { Constants } from "../../constants";
 import { escapeAriaLabel } from "../DOM/escape";
 import { hasClosestByTag } from "../../protyle/util/hasClosest";
+import type {TreeOptions} from "./tree.types";
 
 export class Tree {
     public element: HTMLElement;
@@ -22,21 +23,7 @@ export class Tree {
     private altClick: (element: HTMLElement, event: MouseEvent) => void;
     private rightClick: (element: HTMLElement, event: MouseEvent) => void;
 
-    constructor(options: {
-        element: HTMLElement,
-        data: IBlockTree[],
-        blockExtHTML?: string,
-        topExtHTML?: string,
-        blockDraggable?: boolean,
-        click?(element: HTMLElement, event: MouseEvent): void
-        ctrlClick?(element: HTMLElement, event: MouseEvent): void
-        altClick?(element: HTMLElement, event: MouseEvent): void
-        shiftClick?(element: HTMLElement): void
-        toggleClick?(element: HTMLElement): void
-        rightClick?(element: HTMLElement, event: MouseEvent): void
-        dragStart?(element: HTMLElement, event: DragEvent): boolean
-        dragEnd?(element: HTMLElement, event: DragEvent): boolean
-    }) {
+    constructor(options: TreeOptions) {
         this.click = options.click;
         this.ctrlClick = options.ctrlClick;
         this.altClick = options.altClick;

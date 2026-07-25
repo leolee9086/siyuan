@@ -17,6 +17,7 @@ import {updateHotkeyTip} from "../../util/platform/hotkey/format";
 import {getEventName} from "../../util/platform/functions";
 import {isIPad} from "../../util/platform/functions";
 import {isIPhone} from "../../util/platform/functions";
+import {setStorageVal} from "../../util/storage/setStorageVal";
 
 export {getEventName};
 export {isIPad};
@@ -26,6 +27,7 @@ export {isNotCtrl};
 export {isOnlyMeta};
 export {updateHotkeyAfterTip};
 export {updateHotkeyTip};
+export {setStorageVal};
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
@@ -608,21 +610,6 @@ export const getLocalStorage = (cb: () => void) => {
             window.siyuan.storage[Constants.LOCAL_SEARCHDATA].subTypes = getDefaultSubType();
         }
         cb();
-    });
-};
-
-export const setStorageVal = (key: string, val: any, cb?: () => void) => {
-    if (window.siyuan.config.readonly || window.siyuan.isPublish) {
-        return;
-    }
-    fetchPost("/api/storage/setLocalStorageVal", {
-        app: Constants.SIYUAN_APPID,
-        key,
-        val,
-    }, () => {
-        if (cb) {
-            cb();
-        }
     });
 };
 

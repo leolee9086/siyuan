@@ -1,4 +1,4 @@
-import { Wnd } from "./Wnd";
+import type {LayoutDomain, LayoutWindow} from "./layout.types";
 import { genUUID } from "../util/platform/genID";
 import { fixWndFlex1 } from "./util";
 import { addResize } from "./utils/addResize";
@@ -18,7 +18,7 @@ if (isMobile) {
  * 调用时机：在 addWnd 方法中，当 direction 为 "lr" 时调用
  * 问题/改进：当前实现假设目标元素是 Wnd 类型且包含特定 DOM 结构，可能在其他布局类型中失效。
  */
-function handleRightSplitAnimation(target: Layout | Wnd) {
+function handleRightSplitAnimation(target: LayoutDomain | LayoutWindow) {
     // 仅对 Wnd 实例处理，Layout 可能没有 .protyle-content 元素
     if (!("element" in target)) {
         return;
@@ -51,7 +51,7 @@ function handleRightSplitAnimation(target: Layout | Wnd) {
  * 调用时机：在 addLayout 方法中插入子元素后调用
  * 问题/改进：当 child.size 为 undefined 时，不会应用任何样式，可能导致布局异常。
  */
-function applyChildSize(child: Layout, direction: Config.TUILayoutDirection) {
+function applyChildSize(child: LayoutDomain, direction: Config.TUILayoutDirection) {
     // @无需注释 - 自动伸缩时添加 flex-1 类
     if (child.size === "auto") {
         child.element.classList.add("fn__flex-1");
@@ -66,8 +66,8 @@ function applyChildSize(child: Layout, direction: Config.TUILayoutDirection) {
 
 export class Layout {
     public element: HTMLElement;
-    public children: Array<Layout | Wnd>;
-    public parent?: Layout;
+    public children: Array<LayoutDomain | LayoutWindow>;
+    public parent?: LayoutDomain;
     public direction: Config.TUILayoutDirection;
     public type?: Config.TUILayoutType;
     public id?: string;
@@ -111,7 +111,7 @@ export class Layout {
      * 问题/改进：当 id 不存在时，布局不会被插入但后续操作仍会执行，可能导致不一致状态。
      *            建议调用前确保 id 存在，或调整逻辑在未找到时抛出错误/默认追加。
      */
-    addLayout(child: Layout, id?: string, after = true) {
+    addLayout(child: LayoutDomain, id?: string, after = true) {
         if (!id) {
             this.children.splice(this.children.length, 0, child);
             this.element.append(child.element);
@@ -151,7 +151,7 @@ export class Layout {
      * 问题/改进：当 id 不存在时，窗口不会被插入但后续操作仍会执行，可能导致不一致状态。
      *            建议调用前确保 id 存在，或调整逻辑在未找到时抛出错误/默认追加。
      */
-    addWnd(child: Wnd, id?: string, after = true) {
+    addWnd(child: LayoutWindow, id?: string, after = true) {
         if (!id) {
             this.children.splice(this.children.length, 0, child);
             this.element.append(child.element);

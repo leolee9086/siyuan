@@ -7,14 +7,14 @@ import type {AppFacade} from "../../app/AppFacade.types";
 
 /** Dock 聚合根的完整公开能力；行为模块不得按单个调用点复制局部结构。 */
 export interface DockDomain {
-    readonly app: AppFacade;
-    readonly elements: HTMLElement[];
-    readonly layout: LayoutDomain;
-    readonly position: TDockPosition;
-    readonly resizeElement: HTMLElement;
-    readonly pin: boolean;
-    readonly data: {[key: string]: ILayoutModel | boolean | undefined};
-    readonly hideResizeTimeout: number;
+    app: AppFacade;
+    elements: HTMLElement[];
+    layout: LayoutDomain;
+    position: TDockPosition;
+    resizeElement: HTMLElement;
+    pin: boolean;
+    data: {[key: string]: ILayoutModel | boolean | undefined};
+    hideResizeTimeout: number;
     togglePin(): void;
     showDock(reset?: boolean): void;
     hideDock(reset?: boolean): void;

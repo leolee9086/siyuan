@@ -1,0 +1,27 @@
+/** Protyle class 的完整公共领域表面；宿主模块依赖此类型而不加载编辑器实现。 */
+export interface ProtyleDomain {
+    readonly version: string;
+    protyle: IProtyle;
+    focus(): void;
+    isUploading(): boolean;
+    clearStack(): void;
+    destroy(): void;
+    resize(): void;
+    reload(focus: boolean, updateReadonly?: boolean): void;
+    insert(html: string, isBlock?: boolean, useProtyleRange?: boolean): void;
+    transaction(doOperations: IOperation[], undoOperations?: IOperation[]): void;
+    turnIntoOneTransaction(selectsElement: Element[], type: TTurnIntoOne, subType?: TTurnIntoOneSub): void;
+    turnIntoTransaction(nodeElement: Element, type: TTurnInto, subType?: number): void;
+    updateTransaction(id: string, newHTML: string, html: string): void;
+    updateTransactionElement(element: Element, oldHTML: string): void;
+    updateBatchTransaction(nodeElements: Element[], cb: (element: HTMLElement) => void): void;
+    getRange(element: Element): Range;
+    hasClosestBlock(element: Node): false | HTMLElement;
+    focusBlock(element: Element, toStart?: boolean): false | Range;
+    disable(): void;
+    enable(): void;
+    renderAVAttribute(element: HTMLElement, id: string, cb?: (element: HTMLElement) => void): void;
+    getSelectedBlockElements(): NodeListOf<Element>;
+    getSelectedBlockIds(): void;
+    switchMode(mode: TEditorMode): void;
+}

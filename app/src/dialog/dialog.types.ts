@@ -2,6 +2,8 @@
 import type {VueComponentMountConfig} from "./types/imports";
 /** 用途：Vue 组件加载上下文类型。使用范围：Dialog 公共选项；解耦评估：与挂载配置共用纯类型网关，不依赖 Vue 加载器实现。 */
 import type {VueComponentLoaderContext} from "./types/imports";
+/** 用途：完整编辑器领域根。使用范围：Dialog 持有的编辑器集合；解耦评估：纯类型依赖，不加载 Protyle class。 */
+import type {ProtyleDomain} from "../protyle/protyle.types";
 
 /**
  * 对话框选项接口
@@ -34,13 +36,26 @@ export interface IDialogOptions {
     data?: IObject // 自定义数据
 }
 
-/** 对话框接口，用于辅助函数引用 */
+/** Dialog class 的完整公共领域表面。 */
 export interface IDialog {
     id: string;
-    /** Dialog 生命周期内稳定存在的根元素。 */
     element: HTMLElement;
-    destroy: (options?: IObject) => void;
-    fullscreen: () => void;
+    readonly rootElement: HTMLElement;
+    readonly containerElement: HTMLElement;
+    readonly bodyElement: HTMLElement;
+    editors: {[key: string]: ProtyleDomain};
+    data: IObject;
+    destroy(options?: IObject): void;
+    fullscreen(): void;
+    resize(): void;
+    bringToFront(): void;
+    bindInput(inputElement: HTMLInputElement | HTMLTextAreaElement, enterEvent?: () => void, bindEnter?: boolean): void;
+    listen(
+        target: EventTarget,
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean,
+    ): void;
 }
 
 /** 对话框HTML生成参数 */

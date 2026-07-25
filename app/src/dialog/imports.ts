@@ -76,8 +76,8 @@ import { isSVGUseElement } from "../util/DOM/element.guard";
 /** 导出 isSVGUseElement，供 dialog.guard.ts 使用 */
 export { isSVGUseElement };
 
-/** 用途：键盘事件辅助函数（判断是否为非 Ctrl 组合键）。使用范围：对话框键盘事件处理。解耦评估：通过 imports.ts 转发。 */
-import { isNotCtrl } from "../protyle/util/compatibility";
+/** 用途：键盘事件辅助函数（判断是否为非 Ctrl 组合键）。使用范围：对话框键盘事件处理。解耦评估：直达平台快捷键唯一实现，不加载 Protyle compatibility。 */
+import {isNotCtrl} from "../util/platform/hotkey/format";
 /** 导出 isNotCtrl，供 dialogHelpers.events.ts 使用 */
 export { isNotCtrl };
 
@@ -133,10 +133,10 @@ import { getWindow } from "../util/siyuanEnvironments/getWindow.environment";
 /** 导出 getWindow，供 dialog 模块使用 */
 export { getWindow };
 
-/** 用途：Protyle 编辑器类型。使用范围：Dialog 类属性。解耦评估：通过 imports.ts 转发。 */
-import type { Protyle } from "../protyle";
-/** 导出 Protyle 类型，供 dialog 模块使用 */
-export type { Protyle };
+/** 用途：Protyle 完整领域抽象。使用范围：Dialog 编辑器集合。解耦评估：纯类型转发，不加载 Protyle class。 */
+import type {ProtyleDomain} from "../protyle/protyle.types";
+/** 导出 Protyle 完整领域抽象，供 dialog 模块使用。 */
+export type {ProtyleDomain};
 
 /** 用途：推送对话框到全局列表。使用范围：Dialog 构造函数。解耦评估：通过 imports.ts 转发。 */
 import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
@@ -148,13 +148,13 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 dialog 模块使用 */
 export { hasClosestByClassName };
 
-/** 用途：隐藏指定类型的 UI 元素。使用范围：moveResize 中的拖拽结束后清理。解耦评估：通过 imports.ts 转发。 */
-import { hideAllElements } from "../protyle/ui/hideElements";
-/** 导出 hideAllElements，供 dialog 模块使用 */
-export { hideAllElements };
+/** 用途：隐藏全部 Protyle gutter。使用范围：moveResize 拖拽结束清理。解耦评估：直接依赖无布局查询的唯一 DOM 行为，不加载综合编辑器面板模块。 */
+import {hideAllGutters} from "../protyle/ui/hideGutters";
+/** 导出 gutter 清理动作，供 dialog 模块使用。 */
+export {hideAllGutters};
 
-/** 用途：存储对话框位置配置。使用范围：moveResize 中的拖拽结束后保存位置。解耦评估：通过 imports.ts 转发。 */
-import { setStorageVal } from "../protyle/util/compatibility";
+/** 用途：存储对话框位置配置。使用范围：moveResize 中的拖拽结束后保存位置。解耦评估：直达通用存储唯一实现，不加载 Protyle compatibility。 */
+import {setStorageVal} from "../util/storage/setStorageVal";
 /** 导出 setStorageVal，供 dialog 模块使用 */
 export { setStorageVal };
 

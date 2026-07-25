@@ -17,17 +17,21 @@ import type {CustomLists} from "../../src/layout/dock/customBlockLists/CustomLis
 import type {CustomListsDomain} from "../../src/layout/dock/customBlockLists/customLists.types";
 import type {Tree} from "../../src/util/file/Tree";
 import type {Protyle} from "../../src/protyle";
+import type {TreeDomain} from "../../src/util/file/tree.types";
+import type {ProtyleDomain} from "../../src/protyle/protyle.types";
 
-type WndContract = IsAssignable<Wnd, LayoutWindow>;
-type TabContract = IsAssignable<Tab, LayoutTab>;
+type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
+type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
 type OutlineContract = IsAssignable<Outline, IOutlinePanel>;
-type DockContract = IsAssignable<Dock, DockDomain>;
-type LayoutContract = IsAssignable<Layout, LayoutDomain>;
+type DockContract = PublicInstanceLooksLike<typeof Dock, DockDomain>;
+type LayoutContract = PublicInstanceLooksLike<typeof Layout, LayoutDomain>;
 type GraphContract = PublicInstanceLooksLike<typeof Graph, GraphDomain<AppFacade, Tab>>;
 type CustomListsContract = PublicInstanceLooksLike<
     typeof CustomLists,
-    CustomListsDomain<AppFacade, Tab, Tree, Protyle>
+    CustomListsDomain
 >;
+type TreeContract = PublicInstanceLooksLike<typeof Tree, TreeDomain>;
+type ProtyleContract = PublicInstanceLooksLike<typeof Protyle, ProtyleDomain>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -36,6 +40,8 @@ const dockContract: DockContract = true;
 const layoutContract: LayoutContract = true;
 const graphContract: GraphContract = true;
 const customListsContract: CustomListsContract = true;
+const treeContract: TreeContract = true;
+const protyleContract: ProtyleContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -46,5 +52,7 @@ describe("layout domain contracts", () => {
         assert.equal(layoutContract, true);
         assert.equal(graphContract, true);
         assert.equal(customListsContract, true);
+        assert.equal(treeContract, true);
+        assert.equal(protyleContract, true);
     });
 });

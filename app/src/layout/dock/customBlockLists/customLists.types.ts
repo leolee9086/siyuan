@@ -46,23 +46,18 @@ export interface IBlock {
 
 /**
  * CustomLists class 的完整公共领域表面。
- * 应用、父宿主、Tree 与编辑器身份均参数化；生产菜单使用抽象默认值，契约测试绑定真实实现做严格比较。
+ * 应用、父宿主、Tree 与编辑器均使用各自完整领域根，不依赖具体 class。
  */
-export interface CustomListsDomain<
-    TApplication extends object = object,
-    TParent extends ILayoutModelHost = ILayoutModelHost,
-    TTree extends object = object,
-    TEditor extends object = object,
-> extends ILayoutModel {
+export interface CustomListsDomain extends ILayoutModel {
     readonly layoutModel: true;
     ws: WebSocket;
     reqId: number;
-    parent: TParent;
-    app: TApplication;
+    parent: LayoutTab;
+    app: AppFacade;
     element: HTMLElement;
-    tree: TTree;
+    tree: TreeDomain;
     listData: ICustomList;
-    editors: TEditor[];
+    editors: ProtyleDomain[];
     connect(options: IModelConnectOptions): void;
     send(cmd: string, param: Record<string, unknown>, process?: boolean): void;
     dispose(): void;
@@ -72,7 +67,13 @@ export interface CustomListsDomain<
 }
 /** 用途：继承布局模型身份；使用范围：CustomLists 领域根；解耦评估：稳定生命周期类型不加载具体模型。 */
 import type {ILayoutModel} from "../../lifecycle/model.types";
-/** 用途：参数化父宿主；使用范围：CustomLists 领域根；解耦评估：保持抽象宿主身份，不导入 Tab class。 */
-import type {ILayoutModelHost} from "../../lifecycle/model.types";
 /** 用途：描述公开连接动作；使用范围：CustomLists 领域根；解耦评估：复用模型生命周期请求类型。 */
 import type {IModelConnectOptions} from "../../lifecycle/model.types";
+/** 用途：完整应用外观；使用范围：CustomLists 领域根；解耦评估：稳定应用抽象，不导入 App class。 */
+import type {AppFacade} from "../../../app/AppFacade.types";
+/** 用途：完整页签领域根；使用范围：CustomLists 父宿主；解耦评估：不导入 Tab class。 */
+import type {LayoutTab} from "../../layout.types";
+/** 用途：完整树领域根；使用范围：CustomLists 数据树；解耦评估：不导入 Tree class。 */
+import type {TreeDomain} from "../../../util/file/tree.types";
+/** 用途：完整编辑器领域根；使用范围：CustomLists 内嵌编辑器；解耦评估：不导入 Protyle class。 */
+import type {ProtyleDomain} from "../../../protyle/protyle.types";

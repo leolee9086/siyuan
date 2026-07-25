@@ -526,6 +526,7 @@ interface ResidualEvent {
 - **RPC 语义漂移**：以 `webKoa` 的本地请求模型为参考，但统一请求 ID、错误、超时、取消和销毁语义，避免各宿主自行约定。
 - **Node 依赖进入浏览器入口**：将 `Application` 的 HTTP `listen` 和 Node-only polyfill 与浏览器本地 RPC 核心分离，保持静态导入可构建。
 - **外部事件拖慢核心输入**：核心路由只消费一次状态快照，外部事件默认异步调度并受时间预算、优先级和 `delegationSignal` 控制。
+- **2026-07-26 完整公共抽象**：新增 `protyle.types.ts`，以 `ProtyleDomain` 覆盖 Protyle class 的两个公共字段和全部 21 个公开方法；`LayoutDomain.contract.test.ts` 使用 `PublicInstanceLooksLike` 严格双向校验。CustomLists 改由 Dock 工厂注入具体构造器并仅公开 `ProtyleDomain[]`，因此 CustomLists 不再运行时加载 Protyle class；该抽象文件循环路径为 `0`，Node `140/140`。
 - **核心 Signal 与外部 Signal 语义混淆**：禁止用核心 `AbortController` 直接表示外部任务取消；两类 Signal 必须在契约中分开。
 - **插件越权修改 DOM 或默认行为**：`post-core` 只接收规范化快照和能力声明，菜单、弹窗、导航等行为必须通过 Host Port 或 Local RPC 执行。
 - **布局协同范围失控**：Dockview 只作为模型、API、生命周期和测试的参考；当前阶段以 Protyle 触及路径为边界，不进行布局整体替换。

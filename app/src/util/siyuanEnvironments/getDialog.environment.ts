@@ -1,10 +1,10 @@
-import { Dialog } from "../../dialog";
+import type {IDialog} from "../../dialog/dialog.types";
 
 /**
  * 获取 window.siyuan.dialogs
  * @returns dialogs 列表
  */
-export const getSiyuanDialogs = (): Dialog[] => {
+export const getSiyuanDialogs = (): IDialog[] => {
     return window.siyuan?.dialogs || [];
 };
 

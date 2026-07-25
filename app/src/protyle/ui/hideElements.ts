@@ -1,6 +1,7 @@
 import { getAllEditor } from "../../layout/getAll";
 import {isIPhone} from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {hideAllGutters} from "./hideGutters";
 
 /**
  * 思源编辑器面板类型枚举
@@ -141,9 +142,6 @@ export const hideAllElements = (types: string[]) => {
         });
     }
     if (types.includes("gutter")) {
-        document.querySelectorAll(".protyle-gutters").forEach(item => {
-            item.classList.add("fn__none");
-            item.innerHTML = "";
-        });
+        hideAllGutters();
     }
 };

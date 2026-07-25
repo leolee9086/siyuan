@@ -676,7 +676,7 @@ interface ISiyuan {
     }
     bookmarkLabel?: string[]
     blockPanels: import("../block/panel/Panel").BlockPanel[],
-    dialogs: import("../dialog").Dialog[],
+    dialogs: import("../dialog/dialog.types").IDialog[],
     viewer?: Viewer,
     /**
      * 是否在发布服务下访问
@@ -837,7 +837,7 @@ interface ITab {
     docIcon?: string;
     title?: string;
     panel?: string;
-    callback?: (tab: import("../layout/Tab").Tab) => void;
+    callback?: (tab: import("../layout/layout.types").LayoutTab) => void;
 }
 
 interface IWebSocketData {

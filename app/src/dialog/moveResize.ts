@@ -15,7 +15,7 @@ import { Constants } from "./imports";
  * 使用范围：拖拽结束后清理 gutter 等浮动层。
  * 解耦评估：UI 清理逻辑短期内仍需直接调用，通过 imports.ts 收敛路径耦合。
  */
-import { hideAllElements } from "./imports";
+import {hideAllGutters} from "./imports";
 /**
  * 用途：存储键值对到 localStorage 兼容封装。
  * 使用范围：拖拽结束后保存对话框位置。
@@ -200,7 +200,7 @@ const cleanupDrag = (element: HTMLElement) => {
     document.ondragstart = null;
     document.onselectstart = null;
     document.onselect = null;
-    hideAllElements(["gutter"]);
+    hideAllGutters();
 };
 
 /**

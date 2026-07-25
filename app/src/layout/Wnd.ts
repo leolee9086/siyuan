@@ -1,11 +1,11 @@
 import { Layout } from "./index";
+import type {LayoutDomain, LayoutTab, LayoutWindow} from "./layout.types";
 import { genUUID } from "../util/platform/genID";
 import {
     fixWndFlex1,
     pdfIsLoading,
 } from "./util";
 import { setPanelFocus } from "./utils/setPanelFocus";
-import { Tab } from "./Tab";
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import { ipcSend } from "../platform/electron/ipcRenderer";
@@ -39,10 +39,10 @@ import {getWndDragRestore} from "./Wnd.drag.port";
 export class Wnd {
     private app: AppFacade;
     public id: string;
-    public parent?: Layout;
+    public parent?: LayoutDomain;
     public element: HTMLElement;
     public headersElement: HTMLElement;
-    public children: Tab[] = [];
+    public children: LayoutTab[] = [];
     public resize?: Config.TUILayoutDirection;
 
     constructor(app: AppFacade, resize?: Config.TUILayoutDirection, parentType?: Config.TUILayoutType) {
@@ -171,7 +171,7 @@ export class Wnd {
         wndSwitchTab(this, target, pushBack, update, resize, isSaveLayout);
     }
 
-    public addTab(tab: Tab, keepCursor = false, isSaveLayout = true, activeTime?: string) {
+    public addTab(tab: LayoutTab, keepCursor = false, isSaveLayout = true, activeTime?: string) {
         wndAddTab(this, tab, keepCursor, isSaveLayout, activeTime);
     }
 
@@ -354,11 +354,11 @@ export class Wnd {
         wndRemoveTab(this, id, isBatchClose, animate, isSaveLayout);
     }
 
-    public moveTab(tab: Tab, nextId?: string) {
+    public moveTab(tab: LayoutTab, nextId?: string) {
         wndMoveTab(this, tab, nextId);
     }
 
-    public split(direction: Config.TUILayoutDirection, after = true) {
+    public split(direction: Config.TUILayoutDirection, after = true): LayoutWindow {
         if (this.children.length === 1 && !this.children[0].headElement) {
             return this;
         }

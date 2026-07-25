@@ -33,6 +33,10 @@
 
 ## 近期计划（Phase 0：扫描与契约）
 
+- [x] **完整 Layout/Window/Tab 领域根严格校验（2026-07-26）**
+  - **行动**：补齐 `LayoutDomain/LayoutWindow/LayoutTab` 的全部公共字段与方法，保留字段可变性和递归父子关系；`Layout` 公开参数改用领域根并移除对 Wnd class 的运行时导入。
+  - **验证**：`LayoutDomain.contract.test.ts` 对 Layout、Wnd、Tab、Dock 使用 `PublicInstanceLooksLike` 严格双向校验；Node `140/140`，全量类型检查未报告这些 witness 错误。
+
 - [x] **创建 layout 专属 TTT**
   - **结果**：建立本文件，作为 layout 解耦工作的独立追踪入口。
 
@@ -71,6 +75,10 @@
 - [ ] **定义布局核心最小协议**
   - **行动**：设计 `LayoutNode`、`WindowState`、`TabState`、`LayoutCommand`、`LayoutEvent` 和 `LayoutHostPort`，先只写类型与兼容适配，不替换现有实现。
   - **验收**：模型命令可脱离 DOM 描述 `add/remove/move/activate/split`，宿主能力为可选注入。
+
+- [-] **Dock 窗口类型守卫改用布局外观契约（2026-07-26）**
+  - **行动**：移除 `dock.guard.ts` 对具体 `Wnd` 实现的运行时导入和 `instanceof` 判断，委托布局领域的结构型外观守卫并收窄为 `LayoutWindow`。
+  - **验收**：Dock 调用方保持 `isWnd` 兼容入口，窗口判断不再加载具体 `Wnd` class，前端 lint 通过。
 
 ## 关键发现与优先级
 

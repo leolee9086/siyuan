@@ -3,7 +3,7 @@
  * 所有 private 方法已提取到辅助文件中
  */
 import { setStorageVal } from "../../protyle/util/compatibility";
-import { Layout } from "../index";
+import type {LayoutDomain} from "../layout.types";
 import type {ILayoutModel} from "./imports";
 import { saveLayout } from "../util";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
@@ -32,7 +32,7 @@ const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGr
  */
 export class Dock {
     public elements: HTMLElement[];
-    public layout!: Layout;
+    public layout!: LayoutDomain;
     public position: TDockPosition;
     public app: AppFacade;
     public resizeElement!: HTMLElement;

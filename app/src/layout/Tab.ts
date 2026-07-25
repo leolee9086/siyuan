@@ -1,4 +1,4 @@
-import type {LayoutWindow} from "./layout.types";
+import type {LayoutTab, LayoutWindow} from "./layout.types";
 import { genUUID } from "../util/platform/genID";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import {attachLayoutModel} from "./lifecycle/model.mount";
@@ -19,7 +19,7 @@ export class Tab {
     public id: string;
     public headElement: HTMLElement;
     public panelElement: HTMLElement;
-    public callback: (tab: Tab) => void;
+    public callback: (tab: LayoutTab) => void;
     public model: ILayoutModel;
     public title: string;
     public icon: string;

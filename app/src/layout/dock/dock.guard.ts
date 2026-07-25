@@ -3,18 +3,18 @@
  * 用于替代 as 类型断言，提供运行时类型检查
  */
 
-/** 用途：窗口类型。使用范围：dock.guard 类型守卫。解耦评估：通过 imports.ts 转发。 */
-import { Wnd } from "./imports";
-/** 用途：布局类型。使用范围：dock.guard 类型守卫。解耦评估：通过 imports.ts 转发。 */
-import type { Layout } from "./imports";
-/** 用途：Model 构造函数/工厂函数类型。使用范围：dock.guard 类型守卫。解耦评估：同目录类型文件。 */
+/** 用途：布局窗口外观类型。使用范围：dock.guard 类型守卫。解耦评估：仅依赖稳定领域契约，不加载具体 Wnd 实现。 */
+import type { LayoutWindow } from "./imports";
+/** 用途：布局窗口外观守卫。使用范围：dock.guard 类型守卫。解耦评估：复用布局领域统一结构守卫。 */
+import { isLayoutWindow } from "./imports";
+/** 用途：Model 构造函数/工厂函数类型。使用范围：dock.guard 类型守卫。 */
 import type { ModelConstructor } from "./dock.types";
-/** 用途：Model 工厂函数类型。使用范围：dock.guard 类型守卫。解耦评估：同目录类型文件。 */
+/** 用途：Model 工厂函数类型。使用范围：dock.guard 类型守卫。 */
 import type { ModelFactory } from "./dock.types";
 /** 用途：布局模型结构守卫。使用范围：Dock 数据结构守卫。解耦评估：通过 imports.ts 转发最小契约守卫，不依赖具体 Model 类。 */
 import { isLayoutModel } from "./imports";
-/** 用途：自定义列表类型。使用范围：dock.guard 类型检查。解耦评估：同目录模块。 */
-import type { ICustomList } from "./customBlockLists/CustomLists";
+/** 用途：自定义列表类型。使用范围：dock.guard 类型检查。 */
+import type {ICustomList} from "./customBlockLists/customLists.types";
 /** 用途：DOM 元素类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
 import { isStylableElement } from "./imports";
 /** 用途：HTMLElement 类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
@@ -43,14 +43,14 @@ export { isLayoutModel };
 
 
 /**
- * 判断布局子元素是否为 Wnd 实例。
- * 
- * 作用：检查给定的布局子元素对象是否是 Wnd 类的实例。
- * 意图：在布局树遍历或操作时，区分 Wnd 节点和其他类型的节点（如 Layout），作为 TypeScript 类型守卫使用。
+ * 判断布局子元素是否具备窗口外观。
+ *
+ * 作用：通过布局领域的稳定公开能力识别窗口，不依赖具体实现类的原型身份。
+ * 意图：在布局树遍历或操作时区分窗口节点和其他节点，并允许兼容实现提供同一窗口契约。
  * 调用时机：在处理 Dock 布局结构、查找特定窗口或进行布局调整时调用。
  */
-export function isWnd(child: Layout | Wnd | unknown): child is Wnd {
-    return child instanceof Wnd;
+export function isWnd(child: unknown): child is LayoutWindow {
+    return typeof child === "object" && child !== null && isLayoutWindow(child);
 }
 
 /**

@@ -7,25 +7,26 @@ import type {ILayoutModel} from "./lifecycle/model.types";
 
 /** Layout 聚合根的完整公开能力；用于布局工具和宿主之间的稳定依赖。 */
 export interface LayoutDomain {
-    readonly element: HTMLElement;
-    readonly children: Array<LayoutDomain | LayoutWindow>;
-    readonly parent?: LayoutDomain;
-    readonly direction: Config.TUILayoutDirection;
-    readonly type?: Config.TUILayoutType;
-    readonly id?: string;
-    readonly resize?: Config.TUILayoutDirection;
-    readonly size?: string;
+    element: HTMLElement;
+    children: Array<LayoutDomain | LayoutWindow>;
+    parent?: LayoutDomain;
+    direction: Config.TUILayoutDirection;
+    type?: Config.TUILayoutType;
+    id?: string;
+    resize?: Config.TUILayoutDirection;
+    size?: string;
     addLayout(child: LayoutDomain, id?: string, after?: boolean): void;
     addWnd(child: LayoutWindow, id?: string, after?: boolean): void;
 }
 
 /** Layout 窗口的完整公开领域能力。 */
 export interface LayoutWindow {
-    readonly id: string;
-    readonly element: HTMLElement;
-    readonly headersElement: HTMLElement;
-    readonly children: LayoutTab[];
-    readonly resize?: Config.TUILayoutDirection;
+    id: string;
+    parent?: LayoutDomain;
+    element: HTMLElement;
+    headersElement: HTMLElement;
+    children: LayoutTab[];
+    resize?: Config.TUILayoutDirection;
     showHeading(): void;
     switchTab(target: HTMLElement, pushBack?: boolean, update?: boolean, resize?: boolean, isSaveLayout?: boolean): void;
     addTab(tab: LayoutTab, keepCursor?: boolean, isSaveLayout?: boolean, activeTime?: string): void;
@@ -36,14 +37,15 @@ export interface LayoutWindow {
 
 /** Layout 页签的完整公开领域能力，关联所属窗口与挂载模型。 */
 export interface LayoutTab {
-    readonly id: string;
-    readonly parent: LayoutWindow;
-    readonly headElement: HTMLElement;
-    readonly panelElement: HTMLElement;
-    readonly title: string;
-    readonly icon: string;
-    readonly docIcon: string;
-    readonly model: ILayoutModel;
+    id: string;
+    parent: LayoutWindow;
+    headElement: HTMLElement;
+    panelElement: HTMLElement;
+    callback: (tab: LayoutTab) => void;
+    model: ILayoutModel;
+    title: string;
+    icon: string;
+    docIcon: string;
     updateTitle(title: string): void;
     addModel(model: ILayoutModel): void;
     initialize(): void;

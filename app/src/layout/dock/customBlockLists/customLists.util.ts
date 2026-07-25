@@ -1,6 +1,5 @@
 import type { ICustomList } from "./customLists.types";
-import { getDockByType } from "../../tabUtil";
-import { setStorageVal } from "../../../protyle/util/compatibility";
+import type {DockDomain} from "../dock.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getCustomListIcon = (type: "dynamic" | "static") => {
@@ -16,33 +15,44 @@ export const getTopExtHTML = (type: "dynamic" | "static") => {
     return "";
 };
 
-export const handleRemoveFromStorage = (id: string, listData: ICustomList) => {
+export const handleRemoveFromStorage = (
+    id: string,
+    listData: ICustomList,
+    dock: DockDomain | undefined,
+    saveCustomLists: (customLists: Record<string, ICustomList>) => void,
+) => {
     const storage = window.siyuan.storage;
     const customLists = storage?.["local-customlists"];
     if (customLists) {
         delete customLists[id];
-        setStorageVal("local-customlists", customLists);
+        saveCustomLists(customLists);
     }
     const key = `custom_list:${listData.type}:${id}`;
-    const dock = getDockByType(key);
     if (dock) {
         dock.remove(key);
     }
 };
 
-export const handleRemoveItemFromList = (id: string, listData: ICustomList) => {
-    const ids = listData.target as string[];
-    const index = ids.indexOf(id);
-    if (index > -1) {
-        ids.splice(index, 1);
-        listData.target = ids;
-        const storage = window.siyuan.storage;
-        const customLists = storage?.["local-customlists"];
-        if (customLists && customLists[listData.id]) {
-            customLists[listData.id] = listData;
-            setStorageVal("local-customlists", customLists);
-        }
-        return true; // Indicates update needed
+export const handleRemoveItemFromList = (
+    id: string,
+    listData: ICustomList,
+    saveCustomLists: (customLists: Record<string, ICustomList>) => void,
+) => {
+    if (listData.type !== "static") {
+        return false;
     }
-    return false;
+    const ids = listData.target;
+    const index = ids.indexOf(id);
+    if (index === -1) {
+        return false;
+    }
+    ids.splice(index, 1);
+    listData.target = ids;
+    const storage = window.siyuan.storage;
+    const customLists = storage?.["local-customlists"];
+    if (customLists && customLists[listData.id]) {
+        customLists[listData.id] = listData;
+        saveCustomLists(customLists);
+    }
+    return true; // Indicates update needed
 };
