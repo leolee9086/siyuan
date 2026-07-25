@@ -3,10 +3,23 @@
  *
  * 基于集合论的类型安全模式匹配引擎
  */
-import { 匹配, 是子集, 有交集 } from "../utils/setOps.js";
+import { 匹配, 是子集, 有交集, 全集被模式集合覆盖 } from "../utils/setOps.js";
 // ============================================================================
 // 辅助函数
 // ============================================================================
+/**
+ * 安全地序列化对象，处理循环引用等边界情况
+ */
+function safeStringify(obj) {
+    try {
+        return JSON.stringify(obj);
+    }
+    catch {
+        // 降级策略：提供类型信息
+        const type = Object.prototype.toString.call(obj);
+        return `[${type}] (无法序列化)`;
+    }
+}
 /**
  * 检查一个处理器是否为分发器（运行时检测）
  * 通过检查是否存在 __全集模式__ 属性来判断
@@ -61,14 +74,14 @@ class 匹配器构建器实现 {
             // 分发器必须提供 fallback
             if (!fallback处理器) {
                 throw new Error(`calibur-router: 使用分发器作为处理器时，必须提供第三参数 fallback 处理器。` +
-                    `\n  当前模式: ${JSON.stringify(模式.json)}` +
-                    `\n  子分发器全集: ${JSON.stringify(子全集模式.json)}`);
+                    `\n  当前模式: ${模式.description}` +
+                    `\n  子分发器全集: ${子全集模式.description}`);
             }
             // 验证子分发器的全集是否为当前模式的子集
             if (!是子集(子全集模式, 模式)) {
                 throw new Error(`calibur-router: 嵌套分发器的全集不是当前模式的子集。` +
-                    `\n  当前模式: ${JSON.stringify(模式.json)}` +
-                    `\n  子分发器全集: ${JSON.stringify(子全集模式.json)}`);
+                    `\n  当前模式: ${模式.description}` +
+                    `\n  子分发器全集: ${子全集模式.description}`);
             }
             // 创建包装处理器：先尝试子分发器，失败则调用fallback
             const fallback = fallback处理器;
@@ -90,27 +103,18 @@ class 匹配器构建器实现 {
         for (const 已注册 of this.已注册列表) {
             if (有交集(模式, 已注册.模式)) {
                 throw new Error(`calibur-router: 模式重叠检测失败。新模式与已注册模式有交集，这会导致新模式永远无法被匹配。` +
-                    `\n  已注册模式: ${JSON.stringify(已注册.模式.json)}` +
-                    `\n  新模式: ${JSON.stringify(模式.json)}` +
+                    `\n  已注册模式: ${已注册.模式.description}` +
+                    `\n  新模式: ${模式.description}` +
                     `\n  提示: 请确保 split 的模式互不重叠，或者使用嵌套分发器来处理子集关系。`);
             }
         }
         // 创建新的已注册列表（不可变）
         const 新列表 = [
             ...this.已注册列表,
-            { 模式: 模式, 处理器: 实际处理器 }
+            { 模式, 处理器: 实际处理器 }
         ];
-        // 2. 计算新的耗尽状态
-        // 聚合所有模式：CurrentUnion = Pattern1 | Pattern2 | ... | NewPattern
-        // 使用 reduce 和 or 方法
-        let 当前覆盖集 = null;
-        if (新列表.length > 0) {
-            当前覆盖集 = 新列表[0].模式;
-            for (let i = 1; i < 新列表.length; i++) {
-                当前覆盖集 = 当前覆盖集.or(新列表[i].模式);
-            }
-        }
-        const 新是否已耗尽 = 当前覆盖集 ? 是子集(this.全集模式, 当前覆盖集) : false;
+        // 2. 计算新的耗尽状态。ArkType 后端负责证明部分对象模式的联合覆盖。
+        const 新是否已耗尽 = 全集被模式集合覆盖(this.全集模式, 新列表.map(({ 模式 }) => 模式));
         // 返回新的构建器实例
         return new 匹配器构建器实现(this.全集模式, 新列表, 新是否已耗尽);
     }
@@ -130,6 +134,10 @@ class 匹配器构建器实现 {
         );
         结果.剩余处理器 = 处理器;
         return 结果;
+    }
+    /** 注册不读取剩余状态的兜底处理器。 */
+    otherwise(处理器) {
+        return this.remain(处理器);
     }
     /**
      * 构建分发器
@@ -158,7 +166,7 @@ class 匹配器构建器实现 {
             // 如果 build() 被调用且没有 remain，这意味着全集应该被 patterns 覆盖。
             // 我们可以在这里抛出更有意义的错误。
             throw new Error("calibur-router: 分发失败。输入未匹配任何模式，且未定义 remain 处理器。" +
-                "\n  输入: " + JSON.stringify(输入) +
+                "\n  输入: " + safeStringify(输入) +
                 "\n  请检查是否遗漏了某些情况，或考虑通过 .remain() 提供默认处理。");
         });
         // 挂载全集模式到分发器，用于嵌套验证

@@ -4,8 +4,8 @@
  * 基于集合论的类型安全模式匹配引擎
  */
 
-import { type, Type } from "arktype";
-import { 匹配, 是子集, 有交集 } from "../utils/setOps.js";
+import { type } from "arktype";
+import { 匹配, 是子集, 有交集, 全集被模式集合覆盖 } from "../utils/setOps.js";
 import type {
     匹配器构建器,
     可构建匹配器,
@@ -13,7 +13,8 @@ import type {
     分发器,
     处理器,
     合并类型,
-    耗尽的匹配器构建器
+    耗尽的匹配器构建器,
+    状态空间模式,
 } from "./types.js";
 
 // ============================================================================
@@ -54,9 +55,9 @@ function 处理器是分发器(处理器: unknown): 处理器 is 分发器<unkno
  * 
  * 维护已注册的模式列表，在build时生成分发器
  */
-class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹配器构建器<全集, 剩余集, 结果联合, any[]> {
+class 匹配器构建器实现<全集, 剩余集, 结果联合> {
     /** 全集模式（用于运行时验证） */
-    private readonly 全集模式: Type<全集>;
+    private readonly 全集模式: 状态空间模式<全集>;
     /** 已注册的模式-处理器对列表 */
     private readonly 已注册列表: 已注册模式[];
     /** 剩余处理器（可选） */
@@ -65,7 +66,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
     private readonly 已耗尽: boolean;
 
     constructor(
-        全集模式: Type<全集>,
+        全集模式: 状态空间模式<全集>,
         已注册列表: 已注册模式[] = [],
         已耗尽: boolean = false
     ) {
@@ -84,7 +85,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
      * 当使用分发器时，必须提供fallback处理器
      */
     split<模式定义, 新结果>(
-        模式: Type<模式定义>,
+        模式: 状态空间模式<模式定义>,
         处理器或分发器: any,
         fallback处理器?: 处理器<合并类型<全集, 模式定义>, unknown>
     ): any {
@@ -152,25 +153,18 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
         // 创建新的已注册列表（不可变）
         const 新列表: 已注册模式[] = [
             ...this.已注册列表,
-            { 模式: 模式 as Type<unknown>, 处理器: 实际处理器 }
+            { 模式, 处理器: 实际处理器 }
         ];
 
-        // 2. 计算新的耗尽状态
-        // 聚合所有模式：CurrentUnion = Pattern1 | Pattern2 | ... | NewPattern
-        // 使用 reduce 和 or 方法
-        let 当前覆盖集: Type<unknown> | null = null;
-        if (新列表.length > 0) {
-            当前覆盖集 = 新列表[0].模式;
-            for (let i = 1; i < 新列表.length; i++) {
-                当前覆盖集 = 当前覆盖集.or(新列表[i].模式);
-            }
-        }
-
-        const 新是否已耗尽 = 当前覆盖集 ? 是子集(this.全集模式, 当前覆盖集) : false;
+        // 2. 计算新的耗尽状态。ArkType 后端负责证明部分对象模式的联合覆盖。
+        const 新是否已耗尽 = 全集被模式集合覆盖(
+            this.全集模式,
+            新列表.map(({ 模式 }) => 模式),
+        );
 
         // 返回新的构建器实例
         return new 匹配器构建器实现(this.全集模式, 新列表, 新是否已耗尽) as unknown as
-            匹配器构建器<全集, Exclude<剩余集, 模式定义>, 结果联合 | 新结果, any[]>;
+            匹配器构建器<全集, 结果联合 | 新结果>;
     }
 
     /**
@@ -196,6 +190,11 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
         );
         结果.剩余处理器 = 处理器 as 处理器<unknown, unknown>;
         return 结果 as unknown as 可构建匹配器<全集, 结果联合 | 新结果>;
+    }
+
+    /** 注册不读取剩余状态的兜底处理器。 */
+    otherwise<新结果>(处理器: () => 新结果): 可构建匹配器<全集, 结果联合 | 新结果> {
+        return this.remain(处理器);
     }
 
     /**
@@ -257,8 +256,8 @@ export const calibur = {
      * @param 全集模式 - arktype模式，定义所有可能的输入
      * @returns 匹配器构建器，可链式调用split和remain
      */
-    universe<全集>(全集模式: Type<全集>): 匹配器构建器<全集, 全集, never, []> {
-        return new 匹配器构建器实现(全集模式) as unknown as 匹配器构建器<全集, 全集, never, []>;
+    universe<全集>(全集模式: 状态空间模式<全集>): 匹配器构建器<全集, never> {
+        return new 匹配器构建器实现(全集模式) as unknown as 匹配器构建器<全集, never>;
     }
 };
 

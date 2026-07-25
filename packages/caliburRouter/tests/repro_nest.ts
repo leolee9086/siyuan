@@ -28,9 +28,9 @@ const test1: Remaining1 = {
     block: { type: "p" }
 };
 
-// @ts-expect-error
 const test1_fail: Remaining1 = {
     key: "a",
+    // @ts-expect-error
     modifiers: { ctrl: true, shift: true },
     block: { type: "p" }
 };
@@ -52,10 +52,10 @@ const test2: Remaining2 = {
     block: { type: "p" }
 };
 
-// @ts-expect-error
 const test2_fail: Remaining2 = {
     key: "a",
     modifiers: { ctrl: false, shift: true },
+    // @ts-expect-error
     block: { type: "code" }
 };
 

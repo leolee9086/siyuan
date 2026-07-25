@@ -15,7 +15,7 @@
  *
  * const dispatch = matcher
  *   .split(type({ 按键: "'Enter'" }), () => ({ 命令: "回车" }))
- *   .remain(() => ({ 命令: "默认" }))
+ *   .otherwise(() => ({ 命令: "默认" }))
  *   .build();
  *
  * dispatch({ 按键: "Enter", 修饰符: { ctrl: false, shift: false } });

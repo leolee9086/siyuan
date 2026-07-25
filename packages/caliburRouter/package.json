@@ -15,7 +15,8 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.contracts.json",
+    "typecheck:performance": "tsc -p tsconfig.performance.json --extendedDiagnostics"
   },
   "dependencies": {
     "arktype": "^2.1.0"

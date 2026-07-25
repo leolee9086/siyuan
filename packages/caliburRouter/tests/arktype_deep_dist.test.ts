@@ -1,17 +1,14 @@
-
-import { describe, it, expectTypeOf } from "vitest";
+import { describe, expectTypeOf, it } from "vitest";
 import { type } from "arktype";
 
-describe("ArkType Deep Distribution", () => {
-    it("should distribute nested unions", () => {
+type IsNestedUnionDistributed<T> = T extends { nested: { key: "A" } } ? true : false;
+
+describe("ArkType nested union inference", () => {
+    it("preserves a nested property union without normalizing it to an object union", () => {
         const full = type({ nested: { key: "'A' | 'B'" } });
         type Full = typeof full.infer;
 
-        // Is Full: { nested: { key: 'A' } } | { nested: { key: 'B' } } ?
-        // Or: { nested: { key: 'A' | 'B' } } ?
-
-        type IsDistributed = Full extends { nested: { key: 'A' } } ? true : false;
-
-        expectTypeOf<IsDistributed>().toEqualTypeOf<boolean>();
+        expectTypeOf<Full>().toEqualTypeOf<{ nested: { key: "A" | "B" } }>();
+        expectTypeOf<IsNestedUnionDistributed<Full>>().toEqualTypeOf<false>();
     });
 });

@@ -3,7 +3,12 @@
  *
  * 基于集合论的类型安全模式匹配引擎的类型系统
  */
-import type { Type } from "arktype";
+/** 后端无关的状态空间模式；后端负责集合运算，核心链只携带推断状态。 */
+export interface 状态空间模式<out 状态 = unknown> {
+    readonly infer: 状态;
+    readonly description: string;
+    (输入: unknown): unknown;
+}
 /**
  * 模式处理器类型
  * @template 模式 - 输入模式的类型（由arktype推断）
@@ -15,7 +20,7 @@ export type 处理器<模式, 结果> = (输入: 模式) => 结果;
  */
 export interface 已注册模式<模式 = unknown, 结果 = unknown> {
     /** arktype模式定义 */
-    模式: Type<模式>;
+    模式: 状态空间模式<模式>;
     /** 对应的处理器 */
     处理器: 处理器<模式, 结果>;
 }
@@ -29,7 +34,7 @@ export interface 已注册模式<模式 = unknown, 结果 = unknown> {
 export interface 分发器<输入, 输出> {
     (输入: 输入): 输出;
     /** 携带的全集模式，用于嵌套验证 */
-    __全集模式__: Type<输入>;
+    __全集模式__: 状态空间模式<输入>;
 }
 /**
  * 检查一个值是否为分发器
@@ -49,14 +54,41 @@ type 包含Never属性<T> = T extends object ? {
     [K in keyof T]-?: [T[K]] extends [never] ? true : 包含Never属性<T[K]>;
 }[keyof T] extends false ? false : true : false;
 /**
+ * 过滤掉包含 never 属性的对象类型
+ * 用于从联合类型中移除不可能的状态
+ */
+export type 过滤无效对象<T> = T extends any ? 包含Never属性<T> extends true ? never : T : never;
+/**
+ * 计算两个集合的差集 (T - U)
+ *
+ * 对于对象类型：
+ * T - U = Union(T where key K is (T[K] - U[K])) for all K in U
+ *
+ * 原理：(A & B)' = A' U B'
+ * 我们想要 T & Not(U)
+ * Not(U) = Union(Not(U[K]))
+ * 所以 T & Not(U) = Union(T & Not(U[K]))
+ */
+type 原始集合差<T, U> = T extends object ? U extends object ? {
+    [K in keyof U & keyof T]: {
+        [P in keyof T]: P extends K ? 切割后剩余<T[P], U[P & keyof U]> : T[P];
+    };
+}[keyof U & keyof T] : Exclude<T, U> : Exclude<T, U>;
+/**
  * 从剩余集中排除已切割的模式
  * 这是类型级别的集合差运算
  */
-export type 切割后剩余<剩余集, 已切割模式> = Exclude<剩余集, 已切割模式>;
+export type 切割后剩余<剩余集, 已切割模式> = 过滤无效对象<原始集合差<剩余集, 已切割模式>>;
+/** 按注册顺序一次性计算剩余空间，避免每个链式 split 重复展开全部历史集合差。 */
+export type 应用切割序列<剩余集, 已切割列表 extends readonly unknown[]> = 已切割列表 extends readonly [infer 当前模式, ...infer 后续模式] ? 应用切割序列<切割后剩余<剩余集, 当前模式>, 后续模式> : 剩余集;
 /**
  * 检查剩余集是否为空（never）
  */
 export type 剩余集为空<剩余集> = [剩余集] extends [never] ? true : false;
+/** 已覆盖模式联合包含全集时，路由构建器立即进入耗尽态。 */
+export type 全集已覆盖<全集, 已覆盖模式> = [
+    全集
+] extends [已覆盖模式] ? true : false;
 /**
  * 检查两个类型的交集是否非空（用于编译期重叠检测）
  *
@@ -70,21 +102,23 @@ export type 交集非空<A, B> = [
     A & B
 ] extends [never] ? false : 包含Never属性<A & B> extends true ? false : true;
 /**
- * 检查新模式是否与已切割模式列表中的任何一个有交集
- * 使用递归遍历已切割列表
+ * 检查新模式是否与已覆盖模式联合中的任意成员有交集。
+ * 联合由 TypeScript 直接分发，避免长 split 链持续扩张历史元组并递归遍历。
  */
-export type 与已切割列表有交集<模式, 已切割列表 extends unknown[]> = 已切割列表 extends [infer 第一个, ...infer 剩余] ? 交集非空<模式, 第一个> extends true ? true : 与已切割列表有交集<模式, 剩余> : false;
+export type 与已覆盖模式有交集<模式, 已覆盖模式> = [
+    已覆盖模式
+] extends [never] ? false : 交集非空<模式, 已覆盖模式>;
 /**
  * 类型错误标记：当模式与已切割模式有重叠时，返回此类型
  *
  * 使用方式：将 split 的参数类型设置为条件类型，
  * 当检测到重叠时返回错误消息类型
  */
-export type 断言模式无重叠<模式, 已切割列表 extends unknown[]> = 与已切割列表有交集<模式, 已切割列表> extends true ? [
+export type 断言模式无重叠<模式, 已覆盖模式> = 与已覆盖模式有交集<模式, 已覆盖模式> extends true ? [
     "❌ 类型错误：模式与已切割模式有重叠",
     {
         新模式: 模式;
-        已切割列表: 已切割列表;
+        已覆盖模式: 已覆盖模式;
         提示: "请确保 split 的模式互不重叠，或使用嵌套分发器处理子集关系";
     }
 ] : 模式;
@@ -144,11 +178,11 @@ export type 合并类型<全集, 模式> = 全集 extends object ? 模式 extend
  * 提供链式API用于定义模式分发规则
  *
  * @template 全集 - 全集类型
- * @template 剩余集 - 当前剩余类型
  * @template 结果联合 - 当前结果类型联合
- * @template 已切割列表 - 已切割模式的元组类型（用于类型错误提示）
+ * @template 已切割列表 - 已切割模式的有序序列，仅在 remain/build 边界求值
+ * @template 已覆盖模式 - 已切割模式的联合，用于增量互斥检查
  */
-export interface 匹配器构建器<全集, 剩余集, 结果联合, 已切割列表 extends unknown[] = []> {
+export interface 匹配器构建器<全集, 结果联合, 已切割列表 extends readonly unknown[] = [], 已覆盖模式 = never> {
     /**
      * 切割子集并注册处理器
      * 类型系统会自动从剩余集中排除已切割的模式
@@ -159,23 +193,31 @@ export interface 匹配器构建器<全集, 剩余集, 结果联合, 已切割�
      * @param 处理器 - 匹配该模式时的处理函数
      * @returns 更新后的匹配器构建器（剩余集已缩小，已切割列表已更新）
      */
-    split<模式定义, 新结果>(模式: 断言模式无重叠<模式定义, 已切割列表> extends 模式定义 ? Type<模式定义> : 断言模式无重叠<模式定义, 已切割列表>, 处理器: 处理器<合并类型<剩余集, 模式定义>, 新结果> & {
+    split<模式定义, 新结果>(模式: 断言模式无重叠<模式定义, 已覆盖模式> extends 模式定义 ? 状态空间模式<模式定义> : 断言模式无重叠<模式定义, 已覆盖模式>, 处理器: 处理器<合并类型<全集, 模式定义>, 新结果> & {
         __全集模式__?: never;
-    }): 剩余集为空<切割后剩余<剩余集, 模式定义>> extends true ? 耗尽的匹配器构建器<全集, 结果联合 | 新结果> : 匹配器构建器<全集, 切割后剩余<剩余集, 模式定义>, 结果联合 | 新结果, [...已切割列表, 模式定义]>;
+    }): 全集已覆盖<全集, 已覆盖模式 | 合并类型<全集, 模式定义>> extends true ? 耗尽的匹配器构建器<全集, 结果联合 | 新结果> : 匹配器构建器<全集, 结果联合 | 新结果, [
+        ...已切割列表,
+        模式定义
+    ], 已覆盖模式 | 合并类型<全集, 模式定义>>;
     /**
      * 切割子集并委托给嵌套分发器
      * 当使用分发器作为处理器时，必须提供fallback处理器来处理模式中未被子分发器覆盖的部分
      */
-    split<模式定义, 子全集, 子结果, Fallback结果>(模式: 断言模式无重叠<模式定义, 已切割列表> extends 模式定义 ? Type<模式定义> : 断言模式无重叠<模式定义, 已切割列表>, 子分发器: 断言子分发器全集合法<子全集, 剩余集, 模式定义> extends 子全集 ? 分发器<子全集, 子结果> : 断言子分发器全集合法<子全集, 剩余集, 模式定义>, fallback处理器: 处理器<合并类型<剩余集, 模式定义>, Fallback结果>): 剩余集为空<切割后剩余<剩余集, 模式定义>> extends true ? 耗尽的匹配器构建器<全集, 结果联合 | 子结果 | Fallback结果> : 匹配器构建器<全集, 切割后剩余<剩余集, 模式定义>, 结果联合 | 子结果 | Fallback结果, [...已切割列表, 模式定义]>;
+    split<模式定义, 子全集, 子结果, Fallback结果>(模式: 断言模式无重叠<模式定义, 已覆盖模式> extends 模式定义 ? 状态空间模式<模式定义> : 断言模式无重叠<模式定义, 已覆盖模式>, 子分发器: 断言子分发器全集合法<子全集, 全集, 模式定义> extends 子全集 ? 分发器<子全集, 子结果> : 断言子分发器全集合法<子全集, 全集, 模式定义>, fallback处理器: 处理器<合并类型<全集, 模式定义>, Fallback结果>): 全集已覆盖<全集, 已覆盖模式 | 合并类型<全集, 模式定义>> extends true ? 耗尽的匹配器构建器<全集, 结果联合 | 子结果 | Fallback结果> : 匹配器构建器<全集, 结果联合 | 子结果 | Fallback结果, [
+        ...已切割列表,
+        模式定义
+    ], 已覆盖模式 | 合并类型<全集, 模式定义>>;
     /**
      * 处理剩余模式
      * 当其他split都不匹配时调用
      */
-    remain<新结果>(处理器: 处理器<剩余集, 新结果>): 可构建匹配器<全集, 结果联合 | 新结果>;
+    remain<新结果>(处理器: 处理器<应用切割序列<全集, 已切割列表>, 新结果>): 可构建匹配器<全集, 结果联合 | 新结果>;
+    /** 处理剩余空间但不读取其状态，避免无意义的剩余集类型展开。 */
+    otherwise<新结果>(处理器: () => 新结果): 可构建匹配器<全集, 结果联合 | 新结果>;
     /**
      * 构建分发器
      */
-    build(): 分发器<全集, 结果联合>;
+    build: 剩余集为空<应用切割序列<全集, 已切割列表>> extends true ? () => 分发器<全集, 结果联合> : never;
 }
 /**
  * 耗尽的匹配器构建器
@@ -199,6 +241,6 @@ export interface 可构建匹配器<全集, 结果联合> {
 /**
  * 从arktype Type中提取推断类型
  */
-export type 推断类型<T extends Type> = T extends Type<infer U> ? U : never;
+export type 推断类型<T extends 状态空间模式> = T["infer"];
 export {};
 //# sourceMappingURL=types.d.ts.map

@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*",
+    "tests/type.test.ts",
+    "tests/arktype_deep_dist.test.ts",
+    "tests/arktype_distribute.test.ts",
+    "tests/arktype_explore.test.ts",
+    "tests/runtime.test.ts",
+    "tests/bug_overlap.test.ts",
+    "tests/repro_type_narrowing.test.ts",
+    "tests/realworld/texteditor.test.ts",
+    "tests/performance.long-chain.type.test.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -86,7 +86,7 @@ describe("Bug 暴露：模式优先级陷阱（已修复）", () => {
             calibur.universe(type({ 按键: "string", ctrl: "boolean" }))
                 .split(type({ 按键: "'Enter'" }), () => "宽泛的Enter")
                 // @ts-expect-error
-                .split(type({ 按键: "'Enter'", ctrl: "true" }), () => "具体的Ctrl+Enter")
+                .split(type({ 按键: "'Enter'", ctrl: "true" }), (state) => "具体的Ctrl+Enter")
                 .remain(() => "默认")
                 .build();
         }).toThrow(/重叠|overlap/i);
@@ -101,7 +101,7 @@ describe("Bug 暴露：模式优先级陷阱（已修复）", () => {
                 type({ 按键: "'Enter'" }),
                 (state) => state.ctrl ? "具体的Ctrl+Enter" : "普通Enter"
             )
-            .split(type({ 按键: "'Tab'" }), () => "Tab")
+            .split(type({ 按键: "'Tab'" }), (state) => "Tab")
             .remain(() => "默认")
             .build();
 
