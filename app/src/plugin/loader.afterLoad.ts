@@ -1,6 +1,6 @@
 /* eslint-disable folder-item-limit/folder-item-limit */
 /** @导入用途: 插件基类类型 @使用范围: afterLoad 相关函数签名 @解耦评估: 插件生命周期核心依赖不可解耦 */
-import {Plugin} from "./index";
+import type * as Siyuan from "siyuan";
 /** @导入用途: 移动端检测 @使用范围: 顶栏/状态栏/Dock 分支 @解耦评估: 环境工具函数，直接调用最轻量 */
 import {isMobile} from "./imports";
 /** @导入用途: 独立窗口检测 @使用范围: 顶栏与 Dock 条件分支 @解耦评估: 环境工具函数，当前方案已足够解耦 */
@@ -34,7 +34,7 @@ const resolveDockPosition = (type: string, index: number) => {
 };
 
 /** 作用: 同步单个区域 Dock 配置; 意图: 保持插件 dock 与布局一致; 调用时机: 布局恢复阶段 */
-const updateDock = (dockItems: Config.IUILayoutDockTab[], index: number, plugin: Plugin, type: string) => {
+const updateDock = (dockItems: Config.IUILayoutDockTab[], index: number, plugin: Siyuan.Plugin, type: string) => {
     const docks = plugin.docks;
     const dockKeys = Object.keys(docks);
     const storage = getSiyuanStorage();
@@ -120,7 +120,7 @@ const appendTopBarIcon = (element: Element) => {
 };
 
 /** 作用: 批量挂载顶栏图标; 意图: 避免重复插入并兼容各端; 调用时机: runAfterLoadPlugin */
-const mountTopBarIcons = (plugin: Plugin) => {
+const mountTopBarIcons = (plugin: Siyuan.Plugin) => {
     const shouldRenderTopBar = !isWindow() || isMobile();
     if (!shouldRenderTopBar) {
         return;
@@ -151,7 +151,7 @@ const appendStatusBarIcon = (element: Element) => {
 };
 
 /** 作用: 批量挂载状态栏图标; 意图: 插件状态与状态栏同步; 调用时机: runAfterLoadPlugin */
-const mountStatusBarIcons = (plugin: Plugin) => {
+const mountStatusBarIcons = (plugin: Siyuan.Plugin) => {
     if (isMobile()) {
         return;
     }
@@ -167,7 +167,7 @@ const mountStatusBarIcons = (plugin: Plugin) => {
 };
 
 /** 作用: 触发布局就绪回调; 意图: 保护插件生命周期调用; 调用时机: runAfterLoadPlugin 首步 */
-const notifyLayoutReady = (plugin: Plugin) => {
+const notifyLayoutReady = (plugin: Siyuan.Plugin) => {
     try {
         plugin.onLayoutReady();
     } catch (error) {
@@ -176,7 +176,7 @@ const notifyLayoutReady = (plugin: Plugin) => {
 };
 
 /** 作用: 从配置同步三块 Dock 数据; 意图: 恢复插件 Dock 基础位置; 调用时机: mountPluginDocks */
-const syncDockConfigFromLayout = (plugin: Plugin) => {
+const syncDockConfigFromLayout = (plugin: Siyuan.Plugin) => {
     const uiLayout = getSiyuanConfig().uiLayout;
     const leftData = uiLayout.left.data;
     for (let index = 0; index < leftData.length; index++) {
@@ -205,7 +205,7 @@ const syncDockConfigFromLayout = (plugin: Plugin) => {
 };
 
 /** 作用: 应用存储中的 Dock 配置; 意图: 恢复 show/size/index 状态; 调用时机: mountPluginDocks 内 */
-const applyStoredDockConfig = (plugin: Plugin, dockKey: string) => {
+const applyStoredDockConfig = (plugin: Siyuan.Plugin, dockKey: string) => {
     const storage = getSiyuanStorage();
     const pluginDocksStorage = storage[Constants.LOCAL_PLUGIN_DOCKS];
     if (!pluginDocksStorage) {
@@ -227,7 +227,7 @@ const applyStoredDockConfig = (plugin: Plugin, dockKey: string) => {
 };
 
 /** 作用: 生成并挂载单个 Dock 按钮; 意图: 将插件 dock 渲染到对应容器; 调用时机: mountPluginDocks 遍历中 */
-const appendDockButton = (dockKey: string, plugin: Plugin) => {
+const appendDockButton = (dockKey: string, plugin: Siyuan.Plugin) => {
     const dock = plugin.docks[dockKey];
     if (!dock) {
         return;
@@ -260,7 +260,7 @@ const appendDockButton = (dockKey: string, plugin: Plugin) => {
 };
 
 /** 作用: 挂载插件 Dock; 意图: 仅在非窗口且非移动端恢复 Dock; 调用时机: runAfterLoadPlugin */
-const mountPluginDocks = (plugin: Plugin) => {
+const mountPluginDocks = (plugin: Siyuan.Plugin) => {
     if (isWindow()) {
         return;
     }
@@ -279,7 +279,7 @@ const mountPluginDocks = (plugin: Plugin) => {
 /** @导出说明: 插件加载后 UI 挂载实现 */
 /** 作用: 执行布局回调与图标/Dock 挂载; 意图: 从 loader.ts 分离复杂 UI 逻辑; 调用时机: afterLoadPlugin 委托 */
 /** @同步豁免: UI构建 */
-export const runAfterLoadPlugin = (plugin: Plugin) => {
+export const runAfterLoadPlugin = (plugin: Siyuan.Plugin) => {
     notifyLayoutReady(plugin);
     mountTopBarIcons(plugin);
     mountStatusBarIcons(plugin);
@@ -288,7 +288,7 @@ export const runAfterLoadPlugin = (plugin: Plugin) => {
 
 // S-forge: 上游 #18003 移动端仅在有插件 dock 时显示插件入口图标（本地以运行时 isMobile() 替代条件编译）
 /** 作用: 移动端插件声明 dock 时显示侧栏插件入口图标; 意图: 与桌面端 dock 栏对应的移动端入口; 调用时机: addPluginDock 移动端分支 */
-const showMobileSidebarPluginTab = (plugin: Plugin) => {
+const showMobileSidebarPluginTab = (plugin: Siyuan.Plugin) => {
     // 插件未声明 dock 时移动端无需显示侧栏插件入口图标
     if (Object.keys(plugin.docks).length === 0) {
         return;
@@ -300,7 +300,7 @@ const showMobileSidebarPluginTab = (plugin: Plugin) => {
 /** @导出说明: 插件动态注册 Dock 后立即渲染 */
 /** 作用: 当插件在 onload 后调用 addDock() 时渲染 dock 按钮; 意图: 保证 dock 即时出现; 调用时机: addDock 末尾 */
 /** @同步豁免: UI构建 */
-export const addPluginDock = (plugin: Plugin) => {
+export const addPluginDock = (plugin: Siyuan.Plugin) => {
     // 移动端走侧栏入口图标分支，桌面端走 dock 栏
     if (isMobile()) {
         showMobileSidebarPluginTab(plugin);

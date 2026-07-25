@@ -4,11 +4,11 @@ import {getOpenNotebookCount} from "../../util/file/pathName";
 import {popSearch} from "../menu/search";
 import {getRecentDocs} from "../menu/getRecentDocs";
 import {openHistory} from "../../history/history";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { setTitle } from "../../util/processTitle";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
-export const setEmpty = (app: App) => {
+export const setEmpty = (app: AppFacade) => {
     setTitle("", true);
     document.getElementById("toolbarName").classList.add("fn__hidden");
     document.getElementById("editor").classList.add("fn__none");

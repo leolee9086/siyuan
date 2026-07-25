@@ -22,7 +22,7 @@ import {viewCards} from "../card/viewCards";
 import {Dialog} from "../dialog";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {confirmDialog} from "../dialog/confirmDialog";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {isBrowser} from "../util/functions";
 import {openRecentDocs} from "../business/openRecentDocs";
 import * as dayjs from "dayjs";
@@ -136,7 +136,7 @@ const togglePinDock = (id: string, dock: Dock, pinIcon: string, unpinIcon: strin
     };
 };
 
-export const workspaceMenu = (app: App, rect: DOMRect) => {
+export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
         window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_BAR_WORKSPACE) {
         window.siyuan.menus.menu.remove();

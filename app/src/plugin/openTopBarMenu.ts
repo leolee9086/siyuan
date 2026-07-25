@@ -3,7 +3,7 @@
  * @使用范围: openTopBarMenu 函数参数
  * @解耦评估: 通过参数传递，已解耦
  */
-import type {App} from "./imports";
+import type {AppFacade} from "./imports";
 
 /**
  * @导入用途: 菜单类，用于创建和操作菜单
@@ -84,7 +84,7 @@ import {processPluginTopBarIcons} from "./openTopBarMenu.helpers";
  */
 /** @同步豁免: UI构建 */
 /** @内联回调 */
-export const openTopBarMenu = (app: App, target?: Element) => {
+export const openTopBarMenu = (app: AppFacade, target?: Element) => {
     const menu = new Menu(Constants.MENU_BAR_PLUGIN);
     const config = getSiyuanConfig();
     const languages = getSiyuanLanguages();

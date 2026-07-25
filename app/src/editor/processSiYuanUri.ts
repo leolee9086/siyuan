@@ -11,9 +11,9 @@ import {ipcSend} from "../platform/electron/ipcRenderer";
 /** 用途：桌面端打开块。使用范围：桌面端处理块 URI。解耦评估：同目录编辑器能力。 */
 import {openFileById} from "./utils.openFileById";
 /** 用途：打开自定义插件页签。使用范围：插件 URI 未匹配插件实例时。解耦评估：同目录编辑器能力。 */
-import {openFile} from "./util";
+import {openFile} from "./openFile";
 /** 用途：应用实例类型。使用范围：URI 处理入口参数。解耦评估：类型导入。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 const getSiYuanUriAction = (zoomIn: boolean, focus: boolean) => {
     if (zoomIn || focus) {
@@ -22,7 +22,7 @@ const getSiYuanUriAction = (zoomIn: boolean, focus: boolean) => {
     return [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL];
 };
 
-const openSiYuanUriBlock = (app: App, id: string, focus: boolean, zoomIn: boolean) => {
+const openSiYuanUriBlock = (app: AppFacade, id: string, focus: boolean, zoomIn: boolean) => {
     const action = getSiYuanUriAction(zoomIn, focus);
     if (isMobile) {
         void import("../mobile/editor").then(({openMobileFileById}) => {
@@ -44,7 +44,7 @@ const checkSiYuanUriFold = (id: string, cb: (zoomIn: boolean) => void) => {
     });
 };
 
-const processSiYuanUriBlocks = (app: App, uriObj: URL): boolean => {
+const processSiYuanUriBlocks = (app: AppFacade, uriObj: URL): boolean => {
     const blockInfo = parseSiYuanUriInfo(uriObj);
     if (blockInfo === null) {
         return false;
@@ -84,7 +84,7 @@ const parsePluginNameOrTabType = (uriObj: URL): string | null => {
     }
 };
 
-const openPluginCustomTab = (app: App, uriObj: URL, pluginNameOrTabType: string) => {
+const openPluginCustomTab = (app: AppFacade, uriObj: URL, pluginNameOrTabType: string) => {
     if (isMobile) {
         return;
     }
@@ -107,7 +107,7 @@ const openPluginCustomTab = (app: App, uriObj: URL, pluginNameOrTabType: string)
     });
 };
 
-const processSiYuanUriPlugins = (app: App, uriObj: URL): boolean => {
+const processSiYuanUriPlugins = (app: AppFacade, uriObj: URL): boolean => {
     const pluginNameOrTabType = parsePluginNameOrTabType(uriObj);
     if (!pluginNameOrTabType) {
         return false;
@@ -122,7 +122,7 @@ const processSiYuanUriPlugins = (app: App, uriObj: URL): boolean => {
     return true;
 };
 
-export const processSiYuanUri = (app: App, uri: string) => {
+export const processSiYuanUri = (app: AppFacade, uri: string) => {
     let uriObj: URL;
     try {
         uriObj = new URL(uri);

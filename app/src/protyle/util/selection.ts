@@ -1,25 +1,12 @@
 import {
     getContenteditableElement,
 } from "../wysiwyg/getBlock";
-import { hasClosestBlock, hasClosestByAttribute, hasClosestByTag } from "./hasClosest";
+import { hasClosestByAttribute, hasClosestByTag } from "./hasClosest";
 import { countBlockWord, countSelectWord } from "../runtime/status.port";
 import { hideElements } from "../ui/hideElements";
-import { focusByRange, focusBlock } from "./selection.focus";
-import { setLastNodeRange } from "./selection.range";
+import { focusByRange, focusBlock, getEditorRange } from "./selection.focus";
+import { getSelectionOffset, setLastNodeRange } from "./selection.range";
 
-
-const selectIsEditor = (editor: Element, range?: Range) => {
-    if (!range) {
-        if (getSelection().rangeCount === 0) {
-            return false;
-        } else {
-            range = getSelection().getRangeAt(0);
-        }
-    }
-    const container = range.commonAncestorContainer;
-
-    return editor.isEqualNode(container) || editor.contains(container);
-};
 
 // table 选中处理
 export const fixTableRange = (range: Range) => {
@@ -133,108 +120,8 @@ export const getRangeByPoint = (x: number, y: number) => {
     return range;
 };
 
-export const getEditorRange = (element: Element): Range => {
-    let range: Range;
-    if (getSelection().rangeCount > 0) {
-        range = getSelection().getRangeAt(0);
-        if (element === range.startContainer || element.contains(range.startContainer)) {
-            if (range.toString() === "" && range.startContainer.nodeType === 1) {
-                // 有时候点击编辑器头部需要矫正到第一个块中
-                if (range.startOffset === 0 && (range.startContainer as HTMLElement).classList.contains("protyle-wysiwyg")) {
-                    const focusRange = focusBlock(range.startContainer.firstChild as Element);
-                    if (focusRange) {
-                        return focusRange;
-                    }
-                }
-                // 移动端获取有偏差 https://github.com/siyuan-note/siyuan/issues/15998
-                if ((range.startContainer as Element).getAttribute("contenteditable") !== "true" &&
-                    getContenteditableElement(range.startContainer as Element)) {
-                    const blockElement = hasClosestBlock(range.startContainer);
-                    if (blockElement) {
-                        const focusRange = focusBlock(blockElement);
-                        if (focusRange) {
-                            return focusRange;
-                        }
-                    }
-                }
-            }
-            return range;
-        }
-    }
-
-    if (element.classList.contains("li") || element.classList.contains("list")) {
-        const childElement = element.querySelector("[data-node-id]");
-        if (childElement) {
-            return getEditorRange(childElement);
-        }
-    }
-
-    // 代码块过长，在代码块的下一个块前删除，代码块会滚动到顶部，因粗需要 preventScroll
-    (element as HTMLElement).focus({ preventScroll: true });
-    if (!range) {
-        range = document.createRange();
-    }
-
-    let targetElement;
-    if (element.classList.contains("table")) {
-        // 当光标不在表格区域中时表格无法被复制 https://ld246.com/article/1650510736504
-        targetElement = element.querySelector("th") || element.querySelector("td");
-    } else {
-        targetElement = getContenteditableElement(element);
-        if (!targetElement) {
-            const type = element.getAttribute("data-type");
-            if (type === "NodeThematicBreak") {
-                targetElement = element.firstElementChild;
-            } else if (type === "NodeBlockQueryEmbed") {
-                targetElement = element.querySelector(".protyle-cursor")?.firstChild;
-            } else if (["NodeMathBlock", "NodeHTMLBlock"].includes(type)) {
-                targetElement = element.lastElementChild.previousElementSibling?.lastElementChild?.firstChild;
-            } else if (type === "NodeVideo") {
-                targetElement = element.firstElementChild.firstChild;
-            } else if (type === "NodeAudio") {
-                targetElement = element.firstElementChild.lastChild;
-            }
-        } else if (targetElement.tagName === "TABLE") {
-            // 文档中开头为表格，获取错误 https://ld246.com/article/1663408335459?r=88250
-            targetElement = targetElement.querySelector("th") || element.querySelector("td");
-        }
-    }
-    range.setStart(targetElement || element, 0);
-    range.collapse(true);
-    return range;
-};
-
-export const getSelectionOffset = (selectElement: Node, editorElement?: Element, range?: Range) => {
-    const position = {
-        end: 0,
-        start: 0,
-    };
-
-    if (!range) {
-        if (getSelection().rangeCount === 0) {
-            return position;
-        }
-        range = window.getSelection().getRangeAt(0);
-    }
-
-    if (editorElement && !selectIsEditor(editorElement, range)) {
-        return position;
-    }
-    const preSelectionRange = range.cloneRange();
-    if (selectElement.childNodes[0] && selectElement.childNodes[0].childNodes[0]) {
-        preSelectionRange.setStart(selectElement.childNodes[0].childNodes[0], 0);
-    } else {
-        preSelectionRange.selectNodeContents(selectElement);
-    }
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    // 需加上表格内软换行 br 与表情的长度
-    position.start = preSelectionRange.toString().length + preSelectionRange.cloneContents().querySelectorAll("br, .emoji").length;
-    position.end = position.start + range.toString().length + range.cloneContents().querySelectorAll("br, .emoji").length;
-    return position;
-};
-
 // 重导出本地使用的符号
-export { focusByRange, focusBlock, setLastNodeRange };
+export { focusByRange, focusBlock, getEditorRange, getSelectionOffset, setLastNodeRange };
 // 重导出不在本地使用的符号
 export { focusSideBlock, focusToolbarRange, 聚焦工具栏范围 } from "./selection.focus";
 export { setFirstNodeRange, focusByOffset, setInsertWbrHTML, focusByWbr } from "./selection.range";

@@ -5,7 +5,7 @@ import {pathPosix, setNoteBook} from "../../util/file/pathName";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {genUUID} from "../../util/platform/genID";
 import {newFileInTree} from "../../util/file/newFile";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {showMessage} from "../../dialog/message";
@@ -29,7 +29,7 @@ import {
 import {cancelFileTreeCollapse} from "../../layout/dock/fileTreeAnimation";
 import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";
 
-export class MobileFiles extends Model<App> {
+export class MobileFiles extends Model<AppFacade> {
     public element: HTMLElement;
     public actionsElement: HTMLElement;
     public closeElement: HTMLElement;
@@ -43,7 +43,7 @@ export class MobileFiles extends Model<App> {
         startTime: number;
     };
 
-    constructor(app: App) {
+    constructor(app: AppFacade) {
         super({app});
         this.connect({
             id: genUUID(),

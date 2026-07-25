@@ -9,13 +9,13 @@ import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openFileById } from "../../editor/utils.openFileById";
 import { Protyle } from "../../protyle";
 import { MenuItem } from "../../menus/Menu.Item";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { isSupportCSSHL, searchMarkRender } from "../../protyle/render/searchMarkRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDocDisplayName, isEncryptedBox} from "../../util/pathName";
 import {getAllModels} from "../getAll";
 
-export class Backlink extends Model<App, Tab> {
+export class Backlink extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
     public type: "pin" | "local";
@@ -38,7 +38,7 @@ export class Backlink extends Model<App, Tab> {
     } = {};
 
     constructor(options: {
-        app: App,
+        app: AppFacade,
         tab: Tab,
         blockId: string,
         rootId?: string,

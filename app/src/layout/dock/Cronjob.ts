@@ -6,7 +6,7 @@
 
 import { Model } from "../Model";
 import { Tab } from "../Tab";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
@@ -226,7 +226,7 @@ function 处理点击(cronjob: Cronjob, event: MouseEvent) {
 /**
  * 定时任务侧边栏面板
  */
-export class Cronjob extends Model<App, Tab> {
+export class Cronjob extends Model<AppFacade, Tab> {
     /** 面板根元素 */
     public element: HTMLElement;
     /** 任务列表数据 */
@@ -236,10 +236,10 @@ export class Cronjob extends Model<App, Tab> {
 
     /**
      * 构造函数
-     * @param app - App 实例
+     * @param app - AppFacade 实例
      * @param tab - Tab 实例
      */
-    constructor(app: App, tab: Tab) {
+    constructor(app: AppFacade, tab: Tab) {
         super({
             app,
             id: tab.id,

@@ -1,4 +1,4 @@
-import { App } from "../..";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { getContenteditableElement, focusByRange } from "../../ai/imports";
 import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
@@ -179,7 +179,7 @@ const checkAndLoad = async (stack: IBackStack, blockElement: HTMLElement | undef
     return true;
 };
 
-const createTabForStack = (app: App, stack: IBackStack, info: any) => {
+const createTabForStack = (app: AppFacade, stack: IBackStack, info: any) => {
     return new Tab({
         title: info.data.rootTitle,
         docIcon: info.data.rootIcon,
@@ -271,7 +271,7 @@ const focusAfterTabCreation = (stack: IBackStack, protyle: IProtyle, rootID: str
 };
 
 const openProtyleInNewTab = async (
-    app: App,
+    app: AppFacade,
     stack: IBackStack,
     navigationForwardStack: IBackStack[],
 ) => {
@@ -311,7 +311,7 @@ const openProtyleInNewTab = async (
     return true;
 };
 
-export const focusStack = async (app: App, stack: IBackStack, navigationForwardStack: IBackStack[]) => {
+export const focusStack = async (app: AppFacade, stack: IBackStack, navigationForwardStack: IBackStack[]) => {
     if (!stack.protyle) {
         return;
     }

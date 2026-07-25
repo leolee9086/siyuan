@@ -35,19 +35,19 @@ import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：导航执行器签名。解耦评估：复用全局命令边界。 */
 import type { GlobalCommandContext } from "./imports";
 /** 用途：主应用宿主身份；使用范围：桌面导航命令上下文绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 获取当前选中文本，供搜索命令带入默认关键词。 */
 const getSelectedText = () => (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange()).toString();
 
 /** 执行设置命令。 */
-const executeConfigDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeConfigDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     openSetting(app);
     return true;
 };
 
 /** 执行桌面全局搜索命令。 */
-const executeGlobalSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeGlobalSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     openSearch({
         app,
         hotkey: Constants.DIALOG_GLOBALSEARCH,
@@ -57,25 +57,25 @@ const executeGlobalSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<A
 };
 
 /** 执行钉住搜索命令。 */
-const executeStickSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeStickSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     openGlobalSearch(app, getSelectedText(), true);
     return true;
 };
 
 /** 执行后退命令。 */
-const executeGoBackDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeGoBackDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     goBack(app);
     return true;
 };
 
 /** 执行前进命令。 */
-const executeGoForwardDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeGoForwardDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     goForward(app);
     return true;
 };
 
 /** 执行桌面主菜单命令。 */
-const executeMainMenuDesktopGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeMainMenuDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     const workspaceButton = document.querySelector("#barWorkspace");
     // 独立窗口中不展示工作空间主菜单；主窗口需存在按钮才能计算菜单位置。
     if (!isWindow() && workspaceButton instanceof HTMLElement) {
@@ -97,7 +97,7 @@ const executeToggleDockDesktopGlobalCommand = () => {
 };
 
 /** 切换指定方位 Dock 的固定状态。 */
-const executeSwitchDockDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeSwitchDockDesktopGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     const layout = getSiyuanLayout();
     // 左侧 Dock 命令只切换 leftDock，处理后立即结束，避免落入其它方位。
     if (command === DESKTOP_GLOBAL_COMMANDS.SWITCH_LEFT_DOCK) {
@@ -143,7 +143,7 @@ const desktopNavigationCommandRouter = calibur
  * 执行桌面导航命令。
  * @同步豁免: UI构建 - 桌面导航命令需要立即操作对话框、菜单、Dock 或发送既有 IPC。
  */
-export const executeDesktopNavigationGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeDesktopNavigationGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const executor = desktopNavigationCommandRouter({ command: context.command });
     return executor(context);
 };

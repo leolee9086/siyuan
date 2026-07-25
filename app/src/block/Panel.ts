@@ -10,7 +10,7 @@ import {openFileById} from "../editor/utils.openFileById";
 import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {resize} from "../protyle/util/resize";
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
@@ -22,7 +22,7 @@ export class BlockPanel {
     public targetElement: HTMLElement;
     public refDefs: IRefDefs[];
     public id: string;
-    private app: App;
+    private app: AppFacade;
     public x: number;
     public y: number;
     private isBacklink: boolean;
@@ -33,7 +33,7 @@ export class BlockPanel {
 
     // x,y 和 targetElement 二选一必传
     constructor(options: {
-        app: App,
+        app: AppFacade,
         targetElement?: HTMLElement,
         refDefs: IRefDefs[]
         isBacklink: boolean,

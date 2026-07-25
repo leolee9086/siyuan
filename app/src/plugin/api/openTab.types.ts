@@ -98,3 +98,10 @@ export interface IOpenTabOptions<TApplication, TModel> {
     /** 页签打开后的回调函数 */
     afterOpen?: (model?: TModel) => void;
 }
+/** 用途：绑定插件 OpenTab 命令的应用外观和模型身份；使用范围：openTab 实现与插件 API 契约；解耦评估：仅依赖 AppFacade 与 Model 类型，不加载具体 App 入口。 */
+import type {AppFacade} from "../../app/AppFacade.types";
+/** 用途：提供插件 OpenTab 的模型身份参数；使用范围：OpenTabOptions 类型；解耦评估：type-only 依赖，具体模型由调用边界绑定。 */
+import type {Model} from "../../layout/Model";
+
+/** 插件 API 在完整应用宿主中的页签打开参数。 */
+export type PluginOpenTabOptions = IOpenTabOptions<AppFacade, Model>;

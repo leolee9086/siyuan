@@ -11,7 +11,7 @@ import { Constants } from "../../constants";
 import { replaceFileName, validateName } from "../../editor/rename";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { openMobileFileById } from "../../mobile/editor";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { NewDocTargetByHPath, NewDocTargetSubDoc, getNewDocTargetFromSavePath, getNewDocTargetFromTree } from "../parseNewDocTarget";
 
@@ -24,7 +24,7 @@ export const getBlockRefAnchorText = (title: string) => {
 };
 
 type NewDocRequest = {
-    app: App;
+    app: AppFacade;
     notebookId: string;
     currentPath: string;
     /** 是否有来自编辑器或文件树选中项的焦点目标 */
@@ -36,7 +36,7 @@ type NewDocRequest = {
 };
 
 /** 按配置路径创建文档；从聚焦编辑器或文件树推断上下文；可选 name 指定文档名 */
-export const newFile = async (app: App, name?: string) => {
+export const newFile = async (app: AppFacade, name?: string) => {
     if (getOpenNotebookCount() === 0) {
         showMessage(siyuanI18n.newFileTip);
         return;
@@ -71,7 +71,7 @@ export const newFileInProtyle = async (protyle: IProtyle, onCreated: (id: string
     });
 };
 
-export const newFileInTree = async (app: App, notebookId: string, currentPath: string, paths?: string[]) => {
+export const newFileInTree = async (app: AppFacade, notebookId: string, currentPath: string, paths?: string[]) => {
     runNewDocInTree({
         app,
         notebookId,
@@ -286,7 +286,7 @@ function createNewDocAsSubDoc(request: NewDocRequest, target: NewDocTargetSubDoc
     });
 }
 
-function openCreatedDoc(app: App, id: string, onCreated?: (id: string, title: string) => void, title?: string) {
+function openCreatedDoc(app: AppFacade, id: string, onCreated?: (id: string, title: string) => void, title?: string) {
     if (onCreated) {
         onCreated(id, title || "");
     }

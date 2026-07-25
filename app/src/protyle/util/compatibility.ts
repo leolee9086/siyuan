@@ -8,7 +8,7 @@ import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment
 import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {isSiYuanUriProtocol} from "../../util/pathName";
-import type {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {isMac} from "../../util/platform/hotkey/format";
 import {isNotCtrl} from "../../util/platform/hotkey/format";
 import {isOnlyMeta} from "../../util/platform/hotkey/format";
@@ -626,7 +626,7 @@ export const setStorageVal = (key: string, val: any, cb?: () => void) => {
     });
 };
 
-export const initWindowOpenOverride = (app: App, openExternal?: (url: string) => void) => {
+export const initWindowOpenOverride = (app: AppFacade, openExternal?: (url: string) => void) => {
     const originalOpen = window.open;
     window.open = function (url?: string | URL, target?: string, features?: string): WindowProxy | null {
         const urlStr = typeof url === "string" ? url : (url ? String(url) : "");

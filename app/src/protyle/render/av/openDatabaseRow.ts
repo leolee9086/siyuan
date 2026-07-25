@@ -4,7 +4,8 @@ import {Dialog} from "../../../dialog";
 import {renderAVAttribute} from "./blockAttr";
 import {Constants} from "../../../constants";
 /// #else
-import {openFile, openFileById} from "../../../editor/util";
+import {openFile} from "../../../editor/openFile";
+import {openFileById} from "../../../editor/utils.openFileById";
 import {Editor} from "../../../editor";
 import {getAllTabs} from "../../../layout/getAll";
 /// #endif

@@ -6,10 +6,10 @@
 
 /**
  * 用途：提供应用主类型定义，用于窗口关闭等生命周期操作
- * 使用范围：closeWin.ts 等需要操作 App 实例的模块
- * 解耦评估：App 是核心依赖，当前无法解耦
+ * 使用范围：closeWin.ts 等需要操作 AppFacade 实例的模块
+ * 解耦评估：AppFacade 是核心依赖，当前无法解耦
  */
-import type { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 
 /**
  * 用途：提供全局常量定义，用于 IPC 通信等场景
@@ -113,9 +113,9 @@ import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments
 import { isHTMLElement } from "../util/DOM/element.guard";
 
 /**
- * 导出 App 类型定义
+ * 导出 AppFacade 类型定义
  */
-export type { App };
+export type { AppFacade };
 
 /**
  * 导出全局常量定义

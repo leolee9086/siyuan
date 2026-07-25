@@ -4,8 +4,8 @@
  * 解耦评估：状态收集阶段现在收敛到单一目录，继续通过本文件集中导入环境、DOM 与类型依赖，能避免收集器文件直接散落父级路径。
  */
 
-/** 用途：引入 App 类型用于 findPluginCommand 的 plugin 遍历类型约束。使用范围：仅 state/index.ts 中 findPluginCommand 参数标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
-import type { App } from "../imports";
+/** 用途：引入 AppFacade 类型用于 findPluginCommand 的 plugin 遍历类型约束。使用范围：仅 state/index.ts 中 findPluginCommand 参数标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
+import type { AppFacade } from "../imports";
 /** 用途：引入 Dialog 类型用于对话框查找返回值类型标注。使用范围：state/index.ts 中 findRecentDocsDialog 与 findSpecialDialog 的返回值类型标注。解耦评估：Dialog 实例由 getSiyuanDialogs() 环境函数获取，Dialog 类型只用于标注，继续经 barrel 转发。 */
 import { Dialog } from "../imports";
 /** 用途：引入 Constants 用于对话框 data-key 匹配（DIALOG_RECENTDOCS/DIALOG_VIEWCARDS/DIALOG_HISTORYCOMPARE）。使用范围：state/index.ts 中 findRecentDocsDialog 与 findSpecialDialog 的 key 比较。解耦评估：Constants 在 config 层集中定义，已在多处使用；无运行时状态依赖，继续经 barrel 转发。 */
@@ -40,10 +40,8 @@ import type { SpecialDialogType } from "../types";
 import type { WindowKeyDownState as WindowKeyDownStateContract } from "../types";
 
 /** 状态收集阶段绑定主应用与统一 Dialog 的具体身份。 */
-type WindowKeyDownState = WindowKeyDownStateContract<App, Dialog>;
+type WindowKeyDownState = WindowKeyDownStateContract<AppFacade, Dialog>;
 
-// 导出：App 类型
-export type { App };
 // 导出：Dialog 类型
 export { Dialog };
 // 导出：Constants 常量

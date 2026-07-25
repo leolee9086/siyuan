@@ -44,7 +44,7 @@ import { getSiyuanWebSocket } from "./imports";
  * 用途：应用实例类型定义。
  * 使用范围：open 函数参数与内部 app 解析。
  */
-import type { App } from "./imports";
+import type {AppFacade} from "./imports";
 
 /**
  * 用途：集市广场切换源事件名。
@@ -97,7 +97,7 @@ const readCustomString = (data: unknown, key: string) => {
  * 调用时机：所有 open*Tab 入口开始时调用。
  * 问题/改进：ws 回退依赖运行时环境，后续可考虑统一注入 app 上下文。
  */
-const resolveApp = (app?: App) => {
+const resolveApp = (app?: AppFacade) => {
     if (app) {
         return app;
     }
@@ -217,7 +217,7 @@ export const getLocalBazaarSourcePageURL = () => {
  * 问题/改进：当前 sourceID 通过事件同步，未来可考虑集中状态总线。
  */
 /** 导出 openBazaarHubTab 供 bazaar-hub 相关入口调用 */
-export const openBazaarHubTab = async (options?: { app?: App; sourceID?: string }) => {
+export const openBazaarHubTab = async (options?: { app?: AppFacade; sourceID?: string }) => {
     const app = resolveApp(options?.app);
     if (!app) {
         return;
@@ -249,7 +249,7 @@ export const openBazaarHubTab = async (options?: { app?: App; sourceID?: string 
  * 问题/改进：当前标题拼接固定为“发布 · 集市”，后续可按语言习惯优化顺序。
  */
 /** 导出 openBazaarPublishTab 供发布设置入口调用 */
-export const openBazaarPublishTab = async (options?: { app?: App }) => {
+export const openBazaarPublishTab = async (options?: { app?: AppFacade }) => {
     const app = resolveApp(options?.app);
     if (!app) {
         return;
@@ -278,7 +278,7 @@ export const openBazaarPublishTab = async (options?: { app?: App }) => {
  */
 /** 导出 openBazaarSourceTab 供第三方源页签入口调用 */
 export const openBazaarSourceTab = async (options: {
-    app?: App;
+    app?: AppFacade;
     source: Pick<Config.IBazaarSource, "id" | "name" | "url"> & { openInTab?: boolean };
 }) => {
     const app = resolveApp(options.app);
@@ -317,7 +317,7 @@ export const openBazaarSourceTab = async (options: {
  * 问题/改进：本地源名称当前固定中文，后续可接入 i18n。
  */
 /** 导出 openLocalBazaarSourceTab 供本地源入口调用 */
-export const openLocalBazaarSourceTab = async (options?: { app?: App }) => {
+export const openLocalBazaarSourceTab = async (options?: { app?: AppFacade }) => {
     await openBazaarSourceTab({
         app: options?.app,
         source: {

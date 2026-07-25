@@ -3,7 +3,7 @@
  * @使用范围: addManageMenuItem 函数
  * @解耦评估: 通过参数传递，已解耦
  */
-import type {App} from "./imports";
+import type {AppFacade} from "./imports";
 
 /**
  * @导入用途: 菜单类，用于操作菜单项
@@ -64,7 +64,7 @@ import {getSiyuanStorage} from "./imports";
  * 意图：提供快速访问插件市场的入口
  */
 /** @同步豁免: UI构建 */
-export const addManageMenuItem = (menu: Menu, app: App, languages: Record<string, string>, config: {readonly: boolean}) => {
+export const addManageMenuItem = (menu: Menu, app: AppFacade, languages: Record<string, string>, config: {readonly: boolean}) => {
     menu.addItem({
         id: "manage",
         icon: "iconSettings",

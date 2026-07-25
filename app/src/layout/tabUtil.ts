@@ -3,7 +3,7 @@ import { getInstanceById, newModelByInitData, saveLayout } from "./util";
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
 import { pdfResize } from "../asset/renderAssets";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Model } from "./Model";
 import { Editor } from "../editor";
 import {createEditor} from "../editor/factory/createEditor.factory";
@@ -164,7 +164,7 @@ export const getDockByType = (type: TDock | string) => {
     return undefined;
 };
 
-export const newCenterEmptyTab = (app: App) => {
+export const newCenterEmptyTab = (app: AppFacade) => {
     return new Tab({
         panel: `<div class="layout__empty">
         <div class="${!window.siyuan.config.readonly ? " fn__none" : ""}">
@@ -251,7 +251,7 @@ export const newCenterEmptyTab = (app: App) => {
     });
 };
 
-export const copyTab = (app: App, tab: Tab) => {
+export const copyTab = (app: AppFacade, tab: Tab) => {
     return new Tab({
         icon: tab.icon,
         docIcon: tab.docIcon,

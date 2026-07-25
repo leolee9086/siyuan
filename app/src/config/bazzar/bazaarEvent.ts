@@ -4,11 +4,11 @@ import { getFrontend } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setStorageVal } from "../../protyle/util/compatibility";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { handleBazaarClick } from "./bazaarEventAction";
 import { IBazaar, IBazaarDataObj } from "./types";
 
-export const bindBazaarEvent = (bazaar: IBazaar<App>, app: App) => {
+export const bindBazaarEvent = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
     if (!getSiyuanConfig().bazaar.trust) {
         bindTrustEvent(bazaar, app);
         return;
@@ -24,13 +24,13 @@ export const bindBazaarEvent = (bazaar: IBazaar<App>, app: App) => {
     bindLocalPackageInstallEvent(bazaar, app);
 };
 
-const bindTrustEvent = (bazaar: IBazaar<App>, app: App) => {
+const bindTrustEvent = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
     bazaar.element?.querySelector("button")?.addEventListener("click", () => {
         handleTrustBtnClick(bazaar, app);
     });
 };
 
-const handleTrustBtnClick = (bazaar: IBazaar<App>, app: App) => {
+const handleTrustBtnClick = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
     fetchPost("/api/setting/setBazaar", {
         trust: true,
         petalDisabled: getSiyuanConfig().bazaar.petalDisabled
@@ -43,7 +43,7 @@ const handleTrustBtnClick = (bazaar: IBazaar<App>, app: App) => {
     });
 };
 
-const bindSearchInputEvent = (bazaar: IBazaar<App>, app: App) => {
+const bindSearchInputEvent = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
     const inputElements = bazaar.element?.querySelectorAll(".config-bazaar__panel .b3-form__icon > .b3-text-field");
     if (!inputElements) {
         return;
@@ -61,7 +61,7 @@ const bindSearchInputEvent = (bazaar: IBazaar<App>, app: App) => {
     }
 };
 
-const handleSearchEnter = (bazaar: IBazaar<App>, inputElement: HTMLInputElement, event: KeyboardEvent, app: App) => {
+const handleSearchEnter = (bazaar: IBazaar<AppFacade>, inputElement: HTMLInputElement, event: KeyboardEvent, app: AppFacade) => {
     const keyword = inputElement.value.trim();
     const panel = hasClosestByClassName(inputElement, "config-bazaar__panel") as HTMLElement;
     const type = panel ? panel.getAttribute("data-type") : "";
@@ -72,7 +72,7 @@ const handleSearchEnter = (bazaar: IBazaar<App>, inputElement: HTMLInputElement,
     event.preventDefault();
 };
 
-const handleBazaarSearch = (type: string, bazaar: IBazaar<App>, keyword: string, app: App, inputElement: HTMLInputElement) => {
+const handleBazaarSearch = (type: string, bazaar: IBazaar<AppFacade>, keyword: string, app: AppFacade, inputElement: HTMLInputElement) => {
     const strategies: Record<string, () => void> = {
         template: () => {
             fetchPost("/api/bazaar/getBazaarTemplate", { keyword }, response => {
@@ -120,7 +120,7 @@ const handleBazaarSearch = (type: string, bazaar: IBazaar<App>, keyword: string,
     }
 };
 
-const bindSelectChangeEvent = (bazaar: IBazaar<App>) => {
+const bindSelectChangeEvent = (bazaar: IBazaar<AppFacade>) => {
     const selectElements = bazaar.element?.querySelectorAll(".b3-select");
     if (!selectElements) {
         return;
@@ -133,7 +133,7 @@ const bindSelectChangeEvent = (bazaar: IBazaar<App>) => {
     }
 };
 
-const handleSelectChange = (bazaar: IBazaar<App>, selectElement: HTMLSelectElement, event: Event) => {
+const handleSelectChange = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement, event: Event) => {
     const target = event.target as HTMLElement;
     if (selectElement.id === "bazaarSelect") {
         handleThemeSelect(bazaar, selectElement, target);
@@ -142,7 +142,7 @@ const handleSelectChange = (bazaar: IBazaar<App>, selectElement: HTMLSelectEleme
     handleSortSelect(bazaar, selectElement);
 };
 
-const handleThemeSelect = (bazaar: IBazaar<App>, selectElement: HTMLSelectElement, target: HTMLElement) => {
+const handleThemeSelect = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement, target: HTMLElement) => {
     // theme select
     const cards = bazaar.element?.querySelectorAll("#configBazaarTheme .b3-card");
     if (!cards) {
@@ -181,7 +181,7 @@ const getBazaarObj = (element: HTMLElement) => {
     return JSON.parse(element.getAttribute("data-obj") || "{}") as IBazaarDataObj;
 };
 
-const handleSortSelect = (bazaar: IBazaar<App>, selectElement: HTMLSelectElement) => {
+const handleSortSelect = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement) => {
     // sort
     if (!window.siyuan || !window.siyuan.storage) {
         return;
@@ -233,7 +233,7 @@ const handleSortSelect = (bazaar: IBazaar<App>, selectElement: HTMLSelectElement
     }
 };
 
-const handleKeywordClick = (bazaar: IBazaar<App>, event: MouseEvent) => {
+const handleKeywordClick = (bazaar: IBazaar<AppFacade>, event: MouseEvent) => {
     const target = event.target as HTMLElement;
     if (!target.classList.contains("b3-chip") || !target.hasAttribute("data-keyword")) {
         return;
@@ -266,14 +266,14 @@ const handleKeywordClick = (bazaar: IBazaar<App>, event: MouseEvent) => {
     bazaar._renderFilteredPackages(bazaarType);
 };
 
-const bindKeywordClickEvent = (bazaar: IBazaar<App>) => {
+const bindKeywordClickEvent = (bazaar: IBazaar<AppFacade>) => {
     // 使用事件委托处理关键词点击事件
     bazaar.element?.addEventListener("click", (event: MouseEvent) => {
         handleKeywordClick(bazaar, event);
     });
 };
 
-const getDownloadedCurrentPackageType = (bazaar: IBazaar<App>): TBazaarType => {
+const getDownloadedCurrentPackageType = (bazaar: IBazaar<AppFacade>): TBazaarType => {
     const activeBtn = bazaar.element?.querySelector('.config-bazaar__panel[data-type="downloaded"] .config-bazaar__title .b3-button:not(.b3-button--outline)') as HTMLElement;
     const currentType = activeBtn?.getAttribute("data-type");
     switch (currentType) {
@@ -290,7 +290,7 @@ const getDownloadedCurrentPackageType = (bazaar: IBazaar<App>): TBazaarType => {
     }
 };
 
-const bindLocalPackageInstallEvent = (bazaar: IBazaar<App>, app: App) => {
+const bindLocalPackageInstallEvent = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
     const installBtn = bazaar.element?.querySelector('[data-type="install-local-package"]') as HTMLButtonElement;
     const fileInput = bazaar.element?.querySelector("#bazaarLocalPackageInput") as HTMLInputElement;
     if (!installBtn || !fileInput) {

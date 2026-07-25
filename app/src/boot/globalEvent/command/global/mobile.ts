@@ -15,7 +15,7 @@ import { MOBILE_GLOBAL_COMMANDS } from "./commands";
 /** 用途：引入全局命令上下文类型。使用范围：仅作为执行器签名类型使用。解耦评估：类型契约来自同目录命令边界。 */
 import type { GlobalCommandContext } from "./types";
 /** 用途：主应用宿主身份；使用范围：移动命令上下文泛型绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 执行移动端文件树命令，命中 fileTree 时打开 file Dock。 */
 const executeFileTreeMobileGlobalCommand = () => {
@@ -24,7 +24,7 @@ const executeFileTreeMobileGlobalCommand = () => {
 };
 
 /** 执行移动端普通 Dock 命令，命中 outline/bookmark/tag/inbox 时打开同名 Dock。 */
-const executeDirectDockMobileGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeDirectDockMobileGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     openDock(command);
     return true;
 };
@@ -42,13 +42,13 @@ const executeMainMenuMobileGlobalCommand = () => {
 };
 
 /** 执行移动端全局搜索命令，命中 globalSearch 时弹出移动端搜索。 */
-const executeGlobalSearchMobileGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeGlobalSearchMobileGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     popSearch(app);
     return true;
 };
 
 /** 执行移动端最近文档命令，命中 recentDocs 时打开最近文档菜单。 */
-const executeRecentDocsMobileGlobalCommand = ({ app }: GlobalCommandContext<App>) => {
+const executeRecentDocsMobileGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
     getRecentDocs(app);
     return true;
 };
@@ -68,7 +68,7 @@ const mobileGlobalCommandRouter = calibur
  * 执行移动端全局命令。
  * @同步豁免: UI构建 - globalCommand 是同步命令入口，移动端命令立即触发 Dock/菜单 DOM 事件并返回是否已处理。
  */
-export const executeMobileGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeMobileGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const executor = mobileGlobalCommandRouter({ command: context.command });
     return executor(context);
 };

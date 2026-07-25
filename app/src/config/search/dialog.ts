@@ -1,8 +1,7 @@
 import {getSettingTab, type TSettingTab} from "../setting/tabs";
-import type {SettingTabMountContext} from "../setting/builder";
-import {clearSettingTabSearch} from "../setting/mount";
+import {clearSettingTabSearch, type SettingTabMountContext} from "../setting/mount";
 import {getSearchKeywordsLower} from "./normalize";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {isPhablet} from "../../protyle/util/compatibility";
 
 /** @param visibleInSidebar 为 true 时，侧栏项被搜索过滤隐藏（`display: none`）则视为无 focus */
@@ -16,7 +15,7 @@ const getFocusedTabId = (dialogElement: HTMLElement, visibleInSidebar = false): 
 
 export const switchSettingTab = (
     dialogElement: HTMLElement,
-    app: App,
+    app: AppFacade,
     tabId: TSettingTab,
     search?: SettingTabMountContext,
 ) => {
@@ -47,7 +46,7 @@ export const switchSettingTab = (
     void getSettingTab(tabId).mount(containerElement, search, app);
 };
 
-const syncSettingSearch = (dialogElement: HTMLElement, app: App) => {
+const syncSettingSearch = (dialogElement: HTMLElement, app: AppFacade) => {
     const keywords = getSearchKeywordsLower(dialogElement);
     if (!keywords) {
         dialogElement.querySelectorAll(".config__side .b3-list-item").forEach((item: HTMLElement) => {
@@ -94,7 +93,7 @@ const syncSettingSearch = (dialogElement: HTMLElement, app: App) => {
     }
 };
 
-export const initSettingSearch = (element: HTMLElement, app: App) => {
+export const initSettingSearch = (element: HTMLElement, app: AppFacade) => {
     const inputElement = element.querySelector(".config__tab-head .b3-text-field") as HTMLInputElement;
     if (!isPhablet()) {
         inputElement.focus();

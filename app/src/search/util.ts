@@ -14,7 +14,7 @@ import { setStorageVal } from "../protyle/util/compatibility";
 import {
     getKeyByLiElement
 } from "./menu";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { checkFold } from "../util/platform/noRelyPCFunction";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
 import { saveKeyList } from "./toggleHistory";
@@ -28,7 +28,7 @@ import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 import { inputEvent } from "./inputEvent";
 export { inputEvent };
 
-export const openGlobalSearch = (app: App, text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) => {
+export const openGlobalSearch = (app: AppFacade, text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) => {
     text = text.trim();
     const searchModel = getAllModels().search.find((item) => {
         item.parent.parent.switchTab(item.parent.headElement);

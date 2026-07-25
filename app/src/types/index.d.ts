@@ -793,7 +793,7 @@ interface IExportOptions {
 }
 
 interface IOpenFileOptions {
-    app: import("../index").App,
+    app: import("../app/AppFacade.types").AppFacade,
     searchData?: Config.IUILayoutTabSearchConfig | undefined, // 搜索必填
     // card 和自定义页签 必填
     custom?: {

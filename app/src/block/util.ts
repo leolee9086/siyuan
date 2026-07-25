@@ -30,6 +30,7 @@ import { getSiyuanConfig } from "./imports";
 import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
 /** 用途：创建新块元素。使用范围：插入空块创建元素。解耦评估：同目录模块直接导入。 */
 import { createNewBlockElement } from "./util.createNewBlockElement";
+export { genEmptyBlock, genEmptyElement, genHeadingElement } from "./element.factory";
 
 /**
  * 作用：创建超级块 DOM 元素。
@@ -295,42 +296,6 @@ export const insertEmptyBlock = async (
         focusByWbr(protyle.wysiwyg.element, range);
     }
     scrollCenter(protyle);
-};
-
-/** 生成空块 HTML */
-export const genEmptyBlock = (zwsp = true, wbr = true, string?: string) => {
-    let html = "";
-    if (zwsp) {
-        html = Constants.ZWSP;
-    }
-    if (wbr) {
-        html += "<wbr>";
-    }
-    if (string) {
-        html += string;
-    }
-    return `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="${getSiyuanConfig().editor.spellcheck}">${html}</div><div contenteditable="false" class="protyle-attr">${Constants.ZWSP}</div></div>`;
-};
-
-/** 生成空块 DOM 元素 */
-export const genEmptyElement = (zwsp = true, wbr = true, id?: string) => {
-    const element = document.createElement("div");
-    element.setAttribute("data-node-id", id || Lute.NewNodeID());
-    element.setAttribute("data-type", "NodeParagraph");
-    element.classList.add("p");
-    element.innerHTML = `<div contenteditable="true" spellcheck="${getSiyuanConfig().editor.spellcheck}">${zwsp ? Constants.ZWSP : ""}${wbr ? "<wbr>" : ""}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div>`;
-    return element;
-};
-
-/** 生成标题元素 */
-export const genHeadingElement = (headElement: Element, getHTML = false, addWbr = false) => {
-    const html = `<div data-subtype="${headElement.getAttribute("data-subtype")}" data-node-id="${Lute.NewNodeID()}" data-type="NodeHeading" class="${headElement.className}"><div contenteditable="true" spellcheck="false">${addWbr ? "<wbr>" : ""}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
-    if (getHTML) {
-        return html;
-    }
-    const tempElement = document.createElement("template");
-    tempElement.innerHTML = html;
-    return tempElement.content.firstElementChild;
 };
 
 /** 根据块类型获取语言名称 */

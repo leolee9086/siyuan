@@ -4,7 +4,7 @@
 
 import { Constants } from "../../../constants";
 import { Protyle } from "../../../protyle";
-import type { App } from "../../..";
+import type { AppFacade } from "../../../app/AppFacade.types";
 
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { IEditorInitResult, ILayoutData } from "./initSearchEditors.types";
@@ -19,7 +19,7 @@ import type { IEditorInitResult, ILayoutData } from "./initSearchEditors.types";
  * @returns 编辑器实例
  */
 export function initSearchEditors(
-    app: App,
+    app: AppFacade,
     element: HTMLElement,
     closeCB: boolean
 ): IEditorInitResult<Protyle> {

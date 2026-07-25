@@ -1,9 +1,9 @@
 /**
  * 用途：引入应用实例类型，标注键盘导航入口需要的应用上下文参数。
  * 使用范围：仅供 [`dialogArrow`](app/src/boot/globalEvent/keydown/dialogArrow.ts:191) 与内部确认逻辑的参数类型标注使用。
- * 解耦评估：`App` 属于纯类型依赖，不引入运行时耦合；通过同目录 [`imports.ts`](app/src/boot/globalEvent/keydown/imports.ts) 转发后，当前文件无需直接依赖跨层路径。
+ * 解耦评估：`AppFacade` 属于纯类型依赖，不引入运行时耦合；通过同目录 [`imports.ts`](app/src/boot/globalEvent/keydown/imports.ts) 转发后，当前文件无需直接依赖跨层路径。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /**
  * 用途：引入共享常量，供打开文档时传递焦点与滚动动作标记。
  * 使用范围：仅供 [`activateDialogItem`](app/src/boot/globalEvent/keydown/dialogArrow.ts:93) 构造 [`openFileById`](app/src/boot/globalEvent/keydown/imports.ts:55) 参数时使用。
@@ -116,7 +116,7 @@ const getHorizontalTarget = (currentLiElement: HTMLElement) => {
  * 调用时机：用户在切换对话框或最近文档对话框中按下 Enter 时调用。
  * 问题/改进：当前 dock 和文档打开逻辑仍沿用既有业务接口，若后续这些接口统一 Promise 错误处理，可在此补充捕获与上报。
  */
-const activateDialogItem = async (app: App, currentLiElement: HTMLElement) => {
+const activateDialogItem = async (app: AppFacade, currentLiElement: HTMLElement) => {
     const currentType = currentLiElement.getAttribute("data-type");
     // 场景：riffCard 属于特殊入口，不经过通用 dock 切换流程，需要单独触发开卡逻辑。
     if (currentType === "riffCard") {
@@ -228,7 +228,7 @@ const resolveNextFocusTarget = (currentLiElement: HTMLElement, key: string) => {
  * 问题/改进：当前实现仍依赖对话框 DOM 结构中的 data-index 与 data-node-id 约定；若结构未来调整，应同步更新对应辅助函数。
  */
 // 导出语句注释：导出异步对话框方向键处理函数，供全局键盘事件入口复用。
-export const dialogArrow = async (app: App, element: HTMLElement, event: KeyboardEvent) => {
+export const dialogArrow = async (app: AppFacade, element: HTMLElement, event: KeyboardEvent) => {
     const currentLiElement = element.querySelector<HTMLElement>(FOCUS_SELECTOR);
     // 场景：导航入口没有当前焦点项时，说明调用方没有满足前置条件，必须直接报错。
     if (!currentLiElement) {

@@ -27,13 +27,13 @@ import {
     toggleAssetHistory,
     saveAssetKeyList,
 } from "../../search/toggleHistory";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {replace, updateConfig} from "./search.render";
 import type {UpdateSearchResultFn} from "./search.render";
 
 export const initSearchEvent = (
-    app: App,
+    app: AppFacade,
     element: Element,
     config: Config.IUILayoutTabSearchConfig,
     updateSearchResult: UpdateSearchResultFn,

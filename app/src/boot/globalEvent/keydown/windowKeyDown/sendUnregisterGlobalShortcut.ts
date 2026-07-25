@@ -1,9 +1,9 @@
 /**
  * 用途：通过同层转发层获取窗口按键模块所需依赖，避免业务文件直接使用父级路径导入。
  * 使用范围：仅供当前文件执行全局快捷键注销流程时使用。
- * 解耦评估：该文件仍依赖 App、IPC 与环境配置；先通过本地 `imports.ts` 收敛耦合，后续若改为依赖注入，可只调整转发层。
+ * 解耦评估：该文件仍依赖 AppFacade、IPC 与环境配置；先通过本地 `imports.ts` 收敛耦合，后续若改为依赖注入，可只调整转发层。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /**
  * 用途：读取 IPC 常量，构造发送到主进程的快捷键注销命令。
  * 使用范围：仅用于当前文件内的 `unregisterGlobalShortcut` IPC 消息体构建。
@@ -44,7 +44,7 @@ const unregisterGlobalShortcut = (accelerator: string | undefined) => {
  * 调用时机：窗口级全局快捷键整体注销流程执行时，在主窗口快捷键处理后调用。
  * 问题/改进：当前按原始注册顺序逐一注销，若未来主进程支持批量注销，可进一步合并 IPC 调用以减少消息数量。
  */
-const unregisterPluginGlobalShortcuts = (app: App) => {
+const unregisterPluginGlobalShortcuts = (app: AppFacade) => {
     for (const plugin of app.plugins) {
         for (const command of plugin.commands) {
             if (!command.globalCallback) {
@@ -63,7 +63,7 @@ const unregisterPluginGlobalShortcuts = (app: App) => {
  * 注意：调用方（状态空间）需确保仅在 Electron 环境下调用此函数。
  * @AIDONE isElectron 已从执行器移除，由调用方（keymap.ts 中已存在 isElectron 守卫）负责平台判断。
  */
-export const sendUnregisterGlobalShortcut = async (app: App) => {
+export const sendUnregisterGlobalShortcut = async (app: AppFacade) => {
     const toggleWindowHotkey = getSafeSiyuanConfig()?.keymap.general.toggleWin.custom;
     unregisterGlobalShortcut(toggleWindowHotkey);
     unregisterPluginGlobalShortcuts(app);

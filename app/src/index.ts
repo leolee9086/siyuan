@@ -36,7 +36,7 @@ import { getAllModels, getAllTabs } from "./layout/getAll";
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "./util/network/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
-import { loadPlugins, reloadPlugin } from "./plugin/loader";
+import { addPluginDock, loadPlugins, reloadPlugin, reloadPluginData } from "./plugin/loader";
 import "./assets/scss/base.scss";
 // 注册导出预览页签类型（需要在布局恢复前完成注册）
 import "./export-preview/register";
@@ -57,16 +57,28 @@ import { renderSnippet } from "./config/util/snippets";
 import { registerModelHandlers } from "./layout/modelRegistry";
 import { setBodyHighlight } from "./util/assets/assets";
 import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
-import type { Plugin } from "./plugin";
+import { configureWndDragRestore } from "./layout/Wnd.drag.port";
+import { JSONToCenter } from "./layout/layout-deserialization";
+import { Wnd } from "./layout/Wnd";
 /** 用途：为完整 App 实例附加 AppFacade 厂牌；使用范围：应用组合根与下层宿主类型边界；解耦评估：仅导入稳定厂牌值，不反向加载具体业务实现。 */
 import {appFacadeBrand} from "./app/AppFacade.types";
+import type * as Siyuan from "siyuan";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
-    public plugins: Plugin[] = [];
+    public plugins: Siyuan.Plugin[] = [];
     public appId: string;
     public eventBus: EventBus;
+    public pluginHost = {
+        reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
+        addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
+    };
     constructor() {
+        configureWndDragRestore((app, data, target) => {
+            if (target instanceof Wnd) {
+                JSONToCenter(app, data, target);
+            }
+        });
         // Protyle 通过 Port 请求完整 App 的 Dialog 能力，原版插件仍继续使用原有 Dialog/EventBus。
         registerProtyleDialogPort();
         if (checkPublishServiceClosed()) {

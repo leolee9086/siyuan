@@ -16,7 +16,7 @@ import { createAgentDockModel } from "./agent/dockModel.factory";
 import { createColorToolDockModel } from "../../sforge/colors/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
 import { Tab } from "./imports";
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 import type { Protyle } from "./imports";
 import type { ILayoutModel } from "./imports";
 import type {TabModelFactoryContext} from "./imports";
@@ -32,7 +32,7 @@ import { ModelFactory } from "./dock.types";
 import { ModelConstructor } from "./dock.types";
 
 /** 由布局组合层创建注册表声明的 Custom，并保持插件页签原有聚焦行为。 */
-export const createCustomTabModel = <TData>(context: TabModelFactoryContext<App, Tab, TData>) => {
+export const createCustomTabModel = <TData>(context: TabModelFactoryContext<AppFacade, Tab, TData>) => {
     const custom = new Custom<TData>({
         app: context.app,
         tab: context.tab,
@@ -61,7 +61,7 @@ export const createCustomTabModel = <TData>(context: TabModelFactoryContext<App,
  * 意图：提供文件系统的可视化展示和操作
  * 调用时机：加载文件树 Dock 时
  */
-const initFile: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => {
+const initFile: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab) => {
     return new Files({ tab, app });
 };
 
@@ -72,7 +72,7 @@ const initFile: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => {
  * 意图：展示文档的标题结构大纲
  * 调用时机：加载大纲 Dock 时
  */
-const initOutline: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initOutline: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
     const isPreview = false;
     const outline = new Outline({
@@ -101,7 +101,7 @@ const initOutline: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor)
  * 意图：展示当前文档的相关引用关系
  * 调用时机：加载关系图 Dock 时
  */
-const initGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Graph({
         app,
         tab,
@@ -117,7 +117,7 @@ const initGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) =
  * 意图：展示整个知识库的引用网络
  * 调用时机：加载全局关系图 Dock 时
  */
-const initGlobalGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => {
+const initGlobalGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab) => {
     return new Graph({
         app,
         tab,
@@ -132,7 +132,7 @@ const initGlobalGraph: ModelFactory<App, Tab, Protyle, unknown> = (app, tab) => 
  * 意图：展示引用当前文档的其他文档列表
  * 调用时机：加载反向链接 Dock 时
  */
-const initBacklink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initBacklink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Backlink({
         app,
         type: "pin",
@@ -148,7 +148,7 @@ const initBacklink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor
  * 意图：显示当前文档引用的其他文档/块列表
  * 调用时机：加载正向链接 Dock 时
  */
-const initForwardlink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initForwardlink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
     return new Forwardlink({
         app,
         type: "pin",
@@ -165,7 +165,7 @@ const initForwardlink: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, edi
  * 调用时机：加载自定义列表 Dock 时
  */
 /** @参数豁免: 生命周期 - 布局反序列化要求所有模型工厂遵守统一的四参数调用协议。 */
-const initCustomList: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, editor, data) => {
+const initCustomList: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor, data) => {
     // isICustomList 已排除 null/undefined/非对象，无需额外 !data 真值检查；
     // 否则 !data 会将 unknown 先收窄为 {}，导致类型守卫无法在 || 否定分支中收窄为 ICustomList
     if (!isICustomList(data)) {
@@ -174,7 +174,7 @@ const initCustomList: ModelFactory<App, Tab, Protyle, unknown> = (app, tab, edit
     return new CustomLists(app, tab, data);
 };
 
-const MODEL_FACTORIES: Record<string, ModelFactory<App, Tab, Protyle, unknown> | ModelConstructor<App, Tab, Protyle, unknown>> = {
+const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, Protyle, unknown> | ModelConstructor<AppFacade, Tab, Protyle, unknown>> = {
     file: initFile,
     bookmark: Bookmark,
     tag: Tag,
@@ -198,7 +198,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory<App, Tab, Protyle, unknown> |
  * 意图：支持插件扩展 Dock 功能
  * 调用时机：当 Dock 类型为非内置类型时尝试加载插件
  */
-const initPlugin = (app: App, tab: Tab, type: string) => {
+const initPlugin = (app: AppFacade, tab: Tab, type: string) => {
     let customModel: ILayoutModel | undefined;
     for (const item of app.plugins) {
         const dock = item.docks[type];
@@ -251,7 +251,7 @@ const getCustomListData = (type: string) => {
  * 问题/改进：目前混合了工厂模式和部分业务逻辑（如 custom_list 的数据恢复），未来可将 custom_list 逻辑抽离。
  */
 export const createModel = (options: {
-    app: App,
+    app: AppFacade,
     tab: Tab,
     type: string,
     editor?: Protyle | undefined,
@@ -289,7 +289,7 @@ export const createModel = (options: {
  * 调用时机：在 createDockTab 和其他需要安全创建 model 的地方使用
  */
 export const safeCreateModel = (options: {
-    app: App,
+    app: AppFacade,
     tab: Tab,
     type: string,
     editor?: Protyle | undefined,
@@ -322,7 +322,7 @@ export const safeCreateModel = (options: {
  * 调用时机：在 dock 初始化或切换时调用
  */
 export const createDockTab = (options: {
-    app: App,
+    app: AppFacade,
     type: string,
     editor?: Protyle,
     data?: unknown

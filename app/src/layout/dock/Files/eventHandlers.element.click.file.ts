@@ -7,7 +7,7 @@ import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { isNotCtrl, isOnlyMeta } from "../../../protyle/util/compatibility";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import type { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 
 // ============================================================================
 // 文件点击打开处理
@@ -28,13 +28,13 @@ function createAfterOpenCallback(target: HTMLElement): () => void {
  * 处理 Alt+Click 在右侧打开文件
  * @param event - 鼠标事件
  * @param target - 目标元素
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @returns 是否已处理
  */
 function handleAltClick(
     event: MouseEvent,
     target: HTMLElement,
-    app: App
+    app: AppFacade
 ): boolean {
     if (!event.altKey || !isNotCtrl(event) || event.shiftKey) {
         return false;
@@ -54,13 +54,13 @@ function handleAltClick(
  * 处理 Ctrl/Cmd+Shift+Click 在下方打开文件
  * @param event - 鼠标事件
  * @param target - 目标元素
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @returns 是否已处理
  */
 function handleCtrlShiftClick(
     event: MouseEvent,
     target: HTMLElement,
-    app: App
+    app: AppFacade
 ): boolean {
     if (event.altKey || !isOnlyMeta(event) || !event.shiftKey) {
         return false;
@@ -80,13 +80,13 @@ function handleCtrlShiftClick(
  * 处理 Ctrl/Cmd+Alt+Click 在新标签页打开文件
  * @param event - 鼠标事件
  * @param target - 目标元素
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @returns 是否已处理
  */
 function handleCtrlAltClick(
     event: MouseEvent,
     target: HTMLElement,
-    app: App
+    app: AppFacade
 ): boolean {
     const useCurrentTab = getSiyuanConfig().fileTree.openFilesUseCurrentTab;
     if (!useCurrentTab || !event.altKey || !isOnlyMeta(event) || event.shiftKey) {
@@ -108,12 +108,12 @@ function handleCtrlAltClick(
  * @同步豁免: UI构建 - 点击事件处理需要同步响应用户操作
  * @param event - 鼠标事件
  * @param target - 目标元素
- * @param app - App 实例
+ * @param app - AppFacade 实例
  */
 export function handleFileClick(
     event: MouseEvent,
     target: HTMLElement,
-    app: App
+    app: AppFacade
 ): void {
     // 检查是否正在打开中
     if (target.getAttribute("data-opening")) {

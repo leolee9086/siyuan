@@ -3,7 +3,7 @@
  * 提供从JSON恢复布局的功能
  * @同步豁免: 遗留代码 - 此模块从 util.ts 迁移，保持原有同步行为以确保兼容性
  */
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Constants } from "../constants";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
@@ -101,7 +101,7 @@ const processLayoutItem = (
  * @同步豁免: UI构建 - 需要同步创建DOM元素
  */
 const processWndItem = (
-    app: App,
+    app: AppFacade,
     json: Config.IUILayoutWnd,
     layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Wnd | undefined => {
@@ -117,7 +117,7 @@ const processWndItem = (
  * @同步豁免: UI构建 - 需要同步创建DOM元素
  */
 const processTabItem = (
-    app: App,
+    app: AppFacade,
     json: Config.IUILayoutTab,
     layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Tab | undefined => {
@@ -133,7 +133,7 @@ const processTabItem = (
  * @同步豁免: UI构建 - 需要同步创建DOM元素
  */
 const dispatchInstanceHandler = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): Layout | Wnd | Tab | undefined => {
@@ -159,7 +159,7 @@ const dispatchInstanceHandler = (
  * @同步豁免: UI构建 - 需要同步遍历布局树
  */
 const processChildren = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Layout | Wnd | Tab | ILayoutModel | undefined,
     child: Layout | Wnd | Tab | undefined
@@ -197,7 +197,7 @@ const processChildren = (
  * @param layout - 父布局容器（首次调用时为undefined）
  */
 export const JSONToCenter = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout?: Layout | Wnd | Tab | ILayoutModel,
 ): void => {
@@ -217,7 +217,7 @@ export const JSONToCenter = (
  * @param app - 应用实例
  * @param isStart - 是否为应用启动时调用
  */
-export const JSONToLayout = (app: App, isStart: boolean): void => {
+export const JSONToLayout = (app: AppFacade, isStart: boolean): void => {
     const uiLayoutConfig = getUILayoutConfig();
     // 无布局配置时跳过
     if (!uiLayoutConfig?.layout) {

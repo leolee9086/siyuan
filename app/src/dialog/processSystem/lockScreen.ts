@@ -15,7 +15,7 @@ import { exportLayout } from "./imports";
  * 使用范围：仅用于 [`lockScreen`](app/src/dialog/processSystem/lockScreen.ts:18) 的参数类型标注。
  * 解耦评估：类型导入不形成运行时耦合，经 [`imports.ts`](app/src/dialog/processSystem/imports.ts) 统一转发后已满足目录边界约束。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /**
  * 用途：判断当前锁屏流程是否运行在移动端。
  * 使用范围：仅用于当前文件区分移动端滚动保存流程与桌面端布局导出流程。
@@ -53,7 +53,7 @@ import { getSiyuanIsPublish } from "./imports";
  * 调用时机：在用户主动执行锁屏操作时由系统流程调用。
  * 问题/改进：桌面端仍依赖 `exportLayout` 的回调时机完成注销；如果未来需要统一移动端与桌面端的提交确认语义，可进一步收敛为显式 Promise 链路。
  */
-export const lockScreen = async (app: App) => {
+export const lockScreen = async (app: AppFacade) => {
     const siyuanConfig = getSafeSiyuanConfig();
     if (siyuanConfig?.readonly || getSiyuanIsPublish()) {
         return;

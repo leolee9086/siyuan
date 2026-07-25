@@ -8,7 +8,7 @@ import {viewCards} from "./viewCards";
 import {Constants} from "../constants";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {transaction} from "../protyle/wysiwyg/transaction";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const genCardItem = (item: ICardPackage) => {
@@ -36,7 +36,7 @@ export const genCardItem = (item: ICardPackage) => {
 </li>`;
 };
 
-export const makeCard = (app: App, ids: string[]) => {
+export const makeCard = (app: AppFacade, ids: string[]) => {
     window.siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_MAKECARD) {
             hideElements(["dialog"]);

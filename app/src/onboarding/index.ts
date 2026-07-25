@@ -6,7 +6,7 @@ import {syncGuide} from "../sync/syncGuide";
 import {openSetting} from "../config";
 import {isPaidUser} from "../util/needSubscribe";
 import {setNoteBook} from "../util/pathName";
-import type {App} from "../index";
+import type {AppFacade} from "../app/AppFacade.types";
 /// #if MOBILE
 import {openMobileFileById} from "../mobile/editor";
 /// #else
@@ -59,7 +59,7 @@ const dismissOnboarding = () => {
     fetchPost("/api/system/dismissOnboarding", {});
 };
 
-const syncAndDismissOnSuccess = (app: App) => {
+const syncAndDismissOnSuccess = (app: AppFacade) => {
     if (pendingSyncHandler) {
         window.removeEventListener("siyuan-sync-success", pendingSyncHandler);
     }
@@ -71,7 +71,7 @@ const syncAndDismissOnSuccess = (app: App) => {
     syncGuide(app);
 };
 
-const loginAndSync = (app: App) => {
+const loginAndSync = (app: AppFacade) => {
     if (window.siyuan.user) {
         if (isPaidUser()) {
             syncAndDismissOnSuccess(app);
@@ -93,7 +93,7 @@ const loginAndSync = (app: App) => {
     openSetting(app, "sync");
 };
 
-const renderOnboarding = (app: App) => {
+const renderOnboarding = (app: AppFacade) => {
     if (!shouldShowOnboarding() || document.querySelector(".onboarding")) {
         return;
     }
@@ -157,7 +157,7 @@ const renderOnboarding = (app: App) => {
 };
 
 /// #if !MOBILE
-export const openDesktopOnboarding = (app: App) => {
+export const openDesktopOnboarding = (app: AppFacade) => {
     if (!shouldShowOnboarding()) {
         return;
     }
@@ -173,7 +173,7 @@ export const openDesktopOnboarding = (app: App) => {
 /// #endif
 
 /// #if MOBILE
-export const openMobileOnboarding = (app: App) => {
+export const openMobileOnboarding = (app: AppFacade) => {
     if (!shouldShowOnboarding()) {
         return false;
     }
@@ -183,7 +183,7 @@ export const openMobileOnboarding = (app: App) => {
 };
 /// #endif
 
-export const activateOnboarding = async (app: App, onboarding: Config.IConf["onboarding"]) => {
+export const activateOnboarding = async (app: AppFacade, onboarding: Config.IConf["onboarding"]) => {
     window.siyuan.config.onboarding = onboarding;
     await ensureOnboarding();
     setNoteBook(() => {

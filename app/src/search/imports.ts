@@ -39,10 +39,10 @@ import { Protyle } from "../protyle";
 /** 导出 Protyle，供 search 模块使用 */
 export { Protyle };
 
-/** 用途：App 根实例类型。使用范围：Search 构造参数。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "../index";
-/** 导出 App，供 search 模块使用 */
-export type { App };
+/** 用途：AppFacade 根实例类型。使用范围：Search 构造参数。解耦评估：通过 imports.ts 转发。 */
+import type { AppFacade } from "../app/AppFacade.types";
+/** 导出 AppFacade，供 search 模块使用 */
+export type { AppFacade };
 
 /** 用途：面板焦点设置工具。使用范围：Search 点击处理。解耦评估：通过 imports.ts 转发。 */
 import { setPanelFocus } from "../layout/utils/setPanelFocus";

@@ -6,7 +6,7 @@ import { openFileById } from "../editor/utils.openFileById";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {isInAndroid, saveExportFile, updateHotkeyTip} from "../protyle/util/compatibility";
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -64,7 +64,7 @@ export const writeAssetToClipboard = (src: string) => {
 
 export const copyAsset = writeAssetToClipboard;
 
-export const openEditorTab = (app: App, ids: string[], notebookId?: string, pathString?: string, onlyGetMenus = false) => {
+export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string, pathString?: string, onlyGetMenus = false) => {
     if (!isMobile) {
     const openSubmenus: IMenu[] = [{
         id: "insertRight",

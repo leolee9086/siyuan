@@ -10,9 +10,9 @@ import { Plugin } from "../plugin";
 export { Plugin };
 
 /** 用途：应用实例类型。使用范围：inNotePlugin 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "../index";
-/** 导出 App 类型，供 inNotePlugin 模块使用 */
-export type { App };
+import type { AppFacade } from "../app/AppFacade.types";
+/** 导出 AppFacade 类型，供 inNotePlugin 模块使用 */
+export type { AppFacade };
 
 /** 用途：安全模块创建器。使用范围：inNotePlugin 模块执行代码。解耦评估：通过 imports.ts 转发。 */
 import { SecureModuleCreator } from "../util/lib/code/executor";

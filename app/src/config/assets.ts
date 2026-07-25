@@ -16,13 +16,12 @@ import {writeText} from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
 import {Protyle} from "../protyle";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/initUI";
 // S-forge: Plugin 系统支持
 import type {ICustomTabModel} from "../registry/TabRegistry.types";
 import {Plugin} from "../plugin";
-import {createPluginRuntime} from "../plugin/loader";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {switchSettingPanelSubTab} from "./setting/mount";
@@ -38,7 +37,7 @@ export const collectAssetsTabSearchStrings = (): string[] => [
 ];
 
 /** 资源 Tab 挂载（面板页，不走注册表渲染） */
-export const mountAssetsTab = (root: HTMLElement, keywords?: string, app?: App) => {
+export const mountAssetsTab = (root: HTMLElement, keywords?: string, app?: AppFacade) => {
     if (root.innerHTML === "") {
         assets.element = root;
         root.innerHTML = assets.genHTML();
@@ -120,7 +119,7 @@ const assets = {
     </div>
 </div>`;
     },
-    bindEvent: (app: App) => {
+    bindEvent: (app: AppFacade) => {
         const assetsListElement = assets.element.querySelector('.config-assets[data-type="remove"] .config-assets__list');
         const avListElement = assets.element.querySelector('.config-assets[data-type="removeAV"] .config-assets__list');
         const editor = new Protyle(app, avListElement.nextElementSibling as HTMLElement, {
@@ -505,7 +504,6 @@ document.addEventListener(
                 displayName: "资源管理内部插件",
                 name: "internal-plugin-image",
                 i18n: {},
-                runtime: createPluginRuntime(),
             }
         );
         plugin.addTab(

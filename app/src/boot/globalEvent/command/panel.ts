@@ -1,5 +1,5 @@
 import {Dialog} from "../../../dialog";
-import {App} from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {updateHotkeyTip} from "../../../protyle/util/compatibility";
 import {isMobile} from "../../../util/platform/functions";
@@ -24,7 +24,7 @@ import {hintMoveBlock} from "../../../protyle/hint/extend";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusByRange} from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-export const commandPanel = (app: App) => {
+export const commandPanel = (app: AppFacade) => {
     const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : undefined;
     const dialog = new Dialog({
         width: isMobile() ? "92vw" : "80vw",
@@ -186,7 +186,7 @@ const filterList = (inputElement: HTMLInputElement, listElement: Element) => {
 
 export const execByCommand = async (options: {
     command: string,
-    app?: App,
+    app?: AppFacade,
     previousRange?: Range,
     protyle?: IProtyle,
     fileLiElements?: Element[]

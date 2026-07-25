@@ -22,7 +22,7 @@ import { getDockByType } from "../layout/tabUtil";
 import { Files } from "../layout/dock/Files";
 import { openCardByData } from "../card/openCard";
 import { viewCards } from "../card/viewCards";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { openDocHistory } from "../history/doc";
 import { openEditorTab } from "./util";
 import { makeCard } from "../card/makeCard";
@@ -43,7 +43,7 @@ const confirmEncryptedExport = (notebookId: string, callback: () => void) => {
     confirmDialog(siyuanI18n.export, siyuanI18n.encryptedExportRiskTip, callback);
 };
 
-export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
+export const initNavigationMenu = (app: AppFacade, liElement: HTMLElement) => {
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_DOC_TREE_MORE);
     const fileElement = hasClosestByTag(liElement, "DIV");
@@ -309,7 +309,7 @@ export const initNavigationMenu = (app: App, liElement: HTMLElement) => {
     return window.siyuan.menus.menu;
 };
 
-export const initFileMenu = (app: App, notebookId: string, pathString: string, liElement: Element) => {
+export const initFileMenu = (app: AppFacade, notebookId: string, pathString: string, liElement: Element) => {
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_DOC_TREE_MORE);
     const fileElement = hasClosestByTag(liElement, "DIV");

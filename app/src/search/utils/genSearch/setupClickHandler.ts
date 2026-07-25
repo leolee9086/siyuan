@@ -53,14 +53,14 @@ import type {
     IClickListenerState,
 } from "./SearchContext.types";
 /** 用途：绑定搜索点击状态的应用身份；使用范围：点击分发实现；解耦评估：具体 class 仅在实现层绑定。 */
-import type {App} from "../../..";
+import type { AppFacade } from "../../../app/AppFacade.types";
 /** 用途：绑定搜索点击状态的编辑器身份；使用范围：点击分发实现；解耦评估：具体 class 仅在实现层绑定。 */
 import type {Protyle} from "../../../protyle";
 
 /** 搜索点击分发实现使用的完整状态，绑定主应用与 Protyle 实例身份。 */
-type SearchClickHandlerState = IClickHandlerState<App, Protyle>;
+type SearchClickHandlerState = IClickHandlerState<AppFacade, Protyle>;
 /** 搜索点击分发实现使用的事件上下文，与具体状态绑定保持一致。 */
-type SearchClickContext = IClickContext<App, Protyle>;
+type SearchClickContext = IClickContext<AppFacade, Protyle>;
 
 // 重新导出类型以便外部使用
 export type { IClickHandlerUIElements, IClickHandlerState, IClickHandlerCallbacks };

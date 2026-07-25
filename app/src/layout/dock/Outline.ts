@@ -1,5 +1,5 @@
-import {Tab} from "../Tab";
 import {Model} from "../Model";
+import type {LayoutTab} from "../layout.types";
 import {Tree} from "../../util/file/Tree";
 import {getInstanceById, setPanelFocus} from "../util";
 import {getDockByType} from "../tabUtil";
@@ -19,7 +19,7 @@ import {MenuItem} from "../../menus/Menu";
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
-import {App} from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
 import {goHome} from "../../protyle/wysiwyg/commonHotkey";
@@ -31,7 +31,7 @@ import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {getDocDisplayName} from "../../util/pathName";
 
-export class Outline extends Model<App, Tab> {
+export class Outline extends Model<AppFacade, LayoutTab> {
     public tree: Tree;
     public element: HTMLElement;
     public headerElement: HTMLElement;
@@ -39,11 +39,11 @@ export class Outline extends Model<App, Tab> {
     public blockId: string;
     public isPreview: boolean;
     public protyle: IProtyle;
-    private preFilterExpandIds: string[] | null = null;
+    public preFilterExpandIds: string[] | null = null;
 
     constructor(options: {
-        app: App,
-        tab: Tab,
+        app: AppFacade,
+        tab: LayoutTab,
         blockId: string,
         type: "pin" | "local",
         isPreview: boolean
@@ -127,7 +127,7 @@ export class Outline extends Model<App, Tab> {
                     if (headElement) {
                         const tabElement = hasTopClosestByClassName(headElement, "protyle");
                         if (tabElement) {
-                            const tab = getInstanceById(tabElement.getAttribute("data-id")) as Tab;
+                            const tab = getInstanceById(tabElement.getAttribute("data-id")) as LayoutTab;
                             tab.parent.switchTab(tab.headElement);
                         }
                         headElement.scrollIntoView();

@@ -2,7 +2,7 @@ import { bindBazaarEvent } from "./bazaarEvent";
 import { bazaarData, extractKeywords, filterPackagesByKeywords } from "./bazaarData";
 import { genBazaarHTML, genCardHTML, genFundingHTML, genKeywordsHTML, genUpdateItemHTML } from "./bazaarHtml";
 import { renderFilteredPackages, onBazaar, renderReadme, genMyHTML, getUpdate } from "./bazaarRender";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { isHTMLSelectElement } from "../../util/DOM/element.guard";
 import { switchSettingPanelSubTab } from "../setting/mount";
 
@@ -54,7 +54,7 @@ export const bazaar = {
         }
     },
 
-    _genMyHTML(bazaarType: TBazaarType, app: App, updateUpdate = true) {
+    _genMyHTML(bazaarType: TBazaarType, app: AppFacade, updateUpdate = true) {
         if (this.element) {
             genMyHTML(this.element, bazaarType, app, updateUpdate);
         }
@@ -66,7 +66,7 @@ export const bazaar = {
         }
     },
 
-    bindEvent(app: App) {
+    bindEvent(app: AppFacade) {
         bindBazaarEvent(this, app);
     },
 
@@ -96,7 +96,7 @@ export const collectBazaarTabSearchStrings = (): string[] => [
 ];
 
 /** 集市 Tab 挂载：复用本地拆分后的 Bazaar 面板实现 */
-export const mountBazaarTab = (root: HTMLElement, keywords?: string, app?: App) => {
+export const mountBazaarTab = (root: HTMLElement, keywords?: string, app?: AppFacade) => {
     if (root.innerHTML === "") {
         bazaar.element = root;
         root.innerHTML = bazaar.genHTML();

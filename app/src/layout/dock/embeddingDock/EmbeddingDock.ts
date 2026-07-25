@@ -5,7 +5,7 @@
 
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDockByType } from "../../tabUtil";
 import { embeddingText } from "../../../util/lib/embedding/transformer";
@@ -255,13 +255,13 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
     `;
 };
 
-export class EmbeddingDock extends Model<App, Tab> {
+export class EmbeddingDock extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     private datasets: IEmbeddingDataset[] = [];
     private statuses: Map<string, IDatasetStatus> = new Map();
     private progress: IEmbeddingProgress = { total: 0, current: 0, status: "idle" };
 
-    constructor(app: App, tab: Tab) {
+    constructor(app: AppFacade, tab: Tab) {
         super({
             app,
             id: tab.id,

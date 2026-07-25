@@ -2,7 +2,7 @@ import { showMessage } from "../../dialog/message";
 import { fetchPost } from "../../util/network/fetch";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { useShell } from "../../util/file/pathName";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { getFrontend } from "../../util/platform/functions";
 import { writeText } from "../../protyle/util/compatibility";
@@ -29,32 +29,32 @@ export const handleOpen = (dataObj: IBazaarDataObj) => {
     }
 };
 
-const initBazaarActions: Record<string, (bazaar: IBazaar<App>) => void> = {
-    template: (bazaar: IBazaar<App>) => {
+const initBazaarActions: Record<string, (bazaar: IBazaar<AppFacade>) => void> = {
+    template: (bazaar: IBazaar<AppFacade>) => {
         fetchPost("/api/bazaar/getBazaarTemplate", {}, response => {
             bazaar._onBazaar(response, "templates");
             bazaar._data.templates = response.data.packages;
         });
     },
-    icon: (bazaar: IBazaar<App>) => {
+    icon: (bazaar: IBazaar<AppFacade>) => {
         fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
             bazaar._onBazaar(response, "icons");
             bazaar._data.icons = response.data.packages;
         });
     },
-    widget: (bazaar: IBazaar<App>) => {
+    widget: (bazaar: IBazaar<AppFacade>) => {
         fetchPost("/api/bazaar/getBazaarWidget", {}, response => {
             bazaar._onBazaar(response, "widgets");
             bazaar._data.widgets = response.data.packages;
         });
     },
-    theme: (bazaar: IBazaar<App>) => {
+    theme: (bazaar: IBazaar<AppFacade>) => {
         fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
             bazaar._onBazaar(response, "themes");
             bazaar._data.themes = response.data.packages;
         });
     },
-    plugin: (bazaar: IBazaar<App>) => {
+    plugin: (bazaar: IBazaar<AppFacade>) => {
         fetchPost("/api/bazaar/getBazaarPlugin", {
             frontend: getFrontend()
         }, response => {
@@ -64,7 +64,7 @@ const initBazaarActions: Record<string, (bazaar: IBazaar<App>) => void> = {
     }
 };
 
-export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar<App>) => {
+export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar<AppFacade>) => {
     bazaar.element?.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
     const panels = bazaar.element?.querySelectorAll(".config-bazaar__panel");
@@ -88,7 +88,7 @@ return;
     }
 };
 
-export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: IBazaarDataObj, bazaar: IBazaar<App>, app: App, event: MouseEvent): boolean => {
+export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: IBazaarDataObj, bazaar: IBazaar<AppFacade>, app: AppFacade, event: MouseEvent): boolean => {
     if (type === "copy-funding") {
         const funding = target.getAttribute("data-funding");
         if (funding) {
@@ -131,7 +131,7 @@ export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj:
     return false;
 };
 
-const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar<App>, event: MouseEvent) => {
+const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar<AppFacade>, event: MouseEvent) => {
     if (hasClosestByClassName(event.target as HTMLElement, "b3-card__actions--right")) {
         return;
     }
@@ -152,7 +152,7 @@ const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar<App>, event:
     }
 };
 
-export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar<App>, app: App, event: MouseEvent): boolean => {
+export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar<AppFacade>, app: AppFacade, event: MouseEvent): boolean => {
     if (target.classList.contains("b3-card")) {
         handleBazaarCardClick(target, bazaar, event);
         event.preventDefault();

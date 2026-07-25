@@ -5,14 +5,14 @@ import { Constants } from "../../constants";
 import { getFrontend } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Plugin } from "../../plugin";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { uninstall } from "../../plugin/uninstall";
 import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { saveLayout } from "../../layout/util";
 import { openByMobile } from "../../protyle/util/compatibility";
 
-export const handleSwitch = (dataObj: any, bazaar: any, app: App) => {
+export const handleSwitch = (dataObj: any, bazaar: any, app: AppFacade) => {
     const bazaarType = dataObj.bazaarType as TBazaarType;
     const packageName = dataObj.name;
     const mode = dataObj.themeMode === "dark" ? 1 : 0;
@@ -44,7 +44,7 @@ export const handleSwitch = (dataObj: any, bazaar: any, app: App) => {
     }
 };
 
-export const handleUninstall = (dataObj: any, bazaar: any, app: App) => {
+export const handleUninstall = (dataObj: any, bazaar: any, app: AppFacade) => {
     const bazaarType = dataObj.bazaarType as TBazaarType;
     let url = "/api/bazaar/uninstallBazaarTemplate";
     if (bazaarType === "themes") {
@@ -76,7 +76,7 @@ export const handleUninstall = (dataObj: any, bazaar: any, app: App) => {
     }
 };
 
-export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, app: App, isUpdate: boolean = false) => {
+export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, app: AppFacade, isUpdate: boolean = false) => {
     if (target.classList.contains("b3-button--progress")) {
         return;
     }
@@ -159,7 +159,7 @@ export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, ap
     }
 };
 
-export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, bazaar: any, app: App) => {
+export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, bazaar: any, app: AppFacade) => {
     if (target.getAttribute("disabled")) {
         return;
     }
@@ -187,7 +187,7 @@ export const handlePluginEnable = (target: HTMLInputElement, dataObj: any, bazaa
     });
 };
 
-export const handlePluginsEnable = (target: HTMLInputElement, bazaar: any, app: App) => {
+export const handlePluginsEnable = (target: HTMLInputElement, bazaar: any, app: AppFacade) => {
     if (target.getAttribute("disabled")) {
         return;
     }
@@ -230,7 +230,7 @@ export const handleExportLocalPackage = (dataObj: any) => {
     });
 };
 
-export const handleBazaarInstallClick = (type: string, target: HTMLElement, dataObj: any, bazaar: any, app: App, event: MouseEvent): boolean => {
+export const handleBazaarInstallClick = (type: string, target: HTMLElement, dataObj: any, bazaar: any, app: AppFacade, event: MouseEvent): boolean => {
     if (type === "install") {
         handleInstall(target, dataObj, bazaar, app, false);
         event.preventDefault();

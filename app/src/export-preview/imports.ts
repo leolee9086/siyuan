@@ -20,6 +20,6 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 export { siyuanI18n };
 
 /** 用途：应用实例类型定义。使用范围：export-preview 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "../index";
-/** 导出 App 类型，供 export-preview 模块使用 */
-export type { App };
+import type { AppFacade } from "../app/AppFacade.types";
+/** 导出 AppFacade 类型，供 export-preview 模块使用 */
+export type { AppFacade };

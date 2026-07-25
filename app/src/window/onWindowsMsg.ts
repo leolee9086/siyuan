@@ -36,9 +36,9 @@ import { isElectronStyle } from "./init.guard";
 /**
  * 用途：从统一转发模块导入应用主类型定义
  * 使用范围：onWindowsMsg 和 lockScreenByMode 函数参数类型，用于访问应用实例
- * 解耦评估：App 是核心依赖，当前无法解耦
+ * 解耦评估：AppFacade 是核心依赖，当前无法解耦
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 
 /**
  * 关闭指定的标签页
@@ -103,7 +103,7 @@ const handleResetTabsStyle = (ipcData: IWebSocketData) => {
  *
  * @param app - 应用实例，用于执行锁屏操作
  */
-const lockScreenByMode = (app: App) => {
+const lockScreenByMode = (app: AppFacade) => {
     // 检查锁屏模式：仅当系统配置的锁屏模式为1时才执行锁屏操作
     if (getSiyuanConfig().system.lockScreenMode === 1) {
         lockScreen(app);
@@ -122,7 +122,7 @@ const lockScreenByMode = (app: App) => {
  * @param ipcData - IPC消息数据，包含cmd命令和data数据
  * @param app - 应用实例，用于访问应用级别的功能
  */
-export const onWindowsMsg = (ipcData: IWebSocketData, app: App) => {
+export const onWindowsMsg = (ipcData: IWebSocketData, app: AppFacade) => {
     if (!ipcData.cmd) {
         return;
     }

@@ -21,7 +21,7 @@ import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：标注关闭执行器参数。解耦评估：复用全局命令边界。 */
 import type { GlobalCommandContext } from "./imports";
 /** 用途：主应用宿主身份；使用范围：桌面关闭命令上下文绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 判断标签是否属于关闭未修改命令的目标集合。 */
 const isUnmodifiedTab = (tab: Tab) => {
@@ -97,7 +97,7 @@ const executeCloseTabDesktopGlobalCommand = () => {
 };
 
 /** 执行关闭其它或全部标签命令。 */
-const executeCloseGroupDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeCloseGroupDesktopGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     const tab = getActiveTab(false);
     // 只有存在活动标签时，closeOthers/closeAll 才有目标窗口。
     if (tab) {
@@ -116,7 +116,7 @@ const splitSideTabs = (tab: Tab) => {
 };
 
 /** 执行关闭左侧或右侧标签命令。 */
-const executeCloseSideDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeCloseSideDesktopGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     const tab = getActiveTab(false);
     // 没有活动标签时命令保持已处理，不进行任何关闭。
     if (!tab) {
@@ -144,7 +144,7 @@ const desktopCloseCommandRouter = calibur
  * 执行桌面关闭命令。
  * @同步豁免: UI构建 - 关闭标签、Dock 和浮窗是同步布局操作，命令入口需要立即返回处理状态。
  */
-export const executeDesktopCloseGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeDesktopCloseGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const executor = desktopCloseCommandRouter({ command: context.command });
     return executor(context);
 };

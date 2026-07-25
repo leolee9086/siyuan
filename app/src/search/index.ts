@@ -29,11 +29,11 @@ import { genSearch } from "./utils/genSearch";
  */
 import { setPanelFocus } from "./imports";
 /**
- * 用途：App 根实例类型。
+ * 用途：AppFacade 根实例类型。
  * 使用范围：Search 构造参数。
  * 解耦评估：通过 imports.ts 转发。
  */
-import { App } from "./imports";
+import type { AppFacade } from "./imports";
 /**
  * 用途：清理 outline 和 gutter 高亮。
  * 使用范围：Search 点击处理时清除 O/B/G 高亮。
@@ -73,12 +73,12 @@ const selectInputField = (element: HTMLElement) => {
 
 /** 用途：搜索面板，管理搜索界面的生命周期和事件。使用范围：布局系统初始化搜索面板时实例化。 */
 // @允许继承: 框架要求 (FrameworkRequired)
-class Search extends Model<App, Tab> {
+class Search extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     public config: Config.IUILayoutTabSearchConfig;
     public editors: { edit: Protyle, unRefEdit: Protyle };
 
-    constructor(options: { tab: Tab, config: Config.IUILayoutTabSearchConfig, app: App }) {
+    constructor(options: { tab: Tab, config: Config.IUILayoutTabSearchConfig, app: AppFacade }) {
         super({
             app: options.app,
         });

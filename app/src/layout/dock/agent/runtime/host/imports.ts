@@ -1,5 +1,5 @@
-/** 用途：收口 App 类型；使用范围：App capability 参数；解耦评估：纯类型边界，面板核心不依赖 App。 */
-import type {App} from "../../../../../index";
+/** 用途：收口 AppFacade 类型；使用范围：App capability 参数；解耦评估：纯类型边界，面板核心不依赖具体 App class。 */
+import type {AppFacade} from "../../../../../app/AppFacade.types";
 /** 用途：收口 Tab 类型；使用范围：Tab 与浮窗 capability 参数；解耦评估：纯类型边界，具体动作由 Port 隔离。 */
 import type {Tab} from "../../../../Tab";
 /** 用途：收口确认框；使用范围：App ConfirmPort；解耦评估：仅宿主适配器依赖具体 Dialog。 */
@@ -33,8 +33,8 @@ import {MenuItem} from "../../../../../menus/Menu";
 
 /** 延迟加载设置模块，避免宿主 capability 在布局初始化时引入配置循环。 */
 export const loadOpenSetting = async () => import("../../../../../config");
-/** 导出 App 类型。 */
-export type {App};
+/** 导出 AppFacade 类型。 */
+export type {AppFacade};
 /** 导出 Tab 类型。 */
 export type {Tab};
 /** 导出菜单项类型。 */

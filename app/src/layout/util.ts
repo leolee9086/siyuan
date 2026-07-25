@@ -15,7 +15,7 @@ import { Editor } from "../editor";
 import {createEditor} from "../editor/factory/createEditor.factory";
 import { newCardModel } from "../card/newCardTab";
 import { newDatabaseRowModel } from "../editor/databaseRow";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { tabRegistry } from "../registry";
 import {createCustomTabModel} from "./dock/dock.factory";
 import {
@@ -71,7 +71,7 @@ export const pdfIsLoading = (element: HTMLElement): boolean => {
 };
 
 /** @同步豁免: UI构建 - 需要同步创建模型实例并初始化 */
-export const newModelByInitData = (app: App, tab: Tab, json: IObject): Model | undefined => {
+export const newModelByInitData = (app: AppFacade, tab: Tab, json: IObject): Model | undefined => {
     if (json.instance === "Custom") {
         return createCustomModel(app, tab, json);
     }
@@ -82,7 +82,7 @@ export const newModelByInitData = (app: App, tab: Tab, json: IObject): Model | u
 };
 
 /** @同步豁免: UI构建 - 需要同步创建模型实例 */
-const createCustomModel = (app: App, tab: Tab, json: IObject): Model | undefined => {
+const createCustomModel = (app: AppFacade, tab: Tab, json: IObject): Model | undefined => {
     const modelData = json.customModelData;
     const modelType = json.customModelType;
     if (modelType === "siyuan-card" && isCardModelData(modelData)) {
@@ -102,7 +102,7 @@ const createCustomModel = (app: App, tab: Tab, json: IObject): Model | undefined
 };
 
 /** 从插件中查找并创建模型 */
-const findPluginModel = (app: App, tab: Tab, modelType: string, modelData: unknown): Model | undefined => {
+const findPluginModel = (app: AppFacade, tab: Tab, modelType: string, modelData: unknown): Model | undefined => {
     let model: Model | undefined;
     app.plugins.find((plugin) => {
         const modelFactory = plugin.models[modelType];
@@ -116,7 +116,7 @@ const findPluginModel = (app: App, tab: Tab, modelType: string, modelData: unkno
 };
 
 /** @同步豁免: UI构建 - 需要同步创建模型实例 */
-const createEditorModel = (app: App, tab: Tab, json: IObject): Model => {
+const createEditorModel = (app: AppFacade, tab: Tab, json: IObject): Model => {
     const processedAction = processEditorAction(json);
     const scrollPosition = isValidScrollPosition(json.scrollPosition) ? json.scrollPosition : undefined;
     const mode = isValidEditorMode(json.mode) ? json.mode : undefined;

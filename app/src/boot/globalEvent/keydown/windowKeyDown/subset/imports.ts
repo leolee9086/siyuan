@@ -76,10 +76,10 @@ import type { DialogWindowKeyCommand, NavigationWindowKeyCommand, SystemWindowKe
  * 解耦评估：纯类型依赖，仅用于执行器回调签名标注，不形成运行时耦合。
  */
 import type {WindowKeyDownState as WindowKeyDownStateContract} from "../types";
-import type {App} from "../imports";
+import type { AppFacade } from "../imports";
 
 /** 子集执行阶段绑定真实应用与 Dialog，并据此固定执行器签名。 */
-type WindowKeyDownState = WindowKeyDownStateContract<App, Dialog>;
+type WindowKeyDownState = WindowKeyDownStateContract<AppFacade, Dialog>;
 type WindowKeyDownExecutor = WindowKeyDownExecutorContract<WindowKeyDownState>;
 
 export { bindAVPanelKeydown };

@@ -11,7 +11,7 @@ import { resize } from "./imports";
 /** 用途：定位数据库条目；使用范围：子编辑器加载完成；解耦评估：在 BlockPanel 组合边界绑定。 */
 import { activateAVLocateWithRetry } from "./imports";
 /** 用途：App类型定义。使用范围：构造函数参数和实例属性类型标注。解耦评估：通过 ./imports 转发。 */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：获取全局浮窗面板列表。使用范围：管理浮窗层级和清理。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanBlockPanels } from "./imports";
 /** 用途：获取全局菜单实例。使用范围：销毁浮窗时清理关联菜单。解耦评估：通过 ./imports 转发。 */
@@ -36,7 +36,7 @@ import { 清理同级浮窗 } from "./Panel.helpers";
 import { 处理双击事件 } from "./Panel.helpers";
 // 用途：处理图标点击；使用范围：点击工具栏图标执行操作；解耦评估：事件处理逻辑已分离到Panel.helpers模块
 import { 处理图标点击 } from "./Panel.helpers";
-/** 用途：打开引用块到普通页签；使用范围：BlockPanel 宿主能力适配；解耦评估：具体 App 仅在此装配层闭包中使用。 */
+/** 用途：打开引用块到普通页签；使用范围：BlockPanel 宿主能力适配；解耦评估：具体 AppFacade 仅在此装配层闭包中使用。 */
 import { openFileById } from "./imports";
 /** 用途：BlockPanel 编辑器结构；使用范围：实例生命周期数组；解耦评估：不依赖 Protyle class。 */
 import type { IBlockPanelEditor } from "./editor.types";
@@ -129,7 +129,7 @@ export class BlockPanel {
     public targetElement: HTMLElement | undefined;
     public refDefs: IRefDefs[];
     public id: string;
-    public app: App;
+    public app: AppFacade;
     public x: number | undefined;
     public y: number | undefined;
     public isBacklink: boolean;
@@ -146,7 +146,7 @@ export class BlockPanel {
      * 调用时机：用户触发引用浮窗显示时（如点击引用、悬停等）
      */
     constructor(options: {
-        app: App,
+        app: AppFacade,
         targetElement?: HTMLElement,
         refDefs: IRefDefs[]
         isBacklink: boolean,

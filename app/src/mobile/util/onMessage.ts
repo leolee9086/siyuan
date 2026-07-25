@@ -7,7 +7,7 @@ import {
 } from "../../dialog/processSystem";
 import { reloadSync } from "../../dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "../../dialog/processSystem/setRefDynamicText";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {reloadPlugin} from "../../plugin/loader";
 import {reloadEmoji} from "../../emoji";
 import {renderSnippet} from "../../config/util/snippets";
@@ -19,7 +19,7 @@ import {clearMobileBackForward} from "./MobileBackFoward";
 let statusTimeout: number;
 const statusElement = document.querySelector("#status") as HTMLElement;
 
-export const onMessage = (app: App, data: IWebSocketData) => {
+export const onMessage = (app: AppFacade, data: IWebSocketData) => {
     if (data) {
         switch (data.cmd) {
             case "logoutAuth":

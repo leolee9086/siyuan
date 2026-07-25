@@ -1,5 +1,6 @@
-import {App} from "../index";
-import {Plugin} from "./index";
+/** 用途：提供插件卸载流程的应用抽象外观；使用范围：插件集合和生命周期清理；解耦评估：type-only 依赖，不加载完整应用入口。 */
+import type {AppFacade} from "../app/AppFacade.types";
+import type * as Siyuan from "siyuan";
 import {getAllModels} from "../layout/getAll";
 import {resizeTopBar} from "../layout/util";
 import {setTabPosition} from "../layout/tabUtil";
@@ -13,8 +14,8 @@ import {unregisterAction} from "../layout/dock/agent/frontendActions";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 
-export const uninstall = (app: App, name: string, isReload: boolean) => {
-    app.plugins.find((plugin: Plugin, index) => {
+export const uninstall = (app: AppFacade, name: string, isReload: boolean) => {
+    app.plugins.find((plugin: Siyuan.Plugin, index) => {
         if (plugin.name === name) {
             try {
                 plugin.onunload();

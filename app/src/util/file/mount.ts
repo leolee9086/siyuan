@@ -9,12 +9,12 @@ import {replaceFileName, validateName} from "../../editor/rename";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {siyuanI18n} from "../siyuanEnvironments/i18n.getI18n.environment";
 import {ipcInvoke} from "../../platform/electron/ipcRenderer";
 import {importObsidianVault} from "../../menus/importObsidian";
 
-export const fetchNewDailyNote = (app: App, notebook: string) => {
+export const fetchNewDailyNote = (app: AppFacade, notebook: string) => {
     fetchPost("/api/filetree/createDailyNote", {
         notebook,
         app: Constants.SIYUAN_APPID,
@@ -27,7 +27,7 @@ export const fetchNewDailyNote = (app: App, notebook: string) => {
     });
 };
 
-export const newDailyNote = (app: App) => {
+export const newDailyNote = (app: AppFacade) => {
     const exit = window.siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_DIALYNOTE) {
             item.destroy();
@@ -262,7 +262,7 @@ export const newEncryptedNotebook = () => {
     });
 };
 
-export const openEncryptedNotebook = (app: App, notebookId: string, name: string) => {
+export const openEncryptedNotebook = (app: AppFacade, notebookId: string, name: string) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.unlockEncryptedNotebook.replace("${x}", name),
         content: `<div class="b3-dialog__content">

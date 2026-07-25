@@ -1,6 +1,6 @@
 import {Protyle} from "../../../protyle";
 import {Constants} from "../../../constants";
-import type {App} from "../../../index";
+import type {AppFacade} from "../../../app/AppFacade.types";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
 import {hintRef} from "../../../protyle/hint/extend";
@@ -46,7 +46,7 @@ const hintSkill = (key: string, protyle: IProtyle): IHintData[] => {
 };
 
 export function mountProtyleComposer(
-    app: App,
+    app: AppFacade,
     host: HTMLElement,
     onSend: () => void,
     onChange?: ComposerChangeCallback,

@@ -49,7 +49,7 @@ import {isWindow} from "../../util/functions";
 import {reloadProtyle} from "../../protyle/util/reload";
 import {fullscreen} from "../../protyle/breadcrumb/action";
 import {openRecentDocs} from "../../business/openRecentDocs";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {openBacklink, openGraph, openOutline, toggleDockBar} from "../../layout/dock/util";
 import {workspaceMenu} from "../../menus/workspace";
 import {resize} from "../../protyle/util/resize";
@@ -75,7 +75,7 @@ import {bindAVPanelKeydown} from "../../protyle/render/av/keydown";
 import {isElectron} from "../../platform";
 import {ipcSend} from "../../platform/electron/ipcRenderer";
 
-const switchDialogEvent = (app: App, event: MouseEvent) => {
+const switchDialogEvent = (app: AppFacade, event: MouseEvent) => {
     event.preventDefault();
     let target = event.target as HTMLElement;
     while (target !== switchDialog.element) {
@@ -105,7 +105,7 @@ const switchDialogEvent = (app: App, event: MouseEvent) => {
     }
 };
 
-const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
+const dialogArrow = (app: AppFacade, element: HTMLElement, event: KeyboardEvent) => {
     let currentLiElement = element.querySelector(".b3-list-item--focus");
     if (currentLiElement) {
         currentLiElement.classList.remove("b3-list-item--focus");
@@ -173,7 +173,7 @@ const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
     }
 };
 
-const editKeydown = (app: App, event: KeyboardEvent) => {
+const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
     let protyle: IProtyle;
     let range: Range;
     if (getSelection().rangeCount > 0) {
@@ -548,7 +548,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
     return false;
 };
 
-const fileTreeKeydown = (app: App, event: KeyboardEvent) => {
+const fileTreeKeydown = (app: AppFacade, event: KeyboardEvent) => {
     const dockFile = getDockByType("file");
     if (!dockFile) {
         return false;
@@ -970,7 +970,7 @@ const fileTreeKeydown = (app: App, event: KeyboardEvent) => {
     }
 };
 
-const panelTreeKeydown = (app: App, event: KeyboardEvent) => {
+const panelTreeKeydown = (app: AppFacade, event: KeyboardEvent) => {
     // 面板折叠展开操作
     const target = event.target as HTMLElement;
     if (["INPUT", "TEXTAREA"].includes(target.tagName) ||
@@ -1173,7 +1173,7 @@ const panelTreeKeydown = (app: App, event: KeyboardEvent) => {
 };
 
 let switchDialog: Dialog;
-export const windowKeyDown = (app: App, event: KeyboardEvent) => {
+export const windowKeyDown = (app: AppFacade, event: KeyboardEvent) => {
     if (filterHotkey(event, app)) {
         return;
     }
@@ -1752,7 +1752,7 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
     }
 };
 
-export const sendGlobalShortcut = (app: App) => {
+export const sendGlobalShortcut = (app: AppFacade) => {
     if (!isElectron) {
         return;
     }
@@ -1771,7 +1771,7 @@ export const sendGlobalShortcut = (app: App) => {
 };
 
 
-export const sendUnregisterGlobalShortcut = (app: App) => {
+export const sendUnregisterGlobalShortcut = (app: AppFacade) => {
     if (!isElectron) {
         return;
     }

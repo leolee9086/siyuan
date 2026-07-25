@@ -6,7 +6,7 @@ import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import * as dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
 import {isMobile} from "../util/platform/functions";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {resizeSide} from "./resizeSide";
 import {escapeHtml} from "../util/DOM/escape";
 
@@ -67,7 +67,7 @@ const renderDoc = (element: HTMLElement, currentPage: number, id: string) => {
 };
 
 export const openDocHistory = (options: {
-    app: App,
+    app: AppFacade,
     id: string,
     notebookId: string,
     pathString: string

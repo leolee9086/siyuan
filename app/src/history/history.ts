@@ -6,7 +6,7 @@ import { fetchPost } from "../util/network/fetch";
 import { escapeHtml } from "../util/DOM/escape";
 import { isMobile } from "../util/platform/functions";
 import { openModel } from "../mobile/menu/model";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { resizeSide } from "./resizeSide";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { renderDoc, renderRepo, renderRmNotebook } from "./history.render";
@@ -377,7 +377,7 @@ const renderRmNotebook = (element: HTMLElement) => {
     });
 };
 
-export const openHistory = (app: App, tab: "doc" | "notebook" | "repo" = "doc") => {
+export const openHistory = (app: AppFacade, tab: "doc" | "notebook" | "repo" = "doc") => {
     if (window.siyuan.config.readonly) {
         return;
     }
@@ -536,7 +536,7 @@ export const openHistory = (app: App, tab: "doc" | "notebook" | "repo" = "doc") 
     }
 };
 
-const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
+const bindEvent = (app: AppFacade, element: Element, dialog?: Dialog) => {
     const firstPanelElement = element.querySelector("#historyContainer [data-type=doc]") as HTMLElement;
     firstPanelElement.querySelectorAll(".b3-select").forEach((itemElement) => {
         itemElement.addEventListener("change", () => {

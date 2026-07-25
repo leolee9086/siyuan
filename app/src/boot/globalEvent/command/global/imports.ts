@@ -41,7 +41,7 @@ import { getSiyuanConfig, getSiyuanStorage } from "../../../../util/siyuanEnviro
 /** 用途：平台判断；使用范围：global.ts 根路由选择移动端或桌面端命令域。解耦评估：平台常量是同步环境信息，命令入口需要即时读取。 */
 import { isMobile } from "../../../../platform";
 /** 用途：应用实例类型；使用范围：types.ts；解耦评估：保持 globalCommand 既有 app 参数边界。 */
-import type { App } from "../../../../index";
+import type { AppFacade } from "../../../../app/AppFacade.types";
 /** 用途：CaliburRouter 构建器；使用范围：所有命令路由；解耦评估：用户指定的声明式路由 DSL。 */
 import { calibur } from "calibur-router";
 /** 用途：arktype 类型声明器；使用范围：CaliburRouter split 条件；解耦评估：属于路由 schema 基础设施。 */
@@ -96,4 +96,4 @@ export { calibur };
 /** 导出 arktype 类型声明器。 */
 export { type };
 /** 导出应用实例类型。 */
-export type { App };
+export type { AppFacade };

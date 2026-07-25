@@ -6,7 +6,7 @@ import { Outline } from "./outline/Outline";
 import { fixWndFlex1, getInstanceById, getWndByLayout } from "../util";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
 import { Backlink } from "./Backlink";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { Wnd } from "../Wnd";
 import { fetchSyncPost } from "../../util/network/fetch";
 import { Files } from "./Files";
@@ -15,7 +15,7 @@ import { Constants } from "../../constants";
 import { getDocDisplayName } from "../../util/file/pathName";
 
 export const openBacklink = async (options: {
-    app: App,
+    app: AppFacade,
     blockId: string,
     rootId?: string,
     title?: string,
@@ -75,7 +75,7 @@ export const openBacklink = async (options: {
 };
 
 export const openGraph = async (options: {
-    app: App,
+    app: AppFacade,
     blockId: string,
     rootId?: string,
     title?: string,
@@ -130,7 +130,7 @@ export const openGraph = async (options: {
 };
 
 export const openOutline = async (options: {
-    app: App,
+    app: AppFacade,
     rootId: string,
     isPreview: boolean,
     title: string

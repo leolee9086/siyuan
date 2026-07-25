@@ -6,8 +6,8 @@ import {MenuItem} from "./imports";
 import {siyuanI18n} from "./imports";
 /** 用途：插件子菜单容器。使用范围：收集插件注册的菜单项。解耦评估：通过插件领域网关连接菜单实现。 */
 import {subMenu} from "./imports";
-/** 用途：插件运行时身份。使用范围：组合边界向当前插件集合广播菜单事件。解耦评估：菜单工厂依赖完整 Plugin 实现。 */
-import type {Plugin} from "./imports";
+/** 用途：插件运行时身份。使用范围：组合边界向当前插件集合广播菜单事件。解耦评估：菜单工厂依赖官方插件公开契约，不加载具体 class。 */
+import type {Plugin} from "siyuan";
 
 /**
  * 触发插件菜单打开事件并构建插件子菜单

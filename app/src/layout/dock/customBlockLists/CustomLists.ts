@@ -9,7 +9,7 @@ import { Model } from "../../Model";
 /**
  * 用途：应用实例类型。使用范围：构造和调用参数。解耦评估：通过 imports 引入。
  */
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 /**
  * 用途：HTTP POST 请求。使用范围：数据查询和更新。解耦评估：作为网络基础设施直接导入。
  */
@@ -193,13 +193,13 @@ const sqlTypeToNodeType = (type: string) => {
 };
 
 // @允许继承: FrameworkRequired - Model 是框架要求的基类，所有面板类都必须继承
-export class CustomLists extends Model<App, Tab> {
+export class CustomLists extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     public tree: Tree;
     public listData: ICustomList;
     public editors: Protyle[] = [];
 
-    constructor(app: App, tab: Tab, data: ICustomList) {
+    constructor(app: AppFacade, tab: Tab, data: ICustomList) {
         super({
             app,
             id: tab.id,

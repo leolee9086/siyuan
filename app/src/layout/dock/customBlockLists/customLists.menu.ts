@@ -7,9 +7,9 @@ import { updateListTarget } from "./customLists.util";
 
 import { genSearch } from "../../../search/utils/genSearch";
 import { Dialog } from "../../../dialog";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 
-export const showCustomListMenu = (app: App, customList: CustomLists, event: MouseEvent) => {
+export const showCustomListMenu = (app: AppFacade, customList: CustomLists, event: MouseEvent) => {
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
@@ -140,7 +140,7 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
 /**
  * 显示转换为嵌入数据集对话框
  */
-const showConvertToDatasetDialog = (app: App, customList: CustomLists) => {
+const showConvertToDatasetDialog = (app: AppFacade, customList: CustomLists) => {
     const defaultModel = "leolee9086/text2vec-base-chinese";
     const dialog = new Dialog({
         title: forgeI18n.customList?.convertToDataset || "转换为嵌入数据集",

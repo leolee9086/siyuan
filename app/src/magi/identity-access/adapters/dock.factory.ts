@@ -17,7 +17,7 @@ function initDock(custom: imports.Custom) {
  * 调用时机：Dock 工厂解析 magi-identity-access 类型时调用。
  */
 /** @同步豁免: UI构建 */
-export function createIdentityAccessDockModel(app: imports.App, tab: imports.Tab) {
+export function createIdentityAccessDockModel(app: imports.AppFacade, tab: imports.Tab) {
     return new imports.Custom({
         app,
         type: "magi-identity-access",

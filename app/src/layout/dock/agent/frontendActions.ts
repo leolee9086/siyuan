@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import type {App} from "../../../index";
+/** 用途：前端动作处理器的应用宿主类型；使用范围：动作执行回调；解耦评估：只依赖稳定 AppFacade，不加载具体入口 class。 */
+import type {AppFacade} from "../../../app/AppFacade.types";
 
 export interface IAction {
     name: string;
     description?: string;
-    handler: (args: Record<string, unknown>, app: App) => Promise<{result?: string; error?: string}>;
+    handler: (args: Record<string, unknown>, app: AppFacade) => Promise<{result?: string; error?: string}>;
 }
 
 // Centralized action registry. Data structure is a registry so that plugins can register their
@@ -114,7 +115,7 @@ if (!isMobileRuntime()) {
         }
         try {
             const [{openFileById}, {Constants}] = await Promise.all([
-                import("../../../editor/util"),
+                import("../../../editor/utils.openFileById"),
                 import("../../../constants"),
             ]);
             await openFileById({app, id, action: [Constants.CB_GET_FOCUS]});

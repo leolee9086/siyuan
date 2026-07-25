@@ -3,7 +3,7 @@ import { escapeHtml } from "../../util/DOM/escape";
 import { openCard } from "../../card/openCard";
 import { getDockByType } from "../../layout/tabUtil";
 import { getAllTabs } from "../../layout/getAll";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { Constants } from "../../constants";
 import { matchHotKey } from "../../protyle/util/hotKey";
 import { isWindow } from "../../util/platform/functions";
@@ -169,7 +169,7 @@ const executeTabSwitch = (currentLiElement: Element) => {
     }
 };
 
-const executeSwitchChoice = (app: App, currentLiElement: Element) => {
+const executeSwitchChoice = (app: AppFacade, currentLiElement: Element) => {
     const currentType = currentLiElement.getAttribute("data-type");
     if (!currentType) {
         executeTabSwitch(currentLiElement);
@@ -220,7 +220,7 @@ const handleRapidSwitching = (switchDialog: Dialog, event: KeyboardEvent, curren
     return switchDialog.element.querySelector(".b3-list-item--focus");
 };
 
-const handleSwitchDialogConfirmation = (app: App, switchDialog: Dialog, event: KeyboardEvent) => {
+const handleSwitchDialogConfirmation = (app: AppFacade, switchDialog: Dialog, event: KeyboardEvent) => {
     let currentLiElement = switchDialog.element.querySelector(".b3-list-item--focus");
     if (!currentLiElement) {
         return;
@@ -236,7 +236,7 @@ const handleSwitchDialogConfirmation = (app: App, switchDialog: Dialog, event: K
     switchDialog.destroy();
 };
 
-export const windowKeyUp = (app: App, event: KeyboardEvent) => {
+export const windowKeyUp = (app: AppFacade, event: KeyboardEvent) => {
     setSiyuanCtrlIsPressed(false);
     setSiyuanShiftIsPressed(false);
     setSiyuanAltIsPressed(false);

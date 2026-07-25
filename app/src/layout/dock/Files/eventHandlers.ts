@@ -28,14 +28,14 @@ import { setupCollapseClickHandler, setupActionsClickHandler } from "./eventHand
 import { setupElementMousedownHandler } from "./eventHandlers.element.mousedown";
 import { setupElementClickHandler } from "./eventHandlers.element.click";
 import type { FilesEventContext } from "./eventHandlers.types";
-import type {App} from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 
 /**
  * 初始化所有事件监听器
  * @同步豁免: UI构建
  * @param ctx - 事件上下文，包含 files 实例和 app 实例
  */
-export function initAllEventHandlers(ctx: FilesEventContext<App>): void {
+export function initAllEventHandlers(ctx: FilesEventContext<AppFacade>): void {
     const { files, app } = ctx;
     setupCloseElementClickHandler(files, app);
     setupCollapseClickHandler(files);

@@ -12,7 +12,7 @@ import { hasClosestByClassName } from "./imports";
 /** 用途：隐藏 Tooltip。使用范围：Popover 关闭时清理。解耦评估：通过 ./imports 转发。 */
 import { hideTooltip } from "./imports";
 /** 用途：应用实例类型。使用范围：Popover 上下文。解耦评估：通过 ./imports 转发。 */
-import { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：系统常量。使用范围：Popover 配置。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
 /** 用途：触屏设备判断。使用范围：Popover 交互适配。解耦评估：通过 ./imports 转发。 */
@@ -127,7 +127,7 @@ const 创建隐藏Popover回调 = (event: MouseEventWithPath) => () => {
 
 /** 表示一次 Popover 触发模式计算所需的应用、事件、链接目标和计时器状态。 */
 interface IPopoverModeContext {
-    app: App;
+    app: AppFacade;
     event: MouseEventWithPath;
     aElement: HTMLElement | false;
     timeoutManager: TimeoutManager;
@@ -135,7 +135,7 @@ interface IPopoverModeContext {
 
 /** 表示全局 mouseover 入口传入业务处理器的稳定依赖，关联同一 Popover 计时器实例。 */
 interface IMouseoverContext {
-    app: App;
+    app: AppFacade;
     event: MouseEvent;
     timeoutManager: TimeoutManager;
 }
@@ -293,7 +293,7 @@ class TimeoutManager {
  * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中
  * @同步豁免: 生命周期 - 此函数在应用初始化时同步调用，用于注册事件监听器，必须同步完成以确保事件处理器在应用启动前就绑定好
  */
-export const initBlockPopover = (app: App) => {
+export const initBlockPopover = (app: AppFacade) => {
     const timeoutManager = new TimeoutManager();
 
     document.addEventListener("mouseover", (event: MouseEvent) => {
@@ -304,7 +304,7 @@ export const initBlockPopover = (app: App) => {
 /**
  * 显示 Popover
  */
-export const showPopover = async (app: App, showRef = false) => {
+export const showPopover = async (app: AppFacade, showRef = false) => {
     const popoverTargetElement = getPopoverTargetElement();
     const menuData = getSiyuanMenus()?.menu?.data;
     if (!popoverTargetElement || (menuData && menuData === popoverTargetElement)) {

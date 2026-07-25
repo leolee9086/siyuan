@@ -3,7 +3,7 @@ import {Editor} from "../model/Editor";
 /** 用途：编辑器构造选项契约；使用范围：同目录创建工厂参数；解耦评估：泛型契约保留宿主身份。 */
 import type {IEditorOptions} from "../types";
 /** 用途：应用实现身份；使用范围：工厂边界绑定编辑器选项；解耦评估：仅装配边界依赖具体宿主。 */
-import type {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 /** 用途：页签实现身份；使用范围：工厂边界绑定编辑器选项；解耦评估：仅装配边界依赖具体宿主。 */
 import type {Tab} from "../../layout/Tab";
 /** 用途：Protyle 实现身份；使用范围：工厂返回编辑器初始化回调类型；解耦评估：仅装配边界依赖具体编辑器。 */
@@ -20,7 +20,7 @@ export {Editor};
 /** 同目录工厂使用的编辑器构造契约。 */
 export type {IEditorOptions};
 /** 同目录工厂绑定的应用身份。 */
-export type {App};
+export type {AppFacade};
 /** 同目录工厂绑定的页签身份。 */
 export type {Tab};
 /** 同目录工厂绑定的 Protyle 身份。 */

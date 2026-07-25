@@ -1,4 +1,4 @@
-import { Wnd } from "./Wnd";
+import type {LayoutWindow} from "./layout.types";
 import { genUUID } from "../util/platform/genID";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import {attachLayoutModel} from "./lifecycle/model.mount";
@@ -15,7 +15,7 @@ import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./ut
 import { setTitle } from "../util/processTitle";
 
 export class Tab {
-    public parent: Wnd;
+    public parent: LayoutWindow;
     public id: string;
     public headElement: HTMLElement;
     public panelElement: HTMLElement;

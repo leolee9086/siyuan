@@ -15,7 +15,7 @@ import {
     handleSwitchClick,
 } from "./eventHandlers.element.click.helpers";
 import { handleFileClick } from "./eventHandlers.element.click.file";
-import type { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import type { FilesEventContext, FilesEventHost } from "./eventHandlers.types";
 
 // ============================================================================
@@ -149,7 +149,7 @@ function handleNormalClick(
     event: MouseEvent,
     target: HTMLElement,
     files: FilesEventHost,
-    app: App,
+    app: AppFacade,
     notebookId: string
 ): boolean {
     files.lastSelectedElement = target;
@@ -197,7 +197,7 @@ function handleLiClick(
     event: MouseEvent,
     target: Element,
     files: FilesEventHost,
-    app: App,
+    app: AppFacade,
     notebookId: string
 ): { handled: boolean; needFocus: boolean } {
     // 使用类型守卫检查是否为 LI 元素
@@ -243,7 +243,7 @@ function setFocusIfNeeded(files: FilesEventHost): void {
 /**
  * element 的 click 事件处理函数
  */
-function onElementClick(event: MouseEvent, files: FilesEventHost, app: App): void {
+function onElementClick(event: MouseEvent, files: FilesEventHost, app: AppFacade): void {
     // 使用类型守卫获取事件目标（支持 SVG 图标元素）
     if (!isStylableElement(event.target)) {
         return;
@@ -300,7 +300,7 @@ function onElementClick(event: MouseEvent, files: FilesEventHost, app: App): voi
  * 设置 element 的 click 事件处理
  * @同步豁免: UI构建
  */
-export function setupElementClickHandler(ctx: FilesEventContext<App>): void {
+export function setupElementClickHandler(ctx: FilesEventContext<AppFacade>): void {
     const { files, app } = ctx;
 
     files.element.addEventListener("click", (event) => {

@@ -9,7 +9,7 @@ import {isEncryptedBox} from "../../util/pathName";
 import {unicode2Emoji} from "../../emoji";
 import {newFile} from "../../util/file/newFile";
 import {activeBlur} from "../util/keyboardToolbar";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {
     assetInputEvent,
 } from "../../search/assets";
@@ -84,7 +84,7 @@ export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, elem
     }, Constants.TIMEOUT_INPUT);
 };
 
-export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConfig) => {
+export const popSearch = (app: AppFacade, searchConfig?: Config.IUILayoutTabSearchConfig) => {
     const config: Config.IUILayoutTabSearchConfig = JSON.parse(JSON.stringify(window.siyuan.storage[Constants.LOCAL_SEARCHDATA]));
     if (config.method === 4 && !window.siyuan.config.ai.embedding.enabled) {
         config.method = 0;

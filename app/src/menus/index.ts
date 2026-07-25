@@ -9,7 +9,7 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { isMobile, isElectron } from "../platform";
 import { Menu } from "./Menu";
 import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Constants } from "../constants";
 import { textMenu } from "./text";
 import { hideTooltip } from "../dialog/tooltip";
@@ -18,7 +18,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 export class Menus {
     public menu: Menu;
 
-    constructor(app: App) {
+    constructor(app: AppFacade) {
         this.menu = new Menu();
         if (!isMobile) {
         window.addEventListener("contextmenu", (event) => {

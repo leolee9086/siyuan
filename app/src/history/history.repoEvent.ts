@@ -5,7 +5,7 @@ import * as dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
 import {isMobile} from "../util/platform/functions";
 import {showDiff} from "./diff";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {renderRepo} from "./history.render";
 
@@ -13,7 +13,7 @@ export const handleRepoClick = (
     target: HTMLElement,
     type: string,
     event: MouseEvent,
-    app: App,
+    app: AppFacade,
     element: Element,
     repoElement: Element,
     repoSelectElement: HTMLSelectElement,

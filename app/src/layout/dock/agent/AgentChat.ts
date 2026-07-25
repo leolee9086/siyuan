@@ -1,6 +1,6 @@
 import {Tab} from "../../Tab";
 import {Model} from "../../Model";
-import type {App} from "../../../index";
+import type {AppFacade} from "../../../app/AppFacade.types";
 import {AgentHttpError, fetchAgentSSE, IEditorContext, ISSEResult, IToolEffects} from "./agentSSE";
 import {genUUID} from "../../../util/platform/genID";
 import {mountComposer} from "./AgentComposer";
@@ -111,7 +111,7 @@ type SessionEntry =
     | (EntryBase & { type: "snapshot"; snapshotID: string })
     | (EntryBase & { type: "rollback"; snapshotID: string });
 
-export class AgentChat extends Model<App, Tab> {
+export class AgentChat extends Model<AppFacade, Tab> {
     private messagesContainer: HTMLElement;
     private composerHost: HTMLElement;
     private composer: ReturnType<typeof mountComposer> | null = null;
@@ -230,13 +230,13 @@ export class AgentChat extends Model<App, Tab> {
     private magiConversationLoadVersion = 0;
     private magiConversationLoadController: AbortController | null = null;
 
-    constructor(app: App | undefined, tab: Tab, options: {
+    constructor(app: AppFacade | undefined, tab: Tab, options: {
         capabilities?: AgentPanelCapabilities;
         initialConversation?: AgentPanelConversation;
         enableSessionWebSocket?: boolean;
         capabilitiesFactory?: (tab: Tab) => AgentPanelCapabilities;
     } = {}) {
-        super({app: app as App});
+        super({app: app as AppFacade});
         this.parent = tab;
         this.capabilities = options.capabilities ?? {};
         this.capabilitiesFactory = options.capabilitiesFactory;

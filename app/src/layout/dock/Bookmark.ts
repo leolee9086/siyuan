@@ -7,7 +7,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {openFileById} from "../../editor/utils.openFileById";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openBookmarkMenu} from "../../menus/bookmark";
-import {App} from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import {Constants} from "../../constants";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {isOperations, isBlockTreeArray} from "./dock.guard";
@@ -18,7 +18,7 @@ import {
 import {BookmarkDropController} from "./bookmarkDrop";
 import {filterBookmarkData, getBookmarkFilterKeywords} from "./bookmarkFilter";
 
-export class Bookmark extends Model<App, Tab> {
+export class Bookmark extends Model<AppFacade, Tab> {
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];
@@ -29,7 +29,7 @@ export class Bookmark extends Model<App, Tab> {
     public editors: Protyle[] = [];
     private element: HTMLElement;
 
-    constructor(app: App, tab: Tab) {
+    constructor(app: AppFacade, tab: Tab) {
         super({app});
         this.connect({id: tab.id, type: "bookmark", msgCallback: (data) => this._处理消息(data)});
         this.element = tab.panelElement;
@@ -68,7 +68,7 @@ export class Bookmark extends Model<App, Tab> {
         this.element.innerHTML = getBookmarkPanelHTML();
     }
 
-    private _生成树对象(app: App): Tree {
+    private _生成树对象(app: AppFacade): Tree {
         const treeElement = this.element.lastElementChild;
         if (!(treeElement instanceof HTMLElement)) {
             throw new Error("bookmark tree element not found");
@@ -90,7 +90,7 @@ export class Bookmark extends Model<App, Tab> {
         });
     }
 
-    private _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
+    private _onTreeClick(app: AppFacade, element: HTMLElement, event?: MouseEvent) {
         const target = event?.target;
         const actionElement = target instanceof HTMLElement ? hasClosestByClassName(target, "b3-list-item__action") : null;
         if (event && actionElement?.parentElement instanceof HTMLElement) {
@@ -106,7 +106,7 @@ export class Bookmark extends Model<App, Tab> {
         });
     }
 
-    private static _onTreeCtrlClick(app: App, element: HTMLElement) {
+    private static _onTreeCtrlClick(app: AppFacade, element: HTMLElement) {
         const id = element.getAttribute("data-node-id");
         if (!id) {
             return;
@@ -123,7 +123,7 @@ export class Bookmark extends Model<App, Tab> {
         });
     }
 
-    private static _onTreeAltShiftClick(app: App, element: HTMLElement) {
+    private static _onTreeAltShiftClick(app: AppFacade, element: HTMLElement) {
         const id = element.getAttribute("data-node-id");
         if (!id) {
             return;

@@ -11,6 +11,10 @@ export interface AppFacadeShape<
     plugins: TPlugin[];
     appId: string;
     eventBus: TEventBus;
+    pluginHost: {
+        reloadData: (plugin: TPlugin) => void;
+        addDock: (plugin: TPlugin) => void;
+    };
 }
 
 /** 模块级不可变身份键；其值只用于类型/运行时外观识别，不保存应用状态。 */

@@ -10,11 +10,11 @@ import {unicode2Emoji} from "../emoji";
 import {addLoading} from "../protyle/ui/initUI";
 import {Constants} from "../constants";
 import {onGet} from "../protyle/util/onGet";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {confirmDialog} from "../dialog/confirmDialog";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
-export const viewCards = (app: App, deckID: string, title: string, deckType: "Tree" | "" | "Notebook", cb?: (response: IWebSocketData) => void) => {
+export const viewCards = (app: AppFacade, deckID: string, title: string, deckType: "Tree" | "" | "Notebook", cb?: (response: IWebSocketData) => void) => {
     let pageIndex = 1;
     let edit: Protyle;
     fetchPost(`/api/riff/get${deckType}RiffCards`, {

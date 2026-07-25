@@ -4,7 +4,7 @@ import {hideMessage, showMessage} from "../dialog/message";
 import {fetchPost} from "../util/network/fetch";
 import {exportLayout} from "../layout/util";
 import {confirmDialog} from "../dialog/confirmDialog";
-import {App} from "../index";
+import type {AppFacade} from "../app/AppFacade.types";
 import { sendUnregisterGlobalShortcut } from "../boot/globalEvent/keydown/windowKeyDown/sendUnregisterGlobalShortcut";
 import {sendGlobalShortcut} from "../boot/globalEvent/keydown/windowKeyDown/windowKeyDown";
 import {isElectron} from "../platform";
@@ -37,7 +37,7 @@ export const keymap = {
         });
         return html;
     },
-    genHTML(app: App) {
+    genHTML(app: AppFacade) {
         let pluginHtml = "";
         app.plugins.forEach(item => {
             let commandHTML = "";
@@ -207,7 +207,7 @@ export const keymap = {
     ${pluginHtml}
 </div>`;
     },
-    _setkeymap(app: App) {
+    _setkeymap(app: AppFacade) {
         const data: Config.IKeymap = JSON.parse(JSON.stringify(Constants.SIYUAN_KEYMAP));
         const oldToggleWin = window.siyuan.config.keymap.general.toggleWin.custom;
         keymap.element.querySelectorAll("label.b3-list-item input").forEach((item) => {
@@ -325,7 +325,7 @@ export const keymap = {
         }
         return tip;
     },
-    bindEvent(app: App) {
+    bindEvent(app: AppFacade) {
         keymap.element.querySelector("#keymapRefreshBtn").addEventListener("click", () => {
             exportLayout({
                 cb() {

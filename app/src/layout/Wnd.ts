@@ -12,13 +12,14 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { clearWebFrameCache } from "../platform/electron/webFrame";
 import { newFile } from "../util/file/newFile";
 import { getFrontend, isWindow } from "../util/platform/functions";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { closeWindow } from "../window/closeWin";
 import { clearCounter } from "../protyle/runtime/status.port";
 import { getWndByLayout } from "./window-utils";
 import { saveLayout } from "./layout-serialization";
+import { getInstanceById } from "./util";
 import { setModelsHash } from "../window/setHeader";
 import { setTitle } from "../util/processTitle";
 import { bindHeaderDragEvents, bindPanelDragEvents } from "./Wnd.drag";
@@ -33,9 +34,10 @@ import {
     wndRemoveTab,
     wndMoveTab,
 } from "./Wnd.tabAction";
+import {getWndDragRestore} from "./Wnd.drag.port";
 
 export class Wnd {
-    private app: App;
+    private app: AppFacade;
     public id: string;
     public parent?: Layout;
     public element: HTMLElement;
@@ -43,7 +45,7 @@ export class Wnd {
     public children: Tab[] = [];
     public resize?: Config.TUILayoutDirection;
 
-    constructor(app: App, resize?: Config.TUILayoutDirection, parentType?: Config.TUILayoutType) {
+    constructor(app: AppFacade, resize?: Config.TUILayoutDirection, parentType?: Config.TUILayoutType) {
         this.id = genUUID();
         this.app = app;
         this.resize = resize;
@@ -143,8 +145,9 @@ export class Wnd {
             }
         });
         // 拖拽事件委托到 Wnd.drag.ts
-        bindHeaderDragEvents(this, app);
-        bindPanelDragEvents(this, app, dragElement);
+        const restoreCenter = getWndDragRestore();
+        bindHeaderDragEvents(this, app, getInstanceById, (data, target) => restoreCenter(app, data, target), saveLayout);
+        bindPanelDragEvents(this, dragElement, getInstanceById, (data, target) => restoreCenter(app, data, target));
     }
 
     #preventPast(event: ClipboardEvent) {

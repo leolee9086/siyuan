@@ -1,4 +1,4 @@
-import { App } from "..";
+import type { AppFacade } from "../app/AppFacade.types";
 import { makeCard } from "../card/makeCard";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
@@ -18,7 +18,7 @@ import { openEditorTab } from "./util";
 
 export const initMultiMenu = (
     selectItemElements: NodeListOf<Element>,
-    app: App,
+    app: AppFacade,
     confirmExport: (notebookId: string, callback: () => void) => void,
     isEncryptedNotebook: (notebookId: string) => boolean,
 ) => {

@@ -2,9 +2,9 @@
 
 > **最终目标**：为完整应用建立带厂牌的 `AppFacade` 抽象外观，使下层模块只依赖稳定应用契约；具体 App 运行时仅出现在启动、工厂、注册和契约校验边界。
 >
-> **当前目标**：盘点 `app/src/index.ts` 导出的具体 `App` 依赖，建立完整领域根契约和厂牌创建边界，随后分批消除下层模块对具体 `App` class 的直接依赖。
+> **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：将具体 `App` class 从契约测试导入链中下沉到独立运行时模块，先完成 `AppFacade` 工厂边界，再迁移首批基础模型和布局模块。
+> **下一步任务**：继续审计组合根适配器和非 TypeScript 归档快照，随后将 AppFacade 直接依赖门禁纳入循环检查与持续测试。
 
 ---
 
@@ -34,7 +34,7 @@
 - 大量下层模块通过 `import type {App} from "../index"` 或经 `imports.ts` 间接获得具体 class 类型；这些模块的真实能力需求按插件集合、事件总线、模型宿主和初始化边界分组，迁移从完整应用领域根开始。
 - 当前具体 `App` 公共表面至少包含 `plugins`、`appId`、`eventBus`，但调用方还通过该类型参与 Model、Tab、布局、窗口、插件和启动流程，因此不能仅按字段表面直接定义契约。
 - 当前循环图基线：唯一 Tarjan SCC 为 `872`，Madge 简单环为 `1069`；后续每批以同一扫描方式比较净变化。
-- `app/src/util/types/LooksLike.types.ts` 已识别为契约校验工具候选；其接入方式和比较范围列入 Phase 2，不在未接入前宣称已有校验。
+- `app/src/util/types/LooksLike.types.ts` 已接入 `StrictEqual` 与 `IsAssignable`；抽象类型模块独立 TypeScript 检查已通过。
 - 上游类型基线使用 npm 包 `siyuan@1.2.3`，公开声明提供 `Plugin` 与 `EventBus`；该包仅作为 type-only 外部兼容基线，不加载运行时实现。
 
 ## 目标架构
@@ -84,38 +84,41 @@
 - [x] 明确厂牌创建与验证边界：模块级不可变 `Symbol` 作为厂牌键，`createAppFacade()` 幂等登记并保持对象身份。
 - [ ] 整理 `AppRuntime` 具体实现边界，保持现有初始化、WebSocket 和全局状态顺序。
 - [x] 新增 `createAppFacade()`，完成抽象形状到厂牌外观的同步装配函数；实际 AppRuntime 绑定留在入口拆分阶段。
-- [x] 创建契约测试骨架，使用 `StrictEqual<App, AppFacadeShape<Plugin, EventBus>>` 验证当前公共表面，并使用 `IsAssignable` 检查本地 Plugin/EventBus 覆盖 `siyuan` 类型包的公开兼容表面；运行时契约测试 `2/2` 通过。
+- [x] 创建契约测试骨架，使用 `IsAssignable<App, AppFacadeShape<...>>` 验证具体应用覆盖抽象公共表面，并使用 `IsAssignable` 检查本地 Plugin/EventBus 覆盖 `siyuan` 类型包的公开兼容表面；Asset/Files 的既有领域契约也在同一测试边界校验。运行时契约测试 `2/2` 通过。
 
-> 当前类型检查证据：对契约测试入口执行 `tsc --noEmit` 在 `120s` 内未结束，原因是 `App` 类型导入牵引 `app/src/index.ts` 的完整入口图；该项不记录为通过，待具体运行时边界下沉后复核。
+> 当前类型检查证据：`src/app/AppFacade.types.ts` 独立 `tsc --noEmit` 已通过；对契约测试入口执行 `tsc --noEmit` 在 `120s` 内未结束，原因是 `App` 类型导入牵引 `app/src/index.ts` 的完整入口图。具体实现兼容性不记录为通过，待运行时边界下沉后复核。
 
 ### Phase 3：组合根与基础模型迁移
 
-- [ ] 将 `app/src/index.ts` 收缩为组合根，不再作为下层模块的具体 App 类型所有者。
-- [ ] 将 `Model`、布局、Tab、Window 和生命周期参数改为 `AppFacade` 或既有稳定宿主身份。
+- [x] 在 `layout/layout.types.ts` 建立布局领域根 `LayoutWindow`/`LayoutTab` 抽象，Outline 不再自行声明 Window/Tab Host 局部契约。
+- [x] 将 `app/src/index.ts` 收缩为组合根，不再作为下层模块的具体 App 类型所有者。
+- [x] 将 `Model`、布局、Tab、Window 和生命周期参数改为 `AppFacade` 或既有稳定宿主身份。
 - [ ] 在实际初始化边界绑定 `AppRuntime`，向下传递已厂牌化的 `AppFacade`。
 - [ ] 保持模型 WebSocket、重连、销毁和父子关系行为不变。
 - [ ] 运行 Model/Layout/Tab 专项测试和循环图检查。
 
 ### Phase 4：编辑器、Protyle 与 Dock 迁移
 
-- [ ] 迁移 Editor、Protyle、BlockPanel、Dock、菜单、Dialog 和通知相关的具体 App 类型依赖。
+- [x] Agent Panel 运行时、Composer、消息渲染器、前端动作注册表和 App 宿主 capability 适配器改用 `AppFacade`；Protyle/Tab/菜单具体实现仍保留在宿主组合边界。
+- [x] 迁移 Editor、Protyle、BlockPanel、Dock、菜单、Dialog 和通知相关的其余具体 App 类型依赖。
 - [ ] 复用已有完整领域契约；确需新能力时扩展 `AppFacade` 领域根或既有宿主 Port。
 - [ ] 具体 `AppRuntime` 只在创建、注册和宿主适配器中出现。
 - [ ] 验证编辑器上下文、布局查询、Tab/浮窗、Dialog 生命周期和工具栏行为。
 
 ### Phase 5：插件、集市、卡片与移动端迁移
 
-- [ ] 迁移 Plugin、Bazaar、Card、Onboarding、同步和移动端菜单/编辑器入口。
+- [x] 首批迁移 Plugin 生命周期、加载器、卸载器和菜单工厂；业务参数使用官方 `siyuan.Plugin`，本地 `Plugin` class 仅保留运行时构造/继承校验。
+- [x] 迁移 Bazaar、Card、Onboarding、同步和移动端菜单/编辑器入口。
 - [ ] 将插件 API 的应用参数改为稳定外观，保留需要真实插件身份的边界校验。
 - [ ] 桌面和移动宿主分别提供完整外观适配，不用全局断点或可选空能力掩盖差异。
 - [ ] 更新全局声明文件，消除对 `import("../index").App` 的下层反向类型依赖。
 
 ### Phase 6：契约收口与直接依赖清零
 
-- [ ] 扩展契约测试覆盖所有 AppFacade 公共成员和关键生命周期行为。
-- [ ] 审计生产目录中所有 `App` class 导入，保留初始化、工厂、注册和必要身份判断边界。
+- [x] 扩展契约测试覆盖所有 AppFacade 公共成员和关键生命周期行为。
+- [x] 审计生产目录中所有 `App` class 导入，保留初始化、工厂、注册和必要身份判断边界；静态门禁确认具体入口导入为零，Vue `App` 与组合根单独保留。
 - [ ] 对项目自有 `implements` 逐个替换为独立契约校验，不进行无差别文本替换。
-- [ ] 确认具体类只存在于允许边界；类型导入不会被错误升级为运行时导入。
+- [x] 确认具体类只存在于允许边界；类型导入不会被错误升级为运行时导入。
 - [ ] 重新运行 Tarjan SCC、Madge 简单环、Node/Vitest/浏览器契约测试和类型检查。
 
 ### Phase 7：归档与持续门禁
@@ -151,5 +154,16 @@
 
 - **2026-07-25**：创建本 TTT。确认 `app/src/index.ts` 同时承担具体 App class、启动组合根和全局副作用；确认后续任务以“下层模块消除具体 App 直接依赖”为主线，采用带厂牌的完整 `AppFacade` 领域根和独立契约校验文件推进。当前仅完成任务登记，未宣称任何迁移阶段完成。
 - **2026-07-25**：完成 Phase 1 基线：`192` 个生产文件包含具体 `App` 导入，`app.plugins/app.appId/app.eventBus` 共 `125` 个成员使用点；唯一 SCC `872`，Madge 简单环 `1069`。新增 `AppFacadeShape`/厂牌类型和契约测试，`AppFacade` 运行时测试 `1/1` 通过；类型检查因入口图牵引在 `120s` 内未结束，Phase 2 工厂和入口拆分继续进行。
-- **2026-07-25**：接入 `siyuan@1.2.3` 开发期类型包，AppFacade 默认插件/事件总线槽位使用上游 `Plugin`/`EventBus` 声明；新增 `IsAssignable` 兼容校验。模块级不可变 `Symbol` 纳入 `no-module-level-var` 精确豁免，并新增规则测试 `2/2`。
+- **2026-07-25**：接入 `siyuan@1.2.3` 开发期类型包，AppFacade 默认插件/事件总线槽位使用上游 `Plugin`/`EventBus` 声明；新增 `IsAssignable` 兼容校验。模块级不可变 `Symbol` 纳入 `no-module-level-var` 精确豁免，并新增规则测试 `2/2`；抽象类型模块独立 TypeScript 检查通过。
 - **2026-07-25**：首批解环迁移 `plugin/index.ts`：移除其对 `app/src/index.ts` 的运行时导入，改用 `AppFacade<Plugin, EventBus>`；完整 App 组合根附加厂牌字段。Madge 简单环 `1069 -> 1068`，唯一 SCC 保持 `872`；AppFacade 契约测试 `2/2`、模块级 Symbol 规则测试 `2/2` 通过。目标文件仅剩既有 `index.ts`/Plugin 超长文件与函数门禁，未计入本批新问题。类型全量检查待入口拆分后复核。
+- **2026-07-25**：完成插件公开表面首批官方类型收口：`App.plugins`、`pluginHost`、加载器、卸载器和 after-load 生命周期参数统一使用 npm `siyuan.Plugin`；本地 `Plugin` class 仅保留构造与 `instanceof` 运行时用途，`app` 改为公开 `AppFacade`，`customBlockRenders.action` 与 Dock 工厂字段对齐官方声明；菜单工厂改用官方插件类型，不新增项目自有插件接口。契约测试 `2/2`、Node 测试 `138/138` 通过；受控入口 TypeScript 检查在 244 秒内仍未完成，全量检查曾因约 4GB 堆耗尽，暂不记录为通过。Madge 简单环本次扫描为 `1063`，相对本批开始的 `1068` 净下降 `5`，仍需 Tarjan 复核。
+- **2026-07-25**：Agent Panel 运行时、Composer、消息渲染器、前端动作注册表及 App 宿主 capability 适配器的纯类型依赖改用 `AppFacade`；Protyle、Tab、菜单等具体实现仍留在宿主/工厂边界，未复制实现。Agent Panel Vitest `23/23` 文件、`67/67` 项通过，Node 回归 `138/138` 通过；Agent 域既有大文件规模和函数长度 lint 继续由上帝对象任务追踪。Madge 简单环进一步降至 `1058`，本批累计净下降 `10`。
+- **2026-07-25**：继续迁移 MAGI 身份适配器、Asset 模型、Bazaar 入口和 onboarding 的应用参数为 `AppFacade`；具体 Dock/Tab/Protyle 仍由既有宿主实现负责。Agent/MAGI Vitest `23/23` 文件、`67/67` 项和 Node `138/138` 通过；受影响文件仅报告既有 `forEach`、函数长度和未使用变量门禁。Madge 简单环降至 `1054`，本批累计净下降 `14`。
+- **2026-07-25**：将颜色工具 Dock 工厂和设置 Builder 的应用参数也切到 `AppFacade`，不引入新的能力子接口；完整 Node 回归和 Agent/MAGI 专项仍通过，Madge 简单环降至 `1052`，本批累计净下降 `16`。颜色初始化与设置 Builder 的文件规模/注释 lint 仍是既有门禁。
+- **2026-07-25**：继续迁移 keymap、顶栏初始化和 Bookmark Dock 的应用参数为 `AppFacade`，其余具体模型仍在实现边界保留；Node 回归 `138/138` 通过，Madge 简单环降至 `1050`，本批累计净下降 `18`。
+- **2026-07-25**：继续处理 class 领域根：Tag、Files、Outline、Graph 四个 Dock 模型改用 `Model<AppFacade, Tab>`，不改变 WebSocket、树和编辑器生命周期；Node 回归 `138/138` 通过，Madge 简单环降至 `1047`，本批累计净下降 `21`。
+- **2026-07-25**：移除 Asset 与 Files 对 `implements` 的依赖，改由 `AppFacade.contract.test.ts` 使用 `IsAssignable` 校验 `IWindowHashModel`、`FilesEventHost` 和 `FilesDragContext`；没有新增接口或运行时包装，契约测试 `2/2`、Node `138/138`、`git diff --check` 通过，循环数保持 `1047`。
+- **2026-07-25**：修正 Outline 的布局抽象边界：删除 `IOutlineWindowHost`/`IOutlineTabHost`，在 `layout/layout.types.ts` 建立 `LayoutWindow`/`LayoutTab` 领域根；`lifecycle/model.types.ts` 保留模型生命周期契约，`Tab` 的父窗口类型和 `Outline` 的模型父级改用布局抽象，`IOutlinePanel` 改为引用 `LayoutTab`，并新增 `app/test/layout/LayoutDomain.contract.test.ts` 使用 `IsAssignable` 校验 `Wnd`、`Tab`、`Outline`。专项 Vitest `3/3`、`typecheck:protyle-contract` 通过，`git diff --check` 通过；全量 TypeScript 入口检查 124 秒超时，`pnpm lint:cycles` 当前仍报告 1113 条历史/并行循环，未宣称循环阶段完成。
+- **2026-07-25**：补正兼容校验对象：生产实际入口为 `app/src/layout/dock/outline/Outline.ts`，已将该活动 `Outline` class 的应用/页签参数改为 `AppFacade`/`LayoutTab`，移除 `implements IOutlinePanel`，测试现在直接用 `IsAssignable<Outline, IOutlinePanel>` 校验活动类；旧版 `dock/Outline.ts` 同步复用布局抽象。专项契约测试仍为 `3/3` 通过。
+- **2026-07-25**：完成活动 Outline 的具体类边切断后重新扫描：Madge 处理 `2175` 个文件，简单环 `1113 -> 1111`；项目循环检查仍失败于剩余应用级入口环，未将其误记为全局完成。
+- **2026-07-25**：完成 AppFacade 全量生产依赖迁移：`boot`、`card`、`config`、`dialog/processSystem`、`editor`、`history`、`layout`、`menus`、`mobile`、`search`、`sync`、`window`、`util`、`export-preview` 和 `inNotePlugin` 的应用参数及网关全部改用 `AppFacade`；`app/src/types/index.d.ts` 与 `types/protyle.d.ts` 的全局声明同步收口。Vue 挂载链路的 `App` 保持不变，`index.ts`、`window/index.ts`、`mobile/index.ts` 仍是组合根。`pnpm run typecheck:protyle-contract` 通过，Node `140/140`、Agent/MAGI `67/67` 通过，新增静态契约测试确认具体 App 导入为零；`pnpm lint:cycles` 处理 `2175` 个文件并报告 `881` 条历史循环（相对上一记录 `1111` 净下降 `230`）。`pnpm lint:imports-gateway` 仍因仓库既有 `52` 个未使用网关导出失败，本批新增的 AppFacade 导出已清理。全量 `pnpm run typecheck` 在默认 4GB 堆上限 OOM，扩大堆后 300 秒仍未完成，均未记录为通过。

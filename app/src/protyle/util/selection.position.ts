@@ -1,4 +1,4 @@
-import { getEditorRange } from "./selection";
+import { getEditorRange } from "./selection.focus";
 
 export const getSelectionPosition = (nodeElement: Element, range?: Range, useDirect = false) => {
     if (!range) {

@@ -1,4 +1,4 @@
-import type {App} from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import type {StackLine, SwitchQueryItem} from "../render/parts";
 import {genButtonRowHtml, genStackHtml, genSwitchQueryHtml, genTextPairHtml} from "../render/render";
 import {
@@ -12,9 +12,9 @@ import {
 } from "./control";
 import {registerSettingGroup} from "./group";
 import {registerSettingItem, type RegisterSettingItem, removeSettingTabItems} from "./item";
-import {scanSettingTabSearch} from "../search/scan";
+import {scanSettingTabSearch, type SettingTabSearchResult} from "../search/scan";
 import {buildSearchIndex, normalizeSearchText} from "../search/normalize";
-import {applySettingTabSearchVisibility, mountSettingTab} from "./mount";
+import {applySettingTabSearchVisibility, mountSettingTab, type SettingTabMountContext} from "./mount";
 
 type SaveFn = (value: unknown) => void | Promise<void>;
 
@@ -30,12 +30,12 @@ interface ItemsSettingTabOptions<TId extends string = string> extends SettingTab
     /** 控件未指定 save 时，按控件 id 提交配置变更 */
     defaultSave?: (controlId: string, value: unknown) => void;
     /** 条目 mount 完成后的 SettingTab 级初始化（如记录根节点、拉取动态数据） */
-    afterMount?: (root: HTMLElement, app?: App) => void | Promise<void>;
+    afterMount?: (root: HTMLElement, app?: AppFacade) => void | Promise<void>;
 }
 
 interface PanelSettingTabOptions<TId extends string = string> extends SettingTabShell<TId> {
     searchStrings: () => string[];
-    mount: (root: HTMLElement, keywords?: string, app?: App) => void | Promise<void>;
+    mount: (root: HTMLElement, keywords?: string, app?: AppFacade) => void | Promise<void>;
 }
 
 type ControlSpecBase = {
@@ -414,25 +414,11 @@ export class SettingTabBuilder<TId extends string = string> {
     }
 }
 
-/** `scanSearch` 返回值：侧栏过滤用 `matches`，条目型 SettingTab 另含可见条目 ID / 分组 ID */
-export interface SettingTabSearchResult {
-    matches: boolean;
-    visibleItemIds?: Set<string>;
-    visibleGroupIds?: Set<string>;
-}
-
-/** mount 时的搜索上下文（`keywords` 由壳层持有，与扫描结果在调用处拼装） */
-export interface SettingTabMountContext {
-    keywords: string;
-    visibleItemIds?: Set<string>;
-    visibleGroupIds?: Set<string>;
-}
-
 export type SettingTab = SettingTabShell & {
     mount: (
         root: HTMLElement,
         search?: Partial<SettingTabMountContext>,
-        app?: App,
+        app?: AppFacade,
         rebuild?: boolean,
     ) => Promise<void>;
     scanSearch: (keywords: string) => SettingTabSearchResult;

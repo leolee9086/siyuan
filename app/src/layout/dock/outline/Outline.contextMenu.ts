@@ -2,7 +2,7 @@
  * Outline 右键菜单
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import { checkFold } from "../../../util/platform/noRelyPCFunction";
@@ -23,7 +23,7 @@ const ZOOM_OUT_ACTIONS: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB
  * 意图：当折叠状态检查完成后，根据结果（不论是否 zoomIn）执行打开文件的动作。
  * 调用时机：checkFold 完成后。
  */
-function handleOpenOutlineFile(app: App, id: string, zoomIn: boolean) {
+function handleOpenOutlineFile(app: AppFacade, id: string, zoomIn: boolean) {
     openFileById({
         app,
         id,

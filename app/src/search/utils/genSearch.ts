@@ -4,7 +4,7 @@
  */
 
 import { Constants } from "../../constants";
-import type { App } from "../..";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { initCriteriaMenu } from "../menu";
 import { inputEvent } from "../inputEvent";
 
@@ -19,7 +19,7 @@ import type { Protyle } from "../../protyle";
 /** Bind local and web search interactions after the shared DOM has been created. */
 const setupSearchInteractions = (context: {
     element: HTMLElement;
-    app: App;
+    app: AppFacade;
     config: Config.IUILayoutTabSearchConfig;
     edit: Protyle;
     unRefEdit: Protyle;
@@ -71,7 +71,7 @@ const requiredSearchElement = <T extends Element>(element: HTMLElement, selector
  * @returns 编辑器实例
  */
 export const genSearch = (context: {
-    app: App;
+    app: AppFacade;
     config: Config.IUILayoutTabSearchConfig;
     element: HTMLElement;
     closeCB?: () => void;

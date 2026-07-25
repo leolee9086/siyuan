@@ -7,7 +7,7 @@ import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import * as dayjs from "dayjs";
 import {isMobile} from "../util/platform/functions";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {pathPosix} from "../util/file/pathName";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import {resizeSide} from "./resizeSide";
@@ -37,7 +37,7 @@ const genItem = (data: [], data2?: { title: string, fileID: string }[], hasUndo 
 
 let leftEditor: Protyle;
 let rightEditor: Protyle;
-const renderCompare = (app: App, element: HTMLElement) => {
+const renderCompare = (app: AppFacade, element: HTMLElement) => {
     const listElement = hasClosestByClassName(element, "history__side");
     if (!listElement) {
         return;
@@ -147,7 +147,7 @@ const renderCompare = (app: App, element: HTMLElement) => {
     }
 };
 
-export const showDiff = (app: App, data: { id: string, time: string }[]) => {
+export const showDiff = (app: AppFacade, data: { id: string, time: string }[]) => {
     if (data.length !== 2) {
         return;
     }

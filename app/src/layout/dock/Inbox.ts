@@ -11,20 +11,20 @@ import { confirmDialog } from "../../dialog/confirmDialog";
 import { replaceFileName } from "../../editor/rename";
 import { getDisplayName, pathPosix } from "../../util/file/pathName";
 import { movePathTo } from "../../util/file/movePathTo";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { getCloudURL } from "../../config/util/about";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { escapeHtml } from "../../util/DOM/escape";
 import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 
-export class Inbox extends Model<App, Tab> {
+export class Inbox extends Model<AppFacade, Tab> {
     private element: Element;
     private selectIds: string[] = [];
     private currentPage = 1;
     private pageCount = 1;
     private data: { [key: string]: IInbox } = {};
 
-    constructor(app: App, tab: Tab | Element) {
+    constructor(app: AppFacade, tab: Tab | Element) {
         super({ app });
         if (tab instanceof Element) {
             this.element = tab;

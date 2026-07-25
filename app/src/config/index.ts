@@ -18,7 +18,7 @@ import {createApp} from "./imports";
 import type {ICustomTabModel} from "../registry/TabRegistry.types";
 import {bazaar} from "./bazzar/bazaar";
 import {fetchSyncPost} from "./imports";
-import type {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {isHTMLElement} from "./imports";
 
 /**
@@ -49,7 +49,7 @@ const registerFileTreeTab = () => {
  * @param app 应用实例
  * @param initialTab 初始标签页
  */
-const initSettingDialogElement = (dialog: Dialog, app: App, initialTab: TSettingTab) => {
+const initSettingDialogElement = (dialog: Dialog, app: AppFacade, initialTab: TSettingTab) => {
     const tabWrap = dialog.element.querySelector(".config__tab-wrap");
     if (!isHTMLElement(tabWrap)) {
         return;
@@ -76,7 +76,7 @@ const initSettingDialogElement = (dialog: Dialog, app: App, initialTab: TSetting
     switchSettingTab(dialog.element, app, initialTab);
 };
 
-const openSettingDialog = (app: App, initialTab: TSettingTab = "editor") => {
+const openSettingDialog = (app: AppFacade, initialTab: TSettingTab = "editor") => {
     registerFileTreeTab();
     window.siyuan.dialogs.find((item) => item.element.querySelector(".config__tab-container"))?.destroy();
     const selection = getSelection();
@@ -134,7 +134,7 @@ const openMobileSetting = (tab?: TSettingTab) => {
     document.getElementById(settingTabToMenuId(tab))?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
 };
 
-export const openSetting = (app: App, tab?: TSettingTab) => {
+export const openSetting = (app: AppFacade, tab?: TSettingTab) => {
     if (isMobile) {
         openMobileSetting(tab);
         return;
@@ -159,7 +159,7 @@ const BAZAAR_RESOURCES_URL: Record<"bazaar" | "downloaded", Record<TBazaarType, 
     },
 };
 
-export const openBazaarReadme = async (app: App, bazaarType: TBazaarType, itemName: string, from: "bazaar" | "downloaded" = "bazaar") => {
+export const openBazaarReadme = async (app: AppFacade, bazaarType: TBazaarType, itemName: string, from: "bazaar" | "downloaded" = "bazaar") => {
     if (isMobile) {
         return;
     }

@@ -16,7 +16,7 @@ import { getDockByType } from "../../tabUtil";
 import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { Protyle } from "../../../protyle";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
 import { genForwardlinkHTML } from "./Forwardlink.html";
@@ -36,7 +36,7 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
  * 正向链接 Dock 组件
  */
 // @允许继承: 框架要求 (FrameworkRequired)
-export class Forwardlink extends Model<App, Tab> {
+export class Forwardlink extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
     public type: "pin" | "local";
@@ -48,7 +48,7 @@ export class Forwardlink extends Model<App, Tab> {
     public status: IForwardlinkStatus = {};
 
     constructor(options: {
-        app: App,
+        app: AppFacade,
         tab: Tab,
         blockId: string,
         rootId?: string,

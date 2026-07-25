@@ -6,7 +6,7 @@ import { getDockByType } from "../tabUtil";
 import { fetchPost } from "../../util/network/fetch";
 import { openGlobalSearch } from "../../search/util";
 import { MenuItem } from "../../menus/Menu.Item";
-import { App } from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import { openTagMenu } from "../../menus/tag";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
@@ -21,7 +21,7 @@ import {
 } from "./tag.util";
 import { filterTagData, getTagFilterKeywords } from "./tagFilter";
 
-export class Tag extends Model<App, Tab> {
+export class Tag extends Model<AppFacade, Tab> {
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];
@@ -33,7 +33,7 @@ export class Tag extends Model<App, Tab> {
     public editors: Protyle[] = [];
     private element: HTMLElement;
 
-    constructor(app: App, tab: Tab) {
+    constructor(app: AppFacade, tab: Tab) {
         super({app});
         this.connect({
             id: tab.id,
@@ -71,7 +71,7 @@ export class Tag extends Model<App, Tab> {
         this.element.innerHTML = getTagPanelHTML();
     }
 
-    private _生成树对象(app: App): Tree {
+    private _生成树对象(app: AppFacade): Tree {
         const treeElement = this.element.lastElementChild;
         if (!(treeElement instanceof HTMLElement)) {
             throw new Error("tag tree element not found");
@@ -122,7 +122,7 @@ export class Tag extends Model<App, Tab> {
         }
     }
 
-    private _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
+    private _onTreeClick(app: AppFacade, element: HTMLElement, event?: MouseEvent) {
         const eventTarget = event?.target;
         const actionElement = eventTarget instanceof HTMLElement && hasClosestByClassName(eventTarget, "b3-list-item__action");
         if (actionElement && actionElement.parentElement && event) {

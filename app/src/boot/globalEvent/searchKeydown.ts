@@ -5,7 +5,7 @@ import {fetchPost} from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import {Constants} from "../../constants";
 import {newFile} from "../../util/file/newFile";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {Dialog} from "../../dialog";
 import {getAllModels} from "../../layout/getAll";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
@@ -18,7 +18,7 @@ import {getUnRefList} from "../../search/unRef";
 import {toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory} from "../../search/toggleHistory";
 import {Protyle} from "../../protyle";
 
-export const searchKeydown = (app: App, event: KeyboardEvent) => {
+export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
     if (getSelection().rangeCount === 0) {
         return false;
     }

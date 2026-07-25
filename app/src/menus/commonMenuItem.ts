@@ -25,7 +25,7 @@ import {rename, replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
 import {exportImage} from "../protyle/export/util";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import {openAssetNewWindow} from "../window/openNewWindow";
 import {copyTextByType} from "../protyle/toolbar/util";
@@ -838,7 +838,7 @@ export const exportMd = (id: string) => {
     }).element;
 };
 
-export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
+export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     const submenu = [];
     if (isMobile()) {
         submenu.push({

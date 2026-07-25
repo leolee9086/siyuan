@@ -5,16 +5,15 @@ import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
 import { fetchPost } from "../util/network/fetch";
-import type { App } from "../index";
+import type {AppFacade} from "../app/AppFacade.types";
 import { clearOBG } from "../layout/dock/util";
 import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
 import { getDisplayName } from "../util/file/pathName";
 import { isMobile } from "../platform";
-import type {IWindowHashModel} from "../window/modelHash/modelHash.types";
 
-export class Asset extends Model<App, Tab> implements IWindowHashModel {
+export class Asset extends Model<AppFacade, Tab> {
   public path: string;
   public element: HTMLElement;
   private pdfId: number | string | undefined;
@@ -25,7 +24,7 @@ export class Asset extends Model<App, Tab> implements IWindowHashModel {
     return {kind: "asset-path", value: this.path} as const;
   }
 
-  constructor(options: { app: App, tab: Tab, path: string, page?: number | string }) {
+  constructor(options: { app: AppFacade, tab: Tab, path: string, page?: number | string }) {
     super({ app: options.app, id: options.tab.id });
     if (window.siyuan.config?.fileTree?.openFilesUseCurrentTab) {
       options.tab.headElement.classList.add("item--unupdate");
@@ -38,9 +37,9 @@ export class Asset extends Model<App, Tab> implements IWindowHashModel {
       if (this.element.parentElement?.parentElement) {
         setPanelFocus(this.element.parentElement.parentElement);
       }
-      this.app.plugins.forEach(item => {
+      for (const item of this.app.plugins) {
         item.eventBus.emit("click-pdf", { event });
-      });
+      }
     });
     if (typeof this.pdfId === "string") {
       this.getPdfId(() => {

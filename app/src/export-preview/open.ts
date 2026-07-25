@@ -17,12 +17,12 @@ import { EXPORT_PREVIEW_SET_TYPE_EVENT } from "./constants";
 /** 用途：导出预览页签类型标识。使用范围：open.ts 查找已有页签。解耦评估：同目录常量，直接同层导入。 */
 import { EXPORT_PREVIEW_TAB_TYPE } from "./constants";
 /** 用途：应用实例类型定义。使用范围：export-preview 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：导出预览类型枚举。使用范围：open.ts 类型约束。解耦评估：同目录类型，直接同层导入。 */
 import type { TExportPreviewType } from "./init.types";
 
 /** 解析导出预览页签使用的 app 实例。 */
-const resolveApp = (app?: App) => {
+const resolveApp = (app?: AppFacade) => {
     if (app) {
         return app;
     }
@@ -60,7 +60,7 @@ const readExportPreviewData = (data: unknown) => {
  */
 export const openExportPreviewTab = async (options: {
     blockId: string;
-    app?: App;
+    app?: AppFacade;
     previewType?: TExportPreviewType;
 }) => {
     const app = resolveApp(options.app);

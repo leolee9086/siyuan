@@ -21,7 +21,7 @@ import {MobileTags} from "../dock/MobileTags";
 import {activeBlur, initKeyboardToolbar} from "./keyboardToolbar";
 import {syncGuide} from "../../sync/syncGuide";
 import {Inbox} from "../../layout/dock/Inbox";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {MobileCustom} from "../dock/MobileCustom";
 import {Menu} from "../../plugin/Menu";
@@ -30,7 +30,7 @@ import {setTitle} from "../../util/processTitle";
 import {activateQueuedAVLocate, queueAVLocateRequest} from "../../protyle/render/av/locate";
 
 let custom: MobileCustom;
-const openDockMenu = (app: App) => {
+const openDockMenu = (app: AppFacade) => {
     const menu = new Menu(Constants.MENU_DOCK_MOBILE);
     if (menu.isOpen) {
         return;
@@ -62,7 +62,7 @@ const openDockMenu = (app: App) => {
     }
 };
 
-export const initFramework = (app: App, isStart: boolean) => {
+export const initFramework = (app: AppFacade, isStart: boolean) => {
     setInlineStyle();
     renderSnippet();
     initKeyboardToolbar();

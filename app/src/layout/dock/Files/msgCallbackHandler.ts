@@ -7,7 +7,7 @@
  */
 
 import { setNoteBook } from "../../../util/file/pathName";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { handleCreateNotebook, handleUpdateDocInfo, handleRemove, handleMount, handleMove } from "./wsHandlers";
 import { handleRenameNotebook, handleCreate } from "./wsHandlers.rename";
 import { genDocAriaLabel, genNotebook } from "./htmlGenerators";
@@ -32,7 +32,7 @@ export type { IFilesContext } from "./msgCallbackHandler.types";
  */
 function buildHandlersMap(
     data: IWebSocketData,
-    app: App,
+    app: AppFacade,
     context: IFilesContext
 ): Record<string, () => void> {
     return {
@@ -115,7 +115,7 @@ function buildHandlersMap(
  */
 export function handleMsgCallback(
     data: IWebSocketData,
-    app: App,
+    app: AppFacade,
     context: IFilesContext
 ): void {
     // 数据或命令为空时直接返回

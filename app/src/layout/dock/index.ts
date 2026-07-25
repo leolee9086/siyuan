@@ -8,7 +8,7 @@ import type {ILayoutModel} from "./imports";
 import { saveLayout } from "../util";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustDockPadding, resetFloatDockSize } from "./util";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { Custom } from "./Custom";
 import { recordBeforeResizeTop } from "../../protyle/util/resize";
 import { Constants } from "../../constants";
@@ -34,13 +34,13 @@ export class Dock {
     public elements: HTMLElement[];
     public layout!: Layout;
     public position: TDockPosition;
-    public app: App;
+    public app: AppFacade;
     public resizeElement!: HTMLElement;
     public pin = true;
     public data: { [key in TDock | string]?: ILayoutModel | boolean } = {};
     public hideResizeTimeout = 0;
 
-    constructor(options: { app: App, data: { pin: boolean, data: Config.IUILayoutDockTab[][] }, position: TDockPosition }) {
+    constructor(options: { app: AppFacade, data: { pin: boolean, data: Config.IUILayoutDockTab[][] }, position: TDockPosition }) {
         this.app = options.app;
         this.position = options.position;
         this.pin = options.data.pin;

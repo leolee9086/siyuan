@@ -5,11 +5,12 @@
  */
 
 /**
- * @导入用途: App 类型定义，用于插件系统的核心应用实例类型标注
+ * @导入用途: AppFacade 类型定义，用于插件系统的核心应用外观类型标注
  * @使用范围: 所有需要访问应用实例的插件相关功能
  * @解耦评估: 核心类型依赖，插件系统必须依赖应用实例，无法通过依赖注入解耦
  */
-import type {App} from "../index";
+/** 用途：提供插件域统一应用外观类型；使用范围：loader、菜单和插件 API 网关；解耦评估：类型来自稳定应用契约，不加载具体 App 入口。 */
+import type {AppFacade} from "../app/AppFacade.types";
 
 /**
  * @导入用途: 同步请求封装，用于向内核请求插件加载数据
@@ -139,8 +140,8 @@ import {getSiyuanLayout} from "../util/siyuanEnvironments/getSiyuanConfig.enviro
  */
 import {getPluginCustomHotkey} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
-/** @导出说明: 应用实例类型 */
-export type {App};
+/** @导出说明: 插件宿主应用外观类型 */
+export type {AppFacade};
 
 /** @导出说明: 同步请求封装 */
 export {fetchSyncPost};

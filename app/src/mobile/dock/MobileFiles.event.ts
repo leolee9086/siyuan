@@ -7,7 +7,7 @@ import {Constants} from "../../constants";
 import {newNotebook, openEncryptedNotebook} from "../../util/file/mount";
 import {newFileInTree} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {refreshFileTree} from "../../dialog/processSystem";
 import {openPublishAccessDialog} from "../../protyle/util/publishAccess";
 import {collapseFileTree, isFileTreeCollapsing} from "../../layout/dock/fileTreeAnimation";
@@ -47,7 +47,7 @@ export function genSort(files: MobileFilesEventPort) {
  */
 export function bindClickEvent(
     files: MobileFilesEventPort,
-    app: App,
+    app: AppFacade,
     filesElement: Element,
     actionsElement: HTMLElement
 ) {

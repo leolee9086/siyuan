@@ -2,13 +2,13 @@ import { hasClosestBlock } from "../../protyle/util/hasClosest";
 import { getContenteditableElement } from "../../protyle/wysiwyg/getBlock";
 import { getSelectionOffset } from "../../protyle/util/selection";
 import { Constants } from "../../constants";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { focusStack } from "./focusStack";
 
 export let forwardStack: IBackStack[] = [];
 let previousIsBack = false;
 
-export const goBack = async (app: App) => {
+export const goBack = async (app: AppFacade) => {
     if (window.siyuan.backStack.length === 0) {
         if (forwardStack.length > 0) {
             await focusStack(app, forwardStack[forwardStack.length - 1], forwardStack);
@@ -37,7 +37,7 @@ export const goBack = async (app: App) => {
     }
 };
 
-export const goForward = async (app: App) => {
+export const goForward = async (app: AppFacade) => {
     if (forwardStack.length === 0) {
         if (window.siyuan.backStack.length > 0) {
             await focusStack(app, window.siyuan.backStack[window.siyuan.backStack.length - 1], forwardStack);

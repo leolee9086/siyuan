@@ -12,14 +12,14 @@ import {hideElements} from "../protyle/ui/hideElements";
 import {pushBack} from "./util/MobileBackFoward";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {showMessage} from "../dialog/message";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {initMirror} from "../protyle/undo/globalUndo";
 import {getDocByScroll, saveScroll} from "../protyle/scroll/saveScroll";
 import {isEncryptedBox} from "../util/pathName";
 
 // getCurrentEditor 已提取到 ./util/getCurrentEditor.ts
 // 目的：打断 closePanel → keyboardToolbar → mobile/editor → closePanel 循环依赖
-export const openMobileFileById = (app: App, id: string, action: TProtyleAction[] = [Constants.CB_GET_HL],
+export const openMobileFileById = (app: AppFacade, id: string, action: TProtyleAction[] = [Constants.CB_GET_HL],
                                    scrollPosition?: ScrollLogicalPosition, notebookId?: string,
                                    afterOpen?: (protyle: IProtyle) => void, forceReload = false) => {
     window.siyuan.storage[Constants.LOCAL_DOCINFO] = {id};

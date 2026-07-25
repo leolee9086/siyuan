@@ -1,8 +1,13 @@
 import {buildGroupedItemsView} from "../render/render";
 import {getSearchKeywordsLower, normalizeSearchText} from "../search/normalize";
 import {Constants} from "../../constants";
-import type {SettingTabMountContext} from "./builder";
-import {getSettingTab, type TSettingTab} from "./tabs";
+
+/** mount 时的搜索上下文（keywords 由壳层持有，与扫描结果在调用处拼装）。 */
+export interface SettingTabMountContext {
+    keywords: string;
+    visibleItemIds?: Set<string>;
+    visibleGroupIds?: Set<string>;
+}
 
 /** 首次挂载：渲染全部注册项并执行 afterMount */
 export const mountSettingTab = async (tabId: string, root: HTMLElement) => {
@@ -12,28 +17,6 @@ export const mountSettingTab = async (tabId: string, root: HTMLElement) => {
     for (const item of items) {
         await item.afterMount?.(root);
     }
-};
-
-/** 设置面板已打开且对应 Tab 已挂载时，重新 register 并整页替换 */
-export const remountOpenSettingTab = async (tabId: TSettingTab) => {
-    const dialogElement = window.siyuan.dialogs.find((d) => d.element.getAttribute("data-key") === Constants.DIALOG_SETTING)?.element;
-    if (!dialogElement) {
-        return;
-    }
-    const root = dialogElement.querySelector(`.config__tab-container[data-name="${tabId}"]`) as HTMLElement | null;
-    if (!root?.innerHTML) {
-        return;
-    }
-    const search: Partial<SettingTabMountContext> = {};
-    const keywords = getSearchKeywordsLower(dialogElement);
-    const tab = getSettingTab(tabId);
-    if (keywords) {
-        const result = tab.scanSearch(keywords);
-        search.keywords = keywords;
-        search.visibleItemIds = result.visibleItemIds;
-        search.visibleGroupIds = result.visibleGroupIds;
-    }
-    await tab.mount(root, search, undefined, true);
 };
 
 export const applySettingTabSearchVisibility = (

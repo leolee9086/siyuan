@@ -17,7 +17,7 @@ import { executeDesktopGlobalCommand } from "./global/desktop";
 /** 用途：引入通用命令执行器。使用范围：根路由通用命令分支。解耦评估：跨平台命令由 common.ts 独立承接。 */
 import { executeCommonGlobalCommand } from "./global/common";
 /** 用途：引入应用实例类型。使用范围：保持 globalCommand 既有公共签名。解耦评估：类型通过 global/imports.ts 网关透传。 */
-import type { App } from "./global/imports";
+import type { AppFacade } from "./global/imports";
 /** 用途：引入全局命令上下文类型。使用范围：构造分发上下文。解耦评估：复用 global/types.ts 契约。 */
 import type { GlobalCommandContext } from "./global/types";
 /** 根据当前平台和命令名解析根路由处理域。 */
@@ -53,8 +53,8 @@ const globalCommandRouter = calibur
  * 执行全局快捷命令。
  * @同步豁免: UI构建 - 该函数是既有同步公共入口，调用方依赖立即返回命令是否已处理。
  */
-export const globalCommand = (command: string, app: App) => {
-    const context: GlobalCommandContext<App> = {
+export const globalCommand = (command: string, app: AppFacade) => {
+    const context: GlobalCommandContext<AppFacade> = {
         app,
         command,
     };

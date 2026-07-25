@@ -5,10 +5,10 @@ import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { focusByRange } from "../protyle/util/selection";
 import { updateConfig } from "./util";
 import { genSearch } from "./utils/genSearch";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 
 export const openSearch = async (options: {
-    app: App,
+    app: AppFacade,
     hotkey: string,
     key?: string,
     notebookId?: string,

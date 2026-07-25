@@ -10,7 +10,7 @@ import { openFileById } from "../../../editor/utils.openFileById";
 import { Constants } from "../../../constants";
 import { checkFold } from "../../../util/platform/noRelyPCFunction";
 import { escapeAttr } from "../../../util/DOM/escape";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type { Outline } from "./Outline";
 
@@ -74,7 +74,7 @@ function handleSearchInputKeydown(outline: Outline, inputElement: HTMLInputEleme
  * @param outline Outline 实例
  * @同步豁免: UI构建
  */
-export function createTreeConfig(outline: Outline, app: App) {
+export function createTreeConfig(outline: Outline, app: AppFacade) {
     return {
         element: outline.element,
         data: [],
@@ -131,10 +131,10 @@ export function createTreeConfig(outline: Outline, app: App) {
  * 意图：响应用户点击 Tree 节点的行为，根据预览模式或编辑模式执行不同操作
  * 调用时机：Tree 组件被点击时
  * @param outline Outline 实例
- * @param app App 实例
+ * @param app AppFacade 实例
  * @param element 被点击的节点元素
  */
-function handleTreeClick(outline: Outline, app: App, element: HTMLElement) {
+function handleTreeClick(outline: Outline, app: AppFacade, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
     // 如果没有 ID 则不处理
     if (!id) {
@@ -156,10 +156,10 @@ function handleTreeClick(outline: Outline, app: App, element: HTMLElement) {
  * 意图：在预览模式下定位到对应的文档位置或打开文件
  * 调用时机：handleTreeClick 在 isPreview 为 true 时调用
  * @param outline Outline 实例
- * @param app App 实例
+ * @param app AppFacade 实例
  * @param id 节点 ID
  */
-function handlePreviewClick(outline: Outline, app: App, id: string) {
+function handlePreviewClick(outline: Outline, app: AppFacade, id: string) {
     const headElement = document.getElementById(id);
     // 如果找不到对应的 DOM 元素（即使在预览模式下也可能因为未渲染等原因找不到），则直接打开文件
     if (!headElement) {
@@ -179,11 +179,11 @@ function handlePreviewClick(outline: Outline, app: App, id: string) {
 
 /**
  * 打开编辑器节点
- * @param app App 实例
+ * @param app AppFacade 实例
  * @param id 节点 ID
  * @param zoomIn 是否放大/聚焦
  */
-function openEditorNode(app: App, id: string, zoomIn: boolean) {
+function openEditorNode(app: AppFacade, id: string, zoomIn: boolean) {
     openFileById({
         app,
         id,
@@ -197,11 +197,11 @@ function openEditorNode(app: App, id: string, zoomIn: boolean) {
  * 意图：响应用户 Ctrl+点击 Tree 节点的行为，通常用于折叠/展开子节点或聚焦打开
  * 调用时机：Tree 组件被 Ctrl+点击时
  * @param outline Outline 实例
- * @param app App 实例
+ * @param app AppFacade 实例
  * @param element 被点击的节点元素
  * @param event 鼠标事件对象
  */
-function handleTreeCtrlClick(outline: Outline, app: App, element: HTMLElement, event: MouseEvent) {
+function handleTreeCtrlClick(outline: Outline, app: AppFacade, element: HTMLElement, event: MouseEvent) {
     const target = event.target;
     // 确保点击目标是 Element
     if (!(target instanceof Element)) {

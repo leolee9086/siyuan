@@ -1,8 +1,8 @@
 // S-forge: 保留本地重构后的 import 结构（去除条件编译、平台封装、util 目录重组）
 // 上游 ed77bd609 将 frontendActions 迁入 dock/agent/，registerAction 路径同步更新
-/** 用途：提供插件宿主应用的抽象外观；使用范围：Plugin 内部状态、插件回调和运行时能力参数；解耦评估：type-only 依赖，不加载应用入口，具体 App 仅在初始化边界满足该契约。 */
-import type {AppFacade} from "../app/AppFacade.types";
 import { EventBus } from "./EventBus";
+/** 用途：提供插件宿主的完整应用抽象外观；使用范围：Plugin 状态、插件回调和构造端口；解耦评估：type-only 依赖，不加载应用入口。 */
+import type {AppFacade} from "../app/AppFacade.types";
 import { fetchPost } from "../util/network/fetch";
 import { isMobile, isWindow } from "../util/platform/functions";
 import { Custom } from "../layout/dock/Custom";
@@ -25,13 +25,8 @@ import { Kernel } from "./kernel";
 import { registerAction } from "../layout/dock/agent/frontendActions";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { isElectron } from "../platform";
-import type {IPluginRuntime} from "./runtime/pluginRuntime.types";
-
-type PluginApp = AppFacade<Plugin, EventBus>;
-
 export class Plugin {
-    private app: PluginApp;
-    private runtime: IPluginRuntime<PluginApp, Plugin>;
+    public app: AppFacade;
     public i18n: Record<string, string>;
     public eventBus: EventBus;
     public kernel: Kernel;
@@ -48,9 +43,9 @@ export class Plugin {
     public customBlockRenders: {
         [key: string]: {
             icon: string,
-            action: "edit" | "more"[],
+            action: Array<"edit" | "more">,
             genCursor: boolean,
-            render: (options: { app: PluginApp, element: Element }) => void
+            render: (options: { app: AppFacade, element: Element }) => void
         }
     } = {};
     public topBarIcons: Element[] = [];
@@ -66,21 +61,19 @@ export class Plugin {
     public docks: {
         [key: string]: {
             config: IPluginDockTab,
-            model?: (options: { tab: Tab }) => Custom
-            mobileModel?: (element: Element) => MobileCustom
+            model: (options: { tab: Tab }) => Custom
+            mobileModel: (element: Element) => MobileCustom
         }
     } = {};
     private protyleOptionsValue: IProtyleOptions;
 
     constructor(options: {
-        app: PluginApp,
+        app: AppFacade,
         name: string,
         displayName: string,
         i18n: Record<string, string>,
-        runtime: IPluginRuntime<PluginApp, Plugin>,
     }) {
         this.app = options.app;
-        this.runtime = options.runtime;
         this.i18n = options.i18n;
         this.displayName = options.displayName;
         this.eventBus = new EventBus(options.name);
@@ -140,7 +133,7 @@ export class Plugin {
     public onDataChanged() {
         // 存储数据变更
         // 兼容 3.4.1 以前同步数据使用重载插件的问题
-        this.runtime.reloadData(this.app, this);
+        this.app.pluginHost.reloadData(this);
     }
 
     public async updateCards(options: ICardData) {
@@ -434,7 +427,7 @@ export class Plugin {
     public addAgentAction(options: {
         name: string,
         description: string,
-        handler: (args: Record<string, unknown>, app: PluginApp) => Promise<{result?: string; error?: string}>
+        handler: (args: Record<string, unknown>, app: AppFacade) => Promise<{result?: string; error?: string}>
     }): string {
         const fullName = "plugin__" + this.name + "__" + options.name;
         if (!this.agentActions.includes(fullName)) {
@@ -509,7 +502,7 @@ export class Plugin {
             }
             window.siyuan.config.keymap.plugin[this.name][type2]["default"] = hotkey;
         }
-        this.runtime.addDock(this);
+        this.app.pluginHost.addDock(this);
         return this.docks[type2];
     }
 

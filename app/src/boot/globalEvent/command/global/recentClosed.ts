@@ -25,10 +25,10 @@ import type { GlobalCommandContext } from "./types";
 /** 用途：引入最近关闭恢复上下文类型。使用范围：标注恢复处理器入参。解耦评估：类型定义集中在 types.ts。 */
 import type { RecentClosedRestoreContext } from "./types";
 /** 用途：主应用宿主身份；使用范围：最近关闭恢复上下文泛型绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 恢复搜索页签。 */
-const restoreSearchRecentClosedTab = ({ app, childData }: RecentClosedRestoreContext<App>) => {
+const restoreSearchRecentClosedTab = ({ app, childData }: RecentClosedRestoreContext<AppFacade>) => {
     openFile({
         app,
         searchData: childData.config,
@@ -37,7 +37,7 @@ const restoreSearchRecentClosedTab = ({ app, childData }: RecentClosedRestoreCon
 };
 
 /** 处理资产状态检查响应，资产仍可打开时恢复资产页签。 */
-const handleAssetStatResponse = ({ app, childData }: RecentClosedRestoreContext<App>) => (response: { code: number }) => {
+const handleAssetStatResponse = ({ app, childData }: RecentClosedRestoreContext<AppFacade>) => (response: { code: number }) => {
     // code 为 1 表示资产不可按原路径恢复，保留原逻辑仅在其它状态下重新打开。
     if (response.code !== 1) {
         openFile({
@@ -49,13 +49,13 @@ const handleAssetStatResponse = ({ app, childData }: RecentClosedRestoreContext<
 };
 
 /** 恢复资产页签。 */
-const restoreAssetRecentClosedTab = (context: RecentClosedRestoreContext<App>) => {
+const restoreAssetRecentClosedTab = (context: RecentClosedRestoreContext<AppFacade>) => {
     fetchPost("/api/asset/statAsset", { path: context.childData.path }, handleAssetStatResponse(context));
     return true;
 };
 
 /** 判断自定义页签的模型是否仍然可用。 */
-const hasCustomModel = ({ app, childData }: RecentClosedRestoreContext<App>) => {
+const hasCustomModel = ({ app, childData }: RecentClosedRestoreContext<AppFacade>) => {
     if (childData.customModelType === "siyuan-card") {
         return true;
     }
@@ -63,7 +63,7 @@ const hasCustomModel = ({ app, childData }: RecentClosedRestoreContext<App>) => 
 };
 
 /** 恢复自定义页签。 */
-const restoreCustomRecentClosedTab = (context: RecentClosedRestoreContext<App>) => {
+const restoreCustomRecentClosedTab = (context: RecentClosedRestoreContext<AppFacade>) => {
     const { app, childData, closeData } = context;
     // 插件自定义页签只有在内置卡片模型或插件模型仍存在时才能安全恢复。
     if (hasCustomModel(context)) {
@@ -81,7 +81,7 @@ const restoreCustomRecentClosedTab = (context: RecentClosedRestoreContext<App>) 
 };
 
 /** 恢复编辑器页签。 */
-const restoreEditorRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<App>) => {
+const restoreEditorRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<AppFacade>) => {
     openFile({
         app,
         fileName: closeData.title,
@@ -95,7 +95,7 @@ const restoreEditorRecentClosedTab = ({ app, childData, closeData }: RecentClose
 };
 
 /** 恢复反链页签。 */
-const restoreBacklinkRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<App>) => {
+const restoreBacklinkRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<AppFacade>) => {
     openBacklink({
         app,
         blockId: childData.blockId,
@@ -106,7 +106,7 @@ const restoreBacklinkRecentClosedTab = ({ app, childData, closeData }: RecentClo
 };
 
 /** 恢复关系图页签。 */
-const restoreGraphRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<App>) => {
+const restoreGraphRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<AppFacade>) => {
     openGraph({
         app,
         blockId: childData.blockId,
@@ -117,7 +117,7 @@ const restoreGraphRecentClosedTab = ({ app, childData, closeData }: RecentClosed
 };
 
 /** 恢复大纲页签。 */
-const restoreOutlineRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<App>) => {
+const restoreOutlineRecentClosedTab = ({ app, childData, closeData }: RecentClosedRestoreContext<AppFacade>) => {
     openOutline({
         app,
         rootId: childData.blockId,
@@ -144,7 +144,7 @@ const recentClosedRestoreRouter = calibur
     .build();
 
 /** 处理块信息响应，确认根块仍匹配后恢复对应块相关页签。 */
-const handleBlockInfoResponse = (context: RecentClosedRestoreContext<App>, blockId: string) => (infoResponse: { data: { rootID: string } }) => {
+const handleBlockInfoResponse = (context: RecentClosedRestoreContext<AppFacade>, blockId: string) => (infoResponse: { data: { rootID: string } }) => {
     // 只有根块 ID 仍与关闭前一致时才恢复，避免块已删除或迁移后打开错误页签。
     if (infoResponse.data.rootID === blockId) {
         const executor = recentClosedRestoreRouter({ instance: context.childData.instance });
@@ -153,7 +153,7 @@ const handleBlockInfoResponse = (context: RecentClosedRestoreContext<App>, block
 };
 
 /** 需要先检查块信息的页签恢复流程。 */
-const restoreBlockBoundRecentClosedTab = (context: RecentClosedRestoreContext<App>) => {
+const restoreBlockBoundRecentClosedTab = (context: RecentClosedRestoreContext<AppFacade>) => {
     const { childData } = context;
     const blockId = childData.rootId || childData.blockId;
     fetchPost("/api/block/getBlockInfo", { id: blockId }, handleBlockInfoResponse(context, blockId));
@@ -161,13 +161,13 @@ const restoreBlockBoundRecentClosedTab = (context: RecentClosedRestoreContext<Ap
 };
 
 /** 恢复最近关闭页签，不改变原有的存储弹出和请求回调语义。 */
-const restoreRecentClosedTab = (context: GlobalCommandContext<App>, closeData: ILayoutTab) => {
+const restoreRecentClosedTab = (context: GlobalCommandContext<AppFacade>, closeData: ILayoutTab) => {
     const childData = closeData.children;
     // 最近关闭数据来自本地存储，恢复前先确认 children 仍具备布局实例字段。
     if (!isRecentClosedChildLayout(childData)) {
         return true;
     }
-    const restoreContext: RecentClosedRestoreContext<App> = {
+    const restoreContext: RecentClosedRestoreContext<AppFacade> = {
         ...context,
         closeData,
         childData,
@@ -184,7 +184,7 @@ const restoreRecentClosedTab = (context: GlobalCommandContext<App>, closeData: I
  * 执行最近关闭标签恢复命令。
  * @同步豁免: UI构建 - globalCommand 是同步入口；本函数同步弹出存储项并发起原有回调式恢复流程。
  */
-export const executeRecentClosedGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeRecentClosedGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const closedTabs = getSiyuanStorage()[Constants.LOCAL_CLOSED_TABS];
     // 最近关闭列表为空时原命令仍视为已处理，只是不执行恢复动作。
     if (closedTabs.length > 0) {

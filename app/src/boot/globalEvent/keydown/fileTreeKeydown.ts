@@ -1,4 +1,4 @@
-import { App } from "../../..";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { fetchPost } from "../../../ai/imports";
 import { openCardByData } from "../../../card/openCard";
 import { Constants } from "../../../constants";
@@ -19,7 +19,7 @@ import { getDisplayName, getNotebookName } from "../../../util/file/pathName";
 import { globalCommand } from "../command/global";
 import { execByCommand } from "../command/panel";
 
-export const fileTreeKeydown = (app: App, event: KeyboardEvent) => {
+export const fileTreeKeydown = (app: AppFacade, event: KeyboardEvent) => {
     const dockFile = getDockByType("file");
     if (!dockFile) {
         return false;

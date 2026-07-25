@@ -22,7 +22,7 @@ function activateExistingTab(model: unknown) {
 }
 
 /** 作用：解析可用 App；意图：兼容显式调用和全局应用上下文；调用时机：打开 Tab 前。 */
-function resolveApp(app?: imports.App) {
+function resolveApp(app?: imports.AppFacade) {
     return app ?? imports.getSiyuanWebSocket()?.app;
 }
 
@@ -45,7 +45,7 @@ function findExistingIdentityAccessTab() {
  * 意图：为 Agent 和其它主界面入口提供容器中立的登录界面。
  * 调用时机：用户触发身份入口时调用；无 App 上下文则回退独立页面。
  */
-export async function openIdentityAccessTab(options?: { app?: imports.App }) {
+export async function openIdentityAccessTab(options?: { app?: imports.AppFacade }) {
     const app = resolveApp(options?.app);
     if (!app) {
         openIdentityAccessStandalone();

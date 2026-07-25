@@ -1,24 +1,19 @@
 /**
- * Wnd.drag.ts - Wnd 拖拽事件处理
- * 从 Wnd.ts 提取的拖拽相关逻辑
+ * Wnd.drag.ts - 窗口拖拽事件处理
+ * 从 Wnd.ts 提取的拖拽相关逻辑；通过布局领域根和组合根能力工作。
  */
-import type { Wnd } from "./Wnd";
-import { Tab } from "./Tab";
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { openFileById } from "../editor/utils.openFileById";
-import {
-    getInstanceById,
-    JSONToCenter,
-    saveLayout,
-} from "./util";
 import { resizeTabs, setTabPosition } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { dragOverScroll } from "../boot/globalEvent/dragover";
+import type { LayoutTab, LayoutWindow } from "./layout.types";
+import {isLayoutTab, isLayoutWindow} from "./layout.types.guard";
 
 function isPointWithinLines(
     x: number, y: number,
@@ -31,7 +26,7 @@ function isPointWithinLines(
 }
 
 function updateDragElement(
-    wnd: Wnd,
+    wnd: LayoutWindow,
     event: DragEvent,
     rect: DOMRect,
     dragElement: HTMLElement,
@@ -64,7 +59,13 @@ function updateDragElement(
 /**
  * 绑定 headers parent 上的 dragover 和 drop 事件
  */
-export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
+export function bindHeaderDragEvents(
+    wnd: LayoutWindow,
+    app: AppFacade,
+    lookup: (id: string) => object | undefined,
+    restoreCenter: (data: Config.TUILayoutItem, target: LayoutWindow) => void,
+    persistLayout: () => void,
+): void {
     wnd.headersElement.parentElement.addEventListener("dragover", function (event: DragEvent & {
         target: HTMLElement
     }) {
@@ -159,11 +160,13 @@ export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
             return;
         }
         const tabData = JSON.parse(event.dataTransfer.getData(Constants.SIYUAN_DROP_TAB));
-        let oldTab = getInstanceById(tabData.id) as Tab;
-        const targetWnd = getInstanceById(it.parentElement.getAttribute("data-id")) as Wnd;
+        let oldTab = lookup(tabData.id);
+        const targetWndValue = lookup(it.parentElement.getAttribute("data-id"));
+        const targetWnd = isLayoutWindow(targetWndValue) ? targetWndValue : undefined;
+        oldTab = isLayoutTab(oldTab) ? oldTab : undefined;
         if (isElectron && !oldTab) { // 从主窗口拖拽到页签新窗口
-            if (targetWnd instanceof Wnd) {
-                JSONToCenter(app, tabData, targetWnd);
+            if (targetWnd) {
+                restoreCenter(tabData, targetWnd);
                 oldTab = targetWnd.children[targetWnd.children.length - 1];
                 ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
                 it.querySelector("li[data-clone='true']").remove();
@@ -171,7 +174,7 @@ export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
                 ipcSend(Constants.SIYUAN_CMD, "focus");
             }
         }
-        if (!oldTab) {
+        if (!oldTab || !targetWnd) {
             return;
         }
 
@@ -197,7 +200,7 @@ export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
             return;
         }
 
-        let tempTab: Tab;
+        let tempTab: LayoutTab;
         oldTab.parent.children.find((item, index) => {
             if (item.id === oldTab.id) {
                 tempTab = oldTab.parent.children.splice(index, 1)[0];
@@ -214,14 +217,19 @@ export function bindHeaderDragEvents(wnd: Wnd, app: App): void {
         } else {
             oldTab.parent.children.push(tempTab);
         }
-        saveLayout();
+        persistLayout();
     });
 }
 
 /**
  * 绑定面板拖拽事件（dragElement 及 element 上的 dragenter/dragleave）
  */
-export function bindPanelDragEvents(wnd: Wnd, app: App, dragElement: HTMLElement): void {
+export function bindPanelDragEvents(
+    wnd: LayoutWindow,
+    dragElement: HTMLElement,
+    lookup: (id: string) => object | undefined,
+    restoreCenter: (data: Config.TUILayoutItem, target: LayoutWindow) => void,
+): void {
     let elementDragCounter = 0;
     wnd.element.addEventListener("dragenter", (event: DragEvent & { target: HTMLElement }) => {
         elementDragCounter++;
@@ -264,11 +272,13 @@ export function bindPanelDragEvents(wnd: Wnd, app: App, dragElement: HTMLElement
     dragElement.addEventListener("drop", (event: DragEvent & { target: HTMLElement }) => {
         dragElement.classList.add("fn__none");
         const targetWndElement = event.target.parentElement.parentElement;
-        const targetWnd = getInstanceById(targetWndElement.getAttribute("data-id")) as Wnd;
+        const targetWndValue = lookup(targetWndElement.getAttribute("data-id"));
+        const targetWnd = isLayoutWindow(targetWndValue) ? targetWndValue : undefined;
         const tabData = JSON.parse(event.dataTransfer.getData(Constants.SIYUAN_DROP_TAB));
-        let oldTab = getInstanceById(tabData.id) as Tab;
+        const oldTabValue = lookup(tabData.id);
+        let oldTab = isLayoutTab(oldTabValue) ? oldTabValue : undefined;
         if (isElectron && !oldTab) { // 从主窗口拖拽到页签新窗口
-            JSONToCenter(app, tabData, wnd);
+            restoreCenter(tabData, wnd);
             wnd.children.find(item => {
                 if (item.headElement.getAttribute("data-activetime") === tabData.activeTime) {
                     oldTab = item;
@@ -278,7 +288,7 @@ export function bindPanelDragEvents(wnd: Wnd, app: App, dragElement: HTMLElement
             ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
             ipcSend(Constants.SIYUAN_CMD, "focus");
         }
-        if (!oldTab) {
+        if (!oldTab || !targetWnd) {
             dragElement.removeAttribute("style");
             return;
         }

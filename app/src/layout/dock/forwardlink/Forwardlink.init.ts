@@ -10,7 +10,7 @@
 import { Tree } from "../../../util/file/Tree";
 import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import type { Forwardlink } from "./Forwardlink";
 import { 切换列表项展开, 设置面板焦点 } from "./Forwardlink.helpers";
 
@@ -24,7 +24,7 @@ import { 切换列表项展开, 设置面板焦点 } from "./Forwardlink.helpers
  * @param forwardlink - Forwardlink 实例
  * @param app - 应用实例
  */
-export function 初始化Tree组件(forwardlink: Forwardlink, app: App): void {
+export function 初始化Tree组件(forwardlink: Forwardlink, app: AppFacade): void {
     const forwardlinkListElement = forwardlink.element.querySelector(".forwardlinkList");
     if (!(forwardlinkListElement instanceof HTMLElement)) {
         throw new Error("Forwardlink: .forwardlinkList 元素不存在");

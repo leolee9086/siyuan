@@ -4,7 +4,7 @@
  * @同步豁免: 遗留代码 - 此模块从 util.ts 迁移，保持原有同步行为以确保兼容性
  */
 
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
@@ -93,7 +93,7 @@ export const handleLayoutInstance = (
  * @同步豁免: UI构建 - 需要同步创建DOM元素
  */
 export const handleWndInstance = (
-    app: App,
+    app: AppFacade,
     json: Config.IUILayoutWnd,
     layout: Layout
 ): Wnd => {
@@ -127,7 +127,7 @@ const getTabTitle = (json: Config.IUILayoutTab): string => {
 };
 
 /** 创建Tab实例 */
-const createTabInstance = (app: App, json: Config.IUILayoutTab): Tab => {
+const createTabInstance = (app: AppFacade, json: Config.IUILayoutTab): Tab => {
     if (!json.title) {
         return newCenterEmptyTab(app);
     }
@@ -164,7 +164,7 @@ const markTabActiveState = (child: Tab, json: Config.IUILayoutTab): void => {
  * @同步豁免: UI构建 - 需要同步创建DOM元素
  */
 export const handleTabInstance = (
-    app: App, json: Config.IUILayoutTab, layout: Wnd
+    app: AppFacade, json: Config.IUILayoutTab, layout: Wnd
 ): Tab => {
     const child = createTabInstance(app, json);
     applyTabPinStyles(child, json);
@@ -214,8 +214,8 @@ const getOutlineType = (type: unknown): "pin" | "local" =>
  * 处理 Asset 实例 - 显示附件文件
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleAssetInstance = (app: App, json: { path: string; page?: string | number }, layout: Tab): void => {
-    const options: { app: App; tab: Tab; path: string; page?: string | number } = {
+export const handleAssetInstance = (app: AppFacade, json: { path: string; page?: string | number }, layout: Tab): void => {
+    const options: { app: AppFacade; tab: Tab; path: string; page?: string | number } = {
         app, tab: layout, path: json.path
     };
     // page 可选：仅在存在时添加到选项中，避免传递 undefined
@@ -229,7 +229,7 @@ export const handleAssetInstance = (app: App, json: { path: string; page?: strin
  * 处理 Backlink 实例 - 显示反向链接面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleBacklinkInstance = (app: App, json: { blockId: string; rootId: string; type?: unknown }, layout: Tab): void => {
+export const handleBacklinkInstance = (app: AppFacade, json: { blockId: string; rootId: string; type?: unknown }, layout: Tab): void => {
     layout.addModel(new Backlink({
         app, tab: layout, blockId: json.blockId, rootId: json.rootId, type: getBacklinkType(json.type)
     }));
@@ -239,7 +239,7 @@ export const handleBacklinkInstance = (app: App, json: { blockId: string; rootId
  * 处理 Bookmark 实例 - 显示书签面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleBookmarkInstance = (app: App, _json: unknown, layout: Tab): void => {
+export const handleBookmarkInstance = (app: AppFacade, _json: unknown, layout: Tab): void => {
     layout.addModel(new Bookmark(app, layout));
 };
 
@@ -247,7 +247,7 @@ export const handleBookmarkInstance = (app: App, _json: unknown, layout: Tab): v
  * 处理 Files 实例 - 显示文件树面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleFilesInstance = (app: App, _json: unknown, layout: Tab): void => {
+export const handleFilesInstance = (app: AppFacade, _json: unknown, layout: Tab): void => {
     layout.addModel(new Files({ app, tab: layout }));
 };
 
@@ -255,7 +255,7 @@ export const handleFilesInstance = (app: App, _json: unknown, layout: Tab): void
  * 处理 Graph 实例 - 显示关系图面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleGraphInstance = (app: App, json: { blockId: string; rootId: string; type?: unknown }, layout: Tab): void => {
+export const handleGraphInstance = (app: AppFacade, json: { blockId: string; rootId: string; type?: unknown }, layout: Tab): void => {
     layout.addModel(new Graph({
         app, tab: layout, blockId: json.blockId, rootId: json.rootId, type: getGraphType(json.type)
     }));
@@ -265,7 +265,7 @@ export const handleGraphInstance = (app: App, json: { blockId: string; rootId: s
  * 处理 Outline 实例 - 显示文档大纲面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleOutlineInstance = (app: App, json: { blockId: string; type?: unknown; isPreview?: boolean }, layout: Tab): void => {
+export const handleOutlineInstance = (app: AppFacade, json: { blockId: string; type?: unknown; isPreview?: boolean }, layout: Tab): void => {
     layout.addModel(new Outline({
         app, tab: layout, blockId: json.blockId, type: getOutlineType(json.type), isPreview: json.isPreview ?? false
     }));
@@ -275,7 +275,7 @@ export const handleOutlineInstance = (app: App, json: { blockId: string; type?: 
  * 处理 Tag 实例 - 显示标签面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleTagInstance = (app: App, _json: unknown, layout: Tab): void => {
+export const handleTagInstance = (app: AppFacade, _json: unknown, layout: Tab): void => {
     layout.addModel(new Tag(app, layout));
 };
 
@@ -287,7 +287,7 @@ export const handleTagInstance = (app: App, _json: unknown, layout: Tab): void =
  * 处理 Search 实例 - 显示搜索结果面板
  * @同步豁免: UI构建 - 需要同步创建Model
  */
-export const handleSearchInstance = (app: App, json: { config?: unknown }, layout: Tab): void => {
+export const handleSearchInstance = (app: AppFacade, json: { config?: unknown }, layout: Tab): void => {
     // config 必须是有效对象时才能创建 Search 实例
     // 过滤掉 null、undefined 和空对象
     if (json.config === undefined || json.config === null) {
@@ -340,7 +340,7 @@ export const handleErrorPlaceholderInstance = (json: { errorPlaceholderData?: un
 
 /** 创建并恢复 AgentChat 普通 Tab；正文从 SessionStore 异步恢复，布局树先保持稳定。 */
 export const handleAgentChatInstance = (
-    app: App,
+    app: AppFacade,
     json: { sessionId?: unknown },
     layout: Tab
 ): void => {

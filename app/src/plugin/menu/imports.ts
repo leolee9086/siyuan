@@ -6,8 +6,8 @@ import {subMenu} from "../../menus/Menu.subMenu";
 import {getSiyuanGlobalMenus} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：插件菜单国际化。使用范围：显示插件入口文案。解耦评估：读取稳定环境入口。 */
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-/** 用途：插件运行时身份。使用范围：菜单工厂向当前插件实例广播扩展事件。解耦评估：组合边界依赖完整 Plugin 实现。 */
-import type {Plugin} from "../index";
+/** 用途：插件运行时身份。使用范围：菜单工厂向当前插件实例广播扩展事件。解耦评估：使用官方插件公开契约，避免菜单域依赖具体 class。 */
+import type {Plugin} from "siyuan";
 
 /** 插件菜单项构造器。 */
 export {MenuItem};

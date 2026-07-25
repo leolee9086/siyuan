@@ -6,7 +6,7 @@ import { closeTabByType } from "../layout/utils/closeTabByType";
 import { openNewWindow } from "../window/openNewWindow";
 import { isElectron } from "../platform";
 import { copySubMenu } from "./commonMenuItem";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Layout } from "../layout";
 import { Wnd } from "../layout/Wnd";
 import { getAllWnds } from "../layout/getAll";
@@ -97,7 +97,7 @@ const closeMenu = (tab: Tab) => {
     window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
 };
 
-const splitSubMenu = (app: App, tab: Tab) => {
+const splitSubMenu = (app: AppFacade, tab: Tab) => {
     const subMenus: IMenu[] = [{
         id: "splitLR",
         icon: "iconSplitLR",
@@ -182,7 +182,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
     return subMenus;
 };
 
-export const initTabMenu = (app: App, tab: Tab) => {
+export const initTabMenu = (app: AppFacade, tab: Tab) => {
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_TAB);
     closeMenu(tab);

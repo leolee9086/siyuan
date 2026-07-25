@@ -4,9 +4,51 @@ import {
     isNotEditBlock,
 } from "../wysiwyg/getBlock";
 import {Constants} from "../../constants";
-import {focusByRange, focusBlock} from "./selection.focus";
-import {getSelectionOffset} from "./selection";
+import {focusByRange, focusBlock, setLastNodeRange} from "./selection.focus";
 import {hasClosestByTag} from "./hasClosest";
+
+export {setFirstNodeRange, setLastNodeRange} from "./selection.focus";
+
+const selectIsEditor = (editor: Element, range?: Range) => {
+    if (!range) {
+        if (getSelection().rangeCount === 0) {
+            return false;
+        }
+        range = getSelection().getRangeAt(0);
+    }
+    const container = range.commonAncestorContainer;
+    return editor.isEqualNode(container) || editor.contains(container);
+};
+
+/** 将浏览器选区转换为编辑器内的文本偏移，计入软换行和表情节点。 */
+export const getSelectionOffset = (selectElement: Node, editorElement?: Element, range?: Range) => {
+    const position = {
+        end: 0,
+        start: 0,
+    };
+
+    if (!range) {
+        if (getSelection().rangeCount === 0) {
+            return position;
+        }
+        range = window.getSelection().getRangeAt(0);
+    }
+
+    if (editorElement && !selectIsEditor(editorElement, range)) {
+        return position;
+    }
+    const preSelectionRange = range.cloneRange();
+    if (selectElement.childNodes[0] && selectElement.childNodes[0].childNodes[0]) {
+        preSelectionRange.setStart(selectElement.childNodes[0].childNodes[0], 0);
+    } else {
+        preSelectionRange.selectNodeContents(selectElement);
+    }
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    // 需加上表格内软换行 br 与表情的长度
+    position.start = preSelectionRange.toString().length + preSelectionRange.cloneContents().querySelectorAll("br, .emoji").length;
+    position.end = position.start + range.toString().length + range.cloneContents().querySelectorAll("br, .emoji").length;
+    return position;
+};
 
 function searchNode(
     container: Node,
@@ -44,39 +86,6 @@ function searchNode(
 
     return false;
 }
-
-export const setLastNodeRange = (editElement: Element, range: Range, setStart = true) => {
-    if (!editElement) {
-        return range;
-    }
-    let lastNode = editElement.lastChild as Element;
-    while (lastNode && lastNode.nodeType !== 3) {
-        // https://github.com/siyuan-note/siyuan/issues/12792
-        if (!lastNode.lastChild) {
-            break;
-        }
-        // 最后一个为多种行内元素嵌套
-        lastNode = lastNode.lastChild as Element;
-    }
-    // https://github.com/siyuan-note/siyuan/issues/12753
-    if (!lastNode) {
-        lastNode = editElement;
-    }
-    if (setStart) {
-        if (lastNode.nodeType !== 3 && (lastNode.classList.contains("render-node") || lastNode.tagName === "BR") && lastNode.innerHTML === "") {
-            range.setStartAfter(lastNode);
-        } else {
-            range.setStart(lastNode, lastNode.textContent.length);
-        }
-    } else {
-        if (lastNode.nodeType !== 3 && (lastNode.classList.contains("render-node") || lastNode.tagName === "BR") && lastNode.innerHTML === "") {
-            range.setEndAfter(lastNode);
-        } else {
-            range.setEnd(lastNode, lastNode.textContent.length);
-        }
-    }
-    return range;
-};
 
 export const focusByOffset = (container: Element, start: number, end: number, isFocus = true) => {
     if (!container) {
@@ -172,30 +181,6 @@ export const focusByOffset = (container: Element, start: number, end: number, is
     }
     if (isFocus) {
         focusByRange(range);
-    }
-    return range;
-};
-
-export const setFirstNodeRange = (editElement: Element, range: Range) => {
-    if (!editElement) {
-        return range;
-    }
-    let firstChild = editElement.firstChild as HTMLElement;
-    while (firstChild && firstChild.nodeType !== 3 && !firstChild.classList.contains("render-node")) {
-        if (firstChild.classList.contains("img")) { // https://ld246.com/article/1665360254842
-            range.setStartBefore(firstChild);
-            return range;
-        }
-        firstChild = firstChild.firstChild as HTMLElement;
-    }
-    if (!firstChild) {
-        range.selectNodeContents(editElement);
-        return range;
-    }
-    if (firstChild.nodeType !== 3 && firstChild.classList.contains("render-node")) {
-        range.setStartBefore(firstChild);
-    } else {
-        range.setStart(firstChild, 0);
     }
     return range;
 };

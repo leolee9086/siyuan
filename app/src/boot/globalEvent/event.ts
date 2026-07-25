@@ -1,4 +1,4 @@
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {windowMouseMove} from "./mousemove";
 import {windowKeyUp} from "./keyup";
 import {windowKeyDown} from "./keydown/windowKeyDown/windowKeyDown";
@@ -16,7 +16,7 @@ import {isWindow} from "../../util/platform/functions";
 import {getDockByType} from "../../layout/tabUtil";
 import {fetchPost} from "../../util/network/fetch";
 
-export const initWindowEvent = (app: App) => {
+export const initWindowEvent = (app: AppFacade) => {
     let lastEncryptedNotebookTouch = 0;
     const touchEncryptedNotebooks = () => {
         if (window.siyuan.isPublish) {

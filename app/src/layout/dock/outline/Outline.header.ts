@@ -7,7 +7,7 @@ import { openFileById } from "../../../editor/utils.openFileById";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { goHome } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { Editor } from "../../../editor";
-import { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import type { Outline } from "./Outline";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { Model } from "../../Model";
@@ -22,7 +22,7 @@ import { handlePanelIconClick } from "./Outline.header.icon";
  * @param options 配置选项
  * @同步豁免: UI构建
  */
-export function initHeaderEvents(outline: Outline, options: { app: App, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
+export function initHeaderEvents(outline: Outline, options: { app: AppFacade, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
     initCollapseExpandEvents(outline, options);
     initKeepCurrentExpandEvent(outline, options);
     // 初始化面板点击事件
@@ -99,7 +99,7 @@ function initKeepCurrentExpandEvent(outline: Outline, options: { tab: Tab }) {
  * 意图：根据点击的目标元素类型（图标或标题），分发到不同的处理函数，并管理面板焦点。
  * 调用时机：面板被点击时。
  */
-function handlePanelClick(outline: Outline, options: { app: App, tab: Tab }, event: MouseEvent) {
+function handlePanelClick(outline: Outline, options: { app: AppFacade, tab: Tab }, event: MouseEvent) {
     if (!isHTMLElement(event.target)) {
         return;
     }

@@ -531,7 +531,7 @@ interface IProtyle {
     getInstance: () => import("../protyle").Protyle,
     observerLoad?: ResizeObserver,
     observer?: ResizeObserver,
-    app: import("../index").App,
+    app: import("../app/AppFacade.types").AppFacade,
     id: string,
     query?: {
         key: string,

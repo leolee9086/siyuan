@@ -16,7 +16,7 @@ import {Protyle} from "../../protyle";
 import {Backlink} from "./Backlink";
 import {adjustDockPadding, resetFloatDockSize} from "./util";
 import {hasClosestByAttribute, hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {Plugin} from "../../plugin";
 import {Custom} from "./Custom";
 import {clearBeforeResizeTop, recordBeforeResizeTop} from "../../protyle/util/resize";
@@ -28,14 +28,14 @@ export class Dock {
     public elements: HTMLElement[];
     public layout: Layout;
     private position: TDockPosition;
-    private app: App;
+    private app: AppFacade;
     public resizeElement: HTMLElement;
     public pin = true;
     public data: { [key in TDock | string]?: Model | boolean };
     private hideResizeTimeout: number;
 
     constructor(options: {
-        app: App,
+        app: AppFacade,
         data: {
             pin: boolean,
             data: Config.IUILayoutDockTab[][]

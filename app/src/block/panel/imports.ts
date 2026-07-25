@@ -23,10 +23,10 @@ import { isMobile } from "../imports";
 /** 导出 isMobile，供 panel 模块使用 */
 export { isMobile };
 
-/** 用途：App 应用实例类型。使用范围：panel 模块上下文。解耦评估：通过父级 imports.ts 转发。 */
-import type { App } from "../imports";
-/** 导出 App 类型，供 panel 模块使用 */
-export type { App };
+/** 用途：AppFacade 应用实例类型。使用范围：panel 模块上下文。解耦评估：通过父级 imports.ts 转发。 */
+import type { AppFacade } from "../imports";
+/** 导出 AppFacade 类型，供 panel 模块使用 */
+export type { AppFacade };
 
 /** 用途：获取全局浮窗面板列表。使用范围：panel 模块层级管理。解耦评估：通过父级 imports.ts 转发。 */
 import { getSiyuanBlockPanels } from "../imports";

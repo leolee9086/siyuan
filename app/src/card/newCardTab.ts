@@ -4,11 +4,11 @@ import { bindCardEvent, genCardHTML } from "./openCard";
 import { fetchPost } from "../util/network/fetch";
 import { Protyle } from "../protyle";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { clearOBG } from "../layout/dock/util";
 
 export const newCardModel = (options: {
-    app: App,
+    app: AppFacade,
     tab: Tab,
     data: {
         cardType: TCardType,

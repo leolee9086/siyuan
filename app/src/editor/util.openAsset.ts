@@ -1,11 +1,11 @@
 /** 用途：应用实例类型。使用范围：openAsset 参数类型。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：应用常量，判断资产扩展名。使用范围：openAsset 文件类型检查。解耦评估：通过 imports.ts 转发。 */
 import { Constants } from "./imports";
 /** 用途：路径处理工具，获取文件扩展名。使用范围：openAsset 解析资产类型。解耦评估：通过 imports.ts 转发。 */
 import { pathPosix } from "./imports";
 /** 用途：打开文件能力。使用范围：openAsset 执行打开操作。解耦评估：同目录工具模块，直接同层导入。 */
-import { openFile } from "./util";
+import { openFile } from "./openFile";
 
 /**
  * 打开资产文件（图片/音频/视频/PDF）
@@ -14,7 +14,7 @@ import { openFile } from "./util";
  * @调用时机 用户点击资产链接或拖拽资产到编辑器时
  * @同步豁免: 生命周期 — 在用户交互中同步打开资产页签
  */
-export const openAsset = (app: App, assetPath: string, page: number | string, position?: string) => {
+export const openAsset = (app: AppFacade, assetPath: string, page: number | string, position?: string) => {
     const suffix = pathPosix().extname(assetPath).split("?")[0];
     if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         return;

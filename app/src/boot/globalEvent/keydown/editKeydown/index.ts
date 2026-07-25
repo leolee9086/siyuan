@@ -1,4 +1,4 @@
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 import {
     copyPlainText,
     copyPNGByLink,
@@ -47,7 +47,7 @@ const getTitleText = (protyle: IProtyle) => {
     return protyle.title?.editElement.textContent || siyuanI18n.untitled;
 };
 
-export const editKeydown = (app: App, event: KeyboardEvent) => {
+export const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
     const config = getSiyuanConfig();
     let protyle: IProtyle;
     let range: Range | null = null;

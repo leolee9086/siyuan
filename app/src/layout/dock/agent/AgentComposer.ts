@@ -1,4 +1,4 @@
-import type {App} from "../../../index";
+import type {AppFacade} from "../../../app/AppFacade.types";
 import {mountTiptapComposer} from "./AgentComposer.tiptap";
 import {mountProtyleComposer} from "./AgentComposer.protyle";
 import type {ComposerHandle} from "./AgentComposer.types";
@@ -15,7 +15,7 @@ export function mountComposer(
     host: HTMLElement,
     onSend: () => void,
     onChange?: () => void,
-    app?: App,
+    app?: AppFacade,
 ): ComposerHandle {
     if (app) {
         return mountProtyleComposer(app, host, onSend, onChange);

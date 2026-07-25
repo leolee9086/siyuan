@@ -1,5 +1,5 @@
 /** 用途：绑定主应用上下文；使用范围：仅 App 宿主 capability；解耦评估：纯类型参数，面板核心不导入 App。 */
-import type {App} from "./imports";
+import type {AppFacade} from "./imports";
 /** 用途：绑定当前面板 Tab；使用范围：Tab/浮窗打开 Port；解耦评估：纯类型参数，具体动作经细粒度 Port 注入。 */
 import type {Tab} from "./imports";
 /** 用途：提供主应用确认框；使用范围：ConfirmPort；解耦评估：适配器依赖 UI 实现，面板核心只依赖 Port。 */
@@ -37,7 +37,7 @@ import {loadOpenSetting} from "./imports";
  * 组合主应用实际具备的细粒度宿主能力，供 Dock、Tab 和浮窗共用。
  * @同步豁免: UI构建 必须在 Agent 面板构造时同步提供 capability，对象本身不启动异步任务。
  */
-export const createAppAgentPanelCapabilities = (app: App, tab: Tab) => {
+export const createAppAgentPanelCapabilities = (app: AppFacade, tab: Tab) => {
     /** 打开绑定当前 Tab 的普通布局副本。 */
     // @柯里化：需要为通用 Port 绑定当前 Tab 实例。
     const openTab = () => requestOpenTabAsTab(tab);

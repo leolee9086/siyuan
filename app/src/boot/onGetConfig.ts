@@ -26,7 +26,7 @@ import { replaceLocalPath } from "../editor/rename";
 import { initBar } from "../layout/topBar";
 import { openChangelog } from "./openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { initWindowEvent } from "./globalEvent/event";
 import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKeyDown";
 import { closeWindow } from "../window/closeWin";
@@ -116,7 +116,7 @@ const 初始化ResizeHandler = () => {
 /**
  * 处理 Emoji 配置响应（从 API 获取后初始化布局）
  */
-const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData) => {
+const 处理Emoji配置 = (app: AppFacade, isStart: boolean, response: IWebSocketData) => {
     window.siyuan.emojis = response.data as IEmoji[];
     try {
         JSONToLayout(app, isStart);
@@ -134,7 +134,7 @@ const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData)
     openDesktopOnboarding(app);
 };
 
-export const onGetConfig = (isStart: boolean, app: App) => {
+export const onGetConfig = (isStart: boolean, app: AppFacade) => {
     correctHotkey(app);
     document.body.classList.toggle("body--windows", isWindows());
     初始化IPC();
@@ -167,7 +167,7 @@ export const onGetConfig = (isStart: boolean, app: App) => {
 
 // S-forge: 上游改进 - 删除 winOnMaxRestore 函数，改用 CSS 类管理窗口状态 (#16811)
 
-export const initWindow = async (app: App) => {
+export const initWindow = async (app: AppFacade) => {
     // 浏览器端：仅添加浏览器工具栏样式
     if (!isElectron) {
         // 非独立窗口时添加浏览器工具栏标记

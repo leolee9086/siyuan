@@ -13,7 +13,7 @@ import {confirmDialog} from "./confirmDialog";
 import {escapeHtml} from "../util/DOM/escape";
 import {needSubscribe} from "../util/platform/needSubscribe";
 import {hideAllElements} from "../protyle/ui/hideElements";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {saveScroll} from "../protyle/scroll/saveScroll";
 import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../protyle/util/compatibility";
 import {Plugin} from "../plugin";
@@ -100,7 +100,7 @@ export const setDefRefCount = (data: {
     }
 };
 
-export const lockScreen = async (app: App) => {
+export const lockScreen = async (app: AppFacade) => {
     if (window.siyuan.config.readonly || window.siyuan.isPublish) {
         return;
     }

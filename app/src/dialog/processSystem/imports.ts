@@ -23,13 +23,13 @@ import { exportLayout } from "../../layout/layout-serialization";
 export { exportLayout };
 
 /**
- * 用途：提供应用实例 `App` 类型定义。
+ * 用途：提供应用实例 `AppFacade` 类型定义。
  * 使用范围：`processSystem` 目录内对插件列表等应用级能力进行类型标注的函数参数。
  * 解耦评估：类型导入不形成运行时耦合，保留统一转发可降低业务文件路径噪音。
  */
-import type { App } from "../../plugin/imports";
-/** 导出类型 `App` 供 `processSystem` 目录复用。 */
-export type { App };
+import type { AppFacade } from "../../plugin/imports";
+/** 导出类型 `AppFacade` 供 `processSystem` 目录复用。 */
+export type { AppFacade };
 
 /**
  * 用途：判断当前是否为移动端环境。

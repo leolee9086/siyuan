@@ -1,6 +1,6 @@
 import { openExternal } from "../../platform/electron/shell";
 import { openAssetNewWindow } from "../../window/openNewWindow";
-import { App } from "../..";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
 import { openAsset } from "../../editor/util.openAsset";
@@ -52,7 +52,7 @@ const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerat
 };
 
 // 本地资源文件基础菜单项生成函数
-const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: boolean): IMenu[] => {
+const generateAssetBaseMenuItems = (app: AppFacade, src: string, showAccelerator: boolean): IMenu[] => {
     return [
         {
             id: "insertRight",
@@ -112,7 +112,7 @@ const generateAssetDesktopMenuItems = (src: string, showAccelerator: boolean) =>
 };
 
 // 本地资源文件菜单项生成函数
-const generateAssetMenuItems = (app: App, src: string, showAccelerator: boolean) => {
+const generateAssetMenuItems = (app: AppFacade, src: string, showAccelerator: boolean) => {
     const submenu = generateAssetBaseMenuItems(app, src, showAccelerator);
     // 桌面端追加"新窗口打开"、"在文件夹中显示"、"使用默认应用打开"菜单项
     if (isElectron) {
@@ -188,7 +188,7 @@ const generateExternalLinkMenuItems = (src: string, showAccelerator: boolean) =>
     return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
 };
 
-export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
+export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     let submenu = [];
 
     if (isMobile()) {

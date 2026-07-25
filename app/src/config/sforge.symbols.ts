@@ -46,4 +46,6 @@ export const SForgeSymbols = {
     TAB_FLOAT_FACTORY_REGISTRY: Symbol.for("sforge.layout.tabFloatFactoryRegistry"),
     /** Layout 普通 Tab 打开宿主能力 */
     TAB_OPEN_PORT: Symbol.for("sforge.layout.tabOpenPort"),
+    /** Wnd 拖拽恢复宿主能力 */
+    WND_DRAG_RESTORE: Symbol.for("sforge.layout.wndDragRestore"),
 } as const;

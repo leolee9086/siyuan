@@ -9,7 +9,7 @@
  * 使用范围：仅用于当前导出函数的入参标注。
  * 解耦评估：纯类型依赖，不形成运行时耦合；经同层网关复用即可。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 
 /**
  * 用途：引入 IPC 通道常量。
@@ -58,7 +58,7 @@ const appendGlobalHotkey = (hotkeys: string[], hotkey: string | undefined) => {
  * 调用时机：仅在 `sendGlobalShortcut` 准备向 Electron 主进程同步快捷键时调用。
  * 问题/改进：当前仅过滤空值与空白字符串，尚未去重；若未来主进程需要更稳定的注册顺序或冲突提示，可在此加入去重与诊断。
  */
-const collectGlobalHotkeys = (app: App) => {
+const collectGlobalHotkeys = (app: AppFacade) => {
     const hotkeys: string[] = [];
     appendGlobalHotkey(hotkeys, getSiyuanConfig().keymap.general.toggleWin.custom);
     for (const plugin of app.plugins) {
@@ -80,7 +80,7 @@ const collectGlobalHotkeys = (app: App) => {
  * 注意：调用方（状态空间）需确保仅在 Electron 环境下调用此函数。
  */
 // @柯里化 该函数封装了热键收集(getSiyuanLanguages/collectGlobalHotkeys)与 IPC 发送的完整编排逻辑，非简单包装
-export const sendGlobalShortcut = async (app: App) => {
+export const sendGlobalShortcut = async (app: AppFacade) => {
     ipcSend(Constants.SIYUAN_HOTKEY, {
         languages: getSiyuanLanguages()["_trayMenu"],
         hotkeys: collectGlobalHotkeys(app),

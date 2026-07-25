@@ -3,7 +3,7 @@
  * 管理所有笔记内插件的生命周期
  */
 /** 用途：应用实例类型。使用范围：manager 插件管理。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：绑定笔记内插件状态的运行时实例类型；使用范围：manager 状态集合；解耦评估：具体 class 仅在管理实现中绑定，不进入状态契约。 */
 import type {Plugin} from "./imports";
 /** 用途：同步 POST 请求函数。使用范围：manager 获取文档数据。解耦评估：通过 imports.ts 转发。 */
@@ -22,7 +22,7 @@ const STORAGE_KEY = "in-note-plugins";
 
 // ============ 模块级状态（替代类字段） ============
 
-let app: App | null = null;
+let app: AppFacade | null = null;
 let initialized = false;
 const plugins = new Map<string, 笔记内插件运行状态<Plugin>>();
 
@@ -105,7 +105,7 @@ async function 获取文档标题(docId: string) {
 /**
  * 初始化管理器
  */
-export async function init(appInstance: App) {
+export async function init(appInstance: AppFacade) {
     if (initialized) {
         console.warn("笔记内插件管理器已经初始化");
         return;

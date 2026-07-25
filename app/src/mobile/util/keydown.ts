@@ -1,10 +1,10 @@
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {execByCommand} from "../../boot/globalEvent/command/panel";
 import {matchHotKey} from "../../protyle/util/hotKey";
 import {getCurrentEditor} from "./getCurrentEditor";
 import {filterHotkey} from "../../boot/globalEvent/commonHotkey";
 
-export const mobileKeydown = (app: App, event: KeyboardEvent) => {
+export const mobileKeydown = (app: AppFacade, event: KeyboardEvent) => {
     // 移动端输入框默认填充无 event.key
     if (!event.key || filterHotkey(event, app)) {
         return;

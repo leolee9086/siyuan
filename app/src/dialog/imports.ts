@@ -41,7 +41,7 @@ export { siyuanI18n };
  * 使用范围：dialog.types.ts 接口定义。
  * 解耦评估：类型定义依赖，通过网关转发避免路径耦合。
  */
-import type { VueComponentMountConfig } from "../util/vue/mount";
+import type { VueComponentMountConfig } from "../util/vue/mount.types";
 /** 导出 VueComponentMountConfig 类型，供 dialog.types.ts 使用 */
 export type { VueComponentMountConfig };
 /**
@@ -49,7 +49,7 @@ export type { VueComponentMountConfig };
  * 使用范围：dialog.types.ts 接口定义。
  * 解耦评估：类型定义依赖，通过网关转发避免路径耦合。
  */
-import type { VueComponentLoaderContext } from "../util/vue/mount";
+import type { VueComponentLoaderContext } from "../util/vue/mount.types";
 /** 导出 VueComponentLoaderContext 类型，供 dialog.types.ts 使用 */
 export type { VueComponentLoaderContext };
 

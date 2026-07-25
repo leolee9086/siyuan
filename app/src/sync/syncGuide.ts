@@ -7,7 +7,7 @@ import {isMobile} from "../util/platform/functions";
 import {processSync} from "../dialog/processSystem";
 import {openSetting} from "../config";
 import {platform} from "../platform";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {Constants} from "../constants";
 import {getCloudURL} from "../config/util/about";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -150,7 +150,7 @@ export const renderSyncCloudList = (cloudListElement: Element, reload = false, c
     });
 };
 
-export const syncGuide = (app?: App) => {
+export const syncGuide = (app?: AppFacade) => {
     if (window.siyuan.config.readonly) {
         return;
     }

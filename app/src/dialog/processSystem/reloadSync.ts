@@ -8,13 +8,13 @@ import { isMobile } from "../../plugin/imports";
 import { setStorageVal } from "../../plugin/platformUtils";
 import { reloadProtyle } from "../../protyle/util/reload";
 import { setNoteBook } from "../../util/file/pathName";
-import { App } from "../../window/imports";
+import type { AppFacade } from "../../window/imports";
 import { hideMessage } from "../message";
 import { updateTitle } from "./updateTitle";
 
 
 export const reloadSync = (
-    app: App,
+    app: AppFacade,
     data: { upsertRootIDs: string[]; removeRootIDs: string[]; },
     hideMsg = true,
     // 同步的时候需要更新只读状态 https://github.com/siyuan-note/siyuan/issues/11517

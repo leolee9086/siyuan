@@ -1,4 +1,11 @@
 /**
+ * 用途：提供 Outline 所在页签的布局领域根契约。
+ * 使用范围：Outline 抽象契约及其拆分后的树、筛选、消息处理模块；具体 Tab/Wnd 只在组合与校验边界出现。
+ * 解耦评估：该类型描述稳定的布局关系，应由 layout 公共类型根统一定义；这样可避免在 Outline 内复制 Window/Tab 局部接口。
+ */
+import type {LayoutTab} from "../../layout.types";
+
+/**
  * 拖拽状态类型定义
  * @property item 被拖拽的元素
  * @property outline Outline 实例
@@ -33,12 +40,25 @@ export interface IOutlineTreeState {
  *
  * 筛选、高亮、层级展开和右键树动作共享这一状态所有者；应用、页签、编辑器和网络身份不属于该领域。
  */
-export interface IOutlineTreePanel {
+export interface IOutlinePanel {
     element: HTMLElement;
     headerElement: HTMLElement;
     tree: IOutlineTreeState;
     preFilterExpandIds: string[] | null;
+    blockId: string;
+    type: "pin" | "local";
+    isPreview: boolean;
+    parent: LayoutTab;
     saveExpendIds: () => void;
     collapseChildren: (element: HTMLElement, expand?: boolean) => void;
     collapseSameLevel: (element: HTMLElement, expand?: boolean) => void;
+    setCurrent: (nodeElement: HTMLElement) => void;
+    setCurrentByPreview: (nodeElement: Element) => void;
+    setCurrentById: (id: string) => void;
+    setFilter: () => void;
+    showExpandLevelMenu: (target: HTMLElement) => void;
+    showContextMenu: (element: HTMLElement, event: MouseEvent) => void;
+    minimize: () => void;
+    update: (data: IWebSocketData, callbackId?: string) => void;
+    updateDocTitle: (ial?: IObject, count?: number) => void;
 }

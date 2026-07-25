@@ -1,4 +1,4 @@
-import type {App} from "../../../../index";
+import type {AppFacade} from "../../../../app/AppFacade.types";
 import {Tab} from "../../../Tab";
 import {AgentChat} from "../AgentChat";
 import type {
@@ -13,7 +13,7 @@ export class AgentPanelController implements AgentPanelHandle {
     private readonly chat: AgentChat;
     private destroyed = false;
 
-    constructor(options: AgentPanelMountOptions, app?: App) {
+    constructor(options: AgentPanelMountOptions, app?: AppFacade) {
         this.tab = new Tab({});
         this.tab.panelElement.classList.add("agent-panel-runtime");
         options.target.replaceChildren(this.tab.panelElement);
@@ -65,7 +65,7 @@ export class AgentPanelController implements AgentPanelHandle {
 }
 
 /** 创建控制器并等待 ready；失败时统一销毁半初始化资源。 */
-export const mountAgentPanel = async (options: AgentPanelMountOptions, app?: App) => {
+export const mountAgentPanel = async (options: AgentPanelMountOptions, app?: AppFacade) => {
     const controller = new AgentPanelController(options, app);
     try {
         await controller.ready();

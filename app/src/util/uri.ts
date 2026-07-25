@@ -24,7 +24,7 @@ import {ipcSend} from "./imports";
 /** 用途：数据库项目 URI 定位。使用范围：打开文档前排队，打开后激活。解耦评估：通过 imports.ts 转发。 */
 import {activateQueuedAVLocate, queueAVLocateRequest} from "./imports";
 
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 从 openFile 回调的布局模型读取编辑器 Protyle，避免依赖当前不精确的基础 Model 声明。 */
 const getModelProtyle = (model?: object) => {
@@ -48,7 +48,7 @@ const getSiYuanUriAction = (zoomIn: boolean, focus: boolean, locateAV: boolean):
     return [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL];
 };
 
-const openSiYuanUriBlock = (app: App, blockInfo: NonNullable<ReturnType<typeof parseSiYuanUriInfo>>, zoomIn: boolean) => {
+const openSiYuanUriBlock = (app: AppFacade, blockInfo: NonNullable<ReturnType<typeof parseSiYuanUriInfo>>, zoomIn: boolean) => {
     const {id, focus, avItemID} = blockInfo;
     const locateAV = Boolean(avItemID);
     const action = getSiYuanUriAction(zoomIn, focus, locateAV);
@@ -71,7 +71,7 @@ const openSiYuanUriBlock = (app: App, blockInfo: NonNullable<ReturnType<typeof p
     });
 };
 
-const processSiYuanUriBlocks = (app: App, uriObj: URL): boolean => {
+const processSiYuanUriBlocks = (app: AppFacade, uriObj: URL): boolean => {
     const blockInfo = parseSiYuanUriInfo(uriObj);
     if (blockInfo === null) {
         return false;
@@ -117,7 +117,7 @@ const parsePluginNameOrTabType = (uriObj: URL): string | null => {
     }
 };
 
-const openPluginCustomTab = (app: App, uriObj: URL, pluginNameOrTabType: string) => {
+const openPluginCustomTab = (app: AppFacade, uriObj: URL, pluginNameOrTabType: string) => {
     if (isMobile) {
         return;
     }
@@ -145,7 +145,7 @@ const openPluginCustomTab = (app: App, uriObj: URL, pluginNameOrTabType: string)
     });
 };
 
-const processSiYuanUriPlugins = (app: App, uriObj: URL): boolean => {
+const processSiYuanUriPlugins = (app: AppFacade, uriObj: URL): boolean => {
     const pluginNameOrTabType = parsePluginNameOrTabType(uriObj);
     if (!pluginNameOrTabType) {
         return false;
@@ -164,7 +164,7 @@ const processSiYuanUriPlugins = (app: App, uriObj: URL): boolean => {
     return true;
 };
 
-const processSiYuanUriBazaar = (app: App, uriObj: URL): boolean => {
+const processSiYuanUriBazaar = (app: AppFacade, uriObj: URL): boolean => {
     if (isMobile) {
         return false;
     }
@@ -202,7 +202,7 @@ const sendShowCommand = () => {
     }
 };
 
-export const processSiYuanUri = (app: App, uri: string) => {
+export const processSiYuanUri = (app: AppFacade, uri: string) => {
     let uriObj: URL;
     try {
         uriObj = new URL(uri);
@@ -212,7 +212,7 @@ export const processSiYuanUri = (app: App, uri: string) => {
     } catch (error) {
         return false;
     }
-    const uriProcessors: Record<string, (app: App, uriObj: URL) => boolean> = {
+    const uriProcessors: Record<string, (app: AppFacade, uriObj: URL) => boolean> = {
         blocks: processSiYuanUriBlocks,
         plugins: processSiYuanUriPlugins,
         bazaar: processSiYuanUriBazaar,

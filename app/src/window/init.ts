@@ -10,7 +10,7 @@ import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { getSearch } from "../util/platform/functions";
 import { initWindow } from "../boot/onGetConfig";
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { afterLayoutReady } from "../plugin/loader";
 import { initWindowEvent } from "../boot/globalEvent/event";
 import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, setSiyuanLayoutCenterLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -21,7 +21,7 @@ import { initNativeDialogOverride, initWindowOpenOverride } from "../protyle/uti
 import { isElectron } from "../platform";
 
 /** 处理获取Emoji配置的响应 */
-const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
+const handleEmojiConfResponse = (app: AppFacade, response: IWebSocketData) => {
     // 验证响应数据格式正确性：确保返回的是有效的emoji数组后再设置
     // 防御性检查，防止服务器返回异常格式导致后续渲染出错
     if (isEmojiArray(response.data)) {
@@ -105,7 +105,7 @@ const handleWindowResize = (resizeTimeoutRef: { value: number }) => {
  *
  * @param app - 应用实例
  */
-export const init = async (app: App) => {
+export const init = async (app: AppFacade) => {
     const storage = getSiyuanStorage();
     setZoomFactor(storage[Constants.LOCAL_ZOOM]);
     const position = Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position;
@@ -148,7 +148,7 @@ export const init = async (app: App) => {
  *
  * @param app - 应用实例
  */
-const afterLayout = (app: App) => {
+const afterLayout = (app: AppFacade) => {
     afterLayoutReady(app);
     const tabHeaders = document.querySelectorAll<HTMLLIElement>('li[data-type="tab-header"][data-init-active="true"]');
     for (const item of tabHeaders) {

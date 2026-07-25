@@ -9,7 +9,7 @@
  * 使用范围：仅用于当前文件导出函数 `windowKeyDown()` 的入参类型约束。
  * 解耦评估：这是纯编译期契约，不形成运行时耦合；继续通过根层 `imports.ts` 复用即可。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /**
  * 用途：引入窗口级全局快捷键过滤中间件。
  * 使用范围：仅用于当前入口在统一状态收集前执行既有前置短路。
@@ -57,7 +57,7 @@ export { sendGlobalShortcut };
  * 问题/改进：当前仍保留全局过滤器与搜索中间件作为状态收集前置短路；若后续也要完全状态化，可继续外移到更统一的阶段边界。
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-export const windowKeyDown = (app: App, event: KeyboardEvent) => {
+export const windowKeyDown = (app: AppFacade, event: KeyboardEvent) => {
     // 场景：全局快捷键过滤命中时，需要沿用历史行为立即终止窗口级处理链。
     if (filterHotkey(event, app)) {
         return;

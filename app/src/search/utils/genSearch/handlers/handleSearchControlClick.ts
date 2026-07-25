@@ -15,7 +15,7 @@ import { inputEvent } from "../../../inputEvent";
 import { moreMenu, queryMenu } from "../../../menu";
 import { toggleReplaceHistory } from "../../../toggleHistory";
 import { updateConfig, genQueryHTML } from "../../../util";
-import type { App } from "../../../..";
+import type { AppFacade } from "../../../../app/AppFacade.types";
 
 /**
  * 处理搜索刷新
@@ -36,7 +36,7 @@ export function handleSearchRefresh(
  * 处理在新标签页打开
  */
 export function handleSearchOpen(
-    app: App,
+    app: AppFacade,
     config: Config.IUILayoutTabSearchConfig,
     searchInputElement: HTMLInputElement,
     replaceInputElement: HTMLInputElement,

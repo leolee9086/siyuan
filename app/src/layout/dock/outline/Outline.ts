@@ -1,11 +1,12 @@
-import { Tab } from "../../Tab";
 import { Model } from "../../Model";
+/** 用途：提供 Outline 所属页签的布局领域抽象；使用范围：Model 父级和构造参数；解耦评估：依赖布局根契约可切断对具体 Tab class 的类型边，具体 Tab 仅在组合根传入。 */
+import type {LayoutTab} from "../../layout.types";
 import { Tree } from "../../../util/file/Tree";
 import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
-import { App } from "../../../index";
+import type {AppFacade} from "../../../app/AppFacade.types";
 import { Editor } from "../../../editor";
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 
@@ -20,12 +21,8 @@ import { 生成面板HTML, 检查本地文档及其Tab存在的逻辑, 分发消
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
 import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-/** 用途：Outline 树交互领域根；使用范围：class 对外状态契约；解耦评估：纯类型，不依赖 helper 实现。 */
-import type {IOutlineTreePanel} from "./types";
-
-
-
-export class Outline extends Model<App, Tab> implements IOutlineTreePanel {
+import {getDockByType} from "../../tabUtil";
+export class Outline extends Model<AppFacade, LayoutTab> {
     public tree!: Tree;
     public element: HTMLElement;
     public headerElement: HTMLElement;
@@ -42,6 +39,7 @@ export class Outline extends Model<App, Tab> implements IOutlineTreePanel {
     showExpandLevelMenu = (target: HTMLElement) => showExpandLevelMenu(this, target);
     collapseSameLevel = (element: HTMLElement, expand?: boolean) => collapseSameLevel(this, element, expand);
     collapseChildren = (element: HTMLElement, expand?: boolean) => collapseChildren(this, element, expand);
+    minimize = () => getDockByType("outline")?.toggleModel("outline", false, true);
     /**
      * 作用：显示大纲条目的上下文菜单。
      * 意图：代理调用外部的 showContextMenu 函数，传入当前实例上下文。
@@ -81,7 +79,7 @@ export class Outline extends Model<App, Tab> implements IOutlineTreePanel {
      * 意图：初始化大纲面板，绑定事件，并根据类型渲染内容。
      * @param options 包含应用实例、标签页、块 ID 等配置信息。
      */
-    constructor(options: { app: App, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
+    constructor(options: { app: AppFacade, tab: LayoutTab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
         super({
             app: options.app,
             id: options.tab.id,

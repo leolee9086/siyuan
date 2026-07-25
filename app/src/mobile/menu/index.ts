@@ -9,7 +9,7 @@ import {openCard} from "../../card/openCard";
 import {activeBlur} from "../util/keyboardToolbar";
 import {openModel} from "./model";
 import {getRecentDocs} from "./getRecentDocs";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {
     isDisabledFeature,
     isHuawei,
@@ -46,7 +46,7 @@ const getSettingTabFromMenuTarget = (target: HTMLElement): ISettingTabShell<TSet
     return getSettingTabDefs().find(def => settingTabToMenuId(def.id) === item.id);
 };
 
-const openSettingTabModel = (app: App, settingTabDef: ISettingTabShell<TSettingTab>, title = settingTabDef.title, icon = settingTabDef.icon) => {
+const openSettingTabModel = (app: AppFacade, settingTabDef: ISettingTabShell<TSettingTab>, title = settingTabDef.title, icon = settingTabDef.icon) => {
     if (isSettingTabHidden(settingTabDef)) {
         return;
     }
@@ -70,7 +70,7 @@ export const popMenu = () => {
     document.getElementById("menu").style.transform = "translateX(0px)";
 };
 
-export const initRightMenu = (app: App) => {
+export const initRightMenu = (app: AppFacade) => {
     const menuElement = document.getElementById("menu");
     let accountHTML = "";
     if (window.siyuan.user && !window.siyuan.config.readonly) {

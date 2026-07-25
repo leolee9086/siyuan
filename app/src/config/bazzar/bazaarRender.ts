@@ -7,7 +7,7 @@ import { getFrontend, isBrowser } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bazaarData, extractKeywords, filterPackagesByKeywords } from "./bazaarData";
 import { genCardHTML, genUpdateItemHTML, genFundingHTML, genKeywordsHTML } from "./bazaarHtml";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { escapeAttr } from "../../util/DOM/escape";
 import { Plugin } from "../../plugin";
 
@@ -305,7 +305,7 @@ export const getUpdate = (element: Element) => {
     });
 };
 
-export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: App, updateUpdate = true) => {
+export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFacade, updateUpdate = true) => {
     if (updateUpdate) {
         getUpdate(element);
     }

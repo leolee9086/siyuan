@@ -13,7 +13,7 @@ import {
     removeSiyuanMenu
 } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getPublishAccessLevel, getPublishAccessOptionByLevel, openPublishAccessDialog } from "../../../protyle/util/publishAccess";
-import type { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import type {FilesEventHost} from "./eventHandlers.types";
 import {handleFileClick} from "./eventHandlers.element.click.file";
 import {collapseFileTree, isFileTreeCollapsing} from "../fileTreeAnimation";
@@ -81,7 +81,7 @@ function handleIconClick(
     event: MouseEvent,
     target: Element,
     files: FilesEventHost,
-    app: App,
+    app: AppFacade,
     notebookId: string
 ): "unhandled" | "handled" | "opened" {
     // 检查是否按下了 Ctrl 键
@@ -187,7 +187,7 @@ function handleToggleClick(
  * 处理非只读模式下的 action 操作
  * @param event - 鼠标事件
  * @param type - 操作类型
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @param notebookId - 笔记本 ID
  * @param pathString - 路径字符串
  * @param parentElement - 父元素
@@ -195,7 +195,7 @@ function handleToggleClick(
 function handleWritableActions(
     event: MouseEvent,
     type: string | null,
-    app: App,
+    app: AppFacade,
     notebookId: string,
     pathString: string | null,
     parentElement: HTMLElement
@@ -219,14 +219,14 @@ function handleWritableActions(
  * 处理 element click 事件中的 action 按钮点击
  * @param event - 鼠标事件
  * @param target - 目标元素
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @param notebookId - 笔记本 ID
  * @returns 是否已处理该事件
  */
 function handleActionClick(
     event: MouseEvent,
     target: Element,
-    app: App,
+    app: AppFacade,
     notebookId: string
 ) {
     // 检查是否按下了 Ctrl 键

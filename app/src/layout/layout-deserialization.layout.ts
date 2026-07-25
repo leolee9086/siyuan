@@ -3,7 +3,7 @@
  * 提供布局恢复过程中的Tab处理、插件检查、URL解析等功能
  * @同步豁免: 遗留代码 - 此模块从 layout-deserialization.ts 迁移，保持原有同步行为以确保兼容性
  */
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
 import { parseUriInfo } from "../util/pathName";
@@ -57,7 +57,7 @@ export const removeUnpinnedTabsOnStart = (): void => {
  * 检查插件是否已注册指定的模型类型
  * @同步豁免: UI构建 - 需要同步检查插件状态
  */
-export const isPluginModelRegistered = (app: App, modelType: string): boolean => {
+export const isPluginModelRegistered = (app: AppFacade, modelType: string): boolean => {
     // 检查 tabRegistry 是否有注册
     if (tabRegistry.has(modelType)) {
         return true;
@@ -88,7 +88,7 @@ export const createMissingPluginPlaceholder = (tab: Tab, modelType: string): voi
  * 处理缺失插件的Tab，创建错误占位符
  * @同步豁免: UI构建 - 需要同步遍历DOM和创建Model
  */
-export const handleMissingPluginTabs = (app: App): void => {
+export const handleMissingPluginTabs = (app: AppFacade): void => {
     const tabHeaders = document.querySelectorAll('li[data-type="tab-header"]');
     for (const item of tabHeaders) {
         // 使用类型守卫确保是 HTMLElement
@@ -135,7 +135,7 @@ export const handleMissingPluginTabs = (app: App): void => {
  * @同步豁免: UI构建 - 需要同步解析URL并打开文件
  * @returns true 表示已处理URL文件打开，false 表示无需处理
  */
-export const handleUrlFileOpen = (app: App): boolean => {
+export const handleUrlFileOpen = (app: AppFacade): boolean => {
     const info = parseUriInfo();
     // 无指定ID时返回false
     if (!info.id) {

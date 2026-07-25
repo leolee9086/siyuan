@@ -49,8 +49,8 @@ import { hasSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.envi
 import { getSiyuanKeyboardState } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：获取当前拖拽元素；使用范围：block 模块拖拽状态；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanDragElement } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-// 用途：App 类型定义；使用范围：Panel.ts 和 Panel.actions.ts 中函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { App } from "../index";
+// 用途：AppFacade 类型定义；使用范围：Panel.ts 和 Panel.actions.ts 中函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
+import type { AppFacade } from "../app/AppFacade.types";
 // 用途：Protyle 编辑器类；使用范围：Panel.ts 和 Panel.observer.types.ts 中编辑器实例类型标注；解耦评估：核心类型定义
 import { Protyle } from "../protyle";
 /*
@@ -146,7 +146,7 @@ export { getSiyuanKeyboardState };
 // 拖拽元素获取导出
 export { getSiyuanDragElement };
 // 类型导出
-export type { App };
+export type { AppFacade };
 // Protyle 编辑器类导出
 export { Protyle };
 // 列表项元素构建工具导出

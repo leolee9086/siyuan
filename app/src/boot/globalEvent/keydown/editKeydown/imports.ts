@@ -1,4 +1,4 @@
-import type { App } from "../../../..";
+import type { AppFacade } from "../../../../app/AppFacade.types";
 import { openExportPreviewTab } from "../../../../export-preview/open";
 import { fetchPost } from "../../../../ai/imports";
 import { quickMakeCard } from "../../../../card/makeCard";
@@ -34,7 +34,7 @@ import { getWindowSelection } from "../../../../util/siyuanEnvironments/windowSt
 import { execByCommand } from "../../command/panel";
 import { onlyProtyleCommand } from "../../command/protyle";
 
-export type { App };
+export type { AppFacade };
 export {
     copyPlainText,
     copyPNGByLink,

@@ -6,12 +6,12 @@
 
 /**
  * 用途：引入 `keydown` 上层网关暴露的应用实例类型。
- * 使用范围：供根层导出函数标注 `App` 入参。
+ * 使用范围：供根层导出函数标注 `AppFacade` 入参。
  * 解耦评估：纯类型依赖，不形成运行时耦合；继续通过上层网关转发即可。
  */
-import type { App } from "../imports";
+import type { AppFacade } from "../imports";
 /** 导出应用实例类型。 */
-export type { App };
+export type { AppFacade };
 
 /**
  * 用途：引入对话框类。

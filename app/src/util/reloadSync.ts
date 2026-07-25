@@ -1,4 +1,4 @@
-import type {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {hideMessage} from "../dialog/message";
 import {hideElements} from "../protyle/ui/hideElements";
 import {setEmpty} from "../mobile/util/setEmpty";
@@ -12,7 +12,7 @@ import {setTitle} from "./processTitle";
 import {isMobile} from "./functions";
 
 export const reloadSync = (
-    app: App,
+    app: AppFacade,
     data: { upsertRootIDs: string[], removeRootIDs: string[] },
     hideMsg = true,
     // 同步的时候需要更新只读状态 https://github.com/siyuan-note/siyuan/issues/11517

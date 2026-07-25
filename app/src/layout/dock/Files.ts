@@ -5,7 +5,7 @@ import { pathPosix, setNoteBook } from "../../util/file/pathName";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { newFileInTree } from "../../util/file/newFile";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
-import { App } from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import { initFilesDrag } from "./Files/dnd";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -28,10 +28,8 @@ import {
 import {cancelFileTreeCollapse} from "./fileTreeAnimation";
 import {updateAllDocActions, updateSubFileCount} from "./Files/docActions";
 import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/sortRefresh";
-import type {FilesEventHost} from "./Files/eventHandlers.types";
-import type {FilesDragContext} from "./Files/dnd.types";
 
-export class Files extends Model<App, Tab> implements FilesEventHost, FilesDragContext {
+export class Files extends Model<AppFacade, Tab> {
     public element: HTMLElement;
     public parent: Tab;
     public closeElement: HTMLElement;
@@ -39,7 +37,7 @@ export class Files extends Model<App, Tab> implements FilesEventHost, FilesDragC
     public actionsElement: HTMLElement;
     private reloadNotebookInfoTimeout: number | undefined;
 
-    constructor(options: { tab: Tab; app: App }) {
+    constructor(options: { tab: Tab; app: AppFacade }) {
         super({app: options.app});
         this.connect({
             type: "filetree",

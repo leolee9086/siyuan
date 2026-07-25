@@ -2,7 +2,7 @@ import {Tree} from "../../util/file/Tree";
 import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {openMobileFileById} from "../editor";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isEncryptedBox} from "../../util/pathName";
 export class MobileBacklinks {
@@ -12,7 +12,7 @@ export class MobileBacklinks {
     private mTree: Tree;
     public beforeLen = 10;
 
-    constructor(app: App) {
+    constructor(app: AppFacade) {
         this.element = document.querySelector('#sidebar [data-type="sidebar-backlink"]');
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>

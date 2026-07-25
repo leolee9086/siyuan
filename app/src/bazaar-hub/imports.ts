@@ -88,9 +88,9 @@ export { siyuanI18n };
  * 用途：应用实例类型定义。
  * 使用范围：open.ts 中 app 参数和解析逻辑。
  */
-import type { App } from "../index";
-/** 导出类型 App 供 bazaar-hub 目录复用 */
-export type { App };
+import type {AppFacade} from "../app/AppFacade.types";
+/** 导出类型 AppFacade 供 bazaar-hub 目录复用 */
+export type {AppFacade};
 
 /**
  * 用途：安全读取全局配置。

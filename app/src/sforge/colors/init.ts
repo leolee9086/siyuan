@@ -4,8 +4,8 @@ import {注册状态栏按钮} from "./imports";
 import {colorToolIsOpen, openColorTool} from "./openColorTool";
 /** 用途：构造原生 Dock 模型；使用范围：s-forge Dock 初始化；解耦评估：Dock 生命周期由宿主管理，颜色面板只负责 Vue 挂载。 */
 import {Custom} from "../../layout/dock/Custom";
-/** 用途：Dock 模型创建参数类型；使用范围：颜色 Dock 工厂；解耦评估：纯类型依赖。 */
-import type {App} from "../../index";
+/** 用途：Dock 模型创建参数类型；使用范围：颜色 Dock 工厂；解耦评估：纯类型依赖，不加载具体 App class。 */
+import type {AppFacade} from "../../app/AppFacade.types";
 /** 用途：Dock 页签参数类型；使用范围：颜色 Dock 工厂；解耦评估：纯类型依赖。 */
 import type {Tab} from "../../layout/Tab";
 /** 用途：Vue 挂载和 DOM guard；使用范围：颜色 Dock 初始化；解耦评估：通过颜色网关复用现有挂载能力。 */
@@ -32,7 +32,7 @@ export const initColorTool = (): void => {
 };
 
 /** 为原生 Dock 创建颜色工具 Custom Model，挂载和销毁由 Dock 生命周期驱动。 */
-export const createColorToolDockModel = (app: App, tab: Tab) => new Custom({
+export const createColorToolDockModel = (app: AppFacade, tab: Tab) => new Custom({
     app,
     type: "sforge-colors",
     tab,

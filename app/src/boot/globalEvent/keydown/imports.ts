@@ -9,9 +9,9 @@
  * 使用范围：供 `keydown` 目录内需要标注应用上下文的函数参数使用。
  * 解耦评估：纯类型依赖，不引入运行时耦合；通过网关转发可以避免业务文件直接依赖跨层路径。
  */
-import type { App } from "../../..";
-/** 导出 [`App`](app/src/boot/globalEvent/keydown/imports.ts:15) 供 `keydown` 目录类型标注复用。 */
-export type { App };
+import type { AppFacade } from "../../../app/AppFacade.types";
+/** 导出 [`AppFacade`](app/src/boot/globalEvent/keydown/imports.ts:15) 供 `keydown` 目录类型标注复用。 */
+export type { AppFacade };
 
 /**
  * 用途：提供异步 POST 请求能力。

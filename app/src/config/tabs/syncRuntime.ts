@@ -3,7 +3,7 @@ import {processSync} from "../../dialog/processSystem";
 import {
     onSetaccount,
     updateAccountSwitchesVisibility,
-} from "./accountUi";
+} from "./accountRuntime";
 import {
     refreshSyncModeRelatedItems,
     refreshSyncTabPanels,

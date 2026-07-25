@@ -7,8 +7,7 @@ import {
 } from "../wysiwyg/getBlock";
 import {genRenderFrame} from "../render/util";
 import {isMobile} from "../../platform";
-import {setFirstNodeRange, setLastNodeRange} from "./selection.range";
-import {getEditorRange} from "./selection";
+import {hasClosestBlock} from "./hasClosest";
 
 export const focusByRange = (range: Range) => {
     if (!range) {
@@ -38,6 +37,140 @@ export const focusToolbarRange = (protyle: IProtyle) => {
     }
 };
 export {focusToolbarRange as 聚焦工具栏范围};
+
+/** 设置 Range 的末端边界，供聚焦和事务定位共享。 */
+/** @同步豁免: 需要绝对同步的DOM访问 */
+/** Range 边界必须在同一 DOM 事务中立即写入。 */
+export const setLastNodeRange = (editElement: Element, range: Range, setStart = true) => {
+    if (!editElement) {
+        return range;
+    }
+    let lastNode: Node | null = editElement.lastChild;
+    while (lastNode && lastNode.nodeType !== 3) {
+        // https://github.com/siyuan-note/siyuan/issues/12792
+        if (!(lastNode instanceof Element) || !lastNode.lastChild) {
+            break;
+        }
+        // 最后一个为多种行内元素嵌套
+        lastNode = lastNode.lastChild;
+    }
+    // https://github.com/siyuan-note/siyuan/issues/12753
+    if (!lastNode) {
+        lastNode = editElement;
+    }
+    const isEmptyRenderBoundary = lastNode instanceof Element &&
+        lastNode.nodeType !== 3 &&
+        (lastNode.classList.contains("render-node") || lastNode.tagName === "BR") && lastNode.innerHTML === "";
+    // 空渲染节点或 BR 需要使用节点边界，否则 Range 会落到不可编辑的内部偏移。
+    if (isEmptyRenderBoundary && setStart) {
+        range.setStartAfter(lastNode);
+        return range;
+    }
+    if (isEmptyRenderBoundary) {
+        range.setEndAfter(lastNode);
+        return range;
+    }
+    if (setStart) {
+        range.setStart(lastNode, lastNode.textContent?.length ?? 0);
+        return range;
+    }
+    range.setEnd(lastNode, lastNode.textContent?.length ?? 0);
+    return range;
+};
+
+/** 将 Range 起点移动到编辑区域的第一个可编辑节点，供聚焦和事务定位复用。 */
+/** @同步豁免: 需要绝对同步的DOM访问 */
+/** Range 边界必须在同一 DOM 事务中立即写入。 */
+export const setFirstNodeRange = (editElement: Element, range: Range) => {
+    if (!editElement) {
+        return range;
+    }
+    let firstChild: Node | null = editElement.firstChild;
+    while (firstChild && firstChild.nodeType !== 3 &&
+        (!(firstChild instanceof Element) || (!firstChild.classList.contains("render-node") && !firstChild.classList.contains("img")))) {
+        firstChild = firstChild.firstChild;
+    }
+    // 图片没有文本偏移，必须把起点放在图片节点之前。
+    if (firstChild instanceof Element && firstChild.classList.contains("img")) { // https://ld246.com/article/1665360254842
+        range.setStartBefore(firstChild);
+        return range;
+    }
+    // 空编辑器使用容器内容作为有效范围。
+    if (!firstChild) {
+        range.selectNodeContents(editElement);
+        return range;
+    }
+    // 渲染节点同样只能通过节点边界定位，普通文本节点使用字符偏移。
+    if (firstChild instanceof Element && firstChild.nodeType !== 3 && firstChild.classList.contains("render-node")) {
+        range.setStartBefore(firstChild);
+        return range;
+    }
+    range.setStart(firstChild, 0);
+    return range;
+};
+
+const correctEditorRange = (element: Element, range: Range): Range | undefined => {
+    if (range.toString() !== "" || range.startContainer.nodeType !== 1) {
+        return;
+    }
+    const firstFocusRange = range.startOffset === 0 && (range.startContainer as HTMLElement).classList.contains("protyle-wysiwyg")
+        ? focusBlock(range.startContainer.firstChild as Element)
+        : false;
+    if (firstFocusRange) {
+        return firstFocusRange;
+    }
+    const startElement = range.startContainer as Element;
+    const canCorrectMobileRange = startElement.getAttribute("contenteditable") !== "true" && getContenteditableElement(startElement);
+    const blockElement = canCorrectMobileRange ? hasClosestBlock(range.startContainer) : undefined;
+    return blockElement ? focusBlock(blockElement) || undefined : undefined;
+};
+
+const getEditorTargetElement = (element: Element): Element | ChildNode | undefined => {
+    if (element.classList.contains("table")) {
+        return element.querySelector("th") || element.querySelector("td") || undefined;
+    }
+    const editableElement = getContenteditableElement(element);
+    if (editableElement?.tagName === "TABLE") {
+        return editableElement.querySelector("th") || element.querySelector("td") || undefined;
+    }
+    if (editableElement) {
+        return editableElement;
+    }
+    const type = element.getAttribute("data-type");
+    if (type === "NodeThematicBreak") {
+        return element.firstElementChild || undefined;
+    }
+    if (type === "NodeBlockQueryEmbed") {
+        return element.querySelector(".protyle-cursor")?.firstChild;
+    }
+    if (["NodeMathBlock", "NodeHTMLBlock"].includes(type)) {
+        return element.lastElementChild?.previousElementSibling?.lastElementChild?.firstChild;
+    }
+    if (type === "NodeVideo") {
+        return element.firstElementChild?.firstChild;
+    }
+    return type === "NodeAudio" ? element.firstElementChild?.lastChild : undefined;
+};
+
+/** 获取编辑器内可用的当前选区，必要时将光标修正到可编辑块。 */
+export const getEditorRange = (element: Element): Range => {
+    const activeRange = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : undefined;
+    if (activeRange && (element === activeRange.startContainer || element.contains(activeRange.startContainer))) {
+        return correctEditorRange(element, activeRange) || activeRange;
+    }
+    const childElement = element.classList.contains("li") || element.classList.contains("list")
+        ? element.querySelector("[data-node-id]")
+        : undefined;
+    if (childElement) {
+        return getEditorRange(childElement);
+    }
+    // 代码块过长，在代码块的下一个块前删除，代码块会滚动到顶部，因粗需要 preventScroll
+    (element as HTMLElement).focus({preventScroll: true});
+    const range = activeRange || document.createRange();
+    range.setStart(getEditorTargetElement(element) || element, 0);
+    range.collapse(true);
+    return range;
+};
 
 export const focusBlock = (element: Element, parentElement?: HTMLElement, toStart = true): false | Range => {
     if (!element) {

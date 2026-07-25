@@ -1,7 +1,7 @@
 import {Constants} from "../constants";
 import {genItemPanel} from "./index";
 import {keymap} from "./keymap";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {isPhablet} from "../protyle/util/compatibility";
 import {isHTMLElement, isHTMLInputElement, isInputEvent} from "./search.guard";
 import {getSiyuanLanguages} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -166,7 +166,7 @@ const filterGenericPanel = (panelElement: Element, type: string, inputValue: str
 };
 
 /** 确保面板内容已生成：若面板为空则调用genItemPanel初始化 */
-const ensurePanelContent = (type: string, panelElement: Element, app: App): void => {
+const ensurePanelContent = (type: string, panelElement: Element, app: AppFacade): void => {
     // 面板内容为空时需要初始化
     if (panelElement.innerHTML === "") {
         genItemPanel(type, panelElement, app);
@@ -190,7 +190,7 @@ const dispatchPanelFilter = (type: string, panelElement: Element, inputValue: st
 
 /** 处理单个匹配的标签项：确保面板内容已生成并应用过滤 */
 const processMatchedTabItem = (
-    item: HTMLElement, element: HTMLElement, app: App, inputValue: string
+    item: HTMLElement, element: HTMLElement, app: AppFacade, inputValue: string
 ): void => {
     const type = item.getAttribute("data-name") ?? "";
     item.style.display = "";
@@ -223,7 +223,7 @@ const activateMatchedTab = (element: HTMLElement, currentTabElement: HTMLElement
 
 /** 更新标签页可见性：根据匹配索引列表显示/隐藏标签并触发面板过滤 */
 const updateTab = (
-    element: HTMLElement, configIndex: string[][], inputElement: HTMLInputElement, app: App
+    element: HTMLElement, configIndex: string[][], inputElement: HTMLInputElement, app: AppFacade
 ): void => {
     const inputValue = inputElement.value;
     const indexList = buildMatchingIndexList(configIndex, inputValue);
@@ -256,7 +256,7 @@ const handleSearchInput = (
     element: HTMLElement,
     configIndex: string[][],
     inputElement: HTMLInputElement,
-    app: App
+    app: AppFacade
 ): void => {
     // 组合输入（如中文输入法）期间不触发搜索
     if (isInputEvent(event) && event.isComposing) {
@@ -269,7 +269,7 @@ const handleSearchInput = (
  * 初始化配置搜索功能：构建搜索索引并绑定输入事件
  * @同步豁免: UI构建
  */
-export const initConfigSearch = (element: HTMLElement, app: App): void => {
+export const initConfigSearch = (element: HTMLElement, app: AppFacade): void => {
     const configIndex = buildConfigIndex();
     const inputElement = element.querySelector(".b3-form__icon input");
     // 输入框不存在时无法初始化搜索

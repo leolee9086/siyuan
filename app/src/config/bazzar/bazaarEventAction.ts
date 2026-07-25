@@ -1,10 +1,10 @@
 import { hasClosestByAttribute } from "../../protyle/util/hasClosest";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { handleBazaarInstallClick } from "./bazaarInstallHandlers";
 import { handleBazaarNavClick, handleBazaarUIInteraction } from "./bazaarUIHandlers";
 import { IBazaar, IBazaarDataObj } from "./types";
 
-export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar<App>, app: App) {
+export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar<AppFacade>, app: AppFacade) {
     let target = event.target as HTMLElement;
     const dataElement = hasClosestByAttribute(target, "data-obj", null);
     let dataObj: IBazaarDataObj | undefined;

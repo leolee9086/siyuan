@@ -9,7 +9,7 @@ import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
 import type {FilesEventHost} from "./eventHandlers.types";
-import type {App} from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import {openEncryptedNotebook} from "../../../util/file/mount";
 
 /**
@@ -126,7 +126,7 @@ function handleCloseElementToggleClick(
 function handleCloseElementOpenClick(
     event: MouseEvent,
     target: Element,
-    app: App
+    app: AppFacade
 ): boolean {
     const type = target.getAttribute("data-type");
     // 检查是否点击了 open 按钮
@@ -154,7 +154,7 @@ function handleCloseElementOpenClick(
  * @param event - 鼠标事件
  * @param files - Files 实例
  */
-function onCloseElementClick(event: MouseEvent, files: FilesEventHost, app: App): void {
+function onCloseElementClick(event: MouseEvent, files: FilesEventHost, app: AppFacade): void {
     const parentElement = files.element.parentElement;
     // 父元素存在时设置焦点
     if (parentElement) {
@@ -194,7 +194,7 @@ function onCloseElementClick(event: MouseEvent, files: FilesEventHost, app: App)
  * @returns 事件处理函数
  * @同步豁免: UI构建
  */
-export function createCloseElementClickHandler(files: FilesEventHost, app: App): (event: MouseEvent) => void {
+export function createCloseElementClickHandler(files: FilesEventHost, app: AppFacade): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
         onCloseElementClick(event, files, app);
     };
@@ -205,7 +205,7 @@ export function createCloseElementClickHandler(files: FilesEventHost, app: App):
  * @param files - Files 实例
  * @同步豁免: UI构建
  */
-export function setupCloseElementClickHandler(files: FilesEventHost, app: App): void {
+export function setupCloseElementClickHandler(files: FilesEventHost, app: AppFacade): void {
     const handler = createCloseElementClickHandler(files, app);
     files.closeElement.addEventListener("click", handler);
 }

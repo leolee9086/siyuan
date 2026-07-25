@@ -20,9 +20,9 @@ import type { Tab } from "../layout/Tab";
 export type { Tab };
 
 /** 用途：应用实例类型。使用范围：editor 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "../index";
-/** 导出 App 类型，供 editor 模块使用 */
-export type { App };
+import type { AppFacade } from "../app/AppFacade.types";
+/** 导出 AppFacade 类型，供 editor 模块使用 */
+export type { AppFacade };
 
 /** 用途：路径处理工具。使用范围：editor 模块处理文件路径。解耦评估：通过 imports.ts 转发。 */
 import { pathPosix } from "../util/file/pathName";

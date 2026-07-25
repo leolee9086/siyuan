@@ -3,7 +3,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {openMobileFileById} from "../editor";
 import {Model} from "../../layout/Model";
@@ -17,7 +17,7 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {bindOutlineSort} from "./MobileOutline.sort";
 
-export class MobileOutline extends Model<App> {
+export class MobileOutline extends Model<AppFacade> {
     public tree: Tree;
     public element: HTMLElement;
     public blockId: string;
@@ -26,7 +26,7 @@ export class MobileOutline extends Model<App> {
     private reloadId = 0;
 
     constructor(options: {
-        app: App,
+        app: AppFacade,
         blockId: string,
         isPreview: boolean
     }) {

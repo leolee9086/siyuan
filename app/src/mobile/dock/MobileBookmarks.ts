@@ -4,7 +4,7 @@ import {Constants} from "../../constants";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openMobileFileById} from "../editor";
 import {openBookmarkMenu} from "../../menus/bookmark";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
 
 export class MobileBookmarks {
@@ -16,7 +16,7 @@ export class MobileBookmarks {
     private updating = false;
     private updatePending = false;
 
-    constructor(app: App) {
+    constructor(app: AppFacade) {
         this.element = document.querySelector('#sidebar [data-type="sidebar-bookmark"]');
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>

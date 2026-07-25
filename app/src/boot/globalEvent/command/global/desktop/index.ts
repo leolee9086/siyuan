@@ -17,7 +17,7 @@ import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：桌面主执行器签名。解耦评估：复用 global/types.ts 契约。 */
 import type { GlobalCommandContext } from "./imports";
 /** 用途：主应用宿主身份；使用范围：桌面命令根上下文绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 桌面命令主路由，将命令分派给职责子路由。 */
 const desktopGlobalCommandRouter = calibur
@@ -33,7 +33,7 @@ const desktopGlobalCommandRouter = calibur
  * 执行桌面端全局命令。
  * @同步豁免: UI构建 - globalCommand 是同步入口，桌面命令需要立即操作布局、Dock 或发起既有回调式流程。
  */
-export const executeDesktopGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeDesktopGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const executor = desktopGlobalCommandRouter({ command: context.command });
     return executor(context);
 };

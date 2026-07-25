@@ -22,7 +22,7 @@ import {openGlobalSearch} from "../../../search/util";
 import {popSearch} from "../../../mobile/menu/search";
 /// #endif
 
-import type {App} from "../../../index";
+import type {AppFacade} from "../../../app/AppFacade.types";
 
 export const renderTodoList = (result: string): string => {
     const L = window.siyuan.languages ?? {};
@@ -292,7 +292,7 @@ const labelCodeLanguages = (container: HTMLElement): void => {
     }
 };
 
-export const postRender = (container: HTMLElement, app?: App): void => {
+export const postRender = (container: HTMLElement, app?: AppFacade): void => {
     normalizeMathElements(container);
     labelCodeLanguages(container);
     // Assistant 使用 b3-typography，用户消息使用只读 protyle-wysiwyg，两种结构都复用 highlightRender。

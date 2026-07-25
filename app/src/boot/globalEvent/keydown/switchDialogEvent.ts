@@ -8,7 +8,7 @@
  * 使用范围：仅用于当前文件标注切换对话框点击处理器的 `app` 入参。
  * 解耦评估：这是纯类型依赖，不形成运行时耦合；继续通过同层 `imports.ts` 收敛路径最稳妥。
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 
 /**
  * 用途：引入卡片抽认入口。
@@ -70,7 +70,7 @@ const closeSwitchDialog = () => {
  * 调用时机：仅在点击列表项且其携带 `data-type` 时调用。
  * 问题/改进：当前仍直接按字符串判断 `riffCard`；若未来 dock 类型继续增加，可进一步改为映射表。
  */
-const handleDockSelection = (app: App, currentType: string) => {
+const handleDockSelection = (app: AppFacade, currentType: string) => {
     // 场景：`riffCard` 不是普通 dock，而是独立业务入口，需要继续走既有打开逻辑。
     if (currentType === "riffCard") {
         openCard(app);
@@ -103,7 +103,7 @@ const switchToClickedTab = (currentId: string | null) => {
  * 问题/改进：当前仍依赖 DOM 结构中 `.b3-list-item` 与 `data-type/data-id` 约定；若未来对话框改为组件化渲染，可替换为更显式的数据绑定。
  */
 /** @同步豁免: 需要绝对同步的DOM访问 */
-export const switchDialogEvent = (app: App, event: MouseEvent) => {
+export const switchDialogEvent = (app: AppFacade, event: MouseEvent) => {
     event.preventDefault();
     const target = resolveMouseTarget(event);
 

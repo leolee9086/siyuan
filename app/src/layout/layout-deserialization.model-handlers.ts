@@ -4,7 +4,7 @@
  * @同步豁免: 遗留代码 - 此模块从 layout-deserialization.ts 迁移
  */
 
-import { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { Layout } from "./index";
 import { Wnd } from "./Wnd";
 import { Tab } from "./Tab";
@@ -47,7 +47,7 @@ import {
  * @returns true 表示已处理，false 表示未匹配
  */
 const handleEditorAndAssetModels = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Tab
 ): boolean => {
@@ -71,7 +71,7 @@ const handleEditorAndAssetModels = (
  * @returns true 表示已处理，false 表示未匹配
  */
 const handleLinkAndBookmarkModels = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Tab
 ): boolean => {
@@ -100,7 +100,7 @@ const handleLinkAndBookmarkModels = (
  * @returns true 表示已处理，false 表示未匹配
  */
 const handleGraphAndOutlineModels = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Tab
 ): boolean => {
@@ -129,7 +129,7 @@ const handleGraphAndOutlineModels = (
  * @returns true 表示已处理，false 表示未匹配
  */
 const handleSearchAndCustomModels = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Tab
 ): boolean => {
@@ -167,7 +167,7 @@ const handleSearchAndCustomModels = (
  * @param layout - 父布局容器
  */
 export const processModelItem = (
-    app: App,
+    app: AppFacade,
     json: Config.TUILayoutItem,
     layout: Layout | Wnd | Tab | ILayoutModel | undefined
 ): void => {

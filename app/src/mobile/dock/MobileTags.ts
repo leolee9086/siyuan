@@ -3,7 +3,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import { MenuItem } from "../../menus/Menu.Item";
 import {popSearch} from "../menu/search";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import {openTagMenu} from "../../menus/tag";
 import {Constants} from "../../constants";
 import {filterTagData, getTagFilterKeywords} from "../../layout/dock/tagFilter";
@@ -19,7 +19,7 @@ export class MobileTags {
     private pendingUpdate: boolean;
     private filterLoadPending = false;
 
-    constructor(app: App) {
+    constructor(app: AppFacade) {
         this.element = document.querySelector('#sidebar [data-type="sidebar-tag"]');
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>

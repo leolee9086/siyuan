@@ -2,7 +2,7 @@
 /** @导入用途: 拉取插件清单接口 @使用范围: loadPlugins/reloadPlugin @解耦评估: 通过 imports 网关转发，避免父级路径耦合 */
 import {fetchSyncPost} from "./imports";
 /** @导入用途: 应用实例类型 @使用范围: 导出函数参数标注 @解耦评估: 插件加载器核心上下文，无法解耦 */
-import type {App} from "./imports";
+import type {AppFacade} from "./imports";
 /** @导入用途: 插件基类 @使用范围: loadPluginJS 继承校验 @解耦评估: 插件协议核心依赖，无法解耦 */
 import {Plugin} from "./index";
 /** @导入用途: 布局持久化 @使用范围: loadPlugin/reloadPlugin 完成后保存布局 @解耦评估: 事件化可行但当前直接调用更可控 */
@@ -26,9 +26,9 @@ import {runAfterLoadPlugin} from "./loader.afterLoad";
 /** @导入用途: 插件停靠栏动态添加 @使用范围: 插件初始化时挂载 UI @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
 import {addPluginDock} from "./loader.afterLoad";
 /** @导入用途: Plugin 宿主运行时契约 @使用范围: 构造器能力注入 @解耦评估: 纯类型不反向依赖 Plugin class */
-import type {IPluginRuntime} from "./runtime/pluginRuntime.types";
+import type * as Siyuan from "siyuan";
 
-const pluginLoadPromises = new WeakMap<Plugin, Promise<void>>();
+const pluginLoadPromises = new WeakMap<Siyuan.Plugin, Promise<void>>();
 
 /** 作用: 构建插件 require 注入层; 意图: 统一第三方插件模块解析; 调用时机: 插件入口执行时 */
 const requireFunc = (key: string) => {
@@ -89,7 +89,7 @@ const refreshAllEditorToolbars = () => {
 };
 
 /** 处理 Plugin.onDataChanged 的既有卸载、重载、挂载和工具栏刷新时序。 */
-const reloadPluginData = (app: App, sourcePlugin: Plugin) => {
+export const reloadPluginData = (app: AppFacade, sourcePlugin: Siyuan.Plugin) => {
     uninstall(app, sourcePlugin.name, true);
     void loadPlugins(app, [sourcePlugin.name], false).then(() => {
         app.plugins.find((plugin) => {
@@ -105,12 +105,6 @@ const reloadPluginData = (app: App, sourcePlugin: Plugin) => {
     });
 };
 
-/** 为每个 Plugin 构造参数创建完整宿主运行时。 @同步豁免: 生命周期 */
-export const createPluginRuntime = () => ({
-    reloadData: reloadPluginData,
-    addDock: addPluginDock,
-} satisfies IPluginRuntime<App, Plugin>);
-
 /** 作用: 校验并返回插件实例; 意图: 统一构造结果合法性检查; 调用时机: loadPluginJS 中构造后 */
 const getValidatedPluginInstance = (pluginInstance: unknown, pluginName: string) => {
     const isValidPlugin = pluginInstance instanceof Plugin;
@@ -122,7 +116,7 @@ const getValidatedPluginInstance = (pluginInstance: unknown, pluginName: string)
 };
 
 /** 作用: 执行单插件入口并实例化; 意图: 把导出模块转成 Plugin 实例; 调用时机: 批量/单个加载 */
-const loadPluginJS = async (app: App, item: IPluginData) => {
+const loadPluginJS = async (app: AppFacade, item: IPluginData) => {
     const exportsObj: Record<string, unknown> = {};
     const moduleObj: { exports: unknown } = {exports: exportsObj};
 
@@ -154,7 +148,6 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
         displayName: item.displayName,
         name: item.name,
         i18n: item.i18n,
-        runtime: createPluginRuntime(),
     }]);
     const validPlugin = getValidatedPluginInstance(pluginInstance, item.name);
     if (!validPlugin) {
@@ -177,7 +170,7 @@ const loadPluginJS = async (app: App, item: IPluginData) => {
 
 /** @导出说明: 批量加载插件入口 */
 /** 作用: 批量加载插件并注入样式; 意图: 统一初始化与增量加载; 调用时机: 启动和重载流程 */
-export const loadPlugins = async (app: App, names?: string[], init = true) => {
+export const loadPlugins = async (app: AppFacade, names?: string[], init = true) => {
     const response = await fetchSyncPost("/api/petal/loadPetals", {frontend: getFrontend()});
     const pluginsStyle = getPluginsStyle();
     const pluginItems: IPluginData[] = Array.isArray(response.data) ? response.data : [];
@@ -201,7 +194,7 @@ export const loadPlugins = async (app: App, names?: string[], init = true) => {
 
 /** @导出说明: 启用单个插件入口 */
 /** 作用: 启用单插件并触发后续 UI 初始化; 意图: 支持插件管理中的手动启用; 调用时机: 用户启用插件 */
-export const loadPlugin = async (app: App, item: IPluginData) => {
+export const loadPlugin = async (app: AppFacade, item: IPluginData) => {
     const plugin = await loadPluginJS(app, item);
     if (!plugin) {
         return;
@@ -216,12 +209,14 @@ export const loadPlugin = async (app: App, item: IPluginData) => {
 /** @同步豁免: UI构建 */
 /** @导出说明: 插件加载后 UI 初始化入口 */
 /** 作用: 统一执行布局回调与图标/Dock 挂载; 意图: 保持插件加载后时序一致; 调用时机: loadPlugin/reloadPlugin 后 */
-export const afterLoadPlugin = (plugin: Plugin) => {
+/** 作用：等待插件初始化完成后挂载其界面；意图：保持异步加载与布局就绪顺序；调用时机：单插件加载或重载完成后。 */
+export const afterLoadPlugin = (plugin: Siyuan.Plugin) => {
     runAfterLoadPlugin(plugin);
     return;
 };
 
-export const afterLayoutReady = (app: App) => {
+/** 作用：通知已加载插件布局就绪；意图：把插件生命周期回调延迟到布局可用之后；调用时机：主布局初始化完成时。 */
+export const afterLayoutReady = (app: AppFacade) => {
     for (const plugin of app.plugins) {
         const loadPromise = pluginLoadPromises.get(plugin);
         if (!loadPromise) {
@@ -239,7 +234,7 @@ export const afterLayoutReady = (app: App) => {
 export { addPluginDock };
 
 /** 作用: 按名称批量卸载插件; 意图: 复用 reloadPlugin 前置清理; 调用时机: reloadPlugin 内 */
-const uninstallPluginsByNames = (app: App, names: string[], disabled: boolean) => {
+const uninstallPluginsByNames = (app: AppFacade, names: string[], disabled: boolean) => {
     for (const name of names) {
         uninstall(app, name, disabled);
     }
@@ -247,7 +242,7 @@ const uninstallPluginsByNames = (app: App, names: string[], disabled: boolean) =
 
 // S-forge: addPluginDock 已拆分到 loader.afterLoad.ts，上游 #18003 移动端逻辑已移植到该子模块
 /** 作用: 处理代码更新插件; 意图: 重挂 UI 并刷新工具栏; 调用时机: reloadPlugin 加载代码后 */
-const handleUpsertCodePlugins = (app: App, upsertCodePlugins: string[]) => {
+const handleUpsertCodePlugins = (app: AppFacade, upsertCodePlugins: string[]) => {
     for (const plugin of app.plugins) {
         const shouldHandle = upsertCodePlugins.includes(plugin.name);
         if (!shouldHandle) {
@@ -259,7 +254,7 @@ const handleUpsertCodePlugins = (app: App, upsertCodePlugins: string[]) => {
 };
 
 /** 作用: 处理数据更新插件; 意图: 触发生命周期 onDataChanged; 调用时机: reloadPlugin 末段 */
-const handleUpsertDataPlugins = (app: App, upsertDataPlugins: string[]) => {
+const handleUpsertDataPlugins = (app: AppFacade, upsertDataPlugins: string[]) => {
     for (const plugin of app.plugins) {
         const shouldHandle = upsertDataPlugins.includes(plugin.name);
         if (!shouldHandle) {
@@ -275,7 +270,7 @@ const handleUpsertDataPlugins = (app: App, upsertDataPlugins: string[]) => {
 
 /** @导出说明: 插件重载入口 */
 /** 作用: 执行禁用/卸载/重载/数据通知; 意图: 提供热更新能力; 调用时机: 插件安装更新或调试重载时 */
-export const reloadPlugin = async (app: App, data: {
+export const reloadPlugin = async (app: AppFacade, data: {
     uninstallPlugins?: string[],  // 插件卸载
     unloadPlugins?: string[],     // 插件禁用
     reloadPlugins?: string[],     // 插件启用，或插件代码变更

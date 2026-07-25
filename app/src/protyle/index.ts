@@ -35,7 +35,7 @@ import { renderBacklink } from "./wysiwyg/renderBacklink";
 import { setEmpty } from "../mobile/util/setEmpty";
 import { resize } from "./util/resize";
 import { getDocByScroll } from "./scroll/saveScroll";
-import type { App } from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import { insertHTML } from "./util/insertHTML";
 import { avRender } from "./render/av/render";
 import { focusBlock, getEditorRange } from "./util/selection";
@@ -58,7 +58,7 @@ export class Protyle {
      * @param id 要挂载 Protyle 的元素或者元素 ID。
      * @param options Protyle 参数
      */
-    constructor(app: App, id: HTMLElement, options: IProtyleOptions) {
+    constructor(app: AppFacade, id: HTMLElement, options: IProtyleOptions) {
         this.version = Constants.SIYUAN_VERSION;
         let pluginsOptions: IProtyleOptions = options;
         app.plugins.forEach(item => {

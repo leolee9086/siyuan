@@ -32,6 +32,10 @@ import type { ILayoutTabFloatPort } from "../layout/tabFloat.types";
 import type { ILayoutTabFloatFactory } from "../layout/tabFloat.types";
 /** 用途：声明 Layout 普通 Tab 宿主能力；使用范围：能力注册和菜单请求；解耦评估：仅编译期依赖。 */
 import type { ILayoutTabOpenPort } from "../layout/tabOpen.types";
+/** 用途：Wnd 拖拽恢复能力。使用范围：全局 Port 类型映射；解耦评估：应用身份参数化，不依赖具体窗口 class。 */
+import type { WndDragRestore } from "../layout/layout.types";
+/** 用途：应用外观身份。使用范围：Wnd 拖拽恢复 Port 的宿主参数；解耦评估：只读类型依赖，不加载 App 实现。 */
+import type { AppFacade } from "../app/AppFacade.types";
 
 /**
  * SForge 全局状态类型定义
@@ -59,6 +63,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.TAB_FLOAT_PORT]?: ILayoutTabFloatPort;
     [SForgeSymbols.TAB_FLOAT_FACTORY_REGISTRY]?: Map<string, ILayoutTabFloatFactory>;
     [SForgeSymbols.TAB_OPEN_PORT]?: ILayoutTabOpenPort;
+    [SForgeSymbols.WND_DRAG_RESTORE]?: WndDragRestore<AppFacade>;
 }
 
 /**

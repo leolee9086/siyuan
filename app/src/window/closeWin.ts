@@ -1,9 +1,9 @@
 /**
- * 用途：引入 App 类型定义，用于窗口关闭函数的参数类型标注
+ * 用途：引入 AppFacade 类型定义，用于窗口关闭函数的参数类型标注
  * 使用范围：closeWindow 函数参数类型声明
- * 解耦评估：App 是核心应用类型，当前无法解耦
+ * 解耦评估：AppFacade 是核心应用类型，当前无法解耦
  */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 
 /**
  * 用途：引入常量定义，用于窗口关闭流程
@@ -22,7 +22,7 @@ import { Constants } from "./imports";
  * @param sendIpc IPC 通信函数，用于向主进程发送销毁窗口命令
  */
 export const closeWindow = async (
-    app: App,
+    app: AppFacade,
     sendIpc: (cmd: string, msg: string) => void
 ) => {
     for (let i = 0; i < app.plugins.length; i++) {

@@ -9,13 +9,12 @@ import { genListItemElement } from "./imports";
  * 使用范围：createNewBlockElement 的兜底分支与初始化默认值。
  * 解耦评估：可通过参数传入工厂函数解耦；当前属于 block 模块内部基础能力，直接依赖本目录 util 更直接。
  */
-import { genEmptyElement } from "./util";
+import { genEmptyElement, genHeadingElement } from "./element.factory";
 /*
  * 用途：根据标题块生成同级标题元素。
  * 使用范围：createNewBlockElement 在 beforebegin/afterend 且命中折叠标题条件时使用。
  * 解耦评估：可通过策略对象注入解耦；但其属于块语义核心逻辑，在 block 内部直接复用 util 实现更稳定。
  */
-import { genHeadingElement } from "./util";
 import { getPreviousBlockSibling } from "./imports";
 
 /**

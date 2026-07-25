@@ -15,7 +15,7 @@ import {platform, isElectron} from "../platform";
 import * as dayjs from "dayjs";
 import {getDisplayName} from "../util/file/pathName";
 import { movePathTo } from "../util/file/movePathTo";
-import {App} from "../index";
+import type { AppFacade } from "../app/AppFacade.types";
 import {resize} from "../protyle/util/resize";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {focusByRange} from "../protyle/util/selection";
@@ -157,7 +157,7 @@ export const genCardHTML = (options: {
 };
 
 export const bindCardEvent = async (options: {
-    app: App,
+    app: AppFacade,
     element: Element,
     title?: string,
     cardsData: ICardData
@@ -694,7 +694,7 @@ export const bindCardEvent = async (options: {
     return editor;
 };
 
-const emitEvent = (app: App, card: ICard, type: string) => {
+const emitEvent = (app: AppFacade, card: ICard, type: string) => {
     app.plugins.forEach(item => {
         item.eventBus.emit("click-flashcard-action", {
             type,
@@ -703,7 +703,7 @@ const emitEvent = (app: App, card: ICard, type: string) => {
     });
 };
 
-export const openCard = (app: App) => {
+export const openCard = (app: AppFacade) => {
     if (window.siyuan.config.readonly) {
         return;
     }
@@ -712,7 +712,7 @@ export const openCard = (app: App) => {
     });
 };
 
-export const openCardByData = async (app: App, cardsData: ICardData, cardType: TCardType, id?: string, title?: string) => {
+export const openCardByData = async (app: AppFacade, cardsData: ICardData, cardType: TCardType, id?: string, title?: string) => {
     const exit = window.siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_OPENCARD) {
             item.destroy();

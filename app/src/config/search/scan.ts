@@ -1,5 +1,11 @@
-import {SettingTabSearchResult} from "../setting/builder";
 import {getTabGroupEntries} from "../setting/item";
+
+/** scanSearch 返回的设置分组与条目可见性结果。 */
+export interface SettingTabSearchResult {
+    matches: boolean;
+    visibleItemIds?: Set<string>;
+    visibleGroupIds?: Set<string>;
+}
 
 /** 一次遍历 SettingTab 的 Group / Item，同时得到侧栏命中与内容区可见性 */
 export const scanSettingTabSearch = (

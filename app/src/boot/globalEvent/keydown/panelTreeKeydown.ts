@@ -1,11 +1,11 @@
-import { App } from "../../..";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import { Backlink } from "../../../layout/dock/Backlink";
 import { Tab } from "../../../layout/Tab";
 import { getInstanceById } from "../../../layout/util";
 import { hasClosestByAttribute, hasClosestByClassName } from "../../../protyle/util/hasClosest";
 import { matchHotKey } from "../../../protyle/util/hotKey";
 
-export const panelTreeKeydown = (app: App, event: KeyboardEvent) => {
+export const panelTreeKeydown = (app: AppFacade, event: KeyboardEvent) => {
     // 面板折叠展开操作
     const target = event.target as HTMLElement;
     if (["INPUT", "TEXTAREA"].includes(target.tagName) ||

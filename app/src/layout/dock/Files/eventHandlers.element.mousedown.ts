@@ -7,16 +7,16 @@ import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
-import type { App } from "../../../index";
+import type { AppFacade } from "../../../app/AppFacade.types";
 import type {FilesEventHost} from "./eventHandlers.types";
 
 /**
  * element 的 mousedown 事件处理函数（鼠标滚轮点击打开文件）
  * @param event - 鼠标事件
  * @param files - Files 实例
- * @param app - App 实例
+ * @param app - AppFacade 实例
  */
-function onElementMousedown(event: MouseEvent, files: FilesEventHost, app: App): void {
+function onElementMousedown(event: MouseEvent, files: FilesEventHost, app: AppFacade): void {
     // 检查是否为鼠标中键点击
     if (event.button !== 1) {
         return;
@@ -55,12 +55,12 @@ function onElementMousedown(event: MouseEvent, files: FilesEventHost, app: App):
 /**
  * 创建 element 的 mousedown 事件处理器
  * @param files - Files 实例
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @returns 事件处理函数
  */
 function createElementMousedownHandler(
     files: FilesEventHost,
-    app: App
+    app: AppFacade
 ): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
         onElementMousedown(event, files, app);
@@ -70,10 +70,10 @@ function createElementMousedownHandler(
 /**
  * 设置 element 的 mousedown 事件处理（鼠标滚轮点击打开文件）
  * @param files - Files 实例
- * @param app - App 实例
+ * @param app - AppFacade 实例
  * @同步豁免: UI构建
  */
-export function setupElementMousedownHandler(files: FilesEventHost, app: App): void {
+export function setupElementMousedownHandler(files: FilesEventHost, app: AppFacade): void {
     const handler = createElementMousedownHandler(files, app);
     files.element.addEventListener("mousedown", handler);
 }

@@ -5,7 +5,7 @@
 /** 用途：插件基类类型。使用范围：loader 模块创建器。解耦评估：通过 imports.ts 转发。 */
 import { Plugin } from "./imports";
 /** 用途：应用实例类型。使用范围：loader 函数签名。解耦评估：通过 imports.ts 转发。 */
-import type { App } from "./imports";
+import type { AppFacade } from "./imports";
 /** 用途：安全模块创建器。使用范围：loader 执行插件代码。解耦评估：通过 imports.ts 转发。 */
 import { SecureModuleCreator } from "./imports";
 /** 用途：思源 API URL 工具。使用范围：loader 插件运行时。解耦评估：同目录模块，直接同层导入。 */
@@ -60,7 +60,7 @@ function 创建插件模块创建器() {
  * @returns 插件运行状态
  */
 export async function 加载笔记内插件(
-    app: App,
+    app: AppFacade,
     config: 笔记内插件配置
 ) {
     const state: 笔记内插件运行状态<Plugin> = {

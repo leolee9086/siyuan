@@ -5,7 +5,7 @@ import {hasClosestBlock} from "./hasClosest";
 /** 用途：排除嵌入块镜像。使用范围：仅 Undo 焦点恢复的缺省实例选择。解耦评估：同目录纯 DOM 判定无需宿主注入。 */
 import {isInEmbedBlock} from "./hasClosest";
 /** 用途：把 Range 转为文本偏移。使用范围：仅 Undo 焦点捕获。解耦评估：复用 Selection 公共契约，避免复制偏移算法。 */
-import {getSelectionOffset} from "./selection";
+import {getSelectionOffset} from "./selection.range";
 /** 用途：按文本偏移重建 Range。使用范围：仅 Undo 焦点恢复。解耦评估：复用 Selection Range 能力，避免复制 TreeWalker 算法。 */
 import {focusByOffset} from "./selection.range";
 

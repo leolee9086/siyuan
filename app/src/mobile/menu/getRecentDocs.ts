@@ -5,9 +5,9 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openModel} from "./model";
 import {openMobileFileById} from "../editor";
-import {App} from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 
-export const getRecentDocs = (app: App) => {
+export const getRecentDocs = (app: AppFacade) => {
     fetchPost("/api/storage/getRecentDocs", {sortBy: "viewedAt"}, (response) => {
         let html = "";
         response.data.forEach((item: any, index: number) => {

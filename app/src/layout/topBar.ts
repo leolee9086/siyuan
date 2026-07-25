@@ -12,7 +12,7 @@ import { MenuItem } from "../menus/Menu.Item";
 import {setMode} from "../util/assets/assets";
 import {openSetting} from "../config";
 import {openSearch} from "../search/spread";
-import {App} from "../index";
+import type {AppFacade} from "../app/AppFacade.types";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {setZoomFactor} from "../platform/electron/webFrame";
@@ -70,7 +70,7 @@ export const updateBarModeIcon = () => {
     );
 };
 
-export const initBar = (app: App) => {
+export const initBar = (app: AppFacade) => {
     const toolbarElement = document.getElementById("toolbar");
     toolbarElement.innerHTML = `
 <div id="barWorkspace" class="ariaLabel toolbar__item" aria-label="${siyuanI18n.mainMenu} ${updateHotkeyTip(window.siyuan.config.keymap.general.mainMenu.custom)}">

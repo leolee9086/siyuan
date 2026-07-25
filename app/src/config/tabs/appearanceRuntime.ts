@@ -4,7 +4,7 @@ import {exportLayout} from "../../layout/util";
 import {syncHideToolbarLayout, updateBarModeIcon} from "../../layout/topBar";
 import {fetchPost} from "../../util/fetch";
 import {loadAssets} from "../../util/assets";
-import {remountOpenSettingTab} from "../setting/mount";
+import {remountOpenSettingTab} from "../setting/remount";
 import {createConfigNamespaceApi} from "../util/namespaceApi";
 import {isMobile} from "../../platform";
 

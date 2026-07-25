@@ -3,7 +3,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { sendGlobalShortcut } from "./keydown/windowKeyDown/windowKeyDown";
 import { isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";
-import { App } from "../../index";
+import type { AppFacade } from "../../app/AppFacade.types";
 import { isMac, isNotCtrl, isOnlyMeta } from "../../protyle/util/compatibility";
 import { showPopover } from "../../block/popover";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -143,7 +143,7 @@ const hasKeymap = (keymap: Record<string, IKeymapItem>, key1: "general" | "edito
     return true;
 };
 
-export const correctHotkey = (app: App) => {
+export const correctHotkey = (app: AppFacade) => {
     if (!["darwin", "ios"].includes(window.siyuan.config.system.os)) {
         ["fileTree", "outline", "bookmark", "tag", "dailyNote", "inbox", "backlinks",
             "graphView", "globalGraph", "riffCard"].forEach(key => {
@@ -208,7 +208,7 @@ const handleDialogOpencard = (event: KeyboardEvent) => {
     return false;
 };
 
-const handleFloatWindowShortcut = (event: KeyboardEvent, app: App) => {
+const handleFloatWindowShortcut = (event: KeyboardEvent, app: AppFacade) => {
     if (event.altKey || event.shiftKey || !isOnlyMeta(event)) {
         return;
     }
@@ -223,7 +223,7 @@ const handleFloatWindowShortcut = (event: KeyboardEvent, app: App) => {
     }
 };
 
-const handleSearchShortcut = (event: KeyboardEvent, app: App) => {
+const handleSearchShortcut = (event: KeyboardEvent, app: AppFacade) => {
     if (event.altKey || !event.shiftKey || !isNotCtrl(event)) {
         return;
     }
@@ -241,7 +241,7 @@ const handleSearchShortcut = (event: KeyboardEvent, app: App) => {
     }
 };
 
-export const filterHotkey = (event: KeyboardEvent, app: App) => {
+export const filterHotkey = (event: KeyboardEvent, app: AppFacade) => {
     // https://github.com/siyuan-note/siyuan/issues/9848 忘记为什么要阻止了 .av__mask 的情况，测了下没问题就先移除
     if (document.getElementById("progress") || document.getElementById("errorLog") || event.isComposing) {
         return true;

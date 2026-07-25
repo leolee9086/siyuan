@@ -15,7 +15,7 @@ import { DESKTOP_GLOBAL_COMMANDS } from "./imports";
 /** 用途：引入全局命令上下文类型。使用范围：标注标签执行器参数。解耦评估：复用全局命令边界。 */
 import type { GlobalCommandContext } from "./imports";
 /** 用途：主应用宿主身份；使用范围：桌面标签命令上下文绑定；解耦评估：具体类型只在实现模块使用。 */
-import type {App} from "./imports";
+import type { AppFacade } from "./imports";
 
 /** 桌面标签序号路由，将命令字符串映射为 switchTabByIndex 参数。 */
 const desktopTabIndexRouter = calibur
@@ -34,7 +34,7 @@ const desktopTabIndexRouter = calibur
     .build();
 
 /** 执行标签序号切换命令。 */
-const executeTabIndexDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeTabIndexDesktopGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     switchTabByIndex(desktopTabIndexRouter({ command }));
     return true;
 };
@@ -64,7 +64,7 @@ const switchToEditTab = (command: string, tabs: Tab[], index: number) => {
 };
 
 /** 执行按最近编辑顺序切换标签命令。 */
-const executeGoToEditTabDesktopGlobalCommand = ({ command }: GlobalCommandContext<App>) => {
+const executeGoToEditTabDesktopGlobalCommand = ({ command }: GlobalCommandContext<AppFacade>) => {
     let currentTabElement = document.querySelector(".layout__wnd--active ul.layout-tab-bar > .item--focus");
     // 没有活动窗口时退回查找任意聚焦标签，保持原有兜底行为。
     if (!currentTabElement) {
@@ -97,7 +97,7 @@ const desktopTabCommandRouter = calibur
  * 执行桌面标签命令。
  * @同步豁免: UI构建 - 标签切换是同步布局操作，命令入口需要立即返回处理状态。
  */
-export const executeDesktopTabGlobalCommand = (context: GlobalCommandContext<App>) => {
+export const executeDesktopTabGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
     const executor = desktopTabCommandRouter({ command: context.command });
     return executor(context);
 };

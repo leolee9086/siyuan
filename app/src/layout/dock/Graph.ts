@@ -11,7 +11,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openGlobalSearch } from "../../search/util";
-import { App } from "../../index";
+import type {AppFacade} from "../../app/AppFacade.types";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -19,7 +19,7 @@ import { getDocDisplayName } from "../../util/pathName";
 
 declare const vis: any;
 
-export class Graph extends Model<App, Tab> {
+export class Graph extends Model<AppFacade, Tab> {
     public inputElement: HTMLInputElement;
     private graphElement: HTMLDivElement;
     private panelElement: HTMLElement;
@@ -35,7 +35,7 @@ export class Graph extends Model<App, Tab> {
     public type: "local" | "pin" | "global";
 
     constructor(options: {
-        app: App
+        app: AppFacade
         tab: Tab
         blockId?: string
         rootId?: string

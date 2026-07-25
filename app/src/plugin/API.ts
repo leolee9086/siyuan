@@ -14,7 +14,8 @@ import ProtyleMethod from "../protyle/method";
 import { getSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 import { isMobileFileOpenPort } from "./api/openMobileFile.guard";
-import type { App } from "../index";
+/** 用途：提供插件 API 的应用抽象外观；使用范围：移动文件入口参数；解耦评估：type-only 依赖，不加载完整应用入口。 */
+import type {AppFacade} from "../app/AppFacade.types";
 import { getMobileEditor, getMobilePopEditor } from "./API.environment";
 import { isHTMLElement } from "../util/DOM/element.guard";
 import { exitSiYuan } from "../dialog/processSystem";
@@ -203,7 +204,7 @@ const resolveTabHeader = (item: ReturnType<typeof getAllEditor>[number]): HTMLEl
  * 意图：打断 mobile/editor ↔ plugin/API 循环依赖
  * 调用时机：插件通过 API.openMobileFileById 调用时
  */
-const openMobileFileByIdProxy = (_app: App, id: string, action?: TProtyleAction[], scrollPosition?: ScrollLogicalPosition) => {
+const openMobileFileByIdProxy = (_app: AppFacade, id: string, action?: TProtyleAction[], scrollPosition?: ScrollLogicalPosition) => {
     const port = getSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID);
     // 仅在移动端注册了处理器时才执行，桌面端不注册此处理器
     if (isMobileFileOpenPort(port)) {

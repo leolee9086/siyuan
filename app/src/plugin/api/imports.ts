@@ -1,11 +1,4 @@
 /**
- * 用途：应用主类，提供全局状态和布局管理
- * 使用范围：插件API模块中需要访问应用实例的场景
- * 解耦评估：通过本地转发减少跨目录依赖
- */
-import type { App } from "../../index";
-
-/**
  * 用途：布局模型类，表示页签容器
  * 使用范围：插件API模块中需要操作页签模型的场景
  * 解耦评估：通过本地转发减少跨目录依赖
@@ -76,7 +69,6 @@ import { Files } from "../../layout/dock/Files";
 import { getSiyuanNotebooks } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 // 导出应用主类类型
-export type { App };
 
 // 导出布局模型类型
 export type { Model };
