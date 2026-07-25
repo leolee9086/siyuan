@@ -26,6 +26,14 @@ import type {Forwardlink} from "../../src/layout/dock/forwardlink/Forwardlink";
 import type {ForwardlinkDomain} from "../../src/layout/dock/forwardlink/Forwardlink.types";
 import type {Files} from "../../src/layout/dock/Files";
 import type {FilesDomain} from "../../src/layout/dock/Files/eventHandlers.types";
+import type {Asset} from "../../src/asset";
+import type {AssetDomain} from "../../src/asset/asset.types";
+import {assetModelBrand, isAssetDomain} from "../../src/asset/asset.types";
+import {graphModelBrand, isGraphDomain} from "../../src/layout/dock/graph/graph.types";
+import {outlineModelBrand, isOutlineDomain} from "../../src/layout/dock/outline/types";
+import {backlinkModelBrand, isBacklinkDomain} from "../../src/layout/dock/backlink/backlink.types";
+import {filesModelBrand, isFilesDomain} from "../../src/layout/dock/Files/eventHandlers.types";
+import {forwardlinkModelBrand, isForwardlinkDomain} from "../../src/layout/dock/forwardlink/Forwardlink.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -43,6 +51,7 @@ type ModelContract = PublicInstanceLooksLike<typeof Model, ModelDomain>;
 type BacklinkContract = PublicInstanceLooksLike<typeof Backlink, BacklinkDomain<AppFacade, Tab>>;
 type ForwardlinkContract = PublicInstanceLooksLike<typeof Forwardlink, ForwardlinkDomain<AppFacade, Tab>>;
 type FilesContract = PublicInstanceLooksLike<typeof Files, FilesDomain<AppFacade, Tab>>;
+type AssetContract = PublicInstanceLooksLike<typeof Asset, AssetDomain<AppFacade, Tab>>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -57,6 +66,7 @@ const modelContract: ModelContract = true;
 const backlinkContract: BacklinkContract = true;
 const forwardlinkContract: ForwardlinkContract = true;
 const filesContract: FilesContract = true;
+const assetContract: AssetContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -73,5 +83,19 @@ describe("layout domain contracts", () => {
         assert.equal(backlinkContract, true);
         assert.equal(forwardlinkContract, true);
         assert.equal(filesContract, true);
+        assert.equal(assetContract, true);
+    });
+
+    it("classifies Asset models through the stable domain brand", () => {
+        assert.equal(isAssetDomain({[assetModelBrand]: "Asset"}), true);
+        assert.equal(isAssetDomain({layoutModel: true}), false);
+    });
+
+    it("classifies established layout models through their domain brands", () => {
+        assert.equal(isGraphDomain({[graphModelBrand]: "Graph"}), true);
+        assert.equal(isOutlineDomain({[outlineModelBrand]: "Outline"}), true);
+        assert.equal(isBacklinkDomain({[backlinkModelBrand]: "Backlink"}), true);
+        assert.equal(isFilesDomain({[filesModelBrand]: "Files"}), true);
+        assert.equal(isForwardlinkDomain({[forwardlinkModelBrand]: "Forwardlink"}), true);
     });
 });

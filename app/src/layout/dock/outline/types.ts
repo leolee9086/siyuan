@@ -13,6 +13,9 @@ import type {TreeDomain} from "../../../util/file/tree.types";
 /** 对外复用 Outline 的完整树领域身份。 */
 export type {TreeDomain};
 
+/** Outline 模型的稳定运行时身份；布局分类无需加载具体 class。 */
+export const outlineModelBrand = Symbol("OutlineModel");
+
 /**
  * 拖拽状态类型定义
  * @property item 被拖拽的元素
@@ -59,6 +62,7 @@ export interface OutlineDomain<
     TApplication extends object = AppFacade,
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
+    readonly [outlineModelBrand]: "Outline";
     element: HTMLElement;
     headerElement: HTMLElement;
     tree: TreeDomain;
@@ -87,3 +91,10 @@ export interface OutlineDomain<
     onModelMsgCallback(data: IWebSocketData): void;
     reload(blockId?: string): void;
 }
+
+/**
+ * @同步豁免: 类型守卫
+ * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 OutlineDomain。
+ */
+export const isOutlineDomain = (model: object): model is OutlineDomain =>
+    outlineModelBrand in model && model[outlineModelBrand] === "Outline";

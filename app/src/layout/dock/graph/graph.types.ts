@@ -4,6 +4,9 @@ import type {ModelDomain} from "../../lifecycle/model.types";
 import type {ILayoutModelHost} from "../../lifecycle/model.types";
 /** 用途：描述公开连接动作；使用范围：Graph 领域根；解耦评估：复用模型生命周期完整请求类型。 */
 
+/** Graph 模型的稳定运行时身份；布局分类无需加载具体 class。 */
+export const graphModelBrand = Symbol("GraphModel");
+
 /** Graph 节点与连线的完整公开数据快照。 */
 export interface GraphData {
     nodes: {box: string; id: string; path: string; type: string; color: IObject}[];
@@ -19,6 +22,7 @@ export interface GraphDomain<
     TApplication extends object = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ModelDomain<TApplication, TParent> {
+    readonly [graphModelBrand]: "Graph";
     inputElement: HTMLInputElement;
     blockId: string;
     rootId: string;
@@ -28,3 +32,10 @@ export interface GraphDomain<
     destroy(): void;
     onGraph(highlight: boolean): void;
 }
+
+/**
+ * @同步豁免: 类型守卫
+ * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 GraphDomain。
+ */
+export const isGraphDomain = (model: object): model is GraphDomain =>
+    graphModelBrand in model && model[graphModelBrand] === "Graph";

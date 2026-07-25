@@ -13,7 +13,7 @@ export interface LayoutDomain {
     direction: Config.TUILayoutDirection;
     type?: Config.TUILayoutType;
     id?: string;
-    resize?: Config.TUILayoutDirection;
+    resize?: Config.TUILayoutDirection | undefined;
     size?: string;
     addLayout(child: LayoutDomain, id?: string, after?: boolean): void;
     addWnd(child: LayoutWindow, id?: string, after?: boolean): void;

@@ -16,10 +16,15 @@ import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDocDisplayName } from "../../util/pathName";
+import {graphModelBrand} from "./graph/graph.types";
 
 declare const vis: any;
 
 export class Graph extends Model<AppFacade, Tab> {
+    public get [graphModelBrand]() {
+        return "Graph" as const;
+    }
+
     public inputElement: HTMLInputElement;
     private graphElement: HTMLDivElement;
     private panelElement: HTMLElement;

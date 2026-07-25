@@ -30,12 +30,17 @@ import {
 import { 初始化Tree组件, 处理消息回调 } from "./Forwardlink.init";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type {ProtyleDomain, TreeDomain} from "./Forwardlink.types";
+import {forwardlinkModelBrand} from "./Forwardlink.types";
 
 /**
  * 正向链接 Dock 组件
  */
 // @允许继承: 框架要求 (FrameworkRequired)
 export class Forwardlink extends Model<AppFacade, Tab> {
+    public get [forwardlinkModelBrand]() {
+        return "Forwardlink" as const;
+    }
+
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
     public type: "pin" | "local";

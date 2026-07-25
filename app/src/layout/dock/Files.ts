@@ -28,8 +28,13 @@ import {
 import {cancelFileTreeCollapse} from "./fileTreeAnimation";
 import {updateAllDocActions, updateSubFileCount} from "./Files/docActions";
 import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/sortRefresh";
+import {filesModelBrand} from "./Files/eventHandlers.types";
 
 export class Files extends Model<AppFacade, LayoutTab> {
+    public get [filesModelBrand]() {
+        return "Files" as const;
+    }
+
     public element: HTMLElement;
     public closeElement: HTMLElement;
     public lastSelectedElement: Element | null = null;

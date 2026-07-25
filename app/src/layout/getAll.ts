@@ -1,19 +1,16 @@
 import type { Protyle } from "../protyle";
-import { Layout } from "./index";
-import { Tab } from "./Tab";
+import type {LayoutDomain, LayoutTab, LayoutWindow} from "./layout.types";
 import { Editor } from "../editor";
-import { Graph } from "./dock/Graph";
-import { Outline } from "./dock/outline/Outline";
-import { Backlink } from "./dock/Backlink";
-import { Asset } from "../asset";
+import {isGraphDomain} from "./dock/graph/graph.types";
+import {isOutlineDomain} from "./dock/outline/types";
+import {isBacklinkDomain} from "./dock/backlink/backlink.types";
+import {isAssetDomain} from "../asset/asset.types";
 import { Search } from "../search";
-import { Files } from "./dock/Files";
+import {isFilesDomain} from "./dock/Files/eventHandlers.types";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Custom } from "./dock/Custom";
-import { Forwardlink } from "./dock/forwardlink/Forwardlink";
-import { Wnd } from "./Wnd";
-
+import {isForwardlinkDomain} from "./dock/forwardlink/Forwardlink.types";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 import { hasLayoutDocks } from "./getAll.guard";
@@ -103,29 +100,29 @@ const createEmptyModels = (): IModels => ({
  * - 意图：为了方便快速访问特定类型的 Tab，无需每次都重新遍历布局树。
  * - 调用时机：布局变动后重建索引、或需要批量操作某一类 Tab 时（如关闭所有搜索页）。
  */
-const pushModel = (models: IModels, model: Tab["model"]) => {
+const pushModel = (models: IModels, model: LayoutTab["model"]) => {
     // @无需注释
     if (model instanceof Editor) {
         models.editor.push(model);
         return;
     }
     // @无需注释
-    if (model instanceof Graph) {
+    if (isGraphDomain(model)) {
         models.graph.push(model);
         return;
     }
     // @无需注释
-    if (model instanceof Outline) {
+    if (isOutlineDomain(model)) {
         models.outline.push(model);
         return;
     }
     // @无需注释
-    if (model instanceof Backlink) {
+    if (isBacklinkDomain(model)) {
         models.backlink.push(model);
         return;
     }
     // @无需注释
-    if (model instanceof Asset) {
+    if (isAssetDomain(model)) {
         models.asset.push(model);
         return;
     }
@@ -135,7 +132,7 @@ const pushModel = (models: IModels, model: Tab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Files) {
+    if (isFilesDomain(model)) {
         models.files.push(model);
         return;
     }
@@ -155,28 +152,18 @@ const pushModel = (models: IModels, model: Tab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Forwardlink) {
+    if (isForwardlinkDomain(model)) {
         models.forwardlink.push(model);
         return;
     }
 };
 
 /** 递归遍历布局获取模型 */
-const getTabsForModels = (layout: Layout | Wnd, models: IModels) => {
-    const children = layout.children;
-    if (!children) {
-        return;
-    }
-    for (const item of children) {
-        // @无需注释
-        if (item instanceof Tab) {
-            pushModel(models, item.model);
-            continue;
-        }
-        // @无需注释
-        if (item instanceof Wnd || item instanceof Layout) {
-            getTabsForModels(item, models);
-        }
+const getTabsForModels = (layout: LayoutDomain, models: IModels) => {
+    const tabs: LayoutTab[] = [];
+    collectLayoutTabs(layout, tabs);
+    for (const tab of tabs) {
+        pushModel(models, tab.model);
     }
 };
 
@@ -199,7 +186,7 @@ export const getAllModels = () => {
         getTabsForModels(layout.layout, models);
     }
     // 遍历左、右、底部停靠栏的布局
-    if (hasLayoutDocks<Layout>(layout)) {
+    if (hasLayoutDocks<LayoutDomain>(layout)) {
         const docks = [layout.left, layout.right, layout.bottom];
         for (const dock of docks) {
             // 检查停靠栏是否存在且有布局，存在则遍历收集模型
@@ -219,20 +206,20 @@ export const getAllModels = () => {
  * - 调用时机：布局调整、计算窗口尺寸或序列化布局时。
  * @同步豁免: 性能考虑
  */
-export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
+export const getAllWnds = (layout: LayoutDomain, wnds: LayoutWindow[]) => {
     if (isMobile) {
         return;
     }
     collectLayoutWindows(layout, wnds);
 };
 
-const matchesTabModel = (model: Tab["model"], type: TTab | string) => {
+const matchesTabModel = (model: LayoutTab["model"], type: TTab | string) => {
     // @无需注释
     if (model instanceof Search) {
         return type === "Search";
     }
     // @无需注释
-    if (model instanceof Asset) {
+    if (isAssetDomain(model)) {
         return type === "Asset";
     }
     // @无需注释
@@ -240,19 +227,19 @@ const matchesTabModel = (model: Tab["model"], type: TTab | string) => {
         return type === "Editor";
     }
     // @无需注释
-    if (model instanceof Graph) {
+    if (isGraphDomain(model)) {
         return type === "Graph";
     }
     // @无需注释
-    if (model instanceof Backlink) {
+    if (isBacklinkDomain(model)) {
         return type === "Backlink";
     }
     // @无需注释
-    if (model instanceof Outline) {
+    if (isOutlineDomain(model)) {
         return type === "Outline";
     }
     // @无需注释
-    if (model instanceof Forwardlink) {
+    if (isForwardlinkDomain(model)) {
         return type === "Forwardlink" || type === "forwardlink";
     }
     // @无需注释
@@ -262,7 +249,7 @@ const matchesTabModel = (model: Tab["model"], type: TTab | string) => {
     return false;
 };
 
-const matchesUninitializedTab = (tab: Tab, type: TTab | string) => {
+const matchesUninitializedTab = (tab: LayoutTab, type: TTab | string) => {
     const initData = tab.headElement?.getAttribute("data-initdata");
     if (!initData) {
         return false;
@@ -276,7 +263,7 @@ const matchesUninitializedTab = (tab: Tab, type: TTab | string) => {
     }
 };
 
-const pushTabByType = (tab: Tab, tabs: Tab[], type?: TTab | string) => {
+const pushTabByType = (tab: LayoutTab, tabs: LayoutTab[], type?: TTab | string) => {
     if (!type) {
         tabs.push(tab);
         return;
@@ -305,11 +292,11 @@ export const getAllTabs = (type?: TTab | string) => {
     if (isMobile) {
         return [];
     }
-    const tabs: Tab[] = [];
+    const tabs: LayoutTab[] = [];
     const layout = getSafeSiyuanLayout();
     // 检查中心布局是否存在，存在则遍历收集所有 Tab
     if (layout?.centerLayout) {
-        const allTabs: Tab[] = [];
+        const allTabs: LayoutTab[] = [];
         collectLayoutTabs(layout.centerLayout, allTabs);
         for (const tab of allTabs) {
             pushTabByType(tab, tabs, type);

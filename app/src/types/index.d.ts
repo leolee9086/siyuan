@@ -951,15 +951,15 @@ interface IRiffCard {
 
 interface IModels {
     editor: import("../editor").Editor[],
-    graph: import("../layout/dock/Graph").Graph[],
-    outline: import("../layout/dock/outline/Outline").Outline[]
-    backlink: import("../layout/dock/Backlink").Backlink[]
-    forwardlink: import("../layout/dock/forwardlink/Forwardlink").Forwardlink[]
+    graph: import("../layout/dock/graph/graph.types").GraphDomain[],
+    outline: import("../layout/dock/outline/types").OutlineDomain[]
+    backlink: import("../layout/dock/backlink/backlink.types").BacklinkDomain[]
+    forwardlink: import("../layout/dock/forwardlink/Forwardlink.types").ForwardlinkDomain[]
     inbox: import("../layout/dock/Inbox").Inbox[]
-    files: import("../layout/dock/Files").Files[]
+    files: import("../layout/dock/Files/eventHandlers.types").FilesDomain[]
     bookmark: import("../layout/dock/Bookmark").Bookmark[]
     tag: import("../layout/dock/Tag").Tag[]
-    asset: import("../asset").Asset[]
+    asset: import("../asset/asset.types").AssetDomain[]
     search: import("../search").Search[]
     custom: import("../layout/dock/Custom").Custom[]
 }

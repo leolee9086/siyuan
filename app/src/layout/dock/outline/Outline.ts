@@ -24,7 +24,12 @@ import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from ".
 import {getDockByType} from "../../tabUtil";
 import type {OutlineDomain} from "./types";
 import type {TreeDomain} from "./types";
+import {outlineModelBrand} from "./types";
 export class Outline extends Model<AppFacade, LayoutTab> {
+    public get [outlineModelBrand]() {
+        return "Outline" as const;
+    }
+
     public tree!: TreeDomain;
     public element: HTMLElement;
     public headerElement: HTMLElement;

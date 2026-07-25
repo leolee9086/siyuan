@@ -12,8 +12,14 @@ import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
 import { getDisplayName } from "../util/file/pathName";
 import { isMobile } from "../platform";
+import {assetModelBrand} from "./asset.types";
 
+/** 资产页签模型的具体运行时实现。 */
 export class Asset extends Model<AppFacade, Tab> {
+  public get [assetModelBrand]() {
+    return "Asset" as const;
+  }
+
   public path: string;
   public element: HTMLElement;
   private pdfId: number | string | undefined;

@@ -9,6 +9,9 @@ import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /** 对外复用嵌套完整领域根，具体 Backlink class 的公开字段不得泄露实现类型。 */
 export type {ProtyleDomain, TreeDomain};
 
+/** Backlink 模型的稳定运行时身份；布局分类无需加载具体 class。 */
+export const backlinkModelBrand = Symbol("BacklinkModel");
+
 /** 单个文档的反链面板完整可恢复状态。 */
 export interface BacklinkStatusItem {
     sort: number;
@@ -36,6 +39,7 @@ export interface BacklinkDomain<
     TApplication extends object = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ModelDomain<TApplication, TParent> {
+    readonly [backlinkModelBrand]: "Backlink";
     element: HTMLElement;
     inputsElement: NodeListOf<HTMLInputElement>;
     type: "pin" | "local";
@@ -49,3 +53,10 @@ export interface BacklinkDomain<
     saveStatus(): void;
     render(data: BacklinkRenderData | undefined): void;
 }
+
+/**
+ * @同步豁免: 类型守卫
+ * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 BacklinkDomain。
+ */
+export const isBacklinkDomain = (model: object): model is BacklinkDomain =>
+    backlinkModelBrand in model && model[backlinkModelBrand] === "Backlink";

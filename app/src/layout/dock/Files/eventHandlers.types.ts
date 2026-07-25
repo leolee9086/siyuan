@@ -5,6 +5,9 @@ import type {ModelDomain} from "../../lifecycle/model.types";
 /** 对外复用 Files 的完整页签宿主身份。 */
 export type {LayoutTab};
 
+/** Files 模型的稳定运行时身份；布局分类无需加载具体 class。 */
+export const filesModelBrand = Symbol("FilesModel");
+
 /**
  * Files 组件类型定义
  * @module eventHandlers.types
@@ -42,6 +45,7 @@ export interface FilesDomain<
     TApplication extends object = object,
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
+    readonly [filesModelBrand]: "Files";
     element: HTMLElement;
     parent: TParent;
     closeElement: HTMLElement;
@@ -56,6 +60,13 @@ export interface FilesDomain<
     onFiletreeSortChanged(data: {notebook: string; parentPath: string}): void;
     onNotebookSortChanged(): void;
 }
+
+/**
+ * @同步豁免: 类型守卫
+ * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 FilesDomain。
+ */
+export const isFilesDomain = (model: object): model is FilesDomain =>
+    filesModelBrand in model && model[filesModelBrand] === "Files";
 
 // ============================================================================
 // 事件处理器相关类型
