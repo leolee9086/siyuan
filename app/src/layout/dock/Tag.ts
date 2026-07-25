@@ -20,8 +20,15 @@ import {
     TAG_EDITOR_RENDER_CONFIG, genTagBlockListHTML,
 } from "./tag.util";
 import { filterTagData, getTagFilterKeywords } from "./tagFilter";
+import {tagModelBrand} from "./tag/tag.types";
+import type {TreeDomain} from "../../util/file/tree.types";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 
 export class Tag extends Model<AppFacade, Tab> {
+    public get [tagModelBrand]() {
+        return "Tag" as const;
+    }
+
     private openNodes: string[] | undefined;
     private preFilterOpenNodes: string[] | undefined;
     private data: IBlockTree[] = [];
@@ -29,8 +36,8 @@ export class Tag extends Model<AppFacade, Tab> {
     private updating = false;
     private pendingUpdate: boolean | undefined;
     private filterLoadPending = false;
-    public tree: Tree;
-    public editors: Protyle[] = [];
+    public tree: TreeDomain;
+    public editors: ProtyleDomain[] = [];
     private element: HTMLElement;
 
     constructor(app: AppFacade, tab: Tab) {

@@ -5,7 +5,7 @@ import {Constants} from "../../constants";
 import {pathPosix} from "../file/pathName";
 import {getDockByType} from "../../layout/tabUtil";
 import {Files} from "../../layout/dock/Files";
-import {Tag} from "../../layout/dock/Tag";
+import type {TagDomain} from "../../layout/dock/tag/tag.types";
 import {platform} from "../../platform";
 import {upDownHint} from "../DOM/upDownHint";
 import {escapeHtml} from "../DOM/escape";
@@ -65,7 +65,7 @@ export const renameTag = (labelName: string) => {
             }
             if (platform !== "browser-mobile") {
                 const dockTag = getDockByType("tag");
-                (dockTag.data.tag as Tag).update();
+                (dockTag.data.tag as TagDomain).update();
             }
         });
     });

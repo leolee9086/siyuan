@@ -8,7 +8,7 @@ import {isAssetDomain} from "../asset/asset.types";
 import { Search } from "../search";
 import {isFilesDomain} from "./dock/Files/eventHandlers.types";
 import {isBookmarkDomain} from "./dock/bookmark/bookmark.types";
-import { Tag } from "./dock/Tag";
+import {isTagDomain} from "./dock/tag/tag.types";
 import {isCustomDomain} from "./dock/custom/custom.types";
 import {isForwardlinkDomain} from "./dock/forwardlink/Forwardlink.types";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -142,7 +142,7 @@ const pushModel = (models: IModels, model: LayoutTab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Tag) {
+    if (isTagDomain(model)) {
         models.tag.push(model);
         return;
     }

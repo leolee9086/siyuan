@@ -958,7 +958,7 @@ interface IModels {
     inbox: import("../layout/dock/Inbox").Inbox[]
     files: import("../layout/dock/Files/eventHandlers.types").FilesDomain[]
     bookmark: import("../layout/dock/bookmark/bookmark.types").BookmarkDomain[]
-    tag: import("../layout/dock/Tag").Tag[]
+    tag: import("../layout/dock/tag/tag.types").TagDomain[]
     asset: import("../asset/asset.types").AssetDomain[]
     search: import("../search").Search[]
     custom: import("../layout/dock/custom/custom.types").CustomDomain[]
