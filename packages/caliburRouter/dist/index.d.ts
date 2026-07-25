@@ -22,7 +22,10 @@
  * // => { 命令: "回车" }
  * ```
  */
-export { calibur } from "./core/matcher.js";
-export type { 匹配器构建器, 可构建匹配器, 分发器, 处理器, 已注册模式, 切割后剩余, 剩余集为空, 推断类型 } from "./core/types.js";
+import { createCaliburRouter } from "./core/matcher.js";
+import { arktypeBackend } from "./adapters/arktype.js";
+export declare const calibur: import("./index.js").CaliburRouter;
+export { createCaliburRouter, arktypeBackend };
+export type { 匹配器构建器, 可构建匹配器, 分发器, 处理器, 已注册模式, 切割后剩余, 剩余集为空, 推断类型, StateSpaceBackend, CaliburRouter, 状态空间模式, } from "./core/types.js";
 export { 匹配, 是子集, 有交集, 是空集 } from "./utils/setOps.js";
 //# sourceMappingURL=index.d.ts.map

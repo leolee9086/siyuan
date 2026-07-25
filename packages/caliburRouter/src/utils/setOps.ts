@@ -6,7 +6,7 @@
 
 import { type } from "arktype";
 import type { Type } from "arktype";
-import type {状态空间模式} from "../core/types.js";
+import type { 状态空间模式 } from "../core/types.js";
 
 const 最大覆盖证明节点数 = 16_384;
 
@@ -59,7 +59,6 @@ export function 是子集(a: 状态空间模式, b: 状态空间模式): boolean
     return asArkType(a).extends(asArkType(b)) === true;
 }
 
-/** 合并两个 ArkType 状态空间模式，供构建器计算运行时覆盖集。 */
 type 属性路径 = readonly string[];
 
 function 是记录(value: unknown): value is Record<string, unknown> {
@@ -239,8 +238,8 @@ export function 有交集(a: 状态空间模式, b: 状态空间模式): boolean
         }
         // 未知错误必须抛出，附带完整上下文信息
         const 错误消息 = `有交集() 遇到未预期的错误: ${error}\n` +
-            `类型A: ${a.description}\n` +
-            `类型B: ${b.description}`;
+            `类型A: ${asArkType(a).description}\n` +
+            `类型B: ${asArkType(b).description}`;
         const 新错误 = new Error(错误消息);
         // 保留原始错误作为 cause（如果运行时支持）
         if ('cause' in 新错误) {

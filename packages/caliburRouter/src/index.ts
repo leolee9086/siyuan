@@ -23,8 +23,12 @@
  * ```
  */
 
-// 核心API
-export { calibur } from "./core/matcher.js";
+import { createCaliburRouter } from "./core/matcher.js";
+import { arktypeBackend } from "./adapters/arktype.js";
+
+// 默认入口保持 ArkType 行为；其它后端通过独立子路径导出。
+export const calibur = createCaliburRouter(arktypeBackend);
+export { createCaliburRouter, arktypeBackend };
 
 // 类型导出
 export type {
@@ -35,7 +39,10 @@ export type {
     已注册模式,
     切割后剩余,
     剩余集为空,
-    推断类型
+    推断类型,
+    StateSpaceBackend,
+    CaliburRouter,
+    状态空间模式,
 } from "./core/types.js";
 
 // 工具函数

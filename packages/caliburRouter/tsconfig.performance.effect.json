@@ -7,7 +7,7 @@
     "rootDir": "."
   },
   "include": [
-    "tests/performance.long-chain.type.test.ts"
+    "tests/performance.effect.long-chain.type.test.ts"
   ],
   "exclude": [
     "node_modules",

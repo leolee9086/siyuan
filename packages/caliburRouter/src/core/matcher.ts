@@ -4,9 +4,9 @@
  * 基于集合论的类型安全模式匹配引擎
  */
 
-import { type } from "arktype";
-import { 匹配, 是子集, 有交集, 全集被模式集合覆盖 } from "../utils/setOps.js";
 import type {
+    CaliburRouter,
+    StateSpaceBackend,
     匹配器构建器,
     可构建匹配器,
     已注册模式,
@@ -42,7 +42,9 @@ function 处理器是分发器(处理器: unknown): 处理器 is 分发器<unkno
     return (
         typeof 处理器 === "function" &&
         "__全集模式__" in 处理器 &&
-        处理器.__全集模式__ !== undefined
+        处理器.__全集模式__ !== undefined &&
+        "__状态空间后端__" in 处理器 &&
+        处理器.__状态空间后端__ !== undefined
     );
 }
 
@@ -56,6 +58,7 @@ function 处理器是分发器(处理器: unknown): 处理器 is 分发器<unkno
  * 维护已注册的模式列表，在build时生成分发器
  */
 class 匹配器构建器实现<全集, 剩余集, 结果联合> {
+    private readonly backend: StateSpaceBackend;
     /** 全集模式（用于运行时验证） */
     private readonly 全集模式: 状态空间模式<全集>;
     /** 已注册的模式-处理器对列表 */
@@ -66,10 +69,12 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
     private readonly 已耗尽: boolean;
 
     constructor(
+        backend: StateSpaceBackend,
         全集模式: 状态空间模式<全集>,
         已注册列表: 已注册模式[] = [],
         已耗尽: boolean = false
     ) {
+        this.backend = backend;
         this.全集模式 = 全集模式;
         this.已注册列表 = 已注册列表;
         this.已耗尽 = 已耗尽;
@@ -96,6 +101,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
                 "\n  只有 build() 方法是允许的。"
             );
         }
+        this.backend.assertPattern(模式);
 
         let 实际处理器: 处理器<unknown, unknown>;
 
@@ -104,21 +110,29 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
             const 子分发器 = 处理器或分发器;
             const 子全集模式 = 子分发器.__全集模式__;
 
+            if (子分发器.__状态空间后端__ !== this.backend) {
+                throw new Error(
+                    `calibur-router: 嵌套分发器使用了不同的 Schema 后端。` +
+                    `\n  父后端: ${this.backend.name}` +
+                    `\n  子后端: ${子分发器.__状态空间后端__.name}`
+                );
+            }
+
             // 分发器必须提供 fallback
             if (!fallback处理器) {
                 throw new Error(
                     `calibur-router: 使用分发器作为处理器时，必须提供第三参数 fallback 处理器。` +
-                    `\n  当前模式: ${模式.description}` +
-                    `\n  子分发器全集: ${子全集模式.description}`
+                    `\n  当前模式: ${this.backend.describe(模式)}` +
+                    `\n  子分发器全集: ${this.backend.describe(子全集模式)}`
                 );
             }
 
             // 验证子分发器的全集是否为当前模式的子集
-            if (!是子集(子全集模式, 模式)) {
+            if (!this.backend.isSubset(子全集模式, 模式)) {
                 throw new Error(
                     `calibur-router: 嵌套分发器的全集不是当前模式的子集。` +
-                    `\n  当前模式: ${模式.description}` +
-                    `\n  子分发器全集: ${子全集模式.description}`
+                    `\n  当前模式: ${this.backend.describe(模式)}` +
+                    `\n  子分发器全集: ${this.backend.describe(子全集模式)}`
                 );
             }
 
@@ -126,7 +140,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
             const fallback = fallback处理器 as 处理器<unknown, unknown>;
             实际处理器 = (输入: unknown) => {
                 // 检查输入是否匹配子分发器的全集
-                const 子匹配结果 = 匹配(子全集模式, 输入);
+                const 子匹配结果 = this.backend.match(子全集模式, 输入);
                 if (子匹配结果 !== null) {
                     return 子分发器(子匹配结果);
                 }
@@ -140,11 +154,11 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
 
         // 检查新模式是否与已注册的模式有交集
         for (const 已注册 of this.已注册列表) {
-            if (有交集(模式, 已注册.模式)) {
+            if (this.backend.overlaps(模式, 已注册.模式)) {
                 throw new Error(
                     `calibur-router: 模式重叠检测失败。新模式与已注册模式有交集，这会导致新模式永远无法被匹配。` +
-                    `\n  已注册模式: ${已注册.模式.description}` +
-                    `\n  新模式: ${模式.description}` +
+                    `\n  已注册模式: ${this.backend.describe(已注册.模式)}` +
+                    `\n  新模式: ${this.backend.describe(模式)}` +
                     `\n  提示: 请确保 split 的模式互不重叠，或者使用嵌套分发器来处理子集关系。`
                 );
             }
@@ -156,14 +170,14 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
             { 模式, 处理器: 实际处理器 }
         ];
 
-        // 2. 计算新的耗尽状态。ArkType 后端负责证明部分对象模式的联合覆盖。
-        const 新是否已耗尽 = 全集被模式集合覆盖(
+        // 2. 计算新的耗尽状态，具体后端负责证明部分对象模式的联合覆盖。
+        const 新是否已耗尽 = this.backend.covers(
             this.全集模式,
             新列表.map(({ 模式 }) => 模式),
         );
 
         // 返回新的构建器实例
-        return new 匹配器构建器实现(this.全集模式, 新列表, 新是否已耗尽) as unknown as
+        return new 匹配器构建器实现(this.backend, this.全集模式, 新列表, 新是否已耗尽) as unknown as
             匹配器构建器<全集, 结果联合 | 新结果>;
     }
 
@@ -184,6 +198,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
 
         // 创建一个新实例并设置剩余处理器
         const 结果 = new 匹配器构建器实现<全集, never, 结果联合 | 新结果>(
+            this.backend,
             this.全集模式,
             this.已注册列表,
             true // remain 理论上消耗所有剩余，所以标记为耗尽（虽然 remain 返回的可构建匹配器不再有 split 方法）
@@ -204,11 +219,12 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
         const 已注册列表 = this.已注册列表;
         const 剩余处理器 = this.剩余处理器;
         const 全集模式 = this.全集模式;
+        const backend = this.backend;
 
         const 分发函数 = ((输入: 全集) => {
             // 线性搜索匹配
             for (const { 模式, 处理器 } of 已注册列表) {
-                const 结果 = 匹配(模式, 输入);
+                const 结果 = backend.match(模式, 输入);
                 if (结果 !== null) {
                     return 处理器(结果);
                 }
@@ -222,7 +238,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
             // 如果所有模式都没匹配，且没有剩余处理器
             // 但如果在编译期保证了全覆盖（Exhausted -> split returned ExhaustedMatcherBuilder -> only build），
             // 理论上应该匹配上了。
-            // 除非：运行时输入不在全集范围内（ArkType校验可能在边界处），或者逻辑漏洞。
+            // 除非运行时输入不在全集范围内，或者后端证明与验证语义不一致。
             // 不过对于 ExhaustedMatcherBuilder，我们没有强制要求必须有 remain。
             // 如果 build() 被调用且没有 remain，这意味着全集应该被 patterns 覆盖。
             // 我们可以在这里抛出更有意义的错误。
@@ -236,6 +252,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
 
         // 挂载全集模式到分发器，用于嵌套验证
         (分发函数 as 分发器<全集, 结果联合>).__全集模式__ = 全集模式;
+        (分发函数 as 分发器<全集, 结果联合>).__状态空间后端__ = backend;
 
         return 分发函数;
     }
@@ -249,17 +266,14 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> {
  * calibur 命名空间
  * 提供创建模式匹配器的入口API
  */
-export const calibur = {
-    /**
-     * 定义状态空间全集，创建匹配器构建器
-     * 
-     * @param 全集模式 - arktype模式，定义所有可能的输入
-     * @returns 匹配器构建器，可链式调用split和remain
-     */
-    universe<全集>(全集模式: 状态空间模式<全集>): 匹配器构建器<全集, never> {
-        return new 匹配器构建器实现(全集模式) as unknown as 匹配器构建器<全集, never>;
-    }
-};
+export function createCaliburRouter(backend: StateSpaceBackend): CaliburRouter {
+    return {
+        universe<全集>(全集模式: 状态空间模式<全集>): 匹配器构建器<全集, never> {
+            backend.assertPattern(全集模式);
+            return new 匹配器构建器实现(backend, 全集模式) as unknown as 匹配器构建器<全集, never>;
+        },
+    };
+}
 
 // 类型导出
 export type {

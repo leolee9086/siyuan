@@ -7,8 +7,22 @@
 /** 后端无关的状态空间模式；后端负责集合运算，核心链只携带推断状态。 */
 export interface 状态空间模式<out 状态 = unknown> {
     readonly infer: 状态;
-    readonly description: string;
-    (输入: unknown): unknown;
+}
+
+/** Schema 后端必须提供的完整运行时状态空间代数。 */
+export interface StateSpaceBackend {
+    readonly name: string;
+    assertPattern(pattern: 状态空间模式): void;
+    describe(pattern: 状态空间模式): string;
+    match<状态>(pattern: 状态空间模式<状态>, input: unknown): 状态 | null;
+    isSubset(left: 状态空间模式, right: 状态空间模式): boolean;
+    overlaps(left: 状态空间模式, right: 状态空间模式): boolean;
+    covers(universe: 状态空间模式, patterns: readonly 状态空间模式[]): boolean;
+}
+
+/** 绑定单个 Schema 后端的 Calibur 路由入口。 */
+export interface CaliburRouter {
+    universe<全集>(全集模式: 状态空间模式<全集>): 匹配器构建器<全集, never>;
 }
 
 // ============================================================================
@@ -17,7 +31,7 @@ export interface 状态空间模式<out 状态 = unknown> {
 
 /**
  * 模式处理器类型
- * @template 模式 - 输入模式的类型（由arktype推断）
+ * @template 模式 - 输入模式的类型（由 Schema 后端推断）
  * @template 结果 - 处理器返回值类型
  */
 export type 处理器<模式, 结果> = (输入: 模式) => 结果;
@@ -26,7 +40,7 @@ export type 处理器<模式, 结果> = (输入: 模式) => 结果;
  * 已注册的模式-处理器对
  */
 export interface 已注册模式<模式 = unknown, 结果 = unknown> {
-    /** arktype模式定义 */
+    /** Schema 后端的模式定义 */
     模式: 状态空间模式<模式>;
     /** 对应的处理器 */
     处理器: 处理器<模式, 结果>;
@@ -43,6 +57,8 @@ export interface 分发器<输入, 输出> {
     (输入: 输入): 输出;
     /** 携带的全集模式，用于嵌套验证 */
     __全集模式__: 状态空间模式<输入>;
+    /** 创建该分发器的 Schema 后端，用于阻断跨后端嵌套。 */
+    __状态空间后端__: StateSpaceBackend;
 }
 
 /**
@@ -255,7 +271,7 @@ export interface 匹配器构建器<
      * 
      * 编译期检测：如果新模式与已切割模式有重叠，会在类型层面报错
      * 
-     * @param 模式 - arktype模式定义（用于匹配筛选，可以只指定部分属性）
+     * @param 模式 - Schema 模式定义（用于匹配筛选，可以只指定部分属性）
      * @param 处理器 - 匹配该模式时的处理函数
      * @returns 更新后的匹配器构建器（剩余集已缩小，已切割列表已更新）
      */
@@ -342,6 +358,6 @@ export interface 可构建匹配器<全集, 结果联合> {
 // ============================================================================
 
 /**
- * 从arktype Type中提取推断类型
+ * 从后端无关的状态空间模式中提取推断类型
  */
 export type 推断类型<T extends 状态空间模式> = T["infer"];

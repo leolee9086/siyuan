@@ -22,8 +22,11 @@
  * // => { 命令: "回车" }
  * ```
  */
-// 核心API
-export { calibur } from "./core/matcher.js";
+import { createCaliburRouter } from "./core/matcher.js";
+import { arktypeBackend } from "./adapters/arktype.js";
+// 默认入口保持 ArkType 行为；其它后端通过独立子路径导出。
+export const calibur = createCaliburRouter(arktypeBackend);
+export { createCaliburRouter, arktypeBackend };
 // 工具函数
 export { 匹配, 是子集, 有交集, 是空集 } from "./utils/setOps.js";
 //# sourceMappingURL=index.js.map
