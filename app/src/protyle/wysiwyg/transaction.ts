@@ -1,5 +1,5 @@
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
-import { genEmptyElement } from "../../block/util";
+import { genEmptyElement } from "../../block/element.factory";
 import { getTopAloneElement } from "./getBlock";
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";

@@ -37,7 +37,8 @@ isAny(step2 as number); // If step2 is any, this won't error despite explicit ty
 // type HasRemain = typeof step2.remain; 
 // If step2 is ExhaustedMatcherBuilder, remain shouldn't exist.
 
-// Try to call remain
+// 尝试在耗竭的路由上调用remain,应该直接报错
+// @ts-expect-error
 step2.remain((state) => {
     const s = state; // Check type of s
 });

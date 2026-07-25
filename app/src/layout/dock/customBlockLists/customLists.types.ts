@@ -43,3 +43,36 @@ export interface IBlock {
     hPath?: string;
     ial?: { icon?: string };
 }
+
+/**
+ * CustomLists class 的完整公共领域表面。
+ * 应用、父宿主、Tree 与编辑器身份均参数化；生产菜单使用抽象默认值，契约测试绑定真实实现做严格比较。
+ */
+export interface CustomListsDomain<
+    TApplication extends object = object,
+    TParent extends ILayoutModelHost = ILayoutModelHost,
+    TTree extends object = object,
+    TEditor extends object = object,
+> extends ILayoutModel {
+    readonly layoutModel: true;
+    ws: WebSocket;
+    reqId: number;
+    parent: TParent;
+    app: TApplication;
+    element: HTMLElement;
+    tree: TTree;
+    listData: ICustomList;
+    editors: TEditor[];
+    connect(options: IModelConnectOptions): void;
+    send(cmd: string, param: Record<string, unknown>, process?: boolean): void;
+    dispose(): void;
+    update(): void;
+    updateTitle(title: string): void;
+    handleIconClick(type: string | null, event?: MouseEvent): void;
+}
+/** 用途：继承布局模型身份；使用范围：CustomLists 领域根；解耦评估：稳定生命周期类型不加载具体模型。 */
+import type {ILayoutModel} from "../../lifecycle/model.types";
+/** 用途：参数化父宿主；使用范围：CustomLists 领域根；解耦评估：保持抽象宿主身份，不导入 Tab class。 */
+import type {ILayoutModelHost} from "../../lifecycle/model.types";
+/** 用途：描述公开连接动作；使用范围：CustomLists 领域根；解耦评估：复用模型生命周期请求类型。 */
+import type {IModelConnectOptions} from "../../lifecycle/model.types";

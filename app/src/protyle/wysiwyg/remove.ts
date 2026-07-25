@@ -16,7 +16,8 @@ import {
     IEmbedChildOperationContext
 } from "./getBlock";
 import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
-import { genEmptyElement, rebalanceSbWidth, refreshSbResize } from "../../block/util";
+import { genEmptyElement } from "../../block/element.factory";
+import { rebalanceSbWidth, refreshSbResize } from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../util/blockFold";

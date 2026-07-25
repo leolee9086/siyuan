@@ -1,6 +1,7 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { IGutterTurnIntoContext, genTurnsOneInto } from "./buildGutterTurnIntoMenu";
+import type {IGutterTurnIntoContext} from "./gutter.types";
+import {genTurnsOneInto} from "./turnInto/items";
 
 const addTurnsOneInto = (
     ctx: IGutterTurnIntoContext,

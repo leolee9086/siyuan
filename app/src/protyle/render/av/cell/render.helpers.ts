@@ -46,7 +46,7 @@ import { siyuanI18n } from "./imports";
  * 解耦评估：通过storage.environment.ts封装window访问
  */
 import { getDefaultFileIcon } from "./storage.environment";
-import {getAVTemplateHTML} from "../blockAttr";
+import {getAVTemplateHTML} from "../value/render";
 
 /**
  * 辅助函数：渲染template类型单元格

@@ -3,7 +3,6 @@
  * 使用范围：转义URL等属性值
  * 解耦评估：通过imports.ts统一管理
  */
-import { escapeAttr } from "./imports";
 /**
  * 用途：rollup类型单元格渲染函数
  * 使用范围：renderCell函数中处理rollup类型
@@ -88,31 +87,7 @@ import { renderRollupCell } from "./render.helpers";
  * 解耦评估：已拆分到独立模块
  */
 import { renderRelationCell } from "./render.helpers";
-
-/**
- * 作用：渲染URL类型单元格的HTML
- * 意图：将URL内容格式化为可点击的链接，显示主机名和路径摘要
- * 调用时机：renderCell函数处理url类型单元格时调用
- * 问题/改进：URL解析失败时回退到纯文本显示
- * @同步豁免: UI构建 - 纯字符串拼接，无异步操作需求
- */
-export const renderCellURL = (urlContent: string) => {
-    let host = urlContent;
-    let suffix = "";
-    try {
-        const urlObj = new URL(urlContent);
-        if (urlObj.protocol.startsWith("http")) {
-            host = urlObj.host;
-            suffix = urlObj.href.replace(urlObj.origin, "");
-            if (suffix.length > 12) {
-                suffix = suffix.substring(0, 4) + "..." + suffix.substring(suffix.length - 6);
-            }
-        }
-    } catch (e) {
-        // 不是 url 地址
-    }
-    return `<span class="av__celltext av__celltext--url" data-type="url" data-href="${escapeAttr(urlContent)}"><span>${Lute.EscapeHTMLStr(host)}</span><span class="ft__on-surface">${Lute.EscapeHTMLStr(suffix)}</span></span>`;
-};
+import {renderCellURL} from "./renderURL";
 
 /**
  * 辅助函数：处理单个文本元素的文本提取

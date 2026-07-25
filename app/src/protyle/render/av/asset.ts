@@ -10,7 +10,7 @@ import { MenuItem } from "../../../menus/Menu.Item";
 import { writeAssetToClipboard, copyPNGByLink, exportAsset } from "../../../menus/util";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { previewAttrViewImages } from "../../preview/image";
-import { genAVValueHTML } from "./blockAttr";
+import {genAVValueHTML} from "./value/render";
 import { hideMessage, showMessage } from "../../runtime/dialog.port";
 import { fetchPost } from "../../../util/network/fetch";
 import { hasClosestBlock } from "../../util/hasClosest";

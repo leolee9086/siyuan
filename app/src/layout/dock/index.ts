@@ -15,7 +15,7 @@ import { Constants } from "../../constants";
 import { initDockResize } from "./dock.resize";
 import { initDockDnD } from "./dock.dnd";
 import { initDockLayout } from "./dock.layout";
-import { handleGraphShow } from "./dock.graph";
+import {handleGraphShow} from "./graph/runtime";
 import { generateAllButtonsHTML, insertButtonsToContainer } from "./dock.button";
 import { getSiyuanLanguages, getSiyuanConfig, setWindowTimeout } from "./dock.environment";
 import { isWnd, isTDock } from "./dock.guard";

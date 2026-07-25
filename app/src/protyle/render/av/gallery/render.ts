@@ -2,15 +2,16 @@ import {hasClosestBlock, hasClosestByClassName} from "../../../util/hasClosest";
 import {Constants} from "../../../../constants";
 import {fetchSyncPost} from "../../../../util/network/fetch";
 import {focusBlock} from "../../../util/selection";
-import {avRender, genTabHeaderHTML, getGroupTitleHTML, updateSearch} from "../render";
+import {getGroupTitleHTML} from "../render.table";
+import {genTabHeaderHTML} from "../view/header";
 import {contentRendererRegistry} from "../../../../registry/contentRenderer/ContentRendererRegistry";
 import {getPageSize} from "../groups";
 import {bindAvSearch} from "../search";
-import {renderKanban} from "../kanban/render";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getBodyVirtualData, initVirtualScroll} from "../virtualScroll";
 import {getRowHTML, updateHeader} from "../row";
 import {beginAVRender, finishAVLocate, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "../locate";
+import type {AVViewRenderer} from "../view/render.types";
 
 interface IIds {
     groupId: string,
@@ -20,9 +21,10 @@ interface IIds {
 interface ITableOptions {
     protyle: IProtyle,
     blockElement: HTMLElement,
-    cb: (data: IAV) => void,
+    cb: ((data: IAV) => void) | undefined,
     data: IAV,
     renderAll: boolean,
+    onSearchChange: () => void,
     resetData: {
         alignSelf: string,
         selectItemIds: IIds[],
@@ -170,7 +172,7 @@ export const afterRenderGallery = (options: ITableOptions) => {
         blockElement: options.blockElement,
         query: options.resetData.query,
         isSearching: options.resetData.isSearching,
-        onChange: () => updateSearch(options.blockElement, options.protyle),
+        onChange: options.onSearchChange,
     });
     initVirtualScroll(options);
     finishAVLocate(options.blockElement, options.protyle, options.data);
@@ -182,6 +184,8 @@ export const renderGallery = async (options: {
     cb?: (data: IAV) => void,
     renderAll: boolean,
     data?: IAV,
+    renderView: AVViewRenderer,
+    onSearchChange: () => void,
 }) => {
     const renderToken = beginAVRender(options.blockElement);
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
@@ -266,17 +270,23 @@ export const renderGallery = async (options: {
     prepareAVLocate(options.blockElement, data, resetData);
     if (data.viewType === "table") {
         options.blockElement.setAttribute("data-av-type", data.viewType);
-        avRender(options.blockElement, options.protyle, options.cb, options.renderAll, data);
-        return;
-    }
-    if (data.viewType === "kanban") {
-        options.blockElement.setAttribute("data-av-type", data.viewType);
-        renderKanban({
+        await options.renderView({
             blockElement: options.blockElement,
             protyle: options.protyle,
             cb: options.cb,
             renderAll: options.renderAll,
-            data
+            data,
+        });
+        return;
+    }
+    if (data.viewType === "kanban") {
+        options.blockElement.setAttribute("data-av-type", data.viewType);
+        await options.renderView({
+            blockElement: options.blockElement,
+            protyle: options.protyle,
+            cb: options.cb,
+            renderAll: options.renderAll,
+            data,
         });
         return;
     }
@@ -288,7 +298,8 @@ export const renderGallery = async (options: {
             cb: options.cb,
             renderAll: options.renderAll,
             data,
-            resetData
+            resetData,
+            onSearchChange: options.onSearchChange,
         });
         return;
     }
@@ -320,6 +331,7 @@ export const renderGallery = async (options: {
         cb: options.cb,
         protyle: options.protyle,
         blockElement: options.blockElement,
+        onSearchChange: options.onSearchChange,
     });
     if (view.hideAttrViewName) {
         options.blockElement.querySelector(".av__gallery").classList.add("av__gallery--top");

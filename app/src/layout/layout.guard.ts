@@ -5,6 +5,7 @@
 
 import type { Layout } from "./index";
 import type { Wnd } from "./Wnd";
+export {ensureDirection, ensureSize, ensureType} from "./options";
 
 // 重导出统一的 DOM 元素守卫函数
 export { isStylableElement } from "../util/DOM/element.guard";
@@ -29,25 +30,4 @@ export function isLayout(item: unknown): item is Layout {
  */
 export function isWnd(item: unknown): item is Wnd {
     return typeof item === "object" && item !== null && "element" in item && "type" in item;
-}
-
-/**
- * 类型断言：确保 direction 不为 undefined
- */
-export function ensureDirection(direction: Config.TUILayoutDirection | undefined): Config.TUILayoutDirection {
-    return direction || "tb";
-}
-
-/**
- * 类型断言：确保 size 不为 undefined
- */
-export function ensureSize(size: string | undefined): string {
-    return size || "auto";
-}
-
-/**
- * 类型断言：确保 type 不为 undefined
- */
-export function ensureType(type: Config.TUILayoutType | undefined): Config.TUILayoutType {
-    return type || "normal";
 }

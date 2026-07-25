@@ -12,7 +12,7 @@ import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
 import {mathRender} from "../../protyle/render/mathRender";
-import {genEmptyElement} from "../../block/util";
+import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock} from "../../protyle/util/selection";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {collapseSameLevel, collapseChildren, getHeadingLevel} from "./MobileOutline.expand";

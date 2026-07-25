@@ -5,7 +5,7 @@ import { genListItemElement } from "./list";
 import { transaction } from "./transaction";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
-import { genEmptyBlock } from "../../block/util";
+import { genEmptyBlock } from "../../block/element.factory";
 
 /**
  * 在指定列表项下添加子列表（或追加同级列表项）。

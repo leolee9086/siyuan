@@ -13,12 +13,17 @@ import type {FilesEventHost} from "../../src/layout/dock/Files/eventHandlers.typ
 import type {FilesDragContext} from "../../src/layout/dock/Files/dnd.types";
 import type * as Siyuan from "siyuan";
 import {createAppFacade} from "../../src/app/AppFacade.types";
-import type {AppFacade, AppFacadeShape} from "../../src/app/AppFacade.types";
-import type {IsAssignable} from "../../src/util/types/LooksLike.types";
+import type {AppFacade} from "../../src/app/AppFacade.types";
+import type {InstanceLooksLike, IsAssignable} from "../../src/util/types/LooksLike.types";
+import type {SiyuanPluginRuntimeContract} from "../compatibility/SiyuanEcosystem.contract.types";
 
-type AppFacadeContract = IsAssignable<LocalApp.App, AppFacadeShape<Siyuan.Plugin, LocalEventBus.EventBus>>;
-type PluginCompatibility = IsAssignable<LocalPlugin.Plugin, Siyuan.Plugin>;
+type AppFacadeContract = InstanceLooksLike<
+    typeof LocalApp.App,
+    AppFacade<Siyuan.Plugin, LocalEventBus.EventBus>
+>;
+type PluginCompatibility = IsAssignable<LocalPlugin.Plugin, SiyuanPluginRuntimeContract>;
 type EventBusCompatibility = IsAssignable<LocalEventBus.EventBus, Siyuan.EventBus>;
+type PluginDockIngressCompatibility = IsAssignable<Siyuan.IPluginDockTab, IPluginDockTab>;
 type AssetWindowHashCompatibility = IsAssignable<Asset, IWindowHashModel>;
 type FilesEventHostCompatibility = IsAssignable<Files, FilesEventHost>;
 type FilesDragContextCompatibility = IsAssignable<Files, FilesDragContext>;
@@ -26,11 +31,16 @@ type FilesDragContextCompatibility = IsAssignable<Files, FilesDragContext>;
 const appFacadeContract: AppFacadeContract = true;
 const pluginCompatibility: PluginCompatibility = true;
 const eventBusCompatibility: EventBusCompatibility = true;
+const pluginDockIngressCompatibility: PluginDockIngressCompatibility = true;
 const assetWindowHashCompatibility: AssetWindowHashCompatibility = true;
 const filesEventHostCompatibility: FilesEventHostCompatibility = true;
 const filesDragContextCompatibility: FilesDragContextCompatibility = true;
 
-const testFacade = createAppFacade({
+// These witnesses make an upstream compatibility regression identify the concrete member in tsc output.
+const asUpstreamPluginRuntime = (plugin: LocalPlugin.Plugin): SiyuanPluginRuntimeContract => plugin;
+const asUpstreamEventBus = (eventBus: LocalEventBus.EventBus): Siyuan.EventBus => eventBus;
+
+const testFacade = createAppFacade<object, object>({
     plugins: [],
     appId: "test-app",
     eventBus: {},
@@ -75,10 +85,13 @@ const concreteAppImportViolations = () => {
 };
 
 describe("AppFacade contracts", () => {
-    it("keeps the concrete application public surface assignable to the abstract shape", () => {
+    it("keeps the complete concrete application public surface equal to the branded facade", () => {
         assert.equal(appFacadeContract, true);
         assert.equal(pluginCompatibility, true);
         assert.equal(eventBusCompatibility, true);
+        assert.equal(pluginDockIngressCompatibility, true);
+        assert.equal(typeof asUpstreamPluginRuntime, "function");
+        assert.equal(typeof asUpstreamEventBus, "function");
         assert.equal(assetWindowHashCompatibility, true);
         assert.equal(filesEventHostCompatibility, true);
         assert.equal(filesDragContextCompatibility, true);

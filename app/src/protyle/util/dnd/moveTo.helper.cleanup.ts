@@ -1,4 +1,4 @@
-import { genEmptyElement } from "../../../block/util";
+import { genEmptyElement } from "../../../block/element.factory";
 import { cancelSB } from "../../../block/util.cancelSB";
 import { getParentBlock, getPreviousBlockSibling, getSbChildBlockCount, getTopAloneElement } from "../../wysiwyg/getBlock";
 import { findProtyleForElement } from "../../runtime/layout.port";

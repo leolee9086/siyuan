@@ -1,4 +1,4 @@
-import { ICustomList } from "./CustomLists";
+import type { ICustomList } from "./customLists.types";
 import { getDockByType } from "../../tabUtil";
 import { setStorageVal } from "../../../protyle/util/compatibility";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -45,17 +45,4 @@ export const handleRemoveItemFromList = (id: string, listData: ICustomList) => {
         return true; // Indicates update needed
     }
     return false;
-};
-
-export const updateListTarget = (listData: ICustomList) => {
-    const storage = window.siyuan.storage;
-    const customLists = storage?.["local-customlists"];
-    if (customLists && customLists[listData.id]) {
-        customLists[listData.id] = listData;
-        setStorageVal("local-customlists", customLists);
-    }
-    const key = `custom_list:${listData.type}:${listData.id}`;
-    const dock = getDockByType(key);
-    // Dock doesn't need explicit updateData for custom list content changes
-    // as we handle persistence directly to storage.
 };

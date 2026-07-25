@@ -1,6 +1,7 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { IGutterTurnIntoContext, genTurnsIntoOne, genTurnsOneInto } from "./buildGutterTurnIntoMenu";
+import type {IGutterTurnIntoContext} from "./gutter.types";
+import {genTurnsIntoOne, genTurnsOneInto} from "./turnInto/items";
 
 type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout";
 type TTurnIntoOneSub = "row" | "col";

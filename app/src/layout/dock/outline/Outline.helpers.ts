@@ -3,22 +3,32 @@
  * 将原本的私有方法提取为模块级函数，提高可测试性
  */
 
-import { fetchPost } from "../../../util/network/fetch";
-import { hasClosestBlock } from "../../../protyle/util/hasClosest";
-import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
-import { Constants } from "../../../constants";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanStorage, getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowSelection } from "../../../util/siyuanEnvironments/windowStandard.environment";
+/** 用途：请求大纲和块存在状态；使用范围：事务刷新与本地页签清理；解耦评估：稳定网络边界。 */
+import { fetchPost } from "./runtime/imports";
+/** 用途：从当前选区定位标题块；使用范围：刷新后恢复高亮；解耦评估：纯 DOM 工具。 */
+import { hasClosestBlock } from "./runtime/imports";
+/** 用途：快捷键提示格式化；使用范围：面板 HTML；解耦评估：稳定平台唯一实现。 */
+import {updateHotkeyAfterTip} from "./runtime/imports";
+/** 用途：命令与存储键常量；使用范围：消息处理和面板 HTML；解耦评估：稳定常量。 */
+import { Constants } from "./runtime/imports";
+/** 用途：Outline 文案；使用范围：面板 HTML；解耦评估：只读语言环境。 */
+import { siyuanI18n } from "./runtime/imports";
+/** 用途：读取大纲存储和快捷键配置；使用范围：面板 HTML；解耦评估：只读配置环境。 */
+import {getSiyuanConfig} from "./runtime/imports";
+/** 用途：读取大纲存储；使用范围：面板 HTML；解耦评估：经稳定 Outline runtime 网关。 */
+import {getSiyuanStorage} from "./runtime/imports";
+/** 用途：读取当前选区；使用范围：刷新后恢复标题高亮；解耦评估：标准窗口环境。 */
+import { getWindowSelection } from "./runtime/imports";
 
-import type { Outline } from "./Outline";
+/** 用途：完整 Outline 面板领域根；使用范围：事务和消息生命周期；解耦评估：替代具体 class。 */
+import type {IOutlinePanel} from "./types";
 
 /**
  * 生成 Outline 面板的 HTML 结构
  * @param type - Outline 类型: "pin" | "local"
  * @同步豁免: UI构建
  */
-export function 生成面板HTML(type: "pin" | "local"): string {
+export function 生成面板HTML(type: "pin" | "local") {
     const outlineStorage = getSiyuanStorage()[Constants.LOCAL_OUTLINE];
     const keepExpandActive = outlineStorage?.keepCurrentExpand ? " block__icon--active" : "";
 
@@ -64,7 +74,7 @@ export function 生成面板HTML(type: "pin" | "local"): string {
  * @param outlineElement - Outline 的 DOM 元素
  * @returns 是否需要重载
  */
-function 检查操作是否需要重载(item: IOperation, outlineElement: Element): boolean {
+function 检查操作是否需要重载(item: IOperation, outlineElement: Element) {
     // 意图：处理更新操作。若被更新的块已在大纲中显示（如修改了现有标题的内容），或被更新的块变成了标题（如将普通段落设为标题），则需重载大纲以反映变更。
     if (item.action === "update") {
         const hasExistingItem = outlineElement.querySelector(`.b3-list-item[data-node-id="${item.id}"]`);
@@ -84,7 +94,7 @@ function 检查操作是否需要重载(item: IOperation, outlineElement: Elemen
  * @param data - WebSocket 数据
  * @同步豁免: 遗留代码
  */
-export function 处理事务(outline: Outline, data: IWebSocketData): void {
+export function 处理事务(outline: IOutlinePanel, data: IWebSocketData) {
     // 意图：若是其他文档的事务消息，则直接忽略，仅处理当前大纲对应文档的事务。
     if (data.data.rootID !== outline.blockId) {
         return;
@@ -116,7 +126,7 @@ export function 处理事务(outline: Outline, data: IWebSocketData): void {
  * @param data 原始 WebSocket 数据
  * @returns 接收 response 的回调函数
  */
-function 创建获取大纲回调(outline: Outline, data: IWebSocketData) {
+function 创建获取大纲回调(outline: IOutlinePanel, data: IWebSocketData) {
     return (response: IWebSocketData) => {
         处理大纲响应(outline, data, response);
     };
@@ -130,7 +140,7 @@ function 创建获取大纲回调(outline: Outline, data: IWebSocketData) {
  * @param data - 原始的 WebSocket 触发数据
  * @param response - 接口返回的大纲数据
  */
-function 处理大纲响应(outline: Outline, data: IWebSocketData, response: IWebSocketData): void {
+function 处理大纲响应(outline: IOutlinePanel, data: IWebSocketData, response: IWebSocketData) {
     // 意图：校验响应数据是否属于当前大纲对应的文档。
     if (data.data.rootID !== outline.blockId) {
         return;
@@ -146,7 +156,7 @@ function 处理大纲响应(outline: Outline, data: IWebSocketData, response: IW
  * 调用时机：刷新大纲后自动调用
  * @param outline - Outline 实例
  */
-function 同步当前选中的标题(outline: Outline): void {
+function 同步当前选中的标题(outline: IOutlinePanel) {
     const selection = getWindowSelection();
     // 意图：确保当前有选区，否则无法同步。
     if (!selection || selection.rangeCount <= 0) {
@@ -169,7 +179,7 @@ function 同步当前选中的标题(outline: Outline): void {
  * @param outline - Outline 实例
  * @同步豁免: 生命周期
  */
-export function 检查本地文档及其Tab存在的逻辑(outline: Outline): void {
+export function 检查本地文档及其Tab存在的逻辑(outline: IOutlinePanel) {
     // 意图：仅Local类型的大纲需要检查文档存在性，Pin类型的大纲常驻不需自动关闭。
     if (outline.type !== "local") {
         return;
@@ -182,55 +192,51 @@ export function 检查本地文档及其Tab存在的逻辑(outline: Outline): vo
     });
 }
 
-const 消息处理器: Record<string, (outline: Outline, data: IWebSocketData) => void> = {
-    savedoc: 处理事务,
-    /**
-     * 作用：处理 rename 消息
-     * 意图：在文档重命名时更新大纲或 Tab 的标题
-     * 调用时机：收到 rename 消息时
-     */
-    rename: (outline, data) => {
-        // 意图：若是当前Local大纲对应的文档重命名，则直接更新Tab标题。
-        if (outline.type === "local" && outline.blockId === data.data.id) {
-            outline.parent.updateTitle(data.data.title);
-            return;
-        }
-        outline.updateDocTitle({ title: data.data.title, icon: Constants.ZWSP }, -1);
-    },
-    /**
-     * 作用：处理 unmount 消息
-     * 意图：在某些卸载场景下再次确认文档是否存在，不存在则关闭 Tab
-     * 调用时机：收到 unmount 消息时
-     */
-    unmount: (outline) => {
-        检查本地文档及其Tab存在的逻辑(outline);
-    },
-    /**
-     * 作用：处理 removeDoc 消息
-     * 意图：当文档被删除时，关闭关联的本地大纲 Tab
-     * 调用时机：收到 removeDoc 消息时
-     */
-    removeDoc: (outline, data) => {
-        // 意图：判断当前被删除的文档ID列表中是否包含当前大纲的ID，且当前大纲为Local Tab类型
-        // 场景：文档被删除后，清理对应的悬空大纲Tab
-        if (data.data.ids.includes(outline.blockId) && outline.type === "local") {
-            outline.parent.parent.removeTab(outline.parent.id);
-        }
-    },
-};
+/** 文档重命名时更新本地页签标题或 Pin 大纲标题。 */
+function 处理重命名消息(outline: IOutlinePanel, data: IWebSocketData) {
+    // 本地大纲与被重命名文档一致时更新页签；Pin 模式继续更新自身标题区。
+    if (outline.type === "local" && outline.blockId === data.data.id) {
+        outline.parent.updateTitle(data.data.title);
+        return;
+    }
+    outline.updateDocTitle({title: data.data.title, icon: Constants.ZWSP}, -1);
+}
+
+/** 文档删除消息命中当前本地大纲时关闭对应页签。 */
+function 处理删除文档消息(outline: IOutlinePanel, data: IWebSocketData) {
+    // 只有当前本地大纲绑定的文档被删除时才关闭其页签。
+    if (data.data.ids.includes(outline.blockId) && outline.type === "local") {
+        outline.parent.parent.removeTab(outline.parent.id);
+    }
+}
 
 /**
  * 处理来自 WebSocket 的各种消息
  * @同步豁免: 生命周期
  */
-export function 分发消息回调逻辑(outline: Outline, data: IWebSocketData): void {
+export function 分发消息回调逻辑(outline: IOutlinePanel, data: IWebSocketData) {
     // 意图：防御性校验，确保消息包含命令指令。
     if (!data?.cmd) {
         return;
     }
-    const handler = 消息处理器[data.cmd];
-    if (handler) {
-        handler(outline, data);
+    // 保存事务可能改变标题结构，需要按事务内容决定是否重新请求大纲。
+    if (data.cmd === "savedoc") {
+        处理事务(outline, data);
+        return;
+    }
+    // 重命名消息只更新当前大纲对应的标题呈现。
+    if (data.cmd === "rename") {
+        处理重命名消息(outline, data);
+        return;
+    }
+    // 卸载后重新确认本地文档存在性，清理失效页签。
+    if (data.cmd === "unmount") {
+        检查本地文档及其Tab存在的逻辑(outline);
+        return;
+    }
+    // 删除消息直接按文档 ID 清理本地大纲页签。
+    if (data.cmd === "removeDoc") {
+        处理删除文档消息(outline, data);
     }
 }
 

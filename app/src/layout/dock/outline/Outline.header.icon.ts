@@ -1,52 +1,26 @@
-import { getDockByType } from "../../tabUtil";
-import type { Outline } from "./Outline";
-import { isHTMLInputElement } from "../../../util/DOM/element.guard";
+/** 用途：完整 Outline 面板领域根；使用范围：图标命令分派；解耦评估：替代具体 class 和 Dock 查询依赖。 */
+import type {IOutlinePanel} from "./types";
 
-/**
- * 定义图标点击的策略映射
- */
-const iconClickStrategies = {
-    /**
-     * 作用：最小化面板。
-     * 意图：调用 getDockByType 隐藏大纲面板。
-     * 调用时机：点击最小化图标时。
-     * 问题/改进：无
-     */
-    min: () => {
-        getDockByType("outline")?.toggleModel("outline", false, true);
-    },
-    /**
-     * 作用：激活搜索框。
-     * 意图：显示并选中搜索框内容。
-     * 调用时机：点击搜索图标时。
-     * 问题/改进：无
-     */
-    search: (input: HTMLInputElement | null) => {
-        if (input) {
-            input.classList.remove("fn__none");
-            input.select();
-        }
-    },
-    /**
-     * 作用：显示展开层级菜单。
-     * 意图：调用 outline.showExpandLevelMenu 显示菜单。
-     * 调用时机：点击展开层级图标时。
-     * 问题/改进：无
-     */
-    expandLevel: (outline: Outline, target: HTMLElement, event: MouseEvent) => {
-        outline.showExpandLevelMenu(target);
-        event.preventDefault();
-        event.stopPropagation();
-    }
-};
+/** 点击搜索图标时显示并选中当前 header 输入框。 */
+function showSearch(input: HTMLInputElement) {
+    input.classList.remove("fn__none");
+    input.select();
+}
+
+/** 点击展开层级图标时打开菜单并终止本次图标事件继续传播。 */
+function showExpandLevel(outline: IOutlinePanel, target: HTMLElement, event: MouseEvent) {
+    outline.showExpandLevelMenu(target);
+    event.preventDefault();
+    event.stopPropagation();
+}
 
 /**
  * 作用：处理面板内图标的点击。
  * 意图：根据图标的 data-type 属性，执行对应的策略动作。
  * 调用时机：handlePanelClick 检测到点击了 .block__icon 时。
- * @同步豁免: DOM访问
+ * @同步豁免: 需要绝对同步的DOM访问 - 点击分派必须使用当前事件目标和输入框状态。
  */
-export function handlePanelIconClick(outline: Outline, target: HTMLElement, event: MouseEvent) {
+export function handlePanelIconClick(outline: IOutlinePanel, target: HTMLElement, event: MouseEvent) {
     const type = target.getAttribute("data-type");
     const inputElement = outline.headerElement.querySelector("input.b3-text-field.search__label");
 
@@ -55,8 +29,8 @@ export function handlePanelIconClick(outline: Outline, target: HTMLElement, even
      * 意图：如果点击的是搜索图标，确保输入框元素存在以便聚焦。
      * 生效场景：type 为 "search" 且 inputElement 是 HTMLInputElement。
      */
-    if (type === "search" && isHTMLInputElement(inputElement)) {
-        iconClickStrategies.search(inputElement);
+    if (type === "search" && inputElement instanceof HTMLInputElement) {
+        showSearch(inputElement);
         return;
     }
 
@@ -66,7 +40,7 @@ export function handlePanelIconClick(outline: Outline, target: HTMLElement, even
      * 生效场景：type 为 "min"。
      */
     if (type === "min") {
-        iconClickStrategies.min();
+        outline.minimize();
         return;
     }
 
@@ -76,7 +50,7 @@ export function handlePanelIconClick(outline: Outline, target: HTMLElement, even
      * 生效场景：type 为 "expandLevel"。
      */
     if (type === "expandLevel") {
-        iconClickStrategies.expandLevel(outline, target, event);
+        showExpandLevel(outline, target, event);
         return;
     }
 }

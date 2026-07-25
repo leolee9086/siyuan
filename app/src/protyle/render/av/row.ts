@@ -22,6 +22,7 @@ import {escapeAttr} from "../../../util/DOM/escape";
 import {getCompressURL} from "../../../util/assets/image";
 import {getAVSelectStat, getAvBodyData, resetAVRowSelect, updateAVRowSelect} from "./virtualScroll";
 import {getCardCoverImageHTML} from "./cover";
+import {syncAVPageSize} from "./view/pagination";
 
 export const getRowHTML = async (options: {
     data: IAVView
@@ -319,19 +320,6 @@ export const updateHeader = (rowElement: HTMLElement) => {
     counterElement.innerHTML = `${selectCount} ${window.siyuan.languages.selected}`;
 };
 
-export const setPage = (blockElement: Element) => {
-    const avType = blockElement.getAttribute("data-av-type") as TAVView;
-    blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
-        const pageSize = item.dataset.pageSize;
-        if (pageSize) {
-            const currentCount = item.querySelectorAll(avType === "table" ? ".av__row:not(.av__row--header)" : ".av__gallery-item").length;
-            if (parseInt(pageSize) < currentCount) {
-                item.dataset.pageSize = currentCount.toString();
-            }
-        }
-    });
-};
-
 /**
  * 前端插入一假行
  * @param options.protyle
@@ -419,7 +407,7 @@ ${colType === "block" ? ' data-detached="true"' : ""}>${renderedCell}</div>`;
                 }
             }
         }
-        setPage(options.blockElement);
+        syncAVPageSize(options.blockElement);
     });
 };
 

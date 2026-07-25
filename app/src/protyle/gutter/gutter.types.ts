@@ -24,6 +24,23 @@ export interface IGutterMenuCapabilities {
     allowRemoval: boolean;
 }
 
+/** Gutter 通用菜单从导航、编辑、视图到扩展动作共享的完整构建上下文。 */
+export interface IGutterCommonMenuContext extends IGutterMenuCapabilities {
+    protyle: IProtyle;
+    nodeElement: Element;
+    id: string;
+    type: string;
+}
+
+/** Gutter 块类型转换菜单及其各类型构建器共享的完整上下文。 */
+export interface IGutterTurnIntoContext {
+    nodeElement: Element;
+    id: string;
+    type: string;
+    subType: string;
+    protyle: IProtyle;
+}
+
 /**
  * 进度状态更新器接口
  * 用于更新 UI 组件的加载状态和消息

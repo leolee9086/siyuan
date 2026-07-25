@@ -8,7 +8,7 @@
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { 提取块样式, 提取DOM样式, 注册并激活自定义样式刷子 } from "../../triggers/styleBrush";
-import type { IGutterCommonMenuContext } from "./buildGutterCommonMenu";
+import type {IGutterCommonMenuContext} from "./gutter.types";
 
 /**
  * 创建格式刷菜单项

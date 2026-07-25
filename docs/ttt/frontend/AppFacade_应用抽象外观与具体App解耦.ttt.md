@@ -11,6 +11,7 @@
 ## 不变量
 
 - 下层模块依赖 `AppFacade`，不直接导入具体 `App` class。
+- npm `siyuan@1.2.3` 的公开类型是插件生态和共享数据格式的外部兼容基线，不是临时脚手架或可选依赖；本地领域类型只能在保持可赋值兼容的前提下强化已初始化不变量。
 - 具体 App 只在运行时创建、工厂装配、宿主注册和契约校验中出现。
 - 类型依赖本身不作为问题；类型契约反向依赖具体实现的生产模块边界才需要消除。
 - 不使用批量文本替换掩盖构造、生命周期、事件顺序或宿主行为差异。
@@ -35,7 +36,7 @@
 - 当前具体 `App` 公共表面至少包含 `plugins`、`appId`、`eventBus`，但调用方还通过该类型参与 Model、Tab、布局、窗口、插件和启动流程，因此不能仅按字段表面直接定义契约。
 - 当前循环图基线：唯一 Tarjan SCC 为 `872`，Madge 简单环为 `1069`；后续每批以同一扫描方式比较净变化。
 - `app/src/util/types/LooksLike.types.ts` 已接入 `StrictEqual` 与 `IsAssignable`；抽象类型模块独立 TypeScript 检查已通过。
-- 上游类型基线使用 npm 包 `siyuan@1.2.3`，公开声明提供 `Plugin` 与 `EventBus`；该包仅作为 type-only 外部兼容基线，不加载运行时实现。
+- 上游类型基线使用 npm 包 `siyuan@1.2.3`，公开声明提供 `Plugin`、`EventBus` 及插件生态共享的数据结构；生产构建仅作 type-only 引用，但其契约约束是长期、强制且不可由本地玩具类型替代的。
 
 ## 目标架构
 
@@ -84,7 +85,7 @@
 - [x] 明确厂牌创建与验证边界：模块级不可变 `Symbol` 作为厂牌键，`createAppFacade()` 幂等登记并保持对象身份。
 - [ ] 整理 `AppRuntime` 具体实现边界，保持现有初始化、WebSocket 和全局状态顺序。
 - [x] 新增 `createAppFacade()`，完成抽象形状到厂牌外观的同步装配函数；实际 AppRuntime 绑定留在入口拆分阶段。
-- [x] 创建契约测试骨架，使用 `IsAssignable<App, AppFacadeShape<...>>` 验证具体应用覆盖抽象公共表面，并使用 `IsAssignable` 检查本地 Plugin/EventBus 覆盖 `siyuan` 类型包的公开兼容表面；Asset/Files 的既有领域契约也在同一测试边界校验。运行时契约测试 `2/2` 通过。
+- [x] 创建独立契约测试：使用 `InstanceLooksLike<typeof App, AppFacade<...>>` 双向严格校验具体 App 的完整公开实例表面，并使用 `IsAssignable` 检查本地 Plugin/EventBus 覆盖 `siyuan` 类型包的公开兼容表面；Asset/Files 的既有领域契约也在同一测试边界校验。
 
 > 当前类型检查证据：`src/app/AppFacade.types.ts` 独立 `tsc --noEmit` 已通过；对契约测试入口执行 `tsc --noEmit` 在 `120s` 内未结束，原因是 `App` 类型导入牵引 `app/src/index.ts` 的完整入口图。具体实现兼容性不记录为通过，待运行时边界下沉后复核。
 
@@ -167,3 +168,6 @@
 - **2026-07-25**：补正兼容校验对象：生产实际入口为 `app/src/layout/dock/outline/Outline.ts`，已将该活动 `Outline` class 的应用/页签参数改为 `AppFacade`/`LayoutTab`，移除 `implements IOutlinePanel`，测试现在直接用 `IsAssignable<Outline, IOutlinePanel>` 校验活动类；旧版 `dock/Outline.ts` 同步复用布局抽象。专项契约测试仍为 `3/3` 通过。
 - **2026-07-25**：完成活动 Outline 的具体类边切断后重新扫描：Madge 处理 `2175` 个文件，简单环 `1113 -> 1111`；项目循环检查仍失败于剩余应用级入口环，未将其误记为全局完成。
 - **2026-07-25**：完成 AppFacade 全量生产依赖迁移：`boot`、`card`、`config`、`dialog/processSystem`、`editor`、`history`、`layout`、`menus`、`mobile`、`search`、`sync`、`window`、`util`、`export-preview` 和 `inNotePlugin` 的应用参数及网关全部改用 `AppFacade`；`app/src/types/index.d.ts` 与 `types/protyle.d.ts` 的全局声明同步收口。Vue 挂载链路的 `App` 保持不变，`index.ts`、`window/index.ts`、`mobile/index.ts` 仍是组合根。`pnpm run typecheck:protyle-contract` 通过，Node `140/140`、Agent/MAGI `67/67` 通过，新增静态契约测试确认具体 App 导入为零；`pnpm lint:cycles` 处理 `2175` 个文件并报告 `881` 条历史循环（相对上一记录 `1111` 净下降 `230`）。`pnpm lint:imports-gateway` 仍因仓库既有 `52` 个未使用网关导出失败，本批新增的 AppFacade 导出已清理。全量 `pnpm run typecheck` 在默认 4GB 堆上限 OOM，扩大堆后 300 秒仍未完成，均未记录为通过。
+- **2026-07-25**：纠正 AppFacade 契约强度与上游类型定位。`siyuan@1.2.3` 明确固定为插件、事件和共享数据格式的长期生态兼容基线；本地实现仅可强化初始化后不变量，并须保持对官方类型可赋值。App 契约由四成员单向 `IsAssignable` 改为 `InstanceLooksLike<typeof App, AppFacade<...>>`，对带厂牌的完整公开实例表面执行双向严格校验，后续 App 新增或外观遗漏成员都会在契约测试的编译阶段暴露。
+- **2026-07-25**：补充官方生态契约验证。测试层新增从完整 `siyuan.Plugin` 公共表面自动生成的运行时身份重绑定投影，官方 `App/EventBus/Tab/Custom/Files/Protyle` 仅在测试层绑定到本地完整领域根，不在生产代码创建平行插件接口。修正本地 EventBus 的官方事件名/载荷泛型签名、`addTopBar` 的 right/left 位置声明和显式错误、`addStatusBar` 的稳定返回值，并让 `addTab` 在移动端仍返回确定的模型工厂而不注册桌面页签。完整 App、Plugin 投影、EventBus 与 Plugin Dock 契约现已通过类型求值。
+- **2026-07-25**：官方生态仍有两项明确未完成兼容迁移：官方 `ICommand.fileTreeCallback` 的 `Files` class 含名义私有身份，而本地 Files 已按领域拆分；需以官方完整公共表面校验并提供宿主调用边界。官方 `IProtyleOptions.mode` 支持 `preview`，本地提交 `093dc3921` 已将 preview 拆为独立 export-preview 页签；不得把旧模式字面量强塞回编辑器，后续需设计官方插件 preview 请求到新页签语义的显式适配。两项均不得静默忽略，但不继续占用当前 905 个循环的主线解耦批次。

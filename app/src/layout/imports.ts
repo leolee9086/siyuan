@@ -8,6 +8,11 @@ import {SForgeSymbols} from "../config/sforge.symbols";
 import type {AppFacade} from "../app/AppFacade.types";
 /** 用途：布局拖拽恢复类型。使用范围：Wnd 拖拽 Port；解耦评估：复用布局领域根并参数化应用身份。 */
 import type {WndDragRestore} from "./layout.types";
+/** 用途：布局选项规范化。使用范围：Layout 构造入口；解耦评估：纯函数无 class 依赖，经 gateway 转发。 */
+import {ensureDirection, ensureSize, ensureType} from "./options";
+/** 用途：DOM 元素结构守卫。使用范围：Layout 分屏动画；解耦评估：复用 DOM 基础实现，不加载布局 class。 */
+import {isStylableElement} from "../util/DOM/element.guard";
 
 export {getSForgeState, setSForgeState, SForgeSymbols};
 export type {AppFacade, WndDragRestore};
+export {ensureDirection, ensureSize, ensureType, isStylableElement};

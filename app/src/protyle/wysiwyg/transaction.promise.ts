@@ -7,7 +7,7 @@ import {highlightRender} from "../render/highlightRender";
 import {hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
 import {avRender} from "../render/av/render";
 import {isMobile} from "../../platform";
-import {genEmptyElement} from "../../block/util";
+import {genEmptyElement} from "../../block/element.factory";
 import {hideElements} from "../ui/hideElements";
 import {countBlockWord} from "../runtime/status.port";
 import {isPaidUser, needSubscribe} from "../../util/platform/needSubscribe";

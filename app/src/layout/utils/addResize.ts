@@ -1,4 +1,3 @@
-import { Layout } from "..";
 import { focusByRange } from "../../ai/imports";
 import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hideElements } from "../../protyle/ui/hideElements";
@@ -7,8 +6,8 @@ import { isWindow } from "../../util/platform/functions";
 import { getAllModels } from "../getAll";
 import { resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustLayout } from "../util";
-import { Wnd } from "../Wnd";
 import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./iframeInteractionLock";
+import type {LayoutDomain, LayoutWindow} from "../layout.types";
 
 
 /**
@@ -295,7 +294,7 @@ const onResizeDblClick = (resizeElement: HTMLElement) => {
  * 意图：在 DOM 中插入 resize 分割线，并绑定交互事件，使界面可调整大小。
  * 调用时机：布局初始化或创建新窗口/分割时。
  */
-export const addResize = (obj: Layout | Wnd, after = true) => {
+export const addResize = (obj: LayoutDomain | LayoutWindow, after = true) => {
     const resize = obj.resize;
     if (!resize) {
         return;
@@ -306,12 +305,12 @@ export const addResize = (obj: Layout | Wnd, after = true) => {
         resizeElement.classList.add("layout__resize--lr");
     }
     resizeElement.classList.add("layout__resize");
-    if (after) {
-        obj.element.insertAdjacentElement((obj.element.previousElementSibling && !obj.element.previousElementSibling.classList.contains("layout__resize")) ?
-            "beforebegin" : "afterend", resizeElement);
-    } else {
-        obj.element.insertAdjacentElement("afterend", resizeElement);
+    let insertPosition: InsertPosition = "afterend";
+    // 新节点位于现有内容之后时，若前方尚无 resize 句柄，则把句柄插入节点之前以保持原布局顺序。
+    if (after && obj.element.previousElementSibling && !obj.element.previousElementSibling.classList.contains("layout__resize")) {
+        insertPosition = "beforebegin";
     }
+    obj.element.insertAdjacentElement(insertPosition, resizeElement);
 
     resizeElement.addEventListener("mousedown", (event: MouseEvent) => {
         onResizeMouseDown(event, resizeElement, resize);

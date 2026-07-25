@@ -2,7 +2,7 @@ import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/network/fetch";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
-import { genEmptyElement } from "../../../block/util";
+import { genEmptyElement } from "../../../block/element.factory";
 import { focusBlock } from "../../../protyle/util/selection";
 import { isInAndroid, isInHarmony, writeText } from "../../../protyle/util/compatibility";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

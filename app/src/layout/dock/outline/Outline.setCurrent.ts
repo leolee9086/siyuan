@@ -1,5 +1,5 @@
 /** 用途：Outline 树交互领域根；使用范围：高亮与滚动同步；解耦评估：替代具体 Outline class 反向依赖。 */
-import type {IOutlineTreePanel} from "./types";
+import type {IOutlinePanel} from "./types";
 /** 用途：查找前一个编辑器块；使用范围：从普通块回溯标题；解耦评估：纯 DOM 遍历。 */
 import { getPreviousBlock } from "../../../protyle/wysiwyg/getBlock";
 /** 用途：请求块面包屑；使用范围：DOM 中没有前置标题时；解耦评估：稳定网络边界。 */
@@ -21,7 +21,7 @@ const 标题标签 = ["H1", "H2", "H3", "H4", "H5", "H6"];
  * @param nodeElement 编辑器中的块元素。
  * @同步豁免: 需要绝对同步的DOM访问 - 光标变化时必须在当前事件栈同步解析标题。
  */
-export function setCurrent(outline: IOutlineTreePanel, nodeElement: HTMLElement) {
+export function setCurrent(outline: IOutlinePanel, nodeElement: HTMLElement) {
     if (!nodeElement) {
         return;
     }
@@ -97,7 +97,7 @@ export function setCurrent(outline: IOutlineTreePanel, nodeElement: HTMLElement)
  * @param nodeElement 预览视图中的元素。
  * @同步豁免: 需要绝对同步的DOM访问 - 预览滚动时必须同步读取相邻标题。
  */
-export function setCurrentByPreview(outline: IOutlineTreePanel, nodeElement: Element) {
+export function setCurrentByPreview(outline: IOutlinePanel, nodeElement: Element) {
     if (!nodeElement) {
         return;
     }
@@ -124,7 +124,7 @@ export function setCurrentByPreview(outline: IOutlineTreePanel, nodeElement: Ele
  * @param id 目标大纲节点的 ID。
  * @同步豁免: 需要绝对同步的DOM访问 - 高亮与滚动位置必须在同一布局快照中更新。
  */
-export function setCurrentById(outline: IOutlineTreePanel, id: string) {
+export function setCurrentById(outline: IOutlinePanel, id: string) {
     const focusElements = outline.element.querySelectorAll(".b3-list-item.b3-list-item--focus");
     for (const item of focusElements) {
         item.classList.remove("b3-list-item--focus");

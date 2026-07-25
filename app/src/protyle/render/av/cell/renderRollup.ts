@@ -21,7 +21,7 @@ import { unicode2Emoji } from "./imports";
  * 使用范围：renderRollup中处理url类型单元格
  * 解耦评估：已经是独立函数，无需进一步解耦
  */
-import { renderCellURL } from "./render";
+import {renderCellURL} from "./renderURL";
 /**
  * 用途：从environment文件导入默认图标获取函数
  * 使用范围：renderRollup中渲染block类型单元格

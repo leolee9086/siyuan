@@ -4,7 +4,7 @@ import type {AppFacade} from "../../../app/AppFacade.types";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
 import {hintRef} from "../../../protyle/hint/extend";
-import {genEmptyElement} from "../../../block/util";
+import {genEmptyElement} from "../../../block/element.factory";
 import {blockRender} from "../../../protyle/render/blockRender";
 import {ComposerHistory} from "./AgentComposer.history";
 import type {ComposerChangeCallback, ComposerHandle} from "./AgentComposer.types";

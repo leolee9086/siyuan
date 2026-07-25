@@ -3,6 +3,9 @@
  * 
  * 用于插件系统和应用内部的事件通信，支持类型安全的事件监听和触发
  */
+/** 用途：绑定上游插件事件名与载荷映射；使用范围：EventBus 全部公开方法；解耦评估：type-only 生态契约，不加载上游运行时。 */
+import type {IEventBusMap, TEventBus} from "siyuan";
+
 /* @允许类: EventBus 是插件公开 API 中已经发布的运行时身份，第三方插件和应用核心都直接构造该类型，
  * 并可能依赖 instanceof、构造器引用以及原型方法身份，因此改写为对象工厂会破坏既有插件兼容性。该对象必须在
  * 多个 on、once、off、emit 调用之间长期持有同一个私有 EventTarget，负责监听器注册、一次性监听、移除和同步
@@ -14,7 +17,7 @@
  * 依赖。后续若公开 API 出现大版本迁移窗口，可以另行设计函数式事件通道并提供明确迁移期；在当前版本直接替换
  * 会造成真实行为与生态兼容回归，所以保留该 class 是必要的领域建模和兼容边界，而不是可由普通对象字面量等价
  * 取代的状态容器。事件目标还必须随实例长期存活，不能由每次调用临时创建，否则监听器身份和注销语义都会失真。 */
-export class EventBus<DetailType = unknown> {
+export class EventBus {
     private eventTarget: EventTarget;
 
     /**
@@ -45,8 +48,11 @@ export class EventBus<DetailType = unknown> {
      *
      * @同步豁免: 生命周期 - addEventListener是同步API
      */
-    on(type: TEventBus, listener: EventListener) {
-        this.eventTarget.addEventListener(type, listener);
+    on<K extends TEventBus, D = IEventBusMap[K]>(
+        type: K,
+        listener: (event: CustomEvent<D>) => unknown,
+    ) {
+        this.eventTarget.addEventListener(type, listener as EventListener);
     }
 
     /**
@@ -58,8 +64,11 @@ export class EventBus<DetailType = unknown> {
      *
      * @同步豁免: 生命周期 - addEventListener是同步API
      */
-    once(type: TEventBus, listener: EventListener) {
-        this.eventTarget.addEventListener(type, listener, { once: true });
+    once<K extends TEventBus, D = IEventBusMap[K]>(
+        type: K,
+        listener: (event: CustomEvent<D>) => unknown,
+    ) {
+        this.eventTarget.addEventListener(type, listener as EventListener, { once: true });
     }
 
     /**
@@ -71,8 +80,11 @@ export class EventBus<DetailType = unknown> {
      *
      * @同步豁免: 生命周期 - removeEventListener是同步API
      */
-    off(type: TEventBus, listener: EventListener) {
-        this.eventTarget.removeEventListener(type, listener);
+    off<K extends TEventBus, D = IEventBusMap[K]>(
+        type: K,
+        listener: (event: CustomEvent<D>) => unknown,
+    ) {
+        this.eventTarget.removeEventListener(type, listener as EventListener);
     }
 
     /**
@@ -84,7 +96,7 @@ export class EventBus<DetailType = unknown> {
      * 
      * @同步豁免: 生命周期 - dispatchEvent是同步API
      */
-    emit(type: TEventBus, detail?: DetailType) {
+    emit<K extends TEventBus, D = IEventBusMap[K]>(type: K, detail?: D) {
         return this.eventTarget.dispatchEvent(new CustomEvent(type, { detail, cancelable: true }));
     }
 }

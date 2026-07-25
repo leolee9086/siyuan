@@ -5,9 +5,7 @@
 
 import type { Dock } from "./index";
 import {
-    getSiyuanLayout,
-    getWindowInnerWidth,
-    getWindowInnerHeight
+    getSiyuanLayout
 } from "./dock.environment";
 
 /**
@@ -128,32 +126,6 @@ export function applyHideTransform(dock: Dock): void {
         dock.layout.element.style.transform = `translateY(${dock.layout.element.clientHeight + 8}px)`;
         dock.layout.element.style.bottom = "";
     }
-}
-
-/**
- * 检查鼠标离开时是否应该隐藏 dock
- */
-export function shouldHideOnMouseLeave(
-    dock: Dock,
-    event: MouseEvent,
-    toElement: HTMLElement | null
-): boolean {
-    if (event.buttons !== 0 || dock.pin) {
-        return false;
-    }
-    if (toElement && (toElement.classList.contains("b3-menu") || toElement.classList.contains("tooltip"))) {
-        return false;
-    }
-    if (dock.position === "Left" && event.clientX < 43) {
-        return false;
-    }
-    if (dock.position === "Right" && event.clientX > getWindowInnerWidth() - 43) {
-        return false;
-    }
-    if (dock.position === "Bottom" && event.clientY > getWindowInnerHeight() - 73) {
-        return false;
-    }
-    return true;
 }
 
 /**

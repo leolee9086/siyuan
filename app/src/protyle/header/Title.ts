@@ -24,7 +24,7 @@ import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/get
 // S-forge: commonHotkey 路径重构
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";
-import { genEmptyElement } from "../../block/util";
+import { genEmptyElement } from "../../block/element.factory";
 import { transaction } from "../wysiwyg/transaction";
 import { hideTooltip } from "../runtime/dialog.port";
 import { commonClick } from "../wysiwyg/commonClick";

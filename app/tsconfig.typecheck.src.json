@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "skipLibCheck": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/typecheck-src.tsbuildinfo"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
+}

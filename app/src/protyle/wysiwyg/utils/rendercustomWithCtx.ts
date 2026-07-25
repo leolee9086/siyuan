@@ -1,5 +1,5 @@
 import { Constants } from "../../../constants";
-import { WYSIWYG } from "../../wysiwyg";
+import type { WYSIWYG } from "../../wysiwyg";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasPreviousSibling, hasNextSibling } from "../getBlock";
 import { getSelectionOffset } from "../../util/selection";

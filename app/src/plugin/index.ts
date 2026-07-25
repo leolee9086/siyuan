@@ -205,13 +205,12 @@ export class Plugin {
     public addTopBar(options: {
         icon: string,
         title: string,
-        position?: "south" | "left",
+        position?: "right" | "left",
         callback: (evt: MouseEvent) => void
     }) {
         options.icon = options.icon.trim();
         if (!options.icon.startsWith("icon") && !options.icon.startsWith("<svg")) {
-            console.error(`plugin ${this.name} addTopBar error: icon must be svg id or svg tag`);
-            return;
+            throw new TypeError(`plugin ${this.name} addTopBar error: icon must be svg id or svg tag`);
         }
         const iconElement = document.createElement("div");
         iconElement.setAttribute("data-menu", "true");
@@ -251,7 +250,7 @@ export class Plugin {
         position?: "right" | "left",
     }) {
         if (isMobile()) {
-            return;
+            return options.element;
         }
         options.element.setAttribute("data-location", options.position || "right");
         this.statusBarIcons.push(options.element);
@@ -371,10 +370,25 @@ export class Plugin {
         update?: () => void,
         init: (model: Custom) => void
     }) {
-        if (isMobile()) {
-            return;
-        }
         const type2 = this.name + options.type;
+
+        // 保持官方 addTab 返回语义；移动端不注册桌面 Tab，但仍返回同一模型工厂。
+        const createModel = (arg: { data: any, tab: Tab }) => {
+            const model = tabRegistry.createModel({
+                app: this.app,
+                tab: arg.tab,
+                type: type2,
+                data: arg.data,
+            }, createCustomTabModel);
+            if (!(model instanceof Custom)) {
+                throw new Error(`No Custom tab model is registered for ${type2}`);
+            }
+            return model;
+        };
+        this.models[type2] = createModel;
+        if (isMobile()) {
+            return createModel;
+        }
 
         // 委托给 TabRegistry 注册
         tabRegistry.register({
@@ -391,16 +405,7 @@ export class Plugin {
             update: options.update,
         });
 
-        // 保持兼容：同时存储在 this.models（供 getOpenedTab 使用）
-        this.models[type2] = (arg: { data: any, tab: Tab }) => {
-            return tabRegistry.createModel({
-                app: this.app,
-                tab: arg.tab,
-                type: type2,
-                data: arg.data,
-            }, createCustomTabModel);
-        };
-        return this.models[type2];
+        return createModel;
     }
 
     // Register a frontend action that the AI agent can discover and invoke. The action is exposed

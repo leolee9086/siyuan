@@ -14,7 +14,7 @@ import {
     hasPreviousSibling,
     isNotEditBlock
 } from "./getBlock";
-import {genEmptyBlock} from "../../block/util";
+import {genEmptyBlock} from "../../block/element.factory";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
 import {hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";

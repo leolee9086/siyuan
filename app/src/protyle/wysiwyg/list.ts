@@ -1,6 +1,6 @@
 import { focusByWbr } from "../util/selection";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
-import { genEmptyBlock } from "../../block/util";
+import { genEmptyBlock } from "../../block/element.factory";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
 import { moveToPrevious, removeBlock } from "./remove";

@@ -26,7 +26,7 @@ import {goHome} from "../../protyle/wysiwyg/commonHotkey";
 import {isEncryptedBox} from "../../util/pathName";
 import {Editor} from "../../editor";
 import {mathRender} from "../../protyle/render/mathRender";
-import {genEmptyElement} from "../../block/util";
+import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {getDocDisplayName} from "../../util/pathName";

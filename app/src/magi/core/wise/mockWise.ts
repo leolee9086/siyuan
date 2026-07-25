@@ -32,7 +32,7 @@ import {
 export const 合并MockWISE配置 = async (
     基础默认: MockWISEConfig,
     用户输入: MockWISEConfig
-): Promise<MockWISE完整配置> => {
+) => {
     // 从 ai.providers 读取 Agent 所用模型的提供商配置
     const aiConf = getSafeSiyuanConfig()?.ai;
     const agentModelId = aiConf?.agent?.modelId;
@@ -193,7 +193,7 @@ const 构建实例方法 = (内部状态: MockWISE内部状态): Omit<MockWISE�
 export const 创建MockWISE实例 = async (
     预设配置: MockWISEConfig,
     用户配置: MockWISEConfig = {}
-): Promise<MockWISE实例> => {
+)=> {
     const _config: MockWISE完整配置 = await 合并MockWISE配置(预设配置, 用户配置);
 
     const 内部状态: MockWISE内部状态 = {
@@ -225,6 +225,3 @@ export const 创建MockWISE实例 = async (
         ...构建实例方法(内部状态),
     };
 };
-
-// @AIDONE 已删除非法的值转发导出（universalStreamRequest）
-// 类型已在 wise.types.ts 中定义，无需在此重复导出

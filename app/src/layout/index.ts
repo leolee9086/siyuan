@@ -3,7 +3,7 @@ import { genUUID } from "../util/platform/genID";
 import { fixWndFlex1 } from "./util";
 import { addResize } from "./utils/addResize";
 import { resizeTabs } from "./tabUtil";
-import { isHTMLElement, ensureDirection, ensureSize, ensureType } from "./layout.guard";
+import { isStylableElement as isHTMLElement, ensureDirection, ensureSize, ensureType } from "./imports";
 import { isMobile } from "../platform";
 
 if (isMobile) {

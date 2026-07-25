@@ -1,6 +1,6 @@
 import { genCellValue, getTypeByCellElement, renderCell, renderCellAttr } from "../cell";
 import { fetchPost } from "../../../../util/network/fetch";
-import { setPage } from "../row";
+import {syncAVPageSize} from "../view/pagination";
 import { Constants } from "../../../../constants";
 import { clearSelect } from "../../../util/clearSelect";
 
@@ -94,6 +94,6 @@ ${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValu
                 });
             });
         }
-        setPage(options.blockElement);
+        syncAVPageSize(options.blockElement);
     });
 };

@@ -5,6 +5,20 @@
  */
 import type {ILayoutModel} from "./lifecycle/model.types";
 
+/** Layout 聚合根的完整公开能力；用于布局工具和宿主之间的稳定依赖。 */
+export interface LayoutDomain {
+    readonly element: HTMLElement;
+    readonly children: Array<LayoutDomain | LayoutWindow>;
+    readonly parent?: LayoutDomain;
+    readonly direction: Config.TUILayoutDirection;
+    readonly type?: Config.TUILayoutType;
+    readonly id?: string;
+    readonly resize?: Config.TUILayoutDirection;
+    readonly size?: string;
+    addLayout(child: LayoutDomain, id?: string, after?: boolean): void;
+    addWnd(child: LayoutWindow, id?: string, after?: boolean): void;
+}
+
 /** Layout 窗口的完整公开领域能力。 */
 export interface LayoutWindow {
     readonly id: string;

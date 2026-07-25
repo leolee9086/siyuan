@@ -1,102 +1,31 @@
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {Constants} from "../../../constants";
-import {unicode2Emoji} from "../../../emoji";
 import {hasClosestByClassName} from "../../util/hasClosest";
-import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
 import {isMobile} from "../../../platform";
 import {isInMobileApp} from "../../util/compatibility";
 import {renderGallery} from "./gallery/render";
-import {getFieldsByData, getViewIcon} from "./view";
 import {getPageSize} from "./groups";
 import {renderKanban} from "./kanban/render";
 import {getTableHTMLs, renderGroupTable, afterRenderTable} from "./render.table";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getBodyVirtualData} from "./virtualScroll";
 import {beginAVRender, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "./locate";
+import {genTabHeaderHTML} from "./view/header";
+import type {AVViewRenderer} from "./view/render.types";
 
 export {getGroupTitleHTML} from "./render.table";
-export {refreshAV} from "./render.refresh";
 
-export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boolean) => {
-    let tabHTML = "";
-    let viewData: IAVView;
-    let hasFilter = false;
-    const findLeafFilter = (nodes: IAVFilter[], columnId: string, columnType: string): boolean => {
-        for (const node of nodes) {
-            if (node.filters) {
-                if (findLeafFilter(node.filters, columnId, columnType)) {
-                    return true;
-                }
-            } else if (node.value && node.value.type === columnType && node.column === columnId) {
-                return true;
-            }
-        }
-        return false;
-    };
-    getFieldsByData(data).forEach((item) => {
-        if (!hasFilter && findLeafFilter(data.view.filters, item.id, item.type)) {
-            hasFilter = true;
-        }
-    });
-    data.views.forEach((item: IAVView) => {
-        tabHTML += `<div draggable="true" data-position="north" data-av-type="${item.type}" data-id="${item.id}" data-page="${item.pageSize}" data-desc="${escapeAriaLabel(item.desc || "")}" class="ariaLabel item${item.id === data.viewID ? " item--focus" : ""}">
-    ${item.icon ? unicode2Emoji(item.icon, "item__graphic", true) : `<svg class="item__graphic"><use xlink:href="#${getViewIcon(item.type)}"></use></svg>`}
-    <span class="item__text">${escapeHtml(item.name)}</span>
-</div>`;
-        if (item.id === data.viewID) {
-            viewData = item;
-        }
-    });
-    const defaultTemplate = data.newItemTemplates?.find(item => item.id === data.defaultTemplateID);
-    const defaultTemplateID = defaultTemplate && (defaultTemplate.targetType !== "detached" ||
-        defaultTemplate.primaryKeyTemplate || Object.keys(defaultTemplate.fieldValues || {}).length) ? defaultTemplate.id : "";
-    return `<div class="av__header" data-default-template-id="${defaultTemplateID}">
-        <div class="fn__flex av__views${showSearch ? " av__views--show" : ""}">
-            <div class="layout-tab-bar fn__flex">
-                ${tabHTML}
-            </div>
-            <div class="fn__space"></div>
-            <span data-type="av-add" class="block__icon ariaLabel" data-position="8south" aria-label="${siyuanI18n.newView}">
-                <svg><use xlink:href="#iconAdd"></use></svg>
-            </span>
-            <div class="fn__flex-1"></div>
-            <div class="fn__space"></div>
-            <span data-type="av-switcher" aria-label="${siyuanI18n.allViews}" data-position="8south" class="ariaLabel block__icon${data.views.length > 0 ? "" : " fn__none"}">
-                <svg><use xlink:href="#iconDown"></use></svg>
-                <span class="fn__space"></span>
-                <small>${data.views.length}</small>
-            </span>
-            <div class="fn__space"></div>
-            <span data-type="av-filter" aria-label="${siyuanI18n.filter}" data-position="8south" class="ariaLabel block__icon${hasFilter ? " block__icon--active" : ""}">
-                <svg><use xlink:href="#iconFilter"></use></svg>
-            </span>
-            <div class="fn__space"></div>
-            <span data-type="av-sort" aria-label="${siyuanI18n.sort}" data-position="8south" class="ariaLabel block__icon${data.view.sorts.length > 0 ? " block__icon--active" : ""}">
-                <svg><use xlink:href="#iconSort"></use></svg>
-            </span>
-            <div class="fn__space"></div>
-            <button data-type="av-search-icon" aria-label="${siyuanI18n.search}" data-position="8south" class="ariaLabel block__icon">
-                <svg><use xlink:href="#iconSearch"></use></svg>
-            </button>
-            <div style="position: relative" class="fn__flex">
-                <div contenteditable="plaintext-only" style="${showSearch ? "width:128px" : "width:0;padding-left: 0;padding-right: 0;"}" data-type="av-search" class="b3-text-field b3-text-field--text" placeholder="${siyuanI18n.search}"></div>
-            </div>
-            <div class="fn__space"></div>
-            <span data-type="av-more" aria-label="${siyuanI18n.config}" data-position="8south" class="ariaLabel block__icon">
-                <svg><use xlink:href="#iconSettings"></use></svg>
-            </span>
-            <div class="fn__space"></div>
-            ${data.isMirror ? `<span data-av-id="${data.id}" data-popover-url="/api/av/getMirrorDatabaseBlocks" class="popover__block block__icon block__icon--show ariaLabel" data-position="8south" aria-label="${siyuanI18n.mirrorTip}">
-                <svg><use xlink:href="#iconSplitLR"></use></svg>
-            </span><div class="fn__space"></div>` : ""}
-            ${editable ? `<div class="av__new fn__flex">
-                <button data-type="av-add-more" class="b3-button">${siyuanI18n.new}</button>
-                <button data-type="av-add-template" class="b3-button ariaLabel" data-position="8south" aria-label="${siyuanI18n.template}"><svg><use xlink:href="#iconDown"></use></svg></button>
-            </div>` : ""}
-        </div>
-        <div contenteditable="${editable}" spellcheck="${window.siyuan.config.editor.spellcheck.toString()}" class="av__title${viewData.hideAttrViewName ? " fn__none" : ""}" data-title="${Lute.EscapeHTMLStr(data.name || "")}" data-tip="${siyuanI18n._kernel[267]}">${Lute.EscapeHTMLStr(data.name || "")}</div>
-        <div class="av__counter fn__none"></div>
-    </div>`;
+const renderResolvedView: AVViewRenderer = async (request) => {
+    request.blockElement.setAttribute("data-av-type", request.data.viewType);
+    const onSearchChange = () => updateSearch(request.blockElement, request.protyle);
+    if (request.data.viewType === "gallery") {
+        await renderGallery({...request, renderView: renderResolvedView, onSearchChange});
+        return;
+    }
+    if (request.data.viewType === "kanban") {
+        await renderKanban({...request, renderView: renderResolvedView, onSearchChange});
+        return;
+    }
+    await avRender(request.blockElement, request.protyle, request.cb, request.renderAll, request.data);
 };
 
 export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: IAV) => void, renderAll = true, avData?: IAV) => {
@@ -121,11 +50,25 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         const renderToken = beginAVRender(e);
 
         if (e.getAttribute("data-av-type") === "gallery") {
-            await renderGallery({blockElement: e, protyle, cb, renderAll});
+            await renderGallery({
+                blockElement: e,
+                protyle,
+                cb,
+                renderAll,
+                renderView: renderResolvedView,
+                onSearchChange: () => updateSearch(e, protyle),
+            });
             continue;
         }
         if (e.getAttribute("data-av-type") === "kanban") {
-            await renderKanban({blockElement: e, protyle, cb, renderAll});
+            await renderKanban({
+                blockElement: e,
+                protyle,
+                cb,
+                renderAll,
+                renderView: renderResolvedView,
+                onSearchChange: () => updateSearch(e, protyle),
+            });
             continue;
         }
 
@@ -244,18 +187,24 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
         }
         prepareAVLocate(e, data, resetData);
         if (data.viewType === "gallery") {
-            e.setAttribute("data-av-type", data.viewType);
-            await renderGallery({blockElement: e, protyle, cb, renderAll, data});
+            await renderResolvedView({blockElement: e, protyle, cb, renderAll, data});
             continue;
         }
         if (data.viewType === "kanban") {
-            e.setAttribute("data-av-type", data.viewType);
-            await renderKanban({blockElement: e, protyle, cb, renderAll, data});
+            await renderResolvedView({blockElement: e, protyle, cb, renderAll, data});
             continue;
         }
         const view = data.view as IAVTable;
         if (view.groups?.length > 0) {
-            await renderGroupTable({blockElement: e, protyle, cb, renderAll, data, resetData});
+            await renderGroupTable({
+                blockElement: e,
+                protyle,
+                cb,
+                renderAll,
+                data,
+                resetData,
+                onSearchChange: () => updateSearch(e, protyle),
+            });
             continue;
         }
         const tableHTMLs = await getTableHTMLs(view, e, resetData.virtualData.all);
@@ -279,7 +228,8 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             cb,
             protyle,
             blockElement: e,
-            resetData
+            resetData,
+            onSearchChange: () => updateSearch(e, protyle),
         });
         // 历史兼容
         e.style.margin = "";

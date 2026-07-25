@@ -37,21 +37,7 @@ import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 import { getProtyleMenuContext, scheduleProtyleMenuTask } from "../runtime/menu.visibility";
 import { createBlockColorMenuItem } from "../../sforge/colors/menu";
 import {isEncryptedBox} from "../../util/pathName";
-import type {IGutterMenuCapabilities} from "./gutter.types";
-
-/**
- * 通用操作菜单构建上下文
- */
-export interface IGutterCommonMenuContext extends IGutterMenuCapabilities {
-    /** Protyle 实例 */
-    protyle: IProtyle;
-    /** 目标节点元素 */
-    nodeElement: Element;
-    /** 节点 ID */
-    id: string;
-    /** 节点类型 */
-    type: string;
-}
+import type {IGutterCommonMenuContext} from "./gutter.types";
 
 /**
  * 创建进入菜单项（非反链模式）

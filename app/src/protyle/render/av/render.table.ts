@@ -7,8 +7,7 @@ import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {stickyRow, updateHeader} from "./row";
 import {getCalcValue} from "./calc";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
-import {genTabHeaderHTML} from "./render";
-import {updateSearch} from "./render";
+import {genTabHeaderHTML} from "./view/header";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {initVirtualScroll} from "./virtualScroll";
 import {bindAvSearch} from "./search";
@@ -17,9 +16,10 @@ import {finishAVLocate} from "./locate";
 export interface ITableOptions {
     protyle: IProtyle,
     blockElement: HTMLElement,
-    cb: (data: IAV) => void,
+    cb: ((data: IAV) => void) | undefined,
     data: IAV,
     renderAll: boolean,
+    onSearchChange: () => void,
     resetData: {
         left: number,
         alignSelf: string,
@@ -334,7 +334,7 @@ export const afterRenderTable = (options: ITableOptions) => {
         blockElement: options.blockElement,
         query: options.resetData.query,
         isSearching: options.resetData.isSearching,
-        onChange: () => updateSearch(options.blockElement, options.protyle),
+        onChange: options.onSearchChange,
     });
     initVirtualScroll(options);
     finishAVLocate(options.blockElement, options.protyle, options.data);

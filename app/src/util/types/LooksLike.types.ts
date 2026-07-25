@@ -20,6 +20,14 @@ type Constructor = abstract new (...args: never[]) => object;
 export type InstanceLooksLike<Ctor extends Constructor, Contract> =
     StrictEqual<InstanceType<Ctor>, Contract>;
 
+/** 提取 class 实例可由外部访问的完整公共表面，排除 private/protected 实现细节。 */
+export type PublicInstance<Ctor extends Constructor> =
+    Pick<InstanceType<Ctor>, keyof InstanceType<Ctor>>;
+
+/** 严格校验领域契约与 class 的完整公共实例表面双向相等。 */
+export type PublicInstanceLooksLike<Ctor extends Constructor, Contract> =
+    StrictEqual<PublicInstance<Ctor>, Contract>;
+
 /** 检查具体类的静态部分是否严格满足领域契约。 */
 export type StaticLooksLike<Ctor extends Constructor, Contract> =
     StrictEqual<Ctor, Contract>;

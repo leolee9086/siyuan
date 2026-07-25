@@ -10,7 +10,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { focusBlock } from "../util/selection";
 import { mathRender } from "../render/mathRender";
 import { transaction } from "../wysiwyg/transaction";
-import { genEmptyElement } from "../../block/util";
+import { genEmptyElement } from "../../block/element.factory";
 import { Constants } from "../../constants";
 import { isInAndroid, isInHarmony, writeText } from "../util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

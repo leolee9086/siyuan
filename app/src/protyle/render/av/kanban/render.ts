@@ -2,13 +2,14 @@ import {hasClosestByAttribute, hasClosestByClassName} from "../../../util/hasClo
 import {getPageSize} from "../groups";
 import {fetchSyncPost} from "../../../../util/network/fetch";
 import {Constants} from "../../../../constants";
-import {avRender, genTabHeaderHTML} from "../render";
-import {afterRenderGallery, renderGallery} from "../gallery/render";
+import {genTabHeaderHTML} from "../view/header";
+import {afterRenderGallery} from "../gallery/render";
 import {getRowHTML} from "../row";
 import {getBodyVirtualData} from "../virtualScroll";
 import {beginAVRender, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "../locate";
 import {getKanbanTitleHTML} from "./getKanbanTitleHTML";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import type {AVViewRenderer} from "../view/render.types";
 
 interface IIds {
     groupId: string,
@@ -58,6 +59,8 @@ export const renderKanban = async (options: {
     cb?: (data: IAV) => void,
     renderAll: boolean,
     data?: IAV,
+    renderView: AVViewRenderer,
+    onSearchChange: () => void,
 }) => {
     const renderToken = beginAVRender(options.blockElement);
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]') as HTMLInputElement;
@@ -143,17 +146,23 @@ export const renderKanban = async (options: {
     prepareAVLocate(options.blockElement, data, resetData);
     if (data.viewType === "table") {
         options.blockElement.setAttribute("data-av-type", "table");
-        avRender(options.blockElement, options.protyle, options.cb, options.renderAll, data);
-        return;
-    }
-    if (data.viewType === "gallery") {
-        options.blockElement.setAttribute("data-av-type", data.viewType);
-        renderGallery({
+        await options.renderView({
             blockElement: options.blockElement,
             protyle: options.protyle,
             cb: options.cb,
             renderAll: options.renderAll,
-            data
+            data,
+        });
+        return;
+    }
+    if (data.viewType === "gallery") {
+        options.blockElement.setAttribute("data-av-type", data.viewType);
+        await options.renderView({
+            blockElement: options.blockElement,
+            protyle: options.protyle,
+            cb: options.cb,
+            renderAll: options.renderAll,
+            data,
         });
         return;
     }
@@ -205,6 +214,7 @@ export const renderKanban = async (options: {
         cb: options.cb,
         protyle: options.protyle,
         blockElement: options.blockElement,
+        onSearchChange: options.onSearchChange,
     });
     if (view.hideAttrViewName) {
         options.blockElement.querySelector(".av__gallery").classList.add("av__gallery--top");

@@ -1,9 +1,9 @@
-/** 用途：为应用外观提供上游事件总线的公开兼容基线；使用范围：AppFacade 默认事件总线类型与契约校验；解耦评估：仅为 type-only 依赖，不加载上游运行时，具体实现仍由初始化边界代入。 */
+/** 用途：以思源上游公开事件总线作为生态兼容基线；使用范围：AppFacade 默认事件总线类型与契约校验；解耦评估：type-only 依赖不会加载上游运行时。 */
 import type {EventBus} from "siyuan";
-/** 用途：为应用外观提供上游插件的公开兼容基线；使用范围：AppFacade 默认插件类型与契约校验；解耦评估：仅为 type-only 依赖，不加载上游运行时，具体插件实现仍由初始化边界代入。 */
+/** 用途：以思源上游公开插件类型作为插件生态兼容基线；使用范围：AppFacade、插件宿主与契约校验；解耦评估：本地实现只能强化该边界，不能另立平行插件协议。 */
 import type {Plugin} from "siyuan";
 
-/** 应用外观的领域公共表面；具体插件和事件总线由装配边界代入。 */
+/** 完整 App 实例除厂牌外的公共领域表面；类型槽仅用于校验本地实现对上游契约的兼容性。 */
 export interface AppFacadeShape<
     TPlugin extends object = Plugin,
     TEventBus extends object = EventBus,
@@ -20,14 +20,13 @@ export interface AppFacadeShape<
 /** 模块级不可变身份键；其值只用于类型/运行时外观识别，不保存应用状态。 */
 export const appFacadeBrand = Symbol("AppFacade");
 
-/** 已由应用装配边界创建并验证的应用外观。 */
-export type AppFacade<
+/** 已由应用装配边界创建并验证、且保持思源插件生态兼容的完整应用外观。 */
+export interface AppFacade<
     TPlugin extends object = Plugin,
     TEventBus extends object = EventBus,
-> =
-    AppFacadeShape<TPlugin, TEventBus> & {
-        readonly [appFacadeBrand]: "AppFacade";
-    };
+> extends AppFacadeShape<TPlugin, TEventBus> {
+    readonly [appFacadeBrand]: "AppFacade";
+}
 
 /**
  * 将已初始化的应用公共表面登记为带厂牌外观，并保持原对象身份。

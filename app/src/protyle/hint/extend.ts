@@ -12,7 +12,7 @@ import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlo
 import { transaction } from "../wysiwyg/transaction";
 import { getAssetName, getDisplayName, pathPosix } from "../../util/file/pathName";
 import { withEncryptedNotebook } from "../../util/pathName";
-import { genEmptyElement } from "../../block/util";
+import { genEmptyElement } from "../../block/element.factory";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";
 import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
