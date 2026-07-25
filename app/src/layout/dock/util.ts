@@ -13,6 +13,7 @@ import { Files } from "./Files";
 import { Editor } from "../../editor";
 import { Constants } from "../../constants";
 import { getDocDisplayName } from "../../util/file/pathName";
+import {clearObjectBlockGraphs} from "./obg/clearObjectBlockGraphs";
 
 export const openBacklink = async (options: {
     app: AppFacade,
@@ -210,41 +211,7 @@ export const toggleDockBar = (useElement: Element) => {
 };
 
 export const clearOBG = () => {
-    const models = getAllModels();
-    models.outline.find(item => {
-        if (item.type === "pin") {
-            if ("" === item.blockId) {
-                return;
-            }
-            item.isPreview = false;
-            item.update({ data: [], msg: "", code: 0 }, "");
-            item.updateDocTitle();
-        }
-    });
-    models.graph.forEach(item => {
-        if (item.type !== "global") {
-            if (item.type === "local") {
-                return;
-            }
-            if ("" === item.blockId) {
-                return;
-            }
-            item.blockId = "";
-            item.graphData = undefined;
-            item.onGraph(false);
-        }
-    });
-    models.backlink.forEach(item => {
-        if (item.type === "local") {
-            return;
-        }
-        if ("" === item.blockId) {
-            return;
-        }
-        item.saveStatus();
-        item.blockId = "";
-        item.render(undefined);
-    });
+    clearObjectBlockGraphs(getAllModels());
 };
 
 export const selectOpenTab = async () => {

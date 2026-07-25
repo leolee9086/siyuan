@@ -22,7 +22,7 @@ export interface GraphDomain<
     inputElement: HTMLInputElement;
     blockId: string;
     rootId: string;
-    graphData: GraphData;
+    graphData: GraphData | undefined;
     type: "local" | "pin" | "global";
     searchGraph(focus: boolean, id?: string, refresh?: boolean): void;
     destroy(): void;

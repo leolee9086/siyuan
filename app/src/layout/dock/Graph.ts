@@ -31,7 +31,7 @@ export class Graph extends Model<AppFacade, Tab> {
         nodes: { box: string, id: string, path: string, type: string, color: IObject }[],
         links: Record<string, unknown>[],
         box: string
-    };
+    } | undefined;
     public type: "local" | "pin" | "global";
 
     constructor(options: {

@@ -589,7 +589,7 @@ export class Backlink extends Model<AppFacade, Tab> {
         mentionsCount: number,
         k: string,
         mk: string
-    }) {
+    } | undefined) {
         if (!data) {
             data = {
                 box: "",

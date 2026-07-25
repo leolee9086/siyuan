@@ -75,9 +75,9 @@ import { pdfIsLoading } from "../layout/util";
 export { pdfIsLoading };
 
 /** 用途：清除对象块图标边框。使用范围：editor 打开文件时清除 OBG。解耦评估：通过 imports.ts 转发。 */
-import { clearOBG } from "../layout/dock/util";
-/** 导出 clearOBG，供 editor 模块使用 */
-export { clearOBG };
+import {clearObjectBlockGraphs} from "../layout/dock/obg/clearObjectBlockGraphs";
+/** 导出对象块图面板唯一重置实现，供 editor 传入已查询的完整模型集合。 */
+export {clearObjectBlockGraphs};
 
 /** 用途：显示提示消息。使用范围：editor 打开文件时显示错误信息。解耦评估：通过 imports.ts 转发。 */
 import { showMessage } from "../dialog/message";

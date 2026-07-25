@@ -47,5 +47,5 @@ export interface BacklinkDomain<
     status: Record<string, BacklinkStatusItem>;
     refresh(): void;
     saveStatus(): void;
-    render(data: BacklinkRenderData): void;
+    render(data: BacklinkRenderData | undefined): void;
 }

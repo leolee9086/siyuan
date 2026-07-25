@@ -3,7 +3,7 @@ import { getAllModels } from "./imports";
 /** 用途：PDF 加载状态判断。使用范围：切换 PDF 页签前等待加载完成。解耦评估：通过 ./imports 转发。 */
 import { pdfIsLoading } from "./imports";
 /** 用途：清除对象块图标。使用范围：打开文件时清理 OBG 显示。解耦评估：通过 ./imports 转发。 */
-import { clearOBG } from "./imports";
+import {clearObjectBlockGraphs} from "./imports";
 /** 用途：对象比较工具。使用范围：比较自定义页签配置。解耦评估：通过 ./imports 转发。 */
 import { objEquals } from "./imports";
 /** 用途：通过类名查找祖先元素。使用范围：判断编辑器所在窗口是否激活。解耦评估：通过 ./imports 转发。 */
@@ -31,7 +31,7 @@ export const findAndOpenAsset = (options: IOpenFileOptions, allModels: ReturnTyp
     if (!options.assetPath) {
         return;
     }
-    clearOBG();
+    clearObjectBlockGraphs(allModels);
     for (const item of allModels.asset) {
         if (item.path !== options.assetPath) {
             continue;
@@ -56,7 +56,7 @@ export const findAndOpenCustom = (options: IOpenFileOptions, allModels: ReturnTy
     if (!options.custom) {
         return;
     }
-    clearOBG();
+    clearObjectBlockGraphs(allModels);
     if (options.openNewTab) {
         return;
     }
@@ -89,7 +89,7 @@ export const findAndOpenSearch = (options: IOpenFileOptions, allModels: ReturnTy
     if (!options.searchData) {
         return;
     }
-    clearOBG();
+    clearObjectBlockGraphs(allModels);
     for (const item of allModels.search) {
         if (!objEquals(item.config, options.searchData)) {
             continue;
