@@ -1,4 +1,4 @@
-import type {FilesDragContext} from "./dnd.types";
+import type {FilesDomain} from "./eventHandlers.types";
 import { Constants } from "../../../constants";
 import { showTooltip } from "../../../dialog/tooltip";
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
@@ -7,7 +7,7 @@ import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuan
 import { ipcSend } from "../../../platform/electron/ipcRenderer";
 import { isElectron } from "../../../platform";
 
-export const onDragEnd = (files: FilesDragContext, event: DragEvent) => {
+export const onDragEnd = (files: FilesDomain, event: DragEvent) => {
     files.parent.panelElement.classList.remove("sy__file--disablehover");
     const opacityItems = files.element.querySelectorAll('.b3-list-item[style*="opacity: 0.38;"]');
     for (const [index, item] of Array.from(opacityItems).entries()) {

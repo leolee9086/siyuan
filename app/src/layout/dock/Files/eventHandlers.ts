@@ -5,7 +5,7 @@
  */
 
 // 导出类型
-export type { FilesEventContext, FilesEventHost } from "./eventHandlers.types";
+export type {FilesDomain, FilesEventContext} from "./eventHandlers.types";
 
 // 导出 closeElement 事件处理
 export { setupCloseElementClickHandler } from "./eventHandlers.closeElement";

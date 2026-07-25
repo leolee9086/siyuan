@@ -1,4 +1,4 @@
-import type {FilesDragContext} from "./dnd.types";
+import type {FilesDomain} from "./eventHandlers.types";
 import { Constants } from "../../../constants";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
 import { hideDragTip } from "../../../protyle/util/dragTip";
@@ -9,7 +9,7 @@ import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { onLsHTMLHandler } from "./onLsHTML";
 
-export const onDrop = async (files: FilesDragContext, event: DragEvent) => {
+export const onDrop = async (files: FilesDomain, event: DragEvent) => {
     hideDragTip();
     window.siyuan.dragTitle = "";
     const newElement = files.element.querySelector(".dragover, .dragover__bottom, .dragover__top");
@@ -105,7 +105,7 @@ const handleGutterDropNode = (newElement: Element, gutterTypes: string[], params
     fetchPost("/api/filetree/li2Doc", toDocOptions);
 };
 
-const handleFileDrop = async (files: FilesDragContext, event: DragEvent, newElement: Element, newUlElement: Element, params: { toURL: string, toPath: string, oldScrollTop: number }) => {
+const handleFileDrop = async (files: FilesDomain, event: DragEvent, newElement: Element, newUlElement: Element, params: { toURL: string, toPath: string, oldScrollTop: number }) => {
     setSiyuanDragElement(undefined);
     if (!event.dataTransfer?.getData(Constants.SIYUAN_DROP_FILE)) {
         newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
@@ -140,7 +140,7 @@ const handleMoveDrop = (newElement: Element, params: { toURL: string, toPath: st
     newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
 };
 
-const getSelectedFiles = (files: FilesDragContext, newElement: Element) => {
+const getSelectedFiles = (files: FilesDomain, newElement: Element) => {
     const selectRootElements: HTMLElement[] = [];
     const selectFileElements: HTMLElement[] = [];
     const fromPaths: string[] = [];
@@ -171,7 +171,7 @@ const getSelectedFiles = (files: FilesDragContext, newElement: Element) => {
     return { selectRootElements, selectFileElements, fromPaths };
 };
 
-const handleSort = async (files: FilesDragContext, newElement: Element, newUlElement: Element, selectRootElements: HTMLElement[], selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
+const handleSort = async (files: FilesDomain, newElement: Element, newUlElement: Element, selectRootElements: HTMLElement[], selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
     const ulSort = newUlElement.getAttribute("data-sortmode");
     if (getSiyuanConfig().fileTree.sort === 6 && selectRootElements.length > 0 &&
         newElement.getAttribute("data-path") === "/") {
@@ -184,7 +184,7 @@ const handleSort = async (files: FilesDragContext, newElement: Element, newUlEle
     }
 };
 
-const handleRootSort = (files: FilesDragContext, newElement: Element, selectRootElements: HTMLElement[]) => {
+const handleRootSort = (files: FilesDomain, newElement: Element, selectRootElements: HTMLElement[]) => {
     if (!newElement.parentElement) {
         return;
     }
@@ -211,7 +211,7 @@ const handleRootSort = (files: FilesDragContext, newElement: Element, selectRoot
     });
 };
 
-const handleFileSort = async (files: FilesDragContext, newElement: Element, selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
+const handleFileSort = async (files: FilesDomain, newElement: Element, selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
     let hasMove = false;
     const toDir = pathPosix().dirname(params.toPath);
     if (fromPaths.length > 0) {
@@ -267,7 +267,7 @@ const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[
     }
 };
 
-const finalizeSort = (files: FilesDragContext, newElement: Element, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
+const finalizeSort = (files: FilesDomain, newElement: Element, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
     if (!newElement.parentElement) {
         return;
     }
@@ -284,7 +284,7 @@ const finalizeSort = (files: FilesDragContext, newElement: Element, params: { to
     }, () => onSortChanged(files, params, toDir, hasMove));
 };
 
-const onSortChanged = (files: FilesDragContext, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
+const onSortChanged = (files: FilesDomain, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
     if (hasMove) {
         fetchPost("/api/filetree/listDocsByPath", {
             notebook: params.toURL,
@@ -294,7 +294,7 @@ const onSortChanged = (files: FilesDragContext, params: { toURL: string, oldScro
     }
 };
 
-const onListDocs = (files: FilesDragContext, oldScrollTop: number, response: IWebSocketData) => {
+const onListDocs = (files: FilesDomain, oldScrollTop: number, response: IWebSocketData) => {
     // 根目录且无文件时显示空内容提示
     if (response.data.path === "/" && response.data.files.length === 0) {
         showMessage(siyuanI18n.emptyContent);

@@ -6,7 +6,7 @@ import { setStorageVal } from "../../../protyle/util/compatibility";
 import { getAllModels } from "../../getAll";
 import { isMobile } from "../../../platform";
 import { Editor } from "../../../editor";
-import type { Outline } from "./Outline";
+import type {OutlineDomain} from "./types";
 
 /**
  * 作用：处理“保持当前展开”按钮的点击逻辑。
@@ -14,7 +14,7 @@ import type { Outline } from "./Outline";
  * 调用时机：用户点击“保持当前展开”按钮时。
  * @同步豁免: DOM访问
  */
-export function handleKeepCurrentExpandClick(outline: Outline, event: MouseEvent) {
+export function handleKeepCurrentExpandClick(outline: OutlineDomain, event: MouseEvent) {
     const target = event.target;
     // 使用类型守卫确保 target 是 Element
     if (!isHTMLElement(target)) {
@@ -58,7 +58,7 @@ export function handleKeepCurrentExpandClick(outline: Outline, event: MouseEvent
  * 意图：遍历编辑器，找到与当前大纲关联的编辑器中的选中块，并让大纲聚焦到该块。
  * 调用时机：handleKeepCurrentExpandClick 中切换为激活状态时。
  */
-function handleKeepCurrentExpandFocus(outline: Outline) {
+function handleKeepCurrentExpandFocus(outline: OutlineDomain) {
     let focusElement: HTMLElement | undefined;
     if (!isMobile) {
         getAllModels().editor.find(editItem => {
@@ -77,7 +77,7 @@ function handleKeepCurrentExpandFocus(outline: Outline) {
  * 意图：辅助 handleKeepCurrentExpandFocus，从单个编辑器实例中查找符合条件的块。
  * 调用时机：getAllModels().editor.find 回调中。
  */
-function findFocusBlockInEditor(outline: Outline, editItem: Editor, onFound: (element: HTMLElement) => void): boolean {
+function findFocusBlockInEditor(outline: OutlineDomain, editItem: Editor, onFound: (element: HTMLElement) => void): boolean {
     /**
      * 作用：确保编辑器匹配当前大纲根块 ID。
      * 意图：只在与当前大纲内容对应的编辑器中查找焦点。

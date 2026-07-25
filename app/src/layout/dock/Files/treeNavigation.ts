@@ -11,6 +11,7 @@ import { fetchSyncPost } from "../../../util/network/fetch";
 import { genFileHTML } from "./htmlGenerators";
 import { unicode2Emoji } from "../../../emoji";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import type {SelectItemFn} from "./eventHandlers.types";
 
 // ============================================================================
 // updateItemArrow 辅助函数
@@ -195,14 +196,8 @@ const processFileItem = async (
     data: { box: string },
     setStorage: boolean,
     isSetCurrent: boolean,
-    selectItem: (
-        notebookId: string,
-        filePath: string,
-        data?: { files: IFile[]; box: string; path: string },
-        setStorage?: boolean,
-        isSetCurrent?: boolean
-    ) => Promise<HTMLElement | undefined>
-): Promise<HTMLElement | undefined> => {
+    selectItem: SelectItemFn
+): Promise<HTMLElement | null | undefined> => {
     // 精确匹配目标文件
     if (filePath === item.path) {
         return selectItem(data.box, filePath, undefined, setStorage, isSetCurrent);
@@ -286,13 +281,7 @@ const findAndSelectTarget = async (
     data: { box: string },
     setStorage: boolean,
     isSetCurrent: boolean,
-    selectItem: (
-        notebookId: string,
-        filePath: string,
-        data?: { files: IFile[]; box: string; path: string },
-        setStorage?: boolean,
-        isSetCurrent?: boolean
-    ) => Promise<HTMLElement | undefined>
+    selectItem: SelectItemFn
 ): Promise<HTMLElement | undefined> => {
     let result: HTMLElement | undefined;
     for (const item of files) {
@@ -327,13 +316,7 @@ export const onLsSelect = async (
     filePath: string,
     setStorage: boolean,
     isSetCurrent: boolean,
-    selectItem: (
-        notebookId: string,
-        filePath: string,
-        data?: { files: IFile[]; box: string; path: string },
-        setStorage?: boolean,
-        isSetCurrent?: boolean
-    ) => Promise<HTMLElement | undefined>,
+    selectItem: SelectItemFn,
     setCurrent: (target: HTMLElement, isScroll?: boolean) => void
 ): Promise<HTMLElement | undefined> => {
     const fileHTML = generateFilesHTML(data.files);

@@ -16,8 +16,6 @@ import type {IEditorOptions} from "./imports";
 import type {EditorEngineOptions} from "./imports";
 /** 用途：编辑引擎领域身份；使用范围：Editor 泛型；解耦评估：模型不依赖具体 Protyle class。 */
 import type {IEditorEngine} from "./imports";
-/** 用途：页签宿主领域身份；使用范围：Editor 构造器；解耦评估：模型不依赖具体 Tab class。 */
-import type {IEditorTabHost} from "./imports";
 /** 用途：窗口恢复能力；使用范围：Editor class 声明；解耦评估：稳定能力契约不依赖窗口实现。 */
 import type {IWindowHashModel} from "./imports";
 
@@ -108,7 +106,7 @@ export class Editor<
         return {kind: "document-root", value: this.editor.protyle.block.rootID} as const;
     }
 
-    constructor(options: IEditorOptions<TApplication, IEditorTabHost, TEditor> & {
+    constructor(options: IEditorOptions<TApplication, TEditor> & {
         syncWindowModelHash: () => void;
         createEditorEngine: (
             app: TApplication,

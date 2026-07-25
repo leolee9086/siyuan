@@ -1,3 +1,10 @@
+/** 用途：布局页签完整领域根。使用范围：Files 模型父宿主。解耦评估：不加载 Tab class。 */
+import type {LayoutTab} from "../../layout.types";
+/** 用途：模型完整公共根。使用范围：Files 模型生命周期。解耦评估：不加载 Model class。 */
+import type {ModelDomain} from "../../lifecycle/model.types";
+/** 对外复用 Files 的完整页签宿主身份。 */
+export type {LayoutTab};
+
 /**
  * Files 组件类型定义
  * @module eventHandlers.types
@@ -28,7 +35,27 @@ export type SelectItemFn = (
     data?: { files: IFile[]; box: string; path: string },
     setStorage?: boolean,
     isSetCurrent?: boolean
-) => Promise<HTMLElement | undefined>;
+) => Promise<HTMLElement | null | undefined>;
+
+/** Files class 的完整公共领域表面。 */
+export interface FilesDomain<
+    TApplication extends object = object,
+    TParent extends LayoutTab = LayoutTab,
+> extends ModelDomain<TApplication, TParent> {
+    element: HTMLElement;
+    parent: TParent;
+    closeElement: HTMLElement;
+    lastSelectedElement: Element | null;
+    actionsElement: HTMLElement;
+    init(isInitialCall?: boolean): void;
+    setCurrent(target: HTMLElement, isScroll?: boolean): void;
+    getLeaf(liElement: Element, notebookId: string, focusUpdate?: boolean): void;
+    selectItem: SelectItemFn;
+    refreshPublishAccessSwitch(): void;
+    updateDocActions(): void;
+    onFiletreeSortChanged(data: {notebook: string; parentPath: string}): void;
+    onNotebookSortChanged(): void;
+}
 
 // ============================================================================
 // 事件处理器相关类型
@@ -39,25 +66,9 @@ export type SelectItemFn = (
  * 使用场景：工具栏、关闭区、鼠标选择和文件打开事件共享同一宿主。
  * 关联类型：Files class 以结构化类型实现该契约，不包含应用宿主身份。
  */
-export interface FilesEventHost {
-    readonly element: HTMLElement;
-    readonly actionsElement: HTMLElement;
-    readonly closeElement: HTMLElement;
-    lastSelectedElement: Element | null;
-    init: (isInitialCall?: boolean) => void;
-    refreshPublishAccessSwitch: () => void;
-    updateDocActions: () => void;
-    setCurrent: (target: HTMLElement, isScroll?: boolean) => void;
-    getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void;
-}
-
-/**
- * 用途：组合文件树事件宿主与应用身份。
- * 使用场景：事件聚合入口将同一上下文交给各类事件处理器。
- * 关联类型：文件树能力固定为 FilesEventHost，TApplication 由主应用实现绑定。
- */
-export interface FilesEventContext<TApplication> {
-    files: FilesEventHost;
+/** 用途：组合完整文件树领域根与应用身份。 */
+export interface FilesEventContext<TApplication extends object> {
+    files: FilesDomain<TApplication>;
     app: TApplication;
 }
 

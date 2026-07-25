@@ -1,9 +1,8 @@
 /** 用途：继承布局模型身份；使用范围：Graph 领域根；解耦评估：稳定生命周期类型不加载具体模型。 */
-import type {ILayoutModel} from "../../lifecycle/model.types";
+import type {ModelDomain} from "../../lifecycle/model.types";
 /** 用途：参数化 Graph 父宿主；使用范围：Graph 领域根；解耦评估：保持抽象宿主身份，不导入 Tab class。 */
 import type {ILayoutModelHost} from "../../lifecycle/model.types";
 /** 用途：描述公开连接动作；使用范围：Graph 领域根；解耦评估：复用模型生命周期完整请求类型。 */
-import type {IModelConnectOptions} from "../../lifecycle/model.types";
 
 /** Graph 节点与连线的完整公开数据快照。 */
 export interface GraphData {
@@ -19,20 +18,12 @@ export interface GraphData {
 export interface GraphDomain<
     TApplication extends object = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
-> extends ILayoutModel {
-    readonly layoutModel: true;
-    ws: WebSocket;
-    reqId: number;
-    parent: TParent;
-    app: TApplication;
+> extends ModelDomain<TApplication, TParent> {
     inputElement: HTMLInputElement;
     blockId: string;
     rootId: string;
     graphData: GraphData;
     type: "local" | "pin" | "global";
-    connect(options: IModelConnectOptions): void;
-    send(cmd: string, param: Record<string, unknown>, process?: boolean): void;
-    dispose(): void;
     searchGraph(focus: boolean, id?: string, refresh?: boolean): void;
     destroy(): void;
     onGraph(highlight: boolean): void;

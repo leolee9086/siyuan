@@ -11,11 +11,9 @@
 
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
-import { Tree } from "../../../util/file/Tree";
 import { getDockByType } from "../../tabUtil";
 import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
-import { Protyle } from "../../../protyle";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
@@ -31,6 +29,7 @@ import {
 } from "./Forwardlink.events";
 import { 初始化Tree组件, 处理消息回调 } from "./Forwardlink.init";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
+import type {ProtyleDomain, TreeDomain} from "./Forwardlink.types";
 
 /**
  * 正向链接 Dock 组件
@@ -42,9 +41,9 @@ export class Forwardlink extends Model<AppFacade, Tab> {
     public type: "pin" | "local";
     public blockId: string;
     public rootId: string;
-    public tree!: Tree;
+    public tree!: TreeDomain;
     private notebookId: string = "";
-    public editors: Protyle[] = [];
+    public editors: ProtyleDomain[] = [];
     public status: IForwardlinkStatus = {};
 
     constructor(options: {

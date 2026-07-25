@@ -9,7 +9,7 @@ import { checkFold } from "../../../util/platform/noRelyPCFunction";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-import type { Outline } from "./Outline";
+import type {OutlineDomain} from "./types";
 import { appendLevelMenuItems, appendInsertMenuItems, appendClipboardMenuItems, appendSubDocMenu } from "./Outline.contextMenu.edit";
 import { appendExpandCollapseMenuItems } from "./Outline.contextMenu.tree";
 // 重导出编辑模块的函数供 Outline 使用
@@ -36,7 +36,7 @@ function handleOpenOutlineFile(app: AppFacade, id: string, zoomIn: boolean) {
  * 显示右键菜单
  * @同步豁免: UI构建
  */
-export function showContextMenu(outline: Outline, element: HTMLElement, event: MouseEvent) {
+export function showContextMenu(outline: OutlineDomain, element: HTMLElement, event: MouseEvent) {
     /**
      * 作用：检查大纲是否处于预览模式。
      * 意图：预览模式下主要用于查看，不应提供右键编辑菜单，避免误操作。

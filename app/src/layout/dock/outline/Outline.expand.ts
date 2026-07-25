@@ -7,7 +7,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 /** 用途：Outline 树交互领域根；使用范围：展开、折叠和持久化；解耦评估：替代具体 Outline class。 */
-import type {IOutlinePanel} from "./types";
+import type {OutlineDomain} from "./types";
 
 const HEADING_LABELS = [
     siyuanI18n.heading1,
@@ -23,7 +23,7 @@ const HEADING_LABELS = [
  * @param targetLevel 目标标题级别，1-6级（H1-H6），6级表示全部展开
  * @同步豁免: DOM访问
  */
-export function expandToLevel(outline: IOutlinePanel, targetLevel: number) {
+export function expandToLevel(outline: OutlineDomain, targetLevel: number) {
     /**
      * 作用：处理“全部展开”的情况。
      * 意图：当目标级别 >= 6 时，视为展开全部节点。
@@ -67,7 +67,7 @@ export function expandToLevel(outline: IOutlinePanel, targetLevel: number) {
  * 显示展开层级菜单
  * @同步豁免: UI构建
  */
-export function showExpandLevelMenu(outline: IOutlinePanel, target: HTMLElement) {
+export function showExpandLevelMenu(outline: OutlineDomain, target: HTMLElement) {
     const menu = getSiyuanGlobalMenusMenu();
     menu.remove();
     menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_EXPAND_LEVEL);
@@ -96,7 +96,7 @@ export function showExpandLevelMenu(outline: IOutlinePanel, target: HTMLElement)
  * 切换同层级的所有标题的展开/折叠状态（基于标题级别而不是DOM层级）
  * @同步豁免: DOM访问
  */
-export function collapseSameLevel(outline: IOutlinePanel, element: HTMLElement, expand?: boolean) {
+export function collapseSameLevel(outline: OutlineDomain, element: HTMLElement, expand?: boolean) {
     // 获取所有相同标题级别的元素
     let isExpand = expand;
     if (typeof isExpand === "undefined") {
@@ -171,7 +171,7 @@ function handleCollapseItem(item: HTMLElement, arrowElement: Element) {
  * 展开/折叠子项
  * @同步豁免: DOM访问
  */
-export function collapseChildren(outline: IOutlinePanel, element: HTMLElement, expand?: boolean) {
+export function collapseChildren(outline: OutlineDomain, element: HTMLElement, expand?: boolean) {
     const nextElement = element.nextElementSibling;
     if (!nextElement || nextElement.tagName !== "UL") {
         return;

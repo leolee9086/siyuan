@@ -1,4 +1,4 @@
-import { Tab } from "../Tab";
+import type {LayoutTab} from "./Files/eventHandlers.types";
 import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { pathPosix, setNoteBook } from "../../util/file/pathName";
@@ -29,15 +29,14 @@ import {cancelFileTreeCollapse} from "./fileTreeAnimation";
 import {updateAllDocActions, updateSubFileCount} from "./Files/docActions";
 import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/sortRefresh";
 
-export class Files extends Model<AppFacade, Tab> {
+export class Files extends Model<AppFacade, LayoutTab> {
     public element: HTMLElement;
-    public parent: Tab;
     public closeElement: HTMLElement;
-    public lastSelectedElement: Element = null;
+    public lastSelectedElement: Element | null = null;
     public actionsElement: HTMLElement;
     private reloadNotebookInfoTimeout: number | undefined;
 
-    constructor(options: { tab: Tab; app: AppFacade }) {
+    constructor(options: { tab: LayoutTab; app: AppFacade }) {
         super({app: options.app});
         this.connect({
             type: "filetree",
@@ -130,7 +129,7 @@ export class Files extends Model<AppFacade, Tab> {
         files: IFile[],
         box: string,
         path: string
-    }, setStorage = true, isSetCurrent = true) {
+    }, setStorage = true, isSetCurrent = true): Promise<HTMLElement | null | undefined> {
         filePath = filePath.replace(/\/\/+/g, "/");
         const treeElement = this.element.querySelector(`[data-url="${notebookId}"]`);
         if (!treeElement) {

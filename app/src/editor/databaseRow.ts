@@ -1,5 +1,5 @@
 import {Custom} from "../layout/dock/Custom";
-import {Tab} from "../layout/Tab";
+import type {LayoutTab} from "../layout/layout.types";
 import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import {Protyle} from "../protyle";
@@ -7,7 +7,7 @@ import {getEditorHorizontalPadding} from "../protyle/ui/padding";
 
 export const newDatabaseRowModel = (options: {
     app: AppFacade,
-    tab: Tab,
+    tab: LayoutTab,
     data: {
         avID: string,
         blockID: string,

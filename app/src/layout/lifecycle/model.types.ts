@@ -36,3 +36,18 @@ export interface IModelConnectOptions {
     callback?: () => void;
     msgCallback?: (data: IWebSocketData) => void;
 }
+
+/** Model class 的完整公共领域表面；具体模型可在此基础上增加自身状态和行为。 */
+export interface ModelDomain<
+    TApplication extends object = object,
+    TParent extends ILayoutModelHost = ILayoutModelHost,
+> extends ILayoutModel {
+    readonly layoutModel: true;
+    ws: WebSocket;
+    reqId: number;
+    parent: TParent;
+    app: TApplication;
+    connect(options: IModelConnectOptions): void;
+    send(cmd: string, param: Record<string, unknown>, process?: boolean): void;
+    dispose(): void;
+}

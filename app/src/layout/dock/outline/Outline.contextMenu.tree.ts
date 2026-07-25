@@ -2,14 +2,14 @@ import { MenuItem } from "../../../menus/Menu.Item";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 /** 用途：Outline 树交互领域根；使用范围：右键树动作；解耦评估：替代具体 Outline class。 */
-import type {IOutlinePanel} from "./types";
+import type {OutlineDomain} from "./types";
 
 /**
  * 作用：添加展开/折叠相关的菜单项。
  * 意图：提供对大纲树节点的展开、折叠操作，包括子标题、同级标题以及全部展开/折叠。
  * 调用时机：在构建大纲右键菜单时调用，通常位于菜单末尾。
  */
-export async function appendExpandCollapseMenuItems(outline: IOutlinePanel, element: HTMLElement) {
+export async function appendExpandCollapseMenuItems(outline: OutlineDomain, element: HTMLElement) {
     const menu = getSiyuanGlobalMenusMenu();
 
     // 展开子标题

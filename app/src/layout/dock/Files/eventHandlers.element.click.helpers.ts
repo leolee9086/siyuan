@@ -14,7 +14,7 @@ import {
 } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getPublishAccessLevel, getPublishAccessOptionByLevel, openPublishAccessDialog } from "../../../protyle/util/publishAccess";
 import type { AppFacade } from "../../../app/AppFacade.types";
-import type {FilesEventHost} from "./eventHandlers.types";
+import type {FilesDomain} from "./eventHandlers.types";
 import {handleFileClick} from "./eventHandlers.element.click.file";
 import {collapseFileTree, isFileTreeCollapsing} from "../fileTreeAnimation";
 import {saveOpenPaths} from "./treeOperations";
@@ -80,7 +80,7 @@ function handleNotebookIconClick(
 function handleIconClick(
     event: MouseEvent,
     target: Element,
-    files: FilesEventHost,
+    files: FilesDomain,
     app: AppFacade,
     notebookId: string
 ): "unhandled" | "handled" | "opened" {
@@ -149,7 +149,7 @@ function handleIconClick(
 function handleToggleClick(
     event: MouseEvent,
     target: Element,
-    files: FilesEventHost,
+    files: FilesDomain,
     notebookId: string
 ) {
     // 检查是否按下了 Ctrl 键

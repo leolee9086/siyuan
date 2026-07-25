@@ -7,7 +7,7 @@ import { getAllModels } from "../../getAll";
 import { isMobile } from "../../../platform";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { dragOverScroll, stopScrollAnimation } from "../../../boot/globalEvent/dragover";
-import type { Outline } from "./Outline";
+import type {OutlineDomain} from "./types";
 import type { DragState } from "./types";
 import {
     initGhostElement,
@@ -26,7 +26,7 @@ import {
  * @同步豁免: UI构建
  * @param outline Outline 实例
  */
-export function bindSort(outline: Outline) {
+export function bindSort(outline: OutlineDomain) {
     outline.element.addEventListener("mousedown", (event: MouseEvent) => {
         handleMouseDown(outline, event);
     });
@@ -39,7 +39,7 @@ export function bindSort(outline: Outline) {
  * @param outline Outline 实例
  * @param event 鼠标事件对象
  */
-function handleMouseDown(outline: Outline, event: MouseEvent) {
+function handleMouseDown(outline: OutlineDomain, event: MouseEvent) {
     /**
      * 作用：事件目标校验。
      * 意图：仅处理 HTML 元素的事件。

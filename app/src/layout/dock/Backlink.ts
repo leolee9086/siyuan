@@ -14,6 +14,7 @@ import { isSupportCSSHL, searchMarkRender } from "../../protyle/render/searchMar
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDocDisplayName, isEncryptedBox} from "../../util/pathName";
 import {getAllModels} from "../getAll";
+import type {ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
 
 export class Backlink extends Model<AppFacade, Tab> {
     public element: HTMLElement;
@@ -21,10 +22,10 @@ export class Backlink extends Model<AppFacade, Tab> {
     public type: "pin" | "local";
     public blockId: string;
     public rootId: string; // "local" 必传
-    public tree: Tree;
+    public tree: TreeDomain;
     private notebookId: string;
-    public mTree: Tree;
-    public editors: Protyle[] = [];
+    public mTree: TreeDomain;
+    public editors: ProtyleDomain[] = [];
     public status: {
         [key: string]: {
             sort: number,

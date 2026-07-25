@@ -1,5 +1,5 @@
 /** 用途：文件树模型。使用范围：更新文件树选中状态。解耦评估：通过 ./imports 转发。 */
-import { Files } from "./imports";
+import {isFilesDomain} from "./imports";
 /** 用途：获取所有模型。使用范围：更新面板时遍历模型。解耦评估：通过 ./imports 转发。 */
 import { getAllModels } from "./imports";
 /** 用途：判断移动端。使用范围：仅在桌面端更新面板。解耦评估：通过 ./imports 转发。 */
@@ -81,7 +81,7 @@ const updateFileTreeSelection = (protyle: IProtyle) => {
     }
     const fileModel = getDockByType("file")?.data.file;
     // 意图：确保获取到的 fileModel 是正确的文件树实例。
-    if (!(fileModel instanceof Files)) {
+    if (!fileModel || typeof fileModel !== "object" || !isFilesDomain(fileModel)) {
         return;
     }
     const target = fileModel.element.querySelector(`li[data-path="${path}"]`);

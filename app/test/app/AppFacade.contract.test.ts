@@ -7,10 +7,7 @@ import type * as LocalApp from "../../src/index";
 import type * as LocalEventBus from "../../src/plugin/EventBus";
 import type * as LocalPlugin from "../../src/plugin";
 import type {Asset} from "../../src/asset";
-import type {Files} from "../../src/layout/dock/Files";
 import type {IWindowHashModel} from "../../src/window/modelHash/modelHash.types";
-import type {FilesEventHost} from "../../src/layout/dock/Files/eventHandlers.types";
-import type {FilesDragContext} from "../../src/layout/dock/Files/dnd.types";
 import type * as Siyuan from "siyuan";
 import {createAppFacade} from "../../src/app/AppFacade.types";
 import type {AppFacade} from "../../src/app/AppFacade.types";
@@ -25,16 +22,12 @@ type PluginCompatibility = IsAssignable<LocalPlugin.Plugin, SiyuanPluginRuntimeC
 type EventBusCompatibility = IsAssignable<LocalEventBus.EventBus, Siyuan.EventBus>;
 type PluginDockIngressCompatibility = IsAssignable<Siyuan.IPluginDockTab, IPluginDockTab>;
 type AssetWindowHashCompatibility = IsAssignable<Asset, IWindowHashModel>;
-type FilesEventHostCompatibility = IsAssignable<Files, FilesEventHost>;
-type FilesDragContextCompatibility = IsAssignable<Files, FilesDragContext>;
 
 const appFacadeContract: AppFacadeContract = true;
 const pluginCompatibility: PluginCompatibility = true;
 const eventBusCompatibility: EventBusCompatibility = true;
 const pluginDockIngressCompatibility: PluginDockIngressCompatibility = true;
 const assetWindowHashCompatibility: AssetWindowHashCompatibility = true;
-const filesEventHostCompatibility: FilesEventHostCompatibility = true;
-const filesDragContextCompatibility: FilesDragContextCompatibility = true;
 
 // These witnesses make an upstream compatibility regression identify the concrete member in tsc output.
 const asUpstreamPluginRuntime = (plugin: LocalPlugin.Plugin): SiyuanPluginRuntimeContract => plugin;
@@ -93,8 +86,6 @@ describe("AppFacade contracts", () => {
         assert.equal(typeof asUpstreamPluginRuntime, "function");
         assert.equal(typeof asUpstreamEventBus, "function");
         assert.equal(assetWindowHashCompatibility, true);
-        assert.equal(filesEventHostCompatibility, true);
-        assert.equal(filesDragContextCompatibility, true);
     });
 
     it("brands the existing application surface without changing its identity", () => {

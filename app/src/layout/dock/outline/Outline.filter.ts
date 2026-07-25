@@ -3,13 +3,13 @@
  */
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 /** 用途：Outline 树交互领域根；使用范围：筛选状态与树展开恢复；解耦评估：替代具体 Outline class。 */
-import type {IOutlinePanel} from "./types";
+import type {OutlineDomain} from "./types";
 
 /**
  * 应用大纲筛选
  * @同步豁免: 需要绝对同步的DOM访问 - 输入事件必须同步更新当前树 DOM。
  */
-export function setFilter(outline: IOutlinePanel) {
+export function setFilter(outline: OutlineDomain) {
     // 还原 display
     const hiddenItems = outline.element.querySelectorAll('li.b3-list-item[style$="display: none;"]');
     for (const item of hiddenItems) {
@@ -54,7 +54,7 @@ export function setFilter(outline: IOutlinePanel) {
 /**
  * 重置筛选状态，恢复之前的折叠情况
  */
-function resetFilter(outline: IOutlinePanel) {
+function resetFilter(outline: OutlineDomain) {
     if (outline.preFilterExpandIds) {
         outline.tree.setExpandIds(outline.preFilterExpandIds);
     }

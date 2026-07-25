@@ -11,7 +11,7 @@ import {
 /**
  * 检查是否应该跳过显示 dock
  */
-export function shouldSkipShowDock(dock: Dock): boolean {
+export function shouldSkipShowDock(dock: Dock) {
     const hasActiveItem = dock.element.querySelector(".dock__item--active");
     return dock.pin || !hasActiveItem || dock.layout.element.style.opacity === "1";
 }
@@ -19,7 +19,7 @@ export function shouldSkipShowDock(dock: Dock): boolean {
 /**
  * 检查 dock 尺寸是否为零
  */
-export function isZeroSize(dock: Dock): boolean {
+export function isZeroSize(dock: Dock) {
     const isHorizontal = dock.position === "Left" || dock.position === "Right";
     if (isHorizontal) {
         return dock.layout.element.clientWidth === 0 && dock.layout.element.style.width.startsWith("0");
@@ -33,7 +33,7 @@ export function isZeroSize(dock: Dock): boolean {
 /**
  * 检查是否有阻止显示的覆盖层
  */
-export function hasBlockingOverlay(): boolean {
+export function hasBlockingOverlay() {
     const hasDialog = document.querySelector(".b3-dialog");
     const hasPopover = document.querySelector(".block__popover");
     const hasMenu = document.querySelector("#commonMenu:not(.fn__none)");
@@ -51,7 +51,7 @@ export function hasBlockingOverlay(): boolean {
 /**
  * 设置 dock 位置
  */
-export function setDockPosition(dock: Dock): void {
+export function setDockPosition(dock: Dock) {
     if (dock.position === "Left") {
         dock.layout.element.style.left = `${dock.element.clientWidth}px`;
         return;
@@ -70,7 +70,7 @@ export function setDockPosition(dock: Dock): void {
 /**
  * 检查是否有全屏元素激活
  */
-export function isFullscreenActive(dock: Dock): boolean {
+export function isFullscreenActive(dock: Dock) {
     const fullscreenElement = dock.layout.element.querySelector(".fullscreen");
     return Boolean(fullscreenElement && fullscreenElement.clientHeight > 0);
 }
@@ -78,7 +78,7 @@ export function isFullscreenActive(dock: Dock): boolean {
 /**
  * 检查是否有文本框获得焦点
  */
-export function isTextFieldFocused(dock: Dock): boolean {
+export function isTextFieldFocused(dock: Dock) {
     const activeEl = document.activeElement;
     if (!activeEl) {
         return false;
@@ -90,7 +90,7 @@ export function isTextFieldFocused(dock: Dock): boolean {
 /**
  * 检查是否有更高 zIndex 的覆盖层
  */
-export function hasHigherZIndexOverlay(dock: Dock): boolean {
+export function hasHigherZIndexOverlay(dock: Dock) {
     const layoutZIndex = dock.layout.element.style.zIndex;
     const dialogElement = document.querySelector(".b3-dialog");
     const blockElement = document.querySelector(".block__popover");
@@ -111,7 +111,7 @@ export function hasHigherZIndexOverlay(dock: Dock): boolean {
 /**
  * 应用隐藏变换
  */
-export function applyHideTransform(dock: Dock): void {
+export function applyHideTransform(dock: Dock) {
     if (dock.position === "Left") {
         dock.layout.element.style.transform = `translateX(-${dock.layout.element.clientWidth + 8}px)`;
         dock.layout.element.style.left = "";

@@ -1,5 +1,5 @@
 /** 用途：完整 Outline 面板领域根；使用范围：图标命令分派；解耦评估：替代具体 class 和 Dock 查询依赖。 */
-import type {IOutlinePanel} from "./types";
+import type {OutlineDomain} from "./types";
 
 /** 点击搜索图标时显示并选中当前 header 输入框。 */
 function showSearch(input: HTMLInputElement) {
@@ -8,7 +8,7 @@ function showSearch(input: HTMLInputElement) {
 }
 
 /** 点击展开层级图标时打开菜单并终止本次图标事件继续传播。 */
-function showExpandLevel(outline: IOutlinePanel, target: HTMLElement, event: MouseEvent) {
+function showExpandLevel(outline: OutlineDomain, target: HTMLElement, event: MouseEvent) {
     outline.showExpandLevelMenu(target);
     event.preventDefault();
     event.stopPropagation();
@@ -20,7 +20,7 @@ function showExpandLevel(outline: IOutlinePanel, target: HTMLElement, event: Mou
  * 调用时机：handlePanelClick 检测到点击了 .block__icon 时。
  * @同步豁免: 需要绝对同步的DOM访问 - 点击分派必须使用当前事件目标和输入框状态。
  */
-export function handlePanelIconClick(outline: IOutlinePanel, target: HTMLElement, event: MouseEvent) {
+export function handlePanelIconClick(outline: OutlineDomain, target: HTMLElement, event: MouseEvent) {
     const type = target.getAttribute("data-type");
     const inputElement = outline.headerElement.querySelector("input.b3-text-field.search__label");
 

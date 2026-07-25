@@ -5,11 +5,11 @@ import { isCurrentEditor } from "./util.isCurrentEditor";
 /** 用途：获取 SiYuan 配置。使用范围：读取反链排序配置。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
 /** 用途：关系图面板模型。使用范围：更新关系图数据。解耦评估：通过 ./imports 转发。 */
-import { Graph } from "./imports";
+import type {GraphDomain} from "./imports";
 /** 用途：反链面板模型。使用范围：更新反链数据。解耦评估：通过 ./imports 转发。 */
-import { Backlink } from "./imports";
+import type {BacklinkDomain} from "./imports";
 /** 用途：前链面板模型。使用范围：更新前链数据。解耦评估：通过 ./imports 转发。 */
-import { Forwardlink } from "./imports";
+import type {ForwardlinkDomain} from "./imports";
 /** 用途：判断笔记本是否加密。使用范围：反链查询选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */
 import { isEncryptedBox } from "./imports";
 
@@ -29,7 +29,7 @@ function getActiveBlockId(protyle: IProtyle | undefined) {
 /**
  * 更新关系图面板
  */
-const updateGraph = (item: Graph, protyle: IProtyle | undefined) => {
+const updateGraph = (item: GraphDomain, protyle: IProtyle | undefined) => {
     if (item.type === "global") {
         return;
     }
@@ -50,7 +50,7 @@ const updateGraph = (item: Graph, protyle: IProtyle | undefined) => {
 /**
  * 获取反链排序配置
  */
-function getSortConfig(blockId: string, item: Backlink, key: "sort" | "mSort") {
+function getSortConfig(blockId: string, item: BacklinkDomain, key: "sort" | "mSort") {
     const status = item.status[blockId];
     if (status) {
         const value = status[key];
@@ -67,7 +67,7 @@ function getSortConfig(blockId: string, item: Backlink, key: "sort" | "mSort") {
  */
 function handleBacklinkResponse(
     response: IWebSocketData,
-    item: Backlink,
+    item: BacklinkDomain,
     blockId: string,
     refreshElement: Element | null
 ) {
@@ -84,7 +84,7 @@ function handleBacklinkResponse(
 /**
  * 更新反向链接面板
  */
-const updateBacklink = (item: Backlink, protyle: IProtyle | undefined) => {
+const updateBacklink = (item: BacklinkDomain, protyle: IProtyle | undefined) => {
     if (item.type === "local" && item.rootId !== protyle?.block?.rootID) {
         return;
     }
@@ -124,7 +124,7 @@ const updateBacklink = (item: Backlink, protyle: IProtyle | undefined) => {
 /**
  * 更新正向链接面板
  */
-const updateForwardlink = (item: Forwardlink, protyle: IProtyle | undefined) => {
+const updateForwardlink = (item: ForwardlinkDomain, protyle: IProtyle | undefined) => {
     const blockId = protyle?.block?.rootID || "";
 
     // local 类型根 ID 匹配时刷新，不匹配则跳过

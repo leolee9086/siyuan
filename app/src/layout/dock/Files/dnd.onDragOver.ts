@@ -1,4 +1,4 @@
-import type {FilesDragContext} from "./dnd.types";
+import type {FilesDomain} from "./eventHandlers.types";
 import { Constants } from "../../../constants";
 import {
     hasClosestByAttribute,
@@ -56,7 +56,7 @@ const checkInvalidGutterType = (gutterType: string) => {
     return !type || !["nodelistitem", "nodeheading"].includes(type);
 };
 
-const checkSourceOnlyRoot = (files: FilesDragContext, gutterType: string) => {
+const checkSourceOnlyRoot = (files: FilesDomain, gutterType: string) => {
     let sourceOnlyRoot = !gutterType;
     if (sourceOnlyRoot) {
         const selectedItems = Array.from(files.element.querySelectorAll(".b3-list-item--focus"));
@@ -116,7 +116,7 @@ const showFileDragTip = (liElement: HTMLElement, event: DragEvent, gutterType: s
     showDragTip(title, action, event.clientX, event.clientY);
 };
 
-export const onDragOver = (files: FilesDragContext, event: DragEvent) => {
+export const onDragOver = (files: FilesDomain, event: DragEvent) => {
     if (getSiyuanConfig().readonly || event.dataTransfer?.types.includes(Constants.SIYUAN_DROP_TAB)) {
         hideDragTip();
         return;

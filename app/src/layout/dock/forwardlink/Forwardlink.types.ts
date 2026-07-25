@@ -1,3 +1,14 @@
+/** 用途：模型完整公共根。使用范围：Forwardlink 领域生命周期。解耦评估：不加载 Model 实现。 */
+import type {ILayoutModelHost} from "../../lifecycle/model.types";
+/** 用途：模型完整公共根。使用范围：Forwardlink 领域生命周期。解耦评估：不加载 Model 实现。 */
+import type {ModelDomain} from "../../lifecycle/model.types";
+/** 用途：Tree 完整领域根。使用范围：Forwardlink 链接树。解耦评估：不加载 Tree 实现。 */
+import type {TreeDomain} from "../../../util/file/tree.types";
+/** 用途：Protyle 完整领域根。使用范围：Forwardlink 内嵌编辑器集合。解耦评估：不加载 Protyle 实现。 */
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
+/** 对外复用嵌套完整领域根，具体 Forwardlink class 的公开字段不得泄露实现类型。 */
+export type {ProtyleDomain, TreeDomain};
+
 /**
  * 正向链接树节点数据
  * 
@@ -71,4 +82,28 @@ export interface IBlockResult {
     type: string;
     subType: string;
     box: string;
+}
+
+/** Forwardlink 接口响应的完整渲染数据。 */
+export interface ForwardlinkRenderData {
+    forwardlinks: IForwardlinkTreeNode[];
+    count: number;
+}
+
+/** Forwardlink class 的完整公共领域表面。 */
+export interface ForwardlinkDomain<
+    TApplication extends object = object,
+    TParent extends ILayoutModelHost = ILayoutModelHost,
+> extends ModelDomain<TApplication, TParent> {
+    element: HTMLElement;
+    inputsElement: NodeListOf<HTMLInputElement>;
+    type: "pin" | "local";
+    blockId: string;
+    rootId: string;
+    tree: TreeDomain;
+    editors: ProtyleDomain[];
+    status: IForwardlinkStatus;
+    refresh(): void;
+    保存状态(): void;
+    渲染数据(data: ForwardlinkRenderData): void;
 }

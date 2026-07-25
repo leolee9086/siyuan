@@ -21,7 +21,7 @@ import {getSiyuanStorage} from "./runtime/imports";
 import { getWindowSelection } from "./runtime/imports";
 
 /** 用途：完整 Outline 面板领域根；使用范围：事务和消息生命周期；解耦评估：替代具体 class。 */
-import type {IOutlinePanel} from "./types";
+import type {OutlineDomain} from "./types";
 
 /**
  * 生成 Outline 面板的 HTML 结构
@@ -94,7 +94,7 @@ function 检查操作是否需要重载(item: IOperation, outlineElement: Elemen
  * @param data - WebSocket 数据
  * @同步豁免: 遗留代码
  */
-export function 处理事务(outline: IOutlinePanel, data: IWebSocketData) {
+export function 处理事务(outline: OutlineDomain, data: IWebSocketData) {
     // 意图：若是其他文档的事务消息，则直接忽略，仅处理当前大纲对应文档的事务。
     if (data.data.rootID !== outline.blockId) {
         return;
@@ -126,7 +126,7 @@ export function 处理事务(outline: IOutlinePanel, data: IWebSocketData) {
  * @param data 原始 WebSocket 数据
  * @returns 接收 response 的回调函数
  */
-function 创建获取大纲回调(outline: IOutlinePanel, data: IWebSocketData) {
+function 创建获取大纲回调(outline: OutlineDomain, data: IWebSocketData) {
     return (response: IWebSocketData) => {
         处理大纲响应(outline, data, response);
     };
@@ -140,7 +140,7 @@ function 创建获取大纲回调(outline: IOutlinePanel, data: IWebSocketData) 
  * @param data - 原始的 WebSocket 触发数据
  * @param response - 接口返回的大纲数据
  */
-function 处理大纲响应(outline: IOutlinePanel, data: IWebSocketData, response: IWebSocketData) {
+function 处理大纲响应(outline: OutlineDomain, data: IWebSocketData, response: IWebSocketData) {
     // 意图：校验响应数据是否属于当前大纲对应的文档。
     if (data.data.rootID !== outline.blockId) {
         return;
@@ -156,7 +156,7 @@ function 处理大纲响应(outline: IOutlinePanel, data: IWebSocketData, respon
  * 调用时机：刷新大纲后自动调用
  * @param outline - Outline 实例
  */
-function 同步当前选中的标题(outline: IOutlinePanel) {
+function 同步当前选中的标题(outline: OutlineDomain) {
     const selection = getWindowSelection();
     // 意图：确保当前有选区，否则无法同步。
     if (!selection || selection.rangeCount <= 0) {
@@ -179,7 +179,7 @@ function 同步当前选中的标题(outline: IOutlinePanel) {
  * @param outline - Outline 实例
  * @同步豁免: 生命周期
  */
-export function 检查本地文档及其Tab存在的逻辑(outline: IOutlinePanel) {
+export function 检查本地文档及其Tab存在的逻辑(outline: OutlineDomain) {
     // 意图：仅Local类型的大纲需要检查文档存在性，Pin类型的大纲常驻不需自动关闭。
     if (outline.type !== "local") {
         return;
@@ -193,7 +193,7 @@ export function 检查本地文档及其Tab存在的逻辑(outline: IOutlinePane
 }
 
 /** 文档重命名时更新本地页签标题或 Pin 大纲标题。 */
-function 处理重命名消息(outline: IOutlinePanel, data: IWebSocketData) {
+function 处理重命名消息(outline: OutlineDomain, data: IWebSocketData) {
     // 本地大纲与被重命名文档一致时更新页签；Pin 模式继续更新自身标题区。
     if (outline.type === "local" && outline.blockId === data.data.id) {
         outline.parent.updateTitle(data.data.title);
@@ -203,7 +203,7 @@ function 处理重命名消息(outline: IOutlinePanel, data: IWebSocketData) {
 }
 
 /** 文档删除消息命中当前本地大纲时关闭对应页签。 */
-function 处理删除文档消息(outline: IOutlinePanel, data: IWebSocketData) {
+function 处理删除文档消息(outline: OutlineDomain, data: IWebSocketData) {
     // 只有当前本地大纲绑定的文档被删除时才关闭其页签。
     if (data.data.ids.includes(outline.blockId) && outline.type === "local") {
         outline.parent.parent.removeTab(outline.parent.id);
@@ -214,7 +214,7 @@ function 处理删除文档消息(outline: IOutlinePanel, data: IWebSocketData) 
  * 处理来自 WebSocket 的各种消息
  * @同步豁免: 生命周期
  */
-export function 分发消息回调逻辑(outline: IOutlinePanel, data: IWebSocketData) {
+export function 分发消息回调逻辑(outline: OutlineDomain, data: IWebSocketData) {
     // 意图：防御性校验，确保消息包含命令指令。
     if (!data?.cmd) {
         return;

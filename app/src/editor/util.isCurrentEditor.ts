@@ -1,9 +1,10 @@
 /** 用途：编辑器模型类型，判断页签是否为编辑器实例。使用范围：isCurrentEditor 类型检查。解耦评估：同目录 barrel 导出，直接同层导入。 */
 import { Editor } from ".";
 /** 用途：页签类型定义，判断实例类型。使用范围：isCurrentEditor 类型守卫。解耦评估：通过 imports.ts 转发。 */
-import type { Tab } from "./imports";
 /** 用途：按 ID 获取页签实例。使用范围：isCurrentEditor 查找编辑器页签。解耦评估：通过 imports.ts 转发。 */
 import { getInstanceById } from "./imports";
+/** 用途：布局页签完整领域守卫。使用范围：收窄实例表查询结果。解耦评估：不加载具体 Tab class。 */
+import {isLayoutTab} from "./imports";
 
 /**
  * 判断指定块 ID 是否为当前编辑器的选中块
@@ -35,7 +36,7 @@ export const isCurrentEditor = (blockId: string) => {
         }
         const tab = getInstanceById(tabDataID);
         // 检查页签是否为编辑器实例，并匹配目标 blockId
-        if (tab instanceof Tab && tab.model instanceof Editor && (
+        if (isLayoutTab(tab) && tab.model instanceof Editor && (
             tab.model.editor.protyle.block.rootID === blockId ||
             tab.model.editor.protyle.block.parentID === blockId ||
             tab.model.editor.protyle.block.id === blockId

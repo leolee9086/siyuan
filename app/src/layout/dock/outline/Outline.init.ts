@@ -4,7 +4,7 @@
  */
 
 import { getInstanceById } from "../../util";
-import { Tab } from "../../Tab";
+import {isLayoutTab} from "../../layout.types.guard";
 import { hasClosestByClassName, hasTopClosestByClassName } from "../../../protyle/util/hasClosest";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { Constants } from "../../../constants";
@@ -12,7 +12,7 @@ import { checkFold } from "../../../util/platform/noRelyPCFunction";
 import { escapeAttr } from "../../../util/DOM/escape";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import type { Outline } from "./Outline";
+import type {OutlineDomain} from "./types";
 
 const FILE_ACTION_ZOOM_IN: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HTML, Constants.CB_GET_OUTLINE];
 const FILE_ACTION_DEFAULT: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB_GET_OUTLINE, Constants.CB_GET_SETID, Constants.CB_GET_CONTEXT, Constants.CB_GET_HTML];
@@ -21,7 +21,7 @@ const FILE_ACTION_DEFAULT: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants
  * 初始化搜索输入框事件
  * @同步豁免: DOM访问
  */
-export function initInputEvents(outline: Outline) {
+export function initInputEvents(outline: OutlineDomain) {
     const inputElement = outline.headerElement.querySelector("input.b3-text-field.search__label");
     if (!(inputElement instanceof HTMLInputElement)) {
         return;
@@ -39,7 +39,7 @@ export function initInputEvents(outline: Outline) {
  * @param outline Outline 实例
  * @param inputElement 输入框元素
  */
-function handleSearchInputBlur(outline: Outline, inputElement: HTMLInputElement) {
+function handleSearchInputBlur(outline: OutlineDomain, inputElement: HTMLInputElement) {
     inputElement.classList.add("fn__none");
     const filterIconElement = inputElement.nextElementSibling;
     if (!filterIconElement) {
@@ -60,7 +60,7 @@ function handleSearchInputBlur(outline: Outline, inputElement: HTMLInputElement)
  * @param inputElement 输入框元素
  * @param event 键盘事件
  */
-function handleSearchInputKeydown(outline: Outline, inputElement: HTMLInputElement, event: KeyboardEvent) {
+function handleSearchInputKeydown(outline: OutlineDomain, inputElement: HTMLInputElement, event: KeyboardEvent) {
     // 仅在非输入法组合状态（如中文拼音输入中）且按下回车键时触发，避免误触
     if (!event.isComposing && event.key === "Enter") {
         inputElement.dataset.value = inputElement.value;
@@ -74,7 +74,7 @@ function handleSearchInputKeydown(outline: Outline, inputElement: HTMLInputEleme
  * @param outline Outline 实例
  * @同步豁免: UI构建
  */
-export function createTreeConfig(outline: Outline, app: AppFacade) {
+export function createTreeConfig(outline: OutlineDomain, app: AppFacade) {
     return {
         element: outline.element,
         data: [],
@@ -134,7 +134,7 @@ export function createTreeConfig(outline: Outline, app: AppFacade) {
  * @param app AppFacade 实例
  * @param element 被点击的节点元素
  */
-function handleTreeClick(outline: Outline, app: AppFacade, element: HTMLElement) {
+function handleTreeClick(outline: OutlineDomain, app: AppFacade, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
     // 如果没有 ID 则不处理
     if (!id) {
@@ -159,7 +159,7 @@ function handleTreeClick(outline: Outline, app: AppFacade, element: HTMLElement)
  * @param app AppFacade 实例
  * @param id 节点 ID
  */
-function handlePreviewClick(outline: Outline, app: AppFacade, id: string) {
+function handlePreviewClick(outline: OutlineDomain, app: AppFacade, id: string) {
     const headElement = document.getElementById(id);
     // 如果找不到对应的 DOM 元素（即使在预览模式下也可能因为未渲染等原因找不到），则直接打开文件
     if (!headElement) {
@@ -171,7 +171,7 @@ function handlePreviewClick(outline: Outline, app: AppFacade, id: string) {
     const tab = tabId ? getInstanceById(tabId) : null;
     // 确保获取到的实例是 Tab 类型
     // 检查获取到的实例是否为Tab类型
-    if (tab instanceof Tab) {
+    if (tab && typeof tab === "object" && isLayoutTab(tab)) {
         tab.parent.switchTab(tab.headElement);
     }
     headElement.scrollIntoView();
@@ -201,7 +201,7 @@ function openEditorNode(app: AppFacade, id: string, zoomIn: boolean) {
  * @param element 被点击的节点元素
  * @param event 鼠标事件对象
  */
-function handleTreeCtrlClick(outline: Outline, app: AppFacade, element: HTMLElement, event: MouseEvent) {
+function handleTreeCtrlClick(outline: OutlineDomain, app: AppFacade, element: HTMLElement, event: MouseEvent) {
     const target = event.target;
     // 确保点击目标是 Element
     if (!(target instanceof Element)) {
@@ -228,7 +228,7 @@ function handleTreeCtrlClick(outline: Outline, app: AppFacade, element: HTMLElem
  * @param element 被点击的节点元素
  * @param event 鼠标事件对象
  */
-function handleTreeAltClick(outline: Outline, element: HTMLElement, event: MouseEvent) {
+function handleTreeAltClick(outline: OutlineDomain, element: HTMLElement, event: MouseEvent) {
     const target = event.target;
     // 确保点击目标是 HTMLElement
     if (!(target instanceof HTMLElement)) {
@@ -248,7 +248,7 @@ function handleTreeAltClick(outline: Outline, element: HTMLElement, event: Mouse
  * @param outline Outline 实例
  * @param liElement 被点击的 LI 元素
  */
-function handleTreeToggleClick(outline: Outline, liElement: HTMLElement) {
+function handleTreeToggleClick(outline: OutlineDomain, liElement: HTMLElement) {
     const nextSibling = liElement.nextElementSibling;
     // 如果没有下一个兄弟节点（即没有子列表），则直接返回
     if (!nextSibling) {

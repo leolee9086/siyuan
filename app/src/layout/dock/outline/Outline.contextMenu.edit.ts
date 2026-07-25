@@ -13,13 +13,13 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 import { confirmDialog } from "../../../dialog/confirmDialog";
 import { isHTMLElement } from "../dock.guard";
 import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器, convertBlockToSubDocument } from "./Outline.contextMenu.edit.util";
-import type { Outline } from "./Outline";
+import type {OutlineDomain, OutlineEditorContext} from "./types";
 
 /** 
  * 获取 Protyle 和块元素 
  * @同步豁免: DOM访问
  */
-export function getProtyleAndBlockElement(outline: Outline, element: HTMLElement) {
+export function getProtyleAndBlockElement(outline: OutlineDomain, element: HTMLElement): OutlineEditorContext | undefined {
     const id = element.getAttribute("data-node-id");
     const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
     /**
@@ -73,7 +73,7 @@ function 获取标题文案(level: number) {
  * 生成标题级别转换菜单项 
  * @同步豁免: UI构建
  */
-export function genHeadingTransform(outline: Outline, id: string, level: number) {
+export function genHeadingTransform(outline: OutlineDomain, id: string, level: number): IMenu {
     return {
         id: "heading" + level, iconHTML: "", icon: "iconHeading" + level,
         label: 获取标题文案(level),
@@ -113,7 +113,7 @@ export function genHeadingTransform(outline: Outline, id: string, level: number)
  * 生成标题级别转换菜单项 
  * @同步豁免: UI构建
  */
-export function appendLevelMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
+export function appendLevelMenuItems(outline: OutlineDomain, element: HTMLElement, id: string, currentLevel: number) {
     /**
      * 作用：仅在标题级别大于 1 时显示“升级”选项。
      * 意图：一级标题无法再升级，避免显示无用菜单项。
@@ -206,7 +206,7 @@ export function appendLevelMenuItems(outline: Outline, element: HTMLElement, id:
  * 调用时机：在右键菜单构建时调用。
  * @同步豁免: UI构建
  */
-export function appendSubDocMenu(outline: Outline, element: HTMLElement) {
+export function appendSubDocMenu(outline: OutlineDomain, element: HTMLElement) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         label: "转换为子文档",
         icon: "iconFile",
@@ -236,7 +236,7 @@ export function appendSubDocMenu(outline: Outline, element: HTMLElement) {
  * 添加插入标题菜单项
  * @同步豁免: UI构建
  */
-export function appendInsertMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
+export function appendInsertMenuItems(outline: OutlineDomain, element: HTMLElement, id: string, currentLevel: number) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "insertSameLevelHeadingBefore", icon: "iconBefore", label: siyuanI18n.insertSameLevelHeadingBefore,
         /**

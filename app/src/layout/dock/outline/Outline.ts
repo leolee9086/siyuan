@@ -22,8 +22,10 @@ import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.gua
 import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
 import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {getDockByType} from "../../tabUtil";
+import type {OutlineDomain} from "./types";
+import type {TreeDomain} from "./types";
 export class Outline extends Model<AppFacade, LayoutTab> {
-    public tree!: Tree;
+    public tree!: TreeDomain;
     public element: HTMLElement;
     public headerElement: HTMLElement;
     public type: "pin" | "local";
@@ -372,7 +374,7 @@ const updateCounter = (docTitleElement: Element, count?: number): void => {
  * 意图：当搜索框存在（且为 HTMLInputElement）且用户已输入内容时，重新应用过滤。
  * @param outline Outline 实例
  */
-function restoreFilter(outline: Outline): void {
+function restoreFilter(outline: OutlineDomain): void {
     const searchInput = outline.headerElement.querySelector("input.b3-text-field.search__label");
     /**
      * 作用：检查搜索框是否有值。

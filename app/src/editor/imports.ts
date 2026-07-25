@@ -15,9 +15,19 @@ import { objEquals } from "../util/platform/functions";
 export { objEquals };
 
 /** 用途：页签类型定义。使用范围：editor 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import type { Tab } from "../layout/Tab";
-/** 导出 Tab 类型，供 editor 模块使用 */
-export type { Tab };
+import type {LayoutTab} from "../layout/layout.types";
+/** 导出完整布局页签领域根，供 editor 模块使用。 */
+export type {LayoutTab};
+
+/** 用途：布局容器与窗口完整领域根。使用范围：editor 打开文件时遍历布局树。解耦评估：不依赖具体 class。 */
+import type {LayoutDomain, LayoutWindow} from "../layout/layout.types";
+/** 导出完整布局容器与窗口领域根。 */
+export type {LayoutDomain, LayoutWindow};
+
+/** 用途：布局页签结构守卫。使用范围：editor 从布局实例表收窄页签。解耦评估：守卫只依赖完整领域根。 */
+import {isLayoutDomain, isLayoutTab, isLayoutWindow} from "../layout/layout.types.guard";
+/** 导出布局领域结构守卫。 */
+export {isLayoutDomain, isLayoutTab, isLayoutWindow};
 
 /** 用途：应用实例类型。使用范围：editor 模块类型约束。解耦评估：通过 imports.ts 转发。 */
 import type { AppFacade } from "../app/AppFacade.types";
@@ -39,10 +49,10 @@ import { Protyle } from "../protyle";
 /** 导出 Protyle，供 editor 模块使用 */
 export { Protyle };
 
-/** 用途：大纲模型类。使用范围：editor 更新大纲面板。解耦评估：通过 imports.ts 转发。 */
-import { Outline } from "../layout/dock/outline/Outline";
-/** 导出 Outline，供 editor 模块使用 */
-export { Outline };
+/** 用途：大纲模型完整领域根。使用范围：editor 更新大纲面板。解耦评估：不加载 Outline class。 */
+import type {OutlineDomain} from "../layout/dock/outline/types";
+/** 导出大纲模型完整领域根。 */
+export type {OutlineDomain};
 
 /** 用途：DOM 属性查找工具。使用范围：editor 高亮当前大纲项。解耦评估：通过 imports.ts 转发。 */
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
@@ -171,20 +181,12 @@ import { Model } from "../layout/Model";
 /** 导出 Model，供 editor 模块使用 */
 export { Model };
 
-/** 用途：窗口类。使用范围：editor 打开文件时获取目标窗口。解耦评估：通过 imports.ts 转发。 */
-import { Wnd } from "../layout/Wnd";
-/** 导出 Wnd，供 editor 模块使用 */
-export { Wnd };
 
 /** 用途：Electron IPC 调用。使用范围：editor 在 Electron 中打开文件。解耦评估：通过 imports.ts 转发。 */
 import { ipcInvoke } from "../platform/electron/ipcRenderer";
 /** 导出 ipcInvoke，供 editor 模块使用 */
 export { ipcInvoke };
 
-/** 用途：布局容器类。使用范围：editor 判断窗口父级布局。解耦评估：通过 imports.ts 转发。 */
-import { Layout } from "../layout";
-/** 导出 Layout，供 editor 模块使用 */
-export { Layout };
 
 /** 用途：创建新页签。使用范围：editor 打开文件时创建新页签。解耦评估：通过 imports.ts 转发。 */
 import { newTab } from "../layout/utils/newTab";
@@ -292,25 +294,29 @@ import { removeEmbed } from "../protyle/wysiwyg/removeEmbed";
 /** 导出 removeEmbed，供 editor 模块使用 */
 export { removeEmbed };
 
-/** 用途：文件树模型类。使用范围：更新文件树选中状态。解耦评估：通过 imports.ts 转发。 */
-import { Files } from "../layout/dock/Files";
-/** 导出 Files，供 editor 模块使用 */
-export { Files };
+/** 用途：文件树模型完整领域根。使用范围：更新文件树选中状态。解耦评估：不加载 Files class。 */
+import type {FilesDomain} from "../layout/dock/Files/eventHandlers.types";
+/** 导出文件树模型完整领域根。 */
+export type {FilesDomain};
+/** 用途：文件树领域守卫。使用范围：收窄 Dock 模型查询结果。解耦评估：不加载 Files class。 */
+import {isFilesDomain} from "../layout/dock/Files/eventHandlers.guard";
+/** 导出文件树领域守卫。 */
+export {isFilesDomain};
 
-/** 用途：反链面板模型类。使用范围：更新反链数据。解耦评估：通过 imports.ts 转发。 */
-import { Backlink } from "../layout/dock/Backlink";
-/** 导出 Backlink，供 editor 模块使用 */
-export { Backlink };
+/** 用途：反链模型完整领域根。使用范围：editor 同步反链面板状态。解耦评估：不加载 Backlink class。 */
+import type {BacklinkDomain} from "../layout/dock/backlink/backlink.types";
+/** 导出反链模型完整领域根。 */
+export type {BacklinkDomain};
 
-/** 用途：关系图面板模型类。使用范围：更新关系图数据。解耦评估：通过 imports.ts 转发。 */
-import { Graph } from "../layout/dock/Graph";
-/** 导出 Graph，供 editor 模块使用 */
-export { Graph };
+/** 用途：关系图模型完整领域根。使用范围：editor 同步关系图状态。解耦评估：不加载 Graph class。 */
+import type {GraphDomain} from "../layout/dock/graph/graph.types";
+/** 导出关系图模型完整领域根。 */
+export type {GraphDomain};
 
-/** 用途：前链面板模型类。使用范围：更新前链数据。解耦评估：通过 imports.ts 转发。 */
-import { Forwardlink } from "../layout/dock/forwardlink/Forwardlink";
-/** 导出 Forwardlink，供 editor 模块使用 */
-export { Forwardlink };
+/** 用途：前链模型完整领域根。使用范围：editor 同步前链面板状态。解耦评估：不加载 Forwardlink class。 */
+import type {ForwardlinkDomain} from "../layout/dock/forwardlink/Forwardlink.types";
+/** 导出前链模型完整领域根。 */
+export type {ForwardlinkDomain};
 
 /** 用途：统计选中字数。使用范围：编辑器聚焦时更新统计。解耦评估：通过 imports.ts 转发。 */
 import { countSelectWord } from "../protyle/runtime/status.port";

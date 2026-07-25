@@ -1,5 +1,5 @@
 /** 用途：Outline 大纲模型类。使用范围：创建和管理大纲。解耦评估：通过 ./imports 转发。 */
-import { Outline } from "./imports";
+import type {OutlineDomain} from "./imports";
 /** 用途：通过属性查找 DOM 元素。使用范围：高亮大纲项时定位元素。解耦评估：通过 ./imports 转发。 */
 import { hasClosestByAttribute } from "./imports";
 /** 用途：网络请求。使用范围：获取大纲数据。解耦评估：通过 ./imports 转发。 */
@@ -19,7 +19,7 @@ import { isEncryptedBox } from "./imports";
  * @param protyle - 编辑器实例
  * @param item - Outline 实例
  */
-const highlightCurrentOutlineItem = (protyle: IProtyle, item: Outline) => {
+const highlightCurrentOutlineItem = (protyle: IProtyle, item: OutlineDomain) => {
     const selection = getSelection();
     /**
      * 作用：高亮当前大纲项
@@ -56,7 +56,7 @@ const highlightCurrentOutlineItem = (protyle: IProtyle, item: Outline) => {
  */
 const handleOutlineResponse = (
     response: IWebSocketData,
-    item: Outline,
+    item: OutlineDomain,
     blockId: string,
     isPreview: boolean,
     reload: boolean,
@@ -94,7 +94,7 @@ const handleOutlineResponse = (
  * @param protyle - 当前编辑器实例
  * @param reload - 是否强制重载
  */
-const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload: boolean) => {
+const updateOutlineItem = (item: OutlineDomain, protyle: IProtyle | undefined, reload: boolean) => {
     let blockId = "";
     /**
      * 作用：获取当前块 ID

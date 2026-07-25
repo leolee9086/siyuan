@@ -4,6 +4,14 @@
  * 解耦评估：该类型描述稳定的布局关系，应由 layout 公共类型根统一定义；这样可避免在 Outline 内复制 Window/Tab 局部接口。
  */
 import type {LayoutTab} from "../../layout.types";
+/** 用途：完整 Outline 默认宿主身份。使用范围：Outline 组合根及其公共领域契约。 */
+import type {AppFacade} from "../../../app/AppFacade.types";
+/** 用途：模型完整公共根。使用范围：Outline 生命周期。解耦评估：不加载 Model class。 */
+import type {ModelDomain} from "../../lifecycle/model.types";
+/** 用途：Tree 完整领域根。使用范围：Outline 树状态和行为。解耦评估：不加载 Tree class。 */
+import type {TreeDomain} from "../../../util/file/tree.types";
+/** 对外复用 Outline 的完整树领域身份。 */
+export type {TreeDomain};
 
 /**
  * 拖拽状态类型定义
@@ -18,7 +26,7 @@ import type {LayoutTab} from "../../layout.types";
  */
 export type DragState = {
     item: HTMLElement;
-    outline: {element: HTMLElement};
+    outline: OutlineDomain;
     editor?: IProtyle;
     ghostElement?: HTMLElement;
     selectItem?: HTMLElement;
@@ -27,12 +35,19 @@ export type DragState = {
     startY: number;
 };
 
-/** Outline 树组件对展开状态提供的完整操作集合。 */
-export interface IOutlineTreeState {
-    getExpandIds: () => string[];
-    setExpandIds: (ids: string[]) => void;
-    expandAll: () => void;
-    collapseAll: () => void;
+/** Outline 构造及头部事件初始化共享的完整宿主参数。 */
+export interface OutlineOptions<TApplication extends object = AppFacade> {
+    app: TApplication;
+    tab: LayoutTab;
+    blockId: string;
+    type: "pin" | "local";
+    isPreview: boolean;
+}
+
+/** Outline 操作解析出的编辑器与标题块。 */
+export interface OutlineEditorContext {
+    protyle: IProtyle;
+    blockElement: HTMLElement;
 }
 
 /**
@@ -40,25 +55,35 @@ export interface IOutlineTreeState {
  *
  * 筛选、高亮、层级展开和右键树动作共享这一状态所有者；应用、页签、编辑器和网络身份不属于该领域。
  */
-export interface IOutlinePanel {
+export interface OutlineDomain<
+    TApplication extends object = AppFacade,
+    TParent extends LayoutTab = LayoutTab,
+> extends ModelDomain<TApplication, TParent> {
     element: HTMLElement;
     headerElement: HTMLElement;
-    tree: IOutlineTreeState;
+    tree: TreeDomain;
     preFilterExpandIds: string[] | null;
     blockId: string;
     type: "pin" | "local";
     isPreview: boolean;
-    parent: LayoutTab;
+    bindSort: () => void;
+    setFilter: () => void;
+    expandToLevel: (targetLevel: number) => void;
     saveExpendIds: () => void;
     collapseChildren: (element: HTMLElement, expand?: boolean) => void;
     collapseSameLevel: (element: HTMLElement, expand?: boolean) => void;
     setCurrent: (nodeElement: HTMLElement) => void;
     setCurrentByPreview: (nodeElement: Element) => void;
     setCurrentById: (id: string) => void;
-    setFilter: () => void;
     showExpandLevelMenu: (target: HTMLElement) => void;
     showContextMenu: (element: HTMLElement, event: MouseEvent) => void;
-    minimize: () => void;
+    minimize: () => void | undefined;
     update: (data: IWebSocketData, callbackId?: string) => void;
     updateDocTitle: (ial?: IObject, count?: number) => void;
+    genHeadingTransform: (outline: OutlineDomain, id: string, level: number) => IMenu;
+    getProtyleAndBlockElement: (outline: OutlineDomain, element: HTMLElement) => OutlineEditorContext | undefined;
+    initHeaderEvents: (outline: OutlineDomain, options: OutlineOptions<TApplication>) => void;
+    onModelCallback(): void;
+    onModelMsgCallback(data: IWebSocketData): void;
+    reload(blockId?: string): void;
 }

@@ -9,6 +9,11 @@ import { Tab } from "../Tab";
 /** 导出 Tab 类型，供 dock 模块使用 */
 export { Tab };
 
+/** 用途：布局页签完整领域根。使用范围：Dock 模型宿主类型。解耦评估：模型不依赖具体 Tab class。 */
+import type {LayoutTab} from "../layout.types";
+/** 导出布局页签完整领域根。 */
+export type {LayoutTab};
+
 /** 用途：Protyle 编辑器构造器。使用范围：Dock 组合工厂创建具体编辑器；其余模块应依赖 ProtyleDomain。解耦评估：具体 class 仅在初始化边界加载。 */
 import { Protyle } from "../../protyle";
 /** 导出 Protyle 构造器，供 Dock 组合边界使用。 */

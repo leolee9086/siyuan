@@ -10,7 +10,7 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
 import { isHTMLElement } from "../dock.guard";
-import type { Outline } from "./Outline";
+import type {OutlineDomain} from "./types";
 import { getProtyleAndBlockElement } from "./Outline.contextMenu.edit";
 
 /**
@@ -119,7 +119,7 @@ const 创建剪切标题内层处理器 = (protyle: IProtyle, id: string) => (re
  * 作用：将标题及其所有子块的内容复制到剪贴板
  * 调用时机：用户点击"复制"菜单项时触发
  */
-const 处理复制标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+const 处理复制标题点击 = (outline: OutlineDomain, element: HTMLElement, id: string) => {
     const data = getProtyleAndBlockElement(outline, element);
     if (!data) {
         return;
@@ -135,7 +135,7 @@ const 处理复制标题点击 = (outline: Outline, element: HTMLElement, id: st
  * 作用：将标题及其所有子块的内容复制到剪贴板，然后删除这些块
  * 调用时机：用户点击"剪切"菜单项时触发
  */
-const 处理剪切标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+const 处理剪切标题点击 = (outline: OutlineDomain, element: HTMLElement, id: string) => {
     const data = getProtyleAndBlockElement(outline, element);
     if (!data) {
         return;
@@ -149,7 +149,7 @@ const 处理剪切标题点击 = (outline: Outline, element: HTMLElement, id: st
  * 作用：删除标题及其所有子块
  * 调用时机：用户点击"删除"菜单项时触发
  */
-const 处理删除标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+const 处理删除标题点击 = (outline: OutlineDomain, element: HTMLElement, id: string) => {
     const data = getProtyleAndBlockElement(outline, element);
     if (!data) {
         return;
@@ -159,7 +159,7 @@ const 处理删除标题点击 = (outline: Outline, element: HTMLElement, id: st
 
 /** 添加复制/剪切/删除菜单项 */
 /** @同步豁免: UI构建 */
-export function appendClipboardMenuItems(outline: Outline, element: HTMLElement, id: string) {
+export function appendClipboardMenuItems(outline: OutlineDomain, element: HTMLElement, id: string) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "copyHeadings1", icon: "iconCopy", label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
         /**

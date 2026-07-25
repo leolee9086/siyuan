@@ -2,15 +2,15 @@
  * Outline 头部按钮事件
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
-import { Tab } from "../../Tab";
+import type {LayoutTab} from "../../layout.types";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { goHome } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { Editor } from "../../../editor";
 import type { AppFacade } from "../../../app/AppFacade.types";
-import type { Outline } from "./Outline";
+import type {OutlineDomain, OutlineOptions} from "./types";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
-import { Model } from "../../Model";
+import type {ModelDomain} from "../../lifecycle/model.types";
 import { handleKeepCurrentExpandClick } from "./Outline.header.expand";
 import { handlePanelIconClick } from "./Outline.header.icon";
 
@@ -22,7 +22,7 @@ import { handlePanelIconClick } from "./Outline.header.icon";
  * @param options 配置选项
  * @同步豁免: UI构建
  */
-export function initHeaderEvents(outline: Outline, options: { app: AppFacade, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
+export function initHeaderEvents(outline: OutlineDomain, options: OutlineOptions<AppFacade>): void {
     initCollapseExpandEvents(outline, options);
     initKeepCurrentExpandEvent(outline, options);
     // 初始化面板点击事件
@@ -36,7 +36,7 @@ export function initHeaderEvents(outline: Outline, options: { app: AppFacade, ta
  * 意图：为面板上的“全部折叠”和“全部展开”按钮绑定点击处理函数。
  * 调用时机：initHeaderEvents 被调用时。
  */
-function initCollapseExpandEvents(outline: Outline, options: { tab: Tab }) {
+function initCollapseExpandEvents(outline: OutlineDomain, options: {tab: LayoutTab}) {
     // 全部折叠
     const collapseElement = options.tab.panelElement.querySelector('[data-type="collapse"]');
     /**
@@ -71,7 +71,7 @@ function initCollapseExpandEvents(outline: Outline, options: { tab: Tab }) {
  * 意图：为“保持当前展开”按钮绑定点击事件，用于切换该功能的开关状态。
  * 调用时机：initHeaderEvents 被调用时。
  */
-function initKeepCurrentExpandEvent(outline: Outline, options: { tab: Tab }) {
+function initKeepCurrentExpandEvent(outline: OutlineDomain, options: {tab: LayoutTab}) {
     // 保持当前展开
     const keepCurrentExpandElement = options.tab.panelElement.querySelector('[data-type="keepCurrentExpand"]');
     /**
@@ -99,7 +99,7 @@ function initKeepCurrentExpandEvent(outline: Outline, options: { tab: Tab }) {
  * 意图：根据点击的目标元素类型（图标或标题），分发到不同的处理函数，并管理面板焦点。
  * 调用时机：面板被点击时。
  */
-function handlePanelClick(outline: Outline, options: { app: AppFacade, tab: Tab }, event: MouseEvent) {
+function handlePanelClick(outline: OutlineDomain, options: {app: AppFacade; tab: LayoutTab}, event: MouseEvent) {
     if (!isHTMLElement(event.target)) {
         return;
     }
@@ -143,7 +143,7 @@ function handlePanelClick(outline: Outline, options: { app: AppFacade, tab: Tab 
                  * 意图：处理预览模式滚动或普通模式的光标定位。
                  * 调用时机：文件加载完成后。
                  */
-                afterOpen: (model?: Model) => {
+                afterOpen: (model?: ModelDomain) => {
                     handleAfterOpen(outline, model);
                 }
             });
@@ -180,7 +180,7 @@ function handlePanelClick(outline: Outline, options: { app: AppFacade, tab: Tab 
  * 意图：根据大纲类型（local/pin）决定焦点应该设置在哪个容器元素上。
  * 调用时机：handlePanelClick 结束且需要聚焦时。
  */
-function setValidPanelFocus(outline: Outline, panelElement: HTMLElement) {
+function setValidPanelFocus(outline: OutlineDomain, panelElement: HTMLElement) {
     /**
      * 作用：针对本地大纲的特殊焦点处理。
      * 意图：本地大纲可能嵌入在更深的结构中，需要聚焦父容器。
@@ -202,7 +202,7 @@ function setValidPanelFocus(outline: Outline, panelElement: HTMLElement) {
  * 意图：文件打开后，根据是否预览模式，调整滚动位置或光标位置。
  * 调用时机：openFileById 完成后。
  */
-function handleAfterOpen(outline: Outline, model?: Model) {
+function handleAfterOpen(outline: OutlineDomain, model?: ModelDomain) {
     if (!model || !(model instanceof Editor)) {
         return;
     }

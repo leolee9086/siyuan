@@ -5,7 +5,7 @@ import { transparentImgSrc } from "../../../protyle/util/dragTip";
 import { getSelection } from "../../../util/DOM/selection/range.global";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "../../../util/DOM/element.guard";
-import type {FilesDragContext} from "./dnd.types";
+import type {FilesDomain} from "./eventHandlers.types";
 
 const createDragPreview = (selectElements: HTMLElement[]) => {
     const ghostElement = document.createElement("ul");
@@ -24,7 +24,7 @@ const createDragPreview = (selectElements: HTMLElement[]) => {
     return { ghostElement, ids: ids.join(",") };
 };
 
-export const onDragStart = (files: FilesDragContext, event: DragEvent) => {
+export const onDragStart = (files: FilesDomain, event: DragEvent) => {
     if (window.siyuan.config.readonly) {
         return;
     }
