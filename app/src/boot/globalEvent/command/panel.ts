@@ -8,7 +8,7 @@ import {Editor} from "../../../editor";
 import {getCurrentEditor} from "../../../mobile/util/getCurrentEditor";
 import {popSearch} from "../../../mobile/menu/search";
 import {getActiveTab, getDockByType} from "../../../layout/tabUtil";
-import {Custom} from "../../../layout/dock/Custom";
+import {isCustomDomain} from "../../../layout/dock/custom/custom.types";
 import {getAllModels} from "../../../layout/getAll";
 import {Files} from "../../../layout/dock/Files";
 import {Search} from "../../../search";
@@ -231,7 +231,7 @@ export const execByCommand = async (options: {
                 } else {
                     protyle = activeTab.model.editors.unRefEdit.protyle;
                 }
-            } else if (activeTab.model instanceof Custom && activeTab.model.editors?.length > 0) {
+            } else if (isCustomDomain(activeTab.model) && activeTab.model.editors.length > 0) {
                 if (range) {
                     activeTab.model.editors.find(item => {
                         if (item.protyle.element.contains(range.startContainer)) {

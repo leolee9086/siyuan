@@ -35,7 +35,7 @@ import { openBazaarSourceTab } from "./imports";
 import { openLocalBazaarSourceTab } from "./imports";
 
 /** 用途：Custom Tab 类型定义。使用范围：publish 挂载入口参数。 */
-import type { Custom } from "./imports";
+import type {CustomDomain} from "./imports";
 
 /** 用途：工作空间类型定义。使用范围：publish 状态与动作参数。 */
 import type { IBazaarWorkspaceBundle } from "./imports";
@@ -142,7 +142,7 @@ const handleTestSource = async (bundle: IBazaarWorkspaceBundle | null, event: Ev
 };
 
 /** 用途：打开源 Tab 动作。意图：封装 openInTab 校验和打开参数构造。调用时机：open-source-tab。问题/改进：禁用时仅提示。 */
-const handleOpenSourceTab = (bundle: IBazaarWorkspaceBundle | null, model: Custom, event: Event) => {
+const handleOpenSourceTab = (bundle: IBazaarWorkspaceBundle | null, model: CustomDomain, event: Event) => {
     const sourceID = readSourceID(event);
     const source = findSourceByID(bundle, sourceID);
     if (!source) {
@@ -203,7 +203,7 @@ const publishPackageAndReload = async (container: HTMLElement, state: { bundle: 
 };
 
 /** 用途：处理顶部基础动作。意图：分离基础导航动作。调用时机：click 分发优先处理。问题/改进：动作目前固定。 */
-const handleSimpleAction = (type: string, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
+const handleSimpleAction = (type: string, model: CustomDomain, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     /** 处理“刷新发布页”动作 */
     if (type === "refresh-publish") {
         void loadAll(container, state);
@@ -238,7 +238,7 @@ const handleEditSourceAction = (container: HTMLElement, bundle: IBazaarWorkspace
 };
 
 /** 用途：处理浏览源包动作。意图：封装 sourceID 校验与跳转广场。调用时机：browse-source。问题/改进：空 sourceID 时静默返回。 */
-const handleBrowseSourceAction = (model: Custom, event: Event) => {
+const handleBrowseSourceAction = (model: CustomDomain, event: Event) => {
     const sourceID = readSourceID(event);
     if (!sourceID) {
         return;
@@ -263,7 +263,7 @@ const handleRemoveSourceAction = (event: Event, container: HTMLElement, state: {
 };
 
 /** 用途：处理 publish 高级动作。意图：拆分点击分发器，控制单函数行数并保持职责清晰。调用时机：基础动作未命中后调用。问题/改进：返回值表示是否命中动作。 */
-const handlePublishAdvancedAction = (type: string, event: Event, actionElement: HTMLElement, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
+const handlePublishAdvancedAction = (type: string, event: Event, actionElement: HTMLElement, model: CustomDomain, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     /** 处理“保存配置”动作 */
     if (type === "save-config") {
         void handleSaveConfig(container, state).catch((error) => {
@@ -316,7 +316,7 @@ const handlePublishAdvancedAction = (type: string, event: Event, actionElement: 
 };
 
 /** 用途：publish 点击分发器。意图：按 data-type 路由动作处理。调用时机：容器 click 事件。问题/改进：动作增多时可改注册表分发。 */
-const handlePublishClick = (event: Event, model: Custom, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
+const handlePublishClick = (event: Event, model: CustomDomain, container: HTMLElement, state: { bundle: IBazaarWorkspaceBundle | null; stats: IBazaarSecurityStats | null }) => {
     if (!isHTMLElement(event.target)) {
         return;
     }
@@ -338,7 +338,7 @@ const handlePublishClick = (event: Event, model: Custom, container: HTMLElement,
 /** 用途：挂载 publish 页面逻辑。意图：初始化状态、绑定事件并触发首次加载。调用时机：根 initPublish 入口。问题/改进：当前状态对象为局部内存态。 */
 /** 导出 mountBazaarPublish 供根 initPublish 入口调用 */
 /** @同步豁免: UI构建 */
-export const mountBazaarPublish = (model: Custom) => {
+export const mountBazaarPublish = (model: CustomDomain) => {
     const container = model.element;
     container.classList.add("bazaar-publish");
 

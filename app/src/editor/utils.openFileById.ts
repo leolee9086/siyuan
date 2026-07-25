@@ -3,7 +3,7 @@ import type { AppFacade } from "./imports";
 /** 用途：显示提示消息。使用范围：文件不存在时的用户提示。解耦评估：通过 ./imports 转发。 */
 import { showMessage } from "./imports";
 /** 用途：布局模型类型。使用范围：openFileById 回调参数。解耦评估：通过 ./imports 转发。 */
-import { Model } from "./imports";
+import type {ILayoutModel} from "./imports";
 /** 用途：同步 POST 请求。使用范围：获取块信息。解耦评估：通过 ./imports 转发。 */
 import { fetchSyncPost } from "./imports";
 /** 用途：核心文件打开逻辑。使用范围：openFileById 获取块信息后调用。解耦评估：同目录稳定领域实现。 */
@@ -21,7 +21,7 @@ export const openFileById = async (options: {
     zoomIn?: boolean | undefined;
     removeCurrentTab?: boolean | undefined;
     openNewTab?: boolean | undefined;
-    afterOpen?: ((model?: Model) => void) | undefined;
+    afterOpen?: ((model?: ILayoutModel) => void) | undefined;
 }) => {
     const response = await fetchSyncPost("/api/block/getBlockInfo", { id: options.id });
     if (response.code === -1) {

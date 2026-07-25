@@ -27,7 +27,7 @@ function resolveApp(app?: imports.AppFacade) {
 }
 
 /** 仅匹配 Tab 宿主，避免同类型的 Dock Custom Model 被误判为已打开页签。 */
-function isMountedIdentityAccessTab(item: imports.Custom) {
+function isMountedIdentityAccessTab(item: imports.CustomDomain) {
     if (item.type !== MAGI_IDENTITY_ACCESS_TAB_TYPE) {
         return false;
     }

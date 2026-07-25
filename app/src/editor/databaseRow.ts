@@ -1,28 +1,31 @@
 import {Custom} from "../layout/dock/Custom";
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import type {LayoutTab} from "../layout/layout.types";
 import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import {Protyle} from "../protyle";
 import {getEditorHorizontalPadding} from "../protyle/ui/padding";
 
+type DatabaseRowData = {
+    avID: string,
+    blockID: string,
+    notebookId: string,
+    itemID: string,
+    valueID: string,
+    title: string,
+};
+
 export const newDatabaseRowModel = (options: {
     app: AppFacade,
     tab: LayoutTab,
-    data: {
-        avID: string,
-        blockID: string,
-        notebookId: string,
-        itemID: string,
-        valueID: string,
-        title: string,
-    },
+    data: DatabaseRowData,
 }) => {
-    let customModel: Custom;
+    let customModel: CustomDomain<DatabaseRowData>;
     let contextProtyle: IProtyle;
     let ghostProtyle: Protyle;
     let resizeObserver: ResizeObserver;
     let destroyed = false;
-    const updateLayout = (custom: Custom) => {
+    const updateLayout = (custom: CustomDomain<DatabaseRowData>) => {
         const width = custom.element.clientWidth;
         const padding = getEditorHorizontalPadding(width, window.siyuan.config.editor.fullWidth);
         const titleElement = custom.element.querySelector<HTMLElement>(".protyle-db-row__title");
@@ -35,7 +38,7 @@ export const newDatabaseRowModel = (options: {
             bodyElement.style.margin = `8px ${padding.right}px 8px ${padding.left}px`;
         }
     };
-    const render = (custom: Custom) => {
+    const render = (custom: CustomDomain<DatabaseRowData>) => {
         const previousBodyElement = custom.element.querySelector<HTMLElement>(".protyle-db-row__body");
         if (!previousBodyElement || !contextProtyle) {
             return;

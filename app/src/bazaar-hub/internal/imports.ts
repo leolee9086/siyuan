@@ -41,9 +41,9 @@ import { escapeHtml } from "../imports";
 export { escapeHtml };
 
 /** 用途：Custom Tab 类型定义。使用范围：hub/publish 控制器初始化入口。 */
-import type { Custom } from "../imports";
-/** 导出类型 Custom 供 internal 子模块复用 */
-export type { Custom };
+import type {CustomDomain} from "../imports";
+/** 导出完整 CustomDomain 供 internal 子模块复用。 */
+export type {CustomDomain};
 
 /** 用途：读取源包索引接口。使用范围：hub 切换源与刷新时加载包列表。解耦评估：同目录 API 依赖，网关转发保持边界清晰。 */
 import { getBazaarSourcePackages } from "../api";

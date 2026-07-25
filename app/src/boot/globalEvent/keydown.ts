@@ -54,7 +54,7 @@ import {openBacklink, openGraph, openOutline, toggleDockBar} from "../../layout/
 import {workspaceMenu} from "../../menus/workspace";
 import {resize} from "../../protyle/util/resize";
 import {Search} from "../../search";
-import {Custom} from "../../layout/dock/Custom";
+import {isCustomDomain} from "../../layout/dock/custom/custom.types";
 import {transaction} from "../../protyle/wysiwyg/transaction";
 import {quickMakeCard} from "../../card/makeCard";
 import {getContentByInlineHTML} from "../../protyle/wysiwyg/keydown";
@@ -211,7 +211,7 @@ const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
             } else {
                 protyle = activeTab.model.editors.unRefEdit.protyle;
             }
-        } else if (activeTab.model instanceof Custom && activeTab.model.editors?.length > 0) {
+        } else if (isCustomDomain(activeTab.model) && activeTab.model.editors.length > 0) {
             if (range) {
                 activeTab.model.editors.find(item => {
                     if (item.protyle.element.contains(range.startContainer)) {

@@ -3,7 +3,6 @@ import {afterEach, describe, it} from "node:test";
 import {SForgeSymbols} from "../../src/config/sforge.symbols";
 import {setSForgeState} from "../../src/config/sforge.global";
 import {tabRegistry} from "../../src/registry/TabRegistry";
-import type {ICustomTabModel} from "../../src/registry/TabRegistry.types";
 import {createTestPanelElement} from "./TabRegistryTestDom.factory";
 
 /** 清除全局 Tab 注册 Map，确保每个测试从独立状态开始；在每个用例结束后调用。 */
@@ -43,7 +42,7 @@ describe("TabRegistry", () => {
                 assert.equal(context.app, application);
                 assert.equal(context.tab, tab);
                 assert.equal(context.data, data);
-                const result: ICustomTabModel = {
+                const result = {
                     element: panelElement,
                     tab,
                     data,

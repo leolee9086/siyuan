@@ -18,6 +18,7 @@ import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
 import { Search } from "../search";
 import { Custom } from "./dock/Custom";
+import type {CustomDomain} from "./dock/custom/custom.types";
 import { AgentChat } from "./dock/agent/AgentChat";
 import { Constants } from "../constants";
 import { SerializationJSON, BreakObject } from "./layout-serialization.types";
@@ -174,7 +175,7 @@ export const serializeSearchInstance = (layout: Search, json: SerializationJSON)
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeCustomInstance = (layout: Custom, json: SerializationJSON): void => {
+export const serializeCustomInstance = (layout: CustomDomain, json: SerializationJSON): void => {
     json.instance = "Custom";
     json.customModelType = layout.type;
     json.customModelData = Object.assign({}, layout.data);

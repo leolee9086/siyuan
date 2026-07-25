@@ -9,7 +9,7 @@ import { isHTMLElement } from "./imports";
  * 用途：Custom Tab 模型类型。
  * 使用范围：initBazaarSourceTab 入参约束。
  */
-import type { Custom } from "./imports";
+import type {CustomDomain} from "./imports";
 
 /**
  * 用途：从未知对象读取字符串字段。
@@ -128,7 +128,7 @@ const handleToolbarClick = (event: Event, sourceURL: string, iframe: HTMLIFrameE
  * @同步豁免: UI构建
  */
 /** 导出 initBazaarSourceTab 供 Tab 注册中心回调使用 */
-export function initBazaarSourceTab(model: Custom) {
+export function initBazaarSourceTab(model: CustomDomain) {
     if (!isHTMLElement(model.element)) {
         return;
     }

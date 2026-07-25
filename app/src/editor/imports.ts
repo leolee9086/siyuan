@@ -180,6 +180,10 @@ export { fullscreen };
 import { Model } from "../layout/Model";
 /** 导出 Model，供 editor 模块使用 */
 export { Model };
+/** 用途：布局模型抽象身份。使用范围：编辑器打开回调只承诺布局模型公共生命周期。 */
+import type {ILayoutModel} from "../layout/lifecycle/model.types";
+/** 导出布局模型抽象身份。 */
+export type {ILayoutModel};
 
 
 /** 用途：Electron IPC 调用。使用范围：editor 在 Electron 中打开文件。解耦评估：通过 imports.ts 转发。 */

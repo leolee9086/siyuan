@@ -10,7 +10,7 @@ export const MAGI_IDENTITY_ACCESS_TAB_TYPE = "magi-identity-access";
  * 调用时机：TabRegistry 创建 magi-identity-access 模型时调用。
  */
 /** @同步豁免: UI构建 */
-export function initIdentityAccessTab(model: imports.Custom) {
+export function initIdentityAccessTab(model: imports.CustomDomain) {
     if (!(model.element instanceof HTMLElement)) {
         return;
     }

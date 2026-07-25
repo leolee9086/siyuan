@@ -20,8 +20,6 @@ import type { TabRegistration } from "./TabRegistry.types";
 import type {TabModelCreateRequest} from "./TabRegistry.types";
 /** 用途：宿主模型工厂协议；使用范围：将创建委托给布局组合层；解耦评估：具体 Custom class 不进入注册表。 */
 import type {TabModelFactory} from "./TabRegistry.types";
-/** 用途：注册模型领域身份；使用范围：约束工厂结果；解耦评估：纯结构契约，不依赖 Custom。 */
-import type {ICustomTabModel} from "./TabRegistry.types";
 /** 用途：注册表状态守卫；使用范围：读取全局状态时验证 Map；解耦评估：同领域输入校验。 */
 import { isTabRegistryMap } from "./TabRegistry.guard";
 
@@ -110,7 +108,7 @@ export function 注销Tab类型(type: string) {
  * @returns Custom 实例，若类型未注册则返回 null
  * @同步豁免: UI构建 - Tab 模型必须在当前布局装配调用栈中创建并返回。
  */
-export function 创建TabModel<TApplication, TTab, TData, TModel extends ICustomTabModel>(
+export function 创建TabModel<TApplication, TTab, TData, TModel extends object>(
     options: TabModelCreateRequest<TApplication, TTab, TData>,
     factory: TabModelFactory<TApplication, TTab, TData, TModel>,
 ) {
@@ -159,7 +157,7 @@ export const hasTabType = (type: string) => Tab类型已注册(type);
 export const unregisterTabType = (type: string) => 注销Tab类型(type);
 /** 创建 Tab 模型的英文兼容入口。@同步豁免: UI构建 - 模型必须同步返回。@柯里化 保留既有英文 API。 */
 // @柯里化 保留既有英文 API。
-export const createTabModel = <TApplication, TTab, TData, TModel extends ICustomTabModel>(
+export const createTabModel = <TApplication, TTab, TData, TModel extends object>(
     options: TabModelCreateRequest<TApplication, TTab, TData>,
     factory: TabModelFactory<TApplication, TTab, TData, TModel>,
 ) => 创建TabModel(options, factory);

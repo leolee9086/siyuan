@@ -2,7 +2,7 @@
 import * as imports from "./imports";
 
 /** 初始化 Dock 的 Custom Model 内容并绑定销毁逻辑。 */
-function initDock(custom: imports.Custom) {
+function initDock(custom: imports.CustomDomain) {
     if (!(custom.element instanceof HTMLElement)) {
         return;
     }

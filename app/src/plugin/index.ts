@@ -6,6 +6,7 @@ import type {AppFacade} from "../app/AppFacade.types";
 import { fetchPost } from "../util/network/fetch";
 import { isMobile, isWindow } from "../util/platform/functions";
 import { Custom } from "../layout/dock/Custom";
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import {createCustomTabModel} from "../layout/dock/dock.factory";
 import { getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
@@ -354,7 +355,8 @@ export class Plugin {
         });
         if (!isMobile()) {
             getAllModels().custom.find(item => {
-                if (modelKeys.includes(item.type)) {
+                // 官方 Plugin API 返回具体 Custom 实例；此处是必要的生态身份边界。
+                if (item instanceof Custom && modelKeys.includes(item.type)) {
                     tabs[item.type.replace(this.name, "")].push(item);
                 }
             });
@@ -368,7 +370,7 @@ export class Plugin {
         beforeDestroy?: () => void,
         resize?: () => void,
         update?: () => void,
-        init: (model: Custom) => void
+        init: (model: CustomDomain) => void
     }) {
         const type2 = this.name + options.type;
 

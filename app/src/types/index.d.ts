@@ -821,7 +821,7 @@ interface IOpenFileOptions {
     zoomIn?: boolean | undefined // 是否缩放
     removeCurrentTab?: boolean | undefined // 在当前页签打开时需移除原有页签
     openNewTab?: boolean | undefined // 使用新页签打开
-    afterOpen?: ((model?: import("../layout/Model").Model) => void) | undefined // 打开后回调
+    afterOpen?: ((model?: import("../layout/lifecycle/model.types").ILayoutModel) => void) | undefined // 打开后回调
 }
 
 interface ILayoutOptions {
@@ -961,7 +961,7 @@ interface IModels {
     tag: import("../layout/dock/Tag").Tag[]
     asset: import("../asset/asset.types").AssetDomain[]
     search: import("../search").Search[]
-    custom: import("../layout/dock/Custom").Custom[]
+    custom: import("../layout/dock/custom/custom.types").CustomDomain[]
 }
 
 interface IMenu {

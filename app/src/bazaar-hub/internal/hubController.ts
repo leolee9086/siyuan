@@ -32,7 +32,7 @@ import { openBazaarSourceTab } from "./imports";
 import { openLocalBazaarSourceTab } from "./imports";
 
 /** 用途：Custom Tab 类型定义。使用范围：hub 初始化入口参数。 */
-import type { Custom } from "./imports";
+import type {CustomDomain} from "./imports";
 
 /** 用途：包索引类型定义。使用范围：hub 状态约束。 */
 import type { IBazaarPublishedIndex } from "./imports";
@@ -77,7 +77,7 @@ import { setPackageMessage } from "./hubView";
 import { renderPackageList } from "./hubView";
 
 /** 用途：按源配置打开源 Tab。意图：统一 openInTab 校验。调用时机：源列表与包卡片动作。问题/改进：提示文案当前固定中文。 */
-const openSourceTabBySource = (model: Custom, source: Config.IBazaarSource) => {
+const openSourceTabBySource = (model: CustomDomain, source: Config.IBazaarSource) => {
     if (!source.openInTab) {
         showMessage("该源已禁止在 Tab 中打开");
         return;
@@ -94,7 +94,7 @@ const openSourceTabBySource = (model: Custom, source: Config.IBazaarSource) => {
 };
 
 /** 用途：按 sourceID 打开源 Tab。意图：封装 sourceID 回退和查找逻辑。调用时机：open-source-tab 动作。问题/改进：未命中源时静默返回。 */
-const openSourceTabByID = (model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }, sourceID: string) => {
+const openSourceTabByID = (model: CustomDomain, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }, sourceID: string) => {
     const finalSourceID = sourceID || state.sourceID;
     const source = findSourceByID(state.bundle, finalSourceID);
     if (!source) {
@@ -196,7 +196,7 @@ const refreshWorkspace = async (state: {
 };
 
 /** 用途：处理基础导航动作。意图：通过动作表减少分发器复杂度。调用时机：click 分发时优先执行。问题/改进：动作表当前为静态配置。 */
-const handleSimpleAction = (type: string, model: Custom, state: {
+const handleSimpleAction = (type: string, model: CustomDomain, state: {
     bundle: IBazaarWorkspaceBundle | null;
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
@@ -245,7 +245,7 @@ const handleSelectSource = (event: Event, state: {
 };
 
 /** 用途：处理打开源动作。意图：统一解析 sourceID 并打开对应源页签。调用时机：open-source-tab 动作。问题/改进：未命中 source 时静默返回。 */
-const handleOpenSourceTabAction = (event: Event, model: Custom, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }) => {
+const handleOpenSourceTabAction = (event: Event, model: CustomDomain, state: { bundle: IBazaarWorkspaceBundle | null; sourceID: string }) => {
     const sourceID = readSourceIDFromEvent(event);
     openSourceTabByID(model, state, sourceID);
 };
@@ -263,7 +263,7 @@ const handleInstallAction = (event: Event) => {
 };
 
 /** 用途：Hub 点击分发器。意图：按 data-type 路由到对应动作处理。调用时机：容器 click 事件。问题/改进：动作集合后续可抽到独立注册表。 */
-const handleHubClick = (event: Event, model: Custom, state: {
+const handleHubClick = (event: Event, model: CustomDomain, state: {
     bundle: IBazaarWorkspaceBundle | null;
     sourceID: string;
     packageIndex: IBazaarPublishedIndex | null;
@@ -332,7 +332,7 @@ const handleSetSourceEvent = (event: Event, state: {
 /** 用途：挂载 hub 页面逻辑。意图：初始化状态、绑定事件并触发首次刷新。调用时机：根 initHub 入口。问题/改进：状态当前以局部对象维护。 */
 /** 导出 mountBazaarHub 供根 initHub 入口调用 */
 /** @同步豁免: UI构建 */
-export const mountBazaarHub = (model: Custom) => {
+export const mountBazaarHub = (model: CustomDomain) => {
     const container = model.element;
     container.classList.add("bazaar-hub");
     renderHubLayout(container);

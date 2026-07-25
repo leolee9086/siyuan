@@ -37,6 +37,9 @@ import {forwardlinkModelBrand, isForwardlinkDomain} from "../../src/layout/dock/
 import type {Bookmark} from "../../src/layout/dock/Bookmark";
 import type {BookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
 import {bookmarkModelBrand, isBookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
+import type {Custom} from "../../src/layout/dock/Custom";
+import type {CustomDomain} from "../../src/layout/dock/custom/custom.types";
+import {customModelBrand, isCustomDomain} from "../../src/layout/dock/custom/custom.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -56,6 +59,10 @@ type ForwardlinkContract = PublicInstanceLooksLike<typeof Forwardlink, Forwardli
 type FilesContract = PublicInstanceLooksLike<typeof Files, FilesDomain<AppFacade, Tab>>;
 type AssetContract = PublicInstanceLooksLike<typeof Asset, AssetDomain<AppFacade, Tab>>;
 type BookmarkContract = PublicInstanceLooksLike<typeof Bookmark, BookmarkDomain<AppFacade, Tab>>;
+type CustomContract = PublicInstanceLooksLike<
+    typeof Custom<unknown>,
+    CustomDomain<unknown, AppFacade, LayoutTab>
+>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -72,6 +79,7 @@ const forwardlinkContract: ForwardlinkContract = true;
 const filesContract: FilesContract = true;
 const assetContract: AssetContract = true;
 const bookmarkContract: BookmarkContract = true;
+const customContract: CustomContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -90,6 +98,7 @@ describe("layout domain contracts", () => {
         assert.equal(filesContract, true);
         assert.equal(assetContract, true);
         assert.equal(bookmarkContract, true);
+        assert.equal(customContract, true);
     });
 
     it("classifies Asset models through the stable domain brand", () => {
@@ -104,5 +113,6 @@ describe("layout domain contracts", () => {
         assert.equal(isFilesDomain({[filesModelBrand]: "Files"}), true);
         assert.equal(isForwardlinkDomain({[forwardlinkModelBrand]: "Forwardlink"}), true);
         assert.equal(isBookmarkDomain({[bookmarkModelBrand]: "Bookmark"}), true);
+        assert.equal(isCustomDomain({[customModelBrand]: "Custom"}), true);
     });
 });

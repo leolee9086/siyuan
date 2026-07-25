@@ -20,7 +20,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/initUI";
 // S-forge: Plugin 系统支持
-import type {ICustomTabModel} from "../registry/TabRegistry.types";
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import {Plugin} from "../plugin";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -509,7 +509,7 @@ document.addEventListener(
         plugin.addTab(
             {
                 type: "internal-image",
-                init: (model: ICustomTabModel) => {
+                init: (model: CustomDomain) => {
                     const tab = model.tab;
                     if (tab) {
                         tab.panelElement.innerHTML = assets.genHTML();
@@ -523,7 +523,7 @@ document.addEventListener(
         plugin.addTab(
             {
                 type: "internal-image-remove",
-                init: (model: ICustomTabModel) => {
+                init: (model: CustomDomain) => {
                     const tab = model.tab;
                     if (tab) {
                         // 生成未引用资源页签的HTML
@@ -537,7 +537,7 @@ document.addEventListener(
         plugin.addTab(
             {
                 type: "internal-image-missing",
-                init: (model: ICustomTabModel) => {
+                init: (model: CustomDomain) => {
                     const tab = model.tab;
                     if (tab) {
                         // 生成缺失资源页签的HTML

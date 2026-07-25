@@ -6,7 +6,7 @@
  * 调用时机：通过 openFile({ custom: { id: 'export-preview', data: { blockId } } }) 打开时
  */
 
-import { Custom } from "../layout/dock/Custom";
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import { Model } from "../layout/Model";
 import { genUUID } from "../util/platform/genID";
 import { fetchPost } from "../util/network/fetch";
@@ -101,7 +101,7 @@ interface IExportPreviewViewState {
  * 作用：构建页签 DOM、绑定事件、发起渲染请求
  * @同步豁免: UI构建 - TabRegistry init 回调需要同步构建 DOM 结构
  */
-export function initExportPreview(model: Custom): void {
+export function initExportPreview(model: CustomDomain): void {
     if (!isExportPreviewData(model.data)) {
         showMessage("export-preview: missing blockId");
         return;
@@ -147,7 +147,7 @@ export function initExportPreview(model: Custom): void {
 
 /** 绑定后端编辑事件监听，自动刷新导出预览内容 */
 function bindBackendEditSync(
-    model: Custom,
+    model: CustomDomain,
     container: HTMLElement,
     actionElement: HTMLElement,
     previewElement: HTMLElement,
@@ -387,7 +387,7 @@ function handleContentClick(
     container: HTMLElement,
     previewElement: HTMLElement,
     data: IExportPreviewData,
-    model: Custom,
+    model: CustomDomain,
     state: IExportPreviewViewState,
 ): void {
     if (!(event instanceof MouseEvent)) {
@@ -441,7 +441,7 @@ function handleLinkClick(
     target: HTMLElement,
     previewElement: HTMLElement,
     data: IExportPreviewData,
-    model: Custom,
+    model: CustomDomain,
 ): void {
     const linkAddress = target.getAttribute("href") || "";
 
@@ -488,7 +488,7 @@ function handleLinkClick(
 function handleLocalPathOpen(
     event: MouseEvent,
     linkAddress: string,
-    model: Custom,
+    model: CustomDomain,
 ): void {
     if (isOnlyMeta(event)) {
         openBy(linkAddress, "folder");

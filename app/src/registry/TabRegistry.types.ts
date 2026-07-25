@@ -2,16 +2,8 @@
  * TabRegistry.types.ts - Tab 注册表类型定义
  */
 
-/** 自定义页签初始化回调实际使用的模型结构，不依赖 Custom class。 */
-export interface ICustomTabModel {
-    element: Element;
-    tab: {
-        panelElement: HTMLElement;
-    };
-    data: unknown;
-    type: string;
-    editors: IProtyle[];
-}
+/** 用途：Tab 注册表依赖 Custom 完整领域根；使用范围：注册回调与宿主模型工厂。 */
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
 
 /**
  * Tab 注册信息
@@ -20,7 +12,7 @@ export interface TabRegistration {
     /** 唯一类型标识 */
     type: string;
     /** 初始化函数 */
-    init: (model: ICustomTabModel) => void;
+    init: (model: CustomDomain) => void;
     /** 销毁回调 */
     destroy?: () => void;
     /** 销毁前回调 */
@@ -45,6 +37,6 @@ export interface TabModelFactoryContext<TApplication, TTab, TData> extends TabMo
 }
 
 /** TabRegistry 与宿主布局组合层之间的模型创建协议。 */
-export type TabModelFactory<TApplication, TTab, TData, TModel extends ICustomTabModel> = (
+export type TabModelFactory<TApplication, TTab, TData, TModel extends object> = (
     context: TabModelFactoryContext<TApplication, TTab, TData>
 ) => TModel;

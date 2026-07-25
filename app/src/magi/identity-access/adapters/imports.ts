@@ -1,5 +1,7 @@
 /** 用途：思源 Custom Model；使用范围：Dock 和 Tab 适配器；解耦评估：宿主生命周期要求该类型。 */
 import { Custom } from "../../../layout/dock/Custom";
+/** 用途：Custom 完整领域根；使用范围：适配器参数与查询结果不依赖具体实现。 */
+import type {CustomDomain} from "../../../layout/dock/custom/custom.types";
 /** 用途：应用外观类型；使用范围：Dock/Tab 创建参数；解耦评估：纯类型依赖，不加载具体 App class。 */
 import type {AppFacade} from "../../../app/AppFacade.types";
 /** 用途：思源页签类型；使用范围：Dock 模型构造参数；解耦评估：纯类型依赖。 */
@@ -17,6 +19,8 @@ import { mountIdentityAccess } from "../components/mount";
 
 /** adapters 域的 Custom Model 构造器。 */
 export { Custom };
+/** adapters 域的 Custom 完整抽象。 */
+export type {CustomDomain};
 /** adapters 域的 AppFacade 类型。 */
 export type {AppFacade};
 /** adapters 域的 Tab 类型。 */

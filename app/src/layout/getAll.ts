@@ -9,7 +9,7 @@ import { Search } from "../search";
 import {isFilesDomain} from "./dock/Files/eventHandlers.types";
 import {isBookmarkDomain} from "./dock/bookmark/bookmark.types";
 import { Tag } from "./dock/Tag";
-import { Custom } from "./dock/Custom";
+import {isCustomDomain} from "./dock/custom/custom.types";
 import {isForwardlinkDomain} from "./dock/forwardlink/Forwardlink.types";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
@@ -147,7 +147,7 @@ const pushModel = (models: IModels, model: LayoutTab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Custom) {
+    if (isCustomDomain(model)) {
         models.custom.push(model);
         return;
     }
@@ -243,7 +243,7 @@ const matchesTabModel = (model: LayoutTab["model"], type: TTab | string) => {
         return type === "Forwardlink" || type === "forwardlink";
     }
     // @无需注释
-    if (model instanceof Custom) {
+    if (isCustomDomain(model)) {
         return model.type === type;
     }
     return false;

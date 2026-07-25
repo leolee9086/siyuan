@@ -26,9 +26,9 @@ export { isHTMLElement };
  * 用途：自定义 Tab 的类型定义。
  * 使用范围：各 Tab 初始化函数参数约束。
  */
-import type { Custom } from "../layout/dock/Custom";
-/** 导出类型 Custom 供 bazaar-hub 目录复用 */
-export type { Custom };
+import type {CustomDomain} from "../layout/dock/custom/custom.types";
+/** 导出完整 CustomDomain 供 bazaar-hub 目录复用。 */
+export type {CustomDomain};
 
 /**
  * 用途：弹出全局消息提示。
