@@ -30,8 +30,10 @@ import { getSiyuanDialogs } from "../../../../../util/siyuanEnvironments/siyuanD
 import { getSiyuanMenus } from "../../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：引入 isWindow 用于判断当前编辑器是否处于独立窗口模式（通过检测 #toolbar 元素是否存在）。使用范围：仅在 state/index.ts 中 collectWindowKeyDownState 的 isTabWindow 字段计算。解耦评估：isWindow 通过 DOM 检测判断，属于运行时快照查询，无法通过依赖注入替代；当前调用点唯一，继续经 barrel 转发。 */
 import { isWindow } from "../../../../../util/platform/functions";
-/** 用途：引入 switchDialog 用于跨对话框切换逻辑的共享实例引用。使用范围：state/index.ts 中 collectDialogFacts 的 hasSwitchDialog/switchDialogMounted 计算以及 collectWindowKeyDownState 的 baseState。解耦评估：switchDialog 是 switchDialog.global 模块的模块级单例引用，切换逻辑集中在该模块；继续经 barrel 转发即可。 */
-import { switchDialog } from "../switchDialog.global";
+/** 用途：读取统一 SForge 状态；使用范围：状态收集时读取当前切换对话框；解耦评估：直达全局状态基础设施唯一实现，不建立薄包装。 */
+import {getSForgeState} from "../../../../../config/sforge.global";
+/** 用途：定位当前切换对话框；使用范围：状态收集快照；解耦评估：直达模块级不可变 Symbol 声明。 */
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "../../../../../config/sforge.symbols";
 /** 用途：引入 PluginCommandMatch 类型用于插件命令匹配的返回类型标注。使用范围：仅 state/index.ts 中 findPluginCommand 的 satisfies 标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
 import type { PluginCommandMatch } from "../types";
 /** 用途：引入 SpecialDialogType 类型用于特殊对话框类型的辨识联合标注。使用范围：仅 state/index.ts 中 resolveSpecialDialogType 的返回值类型标注。解耦评估：纯类型依赖，不形成运行时耦合。 */
@@ -66,8 +68,10 @@ export { isWindow };
 export { matchAuxiliaryHotKey };
 // 导出：matchHotKey
 export { matchHotKey };
-// 导出：switchDialog
-export { switchDialog };
+// 导出：统一状态读取函数
+export {getSForgeState};
+// 导出：当前切换对话框状态键
+export {WINDOW_KEYDOWN_SWITCH_DIALOG};
 // 导出：PluginCommandMatch 类型
 export type { PluginCommandMatch };
 // 导出：SpecialDialogType 类型

@@ -16,7 +16,8 @@ import { getSiyuanConfig } from "./imports";
 import { getSiyuanStorage } from "./imports";
 import { hideElements } from "./imports";
 import { isMac } from "./imports";
-import { setSwitchDialog } from "./imports";
+import {setSForgeState} from "./imports";
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./imports";
 import { siyuanI18n } from "./imports";
 import { switchDialogEvent } from "./imports";
 import { unicode2Emoji } from "./imports";
@@ -127,6 +128,6 @@ export const openSwitchDialog = async (state: WindowKeyDownState) => {
 </div>`,
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_SWITCHTAB);
-    setSwitchDialog(dialog);
+    setSForgeState(WINDOW_KEYDOWN_SWITCH_DIALOG, dialog);
     bindSwitchDialogEvents(state, dialog);
 };

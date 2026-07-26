@@ -30,7 +30,7 @@ import { openChangelog } from "./openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import type { AppFacade } from "../app/AppFacade.types";
 import { initWindowEvent } from "./globalEvent/event";
-import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKeyDown";
+import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/globalShortcut/send";
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";

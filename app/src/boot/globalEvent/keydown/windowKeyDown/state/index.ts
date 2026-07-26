@@ -118,7 +118,8 @@ import { matchHotKey } from "./imports";
  * 使用范围：仅供 `state/index.ts` 内部使用。
  * 解耦评估：通过 `./imports` 桶转发，不直接耦合对话框切换模块。
  */
-import { switchDialog } from "./imports";
+import {getSForgeState} from "./imports";
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./imports";
 
 /**
  * 用途：将 KeyboardEvent 的 target 解析为 HTMLElement，若不存在则回退到 document.body。
@@ -410,6 +411,7 @@ export const collectWindowKeyDownState = (app: WindowKeyDownState["app"], event:
     const isArrowOrEnterWithoutModifiers = isNotCtrl(event) && !event.shiftKey && !event.altKey && (event.key.startsWith("Arrow") || event.key === "Enter");
     const recentDocsDialog = isArrowOrEnterWithoutModifiers ? findRecentDocsDialog() : undefined;
     const specialDialog = isSpecialDialogNavigationKey(event.key) ? findSpecialDialog() : undefined;
+    const switchDialog = getSForgeState(WINDOW_KEYDOWN_SWITCH_DIALOG);
     const confirmDialogElement = document.querySelector<HTMLElement>('.b3-dialog--open[data-key="dialog-confirm"]');
     const baseState = {
         app,

@@ -23,12 +23,6 @@ import { filterHotkey } from "./imports";
  */
 import { searchKeydown } from "./imports";
 /**
- * 用途：引入全局快捷键同步函数。
- * 使用范围：仅用于当前文件对外维持既有导出路径兼容。
- * 解耦评估：快捷键同步属于基础设施能力，入口文件只做转发导出即可，不需要额外包装层。
- */
-import { sendGlobalShortcut } from "./sendGlobalShortcut";
-/**
  * 用途：引入窗口级键盘事件的统一路由阶段入口。
  * 使用范围：仅用于当前文件在状态收集完成后产出目标子集与子集命令。
  * 解耦评估：入口只依赖阶段级公开接口，不直接触碰子路由细节，比在本文件继续堆叠路由 DSL 更低耦合。
@@ -46,9 +40,6 @@ import { collectWindowKeyDownState } from "./state";
  * 解耦评估：入口只依赖阶段级公开接口，不直接耦合对话框、系统和导航的叶子执行细节。
  */
 import { executeWindowKeyDownSubset } from "./subset";
-
-/** 导出全局快捷键同步函数，供既有调用方继续沿用当前导入路径。 */
-export { sendGlobalShortcut };
 
 /**
  * 作用：处理窗口级 `keydown` 事件，并按“前置短路 -> 状态收集 -> 路由导航 -> 子集处理”的顺序执行。

@@ -32,18 +32,23 @@ import { getAllTabs } from "./imports";
 import { getDockByType } from "./imports";
 
 /**
- * 用途：引入切换对话框共享状态读取入口。
- * 使用范围：仅用于当前文件读取当前激活的切换对话框实例。
- * 解耦评估：共享 UI 状态已经收敛到单点模块，直接读取该入口比继续经 `windowKeyDown.ts` 回传更低耦合。
+ * 用途：读取统一 SForge 状态。
+ * 使用范围：仅用于事件开始时读取当前激活的切换对话框实例。
+ * 解耦评估：经同层网关直达统一注册表，不依赖模块 live binding。
  */
-import { switchDialog } from "./windowKeyDown/switchDialog.global";
+import {getSForgeState} from "./imports";
 
 /**
- * 用途：引入切换对话框共享状态写入入口。
+ * 用途：清理统一 SForge 状态。
  * 使用范围：仅用于当前文件在点击完成后清空当前切换对话框实例。
- * 解耦评估：共享 UI 状态写入应集中到单点，以避免多个协作者散改共享变量。
+ * 解耦评估：经同层网关直达统一注册表，不建立固定参数包装。
  */
-import { setSwitchDialog } from "./windowKeyDown/switchDialog.global";
+import {setSForgeState} from "./imports";
+
+/** 用途：定位当前切换对话框；使用范围：事件读取与清理；解耦评估：经同层网关直达不可变 Symbol 声明。 */
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./imports";
+/** 用途：约束关闭流程所需的完整对话框生命周期；使用范围：closeSwitchDialog；解耦评估：纯类型依赖领域抽象，不依赖具体 class。 */
+import type {IProtyleDialog} from "./imports";
 
 /**
  * 作用：把鼠标事件目标收敛为可安全读取的 HTML 元素。
@@ -59,9 +64,9 @@ const resolveMouseTarget = (event: MouseEvent) => event.target instanceof HTMLEl
  * 调用时机：仅在点击 dock 项或页签项之后调用。
  * 问题/改进：当前仍依赖共享单实例模型；若未来需要多窗口并发，可进一步按窗口 ID 管理。
  */
-const closeSwitchDialog = () => {
-    switchDialog?.destroy();
-    setSwitchDialog(undefined);
+const closeSwitchDialog = (switchDialog: IProtyleDialog) => {
+    switchDialog.destroy();
+    setSForgeState(WINDOW_KEYDOWN_SWITCH_DIALOG, undefined);
 };
 
 /**
@@ -106,6 +111,7 @@ const switchToClickedTab = (currentId: string | null) => {
 export const switchDialogEvent = (app: AppFacade, event: MouseEvent) => {
     event.preventDefault();
     const target = resolveMouseTarget(event);
+    const switchDialog = getSForgeState(WINDOW_KEYDOWN_SWITCH_DIALOG);
 
     // 场景：只有存在切换对话框实例且点击目标可解析为 HTMLElement 时，才继续处理列表项点击。
     if (!switchDialog || !target) {
@@ -124,12 +130,12 @@ export const switchDialogEvent = (app: AppFacade, event: MouseEvent) => {
         // 场景：带 `data-type` 的列表项表示 dock 入口，需按 dock 分支处理。
         if (currentType) {
             handleDockSelection(app, currentType);
-            closeSwitchDialog();
+            closeSwitchDialog(switchDialog);
             return;
         }
 
         switchToClickedTab(currentTarget.getAttribute("data-id"));
-        closeSwitchDialog();
+        closeSwitchDialog(switchDialog);
         return;
     }
 };

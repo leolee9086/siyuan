@@ -58,7 +58,8 @@ import { editKeydown } from "../../editKeydown";
 import { fileTreeKeydown } from "../../fileTreeKeydown";
 import { panelTreeKeydown } from "../../panelTreeKeydown";
 import { switchDialogEvent } from "../../switchDialogEvent";
-import { setSwitchDialog } from "../switchDialog.global";
+import {setSForgeState} from "../../../../../config/sforge.global";
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "../../../../../config/sforge.symbols";
 
 /**
  * 用途：引入对话框、导航、系统、UI 四个子域的命令常量与衍生类型，用于在子集处理阶段根据路由结果选择对应执行器。
@@ -125,7 +126,8 @@ export { openRecentDocs };
 export { openSetting };
 export { panelTreeKeydown };
 export { setReadOnly };
-export { setSwitchDialog };
+export {setSForgeState};
+export {WINDOW_KEYDOWN_SWITCH_DIALOG};
 export { setZoom };
 export { siyuanI18n };
 export { switchDialogEvent };

@@ -10,6 +10,8 @@ import {LAYOUT_PERSISTENCE_REGISTRY} from "./sforge.symbols";
 import {MOBILE_KEYBOARD_LIFECYCLE_REGISTRY} from "./sforge.symbols";
 /** 用途：定位导航历史注册表。使用范围：ISForgeGlobalState 的桌面与移动导航状态槽。解耦评估：Symbol 保证注册表身份唯一，事件或局部参数不能替代状态所有权。 */
 import {NAVIGATION_HISTORY_REGISTRY} from "./sforge.symbols";
+/** 用途：定位窗口键盘切换对话框状态。使用范围：ISForgeGlobalState 的当前对话框槽；解耦评估：Symbol 保证跨 state/subset 调用共享同一生命周期状态。 */
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -30,6 +32,8 @@ import type { IMobileFileOpenPort } from "../plugin/api/openMobileFile.types";
 import type { DragTipState } from "../protyle/util/dragTip.types";
 /** 用途：Protyle Dialog 宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
 import type { IProtyleDialogPort } from "../protyle/runtime/dialog.types";
+/** 用途：声明当前切换对话框完整生命周期。使用范围：窗口键盘状态槽；解耦评估：纯类型依赖不加载具体 Dialog class。 */
+import type {IProtyleDialog} from "../protyle/runtime/dialog.types";
 /** 用途：Protyle 状态统计宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
 import type { IProtyleStatusPort } from "../protyle/runtime/status.types";
 /** 用途：Protyle 布局宿主能力；使用范围：全局能力槽；解耦评估：纯 Port 类型，运行时由宿主注入。 */
@@ -86,6 +90,7 @@ export interface ISForgeGlobalState {
     [MOBILE_KEYBOARD_LIFECYCLE_REGISTRY]?: MobileKeyboardLifecycleState;
     [LAYOUT_PERSISTENCE_REGISTRY]?: Map<string, LayoutPersistenceState>;
     [AV_VIRTUAL_SCROLL_REGISTRY]?: AVVirtualScrollRegistryState;
+    [WINDOW_KEYDOWN_SWITCH_DIALOG]?: IProtyleDialog;
 }
 
 /**

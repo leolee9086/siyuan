@@ -13,6 +13,23 @@ import type { AppFacade } from "../../../app/AppFacade.types";
 /** 导出 [`AppFacade`](app/src/boot/globalEvent/keydown/imports.ts:15) 供 `keydown` 目录类型标注复用。 */
 export type { AppFacade };
 
+/** 用途：读写统一 SForge 状态；使用范围：切换对话框点击生命周期；解耦评估：直达全局状态基础设施唯一实现，不建立薄包装。 */
+import {getSForgeState, setSForgeState} from "../../../config/sforge.global";
+/** 导出统一状态读取能力。 */
+export {getSForgeState};
+/** 导出统一状态写入能力。 */
+export {setSForgeState};
+
+/** 用途：定位窗口键盘切换对话框；使用范围：点击事件读取与清理；解耦评估：直达模块级不可变 Symbol 声明。 */
+import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "../../../config/sforge.symbols";
+/** 导出切换对话框状态键。 */
+export {WINDOW_KEYDOWN_SWITCH_DIALOG};
+
+/** 用途：约束切换对话框完整生命周期；使用范围：点击事件关闭流程；解耦评估：纯类型直达领域声明，不依赖注册表实现或具体 Dialog class。 */
+import type {IProtyleDialog} from "../../../protyle/runtime/dialog.types";
+/** 导出完整对话框生命周期类型。 */
+export type {IProtyleDialog};
+
 /**
  * 用途：提供异步 POST 请求能力。
  * 使用范围：供键盘导航流程按焦点项查询完整文档路径等场景使用。
