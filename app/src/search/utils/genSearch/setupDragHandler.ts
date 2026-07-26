@@ -2,7 +2,7 @@
  * @fileoverview 设置拖拽分割线事件处理
  */
 
-import { setStorageVal } from "../../../ai/imports";
+import {setStorageVal} from "../../../util/storage/setStorageVal";
 import { Constants } from "../../../constants";
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import { resize } from "../../../protyle/util/resize";

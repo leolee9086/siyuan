@@ -5,7 +5,7 @@
 import { fetchPost } from "../../../../ai/imports";
 import { Constants } from "../../../../constants";
 import type {ProtyleDomain} from "../../../../protyle/protyle.types";
-import { getDefaultSubType, getDefaultType } from "../../../getDefault";
+import {getDefaultSubType, getDefaultType} from "../../../defaults/searchDefaults";
 import { updateConfig } from "../../../util";
 
 /**

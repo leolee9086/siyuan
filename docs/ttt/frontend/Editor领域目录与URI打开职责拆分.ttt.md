@@ -66,3 +66,4 @@
 - **2026-07-25**：创建专项 TTT。Editor 完整领域根已建立；`getAll.ts` 的具体 Editor 路径归零；URI/移动打开职责从 `protyle/util/compatibility.ts` 迁回 Editor，兼容模块不再反向加载 `processSiYuanUri`。
 - **2026-07-25**：EditorDomain 双向契约对齐真实公共表面：显式声明 `layoutModel/parent`，并保留 Protyle 初始化早期文档根尚未就绪的类型状态；布局查询、PDF 加载门禁和 Dock 查找分别迁出 Editor 反向依赖。`openByMobile/initWindowOpenOverride` 保持唯一实现，移动 App 组合根补齐同一个完整 `AppFacade`，未创建调用点碎片接口。源码图为 `2134` 节点、`863` 条代表环、唯一 SCC `782`；下一阶段处理 URI/链接子目录与首环中的 compatibility 平台边。
 - **2026-07-25**：本批目标文件 TypeScript 诊断 `0`，Node `149/149`、Layout 查询 `3/3`、Editor/AppFacade 契约和 `git diff --check` 通过；Editor 根目录数量门禁继续作为下一阶段目录职责迁移的显式待办。
+- **2026-07-25**：后续首环审计将 Search defaults 与存储写入从综合网关剥离，compatibility/Search 链不再成为首环；唯一 SCC `782 -> 748`。Editor URI 目录任务继续保留，但下一轮循环治理先按新的 Emoji/Files 首环判断真实职责方向。

@@ -2,7 +2,7 @@
  * @fileoverview 设置输入框事件处理
  */
 
-import { setStorageVal } from "../../../ai/imports";
+import {setStorageVal} from "../../../util/storage/setStorageVal";
 import { Constants } from "../../../constants";
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import { electronUndo } from "../../../protyle/undo";

@@ -10,7 +10,7 @@ import { Constants } from "../constants";
 export { Constants };
 
 /** 用途：存储值设置工具。使用范围：search 模块保存布局状态。解耦评估：通过 imports.ts 转发。 */
-import { setStorageVal } from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 /** 导出 setStorageVal，供 search 模块使用 */
 export { setStorageVal };
 

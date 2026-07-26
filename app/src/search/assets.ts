@@ -1,7 +1,7 @@
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
 import { escapeAriaLabel } from "../util/DOM/escape";
-import { setStorageVal } from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import { MenuItem } from "../menus/Menu.Item";
 import { Dialog } from "../dialog";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";

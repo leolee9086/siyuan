@@ -2,7 +2,7 @@
  * @fileoverview 资源搜索相关点击处理
  */
 
-import { setStorageVal } from "../../../../ai/imports";
+import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { Constants } from "../../../../constants";
 import { assetInputEvent, assetMoreMenu } from "../../../assets";
 import { getSiyuanGlobalMenusMenu } from "../../../../util/siyuanEnvironments/getMenu.environment";

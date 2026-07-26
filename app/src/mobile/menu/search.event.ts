@@ -20,7 +20,7 @@ import {
 } from "../../search/assets";
 import {addClearButton} from "../../util/DOM/addClearButton";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
-import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
+import {getDefaultSubType, getDefaultType} from "../../search/defaults/searchDefaults";
 import {
     saveKeyList,
     toggleReplaceHistory,

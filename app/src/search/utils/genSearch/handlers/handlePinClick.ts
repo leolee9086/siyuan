@@ -2,7 +2,7 @@
  * @fileoverview 固定搜索相关点击处理
  */
 
-import { setStorageVal } from "../../../../ai/imports";
+import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { MenuItem } from "../../../../menus/Menu.Item";
 import { genUUID } from "../../../../util/platform/genID";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";

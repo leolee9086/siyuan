@@ -1,6 +1,6 @@
 import {Constants} from "../constants";
 import {Menu} from "../plugin/Menu";
-import {setStorageVal} from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import {escapeHtml} from "../util/DOM/escape";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import type {ProtyleDomain} from "../protyle/protyle.types";

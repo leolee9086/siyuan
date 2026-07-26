@@ -1,10 +1,10 @@
 import {focusByRange} from "./selection";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
-import {isBrowser, isMobile, isElectron} from "../../platform";
+import {isBrowser, isElectron} from "../../platform";
 import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {getDefaultSubType, getDefaultType} from "../../search/getDefault";
+import {getDefaultSubType, getDefaultType} from "../../search/defaults/searchDefaults";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {isMac} from "../../util/platform/hotkey/format";
 import {isNotCtrl} from "../../util/platform/hotkey/format";

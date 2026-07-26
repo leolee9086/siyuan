@@ -1,6 +1,6 @@
 import {Constants} from "../constants";
 import {fetchPost} from "../util/network/fetch";
-import {setStorageVal} from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import {getArticle, getAttr} from "./util";
 import {escapeAriaLabel, escapeLessThans} from "../util/DOM/escape";
 import {getIconByType} from "../editor/getIcon";

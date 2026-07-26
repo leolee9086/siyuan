@@ -2,7 +2,7 @@
  * @fileoverview 搜索控制相关点击处理
  */
 
-import { setStorageVal } from "../../../../ai/imports";
+import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { Constants } from "../../../../constants";
 import { openFile } from "../../../../editor/util";
 import { MenuItem } from "../../../../menus/Menu.Item";
@@ -10,7 +10,7 @@ import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { hasClosestByClassName } from "../../../../protyle/util/hasClosest";
 import { resize } from "../../../../protyle/util/resize";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDefaultSubType, getDefaultType } from "../../../getDefault";
+import {getDefaultSubType, getDefaultType} from "../../../defaults/searchDefaults";
 import { inputEvent } from "../../../inputEvent";
 import { moreMenu, queryMenu } from "../../../menu";
 import { toggleReplaceHistory } from "../../../toggleHistory";

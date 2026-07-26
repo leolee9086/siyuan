@@ -5,11 +5,11 @@ import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { fetchPost } from "../util/network/fetch";
 import { escapeHtml } from "../util/DOM/escape";
-import { setStorageVal } from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { goUnRef, updateSearchResult } from "../mobile/menu/search";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDefaultSubType } from "./getDefault";
+import {getDefaultSubType} from "./defaults/searchDefaults";
 export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => void) => {
     const filterDialog = new Dialog({
         title: siyuanI18n.searchType,

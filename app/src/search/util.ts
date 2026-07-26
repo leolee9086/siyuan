@@ -10,7 +10,7 @@ import type {ProtyleDomain} from "../protyle/protyle.types";
 import { onGet } from "../protyle/util/onGet";
 import { addLoading } from "../protyle/ui/initUI";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
-import { setStorageVal } from "../protyle/util/compatibility";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import {
     getKeyByLiElement
 } from "./menu";

@@ -1,4 +1,4 @@
-import { setStorageVal } from "../ai/imports";
+import {setStorageVal} from "../util/storage/setStorageVal";
 import { Constants } from "../constants";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { addClearButton } from "../util/DOM/addClearButton";
