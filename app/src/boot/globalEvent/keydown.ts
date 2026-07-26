@@ -58,7 +58,7 @@ import {Search} from "../../search";
 import {isCustomDomain} from "../../layout/dock/custom/custom.types";
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 import {quickMakeCard} from "../../card/makeCard";
-import {getContentByInlineHTML} from "../../protyle/wysiwyg/keydown";
+import {getContentByInlineHTML} from "../../protyle/wysiwyg/keydown/content/getContentByInlineHTML";
 import {searchKeydown} from "./searchKeydown";
 import {historyKeydown} from "../../history/keydown";
 import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";

@@ -8,7 +8,6 @@ import {
 } from "../util/hasClosest";
 // S-forge: keydown 逻辑已重构拆分为多个中间件模块
 import { Constants } from "../../constants";
-import { fetchPost } from "../../util/network/fetch";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { avPanelGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
@@ -59,24 +58,9 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { isMobile } from "../../platform";
 import { foldBlocksRecursively, getFoldBlock } from "../util/blockFold";
 import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
+/** 保留历史公开入口，并静态导出内容转换子域的同一函数身份。 */
+export {getContentByInlineHTML} from "./keydown/content/getContentByInlineHTML";
 
-export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
-    let html = "";
-    Array.from(range.cloneContents().childNodes).forEach((item) => {
-        //文本节点
-        if (item.nodeType === 3) {
-            html += item.textContent;
-        } else {
-            //元素节点    
-            if (item instanceof HTMLElement) {
-                html += item.outerHTML;
-            }
-        }
-    });
-    fetchPost("/api/block/getDOMText", { dom: html }, (response) => {
-        cb(response.data);
-    });
-};
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     //@ts-ignore
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {

@@ -25,7 +25,7 @@ import { focusByOffset, getSelectionOffset } from "../../../../protyle/util/sele
 import { setEditMode } from "../../../../protyle/util/setEditMode";
 import { duplicateBlock, goHome } from "../../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import {goEnd} from "../../../../protyle/wysiwyg/commonHotkey/goEnd/goEnd";
-import { getContentByInlineHTML } from "../../../../protyle/wysiwyg/keydown";
+import {getContentByInlineHTML} from "../../../../protyle/wysiwyg/keydown/content/getContentByInlineHTML";
 import { Search } from "../../../../search";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanBlockPanels, getSiyuanConfig } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";

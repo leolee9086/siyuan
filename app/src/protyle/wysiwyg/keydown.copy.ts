@@ -2,7 +2,7 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { writeText } from "../util/compatibility";
 import { matchHotKey } from "../util/hotKey";
 import { focusByRange, getEditorRange } from "../util/selection";
-import { getContentByInlineHTML } from "./keydown";
+import {getContentByInlineHTML} from "./keydown/content/getContentByInlineHTML";
 export const copyTextMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
