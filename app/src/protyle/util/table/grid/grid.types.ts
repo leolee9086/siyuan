@@ -35,3 +35,20 @@ export interface TableRangeCell {
     row: number;
     col: number;
 }
+
+/** 用途：描述选区与物理单元格相交后生成的输出单元格；使用场景：独立表格 HTML 重建。 */
+export interface OutputTableCell {
+    newCell: HTMLTableCellElement;
+    newRow: number;
+    newCol: number;
+    newRowspan: number;
+    newColspan: number;
+}
+
+/** 用途：描述独立表格序列化所需的完整输出网格；使用场景：占位补齐与逐行渲染；关联类型：由 `OutputTableCell` 集合构建。 */
+export interface OutputTableGrid {
+    cells: (OutputTableCell | null)[][];
+    coveredSlots: boolean[][];
+    maxRow: number;
+    maxCol: number;
+}

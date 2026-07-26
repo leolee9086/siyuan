@@ -2,9 +2,9 @@
 
 > **最终目标**：保持表格合并单元格、复制、剪切、粘贴、范围坐标和 HTML 重建行为不变，将 `protyle/util/table.ts` 中的纯网格领域与交互/事务职责分离，并逐步完成现有 `table/` 子域的单向化。
 >
-> **当前目标**：在已迁移唯一网格构建、范围边界和单元格投影的基础上，迁移 `getTableRangeHTML` 序列化阶段，使复制和剪切调用方不再加载综合表格根模块。
+> **当前目标**：网格与范围投影阶段已完成；继续审计已退出 SCC 的旧 `table.ts` 与仍在主组件的 `table/table.ts` 是否存在其它重复行为，按行列编辑、导航和事务职责完成现有子域归并。
 >
-> **下一步任务**：补齐 thead/tbody、rowspan/colspan 截断和独立 HTML 重建测试，将序列化唯一实现迁入 `table/grid` 并更新复制/剪切调用方。
+> **下一步任务**：逐项比较旧根与 `table/table.ts`、`table.row.ts`、`column.ts` 的公开函数及实现来源，先删除或统一完全重复实现，再为剩余独占交互建立行为基线。
 
 ## 不变量
 
@@ -36,7 +36,7 @@
 
 - [x] 建立表格物理网格、反向合并范围和非法端点行为测试。
 - [x] 迁移唯一网格构建、范围边界与单元格投影。
-- [ ] 迁移 HTML 投影并更新全部复制/剪切消费者。
+- [x] 迁移 HTML 投影并更新全部复制/剪切消费者。
 - [ ] 验证目标 lint、Node、Protyle 契约、imports 多跳、Madge/Tarjan 与 diff。
 
 ## 中期计划
@@ -62,6 +62,7 @@
 
 - **2026-07-27**：创建专项。确认两个公开 API 共享同一物理网格与范围边界模型，必须整体迁移；单独复制 `getTableRangeCells` 会制造重复算法，因此不采用。
 - **2026-07-27**：唯一物理网格、跨度规范化、范围边界和相对单元格投影迁入 `table/grid`，根 `getTableRangeHTML` 暂时直接复用同一实现，不存在平行网格算法；`insertHTML` 直达纯 grid。同步发现 `table.ts` 与 `table/table.ts` 完全重复实现框选几何，现统一迁入 `table/selection/geometry`，根模块与五类消费者复用唯一 6px 容差判定。网格/几何专项 `5/5`、Node `193/193`、Protyle 契约类型、新模块 lint及 imports 多跳通过。生产图 `2247 / 332 / SCC 619`，新增 grid/selection 节点全部在 SCC 外，`insertHTML -> table.ts/table.ts` 两条边归零；代表环反升来自下一条 `insertHTML -> input -> blockFold`，不据此撤回正确职责拆分。
+- **2026-07-27**：`getTableRangeHTML` 唯一实现迁入 `table/grid/html.ts`，按范围求交、输出网格、表头归一化和逐行序列化分阶段复用同一 grid；三个复制/剪切消费者直达新所有者，旧根实现和出口归零。专项增至 `7/7`，固定 tbody 起始范围提升为 thead、rowspan 占位、空 class 属性和非法端点行为；Node `193/193`、Protyle 契约类型、新模块 lint与网关门禁通过。根 `table.ts` 从约 1100 行降至 `833` 行并退出 SCC，生产图 `2248 / 332 / SCC 618`；grid 全子域在 SCC 外，范围投影近期阶段完成。
 
 ## 关联任务
 

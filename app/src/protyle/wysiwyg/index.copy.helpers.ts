@@ -5,7 +5,7 @@ import { fetchSyncPost } from "../../util/network/fetch";
 import { countBlockWord } from "../runtime/status.port";
 import { encodeBase64 } from "../util/compatibility";
 import {isIncludeCell} from "../util/table/selection/geometry";
-import { getTableRangeHTML } from "../util/table";
+import {getTableRangeHTML} from "../util/table/grid/html";
 import {genCellValueByElement} from "../render/av/cell.value";
 import {getTypeByCellElement} from "../render/av/cell/position";
 import {getCellText} from "../render/av/cell/render";

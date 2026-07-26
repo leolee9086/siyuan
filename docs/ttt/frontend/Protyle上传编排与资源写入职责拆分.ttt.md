@@ -69,6 +69,7 @@
 - **2026-07-27**：`insertHTML` 展开标题时不再通过综合 `blockFold.ts` 静态加载通用 transaction；折叠状态唯一实现返回 do/undo，调用方继续把它组合进原插入事务。折叠专项 `2/2`、Node `193/193`、Protyle 契约类型、lint 与 imports 多跳门禁通过。当前生产图 `2243 / 299 / SCC 625`；返回路径已从 transaction 转为 State 内的 `scrollCenter -> Layout/Wnd`，两个新运行时节点仍在主 SCC，所以该阶段尚未满足上传解环验收，继续处理滚动副作用边界。
 - **2026-07-27**：DOM 滚动 helper 的配置读取改为直达稳定环境层唯一安全实现，消除为可选 `window.siyuan?.config` 加载 Layout/Wnd 的错误所有权；折叠和滚动逻辑均未改变。生产图 `2243 / 282 / SCC 619`，`blockFold/state` 与完整高亮滚动子域退出 SCC，上传默认插入的折叠返回路径已关闭。上传仍经 `insertHTML -> table -> block/util -> editor` 返回主图，下一阶段按表格选区职责真实所有权继续拆分。
 - **2026-07-27**：上传插入仅需的表格网格/范围投影迁入纯 `table/grid`，框选几何的两份重复实现统一为 `table/selection/geometry`；`insertHTML` 不再加载任一综合 table 模块。生产图 `2247 / 332 / SCC 619`，新子域均在 SCC 外；当前上传返回路径推进到 `insertHTML -> input -> blockFold -> transaction`，代表环反升仅作定位。
+- **2026-07-27**：表格范围 HTML 重建也迁入同一 grid 子域，旧综合 `table.ts` 整体退出 SCC；专项 `7/7` 与完整门禁通过。生产图 `2248 / 332 / SCC 618`，上传路径继续聚焦 `insertHTML -> input -> blockFold -> transaction`。
 
 ## 关联任务
 

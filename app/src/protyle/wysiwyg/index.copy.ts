@@ -31,7 +31,7 @@ import { nbsp2space } from "../util/normalizeText";
 /** 用途: 去除ZWSP；使用范围: normalizeTextPlain；解耦评估: pure 工具 */
 import { removeZWJ } from "../util/normalizeText";
 /** 用途: 表格 HTML 生成；使用范围: routeCopyContent；解耦评估: 与表格 DOM 耦合 */
-import { getTableRangeHTML } from "../util/table";
+import {getTableRangeHTML} from "../util/table/grid/html";
 
 /** @同步豁免: 需要绝对同步的DOM访问 */
 export function emojiToMd(element: HTMLElement) {

@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
 
 import {buildTableGrid, getTableRangeBounds, getTableRangeCells} from "../../src/protyle/util/table/grid";
+import {getTableRangeHTML} from "../../src/protyle/util/table/grid/html";
 
 const createMergedTable = () => {
     const host = document.createElement("div");
@@ -64,5 +65,23 @@ describe("table grid", () => {
         expect(getTableRangeBounds(tableGrid, cellC, externalCell)).toBeUndefined();
         expect(getTableRangeCells(table, cellC, externalCell)).toEqual([]);
         expect(getTableRangeBounds(tableGrid, cellC, cellC)?.rowEnd).toBe(2);
+    });
+
+    it("rebuilds a merged tbody range as a valid independent table", () => {
+        const table = createMergedTable();
+        const cellC = getCellByText(table, "C");
+        const cellE = getCellByText(table, "E");
+
+        expect(getTableRangeHTML(table, cellC, cellE)).toBe(
+            '<table><thead><tr><th class="" rowspan="2">C</th><th class="">D</th></tr><tr><th class="fn__none"></th><th class="">E</th></tr></thead></table>'
+        );
+    });
+
+    it("returns empty HTML when a range endpoint is outside the source table", () => {
+        const table = createMergedTable();
+        const cellC = getCellByText(table, "C");
+        const externalCell = document.createElement("td");
+
+        expect(getTableRangeHTML(table, cellC, externalCell)).toBe("");
     });
 });

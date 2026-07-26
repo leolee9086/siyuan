@@ -6,7 +6,7 @@ import {removeEmbed} from "./removeEmbed";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {encodeBase64} from "../util/compatibility";
 import {isIncludeCell} from "../util/table/selection/geometry";
-import {getTableRangeHTML} from "../util/table";
+import {getTableRangeHTML} from "../util/table/grid/html";
 import {updateCellsValue} from "../render/av/cell.update";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
 import {removeBlock} from "./remove";
