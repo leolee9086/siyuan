@@ -8,7 +8,7 @@ import {fetchPost} from "../../../util/fetch";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {avRender} from "./render";
 import {getFieldsByData} from "./view";
-import {getColIconByType} from "./col";
+import {getColIconByType} from "./col/col.typeUtils";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {hasClosestByClassName} from "../../util/hasClosest";

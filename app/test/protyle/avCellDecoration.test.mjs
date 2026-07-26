@@ -8,6 +8,8 @@ const originalVersion = Object.getOwnPropertyDescriptor(globalThis, "SIYUAN_VERS
 const originalNodeEnvironment = Object.getOwnPropertyDescriptor(globalThis, "NODE_ENV");
 const testWindow = new Window();
 let addDragFill;
+let getColIconByType;
+let getColNameByType;
 let updateHeaderCell;
 let toTAVCol;
 
@@ -24,9 +26,29 @@ before(async () => {
     Object.defineProperty(globalThis, "HTMLElement", {configurable: true, value: testWindow.HTMLElement});
     Object.defineProperty(globalThis, "SIYUAN_VERSION", {configurable: true, value: "test"});
     Object.defineProperty(globalThis, "NODE_ENV", {configurable: true, value: "test"});
-    testWindow.siyuan = {languages: {dragFill: "Drag fill"}};
+    testWindow.siyuan = {languages: {
+        _attrView: {key: "Key"},
+        assets: "Assets",
+        block: "Block",
+        checkbox: "Checkbox",
+        createdTime: "Created time",
+        date: "Date",
+        dragFill: "Drag fill",
+        email: "Email",
+        lineNumber: "Line number",
+        link: "Link",
+        multiSelect: "Multi-select",
+        number: "Number",
+        phone: "Phone",
+        relation: "Relation",
+        rollup: "Rollup",
+        select: "Select",
+        template: "Template",
+        text: "Text",
+        updatedTime: "Updated time",
+    }};
     ({addDragFill, updateHeaderCell} = await import("../../src/protyle/render/av/cell/decoration/index"));
-    ({toTAVCol} = await import("../../src/protyle/render/av/col/col.typeUtils"));
+    ({getColIconByType, getColNameByType, toTAVCol} = await import("../../src/protyle/render/av/col/col.typeUtils"));
 });
 
 after(() => {
@@ -76,5 +98,32 @@ describe("AV cell decoration", () => {
         assert.equal(toTAVCol("lineNumber"), "lineNumber");
         assert.equal(toTAVCol("future-type"), "text");
         assert.equal(toTAVCol(null), "text");
+    });
+
+    it("preserves the complete column name and icon mappings", () => {
+        const expected = {
+            text: ["Text", "iconAlignLeft"],
+            block: ["Key", "iconKey"],
+            number: ["Number", "iconNumber"],
+            select: ["Select", "iconListItem"],
+            mSelect: ["Multi-select", "iconList"],
+            relation: ["Relation", "iconOpen"],
+            rollup: ["Rollup", "iconSearch"],
+            date: ["Date", "iconCalendar"],
+            updated: ["Updated time", "iconClock"],
+            created: ["Created time", "iconClock"],
+            url: ["Link", "iconLink"],
+            mAsset: ["Assets", "iconImage"],
+            email: ["Email", "iconEmail"],
+            phone: ["Phone", "iconPhone"],
+            template: ["Template", "iconMath"],
+            checkbox: ["Checkbox", "iconCheck"],
+            lineNumber: ["Line number", "iconOrderedList"],
+        };
+
+        for (const [type, [name, icon]] of Object.entries(expected)) {
+            assert.equal(getColNameByType(type), name);
+            assert.equal(getColIconByType(type), icon);
+        }
     });
 });

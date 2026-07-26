@@ -14,7 +14,7 @@ import {Constants} from "../../../constants";
 import {insertGalleryItemAnimation} from "./gallery/item";
 import {clearSelect} from "../../util/clearSelect";
 import {isCustomAttr} from "./blockAttr";
-import {getColIconByType, getColNameByType} from "./col";
+import {getColIconByType, getColNameByType} from "./col/col.typeUtils";
 import {unicode2Emoji} from "../../../emoji";
 import {escapeAttr} from "../../../util/DOM/escape";
 import {getCompressURL} from "../../../util/assets/image";
