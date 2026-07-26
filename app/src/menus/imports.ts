@@ -53,6 +53,7 @@ export { hasClosestByClassName };
 import { requestOpenTabAsDialog } from "../layout/tabFloat.port";
 /** 导出 requestOpenTabAsDialog 供 Dock 菜单调用。 */
 export { requestOpenTabAsDialog };
+/** 用途：请求宿主将页签作为普通 Tab 打开。使用范围：Dock 菜单的 Agent Tab 动作；解耦评估：现有宿主 Port 是该行为的正式边界，菜单网关直接引用其唯一实现。 */
 import { requestOpenTabAsTab } from "../layout/tabOpen.port";
 /** 导出 requestOpenTabAsTab 供 Dock 菜单调用。 */
 export { requestOpenTabAsTab };
@@ -63,7 +64,7 @@ import { Tab } from "../layout/Tab";
 export { Tab };
 
 /** 用途：在 Dock 布局树中按 ID 找回页签。使用范围：Dock 图标缺少模型缓存时的浮窗入口兜底。解耦评估：只提供布局查询，不把 Dialog 或副本工厂引入菜单。 */
-import { getInstanceById } from "../layout/util";
+import { getInstanceById } from "../layout/query/layoutInstance";
 /** 导出 getInstanceById 供 Dock 菜单解析页签。 */
 export { getInstanceById };
 

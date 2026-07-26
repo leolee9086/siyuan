@@ -110,7 +110,7 @@ export { getDOMPurify };
  * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 需要获取 Tab 实例。
  * 解耦评估：布局查找工具，通过参数传递即可，已充分解耦。
  */
-import { getInstanceById } from "../../layout/util";
+import { getInstanceById } from "../../layout/query/layoutInstance";
 /**
  * 用途：编辑器类，表示一个打开的文档实例。
  * 使用范围：tooltip.ts 中 Tab 标签页 tooltip 需要检查模型是否为编辑器。

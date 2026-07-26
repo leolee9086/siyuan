@@ -57,3 +57,4 @@
 
 - **2026-07-25**：创建专项 TTT。已将布局容器和既有模型序列化分派迁到完整领域守卫；AgentChat 改用自描述布局协议；Dock 序列化建立依赖完整 `DockDomain` 的唯一实现。唯一 SCC 当前为 `739`，继续拆分保存与导出链。
 - **2026-07-26**：纯序列化、布局快照、保存编排与导出编排已迁入独立职责目录，全部调用点直达真实所有者，旧 `layout-serialization.ts` 已删除。根据评审纠正，移除保存工厂闭包，重试状态由 `LAYOUT_PERSISTENCE_REGISTRY` 对应的 SForge 统一注册表唯一持有；专项共享/重置测试 `2/2`、Symbol lint 规则测试 `4/4`、Node 全量回归 `154/154`、`git diff --check` 通过。本批 persistence/export/modelHash 文件无 TypeScript 诊断；全项目检查仍被既有 AgentChat 等严格类型错误阻塞。源码图为 `2146` 个节点、`819` 条枚举环、唯一 SCC `738`，相比上一阶段 `746` 有 8 个成员实质退出；首环转为 `emoji/index.ts -> layout/tabUtil.ts -> asset/renderAssets.ts -> util/file/pathName.ts`。本阶段满足归档条件，后续回到主任务处理新首环。
+- **2026-07-26**：反序列化辅助模块的 `getInstanceById` 改为直达 `layout/query/layoutInstance.ts`，不再通过重新导出 `JSONToLayout` 的 `layout/util.ts` 取回查询函数；由此解除 `util -> layout-deserialization -> layout-deserialization.layout -> util` 三节点环。相关四个消费网关同步直达唯一查询实现，代表环 `454 -> 421`，唯一 SCC 保持 `676`；剩余反序列化运行时职责继续按中期计划处理。

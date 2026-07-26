@@ -10,7 +10,8 @@ import { parseUriInfo } from "../util/pathName";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { isBrowser } from "../platform";
 import { getAllTabs } from "./getAll";
-import { getInstanceById } from "./util";
+/** 用途：按页签 ID 恢复布局实例；使用范围：缺失插件占位和初始页签激活；解耦评估：无状态布局查询已有唯一所有者，应直接引用而非经过 util 聚合入口。 */
+import { getInstanceById } from "./query/layoutInstance";
 import { Constants } from "../constants";
 import { tabRegistry } from "../registry";
 import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";

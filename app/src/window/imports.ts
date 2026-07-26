@@ -30,7 +30,7 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
  * 使用范围：onWindowsMsg.ts 等需要操作标签页的模块
  * 解耦评估：依赖布局系统核心功能，当前无法解耦
  */
-import { getInstanceById } from "../layout/util";
+import { getInstanceById } from "../layout/query/layoutInstance";
 
 /**
  * 用途：提供完整布局页签领域类型，用于窗口操作和类型收窄
