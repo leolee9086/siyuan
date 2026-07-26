@@ -9,13 +9,15 @@
 - [x] 登记 Hint 完整公共实例表面。
 - [x] 建立单一 `HintDomain`、模块级 Symbol 厂牌和双向契约校验。
 - [x] 清除 fill、AV fill、slash fill、render、select 对具体 Hint class 的类型回边。
+- [x] 将块提示结果项渲染迁入独立 `result` 子域，解除引用搜索对综合 `extend.ts` 的加载。
 - [ ] 基于行为测试拆分输入解析、面板渲染和命令执行职责。
 
 ## 下一步任务
 
-1. 为提示键解析、emoji 导航和斜杠命令分发补齐行为基线。
-2. 识别输入解析、展示状态与命令执行的真实状态所有权，不创建调用点碎片接口。
-3. 每批复算代表环与 Tarjan SCC，按组件性质决定后续拆分顺序。
+1. 锁定 `hintSlash` 的命令清单、筛选和快捷键展示行为，将 348 行命令目录从综合编排根迁入完整职责子域。
+2. 为提示键解析、emoji 导航和斜杠命令分发补齐行为基线。
+3. 识别输入解析、展示状态与命令执行的真实状态所有权，不创建调用点碎片接口。
+4. 每批复算代表环与 Tarjan SCC，按组件性质决定后续拆分顺序。
 
 ## 不变量
 
@@ -28,6 +30,7 @@
 ## 现状基线
 
 - `app/src/protyle/hint/index.ts` 为 302 行组合根。
+- `app/src/protyle/hint/extend.ts` 在结果项迁移后仍为 593 行，其中 `hintSlash` 实际代码 348 行、`hintMoveBlock` 实际代码 86 行，继续作为本专项的上帝模块拆分对象。
 - 具体 Hint class 与 `index.fill.ts`、`index.render.ts`、`index.select.ts` 形成三条直接两节点环。
 - AV 与 slash 填充分支同样反向导入具体 Hint 类型。
 - 阶段开始时全图代表环 `459`，最大/唯一 SCC `676`，imports 网关多跳 `0`。
@@ -37,12 +40,14 @@
 - `hint.types.ts`：完整公共领域根与稳定身份。
 - `index.ts`：具体状态、DOM 生命周期和子职责组合。
 - `index.fill.ts`、`fill/*.ts`、`index.render.ts`、`index.select.ts`：只依赖完整领域根；AV 与 slash 填充分支归入专属子目录。
+- `result/item.ts`：块搜索提示结果项唯一同步渲染实现；外部图标、Emoji 和 i18n 依赖由 `result/imports.ts` 逐项直达真实所有者。
 - `app/test/protyle/HintDomain.contract.test.ts`：独立证明抽象与实现公共表面双向等价。
 
 ## 近期计划
 
 - [x] 完整领域根与契约校验。
 - [x] 清除具体类直接回边。
+- [x] 提取块提示结果项渲染并锁定 HTML 行为。
 - [ ] 补齐关键行为测试后拆分下一层职责。
 
 ## 中期计划
@@ -70,3 +75,4 @@
 ## 已归档/已完成区域
 
 - **2026-07-26**：完成领域根首批改造。`HintDomain` 覆盖 9 个公开状态字段、6 个公开方法及 Symbol 身份；五个 helper 文件统一直达类型声明，具体类仅在组合根和独立契约测试出现。目录原有 10 项已满，按 lint 指引将 AV 与 slash 填充分支归入 `hint/fill/`，没有添加目录豁免。Node `180/180`（含 Hint 契约）与新类型文件 lint 通过，imports 网关多跳保持 `0`；完整类型检查正常结束且新类型/契约无诊断，既有 Hint 实现仍有严格空值、函数规模和参数数量诊断。源码节点 `2200`，代表环 `459 -> 454`，唯一 SCC 保持 `676`：具体类直接回边已经归零，Hint 仍经移动编辑器与 Protyle 运行路径处于主组件，后续继续按行为基线拆分。
+- **2026-07-27**：`genHintItemHTML` 从 636 行综合 `extend.ts` 完整迁入 `hint/result/item.ts`，普通块图标、文档 Emoji、名称/别名/备注、引用计数、内容与路径的现有同步 HTML 语义保持；`extend.hintRef.ts`、`index.render.ts` 与 `hintEmbed` 直达唯一实现，旧根不保留转发。新子域网关逐项直达图标映射、Emoji 渲染和 i18n 真实所有者，不经其它 `imports.ts`。专项 `4/4`、完整 Node `198/198`、Protyle 契约类型、新文件 lint、全量类型检查目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2256 / 321 / SCC 613`，相对前批 `2254 / 335 / SCC 615`，结果子域、网关和 `extend.hintRef.ts` 全部退出 SCC。新的首环不再经过 Hint，转为 AV Cell Edit 经 OpenMenuPanel/Relation/View 返回事务链。

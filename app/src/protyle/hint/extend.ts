@@ -1,6 +1,5 @@
 import { fetchPost } from "../../util/network/fetch";
 import { insertHTML } from "../util/insertHTML";
-import { getIconByType } from "../../editor/getIcon";
 import { updateHotkeyTip } from "../util/compatibility";
 import { blockRender } from "../render/blockRender";
 import { Constants } from "../../constants";
@@ -17,12 +16,12 @@ import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";
 import { hideElements } from "../ui/hideElements";
 import { genAssetHTML } from "../../asset/renderAssets";
-import { unicode2Emoji } from "../../emoji";
 import { avRender } from "../render/av/render";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { templateItem } from "./extend.template";
 import { widgetItem } from "./extend.widget";
+import {genHintItemHTML} from "./result/item";
 const getHotkeyOrMarker = (hotkey: string, marker: string) => {
     if (hotkey) {
         return `<span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip(hotkey)}</span>`;
@@ -420,42 +419,6 @@ export const hintTag = (key: string, protyle: IProtyle): IHintData[] => {
     });
 
     return [];
-};
-
-export const genHintItemHTML = (item: IBlock) => {
-    if (!item.type) {
-        throw new Error("Block type is undefined");
-    }
-    let iconHTML;
-    if (item.type === "NodeDocument" && item.ial.icon) {
-        iconHTML = unicode2Emoji(item.ial.icon, "b3-list-item__graphic popover__block", true);
-        iconHTML = iconHTML.replace('popover__block"', `popover__block" data-id="${item.id}"`);
-    } else {
-        iconHTML = `<svg class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type)}"></use></svg>`;
-    }
-    let attrHTML = "";
-    if (item.name) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconN"></use></svg><span>${item.name}</span></span><span class="fn__space"></span>`;
-    }
-    if (item.alias) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconA"></use></svg><span>${item.alias}</span></span><span class="fn__space"></span>`;
-    }
-    if (item.memo) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconM"></use></svg><span>${item.memo}</span></span>`;
-    }
-    if (attrHTML) {
-        attrHTML = `<div class="fn__flex b3-list-item__meta b3-list-item__showall">${attrHTML}</div>`;
-    }
-    let countHTML = "";
-    if (item.refCount) {
-        countHTML = `<span class="popover__block counter b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.ref}">${item.refCount}</span>`;
-    }
-    // data-node-id 用于获取引用面板
-    return `${attrHTML}<div class="b3-list-item__first" data-node-id="${item.id}">
-    ${iconHTML}
-    <span class="b3-list-item__text">${item.content}</span>${countHTML}
-</div>
-<div class="b3-list-item__meta b3-list-item__showall">${item.hPath}</div>`;
 };
 
 export const hintEmbed = (key: string, protyle: IProtyle): IHintData[] => {

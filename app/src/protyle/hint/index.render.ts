@@ -1,7 +1,8 @@
 import {Constants} from "../../constants";
 import {hasClosestBlock, hasClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
 import {getSelectionOffset, getSelectionPosition} from "../util/selection";
-import {genHintItemHTML, hintSlash} from "./extend";
+import {hintSlash} from "./extend";
+import {genHintItemHTML} from "./result/item";
 import {setPosition} from "../../util/DOM/positioning/setPosition";
 import {hasPreviousSibling} from "../wysiwyg/getBlock";
 import {filterEmoji, getEmojiDesc, getEmojiTitle, lazyLoadEmoji, lazyLoadEmojiImg, unicode2Emoji} from "../../emoji";

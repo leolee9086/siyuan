@@ -4,7 +4,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { hasClosestBlock } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
-import { genHintItemHTML } from "./extend";
+import {genHintItemHTML} from "./result/item";
 import { withEncryptedNotebook } from "../../util/pathName";
 
 const genNewFileItem = (k: string) => {
