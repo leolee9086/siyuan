@@ -12,6 +12,7 @@ vi.mock("../../../src/block/panel/editor/imports", () => ({
 
 import {初始化Protyle编辑器} from "../../../src/block/panel/Panel.editor";
 import {createProtyleDomainFixture} from "../../support/protyleDomain.fixture";
+import {createWYSIWYGDomainFixture} from "../../support/wysiwygDomain.fixture";
 
 /** 验证异步编辑器加载完成后仍调用宿主注入的数据库条目定位动作。 */
 describe("BlockPanel editor initialization", () => {
@@ -24,7 +25,7 @@ describe("BlockPanel editor initialization", () => {
         const protyle = {
             element: protyleElement,
             contentElement: document.createElement("div"),
-            wysiwyg: {element: document.createElement("div")},
+            wysiwyg: createWYSIWYGDomainFixture(),
         };
         const editor = createProtyleDomainFixture(protyle);
         editor.destroy = vi.fn();

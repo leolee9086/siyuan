@@ -26,4 +26,5 @@ export const createProtyleDomainFixture = (protyleOverrides: Partial<IProtyle> =
     getSelectedBlockElements: () => document.querySelectorAll("[data-node-id]"),
     getSelectedBlockIds: () => undefined,
     switchMode: () => undefined,
+    zoomOut: () => undefined,
 } satisfies ProtyleDomain);

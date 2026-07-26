@@ -59,3 +59,4 @@
 ## 已完成记录
 
 - **2026-07-26**：创建专项 TTT。新增完整 `ProtyleZoomOutOptions` 公共数据契约和 `ProtyleDomain.zoomOut()`；`IProtyle.getInstance()` 从具体 class 改为完整领域根。transaction、breadcrumb、hint、gutter、wysiwyg 与 DnD 共 11 个模块改由领域根实例调用，具体 `zoomOut` 运行时导入仅留在 Protyle 组合根。`typecheck:protyle-contract` 通过；唯一 SCC 暂仍为 `690`，枚举环 `702 -> 700`，说明其它返回路径仍需继续处理。
+- **2026-07-27**：`IProtyle.wysiwyg` 从具体 WYSIWYG class 改为经独立双向契约验证的完整 `WYSIWYGDomain`，BlockPanel 测试夹具同步满足完整 WYSIWYG 与既有 `ProtyleDomain.zoomOut()` 表面。具体编辑区类型不再沿全局 Protyle 数据结构传播；目标类型诊断 `0`，Node `181/181`，唯一 SCC `676 -> 675`。

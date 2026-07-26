@@ -1,5 +1,4 @@
 import { Constants } from "../../../constants";
-import type { WYSIWYG } from "../../wysiwyg";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasPreviousSibling, hasNextSibling } from "../getBlock";
 import { getSelectionOffset } from "../../util/selection";
@@ -21,13 +20,13 @@ const IAL属性黑名单 = ["title-img", "title", "updated", "icon", "id", "type
  * - 意图：保证 DOM 属性与数据层 (ial) 同步，防止残留属性导致的显示问题。
  * - 调用时机：在渲染块或更新块属性时调用，例如 updateTransaction 中。
  */
-export const renderCustomWithCtx = (ctx: { ial: IObject, wysiwyg: WYSIWYG }) => {
-    const { ial, wysiwyg } = ctx;
+export const renderCustomWithCtx = (ctx: { ial: Record<string, string>, element: HTMLDivElement }) => {
+    const {ial, element} = ctx;
     let isFullWidth = ial[Constants.CUSTOM_SY_FULLWIDTH];
     if (!isFullWidth) {
         isFullWidth = getSiyuanConfig().editor.fullWidth ? "true" : "false";
     }
-    const parent = wysiwyg.element.parentElement;
+    const parent = element.parentElement;
     if (parent) {
         parent.removeAttribute("data-fullwidth");
     }
@@ -35,17 +34,17 @@ export const renderCustomWithCtx = (ctx: { ial: IObject, wysiwyg: WYSIWYG }) => 
         parent.setAttribute("data-fullwidth", "true");
     }
     const ialKeys = Object.keys(ial);
-    const attributes = Array.from(wysiwyg.element.attributes);
+    const attributes = Array.from(element.attributes);
     for (const attr of attributes) {
         const oldKey = attr.nodeName;
         if (!DOM属性黑名单.includes(oldKey) && !ialKeys.includes(oldKey)) {
-            wysiwyg.element.removeAttribute(oldKey);
+            element.removeAttribute(oldKey);
         }
     }
     for (const key of ialKeys) {
         const value = ial[key];
         if (value !== undefined && !IAL属性黑名单.includes(key)) {
-            wysiwyg.element.setAttribute(key, value);
+            element.setAttribute(key, value);
         }
     }
 };

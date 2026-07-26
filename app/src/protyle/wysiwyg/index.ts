@@ -33,8 +33,13 @@ import { previewDocImage } from "../preview/image";
 import { getDiagramBlock, previewDiagram } from "../preview/diagram";
 import {transaction} from "./transaction/submit";
 import { countSelectWord } from "../runtime/status.port";
+import {wysiwygBrand} from "./domain/wysiwyg.types";
 
 export class WYSIWYG {
+    public get [wysiwygBrand]() {
+        return "WYSIWYG" as const;
+    }
+
     public lastHTMLs: { [key: string]: string } = {};
     public element: HTMLDivElement;
     public preventKeyup: boolean;
@@ -67,7 +72,7 @@ export class WYSIWYG {
     }
 
     public renderCustom(ial: Record<string, string>) {
-        renderCustomWithCtx({ ial, wysiwyg: this });
+        renderCustomWithCtx({ial, element: this.element});
     }
 
     public flushPendingInput() {

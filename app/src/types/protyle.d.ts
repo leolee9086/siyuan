@@ -572,7 +572,7 @@ interface IProtyle {
     hint?: import("../protyle/hint").Hint;
     upload?: import("../protyle/upload").Upload;
     undo?: import("../protyle/undo").IUndo;
-    wysiwyg?: import("../protyle/wysiwyg").WYSIWYG
+    wysiwyg?: import("../protyle/wysiwyg/domain/wysiwyg.types").WYSIWYGDomain
     /** 加载动画控制器，用于确定性地取消待执行的 loading 显示 */
     loadingController?: AbortController | undefined
 }
