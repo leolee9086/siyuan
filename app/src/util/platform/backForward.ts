@@ -4,11 +4,11 @@ import { getSelectionOffset } from "../../protyle/util/selection";
 import { Constants } from "../../constants";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { focusStack } from "./focusStack";
-
-export let forwardStack: IBackStack[] = [];
-let previousIsBack = false;
+import {getNavigationHistoryState} from "../../navigation/history/NavigationHistoryRegistry";
 
 export const goBack = async (app: AppFacade) => {
+    const history = getNavigationHistoryState("desktop");
+    const forwardStack = history.forwardStack;
     if (window.siyuan.backStack.length === 0) {
         if (forwardStack.length > 0) {
             await focusStack(app, forwardStack[forwardStack.length - 1], forwardStack);
@@ -16,7 +16,7 @@ export const goBack = async (app: AppFacade) => {
         return;
     }
     document.querySelector("#barForward")?.classList.remove("toolbar__item--disabled");
-    if (!previousIsBack &&
+    if (!history.previousIsBack &&
         // 页签被关闭时应优先打开该页签，页签存在时即可返回上一步，不用再重置光标到该页签上
         document.contains(window.siyuan.backStack[window.siyuan.backStack.length - 1].protyle.element)) {
         forwardStack.push(window.siyuan.backStack.pop());
@@ -31,13 +31,15 @@ export const goBack = async (app: AppFacade) => {
             stack = window.siyuan.backStack.pop();
         }
     }
-    previousIsBack = true;
+    history.previousIsBack = true;
     if (window.siyuan.backStack.length === 0) {
         document.querySelector("#barBack")?.classList.add("toolbar__item--disabled");
     }
 };
 
 export const goForward = async (app: AppFacade) => {
+    const history = getNavigationHistoryState("desktop");
+    const forwardStack = history.forwardStack;
     if (forwardStack.length === 0) {
         if (window.siyuan.backStack.length > 0) {
             await focusStack(app, window.siyuan.backStack[window.siyuan.backStack.length - 1], forwardStack);
@@ -45,7 +47,7 @@ export const goForward = async (app: AppFacade) => {
         return;
     }
     document.querySelector("#barBack")?.classList.remove("toolbar__item--disabled");
-    if (previousIsBack) {
+    if (history.previousIsBack) {
         window.siyuan.backStack.push(forwardStack.pop());
     }
 
@@ -59,13 +61,15 @@ export const goForward = async (app: AppFacade) => {
             stack = forwardStack.pop();
         }
     }
-    previousIsBack = false;
+    history.previousIsBack = false;
     if (forwardStack.length === 0) {
         document.querySelector("#barForward")?.classList.add("toolbar__item--disabled");
     }
 };
 
 export const pushBack = (protyle: IProtyle, range?: Range, blockElement?: Element) => {
+    const history = getNavigationHistoryState("desktop");
+    const forwardStack = history.forwardStack;
     if (!protyle.model) {
         return;
     }
@@ -91,10 +95,10 @@ export const pushBack = (protyle: IProtyle, range?: Range, blockElement?: Elemen
             lastStack.position = position;
         } else {
             if (forwardStack.length > 0) {
-                if (previousIsBack) {
+                if (history.previousIsBack) {
                     window.siyuan.backStack.push(forwardStack.pop());
                 }
-                forwardStack = [];
+                forwardStack.length = 0;
                 document.querySelector("#barForward")?.classList.add("toolbar__item--disabled");
             }
             window.siyuan.backStack.push({
@@ -106,7 +110,7 @@ export const pushBack = (protyle: IProtyle, range?: Range, blockElement?: Elemen
             if (window.siyuan.backStack.length > Constants.SIZE_UNDO) {
                 window.siyuan.backStack.shift();
             }
-            previousIsBack = false;
+            history.previousIsBack = false;
         }
         if (window.siyuan.backStack.length > 1) {
             document.querySelector("#barBack")?.classList.remove("toolbar__item--disabled");

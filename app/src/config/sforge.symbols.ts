@@ -7,6 +7,9 @@
 /** Layout 持久化状态注册表的唯一类型键。 */
 export const LAYOUT_PERSISTENCE_REGISTRY = Symbol.for("sforge.layout.persistenceRegistry");
 
+/** 导航历史状态注册表的唯一类型键。 */
+export const NAVIGATION_HISTORY_REGISTRY = Symbol.for("sforge.navigation.historyRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

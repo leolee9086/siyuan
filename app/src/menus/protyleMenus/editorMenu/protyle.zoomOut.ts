@@ -39,7 +39,7 @@ import { isMobile } from "./imports";
  * 使用范围：移动端退出聚焦流程。
  * 解耦评估：导航栈维护在移动模块，业务层通过接口调用。
  */
-import { pushBack } from "./imports";
+import {pushMobileBack} from "./imports";
 /**
  * 用途：向上查找 block popover。
  * 使用范围：修正 pin 按钮状态。
@@ -196,7 +196,7 @@ const 同步移动端文档信息 = (options: ZoomOutOptions): void => {
     if (!options.isPushBack) {
         return;
     }
-    pushBack();
+    pushMobileBack();
 };
 
 /**

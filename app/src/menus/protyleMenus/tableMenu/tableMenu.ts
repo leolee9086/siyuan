@@ -1,49 +1,21 @@
+import {focusByRange} from "../../../protyle/util/selection";
+import {getColIndex, setTableAlign} from "../../../protyle/util/table/table";
 import {
-    hasClosestBlock,
-    isInEmbedBlock
-} from "../protyle/util/hasClosest";
-import { focusBlock, focusByRange } from "../protyle/util/selection";
-import {
-    getColIndex,
-    setTableAlign} from "../protyle/util/table/table";
-import {
+    deleteRow,
     insertRow,
     insertRowAbove,
-    deleteRow,
-    moveRowToUp,
     moveRowToDown,
-} from "../protyle/util/table/table.row";
+    moveRowToUp,
+} from "../../../protyle/util/table/table.row";
 import {
-    insertColumn,
     deleteColumn,
+    insertColumn,
     moveColumnToLeft,
     moveColumnToRight,
-} from "../protyle/util/table/column";
-import { updateTableTitle } from "../protyle/util/table/table.title.update";
-import { transaction, updateTransaction } from "../protyle/wysiwyg/transaction";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isMobile } from "../util/platform/functions";
-import { Dialog } from "../dialog";
-import { setFold } from "../protyle/util/blockFold";
-
-// 从拆分文件重新导出
-
-// 从根目录拆分文件导出
-export { refMenu } from "./protyleMenus/refMenu/protyle.refMenu";
-export { tagMenu } from "./protyleMenus/refMenu/protyle.tagMenu";
-export { inlineMathMenu } from "./protyleMenus/editorMenu/protyle.inlineMathMenu";
-export { genImageWidthMenu } from "./protyleMenus/imageMenu/sizeMenu/protyle.genImageWidthMenu";
-export { genImageHeightMenu } from "./protyleMenus/imageMenu/sizeMenu/protyle.genImageHeightMenu";
-export { iframeMenu } from "./protyleMenus/iframeMenu/iframeMenu";
-export { zoomOut } from "./protyleMenus/editorMenu/protyle.zoomOut";
-
-// 从 protyleMenus/ 子目录导出
-export { assetMenu, renderAssetList } from "./protyleMenus/assetMenu/protyle.asset";
-export { contentMenu } from "./protyleMenus/contentMenu/protyle.contentMenu";
-export { enterBack } from "./protyleMenus/editorMenu/protyle.enterBack";
-export { fileAnnotationRefMenu } from "./protyleMenus/refMenu/protyle.fileAnnotationRefMenu";
-export { imgMenu } from "./protyleMenus/imageMenu/protyle.imgMenu";
-export { linkMenu } from "./protyleMenus/linkMenu/protyle.linkMenu";
+} from "../../../protyle/util/table/column";
+import {updateTableTitle} from "../../../protyle/util/table/table.title.update";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction";
+import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 表格菜单
@@ -510,32 +482,4 @@ ${siyuanI18n.insertColumnRight1.replace("${x}", `<span class="fn__space"></span>
     }
     menus.push(...removeMenus);
     return { menus, removeMenus, insertMenus, otherMenus, other2Menus };
-};
-
-/**
- * 根据ID设置折叠状态
- * @作用 在编辑器中查找指定ID的元素并设置其折叠状态
- * @意图 提供通过ID远程控制块折叠的能力
- * @调用时机 需要折叠特定块时(如从其他视图触发折叠操作)
- * @param data - 包含目标ID和当前节点ID的数据对象
- * @param protyle - 编辑器实例
- * @同步豁免 遗留代码
- */
-export const setFoldById = (data: {
-    id: string,
-    currentNodeID: string,
-}, protyle: IProtyle) => {
-    const elements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${data.id}"]`);
-    for (const item of Array.from(elements)) {
-            if (!isInEmbedBlock(item)) {
-            const operations = setFold(protyle, item, true, false, true, true);
-            if (operations.doOperations && operations.doOperations[0]) {
-                operations.doOperations[0].context = {
-                    focusId: data.currentNodeID,
-                };
-            }
-            transaction(protyle, operations.doOperations, operations.undoOperations);
-            break;
-        }
-    }
 };

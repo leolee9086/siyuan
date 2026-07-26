@@ -16,12 +16,7 @@ import { getSiyuanGlobalMenus } from "./imports";
  * 解耦评估：i18n 依赖统一从转发层接入，便于后续替换
  */
 import { siyuanI18n } from "./imports";
-/**
- * 用途：构造表格菜单数据
- * 使用范围：生成插入/删除/更多菜单项
- * 解耦评估：由转发层隔离上级菜单模块路径
- */
-import { tableMenu } from "./imports";
+import {tableMenu} from "../tableMenu/tableMenu";
 /**
  * 用途：创建菜单项实例
  * 使用范围：把表格菜单数据渲染到全局菜单

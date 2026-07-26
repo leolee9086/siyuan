@@ -61,7 +61,7 @@ import {quickMakeCard} from "../../card/makeCard";
 import {getContentByInlineHTML} from "../../protyle/wysiwyg/keydown";
 import {searchKeydown} from "./searchKeydown";
 import {historyKeydown} from "../../history/keydown";
-import {zoomOut} from "../../menus/protyle";
+import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import {getPlainText} from "../../protyle/util/paste";
 import {commandPanel, execByCommand} from "./command/panel";
 import {filterHotkey} from "./commonHotkey";

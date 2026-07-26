@@ -9,7 +9,7 @@ import {highlightById, scrollCenter} from "../util/DOM/highlightById";
 import {isInEmbedBlock} from "../protyle/util/hasClosest";
 import {setEditMode} from "../protyle/util/setEditMode";
 import {hideElements} from "../protyle/ui/hideElements";
-import {pushBack} from "./util/MobileBackFoward";
+import {pushMobileBack} from "./navigationHistory/mobileNavigationHistory";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {showMessage} from "../dialog/message";
 import type { AppFacade } from "../app/AppFacade.types";
@@ -42,7 +42,7 @@ export const openMobileFileById = (app: AppFacade, id: string, action: TProtyleA
             }
         });
         if (blockElement && !forceReload) {
-            pushBack();
+            pushMobileBack();
             if (action.includes(Constants.CB_GET_HL)) {
                 highlightById(window.siyuan.mobile.editor.protyle, id, scrollPosition);
             } else {
@@ -89,7 +89,7 @@ export const openMobileFileById = (app: AppFacade, id: string, action: TProtyleA
         if (window.siyuan.mobile.editor) {
             window.siyuan.mobile.editor.protyle.notebookId = data.data.box;
             window.siyuan.mobile.editor.protyle.title.element.removeAttribute("data-render");
-            pushBack();
+            pushMobileBack();
             addLoading(window.siyuan.mobile.editor.protyle);
             if (window.siyuan.mobile.editor.protyle.block.rootID !== data.data.rootID) {
                 window.siyuan.mobile.editor.protyle.wysiwyg.element.innerHTML = "";

@@ -44,7 +44,7 @@ import { setStorageVal } from "./util/compatibility";
 import { merge } from "./util/merge";
 import { isSupportCSSHL } from "./render/searchMarkRender";
 import { renderAVAttribute } from "./render/av/blockAttr";
-import { setFoldById } from "../menus/protyle";
+import {setFoldById} from "./util/blockFold";
 import { zoomOut } from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../platform";
 import { setEditMode } from "./util/setEditMode";

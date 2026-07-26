@@ -1,7 +1,7 @@
 import {lineNumberRender} from "../render/highlightRender";
 import {transaction} from "../wysiwyg/transaction";
 import {preventScroll} from "../scroll/preventScroll";
-import {hasClosestBlock} from "./hasClosest";
+import {hasClosestBlock, isInEmbedBlock} from "./hasClosest";
 import {focusBlock} from "./selection";
 import {scrollCenter} from "../../util/DOM/highlightById";
 import {clearSelect} from "./clearSelect";
@@ -208,4 +208,23 @@ export const getFoldBlock = (protyle: IProtyle, nodeElement: HTMLElement, cb: (e
         }
     }
     return true;
+};
+
+export const setFoldById = (data: {
+    id: string;
+    currentNodeID: string;
+}, protyle: IProtyle) => {
+    const elements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${data.id}"]`);
+    for (const item of Array.from(elements)) {
+        if (isInEmbedBlock(item)) {
+            continue;
+        }
+        const operations = setFold(protyle, item, true, false, true, true);
+        const firstOperation = operations.doOperations?.[0];
+        if (firstOperation) {
+            firstOperation.context = {focusId: data.currentNodeID};
+        }
+        transaction(protyle, operations.doOperations, operations.undoOperations);
+        break;
+    }
 };

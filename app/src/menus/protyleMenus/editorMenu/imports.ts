@@ -77,15 +77,6 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 export { siyuanI18n };
 
 /**
- * 用途：表格右键菜单构造函数
- * 使用范围：tableMenu 生成插入/删除/更多子菜单数据
- * 解耦评估：当前菜单组装逻辑在上级菜单模块中维护，转发层隔离路径细节
- */
-import { tableMenu } from "../../protyle";
-/** 导出 tableMenu 供 editorMenu 追加表格菜单 */
-export { tableMenu };
-
-/**
  * 用途：格式化更新时间戳
  * 使用范围：inlineMathMenu 删除公式后写入 updated 字段
  * 解耦评估：第三方库依赖稳定，通过转发层避免业务直接导入第三方包
@@ -180,9 +171,9 @@ export { getAllModels };
  * 使用范围：zoomOut 在移动端导航时写入 back 栈
  * 解耦评估：移动端导航能力与平台实现绑定，通过转发层集中依赖
  */
-import { pushBack } from "../../../mobile/util/MobileBackFoward";
-/** 导出 pushBack 供 zoomOut 管理回退栈 */
-export { pushBack };
+import {pushMobileBack} from "../../../mobile/navigationHistory/mobileNavigationHistory";
+/** 导出移动历史写入动作，供 zoomOut 管理回退栈。 */
+export {pushMobileBack};
 
 /**
  * 用途：按类名向上查找祖先节点

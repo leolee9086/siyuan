@@ -14,22 +14,7 @@ import { getCurrentEditor } from "./getCurrentEditor"; // 独立模块，打断�
 import { avRender } from "../../protyle/render/av/render";
 import { setTitle } from "../../util/processTitle";
 import {isEncryptedBox} from "../../util/pathName";
-
-const forwardStack: IBackStack[] = [];
-
-export const clearMobileBackForward = (notebookId?: string) => {
-    if (!notebookId) {
-        window.siyuan.backStack = [];
-        forwardStack.length = 0;
-        return;
-    }
-    window.siyuan.backStack = window.siyuan.backStack.filter(item => item.data?.notebookId !== notebookId);
-    for (let i = forwardStack.length - 1; i >= 0; i--) {
-        if (forwardStack[i].data?.notebookId === notebookId) {
-            forwardStack.splice(i, 1);
-        }
-    }
-};
+import {getNavigationHistoryState} from "../../navigation/history/NavigationHistoryRegistry";
 
 const focusStack = (backStack: IBackStack) => {
     const protyle = getCurrentEditor().protyle;
@@ -136,25 +121,8 @@ const focusStack = (backStack: IBackStack) => {
     });
 };
 
-export const pushBack = () => {
-    const protyle = getCurrentEditor().protyle;
-    if (protyle.wysiwyg.element.firstElementChild) {
-        window.siyuan.backStack.push({
-            id: protyle.block.showAll ? protyle.block.id : protyle.block.rootID,
-            data: {
-                startId: protyle.wysiwyg.element.firstElementChild.getAttribute("data-node-id"),
-                endId: protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"),
-                notebookId: protyle.notebookId,
-                path: protyle.path,
-            },
-            scrollTop: protyle.contentElement.scrollTop,
-            callback: protyle.block.action,
-            zoomId: protyle.block.showAll ? protyle.block.id : undefined
-        });
-    }
-};
-
 export const goBack = () => {
+    const forwardStack = getNavigationHistoryState("mobile").forwardStack;
     const editor = getCurrentEditor();
     if (window.siyuan.menus.menu.element.classList.contains("b3-menu--fullscreen") &&
         !window.siyuan.menus.menu.element.classList.contains("fn__none")) {

@@ -14,7 +14,7 @@ import {renderSnippet} from "../../config/util/snippets";
 import {redirectToCheckAuth} from "../../util/file/pathName";
 import {setEmpty} from "./setEmpty";
 import {activateOnboarding} from "../../onboarding";
-import {clearMobileBackForward} from "./MobileBackFoward";
+import {clearMobileBackForward} from "../navigationHistory/mobileNavigationHistory";
 
 let statusTimeout: number;
 const statusElement = document.querySelector("#status") as HTMLElement;
