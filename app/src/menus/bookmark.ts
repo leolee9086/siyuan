@@ -4,9 +4,9 @@ import { fetchPost } from "../util/network/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { escapeHtml } from "../util/DOM/escape";
 import { copySubMenu } from "./commonMenuItem";
-import { Bookmark } from "../layout/dock/Bookmark";
+import type {BookmarkDomain} from "../layout/dock/bookmark/bookmark.types";
 import { isMobile } from "../util/platform/functions";
-import { MobileBookmarks } from "../mobile/dock/MobileBookmarks";
+import type {MobileBookmarksDomain} from "../mobile/dock/bookmark/mobileBookmarks.types";
 import { Constants } from "../constants";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -146,7 +146,7 @@ const createCopyBookmarkMenuItem = (element: HTMLElement) => {
  * }
  * ```
  */
-const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks) => {
+const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: BookmarkDomain | MobileBookmarksDomain) => {
     // 检查系统是否处于只读模式，只读模式下不允许删除操作
     if (getSiyuanConfig().readonly) {
         return null;
@@ -240,7 +240,7 @@ const initializeAndShowMenu = (options: { rect: { x: number, y: number, w: numbe
  * });
  * ```
  */
-export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: Bookmark | MobileBookmarks) => {
+export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: BookmarkDomain | MobileBookmarksDomain) => {
     // 检查书签菜单是否已经显示，如果是则关闭菜单实现切换效果
     if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
         getSiyuanGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {

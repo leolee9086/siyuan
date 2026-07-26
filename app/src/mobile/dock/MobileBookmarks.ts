@@ -6,8 +6,13 @@ import {openMobileFileById} from "../editor";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {mobileBookmarksBrand} from "./bookmark/mobileBookmarks.types";
 
 export class MobileBookmarks {
+    public get [mobileBookmarksBrand]() {
+        return "MobileBookmarks" as const;
+    }
+
     public element: HTMLElement;
     private tree: Tree;
     private openNodes: string[];
