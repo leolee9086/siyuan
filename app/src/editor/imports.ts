@@ -145,11 +145,6 @@ import { isEncryptedBox } from "../util/pathName";
 /** 导出加密笔记本判断，供 editor 模块使用 */
 export { isEncryptedBox };
 
-/** 用途：获取资产名称。使用范围：editor 重命名资产时显示旧名称。解耦评估：通过 imports.ts 转发。 */
-import { getAssetName } from "../util/file/pathName";
-/** 导出 getAssetName，供 editor 模块使用 */
-export { getAssetName };
-
 /** 用途：设置笔记本名称缓存。使用范围：editor 重命名笔记本后更新。解耦评估：通过 imports.ts 转发。 */
 import { setNotebookName } from "../util/file/pathName";
 /** 导出 setNotebookName，供 editor 模块使用 */
@@ -165,10 +160,12 @@ import { showTooltip } from "../dialog/tooltip";
 /** 导出 showTooltip，供 editor 模块使用 */
 export { showTooltip };
 
-/** 用途：获取所有编辑器实例。使用范围：editor 重命名后刷新编辑器。解耦评估：通过 imports.ts 转发。 */
-import { getAllEditor } from "../layout/getAll";
-/** 导出 getAllEditor，供 editor 模块使用 */
-export { getAllEditor };
+/** 用途：类型安全的重命名表单元素查询。使用范围：文档/笔记本重命名 Dialog；解耦评估：共享唯一 DOM 收窄实现。 */
+import {getButtonElement, getInputElement} from "../util/DOM/queryFormElements";
+/** 导出按钮查询。 */
+export {getButtonElement};
+/** 导出输入框查询。 */
+export {getInputElement};
 
 /** 用途：设置 Protyle 编辑器内边距。使用范围：全屏切换时重算布局。解耦评估：通过 imports.ts 转发。 */
 import { setPadding } from "../protyle/ui/initUI";

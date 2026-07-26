@@ -36,7 +36,7 @@ export { Constants };
  * 使用范围：图片菜单“重命名”动作。
  * 解耦评估：重命名能力独立封装，业务层仅传路径参数。
  */
-import { renameAsset } from "../../../editor/rename";
+import {renameAsset} from "../../../asset/rename/renameAsset";
 /** 导出 renameAsset 供 imageMenu 子模块复用 */
 export { renameAsset };
 

@@ -10,8 +10,6 @@ import { hasClosestBlock } from "./imports";
 import { removeEmbed } from "./imports";
 /** 用途：移动端判断。使用范围：适配对话框宽度。解耦评估：通过 ./imports 转发。 */
 import { isMobile } from "./imports";
-/** 用途：路径名称工具。使用范围：获取资产名和显示名。解耦评估：通过 ./imports 转发。 */
-import { getAssetName } from "./imports";
 /** 用途：获取显示名称。使用范围：创建文档路径。解耦评估：通过 ./imports 转发。 */
 import { getDisplayName } from "./imports";
 /** 用途：路径处理工具。使用范围：拼接文件路径。解耦评估：通过 ./imports 转发。 */
@@ -23,10 +21,8 @@ import { fetchPost } from "./imports";
 /** 用途：系统常量。使用范围：SIZE_TITLE 等常量。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
 
-/** 用途：获取所有模型和编辑器。使用范围：重命名后刷新编辑器。解耦评估：通过 ./imports 转发。 */
-import { getAllModels } from "./imports";
-/** 用途：获取所有编辑器。使用范围：重命名资产后刷新编辑器。解耦评估：通过 ./imports 转发。 */
-import { getAllEditor } from "./imports";
+/** 用途：类型安全的表单元素查询。使用范围：文档/笔记本重命名 Dialog；解耦评估：共享唯一 DOM 收窄实现。 */
+import {getButtonElement, getInputElement} from "./imports";
 /** 用途：获取 SiYuan 国际化文案。使用范围：重命名对话框文案。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanLanguages } from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：检查只读模式。解耦评估：通过 ./imports 转发。 */
@@ -114,18 +110,6 @@ function handleDialogDestroy(options: { range?: Range }) {
     }
 }
 
-/** 安全获取输入框元素，避免 as 断言 */
-function getInputElement(parent: HTMLElement) {
-    const el = parent.querySelector("input");
-    return el instanceof HTMLInputElement ? el : null;
-}
-
-/** 安全获取按钮元素，避免 as 断言 */
-function getButtonElement(parent: HTMLElement, selector: string) {
-    const el = parent.querySelector(selector);
-    return el instanceof HTMLButtonElement ? el : null;
-}
-
 /** 构建对话框并绑定事件 */
 function buildRenameDialog(lang: Record<string, string>, options: { notebookId: string; path: string; type: string; range?: Range }, initialName: string) {
     const dialog = new Dialog({
@@ -179,84 +163,6 @@ export const rename = async (options: {
 
     const initialName = options.empty ? "" : options.name;
     const dialog = buildRenameDialog(lang, options, initialName);
-};
-
-/** 构建资产重命名对话框并绑定事件 */
-/** 确认按钮点击处理（资产重命名） */
-/** 处理资产重命名成功响应 */
-function onRenameAssetSuccess(assetPath: string, newPath: string, dialog: Dialog) {
-    updateAssetPath(assetPath, newPath);
-    for (const item of getAllEditor()) {
-        item.reload(false);
-    }
-    dialog.destroy();
-}
-
-/** 资产重命名确认按钮处理 */
-function handleAssetConfirmClick(assetPath: string, dialog: Dialog, inputElement: HTMLInputElement, oldName: string) {
-    // 名称未变化或为空时直接关闭
-    if (inputElement.value === oldName || !inputElement.value) {
-        dialog.destroy();
-        return false;
-    }
-    const newName = inputElement.value;
-    fetchPost("/api/asset/renameAsset", { oldPath: assetPath, newName }, (response) => {
-        onRenameAssetSuccess(assetPath, response.data.newPath, dialog);
-    });
-}
-
-/** 构建资产重命名对话框 */
-function buildAssetRenameDialog(lang: Record<string, string>, assetPath: string) {
-    const dialog = new Dialog({
-        title: lang.rename,
-        content: `<div class="b3-dialog__content"><input class="b3-text-field fn__block" value=""></div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${lang.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${lang.confirm}</button>
-</div>`,
-        width: isMobile() ? "92vw" : "520px",
-    });
-    dialog.element.setAttribute("data-key", Constants.DIALOG_RENAMEASSETS);
-    const inputElement = getInputElement(dialog.element);
-    const btnCancel = getButtonElement(dialog.element, ".b3-button--cancel");
-    const btnConfirm = getButtonElement(dialog.element, ".b3-button--text");
-    if (!inputElement || !btnCancel || !btnConfirm) {
-        return;
-    }
-    dialog.bindInput(inputElement, () => {
-        btnConfirm.click();
-    });
-    const oldName = getAssetName(assetPath);
-    inputElement.value = oldName;
-    inputElement.focus();
-    inputElement.select();
-    btnCancel.addEventListener("click", () => {
-        dialog.destroy();
-    });
-    btnConfirm.addEventListener("click", () => {
-        handleAssetConfirmClick(assetPath, dialog, inputElement, oldName);
-    });
-}
-
-/** 处理资产重命名响应 */
-/** 更新资产模型中的路径 */
-function updateAssetPath(assetPath: string, newPath: string) {
-    if (isMobile()) {
-        return;
-    }
-    const models = getAllModels();
-    for (const item of models.asset) {
-        // 匹配到目标资产时更新路径
-        if (item.path === assetPath) {
-            item.update(newPath);
-        }
-    }
-}
-
-/** 重命名资产文件 */
-export const renameAsset = async (assetPath: string) => {
-    const lang = getSiyuanLanguages();
-    buildAssetRenameDialog(lang, assetPath);
 };
 
 /** 从选中内容创建新文件 */

@@ -17,7 +17,7 @@ import { hasClosestBlock } from "../../util/hasClosest";
 import { genCellValueByElement, getTypeByCellElement } from "./cell";
 import { writeText } from "../../util/compatibility";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escape";
-import { renameAsset } from "../../../editor/rename";
+import {renameAsset} from "../../../asset/rename/renameAsset";
 import * as dayjs from "dayjs";
 import { getColId } from "./col/col";
 import { getFieldIdByCellElement } from "./row";

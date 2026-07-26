@@ -175,7 +175,7 @@ export { isMobileDevice };
  * 使用范围：assets 链接的重命名菜单项
  * 解耦评估：重命名逻辑已独立在 editor 模块，转发层仅做依赖收口
  */
-import { renameAsset } from "../../../editor/rename";
+import {renameAsset} from "../../../asset/rename/renameAsset";
 /** 导出 renameAsset 供资源重命名菜单使用 */
 export { renameAsset };
 

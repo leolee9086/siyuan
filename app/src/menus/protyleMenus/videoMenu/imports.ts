@@ -10,7 +10,7 @@
  * 使用范围：protyle.videoMenu 中为本地资源提供重命名功能
  * 解耦评估：核心业务逻辑，已通过模块化封装。可通过命令模式解耦，但考虑到使用频率和项目规模，当前直接导入是合理的
  */
-import { renameAsset } from "../../../editor/rename";
+import {renameAsset} from "../../../asset/rename/renameAsset";
 /** 导出 renameAsset 用于重命名资源文件 */
 export { renameAsset };
 
