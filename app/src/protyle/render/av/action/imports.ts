@@ -13,8 +13,12 @@ import { transaction } from "../../../wysiwyg/transaction";
 /** 导出 transaction 供 action 当前层级模块复用。 */
 export { transaction };
 
-/** 用途：复用 cell 子模块中的局部刷新能力。使用范围：动画刷新模块。解耦评估：cell 渲染协议由 cell 模块维护，当前层级只应触发。 */
-import { addDragFill, cellValueIsEmpty, renderCell, renderCellAttr, updateHeaderCell } from "../cell";
+/** 用途：复用 cell 位置子域的拖拽填充与表头刷新能力。使用范围：动画刷新模块。解耦评估：直达唯一实现，避免加载聚合入口中的 cell.update 反向动作依赖。 */
+import {addDragFill, updateHeaderCell} from "../cell/position";
+/** 用途：判断 cell 值是否为空。使用范围：卡片布局空态回写。解耦评估：直达纯值领域唯一实现。 */
+import {cellValueIsEmpty} from "../cell.value";
+/** 用途：生成 cell HTML 与补充属性。使用范围：动画局部刷新。解耦评估：直达渲染领域唯一实现，不加载 cell 聚合入口。 */
+import {renderCell, renderCellAttr} from "../cell/render";
 /** 导出 addDragFill 供 action 当前层级模块复用。 */
 export { addDragFill };
 /** 导出 cellValueIsEmpty 供 action 当前层级模块复用。 */
