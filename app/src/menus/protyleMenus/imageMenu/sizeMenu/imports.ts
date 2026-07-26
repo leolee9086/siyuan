@@ -7,9 +7,9 @@
 /**
  * 用途：读取流程时间工具。
  * 使用范围：尺寸事务提交时写入 updated 字段。
- * 解耦评估：依赖由父级 imports.ts 转发，子模块无需感知外层路径。
+ * 解耦评估：直接依赖包入口，避免 imports 网关多跳转发。
  */
-import { dayjs } from "../imports";
+import * as dayjs from "dayjs";
 /** 导出 dayjs 供 sizeMenu 子模块复用 */
 export { dayjs };
 
@@ -18,7 +18,7 @@ export { dayjs };
  * 使用范围：宽高输入和滑杆拖动时同步容器尺寸。
  * 解耦评估：兼容逻辑在基础层统一，子模块仅消费能力。
  */
-import { img3115 } from "../imports";
+import { img3115 } from "../../../../boot/compatibleVersion";
 /** 导出 img3115 供 sizeMenu 子模块复用 */
 export { img3115 };
 
@@ -27,7 +27,7 @@ export { img3115 };
  * 使用范围：尺寸提交后关闭菜单并回到编辑区。
  * 解耦评估：聚焦能力在工具层封装，子模块无需直接操作 Range。
  */
-import { focusBlock } from "../imports";
+import { focusBlock } from "../../../../protyle/util/selection";
 /** 导出 focusBlock 供 sizeMenu 子模块复用 */
 export { focusBlock };
 
@@ -36,7 +36,7 @@ export { focusBlock };
  * 使用范围：宽高修改后的持久化更新。
  * 解耦评估：事务入口统一，子模块只传前后 HTML。
  */
-import { updateTransaction } from "../imports";
+import { updateTransaction } from "../../../../protyle/wysiwyg/transaction";
 /** 导出 updateTransaction 供 sizeMenu 子模块复用 */
 export { updateTransaction };
 
@@ -45,7 +45,7 @@ export { updateTransaction };
  * 使用范围：尺寸提交后关闭菜单。
  * 解耦评估：菜单单例由环境层管理，子模块仅消费能力。
  */
-import { getSiyuanGlobalMenusMenu } from "../imports";
+import { getSiyuanGlobalMenusMenu } from "../../../../util/siyuanEnvironments/getMenu.environment";
 /** 导出 getSiyuanGlobalMenusMenu 供 sizeMenu 子模块复用 */
 export { getSiyuanGlobalMenusMenu };
 
@@ -54,6 +54,6 @@ export { getSiyuanGlobalMenusMenu };
  * 使用范围：宽高菜单标签、默认值与 placeholder。
  * 解耦评估：文案来源统一，子模块无需跨层访问 i18n 环境。
  */
-import { siyuanI18n } from "../imports";
+import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 导出 siyuanI18n 供 sizeMenu 子模块复用 */
 export { siyuanI18n };

@@ -15,13 +15,13 @@ import { Constants } from "../../../../constants";
  * 使用范围：render和renderRollup中显示block类型单元格的默认标题
  * 解耦评估：可通过参数传递解耦，但会增加调用复杂度，当前耦合合理
  */
-import { siyuanI18n } from "../../../gutter/imports";
+import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /**
  * 用途：Unicode转Emoji，用于显示block类型单元格的图标
  * 使用范围：render和renderRollup中渲染block单元格图标
  * 解耦评估：可通过参数传递解耦，但会增加函数签名复杂度，当前耦合合理
  */
-import { unicode2Emoji } from "../col/imports";
+import { unicode2Emoji } from "../../../../emoji";
 /**
  * 用途：HTML属性转义函数，用于防止XSS攻击
  * 使用范围：render函数中转义URL等属性值

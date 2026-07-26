@@ -55,7 +55,7 @@ import { DESKTOP_GLOBAL_COMMANDS } from "../commands";
 /** 用途：引入最近关闭恢复执行器；使用范围：navigation.ts；解耦评估：复杂恢复流程独立模块承接。 */
 import { executeRecentClosedGlobalCommand } from "../recentClosed";
 /** 用途：引入全局命令上下文类型；使用范围：桌面执行器签名；解耦评估：复用 global/types.ts 契约。 */
-import type { AppFacade } from "../imports";
+import type {AppFacade} from "../../../../../app/AppFacade.types";
 /** 用途：泛型全局命令上下文协议；使用范围：桌面命令实现；解耦评估：纯同域契约由桌面网关转发。 */
 import type { GlobalCommandContext } from "../types";
 

@@ -30,7 +30,7 @@ export { isElectron };
  * 使用范围：protyle.videoMenu 中获取操作系统类型，判断是否支持复制资源功能
  * 解耦评估：已通过环境抽象层封装，是解耦的良好实践
  */
-import { getSiyuanConfig } from "../../../window/imports";
+import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanConfig 用于获取思源配置 */
 export { getSiyuanConfig };
 
@@ -40,7 +40,7 @@ export { getSiyuanConfig };
  * 使用范围：protyle.videoMenu 中显示菜单项文本（如"链接"、"重命名"、"打开方式"等）
  * 解耦评估：已通过环境抽象层封装，是解耦的良好实践
  */
-import { siyuanI18n } from "../../commonMenuItem/imports";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 导出 siyuanI18n 用于国际化文本 */
 export { siyuanI18n };
 

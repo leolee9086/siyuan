@@ -14,6 +14,7 @@
     "lint:top": "node ./scripts/lint-top-errors.js",
     "lint:rules": "node ./scripts/lint-rule-stats.js",
     "lint:imports-gateway": "node ./scripts/check-imports-gateway-usage.js",
+    "lint:imports-gateway-hops": "node ./scripts/check-imports-gateway-hops.mjs",
     "lint:cycles": "node ./scripts/check-source-cycles.mjs",
     "forge": "node ./scripts/forge-start.js",
     "test": "pnpm run test:node && pnpm run test:vitest",

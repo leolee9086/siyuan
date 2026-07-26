@@ -7,9 +7,9 @@
 /**
  * 用途：引入 `keydown` 上层网关暴露的应用实例类型。
  * 使用范围：供根层导出函数标注 `AppFacade` 入参。
- * 解耦评估：纯类型依赖，不形成运行时耦合；继续通过上层网关转发即可。
+ * 解耦评估：纯类型依赖直接指向完整应用领域根，避免上层网关多跳。
  */
-import type { AppFacade } from "../imports";
+import type {AppFacade} from "../../../../app/AppFacade.types";
 /** 导出应用实例类型。 */
 export type { AppFacade };
 

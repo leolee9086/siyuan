@@ -276,8 +276,8 @@ export { isMobile };
 /**
  * 用途：生成块内容图片核心函数
  * 使用范围：AI图片生成菜单功能
- * 解耦评估：通过父级imports.ts转发
+ * 解耦评估：直接依赖 AI 图片生成实现，避免 imports 网关多跳转发
  */
-import { 生成块内容图片 } from "../imports";
+import { 生成块内容图片 } from "../../../ai/imageGeneration";
 // 导出生成块内容图片函数
 export { 生成块内容图片 };

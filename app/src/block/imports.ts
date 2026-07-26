@@ -31,8 +31,7 @@ import { moveResize } from "../dialog/moveResize";
  * 解耦评估：可通过参数传入 Range 解耦，但当前调用方统一依赖 protyle 实例，
  * 直接导入可减少样板代码。
  */
-import { getEditorRange } from "../protyle/util/selection";
-import { getUndoFocusContext } from "../protyle/util/selection";
+import { getEditorRange, getUndoFocusContext } from "../protyle/util/selection";
 // 用途：将块元素提升到可独立操作的顶层块；使用范围：块插入目标解析流程中规范化插入锚点；解耦评估：可通过策略函数注入解耦，但该规则属于编辑器核心语义，集中复用该工具更一致
 import { getTopAloneElement } from "../protyle/wysiwyg/getBlock";
 // 用途：获取全局浮窗面板列表；使用范围：Panel.ts 中管理浮窗层级和清理；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
@@ -80,7 +79,7 @@ import {blockRender} from "../protyle/render/blockRender";
  * 解耦评估：可通过渲染调度器注入解耦，但数学渲染是编辑器基础能力，
  * 集中转发可保持调用路径稳定。
  */
-import { mathRender } from "../plugin/imports";
+import { mathRender } from "../protyle/render/mathRender";
 /*
  * 用途：在插入 wbr 锚点后恢复光标位置。
  * 使用范围：block/util.cancelSB.ts 子块提升流程中的焦点回填。
@@ -94,15 +93,18 @@ import { focusByWbr } from "../protyle/util/selection.range";
  * 解耦评估：可通过参数传入父级 ID 解耦，但该信息与 DOM 结构同步变化，
  * 由函数内部实时解析更能保证一致性。
  */
-import { getParentBlock } from "../protyle/wysiwyg/getBlock";
-import { getEmbedChildOperationParentID, getPreviousBlockSibling } from "../protyle/wysiwyg/getBlock";
+import {
+    getEmbedChildOperationParentID,
+    getParentBlock,
+    getPreviousBlockSibling,
+} from "../protyle/wysiwyg/getBlock";
 /*
  * 用途：在特殊视图下查询块的兄弟与父级 ID。
  * 使用范围：block/util.cancelSB.ts showAll/反链模式下兜底定位。
  * 解耦评估：可通过调用方预取后注入解耦，但会扩散网络编排职责，
  * 当前集中在 block 工具层调用可保持边界清晰。
  */
-import { fetchSyncPost } from "../window/imports";
+import { fetchSyncPost } from "../util/network/fetch";
 
 // 窗口管理工具导出
 export { openNewWindowById };
@@ -128,6 +130,7 @@ export { hideElements };
 export { moveResize };
 // 编辑器选区工具导出
 export { getEditorRange };
+// 撤销操作焦点上下文工具导出
 export { getUndoFocusContext };
 // 块归一化工具导出
 export { getTopAloneElement };
@@ -161,7 +164,10 @@ export { mathRender };
 export { focusByWbr };
 // 父块解析工具导出
 export { getParentBlock };
-export { getEmbedChildOperationParentID, getPreviousBlockSibling };
+// 嵌入块操作父级解析工具导出
+export { getEmbedChildOperationParentID };
+// 前序块解析工具导出
+export { getPreviousBlockSibling };
 // 同步请求工具导出
 export { fetchSyncPost };
 
