@@ -1,11 +1,11 @@
 // S-forge: 保留本地单行 import 格式
-import { focusBlock, focusByWbr, getSelectionOffset, setLastNodeRange } from "../util/selection";
+import {focusBlock, focusByWbr, getSelectionOffset} from "../util/selection";
 import {
     getContenteditableElement,
     getEmbedChildOperationContext,
-    getEmbedChildOperationParentID,
     getLastBlock,
     getNextBlock, getParentBlock,
+    getOperationParentID,
     getPreviousBlock,
     getPreviousBlockSibling,
     getSbChildBlockCount,
@@ -35,6 +35,10 @@ import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
 import { withEncryptedNotebook } from "../../util/pathName";
+import {moveToPrevious} from "./remove/focus";
+
+export {getOperationParentID} from "./getBlock";
+export {moveToPrevious} from "./remove/focus";
 
 /**
  * 作用：把超级块删除后的宽度重平衡写入事务。
@@ -698,10 +702,6 @@ const canDeleteEmbedElement = (element: Element, type: "Delete" | "Backspace" | 
     return !!sideElement && embedContext.boundaryElement.contains(sideElement);
 };
 
-export const getOperationParentID = (element: Element, fallbackID: string) => {
-    return getEmbedChildOperationParentID(element) || getParentBlock(element)?.getAttribute("data-node-id") || fallbackID;
-};
-
 const canRemoveLiInEmbed = (blockElement: Element, embedContext: IEmbedChildOperationContext) => {
     const listItemElement = blockElement.parentElement;
     const listElement = listItemElement.parentElement;
@@ -713,22 +713,6 @@ const canRemoveLiInEmbed = (blockElement: Element, embedContext: IEmbedChildOper
         return false;
     }
     return embedContext.boundaryElement.contains(listElement.parentElement);
-};
-
-export const moveToPrevious = (blockElement: Element, range: Range, isDelete: boolean) => {
-    if (isDelete) {
-        const previousBlockElement = getPreviousBlock(blockElement);
-        if (previousBlockElement) {
-            if (previousBlockElement.querySelector("wbr")) {
-                return focusByWbr(previousBlockElement, range);
-            } else {
-                const previousEditElement = getContenteditableElement(getLastBlock(previousBlockElement));
-                if (previousEditElement) {
-                    return setLastNodeRange(previousEditElement, range, false);
-                }
-            }
-        }
-    }
 };
 
 // https://github.com/siyuan-note/siyuan/issues/10393

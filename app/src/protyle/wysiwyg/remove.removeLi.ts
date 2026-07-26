@@ -1,10 +1,10 @@
 import { setFold } from "../util/blockFold";
 import { focusByRange } from "../util/selection.focus";
 import { focusByWbr, setLastNodeRange } from "../util/selection.range";
-import { getContenteditableElement, getPreviousBlockSibling } from "./getBlock";
+import {getContenteditableElement, getOperationParentID, getPreviousBlockSibling} from "./getBlock";
 import { listOutdent } from "./list";
 import { updateListOrder } from "./list.updateOrder";
-import { getOperationParentID, moveToPrevious } from "./remove";
+import {moveToPrevious} from "./remove/focus";
 import {transaction} from "./transaction/submit";
 import {updateTransaction} from "./transaction/update";
 import { turnsIntoOneTransaction } from "./transaction.turns";

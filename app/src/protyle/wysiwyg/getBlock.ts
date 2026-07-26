@@ -45,6 +45,14 @@ export const getParentBlock = (element: Element) => {
     return element.parentElement;
 };
 
+/**
+ * 解析块操作写入事务时使用的父块标识。
+ * 允许子块操作的嵌入块以查询目标为父级，普通块沿 DOM 层级取父块，顶层块使用文档父级。
+ */
+export const getOperationParentID = (element: Element, fallbackID: string) => {
+    return getEmbedChildOperationParentID(element) || getParentBlock(element)?.getAttribute("data-node-id") || fallbackID;
+};
+
 export const getCalloutInfo = (element: Element) => {
     const icon = element.querySelector(".callout-icon").textContent;
     return (icon ? icon + " " : "") + element.querySelector(".callout-title").textContent;
