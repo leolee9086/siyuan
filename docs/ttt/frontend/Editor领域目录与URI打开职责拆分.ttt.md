@@ -10,13 +10,13 @@
 - [x] 修正 Editor 页签模型的 `layoutModel` 身份，并准确声明既有挂载流程写入的 `parent`。
 - [x] 将 `getAll.ts`、查找/切换、Outline 展开和数据库行预览迁移到完整领域根。
 - [x] 将 `openByMobile` 与 `initWindowOpenOverride` 从 Protyle 巨型兼容模块归回 Editor URI/链接职责。
-- [ ] 将 URI、打开、查找/切换和文件操作分别迁入稳定子目录，消除 Editor 根目录 23 项门禁。
+- [ ] 将 URI、打开、查找/切换和文件操作分别迁入稳定子目录，消除 Editor 根目录 23 项门禁；打开编排入口已迁入 `editor/open`，协作算法仍待归入该子域。
 
 ## 下一步任务
 
 1. 以 `pnpm lint:cycles` 的环成员和 Editor 根目录入/出边为依据划分子域，不按单函数制造接口。
-2. 将 `processSiYuanUri.ts`、`openLink.ts` 及其环境依赖归入 URI/链接子域，保持现有公开导入点的调用方直接指向实现所有者。
-3. 将 `openFile.ts`、`utils.openFileById.ts`、`util.find.ts`、`util.switchEditor.ts` 归入打开与导航子域。
+2. 核对 `editor/processSiYuanUri.ts` 与 `util/uri.ts` 的分发语义差异，再将 URI/链接职责归入稳定子域；在确定语义前不强行合并。
+3. 将 `utils.openFileById.ts`、`util.find.ts`、`util.switchEditor.ts` 继续归入已建立的 `editor/open` 子域。
 4. 将重命名、删除和资源打开归入文件操作子域。
 5. 每阶段运行完整 EditorDomain 契约、Node 回归、相关浏览器测试、类型检查过滤、lint 与循环图证据。
 
@@ -40,7 +40,7 @@
 ## 近期计划
 
 - [ ] 完成 URI/链接子域目录迁移和行为测试。
-- [ ] 完成打开/导航子域目录迁移。
+- [ ] 完成打开/导航子域目录迁移；`openFile.ts` 与专属 `imports.ts` 已完成，协作文件待迁移。
 - [ ] 清理根 imports 中已归位的布局和 Protyle 聚合出口。
 
 ## 中期计划
@@ -67,3 +67,4 @@
 - **2026-07-25**：EditorDomain 双向契约对齐真实公共表面：显式声明 `layoutModel/parent`，并保留 Protyle 初始化早期文档根尚未就绪的类型状态；布局查询、PDF 加载门禁和 Dock 查找分别迁出 Editor 反向依赖。`openByMobile/initWindowOpenOverride` 保持唯一实现，移动 App 组合根补齐同一个完整 `AppFacade`，未创建调用点碎片接口。源码图为 `2134` 节点、`863` 条代表环、唯一 SCC `782`；下一阶段处理 URI/链接子目录与首环中的 compatibility 平台边。
 - **2026-07-25**：本批目标文件 TypeScript 诊断 `0`，Node `149/149`、Layout 查询 `3/3`、Editor/AppFacade 契约和 `git diff --check` 通过；Editor 根目录数量门禁继续作为下一阶段目录职责迁移的显式待办。
 - **2026-07-25**：后续首环审计将 Search defaults 与存储写入从综合网关剥离，compatibility/Search 链不再成为首环；唯一 SCC `782 -> 748`。Editor URI 目录任务继续保留，但下一轮循环治理先按新的 Emoji/Files 首环判断真实职责方向。
+- **2026-07-26**：清理 Editor 根 `imports.ts` 中 `newTab`、`zoomOut`、移动打开、Protyle class、fullscreen、setPadding、onGet、resize、DOM 定位、导航栈和 checkFold 的无消费者或单消费者高扇出转发；真实消费者直达唯一职责所有者。`openFile.ts` 迁入 `editor/open` 并建立子域 `imports.ts`，所有五个调用点已更新；`newTab` 缺失由显式创建门禁抛错，不再以可能为空的值继续执行。Editor 根总网关退出唯一 SCC，组件从 `708` 减至 `701`；源码 `2151` 节点、`719` 条枚举环。新子域 lint、目标 TypeScript 诊断、Node `157/157` 与 diff 校验通过。

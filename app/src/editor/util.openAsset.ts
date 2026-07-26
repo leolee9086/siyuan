@@ -5,7 +5,7 @@ import { Constants } from "./imports";
 /** 用途：路径处理工具，获取文件扩展名。使用范围：openAsset 解析资产类型。解耦评估：通过 imports.ts 转发。 */
 import { pathPosix } from "./imports";
 /** 用途：打开文件能力。使用范围：openAsset 执行打开操作。解耦评估：同目录工具模块，直接同层导入。 */
-import { openFile } from "./openFile";
+import {openFile} from "./open/openFile";
 
 /**
  * 打开资产文件（图片/音频/视频/PDF）

@@ -7,7 +7,7 @@ import type {ILayoutModel} from "./imports";
 /** 用途：同步 POST 请求。使用范围：获取块信息。解耦评估：通过 ./imports 转发。 */
 import { fetchSyncPost } from "./imports";
 /** 用途：核心文件打开逻辑。使用范围：openFileById 获取块信息后调用。解耦评估：同目录稳定领域实现。 */
-import { openFile } from "./openFile";
+import {openFile} from "./open/openFile";
 
 
 /** 根据 ID 打开文件块 */

@@ -2,28 +2,28 @@
 import type {EditorDomain} from "./model/editorDomain.types";
 /** 用途：系统常量。使用范围：CB_GET_CONTEXT 等常量。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
-/** 用途：编辑器缩放功能。使用范围：切换编辑器时放大块。解耦评估：通过 ./imports 转发。 */
-import { zoomOut } from "./imports";
+/** 用途：编辑器缩放命令。使用范围：切换编辑器时放大块；解耦评估：直达命令唯一实现，不经 Editor 总网关。 */
+import {zoomOut} from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
 /** 用途：阻止滚动。使用范围：定位内容时防止滚动偏移。解耦评估：通过 ./imports 转发。 */
 import { preventScroll } from "./imports";
 /** 用途：嵌入块判断。使用范围：查找块时排除嵌入块。解耦评估：通过 ./imports 转发。 */
 import { isInEmbedBlock } from "./imports";
 /** 用途：查找最近块元素。使用范围：定位编辑器选区。解耦评估：通过 ./imports 转发。 */
 import { hasClosestBlock } from "./imports";
-/** 用途：编辑器内容加载后处理。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
-import { onGet } from "./imports";
+/** 用途：编辑器内容加载后处理。使用范围：动态加载块内容；解耦评估：直达 Protyle 响应处理唯一实现。 */
+import {onGet} from "../protyle/util/onGet";
 /** 用途：块元素聚焦。使用范围：定位到指定块。解耦评估：通过 ./imports 转发。 */
 import { focusBlock } from "./imports";
 /** 用途：选区聚焦。使用范围：还原编辑器选区。解耦评估：通过 ./imports 转发。 */
 import { focusByRange } from "./imports";
-/** 用途：后退栈记录。使用范围：切换编辑器时记录位置。解耦评估：通过 ./imports 转发。 */
-import { pushBack } from "./imports";
+/** 用途：后退栈记录。使用范围：切换编辑器时记录位置；解耦评估：直达导航历史唯一实现。 */
+import {pushBack} from "../util/platform/backForward";
 /** 用途：网络请求。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
-/** 用途：代码高亮。使用范围：定位到指定代码块。解耦评估：通过 ./imports 转发。 */
-import { highlightById } from "./imports";
-/** 用途：滚动居中。使用范围：使定位块居中显示。解耦评估：通过 ./imports 转发。 */
-import { scrollCenter } from "./imports";
+/** 用途：代码高亮。使用范围：定位到指定代码块；解耦评估：直达稳定 DOM 定位唯一实现。 */
+import {highlightById} from "../util/DOM/highlightById";
+/** 用途：滚动居中。使用范围：使定位块居中显示；解耦评估：直达稳定 DOM 定位唯一实现。 */
+import {scrollCenter} from "../util/DOM/highlightById";
 /** 用途：获取 SiYuan 配置。使用范围：读取动态加载块配置。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
 /** 用途：判断笔记本是否加密。使用范围：动态加载块时选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */

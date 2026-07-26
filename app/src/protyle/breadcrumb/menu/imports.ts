@@ -57,7 +57,7 @@ import { getCloudURL } from "../../../config/util/about";
  * 使用范围：导出预览菜单项中打开预览页签
  * 解耦评估：编辑器核心功能，可通过依赖注入解耦，但作为全局编辑器操作直接导入更合理
  */
-import { openFile } from "../../../editor/openFile";
+import {openFile} from "../../../editor/open/openFile";
 /*
  * 用途：导出预览页签类型常量
  * 使用范围：导出预览菜单项中指定页签类型

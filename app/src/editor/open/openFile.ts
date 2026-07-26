@@ -1,11 +1,13 @@
 /** 用途：页签类型。使用范围：打开页签操作。解耦评估：通过 ./imports 转发。 */
 import type {LayoutTab} from "./imports";
-/** 用途：Editor 完整领域守卫。使用范围：复用分屏页签时不加载具体 class。 */
-import {isEditorDomain} from "./model/editorDomain.types";
+/** 用途：Editor 完整领域守卫。使用范围：复用分屏页签；解耦评估：厂牌守卫只依赖完整 EditorDomain，不加载具体 Editor class。 */
+import {isEditorDomain} from "./imports";
 /** 用途：布局窗口完整领域根。使用范围：获取目标窗口。解耦评估：不加载具体 Wnd class。 */
 import type {LayoutWindow} from "./imports";
-/** 用途：布局容器与窗口守卫。使用范围：遍历布局树并收窄实例查询结果。解耦评估：只依赖完整领域根。 */
-import {isLayoutDomain, isLayoutWindow} from "./imports";
+/** 用途：布局容器守卫。使用范围：遍历布局树；解耦评估：只依赖完整 LayoutDomain。 */
+import {isLayoutDomain} from "./imports";
+/** 用途：布局窗口守卫。使用范围：收窄实例查询结果；解耦评估：只依赖完整 LayoutWindow。 */
+import {isLayoutWindow} from "./imports";
 /** 用途：获取窗口实例。使用范围：editor 页签切换操作。解耦评估：通过 ./imports 转发。 */
 import { getInstanceById } from "./imports";
 /** 用途：通过布局获取窗口实例。使用范围：获取中心布局对应窗口。解耦评估：通过 ./imports 转发。 */
@@ -21,29 +23,38 @@ import { isElectron } from "./imports";
 /** 用途：Electron IPC 调用。使用范围：向主进程发送打开文件请求。解耦评估：通过 ./imports 转发。 */
 import { ipcInvoke } from "./imports";
 /** 用途：获取未初始化的页签。使用范围：页签未初始化时触发生成。解耦评估：同目录模块直接导入。 */
-import { getUnInitTab } from "./util.getUnInitTab";
+import {getUnInitTab} from "./imports";
 /** 用途：切换到指定编辑器。使用范围：查找到编辑器后切换焦点。解耦评估：同目录模块直接导入。 */
-import { switchEditor } from "./util.switchEditor";
-/** 用途：创建新页签。使用范围：打开文件时创建新页签。解耦评估：通过 ./imports 转发。 */
-import { newTab } from "./imports";
+import {switchEditor} from "./imports";
+/** 用途：创建新页签。使用范围：打开文件组合编排；解耦评估：直达 Layout 页签组合根，其内部 imports.ts 继续显式暴露依赖。 */
+import {newTab} from "./imports";
 /** 用途：安全获取配置（不抛异常）。使用范围：读取文件树配置和布局。解耦评估：通过 ./imports 转发。 */
 import { getSafeSiyuanConfig } from "./imports";
 /** 用途：安全获取布局配置。使用范围：获取中心布局。解耦评估：通过 ./imports 转发。 */
 import { getSafeSiyuanLayout } from "./imports";
 /** 用途：查找并打开资源文件。使用范围：遍历模型查找匹配项。解耦评估：同目录模块直接导入。 */
-import { findAndOpenAsset } from "./util.find";
+import {findAndOpenAsset} from "./imports";
 /** 用途：查找并打开自定义页签。使用范围：遍历自定义模型查找匹配项。解耦评估：同目录模块直接导入。 */
-import { findAndOpenCustom } from "./util.find";
+import {findAndOpenCustom} from "./imports";
 /** 用途：查找并打开编辑器。使用范围：遍历编辑器模型查找匹配项。解耦评估：同目录模块直接导入。 */
-import { findAndOpenEditor } from "./util.find";
+import {findAndOpenEditor} from "./imports";
 /** 用途：查找并打开搜索页签。使用范围：遍历搜索模型查找匹配项。解耦评估：同目录模块直接导入。 */
-import { findAndOpenSearch } from "./util.find";
+import {findAndOpenSearch} from "./imports";
 
 /** 设置 keep-cursor 属性 */
 const setKeepCursorAttr = (element: HTMLElement, id?: string) => {
     if (id) {
         element.setAttribute("keep-cursor", id);
     }
+};
+
+/** 创建必须存在的页签；无匹配页签类型属于打开编排错误。 */
+const createRequiredTab = (options: IOpenFileOptions) => {
+    const tab = newTab(options);
+    if (!tab) {
+        throw new Error("Unable to create a tab for the requested file options");
+    }
+    return tab;
 };
 
 /** 准备 UI 环境 */
@@ -134,7 +145,7 @@ const openSplitTab = (options: IOpenFileOptions, wnd: LayoutWindow, allModels: R
     const direction = options.position === "right" ? "lr" : "tb";
     const targetWnd = getTargetWnd(options, wnd);
     if (!targetWnd) {
-        const createdTab = newTab(options);
+        const createdTab = createRequiredTab(options);
         wnd.split(direction).addTab(createdTab);
         wnd.showHeading();
         options.afterOpen?.(createdTab ? createdTab.model : undefined);
@@ -149,7 +160,7 @@ const openSplitTab = (options: IOpenFileOptions, wnd: LayoutWindow, allModels: R
     let createdTab = options.openNewTab ? undefined : findReusableSplitTab(options, targetWnd, allModels);
 
     if (!createdTab) {
-        createdTab = newTab(options);
+        createdTab = createRequiredTab(options);
         targetWnd.addTab(createdTab);
     }
     wnd.showHeading();
@@ -168,7 +179,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: LayoutWindow) => {
     const firstChild = wnd.children[0];
     // keepCursor 请求必须创建页签并记录恢复光标所需的块 ID。
     if (options.keepCursor && firstChild && firstChild.headElement) {
-        createdTab = newTab(options);
+        createdTab = createRequiredTab(options);
         setKeepCursorAttr(createdTab.headElement, options.id);
         wnd.addTab(createdTab, options.keepCursor);
         wnd.showHeading();
@@ -178,7 +189,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: LayoutWindow) => {
 
     // 未启用当前页签复用时直接追加新页签。
     if (!getSafeSiyuanConfig()?.fileTree?.openFilesUseCurrentTab) {
-        createdTab = newTab(options);
+        createdTab = createRequiredTab(options);
         wnd.addTab(createdTab);
         wnd.showHeading();
         options.afterOpen?.(createdTab.model);
@@ -195,7 +206,7 @@ const openTabInWindow = (options: IOpenFileOptions, wnd: LayoutWindow) => {
             break;
         }
     }
-    createdTab = newTab(options);
+    createdTab = createRequiredTab(options);
     wnd.addTab(createdTab);
     // 仅在调用方允许时移除已被新页签替代的临时页签。
     if (unUpdateTab && options.removeCurrentTab) {

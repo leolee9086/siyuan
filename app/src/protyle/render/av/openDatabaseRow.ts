@@ -4,7 +4,7 @@ import {Dialog} from "../../../dialog";
 import {renderAVAttribute} from "./blockAttr";
 import {Constants} from "../../../constants";
 /// #else
-import {openFile} from "../../../editor/openFile";
+import {openFile} from "../../../editor/open/openFile";
 import {openFileById} from "../../../editor/utils.openFileById";
 import type {EditorDomain} from "../../../editor/model/editorDomain.types";
 import {isEditorDomain} from "../../../editor/model/editorDomain.types";

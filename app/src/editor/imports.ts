@@ -44,11 +44,6 @@ import {getInstanceById} from "../layout/query/layoutInstance";
 /** 导出 getInstanceById，供 editor 模块使用 */
 export { getInstanceById };
 
-/** 用途：Protyle 编辑器类。使用范围：editor 模块类型约束。解耦评估：通过 imports.ts 转发。 */
-import { Protyle } from "../protyle";
-/** 导出 Protyle，供 editor 模块使用 */
-export { Protyle };
-
 /** 用途：大纲模型完整领域根。使用范围：editor 更新大纲面板。解耦评估：不加载 Outline class。 */
 import type {OutlineDomain} from "../layout/dock/outline/types";
 /** 导出大纲模型完整领域根。 */
@@ -167,16 +162,6 @@ export {getButtonElement};
 /** 导出输入框查询。 */
 export {getInputElement};
 
-/** 用途：设置 Protyle 编辑器内边距。使用范围：全屏切换时重算布局。解耦评估：通过 imports.ts 转发。 */
-import { setPadding } from "../protyle/ui/initUI";
-/** 导出 setPadding，供 editor 模块使用 */
-export { setPadding };
-
-/** 用途：Protyle 全屏切换。使用范围：编辑器初始化时进入全屏模式。解耦评估：通过 imports.ts 转发。 */
-import { fullscreen } from "../protyle/breadcrumb/action";
-/** 导出 fullscreen，供 editor 模块使用 */
-export { fullscreen };
-
 /** 用途：布局模型基类。使用范围：Editor 委托 Model 管理生命周期。解耦评估：通过 imports.ts 转发。 */
 import { Model } from "../layout/Model";
 /** 导出 Model，供 editor 模块使用 */
@@ -193,11 +178,6 @@ import { ipcInvoke } from "../platform/electron/ipcRenderer";
 export { ipcInvoke };
 
 
-/** 用途：创建新页签。使用范围：editor 打开文件时创建新页签。解耦评估：通过 imports.ts 转发。 */
-import { newTab } from "../layout/utils/newTab";
-/** 导出 newTab，供 editor 模块使用 */
-export { newTab };
-
 /** 用途：通过布局获取窗口实例。使用范围：editor 页签操作。解耦评估：通过 imports.ts 转发。 */
 import {getWndByLayout} from "../layout/query/layoutInstance";
 /** 导出 getWndByLayout，供 editor 模块使用 */
@@ -210,11 +190,6 @@ export { getSafeSiyuanConfig };
 /** 导出 getSafeSiyuanLayout，供 editor 模块使用 */
 export { getSafeSiyuanLayout };
 
-/** 用途：编辑器菜单缩放。使用范围：editor 切换编辑器时放大块。解耦评估：通过 imports.ts 转发。 */
-import { zoomOut } from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
-/** 导出 zoomOut，供 editor 模块使用 */
-export { zoomOut };
-
 /** 用途：阻止编辑器滚动。使用范围：editor 定位内容时防止滚动偏移。解耦评估：通过 imports.ts 转发。 */
 import { preventScroll } from "../protyle/scroll/preventScroll";
 /** 导出 preventScroll，供 editor 模块使用 */
@@ -226,18 +201,6 @@ import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
 export { isInEmbedBlock };
 /** 导出 hasClosestBlock，供 editor 模块使用 */
 export { hasClosestBlock };
-
-/** 用途：编辑器内容加载后处理。使用范围：editor 动态加载块内容。解耦评估：通过 imports.ts 转发。 */
-import { onGet } from "../protyle/util/onGet";
-/** 导出 onGet，供 editor 模块使用 */
-export { onGet };
-
-/** 用途：代码高亮和滚动居中。使用范围：editor 定位到指定块。解耦评估：通过 imports.ts 转发。 */
-import { highlightById, scrollCenter } from "../util/DOM/highlightById";
-/** 导出 highlightById，供 editor 模块使用 */
-export { highlightById };
-/** 导出 scrollCenter，供 editor 模块使用 */
-export { scrollCenter };
 
 /** 用途：统计字数。使用范围：editor 聚焦时更新字数。解耦评估：通过 imports.ts 转发。 */
 import { countBlockWord } from "../protyle/runtime/status.port";
@@ -273,16 +236,6 @@ export { openExternal };
 import { ipcSend } from "../platform/electron/ipcRenderer";
 /** 导出 ipcSend，供 editor 模块使用 */
 export { ipcSend };
-
-/** 用途：检查折叠状态。使用范围：editor 打开链接时检查。解耦评估：通过 imports.ts 转发。 */
-import { checkFold } from "../util/platform/noRelyPCFunction";
-/** 导出 checkFold，供 editor 模块使用 */
-export { checkFold };
-
-/** 用途：移动端通过 ID 打开文件。使用范围：editor 移动端打开块链接。解耦评估：通过 imports.ts 转发。 */
-import { openMobileFileById } from "../mobile/editor";
-/** 导出 openMobileFileById，供 editor 模块使用 */
-export { openMobileFileById };
 
 /** 用途：SiYuan 协议解析。使用范围：editor 处理 siyuan:// 链接。解耦评估：通过 imports.ts 转发。 */
 import { getIdFromSYProtocol, isLocalPath, isSYProtocol } from "../util/file/pathName";
@@ -343,11 +296,6 @@ import type {DockDomain} from "../layout/dock/dock.types";
 /** 导出完整 Dock 聚合根。 */
 export type {DockDomain};
 
-/** 用途：编辑器大小重绘。使用范围：面板展开/收起时重绘。解耦评估：通过 imports.ts 转发。 */
-import { resize } from "../protyle/util/resize";
-/** 导出 resize，供 editor 模块使用 */
-export { resize };
-
 /** 用途：按选区范围聚焦编辑器。使用范围：还原编辑器焦点。解耦评估：通过 imports.ts 转发。 */
 import { focusByRange } from "../protyle/util/selection.focus";
 /** 导出 focusByRange，供 editor 模块使用 */
@@ -357,8 +305,3 @@ export { focusByRange };
 import { focusBlock } from "../protyle/util/selection.focus";
 /** 导出 focusBlock，供 editor 模块使用 */
 export { focusBlock };
-
-/** 用途：后退栈记录。使用范围：记录编辑器状态到后退栈。解耦评估：通过 imports.ts 转发。 */
-import { pushBack } from "../util/platform/backForward";
-/** 导出 pushBack，供 editor 模块使用 */
-export { pushBack };
