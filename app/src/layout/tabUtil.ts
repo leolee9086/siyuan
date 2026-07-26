@@ -26,8 +26,12 @@ import { mountHelp, newNotebook } from "../util/file/mount";
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
 import { setTabPosition } from "../window/setHeader";
+/** 用途：按模型类型查询 Dock。使用范围：页签快捷切换及兼容导出；解耦评估：唯一实现位于无状态 Layout 查询子域。 */
+import {getDockByType} from "./query/dockByType";
 
 export { setTabPosition, getAllTabs, getAllWnds, getInstanceById };
+/** 保持历史公共入口，调用方迁移期间仍指向查询子域的唯一实现。 */
+export {getDockByType};
 
 export const getActiveTab = (wndActive = true) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
@@ -144,26 +148,6 @@ export const resizeTabs = (isSaveLayout = true) => {
     }, 200);
 };
 
-export const getDockByType = (type: TDock | string) => {
-    const layout = window.siyuan.layout;
-    if (!layout) {
-        return undefined;
-    }
-    // 检查每个 dock 是否存在且包含指定类型
-    const leftDock = layout.leftDock;
-    if (leftDock?.data?.[type]) {
-        return leftDock;
-    }
-    const rightDock = layout.rightDock;
-    if (rightDock?.data?.[type]) {
-        return rightDock;
-    }
-    const bottomDock = layout.bottomDock;
-    if (bottomDock?.data?.[type]) {
-        return bottomDock;
-    }
-    return undefined;
-};
 
 export const newCenterEmptyTab = (app: AppFacade) => {
     return new Tab({

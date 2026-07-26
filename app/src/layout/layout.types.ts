@@ -55,6 +55,15 @@ export interface LayoutTab {
     close(): void;
 }
 
+/** 运行时布局容器的完整公开表面；布局与 Dock 身份由使用边界参数化。 */
+export interface LayoutRuntimeDomain<TLayout extends LayoutDomain, TDock extends object> {
+    layout?: TLayout;
+    centerLayout?: TLayout;
+    leftDock?: TDock;
+    rightDock?: TDock;
+    bottomDock?: TDock;
+}
+
 /** 布局窗口拖拽恢复能力；应用身份由组合根参数化，领域类型不依赖具体 App。 */
 export type WndDragRestore<TApplication> = (
     app: TApplication,

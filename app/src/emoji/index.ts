@@ -2,7 +2,7 @@ import {getRandom, isMobile} from "../util/platform/functions";
 import {fetchPost} from "../util/network/fetch";
 import {Constants} from "../constants";
 import {isFilesDomain} from "../layout/dock/Files/eventHandlers.types";
-import {getDockByType} from "../layout/tabUtil";
+import {getDockByType} from "../layout/query/dockByType";
 import {platform} from "../platform";
 import {getAllEditor, getAllModels} from "../layout/getAll";
 import {setNoteBook} from "../util/file/notebook/store";
