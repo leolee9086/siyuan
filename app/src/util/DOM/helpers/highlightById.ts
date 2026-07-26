@@ -10,6 +10,8 @@ import { hasClosestBlock } from "./imports";
 import { isInEmbedBlock } from "./imports";
 /** 用途：读取编辑器配置；使用范围：顶部对齐滚动的额外空白计算；解耦评估：配置读取已抽象到 environment 层，通过 helpers 网关复用即可。 */
 import { getSiyuanConfig } from "./imports";
+/** 用途：执行不依赖编辑器状态的目标滚动；使用范围：明确目标节点后的滚动分支；解耦评估：经本目录网关直达纯 DOM 唯一实现。 */
+import {scrollTargetIntoView} from "./imports";
 
 const MOBILE_BOTTOM_GAP = 74;
 const START_POSITION_EXTRA_GAP = 24;
@@ -20,7 +22,7 @@ const START_POSITION_EXTRA_GAP = 24;
  * 问题/改进：当前把 `true` 解释为顶部对齐，延续了旧式 `scrollIntoView(true)` 的语义。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const normalizeScrollPosition = (position?: ScrollLogicalPosition | boolean): ScrollLogicalPosition => {
+export const normalizeScrollPosition = (position?: ScrollLogicalPosition | boolean) => {
     const usesLegacyTopAlign = position === true;
     if (usesLegacyTopAlign) {
         return "start";
@@ -33,7 +35,7 @@ export const normalizeScrollPosition = (position?: ScrollLogicalPosition | boole
 };
 
 /** @简洁函数 */
-const getTopSpacing = (): number => (getSiyuanConfig()?.editor?.fontSize ?? 16) * 1.625 * 2 + START_POSITION_EXTRA_GAP;
+const getTopSpacing = () => (getSiyuanConfig()?.editor?.fontSize ?? 16) * 1.625 * 2 + START_POSITION_EXTRA_GAP;
 
 /**
  * 查找块 ID 对应的首个可高亮节点，同时跳过嵌入块内部的重复命中。
@@ -41,7 +43,7 @@ const getTopSpacing = (): number => (getSiyuanConfig()?.editor?.fontSize ?? 16) 
  * 问题/改进：当前依赖 DOM 顺序返回第一个匹配项，如果未来需要更精细的优先级可再扩展。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const findHighlightTarget = (protyle: IProtyle, id: string): HTMLElement | undefined => {
+export const findHighlightTarget = (protyle: IProtyle, id: string) => {
     for (const item of protyle.wysiwyg.element.querySelectorAll<HTMLElement>(`[data-node-id="${id}"]`)) {
         const belongsToEmbedBlock = isInEmbedBlock(item);
         if (belongsToEmbedBlock) {
@@ -58,7 +60,7 @@ export const findHighlightTarget = (protyle: IProtyle, id: string): HTMLElement 
  * 问题/改进：当前仍依赖编辑器选区存在，若未来存在更多焦点源可继续补充回退策略。
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const resolveCurrentBlockElement = (protyle: IProtyle): HTMLElement | undefined => {
+export const resolveCurrentBlockElement = (protyle: IProtyle) => {
     const activeTagName = document.activeElement?.tagName;
     const isNativeTextInput = activeTagName === "TEXTAREA" || activeTagName === "INPUT";
     if (isNativeTextInput) {
@@ -78,7 +80,7 @@ export const resolveCurrentBlockElement = (protyle: IProtyle): HTMLElement | und
  * 调用时机：属性视图分支滚动前同步调用。
  * 问题/改进：当前通过 style 字符串判断 transform，后续若视图层提供状态标记可替换为更明确的信号。
  */
-const containsTransformStyle = (element: Element | null): boolean => {
+const containsTransformStyle = (element: Element | null) => {
     const styleValue = element?.getAttribute("style");
     const hasStyleValue = !!styleValue;
     if (!hasStyleValue) {
@@ -95,19 +97,18 @@ const containsTransformStyle = (element: Element | null): boolean => {
 const scrollCodeBlockSelection = (
     blockElement: HTMLElement,
     range: Range,
-    position: ScrollLogicalPosition,
-    behavior: ScrollBehavior
-): void => {
+    options: ScrollIntoViewOptions
+) => {
     const hljsElement = blockElement.querySelector<HTMLElement>(".hljs");
     const hasHljsElement = !!hljsElement;
     if (!hasHljsElement) {
-        blockElement.scrollIntoView({ block: position, behavior });
+        blockElement.scrollIntoView(options);
         return;
     }
     const scrollLeft = hljsElement.scrollLeft;
     const markerElement = document.createElement("br");
     range.insertNode(markerElement);
-    markerElement.scrollIntoView({ block: position, behavior });
+    markerElement.scrollIntoView(options);
     markerElement.remove();
     hljsElement.scrollLeft = scrollLeft;
 };
@@ -121,7 +122,7 @@ const scrollAttributeViewSelection = (
     blockElement: HTMLElement,
     position: ScrollLogicalPosition,
     behavior: ScrollBehavior
-): void => {
+) => {
     const headerElement = blockElement.querySelector<HTMLElement>(".av__row--header");
     const footerElement = blockElement.querySelector<HTMLElement>(".av__row--footer");
     const isDuringTransformScroll = containsTransformStyle(headerElement) || containsTransformStyle(footerElement);
@@ -138,7 +139,7 @@ const scrollAttributeViewSelection = (
  * 调用时机：当前选区命中普通块时调用。
  * 问题/改进：当前通过临时插入节点测量光标位置，虽然稳妥但会产生一次额外 DOM 变更。
  */
-const scrollSelectionInsideEditor = (protyle: IProtyle, range: Range, behavior: ScrollBehavior): void => {
+const scrollSelectionInsideEditor = (protyle: IProtyle, range: Range, behavior: ScrollBehavior) => {
     const cloneRange = range.cloneRange();
     const markerElement = document.createElement("br");
     range.insertNode(markerElement);
@@ -172,7 +173,7 @@ export const scrollCurrentSelection = (
     protyle: IProtyle,
     position: ScrollLogicalPosition,
     behavior: ScrollBehavior
-): boolean => {
+) => {
     const selection = getWindowSelection();
     const hasSelection = !!selection;
     if (!hasSelection) {
@@ -190,7 +191,7 @@ export const scrollCurrentSelection = (
     }
     const isCodeBlock = blockElement.classList.contains("code-block");
     if (isCodeBlock) {
-        scrollCodeBlockSelection(blockElement, range, position, behavior);
+        scrollCodeBlockSelection(blockElement, range, {block: position, behavior});
         return true;
     }
     const isAttributeView = blockElement.classList.contains("av") && blockElement.dataset.render === "true";
@@ -203,73 +204,6 @@ export const scrollCurrentSelection = (
 };
 
 /**
- * 按顶部对齐方式滚动目标块，保留标题和工具栏所需的顶部空白。
- * 调用时机：滚动模式为 `start` 时调用。
- * 问题/改进：顶部留白仍依赖字体大小估算，若后续能拿到真实布局值可进一步精确化。
- */
-const scrollNodeToStart = (
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    behavior: ScrollBehavior
-): void => {
-    const elementRect = nodeElement.getBoundingClientRect();
-    const contentRect = protyle.contentElement.getBoundingClientRect();
-    protyle.contentElement.scroll({
-        top: protyle.contentElement.scrollTop + elementRect.top - contentRect.top - getTopSpacing(),
-        behavior
-    });
-};
-
-/**
- * 按“最近可见”策略滚动目标块，只有在完全离开可视区时才真正调整容器。
- * 调用时机：滚动模式为 `nearest` 时调用。
- * 问题/改进：当前仍使用矩形比较判断可视区，若未来统一滚动框架可收敛到公共工具。
- */
-const scrollNodeToNearest = (
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    behavior: ScrollBehavior
-): void => {
-    const elementRect = nodeElement.getBoundingClientRect();
-    const contentRect = protyle.contentElement.getBoundingClientRect();
-    const isAboveViewport = elementRect.bottom < contentRect.top;
-    if (isAboveViewport) {
-        protyle.contentElement.scroll({
-            top: protyle.contentElement.scrollTop + elementRect.top - contentRect.top,
-            behavior
-        });
-        return;
-    }
-    const isBelowViewport = elementRect.top > contentRect.bottom;
-    if (!isBelowViewport) {
-        return;
-    }
-    const isTallerThanViewport = elementRect.height > contentRect.height;
-    const scrollTop = isTallerThanViewport
-        ? protyle.contentElement.scrollTop + elementRect.top - contentRect.top
-        : protyle.contentElement.scrollTop + elementRect.bottom - contentRect.bottom;
-    protyle.contentElement.scroll({ top: scrollTop, behavior });
-};
-
-/**
- * 按中心对齐方式滚动目标块，便于需要将目标块放到视口中部的场景复用。
- * 调用时机：滚动模式为 `center` 时调用。
- * 问题/改进：当前直接以块顶部为基准计算，如未来需要视觉中心可再调节偏移策略。
- */
-const scrollNodeToCenter = (
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    behavior: ScrollBehavior
-): void => {
-    const elementRect = nodeElement.getBoundingClientRect();
-    const contentRect = protyle.contentElement.getBoundingClientRect();
-    protyle.contentElement.scroll({
-        top: protyle.contentElement.scrollTop + elementRect.top - (contentRect.top + contentRect.height / 2),
-        behavior
-    });
-};
-
-/**
  * 根据规范化后的滚动模式把目标块滚动到可见区域。
  * 调用时机：`highlightById.ts` 获得明确目标元素后调用。
  * 问题/改进：当前三种模式分散在独立 helper 内，便于后续按模式继续扩展。
@@ -278,18 +212,17 @@ const scrollNodeToCenter = (
 export const scrollNodeIntoView = (
     protyle: IProtyle,
     nodeElement: HTMLElement,
-    position: ScrollLogicalPosition,
-    behavior: ScrollBehavior
-): void => {
-    const isStartPosition = position === "start";
-    if (isStartPosition) {
-        scrollNodeToStart(protyle, nodeElement, behavior);
+    options: Required<Pick<ScrollIntoViewOptions, "block" | "behavior">>
+) => {
+    const {block, behavior} = options;
+    // 顶部对齐需要注入由编辑器字体配置计算的留白。
+    if (block === "start") {
+        scrollTargetIntoView(protyle.contentElement, nodeElement, {
+            position: block,
+            behavior,
+            topSpacing: getTopSpacing(),
+        });
         return;
     }
-    const isNearestPosition = position === "nearest";
-    if (isNearestPosition) {
-        scrollNodeToNearest(protyle, nodeElement, behavior);
-        return;
-    }
-    scrollNodeToCenter(protyle, nodeElement, behavior);
+    scrollTargetIntoView(protyle.contentElement, nodeElement, {position: block, behavior});
 };

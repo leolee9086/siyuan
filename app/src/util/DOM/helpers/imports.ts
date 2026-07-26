@@ -10,6 +10,8 @@ import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 import { isInEmbedBlock } from "../../../protyle/util/hasClosest";
 /** 用途：读取编辑器配置；使用范围：`helpers/highlightById.ts` 计算顶部保留空间；解耦评估：配置读取已抽象到 environment 层，通过网关复用即可。 */
 import { getSiyuanConfig } from "../../../layout/util.environment";
+/** 用途：执行纯 DOM 目标滚动；使用范围：高亮 helper 明确目标后的滚动分支；解耦评估：直达滚动唯一实现。 */
+import {scrollTargetIntoView} from "../scrollTarget";
 
 // 导出：Range 焦点恢复工具
 export { focusByRange };
@@ -23,3 +25,5 @@ export { hasClosestBlock };
 export { isInEmbedBlock };
 // 导出：思源配置访问器
 export { getSiyuanConfig };
+// 导出：纯 DOM 目标滚动原语
+export {scrollTargetIntoView};

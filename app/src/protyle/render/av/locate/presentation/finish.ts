@@ -8,8 +8,8 @@ import {submitAppliedAVViewTransaction} from "./imports";
 import {clearSelect} from "./imports";
 /** 用途：添加拖拽填充柄；使用范围：表格定位；解耦评估：经本阶段网关直达唯一实现。 */
 import {addDragFill} from "./imports";
-/** 用途：居中滚动；使用范围：定位完成；解耦评估：经本阶段网关直达唯一实现。 */
-import {scrollCenter} from "./imports";
+/** 用途：居中滚动明确目标；使用范围：定位完成；解耦评估：经本阶段网关直达纯 DOM 唯一实现。 */
+import {scrollTargetIntoView} from "./imports";
 /** 用途：统一定位状态；使用范围：请求、高亮和清理；解耦评估：直达状态真实所有者。 */
 import {clearAVLocateRequest} from "./imports";
 /** 用途：读取统一定位状态；使用范围：高亮呈现；解耦评估：经本阶段网关直达状态所有者。 */
@@ -167,7 +167,7 @@ const scrollLocatedTarget = (context: AVLocatePresentationContext, targetElement
     }
     // 其余目标使用统一居中滚动逻辑。
     if (data.viewType !== "table" || data.target.index !== 0 || data.target.groupID) {
-        scrollCenter(protyle, targetElement, "center");
+        scrollTargetIntoView(protyle.contentElement, targetElement, {position: "center", behavior: "auto"});
     }
     // 只有看板需要额外校正横向滚动。
     if (data.viewType !== "kanban") {

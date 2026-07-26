@@ -23,10 +23,10 @@ import {addDragFill} from "../../cell/decoration";
 /** 导出拖拽填充装饰。 */
 export {addDragFill};
 
-/** 用途：滚动目标到编辑器中心；使用范围：定位完成；解耦评估：直达 DOM 滚动唯一实现。 */
-import {scrollCenter} from "../../../../../util/DOM/highlightById";
-/** 导出居中滚动能力。 */
-export {scrollCenter};
+/** 用途：滚动明确目标到编辑器中心；使用范围：定位完成；解耦评估：直达无编辑器状态依赖的 DOM 滚动唯一实现。 */
+import {scrollTargetIntoView} from "../../../../../util/DOM/scrollTarget";
+/** 导出纯目标滚动能力。 */
+export {scrollTargetIntoView};
 
 /** 用途：读取当前定位请求；使用范围：完成呈现；解耦评估：直达状态真实所有者。 */
 import {getAVLocateRequest} from "../state/state";

@@ -2,9 +2,9 @@
 
 > **最终目标**：在保持 Attribute View 表格、画廊、看板运行语义和 `imports.ts` 可见性的前提下，将 AV 渲染组合根拆为单向领域子图，消除该子系统全部循环依赖，并使各具体实现满足项目类型与函数规模门禁。
 >
-> **当前目标**：完成视图 Header 与跨视图调度边界，继续拆分 `avRender` 的数据获取、状态快照和 table 渲染编排。
+> **当前目标**：拆分当前最短环 `render -> gallery -> render.table -> calc -> transaction.promise` 中的根分派、表格计算与事务职责。
 >
-> **下一步任务**：提取三类视图共享的请求/定位状态采集与数据获取流程；为 table、gallery、kanban 建立运行行为测试，再处理卡片视图共同后处理。
+> **下一步任务**：先核定 `calc.ts` 触发通用事务的确定语义与本地 DOM 应用边界，再按真实所有权拆分；同步补强 table、gallery、kanban 运行行为测试。
 
 ## 不变量
 
@@ -98,3 +98,4 @@ AV 根调度器
 - **2026-07-27**：`col/col.ts` 按列身份、编辑生命周期和菜单编排拆为 `identity`、`edit`、`menu` 三个职责子域，生产消费者直达唯一实现；旧综合文件、兼容出口和旧导入清零。目标两节点环与 Identity 子域循环归零，生产图为 `2208 / 391 / SCC 649`；Menu/Edit 仍处于唯一 SCC，后续随 Panel 与根渲染编排继续单向化。身份与编辑专项 `4/4`、筛选导航 `1/1`、完整 Node `193/193`、Protyle 契约类型和网关门禁通过。
 - **2026-07-27**：按 [AV 定位状态与渲染生命周期拆分](./AV定位状态与渲染生命周期拆分.ttt.md) 删除 358 行综合定位模块，将状态、激活、窗口规划和完成呈现单向分层；SForge 注册表统一拥有请求、队列、渲染数据/token 与高亮状态，完整根渲染签名通过参数进入激活阶段。三节点动态回路归零，State/Activation/Window 位于 SCC 外；生产图 `2215 / 389 / SCC 650`，Presentation 仍通过视图持久化事务返回根渲染，继续与事务专项联动拆分。
 - **2026-07-27**：定位 Presentation 的视图属性已在提交前同步应用，改用严格 `AppliedAVViewTransaction` 后不再加载通用 `transaction.promise`；目标返回路径归零，Applied/Undo 位于 SCC 外。事务与定位专项 `9/9`、Node `193/193`、契约类型和 lint 通过；生产图 `2219 / 431 / SCC 650`。当前 Presentation 返回根渲染的最短边转为 `scrollCenter -> Layout/Wnd -> editor`，下一阶段按 DOM 滚动与布局编排真实所有权拆分。
+- **2026-07-27**：定位 Presentation 改为经自身网关直达纯 `scrollTargetIntoView`；同一滚动公式从编辑器综合 helper 归位为稳定 DOM 原语，`start` 的配置间距显式参数化，完整 `scrollCenter` 继续拥有 Selection/Range 回退。滚动/定位专项 `7/7`、Node `193/193`、契约类型、目标 lint 与网关门禁通过；生产图 `2221 / 391 / SCC 648`，Presentation 退出 SCC，最大 SCC 减少 `2` 个节点。当前首条代表环已转为 `render -> gallery -> render.table -> calc -> transaction.promise`。

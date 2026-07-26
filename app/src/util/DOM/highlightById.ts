@@ -58,8 +58,11 @@ export const highlightById = (
  * 调用时机：高亮定位、选区恢复、上传/粘贴后回到光标位置等流程都会调用。
  * 问题/改进：函数承担了多种历史兼容分支，但现在只保留编排职责，复杂细节已下沉到 helper。
  * @同步豁免: 需要绝对同步的DOM访问
+ * 该遗留公开 API 被大量编辑器调用，保留原参数顺序以避免改变既有调用语义。
  */
-export const scrollCenter = (
+export const scrollCenter =
+/** @参数豁免: 遗留代码 - 保持现有公开滚动 API 与全部调用点兼容。 */
+(
     protyle: IProtyle,
     nodeElement?: Element,
     position: ScrollLogicalPosition | boolean = "nearest",
@@ -78,5 +81,5 @@ export const scrollCenter = (
     if (!hasTargetElement) {
         return;
     }
-    scrollNodeIntoView(protyle, targetElement, scrollPosition, behavior);
+    scrollNodeIntoView(protyle, targetElement, {block: scrollPosition, behavior});
 };
