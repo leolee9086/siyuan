@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVCellUpdateTransaction} from "../../wysiwyg/transaction/prepared/avCellUpdate";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {objEquals} from "../../../util/platform/functions";
 import {fetchSyncPost} from "../../../util/network/fetch";
@@ -229,7 +229,7 @@ export const updateCellsValue = async (protyle: IProtyle, nodeElement: HTMLEleme
             id,
             data: nodeElement.getAttribute("updated"),
         });
-        transaction(protyle, doOperations, undoOperations);
+        submitAVCellUpdateTransaction(protyle, doOperations, undoOperations);
     }
     return {text: text.substring(0, text.length - 2), json};
 };

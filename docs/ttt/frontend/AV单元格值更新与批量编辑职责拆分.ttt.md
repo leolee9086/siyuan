@@ -2,9 +2,9 @@
 
 > **最终目标**：保持 AV 剪切、粘贴、上传、键盘清空、关系回填、日期、选择项、拖拽与属性面板批量更新行为不变，将 `updateCellsValue` 上帝函数拆为单向值更新领域并消除全部循环路径。
 >
-> **当前目标**：解除 Cell Update 仅为选择项配置同步加载完整 Select DOM/菜单实现的返回边，并建立值变换、操作构造和提交行为基线。
+> **当前目标**：建立值变换、操作构造和提交行为基线；Cell Update 已使用严格命令并退出循环 SCC。
 >
-> **下一步任务**：覆盖 Asset 追加、Select 去重/颜色、Block 文本、日期格式、跨行目标恢复、只返回 operations 与立即提交分支，再划分完整命令阶段。
+> **下一步任务**：覆盖 Asset 追加、Select 去重/颜色、Block 文本、日期格式、跨行目标恢复与只返回 operations 分支，再拆分目标、值和呈现阶段。
 
 ## 不变量
 
@@ -37,6 +37,7 @@
 
 - [x] 将 `mergeAddOption` 从 Select DOM/菜单根迁入无 UI 依赖的 `select/options.ts`。
 - [x] 覆盖既有选项颜色复用、新选项顺序与可逆操作载荷。
+- [x] 默认提交改用封闭 AV Cell Update Prepared 命令，拒绝四种 action 以外的请求。
 - [ ] 建立 Asset、Select、Block 与日期值变换测试。
 - [ ] 建立目标恢复、剪贴板快照和 getOperations 分支测试。
 
@@ -63,6 +64,7 @@
 ## 已归档/已完成区域
 
 - **2026-07-27**：`mergeAddOption` 完整迁入 `select/options.ts`，Cell Update 不再加载 Select DOM、菜单、模块级 cellValues 和事务。测试固定既有颜色回填以及按输入顺序新增 options/do/undo 的原地变更语义；生产图 `2237 / 351 / SCC 626`，新 options 叶子位于 SCC 外。
+- **2026-07-27**：Cell Update 提交改用严格 `prepared/avCellUpdate.ts`，封闭 `updateAttrViewCell/updateAttrViewColOptions/removeAttrViewColOption/doUpdateUpdated`，本地值变换、列配置和 DOM 呈现顺序不变。五类命令契约 `5/5`、Protyle 契约类型、新命令 lint和网关门禁通过；生产图 `2238 / 324 / SCC 624`，Cell Update 与命令退出 SCC。后续仍以行为测试驱动拆分函数内部阶段。
 
 ## 关联任务
 
