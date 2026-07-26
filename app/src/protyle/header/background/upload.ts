@@ -1,4 +1,4 @@
-import { uploadFiles } from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 import { fetchPost } from "../../../util/network/fetch";
 import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";

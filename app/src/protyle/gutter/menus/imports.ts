@@ -115,7 +115,7 @@ export { fetchPost };
  * 使用范围：块背景菜单选择本地图片后上传并回填块属性
  * 解耦评估：可通过上层回调注入解耦，但该模块本身就是 protyle 侧交互编排层，直接依赖上传模块更贴近现有架构
  */
-import { uploadFiles } from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 // 导出资源上传函数
 export { uploadFiles };
 

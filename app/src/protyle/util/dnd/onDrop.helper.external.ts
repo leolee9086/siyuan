@@ -8,7 +8,8 @@
 import { hasClosestByClassName, hasClosestBlock } from "../hasClosest";
 import { focusByRange, getRangeByPoint } from "../selection";
 import { isBrowser } from "../../../util/platform/functions";
-import { uploadLocalFiles, uploadFiles } from "../../upload";
+import {uploadLocalFiles} from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 import { paste } from "../paste";
 import { clearSelect } from "../clearSelect";
 import {getTypeByCellElement} from "../../render/av/cell/position";

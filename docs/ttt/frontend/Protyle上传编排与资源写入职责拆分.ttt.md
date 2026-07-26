@@ -2,9 +2,9 @@
 
 > **最终目标**：保持 Protyle 文件校验、确认、进度、上传、回调、默认编辑器插入、AV 批量写入、本地路径导入和错误反馈不变，将 512+ 行上传上帝模块拆为单向上传领域并消除其全部循环路径。
 >
-> **当前目标**：分离调用方必需响应处理器的上传传输路径与默认编辑器/AV 后处理，解除 `Asset -> upload -> insertHTML -> input -> blockFold -> transaction` 返回路径。
+> **当前目标**：传输与必需响应调用方已退出 SCC；继续把默认结果投影和本地路径上传从 `upload/index.ts` 归入明确子域，使 Upload 状态根与默认结果分别退出主组件。
 >
-> **下一步任务**：建立 callback、默认后处理、校验失败、取消确认和 XHR 状态行为测试，先分离默认 `genUploadedLabel` 的普通编辑器插入与 AV 资源写入阶段。
+> **下一步任务**：补齐默认结果的普通编辑器、属性面板和 AV 多行投影测试，再将 200+ 行默认结果与本地路径上传迁入 `upload/result`、`upload/local`，根只保留具体 Upload 状态构造。
 
 ## 不变量
 
@@ -36,10 +36,10 @@
 
 ## 近期计划
 
-- [ ] 建立必需 callback 与默认结果分支测试。
-- [ ] 提取共享校验和 XHR 传输唯一实现。
-- [ ] 让 Asset、Background、Gutter 等已有 callback 消费者直达必需响应入口。
-- [ ] 使必需响应入口及 Asset 退出循环 SCC。
+- [x] 建立必需 callback、默认结果分派和目录分支测试。
+- [x] 提取共享校验和 XHR 传输唯一实现。
+- [x] 让 Asset、Background、Gutter 等已有 callback 消费者直达必需响应入口。
+- [x] 使必需响应入口及 Asset 退出循环 SCC。
 
 ## 中期计划
 
@@ -70,6 +70,7 @@
 - **2026-07-27**：DOM 滚动 helper 的配置读取改为直达稳定环境层唯一安全实现，消除为可选 `window.siyuan?.config` 加载 Layout/Wnd 的错误所有权；折叠和滚动逻辑均未改变。生产图 `2243 / 282 / SCC 619`，`blockFold/state` 与完整高亮滚动子域退出 SCC，上传默认插入的折叠返回路径已关闭。上传仍经 `insertHTML -> table -> block/util -> editor` 返回主图，下一阶段按表格选区职责真实所有权继续拆分。
 - **2026-07-27**：上传插入仅需的表格网格/范围投影迁入纯 `table/grid`，框选几何的两份重复实现统一为 `table/selection/geometry`；`insertHTML` 不再加载任一综合 table 模块。生产图 `2247 / 332 / SCC 619`，新子域均在 SCC 外；当前上传返回路径推进到 `insertHTML -> input -> blockFold -> transaction`，代表环反升仅作定位。
 - **2026-07-27**：表格范围 HTML 重建也迁入同一 grid 子域，旧综合 `table.ts` 整体退出 SCC；专项 `7/7` 与完整门禁通过。生产图 `2248 / 332 / SCC 618`，上传路径继续聚焦 `insertHTML -> input -> blockFold -> transaction`。
+- **2026-07-27**：完整 `ProtyleDomain` 增加默认上传结果应用与本地路径上传两个正式行为，具体 Protyle 组合根复用原唯一实现，目录分支和默认响应不通过 callback Port 隐藏；`IProtyle.upload` 同时改用覆盖 Upload class 全部公共表面的 `UploadDomain`，独立 `PublicInstanceLooksLike` 双向契约通过。文件规范化、验证、FormData、确认、XHR headers/credentials、进度、销毁、错误和固定成功优先级整体迁入 `upload/transport`，专属 `imports.ts` 全部直达基础设施；所有 `uploadFiles` 消费者直达传输实现，旧根代码删除且不转发。专项 `4/4` 固定 `options.success > callback > format + Protyle default`、token、表单、清理和目录委托；Node `194/194`、Protyle 契约类型、新模块 lint及 imports 多跳通过。生产图 `2254 / 335 / SCC 615`，Transport/网关、AV Asset 与题头图上传退出 SCC；上传根因默认结果/本地路径与 Protyle 组合仍留在组件内，近期传输阶段完成。
 
 ## 关联任务
 

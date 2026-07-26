@@ -3,7 +3,7 @@ import {submitAVAssetTransaction} from "../../wysiwyg/transaction/prepared/avAss
 import {updateAttrViewCellAnimation} from "./action/animation";
 import {isMobile} from "../../../platform";
 import { Constants } from "../../../constants";
-import { uploadFiles } from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 import { pathPosix } from "../../../util/file/pathName";
 import { openMenu } from "../../../menus/commonMenuItem/openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";

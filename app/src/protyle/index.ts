@@ -5,6 +5,8 @@ import { Preview } from "./preview";
 import { addLoading, initUI, removeLoading } from "./ui/initUI";
 import { LocalUndo, Undo } from "./undo";
 import { Upload } from "./upload";
+import {applyUploadedFiles} from "./upload";
+import {uploadLocalFiles} from "./upload";
 import { Options } from "./util/Options";
 import { destroy } from "./util/destroy";
 import { Scroll } from "./scroll";
@@ -457,6 +459,16 @@ export class Protyle {
     /** 上传是否还在进行中 */
     public isUploading() {
         return this.protyle.upload.isUploading;
+    }
+
+    /** 将上传响应投影到当前编辑器或 AV 上下文。 */
+    public applyUploadedFiles(responseText: string) {
+        return applyUploadedFiles(responseText, this.protyle);
+    }
+
+    /** 上传本地路径并沿用当前编辑器的默认结果投影。 */
+    public uploadLocalFiles(files: string[] | ILocalFiles[], isUpload: boolean) {
+        uploadLocalFiles(files, this.protyle, isUpload);
     }
 
     /** 清空 undo & redo 栈 */

@@ -7,7 +7,7 @@ import { Menu } from "../../../menus/Menu";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { RecordMedia } from "../../util/RecordMedia";
 import { hideMessage, showMessage } from "../../runtime/dialog.port";
-import { uploadFiles } from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 import { isElectron } from "../../../platform";
 import { ipcInvoke } from "../../../platform/electron/ipcRenderer";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -13,6 +13,8 @@ export interface ProtyleDomain {
     protyle: IProtyle;
     focus(): void;
     isUploading(): boolean;
+    applyUploadedFiles(responseText: string): Promise<void>;
+    uploadLocalFiles(files: string[] | ILocalFiles[], isUpload: boolean): void;
     clearStack(): void;
     destroy(): void;
     resize(): void;

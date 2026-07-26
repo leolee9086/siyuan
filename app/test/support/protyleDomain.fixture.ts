@@ -6,6 +6,8 @@ export const createProtyleDomainFixture = (protyleOverrides: Partial<IProtyle> =
     protyle: Object.assign({} as IProtyle, protyleOverrides),
     focus: () => undefined,
     isUploading: () => false,
+    applyUploadedFiles: async () => undefined,
+    uploadLocalFiles: () => undefined,
     clearStack: () => undefined,
     destroy: () => undefined,
     resize: () => undefined,

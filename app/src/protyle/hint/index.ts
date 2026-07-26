@@ -5,7 +5,7 @@ import {setPosition} from "../../util/DOM/positioning/setPosition";
 import {insertHTML} from "../util/insertHTML";
 import {hideElements} from "../ui/hideElements";
 import {addEmoji, getEmojiDesc, unicode2Emoji} from "../../emoji";
-import {uploadFiles} from "../upload";
+import {uploadFiles} from "../upload/transport";
 import {isMobile} from "../../platform";
 import {isNotCtrl, isOnlyMeta} from "../util/compatibility";
 import {handleFillAv, handleFillContent} from "./index.fill";

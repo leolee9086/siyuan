@@ -1,5 +1,6 @@
 import { Constants } from "../../constants";
-import { uploadFiles, uploadLocalFiles } from "../upload";
+import {uploadLocalFiles} from "../upload";
+import {uploadFiles} from "../upload/transport";
 import { processPasteCode } from "./processCode";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { getLocalFiles, getTextSiyuanFromTextHTML, readText } from "./compatibility";

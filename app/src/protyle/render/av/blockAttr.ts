@@ -10,7 +10,7 @@ import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {openMenuPanel} from "./openMenuPanel";
-import {uploadFiles} from "../../upload";
+import {uploadFiles} from "../../upload/transport";
 import {openLink} from "../../../editor/openLink";
 import {dragUpload, editAssetItem} from "./asset";
 import {previewImages} from "../../preview/image";

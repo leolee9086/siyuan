@@ -570,7 +570,7 @@ interface IProtyle {
     lute?: Lute;
     toolbar?: import("../protyle/toolbar").Toolbar,
     hint?: import("../protyle/hint").Hint;
-    upload?: import("../protyle/upload").Upload;
+    upload?: import("../protyle/upload/upload.types").UploadDomain;
     undo?: import("../protyle/undo").IUndo;
     wysiwyg?: import("../protyle/wysiwyg/domain/wysiwyg.types").WYSIWYGDomain
     /** 加载动画控制器，用于确定性地取消待执行的 loading 显示 */
