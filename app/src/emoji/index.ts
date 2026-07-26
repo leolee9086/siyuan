@@ -1,7 +1,7 @@
 import {getRandom, isMobile} from "../util/platform/functions";
 import {fetchPost} from "../util/network/fetch";
 import {Constants} from "../constants";
-import {Files} from "../layout/dock/Files";
+import {isFilesDomain} from "../layout/dock/Files/eventHandlers.types";
 import {getDockByType} from "../layout/tabUtil";
 import {platform} from "../platform";
 import {getAllEditor, getAllModels} from "../layout/getAll";
@@ -158,7 +158,10 @@ export const updateFileTreeEmoji = (unicode: string, id: string, icon = "iconFil
     if (platform !== "browser-mobile") {
         const dockFile = getDockByType("file");
         if (dockFile) {
-            const files = dockFile.data.file as Files;
+            const files = dockFile.data.file;
+            if (!files || typeof files !== "object" || !isFilesDomain(files)) {
+                throw new Error("File dock does not contain a FilesDomain model");
+            }
             if (icon === "iconFile") {
                 emojiElement = files.element.querySelector(`[data-node-id="${id}"] .b3-list-item__icon`);
             } else {

@@ -7,7 +7,7 @@
 
 import { escapeAriaLabel, escapeHtml } from "../../../util/DOM/escape";
 import { getDocDisplayName } from "../../../util/file/pathName";
-import { unicode2Emoji } from "../../../emoji";
+import {unicode2Emoji} from "../../../emoji/emoji.render";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";

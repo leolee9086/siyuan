@@ -4,7 +4,7 @@
  * 本模块包含文件树WebSocket消息处理中使用的DOM操作辅助函数。
  */
 
-import { unicode2Emoji } from "../../../emoji";
+import {unicode2Emoji} from "../../../emoji/emoji.render";
 import { Constants } from "../../../constants";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isHTMLElement } from "./wsHandlers.guard";
