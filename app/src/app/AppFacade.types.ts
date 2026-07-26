@@ -6,7 +6,7 @@ import type {Plugin} from "siyuan";
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
-export interface AppSiYuanBlockNavigation {
+export interface AppBlockNavigation {
     id: string;
     action: TProtyleAction[];
     zoomIn: boolean;
@@ -25,7 +25,7 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     openAsset(options: AssetOpenOptions): void;
-    openSiYuanBlock(options: AppSiYuanBlockNavigation): void;
+    openBlock(options: AppBlockNavigation): void;
     processSiYuanUri(uri: string): boolean;
 }
 

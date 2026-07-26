@@ -122,3 +122,8 @@ export {withEncryptedNotebook};
 export {updateAVRowSelect};
 /** 导出数据库表头选中状态刷新能力。 */
 export {updateHeader};
+
+/** 用途：异步内核请求。使用范围：WYSIWYG 属性与新建文档中间件；解耦评估：稳定网络基础设施。 */
+import {fetchPost} from "../../util/network/fetch";
+/** 导出异步内核请求。 */
+export {fetchPost};

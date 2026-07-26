@@ -4,7 +4,7 @@ import {openMobileFileById} from "../editor";
 import {fetchPost} from "../../util/network/fetch";
 import {preventScroll} from "../../protyle/scroll/preventScroll";
 import {getNotebookName, pathPosix} from "../../util/file/pathName";
-import {movePathTo} from "../../util/file/movePathTo";
+import {movePathTo} from "../../util/file/movePath/movePathTo";
 import {initCriteriaMenu, moreMenu} from "../../search/menu";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {escapeHtml} from "../../util/DOM/escape";

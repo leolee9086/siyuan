@@ -1,6 +1,6 @@
 import type { AppFacade } from "../../../../app/AppFacade.types";
 import { openExportPreviewTab } from "../../../../export-preview/open";
-import { fetchPost } from "../../../../ai/imports";
+import {fetchPost} from "../../../../util/network/fetch";
 import { quickMakeCard } from "../../../../card/makeCard";
 import { openCardByData } from "../../../../card/openCard";
 import { Editor } from "../../../../editor";
@@ -24,7 +24,7 @@ import { resize } from "../../../../protyle/util/resize";
 import { focusByOffset, getSelectionOffset } from "../../../../protyle/util/selection";
 import { setEditMode } from "../../../../protyle/util/setEditMode";
 import { duplicateBlock, goHome } from "../../../../protyle/wysiwyg/commonHotkey/commonHotkey";
-import { goEnd } from "../../../../protyle/wysiwyg/commonHotkey/goEnd";
+import {goEnd} from "../../../../protyle/wysiwyg/commonHotkey/goEnd/goEnd";
 import { getContentByInlineHTML } from "../../../../protyle/wysiwyg/keydown";
 import { Search } from "../../../../search";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";

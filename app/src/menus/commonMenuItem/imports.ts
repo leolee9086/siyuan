@@ -146,6 +146,11 @@ import { fetchPost } from "../../util/network/fetch";
 /** 导出 fetchPost 用于发送异步 POST 请求 */
 export { fetchPost };
 
+/** 用途：恢复 Range 焦点。使用范围：属性和微信提醒对话框；解耦评估：稳定 Protyle 选区实现。 */
+import {focusByRange} from "../../protyle/util/selection";
+/** 导出 Range 焦点恢复。 */
+export {focusByRange};
+
 /**
  * 用途：发送同步 POST 请求
  * 使用范围：exportMd 函数中获取引用文本
@@ -188,7 +193,7 @@ export { pathPosix };
  * 使用范围：movePathToMenu 函数中执行文件移动
  * 解耦评估：业务逻辑函数，可通过服务层解耦，但当前模块职责明确，直接导入合理
  */
-import { movePathTo } from "../../util/file/movePathTo";
+import {movePathTo} from "../../util/file/movePath/movePathTo";
 /** 导出 movePathTo 用于移动文件路径 */
 export { movePathTo };
 

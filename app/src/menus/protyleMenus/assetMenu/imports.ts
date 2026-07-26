@@ -90,7 +90,7 @@ export { upDownHint };
  * 使用范围：搜索资源列表与加载素材元数据
  * 解耦评估：网络调用能力统一由 fetchPost 提供，转发层保证调用边界一致
  */
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "../../../util/network/fetch";
 /** 导出 fetchPost 供资源菜单请求后端数据 */
 export { fetchPost };
 

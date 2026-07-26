@@ -18,7 +18,7 @@ export { dayjs };
  * 使用范围：复制、剪切、粘贴相关操作前恢复编辑器焦点
  * 解耦评估：编辑器选区能力通过转发层集中接入
  */
-import { focusByRange } from "../../../ai/imports";
+import {focusByRange} from "../../../protyle/util/selection";
 /** 导出 focusByRange 供内容菜单焦点控制 */
 export { focusByRange };
 

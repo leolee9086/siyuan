@@ -1,6 +1,6 @@
-import { updateHotkeyTip } from "../../protyle/util/compatibility";
-import { isMobile } from "../platform/functions";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
+import {updateHotkeyTip} from "./imports";
+import {isMobile} from "./imports";
+import {siyuanI18n} from "./imports";
 
 /**
  * 创建对话框标题HTML

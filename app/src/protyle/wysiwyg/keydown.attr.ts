@@ -1,4 +1,4 @@
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 import { rename, replaceFileName } from "../../editor/rename";
 import { openAttr } from "../../menus/commonMenuItem";
 import { matchHotKey } from "../util/hotKey";

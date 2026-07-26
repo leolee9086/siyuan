@@ -5,7 +5,7 @@
 import { focusBlock, getEditorRange } from "../util/selection";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { movePathTo } from "../../util/file/movePathTo";
+import {movePathTo} from "../../util/file/movePath/movePathTo";
 import { hintMoveBlock } from "../hint/extend";
 import { addEditorToDatabase } from "../../protyle/render/av/addToDatabase";
 import { removeBlock } from "../wysiwyg/remove";

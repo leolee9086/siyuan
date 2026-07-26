@@ -10,7 +10,7 @@
  * 使用范围：getHightlightCoordsByRange中处理跨页选区时需要聚焦到克隆的Range
  * 解耦评估：依赖DOM操作和Selection API，无法通过参数传递解耦，必须直接调用以确保选区正确聚焦
  */
-import { focusByRange } from "../../ai/imports";
+import {focusByRange} from "../../protyle/util/selection";
 
 /**
  * 用途：查找最近的具有指定className的祖先元素，用于定位Range所在的PDF页面元素

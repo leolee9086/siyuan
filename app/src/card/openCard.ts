@@ -14,7 +14,7 @@ import {ipcSend} from "../platform/electron/ipcRenderer";
 import {platform, isElectron} from "../platform";
 import * as dayjs from "dayjs";
 import {getDisplayName} from "../util/file/pathName";
-import { movePathTo } from "../util/file/movePathTo";
+import {movePathTo} from "../util/file/movePath/movePathTo";
 import type { AppFacade } from "../app/AppFacade.types";
 import {resize} from "../protyle/util/resize";
 import {setStorageVal} from "../protyle/util/compatibility";

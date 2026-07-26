@@ -48,8 +48,13 @@ export const platform: Platform = typeof __SFORGE_PLATFORM__ === "undefined"
 /** 是否运行在浏览器环境（非 Electron），等价于原 BROWSER 分支 */
 export const isBrowser: boolean = platform !== "electron";
 
-/** 是否运行在移动端，等价于原 MOBILE 分支 */
+/** 是否运行在移动端，等价于原 MOBILE 分支。 */
 export const isMobile: boolean = platform === "browser-mobile";
+
+/** 查询构建目标是否为移动平台；明确区别于 util/platform/functions 中的 DOM 查询。 @同步豁免: 性能考虑 */
+export function isMobilePlatform() {
+    return isMobile;
+}
 
 /** 是否运行在 Electron 桌面端，等价于原非 BROWSER 分支 */
 export const isElectron: boolean = platform === "electron";

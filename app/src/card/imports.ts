@@ -9,7 +9,7 @@
  * 使用范围：获取文档信息、文档内容等API调用
  * 解耦评估：fetchPost是底层网络请求工具，无法通过依赖注入解耦，必须直接导入
  */
-import { fetchPost } from "../ai/imports";
+import {fetchPost} from "../util/network/fetch";
 
 /**
  * 用途：提供应用常量定义

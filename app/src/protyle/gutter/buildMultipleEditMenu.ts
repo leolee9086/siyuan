@@ -5,7 +5,7 @@
 import { MenuItem } from "../../menus/Menu.Item";
 import { removeBlock } from "../wysiwyg/remove";
 import { focusBlock, getEditorRange } from "../util/selection";
-import { movePathTo } from "../../util/file/movePathTo";
+import {movePathTo} from "../../util/file/movePath/movePathTo";
 import { hintMoveBlock } from "../hint/extend";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

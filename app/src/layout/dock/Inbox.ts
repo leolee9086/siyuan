@@ -10,7 +10,7 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { replaceFileName } from "../../editor/rename";
 import { getDisplayName, pathPosix } from "../../util/file/pathName";
-import { movePathTo } from "../../util/file/movePathTo";
+import {movePathTo} from "../../util/file/movePath/movePathTo";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { getCloudURL } from "../../config/util/about";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";

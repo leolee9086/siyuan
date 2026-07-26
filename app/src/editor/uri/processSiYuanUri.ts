@@ -17,8 +17,11 @@ import {openFile} from "./imports";
 /** 用途：完整应用外观。使用范围：URI 块与插件分发。解耦评估：直接依赖应用领域根，不经 Editor 聚合网关反向加载布局实现。 */
 import type {AppFacade} from "./imports";
 
-/** 根据折叠和聚焦状态选择块导航动作；URI 块确认存在后用于保持原定位语义。 */
-const getSiYuanUriAction = (zoomIn: boolean, focus: boolean) => {
+/**
+ * 根据折叠和聚焦状态选择块导航动作；URI 块确认存在后用于保持原定位语义。
+ * @显式返回类型原因: AppFacade 块导航协议要求 TProtyleAction 数组，固定返回类型可防止数组字面量被拓宽为任意 string。
+ */
+const getSiYuanUriAction = (zoomIn: boolean, focus: boolean): TProtyleAction[] => {
     if (zoomIn || focus) {
         return [Constants.CB_GET_FOCUS, Constants.CB_GET_HL, Constants.CB_GET_ALL];
     }
@@ -32,7 +35,7 @@ const openSiYuanUriBlock = (
     zoomIn: boolean,
 ) => {
     const action = getSiYuanUriAction(zoomIn, blockInfo.focus);
-    app.openSiYuanBlock({
+    app.openBlock({
         id: blockInfo.id,
         action,
         zoomIn: zoomIn || blockInfo.focus,

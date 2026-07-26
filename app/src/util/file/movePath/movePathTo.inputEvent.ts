@@ -1,10 +1,10 @@
-import { Constants } from "../../constants";
-import { unicode2Emoji } from "../../emoji";
-import { escapeHtml } from "../DOM/escape";
-import { fetchPost } from "../network/fetch";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { SearchResultItem } from "./movePathTo.types";
+import {Constants} from "./imports";
+import {unicode2Emoji} from "./imports";
+import {escapeHtml} from "./imports";
+import {fetchPost} from "./imports";
+import {siyuanI18n} from "./imports";
+import {getSiyuanStorage} from "./imports";
+import type {SearchResultItem} from "./model/movePathTo.types";
 
 /**
  * 创建搜索输入事件处理函数

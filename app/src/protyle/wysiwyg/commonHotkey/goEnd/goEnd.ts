@@ -1,10 +1,11 @@
-import { fetchPost } from "../../../ai/imports";
-import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { focusBlock } from "../../util/selection";
-import { handleGoEndResponse } from "./commonHotkeyHelper";
-import { calibur } from "calibur-router";
-import { type } from "arktype";
-import { GoEndCommand, type GoEndState } from "./types";
+import {fetchPost} from "./imports";
+import {getSiyuanConfig} from "./imports";
+import {focusBlock} from "./imports";
+import {handleGoEndResponse} from "./imports";
+import {calibur} from "./imports";
+import {type} from "./imports";
+import {GoEndCommand} from "./imports";
+import type {GoEndState} from "./imports";
 
 // ============================================================================
 // 路由器定义

@@ -66,14 +66,14 @@ import { genListItemElement } from "../protyle/wysiwyg/list";
  * 解耦评估：可通过参数传入目标元素解耦，但调用方统一基于块节点处理，
  * 由 block 模块集中转发可降低重复依赖声明。
  */
-import { getContenteditableElement } from "../ai/imports";
+import {getContenteditableElement} from "../protyle/wysiwyg/getBlock";
 /*
  * 用途：在嵌入块需要重建面包屑时触发块渲染。
  * 使用范围：block/util.cancelSB.ts 处理 NodeBlockQueryEmbed 分支。
  * 解耦评估：可通过事件发射触发渲染解耦，但当前渲染依赖 protyle 上下文，
  * 直接复用核心渲染函数可避免事件链路额外开销。
  */
-import { blockRender } from "../ai/imports";
+import {blockRender} from "../protyle/render/blockRender";
 /*
  * 用途：在超级块结构变更后重新渲染数学公式。
  * 使用范围：block/util.cancelSB.ts 完成节点移动后统一重绘。

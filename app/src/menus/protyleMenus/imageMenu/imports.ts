@@ -18,7 +18,7 @@ export { dayjs };
  * 使用范围：OCR 读取与更新、资源评分读写等动作。
  * 解耦评估：网络请求入口统一，业务层仅表达意图，不关心底层传输细节。
  */
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "../../../util/network/fetch";
 /** 导出 fetchPost 供 imageMenu 子模块复用 */
 export { fetchPost };
 

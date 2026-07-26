@@ -20,7 +20,7 @@ export { dayjs };
  * 使用范围：复制、剪切、链接编辑结束后的焦点恢复
  * 解耦评估：编辑器核心能力，短期不适合注入替换；通过转发层降低直接耦合
  */
-import { focusByRange } from "../../../ai/imports";
+import {focusByRange} from "../../../protyle/util/selection";
 /** 导出 focusByRange 供链接菜单处理焦点 */
 export { focusByRange };
 

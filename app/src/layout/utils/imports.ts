@@ -62,3 +62,8 @@ export { siyuanI18n };
 import {createEditor} from "../../editor/factory/createEditor.factory";
 /** 导出编辑器创建工厂，供布局页签装配使用。 */
 export {createEditor};
+
+/** 用途：恢复浏览器选区。使用范围：布局尺寸调整结束；解耦评估：稳定 Protyle 选区实现。 */
+import {focusByRange} from "../../protyle/util/selection";
+/** 导出选区恢复能力。 */
+export {focusByRange};

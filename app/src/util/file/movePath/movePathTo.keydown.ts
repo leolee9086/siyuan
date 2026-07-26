@@ -1,8 +1,8 @@
-import { Constants } from "../../constants";
-import { matchHotKey } from "../../protyle/util/hotKey";
-import { Dialog } from "../../dialog";
-import { getLeaf } from "./pathName";
-import { getSiyuanGlobalMenus } from "../siyuanEnvironments/getMenu.environment";
+import {Constants} from "./imports";
+import {matchHotKey} from "./imports";
+import {Dialog} from "./imports";
+import {getLeaf} from "./imports";
+import {getSiyuanGlobalMenus} from "./imports";
 
 /**
  * 创建键盘事件处理器

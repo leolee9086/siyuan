@@ -62,7 +62,7 @@ import { JSONToCenter } from "./layout/layout-deserialization";
 import { Wnd } from "./layout/Wnd";
 /** 用途：为完整 App 实例附加 AppFacade 厂牌；使用范围：应用组合根与下层宿主类型边界；解耦评估：仅导入稳定厂牌值，不反向加载具体业务实现。 */
 import {appFacadeBrand} from "./app/AppFacade.types";
-import type {AppSiYuanBlockNavigation} from "./app/AppFacade.types";
+import type {AppBlockNavigation} from "./app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "./asset/open/openAsset.types";
 import {openAsset} from "./asset/open/openAsset";
@@ -80,7 +80,7 @@ export class App {
     public openAsset(options: AssetOpenOptions) {
         openAsset(this, options);
     }
-    public openSiYuanBlock(options: AppSiYuanBlockNavigation) {
+    public openBlock(options: AppBlockNavigation) {
         void openFileById({app: this, ...options});
     }
     public processSiYuanUri(uri: string) {

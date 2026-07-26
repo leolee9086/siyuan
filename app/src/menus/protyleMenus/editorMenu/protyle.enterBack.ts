@@ -5,24 +5,6 @@
  */
 import { Constants } from "./imports";
 /**
- * 用途：桌面端打开上级文档
- * 使用范围：非移动端回退分支
- * 解耦评估：通过本地转发层保持依赖边界清晰
- */
-import { openFileById } from "./imports";
-/**
- * 用途：移动端打开上级文档
- * 使用范围：移动端回退分支
- * 解耦评估：通过本地转发层隔离跨目录依赖
- */
-import { openMobileFileById } from "./imports";
-/**
- * 用途：判断当前是否移动端
- * 使用范围：选择桌面/移动端回退实现
- * 解耦评估：平台判断能力从转发层获取，降低路径耦合
- */
-import { isMobile } from "./imports";
-/**
  * 用途：执行退出聚焦导航
  * 使用范围：showAll 且存在父块时回退到上级块
  * 解耦评估：同目录业务函数保持直接依赖，避免 imports.ts 混入内部实现
@@ -62,15 +44,10 @@ export const enterBack = (protyle: IProtyle, id: string) => {
     if (!parentId) {
         return;
     }
-    // 移动端使用移动端文件打开方式
-    if (isMobile) {
-        openMobileFileById(protyle.app, parentId, [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]);
-        return;
-    }
-    // 桌面端使用标准文件打开方式
-    openFileById({
-        app: protyle.app,
+    // 完整 App 根据当前桌面或移动宿主执行对应块导航实现。
+    protyle.app.openBlock({
         id: parentId,
-        action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
+        action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
+        zoomIn: false,
     });
 };

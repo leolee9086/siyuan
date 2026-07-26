@@ -1,5 +1,6 @@
 import type { AppFacade } from "../../app/AppFacade.types";
-import { getContenteditableElement, focusByRange } from "../../ai/imports";
+import {getContenteditableElement} from "./imports";
+import {focusByRange} from "./imports";
 import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
 import { Editor } from "../../editor";

@@ -4,7 +4,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { updateHotkeyTip } from "../util/compatibility";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";
-import { goEnd } from "../wysiwyg/commonHotkey/goEnd";
+import {goEnd} from "../wysiwyg/commonHotkey/goEnd/goEnd";
 import { showTooltip } from "../runtime/dialog.port";
 import { isBrowser } from "../../platform";
 import {withEncryptedNotebook} from "../../util/pathName";

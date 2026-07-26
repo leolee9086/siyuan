@@ -1,5 +1,5 @@
 import * as dayjs from "dayjs";
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 import { Constants } from "../../constants";
 import { Dialog } from "../../dialog";
 import { showMessage } from "../../dialog/message";

@@ -1,5 +1,5 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../../ai/imports";
+import {focusByRange} from "./imports";
 import { Constants } from "../../constants";
 import { Dialog } from "../../dialog";
 import { getAllEditor } from "../../layout/getAll";

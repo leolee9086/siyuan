@@ -1,4 +1,4 @@
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 import { newFileBySelect, getRefCreateSavePath } from "../../util/file/newFile";
 import { newFileContentBySelect } from "../../editor/rename";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

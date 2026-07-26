@@ -1,6 +1,7 @@
-import { setStorageVal } from "../../ai/imports";
-import { Constants } from "../../constants";
-import { getSiyuanConfig, getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
+import {setStorageVal} from "./imports";
+import {Constants} from "./imports";
+import {getSiyuanConfig} from "./imports";
+import {getSiyuanStorage} from "./imports";
 
 /**
  * 创建输入框失焦事件处理器

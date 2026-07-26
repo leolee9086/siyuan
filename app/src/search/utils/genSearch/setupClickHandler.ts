@@ -8,11 +8,11 @@ import {
     handleRemoveCriterion,
     handleSetCriteria,
     handleRemoveCriteria,
-} from "./handlers/handleCriteriaClick";
+} from "./handlers/path/handleCriteriaClick";
 import { handleNextPage, handlePreviousPage } from "./handlers/handlePaginationClick";
 import { handleSearchExpand, handleSearchCollapse } from "./handlers/handleExpandCollapseClick";
 import { handleSearchPin } from "./handlers/handlePinClick";
-import { handleSearchPath, handleRemovePath, handleSearchInclude } from "./handlers/handlePathClick";
+import { handleSearchPath, handleRemovePath, handleSearchInclude } from "./handlers/path/handlePathClick";
 import {
     handleSearchReplace,
     handleReplaceFilter,

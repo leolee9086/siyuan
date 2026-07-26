@@ -1,4 +1,4 @@
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 import { rectElement } from "./state/selection";
 import { getConfig } from "./config";
 import { AnnoConstants } from "./constants";

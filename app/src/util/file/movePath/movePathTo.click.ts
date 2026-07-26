@@ -1,10 +1,9 @@
-import { Dialog } from "../../dialog";
-import { isOnlyMeta } from "../../protyle/util/compatibility";
-import { isHTMLElement } from "../DOM/element.guard";
-import { getLeaf } from "./pathName";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
-import { ClickHandlerContext } from "./movePathTo.types";
-import {isMobile} from "../../platform";
+import {isOnlyMeta} from "./imports";
+import {isHTMLElement} from "./imports";
+import {getLeaf} from "./imports";
+import {siyuanI18n} from "./imports";
+import type {ClickHandlerContext} from "./model/movePathTo.types";
+import {isMobilePlatform} from "./imports";
 
 /**
  * 创建点击事件处理器
@@ -12,7 +11,7 @@ import {isMobile} from "../../platform";
 export function 创建点击事件处理器(context: ClickHandlerContext) {
     return (event: MouseEvent) => {
         处理点击目标(event, context);
-        if (!isMobile) {
+        if (!isMobilePlatform()) {
             context.inputElement.focus();
         }
     };
@@ -45,7 +44,7 @@ function 分派点击处理(target: HTMLElement, params: {
     searchTreeElement: HTMLElement;
     toggleMovePathHistory: () => void;
     options: ClickHandlerContext["options"];
-    dialog: Dialog;
+    dialog: ClickHandlerContext["dialog"];
     event: MouseEvent;
 }): boolean {
     const { searchListElement, searchTreeElement, toggleMovePathHistory, options, dialog, event } = params;
@@ -91,7 +90,7 @@ function 处理确认按钮点击(
     searchListElement: HTMLElement,
     searchTreeElement: HTMLElement,
     options: { cb: (toPath: string[], toNotebook: string[]) => void },
-    dialog: Dialog,
+    dialog: ClickHandlerContext["dialog"],
     event: MouseEvent
 ) {
     const currentPanelElement = searchListElement.classList.contains("fn__none") ? searchTreeElement : searchListElement;

@@ -1,11 +1,11 @@
-import { Dialog } from "../../dialog";
+import {Dialog} from "./imports";
 import { 创建搜索输入处理器 } from "./movePathTo.inputEvent";
 import { 创建历史菜单切换器 } from "./movePathTo.toggleHistory";
 import { 创建键盘事件处理器 } from "./movePathTo.keydown";
 import { 创建点击事件处理器 } from "./movePathTo.click";
 import { 创建失焦事件处理器 } from "./movePathTo.blur";
 
-import { MovePathToOptions } from "./movePathTo.types";
+import type {MovePathToOptions} from "./model/movePathTo.types";
 
 /**
  * 绑定所有事件监听器到对话框

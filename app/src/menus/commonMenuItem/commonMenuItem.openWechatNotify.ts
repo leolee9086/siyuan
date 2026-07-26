@@ -1,5 +1,6 @@
 import * as dayjs from "dayjs";
-import { focusByRange, fetchPost } from "../../ai/imports";
+import {focusByRange} from "./imports";
+import {fetchPost} from "./imports";
 import { Constants } from "../../constants";
 import { Dialog } from "../../dialog";
 import { showMessage } from "../../dialog/message";

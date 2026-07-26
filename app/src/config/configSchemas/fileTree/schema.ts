@@ -1,8 +1,8 @@
-import z from "zod";
-import { fetchPost } from "../../ai/imports";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { computed } from "vue";
+import {z} from "./imports";
+import {fetchPost} from "./imports";
+import {getSiyuanConfig} from "./imports";
+import {siyuanI18n} from "./imports";
+import {computed} from "./imports";
 // 通用的计算属性构建器
 
 const buildComputed = <K extends keyof Config.IConf["fileTree"]>(key: K) => {
@@ -131,13 +131,3 @@ export const schema = z.object({
         }
     }
 );
-
-const parseAsConfig = (rawConf: object): Config.IConf["fileTree"] => {
-    const result = schema.safeParse(rawConf);
-
-    if (!result.success) {
-        throw new Error(`配置解析失败: ${result.error.message}`);
-    }
-
-    return result.data;
-};

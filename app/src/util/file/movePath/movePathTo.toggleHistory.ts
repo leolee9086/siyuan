@@ -1,12 +1,12 @@
-import { isStringArray } from "./movePathTo.guard";
-import { setStorageVal } from "../../ai/imports";
-import { Constants } from "../../constants";
-import { Menu } from "../../plugin/Menu";
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { getSiyuanGlobalMenus } from "../siyuanEnvironments/getMenu.environment";
-import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
-import { escapeHtml } from "../DOM/escape";
+import {isStringArray} from "./model/movePathTo.guard";
+import {setStorageVal} from "./imports";
+import {Constants} from "./imports";
+import {Menu} from "./imports";
+import {hasClosestByClassName} from "./imports";
+import {getSiyuanGlobalMenus} from "./imports";
+import {getSiyuanStorage} from "./imports";
+import {siyuanI18n} from "./imports";
+import {escapeHtml} from "./imports";
 
 /**
  * 创建切换移动路径历史记录菜单的处理函数

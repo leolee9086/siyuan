@@ -47,7 +47,7 @@ const createApp = () => createAppFacade<Siyuan.Plugin, EventBus>({
     eventBus: new EventBus("uri-test"),
     pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
     openAsset: vi.fn(),
-    openSiYuanBlock: vi.fn(),
+    openBlock: vi.fn(),
     processSiYuanUri: vi.fn(() => false),
 });
 
@@ -67,7 +67,7 @@ describe("Editor SiYuan URI dispatch", () => {
 
         expect(processSiYuanUri(app, "https://example.com")).toBe(false);
         expect(services.fetchPost).not.toHaveBeenCalled();
-        expect(app.openSiYuanBlock).not.toHaveBeenCalled();
+        expect(app.openBlock).not.toHaveBeenCalled();
     });
 
     it("keeps block existence, fold and foreground ordering while delegating host navigation", () => {
@@ -85,7 +85,7 @@ describe("Editor SiYuan URI dispatch", () => {
             "/api/block/checkBlockExist",
             "/api/block/checkBlockFold",
         ]);
-        expect(app.openSiYuanBlock).toHaveBeenCalledWith({
+        expect(app.openBlock).toHaveBeenCalledWith({
             id: "20260726000000-uri0001",
             action: ["focus", "highlight", "all"],
             zoomIn: true,

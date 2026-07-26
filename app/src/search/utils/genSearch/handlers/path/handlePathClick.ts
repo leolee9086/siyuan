@@ -2,13 +2,14 @@
  * @fileoverview 路径选择相关点击处理
  */
 
-import { fetchPost } from "../../../../ai/imports";
-import type {ProtyleDomain} from "../../../../protyle/protyle.types";
-import { escapeHtml } from "../../../../util/DOM/escape";
-import { getNotebookName, pathPosix } from "../../../../util/file/pathName";
-import { movePathTo } from "../../../../util/file/movePathTo";
-import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { inputEvent } from "../../../inputEvent";
+import {fetchPost} from "./imports";
+import type {ProtyleDomain} from "./imports";
+import {escapeHtml} from "./imports";
+import {getNotebookName} from "./imports";
+import {pathPosix} from "./imports";
+import {movePathTo} from "./imports";
+import {siyuanI18n} from "./imports";
+import {inputEvent} from "./imports";
 
 /**
  * 处理路径选择点击
@@ -24,17 +25,26 @@ export function handleSearchPath(
     movePathTo({
         cb: (toPath, toNotebook) => {
             fetchPost("/api/filetree/getHPathsByPaths", { paths: toPath }, (response) => {
-                config.idPath = [];
+                const idPath: string[] = [];
+                config.idPath = idPath;
                 const hPathList: string[] = [];
                 let enableIncludeChild = false;
 
                 toPath.forEach((item, index) => {
                     if (item === "/") {
-                        config.idPath.push(toNotebook[index]);
-                        hPathList.push(getNotebookName(toNotebook[index]));
+                        const notebookId = toNotebook[index];
+                        if (!notebookId) {
+                            throw new Error(`Missing notebook identity for selected path at index ${index}`);
+                        }
+                        idPath.push(notebookId);
+                        hPathList.push(getNotebookName(notebookId));
                     } else {
                         enableIncludeChild = true;
-                        config.idPath.push(pathPosix().join(toNotebook[index], item.replace(".sy", "")));
+                        const notebookId = toNotebook[index];
+                        if (!notebookId) {
+                            throw new Error(`Missing notebook identity for selected path at index ${index}`);
+                        }
+                        idPath.push(pathPosix().join(notebookId, item.replace(".sy", "")));
                     }
                 });
 
@@ -115,17 +125,21 @@ export function handleSearchInclude(
 
     const svgElement = target.firstElementChild;
     svgElement?.classList.toggle("ft__primary");
+    const idPath = config.idPath;
+    if (!idPath) {
+        throw new Error("Search path state is not initialized");
+    }
 
     if (!svgElement?.classList.contains("ft__primary")) {
-        config.idPath.forEach((item, index) => {
+        idPath.forEach((item, index) => {
             if (!item.endsWith(".sy") && item.split("/").length > 1) {
-                config.idPath[index] = item + ".sy";
+                idPath[index] = item + ".sy";
             }
         });
     } else {
-        config.idPath.forEach((item, index) => {
+        idPath.forEach((item, index) => {
             if (item.endsWith(".sy")) {
-                config.idPath[index] = item.replace(".sy", "");
+                idPath[index] = item.replace(".sy", "");
             }
         });
     }

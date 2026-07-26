@@ -1,9 +1,9 @@
-import { Constants } from "../../constants";
-import { unicode2Emoji } from "../../emoji";
-import { escapeHtml } from "../DOM/escape";
-import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { NotebookItem } from "./movePathTo.types";
+import {Constants} from "./imports";
+import {unicode2Emoji} from "./imports";
+import {escapeHtml} from "./imports";
+import {siyuanI18n} from "./imports";
+import {getSiyuanStorage} from "./imports";
+import type {NotebookItem} from "./model/movePathTo.types";
 
 /**
  * 渲染笔记本列表HTML

@@ -28,3 +28,13 @@ export { getSafeSiyuanUser };
 import { getSiyuanConfig } from "../siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanConfig，供 platform 模块使用 */
 export { getSiyuanConfig };
+
+/** 用途：取得块的可编辑元素。使用范围：焦点栈恢复；解耦评估：稳定 Protyle DOM 查询。 */
+import {getContenteditableElement} from "../../protyle/wysiwyg/getBlock";
+/** 导出可编辑元素查询。 */
+export {getContenteditableElement};
+
+/** 用途：恢复 Range 焦点。使用范围：焦点栈恢复；解耦评估：稳定 Protyle 选区实现。 */
+import {focusByRange} from "../../protyle/util/selection";
+/** 导出 Range 焦点恢复。 */
+export {focusByRange};

@@ -1,4 +1,4 @@
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 import { Constants } from "../../constants";
 import { writeText } from "../../protyle/util/compatibility";
 import { rectElement } from "./state/selection";

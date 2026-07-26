@@ -1,5 +1,5 @@
 import type { AppFacade } from "../../../app/AppFacade.types";
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "./imports";
 import { openCardByData } from "../../../card/openCard";
 import { Constants } from "../../../constants";
 import { deleteFiles } from "../../../editor/deleteFile";

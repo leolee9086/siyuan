@@ -19,7 +19,7 @@ import {hasClosestBlock, hasClosestByClassName, hasTopClosestByTag} from "../../
 import {onlyProtyleCommand} from "./protyle";
 import {globalCommand} from "./global";
 import {getDisplayName, getNotebookName, getTopPaths, moveToPath, pathPosix} from "../../../util/file/pathName";
-import { movePathTo } from "../../../util/file/movePathTo";
+import {movePathTo} from "../../../util/file/movePath/movePathTo";
 import {hintMoveBlock} from "../../../protyle/hint/extend";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusByRange} from "../../../protyle/util/selection";

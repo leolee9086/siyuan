@@ -1,17 +1,17 @@
-import { focusByRange } from "../../ai/imports";
-import { Constants } from "../../constants";
-import { Dialog } from "../../dialog";
-import { escapeHtml } from "../DOM/escape";
-import { fetchPost } from "../network/fetch";
-import { isMobile } from "../platform/functions";
-import {platform} from "../../platform";
-import { setNoteBook } from "./pathName";
+import {focusByRange} from "./imports";
+import {Constants} from "./imports";
+import {Dialog} from "./imports";
+import {escapeHtml} from "./imports";
+import {fetchPost} from "./imports";
+import {isMobile} from "./imports";
+import {platform} from "./imports";
+import {setNoteBook} from "./imports";
 import { 创建对话框标题HTML, 创建对话框内容HTML } from "./movePathTo.template";
 import { 渲染笔记本列表HTML } from "./movePathTo.notebook";
 import { 绑定事件监听器 } from "./movePathTo.bindEvents";
-import { MovePathToOptions } from "./movePathTo.types";
-import { getSiyuanDialogs } from "../siyuanEnvironments/getDialog.environment";
-import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
+import type {MovePathToOptions} from "./model/movePathTo.types";
+import {getSiyuanDialogs} from "./imports";
+import {getSiyuanStorage} from "./imports";
 
 
 /**

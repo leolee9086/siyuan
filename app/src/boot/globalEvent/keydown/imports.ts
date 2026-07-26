@@ -18,7 +18,7 @@ export type { AppFacade };
  * 使用范围：供键盘导航流程按焦点项查询完整文档路径等场景使用。
  * 解耦评估：网络请求属于基础设施能力，理论上可通过 service 注入进一步抽象，但当前目录是事件入口层，保留经由网关转发的直接依赖能在不扩大参数面的前提下维持清晰边界。
  */
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "../../../util/network/fetch";
 /** 导出 [`fetchPost`](app/src/boot/globalEvent/keydown/imports.ts:25) 供 `keydown` 目录请求流程复用。 */
 export { fetchPost };
 

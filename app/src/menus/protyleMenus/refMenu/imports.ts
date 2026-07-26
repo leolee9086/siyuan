@@ -18,7 +18,7 @@ export { dayjs };
  * 使用范围：引用文本回填、交换块、文档加载等流程。
  * 解耦评估：网络请求统一入口，业务文件无需关心底层实现。
  */
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "../../../util/network/fetch";
 /** 导出 fetchPost 供 refMenu 子模块复用 */
 export { fetchPost };
 
@@ -27,7 +27,7 @@ export { fetchPost };
  * 使用范围：菜单关闭后恢复光标、复制剪切前聚焦。
  * 解耦评估：选区能力集中在工具层，转发层可降低业务耦合。
  */
-import { focusByRange } from "../../../ai/imports";
+import {focusByRange} from "../../../protyle/util/selection";
 /** 导出 focusByRange 供 refMenu 子模块复用 */
 export { focusByRange };
 
@@ -36,7 +36,7 @@ export { focusByRange };
  * 使用范围：引用转换为块嵌入后重新渲染文档。
  * 解耦评估：渲染入口统一，业务侧只表达“需要重渲染”的意图。
  */
-import { blockRender } from "../../../ai/imports";
+import {blockRender} from "../../../protyle/render/blockRender";
 /** 导出 blockRender 供 refMenu 子模块复用 */
 export { blockRender };
 

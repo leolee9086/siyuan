@@ -14,24 +14,6 @@ import { Constants } from "../../../constants";
 export { Constants };
 
 /**
- * 用途：桌面端打开文档
- * 使用范围：enterBack 桌面分支回退到上级文档
- * 解耦评估：文档打开能力属于编辑器核心流程，暂不适合注入替换；通过转发层收敛耦合
- */
-import { openFileById } from "../../../editor/utils.openFileById";
-/** 导出 openFileById 供 enterBack 桌面回退 */
-export { openFileById };
-
-/**
- * 用途：移动端打开文档
- * 使用范围：enterBack 移动端分支回退到上级文档
- * 解耦评估：移动端导航能力与平台实现绑定，当前通过转发层减少业务文件跨层依赖
- */
-import { openMobileFileById } from "../../../mobile/editor";
-/** 导出 openMobileFileById 供 enterBack 移动端回退 */
-export { openMobileFileById };
-
-/**
  * 用途：平台端类型判断
  * 使用范围：enterBack/zoomOut 根据是否移动端决定分支
  * 解耦评估：平台判断依赖稳定，转发层可避免业务文件直接感知上层路径
@@ -117,7 +99,7 @@ export { dayjs };
  * 使用范围：inlineMathMenu copy/cut 前聚焦到行内公式节点
  * 解耦评估：编辑器选区能力短期不适合替换，转发层可减少路径耦合
  */
-import { focusByRange } from "../../../ai/imports";
+import {focusByRange} from "../../../protyle/util/selection";
 /** 导出 focusByRange 供 inlineMathMenu 聚焦选区 */
 export { focusByRange };
 
@@ -153,7 +135,7 @@ export { updateTransaction };
  * 使用范围：zoomOut 更新 LOCAL_DOCINFO 等运行态缓存
  * 解耦评估：存储写入接口已封装，转发层减少业务代码直接耦合实现路径
  */
-import { setStorageVal } from "../../../ai/imports";
+import {setStorageVal} from "../../../util/storage/setStorageVal";
 /** 导出 setStorageVal 供 zoomOut 写入缓存 */
 export { setStorageVal };
 
@@ -162,7 +144,7 @@ export { setStorageVal };
  * 使用范围：zoomOut 拉取文档内容与聚焦补偿数据
  * 解耦评估：网络请求能力由统一封装提供，转发层保持调用边界稳定
  */
-import { fetchPost } from "../../../ai/imports";
+import {fetchPost} from "../../../util/network/fetch";
 /** 导出 fetchPost 供 zoomOut 请求文档数据 */
 export { fetchPost };
 

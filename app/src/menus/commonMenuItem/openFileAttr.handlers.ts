@@ -8,7 +8,7 @@ import { isMobile, isValidCustomAttrName } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bindAttrInput } from "./util.bindAttrInput";
 import { MenuItem } from "../Menu.Item";
-import { fetchPost } from "../../ai/imports";
+import {fetchPost} from "./imports";
 
 
 export const handleTabSwitch = (target: HTMLElement, dialog: Dialog, attrs: IObject, protyle?: IProtyle, ghostProtyle?: Protyle) => {

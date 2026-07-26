@@ -1,5 +1,5 @@
 /** 用途：描述移动路径流程使用的对话框生命周期与根元素；使用范围：仅限移动路径事件上下文；解耦评估：依赖 Dialog 领域契约，由创建方传入实例，不依赖具体构造和布局实现。 */
-import type {IDialog} from "../../dialog/dialog.types";
+import type {IDialog} from "./imports";
 
 /** 点击事件处理器的上下文类型 */
 export type ClickHandlerContext = {

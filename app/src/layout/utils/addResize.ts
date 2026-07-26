@@ -1,4 +1,4 @@
-import { focusByRange } from "../../ai/imports";
+import {focusByRange} from "./imports";
 import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";

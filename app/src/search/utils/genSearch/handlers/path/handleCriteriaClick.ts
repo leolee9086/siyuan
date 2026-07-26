@@ -2,11 +2,12 @@
  * @fileoverview 搜索条件相关点击处理
  */
 
-import { fetchPost } from "../../../../ai/imports";
-import { Constants } from "../../../../constants";
-import type {ProtyleDomain} from "../../../../protyle/protyle.types";
-import {getDefaultSubType, getDefaultType} from "../../../defaults/searchDefaults";
-import { updateConfig } from "../../../util";
+import {fetchPost} from "./imports";
+import {Constants} from "./imports";
+import type {ProtyleDomain} from "./imports";
+import {getDefaultSubType} from "./imports";
+import {getDefaultType} from "./imports";
+import {updateConfig} from "./imports";
 
 /**
  * 获取默认配置对象
