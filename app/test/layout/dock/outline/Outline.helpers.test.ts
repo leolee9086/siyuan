@@ -3,6 +3,7 @@ import type {Plugin} from "siyuan";
 import {EventBus} from "../../../../src/plugin/EventBus";
 import {createAppFacade} from "../../../../src/app/AppFacade.types";
 import type {OutlineDomain} from "../../../../src/layout/dock/outline/types";
+import {outlineModelBrand} from "../../../../src/layout/dock/outline/types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "../../../../src/layout/layout.types";
 
 const editorContextRuntime = vi.hoisted(() => ({
@@ -49,6 +50,8 @@ function createOutline(type: "pin" | "local" = "local") {
         removeTab,
         moveTab: vi.fn(),
         split: vi.fn(() => wnd),
+        ensureCenterWindow: vi.fn(),
+        remove: vi.fn(),
     };
     const tab: LayoutTab = {
         id: "tab-id",
@@ -78,6 +81,7 @@ function createOutline(type: "pin" | "local" = "local") {
         processSiYuanUri: vi.fn(() => false),
     });
     const outline: OutlineDomain = {
+        [outlineModelBrand]: "Outline",
         layoutModel: true,
         ws: Object.create(WebSocket.prototype),
         reqId: 0,

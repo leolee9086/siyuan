@@ -7,13 +7,18 @@ import {
 } from "./util";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { Constants } from "../constants";
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import { newFile } from "../util/file/newFile";
-import {getFrontend} from "../util/platform/functions";
+import {getFrontend, isWindow} from "../util/platform/functions";
 import type { AppFacade } from "../app/AppFacade.types";
-import {resizeTabs} from "./tabUtil";
+import {newCenterEmptyTab, resizeTabs} from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import {saveLayout} from "./persistence/saveLayout";
 import { getInstanceById } from "./util";
+import {getWndByLayout} from "./query/layoutInstance";
+import {closeWindow} from "../window/closeWin";
+import {setTitle} from "../util/processTitle";
 import { bindHeaderDragEvents, bindPanelDragEvents } from "./Wnd.drag";
 import {
     wndSwitchTab,
@@ -240,7 +245,22 @@ export class Wnd {
         return wnd;
     }
 
-    private remove() {
+    public ensureCenterWindow() {
+        const centerLayout = window.siyuan.layout.centerLayout;
+        if (!centerLayout || getWndByLayout(centerLayout)) {
+            return;
+        }
+        if (isElectron && isWindow()) {
+            closeWindow(this.app, ipcSend);
+            return;
+        }
+        const wnd = new Wnd(this.app);
+        centerLayout.addWnd(wnd);
+        wnd.addTab(newCenterEmptyTab(this.app), false, false);
+        setTitle("", true);
+    }
+
+    public remove() {
         let layout = this.parent;
         let element = this.element;
         let id = this.id;

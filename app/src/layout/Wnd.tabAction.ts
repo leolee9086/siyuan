@@ -2,9 +2,8 @@
  * Wnd.tabAction.ts - Wnd 标签页生命周期操作
  * 从 Wnd.ts 提取的标签页移除/移动/销毁逻辑
  */
-import type { Wnd } from "./Wnd";
+import type {LayoutTab, LayoutWindow} from "./layout.types";
 import { removeOverCounter } from "./Wnd.tab";
-import { Tab } from "./Tab";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import { Editor } from "../editor";
 import { Search } from "../search";
@@ -18,23 +17,16 @@ import { hasClosestBlock } from "../protyle/util/hasClosest";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import { fetchPost } from "../util/network/fetch";
-import {
-    getInstanceById,
-    getWndByLayout,
-    layoutToJSON,
-    saveLayout,
-} from "./util";
+import {layoutToJSON} from "./persistence/layoutSerializer";
+import {saveLayout} from "./persistence/saveLayout";
 import {setTabPosition} from "../window/setHeader";
 import {setModelsHash} from "../window/modelHash/setModelsHash";
 import { getAllModels } from "./getAll";
 import { clearCounter } from "../protyle/runtime/status.port";
 import { saveScroll } from "../protyle/scroll/saveScroll";
-import { isWindow } from "../util/platform/functions";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
-import { closeWindow } from "../window/closeWin";
-import { setTitle } from "../util/processTitle";
-import {getDockByType, newCenterEmptyTab, resizeTabs} from "./tabUtil";
+import {getDockByType, resizeTabs} from "./tabUtil";
 import { clearOBG } from "./dock/util";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { setStorageVal } from "../protyle/util/compatibility";
@@ -76,7 +68,7 @@ export function destroyModel(model: ILayoutModel): void {
  * @同步豁免: 遗留代码
  */
 export function removeTabAction(
-    wnd: Wnd,
+    wnd: LayoutWindow,
     id: string,
     isBatchClose = false,
     animate = true,
@@ -113,7 +105,7 @@ export function removeTabAction(
                     item.panelElement.remove();
                 } else {
                     recordBeforeResizeTop();
-                    wnd["remove"]();
+                    wnd.remove();
                 }
                 // 关闭分屏页签后光标消失
                 const editors = getAllModels().editor;
@@ -171,21 +163,7 @@ export function removeTabAction(
             return true;
         }
     });
-    // 初始化移除窗口，但 centerLayout 还没有赋值 https://ld246.com/article/1658718634416
-    if (window.siyuan.layout.centerLayout) {
-        const centerWnd = getWndByLayout(window.siyuan.layout.centerLayout);
-        if (!centerWnd) {
-            if (isElectron && isWindow()) {
-                closeWindow(wnd["app"], ipcSend);
-                return;
-            }
-            const newWnd = new (wnd.constructor as typeof Wnd)(wnd["app"]);
-            window.siyuan.layout.centerLayout.addWnd(newWnd);
-            newWnd.addTab(newCenterEmptyTab(wnd["app"]), false, false);
-            // S-forge: 上游改进 - 支持设置空文档标题 (#17110)
-            setTitle("", true);
-        }
-    }
+    wnd.ensureCenterWindow();
     if (isSaveLayout) {
         setTabPosition();
         saveLayout();
@@ -202,7 +180,7 @@ export function removeTabAction(
  * @同步豁免: 遗留代码
  */
 export function wndRemoveTab(
-    wnd: Wnd,
+    wnd: LayoutWindow,
     id: string,
     isBatchClose = false,
     animate = true,
@@ -227,7 +205,7 @@ export function wndRemoveTab(
  * 移动标签页到当前窗口（处理光标保持、子窗口清理等）
  * @同步豁免: 遗留代码
  */
-export function wndMoveTab(wnd: Wnd, tab: Tab, nextId?: string): void {
+export function wndMoveTab(wnd: LayoutWindow, tab: LayoutTab, nextId?: string): void {
     let rangeData: {
         id: string,
         start: number,
@@ -270,7 +248,7 @@ export function wndMoveTab(wnd: Wnd, tab: Tab, nextId?: string): void {
     const oldWnd = tab.parent;
     if (oldWnd.children.length === 1) {
         oldWnd.children = [];
-        oldWnd["remove"]();
+        oldWnd.remove();
     } else {
         oldWnd.children.find((item, index) => {
             if (item.id === tab.id) {

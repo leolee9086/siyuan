@@ -33,6 +33,8 @@ export interface LayoutWindow {
     removeTab(id: string, isBatchClose?: boolean, animate?: boolean, isSaveLayout?: boolean): void;
     moveTab(tab: LayoutTab, nextId?: string): void;
     split(direction: Config.TUILayoutDirection, after?: boolean): LayoutWindow;
+    ensureCenterWindow(): void;
+    remove(): void;
 }
 
 /** Layout 页签的完整公开领域能力，关联所属窗口与挂载模型。 */
