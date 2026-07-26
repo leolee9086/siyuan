@@ -6,7 +6,7 @@ import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environ
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { assetInputEvent } from "./assets";
-import { saveAssetKeyList } from "./toggleHistory";
+import {saveAssetKeyList} from "./history/storage";
 import { genQueryHTML } from "./util";
 import { isMobile, isElectron } from "../platform";
 

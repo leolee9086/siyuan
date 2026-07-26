@@ -8,7 +8,7 @@ import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import { electronUndo } from "../../../protyle/undo";
 import { addClearButton } from "../../../util/DOM/addClearButton";
 import { inputEvent } from "../../inputEvent";
-import { saveKeyList } from "../../toggleHistory";
+import {saveKeyList} from "../../history/storage";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

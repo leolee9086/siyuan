@@ -8,7 +8,7 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {showMessage} from "../../dialog/message";
 import {reloadProtyle} from "../../protyle/util/reload";
-import {saveKeyList} from "../../search/toggleHistory";
+import {saveKeyList} from "../../search/history/storage";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export type UpdateSearchResultFn = (

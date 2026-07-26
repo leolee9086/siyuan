@@ -8,8 +8,16 @@ import {assetInputEvent} from "./assets";
 import {updateSearchResult} from "../mobile/menu/search";
 import {inputEvent} from "./util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig, getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {isMobile} from "../platform";
+/** 用途：保留资源历史保存的既有公开 API；使用范围：搜索历史菜单兼容出口；解耦评估：真实实现位于独立持久化子域，本模块只维持同一函数身份。 */
+import {saveAssetKeyList} from "./history/storage";
+/** 用途：保留搜索词历史保存的既有公开 API；使用范围：搜索历史菜单兼容出口；解耦评估：真实实现位于独立持久化子域，本模块只维持同一函数身份。 */
+import {saveKeyList} from "./history/storage";
+
+/** 导出资源搜索词历史保存能力。 */
+export {saveAssetKeyList};
+/** 导出普通搜索与替换词历史保存能力。 */
+export {saveKeyList};
 
 export const toggleReplaceHistory = (replaceInputElement: HTMLInputElement) => {
     const list = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
@@ -77,7 +85,6 @@ export const toggleReplaceHistory = (replaceInputElement: HTMLInputElement) => {
         y: rect.bottom
     });
 };
-
 export const toggleSearchHistory = (searchElement: Element, config: Config.IUILayoutTabSearchConfig, edit: ProtyleDomain) => {
     const searchInputElement = searchElement.querySelector("#searchInput, #toolbarSearch") as HTMLInputElement;
     const list = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
@@ -220,33 +227,4 @@ export const toggleAssetHistory = (assetElement: Element) => {
         x: rect.left,
         y: rect.bottom
     });
-};
-
-export const saveKeyList = (type: "keys" | "replaceKeys", value: string) => {
-    let list: string[] = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS][type];
-    list.splice(0, 0, value);
-    list = Array.from(new Set(list));
-    if (list.length > getSiyuanConfig().search.limit) {
-        list.splice(getSiyuanConfig().search.limit, list.length - getSiyuanConfig().search.limit);
-    }
-    // new Set 后需重新赋值
-    const storage = getSiyuanStorage();
-    const localSearchKeys = storage[Constants.LOCAL_SEARCHKEYS];
-    localSearchKeys[type] = list;
-    setStorageVal(Constants.LOCAL_SEARCHKEYS, localSearchKeys);
-};
-
-export const saveAssetKeyList = (inputElement: HTMLInputElement) => {
-    if (!inputElement.value) {
-        return;
-    }
-    let list: string[] = window.siyuan.storage[Constants.LOCAL_SEARCHASSET].keys;
-    list.splice(0, 0, inputElement.value);
-    list = Array.from(new Set(list));
-    if (list.length > getSiyuanConfig().search.limit) {
-        list.splice(getSiyuanConfig().search.limit, list.length - getSiyuanConfig().search.limit);
-    }
-    window.siyuan.storage[Constants.LOCAL_SEARCHASSET].k = inputElement.value;
-    window.siyuan.storage[Constants.LOCAL_SEARCHASSET].keys = list;
-    setStorageVal(Constants.LOCAL_SEARCHASSET, window.siyuan.storage[Constants.LOCAL_SEARCHASSET]);
 };

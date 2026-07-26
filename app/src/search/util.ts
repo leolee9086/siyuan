@@ -17,7 +17,7 @@ import {
 import type { AppFacade } from "../app/AppFacade.types";
 import { checkFold } from "../util/platform/noRelyPCFunction";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
-import { saveKeyList } from "./toggleHistory";
+import {saveKeyList} from "./history/storage";
 import { highlightById } from "../util/DOM/highlightById";
 import { scrollToCurrent } from "./utils/utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
