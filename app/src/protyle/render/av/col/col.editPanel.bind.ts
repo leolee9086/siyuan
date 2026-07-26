@@ -1,4 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction/submit";
+import {submitAVColumnEditTransaction} from "../../../wysiwyg/transaction/prepared/avColumnEdit";
 import {updateAttrViewCellAnimation} from "../action/animation";
 import {escapeHtml} from "../../../../util/DOM/escape";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -14,7 +14,7 @@ export const bindNameEvents = (ctx: IBindEditContext): void => {
         if (newValue === colData.name) {
             return;
         }
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action: "updateAttrViewCol",
             id: colId, avID, name: newValue, type: colData.type,
         }], [{
@@ -88,7 +88,7 @@ export const bindDescEvents = (ctx: IBindEditContext): void => {
         if (newValue === colData.desc) {
             return;
         }
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action: "setAttrViewColDesc",
             id: colId, avID, data: newValue,
         }], [{
@@ -133,7 +133,7 @@ export const bindTemplateEvents = (ctx: IBindEditContext): void => {
         if (newValue === colData.template) {
             return;
         }
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action: "updateAttrViewColTemplate",
             id: colId, avID, data: newValue, type: colData.type,
         }], [{
@@ -171,7 +171,7 @@ export const bindIncludeTimeEvent = (ctx: IBindEditContext): void => {
     // @内联回调
     includeTimeElement.addEventListener("change", () => {
         const action = colData.type === "updated" ? "setAttrViewUpdatedIncludeTime" : "setAttrViewCreatedIncludeTime";
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action, id: colId, avID, data: includeTimeElement.checked,
         }], [{
             action, id: colId, avID, data: !includeTimeElement.checked,
@@ -203,7 +203,7 @@ export const bindWrapEvent = (ctx: IBindEditContext): void => {
     }
     // @内联回调
     wrapElement.addEventListener("change", () => {
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action: "setAttrViewColWrap",
             id: colId, avID, data: wrapElement.checked,
             blockID: ctx.blockID, viewID: ctx.data.viewID,
@@ -249,7 +249,7 @@ export const bindAddOptionEvent = (ctx: IBindEditContext): void => {
             color: ((colData.options.length || 0) % 14 + 1).toString(),
             name: addOptionElement.value,
         });
-        transaction(ctx.protyle, [{
+        submitAVColumnEditTransaction(ctx.protyle, [{
             action: "updateAttrViewColOptions",
             id: colId, avID, data: colData.options,
         }], [{
@@ -274,7 +274,7 @@ export const bindDateSwitchEvents = (ctx: IBindEditContext): void => {
     if (fillCreatedElement instanceof HTMLInputElement) {
         // @内联回调
         fillCreatedElement.addEventListener("change", () => {
-            transaction(ctx.protyle, [{
+            submitAVColumnEditTransaction(ctx.protyle, [{
                 avID, action: "setAttrViewColDateFillCreated",
                 id: colId, data: fillCreatedElement.checked,
             }], [{
@@ -288,7 +288,7 @@ export const bindDateSwitchEvents = (ctx: IBindEditContext): void => {
     if (fillSpecificTimeElement instanceof HTMLInputElement) {
         // @内联回调
         fillSpecificTimeElement.addEventListener("change", () => {
-            transaction(ctx.protyle, [{
+            submitAVColumnEditTransaction(ctx.protyle, [{
                 avID, action: "setAttrViewColDateFillSpecificTime",
                 id: colId, data: fillSpecificTimeElement.checked,
             }], [{
