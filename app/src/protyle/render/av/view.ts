@@ -8,6 +8,7 @@ import {hasClosestByClassName} from "../../util/hasClosest";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getFieldsByData, getViewIcon} from "./view/metadata";
+import {getViewName} from "./view/name/resolve";
 
 // countFilterLeaves 递归统计过滤节点树中的叶子数量（分组不计入）。
 const countFilterLeaves = (filters: IAVFilter[]): number => {
@@ -376,17 +377,6 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         x: addRect.left,
         y: addRect.bottom + 8
     });
-};
-
-export const getViewName = (type: string) => {
-    switch (type) {
-        case "table":
-            return siyuanI18n.table;
-        case "gallery":
-            return siyuanI18n.gallery;
-        case "kanban":
-            return siyuanI18n.kanban;
-    }
 };
 
 export const dragoverTab = (event: DragEvent) => {

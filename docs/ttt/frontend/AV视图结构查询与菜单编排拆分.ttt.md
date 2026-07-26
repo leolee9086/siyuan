@@ -14,9 +14,10 @@
 
 ## 下一步任务
 
-1. 读取 Column Menu/Edit 经 Panel 和 AV 主图返回的最短路径，确认各边的领域所有权。
-2. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
-3. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
+1. 审计 Relation 的事务 action、调用域 DOM 更新与通用事务本地分支，判断能否使用既有 Prepared 内核建立严格关系命令。
+2. 读取 Column Menu/Edit 经 Panel 和 AV 主图返回的下一条最短路径，确认各边的领域所有权。
+3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
+4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
 
 ## 不变量
 
@@ -36,6 +37,7 @@
 ## 目标架构
 
 - `view/metadata.ts`：字段集合和内置图标映射唯一实现，无运行时外部依赖。
+- `view/name/resolve.ts`：内置视图名称映射唯一实现；经专属 `imports.ts` 直达 i18n，不加载 View 菜单事务。
 - `view.ts`：视图菜单、编辑、添加、切换和拖拽编排。
 - `view/imports.ts`：Header 外部依赖与同域元数据直达网关。
 - 消费者：按职责直达 metadata 或 View 菜单组合根。
@@ -69,6 +71,7 @@
 - **2026-07-27**：进一步删除 Panel 中只服务 Properties 的包装实现和依赖参数，字段管理渲染归入 `col/properties` 唯一实现；Emoji、DOM 转义、i18n 和列图标由该子域 `imports.ts` 直达真实所有者，禁止经另一 imports 网关中转。Panel、Drag 与列操作均直达该实现，不保留兼容导出或零碎公共类型。真实实现专项 `1/1`、Node `190/190`、Protyle 契约类型、新子域 lint、imports 多跳和 diff 检查通过。生产图 `2203 / 424 / SCC 668`，新增子域处于 SCC 外；`Panel <-> Drag` 两节点环、Properties 所在环以及 `col.operations` 与 Panel 共环均为 `0`。代表环 `423 -> 424` 是叶子路径重排，唯一循环 SCC 数仍为 `1`。
 - **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将 Rollup 配置不足的编辑导航交回唯一列菜单调用方；Filter 返回列 ID，不再反向导入 Panel。运行时专项 `1/1`、Node `190/190` 与契约类型通过；代表环 `424 -> 421`、SCC 保持 `668`，Filter/Panel 全部共环归零。
 - **2026-07-27**：综合 `col/col.ts` 的列身份、编辑生命周期和菜单编排拆为三个真实职责子域，所有消费者直达唯一所有者，旧文件及旧导入清零。原 `col.ts <-> openMenuPanel.ts` 两节点环与 Identity 子域循环归零；生产图 `2208 / 391 / SCC 649`，唯一 SCC 数仍为 `1`。新增职责节点进入既有 SCC 表明 Menu/Edit 仍经 Panel 主图返回，下一阶段依据实际最短路径继续拆分，不以代表环数量或节点搬迁冒充完成。
+- **2026-07-27**：补齐此前仍错置于 390 行 View 事务菜单根的第三项结构展示元数据 `getViewName`。唯一名称映射迁入 `view/name/resolve.ts`，Relation 搜索结果与 View 配置 HTML 直达该实现，旧根删除导出；子域网关直达 i18n，未知类型继续返回 `undefined`，每次调用仍读取当前语言。首次采用 `view/metadata` 同名目录的布局被 Node/tsx 模块解析测试立即否定并清除，最终目录不存在文件/目录遮蔽。元数据专项 `3/3`、完整 Node `199/199`、Protyle 契约类型、新子域 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过。生产图 `2258 / 321 / SCC 613`，名称实现和网关位于 SCC 外；总量保持是因为 Relation 与 View 各自仍直接提交事务，但首环已从 `relation -> view -> transaction` 缩短为真实的 `relation -> transaction`，下一阶段据此审计关系事务所有权。
 
 ## 关联任务
 

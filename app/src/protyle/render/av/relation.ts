@@ -9,7 +9,7 @@ import {updateAttrViewCellAnimation} from "./action/animation";
 import {focusBlock} from "../../util/selection";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import * as dayjs from "dayjs";
-import {getViewName} from "./view";
+import {getViewName} from "./view/name/resolve";
 import {getFieldsByData} from "./view/metadata";
 import {getColId} from "./col/identity/resolve";
 import {getFieldIdByCellElement} from "./row";
