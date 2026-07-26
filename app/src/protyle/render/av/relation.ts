@@ -3,7 +3,7 @@ import {hasClosestByClassName, hasTopClosestByClassName} from "../../util/hasClo
 import {UDLRHint, upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeLessThans, escapeHtml} from "../../../util/DOM/escape";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVRelationTransaction} from "../../wysiwyg/transaction/prepared/avRelation";
 import {updateCellsValue} from "./cell.update";
 import {updateAttrViewCellAnimation} from "./action/animation";
 import {focusBlock} from "../../util/selection";
@@ -189,7 +189,7 @@ export const updateRelation = (options: {
         }
     });
     const colNewName = (options.avElement.querySelector('[data-type="name"]') as HTMLInputElement).value;
-    transaction(options.protyle, [{
+    submitAVRelationTransaction(options.protyle, [{
         action: "updateAttrViewColRelation",
         avID: options.avID,
         keyID: colId,
@@ -581,7 +581,7 @@ class="${target.className} ariaLabel" draggable="true">${genSelectItemHTML({
                 isDetached: true,
                 text: Lute.EscapeHTMLStr(content)
             })}</button>`);
-            transaction(protyle, doOperations.concat(updateOptions.doOperations));
+            submitAVRelationTransaction(protyle, doOperations.concat(updateOptions.doOperations), []);
         }
     }
     updateCopyRelatedItems(menuElement);
