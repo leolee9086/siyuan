@@ -23,11 +23,11 @@ import { isElectron } from "./imports";
  */
 import { Constants } from "./imports";
 /**
- * 用途：提供标签页类型定义，用于标签页操作和类型检查
+ * 用途：提供完整布局页签领域类型，用于页签序列化和移除
  * 使用范围：openNewWindow 函数的参数类型
- * 解耦评估：Tab 是布局系统核心类型，当前无法解耦
+ * 解耦评估：使用已双向校验的 Layout 领域根，窗口行为无需加载具体 Tab class
  */
-import { Tab } from "./imports";
+import type {LayoutTab} from "./imports";
 /**
  * 用途：提供网络请求功能，用于与后端API通信
  * 使用范围：openNewWindowById 函数中获取块信息
@@ -148,7 +148,7 @@ const buildWindowCreationParams = (options: WindowOptions, url: string) => {
  * @param tab - 要移动到新窗口的标签页实例
  * @param options - 窗口配置选项，包括位置、宽度、高度等
  */
-export const openNewWindow = (tab: Tab, options: WindowOptions = {}) => {
+export const openNewWindow = (tab: LayoutTab, options: WindowOptions = {}) => {
     const json = {};
     layoutToJSON(tab, json);
     const windowCreator = options.windowCreator ?? defaultWindowCreator;

@@ -6,13 +6,6 @@
 import { getInstanceById } from "./imports";
 
 /**
- * 用途：从统一转发模块导入标签页类型定义
- * 使用范围：closeTab 函数中用于类型检查和操作
- * 解耦评估：依赖布局系统核心类型，当前无法解耦
- */
-import { Tab } from "./imports";
-
-/**
  * 用途：从统一转发模块导入配置访问功能
  * 使用范围：lockScreenByMode 函数中用于读取锁屏模式配置
  * 解耦评估：依赖环境配置系统，当前无法解耦
@@ -31,7 +24,9 @@ import { lockScreen } from "./imports";
  * 使用范围：handleResetTabsStyle 函数中用于类型安全的样式操作
  * 解耦评估：同目录模块，无需解耦
  */
-import { isElectronStyle } from "./init.guard";
+import {isElectronStyle} from "./init.guard";
+/** 用途：判断布局查询结果是否为完整页签。使用范围：关闭页签 IPC 分支。解耦评估：复用窗口域兼容守卫，不加载具体 Tab class。 */
+import {isTab} from "./init.guard";
 
 /**
  * 用途：从统一转发模块导入应用主类型定义
@@ -51,7 +46,7 @@ import type { AppFacade } from "./imports";
  */
 const closeTab = (ipcData: IWebSocketData) => {
     const tab = getInstanceById(ipcData.data);
-    if (!tab || !(tab instanceof Tab)) {
+    if (!isTab(tab)) {
         return;
     }
     tab.parent.removeTab(ipcData.data);

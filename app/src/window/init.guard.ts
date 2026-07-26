@@ -1,9 +1,11 @@
 /**
- * 用途：提供 Tab 类型定义，用于 isTab 类型守卫函数的运行时类型检查
- * 使用范围：本文件的 isTab 函数，用于判断实例是否为 Tab 类
- * 解耦评估：依赖布局系统核心类型，当前无法解耦
+ * 用途：提供完整布局页签类型与统一领域守卫
+ * 使用范围：isTab 兼容入口的类型声明和运行时收窄
+ * 解耦评估：复用 Layout 领域唯一守卫，窗口初始化无需加载具体 Tab class
  */
-import { Tab } from "./imports";
+import {isLayoutTab} from "./imports";
+/** 用途：声明 isTab 的完整页签返回类型。使用范围：窗口初始化与消息处理的静态收窄。解耦评估：纯类型依赖不加载具体实现。 */
+import type {LayoutTab} from "./imports";
 
 /**
  * 类型守卫函数，用于判断 CSSStyleDeclaration 是否支持 WebkitAppRegion 属性
@@ -63,10 +65,10 @@ export const isEmojiArray = (data: unknown): data is IEmoji[] => {
 };
 
 /**
- * 类型守卫函数，用于判断实例是否为 Tab 类
+ * 类型守卫函数，用于判断实例是否为完整布局页签
  * @param instance 待检测实例
  * @returns 是否为 Tab 实例
  */
-export const isTab = (instance: unknown): instance is Tab => {
-    return instance instanceof Tab;
+export const isTab = (instance: unknown): instance is LayoutTab => {
+    return typeof instance === "object" && instance !== null && isLayoutTab(instance);
 };

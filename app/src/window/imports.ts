@@ -33,11 +33,14 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { getInstanceById } from "../layout/util";
 
 /**
- * 用途：提供标签页类型定义，用于标签页操作和类型检查
- * 使用范围：onWindowsMsg.ts 等需要操作标签页的模块
- * 解耦评估：Tab 是布局系统核心类型，当前无法解耦
+ * 用途：提供完整布局页签领域类型，用于窗口操作和类型收窄
+ * 使用范围：openNewWindow.ts、init.guard.ts 等窗口子模块
+ * 解耦评估：依赖已通过双向契约校验的稳定领域根，避免窗口域加载具体 Tab class
  */
-import { Tab } from "../layout/Tab";
+import type {LayoutTab} from "../layout/layout.types";
+
+/** 用途：提供布局页签统一守卫。使用范围：窗口消息与初始化恢复流程。解耦评估：复用 Layout 领域唯一身份判断，不重复实现 class 检查。 */
+import {isLayoutTab} from "../layout/layout.types.guard";
 
 /**
  * 用途：提供平台检测功能，用于判断是否在窗口环境中运行
@@ -133,9 +136,12 @@ export { ipcSend };
 export { getInstanceById };
 
 /**
- * 导出标签页类型定义
+ * 导出完整布局页签领域类型
  */
-export { Tab };
+export type {LayoutTab};
+
+/** 导出布局页签统一守卫 */
+export {isLayoutTab};
 
 /**
  * 导出窗口环境检测功能
