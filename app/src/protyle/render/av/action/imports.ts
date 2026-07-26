@@ -14,7 +14,7 @@ import { transaction } from "../../../wysiwyg/transaction";
 export { transaction };
 
 /** 用途：复用 cell 位置子域的拖拽填充与表头刷新能力。使用范围：动画刷新模块。解耦评估：直达唯一实现，避免加载聚合入口中的 cell.update 反向动作依赖。 */
-import {addDragFill, updateHeaderCell} from "../cell/position";
+import {addDragFill, updateHeaderCell} from "../cell/decoration";
 /** 用途：判断 cell 值是否为空。使用范围：卡片布局空态回写。解耦评估：直达纯值领域唯一实现。 */
 import {cellValueIsEmpty} from "../cell.value";
 /** 用途：生成 cell HTML 与补充属性。使用范围：动画局部刷新。解耦评估：直达渲染领域唯一实现，不加载 cell 聚合入口。 */

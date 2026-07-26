@@ -1,12 +1,9 @@
 import {transaction} from "../../../wysiwyg/transaction";
 import {hasClosestByClassName} from "../../../util/hasClosest";
 import {focusBlock} from "../../../util/selection";
-import {unicode2Emoji} from "../../../../emoji";
-import {getColIconByType} from "../col/col.typeUtils";
 import {renderCell, renderCellAttr} from "./render";
 import {genCellValueByElement} from "../cell.value";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
-import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isMobile} from "../../../../platform";
 
 export const cellScrollIntoView = (blockElement: HTMLElement, cellElement: Element, onlyHeight = true) => {
@@ -88,7 +85,6 @@ export const cellScrollIntoView = (blockElement: HTMLElement, cellElement: Eleme
         }
     }
 };
-
 export const getTypeByCellElement = (cellElement: Element) => {
     if (cellElement.parentElement.classList.contains("av__gallery-field")) {
         return cellElement.getAttribute("data-dtype") as TAVCol;
@@ -98,30 +94,6 @@ export const getTypeByCellElement = (cellElement: Element) => {
         return;
     }
     return scrollElement.querySelector(".av__row--header").querySelector(`[data-col-id="${cellElement.getAttribute("data-col-id")}"]`).getAttribute("data-dtype") as TAVCol;
-};
-
-export const updateHeaderCell = (cellElement: HTMLElement, headerValue: {
-    icon?: string,
-    name?: string,
-    pin?: boolean,
-}) => {
-    if (typeof headerValue.icon !== "undefined") {
-        cellElement.dataset.icon = headerValue.icon;
-        cellElement.querySelector(".av__cellheadericon").outerHTML = headerValue.icon ? unicode2Emoji(headerValue.icon, "av__cellheadericon", true) : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(cellElement.dataset.dtype as TAVCol)}"></use></svg>`;
-    }
-    if (typeof headerValue.name !== "undefined") {
-        cellElement.querySelector(".av__celltext").textContent = headerValue.name;
-    }
-    if (typeof headerValue.pin !== "undefined") {
-        const textElement = cellElement.querySelector(".av__celltext");
-        if (headerValue.pin) {
-            if (!cellElement.querySelector(".av__cellheadericon--pin")) {
-                textElement.insertAdjacentHTML("afterend", '<svg class="av__cellheadericon av__cellheadericon--pin"><use xlink:href="#iconPin"></use></svg>');
-            }
-        } else {
-            cellElement.querySelector(".av__cellheadericon--pin")?.remove();
-        }
-    }
 };
 
 export const getPositionByCellElement = (cellElement: HTMLElement) => {
@@ -221,19 +193,5 @@ export const dragFillCellsValue = (protyle: IProtyle, nodeElement: HTMLElement, 
     focusBlock(nodeElement);
     if (doOperations.length > 0) {
         transaction(protyle, doOperations, undoOperations);
-    }
-};
-
-export const addDragFill = (cellElement: Element) => {
-    if (!cellElement) {
-        return;
-    }
-    cellElement.classList.add("av__cell--active");
-    if (!cellElement.querySelector(".av__drag-fill")) {
-        const cellType = cellElement.getAttribute("data-dtype") as TAVCol;
-        if (["template", "rollup", "lineNumber", "created", "updated"].includes(cellType)) {
-            return;
-        }
-        cellElement.insertAdjacentHTML("beforeend", `<div aria-label="${siyuanI18n.dragFill}" class="av__drag-fill ariaLabel"></div>`);
     }
 };

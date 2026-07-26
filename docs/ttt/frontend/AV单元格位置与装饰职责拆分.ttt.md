@@ -6,16 +6,15 @@
 
 ## 当前目标
 
-- [ ] 建立现有六个导出函数的调用点、依赖和行为测试基线。
-- [ ] 提取无事务的表头装饰与拖拽手柄唯一实现。
-- [ ] 解除 `action/animation -> cell/position -> transaction -> ... -> action` 长返回路径。
+- [x] 建立现有六个导出函数的调用点、依赖和行为测试基线。
+- [x] 提取无事务的表头装饰与拖拽手柄唯一实现。
+- [x] 解除 `action/animation -> cell/position -> transaction -> ... -> action` 长返回路径。
 
 ## 下一步任务
 
-1. 为 `updateHeaderCell` 与 `addDragFill` 建立 DOM 行为测试，覆盖图标、名称、固定标记和禁止拖拽类型。
-2. 将两者迁入 cell 装饰职责模块，并由 `cell.ts` 保持原静态出口。
-3. 核对 `cellScrollIntoView/getPositionByCellElement` 的滚动与坐标职责是否可共同保留。
-4. 将 `dragFillCellsValue` 的事务编排与位置查询分离，保持操作数组和焦点顺序不变。
+1. 核对 `cellScrollIntoView/getPositionByCellElement` 的滚动与坐标职责是否可共同保留。
+2. 为 `dragFillCellsValue` 建立 do/undo 数据与调用顺序测试。
+3. 将拖拽填充事务编排与位置查询分离，保持操作数组和焦点顺序不变。
 
 ## 不变量
 
@@ -34,8 +33,8 @@
 
 ## 近期计划
 
-- [ ] 装饰叶子实现与测试完成，目标 action 长环缩短或归零。
-- [ ] 新文件 lint、目标 TypeScript、Node 与 imports 多跳门禁通过。
+- [x] 装饰叶子实现与测试完成，目标 action 长环缩短或归零。
+- [x] 新文件 lint、目标 TypeScript、Node 与 imports 多跳门禁通过。
 
 ## 中期计划
 
@@ -56,3 +55,4 @@
 ## 已完成记录
 
 - **2026-07-26**：创建专项 TTT。已先将 action 网关的 cell 依赖从 `../cell` 聚合入口改为三个真实所有者，原 5 节点短环归零；确认下一层阻塞来自 `cell/position.ts` 的多职责聚合，未用临时接口或参数回调绕开。
+- **2026-07-26**：`updateHeaderCell/addDragFill` 完整迁入 `cell/decoration` 子域，专属 `imports.ts` 直达 Emoji、i18n 和 col 类型工具，未继续加载 cell 根网关中的资源与平台依赖。新增无断言的 `toTAVCol` 穷举收窄，现有 `cell.ts` 出口保持不变；action 与 `cell/position.ts` 不再共同出现在循环路径，decoration 子域位于 SCC 外。专项 `3/3` 覆盖默认图标、名称、固定标记幂等、拖拽排除和未知列类型默认值；新增文件 lint/目标类型诊断为 `0`，Node `171/171`、imports 多跳门禁与 diff 校验通过；图为 `2175` 节点、`547` 枚举环。

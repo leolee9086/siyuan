@@ -12,7 +12,8 @@ import {electronUndo} from "../../../undo";
 import {getFieldIdByCellElement} from "../row";
 import {getFieldsByData} from "../view";
 import {callMobileAppShowKeyboard} from "../../../../mobile/keyboard/mobileAppUtil";
-import {cellScrollIntoView, getTypeByCellElement, addDragFill} from "./position";
+import {cellScrollIntoView, getTypeByCellElement} from "./position";
+import {addDragFill} from "./decoration";
 import {updateCellsValue} from "../cell.update";
 
 export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[], type?: TAVCol, options?: {

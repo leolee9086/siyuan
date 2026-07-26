@@ -1,5 +1,19 @@
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
+/** 将 DOM 属性值穷举收窄为属性视图列类型，未知值按既有默认语义归入 text。 */
+/** @同步豁免: 类型守卫 */
+export const toTAVCol = (value: string | null | undefined): TAVCol => {
+    // 只接受协议声明的完整列类型集合，DOM 中的缺失值或未知值使用既有 text 默认值。
+    if (value === "text" || value === "block" || value === "number" || value === "select" ||
+        value === "mSelect" || value === "relation" || value === "rollup" || value === "date" ||
+        value === "updated" || value === "created" || value === "url" || value === "mAsset" ||
+        value === "email" || value === "phone" || value === "template" || value === "checkbox" ||
+        value === "lineNumber") {
+        return value;
+    }
+    return "text";
+};
+
 /**
  * 根据列类型获取本地化的列类型显示名称
  *
