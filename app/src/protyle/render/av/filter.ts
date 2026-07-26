@@ -8,7 +8,6 @@ import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {genCellValue} from "./cell.value";
 import * as dayjs from "dayjs";
 import {unicode2Emoji} from "../../../emoji";
-import {openMenuPanel} from "./openMenuPanel";
 import {showMessage} from "../../runtime/dialog.port";
 import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view/metadata";
@@ -174,13 +173,7 @@ export const setFilter = async (options: {
         if (!resolved) {
             showMessage(siyuanI18n.plsChoose);
             document.querySelector(".av__panel")?.remove();
-            openMenuPanel({
-                protyle: options.protyle,
-                blockElement: options.blockElement,
-                type: "edit",
-                colId: colData.id
-            });
-            return;
+            return colData.id;
         }
         filterValue = resolved;
     }

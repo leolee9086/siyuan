@@ -7,13 +7,18 @@ import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
 import {updateAttrViewCellAnimation} from "../action";
-import {Dialog} from "../../../runtime/dialog.port";
+/** 用途：从当前 Protyle 宿主创建关系删除确认框；使用范围：双向关联列删除；解耦评估：依赖完整 Dialog Port，不加载具体 Dialog class。 */
+import {getProtyleDialogPort} from "../../../runtime/dialog.port";
+/** 用途：约束关系删除对话框完整生命周期；使用范围：关系确认事件处理；解耦评估：纯类型依赖稳定领域抽象，不依赖具体实现。 */
+import type {IProtyleDialog} from "../../../runtime/dialog.port";
 import {isMobile} from "../../../../util/platform/functions";
 import {Constants} from "../../../../constants";
 import {removeColByMenu} from "./col.removeColByMenu";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isHTMLElement, isCustomEvent} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
+/** 用途：打开字段编辑 Panel；使用范围：筛选值菜单发现 Rollup 配置不足后的既有导航；解耦评估：经列子域网关直达 Panel 唯一实现，不由 Filter 反向依赖组合根。 */
+import {openMenuPanel} from "./imports";
 
 /** 生成列菜单表头项 HTML（图标+名称输入框+描述文本域），由 showColMenu 调用 @同步豁免: UI构建 */
 export const buildColHeaderLabel = (ctx: IShowColMenuContext): string => {
@@ -144,7 +149,7 @@ export const bindColHeaderEvents = (
 export const handleFilterClick = (ctx: IShowColMenuContext): void => {
     const {avID, colId, type, protyle, blockElement} = ctx;
     // @内联回调
-    fetchPost("/api/av/renderAttributeView", {id: avID}, (response) => {
+    fetchPost("/api/av/renderAttributeView", {id: avID}, async (response) => {
         const avData: IAV = response.data;
         let filter: IAVFilter | undefined;
         avData.view.filters.find((item) => {
@@ -166,10 +171,19 @@ export const handleFilterClick = (ctx: IShowColMenuContext): void => {
             avData.view.filters.push(filter);
         }
         const target = blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`);
-        // 表头单元格必须存在
-        if (target instanceof HTMLElement) {
-            setFilter({empty, filter, protyle, data: avData, blockElement, target});
+        if (!(target instanceof HTMLElement)) {
+            return;
         }
+        const editColumnId = await setFilter({empty, filter, protyle, data: avData, blockElement, target});
+        if (!editColumnId) {
+            return;
+        }
+        openMenuPanel({
+            protyle,
+            blockElement,
+            type: "edit",
+            colId: editColumnId,
+        });
     });
 };
 
@@ -217,7 +231,7 @@ export const handleSortClick = (ctx: IShowColMenuContext, order: "ASC" | "DESC")
 
 /** 处理双向关联删除确认对话框的按钮点击，由 handleDeleteColClick 调用 @同步豁免: UI构建 */
 export const handleRelationDialogAction = (
-    ctx: IShowColMenuContext, dialog: Dialog, event: Event,
+    ctx: IShowColMenuContext, dialog: IProtyleDialog, event: Event,
 ): void => {
     if (!isHTMLElement(event.target)) {
         return;
@@ -269,7 +283,7 @@ export const handleDeleteColClick = async (ctx: IShowColMenuContext): Promise<vo
         return;
     }
     const relResponse = await fetchSyncPost("/api/av/getAttributeView", {id: colData.key.relation.avID});
-    const dialog = new Dialog({
+    const dialog = getProtyleDialogPort().create({
         title: siyuanI18n.removeColConfirm,
         content: buildTwoWayRelationDialogContent(colData, relResponse.data),
         width: isMobile() ? "92vw" : "520px",

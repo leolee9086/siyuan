@@ -67,6 +67,7 @@
 - **2026-07-27**：Panel 控制器成为双向导航唯一所有者：`openViewMenu` 原实现迁入 Panel，View 只保留复制/删除自身事务；View Click 返回 `handled/unhandled/open-view-menu` 判别命令，Panel 按原顺序打开菜单后阻止事件。命令类型和构造器位于无运行时依赖的 `view/navigation` 叶子，外部调用点直达 Panel，不用回调 Port、事件或动态导入。导航专项 `1/1`、Node `189/189`、Protyle 契约类型、新导航文件 lint、imports 多跳和 diff 检查通过。生产节点 `2200 -> 2202`、代表环 `427 -> 423`、最大 SCC保持 `668`；`view.ts <-> openMenuPanel.ts` 两节点环和导航叶子循环均为 `0`。Panel 控制器仍有 399 行、`renderData` 271 行及 `_propertiesHTMLDeps` 延迟状态，继续由本专项拆分。
 - **2026-07-27**：删除 `_propertiesHTMLDeps` 模块级缓存和柯里化标记。该对象只承载只读渲染依赖，不是跨调用状态；`getPropertiesHTML` 现在在调用时构造参数并立即交给纯渲染器，继续避开模块初始化期 TDZ，不建立工厂闭包或注册表。新增调用局部依赖与字段不变性专项 `1/1`，Node `190/190`、Protyle 契约类型、网关和 diff 检查通过；生产图保持 `2202 / 423 / SCC 668`，不登记为解环成果。
 - **2026-07-27**：进一步删除 Panel 中只服务 Properties 的包装实现和依赖参数，字段管理渲染归入 `col/properties` 唯一实现；Emoji、DOM 转义、i18n 和列图标由该子域 `imports.ts` 直达真实所有者，禁止经另一 imports 网关中转。Panel、Drag 与列操作均直达该实现，不保留兼容导出或零碎公共类型。真实实现专项 `1/1`、Node `190/190`、Protyle 契约类型、新子域 lint、imports 多跳和 diff 检查通过。生产图 `2203 / 424 / SCC 668`，新增子域处于 SCC 外；`Panel <-> Drag` 两节点环、Properties 所在环以及 `col.operations` 与 Panel 共环均为 `0`。代表环 `423 -> 424` 是叶子路径重排，唯一循环 SCC 数仍为 `1`。
+- **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将 Rollup 配置不足的编辑导航交回唯一列菜单调用方；Filter 返回列 ID，不再反向导入 Panel。运行时专项 `1/1`、Node `190/190` 与契约类型通过；代表环 `424 -> 421`、SCC 保持 `668`，Filter/Panel 全部共环归零。
 
 ## 关联任务
 
