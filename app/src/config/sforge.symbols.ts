@@ -10,6 +10,9 @@ export const LAYOUT_PERSISTENCE_REGISTRY = Symbol.for("sforge.layout.persistence
 /** 导航历史状态注册表的唯一类型键。 */
 export const NAVIGATION_HISTORY_REGISTRY = Symbol.for("sforge.navigation.historyRegistry");
 
+/** 移动键盘生命周期状态的唯一类型键。 */
+export const MOBILE_KEYBOARD_LIFECYCLE_REGISTRY = Symbol.for("sforge.mobile.keyboardLifecycleRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

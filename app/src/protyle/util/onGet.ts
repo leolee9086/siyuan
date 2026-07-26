@@ -17,7 +17,7 @@ import {avRender} from "../render/av/render";
 import {hideTooltip} from "../runtime/dialog.port";
 import {stickyRow} from "../render/av/row";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
-import {activeBlur} from "../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import * as platform from "../../platform";
 import {isEncryptedBox} from "../../util/pathName";

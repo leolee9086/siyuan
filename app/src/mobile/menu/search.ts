@@ -8,7 +8,7 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {isEncryptedBox} from "../../util/pathName";
 import {unicode2Emoji} from "../../emoji";
 import {newFile} from "../../util/file/newFile";
-import {activeBlur} from "../util/keyboardToolbar";
+import {activeBlur} from "../keyboard/activeBlur";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {
     assetInputEvent,

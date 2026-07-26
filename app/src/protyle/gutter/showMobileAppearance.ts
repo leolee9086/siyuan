@@ -1,4 +1,5 @@
-import { renderTextMenu, showKeyboardToolbarUtil } from "../../mobile/util/keyboardToolbar";
+import {showKeyboardToolbarUtil} from "../../mobile/util/keyboardToolbar";
+import {renderTextMenu} from "../../mobile/util/keyboardToolbar.menu";
 
 export const showMobileAppearance = (protyle: IProtyle) => {
     const toolbarElement = document.getElementById("keyboardToolbar");

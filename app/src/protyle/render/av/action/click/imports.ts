@@ -121,7 +121,7 @@ export { getWindowJSAndroid };
 export { getWindowJSHarmony };
 
 /** 用途：唤起移动端原生键盘。使用范围：搜索图标点击。解耦评估：移动端桥接细节应继续由 mobile util 封装。 */
-import { callMobileAppShowKeyboard } from "../../../../../mobile/util/mobileAppUtil";
+import {callMobileAppShowKeyboard} from "../../../../../mobile/keyboard/mobileAppUtil";
 /** 导出 callMobileAppShowKeyboard 供 click 子模块复用。 */
 export { callMobileAppShowKeyboard };
 

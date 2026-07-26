@@ -39,7 +39,7 @@ import {openEmojiPanel, unicode2Emoji} from "../../emoji";
 import {globalClickHideMenu} from "../../boot/globalEvent/click";
 import {chartRender} from "../render/chartRender";
 import {updateCalloutType} from "./callout";
-import {activeBlur} from "../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import {handleClickNavigation} from "./index.click.navigation";
 import {toggleTaskListItem} from "./list";
 

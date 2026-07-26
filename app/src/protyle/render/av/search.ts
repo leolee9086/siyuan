@@ -1,7 +1,7 @@
 import {addClearButton} from "../../../util/DOM/addClearButton";
 import {focusBlock} from "../../util/selection";
 import {electronUndo} from "../../undo";
-import {activeBlur} from "../../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../../mobile/keyboard/activeBlur";
 import {isMobile} from "../../../platform";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

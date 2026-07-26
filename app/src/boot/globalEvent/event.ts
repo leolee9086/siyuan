@@ -9,7 +9,7 @@ import {hasClosestByClassName, isInEmbedBlock} from "../../protyle/util/hasClose
 import {hideTooltip} from "../../dialog/tooltip";
 import {hideAllElements} from "../../protyle/ui/hideElements";
 import {dragOverScroll, stopScrollAnimation} from "./dragover";
-import {setWebViewFocusable} from "../../mobile/util/mobileAppUtil";
+import {setWebViewFocusable} from "../../mobile/keyboard/mobileAppUtil";
 import {isBrowser} from "../../platform";
 import {cancelManualTouch, initTouchDragBridge, isLastPointerMouse} from "../../util/touchDragBridge";
 import {isWindow} from "../../util/platform/functions";

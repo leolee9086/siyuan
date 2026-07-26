@@ -9,7 +9,7 @@ import {hideElements} from "../../protyle/ui/hideElements";
 import {softEnter} from "../../protyle/wysiwyg/enter";
 import {isInAndroid, isInHarmony} from "../../protyle/util/compatibility";
 import {tabCodeBlock} from "../../protyle/wysiwyg/codeBlock";
-import {callMobileAppShowKeyboard} from "./mobileAppUtil";
+import {callMobileAppShowKeyboard} from "../keyboard/mobileAppUtil";
 import {renderTextMenu, renderSlashMenu} from "./keyboardToolbar.menu";
 
 interface ToolbarActionDeps {

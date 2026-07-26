@@ -5,7 +5,7 @@ import {renderBacklink} from "../wysiwyg/renderBacklink";
 import {hasClosestByClassName} from "./hasClosest";
 import {preventScroll} from "../scroll/preventScroll";
 import {isSupportCSSHL, searchMarkRender} from "../render/searchMarkRender";
-import {hideKeyboardToolbar} from "../../mobile/util/keyboardToolbar";
+import {hideKeyboardToolbar} from "../../mobile/keyboard/hideKeyboardToolbar";
 import {restoreLuteMarkdownSyntax} from "./paste";
 import {isMobile} from "../../platform";
 

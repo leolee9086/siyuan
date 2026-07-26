@@ -11,7 +11,7 @@ import {hintRef} from "../../../hint/extend.hintRef";
 import {electronUndo} from "../../../undo";
 import {getFieldIdByCellElement} from "../row";
 import {getFieldsByData} from "../view";
-import {callMobileAppShowKeyboard} from "../../../../mobile/util/mobileAppUtil";
+import {callMobileAppShowKeyboard} from "../../../../mobile/keyboard/mobileAppUtil";
 import {cellScrollIntoView, getTypeByCellElement, addDragFill} from "./position";
 import {updateCellsValue} from "../cell.update";
 

@@ -12,7 +12,7 @@ import {显示模板选择} from "./showTpl";
 import {isMenuItem} from "./index.guard";
 import {getPluginCustomHotkey} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {isMobile} from "../../platform";
-import {activeBlur} from "../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import {hideElements} from "../ui/hideElements";
 import {setPosition} from "../../util/DOM/positioning/setPosition";
 const getDefaultToolbar = () => toolbarKeyToMenu(isMobile ? [

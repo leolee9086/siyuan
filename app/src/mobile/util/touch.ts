@@ -7,7 +7,7 @@ import {
 } from "../../protyle/util/hasClosest";
 import {closeModel, closePanel} from "./closePanel";
 import {popMenu} from "../menu";
-import {activeBlur} from "./keyboardToolbar";
+import {activeBlur} from "../keyboard/activeBlur";
 import {isChromeBrowser, isInAndroid, isInHarmony} from "../../protyle/util/compatibility";
 import {isIPhone} from "../../util/platform/functions";
 import {getRangeByPoint} from "../../protyle/util/selection";

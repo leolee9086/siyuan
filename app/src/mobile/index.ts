@@ -20,7 +20,9 @@ import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { hideMessage, initMessage, showMessage } from "../dialog/message";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { goBack } from "./util/MobileBackFoward";
-import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";
+import {showKeyboardToolbar} from "./util/keyboardToolbar";
+import {activeBlur} from "./keyboard/activeBlur";
+import {hideKeyboardToolbar} from "./keyboard/hideKeyboardToolbar";
 // S-forge: 新增 isInMobileApp 导入（来自远程）
 import {
     getLocalStorage,
@@ -57,7 +59,7 @@ import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 // S-forge: 上游 8422a9b49 新增的移动端原生键盘控制函数，用于调用原生键盘、判断输入能力、设置 WebView 可聚焦
-import { armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusable } from "./util/mobileAppUtil";
+import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusable} from "./keyboard/mobileAppUtil";
 
 import { activateQueuedAVLocate, queueAVLocateRequest } from "../protyle/render/av/locate";
 import { ensureOnboarding } from "../onboarding";

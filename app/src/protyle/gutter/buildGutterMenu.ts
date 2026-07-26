@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../util/platform/functions";
-import { activeBlur } from "../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { countBlockWord } from "../runtime/status.port";
 import { MenuItem } from "../../menus/Menu.Item";
 import { buildGutterTurnIntoMenuItem } from "./buildGutterTurnIntoMenu";

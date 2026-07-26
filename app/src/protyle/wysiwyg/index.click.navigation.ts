@@ -7,7 +7,7 @@ import { openFileById } from "../../editor/utils.openFileById";
 import { openMobileFileById } from "../../mobile/editor";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { pushBack } from "../../util/platform/backForward";
-import { activeBlur } from "../../mobile/util/keyboardToolbar";
+import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { openLink } from "../../editor/openLink";
 import { openGlobalSearch } from "../../search/util";
 import { popSearch } from "../../mobile/menu/search";

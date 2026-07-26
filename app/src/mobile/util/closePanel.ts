@@ -1,4 +1,4 @@
-import {activeBlur} from "./keyboardToolbar";
+import {activeBlur} from "../keyboard/activeBlur";
 import {Constants} from "../../constants";
 
 export const closePanel = () => {

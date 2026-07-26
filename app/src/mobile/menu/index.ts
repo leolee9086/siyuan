@@ -6,7 +6,7 @@ import { lockScreen } from "../../dialog/processSystem/lockScreen";
 import {openHistory} from "../../history/history";
 import {syncGuide} from "../../sync/syncGuide";
 import {openCard} from "../../card/openCard";
-import {activeBlur} from "../util/keyboardToolbar";
+import {activeBlur} from "../keyboard/activeBlur";
 import {openModel} from "./model";
 import {getRecentDocs} from "./getRecentDocs";
 import type { AppFacade } from "../../app/AppFacade.types";

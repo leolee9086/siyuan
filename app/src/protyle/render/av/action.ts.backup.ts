@@ -43,7 +43,7 @@ import {clearSelect} from "../../util/clearSelect";
 import {removeCompressURL} from "../../../util/assets/image";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {callMobileAppShowKeyboard} from "../../../mobile/util/mobileAppUtil";
+import {callMobileAppShowKeyboard} from "../../../mobile/keyboard/mobileAppUtil";
 import {isMobile} from "../../../platform";
 import {createAttributeViewItem, openNewItemTemplateMenu} from "./newItemTemplate";
 import {openDatabaseRowByData} from "./openDatabaseRow";
