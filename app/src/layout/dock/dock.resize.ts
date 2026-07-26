@@ -1,9 +1,9 @@
-import { Custom } from "./Custom";
+import {isCustomDomain} from "./custom/custom.types";
 import { hasClosestByClassName } from "./imports";
-import type { Dock } from "./index";
+import type {DockDomain} from "./dock.types";
 
 const onMouseMove = (event: MouseEvent, context: {
-    dock: Dock,
+    dock: DockDomain,
     direction: "lr" | "tb",
     currentSize: number,
     x: number
@@ -44,7 +44,7 @@ const onMouseMove = (event: MouseEvent, context: {
     dock.layout.element.style.height = currentNowSize + "px";
 };
 
-const onMouseUp = (context: { dock: Dock }) => {
+const onMouseUp = (context: { dock: DockDomain }) => {
     document.onmousemove = null;
     document.onmouseup = null;
     document.ondragstart = null;
@@ -59,13 +59,14 @@ const onMouseUp = (context: { dock: Dock }) => {
             continue;
         }
         const customModel = context.dock.data[type];
-        if (customModel && customModel instanceof Custom && customModel.resize) {
+        // 只有完整 Custom 领域模型声明了可选 resize 生命周期，布尔占位和其它模型跳过。
+        if (typeof customModel === "object" && customModel !== null && isCustomDomain(customModel) && customModel.resize) {
             customModel.resize();
         }
     }
 };
 
-const onMouseDown = (event: MouseEvent, dock: Dock) => {
+const onMouseDown = (event: MouseEvent, dock: DockDomain) => {
     const direction = dock.position === "Bottom" ? "tb" : "lr";
     const x = event[direction === "lr" ? "clientX" : "clientY"];
     const currentSize = direction === "lr" ? dock.layout.element.clientWidth : dock.layout.element.clientHeight;
@@ -79,7 +80,7 @@ const onMouseDown = (event: MouseEvent, dock: Dock) => {
     };
 };
 
-export const initDockResize = (dock: Dock) => {
+export const initDockResize = (dock: DockDomain) => {
     const resizeHandle = dock.layout.element.querySelector(".layout__dockresize");
     if (!resizeHandle || !(resizeHandle instanceof HTMLElement)) {
         return;

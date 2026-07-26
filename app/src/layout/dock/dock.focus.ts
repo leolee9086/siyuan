@@ -1,8 +1,8 @@
 /**
  * dock.focus.ts - Dock 面板焦点相关逻辑
  */
-import type { Wnd } from "../Wnd";
-import type { Dock } from "./index";
+import type {LayoutWindow} from "../layout.types";
+import type {DockDomain} from "./dock.types";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { clearBeforeResizeTop } from "../../protyle/util/resize";
 import { getAllTabs } from "../getAll";
@@ -13,9 +13,9 @@ import { isMobile } from "../../platform";
  * @returns true 如果需要焦点切换并已处理，false 否则
  */
 export function handlePanelFocusSwitch(
-    wnd: Wnd,
+    wnd: LayoutWindow,
     target: HTMLElement,
-    dock: Dock
+    dock: DockDomain
 ) {
     const tabContainer = wnd.element.querySelector(".layout-tab-container");
     if (!tabContainer) {
@@ -86,7 +86,7 @@ export function handlePostCloseFocus(isSaveLayout: boolean) {
 /**
  * 处理 tab 切换（显示/隐藏）
  */
-export function handleTabSwitch(wnd: Wnd, targetDataId: string | null) {
+export function handleTabSwitch(wnd: LayoutWindow, targetDataId: string | null) {
     const tabContainer = wnd.element.querySelector(".layout-tab-container");
     if (!tabContainer) {
         return;

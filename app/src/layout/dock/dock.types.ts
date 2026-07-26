@@ -15,6 +15,7 @@ export interface DockDomain {
     pin: boolean;
     data: {[key: string]: ILayoutModel | boolean | undefined};
     hideResizeTimeout: number;
+    resetDockPosition(show: boolean): void;
     togglePin(): void;
     showDock(reset?: boolean): void;
     hideDock(reset?: boolean): void;

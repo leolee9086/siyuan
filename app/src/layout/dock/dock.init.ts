@@ -7,7 +7,7 @@
  * 解决：使用全局注册表 (dock.registry.ts) 替代 DOM 查询进行跨 Dock 去重
  */
 
-import type { Dock } from "./index";
+import type {DockDomain} from "./dock.types";
 import { getDockByType } from "../tabUtil";
 import { Protyle } from "../../protyle";
 import { getAllModels } from "../getAll";
@@ -21,7 +21,7 @@ import { 检查并注册Dock项, 恢复缺失面板, 修复定时任务图标 } 
 /**
  * 初始化活动元素
  */
-export function initActiveElements(dock: Dock, activeElements: Element[]): void {
+export function initActiveElements(dock: DockDomain, activeElements: Element[]): void {
     for (const item of activeElements) {
         const type = item.getAttribute("data-type");
         /**
@@ -38,7 +38,7 @@ export function initActiveElements(dock: Dock, activeElements: Element[]): void 
 /**
  * 初始化无活动元素的状态
  */
-export function initNoActiveElements(dock: Dock): void {
+export function initNoActiveElements(dock: DockDomain): void {
     dock.resizeElement.classList.add("fn__none");
     const children = dock.layout.children;
     /**
@@ -130,7 +130,7 @@ export function removeSourceTab(
  * 插入源元素
  */
 export function insertSourceElement(
-    dock: Dock,
+    dock: DockDomain,
     sourceElement: Element,
     index: number,
     previousType?: string
@@ -147,7 +147,7 @@ export function insertSourceElement(
 /**
  * 初始化 dock 文件（触发 file 类型的 toggle）
  */
-export function initDockFiles(dock: Dock): void {
+export function initDockFiles(dock: DockDomain): void {
     for (const elem of dock.elements) {
         for (const item of Array.from(elem.querySelectorAll(".dock__item"))) {
             if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
@@ -161,7 +161,7 @@ export function initDockFiles(dock: Dock): void {
 /**
  * 初始化 dock 浮动模式
  */
-export function initDockFloatMode(dock: Dock): void {
+export function initDockFloatMode(dock: DockDomain): void {
     dock.resetDockPosition(false);
     dock.hideDock(true);
     dock.layout.element.classList.add("layout--float");
@@ -172,7 +172,7 @@ export function initDockFloatMode(dock: Dock): void {
  * 初始化 dock 数据
  */
 export function initDockData(
-    dock: Dock,
+    dock: DockDomain,
     data: Config.IUILayoutDockTab[][],
     TYPES: string[]
 ): void {
@@ -273,7 +273,7 @@ export function initDockData(
 /**
  * 初始化 dock 激活状态
  */
-export function initDockActiveState(dock: Dock): void {
+export function initDockActiveState(dock: DockDomain): void {
     const activeElements = [...dock.elements[0].querySelectorAll(".dock__item--active"),
         ...dock.elements[1].querySelectorAll(".dock__item--active")];
     /**

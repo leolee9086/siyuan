@@ -3,7 +3,7 @@
  * 从 index.ts 提取的尺寸计算函数
  */
 
-import type { Dock } from "./index";
+import type {DockDomain} from "./dock.types";
 import { isTDock } from "./dock.guard";
 import { isLayoutModel } from "./dock.guard";
 
@@ -12,7 +12,7 @@ const GRAPH_TYPES = ["graph", "globalGraph", "backlink"];
 /**
  * 设置单个项目的尺寸
  */
-export function setSizeForItem(dock: Dock, item: Element, totalActive: number): void {
+export function setSizeForItem(dock: DockDomain, item: Element, totalActive: number): void {
     const index = item.getAttribute("data-index");
     const type = item.getAttribute("data-type");
     if (!isTDock(type)) {
@@ -31,7 +31,7 @@ export function setSizeForItem(dock: Dock, item: Element, totalActive: number): 
  * 设置水平方向尺寸
  */
 function setHorizontalSize(
-    dock: Dock,
+    dock: DockDomain,
     item: Element,
     index: string | null,
     type: TDock,
@@ -52,7 +52,7 @@ function setHorizontalSize(
  * 设置垂直方向尺寸
  */
 function setVerticalSize(
-    dock: Dock,
+    dock: DockDomain,
     item: Element,
     index: string | null,
     type: TDock,
@@ -72,7 +72,7 @@ function setVerticalSize(
 /**
  * 获取单个项目的尺寸
  */
-export function getSizeForItem(dock: Dock, item: Element): number {
+export function getSizeForItem(dock: DockDomain, item: Element): number {
     const isHorizontal = dock.position === "Left" || dock.position === "Right";
     const sizeAttr = isHorizontal ? "data-width" : "data-height";
     const attrVal = item.getAttribute(sizeAttr);
@@ -91,7 +91,7 @@ export function getSizeForItem(dock: Dock, item: Element): number {
 /**
  * 获取最大尺寸
  */
-export function getMaxSize(dock: Dock): number {
+export function getMaxSize(dock: DockDomain): number {
     let max = 0;
     const activeItems = [...dock.elements[0].querySelectorAll(".dock__item--active"),
         ...dock.elements[1].querySelectorAll(".dock__item--active")];

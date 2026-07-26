@@ -3,14 +3,14 @@
  * 从 index.ts 提取的 toggleModel 内部处理逻辑
  */
 
-import type { Wnd } from "../Wnd";
-import type { Dock } from "./index";
+import type {LayoutWindow} from "../layout.types";
+import type {DockDomain} from "./dock.types";
 import { adjustLayout } from "./imports";
 import { setPanelFocus } from "./imports";
 import { Constants } from "./imports";
 import { createDockTab } from "./dock.factory";
-import { handleGraphDestroy } from "./dock.graph";
-import { handleGraphFullscreenDrag } from "./dock.graph";
+import { handleGraphDestroy } from "./graph/runtime";
+import { handleGraphFullscreenDrag } from "./graph/runtime";
 import { handlePanelFocusSwitch } from "./dock.toggle";
 import { handlePostCloseFocus } from "./dock.toggle";
 import { handleTabSwitch } from "./dock.toggle";
@@ -30,8 +30,8 @@ import { getMaxSize } from "./dock.size";
  * @returns true 如果焦点切换已处理，调用方应提前 return；false 则继续执行后续逻辑
  */
 export function executeToggleHide(
-    dock: Dock,
-    wnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
     target: HTMLElement,
     type: string,
     close: boolean,
@@ -64,8 +64,8 @@ export function executeToggleHide(
  * 执行 toggle 显示
  */
 export function executeToggleShow(
-    dock: Dock,
-    wnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
     target: HTMLElement,
     type: string,
     index: number,
@@ -108,8 +108,8 @@ export function executeToggleShow(
  * 执行更新面板关系
  */
 export function executeUpdatePanelRelations(
-    dock: Dock,
-    wnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
     index: number
 ): void {
     const anotherIndex = index === 0 ? 1 : 0;

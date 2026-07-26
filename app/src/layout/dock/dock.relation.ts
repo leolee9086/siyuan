@@ -1,17 +1,17 @@
 /**
  * dock.relation.ts - Dock 面板关系与可见性逻辑
  */
-import type { Dock } from "./index";
-import type { Wnd } from "../Wnd";
+import type {DockDomain} from "./dock.types";
+import type {LayoutWindow} from "../layout.types";
 import { isWnd } from "./dock.guard";
 
 /**
  * 更新两个 dock 面板的显示关系
  */
 export function updateDockPanelRelation(
-    dock: Dock,
-    wnd: Wnd,
-    anotherWnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
+    anotherWnd: LayoutWindow,
     index: number,
     anotherIndex: number,
     hasActive: boolean,
@@ -36,9 +36,9 @@ export function updateDockPanelRelation(
  * - 改进：尺寸恢复逻辑依赖 DOM 读写，可能会引起重排，建议优化为直接读取数据模型
  */
 function handleBothPanelsActive(
-    dock: Dock,
-    wnd: Wnd,
-    anotherWnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
+    anotherWnd: LayoutWindow,
     anotherIndex: number
 ): void {
     let lastWnd = wnd;
@@ -68,7 +68,7 @@ function handleBothPanelsActive(
  * @简洁函数 应用面板保存的尺寸（高度或宽度）到 DOM
  */
 function applyPanelSize(
-    lastWnd: Wnd,
+    lastWnd: LayoutWindow,
     lastActiveElement: Element,
     isLeftOrRight: boolean
 ): void {
@@ -87,7 +87,7 @@ function applyPanelSize(
 /**
  * @简洁函数 隐藏两个面板之间的分隔线
  */
-function hidePanelSeparator(anotherWnd: Wnd, anotherIndex: number) {
+function hidePanelSeparator(anotherWnd: LayoutWindow, anotherIndex: number) {
     if (anotherIndex === 0) {
         anotherWnd.element.nextElementSibling?.classList.add("fn__none");
         return;
@@ -99,8 +99,8 @@ function hidePanelSeparator(anotherWnd: Wnd, anotherIndex: number) {
  * 更新面板可见性
  */
 export function updatePanelVisibility(
-    wnd: Wnd,
-    anotherWnd: Wnd,
+    wnd: LayoutWindow,
+    anotherWnd: LayoutWindow,
     hasActive: boolean,
     anotherHasActive: boolean
 ) {
@@ -139,8 +139,8 @@ export function updatePanelVisibility(
  * 更新面板关系逻辑
  */
 export function executePanelRelationsUpdate(
-    dock: Dock,
-    wnd: Wnd,
+    dock: DockDomain,
+    wnd: LayoutWindow,
     index: number
 ): void {
     const anotherIndex = index === 0 ? 1 : 0;

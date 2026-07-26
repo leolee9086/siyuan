@@ -14,7 +14,7 @@ import { recordBeforeResizeTop } from "../../protyle/util/resize";
 import { Constants } from "../../constants";
 import { initDockResize } from "./dock.resize";
 import { initDockDnD } from "./dock.dnd";
-import { initDockLayout } from "./dock.layout";
+import {initDockLayout} from "./layout/dockLayout";
 import {handleGraphShow} from "./graph/runtime";
 import { generateAllButtonsHTML, insertButtonsToContainer } from "./dock.button";
 import { getSiyuanLanguages, getSiyuanConfig, setWindowTimeout } from "./dock.environment";
@@ -103,7 +103,7 @@ export class Dock {
      * 意图：在显示/隐藏或模式切换时恢复 Dock 的正确视觉状态
      * 调用时机：Dock 显示/隐藏动画或状态变更时
      */
-    private resetDockPosition(show: boolean): void {
+    public resetDockPosition(show: boolean): void {
         if (this.position === "Left") {
             this.layout.element.setAttribute("style", `${show ? "margin-right: var(--b3-layout-space);" : ""}width:${this.layout.element.clientWidth}px;opacity:${show ? 1 : 0};min-height:8px;`);
         } else if (this.position === "Right") {
