@@ -43,6 +43,9 @@ import {customModelBrand, isCustomDomain} from "../../src/layout/dock/custom/cus
 import type {Tag} from "../../src/layout/dock/Tag";
 import type {TagDomain} from "../../src/layout/dock/tag/tag.types";
 import {tagModelBrand, isTagDomain} from "../../src/layout/dock/tag/tag.types";
+import type {Search} from "../../src/search";
+import type {SearchDomain} from "../../src/search/model/search.types";
+import {isSearchDomain, searchModelBrand} from "../../src/search/model/search.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -67,6 +70,7 @@ type CustomContract = PublicInstanceLooksLike<
     CustomDomain<unknown, AppFacade, LayoutTab>
 >;
 type TagContract = PublicInstanceLooksLike<typeof Tag, TagDomain<AppFacade, Tab>>;
+type SearchContract = PublicInstanceLooksLike<typeof Search, SearchDomain<AppFacade, LayoutTab>>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -85,6 +89,7 @@ const assetContract: AssetContract = true;
 const bookmarkContract: BookmarkContract = true;
 const customContract: CustomContract = true;
 const tagContract: TagContract = true;
+const searchContract: SearchContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -105,6 +110,7 @@ describe("layout domain contracts", () => {
         assert.equal(bookmarkContract, true);
         assert.equal(customContract, true);
         assert.equal(tagContract, true);
+        assert.equal(searchContract, true);
     });
 
     it("classifies Asset models through the stable domain brand", () => {
@@ -121,5 +127,6 @@ describe("layout domain contracts", () => {
         assert.equal(isBookmarkDomain({[bookmarkModelBrand]: "Bookmark"}), true);
         assert.equal(isCustomDomain({[customModelBrand]: "Custom"}), true);
         assert.equal(isTagDomain({[tagModelBrand]: "Tag"}), true);
+        assert.equal(isSearchDomain({[searchModelBrand]: "Search"}), true);
     });
 });

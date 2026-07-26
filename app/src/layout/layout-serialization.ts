@@ -215,7 +215,7 @@ export const exportLayout = async (options: { cb: () => void; errorExit: boolean
     // 保存所有编辑器的滚动位置
     const editors = getAllEditor();
     for (const editor of editors) {
-        await saveScroll(editor);
+        await saveScroll(editor.protyle);
     }
     
     // 独立窗口模式

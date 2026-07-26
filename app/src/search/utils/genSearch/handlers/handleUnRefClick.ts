@@ -2,7 +2,7 @@
  * @fileoverview 无效引用面板相关点击处理
  */
 
-import { Protyle } from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { getUnRefList } from "../../../unRef";
 
 /**
@@ -25,7 +25,7 @@ export function handleSearchUnRefClose(
 export function handleUnRefPrevious(
     target: HTMLElement,
     unRefPanelElement: HTMLElement,
-    unRefEdit: Protyle
+    unRefEdit: ProtyleDomain
 ): void {
     if (target.getAttribute("disabled")) {
         return;
@@ -49,7 +49,7 @@ export function handleUnRefPrevious(
 export function handleUnRefNext(
     target: HTMLElement,
     unRefPanelElement: HTMLElement,
-    unRefEdit: Protyle
+    unRefEdit: ProtyleDomain
 ): void {
     if (target.getAttribute("disabled")) {
         return;

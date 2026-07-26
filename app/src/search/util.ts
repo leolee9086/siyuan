@@ -6,7 +6,7 @@ import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
 import { showMessage } from "../dialog/message";
 import { reloadProtyle } from "../protyle/util/reload";
-import { Protyle } from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import { onGet } from "../protyle/util/onGet";
 import { addLoading } from "../protyle/ui/initUI";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
@@ -141,7 +141,7 @@ export const genQueryHTML = (method: number, id: string) => {
 
 
 export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchConfig, config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle, clear = false) => {
+    edit: ProtyleDomain, clear = false) => {
     const dialogElement = hasClosestByClassName(element, "b3-dialog--open");
     if (dialogElement && dialogElement.getAttribute("data-key") === Constants.DIALOG_SEARCH) {
         // https://github.com/siyuan-note/siyuan/issues/6828
@@ -207,7 +207,7 @@ export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchCo
 
 export const renderNextSearchMark = (options: {
     id: string,
-    edit: Protyle,
+    edit: ProtyleDomain,
     target: Element,
 }) => {
     const contentRect = options.edit.protyle.contentElement.getBoundingClientRect();
@@ -259,7 +259,7 @@ let articleId: string;
 export const getArticle = (options: {
     id: string,
     config?: Config.IUILayoutTabSearchConfig,
-    edit: Protyle
+    edit: ProtyleDomain
     value?: string,
 }) => {
     articleId = options.id;
@@ -355,7 +355,7 @@ export const getArticle = (options: {
     });
 };
 
-export const replace = (element: Element, config: Config.IUILayoutTabSearchConfig, edit: Protyle, isAll: boolean) => {
+export const replace = (element: Element, config: Config.IUILayoutTabSearchConfig, edit: ProtyleDomain, isAll: boolean) => {
     if (config.method === 2 || config.method === 4) {
         showMessage(siyuanI18n._kernel[132]);
         return;

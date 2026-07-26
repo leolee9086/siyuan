@@ -15,12 +15,12 @@ import type {IEditorOptions} from "./imports";
 /** 用途：编辑引擎创建选项；使用范围：引擎工厂参数；解耦评估：完整配置映射保留静态类型。 */
 import type {EditorEngineOptions} from "./imports";
 /** 用途：编辑引擎领域身份；使用范围：Editor 泛型；解耦评估：模型不依赖具体 Protyle class。 */
-import type {IEditorEngine} from "./imports";
+import type {ProtyleDomain} from "./imports";
 /** 用途：窗口恢复能力；使用范围：Editor class 声明；解耦评估：稳定能力契约不依赖窗口实现。 */
 import type {IWindowHashModel} from "./imports";
 
 /** 初始化 Editor 持有的 Protyle，并按原顺序执行宿主同步。 */
-function initProtyle<TApplication extends object, TEditor extends IEditorEngine>(
+function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>(
     self: Editor<TApplication, TEditor>,
     options: {
     blockId: string;
@@ -95,7 +95,7 @@ function initProtyle<TApplication extends object, TEditor extends IEditorEngine>
  * 构造过程已经把可替换的引擎创建与窗口同步移到注入参数，class 本身只剩稳定状态所有权。 */
 export class Editor<
     TApplication extends object = object,
-    TEditor extends IEditorEngine = IEditorEngine,
+    TEditor extends ProtyleDomain = ProtyleDomain,
 > implements IWindowHashModel {
     public element: HTMLElement;
     public editor: TEditor;

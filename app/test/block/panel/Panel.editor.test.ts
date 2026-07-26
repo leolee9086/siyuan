@@ -11,6 +11,7 @@ vi.mock("../../../src/block/panel/editor/imports", () => ({
 }));
 
 import {初始化Protyle编辑器} from "../../../src/block/panel/Panel.editor";
+import {createProtyleDomainFixture} from "../../support/protyleDomain.fixture";
 
 /** 验证异步编辑器加载完成后仍调用宿主注入的数据库条目定位动作。 */
 describe("BlockPanel editor initialization", () => {
@@ -25,12 +26,13 @@ describe("BlockPanel editor initialization", () => {
             contentElement: document.createElement("div"),
             wysiwyg: {element: document.createElement("div")},
         };
-        const editor = {protyle, destroy: vi.fn()};
+        const editor = createProtyleDomainFixture(protyle);
+        editor.destroy = vi.fn();
         const editors: typeof editor[] = [];
 
         初始化Protyle编辑器(editorElement, {
             createEditor: (_element, options) => {
-                options.after(editor as never);
+                options.after(editor);
                 return editor;
             },
             locateAttributeView,

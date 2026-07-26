@@ -6,13 +6,13 @@ import {escapeAriaLabel, escapeLessThans} from "../util/DOM/escape";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";
 import {getDisplayName, getNotebookName} from "../util/file/pathName";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {resize} from "../protyle/util/resize";
 import {Menu} from "../plugin/Menu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isMobile} from "../platform";
 
-export const openSearchUnRef = (element: HTMLElement, editor: Protyle) => {
+export const openSearchUnRef = (element: HTMLElement, editor: ProtyleDomain) => {
     window.siyuan.menus.menu.remove();
     element.previousElementSibling.previousElementSibling.classList.add("fn__none");
     element.classList.remove("fn__none");
@@ -89,7 +89,7 @@ export const openSearchUnRef = (element: HTMLElement, editor: Protyle) => {
     getUnRefList(element, editor);
 };
 
-export const getUnRefList = (element: Element, edit: Protyle, page = 1) => {
+export const getUnRefList = (element: Element, edit: ProtyleDomain, page = 1) => {
     const previousElement = element.querySelector('[data-type="unRefPrevious"]');
     if (page > 1) {
         previousElement.removeAttribute("disabled");
@@ -136,7 +136,7 @@ ${getAttr(item)}
     });
 };
 
-export const unRefMoreMenu = (target: Element, element: Element, edit: Protyle) => {
+export const unRefMoreMenu = (target: Element, element: Element, edit: ProtyleDomain) => {
     const menu = new Menu(Constants.MENU_SEARCH_UNREF_MORE);
     if (menu.isOpen) {
         return;

@@ -5,7 +5,7 @@
 
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
-import { Protyle } from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { 语义搜索, 获取语义搜索配置 } from "../layout/dock/embeddingDock/semanticSearch.api";
 import type { ISemanticSearchResult } from "../layout/dock/embeddingDock/embeddingDock.types";
@@ -31,7 +31,7 @@ type SearchFocusId = {currentId?: string; newId?: string};
 /** 运行本地语义搜索所需的 UI 和搜索配置。 */
 type LocalSemanticSearchContext = {
     query: string;
-    edit: Protyle;
+    edit: ProtyleDomain;
     element: Element;
     config: Config.IUILayoutTabSearchConfig;
     focusId?: SearchFocusId;
@@ -40,7 +40,7 @@ type LocalSemanticSearchContext = {
 /** 语义搜索无内核结果时的异步兜底渲染上下文。 */
 type SemanticFallbackContext = {
     element: Element;
-    edit: Protyle;
+    edit: ProtyleDomain;
     config: Config.IUILayoutTabSearchConfig;
     focusId: SearchFocusId | undefined;
     pageCount: number;
@@ -49,7 +49,7 @@ type SemanticFallbackContext = {
 /** 块搜索回调需要的渲染上下文，避免在请求函数中传递过多独立参数。 */
 type BlockSearchContext = {
     element: Element;
-    edit: Protyle;
+    edit: ProtyleDomain;
     config: Config.IUILayoutTabSearchConfig;
     focusId: SearchFocusId | undefined;
 };
@@ -58,7 +58,7 @@ type BlockSearchContext = {
 type ExecuteSearchContext = {
     element: Element;
     config: Config.IUILayoutTabSearchConfig;
-    edit: Protyle;
+    edit: ProtyleDomain;
     rmCurrentCriteria: boolean;
     focusId?: SearchFocusId;
 };
@@ -127,14 +127,14 @@ const searchIsStale = (key: string, requestKey: string) => {
 };
 
 /** Notify plugins after a local search starts, preserving the existing extension hook. */
-const emitSearchInput = (edit: Protyle, config: Config.IUILayoutTabSearchConfig, input: HTMLInputElement) => {
+const emitSearchInput = (edit: ProtyleDomain, config: Config.IUILayoutTabSearchConfig, input: HTMLInputElement) => {
     for (const item of edit.protyle?.app.plugins || []) {
         item.eventBus.emit("input-search", {protyle: edit, config, searchElement: input});
     }
 };
 
 /** Render recent blocks when the local search query is empty. */
-const finishRecentSearch = (element: Element, edit: Protyle, config: Config.IUILayoutTabSearchConfig) => {
+const finishRecentSearch = (element: Element, edit: ProtyleDomain, config: Config.IUILayoutTabSearchConfig) => {
     fetchPost("/api/block/getRecentUpdatedBlocks", {}, (response) => {
         // Ignore a response that started before a newer block-search request.
         if (searchIsStale("/api/search/fullTextSearchBlock", "/api/block/getRecentUpdatedBlocks")) {
@@ -252,7 +252,7 @@ const executeSearch = (context: ExecuteSearchContext) => {
  * @参数豁免: 遗留代码。该函数由现有搜索菜单、快捷键和分页回调共同调用，保持五参数兼容可避免扩大本次网络搜索改动的调用面。
  */
 export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle, rmCurrentCriteria = false, focusId?: SearchFocusId) => {
+    edit: ProtyleDomain, rmCurrentCriteria = false, focusId?: SearchFocusId) => {
     // Web mode owns its request lifecycle and must not start a competing local request.
     if (element.getAttribute("data-search-source") === "web") {
         return;
@@ -260,6 +260,12 @@ export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchCo
     let inputTimeout = parseInt(element.getAttribute("data-timeout") || "0");
     clearTimeout(inputTimeout);
     // This existing timer is input debouncing for local search; the interval is the shared UI constant.
-    inputTimeout = window.setTimeout(() => executeSearch({element, config, edit, rmCurrentCriteria, focusId}), Constants.TIMEOUT_INPUT);
+    inputTimeout = window.setTimeout(() => executeSearch({
+        element,
+        config,
+        edit,
+        rmCurrentCriteria,
+        ...(focusId ? {focusId} : {}),
+    }), Constants.TIMEOUT_INPUT);
     element.setAttribute("data-timeout", inputTimeout.toString());
 };

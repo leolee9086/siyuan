@@ -15,7 +15,7 @@ import type {IEditorOptions} from "../types";
 /** 用途：编辑引擎创建选项；使用范围：参数化引擎工厂；解耦评估：完整 Protyle 配置映射，不依赖具体引擎 class。 */
 import type {EditorEngineOptions} from "../types";
 /** 用途：编辑引擎领域身份；使用范围：Editor 泛型约束；解耦评估：稳定结构契约，不依赖 Protyle class。 */
-import type {IEditorEngine} from "../types";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 /** 用途：窗口恢复身份契约；使用范围：Editor 对外声明动态文档根；解耦评估：纯能力类型，不依赖窗口实现。 */
 import type {IWindowHashModel} from "../../window/modelHash/modelHash.types";
 
@@ -36,6 +36,6 @@ export type {IEditorOptions};
 /** 同目录 Editor 模型使用的参数化引擎创建选项。 */
 export type {EditorEngineOptions};
 /** 同目录 Editor 模型使用的编辑引擎身份。 */
-export type {IEditorEngine};
+export type {ProtyleDomain};
 /** 同目录 Editor 模型实现的窗口恢复能力。 */
 export type {IWindowHashModel};

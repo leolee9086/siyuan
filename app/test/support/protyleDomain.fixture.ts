@@ -1,0 +1,29 @@
+import type {ProtyleDomain} from "../../src/protyle/protyle.types";
+
+/** 创建只用于领域消费者测试的完整 Protyle 公共表面。 */
+export const createProtyleDomainFixture = (protyleOverrides: Partial<IProtyle> = {}) => ({
+    version: "test",
+    protyle: Object.assign({} as IProtyle, protyleOverrides),
+    focus: () => undefined,
+    isUploading: () => false,
+    clearStack: () => undefined,
+    destroy: () => undefined,
+    resize: () => undefined,
+    reload: () => undefined,
+    insert: () => undefined,
+    transaction: () => undefined,
+    turnIntoOneTransaction: () => undefined,
+    turnIntoTransaction: () => undefined,
+    updateTransaction: () => undefined,
+    updateTransactionElement: () => undefined,
+    updateBatchTransaction: () => undefined,
+    getRange: () => document.createRange(),
+    hasClosestBlock: () => false,
+    focusBlock: () => false,
+    disable: () => undefined,
+    enable: () => undefined,
+    renderAVAttribute: () => undefined,
+    getSelectedBlockElements: () => document.querySelectorAll("[data-node-id]"),
+    getSelectedBlockIds: () => undefined,
+    switchMode: () => undefined,
+} satisfies ProtyleDomain);

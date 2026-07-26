@@ -960,7 +960,7 @@ interface IModels {
     bookmark: import("../layout/dock/bookmark/bookmark.types").BookmarkDomain[]
     tag: import("../layout/dock/tag/tag.types").TagDomain[]
     asset: import("../asset/asset.types").AssetDomain[]
-    search: import("../search").Search[]
+    search: import("../search/model/search.types").SearchDomain[]
     custom: import("../layout/dock/custom/custom.types").CustomDomain[]
 }
 

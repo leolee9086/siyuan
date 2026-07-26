@@ -5,6 +5,7 @@ import {AgentHttpError, fetchAgentSSE, IEditorContext, ISSEResult, IToolEffects}
 import {genUUID} from "../../../util/platform/genID";
 import {mountComposer} from "./AgentComposer";
 import {disabledWYSIWYG} from "../../../protyle/util/onGet";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import {getAllEditor} from "../../getAll";
 import {isMobile} from "../../../platform";
 import {agentOwnerHeaders, SessionStore, setAgentOwnerTokenProvider} from "./SessionStore";
@@ -2297,7 +2298,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
             if (!allEditor || allEditor.length === 0) {
                 return undefined;
             }
-            const isEditable = (e: { protyle: { element: HTMLElement } }) =>
+            const isEditable = (e: ProtyleDomain) =>
                 !e.protyle.element.classList.contains("fn__none") &&
                 e.protyle.element.closest(".layout__center") !== null;
 
@@ -2313,14 +2314,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
             });
             allSelected = Array.from(new Set(allSelected));
 
-            let candidate: {
-                protyle: {
-                    block?: { id?: string; rootID?: string };
-                    wysiwyg?: { element?: HTMLElement };
-                    element: HTMLElement;
-                    model?: { parent?: { headElement?: HTMLElement } }
-                }
-            } | undefined;
+            let candidate: ProtyleDomain | undefined;
 
             candidate = allEditor.find(e => isEditable(e) &&
                 !!e.protyle?.wysiwyg?.element?.querySelector(".protyle-wysiwyg--select"));
@@ -2363,15 +2357,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
         }
     }
 
-    private readEditorContext(editor: {
-        protyle: {
-            block?: { id?: string; rootID?: string };
-            wysiwyg?: { element?: HTMLElement };
-            contentElement?: HTMLElement;
-            notebookId?: string;
-            title?: { editElement?: HTMLElement };
-        };
-    }): IEditorContext | undefined {
+    private readEditorContext(editor: ProtyleDomain): IEditorContext | undefined {
         const p = editor.protyle;
         if (!p) {
             return undefined;

@@ -4,7 +4,7 @@
 
 import { setStorageVal } from "../../../ai/imports";
 import { Constants } from "../../../constants";
-import { Protyle } from "../../../protyle";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import { resize } from "../../../protyle/util/resize";
 import { getSafeSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { ILayoutConfig } from "./SearchContext.types";
@@ -56,7 +56,7 @@ function handleDragStart(
     event: MouseEvent,
     dragElement: Element,
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     closeCB: boolean
 ): void {
     const config = getLayoutConfig(closeCB);
@@ -94,7 +94,7 @@ function handleDragStart(
 }
 
 /** 处理双击重置事件 */
-function handleDoubleClick(edit: Protyle, closeCB: boolean): void {
+function handleDoubleClick(edit: ProtyleDomain, closeCB: boolean): void {
     const config = getLayoutConfig(closeCB);
     edit.protyle.element.style[config.sizeKey] = "";
     edit.protyle.element.classList.add("fn__flex-1");
@@ -114,7 +114,7 @@ function handleDoubleClick(edit: Protyle, closeCB: boolean): void {
  */
 export function setupDragHandler(
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     closeCB: boolean,
     _localSearch: ISearchAssetOption
 ): void {

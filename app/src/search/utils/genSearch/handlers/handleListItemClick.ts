@@ -16,10 +16,10 @@ import type { IListItemClickContext } from "../SearchContext.types";
 /** 用途：绑定列表点击上下文的应用身份；使用范围：搜索结果交互实现；解耦评估：具体 class 不进入共享状态契约。 */
 import type { AppFacade } from "../../../../app/AppFacade.types";
 /** 用途：绑定列表点击上下文的编辑器身份；使用范围：搜索结果交互实现；解耦评估：具体 class 不进入共享状态契约。 */
-import type {Protyle} from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 
 /** 搜索结果列表交互的具体运行上下文，绑定主应用与预览编辑器身份。 */
-type SearchListItemClickContext = IListItemClickContext<AppFacade, Protyle>;
+type SearchListItemClickContext = IListItemClickContext<AppFacade, ProtyleDomain>;
 
 /**
  * 处理列表项点击

@@ -1,6 +1,7 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
 
 import {绑定滚动事件, 设置观察器} from "../../../src/block/panel/Panel.observer";
+import {createProtyleDomainFixture} from "../../support/protyleDomain.fixture";
 
 afterEach(() => {
     vi.useRealTimers();
@@ -25,14 +26,15 @@ describe("BlockPanel observers", () => {
             }
             observe() {}
         });
-        const protyle = {element: document.createElement("div")};
+        const protyle = Object.assign({} as IProtyle, {element: document.createElement("div")});
+        const editor = createProtyleDomainFixture(protyle);
         const resizeEditor = vi.fn();
         const initProtyle = vi.fn();
         const target = document.createElement("div");
 
         设置观察器({
             element: document.createElement("div"),
-            editors: [{protyle, destroy: vi.fn()}],
+            editors: [editor],
             initProtyle,
             resizeEditor,
         });
@@ -49,10 +51,11 @@ describe("BlockPanel observers", () => {
         const content = document.createElement("div");
         content.className = "block__content";
         element.append(content);
-        const protyle = {element: document.createElement("div")};
+        const protyle = Object.assign({} as IProtyle, {element: document.createElement("div")});
+        const editor = createProtyleDomainFixture(protyle);
         const hideGutter = vi.fn();
 
-        绑定滚动事件({element, editors: [{protyle, destroy: vi.fn()}], hideGutter});
+        绑定滚动事件({element, editors: [editor], hideGutter});
         content.dispatchEvent(new Event("scroll"));
 
         expect(hideGutter).toHaveBeenCalledWith(protyle);

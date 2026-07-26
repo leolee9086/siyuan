@@ -14,15 +14,15 @@ import { setupDragHandler } from "./genSearch/setupDragHandler";
 import { setupInputHandlers } from "./genSearch/setupInputHandlers";
 import { setupClickHandler } from "./genSearch/setupClickHandler";
 import { initWebSearch } from "../webSearch";
-import type { Protyle } from "../../protyle";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 
 /** Bind local and web search interactions after the shared DOM has been created. */
 const setupSearchInteractions = (context: {
     element: HTMLElement;
     app: AppFacade;
     config: Config.IUILayoutTabSearchConfig;
-    edit: Protyle;
-    unRefEdit: Protyle;
+    edit: ProtyleDomain;
+    unRefEdit: ProtyleDomain;
     criteriaData: Config.IUILayoutTabSearchConfig[];
     searchInputElement: HTMLInputElement;
     replaceInputElement: HTMLInputElement;
@@ -117,7 +117,7 @@ export const genSearch = (context: {
 
     setupSearchInteractions({element, app, config, edit, unRefEdit, criteriaData,
         searchInputElement, replaceInputElement, searchPanelElement, assetsElement, unRefPanelElement,
-        localSearch, closeCB, updateCB});
+        localSearch, closeCB, ...(updateCB ? {updateCB} : {})});
 
     // 触发初始搜索
     inputEvent(element, config, edit);

@@ -1,7 +1,7 @@
 import {getAllEditor} from "../layout/getAll";
 import {showMessage} from "../dialog/message";
 import {fetchSyncPost} from "../util/fetch";
-import type {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {inputEvent} from "./inputEvent";
 import {
     markdownForResult,
@@ -25,12 +25,12 @@ const visibleDocumentEditor = () => {
 };
 
 /** Append Markdown to the root block of the currently visible document. */
-const appendCurrentDocument = (protyle: Protyle, data: string) => fetchSyncPost("/api/block/appendBlock", {
+const appendCurrentDocument = (protyle: IProtyle, data: string) => fetchSyncPost("/api/block/appendBlock", {
     dataType: "markdown", data, parentID: protyle.block.rootID,
 });
 
 /** Append Markdown to the current notebook's daily note when that target exists. */
-const appendDailyNote = async (protyle: Protyle, data: string) => {
+const appendDailyNote = async (protyle: IProtyle, data: string) => {
     if (!protyle.notebookId) {
         await showMessage("The current document has no notebook.", 4000, "error");
         return undefined;
@@ -83,7 +83,7 @@ const getWebSearchElements = (root: HTMLElement) => ({
 });
 
 /** Switch the source view and restore local search state when the user switches back. */
-const setWebSearchMode = (state: WebSearchState<Protyle>, next: boolean) => {
+const setWebSearchMode = (state: WebSearchState<ProtyleDomain>, next: boolean) => {
     const elements = state.elements;
     state.webMode = next;
     elements.root.dataset.searchSource = next ? "web" : "local";
@@ -106,7 +106,7 @@ const setWebSearchMode = (state: WebSearchState<Protyle>, next: boolean) => {
 };
 
 /** Execute one real network request and render structured results or diagnostics. */
-const requestWebSearch = async (state: WebSearchState<Protyle>) => {
+const requestWebSearch = async (state: WebSearchState<ProtyleDomain>) => {
     const elements = state.elements;
     const query = elements.input.value.trim();
     if (!query || !state.webMode) {
@@ -152,7 +152,7 @@ const requestWebSearch = async (state: WebSearchState<Protyle>) => {
 };
 
 /** Bind result actions so each search item can be inserted without leaving the search view. */
-const bindWebSearchResultActions = (state: WebSearchState<Protyle>) => {
+const bindWebSearchResultActions = (state: WebSearchState<ProtyleDomain>) => {
     state.elements.webPanel.addEventListener("click", (event: MouseEvent) => {
         if (!(event.target instanceof HTMLElement)) {
             return;
@@ -181,7 +181,7 @@ const bindWebSearchResultActions = (state: WebSearchState<Protyle>) => {
 };
 
 /** Bind source switching, debounce typing, explicit submit, and keyboard submit. */
-const bindWebSearchInputs = (state: WebSearchState<Protyle>, setMode: (next: boolean) => void) => {
+const bindWebSearchInputs = (state: WebSearchState<ProtyleDomain>, setMode: (next: boolean) => void) => {
     const elements = state.elements;
     elements.sourceLocal.addEventListener("click", () => setMode(false));
     elements.sourceWeb.addEventListener("click", () => setMode(true));
@@ -205,8 +205,8 @@ const bindWebSearchInputs = (state: WebSearchState<Protyle>, setMode: (next: boo
 };
 
 /** Initialize the human-facing web source in the existing global search dialog. */
-export const initWebSearch = (element: HTMLElement, config: Config.IUILayoutTabSearchConfig, edit: Protyle) => {
-    let state: WebSearchState<Protyle>;
+export const initWebSearch = (element: HTMLElement, config: Config.IUILayoutTabSearchConfig, edit: ProtyleDomain) => {
+    let state: WebSearchState<ProtyleDomain>;
     /** Run the current web request after state and DOM handlers have been initialized. */
     const runSearch = () => requestWebSearch(state);
     state = {

@@ -18,6 +18,10 @@ export type {LayoutTab};
 import { Protyle } from "../../protyle";
 /** 导出 Protyle 构造器，供 Dock 组合边界使用。 */
 export { Protyle };
+/** 用途：Dock 模型接收的完整编辑器领域根。使用范围：模型工厂参数；具体 class 仅在上述构造边界加载。 */
+import type {ProtyleDomain} from "../../protyle/protyle.types";
+/** 导出完整 Protyle 领域根。 */
+export type {ProtyleDomain};
 
 /** 用途：Tree 构造器。使用范围：Dock 组合工厂创建自定义列表树；其余模块应依赖 TreeDomain。解耦评估：具体 class 仅在初始化边界加载。 */
 import {Tree} from "../../util/file/Tree";

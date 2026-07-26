@@ -16,7 +16,7 @@ import {initSearchMenu} from "../../menus/search";
 import {writeText} from "../../protyle/util/compatibility";
 import {getUnRefList} from "../../search/unRef";
 import {toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory} from "../../search/toggleHistory";
-import {Protyle} from "../../protyle";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 
 export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
     if (getSelection().rangeCount === 0) {
@@ -28,7 +28,7 @@ export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
     }
     let element: HTMLElement;
     let dialog: Dialog;
-    let edit: Protyle;
+    let edit: ProtyleDomain;
     let unRefEdit;
     let config: Config.IUILayoutTabSearchConfig;
     window.siyuan.dialogs.find((item) => {

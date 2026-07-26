@@ -39,7 +39,7 @@ import { 处理图标点击 } from "./Panel.helpers";
 /** 用途：打开引用块到普通页签；使用范围：BlockPanel 宿主能力适配；解耦评估：具体 AppFacade 仅在此装配层闭包中使用。 */
 import { openFileById } from "./imports";
 /** 用途：BlockPanel 编辑器结构；使用范围：实例生命周期数组；解耦评估：不依赖 Protyle class。 */
-import type { IBlockPanelEditor } from "./editor.types";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 
 /**
  * 作用：构建编辑器初始化所需的上下文对象
@@ -133,7 +133,7 @@ export class BlockPanel {
     public x: number | undefined;
     public y: number | undefined;
     public isBacklink: boolean;
-    public editors: IBlockPanelEditor[] = [];
+    public editors: ProtyleDomain[] = [];
     public observerResize: ResizeObserver | undefined;
     public observerLoad: IntersectionObserver | undefined;
     public originalRefBlockIDs: IObject | undefined;

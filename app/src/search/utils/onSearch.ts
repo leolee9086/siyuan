@@ -1,7 +1,7 @@
 import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
-import { Protyle } from "../../protyle";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 import { escapeAriaLabel, escapeLessThans, escapeHtml } from "../../util/DOM/escape";
 import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -222,7 +222,7 @@ const 滚动到当前项 = (element: Element, currentData: IBlock): void => {
  * @param config - 搜索配置
  * @param focusId - 可选的焦点 ID 配置，用于指定需要聚焦的项
  */
-export const onSearch = (data: IBlock[], edit: Protyle, element: Element, config: Config.IUILayoutTabSearchConfig,
+export const onSearch = (data: IBlock[], edit: ProtyleDomain, element: Element, config: Config.IUILayoutTabSearchConfig,
     focusId?: {
         currentId?: string;
         newId?: string;

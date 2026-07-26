@@ -36,7 +36,7 @@ export function 初始化Protyle编辑器(
         return;
     }
     fetchPost("/api/block/getBlockInfo", { id: refDef.refID }, (response) => {
-        处理块信息响应({response, editorElement, refDef, ctx, afterCB});
+        处理块信息响应({response, editorElement, refDef, ctx, ...(afterCB ? {afterCB} : {})});
     });
 }
 
@@ -79,7 +79,7 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
                 rootID: response.data.rootID,
                 refDef,
                 locateAttributeView: ctx.locateAttributeView,
-                afterCB,
+                ...(afterCB ? {afterCB} : {}),
             });
         }
     });
@@ -101,8 +101,8 @@ function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeVie
     if (refDef.avItemID) {
         locateAttributeView(editor.protyle, refDef.refID, {
             itemID: refDef.avItemID,
-            viewID: refDef.avViewID,
-            groupID: refDef.avGroupID,
+            ...(typeof refDef.avViewID === "undefined" ? {} : {viewID: refDef.avViewID}),
+            ...(typeof refDef.avGroupID === "undefined" ? {} : {groupID: refDef.avGroupID}),
             select: false,
             highlight: true,
             persistView: false,

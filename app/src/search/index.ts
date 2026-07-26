@@ -4,18 +4,14 @@
  * 解耦评估：通过 imports.ts 转发。
  */
 import { Model } from "./imports";
-/**
- * 用途：布局 Tab 类型。
- * 使用范围：Search 构造参数。
- * 解耦评估：通过 imports.ts 转发。
- */
-import { Tab } from "./imports";
+/** 用途：布局页签完整领域根。使用范围：Search 构造参数和模型父级。 */
+import type {LayoutTab} from "./imports";
 /**
  * 用途：Protyle 编辑器类型。
  * 使用范围：Search 编辑器引用。
  * 解耦评估：通过 imports.ts 转发。
  */
-import { Protyle } from "./imports";
+import type {ProtyleDomain} from "./imports";
 /**
  * 用途：搜索功能生成器。
  * 使用范围：Search 构造函数中初始化编辑器。
@@ -46,6 +42,7 @@ import { clearOBG } from "./imports";
  * 解耦评估：通过 imports.ts 转发。
  */
 import { getSiyuanConfig } from "./imports";
+import {searchModelBrand} from "./model/search.types";
 
 /**
  * 用途：处理 Search 面板元素点击——恢复焦点并清除 O/B/G 高亮
@@ -73,12 +70,13 @@ const selectInputField = (element: HTMLElement) => {
 
 /** 用途：搜索面板，管理搜索界面的生命周期和事件。使用范围：布局系统初始化搜索面板时实例化。 */
 // @允许继承: 框架要求 (FrameworkRequired)
-class Search extends Model<AppFacade, Tab> {
+class Search extends Model<AppFacade, LayoutTab> {
+    public readonly [searchModelBrand] = "Search" as const;
     public element: HTMLElement;
     public config: Config.IUILayoutTabSearchConfig;
-    public editors: { edit: Protyle, unRefEdit: Protyle };
+    public editors: {edit: ProtyleDomain, unRefEdit: ProtyleDomain};
 
-    constructor(options: { tab: Tab, config: Config.IUILayoutTabSearchConfig, app: AppFacade }) {
+    constructor(options: {tab: LayoutTab; config: Config.IUILayoutTabSearchConfig; app: AppFacade}) {
         super({
             app: options.app,
         });

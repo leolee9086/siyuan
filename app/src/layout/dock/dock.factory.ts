@@ -18,7 +18,7 @@ import { createColorToolDockModel } from "../../sforge/colors/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
 import { Tab } from "./imports";
 import type { AppFacade } from "./imports";
-import type { Protyle } from "./imports";
+import type {ProtyleDomain} from "./imports";
 import {Protyle as ProtyleConstructor} from "./imports";
 import {Tree} from "./imports";
 import type { ILayoutModel } from "./imports";
@@ -66,7 +66,7 @@ export const createCustomTabModel = <TData>(context: TabModelFactoryContext<AppF
  * 意图：提供文件系统的可视化展示和操作
  * 调用时机：加载文件树 Dock 时
  */
-const initFile: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab) => {
+const initFile: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab) => {
     return new Files({ tab, app });
 };
 
@@ -77,7 +77,7 @@ const initFile: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab) => {
  * 意图：展示文档的标题结构大纲
  * 调用时机：加载大纲 Dock 时
  */
-const initOutline: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initOutline: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
     const isPreview = false;
     const outline = new Outline({
@@ -106,7 +106,7 @@ const initOutline: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, e
  * 意图：展示当前文档的相关引用关系
  * 调用时机：加载关系图 Dock 时
  */
-const initGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initGraph: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab, editor) => {
     return new Graph({
         app,
         tab,
@@ -122,7 +122,7 @@ const initGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, edi
  * 意图：展示整个知识库的引用网络
  * 调用时机：加载全局关系图 Dock 时
  */
-const initGlobalGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab) => {
+const initGlobalGraph: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab) => {
     return new Graph({
         app,
         tab,
@@ -137,7 +137,7 @@ const initGlobalGraph: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, ta
  * 意图：展示引用当前文档的其他文档列表
  * 调用时机：加载反向链接 Dock 时
  */
-const initBacklink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initBacklink: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab, editor) => {
     return new Backlink({
         app,
         type: "pin",
@@ -153,7 +153,7 @@ const initBacklink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, 
  * 意图：显示当前文档引用的其他文档/块列表
  * 调用时机：加载正向链接 Dock 时
  */
-const initForwardlink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor) => {
+const initForwardlink: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab, editor) => {
     return new Forwardlink({
         app,
         type: "pin",
@@ -170,7 +170,7 @@ const initForwardlink: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, ta
  * 调用时机：加载自定义列表 Dock 时
  */
 /** @参数豁免: 生命周期 - 布局反序列化要求所有模型工厂遵守统一的四参数调用协议。 */
-const initCustomList: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab, editor, data) => {
+const initCustomList: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (app, tab, editor, data) => {
     // isICustomList 已排除 null/undefined/非对象，无需额外 !data 真值检查；
     // 否则 !data 会将 unknown 先收窄为 {}，导致类型守卫无法在 || 否定分支中收窄为 ICustomList
     if (!isICustomList(data)) {
@@ -188,7 +188,7 @@ const initCustomList: ModelFactory<AppFacade, Tab, Protyle, unknown> = (app, tab
     );
 };
 
-const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, Protyle, unknown> | ModelConstructor<AppFacade, Tab, Protyle, unknown>> = {
+const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> | ModelConstructor<AppFacade, Tab, ProtyleDomain, unknown>> = {
     file: initFile,
     bookmark: Bookmark,
     tag: Tag,
@@ -268,7 +268,7 @@ export const createModel = (options: {
     app: AppFacade,
     tab: Tab,
     type: string,
-    editor?: Protyle | undefined,
+    editor?: ProtyleDomain | undefined,
     data?: unknown
 }) => {
     // 处理已保存的错误占位符
@@ -306,7 +306,7 @@ export const safeCreateModel = (options: {
     app: AppFacade,
     tab: Tab,
     type: string,
-    editor?: Protyle | undefined,
+    editor?: ProtyleDomain | undefined,
     data?: unknown
 }) => {
     try {
@@ -338,7 +338,7 @@ export const safeCreateModel = (options: {
 export const createDockTab = (options: {
     app: AppFacade,
     type: string,
-    editor?: Protyle,
+    editor?: ProtyleDomain,
     data?: unknown
 }) => {
     return new Tab({

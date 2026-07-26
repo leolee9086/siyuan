@@ -11,6 +11,7 @@ import type { Dock } from "./index";
 import { getDockByType } from "../tabUtil";
 import { Protyle } from "../../protyle";
 import { getAllModels } from "../getAll";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -67,7 +68,7 @@ export function initNoActiveElements(dock: Dock): void {
 /**
  * 查找活动编辑器
  */
-export function findActiveEditor(): Protyle | undefined {
+export function findActiveEditor(): ProtyleDomain | undefined {
     const models = getAllModels();
     for (const item of models.editor) {
         const isFocused = item.parent.headElement.classList.contains("item--focus");

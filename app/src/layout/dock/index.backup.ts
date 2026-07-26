@@ -14,6 +14,7 @@ import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType, resizeTabs } from "../tabUtil";
 import { Inbox } from "./Inbox";
 import { Protyle } from "../../protyle";
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 import { Backlink } from "./Backlink";
 import { resetFloatDockSize } from "./util";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
@@ -578,7 +579,7 @@ export class Dock {
             });
             target.classList.add("dock__item--active", "dock__item--activefocus");
             if (!target.getAttribute("data-id")) {
-                let editor: Protyle;
+                let editor: ProtyleDomain;
                 const models = getAllModels();
                 models.editor.find((item) => {
                     if (item.parent.headElement.classList.contains("item--focus") && item.editor?.protyle?.path) {

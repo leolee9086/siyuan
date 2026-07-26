@@ -2,7 +2,7 @@
  * @fileoverview 替换相关点击处理
  */
 
-import { Protyle } from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { filterMenu, replaceFilterMenu } from "../../../menu";
 import { inputEvent } from "../../../inputEvent";
 
@@ -36,7 +36,7 @@ export function handleReplaceFilter(config: Config.IUILayoutTabSearchConfig): vo
 export function handleSearchFilter(
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): void {
     window.siyuan.menus.menu.remove();

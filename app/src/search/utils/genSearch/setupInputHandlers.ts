@@ -4,7 +4,7 @@
 
 import { setStorageVal } from "../../../ai/imports";
 import { Constants } from "../../../constants";
-import { Protyle } from "../../../protyle";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import { electronUndo } from "../../../protyle/undo";
 import { addClearButton } from "../../../util/DOM/addClearButton";
 import { inputEvent } from "../../inputEvent";
@@ -26,7 +26,7 @@ export function setupInputHandlers(
     searchInputElement: HTMLInputElement,
     replaceInputElement: HTMLInputElement,
     config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): void {
     bindSearchInputEvents(element, searchInputElement, config, edit, updateCB);
@@ -41,7 +41,7 @@ function bindSearchInputEvents(
     element: HTMLElement,
     searchInputElement: HTMLInputElement,
     config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ) {
     const inputHandler = handleInput(element, config, edit, updateCB);
@@ -76,7 +76,7 @@ function handleBlur(searchInputElement: HTMLInputElement, config: Config.IUILayo
 function handleInput(
     element: HTMLElement,
     config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ) {
     return (event: Event) => {
@@ -115,7 +115,7 @@ function initClearButtons(
     searchInputElement: HTMLInputElement,
     replaceInputElement: HTMLInputElement,
     config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ) {
     addClearButton({

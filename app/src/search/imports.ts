@@ -29,15 +29,15 @@ import { Model } from "../layout/Model";
 /** 导出 Model，供 search 模块使用 */
 export { Model };
 
-/** 用途：布局 Tab 类型。使用范围：Search 构造参数。解耦评估：通过 imports.ts 转发。 */
-import { Tab } from "../layout/Tab";
-/** 导出 Tab，供 search 模块使用 */
-export { Tab };
+/** 用途：布局页签完整领域根。使用范围：Search 构造参数和父级。 */
+import type {LayoutTab} from "../layout/layout.types";
+/** 导出布局页签领域根。 */
+export type {LayoutTab};
 
-/** 用途：Protyle 编辑器类型。使用范围：Search 编辑器引用。解耦评估：通过 imports.ts 转发。 */
-import { Protyle } from "../protyle";
-/** 导出 Protyle，供 search 模块使用 */
-export { Protyle };
+/** 用途：完整 Protyle 领域根。使用范围：Search 持有的编辑器引用；具体构造器留在创建边界。 */
+import type {ProtyleDomain} from "../protyle/protyle.types";
+/** 导出完整 Protyle 领域根。 */
+export type {ProtyleDomain};
 
 /** 用途：AppFacade 根实例类型。使用范围：Search 构造参数。解耦评估：通过 imports.ts 转发。 */
 import type { AppFacade } from "../app/AppFacade.types";

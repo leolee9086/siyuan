@@ -1,13 +1,10 @@
 /** 用途：布局页签完整领域根。使用范围：Editor 构造选项统一使用经严格校验的公共表面。 */
 import type {LayoutTab} from "../layout/layout.types";
-
-/** Editor 持有的编辑引擎身份；具体引擎必须公开现有 Protyle 状态。 */
-export interface IEditorEngine {
-    readonly protyle: IProtyle;
-}
+/** 用途：Editor 持有完整 Protyle 领域根；使用范围：模型状态、构造选项和初始化回调。 */
+import type {ProtyleDomain} from "../protyle/protyle.types";
 
 /** 编辑引擎创建选项保持完整 Protyle 配置，只参数化初始化回调中的引擎身份。 */
-export type EditorEngineOptions<TEditor extends IEditorEngine> =
+export type EditorEngineOptions<TEditor extends ProtyleDomain> =
     Omit<IProtyleOptions, "after"> & {after: (editor: TEditor) => void};
 
 /**
@@ -15,12 +12,12 @@ export type EditorEngineOptions<TEditor extends IEditorEngine> =
  *
  * 用途：定义创建 Editor 实例时所需的业务参数，并分别保留应用、页签和引擎身份。
  * 使用场景：Editor 模型构造、布局页签创建、复制和恢复。
- * 关联类型：LayoutTab、IEditorEngine 和具体宿主工厂。
+ * 关联类型：LayoutTab、ProtyleDomain 和具体宿主工厂。
  * 问题/改进：运行时创建与宿主动作由工厂另行注入，不进入业务选项。
  */
 export interface IEditorOptions<
     TApplication extends object,
-    TEditor extends IEditorEngine,
+    TEditor extends ProtyleDomain,
 > {
     app: TApplication;
     tab: LayoutTab;

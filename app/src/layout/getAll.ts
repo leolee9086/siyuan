@@ -1,11 +1,11 @@
-import type { Protyle } from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "./layout.types";
 import { Editor } from "../editor";
 import {isGraphDomain} from "./dock/graph/graph.types";
 import {isOutlineDomain} from "./dock/outline/types";
 import {isBacklinkDomain} from "./dock/backlink/backlink.types";
 import {isAssetDomain} from "../asset/asset.types";
-import { Search } from "../search";
+import {isSearchDomain} from "../search/model/search.types";
 import {isFilesDomain} from "./dock/Files/eventHandlers.types";
 import {isBookmarkDomain} from "./dock/bookmark/bookmark.types";
 import {isTagDomain} from "./dock/tag/tag.types";
@@ -27,7 +27,7 @@ import {collectLayoutTabs, collectLayoutWindows} from "./traversal/collectLayout
  * @同步豁免: 性能考虑
  */
 export const getAllEditor = () => {
-    const editors: Protyle[] = [];
+    const editors: ProtyleDomain[] = [];
     if (isMobile) {
         const mobile = getSafeSiyuanMobile();
         // 检查移动端主编辑器是否存在，存在则添加到编辑器列表
@@ -127,7 +127,7 @@ const pushModel = (models: IModels, model: LayoutTab["model"]) => {
         return;
     }
     // @无需注释
-    if (model instanceof Search) {
+    if (isSearchDomain(model)) {
         models.search.push(model);
         return;
     }

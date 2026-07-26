@@ -3,7 +3,7 @@
  */
 
 import { fetchPost } from "../../../../ai/imports";
-import { Protyle } from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { escapeHtml } from "../../../../util/DOM/escape";
 import { getNotebookName, pathPosix } from "../../../../util/file/pathName";
 import { movePathTo } from "../../../../util/file/movePathTo";
@@ -16,7 +16,7 @@ import { inputEvent } from "../../../inputEvent";
 export function handleSearchPath(
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): void {
     const searchPathInputElement = element.querySelector("#searchPathInput");
@@ -75,7 +75,7 @@ export function handleSearchPath(
 export function handleRemovePath(
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): void {
     const searchPathInputElement = element.querySelector("#searchPathInput");
@@ -106,7 +106,7 @@ export function handleSearchInclude(
     target: HTMLElement,
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): boolean {
     if (target.hasAttribute("disabled")) {

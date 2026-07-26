@@ -4,7 +4,7 @@
 
 import { fetchPost } from "../../../../ai/imports";
 import { Constants } from "../../../../constants";
-import { Protyle } from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { getDefaultSubType, getDefaultType } from "../../../getDefault";
 import { updateConfig } from "../../../util";
 
@@ -36,7 +36,7 @@ function getDefaultConfig(): Config.IUILayoutTabSearchConfig {
 export function handleRemoveCriterion(
     element: HTMLElement,
     config: Config.IUILayoutTabSearchConfig,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): Config.IUILayoutTabSearchConfig {
     updateConfig(element, getDefaultConfig(), config, edit, true);
@@ -58,7 +58,7 @@ export function handleSetCriteria(
     config: Config.IUILayoutTabSearchConfig,
     criteriaData: Config.IUILayoutTabSearchConfig[],
     element: HTMLElement,
-    edit: Protyle,
+    edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): Config.IUILayoutTabSearchConfig {
     config.removed = false;
@@ -87,7 +87,7 @@ export function handleRemoveCriteria(
     config: Config.IUILayoutTabSearchConfig,
     criteriaData: Config.IUILayoutTabSearchConfig[],
     element: HTMLElement,
-    edit: Protyle
+    edit: ProtyleDomain
 ): Config.IUILayoutTabSearchConfig {
     const parentElement = target.parentElement;
     if (!parentElement) {

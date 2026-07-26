@@ -2,7 +2,7 @@
  * @fileoverview 翻页相关点击处理
  */
 
-import { Protyle } from "../../../../protyle";
+import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { inputEvent } from "../../../inputEvent";
 
 /**
@@ -12,7 +12,7 @@ export function handleNextPage(
     target: HTMLElement,
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle
+    edit: ProtyleDomain
 ): void {
     if (target.getAttribute("disabled")) {
         return;
@@ -37,7 +37,7 @@ export function handlePreviousPage(
     target: HTMLElement,
     config: Config.IUILayoutTabSearchConfig,
     element: HTMLElement,
-    edit: Protyle
+    edit: ProtyleDomain
 ): void {
     if (target.getAttribute("disabled")) {
         return;
