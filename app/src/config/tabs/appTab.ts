@@ -2,7 +2,7 @@ import * as path from "path";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
 import {fetchPost} from "../../util/fetch";
-import {exportLayout} from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import {exitSiYuan} from "../../dialog/processSystem";
 import {showMessage} from "../../dialog/message";
 import {isMac, saveExportFile} from "../../protyle/util/compatibility";

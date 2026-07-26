@@ -3,7 +3,7 @@ import {matchHotKey} from "../../protyle/util/hotKey";
 import {Constants} from "../../constants";
 import {hideMessage, showMessage} from "../../dialog/message";
 import {fetchPost} from "../../util/fetch";
-import {exportLayout} from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {sendGlobalShortcut, sendUnregisterGlobalShortcut} from "../../boot/globalEvent/keydown";
 import {normalizeSearchText} from "../search/normalize";

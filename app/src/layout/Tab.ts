@@ -10,7 +10,8 @@ import { hideTooltip } from "../dialog/tooltip";
 import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
 import { ipcSend } from "../platform/electron/ipcRenderer";
-import { layoutToJSON, saveLayout } from "./util";
+import {layoutToJSON} from "./persistence/layoutSerializer";
+import {saveLayout} from "./persistence/saveLayout";
 import { acquireIframeInteractionLock, releaseIframeInteractionLock } from "./utils/iframeInteractionLock";
 import { setTitle } from "../util/processTitle";
 

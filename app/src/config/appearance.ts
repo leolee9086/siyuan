@@ -1,7 +1,8 @@
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import {nativeRequire} from "../platform/nativeRequire";
-import { exportLayout, resetLayout } from "../layout/util";
+import {resetLayout} from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
 import { genLangOptions, genOptions } from "../util/DOM/helpers/genOptions";

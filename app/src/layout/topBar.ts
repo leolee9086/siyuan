@@ -21,7 +21,8 @@ import {isBrowser, isWindow, setToolbarLeftMac} from "../util/platform/functions
 import {fetchPost} from "../util/network/fetch";
 import {needSubscribe} from "../util/platform/needSubscribe";
 import * as dayjs from "dayjs";
-import {exportLayout, resizeTopBar} from "./util";
+import {resizeTopBar} from "./util";
+import {exportLayout} from "./export/exportLayout";
 import {setTabPosition} from "./tabUtil";
 import {commandPanel} from "../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../plugin/openTopBarMenu";

@@ -8,7 +8,7 @@ import {importObsidianVault} from "./importObsidian";
 import {saveExportFile, writeText} from "../protyle/util/compatibility";
 import {exitSiYuan} from "../dialog/processSystem";
 /// #if !MOBILE
-import {exportLayout} from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 /// #endif
 /// #if !BROWSER
 import {ipcRenderer} from "electron";

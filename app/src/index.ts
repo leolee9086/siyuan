@@ -8,7 +8,7 @@ import { addScript, addScriptSync } from "./protyle/util/addScript";
 import { genUUID } from "./util/platform/genID";
 import { fetchGet, fetchPost } from "./util/network/fetch";
 import { addBaseURL, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
-import { exportLayout } from "./layout/layout-serialization";
+import {exportLayout} from "./layout/export/exportLayout";
 // S-forge: 上游新增 - 支持空文档标题显示 (upstream #17110)
 import { getDocDisplayName, parseSiYuanUriInfo } from "./util/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";

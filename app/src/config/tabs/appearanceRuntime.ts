@@ -1,6 +1,6 @@
 import {saveScroll} from "../../protyle/scroll/saveScroll";
 import {adjustDockPadding} from "../../layout/dock/util";
-import {exportLayout} from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import {syncHideToolbarLayout, updateBarModeIcon} from "../../layout/topBar";
 import {fetchPost} from "../../util/fetch";
 import {loadAssets} from "../../util/assets";

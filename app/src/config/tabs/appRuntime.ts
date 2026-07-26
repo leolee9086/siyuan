@@ -1,6 +1,6 @@
 import {fetchPost} from "../../util/fetch";
 import {Constants} from "../../constants";
-import {exportLayout} from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import {exitSiYuan} from "../../dialog/processSystem";
 import {isElectron, isMobile} from "../../platform";
 import {ipcSend} from "../../platform/electron/ipcRenderer";

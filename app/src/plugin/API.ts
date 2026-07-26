@@ -27,7 +27,7 @@ import { openSetting } from "../config";
 import { openAttr } from "../menus/commonMenuItem";
 import { openFileAttr } from "../menus/commonMenuItem/openFileAttr";
 import { globalCommand } from "../boot/globalEvent/command/global";
-import { exportLayout } from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { getModelByDockType } from "./api/getModelByDockType";

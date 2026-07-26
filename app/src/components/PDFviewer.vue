@@ -505,7 +505,7 @@ import { getSiyuanConfig, getSiyuanStorage } from "../util/siyuanEnvironments/ge
 import { setStorageVal } from "../protyle/util/compatibility";
 //@ts-ignore
 import { webViewerLoad } from "../asset/pdf/viewer";
-import { setModelsHash } from "../window/setHeader";
+import {setModelsHash} from "../window/modelHash/setModelsHash";
 
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { onMounted, ref } from "vue";

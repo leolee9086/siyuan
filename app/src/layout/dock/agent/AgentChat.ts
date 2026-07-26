@@ -606,6 +606,11 @@ export class AgentChat extends Model<AppFacade, Tab> {
         return this.sessionId;
     }
 
+    /** 当前 Agent Tab 的自描述布局数据，由通用模型序列化协议读取。 */
+    public get layoutSerialization(): {readonly instance: "AgentChat"; readonly sessionId: string} {
+        return {instance: "AgentChat", sessionId: this.sessionId};
+    }
+
     /** 从布局快照恢复普通 Tab 的会话内容；不存在的会话保留欢迎页。 */
     public async restoreSessionById(sessionId: string): Promise<void> {
         if (!sessionId) {

@@ -6,7 +6,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
 import { setAccessAuthCode } from "./util/about";
-import { exportLayout } from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import { exitSiYuan, processSync } from "../dialog/processSystem";
 import { isInMobileApp, isMac, saveExportFile, writeText } from "../protyle/util/compatibility";
 import {isIPad} from "../util/platform/functions";

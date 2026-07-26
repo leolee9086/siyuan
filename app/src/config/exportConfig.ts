@@ -1,6 +1,6 @@
 import { fetchPost } from "../util/network/fetch";
 import { afterExport } from "../protyle/export/util";
-import {exportLayout} from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import { isElectron, isMobile } from "../platform";
 import {nativeRequire} from "../platform/nativeRequire";
 import { ipcInvoke } from "../platform/electron/ipcRenderer";

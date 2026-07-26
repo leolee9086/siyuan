@@ -61,7 +61,7 @@ import { lockScreen } from "../dialog/processSystem/lockScreen";
  * 使用范围：openNewWindow.ts 等需要序列化布局状态的模块
  * 解耦评估：依赖布局系统核心功能，当前无法解耦
  */
-import { layoutToJSON } from "../layout/util";
+import {layoutToJSON} from "../layout/persistence/layoutSerializer";
 
 /**
  * 用途：提供平台检测功能，用于判断是否在 Electron 环境中运行

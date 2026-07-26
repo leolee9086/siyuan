@@ -3,7 +3,7 @@
  */
 
 /** 用途：Symbol 键定义。使用范围：ISForgeGlobalState 接口的索引签名键。解耦评估：同目录符号定义，直接导入。 */
-import { SForgeSymbols } from "./sforge.symbols";
+import {LAYOUT_PERSISTENCE_REGISTRY, SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
 import type { TabRegistration } from "../registry/TabRegistry.types";
 /** 用途：触发器注册类型。使用范围：全局状态中触发器注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -36,6 +36,8 @@ import type { ILayoutTabOpenPort } from "../layout/tabOpen.types";
 import type { WndDragRestore } from "../layout/layout.types";
 /** 用途：应用外观身份。使用范围：Wnd 拖拽恢复 Port 的宿主参数；解耦评估：只读类型依赖，不加载 App 实现。 */
 import type { AppFacade } from "../app/AppFacade.types";
+/** 用途：布局持久化注册状态。使用范围：全局状态键值映射；解耦评估：纯数据类型，不加载保存实现。 */
+import type {LayoutPersistenceState} from "../layout/persistence/state/saveLayout.types";
 
 /**
  * SForge 全局状态类型定义
@@ -64,6 +66,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.TAB_FLOAT_FACTORY_REGISTRY]?: Map<string, ILayoutTabFloatFactory>;
     [SForgeSymbols.TAB_OPEN_PORT]?: ILayoutTabOpenPort;
     [SForgeSymbols.WND_DRAG_RESTORE]?: WndDragRestore<AppFacade>;
+    [LAYOUT_PERSISTENCE_REGISTRY]?: Map<string, LayoutPersistenceState>;
 }
 
 /**

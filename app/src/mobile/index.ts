@@ -9,7 +9,7 @@ import "../assets/scss/mobile.scss";
 import { Menus } from "../menus";
 import { addBaseURL, setNoteBook } from "../util/file/pathName";
 import { parseSiYuanUriInfo } from "../util/pathName";
-import { exportLayout } from "../layout/layout-serialization";
+import {exportLayout} from "../layout/export/exportLayout";
 // S-forge: 补 handleTouchUp——上游 commit 8e2f01032 新增的触摸事件处理函数，用于物理按键消除长按定时器
 import { handleTouchEnd, handleTouchMove, handleTouchStart, handleTouchUp } from "./util/touch";
 import { fetchGet, fetchPost } from "../util/network/fetch";

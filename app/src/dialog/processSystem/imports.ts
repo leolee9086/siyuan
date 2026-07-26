@@ -18,7 +18,7 @@ export { fetchPost };
  * 使用范围：锁屏、退出等需要在界面状态持久化后继续执行系统动作的流程。
  * 解耦评估：布局导出属于布局子系统核心能力，业务层暂时无法脱离该实现；通过本文件转发后，调用方仅依赖稳定网关而非具体实现路径。
  */
-import { exportLayout } from "../../layout/layout-serialization";
+import {exportLayout} from "../../layout/export/exportLayout";
 /** 导出 `exportLayout` 供 `processSystem` 目录复用。 */
 export { exportLayout };
 

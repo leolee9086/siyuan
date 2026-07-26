@@ -16,7 +16,8 @@ import {
 import {newFile} from "../../util/file/newFile";
 import {Constants} from "../../constants";
 import {openSetting} from "../../config";
-import {getInstanceById, saveLayout} from "../../layout/util";
+import {getInstanceById} from "../../layout/util";
+import {saveLayout} from "../../layout/persistence/saveLayout";
 import {getActiveTab, getDockByType, switchTabByIndex} from "../../layout/tabUtil";
 import {Tab} from "../../layout/Tab";
 import {Editor} from "../../editor";

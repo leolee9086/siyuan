@@ -7,7 +7,7 @@ import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { genUUID } from "../util/platform/genID";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { addBaseURL, getDocDisplayName, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
-import { exportLayout } from "../layout/layout-serialization";
+import {exportLayout} from "../layout/export/exportLayout";
 import { openFileById } from "../editor/utils.openFileById";
 import {
     kernelError,

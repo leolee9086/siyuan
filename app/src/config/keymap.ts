@@ -2,7 +2,7 @@ import {isMac, updateHotkeyTip} from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {hideMessage, showMessage} from "../dialog/message";
 import {fetchPost} from "../util/network/fetch";
-import {exportLayout} from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import {confirmDialog} from "../dialog/confirmDialog";
 import type {AppFacade} from "../app/AppFacade.types";
 import { sendUnregisterGlobalShortcut } from "../boot/globalEvent/keydown/windowKeyDown/sendUnregisterGlobalShortcut";

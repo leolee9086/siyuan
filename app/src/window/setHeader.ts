@@ -1,10 +1,8 @@
 import { isWindow } from "../util/platform/functions";
-import { Constants } from "../constants";
-import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
+import {getWindowInnerWidth} from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import {readWindowHashIdentity} from "./modelHash/readWindowHashIdentity";
-import {collectLayoutTabs, collectLayoutWindows} from "../layout/traversal/collectLayout";
-import type {ILayoutTraversalTab, ILayoutTraversalWindow} from "../layout/traversal/layoutTraversal.types";
+import {collectLayoutWindows} from "../layout/traversal/collectLayout";
+import type {ILayoutTraversalWindow} from "../layout/traversal/layoutTraversal.types";
 
 /**
  * 用途：提供 Electron 样式类型守卫，用于判断 CSSStyleDeclaration 是否支持 WebkitAppRegion
@@ -125,7 +123,6 @@ const processWndForTabPosition = (item: ILayoutTraversalWindow, context: ITabPos
         dragStyle.WebkitAppRegion = "";
     }
 };
-
 /**
  * 设置独立窗口中标签页头部的位置和样式
  *
@@ -177,67 +174,4 @@ export const setTabPosition = (onlyPadding = false, onlyClear = false) => {
     for (const item of wndsTemp) {
         processWndForTabPosition(item, context);
     }
-};
-
-
-/** 从 tab 的 data-initdata 属性中提取 hash（如果是 Editor 类型） */
-const getHashFromInitData = (headElement: HTMLElement) => {
-    const initTab = headElement.getAttribute("data-initdata");
-    if (!initTab) {
-        return "";
-    }
-    const initTabData = JSON.parse(initTab);
-    if (initTabData.instance !== "Editor") {
-        return "";
-    }
-    return initTabData.rootId + Constants.ZWSP;
-};
-
-/** 处理单个 tab 并返回对应的 hash 值 */
-const processTabForHash = (tab: ILayoutTraversalTab) => {
-    // 卫语句：处理 tab.model 不存在的情况
-    if (!tab.model) {
-        return getHashFromInitData(tab.headElement);
-    }
-    // 只有显式声明窗口恢复身份的模型才参与 hash 持久化。
-    const identity = readWindowHashIdentity(tab.model);
-    if (identity) {
-        return identity.value + Constants.ZWSP;
-    }
-    // 其他类型返回空字符串
-    return "";
-};
-
-/**
- * 将当前所有标签页的模型信息同步到 URL hash
- *
- * @description
- * 作用：遍历所有标签页，收集 Editor 和 Asset 类型的标识信息，
- *       拼接成 hash 字符串并设置到 window.location.hash
- *
- * 意图：用于独立窗口状态持久化，使窗口刷新后能恢复之前打开的文档
- *
- * 调用时机：
- * - 标签页切换时（Wnd.ts showHeading）
- * - 标签页关闭时（Wnd.ts removeTab）
- * - 编辑器初始化完成时（editor/index.ts）
- *
- * @同步豁免: 遗留代码 - 此函数被多处同步调用，改为异步需要修改所有调用点，
- *           且函数内部仅进行 DOM 属性读取和 hash 设置，无异步操作需求
- */
-export const setModelsHash = () => {
-    if (!isWindow()) {
-        return;
-    }
-    let hash = "";
-    const layout = getSiyuanLayout().centerLayout;
-    if (!layout) {
-        return;
-    }
-    const tabs: ILayoutTraversalTab[] = [];
-    collectLayoutTabs(layout, tabs);
-    for (const tab of tabs) {
-        hash += processTabForHash(tab);
-    }
-    setLocationHash(hash);
 };

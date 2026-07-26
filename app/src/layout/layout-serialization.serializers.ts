@@ -3,23 +3,28 @@
  * 提供各种布局实例类型的序列化函数
  * @同步豁免: UI构建 - 所有序列化函数需要同步访问DOM属性和实例状态
  */
-import { Layout } from "./index";
-import { Wnd } from "./Wnd";
-import { Tab } from "./Tab";
+import type {LayoutDomain, LayoutTab, LayoutWindow} from "./layout.types";
+import {isLayoutDomain, isLayoutTab, isLayoutWindow} from "./layout.types.guard";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import {applyLayoutModelSerialization} from "./lifecycle/model.serialization";
-import { Editor } from "../editor";
-import { Asset } from "../asset";
-import { Backlink } from "./dock/Backlink";
-import { Bookmark } from "./dock/Bookmark";
-import { Files } from "./dock/Files";
-import { Graph } from "./dock/Graph";
-import { Outline } from "./dock/outline/Outline";
-import { Tag } from "./dock/Tag";
-import { Search } from "../search";
-import { Custom } from "./dock/Custom";
+import {isLayoutSerializableModel} from "./lifecycle/model.guard";
+import {isEditorDomain} from "../editor/model/editorDomain.types";
+import type {EditorDomain} from "../editor/model/editorDomain.types";
+import {isAssetDomain} from "../asset/asset.types";
+import type {AssetDomain} from "../asset/asset.types";
+import {isBacklinkDomain} from "./dock/backlink/backlink.types";
+import type {BacklinkDomain} from "./dock/backlink/backlink.types";
+import {isBookmarkDomain} from "./dock/bookmark/bookmark.types";
+import {isFilesDomain} from "./dock/Files/eventHandlers.types";
+import {isGraphDomain} from "./dock/graph/graph.types";
+import type {GraphDomain} from "./dock/graph/graph.types";
+import {isOutlineDomain} from "./dock/outline/types";
+import type {OutlineDomain} from "./dock/outline/types";
+import {isTagDomain} from "./dock/tag/tag.types";
+import {isSearchDomain} from "../search/model/search.types";
+import type {SearchDomain} from "../search/model/search.types";
+import {isCustomDomain} from "./dock/custom/custom.types";
 import type {CustomDomain} from "./dock/custom/custom.types";
-import { AgentChat } from "./dock/agent/AgentChat";
 import { Constants } from "../constants";
 import { SerializationJSON, BreakObject } from "./layout-serialization.types";
 
@@ -27,7 +32,7 @@ import { SerializationJSON, BreakObject } from "./layout-serialization.types";
  * 序列化 Layout 实例的属性
  * @同步豁免: UI构建 - 需要同步读取DOM尺寸和类名
  */
-export const serializeLayoutInstance = (layout: Layout, json: SerializationJSON): void => {
+export const serializeLayoutInstance = (layout: LayoutDomain, json: SerializationJSON): void => {
     json.direction = layout.direction;
     // 没有父布局时不需要设置尺寸（根布局）
     if (!layout.parent) {
@@ -54,7 +59,7 @@ export const serializeLayoutInstance = (layout: Layout, json: SerializationJSON)
  * 序列化 Wnd 实例的属性
  * @同步豁免: UI构建 - 需要同步读取DOM样式
  */
-export const serializeWndInstance = (layout: Wnd, json: SerializationJSON): void => {
+export const serializeWndInstance = (layout: LayoutWindow, json: SerializationJSON): void => {
     json.resize = layout.resize;
     json.height = layout.element.style.height;
     json.width = layout.element.style.width;
@@ -64,30 +69,30 @@ export const serializeWndInstance = (layout: Wnd, json: SerializationJSON): void
 /** 根据 Tab 的 model 类型获取语言标识 */
 const getTabLangFromModel = (model: ILayoutModel | undefined): string | undefined => {
     // Files 实例对应文件树
-    if (model instanceof Files) {
+    if (model && isFilesDomain(model)) {
         return "fileTree";
     }
     // Backlink 且类型为 pin 对应反向链接
-    if (model instanceof Backlink && model.type === "pin") {
+    if (model && isBacklinkDomain(model) && model.type === "pin") {
         return "backlinks";
     }
     // Bookmark 实例对应书签
-    if (model instanceof Bookmark) {
+    if (model && isBookmarkDomain(model)) {
         return "bookmark";
     }
     // Graph 且非本地类型对应图谱视图
-    if (model instanceof Graph && model.type !== "local") {
+    if (model && isGraphDomain(model) && model.type !== "local") {
         return "graphView";
     }
     // Outline 且非本地类型对应大纲
-    if (model instanceof Outline && model.type !== "local") {
+    if (model && isOutlineDomain(model) && model.type !== "local") {
         return "outline";
     }
     // Tag 实例对应标签
-    if (model instanceof Tag) {
+    if (model && isTagDomain(model)) {
         return "tag";
     }
-    if (model instanceof AgentChat) {
+    if (model && isLayoutSerializableModel(model) && model.layoutSerialization.instance === "AgentChat") {
         return "agentChat";
     }
     return undefined;
@@ -97,7 +102,7 @@ const getTabLangFromModel = (model: ILayoutModel | undefined): string | undefine
  * 序列化 Tab 实例的属性
  * @同步豁免: UI构建 - 需要同步读取DOM属性和类名
  */
-export const serializeTabInstance = (layout: Tab, json: SerializationJSON): void => {
+export const serializeTabInstance = (layout: LayoutTab, json: SerializationJSON): void => {
     // 只有存在头部元素时才序列化标签页属性
     if (layout.headElement) {
         json.title = layout.title;
@@ -117,7 +122,7 @@ export const serializeTabInstance = (layout: Tab, json: SerializationJSON): void
  * @同步豁免: UI构建 - 需要同步读取编辑器状态
  */
 export const serializeEditorInstance = (
-    layout: Editor, json: SerializationJSON, breakObj?: BreakObject
+    layout: EditorDomain, json: SerializationJSON, breakObj?: BreakObject
 ): void => {
     // notebook、块或根块尚未加载完整时，延后持久化，避免刷新后出现空白页签。
     if ((!layout.editor.protyle.notebookId || !layout.editor.protyle.block.id || !layout.editor.protyle.block.rootID) && breakObj) {
@@ -135,7 +140,7 @@ export const serializeEditorInstance = (
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeAssetInstance = (layout: Asset, json: SerializationJSON): void => {
+export const serializeAssetInstance = (layout: AssetDomain, json: SerializationJSON): void => {
     json.path = layout.path;
     // 如果是 PDF 文件，保存当前页码
     if (layout.pdfObject) {
@@ -145,7 +150,7 @@ export const serializeAssetInstance = (layout: Asset, json: SerializationJSON): 
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeBacklinkInstance = (layout: Backlink, json: SerializationJSON): void => {
+export const serializeBacklinkInstance = (layout: BacklinkDomain, json: SerializationJSON): void => {
     json.blockId = layout.blockId;
     json.rootId = layout.rootId;
     json.type = layout.type;
@@ -153,7 +158,7 @@ export const serializeBacklinkInstance = (layout: Backlink, json: SerializationJ
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeGraphInstance = (layout: Graph, json: SerializationJSON): void => {
+export const serializeGraphInstance = (layout: GraphDomain, json: SerializationJSON): void => {
     json.blockId = layout.blockId;
     json.rootId = layout.rootId;
     json.type = layout.type;
@@ -161,7 +166,7 @@ export const serializeGraphInstance = (layout: Graph, json: SerializationJSON): 
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeOutlineInstance = (layout: Outline, json: SerializationJSON): void => {
+export const serializeOutlineInstance = (layout: OutlineDomain, json: SerializationJSON): void => {
     json.blockId = layout.blockId;
     json.type = layout.type;
     json.isPreview = layout.isPreview;
@@ -169,7 +174,7 @@ export const serializeOutlineInstance = (layout: Outline, json: SerializationJSO
 };
 
 /** @同步豁免: UI构建 - 数据序列化操作 */
-export const serializeSearchInstance = (layout: Search, json: SerializationJSON): void => {
+export const serializeSearchInstance = (layout: SearchDomain, json: SerializationJSON): void => {
     json.instance = "Search";
     json.config = layout.config;
 };
@@ -181,31 +186,28 @@ export const serializeCustomInstance = (layout: CustomDomain, json: Serializatio
     json.customModelData = Object.assign({}, layout.data);
 };
 
-/** 序列化 AgentChat 普通 Tab 的会话句柄；消息正文仍以 SessionStore 为事实来源。 */
-export const serializeAgentChatInstance = (layout: AgentChat, json: SerializationJSON): void => {
-    json.instance = "AgentChat";
-    json.sessionId = layout.getSessionId();
-};
-
 /** @同步豁免: UI构建 - 数据序列化操作 */
 export const serializeSimpleInstance = (instanceName: string, json: SerializationJSON): void => {
     json.instance = instanceName;
 };
 
 /** 序列化容器类实例（Layout/Wnd/Tab），返回是否匹配 */
-const serializeContainerInstance = (layout: Layout | Wnd | Tab, json: SerializationJSON): boolean => {
+const serializeContainerInstance = (
+    layout: LayoutDomain | LayoutWindow | LayoutTab,
+    json: SerializationJSON,
+): boolean => {
     // Layout 实例：包含方向、尺寸、类型等布局信息
-    if (layout instanceof Layout) {
+    if (isLayoutDomain(layout)) {
         serializeLayoutInstance(layout, json);
         return true;
     }
     // Wnd 实例：窗口容器，包含尺寸和 resize 信息
-    if (layout instanceof Wnd) {
+    if (isLayoutWindow(layout)) {
         serializeWndInstance(layout, json);
         return true;
     }
     // Tab 实例：标签页，包含标题、图标、激活状态等
-    if (layout instanceof Tab) {
+    if (isLayoutTab(layout)) {
         serializeTabInstance(layout, json);
         return true;
     }
@@ -215,32 +217,32 @@ const serializeContainerInstance = (layout: Layout | Wnd | Tab, json: Serializat
 /** 序列化面板类实例，返回是否匹配 */
 const serializePanelInstance = (layout: ILayoutModel, json: SerializationJSON): boolean => {
     // Backlink 实例：反向链接面板
-    if (layout instanceof Backlink) {
+    if (isBacklinkDomain(layout)) {
         serializeBacklinkInstance(layout, json);
         return true;
     }
     // Bookmark 实例：书签面板
-    if (layout instanceof Bookmark) {
+    if (isBookmarkDomain(layout)) {
         serializeSimpleInstance("Bookmark", json);
         return true;
     }
     // Files 实例：文件树面板
-    if (layout instanceof Files) {
+    if (isFilesDomain(layout)) {
         serializeSimpleInstance("Files", json);
         return true;
     }
     // Graph 实例：图谱面板
-    if (layout instanceof Graph) {
+    if (isGraphDomain(layout)) {
         serializeGraphInstance(layout, json);
         return true;
     }
     // Outline 实例：大纲面板
-    if (layout instanceof Outline) {
+    if (isOutlineDomain(layout)) {
         serializeOutlineInstance(layout, json);
         return true;
     }
     // Tag 实例：标签面板
-    if (layout instanceof Tag) {
+    if (isTagDomain(layout)) {
         serializeSimpleInstance("Tag", json);
         return true;
     }
@@ -258,27 +260,23 @@ const serializeSpecialInstance = (
         return true;
     }
     // Editor 实例：编辑器，包含文档ID、模式等
-    if (layout instanceof Editor) {
+    if (isEditorDomain(layout)) {
         serializeEditorInstance(layout, json, breakObj);
         return true;
     }
     // Asset 实例：资源文件（如PDF），包含路径和页码
-    if (layout instanceof Asset) {
+    if (isAssetDomain(layout)) {
         serializeAssetInstance(layout, json);
         return true;
     }
     // Search 实例：搜索面板
-    if (layout instanceof Search) {
+    if (isSearchDomain(layout)) {
         serializeSearchInstance(layout, json);
         return true;
     }
     // Custom 实例：自定义面板（插件）
-    if (layout instanceof Custom) {
+    if (isCustomDomain(layout)) {
         serializeCustomInstance(layout, json);
-        return true;
-    }
-    if (layout instanceof AgentChat) {
-        serializeAgentChatInstance(layout, json);
         return true;
     }
     return false;
@@ -289,12 +287,12 @@ const serializeSpecialInstance = (
  * @同步豁免: UI构建 - 需要同步访问实例类型进行分发
  */
 export const serializeInstance = (
-    layout: Layout | Wnd | Tab | ILayoutModel,
+    layout: LayoutDomain | LayoutWindow | LayoutTab | ILayoutModel,
     json: SerializationJSON,
     breakObj?: BreakObject
 ): void => {
     // 尝试序列化容器类实例
-    if (layout instanceof Layout || layout instanceof Wnd || layout instanceof Tab) {
+    if (isLayoutDomain(layout) || isLayoutWindow(layout) || isLayoutTab(layout)) {
         serializeContainerInstance(layout, json);
         return;
     }

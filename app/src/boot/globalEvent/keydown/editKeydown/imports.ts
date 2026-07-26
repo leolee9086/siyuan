@@ -8,7 +8,7 @@ import { Custom } from "../../../../layout/dock/Custom";
 import { openBacklink, openGraph, openOutline } from "../../../../layout/dock/util";
 import { getAllModels } from "../../../../layout/getAll";
 import { getActiveTab } from "../../../../layout/tabUtil";
-import { saveLayout } from "../../../../layout/util";
+import {saveLayout} from "../../../../layout/persistence/saveLayout";
 import { zoomOut } from "../../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { copyPNGByLink } from "../../../../menus/util";
 import { fullscreen } from "../../../../protyle/breadcrumb/action";

@@ -9,7 +9,7 @@ import type { AppFacade } from "../../app/AppFacade.types";
 import { uninstall } from "../../plugin/uninstall";
 import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { saveLayout } from "../../layout/util";
+import {saveLayout} from "../../layout/persistence/saveLayout";
 import {openByMobile} from "../../editor/openLink";
 
 export const handleSwitch = (dataObj: any, bazaar: any, app: AppFacade) => {

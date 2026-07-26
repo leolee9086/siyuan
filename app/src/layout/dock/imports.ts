@@ -87,7 +87,7 @@ import { getDockByType } from "../tabUtil";
 /** 导出 getDockByType，供 dock 模块使用 */
 export { getDockByType };
 /** 用途：布局持久化函数。使用范围：dock 模块拖拽逻辑。解耦评估：通过 imports.ts 转发。 */
-import { saveLayout } from "../util";
+import {saveLayout} from "../persistence/saveLayout";
 /** 导出 saveLayout，供 dock 模块使用 */
 export { saveLayout };
 

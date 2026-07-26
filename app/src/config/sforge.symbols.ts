@@ -4,10 +4,11 @@
  * 使用 Symbol 作为属性键，避免命名冲突和意外覆盖
  */
 
-/**
- * SForge 全局状态 Symbol 键
- */
-export const SForgeSymbols = {
+/** Layout 持久化状态注册表的唯一类型键。 */
+export const LAYOUT_PERSISTENCE_REGISTRY = Symbol.for("sforge.layout.persistenceRegistry");
+
+/** SForge 全局状态 Symbol 键。 */
+export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */
     DOCK_TYPE_REGISTRY: Symbol.for("sforge.dock.typeRegistry"),
     /** Tab 类型注册表 */
@@ -48,4 +49,4 @@ export const SForgeSymbols = {
     TAB_OPEN_PORT: Symbol.for("sforge.layout.tabOpenPort"),
     /** Wnd 拖拽恢复宿主能力 */
     WND_DRAG_RESTORE: Symbol.for("sforge.layout.wndDragRestore"),
-} as const;
+} as const);

@@ -56,11 +56,44 @@ function isInitExempt(init) {
     if (init.type === "CallExpression" && isSymbolFactory(init.callee)) {
         return true;
     }
+    if (isFrozenSymbolMap(init)) {
+        return true;
+    }
     // 负值字面量：const NEG = -1
     if (init.type === "UnaryExpression" && init.argument.type === "Literal") {
         return true;
     }
     return false;
+}
+
+/** 去除 TypeScript `as const` / satisfies 等不改变运行时值的表达式包装。 */
+function unwrapTypeExpression(expression) {
+    if (expression?.type === "TSAsExpression" || expression?.type === "TSSatisfiesExpression" ||
+        expression?.type === "TSTypeAssertion") {
+        return unwrapTypeExpression(expression.expression);
+    }
+    return expression;
+}
+
+/** 判断初始化值是否为 Object.freeze 包裹的纯 Symbol 身份映射。 */
+function isFrozenSymbolMap(init) {
+    if (init?.type !== "CallExpression" || init.arguments.length !== 1 ||
+        init.callee.type !== "MemberExpression" || init.callee.computed ||
+        init.callee.object.type !== "Identifier" || init.callee.object.name !== "Object" ||
+        init.callee.property.type !== "Identifier" || init.callee.property.name !== "freeze") {
+        return false;
+    }
+    const map = unwrapTypeExpression(init.arguments[0]);
+    if (map?.type !== "ObjectExpression" || map.properties.length === 0) {
+        return false;
+    }
+    return map.properties.every((property) => {
+        if (property.type !== "Property" || property.kind !== "init" || property.computed) {
+            return false;
+        }
+        const value = unwrapTypeExpression(property.value);
+        return value?.type === "CallExpression" && isSymbolFactory(value.callee);
+    });
 }
 
 /** 判断调用是否为不会持有可变对象状态的 Symbol 身份键工厂。 */

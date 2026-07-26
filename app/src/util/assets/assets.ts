@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
 import { addStyle } from "../../protyle/util/addStyle";
 import { getAllModels } from "../../layout/getAll";
-import { exportLayout } from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import {isMobile, isBrowser} from "../../platform";
 // S-forge: 模块化重构 - 使用环境抽象层和资源模块
 import { fetchPost } from "../network/fetch";

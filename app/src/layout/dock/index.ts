@@ -5,7 +5,7 @@
 import { setStorageVal } from "../../protyle/util/compatibility";
 import type {LayoutDomain} from "../layout.types";
 import type {ILayoutModel} from "./imports";
-import { saveLayout } from "../util";
+import {saveLayout} from "../persistence/saveLayout";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustDockPadding, resetFloatDockSize } from "./util";
 import type { AppFacade } from "../../app/AppFacade.types";

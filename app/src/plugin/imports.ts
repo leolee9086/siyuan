@@ -33,7 +33,7 @@ import {setTabPosition} from "../layout/tabUtil";
  * @使用范围: loader.ts 在插件启停或重载后保存布局
  * @解耦评估: 可改为事件驱动，但当前直接调用能确保时序可控
  */
-import {saveLayout} from "../layout/util";
+import {saveLayout} from "../layout/persistence/saveLayout";
 
 /**
  * @导入用途: 编辑器集合获取函数

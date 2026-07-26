@@ -2,7 +2,7 @@ import {Constants} from "../constants";
 import {addScript} from "../protyle/util/addScript";
 import {addStyle} from "../protyle/util/addStyle";
 import {getAllModels} from "../layout/getAll";
-import {exportLayout} from "../layout/util";
+import {exportLayout} from "../layout/export/exportLayout";
 import {fetchPost} from "./fetch";
 import {
     isInAndroid,

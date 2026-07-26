@@ -24,7 +24,8 @@ import {
     layoutToJSON,
     saveLayout,
 } from "./util";
-import { setModelsHash, setTabPosition } from "../window/setHeader";
+import {setTabPosition} from "../window/setHeader";
+import {setModelsHash} from "../window/modelHash/setModelsHash";
 import { getAllModels } from "./getAll";
 import { clearCounter } from "../protyle/runtime/status.port";
 import { saveScroll } from "../protyle/scroll/saveScroll";

@@ -1,21 +1,22 @@
 import { Model } from "../layout/Model";
-import { Tab } from "../layout/Tab";
+import type {LayoutTab} from "../layout/layout.types";
 import { Constants } from "../constants";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
 import { fetchPost } from "../util/network/fetch";
 import type {AppFacade} from "../app/AppFacade.types";
-import { clearOBG } from "../layout/dock/util";
+import {clearObjectBlockGraphs} from "../layout/dock/obg/clearObjectBlockGraphs";
+import {getAllModels} from "../layout/getAll";
 import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
-import { getDisplayName } from "../util/file/pathName";
+import {getDisplayName} from "../util/file/path/operations";
 import { isMobile } from "../platform";
 import {assetModelBrand} from "./asset.types";
 
 /** 资产页签模型的具体运行时实现。 */
-export class Asset extends Model<AppFacade, Tab> {
+export class Asset extends Model<AppFacade, LayoutTab> {
   public get [assetModelBrand]() {
     return "Asset" as const;
   }
@@ -30,7 +31,7 @@ export class Asset extends Model<AppFacade, Tab> {
     return {kind: "asset-path", value: this.path} as const;
   }
 
-  constructor(options: { app: AppFacade, tab: Tab, path: string, page?: number | string }) {
+  constructor(options: { app: AppFacade, tab: LayoutTab, path: string, page?: number | string }) {
     super({ app: options.app, id: options.tab.id });
     if (window.siyuan.config?.fileTree?.openFilesUseCurrentTab) {
       options.tab.headElement.classList.add("item--unupdate");
@@ -39,7 +40,7 @@ export class Asset extends Model<AppFacade, Tab> {
     this.path = options.path;
     this.pdfId = options.page;
     this.element.addEventListener("click", (event) => {
-      clearOBG();
+      clearObjectBlockGraphs(getAllModels());
       if (this.element.parentElement?.parentElement) {
         setPanelFocus(this.element.parentElement.parentElement);
       }

@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
-import { unicode2Emoji } from "../../emoji";
+import {unicode2Emoji} from "../../emoji/emoji.render";
 import { Constants } from "../../constants";
 import { isWindow } from "../../util/platform/functions";
 import { matchPinyinSearch } from "../../util/platform/pinyin";

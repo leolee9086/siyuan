@@ -11,7 +11,7 @@ import { Tab } from "./Tab";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import { afterLayoutReady } from "../plugin/loader";
 import { isEncryptedBox } from "../util/pathName";
-import { saveLayout } from "./layout-serialization";
+import {saveLayout} from "./persistence/saveLayout";
 import { JSONToDock } from "./dock-utils";
 import { setTabPosition } from "./tabUtil";
 import {

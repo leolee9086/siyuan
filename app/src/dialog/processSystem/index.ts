@@ -7,7 +7,7 @@ export { lockScreen } from "./lockScreen";
 
 import { Constants } from "../../constants";
 import { fetchPost } from "../../util/network/fetch";
-import { exportLayout } from "../../layout/util";
+import {exportLayout} from "../../layout/export/exportLayout";
 import { getAllEditor } from "../../layout/getAll";
 import { getDockByType } from "../../layout/tabUtil";
 import { Files } from "../../layout/dock/Files";
