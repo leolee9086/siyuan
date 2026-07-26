@@ -14,7 +14,6 @@ import {
     writeText
 } from "../protyle/util/compatibility";
 import {openByMobile} from "../editor/openLink";
-import {processSiYuanUri} from "../editor/processSiYuanUri";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
@@ -940,7 +939,7 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
                 label: window.siyuan.languages.useDefault,
                 accelerator: showAccelerator ? window.siyuan.languages.click : "",
                 click: () => {
-                    if (processSiYuanUri(app, src)) {
+                    if (app.processSiYuanUri(src)) {
                         return;
                     }
                     openExternal(src).catch((e) => {

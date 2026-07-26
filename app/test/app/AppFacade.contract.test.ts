@@ -48,6 +48,8 @@ const testFacade = createAppFacade<object, object>({
         addDock: () => undefined,
     },
     openAsset: () => undefined,
+    openSiYuanBlock: () => undefined,
+    processSiYuanUri: () => false,
 });
 const brandedFacade: AppFacade<object, object> = testFacade;
 

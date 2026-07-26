@@ -34,7 +34,6 @@ import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/windowKe
 import { closeWindow } from "../window/closeWin";
 import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
-import { processSiYuanUri } from "../editor/processSiYuanUri";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
@@ -239,7 +238,7 @@ export const initWindow = async (app: AppFacade) => {
     });
     if (!isWindow()) {
         ipcOn(Constants.SIYUAN_OPEN_URL, (event, url) => {
-            processSiYuanUri(app, url);
+            app.processSiYuanUri(url);
         });
     }
     ipcOn(Constants.SIYUAN_OPEN_FILE, (event, data) => {

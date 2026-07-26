@@ -5,6 +5,13 @@ import type {Plugin} from "siyuan";
 /** 用途：完整 App 的资产导航参数；使用范围：桌面、移动及独立宿主公共表面；解耦评估：纯数据类型，不加载资产或编辑器实现。 */
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 
+/** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
+export interface AppSiYuanBlockNavigation {
+    id: string;
+    action: TProtyleAction[];
+    zoomIn: boolean;
+}
+
 /** 完整 App 实例除厂牌外的公共领域表面；类型槽仅用于校验本地实现对上游契约的兼容性。 */
 export interface AppFacadeShape<
     TPlugin extends object = Plugin,
@@ -18,6 +25,8 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     openAsset(options: AssetOpenOptions): void;
+    openSiYuanBlock(options: AppSiYuanBlockNavigation): void;
+    processSiYuanUri(uri: string): boolean;
 }
 
 /** 模块级不可变身份键；其值只用于类型/运行时外观识别，不保存应用状态。 */

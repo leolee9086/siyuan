@@ -39,8 +39,10 @@ import { registerServiceWorker } from "../util/network/serviceWorker";
 import {addPluginDock, loadPlugins, reloadPluginData} from "../plugin/loader";
 import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
+import type {AppSiYuanBlockNavigation} from "../app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
+import {processSiYuanUri} from "../editor/uri/processSiYuanUri";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { removeBlock } from "../protyle/wysiwyg/remove";
 import { isNotEditBlock } from "../protyle/wysiwyg/getBlock";
@@ -72,6 +74,12 @@ export class App {
     };
     public openAsset(options: AssetOpenOptions) {
         openByMobile(options.assetPath);
+    }
+    public openSiYuanBlock(options: AppSiYuanBlockNavigation) {
+        openMobileFileById(this, options.id, options.action);
+    }
+    public processSiYuanUri(uri: string) {
+        return processSiYuanUri(this, uri);
     }
 
     constructor() {

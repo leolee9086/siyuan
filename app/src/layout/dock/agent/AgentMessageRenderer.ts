@@ -1,6 +1,5 @@
 
 import {escapeHtml} from "../../../util/DOM/escape";
-import {processSiYuanUri} from "../../../editor/processSiYuanUri";
 import {highlightRender} from "../../../protyle/render/highlightRender";
 import {mathRender} from "../../../protyle/render/mathRender";
 import {mermaidRender} from "../../../protyle/render/mermaidRender";
@@ -360,7 +359,7 @@ export const postRender = (container: HTMLElement, app?: AppFacade): void => {
         if (refID && container.contains(ref)) {
             event.preventDefault();
             event.stopPropagation();
-            void processSiYuanUri(app, "siyuan://blocks/" + refID);
+            app.processSiYuanUri("siyuan://blocks/" + refID);
             return;
         }
         const fileRef = target.closest('[data-type~="file-annotation-ref"][data-id]') as HTMLElement;
@@ -398,7 +397,7 @@ export const postRender = (container: HTMLElement, app?: AppFacade): void => {
         if (href) {
             event.preventDefault();
             event.stopPropagation();
-            if (!processSiYuanUri(app, href)) {
+            if (!app.processSiYuanUri(href)) {
                 openLink(app, href, event, event.ctrlKey || event.metaKey);
             }
         }

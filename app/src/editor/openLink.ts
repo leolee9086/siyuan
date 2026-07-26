@@ -33,17 +33,13 @@ import {isSiYuanUriProtocol} from "./imports";
 import {getWindow} from "./imports";
 /** 用途：读取已初始化配置。使用范围：资产页签分屏策略。解耦评估：Editor 环境网关。 */
 import {getSiyuanConfig} from "./imports";
-/** 用途：处理 SiYuan 协议链接。使用范围：所有宿主在普通链接分流前统一处理。解耦评估：同目录模块。 */
-import {processSiYuanUri} from "./processSiYuanUri";
-/** 用途：历史 SiYuan URI 入口别名。使用范围：保留 openLink 旧公共导出。解耦评估：同域静态别名。 */
-import {processSYLink} from "./processSiYuanUri";
 /** 用途：完整应用外观。使用范围：window.open 覆盖向 URI 命令传递宿主。解耦评估：直接依赖领域根。 */
 import type {AppFacade} from "../app/AppFacade.types";
 
-/** 导出当前 SiYuan URI 入口。 */
-export {processSiYuanUri};
-/** 导出历史 SiYuan URI 入口别名。 */
-export {processSYLink};
+/** 通过完整应用外观处理 SiYuan URI，保留原公共函数签名。 */
+export const processSiYuanUri = (app: AppFacade, uri: string) => app.processSiYuanUri(uri);
+/** @deprecated 使用 processSiYuanUri。 */
+export const processSYLink = processSiYuanUri;
 
 /** 在 iOS 原生容器中按资产、站内路径和外部地址顺序打开链接。 */
 const openByIOS = (runtimeWindow: Window, uri: string) => {
