@@ -1,6 +1,6 @@
 import { fetchPost } from "../network/fetch";
 import { getSearch } from "../platform/functions";
-import { unicode2Emoji } from "../../emoji";
+import {unicode2Emoji} from "../../emoji/emoji.render";
 import { Constants } from "../../constants";
 import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { isElectron } from "../../platform";

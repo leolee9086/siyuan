@@ -1,7 +1,7 @@
 import { Constants } from "../constants";
 import { getAllModels } from "../layout/getAll";
 import { isMobile } from "../platform";
-import { pathPosix } from "../util/file/pathName";
+import {pathPosix} from "../util/file/path/operations";
 import * as dayjs from "dayjs";
 
 /** 已知的文本文件扩展名，用于判断是否提供内容预览 */
