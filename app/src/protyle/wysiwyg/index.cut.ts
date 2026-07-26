@@ -13,7 +13,7 @@ import {removeBlock} from "./remove";
 import {updateTransaction} from "./transaction/update";
 import {highlightRender} from "../render/highlightRender";
 import {mathRender} from "../render/mathRender";
-import {updateAVName} from "../render/av/action";
+import {updateAVName} from "../render/av/action/name";
 import * as dayjs from "dayjs";
 import {nbsp2space, removeZWJ} from "../util/normalizeText";
 import {emojiToMd} from "./index.copy";

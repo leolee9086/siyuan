@@ -3,37 +3,37 @@
  * 使用范围：仅在标题同步模块中使用，负责事务提交、提示文案和时间戳生成。
  * 解耦评估：标题同步横跨 DOM、事务和 i18n，集中通过 imports.ts 引入能把跨层依赖保持在单点。
  */
-import { Constants } from "./imports";
+import {Constants} from "./name/imports";
 /**
  * 用途：生成 `updated` 字段需要的时间戳字符串。
  * 使用范围：仅在标题确实发生变化并准备提交事务时使用，不参与其它展示逻辑。
  * 解耦评估：时间格式约束和事务协议耦合，改成参数传入只会把实现细节外泄，继续通过 imports.ts 统一转发更合适。
  */
-import { dayjs } from "./imports";
+import {dayjs} from "./name/imports";
 /**
  * 用途：在标题超长时向用户反馈校验失败原因。
  * 使用范围：仅在标题长度超过 `Constants.SIZE_TITLE` 的拦截分支使用。
  * 解耦评估：提示能力属于 UI 基础设施，不适合让调用方预先注入回调，维持模块内直接调用更符合当前交互链路。
  */
-import { showMessage } from "./imports";
+import {showMessage} from "./name/imports";
 /**
  * 用途：读取标题长度超限时对应的内核国际化文案。
  * 使用范围：仅在 updateAVName 的超长提示分支使用，不扩散到其它标题同步流程。
  * 解耦评估：该文案 key 与现有内核消息表绑定，若强行在调用方上传文案只会增加重复配置，因此保留通过 imports.ts 单点接入。
  */
-import { siyuanI18n } from "./imports";
+import {siyuanI18n} from "./name/imports";
 /**
  * 用途：把标题修改和块更新时间刷新合并为同一组 do/undo 事务。
  * 使用范围：仅在用户完成标题编辑且文本发生变化后调用。
  * 解耦评估：事务是 action 模块的核心副作用边界，不适合继续拆成事件回调，否则会削弱这里对 do/undo 一致性的控制。
  */
-import { transaction } from "./imports";
+import {submitAVNameTransaction} from "./name/imports";
 /**
  * 用途：收窄标题节点和同页其它实例标题节点的 DOM 类型。
  * 使用范围：用于当前块标题读取，以及同页同 AV 标题同步时的目标节点校验。
  * 解耦评估：DOM 收窄属于通用基础能力，继续复用共享 guard 比在本文件重复实现更能保持边界清晰。
  */
-import { isHTMLElement } from "./imports";
+import {isHTMLElement} from "./name/imports";
 
 /**
  * 清理标题节点中的占位换行。
@@ -124,7 +124,7 @@ export const updateAVName = (protyle: IProtyle, blockElement: Element) => {
     }
 
     const updated = dayjs().format("YYYYMMDDHHmmss");
-    transaction(protyle, [{
+    submitAVNameTransaction(protyle, [{
         action: "setAttrViewName",
         id: avId,
         data: nextTitle,

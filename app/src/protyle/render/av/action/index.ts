@@ -11,12 +11,6 @@ import { avClick } from "./click";
  */
 import { avContextmenu } from "./contextmenu";
 /**
- * 用途：引入属性视图标题同步实现。
- * 使用范围：供输入、剪切、插入 HTML 等流程在标题被编辑后复用。
- * 解耦评估：标题同步需要事务和同页多实例同步，提为独立模块比内联在入口文件更清晰。
- */
-import { updateAVName } from "./name";
-/**
  * 用途：引入属性视图单元格动画与列删除动画实现。
  * 使用范围：供选择器、关联、列编辑等流程在局部更新 DOM 时复用。
  * 解耦评估：这部分逻辑本质是 UI 刷新适配层，拆出后能避免其它业务模块反向依赖点击或右键菜单代码。
@@ -33,8 +27,6 @@ import { duplicateCompletely } from "./duplicate";
 export { avClick };
 /** 导出属性视图右键菜单入口。 */
 export { avContextmenu };
-/** 导出属性视图标题同步入口。 */
-export { updateAVName };
 /** 导出属性视图列删除动画入口。 */
 export { removeAttrViewColAnimation };
 /** 导出属性视图完整复制入口。 */

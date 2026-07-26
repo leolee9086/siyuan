@@ -21,7 +21,7 @@ import {hideElements} from "../ui/hideElements";
 import {hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {headingTurnIntoList, turnIntoTaskList} from "./turnIntoList";
-import {updateAVName} from "../render/av/action";
+import {updateAVName} from "../render/av/action/name";
 import {setFold} from "../util/blockFold";
 
 export const input = async (protyle: IProtyle, blockElement: HTMLElement, range: Range, needRender = true, event?: InputEvent) => {

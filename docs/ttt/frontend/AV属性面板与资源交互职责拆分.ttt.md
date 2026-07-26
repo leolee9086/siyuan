@@ -68,6 +68,7 @@
 - **2026-07-27**：Asset 值更新改用只接受 `updateAttrViewCell/doUpdateUpdated` 的严格 Prepared 命令；本地 HTML/动画仍在提交前按原顺序执行，通用事务对这两种 action 不存在需要保留的同步分支。单元格 Animation 建立专属直达网关，所有消费者越过混合点击、菜单、完整复制和 transaction 的 action 根。事务专项 `3/3`，连同资源动作共 `7/7`；命令、Animation 与网关退出 SCC，生产图 `2236 / 362 / SCC 626`。当前 Asset 返回路径转为 `bindAssetEvent -> uploadFiles -> cell.update`，同时继续补齐值变换与批量复制测试。
 - **2026-07-27**：上传默认结果调用 `updateCellsValue`，后者仅为列选择项合并加载完整 Select 交互根；算法迁入 `select/options.ts` 并以 `2/2` 测试固定颜色回填与可逆操作顺序。生产图 `2237 / 351 / SCC 626`，Options 叶子退出 SCC，当前路径缩短为 `upload -> cell.update -> transaction`；值更新上帝函数由独立专项继续拆分。
 - **2026-07-27**：Cell Update 使用严格四 action Prepared 命令后退出 SCC，上传默认结果的路径不再经过 Cell Update 或通用 transaction。生产图 `2238 / 324 / SCC 624`，当前返回边为 `upload -> insertHTML -> AV action`；上传专项继续分离默认结果处理。
+- **2026-07-27**：InsertHTML 的 AV 标题同步改为直达 Name 实现及严格命令，不再加载 Action 聚合根；Name 子域退出 SCC。生产图 `2240 / 331 / SCC 623`，当前上传返回边推进到 `insertHTML -> blockFold -> transaction`。
 
 ## 关联任务
 

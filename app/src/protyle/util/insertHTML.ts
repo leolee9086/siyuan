@@ -15,7 +15,7 @@ import {
 import {Constants} from "../../constants";
 import {highlightRender} from "../render/highlightRender";
 import {scrollCenter} from "../../util/DOM/highlightById";
-import {updateAVName} from "../render/av/action";
+import {updateAVName} from "../render/av/action/name";
 import {updateAttrViewCellAnimation} from "../render/av/action/animation";
 import {updateCellsValue} from "../render/av/cell.update";
 import {input} from "../wysiwyg/input";
