@@ -26,7 +26,7 @@ import {getTableRangeCells} from "./table";
 import {getFieldIdByCellElement, getRowHTML} from "../render/av/row";
 import {getAvBodyData} from "../render/av/virtualScroll/state";
 import {processClonePHElement} from "../render/util";
-import {setFold} from "./blockFold";
+import {setFoldAndCollectOperations} from "./blockFold/state";
 
 // 粘贴时临时插入的占位行标记，遍历结束后统一移除，避免污染虚拟滚动的 renderedStart/renderedEnd/spacer 状态
 const PLACEHOLDER_ROW_CLASS = "av__row--placeholder";
@@ -741,7 +741,13 @@ export const insertHTML = (html: string, protyle: IProtyle, isBlock = false,
         fetchPost("/api/block/getHeadingChildrenIDs", {id: blockElement.getAttribute("data-node-id")}, (response) => {
             const childrenIDs: string[] = response.data;
             const previousId = (childrenIDs && childrenIDs.length > 0) ? childrenIDs[childrenIDs.length - 1] : blockElement.getAttribute("data-node-id");
-            foldData = setFold(protyle, blockElement, true, false, false, true);
+            foldData = setFoldAndCollectOperations({
+                protyle,
+                nodeElement: blockElement,
+                isOpen: true,
+                isRemove: false,
+                addLoading: false,
+            });
             foldData.doOperations[0].context = {
                 focusId: lastElement?.getAttribute("data-node-id"),
             };
