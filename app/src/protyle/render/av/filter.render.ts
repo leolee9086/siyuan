@@ -1,7 +1,7 @@
 import {getColIconByType} from "./col/col.typeUtils";
 import {unicode2Emoji} from "../../../emoji";
 import * as dayjs from "dayjs";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getFiltersHTML = (data: IAV) => {

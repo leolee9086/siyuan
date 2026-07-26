@@ -67,7 +67,7 @@ import { openMenuPanel } from "../openMenuPanel";
  * 使用范围：在需要访问视图字段信息时使用
  * 解耦评估：这是数据访问函数，直接导入合理
  */
-import { getFieldsByData } from "../view";
+import { getFieldsByData } from "../view/metadata";
 
 /**
  * 用途：获取全局菜单对象

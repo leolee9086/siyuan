@@ -5,7 +5,7 @@ import {removeAttrViewColAnimation} from "../action";
 import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
 import {duplicateNameAddOne} from "../../../../util/platform/functions";
 import {setPosition} from "../../../../util/DOM/positioning/setPosition";
-import {getFieldsByData} from "../view";
+import {getFieldsByData} from "../view/metadata";
 
 /**
  * 在字段列表中查找并移除指定列，返回列数据和前一列 ID

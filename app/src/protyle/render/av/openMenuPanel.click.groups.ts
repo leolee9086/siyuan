@@ -1,6 +1,6 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
-import { getFieldsByData } from "./view";
+import { getFieldsByData } from "./view/metadata";
 import {
     bindGroupsEvent, bindGroupsNumber,
     getGroupsHTML, getGroupsMethodHTML, getGroupsNumberHTML,

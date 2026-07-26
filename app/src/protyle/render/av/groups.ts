@@ -2,7 +2,7 @@ import {unicode2Emoji} from "../../../emoji";
 import {getColIconByType} from "./col/col.typeUtils";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {Menu} from "../../../plugin/Menu";
 import {objEquals} from "../../../util/platform/functions";

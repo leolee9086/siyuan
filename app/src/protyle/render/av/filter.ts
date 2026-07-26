@@ -11,7 +11,7 @@ import {unicode2Emoji} from "../../../emoji";
 import {openMenuPanel} from "./openMenuPanel";
 import {showMessage} from "../../runtime/dialog.port";
 import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import {Constants} from "../../../constants";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getOperatorSelectHTML, getCheckboxSelectHTML, resolveRollupFilterValue} from "./filter.operator";

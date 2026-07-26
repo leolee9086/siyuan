@@ -4,7 +4,7 @@ import { unicode2Emoji } from "../../../../emoji";
 import { bindRollupData } from "../rollup";
 import { Constants } from "../../../../constants";
 import { escapeAriaLabel, escapeAttr } from "../../../../util/DOM/escape";
-import { getFieldsByData } from "../view";
+import { getFieldsByData } from "../view/metadata";
 import { hasClosestByClassName } from "../../../util/hasClosest";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildColHeaderLabel, bindColHeaderEvents, handleFilterClick, handleSortClick } from "./col.showColMenu";

@@ -3,7 +3,7 @@ import {getColIconByType} from "./col/col.typeUtils";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {unicode2Emoji} from "../../../emoji";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

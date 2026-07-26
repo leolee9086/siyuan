@@ -7,7 +7,7 @@ import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {avRender} from "./render";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import {getColIconByType} from "./col/col.typeUtils";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {upDownHint} from "../../../util/DOM/upDownHint";

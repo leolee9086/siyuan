@@ -2,7 +2,7 @@ import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
-import {getFieldsByData} from "./view";
+import {getFieldsByData} from "./view/metadata";
 import {Constants} from "../../../constants";
 import {Dialog} from "../../runtime/dialog.port";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

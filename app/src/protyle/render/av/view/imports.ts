@@ -7,9 +7,9 @@ import {escapeHtml} from "../../../../util/DOM/escape";
 /** 用途：提供视图操作文案；使用范围：AV Header；解耦评估：读取既有 i18n 运行时。 */
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 用途：读取视图字段；使用范围：AV Header 过滤状态；解耦评估：复用 AV view 领域查询。 */
-import {getFieldsByData} from "../view";
+import {getFieldsByData} from "./metadata";
 /** 用途：读取视图类型图标；使用范围：AV Header 页签；解耦评估：复用 AV view 领域映射。 */
-import {getViewIcon} from "../view";
+import {getViewIcon} from "./metadata";
 
 /** AV Header 使用的 Emoji 渲染。 */
 export {unicode2Emoji};

@@ -11,7 +11,7 @@ import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escap
 import {genCellValueByElement} from "./cell.value";
 import {getTypeByCellElement} from "./cell/position";
 import * as dayjs from "dayjs";
-import { getFieldsByData } from "./view";
+import { getFieldsByData } from "./view/metadata";
 import { getFieldIdByCellElement } from "./row";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

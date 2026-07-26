@@ -10,7 +10,7 @@ import {Constants} from "../../../../constants";
 import {hintRef} from "../../../hint/extend.hintRef";
 import {electronUndo} from "../../../undo";
 import {getFieldIdByCellElement} from "../row";
-import {getFieldsByData} from "../view";
+import {getFieldsByData} from "../view/metadata";
 import {callMobileAppShowKeyboard} from "../../../../mobile/keyboard/mobileAppUtil";
 import {cellScrollIntoView, getTypeByCellElement} from "./position";
 import {addDragFill} from "./decoration";
