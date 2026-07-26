@@ -1,4 +1,5 @@
 import { fetchPost } from "../../../util/network/fetch";
+import {Menu} from "../../../plugin/Menu";
 import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
@@ -10,7 +11,7 @@ import { bindAssetEvent, getAssetHTML } from "./asset";
 import { Constants } from "../../../constants";
 import { hideElements } from "../../ui/hideElements";
 import { isMobile } from "../../../platform";
-import { bindSwitcherEvent, bindViewEvent, getSwitcherHTML, getViewHTML } from "./view";
+import {addViewMutationMenuItems, bindSwitcherEvent, bindViewEvent, getSwitcherHTML, getViewHTML} from "./view";
 import {getFieldsByData} from "./view/metadata";
 import { focusBlock } from "../../util/selection";
 import { getFieldIdByCellElement } from "./row";
@@ -55,6 +56,55 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getPropertiesHTMLWithDeps } from "./openMenuPanel.properties";
 /** 用途：PropertiesHTMLDeps 是 deps 注入上下文的类型约束。 */
 import type { PropertiesHTMLDeps } from "./openMenuPanel.types";
+
+export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLElement, element: HTMLElement }) => {
+    if (options.protyle.disabled) {
+        return;
+    }
+    const menu = new Menu(Constants.MENU_AV_VIEW);
+    if (menu.isOpen) {
+        return;
+    }
+    menu.addItem({
+        id: "rename",
+        icon: "iconEdit",
+        label: siyuanI18n.rename,
+        click() {
+            document.querySelector(".av__panel")?.remove();
+            openMenuPanel({
+                protyle: options.protyle,
+                blockElement: options.blockElement,
+                type: "config",
+                cb: (avPanelElement) => {
+                    const inputElement = avPanelElement.querySelector('.b3-text-field[data-type="name"]');
+                    if (!(inputElement instanceof HTMLInputElement)) {
+                        throw new Error("AV view name input is missing from the config panel");
+                    }
+                    inputElement.focus();
+                }
+            });
+        }
+    });
+    menu.addItem({
+        id: "config",
+        icon: "iconSettings",
+        label: siyuanI18n.config,
+        click() {
+            document.querySelector(".av__panel")?.remove();
+            openMenuPanel({
+                protyle: options.protyle,
+                blockElement: options.blockElement,
+                type: "config"
+            });
+        }
+    });
+    addViewMutationMenuItems(menu, options);
+    const rect = options.element.getBoundingClientRect();
+    menu.open({
+        x: rect.left,
+        y: rect.bottom
+    });
+};
 
 /**
  * 延迟构造的 getPropertiesHTML 上下文依赖。
@@ -357,12 +407,27 @@ export const openMenuPanel = (options: {
                     break;
                 } else if (handleColOpsClick(ctx, type, target, event, getPropertiesHTML)) {
                     break;
-                } else if (await handleViewClick(ctx, type, target, event, getPropertiesHTML)) {
-                    break;
-                } else if (await handleCellClick(ctx, type, target, event)) {
-                    break;
-                } else if (await handleGroupsClick(ctx, type, target, event)) {
-                    break;
+                } else {
+                    const viewOutcome = await handleViewClick(ctx, type, target, event, getPropertiesHTML);
+                    if (viewOutcome.kind === "open-view-menu") {
+                        openViewMenu({
+                            protyle: ctx.options.protyle,
+                            blockElement: viewOutcome.blockElement,
+                            element: viewOutcome.element,
+                        });
+                        event.preventDefault();
+                        event.stopPropagation();
+                        break;
+                    }
+                    if (viewOutcome.kind === "handled") {
+                        break;
+                    }
+                    if (await handleCellClick(ctx, type, target, event)) {
+                        break;
+                    }
+                    if (await handleGroupsClick(ctx, type, target, event)) {
+                        break;
+                    }
                 }
                 // 有错误日志，没找到重现步骤，需先判断一下
                 if (!target || !target.parentElement) {

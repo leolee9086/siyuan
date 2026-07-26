@@ -33,10 +33,12 @@ export { setPageSize };
 /** 导出 updateHeader 供 click 子模块复用。 */
 export { updateHeader };
 
-/** 用途：复用 view 子模块能力。使用范围：新增视图与打开视图菜单。解耦评估：视图操作由 view 模块定义，click 侧直接消费即可。 */
-import { addView, openViewMenu } from "../../view";
+/** 用途：复用 view 子模块的新增视图能力。使用范围：视图新增按钮；解耦评估：新增事务由 view 模块定义，click 侧直接消费即可。 */
+import { addView } from "../../view";
 /** 导出 addView 供 click 子模块复用。 */
 export { addView };
+/** 用途：打开视图菜单。使用范围：视图标题点击；解耦评估：菜单与配置面板的双向导航由 Panel 控制器统一拥有。 */
+import {openViewMenu} from "../../openMenuPanel";
 /** 导出 openViewMenu 供 click 子模块复用。 */
 export { openViewMenu };
 

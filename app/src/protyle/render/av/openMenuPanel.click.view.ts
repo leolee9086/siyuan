@@ -2,13 +2,15 @@ import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { setPageSize } from "./row";
-import { addView, bindViewEvent, getViewHTML, openViewMenu } from "./view";
+import { addView, bindViewEvent, getViewHTML } from "./view";
 import {getFieldsByData} from "./view/metadata";
 import { bindLayoutEvent, getLayoutHTML, updateLayout } from "./layout";
 import { setGalleryCover, setGalleryRatio, setGallerySize } from "./gallery/util";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { asAVGallery, asHTMLElement } from "./openMenuPanel.click.guard";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
+import type {ViewClickOutcome} from "./view/navigation.types";
+import {createOpenViewMenuOutcome} from "./view/navigation";
 
 /** 导航到配置面板：重新渲染视图配置HTML并绑定事件 @同步豁免: UI构建 */
 const handleGoConfig = (ctx: IMenuPanelContext, event: MouseEvent): void => {
@@ -127,7 +129,7 @@ const handleAvViewSwitch = (ctx: IMenuPanelContext, target: HTMLElement, event: 
 };
 
 /** 编辑视图（切换+打开编辑菜单） @同步豁免: UI构建 */
-const handleAvViewEdit = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleAvViewEdit = (ctx: IMenuPanelContext, target: HTMLElement) => {
     const parent = target.parentElement;
     if (!parent) {
         return;
@@ -135,10 +137,7 @@ const handleAvViewEdit = (ctx: IMenuPanelContext, target: HTMLElement, event: Mo
     const blockEl = asHTMLElement(ctx.options.blockElement);
     // 已是当前视图：直接打开编辑菜单
     if (parent.classList.contains("b3-menu__item--current")) {
-        openViewMenu({ protyle: ctx.options.protyle, blockElement: blockEl, element: parent });
-        event.preventDefault();
-        event.stopPropagation();
-        return;
+        return {blockElement: blockEl, element: parent};
     }
     // 非当前视图：先切换再打开编辑菜单
     const currentEl = ctx.avPanelElement.querySelector(".b3-menu__item--current");
@@ -151,9 +150,7 @@ const handleAvViewEdit = (ctx: IMenuPanelContext, target: HTMLElement, event: Mo
         action: "setAttrViewBlockView", blockID: ctx.blockID, id: getFocusedViewId(ctx.options.blockElement), avID: ctx.avID,
     }]);
     removeSiyuanMenu();
-    openViewMenu({ protyle: ctx.options.protyle, blockElement: blockEl, element: parent });
-    event.preventDefault();
-    event.stopPropagation();
+    return {blockElement: blockEl, element: parent};
 };
 
 /** 面板导航类 click 分发（go-config/go-properties/go-layout/update-view-icon） @同步豁免: UI构建 */
@@ -192,35 +189,36 @@ const dispatchNavClick = (
 };
 
 /** 视图操作类 click 分发（duplicate/delete/add/switch/edit） @同步豁免: UI构建 */
+/** @显式返回类型原因: 判别联合是 Panel 导航所有者与 View 操作处理器之间的完整命令边界，必须防止 kind 被拓宽为 string。 */
 const dispatchViewOpsClick = (
     ctx: IMenuPanelContext, type: string, target: HTMLElement, event: MouseEvent
-): boolean => {
+): ViewClickOutcome => {
     // 复制视图
     if (type === "duplicate-view") {
         handleDuplicateView(ctx, event);
-        return true;
+        return {kind: "handled"};
     }
     // 删除视图
     if (type === "delete-view") {
         handleDeleteView(ctx, event);
-        return true;
+        return {kind: "handled"};
     }
     // 新增视图
     if (type === "av-add") {
         handleAvAdd(ctx, event);
-        return true;
+        return {kind: "handled"};
     }
     // 切换视图
     if (type === "av-view-switch") {
         handleAvViewSwitch(ctx, target, event);
-        return true;
+        return {kind: "handled"};
     }
     // 编辑视图
     if (type === "av-view-edit") {
-        handleAvViewEdit(ctx, target, event);
-        return true;
+        const element = handleAvViewEdit(ctx, target);
+        return element ? createOpenViewMenuOutcome(element.blockElement, element.element) : {kind: "handled"};
     }
-    return false;
+    return {kind: "unhandled"};
 };
 
 /** 画廊+布局类 click 分发（gallery-cover/size/ratio, set-layout） @同步豁免: UI构建 */
@@ -265,11 +263,19 @@ const dispatchGalleryLayoutClick = async (
  *       duplicate-view, delete-view, av-add, av-view-switch, av-view-edit,
  *       set-gallery-cover, set-gallery-size, set-gallery-ratio, set-layout
  */
+/** @显式返回类型原因: Panel 必须穷举 handled、unhandled 与 open-view-menu 三种结果，避免异步推导拓宽命令标签。 */
 export const handleViewClick = async (
     ctx: IMenuPanelContext, type: string, target: HTMLElement, event: MouseEvent,
     getPropertiesHTML: (fields: IAVColumn[]) => string
-): Promise<boolean> => {
-    return dispatchNavClick(ctx, type, target, event, getPropertiesHTML)
-        || dispatchViewOpsClick(ctx, type, target, event)
-        || await dispatchGalleryLayoutClick(ctx, type, target, event);
+): Promise<ViewClickOutcome> => {
+    if (dispatchNavClick(ctx, type, target, event, getPropertiesHTML)) {
+        return {kind: "handled"};
+    }
+    const viewOutcome = dispatchViewOpsClick(ctx, type, target, event);
+    if (viewOutcome.kind !== "unhandled") {
+        return viewOutcome;
+    }
+    return await dispatchGalleryLayoutClick(ctx, type, target, event)
+        ? {kind: "handled"}
+        : {kind: "unhandled"};
 };

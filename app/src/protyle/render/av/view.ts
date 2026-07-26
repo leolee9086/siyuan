@@ -1,7 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {unicode2Emoji} from "../../../emoji";
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {openMenuPanel} from "./openMenuPanel";
 import {focusBlock} from "../../util/selection";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
@@ -26,50 +25,22 @@ const countFilterLeaves = (filters: IAVFilter[]): number => {
     return count;
 };
 
-export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLElement, element: HTMLElement }) => {
-    if (options.protyle.disabled) {
-        return;
-    }
-    const menu = new Menu(Constants.MENU_AV_VIEW);
-    if (menu.isOpen) {
-        return;
-    }
-    menu.addItem({
-        id: "rename",
-        icon: "iconEdit",
-        label: siyuanI18n.rename,
-        click() {
-            document.querySelector(".av__panel")?.remove();
-            openMenuPanel({
-                protyle: options.protyle,
-                blockElement: options.blockElement,
-                type: "config",
-                cb: (avPanelElement) => {
-                    (avPanelElement.querySelector('.b3-text-field[data-type="name"]') as HTMLInputElement).focus();
-                }
-            });
-        }
-    });
-    menu.addItem({
-        id: "config",
-        icon: "iconSettings",
-        label: siyuanI18n.config,
-        click() {
-            document.querySelector(".av__panel")?.remove();
-            openMenuPanel({
-                protyle: options.protyle,
-                blockElement: options.blockElement,
-                type: "config"
-            });
-        }
-    });
+/** 注册不触发 Panel 导航的视图复制和删除项。 */
+/** @同步豁免: UI构建 — Menu 要求同步注册点击处理器后再执行定位和打开。 */
+export const addViewMutationMenuItems = (menu: Menu, options: {
+    protyle: IProtyle;
+    blockElement: HTMLElement;
+    element: HTMLElement;
+}) => {
     menu.addSeparator();
     menu.addItem({
         id: "duplicate",
         icon: "iconCopy",
         label: siyuanI18n.duplicate,
+        /** 作用：复制当前视图；意图：保持视图菜单的原事务与撤销语义；调用时机：用户点击复制菜单项。 */
         click() {
-            document.querySelector(".av__panel")?.remove();
+            const panelElement = document.querySelector(".av__panel");
+            panelElement?.remove();
             const id = Lute.NewNodeID();
             transaction(options.protyle, [{
                 action: "duplicateAttrViewView",
@@ -85,13 +56,17 @@ export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLEle
             }]);
         }
     });
-    if (options.blockElement.querySelectorAll(".layout-tab-bar .item").length > 1) {
+    const viewTabElements = options.blockElement.querySelectorAll(".layout-tab-bar .item");
+    // 至少保留一个视图；仅多视图数据库显示删除入口。
+    if (viewTabElements.length > 1) {
         menu.addItem({
             id: "delete",
             icon: "iconTrashcan",
             label: siyuanI18n.delete,
+            /** 作用：删除当前视图；意图：保持原单向事务语义；调用时机：用户点击删除菜单项。 */
             click() {
-                document.querySelector(".av__panel")?.remove();
+                const panelElement = document.querySelector(".av__panel");
+                panelElement?.remove();
                 transaction(options.protyle, [{
                     action: "removeAttrViewView",
                     avID: options.blockElement.dataset.avId,
@@ -101,11 +76,6 @@ export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLEle
             }
         });
     }
-    const rect = options.element.getBoundingClientRect();
-    menu.open({
-        x: rect.left,
-        y: rect.bottom
-    });
 };
 
 export const bindViewEvent = (options: {
