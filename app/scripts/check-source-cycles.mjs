@@ -8,6 +8,11 @@ export const isPathInsideSource = (sourceRoot, filePath) => {
         !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
 };
 
+const NON_SOURCE_ARTIFACT_SUFFIX = /\.(?:backup|old|remote|bak)\.(?:ts|tsx)$|\.(?:ts|tsx)\.(?:backup|old|remote|bak)$/;
+
+export const isSourceImplementationPath = (sourceRoot, filePath) =>
+    isPathInsideSource(sourceRoot, filePath) && !NON_SOURCE_ARTIFACT_SUFFIX.test(filePath.replace(/\\/g, "/"));
+
 const resolveGraphPath = (sourceRoot, filePath) =>
     path.isAbsolute(filePath) ? filePath : path.resolve(sourceRoot, filePath);
 
@@ -15,7 +20,7 @@ export const assertSourceGraphBoundary = (sourceRoot, dependencies) => {
     const externalPaths = new Set();
     Object.entries(dependencies).forEach(([filePath, imports]) => {
         [filePath, ...imports].forEach((graphPath) => {
-            if (!isPathInsideSource(sourceRoot, resolveGraphPath(sourceRoot, graphPath))) {
+            if (!isSourceImplementationPath(sourceRoot, resolveGraphPath(sourceRoot, graphPath))) {
                 externalPaths.add(graphPath);
             }
         });
@@ -28,9 +33,13 @@ export const assertSourceGraphBoundary = (sourceRoot, dependencies) => {
 export const findSourceCycles = async (workspaceRoot = process.cwd()) => {
     const sourceRoot = path.resolve(workspaceRoot, "src");
     const graph = await madge(sourceRoot, {
+        excludeRegExp: [
+            String.raw`\.(?:backup|old|remote|bak)\.(?:ts|tsx)$`,
+            String.raw`\.(?:ts|tsx)\.(?:backup|old|remote|bak)$`,
+        ],
         fileExtensions: ["ts", "tsx"],
         tsConfig: path.resolve(workspaceRoot, "tsconfig.json"),
-        dependencyFilter: (filePath) => isPathInsideSource(sourceRoot, filePath),
+        dependencyFilter: (filePath) => isSourceImplementationPath(sourceRoot, filePath),
     });
     const dependencies = graph.obj();
     assertSourceGraphBoundary(sourceRoot, dependencies);
