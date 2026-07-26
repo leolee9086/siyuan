@@ -8,9 +8,10 @@ import {getPageSize} from "./groups";
 import {renderKanban} from "./kanban/render";
 import {getTableHTMLs, renderGroupTable, afterRenderTable} from "./render.table";
 import {getBodyVirtualData} from "./virtualScroll";
-import {beginAVRender, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "./locate";
+import {beginAVRender, getAVLocateParams, isCurrentAVRender} from "./locate/state/state";
+import {prepareAVLocate} from "./locate/window/prepare";
 import {genTabHeaderHTML} from "./view/header";
-import type {AVViewRenderer} from "./view/render.types";
+import type {AVRenderer, AVViewRenderer} from "./view/render.types";
 
 export {getGroupTitleHTML} from "./render.table";
 
@@ -28,7 +29,7 @@ const renderResolvedView: AVViewRenderer = async (request) => {
     await avRender(request.blockElement, request.protyle, request.cb, request.renderAll, request.data);
 };
 
-export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: IAV) => void, renderAll = true, avData?: IAV) => {
+export const avRender: AVRenderer = async (element, protyle, cb, renderAll = true, avData) => {
     let avElements: Element[] = [];
     if (element.getAttribute("data-type") === "NodeAttributeView") {
         avElements = [element];

@@ -13,7 +13,8 @@ import {exportLayout} from "./layout/export/exportLayout";
 import { getDocDisplayName, parseSiYuanUriInfo } from "./util/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
-import {activateQueuedAVLocate, queueAVLocateRequest} from "./protyle/render/av/locate";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "./protyle/render/av/locate/activation/activation";
+import {avRender} from "./protyle/render/av/render";
 import {activateOnboarding, ensureOnboarding} from "./onboarding";
 import {
     bootSync,
@@ -382,7 +383,7 @@ window.openFileByURL = (openURL) => {
             afterOpen: (model) => {
                 const protyle = (model as { editor?: { protyle?: IProtyle } })?.editor?.protyle;
                 if (protyle) {
-                    activateQueuedAVLocate(protyle, blockInfo.id);
+                    activateQueuedAVLocate({renderAV: avRender, protyle, blockID: blockInfo.id});
                 }
             },
         });

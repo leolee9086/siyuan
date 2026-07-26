@@ -28,7 +28,8 @@ import {MobileCustom} from "../dock/MobileCustom";
 import {Menu} from "../../plugin/Menu";
 import {showMessage} from "../../dialog/message";
 import {setTitle} from "../../util/processTitle";
-import {activateQueuedAVLocate, queueAVLocateRequest} from "../../protyle/render/av/locate";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../../protyle/render/av/locate/activation/activation";
+import {avRender} from "../../protyle/render/av/render";
 
 let custom: MobileCustom;
 const openDockMenu = (app: AppFacade) => {
@@ -189,7 +190,7 @@ export const initFramework = (app: AppFacade, isStart: boolean) => {
             }
             openMobileFileById(app, info.id, info.avItemID ? [Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL] :
                 (info.focus ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]),
-            undefined, undefined, info.avItemID ? (protyle) => activateQueuedAVLocate(protyle, info.id) : undefined);
+            undefined, undefined, info.avItemID ? (protyle) => activateQueuedAVLocate({renderAV: avRender, protyle, blockID: info.id}) : undefined);
             return;
         }
         if (openMobileOnboarding(app)) {

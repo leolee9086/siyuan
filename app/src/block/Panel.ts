@@ -15,7 +15,8 @@ import {resize} from "../protyle/util/resize";
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
 import {getTopBarHeight} from "../layout/getTopBarHeight";
-import {activateAVLocateWithRetry} from "../protyle/render/av/locate";
+import {activateAVLocateWithRetry} from "../protyle/render/av/locate/activation/activation";
+import {avRender} from "../protyle/render/av/render";
 
 export class BlockPanel {
     public element: HTMLElement;
@@ -189,7 +190,7 @@ export class BlockPanel {
                 after: (editor) => {
                     const refDef = this.refDefs[index];
                     if (refDef.avItemID) {
-                        activateAVLocateWithRetry(editor.protyle, refDef.refID, {
+                        activateAVLocateWithRetry({renderAV: avRender, protyle: editor.protyle, blockID: refDef.refID}, {
                             itemID: refDef.avItemID,
                             viewID: refDef.avViewID,
                             groupID: refDef.avGroupID,

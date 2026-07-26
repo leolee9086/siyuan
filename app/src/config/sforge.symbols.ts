@@ -16,6 +16,9 @@ export const MOBILE_KEYBOARD_LIFECYCLE_REGISTRY = Symbol.for("sforge.mobile.keyb
 /** AV 虚拟滚动跨调用状态的唯一注册表键。 */
 export const AV_VIRTUAL_SCROLL_REGISTRY = Symbol.for("sforge.av.virtualScrollRegistry");
 
+/** AV 条目定位跨调用状态的唯一注册表键。 */
+export const AV_LOCATE_REGISTRY = Symbol.for("sforge.av.locateRegistry");
+
 /** 窗口键盘切换对话框生命周期状态的唯一注册表键。 */
 export const WINDOW_KEYDOWN_SWITCH_DIALOG = Symbol.for("sforge.windowKeyDown.switchDialog");
 

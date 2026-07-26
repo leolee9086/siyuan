@@ -79,6 +79,7 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
                 rootID: response.data.rootID,
                 refDef,
                 locateAttributeView: ctx.locateAttributeView,
+                renderAttributeView: ctx.renderAttributeView,
                 ...(afterCB ? {afterCB} : {}),
             });
         }
@@ -97,9 +98,9 @@ function 构建编辑器操作(rootID: string, refDef: IRefDefs, ctx: EditorInit
 }
 
 /** 处理编辑器加载完成 */
-function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeView, afterCB}: IEditorLoadedContext) {
+function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeView, renderAttributeView, afterCB}: IEditorLoadedContext) {
     if (refDef.avItemID) {
-        locateAttributeView(editor.protyle, refDef.refID, {
+        locateAttributeView({renderAV: renderAttributeView, protyle: editor.protyle, blockID: refDef.refID}, {
             itemID: refDef.avItemID,
             ...(typeof refDef.avViewID === "undefined" ? {} : {viewID: refDef.avViewID}),
             ...(typeof refDef.avGroupID === "undefined" ? {} : {groupID: refDef.avGroupID}),

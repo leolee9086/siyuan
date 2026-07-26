@@ -27,7 +27,8 @@ import {
     checkAndMarkFirstLoad,
 } from "./layout-deserialization.environment";
 import { isMobile } from "../platform";
-import { activateQueuedAVLocate, queueAVLocateRequest } from "../protyle/render/av/locate";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
+import {avRender} from "../protyle/render/av/render";
 
 // Tab 移除处理
 
@@ -163,7 +164,7 @@ export const handleUrlFileOpen = (app: AppFacade): boolean => {
         afterOpen: (model) => {
             const protyle = model && "editor" in model ? model.editor?.protyle : undefined;
             if (protyle) {
-                activateQueuedAVLocate(protyle, info.id);
+                activateQueuedAVLocate({renderAV: avRender, protyle, blockID: info.id});
             }
         },
     });

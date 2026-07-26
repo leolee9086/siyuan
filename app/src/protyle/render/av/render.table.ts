@@ -14,7 +14,7 @@ import {genTabHeaderHTML} from "./view/header";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {initVirtualScroll} from "./virtualScroll";
 import {bindAvSearch} from "./search";
-import {finishAVLocate} from "./locate";
+import {finishAVLocate} from "./locate/presentation/finish";
 
 export interface ITableOptions {
     protyle: IProtyle,

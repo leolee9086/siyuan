@@ -9,7 +9,7 @@ import {openMenuPanel} from "./openMenuPanel";
 import {avRender} from "./render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {hasClosestByClassName} from "../../util/hasClosest";
-import {setAVLocateRequest} from "./locate";
+import {setAVLocateRequest} from "./locate/state/state";
 
 const refreshTimeouts: {
     [key: string]: number;

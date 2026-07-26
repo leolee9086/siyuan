@@ -23,6 +23,8 @@ import {isMobile} from "./imports";
 import {ipcSend} from "./imports";
 /** 用途：数据库项目 URI 定位。使用范围：打开文档前排队，打开后激活。解耦评估：通过 imports.ts 转发。 */
 import {activateQueuedAVLocate, queueAVLocateRequest} from "./imports";
+/** 用途：数据库根渲染；使用范围：URI 定位激活参数；解耦评估：经本域网关直达唯一实现。 */
+import {avRender} from "./imports";
 
 import type { AppFacade } from "./imports";
 
@@ -54,7 +56,7 @@ const openSiYuanUriBlock = (app: AppFacade, blockInfo: NonNullable<ReturnType<ty
     const action = getSiYuanUriAction(zoomIn, focus, locateAV);
     if (isMobile) {
         openMobileFileById(app, id, action, undefined, undefined,
-            locateAV ? (protyle) => activateQueuedAVLocate(protyle, id) : undefined);
+            locateAV ? (protyle) => activateQueuedAVLocate({renderAV: avRender, protyle, blockID: id}) : undefined);
         return;
     }
     openFileById({
@@ -65,7 +67,7 @@ const openSiYuanUriBlock = (app: AppFacade, blockInfo: NonNullable<ReturnType<ty
         afterOpen: locateAV ? (model) => {
             const protyle = getModelProtyle(model);
             if (protyle) {
-                activateQueuedAVLocate(protyle, id);
+                activateQueuedAVLocate({renderAV: avRender, protyle, blockID: id});
             }
         } : undefined,
     });

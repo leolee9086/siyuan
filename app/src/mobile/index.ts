@@ -61,7 +61,8 @@ import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 // S-forge: 上游 8422a9b49 新增的移动端原生键盘控制函数，用于调用原生键盘、判断输入能力、设置 WebView 可聚焦
 import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusable} from "./keyboard/mobileAppUtil";
 
-import { activateQueuedAVLocate, queueAVLocateRequest } from "../protyle/render/av/locate";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
+import {avRender} from "../protyle/render/av/render";
 import { ensureOnboarding } from "../onboarding";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 
@@ -334,7 +335,7 @@ window.openFileByURL = (openURL) => {
         }
         openMobileFileById(siyuanApp, blockInfo.id, blockInfo.avItemID ? [Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL] :
             (blockInfo.focus ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]),
-        undefined, undefined, blockInfo.avItemID ? (protyle) => activateQueuedAVLocate(protyle, blockInfo.id) : undefined);
+        undefined, undefined, blockInfo.avItemID ? (protyle) => activateQueuedAVLocate({renderAV: avRender, protyle, blockID: blockInfo.id}) : undefined);
         return true;
     }
     return false;

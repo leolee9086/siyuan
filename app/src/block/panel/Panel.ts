@@ -10,6 +10,8 @@ import { hideElements } from "./imports";
 import { resize } from "./imports";
 /** 用途：定位数据库条目；使用范围：子编辑器加载完成；解耦评估：在 BlockPanel 组合边界绑定。 */
 import { activateAVLocateWithRetry } from "./imports";
+/** 用途：数据库根渲染；使用范围：定位激活参数；解耦评估：通过本域网关直达唯一实现。 */
+import {avRender} from "./imports";
 /** 用途：App类型定义。使用范围：构造函数参数和实例属性类型标注。解耦评估：通过 ./imports 转发。 */
 import type { AppFacade } from "./imports";
 /** 用途：获取全局浮窗面板列表。使用范围：管理浮窗层级和清理。解耦评估：通过 ./imports 转发。 */
@@ -51,6 +53,7 @@ function 获取编辑器上下文(panel: BlockPanel) {
     return {
         createEditor: (element: HTMLElement, options: IProtyleOptions) => new Protyle(panel.app, element, options),
         locateAttributeView: activateAVLocateWithRetry,
+        renderAttributeView: avRender,
         refDefs: panel.refDefs,
         isBacklink: panel.isBacklink,
         originalRefBlockIDs: panel.originalRefBlockIDs,

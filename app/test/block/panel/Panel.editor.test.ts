@@ -21,6 +21,7 @@ describe("BlockPanel editor initialization", () => {
         editorElement.dataset.index = "0";
         document.body.append(editorElement);
         const locateAttributeView = vi.fn();
+        const renderAttributeView = vi.fn(async () => undefined);
         const protyleElement = document.createElement("div");
         const protyle = {
             element: protyleElement,
@@ -37,13 +38,18 @@ describe("BlockPanel editor initialization", () => {
                 return editor;
             },
             locateAttributeView,
+            renderAttributeView,
             refDefs: [{refID: "block-id", avItemID: "item-id", avViewID: "view-id", avGroupID: "group-id"}],
             isBacklink: false,
             targetElement: document.createElement("div"),
             editors,
         });
 
-        expect(locateAttributeView).toHaveBeenCalledWith(protyle, "block-id", {
+        expect(locateAttributeView).toHaveBeenCalledWith({
+            renderAV: renderAttributeView,
+            protyle,
+            blockID: "block-id",
+        }, {
             itemID: "item-id",
             viewID: "view-id",
             groupID: "group-id",

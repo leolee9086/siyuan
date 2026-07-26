@@ -40,8 +40,12 @@ import type { AppFacade } from "../app/AppFacade.types";
 export type { AppFacade };
 
 /** 用途：数据库项目 URI 定位。使用范围：uri 模块排队并激活 AV 定位请求。解耦评估：通过 imports.ts 转发。 */
-import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate";
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
 /** 导出 AV 排队能力，供 util 模块使用 */
 export {queueAVLocateRequest};
 /** 导出 AV 激活能力，供 util 模块使用 */
 export {activateQueuedAVLocate};
+/** 用途：AV 根渲染；使用范围：URI 定位激活参数；解耦评估：直达唯一实现。 */
+import {avRender} from "../protyle/render/av/render";
+/** 导出 AV 根渲染能力。 */
+export {avRender};

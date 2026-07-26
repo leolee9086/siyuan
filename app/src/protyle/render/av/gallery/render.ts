@@ -11,7 +11,9 @@ import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.envir
 import {getBodyVirtualData, initVirtualScroll} from "../virtualScroll";
 import {getRowHTML} from "../row";
 import {updateHeader} from "../selection/header";
-import {beginAVRender, finishAVLocate, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "../locate";
+import {beginAVRender, getAVLocateParams, isCurrentAVRender} from "../locate/state/state";
+import {prepareAVLocate} from "../locate/window/prepare";
+import {finishAVLocate} from "../locate/presentation/finish";
 import type {AVViewRenderer} from "../view/render.types";
 
 interface IIds {

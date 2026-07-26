@@ -131,6 +131,11 @@ import { showMessage } from "../../dialog/message";
 export { showMessage };
 
 /** 用途：在异步渲染完成后定位数据库条目。使用范围：链接浮窗编辑器加载。解耦评估：通过 panel 边界集中转发。 */
-import { activateAVLocateWithRetry } from "../../protyle/render/av/locate";
+import { activateAVLocateWithRetry } from "../../protyle/render/av/locate/activation/activation";
 /** 导出数据库条目定位能力。 */
 export { activateAVLocateWithRetry };
+
+/** 用途：渲染数据库视图；使用范围：链接浮窗定位组合边界；解耦评估：直达 AV 根渲染唯一实现。 */
+import {avRender} from "../../protyle/render/av/render";
+/** 导出 AV 根渲染能力。 */
+export {avRender};

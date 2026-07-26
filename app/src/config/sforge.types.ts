@@ -4,6 +4,8 @@
 
 /** 用途：Symbol 键定义。使用范围：ISForgeGlobalState 接口的索引签名键。解耦评估：同目录符号定义，直接导入。 */
 import {AV_VIRTUAL_SCROLL_REGISTRY} from "./sforge.symbols";
+/** 用途：定位 AV 条目定位注册状态。使用范围：ISForgeGlobalState 的定位生命周期槽。解耦评估：Symbol 保证跨渲染与导航调用共享唯一状态。 */
+import {AV_LOCATE_REGISTRY} from "./sforge.symbols";
 /** 用途：定位布局持久化注册状态。使用范围：ISForgeGlobalState 的布局保存状态槽。解耦评估：Symbol 是跨模块共享注册状态的稳定身份，参数传递会破坏全局唯一性。 */
 import {LAYOUT_PERSISTENCE_REGISTRY} from "./sforge.symbols";
 /** 用途：定位移动键盘生命周期状态。使用范围：ISForgeGlobalState 的移动键盘状态槽。解耦评估：Symbol 是跨调用生命周期状态的稳定身份，不应通过调用链逐层传递。 */
@@ -58,6 +60,8 @@ import type {NavigationHistoryState} from "../navigation/history/NavigationHisto
 import type {MobileKeyboardLifecycleState} from "../mobile/keyboard/MobileKeyboardLifecycle.types";
 /** 用途：完整 AV 虚拟滚动注册状态。使用范围：SForge 全局状态映射；解耦评估：纯数据类型不加载行渲染或裁剪实现。 */
 import type {AVVirtualScrollRegistryState} from "../protyle/render/av/virtualScroll/virtualScroll.types";
+/** 用途：完整 AV 定位注册状态。使用范围：SForge 全局状态映射；解耦评估：纯数据类型不加载定位或渲染实现。 */
+import type {AVLocateRegistryState} from "../protyle/render/av/locate/locate.types";
 
 /**
  * SForge 全局状态类型定义
@@ -90,6 +94,7 @@ export interface ISForgeGlobalState {
     [MOBILE_KEYBOARD_LIFECYCLE_REGISTRY]?: MobileKeyboardLifecycleState;
     [LAYOUT_PERSISTENCE_REGISTRY]?: Map<string, LayoutPersistenceState>;
     [AV_VIRTUAL_SCROLL_REGISTRY]?: AVVirtualScrollRegistryState;
+    [AV_LOCATE_REGISTRY]?: AVLocateRegistryState;
     [WINDOW_KEYDOWN_SWITCH_DIALOG]?: IProtyleDialog;
 }
 

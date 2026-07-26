@@ -2,6 +2,10 @@
 import type {IAVLocateRequest} from "../../protyle/render/av/locate/locate.types";
 /** 用途：BlockPanel 子编辑器完整领域根；使用范围：创建、观察、销毁和加载回调。 */
 import type {ProtyleDomain} from "../../protyle/protyle.types";
+/** 用途：完整 AV 根渲染能力；使用范围：定位激活组合上下文；解耦评估：纯类型依赖稳定领域签名。 */
+import type {AVRenderer} from "../../protyle/render/av/view/render.types";
+/** 用途：完整 AV 定位激活上下文；使用范围：定位实现签名；解耦评估：纯类型直达领域声明。 */
+import type {AVLocateActivationContext} from "../../protyle/render/av/locate/locate.types";
 
 /** BlockPanel 创建 Protyle 时使用的完整选项，仅将加载回调绑定到抽象领域身份。 */
 export type BlockPanelEditorOptions =
@@ -15,7 +19,8 @@ export type CreateBlockPanelEditor = (element: HTMLElement, options: BlockPanelE
  */
 export interface EditorInitContext {
     createEditor: CreateBlockPanelEditor;
-    locateAttributeView: (protyle: IProtyle, blockID: string, request: IAVLocateRequest) => void;
+    locateAttributeView: (context: AVLocateActivationContext, request: IAVLocateRequest) => void;
+    renderAttributeView: AVRenderer;
     refDefs: IRefDefs[];
     isBacklink: boolean;
     originalRefBlockIDs?: IObject | undefined;
@@ -43,5 +48,6 @@ export interface IEditorLoadedContext {
     rootID: string;
     refDef: IRefDefs;
     locateAttributeView: EditorInitContext["locateAttributeView"];
+    renderAttributeView: AVRenderer;
     afterCB?: () => void;
 }
