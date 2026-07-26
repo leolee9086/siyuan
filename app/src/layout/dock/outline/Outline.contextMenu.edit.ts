@@ -14,44 +14,9 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 import { confirmDialog } from "../../../dialog/confirmDialog";
 import { isHTMLElement } from "../dock.guard";
 import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器, convertBlockToSubDocument } from "./Outline.contextMenu.edit.util";
-import type {OutlineDomain, OutlineEditorContext} from "./types";
-
-/** 
- * 获取 Protyle 和块元素 
- * @同步豁免: DOM访问
- */
-export function getProtyleAndBlockElement(outline: OutlineDomain, element: HTMLElement): OutlineEditorContext | undefined {
-    const id = element.getAttribute("data-node-id");
-    const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
-    /**
-     * 作用：确保找到了对应的编辑器实例。
-     * 意图：如果未找到与当前 blockId 关联的编辑器，则无法进行后续操作。
-     * 生效场景：在多编辑器环境下，无法匹配到当前活动的编辑器时。
-     */
-    if (!editItem) {
-        return;
-    }
-    const protyle = editItem.editor.protyle;
-    /**
-     * 作用：确保编辑器处于所见即所得 (WYSIWYG) 模式。
-     * 意图：大纲操作依赖于 WYSIWYG 元素，如果非此模式则不处理。
-     * 生效场景：Protyle 实例未初始化 WYSIWYG 组件时。
-     */
-    if (!protyle.wysiwyg) {
-        return;
-    }
-    const blockElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
-    /**
-     * 作用：确保找到了对应的 block 元素且它是 HTMLElement。
-     * 意图：后续操作需要基于 HTMLElement 进行，如果未找到或不是 HTMLElement 则无法继续。
-     * 生效场景：在 DOM 中未找到对应 ID 的元素，或找到的不是 HTMLElement 时。
-     */
-    if (!blockElement || !isHTMLElement(blockElement)) {
-        // 确保 element 是 HTML 元素
-        return;
-    }
-    return { protyle, blockElement };
-}
+import type {OutlineDomain} from "./types";
+/** 用途：解析 Outline 对应的编辑器与标题块；使用范围：标题级别、插入和子文档菜单动作；解耦评估：直达独立编辑器上下文所有者，不加载剪贴板菜单。 */
+import {getProtyleAndBlockElement} from "./editorContext/resolve";
 
 /**
  * 作用：根据标题级别获取对应的文案。
@@ -200,7 +165,6 @@ export function appendLevelMenuItems(outline: OutlineDomain, element: HTMLElemen
 
 
 
-
 /**
  * 作用：添加"转换为子文档"菜单项。
  * 意图：允许用户将当前块转换为一个新的子文档。
@@ -311,5 +275,3 @@ export function appendInsertMenuItems(outline: OutlineDomain, element: HTMLEleme
         }).element);
     }
 }
-
-export { appendClipboardMenuItems } from "./Outline.contextMenu.clipboard";

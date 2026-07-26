@@ -11,7 +11,8 @@ import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfi
 import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
 import { isHTMLElement } from "../dock.guard";
 import type {OutlineDomain} from "./types";
-import { getProtyleAndBlockElement } from "./Outline.contextMenu.edit";
+/** 用途：解析 Outline 对应的编辑器与标题块；使用范围：复制、剪切和删除标题动作；解耦评估：直达独立编辑器上下文所有者，不再反向加载编辑菜单。 */
+import {getProtyleAndBlockElement} from "./editorContext/resolve";
 
 /**
  * 将数据写入剪贴板

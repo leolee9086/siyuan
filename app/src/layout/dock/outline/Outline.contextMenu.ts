@@ -10,10 +10,19 @@ import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type {OutlineDomain} from "./types";
-import { appendLevelMenuItems, appendInsertMenuItems, appendClipboardMenuItems, appendSubDocMenu } from "./Outline.contextMenu.edit";
+import { appendLevelMenuItems, appendInsertMenuItems, appendSubDocMenu } from "./Outline.contextMenu.edit";
+/** 用途：构建 Outline 剪贴板菜单；使用范围：右键菜单组合根；解耦评估：直接指向剪贴板菜单所有者，不经编辑菜单转发。 */
+import {appendClipboardMenuItems} from "./Outline.contextMenu.clipboard";
 import { appendExpandCollapseMenuItems } from "./Outline.contextMenu.tree";
-// 重导出编辑模块的函数供 Outline 使用
-export { getProtyleAndBlockElement, genHeadingTransform } from "./Outline.contextMenu.edit";
+/** 用途：保留 Outline class 使用的编辑器上下文公共行为；使用范围：菜单组合与实例装配；解耦评估：直接指向独立上下文所有者。 */
+import {getProtyleAndBlockElement} from "./editorContext/resolve";
+/** 用途：保留 Outline class 使用的标题转换菜单行为；使用范围：菜单组合与实例装配；解耦评估：直接指向编辑菜单所有者。 */
+import {genHeadingTransform} from "./Outline.contextMenu.edit";
+
+/** 导出 Outline 编辑器上下文解析行为。 */
+export {getProtyleAndBlockElement};
+/** 导出标题转换菜单构造行为。 */
+export {genHeadingTransform};
 
 const ZOOM_IN_ACTIONS: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HTML, Constants.CB_GET_OUTLINE];
 const ZOOM_OUT_ACTIONS: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB_GET_OUTLINE, Constants.CB_GET_SETID, Constants.CB_GET_CONTEXT, Constants.CB_GET_HTML];

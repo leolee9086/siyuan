@@ -5,6 +5,10 @@ import {createAppFacade} from "../../../../src/app/AppFacade.types";
 import type {OutlineDomain} from "../../../../src/layout/dock/outline/types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "../../../../src/layout/layout.types";
 
+const editorContextRuntime = vi.hoisted(() => ({
+    getAllModels: vi.fn(),
+}));
+
 vi.mock("../../../../src/layout/dock/outline/runtime/imports", () => ({
     fetchPost: vi.fn(),
     hasClosestBlock: vi.fn(),
@@ -16,7 +20,13 @@ vi.mock("../../../../src/layout/dock/outline/runtime/imports", () => ({
     getWindowSelection: vi.fn(),
 }));
 
+vi.mock("../../../../src/layout/dock/outline/editorContext/imports", () => ({
+    getAllModels: editorContextRuntime.getAllModels,
+    isHTMLElement: (element: Element) => element instanceof HTMLElement,
+}));
+
 import {分发消息回调逻辑} from "../../../../src/layout/dock/outline/Outline.helpers";
+import {getProtyleAndBlockElement} from "../../../../src/layout/dock/outline/editorContext/resolve";
 
 function createOutline(type: "pin" | "local" = "local") {
     const removeTab = vi.fn();
@@ -143,5 +153,32 @@ describe("Outline message dispatch", () => {
 
         expect(removeTab).toHaveBeenCalledWith("tab-id");
         expect(removeTab).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("Outline editor context", () => {
+    it("resolves the editor and heading block for the Outline document", () => {
+        const {outline} = createOutline();
+        const editorElement = document.createElement("div");
+        const blockElement = document.createElement("div");
+        blockElement.dataset.nodeId = "heading-id";
+        editorElement.append(blockElement);
+        const protyle = {block: {rootID: "doc-id"}, wysiwyg: {element: editorElement}};
+        editorContextRuntime.getAllModels.mockReturnValue({editor: [{editor: {protyle}}]});
+        const outlineElement = document.createElement("div");
+        outlineElement.dataset.nodeId = "heading-id";
+
+        expect(getProtyleAndBlockElement(outline, outlineElement)).toEqual({protyle, blockElement});
+    });
+
+    it("does not return another document editor or a missing block", () => {
+        const {outline} = createOutline();
+        editorContextRuntime.getAllModels.mockReturnValue({
+            editor: [{editor: {protyle: {block: {rootID: "other-doc"}, wysiwyg: {element: document.createElement("div")}}}}],
+        });
+        const outlineElement = document.createElement("div");
+        outlineElement.dataset.nodeId = "heading-id";
+
+        expect(getProtyleAndBlockElement(outline, outlineElement)).toBeUndefined();
     });
 });
