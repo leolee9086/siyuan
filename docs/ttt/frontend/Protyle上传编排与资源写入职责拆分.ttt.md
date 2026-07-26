@@ -2,7 +2,7 @@
 
 > **最终目标**：保持 Protyle 文件校验、确认、进度、上传、回调、默认编辑器插入、AV 批量写入、本地路径导入和错误反馈不变，将 512+ 行上传上帝模块拆为单向上传领域并消除其全部循环路径。
 >
-> **当前目标**：分离调用方必需响应处理器的上传传输路径与默认编辑器/AV 后处理，解除 `Asset -> upload -> insertHTML -> table -> block/util -> editor` 返回路径。
+> **当前目标**：分离调用方必需响应处理器的上传传输路径与默认编辑器/AV 后处理，解除 `Asset -> upload -> insertHTML -> input -> blockFold -> transaction` 返回路径。
 >
 > **下一步任务**：建立 callback、默认后处理、校验失败、取消确认和 XHR 状态行为测试，先分离默认 `genUploadedLabel` 的普通编辑器插入与 AV 资源写入阶段。
 
@@ -68,6 +68,7 @@
 - **2026-07-27**：上传默认结果使用的 `insertHTML` 不再经 Action 根取得 AV 标题同步；`updateAVName` 直达专属网关和严格 Prepared 命令，Name/网关/命令退出 SCC。生产图 `2240 / 331 / SCC 623`，当前返回路径推进到 `insertHTML -> blockFold -> transaction`，继续按默认普通编辑器插入职责拆分。
 - **2026-07-27**：`insertHTML` 展开标题时不再通过综合 `blockFold.ts` 静态加载通用 transaction；折叠状态唯一实现返回 do/undo，调用方继续把它组合进原插入事务。折叠专项 `2/2`、Node `193/193`、Protyle 契约类型、lint 与 imports 多跳门禁通过。当前生产图 `2243 / 299 / SCC 625`；返回路径已从 transaction 转为 State 内的 `scrollCenter -> Layout/Wnd`，两个新运行时节点仍在主 SCC，所以该阶段尚未满足上传解环验收，继续处理滚动副作用边界。
 - **2026-07-27**：DOM 滚动 helper 的配置读取改为直达稳定环境层唯一安全实现，消除为可选 `window.siyuan?.config` 加载 Layout/Wnd 的错误所有权；折叠和滚动逻辑均未改变。生产图 `2243 / 282 / SCC 619`，`blockFold/state` 与完整高亮滚动子域退出 SCC，上传默认插入的折叠返回路径已关闭。上传仍经 `insertHTML -> table -> block/util -> editor` 返回主图，下一阶段按表格选区职责真实所有权继续拆分。
+- **2026-07-27**：上传插入仅需的表格网格/范围投影迁入纯 `table/grid`，框选几何的两份重复实现统一为 `table/selection/geometry`；`insertHTML` 不再加载任一综合 table 模块。生产图 `2247 / 332 / SCC 619`，新子域均在 SCC 外；当前上传返回路径推进到 `insertHTML -> input -> blockFold -> transaction`，代表环反升仅作定位。
 
 ## 关联任务
 

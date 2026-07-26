@@ -10,6 +10,9 @@ import {hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
 import {Dialog} from "../runtime/dialog.port";
 import {isMobile} from "../../util/functions";
+import {buildTableGrid} from "./table/grid";
+import {getTableRangeBounds} from "./table/grid";
+import {isIncludeCell} from "./table/selection/geometry";
 
 const scrollToView = (nodeElement: Element, rowElement: HTMLElement, protyle: IProtyle) => {
     if (nodeElement.getAttribute("custom-pinthead") === "true") {
@@ -776,21 +779,6 @@ export const fixTable = (protyle: IProtyle, event: KeyboardEvent, range: Range) 
     }
 };
 
-export const isIncludeCell = (options: {
-    tableSelectElement: HTMLElement,
-    scrollLeft: number,
-    scrollTop: number,
-    item: HTMLTableCellElement,
-}) => {
-    if (options.item.offsetLeft + 6 > options.tableSelectElement.offsetLeft + options.scrollLeft &&
-        options.item.offsetLeft + options.item.clientWidth - 6 < options.tableSelectElement.offsetLeft + options.scrollLeft + options.tableSelectElement.clientWidth &&
-        options.item.offsetTop + 6 > options.tableSelectElement.offsetTop + options.scrollTop &&
-        options.item.offsetTop + options.item.clientHeight - 6 < options.tableSelectElement.offsetTop + options.scrollTop + options.tableSelectElement.clientHeight) {
-        return true;
-    }
-    return false;
-};
-
 export const clearTableCell = (protyle: IProtyle, tableBlockElement: HTMLElement) => {
     if (!tableBlockElement) {
         return;
@@ -887,115 +875,6 @@ export const updateTableTitle = (protyle: IProtyle, nodeElement: Element) => {
     inputElement.select();
 };
 
-interface ITableCellInfo {
-    cell: HTMLTableCellElement;
-    row: number;
-    col: number;
-    rowspan: number;
-    colspan: number;
-}
-
-interface ITableGrid {
-    cellInfos: ITableCellInfo[];
-    sectionOfRow: string[];
-    rowCount: number;
-}
-
-export interface ITableRangeCell {
-    cell: HTMLTableCellElement;
-    row: number;
-    col: number;
-}
-
-const buildTableGrid = (tableElement: HTMLElement): ITableGrid => {
-    const cellInfos: ITableCellInfo[] = [];
-    const sectionOfRow: string[] = [];
-    const grid: (HTMLTableCellElement | null)[][] = [];
-    const getCS = (cell: HTMLTableCellElement, attr: string) => {
-        const v = cell.getAttribute(attr);
-        if (!v) {
-            return 1;
-        }
-        const n = parseInt(v, 10);
-        return isNaN(n) || n < 1 ? 1 : n;
-    };
-    const ensureRow = (r: number) => {
-        while (grid.length <= r) {
-            grid.push([]);
-            sectionOfRow.push("");
-        }
-    };
-    const trElements = Array.from(tableElement.querySelectorAll("tr"));
-    trElements.forEach((tr, rowIdx) => {
-        ensureRow(rowIdx);
-        // 判定该 tr 所属的 section
-        const section = (tr.parentElement && (tr.parentElement.tagName === "THEAD")) ? "thead" : "tbody";
-        sectionOfRow[rowIdx] = section;
-        let colIdx = 0;
-        tr.querySelectorAll("th, td").forEach((cell: HTMLTableCellElement) => {
-            if (cell.classList.contains("fn__none")) {
-                return; // 跳过合并单元格的占位
-            }
-            const rowspan = getCS(cell, "rowspan");
-            const colspan = getCS(cell, "colspan");
-            // 找到当前行第一个空闲列
-            while (grid[rowIdx][colIdx]) {
-                colIdx++;
-            }
-            cellInfos.push({cell, row: rowIdx, col: colIdx, rowspan, colspan});
-            // 占据网格
-            for (let dr = 0; dr < rowspan; dr++) {
-                ensureRow(rowIdx + dr);
-                for (let dc = 0; dc < colspan; dc++) {
-                    grid[rowIdx + dr][colIdx + dc] = cell;
-                }
-            }
-            colIdx += colspan;
-        });
-    });
-
-    return {cellInfos, sectionOfRow, rowCount: trElements.length};
-};
-
-const getTableRangeBounds = (cellInfos: ITableCellInfo[], rowCount: number, startCell: HTMLElement, endCell: HTMLElement) => {
-    const startInfo = cellInfos.find(info => info.cell === startCell);
-    const endInfo = cellInfos.find(info => info.cell === endCell);
-    if (!startInfo || !endInfo) {
-        return undefined;
-    }
-    return {
-        rowStart: Math.min(startInfo.row, endInfo.row),
-        // 历史数据可能存在超出表格末行的 rowspan，复制时不能为其生成仅含 fn__none 的虚拟尾行。
-        rowEnd: Math.min(rowCount - 1,
-            Math.max(startInfo.row + startInfo.rowspan - 1, endInfo.row + endInfo.rowspan - 1)),
-        colStart: Math.min(startInfo.col, endInfo.col),
-        colEnd: Math.max(startInfo.col + startInfo.colspan - 1, endInfo.col + endInfo.colspan - 1),
-    };
-};
-
-// 返回选区内实际可编辑的单元格及其相对网格坐标，合并单元格占位不会进入结果。
-export const getTableRangeCells = (tableElement: HTMLElement, startCell?: HTMLElement, endCell?: HTMLElement) => {
-    const {cellInfos, rowCount} = buildTableGrid(tableElement);
-    if (!startCell || !endCell) {
-        return cellInfos.map(info => ({cell: info.cell, row: info.row, col: info.col}));
-    }
-    const bounds = getTableRangeBounds(cellInfos, rowCount, startCell, endCell);
-    if (!bounds) {
-        return [];
-    }
-    const ret: ITableRangeCell[] = [];
-    cellInfos.forEach(info => {
-        const row = Math.max(info.row, bounds.rowStart);
-        const rowEnd = Math.min(info.row + info.rowspan - 1, bounds.rowEnd);
-        const col = Math.max(info.col, bounds.colStart);
-        const colEnd = Math.min(info.col + info.colspan - 1, bounds.colEnd);
-        if (row <= rowEnd && col <= colEnd) {
-            ret.push({cell: info.cell, row: row - bounds.rowStart, col: col - bounds.colStart});
-        }
-    });
-    return ret;
-};
-
 // getTableRangeHTML 根据起始单元格到结束单元格的矩形区域，重建一个合法的 <table> HTML。
 // 用于表格内跨多单元格的文本选区复制/剪切：原 range.cloneContents()/extractContents() 会产出残缺片段。
 // 算法：建立原表格的二维网格映射，确定选区的网格范围，枚举其中的物理单元格，
@@ -1003,10 +882,11 @@ export const getTableRangeCells = (tableElement: HTMLElement, startCell?: HTMLEl
 export const getTableRangeHTML = (tableElement: HTMLElement, startCell: HTMLElement, endCell: HTMLElement) => {
     // 1. 建立二维网格映射，记录每个物理单元格的网格坐标、跨度及其所属行（用于保留 thead/tbody 划分）
     // grid[r][c] = cell（每个单元格占据 rowspan×colspan 个网格位置）
-    const {cellInfos, sectionOfRow, rowCount} = buildTableGrid(tableElement);
+    const tableGrid = buildTableGrid(tableElement);
+    const {cellInfos, sectionOfRow} = tableGrid;
 
     // 2. 确定 startCell/endCell 的网格坐标
-    const bounds = getTableRangeBounds(cellInfos, rowCount, startCell, endCell);
+    const bounds = getTableRangeBounds(tableGrid, startCell, endCell);
     if (!bounds) {
         return "";
     }

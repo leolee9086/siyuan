@@ -1,6 +1,7 @@
 import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {focusByWbr} from "../selection";
 import * as dayjs from "dayjs";
+import {isIncludeCell} from "./selection/geometry";
 
 /**
  * 获取单元格在所在行中的列索引
@@ -91,32 +92,6 @@ export const setTableAlign = (protyle: IProtyle, cellElements: HTMLElement[], no
     focusByWbr(tableElement, range);
 };
 
-/**
- * 判断单元格是否在表格选区范围内
- *
- * 作用：通过比较单元格和选区元素的偏移量，判断单元格是否被选区完全包含（留6px容差）
- * 意图：表格框选操作中筛选被选中的单元格
- * 调用时机：clearTableCell 中遍历所有单元格时调用，以及 index.mousedown.tableMenu.ts 中框选判定
- *
- * @param options - 包含选区元素、滚动偏移和目标单元格的参数对象
- * @returns 单元格是否在选区范围内
- */
-/** @同步豁免: 需要绝对同步的DOM访问 - 读取DOM元素的offset/client属性进行几何计算，纯同步DOM读取 */
-export const isIncludeCell = (options: {
-    tableSelectElement: HTMLElement,
-    scrollLeft: number,
-    scrollTop: number,
-    item: HTMLTableCellElement,
-}) => {
-    // 单元格四边均在选区范围内（含6px容差）时判定为被选中
-    if (options.item.offsetLeft + 6 > options.tableSelectElement.offsetLeft + options.scrollLeft &&
-        options.item.offsetLeft + options.item.clientWidth - 6 < options.tableSelectElement.offsetLeft + options.scrollLeft + options.tableSelectElement.clientWidth &&
-        options.item.offsetTop + 6 > options.tableSelectElement.offsetTop + options.scrollTop &&
-        options.item.offsetTop + options.item.clientHeight - 6 < options.tableSelectElement.offsetTop + options.scrollTop + options.tableSelectElement.clientHeight) {
-        return true;
-    }
-    return false;
-};
 /**
  * 清空表格选区内所有单元格的内容
  *
