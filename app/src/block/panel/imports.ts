@@ -1,50 +1,50 @@
-/** 用途：Protyle 编辑器类。使用范围：panel 模块编辑器管理。解耦评估：通过父级 imports.ts 转发。 */
-import { Protyle } from "../imports";
+/** 用途：Protyle 编辑器类。使用范围：panel 模块编辑器管理。解耦评估：直接指向具体 class 的创建边界。 */
+import {Protyle} from "../../protyle";
 /** 导出 Protyle，供 panel 模块使用 */
 export { Protyle };
 
-/** 用途：生成唯一 ID。使用范围：panel 模块实例标识。解耦评估：通过父级 imports.ts 转发。 */
-import { genUUID } from "../imports";
+/** 用途：生成唯一 ID。使用范围：panel 模块实例标识。解耦评估：直接指向 ID 工具真实实现。 */
+import {genUUID} from "../../util/platform/genID";
 /** 导出 genUUID，供 panel 模块使用 */
 export { genUUID };
 
-/** 用途：隐藏编辑器工具栏元素。使用范围：panel 模块销毁清理。解耦评估：通过父级 imports.ts 转发。 */
-import { hideElements } from "../imports";
+/** 用途：隐藏编辑器工具栏元素。使用范围：panel 模块销毁清理。解耦评估：直接指向 Protyle UI 真实实现。 */
+import {hideElements} from "../../protyle/ui/hideElements";
 /** 导出 hideElements，供 panel 模块使用 */
 export { hideElements };
 
-/** 用途：启用拖拽和调整大小。使用范围：panel 模块窗口交互。解耦评估：通过父级 imports.ts 转发。 */
-import { moveResize } from "../imports";
+/** 用途：启用拖拽和调整大小。使用范围：panel 模块窗口交互。解耦评估：直接指向 Dialog 交互真实实现。 */
+import {moveResize} from "../../dialog/moveResize";
 /** 导出 moveResize，供 panel 模块使用 */
 export { moveResize };
 
-/** 用途：移动端判断。使用范围：panel 模块交互适配。解耦评估：通过父级 imports.ts 转发。 */
-import { isMobile } from "../imports";
+/** 用途：移动端判断。使用范围：panel 模块交互适配。解耦评估：直接指向平台判断真实实现。 */
+import {isMobile} from "../../util/platform/functions";
 /** 导出 isMobile，供 panel 模块使用 */
 export { isMobile };
 
-/** 用途：AppFacade 应用实例类型。使用范围：panel 模块上下文。解耦评估：通过父级 imports.ts 转发。 */
-import type { AppFacade } from "../imports";
+/** 用途：AppFacade 应用实例类型。使用范围：panel 模块上下文。解耦评估：直接指向完整应用领域根。 */
+import type {AppFacade} from "../../app/AppFacade.types";
 /** 导出 AppFacade 类型，供 panel 模块使用 */
 export type { AppFacade };
 
-/** 用途：获取全局浮窗面板列表。使用范围：panel 模块层级管理。解耦评估：通过父级 imports.ts 转发。 */
-import { getSiyuanBlockPanels } from "../imports";
+/** 用途：获取全局浮窗面板列表。使用范围：panel 模块层级管理。解耦评估：直接指向环境访问器。 */
+import {getSiyuanBlockPanels} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanBlockPanels，供 panel 模块使用 */
 export { getSiyuanBlockPanels };
 
-/** 用途：获取全局菜单实例。使用范围：panel 模块销毁清理。解耦评估：通过父级 imports.ts 转发。 */
-import { getSiyuanMenus } from "../imports";
+/** 用途：获取全局菜单实例。使用范围：panel 模块销毁清理。解耦评估：直接指向环境访问器。 */
+import {getSiyuanMenus} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanMenus，供 panel 模块使用 */
 export { getSiyuanMenus };
 
-/** 用途：递增并获取全局 z-index。使用范围：panel 模块层级提升。解耦评估：通过父级 imports.ts 转发。 */
-import { incrementSiyuanZIndex } from "../imports";
+/** 用途：递增并获取全局 z-index。使用范围：panel 模块层级提升。解耦评估：直接指向环境访问器。 */
+import {incrementSiyuanZIndex} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 incrementSiyuanZIndex，供 panel 模块使用 */
 export { incrementSiyuanZIndex };
 
-/** 用途：查找最近指定类名的祖先元素。使用范围：panel 模块 DOM 定位。解耦评估：通过父级 imports.ts 转发。 */
-import { hasClosestByClassName } from "../imports";
+/** 用途：查找最近指定类名的祖先元素。使用范围：panel 模块 DOM 定位。解耦评估：直接指向 Protyle DOM 查询实现。 */
+import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 panel 模块使用 */
 export { hasClosestByClassName };
 
@@ -53,8 +53,8 @@ import { setPosition } from "../../util/DOM/positioning/setPosition";
 /** 导出 setPosition，供 panel 模块使用 */
 export { setPosition };
 
-/** 用途：系统常量。使用范围：panel 模块配置。解耦评估：通过父级 imports.ts 转发。 */
-import { Constants } from "../imports";
+/** 用途：系统常量。使用范围：panel 模块配置。解耦评估：直接指向常量声明。 */
+import {Constants} from "../../constants";
 /** 导出 Constants，供 panel 模块使用 */
 export { Constants };
 
@@ -63,13 +63,13 @@ import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 /** 导出 updateHotkeyAfterTip，供 panel 模块使用 */
 export { updateHotkeyAfterTip };
 
-/** 用途：国际化文案。使用范围：panel 模块按钮文案。解耦评估：通过父级 imports.ts 转发。 */
-import { siyuanI18n } from "../imports";
+/** 用途：国际化文案。使用范围：panel 模块按钮文案。解耦评估：直接指向 i18n 环境访问器。 */
+import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 导出 siyuanI18n，供 panel 模块使用 */
 export { siyuanI18n };
 
-/** 用途：获取 SiYuan 配置。使用范围：panel 模块配置读取。解耦评估：通过父级 imports.ts 转发。 */
-import { getSiyuanConfig } from "../imports";
+/** 用途：获取 SiYuan 配置。使用范围：panel 模块配置读取。解耦评估：直接指向配置环境访问器。 */
+import {getSiyuanConfig} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出 getSiyuanConfig，供 panel 模块使用 */
 export { getSiyuanConfig };
 
@@ -83,23 +83,23 @@ import { checkClassListContain } from "../../util/DOM/helpers/fnClasses";
 /** 导出 checkClassListContain，供 panel 模块使用 */
 export { checkClassListContain };
 
-/** 用途：Electron 环境判断。使用范围：panel 模块平台适配。解耦评估：通过父级 imports.ts 转发。 */
-import { isElectron } from "../imports";
+/** 用途：Electron 环境判断。使用范围：panel 模块平台适配。解耦评估：直接指向平台组合入口的稳定值。 */
+import {isElectron} from "../../platform";
 /** 导出 isElectron，供 panel 模块使用 */
 export { isElectron };
 
-/** 用途：在新窗口中打开块。使用范围：panel 模块新窗口操作。解耦评估：通过父级 imports.ts 转发。 */
-import { openNewWindowById } from "../imports";
+/** 用途：在新窗口中打开块。使用范围：panel 模块新窗口操作。解耦评估：直接指向窗口行为真实实现。 */
+import {openNewWindowById} from "../../window/openNewWindow";
 /** 导出 openNewWindowById，供 panel 模块使用 */
 export { openNewWindowById };
 
-/** 用途：通过 ID 打开文件。使用范围：panel 模块页签操作。解耦评估：通过父级 imports.ts 转发。 */
-import { openFileById } from "../imports";
+/** 用途：通过 ID 打开文件。使用范围：panel 模块页签操作。解耦评估：直接指向 Editor 打开行为真实实现。 */
+import {openFileById} from "../../editor/utils.openFileById";
 /** 导出 openFileById，供 panel 模块使用 */
 export { openFileById };
 
-/** 用途：检查折叠状态并执行回调。使用范围：panel 模块折叠判断。解耦评估：通过父级 imports.ts 转发。 */
-import { checkFold } from "../imports";
+/** 用途：检查折叠状态并执行回调。使用范围：panel 模块折叠判断。解耦评估：直接指向平台行为真实实现。 */
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 /** 导出 checkFold，供 panel 模块使用 */
 export { checkFold };
 

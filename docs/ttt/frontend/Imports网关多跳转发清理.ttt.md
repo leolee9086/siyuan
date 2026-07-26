@@ -7,7 +7,7 @@
 ## 当前目标
 
 - [x] 修正 `dialog/processSystem/imports.ts` 的 Card/Plugin 多跳。
-- [ ] 审计并清理剩余 `49` 条多跳边。
+- [ ] 审计并清理剩余 `32` 条多跳边。
 - [ ] 在存量清零后加入静态门禁，防止新增网关串联。
 
 ## 下一步任务
@@ -54,3 +54,4 @@
 ## 已完成记录
 
 - **2026-07-26**：创建专项 TTT。`dialog/processSystem/imports.ts` 的 `fetchPost` 从 Card 网关改为网络真实实现，`AppFacade/isMobile/getAllEditor` 从 Plugin 网关改为各自真实类型/行为所有者；该目录多跳清零。清理后建立全仓权威基线 `49` 条，Madge 枚举环 `542 -> 490`，唯一 SCC 保持 `689`。
+- **2026-07-26**：`block/panel/imports.ts` 的 17 项父网关转发全部追到 Protyle、Editor、Window、Platform、Dialog、环境访问器和 AppFacade 的真实所有者；Panel 消费文件及值身份不变。全仓多跳 `49 -> 32`，专项 lint 通过；枚举环因路径重排 `490 -> 572`，唯一 SCC 保持 `689`，Panel 四个模块仍有其它返回路径，继续按依赖性质推进。
