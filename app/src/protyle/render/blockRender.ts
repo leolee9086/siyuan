@@ -2,7 +2,7 @@ import { hasClosestByAttribute } from "../util/hasClosest";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "./highlightRender";
-import { genBreadcrumb, improveBreadcrumbAppearance } from "../wysiwyg/renderBacklink";
+import {genBreadcrumb, improveBreadcrumbAppearance} from "../breadcrumb/backlinkBreadcrumb";
 import { avRender } from "./av/render";
 import { genRenderFrame } from "./util";
 import { 语义搜索, 获取语义搜索配置 } from "../../layout/dock/embeddingDock/semanticSearch.api";

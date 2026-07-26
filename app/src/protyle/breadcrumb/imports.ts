@@ -34,6 +34,19 @@ import { isSVGElement } from "../../util/DOM/element.guard";
  */
 import { isStylableElement } from "../../util/DOM/element.guard";
 
+/*
+ * 用途：按块类型生成图标标识。
+ * 使用范围：反链与嵌入块面包屑 HTML 构建。
+ * 解耦评估：纯映射能力直达 Editor 稳定实现，不引入具体编辑器 class。
+ */
+import {getIconByType} from "../../editor/getIcon";
+/*
+ * 用途：查找指定属性的祖先元素。
+ * 使用范围：面包屑高度压缩时识别嵌入块上下文。
+ * 解耦评估：无状态 DOM 查询直达 Protyle 工具唯一实现。
+ */
+import {hasClosestByAttribute} from "../util/hasClosest";
+
 // 导出基础元素守卫，供本目录模块复用。
 export { isElement };
 // 导出 HTMLElement 守卫，统一类型收窄逻辑。
@@ -44,3 +57,7 @@ export { isHTMLInputElement };
 export { isSVGElement };
 // 导出可样式化元素守卫，统一交互节点判定逻辑。
 export { isStylableElement };
+// 导出块类型图标映射，供面包屑 HTML 构建复用。
+export {getIconByType};
+// 导出属性祖先查询，供面包屑上下文识别复用。
+export {hasClosestByAttribute};
