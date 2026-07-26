@@ -9,6 +9,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction.promise", () => ({
 }));
 
 import {transaction} from "../../src/protyle/wysiwyg/transaction/submit";
+import {removeTopElementAndCollectOperations} from "../../src/protyle/wysiwyg/transaction/removeTopElement";
 
 const createProtyle = (lite: boolean) => {
     const headElement = document.createElement("div");
@@ -69,5 +70,34 @@ describe("transaction submit", () => {
             skipSync: true,
         });
         expect(state.protyle.observerLoad.disconnect).toHaveBeenCalledOnce();
+    });
+
+    it("collects a nested top-level deletion before restoring a non-root editor", () => {
+        const wysiwygElement = document.createElement("div");
+        wysiwygElement.classList.add("protyle-wysiwyg");
+        const blockquoteElement = document.createElement("div");
+        blockquoteElement.dataset.nodeId = "top-id";
+        blockquoteElement.dataset.type = "NodeBlockquote";
+        blockquoteElement.append(document.createElement("div"));
+        const updateElement = document.createElement("div");
+        updateElement.dataset.nodeId = "child-id";
+        blockquoteElement.append(updateElement);
+        wysiwygElement.append(blockquoteElement);
+        const zoomOut = vi.fn();
+        const protyle = {
+            block: {id: "child-id", rootID: "root-id"},
+            getInstance: () => ({zoomOut}),
+            wysiwyg: {element: wysiwygElement},
+        };
+
+        const operations = removeTopElementAndCollectOperations(updateElement, protyle);
+
+        expect(operations).toEqual([{action: "delete", id: "top-id"}]);
+        expect(wysiwygElement.childElementCount).toBe(0);
+        expect(zoomOut).toHaveBeenCalledWith({
+            id: "root-id",
+            isPushBack: false,
+            focusId: "child-id",
+        });
     });
 });

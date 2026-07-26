@@ -21,8 +21,21 @@ import {
 import {processFold, syncFoldAttr} from "./transaction.fold";
 import {refreshSbs} from "./transaction.refreshSbs";
 import {queueTransaction} from "../util/transactionQueue";
-import {removeTopElement} from "./transaction/submit";
-import {transaction} from "./transaction/submit";
+import {disconnectInsertObserver} from "./transaction/insertObserver";
+import {removeTopElementAndCollectOperations} from "./transaction/removeTopElement";
+
+/** 在当前非 lite 事务内执行无 undo 的后续操作。 */
+const executeNestedTransaction = (protyle: IProtyle, doOperations: IOperation[]) => {
+    if (doOperations.length === 0) {
+        return;
+    }
+    promiseTransaction({
+        protyle,
+        doOperations,
+        skipSync: false,
+    });
+    disconnectInsertObserver(protyle, doOperations);
+};
 
 // 用于执行操作，外加处理当前编辑器中块引用、嵌入块的更新
 export const promiseTransaction = (options: {
@@ -178,7 +191,8 @@ export const promiseTransaction = (options: {
                         if (hasFind) {
                             item.remove();
                         } else if (!hasFind && item.parentElement) {
-                            removeTopElement(item, protyle);
+                            const followUpOperations = removeTopElementAndCollectOperations(item, protyle);
+                            executeNestedTransaction(protyle, followUpOperations);
                         }
                     });
                     // 块移出后刷新源超级块的手柄（originSb 在元素被移除前捕获）
@@ -328,12 +342,13 @@ export const promiseTransaction = (options: {
             const newID = Lute.NewNodeID();
             const emptyElement = genEmptyElement(false, true, newID);
             protyle.wysiwyg.element.insertAdjacentElement("afterbegin", emptyElement);
-            transaction(protyle, [{
+            const insertOperations: IOperation[] = [{
                 action: "insert",
                 data: emptyElement.outerHTML,
                 id: newID,
                 parentID: protyle.block.parentID
-            }]);
+            }];
+            executeNestedTransaction(protyle, insertOperations);
             // 不能撤销，否则就无限循环了
             focusByWbr(emptyElement, range);
         }

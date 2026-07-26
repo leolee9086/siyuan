@@ -1,11 +1,11 @@
-/** 用途：访问编辑中属性协议。使用范围：单块与批量更新快照。解耦评估：经事务网关直达常量所有者。 */
+/** 用途：访问编辑中属性协议。使用范围：单块与批量更新快照。解耦评估：经本子域网关直达常量所有者。 */
 import {Constants} from "./imports";
-/** 用途：收窄批量更新元素。使用范围：调用 HTMLElement 回调前。解耦评估：经事务网关复用共享守卫。 */
+/** 用途：收窄批量更新元素。使用范围：调用 HTMLElement 回调前。解耦评估：经本子域网关复用共享守卫。 */
 import {isHTMLElement} from "./imports";
-/** 用途：验证更新操作身份。使用范围：单块与批量快照。解耦评估：复用事务子域唯一验证规则。 */
-import {requireTransactionIdentity} from "./identity";
-/** 用途：提交生成的更新操作。使用范围：单块与批量更新收尾。解耦评估：直达事务提交唯一实现。 */
-import {transaction} from "./submit";
+/** 用途：验证更新操作身份。使用范围：单块与批量快照。解耦评估：经本子域网关直达事务身份规则。 */
+import {requireTransactionIdentity} from "./imports";
+/** 用途：提交生成的更新操作。使用范围：单块与批量更新收尾。解耦评估：经本子域网关直达提交唯一实现。 */
+import {transaction} from "./imports";
 
 /**
  * 比较元素快照并提交单块更新事务，供编辑器即时编辑流程调用。
