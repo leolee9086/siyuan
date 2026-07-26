@@ -3,73 +3,73 @@
  * 使用范围：openNewWindow 函数中序列化标签页状态
  * 解耦评估：依赖布局系统核心功能，当前无法解耦
  */
-import { layoutToJSON } from "./imports";
+import { layoutToJSON } from "./open/imports";
 /**
  * 用途：提供 IPC 通信函数，用于向 Electron 主进程发送消息
  * 使用范围：默认窗口创建函数中封装使用
  * 解耦评估：@AIDONE 已通过外观模式和参数注入解耦，调用方可通过 WindowOptions.windowCreator 自定义实现
  */
-import { ipcSend } from "./imports";
+import { ipcSend } from "./open/imports";
 /**
  * 用途：提供平台检测功能，用于判断是否在 Electron 环境中运行
  * 使用范围：所有导出函数中判断是否支持新窗口功能
  * 解耦评估：依赖平台检测工具函数，当前无法解耦
  */
-import { isElectron } from "./imports";
+import { isElectron } from "./open/imports";
 /**
  * 用途：提供全局常量定义，用于 IPC 通信和资源类型判断
  * 使用范围：所有导出函数中使用常量
  * 解耦评估：Constants 是全局常量集合，当前无法解耦
  */
-import { Constants } from "./imports";
+import { Constants } from "./open/imports";
 /**
  * 用途：提供完整布局页签领域类型，用于页签序列化和移除
  * 使用范围：openNewWindow 函数的参数类型
  * 解耦评估：使用已双向校验的 Layout 领域根，窗口行为无需加载具体 Tab class
  */
-import type {LayoutTab} from "./imports";
+import type {LayoutTab} from "./open/imports";
 /**
  * 用途：提供网络请求功能，用于与后端API通信
  * 使用范围：openNewWindowById 函数中获取块信息
  * 解耦评估：依赖网络层实现，当前无法解耦
  */
-import { fetchSyncPost } from "./imports";
+import { fetchSyncPost } from "./open/imports";
 /**
  * 用途：提供消息提示功能，用于向用户显示提示信息
  * 使用范围：openNewWindowById 函数中显示错误消息
  * 解耦评估：依赖对话框系统，当前无法解耦
  */
-import { showMessage } from "./imports";
+import { showMessage } from "./open/imports";
 /**
  * 用途：提供文件路径处理功能，用于获取文件显示名称
  * 使用范围：openAssetNewWindow 函数中获取资源文件显示名称
  * 解耦评估：依赖文件系统工具函数，当前无法解耦
  */
-import { getDisplayName } from "./imports";
+import { getDisplayName } from "./open/imports";
 /**
  * 用途：提供文件路径处理功能，用于路径操作
  * 使用范围：openAssetNewWindow 函数中提取文件扩展名
  * 解耦评估：依赖文件系统工具函数，当前无法解耦
  */
-import { pathPosix } from "./imports";
+import { pathPosix } from "./open/imports";
 /**
  * 用途：提供URL查询参数解析功能，用于从URL中提取参数
  * 使用范围：openAssetNewWindow 函数中解析页码参数
  * 解耦评估：依赖平台工具函数，当前无法解耦
  */
-import { getSearch } from "./imports";
+import { getSearch } from "./open/imports";
 /**
  * 用途：提供窗口位置信息获取功能，用于构建新窗口URL协议部分
  * 使用范围：所有导出函数中构建新窗口URL
  * 解耦评估：依赖环境配置系统，当前无法解耦
  */
-import { getLocationProtocol } from "./imports";
+import { getLocationProtocol } from "./open/imports";
 /**
  * 用途：提供窗口位置信息获取功能，用于构建新窗口URL主机部分
  * 使用范围：所有导出函数中构建新窗口URL
  * 解耦评估：依赖环境配置系统，当前无法解耦
  */
-import { getLocationHost } from "./imports";
+import { getLocationHost } from "./open/imports";
 
 /**
  * 用途：导入窗口配置选项类型定义
