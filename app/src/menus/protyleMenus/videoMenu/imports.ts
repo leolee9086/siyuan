@@ -59,7 +59,7 @@ export { openMenu };
  * 使用范围：protyle.videoMenu 中为本地资源提供导出功能
  * 解耦评估：业务逻辑函数，已通过模块化封装，无需进一步解耦
  */
-import { exportAsset } from "../../util";
+import {exportAsset} from "../../../asset/actions";
 /** 导出 exportAsset 用于导出资源 */
 export { exportAsset };
 
@@ -68,9 +68,9 @@ export { exportAsset };
  * 使用范围：protyle.videoMenu 中为本地资源提供复制功能（仅桌面端支持）
  * 解耦评估：业务逻辑函数，已通过模块化封装，无需进一步解耦
  */
-import { copyAsset } from "../../util";
-/** 导出 copyAsset 用于复制资源到剪贴板 */
-export { copyAsset };
+import {writeAssetToClipboard} from "../../../asset/actions";
+/** 导出资源文件剪贴板动作供视频菜单使用。 */
+export {writeAssetToClipboard};
 
 // 事务导入
 /**

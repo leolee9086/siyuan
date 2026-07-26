@@ -39,7 +39,7 @@ import { exportAsset } from "./imports";
  * 使用范围：addExportAndCopyMenuItems 函数中提供资源复制功能（仅桌面端）
  * 解耦评估：业务逻辑函数，已通过模块化封装，无需进一步解耦
  */
-import { copyAsset } from "./imports";
+import {writeAssetToClipboard} from "./imports";
 /**
  * 用途：提交编辑器事务
  * 使用范围：createAssetInputMenuItem 中用户修改 src 后持久化变更
@@ -152,7 +152,7 @@ function addExportAndCopyMenuItems(src: string | null, subMenus: IMenu[]) {
     subMenus.push(exportAsset(src));
     // @判断条件 仅在桌面端（Electron）且操作系统为 Windows 或 macOS 时显示复制资源功能，因为只有这些平台支持将文件复制到系统剪贴板
     if (isElectron && ["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
-        subMenus.push(copyAsset(src));
+        subMenus.push(writeAssetToClipboard(src));
     }
 }
 

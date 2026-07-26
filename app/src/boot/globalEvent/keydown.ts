@@ -66,7 +66,7 @@ import {getPlainText} from "../../protyle/util/paste";
 import {commandPanel, execByCommand} from "./command/panel";
 import {filterHotkey} from "./commonHotkey";
 import {editorConfigApi} from "../../config/tabs/editorRuntime";
-import {copyPNGByLink} from "../../menus/util";
+import {copyPNGByLink} from "../../asset/actions";
 import {globalCommand} from "./command/global";
 import {duplicateCompletely} from "../../protyle/render/av/action";
 import {copyTextByType} from "../../protyle/toolbar/util";

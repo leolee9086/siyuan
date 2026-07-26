@@ -10,8 +10,8 @@ import { alignImgCenter } from "./imports";
 import { alignImgLeft } from "./imports";
 /** 用途：导出资源配置；使用范围：export 菜单项创建；解耦评估：资源导出能力由 util 集中维护。 */
 import { exportAsset } from "./imports";
-/** 用途：复制资源文件配置；使用范围：copyAsset 菜单项创建；解耦评估：资源复制能力由 util 集中维护。 */
-import { copyAsset } from "./imports";
+/** 用途：复制资源文件配置；使用范围：资源复制菜单项创建；解耦评估：资源复制能力由 Asset actions 领域唯一实现维护。 */
+import {writeAssetToClipboard} from "./imports";
 
 /**
  * 作用：读取“居中对齐”快捷键文案。
@@ -80,12 +80,12 @@ const 构建导出配置 = (dataSrc: string) => {
 
 /**
  * 作用：构建复制资源文件菜单项配置。
- * 意图：统一 copyAsset 配置入口，便于后续扩展平台分支逻辑。
- * 调用时机：创建 copyAsset 菜单项时。
+ * 意图：统一资源文件剪贴板配置入口，便于后续扩展平台分支逻辑。
+ * 调用时机：创建资源复制菜单项时。
  * 问题/改进：后续可增加不可用平台提示。
  */
 const 构建复制资源配置 = (dataSrc: string) => {
-    const menuConfig = copyAsset(dataSrc);
+    const menuConfig = writeAssetToClipboard(dataSrc);
     return menuConfig;
 };
 

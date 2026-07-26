@@ -225,16 +225,16 @@ export { openMenu };
  * 使用范围：assets 资源在桌面端的复制文件动作。
  * 解耦评估：资源动作配置在 util 集中维护，业务层避免重复拼装。
  */
-import { copyAsset } from "../../util";
-/** 导出 copyAsset 供 imageMenu 子模块复用 */
-export { copyAsset };
+import {writeAssetToClipboard} from "../../../asset/actions";
+/** 导出资源文件剪贴板动作供 imageMenu 子模块复用。 */
+export {writeAssetToClipboard};
 
 /**
  * 用途：按链接复制 PNG。
  * 使用范围：图片菜单“复制为 PNG”动作。
  * 解耦评估：格式转换和剪贴板流程封装在 util，业务层仅传链接。
  */
-import { copyPNGByLink } from "../../util";
+import {copyPNGByLink} from "../../../asset/actions";
 /** 导出 copyPNGByLink 供 imageMenu 子模块复用 */
 export { copyPNGByLink };
 
@@ -243,7 +243,7 @@ export { copyPNGByLink };
  * 使用范围：assets 资源导出动作。
  * 解耦评估：导出配置复用 util 实现，业务层不重复定义。
  */
-import { exportAsset } from "../../util";
+import {exportAsset} from "../../../asset/actions";
 /** 导出 exportAsset 供 imageMenu 子模块复用 */
 export { exportAsset };
 

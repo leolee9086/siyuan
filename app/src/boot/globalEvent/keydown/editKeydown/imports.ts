@@ -10,7 +10,7 @@ import { getAllModels } from "../../../../layout/getAll";
 import { getActiveTab } from "../../../../layout/tabUtil";
 import {saveLayout} from "../../../../layout/persistence/saveLayout";
 import { zoomOut } from "../../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
-import { copyPNGByLink } from "../../../../menus/util";
+import {copyPNGByLink} from "../../../../asset/actions";
 import { fullscreen } from "../../../../protyle/breadcrumb/action";
 import { duplicateCompletely } from "../../../../protyle/render/av/action";
 import { copyTextByType } from "../../../../protyle/toolbar/util";

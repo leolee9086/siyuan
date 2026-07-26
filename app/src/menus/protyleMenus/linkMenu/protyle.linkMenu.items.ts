@@ -92,7 +92,7 @@ import { exportAsset } from "./imports";
  * 使用范围：桌面端资源链接菜单中的复制动作
  * 解耦评估：通过 imports.ts 转发，平台能力实现可独立调整
  */
-import { copyAsset } from "./imports";
+import {writeAssetToClipboard} from "./imports";
 /**
  * 用途：约束链接菜单上下文类型
  * 使用范围：所有菜单项函数参数类型约束
@@ -331,7 +331,7 @@ export const 添加链接操作菜单项 = (ctx: LinkMenuContext): void => {
         return;
     }
 
-    getSiyuanGlobalMenusMenu().append(new MenuItem(copyAsset(ctx.linkAddress)).element);
+    getSiyuanGlobalMenusMenu().append(new MenuItem(writeAssetToClipboard(ctx.linkAddress)).element);
 };
 
 /**

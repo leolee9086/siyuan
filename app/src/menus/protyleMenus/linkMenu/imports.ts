@@ -220,7 +220,7 @@ export { MenuItem };
  * 使用范围：资源链接菜单中的“导出”动作
  * 解耦评估：业务动作已在上层 util 模块封装，转发层避免业务文件直接跨层引用
  */
-import { exportAsset } from "../../util";
+import {exportAsset} from "../../../asset/actions";
 /** 导出 exportAsset 供资源链接导出操作 */
 export { exportAsset };
 
@@ -229,9 +229,9 @@ export { exportAsset };
  * 使用范围：桌面端资源链接菜单中的“复制资源”动作
  * 解耦评估：平台相关动作已封装在 util 模块，转发层仅收敛依赖边界
  */
-import { copyAsset } from "../../util";
-/** 导出 copyAsset 供资源链接复制操作 */
-export { copyAsset };
+import {writeAssetToClipboard} from "../../../asset/actions";
+/** 导出资源文件剪贴板动作供链接菜单使用。 */
+export {writeAssetToClipboard};
 
 // 类型导入
 /**

@@ -1,13 +1,13 @@
 import { Menu } from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import { updateAttrViewCellAnimation } from "./action";
-import { isBrowser, isMobile } from "../../../platform";
+import {isMobile} from "../../../platform";
 import { Constants } from "../../../constants";
 import { uploadFiles } from "../../upload";
 import { pathPosix } from "../../../util/file/pathName";
 import { openMenu } from "../../../menus/commonMenuItem/openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";
-import { writeAssetToClipboard, copyPNGByLink, exportAsset } from "../../../menus/util";
+import {copyPNGByLink, exportAsset, writeAssetToClipboard} from "../../../asset/actions";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { previewAttrViewImages } from "../../preview/image";
 import {genAVValueHTML} from "./value/render";
