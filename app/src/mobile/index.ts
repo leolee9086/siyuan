@@ -40,6 +40,7 @@ import {addPluginDock, loadPlugins, reloadPluginData} from "../plugin/loader";
 import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
 import type * as Siyuan from "siyuan";
+import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { removeBlock } from "../protyle/wysiwyg/remove";
 import { isNotEditBlock } from "../protyle/wysiwyg/getBlock";
@@ -69,6 +70,9 @@ export class App {
         reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
         addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
     };
+    public openAsset(options: AssetOpenOptions) {
+        openByMobile(options.assetPath);
+    }
 
     constructor() {
         if (checkPublishServiceClosed()) {

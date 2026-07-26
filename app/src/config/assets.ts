@@ -10,7 +10,7 @@ import {getAllModels} from "../layout/getAll";
 import {isElectron} from "../platform";
 import {nativeRequire} from "../platform/nativeRequire";
 // S-forge: openBy 从重构后的模块导入
-import {openBy} from "../editor/utils.openBy";
+import {openBy} from "../platform/localPath/openBy";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import {writeText} from "../protyle/util/compatibility";
 import {Constants} from "../constants";

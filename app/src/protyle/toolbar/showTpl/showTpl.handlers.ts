@@ -11,7 +11,7 @@ import { previewTemplate } from "../util";
 import { hintRenderTemplate } from "../../hint/extend";
 import { 生成模板列表项HTML } from "./showTpl.template";
 import type { ITemplateState, IHandlerContext } from "./showTpl.types";
-import { openBy } from "../../../editor/utils.openBy";
+import {openBy} from "../../../platform/localPath/openBy";
 import { isElectron } from "../../../platform";
 
 /**

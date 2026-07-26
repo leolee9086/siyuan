@@ -13,9 +13,8 @@ import {isElectron} from "./imports";
 /** 用途：Electron Shell 外部打开。使用范围：在桌面端打开外部链接。解耦评估：通过 ./imports 转发。 */
 import {openExternal} from "./imports";
 /** 用途：通过系统默认方式打开。使用范围：处理文件/文件夹打开。解耦评估：同目录模块。 */
-import {openBy} from "./utils.openBy";
+import {openBy} from "../platform/localPath/openBy";
 /** 用途：打开资源文件。使用范围：处理本地资源链接。解耦评估：同目录模块。 */
-import {openAsset} from "./util.openAsset";
 /** 用途：提示消息。使用范围：打开外部链接失败时提示。解耦评估：通过 ./imports 转发。 */
 import {showMessage} from "./imports";
 /** 用途：浏览器宿主判断。使用范围：决定 siyuan URI 是否由当前窗口接管。解耦评估：平台事实通过 Editor 网关显式登记。 */
@@ -145,7 +144,7 @@ function openAssetDesktop(options: {
 }) {
     // Alt 点击在当前宿主中直接打开资产。
     if (options.event?.altKey) {
-        openAsset(options.protyle.app, {assetPath: options.linkAddress, page: options.pdfParams});
+        options.protyle.app.openAsset({assetPath: options.linkAddress, page: options.pdfParams});
         return;
     }
     // Shift 点击明确交给系统默认应用。
@@ -158,7 +157,7 @@ function openAssetDesktop(options: {
         return;
     }
     const noSplitScreen = getSiyuanConfig().fileTree.noSplitScreenWhenOpenTab;
-    openAsset(options.protyle.app, {
+    options.protyle.app.openAsset({
         assetPath: options.linkAddress,
         page: options.pdfParams,
         position: noSplitScreen ? null : "right",

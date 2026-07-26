@@ -226,16 +226,12 @@ export { exportImage };
  * 使用范围：未在当前文件中使用，可能是历史遗留
  * 解耦评估：如果未使用，应该移除此导入
  */
-import { openAsset } from "../../editor/util.openAsset";
-/** 导出 openAsset 用于打开资源文件 */
-export { openAsset };
-
 /**
  * 用途：打开文档的通用函数
  * 使用范围：未在当前文件中使用，可能是历史遗留
  * 解耦评估：如果未使用，应该移除此导入
  */
-import { openBy } from "../../editor/utils.openBy";
+import {openBy} from "../../platform/localPath/openBy";
 /** 导出 openBy 用于打开文档 */
 export { openBy };
 

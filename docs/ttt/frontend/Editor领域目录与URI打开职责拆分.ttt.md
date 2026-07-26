@@ -68,3 +68,4 @@
 - **2026-07-25**：本批目标文件 TypeScript 诊断 `0`，Node `149/149`、Layout 查询 `3/3`、Editor/AppFacade 契约和 `git diff --check` 通过；Editor 根目录数量门禁继续作为下一阶段目录职责迁移的显式待办。
 - **2026-07-25**：后续首环审计将 Search defaults 与存储写入从综合网关剥离，compatibility/Search 链不再成为首环；唯一 SCC `782 -> 748`。Editor URI 目录任务继续保留，但下一轮循环治理先按新的 Emoji/Files 首环判断真实职责方向。
 - **2026-07-26**：清理 Editor 根 `imports.ts` 中 `newTab`、`zoomOut`、移动打开、Protyle class、fullscreen、setPadding、onGet、resize、DOM 定位、导航栈和 checkFold 的无消费者或单消费者高扇出转发；真实消费者直达唯一职责所有者。`openFile.ts` 迁入 `editor/open` 并建立子域 `imports.ts`，所有五个调用点已更新；`newTab` 缺失由显式创建门禁抛错，不再以可能为空的值继续执行。Editor 根总网关退出唯一 SCC，组件从 `708` 减至 `701`；源码 `2151` 节点、`719` 条枚举环。新子域 lint、目标 TypeScript 诊断、Node `157/157` 与 diff 校验通过。
+- **2026-07-26**：本地路径打开迁入 `platform/localPath`，资产打开迁入 `asset/open`，旧 Editor 文件删除且调用点直达真实职责所有者。资产导航进一步作为完整 AppFacade 实例方法由桌面/移动组合根分别实现，不用工厂闭包保存宿主或状态；全部下层调用点不再反向加载资产打开实现。源码唯一 SCC `702 -> 700`，两个新子域均退出组件，枚举环 `723 -> 718`；下一步按首环核对两套 URI 实现语义并建立测试矩阵。

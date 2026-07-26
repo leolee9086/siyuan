@@ -47,6 +47,7 @@ const testFacade = createAppFacade<object, object>({
         reloadData: () => undefined,
         addDock: () => undefined,
     },
+    openAsset: () => undefined,
 });
 const brandedFacade: AppFacade<object, object> = testFacade;
 

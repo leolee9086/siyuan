@@ -19,8 +19,7 @@ import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
 import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
-import {openAsset} from "../editor/util.openAsset";
-import {openBy} from "../editor/utils.openBy";
+import {openBy} from "../platform/localPath/openBy";
 import {rename, replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
@@ -860,7 +859,7 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
                 label: window.siyuan.languages.insertRight,
                 accelerator: showAccelerator ? window.siyuan.languages.click : "",
                 click() {
-                    openAsset(app, {assetPath: src.trim(), page: parseInt(getSearch("page", src)), position: "right"});
+                    app.openAsset({assetPath: src.trim(), page: parseInt(getSearch("page", src)), position: "right"});
                 }
             });
             submenu.push({
@@ -869,7 +868,7 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
                 icon: "iconOpen",
                 accelerator: showAccelerator ? "⌥" + window.siyuan.languages.click : "",
                 click() {
-                    openAsset(app, {assetPath: src.trim(), page: parseInt(getSearch("page", src))});
+                    app.openAsset({assetPath: src.trim(), page: parseInt(getSearch("page", src))});
                 }
             });
             if (isElectron) {

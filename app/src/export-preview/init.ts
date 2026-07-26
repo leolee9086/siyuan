@@ -30,8 +30,7 @@ import { openExternal } from "../platform/electron/shell";
 import { openInNewWindow } from "../util/siyuanEnvironments/window.environment";
 import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environment";
 import { getSafeSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { openBy } from "../editor/utils.openBy";
-import { openAsset } from "../editor/util.openAsset";
+import {openBy} from "../platform/localPath/openBy";
 import { getAllModels } from "../layout/getAll";
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { showMessage } from "../dialog/message";
@@ -503,7 +502,7 @@ function handleLocalPathOpen(
     if (Constants.SIYUAN_ASSETS_EXTS.includes(ext)) {
         const assetPath = linkAddress.split("?page")[0] || linkAddress;
         const pageStr = getSearch("page", linkAddress);
-        openAsset(model.app, {assetPath, page: parseInt(pageStr || "0")});
+        model.app.openAsset({assetPath, page: parseInt(pageStr || "0")});
     }
 }
 

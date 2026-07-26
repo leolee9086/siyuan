@@ -11,8 +11,7 @@ import {Constants} from "../../constants";
 import {getSearch, isMobile} from "../../util/functions";
 import {isElectron} from "../../platform";
 import {openExternal} from "../../platform/electron/shell";
-import { openBy } from "../../editor/utils.openBy";
-import { openAsset } from "../../editor/util.openAsset";
+import {openBy} from "../../platform/localPath/openBy";
 import {setProtyleOutlineCurrent} from "../runtime/layout.port";
 import {fetchPost} from "../../util/fetch";
 import {processRender} from "../util/processCode";
@@ -100,7 +99,7 @@ export class Preview {
                         } else if (event.shiftKey) {
                             openBy(linkAddress, "app");
                         } else if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname((linkAddress).split("?")[0]))) {
-                            openAsset(protyle.app, {
+                            protyle.app.openAsset({
                                 assetPath: linkAddress.split("?page")[0],
                                 page: parseInt(getSearch("page", linkAddress)),
                             });

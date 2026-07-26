@@ -1,5 +1,5 @@
 import { openLink } from "../../editor/openLink";
-import { openBy } from "../../editor/utils.openBy";
+import {openBy} from "../../platform/localPath/openBy";
 import { openFileById } from "../../editor/utils.openFileById";
 import { isElectron } from "../../platform";
 

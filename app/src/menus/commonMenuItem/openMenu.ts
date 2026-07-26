@@ -3,8 +3,7 @@ import { openAssetNewWindow } from "../../window/openNewWindow";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
-import { openAsset } from "../../editor/util.openAsset";
-import { openBy } from "../../editor/utils.openBy";
+import {openBy} from "../../platform/localPath/openBy";
 import { isElectron } from "../../platform";
 import {isInAndroid, isInHarmony} from "../../protyle/util/compatibility";
 import {openByMobile} from "../../editor/openLink";
@@ -63,7 +62,7 @@ const generateAssetBaseMenuItems = (app: AppFacade, src: string, showAccelerator
             click() {
                 const pageIndexString = getSearch("page", src) || "0";
 
-                openAsset(app, {assetPath: src.trim(), page: parseInt(pageIndexString), position: "right"});
+                app.openAsset({assetPath: src.trim(), page: parseInt(pageIndexString), position: "right"});
             }
         },
         {
@@ -73,7 +72,7 @@ const generateAssetBaseMenuItems = (app: AppFacade, src: string, showAccelerator
             accelerator: showAccelerator ? "⌥" + siyuanI18n.click : "",
             click() {
                 const pageIndexString = getSearch("page", src) || "0";
-                openAsset(app, {assetPath: src.trim(), page: parseInt(pageIndexString)});
+                app.openAsset({assetPath: src.trim(), page: parseInt(pageIndexString)});
             }
         }
     ];
