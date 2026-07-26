@@ -2,8 +2,8 @@
 import {Constants} from "./imports";
 /** 用途：目标缺失消息；使用范围：完成失败；解耦评估：经本阶段网关直达唯一实现。 */
 import {showMessage} from "./imports";
-/** 用途：视图持久化事务；使用范围：跨视图定位；解耦评估：经本阶段网关直达唯一实现。 */
-import {transaction} from "./imports";
+/** 用途：提交已应用的视图持久化事务；使用范围：跨视图定位；解耦评估：经本阶段网关直达唯一命令。 */
+import {submitAppliedAVViewTransaction} from "./imports";
 /** 用途：清除单元格选择；使用范围：表格定位；解耦评估：经本阶段网关直达唯一实现。 */
 import {clearSelect} from "./imports";
 /** 用途：添加拖拽填充柄；使用范围：表格定位；解耦评估：经本阶段网关直达唯一实现。 */
@@ -100,7 +100,7 @@ const persistLocatedView = (context: AVLocatePresentationContext) => {
     if (protyle.disabled || request.persistView === false) {
         return false;
     }
-    transaction(protyle, [{
+    submitAppliedAVViewTransaction(protyle, [{
         action: "setAttrViewBlockView",
         blockID: blockElement.dataset.nodeId,
         id: request.viewID,

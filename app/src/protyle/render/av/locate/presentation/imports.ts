@@ -8,10 +8,10 @@ import {showMessage} from "../../../../../dialog/message";
 /** 导出消息能力。 */
 export {showMessage};
 
-/** 用途：持久化 AV 当前视图；使用范围：跨视图定位；解耦评估：直达事务提交唯一实现。 */
-import {transaction} from "../../../../wysiwyg/transaction/submit";
-/** 导出事务提交。 */
-export {transaction};
+/** 用途：提交已同步应用的 AV 视图事务；使用范围：跨视图定位；解耦评估：直达专用命令唯一实现，不加载通用本地同步器。 */
+import {submitAppliedAVViewTransaction} from "../../../../wysiwyg/transaction/applied/avView";
+/** 导出已应用 AV 视图事务提交。 */
+export {submitAppliedAVViewTransaction};
 
 /** 用途：清除旧单元格选择；使用范围：表格目标选择；解耦评估：直达选择唯一实现。 */
 import {clearSelect} from "../../../../util/clearSelect";

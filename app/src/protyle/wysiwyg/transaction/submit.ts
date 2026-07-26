@@ -4,31 +4,12 @@ import {Constants} from "./imports";
 import {fetchPost} from "./imports";
 /** 用途：执行本地同步和内核提交。使用范围：事务命令主流程。解耦评估：复用现有唯一实现。 */
 import {promiseTransaction} from "./imports";
+/** 用途：登记事务 undo；使用范围：提交前生命周期；解耦评估：同域直达唯一实现。 */
+import {registerTransactionUndo} from "./undo";
 /** 用途：断开插入后的旧观察器。使用范围：事务提交后置步骤。解耦评估：复用提交与嵌套同步共同的唯一生命周期实现。 */
 import {disconnectInsertObserver} from "./insertObserver";
 /** 用途：删除顶层元素并收集后续操作。使用范围：跨文档移动清理。解耦评估：DOM 清理与提交命令分离，双方保持静态单向依赖。 */
 import {removeTopElementAndCollectOperations} from "./removeTopElement";
-
-/** 同步登记撤销数据并更新编辑状态。 */
-const registerUndo = (protyle: IProtyle, doOperations: IOperation[], undoOperations?: IOperation[]) => {
-    if (!undoOperations) {
-        return;
-    }
-    const config = window.siyuan.config;
-    if (!config) {
-        throw new Error("Transaction undo registration requires initialized config");
-    }
-    const undo = protyle.undo;
-    if (!undo) {
-        throw new Error("Transaction undo registration requires undo manager");
-    }
-    // 当前标签复用模式下，首次本地更新后立即清除未更新标记。
-    if (config.fileTree.openFilesUseCurrentTab && protyle.model) {
-        protyle.model.headElement.classList.remove("item--unupdate");
-    }
-    protyle.updated = true;
-    undo.add(doOperations, undoOperations, protyle);
-};
 
 /**
  * 提交一组可撤销操作。
@@ -52,7 +33,7 @@ export const transaction =
         }, options?.callback);
         return;
     }
-    registerUndo(protyle, doOperations, undoOperations);
+    registerTransactionUndo(protyle, doOperations, undoOperations);
     if (protyle.lite) {
         return;
     }

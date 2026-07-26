@@ -10,13 +10,14 @@
 - [x] 将七类跨调用状态统一迁入 SForge `AVLocateRegistryState`。
 - [x] 将根渲染能力以完整 `AVRenderer` 参数传入激活阶段。
 - [x] 分离激活、窗口规划和完成呈现三个真实生命周期阶段。
-- [ ] 解除完成呈现经视图事务、`transaction.promise` 返回 AV 根渲染的间接回路。
+- [x] 解除完成呈现经视图事务、`transaction.promise` 返回 AV 根渲染的间接回路。
+- [ ] 解除完成呈现经 `scrollCenter -> layout/Wnd -> editor` 返回 AV 根渲染的既有布局回路。
 
 ## 下一步任务
 
-1. 分析 `presentation/finish -> transaction/submit -> transaction.promise -> av/render` 中 Promise 对根渲染的高层依赖。
-2. 按事务提交与本地同步专项的既有领域方向迁移唯一实现，不向定位阶段注入事务 callback Port。
-3. 增加跨视图持久化事务与随后重渲染的行为测试，推动 Presentation 退出唯一 SCC。
+1. 分析 `scrollCenter` 为何经 DOM helper 网关加载 Layout/Wnd，以及定位仅需的滚动语义属于哪个稳定 DOM 领域。
+2. 复用或归位滚动唯一实现，不向 Presentation 注入调用点 callback Port。
+3. 增加表格首行、普通居中与看板横向滚动行为测试，推动 Presentation 退出唯一 SCC。
 
 ## 不变量
 
@@ -54,6 +55,7 @@
 
 - **2026-07-27**：创建专项 TTT。确认已有 `AVViewRenderer` 只描述已解析数据后的视图分派，不能覆盖定位时可能触发 fetch 的根入口；新增完整 `AVRenderer` 函数类型并先以参数替代动态 import。定位专项已锁定微任务启动和本地数据复用，BlockPanel 既有测试暴露并推动完整渲染能力进入编辑初始化上下文。
 - **2026-07-27**：删除 358 行综合 `locate.ts`，唯一实现分别归入 `locate/state`、`activation`、`window` 与 `presentation`；所有生产消费者直达真实阶段所有者，不保留 barrel。七类 Map/WeakMap 进入带精确 `AV_LOCATE_REGISTRY` Symbol 的完整注册状态，reset 同步清除排队 timer、高亮 timer 与 DOM class。激活阶段接收完整 `AVLocateActivationContext`，在原微任务边界调用抽象 `AVRenderer`，生产动态 import 清零。定位/BlockPanel 专项 `3/3`、Node `193/193`、Protyle 契约类型、新子域 lint、imports 多跳与 diff 检查通过。生产图 `2208 -> 2215` 节点、代表环 `391 -> 389`、唯一 SCC `649 -> 650`；原三节点环归零，State/Activation/Window 均在 SCC 外，Presentation 两节点替代旧综合节点留在 SCC，因此本专项继续进行。
+- **2026-07-27**：根据 `setAttrViewBlockView` 已由 Presentation 同步应用且通用 Promise 无对应 DOM 分支的确定语义，改用严格的 Applied AV View Transaction；共享 undo 实现，保留 lite、队列、请求载荷和字数刷新，对非目标 action 显式失败。Presentation 到 `transaction.promise` 的路径归零，Applied/Undo 位于 SCC 外。专项 `9/9`、Node `193/193`、契约类型和 lint 通过；图为 `2219 / 431 / SCC 650`。代表环反升源自更短的 `scrollCenter -> Layout/Wnd -> editor` 既有返回路径，下一阶段按滚动领域所有权处理。
 
 ## 关联任务
 
