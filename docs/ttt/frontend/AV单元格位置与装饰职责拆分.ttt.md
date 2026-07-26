@@ -9,12 +9,13 @@
 - [x] 建立现有六个导出函数的调用点、依赖和行为测试基线。
 - [x] 提取无事务的表头装饰与拖拽手柄唯一实现。
 - [x] 解除 `action/animation -> cell/position -> transaction -> ... -> action` 长返回路径。
+- [x] 将拖拽填充事务编排迁入独立子域，并提取可单测的单步操作生成器。
 
 ## 下一步任务
 
-1. 核对 `cellScrollIntoView/getPositionByCellElement` 的滚动与坐标职责是否可共同保留。
-2. 为 `dragFillCellsValue` 建立 do/undo 数据与调用顺序测试。
-3. 将拖拽填充事务编排与位置查询分离，保持操作数组和焦点顺序不变。
+1. 继续由 `position.ts` 持有相互关联的单元格滚动、类型与坐标查询，不再混入装饰或事务职责。
+2. 在主循环依赖任务中处理 `mousedown -> transaction -> render -> mousedown` 运行时回路，使 dragFill 编排最终退出 SCC。
+3. 单独核定 `renderCell` 的异步返回协议后再调整 DOM 回写；本批保持旧同步强制转换语义。
 
 ## 不变量
 
@@ -38,8 +39,8 @@
 
 ## 中期计划
 
-- [ ] 滚动/坐标职责与拖拽填充事务职责边界清晰，`position.ts` 不再是多领域聚合点。
-- [ ] 全部旧调用方仍通过原 API 或真实职责入口获得同一函数身份。
+- [x] 滚动/坐标职责与拖拽填充事务职责边界清晰，`position.ts` 不再是多领域聚合点。
+- [x] 全部旧调用方仍通过 `cell.ts` 原公开 API 或真实职责入口获得唯一实现。
 
 ## 远期计划
 
@@ -56,3 +57,4 @@
 
 - **2026-07-26**：创建专项 TTT。已先将 action 网关的 cell 依赖从 `../cell` 聚合入口改为三个真实所有者，原 5 节点短环归零；确认下一层阻塞来自 `cell/position.ts` 的多职责聚合，未用临时接口或参数回调绕开。
 - **2026-07-26**：`updateHeaderCell/addDragFill` 完整迁入 `cell/decoration` 子域，专属 `imports.ts` 直达 Emoji、i18n 和 col 类型工具，未继续加载 cell 根网关中的资源与平台依赖。新增无断言的 `toTAVCol` 穷举收窄，现有 `cell.ts` 出口保持不变；action 与 `cell/position.ts` 不再共同出现在循环路径，decoration 子域位于 SCC 外。专项 `3/3` 覆盖默认图标、名称、固定标记幂等、拖拽排除和未知列类型默认值；新增文件 lint/目标类型诊断为 `0`，Node `171/171`、imports 多跳门禁与 diff 校验通过；图为 `2175` 节点、`547` 枚举环。
+- **2026-07-26**：`dragFillCellsValue` 从位置模块完整迁入 `cell/dragFill` 子域，调用点改用完整 `DragFillRequest`，旧 `cell.ts` 公开出口保持。单步数据克隆与 do/undo 生成提取为同步纯步骤，使用 `satisfies DragFillStep` 保持事务字面量和完整结果契约；只读目标仍在来源读取前跳过，block detached 规则、DOM 回写、焦点和事务顺序保持。新增 `4/4` 测试覆盖深克隆、操作身份、四类只读列、非 detached 阻断与 block ID 清除；Node `175/175`、新子域 lint和目标类型诊断 `0`、imports 多跳门禁与 diff 校验通过。源码图为 `2179` 节点、`547` 枚举环；`position.ts` 已退出唯一 SCC，dragFill 的入口和网关仍属于既有 `mousedown -> transaction -> render -> mousedown` 回路，职责拆分使唯一 SCC 阶段性 `681 -> 682`，后续按该真实运行时依赖继续处理。

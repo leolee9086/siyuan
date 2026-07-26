@@ -1,8 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction";
 import {hasClosestByClassName} from "../../../util/hasClosest";
-import {focusBlock} from "../../../util/selection";
-import {renderCell, renderCellAttr} from "./render";
-import {genCellValueByElement} from "../cell.value";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import {isMobile} from "../../../../platform";
 
@@ -123,75 +119,4 @@ export const getPositionByCellElement = (cellElement: HTMLElement) => {
         celIndex++;
     }
     return {rowIndex, celIndex};
-};
-
-export const dragFillCellsValue = (protyle: IProtyle, nodeElement: HTMLElement, originData: {
-    [key: string]: IAVCellValue[]
-}, originCellIds: string[], activeElement: Element) => {
-    nodeElement.querySelector(".av__drag-fill")?.remove();
-    const newData: { [key: string]: Array<IAVCellValue & { colId?: string, element?: HTMLElement }> } = {};
-    nodeElement.querySelectorAll(".av__cell--active").forEach((item: HTMLElement) => {
-        if (originCellIds.includes(item.dataset.id)) {
-            return;
-        }
-        const rowElement = hasClosestByClassName(item, "av__row");
-        if (!rowElement) {
-            return;
-        }
-        if (!newData[rowElement.dataset.id]) {
-            newData[rowElement.dataset.id] = [];
-        }
-        const value: IAVCellValue & {
-            colId?: string,
-            element?: HTMLElement
-        } = genCellValueByElement(getTypeByCellElement(item), item);
-        value.colId = item.dataset.colId;
-        value.element = item;
-        newData[rowElement.dataset.id].push(value);
-    });
-    const doOperations: IOperation[] = [];
-    const undoOperations: IOperation[] = [];
-    const avID = nodeElement.dataset.avId;
-    const originKeys = Object.keys(originData);
-    const showIcon = activeElement.querySelector(".b3-menu__avemoji") ? true : false;
-    Object.keys(newData).forEach((rowID, index) => {
-        newData[rowID].forEach((item, cellIndex) => {
-            if (["rollup", "template", "created", "updated"].includes(item.type) ||
-                (item.type === "block" && item.element.getAttribute("data-detached") !== "true")) {
-                return;
-            }
-            // https://ld246.com/article/1707975507571 数据库下拉填充数据后异常
-            const data = JSON.parse(JSON.stringify(originData[originKeys[index % originKeys.length]][cellIndex]));
-            data.id = item.id;
-            const keyID = item.colId;
-            if (data.type === "block") {
-                data.isDetached = true;
-                delete data.block.id;
-            }
-            doOperations.push({
-                action: "updateAttrViewCell",
-                id: item.id,
-                avID,
-                keyID,
-                rowID,
-                data
-            });
-            item.element.innerHTML = renderCell(data, 0, showIcon);
-            renderCellAttr(item.element, data);
-            delete item.colId;
-            delete item.element;
-            undoOperations.push({
-                action: "updateAttrViewCell",
-                id: item.id,
-                avID,
-                keyID,
-                rowID,
-                data: item
-            });
-        });
-    });
-    focusBlock(nodeElement);
-    if (doOperations.length > 0) {
-        transaction(protyle, doOperations, undoOperations);
-    }
 };

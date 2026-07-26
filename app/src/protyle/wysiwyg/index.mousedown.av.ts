@@ -155,7 +155,7 @@ export function handleAvDragFill(
         documentSelf.onselectstart = null;
         documentSelf.onselect = null;
         if (lastCellElement) {
-            dragFillCellsValue(protyle, nodeElement, originData, originCellIds, lastOriginCellElement);
+            dragFillCellsValue({protyle, nodeElement, originData, originCellIds, activeElement: lastOriginCellElement});
             const allActiveCellsElement = bodyElement.querySelectorAll(".av__cell--active");
             addDragFill(allActiveCellsElement[allActiveCellsElement.length - 1]);
         }
