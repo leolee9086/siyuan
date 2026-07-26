@@ -25,7 +25,7 @@ export { exportLayout };
 /**
  * 用途：提供应用实例 `AppFacade` 类型定义。
  * 使用范围：`processSystem` 目录内对插件列表等应用级能力进行类型标注的函数参数。
- * 解耦评估：类型导入不形成运行时耦合，保留统一转发可降低业务文件路径噪音。
+ * 解耦评估：本目录网关必须直达 AppFacade 的真实声明文件，禁止经由其他 imports.ts 多跳转发。
  */
 import type {AppFacade} from "../../app/AppFacade.types";
 /** 导出类型 `AppFacade` 供 `processSystem` 目录复用。 */
