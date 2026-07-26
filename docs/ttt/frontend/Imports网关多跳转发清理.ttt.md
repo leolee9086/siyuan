@@ -12,9 +12,9 @@
 
 ## 下一步任务
 
-1. 将已归零的 `imports.ts -> imports.ts` 扫描固化为静态门禁和 Node 测试。
+1. 持续运行静态门禁，保持 `imports.ts -> imports.ts` 为零。
 2. 对确需领域聚合的入口给出明确领域根，不以 `imports.ts` 串联代替。
-3. 回到应用级 SCC，按真实值依赖方向继续缩减成员。
+3. 在应用级 SCC 主线中按真实值依赖方向继续缩减成员。
 
 ## 不变量
 
@@ -56,3 +56,4 @@
 - **2026-07-26**：`block/panel/imports.ts` 的 17 项父网关转发全部追到 Protyle、Editor、Window、Platform、Dialog、环境访问器和 AppFacade 的真实所有者；Panel 消费文件及值身份不变。全仓多跳 `49 -> 32`，专项 lint 通过；枚举环因路径重排 `490 -> 572`，唯一 SCC 保持 `689`，Panel 四个模块仍有其它返回路径，继续按依赖性质推进。
 - **2026-07-26**：完成剩余 32 条网关串联清理。Bazaar internal、Boot window keydown、Block、Protyle gutter/AV 与媒体菜单网关全部直达网络、平台、环境、领域类型或唯一行为实现；`rg` 扫描 `imports.ts -> imports.ts` 为 `0`。Madge 枚举环为 `486`，唯一 SCC 从 `689` 缩到 `681`；目标文件专项 lint 通过，目标 TypeScript 路径诊断 `0`，`git diff --check` 通过。全仓严格类型检查能够完成但仍报告其它既有诊断，不登记为全仓通过。
 - **2026-07-26**：新增基于 TypeScript AST 的 `lint:imports-gateway-hops` 门禁，同时覆盖静态 import 与 re-export；仅禁止 `imports.ts` 指向其它相对 `imports` 网关，不限制普通业务模块使用本域网关。3 项专项测试覆盖直达实现、三类网关转发和非网关文件，完整 Node 回归 `166/166`。专项任务完成，后续由循环依赖主线持续维护零多跳不变量。
+- **2026-07-26**：复核 `dialog/processSystem/imports.ts` 的 `AppFacade` 来源已直接指向 `app/AppFacade.types.ts`；门禁测试补充 `import type` 与 `export type ... from` 两类类型多跳语法，专项 `3/3` 通过，全仓扫描继续保持 `0`。
