@@ -1,4 +1,4 @@
-import {submitAVColumnEditTransaction} from "../../../wysiwyg/transaction/prepared/avColumnEdit";
+import {submitAVColumnEditTransaction} from "../../../wysiwyg/transaction/prepared/av/avColumnEdit";
 import {updateAttrViewCellAnimation} from "../action/animation";
 import {escapeHtml} from "../../../../util/DOM/escape";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVCellUpdateTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avCellUpdate";
+import {submitAVCellUpdateTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avCellUpdate";
 
 const actions = [
     "updateAttrViewCell",

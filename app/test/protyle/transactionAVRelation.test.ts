@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVRelationTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avRelation";
+import {submitAVRelationTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avRelation";
 
 const actions = [
     "updateAttrViewColRelation",

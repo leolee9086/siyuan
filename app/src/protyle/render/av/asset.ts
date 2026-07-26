@@ -1,5 +1,5 @@
 import { Menu } from "../../../plugin/Menu";
-import {submitAVAssetTransaction} from "../../wysiwyg/transaction/prepared/avAsset";
+import {submitAVAssetTransaction} from "../../wysiwyg/transaction/prepared/av/avAsset";
 import {updateAttrViewCellAnimation} from "./action/animation";
 import {isMobile} from "../../../platform";
 import { Constants } from "../../../constants";

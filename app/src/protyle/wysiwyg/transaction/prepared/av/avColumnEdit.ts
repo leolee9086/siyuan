@@ -1,5 +1,5 @@
 /** 用途：提交完成 Column Edit 本地状态更新的事务；使用范围：本文件严格命令；解耦评估：同域直达 Prepared Transaction 内核。 */
-import {submitPreparedTransaction} from "./submit";
+import {submitPreparedTransaction} from "./imports";
 
 /** 判断 action 是否属于列编辑面板的完整封闭集合。 */
 const isAVColumnEditAction = (action: IOperation["action"]) =>

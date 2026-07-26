@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVRowTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avRow";
+import {submitAVRowTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avRow";
 
 const actions = [
     "setAttrViewPageSize",

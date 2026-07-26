@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVCalcTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avCalc";
+import {submitAVCalcTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avCalc";
 
 const createOperation = (action: "setAttrViewColCalc" | "updateAttrViewColRollup"): IOperation => ({
     action,

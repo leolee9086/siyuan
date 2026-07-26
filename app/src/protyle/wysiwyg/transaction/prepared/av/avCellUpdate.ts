@@ -1,5 +1,5 @@
 /** 用途：提交完成 Cell Update 本地呈现决策的事务；使用范围：本文件严格命令；解耦评估：同域直达 Prepared Transaction 内核。 */
-import {submitPreparedTransaction} from "./submit";
+import {submitPreparedTransaction} from "./imports";
 
 /** 判断 action 是否属于 AV 单元格值与选择项配置更新的完整封闭集合。 */
 const isAVCellUpdateAction = (action: IOperation["action"]) =>

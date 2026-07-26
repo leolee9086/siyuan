@@ -3,7 +3,7 @@ import {hasClosestByClassName, hasTopClosestByClassName} from "../../util/hasClo
 import {UDLRHint, upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeLessThans, escapeHtml} from "../../../util/DOM/escape";
-import {submitAVRelationTransaction} from "../../wysiwyg/transaction/prepared/avRelation";
+import {submitAVRelationTransaction} from "../../wysiwyg/transaction/prepared/av/avRelation";
 import {updateCellsValue} from "./cell.update";
 import {updateAttrViewCellAnimation} from "./action/animation";
 import {focusBlock} from "../../util/selection";

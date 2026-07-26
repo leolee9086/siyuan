@@ -1,7 +1,7 @@
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByAttribute} from "../../util/hasClosest";
 import {focusBlock} from "../../util/selection";
 import {Menu} from "../../../plugin/Menu";
-import {submitAVRowTransaction} from "../../wysiwyg/transaction/prepared/avRow";
+import {submitAVRowTransaction} from "../../wysiwyg/transaction/prepared/av/avRow";
 import {cellValueIsEmpty} from "./cell.value";
 import {genCellValue} from "./cell.value";
 import {genCellValueByElement} from "./cell.value";

@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {submitAVCalcTransaction} from "../../wysiwyg/transaction/prepared/avCalc";
+import {submitAVCalcTransaction} from "../../wysiwyg/transaction/prepared/av/avCalc";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view/metadata";

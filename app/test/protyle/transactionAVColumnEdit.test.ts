@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVColumnEditTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avColumnEdit";
+import {submitAVColumnEditTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avColumnEdit";
 
 const actions = [
     "updateAttrViewCol",

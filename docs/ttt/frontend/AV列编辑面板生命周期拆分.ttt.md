@@ -35,7 +35,7 @@
 
 ## 目标架构
 
-- `transaction/prepared/avColumnEdit.ts`：封闭 action 校验并复用 Prepared Transaction 生命周期。
+- `transaction/prepared/av/avColumnEdit.ts`：封闭 action 校验并复用 Prepared Transaction 生命周期。
 - `col.editPanel.bind.ts`：当前阶段保留七组 UI 生命周期，不加载通用 DOM 事务分派。
 - 后续按文本字段、布尔设置和选项编辑建立子职责，不复制事件语义。
 
@@ -65,7 +65,7 @@
 ## 已归档/已完成区域
 
 - **2026-07-27**：创建专项 TTT。确认十类 AV Column Edit action 均不进入通用事务普通块 DOM 分派，调用域拥有输入控件、`colData`、表头动画和面板刷新；登记 `2259 / 319 / SCC 611` 基线。
-- **2026-07-27**：新增 `transaction/prepared/avColumnEdit.ts`，严格接受十类列编辑 action 并复用 Prepared undo、lite、同步指示、队列、请求和字数刷新；八个提交点保持原 do/undo、控件事件和本地 `colData` 更新顺序，非法 action 显式失败。专项 `11/11`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2260 / 319 / SCC 610`。代表环总数不变，但 `col.editPanel.bind.ts` 和新命令均退出 SCC，首环转为 `col.editPanel.ts -> number.ts -> transaction`。事务阶段完成，七组 UI 生命周期继续由本专项追踪。
+- **2026-07-27**：新增 `transaction/prepared/av/avColumnEdit.ts`，严格接受十类列编辑 action 并复用 Prepared undo、lite、同步指示、队列、请求和字数刷新；八个提交点保持原 do/undo、控件事件和本地 `colData` 更新顺序，非法 action 显式失败。专项 `11/11`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2260 / 319 / SCC 610`。代表环总数不变，但 `col.editPanel.bind.ts` 和新命令均退出 SCC，首环转为 `col.editPanel.ts -> number.ts -> transaction`。事务阶段完成，七组 UI 生命周期继续由本专项追踪。
 
 ## 关联任务
 

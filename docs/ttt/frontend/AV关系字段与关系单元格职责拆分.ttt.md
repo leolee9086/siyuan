@@ -36,7 +36,7 @@
 
 ## 目标架构
 
-- `transaction/prepared/avRelation.ts`：封闭 action 校验并复用 Prepared Transaction 的 undo、lite、同步指示、队列、请求和字数刷新生命周期。
+- `transaction/prepared/av/avRelation.ts`：封闭 action 校验并复用 Prepared Transaction 的 undo、lite、同步指示、队列、请求和字数刷新生命周期。
 - `relation.ts`：当前阶段继续拥有关系 UI 编排，但不加载通用 DOM 事务分派。
 - 后续子域：关系列配置、数据库搜索、关系单元格交互分别依据行为基线拆分，不复制共享算法。
 
@@ -66,7 +66,7 @@
 ## 已归档/已完成区域
 
 - **2026-07-27**：创建专项 TTT。确认 Relation 四类 AV action 均不进入通用事务的普通块 DOM 分派；调用域已完成表头、单元格与菜单本地呈现。登记 `2258 / 321 / SCC 613` 基线，先以严格 Prepared 命令移除真实 `relation -> transaction` 返回边。
-- **2026-07-27**：新增 `transaction/prepared/avRelation.ts`，严格接受 `updateAttrViewColRelation/insertAttrViewBlock/updateAttrViewCell/doUpdateUpdated`，复用 Prepared undo、lite、同步指示、队列、请求和字数刷新生命周期；`updateRelation` 保留原 undo，`setRelationCell` 新建行保留空 undo，调用域 DOM 顺序不变，非法 action 显式失败。Relation 直接通用事务导入清零。命令专项 `6/6`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2259 / 319 / SCC 611`，Relation、`col.editPanel.bind.relation.ts` 和新命令均在 SCC 外，首环推进到 `col.editPanel.bind -> transaction`。近期事务阶段完成，574 行领域职责拆分继续执行，不提前归档整体任务。
+- **2026-07-27**：新增 `transaction/prepared/av/avRelation.ts`，严格接受 `updateAttrViewColRelation/insertAttrViewBlock/updateAttrViewCell/doUpdateUpdated`，复用 Prepared undo、lite、同步指示、队列、请求和字数刷新生命周期；`updateRelation` 保留原 undo，`setRelationCell` 新建行保留空 undo，调用域 DOM 顺序不变，非法 action 显式失败。Relation 直接通用事务导入清零。命令专项 `6/6`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2259 / 319 / SCC 611`，Relation、`col.editPanel.bind.relation.ts` 和新命令均在 SCC 外，首环推进到 `col.editPanel.bind -> transaction`。近期事务阶段完成，574 行领域职责拆分继续执行，不提前归档整体任务。
 
 ## 关联任务
 

@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVNumberFormatTransaction} from "../../wysiwyg/transaction/prepared/av/avNumberFormat";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -16,7 +16,7 @@ const addFormatItem = (options: {
         iconHTML: "",
         label: getLabelByNumberFormat(options.format),
         click() {
-            transaction(options.protyle, [{
+            submitAVNumberFormatTransaction(options.protyle, [{
                 action: "updateAttrViewColNumberFormat",
                 id: options.colId,
                 avID: options.avID,

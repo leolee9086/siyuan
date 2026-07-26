@@ -1,4 +1,4 @@
-import {submitAVCellUpdateTransaction} from "../../wysiwyg/transaction/prepared/avCellUpdate";
+import {submitAVCellUpdateTransaction} from "../../wysiwyg/transaction/prepared/av/avCellUpdate";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {objEquals} from "../../../util/platform/functions";
 import {fetchSyncPost} from "../../../util/network/fetch";

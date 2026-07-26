@@ -8,7 +8,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
     submitPreparedTransaction: mocks.submitPreparedTransaction,
 }));
 
-import {submitAVAssetTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/avAsset";
+import {submitAVAssetTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avAsset";
 
 describe("AV asset transaction", () => {
     beforeEach(() => {

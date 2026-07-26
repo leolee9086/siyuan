@@ -14,7 +14,7 @@
 
 ## 下一步任务
 
-1. 审计 `number.ts` 的事务 action、数值格式本地状态与通用事务本地分支。
+1. 审计 `rollup.ts` 的事务 action、Rollup 配置本地状态与通用事务本地分支。
 2. 读取 Column Menu/Edit 经 Panel 和 AV 主图返回的下一条最短路径，确认各边的领域所有权。
 3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
 4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
@@ -74,6 +74,7 @@
 - **2026-07-27**：补齐此前仍错置于 390 行 View 事务菜单根的第三项结构展示元数据 `getViewName`。唯一名称映射迁入 `view/name/resolve.ts`，Relation 搜索结果与 View 配置 HTML 直达该实现，旧根删除导出；子域网关直达 i18n，未知类型继续返回 `undefined`，每次调用仍读取当前语言。首次采用 `view/metadata` 同名目录的布局被 Node/tsx 模块解析测试立即否定并清除，最终目录不存在文件/目录遮蔽。元数据专项 `3/3`、完整 Node `199/199`、Protyle 契约类型、新子域 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过。生产图 `2258 / 321 / SCC 613`，名称实现和网关位于 SCC 外；总量保持是因为 Relation 与 View 各自仍直接提交事务，但首环已从 `relation -> view -> transaction` 缩短为真实的 `relation -> transaction`，下一阶段据此审计关系事务所有权。
 - **2026-07-27**：按 [AV 关系字段与关系单元格职责拆分](./AV关系字段与关系单元格职责拆分.ttt.md) 核定 Relation 四类 AV action 均不进入通用事务的普通块 DOM 分派，新增严格 Prepared 命令并保留关系列配置 undo 与新建关系行空 undo 语义。命令专项 `6/6`、完整 Node `199/199`、两层类型目标诊断 `0`、新命令 lint和网关门禁通过；生产图 `2259 / 319 / SCC 611`，Relation 与关系编辑绑定叶子退出 SCC。新的首环绕过 Relation，转为 `col.editPanel.bind -> transaction`，下一阶段直接审计该字段编辑生命周期。
 - **2026-07-27**：建立 [AV 列编辑面板生命周期拆分](./AV列编辑面板生命周期拆分.ttt.md)。十类 Column Edit action 经严格 Prepared 命令提交，八个调用点保留原 do/undo 和本地输入/列数据更新；专项 `11/11`、完整 Node `199/199`、两层类型目标诊断 `0`、新命令 lint和网关门禁通过。生产图 `2260 / 319 / SCC 610`，字段编辑绑定叶子退出 SCC；代表环总数保持但首环推进到 `col.editPanel -> number -> transaction`，下一阶段审计数值格式领域。
+- **2026-07-27**：Number Format 只提交 `updateAttrViewColNumberFormat`，菜单点击已拥有格式选择与面板关闭呈现，通用事务无本地分支；新增严格 `prepared/av/avNumberFormat.ts` 并保持 22 项菜单、标签和 do/undo 原样。同时按目录门禁将八个 AV Prepared 命令归入 `prepared/av`，子域网关直达内核，所有消费者直达新声明。八套专项 `39/39`、完整 Node `199/199`、两层类型目标诊断 `0`、子域 lint 与网关门禁通过；生产图 `2262 / 319 / SCC 609`，Number 与 Prepared AV 子域在 SCC 外，首环转为 `col.editPanel -> rollup -> transaction`。
 
 ## 关联任务
 

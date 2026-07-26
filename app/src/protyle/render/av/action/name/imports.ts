@@ -9,7 +9,7 @@ import {siyuanI18n} from "../../../../../util/siyuanEnvironments/i18n.getI18n.en
 /** 用途：收窄标题和同页实例节点；使用范围：标题 DOM 同步；解耦评估：直达通用元素守卫。 */
 import {isHTMLElement} from "../../../../../util/DOM/element.guard";
 /** 用途：提交封闭标题事务；使用范围：标题实际变化分支；解耦评估：直达 AV Name Prepared 命令。 */
-import {submitAVNameTransaction} from "../../../../wysiwyg/transaction/prepared/avName";
+import {submitAVNameTransaction} from "../../../../wysiwyg/transaction/prepared/av/avName";
 
 /** 导出标题长度常量。 */
 export {Constants};
