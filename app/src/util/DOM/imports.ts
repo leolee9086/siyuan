@@ -16,8 +16,6 @@ import { focusByRange } from "../../protyle/util/selection";
 import { getEditorRange } from "../../protyle/util/selection";
 /** 用途：安全读取浏览器 Selection；使用范围：`highlightById.ts` 滚动当前选区；解耦评估：窗口 API 已封装在 environment 层，继续经由网关访问能避免直接触碰全局对象。 */
 import { getWindowSelection } from "../siyuanEnvironments/windowStandard.environment";
-/** 用途：读取思源编辑器配置；使用范围：`highlightById.ts` 计算顶部保留空间；解耦评估：配置访问已通过 environment 封装，DOM 工具直接依赖该抽象是合理边界。 */
-import { getSiyuanConfig } from "../../layout/util.environment";
 
 // 导出：弹层定位常量
 export { Constants };
@@ -37,5 +35,3 @@ export { focusByRange };
 export { getEditorRange };
 // 导出：浏览器 Selection 访问器
 export { getWindowSelection };
-// 导出：思源配置访问器
-export { getSiyuanConfig };

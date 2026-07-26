@@ -8,8 +8,8 @@ import { getWindowSelection } from "../../siyuanEnvironments/windowStandard.envi
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 /** 用途：识别嵌入块中的重复命中节点；使用范围：`helpers/highlightById.ts` 的块查找过滤逻辑；解耦评估：判定逻辑与 Protyle DOM 约定耦合，直接复用更稳。 */
 import { isInEmbedBlock } from "../../../protyle/util/hasClosest";
-/** 用途：读取编辑器配置；使用范围：`helpers/highlightById.ts` 计算顶部保留空间；解耦评估：配置读取已抽象到 environment 层，通过网关复用即可。 */
-import { getSiyuanConfig } from "../../../layout/util.environment";
+/** 用途：安全读取编辑器配置；使用范围：`helpers/highlightById.ts` 计算顶部保留空间；解耦评估：直达配置环境层的唯一安全读取实现，不经 Layout 聚合环境。 */
+import {getSafeSiyuanConfig} from "../../siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：执行纯 DOM 目标滚动；使用范围：高亮 helper 明确目标后的滚动分支；解耦评估：直达滚动唯一实现。 */
 import {scrollTargetIntoView} from "../scrollTarget";
 
@@ -23,7 +23,7 @@ export { getWindowSelection };
 export { hasClosestBlock };
 // 导出：嵌入块判定工具
 export { isInEmbedBlock };
-// 导出：思源配置访问器
-export { getSiyuanConfig };
+// 导出：思源配置安全访问器
+export {getSafeSiyuanConfig};
 // 导出：纯 DOM 目标滚动原语
 export {scrollTargetIntoView};

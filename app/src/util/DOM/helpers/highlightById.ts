@@ -8,8 +8,8 @@ import { getWindowSelection } from "./imports";
 import { hasClosestBlock } from "./imports";
 /** 用途：识别嵌入块中的重复命中节点；使用范围：按块 ID 查找高亮目标时过滤嵌入块结果；解耦评估：判定逻辑与 Protyle DOM 强耦合，直接复用更稳。 */
 import { isInEmbedBlock } from "./imports";
-/** 用途：读取编辑器配置；使用范围：顶部对齐滚动的额外空白计算；解耦评估：配置读取已抽象到 environment 层，通过 helpers 网关复用即可。 */
-import { getSiyuanConfig } from "./imports";
+/** 用途：安全读取编辑器配置；使用范围：顶部对齐滚动的额外空白计算；解耦评估：通过 helpers 网关使用配置环境层唯一安全读取实现。 */
+import {getSafeSiyuanConfig} from "./imports";
 /** 用途：执行不依赖编辑器状态的目标滚动；使用范围：明确目标节点后的滚动分支；解耦评估：经本目录网关直达纯 DOM 唯一实现。 */
 import {scrollTargetIntoView} from "./imports";
 
@@ -35,7 +35,7 @@ export const normalizeScrollPosition = (position?: ScrollLogicalPosition | boole
 };
 
 /** @简洁函数 */
-const getTopSpacing = () => (getSiyuanConfig()?.editor?.fontSize ?? 16) * 1.625 * 2 + START_POSITION_EXTRA_GAP;
+const getTopSpacing = () => (getSafeSiyuanConfig()?.editor?.fontSize ?? 16) * 1.625 * 2 + START_POSITION_EXTRA_GAP;
 
 /**
  * 查找块 ID 对应的首个可高亮节点，同时跳过嵌入块内部的重复命中。
