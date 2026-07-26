@@ -1,7 +1,7 @@
 import {Menu} from "../../../../plugin/Menu";
 import {transaction} from "../../../wysiwyg/transaction/submit";
 import {fetchPost} from "../../../../util/network/fetch";
-import {updateAttrViewCellAnimation} from "../action";
+import {updateAttrViewCellAnimation} from "../action/animation";
 import {handleFilterClick, handleSortClick, handleDeleteColClick} from "./col.showColMenu";
 import {addCol} from "./addCol";
 import {duplicateCol} from "./col.operations";

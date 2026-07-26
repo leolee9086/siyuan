@@ -2,7 +2,7 @@ import {Constants} from "../../../constants";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {newFileByRefHint} from "../../../util/file/newFile";
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {updateAttrViewCellAnimation} from "../../render/av/action";
+import {updateAttrViewCellAnimation} from "../../render/av/action/animation";
 import {isHTMLElement} from "../../../util/DOM/element.guard";
 import type {HintDomain} from "../hint.types";
 

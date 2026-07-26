@@ -3,43 +3,43 @@
  * 使用范围：仅在单元格动画刷新与列删除动画模块中使用。
  * 解耦评估：动画刷新需要组合 cell 渲染、DOM 查找和视图类型判断，集中从 imports.ts 取依赖更利于审计边界。
  */
-import { addDragFill } from "./imports";
+import {addDragFill} from "./animation/imports";
 /**
  * 用途：判断卡片式视图父容器是否应标记为空态。
  * 使用范围：仅在 gallery / kanban 局部重渲染后回写 `data-empty` 时使用。
  * 解耦评估：空态判定与单元格值结构强绑定，继续复用共享工具比在动画模块重新复制判定规则更稳妥。
  */
-import { cellValueIsEmpty } from "./imports";
+import {cellValueIsEmpty} from "./animation/imports";
 /**
  * 用途：从当前单元格向上找到所属的属性视图根块。
  * 使用范围：仅在局部刷新时读取 `data-av-type` 以恢复正确的渲染模板。
  * 解耦评估：根块查找依赖当前 DOM 结构，放在共享工具中集中维护比在本文件手写选择器更易跟随结构变更。
  */
-import { hasClosestBlock } from "./imports";
+import {hasClosestBlock} from "./animation/imports";
 /**
  * 用途：确认 emoji 图标节点和卡片父容器是否为可安全读写的 HTMLElement。
  * 使用范围：用于图标显隐判断和卡片布局空态回写两个局部 DOM 分支。
  * 解耦评估：这是通用 DOM 收窄能力，继续走共享 guard 能避免在业务模块里散布重复的 instanceof 判断。
  */
-import { isHTMLElement } from "./imports";
+import {isHTMLElement} from "./animation/imports";
 /**
  * 用途：按当前值重新生成单元格 HTML。
  * 使用范围：用于表格布局和卡片布局的局部重渲染，其中卡片布局会额外传入 viewType。
  * 解耦评估：renderCell 本身就是渲染边界，本模块只负责决定何时调用以及传什么上下文，不适合再做一层参数透传抽象。
  */
-import { renderCell } from "./imports";
+import {renderCell} from "./animation/imports";
 /**
  * 用途：在替换单元格 HTML 后补回属性、快捷标记和辅助状态。
  * 使用范围：仅在普通单元格刷新分支收尾阶段使用。
  * 解耦评估：这是 renderCell 后固定存在的补充步骤，保留在当前模块串联能更完整地表达局部刷新链路。
  */
-import { renderCellAttr } from "./imports";
+import {renderCellAttr} from "./animation/imports";
 /**
  * 用途：处理列名、列图标等表头级别的局部刷新。
  * 使用范围：仅在外部传入 `headerValue` 时使用，与普通单元格刷新路径互斥。
  * 解耦评估：表头刷新和单元格刷新共享同一入口是历史约束，暂时在这里分流比拆成两个独立 action 更少侵入。
  */
-import { updateHeaderCell } from "./imports";
+import {updateHeaderCell} from "./animation/imports";
 /**
  * 用途：判断当前视图是否属于 gallery / kanban 这类卡片式布局。
  * 使用范围：用于决定 renderCell 参数签名，以及是否回写父容器的 `data-empty`。

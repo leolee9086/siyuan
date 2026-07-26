@@ -6,7 +6,7 @@ import {focusBlock} from "../../util/selection";
 import * as dayjs from "dayjs";
 import {getColId} from "./col/identity/resolve";
 import {genAVValueHTML} from "./value/render";
-import {updateAttrViewCellAnimation} from "./action";
+import {updateAttrViewCellAnimation} from "./action/animation";
 import {getAssetName, pathPosix} from "../../../util/file/pathName";
 import {mergeAddOption} from "./select";
 import {getFieldIdByCellElement} from "./row";

@@ -6,7 +6,7 @@ import {genCellValue} from "../cell.value";
 import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
-import {updateAttrViewCellAnimation} from "../action";
+import {updateAttrViewCellAnimation} from "../action/animation";
 /** 用途：从当前 Protyle 宿主创建关系删除确认框；使用范围：双向关联列删除；解耦评估：依赖完整 Dialog Port，不加载具体 Dialog class。 */
 import {getProtyleDialogPort} from "../../../runtime/dialog.port";
 /** 用途：约束关系删除对话框完整生命周期；使用范围：关系确认事件处理；解耦评估：纯类型依赖稳定领域抽象，不依赖具体实现。 */

@@ -5,7 +5,7 @@ import { confirmDialog } from "../../runtime/dialog.port";
 import { upDownHint } from "../../../util/DOM/upDownHint";
 import {bindEditEvent, getEditHTML} from "./col/edit/render";
 import {getColId} from "./col/identity/resolve";
-import { updateAttrViewCellAnimation } from "./action";
+import {updateAttrViewCellAnimation} from "./action/animation";
 import {isCustomAttributeCell} from "./customAttr/identity";
 import {genAVValueHTML} from "./value/render";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escape";

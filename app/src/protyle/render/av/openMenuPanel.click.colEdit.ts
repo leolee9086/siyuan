@@ -5,7 +5,7 @@ import { bindEditEvent, getEditHTML } from "./col/edit/render";
 import { getColIconByType, getColNameByType } from "./col/col.typeUtils";
 import { formatNumber } from "./number";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
-import { updateAttrViewCellAnimation } from "./action";
+import {updateAttrViewCellAnimation} from "./action/animation";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { asTAVCol } from "./openMenuPanel.click.guard";
 import { hasFilterForColumn, removeFiltersByColumn } from "./filter";

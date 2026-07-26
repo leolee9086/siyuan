@@ -1,5 +1,5 @@
 import {transaction} from "../../../wysiwyg/transaction/submit";
-import {updateAttrViewCellAnimation} from "../action";
+import {updateAttrViewCellAnimation} from "../action/animation";
 import {escapeHtml} from "../../../../util/DOM/escape";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IBindEditContext} from "./col.editPanel.bind.types";

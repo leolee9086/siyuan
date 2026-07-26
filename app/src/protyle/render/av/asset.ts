@@ -1,6 +1,6 @@
 import { Menu } from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
-import { updateAttrViewCellAnimation } from "./action";
+import {submitAVAssetTransaction} from "../../wysiwyg/transaction/prepared/avAsset";
+import {updateAttrViewCellAnimation} from "./action/animation";
 import {isMobile} from "../../../platform";
 import { Constants } from "../../../constants";
 import { uploadFiles } from "../../upload";
@@ -174,7 +174,7 @@ export const updateAssetCell = (options: {
         id: options.blockElement.getAttribute("data-node-id"),
         data: dayjs().format("YYYYMMDDHHmmss"),
     });
-    transaction(options.protyle, cellDoOperations, cellUndoOperations);
+    submitAVAssetTransaction(options.protyle, cellDoOperations, cellUndoOperations);
     const menuElement = document.querySelector(".av__panel > .b3-menu") as HTMLElement;
     if (menuElement) {
         menuElement.innerHTML = getAssetHTML(options.cellElements);

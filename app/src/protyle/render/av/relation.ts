@@ -5,7 +5,7 @@ import {fetchPost} from "../../../util/network/fetch";
 import {escapeLessThans, escapeHtml} from "../../../util/DOM/escape";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {updateCellsValue} from "./cell.update";
-import {updateAttrViewCellAnimation} from "./action";
+import {updateAttrViewCellAnimation} from "./action/animation";
 import {focusBlock} from "../../util/selection";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import * as dayjs from "dayjs";

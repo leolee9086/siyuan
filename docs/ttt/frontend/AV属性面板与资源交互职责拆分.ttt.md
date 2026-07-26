@@ -2,9 +2,9 @@
 
 > **最终目标**：保持块属性面板、数据库反链、资源单元格编辑、预览、上传、复制、导出与打开菜单行为不变，将 657 行 `blockAttr.ts` 和 488 行 `asset.ts` 拆为单向领域子图，消除其全部循环路径并满足规模门禁。
 >
-> **当前目标**：建立 Asset 值更新事务与批量复制基线，解除属性面板渲染经 AV action/transaction 返回 Protyle 初始化的首环。
+> **当前目标**：建立 Asset 值更新与上传行为基线，解除属性面板渲染经通用上传、Cell Update 返回 Protyle 初始化的首环。
 >
-> **下一步任务**：固定 `updateAssetCell` 的 do/undo 操作、首单元格值变换、后续单元格复制和属性面板/普通视图刷新差异，再决定值命令与菜单刷新职责边界。
+> **下一步任务**：固定 `updateAssetCell` 的首单元格值变换、后续单元格复制和属性面板/普通视图刷新差异，并核定 `bindAssetEvent -> uploadFiles` 是否需要完整 Protyle 上传组合入口。
 
 ## 不变量
 
@@ -65,6 +65,7 @@
 - **2026-07-27**：确认 Row 与 Select 只需 `data-av-id` 真值判定，唯一实现迁入 `customAttr/identity.ts`；缺失、空字符串和值三种 DOM 测试固定原语义。此叶子位于 SCC 外，Row 不再因身份判断加载 BlockAttr/Asset。后续 Row 事务进一步解环后生产图为 `2228 / 354 / SCC 638`，BlockAttr 仍参与 `200` 条代表环，因此建立本专项继续治理而不把身份叶子迁移视为整体完成。
 - **2026-07-27**：确认资源上传与编辑不能仅靠移动函数解除首环，因为 `dragUpload` 仍需 Asset 值更新，`editAssetItem` 仍拥有真实菜单宿主语义；未创建回调 Port 或无效薄文件。先拆除窗口根网关附带加载的无关职责：`openNewWindow.ts` 改经 `window/open/imports.ts` 直达窗口创建依赖，不再加载窗口消息和锁屏。Asset/OpenMenu/Window/LockScreen 返回路径归零，`openNewWindow.ts` 与新网关退出 SCC；生产图 `2231 / 353 / SCC 627`。下一条真实返回路径为 `asset.ts -> menus/util.ts -> editor`，继续先建立资源值/菜单行为基线。
 - **2026-07-27**：资源导出、文件剪贴板和图片 PNG 剪贴板从通用菜单工具完整迁入 `asset/actions`，覆盖 Web/Electron、Windows/macOS、非支持系统与 Android 原生桥；所有菜单、快捷键与 AV 消费者直达唯一实现，零消费者 `copyAsset` 别名删除，不保留旧转发。专项 `4/4`、Node `193/193`、新模块 lint、契约类型、全量严格类型目标诊断 `0` 和网关门禁通过；新 Action/网关/ClipboardItem 构造叶子在 SCC 外，生产图 `2234 / 339 / SCC 627`。`asset.ts` 仍因 `updateAssetCell -> action/transaction` 留在 SCC，下一阶段先测试其真实事务与 DOM 刷新语义。
+- **2026-07-27**：Asset 值更新改用只接受 `updateAttrViewCell/doUpdateUpdated` 的严格 Prepared 命令；本地 HTML/动画仍在提交前按原顺序执行，通用事务对这两种 action 不存在需要保留的同步分支。单元格 Animation 建立专属直达网关，所有消费者越过混合点击、菜单、完整复制和 transaction 的 action 根。事务专项 `3/3`，连同资源动作共 `7/7`；命令、Animation 与网关退出 SCC，生产图 `2236 / 362 / SCC 626`。当前 Asset 返回路径转为 `bindAssetEvent -> uploadFiles -> cell.update`，同时继续补齐值变换与批量复制测试。
 
 ## 关联任务
 
