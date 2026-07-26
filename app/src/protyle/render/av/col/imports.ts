@@ -22,14 +22,14 @@ import { setPosition } from "../../../../util/DOM/positioning/setPosition";
  * 使用范围：在需要显示列编辑界面时使用
  * 解耦评估：这是同一功能模块内的UI构建函数，直接导入合理
  */
-import { getEditHTML } from "./col";
+import { getEditHTML } from "./edit/render";
 
 /**
  * 用途：绑定列编辑事件
  * 使用范围：在列编辑界面渲染后绑定交互事件
  * 解耦评估：这是同一功能模块内的事件绑定函数，直接导入合理
  */
-import { bindEditEvent } from "./col";
+import { bindEditEvent } from "./edit/render";
 
 /**
  * 用途：根据列类型获取对应的图标

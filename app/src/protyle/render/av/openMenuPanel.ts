@@ -1,6 +1,7 @@
 import { fetchPost } from "../../../util/network/fetch";
 import {Menu} from "../../../plugin/Menu";
-import { bindEditEvent, getColId, getEditHTML } from "./col/col";
+import {bindEditEvent, getEditHTML} from "./col/edit/render";
+import {getColId} from "./col/identity/resolve";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";

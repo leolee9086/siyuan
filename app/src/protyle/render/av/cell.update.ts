@@ -4,7 +4,7 @@ import {objEquals} from "../../../util/platform/functions";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusBlock} from "../../util/selection";
 import * as dayjs from "dayjs";
-import {getColId} from "./col/col";
+import {getColId} from "./col/identity/resolve";
 import {genAVValueHTML} from "./value/render";
 import {updateAttrViewCellAnimation} from "./action";
 import {getAssetName, pathPosix} from "../../../util/file/pathName";

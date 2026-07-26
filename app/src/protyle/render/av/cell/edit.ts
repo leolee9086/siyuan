@@ -5,7 +5,7 @@ import {isNotCtrl} from "../../../util/compatibility";
 import {isDynamicRef} from "../../../../util/platform/functions";
 import {fetchPost} from "../../../../util/network/fetch";
 import {focusBlock, focusByRange} from "../../../util/selection";
-import {getColId} from "../col/col";
+import {getColId} from "../col/identity/resolve";
 import {Constants} from "../../../../constants";
 import {hintRef} from "../../../hint/extend.hintRef";
 import {electronUndo} from "../../../undo";

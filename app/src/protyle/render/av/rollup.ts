@@ -5,7 +5,7 @@ import {fetchPost} from "../../../util/network/fetch";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {unicode2Emoji} from "../../../emoji";
-import {getColId} from "./col/col";
+import {getColId} from "./col/identity/resolve";
 import {getColIconByType} from "./col/col.typeUtils";
 import {showMessage} from "../../runtime/dialog.port";
 import {getNameByOperator} from "./calc";

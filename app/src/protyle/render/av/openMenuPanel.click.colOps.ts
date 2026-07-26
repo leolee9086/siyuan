@@ -2,7 +2,7 @@ import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { duplicateCol, removeCol } from "./col/col.operations";
 import { addCol } from "./col/addCol";
-import { bindEditEvent, getEditHTML } from "./col/col";
+import { bindEditEvent, getEditHTML } from "./col/edit/render";
 import { Constants } from "../../../constants";
 import { Dialog } from "../../runtime/dialog.port";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

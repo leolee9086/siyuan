@@ -48,7 +48,7 @@ import { addCol } from "../../col/addCol";
 export { addCol };
 
 /** 用途：打开表头列菜单。使用范围：表头单元格点击。解耦评估：列菜单行为由 col 模块维护更一致。 */
-import { showColMenu } from "../../col/col";
+import { showColMenu } from "../../col/menu/menu.factory";
 /** 导出 showColMenu 供 click 子模块复用。 */
 export { showColMenu };
 
