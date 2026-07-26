@@ -11,7 +11,7 @@ import {upDownHint} from "../DOM/upDownHint";
 import {escapeHtml} from "../DOM/escape";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {isNotCtrl} from "../../protyle/util/compatibility";
-import {electronUndo} from "../../protyle/undo";
+import {electronUndo} from "../../protyle/undo/keyboard/electronUndo";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 
 export const genTagList = (listElement: Element, k: string) => {

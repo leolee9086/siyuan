@@ -2,9 +2,9 @@
 
 > **最终目标**：在保持 Attribute View 表格、画廊、看板运行语义和 `imports.ts` 可见性的前提下，将 AV 渲染组合根拆为单向领域子图，消除该子系统全部循环依赖，并使各具体实现满足项目类型与函数规模门禁。
 >
-> **当前目标**：拆分当前首环 `render -> gallery -> render.table -> search -> undo/globalUndo -> Layout/Editor -> onGet` 中的搜索与撤销返回路径。
+> **当前目标**：拆分当前首环 `onGet -> initUI -> attributePanel -> blockAttr -> asset -> menus/openWindow -> saveScroll` 中的属性面板与资源菜单返回路径。
 >
-> **下一步任务**：核定 AV Search 为什么直接加载完整 Undo/GlobalUndo，区分搜索输入状态、历史撤销和编辑器宿主职责；同步由 Row/Calc 专项继续拆分巨型模块。
+> **下一步任务**：按 [AV 属性面板与资源交互职责拆分](./AV属性面板与资源交互职责拆分.ttt.md) 建立 BlockAttr/Asset 行为基线，先拆错误所有权边，再处理菜单宿主能力。
 
 ## 不变量
 
@@ -23,6 +23,7 @@
 - [抽象碎片清理与领域根归并](./抽象碎片清理与领域根归并.ttt.md)
 - [AV 定位状态与渲染生命周期拆分](./AV定位状态与渲染生命周期拆分.ttt.md)
 - [AV 计算菜单与事务职责拆分](./AV计算菜单与事务职责拆分.ttt.md)
+- [AV 属性面板与资源交互职责拆分](./AV属性面板与资源交互职责拆分.ttt.md)
 
 ## 现状基线
 
@@ -102,3 +103,4 @@ AV 根调度器
 - **2026-07-27**：定位 Presentation 改为经自身网关直达纯 `scrollTargetIntoView`；同一滚动公式从编辑器综合 helper 归位为稳定 DOM 原语，`start` 的配置间距显式参数化，完整 `scrollCenter` 继续拥有 Selection/Range 回退。滚动/定位专项 `7/7`、Node `193/193`、契约类型、目标 lint 与网关门禁通过；生产图 `2221 / 391 / SCC 648`，Presentation 退出 SCC，最大 SCC 减少 `2` 个节点。当前首条代表环已转为 `render -> gallery -> render.table -> calc -> transaction.promise`。
 - **2026-07-27**：建立 [AV 计算菜单与事务职责拆分](./AV计算菜单与事务职责拆分.ttt.md)。确认通用本地事务分派对 `setAttrViewColCalc/updateAttrViewColRollup` 无处理分支后，提取共享同步指示器和 Prepared Transaction 内核；View/Calc 各自严格限制 action，Calc 三个调用点不再加载 `transaction.promise`。专项 `17/17`、Node `193/193`、契约类型、新模块 lint 与网关门禁通过；生产图 `2226 / 394 / SCC 647`，Calc 和两个事务叶子均退出 SCC。新的首环转为 Table Row/BlockAttr/Asset 菜单返回路径；632 行 Calc 继续由专项拆分，未提前归档。
 - **2026-07-27**：Row 对 BlockAttr 的唯一需求是 `data-av-id` 真值判定，现归入 `customAttr/identity` 叶子并由 Row/Select 直达；Row 的 page size、插入、删除、复制与 updated 五种 action 经严格 Row 命令进入 Prepared 内核，不再加载无对应本地分支的通用事务同步器。身份/事务专项 `10/10`、Node `193/193`、契约类型、新模块 lint 与网关门禁通过；生产图 `2228 / 354 / SCC 638`，Row 整体退出 SCC，最大 SCC 减少 `9` 个节点。当前首环转为 `render.table -> search -> undo/globalUndo` 返回路径，BlockAttr/Asset 巨型职责仍由后续批次处理。
+- **2026-07-27**：AV Search 只需 Electron 文本输入框撤销快捷键，却经 Undo 根加载 Undo/LocalUndo、GlobalUndo、Layout 与 Editor；唯一 `electronUndo` 现归入 `undo/keyboard`，完整拥有平台门禁、keymap 匹配、IPC 和事件阻止语义。九个生产消费者或其本域网关全部直达新所有者，Undo 根不保留转发。键盘专项 `4/4`（与本批 Row/身份合计 `11/11`）、新模块 lint 与网关门禁通过；生产图 `2230 / 353 / SCC 632`，Search、Undo 根和键盘叶子均退出 SCC。AV Render/Table 不再出现在首环，当前首环转为 AttributePanel/BlockAttr/Asset 菜单路径，并建立独立专项追踪两个巨型模块。

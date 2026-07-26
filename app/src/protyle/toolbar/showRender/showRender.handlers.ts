@@ -5,7 +5,7 @@ import { hasClosestByClassName } from "../../util/hasClosest";
 import { hideElements } from "../../ui/hideElements";
 import { insertEmptyBlock } from "../../../block/util";
 import { matchHotKey } from "../../util/hotKey";
-import { electronUndo } from "../../undo";
+import { electronUndo } from "../../undo/keyboard/electronUndo";
 import { contentRendererRegistry } from "../../../registry/contentRenderer/ContentRendererRegistry";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";

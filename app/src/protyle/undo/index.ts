@@ -6,14 +6,6 @@ import {preventScroll} from "./imports";
 import {Constants} from "./imports";
 /** 用途：隐藏编辑器浮动 UI 元素（hint/gutter）。使用范围：renderLocal 操作应用前清理界面。解耦评估：通过 imports.ts 转发。 */
 import {hideElements} from "./imports";
-/** 用途：匹配键盘事件与用户自定义快捷键组合。使用范围：electronUndo 处理器判断快捷键是否匹配。解耦评估：通过 imports.ts 转发。 */
-import {matchHotKey} from "./imports";
-/** 用途：运行时平台环境判断（是否 Electron）。使用范围：electronUndo 处理器条件守卫。解耦评估：通过 imports.ts 转发。 */
-import {isElectron} from "./imports";
-/** 用途：向 Electron 主进程发送 IPC 消息。使用范围：electronUndo 处理器触发撤销/重做命令。解耦评估：通过 imports.ts 转发。 */
-import {ipcSend} from "./imports";
-/** 用途：读取用户自定义的编辑器快捷键映射。使用范围：electronUndo 处理器加载快捷键配置。解耦评估：通过 imports.ts 转发。 */
-import {getSiyuanEditorGeneralKeymap} from "./imports";
 /** 用途：按事务上下文恢复撤销焦点。使用范围：kernel 与 lite 回放完成后。解耦评估：通过 imports.ts 转发。 */
 import {restoreUndoFocus} from "./imports";
 /** 用途：把撤销后的目标块滚动到视口中央。使用范围：焦点恢复成功及 lite 回放。解耦评估：通过 imports.ts 转发。 */
@@ -247,29 +239,3 @@ export class LocalUndo implements IUndo {
         this.redoStack = [];
     }
 }
-
-/** @同步豁免: 遗留代码 - 键盘事件处理器必须同步返回布尔值以控制事件传播 */
-export const electronUndo = (event: KeyboardEvent) => {
-    if (!isElectron) {
-        return false;
-    }
-    const keymap = getSiyuanEditorGeneralKeymap();
-    if (!keymap) {
-        return false;
-    }
-    // 匹配撤销快捷键：用户按下自定义撤销组合键时，拦截默认行为并通过 IPC 通知 Electron 主进程执行撤销
-    if (matchHotKey(keymap.undo.custom, event)) {
-        ipcSend(Constants.SIYUAN_CMD, "undo");
-        event.preventDefault();
-        event.stopPropagation();
-        return true;
-    }
-    // 匹配重做快捷键：用户按下自定义重做组合键时，拦截默认行为并通过 IPC 通知 Electron 主进程执行重做
-    if (matchHotKey(keymap.redo.custom, event)) {
-        ipcSend(Constants.SIYUAN_CMD, "redo");
-        event.preventDefault();
-        event.stopPropagation();
-        return true;
-    }
-    return false;
-};

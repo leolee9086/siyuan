@@ -108,7 +108,7 @@ export { hideElements };
  * 使用范围：输入框 keydown 监听中处理平台差异。
  * 解耦评估：平台差异逻辑集中在 undo 工具中，业务层避免重复判断。
  */
-import { electronUndo } from "../../../protyle/undo";
+import { electronUndo } from "../../../protyle/undo/keyboard/electronUndo";
 /** 导出 electronUndo 供 refMenu 子模块复用 */
 export { electronUndo };
 

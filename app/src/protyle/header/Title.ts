@@ -29,7 +29,7 @@ import {transaction} from "../wysiwyg/transaction/submit";
 import { hideTooltip } from "../runtime/dialog.port";
 import { commonClick } from "../wysiwyg/commonClick";
 import { openTitleMenu } from "./openTitleMenu";
-import { electronUndo } from "../undo";
+import { electronUndo } from "../undo/keyboard/electronUndo";
 import { enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
 // S-forge: i18n 抽象层，替代 window.siyuan.languages 直接引用
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

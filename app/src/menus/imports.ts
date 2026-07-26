@@ -40,7 +40,7 @@ import { getEventName } from "../util/platform/functions";
 export { getEventName };
 
 /** 用途：Electron 输入框撤销/重做。使用范围：带菜单键盘映射的输入控件。解耦评估：编辑器平台能力经 imports 转发。 */
-import { electronUndo } from "../protyle/undo";
+import { electronUndo } from "../protyle/undo/keyboard/electronUndo";
 /** 导出 electronUndo，供菜单键盘模块处理输入框快捷键。 */
 export { electronUndo };
 

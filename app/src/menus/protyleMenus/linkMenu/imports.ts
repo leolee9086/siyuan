@@ -110,7 +110,7 @@ export { isMobile };
  * 使用范围：链接编辑输入框按键事件中处理平台撤销行为
  * 解耦评估：平台兼容逻辑应集中维护；通过转发层减少业务散落调用
  */
-import { electronUndo } from "../../../protyle/undo";
+import { electronUndo } from "../../../protyle/undo/keyboard/electronUndo";
 /** 导出 electronUndo 供链接输入框按键处理 */
 export { electronUndo };
 

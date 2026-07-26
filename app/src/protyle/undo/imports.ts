@@ -38,26 +38,6 @@ import { scrollCenter } from "../../util/DOM/highlightById";
 /** 导出 scrollCenter，供 undo 模块调用 */
 export { scrollCenter };
 
-/** 用途：匹配键盘事件与用户自定义快捷键组合。使用范围：electronUndo 处理器判断快捷键是否匹配。解耦评估：通过 imports.ts 转发。 */
-import { matchHotKey } from "../util/hotKey";
-/** 导出 matchHotKey，供 undo 模块调用 */
-export { matchHotKey };
-
-/** 用途：运行时平台环境判断（是否 Electron）。使用范围：electronUndo 处理器条件守卫。解耦评估：通过 imports.ts 转发。 */
-import { isElectron } from "../../platform";
-/** 导出 isElectron，供 undo 模块调用 */
-export { isElectron };
-
-/** 用途：向 Electron 主进程发送 IPC 消息。使用范围：electronUndo 处理器触发撤销/重做命令。解耦评估：通过 imports.ts 转发。 */
-import { ipcSend } from "../../platform/electron/ipcRenderer";
-/** 导出 ipcSend，供 undo 模块调用 */
-export { ipcSend };
-
-/** 用途：读取用户自定义的编辑器快捷键映射。使用范围：electronUndo 处理器加载快捷键配置。解耦评估：通过 imports.ts 转发。 */
-import { getSiyuanEditorGeneralKeymap } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-/** 导出 getSiyuanEditorGeneralKeymap，供 undo 模块调用 */
-export { getSiyuanEditorGeneralKeymap };
-
 /** 用途：异步 POST 请求。使用范围：undo 模块发起撤销状态查询与撤销/重做请求。解耦评估：通过 imports.ts 转发。 */
 import { fetchPost } from "../../util/network/fetch";
 /** 导出 fetchPost，供 undo 模块调用 */

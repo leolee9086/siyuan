@@ -8,7 +8,7 @@ import {focusBlock, focusByRange} from "../../../util/selection";
 import {getColId} from "../col/identity/resolve";
 import {Constants} from "../../../../constants";
 import {hintRef} from "../../../hint/extend.hintRef";
-import {electronUndo} from "../../../undo";
+import {electronUndo} from "../../../undo/keyboard/electronUndo";
 import {getFieldIdByCellElement} from "../row";
 import {getFieldsByData} from "../view/metadata";
 import {callMobileAppShowKeyboard} from "../../../../mobile/keyboard/mobileAppUtil";

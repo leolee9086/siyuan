@@ -5,7 +5,7 @@
 import {setStorageVal} from "../../../util/storage/setStorageVal";
 import { Constants } from "../../../constants";
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
-import { electronUndo } from "../../../protyle/undo";
+import { electronUndo } from "../../../protyle/undo/keyboard/electronUndo";
 import { addClearButton } from "../../../util/DOM/addClearButton";
 import { inputEvent } from "../../inputEvent";
 import {saveKeyList} from "../../history/storage";
