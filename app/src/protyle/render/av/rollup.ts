@@ -3,7 +3,7 @@ import {hasClosestByClassName} from "../../util/hasClosest";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeHtml} from "../../../util/DOM/escape";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVCalcTransaction} from "../../wysiwyg/transaction/prepared/av/avCalc";
 import {unicode2Emoji} from "../../../emoji";
 import {getColId} from "./col/identity/resolve";
 import {getColIconByType} from "./col/col.typeUtils";
@@ -57,7 +57,7 @@ const updateCol = (options: {
         goSearchRollupCalcElement.querySelector(".b3-menu__accelerator").textContent = siyuanI18n.original;
     }
     const oldColValue = JSON.parse(JSON.stringify(colData.rollup));
-    transaction(options.protyle, [{
+    submitAVCalcTransaction(options.protyle, [{
         action: "updateAttrViewColRollup",
         id: options.colId,
         avID: options.data.id,

@@ -68,6 +68,7 @@
 ## 已归档/已完成区域
 
 - **2026-07-27**：通用事务的移动端同步指示器归入 `transaction/lifecycle/syncIndicator.ts`，保持 `isMobile` 首条件短路、provider/付费/订阅、repo key 和 enabled 判断；满足显示条件却缺少 `#toolbarSync` 时显式失败。Prepared 内核统一拥有 undo、lite、同步标记、队列、请求和字数刷新，View 与 Calc 命令分别严格校验自身 action。Calc 三个调用点不再加载 `transaction.promise`。事务专项 `17/17`、Node `193/193`、Protyle 契约类型、新模块 lint、网关多跳与 diff 检查通过；生产图 `2226 / 394 / SCC 647`，仍为唯一 SCC，Calc、Prepared 与 SyncIndicator 均在 SCC 外。代表环 `+3` 是其余返回路径重新枚举，不撤回正确职责方向。
+- **2026-07-27**：确认 `rollup.ts` 的唯一 `updateAttrViewColRollup` action 已属于既有 `submitAVCalcTransaction` 完整封闭集合，直接复用 `prepared/av/avCalc.ts`，没有创建重复 Rollup 命令。Relation/目标列选择已在调用域更新 Rollup 数据和菜单 DOM，原 do/undo 不变。Calc 命令专项 `3/3`、完整 Node `199/199`、Protyle 契约类型、网关门禁通过；全量类型检查正常结束，`rollup.ts` 的 50 条既有严格空值诊断继续由后续职责拆分处理，新命令诊断为 `0`。生产图 `2262 / 318 / SCC 605`，Rollup 及其关联路径四个节点退出 SCC。
 
 ## 关联任务
 
