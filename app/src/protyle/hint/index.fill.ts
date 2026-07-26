@@ -11,12 +11,12 @@ import {blockRender} from "../render/blockRender";
 import {isMobile} from "../../platform";
 import {isHTMLElement, isTextNode} from "../../util/DOM/element.guard";
 import {getBlockRefAnchorText, newFileByRefHint} from "../../util/file/newFile";
-import {handleFillSlash} from "./index.fill.slash";
-import type {IFillSlashContext} from "./index.fill.slash";
-import type {Hint} from "./index";
+import {handleFillSlash} from "./fill/slash";
+import type {IFillSlashContext} from "./fill/slash";
+import type {HintDomain} from "./hint.types";
 
-// AV 相关逻辑已拆分到 index.fill.av.ts
-export {handleFillAv} from "./index.fill.av";
+// AV 相关逻辑由 fill/av.ts 持有。
+export {handleFillAv} from "./fill/av";
 
 /** 嵌入块和标签触发的分隔符集合（中日文引号对和双花括号） */
 const EMBED_TAG_SPLIT_CHARS = ["「「", "「『", "『「", "『『", "{{"];
@@ -44,7 +44,7 @@ function collapseRefElementRange(protyle: IProtyle, refElement: Node[] | undefin
  * 以及委托斜杠命令到 handleFillSlash。
  * @同步豁免: 遗留代码 — 需要同步操作 DOM Range 和事务
  */
-export function handleFillContent(hint: Hint, value: string, protyle: IProtyle, refIsS: boolean, genEmojiHTML: (protyle: IProtyle) => void): void {
+export function handleFillContent(hint: HintDomain, value: string, protyle: IProtyle, refIsS: boolean, genEmojiHTML: (protyle: IProtyle) => void): void {
     const range = protyle.toolbar?.range;
     if (!range) {
         return;
@@ -94,7 +94,7 @@ export function handleFillContent(hint: Hint, value: string, protyle: IProtyle, 
 }
 
 /** @同步豁免: 遗留代码 — 调整 range 以匹配结束分隔符 */
-function adjustRangeForEndSplit(hint: Hint, range: Range) {
+function adjustRangeForEndSplit(hint: HintDomain, range: Range) {
     const endSplit = Constants.BLOCK_HINT_CLOSE_KEYS[hint.splitChar];
     const startContainer = range.startContainer;
     // 仅当 splitChar 为块引用键、存在结束分隔符、且起始容器为文本节点时才需要调整
@@ -133,7 +133,7 @@ function adjustRangeForEndSplit(hint: Hint, range: Range) {
 }
 
 /** @同步豁免: 遗留代码 — 通过块引用新建文档 */
-function handleNewFileBlockRef(hint: Hint, value: string, protyle: IProtyle, range: Range, refIsS: boolean) {
+function handleNewFileBlockRef(hint: HintDomain, value: string, protyle: IProtyle, range: Range, refIsS: boolean) {
     const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
     const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
     newFileByRefHint(protyle, realFileName, (id) => {

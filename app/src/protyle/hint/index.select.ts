@@ -4,10 +4,10 @@ import {isOnlyMeta} from "../util/compatibility";
 import {insertHTML} from "../util/insertHTML";
 import {hideElements} from "../ui/hideElements";
 import {upDownHint} from "../../util/DOM/upDownHint";
-import type {Hint} from "./index";
+import type {HintDomain} from "./hint.types";
 
 /** @同步豁免: 遗留代码 — 从 Hint.select 原样提取的键盘事件同步处理逻辑，需要即时阻止事件冒泡 */
-export function handleSelect(hint: Hint, event: KeyboardEvent, protyle: IProtyle): boolean {
+export function handleSelect(hint: HintDomain, event: KeyboardEvent, protyle: IProtyle): boolean {
     const isEmojiPanel = hint.element.firstElementChild.classList.contains("emojis");
     if (hint.element.querySelectorAll("button").length === 0 && !isEmojiPanel) {
         return false;
@@ -33,7 +33,7 @@ export function handleSelect(hint: Hint, event: KeyboardEvent, protyle: IProtyle
 }
 
 /** @同步豁免: 遗留代码 — Enter 键确认选择，需要同步阻止默认行为 */
-function handleSelectEnter(hint: Hint, protyle: IProtyle, isEmojiPanel: boolean, event: KeyboardEvent): boolean {
+function handleSelectEnter(hint: HintDomain, protyle: IProtyle, isEmojiPanel: boolean, event: KeyboardEvent): boolean {
     if (isEmojiPanel) {
         const currentElement = hint.element.querySelector(".emojis__item--current");
         if (!currentElement) {
@@ -72,7 +72,7 @@ function handleSelectEnter(hint: Hint, protyle: IProtyle, isEmojiPanel: boolean,
 }
 
 /** @同步豁免: 遗留代码 — emoji 面板方向键导航，需要同步操作 DOM 焦点 */
-function handleSelectEmojiNavigation(hint: Hint, event: KeyboardEvent): boolean {
+function handleSelectEmojiNavigation(hint: HintDomain, event: KeyboardEvent): boolean {
     const currentElement: HTMLElement = hint.element.querySelector(".emojis__item--current");
     if (!currentElement) {
         return false;

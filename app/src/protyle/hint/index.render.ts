@@ -8,10 +8,10 @@ import {filterEmoji, getEmojiDesc, getEmojiTitle, lazyLoadEmoji, lazyLoadEmojiIm
 import {isMobile} from "../../platform";
 import {fetchPost} from "../../util/network/fetch";
 import {withEncryptedNotebook} from "../../util/pathName";
-import type {Hint} from "./index";
+import type {HintDomain} from "./hint.types";
 
 /** @同步豁免: 遗留代码 — 从 Hint.render 原样提取的渲染逻辑 */
-export function handleRender(hint: Hint, protyle: IProtyle) {
+export function handleRender(hint: HintDomain, protyle: IProtyle) {
     if (!window.getSelection().focusNode) {
         hint.element.classList.add("fn__none");
         clearTimeout(hint.timeId);
@@ -106,7 +106,7 @@ export function handleRender(hint: Hint, protyle: IProtyle) {
 }
 
 /** 从 Hint.getKey 原样提取 */
-export function getKey(hint: Hint, currentLineValue: string, extend: IHintExtend[]) {
+export function getKey(hint: HintDomain, currentLineValue: string, extend: IHintExtend[]) {
     const prevSplit = hint.splitChar;
     const prevLastIndex = hint.lastIndex;
     hint.lastIndex = -1;
@@ -156,7 +156,7 @@ export function getKey(hint: Hint, currentLineValue: string, extend: IHintExtend
 }
 
 /** @同步豁免: 遗留代码 — 从 Hint.genEmojiHTML 原样提取的 emoji 面板生成逻辑 */
-export function handleGenEmojiHTML(hint: Hint, protyle: IProtyle, value = "") {
+export function handleGenEmojiHTML(hint: HintDomain, protyle: IProtyle, value = "") {
     if (value && !hint.enableEmoji) {
         return;
     }
@@ -207,7 +207,7 @@ export function handleGenEmojiHTML(hint: Hint, protyle: IProtyle, value = "") {
 }
 
 /** @同步豁免: 遗留代码 — 从 Hint.genSearchHTML 原样提取的搜索引用块逻辑 */
-export function handleGenSearchHTML(hint: Hint, protyle: IProtyle, searchElement: HTMLInputElement, nodeElement: false | HTMLElement, oldValue: string, source: THintSource) {
+export function handleGenSearchHTML(hint: HintDomain, protyle: IProtyle, searchElement: HTMLInputElement, nodeElement: false | HTMLElement, oldValue: string, source: THintSource) {
     hint.element.lastElementChild.innerHTML = '<div class="ft__center"><img style="height:32px;width:32px;" src="/stage/loading-pure.svg"></div>';
     fetchPost("/api/search/searchRefBlock", withEncryptedNotebook(protyle.notebookId, {
         k: searchElement.value,

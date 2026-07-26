@@ -1,10 +1,10 @@
-import {Constants} from "../../constants";
-import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
-import {newFileByRefHint} from "../../util/file/newFile";
-import {transaction} from "../wysiwyg/transaction/submit";
-import {updateAttrViewCellAnimation} from "../render/av/action";
-import {isHTMLElement} from "../../util/DOM/element.guard";
-import type {Hint} from "./index";
+import {Constants} from "../../../constants";
+import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
+import {newFileByRefHint} from "../../../util/file/newFile";
+import {transaction} from "../../wysiwyg/transaction/submit";
+import {updateAttrViewCellAnimation} from "../../render/av/action";
+import {isHTMLElement} from "../../../util/DOM/element.guard";
+import type {HintDomain} from "../hint.types";
 
 /**
  * 处理 fill 方法中属性视图（av）源的填充逻辑。
@@ -12,7 +12,7 @@ import type {Hint} from "./index";
  * @returns true 表示已处理（调用方应 return），false 表示未命中 av 源
  * @同步豁免: 遗留代码 — 需要同步操作 DOM 和事务
  */
-export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, source: string) {
+export function handleFillAv(hint: HintDomain, value: string, protyle: IProtyle, source: string) {
     if (source !== "av") {
         return false;
     }

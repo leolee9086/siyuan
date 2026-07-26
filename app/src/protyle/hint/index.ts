@@ -12,8 +12,13 @@ import {handleFillAv, handleFillContent} from "./index.fill";
 import {handleSelect} from "./index.select";
 import {handleRender, handleGenEmojiHTML, handleGenSearchHTML} from "./index.render";
 import {genBlockRefValueMulti} from "./extend.hintRef";
+import {hintBrand} from "./hint.types";
 
 export class Hint {
+    public get [hintBrand]() {
+        return "Hint" as const;
+    }
+
     public timeId: number;
     public element: HTMLDivElement;
     public enableSlash = true;

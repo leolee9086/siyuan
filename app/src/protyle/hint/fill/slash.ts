@@ -1,29 +1,29 @@
-import {Constants} from "../../constants";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../util/hasClosest";
-import {focusByRange, focusByWbr, focusBlock} from "../util/selection";
-import {getSelectionPosition} from "../util/selection";
-import {hintEmbed} from "./extend";
-import {hintRef} from "./extend.hintRef";
-import {getBlockRefAnchorText, newFileInProtyle} from "../../util/file/newFile";
-import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
-import {transaction} from "../wysiwyg/transaction/submit";
-import {updateTransaction} from "../wysiwyg/transaction/update";
-import {insertHTML} from "../util/insertHTML";
-import {highlightRender} from "../render/highlightRender";
-import {setFold} from "../util/blockFold";
-import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
-import {assetMenu} from "../../menus/protyleMenus/assetMenu/protyle.asset";
-import {fetchPost} from "../../util/network/fetch";
-import {getDisplayName, pathPosix} from "../../util/file/pathName";
-import {blockRender} from "../render/blockRender";
-import {openFileById} from "../../editor/utils.openFileById";
-import {openMobileFileById} from "../../mobile/editor";
-import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
-import {AIChat} from "../../ai/chatStream";
-import {isMobile} from "../../platform";
-import {avRender} from "../render/av/render";
-import {genIconHTML} from "../render/util";
-import type {Hint} from "./index";
+import {Constants} from "../../../constants";
+import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
+import {focusByRange, focusByWbr, focusBlock} from "../../util/selection";
+import {getSelectionPosition} from "../../util/selection";
+import {hintEmbed} from "../extend";
+import {hintRef} from "../extend.hintRef";
+import {getBlockRefAnchorText, newFileInProtyle} from "../../../util/file/newFile";
+import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../../wysiwyg/getBlock";
+import {transaction} from "../../wysiwyg/transaction/submit";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
+import {insertHTML} from "../../util/insertHTML";
+import {highlightRender} from "../../render/highlightRender";
+import {setFold} from "../../util/blockFold";
+import {imgMenu} from "../../../menus/protyleMenus/imageMenu/protyle.imgMenu";
+import {assetMenu} from "../../../menus/protyleMenus/assetMenu/protyle.asset";
+import {fetchPost} from "../../../util/network/fetch";
+import {getDisplayName, pathPosix} from "../../../util/file/pathName";
+import {blockRender} from "../../render/blockRender";
+import {openFileById} from "../../../editor/utils.openFileById";
+import {openMobileFileById} from "../../../mobile/editor";
+import {contentRendererRegistry} from "../../../registry/contentRenderer/ContentRendererRegistry";
+import {AIChat} from "../../../ai/chatStream";
+import {isMobile} from "../../../platform";
+import {avRender} from "../../render/av/render";
+import {genIconHTML} from "../../render/util";
+import type {HintDomain} from "../hint.types";
 
 /**
  * 修复图片光标位置：当光标前一个节点是图片且图片后无兄弟节点时，插入零宽字符防止光标丢失。
@@ -41,7 +41,7 @@ function fixImageCursor(range: Range) {
 }
 
 export interface IFillSlashContext {
-    hint: Hint;
+    hint: HintDomain;
     value: string;
     protyle: IProtyle;
     range: Range;
@@ -139,7 +139,7 @@ export function handleFillSlash(ctx: IFillSlashContext): void {
 }
 
 /** @同步豁免: 遗留代码 — 切换到引用/嵌入模式，需要同步操作 DOM Range */
-function handleRefOrEmbed(hint: Hint, value: string, protyle: IProtyle, range: Range) {
+function handleRefOrEmbed(hint: HintDomain, value: string, protyle: IProtyle, range: Range) {
     if (value === "((") {
         hintRef("", protyle, "hint");
     } else {
