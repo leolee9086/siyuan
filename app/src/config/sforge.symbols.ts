@@ -13,6 +13,9 @@ export const NAVIGATION_HISTORY_REGISTRY = Symbol.for("sforge.navigation.history
 /** 移动键盘生命周期状态的唯一类型键。 */
 export const MOBILE_KEYBOARD_LIFECYCLE_REGISTRY = Symbol.for("sforge.mobile.keyboardLifecycleRegistry");
 
+/** AV 虚拟滚动跨调用状态的唯一注册表键。 */
+export const AV_VIRTUAL_SCROLL_REGISTRY = Symbol.for("sforge.av.virtualScrollRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

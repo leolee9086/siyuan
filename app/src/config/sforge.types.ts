@@ -3,7 +3,15 @@
  */
 
 /** 用途：Symbol 键定义。使用范围：ISForgeGlobalState 接口的索引签名键。解耦评估：同目录符号定义，直接导入。 */
-import {LAYOUT_PERSISTENCE_REGISTRY, MOBILE_KEYBOARD_LIFECYCLE_REGISTRY, NAVIGATION_HISTORY_REGISTRY, SForgeSymbols} from "./sforge.symbols";
+import {AV_VIRTUAL_SCROLL_REGISTRY} from "./sforge.symbols";
+/** 用途：定位布局持久化注册状态。使用范围：ISForgeGlobalState 的布局保存状态槽。解耦评估：Symbol 是跨模块共享注册状态的稳定身份，参数传递会破坏全局唯一性。 */
+import {LAYOUT_PERSISTENCE_REGISTRY} from "./sforge.symbols";
+/** 用途：定位移动键盘生命周期状态。使用范围：ISForgeGlobalState 的移动键盘状态槽。解耦评估：Symbol 是跨调用生命周期状态的稳定身份，不应通过调用链逐层传递。 */
+import {MOBILE_KEYBOARD_LIFECYCLE_REGISTRY} from "./sforge.symbols";
+/** 用途：定位导航历史注册表。使用范围：ISForgeGlobalState 的桌面与移动导航状态槽。解耦评估：Symbol 保证注册表身份唯一，事件或局部参数不能替代状态所有权。 */
+import {NAVIGATION_HISTORY_REGISTRY} from "./sforge.symbols";
+/** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
+import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
 import type { TabRegistration } from "../registry/TabRegistry.types";
 /** 用途：触发器注册类型。使用范围：全局状态中触发器注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -39,9 +47,13 @@ import type { AppFacade } from "../app/AppFacade.types";
 /** 用途：布局持久化注册状态。使用范围：全局状态键值映射；解耦评估：纯数据类型，不加载保存实现。 */
 import type {LayoutPersistenceState} from "../layout/persistence/state/saveLayout.types";
 /** 用途：完整导航历史注册表键值类型。使用范围：SForge 全局状态映射；解耦评估：纯类型依赖只建立注册表协议，不加载桌面或移动导航实现。 */
-import type {NavigationHistoryScope, NavigationHistoryState} from "../navigation/history/NavigationHistory.types";
+import type {NavigationHistoryScope} from "../navigation/history/NavigationHistory.types";
+/** 用途：完整导航历史状态值类型。使用范围：SForge 全局状态映射；解耦评估：纯类型依赖直接指向状态声明，不加载导航行为实现。 */
+import type {NavigationHistoryState} from "../navigation/history/NavigationHistory.types";
 /** 用途：完整移动键盘生命周期状态。使用范围：SForge 全局状态映射；解耦评估：纯类型依赖不加载工具栏实现。 */
 import type {MobileKeyboardLifecycleState} from "../mobile/keyboard/MobileKeyboardLifecycle.types";
+/** 用途：完整 AV 虚拟滚动注册状态。使用范围：SForge 全局状态映射；解耦评估：纯数据类型不加载行渲染或裁剪实现。 */
+import type {AVVirtualScrollRegistryState} from "../protyle/render/av/virtualScroll/virtualScroll.types";
 
 /**
  * SForge 全局状态类型定义
@@ -73,6 +85,7 @@ export interface ISForgeGlobalState {
     [NAVIGATION_HISTORY_REGISTRY]?: Map<NavigationHistoryScope, NavigationHistoryState>;
     [MOBILE_KEYBOARD_LIFECYCLE_REGISTRY]?: MobileKeyboardLifecycleState;
     [LAYOUT_PERSISTENCE_REGISTRY]?: Map<string, LayoutPersistenceState>;
+    [AV_VIRTUAL_SCROLL_REGISTRY]?: AVVirtualScrollRegistryState;
 }
 
 /**

@@ -1,30 +1,15 @@
 import {Constants} from "../../../constants";
 import {getRowHTML} from "./row";
+import {
+    getAVVirtualBodyState,
+    getAVVirtualDataSource,
+    getAVVirtualScrollRegistry,
+    getAvBodyData,
+    registerAVVirtualDataSource,
+    setAVVirtualBodyState,
+} from "./virtualScroll/state";
 
 const BUFFER_RATIO = 1;
-
-interface IBodyState {
-    renderedStart: number;
-    renderedEnd: number;
-    dataOffset: number;
-    view: IAVView;
-    topSpacerHeight: number;
-    pinIndex?: number;
-    // 缓存的行高，避免每帧读 currentRows[0].offsetHeight（强制重排来源）。
-    // 表格行高在渲染后基本稳定，用缓存值做外推/分页计算即可，少量偏差不影响正确性。
-    rowHeight?: number;
-    // 选中行 ID 快照。trim 会移除/回填行 DOM，而选中高亮（av__row--select）是纯运行时状态、
-    // getRowHTML 不携带，故在每次 trim 处理前从现存 DOM 同步，回填后据此恢复。
-    selectedRowIds?: Set<string>;
-}
-
-const dataStore = new Map<string, {
-    protyle: IProtyle;
-    data: IAV;
-}>();
-const bodyStates = new WeakMap<HTMLElement, IBodyState>();
-const trimPending = new WeakSet<HTMLElement>();
-let lastScrollTop: number;
 
 // 测量 DOM 变更前后容器 scrollHeight 的差值，用于精确计算 gallery 多列网格中行移除/回填的实际高度（含 gap）
 const measureHeightDiff = (el: HTMLElement, mutate: () => void): number => {
@@ -34,6 +19,7 @@ const measureHeightDiff = (el: HTMLElement, mutate: () => void): number => {
 };
 
 const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<void> => {
+    const registry = getAVVirtualScrollRegistry();
     const viewportHeight = elementRect.bottom - elementRect.top;
     const buffer = viewportHeight * BUFFER_RATIO;
     const topLimit = elementRect.top - buffer;
@@ -42,13 +28,13 @@ const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<
 
     // AV 重渲/新增分组/局部更新未走完整 initVirtualScroll 时 dataStore 可能缺失，跳过本次 trim，
     // 等下次 initVirtualScroll 重新登记后再处理，避免解引用 undefined.protyle
-    const stored = dataStore.get(blockElement.getAttribute("data-av-id") + blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW));
+    const stored = getAVVirtualDataSource(blockElement);
     if (!stored) {
         return;
     }
     const protyle = stored.protyle;
-    const isScrollingUp = lastScrollTop && lastScrollTop > protyle.contentElement.scrollTop;
-    lastScrollTop = protyle.contentElement.scrollTop;
+    const isScrollingUp = registry.lastScrollTop && registry.lastScrollTop > protyle.contentElement.scrollTop;
+    registry.lastScrollTop = protyle.contentElement.scrollTop;
 
     if ((blockRect.bottom < elementRect.top && !isScrollingUp) || (blockRect.top > elementRect.bottom && isScrollingUp)) {
         return;
@@ -57,7 +43,7 @@ const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<
     const type = blockElement.getAttribute("data-av-type") as TAVView;
     const bodies = blockElement.querySelectorAll(".av__body:not(.fn__none)") as NodeListOf<HTMLElement>;
     for (const bodyEl of Array.from(bodies)) {
-        const state = bodyStates.get(bodyEl);
+        const state = getAVVirtualBodyState(bodyEl);
         // body 尚未在 initVirtualScroll 中登记（重渲/新增分组/局部更新未走完整流程），
         // WeakMap 查不到则跳过本次 trim，避免解引用 undefined.view
         if (!state) {
@@ -90,7 +76,7 @@ const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<
                 state.topSpacerHeight = 0;
                 state.renderedStart = dataStart;
                 state.renderedEnd = dataEnd;
-                bodyStates.set(bodyEl, state);
+                setAVVirtualBodyState(bodyEl, state);
             }
             return;
         }
@@ -330,7 +316,7 @@ const doTrim = async (blockElement: HTMLElement, elementRect: DOMRect): Promise<
             }
         }
         } finally {
-            bodyStates.set(bodyEl, state);
+            setAVVirtualBodyState(bodyEl, state);
         }
     }
 };
@@ -372,68 +358,8 @@ export const getBodyVirtualData = (bodyEl: HTMLElement, endSelector: string, fir
     };
 };
 
-const getBodyData = (bodyEl: HTMLElement) => {
-    const avEl = bodyEl.closest(".av") as HTMLElement;
-    if (!avEl) {
-return null;
-}
-    const stored = dataStore.get(avEl.getAttribute("data-av-id") + avEl.getAttribute(Constants.CUSTOM_SY_AV_VIEW));
-    if (!stored) {
-return null;
-}
-
-    const groupId = bodyEl.dataset.groupId;
-    return groupId ? stored.data.view.groups.find((g: IAVView) => g.id === groupId) : stored.data.view;
-};
-
-// 对外暴露 body 数据源，供虚拟滚动状态下写入/粘贴未渲染行时生成占位行 HTML
-export const getAvBodyData = (bodyEl: HTMLElement): IAVView | null => {
-    return getBodyData(bodyEl);
-};
-
-// 同步选中行 ID 到虚拟滚动状态。选中高亮是纯 DOM 运行时状态，trim 会移除/回填行 DOM，
-// 若不在变更点维护一份 ID 快照，被 trim 掉的选中行回填后将永久丢失选中态。
-// selectRow 等所有变更选中态的入口在改完 DOM 后需调用：selected=true 记入、false 移除。
-export const updateAVRowSelect = (bodyEl: HTMLElement, rowId: string, selected: boolean): void => {
-    const state = bodyStates.get(bodyEl);
-    if (!state) {
-        return;
-    }
-    if (!state.selectedRowIds) {
-        state.selectedRowIds = new Set();
-    }
-    if (selected) {
-        state.selectedRowIds.add(rowId);
-    } else {
-        state.selectedRowIds.delete(rowId);
-    }
-};
-
-// 全量重置某 body 的选中行 ID 快照（全选/全不选/avRender 重渲后调用）。
-export const resetAVRowSelect = (bodyEl: HTMLElement, rowIds: string[]): void => {
-    const state = bodyStates.get(bodyEl);
-    if (!state) {
-        return;
-    }
-    state.selectedRowIds = new Set(rowIds);
-};
-
-// 返回某 body 的选中统计，供虚拟滚动场景下 updateHeader 显示真实计数。
-// 虚拟滚动时 DOM 内只有渲染窗口的行，直接查 DOM 会低估选中数；此处改用 selectedRowIds 快照与
-// 已加载分页行总数（state.view.rows）计算。非虚拟滚动（无 state）时返回 null 表示回退到 DOM 计数。
-export const getAVSelectStat = (bodyEl: HTMLElement): { selectCount: number, loadedCount: number } | null => {
-    const state = bodyStates.get(bodyEl);
-    if (!state || !state.selectedRowIds) {
-        return null;
-    }
-    const dataRows = state.view ? ((state.view as IAVTable).rows || (state.view as IAVKanban).cards || []) : [];
-    return {
-        selectCount: state.selectedRowIds.size,
-        loadedCount: dataRows.length,
-    };
-};
-
 export const trimAVRows = (blockElement: HTMLElement, elementRect: DOMRect): void => {
+    const trimPending = getAVVirtualScrollRegistry().trimPending;
     if (blockElement.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true" || trimPending.has(blockElement)) {
         return;
     }
@@ -461,15 +387,11 @@ export const initVirtualScroll = (options: {
     if (options.blockElement.getAttribute(Constants.ATTRIBUTE_V_SCROLL) !== "true") {
         return;
     }
-    dataStore.set(options.blockElement.getAttribute("data-av-id") +
-        options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW), {
-        protyle: options.protyle,
-        data: options.data,
-    });
+    registerAVVirtualDataSource(options.blockElement, options.protyle, options.data);
 
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
         const dataOffset = item.dataset.avLocateWindow === "true" ? options.data.target?.offset || 0 : 0;
-        const view = getBodyData(item);
+        const view = getAvBodyData(item);
         if (!view) {
             return;
         }
@@ -490,7 +412,7 @@ export const initVirtualScroll = (options: {
             if (!firstRow || !lastRow) {
                 return;
             }
-            bodyStates.set(item, {
+            setAVVirtualBodyState(item, {
                 renderedStart: parseInt(firstRow.dataset.index),
                 pinIndex: parseInt(item.querySelector(".av__row--header > .block__icons")?.getAttribute("data-pinindex")),
                 renderedEnd: parseInt(lastRow.dataset.index),
@@ -508,7 +430,7 @@ export const initVirtualScroll = (options: {
             if (!firstItem || !lastItem) {
                 return;
             }
-            bodyStates.set(item, {
+            setAVVirtualBodyState(item, {
                 renderedStart: parseInt(firstItem.dataset.index),
                 renderedEnd: parseInt(lastItem.dataset.index),
                 dataOffset,

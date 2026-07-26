@@ -23,7 +23,7 @@ import {updateListOrder} from "../wysiwyg/list.updateOrder";
 import {isIncludeCell} from "./table/table";
 import {getTableRangeCells} from "./table";
 import {getFieldIdByCellElement, getRowHTML} from "../render/av/row";
-import {getAvBodyData} from "../render/av/virtualScroll";
+import {getAvBodyData} from "../render/av/virtualScroll/state";
 import {processClonePHElement} from "../render/util";
 import {setFold} from "./blockFold";
 

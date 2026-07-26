@@ -21,7 +21,9 @@ export { getTypeByCellElement };
 export { popTextCell };
 
 /** 用途：复用 row 子模块中的行级操作。使用范围：选中、插入、分页大小与头部刷新。解耦评估：行语义由 row 模块集中维护，click 侧只应触发。 */
-import { insertRows, selectRow, setPageSize, updateHeader } from "../../row";
+import { insertRows, selectRow, setPageSize } from "../../row";
+/** 用途：同步 AV 选择计数与表头状态。使用范围：普通单元格点击；解耦评估：直达选择子域唯一实现，避免加载行渲染组合根。 */
+import {updateHeader} from "../../selection/header";
 /** 导出 insertRows 供 click 子模块复用。 */
 export { insertRows };
 /** 导出 selectRow 供 click 子模块复用。 */

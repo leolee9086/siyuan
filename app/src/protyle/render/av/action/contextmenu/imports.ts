@@ -110,7 +110,9 @@ import { getColIconByType } from "../../col/col.typeUtils";
 export { getColIconByType };
 
 /** 用途：复用行级能力。使用范围：插入前后、删除和头部选择态刷新。解耦评估：行操作语义集中在 row 子模块，比在右键菜单里分散实现更符合边界。 */
-import { deleteRow, insertRows, updateHeader } from "../../row";
+import { deleteRow, insertRows } from "../../row";
+/** 用途：同步 AV 选择计数与表头状态。使用范围：右键选择操作；解耦评估：直达选择子域唯一实现，避免加载行渲染组合根。 */
+import {updateHeader} from "../../selection/header";
 /** 导出 deleteRow 供 contextmenu 子模块复用。 */
 export { deleteRow };
 /** 导出 insertRows 供 contextmenu 子模块复用。 */
@@ -118,7 +120,7 @@ export { insertRows };
 /** 导出 updateHeader 供 contextmenu 子模块复用。 */
 export { updateHeader };
 /** 用途：同步虚拟滚动选择快照。使用范围：卡片右键选择。解耦评估：选择快照由 virtualScroll 唯一维护。 */
-import {updateAVRowSelect} from "../../virtualScroll";
+import {updateAVRowSelect} from "../../virtualScroll/state";
 /** 导出 updateAVRowSelect 供 contextmenu 子模块复用。 */
 export {updateAVRowSelect};
 

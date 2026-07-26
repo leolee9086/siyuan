@@ -1,5 +1,5 @@
-import {updateHeader} from "../render/av/row";
-import {resetAVRowSelect} from "../render/av/virtualScroll";
+import {updateHeader} from "../render/av/selection/header";
+import {resetAVRowSelect} from "../render/av/virtualScroll/state";
 import {hasClosestByClassName} from "./hasClosest";
 import {Constants} from "../../constants";
 

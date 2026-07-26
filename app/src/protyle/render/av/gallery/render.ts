@@ -9,7 +9,8 @@ import {getPageSize} from "../groups";
 import {bindAvSearch} from "../search";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getBodyVirtualData, initVirtualScroll} from "../virtualScroll";
-import {getRowHTML, updateHeader} from "../row";
+import {getRowHTML} from "../row";
+import {updateHeader} from "../selection/header";
 import {beginAVRender, finishAVLocate, getAVLocateParams, isCurrentAVRender, prepareAVLocate} from "../locate";
 import type {AVViewRenderer} from "../view/render.types";
 
