@@ -1,6 +1,6 @@
 import {transaction} from "../../../wysiwyg/transaction/submit";
 import * as dayjs from "dayjs";
-import {getPropertiesHTML} from "../openMenuPanel";
+import {getPropertiesHTML} from "./properties/render";
 import {removeAttrViewColAnimation} from "../action";
 import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
 import {duplicateNameAddOne} from "../../../../util/platform/functions";

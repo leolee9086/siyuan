@@ -7,7 +7,7 @@ import { getSortsHTML, bindSortsEvent } from "./sort";
 import { updateAssetCell } from "./asset";
 import {updateCellsValue} from "./cell.update";
 import { getLanguageByIndex } from "./groups";
-import { getPropertiesHTML } from "./openMenuPanel";
+import { getPropertiesHTML } from "./col/properties/render";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 
 export const bindDragEvents = (ctx: IMenuPanelContext) => {

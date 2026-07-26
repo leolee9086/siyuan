@@ -29,31 +29,13 @@ import { handleViewClick } from "./openMenuPanel.click.view";
 import { handleCellClick } from "./openMenuPanel.click.cell";
 import { handleGroupsClick } from "./openMenuPanel.click.groups";
 /**
- * 用途：Emoji unicode → HTML 图标渲染。
- * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
- * 解耦评估：openMenuPanel.ts 是整个模块的入口枢纽，单点引入父级依赖后再以 deps 注入子模块，
- *           已在子模块 openMenuPanel.properties.ts 中消除父级导入，这是合理的中转位置。
- */
-import { unicode2Emoji } from "../../../emoji";
-/**
- * 用途：HTML 转义函数，防止用户输入的列名破坏 HTML 结构。
- * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
- * 解耦评估：同上，openMenuPanel.ts 是依赖注入的锚点，在此处引入后注入给子模块。
- */
-import { escapeHtml } from "../../../util/DOM/escape";
-/**
  * 用途：国际化文案对象。
- * 使用范围：仅在构造 PropertiesHTMLDeps 上下文时传入 getPropertiesHTML。
- * 解耦评估：同上，在入口枢纽处引入并注入子模块。
+ * 使用范围：Panel 内除字段管理外的菜单文案。
+ * 解耦评估：字段管理文案由 col/properties 子域自身直达同一真实所有者，本入口不再中转依赖。
  */
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-/**
- * 用途：getPropertiesHTMLWithDeps 的实现函数（需注入 deps）。
- * 使用范围：仅在此文件中调用以创建已绑定 deps 的版本，然后以统一签名 (fields) => string 重新导出。
- * 解耦评估：已在 openMenuPanel.properties.ts 中消除父级导入，
- *           通过 deps 参数从入口注入，这是合理的中转模式。
- */
-import { getPropertiesHTMLWithDeps } from "./openMenuPanel.properties";
+/** 用途：渲染字段管理面板；使用范围：Panel 初始渲染与交互刷新；解耦评估：直达 Properties 唯一实现，不再由 Panel 包装或缓存依赖。 */
+import {getPropertiesHTML} from "./col/properties/render";
 
 export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLElement, element: HTMLElement }) => {
     if (options.protyle.disabled) {
@@ -102,15 +84,6 @@ export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLEle
         x: rect.left,
         y: rect.bottom
     });
-};
-
-/**
- * 包装后的 getPropertiesHTML，保持对外签名 (fields: IAVColumn[]) => string，
- * 在调用时构造只读依赖参数，既避开模块初始化期 TDZ，也不保留跨调用状态。
- * @同步豁免: UI构建 — 纯 HTML 字符串拼接，属于同步构造 UI 模板
- */
-export const getPropertiesHTML = (fields: IAVColumn[]) => {
-    return getPropertiesHTMLWithDeps(fields, {unicode2Emoji, escapeHtml, siyuanI18n});
 };
 
 export const openMenuPanel = (options: {

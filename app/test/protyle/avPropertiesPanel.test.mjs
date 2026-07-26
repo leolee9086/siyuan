@@ -1,36 +1,43 @@
 import assert from "node:assert/strict";
 import {describe, it} from "node:test";
-import {getPropertiesHTMLWithDeps} from "../../src/protyle/render/av/openMenuPanel.properties";
+import {Window} from "happy-dom";
 
-const createDependencies = (marker) => ({
-    unicode2Emoji: (unicode) => `${marker}:emoji:${unicode}`,
-    escapeHtml: (html) => `${marker}:escaped:${html}`,
-    siyuanI18n: {
-        hideCol: `${marker}:hideCol`,
-        showAll: `${marker}:showAll`,
-        fields: `${marker}:fields`,
-        showCol: `${marker}:showCol`,
-        hideAll: `${marker}:hideAll`,
-        new: `${marker}:new`,
+const window = new Window();
+globalThis.window = window;
+globalThis.document = window.document;
+globalThis.HTMLElement = window.HTMLElement;
+globalThis.SIYUAN_VERSION = "test";
+globalThis.NODE_ENV = "test";
+
+window.siyuan = {
+    languages: {
+        hideCol: "Hidden fields",
+        showAll: "Show all",
+        fields: "Fields",
+        showCol: "Visible fields",
+        hideAll: "Hide all",
+        new: "New field",
     },
-});
+};
+
+const {getPropertiesHTML} = await import("../../src/protyle/render/av/col/properties/render");
 
 describe("AV properties panel", () => {
-    it("uses call-local render dependencies without mutating fields", () => {
+    it("renders the shared implementation without mutating fields", () => {
         const fields = [
-            {id: "visible", icon: "", name: "Visible", hidden: false, type: "text"},
-            {id: "hidden", icon: "custom", name: "Hidden", hidden: true, type: "number"},
+            {id: "visible", icon: "", name: "Visible <field>", hidden: false, type: "text"},
+            {id: "hidden", icon: "", name: "Hidden & field", hidden: true, type: "number"},
         ];
         const snapshot = structuredClone(fields);
 
-        const firstHTML = getPropertiesHTMLWithDeps(fields, createDependencies("first"));
-        const secondHTML = getPropertiesHTMLWithDeps(fields, createDependencies("second"));
+        const html = getPropertiesHTML(fields);
 
-        assert.match(firstHTML, /first:fields/);
-        assert.match(firstHTML, /first:escaped:Visible/);
-        assert.match(firstHTML, /first:emoji:custom/);
-        assert.match(secondHTML, /second:fields/);
-        assert.doesNotMatch(secondHTML, /first:/);
+        assert.match(html, /Fields/);
+        assert.match(html, /Visible &lt;field>/);
+        assert.match(html, /Hidden &amp; field/);
+        assert.match(html, /Hidden fields/);
+        assert.match(html, /data-type="showAllCol"/);
+        assert.match(html, /data-type="hideAllCol"/);
         assert.deepEqual(fields, snapshot);
     });
 });

@@ -1,34 +1,22 @@
-/**
- * 用途：根据列类型获取对应的 SVG 图标标识。
- * 使用范围：仅在 toColItemSafeHTML 的 iconHTML 分支中使用。
- * 解耦评估：getColIconByType 是纯函数映射，当前调用位于本模块内，
- *           去耦成本远超收益，保持直接导入即可。
- */
-import { getColIconByType } from "./col/col.typeUtils";
-/**
- * 用途：ColItemSafeHTML 是 buildColItemHTML 的入参类型约束，确保只接收预处理后的安全字符串。
- * 使用范围：仅在本文件 toColItemSafeHTML 返回类型标注中使用。
- * 解耦评估：类型定义集中管理在 .types.ts 中，属于类型层依赖，不涉及运行时耦合，直接导入即可。
- */
-import type { ColItemSafeHTML } from "./openMenuPanel.types";
-/**
- * 用途：PropertiesHTMLDeps 是 getPropertiesHTML 的上下文依赖类型约束。
- * 使用范围：仅在本文件 toColItemSafeHTML/getPropertiesHTML/buildHideSectionHTML 的参数类型中使用。
- * 解耦评估：同 ColItemSafeHTML，属于类型层依赖，直接导入即可。
- */
-import type { PropertiesHTMLDeps } from "./openMenuPanel.types";
+/** 用途：转义字段名；使用范围：Properties 字段行；解耦评估：经本子域网关直达唯一实现，参数注入会制造无语义差异的包装。 */
+import {escapeHtml} from "./imports";
+/** 用途：选择字段类型图标；使用范围：Properties 字段行；解耦评估：经本子域网关直达列映射唯一实现，不建立重复映射。 */
+import {getColIconByType} from "./imports";
+/** 用途：读取字段管理文案；使用范围：Properties 面板；解耦评估：经本子域网关直达全局语言环境，调用参数不重复承载同一环境。 */
+import {siyuanI18n} from "./imports";
+/** 用途：渲染字段自定义图标；使用范围：Properties 字段行；解耦评估：经本子域网关直达 Emoji 唯一实现，不建立渲染回调。 */
+import {unicode2Emoji} from "./imports";
 
 /**
- * 将 IAVColumn 预处理为 ColItemSafeHTML
- * @显式返回类型原因 buildColItemHTML 的类型约束要求传入 ColItemSafeHTML，
- *                    显式标注确保调用方在插入新字段时获得编译期提示。
+ * 将 IAVColumn 预处理为字段按钮可直接使用的安全 HTML 数据。
+ * 返回形状由实现推导，并由 buildColItemHTML 直接引用，避免建立只服务单个调用点的碎片类型。
  */
-const toColItemSafeHTML = (item: IAVColumn, deps: PropertiesHTMLDeps): ColItemSafeHTML => ({
+const toColItemSafeHTML = (item: IAVColumn) => ({
     id: item.id,
     iconHTML: item.icon
-        ? deps.unicode2Emoji(item.icon, "b3-menu__icon", true)
+        ? unicode2Emoji(item.icon, "b3-menu__icon", true)
         : `<svg class="b3-menu__icon"><use xlink:href="#${getColIconByType(item.type)}"></use></svg>`,
-    nameHTML: deps.escapeHtml(item.name) || "&nbsp;",
+    nameHTML: escapeHtml(item.name) || "&nbsp;",
     actionHTML: item.hidden
         ? "<svg class=\"b3-menu__action\" data-type=\"showCol\"><use xlink:href=\"#iconEye\"></use></svg>"
         : `<svg class="b3-menu__action${item.type === "block" ? " fn__none" : ""}" data-type="hideCol"><use xlink:href="#iconEyeoff"></use></svg>`,
@@ -41,7 +29,7 @@ const toColItemSafeHTML = (item: IAVColumn, deps: PropertiesHTMLDeps): ColItemSa
  * 本函数仅作模板填充，不做任何字符串转义/转换。
  * @同步豁免: UI构建
  */
-const buildColItemHTML = (safe: ColItemSafeHTML) => `<button class="b3-menu__item" data-type="editCol" draggable="true" data-id="${safe.id}">
+const buildColItemHTML = (safe: ReturnType<typeof toColItemSafeHTML>) => `<button class="b3-menu__item" data-type="editCol" draggable="true" data-id="${safe.id}">
     <svg class="b3-menu__icon fn__grab"><use xlink:href="#iconDrag"></use></svg>
     <div class="b3-menu__label fn__flex">
         ${safe.iconHTML}
@@ -55,17 +43,17 @@ const buildColItemHTML = (safe: ColItemSafeHTML) => `<button class="b3-menu__ite
  * 构建隐藏列区域的 HTML（含分隔线和标题）
  * @同步豁免: UI构建
  */
-const buildHideSectionHTML = (hideHTML: string, deps: PropertiesHTMLDeps) => {
+const buildHideSectionHTML = (hideHTML: string) => {
     if (!hideHTML) {
         return "";
     }
     return `<button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="nobg">
     <span class="b3-menu__label">
-        ${deps.siyuanI18n.hideCol} 
+        ${siyuanI18n.hideCol}
     </span>
     <span class="block__icon" data-type="showAllCol">
-        ${deps.siyuanI18n.showAll}
+        ${siyuanI18n.showAll}
         <span class="fn__space"></span>
         <svg><use xlink:href="#iconEye"></use></svg>
     </span>
@@ -81,40 +69,40 @@ ${hideHTML}`;
  * 调用时机：在 openMenuPanel 中 type="properties" 时调用，以及在 handleViewClick/handleColOpsClick 中刷新面板时调用
  * @同步豁免: UI构建
  */
-export const getPropertiesHTMLWithDeps = (fields: IAVColumn[], deps: PropertiesHTMLDeps) => {
+export const getPropertiesHTML = (fields: IAVColumn[]) => {
     let showHTML = "";
     let hideHTML = "";
     for (const item of fields) {
         if (item.hidden) {
-            hideHTML += buildColItemHTML(toColItemSafeHTML(item, deps));
+            hideHTML += buildColItemHTML(toColItemSafeHTML(item));
             continue;
         }
-        showHTML += buildColItemHTML(toColItemSafeHTML(item, deps));
+        showHTML += buildColItemHTML(toColItemSafeHTML(item));
     }
     return `<div class="b3-menu__items">
 <button class="b3-menu__item" data-type="nobg">
     <span class="block__icon" style="padding: 8px;margin-left: -4px;" data-type="go-config">
         <svg><use xlink:href="#iconLeft"></use></svg>
     </span>
-    <span class="b3-menu__label ft__center">${deps.siyuanI18n.fields}</span>
+    <span class="b3-menu__label ft__center">${siyuanI18n.fields}</span>
 </button>
 <button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="nobg">
     <span class="b3-menu__label">
-        ${deps.siyuanI18n.showCol} 
+        ${siyuanI18n.showCol}
     </span>
     <span class="block__icon" data-type="hideAllCol">
-        ${deps.siyuanI18n.hideAll}
+        ${siyuanI18n.hideAll}
         <span class="fn__space"></span>
         <svg><use xlink:href="#iconEyeoff"></use></svg>
     </span>
 </button>
 ${showHTML}
-${buildHideSectionHTML(hideHTML, deps)}
+${buildHideSectionHTML(hideHTML)}
 <button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="newCol">
     <svg class="b3-menu__icon"><use xlink:href="#iconAdd"></use></svg>
-    <span class="b3-menu__label">${deps.siyuanI18n.new}</span>
+    <span class="b3-menu__label">${siyuanI18n.new}</span>
 </button>
 </div>`;
 };
