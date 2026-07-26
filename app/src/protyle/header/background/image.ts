@@ -8,7 +8,7 @@ import { previewImages } from "../../preview/image";
 import { bgs } from "../../../util/assets/backgrounds.ts";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";
 import {fetchCoverData, getCategoryLabel} from "../coverData";
 
@@ -35,7 +35,7 @@ export const clickImg = (target: HTMLElement, event: MouseEvent & { detail: numb
  * 作用：处理“位置调整”按钮点击。
  * 意图：进入图片位置调整模式。
  */
-export const clickPosition = (background: Background, event: MouseEvent) => {
+export const clickPosition = (background: BackgroundDomain, event: MouseEvent) => {
     const iconContainer = background.element.firstElementChild;
     if (iconContainer) {
         const iconElements = iconContainer.querySelectorAll(".protyle-icons");
@@ -56,7 +56,7 @@ export const clickPosition = (background: Background, event: MouseEvent) => {
  * 作用：处理“确认”或“取消”按钮点击。
  * 意图：保存或取消图片位置调整。
  */
-export const clickConfirmCancel = (background: Background, protyle: IProtyle, type: string, event: MouseEvent) => {
+export const clickConfirmCancel = (background: BackgroundDomain, protyle: IProtyle, type: string, event: MouseEvent) => {
     background.imgElement.style.cursor = "";
     const iconContainer = background.element.firstElementChild;
     if (iconContainer) {
@@ -87,7 +87,7 @@ export const clickConfirmCancel = (background: Background, protyle: IProtyle, ty
  * 作用：处理内置背景图对话框的点击事件。
  * 意图：用户选择背景图后更新题头图并关闭对话框。
  */
-const onBackgroundDialogClick = (background: Background, protyle: IProtyle, dialog: Dialog, event: Event) => {
+const onBackgroundDialogClick = (background: BackgroundDomain, protyle: IProtyle, dialog: Dialog, event: Event) => {
     const clickTarget = event.target;
     if (!(clickTarget instanceof HTMLElement)) {
         return;
@@ -109,7 +109,7 @@ const onBackgroundDialogClick = (background: Background, protyle: IProtyle, dial
 };
 
 /** 作用：持久化题头图样式并刷新当前背景；意图：内置图片和 CSS 图案共享唯一更新路径；调用时机：用户选择或随机生成题头图后。 */
-const applyTitleImage = (background: Background, protyle: IProtyle, style: string) => {
+const applyTitleImage = (background: BackgroundDomain, protyle: IProtyle, style: string) => {
     background.ial["title-img"] = style;
     renderBackground(background, background.ial, protyle.block.rootID);
     fetchPost("/api/attr/setBlockAttrs", {
@@ -119,7 +119,7 @@ const applyTitleImage = (background: Background, protyle: IProtyle, style: strin
 };
 
 /** 作用：把内置封面资源复制到当前文档并设为题头图；意图：文档不直接依赖应用静态资源路径；调用时机：封面卡片被选中或随机选中时。 */
-const insertCover = (background: Background, protyle: IProtyle, name: string) => {
+const insertCover = (background: BackgroundDomain, protyle: IProtyle, name: string) => {
     fetchPost("/api/asset/insertCover", {id: protyle.block.rootID, name}, (response) => {
         const succMap = response.data?.succMap;
         const firstKey = succMap ? Object.keys(succMap)[0] : undefined;
@@ -150,7 +150,7 @@ const buildCoverTabs = (activeCategory: string, categories: string[]) => {
 };
 
 /** 作用：打开现有 CSS 图案选择器；意图：当图片 manifest 未加载时仍保留原有内置图案能力；调用时机：封面数据请求无结果时。 */
-const renderCssPatternDialog = (background: Background, protyle: IProtyle, dialog: Dialog) => {
+const renderCssPatternDialog = (background: BackgroundDomain, protyle: IProtyle, dialog: Dialog) => {
     let html = "";
     for (let index = 0; index < bgs.length; index++) {
         html += `<div data-index="${index}" style="height: 128px;${bgs[index]}" class="b3-card"></div>`;
@@ -166,7 +166,7 @@ const renderCssPatternDialog = (background: Background, protyle: IProtyle, dialo
 
 /** 作用：以分类小组呈现图片封面并处理切换/选中；意图：使用事件委托支持内容重渲染；调用时机：manifest 成功加载后。 */
 const renderCoverDialog = (
-    background: Background,
+    background: BackgroundDomain,
     protyle: IProtyle,
     dialog: Dialog,
     coverData: NonNullable<Awaited<ReturnType<typeof fetchCoverData>>>,
@@ -205,7 +205,7 @@ const renderCoverDialog = (
 };
 
 /** 作用：创建并填充内置题头图对话框；意图：将数据加载与点击分发留在图片模块；调用时机：用户点击内置背景入口时。 */
-const openBuiltInBackgroundDialog = async (background: Background, protyle: IProtyle) => {
+const openBuiltInBackgroundDialog = async (background: BackgroundDomain, protyle: IProtyle) => {
     const dialog = new Dialog({
         title: siyuanI18n.builtIn,
         content: '<div class="b3-cards" style="padding:16px"><img style="margin:auto;width:64px;height:64px" src="/stage/loading-pure.svg"></div>',
@@ -224,7 +224,7 @@ const openBuiltInBackgroundDialog = async (background: Background, protyle: IPro
 /**
  * 作用：处理“内置背景图”点击。
  */
-export const clickShowRandom = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+export const clickShowRandom = (background: BackgroundDomain, protyle: IProtyle, event: MouseEvent) => {
     void openBuiltInBackgroundDialog(background, protyle).catch((error) => {
         console.error("open built-in background dialog failed", error);
     });
@@ -238,7 +238,7 @@ export const clickShowRandom = (background: Background, protyle: IProtyle, event
  * 意图：从内置背景图列表中随机选择一张，作为文档的题头图。
  * 调用时机：点击题头图下方工具栏的随机按钮时调用。
  */
-export const clickRandom = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+export const clickRandom = (background: BackgroundDomain, protyle: IProtyle, event: MouseEvent) => {
     void fetchCoverData().then((coverData) => {
         if (coverData && coverData.allCovers.length > 0) {
             const randomCover = coverData.allCovers[getRandom(0, coverData.allCovers.length - 1)];
@@ -256,7 +256,7 @@ export const clickRandom = (background: Background, protyle: IProtyle, event: Mo
  * 作用：处理资源菜单中选择图片后的回调。
  * 意图：设置文档题头图为选中的图片。
  */
-const handleAssetSelect = (background: Background, protyle: IProtyle, url: string) => {
+const handleAssetSelect = (background: BackgroundDomain, protyle: IProtyle, url: string) => {
     const safeUrl = url || "";
     background.ial["title-img"] = `background-image:url("${safeUrl}")`;
     renderBackground(background, background.ial, protyle.block.rootID);
@@ -273,7 +273,7 @@ const handleAssetSelect = (background: Background, protyle: IProtyle, url: strin
 /**
  * 作用：处理“上传/选择图片”点击。
  */
-export const clickAsset = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+export const clickAsset = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     const rect = target.getBoundingClientRect();
     const parentRect = target.parentElement?.getBoundingClientRect();
     assetMenu(protyle, {
@@ -289,7 +289,7 @@ export const clickAsset = (background: Background, protyle: IProtyle, target: HT
 /**
  * 作用：处理“移除背景图”点击。
  */
-export const clickRemove = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+export const clickRemove = (background: BackgroundDomain, protyle: IProtyle, event: MouseEvent) => {
     delete background.ial["title-img"];
     renderBackground(background, background.ial, protyle.block.rootID);
     fetchPost("/api/attr/setBlockAttrs", {
@@ -304,7 +304,7 @@ export const clickRemove = (background: Background, protyle: IProtyle, event: Mo
 /**
  * 作用：处理链接背景图确认。
  */
-const handleLinkConfirm = (dialog: Dialog, background: Background, protyle: IProtyle) => {
+const handleLinkConfirm = (dialog: Dialog, background: BackgroundDomain, protyle: IProtyle) => {
     const input = dialog.element.querySelector("input");
     if (input) {
         const style = `background-image:url("${input.value}");`;
@@ -321,7 +321,7 @@ const handleLinkConfirm = (dialog: Dialog, background: Background, protyle: IPro
 /**
  * 作用：处理“链接背景图”点击。
  */
-export const clickLink = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+export const clickLink = (background: BackgroundDomain, protyle: IProtyle, event: MouseEvent) => {
     const dialog = new Dialog({
         title: siyuanI18n.link,
         width: isMobile ? "92vw" : "520px",
@@ -358,7 +358,7 @@ export const clickLink = (background: Background, protyle: IProtyle, event: Mous
  */
 class ImagePositionDragger {
     constructor(
-        private background: Background,
+        private background: BackgroundDomain,
         private height: number,
         private originalPositionY: number,
         private startY: number
@@ -387,7 +387,7 @@ class ImagePositionDragger {
 /**
  * 作用：处理图片 mousedown 事件，初始化拖拽。
  */
-const handleMouseDown = (event: MouseEvent, background: Background) => {
+const handleMouseDown = (event: MouseEvent, background: BackgroundDomain) => {
     event.preventDefault();
     const icons = background.element.firstElementChild?.querySelector(".protyle-icons");
     if (icons && !icons.classList.contains("fn__none")) {
@@ -410,7 +410,7 @@ const handleMouseDown = (event: MouseEvent, background: Background) => {
  * 意图：允许用户通过鼠标拖拽上下调整图片的显示视口（object-position）。
  * 调用时机：组件初始化时绑定事件。
  */
-export const bindImgMoveEvent = (background: Background) => {
+export const bindImgMoveEvent = (background: BackgroundDomain) => {
     background.imgElement.addEventListener("mousedown", (event: MouseEvent) => {
         handleMouseDown(event, background);
     });

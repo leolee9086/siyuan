@@ -1,5 +1,5 @@
 import { hideElements } from "../../ui/hideElements";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 import { clickImg, clickPosition, clickConfirmCancel, clickShowRandom, clickRandom, clickAsset, clickRemove, clickLink } from "./image";
 import { clickOpenEmoji, clickIcon } from "./icon";
 import { clickTag, clickOpenSearch, clickRemoveTag } from "./tags";
@@ -8,7 +8,7 @@ import { clickTag, clickOpenSearch, clickRemoveTag } from "./tags";
  * 作用：分发处理题头图区域的点击事件。
  * 意图：根据点击元素的 data-type 属性调用相应的处理函数。
  */
-const handlers: Record<string, (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => boolean | void> = {
+const handlers: Record<string, (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => boolean | void> = {
     /** @简洁函数 委托调用 clickPosition */
     "position": (background, protyle, target, event) => clickPosition(background, event),
     /** @简洁函数 委托调用 clickConfirmCancel */
@@ -41,7 +41,7 @@ const handlers: Record<string, (background: Background, protyle: IProtyle, targe
  * 作用：分发处理题头图区域的点击事件。
  * 意图：根据点击元素的 data-type 属性调用相应的处理函数。
  */
-const handleClickItem = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+const handleClickItem = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     // 强制转换 detail (兼容旧代码逻辑，假设需要) - 但为了 lint 尝试去掉
     // 如果 clickImg 需要 detail，这里会报错。暂时假设 MouseEvent 足够。
     if (clickImg(target, event)) {
@@ -65,7 +65,7 @@ const handleClickItem = (background: Background, protyle: IProtyle, target: HTML
  * 作用：处理背景区域点击事件的具体逻辑。
  * 意图：执行事件委托循环，查找并处理点击目标。
  */
-const handleBackgroundClick = (event: Event, background: Background, protyle: IProtyle) => {
+const handleBackgroundClick = (event: Event, background: BackgroundDomain, protyle: IProtyle) => {
     if (background.dragOccurred) {
         background.dragOccurred = false;
         return;
@@ -97,7 +97,7 @@ const handleBackgroundClick = (event: Event, background: Background, protyle: IP
  * 意图：通过事件委托处理背景图内部元素的点击，如上传、移除、标签等操作。
  * 调用时机：组件初始化时调用。
  */
-export const bindClickEvent = (background: Background, protyle: IProtyle) => {
+export const bindClickEvent = (background: BackgroundDomain, protyle: IProtyle) => {
     background.element.addEventListener("click", (event) => {
         handleBackgroundClick(event, background, protyle);
     });

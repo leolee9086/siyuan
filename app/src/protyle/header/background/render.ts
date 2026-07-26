@@ -2,7 +2,7 @@ import { isMobile } from "../../../platform";
 import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 
 
 /**
@@ -11,7 +11,7 @@ import type { Background } from "../Background";
  * @param ial IObject attributes
  * @param rootId Root Block ID
  */
-export const renderBackground = (background: Background, ial: IObject, rootId: string | undefined) => {
+export const renderBackground = (background: BackgroundDomain, ial: IObject, rootId: string | undefined) => {
     background.ial = ial;
     background.element.setAttribute("data-node-id", rootId || "");
 
@@ -31,7 +31,7 @@ export const renderBackground = (background: Background, ial: IObject, rootId: s
  * 意图：根据传入的 icon 字符渲染 emoji，处理图标区域显隐及“添加图标”按钮的互斥显示。
  * 调用时机：renderBackground 中调用。
  */
-export const renderIcon = (background: Background, icon: string | undefined) => {
+export const renderIcon = (background: BackgroundDomain, icon: string | undefined) => {
     const iconBtn = background.actionElements[1];
     if (icon) {
         background.iconElement.classList.remove("fn__none");
@@ -48,7 +48,7 @@ export const renderIcon = (background: Background, icon: string | undefined) => 
  * 意图：根据 titleImg 存在与否，切换显示实际图片或“添加题头图”按钮，并调整 margin 布局。
  * 调用时机：renderBackground 中调用。
  */
-const renderTitleImg = (background: Background, titleImg: string | undefined) => {
+const renderTitleImg = (background: BackgroundDomain, titleImg: string | undefined) => {
     const imgBtn = background.actionElements[2];
     // 无题头图时显示"添加题头图"按钮
     if (!titleImg) {
@@ -72,7 +72,7 @@ const renderTitleImg = (background: Background, titleImg: string | undefined) =>
  * 意图：将逗号分隔的标签字符串解析并渲染为可视化 Chip 元素。
  * 调用时机：renderBackground 中调用。
  */
-export const renderTags = (background: Background, tagsStr: string) => {
+export const renderTags = (background: BackgroundDomain, tagsStr: string) => {
     const tagBtn = background.actionElements[0];
     if (!tagsStr) {
         background.tagsElement.classList.add("fn__none");
@@ -106,7 +106,7 @@ export const renderTags = (background: Background, tagsStr: string) => {
  * 调用时机：在 renderBackground 中，当文档具备 title-img 属性时调用。
  * 改进：目前通过临时设置 style 属性来利用浏览器解析 CSS 字符串，随后提取值。
  */
-export const renderImg = (background: Background, img: string) => {
+export const renderImg = (background: BackgroundDomain, img: string) => {
     background.imgElement.setAttribute("style", Lute.UnEscapeHTMLStr(img));
     const positionElement = background.element.querySelector('[data-type="position"]');
     if (img.indexOf("url(") === -1) {

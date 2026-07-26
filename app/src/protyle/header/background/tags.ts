@@ -5,7 +5,7 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 import { Menu } from "../../../plugin/Menu";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { escapeHtml } from "../../../util/DOM/escape";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";
 import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboardStatus.environment";
 import { isMobile } from "../../../platform";
@@ -31,7 +31,7 @@ const getTags = (tagsElement: HTMLElement) => {
 };
 
 /** 作用：保存拖拽后的标签顺序；意图：仅在顺序真实变化时写入属性；调用时机：标签拖拽结束时。 */
-const persistTagOrder = (background: Background, protyle: IProtyle) => {
+const persistTagOrder = (background: BackgroundDomain, protyle: IProtyle) => {
     const tagsString = getTags(background.tagsElement).toString();
     if (tagsString === background.ial.tags) {
         return;
@@ -44,7 +44,7 @@ const persistTagOrder = (background: Background, protyle: IProtyle) => {
 };
 
 /** 作用：在指针位置附近定位可拖拽标签；意图：点击标签间隙时仍可选中距离最近的标签；调用时机：mousedown 初始化拖拽前。 */
-const findTagAtPointer = (background: Background, target: HTMLElement, clientX: number) => {
+const findTagAtPointer = (background: BackgroundDomain, target: HTMLElement, clientX: number) => {
     const directTag = target.closest<HTMLElement>(".b3-chip");
     if (directTag) {
         return directTag;
@@ -89,7 +89,7 @@ const createTagDragClone = (tagElement: HTMLElement, event: MouseEvent, offsetX:
 };
 
 /** 作用：根据指针与目标标签中心的相对位置更新 DOM 顺序；意图：以实时 DOM 作为拖拽排序状态；调用时机：有效拖拽的 mousemove 阶段。 */
-const reorderTagAtPointer = (background: Background, tagElement: HTMLElement, event: MouseEvent) => {
+const reorderTagAtPointer = (background: BackgroundDomain, tagElement: HTMLElement, event: MouseEvent) => {
     const pointTarget = document.elementFromPoint(event.clientX, event.clientY);
     const targetTag = pointTarget?.closest<HTMLElement>(".b3-chip");
     if (!targetTag || targetTag === tagElement || !background.tagsElement.contains(targetTag)) {
@@ -104,7 +104,7 @@ const reorderTagAtPointer = (background: Background, tagElement: HTMLElement, ev
 };
 
 /** 作用：绑定文档标签的指针拖拽排序；意图：保留标签点击/删除交互并使用项目统一拖拽阈值；调用时机：Background 实例初始化时。 */
-export const bindTagSortEvent = (background: Background, protyle: IProtyle) => {
+export const bindTagSortEvent = (background: BackgroundDomain, protyle: IProtyle) => {
     background.element.addEventListener("mousedown", (event: MouseEvent) => {
         background.dragOccurred = false;
         if (protyle.disabled || !(event.target instanceof HTMLElement)) {
@@ -159,7 +159,7 @@ export const bindTagSortEvent = (background: Background, protyle: IProtyle) => {
  * 意图：更新后端属性并在前端移除标签显示。
  * 调用时机：用户点击移除标签或在菜单中取消选中时。
  */
-export const removeTag = (background: Background, protyle: IProtyle, cb?: () => void) => {
+export const removeTag = (background: BackgroundDomain, protyle: IProtyle, cb?: () => void) => {
     const tags = getTags(background.tagsElement);
     saveTags(background, protyle, tags, cb);
 };
@@ -169,7 +169,7 @@ export const removeTag = (background: Background, protyle: IProtyle, cb?: () => 
  * 意图：将最新的标签列表持久化到数据库，并刷新文档属性视图。
  * 调用时机：标签被添加、移除或修改后。
  */
-const saveTags = (background: Background, protyle: IProtyle, tags: string[], cb?: () => void) => {
+const saveTags = (background: BackgroundDomain, protyle: IProtyle, tags: string[], cb?: () => void) => {
     const tagsStr = tags.toString();
     fetchPost("/api/attr/setBlockAttrs", {
         id: protyle.block.rootID,
@@ -191,7 +191,7 @@ const saveTags = (background: Background, protyle: IProtyle, tags: string[], cb?
  * 意图：处理用户在标签搜索/选择菜单中的操作，同步更新 DOM 和后端属性。
  * 调用时机：用户在标签菜单中按回车或点击选中某个标签时。
  */
-const toggleTag = (background: Background, tag: string, protyle: IProtyle, cb: () => void) => {
+const toggleTag = (background: BackgroundDomain, tag: string, protyle: IProtyle, cb: () => void) => {
     const tags = getTags(background.tagsElement);
     const newTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
     saveTags(background, protyle, newTags, cb);
@@ -202,7 +202,7 @@ const toggleTag = (background: Background, tag: string, protyle: IProtyle, cb: (
  * 意图：允许用户点击文档头部的标签进行全局搜索。
  * 调用时机：用户点击文档属性区域的标签时。
  */
-export const clickOpenSearch = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+export const clickOpenSearch = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     if (!isMobile) {
         openGlobalSearch(protyle.app, `#${target.textContent}#`, !getSiyuanCtrlIsPressed(), { method: 0 });
         event.preventDefault();
@@ -228,7 +228,7 @@ export const clickOpenSearch = (background: Background, protyle: IProtyle, targe
  * 意图：响应用户点击移除按钮的操作，删除特定标签。
  * 调用时机：用户点击标签上的删除图标时。
  */
-export const clickRemoveTag = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+export const clickRemoveTag = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     target.parentElement?.remove();
     removeTag(background, protyle);
     event.preventDefault();
@@ -241,7 +241,7 @@ export const clickRemoveTag = (background: Background, protyle: IProtyle, target
  * 意图：作为标签区域的交互入口，触发标签编辑菜单。
  * 调用时机：用户点击标签添加按钮或非特定功能区域时。
  */
-export const clickTag = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+export const clickTag = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     openTag(background, protyle, target);
     event.preventDefault();
     event.stopPropagation();
@@ -253,7 +253,7 @@ export const clickTag = (background: Background, protyle: IProtyle, target: HTML
  * 意图：创建并显示包含搜索和选择功能的标签弹窗菜单。
  * 调用时机：clickTag 被触发时。
  */
-export const openTag = (background: Background, protyle: IProtyle, target: HTMLElement) => {
+export const openTag = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement) => {
     getSiyuanGlobalMenusMenu()?.remove();
     const menu = new Menu();
     menu.addItem({
@@ -294,7 +294,7 @@ export const openTag = (background: Background, protyle: IProtyle, target: HTMLE
  * 意图：初始化菜单的交互逻辑，包括加载标签列表和监听输入。
  * 调用时机：标签菜单 DOM 创建并挂载后。
  */
-const bindTagMenu = (element: HTMLElement, background: Background, protyle: IProtyle) => {
+const bindTagMenu = (element: HTMLElement, background: BackgroundDomain, protyle: IProtyle) => {
     const listElement = element.querySelector(".b3-list--background");
     const inputElement = element.querySelector("input");
 
@@ -316,7 +316,7 @@ const bindTagMenu = (element: HTMLElement, background: Background, protyle: IPro
  * 意图：根据用户输入的关键词从后端检索相关的标签。
  * 调用时机：菜单初始化或用户输入关键词时。
  */
-const fetchTags = (k: string, background: Background, listElement: Element) => {
+const fetchTags = (k: string, background: BackgroundDomain, listElement: Element) => {
     fetchPost("/api/search/searchTag", { k }, (response) => {
         renderTagList(response.data, k, background, listElement);
     });
@@ -327,7 +327,7 @@ const fetchTags = (k: string, background: Background, listElement: Element) => {
  * 意图：将后端返回的标签数据可视化展示，并处理高亮和“新建标签”选项。
  * 调用时机：fetchTags 成功获取数据后。
  */
-const renderTagList = (data: { tags: string[], k: string }, k: string, background: Background, listElement: Element) => {
+const renderTagList = (data: { tags: string[], k: string }, k: string, background: BackgroundDomain, listElement: Element) => {
     let html = "";
     const currentTags = getTags(background.tagsElement);
     for (const [index, item] of data.tags.entries()) {
@@ -359,7 +359,7 @@ ${isSelected ? '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></us
  * 意图：支持键盘导航（上下键）、确认（回车键）和关闭（Esc键）操作，提升无障碍和效率。
  * 调用时机：用户在标签输入框中按键时。
  */
-const handleTagInputKeydown = (event: KeyboardEvent, listElement: Element, inputElement: HTMLInputElement, background: Background, protyle: IProtyle) => {
+const handleTagInputKeydown = (event: KeyboardEvent, listElement: Element, inputElement: HTMLInputElement, background: BackgroundDomain, protyle: IProtyle) => {
     event.stopPropagation();
     if (event.isComposing) {
         return;
@@ -379,7 +379,7 @@ const handleTagInputKeydown = (event: KeyboardEvent, listElement: Element, input
  * 意图：根据输入内容实时搜索标签。
  * 调用时机：标签输入框 input 事件。
  */
-const handleTagInputInput = (event: Event, listElement: Element, inputElement: HTMLInputElement, background: Background) => {
+const handleTagInputInput = (event: Event, listElement: Element, inputElement: HTMLInputElement, background: BackgroundDomain) => {
     event.stopPropagation();
     fetchTags(inputElement.value.trim(), background, listElement);
 };
@@ -389,7 +389,7 @@ const handleTagInputInput = (event: Event, listElement: Element, inputElement: H
  * 意图：当用户点击标签列表项时，选择该标签或添加新标签。
  * 调用时机：标签列表点击事件。
  */
-const handleTagListClick = (event: Event, background: Background, protyle: IProtyle, inputElement: HTMLInputElement) => {
+const handleTagListClick = (event: Event, background: BackgroundDomain, protyle: IProtyle, inputElement: HTMLInputElement) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
         return;
@@ -411,7 +411,7 @@ const handleTagListClick = (event: Event, background: Background, protyle: IProt
  * 意图：当用户按下回车时，选择当前高亮的标签或添加新标签。
  * 调用时机：handleTagInputKeydown 中 key 为 Enter 时。
  */
-const handleTagEnter = (listElement: Element, inputElement: HTMLInputElement, background: Background, protyle: IProtyle) => {
+const handleTagEnter = (listElement: Element, inputElement: HTMLInputElement, background: BackgroundDomain, protyle: IProtyle) => {
     const currentElement = listElement.querySelector(".b3-list-item--focus");
     let tagText = inputElement.value.trim();
     if (currentElement instanceof HTMLElement) {

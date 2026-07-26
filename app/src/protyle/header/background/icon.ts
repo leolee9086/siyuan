@@ -1,11 +1,11 @@
 import { getRandomEmoji, openEmojiPanel, updateFileTreeEmoji, updateOutlineEmoji } from "../../../emoji";
 import { fetchPost } from "../../../util/network/fetch";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 
 /**
  * 作用：处理打开表情面板点击。
  */
-export const clickOpenEmoji = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+export const clickOpenEmoji = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     const rootID = protyle.block.rootID;
     if (!rootID) {
         return;
@@ -27,7 +27,7 @@ export const clickOpenEmoji = (background: Background, protyle: IProtyle, target
 /**
  * 作用：处理“添加图标”点击。
  */
-export const clickIcon = (background: Background, protyle: IProtyle, event: MouseEvent) => {
+export const clickIcon = (background: BackgroundDomain, protyle: IProtyle, event: MouseEvent) => {
     const emoji = getRandomEmoji();
     const rootID = protyle.block.rootID;
     if (!rootID) {

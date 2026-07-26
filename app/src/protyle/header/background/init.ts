@@ -1,5 +1,5 @@
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 
 /**
  * 作用：初始化 Background 组件的 DOM 结构。
@@ -7,7 +7,7 @@ import type { Background } from "../Background";
  * 调用时机：Background 类实例化时调用。
  * 问题/改进：HTML 结构硬编码在 JavaScript 中，维护成本较高，建议通过模板引擎或单独的组件文件管理。
  */
-export const initBackgroundElement = (background: Background) => {
+export const initBackgroundElement = (background: BackgroundDomain) => {
     background.element = document.createElement("div");
     background.element.className = "protyle-background";
     background.element.innerHTML = getBackgroundHTML(background.transparentData);

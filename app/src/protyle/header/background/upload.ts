@@ -1,13 +1,13 @@
 import { uploadFiles } from "../../upload";
 import { fetchPost } from "../../../util/network/fetch";
-import type { Background } from "../Background";
+import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";
 
 /**
  * 作用：处理上传成功后的回调。
  * 意图：统一处理题头图上传成功后的后续逻辑（更新 IAL、渲染背景、同步后端）。
  */
-const onUploadSuccess = (background: Background, protyle: IProtyle, responseText: string) => {
+const onUploadSuccess = (background: BackgroundDomain, protyle: IProtyle, responseText: string) => {
     const response = JSON.parse(responseText);
     const key = Object.keys(response.data.succMap)[0];
     if (!key) {
@@ -30,7 +30,7 @@ const onUploadSuccess = (background: Background, protyle: IProtyle, responseText
  * 作用：处理拖拽放置事件。
  * 意图：验证并处理拖入的图片文件。
  */
-const handleDrop = (background: Background, protyle: IProtyle, event: DragEvent) => {
+const handleDrop = (background: BackgroundDomain, protyle: IProtyle, event: DragEvent) => {
     if (!event.dataTransfer) {
         return;
     }
@@ -46,7 +46,7 @@ const handleDrop = (background: Background, protyle: IProtyle, event: DragEvent)
  * 调用时机：组件初始化时绑定事件。
  * 问题/改进：已提取公共函数 onUploadSuccess。
  */
-export const bindDropEvent = (background: Background, protyle: IProtyle) => {
+export const bindDropEvent = (background: BackgroundDomain, protyle: IProtyle) => {
     background.element.addEventListener("dragover", (event) => {
         event.preventDefault();
     });
@@ -57,7 +57,7 @@ export const bindDropEvent = (background: Background, protyle: IProtyle) => {
  * 作用：处理上传输入框变化事件。
  * 意图：当用户选择文件后触发上传。
  */
-const handleUploadChange = (background: Background, protyle: IProtyle, event: Event) => {
+const handleUploadChange = (background: BackgroundDomain, protyle: IProtyle, event: Event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.files && target.files.length > 0) {
         uploadFiles(protyle, target.files, target, (responseText) => onUploadSuccess(background, protyle, responseText));
@@ -70,7 +70,7 @@ const handleUploadChange = (background: Background, protyle: IProtyle, event: Ev
  * 调用时机：组件初始化时绑定事件。
  * 问题/改进：已提取公共函数 onUploadSuccess。
  */
-export const bindUploadEvent = (background: Background, protyle: IProtyle) => {
+export const bindUploadEvent = (background: BackgroundDomain, protyle: IProtyle) => {
     const input = background.element.querySelector("input");
     if (!input) {
         return;

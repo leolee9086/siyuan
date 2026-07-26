@@ -4,8 +4,13 @@ import { bindImgMoveEvent } from "./background/image";
 import { initBackgroundElement } from "./background/init";
 import { renderBackground } from "./background/render";
 import {bindTagSortEvent} from "./background/tags";
+import {backgroundBrand} from "./background/background.types";
 
 export class Background {
+    public get [backgroundBrand]() {
+        return "Background" as const;
+    }
+
     public element!: HTMLElement;
     public ial!: IObject;
     public imgElement!: HTMLImageElement;
