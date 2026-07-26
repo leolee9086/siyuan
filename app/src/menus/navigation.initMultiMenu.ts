@@ -7,7 +7,7 @@ import { emitOpenMenu } from "../plugin/menu/emitOpenMenu.factory";
 import { addFilesToDatabase } from "../protyle/render/av/addToDatabase";
 import { exportMarkdownZip } from "../protyle/export/exportMd";
 import { saveExportFile } from "../protyle/util/compatibility";
-import { transaction } from "../protyle/wysiwyg/transaction";
+import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import { fetchPost } from "../util/network/fetch";
 import { getTopPaths } from "../util/file/pathName";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

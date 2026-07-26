@@ -2,7 +2,7 @@ import { setFold } from "../util/blockFold";
 import { hasClosestByClassName, hasClosestBlock } from "../util/hasClosest";
 import { focusByWbr } from "../util/selection";
 import { genListItemElement } from "./list";
-import { transaction } from "./transaction";
+import {transaction} from "./transaction/submit";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
 import { genEmptyBlock } from "../../block/element.factory";

@@ -1,5 +1,5 @@
 import {lineNumberRender} from "../render/highlightRender";
-import {transaction} from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import {preventScroll} from "../scroll/preventScroll";
 import {hasClosestBlock, isInEmbedBlock} from "./hasClosest";
 import {focusBlock} from "./selection";

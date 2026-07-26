@@ -154,7 +154,7 @@ import { siyuanI18n } from "../../../../../util/siyuanEnvironments/i18n.getI18n.
 export { siyuanI18n };
 
 /** 用途：提交事务。使用范围：分组折叠和视图切换。解耦评估：事务是 action 层主要副作用出口。 */
-import { transaction } from "../../../../wysiwyg/transaction";
+import {transaction} from "../../../../wysiwyg/transaction/submit";
 /** 导出 transaction 供 click 子模块复用。 */
 export { transaction };
 

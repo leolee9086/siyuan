@@ -3,7 +3,7 @@ import {focusBlock, focusByRange, focusByWbr, getEditorRange} from "../util/sele
 import {MenuItem} from "../../menus/Menu.Item";
 import {copyPlainText, readClipboard} from "../util/compatibility";
 import {clearTableCell, isIncludeCell, setTableAlign} from "../util/table/table";
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

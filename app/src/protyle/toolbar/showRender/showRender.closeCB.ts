@@ -6,7 +6,7 @@ import { focusBlock, focusByRange, focusByWbr } from "../../util/selection";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { contentRendererRegistry } from "../../../registry/contentRenderer/ContentRendererRegistry";
 import { blockRender } from "../../render/blockRender";
-import { updateTransaction } from "../../wysiwyg/transaction";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
 import { showMessage } from "../../runtime/dialog.port";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDOMPurify } from "../../../util/siyuanEnvironments/getDOMPurify.environment";

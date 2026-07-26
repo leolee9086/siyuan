@@ -1,6 +1,6 @@
 import { matchHotKey } from "../util/hotKey";
 import { getContenteditableElement } from "./getBlock";
-import { updateTransaction } from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import { Constants } from "../../constants";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isInEmbedBlock } from "../util/hasClosest";

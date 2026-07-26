@@ -21,7 +21,7 @@ import { Constants } from "../../constants";
 import { hideTooltip } from "../runtime/dialog.port";
 import { insertAttrViewBlockAnimation, updateHeader } from "../render/av/row";
 import { avContextmenu } from "../render/av/action";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { processClonePHElement } from "../render/util";
 import { transparentImgSrc } from "../util/dragTip";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

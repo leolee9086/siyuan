@@ -1,6 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {unicode2Emoji} from "../../../emoji";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {openMenuPanel} from "./openMenuPanel";
 import {focusBlock} from "../../util/selection";
 import {upDownHint} from "../../../util/DOM/upDownHint";

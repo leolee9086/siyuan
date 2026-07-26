@@ -14,7 +14,7 @@ import {
     moveColumnToRight,
 } from "../../../protyle/util/table/column";
 import {updateTableTitle} from "../../../protyle/util/table/table.title.update";
-import {updateTransaction} from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

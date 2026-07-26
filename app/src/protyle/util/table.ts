@@ -1,4 +1,4 @@
-import {updateTransaction} from "../wysiwyg/transaction";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import {focusBlock, focusByRange, focusByWbr, getSelectionOffset, getSelectionPosition,} from "./selection";
 import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "./hasClosest";
 import {matchHotKey} from "./hotKey";

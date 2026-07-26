@@ -5,7 +5,7 @@ import {MenuItem} from "../../../menus/Menu";
 import {Constants} from "../../../constants";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {avRender} from "./render";
 import {getFieldsByData} from "./view";
 import {getColIconByType} from "./col";

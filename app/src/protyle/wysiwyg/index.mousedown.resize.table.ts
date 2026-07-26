@@ -1,7 +1,7 @@
 /* 用途：在拖拽结束时提交表格列宽变更事务，使撤销/重做能正确恢复旧宽度。
  * 使用范围：仅在表格列拖拽的 mouseup 回调中调用。
  * 解耦评估：transaction 是 wysiwyg 层的事务引擎，表格列宽属于同级模块，通过函数直接调用合理。无法通过 DI 消除。 */
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 /* 用途：导入列宽拖拽上下文的类型定义。
  * 使用范围：仅被本文件的 createTableColResizeContext 函数使用。
  * 解耦评估：类型定义是编译时产物，不产生运行时依赖。 */

@@ -1,5 +1,5 @@
 /** 用途：提交拖拽填充 do/undo 操作。使用范围：填充事务收尾。解耦评估：直达 Protyle 事务唯一实现。 */
-import {transaction} from "../../../../wysiwyg/transaction";
+import {transaction} from "../../../../wysiwyg/transaction/submit";
 /** 导出事务提交 */
 export {transaction};
 

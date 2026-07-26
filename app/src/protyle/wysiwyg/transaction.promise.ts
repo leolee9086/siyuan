@@ -21,8 +21,8 @@ import {
 import {processFold, syncFoldAttr} from "./transaction.fold";
 import {refreshSbs} from "./transaction.refreshSbs";
 import {queueTransaction} from "../util/transactionQueue";
-// Circular imports are evaluated only when transaction callbacks run.
-import {removeTopElement, transaction} from "./transaction";
+import {removeTopElement} from "./transaction/submit";
+import {transaction} from "./transaction/submit";
 
 // 用于执行操作，外加处理当前编辑器中块引用、嵌入块的更新
 export const promiseTransaction = (options: {

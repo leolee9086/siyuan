@@ -1,7 +1,9 @@
 
 import { matchHotKey } from "../util/hotKey";
 import { cancelSB } from "../../block/util.cancelSB";
-import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {turnsIntoOneTransaction} from "./transaction.turns";
+import {updateTransaction} from "./transaction/update";
 import { focusByWbr } from "../util/selection";
 import * as dayjs from "dayjs";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

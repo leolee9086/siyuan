@@ -12,7 +12,9 @@ import {
     isNotEditBlock,
     IEmbedChildOperationContext
 } from "./getBlock";
-import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {turnsIntoOneTransaction} from "./transaction.turns";
+import {updateTransaction} from "./transaction/update";
 import { breakList, genListItemElement, listOutdent } from "./list";
 import { updateListOrder } from "./list.updateOrder";
 import { highlightRender } from "../render/highlightRender";

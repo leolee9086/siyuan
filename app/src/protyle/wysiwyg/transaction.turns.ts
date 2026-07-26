@@ -17,7 +17,8 @@ import {avRender} from "../render/av/render";
 import {genSBElement} from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
-import {transaction, updateTransaction} from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 import {refreshSbs} from "./transaction.refreshSbs";
 
 export const turnsIntoOneTransaction = async (options: {

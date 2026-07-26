@@ -1,6 +1,6 @@
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
-import { turnsIntoTransaction, turnsOneInto } from "./transaction";
+import {turnsIntoTransaction, turnsOneInto} from "./transaction.turns";
 
 /**
  * 处理标题转换的通用函数

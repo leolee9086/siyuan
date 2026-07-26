@@ -2,7 +2,7 @@ import { Dialog } from "../../runtime/dialog.port";
 import { isMobile } from "../../../util/platform/functions";
 import { getSiyuanLanguages } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-import { updateTransaction } from "../../wysiwyg/transaction";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
 
 /**
  * 构建表格标题编辑对话框的HTML内容

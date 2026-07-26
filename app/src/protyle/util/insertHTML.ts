@@ -1,6 +1,7 @@
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClosestByTag} from "./hasClosest";
 import * as dayjs from "dayjs";
-import {transaction, updateTransaction} from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import {fixAdjacentTags, getContenteditableElement, getParentBlock, getPreviousBlockSibling} from "../wysiwyg/getBlock";
 import {
     fixTableRange,

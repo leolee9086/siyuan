@@ -1,6 +1,6 @@
 import { scrollCenter } from "../../../util/DOM/highlightById";
 import { hasNextSibling, hasPreviousSibling } from "../../wysiwyg/getBlock";
-import { updateTransaction } from "../../wysiwyg/transaction";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
 import { isNotCtrl } from "../compatibility";
 import { TableFixContext } from "./table.fix.types";
 

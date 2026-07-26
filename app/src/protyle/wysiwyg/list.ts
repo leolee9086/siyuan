@@ -1,5 +1,7 @@
 import { focusByWbr } from "../util/selection";
-import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {turnsIntoOneTransaction} from "./transaction.turns";
+import {updateTransaction} from "./transaction/update";
 import { genEmptyBlock } from "../../block/element.factory";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";

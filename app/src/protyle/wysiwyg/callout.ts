@@ -1,5 +1,5 @@
 import {hasClosestBlock} from "../util/hasClosest";
-import {transaction} from "./transaction";
+import {transaction} from "./transaction/submit";
 import {focusByRange} from "../util/selection";
 import {Dialog} from "../runtime/dialog.port";
 import {Menu} from "../../plugin/Menu";

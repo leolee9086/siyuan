@@ -8,7 +8,7 @@ import {
 import {Constants} from "../../constants";
 import {beforePaste, paste} from "../util/paste";
 import {getContenteditableElement} from "./getBlock";
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import {ipcSend} from "../../platform/electron/ipcRenderer";
 import {isElectron} from "../../platform";
 import {isMac, isOnlyMeta} from "../util/compatibility";

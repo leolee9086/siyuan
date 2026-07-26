@@ -56,7 +56,7 @@ import {workspaceMenu} from "../../menus/workspace";
 import {resize} from "../../protyle/util/resize";
 import {Search} from "../../search";
 import {isCustomDomain} from "../../layout/dock/custom/custom.types";
-import {transaction} from "../../protyle/wysiwyg/transaction";
+import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 import {quickMakeCard} from "../../card/makeCard";
 import {getContentByInlineHTML} from "../../protyle/wysiwyg/keydown";
 import {searchKeydown} from "./searchKeydown";

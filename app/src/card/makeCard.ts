@@ -7,7 +7,7 @@ import {hideElements} from "../protyle/ui/hideElements";
 import {viewCards} from "./viewCards";
 import {Constants} from "../constants";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
-import {transaction} from "../protyle/wysiwyg/transaction";
+import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import type { AppFacade } from "../app/AppFacade.types";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 

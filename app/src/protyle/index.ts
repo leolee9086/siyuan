@@ -15,14 +15,10 @@ import { Toolbar } from "./toolbar";
 import { Gutter } from "./gutter";
 import { Breadcrumb } from "./breadcrumb";
 import { 注册Protyle, 注销Protyle } from "../registry/TriggerRegistry.protyle";
-import {
-    onTransaction,
-    transaction,
-    turnsIntoOneTransaction,
-    turnsIntoTransaction,
-    updateBatchTransaction,
-    updateTransaction
-} from "./wysiwyg/transaction";
+import {onTransaction} from "./wysiwyg/transaction.onTransaction";
+import {transaction} from "./wysiwyg/transaction/submit";
+import {turnsIntoOneTransaction, turnsIntoTransaction} from "./wysiwyg/transaction.turns";
+import {updateBatchTransaction, updateTransaction} from "./wysiwyg/transaction/update";
 import { fetchPost } from "../util/network/fetch";
 import { refreshProtyleBacklink, refreshProtyleDatabaseRows, refreshProtyleOutline, updateProtylePanel, focusProtylePanel, clearProtylePanelFocus, updateProtyleTitle, removeProtyleTab } from "./runtime/layout.port";
 import { getDocDisplayName, withEncryptedNotebook } from "../util/pathName";

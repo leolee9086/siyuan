@@ -162,7 +162,7 @@ export { getProtyleLute };
  * 使用范围：删除与剪切后持久化文档变更
  * 解耦评估：事务能力通过转发层接入，业务与底层实现解耦
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供内容菜单提交事务 */
 export { updateTransaction };
 

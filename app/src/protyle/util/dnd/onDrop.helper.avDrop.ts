@@ -6,7 +6,7 @@
  * 调用时机：当用户将 gutter 块或文件树节点拖拽到属性视图区域时调用
  */
 import { hasClosestBlock, hasClosestByClassName } from "../hasClosest";
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { insertAttrViewBlockAnimation } from "../../render/av/row";
 import { insertGalleryItemAnimation } from "../../render/av/gallery/item";
 import * as dayjs from "dayjs";

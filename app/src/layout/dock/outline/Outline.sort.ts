@@ -5,7 +5,7 @@
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
 import { getAllModels } from "../../getAll";
 import { isMobile } from "../../../platform";
-import { transaction } from "../../../protyle/wysiwyg/transaction";
+import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
 import { dragOverScroll, stopScrollAnimation } from "../../../boot/globalEvent/dragover";
 import type {OutlineDomain} from "./types";
 import type { DragState } from "./types";

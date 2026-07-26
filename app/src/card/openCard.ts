@@ -22,7 +22,7 @@ import {focusByRange} from "../protyle/util/selection";
 import {updateCardHV} from "./util";
 import {showMessage} from "../dialog/message";
 import {Menu} from "../plugin/Menu";
-import {transaction} from "../protyle/wysiwyg/transaction";
+import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getEditor } from "./getEditor";
 

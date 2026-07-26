@@ -83,7 +83,7 @@ export { hasTopClosestByClassName };
  * 使用范围：链接属性变更、删除、转换后写入事务以支持撤销重做
  * 解耦评估：事务系统是核心基础设施，暂不适合替换；通过转发层降低散落依赖
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供链接菜单写入事务 */
 export { updateTransaction };
 

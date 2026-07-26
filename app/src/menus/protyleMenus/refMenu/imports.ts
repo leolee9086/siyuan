@@ -162,7 +162,7 @@ export { focusByWbr };
  * 使用范围：引用和标签变更后的持久化更新。
  * 解耦评估：事务能力稳定，业务层只传输入输出 HTML。
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供 refMenu 子模块复用 */
 export { updateTransaction };
 

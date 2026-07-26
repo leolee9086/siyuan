@@ -1,5 +1,5 @@
 import {Constants} from "../../constants";
-import {transaction} from "../../protyle/wysiwyg/transaction";
+import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";

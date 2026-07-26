@@ -1,6 +1,7 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "../../menus/Menu.Item";
-import { updateBatchTransaction, transaction } from "../wysiwyg/transaction";
+import {updateBatchTransaction} from "../wysiwyg/transaction/update";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { focusBlock } from "../util/selection";
 import { chartRender } from "../render/chartRender";
 import { getEchartsInstanceById } from "../../util/siyuanEnvironments/echarts.environment";

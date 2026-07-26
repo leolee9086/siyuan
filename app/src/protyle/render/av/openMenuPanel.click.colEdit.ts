@@ -1,4 +1,4 @@
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindEditEvent, getEditHTML } from "./col/col";

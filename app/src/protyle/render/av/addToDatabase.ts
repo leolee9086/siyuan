@@ -1,5 +1,5 @@
 import {openSearchAV} from "./relation";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {focusByRange} from "../../util/selection";
 import {hasClosestBlock} from "../../util/hasClosest";
 import * as dayjs from "dayjs";

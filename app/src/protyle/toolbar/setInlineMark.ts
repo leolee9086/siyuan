@@ -5,7 +5,7 @@ import { 构建标记上下文, 准备标记内容, 清理内联标记内容, �
 import { isMobile, isArrayEqual } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import * as dayjs from "dayjs";
-import { updateTransaction } from "../wysiwyg/transaction";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import { hasSameTextStyle } from "./Font";
 
 export function setInlineMark(

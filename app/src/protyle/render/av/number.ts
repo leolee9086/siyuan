@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

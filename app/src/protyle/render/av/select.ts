@@ -1,5 +1,5 @@
 import { Menu } from "../../../plugin/Menu";
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { hasClosestBlock, hasClosestByClassName } from "../../util/hasClosest";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { upDownHint } from "../../../util/DOM/upDownHint";

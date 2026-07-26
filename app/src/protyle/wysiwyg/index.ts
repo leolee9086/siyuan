@@ -31,7 +31,7 @@ import { handleContextmenu } from "./index.contextmenu";
 import { handleClick } from "./index.click";
 import { previewDocImage } from "../preview/image";
 import { getDiagramBlock, previewDiagram } from "../preview/diagram";
-import { transaction } from "./transaction";
+import {transaction} from "./transaction/submit";
 import { countSelectWord } from "../runtime/status.port";
 
 export class WYSIWYG {

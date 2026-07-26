@@ -1,6 +1,6 @@
 import {Constants} from "../../../constants";
 import {showMessage} from "../../../dialog/message";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {clearSelect} from "../../util/clearSelect";
 import {addDragFill} from "./cell/decoration";
 import {scrollCenter} from "../../../util/DOM/highlightById";

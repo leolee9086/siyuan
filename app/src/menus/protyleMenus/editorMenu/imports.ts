@@ -117,7 +117,7 @@ export { focusByWbr };
  * 使用范围：inlineMathMenu 删除公式后写入事务用于撤销/重做
  * 解耦评估：事务能力是核心基础设施，转发层有助于统一依赖边界
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供 inlineMathMenu 提交事务 */
 export { updateTransaction };
 

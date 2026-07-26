@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {Constants} from "../../../constants";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getCardAspectRatio} from "./gallery/util";

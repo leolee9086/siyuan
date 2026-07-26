@@ -1,7 +1,8 @@
 import {focusBlock, focusByWbr} from "../util/selection";
 import {Constants} from "../../constants";
 import * as dayjs from "dayjs";
-import {transaction, updateTransaction} from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 import {mathRender} from "../render/mathRender";
 import {highlightRender} from "../render/highlightRender";
 import {

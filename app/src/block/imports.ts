@@ -220,15 +220,15 @@ import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 export { updateListOrder };
 
 // 用途：事务处理和合并；使用范围：block 模块块操作；解耦评估：Protyle 核心工具
-import { transaction } from "../protyle/wysiwyg/transaction";
+import {transaction} from "../protyle/wysiwyg/transaction/submit";
 // 导出 transaction
 export { transaction };
 // 用途：合并为单个事务；使用范围：block 模块合并操作；解耦评估：Protyle 核心工具
-import { turnsIntoOneTransaction } from "../protyle/wysiwyg/transaction";
+import {turnsIntoOneTransaction} from "../protyle/wysiwyg/transaction.turns";
 // 导出 turnsIntoOneTransaction
 export { turnsIntoOneTransaction };
 // 用途：更新事务；使用范围：block 模块事务更新；解耦评估：Protyle 核心工具
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../protyle/wysiwyg/transaction/update";
 // 导出 updateTransaction
 export { updateTransaction };
 

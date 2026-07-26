@@ -1,6 +1,6 @@
 import { hasNextSibling, hasPreviousSibling } from "./getBlock";
 import { setLastNodeRange, focusByRange } from "../util/selection";
-import { updateTransaction } from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import { isNotCtrl } from "../util/compatibility";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 

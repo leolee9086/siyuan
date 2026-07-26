@@ -7,7 +7,7 @@ import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";
 import { getContenteditableElement, getEmbedChildOperationContext, getLastBlock } from "../wysiwyg/getBlock";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { genEmptyElement, genHeadingElement } from "../../block/element.factory";
 import { focusByRange } from "../util/selection";
 import {

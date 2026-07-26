@@ -28,7 +28,7 @@ import {openFileById} from "../../editor/utils.openFileById";
 import {pushBack} from "../../util/platform/backForward";
 import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import { updateTableTitle } from "../util/table/table.title.update";
 import {countSelectWord} from "../runtime/status.port";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";

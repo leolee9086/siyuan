@@ -36,7 +36,7 @@ export { focusBlock };
  * 使用范围：宽高修改后的持久化更新。
  * 解耦评估：事务入口统一，子模块只传前后 HTML。
  */
-import { updateTransaction } from "../../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供 sizeMenu 子模块复用 */
 export { updateTransaction };
 

@@ -10,7 +10,7 @@ import {getTableRangeHTML} from "../util/table";
 import {updateCellsValue} from "../render/av/cell.update";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
 import {removeBlock} from "./remove";
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import {highlightRender} from "../render/highlightRender";
 import {mathRender} from "../render/mathRender";
 import {updateAVName} from "../render/av/action";

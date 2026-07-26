@@ -15,7 +15,7 @@ import { scrollCenter } from "../../util/DOM/highlightById";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { confirmDialog } from "../runtime/dialog.port";
 import { filesize } from "filesize";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import * as dayjs from "dayjs";
 
 /**

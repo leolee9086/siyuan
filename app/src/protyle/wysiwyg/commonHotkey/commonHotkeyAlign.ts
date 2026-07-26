@@ -4,7 +4,7 @@
  * 本模块提供编辑器中图片/资源的对齐功能，配合快捷键和右键菜单使用。
  */
 import * as dayjs from "dayjs";
-import { updateTransaction } from "../transaction";
+import {updateTransaction} from "../transaction/update";
 
 /**
  * 将图片资源设置为居中对齐

@@ -6,7 +6,7 @@ import {hasClosestBlock, hasTopClosestByAttribute, isInEmbedBlock} from "../util
 import {isMobile} from "../../platform";
 import {findProtyleBlockCopies} from "../runtime/layout.port";
 import {processClonePHElement} from "../render/util";
-import {removeTopElement} from "./transaction";
+import {removeTopElement} from "./transaction/submit";
 import {refreshSbs} from "./transaction.refreshSbs";
 
 export const handleMove = (operation: IOperation, protyle: IProtyle, updateElements: Element[], isUndo: boolean): void => {

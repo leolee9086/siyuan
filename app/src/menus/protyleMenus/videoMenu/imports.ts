@@ -78,6 +78,6 @@ export { copyAsset };
  * 使用范围：protyle.videoMenu 中修改 src 后提交事务
  * 解耦评估：事务能力属于编辑器基础设施，当前直接依赖合理，通过本文件转发控制耦合边界
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 用于提交编辑事务 */
 export { updateTransaction };

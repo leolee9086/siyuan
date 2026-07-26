@@ -26,7 +26,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import { openDocHistory } from "../history/doc";
 import { openEditorTab } from "./util";
 import { makeCard } from "../card/makeCard";
-import { transaction } from "../protyle/wysiwyg/transaction";
+import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import { emitOpenMenu } from "../plugin/menu/emitOpenMenu.factory";
 import { saveExportFile } from "../protyle/util/compatibility";
 import { exportMarkdownZip } from "../protyle/export/exportMd";

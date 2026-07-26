@@ -1,5 +1,5 @@
 import * as dayjs from "dayjs";
-import { transaction } from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import { removeAttrViewColAnimation } from "../action";
 
 export const removeColByMenu = (options: {

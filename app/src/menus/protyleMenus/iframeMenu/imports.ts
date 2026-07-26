@@ -10,7 +10,7 @@
  * 使用范围：handleIframeSrcChange 函数中，当用户修改 iframe src 后记录变更
  * 解耦评估：核心编辑器功能，是 Protyle 架构的基础设施。可通过依赖注入解耦，但考虑到这是菜单模块直接操作编辑器内容的必要功能，当前直接导入是合理的。若未来需要支持多种编辑器，可考虑抽象为事务接口
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 用于记录编辑器事务 */
 export { updateTransaction };
 

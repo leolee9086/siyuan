@@ -15,7 +15,9 @@ import {
     hasPreviousSibling,
     IEmbedChildOperationContext
 } from "./getBlock";
-import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {turnsIntoTransaction} from "./transaction.turns";
+import {updateTransaction} from "./transaction/update";
 import { genEmptyElement } from "../../block/element.factory";
 import { rebalanceSbWidth, refreshSbResize } from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";

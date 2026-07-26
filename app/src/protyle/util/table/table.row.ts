@@ -1,5 +1,5 @@
 import {scrollToView} from "./table.helpers";
-import {updateTransaction} from "../../wysiwyg/transaction";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {
     focusByWbr,
     focusByRange,

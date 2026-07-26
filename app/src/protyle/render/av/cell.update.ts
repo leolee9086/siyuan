@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {objEquals} from "../../../util/platform/functions";
 import {fetchSyncPost} from "../../../util/network/fetch";

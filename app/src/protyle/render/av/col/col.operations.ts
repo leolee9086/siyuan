@@ -1,4 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import * as dayjs from "dayjs";
 import {getPropertiesHTML} from "../openMenuPanel";
 import {removeAttrViewColAnimation} from "../action";

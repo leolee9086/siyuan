@@ -1,5 +1,5 @@
 import {Menu} from "../../../../plugin/Menu";
-import {transaction} from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import {fetchPost, fetchSyncPost} from "../../../../util/network/fetch";
 import {getDefaultOperatorByType, setFilter} from "../filter";
 import {genCellValue} from "../cell.value";

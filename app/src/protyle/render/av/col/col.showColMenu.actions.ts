@@ -1,5 +1,5 @@
 import {Menu} from "../../../../plugin/Menu";
-import {transaction} from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import {fetchPost} from "../../../../util/network/fetch";
 import {updateAttrViewCellAnimation} from "../action";
 import {handleFilterClick, handleSortClick, handleDeleteColClick} from "./col.showColMenu";

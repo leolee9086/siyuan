@@ -1,4 +1,4 @@
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import { getColId, getEditHTML, bindEditEvent } from "./col/col";
 import { getSelectHTML, bindSelectEvent } from "./select";

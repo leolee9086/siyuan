@@ -38,7 +38,7 @@ import {hasClosestByClassName} from "../../../../util/hasClosest";
 export {hasClosestByClassName};
 
 /** 用途：提交事务。使用范围：添加到数据库、删除、解绑等需要写回文档状态的菜单动作。解耦评估：事务是 action 层的主要副作用出口，当前子模块直接消费更利于审计。 */
-import { transaction } from "../../../../wysiwyg/transaction";
+import {transaction} from "../../../../wysiwyg/transaction/submit";
 /** 导出 transaction 供 contextmenu 子模块复用。 */
 export { transaction };
 

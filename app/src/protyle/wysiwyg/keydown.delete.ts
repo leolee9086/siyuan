@@ -4,7 +4,7 @@ import { isEndOfBlock } from "./getBlock";
 import { getSelectionOffset } from "../util/selection";
 import { matchHotKey } from "../util/hotKey";
 import { removeBlock, removeImage } from "./remove";
-import { updateTransaction } from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import { clearTableCell } from "../util/table/table";
 import { getNextBlock } from "./getBlock";
 import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";

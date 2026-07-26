@@ -7,7 +7,7 @@
  */
 import { Constants } from "../../../constants";
 import { hasClosestBlock } from "../hasClosest";
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { hideElements } from "../../ui/hideElements";
 import { getDragElement } from "./onDrop.environment";
 import {

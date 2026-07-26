@@ -126,7 +126,7 @@ export { hasTopClosestByClassName };
  * 使用范围：图片属性和结构变更持久化。
  * 解耦评估：事务入口统一，业务层仅传入前后 HTML。
  */
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import {updateTransaction} from "../../../protyle/wysiwyg/transaction/update";
 /** 导出 updateTransaction 供 imageMenu 子模块复用 */
 export { updateTransaction };
 

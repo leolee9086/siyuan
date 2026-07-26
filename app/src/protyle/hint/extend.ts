@@ -9,7 +9,7 @@ import { highlightRender } from "../render/highlightRender";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlock";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { getAssetName, getDisplayName, pathPosix } from "../../util/file/pathName";
 import { withEncryptedNotebook } from "../../util/pathName";
 import { genEmptyElement } from "../../block/element.factory";

@@ -25,7 +25,7 @@ import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/get
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";
 import { genEmptyElement } from "../../block/element.factory";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { hideTooltip } from "../runtime/dialog.port";
 import { commonClick } from "../wysiwyg/commonClick";
 import { openTitleMenu } from "./openTitleMenu";

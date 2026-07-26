@@ -1,4 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import {Menu} from "../../../../plugin/Menu";
 import {hasClosestByClassName} from "../../../util/hasClosest";
 import {unicode2Emoji} from "../../../../emoji";

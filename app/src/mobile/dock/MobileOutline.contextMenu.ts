@@ -10,7 +10,8 @@ import {
 } from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
-import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
+import {transaction} from "../../protyle/wysiwyg/transaction/submit";
+import {turnsIntoTransaction} from "../../protyle/wysiwyg/transaction.turns";
 import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock} from "../../protyle/util/selection";

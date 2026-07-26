@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view";

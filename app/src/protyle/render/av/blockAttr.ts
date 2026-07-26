@@ -8,7 +8,7 @@ import {popTextCell} from "./cell/edit";
 import {updateCellsValue} from "./cell.update";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {openMenuPanel} from "./openMenuPanel";
 import {uploadFiles} from "../../upload";
 import {openLink} from "../../../editor/openLink";

@@ -1,4 +1,4 @@
-import {updateTransaction} from "../../wysiwyg/transaction";
+import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {focusByWbr} from "../selection";
 import * as dayjs from "dayjs";
 

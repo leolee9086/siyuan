@@ -1,7 +1,7 @@
 import { fetchSyncPost } from "../../../util/network/fetch";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { clearBlockElement } from "../../util/clearSelect";
-import { transaction } from "../transaction";
+import {transaction} from "../transaction/submit";
 import { focusBlock } from "../../util/selection";
 import { scrollCenter } from "../../../util/DOM/highlightById";
 

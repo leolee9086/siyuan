@@ -4,7 +4,7 @@ import { openAttr } from "../../menus/commonMenuItem";
 import { matchHotKey } from "../util/hotKey";
 import { getTopAloneElement } from "./getBlock";
 import { getContentByInlineHTML } from "./keydown";
-import { updateTransaction } from "./transaction";
+import {updateTransaction} from "./transaction/update";
 import { Constants } from "../../constants";
 /** 用途：为文档重命名信息请求附加加密 notebook。使用范围：rename 中间件。解耦评估：经目录入口复用唯一参数构造器。 */
 import {withEncryptedNotebook} from "./imports";

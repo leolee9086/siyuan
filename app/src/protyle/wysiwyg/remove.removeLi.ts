@@ -5,7 +5,8 @@ import { getContenteditableElement, getPreviousBlockSibling } from "./getBlock";
 import { listOutdent } from "./list";
 import { updateListOrder } from "./list.updateOrder";
 import { getOperationParentID, moveToPrevious } from "./remove";
-import { transaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 import { turnsIntoOneTransaction } from "./transaction.turns";
 import { Constants } from "../../constants";
 

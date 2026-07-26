@@ -9,7 +9,7 @@
 import { fetchPost } from "../../util/network/fetch";
 import { focusBlock } from "../util/selection";
 import { mathRender } from "../render/mathRender";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { genEmptyElement } from "../../block/element.factory";
 import { Constants } from "../../constants";
 import { isInAndroid, isInHarmony, writeText } from "../util/compatibility";

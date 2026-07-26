@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {getColIconByType} from "./col/col.typeUtils";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";

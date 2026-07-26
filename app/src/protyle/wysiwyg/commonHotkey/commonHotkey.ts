@@ -3,7 +3,7 @@ import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { writeText } from "../../util/compatibility";
 import { focusBlock, } from "../../util/selection";
 import { scrollCenter } from "../../../util/DOM/highlightById";
-import { transaction } from "../transaction";
+import {transaction} from "../transaction/submit";
 import { onGet } from "../../util/onGet";
 import { Constants } from "../../../constants";
 

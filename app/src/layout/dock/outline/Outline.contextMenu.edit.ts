@@ -6,7 +6,8 @@ import { MenuItem } from "../../../menus/Menu.Item";
 
 import { fetchPost } from "../../../util/network/fetch";
 import { getAllModels } from "../../getAll";
-import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
+import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
+import {turnsIntoTransaction} from "../../../protyle/wysiwyg/transaction.turns";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";

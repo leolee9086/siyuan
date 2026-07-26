@@ -1,6 +1,6 @@
 import {hasNextSibling} from "./getBlock";
 import {setLastNodeRange} from "../util/selection";
-import {updateTransaction} from "./transaction";
+import {updateTransaction} from "./transaction/update";
 
 export const tabCodeBlock = (protyle: IProtyle, nodeElement: HTMLElement,
                              range: Range, outdent = false) => {

@@ -1,4 +1,5 @@
-import {transaction, updateTransaction} from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 import {focusByWbr} from "../util/selection";
 import * as dayjs from "dayjs";
 import {decodeHTML, escapeAttr} from "../../util/DOM/escape";

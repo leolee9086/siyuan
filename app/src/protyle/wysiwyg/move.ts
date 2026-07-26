@@ -1,7 +1,8 @@
 import {getNextBlockSibling, getParentBlock, getPreviousBlockSibling, getTopAloneElement} from "./getBlock";
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { updateListOrder } from "./list.updateOrder";
-import { transaction, updateTransaction } from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 import { preventScroll } from "../scroll/preventScroll";
 import { scrollCenter } from "../../util/DOM/highlightById";
 import { focusByWbr } from "../util/selection";

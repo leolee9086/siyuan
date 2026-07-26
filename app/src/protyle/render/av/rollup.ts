@@ -3,7 +3,7 @@ import {hasClosestByClassName} from "../../util/hasClosest";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeHtml} from "../../../util/DOM/escape";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {unicode2Emoji} from "../../../emoji";
 import {getColId} from "./col/col";
 import {getColIconByType} from "./col/col.typeUtils";

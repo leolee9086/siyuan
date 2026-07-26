@@ -9,7 +9,7 @@ import { hasClosestBlock } from "../../../util/hasClosest";
 export { hasClosestBlock };
 
 /** 用途：提交事务。使用范围：标题同步与完整复制事务登记。解耦评估：事务是 action 层主要副作用出口，继续经网关接入更利于审计。 */
-import { transaction } from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 /** 导出 transaction 供 action 当前层级模块复用。 */
 export { transaction };
 

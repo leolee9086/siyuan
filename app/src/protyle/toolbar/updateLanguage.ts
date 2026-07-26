@@ -4,7 +4,7 @@ import { hasClosestBlock } from "../util/hasClosest";
 import { highlightRender } from "../render/highlightRender";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
-import { transaction } from "../wysiwyg/transaction";
+import {transaction} from "../wysiwyg/transaction/submit";
 import { setStorageVal } from "../util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import * as dayjs from "dayjs";

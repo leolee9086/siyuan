@@ -1,7 +1,8 @@
 // 用途：导入事务引擎，用于在超级块和表格列宽拖拽结束时提交变更，使撤销/重做能正确恢复旧宽度。
 // 使用范围：handleSuperBlockResize 的最终事务提交（commitSuperBlockResize）以及 handleTableColResize 的 mouseup 清理。
 // 解耦评估：transaction 是 wysiwyg 层的事务引擎，所有编辑操作均依赖它完成撤销/重做生命周期，无法被 DI 或事件替代。
-import {transaction, updateTransaction} from "./transaction";
+import {transaction} from "./transaction/submit";
+import {updateTransaction} from "./transaction/update";
 // 用途：导入图片 3.11.5 兼容处理函数，用于 img3115 在拖拽缩放时对旧版本图片数据做格式转换。
 // 使用范围：仅在 handleMediaResize 的 IMG 分支调用。
 // 解耦评估：img3115 是 boot 层的前向兼容适配函数，属于纯粹的端能力校验，不适合通过 DI 注入。

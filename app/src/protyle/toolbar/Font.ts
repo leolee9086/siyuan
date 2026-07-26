@@ -4,7 +4,7 @@ import { setPosition } from "../../util/DOM/positioning/setPosition";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { Constants } from "../../constants";
 import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
-import { updateBatchTransaction } from "../wysiwyg/transaction";
+import {updateBatchTransaction} from "../wysiwyg/transaction/update";
 import { lineNumberRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../../platform";

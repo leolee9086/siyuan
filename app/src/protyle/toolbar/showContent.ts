@@ -11,7 +11,7 @@ import {
 } from "../util/selection";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
-import { updateTransaction } from "../wysiwyg/transaction";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import { copyPlainText, readClipboard } from "../util/compatibility";
 import { paste, pasteAsPlainText, pasteEscaped } from "../util/paste";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

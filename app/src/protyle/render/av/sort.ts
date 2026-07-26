@@ -1,6 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {getColIconByType} from "./col/col.typeUtils";
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {unicode2Emoji} from "../../../emoji";
 import {getFieldsByData} from "./view";

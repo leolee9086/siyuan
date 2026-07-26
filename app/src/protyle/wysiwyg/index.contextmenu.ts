@@ -2,7 +2,7 @@ import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbed
 import {focusSideBlock, getEditorRange} from "../util/selection";
 import {isMobile} from "../../util/platform/functions";
 import {isNotEditBlock} from "./getBlock";
-import {transaction} from "./transaction";
+import {transaction} from "./transaction/submit";
 import {hideElements} from "../ui/hideElements";
 import {removeSearchMark} from "../toolbar/util";
 import {refMenu} from "../../menus/protyleMenus/refMenu/protyle.refMenu";

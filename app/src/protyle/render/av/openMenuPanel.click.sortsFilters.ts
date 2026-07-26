@@ -1,4 +1,4 @@
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";

@@ -1,7 +1,7 @@
 /**
  * 构建图表(echarts/mindmap)相关菜单
  */
-import { updateTransaction } from "../wysiwyg/transaction";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getEchartsInstanceById } from "../../util/siyuanEnvironments/echarts.environment";
 

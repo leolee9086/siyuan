@@ -1,4 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction/submit";
 import {hasClosestBlock, hasClosestByClassName} from "../../../util/hasClosest";
 import {openMenuPanel} from "../openMenuPanel";
 import {isNotCtrl} from "../../../util/compatibility";

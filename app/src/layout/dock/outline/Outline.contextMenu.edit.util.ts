@@ -1,5 +1,5 @@
 import { Constants } from "../../../constants";
-import { transaction } from "../../../protyle/wysiwyg/transaction";
+import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { mathRender } from "../../../protyle/render/mathRender";
 import { fetchPost } from "../../../util/network/fetch";

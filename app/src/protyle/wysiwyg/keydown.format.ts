@@ -1,4 +1,4 @@
-import { updateBatchTransaction } from "./transaction";
+import {updateBatchTransaction} from "./transaction/update";
 import { alignImgCenter, alignImgLeft } from "./commonHotkey/commonHotkeyAlign";
 import { matchHotKey } from "../util/hotKey";
 

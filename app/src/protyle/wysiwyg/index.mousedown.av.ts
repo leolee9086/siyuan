@@ -1,6 +1,6 @@
 import {hasClosestByClassName} from "../util/hasClosest";
 import {Constants} from "../../constants";
-import {transaction} from "./transaction";
+import {transaction} from "./transaction/submit";
 import {stickyRow, selectRow} from "../render/av/row";
 import {genCellValueByElement} from "../render/av/cell.value";
 import {addDragFill} from "../render/av/cell/decoration";

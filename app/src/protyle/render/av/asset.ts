@@ -1,5 +1,5 @@
 import { Menu } from "../../../plugin/Menu";
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { updateAttrViewCellAnimation } from "./action";
 import { isBrowser, isMobile } from "../../../platform";
 import { Constants } from "../../../constants";

@@ -1,4 +1,4 @@
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { setPageSize } from "./row";

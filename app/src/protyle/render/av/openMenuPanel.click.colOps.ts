@@ -1,4 +1,4 @@
-import { transaction } from "../../wysiwyg/transaction";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { duplicateCol, removeCol } from "./col/col.operations";
 import { addCol } from "./col/addCol";
