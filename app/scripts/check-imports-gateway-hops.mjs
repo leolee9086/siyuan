@@ -6,7 +6,7 @@ import ts from "typescript";
 const isImportsGateway = (filePath) => path.basename(filePath) === "imports.ts";
 
 const isGatewaySpecifier = (specifier) =>
-    specifier.startsWith(".") && path.basename(specifier) === "imports";
+    specifier.startsWith(".") && /(?:^|\/)imports(?:\.ts)?$/.test(specifier);
 
 export const collectGatewayHopsFromSource = (filePath, sourceText) => {
     if (!isImportsGateway(filePath)) {

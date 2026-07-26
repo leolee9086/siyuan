@@ -18,6 +18,7 @@ test("imports gateway hop checker reports import and export forwarding", () => {
         'import {third} from "./imports";',
         'import type {AppFacade} from "../../plugin/imports";',
         'export type {LayoutTab} from "../../layout/imports";',
+        'export type {DialogDomain} from "../dialog/imports.ts";',
     ].join("\n");
     assert.deepEqual(collectGatewayHopsFromSource("src/domain/imports.ts", source), [
         {filePath: "src/domain/imports.ts", line: 1, specifier: "../imports"},
@@ -25,6 +26,7 @@ test("imports gateway hop checker reports import and export forwarding", () => {
         {filePath: "src/domain/imports.ts", line: 3, specifier: "./imports"},
         {filePath: "src/domain/imports.ts", line: 4, specifier: "../../plugin/imports"},
         {filePath: "src/domain/imports.ts", line: 5, specifier: "../../layout/imports"},
+        {filePath: "src/domain/imports.ts", line: 6, specifier: "../dialog/imports.ts"},
     ]);
 });
 
