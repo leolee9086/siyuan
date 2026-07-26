@@ -6,11 +6,9 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
 import {avRender} from "../render/av/render";
-import {isMobile} from "../../platform";
 import {genEmptyElement} from "../../block/element.factory";
 import {hideElements} from "../ui/hideElements";
 import {countBlockWord} from "../runtime/status.port";
-import {isPaidUser, needSubscribe} from "../../util/platform/needSubscribe";
 import {processClonePHElement} from "../render/util";
 import {
     getEmbedChildOperationContext,
@@ -23,6 +21,7 @@ import {refreshSbs} from "./transaction.refreshSbs";
 import {queueTransaction} from "../util/transactionQueue";
 import {disconnectInsertObserver} from "./transaction/insertObserver";
 import {removeTopElementAndCollectOperations} from "./transaction/removeTopElement";
+import {markTransactionSyncPending} from "./transaction/lifecycle/syncIndicator";
 
 /** 在当前非 lite 事务内执行无 undo 的后续操作。 */
 const executeNestedTransaction = (protyle: IProtyle, doOperations: IOperation[]) => {
@@ -48,11 +47,7 @@ export const promiseTransaction = (options: {
     const protyle = options.protyle;
     // 受影响的嵌入块需推迟到事务提交后再渲染，否则其查询请求会早于写入到达内核而拿到旧数据
     const pendingEmbedElements = new Set<Element>();
-    if (isMobile && ((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
-            (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
-        window.siyuan.config.repo.key && window.siyuan.config.sync.enabled) {
-        document.getElementById("toolbarSync").classList.remove("fn__none");
-    }
+    markTransactionSyncPending();
     let range: Range;
     if (getSelection().rangeCount > 0) {
         range = getSelection().getRangeAt(0);

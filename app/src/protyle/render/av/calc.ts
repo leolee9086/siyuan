@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVCalcTransaction} from "../../wysiwyg/transaction/prepared/avCalc";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view/metadata";
@@ -34,7 +34,7 @@ const calcItem = (options: {
                 if (options.oldOperator === "Template" && options.oldTemplate) {
                     undoData.template = options.oldTemplate;
                 }
-                transaction(options.protyle, [{
+                submitAVCalcTransaction(options.protyle, [{
                     action: "setAttrViewColCalc",
                     avID: options.avId,
                     id: options.colId,
@@ -60,7 +60,7 @@ const calcItem = (options: {
                 colData.rollup.calc = {
                     operator: options.operator
                 };
-                transaction(options.protyle, [{
+                submitAVCalcTransaction(options.protyle, [{
                     action: "updateAttrViewColRollup",
                     id: options.colId,
                     avID: options.avId,
@@ -459,7 +459,7 @@ export const openCalcMenu = async (protyle: IProtyle, calcElement: HTMLElement, 
         if (oldOperator === "Template" && currentTemplate) {
             undoData.template = currentTemplate;
         }
-        transaction(protyle, [{
+        submitAVCalcTransaction(protyle, [{
             action: "setAttrViewColCalc",
             avID: avId,
             id: colId,

@@ -2,9 +2,9 @@
 
 > **最终目标**：在保持 Attribute View 表格、画廊、看板运行语义和 `imports.ts` 可见性的前提下，将 AV 渲染组合根拆为单向领域子图，消除该子系统全部循环依赖，并使各具体实现满足项目类型与函数规模门禁。
 >
-> **当前目标**：拆分当前最短环 `render -> gallery -> render.table -> calc -> transaction.promise` 中的根分派、表格计算与事务职责。
+> **当前目标**：拆分当前首环 `render -> gallery -> render.table -> row -> blockAttr -> asset -> menus/editor -> onGet` 中的表格行、属性和菜单返回路径。
 >
-> **下一步任务**：先核定 `calc.ts` 触发通用事务的确定语义与本地 DOM 应用边界，再按真实所有权拆分；同步补强 table、gallery、kanban 运行行为测试。
+> **下一步任务**：分析 `render.table -> row -> blockAttr -> asset` 的真实渲染职责和 Asset 菜单为何返回 Editor/OnGet；同步由 Calc 专项继续拆分其 632 行上帝模块。
 
 ## 不变量
 
@@ -22,6 +22,7 @@
 - [前端上帝对象领域拆分](./前端上帝对象领域拆分.ttt.md)
 - [抽象碎片清理与领域根归并](./抽象碎片清理与领域根归并.ttt.md)
 - [AV 定位状态与渲染生命周期拆分](./AV定位状态与渲染生命周期拆分.ttt.md)
+- [AV 计算菜单与事务职责拆分](./AV计算菜单与事务职责拆分.ttt.md)
 
 ## 现状基线
 
@@ -99,3 +100,4 @@ AV 根调度器
 - **2026-07-27**：按 [AV 定位状态与渲染生命周期拆分](./AV定位状态与渲染生命周期拆分.ttt.md) 删除 358 行综合定位模块，将状态、激活、窗口规划和完成呈现单向分层；SForge 注册表统一拥有请求、队列、渲染数据/token 与高亮状态，完整根渲染签名通过参数进入激活阶段。三节点动态回路归零，State/Activation/Window 位于 SCC 外；生产图 `2215 / 389 / SCC 650`，Presentation 仍通过视图持久化事务返回根渲染，继续与事务专项联动拆分。
 - **2026-07-27**：定位 Presentation 的视图属性已在提交前同步应用，改用严格 `AppliedAVViewTransaction` 后不再加载通用 `transaction.promise`；目标返回路径归零，Applied/Undo 位于 SCC 外。事务与定位专项 `9/9`、Node `193/193`、契约类型和 lint 通过；生产图 `2219 / 431 / SCC 650`。当前 Presentation 返回根渲染的最短边转为 `scrollCenter -> Layout/Wnd -> editor`，下一阶段按 DOM 滚动与布局编排真实所有权拆分。
 - **2026-07-27**：定位 Presentation 改为经自身网关直达纯 `scrollTargetIntoView`；同一滚动公式从编辑器综合 helper 归位为稳定 DOM 原语，`start` 的配置间距显式参数化，完整 `scrollCenter` 继续拥有 Selection/Range 回退。滚动/定位专项 `7/7`、Node `193/193`、契约类型、目标 lint 与网关门禁通过；生产图 `2221 / 391 / SCC 648`，Presentation 退出 SCC，最大 SCC 减少 `2` 个节点。当前首条代表环已转为 `render -> gallery -> render.table -> calc -> transaction.promise`。
+- **2026-07-27**：建立 [AV 计算菜单与事务职责拆分](./AV计算菜单与事务职责拆分.ttt.md)。确认通用本地事务分派对 `setAttrViewColCalc/updateAttrViewColRollup` 无处理分支后，提取共享同步指示器和 Prepared Transaction 内核；View/Calc 各自严格限制 action，Calc 三个调用点不再加载 `transaction.promise`。专项 `17/17`、Node `193/193`、契约类型、新模块 lint 与网关门禁通过；生产图 `2226 / 394 / SCC 647`，Calc 和两个事务叶子均退出 SCC。新的首环转为 Table Row/BlockAttr/Asset 菜单返回路径；632 行 Calc 继续由专项拆分，未提前归档。
