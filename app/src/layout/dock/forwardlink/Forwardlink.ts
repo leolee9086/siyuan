@@ -47,7 +47,7 @@ export class Forwardlink extends Model<AppFacade, Tab> {
     public blockId: string;
     public rootId: string;
     public tree!: TreeDomain;
-    private notebookId: string = "";
+    public notebookId: string = "";
     public editors: ProtyleDomain[] = [];
     public status: IForwardlinkStatus = {};
 
@@ -58,20 +58,25 @@ export class Forwardlink extends Model<AppFacade, Tab> {
         rootId?: string,
         type: "pin" | "local"
     }) {
-        super({
-            app: options.app,
+        super({app: options.app});
+
+        this.blockId = options.blockId;
+        this.rootId = options.rootId || options.blockId;
+        this.type = options.type;
+        this.element = options.tab.panelElement;
+
+        this.connect({
             id: options.tab.id,
             /**
              * 初始化回调
              * 
              * 作用：在 Model 基类初始化完成后执行，检查块是否存在
-             * 调用时机：Model 构造函数完成后自动调用
+             * 调用时机：Model 连接建立后执行
              */
-            callback(this: Forwardlink) {
+            callback: () => {
                 // 仅对本地类型检查块是否存在，pin 类型是全局共享的
-                // 注意：使用 options.type 而非 this.type，因为此时 super() 还未完成，this.type 尚未赋值
                 if (options.type === "local") {
-                    fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
+                    fetchPost("/api/block/checkBlockExist", {id: this.blockId}, (existResponse) => {
                         // 块不存在时关闭标签页
                         if (!existResponse.data) {
                             this.parent.parent.removeTab(this.parent.id);
@@ -85,19 +90,14 @@ export class Forwardlink extends Model<AppFacade, Tab> {
              * 作用：响应系统消息事件（如重命名、卸载、删除文档）
              * 调用时机：Model 基类收到 WebSocket 消息时自动调用
              */
-            msgCallback(this: Forwardlink, data) {
+            msgCallback: (data) => {
                 // 仅对本地类型响应消息回调,pin 类型不需要响应这些事件
                 // 因为 pin 类型是全局共享的,不与特定文档绑定
-                // 注意：使用 options.type 而非 this.type，因为此时 super() 还未完成，this.type 尚未赋值
                 if (data && options.type === "local") {
                     处理消息回调(this, data);
                 }
             }
         });
-        this.blockId = options.blockId;
-        this.rootId = options.rootId || options.blockId;
-        this.type = options.type;
-        this.element = options.tab.panelElement;
         this.element.classList.add("fn__flex-column", "file-tree", "sy__forwardlink");
 
         const defaultSort = "0"; // 默认按文件名升序

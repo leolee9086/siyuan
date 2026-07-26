@@ -5,7 +5,7 @@
  * 意图：保持单个文件行数在 300 行以内
  */
 
-import type { Forwardlink } from "./Forwardlink";
+import type {ForwardlinkDomain} from "./Forwardlink.types";
 import { 设置面板焦点, 切换列表项展开, 执行正向链接搜索 } from "./Forwardlink.helpers";
 
 /**
@@ -35,7 +35,7 @@ function 处理输入框失焦(
  * @param siyuanI18n - 国际化对象
  */
 export function 绑定输入框事件(
-    forwardlink: Forwardlink,
+    forwardlink: ForwardlinkDomain,
     siyuanI18n: { filter: string }
 ): void {
     for (const item of forwardlink.inputsElement) {
@@ -61,7 +61,7 @@ export function 绑定输入框事件(
  * 绑定 Tree 滚动事件，用于隐藏 gutters 和高亮
  * @param forwardlink - Forwardlink 实例
  */
-export function 绑定Tree滚动事件(forwardlink: Forwardlink): void {
+export function 绑定Tree滚动事件(forwardlink: ForwardlinkDomain): void {
     forwardlink.tree.element.addEventListener("scroll", () => {
         const gutterElements = forwardlink.tree.element.querySelectorAll(".protyle-gutters");
         for (const item of gutterElements) {
@@ -79,7 +79,7 @@ export function 绑定Tree滚动事件(forwardlink: Forwardlink): void {
  * 绑定折叠按钮事件
  * @param forwardlink - Forwardlink 实例
  */
-export function 绑定折叠按钮事件(forwardlink: Forwardlink): void {
+export function 绑定折叠按钮事件(forwardlink: ForwardlinkDomain): void {
     const collapseElement = forwardlink.element.querySelector('[data-type="collapse"]');
     if (!collapseElement) {
         return;
@@ -100,7 +100,7 @@ export function 绑定折叠按钮事件(forwardlink: Forwardlink): void {
  * 绑定展开按钮事件
  * @param forwardlink - Forwardlink 实例
  */
-export function 绑定展开按钮事件(forwardlink: Forwardlink): void {
+export function 绑定展开按钮事件(forwardlink: ForwardlinkDomain): void {
     const expandElement = forwardlink.element.querySelector('[data-type="expand"]');
     if (!expandElement) {
         return;
@@ -126,7 +126,7 @@ export function 绑定展开按钮事件(forwardlink: Forwardlink): void {
  * 使用 Object Literal 替代 switch 语句
  */
 function 创建工具栏操作映射(
-    forwardlink: Forwardlink,
+    forwardlink: ForwardlinkDomain,
     getDockByType: (type: string) => { toggleModel: (type: string, show: boolean, close: boolean) => void } | undefined,
     showSortMenu: (sort: string, element: HTMLElement, callback: () => void) => void,
     getSiyuanGlobalMenusMenu: () => { popup: (pos: { x: number; y: number }) => void }
@@ -161,7 +161,7 @@ function 创建工具栏操作映射(
  */
 function 处理主元素点击(
     event: MouseEvent,
-    forwardlink: Forwardlink,
+    forwardlink: ForwardlinkDomain,
     操作映射: Record<string, (target: HTMLElement, event: MouseEvent) => void>
 ): void {
     设置面板焦点(forwardlink);
@@ -193,7 +193,7 @@ function 处理主元素点击(
  * @param getSiyuanGlobalMenusMenu - 获取全局菜单的函数
  */
 export function 绑定主元素点击事件(
-    forwardlink: Forwardlink,
+    forwardlink: ForwardlinkDomain,
     getDockByType: (type: string) => { toggleModel: (type: string, show: boolean, close: boolean) => void } | undefined,
     showSortMenu: (sort: string, element: HTMLElement, callback: () => void) => void,
     getSiyuanGlobalMenusMenu: () => { popup: (pos: { x: number; y: number }) => void }

@@ -1,7 +1,9 @@
 /** 用途：模型完整公共根。使用范围：Forwardlink 领域生命周期。解耦评估：不加载 Model 实现。 */
-import type {ILayoutModelHost} from "../../lifecycle/model.types";
-/** 用途：模型完整公共根。使用范围：Forwardlink 领域生命周期。解耦评估：不加载 Model 实现。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+/** 用途：布局页签完整领域根。使用范围：Forwardlink 宿主生命周期。解耦评估：不加载 Tab 实现。 */
+import type {LayoutTab} from "../../layout.types";
+/** 用途：应用完整抽象外观。使用范围：Forwardlink 调用编辑器与宿主能力。解耦评估：不加载 App 实现。 */
+import type {AppFacade} from "../../../app/AppFacade.types";
 /** 用途：Tree 完整领域根。使用范围：Forwardlink 链接树。解耦评估：不加载 Tree 实现。 */
 import type {TreeDomain} from "../../../util/file/tree.types";
 /** 用途：Protyle 完整领域根。使用范围：Forwardlink 内嵌编辑器集合。解耦评估：不加载 Protyle 实现。 */
@@ -95,8 +97,8 @@ export interface ForwardlinkRenderData {
 
 /** Forwardlink class 的完整公共领域表面。 */
 export interface ForwardlinkDomain<
-    TApplication extends object = object,
-    TParent extends ILayoutModelHost = ILayoutModelHost,
+    TApplication extends object = AppFacade,
+    TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [forwardlinkModelBrand]: "Forwardlink";
     element: HTMLElement;
@@ -104,6 +106,7 @@ export interface ForwardlinkDomain<
     type: "pin" | "local";
     blockId: string;
     rootId: string;
+    notebookId: string;
     tree: TreeDomain;
     editors: ProtyleDomain[];
     status: IForwardlinkStatus;

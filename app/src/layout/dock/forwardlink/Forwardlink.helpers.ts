@@ -10,14 +10,14 @@ import { getIconByType } from "../../../editor/getIcon";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { searchForwardLinks, fetchBlocks } from "./Forwardlink.data";
 import { IForwardlinkTreeNode } from "./Forwardlink.types";
-import type { Forwardlink } from "./Forwardlink";
+import type {ForwardlinkDomain} from "./Forwardlink.types";
 
 /**
  * 销毁指定元素关联的编辑器实例
  * @param forwardlink - Forwardlink 实例
  * @param element - 可能包含编辑器或本身就是编辑器的元素
  */
-function 销毁编辑器实例(forwardlink: Forwardlink, element: HTMLElement): void {
+function 销毁编辑器实例(forwardlink: ForwardlinkDomain, element: HTMLElement): void {
     // 可能是容器也可能是编辑器本身
     const editorElement = element.classList.contains("protyle")
         ? element
@@ -43,7 +43,7 @@ function 销毁编辑器实例(forwardlink: Forwardlink, element: HTMLElement): 
  * 设置面板焦点
  * @param forwardlink - Forwardlink 实例
  */
-export function 设置面板焦点(forwardlink: Forwardlink): void {
+export function 设置面板焦点(forwardlink: ForwardlinkDomain): void {
     // local 类型的面板嵌入在标签页的内层容器中，DOM 层级为: element -> panelElement -> Tab
     // 需要向上查找两级获取真正的面板容器；而 pin 类型直接挂载在 Dock 根元素上，element 本身即为容器
     const panelElement = forwardlink.element.parentElement?.parentElement;
@@ -61,7 +61,7 @@ export function 设置面板焦点(forwardlink: Forwardlink): void {
  * @param forwardlink - Forwardlink 实例
  * @param liElement - 要折叠的列表项元素
  */
-export function 折叠列表项(forwardlink: Forwardlink, liElement: HTMLElement): void {
+export function 折叠列表项(forwardlink: ForwardlinkDomain, liElement: HTMLElement): void {
     const nextSibling = liElement.nextElementSibling;
     // 如果没有后续节点或者不是 HTMLElement 则无需后续处理
     if (!(nextSibling instanceof HTMLElement)) {
@@ -95,7 +95,7 @@ export function 折叠列表项(forwardlink: Forwardlink, liElement: HTMLElement
  * @param liElement - 要展开的列表项元素
  * @param docId - 文档 ID
  */
-export async function 获取并渲染块列表(forwardlink: Forwardlink, liElement: HTMLElement, docId: string): Promise<void> {
+export async function 获取并渲染块列表(forwardlink: ForwardlinkDomain, liElement: HTMLElement, docId: string): Promise<void> {
     const blocks = await fetchBlocks(forwardlink.rootId, docId);
     // 无块数据时不渲染
     if (blocks.length === 0) {
@@ -131,7 +131,7 @@ export async function 获取并渲染块列表(forwardlink: Forwardlink, liEleme
  * @param liElement - 要展开的列表项元素
  * @param blockId - 块 ID
  */
-export function 渲染块编辑器(forwardlink: Forwardlink, liElement: HTMLElement, blockId: string): void {
+export function 渲染块编辑器(forwardlink: ForwardlinkDomain, liElement: HTMLElement, blockId: string): void {
     const wrapper = document.createElement("li");
     wrapper.setAttribute("data-type", "wrapper");
     wrapper.style.display = "block";
@@ -169,7 +169,7 @@ export function 渲染块编辑器(forwardlink: Forwardlink, liElement: HTMLElem
  * @param forwardlink - Forwardlink 实例
  * @param liElement - 目标列表项元素
  */
-export function 切换列表项展开(forwardlink: Forwardlink, liElement: HTMLElement): void {
+export function 切换列表项展开(forwardlink: ForwardlinkDomain, liElement: HTMLElement): void {
     const svgElement = liElement.firstElementChild?.firstElementChild;
     if (!svgElement) {
         return;
@@ -245,7 +245,7 @@ export function 转换项为树节点(item: IForwardlinkTreeNode) {
  * @param forwardlink - Forwardlink 实例
  * @param init - 是否为初始化调用
  */
-export async function 执行正向链接搜索(forwardlink: Forwardlink, init = false): Promise<void> {
+export async function 执行正向链接搜索(forwardlink: ForwardlinkDomain, init = false): Promise<void> {
     const element = forwardlink.element.querySelector('.block__icon[data-type="refresh"] svg');
     // 正在加载中，避免重复触发
     if (element?.classList.contains("fn__rotate")) {
