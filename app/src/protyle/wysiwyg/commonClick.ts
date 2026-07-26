@@ -4,7 +4,6 @@ import { openAttr } from "../../menus/commonMenuItem";
 import { openGlobalSearch } from "../../search/util";
 import { isMobile } from "../../util/platform/functions";
 import { isOnlyMeta } from "../util/compatibility";
-import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 
 /**
  * 处理 protyle 属性区域（书签、命名、别名、备注等）的点击事件。
@@ -81,7 +80,7 @@ const handleDatabaseAttrClick = (options: {
         protyle.databaseAttributePanel.toggle();
         return true;
     }
-    zoomOut({protyle, id: blockID});
+    protyle.getInstance().zoomOut({id: blockID});
     return true;
 };
 

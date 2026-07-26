@@ -15,7 +15,6 @@ import { withEncryptedNotebook } from "../../util/pathName";
 import { genEmptyElement } from "../../block/element.factory";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { hideElements } from "../ui/hideElements";
 import { genAssetHTML } from "../../asset/renderAssets";
 import { unicode2Emoji } from "../../emoji";
@@ -622,7 +621,7 @@ export const hintMoveBlock = (pathString: string, sourceElements: Element[], pro
             if (!id) {
                 throw new Error("Block id is missing");
             }
-            zoomOut({ protyle, id, focusId: id });
+            protyle.getInstance().zoomOut({id, focusId: id});
         }, Constants.TIMEOUT_INPUT * 2 + 100);
     } else if (parentElement && parentElement.classList.contains("protyle-wysiwyg") && parentElement.innerHTML === "" &&
         !hasClosestByClassName(parentElement, "block__edit", true) &&

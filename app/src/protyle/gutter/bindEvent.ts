@@ -7,7 +7,6 @@ import {
     isInEmbedBlock
 } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";
@@ -365,7 +364,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                     });
                 });
             } else {
-                zoomOut({ protyle, id });
+                protyle.getInstance().zoomOut({id});
             }
         } else if (event.altKey) {
             const foldElement = getGutterNodeElement(protyle, buttonElement);

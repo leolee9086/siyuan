@@ -21,7 +21,6 @@ import { rebalanceSbWidth, refreshSbResize } from "../../block/util";
 import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../util/blockFold";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { preventScroll } from "../scroll/preventScroll";
 import { hideElements } from "../ui/hideElements";
 import { Constants } from "../../constants";
@@ -232,7 +231,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
             if (protyle.block.showAll && sideElement.classList.contains("protyle-wysiwyg") && protyle.wysiwyg.element.childElementCount === 0) {
                 setTimeout(() => {
                     if (document.contains(protyle.element)) {
-                        zoomOut({ protyle, id: protyle.block.parent2ID, focusId: protyle.block.parent2ID });
+                        protyle.getInstance().zoomOut({id: protyle.block.parent2ID, focusId: protyle.block.parent2ID});
                     }
                 }, Constants.TIMEOUT_INPUT * 2 + 100);
             } else {

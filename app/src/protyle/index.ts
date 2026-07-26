@@ -48,6 +48,7 @@ import {setFoldById} from "./util/blockFold";
 import { zoomOut } from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../platform";
 import { setEditMode } from "./util/setEditMode";
+import type {ProtyleZoomOutOptions} from "./protyle.types";
 
 export class Protyle {
 
@@ -338,8 +339,7 @@ export class Protyle {
         if (this.protyle.block.showAll && hasDeleteOp) {
             fetchPost("/api/block/checkBlockExist", { id: this.protyle.block.id }, response => {
                 if (!response.data) {
-                    zoomOut({
-                        protyle: this.protyle,
+                    this.zoomOut({
                         id: this.protyle.block.rootID
                     });
                 }
@@ -352,8 +352,7 @@ export class Protyle {
                 if (this.protyle.options.handleEmptyContent) {
                     this.protyle.options.handleEmptyContent();
                 } else {
-                    zoomOut({
-                        protyle: this.protyle,
+                    this.zoomOut({
                         id: this.protyle.block.rootID,
                         focusId: this.protyle.block.id
                     });
@@ -581,5 +580,12 @@ export class Protyle {
 
     public switchMode(mode: TEditorMode) {
         setEditMode(this.protyle, mode);
+    }
+
+    public zoomOut(options: ProtyleZoomOutOptions) {
+        zoomOut({
+            ...options,
+            protyle: this.protyle,
+        });
     }
 }

@@ -10,7 +10,6 @@ import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
 import { setFold } from "../util/blockFold";
 import { enterBack } from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openWechatNotify } from "../../menus/commonMenuItem/commonMenuItem.openWechatNotify";
 import { updateHotkeyAfterTip, updateHotkeyTip } from "../util/compatibility";
@@ -48,7 +47,7 @@ const 创建进入菜单项 = (ctx: IGutterCommonMenuContext) => ({
     accelerator: `${getSiyuanConfig().keymap.general.enter.custom ? updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + siyuanI18n.click)}`,
     label: siyuanI18n.enter,
     click: () => {
-        zoomOut({ protyle: ctx.protyle, id: ctx.id });
+        ctx.protyle.getInstance().zoomOut({id: ctx.id});
     }
 });
 

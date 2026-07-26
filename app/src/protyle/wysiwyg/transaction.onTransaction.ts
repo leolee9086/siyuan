@@ -3,7 +3,6 @@ import { blockRender } from "../render/blockRender";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../render/highlightRender";
 import { isInEmbedBlock } from "../util/hasClosest";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { disabledProtyle } from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {refreshAV} from "../render/av/render.refresh";
@@ -172,8 +171,7 @@ const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isU
                 }
             });
             if (protyle.wysiwyg.element.childElementCount === 0) {
-                zoomOut({
-                    protyle,
+                protyle.getInstance().zoomOut({
                     id: protyle.block.rootID,
                     isPushBack: false,
                     focusId: operation.id,
@@ -186,8 +184,7 @@ const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isU
         if (updateElements.length > 0 || !isUndo) {
             deleteBlock(updateElements, operation.id, protyle, isUndo);
         } else if (isUndo) {
-            zoomOut({
-                protyle,
+            protyle.getInstance().zoomOut({
                 id: protyle.block.rootID,
                 isPushBack: false,
                 focusId: operation.id,
@@ -227,8 +224,7 @@ const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isU
         if (updateElements.length > 0) {
             updateBlock(updateElements, protyle, operation, isUndo);
         } else if (isUndo) {
-            zoomOut({
-                protyle,
+            protyle.getInstance().zoomOut({
                 id: protyle.block.rootID,
                 isPushBack: false,
                 focusId: operation.id,

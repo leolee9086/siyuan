@@ -7,7 +7,6 @@ import { fetchPost } from "../../util/network/fetch";
 import { hasClosestBlock } from "../util/hasClosest";
 import { listIndent, listOutdent } from "../wysiwyg/list";
 import { onGet } from "../util/onGet";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { openTitleMenu } from "../header/openTitleMenu";
 import { updateReadonly } from "./action";
@@ -48,7 +47,7 @@ function 处理节点ID点击(ctx: 面包屑点击上下文): boolean {
         });
     }
     if (!shouldOpenFile) {
-        zoomOut({ protyle, id });
+        protyle.getInstance().zoomOut({id});
     }
 
     event.preventDefault();
@@ -116,7 +115,7 @@ function 处理退出聚焦(ctx: 面包屑点击上下文): boolean {
     const { event, protyle } = ctx;
     const rootID = protyle.block.rootID ?? "";
     const focusId = protyle.block.id ?? "";
-    zoomOut({ protyle, id: rootID, focusId });
+    protyle.getInstance().zoomOut({id: rootID, focusId});
     event.stopPropagation();
     event.preventDefault();
     return true;
@@ -129,7 +128,7 @@ function 处理上下文切换(ctx: 面包屑点击上下文): boolean {
 
     const blockId = protyle.options?.blockId ?? "";
     if (target.classList.contains("block__icon--active")) {
-        zoomOut({ protyle, id: blockId });
+        protyle.getInstance().zoomOut({id: blockId});
         target.classList.remove("block__icon--active");
         return true;
     }

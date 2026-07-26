@@ -528,7 +528,7 @@ interface IProtyle {
         rangeIndex: number
         styleElement: HTMLStyleElement
     }
-    getInstance: () => import("../protyle").Protyle,
+    getInstance: () => import("../protyle/protyle.types").ProtyleDomain,
     observerLoad?: ResizeObserver,
     observer?: ResizeObserver,
     app: import("../app/AppFacade.types").AppFacade,

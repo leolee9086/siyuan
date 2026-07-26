@@ -1,3 +1,12 @@
+/** 退出编辑器聚焦模式所需的完整公开参数；Protyle 实例自身提供编辑器状态。 */
+export interface ProtyleZoomOutOptions {
+    id: string;
+    focusId?: string;
+    isPushBack?: boolean;
+    callback?: () => void;
+    reload?: boolean;
+}
+
 /** Protyle class 的完整公共领域表面；宿主模块依赖此类型而不加载编辑器实现。 */
 export interface ProtyleDomain {
     readonly version: string;
@@ -24,4 +33,5 @@ export interface ProtyleDomain {
     getSelectedBlockElements(): NodeListOf<Element>;
     getSelectedBlockIds(): void;
     switchMode(mode: TEditorMode): void;
+    zoomOut(options: ProtyleZoomOutOptions): void;
 }

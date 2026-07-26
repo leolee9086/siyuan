@@ -4,7 +4,6 @@ import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { net2LocalAssets } from "./action";
 import { uploadFiles } from "../upload";
 import { isMobile } from "../../platform";
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { Menu } from "../../plugin/Menu";
 import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";
@@ -93,7 +92,7 @@ function 处理移动端菜单响应(
             icon: getIconByType(item.type, item.subType),
             label: item.name,
             click() {
-                zoomOut({ protyle, id: item.id });
+                protyle.getInstance().zoomOut({id: item.id});
             }
         });
     }

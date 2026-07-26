@@ -1,4 +1,3 @@
-import { zoomOut } from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { genEmptyElement } from "../../block/element.factory";
 import { getTopAloneElement } from "./getBlock";
 import { fetchPost } from "../../util/network/fetch";
@@ -71,8 +70,7 @@ export const removeTopElement = (updateElement: Element, protyle: IProtyle) => {
             });
             protyle.wysiwyg.element.innerHTML = newElement.outerHTML;
         } else {
-            zoomOut({
-                protyle,
+            protyle.getInstance().zoomOut({
                 id: protyle.block.rootID,
                 isPushBack: false,
                 focusId: protyle.block.id,

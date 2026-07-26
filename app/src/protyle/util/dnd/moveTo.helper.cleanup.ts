@@ -2,7 +2,6 @@ import { genEmptyElement } from "../../../block/element.factory";
 import { cancelSB } from "../../../block/util.cancelSB";
 import { getParentBlock, getPreviousBlockSibling, getSbChildBlockCount, getTopAloneElement } from "../../wysiwyg/getBlock";
 import { findProtyleForElement } from "../../runtime/layout.port";
-import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { isMobile } from "../../../platform";
 import { IMoveContext } from "./moveTo.types";
 
@@ -119,7 +118,7 @@ const handleEmptyRoot = async (element: HTMLElement, context: IMoveContext) => {
     }
 
     if (sourceProtyle.block.showAll) {
-        zoomOut({protyle: sourceProtyle, id: sourceProtyle.block.rootID});
+        sourceProtyle.getInstance().zoomOut({id: sourceProtyle.block.rootID});
         return;
     }
 

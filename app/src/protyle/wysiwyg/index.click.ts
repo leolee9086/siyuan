@@ -21,7 +21,6 @@ import {isMobile} from "../../util/platform/functions";
 import {setFold} from "../util/blockFold";
 import {enterBack} from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
-import {zoomOut} from "../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import {openAttr} from "../../menus/commonMenuItem";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
@@ -354,7 +353,7 @@ function handleListItemAction(
     } else if (event.shiftKey && !protyle.disabled) {
         openAttr(actionElement.parentElement, "bookmark", protyle);
     } else if (ctrlIsPressed) {
-        zoomOut({ protyle, id: actionId });
+        protyle.getInstance().zoomOut({id: actionId});
     } else {
         if (actionElement.classList.contains("protyle-action--task")) {
             if (!protyle.disabled) {
@@ -364,7 +363,7 @@ function handleListItemAction(
             if (protyle.block.showAll && protyle.block.id === actionId) {
                 enterBack(protyle, actionId);
             } else {
-                zoomOut({ protyle, id: actionId });
+                protyle.getInstance().zoomOut({id: actionId});
             }
         }
     }
