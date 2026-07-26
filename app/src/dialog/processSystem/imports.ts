@@ -9,7 +9,7 @@
  * 使用范围：`processSystem` 目录中的系统动作触发流程，例如锁屏后的注销鉴权请求。
  * 解耦评估：网络请求属于基础设施能力，理论上可通过依赖注入传入，但当前该目录函数均为框架触发的轻量流程函数，直接经由转发层暴露更符合现有架构边界。
  */
-import { fetchPost } from "../../card/imports";
+import {fetchPost} from "../../util/network/fetch";
 /** 导出 `fetchPost` 供 `processSystem` 目录复用。 */
 export { fetchPost };
 
@@ -27,7 +27,7 @@ export { exportLayout };
  * 使用范围：`processSystem` 目录内对插件列表等应用级能力进行类型标注的函数参数。
  * 解耦评估：类型导入不形成运行时耦合，保留统一转发可降低业务文件路径噪音。
  */
-import type { AppFacade } from "../../plugin/imports";
+import type {AppFacade} from "../../app/AppFacade.types";
 /** 导出类型 `AppFacade` 供 `processSystem` 目录复用。 */
 export type { AppFacade };
 
@@ -36,7 +36,7 @@ export type { AppFacade };
  * 使用范围：系统流程中区分移动端与桌面端的锁屏、退出、布局保存分支。
  * 解耦评估：平台判断理论上可由调用者预先传入，但这些流程函数本身即以运行环境为分支条件，继续通过转发层集中依赖更清晰。
  */
-import { isMobile } from "../../plugin/imports";
+import {isMobile} from "../../util/platform/functions";
 /** 导出 `isMobile` 供 `processSystem` 目录复用。 */
 export { isMobile };
 
@@ -81,6 +81,6 @@ export { getSiyuanIsPublish };
  * 使用范围：`processSystem` 目录中需要遍历所有编辑器实例以更新界面状态的流程，如动态链接锚文本更新。
  * 解耦评估：编辑器实例访问是通过 `layout/getAll` 提供的全局工具函数，目前尚未抽象为编辑器服务注入；通过本转发层收敛后再逐步推动服务化改造。
  */
-import { getAllEditor } from "../../plugin/imports";
+import {getAllEditor} from "../../layout/getAll";
 /** 导出 `getAllEditor` 供 `processSystem` 目录复用。 */
 export { getAllEditor };
