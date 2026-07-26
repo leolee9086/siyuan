@@ -100,9 +100,3 @@ export const getDialogPositionStorage = (): IObject => {
 export const isReadOnlyMode = (): boolean => {
     return window.siyuan?.config?.readonly ?? false;
 };
-
-/** @同步豁免: UI构建 - 获取PDF加载中消息 */
-export const getPdfLoadingMessage = (): string => {
-     
-    return window.siyuan?.languages?.pdfIsLoading ?? "PDF is loading";
-};

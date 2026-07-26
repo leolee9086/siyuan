@@ -58,7 +58,7 @@ export { openExternal };
  * 使用范围：iframeMenu.open.ts 的浏览器打开动作
  * 解耦评估：兼容层能力属于外部依赖，适合在 imports.ts 转发
  */
-import { openByMobile } from "../../../protyle/util/compatibility";
+import {openByMobile} from "../../../editor/openLink";
 /** 导出 openByMobile */
 export { openByMobile };
 

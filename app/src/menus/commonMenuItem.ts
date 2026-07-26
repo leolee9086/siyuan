@@ -860,7 +860,7 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
                 label: window.siyuan.languages.insertRight,
                 accelerator: showAccelerator ? window.siyuan.languages.click : "",
                 click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
+                    openAsset(app, {assetPath: src.trim(), page: parseInt(getSearch("page", src)), position: "right"});
                 }
             });
             submenu.push({
@@ -869,7 +869,7 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
                 icon: "iconOpen",
                 accelerator: showAccelerator ? "⌥" + window.siyuan.languages.click : "",
                 click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)));
+                    openAsset(app, {assetPath: src.trim(), page: parseInt(getSearch("page", src))});
                 }
             });
             if (isElectron) {

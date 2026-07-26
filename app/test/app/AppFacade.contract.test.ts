@@ -4,6 +4,7 @@ import {fileURLToPath} from "node:url";
 import {readdirSync, readFileSync, statSync} from "node:fs";
 import {join, relative} from "node:path";
 import type * as LocalApp from "../../src/index";
+import type * as MobileApp from "../../src/mobile/index";
 import type * as LocalEventBus from "../../src/plugin/EventBus";
 import type * as LocalPlugin from "../../src/plugin";
 import type {Asset} from "../../src/asset";
@@ -18,12 +19,17 @@ type AppFacadeContract = InstanceLooksLike<
     typeof LocalApp.App,
     AppFacade<Siyuan.Plugin, LocalEventBus.EventBus>
 >;
+type MobileAppFacadeContract = InstanceLooksLike<
+    typeof MobileApp.App,
+    AppFacade<Siyuan.Plugin, LocalEventBus.EventBus>
+>;
 type PluginCompatibility = IsAssignable<LocalPlugin.Plugin, SiyuanPluginRuntimeContract>;
 type EventBusCompatibility = IsAssignable<LocalEventBus.EventBus, Siyuan.EventBus>;
 type PluginDockIngressCompatibility = IsAssignable<Siyuan.IPluginDockTab, IPluginDockTab>;
 type AssetWindowHashCompatibility = IsAssignable<Asset, IWindowHashModel>;
 
 const appFacadeContract: AppFacadeContract = true;
+const mobileAppFacadeContract: MobileAppFacadeContract = true;
 const pluginCompatibility: PluginCompatibility = true;
 const eventBusCompatibility: EventBusCompatibility = true;
 const pluginDockIngressCompatibility: PluginDockIngressCompatibility = true;
@@ -80,6 +86,7 @@ const concreteAppImportViolations = () => {
 describe("AppFacade contracts", () => {
     it("keeps the complete concrete application public surface equal to the branded facade", () => {
         assert.equal(appFacadeContract, true);
+        assert.equal(mobileAppFacadeContract, true);
         assert.equal(pluginCompatibility, true);
         assert.equal(eventBusCompatibility, true);
         assert.equal(pluginDockIngressCompatibility, true);

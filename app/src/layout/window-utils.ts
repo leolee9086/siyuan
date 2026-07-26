@@ -9,6 +9,7 @@ import { setTabPosition } from "../window/setHeader";
 import { getAllWnds } from "./getAll";
 import type { IEditorRangeData } from "./window-utils.types";
 import { isEditorTab } from "./window-utils.guard";
+export {getWndByLayout} from "./query/layoutInstance";
 
 /**
  * 从编辑器标签页中收集选区位置信息
@@ -251,51 +252,3 @@ export function switchWnd(newWnd: Wnd, targetWnd: Wnd): void {
  * @param b - 第二个窗口
  * @returns 比较结果，-1表示a更活跃，0表示相等或无法比较
  */
-function compareWindowActivity(a: Wnd, b: Wnd): number {
-    // 获取两个窗口中激活标签页的元素
-    const activeElementA = a.element.querySelector(".fn__flex .item--focus");
-    const activeElementB = b.element.querySelector(".fn__flex .item--focus");
-
-    // 获取激活时间属性
-    const timeA = activeElementA?.getAttribute("data-activetime");
-    const timeB = activeElementB?.getAttribute("data-activetime");
-
-    // 如果A的时间大于B的时间，A应该排在前面（返回-1）
-    if (timeA && timeB && timeA > timeB) {
-        return -1;
-    }
-
-    // 其他情况保持原顺序
-    return 0;
-}
-
-/**
- * 根据布局获取最合适的窗口
- *
- * 从布局中收集所有窗口，然后根据窗口中激活标签页的活跃时间排序，
- * 返回最活跃（最近激活）的窗口。
- *
- * 在以下场景调用：
- * - 需要确定当前应该操作的窗口时
- * - 新打开文件需要选择目标窗口时
- * - 布局操作后需要获取焦点窗口时
- *
- * @同步豁免: 需要绝对同步的DOM访问
- *
- * @param layout - 布局对象
- * @returns 最活跃的窗口对象，如果没有窗口则返回undefined
- */
-export function getWndByLayout(layout: Layout): Wnd | undefined {
-    // 收集布局中所有窗口
-    const wndsTemp: Wnd[] = [];
-    getAllWnds(layout, wndsTemp);
-
-    // 如果没有找到任何窗口，返回undefined
-    if (wndsTemp.length === 0) {
-        return undefined;
-    }
-
-    // 按激活时间排序，返回最活跃的窗口
-    wndsTemp.sort(compareWindowActivity);
-    return wndsTemp[0];
-}

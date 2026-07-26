@@ -46,6 +46,9 @@ import {tagModelBrand, isTagDomain} from "../../src/layout/dock/tag/tag.types";
 import type {Search} from "../../src/search";
 import type {SearchDomain} from "../../src/search/model/search.types";
 import {isSearchDomain, searchModelBrand} from "../../src/search/model/search.types";
+import type {Editor} from "../../src/editor";
+import type {EditorDomain} from "../../src/editor/model/editorDomain.types";
+import {editorModelBrand, isEditorDomain} from "../../src/editor/model/editorDomain.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -71,6 +74,7 @@ type CustomContract = PublicInstanceLooksLike<
 >;
 type TagContract = PublicInstanceLooksLike<typeof Tag, TagDomain<AppFacade, Tab>>;
 type SearchContract = PublicInstanceLooksLike<typeof Search, SearchDomain<AppFacade, LayoutTab>>;
+type EditorContract = PublicInstanceLooksLike<typeof Editor, EditorDomain<object, ProtyleDomain>>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -90,6 +94,7 @@ const bookmarkContract: BookmarkContract = true;
 const customContract: CustomContract = true;
 const tagContract: TagContract = true;
 const searchContract: SearchContract = true;
+const editorContract: EditorContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -111,6 +116,7 @@ describe("layout domain contracts", () => {
         assert.equal(customContract, true);
         assert.equal(tagContract, true);
         assert.equal(searchContract, true);
+        assert.equal(editorContract, true);
     });
 
     it("classifies Asset models through the stable domain brand", () => {
@@ -128,5 +134,6 @@ describe("layout domain contracts", () => {
         assert.equal(isCustomDomain({[customModelBrand]: "Custom"}), true);
         assert.equal(isTagDomain({[tagModelBrand]: "Tag"}), true);
         assert.equal(isSearchDomain({[searchModelBrand]: "Search"}), true);
+        assert.equal(isEditorDomain({[editorModelBrand]: "Editor"}), true);
     });
 });

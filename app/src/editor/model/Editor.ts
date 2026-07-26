@@ -16,8 +16,10 @@ import type {IEditorOptions} from "./imports";
 import type {EditorEngineOptions} from "./imports";
 /** 用途：编辑引擎领域身份；使用范围：Editor 泛型；解耦评估：模型不依赖具体 Protyle class。 */
 import type {ProtyleDomain} from "./imports";
-/** 用途：窗口恢复能力；使用范围：Editor class 声明；解耦评估：稳定能力契约不依赖窗口实现。 */
-import type {IWindowHashModel} from "./imports";
+/** 用途：布局页签完整领域根；使用范围：既有挂载流程写入 parent。 */
+import type {LayoutTab} from "../../layout/layout.types";
+/** 用途：Editor 运行时身份；使用范围：布局分类无需加载具体 class；解耦评估：模块级 Symbol 是跨实现与抽象的稳定名义身份，参数传递无法替代对象自身的可判别身份。 */
+import {editorModelBrand} from "./editorDomain.types";
 
 /** 初始化 Editor 持有的 Protyle，并按原顺序执行宿主同步。 */
 function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>(
@@ -96,7 +98,10 @@ function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>
 export class Editor<
     TApplication extends object = object,
     TEditor extends ProtyleDomain = ProtyleDomain,
-> implements IWindowHashModel {
+> {
+    public readonly layoutModel = true as const;
+    public readonly [editorModelBrand] = "Editor" as const;
+    declare public parent: LayoutTab;
     public element: HTMLElement;
     public editor: TEditor;
     public headElement: HTMLElement;

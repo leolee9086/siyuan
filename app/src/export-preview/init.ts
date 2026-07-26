@@ -20,7 +20,8 @@ import {
     requestYuqueMarkdown,
 } from "../protyle/preview/copyToX";
 import { addActionButtons } from "../protyle/preview/actionButtons";
-import { isOnlyMeta, openByMobile } from "../protyle/util/compatibility";
+import {isOnlyMeta} from "../protyle/util/compatibility";
+import {openByMobile} from "../editor/openLink";
 import { isLocalPath, pathPosix } from "../util/file/pathName";
 import { Constants } from "../constants";
 import { getSearch, isMobile } from "../util/platform/functions";
@@ -502,7 +503,7 @@ function handleLocalPathOpen(
     if (Constants.SIYUAN_ASSETS_EXTS.includes(ext)) {
         const assetPath = linkAddress.split("?page")[0] || linkAddress;
         const pageStr = getSearch("page", linkAddress);
-        openAsset(model.app, assetPath, parseInt(pageStr || "0"));
+        openAsset(model.app, {assetPath, page: parseInt(pageStr || "0")});
     }
 }
 

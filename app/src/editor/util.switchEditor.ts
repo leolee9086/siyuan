@@ -1,5 +1,5 @@
-/** 用途：编辑器实例类型。使用范围：switchEditor 参数类型标注。解耦评估：同目录直接导入。 */
-import { Editor } from "./index";
+/** 用途：完整 Editor 领域根。使用范围：切换、定位和动态加载流程不加载具体 class。 */
+import type {EditorDomain} from "./model/editorDomain.types";
 /** 用途：系统常量。使用范围：CB_GET_CONTEXT 等常量。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
 /** 用途：编辑器缩放功能。使用范围：切换编辑器时放大块。解耦评估：通过 ./imports 转发。 */
@@ -47,7 +47,7 @@ function findTargetNode(wysiwyg: Element, targetId: string) {
 /**
  * 加载块内容后的处理
  */
-function handleGetResponse(getResponse: IWebSocketData, editor: Editor, options: IOpenFileOptions, allModels: IModels) {
+function handleGetResponse(getResponse: IWebSocketData, editor: EditorDomain, options: IOpenFileOptions, allModels: IModels) {
     onGet({ data: getResponse, protyle: editor.editor.protyle, action: options.action });
     updateBacklinkGraph(allModels, editor.editor.protyle);
 }
@@ -55,7 +55,7 @@ function handleGetResponse(getResponse: IWebSocketData, editor: Editor, options:
 /**
  * 设置滚动位置观察器，在元素位置变化时重新居中
  */
-function setupScrollObserver(editor: Editor, nodeElement: Element) {
+function setupScrollObserver(editor: EditorDomain, nodeElement: Element) {
     editor.editor.protyle.observerLoad = new ResizeObserver(() => {
         // 元素仍在文档中时重新居中定位
         if (document.contains(nodeElement)) {
@@ -72,7 +72,7 @@ function setupScrollObserver(editor: Editor, nodeElement: Element) {
 /**
  * 处理获取焦点操作（高亮或聚焦）
  */
-function handleFocusAction(nodeElement: Element | undefined, editor: Editor, options: IOpenFileOptions) {
+function handleFocusAction(nodeElement: Element | undefined, editor: EditorDomain, options: IOpenFileOptions) {
     // 高亮模式：使用 highlightById 定位代码块
     if (options.action?.includes(Constants.CB_GET_HL)) {
         highlightById(editor.editor.protyle, options.id, true);
@@ -101,7 +101,7 @@ function handleFocusAction(nodeElement: Element | undefined, editor: Editor, opt
 /**
  * 切换编辑器焦点
  */
-export const switchEditor = async (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {
+export const switchEditor = async (editor: EditorDomain, options: IOpenFileOptions, allModels: IModels) => {
     // keepCursor 模式：标记光标位置后直接返回
     if (options.keepCursor) {
         editor.parent.headElement.setAttribute("keep-cursor", options.id);

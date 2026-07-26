@@ -5,7 +5,7 @@ import { getSafeSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuan
 import { setStorageVal } from "../../../protyle/util/compatibility";
 import { getAllModels } from "../../getAll";
 import { isMobile } from "../../../platform";
-import { Editor } from "../../../editor";
+import type {EditorDomain} from "../../../editor/model/editorDomain.types";
 import type {OutlineDomain} from "./types";
 
 /**
@@ -77,7 +77,7 @@ function handleKeepCurrentExpandFocus(outline: OutlineDomain) {
  * 意图：辅助 handleKeepCurrentExpandFocus，从单个编辑器实例中查找符合条件的块。
  * 调用时机：getAllModels().editor.find 回调中。
  */
-function findFocusBlockInEditor(outline: OutlineDomain, editItem: Editor, onFound: (element: HTMLElement) => void): boolean {
+function findFocusBlockInEditor(outline: OutlineDomain, editItem: EditorDomain, onFound: (element: HTMLElement) => void): boolean {
     /**
      * 作用：确保编辑器匹配当前大纲根块 ID。
      * 意图：只在与当前大纲内容对应的编辑器中查找焦点。

@@ -1,6 +1,6 @@
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "./layout.types";
-import { Editor } from "../editor";
+import {isEditorDomain} from "../editor/model/editorDomain.types";
 import {isGraphDomain} from "./dock/graph/graph.types";
 import {isOutlineDomain} from "./dock/outline/types";
 import {isBacklinkDomain} from "./dock/backlink/backlink.types";
@@ -102,7 +102,7 @@ const createEmptyModels = (): IModels => ({
  */
 const pushModel = (models: IModels, model: LayoutTab["model"]) => {
     // @无需注释
-    if (model instanceof Editor) {
+    if (isEditorDomain(model)) {
         models.editor.push(model);
         return;
     }
@@ -215,7 +215,7 @@ export const getAllWnds = (layout: LayoutDomain, wnds: LayoutWindow[]) => {
 
 const matchesTabModel = (model: LayoutTab["model"], type: TTab | string) => {
     // @无需注释
-    if (model instanceof Search) {
+    if (isSearchDomain(model)) {
         return type === "Search";
     }
     // @无需注释
@@ -223,7 +223,7 @@ const matchesTabModel = (model: LayoutTab["model"], type: TTab | string) => {
         return type === "Asset";
     }
     // @无需注释
-    if (model instanceof Editor) {
+    if (isEditorDomain(model)) {
         return type === "Editor";
     }
     // @无需注释

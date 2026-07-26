@@ -6,7 +6,8 @@ import {Constants} from "../../../constants";
 /// #else
 import {openFile} from "../../../editor/openFile";
 import {openFileById} from "../../../editor/utils.openFileById";
-import {Editor} from "../../../editor";
+import type {EditorDomain} from "../../../editor/model/editorDomain.types";
+import {isEditorDomain} from "../../../editor/model/editorDomain.types";
 import {getAllTabs} from "../../../layout/getAll";
 /// #endif
 
@@ -52,7 +53,7 @@ const openMobileDetachedDatabaseRow = (protyle: IProtyle, data: IDatabaseRowOpen
     });
 };
 /// #else
-const showDatabaseRowPreview = (model: Editor, blockID: string) => {
+const showDatabaseRowPreview = (model: EditorDomain, blockID: string) => {
     if (!model?.editor?.protyle) {
         return;
     }
@@ -63,7 +64,7 @@ const showDatabaseRowPreview = (model: Editor, blockID: string) => {
 
 const getDatabaseRowPreviewTab = (blockID: string) => {
     return getAllTabs().find((tab) => {
-        if (tab.model instanceof Editor) {
+        if (isEditorDomain(tab.model)) {
             return tab.model.editor.protyle.element.dataset.databaseRowId === blockID;
         }
         const initData = tab.headElement?.getAttribute("data-initdata");
@@ -132,7 +133,7 @@ export const openDatabaseRowByData = (protyle: IProtyle, data: IDatabaseRowOpenD
     if (openedTab) {
         openedTab.parent.switchTab(openedTab.headElement);
         openedTab.parent.showHeading();
-        if (openedTab.model instanceof Editor) {
+        if (isEditorDomain(openedTab.model)) {
             showDatabaseRowPreview(openedTab.model, data.boundBlockID);
         }
         return;
@@ -144,8 +145,10 @@ export const openDatabaseRowByData = (protyle: IProtyle, data: IDatabaseRowOpenD
         openNewTab: true,
         removeCurrentTab: false,
         zoomIn: true,
-        afterOpen(model: Editor) {
-            showDatabaseRowPreview(model, data.boundBlockID);
+        afterOpen(model) {
+            if (model && isEditorDomain(model)) {
+                showDatabaseRowPreview(model, data.boundBlockID);
+            }
         },
     });
     /// #endif

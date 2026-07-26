@@ -11,6 +11,7 @@ import {getInstanceById} from "./util";
 import {Tab} from "./Tab";
 import {Backlink} from "./dock/Backlink";
 import {withEncryptedNotebook} from "../util/pathName";
+import {getDockByType} from "./tabUtil";
 
 /** 完整 App 的布局协同适配器；具体布局树和 DOM 查询只允许出现在此边界内。 */
 const appLayoutPort: IProtyleLayoutPort = {
@@ -73,7 +74,7 @@ const appLayoutPort: IProtyleLayoutPort = {
         });
     },
     updatePanel(protyle: IProtyle, options: IProtyleLayoutUpdateOptions) {
-        return updatePanelByEditor({protyle, ...options});
+        return updatePanelByEditor({protyle, ...options}, getDockByType("file"));
     },
     focus(protyle: IProtyle): IProtyleLayoutFocusResult {
         if (isMobile || !protyle.model) {

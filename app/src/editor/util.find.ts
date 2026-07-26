@@ -12,11 +12,11 @@ import { hasClosestByClassName } from "./imports";
 import { getUnInitTab, isSameCustomTab } from "./util.getUnInitTab";
 /** 用途：切换到指定编辑器。使用范围：查找到编辑器后切换焦点。解耦评估：同目录模块直接导入。 */
 import { switchEditor } from "./util.switchEditor";
-/** 用途：编辑器类型。使用范围：查找编辑器函数的返回值类型。解耦评估：同目录模块直接导入。 */
-import { Editor } from "./index";
+/** 用途：完整 Editor 领域根。使用范围：查找结果与切换流程不加载具体 class。 */
+import type {EditorDomain} from "./model/editorDomain.types";
 
 /**  处理找到的编辑器 */
-const handleFoundEditor = (editor: Editor, options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
+const handleFoundEditor = (editor: EditorDomain, options: IOpenFileOptions, allModels: ReturnType<typeof getAllModels>) => {
     // 仅在 PDF 未加载时切换编辑器焦点
     if (!pdfIsLoading(editor.parent.parent.element)) {
         switchEditor(editor, options, allModels);
@@ -109,8 +109,8 @@ export const findAndOpenEditor = (options: IOpenFileOptions, allModels: ReturnTy
     if (options.position || options.openNewTab) {
         return;
     }
-    let editor: Editor | undefined;
-    let activeEditor: Editor | undefined;
+    let editor: EditorDomain | undefined;
+    let activeEditor: EditorDomain | undefined;
     for (const item of allModels.editor) {
         if (item.editor.protyle.block.rootID !== options.rootID) {
             continue;

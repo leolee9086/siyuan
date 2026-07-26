@@ -3,10 +3,7 @@
  * @module layout/util
  */
 
-import type { Tab } from "./Tab";
 import type { Model } from "./Model";
-import type { Layout } from "./index";
-import type { Wnd } from "./Wnd";
 import { fetchPost } from "../util/network/fetch";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
@@ -19,26 +16,14 @@ import type { AppFacade } from "../app/AppFacade.types";
 import { tabRegistry } from "../registry";
 import {createCustomTabModel} from "./dock/dock.factory";
 import {
-    getCenterLayout, getPdfLoadingMessage, isReadOnlyMode, reloadWindow,
+    isReadOnlyMode, reloadWindow,
     resetFilePositionStorage, resetDialogPositionStorage, getFilePositionStorage, getDialogPositionStorage,
-    findInstanceInLayout,
 } from "./util.environment";
 import {
-    isLayoutValue, isWndValue, isTabValue, isCardModelData, isValidScrollPosition,
+    isCardModelData, isValidScrollPosition,
     isValidEditorMode, isValidProtyleAction, toString,
 } from "./util.guard";
-
-/** @同步豁免: UI构建 - 需要同步遍历布局树进行查找 */
-export const getInstanceById = (id: string, layout = getCenterLayout()): Tab | Layout | Wnd | undefined => {
-    if (!layout) {
-        return undefined;
-    }
-    const result = findInstanceInLayout(layout, id);
-    if (isTabValue(result) || isLayoutValue(result) || isWndValue(result)) {
-        return result;
-    }
-    return undefined;
-};
+export {getInstanceById} from "./query/layoutInstance";
 
 /** @同步豁免: UI构建 - 涉及 DOM 操作和页面刷新，需要同步执行 */
 export const resetLayout = (reason?: Error | string): void => {
@@ -61,14 +46,7 @@ export const resetLayout = (reason?: Error | string): void => {
     });
 };
 
-/** @同步豁免: UI构建 - 需要同步检查 DOM 元素状态 */
-export const pdfIsLoading = (element: HTMLElement): boolean => {
-    const isLoading = element.querySelector('.layout-tab-container > [data-loading="true"]') !== null;
-    if (isLoading) {
-        showMessage(getPdfLoadingMessage());
-    }
-    return isLoading;
-};
+export {pdfIsLoading} from "./loading/pdfLoading";
 
 /** @同步豁免: UI构建 - 需要同步创建模型实例并初始化 */
 export const newModelByInitData = (app: AppFacade, tab: Tab, json: IObject): Model | undefined => {
@@ -186,6 +164,7 @@ const buildActionArray = (action: unknown): TProtyleAction[] => {
 export { dockToJSON, initInternalDock, JSONToDock } from "./dock-utils";
 export { saveLayout, exportLayout, getAllLayout, layoutToJSON } from "./layout-serialization";
 export { JSONToCenter, JSONToLayout } from "./layout-deserialization";
-export { switchWnd, getWndByLayout } from "./window-utils";
+export {switchWnd} from "./window-utils";
+export {getWndByLayout} from "./query/layoutInstance";
 export { resizeTopBar, adjustLayout, fixWndFlex1 } from "./ui-utils";
 export { setPanelFocus } from "./utils/setPanelFocus";

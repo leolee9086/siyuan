@@ -1,7 +1,7 @@
 /** 用途：页签类型。使用范围：打开页签操作。解耦评估：通过 ./imports 转发。 */
 import type {LayoutTab} from "./imports";
-/** 用途：编辑器实例类型。使用范围：页签模型类型判断。解耦评估：同目录模块直接导入。 */
-import { Editor } from "./index";
+/** 用途：Editor 完整领域守卫。使用范围：复用分屏页签时不加载具体 class。 */
+import {isEditorDomain} from "./model/editorDomain.types";
 /** 用途：布局窗口完整领域根。使用范围：获取目标窗口。解耦评估：不加载具体 Wnd class。 */
 import type {LayoutWindow} from "./imports";
 /** 用途：布局容器与窗口守卫。使用范围：遍历布局树并收窄实例查询结果。解耦评估：只依赖完整领域根。 */
@@ -120,7 +120,7 @@ const getTargetWnd = (options: IOpenFileOptions, wnd: LayoutWindow) => {
 const findReusableSplitTab = (options: IOpenFileOptions, targetWnd: LayoutWindow, allModels: ReturnType<typeof getAllModels>) => {
     const children = targetWnd.children || [];
     for (const item of children) {
-        if (!item.model || !(item.model instanceof Editor) || item.model.editor.protyle.block.rootID !== options.rootID) {
+        if (!item.model || !isEditorDomain(item.model) || item.model.editor.protyle.block.rootID !== options.rootID) {
             continue;
         }
         void switchEditor(item.model, options, allModels);

@@ -53,7 +53,7 @@ import * as path from "path";
  * 使用范围：需要打开文件或 URL 的菜单操作
  * 解耦评估：可通过事件发射解耦，但当前使用频率较低，直接导入更简洁
  */
-import { openByMobile } from "../util/compatibility";
+import {openByMobile} from "../../editor/openLink";
 
 // ============ 导出 ============
 

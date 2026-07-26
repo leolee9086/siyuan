@@ -1,6 +1,7 @@
 import { adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar } from "../layout/util";
 import { resizeTabs, setTabPosition } from "../layout/tabUtil";
-import { initWindowOpenOverride, isWindows, setStorageVal } from "../protyle/util/compatibility";
+import {isWindows, setStorageVal} from "../protyle/util/compatibility";
+import {initWindowOpenOverride} from "../editor/openLink";
 import { afterExport } from "../protyle/export/util";
 import { onWindowsMsg } from "../window/onWindowsMsg";
 import { initNativeDialogOverride } from "../protyle/util/compatibility";

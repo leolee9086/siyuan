@@ -17,7 +17,8 @@ import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, se
 import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { getAllEditor } from "../layout/getAll";
 import { isEmojiArray, isTab } from "./init.guard";
-import { initNativeDialogOverride, initWindowOpenOverride } from "../protyle/util/compatibility";
+import {initNativeDialogOverride} from "../protyle/util/compatibility";
+import {initWindowOpenOverride} from "../editor/openLink";
 import { isElectron } from "../platform";
 
 /** 处理获取Emoji配置的响应 */

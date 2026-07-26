@@ -24,7 +24,7 @@ import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
 import {goHome} from "../../protyle/wysiwyg/commonHotkey";
 import {isEncryptedBox} from "../../util/pathName";
-import {Editor} from "../../editor";
+import {isEditorDomain} from "../../editor/model/editorDomain.types";
 import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock, focusByWbr} from "../../protyle/util/selection";
@@ -271,8 +271,8 @@ export class Outline extends Model<AppFacade, LayoutTab> {
                     openFileById({
                         app: options.app,
                         id: this.blockId,
-                        afterOpen: (model: Editor) => {
-                            if (model) {
+                        afterOpen: (model) => {
+                            if (model && isEditorDomain(model)) {
                                 if (this.isPreview) {
                                     model.editor.protyle.preview.element.querySelector(".b3-typography").scrollTop = 0;
                                 } else {
@@ -314,7 +314,9 @@ export class Outline extends Model<AppFacade, LayoutTab> {
         fetchPost("/api/outline/getDocOutline", outlineParam, response => {
             this.update(response);
             if (this.blockId) {
-                this.updateDocTitle((options.tab.model as Editor)?.editor?.protyle?.background?.ial, response.data?.length || 0);
+                const tabModel = options.tab.model;
+                this.updateDocTitle(isEditorDomain(tabModel) ? tabModel.editor.protyle.background?.ial : undefined,
+                    response.data?.length || 0);
             }
         });
     }

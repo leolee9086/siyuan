@@ -74,7 +74,8 @@ export { isInMobileApp };
  * 使用范围：exportMd 函数中打开导出的文件
  * 解耦评估：平台兼容层，已通过工具函数封装，无需进一步解耦
  */
-import { openByMobile, saveExportFile } from "../../protyle/util/compatibility";
+import {saveExportFile} from "../../protyle/util/compatibility";
+import {openByMobile} from "../../editor/openLink";
 /** 导出 openByMobile 用于在移动端打开文件 */
 export { openByMobile };
 /** 导出 saveExportFile 用于保存导出文件 */

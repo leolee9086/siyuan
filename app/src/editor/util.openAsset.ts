@@ -14,16 +14,20 @@ import { openFile } from "./openFile";
  * @调用时机 用户点击资产链接或拖拽资产到编辑器时
  * @同步豁免: 生命周期 — 在用户交互中同步打开资产页签
  */
-export const openAsset = (app: AppFacade, assetPath: string, page: number | string, position?: string) => {
-    const suffix = pathPosix().extname(assetPath).split("?")[0];
+export const openAsset = (app: AppFacade, options: {
+    assetPath: string;
+    page?: number | string | undefined;
+    position?: string | null | undefined;
+}) => {
+    const suffix = pathPosix().extname(options.assetPath).split("?")[0] ?? "";
     if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         return;
     }
     openFile({
         app,
-        assetPath,
-        page,
-        position,
+        assetPath: options.assetPath,
+        page: options.page,
+        position: options.position ?? undefined,
         removeCurrentTab: true
     });
 };

@@ -658,7 +658,7 @@ interface ISiyuan {
         bottomDock?: import("../layout/dock").Dock,
     }
     config?: Config.IConf;
-    ws: import("../layout/Model").Model,
+    ws: import("../layout/Model").Model<import("../app/AppFacade.types").AppFacade>,
     ctrlIsPressed?: boolean,
     altIsPressed?: boolean,
     shiftIsPressed?: boolean,
@@ -950,7 +950,7 @@ interface IRiffCard {
 }
 
 interface IModels {
-    editor: import("../editor").Editor[],
+    editor: import("../editor/model/editorDomain.types").EditorDomain[],
     graph: import("../layout/dock/graph/graph.types").GraphDomain[],
     outline: import("../layout/dock/outline/types").OutlineDomain[]
     backlink: import("../layout/dock/backlink/backlink.types").BacklinkDomain[]

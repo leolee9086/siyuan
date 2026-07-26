@@ -8,8 +8,8 @@ import { isMobile } from "./imports";
 import { countSelectWord } from "./imports";
 /** 用途：统计块字数。使用范围：编辑器聚焦时更新统计。解耦评估：通过 ./imports 转发。 */
 import { countBlockWord } from "./imports";
-/** 用途：获取指定类型停靠栏。使用范围：获取文件树实例。解耦评估：通过 ./imports 转发。 */
-import { getDockByType } from "./imports";
+/** 用途：完整 Dock 聚合根。使用范围：从布局调用方传入的文件 Dock 读取模型。 */
+import type {DockDomain} from "./imports";
 /** 用途：编辑器大小调整。使用范围：面板展开/收起时重绘。解耦评估：通过 ./imports 转发。 */
 import { resize } from "./imports";
 /** 用途：按选区范围聚焦编辑器。使用范围：还原编辑器焦点。解耦评估：通过 ./imports 转发。 */
@@ -45,7 +45,7 @@ export const updatePanelByEditor = async (options: {
     pushBackStack: boolean,
     reload: boolean,
     resize: boolean
-}) => {
+}, fileDock: DockDomain | undefined) => {
     const protyle = options.protyle;
     const isValid = protyle && protyle.path;
     if (isValid && protyle.element.classList.contains("fn__none")) {
@@ -53,7 +53,7 @@ export const updatePanelByEditor = async (options: {
     }
 
     if (isValid) {
-        updateActiveProtyle(protyle, options);
+        updateActiveProtyle(protyle, options, fileDock);
     }
     // 切换页签或关闭所有页签时，需更新对应的面板（仅桌面端有大纲和反链面板）
     if (!isMobile) {
@@ -68,7 +68,7 @@ export const updatePanelByEditor = async (options: {
  *
  * 意图：使文件树高亮当前编辑器对应的文件。
  */
-const updateFileTreeSelection = (protyle: IProtyle) => {
+const updateFileTreeSelection = (protyle: IProtyle, fileDock: DockDomain | undefined) => {
     // 意图：如果要定位文件，必须保证 protyle 有路径且包含笔记本 ID。
     const path = protyle.path;
     const notebookId = protyle.notebookId;
@@ -79,7 +79,7 @@ const updateFileTreeSelection = (protyle: IProtyle) => {
     if (!getSiyuanConfig().fileTree.alwaysSelectOpenedFile) {
         return;
     }
-    const fileModel = getDockByType("file")?.data.file;
+    const fileModel = fileDock?.data.file;
     // 意图：确保获取到的 fileModel 是正确的文件树实例。
     if (!fileModel || typeof fileModel !== "object" || !isFilesDomain(fileModel)) {
         return;
@@ -100,7 +100,8 @@ const updateFileTreeSelection = (protyle: IProtyle) => {
  * 意图：将 Protyle 实例相关的更新逻辑从主函数中分离，降低 updatePanelByEditor 的复杂度。
  * 调用时机：updatePanelByEditor 中确认 Protyle 有效时。
  */
-const updateActiveProtyle = (protyle: IProtyle, options: { resize: boolean, focus: boolean, pushBackStack: boolean }) => {
+const updateActiveProtyle = (protyle: IProtyle, options: { resize: boolean, focus: boolean, pushBackStack: boolean },
+    fileDock: DockDomain | undefined) => {
     // 意图：响应调整大小的请求，例如当侧边栏展开/收起时需要重绘编辑器。
     if (options.resize) {
         resize(protyle);
@@ -113,7 +114,7 @@ const updateActiveProtyle = (protyle: IProtyle, options: { resize: boolean, focu
     if (options.focus && options.pushBackStack) {
         recordPushBack(protyle);
     }
-    updateFileTreeSelection(protyle);
+    updateFileTreeSelection(protyle, fileDock);
 
     for (const item of protyle.app.plugins) {
         item.eventBus.emit("switch-protyle", { protyle });

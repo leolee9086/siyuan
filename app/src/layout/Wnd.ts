@@ -13,7 +13,8 @@ import { clearWebFrameCache } from "../platform/electron/webFrame";
 import { newFile } from "../util/file/newFile";
 import { getFrontend, isWindow } from "../util/platform/functions";
 import type { AppFacade } from "../app/AppFacade.types";
-import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
+import {getDockByType, newCenterEmptyTab, resizeTabs} from "./tabUtil";
+import {updatePanelByEditor} from "../editor/util.updatePanelByEditor";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { closeWindow } from "../window/closeWin";
 import { clearCounter } from "../protyle/runtime/status.port";
@@ -283,7 +284,7 @@ export class Wnd {
                                 pushBackStack: true,
                                 reload: false,
                                 resize: true,
-                            });
+                            }, getDockByType("file"));
                             return;
                         }
                     });

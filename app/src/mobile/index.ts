@@ -24,7 +24,6 @@ import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/key
 // S-forge: 新增 isInMobileApp 导入（来自远程）
 import {
     getLocalStorage,
-    initWindowOpenOverride,
     isChromeBrowser,
     isInIOS,
     isInMobileApp,
@@ -37,7 +36,10 @@ import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { registerServiceWorker } from "../util/network/serviceWorker";
-import { loadPlugins } from "../plugin/loader";
+import {addPluginDock, loadPlugins, reloadPluginData} from "../plugin/loader";
+import {EventBus} from "../plugin/EventBus";
+import {appFacadeBrand} from "../app/AppFacade.types";
+import type * as Siyuan from "siyuan";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { removeBlock } from "../protyle/wysiwyg/remove";
 import { isNotEditBlock } from "../protyle/wysiwyg/getBlock";
@@ -56,11 +58,17 @@ import { armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusab
 
 import { activateQueuedAVLocate, queueAVLocateRequest } from "../protyle/render/av/locate";
 import { ensureOnboarding } from "../onboarding";
-import { openByMobile } from "../editor/openLink";
+import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 
-class App {
-    public plugins: import("../plugin").Plugin[] = [];
+export class App {
+    public readonly [appFacadeBrand] = "AppFacade" as const;
+    public plugins: Siyuan.Plugin[] = [];
     public appId: string;
+    public eventBus = new EventBus(document);
+    public pluginHost = {
+        reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
+        addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
+    };
 
     constructor() {
         if (checkPublishServiceClosed()) {

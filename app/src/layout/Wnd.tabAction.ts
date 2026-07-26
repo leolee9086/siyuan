@@ -33,7 +33,7 @@ import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 import { closeWindow } from "../window/closeWin";
 import { setTitle } from "../util/processTitle";
-import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
+import {getDockByType, newCenterEmptyTab, resizeTabs} from "./tabUtil";
 import { clearOBG } from "./dock/util";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { setStorageVal } from "../protyle/util/compatibility";
@@ -128,7 +128,7 @@ export function removeTabAction(
                                 pushBackStack: true,
                                 reload: false,
                                 resize: true,
-                            });
+                            }, getDockByType("file"));
                             return;
                         }
                     });

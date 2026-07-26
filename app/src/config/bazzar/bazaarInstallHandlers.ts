@@ -10,7 +10,7 @@ import { uninstall } from "../../plugin/uninstall";
 import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { saveLayout } from "../../layout/util";
-import { openByMobile } from "../../protyle/util/compatibility";
+import {openByMobile} from "../../editor/openLink";
 
 export const handleSwitch = (dataObj: any, bazaar: any, app: AppFacade) => {
     const bazaarType = dataObj.bazaarType as TBazaarType;

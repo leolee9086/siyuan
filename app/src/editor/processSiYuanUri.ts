@@ -12,8 +12,8 @@ import {ipcSend} from "../platform/electron/ipcRenderer";
 import {openFileById} from "./utils.openFileById";
 /** 用途：打开自定义插件页签。使用范围：插件 URI 未匹配插件实例时。解耦评估：同目录编辑器能力。 */
 import {openFile} from "./openFile";
-/** 用途：应用实例类型。使用范围：URI 处理入口参数。解耦评估：类型导入。 */
-import type { AppFacade } from "./imports";
+/** 用途：完整应用外观。使用范围：URI 块与插件分发。解耦评估：直接依赖应用领域根，不经 Editor 聚合网关反向加载布局实现。 */
+import type {AppFacade} from "../app/AppFacade.types";
 
 const getSiYuanUriAction = (zoomIn: boolean, focus: boolean) => {
     if (zoomIn || focus) {

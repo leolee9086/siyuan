@@ -40,7 +40,7 @@ import { pathPosix } from "../util/file/pathName";
 export { pathPosix };
 
 /** 用途：按实例 ID 获取页签实例。使用范围：editor 模块查找编辑器页签。解耦评估：通过 imports.ts 转发。 */
-import { getInstanceById } from "../layout/util";
+import {getInstanceById} from "../layout/query/layoutInstance";
 /** 导出 getInstanceById，供 editor 模块使用 */
 export { getInstanceById };
 
@@ -70,7 +70,7 @@ import { getAllModels } from "../layout/getAll";
 export { getAllModels };
 
 /** 用途：检查 PDF 是否正在加载。使用范围：editor 切换页签前检查加载状态。解耦评估：通过 imports.ts 转发。 */
-import { pdfIsLoading } from "../layout/util";
+import {pdfIsLoading} from "../layout/loading/pdfLoading";
 /** 导出 pdfIsLoading，供 editor 模块使用 */
 export { pdfIsLoading };
 
@@ -104,6 +104,10 @@ export { useShell };
 import { isElectron } from "../platform";
 /** 导出 isElectron，供 editor 模块使用 */
 export { isElectron };
+/** 用途：浏览器宿主判断。使用范围：window.open 的 SiYuan URI 分流。解耦评估：稳定平台事实。 */
+import {isBrowser} from "../platform";
+/** 导出浏览器宿主判断。 */
+export {isBrowser};
 
 /** 用途：安全获取 SiYuan 全局配置。使用范围：editor 读取系统平台配置。解耦评估：通过 imports.ts 转发。 */
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -198,7 +202,7 @@ import { newTab } from "../layout/utils/newTab";
 export { newTab };
 
 /** 用途：通过布局获取窗口实例。使用范围：editor 页签操作。解耦评估：通过 imports.ts 转发。 */
-import { getWndByLayout } from "../layout/util";
+import {getWndByLayout} from "../layout/query/layoutInstance";
 /** 导出 getWndByLayout，供 editor 模块使用 */
 export { getWndByLayout };
 
@@ -252,6 +256,16 @@ export { getSiyuanLanguages };
 import { isMobile } from "../platform";
 /** 导出 isMobile，供 editor 模块使用 */
 export { isMobile };
+/** 用途：移动原生宿主判断。使用范围：外部链接按 iOS、Android、Harmony 分发。解耦评估：复用 compatibility 中现有唯一实现。 */
+import {isInAndroid, isInHarmony, isInIOS, isInMobileApp} from "../protyle/util/compatibility";
+/** 导出 Android 宿主判断。 */
+export {isInAndroid};
+/** 导出 Harmony 宿主判断。 */
+export {isInHarmony};
+/** 导出 iOS 宿主判断。 */
+export {isInIOS};
+/** 导出移动应用宿主判断。 */
+export {isInMobileApp};
 
 /** 用途：Electron Shell 外部打开。使用范围：editor 桌面端打开外部链接。解耦评估：通过 imports.ts 转发。 */
 import { openExternal } from "../platform/electron/shell";
@@ -327,10 +341,10 @@ import { countSelectWord } from "../protyle/runtime/status.port";
 /** 导出 countSelectWord，供 editor 模块使用 */
 export { countSelectWord };
 
-/** 用途：按类型获取 Dock 实例。使用范围：获取文件树实例。解耦评估：通过 imports.ts 转发。 */
-import { getDockByType } from "../layout/tabUtil";
-/** 导出 getDockByType，供 editor 模块使用 */
-export { getDockByType };
+/** 用途：完整 Dock 聚合根。使用范围：编辑器面板同步读取调用方提供的文件树模型。 */
+import type {DockDomain} from "../layout/dock/dock.types";
+/** 导出完整 Dock 聚合根。 */
+export type {DockDomain};
 
 /** 用途：编辑器大小重绘。使用范围：面板展开/收起时重绘。解耦评估：通过 imports.ts 转发。 */
 import { resize } from "../protyle/util/resize";

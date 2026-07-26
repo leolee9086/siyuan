@@ -100,7 +100,10 @@ export class Preview {
                         } else if (event.shiftKey) {
                             openBy(linkAddress, "app");
                         } else if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname((linkAddress).split("?")[0]))) {
-                            openAsset(protyle.app, linkAddress.split("?page")[0], parseInt(getSearch("page", linkAddress)));
+                            openAsset(protyle.app, {
+                                assetPath: linkAddress.split("?page")[0],
+                                page: parseInt(getSearch("page", linkAddress)),
+                            });
                         }
                     } else {
                         if (processSiYuanUri(protyle.app, linkAddress)) {
