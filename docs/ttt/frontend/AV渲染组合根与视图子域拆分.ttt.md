@@ -2,9 +2,9 @@
 
 > **最终目标**：在保持 Attribute View 表格、画廊、看板运行语义和 `imports.ts` 可见性的前提下，将 AV 渲染组合根拆为单向领域子图，消除该子系统全部循环依赖，并使各具体实现满足项目类型与函数规模门禁。
 >
-> **当前目标**：拆分当前首环 `render -> gallery -> render.table -> row -> blockAttr -> asset -> menus/editor -> onGet` 中的表格行、属性和菜单返回路径。
+> **当前目标**：拆分当前首环 `render -> gallery -> render.table -> search -> undo/globalUndo -> Layout/Editor -> onGet` 中的搜索与撤销返回路径。
 >
-> **下一步任务**：分析 `render.table -> row -> blockAttr -> asset` 的真实渲染职责和 Asset 菜单为何返回 Editor/OnGet；同步由 Calc 专项继续拆分其 632 行上帝模块。
+> **下一步任务**：核定 AV Search 为什么直接加载完整 Undo/GlobalUndo，区分搜索输入状态、历史撤销和编辑器宿主职责；同步由 Row/Calc 专项继续拆分巨型模块。
 
 ## 不变量
 
@@ -101,3 +101,4 @@ AV 根调度器
 - **2026-07-27**：定位 Presentation 的视图属性已在提交前同步应用，改用严格 `AppliedAVViewTransaction` 后不再加载通用 `transaction.promise`；目标返回路径归零，Applied/Undo 位于 SCC 外。事务与定位专项 `9/9`、Node `193/193`、契约类型和 lint 通过；生产图 `2219 / 431 / SCC 650`。当前 Presentation 返回根渲染的最短边转为 `scrollCenter -> Layout/Wnd -> editor`，下一阶段按 DOM 滚动与布局编排真实所有权拆分。
 - **2026-07-27**：定位 Presentation 改为经自身网关直达纯 `scrollTargetIntoView`；同一滚动公式从编辑器综合 helper 归位为稳定 DOM 原语，`start` 的配置间距显式参数化，完整 `scrollCenter` 继续拥有 Selection/Range 回退。滚动/定位专项 `7/7`、Node `193/193`、契约类型、目标 lint 与网关门禁通过；生产图 `2221 / 391 / SCC 648`，Presentation 退出 SCC，最大 SCC 减少 `2` 个节点。当前首条代表环已转为 `render -> gallery -> render.table -> calc -> transaction.promise`。
 - **2026-07-27**：建立 [AV 计算菜单与事务职责拆分](./AV计算菜单与事务职责拆分.ttt.md)。确认通用本地事务分派对 `setAttrViewColCalc/updateAttrViewColRollup` 无处理分支后，提取共享同步指示器和 Prepared Transaction 内核；View/Calc 各自严格限制 action，Calc 三个调用点不再加载 `transaction.promise`。专项 `17/17`、Node `193/193`、契约类型、新模块 lint 与网关门禁通过；生产图 `2226 / 394 / SCC 647`，Calc 和两个事务叶子均退出 SCC。新的首环转为 Table Row/BlockAttr/Asset 菜单返回路径；632 行 Calc 继续由专项拆分，未提前归档。
+- **2026-07-27**：Row 对 BlockAttr 的唯一需求是 `data-av-id` 真值判定，现归入 `customAttr/identity` 叶子并由 Row/Select 直达；Row 的 page size、插入、删除、复制与 updated 五种 action 经严格 Row 命令进入 Prepared 内核，不再加载无对应本地分支的通用事务同步器。身份/事务专项 `10/10`、Node `193/193`、契约类型、新模块 lint 与网关门禁通过；生产图 `2228 / 354 / SCC 638`，Row 整体退出 SCC，最大 SCC 减少 `9` 个节点。当前首环转为 `render.table -> search -> undo/globalUndo` 返回路径，BlockAttr/Asset 巨型职责仍由后续批次处理。

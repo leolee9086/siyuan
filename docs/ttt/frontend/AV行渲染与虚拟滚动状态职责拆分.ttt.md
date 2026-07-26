@@ -47,7 +47,8 @@
 
 ## 中期计划
 
-- 行 HTML、行事务、分页与选择操作继续按真实职责拆分。
+- [x] 行事务经严格 action 命令脱离通用块 DOM 同步器。
+- 行 HTML、分页与选择操作继续按真实职责拆分。
 - 虚拟裁剪算法拆分测量、窗口计算、DOM 回填和选择恢复。
 
 ## 远期计划
@@ -64,3 +65,4 @@
 ## 已归档/已完成区域
 
 - **2026-07-27**：创建专项 TTT 并完成首批拆分。`AVVirtualScrollRegistryState` 完整覆盖数据源、body 窗口、trim pending 与滚动方向状态，通过独立 SForge Symbol 精确登记；选择快照和 view 数据访问归入 `virtualScroll/state.ts`，裁剪引擎只依赖 Row 与状态。`updateHeader` 唯一实现迁入 `selection/header.ts`，全部生产消费者直达状态或选择所有者，不保留 Row 转发。注册表/选择 DOM 专项 `2/2`、Node `183/183`、新子域 lint、目标类型诊断、imports 多跳与 diff 校验通过。`row.ts` 由 `853` 降至 `813` 行，`virtualScroll.ts` 由 `499` 降至 `429` 行；源码节点 `2206`，代表环 `420 -> 417`，唯一 SCC `675 -> 672`，两条目标直接环归零且新状态节点未形成独立 SCC。
+- **2026-07-27**：Row/Select 为判断自定义属性单元格只需 `data-av-id` 真值，却经 657 行 BlockAttr 加载 Asset 与菜单主图；唯一判定现归入无外部依赖的 `customAttr/identity.ts`，保留缺失、空值和值三种语义，两个消费者直达真实所有者。随后核定 Row 四个事务入口的五种 action 均无通用 `promiseTransaction` 本地分支，Row 自身或 AV 刷新负责 page size、插入、删除、复制和 updated 呈现；新增严格 `submitAVRowTransaction` 后，业务 Row 不再加载通用块 DOM 同步器。身份/事务专项 `10/10`、Node `193/193`、Protyle 契约类型、新模块 lint、imports 多跳与 diff 检查通过；生产图 `2228 / 354 / SCC 638`，仍为唯一 SCC，Row、身份叶子和 Row 命令全部退出 SCC，最大 SCC 减少 `9` 个节点。BlockAttr 仍参与 `200` 条代表环，继续按自身事件/Asset 职责治理。

@@ -1,7 +1,7 @@
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByAttribute} from "../../util/hasClosest";
 import {focusBlock} from "../../util/selection";
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVRowTransaction} from "../../wysiwyg/transaction/prepared/avRow";
 import {cellValueIsEmpty} from "./cell.value";
 import {genCellValue} from "./cell.value";
 import {genCellValueByElement} from "./cell.value";
@@ -13,7 +13,7 @@ import * as dayjs from "dayjs";
 import {Constants} from "../../../constants";
 import {insertGalleryItemAnimation} from "./gallery/item";
 import {clearSelect} from "../../util/clearSelect";
-import {isCustomAttr} from "./blockAttr";
+import {isCustomAttributeCell} from "./customAttr/identity";
 import {getColIconByType, getColNameByType} from "./col/col.typeUtils";
 import {unicode2Emoji} from "../../../emoji";
 import {escapeAttr} from "../../../util/DOM/escape";
@@ -207,7 +207,7 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderedCell}</div>`;
 };
 
 export const getFieldIdByCellElement = (cellElement: Element, viewType: TAVView): string => {
-    if (isCustomAttr(cellElement)) {
+    if (isCustomAttributeCell(cellElement)) {
         return cellElement.getAttribute("data-row-id");
     }
     return (hasClosestByClassName(cellElement, viewType === "table" ? "av__row" : "av__gallery-item") as HTMLElement).dataset.id;
@@ -564,7 +564,7 @@ const updatePageSize = (options: {
         item.dataset.pageSize = options.newPageSize;
     });
     const blockID = options.nodeElement.getAttribute("data-node-id");
-    transaction(options.protyle, [{
+    submitAVRowTransaction(options.protyle, [{
         action: "setAttrViewPageSize",
         avID: options.avID,
         data: parseInt(options.newPageSize),
@@ -716,7 +716,7 @@ export const deleteRow = (blockElement: HTMLElement, protyle: IProtyle) => {
         id: blockElement.dataset.nodeId,
         data: blockElement.getAttribute("updated")
     });
-    transaction(protyle, [{
+    submitAVRowTransaction(protyle, [{
         action: "removeAttrViewBlock",
         srcIDs: blockIds,
         avID,
@@ -754,7 +754,7 @@ export const insertRows = (options: {
         });
     });
     const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-    transaction(options.protyle, [{
+    submitAVRowTransaction(options.protyle, [{
         action: "insertAttrViewBlock",
         avID,
         previousID: options.previousID,
@@ -832,6 +832,6 @@ export const duplicateRows = (blockElement: HTMLElement, protyle: IProtyle, rowE
         id: blockElement.dataset.nodeId,
         data: blockElement.getAttribute("updated")
     });
-    transaction(protyle, doOperations, undoOperations);
+    submitAVRowTransaction(protyle, doOperations, undoOperations);
     blockElement.setAttribute("updated", newUpdated);
 };

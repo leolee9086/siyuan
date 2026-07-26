@@ -6,7 +6,7 @@ import { upDownHint } from "../../../util/DOM/upDownHint";
 import {bindEditEvent, getEditHTML} from "./col/edit/render";
 import {getColId} from "./col/identity/resolve";
 import { updateAttrViewCellAnimation } from "./action";
-import {isCustomAttr} from "./blockAttr";
+import {isCustomAttributeCell} from "./customAttr/identity";
 import {genAVValueHTML} from "./value/render";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escape";
 import {genCellValueByElement} from "./cell.value";
@@ -542,7 +542,7 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
     if (!nodeElement) {
         cellElements.forEach((item, index) => {
             const rowID = getFieldIdByCellElement(item, data.viewType);
-            if (data.viewType === "table" || isCustomAttr(item)) {
+            if (data.viewType === "table" || isCustomAttributeCell(item)) {
                 cellElements[index] = (blockElement.querySelector(`.av__row[data-id="${rowID}"] .av__cell[data-col-id="${item.dataset.colId}"]`) ||
                     blockElement.querySelector(`.fn__flex-1[data-col-id="${item.dataset.colId}"]`)) as HTMLElement;
             } else {
