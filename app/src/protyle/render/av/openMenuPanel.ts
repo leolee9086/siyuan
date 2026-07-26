@@ -54,8 +54,6 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
  *           通过 deps 参数从入口注入，这是合理的中转模式。
  */
 import { getPropertiesHTMLWithDeps } from "./openMenuPanel.properties";
-/** 用途：PropertiesHTMLDeps 是 deps 注入上下文的类型约束。 */
-import type { PropertiesHTMLDeps } from "./openMenuPanel.types";
 
 export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLElement, element: HTMLElement }) => {
     if (options.protyle.disabled) {
@@ -107,24 +105,12 @@ export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLEle
 };
 
 /**
- * 延迟构造的 getPropertiesHTML 上下文依赖。
- * 不能在模块顶层直接构造——由于 emoji 模块与 av 模块之间存在循环依赖，
- * 模块初始化时 unicode2Emoji 可能处于 TDZ（未完成初始化），导致 ReferenceError。
- * 延迟到首次函数调用时构造，此时所有模块已完成初始化。
- */
-let _propertiesHTMLDeps: PropertiesHTMLDeps | undefined;
-
-/**
  * 包装后的 getPropertiesHTML，保持对外签名 (fields: IAVColumn[]) => string，
- * 内部自动注入 deps 上下文，消除子模块对父级目录的导入依赖。
- * @柯里化 合法的柯里化场景——在首次调用时捕获上下文闭包后以统一签名向外暴露。
+ * 在调用时构造只读依赖参数，既避开模块初始化期 TDZ，也不保留跨调用状态。
  * @同步豁免: UI构建 — 纯 HTML 字符串拼接，属于同步构造 UI 模板
  */
 export const getPropertiesHTML = (fields: IAVColumn[]) => {
-    if (!_propertiesHTMLDeps) {
-        _propertiesHTMLDeps = { unicode2Emoji, escapeHtml, siyuanI18n };
-    }
-    return getPropertiesHTMLWithDeps(fields, _propertiesHTMLDeps);
+    return getPropertiesHTMLWithDeps(fields, {unicode2Emoji, escapeHtml, siyuanI18n});
 };
 
 export const openMenuPanel = (options: {
