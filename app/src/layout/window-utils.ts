@@ -1,6 +1,4 @@
-import type { Wnd } from "./Wnd";
-import type { Tab } from "./Tab";
-import type { Layout } from "./index";
+import type {LayoutTab, LayoutWindow} from "./layout.types";
 import { hasClosestBlock } from "../protyle/util/hasClosest";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 
@@ -20,7 +18,7 @@ export {getWndByLayout} from "./query/layoutInstance";
  * @param tab - 需要收集选区信息的标签页
  * @returns 选区位置数据，如果该标签页没有有效选区则返回undefined
  */
-function collectEditorRange(tab: Tab): IEditorRangeData | undefined {
+function collectEditorRange(tab: LayoutTab): IEditorRangeData | undefined {
     // 检查标签页模型是否为编辑器类型
     if (!isEditorTab(tab)) {
         return undefined;
@@ -67,7 +65,7 @@ function collectEditorRange(tab: Tab): IEditorRangeData | undefined {
  * @param rangeData - 之前保存的选区位置数据
  * @returns 恢复后的Range对象，如果恢复失败则返回undefined
  */
-function restoreEditorRange(tab: Tab, rangeData: IEditorRangeData | undefined): Range | undefined {
+function restoreEditorRange(tab: LayoutTab, rangeData: IEditorRangeData | undefined): Range | undefined {
     // 检查标签页模型是否为编辑器类型
     if (!isEditorTab(tab)) {
         return undefined;
@@ -114,7 +112,7 @@ function restoreEditorRange(tab: Tab, rangeData: IEditorRangeData | undefined): 
  *
  * @param newWnd - 新窗口
  */
-function swapWindowPositions(newWnd: Wnd): void {
+function swapWindowPositions(newWnd: LayoutWindow): void {
     // 检查parent是否存在
     const parent = newWnd.parent;
     if (!parent) {
@@ -154,7 +152,7 @@ function swapWindowPositions(newWnd: Wnd): void {
  * @param tab - 编辑器标签页
  * @param range - 需要设置的range对象
  */
-function updateEditorToolbarRange(tab: Tab, range: Range): void {
+function updateEditorToolbarRange(tab: LayoutTab, range: Range): void {
     if (!isEditorTab(tab)) {
         return;
     }
@@ -188,7 +186,7 @@ function updateEditorToolbarRange(tab: Tab, range: Range): void {
  * @param newWnd - 新窗口（将被移动到目标窗口之后）
  * @param targetWnd - 目标窗口（将被移动到新窗口之前）
  */
-export function switchWnd(newWnd: Wnd, targetWnd: Wnd): void {
+export function switchWnd(newWnd: LayoutWindow, targetWnd: LayoutWindow): void {
     // 阶段1：在DOM移动前收集所有编辑器的选区位置信息
     // DOM移动会导致range失效，因此必须在移动前保存位置
     const rangeDatas: IEditorRangeData[] = [];
