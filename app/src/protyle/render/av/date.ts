@@ -1,5 +1,6 @@
 import * as dayjs from "dayjs";
-import {genCellValueByElement, updateCellsValue} from "./cell";
+import {genCellValueByElement} from "./cell.value";
+import {updateCellsValue} from "./cell.update";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getDateHTML = (cellElements: HTMLElement[]) => {

@@ -6,7 +6,9 @@ import { countBlockWord } from "../runtime/status.port";
 import { encodeBase64 } from "../util/compatibility";
 import { isIncludeCell } from "../util/table/table";
 import { getTableRangeHTML } from "../util/table";
-import { genCellValueByElement, getCellText, getTypeByCellElement } from "../render/av/cell";
+import {genCellValueByElement} from "../render/av/cell.value";
+import {getTypeByCellElement} from "../render/av/cell/position";
+import {getCellText} from "../render/av/cell/render";
 import { removeZWJ } from "../util/normalizeText";
 import { enableLuteMarkdownSyntax, getTextStar, restoreLuteMarkdownSyntax } from "../util/paste";
 

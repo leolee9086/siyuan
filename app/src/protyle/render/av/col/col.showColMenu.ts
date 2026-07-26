@@ -2,7 +2,7 @@ import {Menu} from "../../../../plugin/Menu";
 import {transaction} from "../../../wysiwyg/transaction";
 import {fetchPost, fetchSyncPost} from "../../../../util/network/fetch";
 import {getDefaultOperatorByType, setFilter} from "../filter";
-import {genCellValue} from "../cell";
+import {genCellValue} from "../cell.value";
 import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";

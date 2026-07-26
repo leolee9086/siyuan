@@ -13,7 +13,8 @@ import { insertHTML } from "./insertHTML";
 import { scrollCenter } from "../../util/DOM/highlightById";
 import { hideElements } from "../ui/hideElements";
 import { avRender } from "../render/av/render";
-import { cellScrollIntoView, getCellText } from "../render/av/cell";
+import {cellScrollIntoView} from "../render/av/cell/position";
+import {getCellText} from "../render/av/cell/render";
 import { getCalloutInfo, getContenteditableElement } from "../wysiwyg/getBlock";
 import { clearBlockElement } from "./clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -721,4 +722,3 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
         scrollCenter(protyle, undefined, "nearest", "smooth");
     }
 };
-

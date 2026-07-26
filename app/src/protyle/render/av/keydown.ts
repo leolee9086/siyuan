@@ -1,6 +1,9 @@
 import {matchHotKey} from "../../util/hotKey";
 import {deleteRow, insertRows, selectRow} from "./row";
-import {addDragFill, cellScrollIntoView, popTextCell, updateCellsValue} from "./cell";
+import {addDragFill} from "./cell/decoration";
+import {popTextCell} from "./cell/edit";
+import {cellScrollIntoView} from "./cell/position";
+import {updateCellsValue} from "./cell.update";
 import {avContextmenu} from "./action";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {Constants} from "../../../constants";

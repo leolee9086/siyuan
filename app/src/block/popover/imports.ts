@@ -28,7 +28,7 @@ import { isTouchDevice } from "../../util/platform/functions";
 // 用途：类型守卫函数，判断元素是否为HTMLElement；使用范围：target.ts 中进行类型检查确保DOM操作安全；解耦评估：类型守卫工具函数，通过参数传递即可使用，已充分解耦
 import { isHTMLElement } from "../../util/DOM/element.guard";
 // 用途：获取属性视图单元格文本；使用范围：tooltip.ts 显示AV单元格tooltip；解耦评估：业务函数，参数可解耦，但作为protyle核心直接导入更合理
-import { getCellText } from "../../protyle/render/av/cell";
+import {getCellText} from "../../protyle/render/av/cell/render";
 // 用途：转义 aria-label 属性值；使用范围：tooltip.ts 中处理tooltip内容时防止XSS；解耦评估：安全工具函数，通过参数传递即可使用，已充分解耦
 import { escapeAriaLabel } from "../../util/DOM/escape";
 // 用途：转义 HTML 内容；使用范围：tooltip.ts 中处理tooltip内容时防止XSS；解耦评估：安全工具函数，通过参数传递即可使用，已充分解耦

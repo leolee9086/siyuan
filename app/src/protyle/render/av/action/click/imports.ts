@@ -3,8 +3,14 @@
  * 使用范围：仅供 `click/` 子目录内部模块使用，避免子模块继续经由父级 imports.ts 间接耦合。
  */
 
-/** 用途：复用 cell 子模块中的点击与文本能力。使用范围：block-more、copy 和普通单元格点击。解耦评估：这些能力本就由 cell 模块定义，click 侧直接走本层网关复用更清晰。 */
-import { addDragFill, getCellText, getTypeByCellElement, popTextCell } from "../../cell";
+/** 用途：复用 cell 装饰子域中的拖拽手柄能力。使用范围：普通单元格点击。解耦评估：直达唯一实现，避免加载 cell 聚合入口。 */
+import {addDragFill} from "../../cell/decoration";
+/** 用途：复用 cell 文本读取能力。使用范围：block-more 与 copy。解耦评估：直达渲染子域唯一实现。 */
+import {getCellText} from "../../cell/render";
+/** 用途：复用 cell 类型解析能力。使用范围：普通单元格点击。解耦评估：直达位置子域唯一实现。 */
+import {getTypeByCellElement} from "../../cell/position";
+/** 用途：复用 cell 编辑能力。使用范围：block-more 点击。解耦评估：直达编辑子域唯一实现。 */
+import {popTextCell} from "../../cell/edit";
 /** 导出 addDragFill 供 click 子模块复用。 */
 export { addDragFill };
 /** 导出 getCellText 供 click 子模块复用。 */

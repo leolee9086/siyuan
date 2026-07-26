@@ -1,6 +1,8 @@
 import {Constants} from "../../../constants";
 import {getColIconByType} from "./col/col.typeUtils";
-import {addDragFill, cellScrollIntoView, renderCell} from "./cell";
+import {addDragFill} from "./cell/decoration";
+import {cellScrollIntoView} from "./cell/position";
+import {renderCell} from "./cell/render";
 import {unicode2Emoji} from "../../../emoji";
 import {focusBlock} from "../../util/selection";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";

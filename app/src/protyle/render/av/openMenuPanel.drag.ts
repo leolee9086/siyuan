@@ -5,7 +5,7 @@ import { getSelectHTML, bindSelectEvent } from "./select";
 import { getEditableFilters, getFilterByPath, getFiltersHTML, getParentByPath } from "./filter";
 import { getSortsHTML, bindSortsEvent } from "./sort";
 import { updateAssetCell } from "./asset";
-import { updateCellsValue } from "./cell";
+import {updateCellsValue} from "./cell.update";
 import { getLanguageByIndex } from "./groups";
 import { getPropertiesHTML } from "./openMenuPanel";
 import type { IMenuPanelContext } from "./openMenuPanel.types";

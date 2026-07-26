@@ -2,14 +2,12 @@ import {hasClosestBlock, hasClosestByClassName, hasTopClosestByAttribute} from "
 import {focusBlock} from "../../util/selection";
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
-import {
-    cellValueIsEmpty,
-    genCellValue,
-    genCellValueByElement,
-    getTypeByCellElement,
-    renderCell,
-    renderCellAttr
-} from "./cell";
+import {cellValueIsEmpty} from "./cell.value";
+import {genCellValue} from "./cell.value";
+import {genCellValueByElement} from "./cell.value";
+import {getTypeByCellElement} from "./cell/position";
+import {renderCell} from "./cell/render";
+import {renderCellAttr} from "./cell/render";
 import {fetchPost} from "../../../util/network/fetch";
 import * as dayjs from "dayjs";
 import {Constants} from "../../../constants";

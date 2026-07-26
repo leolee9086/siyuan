@@ -2,13 +2,11 @@ import {hasClosestByClassName} from "../util/hasClosest";
 import {Constants} from "../../constants";
 import {transaction} from "./transaction";
 import {stickyRow, selectRow} from "../render/av/row";
-import {
-    addDragFill,
-    dragFillCellsValue,
-    genCellValueByElement,
-    getPositionByCellElement,
-    getTypeByCellElement,
-} from "../render/av/cell";
+import {genCellValueByElement} from "../render/av/cell.value";
+import {addDragFill} from "../render/av/cell/decoration";
+import {dragFillCellsValue} from "../render/av/cell/dragFill";
+import {getPositionByCellElement} from "../render/av/cell/position";
+import {getTypeByCellElement} from "../render/av/cell/position";
 import {focusBlock} from "../util/selection";
 import {isInEmbedBlock} from "../util/hasClosest";
 

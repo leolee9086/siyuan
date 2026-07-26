@@ -1,7 +1,7 @@
 import { Constants } from "../../../constants";
 import { dragoverTab } from "../../render/av/view";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClosestByTag, hasTopClosestByAttribute, isInEmbedBlock } from "../hasClosest";
-import { addDragFill } from "../../render/av/cell";
+import {addDragFill} from "../../render/av/cell/decoration";
 import { clearSelect } from "../clearSelect";
 import {
     addDragover,

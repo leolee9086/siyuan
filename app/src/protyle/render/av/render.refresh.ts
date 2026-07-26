@@ -1,5 +1,7 @@
 import {Constants} from "../../../constants";
-import {addDragFill, cellScrollIntoView, popTextCell} from "./cell";
+import {addDragFill} from "./cell/decoration";
+import {popTextCell} from "./cell/edit";
+import {cellScrollIntoView} from "./cell/position";
 import {renderAVAttribute} from "./blockAttr";
 import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../runtime/dialog.port";

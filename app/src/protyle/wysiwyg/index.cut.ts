@@ -7,7 +7,7 @@ import {fetchSyncPost} from "../../util/network/fetch";
 import {encodeBase64} from "../util/compatibility";
 import {isIncludeCell} from "../util/table/table";
 import {getTableRangeHTML} from "../util/table";
-import {updateCellsValue} from "../render/av/cell";
+import {updateCellsValue} from "../render/av/cell.update";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
 import {removeBlock} from "./remove";
 import {updateTransaction} from "./transaction";

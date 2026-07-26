@@ -91,8 +91,12 @@ export { isHTMLElement };
 /** 导出 isHTMLInputElement 供 contextmenu 子模块复用。 */
 export { isHTMLInputElement };
 
-/** 用途：复用单元格领域能力。使用范围：添加到数据库、字段编辑和解绑块菜单。解耦评估：这些能力本就由 cell 模块定义，右键菜单复用比重新解析 DOM 更可靠。 */
-import { genCellValueByElement, popTextCell, updateCellsValue } from "../../cell";
+/** 用途：从 DOM 生成单元格值。使用范围：添加到数据库。解耦评估：直达 cell value 唯一实现。 */
+import {genCellValueByElement} from "../../cell.value";
+/** 用途：打开文本单元格编辑。使用范围：字段编辑和解绑块菜单。解耦评估：直达 cell edit 唯一实现。 */
+import {popTextCell} from "../../cell/edit";
+/** 用途：提交单元格值更新。使用范围：字段编辑和解绑块菜单。解耦评估：直达 cell update 唯一实现。 */
+import {updateCellsValue} from "../../cell.update";
 /** 导出 genCellValueByElement 供 contextmenu 子模块复用。 */
 export { genCellValueByElement };
 /** 导出 popTextCell 供 contextmenu 子模块复用。 */

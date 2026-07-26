@@ -11,7 +11,7 @@ import { isBrowser } from "../../../util/platform/functions";
 import { uploadLocalFiles, uploadFiles } from "../../upload";
 import { paste } from "../paste";
 import { clearSelect } from "../clearSelect";
-import { getTypeByCellElement } from "../../render/av/cell";
+import {getTypeByCellElement} from "../../render/av/cell/position";
 import { dragUpload } from "../../render/av/asset";
 import { getPathForFile } from "../../../platform/electron/webUtils";
 import { focusBlock } from "../selection.focus";

@@ -1,4 +1,7 @@
-import { genCellValue, getTypeByCellElement, renderCell, renderCellAttr } from "../cell";
+import {genCellValue} from "../cell.value";
+import {getTypeByCellElement} from "../cell/position";
+import {renderCell} from "../cell/render";
+import {renderCellAttr} from "../cell/render";
 import { fetchPost } from "../../../../util/network/fetch";
 import {syncAVPageSize} from "../view/pagination";
 import { Constants } from "../../../../constants";

@@ -4,7 +4,7 @@ import { openSearchAV, setRelationCell, updateRelation } from "./relation";
 import { goSearchRollupCol } from "./rollup";
 import { openCalcMenu } from "./calc";
 import { getColId } from "./col/col";
-import { updateCellsValue } from "./cell";
+import {updateCellsValue} from "./cell.update";
 import { Constants } from "../../../constants";
 import { pathPosix } from "../../../util/file/pathName";
 import { isMobile } from "../../../platform";

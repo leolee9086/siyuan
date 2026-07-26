@@ -4,7 +4,7 @@ import {UDLRHint, upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeLessThans, escapeHtml} from "../../../util/DOM/escape";
 import {transaction} from "../../wysiwyg/transaction";
-import {updateCellsValue} from "./cell";
+import {updateCellsValue} from "./cell.update";
 import {updateAttrViewCellAnimation} from "./action";
 import {focusBlock} from "../../util/selection";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";

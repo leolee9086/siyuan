@@ -5,7 +5,7 @@ import {getColIconByType} from "./col/col.typeUtils";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {objEquals} from "../../../util/platform/functions";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
-import {genCellValue} from "./cell";
+import {genCellValue} from "./cell.value";
 import * as dayjs from "dayjs";
 import {unicode2Emoji} from "../../../emoji";
 import {openMenuPanel} from "./openMenuPanel";

@@ -2,7 +2,7 @@ import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {fetchPost, fetchSyncPost} from "../../../util/fetch";
 import {getDefaultOperatorByType, getEditableFilters, hasFilterForColumn} from "./filter";
-import {genCellValue} from "./cell";
+import {genCellValue} from "./cell.value";
 import {getPropertiesHTML, openMenuPanel} from "./openMenuPanel";
 import {getLabelByNumberFormat} from "./number";
 import {removeAttrViewColAnimation, updateAttrViewCellAnimation} from "./action";

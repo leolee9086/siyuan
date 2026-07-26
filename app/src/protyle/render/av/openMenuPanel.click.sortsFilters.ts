@@ -16,7 +16,7 @@ import {
     removeFilterByPath
 } from "./filter";
 import { addSort, bindSortsEvent, getSortsHTML } from "./sort";
-import { genCellValue } from "./cell";
+import {genCellValue} from "./cell.value";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 
 const cloneFilters = (filters: IAVFilter[]): IAVFilter[] => JSON.parse(JSON.stringify(filters));

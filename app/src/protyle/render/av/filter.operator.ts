@@ -1,6 +1,6 @@
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/network/fetch";
-import {genCellValue} from "./cell";
+import {genCellValue} from "./cell.value";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const toggleEmpty = (element: HTMLElement, operator: string, type: TAVCol) => {

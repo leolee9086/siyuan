@@ -15,7 +15,7 @@ import {contentMenu} from "../../menus/protyleMenus/contentMenu/protyle.contentM
 import {avContextmenu} from "../render/av/action";
 import {showColMenu} from "../render/av/col/col";
 import {openViewMenu} from "../render/av/view";
-import {getTypeByCellElement} from "../render/av/cell";
+import {getTypeByCellElement} from "../render/av/cell/position";
 import {editAssetItem} from "../render/av/asset";
 import {openGalleryItemMenu} from "../render/av/gallery/util";
 import {getSiyuanGlobalMenus} from "../../util/siyuanEnvironments/getMenu.environment";

@@ -16,7 +16,7 @@ import { getFieldIdByCellElement } from "./row";
 import { bindRelationEvent, getRelationHTML } from "./relation";
 import { bindRollupData, getRollupHTML } from "./rollup";
 import { getPageSize } from "./groups";
-import { updateCellsValue } from "./cell";
+import {updateCellsValue} from "./cell.update";
 export type { IMenuPanelContext } from "./openMenuPanel.types";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 import { bindDragEvents } from "./openMenuPanel.drag";
