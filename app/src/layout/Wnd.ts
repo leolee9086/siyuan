@@ -169,7 +169,7 @@ export class Wnd {
     }
 
     public switchTab(target: HTMLElement, pushBack = false, update = true, resize = true, isSaveLayout = true) {
-        wndSwitchTab(this, target, pushBack, update, resize, isSaveLayout);
+        wndSwitchTab(this, this.app, target, pushBack, update, resize, isSaveLayout);
     }
 
     public addTab(tab: LayoutTab, keepCursor = false, isSaveLayout = true, activeTime?: string) {

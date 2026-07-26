@@ -2,8 +2,8 @@
  * Wnd.tab.ts - Wnd 标签页切换/添加/列表
  * 从 Wnd.ts 提取的标签页管理逻辑
  */
-import type { Wnd } from "./Wnd";
-import { Tab } from "./Tab";
+import type {LayoutTab, LayoutWindow} from "./layout.types";
+import type {AppFacade} from "../app/AppFacade.types";
 import { Editor } from "../editor";
 import { Graph } from "./dock/Graph";
 import { Asset } from "../asset";
@@ -34,14 +34,15 @@ import { setPosition } from "../util/DOM/positioning/setPosition";
  * @同步豁免: DOM操作需要同步执行以保证UI状态一致性
  */
 export function wndSwitchTab(
-    wnd: Wnd,
+    wnd: LayoutWindow,
+    app: AppFacade,
     target: HTMLElement,
     pushBack = false,
     update = true,
     resize = true,
     isSaveLayout = true,
 ): void {
-    let currentTab: Tab;
+    let currentTab: LayoutTab;
     let isInitActive = false;
     wnd.children.forEach((item) => {
         if (target === item.headElement) {
@@ -79,7 +80,7 @@ export function wndSwitchTab(
     if (currentTab && currentTab.headElement) {
         const initData = currentTab.headElement.getAttribute("data-initdata");
         if (initData) {
-            currentTab.addModel(newModelByInitData(wnd["app"], currentTab, JSON.parse(initData)));
+            currentTab.addModel(newModelByInitData(app, currentTab, JSON.parse(initData)));
             currentTab.headElement.removeAttribute("data-initdata");
             if (isSaveLayout) {
                 saveLayout();
@@ -118,7 +119,7 @@ export function wndSwitchTab(
                 scrollCenter(currentTab.model.editor.protyle, nodeElement, "start");
             } else {
                 openFileById({
-                    app: wnd["app"],
+                    app,
                     id: keepCursorId,
                     action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
                 });
@@ -152,8 +153,8 @@ export function wndSwitchTab(
  * @同步豁免: 遗留代码
  */
 export function wndAddTab(
-    wnd: Wnd,
-    tab: Tab,
+    wnd: LayoutWindow,
+    tab: LayoutTab,
     keepCursor = false,
     isSaveLayout = true,
     activeTime?: string,
@@ -234,7 +235,7 @@ export function wndAddTab(
  * 渲染标签列表菜单
  * @同步豁免: 遗留代码
  */
-export function wndRenderTabList(wnd: Wnd, target: HTMLElement): void {
+export function wndRenderTabList(wnd: LayoutWindow, target: HTMLElement): void {
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
         window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_TAB_LIST) {
         window.siyuan.menus.menu.remove();
@@ -298,7 +299,7 @@ export function wndRenderTabList(wnd: Wnd, target: HTMLElement): void {
  * 移除超出数量限制的标签页
  * @同步豁免: 遗留代码
  */
-export function removeOverCounter(wnd: Wnd, isSaveLayout = false): void {
+export function removeOverCounter(wnd: LayoutWindow, isSaveLayout = false): void {
     let removeId: string;
     let openTime: string;
     let removeCount = 0;
