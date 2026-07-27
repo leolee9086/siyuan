@@ -3,16 +3,6 @@
  */
 
 /**
- * 编辑器初始化结果
- */
-export interface IEditorInitResult<TEditor> {
-    /** 搜索预览编辑器 */
-    edit: TEditor;
-    /** 无效引用预览编辑器 */
-    unRefEdit: TEditor;
-}
-
-/**
  * 布局数据结构
  */
 export interface ILayoutData {
