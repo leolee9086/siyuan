@@ -4,7 +4,7 @@
  */
 
 import type { Dock } from "./index";
-import { Custom } from "./Custom";
+import {Custom} from "./custom/Custom";
 import { getDockByType } from "./imports";
 import { saveLayout } from "./imports";
 import { Constants } from "./imports";

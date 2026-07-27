@@ -8,7 +8,7 @@ import type {ILayoutModel} from "./lifecycle/model.types";
 import { Editor } from "../editor";
 import { Search } from "../search";
 import { Asset } from "../asset";
-import { Custom } from "./dock/Custom";
+import {Custom} from "./dock/custom/Custom";
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import { ipcSend } from "../platform/electron/ipcRenderer";

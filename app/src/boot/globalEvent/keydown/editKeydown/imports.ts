@@ -4,7 +4,7 @@ import {fetchPost} from "../../../../util/network/fetch";
 import { quickMakeCard } from "../../../../card/makeCard";
 import { openCardByData } from "../../../../card/openCard";
 import { Editor } from "../../../../editor";
-import { Custom } from "../../../../layout/dock/Custom";
+import {Custom} from "../../../../layout/dock/custom/Custom";
 import { openBacklink, openGraph, openOutline } from "../../../../layout/dock/util";
 import { getAllModels } from "../../../../layout/getAll";
 import { getActiveTab } from "../../../../layout/tabUtil";

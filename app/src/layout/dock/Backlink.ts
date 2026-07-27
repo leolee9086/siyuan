@@ -2,7 +2,7 @@ import { Tab } from "../Tab";
 import { Model } from "../Model";
 import { Tree } from "../../util/file/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
+import {getDockByType} from "./imports";
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";

@@ -1,5 +1,5 @@
 import { Tab } from "../layout/Tab";
-import { Custom } from "../layout/dock/Custom";
+import {Custom} from "../layout/dock/custom/Custom";
 import { bindCardEvent, genCardHTML } from "./openCard";
 import { fetchPost } from "../util/network/fetch";
 import { Protyle } from "../protyle";

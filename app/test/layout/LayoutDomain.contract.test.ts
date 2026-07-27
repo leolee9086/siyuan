@@ -37,7 +37,7 @@ import {forwardlinkModelBrand, isForwardlinkDomain} from "../../src/layout/dock/
 import type {Bookmark} from "../../src/layout/dock/Bookmark";
 import type {BookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
 import {bookmarkModelBrand, isBookmarkDomain} from "../../src/layout/dock/bookmark/bookmark.types";
-import type {Custom} from "../../src/layout/dock/Custom";
+import type {Custom} from "../../src/layout/dock/custom/Custom";
 import type {CustomDomain} from "../../src/layout/dock/custom/custom.types";
 import {customModelBrand, isCustomDomain} from "../../src/layout/dock/custom/custom.types";
 import type {Tag} from "../../src/layout/dock/Tag";

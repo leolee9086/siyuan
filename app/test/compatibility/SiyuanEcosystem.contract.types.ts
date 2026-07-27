@@ -1,6 +1,6 @@
 import type * as Siyuan from "siyuan";
 import type {AppFacade} from "../../src/app/AppFacade.types";
-import type {Custom} from "../../src/layout/dock/Custom";
+import type {Custom} from "../../src/layout/dock/custom/Custom";
 import type {Files} from "../../src/layout/dock/Files";
 import type {Tab} from "../../src/layout/Tab";
 import type {MobileCustom} from "../../src/mobile/dock/MobileCustom";

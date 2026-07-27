@@ -6,7 +6,7 @@ import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
-import {Custom} from "./Custom";
+import {Custom} from "./custom/Custom";
 import {clearOBG} from "./util";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import {showCustomListMenu} from "./customBlockLists/customLists.menu";

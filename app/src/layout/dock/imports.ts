@@ -78,12 +78,8 @@ import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 /** 导出 hasClosestByClassName，供 dock 模块使用 */
 export { hasClosestByClassName };
 
-/** 用途：面板尺寸调整函数。使用范围：dock 模块切换逻辑。解耦评估：通过 imports.ts 转发。 */
-import { resizeTabs } from "../tabUtil";
-/** 导出 resizeTabs，供 dock 模块使用 */
-export { resizeTabs };
-/** 用途：按类型查找 Dock 实例。使用范围：dock 模块拖拽逻辑。解耦评估：通过 imports.ts 转发。 */
-import { getDockByType } from "../tabUtil";
+/** 用途：按类型查找 Dock 实例。使用范围：Dock 模块切换、拖拽和宿主动作。解耦评估：直达无状态 Layout 查询领域，避免经综合 Tab Util 加载无关模型。 */
+import {getDockByType} from "../query/dockByType";
 /** 导出 getDockByType，供 dock 模块使用 */
 export { getDockByType };
 /** 用途：布局持久化函数。使用范围：dock 模块拖拽逻辑。解耦评估：通过 imports.ts 转发。 */

@@ -3,7 +3,7 @@ import {注册状态栏按钮} from "./imports";
 /** 用途：打开和查询颜色工具对话框；使用范围：状态栏点击回调；解耦评估：UI 生命周期集中在 openColorTool。 */
 import {colorToolIsOpen, openColorTool} from "./openColorTool";
 /** 用途：构造原生 Dock 模型；使用范围：s-forge Dock 初始化；解耦评估：Dock 生命周期由宿主管理，颜色面板只负责 Vue 挂载。 */
-import {Custom} from "../../layout/dock/Custom";
+import {Custom} from "../../layout/dock/custom/Custom";
 /** 用途：Dock 模型创建参数类型；使用范围：颜色 Dock 工厂；解耦评估：纯类型依赖，不加载具体 App class。 */
 import type {AppFacade} from "../../app/AppFacade.types";
 /** 用途：Dock 页签参数类型；使用范围：颜色 Dock 工厂；解耦评估：纯类型依赖。 */

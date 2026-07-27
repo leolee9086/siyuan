@@ -1,4 +1,4 @@
-import {Custom} from "../layout/dock/Custom";
+import {Custom} from "../layout/dock/custom/Custom";
 import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import type {LayoutTab} from "../layout/layout.types";
 import type { AppFacade } from "../app/AppFacade.types";

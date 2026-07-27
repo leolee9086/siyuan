@@ -16,7 +16,7 @@ import { Backlink } from "./dock/Backlink";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Search } from "../search";
-import { Custom } from "./dock/Custom";
+import {Custom} from "./dock/custom/Custom";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { openSearch } from "../search/spread";
 import { openRecentDocs } from "../business/openRecentDocs";

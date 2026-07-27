@@ -9,7 +9,7 @@ import {saveLayout} from "../persistence/saveLayout";
 import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
 import { adjustDockPadding, resetFloatDockSize } from "./util";
 import type { AppFacade } from "../../app/AppFacade.types";
-import { Custom } from "./Custom";
+import {Custom} from "./custom/Custom";
 import { recordBeforeResizeTop } from "../../protyle/util/resize";
 import { Constants } from "../../constants";
 import { initDockResize } from "./dock.resize";

@@ -21,7 +21,7 @@ import { resetFloatDockSize } from "./util";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { Plugin } from "../../plugin";
-import { Custom } from "./Custom";
+import {Custom} from "./custom/Custom";
 import { clearBeforeResizeTop, recordBeforeResizeTop } from "../../protyle/util/resize";
 import { Constants } from "../../constants";
 

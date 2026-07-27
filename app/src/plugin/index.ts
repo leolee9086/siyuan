@@ -5,7 +5,7 @@ import { EventBus } from "./EventBus";
 import type {AppFacade} from "../app/AppFacade.types";
 import { fetchPost } from "../util/network/fetch";
 import { isMobile, isWindow } from "../util/platform/functions";
-import { Custom } from "../layout/dock/Custom";
+import {Custom} from "../layout/dock/custom/Custom";
 import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import {createCustomTabModel} from "../layout/dock/dock.factory";
 import { getAllModels } from "../layout/getAll";
