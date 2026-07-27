@@ -45,6 +45,7 @@ export interface AppFacadeShape<
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
     createDocument(name?: string): Promise<void>;
+    handleUnavailableDocument(protyle: IProtyle): void;
     toggleFullscreen(element: Element, button?: Element): void;
     openTab(options: AppTabNavigation): void;
     openAsset(options: AssetOpenOptions): void;

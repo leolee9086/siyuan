@@ -76,6 +76,7 @@ import {Protyle} from "./protyle";
 import {openFile} from "./editor/open/openFile";
 import {fullscreen} from "./protyle/breadcrumb/action";
 import {newFile} from "./util/file/newFile";
+import {removeProtyleTab} from "./protyle/runtime/layout.port";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -91,6 +92,11 @@ export class App {
     }
     public createDocument(name?: string) {
         return newFile(this, name);
+    }
+    public handleUnavailableDocument(protyle: IProtyle) {
+        if (protyle.model) {
+            removeProtyleTab(protyle);
+        }
     }
     public toggleFullscreen(element: Element, button?: Element) {
         fullscreen(element, button);

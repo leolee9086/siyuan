@@ -72,6 +72,7 @@ import {Protyle} from "../protyle";
 import {openFile} from "../editor/open/openFile";
 import {fullscreen} from "../protyle/breadcrumb/action";
 import {newFile} from "../util/file/newFile";
+import {setEmpty} from "./util/setEmpty";
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -87,6 +88,9 @@ export class App {
     }
     public createDocument(name?: string) {
         return newFile(this, name);
+    }
+    public handleUnavailableDocument(_protyle: IProtyle) {
+        setEmpty(this);
     }
     public toggleFullscreen(element: Element, button?: Element) {
         fullscreen(element, button);

@@ -23,7 +23,7 @@ import {transaction} from "./wysiwyg/transaction/submit";
 import {turnsIntoOneTransaction, turnsIntoTransaction} from "./wysiwyg/transaction.turns";
 import {updateBatchTransaction, updateTransaction} from "./wysiwyg/transaction/update";
 import { fetchPost } from "../util/network/fetch";
-import { refreshProtyleBacklink, refreshProtyleDatabaseRows, refreshProtyleOutline, updateProtylePanel, focusProtylePanel, clearProtylePanelFocus, updateProtyleTitle, removeProtyleTab } from "./runtime/layout.port";
+import { refreshProtyleBacklink, refreshProtyleDatabaseRows, refreshProtyleOutline, updateProtylePanel, focusProtylePanel, clearProtylePanelFocus, updateProtyleTitle } from "./runtime/layout.port";
 import { getDocDisplayName, withEncryptedNotebook } from "../util/pathName";
 import { initMirror, refreshUndoButtons, syncMirrorFromBroadcast } from "./undo/globalUndo";
 import { Title } from "./header/Title";
@@ -31,7 +31,6 @@ import { Background } from "./header/Background";
 import { disabledProtyle, enableProtyle, onGet, setReadonlyByConfig } from "./util/onGet";
 import { reloadProtyle } from "./util/reload";
 import { renderBacklink } from "./wysiwyg/renderBacklink";
-import { setEmpty } from "../mobile/util/setEmpty";
 import { resize } from "./util/resize";
 import { getDocByScroll } from "./scroll/saveScroll";
 import type { AppFacade } from "../app/AppFacade.types";
@@ -236,22 +235,12 @@ export class Protyle {
                         case "closeBox":
                         case "removeBox":
                             if (this.protyle.notebookId === data.data.box) {
-                                if (isMobile) {
-                                    setEmpty(app);
-                                }
-                                if (!isMobile && this.protyle.model) {
-                                    removeProtyleTab(this.protyle);
-                                }
+                                app.handleUnavailableDocument(this.protyle);
                             }
                             break;
                         case "removeDoc":
                             if (data.data.ids.includes(this.protyle.block.rootID)) {
-                                if (isMobile) {
-                                    setEmpty(app);
-                                }
-                                if (!isMobile && this.protyle.model) {
-                                    removeProtyleTab(this.protyle);
-                                }
+                                app.handleUnavailableDocument(this.protyle);
                                 delete window.siyuan.storage[Constants.LOCAL_FILEPOSITION][this.protyle.block.rootID];
                                 setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
                             }
