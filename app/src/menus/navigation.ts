@@ -17,7 +17,6 @@ import { Constants } from "../constants";
 import { newFileInTree } from "../util/file/newFile";
 import { hasClosestByTag, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { deleteFiles } from "../editor/deleteFile";
-import { openFileById } from "../editor/utils.openFileById";
 import { getDockByType } from "../layout/tabUtil";
 import { Files } from "../layout/dock/Files";
 import { openCardByData } from "../card/openCard";
@@ -74,8 +73,7 @@ export const initNavigationMenu = (app: AppFacade, liElement: HTMLElement) => {
             label: window.siyuan.languages.openDocument,
             icon: "iconOpen",
             click: () => {
-                openFileById({
-                    app,
+                app.openBlock({
                     id: boxDocID,
                     action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
                 });
@@ -338,8 +336,7 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
             label: window.siyuan.languages.openDocument,
             icon: "iconOpen",
             click: () => {
-                openFileById({
-                    app,
+                app.openBlock({
                     id,
                     action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
                 });
