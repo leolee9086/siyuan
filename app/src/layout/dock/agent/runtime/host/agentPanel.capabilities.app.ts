@@ -30,8 +30,6 @@ import {postRender} from "./imports";
 import {createAppPanelMenuPort} from "./agentPanel.menu.app.factory";
 /** 用途：创建浏览器重载动作；使用范围：FrontendReloadPort；解耦评估：共享工厂避免重复实现。 */
 import {createBrowserHostReload} from "./agentPanel.reload.browser.factory";
-/** 用途：延迟加载设置模块；使用范围：SettingsNavigationPort；解耦评估：网关保留动态边界，避免布局初始化循环。 */
-import {loadOpenSetting} from "./imports";
 
 /**
  * 组合主应用实际具备的细粒度宿主能力，供 Dock、Tab 和浮窗共用。
@@ -51,11 +49,10 @@ export const createAppAgentPanelCapabilities = (app: AppFacade, tab: Tab) => {
     return {
         settingsNavigation: {
             /** 打开或复用主应用 AI 设置页。 */
-            async openAISettings() {
+            openAISettings() {
                 const existing = window.siyuan.dialogs.find((dialog) => dialog.element.querySelector(".config__tab-container"));
                 if (!existing) {
-                    const {openSetting} = await loadOpenSetting();
-                    openSetting(app, "ai");
+                    app.openSettings("ai");
                 }
             },
         },

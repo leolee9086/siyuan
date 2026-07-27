@@ -83,6 +83,8 @@ import {removeProtyleTab} from "./protyle/runtime/layout.port";
 import {createInNotePluginManager} from "./inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePluginManager.types";
 import {openGlobalSearch as openGlobalSearchInApp} from "./search/global/openGlobalSearch";
+import {openSetting} from "./config";
+import type {SettingTabId} from "./config/setting/setting.types";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -97,6 +99,9 @@ export class App {
     /** @显式返回类型原因：App 公开表面必须固定为完整 ProtyleDomain，避免向下层泄露具体 class。 */
     public createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain {
         return new Protyle(this, element, options);
+    }
+    public openSettings(tab?: SettingTabId) {
+        openSetting(this, tab);
     }
     public createDocument(name?: string) {
         return newFile(this, name);

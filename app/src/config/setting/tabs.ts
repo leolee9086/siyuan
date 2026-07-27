@@ -29,6 +29,7 @@ import {registerSyncTab} from "../tabs/syncTab";
 import {registerAccessTab} from "../tabs/accessTab";
 import {registerAppTab} from "../tabs/appTab";
 import {registerAboutTab} from "../tabs/aboutTab";
+import type {SettingTabId} from "./setting.types";
 
 const mountAIProfilesTab = (root: HTMLElement) => {
     if (root.innerHTML) {
@@ -153,9 +154,9 @@ const settingTabs = {
         icon: "iconInfo",
         title: () => window.siyuan.languages.about,
     }, registerAboutTab),
-};
+} satisfies Record<SettingTabId, SettingTab>;
 
-export type TSettingTab = keyof typeof settingTabs;
+export type TSettingTab = SettingTabId;
 
 export const getSettingTab = (id: TSettingTab): SettingTab => settingTabs[id];
 

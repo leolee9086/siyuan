@@ -31,8 +31,6 @@ import type {PanelMenuItem} from "../agentPanel.ports.types";
 /** 用途：收口菜单类；使用范围：App 菜单 factory；解耦评估：实例化集中在 factory。 */
 import {MenuItem} from "../../../../../menus/Menu";
 
-/** 延迟加载设置模块，避免宿主 capability 在布局初始化时引入配置循环。 */
-export const loadOpenSetting = async () => import("../../../../../config");
 /** 导出 AppFacade 类型。 */
 export type {AppFacade};
 /** 导出 Tab 类型。 */

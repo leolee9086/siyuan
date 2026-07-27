@@ -12,6 +12,8 @@ import type {ILayoutModel} from "../layout/lifecycle/model.types";
 import type {LayoutTab} from "../layout/layout.types";
 /** 用途：完整笔记内插件管理器领域根；使用范围：应用外观向菜单和编辑器暴露唯一管理实例；解耦评估：纯类型不加载具体管理器。 */
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
+/** 用途：完整设置页标识；使用范围：应用外观设置导航；解耦评估：纯设置领域类型不加载注册表实现。 */
+import type {SettingTabId} from "../config/setting/setting.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
@@ -63,6 +65,7 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
+    openSettings(tab?: SettingTabId): void;
     createDocument(name?: string): Promise<void>;
     createDocumentInTree(notebookId: string, currentPath: string, paths?: string[]): Promise<void>;
     handleUnavailableDocument(protyle: IProtyle): void;

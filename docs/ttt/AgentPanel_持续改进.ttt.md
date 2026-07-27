@@ -82,3 +82,4 @@
 - [x] 2026-07-15：Agent Dock 标题栏增加非模态浮窗入口；浮窗副本隐藏递归入口，并复用统一 Tab 浮窗 Port。
 - [x] 2026-07-15：Tab/Dock 浮窗 Dialog 改为非模态，不渲染遮罩且不注册全局 Dialog 栈。
 - [x] 2026-07-28：完整应用的 Protyle Composer 统一通过 `AppFacade.createProtyle()` 创建，具体 Protyle class 只留在 App 装配边界；Composer 专项 `4/4`、Node `208/208` 和 imports 多跳门禁通过。当前循环主线已推进到 Agent Host capability/menu 工厂经 config 聚合入口加载插件与移动编辑器的返回链，后续逐符号收窄该运行时出口，不新增局部配置接口。
+- [x] 2026-07-28：Agent Host 设置能力删除动态 `import(config)`，改为调用完整 `AppFacade.openSettings("ai")`；桌面/移动组合根继续复用既有统一设置入口。新增 Host 行为测试覆盖打开和已存在 Dialog 两条路径；主线返回边已推进到插件动作注册表 `frontendActions -> config/index`。
