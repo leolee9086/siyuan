@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：继续随当前循环图审计 `Outline.contextMenu` 对具体 Editor 导航实现的加载；复用完整 AppFacade 和既有 Outline 领域根，不创建调用点碎片契约。
+> **下一步任务**：继续随当前循环图审计移动编辑器、空工作区呈现与文件挂载链；仅在真实应用宿主行为存在时扩充完整 AppFacade，不创建调用点碎片契约。
 
 ---
 
@@ -194,3 +194,4 @@
 - **2026-07-28**：完整 AppFacade 增加 `getOpenModels(): IModels`，表达应用当前全部已挂载模型的完整查询表面；桌面/移动组合根均委托唯一 `getAllModels()`。MAGI Identity Access 由此删除对具体模型查询和 Editor 打开实现的依赖，继续保持 Custom Tab 单实例激活、Dock 排除及独立页回退。AppFacade 双向契约随 Node `208/208` 通过，身份专项 `5/5`、目标类型诊断 `0` 和网关门禁通过。
 - **2026-07-28**：CustomLists 树节点导航改用其已有完整 `AppFacade.openBlock`，保持 `id/action/zoomIn` 载荷和未等待时序；具体 `openFileById` 导入删除。既有完整 `CustomListsDomain` 双向契约随 Node `208/208` 通过，CustomLists 退出当前首环。
 - **2026-07-28**：Forwardlink 内嵌编辑器创建和 Ctrl/Alt/Shift 块导航改用其已有完整 `AppFacade.createProtyle/openBlock`，保持全部 Protyle 选项、位置、action、集合与销毁语义；具体 Protyle 和 Editor 导航实现依赖归零。既有完整 `ForwardlinkDomain` 双向契约随 Node `208/208` 通过，Forwardlink 退出当前首环。
+- **2026-07-28**：Outline 全部文档导航改用模型已持有的完整 `AppFacade.openBlock()`；外观导航数据补齐原实现真实使用的起始位置，编辑器查找改用 `AppFacade.getOpenModels()`，不再从下层菜单和编辑上下文加载全局布局查询实现。返回的完整 `ProtyleDomain` 承接事务执行，AppFacade 没有为菜单新增任何局部能力。Outline/Protyle class 继续通过 `PublicInstanceLooksLike` 双向校验；专项 `5/5`、Node `208/208`、目标类型诊断 `0` 通过，生产代表环 `120 -> 97 -> 74`，Outline 已退出循环报告。

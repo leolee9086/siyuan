@@ -3,10 +3,10 @@
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
 
-import { getInstanceById } from "../../util";
+/** 用途：按布局实例 ID 查找预览页签；使用范围：Outline 预览点击；解耦评估：直达布局查询唯一实现，不经综合 util 网关。 */
+import {getInstanceById} from "../../query/layoutInstance";
 import {isLayoutTab} from "../../layout.types.guard";
 import { hasClosestByClassName, hasTopClosestByClassName } from "../../../protyle/util/hasClosest";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { Constants } from "../../../constants";
 import {checkFold} from "../../../block/fold/checkFold";
 import { escapeAttr } from "../../../util/DOM/escape";
@@ -163,7 +163,7 @@ function handlePreviewClick(outline: OutlineDomain, app: AppFacade, id: string) 
     const headElement = document.getElementById(id);
     // 如果找不到对应的 DOM 元素（即使在预览模式下也可能因为未渲染等原因找不到），则直接打开文件
     if (!headElement) {
-        openFileById({ app, id: outline.blockId });
+        void app.openBlock({id: outline.blockId});
         return;
     }
     const tabElement = hasTopClosestByClassName(headElement, "protyle");
@@ -184,8 +184,7 @@ function handlePreviewClick(outline: OutlineDomain, app: AppFacade, id: string) 
  * @param zoomIn 是否放大/聚焦
  */
 function openEditorNode(app: AppFacade, id: string, zoomIn: boolean) {
-    openFileById({
-        app,
+    void app.openBlock({
         id,
         position: "start",
         action: zoomIn ? FILE_ACTION_ZOOM_IN : FILE_ACTION_DEFAULT,
@@ -216,7 +215,7 @@ function handleTreeCtrlClick(outline: OutlineDomain, app: AppFacade, element: HT
     const id = element.getAttribute("data-node-id");
     // 如果存在节点 ID，则聚焦打开
     if (id) {
-        openFileById({ app, id, action: [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HTML], zoomIn: true });
+        void app.openBlock({id, action: [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HTML], zoomIn: true});
     }
 }
 

@@ -501,6 +501,16 @@ export class Protyle {
         });
     }
 
+    /** 将调用方已经确定的块集合按既有选择顺序转换。 */
+    public turnElementsIntoTransaction(selectsElement: Element[], type: TTurnInto, subType?: number) {
+        turnsIntoTransaction({
+            protyle: this.protyle,
+            selectsElement,
+            type,
+            ...(typeof subType === "number" ? {level: subType} : {}),
+        });
+    }
+
     /**
      * 多个块转换
      * @param {Element} [nodeElement] 优先使用包含 protyle-wysiwyg--select 的块，否则使用 nodeElement 单块

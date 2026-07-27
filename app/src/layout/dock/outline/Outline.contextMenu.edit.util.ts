@@ -1,11 +1,12 @@
 import { Constants } from "../../../constants";
-import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { mathRender } from "../../../protyle/render/mathRender";
 import { fetchPost } from "../../../util/network/fetch";
 import { pathPosix } from "../../../util/file/pathName";
 import { replaceFileName } from "../../../editor/rename";
 import { isOperations, isHTMLElement } from "../dock.guard";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
+import type {OutlineEditorContext} from "./types";
 
 /**
  * 作用：生成标题块的 HTML 结构。
@@ -17,7 +18,8 @@ export const genHeadingHTML = (level: number, newId: string) => `<div data-subty
 
 /** 处理标题级别变换的响应 */
 /** @同步豁免: DOM访问 */
-export const 处理标题级别变换响应 = (protyle: IProtyle, responseData: { doOperations: IOperation[]; undoOperations: IOperation[] }) => {
+export const 处理标题级别变换响应 = (editor: ProtyleDomain, responseData: { doOperations: IOperation[]; undoOperations: IOperation[] }) => {
+    const protyle = editor.protyle;
     /**
      * 作用：确保编辑器处于所见即所得 (WYSIWYG) 模式。
      * 意图：后续 DOM 操作依赖于 WYSIWYG 元素。
@@ -60,13 +62,13 @@ export const 处理标题级别变换响应 = (protyle: IProtyle, responseData: 
         const focusEl = protyle.wysiwyg.element.querySelector(`[data-node-id="${firstOp.id}"]`);
         focusEl?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-    transaction(protyle, responseData.doOperations, responseData.undoOperations);
+    editor.transaction(responseData.doOperations, responseData.undoOperations);
 };
 
 /** 创建插入同级标题后的响应处理器 */
 /** @同步豁免: UI构建 */
 export const 创建插入同级标题后处理器 = (
-    获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
+    获取Protyle和块元素: () => OutlineEditorContext | undefined,
     currentLevel: number
 ) => (response: IWebSocketData) => {
     const data = 获取Protyle和块元素();
@@ -82,7 +84,7 @@ export const 创建插入同级标题后处理器 = (
     const lastOp = doOps[doOps.length - 1];
     const previousID = lastOp.id;
     const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel, newId);
-    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
+    data.editor.transaction([{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
     const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
     /**
      * 作用：确保前一个元素存在。
@@ -108,7 +110,7 @@ export const 创建插入同级标题后处理器 = (
 /** 创建添加子标题的响应处理器 */
 /** @同步豁免: UI构建 */
 export const 创建添加子标题响应处理器 = (
-    获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
+    获取Protyle和块元素: () => OutlineEditorContext | undefined,
     currentLevel: number
 ) => (delResp: IWebSocketData) => {
     const doOps = delResp.data.doOperations;
@@ -140,7 +142,7 @@ export const 创建添加子标题响应处理器 = (
         return;
     }
     const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel + 1, newId);
-    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
+    data.editor.transaction([{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
     const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
     if (!prevEl) {
         return;
@@ -164,12 +166,13 @@ export const 创建添加子标题响应处理器 = (
  * 调用时机：在 executeSubDocCreateAndMove 中的 fetchPost 回调中调用。
  */
 const handleCreateDocWithMdResponse = (
-    protyle: IProtyle,
+    editor: ProtyleDomain,
     ids: string[],
     name: string,
     blockElement: HTMLElement,
     response: IWebSocketData
 ) => {
+    const protyle = editor.protyle;
     const newDocID = response.data;
 
     // 3. 构建 Transaction：插入引用 + 移动块
@@ -195,7 +198,7 @@ const handleCreateDocWithMdResponse = (
             parentID: newDocID
         });
     }
-    transaction(protyle, doOperations);
+    editor.transaction(doOperations);
 };
 
 /**
@@ -203,18 +206,19 @@ const handleCreateDocWithMdResponse = (
  * 意图：将核心逻辑提取为独立函数，复用且避免嵌套函数定义。
  */
 const executeSubDocCreateAndMove = (
-    protyle: IProtyle,
+    editor: ProtyleDomain,
     ids: string[],
     newPath: string,
     name: string,
     blockElement: HTMLElement
 ) => {
+    const protyle = editor.protyle;
     fetchPost("/api/filetree/createDocWithMd", {
         notebook: protyle.notebookId,
         path: newPath, // 已经是完整路径
         parentID: protyle.block.rootID,
         markdown: ""
-    }, (response) => handleCreateDocWithMdResponse(protyle, ids, name, blockElement, response));
+    }, (response) => handleCreateDocWithMdResponse(editor, ids, name, blockElement, response));
 };
 
 /**
@@ -222,7 +226,8 @@ const executeSubDocCreateAndMove = (
  * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
  * 调用时机：用户在菜单确认后调用。
  */
-export const convertBlockToSubDocument = async (protyle: IProtyle, blockElement: HTMLElement) => {
+export const convertBlockToSubDocument = async (editor: ProtyleDomain, blockElement: HTMLElement) => {
+    const protyle = editor.protyle;
     const id = blockElement.getAttribute("data-node-id");
     if (!id) {
         return;
@@ -249,6 +254,6 @@ export const convertBlockToSubDocument = async (protyle: IProtyle, blockElement:
     }, (response) => {
         const parentHPath = response.data;
         const newPath = pathPosix().join(parentHPath, name);
-        executeSubDocCreateAndMove(protyle, [id], newPath, name, blockElement);
+        executeSubDocCreateAndMove(editor, [id], newPath, name, blockElement);
     });
 };

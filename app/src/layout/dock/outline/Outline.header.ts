@@ -3,14 +3,13 @@
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
 import type {LayoutTab} from "../../layout.types";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { goHome } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
-import { Editor } from "../../../editor";
+import {isEditorDomain} from "../../../editor/model/editorDomain.types";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import type {OutlineDomain, OutlineOptions} from "./types";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
-import type {ModelDomain} from "../../lifecycle/model.types";
+import type {ILayoutModel} from "../../lifecycle/model.types";
 import { handleKeepCurrentExpandClick } from "./Outline.header.expand";
 import { handlePanelIconClick } from "./Outline.header.icon";
 
@@ -135,16 +134,15 @@ function handlePanelClick(outline: OutlineDomain, options: {app: AppFacade; tab:
          */
         if (outline.blockId && (target === outline.headerElement.nextElementSibling || target.classList.contains("block__icons"))) {
             // 处理标题点击：在编辑器中打开对应的块文档
-            openFileById({
-                app: options.app,
+            void options.app.openBlock({
                 id: outline.blockId,
                 /**
                  * 作用：文件打开后的回调。
                  * 意图：处理预览模式滚动或普通模式的光标定位。
                  * 调用时机：文件加载完成后。
                  */
-                afterOpen: (model?: ModelDomain) => {
-                    handleAfterOpen(outline, model);
+                afterOpen: (model) => {
+                    handleAfterOpen(model);
                 }
             });
             isFocus = false;
@@ -202,8 +200,8 @@ function setValidPanelFocus(outline: OutlineDomain, panelElement: HTMLElement) {
  * 意图：文件打开后，根据是否预览模式，调整滚动位置或光标位置。
  * 调用时机：openFileById 完成后。
  */
-function handleAfterOpen(outline: OutlineDomain, model?: ModelDomain) {
-    if (!model || !(model instanceof Editor)) {
+function handleAfterOpen(model?: ILayoutModel) {
+    if (!model || !isEditorDomain(model)) {
         return;
     }
 

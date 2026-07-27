@@ -7,7 +7,7 @@ import { Constants } from "../../../constants";
 import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
 import type {AppFacade} from "../../../app/AppFacade.types";
-import { Editor } from "../../../editor";
+import {isEditorDomain} from "../../../editor/model/editorDomain.types";
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 
 // 拆分模块导入
@@ -58,7 +58,10 @@ export class Outline extends Model<AppFacade, LayoutTab> {
         showContextMenu(this, element, event);
     };
     genHeadingTransform = genHeadingTransform;
-    getProtyleAndBlockElement = getProtyleAndBlockElement;
+    getProtyleAndBlockElement = (node: Node) => {
+        const blockElement = hasClosestBlock(node);
+        return blockElement ? getProtyleAndBlockElement(this, blockElement) : undefined;
+    };
 
     initHeaderEvents = initHeaderEvents;
 
@@ -87,8 +90,8 @@ export class Outline extends Model<AppFacade, LayoutTab> {
      * @param options 包含应用实例、标签页、块 ID 等配置信息。
      */
     constructor(options: { app: AppFacade, tab: LayoutTab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
-        super({
-            app: options.app,
+        super({app: options.app});
+        this.connect({
             id: options.tab.id,
             type: "outline",
             callback: Outline.prototype.onModelCallback,
@@ -128,7 +131,10 @@ export class Outline extends Model<AppFacade, LayoutTab> {
              * 生效场景：this.blockId 存在且非空。
              */
             if (this.blockId) {
-                const ial = (options.tab.model instanceof Editor) ? options.tab.model.editor?.protyle?.background?.ial : undefined;
+                const tabModel = options.tab.model;
+                const ial = tabModel && isEditorDomain(tabModel)
+                    ? tabModel.editor.protyle.background?.ial
+                    : undefined;
                 this.updateDocTitle(ial, response.data?.length || 0);
             }
         });
@@ -177,10 +183,11 @@ export class Outline extends Model<AppFacade, LayoutTab> {
             const iconHTML = (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) ?
                 docTitleElement.firstElementChild.outerHTML :
                 `${unicode2Emoji(ial.icon || localImages?.file || "", "b3-list-item__graphic", true)}`;
+            const title = String(ial.title || "");
 
             const counter = docTitleElement.querySelector(".counter");
-            docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(ial.title || "")}</span>${counter?.outerHTML || ""}`;
-            docTitleElement.setAttribute("title", ial.title || "");
+            docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(title)}</span>${counter?.outerHTML || ""}`;
+            docTitleElement.setAttribute("title", title);
             docTitleElement.classList.remove("fn__none");
         }
 

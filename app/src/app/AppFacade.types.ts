@@ -20,8 +20,8 @@ export interface AppBlockNavigation {
     id: string;
     action?: TProtyleAction[];
     zoomIn?: boolean;
-    /** 桌面宿主在指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
-    position?: "right" | "bottom" | undefined;
+    /** 桌面宿主按起始位置或指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
+    position?: "start" | "right" | "bottom" | undefined;
     /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
     keepCursor?: boolean;
     /** 桌面宿主强制创建新页签而不复用现有分屏；移动宿主保持单编辑器导航语义。 */

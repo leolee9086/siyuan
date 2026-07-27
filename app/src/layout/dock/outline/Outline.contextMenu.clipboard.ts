@@ -1,7 +1,6 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/network/fetch";
-import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
 import { genEmptyElement } from "../../../block/element.factory";
 import { focusBlock } from "../../../protyle/util/selection";
 import { isInAndroid, isInHarmony, writeText } from "../../../protyle/util/compatibility";
@@ -11,6 +10,7 @@ import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfi
 import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
 import { isHTMLElement } from "../dock.guard";
 import type {OutlineDomain} from "./types";
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /** 用途：解析 Outline 对应的编辑器与标题块；使用范围：复制、剪切和删除标题动作；解耦评估：直达独立编辑器上下文所有者，不再反向加载编辑菜单。 */
 import {getProtyleAndBlockElement} from "./editorContext/resolve";
 
@@ -99,10 +99,11 @@ const 删除操作对应元素 = (protyle: IProtyle, operations: IOperation[]) =
  * 作用：处理删除标题的事务响应，删除 DOM 元素并记录事务
  * 调用时机：点击"删除"菜单项后，API 返回删除事务时调用
  */
-const 创建删除标题响应处理器 = (protyle: IProtyle) => (resp: IWebSocketData) => {
+const 创建删除标题响应处理器 = (editor: ProtyleDomain) => (resp: IWebSocketData) => {
+    const protyle = editor.protyle;
     删除操作对应元素(protyle, resp.data.doOperations);
     handleEmptyContent(protyle, resp.data.doOperations, resp.data.undoOperations);
-    transaction(protyle, resp.data.doOperations, resp.data.undoOperations);
+    editor.transaction(resp.data.doOperations, resp.data.undoOperations);
 };
 
 /**
@@ -110,9 +111,10 @@ const 创建删除标题响应处理器 = (protyle: IProtyle) => (resp: IWebSock
  * 作用：在写入剪贴板后，执行删除标题的操作
  * 调用时机：剪切操作获取到标题内容后调用
  */
-const 创建剪切标题内层处理器 = (protyle: IProtyle, id: string) => (resp: IWebSocketData) => {
+const 创建剪切标题内层处理器 = (editor: ProtyleDomain, id: string) => (resp: IWebSocketData) => {
+    const protyle = editor.protyle;
     writeClipboard(protyle, resp.data);
-    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(protyle));
+    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(editor));
 };
 
 /**
@@ -142,7 +144,7 @@ const 处理剪切标题点击 = (outline: OutlineDomain, element: HTMLElement, 
         return;
     }
     const foldAttr = data.blockElement.getAttribute("fold");
-    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, 创建剪切标题内层处理器(data.protyle, id));
+    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, 创建剪切标题内层处理器(data.editor, id));
 };
 
 /**
@@ -155,7 +157,7 @@ const 处理删除标题点击 = (outline: OutlineDomain, element: HTMLElement, 
     if (!data) {
         return;
     }
-    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(data.protyle));
+    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(data.editor));
 };
 
 /** 添加复制/剪切/删除菜单项 */

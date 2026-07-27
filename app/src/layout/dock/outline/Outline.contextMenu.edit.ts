@@ -5,9 +5,6 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 
 import { fetchPost } from "../../../util/network/fetch";
-import { getAllModels } from "../../getAll";
-import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
-import {turnsIntoTransaction} from "../../../protyle/wysiwyg/transaction.turns";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
@@ -47,10 +44,10 @@ export function genHeadingTransform(outline: OutlineDomain, id: string, level: n
          * 作用：处理标题级别转换菜单项的点击事件。
          * 意图：当用户选择特定的标题级别时，请求后端获取相应的事务数据，并执行标题级别的转换操作。
          * 调用时机：用户在外观大纲（Outline）的上下文菜单中点击“标题 x”选项时。
-         * 改进：目前依赖全局模型查找 (getAllModels)，未来可考虑解耦。
+         * 编辑器查询通过 Outline 已持有的完整应用外观完成。
          */
         click: () => {
-            const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
+            const editItem = outline.app.getOpenModels().editor.find(item => item.editor.protyle.block.rootID === outline.blockId);
             /**
              * 作用：确保找到了对应的编辑器实例。
              * 意图：如果未找到与当前 blockId 关联的编辑器，则中止操作。
@@ -59,7 +56,8 @@ export function genHeadingTransform(outline: OutlineDomain, id: string, level: n
             if (!editItem) {
                 return;
             }
-            const protyle = editItem.editor.protyle;
+            const editor = editItem.editor;
+            const protyle = editor.protyle;
             fetchPost("/api/block/getHeadingLevelTransaction", { id, level }, (response) => {
                 /**
                  * 作用：验证响应数据和 Protyle 实例。
@@ -69,7 +67,7 @@ export function genHeadingTransform(outline: OutlineDomain, id: string, level: n
                 if (!protyle || !response.data) {
                     return;
                 }
-                处理标题级别变换响应(protyle, response.data);
+                处理标题级别变换响应(editor, response.data);
             });
         }
     };
@@ -101,12 +99,7 @@ export function appendLevelMenuItems(outline: OutlineDomain, element: HTMLElemen
                  * 生效场景：`getProtyleAndBlockElement` 返回有效对象时。
                  */
                 if (data) {
-                    turnsIntoTransaction({
-                        protyle: data.protyle,
-                        selectsElement: [data.blockElement],
-                        type: "Blocks2Hs",
-                        level: currentLevel - 1
-                    });
+                    data.editor.turnElementsIntoTransaction([data.blockElement], "Blocks2Hs", currentLevel - 1);
                 }
             }
         }).element);
@@ -132,12 +125,7 @@ export function appendLevelMenuItems(outline: OutlineDomain, element: HTMLElemen
                  * 生效场景：`getProtyleAndBlockElement` 返回有效对象时。
                  */
                 if (data) {
-                    turnsIntoTransaction({
-                        protyle: data.protyle,
-                        selectsElement: [data.blockElement],
-                        type: "Blocks2Hs",
-                        level: currentLevel + 1
-                    });
+                    data.editor.turnElementsIntoTransaction([data.blockElement], "Blocks2Hs", currentLevel + 1);
                 }
             }
         }).element);
@@ -192,7 +180,7 @@ export function appendSubDocMenu(outline: OutlineDomain, element: HTMLElement) {
             }
             // @内联回调
             confirmDialog("提示", "⚠️ 此操作无法撤销<br>确认将此块及其内容转换为子文档吗？", () => {
-                convertBlockToSubDocument(data.protyle, data.blockElement);
+                convertBlockToSubDocument(data.editor, data.blockElement);
             });
         }
     }).element);
@@ -221,8 +209,7 @@ export function appendInsertMenuItems(outline: OutlineDomain, element: HTMLEleme
             }
             const newId = Lute.NewNodeID();
             const html = genHeadingHTML(currentLevel, newId);
-            transaction(
-                data.protyle,
+            data.editor.transaction(
                 [{
                     action: "insert",
                     data: html,

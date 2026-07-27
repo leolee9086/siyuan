@@ -10,6 +10,8 @@ import type {AppFacade} from "../../../app/AppFacade.types";
 import type {ModelDomain} from "../../lifecycle/model.types";
 /** 用途：Tree 完整领域根。使用范围：Outline 树状态和行为。解耦评估：不加载 Tree class。 */
 import type {TreeDomain} from "../../../util/file/tree.types";
+/** 用途：完整 Protyle 领域根。使用范围：Outline 编辑上下文将事务交还编辑器所有者。 */
+import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /** 对外复用 Outline 的完整树领域身份。 */
 export type {TreeDomain};
 
@@ -49,6 +51,7 @@ export interface OutlineOptions<TApplication extends object = AppFacade> {
 
 /** Outline 操作解析出的编辑器与标题块。 */
 export interface OutlineEditorContext {
+    editor: ProtyleDomain;
     protyle: IProtyle;
     blockElement: HTMLElement;
 }
@@ -85,7 +88,7 @@ export interface OutlineDomain<
     update: (data: IWebSocketData, callbackId?: string) => void;
     updateDocTitle: (ial?: IObject, count?: number) => void;
     genHeadingTransform: (outline: OutlineDomain, id: string, level: number) => IMenu;
-    getProtyleAndBlockElement: (outline: OutlineDomain, element: HTMLElement) => OutlineEditorContext | undefined;
+    getProtyleAndBlockElement: (node: Node) => OutlineEditorContext | undefined;
     initHeaderEvents: (outline: OutlineDomain, options: OutlineOptions<TApplication>) => void;
     onModelCallback(): void;
     onModelMsgCallback(data: IWebSocketData): void;

@@ -6,7 +6,6 @@ import type { AppFacade } from "../../../app/AppFacade.types";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import {checkFold} from "../../../block/fold/checkFold";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type {OutlineDomain} from "./types";
@@ -33,8 +32,7 @@ const ZOOM_OUT_ACTIONS: TProtyleAction[] = [Constants.CB_GET_FOCUS, Constants.CB
  * 调用时机：checkFold 完成后。
  */
 function handleOpenOutlineFile(app: AppFacade, id: string, zoomIn: boolean) {
-    openFileById({
-        app,
+    void app.openBlock({
         id,
         position: "start",
         action: zoomIn ? ZOOM_IN_ACTIONS : ZOOM_OUT_ACTIONS,

@@ -15,6 +15,7 @@ export const createProtyleDomainFixture = (protyleOverrides: Partial<IProtyle> =
     insert: () => undefined,
     transaction: () => undefined,
     turnIntoOneTransaction: () => undefined,
+    turnElementsIntoTransaction: () => undefined,
     turnIntoTransaction: () => undefined,
     updateTransaction: () => undefined,
     updateTransactionElement: () => undefined,

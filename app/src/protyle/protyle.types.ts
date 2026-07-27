@@ -22,6 +22,7 @@ export interface ProtyleDomain {
     insert(html: string, isBlock?: boolean, useProtyleRange?: boolean): void;
     transaction(doOperations: IOperation[], undoOperations?: IOperation[]): void;
     turnIntoOneTransaction(selectsElement: Element[], type: TTurnIntoOne, subType?: TTurnIntoOneSub): void;
+    turnElementsIntoTransaction(selectsElement: Element[], type: TTurnInto, subType?: number): void;
     turnIntoTransaction(nodeElement: Element, type: TTurnInto, subType?: number): void;
     updateTransaction(id: string, newHTML: string, html: string): void;
     updateTransactionElement(element: Element, oldHTML: string): void;

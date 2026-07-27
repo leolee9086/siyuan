@@ -1,5 +1,3 @@
-/** 用途：查询当前布局中的编辑器模型；使用范围：Outline 标题块上下文解析；解耦评估：经本职责直达网关调用唯一布局查询实现。 */
-import {getAllModels} from "./imports";
 /** 用途：校验标题块 DOM 身份；使用范围：Outline 标题块上下文解析；解耦评估：经本职责直达网关复用唯一 DOM 守卫。 */
 import {isHTMLElement} from "./imports";
 /** 用途：约束调用方为完整 Outline 领域根；使用范围：Outline 菜单与实例公共行为；解耦评估：纯类型依赖完整抽象，不加载具体 class。 */
@@ -14,11 +12,12 @@ import type {OutlineEditorContext} from "./imports";
  */
 export function getProtyleAndBlockElement(outline: OutlineDomain, element: HTMLElement): OutlineEditorContext | undefined {
     const id = element.getAttribute("data-node-id");
-    const editItem = getAllModels().editor.find(item => item.editor.protyle.block.rootID === outline.blockId);
+    const editItem = outline.app.getOpenModels().editor.find(item => item.editor.protyle.block.rootID === outline.blockId);
     if (!editItem) {
         return;
     }
-    const protyle = editItem.editor.protyle;
+    const editor = editItem.editor;
+    const protyle = editor.protyle;
     if (!protyle.wysiwyg) {
         return;
     }
@@ -26,5 +25,5 @@ export function getProtyleAndBlockElement(outline: OutlineDomain, element: HTMLE
     if (!blockElement || !isHTMLElement(blockElement)) {
         return;
     }
-    return {protyle, blockElement};
+    return {editor, protyle, blockElement};
 }

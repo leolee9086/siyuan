@@ -6,10 +6,7 @@ import type {OutlineDomain} from "../../../../src/layout/dock/outline/types";
 import {outlineModelBrand} from "../../../../src/layout/dock/outline/types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "../../../../src/layout/layout.types";
 import {createInNotePluginManagerFixture} from "../../../inNotePlugin/InNotePluginManager.fixture";
-
-const editorContextRuntime = vi.hoisted(() => ({
-    getAllModels: vi.fn(),
-}));
+import {createProtyleDomainFixture} from "../../../support/protyleDomain.fixture";
 
 vi.mock("../../../../src/layout/dock/outline/runtime/imports", () => ({
     fetchPost: vi.fn(),
@@ -23,7 +20,6 @@ vi.mock("../../../../src/layout/dock/outline/runtime/imports", () => ({
 }));
 
 vi.mock("../../../../src/layout/dock/outline/editorContext/imports", () => ({
-    getAllModels: editorContextRuntime.getAllModels,
     isHTMLElement: (element: Element) => element instanceof HTMLElement,
 }));
 
@@ -32,6 +28,7 @@ import {getProtyleAndBlockElement} from "../../../../src/layout/dock/outline/edi
 
 function createOutline(type: "pin" | "local" = "local") {
     const removeTab = vi.fn();
+    const getOpenModels = vi.fn();
     const layout: LayoutDomain = {
         element: document.createElement("div"),
         children: [],
@@ -80,7 +77,7 @@ function createOutline(type: "pin" | "local" = "local") {
         pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
         createProtyle: vi.fn(),
         getOpenEditors: vi.fn(() => []),
-        getOpenModels: vi.fn(),
+        getOpenModels,
         openSettings: vi.fn(),
         openSearch: vi.fn(),
         createDocument: vi.fn(),
@@ -141,7 +138,7 @@ function createOutline(type: "pin" | "local" = "local") {
         onModelMsgCallback: vi.fn(),
         reload: vi.fn(),
     };
-    return {outline, removeTab};
+    return {outline, removeTab, getOpenModels};
 }
 
 /** 验证 Outline WebSocket 命令在无状态分派后保持原有副作用。 */
@@ -176,22 +173,23 @@ describe("Outline message dispatch", () => {
 
 describe("Outline editor context", () => {
     it("resolves the editor and heading block for the Outline document", () => {
-        const {outline} = createOutline();
+        const {outline, getOpenModels} = createOutline();
         const editorElement = document.createElement("div");
         const blockElement = document.createElement("div");
         blockElement.dataset.nodeId = "heading-id";
         editorElement.append(blockElement);
-        const protyle = {block: {rootID: "doc-id"}, wysiwyg: {element: editorElement}};
-        editorContextRuntime.getAllModels.mockReturnValue({editor: [{editor: {protyle}}]});
+        const protyle = {block: {rootID: "doc-id"}, wysiwyg: {element: editorElement}} as IProtyle;
+        const editor = createProtyleDomainFixture(protyle);
+        getOpenModels.mockReturnValue({editor: [{editor}]});
         const outlineElement = document.createElement("div");
         outlineElement.dataset.nodeId = "heading-id";
 
-        expect(getProtyleAndBlockElement(outline, outlineElement)).toEqual({protyle, blockElement});
+        expect(getProtyleAndBlockElement(outline, outlineElement)).toEqual({editor, protyle: editor.protyle, blockElement});
     });
 
     it("does not return another document editor or a missing block", () => {
-        const {outline} = createOutline();
-        editorContextRuntime.getAllModels.mockReturnValue({
+        const {outline, getOpenModels} = createOutline();
+        getOpenModels.mockReturnValue({
             editor: [{editor: {protyle: {block: {rootID: "other-doc"}, wysiwyg: {element: document.createElement("div")}}}}],
         });
         const outlineElement = document.createElement("div");
