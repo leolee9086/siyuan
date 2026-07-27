@@ -3,7 +3,7 @@
  * 从 buildGutterMultipleMenu.ts 拆分而来
  */
 import { MenuItem } from "../../menus/Menu.Item";
-import { copySubMenu } from "../../menus/commonMenuItem";
+import {copySubMenu} from "../../menus/commonMenuItem/copy/copySubMenu.factory";
 import { copyPlainText } from "../util/compatibility";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { isNotEditBlock } from "../wysiwyg/getBlock";
@@ -79,7 +79,7 @@ export const 构建复制菜单 = (protyle: IProtyle, selectsElement: Element[])
 
     // @内联回调
     const nodeIds = Array.from(selectsElement).map(item => item.getAttribute("data-node-id"));
-    const baseMenu = copySubMenu(nodeIds, true, 第一个选中元素) as IMenu[];
+    const baseMenu = copySubMenu(nodeIds, true, 第一个选中元素);
 
     const copyMenu: IMenu[] = baseMenu.concat([
         生成复制纯文本菜单项(selectsElement, 第一个选中元素),

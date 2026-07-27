@@ -1,5 +1,5 @@
 import {exportMd} from "./commonMenuItem/export/exportMenu.factory";
-import { copySubMenu } from "./commonMenuItem/copy";
+import {copySubMenu} from "./commonMenuItem/copy/copySubMenu.factory";
 import {openFileAttr} from "./commonMenuItem/fileAttr/openFileAttr";
 import {movePathToMenu} from "./commonMenuItem/movePath/movePathToMenu.factory";
 import {renameMenu} from "./commonMenuItem/rename/renameMenu.factory";
@@ -390,7 +390,7 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
             label: siyuanI18n.copy,
             type: "submenu",
             icon: "iconCopy",
-            submenu: (copySubMenu([id]) as IMenu[]).concat([{
+            submenu: copySubMenu([id]).concat([{
                 id: "duplicate",
                 iconHTML: "",
                 label: siyuanI18n.duplicate,

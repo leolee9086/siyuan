@@ -5,7 +5,7 @@ import { copyTab, resizeTabs } from "../layout/tabUtil";
 import { closeTabByType } from "../layout/utils/closeTabByType";
 import { openNewWindow } from "../window/openNewWindow";
 import { isElectron } from "../platform";
-import { copySubMenu } from "./commonMenuItem";
+import {copySubMenu} from "./commonMenuItem/copy/copySubMenu.factory";
 import type { AppFacade } from "../app/AppFacade.types";
 import { Layout } from "../layout";
 import { Wnd } from "../layout/Wnd";

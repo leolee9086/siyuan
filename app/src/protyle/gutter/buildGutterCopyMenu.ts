@@ -6,7 +6,7 @@
  * @module protyle/gutter/buildGutterCopyMenu
  */
 
-import { copySubMenu } from "../../menus/commonMenuItem";
+import {copySubMenu} from "../../menus/commonMenuItem/copy/copySubMenu.factory";
 import { copyPlainText, writeText } from "../util/compatibility";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { getPlainText } from "../util/paste";
@@ -196,7 +196,7 @@ const appendNormalBlockItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext):
  */
 export const buildGutterCopyMenuItem = (ctx: IGutterCopyMenuContext): IMenu => {
     // 基础复制菜单项
-    const copyMenu = (copySubMenu([ctx.id], true, ctx.nodeElement) as IMenu[]).concat([
+    const copyMenu = copySubMenu([ctx.id], true, ctx.nodeElement).concat([
         createCopyPlainTextItem(ctx),
         createCopyContentItem(ctx)
     ]);

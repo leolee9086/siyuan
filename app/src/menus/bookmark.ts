@@ -3,7 +3,7 @@ import { Dialog } from "../dialog";
 import { fetchPost } from "../util/network/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { escapeHtml } from "../util/DOM/escape";
-import {copySubMenu} from "./commonMenuItem/copy";
+import {copySubMenu} from "./commonMenuItem/copy/copySubMenu.factory";
 import type {BookmarkDomain} from "../layout/dock/bookmark/bookmark.types";
 import { isMobile } from "../util/platform/functions";
 import type {MobileBookmarksDomain} from "../mobile/dock/bookmark/mobileBookmarks.types";
@@ -124,7 +124,7 @@ const createCopyBookmarkMenuItem = (element: HTMLElement) => {
         label: siyuanI18n.copy,
         type: "submenu",
         icon: "iconCopy",
-        submenu: copySubMenu([id], false) as IMenu[]
+        submenu: copySubMenu([id], false)
     });
 };
 

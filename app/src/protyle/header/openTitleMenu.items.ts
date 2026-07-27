@@ -1,5 +1,5 @@
 import { MenuItem } from "../../menus/Menu.Item";
-import { copySubMenu } from "../../menus/commonMenuItem/copy";
+import {copySubMenu} from "../../menus/commonMenuItem/copy/copySubMenu.factory";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { deleteFile } from "../../editor/deleteFile";
 import { openDocHistory } from "../../history/doc";

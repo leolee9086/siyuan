@@ -4,14 +4,13 @@ import {isEncryptedBox, isLocalPath, pathPosix} from "../util/pathName";
 import {MenuItem} from "./Menu";
 import {
     isInAndroid,
-    isInHarmony,
-    writeText
+    isInHarmony
 } from "../protyle/util/compatibility";
 import {openByMobile} from "../editor/openLink";
-import {fetchPost, fetchSyncPost} from "../util/fetch";
+import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
-import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
+import {focusByRange, getEditorRange} from "../protyle/util/selection";
 import {openBy} from "../platform/localPath/openBy";
 import {replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
@@ -19,7 +18,6 @@ import {Constants} from "../constants";
 import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import {openAssetNewWindow} from "../window/openNewWindow";
-import {copyTextByType} from "../protyle/toolbar/util";
 import {hideElements} from "../protyle/ui/hideElements";
 import {Protyle} from "../protyle";
 import {getAllEditor} from "../layout/getAll";
@@ -417,117 +415,6 @@ export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: 
         openFileAttr(response.data, focusName, protyle);
     });
 };
-
-export const copySubMenu = (ids: string[], accelerator = true, focusElement?: Element, stdMarkdownId?: string): IMenu[] => {
-    const menuItems = [{
-        id: "copyBlockRef",
-        iconHTML: "",
-        accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyBlockRef.custom : undefined,
-        label: window.siyuan.languages.copyBlockRef,
-        click: () => {
-            copyTextByType(ids, "ref");
-            if (focusElement) {
-                focusBlock(focusElement);
-            }
-        }
-    }, {
-        id: "copyBlockEmbed",
-        iconHTML: "",
-        label: window.siyuan.languages.copyBlockEmbed,
-        accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyBlockEmbed.custom : undefined,
-        click: () => {
-            copyTextByType(ids, "blockEmbed");
-            if (focusElement) {
-                focusBlock(focusElement);
-            }
-        }
-    }, {
-        id: "copyProtocol",
-        iconHTML: "",
-        label: window.siyuan.languages.copyProtocol,
-        accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyProtocol.custom : undefined,
-        click: () => {
-            copyTextByType(ids, "protocol");
-            if (focusElement) {
-                focusBlock(focusElement);
-            }
-        }
-    }, {
-        id: "copyProtocolInMd",
-        iconHTML: "",
-        label: window.siyuan.languages.copyProtocolInMd,
-        accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyProtocolInMd.custom : undefined,
-        click: () => {
-            copyTextByType(ids, "protocolMd");
-            if (focusElement) {
-                focusBlock(focusElement);
-            }
-        }
-    },
-        ...(!isElectron ? [
-        {
-            id: "copyWebURL",
-            iconHTML: "",
-            label: window.siyuan.languages.copyWebURL,
-            click: () => {
-                copyTextByType(ids, "webURL");
-                if (focusElement) {
-                    focusBlock(focusElement);
-                }
-            }
-        },
-        ] : []),
-        {
-            id: "copyHPath",
-            iconHTML: "",
-            label: window.siyuan.languages.copyHPath,
-            accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyHPath.custom : undefined,
-            click: () => {
-                copyTextByType(ids, "hPath");
-                if (focusElement) {
-                    focusBlock(focusElement);
-                }
-            }
-        }, {
-            id: "copyID",
-            iconHTML: "",
-            label: window.siyuan.languages.copyID,
-            accelerator: accelerator ? window.siyuan.config.keymap.editor.general.copyID.custom : undefined,
-            click: () => {
-                copyTextByType(ids, "id");
-                if (focusElement) {
-                    focusBlock(focusElement);
-                }
-            }
-        }];
-
-    if (stdMarkdownId) {
-        menuItems.push({
-            id: "copyMarkdown",
-            iconHTML: "",
-            label: window.siyuan.languages.copyMarkdown,
-            accelerator: undefined,
-            click: async () => {
-                const response = await fetchSyncPost("/api/export/exportMdContent", {
-                    id: stdMarkdownId,
-                    refMode: 3,
-                    embedMode: 1,
-                    yfm: false,
-                    fillCSSVar: false,
-                    adjustHeadingLevel: false
-                });
-                const text = response.data.content;
-                writeText(text);
-                if (focusElement) {
-                    focusBlock(focusElement);
-                }
-            }
-        });
-    }
-
-    return menuItems;
-};
-
 
 export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     const submenu = [];

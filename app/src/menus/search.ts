@@ -5,7 +5,7 @@ import { siyuanI18n } from "./imports";
 /** 用途：菜单项构造器。使用范围：search 模块构建菜单项。解耦评估：同目录组件，直接同层导入。 */
 import { MenuItem } from "./Menu.Item";
 /** 用途：复制子菜单。使用范围：search 模块菜单构建。解耦评估：同目录模块，直接同层导入。 */
-import { copySubMenu } from "./commonMenuItem";
+import {copySubMenu} from "./commonMenuItem/copy/copySubMenu.factory";
 
 /**
  * 初始化搜索菜单
