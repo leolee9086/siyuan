@@ -6,8 +6,8 @@
 import { Constants } from "../../../constants";
 import { setStorageVal } from "../../../protyle/util/compatibility";
 import { setPanelFocus } from "../../utils/setPanelFocus";
-import { getDockByType } from "../../tabUtil";
-import { selectOpenTab } from "../util";
+import {getDockByType} from "../../query/dockByType";
+import {selectOpenTab} from "./focus/selectOpenTab";
 import {
     removeSiyuanMenu,
     setSiyuanStorageValue

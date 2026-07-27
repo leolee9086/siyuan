@@ -4,22 +4,9 @@
  */
 
 import { isHTMLElement, isStylableElement } from "../../../util/DOM/element.guard";
-import type {FilesDomain} from "./eventHandlers.types";
 
 // 重导出统一守卫
 export { isHTMLElement, isStylableElement };
-
-/** 判断对象是否具备 Files 完整领域表面。 */
-/** @同步豁免: 类型守卫 */
-export function isFilesDomain(value: object | undefined): value is FilesDomain {
-    if (!value || !("layoutModel" in value) || !("element" in value) || !("selectItem" in value) ||
-        !("init" in value) || !("updateDocActions" in value) || !("onNotebookSortChanged" in value)) {
-        return false;
-    }
-    return value.layoutModel === true && value.element instanceof HTMLElement &&
-        typeof value.selectItem === "function" && typeof value.init === "function" &&
-        typeof value.updateDocActions === "function" && typeof value.onNotebookSortChanged === "function";
-}
 
 /**
  * 类型守卫：检查元素是否为 HTMLLIElement

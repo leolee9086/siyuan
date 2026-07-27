@@ -267,7 +267,7 @@ import type {FilesDomain} from "../layout/dock/Files/eventHandlers.types";
 /** 导出文件树模型完整领域根。 */
 export type {FilesDomain};
 /** 用途：文件树领域守卫。使用范围：收窄 Dock 模型查询结果。解耦评估：不加载 Files class。 */
-import {isFilesDomain} from "../layout/dock/Files/eventHandlers.guard";
+import {isFilesDomain} from "../layout/dock/Files/eventHandlers.types";
 /** 导出文件树领域守卫。 */
 export {isFilesDomain};
 

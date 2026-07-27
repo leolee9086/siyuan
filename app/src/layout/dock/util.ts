@@ -4,13 +4,11 @@ import { Tab } from "../Tab";
 import { Graph } from "./Graph";
 import { Outline } from "./outline/Outline";
 import { fixWndFlex1, getInstanceById, getWndByLayout } from "../util";
-import { getDockByType, resizeTabs, setTabPosition } from "../tabUtil";
+import {resizeTabs, setTabPosition} from "../tabUtil";
 import { Backlink } from "./Backlink";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { Wnd } from "../Wnd";
 import { fetchSyncPost } from "../../util/network/fetch";
-import { Files } from "./Files";
-import { Editor } from "../../editor";
 import { Constants } from "../../constants";
 import { getDocDisplayName } from "../../util/file/pathName";
 
@@ -207,26 +205,6 @@ export const toggleDockBar = (useElement: Element) => {
     resetFloatDockSize();
     adjustDockPadding();
     setTabPosition();
-};
-
-export const selectOpenTab = async () => {
-    const dockFile = getDockByType("file");
-    if (!dockFile) {
-        return false;
-    }
-    const files = dockFile.data.file as Files;
-    const element = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus") ||
-        document.querySelector("ul.layout-tab-bar > .item--focus");
-    if (element) {
-        const tab = getInstanceById(element.getAttribute("data-id")) as Tab;
-        if (tab && tab.model instanceof Editor) {
-            tab.model.editor.protyle.wysiwyg.element.blur();
-            tab.model.editor.protyle.title.editElement.blur();
-            await files.selectItem(tab.model.editor.protyle.notebookId, tab.model.editor.protyle.path);
-            files.lastSelectedElement = files.element.querySelector(".b3-list-item--focus");
-        }
-    }
-    dockFile.toggleModel("file", true);
 };
 
 export const adjustDockPadding = () => {

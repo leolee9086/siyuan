@@ -17,7 +17,8 @@ import { popSearch } from "../../../../mobile/menu/search";
 /** 用途：移动端最近文档入口；使用范围：mobile.ts；解耦评估：最近文档 UI 由 mobile 模块封装。 */
 import { getRecentDocs } from "../../../../mobile/menu/getRecentDocs";
 /** 用途：Dock 相关入口；使用范围：common.ts、recentClosed.ts；解耦评估：布局 Dock 层保留自身创建逻辑。 */
-import { selectOpenTab, openBacklink, openGraph, openOutline } from "../../../../layout/dock/util";
+import {openBacklink, openGraph, openOutline} from "../../../../layout/dock/util";
+import {selectOpenTab} from "../../../../layout/dock/Files/focus/selectOpenTab";
 /** 用途：常量集合；使用范围：recentClosed.ts；解耦评估：避免重复硬编码存储键。 */
 import { Constants } from "../../../../constants";
 /** 用途：编辑器设置运行时 API；使用范围：common.ts；解耦评估：配置写入由设置命名空间统一处理。 */
