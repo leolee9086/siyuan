@@ -1,4 +1,4 @@
-import {exportMd} from "./commonMenuItem";
+import {exportMd} from "./commonMenuItem/export/exportMenu.factory";
 import { copySubMenu } from "./commonMenuItem/copy";
 import {openFileAttr} from "./commonMenuItem/fileAttr/openFileAttr";
 import {movePathToMenu} from "./commonMenuItem/movePath/movePathToMenu.factory";

@@ -1,219 +1,93 @@
-/**
- * 用途：移动端导出菜单项创建
- * 使用范围：exportMd 函数中非 Electron 环境的导出选项
- * 解耦评估：独立文件，专门处理移动端导出逻辑
- */
-/**
- * 用途：全局常量定义
- * 使用范围：获取导出配置键
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { Constants } from "../imports";
-/**
- * 用途：发送异步 POST 请求
- * 使用范围：导出预览 HTML
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { fetchPost } from "../imports";
-/**
- * 用途：隐藏消息提示
- * 使用范围：导出完成后隐藏进度提示
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { hideMessage } from "../imports";
-/**
- * 用途：检测 Android 环境
- * 使用范围：判断是否调用 Android 打印接口
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { isInAndroid } from "../imports";
-/**
- * 用途：检测 Harmony 环境
- * 使用范围：判断是否调用 Harmony 打印接口
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { isInHarmony } from "../imports";
-/**
- * 用途：检测 iOS 环境
- * 使用范围：判断是否调用 iOS 打印接口
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { isInIOS } from "../imports";
-/**
- * 用途：检测移动应用环境
- * 使用范围：判断是否显示打印选项
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { isInMobileApp } from "../imports";
-/**
- * 用途：处理导出内容转换
- * 使用范围：将预览 HTML 转换为导出格式
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { onExport } from "../imports";
-/**
- * 用途：保存导出文件
- * 使用范围：HTML 导出功能
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { saveExport } from "../imports";
-/**
- * 用途：显示消息提示
- * 使用范围：显示导出进度
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { showMessage } from "../imports";
-/**
- * 用途：国际化文本
- * 使用范围：菜单项标签
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { siyuanI18n } from "../imports";
-/**
- * 用途：获取思源本地存储
- * 使用范围：读取导出配置
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getSiyuanStorage } from "../imports";
-/**
- * 用途：获取 location.protocol
- * 使用范围：构建服务路径
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getLocationProtocol } from "../imports";
-/**
- * 用途：获取 location.host
- * 使用范围：构建服务路径
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getLocationHost } from "../imports";
-/**
- * 用途：获取 Android 原生接口
- * 使用范围：调用 Android 打印功能
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getWindowJSAndroid } from "../imports";
-/**
- * 用途：获取 Harmony 原生接口
- * 使用范围：调用 Harmony 打印功能
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getWindowJSHarmony } from "../imports";
-/**
- * 用途：获取 iOS 原生接口
- * 使用范围：调用 iOS 打印功能
- * 解耦评估：通过 imports.ts 统一管理
- */
-import { getWindowWebkit } from "../imports";
+/** 用途：读取导出协议常量；使用范围：移动打印；解耦评估：本域网关直达稳定声明。 */
+import {Constants} from "./imports";
+/** 用途：请求预览 HTML；使用范围：PDF 点击；解耦评估：本域网关保持回调协议。 */
+import {fetchPost} from "./imports";
+/** 用途：读取 host；使用范围：HTML 基址；解耦评估：本域网关直达环境查询。 */
+import {getLocationHost} from "./imports";
+/** 用途：读取 protocol；使用范围：HTML 基址；解耦评估：本域网关直达环境查询。 */
+import {getLocationProtocol} from "./imports";
+/** 用途：读取菜单文案；使用范围：菜单和进度；解耦评估：本域网关保持严格读取。 */
+import {getSiyuanLanguages} from "./imports";
+/** 用途：读取 PDF 参数；使用范围：预览请求；解耦评估：本域网关保持严格读取。 */
+import {getSiyuanStorage} from "./imports";
+/** 用途：调用 Android 打印；使用范围：原生分支；解耦评估：本域网关直达环境桥。 */
+import {getWindowJSAndroid} from "./imports";
+/** 用途：调用 Harmony 打印；使用范围：原生分支；解耦评估：本域网关直达环境桥。 */
+import {getWindowJSHarmony} from "./imports";
+/** 用途：调用 iOS 打印；使用范围：原生分支；解耦评估：本域网关直达环境桥。 */
+import {getWindowWebkit} from "./imports";
+/** 用途：隐藏进度消息；使用范围：打印延迟结束；解耦评估：本域网关保持消息身份。 */
+import {hideMessage} from "./imports";
+/** 用途：选择 Android；使用范围：打印桥选择；解耦评估：平台事实不由调用方注入。 */
+import {isInAndroid} from "./imports";
+/** 用途：选择 Harmony；使用范围：打印桥选择；解耦评估：平台事实不由调用方注入。 */
+import {isInHarmony} from "./imports";
+/** 用途：选择 iOS；使用范围：打印桥选择；解耦评估：平台事实不由调用方注入。 */
+import {isInIOS} from "./imports";
+/** 用途：控制打印项可见性；使用范围：移动菜单；解耦评估：平台事实不由调用方注入。 */
+import {isInMobileApp} from "./imports";
+/** 用途：生成打印 HTML；使用范围：PDF 回调；解耦评估：本域网关直达导出实现。 */
+import {onExport} from "./imports";
+/** 用途：保存 HTML；使用范围：两个 HTML 项；解耦评估：本域网关直达导出实现。 */
+import {saveExport} from "./imports";
+/** 用途：显示进度消息；使用范围：PDF 点击；解耦评估：本域网关保持同步身份。 */
+import {showMessage} from "./imports";
 
-/**
- * 用途：处理移动端 PDF 导出的回调
- * 意图：将导出的 HTML 发送到对应平台的打印接口
- * 调用时机：fetchPost 获取到预览 HTML 后
- */
+/** 将生成的 PDF HTML 发送给唯一匹配的原生打印桥。 */
+const printMobilePDF = (name: string, html: string) => {
+    const print = isInAndroid()
+        ? () => getWindowJSAndroid().print(name, html)
+        : isInHarmony()
+            ? () => getWindowJSHarmony().print(name, html)
+            : isInIOS()
+                ? () => getWindowWebkit().messageHandlers.print.postMessage(name + Constants.ZWSP + html)
+                : undefined;
+    print?.();
+};
+
+/** 完成移动 PDF HTML 生成、原生打印，并保持原三秒进度隐藏时序。 */
 const handleMobilePDFExport = async (response: IWebSocketData, id: string, msgId: string | undefined) => {
     const servePath = getLocationProtocol() + "//" + getLocationHost() + "/";
-    const html = await onExport(response, "", servePath, { type: "pdf", id }) || "";
-    const fileName = response.data.name || "export";
-    
-    // 判断是否为 Android 平台，调用 Android 打印接口
-    if (isInAndroid()) {
-        getWindowJSAndroid().print(fileName, html);
-        return;
+    const html = await onExport(response, undefined, servePath, {type: "pdf", id});
+    if (typeof html !== "string") {
+        throw new Error("移动 PDF 导出未生成 HTML");
     }
-    
-    // 判断是否为 Harmony 平台，调用 Harmony 打印接口
-    if (isInHarmony()) {
-        getWindowJSHarmony().print(fileName, html);
-        return;
-    }
-    
-    // 判断是否为 iOS 平台，调用 iOS 打印接口
-    if (isInIOS()) {
-        getWindowWebkit().messageHandlers.print.postMessage(fileName + Constants.ZWSP + html);
-        return;
-    }
-
-    // 延迟 3 秒隐藏导出进度消息，确保用户看到导出完成提示
+    printMobilePDF(response.data.name, html);
+    // 既有交互要求打印桥调用后保留三秒“导出中”提示，原生桥没有完成事件可监听。
     setTimeout(() => {
-        // 检查 msgId 是否存在再隐藏消息
-        if (msgId) {
-            hideMessage(msgId);
-        }
+        void hideMessage(msgId);
     }, 3000);
 };
 
-/**
- * 用途：创建移动端 PDF 打印菜单项
- * 意图：在移动应用中提供 PDF 打印功能
- * 调用时机：exportMd 函数构建非 Electron 环境菜单时
- * @同步豁免: UI构建 - 菜单项配置对象的创建是同步的
- */
-export const createMobilePDFMenuItem = (id: string) => {
-    return {
-        id: "exportPDF",
-        label: siyuanI18n.print,
-        icon: "iconPDF",
-        ignore: !isInMobileApp(),
-        /**
-         * 用途：触发移动端 PDF 导出
-         * 意图：显示进度提示并调用后端导出接口
-         * 调用时机：用户点击打印菜单项时
-         */
-        click: () => {
-            const msgId = showMessage(siyuanI18n.exporting);
-            const storage = getSiyuanStorage();
-            const localData = storage[Constants.LOCAL_EXPORTPDF];
-            fetchPost("/api/export/exportPreviewHTML", {
-                id,
-                keepFold: localData.keepFold,
-                merge: localData.mergeSubdocs,
-            }, (response) => handleMobilePDFExport(response, id, msgId));
-        }
-    };
-};
-
-/**
- * 用途：创建移动端 HTML (SiYuan) 导出菜单项
- * 意图：在移动端提供 SiYuan 格式的 HTML 导出
- * 调用时机：exportMd 函数构建非 Electron 环境菜单时
- * @同步豁免: UI构建 - 菜单项配置对象的创建是同步的
- */
-export const createMobileHTMLSiYuanMenuItem = (id: string) => {
-    return {
-        id: "exportHTML_SiYuan",
-        label: "HTML (SiYuan)",
-        iconClass: "ft__error",
-        icon: "iconHTML5",
-        /**
-         * 用途：触发 SiYuan 格式 HTML 导出
-         * 意图：调用导出接口保存文件
-         * 调用时机：用户点击菜单项时
-         */
-        click: () => {
-            saveExport({ type: "html", id });
-        }
-    };
-};
-
-/**
- * 用途：创建移动端 HTML (Markdown) 导出菜单项
- * 意图：在移动端提供 Markdown 格式的 HTML 导出
- * 调用时机：exportMd 函数构建非 Electron 环境菜单时
- * @同步豁免: UI构建 - 菜单项配置对象的创建是同步的
- */
-export const createMobileHTMLMarkdownMenuItem = (id: string) => {
-    return {
-        id: "exportHTML_Markdown",
-        label: "HTML (Markdown)",
-        icon: "iconHTML5",
-        /**
-         * 用途：触发 Markdown 格式 HTML 导出
-         * 意图：调用导出接口保存文件
-         * 调用时机：用户点击菜单项时
-         */
-        click: () => {
-            saveExport({ type: "htmlmd", id });
-        }
-    };
-};
+/** 创建非 Electron 平台的打印与 HTML 导出项。 @同步豁免: UI构建 - 菜单必须同步组装。 @显式返回类型原因: 固定 IMenu 协议字面量供顶层 submenu 组合。 */
+export const createMobileExportMenuItems = (id: string): IMenu[] => [{
+    id: "exportPDF",
+    label: getSiyuanLanguages().print,
+    icon: "iconPDF",
+    ignore: !isInMobileApp(),
+    /** 请求预览 HTML 后执行移动打印。 */
+    click: () => {
+        const msgId = showMessage(getSiyuanLanguages().exporting);
+        const localData = getSiyuanStorage()[Constants.LOCAL_EXPORTPDF];
+        fetchPost("/api/export/exportPreviewHTML", {
+            id,
+            keepFold: localData.keepFold,
+            merge: localData.mergeSubdocs,
+        }, response => {
+            void handleMobilePDFExport(response, id, msgId);
+        });
+    }
+}, {
+    id: "exportHTML_SiYuan",
+    label: "HTML (SiYuan)",
+    iconClass: "ft__error",
+    icon: "iconHTML5",
+    /** 交给现有 SiYuan HTML 保存流程。 */
+    click: () => saveExport({type: "html", id})
+}, {
+    id: "exportHTML_Markdown",
+    label: "HTML (Markdown)",
+    icon: "iconHTML5",
+    /** 交给现有 Markdown HTML 保存流程。 */
+    click: () => saveExport({type: "htmlmd", id})
+}];

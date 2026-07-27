@@ -790,7 +790,7 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
     });
 };
 
-export const onExport = async (data: IWebSocketData, filePath: string, servePath: string, exportOption: IExportOptions, msgId?: string) => {
+export const onExport = async (data: IWebSocketData, filePath: string | undefined, servePath: string, exportOption: IExportOptions, msgId?: string) => {
     let themeName = window.siyuan.config.appearance.themeLight;
     let mode = 0;
     if (["html", "htmlmd"].includes(exportOption.type) && window.siyuan.config.appearance.mode === 1) {
