@@ -19,7 +19,7 @@ import {transaction} from "./transaction/submit";
 import {turnsIntoTransaction} from "./transaction.turns";
 import {updateTransaction} from "./transaction/update";
 import { genEmptyElement } from "../../block/element.factory";
-import { rebalanceSbWidth, refreshSbResize } from "../../block/util";
+import {rebalanceSbWidth, refreshSbResize} from "../../block/superBlock";
 import { cancelSB } from "../../block/util.cancelSB";
 import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../util/blockFold";

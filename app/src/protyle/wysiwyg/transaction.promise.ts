@@ -17,7 +17,7 @@ import {
     getPreviousBlockSibling,
 } from "./getBlock";
 import {processFold, syncFoldAttr} from "./transaction.fold";
-import {refreshSbs} from "./transaction.refreshSbs";
+import {refreshSbs} from "./transaction/refreshSbs";
 import {queueTransaction} from "../util/transactionQueue";
 import {disconnectInsertObserver} from "./transaction/insertObserver";
 import {removeTopElementAndCollectOperations} from "./transaction/removeTopElement";

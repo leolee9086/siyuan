@@ -14,7 +14,7 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../util/blockFold";
 import {avRender} from "../render/av/render";
-import {genSBElement} from "../../block/util";
+import {genSBElement} from "../../block/superBlock";
 import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
 import {transaction} from "./transaction/submit";

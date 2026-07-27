@@ -16,6 +16,8 @@ import {hideDragTip} from "../dragTip";
 import {showCaretLine} from "../dragTip";
 /** 用途：显示块引用动作提示。使用范围：仅 DnD 块引用反馈。解耦评估：复用统一拖拽提示运行时。 */
 import {showDragTip} from "../dragTip";
+/** 用途：维护超级块 DOM 与宽度操作。使用范围：块拖拽；解耦评估：直达 SuperBlock DOM 领域唯一实现。 */
+import {genSBElement, refreshSbAndPersistWidth, refreshSbResize} from "../../../block/superBlock";
 
 /** 块引用拖放协议常量。 */
 export {Constants};
@@ -35,3 +37,5 @@ export {hideDragTip};
 export {showCaretLine};
 /** 显示拖拽提示能力。 */
 export {showDragTip};
+/** 超级块创建和布局维护能力。 */
+export {genSBElement, refreshSbAndPersistWidth, refreshSbResize};

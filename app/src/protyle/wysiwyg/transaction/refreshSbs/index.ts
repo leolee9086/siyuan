@@ -1,5 +1,5 @@
 /** 用途：刷新超级块拖拽手柄。使用范围：事务删除、移动、插入、折叠和块转换后刷新相关超级块。解耦评估：该操作必须调用块工具里的 DOM 手柄重建逻辑，抽到事务共享 helper 后可避免各事务模块重复依赖具体实现。 */
-import { refreshSbResize } from "../../block/util";
+import {refreshSbResize} from "./imports";
 
 /**
  * 作用：刷新一组元素所在超级块的拖拽手柄。

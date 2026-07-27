@@ -1,5 +1,5 @@
 /** 用途：生成超级块元素、刷新超级块宽度与拖拽手柄。使用范围：dragSb 创建并维护超级块。解耦评估：通过 block/util 直接导入。 */
-import { genSBElement, refreshSbAndPersistWidth, refreshSbResize } from "../../../block/util";
+import {genSBElement, refreshSbAndPersistWidth, refreshSbResize} from "./imports";
 /** 用途：移动块。使用范围：dragSb/dragSame 主流程。解耦评估：同目录模块直接导入。 */
 import { moveTo } from "./moveTo";
 /** 用途：拖拽各阶段辅助函数。使用范围：dragSb/dragSame 各阶段处理。解耦评估：同目录模块直接导入。 */

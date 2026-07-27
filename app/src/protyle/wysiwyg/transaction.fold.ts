@@ -8,7 +8,7 @@ import {isInEmbedBlock} from "../util/hasClosest";
 import {disabledProtyle, onGet} from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {scrollCenter} from "../../util/DOM/highlightById";
-import {refreshSbs} from "./transaction.refreshSbs";
+import {refreshSbs} from "./transaction/refreshSbs";
 import {withEncryptedNotebook} from "../../util/pathName";
 
 export const syncFoldAttr = (element: Element, operation: IOperation) => {

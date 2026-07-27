@@ -1,5 +1,5 @@
 /** 用途：刷新超级块宽度并持久化。使用范围：拖拽后超级块宽度刷新。解耦评估：通过 block/util 直接导入。 */
-import { refreshSbAndPersistWidth } from "../../../block/util";
+import {refreshSbAndPersistWidth} from "./imports";
 /** 用途：聚焦块。使用范围：拖拽完成后聚焦源块或目标块。解耦评估：通过 selection 直接导入。 */
 import { focusBlock } from "../selection";
 /** 用途：折叠/展开块并获取操作记录。使用范围：拖拽涉及折叠标题时调用。解耦评估：通过 blockFold 直接导入。 */

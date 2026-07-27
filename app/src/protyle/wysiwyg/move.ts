@@ -6,7 +6,7 @@ import {updateTransaction} from "./transaction/update";
 import { preventScroll } from "../scroll/preventScroll";
 import { scrollCenter } from "../../util/DOM/highlightById";
 import { focusByWbr } from "../util/selection";
-import {refreshSbResize} from "../../block/util";
+import {refreshSbResize} from "../../block/superBlock";
 
 export const moveToUp = (protyle: IProtyle, nodeElement: HTMLElement, range: Range) => {
     let previousElement: Element;
