@@ -1,6 +1,8 @@
 import {popSearch} from "./search";
 import {closePanel} from "../util/closePanel";
-import {mountHelp, newDailyNote, newEncryptedNotebook, newNotebook} from "../../util/file/mount";
+import {mountHelp, newDailyNote} from "../../util/file/mount";
+import {newEncryptedNotebook} from "../../util/file/notebookCreation/newEncryptedNotebook/newEncryptedNotebook.factory";
+import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import {exitSiYuan, processSync} from "../../dialog/processSystem";
 import { lockScreen } from "../../dialog/processSystem/lockScreen";
 import {openHistory} from "../../history/history";

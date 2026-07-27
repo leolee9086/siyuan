@@ -1,4 +1,5 @@
-import {mountHelp, newNotebook} from "../../util/file/mount";
+import {mountHelp} from "../../util/file/mount";
+import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import {newFile} from "../../util/file/newFile";
 import {getOpenNotebookCount} from "../../util/file/pathName";
 import {popSearch} from "../menu/search";
