@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：History 编辑器构造和移动 Recent Docs 导航已进入完整 AppFacade；继续按循环图审计移动搜索结果的宿主打开职责。
+> **下一步任务**：History、Recent Docs 和移动搜索结果导航已进入完整 AppFacade；继续随主循环图识别其它下层模块直接加载具体宿主实现的行为。
 
 ---
 
@@ -180,3 +180,4 @@
 - **2026-07-27**：数据库行打开成为完整 AppFacade 的正式公共行为，而非 Protyle 对 `openFile/openFileById/getAllTabs/EditorDomain` 的具体依赖。桌面实现分别保持分离条目的自定义页签载荷、绑定条目的预览页签复用及属性面板展开；移动实现保持全屏 Dialog、旧详情关闭、菜单关闭、强制编辑器重载和属性面板展开。`AppDatabaseRowNavigation` 是完整跨宿主数据契约，桌面/移动 App 继续由 `InstanceLooksLike` 双向校验，没有增加不存在的通用 Custom Tab 能力。数据库行形成独立子域，子域 `imports.ts` 逐项直达真实声明/实现，避免加载广域 Editor 网关。导航专项 `7/7`、AppFacade 契约 `3/3`、Node `200/200`、Protyle 契约和 imports 网关门禁通过；初始化前置条件缺失均显式抛错，损坏页签数据继续告警。生产图 `2295 / 299 / SCC 579`，子域实现及网关均在 SCC 外；代表环反升来自首环转为 `blockAttr -> transaction`，唯一 SCC 相对 `580` 减少 `1`。
 - **2026-07-27**：将完整 Protyle 创建能力纳入 AppFacade，参数继续使用官方兼容的 `IProtyleOptions`，返回既有完整 `ProtyleDomain`；桌面和移动 App 在组合根直接构造具体 Protyle。History、Diff、Doc 和 DocEvent 删除具体 class 导入，不新增 History 编辑器碎片接口，具体类仍只出现在允许的组合根。AppFacade 双向契约 `3/3`、相关 Vitest `7/7`、Node `200/200`、Protyle 契约、AppFacade lint、imports 多跳与 diff 检查通过。生产图 `2304 / 303 / SCC 414`；全部 History 模块退出 SCC，代表环反升但唯一 SCC 减少 `5`。
 - **2026-07-27**：移动 Recent Docs 删除对具体移动 Editor 的反向导入，点击文档委托 AppFacade `openBlock()`；移动 App 保持原滚动动作和打开实现。契约 `3/3`、Node `200/200` 与网关门禁通过，生产图 `2304 / 302 / SCC 413`，Recent Docs 退出循环组件。
+- **2026-07-27**：移动 Search Event 删除对具体移动 Editor 的导航导入，折叠检查后委托 AppFacade `openBlock()`；移动搜索的滚动保护、面板关闭和专属 UI 保持原实现。契约 `3/3`、Node `200/200` 与网关门禁通过；生产图 `2304 / 269 / SCC 413`，代表环减少 `33`，移动模块仍在主 SCC，继续由主任务处理其它返回路径。

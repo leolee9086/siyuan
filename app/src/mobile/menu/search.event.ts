@@ -1,6 +1,5 @@
 import {Constants} from "../../constants";
 import {getCurrentEditor} from "../util/getCurrentEditor";
-import {openMobileFileById} from "../editor";
 import {fetchPost} from "../../util/network/fetch";
 import {preventScroll} from "../../protyle/scroll/preventScroll";
 import {getNotebookName, pathPosix} from "../../util/file/pathName";
@@ -406,7 +405,13 @@ export const initSearchEvent = (
                             preventScroll(window.siyuan.mobile.editor.protyle);
                         }
                         checkFold(id, (zoomIn) => {
-                            openMobileFileById(app, id, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                            app.openBlock({
+                                id,
+                                action: zoomIn
+                                    ? [Constants.CB_GET_ALL]
+                                    : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                                zoomIn,
+                            });
                         });
                         closePanel();
                     } else {
