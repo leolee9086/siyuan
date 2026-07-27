@@ -12,7 +12,7 @@ import { sortMenu } from "../../../menus/navigation";
 import { fetchPost } from "../../../util/network/fetch";
 import { newEncryptedNotebook, newNotebook } from "../../../util/file/mount";
 import { setNoteBook } from "../../../util/file/pathName";
-import { refreshFileTree } from "../../../dialog/processSystem";
+import {rebuildDataIndex} from "../../../util/file/rebuildDataIndex";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
@@ -80,7 +80,7 @@ function createRebuildIndexMenuItem(deps: InitMoreMenuDeps): HTMLElement {
             // 防止重复点击：检查元素是否已被禁用
             if (!element.getAttribute("disabled")) {
                 element.setAttribute("disabled", "disabled");
-                refreshFileTree(() => {
+                rebuildDataIndex(() => {
                     element.removeAttribute("disabled");
                     init(false);
                 });

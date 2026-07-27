@@ -4,6 +4,7 @@ export { updateTitle } from "./updateTitle";
 export { setTitle } from "../../util/processTitle";
 export { downloadProgress } from "./downloadProgress";
 export { lockScreen } from "./lockScreen";
+export {rebuildDataIndex as refreshFileTree} from "../../util/file/rebuildDataIndex";
 
 import { Constants } from "../../constants";
 import { fetchPost } from "../../util/network/fetch";
@@ -21,8 +22,9 @@ import { escapeHtml } from "../../util/DOM/escape";
 import { needSubscribe } from "../../util/platform/needSubscribe";
 import { hideAllElements } from "../../protyle/ui/hideElements";
 import { saveScroll } from "../../protyle/scroll/saveScroll";
-import { isInAndroid, isInHarmony, isInIOS, setStorageVal } from "../../protyle/util/compatibility";
+import { isInAndroid, isInHarmony, isInIOS } from "../../protyle/util/compatibility";
 import { Plugin } from "../../plugin";
+import {rebuildDataIndex} from "../../util/file/rebuildDataIndex";
 
 export const setDefRefCount = (data: {
     "blockID": string,
@@ -239,18 +241,8 @@ export const transactionError = (msg?: string) => {
         });
     });
     btnsElement[1].addEventListener("click", () => {
-        refreshFileTree();
+        rebuildDataIndex();
         dialog.destroy();
-    });
-};
-
-export const refreshFileTree = (cb?: () => void) => {
-    window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
-    setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
-    fetchPost("/api/system/rebuildDataIndex", {}, () => {
-        if (cb) {
-            cb();
-        }
     });
 };
 

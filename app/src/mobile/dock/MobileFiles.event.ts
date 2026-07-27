@@ -8,7 +8,7 @@ import {newNotebook, openEncryptedNotebook} from "../../util/file/mount";
 import {newFileInTree} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
 import type { AppFacade } from "../../app/AppFacade.types";
-import {refreshFileTree} from "../../dialog/processSystem";
+import {rebuildDataIndex} from "../../util/file/rebuildDataIndex";
 import {openPublishAccessDialog} from "../../protyle/util/publishAccess";
 import {collapseFileTree, isFileTreeCollapsing} from "../../layout/dock/fileTreeAnimation";
 import type {MobileFilesEventPort} from "./files/ports.types";
@@ -88,7 +88,7 @@ export function bindClickEvent(
                     Array.from(files.element.children).forEach(item => {
                         notebooks.push(item.getAttribute("data-url"));
                     });
-                    refreshFileTree(() => {
+                    rebuildDataIndex(() => {
                         target.removeAttribute("disabled");
                         files.init(false);
                     });

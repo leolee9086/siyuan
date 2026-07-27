@@ -15,10 +15,12 @@ import {needSubscribe} from "../util/platform/needSubscribe";
 import {hideAllElements} from "../protyle/ui/hideElements";
 import type { AppFacade } from "../app/AppFacade.types";
 import {saveScroll} from "../protyle/scroll/saveScroll";
-import {isInAndroid, isInHarmony, isInIOS, setStorageVal} from "../protyle/util/compatibility";
+import {isInAndroid, isInHarmony, isInIOS} from "../protyle/util/compatibility";
 import {Plugin} from "../plugin";
+import {rebuildDataIndex} from "../util/file/rebuildDataIndex";
 
 export {progressLoading} from "./progressLoading";
+export {rebuildDataIndex as refreshFileTree} from "../util/file/rebuildDataIndex";
 
 export const setRefDynamicText = (data: {
     "blockID": string,
@@ -248,18 +250,8 @@ export const transactionError = (msg?: string) => {
         });
     });
     btnsElement[1].addEventListener("click", () => {
-        refreshFileTree();
+        rebuildDataIndex();
         dialog.destroy();
-    });
-};
-
-export const refreshFileTree = (cb?: () => void) => {
-    window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
-    setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
-    fetchPost("/api/system/rebuildDataIndex", {}, () => {
-        if (cb) {
-            cb();
-        }
     });
 };
 
