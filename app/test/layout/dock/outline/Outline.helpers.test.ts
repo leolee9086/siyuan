@@ -80,6 +80,7 @@ function createOutline(type: "pin" | "local" = "local") {
         pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
         createProtyle: vi.fn(),
         getOpenEditors: vi.fn(() => []),
+        getOpenModels: vi.fn(),
         openSettings: vi.fn(),
         openSearch: vi.fn(),
         createDocument: vi.fn(),

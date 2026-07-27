@@ -2,14 +2,16 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 const adapterMocks = vi.hoisted(() => ({
     Custom: vi.fn(),
-    getAllModels: vi.fn(),
     getSiyuanWebSocket: vi.fn(),
     mountIdentityAccess: vi.fn(),
-    openFile: vi.fn(),
     tabRegistry: {register: vi.fn()},
 }));
 
 vi.mock("../../src/magi/identity-access/adapters/imports", () => adapterMocks);
+vi.mock("../../src/magi/identity-access/adapters/open/imports", () => ({
+    getSiyuanWebSocket: adapterMocks.getSiyuanWebSocket,
+    MAGI_IDENTITY_ACCESS_TAB_TYPE: "magi-identity-access",
+}));
 
 function createElement() {
     const classes = new Set<string>();
@@ -27,10 +29,8 @@ describe("Identity Access host adapters", () => {
     beforeEach(() => {
         vi.stubGlobal("HTMLElement", function FakeHTMLElement() {});
         adapterMocks.Custom.mockReset();
-        adapterMocks.getAllModels.mockReset();
         adapterMocks.getSiyuanWebSocket.mockReset();
         adapterMocks.mountIdentityAccess.mockReset();
-        adapterMocks.openFile.mockReset();
         adapterMocks.mountIdentityAccess.mockReturnValue({unmount: vi.fn()});
     });
 
@@ -85,7 +85,8 @@ describe("Identity Access host adapters", () => {
         const {element: tabElement} = createElement();
         dockElement.classList.add("identity-access-container--dock");
         tabElement.classList.add("identity-access-container--tab");
-        adapterMocks.getAllModels.mockReturnValue({
+        const app = {
+            getOpenModels: vi.fn(() => ({
             custom: [
                 {
                     element: dockElement,
@@ -98,28 +99,31 @@ describe("Identity Access host adapters", () => {
                     parent: {headElement, parent: stack},
                 },
             ],
-        });
+            })),
+            openTab: vi.fn(),
+        };
 
-        await openIdentityAccessTab({app: {} as never});
+        await openIdentityAccessTab({app: app as never});
 
         expect(switchTab).toHaveBeenCalledWith(headElement);
         expect(showHeading).toHaveBeenCalledOnce();
-        expect(adapterMocks.openFile).not.toHaveBeenCalled();
+        expect(app.openTab).not.toHaveBeenCalled();
     });
 
     it("opens a new Tab when the matching Custom Model is only a Dock", async () => {
         const {openIdentityAccessTab} = await import("../../src/magi/identity-access/adapters/open");
         const {element} = createElement();
-        const app = {};
+        const app = {
+            getOpenModels: vi.fn(() => ({
+                custom: [{element, type: "magi-identity-access"}],
+            })),
+            openTab: vi.fn(),
+        };
         element.classList.add("identity-access-container--dock");
-        adapterMocks.getAllModels.mockReturnValue({
-            custom: [{element, type: "magi-identity-access"}],
-        });
 
         await openIdentityAccessTab({app: app as never});
 
-        expect(adapterMocks.openFile).toHaveBeenCalledWith({
-            app,
+        expect(app.openTab).toHaveBeenCalledWith({
             custom: {
                 title: "Identity Access",
                 icon: "iconLock",
@@ -140,6 +144,5 @@ describe("Identity Access host adapters", () => {
 
         expect(open).toHaveBeenCalledWith("/stage/build/magi-identity/", "magi-identity-access");
         expect(focus).toHaveBeenCalledOnce();
-        expect(adapterMocks.openFile).not.toHaveBeenCalled();
     });
 });

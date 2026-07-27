@@ -1,7 +1,5 @@
 /** 用途：思源页签与环境能力；使用范围：打开入口；解耦评估：跨目录依赖由 adapters 网关集中转发。 */
 import * as imports from "./imports";
-/** 用途：Identity Access Tab 类型；使用范围：查找和创建页签；解耦评估：同模块稳定契约。 */
-import { MAGI_IDENTITY_ACCESS_TAB_TYPE } from "./tab";
 
 /** 作用：激活已存在的 Identity Access 页签；意图：维持单实例入口；调用时机：新建前查重复时。 */
 function activateExistingTab(model: unknown) {
@@ -28,7 +26,7 @@ function resolveApp(app?: imports.AppFacade) {
 
 /** 仅匹配 Tab 宿主，避免同类型的 Dock Custom Model 被误判为已打开页签。 */
 function isMountedIdentityAccessTab(item: imports.CustomDomain) {
-    if (item.type !== MAGI_IDENTITY_ACCESS_TAB_TYPE) {
+    if (item.type !== imports.MAGI_IDENTITY_ACCESS_TAB_TYPE) {
         return false;
     }
     const element = Reflect.get(item, "element");
@@ -36,8 +34,8 @@ function isMountedIdentityAccessTab(item: imports.CustomDomain) {
 }
 
 /** 查找已挂载的 Identity Access Tab，供打开入口执行单实例复用。 */
-function findExistingIdentityAccessTab() {
-    return imports.getAllModels().custom.find(isMountedIdentityAccessTab);
+function findExistingIdentityAccessTab(app: imports.AppFacade) {
+    return app.getOpenModels().custom.find(isMountedIdentityAccessTab);
 }
 
 /**
@@ -51,16 +49,15 @@ export async function openIdentityAccessTab(options?: { app?: imports.AppFacade 
         openIdentityAccessStandalone();
         return;
     }
-    const existing = findExistingIdentityAccessTab();
+    const existing = findExistingIdentityAccessTab(app);
     if (activateExistingTab(existing)) {
         return;
     }
-    await imports.openFile({
-        app,
+    await app.openTab({
         custom: {
             title: "Identity Access",
             icon: "iconLock",
-            id: MAGI_IDENTITY_ACCESS_TAB_TYPE,
+            id: imports.MAGI_IDENTITY_ACCESS_TAB_TYPE,
             data: {hostKind: "tab"},
         },
     });

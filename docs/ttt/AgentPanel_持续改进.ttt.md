@@ -85,3 +85,4 @@
 - [x] 2026-07-28：Agent Host 设置能力删除动态 `import(config)`，改为调用完整 `AppFacade.openSettings("ai")`；桌面/移动组合根继续复用既有统一设置入口。新增 Host 行为测试覆盖打开和已存在 Dialog 两条路径；主线返回边已推进到插件动作注册表 `frontendActions -> config/index`。
 - [x] 2026-07-28：插件前端动作注册表迁入统一 SForge Symbol 状态，动作实现/类型整理为独立子域；删除设置、编辑器枚举、文档打开和搜索的全部动态导入，统一调用完整 AppFacade 公共行为。专项 `4/4`、相关回归 `11/11`、Node `208/208`、目标 lint 与 imports 多跳门禁通过；`frontendActions` 已退出当前循环图，主线推进到 Agent Host 的 `layout/util` 依赖。
 - [x] 2026-07-28：Agent Host 面板聚焦依赖从 `layout/util.ts` 综合转发改为直达 `layout/utils/setPanelFocus.ts` 唯一实现，保持既有聚焦行为。Host 专项 `39/39` 和网关门禁通过，代表环 `111 -> 88`；主线推进到 MAGI Identity Access 导航返回边。
+- [x] 2026-07-28：MAGI Identity Access 打开入口改用完整 `AppFacade.getOpenModels/openTab`，保持单实例 Tab 激活、Dock 排除、Custom 载荷及独立页回退；身份打开能力拆入独立子域网关，不再经 adapters 综合网关装载 Editor。身份/Agent 专项 `7/7`、Node `208/208` 通过，代表环 `88 -> 86`。

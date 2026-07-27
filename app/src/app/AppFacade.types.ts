@@ -66,6 +66,7 @@ export interface AppFacadeShape<
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
     getOpenEditors(): ProtyleDomain[];
+    getOpenModels(): IModels;
     openSettings(tab?: SettingTabId): void;
     openSearch(query?: string): void | Promise<void>;
     createDocument(name?: string): Promise<void>;

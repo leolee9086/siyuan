@@ -104,6 +104,9 @@ export class App {
     public getOpenEditors() {
         return getAllEditor();
     }
+    public getOpenModels() {
+        return getAllModels();
+    }
     public openSettings(tab?: SettingTabId) {
         openSetting(this, tab);
     }

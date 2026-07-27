@@ -78,7 +78,7 @@ import {setEmpty} from "./util/setEmpty";
 import {createInNotePluginManager} from "../inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
 import {openMobileGlobalSearch} from "./search/global/openMobileGlobalSearch";
-import {getAllEditor} from "../layout/getAll";
+import {getAllEditor, getAllModels} from "../layout/getAll";
 import {openSetting} from "../config";
 import type {SettingTabId} from "../config/setting/setting.types";
 
@@ -98,6 +98,9 @@ export class App {
     }
     public getOpenEditors() {
         return getAllEditor();
+    }
+    public getOpenModels() {
+        return getAllModels();
     }
     public openSettings(tab?: SettingTabId) {
         openSetting(this, tab);
