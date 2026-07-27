@@ -22,6 +22,7 @@ export const createTestAppFacade = (
     createDocument: async () => undefined,
     handleUnavailableDocument: () => undefined,
     toggleFullscreen: () => undefined,
+    openGlobalSearch: () => undefined,
     openTab: async () => undefined,
     openAsset: () => undefined,
     openBlock,

@@ -9,7 +9,6 @@ import { BlockPanel } from "../../block/panel/Panel";
 import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
-import { openGlobalSearch } from "../../search/util";
 import type {AppFacade} from "../../app/AppFacade.types";
 import {checkFold} from "../../block/fold/checkFold";
 import { Editor } from "../../editor";
@@ -747,7 +746,7 @@ export class Graph extends Model<AppFacade, Tab> {
                     return;
                 }
                 if (-1 < node.type.indexOf("tag")) {
-                    openGlobalSearch(this.app, `#${node.id}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
+                    this.app.openGlobalSearch(`#${node.id}#`, !window.siyuan.ctrlIsPressed, {method: 0});
                     return;
                 }
                 if (window.siyuan.shiftIsPressed) {

@@ -302,15 +302,6 @@ import { popSearch } from "../../../mobile/menu/search";
 export { popSearch };
 
 /**
- * 用途：打开桌面端全局搜索。
- * 使用范围：标签菜单“搜索”在桌面端的分支。
- * 解耦评估：搜索入口集中封装，业务层不关心具体窗口实现。
- */
-import { openGlobalSearch } from "../../../search/util";
-/** 导出 openGlobalSearch 供 refMenu 子模块复用 */
-export { openGlobalSearch };
-
-/**
  * 用途：重命名标签。
  * 使用范围：标签菜单“重命名”动作。
  * 解耦评估：重命名逻辑集中封装，业务层仅传标签文本。

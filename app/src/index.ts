@@ -81,6 +81,7 @@ import {newFile} from "./util/file/newFile";
 import {removeProtyleTab} from "./protyle/runtime/layout.port";
 import {createInNotePluginManager} from "./inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePluginManager.types";
+import {openGlobalSearch as openGlobalSearchInApp} from "./search/global/openGlobalSearch";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -106,6 +107,9 @@ export class App {
     }
     public toggleFullscreen(element: Element, button?: Element) {
         toggleApplicationFullscreen(element, button);
+    }
+    public openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) {
+        openGlobalSearchInApp(this, {text, replace, searchData});
     }
     public openTab(options: AppTabNavigation) {
         return openFile({app: this, ...options});

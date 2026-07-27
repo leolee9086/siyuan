@@ -20,8 +20,6 @@ import { hasTopClosestByClassName } from "./imports";
 import { focusByWbr } from "./imports";
 /** 用途：提交文档事务；使用范围：标签编辑、删除、转换后的更新提交；解耦评估：事务能力稳定，业务只提供前后 HTML。 */
 import { updateTransaction } from "./imports";
-/** 用途：打开桌面端全局搜索；使用范围：标签菜单“搜索”在桌面端分支；解耦评估：搜索入口独立封装。 */
-import { openGlobalSearch } from "./imports";
 /** 用途：重命名标签；使用范围：标签菜单“重命名”动作；解耦评估：重命名逻辑在平台函数层维护。 */
 import { renameTag } from "./imports";
 /** 用途：读取全局菜单实例；使用范围：append/popup/fullscreen/remove 操作；解耦评估：菜单单例由环境层维护。 */
@@ -60,7 +58,7 @@ const 执行复制或剪切 = (tagElement: HTMLElement, command: "copy" | "cut")
  */
 const 执行标签搜索 = (protyle: IProtyle, tagElement: HTMLElement): void => {
     if (!isMobile) {
-        openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, false, { method: 0 });
+        protyle.app.openGlobalSearch(`#${tagElement.textContent}#`, false, {method: 0});
         return;
     }
 

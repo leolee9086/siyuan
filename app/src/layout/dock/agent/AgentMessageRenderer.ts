@@ -15,9 +15,7 @@ import {openLink} from "../../../editor/openLink";
 import {previewImages} from "../../../protyle/preview/image";
 import {getDiagramBlock, previewDiagram} from "../../../protyle/preview/diagram";
 import {removeCompressURL} from "../../../util/assets/image";
-/// #if !MOBILE
-import {openGlobalSearch} from "../../../search/util";
-/// #else
+/// #if MOBILE
 import {popSearch} from "../../../mobile/menu/search";
 /// #endif
 
@@ -375,7 +373,7 @@ export const postRender = (container: HTMLElement, app?: AppFacade): void => {
             event.preventDefault();
             event.stopPropagation();
             /// #if !MOBILE
-            openGlobalSearch(app, `#${tag.textContent}#`, true, {method: 0});
+            app.openGlobalSearch(`#${tag.textContent}#`, true, {method: 0});
             /// #else
             popSearch(app, {
                 hasReplace: false,

@@ -2,8 +2,6 @@
 import { Constants } from "./imports";
 /** 用途：引入桌面搜索入口。使用范围：全局搜索命令。解耦评估：搜索对话框构造由搜索模块封装。 */
 import { openSearch } from "./imports";
-/** 用途：引入钉住搜索入口。使用范围：stickSearch 命令。解耦评估：命令层只传入选中文本和钉住标记。 */
-import { openGlobalSearch } from "./imports";
 /** 用途：引入历史后退入口。使用范围：goBack 命令。解耦评估：平台导航由既有工具封装。 */
 import { goBack } from "./imports";
 /** 用途：引入历史前进入口。使用范围：goForward 命令。解耦评估：平台导航由既有工具封装。 */
@@ -58,7 +56,7 @@ const executeGlobalSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<A
 
 /** 执行钉住搜索命令。 */
 const executeStickSearchDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
-    openGlobalSearch(app, getSelectedText(), true);
+    app.openGlobalSearch(getSelectedText(), true);
     return true;
 };
 

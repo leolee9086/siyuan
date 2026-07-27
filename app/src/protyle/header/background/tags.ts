@@ -9,7 +9,6 @@ import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";
 import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboardStatus.environment";
 import { isMobile } from "../../../platform";
-import { openGlobalSearch } from "../../../search/util";
 import { popSearch } from "../../../mobile/menu/search";
 import {Constants} from "../../../constants";
 
@@ -204,7 +203,7 @@ const toggleTag = (background: BackgroundDomain, tag: string, protyle: IProtyle,
  */
 export const clickOpenSearch = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     if (!isMobile) {
-        openGlobalSearch(protyle.app, `#${target.textContent}#`, !getSiyuanCtrlIsPressed(), { method: 0 });
+        protyle.app.openGlobalSearch(`#${target.textContent}#`, !getSiyuanCtrlIsPressed(), {method: 0});
         event.preventDefault();
         event.stopPropagation();
         return true;

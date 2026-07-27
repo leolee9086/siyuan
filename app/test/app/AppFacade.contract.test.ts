@@ -55,6 +55,7 @@ const testFacade = createAppFacade<object, object>({
     createDocument: async () => undefined,
     handleUnavailableDocument: () => undefined,
     toggleFullscreen: () => undefined,
+    openGlobalSearch: () => undefined,
     openTab: async () => undefined,
     openAsset: () => undefined,
     openBlock: () => undefined,

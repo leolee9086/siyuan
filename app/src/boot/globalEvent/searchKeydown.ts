@@ -9,7 +9,7 @@ import type { AppFacade } from "../../app/AppFacade.types";
 import {Dialog} from "../../dialog";
 import {getAllModels} from "../../layout/getAll";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {openSearchEditor} from "../../search/util";
+import {openSearchEditor} from "../../search/editor/openSearchEditor";
 import {replace} from "../../search/replace/replace";
 import {getArticle} from "../../search/article/getArticle";
 import {inputEvent} from "../../search/inputEvent";

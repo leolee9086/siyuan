@@ -2,9 +2,9 @@
 
 > **最终目标**：在不弱化层次化状态空间路由、编译期收窄、互斥和穷尽语义的前提下，将 CaliburRouter 核心与 Schema 实现解耦；分别实现 ArkType、Effect Schema 与 Zod 后端，仅允许可形式化证明的 Schema 子集进入集合推理，并以统一契约、类型性能、运行性能、包体积和生态能力确定推荐后端。
 >
-> **当前目标**：归档 ArkType 类型性能优化与静态/运行回归修复，建立可回退基线；随后抽取完整 Schema 后端协议，保持当前 `calibur` 默认入口兼容。
+> **当前目标**：重新打开 ArkType 层次状态空间覆盖证明回归：应用 `windowKeyDown/navigation` 的嵌套对象全集与 `{isTabWindow: false}` 部分模式在 `有交集()` 中触发 `undefined.filter`，必须在不弱化运行时覆盖、互斥和编译期收窄的前提下确定性修复。
 >
-> **下一步任务**：提交已经通过门禁的 ArkType 优化；设计后端协议和受支持 Schema 能力矩阵，再以独立 Adapter 实现 Effect Schema 和 Zod。
+> **下一步任务**：先把 `dialogHotkey` 的真实嵌套布尔状态空间最小化为 Calibur 包内同等强度回归测试，定位 `setOps.ts` 丢失有限路径集合的精确分支；修复后同时运行包级三后端契约、应用路由套件、静态契约和性能门禁。
 
 ## 不变量
 
@@ -99,3 +99,4 @@
 - **2026-07-25**：三分支热分发：ArkType 43,394 ops/s，Zod 12,894 ops/s，Effect 558,966 ops/s；构建吞吐分别为 633、2,648、4,423 ops/s。
 - **2026-07-25**：加入转换入口后的独立浏览器 gzip 体积：ArkType 48.4 KiB，Zod 25.2 KiB，Effect 57.2 KiB。综合生态、总体编译成本、体积与常规 UI 运行成本，README 推荐 Zod 作为新建通用项目的均衡默认；Effect 用于高吞吐或已有 Effect 项目，ArkType 用于现有兼容入口。
 - **2026-07-25**：最终包门禁通过，14 个测试文件共 103 项运行测试通过，静态契约和三个发布入口构建通过；Madge 检查 10 个源码文件，无循环依赖。
+- **2026-07-28**：应用完整 Vitest 与单套件 `test/globalEvent/windowKeyDown/dialogHotkey.test.ts` 均在导入期确定性失败：嵌套全集 `{isTabWindow: boolean, navigation: {...}}` 与部分模式 `{isTabWindow: false}` 进入 `packages/caliburRouter/src/utils/setOps.ts` 后读取未定义集合的 `filter`。失败路径未进入本轮 Search/AppFacade 改动，Calibur、应用 route 和测试文件工作树均无改动；此前“有限层次状态空间运行回归已修复”的证据未覆盖该真实形态，任务重新打开，禁止用 catch、兼容回退或跳过覆盖证明掩盖。

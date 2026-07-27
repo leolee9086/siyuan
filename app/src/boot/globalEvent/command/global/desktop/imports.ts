@@ -10,8 +10,6 @@ import { Editor } from "../../../../../editor";
 import { Constants } from "../../../../../constants";
 /** 用途：引入桌面搜索入口；使用范围：navigation.ts；解耦评估：搜索 UI 构造由搜索模块封装。 */
 import { openSearch } from "../../../../../search/spread";
-/** 用途：引入钉住搜索入口；使用范围：navigation.ts；解耦评估：命令层只传入选中文本和钉住标记。 */
-import { openGlobalSearch } from "../../../../../search/util";
 /** 用途：引入历史导航入口；使用范围：navigation.ts；解耦评估：平台历史行为由既有工具封装。 */
 import { goBack, goForward } from "../../../../../util/platform/backForward";
 /** 用途：引入 Dock 与文档辅助面板入口；使用范围：dock.ts 与 recentClosed 委托；解耦评估：布局 Dock 层保留自身创建逻辑。 */
@@ -67,8 +65,6 @@ export { Editor };
 export { Constants };
 /** 导出桌面搜索入口。 */
 export { openSearch };
-/** 导出钉住搜索入口。 */
-export { openGlobalSearch };
 /** 导出历史后退入口。 */
 export { goBack };
 /** 导出历史前进入口。 */

@@ -4,7 +4,6 @@ import { Tree } from "../../util/file/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { fetchPost } from "../../util/network/fetch";
-import { openGlobalSearch } from "../../search/util";
 import { MenuItem } from "../../menus/Menu.Item";
 import type {AppFacade} from "../../app/AppFacade.types";
 import { openTagMenu } from "../../menus/tag";
@@ -141,7 +140,7 @@ export class Tag extends Model<AppFacade, Tab> {
             return;
         }
         const label = element.getAttribute("data-label") ?? "";
-        openGlobalSearch(app, `#${label}#`, !getSiyuanKeyboardState().ctrlIsPressed, {method: 0});
+        app.openGlobalSearch(`#${label}#`, !getSiyuanKeyboardState().ctrlIsPressed, {method: 0});
     }
 
     private _toggleItem(liElement: HTMLElement) {

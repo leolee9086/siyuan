@@ -77,6 +77,7 @@ import {newFile} from "../util/file/newFile";
 import {setEmpty} from "./util/setEmpty";
 import {createInNotePluginManager} from "../inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
+import {openGlobalSearch as openGlobalSearchInApp} from "../search/global/openGlobalSearch";
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -101,6 +102,9 @@ export class App {
     public toggleFullscreen(element: Element, button?: Element) {
         toggleApplicationFullscreen(element, button);
     }
+    public openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) {
+        openGlobalSearchInApp(this, {text, replace, searchData});
+    }
     public openTab(options: AppTabNavigation) {
         return openFile({app: this, ...options});
     }
@@ -119,7 +123,7 @@ export class App {
                 editorProtyle.contentElement.scrollTop = 0;
             }
         } : undefined;
-        openMobileFileById(this, options.id, options.action, undefined, undefined, afterOpen, Boolean(options.databaseRowId));
+        openMobileFileById(this, options.id, options.action, options.scrollPosition, undefined, afterOpen, Boolean(options.databaseRowId));
     }
     public openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation) {
         openMobileDatabaseRow(this, protyle, options);

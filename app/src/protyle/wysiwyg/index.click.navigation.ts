@@ -9,7 +9,6 @@ import {checkFold} from "../../block/fold/checkFold";
 import { pushBack } from "../../navigation/history/pushBack";
 import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { openLink } from "../../editor/openLink";
-import { openGlobalSearch } from "../../search/util";
 import { popSearch } from "../../mobile/menu/search";
 import { BlockPanel } from "../../block/panel/Panel";
 import { editAssetItem } from "../render/av/asset";
@@ -185,7 +184,7 @@ export function handleClickNavigation(
     const tagElement = hasClosestByAttribute(event.target, "data-type", "tag");
     if (tagElement && !event.altKey && !event.shiftKey && range.toString() === "") {
         if (!isMobile()) {
-            openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, !ctrlIsPressed, { method: 0 });
+            protyle.app.openGlobalSearch(`#${tagElement.textContent}#`, !ctrlIsPressed, {method: 0});
             hideElements(["dialog"]);
         } else {
             popSearch(protyle.app, {

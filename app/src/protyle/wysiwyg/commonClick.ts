@@ -1,7 +1,6 @@
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
-import { openGlobalSearch } from "../../search/util";
 import { isMobile } from "../../util/platform/functions";
 import { isOnlyMeta } from "../util/compatibility";
 
@@ -22,7 +21,7 @@ const handleCommonAttrClick = (
     const isM = isMobile();
     // 桌面端按住 Meta/Ctrl 点击带文本的属性时，触发全局搜索而非打开属性面板
     if (searchText && !isM && isOnlyMeta(event)) {
-        openGlobalSearch(protyle.app, searchText, true);
+        protyle.app.openGlobalSearch(searchText, true);
         return true;
     }
 

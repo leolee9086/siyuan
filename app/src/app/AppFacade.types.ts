@@ -19,11 +19,13 @@ export interface AppBlockNavigation {
     action?: TProtyleAction[];
     zoomIn?: boolean;
     /** 桌面宿主在指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
-    position?: "right" | "bottom";
+    position?: "right" | "bottom" | undefined;
     /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
     keepCursor?: boolean;
     /** 桌面宿主是否移除当前页签；移动宿主使用单编辑器导航，不消费该布局选项。 */
     removeCurrentTab?: boolean;
+    /** 打开后将目标滚动到指定位置；桌面与移动宿主均透传既有编辑器语义。 */
+    scrollPosition?: ScrollLogicalPosition;
     /** 目标完成打开后的通知；桌面传入布局模型，移动端在编辑器就绪后以无模型参数通知。 */
     afterOpen?: (model?: ILayoutModel) => void;
     /** 将目标块作为数据库行预览打开；宿主负责复用同一预览页签并展开属性面板。 */
@@ -62,6 +64,7 @@ export interface AppFacadeShape<
     createDocument(name?: string): Promise<void>;
     handleUnavailableDocument(protyle: IProtyle): void;
     toggleFullscreen(element: Element, button?: Element): void;
+    openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig): void;
     openTab(options: AppTabNavigation): Promise<LayoutTab | undefined>;
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
