@@ -1,4 +1,4 @@
-import { Tab } from "../Tab";
+import type {LayoutTab} from "../layout.types";
 import { Model } from "../Model";
 import { Tree } from "../../util/file/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
@@ -6,8 +6,6 @@ import {getDockByType} from "./imports";
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
-import { openFileById } from "../../editor/utils.openFileById";
-import { Protyle } from "../../protyle";
 import { MenuItem } from "../../menus/Menu.Item";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { isSupportCSSHL, searchMarkRender } from "../../protyle/render/searchMarkRender";
@@ -17,7 +15,7 @@ import {getAllModels} from "../getAll";
 import type {ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
 import {backlinkModelBrand} from "./backlink/backlink.types";
 
-export class Backlink extends Model<AppFacade, Tab> {
+export class Backlink extends Model<AppFacade, LayoutTab> {
     public get [backlinkModelBrand]() {
         return "Backlink" as const;
     }
@@ -45,7 +43,7 @@ export class Backlink extends Model<AppFacade, Tab> {
 
     constructor(options: {
         app: AppFacade,
-        tab: Tab,
+        tab: LayoutTab,
         blockId: string,
         rootId?: string,
         type: "pin" | "local"
@@ -140,28 +138,28 @@ export class Backlink extends Model<AppFacade, Tab> {
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             ctrlClick: (element) => {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
-                    action: [Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             altClick(element) {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "right",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             shiftClick(element) {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "bottom",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
@@ -180,28 +178,28 @@ export class Backlink extends Model<AppFacade, Tab> {
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             ctrlClick(element) {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
-                    action: [Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             altClick(element) {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "right",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
             shiftClick(element) {
-                openFileById({
-                    app: options.app,
+                options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "bottom",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
+                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT],
+                    zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
@@ -486,7 +484,7 @@ export class Backlink extends Model<AppFacade, Tab> {
                 editorElement.setAttribute("data-defid", this.blockId);
                 editorElement.setAttribute("data-ismention", isMention ? "true" : "false");
                 liElement.after(editorElement);
-                const editor = new Protyle(this.app, editorElement, {
+                const editor = this.app.createProtyle(editorElement, {
                     blockId: docId,
                     click: {
                         preventInsetEmptyBlock: true

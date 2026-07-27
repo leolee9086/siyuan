@@ -12,6 +12,8 @@ export interface AppBlockNavigation {
     id: string;
     action: TProtyleAction[];
     zoomIn: boolean;
+    /** 桌面宿主在指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
+    position?: "right" | "bottom";
     /** 将目标块作为数据库行预览打开；宿主负责复用同一预览页签并展开属性面板。 */
     databaseRowId?: string;
 }

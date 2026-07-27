@@ -49,3 +49,4 @@
 
 - **2026-07-27**：创建本 TTT。审计确认 Backlink class 共 717 行，构造器、排序菜单、条目切换和渲染均超过 lint 职责门禁；其完整 `BacklinkDomain` 与双向契约已经存在。曾验证整体迁移会同时牵引大量既有严格诊断，因此未保留半迁移状态；先从根 Dock 网关的真实返回边开始解环，再以行为测试支撑上帝对象分阶段拆分。
 - **2026-07-27**：完成 Phase 1。Dock 根网关删除无消费者 `resizeTabs`，`getDockByType` 改为直达唯一 Query 领域；Backlink 继续经本目录网关消费，原 `Backlink -> tabUtil -> Backlink` 直接环消失。Custom class 同时归入自身领域后，生产图从 `2307 / 239 / SCC 395` 推进为 `2308 / 230 / SCC 393`。Backlink 与 Tab Util 仍在唯一 SCC，未将直接环清除误记为整个上帝对象拆分完成。
+- **2026-07-27**：Backlink class 的页签参数改为完整 `LayoutTab`，内嵌反链编辑器由 AppFacade `createProtyle()` 创建并持有既有 `ProtyleDomain`；具体 Tab/Protyle class 依赖归零。六个普通/右侧/底部打开动作通过扩展后的完整 `AppBlockNavigation.position` 委托 AppFacade，桌面继续透传给原 `openFileById`，移动保持原单编辑器导航语义。Backlink 与完整领域抽象的双向契约同步改用 `LayoutTab` 并通过；首环不再经过 `Backlink -> editor/utils.openFileById`，代表环总数保持 `175` 但首路径推进到 Dock 根网关。
