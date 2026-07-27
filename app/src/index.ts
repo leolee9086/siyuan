@@ -64,10 +64,13 @@ import { Wnd } from "./layout/Wnd";
 /** 用途：为完整 App 实例附加 AppFacade 厂牌；使用范围：应用组合根与下层宿主类型边界；解耦评估：仅导入稳定厂牌值，不反向加载具体业务实现。 */
 import {appFacadeBrand} from "./app/AppFacade.types";
 import type {AppBlockNavigation} from "./app/AppFacade.types";
+import type {AppDatabaseRowNavigation} from "./app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "./asset/open/openAsset.types";
 import {openAsset} from "./asset/open/openAsset";
 import {processSiYuanUri} from "./editor/uri/processSiYuanUri";
+import {openDatabaseRowBlock} from "./editor/open/databaseRow/openDatabaseRowBlock";
+import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -82,7 +85,14 @@ export class App {
         openAsset(this, options);
     }
     public openBlock(options: AppBlockNavigation) {
+        if (options.databaseRowId) {
+            openDatabaseRowBlock(this, options);
+            return;
+        }
         void openFileById({app: this, ...options});
+    }
+    public openDatabaseRow(_protyle: IProtyle, options: AppDatabaseRowNavigation) {
+        openDesktopDatabaseRow(this, options);
     }
     public processSiYuanUri(uri: string) {
         return processSiYuanUri(this, uri);

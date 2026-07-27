@@ -42,6 +42,7 @@ import {addPluginDock, loadPlugins, reloadPluginData} from "../plugin/loader";
 import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
 import type {AppBlockNavigation} from "../app/AppFacade.types";
+import type {AppDatabaseRowNavigation} from "../app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 import {processSiYuanUri} from "../editor/uri/processSiYuanUri";
@@ -63,6 +64,7 @@ import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusabl
 
 import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
 import {avRender} from "../protyle/render/av/render";
+import {openMobileDatabaseRow} from "./databaseRow.factory";
 import { ensureOnboarding } from "../onboarding";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 
@@ -79,7 +81,17 @@ export class App {
         openByMobile(options.assetPath);
     }
     public openBlock(options: AppBlockNavigation) {
-        openMobileFileById(this, options.id, options.action);
+        openMobileFileById(this, options.id, options.action, undefined, undefined, options.databaseRowId ? (editorProtyle) => {
+            if (!editorProtyle.contentElement) {
+                throw new Error("Database row preview requires an initialized editor content element");
+            }
+            editorProtyle.element.dataset.databaseRowId = options.databaseRowId;
+            editorProtyle.databaseAttributePanel?.expand();
+            editorProtyle.contentElement.scrollTop = 0;
+        } : undefined, Boolean(options.databaseRowId));
+    }
+    public openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation) {
+        openMobileDatabaseRow(this, protyle, options);
     }
     public processSiYuanUri(uri: string) {
         return processSiYuanUri(this, uri);

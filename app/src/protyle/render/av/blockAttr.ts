@@ -19,7 +19,6 @@ import {isBrowser} from "../../../platform";
 import {Constants} from "../../../constants";
 import {getCompressURL, removeCompressURL} from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {openDatabaseRowByData} from "./openDatabaseRow";
 import {confirmDialog} from "../../../dialog/confirmDialog";
 import {genAVValueHTML} from "./value/render";
 
@@ -297,7 +296,7 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 }
                 const backlinkOpenElement = hasClosestByAttribute(event.target as HTMLElement, "data-type", "av-backlink-open");
                 if (backlinkOpenElement) {
-                    openDatabaseRowByData(protyle, {
+                    protyle.app.openDatabaseRow(protyle, {
                         avID: backlinkOpenElement.dataset.avId,
                         databaseBlockID: backlinkOpenElement.dataset.databaseBlockId,
                         notebookID: backlinkOpenElement.dataset.boxId,

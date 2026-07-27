@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：Panel 与 Cell/Edit 的通用事务边已经清零；沿当前首环审计 `blockAttr -> openDatabaseRow -> editor` 的跨领域打开行为，并继续分层 Panel 内容渲染、挂载定位和事件分发。
+> **下一步任务**：Panel、Cell/Edit 和数据库行导航返回边已经清零；沿当前首环审计 `blockAttr -> transaction` 的剩余 AV 属性事务，并继续分层 Panel 内容渲染、挂载定位和事件分发。
 
 ## 不变量
 
@@ -75,6 +75,7 @@
 - **2026-07-27**：普通 View 的新增、删除、复制、排序、名称、描述、图标与布局类型八类 action 进入严格 `prepared/av/view/avView.ts`；它表示等待服务端广播后由 `refreshAV` 投影的普通 View 事务，与调用域已经同步应用 DOM 的 `transaction/applied/avView.ts` 保持两套明确语义，二者不互相转发。View 根和 Panel View 点击退出循环组件；专项 `13/13`、Node `200/200`、Protyle 契约、全量类型目标诊断 `0`、imports 多跳 `0` 通过。生产图 `2290 / 309 / SCC 585`，首环推进到 `openMenuPanel.drag -> transaction`；Drag 剩余列选项与列排序不强行归入 View。
 - **2026-07-27**：Panel Drag 的两类剩余事务按真实列领域归位：选项排序已原地修改 `column.options` 并重绘菜单，复用完整 Column Edit 命令；列排序属于列结构顺序变化，扩展既有 Column Structure 封闭集合，Panel 继续原地更新 `ctx.fields`，表头拖拽继续以实时 DOM 位置计算 do/undo。新增行为测试固定 pinned previousID、精确 do/undo 和无变化短路；相关专项 `28/28`、Node `200/200`、Protyle 契约和网关门禁通过。生产图 `2290 / 306 / SCC 581`，Panel Drag、表头拖拽辅助与命令均退出循环组件，首环转为 `cell/edit -> transaction`。
 - **2026-07-27**：`cell/edit.ts` 唯一通用事务为模板列设置；该流程在提交前比较输入值与原模板，提交后设置 `data-loading`，其 action 已由完整 Column Edit 命令覆盖。调用点直达该命令，未新增 Cell Port 或同义提交层；Column Edit 专项 `13/13`、Protyle 契约和网关门禁通过。生产图 `2290 / 283 / SCC 580`，Cell/Edit 退出循环组件，首环推进到 `blockAttr -> openDatabaseRow -> editor`。
+- **2026-07-27**：删除混合桌面/移动实现且反向加载 `blockAttr` 的 `AV/openDatabaseRow.ts`。两个 AV 调用点现只调用完整 `protyle.app.openDatabaseRow`；桌面/移动 App 分别委派到自身导航实现，保持原自定义页签、预览复用、Dialog、菜单和属性面板语义。专项 `7/7`、AppFacade 契约 `3/3`、Node `200/200`、Protyle 契约和网关门禁通过。生产图 `2295 / 299 / SCC 579`，导航节点退出循环组件，首环推进到 `blockAttr -> transaction`；代表环反升仅为路径重新枚举。
 
 ## 关联任务
 

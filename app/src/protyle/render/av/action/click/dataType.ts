@@ -37,7 +37,7 @@ import { handleGroupFoldClick } from "./dataType.advanced";
 import { handleLoadMoreClick } from "./dataType.advanced";
 /** 用途：处理较长的高级 data-type 分支。使用范围：搜索图标点击。解耦评估：移动端键盘和焦点时序逻辑拆出后更便于维护。 */
 import { handleSearchIconClick } from "./dataType.advanced";
-import {addDragFill, createAttributeViewItem, focusByRange, hintRef, openDatabaseRowByData, openNewItemTemplateMenu} from "./imports";
+import {addDragFill, createAttributeViewItem, focusByRange, hintRef, openNewItemTemplateMenu} from "./imports";
 
 const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {previousID?: string; groupID?: string}) => {
     const templateID = blockElement.querySelector<HTMLElement>(".av__header")?.dataset.defaultTemplateId;
@@ -216,7 +216,7 @@ const handleOpenDatabaseRow = (protyle: IProtyle, target: HTMLElement, blockElem
         return false;
     }
     const textElement = elements.cellElement.querySelector<HTMLElement>(".av__celltext");
-    openDatabaseRowByData(protyle, {
+    protyle.app.openDatabaseRow(protyle, {
         avID: blockElement.dataset.avId,
         databaseBlockID: blockElement.dataset.nodeId,
         notebookID: protyle.notebookId,

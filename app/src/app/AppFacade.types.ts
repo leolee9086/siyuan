@@ -10,6 +10,20 @@ export interface AppBlockNavigation {
     id: string;
     action: TProtyleAction[];
     zoomIn: boolean;
+    /** 将目标块作为数据库行预览打开；宿主负责复用同一预览页签并展开属性面板。 */
+    databaseRowId?: string;
+}
+
+/** 数据库条目在桌面页签或移动端详情面板中打开所需的完整数据。 */
+export interface AppDatabaseRowNavigation {
+    avID: string;
+    databaseBlockID: string;
+    notebookID: string;
+    itemID: string;
+    valueID: string;
+    title: string;
+    boundBlockID?: string;
+    isDetached: boolean;
 }
 
 /** 完整 App 实例除厂牌外的公共领域表面；类型槽仅用于校验本地实现对上游契约的兼容性。 */
@@ -26,6 +40,7 @@ export interface AppFacadeShape<
     };
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
+    openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation): void;
     processSiYuanUri(uri: string): boolean;
 }
 

@@ -49,6 +49,7 @@ const testFacade = createAppFacade<object, object>({
     },
     openAsset: () => undefined,
     openBlock: () => undefined,
+    openDatabaseRow: () => undefined,
     processSiYuanUri: () => false,
 });
 const brandedFacade: AppFacade<object, object> = testFacade;
