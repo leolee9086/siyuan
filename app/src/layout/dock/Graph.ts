@@ -7,7 +7,6 @@ import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
 import { BlockPanel } from "../../block/panel/Panel";
 import { fetchPost } from "../../util/network/fetch";
-import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import type {AppFacade} from "../../app/AppFacade.types";
 import {checkFold} from "../../block/fold/checkFold";
@@ -751,8 +750,7 @@ export class Graph extends Model<AppFacade, Tab> {
                 }
                 if (window.siyuan.shiftIsPressed) {
                     checkFold(node.id, (zoomIn, action: TProtyleAction[]) => {
-                        openFileById({
-                            app: this.app,
+                        this.app.openBlock({
                             id: node.id,
                             position: "bottom",
                             action,
@@ -761,8 +759,7 @@ export class Graph extends Model<AppFacade, Tab> {
                     });
                 } else if (window.siyuan.altIsPressed) {
                     checkFold(node.id, (zoomIn, action: TProtyleAction[]) => {
-                        openFileById({
-                            app: this.app,
+                        this.app.openBlock({
                             id: node.id,
                             position: "right",
                             action,
@@ -779,8 +776,7 @@ export class Graph extends Model<AppFacade, Tab> {
                     }));
                 } else {
                     checkFold(node.id, (zoomIn, action: TProtyleAction[]) => {
-                        openFileById({
-                            app: this.app,
+                        this.app.openBlock({
                             id: node.id,
                             action,
                             zoomIn

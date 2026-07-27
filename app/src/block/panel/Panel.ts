@@ -38,8 +38,6 @@ import { 清理同级浮窗 } from "./Panel.helpers";
 import { 处理双击事件 } from "./Panel.helpers";
 // 用途：处理图标点击；使用范围：点击工具栏图标执行操作；解耦评估：事件处理逻辑已分离到Panel.helpers模块
 import { 处理图标点击 } from "./Panel.helpers";
-/** 用途：打开引用块到普通页签；使用范围：BlockPanel 宿主能力适配；解耦评估：具体 AppFacade 仅在此装配层闭包中使用。 */
-import { openFileById } from "./imports";
 /** 用途：BlockPanel 编辑器结构；使用范围：实例生命周期数组；解耦评估：不依赖 Protyle class。 */
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 
@@ -203,8 +201,7 @@ export class BlockPanel {
                     event as MouseEvent,
                     this.element,
                     this.refDefs,
-                    (id, action, zoomIn) => openFileById({
-                        app: options.app,
+                    (id, action, zoomIn) => options.app.openBlock({
                         id,
                         action,
                         zoomIn,

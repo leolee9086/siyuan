@@ -94,9 +94,6 @@ import {openNewWindowById} from "../../window/openNewWindow";
 export { openNewWindowById };
 
 /** 用途：通过 ID 打开文件。使用范围：panel 模块页签操作。解耦评估：直接指向 Editor 打开行为真实实现。 */
-import {openFileById} from "../../editor/utils.openFileById";
-/** 导出 openFileById，供 panel 模块使用 */
-export { openFileById };
 
 /** 用途：检查折叠状态并执行回调。使用范围：panel 模块折叠判断。解耦评估：直接指向平台行为真实实现。 */
 import {checkFold} from "../fold/checkFold";

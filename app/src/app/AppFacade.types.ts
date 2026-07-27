@@ -22,6 +22,8 @@ export interface AppBlockNavigation {
     position?: "right" | "bottom" | undefined;
     /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
     keepCursor?: boolean;
+    /** 桌面宿主强制创建新页签而不复用现有分屏；移动宿主保持单编辑器导航语义。 */
+    openNewTab?: boolean;
     /** 桌面宿主是否移除当前页签；移动宿主使用单编辑器导航，不消费该布局选项。 */
     removeCurrentTab?: boolean;
     /** 打开后将目标滚动到指定位置；桌面与移动宿主均透传既有编辑器语义。 */
