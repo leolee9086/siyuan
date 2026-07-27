@@ -1,7 +1,7 @@
 import { Tab } from "../Tab";
 import { getInstanceById } from "../util";
 import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
