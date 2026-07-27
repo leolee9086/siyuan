@@ -67,44 +67,47 @@ export function handleSearchMore(
 ): Config.IUILayoutTabSearchConfig {
     let newConfig = config;
 
-    moreMenu(config, criteriaData, element, () => {
-        config.page = 1;
-        inputEvent(element, config, edit, true);
-        if (updateCB) {
-            updateCB(config);
-        }
-    }, () => {
-        newConfig = updateConfig(element, {
-            removed: true,
-            sort: 0,
-            group: 0,
-            hasReplace: false,
-            method: 0,
-            hPath: "",
-            idPath: [],
-            k: "",
-            r: "",
-            page: 1,
-            types: getDefaultType(),
-            subTypes: getDefaultSubType(),
-            replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-        }, config, edit, true);
-        if (updateCB) {
-            updateCB(newConfig);
-        }
-        element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
-    }, () => {
-        const localData = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
-        const isPopover = hasClosestByClassName(element, "b3-dialog__container");
-        window.siyuan.menus.menu.append(new MenuItem({
-            iconHTML: "",
-            label: siyuanI18n.layout,
-            type: "submenu",
-            submenu: [{
+    moreMenu(config, criteriaData, element, {
+        onChange: () => {
+            config.page = 1;
+            inputEvent(element, config, edit, true);
+            if (updateCB) {
+                updateCB(config);
+            }
+        },
+        removeCriterion: () => {
+            newConfig = updateConfig(element, {
+                removed: true,
+                sort: 0,
+                group: 0,
+                hasReplace: false,
+                method: 0,
+                hPath: "",
+                idPath: [],
+                k: "",
+                r: "",
+                page: 1,
+                types: getDefaultType(),
+                subTypes: getDefaultSubType(),
+                replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
+            }, config, edit, true);
+            if (updateCB) {
+                updateCB(newConfig);
+            }
+            element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
+        },
+        appendLayoutItems: () => {
+            const localData = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
+            const isPopover = hasClosestByClassName(element, "b3-dialog__container");
+            window.siyuan.menus.menu.append(new MenuItem({
                 iconHTML: "",
-                label: siyuanI18n.topBottomLayout,
-                current: isPopover ? localData.layout === 0 : localData.layoutTab === 0,
-                click() {
+                label: siyuanI18n.layout,
+                type: "submenu",
+                submenu: [{
+                    iconHTML: "",
+                    label: siyuanI18n.topBottomLayout,
+                    current: isPopover ? localData.layout === 0 : localData.layoutTab === 0,
+                    click() {
                     element.querySelector(".search__layout")?.classList.remove("search__layout--row");
                     edit.protyle.element.style.width = "";
                     if ((isPopover && localData.row) || (!isPopover && localData.rowTab)) {
@@ -144,6 +147,7 @@ export function handleSearchMore(
                 }
             }]
         }).element);
+        },
     });
 
     const rect = target.getBoundingClientRect();

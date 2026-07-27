@@ -28,6 +28,8 @@ import {
 } from "../../search/toggleHistory";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {MenuItem} from "../../menus/Menu.Item";
+import {goUnRef} from "./searchInvalidRefs";
 import {replace, updateConfig} from "./search.render";
 import type {UpdateSearchResultFn} from "./search.render";
 
@@ -282,26 +284,37 @@ export const initSearchEvent = (
                 event.preventDefault();
                 break;
             } else if (type === "more") {
-                moreMenu(config, criteriaData, element, () => {
-                    config.page = 1;
-                    updateSearchResult(config, element, true);
-                }, () => {
-                    config = updateConfig(element, {
-                        removed: true,
-                        sort: 0,
-                        group: 0,
-                        hasReplace: false,
-                        method: 0,
-                        hPath: "",
-                        idPath: [],
-                        k: "",
-                        r: "",
-                        page: 1,
-                        types: getDefaultType(),
-                        subTypes: getDefaultSubType(),
-                        replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-                    }, config, updateSearchResult, true);
-                    element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
+                moreMenu(config, criteriaData, element, {
+                    onChange: () => {
+                        config.page = 1;
+                        updateSearchResult(config, element, true);
+                    },
+                    removeCriterion: () => {
+                        config = updateConfig(element, {
+                            removed: true,
+                            sort: 0,
+                            group: 0,
+                            hasReplace: false,
+                            method: 0,
+                            hPath: "",
+                            idPath: [],
+                            k: "",
+                            r: "",
+                            page: 1,
+                            types: getDefaultType(),
+                            subTypes: getDefaultSubType(),
+                            replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
+                        }, config, updateSearchResult, true);
+                        element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
+                    },
+                    appendLeadingItems: () => {
+                        window.siyuan.menus.menu.append(new MenuItem({
+                            iconHTML: "",
+                            label: siyuanI18n.listInvalidRefBlocks,
+                            click: goUnRef,
+                        }).element);
+                        window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
+                    },
                 });
                 window.siyuan.menus.menu.fullscreen();
                 event.stopPropagation();

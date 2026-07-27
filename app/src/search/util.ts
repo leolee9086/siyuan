@@ -11,9 +11,7 @@ import { onGet } from "../protyle/util/onGet";
 import {addLoading} from "../protyle/ui/loading";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
 import {setStorageVal} from "../util/storage/setStorageVal";
-import {
-    getKeyByLiElement
-} from "./menu";
+import {getKeyByLiElement} from "./result/searchResultKey";
 import type { AppFacade } from "../app/AppFacade.types";
 import { checkFold } from "../util/platform/noRelyPCFunction";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";

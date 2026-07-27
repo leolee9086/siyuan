@@ -7,7 +7,6 @@ import { fetchPost } from "../util/network/fetch";
 import { escapeHtml } from "../util/DOM/escape";
 import {setStorageVal} from "../util/storage/setStorageVal";
 import { confirmDialog } from "../dialog/confirmDialog";
-import { goUnRef, updateSearchResult } from "../mobile/menu/search";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getDefaultSubType} from "./defaults/searchDefaults";
 export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => void) => {
@@ -518,9 +517,12 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
 export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     criteriaData: Config.IUILayoutTabSearchConfig[],
     element: Element,
-    cb: () => void,
-    removeCriterion: () => void,
-    layoutMenu?: () => void) => {
+    extensions: {
+        onChange: () => void;
+        removeCriterion: () => void;
+        appendLeadingItems?: () => void;
+        appendLayoutItems?: () => void;
+    }) => {
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
         window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_SEARCH_MORE) {
         window.siyuan.menus.menu.remove();
@@ -528,21 +530,14 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_SEARCH_MORE);
+    extensions.appendLeadingItems?.();
     if (isMobile()) {
-        window.siyuan.menus.menu.append(new MenuItem({
-            iconHTML: "",
-            label: siyuanI18n.listInvalidRefBlocks,
-            click() {
-                goUnRef();
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             iconHTML: "",
             label: siyuanI18n.searchType,
             click() {
                 filterMenu(config, () => {
-                    updateSearchResult(config, element, true);
+                    extensions.onChange();
                 });
             }
         }).element);
@@ -560,7 +555,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             click() {
                 config.method = 0;
                 config.page = 1;
-                updateSearchResult(config, element, true);
+                extensions.onChange();
             }
         }, {
             icon: "iconQuote",
@@ -569,7 +564,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             click() {
                 config.method = 1;
                 config.page = 1;
-                updateSearchResult(config, element, true);
+                extensions.onChange();
             }
         }, {
             icon: "iconDatabase",
@@ -578,7 +573,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             click() {
                 config.method = 2;
                 config.page = 1;
-                updateSearchResult(config, element, true);
+                extensions.onChange();
             }
         }, {
             icon: "iconRegex",
@@ -587,7 +582,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             click() {
                 config.method = 3;
                 config.page = 1;
-                updateSearchResult(config, element, true);
+                extensions.onChange();
             }
         }];
         if (window.siyuan.config.ai.embedding.enabled) {
@@ -598,7 +593,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
                 click() {
                     config.method = 4;
                     config.page = 1;
-                    updateSearchResult(config, element, true);
+                    extensions.onChange();
                 }
             });
         }
@@ -615,7 +610,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 0,
         click() {
             config.sort = 0;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -623,7 +618,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 1,
         click() {
             config.sort = 1;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -631,7 +626,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 2,
         click() {
             config.sort = 2;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -639,7 +634,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 3,
         click() {
             config.sort = 3;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -647,7 +642,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 4,
         click() {
             config.sort = 4;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -655,7 +650,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 6,
         click() {
             config.sort = 6;
-            cb();
+            extensions.onChange();
         }
     }, {
         iconHTML: "",
@@ -663,7 +658,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         current: config.sort === 7,
         click() {
             config.sort = 7;
-            cb();
+            extensions.onChange();
         }
     }];
     if (config.group === 1) {
@@ -673,7 +668,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             current: config.sort === 5,
             click() {
                 config.sort = 5;
-                cb();
+                extensions.onChange();
             }
         });
     }
@@ -702,7 +697,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
                 if (config.sort === 5) {
                     config.sort = 0;
                 }
-                cb();
+                extensions.onChange();
             }
         }, {
             iconHTML: "",
@@ -716,13 +711,11 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
                     element.querySelector("#searchCollapse").parentElement.classList.remove("fn__none");
                 }
                 config.group = 1;
-                cb();
+                extensions.onChange();
             }
         }]
     }).element);
-    if (layoutMenu) {
-        layoutMenu();
-    }
+    extensions.appendLayoutItems?.();
     window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         label: siyuanI18n.saveCriterion,
@@ -735,7 +728,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         iconHTML: "",
         label: siyuanI18n.removeCriterion,
         click() {
-            removeCriterion();
+            extensions.removeCriterion();
         }
     }).element);
 };
@@ -779,17 +772,4 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
 <span class="fn__space"></span>`;
         }
     });
-};
-
-export const getKeyByLiElement = (element: HTMLElement) => {
-    const keys: string[] = [];
-    element.querySelectorAll(".b3-list-item__text mark").forEach(item => {
-        keys.push(item.textContent);
-    });
-    if (keys.length === 0) {
-        element.querySelectorAll(".b3-list-item__meta mark").forEach(item => {
-            keys.push(item.textContent);
-        });
-    }
-    return [...new Set(keys)].join(" ");
 };

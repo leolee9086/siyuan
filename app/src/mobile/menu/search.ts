@@ -1,9 +1,7 @@
 import {getCurrentEditor} from "../util/getCurrentEditor";
 import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
-import {getIconByType} from "../../editor/getIcon";
 import {openModel} from "./model";
-import {getDisplayName, getNotebookName} from "../../util/file/pathName";
 import {escapeHtml} from "../../util/DOM/escape";
 import {isEncryptedBox} from "../../util/pathName";
 import {unicode2Emoji} from "../../emoji";
@@ -16,6 +14,7 @@ import {
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {onRecentBlocks} from "./search.render";
 import {initSearchEvent} from "./search.event";
+import {getUnRefListMobile} from "./searchInvalidRefs";
 
 let toolbarSearchTimeout = 0;
 export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, element: Element, rmCurrentCriteria = false,
@@ -256,54 +255,5 @@ const goAsset = () => {
         clearCB() {
             assetInputEvent(assetsElement, localSearch);
         }
-    });
-};
-
-export const goUnRef = () => {
-    window.siyuan.menus.menu.remove();
-    const unRefElement = document.querySelector("#searchUnRefPanel");
-    unRefElement.classList.remove("fn__none");
-    const listElement = unRefElement.querySelector("#searchUnRefList");
-    if (listElement.innerHTML) {
-        return;
-    }
-    getUnRefListMobile(unRefElement);
-};
-
-const getUnRefListMobile = (element: Element, page = 1) => {
-    const previousElement = element.querySelector('[data-type="unRefPrevious"]');
-    if (page > 1) {
-        previousElement.removeAttribute("disabled");
-    } else {
-        previousElement.setAttribute("disabled", "disabled");
-    }
-    fetchPost("/api/search/listInvalidBlockRefs", {
-        page,
-    }, (response) => {
-        element.parentElement.querySelector(".fn__loading").classList.add("fn__none");
-        const nextElement = element.querySelector('[data-type="unRefNext"]');
-        if (page < response.data.pageCount) {
-            nextElement.removeAttribute("disabled");
-        } else {
-            nextElement.setAttribute("disabled", "disabled");
-        }
-        let resultHTML = "";
-        response.data.blocks.forEach((item: IBlock, index: number) => {
-            const title = escapeHtml(getNotebookName(item.box)) + getDisplayName(item.hPath, false);
-            resultHTML += `<div class="b3-list-item b3-list-item--two${index === 0 ? " b3-list-item--focus" : ""}" data-type="search-item" data-node-id="${item.id}">
-<div class="b3-list-item__first">
-    <svg class="b3-list-item__graphic"><use xlink:href="#${getIconByType(item.type)}"></use></svg>
-    ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
-    <span class="b3-list-item__text">${item.content}</span>
-</div>
-<span class="b3-list-item__text b3-list-item__meta">${escapeHtml(title)}</span>
-</div>`;
-        });
-        element.querySelector("#searchUnRefResult").innerHTML = `<span class="fn__flex-center">${siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>
-<span class="fn__flex-1"></span>
-<span class="fn__flex-center">${page}/${response.data.pageCount || 1}</span>`;
-        element.querySelector("#searchUnRefList").innerHTML = resultHTML || `<div class="search__empty">
-    ${siyuanI18n.emptyContent}
-</div>`;
     });
 };

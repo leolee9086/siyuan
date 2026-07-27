@@ -2,7 +2,7 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {getIconByType} from "../../editor/getIcon";
 import {getDisplayName, getNotebookIcon, getNotebookName} from "../../util/file/pathName";
-import {getKeyByLiElement} from "../../search/menu";
+import {getKeyByLiElement} from "../../search/result/searchResultKey";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
