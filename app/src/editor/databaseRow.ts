@@ -3,7 +3,7 @@ import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import type {LayoutTab} from "../layout/layout.types";
 import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {getEditorHorizontalPadding} from "../protyle/ui/padding";
 
 type DatabaseRowData = {
@@ -22,7 +22,7 @@ export const newDatabaseRowModel = (options: {
 }) => {
     let customModel: CustomDomain<DatabaseRowData>;
     let contextProtyle: IProtyle;
-    let ghostProtyle: Protyle;
+    let ghostProtyle: ProtyleDomain;
     let resizeObserver: ResizeObserver;
     let destroyed = false;
     const updateLayout = (custom: CustomDomain<DatabaseRowData>) => {
@@ -69,7 +69,7 @@ export const newDatabaseRowModel = (options: {
             updateLayout(custom);
             resizeObserver = new ResizeObserver(() => updateLayout(custom));
             resizeObserver.observe(custom.element);
-            ghostProtyle = new Protyle(options.app, document.createElement("div"), {
+            ghostProtyle = options.app.createProtyle(document.createElement("div"), {
                 blockId: options.data.blockID,
                 notebookId: options.data.notebookId,
                 after(editor) {
