@@ -77,7 +77,7 @@ import {newFile} from "../util/file/newFile";
 import {setEmpty} from "./util/setEmpty";
 import {createInNotePluginManager} from "../inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
-import {openGlobalSearch as openGlobalSearchInApp} from "../search/global/openGlobalSearch";
+import {openMobileGlobalSearch} from "./search/global/openMobileGlobalSearch";
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -102,8 +102,8 @@ export class App {
     public toggleFullscreen(element: Element, button?: Element) {
         toggleApplicationFullscreen(element, button);
     }
-    public openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) {
-        openGlobalSearchInApp(this, {text, replace, searchData});
+    public openGlobalSearch(text: string, _replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) {
+        openMobileGlobalSearch(this, {text, searchData});
     }
     public openTab(options: AppTabNavigation) {
         return openFile({app: this, ...options});

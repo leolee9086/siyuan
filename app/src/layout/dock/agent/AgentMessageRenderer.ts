@@ -15,9 +15,6 @@ import {openLink} from "../../../editor/openLink";
 import {previewImages} from "../../../protyle/preview/image";
 import {getDiagramBlock, previewDiagram} from "../../../protyle/preview/diagram";
 import {removeCompressURL} from "../../../util/assets/image";
-/// #if MOBILE
-import {popSearch} from "../../../mobile/menu/search";
-/// #endif
 
 import type {AppFacade} from "../../../app/AppFacade.types";
 
@@ -372,19 +369,7 @@ export const postRender = (container: HTMLElement, app?: AppFacade): void => {
         if (tag && container.contains(tag)) {
             event.preventDefault();
             event.stopPropagation();
-            /// #if !MOBILE
             app.openGlobalSearch(`#${tag.textContent}#`, true, {method: 0});
-            /// #else
-            popSearch(app, {
-                hasReplace: false,
-                method: 0,
-                hPath: "",
-                idPath: [],
-                k: `#${tag.textContent}#`,
-                r: "",
-                page: 1,
-            });
-            /// #endif
             return;
         }
         const link = target.closest('[data-type~="a"][data-href], a[href]') as HTMLElement;
