@@ -1,7 +1,7 @@
 import {openExternal} from "../platform/electron/shell";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {getSearch, isMobile, isValidCustomAttrName} from "../util/functions";
-import {isEncryptedBox, isLocalPath, movePathTo, moveToPath, pathPosix} from "../util/pathName";
+import {isEncryptedBox, isLocalPath, pathPosix} from "../util/pathName";
 import {MenuItem} from "./Menu";
 import {onExport, saveExport} from "../protyle/export";
 import {exportMarkdownZip} from "../protyle/export/exportMd";
@@ -19,7 +19,7 @@ import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
 import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
 import {openBy} from "../platform/localPath/openBy";
-import {rename, replaceFileName} from "../editor/rename";
+import {replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
 import {exportImage} from "../protyle/export/util";
@@ -967,61 +967,4 @@ export const openMenu = (app: AppFacade, src: string, onlyMenu: boolean, showAcc
         icon: "iconOpen",
         submenu
     }).element);
-};
-
-export const renameMenu = (options: {
-    path: string
-    notebookId: string
-    name: string,
-    type: "notebook" | "file"
-    docId?: string | null
-}) => {
-    return new MenuItem({
-        id: "rename",
-        accelerator: window.siyuan.config.keymap.editor.general.rename.custom,
-        icon: "iconEdit",
-        label: window.siyuan.languages.rename,
-        click: () => {
-            if (options.type === "file" && options.docId) {
-                const docInfoParam: IObject = {
-                    id: options.docId
-                };
-                if (isEncryptedBox(options.notebookId)) {
-                    docInfoParam.notebook = options.notebookId;
-                }
-                fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
-                    rename({
-                        ...options,
-                        name: response.data.ial.title,
-                        empty: response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true",
-                    });
-                });
-            } else {
-                rename(options);
-            }
-        }
-    }).element;
-};
-
-export const movePathToMenu = (paths: string[]) => {
-    return new MenuItem({
-        id: "move",
-        label: window.siyuan.languages.move,
-        icon: "iconMove",
-        accelerator: window.siyuan.config.keymap.general.move.custom,
-        click() {
-            const rootIDs: string[] = [];
-            paths.forEach(item => {
-                rootIDs.push(pathPosix().basename(item).replace(".sy", ""));
-            });
-            movePathTo({
-                cb: (toPath, toNotebook) => {
-                    moveToPath(paths, toNotebook[0], toPath[0]);
-                },
-                paths,
-                flashcard: false,
-                rootIDs,
-            });
-        }
-    }).element;
 };

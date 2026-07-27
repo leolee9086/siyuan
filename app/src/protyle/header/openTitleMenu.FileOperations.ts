@@ -1,4 +1,4 @@
-import { movePathToMenu } from "../../menus/commonMenuItem";
+import {movePathToMenu} from "../../menus/commonMenuItem/movePath/movePathToMenu.factory";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { createAddToDatabaseMenuItem, createDeleteMenuItem } from "./openTitleMenu.items";
 

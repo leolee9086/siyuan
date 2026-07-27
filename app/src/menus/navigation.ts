@@ -1,6 +1,8 @@
-import { exportMd, movePathToMenu, renameMenu, } from "./commonMenuItem";
+import {exportMd} from "./commonMenuItem";
 import { copySubMenu } from "./commonMenuItem/copy";
 import {openFileAttr} from "./commonMenuItem/fileAttr/openFileAttr";
+import {movePathToMenu} from "./commonMenuItem/movePath/movePathToMenu.factory";
+import {renameMenu} from "./commonMenuItem/rename/renameMenu.factory";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";
 import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/file/pathName";

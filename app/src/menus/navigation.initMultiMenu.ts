@@ -11,7 +11,7 @@ import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import { fetchPost } from "../util/network/fetch";
 import { getTopPaths } from "../util/file/pathName";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { movePathToMenu } from "./commonMenuItem";
+import {movePathToMenu} from "./commonMenuItem/movePath/movePathToMenu.factory";
 import { copySubMenu } from "./commonMenuItem/copy";
 import { MenuItem } from "./Menu.Item";
 import { openEditorTab } from "./util";
