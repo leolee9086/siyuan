@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVLayoutSettingTransaction} from "../../wysiwyg/transaction/prepared/av/view/avLayout";
 import {Constants} from "../../../constants";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {getCardAspectRatio} from "./gallery/settings/ratio";
@@ -125,7 +125,7 @@ export const bindLayoutEvent = (options: {
     const toggleTitleElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-view-title"]') as HTMLInputElement;
     toggleTitleElement.addEventListener("change", () => {
         const checked = toggleTitleElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "hideAttrViewName",
             avID,
             blockID,
@@ -143,7 +143,7 @@ export const bindLayoutEvent = (options: {
     const toggleIconElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-entries-icons"]') as HTMLInputElement;
     toggleIconElement.addEventListener("change", () => {
         const checked = toggleIconElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "setAttrViewShowIcon",
             avID,
             blockID,
@@ -161,7 +161,7 @@ export const bindLayoutEvent = (options: {
     const toggleWrapElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-entries-wrap"]') as HTMLInputElement;
     toggleWrapElement.addEventListener("change", () => {
         const checked = toggleWrapElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "setAttrViewWrapField",
             avID,
             blockID,
@@ -185,7 +185,7 @@ export const bindLayoutEvent = (options: {
     const toggleFitElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-gallery-fit"]') as HTMLInputElement;
     toggleFitElement.addEventListener("change", () => {
         const checked = toggleFitElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "setAttrViewFitImage",
             avID,
             blockID,
@@ -203,7 +203,7 @@ export const bindLayoutEvent = (options: {
     const toggleNameElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-gallery-name"]') as HTMLInputElement;
     toggleNameElement.addEventListener("change", () => {
         const checked = toggleNameElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "setAttrViewDisplayFieldName",
             avID,
             blockID,
@@ -222,7 +222,7 @@ export const bindLayoutEvent = (options: {
     const toggleBgElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-kanban-bg"]') as HTMLInputElement;
     toggleBgElement?.addEventListener("change", () => {
         const checked = toggleBgElement.checked;
-        transaction(options.protyle, [{
+        submitAVLayoutSettingTransaction(options.protyle, [{
             action: "setAttrViewFillColBackgroundColor",
             avID,
             blockID,

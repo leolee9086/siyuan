@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：沿当前首环审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> layout -> transaction` 的职责所有权，区分 Layout 设置的本地呈现与通用事务行为。
+> **下一步任务**：沿当前首环审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> view.ts -> transaction` 的职责所有权，区分 View 元数据动作和通用事务呈现。
 
 ## 不变量
 
@@ -71,6 +71,7 @@
 - **2026-07-27**：按 [AV 分组领域与面板交互拆分](./AV分组领域与面板交互拆分.ttt.md) 建立 Groups 六 action 严格命令，Panel 点击迁入独立子域，拖拽排序和折叠提交复用同一命令。专项 `10/10`、新子域 lint、目标类型和网关门禁通过；代表环保持 `312`，唯一 SCC `591 -> 590`，Panel 首环推进到 Sort/Filter 点击事务。
 - **2026-07-27**：Sort 唯一实现从 AV 根迁入 `sorting/`，添加、字段切换、方向切换、清空、单项删除、拖拽和列菜单提交全部复用既有 `prepared/av/view/avSort.ts`，旧通用 transaction Sort 调用归零且不新增同义命令。无状态菜单实例化归入 `menu.factory.ts`，绑定生命周期使用完整 `SortPanelBinding` 输入；字段/方向变更继续原地修改原 sorts 数组并保留修改前深快照，非法 DOM 目标、方向和缺失排序身份显式失败。子域 `imports.ts` 逐项直达 Menu、列元数据、严格命令、定位、Emoji、视图 metadata、常量与 i18n 的真实声明，不经其它网关。行为/命令专项 `5/5`、完整 Node `200/200`、Protyle 契约、新子域 lint、全量类型检查 Sort 目标诊断 `0`、imports 多跳 `0` 与 diff 检查通过；生产图 `2280 / 304 / SCC 588`，相对前批 `312 / 590` 减少 `8` 条代表环和 `2` 个 SCC 成员，四个 Sorting 节点均为非循环单节点组件。Panel 整体仍在主 SCC，首环转到 Cell/Edit 与 View/Gallery/Action 路径，继续滚动拆分。
 - **2026-07-27**：建立 [AV Gallery 布局设置与条目交互拆分](./AV%20Gallery布局设置与条目交互拆分.ttt.md)。Cover/Size/Ratio 完整设置行为迁入专属子域，四类 action 经严格 Gallery Prepared 命令提交；旧 Gallery Util 只保留条目行为。专项 `9/9`、Node `200/200`、两层类型目标诊断 `0`、新子域 lint和网关门禁通过；生产图 `2288 / 311 / SCC 588`，Settings 七节点和严格命令全部退出循环组件，原 View/Gallery/Action 首环归零。唯一 SCC 未缩小且代表环反升来自首环转向 `layout -> transaction`，继续按 Layout 真实呈现语义审计，不撤回已验证设置所有权。
+- **2026-07-27**：Layout 六类 toggle action 的通用事务无本地执行分支，Title/Icon/Wrap/Fit/Kanban BG 的多实例 DOM 投影继续来自内核广播后的 `transaction.onTransaction -> refreshAV`，DisplayFieldName 继续保持既有当前视图对象更新。新增严格 `prepared/av/view/avLayout.ts`，六个提交点原样迁移，异步 `changeAttrViewLayout` API 未改动。common/gallery/kanban 绑定与命令专项 `10/10`、Node `200/200`、Protyle 契约、命令 lint、全量类型命令目标诊断 `0`、网关和 diff 检查通过；生产图 `2289 / 311 / SCC 587`，Layout 和命令均退出循环组件，唯一 SCC 减少 `1`，首环推进到 View 根的通用事务。
 
 ## 关联任务
 

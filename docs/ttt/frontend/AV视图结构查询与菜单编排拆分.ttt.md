@@ -14,8 +14,8 @@
 
 ## 下一步任务
 
-1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> layout -> transaction` 当前最短路径的职责边界。
-2. 读取 Layout 设置的本地 DOM 呈现和事务广播职责，确认是否具备严格 View Layout 命令边界。
+1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> view.ts -> transaction` 当前最短路径的职责边界。
+2. 逐项核对 View 图标、复制、删除、新增、名称和描述动作的本地状态与广播刷新语义。
 3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
 4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
 
@@ -79,6 +79,7 @@
 - **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将全仓九个 `setAttrViewFilters` 提交点统一到严格 Filter 命令，Filter 树变换和面板 DOM 呈现仍由调用域拥有。命令/导航专项 `3/3`、完整 Node `199/199`、两层类型目标诊断 `0`、新命令 lint和网关门禁通过；生产图 `2263 / 320 / SCC 604`，Filter 根退出 SCC。代表环反升来自首环转向 `openMenuPanel.click.cell -> asset menu -> Hint/insertHTML`，下一阶段按该真实跨域路径处理。
 - **2026-07-27**：Sort 字段读取继续直达本专项的 `view/metadata.ts`，排序 UI 唯一实现迁入 `sorting/` 并以专属网关逐项直达真实声明，未给 metadata 增加反向菜单依赖。添加/字段/方向与严格命令专项 `5/5`、Node `200/200`、Protyle 类型、新子域 lint和网关门禁通过；生产图 `2280 / 304 / SCC 588`，Sorting 四节点全部在循环 SCC 外。当前首环已绕过 Sort，转为 View Click 经 Gallery/Action 返回 Cell/Edit，继续按 View 与 Panel 真实编排职责拆分。
 - **2026-07-27**：Gallery 的 Cover/Size/Ratio 设置从混合条目 Action 的 Util 迁入完整 Settings 子域，字段图标继续直达列元数据，四类 action 进入严格 Prepared 命令；旧设置实现和通用事务调用清零。专项 `9/9`、Node `200/200`、两层类型目标诊断 `0`、lint和网关门禁通过。生产图 `2288 / 311 / SCC 588`，Settings 与命令全部退出循环 SCC，View Click 不再经 Gallery Util/Action 返回；下一条真实路径转为 View Layout 的通用 transaction，按其本地呈现语义继续审计。
+- **2026-07-27**：核定 Layout 六类 toggle 均由调用域更新当前 View/Fields，对多实例 DOM 的既有同步来自内核事务广播后的 `refreshAV`，通用 `promiseTransaction` 无额外 action 分支；新增严格 Layout Prepared 命令并保留同一内核请求和广播路径。common/gallery/kanban 绑定与命令专项 `10/10`、Node `200/200`、两层类型目标诊断 `0`、命令 lint和网关门禁通过。生产图 `2289 / 311 / SCC 587`，Layout 实现和命令退出循环组件，唯一 SCC 减少 `1`；当前首环转为 View Click 经综合 `view.ts` 进入通用事务，下一阶段逐 action 审计 View 元数据生命周期。
 
 ## 关联任务
 
