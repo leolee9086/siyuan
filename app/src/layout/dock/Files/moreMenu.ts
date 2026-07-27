@@ -8,7 +8,7 @@
 
 import type { InitMoreMenuDeps } from "./moreMenu.types";
 import { MenuItem } from "../../../menus/Menu.Item";
-import { sortMenu } from "../../../menus/navigation";
+import {sortMenu} from "../../../menus/navigation/sortMenu";
 import { fetchPost } from "../../../util/network/fetch";
 import { newEncryptedNotebook, newNotebook } from "../../../util/file/mount";
 import { setNoteBook } from "../../../util/file/pathName";

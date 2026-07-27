@@ -1,5 +1,6 @@
 import {hasTopClosestByTag} from "../../protyle/util/hasClosest";
-import {initFileMenu, initNavigationMenu, sortMenu} from "../../menus/navigation";
+import {initFileMenu, initNavigationMenu} from "../../menus/navigation";
+import {sortMenu} from "../../menus/navigation/sortMenu";
 import {fetchPost} from "../../util/network/fetch";
 import {setNoteBook} from "../../util/file/pathName";
 import {openMobileFileById} from "../editor";
