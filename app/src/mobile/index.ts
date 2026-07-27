@@ -43,6 +43,7 @@ import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
 import type {AppBlockNavigation} from "../app/AppFacade.types";
 import type {AppDatabaseRowNavigation} from "../app/AppFacade.types";
+import type {AppTabNavigation} from "../app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 import {processSiYuanUri} from "../editor/uri/processSiYuanUri";
@@ -68,6 +69,7 @@ import {openMobileDatabaseRow} from "./databaseRow.factory";
 import { ensureOnboarding } from "../onboarding";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 import {Protyle} from "../protyle";
+import {openFile} from "../editor/open/openFile";
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -80,6 +82,9 @@ export class App {
     };
     public createProtyle(element: HTMLElement, options: IProtyleOptions) {
         return new Protyle(this, element, options);
+    }
+    public openTab(options: AppTabNavigation) {
+        void openFile({app: this, ...options});
     }
     public openAsset(options: AssetOpenOptions) {
         openByMobile(options.assetPath);

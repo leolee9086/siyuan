@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：History、Recent Docs 和移动搜索结果导航已进入完整 AppFacade；继续随主循环图识别其它下层模块直接加载具体宿主实现的行为。
+> **下一步任务**：History、Recent Docs、移动搜索结果和 Card 页签导航已进入完整 AppFacade；继续随主循环图识别其它下层模块直接加载具体宿主实现的行为，并审计全屏协调是否属于完整应用外观或既有 Window/Layout 领域根。
 
 ---
 
@@ -65,6 +65,7 @@
 - `app/src/index.ts` 保留组合根职责，负责创建厂牌实例、启动应用和注册全局入口；下层模块不再从该文件取得具体 class 类型。
 - 需要按标识查找的 App/宿主实例或跨调用生命周期数据进入统一注册表；不以组合根工厂返回的闭包承担状态所有权。
 - 外部公共入口可以重新导出 `AppFacade` 类型，但内部模块直接引用低层契约文件，避免入口模块重新成为类型聚合点。
+- 各目录 `imports.ts` 可以收口本目录边界，但其每个导出必须直达 `AppFacade.types.ts` 等真实声明或唯一实现，禁止经其它 `imports.ts` 多跳转发。
 
 ### 契约校验
 
@@ -181,3 +182,4 @@
 - **2026-07-27**：将完整 Protyle 创建能力纳入 AppFacade，参数继续使用官方兼容的 `IProtyleOptions`，返回既有完整 `ProtyleDomain`；桌面和移动 App 在组合根直接构造具体 Protyle。History、Diff、Doc 和 DocEvent 删除具体 class 导入，不新增 History 编辑器碎片接口，具体类仍只出现在允许的组合根。AppFacade 双向契约 `3/3`、相关 Vitest `7/7`、Node `200/200`、Protyle 契约、AppFacade lint、imports 多跳与 diff 检查通过。生产图 `2304 / 303 / SCC 414`；全部 History 模块退出 SCC，代表环反升但唯一 SCC 减少 `5`。
 - **2026-07-27**：移动 Recent Docs 删除对具体移动 Editor 的反向导入，点击文档委托 AppFacade `openBlock()`；移动 App 保持原滚动动作和打开实现。契约 `3/3`、Node `200/200` 与网关门禁通过，生产图 `2304 / 302 / SCC 413`，Recent Docs 退出循环组件。
 - **2026-07-27**：移动 Search Event 删除对具体移动 Editor 的导航导入，折叠检查后委托 AppFacade `openBlock()`；移动搜索的滚动保护、面板关闭和专属 UI 保持原实现。契约 `3/3`、Node `200/200` 与网关门禁通过；生产图 `2304 / 269 / SCC 413`，代表环减少 `33`，移动模块仍在主 SCC，继续由主任务处理其它返回路径。
+- **2026-07-27**：将普通 Editor/Asset/Search/Custom 页签的既有完整载荷抽象为 `AppTabNavigation`，并把 `openTab()` 纳入 AppFacade 公共表面。桌面与移动 App 组合根均直接调用唯一 `openFile` 实现，Card 的“新页签”和“右侧打开”保持原载荷与位置语义，只删除其对 Editor 具体实现的反向依赖。AppFacade 契约随新增成员同步收紧，相关 Vitest `7/7`、Node `200/200`、Protyle 契约和 imports 多跳 `0` 通过；生产图仍为 `2307 / 239 / SCC 398`，首环已转向独立的全屏协调职责。

@@ -28,6 +28,9 @@ export interface AppDatabaseRowNavigation {
     isDetached: boolean;
 }
 
+/** 应用宿主打开普通 Editor、Asset、Search 或 Custom 页签时接收的完整既有导航载荷。 */
+export type AppTabNavigation = Omit<IOpenFileOptions, "app">;
+
 /** 完整 App 实例除厂牌外的公共领域表面；类型槽仅用于校验本地实现对上游契约的兼容性。 */
 export interface AppFacadeShape<
     TPlugin extends object = Plugin,
@@ -41,6 +44,7 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
+    openTab(options: AppTabNavigation): void;
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
     openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation): void;

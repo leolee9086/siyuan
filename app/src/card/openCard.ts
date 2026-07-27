@@ -9,7 +9,6 @@ import {isPaidUser, needSubscribe} from "../util/platform/needSubscribe";
 import {fullscreen} from "../protyle/breadcrumb/action";
 import { MenuItem } from "../menus/Menu.Item";
 import {escapeHtml} from "../util/DOM/escape";
-import {openFile} from "../editor/util";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {platform, isElectron} from "../platform";
 import * as dayjs from "dayjs";
@@ -426,8 +425,7 @@ export const bindCardEvent = async (options: {
                     icon: "iconOpen",
                     label: siyuanI18n.openInNewTab,
                     click() {
-                        openFile({
-                            app: options.app,
+                        options.app.openTab({
                             custom: {
                                 icon: "iconRiffCard",
                                 title: siyuanI18n.spaceRepetition,
@@ -449,8 +447,7 @@ export const bindCardEvent = async (options: {
                     icon: "iconLayoutRight",
                     label: siyuanI18n.insertRight,
                     click() {
-                        openFile({
-                            app: options.app,
+                        options.app.openTab({
                             position: "right",
                             custom: {
                                 icon: "iconRiffCard",

@@ -65,6 +65,7 @@ import { Wnd } from "./layout/Wnd";
 import {appFacadeBrand} from "./app/AppFacade.types";
 import type {AppBlockNavigation} from "./app/AppFacade.types";
 import type {AppDatabaseRowNavigation} from "./app/AppFacade.types";
+import type {AppTabNavigation} from "./app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "./asset/open/openAsset.types";
 import {openAsset} from "./asset/open/openAsset";
@@ -72,6 +73,7 @@ import {processSiYuanUri} from "./editor/uri/processSiYuanUri";
 import {openDatabaseRowBlock} from "./editor/open/databaseRow/openDatabaseRowBlock";
 import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow";
 import {Protyle} from "./protyle";
+import {openFile} from "./editor/open/openFile";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -84,6 +86,9 @@ export class App {
     };
     public createProtyle(element: HTMLElement, options: IProtyleOptions) {
         return new Protyle(this, element, options);
+    }
+    public openTab(options: AppTabNavigation) {
+        void openFile({app: this, ...options});
     }
     public openAsset(options: AssetOpenOptions) {
         openAsset(this, options);

@@ -77,6 +77,7 @@ function createOutline(type: "pin" | "local" = "local") {
         eventBus: new EventBus("outline-test"),
         pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
         createProtyle: vi.fn(),
+        openTab: vi.fn(),
         openAsset: vi.fn(),
         openBlock: vi.fn(),
         openDatabaseRow: vi.fn(),
