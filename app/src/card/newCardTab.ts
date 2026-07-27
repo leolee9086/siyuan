@@ -5,7 +5,7 @@ import { fetchPost } from "../util/network/fetch";
 import { Protyle } from "../protyle";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import type { AppFacade } from "../app/AppFacade.types";
-import { clearOBG } from "../layout/dock/util";
+import {clearObjectBlockGraphs} from "../layout/dock/obg/clearObjectBlockGraphs";
 
 export const newCardModel = (options: {
     app: AppFacade,
@@ -126,7 +126,7 @@ export const newCardModel = (options: {
         }
     });
     customObj.element.addEventListener("click", () => {
-        clearOBG();
+        clearObjectBlockGraphs();
         setPanelFocus(customObj.element.parentElement.parentElement);
     });
     return customObj;

@@ -27,7 +27,7 @@ import { saveScroll } from "../protyle/scroll/saveScroll";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 import {getDockByType, resizeTabs} from "./tabUtil";
-import { clearOBG } from "./dock/util";
+import {clearObjectBlockGraphs} from "./dock/obg/clearObjectBlockGraphs";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { showMessage } from "../dialog/message";
@@ -110,7 +110,7 @@ export function removeTabAction(
                 // 关闭分屏页签后光标消失
                 const editors = getAllModels().editor;
                 if (editors.length === 0) {
-                    clearOBG();
+                    clearObjectBlockGraphs();
                 } else {
                     editors.forEach(editorItem => {
                         if (!editorItem.element.classList.contains("fn__none")) {

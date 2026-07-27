@@ -4,6 +4,8 @@ import type {OutlineDomain} from "../outline/types";
 import type {GraphDomain} from "../graph/graph.types";
 /** 用途：反链完整领域根。使用范围：对象块图面板重置。解耦评估：只转发类型，不加载 Backlink class。 */
 import type {BacklinkDomain} from "../backlink/backlink.types";
+/** 用途：查询当前全部布局模型；使用范围：对象块图重置入口；解耦评估：直达无状态 Layout 查询实现。 */
+import {getAllModels} from "../../getAll";
 
 /** 导出反链完整领域根。 */
 export type {BacklinkDomain};
@@ -11,3 +13,5 @@ export type {BacklinkDomain};
 export type {GraphDomain};
 /** 导出大纲完整领域根。 */
 export type {OutlineDomain};
+/** 导出当前布局模型查询。 */
+export {getAllModels};

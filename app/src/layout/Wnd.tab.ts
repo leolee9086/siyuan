@@ -23,7 +23,7 @@ import {setModelsHash} from "../window/modelHash/setModelsHash";
 import {getDockByType, resizeTabs} from "./tabUtil";
 import { fullscreen } from "../protyle/breadcrumb/action";
 import {setPadding} from "../protyle/ui/padding";
-import { clearOBG } from "./dock/util";
+import {clearObjectBlockGraphs} from "./dock/obg/clearObjectBlockGraphs";
 import { MenuItem } from "../menus/Menu.Item";
 import { escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
@@ -141,7 +141,7 @@ export function wndSwitchTab(
             setPadding(currentTab.model.editor.protyle);
         }
     } else {
-        clearOBG();
+        clearObjectBlockGraphs();
     }
     if (isSaveLayout) {
         saveLayout();

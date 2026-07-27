@@ -7,7 +7,7 @@ import { Backlink } from "./Backlink";
 import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
 import {Custom} from "./custom/Custom";
-import {clearOBG} from "./util";
+import {clearObjectBlockGraphs} from "./obg/clearObjectBlockGraphs";
 import { CustomLists } from "./customBlockLists/CustomLists";
 import {showCustomListMenu} from "./customBlockLists/customLists.menu";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
@@ -52,7 +52,7 @@ export const createCustomTabModel = <TData>(context: TabModelFactoryContext<AppF
     const parentElement = custom.element.parentElement?.parentElement;
     if (parentElement) {
         custom.element.addEventListener("click", () => {
-            clearOBG();
+            clearObjectBlockGraphs();
             setPanelFocus(parentElement);
         });
     }

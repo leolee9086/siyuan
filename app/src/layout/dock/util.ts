@@ -13,7 +13,6 @@ import { Files } from "./Files";
 import { Editor } from "../../editor";
 import { Constants } from "../../constants";
 import { getDocDisplayName } from "../../util/file/pathName";
-import {clearObjectBlockGraphs} from "./obg/clearObjectBlockGraphs";
 
 export const openBacklink = async (options: {
     app: AppFacade,
@@ -208,10 +207,6 @@ export const toggleDockBar = (useElement: Element) => {
     resetFloatDockSize();
     adjustDockPadding();
     setTabPosition();
-};
-
-export const clearOBG = () => {
-    clearObjectBlockGraphs(getAllModels());
 };
 
 export const selectOpenTab = async () => {

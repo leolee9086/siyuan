@@ -49,7 +49,7 @@ import { setPanelFocus } from "../layout/utils/setPanelFocus";
 /** 导出 setPanelFocus，供 search 模块使用 */
 export { setPanelFocus };
 
-/** 用途：清理 outline 和 gutter 高亮。使用范围：Search 点击处理。解耦评估：通过 imports.ts 转发。 */
-import { clearOBG } from "../layout/dock/util";
-/** 导出 clearOBG，供 search 模块使用 */
-export { clearOBG };
+/** 用途：清理固定大纲、关系图和反链对象状态。使用范围：Search 点击处理。解耦评估：直达 OBG 领域唯一入口。 */
+import {clearObjectBlockGraphs} from "../layout/dock/obg/clearObjectBlockGraphs";
+/** 导出当前对象块图清理入口。 */
+export {clearObjectBlockGraphs};

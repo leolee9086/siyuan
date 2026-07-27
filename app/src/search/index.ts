@@ -35,7 +35,7 @@ import type { AppFacade } from "./imports";
  * 使用范围：Search 点击处理时清除 O/B/G 高亮。
  * 解耦评估：通过 imports.ts 转发。
  */
-import { clearOBG } from "./imports";
+import {clearObjectBlockGraphs} from "./imports";
 /**
  * 用途：思源配置读取。
  * 使用范围：Search 构造时判断是否使用当前 Tab 打开文件。
@@ -49,7 +49,7 @@ import {searchModelBrand} from "./model/search.types";
  * 调用时机：Search 元素 click 事件触发时
  */
 const handleSearchElementClick = (element: HTMLElement) => {
-    clearOBG();
+    clearObjectBlockGraphs();
     const grandParent = element.parentElement?.parentElement;
     if (grandParent) {
         setPanelFocus(grandParent);
