@@ -1,17 +1,15 @@
-import {Tab} from "../Tab";
+import type {LayoutTab} from "../layout.types";
 import {Model} from "../Model";
 import {Tree} from "../../util/file/Tree";
 import {setPanelFocus} from "../utils/setPanelFocus";
-import {getDockByType} from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import {fetchPost} from "../../util/network/fetch";
-import {openFileById} from "../../editor/utils.openFileById";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import type {AppFacade} from "../../app/AppFacade.types";
 import {Constants} from "../../constants";
 import {checkFold} from "../../block/fold/checkFold";
 import {isOperations, isBlockTreeArray} from "./dock.guard";
-import {Protyle} from "../../protyle";
 import {
     getBookmarkPanelHTML, shouldReloadBookmark,
 } from "./bookmark.util";
@@ -21,7 +19,7 @@ import {bookmarkModelBrand} from "./bookmark/bookmark.types";
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 import type {TreeDomain} from "../../util/file/tree.types";
 
-export class Bookmark extends Model<AppFacade, Tab> {
+export class Bookmark extends Model<AppFacade, LayoutTab> {
     public get [bookmarkModelBrand]() {
         return "Bookmark" as const;
     }
@@ -36,7 +34,7 @@ export class Bookmark extends Model<AppFacade, Tab> {
     public editors: ProtyleDomain[] = [];
     private element: HTMLElement;
 
-    constructor(app: AppFacade, tab: Tab) {
+    constructor(app: AppFacade, tab: LayoutTab) {
         super({app});
         this.connect({id: tab.id, type: "bookmark", msgCallback: (data) => this._处理消息(data)});
         this.element = tab.panelElement;
@@ -109,7 +107,7 @@ export class Bookmark extends Model<AppFacade, Tab> {
             return;
         }
         checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
-            openFileById({app, id, action, zoomIn});
+            app.openBlock({id, action, zoomIn});
         });
     }
 
@@ -119,8 +117,7 @@ export class Bookmark extends Model<AppFacade, Tab> {
             return;
         }
         checkFold(id, (zoomIn: boolean) => {
-            openFileById({
-                app,
+            app.openBlock({
                 id,
                 keepCursor: true,
                 action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] :
@@ -136,7 +133,7 @@ export class Bookmark extends Model<AppFacade, Tab> {
             return;
         }
         checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
-            openFileById({app, id, action, zoomIn, position: "bottom"});
+            app.openBlock({id, action, zoomIn, position: "bottom"});
         });
     }
 
@@ -192,7 +189,7 @@ export class Bookmark extends Model<AppFacade, Tab> {
         const editorElement = document.createElement("div");
         editorElement.style.minHeight = "auto";
         liElement.after(editorElement);
-        this.editors.push(new Protyle(this.app, editorElement, {
+        this.editors.push(this.app.createProtyle(editorElement, {
             blockId: id,
             click: {preventInsetEmptyBlock: true},
             render: {background: false, gutter: true, scroll: false, breadcrumb: false},

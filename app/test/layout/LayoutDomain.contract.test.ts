@@ -69,7 +69,7 @@ type BacklinkContract = PublicInstanceLooksLike<typeof Backlink, BacklinkDomain<
 type ForwardlinkContract = PublicInstanceLooksLike<typeof Forwardlink, ForwardlinkDomain<AppFacade, Tab>>;
 type FilesContract = PublicInstanceLooksLike<typeof Files, FilesDomain<AppFacade, Tab>>;
 type AssetContract = PublicInstanceLooksLike<typeof Asset, AssetDomain<AppFacade, LayoutTab>>;
-type BookmarkContract = PublicInstanceLooksLike<typeof Bookmark, BookmarkDomain<AppFacade, Tab>>;
+type BookmarkContract = PublicInstanceLooksLike<typeof Bookmark, BookmarkDomain<AppFacade, LayoutTab>>;
 type CustomContract = PublicInstanceLooksLike<
     typeof Custom<unknown>,
     CustomDomain<unknown, AppFacade, LayoutTab>

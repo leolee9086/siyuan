@@ -14,6 +14,8 @@ export interface AppBlockNavigation {
     zoomIn: boolean;
     /** 桌面宿主在指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
     position?: "right" | "bottom";
+    /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
+    keepCursor?: boolean;
     /** 将目标块作为数据库行预览打开；宿主负责复用同一预览页签并展开属性面板。 */
     databaseRowId?: string;
 }
