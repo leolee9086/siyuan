@@ -14,6 +14,36 @@ export interface assetItem {
     hName: string;
 }
 
+/**
+ * 资源选择结果的完整去向。
+ * `editor` 保留编辑器插入模式的取消、空列表与菜单关闭语义；
+ * `callback` 由调用方完整接管选中结果及后续界面生命周期。
+ */
+export type AssetMenuDestination =
+    | {kind: "editor"; select: (url: string, name: string) => void}
+    | {kind: "callback"; select: (url: string, name: string) => void};
+
+/** 资源选择菜单的完整打开参数。 */
+export interface AssetMenuOptions {
+    protyle: IProtyle;
+    position: IPosition;
+    destination: AssetMenuDestination;
+    exts?: string[];
+}
+
+/**
+ * 用途：聚合一次资源菜单键盘交互所需的 DOM、编辑器和选择去向。
+ * 使用场景：方向键预览、Enter 确认和 Escape 取消共享同一菜单生命周期时使用。
+ * 关联类型：`destination` 使用完整 `AssetMenuDestination` 判别编辑器与调用方接管模式。
+ */
+export interface AssetMenuKeyboardContext {
+    element: Element;
+    listElement: Element;
+    previewElement: Element;
+    protyle: IProtyle;
+    destination: AssetMenuDestination;
+}
+
 // ────────────────────────────────────────────────────────────
 // 内容菜单类型 (原 protyle.contentMenu.types.ts)
 // ────────────────────────────────────────────────────────────

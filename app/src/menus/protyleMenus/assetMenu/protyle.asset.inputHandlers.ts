@@ -5,12 +5,6 @@
  */
 import { focusToolbarRange } from "./imports";
 /**
- * 用途：回填资源到编辑器
- * 使用范围：无 callback 场景下确认资源时执行默认插入
- * 解耦评估：通过 imports.ts 转发，写入逻辑可独立演进
- */
-import { hintRenderAssets } from "./imports";
-/**
  * 用途：访问全局菜单单例
  * 使用范围：确认资源后关闭菜单
  * 解耦评估：通过 imports.ts 转发，菜单系统依赖入口统一
@@ -28,20 +22,24 @@ import { upDownHint } from "./imports";
  * 解耦评估：通过 imports.ts 转发，渲染能力与输入事件处理解耦
  */
 import { renderAssetsPreview } from "./imports";
+/**
+ * 用途：约束键盘导航、确认和取消共享的完整菜单上下文。
+ * 使用范围：本文件所有键盘生命周期处理函数。
+ */
+import type {AssetMenuKeyboardContext} from "./imports";
 
 /**
  * 处理 Enter 键事件。
  */
 const 处理Enter键 = (
-    element: Element,
-    event: KeyboardEvent,
-    protyle: IProtyle,
-    callback?: (url: string, name: string) => void
+    context: AssetMenuKeyboardContext,
+    event: KeyboardEvent
 ) => {
+    const {element, protyle, destination} = context;
     const isEmpty = element.querySelector(".b3-list--empty");
 
     // 列表为空时，如果没有回调，则关闭菜单并聚焦。
-    if (isEmpty && !callback) {
+    if (isEmpty && destination.kind === "editor") {
         getSiyuanGlobalMenus().menu.remove();
         focusToolbarRange(protyle);
         event.preventDefault();
@@ -49,7 +47,7 @@ const 处理Enter键 = (
         return;
     }
 
-    // 列表为空时，有回调则不做任何事。
+    // 列表为空时，由调用方接管的选择模式不做任何事。
     if (isEmpty) {
         event.preventDefault();
         event.stopPropagation();
@@ -66,15 +64,11 @@ const 处理Enter键 = (
     const dataValue = currentElement.getAttribute("data-value") ?? "";
     const textContent = currentElement.textContent ?? "";
 
-    if (callback) {
-        callback(dataValue, textContent);
-        event.preventDefault();
-        event.stopPropagation();
-        return;
+    destination.select(dataValue, textContent);
+    // 编辑器模式由菜单完成插入后的收尾；回调模式的宿主自行决定何时关闭。
+    if (destination.kind === "editor") {
+        getSiyuanGlobalMenus().menu.remove();
     }
-
-    hintRenderAssets(dataValue, protyle);
-    getSiyuanGlobalMenus().menu.remove();
     event.preventDefault();
     event.stopPropagation();
 };
@@ -82,8 +76,8 @@ const 处理Enter键 = (
 /**
  * 处理 Escape 键事件。
  */
-const 处理Escape键 = (protyle: IProtyle, callback?: (url: string, name: string) => void) => {
-    if (callback) {
+const 处理Escape键 = (protyle: IProtyle, destination: AssetMenuKeyboardContext["destination"]) => {
+    if (destination.kind === "callback") {
         return;
     }
     focusToolbarRange(protyle);
@@ -94,12 +88,9 @@ const 处理Escape键 = (protyle: IProtyle, callback?: (url: string, name: strin
  * @同步豁免: UI构建 - 键盘事件必须同步处理，才能保证焦点、预览和菜单状态一致。
  */
 export const 创建键盘事件处理器 = (
-    element: Element,
-    listElement: Element,
-    previewElement: Element,
-    protyle: IProtyle,
-    callback?: (url: string, name: string) => void
+    context: AssetMenuKeyboardContext
 ) => (event: KeyboardEvent) => {
+    const {element, listElement, previewElement, protyle, destination} = context;
     if (event.isComposing) {
         return;
     }
@@ -114,13 +105,13 @@ export const 创建键盘事件处理器 = (
 
     // Enter 触发确认选择逻辑，优先处理回调和默认插入行为。
     if (event.key === "Enter") {
-        处理Enter键(element, event, protyle, callback);
+        处理Enter键(context, event);
         return;
     }
 
     // Escape 触发取消逻辑，在无回调场景下恢复编辑焦点。
     if (event.key === "Escape") {
-        处理Escape键(protyle, callback);
+        处理Escape键(protyle, destination);
     }
 };
 

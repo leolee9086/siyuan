@@ -11,12 +11,6 @@ import { openAssetDialog } from "./imports";
  */
 import { MenuItem } from "./imports";
 /**
- * 用途：将选中资源写回编辑器
- * 使用范围：无 callback 场景下选择资源后的默认行为
- * 解耦评估：通过 imports.ts 转发，编辑器插入逻辑与菜单编排解耦
- */
-import { hintRenderAssets } from "./imports";
-/**
  * 用途：判断是否移动端
  * 使用范围：菜单弹出策略与布局模板分支
  * 解耦评估：通过 imports.ts 转发，平台能力入口统一
@@ -118,6 +112,14 @@ import { 创建输入事件处理器 } from "./protyle.asset.inputHandlers";
  * 解耦评估：输入交互逻辑拆分到独立模块，主文件仅提供刷新回调
  */
 import { 创建组合结束处理器 } from "./protyle.asset.inputHandlers";
+/** 用途：约束资源菜单公开调用参数；使用范围：桌面与移动入口；解耦评估：调用方仅依赖完整菜单协议。 */
+import type {AssetMenuOptions} from "./imports";
+/**
+ * 用途：构造上一项和下一项按钮复用键盘导航所需的原生事件。
+ * 使用范围：资源菜单分页导航按钮。
+ * 解耦评估：原生事件构造无跨调用状态，集中到工厂可遵循实例化边界而不引入注册表状态。
+ */
+import {createAssetMenuArrowKeyEvent} from "./protyle.asset.events.factory";
 
 /** 弹出菜单 */
 const 弹出菜单 = (position: IPosition) => {
@@ -131,12 +133,12 @@ const 弹出菜单 = (position: IPosition) => {
 };
 
 /** 处理搜索资源的响应 */
-const 处理搜索资源响应 = (
-    element: Element,
-    k: string,
-    position: IPosition,
-    data: assetItem[]
-) => {
+const 处理搜索资源响应 = ({element, k, position, data}: {
+    element: Element;
+    k: string;
+    position: IPosition;
+    data: assetItem[];
+}) => {
     const inputElement = element.querySelector("input");
     const previewElement = element.querySelector("#preview");
     const listElement = element.querySelector(".b3-list");
@@ -168,11 +170,16 @@ const 处理搜索资源响应 = (
  * @同步豁免: UI构建 - 该函数用于同步触发搜索并在回调中更新当前菜单 UI，调用方依赖同步返回以维持键盘交互时序。
  */
 // @柯里化
-export const renderAssetList = (element: Element, k: string, position: IPosition, exts: string[] = []) => {
+export const renderAssetList = ({element, k, position, exts}: {
+    element: Element;
+    k: string;
+    position: IPosition;
+    exts: string[];
+}) => {
     fetchPost("/api/search/searchAsset", { k, exts }, (response) => {
         const rawData = response.data ?? [];
         const data: assetItem[] = isAssetItemArray(rawData) ? rawData : [];
-        处理搜索资源响应(element, k, position, data);
+        处理搜索资源响应({element, k, position, data});
     });
 };
 
@@ -206,13 +213,9 @@ const 绑定过滤按钮下拉菜单事件 = (
 };
 
 /** 绑定菜单元素事件 */
-const 绑定菜单元素事件 = (
-    element: HTMLElement,
-    position: IPosition,
-    protyle: IProtyle,
-    callback?: (url: string, name: string) => void,
-    exts?: string[]
-) => {
+const 绑定菜单元素事件 = ({element, position, protyle, destination, exts}: AssetMenuOptions & {
+    element: HTMLElement;
+}) => {
     element.style.maxWidth = "none";
     const listElement = element.querySelector(".b3-list");
     const previewElement = element.querySelector("#preview");
@@ -227,12 +230,18 @@ const 绑定菜单元素事件 = (
     // @柯里化
     /** 当前输入框与过滤条件上下文绑定的刷新函数，用于输入事件和过滤菜单回调复用。 */
     const 刷新过滤后列表 = () => {
-        renderAssetList(element, inputElement.value, position, extsRef.current);
+        renderAssetList({element, k: inputElement.value, position, exts: extsRef.current});
     };
 
     listElement.addEventListener("mouseover", 处理列表悬停(previewElement));
-    listElement.addEventListener("click", 处理列表点击(protyle, callback));
-    inputElement.addEventListener("keydown", 创建键盘事件处理器(element, listElement, previewElement, protyle, callback));
+    listElement.addEventListener("click", 处理列表点击(destination));
+    inputElement.addEventListener("keydown", 创建键盘事件处理器({
+        element,
+        listElement,
+        previewElement,
+        protyle,
+        destination,
+    }));
     inputElement.addEventListener("input", 创建输入事件处理器(刷新过滤后列表));
     inputElement.addEventListener("compositionend", 创建组合结束处理器(刷新过滤后列表));
     绑定过滤按钮下拉菜单事件(element, extsRef, 刷新过滤后列表);
@@ -241,13 +250,13 @@ const 绑定菜单元素事件 = (
     const prevBtn = element.querySelector("[data-type='previous']");
     const nextBtn = element.querySelector("[data-type='next']");
     prevBtn?.addEventListener("click", () => {
-        inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+        inputElement.dispatchEvent(createAssetMenuArrowKeyEvent("ArrowUp"));
     });
     nextBtn?.addEventListener("click", () => {
-        inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+        inputElement.dispatchEvent(createAssetMenuArrowKeyEvent("ArrowDown"));
     });
 
-    renderAssetList(element, "", position, extsRef.current);
+    renderAssetList({element, k: "", position, exts: extsRef.current});
 };
 
 /**
@@ -255,34 +264,33 @@ const 绑定菜单元素事件 = (
  * @description 移动端使用原有 Menu 实现，桌面端使用全局单例 Dialog
  * @param protyle - 编辑器实例（移动端需要）
  * @param position - 位置信息（移动端需要）
- * @param callback - 可选的回调函数，选中资源时调用
+ * @param destination - 资源选择结果的去向，并据此保持对应的菜单生命周期
  * @param exts - 文件扩展名过滤列表
  * @同步豁免: UI构建 - 菜单构建必须在同一调用栈内同步完成，避免弹出位置与事件绑定时序错位。
  */
-export const assetMenu = (
-    protyle: IProtyle,
-    position: IPosition,
-    callback?: (url: string, name: string) => void,
-    exts?: string[]
-) => {
+export const assetMenu = ({protyle, position, destination, exts}: AssetMenuOptions) => {
     // 移动端保持原有 Menu 实现
     if (isMobile) {
         const menu = getSiyuanGlobalMenus().menu;
         menu.remove();
-        menu.append(new MenuItem({
+        menu.append(MenuItem.create({
             iconHTML: "",
             type: "readonly",
             label: 生成菜单HTML模板(),
             /** @简洁函数 绑定菜单根元素事件与初始渲染 */
             bind(element) {
-                绑定菜单元素事件(element, position, protyle, callback, exts);
+                绑定菜单元素事件({
+                    element,
+                    position,
+                    protyle,
+                    destination,
+                    ...(exts ? {exts} : {}),
+                });
             }
         }).element);
         menu.popup(position);
         return;
     }
-    // 桌面端使用全局单例 Dialog，由发起方通过 callback 控制插入行为
-    openAssetDialog(callback ?? ((url: string) => {
-        hintRenderAssets(url, protyle);
-    }));
+    // 桌面端使用全局单例 Dialog，由资源去向接管选中结果。
+    openAssetDialog(destination.select);
 };

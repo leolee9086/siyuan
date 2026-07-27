@@ -151,15 +151,22 @@ const buildAssetValue = (url: string, name: string): IAVCellAssetValue => {
 const handleAddAssetExist = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
     const rect = target.getBoundingClientRect();
     // @内联回调
-    assetMenu(ctx.options.protyle, {
-        x: rect.right, y: rect.bottom,
-        w: (target.parentElement?.clientWidth ?? 0) + 8, h: rect.height
-    }, (url, name) => {
-        updateAssetCell({
-            protyle: ctx.options.protyle, cellElements: getCellElements(ctx),
-            addValue: [buildAssetValue(url, name)], blockElement: ctx.options.blockElement
-        });
-        removeSiyuanMenu();
+    assetMenu({
+        protyle: ctx.options.protyle,
+        position: {
+            x: rect.right, y: rect.bottom,
+            w: (target.parentElement?.clientWidth ?? 0) + 8, h: rect.height,
+        },
+        destination: {
+            kind: "callback",
+            select: (url, name) => {
+                updateAssetCell({
+                    protyle: ctx.options.protyle, cellElements: getCellElements(ctx),
+                    addValue: [buildAssetValue(url, name)], blockElement: ctx.options.blockElement
+                });
+                removeSiyuanMenu();
+            },
+        },
     });
     event.preventDefault();
     event.stopPropagation();

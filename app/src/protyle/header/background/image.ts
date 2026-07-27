@@ -276,11 +276,19 @@ const handleAssetSelect = (background: BackgroundDomain, protyle: IProtyle, url:
 export const clickAsset = (background: BackgroundDomain, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     const rect = target.getBoundingClientRect();
     const parentRect = target.parentElement?.getBoundingClientRect();
-    assetMenu(protyle, {
-        x: parentRect ? parentRect.right : rect.right,
-        y: rect.bottom + 8,
-        isLeft: true,
-    }, (url) => handleAssetSelect(background, protyle, url), Constants.SIYUAN_ASSETS_IMAGE);
+    assetMenu({
+        protyle,
+        position: {
+            x: parentRect ? parentRect.right : rect.right,
+            y: rect.bottom + 8,
+            isLeft: true,
+        },
+        destination: {
+            kind: "callback",
+            select: (url) => handleAssetSelect(background, protyle, url),
+        },
+        exts: Constants.SIYUAN_ASSETS_IMAGE,
+    });
     event.preventDefault();
     event.stopPropagation();
     return true;

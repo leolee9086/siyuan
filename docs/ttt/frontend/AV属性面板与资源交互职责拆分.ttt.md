@@ -2,9 +2,9 @@
 
 > **最终目标**：保持块属性面板、数据库反链、资源单元格编辑、预览、上传、复制、导出与打开菜单行为不变，将 657 行 `blockAttr.ts` 和 488 行 `asset.ts` 拆为单向领域子图，消除其全部循环路径并满足规模门禁。
 >
-> **当前目标**：建立 Asset 值更新与上传行为基线，解除属性面板渲染经通用上传、Cell Update 返回 Protyle 初始化的首环。
+> **当前目标**：完成资源选择与编辑器写入职责分层后，继续建立 Asset 值更新与上传行为基线。
 >
-> **下一步任务**：固定 `updateAssetCell` 的首单元格值变换、后续单元格复制和属性面板/普通视图刷新差异，并核定 `bindAssetEvent -> uploadFiles` 是否需要完整 Protyle 上传组合入口。
+> **下一步任务**：固定 `updateAssetCell` 的首单元格值变换、后续单元格复制和属性面板/普通视图刷新差异，并核定 `bindAssetEvent -> uploadFiles` 是否需要完整 Protyle 上传组合入口；资源菜单已退出 SCC，不再从该已解除路径继续切割。
 
 ## 不变量
 
@@ -69,6 +69,7 @@
 - **2026-07-27**：上传默认结果调用 `updateCellsValue`，后者仅为列选择项合并加载完整 Select 交互根；算法迁入 `select/options.ts` 并以 `2/2` 测试固定颜色回填与可逆操作顺序。生产图 `2237 / 351 / SCC 626`，Options 叶子退出 SCC，当前路径缩短为 `upload -> cell.update -> transaction`；值更新上帝函数由独立专项继续拆分。
 - **2026-07-27**：Cell Update 使用严格四 action Prepared 命令后退出 SCC，上传默认结果的路径不再经过 Cell Update 或通用 transaction。生产图 `2238 / 324 / SCC 624`，当前返回边为 `upload -> insertHTML -> AV action`；上传专项继续分离默认结果处理。
 - **2026-07-27**：InsertHTML 的 AV 标题同步改为直达 Name 实现及严格命令，不再加载 Action 聚合根；Name 子域退出 SCC。生产图 `2240 / 331 / SCC 623`，当前上传返回边推进到 `insertHTML -> blockFold -> transaction`。
+- **2026-07-27**：资源菜单不再用可选 callback 同时承载选择与编辑器写入。`AssetMenuDestination` 明确区分编辑器拥有的菜单生命周期和调用方接管生命周期，AV 资源单元格与背景图只依赖选择器；资源 HTML、工具栏 Range、插入和 UI 收尾归入 `protyle/asset/insert.ts` 唯一实现，Hint 删除平行命名入口。点击、Enter、空列表、Escape 与写入顺序专项 `7/7`，Node `199/199`、契约类型、新模块 lint、目标类型诊断 `0` 和 imports 多跳门禁通过；资源菜单实现及网关退出 SCC，生产图 `2266 / 317 / SCC 599`。完整 Vitest 仍有两项已定位的既有非本批失败，保持显式记录。
 
 ## 关联任务
 

@@ -13,6 +13,7 @@ import {highlightRender} from "../../render/highlightRender";
 import {setFold} from "../../util/blockFold";
 import {imgMenu} from "../../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {assetMenu} from "../../../menus/protyleMenus/assetMenu/protyle.asset";
+import {insertAssetIntoProtyle} from "../../asset/insert";
 import {fetchPost} from "../../../util/network/fetch";
 import {getDisplayName, pathPosix} from "../../../util/file/pathName";
 import {blockRender} from "../../render/blockRender";
@@ -90,7 +91,14 @@ export function handleFillSlash(ctx: IFillSlashContext): void {
         fixImageCursor(range);
         protyle.toolbar.range = range;
         const rangePosition = getSelectionPosition(nodeElement, range);
-        assetMenu(protyle, {x: rangePosition.left, y: rangePosition.top + 26, w: 0, h: 26});
+        assetMenu({
+            protyle,
+            position: {x: rangePosition.left, y: rangePosition.top + 26, w: 0, h: 26},
+            destination: {
+                kind: "editor",
+                select: (url) => insertAssetIntoProtyle(url, protyle),
+            },
+        });
         updateTransaction(protyle, nodeElement, html);
         return;
     }

@@ -50,15 +50,6 @@ import { MenuItem } from "../../Menu.Item";
 export { MenuItem };
 
 /**
- * 用途：将资源路径插入编辑器
- * 使用范围：无 callback 场景下选中资源后写回编辑器
- * 解耦评估：编辑器 hint 能力已封装，转发层降低业务文件对上层路径耦合
- */
-import { hintRenderAssets } from "../../../protyle/hint/extend";
-/** 导出 hintRenderAssets 供资源菜单回填资源 */
-export { hintRenderAssets };
-
-/**
  * 用途：向上查找列表项节点
  * 使用范围：资源列表 hover/click 事件命中项查找
  * 解耦评估：DOM 工具函数职责清晰，转发层保持业务与工具解耦
@@ -126,6 +117,17 @@ export { getWindowOuterWidth };
  * 使用范围：资源列表渲染、搜索响应与回调参数类型约束
  * 解耦评估：类型集中在父目录复用，本地转发可避免业务文件直接上跳目录
  */
-import type { assetItem } from "../protyle.types";
-/** 导出 assetItem 供 assetMenu 模块类型约束 */
-export type { assetItem };
+import type {
+    assetItem,
+    AssetMenuDestination,
+    AssetMenuKeyboardContext,
+    AssetMenuOptions,
+} from "../protyle.types";
+/** 导出资源列表项供 assetMenu 模块类型约束 */
+export type {assetItem};
+/** 导出资源选择去向供 assetMenu 模块保持对应生命周期 */
+export type {AssetMenuDestination};
+/** 导出资源选择菜单完整参数 */
+export type {AssetMenuOptions};
+/** 导出资源菜单键盘生命周期上下文 */
+export type {AssetMenuKeyboardContext};

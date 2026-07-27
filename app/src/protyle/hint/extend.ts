@@ -9,13 +9,12 @@ import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlock";
 import {transaction} from "../wysiwyg/transaction/submit";
-import { getAssetName, getDisplayName, pathPosix } from "../../util/file/pathName";
+import { getDisplayName } from "../../util/file/pathName";
 import { withEncryptedNotebook } from "../../util/pathName";
 import { genEmptyElement } from "../../block/element.factory";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";
 import { hideElements } from "../ui/hideElements";
-import { genAssetHTML } from "../../asset/renderAssets";
 import { avRender } from "../render/av/render";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -502,17 +501,6 @@ export const hintRenderWidget = (value: string, protyle: IProtyle) => {
     // src 地址以 / 结尾
     // Use the path ending with `/` when loading the widget https://github.com/siyuan-note/siyuan/issues/10520
     insertHTML(protyle.lute.SpinBlockDOM(`<iframe src="/widgets/${value}/" data-subtype="widget" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>`), protyle, true);
-    hideElements(["util"], protyle);
-};
-
-export const hintRenderAssets = (value: string, protyle: IProtyle) => {
-    if (!protyle.toolbar) {
-        throw new Error("Protyle toolbar module is not initialized");
-    }
-    focusByRange(protyle.toolbar.range);
-    const type = pathPosix().extname(value).toLowerCase();
-    const filename = value.startsWith("assets/") ? getAssetName(value) : value;
-    insertHTML(genAssetHTML(type, value, filename, value.startsWith("assets/") ? filename + type : value), protyle);
     hideElements(["util"], protyle);
 };
 

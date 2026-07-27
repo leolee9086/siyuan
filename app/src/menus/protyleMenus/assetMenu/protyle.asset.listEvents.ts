@@ -11,12 +11,6 @@ import { hasClosestByClassName } from "./imports";
  */
 import { renderAssetsPreview } from "./imports";
 /**
- * 用途：写入选中资源到编辑器
- * 使用范围：无 callback 场景下点击列表项后默认插入资源
- * 解耦评估：通过 imports.ts 转发，编辑器写入能力与事件处理解耦
- */
-import { hintRenderAssets } from "./imports";
-/**
  * 用途：访问全局菜单单例
  * 使用范围：点击列表项后关闭菜单
  * 解耦评估：通过 imports.ts 转发，菜单系统依赖入口统一
@@ -28,6 +22,11 @@ import { getSiyuanGlobalMenus } from "./imports";
  * 解耦评估：由视图模块提供专职能力，事件模块仅编排调用
  */
 import { 更新素材元数据预览 } from "./protyle.asset.view";
+/**
+ * 用途：区分资源选中结果由编辑器菜单还是外部调用方接管。
+ * 使用范围：资源列表点击确认及其菜单关闭生命周期。
+ */
+import type {AssetMenuDestination} from "./imports";
 
 /**
  * 处理列表悬停事件。
@@ -55,8 +54,7 @@ export const 处理列表悬停 = (previewElement: Element) => (event: Event) =>
  * @同步豁免: UI构建 - 点击后需立即执行插入/回调并关闭菜单，保证交互一致性。
  */
 export const 处理列表点击 = (
-    protyle: IProtyle,
-    callback?: (url: string, name: string) => void
+    destination: AssetMenuDestination
 ) => (event: Event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
@@ -72,11 +70,9 @@ export const 处理列表点击 = (
     const currentURL = listItemElement.getAttribute("data-value") ?? "";
     const textContent = listItemElement.textContent ?? "";
 
-    if (callback) {
-        callback(currentURL, textContent);
-        return;
+    destination.select(currentURL, textContent);
+    // 编辑器模式由资源菜单拥有生命周期，选中后应立即关闭；回调模式由调用方接管。
+    if (destination.kind === "editor") {
+        getSiyuanGlobalMenus().menu.remove();
     }
-
-    hintRenderAssets(currentURL, protyle);
-    getSiyuanGlobalMenus().menu.remove();
 };
