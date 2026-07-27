@@ -48,7 +48,6 @@ import {openCard, openCardByData} from "../../card/openCard";
 import {lockScreen} from "../../dialog/processSystem";
 import {isWindow} from "../../util/functions";
 import {reloadProtyle} from "../../protyle/util/reload";
-import {fullscreen} from "../../protyle/breadcrumb/action";
 import {openRecentDocs} from "../../business/openRecentDocs";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {openBacklink, openGraph, openOutline, toggleDockBar} from "../../layout/dock/util";
@@ -484,7 +483,7 @@ const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
         return true;
     }
     if (matchHotKey(window.siyuan.config.keymap.editor.general.fullscreen.custom, event)) {
-        fullscreen(protyle.element);
+        protyle.app.toggleFullscreen(protyle.element);
         resize(protyle);
         event.preventDefault();
         return true;

@@ -11,7 +11,7 @@ import {updateTransaction} from "./transaction/update";
 import {onGet} from "../util/onGet";
 import {Constants} from "../../constants";
 import * as dayjs from "dayjs";
-import {net2LocalAssets} from "../breadcrumb/action";
+import {net2LocalAssets} from "../breadcrumb/assets/net2LocalAssets";
 import {processClonePHElement} from "../render/util";
 import {copyTextByType} from "../toolbar/util";
 import {hasClosestByTag, hasTopClosestByClassName} from "../util/hasClosest";

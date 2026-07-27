@@ -1,7 +1,7 @@
 import { fetchPost } from "../../util/network/fetch";
 import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../runtime/dialog.port";
-import { net2LocalAssets } from "./action";
+import {net2LocalAssets} from "./assets/net2LocalAssets";
 import {uploadFiles} from "../upload/transport";
 import { isMobile } from "../../platform";
 import { Menu } from "../../plugin/Menu";

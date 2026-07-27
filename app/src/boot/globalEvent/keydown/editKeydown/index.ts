@@ -354,7 +354,7 @@ export const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
         return true;
     }
     if (matchHotKey(config.keymap.editor.general.fullscreen.custom, event)) {
-        fullscreen(protyle.element);
+        protyle.app.toggleFullscreen(protyle.element);
         resize(protyle);
         event.preventDefault();
         return true;

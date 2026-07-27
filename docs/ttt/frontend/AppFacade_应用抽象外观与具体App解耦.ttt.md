@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：Protyle 已通过完整 AppFacade 处理失效文档；继续审计 Breadcrumb 全屏内部对具体 Wnd/Layout 的加载是否可由同一完整宿主行为接管。
+> **下一步任务**：应用全屏唯一实现已由组合根装配；继续随循环图审计 Breadcrumb Events 与其它下层模块对具体 Editor/Layout 实现的加载。
 
 ---
 
@@ -187,3 +187,4 @@
 - **2026-07-27**：Editor Factory 的引擎创建与全屏恢复改为委托完整 AppFacade；具体 Protyle class 和 Breadcrumb action 不再由工厂网关加载，Editor 泛型保持完整 `ProtyleDomain` 类型能力，窗口 hash 同步职责不变。目标 Vitest `2/2`、Protyle 契约和 imports 多跳 `0` 通过；生产图 `2307 / 239 / SCC 395`，Factory 两节点退出唯一 SCC。
 - **2026-07-27**：文档创建加入完整 AppFacade 公共表面。桌面/移动组合根都调用唯一 `newFile` 实现，保持其原有平台上下文判定、保存路径、创建和打开行为；移动 Search 两个入口只发出 `createDocument(name)` 应用命令。AppFacade 相关 Vitest `7/7`、Node `200/200`、Protyle 契约与网关门禁通过；生产图代表环 `237 -> 220`，唯一 SCC 保持 `388`，下一返回边转为独立的折叠检查职责。
 - **2026-07-27**：失效文档宿主处理加入完整 AppFacade 公共表面。Protyle 的 closeBox/removeBox/removeDoc 分支统一通知宿主；桌面 App 调用唯一 Layout Port 移除已有模型页签，移动 App 调用现有 `setEmpty` 工作区呈现。AppFacade 相关 Vitest `7/7`、Node `200/200`、Protyle 契约与网关门禁通过；生产图代表环 `237 -> 225`，唯一 SCC 保持 `386`，具体 Mobile Empty 与 Desktop Tab 依赖已从 Protyle 删除。
+- **2026-07-27**：`toggleFullscreen()` 的唯一具体实现从 Breadcrumb 混合 Action 迁入 App Fullscreen 子域，窗口协调依赖完整 `LayoutWindow`。桌面/移动 App 组合根装配该实现；Boot 快捷键、Wnd 恢复、Graph 和 Breadcrumb Menu 均通过对象已有 AppFacade 调用，不再静态加载全屏实现。Node `200/200`、Protyle 契约、新领域 lint与网关门禁通过；生产图 `2315 / 218 / SCC 379`，全屏子域退出唯一 SCC。

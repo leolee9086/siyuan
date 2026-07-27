@@ -45,7 +45,6 @@ import { fetchPost } from "./imports";
  * 使用范围：全屏菜单项点击后执行界面状态切换。
  * 解耦评估：可通过命令封装进一步解耦；但它与面包屑交互属于同一功能域，直接转发依赖可接受。
  */
-import { fullscreen } from "./imports";
 /*
  * 用途：在全屏切换后重新计算编辑器布局尺寸。
  * 使用范围：全屏菜单项点击后，紧随全屏切换执行尺寸同步。
@@ -224,7 +223,7 @@ export function 添加全屏菜单项(protyle: IProtyle, menu: Menu) {
          * 问题/改进：若未来全屏切换改为异步动画流程，可能需要在动画结束后再触发尺寸重算。
          */
         click: () => {
-            fullscreen(protyle.element);
+            protyle.app.toggleFullscreen(protyle.element);
             resize(protyle);
         }
     }).element);

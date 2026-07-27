@@ -6,7 +6,6 @@ import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
 import { BlockPanel } from "../../block/panel/Panel";
-import { fullscreen } from "../../protyle/breadcrumb/action";
 import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
@@ -294,7 +293,7 @@ export class Graph extends Model<AppFacade, Tab> {
                     } else if (dataType === "refresh") {
                         this.searchGraph(false, undefined, true);
                     } else if (dataType === "fullscreen") {
-                        fullscreen(this.element, target);
+                        this.app.toggleFullscreen(this.element, target);
                         const minElement = this.element.querySelector('.block__icons .block__icon[data-type="min"]') as HTMLElement;
                         if (this.element.className.includes("fullscreen")) {
                             minElement.style.transition = "none";

@@ -9,7 +9,7 @@ import { listIndent, listOutdent } from "../wysiwyg/list";
 import { onGet } from "../util/onGet";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { openTitleMenu } from "../header/openTitleMenu";
-import { updateReadonly } from "./action";
+import {updateReadonly} from "./readonly/updateReadonly";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 面包屑点击上下文, 面包屑点击处理器 } from "./breadcrumb.types";
 import { openFileById } from "../../editor/utils.openFileById";

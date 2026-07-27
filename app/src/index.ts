@@ -74,7 +74,7 @@ import {openDatabaseRowBlock} from "./editor/open/databaseRow/openDatabaseRowBlo
 import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow";
 import {Protyle} from "./protyle";
 import {openFile} from "./editor/open/openFile";
-import {fullscreen} from "./protyle/breadcrumb/action";
+import {toggleApplicationFullscreen} from "./app/fullscreen/toggleApplicationFullscreen";
 import {newFile} from "./util/file/newFile";
 import {removeProtyleTab} from "./protyle/runtime/layout.port";
 
@@ -99,7 +99,7 @@ export class App {
         }
     }
     public toggleFullscreen(element: Element, button?: Element) {
-        fullscreen(element, button);
+        toggleApplicationFullscreen(element, button);
     }
     public openTab(options: AppTabNavigation) {
         void openFile({app: this, ...options});

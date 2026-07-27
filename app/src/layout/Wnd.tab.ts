@@ -21,7 +21,6 @@ import {saveLayout} from "./persistence/saveLayout";
 import {setTabPosition} from "../window/setHeader";
 import {setModelsHash} from "../window/modelHash/setModelsHash";
 import {getDockByType, resizeTabs} from "./tabUtil";
-import { fullscreen } from "../protyle/breadcrumb/action";
 import {setPadding} from "../protyle/ui/padding";
 import {clearObjectBlockGraphs} from "./dock/obg/clearObjectBlockGraphs";
 import { MenuItem } from "../menus/Menu.Item";
@@ -137,7 +136,7 @@ export function wndSwitchTab(
             }, getDockByType("file"));
         }
         if (window.siyuan.editorIsFullscreen && !currentTab.model.editor.protyle.element.className.includes("fullscreen")) {
-            fullscreen(currentTab.model.editor.protyle.element);
+            currentTab.model.editor.protyle.app.toggleFullscreen(currentTab.model.editor.protyle.element);
             setPadding(currentTab.model.editor.protyle);
         }
     } else {

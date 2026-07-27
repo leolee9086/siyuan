@@ -7,7 +7,7 @@ import {transaction} from "../transaction/submit";
 import { onGet } from "../../util/onGet";
 import { Constants } from "../../../constants";
 
-import { net2LocalAssets } from "../../breadcrumb/action";
+import {net2LocalAssets} from "../../breadcrumb/assets/net2LocalAssets";
 import { processClonePHElement } from "../../render/util";
 import { copyTextByType } from "../../toolbar/util";
 import { hasTopClosestByClassName } from "../../util/hasClosest";

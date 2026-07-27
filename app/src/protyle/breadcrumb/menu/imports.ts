@@ -32,7 +32,7 @@ import { MenuItem } from "../../../menus/Menu.Item";
  * 使用范围：资源转换菜单项中执行网络图片和网络资源的本地化操作
  * 解耦评估：业务逻辑函数，可通过参数传递解耦，但作为protyle核心功能直接导入更合理
  */
-import { net2LocalAssets } from "../action";
+import {net2LocalAssets} from "../assets/net2LocalAssets";
 /*
  * 用途：检查用户是否需要订阅（未订阅会弹出订阅提示）
  * 使用范围：上传资源到CDN菜单项中，在执行上传前检查订阅状态
@@ -141,7 +141,6 @@ import { resize } from "../../util/resize";
  * 使用范围：面包屑更多菜单点击全屏项时执行
  * 解耦评估：面包屑动作函数，可通过命令派发进一步解耦，但当前属于同一功能域内的直接调用，耦合度可接受
  */
-import { fullscreen } from "../action";
 /*
  * 用途：触发插件菜单打开事件
  * 使用范围：面包屑菜单构建时通知插件系统添加自定义菜单项
@@ -205,8 +204,6 @@ export { reloadProtyle };
 export { hideElements };
 // 布局工具 - 重新计算尺寸
 export { resize };
-// 面包屑动作 - 切换全屏
-export { fullscreen };
 // 插件事件 - 触发菜单打开事件
 export { emitOpenMenu };
 // 菜单系统访问器

@@ -70,7 +70,7 @@ import { ensureOnboarding } from "../onboarding";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 import {Protyle} from "../protyle";
 import {openFile} from "../editor/open/openFile";
-import {fullscreen} from "../protyle/breadcrumb/action";
+import {toggleApplicationFullscreen} from "../app/fullscreen/toggleApplicationFullscreen";
 import {newFile} from "../util/file/newFile";
 import {setEmpty} from "./util/setEmpty";
 
@@ -93,7 +93,7 @@ export class App {
         setEmpty(this);
     }
     public toggleFullscreen(element: Element, button?: Element) {
-        fullscreen(element, button);
+        toggleApplicationFullscreen(element, button);
     }
     public openTab(options: AppTabNavigation) {
         void openFile({app: this, ...options});

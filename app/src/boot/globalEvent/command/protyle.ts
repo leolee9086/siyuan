@@ -5,7 +5,7 @@ import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut"
 import { openFileById } from "../../../editor/utils.openFileById";
 import {checkFold} from "../../../block/fold/checkFold";
 import { isMobile } from "../../../platform";
-import { updateReadonly } from "../../../protyle/breadcrumb/action";
+import {updateReadonly} from "../../../protyle/breadcrumb/readonly/updateReadonly";
 import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/network/fetch";
 

@@ -11,7 +11,6 @@ import { getActiveTab } from "../../../../layout/tabUtil";
 import {saveLayout} from "../../../../layout/persistence/saveLayout";
 import { zoomOut } from "../../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import {copyPNGByLink} from "../../../../asset/actions";
-import { fullscreen } from "../../../../protyle/breadcrumb/action";
 import { duplicateCompletely } from "../../../../protyle/render/av/action";
 import { copyTextByType } from "../../../../protyle/toolbar/util";
 import { hideElements } from "../../../../protyle/ui/hideElements";
@@ -46,7 +45,6 @@ export {
     Editor,
     fetchPost,
     focusByOffset,
-    fullscreen,
     getActiveTab,
     getAllModels,
     getContentByInlineHTML,
