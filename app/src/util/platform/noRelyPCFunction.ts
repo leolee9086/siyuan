@@ -2,7 +2,6 @@ import {Dialog} from "../../dialog";
 import {fetchPost} from "../network/fetch";
 import {isMobile} from "./functions";
 import {Constants} from "../../constants";
-import {pathPosix} from "../file/pathName";
 import {getDockByType} from "../../layout/tabUtil";
 import {Files} from "../../layout/dock/Files";
 import type {TagDomain} from "../../layout/dock/tag/tag.types";
@@ -118,10 +117,6 @@ export const renameTag = (labelName: string) => {
         inputElement.value = listItemElement.dataset.type === "new" ? listItemElement.querySelector("mark").textContent.trim() : listItemElement.textContent.trim();
         listElement.classList.add("fn__none");
     });
-};
-
-export const getWorkspaceName = () => {
-    return pathPosix().basename(window.siyuan.config.system.workspaceDir.replace(/\\/g, "/"));
 };
 
 export const setLocalShorthandCount = () => {

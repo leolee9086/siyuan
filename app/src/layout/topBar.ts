@@ -1,4 +1,4 @@
-import {getWorkspaceName} from "../util/platform/noRelyPCFunction";
+import {getWorkspaceName} from "../util/processTitle";
 import {
     isInMobileApp,
     setStorageVal,

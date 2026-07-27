@@ -16,7 +16,7 @@ import { setInlineStyle } from "./setInlineStyle";
 import { setCodeTheme } from "./setCodeTheme";
 import { updateMobileTheme } from "./mobile";
 import { getBackend, getFrontend } from "../platform/functions";
-import { getWorkspaceName } from "../platform/noRelyPCFunction";
+import {getWorkspaceName} from "../processTitle";
 
 export { setInlineStyle, setCodeTheme };
 
