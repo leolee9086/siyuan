@@ -1,4 +1,6 @@
-import {adjustLayout, JSONToLayout, resetLayout, resizeTopBar} from "../layout/util";
+import {adjustLayout, resetLayout, resizeTopBar} from "../layout/util";
+/** 用途：在配置加载后恢复完整布局；使用范围：启动配置处理流程；解耦评估：直接依赖反序列化唯一实现，避免通过 layout/util 形成反向值依赖。 */
+import {JSONToLayout} from "../layout/layout-deserialization";
 import {exportLayout} from "../layout/export/exportLayout";
 import {resizeTabs} from "../layout/resize/resizeTabs";
 import {setTabPosition} from "../window/setHeader";

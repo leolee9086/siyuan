@@ -4,9 +4,7 @@
  * @同步豁免: 遗留代码 - 从原始 util.ts 迁移，保持原有行为以确保兼容性
  */
 
-import type { Layout } from "./index";
-import type { Wnd } from "./Wnd";
-import { hasChildren } from "./util.guard";
+import type {LayoutDomain, LayoutWindow} from "./layout.types";
 
 // ============ 思源核心对象访问 ============
 
@@ -23,7 +21,7 @@ export const getSiyuanLanguages = () => window.siyuan?.languages;
 export const getSiyuanStorage = () => window.siyuan?.storage;
 
 /** @同步豁免: UI构建 - 获取中央布局 */
-export const getCenterLayout = (): Layout | undefined => {
+export const getCenterLayout = (): LayoutDomain | undefined => {
     return window.siyuan?.layout?.centerLayout;
 };
 
@@ -36,21 +34,18 @@ export const reloadWindow = (): void => window.location.reload();
 
 /** @同步豁免: UI构建 - 需要同步访问布局对象进行递归搜索 */
 export const findInstanceInLayout = (
-    layout: Layout | Wnd,
+    layout: LayoutDomain | LayoutWindow,
     targetId: string
-): unknown => {
-    if (!layout) {
-        return undefined;
-    }
+): LayoutDomain | LayoutWindow | undefined => {
     if (layout.id === targetId) {
         return layout;
     }
-    if (!hasChildren(layout)) {
+    if (!("direction" in layout)) {
         return undefined;
     }
 
     for (const child of layout.children) {
-        const result = findInstanceInLayout(child as Layout, targetId);
+        const result = findInstanceInLayout(child, targetId);
         if (result) {
             return result;
         }

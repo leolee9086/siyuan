@@ -3,29 +3,33 @@
  * 提供类型守卫函数以消除类型断言
  */
 
-/** 用途：Layout 布局实例类型。使用范围：布局实例类型守卫。解耦评估：同目录类型导入，不涉及跨层耦合。 */
-import { Layout } from "./index";
-/** 用途：Wnd 窗口实例类型。使用范围：窗口实例类型守卫。解耦评估：同目录类型导入，不涉及跨层耦合。 */
-import { Wnd } from "./Wnd";
-/** 用途：Tab 页签实例类型。使用范围：页签实例类型守卫。解耦评估：同目录类型导入，不涉及跨层耦合。 */
-import { Tab } from "./Tab";
+/** 用途：布局聚合根结构。使用范围：运行时布局守卫的返回类型；解耦评估：仅依赖完整领域类型，不加载 Layout/Wnd/Tab 具体实现。 */
+import type {LayoutDomain} from "./layout.types";
+/** 用途：页签领域返回类型；使用范围：页签结构守卫；解耦评估：仅引入完整领域类型，不加载 Tab class。 */
+import type {LayoutTab} from "./layout.types";
+/** 用途：窗口领域返回类型；使用范围：窗口结构守卫；解耦评估：仅引入完整领域类型，不加载 Wnd class。 */
+import type {LayoutWindow} from "./layout.types";
 
 /**
- * 检查值是否为 Layout 实例
+ * 检查值是否满足 Layout 聚合根的完整公共结构
  * @param value - 要检查的值
  * @returns 是否为 Layout 实例
  */
-export const isLayoutValue = (value: unknown): value is Layout => {
-    return value instanceof Layout;
+export const isLayoutValue = (value: unknown): value is LayoutDomain => {
+    return value !== null && typeof value === "object" &&
+        "direction" in value && "children" in value &&
+        "addLayout" in value && "addWnd" in value;
 };
 
 /**
- * 检查值是否为 Wnd 实例
+ * 检查值是否满足 LayoutWindow 的完整公共结构
  * @param value - 要检查的值
  * @returns 是否为 Wnd 实例
  */
-export const isWndValue = (value: unknown): value is Wnd => {
-    return value instanceof Wnd;
+export const isWndValue = (value: unknown): value is LayoutWindow => {
+    return value !== null && typeof value === "object" &&
+        "headersElement" in value && "children" in value &&
+        "switchTab" in value && "addTab" in value && "removeTab" in value;
 };
 
 /**
@@ -41,12 +45,14 @@ export const hasChildren = (node: unknown): node is { children: unknown[] } => {
 };
 
 /**
- * 检查值是否为 Tab 实例
+ * 检查值是否满足 LayoutTab 的完整公共结构
  * @param value - 要检查的值
  * @returns 是否为 Tab 实例
  */
-export const isTabValue = (value: unknown): value is Tab => {
-    return value instanceof Tab;
+export const isTabValue = (value: unknown): value is LayoutTab => {
+    return value !== null && typeof value === "object" &&
+        "headElement" in value && "panelElement" in value &&
+        "parent" in value && "updateTitle" in value && "addModel" in value;
 };
 
 /**
@@ -105,26 +111,7 @@ export const isValidScrollPosition = (position: unknown): position is ScrollLogi
 /**
  * 有效的 TProtyleAction 值集合,需要经常和类型定义校验一致
  */
-const VALID_PROTYLE_ACTIONS: ReadonlySet<string> = new Set([
-    "cb-get-append",
-    "cb-get-before",
-    "cb-get-unchangeid",
-    "cb-get-hl",
-    "cb-get-focus",
-    "cb-get-focusfirst",
-    "cb-get-setid",
-    "cb-get-outline",
-    "cb-get-all",
-    "cb-get-backlink",
-    "cb-get-unundo",
-    "cb-get-scroll",
-    "cb-get-search",
-    "cb-get-context",
-    "cb-get-rootscroll",
-    "cb-get-html",
-    "cb-get-history",
-    "cb-get-opennew",
-]);
+const VALID_PROTYLE_ACTIONS = /^(?:cb-get-append|cb-get-before|cb-get-unchangeid|cb-get-hl|cb-get-focus|cb-get-focusfirst|cb-get-setid|cb-get-outline|cb-get-all|cb-get-backlink|cb-get-unundo|cb-get-scroll|cb-get-search|cb-get-context|cb-get-rootscroll|cb-get-html|cb-get-history|cb-get-opennew)$/;
 
 /**
  * 检查单个值是否为有效的 TProtyleAction
@@ -132,7 +119,7 @@ const VALID_PROTYLE_ACTIONS: ReadonlySet<string> = new Set([
  * @returns 是否为有效的 TProtyleAction
  */
 export const isValidProtyleAction = (action: unknown): action is TProtyleAction => {
-    return typeof action === "string" && VALID_PROTYLE_ACTIONS.has(action);
+    return typeof action === "string" && VALID_PROTYLE_ACTIONS.test(action);
 };
 
 /**

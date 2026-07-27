@@ -2,7 +2,9 @@ import { Constants } from "../constants";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
 import { fetchPost } from "../util/network/fetch";
-import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
+import { adjustLayout, getInstanceById } from "../layout/util";
+/** 用途：恢复窗口中心布局的 JSON 实例；使用范围：窗口初始化阶段；解耦评估：反序列化必须保留具体布局构造边界，调用方只依赖其公开函数，不通过 layout/util 转发。 */
+import {JSONToCenter} from "../layout/layout-deserialization";
 import {resizeTabs} from "../layout/resize/resizeTabs";
 import {setTabPosition} from "./setHeader";
 import { initStatus } from "../layout/status";
