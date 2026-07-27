@@ -161,10 +161,10 @@ import { siyuanI18n } from "../../../../../util/siyuanEnvironments/i18n.getI18n.
 /** 导出 siyuanI18n 供 click 子模块复用。 */
 export { siyuanI18n };
 
-/** 用途：提交事务。使用范围：分组折叠和视图切换。解耦评估：事务是 action 层主要副作用出口。 */
-import {transaction} from "../../../../wysiwyg/transaction/submit";
-/** 导出 transaction 供 click 子模块复用。 */
-export { transaction };
+/** 用途：提交等待服务端投影的普通 View 切换；使用范围：非历史页签点击；解耦评估：直达严格 View 命令。 */
+import {submitAVViewTransaction} from "../../../../wysiwyg/transaction/prepared/av/view/avView";
+/** 导出普通 View 严格命令。 */
+export {submitAVViewTransaction};
 
 /** 用途：提交分组折叠事务；使用范围：高级 data-type 点击；解耦评估：直达 Groups Prepared 命令，不加载通用事务主图。 */
 import {submitAVGroupTransaction} from "../../../../wysiwyg/transaction/prepared/av/group/avGroup";

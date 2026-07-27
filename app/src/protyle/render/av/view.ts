@@ -1,6 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {unicode2Emoji} from "../../../emoji";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVViewTransaction} from "../../wysiwyg/transaction/prepared/av/view/avView";
 import {focusBlock} from "../../util/selection";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
@@ -43,7 +43,7 @@ export const addViewMutationMenuItems = (menu: Menu, options: {
             const panelElement = document.querySelector(".av__panel");
             panelElement?.remove();
             const id = Lute.NewNodeID();
-            transaction(options.protyle, [{
+            submitAVViewTransaction(options.protyle, [{
                 action: "duplicateAttrViewView",
                 avID: options.blockElement.dataset.avId,
                 previousID: options.element.dataset.id,
@@ -68,7 +68,7 @@ export const addViewMutationMenuItems = (menu: Menu, options: {
             click() {
                 const panelElement = document.querySelector(".av__panel");
                 panelElement?.remove();
-                transaction(options.protyle, [{
+                submitAVViewTransaction(options.protyle, [{
                     action: "removeAttrViewView",
                     avID: options.blockElement.dataset.avId,
                     id: options.element.dataset.id,
@@ -88,7 +88,7 @@ export const bindViewEvent = (options: {
     const inputElement = options.menuElement.querySelector('.b3-text-field[data-type="name"]') as HTMLInputElement;
     inputElement.addEventListener("blur", () => {
         if (inputElement.value !== inputElement.dataset.value) {
-            transaction(options.protyle, [{
+            submitAVViewTransaction(options.protyle, [{
                 action: "setAttrViewViewName",
                 avID: options.data.id,
                 id: options.data.viewID,
@@ -124,7 +124,7 @@ export const bindViewEvent = (options: {
     });
     descElement.addEventListener("blur", () => {
         if (descElement.value !== descElement.dataset.value) {
-            transaction(options.protyle, [{
+            submitAVViewTransaction(options.protyle, [{
                 action: "setAttrViewViewDesc",
                 avID: options.data.id,
                 id: options.data.viewID,
@@ -234,7 +234,7 @@ export const bindSwitcherEvent = (options: { protyle: IProtyle, menuElement: Ele
         if (event.key === "Enter") {
             const currentElement = options.menuElement.querySelector(".b3-menu__item--current") as HTMLElement;
             if (currentElement) {
-                transaction(options.protyle, [{
+                submitAVViewTransaction(options.protyle, [{
                     action: "setAttrViewBlockView",
                     blockID: options.blockElement.getAttribute("data-node-id"),
                     id: currentElement.dataset.id,
@@ -320,7 +320,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconTable",
         label: siyuanI18n.table,
         click() {
-            transaction(protyle, [{
+            submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,
                 id,
@@ -337,7 +337,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconBoard",
         label: siyuanI18n.kanban,
         click() {
-            transaction(protyle, [{
+            submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,
                 layout: "kanban",
@@ -356,7 +356,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconGallery",
         label: siyuanI18n.gallery,
         click() {
-            transaction(protyle, [{
+            submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,
                 layout: "gallery",

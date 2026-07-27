@@ -22,8 +22,8 @@ import { removeSiyuanMenu } from "./imports";
 import { selectRow } from "./imports";
 /** 用途：打开列表头菜单。使用范围：`.av__cell--header` 点击。解耦评估：列表头菜单属于 col 子模块职责。 */
 import { showColMenu } from "./imports";
-/** 用途：提交正式视图切换事务。使用范围：非历史模式的页签切换。解耦评估：事务是 action 层副作用边界，应继续在当前模块本地组装。 */
-import { transaction } from "./imports";
+/** 用途：提交等待服务端投影的正式视图切换。使用范围：非历史模式的页签切换。解耦评估：经本目录网关直达严格 View 命令。 */
+import {submitAVViewTransaction} from "./imports";
 /** 用途：渲染 unicode 图标 HTML。使用范围：emoji 选择后的回填。解耦评估：这是纯工具能力，直接复用即可。 */
 import { unicode2Emoji } from "./imports";
 /** 用途：统一结束已处理点击。使用范围：所有 class handler 的成功分支。解耦评估：这是 click 子目录内部共用动作，集中在 shared.ts 更利于复用。 */
@@ -184,7 +184,7 @@ const handleViewTabClick = (protyle: IProtyle, target: HTMLElement, blockElement
     if (!blockId || !avID || !targetViewId || !focusViewId) {
         return false;
     }
-    transaction(protyle, [{
+    submitAVViewTransaction(protyle, [{
         action: "setAttrViewBlockView",
         blockID: blockId,
         id: targetViewId,

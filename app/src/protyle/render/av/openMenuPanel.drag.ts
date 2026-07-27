@@ -1,4 +1,6 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
+/** 用途：提交普通 View 排序；使用范围：View 拖拽分支；解耦评估：直达等待服务端投影的严格 View 命令。 */
+import {submitAVViewTransaction} from "../../wysiwyg/transaction/prepared/av/view/avView";
 import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
 /** 用途：提交排序列表拖拽事务；使用范围：Sort 拖拽分支；解耦评估：直达现有 Sort 严格命令。 */
 import {submitAVSortTransaction} from "../../wysiwyg/transaction/prepared/av/view/avSort";
@@ -179,7 +181,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
             return;
         }
         if (targetElement.querySelector('[data-type="av-view-edit"]')) {
-            transaction(options.protyle, [{
+            submitAVViewTransaction(options.protyle, [{
                 action: "sortAttrViewView",
                 avID,
                 blockID,

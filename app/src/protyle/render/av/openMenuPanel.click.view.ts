@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVViewTransaction} from "../../wysiwyg/transaction/prepared/av/view/avView";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { setPageSize } from "./row";
@@ -61,7 +61,7 @@ const handleUpdateViewIcon = (ctx: IMenuPanelContext, target: HTMLElement, event
     openEmojiPanel("", "av", {
         x: rect.left, y: rect.bottom + 4, h: rect.height, w: rect.width
     }, (unicode) => {
-        transaction(ctx.options.protyle, [{
+        submitAVViewTransaction(ctx.options.protyle, [{
             action: "setAttrViewViewIcon", avID: ctx.avID, id: ctx.data.viewID, data: unicode,
         }], [{
             action: "setAttrViewViewIcon", id: ctx.data.viewID, avID: ctx.avID, data: target.dataset.icon,
@@ -76,7 +76,7 @@ const handleUpdateViewIcon = (ctx: IMenuPanelContext, target: HTMLElement, event
 /** 复制视图 @同步豁免: UI构建 */
 const handleDuplicateView = (ctx: IMenuPanelContext, event: MouseEvent): void => {
     const id = Lute.NewNodeID();
-    transaction(ctx.options.protyle, [{
+    submitAVViewTransaction(ctx.options.protyle, [{
         action: "duplicateAttrViewView", avID: ctx.avID, previousID: ctx.data.viewID, id, blockID: ctx.blockID
     }], [{
         action: "removeAttrViewView", avID: ctx.avID, id, blockID: ctx.blockID
@@ -88,7 +88,7 @@ const handleDuplicateView = (ctx: IMenuPanelContext, event: MouseEvent): void =>
 
 /** 删除视图 @同步豁免: UI构建 */
 const handleDeleteView = (ctx: IMenuPanelContext, event: MouseEvent): void => {
-    transaction(ctx.options.protyle, [{
+    submitAVViewTransaction(ctx.options.protyle, [{
         action: "removeAttrViewView", avID: ctx.avID, id: ctx.data.viewID, blockID: ctx.blockID
     }]);
     ctx.avPanelElement.remove();
@@ -120,7 +120,7 @@ const handleAvViewSwitch = (ctx: IMenuPanelContext, target: HTMLElement, event: 
         currentEl?.classList.remove("b3-menu__item--current");
         parent.classList.add("b3-menu__item--current");
         const viewId = parent.dataset.id ?? "";
-        transaction(ctx.options.protyle, [{
+        submitAVViewTransaction(ctx.options.protyle, [{
             action: "setAttrViewBlockView", blockID: ctx.blockID, id: viewId, avID: ctx.avID
         }], [{
             action: "setAttrViewBlockView", blockID: ctx.blockID, id: getFocusedViewId(ctx.options.blockElement), avID: ctx.avID
@@ -146,7 +146,7 @@ const handleAvViewEdit = (ctx: IMenuPanelContext, target: HTMLElement) => {
     currentEl?.classList.remove("b3-menu__item--current");
     parent.classList.add("b3-menu__item--current");
     const viewId = parent.dataset.id ?? "";
-    transaction(ctx.options.protyle, [{
+    submitAVViewTransaction(ctx.options.protyle, [{
         action: "setAttrViewBlockView", blockID: ctx.blockID, id: viewId, avID: ctx.avID,
     }], [{
         action: "setAttrViewBlockView", blockID: ctx.blockID, id: getFocusedViewId(ctx.options.blockElement), avID: ctx.avID,

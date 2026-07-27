@@ -2,7 +2,7 @@ import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbed
 import {focusSideBlock, getEditorRange} from "../util/selection";
 import {isMobile} from "../../util/platform/functions";
 import {isNotEditBlock} from "./getBlock";
-import {transaction} from "./transaction/submit";
+import {submitAVViewTransaction} from "./transaction/prepared/av/view/avView";
 import {hideElements} from "../ui/hideElements";
 import {removeSearchMark} from "../toolbar/util";
 import {refMenu} from "../../menus/protyleMenus/refMenu/protyle.refMenu";
@@ -126,7 +126,7 @@ export function handleContextmenu(
         if (avTabHeaderElement.classList.contains("item--focus")) {
             openViewMenu({ protyle, blockElement: nodeElement, element: avTabHeaderElement });
         } else {
-            transaction(protyle, [{
+            submitAVViewTransaction(protyle, [{
                 action: "setAttrViewBlockView",
                 blockID: nodeElement.getAttribute("data-node-id"),
                 id: avTabHeaderElement.dataset.id,

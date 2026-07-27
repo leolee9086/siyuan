@@ -14,10 +14,9 @@
 
 ## 下一步任务
 
-1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> view.ts -> transaction` 当前最短路径的职责边界。
-2. 逐项核对 View 图标、复制、删除、新增、名称和描述动作的本地状态与广播刷新语义。
-3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
-4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
+1. 普通 View 事务阶段已完成；继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
+2. 审计 `openMenuPanel.drag -> transaction` 的列选项与列排序职责，不将其并入 View 命令。
+3. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
 
 ## 不变量
 
@@ -67,6 +66,7 @@
 - **2026-07-27**：创建专项 TTT。确认直接环来自纯结构查询错置于菜单组合根，不需要新增抽象接口或宿主参数。
 - **2026-07-27**：新增 `view/metadata.ts` 与结构守卫，完整承接字段集合和内置图标映射；全部生产消费者及 `view/imports.ts` 直达唯一所有者，旧实现和旧导入归零。字段数组身份和三种图标专项 `2/2`、Node `188/188`、Protyle 契约类型、新文件 lint、imports 多跳和 diff 检查通过。生产节点 `2198 -> 2200`，代表环因路径重排 `412 -> 427`，但唯一 SCC `671 -> 668`，两个元数据节点均在 SCC 外且三个既有节点真实退出。`view.ts <-> openMenuPanel.ts` 仍因双向菜单导航存在，下一阶段按交互状态意图处理，不用回调或事件机械隐藏。
 - **2026-07-27**：Panel 控制器成为双向导航唯一所有者：`openViewMenu` 原实现迁入 Panel，View 只保留复制/删除自身事务；View Click 返回 `handled/unhandled/open-view-menu` 判别命令，Panel 按原顺序打开菜单后阻止事件。命令类型和构造器位于无运行时依赖的 `view/navigation` 叶子，外部调用点直达 Panel，不用回调 Port、事件或动态导入。导航专项 `1/1`、Node `189/189`、Protyle 契约类型、新导航文件 lint、imports 多跳和 diff 检查通过。生产节点 `2200 -> 2202`、代表环 `427 -> 423`、最大 SCC保持 `668`；`view.ts <-> openMenuPanel.ts` 两节点环和导航叶子循环均为 `0`。Panel 控制器仍有 399 行、`renderData` 271 行及 `_propertiesHTMLDeps` 延迟状态，继续由本专项拆分。
+- **2026-07-27**：普通 View 的八类 action（新增、删除、复制、排序、名称、描述、图标、布局类型）由严格 `submitAVViewTransaction` 封闭；名称/描述 blur、Switcher Enter、菜单移除及焦点恢复行为均由专项固定。该命令仅承载依赖服务端广播投影的普通 View 事务，未与调用域已同步应用 DOM 的 `submitAppliedAVViewTransaction` 强行合并。专项 `13/13`、Node `200/200`、目标类型诊断 `0`、imports 多跳 `0` 通过；生产图 `2290 / 309 / SCC 585`，`view.ts` 与 `openMenuPanel.click.view.ts` 退出循环组件。
 - **2026-07-27**：删除 `_propertiesHTMLDeps` 模块级缓存和柯里化标记。该对象只承载只读渲染依赖，不是跨调用状态；`getPropertiesHTML` 现在在调用时构造参数并立即交给纯渲染器，继续避开模块初始化期 TDZ，不建立工厂闭包或注册表。新增调用局部依赖与字段不变性专项 `1/1`，Node `190/190`、Protyle 契约类型、网关和 diff 检查通过；生产图保持 `2202 / 423 / SCC 668`，不登记为解环成果。
 - **2026-07-27**：进一步删除 Panel 中只服务 Properties 的包装实现和依赖参数，字段管理渲染归入 `col/properties` 唯一实现；Emoji、DOM 转义、i18n 和列图标由该子域 `imports.ts` 直达真实所有者，禁止经另一 imports 网关中转。Panel、Drag 与列操作均直达该实现，不保留兼容导出或零碎公共类型。真实实现专项 `1/1`、Node `190/190`、Protyle 契约类型、新子域 lint、imports 多跳和 diff 检查通过。生产图 `2203 / 424 / SCC 668`，新增子域处于 SCC 外；`Panel <-> Drag` 两节点环、Properties 所在环以及 `col.operations` 与 Panel 共环均为 `0`。代表环 `423 -> 424` 是叶子路径重排，唯一循环 SCC 数仍为 `1`。
 - **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将 Rollup 配置不足的编辑导航交回唯一列菜单调用方；Filter 返回列 ID，不再反向导入 Panel。运行时专项 `1/1`、Node `190/190` 与契约类型通过；代表环 `424 -> 421`、SCC 保持 `668`，Filter/Panel 全部共环归零。
