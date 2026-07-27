@@ -7,7 +7,6 @@ import {movePathTo} from "../../util/file/movePath/movePathTo";
 import {initCriteriaMenu, moreMenu} from "../../search/menu";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {escapeHtml} from "../../util/DOM/escape";
-import {newFile} from "../../util/file/newFile";
 import {closePanel} from "../util/closePanel";
 import {
     assetFilterMenu,
@@ -410,7 +409,7 @@ export const initSearchEvent = (
                 break;
             } else if (target.classList.contains("b3-list-item")) {
                 if (target.getAttribute("data-type") === "search-new") {
-                    newFile(app, searchInputElement.value);
+                    void app.createDocument(searchInputElement.value);
                 } else if (target.getAttribute("data-type") === "search-item") {
                     const id = target.getAttribute("data-node-id");
                     if (id) {

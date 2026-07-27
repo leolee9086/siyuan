@@ -50,6 +50,7 @@ const testFacade = createAppFacade<object, object>({
     createProtyle: () => {
         throw new Error("Contract fixture does not create Protyle instances");
     },
+    createDocument: async () => undefined,
     toggleFullscreen: () => undefined,
     openTab: () => undefined,
     openAsset: () => undefined,

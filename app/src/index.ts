@@ -75,6 +75,7 @@ import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow"
 import {Protyle} from "./protyle";
 import {openFile} from "./editor/open/openFile";
 import {fullscreen} from "./protyle/breadcrumb/action";
+import {newFile} from "./util/file/newFile";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -87,6 +88,9 @@ export class App {
     };
     public createProtyle(element: HTMLElement, options: IProtyleOptions) {
         return new Protyle(this, element, options);
+    }
+    public createDocument(name?: string) {
+        return newFile(this, name);
     }
     public toggleFullscreen(element: Element, button?: Element) {
         fullscreen(element, button);

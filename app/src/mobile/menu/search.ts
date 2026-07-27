@@ -5,7 +5,6 @@ import {openModel} from "./model";
 import {escapeHtml} from "../../util/DOM/escape";
 import {isEncryptedBox} from "../../util/pathName";
 import {unicode2Emoji} from "../../emoji";
-import {newFile} from "../../util/file/newFile";
 import {activeBlur} from "../keyboard/activeBlur";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {
@@ -212,7 +211,7 @@ export const popSearch = (app: AppFacade, searchConfig?: Config.IUILayoutTabSear
 </div>`,
         bindEvent(element) {
             document.querySelector("#toolbarSearchNew").addEventListener("click", () => {
-                newFile(app, (document.querySelector("#toolbarSearch") as HTMLInputElement).value);
+                void app.createDocument((document.querySelector("#toolbarSearch") as HTMLInputElement).value);
             });
             const historyElement = document.querySelector('.toolbar [data-type="history"]');
             historyElement.addEventListener("click", () => {
