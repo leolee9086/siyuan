@@ -1,5 +1,4 @@
 import * as dayjs from "dayjs";
-import {Protyle} from "../protyle";
 import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
 import {isMobile} from "../util/platform/functions";
@@ -11,12 +10,13 @@ import {addLoading} from "../protyle/ui/loading";
 import {Constants} from "../constants";
 import {onGet} from "../protyle/util/onGet";
 import type { AppFacade } from "../app/AppFacade.types";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {confirmDialog} from "../dialog/confirmDialog";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const viewCards = (app: AppFacade, deckID: string, title: string, deckType: "Tree" | "" | "Notebook", cb?: (response: IWebSocketData) => void) => {
     let pageIndex = 1;
-    let edit: Protyle;
+    let edit: ProtyleDomain;
     fetchPost(`/api/riff/get${deckType}RiffCards`, {
         id: deckID,
         page: pageIndex
@@ -67,7 +67,7 @@ export const viewCards = (app: AppFacade, deckID: string, title: string, deckTyp
             }
         });
         if (response.data.blocks.length > 0) {
-            edit = new Protyle(app, dialog.element.querySelector("#cardPreview") as HTMLElement, {
+            edit = app.createProtyle(dialog.element.querySelector("#cardPreview") as HTMLElement, {
                 blockId: "",
                 action: [Constants.CB_GET_ALL],
                 render: {
@@ -292,7 +292,7 @@ ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
 };
 
 
-const getArticle = (edit: Protyle, id: string) => {
+const getArticle = (edit: ProtyleDomain, id: string) => {
     if (!id) {
         edit.protyle.element.classList.add("fn__none");
         edit.protyle.element.nextElementSibling.classList.remove("fn__none");
