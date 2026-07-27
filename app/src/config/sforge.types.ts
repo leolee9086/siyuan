@@ -22,6 +22,8 @@ import {ONBOARDING_LIFECYCLE_STATE} from "./sforge.symbols";
 import {COMMON_GLOBAL_COMMAND_ROUTER} from "./sforge.symbols";
 /** 用途：定位 Agent 前端动作注册状态；使用范围：ISForgeGlobalState 的插件与内建动作槽；解耦评估：Symbol 保证跨插件和面板实例共享唯一注册表。 */
 import {FRONTEND_ACTION_REGISTRY} from "./sforge.symbols";
+/** 用途：定位布局重排防抖状态；使用范围：ISForgeGlobalState 的重排调度槽；解耦评估：Symbol 保证所有 Wnd/Dock 调用共享同一调度状态。 */
+import {LAYOUT_RESIZE_REGISTRY} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -76,6 +78,8 @@ import type {OnboardingLifecycleState} from "../onboarding/lifecycle/state.types
 import type {CommonGlobalCommandRouter} from "../boot/globalEvent/command/global/types";
 /** 用途：完整前端动作注册状态；使用范围：SForge 全局状态映射；解耦评估：纯类型不加载动作实现。 */
 import type {FrontendActionRegistryState} from "../layout/dock/agent/frontendActions/types";
+/** 用途：布局重排完整调度状态；使用范围：SForge 全局状态映射；解耦评估：纯数据类型不加载布局或编辑器实现。 */
+import type {LayoutResizeState} from "../layout/resize/resizeTabs.types";
 
 /**
  * SForge 全局状态类型定义
@@ -114,6 +118,7 @@ export interface ISForgeGlobalState {
     [ONBOARDING_LIFECYCLE_STATE]?: OnboardingLifecycleState;
     [COMMON_GLOBAL_COMMAND_ROUTER]?: CommonGlobalCommandRouter<AppFacade>;
     [FRONTEND_ACTION_REGISTRY]?: FrontendActionRegistryState;
+    [LAYOUT_RESIZE_REGISTRY]?: LayoutResizeState;
 }
 
 /**

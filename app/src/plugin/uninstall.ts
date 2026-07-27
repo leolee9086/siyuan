@@ -3,7 +3,7 @@ import type {AppFacade} from "../app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import {getAllModels} from "../layout/getAll";
 import {resizeTopBar} from "../layout/util";
-import {setTabPosition} from "../layout/tabUtil";
+import {setTabPosition} from "../window/setHeader";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
 // S-forge: 上游 ed77bd609 将 frontendActions 迁入 dock/agent/，import 路径同步更新

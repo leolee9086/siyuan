@@ -2,7 +2,7 @@ import type {LayoutDomain, LayoutWindow} from "./layout.types";
 import { genUUID } from "../util/platform/genID";
 import { fixWndFlex1 } from "./util";
 import { addResize } from "./utils/addResize";
-import { resizeTabs } from "./tabUtil";
+import {resizeTabs} from "./resize/resizeTabs";
 import { isStylableElement as isHTMLElement, ensureDirection, ensureSize, ensureType } from "./imports";
 import { isMobile } from "../platform";
 

@@ -26,7 +26,7 @@ import {fetchSyncPost} from "../util/network/fetch";
  */
 import {resizeTopBar} from "../layout/util";
 /** @导入用途: 设置页签位置 @使用范围: Setting.ts 中布局管理 @解耦评估: UI 工具函数 */
-import {setTabPosition} from "../layout/tabUtil";
+import {setTabPosition} from "../window/setHeader";
 
 /**
  * @导入用途: 布局持久化函数

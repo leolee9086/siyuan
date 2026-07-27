@@ -1,6 +1,7 @@
 import {adjustLayout, JSONToLayout, resetLayout, resizeTopBar} from "../layout/util";
 import {exportLayout} from "../layout/export/exportLayout";
-import { resizeTabs, setTabPosition } from "../layout/tabUtil";
+import {resizeTabs} from "../layout/resize/resizeTabs";
+import {setTabPosition} from "../window/setHeader";
 import {isWindows, setStorageVal} from "../protyle/util/compatibility";
 import {initWindowOpenOverride} from "../editor/openLink";
 import { afterExport } from "../protyle/export/util";

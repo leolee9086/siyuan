@@ -34,6 +34,9 @@ export const COMMON_GLOBAL_COMMAND_ROUTER = Symbol.for("sforge.command.global.co
 /** Agent 前端动作注册表的唯一状态键。 */
 export const FRONTEND_ACTION_REGISTRY = Symbol.for("sforge.agent.frontendActionRegistry");
 
+/** 布局重排防抖状态的唯一注册表键。 */
+export const LAYOUT_RESIZE_REGISTRY = Symbol.for("sforge.layout.resizeRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

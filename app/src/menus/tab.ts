@@ -1,7 +1,8 @@
 import { Tab } from "../layout/Tab";
 import { MenuItem } from "./Menu.Item";
 import { Editor } from "../editor";
-import { copyTab, resizeTabs } from "../layout/tabUtil";
+import {copyTab} from "../layout/tabUtil";
+import {resizeTabs} from "../layout/resize/resizeTabs";
 import { closeTabByType } from "../layout/utils/closeTabByType";
 import { openNewWindow } from "../window/openNewWindow";
 import { isElectron } from "../platform";

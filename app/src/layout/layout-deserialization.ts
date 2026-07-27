@@ -13,7 +13,7 @@ import { afterLayoutReady } from "../plugin/loader";
 import { isEncryptedBox } from "../util/pathName";
 import {saveLayout} from "./persistence/saveLayout";
 import { JSONToDock } from "./dock-utils";
-import { setTabPosition } from "./tabUtil";
+import {setTabPosition} from "../window/setHeader";
 import {
     handleLayoutInstance,
     handleWndInstance,

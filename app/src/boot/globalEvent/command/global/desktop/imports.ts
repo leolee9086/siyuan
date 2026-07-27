@@ -17,7 +17,9 @@ import { toggleDockBar } from "../../../../../layout/dock/util";
 /** 用途：引入已有 Dock 类型守卫；使用范围：close.ts 从 DOM 类名恢复 Dock 类型；解耦评估：复用布局层现有运行时校验。 */
 import { isTDock } from "../../../../../layout/dock/dock.guard";
 /** 用途：引入标签和 Dock 工具；使用范围：dock.ts、tabs.ts、split.ts、close.ts；解耦评估：布局状态操作通过既有布局工具完成。 */
-import { getDockByType, switchTabByIndex, getActiveTab, getAllTabs, getAllWnds, copyTab, resizeTabs } from "../../../../../layout/tabUtil";
+import { getDockByType, switchTabByIndex, getActiveTab, getAllTabs, getAllWnds, copyTab } from "../../../../../layout/tabUtil";
+/** 用途：重排页签内容；使用范围：桌面分屏命令；解耦评估：直达布局重排唯一实现，不经 tabUtil 综合入口。 */
+import {resizeTabs} from "../../../../../layout/resize/resizeTabs";
 /** 用途：按 ID 查询完整布局实例；使用范围：tabs.ts 恢复刚创建的页签；解耦评估：该无状态查询的唯一实现位于 layout/query，命令网关应直接引用其真实所有者。 */
 import {getInstanceById} from "../../../../../layout/query/layoutInstance";
 /** 用途：引入标签关闭工具；使用范围：close.ts；解耦评估：关闭策略继续由布局工具处理。 */

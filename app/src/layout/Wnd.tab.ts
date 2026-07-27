@@ -20,7 +20,7 @@ import {newModelByInitData} from "./util";
 import {saveLayout} from "./persistence/saveLayout";
 import {setTabPosition} from "../window/setHeader";
 import {setModelsHash} from "../window/modelHash/setModelsHash";
-import {resizeTabs} from "./tabUtil";
+import {resizeTabs} from "./resize/resizeTabs";
 import {getDockByType} from "./query/dockByType";
 import {setPadding} from "../protyle/ui/padding";
 import {clearObjectBlockGraphs} from "./dock/obg/clearObjectBlockGraphs";

@@ -26,7 +26,7 @@ import { clearCounter } from "../protyle/runtime/status.port";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
-import {resizeTabs} from "./tabUtil";
+import {resizeTabs} from "./resize/resizeTabs";
 import {getDockByType} from "./query/dockByType";
 import {clearObjectBlockGraphs} from "./dock/obg/clearObjectBlockGraphs";
 import { recordBeforeResizeTop } from "../protyle/util/resize";

@@ -1,9 +1,6 @@
 import { Tab } from "./Tab";
 import {getInstanceById, newModelByInitData} from "./util";
-import {saveLayout} from "./persistence/saveLayout";
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
-import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
-import { pdfResize } from "../asset/renderAssets";
 import type { AppFacade } from "../app/AppFacade.types";
 import { Model } from "./Model";
 import { Editor } from "../editor";
@@ -26,11 +23,10 @@ import {mountHelp} from "../util/file/mount";
 import {newNotebook} from "../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
-import { setTabPosition } from "../window/setHeader";
 /** 用途：按模型类型查询 Dock。使用范围：页签快捷切换及兼容导出；解耦评估：唯一实现位于无状态 Layout 查询子域。 */
 import {getDockByType} from "./query/dockByType";
 
-export { setTabPosition, getAllTabs, getAllWnds, getInstanceById };
+export {getAllTabs, getAllWnds, getInstanceById};
 /** 保持历史公共入口，调用方迁移期间仍指向查询子域的唯一实现。 */
 export {getDockByType};
 
@@ -104,51 +100,6 @@ export const switchTabByIndex = (index: number) => {
         }
     }
 };
-
-let resizeTimeout: number;
-export const resizeTabs = (isSaveLayout = true) => {
-    clearTimeout(resizeTimeout);
-    //  .layout .fn__flex-shrink {width .15s cubic-bezier(0, 0, .2, 1) 0ms} 时需要再次计算 padding
-    // PDF 避免分屏多次调用后，页码跳转到1 https://github.com/siyuan-note/siyuan/issues/5646
-    resizeTimeout = window.setTimeout(() => {
-        const models = getAllModels();
-        models.editor.forEach((item) => {
-            if (item.editor && item.editor.protyle &&
-                item.element.parentElement && !item.element.classList.contains("fn__none")) {
-                item.editor.resize();
-            }
-        });
-        // https://github.com/siyuan-note/siyuan/issues/6250
-        models.backlink.forEach(item => {
-            const mTreeElement = item.element.querySelector(".backlinkMList") as HTMLElement;
-            if (mTreeElement.style.height && mTreeElement.style.height !== "0px" && item.element.clientHeight !== 0) {
-                mTreeElement.style.height = (item.element.clientHeight - mTreeElement.previousElementSibling.clientHeight * 2) + "px";
-            }
-            item.editors.forEach(editorItem => {
-                hideElements(["gutter"], editorItem.protyle);
-                editorItem.resize();
-            });
-        });
-        models.search.forEach(item => {
-            if (item.element.querySelector("#searchUnRefPanel").classList.contains("fn__none")) {
-                item.editors.edit.resize();
-            } else {
-                item.editors.unRefEdit.resize();
-            }
-        });
-        models.custom.forEach(item => {
-            if (item.resize) {
-                item.resize();
-            }
-        });
-        pdfResize();
-        hideAllElements(["gutter"]);
-        if (isSaveLayout) {
-            saveLayout();
-        }
-    }, 200);
-};
-
 
 export const newCenterEmptyTab = (app: AppFacade) => {
     return new Tab({

@@ -23,7 +23,7 @@ import {needSubscribe} from "../util/platform/needSubscribe";
 import * as dayjs from "dayjs";
 import {resizeTopBar} from "./util";
 import {exportLayout} from "./export/exportLayout";
-import {setTabPosition} from "./tabUtil";
+import {setTabPosition} from "../window/setHeader";
 import {commandPanel} from "../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../plugin/openTopBarMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
