@@ -3,7 +3,6 @@ import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { pathPosix, setNoteBook } from "../../util/file/pathName";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
-import { newFileInTree } from "../../util/file/newFile";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import type {AppFacade} from "../../app/AppFacade.types";
 import { initFilesDrag } from "./Files/dnd";
@@ -122,7 +121,7 @@ export class Files extends Model<AppFacade, LayoutTab> {
             app: Constants.SIYUAN_APPID,
         }, response => {
             if (response.data.path === "/" && response.data.files.length === 0) {
-                newFileInTree(this.app, notebookId, "/");
+                void this.app.createDocumentInTree(notebookId, "/");
                 return;
             }
             onLsHTMLHandler(this.element, response.data, undefined, () => this.refreshPublishAccessSwitch());
