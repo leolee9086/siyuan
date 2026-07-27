@@ -4,7 +4,6 @@ import {Constants} from "../../constants";
 import {escapeHtml} from "../../util/DOM/escape";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openModel} from "./model";
-import {openMobileFileById} from "../editor";
 import type { AppFacade } from "../../app/AppFacade.types";
 
 export const getRecentDocs = (app: AppFacade) => {
@@ -24,7 +23,11 @@ ${unicode2Emoji(item.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file,
                 element.firstElementChild.addEventListener("click", (event) => {
                     const liElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item");
                     if (liElement) {
-                        openMobileFileById(app, liElement.dataset.nodeId, [Constants.CB_GET_SCROLL]);
+                        const id = liElement.dataset.nodeId;
+                        if (!id) {
+                            throw new Error("Recent document navigation requires a document id");
+                        }
+                        app.openBlock({id, action: [Constants.CB_GET_SCROLL], zoomIn: false});
                     }
                 });
             }
