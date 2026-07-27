@@ -10,7 +10,6 @@ import { openTagMenu } from "../../menus/tag";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
 import { isOperations, isBlockTreeArray } from "./dock.guard";
-import { Protyle } from "../../protyle";
 import {
     getSiyuanConfig, getSiyuanMenus, getSiyuanKeyboardState,
 } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -109,7 +108,7 @@ export class Tag extends Model<AppFacade, Tab> {
         container.className = "tag-editor-container";
         container.style.paddingLeft = "18px";
         liElement.after(container);
-        this.editors.push(new Protyle(this.app, container, {
+        this.editors.push(this.app.createProtyle(container, {
             blockId: id,
             click: {preventInsetEmptyBlock: true},
             render: TAG_EDITOR_RENDER_CONFIG,
