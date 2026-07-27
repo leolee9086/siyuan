@@ -18,7 +18,7 @@ import {showMessage} from "../dialog/message";
 import {Protyle} from "../protyle";
 import type { AppFacade } from "../app/AppFacade.types";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
-import {removeLoading} from "../protyle/ui/initUI";
+import {removeLoading} from "../protyle/ui/loading";
 // S-forge: Plugin 系统支持
 import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import {Plugin} from "../plugin";

@@ -7,7 +7,7 @@ import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {getDisplayName, getNotebookName} from "../util/file/pathName";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";
-import {addLoading} from "../protyle/ui/initUI";
+import {addLoading} from "../protyle/ui/loading";
 import {Constants} from "../constants";
 import {onGet} from "../protyle/util/onGet";
 import type { AppFacade } from "../app/AppFacade.types";

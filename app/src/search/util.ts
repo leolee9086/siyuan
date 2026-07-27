@@ -8,7 +8,7 @@ import { showMessage } from "../dialog/message";
 import { reloadProtyle } from "../protyle/util/reload";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import { onGet } from "../protyle/util/onGet";
-import { addLoading } from "../protyle/ui/initUI";
+import {addLoading} from "../protyle/ui/loading";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
 import {setStorageVal} from "../util/storage/setStorageVal";
 import {

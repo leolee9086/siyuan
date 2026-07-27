@@ -22,7 +22,7 @@ import {setTabPosition} from "../window/setHeader";
 import {setModelsHash} from "../window/modelHash/setModelsHash";
 import {getDockByType, resizeTabs} from "./tabUtil";
 import { fullscreen } from "../protyle/breadcrumb/action";
-import { setPadding } from "../protyle/ui/initUI";
+import {setPadding} from "../protyle/ui/padding";
 import { clearOBG } from "./dock/util";
 import { MenuItem } from "../menus/Menu.Item";
 import { escapeHtml } from "../util/DOM/escape";

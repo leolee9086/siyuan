@@ -1,4 +1,4 @@
-import {addLoading, removeLoading} from "../ui/initUI";
+import {addLoading, removeLoading} from "../ui/loading";
 import {fetchPost} from "../../util/network/fetch";
 import {getDocByScroll, saveScroll} from "../scroll/saveScroll";
 import {renderBacklink} from "../wysiwyg/renderBacklink";

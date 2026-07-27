@@ -4,7 +4,7 @@ import {closePanel} from "./util/closePanel";
 import {Constants} from "../constants";
 import {fetchPost} from "../util/network/fetch";
 import {onGet} from "../protyle/util/onGet";
-import {addLoading} from "../protyle/ui/initUI";
+import {addLoading} from "../protyle/ui/loading";
 import {highlightById, scrollCenter} from "../util/DOM/highlightById";
 import {isInEmbedBlock} from "../protyle/util/hasClosest";
 import {setEditMode} from "../protyle/util/setEditMode";

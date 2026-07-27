@@ -1,5 +1,5 @@
 import {hideElements} from "../ui/hideElements";
-import {setPadding} from "../ui/initUI";
+import {setPadding} from "../ui/padding";
 import {Constants} from "../../constants";
 import {lineNumberRender} from "../render/highlightRender";
 import {stickyRow} from "../render/av/row";

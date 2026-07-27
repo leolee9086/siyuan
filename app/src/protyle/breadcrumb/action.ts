@@ -1,6 +1,6 @@
 import { getAllEditor, getAllModels, getAllWnds } from "../../layout/getAll";
 import { isMobile } from "../../platform";
-import { addLoading } from "../ui/initUI";
+import {addLoading} from "../ui/loading";
 import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { hideAllElements, hideElements } from "../ui/hideElements";

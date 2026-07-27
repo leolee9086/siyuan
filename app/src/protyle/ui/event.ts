@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { genUUID } from "../../util/platform/genID";
 import { isMac } from "../util/compatibility";
 import { isMobile } from "../../platform";
-import { setInlineStyle } from "../../util/assets/assets";
+import {setInlineStyle} from "../../util/assets/setInlineStyle";
 import { hideMessage, showMessage } from "../runtime/dialog.port";
 import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";
