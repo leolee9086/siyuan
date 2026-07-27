@@ -7,6 +7,11 @@ export interface GlobalCommandContext<TApplication> {
 /** 表示全局命令叶子执行器，返回值沿用原 globalCommand 的已处理语义。 */
 export type GlobalCommandExecutor<TApplication> = (context: GlobalCommandContext<TApplication>) => boolean;
 
+/** 表示通用命令状态空间路由的完整调用表面。 */
+export type CommonGlobalCommandRouter<TApplication> = (
+    state: Pick<GlobalCommandContext<TApplication>, "command">,
+) => GlobalCommandExecutor<TApplication>;
+
 /** 表示全局命令入口路由选出的处理域，用于从平台分支和通用分支中选择执行器。 */
 export type GlobalCommandDomain = "mobile" | "desktop" | "common" | "unhandled";
 

@@ -20,6 +20,12 @@ import { syncGuide } from "./imports";
 import { calibur } from "./imports";
 /** 用途：引入 arktype 类型声明器。使用范围：仅与 calibur.split 配套声明命令模式。解耦评估：属于路由 schema 基础设施。 */
 import { type } from "./imports";
+/** 用途：读取跨调用路由状态；使用范围：通用命令入口；解耦评估：经本领域网关直达统一注册表实现。 */
+import {getSForgeState} from "./imports";
+/** 用途：登记跨调用路由状态；使用范围：通用命令首次构建；解耦评估：经本领域网关直达统一注册表实现。 */
+import {setSForgeState} from "./imports";
+/** 用途：定位通用命令路由；使用范围：注册表读写；解耦评估：不可变 Symbol 不承载可变状态。 */
+import {COMMON_GLOBAL_COMMAND_ROUTER} from "./imports";
 /** 用途：引入通用命令常量。使用范围：仅用于本文件 split 条件。解耦评估：集中命令契约，避免散落字符串。 */
 import { COMMON_GLOBAL_COMMANDS } from "./commands";
 /** 用途：引入全局命令上下文类型。使用范围：仅作为执行器签名类型使用。解耦评估：类型契约来自同目录命令边界。 */
@@ -75,24 +81,26 @@ const executeSyncNowCommonGlobalCommand = ({ app }: GlobalCommandContext<AppFaca
     return true;
 };
 
-/** 通用命令叶子路由，将不区分平台的命令映射为对应执行器。 */
-const commonGlobalCommandRouter = calibur
-    .universe(type({ command: "string" }))
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.DAILY_NOTE}'` }), () => executeDailyNoteCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.DATA_HISTORY}'` }), () => executeDataHistoryCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.EDIT_READONLY}'` }), () => executeEditReadonlyCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.LOCK_SCREEN}'` }), () => executeLockScreenCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.NEW_FILE}'` }), () => executeNewFileCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.RIFF_CARD}'` }), () => executeRiffCardCommonGlobalCommand)
-    .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.SELECT_OPEN_1}'` }), () => executeSelectOpenCommonGlobalCommand)
-    .remain(() => executeSyncNowCommonGlobalCommand)
-    .build();
-
 /**
  * 执行通用全局命令。
  * @同步豁免: UI构建 - globalCommand 是同步入口，通用命令需要立即触发 UI 或配置状态变更并返回已处理状态。
  */
 export const executeCommonGlobalCommand = (context: GlobalCommandContext<AppFacade>) => {
-    const executor = commonGlobalCommandRouter({ command: context.command });
+    let router = getSForgeState(COMMON_GLOBAL_COMMAND_ROUTER);
+    if (!router) {
+        router = calibur
+            .universe(type({ command: "string" }))
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.DAILY_NOTE}'` }), () => executeDailyNoteCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.DATA_HISTORY}'` }), () => executeDataHistoryCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.EDIT_READONLY}'` }), () => executeEditReadonlyCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.LOCK_SCREEN}'` }), () => executeLockScreenCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.NEW_FILE}'` }), () => executeNewFileCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.RIFF_CARD}'` }), () => executeRiffCardCommonGlobalCommand)
+            .split(type({ command: `'${COMMON_GLOBAL_COMMANDS.SELECT_OPEN_1}'` }), () => executeSelectOpenCommonGlobalCommand)
+            .remain(() => executeSyncNowCommonGlobalCommand)
+            .build();
+        setSForgeState(COMMON_GLOBAL_COMMAND_ROUTER, router);
+    }
+    const executor = router({ command: context.command });
     return executor(context);
 };

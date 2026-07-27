@@ -18,6 +18,7 @@ import { popSearch } from "../../../../mobile/menu/search";
 import { getRecentDocs } from "../../../../mobile/menu/getRecentDocs";
 /** 用途：Dock 相关入口；使用范围：common.ts、recentClosed.ts；解耦评估：布局 Dock 层保留自身创建逻辑。 */
 import {openBacklink, openGraph, openOutline} from "../../../../layout/dock/util";
+/** 用途：打开已存在的编辑器页签选择器；使用范围：common.ts 的 selectOpen1 命令；解耦评估：该入口属于 Files 焦点领域的唯一实现，命令层只触发其公开动作。 */
 import {selectOpenTab} from "../../../../layout/dock/Files/focus/selectOpenTab";
 /** 用途：常量集合；使用范围：recentClosed.ts；解耦评估：避免重复硬编码存储键。 */
 import { Constants } from "../../../../constants";
@@ -47,6 +48,10 @@ import type { AppFacade } from "../../../../app/AppFacade.types";
 import { calibur } from "calibur-router";
 /** 用途：arktype 类型声明器；使用范围：CaliburRouter split 条件；解耦评估：属于路由 schema 基础设施。 */
 import { type } from "arktype";
+/** 用途：统一 SForge 状态读写；使用范围：通用命令路由生命周期；解耦评估：直达全局注册表唯一实现。 */
+import {getSForgeState, setSForgeState} from "../../../../config/sforge.global";
+/** 用途：定位通用命令路由状态；使用范围：common.ts；解耦评估：模块级 Symbol 只提供不可变身份。 */
+import {COMMON_GLOBAL_COMMAND_ROUTER} from "../../../../config/sforge.symbols";
 
 /** 导出每日笔记入口。 */
 export { newDailyNote };
@@ -96,5 +101,11 @@ export { isMobile };
 export { calibur };
 /** 导出 arktype 类型声明器。 */
 export { type };
+/** 导出统一 SForge 状态读取。 */
+export {getSForgeState};
+/** 导出统一 SForge 状态登记。 */
+export {setSForgeState};
+/** 导出通用命令路由身份键。 */
+export {COMMON_GLOBAL_COMMAND_ROUTER};
 /** 导出应用实例类型。 */
 export type { AppFacade };

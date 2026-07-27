@@ -28,6 +28,9 @@ export const ARTICLE_PREVIEW_CURRENT_ID = Symbol.for("sforge.search.articlePrevi
 /** 新用户引导跨登录与同步事件的唯一生命周期状态键。 */
 export const ONBOARDING_LIFECYCLE_STATE = Symbol.for("sforge.onboarding.lifecycleState");
 
+/** 通用全局命令路由的唯一注册表键。 */
+export const COMMON_GLOBAL_COMMAND_ROUTER = Symbol.for("sforge.command.global.commonRouter");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

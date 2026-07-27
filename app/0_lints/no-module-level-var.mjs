@@ -145,7 +145,7 @@ export const noModuleLevelVarPlugin = {
                         "  - 正则表达式：const RE = /pattern/",
                         "  - 不可变身份键：const brand = Symbol('Brand') / Symbol.for('Brand')",
                         "",
-                        "替代方案：将可变状态封装为 factory 函数，在首次使用时惰性初始化。",
+                        "替代方案：将跨调用状态登记到统一 Symbol 注册表，并在明确生命周期边界初始化和释放。",
                         "",
                         `如需豁免，在上一行添加至少 ${MIN_EXEMPTION_LENGTH} 字符的注释：`,
                         `  // ${EXEMPTION_PREFIX} <详细解释>`,
