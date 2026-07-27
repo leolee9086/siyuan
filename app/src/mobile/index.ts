@@ -102,14 +102,18 @@ export class App {
         openByMobile(options.assetPath);
     }
     public openBlock(options: AppBlockNavigation) {
-        openMobileFileById(this, options.id, options.action, undefined, undefined, options.databaseRowId ? (editorProtyle) => {
-            if (!editorProtyle.contentElement) {
-                throw new Error("Database row preview requires an initialized editor content element");
+        const afterOpen = options.databaseRowId || options.afterOpen ? (editorProtyle: IProtyle) => {
+            options.afterOpen?.();
+            if (options.databaseRowId) {
+                if (!editorProtyle.contentElement) {
+                    throw new Error("Database row preview requires an initialized editor content element");
+                }
+                editorProtyle.element.dataset.databaseRowId = options.databaseRowId;
+                editorProtyle.databaseAttributePanel?.expand();
+                editorProtyle.contentElement.scrollTop = 0;
             }
-            editorProtyle.element.dataset.databaseRowId = options.databaseRowId;
-            editorProtyle.databaseAttributePanel?.expand();
-            editorProtyle.contentElement.scrollTop = 0;
-        } : undefined, Boolean(options.databaseRowId));
+        } : undefined;
+        openMobileFileById(this, options.id, options.action, undefined, undefined, afterOpen, Boolean(options.databaseRowId));
     }
     public openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation) {
         openMobileDatabaseRow(this, protyle, options);

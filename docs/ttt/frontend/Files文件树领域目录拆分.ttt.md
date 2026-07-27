@@ -75,3 +75,4 @@ Files 组合根 + FilesDomain
 - **2026-07-27**：创建专项 TTT。`selectOpenTab` 初步迁入 `Files/focus`，跨域依赖由专属网关直达完整 Editor/Layout/Dock 查询，Files 同域守卫直达真实声明；验证与提交待本阶段完成后补录。
 - **2026-07-27**：Phase 1 完成。Files 工具栏与全局命令直达 `focus/selectOpenTab`；具体 Files、Tab、Editor class 和断言由完整领域根及 Symbol 守卫替代。删除 `eventHandlers.guard.ts` 中重复结构式 Files 守卫，Editor 依赖改为唯一厂牌守卫；actions 的 Dock 查询直达 Query，综合 `layout/dock/util` 与 `tabUtil` 返回边归零。目标类型诊断 `0`、focus lint、Node `202/202`、Protyle 契约、imports 多跳 `0` 与 diff 检查通过；生产图 `2326 / 171`，首环推进到 closeElement。
 - **2026-07-27**：closeElement 仅需完整“解锁并打开加密笔记本”命令，不再加载综合 mount。唯一访问 factory 保留原子解锁挂载与失败恢复语义，移除无效 AppFacade 参数；桌面和移动调用点直达真实所有者。新增领域 lint、目标类型诊断、Node `202/202`、Protyle 契约与网关门禁通过；生产图 `2328 / 149`，closeElement 退出首环，下一目标为 element click 文件导航。
+- **2026-07-27**：文件普通点击与中键打开不再直接调用 `openFileById`，统一依赖完整 AppFacade；外观补齐真实 `removeCurrentTab/afterOpen` 数据，桌面透传原实现，移动在编辑器就绪后通知。四种修饰键、打开锁、完成清理与分屏位置保持。AppFacade 双向契约、目标类型诊断、Node `202/202` 和网关门禁通过；生产图 `2328 / 149`，文件导航实现返回边归零。

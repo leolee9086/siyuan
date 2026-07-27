@@ -6,6 +6,8 @@ import type {Plugin} from "siyuan";
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 /** 用途：完整 Protyle 公共领域表面；使用范围：App 组合根创建编辑器；解耦评估：纯类型不加载具体实现。 */
 import type {ProtyleDomain} from "../protyle/protyle.types";
+/** 用途：描述应用导航完成后的完整布局模型；使用范围：AppBlockNavigation.afterOpen；解耦评估：纯类型直达布局生命周期抽象。 */
+import type {ILayoutModel} from "../layout/lifecycle/model.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
@@ -16,6 +18,10 @@ export interface AppBlockNavigation {
     position?: "right" | "bottom";
     /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
     keepCursor?: boolean;
+    /** 桌面宿主是否移除当前页签；移动宿主使用单编辑器导航，不消费该布局选项。 */
+    removeCurrentTab?: boolean;
+    /** 目标完成打开后的通知；桌面传入布局模型，移动端在编辑器就绪后以无模型参数通知。 */
+    afterOpen?: (model?: ILayoutModel) => void;
     /** 将目标块作为数据库行预览打开；宿主负责复用同一预览页签并展开属性面板。 */
     databaseRowId?: string;
 }

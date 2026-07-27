@@ -4,7 +4,6 @@
  */
 
 import { Constants } from "../../../constants";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { isNotCtrl, isOnlyMeta } from "../../../protyle/util/compatibility";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { AppFacade } from "../../../app/AppFacade.types";
@@ -40,8 +39,7 @@ function handleAltClick(
         return false;
     }
     const nodeId = target.getAttribute("data-node-id") ?? "";
-    openFileById({
-        app: app,
+    app.openBlock({
         id: nodeId,
         position: "right",
         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
@@ -66,8 +64,7 @@ function handleCtrlShiftClick(
         return false;
     }
     const nodeId = target.getAttribute("data-node-id") ?? "";
-    openFileById({
-        app: app,
+    app.openBlock({
         id: nodeId,
         position: "bottom",
         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
@@ -93,8 +90,7 @@ function handleCtrlAltClick(
         return false;
     }
     const nodeId = target.getAttribute("data-node-id") ?? "";
-    openFileById({
-        app: app,
+    app.openBlock({
         removeCurrentTab: false,
         id: nodeId,
         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
@@ -138,8 +134,7 @@ export function handleFileClick(
 
     // 默认: 正常打开
     const nodeId = target.getAttribute("data-node-id") ?? "";
-    openFileById({
-        app: app,
+    app.openBlock({
         id: nodeId,
         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
         afterOpen: createAfterOpenCallback(target)

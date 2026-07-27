@@ -4,7 +4,6 @@
  */
 
 import { Constants } from "../../../constants";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";
 import type { AppFacade } from "../../../app/AppFacade.types";
@@ -37,8 +36,7 @@ function onElementMousedown(event: MouseEvent, files: FilesDomain, app: AppFacad
         if (target.tagName === "LI" && target.getAttribute("data-node-id") && !target.getAttribute("data-opening")) {
             target.setAttribute("data-opening", "true");
             const nodeId = target.getAttribute("data-node-id") ?? "";
-            openFileById({
-                app: app,
+            app.openBlock({
                 removeCurrentTab: false,
                 id: nodeId,
                 action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
