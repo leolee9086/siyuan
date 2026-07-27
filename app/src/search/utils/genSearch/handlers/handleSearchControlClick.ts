@@ -4,7 +4,6 @@
 
 import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { Constants } from "../../../../constants";
-import {openFile} from "../../../../editor/open/openFile";
 import { MenuItem } from "../../../../menus/Menu.Item";
 import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { hasClosestByClassName } from "../../../../protyle/util/hasClosest";
@@ -45,8 +44,7 @@ export function handleSearchOpen(
 ): void {
     config.k = searchInputElement.value;
     config.r = replaceInputElement.value;
-    openFile({
-        app,
+    void app.openTab({
         searchData: config,
         position: (!window.siyuan.config.fileTree.noSplitScreenWhenOpenTab && (window.siyuan.layout.centerLayout.children.length > 1 || window.innerWidth > 1024)) ? "right" : undefined
     });
