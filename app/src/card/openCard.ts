@@ -1,12 +1,11 @@
 import {Dialog} from "../dialog";
 import {fetchPost} from "../util/network/fetch";
 import {isMobile} from "../util/platform/functions";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {Constants} from "../constants";
 import {hasClosestByAttribute, hasClosestByClassName} from "../protyle/util/hasClosest";
 import {hideElements} from "../protyle/ui/hideElements";
 import {isPaidUser, needSubscribe} from "../util/platform/needSubscribe";
-import {fullscreen} from "../protyle/breadcrumb/action";
 import { MenuItem } from "../menus/Menu.Item";
 import {escapeHtml} from "../util/DOM/escape";
 import {ipcSend} from "../platform/electron/ipcRenderer";
@@ -166,14 +165,14 @@ export const bindCardEvent = async (options: {
     index?: number,
 }) => {
     if (window.siyuan.storage[Constants.LOCAL_FLASHCARD].fullscreen) {
-        fullscreen(options.element.querySelector(".card__main"),
+        options.app.toggleFullscreen(options.element.querySelector(".card__main"),
             options.element.querySelector('[data-type="fullscreen"]'));
     }
     let index = 0;
     if (typeof options.index === "number") {
         index = options.index;
     }
-    const editor = new Protyle(options.app, options.element.querySelector("[data-type='render']") as HTMLElement, {
+    const editor = options.app.createProtyle(options.element.querySelector("[data-type='render']") as HTMLElement, {
         blockId: "",
         action: [Constants.CB_GET_ALL],
         render: {
@@ -255,7 +254,7 @@ export const bindCardEvent = async (options: {
         } else {
             const fullscreenElement = hasClosestByAttribute(target, "data-type", "fullscreen");
             if (fullscreenElement) {
-                fullscreen(options.element.querySelector(".card__main"),
+                options.app.toggleFullscreen(options.element.querySelector(".card__main"),
                     options.element.querySelector('[data-type="fullscreen"]'));
                 resize(editor.protyle);
                 window.siyuan.storage[Constants.LOCAL_FLASHCARD].fullscreen = !window.siyuan.storage[Constants.LOCAL_FLASHCARD].fullscreen;
@@ -777,7 +776,7 @@ export const openCardByData = async (app: AppFacade, cardsData: ICardData, cardT
 
 const nextCard = (options: {
     countElement: Element,
-    editor: Protyle,
+    editor: ProtyleDomain,
     actionElements: NodeListOf<Element>,
     index: number,
     cardsData: ICardData
@@ -798,7 +797,7 @@ const nextCard = (options: {
         options.cardsData.cards[options.index]);
 };
 
-const allDone = (countElement: Element, editor: Protyle, actionElements: NodeListOf<Element>) => {
+const allDone = (countElement: Element, editor: ProtyleDomain, actionElements: NodeListOf<Element>) => {
     countElement.classList.add("fn__none");
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;
@@ -811,7 +810,7 @@ const allDone = (countElement: Element, editor: Protyle, actionElements: NodeLis
     moreElement.previousElementSibling.classList.add("fn__none");
 };
 
-const newRound = (countElement: Element, editor: Protyle, actionElements: NodeListOf<Element>, unreviewedCount: number) => {
+const newRound = (countElement: Element, editor: ProtyleDomain, actionElements: NodeListOf<Element>, unreviewedCount: number) => {
     countElement.classList.add("fn__none");
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;

@@ -44,6 +44,7 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
+    toggleFullscreen(element: Element, button?: Element): void;
     openTab(options: AppTabNavigation): void;
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
