@@ -7,7 +7,6 @@ import { updateHotkeyTip } from "../util/compatibility";
 import { isMobile, isElectron } from "../../platform";
 import { openBacklink, openGraph, openOutline } from "../../layout/dock/util";
 import * as path from "path";
-import { openMobileFileById } from "../../mobile/editor";
 import { Constants } from "../../constants";
 import { openCardByData } from "../../card/openCard";
 import { viewCards } from "../../card/viewCards";
@@ -19,7 +18,6 @@ import { hideTooltip } from "../runtime/dialog.port";
 import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";
-import { openFileById } from "../../editor/utils.openFileById";
 import { createProtyleCopyMenu, createFileHistoryMenuItem, createCronjobMenuItem, createInNotePluginMenuItem } from "./openTitleMenu.items";
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
@@ -227,16 +225,13 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                 label: siyuanI18n.openBy,
                 icon: "iconOpen",
                 click() {
-                    if (!isMobile) {
-                        openFileById({
-                            app: protyle.app,
-                            id: protyle.block.id,
-                            action: protyle.block.rootID !== protyle.block.id ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_CONTEXT],
-                        });
-                    }
-                    if (isMobile) {
-                        openMobileFileById(protyle.app, protyle.block.id, protyle.block.rootID !== protyle.block.id ? [Constants.CB_GET_ALL] : [Constants.CB_GET_CONTEXT]);
-                    }
+                    protyle.app.openBlock({
+                        id: protyle.block.id,
+                        action: protyle.block.rootID !== protyle.block.id
+                            ? isMobile ? [Constants.CB_GET_ALL] : [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS]
+                            : [Constants.CB_GET_CONTEXT],
+                        zoomIn: false,
+                    });
                 }
             }).element);
         }
