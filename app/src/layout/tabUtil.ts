@@ -18,33 +18,20 @@ import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { openSearch } from "../search/spread";
 import { openRecentDocs } from "../business/openRecentDocs";
 import { openHistory } from "../history/history";
-import { newFile } from "../util/file/newFile";
 import {mountHelp} from "../util/file/mount";
 import {newNotebook} from "../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import { Constants } from "../constants";
 import { fetchPost } from "../util/network/fetch";
 /** 用途：按模型类型查询 Dock。使用范围：页签快捷切换及兼容导出；解耦评估：唯一实现位于无状态 Layout 查询子域。 */
 import {getDockByType} from "./query/dockByType";
+/** 用途：读取当前活动页签；使用范围：tabUtil 内部回退查询与历史出口；解耦评估：查询实现不加载本模块的具体模型构造器。 */
+import {getActiveTab} from "./query/activeTab";
 
 export {getAllTabs, getAllWnds, getInstanceById};
+/** 保持历史活动页签查询入口，实际实现位于无状态 Layout 查询子域。 */
+export {getActiveTab};
 /** 保持历史公共入口，调用方迁移期间仍指向查询子域的唯一实现。 */
 export {getDockByType};
-
-export const getActiveTab = (wndActive = true) => {
-    const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
-    let tab;
-    if (activeTabElement) {
-        tab = getInstanceById(activeTabElement.getAttribute("data-id")) as Tab;
-    }
-    if (!tab && !wndActive) {
-        getAllTabs().find(item => {
-            if (item.headElement?.classList.contains("item--focus")) {
-                tab = item;
-            }
-        });
-    }
-    return tab;
-};
 
 export const switchTabByIndex = (index: number) => {
     const activeDockIcoElement = document.querySelector(".dock .dock__item--activefocus");
@@ -166,7 +153,7 @@ export const newCenterEmptyTab = (app: AppFacade) => {
                         event.preventDefault();
                         break;
                     } else if (target.id === "editorEmptyFile") {
-                        newFile(app);
+                        void app.createDocument();
                         event.stopPropagation();
                         event.preventDefault();
                         break;

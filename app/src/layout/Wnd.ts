@@ -9,7 +9,6 @@ import { setPanelFocus } from "./utils/setPanelFocus";
 import { Constants } from "../constants";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
-import { newFile } from "../util/file/newFile";
 import {getFrontend, isWindow} from "../util/platform/functions";
 import type { AppFacade } from "../app/AppFacade.types";
 import {newCenterEmptyTab} from "./tabUtil";
@@ -114,7 +113,7 @@ export class Wnd {
             while (target && !target.isEqualNode(this.headersElement)) {
                 if (target.classList.contains("block__icon") && target.getAttribute("data-type") === "new") {
                     setPanelFocus(this.headersElement.parentElement.parentElement);
-                    newFile(app);
+                    void app.createDocument();
                     break;
                 } else if (target.classList.contains("block__icon") && target.getAttribute("data-type") === "more") {
                     this.renderTabList(target);
