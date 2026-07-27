@@ -5,10 +5,10 @@
  */
 
 import { Model } from "../Model";
-import { Tab } from "../Tab";
+import type {LayoutTab} from "../layout.types";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { showMessage } from "../../dialog/message";
 import { fetchSyncPost } from "../../util/network/fetch";
@@ -22,7 +22,7 @@ import {
 import type { 任务运行时信息 } from "../../util/network/types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
 import { setWindowInterval, clearWindowInterval } from "./dock.environment";
-import { openFileById } from "../../editor/utils.openFileById";
+import {cronjobModelBrand} from "./cronjob/cronjob.types";
 
 /**
  * 初始化界面结构
@@ -167,7 +167,7 @@ const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promi
      * @param docId 文档ID
      */
     open: async (cronjob, docId) => {
-        openFileById({ app: cronjob.app, id: docId });
+        cronjob.app.openBlock({id: docId});
     }
 };
 
@@ -214,19 +214,21 @@ function 处理点击(cronjob: Cronjob, event: MouseEvent) {
 
     // 处理操作按钮点击
     const actionButton = hasClosestByClassName(target, "cronjob-action");
-    if (actionButton) {
-        const docId = actionButton.getAttribute("data-doc-id");
-        const action = actionButton.getAttribute("data-action");
-        if (docId && action) {
-            处理任务操作(cronjob, docId, action);
-        }
+    const docId = actionButton ? actionButton.getAttribute("data-doc-id") : null;
+    const action = actionButton ? actionButton.getAttribute("data-action") : null;
+    // 仅带有完整任务标识和动作的按钮才可触发后端操作。
+    if (docId && action) {
+        处理任务操作(cronjob, docId, action);
     }
 }
 
 /**
  * 定时任务侧边栏面板
  */
-export class Cronjob extends Model<AppFacade, Tab> {
+export class Cronjob extends Model<AppFacade, LayoutTab> {
+    public get [cronjobModelBrand]() {
+        return "Cronjob" as const;
+    }
     /** 面板根元素 */
     public element: HTMLElement;
     /** 任务列表数据 */
@@ -239,9 +241,9 @@ export class Cronjob extends Model<AppFacade, Tab> {
      * @param app - AppFacade 实例
      * @param tab - Tab 实例
      */
-    constructor(app: AppFacade, tab: Tab) {
-        super({
-            app,
+    constructor(app: AppFacade, tab: LayoutTab) {
+        super({app});
+        this.connect({
             id: tab.id,
             /**
              * 监听后端消息回调

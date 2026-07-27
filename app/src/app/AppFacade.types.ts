@@ -10,8 +10,8 @@ import type {ProtyleDomain} from "../protyle/protyle.types";
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
     id: string;
-    action: TProtyleAction[];
-    zoomIn: boolean;
+    action?: TProtyleAction[];
+    zoomIn?: boolean;
     /** 桌面宿主在指定分屏方向打开；移动宿主保持单编辑器导航语义。 */
     position?: "right" | "bottom";
     /** 桌面宿主在新页签中保留当前编辑器光标；移动宿主保持原导航语义。 */
