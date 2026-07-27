@@ -9,7 +9,7 @@ import {showMessage} from "../../../../../dialog/message";
 /** 用途：收口系统通知；使用范围：App NotificationPort；解耦评估：平台实现经 Port 注入。 */
 import {sendNotification} from "../../../../../plugin/platformUtils";
 /** 用途：收口面板聚焦动作；使用范围：App PanelFocusPort；解耦评估：布局动作留在宿主。 */
-import {setPanelFocus} from "../../../../util";
+import {setPanelFocus} from "../../../../utils/setPanelFocus";
 /** 用途：收口 Dock 查询；使用范围：App DockVisibilityPort；解耦评估：Dock 注册表不进入面板核心。 */
 import {getDockByType} from "../../../../query/dockByType";
 /** 用途：收口浮窗打开 Port；使用范围：App PanelFloatOpenPort；解耦评估：复用既有布局边界。 */
