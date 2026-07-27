@@ -72,9 +72,9 @@ menus/commonMenuItem/
 ### Phase 4：剩余能力与旧入口删除
 
 - [x] 核对并迁移 `copySubMenu`，删除缺少浏览器条目且快捷键语义漂移的旧目录实现。
-- [ ] 逐项核对并迁移 `openAttr/openMenu/openWechatNotify/openFileWechatNotify/openFileAttr`。
-- [ ] 删除 `app/src/menus/commonMenuItem.ts`；失活目录聚合入口已删除，不保留兼容 barrel。
-- [ ] 确认所有调用点直达真实所有者，重复实现归零。
+- [x] `openAttr` 迁入 File Attribute 子域；`openMenu/openWechatNotify/openFileWechatNotify/openFileAttr` 的消费者已确认直达各自真实所有者。
+- [x] 删除 `app/src/menus/commonMenuItem.ts`；失活目录聚合入口已删除，不保留兼容 barrel。
+- [x] 确认所有调用点直达真实所有者，重复实现归零。
 
 ### Phase 5：回归与归档
 
@@ -101,3 +101,4 @@ menus/commonMenuItem/
 - **2026-07-28**：导出菜单完整迁入 `export/exportMenu.factory.ts` 唯一所有者，根 300 行实现删除。逐项历史确认：Markdown 使用 2026-06-25 参数对话框，图片使用 2026-03-19 导出预览 Tab，压缩格式使用 2026-06-10 `saveExportFile(uri, msgId)`，模板与移动打印保留后续上游交互顺序；没有把任一整文件先验视为权威。移动 PDF 对缺失 HTML 显式抛错，原生打印后三秒用户感知进度时序保留。专项累计 `9/9`、导出子域 lint、目标类型诊断 `0`、Node `204/204`、Protyle 契约、imports 多跳 `0` 与 diff 检查通过；代表环 `170 -> 161`，剩余导出环已收口为 `exportMenu -> protyle/export` 明确领域边。
 - **2026-07-28**：导出预览创建页签不再经本域网关加载具体 `editor/open/openFile`，改为调用完整 `AppFacade.openTab()`。实际读取确认桌面与移动 App 原本均委托同一 `openFile`，其完成结果为既有完整 `LayoutTab | undefined`；因此外观及两个实现同步恢复真实 Promise 返回，没有创建局部 Host/Port 或碎片结果类型。新增专项测试证明预览调用会等待宿主完成，导出与预览回归 `5/5`、AppFacade 双向契约 `3/3`、imports 多跳 `0`、diff 检查通过；代表环 `161 -> 160`，首环不再经过 `export-preview`。完整类型检查仍被仓库既有严格诊断阻塞，本批外观、预览与测试文件无新增诊断；目标 lint 仅在两个应用组合根报告既有规模门禁及移动既有未使用参数。
 - **2026-07-28**：逐行核对确认旧 `copy.ts` 与当前根实现不等价：缺少浏览器 `copyWebURL`，标准 Markdown accelerator 从 `undefined` 漂移为 `""`，并引入零复用局部上下文接口和数组断言。唯一实现迁入 `copy/copySubMenu.factory.ts`，使用当前根请求协议，完整保留八个调用点的菜单顺序、平台差异、快捷键、复制类型、Markdown 请求和复制后聚焦顺序；所有调用方直达 factory，旧 `copy.ts` 与根重复定义删除，四处多余 `IMenu[]` 断言同时移除。复制专项 `3/3`、CommonMenuItem 累计 `11/11`、Node `204/204`、新子域 lint、目标类型诊断 `0`、imports 多跳 `0` 与 diff 检查通过；代表环保持 `160` 且首环不变，说明该批消除的是综合入口消费者与重复实现，不虚报循环数量收益。
+- **2026-07-28**：最后六个根入口消费者统一改为 `fileAttr/openAttr.ts`，保持 thematic break 同步短路、缺失 `data-node-id` 时传递 `null`、回调响应及 focus/protyle 原样转发。实际调用图同时确认 `openMenu/openWechatNotify/openFileWechatNotify/openFileAttr` 的生产消费者早已直达各自真实所有者，因此根文件其余定义均为失活重复实现；六处迁移后 `commonMenuItem.ts` 零引用并删除。新增专项 `3/3`，CommonMenuItem 累计 `14/14`、Node `204/204`、新文件 lint、目标类型诊断 `0`、imports 多跳 `0` 与 diff 检查通过；代表环 `160 -> 159`，首环仍为导航到真实导出链。Phase 4 完成，Phase 5 继续执行全量回归与归档。

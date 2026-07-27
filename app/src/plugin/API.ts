@@ -24,7 +24,7 @@ import { getActiveTab } from "../layout/tabUtil";
 import { getAllModels, getAllTabs } from "../layout/getAll";
 import { getAllEditor } from "../layout/getAll";
 import { openSetting } from "../config";
-import { openAttr } from "../menus/commonMenuItem";
+import {openAttr} from "../menus/commonMenuItem/fileAttr/openAttr";
 import {openFileAttr} from "../menus/commonMenuItem/fileAttr/openFileAttr";
 import { globalCommand } from "../boot/globalEvent/command/global";
 import {exportLayout} from "../layout/export/exportLayout";

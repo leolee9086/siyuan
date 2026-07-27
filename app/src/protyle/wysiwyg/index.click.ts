@@ -21,7 +21,7 @@ import {isMobile} from "../../util/platform/functions";
 import {setFold} from "../util/blockFold";
 import {enterBack} from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
-import {openAttr} from "../../menus/commonMenuItem";
+import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
 import {openFileById} from "../../editor/utils.openFileById";

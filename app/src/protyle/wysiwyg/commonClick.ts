@@ -1,6 +1,6 @@
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
-import { openAttr } from "../../menus/commonMenuItem";
+import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import { openGlobalSearch } from "../../search/util";
 import { isMobile } from "../../util/platform/functions";
 import { isOnlyMeta } from "../util/compatibility";

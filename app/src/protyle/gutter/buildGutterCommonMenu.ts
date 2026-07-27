@@ -10,7 +10,7 @@ import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
 import { setFold } from "../util/blockFold";
 import { enterBack } from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
-import { openAttr } from "../../menus/commonMenuItem";
+import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import { openWechatNotify } from "../../menus/commonMenuItem/commonMenuItem.openWechatNotify";
 import { updateHotkeyAfterTip, updateHotkeyTip } from "../util/compatibility";
 import { focusBlock } from "../util/selection";

@@ -1,6 +1,6 @@
 import {fetchPost} from "./imports";
 import { rename, replaceFileName } from "../../editor/rename";
-import { openAttr } from "../../menus/commonMenuItem";
+import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import { matchHotKey } from "../util/hotKey";
 import { getTopAloneElement } from "./getBlock";
 import {getContentByInlineHTML} from "./keydown/content/getContentByInlineHTML";

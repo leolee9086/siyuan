@@ -7,7 +7,7 @@ import {
     isInEmbedBlock
 } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
-import { openAttr } from "../../menus/commonMenuItem";
+import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";
 import { focusByRange, getEditorRange } from "../util/selection";
