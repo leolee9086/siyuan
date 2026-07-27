@@ -3,7 +3,7 @@ import { Dialog } from "../dialog";
 import { fetchPost } from "../util/network/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { escapeHtml } from "../util/DOM/escape";
-import { copySubMenu } from "./commonMenuItem";
+import {copySubMenu} from "./commonMenuItem/copy";
 import type {BookmarkDomain} from "../layout/dock/bookmark/bookmark.types";
 import { isMobile } from "../util/platform/functions";
 import type {MobileBookmarksDomain} from "../mobile/dock/bookmark/mobileBookmarks.types";
