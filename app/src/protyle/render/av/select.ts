@@ -1,5 +1,5 @@
 import { Menu } from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVCellUpdateTransaction} from "../../wysiwyg/transaction/prepared/av/avCellUpdate";
 import { hasClosestBlock, hasClosestByClassName } from "../../util/hasClosest";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { upDownHint } from "../../../util/DOM/upDownHint";
@@ -136,7 +136,7 @@ export const removeCellOption = (protyle: IProtyle, cellElements: HTMLElement[],
         id: blockElement.getAttribute("data-node-id"),
         data: dayjs().format("YYYYMMDDHHmmss"),
     });
-    transaction(protyle, doOperations, undoOperations);
+    submitAVCellUpdateTransaction(protyle, doOperations, undoOperations);
     Array.from(document.querySelectorAll(".av__panel .b3-menu__item")).find((item: HTMLElement) => {
         if (item.dataset.name === target.dataset.content) {
             item.querySelector(".b3-menu__checked")?.remove();
@@ -169,7 +169,7 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
             return;
         }
         // cell 不判断重名 https://github.com/siyuan-note/siyuan/issues/11484
-        transaction(protyle, [{
+        submitAVCellUpdateTransaction(protyle, [{
             action: "updateAttrViewColOption",
             id: colId,
             avID: data.id,
@@ -314,7 +314,7 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                     }
                 });
                 const newName = target.parentElement.dataset.name;
-                transaction(protyle, [{
+                submitAVCellUpdateTransaction(protyle, [{
                     action: "removeAttrViewColOption",
                     id: colId,
                     avID: data.id,
@@ -390,7 +390,7 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                     element.querySelector(".color__square--current")?.classList.remove("color__square--current");
                     colorTarget.classList.add("color__square--current");
                     const newColor = colorTarget.getAttribute("data-color");
-                    transaction(protyle, [{
+                    submitAVCellUpdateTransaction(protyle, [{
                         action: "updateAttrViewColOption",
                         id: colId,
                         avID: data.id,
@@ -637,7 +637,7 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
             id: blockElement.getAttribute("data-node-id"),
             data: dayjs().format("YYYYMMDDHHmmss"),
         });
-        transaction(protyle, cellDoOperations, [{
+        submitAVCellUpdateTransaction(protyle, cellDoOperations, [{
             action: "removeAttrViewColOption",
             id: colId,
             avID: data.id,
@@ -649,7 +649,7 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
             id: blockElement.getAttribute("data-node-id"),
             data: dayjs().format("YYYYMMDDHHmmss"),
         });
-        transaction(protyle, cellDoOperations, cellUndoOperations);
+        submitAVCellUpdateTransaction(protyle, cellDoOperations, cellUndoOperations);
     }
     if (colData.type === "select") {
         if (blockElement.classList.contains("av")) {

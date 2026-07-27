@@ -65,6 +65,7 @@
 
 - **2026-07-27**：`mergeAddOption` 完整迁入 `select/options.ts`，Cell Update 不再加载 Select DOM、菜单、模块级 cellValues 和事务。测试固定既有颜色回填以及按输入顺序新增 options/do/undo 的原地变更语义；生产图 `2237 / 351 / SCC 626`，新 options 叶子位于 SCC 外。
 - **2026-07-27**：Cell Update 提交改用严格 `prepared/av/avCellUpdate.ts`，封闭 `updateAttrViewCell/updateAttrViewColOptions/removeAttrViewColOption/doUpdateUpdated`，本地值变换、列配置和 DOM 呈现顺序不变。五类命令契约 `5/5`、Protyle 契约类型、新命令 lint和网关门禁通过；生产图 `2238 / 324 / SCC 624`，Cell Update 与命令退出 SCC。后续仍以行为测试驱动拆分函数内部阶段。
+- **2026-07-27**：严格命令补齐同一选择项配置职责中的 `updateAttrViewColOption`，Select 的选项重命名、描述、颜色、删除、创建以及单元格增删全部复用现有提交生命周期，不创建 Select 专用同义命令。契约/Options 专项 `8/8`、Node `199/199`、命令类型诊断 `0`；生产图 `2266 / 317 / SCC 597`，Select 和 Cell Click 退出 SCC。
 
 ## 关联任务
 

@@ -5,6 +5,7 @@ import {submitPreparedTransaction} from "./imports";
 const isAVCellUpdateAction = (action: IOperation["action"]) =>
     action === "updateAttrViewCell" ||
     action === "updateAttrViewColOptions" ||
+    action === "updateAttrViewColOption" ||
     action === "removeAttrViewColOption" ||
     action === "doUpdateUpdated";
 

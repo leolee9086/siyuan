@@ -13,6 +13,7 @@ import {submitAVCellUpdateTransaction} from "../../src/protyle/wysiwyg/transacti
 const actions = [
     "updateAttrViewCell",
     "updateAttrViewColOptions",
+    "updateAttrViewColOption",
     "removeAttrViewColOption",
     "doUpdateUpdated",
 ] as const;
