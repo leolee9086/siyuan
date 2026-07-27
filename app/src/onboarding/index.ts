@@ -10,7 +10,7 @@ import type {AppFacade} from "../app/AppFacade.types";
 /// #if MOBILE
 import {openMobileFileById} from "../mobile/editor";
 /// #else
-import {openFileById} from "../editor/util";
+import {openFileById} from "../editor/utils.openFileById";
 /// #endif
 
 export const ensureOnboarding = async () => {

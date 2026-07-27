@@ -15,7 +15,7 @@ import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 
 import { exitSiYuan } from "../dialog/processSystem";
 import { isWindow, setToolbarLeftMac } from "../util/platform/functions";

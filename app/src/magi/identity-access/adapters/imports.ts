@@ -7,7 +7,7 @@ import type {AppFacade} from "../../../app/AppFacade.types";
 /** 用途：思源页签类型；使用范围：Dock 模型构造参数；解耦评估：纯类型依赖。 */
 import type { Tab } from "../../../layout/Tab";
 /** 用途：打开自定义页签；使用范围：Identity Access Tab 入口；解耦评估：复用编辑器公共入口。 */
-import { openFile } from "../../../editor/util";
+import {openFile} from "../../../editor/open/openFile";
 /** 用途：查询已有模型；使用范围：Identity Access Tab 单实例复用；解耦评估：布局查询是必要宿主能力。 */
 import { getAllModels } from "../../../layout/getAll";
 /** 用途：解析应用上下文；使用范围：调用者未显式传 App 时；解耦评估：环境访问已封装。 */

@@ -31,7 +31,7 @@ import { openCard } from "../../../../card/openCard";
 /** 用途：同步入口；使用范围：common.ts；解耦评估：同步流程由 syncGuide 编排。 */
 import { syncGuide } from "../../../../sync/syncGuide";
 /** 用途：文件打开入口；使用范围：recentClosed.ts；解耦评估：页签恢复复用 editor/util 统一入口。 */
-import { openFile } from "../../../../editor/util";
+import {openFile} from "../../../../editor/open/openFile";
 /** 用途：网络请求工具；使用范围：recentClosed.ts；解耦评估：保持原 fetchPost 回调语义。 */
 import { fetchPost } from "../../../../util/network/fetch";
 /** 用途：存储写入工具；使用范围：recentClosed.ts；解耦评估：存储兼容写入由 protyle 工具封装。 */

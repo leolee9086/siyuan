@@ -4,7 +4,7 @@
 
 import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { Constants } from "../../../../constants";
-import { openFile } from "../../../../editor/util";
+import {openFile} from "../../../../editor/open/openFile";
 import { MenuItem } from "../../../../menus/Menu.Item";
 import type {ProtyleDomain} from "../../../../protyle/protyle.types";
 import { hasClosestByClassName } from "../../../../protyle/util/hasClosest";

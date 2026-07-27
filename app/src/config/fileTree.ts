@@ -2,7 +2,7 @@ import { fetchPost } from "../util/network/fetch";
 import { genNotebookOption } from "../menus/onGetnotebookconf";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 
 // 内部设置 Tab 类型常量
 export const INTERNAL_FILETREE_TAB_TYPE = "internal-settings-filetree";
@@ -198,4 +198,3 @@ export const fileTree = {
         });
     }
 };
-

@@ -10,7 +10,7 @@ import { getAllModels } from "../layout/getAll";
 export { getAllModels };
 
 /** 用途：编辑器打开文件能力。使用范围：export-preview 创建新页签。解耦评估：通过 imports.ts 转发。 */
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 /** 导出 openFile，供 export-preview 模块使用 */
 export { openFile };
 

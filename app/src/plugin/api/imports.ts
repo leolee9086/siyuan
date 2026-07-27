@@ -31,7 +31,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
  * 使用范围：插件API模块中需要打开文件的场景
  * 解耦评估：通过本地转发减少跨目录依赖
  */
-import { openFile } from "../../editor/util";
+import {openFile} from "../../editor/open/openFile";
 
 /**
  * 用途：通过ID打开文件的工具函数

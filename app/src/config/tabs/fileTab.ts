@@ -7,7 +7,7 @@ import type {SettingTabBuilder} from "../setting/builder";
 import {controlNumber, controlSelect, controlString} from "../setting/control";
 import {genConfigItemName} from "../render/fragments";
 import {genButtonHtml, genNumberInputHtml} from "../render/render";
-import {openFile} from "../../editor/util";
+import {openFile} from "../../editor/open/openFile";
 import {INTERNAL_FILETREE_TAB_TYPE} from "../fileTree";
 import {setNoteBook} from "../../util/file/pathName";
 import {getAllModels} from "../../layout/getAll";

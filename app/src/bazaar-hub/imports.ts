@@ -62,7 +62,7 @@ export { getFrontend };
  * 使用范围：打开集市广场、发布设置和源站页面。
  * 解耦评估：Tab 打开能力属于编辑器能力层，业务层通过网关调用可减少路径耦合。
  */
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 /** 导出 openFile 供 bazaar-hub 目录复用 */
 export { openFile };
 

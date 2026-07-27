@@ -2,7 +2,7 @@ import { getAllModels } from "../layout/getAll";
 import { Constants } from "../constants";
 import { escapeHtml } from "../util/DOM/escape";
 import { fetchPost } from "../util/network/fetch";
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 import { openFileById } from "../editor/utils.openFileById";
 import { showMessage } from "../dialog/message";
 import { reloadProtyle } from "../protyle/util/reload";

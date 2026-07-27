@@ -5,7 +5,7 @@ import { Constants } from "../constants";
 export { Constants };
 
 /** 用途：桌面端打开文件。使用范围：uri 模块桌面端打开块文件。解耦评估：通过 imports.ts 转发。 */
-import { openFile } from "../editor/util";
+import {openFile} from "../editor/open/openFile";
 /** 导出 openFile，供 util 模块使用 */
 export { openFile };
 
