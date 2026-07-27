@@ -5,7 +5,6 @@
 
 import { openEmojiPanel } from "../../../emoji";
 import { initFileMenu, initNavigationMenu } from "../../../menus/navigation";
-import { newFileInTree } from "../../../util/file/newFile";
 import { fetchPost } from "../../../util/network/fetch";
 import { isNotCtrl } from "../../../protyle/util/compatibility";
 import {
@@ -202,7 +201,7 @@ function handleWritableActions(
 ) {
     // 处理新建文件
     if (type === "new") {
-        newFileInTree(app, notebookId, pathString ?? "");
+        void app.createDocumentInTree(notebookId, pathString ?? "");
         return;
     }
     // 处理笔记本更多菜单
