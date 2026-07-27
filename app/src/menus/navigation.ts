@@ -1,6 +1,6 @@
 import { exportMd, movePathToMenu, renameMenu, } from "./commonMenuItem";
 import { copySubMenu } from "./commonMenuItem/copy";
-import { openFileAttr } from "./commonMenuItem/openFileAttr";
+import {openFileAttr} from "./commonMenuItem/fileAttr/openFileAttr";
 import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";

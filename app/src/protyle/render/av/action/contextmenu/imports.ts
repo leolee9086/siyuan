@@ -19,7 +19,7 @@ import { openEditorTab } from "../../../../../menus/util";
 export { openEditorTab };
 
 /** 用途：打开块属性面板。使用范围：openBy 子菜单里的 attr 项。解耦评估：属性面板是全局能力，维持网关转发比在子模块直接散落路径更好维护。 */
-import { openFileAttr } from "../../../../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../../../../menus/commonMenuItem/fileAttr/openFileAttr";
 /** 导出 openFileAttr 供 contextmenu 子模块复用。 */
 export { openFileAttr };
 

@@ -69,7 +69,7 @@ import { getSiyuanIsPublish } from "./imports";
  * 使用范围：openAttr 函数
  * 解耦评估：已提取到独立文件
  */
-import { openFileAttr } from "./openFileAttr";
+import {openFileAttr} from "./fileAttr/openFileAttr";
 /**
  * 用途：创建模板导出菜单项
  * 使用范围：exportMd 函数

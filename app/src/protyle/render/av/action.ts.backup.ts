@@ -2,7 +2,7 @@ import {Menu} from "../../../plugin/Menu";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {openEditorTab} from "../../../menus/util";
-import {openFileAttr} from "../../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../../menus/commonMenuItem/fileAttr/openFileAttr";
 import {
     addDragFill,
     cellValueIsEmpty,

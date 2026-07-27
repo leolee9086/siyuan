@@ -1,20 +1,21 @@
-import * as dayjs from "dayjs";
+import {dayjs} from "./imports";
 import {focusByRange} from "./imports";
-import { Constants } from "../../constants";
-import { Dialog } from "../../dialog";
-import { getAllEditor } from "../../layout/getAll";
-import { Protyle } from "../../protyle";
-import { hideElements } from "../../protyle/ui/hideElements";
-import { isMobile } from "../../util/platform/functions";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { bindAttrInput } from "./util.bindAttrInput";
-import { handleTabSwitch, handleRemoveAction, handleBookmarkAction, handleAddCustomAction } from "./openFileAttr.handlers";
+import {Constants} from "./imports";
+import {Dialog} from "./imports";
+import {getAllEditor} from "./imports";
+import type {ProtyleDomain} from "./imports";
+import {hideElements} from "./imports";
+import {isMobile} from "./imports";
+import {getSiyuanConfig} from "./imports";
+import {siyuanI18n} from "./imports";
+import {isHTMLInputElement, isHTMLElement} from "./imports";
+import {bindAttrInput} from "./bindAttrInput";
+import {handleAddCustomAction, handleBookmarkAction, handleRemoveAction, handleTabSwitch} from "./openFileAttr.handlers";
 
 
 
-const initializeProtyle = (attrs: IObject, protyle?: IProtyle): { protyle: IProtyle | undefined, ghostProtyle: Protyle | undefined } => {
-    let ghostProtyle: Protyle | undefined;
+const initializeProtyle = (attrs: IObject, protyle?: IProtyle): { protyle: IProtyle | undefined, ghostProtyle: ProtyleDomain | undefined } => {
+    let ghostProtyle: ProtyleDomain | undefined;
     if (!protyle) {
         getAllEditor().find(item => {
             if (attrs.id === item.protyle.block.rootID) {
@@ -25,7 +26,7 @@ const initializeProtyle = (attrs: IObject, protyle?: IProtyle): { protyle: IProt
     }
 
     if (!protyle && attrs.id) {
-        ghostProtyle = new Protyle(window.siyuan.ws.app, document.createElement("div"), {
+        ghostProtyle = window.siyuan.ws.app.createProtyle(document.createElement("div"), {
             blockId: attrs.id,
         });
     }
@@ -145,22 +146,36 @@ const generateDialogHTML = (attrs: IObject, customHTML: string, notifyHTML: stri
 
 const initializeDialog = (dialog: Dialog, attrs: IObject, focusName: string) => {
     dialog.element.setAttribute("data-key", Constants.DIALOG_ATTR);
-    (dialog.element.querySelector('.b3-text-field[data-name="bookmark"]') as HTMLInputElement).value = attrs.bookmark || "";
-    (dialog.element.querySelector('.b3-text-field[data-name="name"]') as HTMLInputElement).value = attrs.name || "";
-    (dialog.element.querySelector('.b3-text-field[data-name="alias"]') as HTMLInputElement).value = attrs.alias || "";
+    const bookmarkInput = dialog.element.querySelector('.b3-text-field[data-name="bookmark"]');
+    const nameInput = dialog.element.querySelector('.b3-text-field[data-name="name"]');
+    const aliasInput = dialog.element.querySelector('.b3-text-field[data-name="alias"]');
+    if (isHTMLInputElement(bookmarkInput)) {
+        bookmarkInput.value = attrs.bookmark || "";
+    }
+    if (isHTMLInputElement(nameInput)) {
+        nameInput.value = attrs.name || "";
+    }
+    if (isHTMLInputElement(aliasInput)) {
+        aliasInput.value = attrs.alias || "";
+    }
 
-    dialog.element.querySelectorAll(".b3-text-field").forEach((item) => {
-        if (focusName !== "av" && focusName !== "custom" && focusName === item.getAttribute("data-name")) {
-            (item as HTMLElement).focus();
+    for (const item of dialog.element.querySelectorAll(".b3-text-field")) {
+        if (!isHTMLInputElement(item)) {
+            continue;
+        }
+        if (focusName !== "av" && focusName !== "custom" && focusName === item.dataset.name) {
+            item.focus();
         }
         if (attrs.id) {
-            bindAttrInput(item as HTMLInputElement, attrs.id);
+            bindAttrInput(item, attrs.id);
         }
-    });
+    }
 
     if (focusName === "av") {
         dialog.element.dispatchEvent(new CustomEvent("click", { detail: "NodeAttributeView" }));
-    } else if (focusName === "custom") {
+        return;
+    }
+    if (focusName === "custom") {
         dialog.element.dispatchEvent(new CustomEvent("click", { detail: "custom" }));
     }
 };
@@ -170,17 +185,28 @@ const handleDialogClick = (
     dialog: Dialog,
     attrs: IObject,
     protyle: IProtyle | undefined,
-    ghostProtyle: Protyle | undefined
+    ghostProtyle: ProtyleDomain | undefined
 ) => {
-    let target = event.target as HTMLElement;
+    let target = event.target;
     if (event instanceof CustomEvent && typeof event.detail === "string") {
-        target = dialog.element.querySelector(`.item--full[data-type="${event.detail}"]`) as HTMLElement;
+        target = dialog.element.querySelector(`.item--full[data-type="${event.detail}"]`);
+    }
+    if (!isHTMLElement(target)) {
+        return;
     }
 
     const actionHandlers: Record<string, () => void> = {
         remove: () => handleRemoveAction(target, attrs, event),
-        bookmark: () => handleBookmarkAction(target, event as MouseEvent),
-        addCustom: () => handleAddCustomAction(target, dialog, attrs, event as MouseEvent),
+        bookmark: () => {
+            if (event instanceof MouseEvent) {
+                handleBookmarkAction(target, event);
+            }
+        },
+        addCustom: () => {
+            if (event instanceof MouseEvent) {
+                handleAddCustomAction(target, dialog, attrs, event);
+            }
+        },
     };
 
     while (target !== dialog.element) {
@@ -196,7 +222,11 @@ const handleDialogClick = (
             return;
         }
 
-        target = target.parentElement as HTMLElement;
+        const parent = target.parentElement;
+        if (!parent) {
+            return;
+        }
+        target = parent;
     }
 };
 
@@ -207,7 +237,7 @@ const createAttrDialog = (ctx: {
     hasAV: boolean;
     range: Range | undefined;
     protyle: IProtyle | undefined;
-    ghostProtyle: Protyle | undefined;
+    ghostProtyle: ProtyleDomain | undefined;
 }) => {
     return new Dialog({
         width: isMobile() ? "92vw" : "50vw",

@@ -7,12 +7,11 @@ import { fetchPost } from "../../util/network/fetch";
 import { hasClosestBlock } from "../util/hasClosest";
 import { listIndent, listOutdent } from "../wysiwyg/list";
 import { onGet } from "../util/onGet";
-import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { openTitleMenu } from "../header/openTitleMenu";
 import {updateReadonly} from "./readonly/updateReadonly";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 面包屑点击上下文, 面包屑点击处理器 } from "./breadcrumb.types";
-import { openFileById } from "../../editor/utils.openFileById";
 import { getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../../platform";
 import {withEncryptedNotebook} from "../../util/pathName";
@@ -38,12 +37,12 @@ function 处理节点ID点击(ctx: 面包屑点击上下文): boolean {
     const render = protyle.options?.render;
     const shouldOpenFile = render?.breadcrumbDocName && getSiyuanKeyboardState().ctrlIsPressed;
     if (shouldOpenFile) {
-        openFileById({
-            app: protyle.app,
+        protyle.app.openBlock({
             id,
             action: id === protyle.block.rootID
                 ? [Constants.CB_GET_FOCUS]
-                : [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL]
+                : [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL],
+            zoomIn: false,
         });
     }
     if (!shouldOpenFile) {

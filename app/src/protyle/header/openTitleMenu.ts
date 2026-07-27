@@ -2,7 +2,7 @@ import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { MenuItem } from "../../menus/Menu.Item";
 import { exportMd, } from "../../menus/commonMenuItem";
 import { openFileWechatNotify } from "../../menus/commonMenuItem/openFileWechatNotify";
-import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { updateHotkeyTip } from "../util/compatibility";
 import { isMobile, isElectron } from "../../platform";
 import { openBacklink, openGraph, openOutline } from "../../layout/dock/util";

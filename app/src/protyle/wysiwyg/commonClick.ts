@@ -1,5 +1,5 @@
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
-import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openGlobalSearch } from "../../search/util";
 import { isMobile } from "../../util/platform/functions";

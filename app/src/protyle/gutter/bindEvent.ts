@@ -8,7 +8,7 @@ import {
 } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
 import { openAttr } from "../../menus/commonMenuItem";
-import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";
 import { focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";

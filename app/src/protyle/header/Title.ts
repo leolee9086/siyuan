@@ -9,7 +9,7 @@ import {
 import { fetchPost } from "../../util/network/fetch";
 import { replaceFileName, validateName } from "../../editor/rename";
 import { MenuItem } from "../../menus/Menu.Item";
-import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
+import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { Constants } from "../../constants";
 import { matchHotKey } from "../util/hotKey";
 import { isMac, readText } from "../util/compatibility";
