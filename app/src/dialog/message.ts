@@ -145,8 +145,13 @@ function doClearMessage(messageElement: Element, container: Element, parent: HTM
     }
 }
 
-/** 显示消息 */
-export async function showMessage(message: string, timeout = 6000, type = "info", messageId?: string) {
+/**
+ * 同步创建或更新消息，并返回本次渲染使用的身份 ID。
+ * 调用方会立即把该 ID 交给 hideMessage 或异步任务，因此返回 Promise 会破坏身份关联。
+ * @同步豁免: UI构建 - DOM 写入与消息 ID 必须在同一调用栈完成并同步返回。
+ * @参数豁免: 遗留代码 - 四参数公开协议被全仓消息、错误类型和指定 ID 调用，参数对象迁移应作为独立任务完成。
+ */
+export function showMessage(message: string, timeout = 6000, type = "info", messageId?: string) {
     if (!message) {
         return;
     }

@@ -96,3 +96,4 @@ menus/commonMenuItem/
 
 - **2026-07-27**：创建专项 TTT。完成当前文件、调用点和历史核查；确认根文件是运行时基线，目录拆分版至少存在五类明确语义差异，因此后续采用逐能力守恒迁移，不直接切换旧目录入口。
 - **2026-07-27**：重命名与移动菜单分别迁入 `rename/renameMenu.factory.ts`、`movePath/movePathToMenu.factory.ts` 唯一所有者，所有生产调用方直达新路径；根文件和失活目录入口中的重复定义删除，零消费者的 `commonMenuItem/index.ts` 整体删除。重命名保留加密 notebook 请求参数和响应后命令时序；移动保留输入顺序、root ID 与首目标透传，并对选择器违反非空协议显式抛错。专项 Vitest `4/4`、新子域 lint、目标类型诊断 `0`、Node `204/204`、Protyle 契约、imports 多跳 `0` 和 diff 检查通过；完整类型检查仍以仓库其他既有诊断退出。生产代表环 `171 -> 170`，首环仍由待迁移的 `navigation -> commonMenuItem.exportMd` 进入导出链。
+- **2026-07-27**：导出契约核查发现 `showMessage` 于 2026-06-22 被无异步步骤地声明为 `async`，而导出等调用方需要同步消息 ID；新增 `messageIdentity.test.ts` 先复现返回 Promise 的失败，再恢复同步 ID 语义。修复后专项 `1/1`、Node `204/204` 与 Protyle 契约通过，完整类型检查中 CommonMenuItem 导出链的 Promise-ID 诊断归零；检查仍报告消息模块两项既有严格类型和三个内部 helper 参数规模诊断，未静默掩盖或扩大本批范围。
