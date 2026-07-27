@@ -19,6 +19,8 @@ import {isHTMLElement, isCustomEvent} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
 /** 用途：打开字段编辑 Panel；使用范围：筛选值菜单发现 Rollup 配置不足后的既有导航；解耦评估：经列子域网关直达 Panel 唯一实现，不由 Filter 反向依赖组合根。 */
 import {openMenuPanel} from "./imports";
+/** 用途：提交当前列排序列表；使用范围：列菜单排序动作；解耦评估：经列网关直达现有严格命令。 */
+import {submitAVSortTransaction} from "./imports";
 
 /** 生成列菜单表头项 HTML（图标+名称输入框+描述文本域），由 showColMenu 调用 @同步豁免: UI构建 */
 export const buildColHeaderLabel = (ctx: IShowColMenuContext): string => {
@@ -215,7 +217,7 @@ export const handleSortClick = (ctx: IShowColMenuContext, order: "ASC" | "DESC")
     const {avID, colId, blockID, protyle} = ctx;
     // @内联回调
     fetchPost("/api/av/renderAttributeView", {id: avID}, (response) => {
-        transaction(protyle, [{
+        submitAVSortTransaction(protyle, [{
             action: "setAttrViewSorts",
             avID: response.data.id,
             data: [{column: colId, order}],

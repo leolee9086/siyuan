@@ -60,6 +60,8 @@ import { genColDataByType } from "./col.typeUtils";
 import {avMenuPanel} from "../openMenuPanel";
 /** 用途：打开字段编辑 Panel；使用范围：列菜单中配置不足后的既有导航；解耦评估：直达同一 Panel 唯一实现，不创建第二包装。 */
 import {openMenuPanel} from "../openMenuPanel";
+/** 用途：提交列菜单排序列表；使用范围：设置当前列排序；解耦评估：直达现有 Sort Prepared 命令。 */
+import {submitAVSortTransaction} from "../../../wysiwyg/transaction/prepared/av/view/avSort";
 
 /**
  * 用途：从属性视图数据中获取字段列表
@@ -107,6 +109,8 @@ export { genColDataByType };
 export {avMenuPanel};
 /** 导出既有 Panel 打开入口。 */
 export {openMenuPanel};
+/** 导出 Sort 严格命令。 */
+export {submitAVSortTransaction};
 
 /** 导出字段数据获取函数 */
 export { getFieldsByData };

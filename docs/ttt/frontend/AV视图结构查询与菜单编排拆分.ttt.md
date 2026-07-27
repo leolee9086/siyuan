@@ -14,8 +14,8 @@
 
 ## 下一步任务
 
-1. 审计 `openMenuPanel.click.cell.ts` 经 Asset Menu/Hint/InsertHTML 返回事务主链的职责边界。
-2. 读取 Column Menu/Edit 经 Panel 和 AV 主图返回的下一条最短路径，确认各边的领域所有权。
+1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> gallery/util -> action/click/cell` 当前最短路径的职责边界。
+2. 读取 Cell Action 经 Column Menu 和事务主图返回的下一条最短路径，确认各边的领域所有权。
 3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
 4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
 
@@ -77,6 +77,7 @@
 - **2026-07-27**：Number Format 只提交 `updateAttrViewColNumberFormat`，菜单点击已拥有格式选择与面板关闭呈现，通用事务无本地分支；新增严格 `prepared/av/avNumberFormat.ts` 并保持 22 项菜单、标签和 do/undo 原样。同时按目录门禁将八个 AV Prepared 命令归入 `prepared/av`，子域网关直达内核，所有消费者直达新声明。八套专项 `39/39`、完整 Node `199/199`、两层类型目标诊断 `0`、子域 lint 与网关门禁通过；生产图 `2262 / 319 / SCC 609`，Number 与 Prepared AV 子域在 SCC 外，首环转为 `col.editPanel -> rollup -> transaction`。
 - **2026-07-27**：Rollup 唯一 `updateAttrViewColRollup` action 直接复用已有 Calc 严格命令，未重复实现事务校验；选择关系列/目标列后的本地数据和菜单更新、原 do/undo 顺序不变。Calc 专项 `3/3`、完整 Node `199/199`、契约类型和网关门禁通过；全量类型检查中 Rollup 既有 50 条严格空值诊断如实保留。生产图 `2262 / 318 / SCC 605`，Rollup 及三条关联绑定路径退出 SCC，首环推进到 `openMenuPanel -> filter -> transaction`，后续回到已有 Filter 专项继续处理。
 - **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将全仓九个 `setAttrViewFilters` 提交点统一到严格 Filter 命令，Filter 树变换和面板 DOM 呈现仍由调用域拥有。命令/导航专项 `3/3`、完整 Node `199/199`、两层类型目标诊断 `0`、新命令 lint和网关门禁通过；生产图 `2263 / 320 / SCC 604`，Filter 根退出 SCC。代表环反升来自首环转向 `openMenuPanel.click.cell -> asset menu -> Hint/insertHTML`，下一阶段按该真实跨域路径处理。
+- **2026-07-27**：Sort 字段读取继续直达本专项的 `view/metadata.ts`，排序 UI 唯一实现迁入 `sorting/` 并以专属网关逐项直达真实声明，未给 metadata 增加反向菜单依赖。添加/字段/方向与严格命令专项 `5/5`、Node `200/200`、Protyle 类型、新子域 lint和网关门禁通过；生产图 `2280 / 304 / SCC 588`，Sorting 四节点全部在循环 SCC 外。当前首环已绕过 Sort，转为 View Click 经 Gallery/Action 返回 Cell/Edit，继续按 View 与 Panel 真实编排职责拆分。
 
 ## 关联任务
 

@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：沿当前首环审计 `openMenuPanel.click.sortsFilters -> sort -> transaction`，复用已有 Sort 严格命令并区分 Filter 组合树行为。
+> **下一步任务**：沿当前首环审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> gallery/util -> action/click/cell` 的职责所有权，继续拆分 Panel 内容分发与 Cell Action 组合路径。
 
 ## 不变量
 
@@ -69,6 +69,7 @@
 - **2026-07-27**：添加列的封闭 action 集合明确为 `addAttrViewCol/removeAttrViewCol/doUpdateUpdated`，新增严格 Column Structure 命令复用 Prepared undo、lite、同步指示、队列和请求生命周期，非法 action 同步抛错；菜单不再加载通用 transaction DOM 分派主图。必需 `data-av-id/data-node-id` 在菜单项创建前显式校验，缺失身份不再进入半初始化或无身份提交。严格命令、菜单身份和四场景呈现专项 `11/11`、Panel 契约 `1/1`、完整 Node `200/200`、新增源码 lint、Protyle 契约类型、全量类型目标诊断 `0` 和 imports 多跳门禁通过。生产图 `2268 / 318 / SCC 596 -> 2270 / 306 / SCC 594`，Add Menu、Presentation 和命令均退出唯一 SCC，原 Panel/AddCol 返回链归零；新的首环转为 `openMenuPanel -> col.operations -> action/click -> col menu`，继续按真实列操作职责推进。
 - **2026-07-27**：按 [AV 列结构变更生命周期拆分](./AV列结构变更生命周期拆分.ttt.md) 将添加、复制和两类删除统一到 Column Structure 严格命令，删除呈现从 Action 聚合迁回列结构子域；所有迁移节点退出 SCC。专项 `15/15`、源码 lint、Protyle 类型与网关门禁通过；代表环重排为 `312`，唯一 SCC `594 -> 591`，Panel 首环推进到 Groups 点击事务。
 - **2026-07-27**：按 [AV 分组领域与面板交互拆分](./AV分组领域与面板交互拆分.ttt.md) 建立 Groups 六 action 严格命令，Panel 点击迁入独立子域，拖拽排序和折叠提交复用同一命令。专项 `10/10`、新子域 lint、目标类型和网关门禁通过；代表环保持 `312`，唯一 SCC `591 -> 590`，Panel 首环推进到 Sort/Filter 点击事务。
+- **2026-07-27**：Sort 唯一实现从 AV 根迁入 `sorting/`，添加、字段切换、方向切换、清空、单项删除、拖拽和列菜单提交全部复用既有 `prepared/av/view/avSort.ts`，旧通用 transaction Sort 调用归零且不新增同义命令。无状态菜单实例化归入 `menu.factory.ts`，绑定生命周期使用完整 `SortPanelBinding` 输入；字段/方向变更继续原地修改原 sorts 数组并保留修改前深快照，非法 DOM 目标、方向和缺失排序身份显式失败。子域 `imports.ts` 逐项直达 Menu、列元数据、严格命令、定位、Emoji、视图 metadata、常量与 i18n 的真实声明，不经其它网关。行为/命令专项 `5/5`、完整 Node `200/200`、Protyle 契约、新子域 lint、全量类型检查 Sort 目标诊断 `0`、imports 多跳 `0` 与 diff 检查通过；生产图 `2280 / 304 / SCC 588`，相对前批 `312 / 590` 减少 `8` 条代表环和 `2` 个 SCC 成员，四个 Sorting 节点均为非循环单节点组件。Panel 整体仍在主 SCC，首环转到 Cell/Edit 与 View/Gallery/Action 路径，继续滚动拆分。
 
 ## 关联任务
 

@@ -1,5 +1,6 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
 import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
+/** 用途：提交排序列表变更；使用范围：清空和删除单项排序；解耦评估：直达现有 Sort 严格命令。 */
+import {submitAVSortTransaction} from "../../wysiwyg/transaction/prepared/av/view/avSort";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";
@@ -16,7 +17,7 @@ import {
     getFiltersHTML,
     removeFilterByPath
 } from "./filter";
-import { addSort, bindSortsEvent, getSortsHTML } from "./sort";
+import {addSort, bindSortsEvent, getSortsHTML} from "./sorting";
 import {genCellValue} from "./cell.value";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
 
@@ -225,7 +226,7 @@ export const handleSortsFiltersClick = (
     if (type === "goSorts") {
         menuElement.classList.remove("av__filter-panel");
         menuElement.innerHTML = getSortsHTML(ctx.fields, ctx.data.view.sorts);
-        bindSortsEvent(protyle, menuElement, ctx.data, blockID);
+        bindSortsEvent({protyle, menuElement, data: ctx.data, blockID});
         positionMenu(ctx);
         window.siyuan.menus.menu.remove();
         event.preventDefault();
@@ -233,7 +234,7 @@ export const handleSortsFiltersClick = (
         return true;
     }
     if (type === "removeSorts") {
-        transaction(protyle, [{
+        submitAVSortTransaction(protyle, [{
             action: "setAttrViewSorts",
             avID,
             data: [],
@@ -246,7 +247,7 @@ export const handleSortsFiltersClick = (
         }]);
         ctx.data.view.sorts = [];
         menuElement.innerHTML = getSortsHTML(ctx.fields, ctx.data.view.sorts);
-        bindSortsEvent(protyle, menuElement, ctx.data, blockID);
+        bindSortsEvent({protyle, menuElement, data: ctx.data, blockID});
         positionMenu(ctx);
         event.preventDefault();
         event.stopPropagation();
@@ -274,7 +275,7 @@ export const handleSortsFiltersClick = (
                 return true;
             }
         });
-        transaction(protyle, [{
+        submitAVSortTransaction(protyle, [{
             action: "setAttrViewSorts",
             avID,
             data: ctx.data.view.sorts,
@@ -286,7 +287,7 @@ export const handleSortsFiltersClick = (
             blockID
         }]);
         menuElement.innerHTML = getSortsHTML(ctx.fields, ctx.data.view.sorts);
-        bindSortsEvent(protyle, menuElement, ctx.data, blockID);
+        bindSortsEvent({protyle, menuElement, data: ctx.data, blockID});
         positionMenu(ctx);
         event.preventDefault();
         event.stopPropagation();

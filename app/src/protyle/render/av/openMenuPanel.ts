@@ -6,7 +6,7 @@ import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";
 import { bindInlineFilterEvents, getFiltersHTML, prepareFilterColumns } from "./filter";
-import { bindSortsEvent, getSortsHTML } from "./sort";
+import {bindSortsEvent, getSortsHTML} from "./sorting";
 import { bindDateEvent, getDateHTML } from "./date";
 import { bindAssetEvent, getAssetHTML } from "./asset";
 import { Constants } from "../../../constants";
@@ -237,7 +237,7 @@ export const openMenuPanel = (options: OpenAVMenuPanelOptions) => {
         } else {
             setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
             if (options.type === "sorts") {
-                bindSortsEvent(options.protyle, menuElement, data, blockID);
+                bindSortsEvent({protyle: options.protyle, menuElement, data, blockID});
             } else if (options.type === "filters") {
                 bindInlineFilterEvents(avPanelElement, data, options.protyle, blockID, avID);
             } else if (options.type === "edit") {
