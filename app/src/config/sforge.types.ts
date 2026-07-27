@@ -14,6 +14,8 @@ import {MOBILE_KEYBOARD_LIFECYCLE_REGISTRY} from "./sforge.symbols";
 import {NAVIGATION_HISTORY_REGISTRY} from "./sforge.symbols";
 /** 用途：定位窗口键盘切换对话框状态。使用范围：ISForgeGlobalState 的当前对话框槽；解耦评估：Symbol 保证跨 state/subset 调用共享同一生命周期状态。 */
 import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./sforge.symbols";
+/** 用途：定位当前搜索文章预览；使用范围：ISForgeGlobalState 的异步预览隔离槽；解耦评估：Symbol 保证跨调用共享唯一状态。 */
+import {ARTICLE_PREVIEW_CURRENT_ID} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -96,6 +98,7 @@ export interface ISForgeGlobalState {
     [AV_VIRTUAL_SCROLL_REGISTRY]?: AVVirtualScrollRegistryState;
     [AV_LOCATE_REGISTRY]?: AVLocateRegistryState;
     [WINDOW_KEYDOWN_SWITCH_DIALOG]?: IProtyleDialog;
+    [ARTICLE_PREVIEW_CURRENT_ID]?: string;
 }
 
 /**

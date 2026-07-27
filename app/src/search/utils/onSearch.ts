@@ -6,7 +6,8 @@ import { escapeAriaLabel, escapeLessThans, escapeHtml } from "../../util/DOM/esc
 import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getAttr, getArticle } from "../util";
+import {getArticle} from "../article/getArticle";
+import {getAttr} from "../result/getAttr";
 
 /**
  * 生成子项（带 padding）的 HTML

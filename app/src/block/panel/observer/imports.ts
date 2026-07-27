@@ -14,3 +14,10 @@ export {setTimeout};
 import {clearTimeout} from "../../../util/siyuanEnvironments/windowTimer.environment";
 /** 导出取消观察器计时器。 */
 export {clearTimeout};
+
+/** 用途：创建 DOM 观察器；使用范围：Panel 尺寸同步与懒加载；解耦评估：直达共享观察器工厂唯一实现。 */
+import {createIntersectionObserver, createResizeObserver} from "../../../util/DOM/observers.factory";
+/** 导出尺寸观察器工厂。 */
+export {createResizeObserver};
+/** 导出可见性观察器工厂。 */
+export {createIntersectionObserver};

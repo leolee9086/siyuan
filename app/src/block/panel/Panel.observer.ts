@@ -12,9 +12,9 @@ import { setTimeout } from "./observer/imports";
 /** 用途：安全 clearTimeout。使用范围：面板取消延迟操作。解耦评估：通过 ./imports 转发。 */
 import { clearTimeout } from "./observer/imports";
 /** 用途：创建 ResizeObserver。使用范围：面板尺寸同步；解耦评估：同域唯一工厂。 */
-import {createPanelResizeObserver} from "./observer/observers.factory";
+import {createResizeObserver} from "./observer/imports";
 /** 用途：创建 IntersectionObserver。使用范围：子编辑器懒加载；解耦评估：同域唯一工厂。 */
-import {createPanelIntersectionObserver} from "./observer/observers.factory";
+import {createIntersectionObserver} from "./observer/imports";
 
 /** 用途：观察器配置参数类型。使用范围：设置观察器函数。解耦评估：同目录模块直接导入。 */
 import { 设置观察器参数 } from "./Panel.observer.types";
@@ -42,10 +42,10 @@ export function 设置观察器(参数: 设置观察器参数) {
             }
         }, Constants.TIMEOUT_TRANSITION);
     };
-    const observerResize = createPanelResizeObserver(handleResize);
+    const observerResize = createResizeObserver(handleResize);
     observerResize.observe(element);
 
-    const observerLoad = createPanelIntersectionObserver((e) => {
+    const observerLoad = createIntersectionObserver((e) => {
         for (const item of e) {
             // 元素进入视口且为 HTMLElement 且内容为空时初始化编辑器
             if (item.isIntersecting && isHTMLElement(item.target) && item.target.innerHTML === "") {

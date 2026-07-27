@@ -8,6 +8,7 @@ import type {ProtyleDomain} from "./imports";
 import {getDefaultSubType} from "./imports";
 import {getDefaultType} from "./imports";
 import {updateConfig} from "./imports";
+import {inputEvent} from "./imports";
 
 /**
  * 获取默认配置对象
@@ -40,7 +41,7 @@ export function handleRemoveCriterion(
     edit: ProtyleDomain,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): Config.IUILayoutTabSearchConfig {
-    updateConfig(element, getDefaultConfig(), config, edit, true);
+    updateConfig({element, item: getDefaultConfig(), config, edit, refresh: inputEvent, clear: true});
     if (updateCB) {
         updateCB(config);
     }
@@ -73,7 +74,7 @@ export function handleSetCriteria(
     const targetName = target.innerText.trim();
     const foundItem = criteriaData.find(item => item.name === targetName);
     if (foundItem) {
-        updateConfig(element, foundItem, config, edit);
+        updateConfig({element, item: foundItem, config, edit, refresh: inputEvent});
         updateCB?.(config);
     }
 
@@ -103,7 +104,7 @@ export function handleRemoveCriteria(
     }
 
     if (parentElement.classList.contains("b3-chip--current")) {
-        updateConfig(element, getDefaultConfig(), config, edit, true);
+        updateConfig({element, item: getDefaultConfig(), config, edit, refresh: inputEvent, clear: true});
     }
 
     parentElement.remove();

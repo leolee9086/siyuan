@@ -6,7 +6,7 @@ import {setStorageVal} from "../../../../util/storage/setStorageVal";
 import { Constants } from "../../../../constants";
 import { assetInputEvent, assetMoreMenu } from "../../../assets";
 import { getSiyuanGlobalMenusMenu } from "../../../../util/siyuanEnvironments/getMenu.environment";
-import { genQueryHTML } from "../../../util";
+import {genQueryHTML} from "../../../config/searchConfig";
 
 /**
  * 处理关闭资源搜索面板

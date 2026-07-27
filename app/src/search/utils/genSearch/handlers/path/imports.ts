@@ -47,9 +47,14 @@ import {getDefaultType} from "../../../../defaults/searchDefaults";
 export {getDefaultType};
 
 /** 用途：更新搜索配置。使用范围：条件点击；解耦评估：Search 既有配置实现。 */
-import {updateConfig} from "../../../../util";
+import {updateConfig} from "../../../../config/searchConfig";
 /** 导出搜索配置更新。 */
 export {updateConfig};
+
+/** 用途：应用配置后刷新搜索；使用范围：条件增删与切换；解耦评估：直达 Search 输入编排，作为参数传给配置更新操作。 */
+import {inputEvent} from "../../../../inputEvent";
+/** 导出搜索刷新操作。 */
+export {inputEvent};
 
 /** 用途：搜索输入事件。使用范围：路径选择后刷新；解耦评估：Search 既有输入编排。 */
 import {inputEvent} from "../../../../inputEvent";

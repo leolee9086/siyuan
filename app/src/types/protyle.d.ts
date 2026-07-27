@@ -534,10 +534,10 @@ interface IProtyle {
     app: import("../app/AppFacade.types").AppFacade,
     id: string,
     query?: {
-        key: string,
-        method: number
-        types: Config.IUILayoutTabSearchConfigTypes
-        subTypes: Config.IUILayoutTabSearchConfigSubTypes
+        key: string | null,
+        method: number | null
+        types: Config.IUILayoutTabSearchConfigTypes | null
+        subTypes: Config.IUILayoutTabSearchConfigSubTypes | null
     },
     block: {
         id?: string,

@@ -1,7 +1,8 @@
 import {Constants} from "../constants";
 import {fetchPost} from "../util/network/fetch";
 import {setStorageVal} from "../util/storage/setStorageVal";
-import {getArticle, getAttr} from "./util";
+import {getArticle} from "./article/getArticle";
+import {getAttr} from "./result/getAttr";
 import {escapeAriaLabel, escapeLessThans} from "../util/DOM/escape";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";

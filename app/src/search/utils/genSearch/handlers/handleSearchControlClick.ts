@@ -14,7 +14,8 @@ import {getDefaultSubType, getDefaultType} from "../../../defaults/searchDefault
 import { inputEvent } from "../../../inputEvent";
 import { moreMenu, queryMenu } from "../../../menu";
 import { toggleReplaceHistory } from "../../../toggleHistory";
-import { updateConfig, genQueryHTML } from "../../../util";
+import {genQueryHTML} from "../../../config/searchConfig";
+import {updateConfig} from "../../../config/searchConfig";
 import type { AppFacade } from "../../../../app/AppFacade.types";
 
 /**
@@ -76,7 +77,7 @@ export function handleSearchMore(
             }
         },
         removeCriterion: () => {
-            newConfig = updateConfig(element, {
+            newConfig = updateConfig({element, item: {
                 removed: true,
                 sort: 0,
                 group: 0,
@@ -90,7 +91,7 @@ export function handleSearchMore(
                 types: getDefaultType(),
                 subTypes: getDefaultSubType(),
                 replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-            }, config, edit, true);
+            }, config, edit, refresh: inputEvent, clear: true});
             if (updateCB) {
                 updateCB(newConfig);
             }

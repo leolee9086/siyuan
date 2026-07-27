@@ -22,6 +22,9 @@ export const AV_LOCATE_REGISTRY = Symbol.for("sforge.av.locateRegistry");
 /** 窗口键盘切换对话框生命周期状态的唯一注册表键。 */
 export const WINDOW_KEYDOWN_SWITCH_DIALOG = Symbol.for("sforge.windowKeyDown.switchDialog");
 
+/** 当前搜索文章预览标识的唯一状态键。 */
+export const ARTICLE_PREVIEW_CURRENT_ID = Symbol.for("sforge.search.articlePreviewCurrentId");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

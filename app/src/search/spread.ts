@@ -3,7 +3,8 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { focusByRange } from "../protyle/util/selection";
-import { updateConfig } from "./util";
+import {updateConfig} from "./config/searchConfig";
+import {inputEvent} from "./inputEvent";
 import { genSearch } from "./utils/genSearch";
 import type { AppFacade } from "../app/AppFacade.types";
 
@@ -65,12 +66,14 @@ export const openSearch = async (options: {
             item.element.setAttribute("data-key", options.hotkey);
             if (options.hotkey === Constants.DIALOG_REPLACE) {
                 cloneData.hasReplace = true;
-                item.data = updateConfig(searchElement, cloneData, item.data, item.editors.edit);
+                item.data = updateConfig({element: searchElement, item: cloneData, config: item.data,
+                    edit: item.editors.edit, refresh: inputEvent});
             } else if (options.hotkey === Constants.DIALOG_GLOBALSEARCH) {
                 cloneData.hasReplace = false;
                 cloneData.hPath = "";
                 cloneData.idPath = [];
-                item.data = updateConfig(searchElement, cloneData, item.data, item.editors.edit);
+                item.data = updateConfig({element: searchElement, item: cloneData, config: item.data,
+                    edit: item.editors.edit, refresh: inputEvent});
             } else if (options.hotkey === Constants.DIALOG_SEARCH) {
                 cloneData.hasReplace = false;
                 const toPath = item.editors.edit.protyle.path;
@@ -79,7 +82,8 @@ export const openSearch = async (options: {
                     cloneData.hPath = response.data[0];
                     item.data.idPath = cloneData.idPath;
                     item.data.hPath = cloneData.hPath;
-                    item.data = updateConfig(searchElement, cloneData, item.data, item.editors.edit);
+                    item.data = updateConfig({element: searchElement, item: cloneData, config: item.data,
+                        edit: item.editors.edit, refresh: inputEvent});
                 });
             }
             return true;

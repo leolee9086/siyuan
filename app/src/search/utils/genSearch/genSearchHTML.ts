@@ -11,7 +11,7 @@ import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
 /** The shared language object supplies local-search labels in the generated DOM. */
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** Local query controls are rendered by the existing search utility. */
-import {genQueryHTML} from "../../util";
+import {genQueryHTML} from "../../config/searchConfig";
 /** This type is passed through the template helpers and keeps UI construction decoupled from controllers. */
 import type {SearchHTMLContext} from "./SearchContext.types";
 

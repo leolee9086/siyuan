@@ -7,7 +7,7 @@ import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.env
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { assetInputEvent } from "./assets";
 import {saveAssetKeyList} from "./history/storage";
-import { genQueryHTML } from "./util";
+import {genQueryHTML} from "./config/searchConfig";
 import { isMobile, isElectron } from "../platform";
 
 /** 生成搜索资源的 HTML 模板 */
