@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：继续随当前循环图审计移动编辑器、空工作区呈现与文件挂载链；仅在真实应用宿主行为存在时扩充完整 AppFacade，不创建调用点碎片契约。
+> **下一步任务**：继续随当前循环图审计 Wnd 拖拽与布局反序列化链；仅在真实应用宿主行为存在时扩充完整 AppFacade，不创建调用点碎片契约。
 
 ---
 
@@ -195,3 +195,4 @@
 - **2026-07-28**：CustomLists 树节点导航改用其已有完整 `AppFacade.openBlock`，保持 `id/action/zoomIn` 载荷和未等待时序；具体 `openFileById` 导入删除。既有完整 `CustomListsDomain` 双向契约随 Node `208/208` 通过，CustomLists 退出当前首环。
 - **2026-07-28**：Forwardlink 内嵌编辑器创建和 Ctrl/Alt/Shift 块导航改用其已有完整 `AppFacade.createProtyle/openBlock`，保持全部 Protyle 选项、位置、action、集合与销毁语义；具体 Protyle 和 Editor 导航实现依赖归零。既有完整 `ForwardlinkDomain` 双向契约随 Node `208/208` 通过，Forwardlink 退出当前首环。
 - **2026-07-28**：Outline 全部文档导航改用模型已持有的完整 `AppFacade.openBlock()`；外观导航数据补齐原实现真实使用的起始位置，编辑器查找改用 `AppFacade.getOpenModels()`，不再从下层菜单和编辑上下文加载全局布局查询实现。返回的完整 `ProtyleDomain` 承接事务执行，AppFacade 没有为菜单新增任何局部能力。Outline/Protyle class 继续通过 `PublicInstanceLooksLike` 双向校验；专项 `5/5`、Node `208/208`、目标类型诊断 `0` 通过，生产代表环 `120 -> 97 -> 74`，Outline 已退出循环报告。
+- **2026-07-28**：移动空工作区的新建文档改用完整 `AppFacade.createDocument()`；日记创建后的桌面/移动导航统一由 `AppFacade.openBlock()` 选择宿主实现，保留原 action 和异步时序。`mount.ts` 删除平台判断及两套具体打开实现依赖，移动专项 `3/3` 通过，代表环 `74 -> 68`。

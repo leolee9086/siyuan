@@ -1,13 +1,10 @@
 import {Constants} from "../../constants";
 import {showMessage} from "../../dialog/message";
 import {isMobile} from "../platform/functions";
-import {platform} from "../../platform";
 import {fetchPost} from "../network/fetch";
 import {Dialog} from "../../dialog";
 import {getOpenNotebookCount} from "./pathName";
 import {setStorageVal} from "../../protyle/util/compatibility";
-import {openFileById} from "../../editor/utils.openFileById";
-import {openMobileFileById} from "../../mobile/editor";
 import type { AppFacade } from "../../app/AppFacade.types";
 import {siyuanI18n} from "../siyuanEnvironments/i18n.getI18n.environment";
 
@@ -16,11 +13,7 @@ export const fetchNewDailyNote = (app: AppFacade, notebook: string) => {
         notebook,
         app: Constants.SIYUAN_APPID,
     }, (response) => {
-        if (platform === "browser-mobile") {
-            openMobileFileById(app, response.data.id, [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]);
-            return;
-        }
-        openFileById({app, id: response.data.id, action: [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]});
+        void app.openBlock({id: response.data.id, action: [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]});
     });
 };
 

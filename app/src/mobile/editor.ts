@@ -1,5 +1,5 @@
 import {Protyle} from "../protyle";
-import {setEditor} from "./util/setEmpty";
+import {setEditor} from "./util/workspace/setEditor";
 import {closePanel} from "./util/closePanel";
 import {Constants} from "../constants";
 import {fetchPost} from "../util/network/fetch";

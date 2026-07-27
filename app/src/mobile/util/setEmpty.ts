@@ -1,6 +1,5 @@
 import {mountHelp} from "../../util/file/mount";
 import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNotebook.factory";
-import {newFile} from "../../util/file/newFile";
 import {getOpenNotebookCount} from "../../util/file/pathName";
 import {popSearch} from "../menu/search";
 import {getRecentDocs} from "../menu/getRecentDocs";
@@ -55,7 +54,7 @@ export const setEmpty = (app: AppFacade) => {
                 event.preventDefault();
                 break;
             } else if (target.id === "emptyNewFile") {
-                newFile(app);
+                void app.createDocument();
                 event.stopPropagation();
                 event.preventDefault();
                 break;
@@ -73,12 +72,4 @@ export const setEmpty = (app: AppFacade) => {
             target = target.parentElement;
         }
     });
-};
-
-export const setEditor = () => {
-    const toolbarNameElement = document.getElementById("toolbarName") as HTMLInputElement;
-    setTitle(toolbarNameElement.value);
-    toolbarNameElement.classList.remove("fn__hidden");
-    document.getElementById("editor").classList.remove("fn__none");
-    document.getElementById("empty").classList.add("fn__none");
 };
