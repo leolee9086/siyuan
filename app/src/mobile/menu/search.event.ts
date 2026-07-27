@@ -17,7 +17,7 @@ import {
     renderPreview,
 } from "../../search/assets";
 import {addClearButton} from "../../util/DOM/addClearButton";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {getDefaultSubType, getDefaultType} from "../../search/defaults/searchDefaults";
 import {
     saveKeyList,

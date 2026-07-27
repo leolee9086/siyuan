@@ -12,7 +12,7 @@ import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";
 import type { AppFacade } from "../app/AppFacade.types";
 import {resize} from "../protyle/util/resize";
-import {checkFold} from "../util/platform/noRelyPCFunction";
+import {checkFold} from "./fold/checkFold";
 import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
 import {getTopBarHeight} from "../layout/getTopBarHeight";
 import {activateAVLocateWithRetry} from "../protyle/render/av/locate/activation/activation";

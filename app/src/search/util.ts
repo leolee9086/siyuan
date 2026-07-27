@@ -13,7 +13,7 @@ import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClose
 import {setStorageVal} from "../util/storage/setStorageVal";
 import {getKeyByLiElement} from "./result/searchResultKey";
 import type { AppFacade } from "../app/AppFacade.types";
-import { checkFold } from "../util/platform/noRelyPCFunction";
+import {checkFold} from "../block/fold/checkFold";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
 import {saveKeyList} from "./history/storage";
 import { highlightById } from "../util/DOM/highlightById";

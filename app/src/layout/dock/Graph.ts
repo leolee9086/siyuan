@@ -12,7 +12,7 @@ import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openGlobalSearch } from "../../search/util";
 import type {AppFacade} from "../../app/AppFacade.types";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDocDisplayName } from "../../util/pathName";

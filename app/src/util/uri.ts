@@ -5,7 +5,7 @@ import {parseSiYuanUriInfo} from "./pathName";
 /** 用途：网络请求。使用范围：检查块是否存在。解耦评估：基础设施。 */
 import {fetchPost} from "./fetch";
 /** 用途：检查折叠状态。使用范围：URI 块处理前检查折叠。解耦评估：平台工具模块。 */
-import {checkFold} from "./platform/noRelyPCFunction";
+import {checkFold} from "../block/fold/checkFold";
 import {isValidBazaarPackageName} from "./bazaarPackage";
 /** 用途：跨目录共享常量。使用范围：导航指令与 IPC 命令标识。解耦评估：通过 imports.ts 转发。 */
 import {Constants} from "./imports";

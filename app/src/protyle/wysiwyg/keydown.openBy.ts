@@ -3,7 +3,7 @@ import {openBy} from "../../platform/localPath/openBy";
 import { openFileById } from "../../editor/utils.openFileById";
 import { isElectron } from "../../platform";
 
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { isLocalPath } from "../../util/file/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasClosestByAttribute } from "../util/hasClosest";

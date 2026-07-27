@@ -5,7 +5,7 @@ import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openMobileFileById} from "../editor";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import type { AppFacade } from "../../app/AppFacade.types";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {mobileBookmarksBrand} from "./bookmark/mobileBookmarks.types";
 
 export class MobileBookmarks {

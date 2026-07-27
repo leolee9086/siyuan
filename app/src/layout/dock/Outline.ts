@@ -20,7 +20,7 @@ import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
 import type {AppFacade} from "../../app/AppFacade.types";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 import {turnsIntoTransaction} from "../../protyle/wysiwyg/transaction.turns";
 import {goHome} from "../../protyle/wysiwyg/commonHotkey";

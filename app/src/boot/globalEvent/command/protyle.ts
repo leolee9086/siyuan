@@ -3,7 +3,7 @@ import { getTopAloneElement } from "../../../protyle/wysiwyg/getBlock";
 import { enterBack } from "../../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import { zoomOut } from "../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import { openFileById } from "../../../editor/utils.openFileById";
-import { checkFold } from "../../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../../block/fold/checkFold";
 import { isMobile } from "../../../platform";
 import { updateReadonly } from "../../../protyle/breadcrumb/action";
 import { Constants } from "../../../constants";

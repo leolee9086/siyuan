@@ -8,7 +8,7 @@ import {isLayoutTab} from "../../layout.types.guard";
 import { hasClosestByClassName, hasTopClosestByClassName } from "../../../protyle/util/hasClosest";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { Constants } from "../../../constants";
-import { checkFold } from "../../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../../block/fold/checkFold";
 import { escapeAttr } from "../../../util/DOM/escape";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

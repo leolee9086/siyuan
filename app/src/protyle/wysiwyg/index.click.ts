@@ -34,7 +34,7 @@ import {countSelectWord} from "../runtime/status.port";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";
 import {avClick} from "../render/av/action";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {openEmojiPanel, unicode2Emoji} from "../../emoji";
 import {globalClickHideMenu} from "../../boot/globalEvent/click";
 import {chartRender} from "../render/chartRender";

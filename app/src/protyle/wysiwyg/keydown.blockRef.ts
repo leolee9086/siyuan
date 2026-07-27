@@ -1,7 +1,7 @@
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
 import { Constants } from "../../constants";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/panel/Panel";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

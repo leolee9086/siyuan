@@ -51,7 +51,7 @@ import { superBlockSelectMiddleware } from "./keydown.superBlockSelect";
 import { 处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
 import { commonInputMiddleware } from "./keydown.commonInput";
 import { matchHotKey } from "../util/hotKey";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/panel/Panel";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

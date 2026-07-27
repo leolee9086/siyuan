@@ -29,7 +29,7 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { openFileById } from "../../editor/utils.openFileById";
 import { isMobile } from "../../platform";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { insertEmptyBlock } from "../../block/util";

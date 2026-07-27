@@ -9,7 +9,7 @@ import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import type {AppFacade} from "../../app/AppFacade.types";
 import {Constants} from "../../constants";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {isOperations, isBlockTreeArray} from "./dock.guard";
 import {Protyle} from "../../protyle";
 import {

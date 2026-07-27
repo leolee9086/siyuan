@@ -21,7 +21,7 @@ import type {TreeDomain, TreeOptions} from "../../../util/file/tree.types";
 /**
  * 用途：检查块折叠状态。使用范围：树节点点击时判断是否需要 zoomIn。解耦评估：平台工具函数，通过参数传递解耦。
  */
-import { checkFold } from "../../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../../block/fold/checkFold";
 /**
  * 用途：根据 ID 打开文件。使用范围：树节点点击打开。解耦评估：通过 openFileById 参数注入。
  */

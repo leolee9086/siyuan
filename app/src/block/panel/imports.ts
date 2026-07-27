@@ -99,7 +99,7 @@ import {openFileById} from "../../editor/utils.openFileById";
 export { openFileById };
 
 /** 用途：检查折叠状态并执行回调。使用范围：panel 模块折叠判断。解耦评估：直接指向平台行为真实实现。 */
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../fold/checkFold";
 /** 导出 checkFold，供 panel 模块使用 */
 export { checkFold };
 

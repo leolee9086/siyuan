@@ -7,7 +7,7 @@ import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import type { AppFacade } from "../app/AppFacade.types";
 import {updateHotkeyTip} from "../protyle/util/compatibility";
-import {checkFold} from "../util/platform/noRelyPCFunction";
+import {checkFold} from "../block/fold/checkFold";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openExportPreviewTab } from "../export-preview/open";
 

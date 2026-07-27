@@ -171,7 +171,7 @@ export { updateTransaction };
  * 使用范围：引用菜单打开文档前计算 zoomIn/action。
  * 解耦评估：平台兼容逻辑集中，业务只处理回调结果。
  */
-import { checkFold } from "../../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../../block/fold/checkFold";
 /** 导出 checkFold 供 refMenu 子模块复用 */
 export { checkFold };
 

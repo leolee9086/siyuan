@@ -124,17 +124,6 @@ export const getWorkspaceName = () => {
     return pathPosix().basename(window.siyuan.config.system.workspaceDir.replace(/\\/g, "/"));
 };
 
-export const checkFold = (id: string, cb: (zoomIn: boolean, action: TProtyleAction[], isRoot: boolean) => void) => {
-    if (!id) {
-        return;
-    }
-    fetchPost("/api/block/checkBlockFold", {id}, (foldResponse) => {
-        cb(foldResponse.data.isFolded,
-            foldResponse.data.isFolded ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-            foldResponse.data.isRoot);
-    });
-};
-
 export const setLocalShorthandCount = () => {
     let fileElement;
     if (platform === "browser-mobile") {

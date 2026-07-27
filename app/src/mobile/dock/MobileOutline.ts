@@ -4,7 +4,7 @@ import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
 import type { AppFacade } from "../../app/AppFacade.types";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {openMobileFileById} from "../editor";
 import {Model} from "../../layout/Model";
 import {genUUID} from "../../util/platform/genID";

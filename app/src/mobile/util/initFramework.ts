@@ -23,7 +23,7 @@ import {activeBlur} from "../keyboard/activeBlur";
 import {syncGuide} from "../../sync/syncGuide";
 import {Inbox} from "../../layout/dock/Inbox";
 import type { AppFacade } from "../../app/AppFacade.types";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import {MobileCustom} from "../dock/MobileCustom";
 import {Menu} from "../../plugin/Menu";
 import {showMessage} from "../../dialog/message";

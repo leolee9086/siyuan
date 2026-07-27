@@ -29,7 +29,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { openFileById } from "../../editor/utils.openFileById";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 import { exportImage } from "./imports";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";

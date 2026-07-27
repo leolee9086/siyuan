@@ -5,7 +5,7 @@ import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
 import { openFileById } from "../../editor/utils.openFileById";
 import { openMobileFileById } from "../../mobile/editor";
-import { checkFold } from "../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../block/fold/checkFold";
 import { pushBack } from "../../navigation/history/pushBack";
 import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { openLink } from "../../editor/openLink";

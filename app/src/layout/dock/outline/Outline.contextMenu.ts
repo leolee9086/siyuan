@@ -5,7 +5,7 @@
 import type { AppFacade } from "../../../app/AppFacade.types";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
-import { checkFold } from "../../../util/platform/noRelyPCFunction";
+import {checkFold} from "../../../block/fold/checkFold";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
