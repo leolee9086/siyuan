@@ -8,6 +8,8 @@ import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 /** 用途：描述应用导航完成后的完整布局模型；使用范围：AppBlockNavigation.afterOpen；解耦评估：纯类型直达布局生命周期抽象。 */
 import type {ILayoutModel} from "../layout/lifecycle/model.types";
+/** 用途：描述应用打开页签后的完整布局结果；使用范围：AppFacade.openTab 完成语义；解耦评估：纯类型直达 Layout 领域根。 */
+import type {LayoutTab} from "../layout/layout.types";
 /** 用途：完整笔记内插件管理器领域根；使用范围：应用外观向菜单和编辑器暴露唯一管理实例；解耦评估：纯类型不加载具体管理器。 */
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
 
@@ -60,7 +62,7 @@ export interface AppFacadeShape<
     createDocument(name?: string): Promise<void>;
     handleUnavailableDocument(protyle: IProtyle): void;
     toggleFullscreen(element: Element, button?: Element): void;
-    openTab(options: AppTabNavigation): void;
+    openTab(options: AppTabNavigation): Promise<LayoutTab | undefined>;
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
     openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation): void;

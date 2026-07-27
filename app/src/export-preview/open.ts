@@ -6,8 +6,6 @@
 
 /** 用途：获取所有打开的模型实例。使用范围：export-preview 查找已有页签。解耦评估：通过 imports.ts 转发。 */
 import { getAllModels } from "./imports";
-/** 用途：编辑器打开文件能力。使用范围：export-preview 创建新页签。解耦评估：通过 imports.ts 转发。 */
-import { openFile } from "./imports";
 /** 用途：国际化文本资源。使用范围：export-preview 设置页签标题。解耦评估：通过 imports.ts 转发。 */
 import { siyuanI18n } from "./imports";
 /** 用途：导出预览默认类型和事件常量。使用范围：open.ts 页签操作。解耦评估：同目录常量，直接同层导入。 */
@@ -84,8 +82,7 @@ export const openExportPreviewTab = async (options: {
         return;
     }
 
-    await openFile({
-        app,
+    await app.openTab({
         custom: {
             title: siyuanI18n.preview,
             icon: "iconPreview",

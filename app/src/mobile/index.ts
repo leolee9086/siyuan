@@ -102,7 +102,7 @@ export class App {
         toggleApplicationFullscreen(element, button);
     }
     public openTab(options: AppTabNavigation) {
-        void openFile({app: this, ...options});
+        return openFile({app: this, ...options});
     }
     public openAsset(options: AssetOpenOptions) {
         openByMobile(options.assetPath);
