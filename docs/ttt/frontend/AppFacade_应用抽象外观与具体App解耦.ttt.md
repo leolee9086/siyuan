@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：应用全屏唯一实现已由组合根装配；继续随循环图审计 Breadcrumb Events 与其它下层模块对具体 Editor/Layout 实现的加载。
+> **下一步任务**：继续随当前循环图审计 Agent Panel Host 对 `layout/util` 的具体实现加载；优先复用完整 Layout 领域根和唯一查询所有者，不创建调用点碎片契约。
 
 ---
 
@@ -190,3 +190,4 @@
 - **2026-07-27**：`toggleFullscreen()` 的唯一具体实现从 Breadcrumb 混合 Action 迁入 App Fullscreen 子域，窗口协调依赖完整 `LayoutWindow`。桌面/移动 App 组合根装配该实现；Boot 快捷键、Wnd 恢复、Graph 和 Breadcrumb Menu 均通过对象已有 AppFacade 调用，不再静态加载全屏实现。Node `200/200`、Protyle 契约、新领域 lint与网关门禁通过；生产图 `2315 / 218 / SCC 379`，全屏子域退出唯一 SCC。
 - **2026-07-27**：`AppBlockNavigation` 完整覆盖文件树既有 `removeCurrentTab/afterOpen` 导航数据。桌面组合根继续透传唯一 `openFileById`，移动组合根在编辑器完成初始化时触发通知；Files click/mousedown 不再加载具体编辑器导航。桌面/移动 AppFacade 双向契约、目标类型诊断、Node `202/202` 与 Protyle 契约通过。
 - **2026-07-28**：设置导航加入完整 AppFacade 公共表面。设置页身份从具体注册表值推导提升为纯 `SettingTabId` 领域类型，实际 `settingTabs` 以 `satisfies Record` 保证键集合完整；桌面和移动 App 均委托统一 `openSetting`，保留其既有平台分派。Agent Host 删除动态配置加载，改为 `app.openSettings("ai")`。AppFacade 双向契约 `3/3`、相关 Vitest `13/13`、Node `208/208`、imports 多跳 `0` 和目标 lint 通过；新增表面在完整类型检查中无缺失成员诊断。
+- **2026-07-28**：Agent 前端动作使用的编辑器枚举、文档导航完成和搜索打开能力收口到完整 `AppFacade.getOpenEditors/openBlock/openSearch` 公共表面；桌面组合根继续使用 `getAllEditor/openFileById/search.spread`，移动组合根继续使用同一编辑器枚举、既有移动块导航与全屏搜索。动作层不再动态导入具体实现，`openBlock` 的外观返回类型准确表达桌面 Promise 与移动同步分派两种既有语义。双向 `InstanceLooksLike` 契约随 Node `208/208` 通过，动作专项 `4/4`、目标 lint 和 imports 多跳门禁通过；完整类型检查的本批精确可选参数诊断已修复，其余入口基线诊断保持显式。

@@ -19,7 +19,9 @@ export const createTestAppFacade = (
     createProtyle: () => {
         throw new Error("Test AppFacade Protyle factory was not configured");
     },
+    getOpenEditors: () => [],
     openSettings: () => undefined,
+    openSearch: () => undefined,
     createDocument: async () => undefined,
     createDocumentInTree: async () => undefined,
     handleUnavailableDocument: () => undefined,

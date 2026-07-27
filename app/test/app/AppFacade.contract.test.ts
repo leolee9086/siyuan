@@ -52,7 +52,9 @@ const testFacade = createAppFacade<object, object>({
     createProtyle: () => {
         throw new Error("Contract fixture does not create Protyle instances");
     },
+    getOpenEditors: () => [],
     openSettings: () => undefined,
+    openSearch: () => undefined,
     createDocument: async () => undefined,
     createDocumentInTree: async () => undefined,
     handleUnavailableDocument: () => undefined,

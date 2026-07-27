@@ -20,6 +20,8 @@ import {ARTICLE_PREVIEW_CURRENT_ID} from "./sforge.symbols";
 import {ONBOARDING_LIFECYCLE_STATE} from "./sforge.symbols";
 /** 用途：定位通用全局命令路由；使用范围：ISForgeGlobalState 的命令分发槽；解耦评估：Symbol 保证 HMR 与多入口共享唯一已构建路由。 */
 import {COMMON_GLOBAL_COMMAND_ROUTER} from "./sforge.symbols";
+/** 用途：定位 Agent 前端动作注册状态；使用范围：ISForgeGlobalState 的插件与内建动作槽；解耦评估：Symbol 保证跨插件和面板实例共享唯一注册表。 */
+import {FRONTEND_ACTION_REGISTRY} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -72,6 +74,8 @@ import type {AVLocateRegistryState} from "../protyle/render/av/locate/locate.typ
 import type {OnboardingLifecycleState} from "../onboarding/lifecycle/state.types";
 /** 用途：通用全局命令路由完整类型；使用范围：SForge 全局状态映射；解耦评估：纯命令领域类型不加载路由实现。 */
 import type {CommonGlobalCommandRouter} from "../boot/globalEvent/command/global/types";
+/** 用途：完整前端动作注册状态；使用范围：SForge 全局状态映射；解耦评估：纯类型不加载动作实现。 */
+import type {FrontendActionRegistryState} from "../layout/dock/agent/frontendActions/types";
 
 /**
  * SForge 全局状态类型定义
@@ -109,6 +113,7 @@ export interface ISForgeGlobalState {
     [ARTICLE_PREVIEW_CURRENT_ID]?: string;
     [ONBOARDING_LIFECYCLE_STATE]?: OnboardingLifecycleState;
     [COMMON_GLOBAL_COMMAND_ROUTER]?: CommonGlobalCommandRouter<AppFacade>;
+    [FRONTEND_ACTION_REGISTRY]?: FrontendActionRegistryState;
 }
 
 /**

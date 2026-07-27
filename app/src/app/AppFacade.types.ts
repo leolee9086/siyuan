@@ -65,7 +65,9 @@ export interface AppFacadeShape<
         addDock: (plugin: TPlugin) => void;
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
+    getOpenEditors(): ProtyleDomain[];
     openSettings(tab?: SettingTabId): void;
+    openSearch(query?: string): void | Promise<void>;
     createDocument(name?: string): Promise<void>;
     createDocumentInTree(notebookId: string, currentPath: string, paths?: string[]): Promise<void>;
     handleUnavailableDocument(protyle: IProtyle): void;
@@ -73,7 +75,7 @@ export interface AppFacadeShape<
     openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig): void;
     openTab(options: AppTabNavigation): Promise<LayoutTab | undefined>;
     openAsset(options: AssetOpenOptions): void;
-    openBlock(options: AppBlockNavigation): void;
+    openBlock(options: AppBlockNavigation): void | Promise<void>;
     openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation): void;
     processSiYuanUri(uri: string): boolean;
 }

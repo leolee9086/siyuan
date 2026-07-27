@@ -33,7 +33,7 @@ import { reloadSync } from "./dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
 import { hideMessage, initMessage, showMessage } from "./dialog/message";
 import { confirmDialog } from "./dialog/confirmDialog";
-import { getAllModels, getAllTabs } from "./layout/getAll";
+import {getAllEditor, getAllModels, getAllTabs} from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "./util/network/processMessage";
@@ -83,6 +83,7 @@ import {removeProtyleTab} from "./protyle/runtime/layout.port";
 import {createInNotePluginManager} from "./inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePluginManager.types";
 import {openGlobalSearch as openGlobalSearchInApp} from "./search/global/openGlobalSearch";
+import {openSearch} from "./search/spread";
 import {openSetting} from "./config";
 import type {SettingTabId} from "./config/setting/setting.types";
 
@@ -100,8 +101,17 @@ export class App {
     public createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain {
         return new Protyle(this, element, options);
     }
+    public getOpenEditors() {
+        return getAllEditor();
+    }
     public openSettings(tab?: SettingTabId) {
         openSetting(this, tab);
+    }
+    public openSearch(query?: string) {
+        const options = query === undefined
+            ? {app: this, hotkey: Constants.DIALOG_GLOBALSEARCH}
+            : {app: this, hotkey: Constants.DIALOG_GLOBALSEARCH, key: query};
+        return openSearch(options);
     }
     public createDocument(name?: string) {
         return newFile(this, name);
@@ -131,7 +141,7 @@ export class App {
             openDatabaseRowBlock(this, options);
             return;
         }
-        void openFileById({app: this, ...options});
+        return openFileById({app: this, ...options});
     }
     public openDatabaseRow(_protyle: IProtyle, options: AppDatabaseRowNavigation) {
         openDesktopDatabaseRow(this, options);

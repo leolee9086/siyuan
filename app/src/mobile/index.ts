@@ -78,6 +78,7 @@ import {setEmpty} from "./util/setEmpty";
 import {createInNotePluginManager} from "../inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
 import {openMobileGlobalSearch} from "./search/global/openMobileGlobalSearch";
+import {getAllEditor} from "../layout/getAll";
 import {openSetting} from "../config";
 import type {SettingTabId} from "../config/setting/setting.types";
 
@@ -95,8 +96,14 @@ export class App {
     public createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain {
         return new Protyle(this, element, options);
     }
+    public getOpenEditors() {
+        return getAllEditor();
+    }
     public openSettings(tab?: SettingTabId) {
         openSetting(this, tab);
+    }
+    public openSearch(query?: string) {
+        openMobileGlobalSearch(this, {text: query ?? ""});
     }
     public createDocument(name?: string) {
         return newFile(this, name);

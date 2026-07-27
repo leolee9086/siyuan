@@ -31,6 +31,9 @@ export const ONBOARDING_LIFECYCLE_STATE = Symbol.for("sforge.onboarding.lifecycl
 /** 通用全局命令路由的唯一注册表键。 */
 export const COMMON_GLOBAL_COMMAND_ROUTER = Symbol.for("sforge.command.global.commonRouter");
 
+/** Agent 前端动作注册表的唯一状态键。 */
+export const FRONTEND_ACTION_REGISTRY = Symbol.for("sforge.agent.frontendActionRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */
