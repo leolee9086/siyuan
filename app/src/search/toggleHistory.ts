@@ -3,12 +3,8 @@ import {Menu} from "../plugin/Menu";
 import {setStorageVal} from "../util/storage/setStorageVal";
 import {escapeHtml} from "../util/DOM/escape";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import type {ProtyleDomain} from "../protyle/protyle.types";
 import {assetInputEvent} from "./assets";
-import {updateSearchResult} from "../mobile/menu/search";
-import {inputEvent} from "./util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import {isMobile} from "../platform";
 /** 用途：保留资源历史保存的既有公开 API；使用范围：搜索历史菜单兼容出口；解耦评估：真实实现位于独立持久化子域，本模块只维持同一函数身份。 */
 import {saveAssetKeyList} from "./history/storage";
 /** 用途：保留搜索词历史保存的既有公开 API；使用范围：搜索历史菜单兼容出口；解耦评估：真实实现位于独立持久化子域，本模块只维持同一函数身份。 */
@@ -85,7 +81,11 @@ export const toggleReplaceHistory = (replaceInputElement: HTMLInputElement) => {
         y: rect.bottom
     });
 };
-export const toggleSearchHistory = (searchElement: Element, config: Config.IUILayoutTabSearchConfig, edit: ProtyleDomain) => {
+export const toggleSearchHistory = (
+    searchElement: Element,
+    config: Config.IUILayoutTabSearchConfig,
+    onSelect: () => void,
+) => {
     const searchInputElement = searchElement.querySelector("#searchInput, #toolbarSearch") as HTMLInputElement;
     const list = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
     if (!list.keys || list.keys.length === 0 || (list.length === 1 && list[0] === searchInputElement.value)) {
@@ -131,12 +131,7 @@ export const toggleSearchHistory = (searchElement: Element, config: Config.IUILa
                         } else {
                             searchInputElement.value = element.textContent;
                             config.page = 1;
-                            if (isMobile) {
-                                updateSearchResult(config, searchElement, true);
-                            }
-                            if (!isMobile) {
-                                inputEvent(searchElement, config, edit, true);
-                            }
+                            onSelect();
                             window.siyuan.menus.menu.remove();
                         }
                         itemEvent.preventDefault();

@@ -35,6 +35,8 @@ import {
     onAssetMethodChange,
 } from "./handlers/handleAssetClick";
 import { toggleSearchHistory, toggleAssetHistory } from "../../toggleHistory";
+/** 用途：执行桌面搜索输入刷新；使用范围：历史关键词选中回调；解耦评估：桌面宿主持有完整编辑器上下文，应在此选择具体刷新行为。 */
+import {inputEvent} from "../../inputEvent";
 import {
     handleSearchRefresh,
     handleSearchOpen,
@@ -92,7 +94,9 @@ const idHandlers: Record<string, (ctx: SearchClickContext) => void> = {
 
 /** 基于 ID 的历史按钮处理器（需要特殊的事件处理） */
 const historyHandlers: Record<string, (ctx: SearchClickContext) => void> = {
-    searchHistoryBtn: (ctx) => toggleSearchHistory(ctx.ui.element, ctx.state.config, ctx.state.edit),
+    searchHistoryBtn: (ctx) => toggleSearchHistory(ctx.ui.element, ctx.state.config, () => {
+        inputEvent(ctx.ui.element, ctx.state.config, ctx.state.edit, true);
+    }),
     assetHistoryBtn: (ctx) => toggleAssetHistory(ctx.ui.assetsElement),
     replaceHistoryBtn: (ctx) => handleReplaceHistoryBtn(ctx.ui.element),
 };

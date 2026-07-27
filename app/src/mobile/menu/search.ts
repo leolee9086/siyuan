@@ -15,6 +15,8 @@ import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment
 import {onRecentBlocks} from "./search.render";
 import {initSearchEvent} from "./search.event";
 import {getUnRefListMobile} from "./searchInvalidRefs";
+/** 用途：打开公共搜索历史菜单；使用范围：移动搜索标题栏；解耦评估：选择后的刷新由移动宿主回调提供，公共模块不再反向加载移动实现。 */
+import {toggleSearchHistory} from "../../search/toggleHistory";
 
 let toolbarSearchTimeout = 0;
 export const updateSearchResult = (config: Config.IUILayoutTabSearchConfig, element: Element, rmCurrentCriteria = false,
@@ -214,7 +216,14 @@ export const popSearch = (app: AppFacade, searchConfig?: Config.IUILayoutTabSear
             });
             const historyElement = document.querySelector('.toolbar [data-type="history"]');
             historyElement.addEventListener("click", () => {
-                toggleSearchHistory(document.querySelector("#model"), config, undefined);
+                const searchElement = document.querySelector("#model");
+                // 搜索模型 DOM 是历史菜单定位和读取输入框的必需宿主，缺失表示移动面板生命周期已损坏。
+                if (!searchElement) {
+                    throw new Error("Mobile search model element is unavailable");
+                }
+                toggleSearchHistory(searchElement, config, () => {
+                    updateSearchResult(config, searchElement, true);
+                });
             });
             initSearchEvent(app, element.firstElementChild, config, updateSearchResult, goAsset, getUnRefListMobile);
             updateSearchResult(config, element);
