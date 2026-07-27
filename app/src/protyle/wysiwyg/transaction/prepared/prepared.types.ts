@@ -7,5 +7,7 @@
 export interface PreparedTransactionCommit {
     protyle: IProtyle;
     doOperations: IOperation[];
-    undoOperations: IOperation[];
+    undoOperations?: IOperation[];
+    /** 内核确认成功且字数刷新已启动后执行的调用域 UI 收尾。 */
+    callback?: () => void;
 }

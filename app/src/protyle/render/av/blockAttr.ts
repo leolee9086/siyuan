@@ -8,7 +8,8 @@ import {popTextCell} from "./cell/edit";
 import {updateCellsValue} from "./cell.update";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVAttributeTableTransaction} from "../../wysiwyg/transaction/prepared/av/attributeTable/avAttributeTable";
+import type {AVAttributeTableCommit} from "../../wysiwyg/transaction/prepared/av/attributeTable/attributeTable.types";
 import {avMenuPanel, openMenuPanel} from "./openMenuPanel";
 import {uploadFiles} from "../../upload/transport";
 import {openLink} from "../../../editor/openLink";
@@ -171,17 +172,17 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                     const previousID = isBottom ? targetElement.dataset.colId : targetElement.previousElementSibling?.getAttribute("data-col-id");
                     const undoPreviousID = window.siyuan.dragElement.previousElementSibling?.getAttribute("data-col-id");
                     if (previousID !== undoPreviousID && previousID !== window.siyuan.dragElement.dataset.colId) {
-                        transaction(protyle, [{
+                        submitAVAttributeTableTransaction({protyle, doOperations: [{
                             action: "sortAttrViewKey",
                             avID: dragBlockElement.dataset.avId,
                             previousID,
                             id: window.siyuan.dragElement.dataset.colId,
-                        }], [{
+                        }], undoOperations: [{
                             action: "sortAttrViewKey",
                             avID: dragBlockElement.dataset.avId,
                             previousID: undoPreviousID,
                             id,
-                        }]);
+                        }]});
                         if (isBottom) {
                             targetElement.after(window.siyuan.dragElement);
                         } else {
@@ -378,7 +379,9 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                         }];
                         confirmDialog(window.siyuan.languages.removeAV, window.siyuan.languages.confirmDelete + "?", () => {
                             removeElement.setAttribute("disabled", "true");
-                            transaction(protyle, doOperations, undoOperations.length > 0 ? undoOperations : undefined, {
+                            const commit: AVAttributeTableCommit = {
+                                protyle,
+                                doOperations,
                                 callback: () => {
                                     blockElement.remove();
                                     protyle.databaseAttributePanel?.refresh();
@@ -390,8 +393,12 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                                             }
                                         });
                                     }
-                                }
-                            });
+                                },
+                            };
+                            if (undoOperations.length > 0) {
+                                commit.undoOperations = undoOperations;
+                            }
+                            submitAVAttributeTableTransaction(commit);
                         }, undefined, true);
                     }
                     event.stopPropagation();

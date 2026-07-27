@@ -49,16 +49,43 @@ describe("prepared transaction submission", () => {
         await Promise.resolve();
 
         expect(mocks.registerTransactionUndo).toHaveBeenCalledWith(protyle, doOperations, undoOperations);
-        expect(mocks.registerTransactionUndo.mock.invocationCallOrder[0])
-            .toBeLessThan(mocks.markTransactionSyncPending.mock.invocationCallOrder[0]);
-        expect(mocks.markTransactionSyncPending.mock.invocationCallOrder[0])
-            .toBeLessThan(mocks.queueTransaction.mock.invocationCallOrder[0]);
+        const undoOrder = mocks.registerTransactionUndo.mock.invocationCallOrder[0];
+        const syncOrder = mocks.markTransactionSyncPending.mock.invocationCallOrder[0];
+        const queueOrder = mocks.queueTransaction.mock.invocationCallOrder[0];
+        if (undoOrder === undefined || syncOrder === undefined || queueOrder === undefined) {
+            throw new Error("Expected prepared transaction lifecycle calls");
+        }
+        expect(undoOrder).toBeLessThan(syncOrder);
+        expect(syncOrder).toBeLessThan(queueOrder);
         expect(mocks.fetchPost).toHaveBeenCalledWith("/api/transactions", {
             session: "session-id",
             app: "app-id",
             transactions: [{doOperations, undoOperations}],
         }, expect.any(Function));
         expect(mocks.countBlockWord).toHaveBeenCalledWith(["selected-id"], "root-id", true);
+    });
+
+    it("runs the calling domain callback only after the successful response lifecycle", async () => {
+        const callback = vi.fn();
+        submitPreparedTransaction({
+            protyle: createProtyle(),
+            doOperations: [{action: "removeAttrViewBlock", id: "row-id"}],
+            callback,
+        });
+        await Promise.resolve();
+
+        expect(callback).toHaveBeenCalledOnce();
+        const wordCountOrder = mocks.countBlockWord.mock.invocationCallOrder[0];
+        const callbackOrder = callback.mock.invocationCallOrder[0];
+        if (wordCountOrder === undefined || callbackOrder === undefined) {
+            throw new Error("Expected word count and domain callback lifecycle calls");
+        }
+        expect(wordCountOrder).toBeLessThan(callbackOrder);
+        expect(mocks.registerTransactionUndo).toHaveBeenCalledWith(
+            expect.anything(),
+            [{action: "removeAttrViewBlock", id: "row-id"}],
+            undefined,
+        );
     });
 
     it("keeps lite transactions local after undo registration", () => {

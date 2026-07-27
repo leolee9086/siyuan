@@ -15,6 +15,9 @@ import type {PreparedTransactionCommit} from "./prepared.types";
 
 /** 收集当前编辑器选择块 ID，保持事务响应后的字数刷新语义。 */
 const collectSelectedBlockIDs = (protyle: IProtyle) => {
+    if (!protyle.wysiwyg) {
+        throw new Error("Prepared transaction requires an initialized wysiwyg editor");
+    }
     const ids: string[] = [];
     for (const item of protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")) {
         const id = item.getAttribute("data-node-id");
@@ -30,6 +33,7 @@ const completePreparedTransaction = (commit: PreparedTransactionCommit) => {
     const selectedBlockIDs = collectSelectedBlockIDs(commit.protyle);
     const rootID = commit.protyle.block.rootID;
     countBlockWord(selectedBlockIDs, rootID, true);
+    commit.callback?.();
 };
 
 /** 向内核发送一个已完成调用域本地呈现决策的事务。 */

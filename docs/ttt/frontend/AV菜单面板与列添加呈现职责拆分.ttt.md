@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：Panel、Cell/Edit 和数据库行导航返回边已经清零；沿当前首环审计 `blockAttr -> transaction` 的剩余 AV 属性事务，并继续分层 Panel 内容渲染、挂载定位和事件分发。
+> **下一步任务**：Panel、Cell/Edit、数据库行导航和 BlockAttr 事务返回边已经清零；继续分层 Panel 内容渲染、挂载定位和事件分发，属性表上帝模块由独立专项滚动拆分。
 
 ## 不变量
 
@@ -76,6 +76,7 @@
 - **2026-07-27**：Panel Drag 的两类剩余事务按真实列领域归位：选项排序已原地修改 `column.options` 并重绘菜单，复用完整 Column Edit 命令；列排序属于列结构顺序变化，扩展既有 Column Structure 封闭集合，Panel 继续原地更新 `ctx.fields`，表头拖拽继续以实时 DOM 位置计算 do/undo。新增行为测试固定 pinned previousID、精确 do/undo 和无变化短路；相关专项 `28/28`、Node `200/200`、Protyle 契约和网关门禁通过。生产图 `2290 / 306 / SCC 581`，Panel Drag、表头拖拽辅助与命令均退出循环组件，首环转为 `cell/edit -> transaction`。
 - **2026-07-27**：`cell/edit.ts` 唯一通用事务为模板列设置；该流程在提交前比较输入值与原模板，提交后设置 `data-loading`，其 action 已由完整 Column Edit 命令覆盖。调用点直达该命令，未新增 Cell Port 或同义提交层；Column Edit 专项 `13/13`、Protyle 契约和网关门禁通过。生产图 `2290 / 283 / SCC 580`，Cell/Edit 退出循环组件，首环推进到 `blockAttr -> openDatabaseRow -> editor`。
 - **2026-07-27**：删除混合桌面/移动实现且反向加载 `blockAttr` 的 `AV/openDatabaseRow.ts`。两个 AV 调用点现只调用完整 `protyle.app.openDatabaseRow`；桌面/移动 App 分别委派到自身导航实现，保持原自定义页签、预览复用、Dialog、菜单和属性面板语义。专项 `7/7`、AppFacade 契约 `3/3`、Node `200/200`、Protyle 契约和网关门禁通过。生产图 `2295 / 299 / SCC 579`，导航节点退出循环组件，首环推进到 `blockAttr -> transaction`；代表环反升仅为路径重新枚举。
+- **2026-07-27**：建立 [AV 属性表呈现与交互生命周期拆分](./AV属性表呈现与交互生命周期拆分.ttt.md)。字段排序与复合行删除进入完整 Attribute Table 命令；Prepared 内核补齐可选 undo 和成功回调，保持删除 DOM/刷新/关闭发生在内核成功之后。专项 `11/11`、Node `200/200`、Protyle 契约、新源码 lint、全量类型新目标诊断 `0` 和网关门禁通过；生产图 `2298 / 296 / SCC 576`，`blockAttr.ts` 与新子域退出循环组件。
 
 ## 关联任务
 
