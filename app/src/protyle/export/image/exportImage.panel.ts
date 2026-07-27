@@ -1,5 +1,5 @@
 /** 用途：读取全局配置；使用范围：构建导出图片 panel 时决定书签图标样式；解耦评估：通过 environment 层访问配置，适合在共享 panel 中复用。 */
-import {getSiyuanConfig} from "./imports";
+import {getSafeSiyuanConfig} from "./imports";
 /** 用途：移动端判断；使用范围：共享 panel 在 dialog/tab 中复用时调整布局；解耦评估：平台工具函数直接复用即可。 */
 import {isMobile} from "./imports";
 /** 用途：展示错误消息；使用范围：共享 panel 缺失关键 DOM 时统一告警；解耦评估：UI 基础能力直接调用最简洁。 */
@@ -31,7 +31,7 @@ export const buildExportImagePanelHtml = async (
     storage: IExportImageStorage,
     mode: TExportImagePanelMode,
 ): Promise<string> => {
-    const displayBookmarkIcon = getSiyuanConfig()?.editor?.displayBookmarkIcon ?? false;
+    const displayBookmarkIcon = getSafeSiyuanConfig()?.editor?.displayBookmarkIcon ?? false;
     const previewClassName = `protyle-wysiwyg${displayBookmarkIcon ? " protyle-wysiwyg--attr" : ""}`;
     const ratioOptionsHtml = await buildExportImageRatioOptionsHtml(storage.ratio);
     const contentStyle = `${isMobile() ? "padding:8px;" : ""};background-color: var(--b3-theme-background)${mode === "tab" ? `;flex:1;overflow:auto;padding:${EXPORT_IMAGE_TAB_CONTENT_PADDING_Y}px ${EXPORT_IMAGE_TAB_CONTENT_PADDING_X}px;display:flex;justify-content:center;align-items:flex-start;` : ""}`;

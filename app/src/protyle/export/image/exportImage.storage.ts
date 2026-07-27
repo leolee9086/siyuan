@@ -1,7 +1,7 @@
 /** 用途：导出流程常量；使用范围：读取 LOCAL_EXPORTIMG；解耦评估：集中常量依赖，禁止硬编码替代。 */
 import {Constants} from "./imports";
 /** 用途：全局存储访问；使用范围：读取与修复导出图片配置；解耦评估：通过 environment 封装已消除业务层 window 耦合。 */
-import {getSiyuanStorage} from "./imports";
+import {getSafeSiyuanStorage} from "./imports";
 /** 用途：导出图片存储类型；使用范围：返回值与默认值约束；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageStorage} from "./exportImage.types";
 /** 用途：导出比例规范化；使用范围：修复历史存储中的 ratio 字段；解耦评估：比例规则集中维护优于在存储层重复硬编码。 */
@@ -60,7 +60,7 @@ const normalizeString = (value: unknown, fallback: string): string => {
  */
 // 导出语句注释：导出图片配置读取入口。
 export const getExportImageStorage = async (): Promise<IExportImageStorage> => {
-    const storage = getSiyuanStorage();
+    const storage = getSafeSiyuanStorage();
     if (!storage) {
         return createDefaultStorage();
     }

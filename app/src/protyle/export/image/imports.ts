@@ -42,10 +42,10 @@ import {useShell} from "../../../util/file/pathName";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 /** 用途：Electron 环境判断；使用范围：导出后“在文件夹中显示”能力开关；解耦评估：平台能力判断，不宜在业务层重写。 */
 import {isElectron} from "../../../platform";
-/** 用途：读取全局配置；使用范围：导出图片显示配置与水印配置；解耦评估：通过 environment 层已完成 window 解耦。 */
-import {getSiyuanConfig} from "../../../layout/util.environment";
-/** 用途：读取全局存储；使用范围：导出图片本地选项读取；解耦评估：通过 environment 层已完成 window 解耦。 */
-import {getSiyuanStorage} from "../../../layout/util.environment";
+/** 用途：安全读取全局配置；使用范围：导出图片显示配置与水印配置；解耦评估：直达 Siyuan 环境真实所有者，保持缺失时返回 undefined 的既有语义。 */
+import {getSafeSiyuanConfig} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：安全读取全局存储；使用范围：导出图片本地选项读取；解耦评估：直达 Siyuan 环境真实所有者，保持缺失时返回 undefined 的既有语义。 */
+import {getSafeSiyuanStorage} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：获取 html-to-image 运行时对象；使用范围：截图与水印纹理生成；解耦评估：通过 environment 层避免业务直接访问 window。 */
 import {getHtmlToImage} from "../../../util/siyuanEnvironments/getHtmlToImage.environment";
 
@@ -94,8 +94,8 @@ export {siyuanI18n};
 // 导出：Electron 判断
 export {isElectron};
 // 导出：全局配置读取
-export {getSiyuanConfig};
+export {getSafeSiyuanConfig};
 // 导出：全局存储读取
-export {getSiyuanStorage};
+export {getSafeSiyuanStorage};
 // 导出：html-to-image 访问器
 export {getHtmlToImage};

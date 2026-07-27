@@ -3,7 +3,7 @@ import {addScript} from "./imports";
 /** 用途：常量集合；使用范围：拼接 PROTYLE_CDN 资源路径；解耦评估：全局常量依赖，不应硬编码。 */
 import {Constants} from "./imports";
 /** 用途：全局配置读取；使用范围：读取水印描述与文本配置；解耦评估：经 environment 封装已解耦 window。 */
-import {getSiyuanConfig} from "./imports";
+import {getSafeSiyuanConfig} from "./imports";
 /** 用途：html-to-image 访问器；使用范围：文本水印转 canvas；解耦评估：经 environment 封装避免业务直接访问 window。 */
 import {getHtmlToImage} from "./imports";
 /** 用途：导出图片上下文类型；使用范围：水印更新流程参数；解耦评估：类型依赖无运行时耦合。 */
@@ -26,7 +26,7 @@ export const updateExportImageWatermark = async (ctx: IExportImageContext) => {
         return;
     }
 
-    const exportConfig = getSiyuanConfig()?.export;
+    const exportConfig = getSafeSiyuanConfig()?.export;
     const watermarkDesc = exportConfig?.imageWatermarkDesc;
     if (watermarkDesc) {
         preview.innerHTML = watermarkDesc;
