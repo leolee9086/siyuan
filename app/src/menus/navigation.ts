@@ -1,7 +1,6 @@
 import { exportMd, movePathToMenu, renameMenu, } from "./commonMenuItem";
 import { copySubMenu } from "./commonMenuItem/copy";
 import {openFileAttr} from "./commonMenuItem/fileAttr/openFileAttr";
-import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";
 import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/file/pathName";
@@ -17,8 +16,6 @@ import { Constants } from "../constants";
 import { newFileInTree } from "../util/file/newFile";
 import { hasClosestByTag, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { deleteFiles } from "../editor/deleteFile";
-import { getDockByType } from "../layout/tabUtil";
-import { Files } from "../layout/dock/Files";
 import { openCardByData } from "../card/openCard";
 import { viewCards } from "../card/viewCards";
 import type { AppFacade } from "../app/AppFacade.types";
@@ -34,6 +31,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { initMultiMenu } from "./navigation.initMultiMenu";
 import { openEmojiPanel } from "../emoji";
 import {sortMenu} from "./navigation/sortMenu";
+import {appendFileTreeImportMenu} from "./fileTree/importMenu/importMenu.factory";
 
 const confirmEncryptedExport = (notebookId: string, callback: () => void) => {
     if (!isEncryptedBox(notebookId)) {
@@ -264,7 +262,7 @@ export const initNavigationMenu = (app: AppFacade, liElement: HTMLElement) => {
             }
         }).element);
     }
-    genImportMenu(notebookId, "/");
+    appendFileTreeImportMenu(notebookId, "/");
 
     window.siyuan.menus.menu.append(new MenuItem({
         id: "export",
@@ -660,7 +658,7 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
             }]
         }).element);
     })();
-    genImportMenu(notebookId, pathString);
+    appendFileTreeImportMenu(notebookId, pathString);
     window.siyuan.menus.menu.append(exportMd(id));
     if (app.plugins) {
         emitOpenMenu({
@@ -675,99 +673,4 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
     }
     window.siyuan.menus.menu.element.setAttribute("data-from", Constants.MENU_FROM_DOC_TREE_MORE_DOC);
     return window.siyuan.menus.menu;
-};
-
-export const genImportMenu = (notebookId: string, pathString: string) => {
-    if (window.siyuan.config.readonly) {
-        return;
-    }
-    const reloadDocTree = () => {
-        let files;
-        if (isMobile) {
-            files = window.siyuan.mobile.docks.file;
-        }
-        if (!isMobile) {
-            files = (getDockByType("file").data["file"] as Files);
-        }
-        const liElement = files.element.querySelector(`[data-path="${pathString}"]`);
-        liElement.querySelector(".b3-list-item__toggle").classList.remove("fn__hidden");
-        files.getLeaf(liElement, notebookId, true);
-        window.siyuan.menus.menu.remove();
-    };
-    const importstdmd = (label: string, isDoc?: boolean) => {
-        return {
-            id: isDoc ? "importMarkdownDoc" : "importMarkdownFolder",
-            icon: isDoc ? "iconMarkdown" : "iconFolder",
-            label,
-            click: async () => {
-                let filters: { name: string; extensions: string[] }[] = [];
-                if (isDoc) {
-                    filters = [{ name: "Markdown", extensions: ["md", "markdown"] }];
-                }
-                const localPath = await ipcInvoke(Constants.SIYUAN_GET, {
-                    cmd: "showOpenDialog",
-                    defaultPath: window.siyuan.config.system.homeDir,
-                    filters,
-                    properties: [isDoc ? "openFile" : "openDirectory"],
-                });
-                if (localPath.filePaths.length === 0) {
-                    return;
-                }
-                fetchPost("/api/import/importStdMd", {
-                    notebook: notebookId,
-                    localPath: localPath.filePaths[0],
-                    toPath: pathString,
-                }, () => {
-                    reloadDocTree();
-                });
-            }
-        };
-    };
-    window.siyuan.menus.menu.append(new MenuItem({
-        id: "import",
-        icon: "iconDownload",
-        label: siyuanI18n.import,
-        submenu: [
-            {
-                id: "importSiYuanZip",
-                icon: "iconSiYuan",
-                label: 'SiYuan .sy.zip<input class="b3-form__upload" type="file" accept="application/zip">',
-                bind: (element) => {
-                    element.querySelector(".b3-form__upload").addEventListener("change", (event: InputEvent & {
-                        target: HTMLInputElement
-                    }) => {
-                        const formData = new FormData();
-                        formData.append("file", event.target.files[0]);
-                        formData.append("notebook", notebookId);
-                        formData.append("toPath", pathString);
-                        fetchPost("/api/import/importSY", formData, () => {
-                            reloadDocTree();
-                        });
-                    });
-                }
-            },
-            {
-                id: "importMarkdownZip",
-                icon: "iconMarkdown",
-                label: 'Markdown .zip<input class="b3-form__upload" type="file" accept="application/zip">',
-                bind: (element) => {
-                    element.querySelector(".b3-form__upload").addEventListener("change", (event: InputEvent & {
-                        target: HTMLInputElement
-                    }) => {
-                        const formData = new FormData();
-                        formData.append("file", event.target.files[0]);
-                        formData.append("notebook", notebookId);
-                        formData.append("toPath", pathString);
-                        fetchPost("/api/import/importZipMd", formData, () => {
-                            reloadDocTree();
-                        });
-                    });
-                }
-            },
-            ...(isElectron ? [
-                importstdmd("Markdown " + siyuanI18n.doc, true),
-                importstdmd("Markdown " + siyuanI18n.folder)
-            ] : [])
-        ],
-    }).element);
 };

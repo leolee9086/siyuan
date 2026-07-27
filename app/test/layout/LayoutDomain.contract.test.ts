@@ -54,6 +54,9 @@ import type {EditorDomain} from "../../src/editor/model/editorDomain.types";
 import {editorModelBrand, isEditorDomain} from "../../src/editor/model/editorDomain.types";
 import type {MobileBookmarks} from "../../src/mobile/dock/MobileBookmarks";
 import type {MobileBookmarksDomain} from "../../src/mobile/dock/bookmark/mobileBookmarks.types";
+import type {MobileFiles} from "../../src/mobile/dock/MobileFiles";
+import type {MobileFilesDomain} from "../../src/mobile/dock/files/mobileFiles.types";
+import {isMobileFilesDomain, mobileFilesModelBrand} from "../../src/mobile/dock/files/mobileFiles.types";
 
 type WndContract = PublicInstanceLooksLike<typeof Wnd, LayoutWindow>;
 type TabContract = PublicInstanceLooksLike<typeof Tab, LayoutTab>;
@@ -82,6 +85,7 @@ type TagContract = PublicInstanceLooksLike<typeof Tag, TagDomain<AppFacade, Tab>
 type SearchContract = PublicInstanceLooksLike<typeof Search, SearchDomain<AppFacade, LayoutTab>>;
 type EditorContract = PublicInstanceLooksLike<typeof Editor, EditorDomain<object, ProtyleDomain>>;
 type MobileBookmarksContract = PublicInstanceLooksLike<typeof MobileBookmarks, MobileBookmarksDomain>;
+type MobileFilesContract = PublicInstanceLooksLike<typeof MobileFiles, MobileFilesDomain>;
 
 const wndContract: WndContract = true;
 const tabContract: TabContract = true;
@@ -104,6 +108,7 @@ const tagContract: TagContract = true;
 const searchContract: SearchContract = true;
 const editorContract: EditorContract = true;
 const mobileBookmarksContract: MobileBookmarksContract = true;
+const mobileFilesContract: MobileFilesContract = true;
 
 describe("layout domain contracts", () => {
     it("keeps concrete window, tab, and outline classes compatible with their abstract roots", () => {
@@ -128,6 +133,7 @@ describe("layout domain contracts", () => {
         assert.equal(searchContract, true);
         assert.equal(editorContract, true);
         assert.equal(mobileBookmarksContract, true);
+        assert.equal(mobileFilesContract, true);
     });
 
     it("classifies Asset models through the stable domain brand", () => {
@@ -147,5 +153,7 @@ describe("layout domain contracts", () => {
         assert.equal(isTagDomain({[tagModelBrand]: "Tag"}), true);
         assert.equal(isSearchDomain({[searchModelBrand]: "Search"}), true);
         assert.equal(isEditorDomain({[editorModelBrand]: "Editor"}), true);
+        assert.equal(isMobileFilesDomain({[mobileFilesModelBrand]: "MobileFiles"}), true);
+        assert.equal(isMobileFilesDomain({layoutModel: true}), false);
     });
 });

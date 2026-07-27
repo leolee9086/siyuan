@@ -28,8 +28,12 @@ import {
 } from "../../protyle/util/publishAccess";
 import {cancelFileTreeCollapse} from "../../layout/dock/fileTreeAnimation";
 import {bindMousePointerTouchBridge, isMousePointerTouchEvent} from "../util/mousePointerTouchBridge";
+import {mobileFilesModelBrand} from "./files/mobileFiles.types";
 
 export class MobileFiles extends Model<AppFacade> {
+    public get [mobileFilesModelBrand]() {
+        return "MobileFiles" as const;
+    }
     public element: HTMLElement;
     public actionsElement: HTMLElement;
     public closeElement: HTMLElement;
