@@ -166,6 +166,11 @@ import {transaction} from "../../../../wysiwyg/transaction/submit";
 /** 导出 transaction 供 click 子模块复用。 */
 export { transaction };
 
+/** 用途：提交分组折叠事务；使用范围：高级 data-type 点击；解耦评估：直达 Groups Prepared 命令，不加载通用事务主图。 */
+import {submitAVGroupTransaction} from "../../../../wysiwyg/transaction/prepared/av/group/avGroup";
+/** 导出 Groups 严格命令。 */
+export {submitAVGroupTransaction};
+
 /** 用途：写入系统剪贴板。使用范围：copy 按钮。解耦评估：剪贴板兼容逻辑应继续复用共享实现。 */
 import { writeText } from "../../../../util/compatibility";
 /** 导出 writeText 供 click 子模块复用。 */

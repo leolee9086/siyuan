@@ -1,5 +1,7 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
+/** 用途：提交分组拖拽排序；使用范围：Groups 拖拽分支；解耦评估：经 Groups drag 网关直达严格命令。 */
+import {submitAVGroupTransaction} from "./group/drag/imports";
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import {bindEditEvent, getEditHTML} from "./col/edit/render";
 import {getColId} from "./col/identity/resolve";
@@ -338,7 +340,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
             const previousID = (isTop ? targetElement.previousElementSibling?.getAttribute("data-id") : targetElement.getAttribute("data-id")) || "";
             const undoPreviousID = sourceElement.previousElementSibling?.getAttribute("data-id") || "";
             if (previousID !== undoPreviousID && previousID !== sourceId) {
-                transaction(options.protyle, [{
+                submitAVGroupTransaction(options.protyle, [{
                     action: "sortAttrViewGroup",
                     avID,
                     blockID,

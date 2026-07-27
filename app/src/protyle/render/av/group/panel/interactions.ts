@@ -1,18 +1,38 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
-import { setPosition } from "../../../util/DOM/positioning/setPosition";
-import { getFieldsByData } from "./view/metadata";
-import {
-    bindGroupsEvent, bindGroupsNumber,
-    getGroupsHTML, getGroupsMethodHTML, getGroupsNumberHTML,
-    goGroupsDate, goGroupsSort, setGroupMethod
-} from "./groups";
-import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { clearViewGroupData } from "./openMenuPanel.click.guard";
-import type { IMenuPanelContext } from "./openMenuPanel.types";
+/** 用途：提交封闭的 Groups 事务；使用范围：隐藏、显示与清除；解耦评估：经本子域网关直达严格命令。 */
+import {submitAVGroupTransaction} from "./imports";
+/** 用途：定位 Groups Panel；使用范围：内容切换与清除刷新；解耦评估：经本子域网关直达定位实现。 */
+import {setPosition} from "./imports";
+/** 用途：读取视图字段；使用范围：日期/排序设置返回；解耦评估：经本子域网关直达元数据所有者。 */
+import {getFieldsByData} from "./imports";
+/** 用途：绑定 Groups 列表事件；使用范围：返回分组列表；解耦评估：经本子域网关直达当前唯一实现。 */
+import {bindGroupsEvent} from "./imports";
+/** 用途：绑定 Groups 数值范围；使用范围：数值设置 Panel；解耦评估：经本子域网关直达当前唯一实现。 */
+import {bindGroupsNumber} from "./imports";
+/** 用途：渲染 Groups 列表；使用范围：列表导航与清除刷新；解耦评估：经本子域网关直达当前唯一实现。 */
+import {getGroupsHTML} from "./imports";
+/** 用途：渲染 Groups 方法选择；使用范围：无分组字段和方法导航；解耦评估：经本子域网关直达当前唯一实现。 */
+import {getGroupsMethodHTML} from "./imports";
+/** 用途：渲染 Groups 数值范围；使用范围：数值设置 Panel；解耦评估：经本子域网关直达当前唯一实现。 */
+import {getGroupsNumberHTML} from "./imports";
+/** 用途：进入 Groups 日期设置；使用范围：日期动作；解耦评估：经本子域网关直达当前唯一实现。 */
+import {goGroupsDate} from "./imports";
+/** 用途：进入 Groups 排序设置；使用范围：排序动作；解耦评估：经本子域网关直达当前唯一实现。 */
+import {goGroupsSort} from "./imports";
+/** 用途：设置 Groups 方法；使用范围：方法动作；解耦评估：经本子域网关直达当前唯一实现。 */
+import {setGroupMethod} from "./imports";
+/** 用途：清理全局菜单；使用范围：Groups Panel 动作；解耦评估：经网关直达环境动作。 */
+import {removeSiyuanMenu} from "./imports";
+/** 用途：读取 Groups 文案；使用范围：显示隐藏按钮；解耦评估：经网关直达只读环境。 */
+import {siyuanI18n} from "./imports";
+/** 用途：清除分组本地数据；使用范围：移除全部分组；解耦评估：经网关直达唯一变换。 */
+import {clearViewGroupData} from "./imports";
+/** 用途：约束完整 Panel 上下文；使用范围：全部交互处理器；解耦评估：纯类型经网关直达领域声明。 */
+import type {IMenuPanelContext} from "./imports";
+/** 用途：约束一次完整 Groups Panel 点击消息；使用范围：公开分发入口；解耦评估：同域数据契约，不承载宿主能力。 */
+import type {GroupPanelInteraction} from "./types";
 
 /** 分组日期设置 @同步豁免: UI构建 */
-const handleGoGroupsDate = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleGoGroupsDate = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     goGroupsDate({
         target, menuElement: ctx.menuElement,
         protyle: ctx.options.protyle, blockElement: ctx.options.blockElement, data: ctx.data
@@ -23,7 +43,7 @@ const handleGoGroupsDate = (ctx: IMenuPanelContext, target: HTMLElement, event: 
 };
 
 /** 分组排序设置 @同步豁免: UI构建 */
-const handleGoGroupsSort = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleGoGroupsSort = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     goGroupsSort({
         target, menuElement: ctx.menuElement,
         protyle: ctx.options.protyle, blockElement: ctx.options.blockElement, data: ctx.data
@@ -34,7 +54,7 @@ const handleGoGroupsSort = (ctx: IMenuPanelContext, target: HTMLElement, event: 
 };
 
 /** 设置分组方式 @同步豁免: UI构建 */
-const handleSetGroupMethod = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleSetGroupMethod = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     setGroupMethod({
         protyle: ctx.options.protyle, fieldId: target.getAttribute("data-id") ?? "",
         data: ctx.data, menuElement: ctx.menuElement, blockElement: ctx.options.blockElement,
@@ -44,7 +64,7 @@ const handleSetGroupMethod = (ctx: IMenuPanelContext, target: HTMLElement, event
 };
 
 /** 进入分组面板（含关闭旧closeCB逻辑） */
-const handleGoGroups = async (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): Promise<void> => {
+const handleGoGroups = async (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     // 存在数值范围面板时先关闭
     if (ctx.menuElement.querySelector('[data-type="avGroupRange"]') && ctx.closeCB) {
         await ctx.closeCB();
@@ -69,7 +89,7 @@ const handleGoGroups = async (ctx: IMenuPanelContext, target: HTMLElement, event
 };
 
 /** 进入分组方式选择面板 @同步豁免: UI构建 */
-const handleGoGroupsMethod = (ctx: IMenuPanelContext, event: MouseEvent): void => {
+const handleGoGroupsMethod = (ctx: IMenuPanelContext, event: MouseEvent) => {
     removeSiyuanMenu();
     ctx.menuElement.innerHTML = getGroupsMethodHTML(ctx.fields, ctx.data.view.group, ctx.data.viewType);
     setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
@@ -78,7 +98,7 @@ const handleGoGroupsMethod = (ctx: IMenuPanelContext, event: MouseEvent): void =
 };
 
 /** 进入分组数值设置面板 @同步豁免: UI构建 */
-const handleGetGroupsNumber = (ctx: IMenuPanelContext, event: MouseEvent): void => {
+const handleGetGroupsNumber = (ctx: IMenuPanelContext, event: MouseEvent) => {
     removeSiyuanMenu();
     ctx.menuElement.innerHTML = getGroupsNumberHTML(ctx.data.view.group);
     setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
@@ -91,7 +111,7 @@ const handleGetGroupsNumber = (ctx: IMenuPanelContext, event: MouseEvent): void 
 };
 
 /** 构建显示/隐藏全部按钮的HTML @同步豁免: UI构建 */
-const buildToggleAllHTML = (showCount: number): string => {
+const buildToggleAllHTML = (showCount: number) => {
     const key = showCount === 0 ? "showAll" : "hideAll";
     const icon = showCount === 0 ? "" : "off";
     return `${siyuanI18n[key]}
@@ -100,7 +120,7 @@ const buildToggleAllHTML = (showCount: number): string => {
 };
 
 /** 切换单个分组的显示/隐藏 @同步豁免: UI构建 */
-const handleHideGroup = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleHideGroup = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     removeSiyuanMenu();
     const useElement = target.firstElementChild;
     if (!useElement) {
@@ -128,7 +148,7 @@ const handleHideGroup = (ctx: IMenuPanelContext, target: HTMLElement, event: Mou
         toggleAllEl.innerHTML = buildToggleAllHTML(showCount);
     }
     const targetId = target.dataset.id ?? "";
-    transaction(ctx.options.protyle, [{
+    submitAVGroupTransaction(ctx.options.protyle, [{
         action: "hideAttrViewGroup", avID: ctx.data.id, blockID: ctx.blockID,
         id: targetId, data: isHide ? 0 : 2,
     }], [{
@@ -140,7 +160,7 @@ const handleHideGroup = (ctx: IMenuPanelContext, target: HTMLElement, event: Mou
 };
 
 /** 切换全部分组的显示/隐藏 @同步豁免: UI构建 */
-const handleHideGroups = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+const handleHideGroups = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent) => {
     removeSiyuanMenu();
     const useEl = target.querySelector("use");
     const isShow = useEl?.getAttribute("xlink:href") === "#iconEyeoff";
@@ -154,7 +174,7 @@ const handleHideGroups = (ctx: IMenuPanelContext, target: HTMLElement, event: Mo
         const actionUse = itemEl?.querySelector(".b3-menu__action use");
         actionUse?.setAttribute("xlink:href", `#iconEye${isShow ? "off" : ""}`);
     }
-    transaction(ctx.options.protyle, [{
+    submitAVGroupTransaction(ctx.options.protyle, [{
         action: "hideAttrViewAllGroups", avID: ctx.data.id, blockID: ctx.blockID, data: isShow,
     }], [{
         action: "hideAttrViewAllGroups", avID: ctx.data.id, blockID: ctx.blockID, data: !isShow
@@ -164,9 +184,9 @@ const handleHideGroups = (ctx: IMenuPanelContext, target: HTMLElement, event: Mo
 };
 
 /** 移除所有分组 @同步豁免: UI构建 */
-const handleRemoveGroups = (ctx: IMenuPanelContext, event: MouseEvent): void => {
+const handleRemoveGroups = (ctx: IMenuPanelContext, event: MouseEvent) => {
     removeSiyuanMenu();
-    transaction(ctx.options.protyle, [{
+    submitAVGroupTransaction(ctx.options.protyle, [{
         action: "removeAttrViewGroup", avID: ctx.data.id, blockID: ctx.blockID,
     }], [{
         action: "setAttrViewGroup", avID: ctx.data.id, blockID: ctx.blockID, data: ctx.data.view.group
@@ -184,9 +204,7 @@ const handleRemoveGroups = (ctx: IMenuPanelContext, event: MouseEvent): void => 
  *       goGroupsMethod, getGroupsNumber, hideGroup, hideGroups, removeGroups
  * @同步豁免: UI构建
  */
-export const handleGroupsClick = async (
-    ctx: IMenuPanelContext, type: string, target: HTMLElement, event: MouseEvent
-): Promise<boolean> => {
+export const handleGroupsClick = async ({ctx, type, target, event}: GroupPanelInteraction) => {
     // 分组日期设置
     if (type === "goGroupsDate") {
         handleGoGroupsDate(ctx, target, event);

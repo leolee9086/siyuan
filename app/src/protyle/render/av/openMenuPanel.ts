@@ -31,7 +31,7 @@ import { handleColEditClick } from "./openMenuPanel.click.colEdit";
 import { handleColOpsClick } from "./openMenuPanel.click.colOps";
 import { handleViewClick } from "./openMenuPanel.click.view";
 import { handleCellClick } from "./openMenuPanel.click.cell";
-import { handleGroupsClick } from "./openMenuPanel.click.groups";
+import {handleGroupsClick} from "./group/panel/interactions";
 /**
  * 用途：国际化文案对象。
  * 使用范围：Panel 内除字段管理外的菜单文案。
@@ -375,7 +375,7 @@ export const openMenuPanel = (options: OpenAVMenuPanelOptions) => {
                     if (await handleCellClick(ctx, type, target, event)) {
                         break;
                     }
-                    if (await handleGroupsClick(ctx, type, target, event)) {
+                    if (await handleGroupsClick({ctx, type, target, event})) {
                         break;
                     }
                 }

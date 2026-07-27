@@ -20,8 +20,8 @@ import { hintRef } from "./imports";
 import { isHTMLElement } from "./imports";
 /** 用途：移除全局菜单。使用范围：主键按钮点击前。解耦评估：全局菜单访问必须经 environment 封装。 */
 import { removeSiyuanMenu } from "./imports";
-/** 用途：提交事务。使用范围：分组折叠延迟提交。解耦评估：事务是 action 层副作用边界，应继续在当前模块本地组装。 */
-import { transaction } from "./imports";
+/** 用途：提交分组折叠事务。使用范围：延迟折叠回调。解耦评估：经现有 click 网关直达 Groups 严格命令。 */
+import {submitAVGroupTransaction} from "./imports";
 /** 用途：统一结束已处理点击。使用范围：所有高级 data-type handler 的成功分支。解耦评估：这是 click 子目录内部共用动作，集中在 shared.ts 更利于复用。 */
 import { consumeClickEvent } from "./shared";
 
@@ -101,7 +101,7 @@ const onFoldTimeout = (blockElement: Element, groupId: string | undefined, isOpe
     if (!actions) {
         return;
     }
-    transaction(protyle, actions.redoActions, actions.undoActions);
+    submitAVGroupTransaction(protyle, actions.redoActions, actions.undoActions);
 };
 
 /**
