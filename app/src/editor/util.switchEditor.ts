@@ -17,7 +17,7 @@ import { focusBlock } from "./imports";
 /** 用途：选区聚焦。使用范围：还原编辑器选区。解耦评估：通过 ./imports 转发。 */
 import { focusByRange } from "./imports";
 /** 用途：后退栈记录。使用范围：切换编辑器时记录位置；解耦评估：直达导航历史唯一实现。 */
-import {pushBack} from "../util/platform/backForward";
+import {pushBack} from "../navigation/history/pushBack";
 /** 用途：网络请求。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
 /** 用途：代码高亮。使用范围：定位到指定代码块；解耦评估：直达稳定 DOM 定位唯一实现。 */

@@ -1,7 +1,3 @@
-import { hasClosestBlock } from "../../protyle/util/hasClosest";
-import { getContenteditableElement } from "../../protyle/wysiwyg/getBlock";
-import { getSelectionOffset } from "../../protyle/util/selection";
-import { Constants } from "../../constants";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { focusStack } from "./focusStack";
 import {getNavigationHistoryState} from "../../navigation/history/NavigationHistoryRegistry";
@@ -64,56 +60,5 @@ export const goForward = async (app: AppFacade) => {
     history.previousIsBack = false;
     if (forwardStack.length === 0) {
         document.querySelector("#barForward")?.classList.add("toolbar__item--disabled");
-    }
-};
-
-export const pushBack = (protyle: IProtyle, range?: Range, blockElement?: Element) => {
-    const history = getNavigationHistoryState("desktop");
-    const forwardStack = history.forwardStack;
-    if (!protyle.model) {
-        return;
-    }
-    if (!blockElement && range) {
-        blockElement = hasClosestBlock(range.startContainer) as Element;
-    }
-    if (!blockElement) {
-        return;
-    }
-    let editElement;
-    if (blockElement.classList.contains("protyle-title__input")) {
-        editElement = blockElement;
-    } else {
-        editElement = getContenteditableElement(blockElement);
-    }
-    if (editElement) {
-        const position = getSelectionOffset(editElement, undefined, range);
-        const id = blockElement.getAttribute("data-node-id") || protyle.block.rootID;
-        const lastStack = window.siyuan.backStack[window.siyuan.backStack.length - 1];
-        if (lastStack && lastStack.id === id && (
-            (protyle.block.showAll && lastStack.zoomId === protyle.block.id) || (!lastStack.zoomId && !protyle.block.showAll)
-        )) {
-            lastStack.position = position;
-        } else {
-            if (forwardStack.length > 0) {
-                if (history.previousIsBack) {
-                    window.siyuan.backStack.push(forwardStack.pop());
-                }
-                forwardStack.length = 0;
-                document.querySelector("#barForward")?.classList.add("toolbar__item--disabled");
-            }
-            window.siyuan.backStack.push({
-                position,
-                id,
-                protyle,
-                zoomId: protyle.block.showAll ? protyle.block.id : undefined,
-            });
-            if (window.siyuan.backStack.length > Constants.SIZE_UNDO) {
-                window.siyuan.backStack.shift();
-            }
-            history.previousIsBack = false;
-        }
-        if (window.siyuan.backStack.length > 1) {
-            document.querySelector("#barBack")?.classList.remove("toolbar__item--disabled");
-        }
     }
 };

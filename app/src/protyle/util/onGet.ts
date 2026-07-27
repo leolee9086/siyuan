@@ -5,13 +5,13 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {bgFade, scrollCenter} from "../../util/DOM/highlightById";
-import {pushBack} from "../../util/platform/backForward";
+import {pushBack} from "../../navigation/history/pushBack";
 import {focusBlock, focusByOffset} from "./selection";
 import {hasClosestByAttribute} from "./hasClosest";
 import {preventScroll} from "../scroll/preventScroll";
-import {removeLoading} from "../ui/initUI";
+import {removeLoading} from "../ui/loading";
 import {isMobile} from "../../util/platform/functions";
-import {foldPassiveType} from "../wysiwyg/renderBacklink";
+import {foldPassiveType} from "../wysiwyg/backlink/foldPassiveType";
 import {showMessage} from "../runtime/dialog.port";
 import {avRender} from "../render/av/render";
 import {hideTooltip} from "../runtime/dialog.port";

@@ -1,4 +1,4 @@
-import {removeLoading} from "../ui/initUI";
+import {removeLoading} from "../ui/loading";
 import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
@@ -8,6 +8,7 @@ import {disabledForeverProtyle, disabledProtyle} from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {isEncryptedBox} from "../../util/pathName";
 import {genBreadcrumb, improveBreadcrumbAppearance} from "../breadcrumb/backlinkBreadcrumb";
+import {foldPassiveType} from "./backlink/foldPassiveType";
 
 export const renderBacklink = (protyle: IProtyle, backlinkData: {
     blockPaths: IBreadcrumb[],
@@ -28,30 +29,6 @@ export const renderBacklink = (protyle: IProtyle, backlinkData: {
     removeLoading(protyle);
     if (window.siyuan.config.readonly || window.siyuan.config.editor.readOnly) {
         disabledProtyle(protyle);
-    }
-};
-
-// 传递型折叠处理
-export const foldPassiveType = (expand: boolean, element: HTMLElement | DocumentFragment) => {
-    if (element.firstElementChild.classList.contains("li")) {
-        if (expand) {
-            element.querySelectorAll(".li .li").forEach(item => {
-                if (item.childElementCount > 3) {
-                    item.setAttribute("fold", "1");
-                }
-            });
-        } else {
-            element.firstElementChild.setAttribute("fold", "1");
-        }
-    } else if (element.firstElementChild.getAttribute("data-type") === "NodeHeading") {
-        Array.from(element.children).forEach((item, index) => {
-            if ((expand && index > 2) || (!expand && index > 1)) {
-                if ((expand && index === 3) || (!expand && index === 2)) {
-                    item.insertAdjacentHTML("beforebegin", '<div style="max-width: 100%;justify-content: center;" contenteditable="false" class="protyle-breadcrumb__item"><svg style="transform: rotate(90deg);"><use xlink:href="#iconMore"></use></svg></div>');
-                }
-                item.classList.add("fn__none");
-            }
-        });
     }
 };
 

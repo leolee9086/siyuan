@@ -17,7 +17,7 @@ import { focusByRange } from "./imports";
 /** 用途：聚焦到指定块元素。使用范围：无选区时聚焦第一个块。解耦评估：通过 ./imports 转发。 */
 import { focusBlock } from "./imports";
 /** 用途：后退栈记录。使用范围：记录编辑器状态；解耦评估：直达导航历史唯一实现。 */
-import {pushBack} from "../util/platform/backForward";
+import {pushBack} from "../navigation/history/pushBack";
 /** 用途：安全获取 SiYuan 配置。使用范围：检查文件树配置项。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
 /** 用途：更新反链图。使用范围：切换编辑器时刷新反链面板。解耦评估：同目录模块直接导入。 */
