@@ -1,7 +1,6 @@
 import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/network/fetch";
 import {originalPath, useShell} from "../util/file/pathName";
-import { openFileById } from "../editor/utils.openFileById";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
@@ -20,8 +19,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
         accelerator: ids.length === 1 ? `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}` : undefined,
         click: () => {
             if (notebookId) {
-                openFileById({
-                    app,
+                app.openBlock({
                     id: ids[0],
                     position: "right",
                     action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
@@ -29,8 +27,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
             } else {
                 ids.forEach((id) => {
                     checkFold(id, (zoomIn, action) => {
-                        openFileById({
-                            app,
+                        app.openBlock({
                             id,
                             position: "right",
                             action,
@@ -47,8 +44,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
         accelerator: ids.length === 1 ? "⇧⌘" + siyuanI18n.click : "",
         click: () => {
             if (notebookId) {
-                openFileById({
-                    app,
+                app.openBlock({
                     id: ids[0],
                     position: "bottom",
                     action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
@@ -56,8 +52,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
             } else {
                 ids.forEach((id) => {
                     checkFold(id, (zoomIn, action) => {
-                        openFileById({
-                            app,
+                        app.openBlock({
                             id,
                             position: "bottom",
                             action,
@@ -75,8 +70,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
             accelerator: ids.length === 1 ? "⌥⌘" + siyuanI18n.click : undefined,
             click: () => {
                 if (notebookId) {
-                    openFileById({
-                        app,
+                    app.openBlock({
                         id: ids[0],
                         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL],
                         removeCurrentTab: false
@@ -84,8 +78,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
                 } else {
                     ids.forEach((id) => {
                         checkFold(id, (zoomIn, action) => {
-                            openFileById({
-                                app,
+                            app.openBlock({
                                 id,
                                 action,
                                 zoomIn,
