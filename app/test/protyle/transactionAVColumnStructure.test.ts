@@ -10,7 +10,7 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
 
 import {submitAVColumnStructureTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/avColumnStructure";
 
-const actions = ["addAttrViewCol", "removeAttrViewCol", "duplicateAttrViewKey", "doUpdateUpdated"] as const;
+const actions = ["addAttrViewCol", "removeAttrViewCol", "duplicateAttrViewKey", "sortAttrViewCol", "doUpdateUpdated"] as const;
 
 describe("AV column structure transaction", () => {
     beforeEach(() => {

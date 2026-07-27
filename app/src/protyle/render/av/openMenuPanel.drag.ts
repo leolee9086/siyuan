@@ -1,4 +1,5 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVColumnEditTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnEdit";
+import {submitAVColumnStructureTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnStructure";
 /** 用途：提交普通 View 排序；使用范围：View 拖拽分支；解耦评估：直达等待服务端投影的严格 View 命令。 */
 import {submitAVViewTransaction} from "../../wysiwyg/transaction/prepared/av/view/avView";
 import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
@@ -248,7 +249,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
                     return true;
                 }
             });
-            transaction(options.protyle, [{
+            submitAVColumnEditTransaction(options.protyle, [{
                 action: "updateAttrViewColOptions",
                 id: colId,
                 avID,
@@ -306,7 +307,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
             const previousID = (isTop ? targetElement.previousElementSibling?.getAttribute("data-id") : targetElement.getAttribute("data-id")) || "";
             const undoPreviousID = sourceElement.previousElementSibling?.getAttribute("data-id") || "";
             if (previousID !== undoPreviousID && previousID !== sourceId) {
-                transaction(options.protyle, [{
+                submitAVColumnStructureTransaction(options.protyle, [{
                     action: "sortAttrViewCol",
                     avID,
                     previousID,

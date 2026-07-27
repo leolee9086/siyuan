@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：沿当前首环审计 `openMenuPanel.drag -> transaction` 中剩余的列选项更新与列排序，按 Column Update / Column Ordering 的真实事务语义复用或建立完整领域命令，不并入普通 View。
+> **下一步任务**：Panel Drag 的通用事务边已经清零；沿当前首环审计 `cell/edit -> transaction` 的剩余单元格编辑职责，并继续分层 Panel 内容渲染、挂载定位和事件分发。
 
 ## 不变量
 
@@ -73,6 +73,7 @@
 - **2026-07-27**：建立 [AV Gallery 布局设置与条目交互拆分](./AV%20Gallery布局设置与条目交互拆分.ttt.md)。Cover/Size/Ratio 完整设置行为迁入专属子域，四类 action 经严格 Gallery Prepared 命令提交；旧 Gallery Util 只保留条目行为。专项 `9/9`、Node `200/200`、两层类型目标诊断 `0`、新子域 lint和网关门禁通过；生产图 `2288 / 311 / SCC 588`，Settings 七节点和严格命令全部退出循环组件，原 View/Gallery/Action 首环归零。唯一 SCC 未缩小且代表环反升来自首环转向 `layout -> transaction`，继续按 Layout 真实呈现语义审计，不撤回已验证设置所有权。
 - **2026-07-27**：Layout 六类 toggle action 的通用事务无本地执行分支，Title/Icon/Wrap/Fit/Kanban BG 的多实例 DOM 投影继续来自内核广播后的 `transaction.onTransaction -> refreshAV`，DisplayFieldName 继续保持既有当前视图对象更新。新增严格 `prepared/av/view/avLayout.ts`，六个提交点原样迁移，异步 `changeAttrViewLayout` API 未改动。common/gallery/kanban 绑定与命令专项 `10/10`、Node `200/200`、Protyle 契约、命令 lint、全量类型命令目标诊断 `0`、网关和 diff 检查通过；生产图 `2289 / 311 / SCC 587`，Layout 和命令均退出循环组件，唯一 SCC 减少 `1`，首环推进到 View 根的通用事务。
 - **2026-07-27**：普通 View 的新增、删除、复制、排序、名称、描述、图标与布局类型八类 action 进入严格 `prepared/av/view/avView.ts`；它表示等待服务端广播后由 `refreshAV` 投影的普通 View 事务，与调用域已经同步应用 DOM 的 `transaction/applied/avView.ts` 保持两套明确语义，二者不互相转发。View 根和 Panel View 点击退出循环组件；专项 `13/13`、Node `200/200`、Protyle 契约、全量类型目标诊断 `0`、imports 多跳 `0` 通过。生产图 `2290 / 309 / SCC 585`，首环推进到 `openMenuPanel.drag -> transaction`；Drag 剩余列选项与列排序不强行归入 View。
+- **2026-07-27**：Panel Drag 的两类剩余事务按真实列领域归位：选项排序已原地修改 `column.options` 并重绘菜单，复用完整 Column Edit 命令；列排序属于列结构顺序变化，扩展既有 Column Structure 封闭集合，Panel 继续原地更新 `ctx.fields`，表头拖拽继续以实时 DOM 位置计算 do/undo。新增行为测试固定 pinned previousID、精确 do/undo 和无变化短路；相关专项 `28/28`、Node `200/200`、Protyle 契约和网关门禁通过。生产图 `2290 / 306 / SCC 581`，Panel Drag、表头拖拽辅助与命令均退出循环组件，首环转为 `cell/edit -> transaction`。
 
 ## 关联任务
 
