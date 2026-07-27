@@ -14,8 +14,8 @@
 
 ## 下一步任务
 
-1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> gallery/util -> action/click/cell` 当前最短路径的职责边界。
-2. 读取 Cell Action 经 Column Menu 和事务主图返回的下一条最短路径，确认各边的领域所有权。
+1. 审计 `cell/edit -> openMenuPanel -> openMenuPanel.click.view -> layout -> transaction` 当前最短路径的职责边界。
+2. 读取 Layout 设置的本地 DOM 呈现和事务广播职责，确认是否具备严格 View Layout 命令边界。
 3. 继续将 Panel 数据加载、HTML 分派、挂载与事件绑定从控制器分层。
 4. 继续缩短 View/OpenMenuPanel 经 AV 主图返回的间接路径。
 
@@ -78,6 +78,7 @@
 - **2026-07-27**：Rollup 唯一 `updateAttrViewColRollup` action 直接复用已有 Calc 严格命令，未重复实现事务校验；选择关系列/目标列后的本地数据和菜单更新、原 do/undo 顺序不变。Calc 专项 `3/3`、完整 Node `199/199`、契约类型和网关门禁通过；全量类型检查中 Rollup 既有 50 条严格空值诊断如实保留。生产图 `2262 / 318 / SCC 605`，Rollup 及三条关联绑定路径退出 SCC，首环推进到 `openMenuPanel -> filter -> transaction`，后续回到已有 Filter 专项继续处理。
 - **2026-07-27**：按 [AV 筛选领域与面板导航拆分](./AV筛选领域与面板导航拆分.ttt.md) 将全仓九个 `setAttrViewFilters` 提交点统一到严格 Filter 命令，Filter 树变换和面板 DOM 呈现仍由调用域拥有。命令/导航专项 `3/3`、完整 Node `199/199`、两层类型目标诊断 `0`、新命令 lint和网关门禁通过；生产图 `2263 / 320 / SCC 604`，Filter 根退出 SCC。代表环反升来自首环转向 `openMenuPanel.click.cell -> asset menu -> Hint/insertHTML`，下一阶段按该真实跨域路径处理。
 - **2026-07-27**：Sort 字段读取继续直达本专项的 `view/metadata.ts`，排序 UI 唯一实现迁入 `sorting/` 并以专属网关逐项直达真实声明，未给 metadata 增加反向菜单依赖。添加/字段/方向与严格命令专项 `5/5`、Node `200/200`、Protyle 类型、新子域 lint和网关门禁通过；生产图 `2280 / 304 / SCC 588`，Sorting 四节点全部在循环 SCC 外。当前首环已绕过 Sort，转为 View Click 经 Gallery/Action 返回 Cell/Edit，继续按 View 与 Panel 真实编排职责拆分。
+- **2026-07-27**：Gallery 的 Cover/Size/Ratio 设置从混合条目 Action 的 Util 迁入完整 Settings 子域，字段图标继续直达列元数据，四类 action 进入严格 Prepared 命令；旧设置实现和通用事务调用清零。专项 `9/9`、Node `200/200`、两层类型目标诊断 `0`、lint和网关门禁通过。生产图 `2288 / 311 / SCC 588`，Settings 与命令全部退出循环 SCC，View Click 不再经 Gallery Util/Action 返回；下一条真实路径转为 View Layout 的通用 transaction，按其本地呈现语义继续审计。
 
 ## 关联任务
 

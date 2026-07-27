@@ -1,7 +1,7 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {Constants} from "../../../constants";
 import {fetchSyncPost} from "../../../util/network/fetch";
-import {getCardAspectRatio} from "./gallery/util";
+import {getCardAspectRatio} from "./gallery/settings/ratio";
 import {getFieldsByData} from "./view/metadata";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
