@@ -21,7 +21,7 @@ import { 生成面板HTML, 检查本地文档及其Tab存在的逻辑, 分发消
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
 import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import {getDockByType} from "../../tabUtil";
+import {getDockByType} from "../../query/dockByType";
 import type {OutlineDomain} from "./types";
 import type {TreeDomain} from "./types";
 import {outlineModelBrand} from "./types";

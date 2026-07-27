@@ -20,7 +20,7 @@ import {openSetting} from "../config";
 import {getAllDocks} from "../layout/getAll";
 import {exportLayout} from "../layout/export/exportLayout";
 import {getAllLayout} from "../layout/persistence/layoutSnapshot";
-import {getDockByType} from "../layout/tabUtil";
+import {getDockByType} from "../layout/query/dockByType";
 import {exitSiYuan} from "../dialog/processSystem";
 import { lockScreen } from "../dialog/processSystem/lockScreen";
 import {showMessage} from "../dialog/message";

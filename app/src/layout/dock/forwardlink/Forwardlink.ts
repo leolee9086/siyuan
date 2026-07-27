@@ -11,7 +11,7 @@
 
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
-import { getDockByType } from "../../tabUtil";
+import {getDockByType} from "../../query/dockByType";
 import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import type { AppFacade } from "../../../app/AppFacade.types";

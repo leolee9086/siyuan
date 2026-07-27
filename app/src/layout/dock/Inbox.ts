@@ -1,7 +1,7 @@
 import { isMobile } from "../../platform";
 import { Tab } from "../Tab";
 import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { isInIOS, updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { Model } from "../Model";

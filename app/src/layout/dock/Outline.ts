@@ -2,7 +2,7 @@ import {Model} from "../Model";
 import type {LayoutTab} from "../layout.types";
 import {Tree} from "../../util/file/Tree";
 import {getInstanceById, setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import {fetchPost} from "../../util/fetch";
 import {getAllModels} from "../getAll";
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName} from "../../protyle/util/hasClosest";

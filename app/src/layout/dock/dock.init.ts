@@ -8,7 +8,7 @@
  */
 
 import type {DockDomain} from "./dock.types";
-import { getDockByType } from "../tabUtil";
+import {getDockByType} from "../query/dockByType";
 import { Protyle } from "../../protyle";
 import { getAllModels } from "../getAll";
 import type {ProtyleDomain} from "../../protyle/protyle.types";

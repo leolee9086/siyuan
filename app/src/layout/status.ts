@@ -1,4 +1,4 @@
-import { getDockByType } from "./tabUtil";
+import {getDockByType} from "./query/dockByType";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { fetchPost } from "../util/network/fetch";
 import { mountHelp } from "../util/file/mount";

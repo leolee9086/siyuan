@@ -7,7 +7,7 @@ import { Tab } from "../../Tab";
 import { Model } from "../../Model";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDockByType } from "../../tabUtil";
+import {getDockByType} from "../../query/dockByType";
 import { embeddingText } from "../../../util/lib/embedding/transformer";
 import type { IEmbeddingDataset, IDatasetStatus, IEmbeddingProgress } from "./embeddingDock.types";
 import {

@@ -11,7 +11,7 @@ import {sendNotification} from "../../../../../plugin/platformUtils";
 /** 用途：收口面板聚焦动作；使用范围：App PanelFocusPort；解耦评估：布局动作留在宿主。 */
 import {setPanelFocus} from "../../../../util";
 /** 用途：收口 Dock 查询；使用范围：App DockVisibilityPort；解耦评估：Dock 注册表不进入面板核心。 */
-import {getDockByType} from "../../../../tabUtil";
+import {getDockByType} from "../../../../query/dockByType";
 /** 用途：收口浮窗打开 Port；使用范围：App PanelFloatOpenPort；解耦评估：复用既有布局边界。 */
 import {requestOpenTabAsDialog} from "../../../../tabFloat.port";
 /** 用途：收口 Tab 打开 Port；使用范围：App PanelTabOpenPort；解耦评估：复用既有布局边界。 */
