@@ -5,6 +5,7 @@ import {submitPreparedTransaction} from "./imports";
 const isAVColumnEditAction = (action: IOperation["action"]) =>
     action === "updateAttrViewCol" ||
     action === "setAttrViewColIcon" ||
+    action === "setAttrViewColHidden" ||
     action === "setAttrViewColDesc" ||
     action === "updateAttrViewColTemplate" ||
     action === "setAttrViewUpdatedIncludeTime" ||

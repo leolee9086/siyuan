@@ -1,4 +1,4 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVColumnEditTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnEdit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { duplicateCol, removeCol } from "./col/col.operations";
 import { addCol } from "./col/addCol";
@@ -49,7 +49,7 @@ const handleToggleAllCols = (
     }
     // 有变更时提交事务并刷新面板
     if (doOperations.length > 0) {
-        transaction(ctx.options.protyle, doOperations, undoOperations);
+        submitAVColumnEditTransaction(ctx.options.protyle, doOperations, undoOperations);
         ctx.menuElement.innerHTML = getPropertiesHTML(ctx.fields);
         setPosition(ctx.menuElement, ctx.tabRect.right - ctx.menuElement.clientWidth, ctx.tabRect.bottom, ctx.tabRect.height);
     }
@@ -78,7 +78,7 @@ const handleToggleCol = (
     hidden: boolean, getPropertiesHTML: (fields: IAVColumn[]) => string
 ): void => {
     const { colId, isEdit } = getColIdForVisibility(ctx, target);
-    transaction(ctx.options.protyle, [{
+    submitAVColumnEditTransaction(ctx.options.protyle, [{
         action: "setAttrViewColHidden", id: colId, avID: ctx.avID, data: hidden, blockID: ctx.blockID
     }], [{
         action: "setAttrViewColHidden", id: colId, avID: ctx.avID, data: !hidden, blockID: ctx.blockID

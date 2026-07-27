@@ -1,0 +1,74 @@
+# AV 菜单面板与列添加呈现职责拆分（TikTocTak）
+
+> **最终目标**：保持 AV 菜单面板的数据加载、类型渲染、事件分发、拖拽、关闭、列添加 DOM 动画和添加后编辑导航行为不变，将 407 行 `openMenuPanel.ts` 与 332 行 `col.addAttrViewColAnimation.ts` 拆为无反向依赖的完整职责子图。
+>
+> **当前目标**：固定列添加在 Table、自定义属性、已有面板和缺失面板四种场景的运行时行为，明确 Panel 状态所有权后解除 `openMenuPanel -> Column Ops -> AddCol -> Column Animation -> openMenuPanel` 返回链。
+>
+> **下一步任务**：为列单元格插入、属性行插入、已有编辑面板刷新和缺失面板打开建立行为测试；在证据完成前不注入回调或拆出单方法 Port。
+
+## 不变量
+
+- 新列 ID、类型、名称、位置、默认宽度、表头图标、普通行占位和 `updated` 时序保持。
+- 已有编辑面板时原地更新 HTML、绑定事件并重新定位；缺失面板时继续打开完整可交互编辑面板。
+- Properties 中“新建列”、表头前后插入、BlockAttr 新增和重复列使用同一列添加规则，不复制 16 类菜单项逻辑。
+- Panel 的关闭、焦点、菜单清理、拖拽和点击分发顺序保持。
+- Panel 上下文状态若跨事件存在，进入统一注册表并具备显式销毁；不放入工厂闭包。
+- 不用动态导入、事件转发、服务定位器、单方法 Port、调用点 callback 或宽泛类型隐藏返回边。
+- 若形成 Panel class，必须先定义完整领域根，并用 `PublicInstanceLooksLike` 双向校验具体实现，不创建按钮级接口。
+- `imports.ts` 保留并直达真实声明或唯一实现，禁止网关多跳。
+
+## 现状基线
+
+- `openMenuPanel.ts` 407 行：混合 API 请求、11 类 Panel HTML、DOM 挂载、定位、类型事件绑定、拖拽、点击路由、关闭和焦点恢复。
+- `col.addAttrViewColAnimation.ts` 332 行：混合 Table 列 DOM、自定义属性行、已有编辑面板刷新、字段数据查询、缺失面板打开和菜单清理。
+- `col/imports.ts` 的 `openMenuPanel` 不是附带依赖；列动画缺失 Panel 时确实调用完整入口。
+- 直接将打开行为变成 callback/Port 会把循环从静态图隐藏到运行时，违反主任务不变量。
+- 阶段开始时生产图 `2268` 节点、`318` 条代表环、唯一 SCC `596`；首环为 `openMenuPanel -> openMenuPanel.click.colOps -> col/addCol -> col.addAttrViewColAnimation -> col/imports -> openMenuPanel`。
+
+## 目标架构
+
+- `panel/state`：可枚举的当前 AV Panel 实例、上下文与销毁生命周期注册表。
+- `panel/render`：按 Panel 类型生成内容和初始数据需求，不绑定点击路由。
+- `panel/mount`：唯一 DOM 挂载、定位和关闭生命周期。
+- `panel/interactions`：完整点击/拖拽分发，依赖 Panel 领域根而非具体装配入口。
+- `col/add/presentation`：Table 列与自定义属性行的唯一同步 DOM 呈现。
+- `col/add/edit-navigation`：基于完整 Panel 领域根执行已有面板刷新或新面板打开。
+- `openMenuPanel.ts`：最终只保留组合入口；无消费者的兼容转发删除。
+
+## 近期计划
+
+- [ ] 建立四种列添加呈现与导航行为测试。
+- [ ] 登记 Panel 完整状态、事件和销毁表面，判断是否形成 class 领域根。
+- [ ] 将列 DOM 呈现从面板导航中分离，保持唯一实现。
+- [ ] 每批复算目标路径、Tarjan SCC、类型和事件行为。
+
+## 中期计划
+
+- [ ] 拆分 Panel 内容渲染、挂载定位和事件分发。
+- [ ] 将跨事件 Panel 状态归入统一注册表并验证销毁。
+- [ ] 使列添加导航依赖完整 Panel 抽象，不依赖具体组合入口。
+
+## 远期计划
+
+- [ ] 两个上帝模块全部满足规模门禁。
+- [ ] Panel、Column Ops、AddCol 和 Column Animation 子图无循环。
+- [ ] 桌面、移动、Table、Gallery、自定义属性和关系列添加行为回归后归档。
+
+## 风险与验收标准
+
+- 不以“Panel 能显示”替代交互验收；新面板必须继续支持编辑、Properties 导航、类型切换、删除和关闭。
+- 不复制列类型清单、DOM HTML 或编辑面板打开算法。
+- 专项、完整 Node、Protyle 契约类型、目标类型、lint、imports 多跳、Madge/Tarjan 与 diff 通过。
+- 代表环数量只记录；目标返回链归零且 SCC 缩小才算结构阶段完成。
+
+## 已归档/已完成区域
+
+- **2026-07-27**：完成依赖意图审计并建立专项。确认返回边来自真实“缺失 Panel 后打开完整编辑面板”语义，拒绝用 callback、事件或服务定位器隐藏；登记 `2268 / 318 / SCC 596` 基线。
+- **2026-07-27**：先清除 Column Ops 中与 Panel/AddCol 返回链无关的列可见性事务：批量与单列 hidden 更新复用 Column Edit 严格命令，本地字段和菜单刷新顺序不变。该直接事务边归零，但首环与 SCC 保持基线，未将局部完成误记为 Panel 阶段完成。
+
+## 关联任务
+
+- [前端循环依赖类型解耦](./前端循环依赖类型解耦.ttt.md)
+- [AV 列编辑面板生命周期拆分](./AV列编辑面板生命周期拆分.ttt.md)
+- [AV 选择字段与选项菜单职责拆分](./AV选择字段与选项菜单职责拆分.ttt.md)
+- [前端上帝对象领域拆分](./前端上帝对象领域拆分.ttt.md)

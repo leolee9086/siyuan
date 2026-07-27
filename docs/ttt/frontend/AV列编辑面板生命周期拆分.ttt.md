@@ -67,6 +67,7 @@
 - **2026-07-27**：创建专项 TTT。确认十类 AV Column Edit action 均不进入通用事务普通块 DOM 分派，调用域拥有输入控件、`colData`、表头动画和面板刷新；登记 `2259 / 319 / SCC 611` 基线。
 - **2026-07-27**：新增 `transaction/prepared/av/avColumnEdit.ts`，严格接受十类列编辑 action 并复用 Prepared undo、lite、同步指示、队列、请求和字数刷新；八个提交点保持原 do/undo、控件事件和本地 `colData` 更新顺序，非法 action 显式失败。专项 `11/11`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过；生产图 `2260 / 319 / SCC 610`。代表环总数不变，但 `col.editPanel.bind.ts` 和新命令均退出 SCC，首环转为 `col.editPanel.ts -> number.ts -> transaction`。事务阶段完成，七组 UI 生命周期继续由本专项追踪。
 - **2026-07-27**：Column Edit 封闭集合补齐列编辑面板同域 `setAttrViewColIcon`；`openMenuPanel.click.colEdit.ts` 的图标与类型切换复用该命令，行号列排序和筛选分别使用独立 Sort/Filter 命令，不扩大 Column Edit 边界。专项三文件 `16/16`、Node `199/199`、契约类型和命令 lint通过；生产图 `2268 / 318 / SCC 596`，列编辑点击退出 SCC。
+- **2026-07-27**：Column Edit 封闭集合补齐列配置同域 `setAttrViewColHidden`；Column Ops 的显示全部、隐藏全部、显示单列和隐藏单列继续先更新 `fields.hidden` 并刷新对应编辑/属性 HTML，再进入严格 Prepared 生命周期。契约专项 `13/13`、Node `199/199`、目标类型诊断 `0`；Column Ops 的可见性通用事务边归零，Panel/AddCol 真实返回链由独立专项继续拆分。
 
 ## 关联任务
 
