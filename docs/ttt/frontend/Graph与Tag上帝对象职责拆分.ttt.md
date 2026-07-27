@@ -53,3 +53,4 @@
 
 - **2026-07-28**：创建专项 TTT；确认现有完整领域根和兼容校验可继续复用，不另建抽象。Graph、Tag 的 Dock 查询改为直达唯一无状态查询实现，作为后续内部拆分前的依赖方向基线。
 - **2026-07-28**：Dock 查询直达改造通过 Node `208/208`、imports 多跳 `0` 与 diff 检查；生产循环代表路径从 `114` 降至 `101`，两个模型到 `tabUtil` 的反向查询边归零。完整文件 lint 基线确认 Graph 773 行、Tag 420 行及 Graph constructor/searchGraph/onGraph 等超限职责，作为后续拆分的硬验收基线而非本批豁免项。
+- **2026-07-28**：Graph 的布局实例查询改为直达 `layout/query/layoutInstance.ts` 唯一实现，移除到高层 `layout/util.ts` 的转发边；Graph 随之退出当前代表环。Node `208/208`、imports 多跳 `0` 与 diff 检查通过；代表环 `101 -> 109` 属于剩余 SCC 路径重排，新首环已转向 Tag 菜单依赖，不改变本专项对 Graph 内部职责拆分的后续计划。

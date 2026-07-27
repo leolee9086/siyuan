@@ -1,5 +1,5 @@
 import { Tab } from "../Tab";
-import { getInstanceById } from "../util";
+import {getInstanceById} from "../query/layoutInstance";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import {getDockByType} from "../query/dockByType";
 import { Model } from "../Model";
