@@ -1,4 +1,4 @@
-import {transaction} from "../../../wysiwyg/transaction/submit";
+import {submitAVColumnEditTransaction} from "../../../wysiwyg/transaction/prepared/av/avColumnEdit";
 import {hasClosestBlock, hasClosestByClassName} from "../../../util/hasClosest";
 import {openMenuPanel} from "../openMenuPanel";
 import {isNotCtrl} from "../../../util/compatibility";
@@ -214,7 +214,7 @@ const updateCellValueByInput = (protyle: IProtyle, type: TAVCol, blockElement: H
         const colId = getColId(cellElements[0], viewType);
         const textElement = avMaskElement.querySelector(".b3-text-field") as HTMLInputElement;
         if (textElement.value !== textElement.dataset.template && !blockElement.getAttribute("data-loading")) {
-            transaction(protyle, [{
+            submitAVColumnEditTransaction(protyle, [{
                 action: "updateAttrViewColTemplate",
                 id: colId,
                 avID,
