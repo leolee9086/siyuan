@@ -1,6 +1,6 @@
 import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {Constants} from "../constants";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
@@ -35,8 +35,8 @@ const genItem = (data: [], data2?: { title: string, fileID: string }[], hasUndo 
     return html;
 };
 
-let leftEditor: Protyle;
-let rightEditor: Protyle;
+let leftEditor: ProtyleDomain | undefined;
+let rightEditor: ProtyleDomain | undefined;
 const renderCompare = (app: AppFacade, element: HTMLElement) => {
     const listElement = hasClosestByClassName(element, "history__side");
     if (!listElement) {
@@ -50,7 +50,7 @@ const renderCompare = (app: AppFacade, element: HTMLElement) => {
     const leftElement = editorsElement.firstElementChild;
     const rightElement = editorsElement.lastElementChild;
     if (!leftEditor) {
-        leftEditor = new Protyle(app, leftElement.lastElementChild as HTMLElement, {
+        leftEditor = app.createProtyle(leftElement.lastElementChild as HTMLElement, {
             blockId: "",
             history: {
                 snapshot: ""
@@ -65,7 +65,7 @@ const renderCompare = (app: AppFacade, element: HTMLElement) => {
             typewriterMode: false
         });
         disabledProtyle(leftEditor.protyle);
-        rightEditor = new Protyle(app, rightElement.lastElementChild as HTMLElement, {
+        rightEditor = app.createProtyle(rightElement.lastElementChild as HTMLElement, {
             blockId: "",
             action: [Constants.CB_GET_HISTORY],
             history: {

@@ -71,6 +71,7 @@ import {openAsset} from "./asset/open/openAsset";
 import {processSiYuanUri} from "./editor/uri/processSiYuanUri";
 import {openDatabaseRowBlock} from "./editor/open/databaseRow/openDatabaseRowBlock";
 import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow";
+import {Protyle} from "./protyle";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -81,6 +82,9 @@ export class App {
         reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
         addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
     };
+    public createProtyle(element: HTMLElement, options: IProtyleOptions) {
+        return new Protyle(this, element, options);
+    }
     public openAsset(options: AssetOpenOptions) {
         openAsset(this, options);
     }

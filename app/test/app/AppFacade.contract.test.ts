@@ -47,6 +47,9 @@ const testFacade = createAppFacade<object, object>({
         reloadData: () => undefined,
         addDock: () => undefined,
     },
+    createProtyle: () => {
+        throw new Error("Contract fixture does not create Protyle instances");
+    },
     openAsset: () => undefined,
     openBlock: () => undefined,
     openDatabaseRow: () => undefined,

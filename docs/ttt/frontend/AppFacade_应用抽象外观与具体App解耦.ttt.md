@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：数据库行导航已进入完整 AppFacade；继续按循环图审计 `blockAttr -> transaction` 的剩余事务职责，以及其它仍由下层模块直接加载具体组合实现的应用行为。
+> **下一步任务**：History 编辑器构造已进入完整 AppFacade；继续按循环图审计移动端 Recent Docs 的宿主打开职责，以及其它仍由下层模块直接加载具体组合实现的应用行为。
 
 ---
 
@@ -178,3 +178,4 @@
 - **2026-07-26**：资产导航加入完整 AppFacade 公共表面，桌面 App 复用唯一 `asset/open/openAsset` 实现，移动 App 使用既有原生链接打开语义；Editor、导出预览、Protyle 预览和菜单调用点均改为实例方法，没有创建捕获 App 的工厂闭包或菜单碎片 Port。`AssetOpenOptions` 是资产领域稳定数据类型，具体打开实现只在桌面组合根装配。源码唯一 SCC `702 -> 700`，`asset/open` 与 `platform/localPath` 均退出组件，枚举环 `723 -> 718`；AppFacade 双向契约 TypeScript 诊断 `0`，Node `157/157`、新增稳定子域 lint 和 `git diff --check` 通过。全量类型检查约 53 秒完成并继续报告仓库既存严格诊断，故不记为全量通过。
 - **2026-07-26**：Editor 既有 SiYuan URI 路径成为完整 AppFacade 的同步协议接管方法，块导航由桌面/移动 App 的 `openBlock()` 实例方法分别实现；原移动端动态导入删除，不使用工厂闭包保存宿主。`openBlock()` 随后复用于 Editor `enterBack`，由完整 App 维持桌面/移动差异并删除菜单对两套具体打开实现的依赖。Editor、Boot、Agent 和菜单调用点只依赖完整 AppFacade，旧 `openLink` 公共函数保持相同签名并直接委托实例。URI 专项 `2/2` 固定协议拒绝、存在性/折叠请求顺序、块导航、Electron 前置和全屏状态；AppFacade/URI 目标 TypeScript 诊断 `0`，Node `157/157`。唯一 SCC `700 -> 695`，`editor/uri`、`editor/openLink` 和 Editor 总网关退出组件；枚举环因路径重排 `718 -> 723`，没有新增独立 SCC。
 - **2026-07-27**：数据库行打开成为完整 AppFacade 的正式公共行为，而非 Protyle 对 `openFile/openFileById/getAllTabs/EditorDomain` 的具体依赖。桌面实现分别保持分离条目的自定义页签载荷、绑定条目的预览页签复用及属性面板展开；移动实现保持全屏 Dialog、旧详情关闭、菜单关闭、强制编辑器重载和属性面板展开。`AppDatabaseRowNavigation` 是完整跨宿主数据契约，桌面/移动 App 继续由 `InstanceLooksLike` 双向校验，没有增加不存在的通用 Custom Tab 能力。数据库行形成独立子域，子域 `imports.ts` 逐项直达真实声明/实现，避免加载广域 Editor 网关。导航专项 `7/7`、AppFacade 契约 `3/3`、Node `200/200`、Protyle 契约和 imports 网关门禁通过；初始化前置条件缺失均显式抛错，损坏页签数据继续告警。生产图 `2295 / 299 / SCC 579`，子域实现及网关均在 SCC 外；代表环反升来自首环转为 `blockAttr -> transaction`，唯一 SCC 相对 `580` 减少 `1`。
+- **2026-07-27**：将完整 Protyle 创建能力纳入 AppFacade，参数继续使用官方兼容的 `IProtyleOptions`，返回既有完整 `ProtyleDomain`；桌面和移动 App 在组合根直接构造具体 Protyle。History、Diff、Doc 和 DocEvent 删除具体 class 导入，不新增 History 编辑器碎片接口，具体类仍只出现在允许的组合根。AppFacade 双向契约 `3/3`、相关 Vitest `7/7`、Node `200/200`、Protyle 契约、AppFacade lint、imports 多跳与 diff 检查通过。生产图 `2304 / 303 / SCC 414`；全部 History 模块退出 SCC，代表环反升但唯一 SCC 减少 `5`。

@@ -4,6 +4,8 @@ import type {EventBus} from "siyuan";
 import type {Plugin} from "siyuan";
 /** 用途：完整 App 的资产导航参数；使用范围：桌面、移动及独立宿主公共表面；解耦评估：纯数据类型，不加载资产或编辑器实现。 */
 import type {AssetOpenOptions} from "../asset/open/openAsset.types";
+/** 用途：完整 Protyle 公共领域表面；使用范围：App 组合根创建编辑器；解耦评估：纯类型不加载具体实现。 */
+import type {ProtyleDomain} from "../protyle/protyle.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
@@ -38,6 +40,7 @@ export interface AppFacadeShape<
         reloadData: (plugin: TPlugin) => void;
         addDock: (plugin: TPlugin) => void;
     };
+    createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
     openAsset(options: AssetOpenOptions): void;
     openBlock(options: AppBlockNavigation): void;
     openDatabaseRow(protyle: IProtyle, options: AppDatabaseRowNavigation): void;

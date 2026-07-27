@@ -46,8 +46,10 @@ const createApp = () => createAppFacade<Siyuan.Plugin, EventBus>({
     appId: "uri-test",
     eventBus: new EventBus("uri-test"),
     pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
+    createProtyle: vi.fn(),
     openAsset: vi.fn(),
     openBlock: vi.fn(),
+    openDatabaseRow: vi.fn(),
     processSiYuanUri: vi.fn(() => false),
 });
 

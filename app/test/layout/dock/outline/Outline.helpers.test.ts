@@ -76,8 +76,10 @@ function createOutline(type: "pin" | "local" = "local") {
         appId: "outline-test",
         eventBus: new EventBus("outline-test"),
         pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
+        createProtyle: vi.fn(),
         openAsset: vi.fn(),
         openBlock: vi.fn(),
+        openDatabaseRow: vi.fn(),
         processSiYuanUri: vi.fn(() => false),
     });
     const outline: OutlineDomain = {

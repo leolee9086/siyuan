@@ -1,7 +1,7 @@
 import {Dialog} from "../dialog";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {Constants} from "../constants";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import * as dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
@@ -10,7 +10,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import {resizeSide} from "./resizeSide";
 import {escapeHtml} from "../util/DOM/escape";
 
-let historyEditor: Protyle;
+let historyEditor: ProtyleDomain | undefined;
 let isLoading = false;
 
 const renderDoc = (element: HTMLElement, currentPage: number, id: string) => {
@@ -121,7 +121,7 @@ export const openDocHistory = (options: {
     const docElement = dialog.element.querySelector('.history__text[data-type="docPanel"]') as HTMLElement;
     const mdElement = dialog.element.querySelector('.history__text[data-type="mdPanel"]') as HTMLTextAreaElement;
     renderDoc(dialog.element, 1, options.id);
-    historyEditor = new Protyle(options.app, docElement, {
+    historyEditor = options.app.createProtyle(docElement, {
         blockId: "",
         history: {
             created: ""

@@ -1,6 +1,6 @@
 import { Dialog } from "../dialog";
 import { Constants } from "../constants";
-import { Protyle } from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import { disabledProtyle } from "../protyle/util/onGet";
 import { fetchPost } from "../util/network/fetch";
 import { escapeHtml } from "../util/DOM/escape";
@@ -19,7 +19,7 @@ import { closeModel } from "../mobile/util/closePanel";
 import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
 import {pathPosix} from "../util/file/pathName";
 
-let historyEditor: Protyle | undefined;
+let historyEditor: ProtyleDomain | undefined;
 
 /**
  * 清除历史编辑器实例引用。
@@ -554,7 +554,7 @@ const bindEvent = (app: AppFacade, element: Element, dialog?: Dialog) => {
     });
     const docElement = firstPanelElement.querySelector('.history__text[data-type="docPanel"]') as HTMLElement;
     renderDoc(firstPanelElement, 1);
-    historyEditor = new Protyle(app, docElement, {
+    historyEditor = app.createProtyle(docElement, {
         blockId: "",
         history: {
             created: ""
@@ -685,7 +685,7 @@ const bindEvent = (app: AppFacade, element: Element, dialog?: Dialog) => {
                         contentElement.innerHTML = '<textarea readonly class="b3-text-field fn__block" style="height: 100%"></textarea>';
                         (contentElement.firstElementChild as HTMLTextAreaElement).value = response.data.content || response.data.title;
                     } else {
-                        const viewEditor = new Protyle(app, contentElement.firstElementChild as HTMLElement, {
+                        const viewEditor = app.createProtyle(contentElement.firstElementChild as HTMLElement, {
                             blockId: "",
                             action: [Constants.CB_GET_HISTORY],
                             history: {

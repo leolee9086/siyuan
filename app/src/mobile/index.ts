@@ -67,6 +67,7 @@ import {avRender} from "../protyle/render/av/render";
 import {openMobileDatabaseRow} from "./databaseRow.factory";
 import { ensureOnboarding } from "../onboarding";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
+import {Protyle} from "../protyle";
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -77,6 +78,9 @@ export class App {
         reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
         addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
     };
+    public createProtyle(element: HTMLElement, options: IProtyleOptions) {
+        return new Protyle(this, element, options);
+    }
     public openAsset(options: AssetOpenOptions) {
         openByMobile(options.assetPath);
     }

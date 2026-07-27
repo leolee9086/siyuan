@@ -14,6 +14,9 @@ export const createTestAppFacade = (
         reloadData: () => undefined,
         addDock: () => undefined,
     },
+    createProtyle: () => {
+        throw new Error("Test AppFacade Protyle factory was not configured");
+    },
     openAsset: () => undefined,
     openBlock,
     openDatabaseRow: () => undefined,

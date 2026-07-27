@@ -2,7 +2,7 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {Constants} from "../constants";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {renderAssetsPreview} from "../asset/renderAssets";
-import {Protyle} from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import {onGet} from "../protyle/util/onGet";
 import * as dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
@@ -16,7 +16,7 @@ import {renderDoc, renderRmNotebook, renderRepo} from "./history.render";
 import type {IHistoryDocClickContext} from "./history.docEvent.types";
 
 export const handleDocClick = (
-    context: IHistoryDocClickContext<Protyle, Dialog>,
+    context: IHistoryDocClickContext<ProtyleDomain, Dialog>,
 ): boolean => {
     const {
         target,
