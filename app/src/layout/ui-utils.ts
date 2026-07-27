@@ -3,8 +3,8 @@
  * 提供顶部工具栏调整和布局相关的UI操作功能
  */
 
-import { Layout } from "./index";
-import { Wnd } from "./Wnd";
+import type {LayoutDomain, LayoutWindow} from "./layout.types";
+import {isLayoutDomain} from "./layout.types.guard";
 import { Constants } from "../constants";
 import {
     getWindowInnerWidth,
@@ -168,7 +168,7 @@ export const resizeTopBar = () => {
 };
 
 /** 记录停靠栏面板的原始宽度（仅首次记录，用于宽度记忆） */
-const recordDockWidthIfAbsent = (item: Layout | Wnd): void => {
+const recordDockWidthIfAbsent = (item: LayoutDomain | LayoutWindow): void => {
     // S-forge: 上游 #17919 dock 宽度记忆——首次设置 maxWidth 前记录原始宽度，便于序列化时取回
     if (!item.element.hasAttribute(Constants.ATTRIBUTE_DOCK_WIDTH)) {
         item.element.setAttribute(Constants.ATTRIBUTE_DOCK_WIDTH, item.element.clientWidth.toString());
@@ -176,7 +176,7 @@ const recordDockWidthIfAbsent = (item: Layout | Wnd): void => {
 };
 
 /** 调整子元素的最大宽度以解决溢出 */
-const adjustChildrenMaxWidth = (layout: Layout) => {
+const adjustChildrenMaxWidth = (layout: LayoutDomain) => {
     let totalWidth = 0;
     const innerWidth = getWindowInnerWidth();
     for (const item of layout.children) {
@@ -194,7 +194,7 @@ const adjustChildrenMaxWidth = (layout: Layout) => {
 };
 
 /** 重置子元素的尺寸约束 */
-const resetChildrenConstraints = (layout: Layout) => {
+const resetChildrenConstraints = (layout: LayoutDomain) => {
     for (const item of layout.children) {
         item.element.style.maxWidth = "";
         // S-forge: 上游 #17919 dock 宽度记忆——清空 maxWidth 时同步移除记录的原始宽度属性
@@ -215,7 +215,7 @@ const resetChildrenConstraints = (layout: Layout) => {
  * 根据容器大小自动调整布局子元素的宽度，防止内容溢出
  * @同步豁免: UI构建 - 需要同步访问DOM以立即反映布局变化
  */
-export const adjustLayout = (layout?: Layout) => {
+export const adjustLayout = (layout?: LayoutDomain) => {
     const targetLayout = layout ?? getCenterLayoutParent();
     if (!targetLayout) {
         return;
@@ -238,7 +238,7 @@ export const adjustLayout = (layout?: Layout) => {
         }
     }
     for (const item of targetLayout.children) {
-        const isLayout = item instanceof Layout;
+        const isLayout = isLayoutDomain(item);
         // 只调整非零尺寸的子布局
         if (isLayout && item.size !== "0px") {
             adjustLayout(item);
@@ -251,7 +251,7 @@ export const adjustLayout = (layout?: Layout) => {
  * @param item - 布局或窗口对象
  * @param isHorizontal - 是否为水平布局
  */
-const clearFlex1Style = (item: Layout | Wnd, isHorizontal: boolean) => {
+const clearFlex1Style = (item: LayoutDomain | LayoutWindow, isHorizontal: boolean) => {
     const hasFlex1 = item.element.classList.contains(CSS_CLASSES.FLEX_1);
     if (!hasFlex1) {
         return;
@@ -273,7 +273,7 @@ const clearFlex1Style = (item: Layout | Wnd, isHorizontal: boolean) => {
  * @param flex1Element - 需要应用 Flex-1 样式的元素
  * @param isHorizontal - 是否为水平布局
  */
-const applyFlex1ToElement = (layout: Layout, flex1Element: HTMLElement, isHorizontal: boolean) => {
+const applyFlex1ToElement = (layout: LayoutDomain, flex1Element: HTMLElement, isHorizontal: boolean) => {
     // 水平布局且有固定宽度：清除宽度并添加 Flex-1，使其自适应填充剩余空间
     if (isHorizontal && flex1Element.style.width) {
         flex1Element.style.width = "";
@@ -292,7 +292,7 @@ const applyFlex1ToElement = (layout: Layout, flex1Element: HTMLElement, isHorizo
  * 确保布局中只有一个元素具有 Flex-1 样式
  * @同步豁免: UI构建 - 需要同步访问DOM以立即反映布局变化
  */
-export const fixWndFlex1 = (layout: Layout) => {
+export const fixWndFlex1 = (layout: LayoutDomain) => {
     const hasEnoughChildren = layout.children.length >= 2;
     if (!hasEnoughChildren) {
         return;

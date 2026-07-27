@@ -19,7 +19,6 @@ import { createIdentityAccessDockModel } from "../../magi/identity-access/adapte
 import { Tab } from "./imports";
 import type { AppFacade } from "./imports";
 import type {ProtyleDomain} from "./imports";
-import {Protyle as ProtyleConstructor} from "./imports";
 import {Tree} from "./imports";
 import type { ILayoutModel } from "./imports";
 import type {TabModelFactoryContext} from "./imports";
@@ -183,7 +182,6 @@ const initCustomList: ModelFactory<AppFacade, Tab, ProtyleDomain, unknown> = (ap
         getDockByType,
         (customLists) => setStorageVal("local-customlists", customLists),
         (options) => new Tree(options),
-        (customListApp, element, options) => new ProtyleConstructor(customListApp, element, options),
         showCustomListMenu,
     );
 };

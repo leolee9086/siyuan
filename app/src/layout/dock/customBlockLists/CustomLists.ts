@@ -27,7 +27,7 @@ import {checkFold} from "../../../block/fold/checkFold";
  */
 import { openFileById } from "../../../editor/utils.openFileById";
 /**
- * 用途：块编辑器完整领域抽象。使用范围：展开树节点时创建内嵌编辑器。解耦评估：具体 Protyle 由组合工厂注入。
+ * 用途：块编辑器完整领域抽象。使用范围：展开树节点时保存内嵌编辑器生命周期。解耦评估：由完整 AppFacade 创建，不加载具体 Protyle。
  */
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /**
@@ -224,7 +224,6 @@ export class CustomLists extends Model<AppFacade, LayoutTab> {
         getDockByType: (type: string) => DockDomain | undefined,
         saveCustomLists: (customLists: Record<string, ICustomList>) => void,
         createTree: (options: TreeOptions) => TreeDomain,
-        createProtyle: (app: AppFacade, element: HTMLElement, options: IProtyleOptions) => ProtyleDomain,
         showMenu: (app: AppFacade, customList: CustomLists, event: MouseEvent) => void,
     ) {
         super({
@@ -325,7 +324,7 @@ export class CustomLists extends Model<AppFacade, LayoutTab> {
                 editorElement.style.minHeight = "auto";
                 liElement.after(editorElement);
                 try {
-                    const editor = createProtyle(this.app, editorElement, {
+                    const editor = this.app.createProtyle(editorElement, {
                         blockId: blockId,
                         click: { preventInsetEmptyBlock: true },
                         render: { background: false, gutter: true, scroll: false, breadcrumb: false },

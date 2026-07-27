@@ -14,10 +14,6 @@ import type {LayoutTab} from "../layout.types";
 /** 导出布局页签完整领域根。 */
 export type {LayoutTab};
 
-/** 用途：Protyle 编辑器构造器。使用范围：Dock 组合工厂创建具体编辑器；其余模块应依赖 ProtyleDomain。解耦评估：具体 class 仅在初始化边界加载。 */
-import { Protyle } from "../../protyle";
-/** 导出 Protyle 构造器，供 Dock 组合边界使用。 */
-export { Protyle };
 /** 用途：Dock 模型接收的完整编辑器领域根。使用范围：模型工厂参数；具体 class 仅在上述构造边界加载。 */
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 /** 导出完整 Protyle 领域根。 */
@@ -88,7 +84,7 @@ import {saveLayout} from "../persistence/saveLayout";
 export { saveLayout };
 
 /** 用途：布局调整函数。使用范围：dock 模块显示逻辑。解耦评估：通过 imports.ts 转发。 */
-import { adjustLayout } from "../util";
+import {adjustLayout} from "../ui-utils";
 /** 导出 adjustLayout，供 dock 模块使用 */
 export { adjustLayout };
 

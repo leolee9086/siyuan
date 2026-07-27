@@ -161,7 +161,6 @@ const buildActionArray = (action: unknown): TProtyleAction[] => {
     return [...action.filter(isValidProtyleAction), Constants.CB_GET_FOCUS];
 };
 
-export {initInternalDock, JSONToDock} from "./dock-utils";
 export { JSONToCenter, JSONToLayout } from "./layout-deserialization";
 export {switchWnd} from "./window-utils";
 export {getWndByLayout} from "./query/layoutInstance";
