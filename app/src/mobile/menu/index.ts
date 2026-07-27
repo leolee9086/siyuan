@@ -33,7 +33,7 @@ import {isMobile} from "../../util/platform/functions";
 import {getCurrentEditor} from "../util/getCurrentEditor";
 // S-forge: 本地i18n封装，替代直接访问 window.siyuan.languages
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {openDataMigration} from "../../menus/dataMigration";
+import {openMobileDataMigration} from "../../menus/dataMigration/mobile";
 
 // S-forge: 保留本地运行时 AI 可见性判断，避免移动端菜单显示被禁用功能。
 const isSettingTabHidden = (def: ISettingTabShell<TSettingTab>) => {
@@ -206,7 +206,7 @@ export const initRightMenu = (app: AppFacade) => {
                 break;
             } else if (target.id === "menuImport") {
                 closePanel();
-                openDataMigration();
+                openMobileDataMigration();
                 event.preventDefault();
                 event.stopPropagation();
                 break;

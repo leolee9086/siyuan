@@ -67,7 +67,7 @@ import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusabl
 import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
 import {avRender} from "../protyle/render/av/render";
 import {openMobileDatabaseRow} from "./databaseRow.factory";
-import { ensureOnboarding } from "../onboarding";
+import {ensureOnboarding} from "../onboarding/common";
 import {initWindowOpenOverride, openByMobile} from "../editor/openLink";
 import {Protyle} from "../protyle";
 import type {ProtyleDomain} from "../protyle/protyle.types";

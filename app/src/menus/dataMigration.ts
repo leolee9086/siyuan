@@ -6,23 +6,24 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {showMessage} from "../dialog/message";
 import {importObsidianVault} from "./importObsidian";
 import {saveExportFile, writeText} from "../protyle/util/compatibility";
-import {exitSiYuan} from "../dialog/processSystem";
-/// #if !MOBILE
-import {exportLayout} from "../layout/export/exportLayout";
-/// #endif
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
 import * as path from "path";
 import {afterExport} from "../protyle/export/util";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcInvoke} from "../platform/electron/ipcRenderer";
 
-interface IDataMigrationOptions {
+import type {OpenDialogReturnValue} from "electron";
+
+export interface DataMigrationOptions {
     mode?: "manage" | "onboarding";
     notebookID?: string;
     onContentImportComplete?: () => void;
 }
 
-const getExportButton = (action: string, mode: IDataMigrationOptions["mode"]) => mode === "manage" ?
+interface DataMigrationHostOptions extends DataMigrationOptions {
+    onConfigurationImported: () => void;
+}
+
+const getExportButton = (action: string, mode: DataMigrationOptions["mode"]) => mode === "manage" ?
     `<span class="fn__space"></span><button class="b3-button b3-button--outline" data-action="${action}"><svg><use xlink:href="#iconUpload"></use></svg>${window.siyuan.languages.export}</button>` : "";
 
 const getImportButton = (type: string, accept: string) => `<button class="b3-button b3-button--outline" style="position:relative">
@@ -59,16 +60,17 @@ const openRepoKeyImport = (onComplete?: () => void) => {
 };
 
 const exportData = async () => {
-    /// #if BROWSER
-    fetchPost("/api/export/exportData", {}, (response) => {
-        if (response.code !== 0) {
-            showMessage(response.msg, response.data?.closeTimeout || 0, "error");
-            return;
-        }
-        void saveExportFile(response.data.zip);
-    });
-    /// #else
-    const result = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    if (!isElectron) {
+        fetchPost("/api/export/exportData", {}, (response) => {
+            if (response.code !== 0) {
+                showMessage(response.msg, response.data?.closeTimeout || 0, "error");
+                return;
+            }
+            void saveExportFile(response.data.zip);
+        });
+        return;
+    }
+    const result = await ipcInvoke<OpenDialogReturnValue>(Constants.SIYUAN_GET, {
         cmd: "showOpenDialog",
         title: `${window.siyuan.languages.export} Data`,
         properties: ["createDirectory", "openDirectory"],
@@ -76,14 +78,21 @@ const exportData = async () => {
     if (result.canceled || result.filePaths.length === 0) {
         return;
     }
+    const exportFolder = result.filePaths[0];
+    if (!exportFolder) {
+        throw new TypeError("Export folder is missing from Electron dialog result");
+    }
     const msgId = showMessage(window.siyuan.languages.exporting, -1);
-    fetchPost("/api/export/exportDataInFolder", {folder: result.filePaths[0]}, (response) => {
-        afterExport(path.join(result.filePaths[0], response.data.name), msgId);
+    fetchPost("/api/export/exportDataInFolder", {folder: exportFolder}, (response) => {
+        const exportName = response.data?.name;
+        if (typeof exportName !== "string") {
+            throw new TypeError("Exported data name is missing from Kernel response");
+        }
+        afterExport(path.join(exportFolder, exportName), msgId);
     });
-    /// #endif
 };
 
-export const openDataMigration = (options: IDataMigrationOptions = {}) => {
+export const openDataMigrationWithHost = (options: DataMigrationHostOptions) => {
     const mode = options.mode || "manage";
     const hasRepoKey = Boolean(window.siyuan.config.repo.key);
     const helpNotebookIDs = Object.values(Constants.HELP_PATH);
@@ -91,9 +100,7 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
     const selectedNotebookID = notebooks.some((item) => item.id === options.notebookID) ? options.notebookID : notebooks[0]?.id;
     const notebookOptions = notebooks.map((item) =>
         `<option value="${item.id}"${item.id === selectedNotebookID ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("");
-    let nativeImportHTML = "";
-    /// #if !BROWSER
-    nativeImportHTML = `<button class="b3-list-item fn__block" data-type="markdown-file"${notebooks.length === 0 ? " disabled" : ""}>
+    const nativeImportHTML = isElectron ? `<button class="b3-list-item fn__block" data-type="markdown-file"${notebooks.length === 0 ? " disabled" : ""}>
     <svg class="b3-list-item__graphic"><use xlink:href="#iconMarkdown"></use></svg>
     <span class="b3-list-item__text">Markdown ${window.siyuan.languages.doc}</span>
 </button>
@@ -104,8 +111,7 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
 <button class="b3-list-item fn__block" data-type="obsidian">
     <svg class="b3-list-item__graphic"><use xlink:href="#iconObsidian"></use></svg>
     <span class="b3-list-item__text">Obsidian Vault</span>
-</button>`;
-    /// #endif
+</button>` : "";
     const dialog = new Dialog({
         title: window.siyuan.languages.dataMigration,
         content: `<div class="b3-dialog__content">
@@ -267,11 +273,7 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
                 return;
             }
             showMessage(window.siyuan.languages.imported);
-            /// #if MOBILE
-            void exitSiYuan();
-            /// #else
-            void exportLayout({errorExit: true, cb: exitSiYuan});
-            /// #endif
+            options.onConfigurationImported();
         });
     });
     ["s3", "webdav"].forEach((provider) => {
@@ -318,13 +320,15 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
         }
     });
 
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     const importMarkdown = async (isFile: boolean) => {
         if (notebooks.length === 0) {
             showMessage(window.siyuan.languages.newFileTip);
             return;
         }
-        const localPath = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        const localPath = await ipcInvoke<OpenDialogReturnValue>(Constants.SIYUAN_GET, {
             cmd: "showOpenDialog",
             defaultPath: window.siyuan.config.system.homeDir,
             filters: isFile ? [{name: "Markdown", extensions: ["md", "markdown"]}] : [],
@@ -333,10 +337,14 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
         if (localPath.filePaths.length === 0) {
             return;
         }
+        const markdownPath = localPath.filePaths[0];
+        if (!markdownPath) {
+            throw new TypeError("Markdown path is missing from Electron dialog result");
+        }
         selectTargetNotebook((notebookID) => {
             fetchPost("/api/import/importStdMd", {
                 notebook: notebookID,
-                localPath: localPath.filePaths[0],
+                localPath: markdownPath,
                 toPath: "/",
             }, completeContentImport);
         });
@@ -344,7 +352,7 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
     dialog.element.querySelector('[data-type="markdown-file"]')?.addEventListener("click", () => void importMarkdown(true));
     dialog.element.querySelector('[data-type="markdown-folder"]')?.addEventListener("click", () => void importMarkdown(false));
     dialog.element.querySelector('[data-type="obsidian"]')?.addEventListener("click", async () => {
-        const localPath = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        const localPath = await ipcInvoke<OpenDialogReturnValue>(Constants.SIYUAN_GET, {
             cmd: "showOpenDialog",
             singleton: "obsidianVault",
             defaultPath: window.siyuan.config.system.homeDir,
@@ -353,8 +361,11 @@ export const openDataMigration = (options: IDataMigrationOptions = {}) => {
         if (localPath.filePaths.length === 0) {
             return;
         }
+        const vaultPath = localPath.filePaths[0];
+        if (!vaultPath) {
+            throw new TypeError("Obsidian vault path is missing from Electron dialog result");
+        }
         dialog.destroy();
-        await importObsidianVault(localPath.filePaths[0], options.onContentImportComplete);
+        await importObsidianVault(vaultPath, options.onContentImportComplete);
     });
-    /// #endif
 };

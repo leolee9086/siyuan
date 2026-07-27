@@ -15,7 +15,8 @@ import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {activateQueuedAVLocate, queueAVLocateRequest} from "./protyle/render/av/locate/activation/activation";
 import {avRender} from "./protyle/render/av/render";
-import {activateOnboarding, ensureOnboarding} from "./onboarding";
+import {ensureOnboarding} from "./onboarding/common";
+import {activateDesktopOnboarding} from "./onboarding/desktop";
 import {
     bootSync,
     kernelError,
@@ -276,11 +277,11 @@ export class App {
                             });
                             if (window.siyuan.config.onboarding?.newUser && !window.siyuan.config.onboarding.dismissed &&
                                 data.data.ids.includes(window.siyuan.config.onboarding.documentID)) {
-                                void activateOnboarding(this, window.siyuan.config.onboarding);
+                                void activateDesktopOnboarding(this, window.siyuan.config.onboarding);
                             }
                             break;
                         case "onboarding":
-                            void activateOnboarding(this, data.data);
+                            void activateDesktopOnboarding(this, data.data);
                             break;
                         case "statusbar":
                             progressStatus(data);

@@ -38,7 +38,7 @@ import * as dayjs from "dayjs";
 import {upDownHint} from "../util/DOM/upDownHint";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openBazaarHubTab, openBazaarPublishTab } from "../bazaar-hub/open";
-import {openDataMigration} from "./dataMigration";
+import {openDesktopDataMigration} from "./dataMigration/desktop";
 
 const editLayout = (layoutName?: string) => {
     const dialog = new Dialog({
@@ -563,7 +563,7 @@ export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
                     label: window.siyuan.languages.dataMigration,
                     icon: "iconDatabaseBackup",
                     click: () => {
-                        openDataMigration();
+                        openDesktopDataMigration();
                     }
                 }).element);
             }

@@ -2,7 +2,7 @@ import {Constants} from "../../constants";
 import {closeModel, closePanel} from "./closePanel";
 import {getCurrentEditor} from "./getCurrentEditor";
 import {openMobileFileById} from "../editor";
-import {openMobileOnboarding} from "../../onboarding";
+import {openMobileOnboarding} from "../../onboarding/mobile";
 import {validateName} from "../../editor/rename";
 import {getEventName} from "../../util/platform/functions";
 import {fetchPost} from "../../util/network/fetch";

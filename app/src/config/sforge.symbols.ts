@@ -25,6 +25,9 @@ export const WINDOW_KEYDOWN_SWITCH_DIALOG = Symbol.for("sforge.windowKeyDown.swi
 /** 当前搜索文章预览标识的唯一状态键。 */
 export const ARTICLE_PREVIEW_CURRENT_ID = Symbol.for("sforge.search.articlePreviewCurrentId");
 
+/** 新用户引导跨登录与同步事件的唯一生命周期状态键。 */
+export const ONBOARDING_LIFECYCLE_STATE = Symbol.for("sforge.onboarding.lifecycleState");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

@@ -38,7 +38,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
 import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuanEnvironments/windowTimer.environment";
-import { openDesktopOnboarding } from "../onboarding";
+import {openDesktopOnboarding} from "../onboarding/desktop";
 
 /**
  * 初始化 IPC 通信（仅桌面端）

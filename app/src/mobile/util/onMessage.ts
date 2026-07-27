@@ -13,7 +13,7 @@ import {reloadEmoji} from "../../emoji";
 import {renderSnippet} from "../../config/util/snippets";
 import {redirectToCheckAuth} from "../../util/file/pathName";
 import {setEmpty} from "./setEmpty";
-import {activateOnboarding} from "../../onboarding";
+import {activateMobileOnboarding} from "../../onboarding/mobile";
 import {clearMobileBackForward} from "../navigationHistory/mobileNavigationHistory";
 
 let statusTimeout: number;
@@ -89,12 +89,12 @@ export const onMessage = (app: AppFacade, data: IWebSocketData) => {
                 break;
             }
             case "onboarding":
-                void activateOnboarding(app, data.data);
+                void activateMobileOnboarding(app, data.data);
                 break;
             case "removeDoc":
                 if (window.siyuan.config.onboarding?.newUser && !window.siyuan.config.onboarding.dismissed &&
                     data.data.ids.includes(window.siyuan.config.onboarding.documentID)) {
-                    void activateOnboarding(app, window.siyuan.config.onboarding);
+                    void activateMobileOnboarding(app, window.siyuan.config.onboarding);
                 }
                 break;
             case "setLocalStorageVal":
