@@ -2,7 +2,7 @@ import {Dialog} from "../../dialog";
 import {fetchPost} from "../network/fetch";
 import {isMobile} from "./functions";
 import {Constants} from "../../constants";
-import {getDockByType} from "../../layout/tabUtil";
+import {getDockByType} from "../../layout/query/dockByType";
 import {Files} from "../../layout/dock/Files";
 import type {TagDomain} from "../../layout/dock/tag/tag.types";
 import {platform} from "../../platform";
