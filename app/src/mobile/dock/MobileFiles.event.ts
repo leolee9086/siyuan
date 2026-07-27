@@ -5,7 +5,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {setNoteBook} from "../../util/file/pathName";
 import {openMobileFileById} from "../editor";
 import {Constants} from "../../constants";
-import {openEncryptedNotebook} from "../../util/file/mount";
+import {openEncryptedNotebook} from "../../util/file/notebookAccess/openEncryptedNotebook/openEncryptedNotebook.factory";
 import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import {newFileInTree} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
@@ -166,7 +166,7 @@ export function bindClickEvent(
                 const liElement = target.closest("li");
                 if (liElement?.getAttribute("data-encrypted") === "true") {
                     const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
-                    openEncryptedNotebook(app, notebookId, name);
+                    openEncryptedNotebook(notebookId, name);
                 } else {
                     fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
                 }

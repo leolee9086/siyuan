@@ -10,7 +10,7 @@ import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConf
 import { isStylableElement } from "./eventHandlers.guard";
 import type {FilesDomain} from "./eventHandlers.types";
 import type { AppFacade } from "../../../app/AppFacade.types";
-import {openEncryptedNotebook} from "../../../util/file/mount";
+import {openEncryptedNotebook} from "../../../util/file/notebookAccess/openEncryptedNotebook/openEncryptedNotebook.factory";
 
 /**
  * 处理 closeElement 中的图标点击
@@ -138,7 +138,7 @@ function handleCloseElementOpenClick(
     const liElement = target.closest("li");
     if (liElement?.getAttribute("data-encrypted") === "true") {
         const name = liElement.querySelector(".b3-list-item__text")?.textContent ?? "";
-        openEncryptedNotebook(app, notebookId, name);
+        openEncryptedNotebook(notebookId, name);
     }
     if (liElement?.getAttribute("data-encrypted") !== "true") {
         fetchPost("/api/notebook/openNotebook", {notebook: notebookId});
