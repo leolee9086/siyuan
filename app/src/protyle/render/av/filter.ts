@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {getColIconByType} from "./col/col.typeUtils";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";

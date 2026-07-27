@@ -1,5 +1,5 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";

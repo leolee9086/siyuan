@@ -4,6 +4,7 @@ import {submitPreparedTransaction} from "./imports";
 /** 判断 action 是否属于列编辑面板的完整封闭集合。 */
 const isAVColumnEditAction = (action: IOperation["action"]) =>
     action === "updateAttrViewCol" ||
+    action === "setAttrViewColIcon" ||
     action === "setAttrViewColDesc" ||
     action === "updateAttrViewColTemplate" ||
     action === "setAttrViewUpdatedIncludeTime" ||

@@ -1,5 +1,6 @@
-import {transaction} from "../../wysiwyg/transaction/submit";
-import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
+import {submitAVColumnEditTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnEdit";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
+import {submitAVSortTransaction} from "../../wysiwyg/transaction/prepared/av/view/avSort";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindEditEvent, getEditHTML } from "./col/edit/render";
@@ -49,7 +50,7 @@ const applyCustomAttrIcon = (blockElement: Element, colId: string, unicode: stri
 const applyColIcon = (ctx: IMenuPanelContext, target: HTMLElement, unicode: string): void => {
     const colId = getMenuColId(ctx.menuElement);
     const { protyle, blockElement } = ctx.options;
-    transaction(protyle, [{
+    submitAVColumnEditTransaction(protyle, [{
         action: "setAttrViewColIcon", id: colId, avID: ctx.avID, data: unicode,
     }], [{
         action: "setAttrViewColIcon", id: colId, avID: ctx.avID, data: target.dataset.icon,
@@ -102,7 +103,7 @@ const removeLineNumberSortAndFilter = (ctx: IMenuPanelContext, colId: string): v
     if (sortExist) {
         const oldSorts = Object.assign([], ctx.data.view.sorts);
         const newSorts = ctx.data.view.sorts.filter((sort) => sort.column !== colId);
-        transaction(protyle, [{
+        submitAVSortTransaction(protyle, [{
             action: "setAttrViewSorts", avID: ctx.data.id, data: newSorts, blockID: ctx.blockID,
         }], [{
             action: "setAttrViewSorts", avID: ctx.data.id, data: oldSorts, blockID: ctx.blockID,
@@ -112,8 +113,10 @@ const removeLineNumberSortAndFilter = (ctx: IMenuPanelContext, colId: string): v
     if (filterExist) {
         const oldFilters = JSON.parse(JSON.stringify(ctx.data.view.filters));
         let newFilters: IAVFilter[];
-        if (ctx.data.view.filters.length === 1 && (ctx.data.view.filters[0].filters || ctx.data.view.filters[0].combination)) {
-            const root = JSON.parse(JSON.stringify(ctx.data.view.filters[0]));
+        const rootFilter = ctx.data.view.filters[0];
+        // 单一复合根需要保留根组合方式，仅移除其内部命中当前列的子筛选。
+        if (ctx.data.view.filters.length === 1 && rootFilter && (rootFilter.filters || rootFilter.combination)) {
+            const root = JSON.parse(JSON.stringify(rootFilter));
             root.filters = removeFiltersByColumn(root.filters || [], colId);
             newFilters = [root];
         } else {
@@ -146,7 +149,7 @@ const applyColTypeChange = (ctx: IMenuPanelContext, colId: string, target: HTMLE
         newName = getColNameByType(newType);
         field.name = newName;
     }
-    transaction(protyle, [{
+    submitAVColumnEditTransaction(protyle, [{
         action: "updateAttrViewCol", id: colId, avID: ctx.avID, name: newName, type: newType,
     }], [{
         action: "updateAttrViewCol", id: colId, avID: ctx.avID, name, type: oldType,

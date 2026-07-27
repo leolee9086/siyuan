@@ -1,5 +1,5 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/view/avFilter";
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import {bindEditEvent, getEditHTML} from "./col/edit/render";
 import {getColId} from "./col/identity/resolve";

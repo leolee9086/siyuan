@@ -39,6 +39,7 @@
 - [x] 增加运行时专项测试，覆盖返回 ID、提示与旧 Panel 清理。
 - [x] 验证目标两节点环、类型、Node、网关和 diff；Filter 规模 lint 转入中期拆分。
 - [x] 全仓 `setAttrViewFilters` 提交统一进入严格 Filter Prepared 命令，Filter 根退出 SCC。
+- [x] Filter 严格命令归入 `prepared/av/view` 视图条件子域，与 Sort 并列且网关直达 Prepared 内核。
 
 ## 中期计划
 
@@ -64,6 +65,7 @@
 - **2026-07-27**：创建专项 TTT。依据当前 `lint:cycles` 确认唯一两节点环由 Filter 的 Rollup 缺失配置导航反向边造成；1301 行 Filter 登记为上帝对象，后续按完整职责阶段化拆分。
 - **2026-07-27**：`setFilter` 在 Rollup 配置不足时完成原有提示与旧 Panel 清理后返回列 ID，删除 Filter 对 Panel 的运行时导入；唯一列菜单调用方等待结果并经既有 `col/imports.ts` 直达 Panel 唯一实现。列菜单同时将具体 `Dialog` class 依赖替换为既有完整 `IProtyleDialog/IProtyleDialogPort`，未新增碎片接口。真实运行时专项 `1/1`、Node `190/190`、Protyle 契约类型、imports 多跳和 diff 检查通过；生产图保持 `2203` 节点，代表环 `424 -> 421`、最大 SCC 保持 `668`，Filter/Panel 直接环和全部共环归零。完整 Vitest 第一批 `44/44`、第二批可执行测试 `32/32`，但 `keydown.list/router` 与 `dialogHotkey` 两个套件仍在导入期触发既有 Calibur `有交集()` 的 `undefined.filter` 回归，因此不登记为全量通过。Filter 的 10 项规模 lint 和列菜单既有导入注释门禁继续在中期拆分中治理，不添加豁免。
 - **2026-07-27**：核定 Filter、Panel 点击、列类型切换和拖拽编排中的九个 `setAttrViewFilters` 提交点均在调用域完成筛选树变换和 DOM 重渲染，通用事务无对应本地分支；新增严格 `prepared/av/avFilter.ts`，全仓该 action 统一直达唯一命令，Sort/列/视图等不同 action 不强行合并。命令与导航专项 `3/3`、完整 Node `199/199`、Protyle 契约类型、新命令 lint、全量类型目标诊断 `0`、imports 多跳与 diff 检查通过。生产图 `2263 / 320 / SCC 604`，Filter 根与新命令退出 SCC；代表环 `318 -> 320` 是首路径转向 Cell/Asset/Hint 后的重新枚举。1227 行 Filter 上帝模块仍按中期计划拆分，不提前归档整体任务。
+- **2026-07-27**：为保持 Prepared 根目录规模门禁并按真实视图条件领域组织命令，Filter 唯一实现迁入 `prepared/av/view/avFilter.ts`，与新 Sort 严格命令并列；子域 `imports.ts` 直达 `prepared/submit.ts`，旧路径和兼容转发清零。所有 Filter 消费者同步直达新所有者，Filter 契约测试继续通过。
 
 ## 关联任务
 

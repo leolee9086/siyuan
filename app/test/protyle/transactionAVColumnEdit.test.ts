@@ -12,6 +12,7 @@ import {submitAVColumnEditTransaction} from "../../src/protyle/wysiwyg/transacti
 
 const actions = [
     "updateAttrViewCol",
+    "setAttrViewColIcon",
     "setAttrViewColDesc",
     "updateAttrViewColTemplate",
     "setAttrViewUpdatedIncludeTime",
