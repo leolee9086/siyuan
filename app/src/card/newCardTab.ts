@@ -1,15 +1,15 @@
-import { Tab } from "../layout/Tab";
+import type {LayoutTab} from "../layout/layout.types";
 import {Custom} from "../layout/dock/custom/Custom";
 import { bindCardEvent, genCardHTML } from "./openCard";
 import { fetchPost } from "../util/network/fetch";
-import { Protyle } from "../protyle";
+import type {ProtyleDomain} from "../protyle/protyle.types";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import type { AppFacade } from "../app/AppFacade.types";
 import {clearObjectBlockGraphs} from "../layout/dock/obg/clearObjectBlockGraphs";
 
 export const newCardModel = (options: {
     app: AppFacade,
-    tab: Tab,
+    tab: LayoutTab,
     data: {
         cardType: TCardType,
         id: string,
@@ -18,7 +18,7 @@ export const newCardModel = (options: {
         index?: number,
     }
 }) => {
-    let editor: Protyle;
+    let editor: ProtyleDomain;
     const customObj = new Custom({
         app: options.app,
         type: "siyuan-card",
