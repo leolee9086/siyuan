@@ -1,5 +1,5 @@
 /** 用途：提交封闭的添加列事务；使用范围：列类型菜单点击；解耦评估：经本子域网关直达严格命令，不加载通用事务主图。 */
-import {submitAVColumnAddTransaction} from "./imports";
+import {submitAVColumnStructureTransaction} from "./imports";
 /** 用途：生成块更新时间；使用范围：列类型菜单点击；解耦评估：纯时间依赖由子域网关显式登记，无需参数化。 */
 import {dayjs} from "./imports";
 /** 用途：读取列类型名称；使用范围：菜单标签与新列名称；解耦评估：运行时语言必须在点击前读取，经只读环境唯一实现提供。 */
@@ -67,7 +67,7 @@ export const addColMenuItems = (menu: Menu, ctx: AddColumnMenuContext) => {
             click() {
                 const id = Lute.NewNodeID();
                 const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-                submitAVColumnAddTransaction(ctx.protyle, [{
+                submitAVColumnStructureTransaction(ctx.protyle, [{
                     action: "addAttrViewCol",
                     name: label,
                     avID: ctx.avID,

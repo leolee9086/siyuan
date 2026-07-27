@@ -4,7 +4,7 @@
 >
 > **当前目标**：在列添加返回链已经解除后，继续拆分 Panel 内容渲染、挂载定位和事件分发，使具体组合入口逐步退出主 SCC。
 >
-> **下一步任务**：沿当前首环审计 `col.operations -> action/click -> col menu` 的列删除/重复/菜单呈现职责，先固定真实行为，再决定复用完整领域根或下沉唯一实现。
+> **下一步任务**：沿当前首环审计 `openMenuPanel.click.groups -> transaction` 的分组折叠、排序和删除行为，先核定本地呈现责任与 action 封闭集合。
 
 ## 不变量
 
@@ -66,7 +66,8 @@
 - **2026-07-27**：完成依赖意图审计并建立专项。确认返回边来自真实“缺失 Panel 后打开完整编辑面板”语义，拒绝用 callback、事件或服务定位器隐藏；登记 `2268 / 318 / SCC 596` 基线。
 - **2026-07-27**：先清除 Column Ops 中与 Panel/AddCol 返回链无关的列可见性事务：批量与单列 hidden 更新复用 Column Edit 严格命令，本地字段和菜单刷新顺序不变。该直接事务边归零，但首环与 SCC 保持基线，未将局部完成误记为 Panel 阶段完成。
 - **2026-07-27**：建立带模块级 Symbol 厂牌的完整 `AVMenuPanelDomain`，覆盖既有 `openMenuPanel/openViewMenu` 全部公开表面；实际 `avMenuPanel` 由独立契约测试使用 `StrictEqual` 双向校验。列添加的 Table 单元格、自定义属性行、已有面板刷新和缺失面板导航迁入唯一 `col/add/presentation.ts`，通过完整 Panel 外观参数传递，不再反向导入具体组合入口；菜单实例只在 `menu.factory.ts` 创建，未保存闭包状态。
-- **2026-07-27**：添加列的封闭 action 集合明确为 `addAttrViewCol/removeAttrViewCol/doUpdateUpdated`，新增严格 `submitAVColumnAddTransaction` 复用 Prepared undo、lite、同步指示、队列和请求生命周期，非法 action 同步抛错；菜单不再加载通用 transaction DOM 分派主图。必需 `data-av-id/data-node-id` 在菜单项创建前显式校验，缺失身份不再进入半初始化或无身份提交。严格命令、菜单身份和四场景呈现专项 `11/11`、Panel 契约 `1/1`、完整 Node `200/200`、新增源码 lint、Protyle 契约类型、全量类型目标诊断 `0` 和 imports 多跳门禁通过。生产图 `2268 / 318 / SCC 596 -> 2270 / 306 / SCC 594`，Add Menu、Presentation 和命令均退出唯一 SCC，原 Panel/AddCol 返回链归零；新的首环转为 `openMenuPanel -> col.operations -> action/click -> col menu`，继续按真实列操作职责推进。
+- **2026-07-27**：添加列的封闭 action 集合明确为 `addAttrViewCol/removeAttrViewCol/doUpdateUpdated`，新增严格 Column Structure 命令复用 Prepared undo、lite、同步指示、队列和请求生命周期，非法 action 同步抛错；菜单不再加载通用 transaction DOM 分派主图。必需 `data-av-id/data-node-id` 在菜单项创建前显式校验，缺失身份不再进入半初始化或无身份提交。严格命令、菜单身份和四场景呈现专项 `11/11`、Panel 契约 `1/1`、完整 Node `200/200`、新增源码 lint、Protyle 契约类型、全量类型目标诊断 `0` 和 imports 多跳门禁通过。生产图 `2268 / 318 / SCC 596 -> 2270 / 306 / SCC 594`，Add Menu、Presentation 和命令均退出唯一 SCC，原 Panel/AddCol 返回链归零；新的首环转为 `openMenuPanel -> col.operations -> action/click -> col menu`，继续按真实列操作职责推进。
+- **2026-07-27**：按 [AV 列结构变更生命周期拆分](./AV列结构变更生命周期拆分.ttt.md) 将添加、复制和两类删除统一到 Column Structure 严格命令，删除呈现从 Action 聚合迁回列结构子域；所有迁移节点退出 SCC。专项 `15/15`、源码 lint、Protyle 类型与网关门禁通过；代表环重排为 `312`，唯一 SCC `594 -> 591`，Panel 首环推进到 Groups 点击事务。
 
 ## 关联任务
 

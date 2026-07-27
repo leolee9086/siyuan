@@ -1,12 +1,21 @@
-import {transaction} from "../../../wysiwyg/transaction/submit";
-import * as dayjs from "dayjs";
-import {getPropertiesHTML} from "./properties/render";
-import {removeAttrViewColAnimation} from "../action";
-import {addAttrViewColAnimation} from "./add/presentation";
-import type {AVMenuPanelDomain} from "./add/types";
-import {duplicateNameAddOne} from "../../../../util/platform/functions";
-import {setPosition} from "../../../../util/DOM/positioning/setPosition";
-import {getFieldsByData} from "../view/metadata";
+/** 用途：提交封闭的列结构事务；使用范围：复制与 Panel 删除；解耦评估：经同域网关直达严格命令。 */
+import {submitAVColumnStructureTransaction} from "./imports";
+/** 用途：生成更新时间；使用范围：复制与删除；解耦评估：经同域网关取得纯时间依赖。 */
+import {dayjs} from "./imports";
+/** 用途：刷新删除后的 Properties；使用范围：Panel 删除；解耦评估：经同域网关直达唯一实现。 */
+import {getPropertiesHTML} from "./imports";
+/** 用途：执行删除列 DOM 呈现；使用范围：Panel 删除；解耦评估：同域唯一叶子实现。 */
+import {removeAttrViewColPresentation} from "./presentation";
+/** 用途：执行复制列后的添加呈现；使用范围：复制列；解耦评估：经同域网关直达唯一实现。 */
+import {addAttrViewColAnimation} from "./imports";
+/** 用途：约束复制后导航的完整 Panel 外观；使用范围：复制参数；解耦评估：纯类型经网关直达领域声明。 */
+import type {AVMenuPanelDomain} from "./imports";
+/** 用途：生成重复列名称；使用范围：复制列；解耦评估：经同域网关取得纯工具。 */
+import {duplicateNameAddOne} from "./imports";
+/** 用途：重定位删除后的 Panel；使用范围：Panel 删除；解耦评估：经同域网关直达定位实现。 */
+import {setPosition} from "./imports";
+/** 用途：读取视图字段原数组；使用范围：复制列；解耦评估：经同域网关直达元数据所有者。 */
+import {getFieldsByData} from "./imports";
 
 /**
  * 在字段列表中查找并移除指定列，返回列数据和前一列 ID
@@ -22,7 +31,7 @@ import {getFieldsByData} from "../view/metadata";
 /** @同步豁免: UI构建 — 纯数据操作 */
 const findAndSpliceCol = (
     fields: IAVColumn[], colId: string,
-): { colData: IAVColumn | undefined; previousID: string } => {
+) => {
     let previousID = "";
     let colData: IAVColumn | undefined;
     for (let index = 0; index < fields.length; index++) {
@@ -53,7 +62,7 @@ const findAndSpliceCol = (
 /** @同步豁免: UI构建 — 纯数据操作 */
 const findAndDuplicateCol = (
     fields: IAVColumn[], colId: string,
-): IAVColumn | undefined => {
+) => {
     for (let index = 0; index < fields.length; index++) {
         const field: IAVColumn | undefined = fields[index];
         if (!field || field.id !== colId) {
@@ -93,7 +102,7 @@ export const duplicateCol = (options: {
     newColData.id = Lute.NewNodeID();
     const newUpdated = dayjs().format("YYYYMMDDHHmmss");
     const blockId = options.blockElement.getAttribute("data-node-id") ?? "";
-    transaction(options.protyle, [{
+    submitAVColumnStructureTransaction(options.protyle, [{
         action: "duplicateAttrViewKey",
         keyID: options.colId,
         nextID: newColData.id,
@@ -141,7 +150,7 @@ const updateRemoveColPanel = (options: {
     menuElement: HTMLElement,
     avPanelElement: Element,
     tabRect: DOMRect,
-}): void => {
+}) => {
     // 自定义属性面板直接移除
     if (options.isCustomAttr) {
         options.avPanelElement.remove();
@@ -180,7 +189,7 @@ export const removeCol = (options: {
     const colId = menuItem?.getAttribute("data-col-id") ?? "";
     const {colData, previousID} = findAndSpliceCol(options.fields, colId);
     const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-    transaction(options.protyle, [{
+    submitAVColumnStructureTransaction(options.protyle, [{
         action: "removeAttrViewCol",
         id: colId,
         avID: options.avID,
@@ -201,7 +210,7 @@ export const removeCol = (options: {
         id: options.blockID,
         data: options.blockElement.getAttribute("updated")
     }]);
-    removeAttrViewColAnimation(options.blockElement, colId);
+    removeAttrViewColPresentation(options.blockElement, colId);
     options.blockElement.setAttribute("updated", newUpdated);
     updateRemoveColPanel(options);
 };

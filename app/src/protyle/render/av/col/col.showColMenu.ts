@@ -13,7 +13,7 @@ import {getProtyleDialogPort} from "../../../runtime/dialog.port";
 import type {IProtyleDialog} from "../../../runtime/dialog.port";
 import {isMobile} from "../../../../util/platform/functions";
 import {Constants} from "../../../../constants";
-import {removeColByMenu} from "./col.removeColByMenu";
+import {removeColByMenu} from "./structure/removeByMenu";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isHTMLElement, isCustomEvent} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";

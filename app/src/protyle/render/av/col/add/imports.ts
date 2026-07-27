@@ -1,7 +1,7 @@
 /** 用途：提交封闭的添加列事务；使用范围：添加列菜单；解耦评估：直达 AV Column Add 严格命令，不加载通用事务 DOM 分派主图。 */
-import {submitAVColumnAddTransaction} from "../../../../wysiwyg/transaction/prepared/av/avColumnAdd";
+import {submitAVColumnStructureTransaction} from "../../../../wysiwyg/transaction/prepared/av/avColumnStructure";
 /** 导出添加列严格命令。 */
-export {submitAVColumnAddTransaction};
+export {submitAVColumnStructureTransaction};
 
 /** 用途：生成更新时间；使用范围：添加列事务；解耦评估：第三方纯时间库。 */
 import * as dayjs from "dayjs";

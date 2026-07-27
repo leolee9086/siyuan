@@ -11,12 +11,6 @@ import { avClick } from "./click";
  */
 import { avContextmenu } from "./contextmenu";
 /**
- * 用途：引入属性视图单元格动画与列删除动画实现。
- * 使用范围：供选择器、关联、列编辑等流程在局部更新 DOM 时复用。
- * 解耦评估：这部分逻辑本质是 UI 刷新适配层，拆出后能避免其它业务模块反向依赖点击或右键菜单代码。
- */
-import { removeAttrViewColAnimation } from "./animation";
-/**
  * 用途：引入属性视图完整复制实现。
  * 使用范围：供 gutter 菜单和快捷键触发“复制为完整副本”流程。
  * 解耦评估：完整复制需要组合接口调用、DOM 插入和事务提交，保留专门模块能把副作用边界收紧。
@@ -27,7 +21,5 @@ import { duplicateCompletely } from "./duplicate";
 export { avClick };
 /** 导出属性视图右键菜单入口。 */
 export { avContextmenu };
-/** 导出属性视图列删除动画入口。 */
-export { removeAttrViewColAnimation };
 /** 导出属性视图完整复制入口。 */
 export { duplicateCompletely };

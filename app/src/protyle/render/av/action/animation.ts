@@ -72,7 +72,6 @@ const normalizeCardLayoutCheckboxValue = (cellElement: HTMLElement, value: IAVCe
         content: cellElement.getAttribute("aria-label")?.split('<div class="ft__on-surface">')[0] || "",
     };
 };
-
 /**
  * 计算当前单元格渲染时是否显示 emoji 图标。
  *
@@ -123,8 +122,6 @@ export const updateAttrViewCellAnimation = async (
     if (!value) {
         return;
     }
-    const cellValue: IAVCellValue = value;
-
     const hasDragFillElement = cellElement.querySelector(".av__drag-fill");
     const blockElement = hasClosestBlock(cellElement);
     if (!blockElement) {
@@ -135,47 +132,30 @@ export const updateAttrViewCellAnimation = async (
     const isCardLayout = isCardLayoutView(viewType);
     const showIcon = shouldShowCellIcon(cellElement);
     let cardLayoutContainer: HTMLElement | null = null;
+    // 卡片视图的空态标记位于单元格父容器，仅在父节点确实是可写 HTMLElement 时登记回写目标。
     if (isCardLayout && isHTMLElement(cellElement.parentElement)) {
         cardLayoutContainer = cellElement.parentElement;
     }
 
     // gallery 和 kanban 使用卡片式布局，刷新时需要同步 data-empty 并补齐 checkbox 展示文本。
     if (isCardLayout) {
-        normalizeCardLayoutCheckboxValue(cellElement, cellValue);
-        cellElement.innerHTML = await renderCell(cellValue, 0, showIcon, viewType);
+        normalizeCardLayoutCheckboxValue(cellElement, value);
+        cellElement.innerHTML = await renderCell(value, 0, showIcon, viewType);
     }
 
     // 卡片式布局的空态标记挂在父容器上，只有父节点确实存在且可写时才回写该状态。
     if (cardLayoutContainer) {
-        const isEmpty = cellValueIsEmpty(cellValue) ?? false;
+        const isEmpty = cellValueIsEmpty(value) ?? false;
         cardLayoutContainer.setAttribute("data-empty", isEmpty.toString());
     }
 
     // 普通表格布局沿用旧版 renderCell 签名，不传 viewType，避免误走卡片模板。
     if (!isCardLayout) {
-        cellElement.innerHTML = await renderCell(cellValue, 0, showIcon);
+        cellElement.innerHTML = await renderCell(value, 0, showIcon);
     }
 
     if (hasDragFillElement) {
         addDragFill(cellElement);
     }
-    renderCellAttr(cellElement, cellValue);
-};
-
-/**
- * 删除列后的本地移除动画。
- *
- * 意图：列删除事务提交前先从当前 DOM 树移除对应列单元格，避免用户看到延迟状态。
- * 调用时机：列菜单确认删除后，由列操作流程调用。
- * 问题/改进：当前仅做立即移除，没有额外过渡动画；若以后需要视觉过渡，可在此处统一扩展。
- *
- * @param {Element} blockElement - 属性视图根块
- * @param {string} id - 被删除列的 colId
- * @同步豁免: 需要绝对同步的DOM访问
- */
-export const removeAttrViewColAnimation = (blockElement: Element, id: string) => {
-    const columnCells = blockElement.querySelectorAll(`.av__cell[data-col-id="${id}"]`);
-    for (const columnCell of columnCells) {
-        columnCell.remove();
-    }
+    renderCellAttr(cellElement, value);
 };

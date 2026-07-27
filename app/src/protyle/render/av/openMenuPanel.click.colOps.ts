@@ -1,6 +1,6 @@
 import {submitAVColumnEditTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnEdit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
-import { duplicateCol, removeCol } from "./col/col.operations";
+import {duplicateCol, removeCol} from "./col/structure/operations";
 import {addCol} from "./col/add/menu.factory";
 import { bindEditEvent, getEditHTML } from "./col/edit/render";
 import { Constants } from "../../../constants";

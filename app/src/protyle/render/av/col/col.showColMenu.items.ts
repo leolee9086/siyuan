@@ -6,7 +6,7 @@ import {focusBlock} from "../../../util/selection";
 import {handleDeleteColClick} from "./col.showColMenu";
 import {addCol} from "./add/menu.factory";
 import {avMenuPanel} from "./imports";
-import {duplicateCol} from "./col.operations";
+import {duplicateCol} from "./structure/operations";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isHTMLInputElement} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";

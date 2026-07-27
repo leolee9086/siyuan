@@ -11,7 +11,7 @@ vi.mock("../../../src/protyle/render/av/col/add/imports", () => ({
     },
     dayjs: () => ({format: () => "20260727000000"}),
     siyuanI18n: {},
-    submitAVColumnAddTransaction: vi.fn(),
+    submitAVColumnStructureTransaction: vi.fn(),
 }));
 
 vi.mock("../../../src/protyle/render/av/col/add/presentation", () => ({
