@@ -9,7 +9,6 @@
 
 import { Tree } from "../../../util/file/Tree";
 import { Constants } from "../../../constants";
-import { openFileById } from "../../../editor/utils.openFileById";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import type {ForwardlinkDomain} from "./Forwardlink.types";
 import { 切换列表项展开, 设置面板焦点 } from "./Forwardlink.helpers";
@@ -49,8 +48,7 @@ export function 初始化Tree组件(forwardlink: ForwardlinkDomain, app: AppFaca
             if (!nodeId) {
                 return;
             }
-            openFileById({
-                app: app,
+            void app.openBlock({
                 id: nodeId,
                 action: [Constants.CB_GET_CONTEXT]
             });
@@ -64,8 +62,7 @@ export function 初始化Tree组件(forwardlink: ForwardlinkDomain, app: AppFaca
             if (!nodeId) {
                 return;
             }
-            openFileById({
-                app: app,
+            void app.openBlock({
                 id: nodeId,
                 position: "right",
                 action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
@@ -80,8 +77,7 @@ export function 初始化Tree组件(forwardlink: ForwardlinkDomain, app: AppFaca
             if (!nodeId) {
                 return;
             }
-            openFileById({
-                app: app,
+            void app.openBlock({
                 id: nodeId,
                 position: "bottom",
                 action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]

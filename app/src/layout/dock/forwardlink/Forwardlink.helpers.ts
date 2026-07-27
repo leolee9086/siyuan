@@ -5,7 +5,6 @@
  * 意图：将 Forwardlink.ts 的行数控制在 300 行以内
  */
 
-import { Protyle } from "../../../protyle";
 import { getIconByType } from "../../../editor/getIcon";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { searchForwardLinks, fetchBlocks } from "./Forwardlink.data";
@@ -145,7 +144,7 @@ export function 渲染块编辑器(forwardlink: ForwardlinkDomain, liElement: HT
     liElement.after(wrapper);
 
     try {
-        const editor = new Protyle(forwardlink.app, editorElement, {
+        const editor = forwardlink.app.createProtyle(editorElement, {
             blockId: blockId,
             click: {
                 preventInsetEmptyBlock: true
