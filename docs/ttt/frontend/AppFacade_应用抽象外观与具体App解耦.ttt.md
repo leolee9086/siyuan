@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：继续随当前循环图审计 `CustomLists` 对具体 Editor 导航实现的加载；复用完整 AppFacade 和既有 CustomLists 领域根，不创建调用点碎片契约。
+> **下一步任务**：继续随当前循环图审计 `Forwardlink.helpers` 对具体 Protyle 实现的加载；复用完整 AppFacade 和既有 Forwardlink 领域根，不创建调用点碎片契约。
 
 ---
 
@@ -192,3 +192,4 @@
 - **2026-07-28**：设置导航加入完整 AppFacade 公共表面。设置页身份从具体注册表值推导提升为纯 `SettingTabId` 领域类型，实际 `settingTabs` 以 `satisfies Record` 保证键集合完整；桌面和移动 App 均委托统一 `openSetting`，保留其既有平台分派。Agent Host 删除动态配置加载，改为 `app.openSettings("ai")`。AppFacade 双向契约 `3/3`、相关 Vitest `13/13`、Node `208/208`、imports 多跳 `0` 和目标 lint 通过；新增表面在完整类型检查中无缺失成员诊断。
 - **2026-07-28**：Agent 前端动作使用的编辑器枚举、文档导航完成和搜索打开能力收口到完整 `AppFacade.getOpenEditors/openBlock/openSearch` 公共表面；桌面组合根继续使用 `getAllEditor/openFileById/search.spread`，移动组合根继续使用同一编辑器枚举、既有移动块导航与全屏搜索。动作层不再动态导入具体实现，`openBlock` 的外观返回类型准确表达桌面 Promise 与移动同步分派两种既有语义。双向 `InstanceLooksLike` 契约随 Node `208/208` 通过，动作专项 `4/4`、目标 lint 和 imports 多跳门禁通过；完整类型检查的本批精确可选参数诊断已修复，其余入口基线诊断保持显式。
 - **2026-07-28**：完整 AppFacade 增加 `getOpenModels(): IModels`，表达应用当前全部已挂载模型的完整查询表面；桌面/移动组合根均委托唯一 `getAllModels()`。MAGI Identity Access 由此删除对具体模型查询和 Editor 打开实现的依赖，继续保持 Custom Tab 单实例激活、Dock 排除及独立页回退。AppFacade 双向契约随 Node `208/208` 通过，身份专项 `5/5`、目标类型诊断 `0` 和网关门禁通过。
+- **2026-07-28**：CustomLists 树节点导航改用其已有完整 `AppFacade.openBlock`，保持 `id/action/zoomIn` 载荷和未等待时序；具体 `openFileById` 导入删除。既有完整 `CustomListsDomain` 双向契约随 Node `208/208` 通过，CustomLists 退出当前首环。

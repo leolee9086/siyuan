@@ -23,10 +23,6 @@ import type {TreeDomain, TreeOptions} from "../../../util/file/tree.types";
  */
 import {checkFold} from "../../../block/fold/checkFold";
 /**
- * 用途：根据 ID 打开文件。使用范围：树节点点击打开。解耦评估：通过 openFileById 参数注入。
- */
-import { openFileById } from "../../../editor/utils.openFileById";
-/**
  * 用途：块编辑器完整领域抽象。使用范围：展开树节点时保存内嵌编辑器生命周期。解耦评估：由完整 AppFacade 创建，不加载具体 Protyle。
  */
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
@@ -268,8 +264,7 @@ export class CustomLists extends Model<AppFacade, LayoutTab> {
                 }
                 // 检查折叠状态后打开文件
                 checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
-                    openFileById({
-                        app: this.app,
+                    void this.app.openBlock({
                         id,
                         action,
                         zoomIn
