@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成生产模块对具体 `App` class 的全量依赖迁移，使所有下层应用句柄统一通过带厂牌的 `AppFacade` 传递；Vue `App` 与三个平台组合根保持各自独立语义。
 >
-> **下一步任务**：History、Recent Docs、移动搜索结果、Card 页签导航、Protyle 创建与应用全屏协调已进入完整 AppFacade；继续随主循环图审计 Custom Tab 与 Editor Factory 对具体宿主实现的加载。
+> **下一步任务**：Editor Factory 已复用完整 AppFacade 的 Protyle 创建与全屏协调；继续随主循环图审计其它组合边界对具体宿主实现的重复绑定。
 
 ---
 
@@ -184,3 +184,4 @@
 - **2026-07-27**：移动 Search Event 删除对具体移动 Editor 的导航导入，折叠检查后委托 AppFacade `openBlock()`；移动搜索的滚动保护、面板关闭和专属 UI 保持原实现。契约 `3/3`、Node `200/200` 与网关门禁通过；生产图 `2304 / 269 / SCC 413`，代表环减少 `33`，移动模块仍在主 SCC，继续由主任务处理其它返回路径。
 - **2026-07-27**：将普通 Editor/Asset/Search/Custom 页签的既有完整载荷抽象为 `AppTabNavigation`，并把 `openTab()` 纳入 AppFacade 公共表面。桌面与移动 App 组合根均直接调用唯一 `openFile` 实现，Card 的“新页签”和“右侧打开”保持原载荷与位置语义，只删除其对 Editor 具体实现的反向依赖。AppFacade 契约随新增成员同步收紧，相关 Vitest `7/7`、Node `200/200`、Protyle 契约和 imports 多跳 `0` 通过；生产图仍为 `2307 / 239 / SCC 398`，首环已转向独立的全屏协调职责。
 - **2026-07-27**：应用级全屏协调加入完整 AppFacade 公共表面。桌面/移动组合根均委托既有唯一 Breadcrumb 全屏实现，Card 不再加载该实现；Card 编辑器也改由既有 `createProtyle()` 创建并仅持有完整 `ProtyleDomain`。窗口拖拽区、控件层级、浮动 Dock、按钮图标与全局拖拽元素语义保持原顺序，没有复制实现或以局部 Port 削弱行为。契约和相关 Vitest `7/7`、Node `200/200`、Protyle 契约、imports 多跳 `0` 通过；生产图 `2307 / 239 / SCC 397`，Card 退出唯一 SCC。
+- **2026-07-27**：Editor Factory 的引擎创建与全屏恢复改为委托完整 AppFacade；具体 Protyle class 和 Breadcrumb action 不再由工厂网关加载，Editor 泛型保持完整 `ProtyleDomain` 类型能力，窗口 hash 同步职责不变。目标 Vitest `2/2`、Protyle 契约和 imports 多跳 `0` 通过；生产图 `2307 / 239 / SCC 395`，Factory 两节点退出唯一 SCC。

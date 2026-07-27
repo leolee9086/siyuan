@@ -4,12 +4,10 @@ import {Editor} from "../model/Editor";
 import type {IEditorOptions} from "../types";
 /** 用途：应用实现身份；使用范围：工厂边界绑定编辑器选项；解耦评估：仅装配边界依赖具体宿主。 */
 import type { AppFacade } from "../../app/AppFacade.types";
-/** 用途：Protyle 实现身份；使用范围：工厂返回编辑器初始化回调类型；解耦评估：仅装配边界依赖具体编辑器。 */
-import {Protyle} from "../../protyle";
+/** 用途：完整 Protyle 领域表面；使用范围：工厂返回编辑器初始化回调类型；解耦评估：类型直达稳定声明，不加载具体编辑器。 */
+import type {ProtyleDomain} from "../../protyle/protyle.types";
 /** 用途：同步独立窗口模型 hash；使用范围：编辑器初始化完成回调；解耦评估：在工厂装配宿主能力，Editor 不再导入窗口实现。 */
 import {setModelsHash} from "../../window/setHeader";
-/** 用途：编辑器全屏 UI 同步；使用范围：Editor 模型宿主能力注入；解耦评估：具体行为在工厂边界绑定。 */
-import {fullscreen} from "../../protyle/breadcrumb/action";
 /** 用途：参数化引擎创建选项；使用范围：Protyle 工厂参数；解耦评估：完整配置映射保持静态类型。 */
 import type {EditorEngineOptions} from "../types";
 
@@ -19,11 +17,9 @@ export {Editor};
 export type {IEditorOptions};
 /** 同目录工厂绑定的应用身份。 */
 export type {AppFacade};
-/** 同目录工厂绑定的 Protyle 身份。 */
-export {Protyle};
+/** 同目录工厂绑定的完整 Protyle 领域身份。 */
+export type {ProtyleDomain};
 /** 同目录工厂注入的窗口 hash 同步实现。 */
 export {setModelsHash};
-/** 同目录工厂注入的编辑器全屏实现。 */
-export {fullscreen};
 /** 同目录工厂使用的参数化引擎创建选项。 */
 export type {EditorEngineOptions};
