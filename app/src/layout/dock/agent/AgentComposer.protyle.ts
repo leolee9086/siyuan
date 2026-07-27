@@ -1,4 +1,3 @@
-import {Protyle} from "../../../protyle";
 import {Constants} from "../../../constants";
 import type {AppFacade} from "../../../app/AppFacade.types";
 import {escapeHtml} from "../../../util/DOM/escape";
@@ -54,7 +53,7 @@ export function mountProtyleComposer(
     const history = new ComposerHistory();
     const L = window.siyuan.languages;
 
-    const protyle = new Protyle(app, host, {
+    const protyle = app.createProtyle(host, {
         lite: true,
         blockId: "",
         render: {
