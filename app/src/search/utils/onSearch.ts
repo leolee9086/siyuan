@@ -118,7 +118,7 @@ const 生成空结果HTML = (method: number, inputValue: string): string => {
  */
 const 查找焦点数据 = (
     data: IBlock[],
-    focusId?: { currentId?: string; newId?: string }
+    focusId?: { currentId?: string | null; newId?: string | null }
 ): IBlock | undefined => {
     if (!focusId) {
         return undefined;
@@ -225,8 +225,8 @@ const 滚动到当前项 = (element: Element, currentData: IBlock): void => {
  */
 export const onSearch = (data: IBlock[], edit: ProtyleDomain, element: Element, config: Config.IUILayoutTabSearchConfig,
     focusId?: {
-        currentId?: string;
-        newId?: string;
+        currentId?: string | null;
+        newId?: string | null;
     }) => {
     const resultHTML = 生成结果HTML(data);
 

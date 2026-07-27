@@ -26,7 +26,7 @@ type SearchResponseData = {
 };
 
 /** 当前搜索预览中需要保持的块焦点标识。 */
-type SearchFocusId = {currentId?: string; newId?: string};
+type SearchFocusId = {currentId?: string | null; newId?: string | null};
 
 /** 运行本地语义搜索所需的 UI 和搜索配置。 */
 type LocalSemanticSearchContext = {

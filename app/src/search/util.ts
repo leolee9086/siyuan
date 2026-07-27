@@ -1,23 +1,17 @@
 import { getAllModels } from "../layout/getAll";
 import { Constants } from "../constants";
 import { escapeHtml } from "../util/DOM/escape";
-import { fetchPost } from "../util/network/fetch";
 import {openFile} from "../editor/open/openFile";
 import { openFileById } from "../editor/utils.openFileById";
-import { showMessage } from "../dialog/message";
-import { reloadProtyle } from "../protyle/util/reload";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
 import {setStorageVal} from "../util/storage/setStorageVal";
-import {getKeyByLiElement} from "./result/searchResultKey";
 import type { AppFacade } from "../app/AppFacade.types";
 import {checkFold} from "../block/fold/checkFold";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
-import {saveKeyList} from "./history/storage";
 import { highlightById } from "../util/DOM/highlightById";
 import { scrollToCurrent } from "./utils/utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // inputEvent 已拆分到独立文件，导入供内部使用并重新导出
@@ -152,73 +146,6 @@ export const renderNextSearchMark = (options: {
         matchElement.classList.add("search-mark--hl");
         options.edit.protyle.contentElement.scrollTop = options.edit.protyle.contentElement.scrollTop + matchElement.getBoundingClientRect().top - contentRect.top - contentRect.height / 2;
     }
-};
-
-export const replace = (element: Element, config: Config.IUILayoutTabSearchConfig, edit: ProtyleDomain, isAll: boolean) => {
-    if (config.method === 2 || config.method === 4) {
-        showMessage(siyuanI18n._kernel[132]);
-        return;
-    }
-    const searchPanelElement = element.querySelector("#searchList");
-    const replaceInputElement = element.querySelector("#replaceInput") as HTMLInputElement;
-    const searchInputElement = element.querySelector("#searchInput") as HTMLInputElement;
-
-    const loadElement = element.querySelector("svg.fn__rotate");
-    if (!loadElement.classList.contains("fn__none")) {
-        return;
-    }
-    saveKeyList("replaceKeys", replaceInputElement.value);
-    const currentList: HTMLElement = searchPanelElement.querySelector(".b3-list-item--focus");
-    if (!currentList || currentList.dataset.type === "search-new") {
-        return;
-    }
-    loadElement.classList.remove("fn__none");
-    const currentId = currentList.getAttribute("data-node-id");
-    fetchPost("/api/search/findReplace", {
-        k: config.method === 0 || config.method === 1 ? getKeyByLiElement(currentList) : searchInputElement.value,
-        r: replaceInputElement.value,
-        method: config.method,
-        types: config.types,
-        subTypes: config.subTypes,
-        paths: config.idPath || [],
-        groupBy: config.group,
-        orderBy: config.sort,
-        page: config.page,
-        ids: isAll ? [] : [currentId],
-        replaceTypes: config.replaceTypes
-    }, (response) => {
-        loadElement.classList.add("fn__none");
-        if (response.code === 1) {
-            showMessage(response.msg);
-            return;
-        }
-        if (isAll) {
-            inputEvent(element, config, edit, false);
-            return;
-        }
-        const rootId = currentList.getAttribute("data-root-id");
-        getAllModels().editor.forEach(item => {
-            if (rootId === item.editor.protyle.block.rootID) {
-                reloadProtyle(item.editor.protyle, false);
-            }
-        });
-        let newId = currentList.getAttribute("data-node-id");
-        if (currentList.nextElementSibling) {
-            newId = currentList.nextElementSibling.getAttribute("data-node-id");
-        } else if (currentList.previousElementSibling) {
-            newId = currentList.previousElementSibling.getAttribute("data-node-id");
-        }
-        if (config.group === 1 && !newId) {
-            const nextDocElement = currentList.parentElement.nextElementSibling || currentList.parentElement.previousElementSibling.previousElementSibling?.previousElementSibling;
-            if (nextDocElement) {
-                newId = nextDocElement.nextElementSibling.firstElementChild.getAttribute("data-node-id");
-            }
-        }
-        inputEvent(element, config, edit, false, {
-            currentId,
-            newId
-        });
-    });
 };
 
 // inputEvent 函数已拆分到 inputEvent.ts

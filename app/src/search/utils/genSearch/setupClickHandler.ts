@@ -18,7 +18,7 @@ import {
     handleReplaceFilter,
     handleSearchFilter,
 } from "./handlers/handleReplaceClick";
-import { replace } from "../../util";
+import {replace} from "../../replace/replace";
 import { openSearchUnRef, unRefMoreMenu } from "../../unRef";
 import {
     handleSearchUnRefClose,
@@ -76,8 +76,8 @@ const idHandlers: Record<string, (ctx: SearchClickContext) => void> = {
     searchInclude: (ctx) => handleSearchInclude(ctx.target, ctx.state.config, ctx.ui.element, ctx.state.edit, ctx.callbacks.updateCB),
     searchReplace: (ctx) => handleSearchReplace(ctx.state.config, ctx.ui.element, ctx.callbacks.updateCB),
     replaceFilter: (ctx) => handleReplaceFilter(ctx.state.config),
-    replaceBtn: (ctx) => replace(ctx.ui.element, ctx.state.config, ctx.state.edit, false),
-    replaceAllBtn: (ctx) => replace(ctx.ui.element, ctx.state.config, ctx.state.edit, true),
+    replaceBtn: (ctx) => replace({element: ctx.ui.element, config: ctx.state.config, edit: ctx.state.edit, isAll: false}),
+    replaceAllBtn: (ctx) => replace({element: ctx.ui.element, config: ctx.state.config, edit: ctx.state.edit, isAll: true}),
     searchUnRef: (ctx) => openSearchUnRef(ctx.ui.unRefPanelElement, ctx.state.unRefEdit),
     unRefMore: (ctx) => unRefMoreMenu(ctx.target, ctx.ui.unRefPanelElement, ctx.state.unRefEdit),
     searchUnRefClose: (ctx) => handleSearchUnRefClose(ctx.ui.unRefPanelElement, ctx.ui.assetsElement, ctx.ui.searchInputElement),

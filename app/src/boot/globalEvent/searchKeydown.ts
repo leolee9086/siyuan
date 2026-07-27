@@ -9,7 +9,8 @@ import type { AppFacade } from "../../app/AppFacade.types";
 import {Dialog} from "../../dialog";
 import {getAllModels} from "../../layout/getAll";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {openSearchEditor, replace} from "../../search/util";
+import {openSearchEditor} from "../../search/util";
+import {replace} from "../../search/replace/replace";
 import {getArticle} from "../../search/article/getArticle";
 import {inputEvent} from "../../search/inputEvent";
 import {useShell} from "../../util/file/pathName";
@@ -217,7 +218,7 @@ export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
     if (event.key === "Enter") {
         if (searchType !== "asset") {
             if (targetId === "replaceInput") {
-                replace(element, config, edit, false);
+                replace({element, config, edit, isAll: false});
             } else {
                 openSearchEditor({
                     rootId: currentList.getAttribute("data-root-id"),
