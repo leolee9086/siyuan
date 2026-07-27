@@ -62,6 +62,7 @@ export interface AppFacadeShape<
     };
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
     createDocument(name?: string): Promise<void>;
+    createDocumentInTree(notebookId: string, currentPath: string, paths?: string[]): Promise<void>;
     handleUnavailableDocument(protyle: IProtyle): void;
     toggleFullscreen(element: Element, button?: Element): void;
     openGlobalSearch(text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig): void;

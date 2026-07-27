@@ -78,7 +78,7 @@ import {Protyle} from "./protyle";
 import type {ProtyleDomain} from "./protyle/protyle.types";
 import {openFile} from "./editor/open/openFile";
 import {toggleApplicationFullscreen} from "./app/fullscreen/toggleApplicationFullscreen";
-import {newFile} from "./util/file/newFile";
+import {newFile, newFileInTree} from "./util/file/newFile";
 import {removeProtyleTab} from "./protyle/runtime/layout.port";
 import {createInNotePluginManager} from "./inNotePlugin/manager/InNotePluginManager.factory";
 import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePluginManager.types";
@@ -100,6 +100,9 @@ export class App {
     }
     public createDocument(name?: string) {
         return newFile(this, name);
+    }
+    public createDocumentInTree(notebookId: string, currentPath: string, paths?: string[]) {
+        return newFileInTree(this, notebookId, currentPath, paths);
     }
     public handleUnavailableDocument(protyle: IProtyle) {
         if (protyle.model) {
