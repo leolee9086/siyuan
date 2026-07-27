@@ -3,8 +3,6 @@
  * 导出所有公共 API
  */
 
-/** 用途：插件管理器实例。使用范围：外部模块管理笔记内插件。解耦评估：同目录模块导入后重新导出。 */
-import { inNotePluginManager } from "./manager";
 /** 用途：笔记内插件配置类型。使用范围：外部模块类型约束。解耦评估：同目录类型文件。 */
 import type { 笔记内插件配置 } from "./types";
 /** 用途：笔记内插件运行状态类型。使用范围：外部模块状态管理。解耦评估：同目录类型文件。 */
@@ -30,8 +28,6 @@ import { getSiyuanApiUrl } from "./siyuanApi";
 /** 用途：清理 siyuan API URL。使用范围：外部模块清理 API 模块。解耦评估：同目录模块。 */
 import { cleanupSiyuanApiUrl } from "./siyuanApi";
 
-/** 导出插件管理器 */
-export { inNotePluginManager };
 /** 导出插件类型定义 */
 export type { 笔记内插件配置, 笔记内插件运行状态, 编译结果 };
 /** 导出编译器函数 */

@@ -104,8 +104,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         }
         // 笔记内插件菜单（仅非只读模式）
         if (!window.siyuan.config.readonly) {
-            const { inNotePluginManager } = await import("../../inNotePlugin");
-            const isPluginRegistered = inNotePluginManager.是否已启用(protyle.block.rootID);
+            const isPluginRegistered = protyle.app.inNotePluginManager.是否已启用(protyle.block.rootID);
             window.siyuan.menus.menu.append(createInNotePluginMenuItem(protyle, isPluginRegistered).element);
         }
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);

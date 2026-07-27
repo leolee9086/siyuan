@@ -66,6 +66,7 @@ import {appFacadeBrand} from "./app/AppFacade.types";
 import type {AppBlockNavigation} from "./app/AppFacade.types";
 import type {AppDatabaseRowNavigation} from "./app/AppFacade.types";
 import type {AppTabNavigation} from "./app/AppFacade.types";
+import type {AppFacade} from "./app/AppFacade.types";
 import type * as Siyuan from "siyuan";
 import type {AssetOpenOptions} from "./asset/open/openAsset.types";
 import {openAsset} from "./asset/open/openAsset";
@@ -73,21 +74,26 @@ import {processSiYuanUri} from "./editor/uri/processSiYuanUri";
 import {openDatabaseRowBlock} from "./editor/open/databaseRow/openDatabaseRowBlock";
 import {openDesktopDatabaseRow} from "./editor/open/databaseRow/openDatabaseRow";
 import {Protyle} from "./protyle";
+import type {ProtyleDomain} from "./protyle/protyle.types";
 import {openFile} from "./editor/open/openFile";
 import {toggleApplicationFullscreen} from "./app/fullscreen/toggleApplicationFullscreen";
 import {newFile} from "./util/file/newFile";
 import {removeProtyleTab} from "./protyle/runtime/layout.port";
+import {createInNotePluginManager} from "./inNotePlugin/manager/InNotePluginManager.factory";
+import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePluginManager.types";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
     public plugins: Siyuan.Plugin[] = [];
     public appId: string;
     public eventBus: EventBus;
+    public inNotePluginManager: InNotePluginManagerDomain<AppFacade> = createInNotePluginManager();
     public pluginHost = {
         reloadData: (plugin: Siyuan.Plugin) => reloadPluginData(this, plugin),
         addDock: (plugin: Siyuan.Plugin) => addPluginDock(plugin),
     };
-    public createProtyle(element: HTMLElement, options: IProtyleOptions) {
+    /** @显式返回类型原因：App 公开表面必须固定为完整 ProtyleDomain，避免向下层泄露具体 class。 */
+    public createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain {
         return new Protyle(this, element, options);
     }
     public createDocument(name?: string) {
@@ -352,9 +358,7 @@ export class App {
             window.siyuan.isPublish = response.data.isPublish;
             setBodyHighlight();
             await loadPlugins(this);
-            // 初始化笔记内插件
-            const { inNotePluginManager } = await import("./inNotePlugin");
-            await inNotePluginManager.init(this);
+            await this.inNotePluginManager.init(this);
             getLocalStorage(() => {
                 fetchGet(`/appearance/langs/${window.siyuan.config?.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
                     window.siyuan.languages = lauguages;

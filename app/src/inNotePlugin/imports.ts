@@ -28,3 +28,8 @@ export { API };
 import { PackagePermissionManager } from "../util/lib/code/PackagePermissionManager";
 /** 导出 PackagePermissionManager，供 inNotePlugin 模块使用 */
 export { PackagePermissionManager };
+
+/** 用途：本地插件到官方类型的唯一适配器。使用范围：笔记内插件实例进入公开状态前。解耦评估：直达兼容性边界。 */
+import {adaptSiyuanPlugin} from "../plugin/compatibility/adaptSiyuanPlugin";
+/** 导出官方插件适配器。 */
+export {adaptSiyuanPlugin};

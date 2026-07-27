@@ -203,15 +203,14 @@ export const createInNotePluginMenuItem = (protyle: IProtyle, isRegistered?: boo
          * 注册/更新笔记内插件的点击回调
          */
         click: async () => {
-            const { inNotePluginManager, 设置为插件文档 } = await import("../../inNotePlugin");
             const docId = protyle.block.rootID;
             const name = protyle.title?.editElement?.textContent || docId;
 
-            await 设置为插件文档(docId);
+            await protyle.app.inNotePluginManager.设置为插件文档(docId);
             // 已注册时重载,未注册时启用
             const [动作, 成功消息, 失败消息] = isRegistered
-                ? [() => inNotePluginManager.重载插件(docId), "已重载", "重载失败"]
-                : [() => inNotePluginManager.启用插件(docId, name), "已启用", "启用失败"];
+                ? [() => protyle.app.inNotePluginManager.重载插件(docId), "已重载", "重载失败"]
+                : [() => protyle.app.inNotePluginManager.启用插件(docId, name), "已启用", "启用失败"];
             const success = await 动作();
             const msg = success ? 成功消息 : 失败消息;
             showMessage(`笔记内插件 [${name}] ${msg}`, success ? undefined : 3000, success ? undefined : "error");

@@ -4,6 +4,10 @@
  */
 /** 用途：插件基类类型。使用范围：loader 模块创建器。解耦评估：通过 imports.ts 转发。 */
 import { Plugin } from "./imports";
+/** 用途：官方插件生态类型。使用范围：加载器公开运行状态；解耦评估：type-only npm 基线，不加载项目实现。 */
+import type * as Siyuan from "siyuan";
+/** 用途：本地插件官方适配。使用范围：实例构建且生命周期启动后写入状态。解耦评估：经网关直达唯一兼容边界。 */
+import {adaptSiyuanPlugin} from "./imports";
 /** 用途：应用实例类型。使用范围：loader 函数签名。解耦评估：通过 imports.ts 转发。 */
 import type { AppFacade } from "./imports";
 /** 用途：安全模块创建器。使用范围：loader 执行插件代码。解耦评估：通过 imports.ts 转发。 */
@@ -63,7 +67,7 @@ export async function 加载笔记内插件(
     app: AppFacade,
     config: 笔记内插件配置
 ) {
-    const state: 笔记内插件运行状态<Plugin> = {
+    const state: 笔记内插件运行状态<Siyuan.Plugin> = {
         config,
         instance: null,
         status: "loading"
@@ -109,7 +113,7 @@ export async function 加载笔记内插件(
         plugin.onLayoutReady();
 
         // 更新状态
-        state.instance = plugin;
+        state.instance = adaptSiyuanPlugin(plugin);
         state.status = "running";
         state.cleanup = tempModule.cleanup;
         config.lastLoadAt = Date.now();
@@ -131,7 +135,7 @@ export async function 加载笔记内插件(
  * @param state 插件运行状态
  * @同步豁免: 生命周期 — 在插件卸载流程中同步执行清理
  */
-export function 卸载笔记内插件(state: 笔记内插件运行状态<Plugin>) {
+export function 卸载笔记内插件(state: 笔记内插件运行状态<Siyuan.Plugin>) {
     if (state.instance) {
         try {
             state.instance.onunload();

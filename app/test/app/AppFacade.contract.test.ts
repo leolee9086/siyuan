@@ -14,6 +14,7 @@ import {createAppFacade} from "../../src/app/AppFacade.types";
 import type {AppFacade} from "../../src/app/AppFacade.types";
 import type {InstanceLooksLike, IsAssignable} from "../../src/util/types/LooksLike.types";
 import type {SiyuanPluginRuntimeContract} from "../compatibility/SiyuanEcosystem.contract.types";
+import {createInNotePluginManagerFixture} from "../inNotePlugin/InNotePluginManager.fixture";
 
 type AppFacadeContract = InstanceLooksLike<
     typeof LocalApp.App,
@@ -43,6 +44,7 @@ const testFacade = createAppFacade<object, object>({
     plugins: [],
     appId: "test-app",
     eventBus: {},
+    inNotePluginManager: createInNotePluginManagerFixture(),
     pluginHost: {
         reloadData: () => undefined,
         addDock: () => undefined,

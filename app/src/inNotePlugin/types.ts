@@ -30,7 +30,7 @@ export interface 笔记内插件运行状态<TPlugin> {
     /** 运行状态 */
     status: "idle" | "loading" | "running" | "error";
     /** 模块清理函数 */
-    cleanup?: () => void;
+    cleanup?: (() => void) | undefined;
 }
 
 /**

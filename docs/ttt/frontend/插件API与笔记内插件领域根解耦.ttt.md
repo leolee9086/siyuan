@@ -9,8 +9,8 @@
 
 ## 当前目标
 
-- 先修复本地 `Plugin.commands.fileTreeCallback` 与官方 `siyuan.ICommand.fileTreeCallback` 的 Files 名义类型不兼容。
-- 固定本地 Files 完整领域根与官方插件入口之间的显式适配边界，并补充双向类型证据。
+- 完整笔记内插件管理器已装配并退出菜单循环链；继续处理 `plugin/API.ts` 的闭包 lazy binding 与上帝对象职责。
+- 固定本地 Files 完整领域根与官方插件入口之间的显式适配边界，补齐 ICommand/Files 运行时回调证据。
 - 为 `plugin/API.ts` 建立现有公共键、初始化顺序、延迟绑定和失败语义基线。
 
 ## 下一步任务
@@ -20,8 +20,8 @@
 - [ ] 在 `app/test` 增加官方 ICommand/Files 入口的运行时和编译时契约测试。
 - [ ] 将 `plugin/API.ts` 的可变绑定迁入唯一注册表；缺失绑定显式抛错。
 - [ ] 按职责迁出全局命令、编辑器、布局和窗口 API，同时保持官方 API 出口身份。
-- [ ] 建立完整 `InNotePluginManagerDomain`，由实现与抽象执行双向兼容校验。
-- [ ] 由桌面/移动应用组合根向 AppFacade 装配完整管理器，删除菜单对具体笔记内插件实现的加载。
+- [x] 建立完整 `InNotePluginManagerDomain`，由实现与抽象执行双向兼容校验。
+- [x] 由桌面/移动应用组合根向 AppFacade 装配完整管理器，删除菜单对具体笔记内插件实现的加载。
 
 ## 不变量
 
@@ -58,7 +58,7 @@
 
 - [ ] 迁移 API 可变绑定到统一注册表，移除闭包数组。
 - [ ] 拆分 API 上帝对象的命令、布局、编辑器、窗口职责。
-- [ ] 建立并装配完整笔记内插件管理器领域根。
+- [x] 建立并装配完整笔记内插件管理器领域根。
 
 ## 远期计划
 
@@ -84,3 +84,6 @@
 ## 已完成记录
 
 - **2026-07-27**：创建任务。尝试把完整管理器直接装配到 AppFacade 时，完整类型检查确定性复现本地 `Plugin.commands.fileTreeCallback` 与官方 `siyuan.ICommand` 的 Files 名义类型不兼容；未用断言、`unknown` 或缩窄接口掩盖，半迁移已撤回。登记 `plugin/API.ts` 闭包 lazy binding 与 `inNotePlugin/imports.ts` 广域加载为同一插件边界子任务。
+- **2026-07-27**：将官方完整 Plugin 表面重绑定证明从测试移入唯一兼容边界，`adaptSiyuanPlugin` 先要求完整 `SiyuanPluginRuntimeContract`，再通过本地 Plugin 原型守卫消除 npm 类型包中 App/Files/Tab 私有身份造成的名义差异；没有使用 `as`、宽泛对象或缩窄插件协议，适配保持原实例身份，公开状态统一使用官方 `siyuan.Plugin`。
+- **2026-07-27**：模块级 App、初始化标志和插件 Map 迁入唯一 `InNotePluginManager` 实例。完整 `InNotePluginManagerDomain` 覆盖初始化、启用、禁用、重载、全量/单项查询、启用判定、文档标记和全部卸载，并以 Symbol 厂牌及 `PublicInstanceLooksLike` 双向校验；存储、标题查询和恢复编排为模块级可测函数，class 只持有状态与公开命令。桌面与移动 App 组合根分别创建并初始化实例，AppFacade 双端严格等价契约通过；文件树与标题菜单改用完整管理器，不再动态加载 `inNotePlugin/index.ts`。
+- **2026-07-27**：管理器专项 Vitest `3/3` 覆盖实例隔离、持久化恢复、缺失文档移除、启停/重载和文档标记委托；AppFacade/管理器 Node 契约及完整 Node `204/204`、Protyle 契约、新领域 lint、imports 多跳 `0` 与 diff 检查通过。完整 Vitest 实际剩余两项既有失败：缺失 `transaction.refreshSbs`，以及 Calibur Router navigation 状态覆盖证明异常。生产图为 `2339 / 171`；代表环因路径重排反升，但 `navigation/openTitleMenu -> inNotePlugin -> plugin/API` 链已归零，首环推进到 `navigation -> commonMenuItem`。

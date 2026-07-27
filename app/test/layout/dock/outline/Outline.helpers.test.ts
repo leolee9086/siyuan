@@ -5,6 +5,7 @@ import {createAppFacade} from "../../../../src/app/AppFacade.types";
 import type {OutlineDomain} from "../../../../src/layout/dock/outline/types";
 import {outlineModelBrand} from "../../../../src/layout/dock/outline/types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "../../../../src/layout/layout.types";
+import {createInNotePluginManagerFixture} from "../../../inNotePlugin/InNotePluginManager.fixture";
 
 const editorContextRuntime = vi.hoisted(() => ({
     getAllModels: vi.fn(),
@@ -75,6 +76,7 @@ function createOutline(type: "pin" | "local" = "local") {
         plugins: [],
         appId: "outline-test",
         eventBus: new EventBus("outline-test"),
+        inNotePluginManager: createInNotePluginManagerFixture(),
         pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
         createProtyle: vi.fn(),
         createDocument: vi.fn(),

@@ -32,6 +32,9 @@ import { initMultiMenu } from "./navigation.initMultiMenu";
 import { openEmojiPanel } from "../emoji";
 import {sortMenu} from "./navigation/sortMenu";
 import {appendFileTreeImportMenu} from "./fileTree/importMenu/importMenu.factory";
+import {getDockByType} from "../layout/query/dockByType";
+import {isFilesDomain} from "../layout/dock/Files/eventHandlers.types";
+import {isMobileFilesDomain} from "../mobile/dock/files/mobileFiles.types";
 
 const confirmEncryptedExport = (notebookId: string, callback: () => void) => {
     if (!isEncryptedBox(notebookId)) {
@@ -123,12 +126,12 @@ export const initNavigationMenu = (app: AppFacade, liElement: HTMLElement) => {
                 }
             }, () => {
                 liElement.parentElement.setAttribute("data-sortmode", sort.toString());
-                let files;
-                if (isMobile) {
-                    files = window.siyuan.mobile.docks.file;
-                }
-                if (!isMobile) {
-                    files = (getDockByType("file").data["file"] as Files);
+                const files = isMobile
+                    ? window.siyuan.mobile?.docks?.file
+                    : getDockByType("file")?.data.file;
+                if (!files || typeof files !== "object" ||
+                    !(isFilesDomain(files) || isMobileFilesDomain(files))) {
+                    throw new Error("Notebook sorting requires an initialized file tree domain");
                 }
                 const toggleElement = liElement.querySelector(".b3-list-item__arrow--open");
                 if (toggleElement) {
@@ -591,20 +594,19 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
             }
         }).element);
     }
-    // 笔记内插件菜单项 - 动态导入并检查注册状态
+    // 笔记内插件菜单项 - 使用应用装配的完整管理器领域根
     (async () => {
-        const { inNotePluginManager, 设置为插件文档 } = await import("../inNotePlugin");
-        const 已注册 = inNotePluginManager.是否已启用(id);
+        const 已注册 = app.inNotePluginManager.是否已启用(id);
         window.siyuan.menus.menu.append(new MenuItem({
             id: "inNotePlugin",
             label: 已注册 ? "更新插件" : "注册为笔记内插件",
             icon: "iconPlugin",
             click: async () => {
-                await 设置为插件文档(id);
+                await app.inNotePluginManager.设置为插件文档(id);
                 // 已注册时重载,未注册时启用
                 const [动作, 成功消息, 失败消息] = 已注册
-                    ? [() => inNotePluginManager.重载插件(id), "已重载", "重载失败"]
-                    : [() => inNotePluginManager.启用插件(id, name), "已启用", "启用失败"];
+                    ? [() => app.inNotePluginManager.重载插件(id), "已重载", "重载失败"]
+                    : [() => app.inNotePluginManager.启用插件(id, name), "已启用", "启用失败"];
                 const success = await 动作();
                 const msg = success ? 成功消息 : 失败消息;
                 showMessage(`笔记内插件 [${name}] ${msg}`, success ? undefined : 3000, success ? undefined : "error");
@@ -631,7 +633,6 @@ export const initFileMenu = (app: AppFacade, notebookId: string, pathString: str
                         return;
                     }
                     showMessage(已注册 ? "任务已更新" : "已注册为定时任务");
-                    const { getDockByType } = await import("../layout/tabUtil");
                     const dock = getDockByType("cronjob");
                     if (dock) {
                         dock.toggleModel("cronjob", true);

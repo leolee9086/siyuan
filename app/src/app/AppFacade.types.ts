@@ -8,6 +8,8 @@ import type {AssetOpenOptions} from "../asset/open/openAsset.types";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 /** 用途：描述应用导航完成后的完整布局模型；使用范围：AppBlockNavigation.afterOpen；解耦评估：纯类型直达布局生命周期抽象。 */
 import type {ILayoutModel} from "../layout/lifecycle/model.types";
+/** 用途：完整笔记内插件管理器领域根；使用范围：应用外观向菜单和编辑器暴露唯一管理实例；解耦评估：纯类型不加载具体管理器。 */
+import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
@@ -49,6 +51,7 @@ export interface AppFacadeShape<
     plugins: TPlugin[];
     appId: string;
     eventBus: TEventBus;
+    inNotePluginManager: InNotePluginManagerDomain<AppFacade>;
     pluginHost: {
         reloadData: (plugin: TPlugin) => void;
         addDock: (plugin: TPlugin) => void;

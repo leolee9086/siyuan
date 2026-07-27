@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 import type * as Siyuan from "siyuan";
 import {createAppFacade} from "../../src/app/AppFacade.types";
 import {EventBus} from "../../src/plugin/EventBus";
+import {createInNotePluginManagerFixture} from "../inNotePlugin/InNotePluginManager.fixture";
 
 const services = vi.hoisted(() => ({
     fetchPost: vi.fn(),
@@ -45,6 +46,7 @@ const createApp = () => createAppFacade<Siyuan.Plugin, EventBus>({
     plugins: [],
     appId: "uri-test",
     eventBus: new EventBus("uri-test"),
+    inNotePluginManager: createInNotePluginManagerFixture(),
     pluginHost: {reloadData: vi.fn(), addDock: vi.fn()},
     createProtyle: vi.fn(),
     createDocument: vi.fn(),
