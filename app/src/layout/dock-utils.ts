@@ -128,7 +128,7 @@ const ensureAgentChatDock = (layout: Pick<Config.IUiLayout, "left" | "right" | "
  * @param json - 包含左、右、底三个 Dock 配置的布局数据
  * @param app - 应用主实例，用于创建 Dock
  */
-export const JSONToDock = (json: LayoutData, app: AppFacade): void => {
+export const JSONToDock = (json: LayoutData, app: AppFacade) => {
     ensureAgentChatDock(json);
 
     // 初始化左侧 Dock 配置（本地化标题和热键）
