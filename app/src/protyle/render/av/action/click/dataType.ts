@@ -1,5 +1,7 @@
 /** 用途：打开新增列菜单。使用范围：`av-header-add` 点击。解耦评估：列菜单由 col 子模块维护，当前模块只负责路由。 */
 import { addCol } from "./imports";
+/** 用途：提供添加列后的完整面板导航；使用范围：`av-header-add`；解耦评估：传入完整领域外观，不传单方法回调。 */
+import {avMenuPanel} from "./imports";
 /** 用途：新增属性视图。使用范围：`av-add` 点击。解耦评估：视图创建逻辑由 view 子模块维护，click 侧只转发。 */
 import { addView } from "./imports";
 /** 用途：打开 gallery 卡片编辑。使用范围：`av-gallery-edit` 点击。解耦评估：gallery 编辑流程应继续留在 gallery 子模块。 */
@@ -59,7 +61,7 @@ const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {pre
  * 问题/改进：定位仍依赖按钮矩形。
  */
 const handleHeaderAddClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const addMenu = addCol(protyle, blockElement);
+    const addMenu = addCol({protyle, blockElement, panel: avMenuPanel});
     const addRect = target.getBoundingClientRect();
     addMenu.open({ x: addRect.left, y: addRect.bottom, h: addRect.height });
     return consumeClickEvent(event);

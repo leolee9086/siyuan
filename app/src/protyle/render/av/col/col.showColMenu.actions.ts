@@ -3,7 +3,8 @@ import {transaction} from "../../../wysiwyg/transaction/submit";
 import {fetchPost} from "../../../../util/network/fetch";
 import {updateAttrViewCellAnimation} from "../action/animation";
 import {handleFilterClick, handleSortClick, handleDeleteColClick} from "./col.showColMenu";
-import {addCol} from "./addCol";
+import {addCol} from "./add/menu.factory";
+import {avMenuPanel} from "./imports";
 import {duplicateCol} from "./col.operations";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
@@ -199,7 +200,12 @@ const addInsertColumnItems = (
         label: siyuanI18n.insertColumnLeft,
         /** 点击在当前列左侧插入新列 */
         click() {
-            const addMenu = addCol(protyle, blockElement, cellElement.previousElementSibling?.getAttribute("data-col-id") || "");
+            const addMenu = addCol({
+                protyle,
+                blockElement,
+                panel: avMenuPanel,
+                previousID: cellElement.previousElementSibling?.getAttribute("data-col-id") || "",
+            });
             // 插入列操作可能触发 DOM 重建，原 cellElement 可能已脱离文档树
             const targetCell = blockElement.contains(cellElement)
                 ? cellElement
@@ -214,7 +220,7 @@ const addInsertColumnItems = (
         label: siyuanI18n.insertColumnRight,
         /** 点击在当前列右侧插入新列 */
         click() {
-            const addMenu = addCol(protyle, blockElement, colId);
+            const addMenu = addCol({protyle, blockElement, panel: avMenuPanel, previousID: colId});
             // 插入列操作可能触发 DOM 重建，原 cellElement 可能已脱离文档树
             const targetCell = blockElement.contains(cellElement)
                 ? cellElement
@@ -254,7 +260,8 @@ const addDuplicateAndDeleteItems = (
                         viewID,
                         protyle,
                         colId,
-                        data: response.data
+                        data: response.data,
+                        panel: avMenuPanel,
                     });
                 });
             }

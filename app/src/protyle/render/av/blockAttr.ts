@@ -1,5 +1,5 @@
 import {fetchPost} from "../../../util/network/fetch";
-import {addCol} from "./col/addCol";
+import {addCol} from "./col/add/menu.factory";
 import {getColIconByType} from "./col/col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import * as dayjs from "dayjs";
@@ -9,7 +9,7 @@ import {updateCellsValue} from "./cell.update";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {openMenuPanel} from "./openMenuPanel";
+import {avMenuPanel, openMenuPanel} from "./openMenuPanel";
 import {uploadFiles} from "../../upload/transport";
 import {openLink} from "../../../editor/openLink";
 import {dragUpload, editAssetItem} from "./asset";
@@ -627,7 +627,12 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
             break;
         } else if (type === "addColumn") {
             const rowElements = blockElement.querySelectorAll(".av__row");
-            const addMenu = addCol(protyle, blockElement, rowElements[rowElements.length - 1].getAttribute("data-col-id"));
+            const addMenu = addCol({
+                protyle,
+                blockElement,
+                panel: avMenuPanel,
+                previousID: rowElements[rowElements.length - 1].getAttribute("data-col-id") ?? undefined,
+            });
             const addRect = target.getBoundingClientRect();
             addMenu.open({
                 x: addRect.left,

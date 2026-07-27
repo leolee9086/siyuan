@@ -43,9 +43,13 @@ import {openViewMenu} from "../../openMenuPanel";
 export { openViewMenu };
 
 /** 用途：打开新增列菜单。使用范围：表头加号点击。解耦评估：列操作入口由 col 模块维护更稳妥。 */
-import { addCol } from "../../col/addCol";
+import {addCol} from "../../col/add/menu.factory";
 /** 导出 addCol 供 click 子模块复用。 */
 export { addCol };
+/** 用途：提供添加列后的完整面板导航外观。使用范围：表头新增列。解耦评估：直达具体外观组合边界，Add 子域只依赖参数化抽象。 */
+import {avMenuPanel} from "../../openMenuPanel";
+/** 导出完整面板领域外观 */
+export {avMenuPanel};
 
 /** 用途：打开表头列菜单。使用范围：表头单元格点击。解耦评估：列菜单行为由 col 模块维护更一致。 */
 import { showColMenu } from "../../col/menu/menu.factory";

@@ -4,7 +4,8 @@ import {fetchPost} from "../../../../util/network/fetch";
 import {updateAttrViewCellAnimation} from "../action/animation";
 import {focusBlock} from "../../../util/selection";
 import {handleDeleteColClick} from "./col.showColMenu";
-import {addCol} from "./addCol";
+import {addCol} from "./add/menu.factory";
+import {avMenuPanel} from "./imports";
 import {duplicateCol} from "./col.operations";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isHTMLInputElement} from "../../../../util/DOM/element.guard";
@@ -176,7 +177,12 @@ export const addInsertColumnItems = (menu: Menu, ctx: IShowColMenuContext): void
         label: siyuanI18n.insertColumnLeft,
         /** 在当前列左侧插入新列，用户点击后弹出列类型选择菜单 */
         click() {
-            const addMenu = addCol(protyle, blockElement, cellElement.previousElementSibling?.getAttribute("data-col-id") || "");
+            const addMenu = addCol({
+                protyle,
+                blockElement,
+                panel: avMenuPanel,
+                previousID: cellElement.previousElementSibling?.getAttribute("data-col-id") || "",
+            });
             cellElement = refreshCellElement(cellElement, blockElement, colId);
             const addRect = cellElement.getBoundingClientRect();
             addMenu.open({x: addRect.left, y: addRect.bottom, h: addRect.height});
@@ -188,7 +194,7 @@ export const addInsertColumnItems = (menu: Menu, ctx: IShowColMenuContext): void
         label: siyuanI18n.insertColumnRight,
         /** 在当前列右侧插入新列，用户点击后弹出列类型选择菜单 */
         click() {
-            const addMenu = addCol(protyle, blockElement, colId);
+            const addMenu = addCol({protyle, blockElement, panel: avMenuPanel, previousID: colId});
             cellElement = refreshCellElement(cellElement, blockElement, colId);
             const addRect = cellElement.getBoundingClientRect();
             addMenu.open({x: addRect.left, y: addRect.bottom, h: addRect.height});
@@ -217,7 +223,8 @@ export const addDuplicateDeleteItems = (menu: Menu, ctx: IShowColMenuContext): v
                 }, (response) => {
                     duplicateCol({
                         blockElement, viewID, protyle, colId,
-                        data: response.data
+                        data: response.data,
+                        panel: avMenuPanel,
                     });
                 });
             }

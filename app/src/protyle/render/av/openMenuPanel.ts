@@ -22,6 +22,9 @@ import { getPageSize } from "./groups";
 import {updateCellsValue} from "./cell.update";
 export type { IMenuPanelContext } from "./openMenuPanel.types";
 import type { IMenuPanelContext } from "./openMenuPanel.types";
+import {avMenuPanelDomainBrand} from "./openMenuPanel.types";
+import type {OpenAVMenuPanelOptions} from "./openMenuPanel.types";
+import type {OpenAVViewMenuOptions} from "./openMenuPanel.types";
 import { bindDragEvents } from "./openMenuPanel.drag";
 import { bindFilterCombinationChange, handleSortsFiltersClick } from "./openMenuPanel.click.sortsFilters";
 import { handleColEditClick } from "./openMenuPanel.click.colEdit";
@@ -38,7 +41,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 /** 用途：渲染字段管理面板；使用范围：Panel 初始渲染与交互刷新；解耦评估：直达 Properties 唯一实现，不再由 Panel 包装或缓存依赖。 */
 import {getPropertiesHTML} from "./col/properties/render";
 
-export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLElement, element: HTMLElement }) => {
+export const openViewMenu = (options: OpenAVViewMenuOptions) => {
     if (options.protyle.disabled) {
         return;
     }
@@ -87,20 +90,7 @@ export const openViewMenu = (options: { protyle: IProtyle, blockElement: HTMLEle
     });
 };
 
-export const openMenuPanel = (options: {
-    protyle: IProtyle,
-    blockElement: Element,
-    type: "select" | "properties" | "config" | "sorts" | "filters" | "edit" | "date" | "asset" | "switcher" | "relation" | "rollup",
-    colId?: string, // for edit, rollup
-    // 使用前端构造的数据
-    editData?: {
-        previousID: string | undefined,
-        colData: IAVColumn,
-    },
-    cellElements?: HTMLElement[],   // for select & date & relation & asset
-    data?: IAV,
-    cb?: (avPanelElement: Element) => void
-}) => {
+export const openMenuPanel = (options: OpenAVMenuPanelOptions) => {
     let avPanelElement = document.querySelector(".av__panel");
     if (avPanelElement) {
         avPanelElement.remove();
@@ -262,7 +252,7 @@ export const openMenuPanel = (options: {
             options.cb(avPanelElement);
         }
         const ctx: IMenuPanelContext = {
-            options, data, fields, avID, blockID, isCustomAttr,
+            options, panel: avMenuPanel, data, fields, avID, blockID, isCustomAttr,
             menuElement, avPanelElement, tabRect, closeCB
         };
         bindDragEvents(ctx);
@@ -405,3 +395,10 @@ export const openMenuPanel = (options: {
         });
     }
 };
+
+/** 完整 AV 菜单面板领域外观；函数实现保持原有公开入口身份。 */
+export const avMenuPanel = {
+    [avMenuPanelDomainBrand]: "AVMenuPanelDomain" as const,
+    open: openMenuPanel,
+    openViewMenu,
+} as const;

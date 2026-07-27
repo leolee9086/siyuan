@@ -53,14 +53,13 @@ import { getColNameByType } from "./col.typeUtils";
 import { genColDataByType } from "./col.typeUtils";
 
 /**
- * 用途：打开属性视图面板（编辑、选择、配置等多种类型）
- * 使用范围：在列操作流程中使用，特别是添加列后需要打开编辑面板的场景
- * 解耦评估：当前直接调用是合理的，因为这是同一功能模块内的UI流程操作。
- * 理论上可通过事件发射解耦（如 EventEmitter.emit('openPanel', options)），
- * 但会增加代码复杂度和调试难度，且该函数已经是高度抽象的通用面板打开器，
- * 进一步解耦收益不大。建议保持当前直接调用方式。
+ * 用途：提供完整 AV 菜单面板领域外观
+ * 使用范围：列菜单调用添加列、复制列等需要后续编辑导航的流程
+ * 解耦评估：调用方依赖带厂牌完整外观；Add 子域仅接收参数，不反向导入具体组合模块。
  */
-import { openMenuPanel } from "../openMenuPanel";
+import {avMenuPanel} from "../openMenuPanel";
+/** 用途：打开字段编辑 Panel；使用范围：列菜单中配置不足后的既有导航；解耦评估：直达同一 Panel 唯一实现，不创建第二包装。 */
+import {openMenuPanel} from "../openMenuPanel";
 
 /**
  * 用途：从属性视图数据中获取字段列表
@@ -104,8 +103,10 @@ export { getColNameByType };
 /** 导出列数据生成函数 */
 export { genColDataByType };
 
-/** 导出面板操作函数 */
-export { openMenuPanel };
+/** 导出完整 AV 菜单面板领域外观 */
+export {avMenuPanel};
+/** 导出既有 Panel 打开入口。 */
+export {openMenuPanel};
 
 /** 导出字段数据获取函数 */
 export { getFieldsByData };

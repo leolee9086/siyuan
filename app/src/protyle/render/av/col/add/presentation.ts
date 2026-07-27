@@ -3,78 +3,72 @@
  * 使用范围：在渲染列头部时将 unicode 转换为 HTML 元素
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { unicode2Emoji } from "./imports";
+import {unicode2Emoji} from "./imports";
 
 /**
  * 用途：设置浮动面板位置，用于定位编辑面板
  * 使用范围：在打开编辑面板后设置其显示位置
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { setPosition } from "./imports";
+import {setPosition} from "./imports";
 
 /**
  * 用途：获取列编辑的 HTML 内容
  * 使用范围：在需要显示列编辑界面时生成 HTML
  * 解耦评估：同一功能模块内的UI构建函数，直接导入合理
  */
-import { getEditHTML } from "./imports";
+import {getEditHTML} from "./imports";
 
 /**
  * 用途：绑定列编辑事件
  * 使用范围：在列编辑界面渲染后绑定交互事件
  * 解耦评估：同一功能模块内的事件绑定函数，直接导入合理
  */
-import { bindEditEvent } from "./imports";
+import {bindEditEvent} from "./imports";
 
 /**
  * 用途：根据列类型获取对应的图标
  * 使用范围：在渲染列头部时显示类型图标
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { getColIconByType } from "./imports";
+import {getColIconByType} from "./imports";
 
 /**
  * 用途：根据列类型获取对应的名称
  * 使用范围：在渲染列信息时显示类型名称
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { getColNameByType } from "./imports";
+import {getColNameByType} from "./imports";
 
 /**
  * 用途：根据列类型生成默认的列数据
  * 使用范围：在创建新列时生成初始数据
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
  */
-import { genColDataByType } from "./imports";
-
-/**
- * 用途：打开属性视图面板，用于在添加列动画完成后打开列编辑面板
- * 使用范围：在 addAttrViewColAnimation 函数中，当列添加动画完成后需要打开编辑面板时调用
- * 解耦评估：当前通过 imports.ts 转发已实现模块边界管理。该函数是UI流程的核心操作，
- * 理论上可通过事件系统解耦，但会增加复杂度且收益有限，建议保持当前方式。
- */
-import { openMenuPanel } from "./imports";
+import {genColDataByType} from "./imports";
 
 /**
  * 用途：从属性视图数据中获取字段列表
  * 使用范围：在需要访问视图字段信息时使用
  * 解耦评估：数据访问函数，直接导入合理
  */
-import { getFieldsByData } from "./imports";
+import {getFieldsByData} from "./imports";
 
 /**
  * 用途：获取全局菜单对象
  * 使用范围：在需要检查菜单是否存在时使用
  * 解耦评估：封装window.siyuan.menus访问，当前导入方式合理
  */
-import { getSiyuanMenus } from "./imports";
+import {getSiyuanMenus} from "./imports";
 
 /**
  * 用途：移除全局菜单
  * 使用范围：在打开新面板后清理旧菜单
  * 解耦评估：封装window.siyuan.menus.menu.remove()调用，当前导入方式合理
  */
-import { removeSiyuanMenu } from "./imports";
+import {removeSiyuanMenu} from "./imports";
+/** 用途：约束列添加呈现所需的完整数据与 Panel 外观；使用范围：本模块公开呈现入口及内部参数；解耦评估：通过参数传入完整领域根，避免呈现模块导入具体 Panel 实现。 */
+import type {AddColumnPresentationOptions} from "./types";
 
 /**
  * 作用：为表格视图的行添加单元格
@@ -88,7 +82,7 @@ const addCellToTableRow = (params: {
     id: string;
     type: TAVCol;
     name: string;
-}): void => {
+}) => {
     let previousElement: Element | null = params.item.querySelector(`[data-col-id="${params.previousID}"]`);
     
     if (!params.previousID) {
@@ -129,7 +123,7 @@ const addColumnToTableView = (params: {
     id: string;
     type: TAVCol;
     name: string;
-}): void => {
+}) => {
     const rows = params.blockElement.querySelectorAll(".av__row");
     for (const item of rows) {
         addCellToTableRow({
@@ -153,7 +147,7 @@ const addRowToCustomView = (params: {
     nodeId: string | null;
     id: string;
     type: TAVCol;
-}): void => {
+}) => {
     const hrElement = params.blockElement.querySelector(".fn__hr");
     if (!hrElement) {
         return;
@@ -184,7 +178,7 @@ const updateExistingPanel = (params: {
     colId: string;
     blockElement: Element;
     nodeId: string | null;
-}): void => {
+}) => {
     if (!(params.menuElement instanceof HTMLElement)) {
         return;
     }
@@ -233,7 +227,8 @@ const handlePanelDisplay = (params: {
     previousID: string | undefined;
     type: TAVCol;
     name: string;
-}): void => {
+    panel: AddColumnPresentationOptions["panel"];
+}) => {
     /* 检查是否可以更新现有面板：需要面板存在、有数据、且是表格视图 */
     if (params.menuElement && params.data && params.isTableView) {
         updateExistingPanel({
@@ -253,7 +248,7 @@ const handlePanelDisplay = (params: {
         colData = fields.find((item) => item.id === params.colId);
     }
     
-    openMenuPanel({
+    params.panel.open({
         protyle: params.protyle,
         blockElement: params.blockElement,
         type: "edit",
@@ -278,16 +273,7 @@ const handlePanelDisplay = (params: {
  * 调用时机：用户通过 UI 操作添加新列时调用
  * @同步豁免: UI构建 - 需要同步操作 DOM 以确保动画效果的连贯性
  */
-export const addAttrViewColAnimation = (options: {
-    blockElement: Element;
-    protyle: IProtyle;
-    type: TAVCol;
-    name: string;
-    id: string;
-    icon?: string;
-    previousID: string | undefined;
-    data?: IAV;
-}): void => {
+export const addAttrViewColAnimation = (options: AddColumnPresentationOptions) => {
     if (!options.blockElement) {
         return;
     }
@@ -327,6 +313,7 @@ export const addAttrViewColAnimation = (options: {
         isTableView,
         previousID: options.previousID,
         type: options.type,
-        name: options.name
+        name: options.name,
+        panel: options.panel,
     });
 };

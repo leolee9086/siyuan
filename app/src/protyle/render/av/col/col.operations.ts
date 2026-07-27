@@ -2,7 +2,8 @@ import {transaction} from "../../../wysiwyg/transaction/submit";
 import * as dayjs from "dayjs";
 import {getPropertiesHTML} from "./properties/render";
 import {removeAttrViewColAnimation} from "../action";
-import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
+import {addAttrViewColAnimation} from "./add/presentation";
+import type {AVMenuPanelDomain} from "./add/types";
 import {duplicateNameAddOne} from "../../../../util/platform/functions";
 import {setPosition} from "../../../../util/DOM/positioning/setPosition";
 import {getFieldsByData} from "../view/metadata";
@@ -81,6 +82,7 @@ export const duplicateCol = (options: {
     viewID: string,
     blockElement: Element,
     data: IAV,
+    panel: AVMenuPanelDomain,
 }) => {
     const newColData = findAndDuplicateCol(getFieldsByData(options.data), options.colId);
     // 未找到目标列时跳过
@@ -112,6 +114,7 @@ export const duplicateCol = (options: {
     addAttrViewColAnimation({
         blockElement: options.blockElement,
         protyle: options.protyle,
+        panel: options.panel,
         type: newColData.type,
         name: newColData.name,
         icon: newColData.icon,

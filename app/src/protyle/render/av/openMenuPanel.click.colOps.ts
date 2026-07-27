@@ -1,7 +1,7 @@
 import {submitAVColumnEditTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnEdit";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { duplicateCol, removeCol } from "./col/col.operations";
-import { addCol } from "./col/addCol";
+import {addCol} from "./col/add/menu.factory";
 import { bindEditEvent, getEditHTML } from "./col/edit/render";
 import { Constants } from "../../../constants";
 import { Dialog } from "../../runtime/dialog.port";
@@ -18,7 +18,11 @@ const getMenuColId = (menuElement: HTMLElement): string => {
 /** 新建列：关闭面板并打开添加列菜单 @同步豁免: UI构建 */
 const handleNewCol = (ctx: IMenuPanelContext, event: MouseEvent): void => {
     ctx.avPanelElement.remove();
-    const addMenu = addCol(ctx.options.protyle, ctx.options.blockElement);
+    const addMenu = addCol({
+        protyle: ctx.options.protyle,
+        blockElement: ctx.options.blockElement,
+        panel: ctx.panel,
+    });
     addMenu.open({
         x: ctx.tabRect.right, y: ctx.tabRect.bottom, h: ctx.tabRect.height, isLeft: true
     });
@@ -107,6 +111,7 @@ const handleDuplicateCol = (ctx: IMenuPanelContext, event: MouseEvent): void => 
         colId: getMenuColId(ctx.menuElement),
         data: ctx.data,
         viewID: ctx.data.viewID,
+        panel: ctx.panel,
     });
     event.preventDefault();
     event.stopPropagation();
