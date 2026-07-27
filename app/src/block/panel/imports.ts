@@ -1,8 +1,3 @@
-/** 用途：Protyle 编辑器类。使用范围：panel 模块编辑器管理。解耦评估：直接指向具体 class 的创建边界。 */
-import {Protyle} from "../../protyle";
-/** 导出 Protyle，供 panel 模块使用 */
-export { Protyle };
-
 /** 用途：生成唯一 ID。使用范围：panel 模块实例标识。解耦评估：直接指向 ID 工具真实实现。 */
 import {genUUID} from "../../util/platform/genID";
 /** 导出 genUUID，供 panel 模块使用 */

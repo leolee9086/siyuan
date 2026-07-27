@@ -1,5 +1,3 @@
-/** 用途：创建 BlockPanel 子编辑器；使用范围：宿主能力装配闭包；解耦评估：具体 class 仅留在实现层，不进入类型契约。 */
-import { Protyle } from "./imports";
 /** 用途：标准 Dialog 生命周期和非模态浮层能力。使用范围：BlockPanel 根容器与销毁协议。 */
 import { Dialog } from "../../dialog";
 /** 用途：生成唯一ID。使用范围：为浮窗实例生成唯一标识。解耦评估：通过 ./imports 转发。 */
@@ -49,7 +47,7 @@ import type {ProtyleDomain} from "../../protyle/protyle.types";
  */
 function 获取编辑器上下文(panel: BlockPanel) {
     return {
-        createEditor: (element: HTMLElement, options: IProtyleOptions) => new Protyle(panel.app, element, options),
+        createEditor: (element: HTMLElement, options: IProtyleOptions) => panel.app.createProtyle(element, options),
         locateAttributeView: activateAVLocateWithRetry,
         renderAttributeView: avRender,
         refDefs: panel.refDefs,
