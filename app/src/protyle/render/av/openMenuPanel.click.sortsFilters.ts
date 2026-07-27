@@ -1,4 +1,5 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { confirmDialog } from "../../runtime/dialog.port";
 import { Menu } from "../../../plugin/Menu";
@@ -36,7 +37,7 @@ const renderFilters = (ctx: IMenuPanelContext) => {
 };
 
 const commitFilters = (ctx: IMenuPanelContext, oldFilters: IAVFilter[]) => {
-    transaction(ctx.options.protyle, [{
+    submitAVFilterTransaction(ctx.options.protyle, [{
         action: "setAttrViewFilters",
         avID: ctx.avID,
         data: cloneFilters(ctx.data.view.filters),
@@ -301,7 +302,7 @@ export const handleSortsFiltersClick = (
     }
     if (type === "removeFilters") {
         const oldFilters = cloneFilters(ctx.data.view.filters);
-        transaction(protyle, [{
+        submitAVFilterTransaction(protyle, [{
             action: "setAttrViewFilters",
             avID,
             data: [],

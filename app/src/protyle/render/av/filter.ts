@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {getColIconByType} from "./col/col.typeUtils";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
@@ -140,7 +140,7 @@ export const setFilter = async (options: {
         if (!options.empty && (isSame || !hasMatch)) {
             return;
         }
-        transaction(options.protyle, [{
+        submitAVFilterTransaction(options.protyle, [{
             action: "setAttrViewFilters",
             avID: options.data.id,
             data: options.data.view.filters,
@@ -215,7 +215,7 @@ export const setFilter = async (options: {
                     return true;
                 }
             });
-            transaction(options.protyle, [{
+            submitAVFilterTransaction(options.protyle, [{
                 action: "setAttrViewFilters",
                 avID: options.data.id,
                 data: options.data.view.filters,
@@ -394,7 +394,7 @@ export const addFilter = (options: {
                     targetGroupFilters.push(filter);
                     const blockID = options.blockElement.getAttribute("data-node-id");
                     // 保存新增的占位条件，inline 控件立即可编辑（无需弹层）
-                    transaction(options.protyle, [{
+                    submitAVFilterTransaction(options.protyle, [{
                         action: "setAttrViewFilters",
                         avID: options.avId,
                         data: JSON.parse(JSON.stringify(options.data.view.filters)),
@@ -935,7 +935,7 @@ export const commitFilter = (data: IAV, path: string, newFilter: IAVFilter, prot
     const oldFilters = JSON.parse(JSON.stringify(data.view.filters));
     parent[index] = newFilter;
 
-    transaction(protyle, [{
+    submitAVFilterTransaction(protyle, [{
         action: "setAttrViewFilters",
         avID,
         data: JSON.parse(JSON.stringify(data.view.filters)),

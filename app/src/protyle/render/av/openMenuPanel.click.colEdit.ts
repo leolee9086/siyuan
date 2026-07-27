@@ -1,4 +1,5 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindEditEvent, getEditHTML } from "./col/edit/render";
@@ -119,7 +120,7 @@ const removeLineNumberSortAndFilter = (ctx: IMenuPanelContext, colId: string): v
             newFilters = removeFiltersByColumn(ctx.data.view.filters, colId);
         }
         ctx.data.view.filters = newFilters;
-        transaction(protyle, [{
+        submitAVFilterTransaction(protyle, [{
             action: "setAttrViewFilters", avID: ctx.data.id, data: newFilters, blockID: ctx.blockID
         }], [{
             action: "setAttrViewFilters", avID: ctx.data.id, data: oldFilters, blockID: ctx.blockID

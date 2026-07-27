@@ -1,4 +1,5 @@
 import {transaction} from "../../wysiwyg/transaction/submit";
+import {submitAVFilterTransaction} from "../../wysiwyg/transaction/prepared/av/avFilter";
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import {bindEditEvent, getEditHTML} from "./col/edit/render";
 import {getColId} from "./col/identity/resolve";
@@ -126,7 +127,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
                     return;
                 }
                 targetParent.splice(isTop ? insertIndex : insertIndex + 1, 0, moved);
-                transaction(options.protyle, [{
+                submitAVFilterTransaction(options.protyle, [{
                     action: "setAttrViewFilters",
                     avID,
                     data: ctx.data.view.filters,
@@ -158,7 +159,7 @@ export const bindDragEvents = (ctx: IMenuPanelContext) => {
                     }
                 });
 
-                transaction(options.protyle, [{
+                submitAVFilterTransaction(options.protyle, [{
                     action: "setAttrViewFilters",
                     avID,
                     data: changeData,
