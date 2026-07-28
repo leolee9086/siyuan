@@ -1,0 +1,53 @@
+name: Update official Siyuan types
+
+on:
+  schedule:
+    - cron: "41 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install pnpm
+        run: npm install --global pnpm@11.12.0
+
+      - name: Install dependencies from the lockfile
+        run: pnpm install --frozen-lockfile
+        working-directory: app
+
+      - name: Update the official Siyuan type package
+        run: pnpm update --latest siyuan
+        working-directory: app
+
+      - name: Verify the updated package and lockfile
+        run: pnpm run check:siyuan-types
+        working-directory: app
+
+      - name: Open an update pull request when the registry advanced
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update official siyuan types"
+          title: "chore: update official siyuan types"
+          body: |
+            Automated update of the official `siyuan` type package and lockfile.
+
+            The package declares the `latest` dist-tag and `check:siyuan-types` verifies the registry, installed package, importer and lockfile entries agree.
+          branch: automation/update-siyuan-types
+          delete-branch: true
+          labels: dependencies
