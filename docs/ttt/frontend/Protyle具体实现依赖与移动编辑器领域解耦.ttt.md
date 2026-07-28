@@ -25,7 +25,7 @@
 
 ## 官方类型边界
 
-- `app/node_modules/siyuan` `1.2.3` 是插件生态的官方类型来源，导出完整 `IProtyleOptions` 与 `IProtyle`；外部插件兼容检查应直接以该包为基线。
+- `app/node_modules/siyuan` 必须跟随官方 `latest` dist-tag，是插件生态的官方类型来源，导出完整 `IProtyleOptions` 与 `IProtyle`；外部插件兼容检查应直接以安装包为基线。`pnpm run check:siyuan-types` 通过 npm registry、安装目录和 pnpm lockfile 三方校验，依赖更新使用 `pnpm run update:siyuan-types`。
 - `app/src/types/protyle.d.ts` 当前保留了一份删改后的同名全局声明。与官方版本相比，已确认的本地差异包括：`IProtyleOptions.status`、`IPreviewAction` 的 `image`、`IProtyle.getInstance()` 返回 `ProtyleDomain`、`IProtyle.app` 使用 `AppFacade`、编辑器内部组件使用本地领域类型，以及 `loadingController`。
 - 这些差异不是新的官方协议：前两项是 SForge 私有能力，后几项是为阻断具体实现依赖而形成的内部状态投影。迁移完成前不得删除本地声明；每一项都必须有实际消费者和兼容测试证据。
 - `lite` 不是布局尺寸或视觉压缩开关。当前实现以它选择 `LocalUndo`，跳过内核事务提交与同步等待，改变 Hint 的本地填充、拖放中的引用/嵌入语义、上传载荷和插件工具栏筛选；`AgentComposer.protyle.ts` 是当前唯一生产调用点（`lite: true`）。官方字段名为 `lite`，内部文档必须保留上述行为含义，禁止把它泛化成无语义的“精简模式”。
@@ -79,5 +79,6 @@
 
 - **2026-07-28**：在移动编辑器全局槽迁移实验中，以完整类型检查确定 Card、Search、Toolbar、Hint、布局工厂等仍依赖具体 Protyle 名义身份；确认 private 方法缺失诊断不应通过扩张公共契约解决。实验性全局类型改动未纳入生产提交，建立本专项按领域滚动迁移。
 - **2026-07-28**：核对 `siyuan@1.2.3` 官方 `types/protyle.d.ts` 与本地 `app/src/types/protyle.d.ts`，确认本地文件是删改复制体而非纯补充；`ProtyleDomain` 是独立的完整 class 公共门面，不能与内部 `IProtyle` 状态或官方插件 `IProtyle` 混名替代。确认 `lite` 的实际行为覆盖 LocalUndo、内核事务/同步、Hint、拖放、上传和插件工具栏，当前生产调用点为 Agent Composer；后续以字段级证据决定保留、迁移或删除每个本地差异。
-- **2026-07-28**：新增 `app/test/compatibility/ProtyleEcosystem.contract.test.ts`。固定测试以官方 `siyuan@1.2.3` 为基线：稳定选项字段逐项双向可赋值；官方 `IProtyleOptions` 与 `IProtyle` 状态经生产 `RebindSiyuanRuntime` 映射可进入本地类型；显式锁定 `wysiwyg`/`preview` 模式边界、`image` 预览动作、`status` 扩展和 `lite` 字段兼容。`pnpm exec tsx --test test/compatibility/ProtyleEcosystem.contract.test.ts` `1/1` 通过；完整 `pnpm exec tsc -p tsconfig.typecheck.json --pretty false --incremental false` 本次新增文件无诊断，仍报告仓库既有严格类型诊断，未宣称全量类型检查通过。
+- **2026-07-28**：新增 `app/test/compatibility/ProtyleEcosystem.contract.test.ts`。固定测试以官方 `siyuan` latest 安装包为基线：稳定选项字段逐项双向可赋值；官方 `IProtyleOptions` 与 `IProtyle` 状态经生产 `RebindSiyuanRuntime` 映射可进入本地类型；显式锁定 `wysiwyg`/`preview` 模式边界、`image` 预览动作、`status` 扩展和 `lite` 字段兼容。`pnpm exec tsx --test test/compatibility/ProtyleEcosystem.contract.test.ts` `1/1` 通过；完整 `pnpm exec tsc -p tsconfig.typecheck.json --pretty false --incremental false` 本次新增文件无诊断，仍报告仓库既有严格类型诊断，未宣称全量类型检查通过。
+- **2026-07-28**：将 `siyuan` 依赖声明改为官方 `latest` dist-tag，并新增 `scripts/check-siyuan-types.mjs` 三方校验安装版本、pnpm lockfile 和 npm latest；更新入口为 `pnpm run update:siyuan-types`，校验入口为 `pnpm run check:siyuan-types`。当前 registry latest、安装包和锁文件均为 `1.2.3`，不产生无意义的版本变更。
 - **2026-07-28**：Protyle 点击导航的移动分支改用编辑器已持有的完整 `AppFacade.openBlock()`，移除对 `mobile/editor` 的反向运行时导入；保持块引用、虚拟引用、嵌入块和浮窗的既有 action 与焦点时序。Node 回归 `209/209`、`typecheck:protyle-contract`、Protyle 生态契约 `1/1` 和 `git diff --check` 通过；源码循环扫描当前为 `13` 条，剩余环位于配置/插件/全局命令链，不将本批误记为循环完成。
