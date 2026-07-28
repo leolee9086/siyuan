@@ -11,6 +11,7 @@
     "tests/type.test.ts",
     "tests/arktype_deep_dist.test.ts",
     "tests/arktype_distribute.test.ts",
+    "tests/arktype_cross_scope.test.ts",
     "tests/arktype_explore.test.ts",
     "tests/backends.contract.test.ts",
     "tests/zod.router.contract.test.ts",

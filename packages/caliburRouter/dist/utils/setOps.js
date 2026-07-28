@@ -3,10 +3,19 @@
  *
  * 基于arktype的类型能力实现集合论运算
  */
+import { bindArkTypePattern } from "../adapters/arktypePattern.js";
 const 最大覆盖证明节点数 = 16_384;
 /** ArkType 后端边界：核心模式只暴露公共能力，集合运算在此恢复具体后端类型。 */
 function asArkType(模式) {
     return 模式;
+}
+/**
+ * 以左操作数的 Scope 作为运算域，先归一化右操作数。
+ * ArkType 节点不能跨 Scope 直接调用 and/or/extends；绑定是显式的适配
+ * 边界，不是吞错或猜测式回退。
+ */
+function 绑定到目标Scope(目标, 来源) {
+    return bindArkTypePattern(目标, 来源);
 }
 /**
  * 判断输入是否匹配给定模式
@@ -48,7 +57,9 @@ export function 匹配(模式, 输入) {
  * ```
  */
 export function 是子集(a, b) {
-    return asArkType(a).extends(asArkType(b)) === true;
+    const 左侧 = asArkType(a);
+    const 右侧 = 绑定到目标Scope(左侧, b);
+    return 左侧.extends(右侧) === true;
 }
 function 是记录(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -146,7 +157,7 @@ export function 全集被模式集合覆盖(universePattern, patterns) {
         return false;
     }
     const universe = asArkType(universePattern);
-    const arkPatterns = patterns.map(asArkType);
+    const arkPatterns = patterns.map((pattern) => 绑定到目标Scope(universe, pattern));
     const covered = arkPatterns.slice(1).reduce((union, pattern) => union.or(pattern), arkPatterns[0]);
     if (universe.extends(covered)) {
         return true;
@@ -194,7 +205,9 @@ export function 全集被模式集合覆盖(universePattern, patterns) {
 export function 有交集(a, b) {
     try {
         // 计算交集类型
-        const 交集 = asArkType(a).and(asArkType(b));
+        const 左侧 = asArkType(a);
+        const 右侧 = 绑定到目标Scope(左侧, b);
+        const 交集 = 左侧.and(右侧);
         // 直接检查交集自身的 ArkType 表示，避免拿另一份 ArkType 实例的
         // `type("never")` 与调用方创建的模式做跨实例 extends。
         return !是Never模式(交集);

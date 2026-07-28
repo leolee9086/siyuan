@@ -11,6 +11,23 @@ describe("ArkType 调用方边界", () => {
         const malformed = {infer: undefined} as 状态空间模式;
         expect(() => arktypeBackend.assertPattern(malformed)).toThrow(/缺少运行时能力/);
     });
+
+    it("对缺少跨 scope 绑定能力的模式显式报错", () => {
+        const malformed = Object.assign(() => true, {
+            infer: undefined,
+            description: "malformed",
+            json: {},
+            and: () => malformed,
+            or: () => malformed,
+            extends: () => false,
+            get: () => malformed,
+            distribute: () => [malformed],
+            $: {},
+        }) as 状态空间模式;
+
+        expect(() => arktypeBackend.assertPattern(malformed))
+            .toThrow(/\$\.internal\.bindReference/);
+    });
 });
 
 describe("Zod 形式化状态后端", () => {

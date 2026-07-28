@@ -2,9 +2,9 @@
 
 > **最终目标**：在不弱化层次化状态空间路由、编译期收窄、互斥和穷尽语义的前提下，将 CaliburRouter 核心与 Schema 实现解耦；分别实现 ArkType、Effect Schema 与 Zod 后端，仅允许可形式化证明的 Schema 子集进入集合推理，并以统一契约、类型性能、运行性能、包体积和生态能力确定推荐后端。
 >
-> **当前目标**：完成 ArkType peer 边界与跨版本消费者回归；CaliburRouter 不绑定自身 ArkType 运行时实例，由调用方提供模式并在入口显式校验所需能力。
+> **当前目标**：归档 ArkType 跨安装、跨版本和跨 scope 的确定性适配；CaliburRouter 不绑定自身 ArkType 运行时实例，由适配器在每次集合运算前将模式绑定到目标 scope，并对能力缺失显式失败。
 >
-> **下一步任务**：保留应用全量类型检查中的既存错误证据，完成本阶段原子提交并归档；若 ArkType peer 范围推进，必须先补充对应版本的跨消费者回归。
+> **下一步任务**：主项目继续按既有全量类型错误基线推进领域根解耦；若 ArkType peer 范围推进，必须先补充对应版本的跨消费者回归。
 
 ## 不变量
 
@@ -26,7 +26,7 @@
 - 已修复测试回归：具体类型别名上的条件类型不会自动分发，原 ArkType 探索测试错误期待 `boolean`；现分别锁定 ArkType 实际推导边界，并由 Calibur 自身断言浅层/嵌套结构差集。
 - 已修复运行回归：ArkType 原生 `extends` 不能证明有限对象状态空间被多个部分模式联合覆盖；ArkType 后端现对模式约束的有限 unit 路径分区并逐区证明，证明越界显式报错。
 - ArkType 运行时对象不能跨包实例直接与另一实例创建的 `never` 或 `raw` 模式做集合运算；包库不得假定调用方复用自身导出的 Schema 构造器。
-- CaliburRouter 的生产代码不导入 ArkType 运行时工厂；包开发/契约测试固定使用 `2.1.29`，应用消费者回归使用 `2.2.3`，两者通过 peer dependency 解耦。
+- CaliburRouter 的生产代码不导入 ArkType 运行时工厂；包开发测试使用 `2.1.29`，消费者夹具使用独立安装的 `2.2.3`。适配器通过 `$.internal.bindReference` 将跨安装模式绑定到目标 scope，不要求调用方预先知道或固定双方版本。
 
 ## 支持能力边界
 
@@ -86,6 +86,14 @@
 - [ ] 应用生产源码检查可在约 38 秒完成且不再 OOM，但当前仍报告 18,121 项既存类型错误；需由前端类型修复任务继续清理后才能宣称应用门禁通过。
 - [x] 分阶段原子提交并归档本文中的多后端实现阶段。
 
+### Phase 5：跨安装与跨版本确定性边界
+
+- [x] 将 ArkType 模式能力校验与跨 scope 绑定收口到单一适配边界，避免 `setOps` 反向依赖适配器形成循环。
+- [x] 交集、子集、覆盖证明及有限路径分区在执行 ArkType 原生运算前统一归一化到左操作数或全集 scope。
+- [x] 增加包侧 ArkType `2.1.29` 与消费者侧 `2.2.3` 的跨版本分发、交集、子集和嵌套路由回归。
+- [x] 对缺少 `$.internal.bindReference` 的模式显式失败，不使用直接跨 scope 运算或兼容回退。
+- [x] 重建 `dist` 并执行完整包门禁、应用消费者门禁和循环依赖检查。
+
 ## 风险与验收标准
 
 - Schema 库的类型推断能力不等于集合证明能力；Adapter 必须携带可审计的形式化表示或使用后端可验证的等价证明。
@@ -104,4 +112,6 @@
 - **2026-07-28 复现**：使用应用现有 `arktype` 构造 `windowKeyDown/navigation` 的真实嵌套全集和 `{isTabWindow: false}` 部分模式，导入 `calibur-router` 后稳定复现 `有交集() -> undefined.filter`；错误来自 `setOps.ts` 把包内 `type("never")` 与调用方模式交给跨实例 `extends`，不是路由规则本身，也不是测试夹具问题。
 - **2026-07-28 修复**：移除集合运算对包内运行时 `type()` 工厂的依赖；交集空集改为检查交集自身的 ArkType `description/json`，有限路径分区改由全集模式自身的 `.and()` parser 构造嵌套约束。这样调用方可继续使用自身 ArkType 实例，包不再要求传入模式必须来自包内实例；没有 catch 回退、跳过覆盖证明或静默吞错。
 - **2026-07-28 跨版本回归**：隔离环境用 ArkType `2.1.29` 与 `2.2.3` 互相组合模式，稳定复现 ArkType 原生跨 scope 错误 `intersection.equals is not a function`；同一调用方 scope 的集合运算通过。该复现证明“应用与库锁定同版本”不能作为问题归零方案。
-- **2026-07-28 边界修复**：CaliburRouter 移除生产 `arktype` dependency，改为必需 peer dependency `>=2.1.29 <2.3.0`；开发/包契约测试固定 `2.1.29`，应用依赖更新为 `2.2.3`。ArkType Adapter 在路由入口检查 callable、`description`、`json`、`and`、`or`、`extends`、`get`、`distribute`，缺失能力显式失败；应用跨版本消费者测试 `2/2`、包测试 `104/104`、包构建和类型检查通过。peer 范围推进前必须补充对应版本的跨消费者回归。
+- **2026-07-28 边界初版（已被后续修正）**：CaliburRouter 移除生产 `arktype` dependency，改为必需 peer dependency `>=2.1.29 <2.3.0`；开发/包契约测试固定 `2.1.29`，应用依赖更新为 `2.2.3`。该版本只检查公开能力并假定运算输入来自同一 scope，不能作为跨 scope 问题归零；本轮新增绑定适配后以新证据替代该前提。
+- **2026-07-28 跨安装适配修复**：新增 `adapters/arktypePattern.ts` 作为唯一 ArkType 边界，入口检查 callable、`description`、`json`、`and`、`or`、`extends`、`get`、`distribute` 和 `$.internal.bindReference`。`是子集`、`有交集`、`全集被模式集合覆盖` 及有限路径证明在调用 ArkType 运算前，将右操作数/模式集合绑定到左操作数或全集 scope；绑定失败带源/目标描述显式抛错。新增 `arktype-consumer` 开发期 alias，以 ArkType `2.1.29` 与 `2.2.3` 实际运行跨版本分发和独立 scope 嵌套路由，包契约类型检查和新增 `15/15` 目标测试通过，未要求调用方固定双方版本。
+- **2026-07-28 阶段验收**：重建 `dist`；包 `typecheck`、contracts、ArkType/Zod/Effect 三套性能类型门禁通过；包全量 `15` 个测试文件、`107/107` 测试通过；应用 ArkType 消费者 `2/2` 通过；`app/src` 为 `2396` 个文件、`0` 条循环，imports gateway hops 为 `0`。主项目全量类型检查仍保留既有错误基线，不在本阶段缩小检查范围或宣称全绿。

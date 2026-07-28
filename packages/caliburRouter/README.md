@@ -18,7 +18,7 @@ CalibURRouter 是基于集合切割的类型安全状态空间路由器。它同
 pnpm add calibur-router arktype
 ```
 
-`arktype` 是必需的 peer dependency，CaliburRouter 不会捆绑或在内部调用 ArkType 的 `type()` 工厂。包自身只在开发和契约测试中使用固定的 `2.1.29`，当前已验证的消费者版本为 `2.2.3`；peer 范围覆盖这两个已验证基线之间的 2.1.x/2.2.x。每条路由中的模式应由同一个调用方 ArkType scope 构造，这是 ArkType 进行 `and/or/extends` 集合运算的运行时约束，而不是 CaliburRouter 对某个隐藏版本的锁定。适配器在进入路由时逐项检查 `description/json/and/or/extends/get/distribute`，缺失能力会立即报错。推进 peer 范围前必须补充对应版本的跨消费者回归。
+`arktype` 是必需的 peer dependency，CaliburRouter 不捆绑或在内部调用 ArkType 的 `type()` 工厂。生产代码不要求包侧与消费者侧固定同一版本，也不要求调用方预先知道包的开发依赖版本。ArkType 的集合运算要求节点位于同一个 scope；适配器会在每次 `and/or/extends`、交集、子集或覆盖证明前，把所有外来模式通过目标模式的 `$.internal.bindReference` 绑定到当前运算 scope，再执行原生运算。因此同一 peer 范围内的不同安装和独立 scope 不依赖隐含约定即可协作。入口会逐项检查 `description/json/and/or/extends/get/distribute` 以及 `$.internal.bindReference`；能力缺失或绑定失败立即抛出带上下文的错误，不直接组合跨 scope 节点，也不静默回退。当前开发门禁同时使用 ArkType `2.1.29` 与消费者夹具 `2.2.3` 回归；推进 peer 范围前必须补充对应版本的跨消费者测试。
 
 Zod 和 Effect Schema 通过独立子路径加载，属于可选 peer dependency：
 
