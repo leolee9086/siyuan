@@ -18,14 +18,10 @@ import {
     isInMobileApp
 } from "../../protyle/util/compatibility";
 import {newFile} from "../../util/file/newFile";
-import {afterLayoutReady} from "../../plugin/loader";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";
-import {
-    getSettingTab,
-    getSettingTabDefs,
-    type ISettingTabShell,
-    type TSettingTab
-} from "../../config/setting/tabs";
+import {getSForgeState} from "../../config/sforge.global";
+import {SETTING_TAB_REGISTRY} from "../../config/sforge.symbols";
+import type {SettingTab} from "../../config/setting/builder";
 import {settingTabToMenuId} from "../../config/setting/settingMenu.types";
 import {bindSettingSaveDelegation} from "../../config/setting/save";
 import {isMobile} from "../../util/platform/functions";
@@ -35,19 +31,27 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import {openMobileDataMigration} from "../../menus/dataMigration/mobile";
 
 // S-forge: 保留本地运行时 AI 可见性判断，避免移动端菜单显示被禁用功能。
-const isSettingTabHidden = (def: ISettingTabShell<TSettingTab>) => {
-    return def.hidden || (["ai", "AIProfiles"].includes(def.id) && (isHuawei() || isDisabledFeature("ai")));
+const getSettingTabs = () => {
+    const settingTabs = getSForgeState(SETTING_TAB_REGISTRY);
+    if (!settingTabs) {
+        throw new Error("Mobile settings require the setting tab registry");
+    }
+    return settingTabs;
 };
 
-const getSettingTabFromMenuTarget = (target: HTMLElement): ISettingTabShell<TSettingTab> | undefined => {
+const isSettingTabHidden = (def: SettingTab) => {
+    return def.hidden?.() || (["ai", "AIProfiles"].includes(def.id) && (isHuawei() || isDisabledFeature("ai")));
+};
+
+const getSettingTabFromMenuTarget = (target: HTMLElement): SettingTab | undefined => {
     const item = target.closest(".b3-menu__item") as HTMLElement | null;
     if (!item?.id) {
         return undefined;
     }
-    return getSettingTabDefs().find(def => settingTabToMenuId(def.id) === item.id);
+    return [...getSettingTabs().values()].find(def => settingTabToMenuId(def.id) === item.id);
 };
 
-const openSettingTabModel = (app: AppFacade, settingTabDef: ISettingTabShell<TSettingTab>, title = settingTabDef.title, icon = settingTabDef.icon) => {
+const openSettingTabModel = (app: AppFacade, settingTabDef: SettingTab, title = settingTabDef.title(), icon = settingTabDef.icon) => {
     if (isSettingTabHidden(settingTabDef)) {
         return;
     }
@@ -58,7 +62,7 @@ const openSettingTabModel = (app: AppFacade, settingTabDef: ISettingTabShell<TSe
         bindEvent(modelMainElement: HTMLElement) {
             const root = modelMainElement.firstElementChild as HTMLElement;
             bindSettingSaveDelegation(root);
-            void getSettingTab(settingTabDef.id).mount(root, undefined, app);
+            void settingTabDef.mount(root, undefined, app);
         }
     });
 };
@@ -71,7 +75,11 @@ export const popMenu = () => {
     document.getElementById("menu").style.transform = "translateX(0px)";
 };
 
-export const initRightMenu = (app: AppFacade, openCommandPanel: (app: AppFacade) => void) => {
+export const initRightMenu = (
+    app: AppFacade,
+    openCommandPanel: (app: AppFacade) => void,
+    notifyLayoutReady: (app: AppFacade) => void,
+) => {
     const menuElement = document.getElementById("menu");
     let accountHTML = "";
     if (window.siyuan.user && !window.siyuan.config.readonly) {
@@ -85,10 +93,10 @@ export const initRightMenu = (app: AppFacade, openCommandPanel: (app: AppFacade)
 </div>`;
     }
 
-    const settingTabsMenuHTML = getSettingTabDefs().map(def =>
+    const settingTabsMenuHTML = [...getSettingTabs().values()].map(def =>
         `<div class="b3-menu__item${isSettingTabHidden(def) ? " fn__none" : ""}" id="${settingTabToMenuId(def.id)}">
         <svg class="b3-menu__icon"><use xlink:href="#${def.icon}"></use></svg>
-        <span class="b3-menu__label">${def.title}</span>
+        <span class="b3-menu__label">${def.title()}</span>
     </div>`).join("");
 
     menuElement.innerHTML = `<div class="b3-menu__title">
@@ -153,11 +161,11 @@ export const initRightMenu = (app: AppFacade, openCommandPanel: (app: AppFacade)
     </a>
 </div>`;
     processSync();
-    afterLayoutReady(app);
+    notifyLayoutReady(app);
     // 只能用 click，否则无法上下滚动 https://github.com/siyuan-note/siyuan/issues/6628
     menuElement.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
-        let settingTabDef: ISettingTabShell<TSettingTab> | undefined;
+        let settingTabDef: SettingTab | undefined;
         while (target && !target.isEqualNode(menuElement)) {
             if (target.classList.contains("b3-menu__title")) {
                 closePanel();
@@ -242,7 +250,7 @@ export const initRightMenu = (app: AppFacade, openCommandPanel: (app: AppFacade)
                 event.stopPropagation();
                 break;
             } else if (target.id === "menuAccount") {
-                const syncTab = getSettingTabDefs().find(def => def.id === "sync");
+                const syncTab = [...getSettingTabs().values()].find(def => def.id === "sync");
                 if (syncTab) {
                     openSettingTabModel(app, syncTab, window.siyuan.user ? siyuanI18n.manage : siyuanI18n.login, "iconAccount");
                 }

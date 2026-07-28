@@ -40,7 +40,7 @@ import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { registerServiceWorker } from "../util/network/serviceWorker";
-import {addPluginDock, loadPlugins, reloadPluginData} from "../plugin/loader";
+import {addPluginDock, afterLayoutReady, loadPlugins, reloadPluginData} from "../plugin/loader";
 import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
 import type {AppBlockNavigation} from "../app/AppFacade.types";
@@ -310,7 +310,7 @@ export class App {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
                             setNoteBook(() => {
                                 initFramework(this, confResponse.data.start);
-                                initRightMenu(this, commandPanel);
+                                initRightMenu(this, commandPanel, afterLayoutReady);
                                 openChangelog(getProtyleDialogPort());
                             });
                         });

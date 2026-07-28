@@ -5,7 +5,6 @@ import {Dialog} from "../dialog";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {isMobile} from "../util/platform/functions";
 import {processSync} from "../dialog/processSystem";
-import {openSetting} from "../config";
 import {platform} from "../platform";
 import type { AppFacade } from "../app/AppFacade.types";
 import {Constants} from "../constants";
@@ -159,13 +158,13 @@ export const syncGuide = (app?: AppFacade) => {
     }
     if (window.siyuan.config.sync.provider === 0 && needSubscribe("")) {
         if (!isMobile() && app) {
-            openSetting(app, "sync");
+            app.openSettings("sync");
         }
         showMessage(siyuanI18n._kernel[29].replaceAll("${accountServer}", getCloudURL("")));
         return;
     } else if (!isPaidUser()) {
         if (!isMobile() && app) {
-            openSetting(app, "sync");
+            app.openSettings("sync");
         }
         showMessage(siyuanI18n._kernel[214].replaceAll("${accountServer}", getCloudURL("")));
         return;
