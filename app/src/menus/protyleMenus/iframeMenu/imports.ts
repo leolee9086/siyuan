@@ -63,13 +63,13 @@ import {openByMobile} from "../../../editor/openLink";
 export { openByMobile };
 
 /**
- * 用途：在应用内打开第三方源页签
- * 使用范围：iframeMenu.open.ts 的“在新页签中打开”动作（应用内 Tab）
- * 解耦评估：业务能力属于外部依赖，适合在 imports.ts 转发
+ * 用途：复用 Bazaar source 自定义页签类型
+ * 使用范围：iframeMenu.open.ts 的“在新页签中打开”动作
+ * 解耦评估：仅依赖不可变类型常量，不加载 Bazaar 业务入口，避免菜单到业务实现的回边
  */
-import { openBazaarSourceTab } from "../../../bazaar-hub/open";
-/** 导出 openBazaarSourceTab */
-export { openBazaarSourceTab };
+import { BAZAAR_SOURCE_TAB_TYPE } from "../../../bazaar-hub/constants";
+/** 导出 BAZAAR_SOURCE_TAB_TYPE */
+export { BAZAAR_SOURCE_TAB_TYPE };
 
 /**
  * 用途：向当前窗口派发自定义事件

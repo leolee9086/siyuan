@@ -17,11 +17,11 @@ import { openExternal } from "./imports";
  */
 import { openByMobile } from "./imports";
 /**
- * 用途：在应用内打开第三方源页签
+ * 用途：复用 Bazaar source 自定义页签类型
  * 使用范围：在新页签打开动作（应用内 Tab）
- * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ * 解耦评估：菜单只依赖完整 AppFacade 的页签能力和不可变类型常量，不加载 Bazaar 业务入口
  */
-import { openBazaarSourceTab } from "./imports";
+import { BAZAAR_SOURCE_TAB_TYPE } from "./imports";
 /**
  * 用途：读取当前页面 origin
  * 使用范围：拼接相对地址为可直接打开的绝对地址
@@ -127,14 +127,17 @@ const openByBrowser = (url: string): void => {
  * 问题/改进：当前复用 bazaar-source-tab 作为通用 URL 承载页签，后续可抽离独立通用 URL Tab 类型。
  */
 const openInAppTab = async (app: IProtyle["app"], url: string): Promise<void> => {
-    await openBazaarSourceTab({
-        app,
-        source: {
-            id: `iframe-source:${url}`,
-            name: url,
-            url,
-            openInTab: true
-        }
+    await app.openTab({
+        custom: {
+            title: url,
+            icon: "iconLink",
+            id: BAZAAR_SOURCE_TAB_TYPE,
+            data: {
+                sourceID: `iframe-source:${url}`,
+                sourceName: url,
+                sourceURL: url,
+            },
+        },
     });
 };
 
