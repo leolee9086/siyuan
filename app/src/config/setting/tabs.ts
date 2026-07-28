@@ -30,6 +30,7 @@ import {registerAccessTab} from "../tabs/accessTab";
 import {registerAppTab} from "../tabs/appTab";
 import {registerAboutTab} from "../tabs/aboutTab";
 import type {SettingTabId} from "./setting.types";
+export {settingTabToMenuId} from "./settingMenu.types";
 
 const mountAIProfilesTab = (root: HTMLElement) => {
     if (root.innerHTML) {
@@ -183,5 +184,3 @@ export const getSettingTabDefs = (): ISettingTabShell<TSettingTab>[] => {
 };
 
 /** 移动端侧栏中设置标签页菜单项的 DOM `id` */
-export const settingTabToMenuId = (tabId: string): string =>
-    "menuConfig" + tabId[0].toUpperCase() + tabId.slice(1);

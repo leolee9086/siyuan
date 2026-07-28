@@ -19,9 +19,6 @@ import {Protyle} from "../protyle";
 import type { AppFacade } from "../app/AppFacade.types";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/loading";
-// S-forge: Plugin 系统支持
-import type {CustomDomain} from "../layout/dock/custom/custom.types";
-import {Plugin} from "../plugin";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {switchSettingPanelSubTab} from "./setting/mount";
@@ -365,7 +362,7 @@ const assets = {
 export const image = assets;
 
 // S-forge: 独立页签的事件绑定，用于 Plugin 系统中的资源管理页签
-const bindAssetTabEvent = (element: Element, type: string) => {
+export const bindAssetTabEvent = (element: Element, type: string) => {
     const assetsListElement = element.querySelector(".config-assets__list");
 
     element.addEventListener("click", (event) => {
@@ -476,7 +473,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
 };
 
 // S-forge: 独立资源页签的 HTML 生成
-const genAssetTabHTML = (type: string) => {
+export const genAssetTabHTML = (type: string) => {
     return `<div class="fn__flex-column" style="height: 100%">
             <div class="fn__hr--b"></div>
             <div class="fn__flex">
@@ -493,60 +490,3 @@ const genAssetTabHTML = (type: string) => {
             <div class="config-assets__preview"></div>
         </div>`;
 };
-
-// S-forge: Plugin 系统注册资源管理相关页签
-let plugin: Plugin;
-document.addEventListener(
-    "app-ready", () => {
-        plugin = new Plugin(
-            {
-                app: window.siyuan.ws.app,
-                displayName: "资源管理内部插件",
-                name: "internal-plugin-image",
-                i18n: {},
-            }
-        );
-        plugin.addTab(
-            {
-                type: "internal-image",
-                init: (model: CustomDomain) => {
-                    const tab = model.tab;
-                    if (tab) {
-                        tab.panelElement.innerHTML = assets.genHTML();
-                        assets.element = tab.panelElement;
-                        assets.bindEvent(window.siyuan.ws.app);
-                    }
-                }
-            }
-        );
-        // 注册未引用资源页签类型
-        plugin.addTab(
-            {
-                type: "internal-image-remove",
-                init: (model: CustomDomain) => {
-                    const tab = model.tab;
-                    if (tab) {
-                        // 生成未引用资源页签的HTML
-                        tab.panelElement.innerHTML = genAssetTabHTML("remove");
-                        bindAssetTabEvent(tab.panelElement, "remove");
-                    }
-                }
-            }
-        );
-        // 注册缺失资源页签类型
-        plugin.addTab(
-            {
-                type: "internal-image-missing",
-                init: (model: CustomDomain) => {
-                    const tab = model.tab;
-                    if (tab) {
-                        // 生成缺失资源页签的HTML
-                        tab.panelElement.innerHTML = genAssetTabHTML("missing");
-                        bindAssetTabEvent(tab.panelElement, "missing");
-                    }
-                }
-            }
-        );
-        window.siyuan.ws.app.plugins.push(plugin);
-    }
-);

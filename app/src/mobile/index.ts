@@ -5,6 +5,7 @@ import { genUUID } from "../util/platform/genID";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasTopClosestByClassName } from "../protyle/util/hasClosest";
 import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
+import "../config/assetsPlugin";
 // S-forge: 移动端框架入口
 import { Menus } from "../menus";
 import { addBaseURL, setNoteBook } from "../util/file/pathName";

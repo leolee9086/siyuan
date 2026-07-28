@@ -20,7 +20,7 @@ import { hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { BlockPanel } from "../block/panel/Panel";
 import { Setting } from "./Setting";
 import { clearOBG } from "../layout/dock/util";
-import { settingTabToMenuId } from "../config/setting/tabs";
+import { settingTabToMenuId } from "../config/setting/settingMenu.types";
 import { Constants } from "../constants";
 import { normalizeStoragePath } from "../util/file/pathName";
 import { Kernel } from "./kernel";

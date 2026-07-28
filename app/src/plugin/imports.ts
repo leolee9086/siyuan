@@ -75,7 +75,7 @@ import {Constants} from "../constants";
  * @使用范围: 插件顶栏图标在移动端设置菜单中的挂载位置
  * @解耦评估: 新设置 UI 的稳定映射函数，应通过导入网关统一转发
  */
-import {settingTabToMenuId} from "../config/setting/tabs";
+import {settingTabToMenuId} from "../config/setting/settingMenu.types";
 
 /**
  * @导入用途: 获取思源配置信息

@@ -175,6 +175,10 @@ jobs:
         run: pnpm install --no-frozen-lockfile
         working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}/app
 
+      - name: Verify official Siyuan types are current
+        run: pnpm run check:siyuan-types
+        working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}/app
+
       - name: Install Electron Binary
         run: pnpm run install:electron
         working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}/app
@@ -268,6 +272,10 @@ jobs:
 
       - name: Install Node Dependencies
         run: pnpm install --no-frozen-lockfile
+        working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}/app
+
+      - name: Verify official Siyuan types are current
+        run: pnpm run check:siyuan-types
         working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}/app
 
       - name: Building UI

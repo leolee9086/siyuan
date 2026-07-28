@@ -4,8 +4,8 @@ import { confirmDialog } from "../../dialog/confirmDialog";
 import { Constants } from "../../constants";
 import { getFrontend } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { Plugin } from "../../plugin";
 import type { AppFacade } from "../../app/AppFacade.types";
+import type * as Siyuan from "siyuan";
 import { uninstall } from "../../plugin/uninstall";
 import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -122,7 +122,7 @@ export const handleInstall = (target: HTMLElement, dataObj: any, bazaar: any, ap
 
             if (bazaarType === "plugins") {
                 if (isUpdate) {
-                    app.plugins.find((item: Plugin) => {
+                    app.plugins.find((item: Siyuan.Plugin) => {
                         if (item.name === dataObj.name) {
                             reloadPlugin(app, {
                                 upsertCodePlugins: [dataObj.name],
@@ -264,7 +264,7 @@ export const handleBazaarInstallClick = (type: string, target: HTMLElement, data
             event.stopPropagation();
             return true;
         }
-        app.plugins.find((item: Plugin) => {
+        app.plugins.find((item: Siyuan.Plugin) => {
             if (item.name === dataObj.name) {
                 item.openSetting();
                 return true;

@@ -23,10 +23,10 @@ import {openTopBarMenu} from "../../plugin/openTopBarMenu";
 import {
     getSettingTab,
     getSettingTabDefs,
-    settingTabToMenuId,
     type ISettingTabShell,
     type TSettingTab
 } from "../../config/setting/tabs";
+import {settingTabToMenuId} from "../../config/setting/settingMenu.types";
 import {bindSettingSaveDelegation} from "../../config/setting/save";
 import {isMobile} from "../../util/platform/functions";
 import {getCurrentEditor} from "../util/getCurrentEditor";
