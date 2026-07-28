@@ -378,6 +378,7 @@ export class App {
             closedTabs: [],
             ctrlIsPressed: false,
             altIsPressed: false,
+            languages: {},
             // 上游: 修复重复 WebSocket 连接 bug - 使用 mainWs 替代重复创建
             ws: mainWs,
         };

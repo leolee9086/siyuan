@@ -194,6 +194,7 @@ export class App {
             transactions: [],
             notebooks: [],
             reqIds: {},
+            languages: {},
             backStack: [],
             dialogs: [],
             blockPanels: [],

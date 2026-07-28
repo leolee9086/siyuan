@@ -671,7 +671,7 @@ interface ISiyuan {
         screenY: number,
     },
     menus?: import("../menus").Menus
-    languages?: {
+    languages: {
         [key: string]: any;
     }
     bookmarkLabel?: string[]
