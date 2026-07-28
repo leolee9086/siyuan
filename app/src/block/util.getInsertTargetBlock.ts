@@ -4,28 +4,28 @@
  * 解耦评估：可由调用方传入 Range 解耦，但当前调用链统一持有 protyle，
  * 直接引入可减少重复样板代码并保持调用一致性。
  */
-import { getEditorRange } from "./imports";
+import { getEditorRange } from "./util/imports";
 /*
  * 用途：将候选块提升为可独立操作的顶层块，避免落在中间容器层。
  * 使用范围：仅在插入前计算锚点时使用，不处理事务或 DOM 写入。
  * 解耦评估：可注入策略函数解耦，但该规则属于编辑器核心语义，
  * 复用统一实现可避免各调用点出现语义漂移。
  */
-import { getTopAloneElement } from "./imports";
+import { getTopAloneElement } from "./util/imports";
 /*
  * 用途：隐藏编辑器选中态相关 UI，防止插入后残留视觉状态。
  * 使用范围：仅在命中多选块并确定插入锚点后调用。
  * 解耦评估：可通过事件机制解耦，但该函数与编辑器 UI 生命周期强相关，
  * 在此直接调用可确保状态收敛及时。
  */
-import { hideElements } from "./imports";
+import { hideElements } from "./util/imports";
 /*
  * 用途：从当前节点向上查找指定类名祖先元素。
  * 使用范围：用于列表场景回退到 li 级锚点，不参与其他块类型判断。
  * 解耦评估：可由调用方传入查找结果解耦，但会增加重复查询逻辑，
  * 在此集中调用更利于维护。
  */
-import { hasClosestByClassName } from "./imports";
+import { hasClosestByClassName } from "./util/imports";
 /*
  * 用途：定位当前节点最近的块级祖先。
  * 使用范围：用于常规块锚点解析以及引述/Callout 内层块回退。

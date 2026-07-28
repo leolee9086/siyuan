@@ -3,19 +3,21 @@
  * 使用范围：仅在 createNewBlockElement 的“列表项分支”中使用，不向外扩散列表实现细节。
  * 解耦评估：理论上可由调用方注入“列表元素工厂”解耦；但该逻辑是块插入核心路径，统一从 block/imports 转发可保持行为一致并降低调用样板。
  */
-import { genListItemElement } from "./imports";
+import { genListItemElement } from "./util/imports";
 /*
  * 用途：生成默认段落块元素。
  * 使用范围：createNewBlockElement 的兜底分支与初始化默认值。
  * 解耦评估：可通过参数传入工厂函数解耦；当前属于 block 模块内部基础能力，直接依赖本目录 util 更直接。
  */
-import { genEmptyElement, genHeadingElement } from "./element.factory";
+import {genEmptyElement} from "./element.factory";
+/** 用途：生成折叠标题元素；使用范围：createNewBlockElement 的标题分支；解耦评估：直接依赖块元素工厂唯一实现。 */
+import {genHeadingElement} from "./element.factory";
 /*
  * 用途：根据标题块生成同级标题元素。
  * 使用范围：createNewBlockElement 在 beforebegin/afterend 且命中折叠标题条件时使用。
  * 解耦评估：可通过策略对象注入解耦；但其属于块语义核心逻辑，在 block 内部直接复用 util 实现更稳定。
  */
-import { getPreviousBlockSibling } from "./imports";
+import { getPreviousBlockSibling } from "./util/imports";
 
 /**
  * 导出说明：创建插入新块时所需的 DOM 元素与有序列表序号信息。

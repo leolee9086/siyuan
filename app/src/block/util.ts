@@ -1,26 +1,24 @@
 /** 用途：编辑器选区聚焦。使用范围：插入块后恢复光标位置。解耦评估：通过 ./imports 转发。 */
-import { focusByWbr } from "./imports";
+import { focusByWbr } from "./util/imports";
 /** 用途：编辑器选区范围获取。使用范围：插入块后获取选区。解耦评估：通过 ./imports 转发。 */
-import { getEditorRange } from "./imports";
-import { getUndoFocusContext } from "./imports";
+import { getEditorRange } from "./util/imports";
+import { getUndoFocusContext } from "./util/imports";
 /** 用途：列表排序更新。使用范围：插入有序列表项后更新编号。解耦评估：通过 ./imports 转发。 */
-import { updateListOrder } from "./imports";
+import { updateListOrder } from "./util/imports";
 /** 用途：事务处理。使用范围：块插入/更新操作。解耦评估：通过 ./imports 转发。 */
-import { transaction } from "./imports";
+import { transaction } from "./util/imports";
 /** 用途：合并为一个事务。使用范围：合并块操作。解耦评估：通过 ./imports 转发。 */
-import { turnsIntoOneTransaction } from "./imports";
+import { turnsIntoOneTransaction } from "./util/imports";
 /** 用途：更新事务。使用范围：事务更新。解耦评估：通过 ./imports 转发。 */
-import { updateTransaction } from "./imports";
+import { updateTransaction } from "./util/imports";
 /** 用途：滚动居中。使用范围：插入块后滚动到目标。解耦评估：通过 ./imports 转发。 */
-import { scrollCenter } from "./imports";
+import { scrollCenter } from "./util/imports";
 /** 用途：系统常量。使用范围：配置和操作常量。解耦评估：通过 ./imports 转发。 */
-import { Constants } from "./imports";
+import { Constants } from "./util/imports";
 /** 用途：网络请求。使用范围：获取块兄弟 ID。解耦评估：通过 ./imports 转发。 */
-import { fetchPost } from "./imports";
+import { fetchPost } from "./util/imports";
 /** 用途：国际化文案。使用范围：块类型名称。解耦评估：通过 ./imports 转发。 */
-import { siyuanI18n } from "./imports";
-/** 用途：获取 SiYuan 配置。使用范围：读取拼写检查配置。解耦评估：通过 ./imports 转发。 */
-import { getSiyuanConfig } from "./imports";
+import { siyuanI18n } from "./util/imports";
 /** 用途：获取插入目标块。使用范围：插入空块定位。解耦评估：同目录模块直接导入。 */
 import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
 /** 用途：创建新块元素。使用范围：插入空块创建元素。解耦评估：同目录模块直接导入。 */
