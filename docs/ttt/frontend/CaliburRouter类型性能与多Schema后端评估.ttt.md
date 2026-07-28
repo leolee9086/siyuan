@@ -107,8 +107,9 @@
 
 - [x] `ZodStatePattern` 同时携带状态类型和原始 Zod Schema 类型；`toSchema(fromSchema(schema))` 在类型层保持 `typeof schema`，并保留原对象身份。
 - [x] 外部消费者声明夹具直接调用解包后 `ZodObject.pick()`，证明生成声明没有把具体 Schema 降为宽泛 `ZodType`。
-- [x] 递归阻断顶层和嵌套 `coerce`；后端仍按谓词验证原输入，不把解析后的转换值冒充路由状态。
-- [x] 包内契约、完整 `107/107` 运行测试、构建、应用外部声明和已构建包 ESM 运行契约通过。
+- [x] 编译期要求 `z.input<Schema>` / `z.output<Schema>` 具体且双向等价，阻断 `brand`、输入输出转换和被擦除成宽泛 `ZodType` 的 Schema。
+- [x] 运行时通过 Zod classic 公开的 `type`、`def`、`shape` 和 `options` 审查封闭子集；递归阻断顶层、对象及 union 内转换能力，后端不把解析后的转换值冒充路由状态。
+- [x] 包内契约、完整 `108/108` 运行测试、构建、应用外部声明和已构建包 ESM 运行契约通过。
 
 ## 风险与验收标准
 
@@ -133,4 +134,4 @@
 - **2026-07-28 阶段验收**：重建 `dist`；包 `typecheck`、contracts、ArkType/Zod/Effect 三套性能类型门禁通过；包全量 `15` 个测试文件、`107/107` 测试通过；应用 ArkType 消费者 `2/2` 通过；`app/src` 为 `2396` 个文件、`0` 条循环，imports gateway hops 为 `0`。主项目全量类型检查仍保留既有错误基线，不在本阶段缩小检查范围或宣称全绿。
 - **2026-07-29 声明复现**：外部消费夹具对 Zod/Effect 的对象路由和 union 生成声明时稳定得到四个 `TS2742`（编辑器显示同义 `TS2883`），均要求引用 `node_modules/calibur-router/dist/formal/adapter`；同一夹具置于库内会生成该内部路径但不报错，因此库内 `tsc` 不是充分证据。
 - **2026-07-29 声明修复与验收**：将既有模式推断代数和 `FormalUnit` 移到 `core/types.ts` 并由包根公开，Zod/Effect 消费方的生成声明只再引用 `calibur-router`、`calibur-router/zod`、`calibur-router/effect` 与原生 Schema 包。外部三后端声明门禁通过；应用创建的普通 Zod Schema 经 `fromSchema()` 封装后可由 `toSchema()` 按同一对象身份取回；包 build、完整 typecheck/contracts、`15` 个测试文件 `107/107` 通过；应用 `keydown.list/router.test.ts` `41/41` 通过。未在应用调用点添加类型注解，也未改变 `.split/.remain` 的状态空间语义。
-- **2026-07-29 Zod 封包语义修复**：回归测试先复现 `z.coerce.number()` 被接纳后，处理器静态收到 `number`、运行时却收到原字符串的类型不一致。`fromSchema()` 现保留具体 Schema 泛型，`toSchema()` 精确返回该类型；递归审查明确拒绝顶层和对象字段中的 `coerce`。外部声明夹具可直接调用解包后 `ZodObject.pick()`；包完整 typecheck、`15` 个测试文件 `107/107`、构建和应用消费者声明门禁通过。
+- **2026-07-29 Zod 封包语义修复**：回归测试先复现 `z.coerce.number()` 被接纳后，处理器静态收到 `number`、运行时却收到原字符串的类型不一致。`fromSchema()` 现保留具体 Schema 泛型并要求输入输出类型具体且双向等价，`toSchema()` 精确返回原类型；运行时只依赖 Zod classic 公开表面审查封闭子集，明确拒绝 `coerce`、同类型 transform/pipe、preprocess、default/prefault/catch/readonly、overwrite/trim 以及嵌套转换。类型契约另锁定 `brand` 和宽泛 `ZodType` 拒绝。外部声明夹具可直接调用解包后 `ZodObject.pick()`；包完整 typecheck、`15` 个测试文件 `108/108`、构建和应用消费者声明门禁通过。

@@ -18,15 +18,27 @@ function unwrap(pattern) {
 function isRecord(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+function isZodSchema(value) {
+    return isRecord(value) &&
+        typeof value.type === "string" &&
+        isRecord(value.def) &&
+        typeof value.safeParse === "function";
+}
+function isZodObject(schema) {
+    return schema.type === "object" && "shape" in schema && isRecord(schema.shape);
+}
+function isZodUnion(schema) {
+    return schema.type === "union" && "options" in schema && Array.isArray(schema.options);
+}
 function assertSupportedZodSchema(schema, path = "schema") {
-    const definition = schema._zod.def;
-    if (definition.coerce === true) {
+    const definition = schema.def;
+    if ("coerce" in definition && definition.coerce === true) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 coerce，路由不会传递解析后的转换值。`);
     }
-    if ("checks" in definition && Array.isArray(definition.checks) && definition.checks.length > 0) {
+    if (Array.isArray(definition.checks) && definition.checks.length > 0) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 checks/refinement，不能参与集合证明。`);
     }
-    switch (definition.type) {
+    switch (schema.type) {
         case "string":
         case "number":
         case "boolean":
@@ -35,14 +47,14 @@ function assertSupportedZodSchema(schema, path = "schema") {
         case "enum":
             return;
         case "object": {
+            if (!isZodObject(schema)) {
+                throw new TypeError(`calibur-router/zod: ${path} 的 object 公开结构无效。`);
+            }
             if ("catchall" in definition && definition.catchall !== undefined) {
                 throw new TypeError(`calibur-router/zod: ${path} 包含 catchall，当前形式化子集未定义该语义。`);
             }
-            if (!("shape" in definition) || !isRecord(definition.shape)) {
-                throw new TypeError(`calibur-router/zod: ${path} 的 object shape 无效。`);
-            }
-            for (const [key, property] of Object.entries(definition.shape)) {
-                if (!(property instanceof z.ZodType)) {
+            for (const [key, property] of Object.entries(schema.shape)) {
+                if (!isZodSchema(property)) {
                     throw new TypeError(`calibur-router/zod: ${path}.${key} 不是 Zod Schema。`);
                 }
                 assertSupportedZodSchema(property, `${path}.${key}`);
@@ -50,15 +62,14 @@ function assertSupportedZodSchema(schema, path = "schema") {
             return;
         }
         case "union": {
-            if (!("options" in definition) || !Array.isArray(definition.options) ||
-                !definition.options.every((option) => option instanceof z.ZodType)) {
+            if (!isZodUnion(schema) || !schema.options.every(isZodSchema)) {
                 throw new TypeError(`calibur-router/zod: ${path} 的 union 分支无效。`);
             }
-            definition.options.forEach((option, index) => assertSupportedZodSchema(option, `${path}[${index}]`));
+            schema.options.forEach((option, index) => assertSupportedZodSchema(option, `${path}[${index}]`));
             return;
         }
         default:
-            throw new TypeError(`calibur-router/zod: ${path} 使用了不受支持的 ${definition.type} Schema。`);
+            throw new TypeError(`calibur-router/zod: ${path} 使用了不受支持的 ${schema.type} Schema。`);
     }
 }
 export const zodBackend = createFormalStateBackend({

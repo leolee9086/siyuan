@@ -59,12 +59,46 @@ describe("Zod 形式化状态后端", () => {
 
     it("原生转换拒绝不可证明的 Zod 能力", () => {
         expect(() => zodState.fromSchema(z.string().refine((value) => value.length > 0))).toThrow(/checks/);
+        // @ts-expect-error transform 的输入输出类型不同，编译期和运行时都应阻断。
         expect(() => zodState.fromSchema(z.string().transform((value) => value.length))).toThrow(/pipe/);
         expect(() => zodState.fromSchema(z.object({ value: z.string().optional() }))).toThrow(/optional/);
         expect(() => zodState.fromSchema(z.array(z.string()))).toThrow(/array/);
         expect(() => zodState.fromSchema(z.strictObject({ value: z.string() }))).toThrow(/catchall/);
+        // @ts-expect-error coerce 的输入输出类型不同，仍需执行调用以验证运行时门禁。
         expect(() => zodState.fromSchema(z.coerce.number())).toThrow(/coerce/);
+        // @ts-expect-error 嵌套 coerce 同样不能通过输入输出类型门禁。
         expect(() => zodState.fromSchema(z.object({ value: z.coerce.string() }))).toThrow(/coerce/);
+        expect(() => zodState.fromSchema(z.coerce.number<number>())).toThrow(/coerce/);
+        // @ts-expect-error 其余 coerce 构造器同样改变输入输出类型。
+        expect(() => zodState.fromSchema(z.coerce.boolean())).toThrow(/coerce/);
+        // @ts-expect-error bigint coerce 的运行时拒绝先于基础域支持判断。
+        expect(() => zodState.fromSchema(z.coerce.bigint())).toThrow(/coerce/);
+        // @ts-expect-error date coerce 的运行时拒绝先于基础域支持判断。
+        expect(() => zodState.fromSchema(z.coerce.date())).toThrow(/coerce/);
+        expect(() => zodState.fromSchema(z.string().transform((value) => value))).toThrow(/pipe/);
+        expect(() => zodState.fromSchema(z.string().pipe(z.string()))).toThrow(/pipe/);
+        // @ts-expect-error preprocess 具有 unknown 输入，仍执行以验证运行时拒绝。
+        expect(() => zodState.fromSchema(z.preprocess((value) => value, z.string()))).toThrow(/pipe/);
+        // @ts-expect-error default 改变输入输出类型，仍执行以验证运行时拒绝。
+        expect(() => zodState.fromSchema(z.string().default("value"))).toThrow(/default/);
+        // @ts-expect-error prefault 改变输入输出类型，仍执行以验证运行时拒绝。
+        expect(() => zodState.fromSchema(z.string().prefault("value"))).toThrow(/prefault/);
+        expect(() => zodState.fromSchema(z.string().catch("value"))).toThrow(/catch/);
+        expect(() => zodState.fromSchema(z.string().readonly())).toThrow(/readonly/);
+        expect(() => zodState.fromSchema(z.string().overwrite((value) => value))).toThrow(/checks/);
+        expect(() => zodState.fromSchema(z.string().trim())).toThrow(/checks/);
+    });
+
+    it("编译期拒绝纯运行时定义无法识别的类型变换和被擦除的 Schema", () => {
+        if (false) {
+            // @ts-expect-error brand 改变输出类型，但运行时定义与普通 string 相同。
+            zodState.fromSchema(z.string().brand<"EntityId">());
+
+            const erasedSchema: z.ZodType = z.string();
+            // @ts-expect-error 宽泛 ZodType 丢失了可证明的具体输入输出类型。
+            zodState.fromSchema(erasedSchema);
+        }
+        expect(true).toBe(true);
     });
 
     it("保持层次状态收窄并在完整覆盖后耗尽", () => {

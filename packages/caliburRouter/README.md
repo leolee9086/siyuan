@@ -133,7 +133,7 @@ const pattern = effectState.fromSchema(native);
 const sameNativeSchema = effectState.toSchema(pattern);
 ```
 
-Zod 转换会先递归检查原生定义，再严格解析其公开 JSON Schema，避免 custom refinement、transform 或 coerce 在 JSON Schema 中丢失后被误接纳。Zod 后端执行谓词校验并向处理器传递原输入，不传递 Schema 解析后的转换值，因此所有改变输入值的能力都会被拒绝。Effect 转换直接解析公开 `SchemaAST`。ArkType 默认入口本身直接接收并保留原生 `Type`，因此它的原生入口和出口是同一个对象，不增加同义包装 API。
+Zod 转换使用两层确定性门禁：编译期要求 Schema 的 `input` / `output` 为具体且双向等价的类型，运行时再递归检查封闭的形式化子集并严格解析其公开 JSON Schema。这样既阻断 `brand` 等只存在于类型层的变化，也避免 custom refinement、transform 或 coerce 在 JSON Schema 中丢失后被误接纳。Zod 后端执行谓词校验并向处理器传递原输入，不传递 Schema 解析后的转换值；擦除成宽泛 `ZodType` 的 Schema 也不会进入封包入口。Effect 转换直接解析公开 `SchemaAST`。ArkType 默认入口本身直接接收并保留原生 `Type`，因此它的原生入口和出口是同一个对象，不增加同义包装 API。
 
 ## 嵌套路由
 

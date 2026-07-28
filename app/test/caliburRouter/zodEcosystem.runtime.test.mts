@@ -16,10 +16,12 @@ test("CaliburRouter 封装应用创建的 Zod Schema 并按对象身份解包", 
 
 test("CaliburRouter 拒绝会改变处理器输入值的 Zod coerce", () => {
     assert.throws(
+        // @ts-expect-error 测试需要执行已被静态门禁阻断的运行时路径。
         () => zodState.fromSchema(z.coerce.number()),
         /schema 包含 coerce/,
     );
     assert.throws(
+        // @ts-expect-error 测试需要执行嵌套 coerce 的运行时路径。
         () => zodState.fromSchema(z.object({value: z.coerce.string()})),
         /schema\.value 包含 coerce/,
     );

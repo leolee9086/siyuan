@@ -30,6 +30,31 @@ export type ZodStatePattern<
 
 type ZodPatternShape = Readonly<Record<string, ZodStatePattern<unknown>>>;
 
+type IsAny<Value> = 0 extends 1 & Value ? true : false;
+
+type IsUnknown<Value> = IsAny<Value> extends true
+    ? false
+    : unknown extends Value
+        ? [keyof Value] extends [never] ? true : false
+        : false;
+
+type HasConcreteIdentityInputOutput<Schema extends z.ZodType> =
+    IsAny<z.input<Schema>> extends true ? false
+        : IsAny<z.output<Schema>> extends true ? false
+            : IsUnknown<z.input<Schema>> extends true ? false
+                : IsUnknown<z.output<Schema>> extends true ? false
+                    : [z.input<Schema>] extends [z.output<Schema>]
+                        ? [z.output<Schema>] extends [z.input<Schema>] ? true : false
+                        : false;
+
+type PurePredicateSchemaGuard<Schema extends z.ZodType> =
+    HasConcreteIdentityInputOutput<Schema> extends true
+        ? object
+        : {
+            readonly __caliburRouterZodSchemaError__:
+                "fromSchema requires concrete and identical Zod input/output types";
+        };
+
 function createPattern<State, Schema extends z.ZodType = z.ZodType>(
     schema: Schema,
     stateSpace: FormalStateSpace,
@@ -50,20 +75,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isZodSchema(value: unknown): value is z.ZodType {
+    return isRecord(value) &&
+        typeof value.type === "string" &&
+        isRecord(value.def) &&
+        typeof value.safeParse === "function";
+}
+
+function isZodObject(schema: z.ZodType): schema is z.ZodObject {
+    return schema.type === "object" && "shape" in schema && isRecord(schema.shape);
+}
+
+function isZodUnion(schema: z.ZodType): schema is z.ZodUnion {
+    return schema.type === "union" && "options" in schema && Array.isArray(schema.options);
+}
+
 function assertSupportedZodSchema(schema: z.ZodType, path = "schema"): void {
-    const definition: {
-        readonly type: string;
-        readonly checks?: readonly unknown[];
-        readonly coerce?: boolean;
-    } = schema._zod.def;
-    if (definition.coerce === true) {
+    const definition = schema.def;
+    if ("coerce" in definition && definition.coerce === true) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 coerce，路由不会传递解析后的转换值。`);
     }
-    if ("checks" in definition && Array.isArray(definition.checks) && definition.checks.length > 0) {
+    if (Array.isArray(definition.checks) && definition.checks.length > 0) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 checks/refinement，不能参与集合证明。`);
     }
 
-    switch (definition.type) {
+    switch (schema.type) {
         case "string":
         case "number":
         case "boolean":
@@ -72,14 +108,14 @@ function assertSupportedZodSchema(schema: z.ZodType, path = "schema"): void {
         case "enum":
             return;
         case "object": {
+            if (!isZodObject(schema)) {
+                throw new TypeError(`calibur-router/zod: ${path} 的 object 公开结构无效。`);
+            }
             if ("catchall" in definition && definition.catchall !== undefined) {
                 throw new TypeError(`calibur-router/zod: ${path} 包含 catchall，当前形式化子集未定义该语义。`);
             }
-            if (!("shape" in definition) || !isRecord(definition.shape)) {
-                throw new TypeError(`calibur-router/zod: ${path} 的 object shape 无效。`);
-            }
-            for (const [key, property] of Object.entries(definition.shape)) {
-                if (!(property instanceof z.ZodType)) {
+            for (const [key, property] of Object.entries(schema.shape)) {
+                if (!isZodSchema(property)) {
                     throw new TypeError(`calibur-router/zod: ${path}.${key} 不是 Zod Schema。`);
                 }
                 assertSupportedZodSchema(property, `${path}.${key}`);
@@ -87,18 +123,17 @@ function assertSupportedZodSchema(schema: z.ZodType, path = "schema"): void {
             return;
         }
         case "union": {
-            if (!("options" in definition) || !Array.isArray(definition.options) ||
-                !definition.options.every((option) => option instanceof z.ZodType)) {
+            if (!isZodUnion(schema) || !schema.options.every(isZodSchema)) {
                 throw new TypeError(`calibur-router/zod: ${path} 的 union 分支无效。`);
             }
-            definition.options.forEach((option, index) =>
-                assertSupportedZodSchema(option as z.ZodType, `${path}[${index}]`)
+            schema.options.forEach((option, index) =>
+                assertSupportedZodSchema(option, `${path}[${index}]`)
             );
             return;
         }
         default:
             throw new TypeError(
-                `calibur-router/zod: ${path} 使用了不受支持的 ${definition.type} Schema。`
+                `calibur-router/zod: ${path} 使用了不受支持的 ${schema.type} Schema。`
             );
     }
 }
@@ -112,7 +147,9 @@ export const zodBackend = createFormalStateBackend<z.ZodType<unknown>>({
 export const zodCalibur = createCaliburRouter(zodBackend);
 
 export const zodState = {
-    fromSchema<const Schema extends z.ZodType>(schema: Schema): ZodStatePattern<z.output<Schema>, Schema> {
+    fromSchema<const Schema extends z.ZodType>(
+        schema: Schema & PurePredicateSchemaGuard<NoInfer<Schema>>,
+    ): ZodStatePattern<z.output<Schema>, Schema> {
         assertSupportedZodSchema(schema);
         const jsonSchema = z.toJSONSchema(schema, { io: "input", unrepresentable: "throw" });
         return createPattern<z.output<Schema>, Schema>(schema, parseFormalJsonSchema(jsonSchema));
