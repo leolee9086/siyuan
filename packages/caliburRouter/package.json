@@ -33,10 +33,8 @@
     "typecheck:performance:zod": "tsc -p tsconfig.performance.zod.json --extendedDiagnostics",
     "typecheck:performance:effect": "tsc -p tsconfig.performance.effect.json --extendedDiagnostics"
   },
-  "dependencies": {
-    "arktype": "^2.1.0"
-  },
   "peerDependencies": {
+    "arktype": ">=2.1.29 <2.3.0",
     "effect": "^3.22.0",
     "zod": "^4.4.3"
   },
@@ -50,6 +48,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "arktype": "2.1.29",
     "effect": "^3.22.0",
     "esbuild": "^0.28.1",
     "typescript": "^5.7.0",

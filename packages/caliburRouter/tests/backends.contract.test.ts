@@ -1,8 +1,17 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 import * as Schema from "effect/Schema";
+import { arktypeBackend } from "../src/adapters/arktype.js";
+import type { 状态空间模式 } from "../src/core/types.js";
 import { effectBackend, effectCalibur, effectState } from "../src/effect.js";
 import { zodBackend, zodCalibur, zodState } from "../src/zod.js";
+
+describe("ArkType 调用方边界", () => {
+    it("对缺少公开运行时能力的模式显式报错", () => {
+        const malformed = {infer: undefined} as 状态空间模式;
+        expect(() => arktypeBackend.assertPattern(malformed)).toThrow(/缺少运行时能力/);
+    });
+});
 
 describe("Zod 形式化状态后端", () => {
     it("从原生 Schema 导入并无损导出", () => {

@@ -3,7 +3,6 @@
  *
  * 基于arktype的类型能力实现集合论运算
  */
-import { type } from "arktype";
 const 最大覆盖证明节点数 = 16_384;
 /** ArkType 后端边界：核心模式只暴露公共能力，集合运算在此恢复具体后端类型。 */
 function asArkType(模式) {
@@ -103,12 +102,20 @@ function 读取属性模式(schema, path) {
 function 是Unit模式(schema) {
     return 是记录(schema.json) && Object.hasOwn(schema.json, "unit");
 }
-function 创建路径约束(path, value) {
+function 创建路径约束(base, path, value) {
+    if (path.length === 0) {
+        throw new Error("calibur-router: 有限路径分区不能使用空属性路径。");
+    }
     let definition = value;
     for (let index = path.length - 1; index >= 0; index--) {
         definition = { [path[index]]: definition };
     }
-    return type.raw(definition);
+    // 通过全集模式自身的 parser 构造约束，保证外部 ArkType 实例不会与
+    // CaliburRouter 内部依赖的 ArkType 实例混用。
+    if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+        throw new Error("calibur-router: 路径约束必须生成 JSON 对象模式。");
+    }
+    return base.and(definition);
 }
 function 创建有限路径分区(universe, patterns) {
     const constrainedPaths = new Map();
@@ -124,7 +131,7 @@ function 创建有限路径分区(universe, patterns) {
         if (values.length < 2 || !values.every(是Unit模式)) {
             continue;
         }
-        partitions.push(values.map((value) => 创建路径约束(path, value)));
+        partitions.push(values.map((value) => 创建路径约束(universe, path, value)));
     }
     return partitions;
 }
@@ -188,8 +195,9 @@ export function 有交集(a, b) {
     try {
         // 计算交集类型
         const 交集 = asArkType(a).and(asArkType(b));
-        // 如果交集等价于never，则无交集
-        return !是子集(交集, type("never"));
+        // 直接检查交集自身的 ArkType 表示，避免拿另一份 ArkType 实例的
+        // `type("never")` 与调用方创建的模式做跨实例 extends。
+        return !是Never模式(交集);
     }
     catch (error) {
         // 仅捕获预期的 ArkType "unsatisfiable" 错误
@@ -218,6 +226,9 @@ export function 有交集(a, b) {
  * @returns 是空集返回true
  */
 export function 是空集(模式) {
-    return 是子集(模式, type("never"));
+    return 是Never模式(asArkType(模式));
+}
+function 是Never模式(schema) {
+    return schema.description === "never" || (Array.isArray(schema.json) && schema.json.length === 0);
 }
 //# sourceMappingURL=setOps.js.map

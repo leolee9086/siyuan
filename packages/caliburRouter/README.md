@@ -12,11 +12,13 @@ CalibURRouter 是基于集合切割的类型安全状态空间路由器。它同
 
 ## 后端与安装
 
-默认入口继续使用 ArkType：
+默认入口继续使用调用方提供的 ArkType：
 
 ```bash
 pnpm add calibur-router arktype
 ```
+
+`arktype` 是必需的 peer dependency，CaliburRouter 不会捆绑或在内部调用 ArkType 的 `type()` 工厂。包自身只在开发和契约测试中使用固定的 `2.1.29`，当前已验证的消费者版本为 `2.2.3`；peer 范围覆盖这两个已验证基线之间的 2.1.x/2.2.x。每条路由中的模式应由同一个调用方 ArkType scope 构造，这是 ArkType 进行 `and/or/extends` 集合运算的运行时约束，而不是 CaliburRouter 对某个隐藏版本的锁定。适配器在进入路由时逐项检查 `description/json/and/or/extends/get/distribute`，缺失能力会立即报错。推进 peer 范围前必须补充对应版本的跨消费者回归。
 
 Zod 和 Effect Schema 通过独立子路径加载，属于可选 peer dependency：
 
@@ -164,7 +166,7 @@ const dispatch = zodCalibur.universe(zodState.object({
 
 ## 后端选型
 
-以下数据采集于 2026-07-25，环境为 Windows、Node.js 22.19.0、TypeScript 5.9.3、ArkType 2.1.29、Zod 4.4.3、Effect 3.22.0。微基准用于比较当前实现，不代表所有应用负载。
+以下数据采集于 2026-07-25，环境为 Windows、Node.js 22.19.0、TypeScript 5.9.3、CaliburRouter 开发/基准依赖 ArkType 2.1.29、Zod 4.4.3、Effect 3.22.0。应用消费者回归另使用 ArkType 2.2.3。微基准用于比较当前实现，不代表所有应用负载。
 
 ### 编译时代价
 
