@@ -4,7 +4,6 @@ import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
 import { openFileById } from "../../editor/utils.openFileById";
-import { openMobileFileById } from "../../mobile/editor";
 import {checkFold} from "../../block/fold/checkFold";
 import { pushBack } from "../../navigation/history/pushBack";
 import {activeBlur} from "../../mobile/keyboard/activeBlur";
@@ -68,7 +67,11 @@ export function handleClickNavigation(
                 if (isMobile()) {
                     clickState.mobileBlur = true;
                     activeBlur();
-                    openMobileFileById(protyle.app, refBlockId, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL], "start");
+                    protyle.app.openBlock({
+                        id: refBlockId,
+                        action: zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                        scrollPosition: "start",
+                    });
                 } else if (event.shiftKey) {
                     openFileById({
                         app: protyle.app,
@@ -134,7 +137,10 @@ export function handleClickNavigation(
                 checkFold(response.data.refDefs[0].refID, (zoomIn) => {
                     clickState.mobileBlur = true;
                     activeBlur();
-                    openMobileFileById(protyle.app, response.data.refDefs[0].refID, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                    protyle.app.openBlock({
+                        id: response.data.refDefs[0].refID,
+                        action: zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                    });
                 });
             });
             return true;
@@ -207,7 +213,12 @@ export function handleClickNavigation(
             if (isMobile()) {
                 clickState.mobileBlur = true;
                 activeBlur();
-                openMobileFileById(protyle.app, embedId, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                if (embedId) {
+                    protyle.app.openBlock({
+                        id: embedId,
+                        action: zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                    });
+                }
             } else if (event.shiftKey) {
                 openFileById({
                     app: protyle.app,

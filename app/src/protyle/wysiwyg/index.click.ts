@@ -7,7 +7,6 @@ import {
     isInEmbedBlock,
 } from "../util/hasClosest";
 import { BlockPanel } from "../../block/panel/Panel";
-import { openMobileFileById } from "../../mobile/editor";
 import {
     focusBlock,
     focusByRange,
@@ -209,7 +208,12 @@ function handleActionElements(
     if (openFloatElement) {
         const id = openFloatElement.getAttribute("data-id");
         if (isMobile()) {
-            openMobileFileById(protyle.app, id, [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+            if (id) {
+                protyle.app.openBlock({
+                    id,
+                    action: [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                });
+            }
         } else {
             window.siyuan.blockPanels.push(new BlockPanel({
                 app: protyle.app,
