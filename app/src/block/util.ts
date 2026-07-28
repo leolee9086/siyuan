@@ -17,11 +17,6 @@ import { scrollCenter } from "./imports";
 import { Constants } from "./imports";
 /** 用途：网络请求。使用范围：获取块兄弟 ID。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
-/** 用途：通过 ID 打开文件。使用范围：跳转到父/子块。解耦评估：通过 ./imports 转发。 */
-import { openFileById } from "./imports";
-/** 用途：移动端通过 ID 打开文件。使用范围：移动端块跳转。解耦评估：通过 ./imports 转发。 */
-import { openMobileFileById } from "./imports";
-import { isMobile } from "./imports";
 /** 用途：国际化文案。使用范围：块类型名称。解耦评估：通过 ./imports 转发。 */
 import { siyuanI18n } from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：读取拼写检查配置。解耦评估：通过 ./imports 转发。 */
@@ -48,20 +43,12 @@ const handleBlockSiblingResponse = (
     const action = targetId !== protyle.block.rootID && protyle.block.showAll ?
         [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] :
         [Constants.CB_GET_FOCUS];
-    if (isMobile) {
-        openMobileFileById(protyle.app, targetId, action);
-        return;
-    }
-    openFileById({
-        app: protyle.app,
-        id: targetId,
-        action
-    });
+    void protyle.app.openBlock({id: targetId, action});
 };
 
 /**
  * 作用：跳转到当前块的父/子/兄弟块。
- * 意图：通过后端接口获取目标块 ID 后，桌面端用 openFileById 打开，移动端用 openMobileFileById。
+ * 意图：通过后端接口获取目标块 ID 后，交由完整 AppFacade.openBlock 选择宿主导航实现。
  * 调用时机：在块面包屑或块标菜单中点击跳转按钮时调用。
  * @柯里化 闭包捕获 protyle 上下文用于打开文件
  * @同步豁免: 生命周期 使用回调式网络请求，不阻塞调用栈

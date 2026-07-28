@@ -5,14 +5,10 @@
 
 // 用途：在新窗口中打开指定块；使用范围：Panel.actions.ts 中 Electron 环境下打开引用块；解耦评估：窗口管理功能，可通过事件机制解耦，但作为全局基础设施直接导入更合理
 import { openNewWindowById } from "../window/openNewWindow";
-// 用途：在编辑器中打开指定文件；使用范围：Panel.actions.ts 中粘贴标签页操作时打开文件；解耦评估：编辑器核心功能，可通过依赖注入解耦，但作为核心业务功能直接导入更合理
-import { openFileById } from "../editor/utils.openFileById";
 // 用途：检查块是否折叠并执行回调；使用范围：Panel.actions.ts 中粘贴标签页前检查折叠状态；解耦评估：平台相关工具函数，可通过参数传递解耦，但作为平台基础设施直接导入更合理
 import {checkFold} from "./fold/checkFold";
 // 用途：判断当前是否为 Electron 环境；使用范围：Panel.actions.ts 中判断是否支持新窗口打开；解耦评估：平台检测工具，通过参数传递即可使用，已充分解耦
 import { isElectron } from "../platform";
-// 用途：判断是否为移动端；使用范围：Panel.ts 中判断是否启用拖拽调整大小功能；解耦评估：平台检测工具，通过参数传递即可使用，已充分解耦
-import { isMobile } from "../platform";
 // 用途：获取国际化文本；使用范围：Panel.actions.ts 中设置固定按钮的 aria-label；解耦评估：全局i18n服务，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 // 用途：系统常量配置；使用范围：block 模块使用全局常量；解耦评估：全局配置，可通过参数注入解耦，但作为全局基础设施直接导入更合理
@@ -108,14 +104,10 @@ import { fetchSyncPost } from "../util/network/fetch";
 
 // 窗口管理工具导出
 export { openNewWindowById };
-// 编辑器工具导出
-export { openFileById };
 // 平台工具导出
 export { checkFold };
 // 平台检测工具导出
 export { isElectron };
-// 移动端检测工具导出
-export { isMobile };
 // 环境工具导出
 export { siyuanI18n };
 // 常量导出
@@ -241,8 +233,3 @@ export { scrollCenter };
 import { fetchPost } from "../util/network/fetch";
 // 导出 fetchPost
 export { fetchPost };
-
-// 用途：移动端通过 ID 打开文件；使用范围：block 模块移动端跳转；解耦评估：移动端功能
-import { openMobileFileById } from "../mobile/editor";
-// 导出 openMobileFileById
-export { openMobileFileById };
