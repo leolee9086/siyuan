@@ -33,6 +33,7 @@ import {
 } from "../protyle/util/compatibility";
 import { getCurrentEditor } from "./util/getCurrentEditor";
 import { openMobileFileById } from "./editor";
+import { commandPanel } from "../boot/globalEvent/command/panel";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
@@ -308,7 +309,7 @@ export class App {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
                             setNoteBook(() => {
                                 initFramework(this, confResponse.data.start);
-                                initRightMenu(this);
+                                initRightMenu(this, commandPanel);
                                 openChangelog(getProtyleDialogPort());
                             });
                         });

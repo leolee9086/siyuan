@@ -19,7 +19,6 @@ import {
 } from "../../protyle/util/compatibility";
 import {newFile} from "../../util/file/newFile";
 import {afterLayoutReady} from "../../plugin/loader";
-import {commandPanel} from "../../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";
 import {
     getSettingTab,
@@ -72,7 +71,7 @@ export const popMenu = () => {
     document.getElementById("menu").style.transform = "translateX(0px)";
 };
 
-export const initRightMenu = (app: AppFacade) => {
+export const initRightMenu = (app: AppFacade, openCommandPanel: (app: AppFacade) => void) => {
     const menuElement = document.getElementById("menu");
     let accountHTML = "";
     if (window.siyuan.user && !window.siyuan.config.readonly) {
@@ -167,7 +166,7 @@ export const initRightMenu = (app: AppFacade) => {
                 break;
             } else if (target.id === "menuCommand") {
                 closePanel();
-                commandPanel(app);
+                openCommandPanel(app);
                 event.preventDefault();
                 event.stopPropagation();
                 break;
