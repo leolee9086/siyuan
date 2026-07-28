@@ -230,6 +230,7 @@ NPM 最近一周下载量采样：Zod 约 2.40 亿、Effect 约 2,602 万、ArkT
 - `.remain(handler)`：处理并读取精确剩余集。
 - `.otherwise(handler)`：处理剩余输入但不读取其类型。
 - `.build()`：构建最终分发器；未穷尽且未声明剩余处理时，静态类型禁止调用。
+- `PatternState`、`PatternShapeState` 与 `FormalUnit`：后端公共声明共用的核心类型代数；消费方生成声明时只引用包公开入口。
 
 ## 验证与复现
 

@@ -59,6 +59,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "typecheck:protyle-contract": "tsc -p tsconfig.protyle-contract.json --pretty false",
+    "typecheck:calibur-portable-declarations": "tsc -p tsconfig.calibur-portable-declarations.json --pretty false",
     "longest": "node ./scripts/checker/findLongestFile.js",
     "scan:oversized": "node ./scripts/checker/scanOversizedFiles.js",
     "scan:types:low-usage": "node ./scripts/checker/scanLowUsageTypes.js",

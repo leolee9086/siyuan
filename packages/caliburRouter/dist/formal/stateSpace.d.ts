@@ -1,4 +1,5 @@
-export type FormalUnit = string | number | boolean | null;
+import type { FormalUnit } from "../core/types.js";
+export type { FormalUnit } from "../core/types.js";
 export type FormalDomain = "string" | "number" | "boolean";
 export type FormalStateSpace = {
     readonly kind: "unit";

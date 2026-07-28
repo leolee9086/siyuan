@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "./test/caliburRouter",
+    "outDir": "./node_modules/.cache/calibur-portable-declarations",
+    "types": ["node"]
+  },
+  "include": [
+    "test/caliburRouter/portableDeclarations.fixture.ts"
+  ]
+}

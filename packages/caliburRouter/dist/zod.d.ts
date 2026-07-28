@@ -1,6 +1,6 @@
 import * as z from "zod";
-import { FormalStatePattern, type PatternShapeState, type PatternState } from "./formal/adapter.js";
-import { type FormalUnit } from "./formal/stateSpace.js";
+import { FormalStatePattern } from "./formal/adapter.js";
+import type { FormalUnit, PatternShapeState, PatternState } from "./index.js";
 declare class ZodStatePatternImpl<out State> extends FormalStatePattern<State, z.ZodType<unknown>> {
     private readonly zodStatePatternBrand;
 }

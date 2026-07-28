@@ -3,16 +3,14 @@ import { createCaliburRouter } from "./core/matcher.js";
 import {
     createFormalStateBackend,
     FormalStatePattern,
-    type PatternShapeState,
-    type PatternState,
 } from "./formal/adapter.js";
+import type {FormalUnit, PatternShapeState, PatternState} from "./index.js";
 import {
     formalDomain,
     formalObject,
     formalUnion,
     formalUnit,
     type FormalStateSpace,
-    type FormalUnit,
 } from "./formal/stateSpace.js";
 import { parseFormalJsonSchema } from "./formal/jsonSchema.js";
 

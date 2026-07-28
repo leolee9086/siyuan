@@ -1,4 +1,4 @@
-import type { StateSpaceBackend, 状态空间模式 } from "../core/types.js";
+import type { StateSpaceBackend } from "../core/types.js";
 import { type FormalStateSpace } from "./stateSpace.js";
 export declare class FormalStatePattern<out State, out Schema> {
     readonly backendToken: object;
@@ -13,8 +13,4 @@ export interface FormalStateBackendConfig<Schema> {
     readonly validates: (schema: Schema, input: unknown) => boolean;
 }
 export declare function createFormalStateBackend<Schema>(config: FormalStateBackendConfig<Schema>): StateSpaceBackend;
-export type PatternState<Pattern extends 状态空间模式> = Pattern["infer"];
-export type PatternShapeState<Shape extends Readonly<Record<string, 状态空间模式>>> = {
-    -readonly [Key in keyof Shape]: PatternState<Shape[Key]>;
-};
 //# sourceMappingURL=adapter.d.ts.map

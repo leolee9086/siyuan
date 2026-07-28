@@ -7,6 +7,14 @@
 export interface 状态空间模式<out 状态 = unknown> {
     readonly infer: 状态;
 }
+/** 从任意状态空间模式提取其运行时状态。 */
+export type PatternState<Pattern extends 状态空间模式> = Pattern["infer"];
+/** 将模式对象形状投影为对应的运行时状态对象。 */
+export type PatternShapeState<Shape extends Readonly<Record<string, 状态空间模式>>> = {
+    -readonly [Key in keyof Shape]: PatternState<Shape[Key]>;
+};
+/** 所有形式化 Schema 后端共同支持的 JSON 原子状态。 */
+export type FormalUnit = string | number | boolean | null;
 /** Schema 后端必须提供的完整运行时状态空间代数。 */
 export interface StateSpaceBackend {
     readonly name: string;
@@ -255,6 +263,6 @@ export interface 可构建匹配器<全集, 结果联合> {
 /**
  * 从后端无关的状态空间模式中提取推断类型
  */
-export type 推断类型<T extends 状态空间模式> = T["infer"];
+export type 推断类型<T extends 状态空间模式> = PatternState<T>;
 export {};
 //# sourceMappingURL=types.d.ts.map

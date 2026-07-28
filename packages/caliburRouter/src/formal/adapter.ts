@@ -60,9 +60,3 @@ export function createFormalStateBackend<Schema>(
         },
     };
 }
-
-export type PatternState<Pattern extends 状态空间模式> = Pattern["infer"];
-
-export type PatternShapeState<Shape extends Readonly<Record<string, 状态空间模式>>> = {
-    -readonly [Key in keyof Shape]: PatternState<Shape[Key]>;
-};

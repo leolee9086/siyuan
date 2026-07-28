@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
-import { FormalStatePattern, type PatternShapeState, type PatternState } from "./formal/adapter.js";
-import { type FormalUnit } from "./formal/stateSpace.js";
+import { FormalStatePattern } from "./formal/adapter.js";
+import type { FormalUnit, PatternShapeState, PatternState } from "./index.js";
 declare class EffectStatePatternImpl<out State> extends FormalStatePattern<State, Schema.Schema.AnyNoContext> {
     private readonly effectStatePatternBrand;
 }
