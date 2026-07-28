@@ -19,7 +19,7 @@ import { cancelSB } from "../../block/util.cancelSB";
 import {hideElements} from "../ui/hideElements";
 import {transaction} from "./transaction/submit";
 import {updateTransaction} from "./transaction/update";
-import {refreshSbs} from "./transaction.refreshSbs";
+import {refreshSbs} from "./transaction/refreshSbs";
 
 export const turnsIntoOneTransaction = async (options: {
     protyle: IProtyle,

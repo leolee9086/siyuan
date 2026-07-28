@@ -55,8 +55,3 @@ export {updateConfig};
 import {inputEvent} from "../../../../inputEvent";
 /** 导出搜索刷新操作。 */
 export {inputEvent};
-
-/** 用途：搜索输入事件。使用范围：路径选择后刷新；解耦评估：Search 既有输入编排。 */
-import {inputEvent} from "../../../../inputEvent";
-/** 导出搜索输入事件。 */
-export {inputEvent};

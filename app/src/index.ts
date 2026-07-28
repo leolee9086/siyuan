@@ -3,7 +3,7 @@ import { Menus } from "./menus";
 import { Model } from "./layout/Model";
 import { onGetConfig } from "./boot/onGetConfig";
 import { initBlockPopover } from "./block/popover";
-import { onSetaccount } from "./config/tabs/accountUi";
+import { onSetaccount } from "./config/tabs/accountRuntime";
 import { addScript, addScriptSync } from "./protyle/util/addScript";
 import { genUUID } from "./util/platform/genID";
 import { fetchGet, fetchPost } from "./util/network/fetch";

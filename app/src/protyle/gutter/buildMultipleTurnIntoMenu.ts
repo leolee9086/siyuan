@@ -13,7 +13,7 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { genTurnsInto, genTurnsIntoOne } from "./buildGutterTurnIntoMenu";
+import { genTurnsInto, genTurnsIntoOne } from "./turnInto/items";
 
 /**
  * 检查选中的元素是否包含列表项，以及是否连续

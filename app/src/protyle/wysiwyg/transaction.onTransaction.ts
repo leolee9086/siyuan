@@ -14,7 +14,7 @@ import { handleUpdateAttrs } from "./transaction.onTransaction.attrs";
 import { handleMove } from "./transaction.onTransaction.move";
 import { handleInsert } from "./transaction.onTransaction.insert";
 import { updateEmbed } from "./transaction.promise";
-import { refreshSbs } from "./transaction.refreshSbs";
+import { refreshSbs } from "./transaction/refreshSbs";
 
 const deleteBlock = (updateElements: Element[], id: string, protyle: IProtyle, isUndo: boolean) => {
     if (isUndo && updateElements[0]) {

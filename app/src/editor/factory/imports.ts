@@ -7,7 +7,7 @@ import type { AppFacade } from "../../app/AppFacade.types";
 /** 用途：完整 Protyle 领域表面；使用范围：工厂返回编辑器初始化回调类型；解耦评估：类型直达稳定声明，不加载具体编辑器。 */
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 /** 用途：同步独立窗口模型 hash；使用范围：编辑器初始化完成回调；解耦评估：在工厂装配宿主能力，Editor 不再导入窗口实现。 */
-import {setModelsHash} from "../../window/setHeader";
+import {setModelsHash} from "../../window/modelHash/setModelsHash";
 /** 用途：参数化引擎创建选项；使用范围：Protyle 工厂参数；解耦评估：完整配置映射保持静态类型。 */
 import type {EditorEngineOptions} from "../types";
 

@@ -7,7 +7,7 @@ import {isMobile} from "../../platform";
 import {findProtyleBlockCopies} from "../runtime/layout.port";
 import {processClonePHElement} from "../render/util";
 import {removeTopElement} from "./transaction/submit";
-import {refreshSbs} from "./transaction.refreshSbs";
+import {refreshSbs} from "./transaction/refreshSbs";
 
 export const handleMove = (operation: IOperation, protyle: IProtyle, updateElements: Element[], isUndo: boolean): void => {
     if (operation.context?.ignoreProcess === "true") {

@@ -32,7 +32,7 @@ import { hasClosestByClassName } from "./util/imports";
  * 解耦评估：可通过参数注入查询函数解耦，但该能力为块模块共性依赖，
  * 通过转发层导入已将路径耦合降到最小。
  */
-import { hasClosestBlock } from "./popover/imports";
+import { hasClosestBlock } from "./util/imports";
 
 /**
  * 作用：计算插入操作应落到的目标块，覆盖显式 id、多选块、光标块与特殊容器场景。

@@ -4,7 +4,7 @@ import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRen
 import {highlightRender} from "../render/highlightRender";
 import {hasClosestBlock, isInEmbedBlock} from "../util/hasClosest";
 import {avRender} from "../render/av/render";
-import {refreshSbs} from "./transaction.refreshSbs";
+import {refreshSbs} from "./transaction/refreshSbs";
 
 export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: boolean): void => {
     if (operation.context?.ignoreProcess === "true") {

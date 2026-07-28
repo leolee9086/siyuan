@@ -2,7 +2,7 @@ import {Constants} from "../../../constants";
 import type {AppFacade} from "../../../app/AppFacade.types";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {fetchPost} from "../../../util/fetch";
-import {hintRef} from "../../../protyle/hint/extend";
+import {hintRef} from "../../../protyle/hint/extend.hintRef";
 import {genEmptyElement} from "../../../block/element.factory";
 import {blockRender} from "../../../protyle/render/blockRender";
 import {ComposerHistory} from "./AgentComposer.history";
