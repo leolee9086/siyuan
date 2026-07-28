@@ -15,7 +15,8 @@ import {
 import {transaction} from "./transaction/submit";
 import {turnsIntoOneTransaction} from "./transaction.turns";
 import {updateTransaction} from "./transaction/update";
-import { breakList, genListItemElement, listOutdent } from "./list";
+import {genListItemElement, listOutdent} from "./list";
+import {removeBlock} from "./remove";
 import { updateListOrder } from "./list.updateOrder";
 import { highlightRender } from "../render/highlightRender";
 import { Constants } from "../../constants";
@@ -440,7 +441,14 @@ const listEnter = (protyle: IProtyle, blockElement: HTMLElement, range: Range) =
             return true;
         } else if (!listItemElement.parentElement.classList.contains("protyle-wysiwyg")) {
             // 打断列表
-            breakList(protyle, blockElement, range);
+            breakList({
+                protyle,
+                blockElement,
+                range,
+                removeFirst: () => {
+                    void removeBlock(protyle, blockElement, range, "Backspace");
+                },
+            });
             return true;
         }
     }

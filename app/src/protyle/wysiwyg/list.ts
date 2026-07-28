@@ -5,7 +5,6 @@ import {updateTransaction} from "./transaction/update";
 import { genEmptyBlock } from "../../block/element.factory";
 import * as dayjs from "dayjs";
 import { Constants } from "../../constants";
-import {removeBlock} from "./remove";
 import {moveToPrevious} from "./remove/focus";
 import { hasClosestByClassName, isBlockElement } from "../util/hasClosest";
 import { setFold } from "../util/blockFold";
@@ -345,14 +344,22 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
 
 /**
  * 中断列表
- * @param protyle
- * @param blockElement
- * @param range
+ * @param options 列表编辑上下文及首项删除动作
  */
-export const breakList = (protyle: IProtyle, blockElement: Element, range: Range) => {
+export const breakList = ({
+    protyle,
+    blockElement,
+    range,
+    removeFirst,
+}: {
+    protyle: IProtyle;
+    blockElement: Element;
+    range: Range;
+    removeFirst: () => void;
+}) => {
     const listItemElement = blockElement.parentElement;
     if (!listItemElement.previousElementSibling) {
-        removeBlock(protyle, blockElement, range, "Backspace");
+        removeFirst();
         return;
     }
     const listItemId = listItemElement.getAttribute("data-node-id");
