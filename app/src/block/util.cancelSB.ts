@@ -4,43 +4,47 @@
  * 解耦评估：可改由调用方传入可编辑节点实现解耦，但调用方通常只有块容器引用，
  * 将解析逻辑集中在块工具层可避免重复 DOM 遍历。
  */
-import { getContenteditableElement } from "./imports";
+import {getContenteditableElement} from "./cancelSB/imports";
+/** 用途：读取嵌入父级；使用范围：cancelSB 的事务 parentID 计算；解耦评估：通过同域网关直达唯一块解析实现，避免加载 block 综合入口。 */
+import {getEmbedChildOperationParentID} from "./cancelSB/imports";
+/** 用途：读取普通父级；使用范围：cancelSB 的事务 parentID 计算；解耦评估：通过同域网关直达唯一块解析实现，保持 parentID 规则唯一。 */
+import {getParentBlock} from "./cancelSB/imports";
+/** 用途：读取前置兄弟；使用范围：cancelSB 的 do/undo 操作顺序；解耦评估：通过同域网关直达唯一块解析实现，避免重复 DOM 规则。 */
+import {getPreviousBlockSibling} from "./cancelSB/imports";
 /*
  * 用途：在嵌入块失效时重新触发块渲染。
  * 使用范围：仅在 cancelSB 的嵌入块后处理分支使用。
  * 解耦评估：可通过事件发射间接解耦，但会增加异步链路与状态同步复杂度，
  * 该流程需同步刷新当前编辑区，因此直接调用核心渲染函数更稳定。
  */
-import { blockRender } from "./imports";
+import {blockRender} from "./cancelSB/imports";
 /*
  * 用途：在超级块结构变更后重绘数学公式。
  * 使用范围：仅在 cancelSB 完成 DOM 结构变更后执行。
  * 解耦评估：理论上可通过渲染调度器注入，但本函数已在编辑区内原子执行结构变更，
  * 直接调用可减少中间调度开销。
  */
-import { mathRender } from "./imports";
+import {mathRender} from "./cancelSB/imports";
 /*
  * 用途：在插入 wbr 后恢复光标位置。
  * 使用范围：仅在 cancelSB 存在 range 且需要回填光标时使用。
  * 解耦评估：可通过注入聚焦策略解耦，但焦点恢复规则与编辑器实现强耦合，
  * 维持直接依赖可降低行为偏差。
  */
-import { focusByWbr } from "./imports";
+import {focusByWbr} from "./cancelSB/imports";
 /*
  * 用途：解析当前块的父块节点。
  * 使用范围：仅在 cancelSB 计算 move/insert 的 parentID 时使用。
  * 解耦评估：可由调用方传入 parentID，但该值受实时 DOM 结构影响，
  * 函数内部就地解析可确保一致性。
  */
-import { getParentBlock } from "./imports";
-import { getEmbedChildOperationParentID, getPreviousBlockSibling } from "./imports";
 /*
  * 用途：请求后端获取块的兄弟/父级 ID。
  * 使用范围：仅在 cancelSB 的 showAll 或反链模式下兜底定位。
  * 解耦评估：可由上层预取后注入参数解耦，但会把网络编排扩散到多个调用点，
  * 当前保持在块工具层集中调用，边界更清晰。
  */
-import { fetchSyncPost } from "./imports";
+import {fetchSyncPost} from "./cancelSB/imports";
 
 /*
  * 作用：把 DOM 属性读取结果规范为 string | undefined。
