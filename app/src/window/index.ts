@@ -10,7 +10,6 @@ import { addBaseURL, getDocDisplayName, redirectToCheckAuth, setNoteBook } from 
 import {exportLayout} from "../layout/export/exportLayout";
 import { openFileById } from "../editor/utils.openFileById";
 import {
-    kernelError,
     processSync,
     progressBackgroundTask,
     progressLoading,
@@ -18,6 +17,7 @@ import {
     setDefRefCount,
     transactionError
 } from "../dialog/processSystem";
+import {kernelError} from "../dialog/processSystem/index";
 import { setTitle } from "../util/processTitle";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "../dialog/processSystem/setRefDynamicText";

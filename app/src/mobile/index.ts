@@ -16,7 +16,8 @@ import { handleTouchEnd, handleTouchMove, handleTouchStart, handleTouchUp } from
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets } from "../util/assets/assets";
-import { bootSync, kernelError, lockScreen } from "../dialog/processSystem";
+import { bootSync, lockScreen } from "../dialog/processSystem";
+import {kernelError} from "../dialog/processSystem/index";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { hideMessage, initMessage, showMessage } from "../dialog/message";
 import { confirmDialog } from "../dialog/confirmDialog";
@@ -41,6 +42,7 @@ import { openChangelog } from "../boot/openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { registerServiceWorker } from "../util/network/serviceWorker";
 import {addPluginDock, afterLayoutReady, loadPlugins, reloadPluginData} from "../plugin/loader";
+import {openTopBarMenu} from "../plugin/openTopBarMenu";
 import {EventBus} from "../plugin/EventBus";
 import {appFacadeBrand} from "../app/AppFacade.types";
 import type {AppBlockNavigation} from "../app/AppFacade.types";
@@ -310,7 +312,7 @@ export class App {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
                             setNoteBook(() => {
                                 initFramework(this, confResponse.data.start);
-                                initRightMenu(this, commandPanel, afterLayoutReady);
+                                initRightMenu(this, commandPanel, afterLayoutReady, openTopBarMenu);
                                 openChangelog(getProtyleDialogPort());
                             });
                         });

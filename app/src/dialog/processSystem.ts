@@ -416,5 +416,3 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
         }
     });
 };
-
-export { kernelError } from "./processSystem/index";

@@ -19,7 +19,6 @@ import {ensureOnboarding} from "./onboarding/common";
 import {activateDesktopOnboarding} from "./onboarding/desktop";
 import {
     bootSync,
-    kernelError,
     processSync,
     progressBackgroundTask,
     progressLoading,
@@ -27,6 +26,7 @@ import {
     setDefRefCount,
     transactionError
 } from "./dialog/processSystem";
+import {kernelError} from "./dialog/processSystem/index";
 import { downloadProgress } from "./dialog/processSystem/downloadProgress";
 import { setTitle } from "./util/processTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";

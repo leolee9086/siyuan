@@ -18,7 +18,6 @@ import {
     isInMobileApp
 } from "../../protyle/util/compatibility";
 import {newFile} from "../../util/file/newFile";
-import {openTopBarMenu} from "../../plugin/openTopBarMenu";
 import {getSForgeState} from "../../config/sforge.global";
 import {SETTING_TAB_REGISTRY} from "../../config/sforge.symbols";
 import type {SettingTab} from "../../config/setting/builder";
@@ -79,6 +78,7 @@ export const initRightMenu = (
     app: AppFacade,
     openCommandPanel: (app: AppFacade) => void,
     notifyLayoutReady: (app: AppFacade) => void,
+    openPluginMenu: (app: AppFacade) => void,
 ) => {
     const menuElement = document.getElementById("menu");
     let accountHTML = "";
@@ -189,7 +189,7 @@ export const initRightMenu = (
                 event.stopPropagation();
                 break;
             } else if (target.id === "menuPlugin") {
-                openTopBarMenu(app);
+                openPluginMenu(app);
                 event.preventDefault();
                 event.stopPropagation();
                 break;
