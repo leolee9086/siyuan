@@ -10,7 +10,6 @@ import {syncGuide} from "../sync/syncGuide";
 import {workspaceMenu} from "../menus/workspace";
 import { MenuItem } from "../menus/Menu.Item";
 import {setMode} from "../util/assets/assets";
-import {openSetting} from "../config";
 import {openSearch} from "../search/spread";
 import type {AppFacade} from "../app/AppFacade.types";
 import {isElectron} from "../platform";
@@ -226,7 +225,7 @@ export const initBar = (app: AppFacade) => {
                 break;
             } else if (targetId === "toolbarVIP") {
                 if (!window.siyuan.config.readonly) {
-                    openSetting(app, "sync");
+                    app.openSettings("sync");
                 }
                 event.stopPropagation();
                 break;
