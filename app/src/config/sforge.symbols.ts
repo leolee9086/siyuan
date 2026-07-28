@@ -37,6 +37,9 @@ export const FRONTEND_ACTION_REGISTRY = Symbol.for("sforge.agent.frontendActionR
 /** 布局重排防抖状态的唯一注册表键。 */
 export const LAYOUT_RESIZE_REGISTRY = Symbol.for("sforge.layout.resizeRegistry");
 
+/** 设置页签完整注册表的唯一状态键。 */
+export const SETTING_TAB_REGISTRY = Symbol.for("sforge.config.settingTabRegistry");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */

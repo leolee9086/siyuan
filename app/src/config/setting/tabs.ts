@@ -30,6 +30,8 @@ import {registerAccessTab} from "../tabs/accessTab";
 import {registerAppTab} from "../tabs/appTab";
 import {registerAboutTab} from "../tabs/aboutTab";
 import type {SettingTabId} from "./setting.types";
+import {setSForgeState} from "../sforge.global";
+import {SETTING_TAB_REGISTRY} from "../sforge.symbols";
 export {settingTabToMenuId} from "./settingMenu.types";
 
 const mountAIProfilesTab = (root: HTMLElement) => {
@@ -156,6 +158,9 @@ const settingTabs = {
         title: () => window.siyuan.languages.about,
     }, registerAboutTab),
 } satisfies Record<SettingTabId, SettingTab>;
+
+// 设置运行时按完整页签领域读取此注册表，避免反向加载本装配模块。
+setSForgeState(SETTING_TAB_REGISTRY, new Map(Object.entries(settingTabs)));
 
 export type TSettingTab = SettingTabId;
 

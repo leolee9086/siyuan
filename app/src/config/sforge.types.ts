@@ -24,6 +24,8 @@ import {COMMON_GLOBAL_COMMAND_ROUTER} from "./sforge.symbols";
 import {FRONTEND_ACTION_REGISTRY} from "./sforge.symbols";
 /** 用途：定位布局重排防抖状态；使用范围：ISForgeGlobalState 的重排调度槽；解耦评估：Symbol 保证所有 Wnd/Dock 调用共享同一调度状态。 */
 import {LAYOUT_RESIZE_REGISTRY} from "./sforge.symbols";
+/** 用途：定位设置页签完整注册表。使用范围：设置运行时重挂载；解耦评估：仅保存完整 SettingTab 领域对象，不加载设置装配实现。 */
+import {SETTING_TAB_REGISTRY} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -80,6 +82,8 @@ import type {CommonGlobalCommandRouter} from "../boot/globalEvent/command/global
 import type {FrontendActionRegistryState} from "../layout/dock/agent/frontendActions/types";
 /** 用途：布局重排完整调度状态；使用范围：SForge 全局状态映射；解耦评估：纯数据类型不加载布局或编辑器实现。 */
 import type {LayoutResizeState} from "../layout/resize/resizeTabs.types";
+/** 用途：完整设置页签领域对象。使用范围：SForge 注册表映射；解耦评估：纯类型依赖，不加载 tabs.ts 注册装配。 */
+import type {SettingTab} from "../config/setting/builder";
 
 /**
  * SForge 全局状态类型定义
@@ -119,6 +123,7 @@ export interface ISForgeGlobalState {
     [COMMON_GLOBAL_COMMAND_ROUTER]?: CommonGlobalCommandRouter<AppFacade>;
     [FRONTEND_ACTION_REGISTRY]?: FrontendActionRegistryState;
     [LAYOUT_RESIZE_REGISTRY]?: LayoutResizeState;
+    [SETTING_TAB_REGISTRY]?: Map<string, SettingTab>;
 }
 
 /**
