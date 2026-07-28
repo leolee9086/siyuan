@@ -11,7 +11,7 @@ if (declaredVersion !== "latest") {
     throw new Error("siyuan must use the official latest dist-tag, found " + String(declaredVersion));
 }
 
-const latestVersion = JSON.parse(execFileSync("pnpm", ["view", "siyuan", "version", "--json"], {
+const latestVersion = JSON.parse(execFileSync("pnpm", ["view", "siyuan", "dist-tags.latest", "--json"], {
     cwd: appRoot,
     encoding: "utf8",
     shell: true,
