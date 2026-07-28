@@ -17,11 +17,8 @@ import {insertAssetIntoProtyle} from "../../asset/insert";
 import {fetchPost} from "../../../util/network/fetch";
 import {getDisplayName, pathPosix} from "../../../util/file/pathName";
 import {blockRender} from "../../render/blockRender";
-import {openFileById} from "../../../editor/utils.openFileById";
-import {openMobileFileById} from "../../../mobile/editor";
 import {contentRendererRegistry} from "../../../registry/contentRenderer/ContentRendererRegistry";
 import {AIChat} from "../../../ai/chatStream";
-import {isMobile} from "../../../platform";
 import {avRender} from "../../render/av/render";
 import {genIconHTML} from "../../render/util";
 import type {HintDomain} from "../hint.types";
@@ -187,16 +184,10 @@ function handleNewSubDoc(protyle: IProtyle) {
         md: ""
     }, () => {
         insertHTML(`<span data-type="block-ref" data-id="${newSubDocId}" data-subtype="d">${getBlockRefAnchorText("")}</span>`, protyle);
-        if (isMobile) {
-            openMobileFileById(protyle.app, newSubDocId, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-        }
-        if (!isMobile) {
-            openFileById({
-                app: protyle.app,
-                id: newSubDocId,
-                action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-            });
-        }
+        protyle.app.openBlock({
+            id: newSubDocId,
+            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW],
+        });
     });
 }
 
