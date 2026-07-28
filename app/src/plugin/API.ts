@@ -16,6 +16,7 @@ import { SForgeSymbols } from "../config/sforge.symbols";
 import { isMobileFileOpenPort } from "./api/openMobileFile.guard";
 /** 用途：提供插件 API 的应用抽象外观；使用范围：移动文件入口参数；解耦评估：type-only 依赖，不加载完整应用入口。 */
 import type {AppFacade} from "../app/AppFacade.types";
+import type {SettingTabId} from "../config/setting/setting.types";
 import { getMobileEditor, getMobilePopEditor } from "./API.environment";
 import { isHTMLElement } from "../util/DOM/element.guard";
 import { exitSiYuan } from "../dialog/processSystem";
@@ -23,10 +24,8 @@ import { lockScreen } from "../dialog/processSystem/lockScreen";
 import { getActiveTab } from "../layout/tabUtil";
 import { getAllModels, getAllTabs } from "../layout/getAll";
 import { getAllEditor } from "../layout/getAll";
-import { openSetting } from "../config";
 import {openAttr} from "../menus/commonMenuItem/fileAttr/openAttr";
 import {openFileAttr} from "../menus/commonMenuItem/fileAttr/openFileAttr";
-import { globalCommand } from "../boot/globalEvent/command/global";
 import {exportLayout} from "../layout/export/exportLayout";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
@@ -212,6 +211,12 @@ const openMobileFileByIdProxy = (_app: AppFacade, id: string, action?: TProtyleA
     }
 };
 
+/** 通过完整应用外观调用官方插件 API 的设置入口，避免 API 聚合器反向加载配置组合根。 */
+const openSettingViaApp = (app: AppFacade, tab?: SettingTabId) => app.openSettings(tab);
+
+/** 通过完整应用外观调用全局命令路由，避免 API 聚合器反向加载命令组合根。 */
+const globalCommandViaApp = (command: string, app: AppFacade) => app.globalCommand(command);
+
 const openEmoji = (options: {
     position: IPosition,
     selectedCB?: (emoji: string) => void,
@@ -286,7 +291,7 @@ registerLazyBindings(API, [
     ["getAllModels", () => getAllModels],
     ["getAllTabs", () => getAllTabs],
     ["platformUtils", () => platformUtils],
-    ["openSetting", () => openSetting],
-    ["globalCommand", () => globalCommand],
+    ["openSetting", () => openSettingViaApp],
+    ["globalCommand", () => globalCommandViaApp],
     ["expandDocTree", () => expandDocTree],
 ]);

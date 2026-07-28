@@ -1,22 +1,22 @@
 /* eslint-disable folder-item-limit/folder-item-limit */
 /** @导入用途: 拉取插件清单接口 @使用范围: loadPlugins/reloadPlugin @解耦评估: 通过 imports 网关转发，避免父级路径耦合 */
-import {fetchSyncPost} from "./imports";
+import {fetchSyncPost} from "../util/network/fetch";
 /** @导入用途: 应用实例类型 @使用范围: 导出函数参数标注 @解耦评估: 插件加载器核心上下文，无法解耦 */
-import type {AppFacade} from "./imports";
+import type {AppFacade} from "../app/AppFacade.types";
 /** @导入用途: 插件基类 @使用范围: loadPluginJS 继承校验 @解耦评估: 插件协议核心依赖，无法解耦 */
 import {Plugin} from "./index";
 /** @导入用途: 布局持久化 @使用范围: loadPlugin/reloadPlugin 完成后保存布局 @解耦评估: 事件化可行但当前直接调用更可控 */
-import {saveLayout} from "./imports";
+import {saveLayout} from "../layout/persistence/saveLayout";
 /** @导入用途: 插件 API 注入对象 @使用范围: requireFunc 返回 siyuan 模块 @解耦评估: 运行时契约依赖，无法解耦 */
 import {API} from "./API";
 /** @导入用途: 前端类型检测 @使用范围: 加载插件请求参数 frontend @解耦评估: 环境判断工具，已走 imports 网关 */
-import {getFrontend} from "./imports";
+import {getFrontend} from "../util/platform/functions";
 /** @导入用途: 移动端检测 @使用范围: afterLoadPlugin 分支判断 @解耦评估: 工具函数依赖，保持轻量直接调用 */
-import {isMobile} from "./imports";
+import {isMobile} from "../util/platform/functions";
 /** @导入用途: 插件卸载流程 @使用范围: reloadPlugin 重载前清理旧实例 @解耦评估: 生命周期核心流程，无法解耦 */
 import {uninstall} from "./uninstall";
 /** @导入用途: 获取所有编辑器实例 @使用范围: 插件变更后刷新工具栏 @解耦评估: 当前工具函数访问最直接 */
-import {getAllEditor} from "./imports";
+import {getAllEditor} from "../layout/getAll";
 /** @导入用途: 访问宿主 require @使用范围: 构建插件 CommonJS require @解耦评估: window 访问已下沉到 environment 层 */
 import {getPluginRuntimeRequire} from "./API.environment";
 /** @导入用途: 执行插件代码字符串 @使用范围: 生成插件入口执行函数 @解耦评估: 高风险 API 已封装到 environment 层 */

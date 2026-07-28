@@ -52,6 +52,7 @@ const createApp = () => createAppFacade<Siyuan.Plugin, EventBus>({
     getOpenEditors: vi.fn(() => []),
     getOpenModels: vi.fn(),
     openSettings: vi.fn(),
+    globalCommand: vi.fn(() => false),
     openSearch: vi.fn(),
     createDocument: vi.fn(),
     createDocumentInTree: vi.fn(),

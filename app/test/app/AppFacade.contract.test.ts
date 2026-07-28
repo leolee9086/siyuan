@@ -58,6 +58,7 @@ const testFacade = createAppFacade<object, object>({
         files: [], bookmark: [], tag: [], custom: [], forwardlink: [],
     }),
     openSettings: () => undefined,
+    globalCommand: () => false,
     openSearch: () => undefined,
     createDocument: async () => undefined,
     createDocumentInTree: async () => undefined,

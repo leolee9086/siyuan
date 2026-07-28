@@ -79,6 +79,7 @@ function createOutline(type: "pin" | "local" = "local") {
         getOpenEditors: vi.fn(() => []),
         getOpenModels,
         openSettings: vi.fn(),
+        globalCommand: vi.fn(() => false),
         openSearch: vi.fn(),
         createDocument: vi.fn(),
         createDocumentInTree: vi.fn(),

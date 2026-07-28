@@ -41,6 +41,7 @@ describe("App Agent Panel capabilities", () => {
     it("opens the AI settings through the complete App facade", async () => {
         const capabilities = createAppAgentPanelCapabilities({
             openSettings: mocks.openSettings,
+            globalCommand: vi.fn(() => false),
         } as never, {} as never);
 
         await capabilities.settingsNavigation.openAISettings();

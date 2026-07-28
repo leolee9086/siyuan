@@ -3,7 +3,7 @@
  * @使用范围: addManageMenuItem 函数
  * @解耦评估: 通过参数传递，已解耦
  */
-import type {AppFacade} from "./imports";
+import type {AppFacade} from "../app/AppFacade.types";
 
 /**
  * @导入用途: 菜单类，用于操作菜单项
@@ -18,44 +18,43 @@ import {Menu} from "./Menu";
  * @解耦评估: 工具函数，通过 imports 转发
  */
 /** @导入用途: 华为设备检测 @使用范围: 管理菜单项 @解耦评估: 平台检测工具 */
-import {isHuawei} from "./imports";
+import {isHuawei} from "../protyle/util/compatibility";
 /** @导入用途: 设置页签位置 @使用范围: 布局管理 @解耦评估: UI 工具函数 */
-import {setTabPosition} from "./imports";
+import {setTabPosition} from "../window/setHeader";
 
 /**
  * @导入用途: 存储值设置，用于保存固定/取消固定状态
  * @使用范围: createPinUnpinSubmenu 函数
  * @解耦评估: 工具函数，通过 imports 转发
  */
-import {setStorageVal} from "./imports";
+import {setStorageVal} from "../protyle/util/compatibility";
 
 /**
  * @导入用途: 打开设置对话框，用于管理菜单项点击
  * @使用范围: addManageMenuItem 函数
  * @解耦评估: 通过 imports 转发
  */
-import {openSetting} from "./imports";
 
 /**
  * @导入用途: 全局常量，用于存储键名
  * @使用范围: createPinUnpinSubmenu 函数
  * @解耦评估: 常量依赖，通过 imports 转发
  */
-import {Constants} from "./imports";
+import {Constants} from "../constants";
 
 /**
  * @导入用途: 获取思源菜单实例，用于清理分隔符
  * @使用范围: handleEmptyPlugin 函数
  * @解耦评估: 通过 imports 转发
  */
-import {getSiyuanMenus} from "./imports";
+import {getSiyuanMenus} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * @导入用途: 获取思源存储数据，用于读取固定状态
  * @使用范围: createPinUnpinSubmenu 函数
  * @解耦评估: 通过 imports 转发
  */
-import {getSiyuanStorage} from "./imports";
+import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 添加插件管理菜单项
@@ -72,7 +71,7 @@ export const addManageMenuItem = (menu: Menu, app: AppFacade, languages: Record<
         ignore: isHuawei() || config.readonly,
         /** @同步豁免: UI构建 */
         click() {
-            openSetting(app, "bazaar");
+            app.openSettings("bazaar");
         }
     });
     menu.addSeparator({id: "separator_1", ignore: isHuawei() || config.readonly});

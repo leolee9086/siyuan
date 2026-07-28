@@ -2,25 +2,25 @@
 /** @导入用途: 插件基类类型 @使用范围: afterLoad 相关函数签名 @解耦评估: 插件生命周期核心依赖不可解耦 */
 import type * as Siyuan from "siyuan";
 /** @导入用途: 移动端检测 @使用范围: 顶栏/状态栏/Dock 分支 @解耦评估: 环境工具函数，直接调用最轻量 */
-import {isMobile} from "./imports";
+import {isMobile} from "../util/platform/functions";
 /** @导入用途: 独立窗口检测 @使用范围: 顶栏与 Dock 条件分支 @解耦评估: 环境工具函数，当前方案已足够解耦 */
-import {isWindow} from "./imports";
+import {isWindow} from "../util/platform/functions";
 /** @导入用途: 顶栏重算函数 @使用范围: 状态栏图标挂载后刷新布局 @解耦评估: UI 工具函数直接调用更清晰 */
-import {resizeTopBar} from "./imports";
+import {resizeTopBar} from "../layout/util";
 /** @导入用途: 常量键集合 @使用范围: 本地存储键读取与写入 @解耦评估: 常量依赖无法进一步解耦 */
-import {Constants} from "./imports";
+import {Constants} from "../constants";
 /** @导入用途: 设置页签菜单 ID 映射 @使用范围: 移动端插件顶栏图标挂载位置 @解耦评估: 通过 imports 网关统一路径 */
-import {settingTabToMenuId} from "./imports";
+import {settingTabToMenuId} from "../config/setting/settingMenu.types";
 /** @导入用途: 存储写入函数 @使用范围: Dock 配置持久化 @解耦评估: 已通过 imports 网关隔离路径耦合 */
-import {setStorageVal} from "./imports";
+import {setStorageVal} from "../protyle/util/compatibility";
 /** @导入用途: 读取思源配置 @使用范围: 同步布局中的 Dock 数据 @解耦评估: 全局配置访问已收敛到环境层 */
-import {getSiyuanConfig} from "./imports";
+import {getSiyuanConfig} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** @导入用途: 读取思源存储 @使用范围: 顶栏显隐和 Dock 状态恢复 @解耦评估: 全局存储访问已封装 */
-import {getSiyuanStorage} from "./imports";
+import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** @导入用途: 读取思源布局 @使用范围: Dock 按钮挂载 @解耦评估: 布局访问通过环境层提供，边界清晰 */
-import {getSiyuanLayout} from "./imports";
+import {getSiyuanLayout} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** @导入用途: 读取插件快捷键 @使用范围: Dock 按钮 hotkey 字段填充 @解耦评估: 配置访问集中在环境层 */
-import {getPluginCustomHotkey} from "./imports";
+import {getPluginCustomHotkey} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /** 作用: 根据区域生成 Dock 位置; 意图: 收敛位置映射逻辑; 调用时机: updateDock 中 */
 const resolveDockPosition = (type: string, index: number) => {

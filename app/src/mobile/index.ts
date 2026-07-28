@@ -84,6 +84,7 @@ import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePlug
 import {openMobileGlobalSearch} from "./search/global/openMobileGlobalSearch";
 import {getAllEditor, getAllModels} from "../layout/getAll";
 import {openSetting} from "../config";
+import {globalCommand} from "../boot/globalEvent/command/global";
 import type {SettingTabId} from "../config/setting/setting.types";
 
 export class App {
@@ -108,6 +109,9 @@ export class App {
     }
     public openSettings(tab?: SettingTabId) {
         openSetting(this, tab);
+    }
+    public globalCommand(command: string) {
+        return globalCommand(command, this);
     }
     public openSearch(query?: string) {
         openMobileGlobalSearch(this, {text: query ?? ""});

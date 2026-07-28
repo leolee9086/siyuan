@@ -3,7 +3,7 @@
  * @使用范围: openTopBarMenu 函数参数
  * @解耦评估: 通过参数传递，已解耦
  */
-import type {AppFacade} from "./imports";
+import type {AppFacade} from "../app/AppFacade.types";
 
 /**
  * @导入用途: 菜单类，用于创建和操作菜单
@@ -17,35 +17,35 @@ import {Menu} from "./Menu";
  * @使用范围: 创建菜单时指定类型
  * @解耦评估: 常量依赖，无法解耦
  */
-import {Constants} from "./imports";
+import {Constants} from "../constants";
 
 /**
  * @导入用途: 移动端检测，用于判断是否显示管理入口
  * @使用范围: openTopBarMenu 函数中判断平台
  * @解耦评估: 通过 imports 转发
  */
-import {isMobile} from "./imports";
+import {isMobile} from "../util/platform/functions";
 
 /**
  * @导入用途: 获取思源配置，用于读取只读模式等配置
  * @使用范围: openTopBarMenu 函数中判断配置
  * @解耦评估: 通过 imports 转发
  */
-import {getSiyuanConfig} from "./imports";
+import {getSiyuanConfig} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * @导入用途: 获取思源语言包，用于多语言文本显示
  * @使用范围: openTopBarMenu 函数中获取文本
  * @解耦评估: 通过 imports 转发
  */
-import {getSiyuanLanguages} from "./imports";
+import {getSiyuanLanguages} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * @导入用途: 获取思源存储数据，用于读取用户偏好
  * @使用范围: openTopBarMenu 函数中读取固定状态
  * @解耦评估: 通过 imports 转发
  */
-import {getSiyuanStorage} from "./imports";
+import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * @导入用途: 辅助函数 - 添加管理菜单项

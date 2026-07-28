@@ -68,6 +68,8 @@ export interface AppFacadeShape<
     getOpenEditors(): ProtyleDomain[];
     getOpenModels(): IModels;
     openSettings(tab?: SettingTabId): void;
+    /** 执行既有全局命令路由；返回命令是否被当前宿主处理。 */
+    globalCommand(command: string): boolean;
     openSearch(query?: string): void | Promise<void>;
     createDocument(name?: string): Promise<void>;
     createDocumentInTree(notebookId: string, currentPath: string, paths?: string[]): Promise<void>;
