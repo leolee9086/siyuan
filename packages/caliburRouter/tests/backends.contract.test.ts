@@ -44,6 +44,7 @@ describe("Zod 形式化状态后端", () => {
             mode: "edit" | "readonly";
             context: { focused: boolean };
         }>();
+        expectTypeOf(zodState.toSchema(universe)).toEqualTypeOf<typeof nativeUniverse>();
         expect(zodState.toSchema(universe)).toBe(nativeUniverse);
 
         const dispatch = zodCalibur.universe(universe)
@@ -62,6 +63,8 @@ describe("Zod 形式化状态后端", () => {
         expect(() => zodState.fromSchema(z.object({ value: z.string().optional() }))).toThrow(/optional/);
         expect(() => zodState.fromSchema(z.array(z.string()))).toThrow(/array/);
         expect(() => zodState.fromSchema(z.strictObject({ value: z.string() }))).toThrow(/catchall/);
+        expect(() => zodState.fromSchema(z.coerce.number())).toThrow(/coerce/);
+        expect(() => zodState.fromSchema(z.object({ value: z.coerce.string() }))).toThrow(/coerce/);
     });
 
     it("保持层次状态收窄并在完整覆盖后耗尽", () => {

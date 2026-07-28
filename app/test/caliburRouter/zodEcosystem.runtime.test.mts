@@ -13,3 +13,14 @@ test("CaliburRouter 封装应用创建的 Zod Schema 并按对象身份解包", 
 
     assert.equal(zodState.toSchema(pattern), schema);
 });
+
+test("CaliburRouter 拒绝会改变处理器输入值的 Zod coerce", () => {
+    assert.throws(
+        () => zodState.fromSchema(z.coerce.number()),
+        /schema 包含 coerce/,
+    );
+    assert.throws(
+        () => zodState.fromSchema(z.object({value: z.coerce.string()})),
+        /schema\.value 包含 coerce/,
+    );
+});

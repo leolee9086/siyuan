@@ -16,19 +16,30 @@ import { parseFormalJsonSchema } from "./formal/jsonSchema.js";
 
 const zodBackendToken = {};
 
-class ZodStatePatternImpl<out State> extends FormalStatePattern<State, z.ZodType<unknown>> {
+class ZodStatePatternImpl<
+    out State,
+    out Schema extends z.ZodType = z.ZodType,
+> extends FormalStatePattern<State, Schema> {
     declare private readonly zodStatePatternBrand: void;
 }
 
-export type ZodStatePattern<State> = ZodStatePatternImpl<State>;
+export type ZodStatePattern<
+    State,
+    Schema extends z.ZodType = z.ZodType,
+> = ZodStatePatternImpl<State, Schema>;
 
 type ZodPatternShape = Readonly<Record<string, ZodStatePattern<unknown>>>;
 
-function createPattern<State>(schema: z.ZodType<unknown>, stateSpace: FormalStateSpace): ZodStatePattern<State> {
+function createPattern<State, Schema extends z.ZodType = z.ZodType>(
+    schema: Schema,
+    stateSpace: FormalStateSpace,
+): ZodStatePattern<State, Schema> {
     return new ZodStatePatternImpl(zodBackendToken, schema, stateSpace);
 }
 
-function unwrap(pattern: ZodStatePattern<unknown>): ZodStatePatternImpl<unknown> {
+function unwrap<State, Schema extends z.ZodType>(
+    pattern: ZodStatePattern<State, Schema>,
+): ZodStatePatternImpl<State, Schema> {
     if (!(pattern instanceof ZodStatePatternImpl) || pattern.backendToken !== zodBackendToken) {
         throw new TypeError("calibur-router/zod: 模式必须由 zodState 构造。");
     }
@@ -40,7 +51,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function assertSupportedZodSchema(schema: z.ZodType, path = "schema"): void {
-    const definition: { readonly type: string; readonly checks?: readonly unknown[] } = schema._zod.def;
+    const definition: {
+        readonly type: string;
+        readonly checks?: readonly unknown[];
+        readonly coerce?: boolean;
+    } = schema._zod.def;
+    if (definition.coerce === true) {
+        throw new TypeError(`calibur-router/zod: ${path} 包含 coerce，路由不会传递解析后的转换值。`);
+    }
     if ("checks" in definition && Array.isArray(definition.checks) && definition.checks.length > 0) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 checks/refinement，不能参与集合证明。`);
     }
@@ -94,14 +112,14 @@ export const zodBackend = createFormalStateBackend<z.ZodType<unknown>>({
 export const zodCalibur = createCaliburRouter(zodBackend);
 
 export const zodState = {
-    fromSchema<const Schema extends z.ZodType>(schema: Schema): ZodStatePattern<z.output<Schema>> {
+    fromSchema<const Schema extends z.ZodType>(schema: Schema): ZodStatePattern<z.output<Schema>, Schema> {
         assertSupportedZodSchema(schema);
         const jsonSchema = z.toJSONSchema(schema, { io: "input", unrepresentable: "throw" });
-        return createPattern(schema, parseFormalJsonSchema(jsonSchema));
+        return createPattern<z.output<Schema>, Schema>(schema, parseFormalJsonSchema(jsonSchema));
     },
 
-    toSchema<State>(pattern: ZodStatePattern<State>): z.ZodType<State> {
-        return unwrap(pattern).schema as z.ZodType<State>;
+    toSchema<State, Schema extends z.ZodType>(pattern: ZodStatePattern<State, Schema>): Schema {
+        return unwrap(pattern).schema;
     },
 
     literal<const Value extends FormalUnit>(value: Value): ZodStatePattern<Value> {

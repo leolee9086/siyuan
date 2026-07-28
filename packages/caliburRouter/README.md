@@ -105,7 +105,7 @@ Zod 和 Effect Schema 的生态能力远大于 CaliburRouter 可证明的集合�
 
 ## 原生 Schema 入口与出口
 
-`fromSchema()` 允许复用生态中已有的原生 Schema，但只在完整检查后接纳支持子集；`toSchema()` 返回创建模式时保留的原生 Schema：
+`fromSchema()` 允许复用生态中已有的原生 Schema，但只在完整检查后接纳支持子集；`toSchema()` 按对象身份和具体 Schema 类型返回创建模式时保留的原生 Schema：
 
 ```ts
 import { z } from "zod";
@@ -133,7 +133,7 @@ const pattern = effectState.fromSchema(native);
 const sameNativeSchema = effectState.toSchema(pattern);
 ```
 
-Zod 转换会先递归检查原生定义，再严格解析其公开 JSON Schema，避免 custom refinement 或 transform 在 JSON Schema 中丢失后被误接纳。Effect 转换直接解析公开 `SchemaAST`。ArkType 默认入口本身直接接收并保留原生 `Type`，因此它的原生入口和出口是同一个对象，不增加同义包装 API。
+Zod 转换会先递归检查原生定义，再严格解析其公开 JSON Schema，避免 custom refinement、transform 或 coerce 在 JSON Schema 中丢失后被误接纳。Zod 后端执行谓词校验并向处理器传递原输入，不传递 Schema 解析后的转换值，因此所有改变输入值的能力都会被拒绝。Effect 转换直接解析公开 `SchemaAST`。ArkType 默认入口本身直接接收并保留原生 `Type`，因此它的原生入口和出口是同一个对象，不增加同义包装 API。
 
 ## 嵌套路由
 

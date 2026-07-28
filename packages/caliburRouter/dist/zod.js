@@ -20,6 +20,9 @@ function isRecord(value) {
 }
 function assertSupportedZodSchema(schema, path = "schema") {
     const definition = schema._zod.def;
+    if (definition.coerce === true) {
+        throw new TypeError(`calibur-router/zod: ${path} 包含 coerce，路由不会传递解析后的转换值。`);
+    }
     if ("checks" in definition && Array.isArray(definition.checks) && definition.checks.length > 0) {
         throw new TypeError(`calibur-router/zod: ${path} 包含 checks/refinement，不能参与集合证明。`);
     }

@@ -11,6 +11,7 @@ const nativeZodSchema = z.object({
 
 export const portableNativeZodPattern = zodState.fromSchema(nativeZodSchema);
 export const portableNativeZodRoundTrip = zodState.toSchema(portableNativeZodPattern);
+export const portableNativeZodProjection = portableNativeZodRoundTrip.pick({mode: true});
 
 export const portableArkTypeRouter = calibur
     .universe(type({

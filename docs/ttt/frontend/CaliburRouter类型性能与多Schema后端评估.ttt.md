@@ -2,7 +2,7 @@
 
 > **最终目标**：在不弱化层次化状态空间路由、编译期收窄、互斥和穷尽语义的前提下，将 CaliburRouter 核心与 Schema 实现解耦；分别实现 ArkType、Effect Schema 与 Zod 后端，仅允许可形式化证明的 Schema 子集进入集合推理，并以统一契约、类型性能、运行性能、包体积和生态能力确定推荐后端。
 >
-> **当前目标**：完成三个公共入口的声明可移植性门禁；Zod、Effect 的推断结果只引用 Calibur 核心公开类型，不再泄露 `formal/adapter` 实现路径。
+> **当前目标**：完成 Zod 原生 Schema 封包的类型保真与纯谓词语义门禁；封包往返保留具体 Schema 类型，任何可能改变处理器输入值的 Schema 能力在构建阶段显式失败。
 >
 > **下一步任务**：主项目继续按既有全量类型错误基线推进列表职责拆分；若扩展 Schema 能力或 ArkType peer 范围，必须先补充对应公共声明和跨消费者回归。
 
@@ -103,6 +103,13 @@
 - [x] 使用应用自身的普通 `z.object()` 验证 `zodState.fromSchema()` 封装与 `toSchema()` 同对象解包，覆盖独立安装目录下的原生 ESM 运行边界。
 - [x] 重建 `dist`；外部声明生成、完整静态契约、运行时契约与真实 `keydown.list` 路由测试通过。
 
+### Phase 7：Zod 生态封包的类型与值语义保真
+
+- [x] `ZodStatePattern` 同时携带状态类型和原始 Zod Schema 类型；`toSchema(fromSchema(schema))` 在类型层保持 `typeof schema`，并保留原对象身份。
+- [x] 外部消费者声明夹具直接调用解包后 `ZodObject.pick()`，证明生成声明没有把具体 Schema 降为宽泛 `ZodType`。
+- [x] 递归阻断顶层和嵌套 `coerce`；后端仍按谓词验证原输入，不把解析后的转换值冒充路由状态。
+- [x] 包内契约、完整 `107/107` 运行测试、构建、应用外部声明和已构建包 ESM 运行契约通过。
+
 ## 风险与验收标准
 
 - Schema 库的类型推断能力不等于集合证明能力；Adapter 必须携带可审计的形式化表示或使用后端可验证的等价证明。
@@ -126,3 +133,4 @@
 - **2026-07-28 阶段验收**：重建 `dist`；包 `typecheck`、contracts、ArkType/Zod/Effect 三套性能类型门禁通过；包全量 `15` 个测试文件、`107/107` 测试通过；应用 ArkType 消费者 `2/2` 通过；`app/src` 为 `2396` 个文件、`0` 条循环，imports gateway hops 为 `0`。主项目全量类型检查仍保留既有错误基线，不在本阶段缩小检查范围或宣称全绿。
 - **2026-07-29 声明复现**：外部消费夹具对 Zod/Effect 的对象路由和 union 生成声明时稳定得到四个 `TS2742`（编辑器显示同义 `TS2883`），均要求引用 `node_modules/calibur-router/dist/formal/adapter`；同一夹具置于库内会生成该内部路径但不报错，因此库内 `tsc` 不是充分证据。
 - **2026-07-29 声明修复与验收**：将既有模式推断代数和 `FormalUnit` 移到 `core/types.ts` 并由包根公开，Zod/Effect 消费方的生成声明只再引用 `calibur-router`、`calibur-router/zod`、`calibur-router/effect` 与原生 Schema 包。外部三后端声明门禁通过；应用创建的普通 Zod Schema 经 `fromSchema()` 封装后可由 `toSchema()` 按同一对象身份取回；包 build、完整 typecheck/contracts、`15` 个测试文件 `107/107` 通过；应用 `keydown.list/router.test.ts` `41/41` 通过。未在应用调用点添加类型注解，也未改变 `.split/.remain` 的状态空间语义。
+- **2026-07-29 Zod 封包语义修复**：回归测试先复现 `z.coerce.number()` 被接纳后，处理器静态收到 `number`、运行时却收到原字符串的类型不一致。`fromSchema()` 现保留具体 Schema 泛型，`toSchema()` 精确返回该类型；递归审查明确拒绝顶层和对象字段中的 `coerce`。外部声明夹具可直接调用解包后 `ZodObject.pick()`；包完整 typecheck、`15` 个测试文件 `107/107`、构建和应用消费者声明门禁通过。
