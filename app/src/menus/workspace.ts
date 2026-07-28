@@ -16,7 +16,6 @@ import {
 } from "../protyle/util/compatibility";
 import {isIPad} from "../util/platform/functions";
 import {openCard} from "../card/openCard";
-import {openSetting} from "../config";
 import {getAllDocks} from "../layout/getAll";
 import {exportLayout} from "../layout/export/exportLayout";
 import {getAllLayout} from "../layout/persistence/layoutSnapshot";
@@ -165,7 +164,7 @@ export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
                 icon: "iconSettings",
                 accelerator: window.siyuan.config.keymap.general.config.custom,
                 click: () => {
-                    openSetting(app);
+                    app.openSettings();
                 }
             }).element);
         }

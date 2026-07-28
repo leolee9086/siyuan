@@ -6,8 +6,6 @@ import { openSearch } from "./imports";
 import { goBack } from "./imports";
 /** 用途：引入历史前进入口。使用范围：goForward 命令。解耦评估：平台导航由既有工具封装。 */
 import { goForward } from "./imports";
-/** 用途：引入设置面板入口。使用范围：config 命令。解耦评估：命令层只触发设置 UI。 */
-import { openSetting } from "./imports";
 /** 用途：引入工作空间菜单入口。使用范围：mainMenu 命令。解耦评估：菜单构造仍由菜单模块负责。 */
 import { workspaceMenu } from "./imports";
 /** 用途：引入独立窗口判断。使用范围：mainMenu 命令。解耦评估：平台状态通过既有工具同步读取。 */
@@ -40,7 +38,7 @@ const getSelectedText = () => (getSelection().rangeCount > 0 ? getSelection().ge
 
 /** 执行设置命令。 */
 const executeConfigDesktopGlobalCommand = ({ app }: GlobalCommandContext<AppFacade>) => {
-    openSetting(app);
+    app.openSettings();
     return true;
 };
 

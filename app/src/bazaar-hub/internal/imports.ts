@@ -10,11 +10,6 @@ import {showMessage} from "../../dialog/message";
 /** 导出 showMessage 供 internal 子模块复用 */
 export { showMessage };
 
-/** 用途：打开设置对话框。使用范围：hub 页面跳转官方集市设置。解耦评估：直接指向设置领域公开实现。 */
-import {openSetting} from "../../config/index";
-/** 导出 openSetting 供 internal 子模块复用 */
-export { openSetting };
-
 /** 用途：读取前端平台标识。使用范围：hub 安装包动作参数。解耦评估：直接指向平台工具真实实现。 */
 import {getFrontend} from "../../util/platform/functions";
 /** 导出 getFrontend 供 internal 子模块复用 */

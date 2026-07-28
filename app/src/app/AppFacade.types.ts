@@ -14,6 +14,8 @@ import type {LayoutTab} from "../layout/layout.types";
 import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePluginManager.types";
 /** 用途：完整设置页标识；使用范围：应用外观设置导航；解耦评估：纯设置领域类型不加载注册表实现。 */
 import type {SettingTabId} from "../config/setting/setting.types";
+/** 设置打开结果的完整对话框领域表面；仅用于公开返回类型，不加载 Dialog class。 */
+import type {IDialog} from "../dialog/dialog.types";
 
 /** 当前应用宿主打开 SiYuan 块 URI 时使用的完整导航参数。 */
 export interface AppBlockNavigation {
@@ -67,7 +69,7 @@ export interface AppFacadeShape<
     createProtyle(element: HTMLElement, options: IProtyleOptions): ProtyleDomain;
     getOpenEditors(): ProtyleDomain[];
     getOpenModels(): IModels;
-    openSettings(tab?: SettingTabId): void;
+    openSettings(tab?: SettingTabId): IDialog | undefined;
     /** 执行既有全局命令路由；返回命令是否被当前宿主处理。 */
     globalCommand(command: string): boolean;
     openSearch(query?: string): void | Promise<void>;

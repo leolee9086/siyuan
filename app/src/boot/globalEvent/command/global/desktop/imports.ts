@@ -24,8 +24,6 @@ import {resizeTabs} from "../../../../../layout/resize/resizeTabs";
 import {getInstanceById} from "../../../../../layout/query/layoutInstance";
 /** 用途：引入标签关闭工具；使用范围：close.ts；解耦评估：关闭策略继续由布局工具处理。 */
 import { closeTabByType } from "../../../../../layout/utils/closeTabByType";
-/** 用途：引入设置入口；使用范围：navigation.ts；解耦评估：设置 UI 流程由配置模块封装。 */
-import { openSetting } from "../../../../../config";
 /** 用途：引入工作空间菜单入口；使用范围：navigation.ts；解耦评估：菜单构造仍由菜单模块负责。 */
 import { workspaceMenu } from "../../../../../menus/workspace";
 /** 用途：引入独立窗口判断；使用范围：navigation.ts；解耦评估：平台状态通过既有工具同步读取。 */
@@ -93,8 +91,6 @@ export { copyTab };
 export { resizeTabs };
 /** 导出标签关闭工具。 */
 export { closeTabByType };
-/** 导出设置面板入口。 */
-export { openSetting };
 /** 导出工作空间菜单入口。 */
 export { workspaceMenu };
 /** 导出独立窗口判断。 */

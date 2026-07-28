@@ -40,15 +40,6 @@ import { showMessage } from "../dialog/message";
 export { showMessage };
 
 /**
- * 用途：打开系统设置面板。
- * 使用范围：集市广场中跳转到官方集市设置。
- * 解耦评估：设置入口属于应用级能力，业务层通过网关导入可减少直接耦合。
- */
-import { openSetting } from "../config";
-/** 导出 openSetting 供 bazaar-hub 目录复用 */
-export { openSetting };
-
-/**
  * 用途：获取当前前端运行标识。
  * 使用范围：安装包时上报 frontend 参数。
  * 解耦评估：平台识别能力为公共工具，业务层不应直接依赖具体工具文件路径。

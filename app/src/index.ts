@@ -88,6 +88,7 @@ import {openSearch} from "./search/spread";
 import {openSetting} from "./config";
 import {globalCommand} from "./boot/globalEvent/command/global";
 import type {SettingTabId} from "./config/setting/setting.types";
+import type {IDialog} from "./dialog/dialog.types";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -109,10 +110,10 @@ export class App {
     public getOpenModels() {
         return getAllModels();
     }
-    public openSettings(tab?: SettingTabId) {
-        openSetting(this, tab);
+    public openSettings(tab?: SettingTabId): IDialog | undefined {
+        return openSetting(this, tab);
     }
-    public globalCommand(command: string) {
+    public globalCommand(command: string): boolean {
         return globalCommand(command, this);
     }
     public openSearch(query?: string) {

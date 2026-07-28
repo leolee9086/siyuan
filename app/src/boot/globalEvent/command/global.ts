@@ -53,11 +53,15 @@ const globalCommandRouter = calibur
  * 执行全局快捷命令。
  * @同步豁免: UI构建 - 该函数是既有同步公共入口，调用方依赖立即返回命令是否已处理。
  */
-export const globalCommand = (command: string, app: AppFacade) => {
+export const globalCommand = (command: string, app: AppFacade): boolean => {
     const context: GlobalCommandContext<AppFacade> = {
         app,
         command,
     };
     const executor = globalCommandRouter({ domain: resolveGlobalCommandDomain(command) });
-    return executor(context);
+    const result = executor(context);
+    if (typeof result !== "boolean") {
+        throw new TypeError(`Global command executor returned ${typeof result}`);
+    }
+    return result;
 };

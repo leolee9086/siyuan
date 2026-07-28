@@ -2,7 +2,6 @@
 import { showMessage } from "./imports";
 
 /** 用途：设置面板打开能力。使用范围：hub 官方设置入口。解耦评估：应用级能力，通过内部网关导入降低路径耦合。 */
-import { openSetting } from "./imports";
 
 /** 用途：平台标识读取能力。使用范围：hub 安装参数 frontend。解耦评估：公共工具依赖，通过内部网关导入降低路径耦合。 */
 import { getFrontend } from "./imports";
@@ -214,7 +213,7 @@ const handleSimpleAction = (type: string, model: CustomDomain, state: {
     }
     /** 处理“打开官方设置”动作 */
     if (type === "open-official-config") {
-        const dialog = openSetting(model.app);
+        const dialog = model.app.openSettings();
         const bazaarTab = dialog?.element.querySelector('.b3-tab-bar [data-name="bazaar"]');
         bazaarTab?.dispatchEvent(new CustomEvent("click"));
         return true;
