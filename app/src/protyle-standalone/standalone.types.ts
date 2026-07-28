@@ -10,7 +10,7 @@ export interface IStandaloneSiyuanRuntime {
     languages: IObject;
     emojis: IEmoji[];
     storage: IObject;
-    transactions: unknown[];
+    transactions: IOperation[];
     reqIds: Record<string, number>;
     menus?: ISiyuan["menus"];
     ws?: ISiyuan["ws"];

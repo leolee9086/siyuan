@@ -559,20 +559,21 @@ interface IProtyle {
     model?: import("../../src/editor").Editor,
     updated: boolean;
     element: HTMLElement;
-    scroll?: import("../protyle/scroll").Scroll,
+    scroll: import("../protyle/scroll").Scroll,
     gutter?: import("../protyle/gutter").Gutter,
     breadcrumb?: import("../protyle/breadcrumb").Breadcrumb,
     title?: import("../protyle/header/Title").Title,
     background?: import("../protyle/header/Background").Background,
     databaseAttributePanel?: import("../protyle/render/av/attributePanel").AVAttributePanel,
-    contentElement?: HTMLElement,
+    contentElement: HTMLElement,
     options: IProtyleOptions;
-    lute?: Lute;
-    toolbar?: import("../protyle/toolbar").Toolbar,
-    hint?: import("../protyle/hint").Hint;
+    lute: Lute;
+    toolbar: import("../protyle/toolbar").Toolbar,
+    preview: import("../protyle/preview").Preview;
+    hint: import("../protyle/hint").Hint;
     upload?: import("../protyle/upload/upload.types").UploadDomain;
-    undo?: import("../protyle/undo").IUndo;
-    wysiwyg?: import("../protyle/wysiwyg/domain/wysiwyg.types").WYSIWYGDomain
+    undo: import("../protyle/undo").IUndo;
+    wysiwyg: import("../protyle/wysiwyg/domain/wysiwyg.types").WYSIWYGDomain
     /** 加载动画控制器，用于确定性地取消待执行的 loading 显示 */
     loadingController?: AbortController | undefined
 }
