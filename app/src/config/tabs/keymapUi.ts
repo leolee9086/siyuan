@@ -5,7 +5,8 @@ import {hideMessage, showMessage} from "../../dialog/message";
 import {fetchPost} from "../../util/fetch";
 import {exportLayout} from "../../layout/export/exportLayout";
 import {confirmDialog} from "../../dialog/confirmDialog";
-import {sendGlobalShortcut, sendUnregisterGlobalShortcut} from "../../boot/globalEvent/keydown";
+import {sendGlobalShortcut} from "../../boot/globalEvent/keydown/windowKeyDown/globalShortcut/send";
+import {sendUnregisterGlobalShortcut} from "../../boot/globalEvent/keydown/windowKeyDown/globalShortcut/unregister";
 import {normalizeSearchText} from "../search/normalize";
 import {genButtonRowHtml, genConfigGroup} from "../render/render";
 import {isElectron} from "../../platform";
@@ -63,7 +64,9 @@ const bindKeymapToolbar = (root: HTMLElement) => {
                         });
                     }
                 }
-                sendGlobalShortcut(window.siyuan.ws.app);
+                if (isElectron) {
+                    void sendGlobalShortcut(window.siyuan.ws.app);
+                }
                 void exportLayout({
                     cb() {
                         window.location.reload();
@@ -364,10 +367,14 @@ const bindKeymapList = (root: HTMLElement) => {
         searchKeymapList(keymapListElement, searchElement.value, searchKeymapElement.dataset.keymap);
     });
     searchKeymapElement.addEventListener("focus", () => {
-        sendUnregisterGlobalShortcut(window.siyuan.ws.app);
+        if (isElectron) {
+            void sendUnregisterGlobalShortcut(window.siyuan.ws.app);
+        }
     });
     searchKeymapElement.addEventListener("blur", () => {
-        sendGlobalShortcut(window.siyuan.ws.app);
+        if (isElectron) {
+            void sendGlobalShortcut(window.siyuan.ws.app);
+        }
     });
     // 捕获阶段优先于其它监听，确保 keydown 在 IME/全局逻辑之前处理
     // 按键搜索框只录物理键位，不接收文本输入；readonly 可避免 IME 抢占 keydown
@@ -506,7 +513,9 @@ const bindKeymapList = (root: HTMLElement) => {
         if (!inputElement) {
             return;
         }
-        sendGlobalShortcut(window.siyuan.ws.app);
+        if (isElectron) {
+            void sendGlobalShortcut(window.siyuan.ws.app);
+        }
         setTimeout(() => {
             inputElement.classList.add("fn__none");
             inputElement.previousElementSibling.textContent = inputElement.value;
@@ -517,7 +526,9 @@ const bindKeymapList = (root: HTMLElement) => {
         if (!getKeymapInput(event.target)) {
             return;
         }
-        sendUnregisterGlobalShortcut(window.siyuan.ws.app);
+        if (isElectron) {
+            void sendUnregisterGlobalShortcut(window.siyuan.ws.app);
+        }
     });
 };
 
@@ -685,6 +696,8 @@ const setKeymapFromDom = (root: HTMLElement) => {
                 });
             }
         }
-        sendGlobalShortcut(window.siyuan.ws.app);
+        if (isElectron) {
+            void sendGlobalShortcut(window.siyuan.ws.app);
+        }
     });
 };
