@@ -2,7 +2,6 @@ import { showMessage } from "../../dialog/message";
 import { hasTopClosestByTag } from "../../protyle/util/hasClosest";
 import { Files } from "../../layout/dock/Files";
 import { Editor } from "../../editor";
-import { openFileById } from "../../editor/utils.openFileById";
 import {getActiveTab} from "../../layout/query/activeTab";
 import {getDockByType} from "../../layout/query/dockByType";
 import { isMobile } from "../../platform";
@@ -11,7 +10,6 @@ import { getDisplayName, getOpenNotebookCount, pathPosix } from "./pathName";
 import { Constants } from "../../constants";
 import { replaceFileName, validateName } from "../../editor/rename";
 import { hideElements } from "../../protyle/ui/hideElements";
-import { openMobileFileById } from "../../mobile/editor";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { NewDocTargetByHPath, NewDocTargetSubDoc, getNewDocTargetFromSavePath, getNewDocTargetFromTree } from "../parseNewDocTarget";
@@ -291,15 +289,10 @@ function openCreatedDoc(app: AppFacade, id: string, onCreated?: (id: string, tit
     if (onCreated) {
         onCreated(id, title || "");
     }
-    if (!isMobile) {
-        openFileById({
-            app,
-            id,
-            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-        });
-        return;
-    }
-    openMobileFileById(app, id, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+    app.openBlock({
+        id,
+        action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW],
+    });
 }
 
 /**
