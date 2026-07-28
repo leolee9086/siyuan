@@ -30,6 +30,10 @@ export {incrementSiyuanZIndex};
 import {getWindowInnerHeight} from "../../../util/siyuanEnvironments/getWindowInnerHeight.environment";
 /** 导出视口高度读取。 */
 export {getWindowInnerHeight};
+/** 用途：读取顶部布局栏高度；使用范围：Panel.render 避让顶部区域；解耦评估：复用既有布局尺寸语义。 */
+import {getTopBarHeight} from "../../../layout/getTopBarHeight";
+/** 导出顶部布局栏高度读取。 */
+export {getTopBarHeight};
 /** 用途：DOM class 判断；使用范围：Panel.render 目标分类；解耦评估：纯 DOM 工具。 */
 import {checkClassListContain} from "../../../util/DOM/helpers/fnClasses";
 /** 导出 DOM class 判断。 */

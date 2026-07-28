@@ -2,8 +2,6 @@
 import { hasClosestByClassName } from "./render/imports";
 /** 用途：设置元素位置。使用范围：浮窗面板位置计算。解耦评估：通过 ./imports 转发。 */
 import { setPosition } from "./render/imports";
-/** 用途：系统常量。使用范围：面板配置和快捷键。解耦评估：通过 ./imports 转发。 */
-import { Constants } from "./render/imports";
 /** 用途：更新快捷键提示。使用范围：面板按钮提示更新。解耦评估：通过 ./imports 转发。 */
 import { updateHotkeyAfterTip } from "./render/imports";
 /** 用途：国际化文案。使用范围：面板按钮文案。解耦评估：通过 ./imports 转发。 */
@@ -14,6 +12,8 @@ import { getSiyuanConfig } from "./render/imports";
 import { incrementSiyuanZIndex } from "./render/imports";
 /** 用途：窗口内高度。使用范围：面板位置计算。解耦评估：通过 ./imports 转发。 */
 import { getWindowInnerHeight } from "./render/imports";
+/** 用途：读取顶部布局栏高度。使用范围：面板位置计算。解耦评估：通过 ./render/imports 转发。 */
+import { getTopBarHeight } from "./render/imports";
 /** 用途：检查类名包含。使用范围：面板 DOM 判断。解耦评估：通过 ./imports 转发。 */
 import { checkClassListContain } from "./render/imports";
 /** 用途：渲染参数类型。使用范围：面板位置参数。解耦评估：同目录模块直接导入。 */
@@ -66,12 +66,13 @@ export function 设置面板位置(参数: 设置面板位置参数) {
         return;
     }
     const innerHeight = getWindowInnerHeight();
+    const topBarHeight = getTopBarHeight();
 
 
     // 鼠标位置定位（无目标元素时使用坐标）
     if (!targetElement && typeof x === "number" && typeof y === "number") {
         setPosition(element, x, y);
-        element.style.maxHeight = Math.floor(innerHeight - Math.max(y, Constants.SIZE_TOOLBAR_HEIGHT) - 12) + "px";
+        element.style.maxHeight = Math.floor(innerHeight - Math.max(y, topBarHeight) - 12) + "px";
     }
 
     if (!targetElement) {
@@ -81,7 +82,7 @@ export function 设置面板位置(参数: 设置面板位置参数) {
 
     // 嵌入块特殊定位处理
     if (checkClassListContain(targetElement, "protyle-wysiwyg__embed")) {
-        处理嵌入块定位(element, targetElement, innerHeight);
+        处理嵌入块定位(element, targetElement, innerHeight, topBarHeight);
         return;
     }
 
@@ -93,7 +94,7 @@ export function 设置面板位置(参数: 设置面板位置参数) {
 }
 
 /** 处理嵌入块定位 */
-function 处理嵌入块定位(element: HTMLElement, targetElement: HTMLElement, innerHeight: number) {
+function 处理嵌入块定位(element: HTMLElement, targetElement: HTMLElement, innerHeight: number, topBarHeight: number) {
     const targetRect = targetElement.getBoundingClientRect();
     // 嵌入块过长时，单击弹出的悬浮窗位置居下
     let top = targetRect.top;
@@ -104,8 +105,8 @@ function 处理嵌入块定位(element: HTMLElement, targetElement: HTMLElement,
     }
     // 单击嵌入块悬浮窗的位置最好是覆盖嵌入块
     // 防止图片撑高后悬浮窗显示不下，只能设置高度
-    element.style.height = Math.min(innerHeight - Constants.SIZE_TOOLBAR_HEIGHT, targetRect.height + 42) + "px";
-    setPosition(element, targetRect.left, Math.max(top - 42, Constants.SIZE_TOOLBAR_HEIGHT), -42, 0);
+    element.style.height = Math.min(innerHeight - topBarHeight, targetRect.height + 42) + "px";
+    setPosition(element, targetRect.left, Math.max(top - 42, topBarHeight), -42, 0);
 
     element.classList.add("block__popover--open");
     element.style.zIndex = incrementSiyuanZIndex().toString();
