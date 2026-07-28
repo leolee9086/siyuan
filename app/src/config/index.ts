@@ -6,7 +6,6 @@ import {bindSettingSaveDelegation} from "./setting/save";
 import {Dialog} from "./imports";
 import {Constants} from "./imports";
 import {focusByRange} from "./imports";
-import {escapeHtml, getFrontend, showMessage} from "./imports";
 import {getSettingTabDefs, settingTabToMenuId} from "./setting/tabs";
 import type {TSettingTab} from "./setting/tabs";
 import {clearAccessTabElement} from "./tabs/accessRuntime";
@@ -16,10 +15,10 @@ import {fileTreeConfigPanel} from "./imports";
 import {tabRegistry} from "./imports";
 import {createApp} from "./imports";
 import type {CustomDomain} from "../layout/dock/custom/custom.types";
-import {bazaar} from "./bazzar/bazaar";
-import {fetchSyncPost} from "./imports";
 import type { AppFacade } from "../app/AppFacade.types";
 import {isHTMLElement} from "./imports";
+/** 导出 Bazaar README URI 能力，保持既有配置入口公开表面；实现位于 Bazaar README 子域。 */
+export {openBazaarReadme} from "./bazzar/readme/openReadme";
 
 /**
  * 延迟注册 Tab 类型。
@@ -140,53 +139,4 @@ export const openSetting = (app: AppFacade, tab?: TSettingTab) => {
         return;
     }
     return openSettingDialog(app, tab);
-};
-
-const BAZAAR_RESOURCES_URL: Record<"bazaar" | "downloaded", Record<TBazaarType, string>> = {
-    bazaar: {
-        templates: "/api/bazaar/getBazaarTemplate",
-        icons: "/api/bazaar/getBazaarIcon",
-        widgets: "/api/bazaar/getBazaarWidget",
-        themes: "/api/bazaar/getBazaarTheme",
-        plugins: "/api/bazaar/getBazaarPlugin",
-    },
-    downloaded: {
-        templates: "/api/bazaar/getInstalledTemplate",
-        icons: "/api/bazaar/getInstalledIcon",
-        widgets: "/api/bazaar/getInstalledWidget",
-        themes: "/api/bazaar/getInstalledTheme",
-        plugins: "/api/bazaar/getInstalledPlugin",
-    },
-};
-
-export const openBazaarReadme = async (app: AppFacade, bazaarType: TBazaarType, itemName: string, from: "bazaar" | "downloaded" = "bazaar") => {
-    if (isMobile) {
-        return;
-    }
-    // 未信任社区集市时只打开设置页，由用户先明确启用信任，不发起包内容请求。
-    if (!window.siyuan.config.bazaar.trust) {
-        openSettingDialog(app, "bazaar");
-        return;
-    }
-    const getResourcesUrl = BAZAAR_RESOURCES_URL[from][bazaarType];
-    if (!getResourcesUrl) {
-        return;
-    }
-
-    const response = await fetchSyncPost(getResourcesUrl, {
-        frontend: getFrontend(),
-        keyword: itemName,
-    });
-    if (response.code !== 0) {
-        return;
-    }
-    const packages: IBazaarItem[] = response.data.packages;
-    const resource = packages.find((item: IBazaarItem) => item.name === itemName);
-    if (!resource) {
-        showMessage(`Package not found: ${escapeHtml(itemName)}`);
-        return;
-    }
-
-    openSettingDialog(app, "bazaar");
-    bazaar._renderReadme(bazaarType, resource, from === "downloaded");
 };

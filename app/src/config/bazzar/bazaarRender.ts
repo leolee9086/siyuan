@@ -1,7 +1,6 @@
 
 import { showMessage } from "../../dialog/message";
 import { fetchPost } from "../../util/network/fetch";
-import { highlightRender } from "../../protyle/render/highlightRender";
 import { Constants } from "../../constants";
 import { getFrontend, isBrowser } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -10,132 +9,7 @@ import { genCardHTML, genUpdateItemHTML, genFundingHTML, genKeywordsHTML } from 
 import type { AppFacade } from "../../app/AppFacade.types";
 import { escapeAttr } from "../../util/DOM/escape";
 import { Plugin } from "../../plugin";
-
-export const renderReadme = (element: Element, bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean) => {
-    const readmeElement = element.querySelector("#configBazaarReadme") as HTMLElement;
-    const urls = data.repoURL.split("/");
-    urls.pop();
-    let navTitle = siyuanI18n.icon;
-    if (bazaarType === "themes") {
-        navTitle = siyuanI18n.theme;
-    } else if (bazaarType === "widgets") {
-        navTitle = siyuanI18n.widget;
-    } else if (bazaarType === "templates") {
-        navTitle = siyuanI18n.template;
-    } else if (bazaarType === "plugins") {
-        navTitle = siyuanI18n.plugin;
-    }
-    const dataObj1 = {
-        bazaarType,
-        themeMode: data.modes?.toString(),
-        name: data.name,
-        repoURL: data.repoURL,
-        repoHash: data.repoHash,
-        downloaded
-    };
-    readmeElement.innerHTML = ` <div class="item__side" data-obj='${JSON.stringify(dataObj1)}'>
-    <div class="fn__flex">
-        <div style="padding-right: 8px" class="block__icon block__icon--show b3-tooltips b3-tooltips__e" data-type="goBack" aria-label="${siyuanI18n.back}">
-            <svg><use xlink:href="#iconLeft"></use></svg>
-            <span class="fn__space"></span>
-            ${navTitle}
-        </div>
-    </div>
-    <img class="item__img" src="${data.iconURL}" onerror="this.src='/stage/images/icon.png'">
-    <div>
-        <a href="${data.repoURL}" target="_blank" class="item__title" title="GitHub Repo">${data.preferredName}</a>
-    </div>
-    <div class="fn__hr"></div>
-    <div>
-        <a href="${data.repoURL}" target="_blank" class="ft__on-surface ft__smaller" title="GitHub Repo">${data.name}</a>
-    </div>
-    <div class="block__icons">
-        <span class="fn__flex-1"></span>
-        ${data.preferredFunding ?
-            genFundingHTML(data.preferredFunding) :
-            `<span class="b3-tooltips b3-tooltips__ne block__icon block__icon--show ft__primary" aria-label="${siyuanI18n.author}" style="cursor: default"><svg><use xlink:href="#iconAccount"></use></svg></span>`
-        }
-        <span class="fn__space"></span>
-        <a href="${urls.join("/")}" target="_blank" title="Creator">${data.author}</a>
-        <span class="fn__flex-1"></span>
-    </div>
-    <div class="fn__hr--b"></div>
-    <div class="fn__hr--b"></div>
-    <div class="ft__on-surface ft__smaller" style="line-height: 20px;">${siyuanI18n.currentVer}<br>v${data.version}</div>
-    <div class="fn__hr"></div>
-    <div class="ft__on-surface ft__smaller" style="line-height: 20px;">${downloaded ? siyuanI18n.installDate : siyuanI18n.releaseDate}<br>${downloaded ? data.hInstallDate : data.hUpdated}</div>
-    <div class="fn__hr${downloaded ? " fn__none" : ""}"></div>
-    <div class="ft__on-surface ft__smaller${downloaded ? " fn__none" : ""}" style="line-height: 20px;">${siyuanI18n.pkgSize}<br>${data.hSize}</div>
-    <div class="fn__hr"></div>
-    <div class="ft__on-surface ft__smaller" style="line-height: 20px;">${siyuanI18n.installSize}<br>${data.hInstallSize}</div>
-    <div class="fn__hr--b"></div>
-    <div class="fn__hr--b"></div>
-    <div${(data.installed || downloaded) ? ' class="fn__none"' : ""}>
-        <button class="b3-button" style="width: 168px"  data-type="install">${siyuanI18n.download}</button>
-    </div>
-    <div${(data.outdated && (data.installed || downloaded)) ? "" : ' class="fn__none"'}>
-        <button class="b3-button" style="width: 168px" data-type="install-t">${siyuanI18n.update}</button>
-    </div>
-    <div class="fn__hr--b"></div>
-    <div>
-        <a href="${data.repoURL}/issues" target="_blank" title="Feedback via GitHub Issues" class="b3-button b3-button--success" style="width: 168px" data-type="feedback">${siyuanI18n.feedback}</a>
-    </div>
-    <div class="fn__hr--b${downloaded ? " fn__none" : ""}"></div>
-    <div class="fn__hr--b${downloaded ? " fn__none" : ""}"></div>
-    <div class="fn__flex${downloaded ? " fn__none" : ""}" style="justify-content: center;">
-        <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconGithub"></use></svg>
-        <span class="fn__space"></span>
-        <a href="${data.repoURL}" target="_blank" title="GitHub Repo">Repo</a>
-        <span class="fn__space"></span>
-        <span class="fn__space"></span>
-        <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconStar"></use></svg>
-        <span class="fn__space"></span>
-        <a href="${data.repoURL}/stargazers" target="_blank" title="Stars">${data.stars}</a>
-        <span class="fn__space"></span>
-        <span class="fn__space"></span>
-        <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconGitHubI"></use></svg>
-        <span class="fn__space"></span>
-        <a href="${data.repoURL}/issues" target="_blank" title="Open issues">${data.openIssues}</a>
-        <span class="fn__space"></span>
-        <span class="fn__space"></span>
-        <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconDownload"></use></svg>
-        <span class="fn__space"></span>
-        ${data.downloads}
-    </div>
-    <div class="fn__hr--b"></div>
-    <div class="fn__hr--b"></div>
-    <div class="fn__flex-1"></div>
-</div>
-<div class="item__main">
-    <div class="item__preview" style="background-image: url(${data.previewURL})"></div>
-    <div class="b3-typography${data.preferredDesc ? "" : " fn__none"}">
-        <blockquote>
-            <p>
-                ${data.preferredDesc || ""}
-            </p>
-         </blockquote>
-    </div>
-    <div class="item__readme b3-typography b3-typography--default">
-        <img data-type="img-loading" style="height: 64px;width: 100%;padding: 16px 0;" src="/stage/loading-pure.svg">
-    </div>
-</div>`;
-    if (downloaded && data.preferredReadme) {
-        const mdElement = readmeElement.querySelector(".item__readme");
-        mdElement.innerHTML = data.preferredReadme;
-        highlightRender(mdElement);
-    } else {
-        fetchPost("/api/bazaar/getBazaarPackageREAME", {
-            repoURL: data.repoURL,
-            repoHash: data.repoHash,
-            packageType: bazaarType
-        }, response => {
-            const mdElement = readmeElement.querySelector(".item__readme");
-            mdElement.innerHTML = response.data.html;
-            highlightRender(mdElement);
-        });
-    }
-    readmeElement.classList.add("config-bazaar__readme--show");
-};
+import {renderReadme} from "./readme/renderReadme";
 
 export const renderFilteredPackages = (element: Element, bazaarType: TBazaarType) => {
     const filteredPackages = filterPackagesByKeywords(bazaarType);
@@ -200,9 +74,12 @@ export const onBazaar = (element: Element, response: IWebSocketData, bazaarType:
     if (element.querySelector("#configBazaarReadme").classList.contains("config-bazaar__readme--show")) {
         const dataObj = JSON.parse(element.querySelector("#configBazaarReadme > .item__side").getAttribute("data-obj"));
         if (response.data.packages) {
-            renderReadme(element, (dataObj.bazaarType) as TBazaarType,
-                response.data.packages.find((item: IBazaarItem) => item.repoURL === dataObj.repoURL),
-                dataObj.downloaded);
+            renderReadme({
+                element,
+                bazaarType: dataObj.bazaarType as TBazaarType,
+                data: response.data.packages.find((item: IBazaarItem) => item.repoURL === dataObj.repoURL),
+                downloaded: dataObj.downloaded,
+            });
         }
     }
     let id = "#configBazaarTemplate";

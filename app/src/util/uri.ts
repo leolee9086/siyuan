@@ -7,37 +7,30 @@ import {fetchPost} from "./fetch";
 /** 用途：检查折叠状态。使用范围：URI 块处理前检查折叠。解耦评估：平台工具模块。 */
 import {checkFold} from "../block/fold/checkFold";
 import {isValidBazaarPackageName} from "./bazaarPackage";
-/** 用途：跨目录共享常量。使用范围：导航指令与 IPC 命令标识。解耦评估：通过 imports.ts 转发。 */
-import {Constants} from "./imports";
-/** 用途：打开自定义插件页签。使用范围：插件 URI 未匹配插件实例时。解耦评估：通过 imports.ts 转发。 */
-import {openFile} from "./imports";
-/** 用途：桌面端通过 ID 打开块。使用范围：桌面端 URI 块处理。解耦评估：通过 imports.ts 转发。 */
-import {openFileById} from "./imports";
-/** 用途：移动端通过 ID 打开块。使用范围：移动端 URI 块处理。解耦评估：通过 imports.ts 转发。 */
-import {openMobileFileById} from "./imports";
-/** 用途：运行时平台检测。使用范围：替代条件编译分支。解耦评估：通过 imports.ts 转发。 */
-import {isElectron} from "./imports";
-/** 用途：运行时移动端检测。使用范围：替代条件编译分支。解耦评估：通过 imports.ts 转发。 */
-import {isMobile} from "./imports";
-/** 用途：Electron IPC 发送。使用范围：块打开后前置窗口。解耦评估：通过 imports.ts 转发。 */
-import {ipcSend} from "./imports";
-/** 用途：数据库项目 URI 定位。使用范围：打开文档前排队，打开后激活。解耦评估：通过 imports.ts 转发。 */
-import {activateQueuedAVLocate, queueAVLocateRequest} from "./imports";
-/** 用途：数据库根渲染；使用范围：URI 定位激活参数；解耦评估：经本域网关直达唯一实现。 */
-import {avRender} from "./imports";
+import {openBazaarReadme} from "../config/bazzar/readme/openReadme";
+/** 用途：应用常量。使用范围：导航指令与 IPC 命令标识。 */
+import {Constants} from "../constants";
+/** 用途：运行时平台检测。使用范围：URI 宿主分支。 */
+import {isElectron, isMobile} from "../platform";
+/** 用途：Electron IPC 发送。使用范围：块打开后前置窗口。 */
+import {ipcSend} from "../platform/electron/ipcRenderer";
+/** 用途：数据库项目 URI 定位。使用范围：打开文档前排队，打开后激活。 */
+import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
+/** 用途：数据库根渲染。使用范围：URI 定位激活参数。 */
+import {avRender} from "../protyle/render/av/render";
 
-import type { AppFacade } from "./imports";
+import type { AppFacade } from "../app/AppFacade.types";
 
-/** 从 openFile 回调的布局模型读取编辑器 Protyle，避免依赖当前不精确的基础 Model 声明。 */
-const getModelProtyle = (model?: object) => {
-    if (!model || !("editor" in model)) {
-        return undefined;
+/** 从完整 AppFacade 编辑器集合中定位 URI 对应的 Protyle，覆盖桌面和移动宿主。 */
+const findOpenProtyle = (app: AppFacade, blockID: string) => {
+    for (const editor of app.getOpenEditors()) {
+        const protyle = editor.protyle;
+        if (protyle.block.id === blockID || protyle.block.rootID === blockID ||
+            protyle.element.querySelector(`[data-node-id="${blockID}"]`)) {
+            return protyle;
+        }
     }
-    const editor = Reflect.get(model, "editor");
-    if (!editor || typeof editor !== "object" || !("protyle" in editor)) {
-        return undefined;
-    }
-    return Reflect.get(editor, "protyle");
+    return undefined;
 };
 
 const getSiYuanUriAction = (zoomIn: boolean, focus: boolean, locateAV: boolean): TProtyleAction[] => {
@@ -54,22 +47,20 @@ const openSiYuanUriBlock = (app: AppFacade, blockInfo: NonNullable<ReturnType<ty
     const {id, focus, avItemID} = blockInfo;
     const locateAV = Boolean(avItemID);
     const action = getSiYuanUriAction(zoomIn, focus, locateAV);
-    if (isMobile) {
-        openMobileFileById(app, id, action, undefined, undefined,
-            locateAV ? (protyle) => activateQueuedAVLocate({renderAV: avRender, protyle, blockID: id}) : undefined);
+    if (!locateAV) {
+        app.openBlock({id, action, zoomIn: zoomIn || focus});
         return;
     }
-    openFileById({
-        app,
+    app.openBlock({
         id,
         action,
-        zoomIn: locateAV ? false : zoomIn || focus,
-        afterOpen: locateAV ? (model) => {
-            const protyle = getModelProtyle(model);
+        zoomIn: false,
+        afterOpen: () => {
+            const protyle = findOpenProtyle(app, id);
             if (protyle) {
                 activateQueuedAVLocate({renderAV: avRender, protyle, blockID: id});
             }
-        } : undefined,
+        },
     });
 };
 
@@ -82,8 +73,8 @@ const processSiYuanUriBlocks = (app: AppFacade, uriObj: URL): boolean => {
     if (blockInfo.avItemID) {
         queueAVLocateRequest(id, {
             itemID: blockInfo.avItemID,
-            viewID: blockInfo.avViewID,
-            groupID: blockInfo.avGroupID,
+            ...(blockInfo.avViewID ? {viewID: blockInfo.avViewID} : {}),
+            ...(blockInfo.avGroupID ? {groupID: blockInfo.avGroupID} : {}),
         });
     }
     window.siyuan.editorIsFullscreen = blockInfo.fullscreen;
@@ -136,8 +127,7 @@ const openPluginCustomTab = (app: AppFacade, uriObj: URL, pluginNameOrTabType: s
     if (icon && !/^[a-zA-Z0-9]+$/.test(icon)) {
         icon = null;
     }
-    openFile({
-        app,
+    app.openTab({
         custom: {
             title: uriObj.searchParams.get("title") ?? pluginNameOrTabType,
             icon: icon ?? "iconPlugin",
@@ -191,10 +181,7 @@ const processSiYuanUriBazaar = (app: AppFacade, uriObj: URL): boolean => {
     }
     // siyuan://bazaar/plugins/plugin-sample/readme[-installed]
     const from = target === "readme-installed" ? "downloaded" : "bazaar";
-    (async () => {
-        const {openBazaarReadme} = await import("../config");
-        await openBazaarReadme(app, _type, resourceName, from);
-    })();
+    void openBazaarReadme({app, bazaarType: _type, itemName: resourceName, from});
     return true;
 };
 

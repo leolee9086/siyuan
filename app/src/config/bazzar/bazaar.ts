@@ -1,7 +1,8 @@
 import { bindBazaarEvent } from "./bazaarEvent";
 import { bazaarData, extractKeywords, filterPackagesByKeywords } from "./bazaarData";
 import { genBazaarHTML, genCardHTML, genFundingHTML, genKeywordsHTML, genUpdateItemHTML } from "./bazaarHtml";
-import { renderFilteredPackages, onBazaar, renderReadme, genMyHTML, getUpdate } from "./bazaarRender";
+import { renderFilteredPackages, onBazaar, genMyHTML, getUpdate } from "./bazaarRender";
+import {renderReadme} from "./readme/renderReadme";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { isHTMLSelectElement } from "../../util/DOM/element.guard";
 import { switchSettingPanelSubTab } from "../setting/mount";
@@ -62,7 +63,7 @@ export const bazaar = {
 
     _renderReadme(bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean) {
         if (this.element) {
-            renderReadme(this.element, bazaarType, data, downloaded);
+            renderReadme({element: this.element, bazaarType, data, downloaded});
         }
     },
 
