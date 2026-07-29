@@ -516,6 +516,16 @@ test("CLI control credential cannot approve protected tests or invoke shutdown-o
         body: JSON.stringify({jobId: "job", revision: "revision"}),
     });
     assert.equal(approval.status, 403);
+
+    const rejection = await fetch(`${supervisor.controlURL}/reject-protected-tests`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            [SUPERVISOR_TOKEN_HEADER]: supervisor.cliToken,
+        },
+        body: JSON.stringify({jobId: "job", revision: "revision"}),
+    });
+    assert.equal(rejection.status, 403);
 });
 
 test("Restart source validation rejects a dirty worktree", async () => {
@@ -743,6 +753,59 @@ test("Protected test diff pauses restart until a matching human approval arrives
     assert.equal(approval.state, "approved");
     assert.equal(job.protectedTestApproval.state, "approved");
     assert.equal(job.state, "running");
+    assert.throws(() => supervisor.approveProtectedTests(job.id, source.revision), /no matching/);
+});
+
+test("Protected test rejection is exact, persisted and fails the waiting restart", async (t) => {
+    const supervisor = createSupervisor({protectedApprovalTimeout: 1_000});
+    await supervisor.startControlServer();
+    t.after(async () => supervisor.close());
+    const job = supervisor.createJob("protected test rejection");
+    const source = {
+        revision: "new-revision",
+        protectedChanges: ["kernel/api/forge_runtime_test.go"],
+    };
+
+    const waiting = supervisor.requireProtectedTestApproval(job, source);
+    const rejectionObserved = assert.rejects(waiting, /rejected by user/);
+    assert.throws(() => supervisor.rejectProtectedTests(job.id, "wrong-revision"), /no matching/);
+    const response = await fetch(`${supervisor.controlURL}/reject-protected-tests`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            [SUPERVISOR_TOKEN_HEADER]: supervisor.token,
+        },
+        body: JSON.stringify({jobId: job.id, revision: source.revision}),
+    });
+    assert.equal(response.status, 200);
+    const {approval: rejection} = await response.json();
+    await rejectionObserved;
+
+    assert.equal(rejection.state, "rejected");
+    assert.equal(job.protectedTestApproval.state, "rejected");
+    assert.equal(typeof job.protectedTestApproval.rejectedAt, "string");
+    assert.equal(supervisor.pendingProtectedApproval, undefined);
+    assert.throws(() => supervisor.rejectProtectedTests(job.id, source.revision), /no matching/);
+
+    const persisted = JSON.parse(fs.readFileSync(supervisor.statePath, "utf8"));
+    assert.equal(persisted.job.protectedTestApproval.state, "rejected");
+});
+
+test("Protected test approval rejects a stale pending object after the current job changes", async () => {
+    const supervisor = createSupervisor({protectedApprovalTimeout: 1_000});
+    const job = supervisor.createJob("stale approval");
+    const source = {
+        revision: "new-revision",
+        protectedChanges: ["kernel/api/forge_runtime_test.go"],
+    };
+    const waiting = supervisor.requireProtectedTestApproval(job, source);
+    const rejectionObserved = assert.rejects(waiting, /rejected by user/);
+    supervisor.currentJob = {...job};
+
+    assert.throws(() => supervisor.approveProtectedTests(job.id, source.revision), /no matching/);
+    supervisor.currentJob = job;
+    supervisor.rejectProtectedTests(job.id, source.revision);
+    await rejectionObserved;
 });
 
 test("Protected test approval expires and fails closed", async () => {
@@ -753,6 +816,8 @@ test("Protected test approval expires and fails closed", async () => {
         protectedChanges: ["kernel/agent/forge_test.go"],
     }), /approval timed out/);
     assert.equal(supervisor.pendingProtectedApproval, undefined);
+    assert.equal(job.protectedTestApproval.state, "expired");
+    assert.equal(typeof job.protectedTestApproval.expiredAt, "string");
 });
 
 test("Core test policy rejects package allowlists and command narrowing", () => {

@@ -1,57 +1,86 @@
 package util
 
 import (
-	"os"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
-func TestForgeSupervisorConnectionRequiresForgeAndLoopback(t *testing.T) {
+func TestCallForgeSupervisorUsesOnlyInjectedLoopbackControlPlane(t *testing.T) {
 	previousMode := Mode
-	previousURL := os.Getenv(ForgeSupervisorURLEnv)
-	previousToken := os.Getenv(ForgeSupervisorTokenEnv)
 	t.Cleanup(func() {
 		Mode = previousMode
-		_ = os.Setenv(ForgeSupervisorURLEnv, previousURL)
-		_ = os.Setenv(ForgeSupervisorTokenEnv, previousToken)
 	})
-
-	Mode = ModeProd
-	_ = os.Setenv(ForgeSupervisorURLEnv, "http://127.0.0.1:1234")
-	_ = os.Setenv(ForgeSupervisorTokenEnv, "token")
-	if _, _, ok := ForgeSupervisorConnection(); ok {
-		t.Fatal("supervisor connection exposed outside forge mode")
-	}
-
 	Mode = ModeForge
-	_ = os.Setenv(ForgeSupervisorURLEnv, "http://example.com:1234")
-	if _, _, ok := ForgeSupervisorConnection(); ok {
-		t.Fatal("non-loopback supervisor URL accepted")
-	}
+	const token = "forge-supervisor-test-token"
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost || request.URL.Path != "/restart" {
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		if got := request.Header.Get(ForgeSupervisorTokenHeader); got != token {
+			t.Fatalf("Supervisor token = %q", got)
+		}
+		data, err := io.ReadAll(request.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != `{"reason":"verified"}` {
+			t.Fatalf("request body = %s", data)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusAccepted)
+		_, _ = writer.Write([]byte(`{"job":{"id":"job-1","state":"queued"}}`))
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv(ForgeSupervisorURLEnv, server.URL)
+	t.Setenv(ForgeSupervisorTokenEnv, token)
 
-	_ = os.Setenv(ForgeSupervisorURLEnv, "http://127.0.0.1:1234")
-	controlURL, token, ok := ForgeSupervisorConnection()
-	if !ok || controlURL != "http://127.0.0.1:1234" || token != "token" {
-		t.Fatalf("unexpected supervisor connection: url=%q token=%q ok=%v", controlURL, token, ok)
+	payload, err := CallForgeSupervisor(http.MethodPost, "/restart", map[string]string{"reason": "verified"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !json.Valid(payload) || string(payload) != `{"job":{"id":"job-1","state":"queued"}}` {
+		t.Fatalf("unexpected response: %s", payload)
 	}
 }
-
-func TestIsForgeSupervisorRequestRequiresLoopbackAndExactToken(t *testing.T) {
+func TestCallForgeSupervisorRejectsInvalidEndpointsAndResponses(t *testing.T) {
 	previousMode := Mode
-	previousToken := os.Getenv(ForgeSupervisorTokenEnv)
 	t.Cleanup(func() {
 		Mode = previousMode
-		_ = os.Setenv(ForgeSupervisorTokenEnv, previousToken)
 	})
 	Mode = ModeForge
-	_ = os.Setenv(ForgeSupervisorTokenEnv, "exact-token")
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/conflict":
+			writer.WriteHeader(http.StatusConflict)
+			_, _ = writer.Write([]byte(`{"error":"job mismatch"}`))
+		case "/invalid-json":
+			_, _ = writer.Write([]byte("not-json"))
+		default:
+			writer.WriteHeader(http.StatusNotFound)
+			_, _ = writer.Write([]byte(`{"error":"not found"}`))
+		}
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv(ForgeSupervisorURLEnv, server.URL)
+	t.Setenv(ForgeSupervisorTokenEnv, "forge-supervisor-test-token")
 
-	if !IsForgeSupervisorRequest("127.0.0.1:4321", "exact-token") {
-		t.Fatal("valid loopback supervisor request rejected")
+	if _, err := CallForgeSupervisor(http.MethodGet, "relative", nil); err == nil {
+		t.Fatal("relative endpoint was accepted")
 	}
-	if IsForgeSupervisorRequest("192.0.2.10:4321", "exact-token") {
-		t.Fatal("non-loopback supervisor request accepted")
+	if _, err := CallForgeSupervisor(http.MethodGet, "/status?token=leak", nil); err == nil {
+		t.Fatal("endpoint with a query was accepted")
 	}
-	if IsForgeSupervisorRequest("127.0.0.1:4321", "wrong-token") {
-		t.Fatal("invalid supervisor token accepted")
+	_, err := CallForgeSupervisor(http.MethodGet, "/conflict", nil)
+	var responseError *ForgeSupervisorHTTPError
+	if !errors.As(err, &responseError) || responseError.StatusCode != http.StatusConflict ||
+		string(responseError.Payload) != `{"error":"job mismatch"}` {
+		t.Fatalf("unexpected HTTP error: %#v", err)
+	}
+	if _, err := CallForgeSupervisor(http.MethodGet, "/invalid-json", nil); err == nil {
+		t.Fatal("invalid JSON response was accepted")
 	}
 }

@@ -394,6 +394,17 @@ class ForgeRuntimeSupervisor {
             }
             return;
         }
+        if (request.method === "POST" && request.url === "/reject-protected-tests") {
+            try {
+                const body = await readRequestJSON(request);
+                const approval = this.rejectProtectedTests(body.jobId, body.revision);
+                response.end(JSON.stringify({approval}));
+            } catch (error) {
+                response.statusCode = 409;
+                response.end(JSON.stringify({error: error.message}));
+            }
+            return;
+        }
         if (request.method !== "POST" || request.url !== "/restart") {
             response.statusCode = 404;
             response.end(JSON.stringify({error: "unknown supervisor endpoint"}));
@@ -500,7 +511,7 @@ class ForgeRuntimeSupervisor {
         if (source.protectedChanges.length === 0) {
             return;
         }
-        const deadline = new Date(Date.now() + this.protectedApprovalTimeout).toISOString();
+        const deadline = new Date(this.now().getTime() + this.protectedApprovalTimeout).toISOString();
         job.protectedTestApproval = {
             state: "pending",
             revision: source.revision,
@@ -512,31 +523,59 @@ class ForgeRuntimeSupervisor {
             const timeout = setTimeout(() => {
                 if (this.pendingProtectedApproval?.jobId === job.id) {
                     this.pendingProtectedApproval = undefined;
+                    job.protectedTestApproval.state = "expired";
+                    job.protectedTestApproval.expiredAt = this.now().toISOString();
+                    this.persistState();
                 }
                 reject(new Error("protected test approval timed out"));
             }, this.protectedApprovalTimeout);
             this.pendingProtectedApproval = {
                 jobId: job.id,
                 revision: source.revision,
+                job,
                 resolve: () => {
                     clearTimeout(timeout);
                     resolve();
                 },
+                reject: (error) => {
+                    clearTimeout(timeout);
+                    reject(error);
+                },
             };
         });
-        job.protectedTestApproval.state = "approved";
-        job.protectedTestApproval.approvedAt = this.now().toISOString();
         this.updateJob(job, "running", "protected_test_approved");
     }
 
     approveProtectedTests(jobId, revision) {
-        const pending = this.pendingProtectedApproval;
-        if (!pending || pending.jobId !== jobId || pending.revision !== revision) {
-            throw new Error("no matching protected test approval is pending");
-        }
+        const pending = this.requirePendingProtectedApproval(jobId, revision);
         this.pendingProtectedApproval = undefined;
+        pending.job.protectedTestApproval.state = "approved";
+        pending.job.protectedTestApproval.approvedAt = this.now().toISOString();
+        this.persistState();
         pending.resolve();
         return {jobId, revision, state: "approved"};
+    }
+
+    rejectProtectedTests(jobId, revision) {
+        const pending = this.requirePendingProtectedApproval(jobId, revision);
+        this.pendingProtectedApproval = undefined;
+        pending.job.protectedTestApproval.state = "rejected";
+        pending.job.protectedTestApproval.rejectedAt = this.now().toISOString();
+        this.persistState();
+        pending.reject(new Error("protected test approval rejected by user"));
+        return {jobId, revision, state: "rejected"};
+    }
+
+    requirePendingProtectedApproval(jobId, revision) {
+        const pending = this.pendingProtectedApproval;
+        const currentApproval = this.currentJob?.protectedTestApproval;
+        if (!pending || pending.job !== this.currentJob || pending.jobId !== jobId || pending.revision !== revision ||
+            this.currentJob?.state !== "awaiting_protected_test_approval" ||
+            this.currentJob?.phase !== "protected_test_approval" || currentApproval?.state !== "pending" ||
+            currentApproval?.revision !== revision) {
+            throw new Error("no matching protected test approval is pending");
+        }
+        return pending;
     }
 
     loadRestartPolicy() {

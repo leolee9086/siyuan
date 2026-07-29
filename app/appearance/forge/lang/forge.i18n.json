@@ -19,6 +19,84 @@
         "description": {
             "zh_CN": "锻造你的思维",
             "en_US": "Forge your thinking"
+        },
+        "runtime": {
+            "buttonTooltip": {
+                "zh_CN": "Forge 核心更新",
+                "en_US": "Forge Kernel Update"
+            },
+            "controlTitle": {
+                "zh_CN": "Forge 核心更新",
+                "en_US": "Forge Kernel Update"
+            },
+            "approvalTitle": {
+                "zh_CN": "受保护测试变更需要复核",
+                "en_US": "Protected test changes require review"
+            },
+            "activeRevision": {
+                "zh_CN": "运行版本",
+                "en_US": "Active revision"
+            },
+            "jobState": {
+                "zh_CN": "任务状态",
+                "en_US": "Job state"
+            },
+            "jobPhase": {
+                "zh_CN": "当前阶段",
+                "en_US": "Current phase"
+            },
+            "reason": {
+                "zh_CN": "更新说明",
+                "en_US": "Update reason"
+            },
+            "defaultReason": {
+                "zh_CN": "由主界面请求校验当前提交并热切换 Kernel",
+                "en_US": "Validate the current commit and hot-swap the Kernel from the main UI"
+            },
+            "restart": {
+                "zh_CN": "校验并热切换",
+                "en_US": "Validate and hot-swap"
+            },
+            "refresh": {
+                "zh_CN": "刷新状态",
+                "en_US": "Refresh status"
+            },
+            "approve": {
+                "zh_CN": "批准并继续",
+                "en_US": "Approve and continue"
+            },
+            "reject": {
+                "zh_CN": "拒绝本次重启",
+                "en_US": "Reject this restart"
+            },
+            "protectedFiles": {
+                "zh_CN": "受保护变更",
+                "en_US": "Protected changes"
+            },
+            "deadline": {
+                "zh_CN": "审批截止",
+                "en_US": "Approval deadline"
+            },
+            "noJob": {
+                "zh_CN": "当前没有更新任务",
+                "en_US": "No update job is currently running"
+            },
+            "requestAccepted": {
+                "zh_CN": "Forge 核心更新请求已进入校验队列",
+                "en_US": "Forge Kernel update request entered the validation queue"
+            },
+            "approvalAccepted": {
+                "zh_CN": "审批已提交，门禁将继续执行",
+                "en_US": "Approval submitted; validation will continue"
+            },
+            "rejectionAccepted": {
+                "zh_CN": "本次 Forge 核心更新已拒绝",
+                "en_US": "This Forge Kernel update was rejected"
+            },
+            "unavailable": {
+                "zh_CN": "Forge Supervisor 控制面当前不可用",
+                "en_US": "The Forge Supervisor control plane is unavailable"
+            }
         }
     },
     "书签面板": {

@@ -49,6 +49,9 @@ export const LAYOUT_RESIZE_REGISTRY = Symbol.for("sforge.layout.resizeRegistry")
 /** 设置页签完整注册表的唯一状态键。 */
 export const SETTING_TAB_REGISTRY = Symbol.for("sforge.config.settingTabRegistry");
 
+/** Forge Runtime 主界面控制器的唯一注册表键。 */
+export const FORGE_RUNTIME_CONTROL = Symbol.for("sforge.runtime.control");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */
@@ -91,4 +94,6 @@ export const SForgeSymbols = Object.freeze({
     TAB_OPEN_PORT: Symbol.for("sforge.layout.tabOpenPort"),
     /** Wnd 拖拽恢复宿主能力 */
     WND_DRAG_RESTORE: Symbol.for("sforge.layout.wndDragRestore"),
+    /** Forge Runtime 主界面控制器 */
+    FORGE_RUNTIME_CONTROL,
 } as const);

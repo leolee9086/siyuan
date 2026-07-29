@@ -32,6 +32,8 @@ import {FRONTEND_ACTION_REGISTRY} from "./sforge.symbols";
 import {LAYOUT_RESIZE_REGISTRY} from "./sforge.symbols";
 /** 用途：定位设置页签完整注册表。使用范围：设置运行时重挂载；解耦评估：仅保存完整 SettingTab 领域对象，不加载设置装配实现。 */
 import {SETTING_TAB_REGISTRY} from "./sforge.symbols";
+/** 用途：定位 Forge Runtime 主界面控制器。使用范围：源码热更新入口生命周期。解耦评估：Symbol 保证主界面只创建一个状态根。 */
+import {FORGE_RUNTIME_CONTROL} from "./sforge.symbols";
 /** 用途：提供通用 SForge 状态键集合。使用范围：ISForgeGlobalState 中尚未独立导出的 Symbol 索引。解耦评估：本文件定义全局状态映射，必须直接依赖其键声明。 */
 import {SForgeSymbols} from "./sforge.symbols";
 /** 用途：页签注册表类型。使用范围：全局状态中 DOCK/TAB 注册表映射。解耦评估：父目录类型导入，纯类型引用。 */
@@ -92,6 +94,8 @@ import type {LayoutResizeState} from "../layout/resize/resizeTabs.types";
 import type {SettingTab} from "../config/setting/builder";
 /** 用途：内核消息分发完整 UI 依赖。使用范围：全局能力槽；解耦评估：纯类型依赖不加载网络或 Dialog 实现。 */
 import type {IProcessMessageUIDependencies} from "../util/network/types";
+/** 用途：Forge Runtime 完整控制领域根。使用范围：全局状态映射。解耦评估：纯类型引用，不加载控制器实现。 */
+import type {ForgeRuntimeControl} from "../sforge/forgeRuntime";
 
 /**
  * SForge 全局状态类型定义
@@ -133,6 +137,7 @@ export interface ISForgeGlobalState {
     [FRONTEND_ACTION_REGISTRY]?: FrontendActionRegistryState;
     [LAYOUT_RESIZE_REGISTRY]?: LayoutResizeState;
     [SETTING_TAB_REGISTRY]?: Map<string, SettingTab>;
+    [FORGE_RUNTIME_CONTROL]?: ForgeRuntimeControl;
 }
 
 /**

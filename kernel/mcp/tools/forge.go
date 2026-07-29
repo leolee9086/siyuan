@@ -894,7 +894,7 @@ func validateForgeRuntimeLifecycleCommand(command, root string) error {
 	forbidden := regexp.MustCompile(`(?i)(` +
 		`\b(stop-process|start-process|start-job|taskkill|tskill|wmic|kill|pkill|killall)\b|` +
 		`\.kill\s*\(|process\.kill|syscall\.kill|` +
-		`siyuan-kernel|forge-start|forge_runtime|forge/runtime/shutdown|api/system/exit|` +
+		`siyuan-kernel|forge-start|forge_runtime|(?:api[\\/])?s-forge[\\/]forge[\\/]runtime|forge/runtime/shutdown|api/system/exit|` +
 		`\b(pnpm|npm|yarn)\s+(run\s+)?forge\b|\bgo\s+run\b|--mode(?:=|\s+)forge\b|` +
 		`\b(curl|wget|invoke-webrequest|invoke-restmethod)\b[^\r\n]*(127\.0\.0\.1|localhost)|` +
 		`s_forge_supervisor|\.forge-runtime[\\/]supervisor(?:\.stale-[^\\/\s]+)?\.json|` +

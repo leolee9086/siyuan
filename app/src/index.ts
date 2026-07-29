@@ -91,6 +91,8 @@ import {globalCommand} from "./boot/globalEvent/command/global";
 import type {SettingTabId} from "./config/setting/setting.types";
 import type {IDialog} from "./dialog/dialog.types";
 import {loadSiyuanLanguages} from "./util/siyuanEnvironments/languages/environment";
+import {escapeHtml} from "./util/DOM/escape";
+import {initForgeRuntimeControl} from "./sforge/forgeRuntime";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -418,7 +420,11 @@ export class App {
                             onGetConfig(response.data.start, this);
                             onSetaccount();
                             setTitle("", true);
-                            initMessage();
+                            void initMessage().then(() => initForgeRuntimeControl()).catch((error) => {
+                                console.error("[Forge Runtime] 主界面控制面初始化失败", error);
+                                const message = error instanceof Error ? error.message : String(error);
+                                showMessage(escapeHtml(message), 6000, "error", "forgeRuntimeInitializationError");
+                            });
                             if (isBrowserDesktop && !isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()
                                 && window.siyuan.config.appearance.notifications?.browserCompatibility !== false) {
                                 showMessage(window.siyuan.languages.useChrome, 0, "error");

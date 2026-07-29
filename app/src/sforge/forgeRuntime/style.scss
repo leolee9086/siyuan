@@ -1,0 +1,89 @@
+.forge-runtime {
+  color: var(--b3-theme-on-background);
+  min-width: 0;
+
+  &__summary {
+    display: grid;
+    grid-template-columns: minmax(104px, auto) minmax(0, 1fr);
+    gap: 8px 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--b3-border-color);
+  }
+
+  &__label {
+    color: var(--b3-theme-on-surface);
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  &__value {
+    min-width: 0;
+    line-height: 20px;
+  }
+
+  &__value--muted {
+    color: var(--b3-theme-on-surface);
+  }
+
+  &__revision {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--b3-font-family-code);
+  }
+
+  &__section {
+    padding: 16px 20px;
+  }
+
+  &__section .b3-label {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  &__section .b3-text-field {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+  }
+
+  &__paths {
+    max-height: 240px;
+    margin: 8px 0 0;
+    padding: 8px 8px 8px 28px;
+    overflow: auto;
+    background: var(--b3-theme-surface);
+    border-left: 2px solid var(--b3-theme-primary);
+  }
+
+  &__paths li {
+    padding: 3px 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__error {
+    grid-column: 1 / -1;
+    padding: 8px 10px;
+    color: var(--b3-theme-error);
+    background: var(--b3-card-error-background);
+    border-left: 2px solid var(--b3-theme-error);
+    overflow-wrap: anywhere;
+  }
+
+  &__empty {
+    padding: 24px 20px;
+    color: var(--b3-theme-on-surface);
+    text-align: center;
+  }
+
+  &__actions .b3-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__actions .b3-button svg {
+    width: 14px;
+    height: 14px;
+  }
+}

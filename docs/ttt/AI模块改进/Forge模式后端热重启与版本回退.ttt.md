@@ -1,10 +1,10 @@
 # Forge 模式后端热重启与版本回退（TikTocTak）
 
-> **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 发起、用户逐次复核、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
+> **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 或已登录的同设备主界面发起验证与热切换、用户逐次复核受保护变更、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：提交已恢复并复验的 Kernel 资源读取批次，执行完整受保护测试审批与真实热切换，确保运行中 Kernel 跟随最新已验证提交。
+> **当前目标**：收口无需 Agent 请求的 Forge Runtime 主界面控制面，验证独立 WebUI 鉴权、审批主动弹窗、命令旁路阻断与完整门禁，再通过唯一 Supervisor 将运行中 Kernel 热切换到本批次提交。
 >
-> **下一步任务**：提交当前六个 Kernel 资源读取文件及本进度记录；确认受保护测试审批可见且由用户逐次批准，完成全量核心门禁、候选构建、热切换、健康检查和页面回归，再清理本轮临时 Git 快照。
+> **下一步任务**：暂存并原子提交直接控制面实现；由主界面发起真实“校验并热切换”，确认受保护测试审批弹窗可见且批准精确绑定当前 `jobId + revision`，完成全量核心门禁、候选切换、页面回归与运行版本核对。
 
 ---
 
@@ -24,6 +24,8 @@
 12. 提交时自动执行运行时 gate：上一提交存在未闭合漂移时 `pre-commit` 阻断；新提交含后端运行时变化时 `post-commit` 必须同步请求热切换。失败写盘并阻断下一提交，不得只输出警告。
 13. 每个后端运行时提交必须实际热切换。每次 crash、候选启动/健康失败、意外退出和回退都写入独立结构化 incident，包含版本、二进制哈希、PID、exit code/signal、job phase、健康错误、恢复尝试和结果，且不记录控制凭据。
 14. `pnpm forge` 启动入口在安装 hooks、探测端口或接管进程前必须确认整个 Git 工作树和索引干净；暂存、未暂存或未跟踪文件任一存在都明确列出并阻断启动。
+15. 人工主界面控制面不复用 Agent 的进程内确认 capability，也不向前端公开 Supervisor 地址或令牌；公开 Kernel 路由必须同时满足登录态、管理员、非只读、同设备、同源 JSON 请求，并拒绝工作空间 API Token、插件 JWT、BasicAuth 和 query token 作为该 UI 通道的凭据。
+16. 直接 WebUI 入口只能请求同一 Supervisor 门禁，不能提供跳过测试、跳过 Git 校验或直接杀启 Kernel 的参数；受保护变更审批必须由 Supervisor 再次核对当前 pending job、状态、阶段、`jobId` 与 `revision`，过期、拒绝和不匹配均明确失败并写盘。
 
 ## 现状基线
 
@@ -46,6 +48,10 @@ Agent -> confirm card -> forge_runtime_restart
                  4. graceful shutdown current Kernel
                  5. start candidate + health probe
                  6. promote or restart previous version
+
+Human -> main UI status control -> authenticated Kernel WebUI API
+                                  -> same Forge Supervisor gate
+                                  -> visible exact approval dialog when required
 
 Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 ```
@@ -76,6 +82,11 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **行动**：执行 Go 单元测试、目标全量门禁测试和前端测试；在不直接读取开发工作空间配置与凭据的前提下验证 Supervisor 启动、认证控制租约、同工作空间复用和已提交 Kernel 更新的受控切换。前端 lint 结果可记录，但不属于刷新门禁。
   - **验收标准**：测试证据写入本文；当前工作树未满足清洁门禁时明确记录预期阻断，不伪造真实核心切换成功；旧控制面无租约时明确要求一次正常退出迁移，不创建第二 Kernel。
 
+- [ ] **Phase 7：主界面人工控制面与主动审批（P0）** [实现验证中 2026-07-30]
+  - **行动**：在完整桌面/Web 主应用状态栏注册 Forge Runtime 控制入口；通过 Kernel 公开 API 查询状态、直接发起验证与热切换；轮询发现受保护变更时主动显示文件清单及批准/拒绝弹窗。MAGI、移动端与独立窗口不通过全局断点或条件分支复用该入口。
+  - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、严格 `Origin == Host`、`application/json` 与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
+  - **验收标准**：无需 Agent 消息即可打开控制面并发起任务；相同 pending `jobId + revision` 只弹一次；错误在界面可见；API Token、插件 JWT、BasicAuth、query token、跨源、远端和非 JSON 请求均不触达 Supervisor；真实审批、全量门禁和热切换通过。
+
 ## 中期计划
 
 - [ ] 在 Agent Panel 增加可视化重启任务进度和“连接恢复”状态，而不是依赖 Agent 再次查询。
@@ -103,6 +114,8 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] Agent 发起 Kernel 重启时每次出现人在回路复核，直接 MCP 调用不能触发。
 - [x] 所有 Agent Bash/命令调用先经独立模型审核；Forge 源码场景额外识别重启绕过意图，模型审核异常时失败关闭。
 - [x] Bash 子进程不继承 Supervisor 地址、令牌和源码根环境；显式生命周期命令被确定性阻断，核心意外退出时仅恢复记录中的不可变活动版本。
+- [ ] 已登录的同设备主界面可在不创建 Agent 请求的情况下直接发起校验与热切换，且通用 API/插件凭据、跨源与远端请求不能使用该人工 UI 通道。
+- [ ] 主界面轮询在任务进入 `awaiting_protected_test_approval` 后主动弹出精确审批；用户无需依赖终端或 Agent 查询即可批准或拒绝。
 - [x] 脏 Git、无新提交、无 Kernel 变化、格式/vet/任一测试失败均阻断重启并可查询原因。
 - [x] 候选构建完成前现有 Kernel 持续运行。
 - [x] 新 Kernel 健康检查通过后才晋升为当前版本；失败时自动拉起上一版本。
@@ -110,6 +123,12 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] 相关 Go/Node/前端测试通过，TTT 记录实现文件与证据；lint 仅作为非阻断质量记录。
 
 ## 已归档/已完成
+
+- [x] **2026-07-30：主界面直接控制面实现与专项验证**
+  - **完成情况**：新增独立 `ForgeRuntimeClient`、控制器、状态栏/Dialog 视图和样式；主应用在布局与消息系统初始化后启动控制面，非 Forge 模式按 capability 不显示入口。重启 mutation 完成后立即切换为 1 秒活动轮询；相同 pending `jobId + revision` 只创建一个审批弹窗；控制 Dialog 周期刷新保留用户已输入的更新说明。
+  - **鉴权情况**：Kernel WebUI API 与 MCP 共用唯一 `CallForgeSupervisor` 传输，但不共用 Agent 确认 capability；路由要求登录管理员且非只读，Handler 额外拒绝远端、跨源、非 JSON、Authorization、`X-Auth-Token` 和 query token。批准/拒绝由 Supervisor 对当前 pending 对象执行精确重验，CLI token 调用审批保持 403；Agent Forge Bash 规则覆盖新 WebUI Runtime 路径。
+  - **成果文件**：`app/src/sforge/forgeRuntime/*`、`app/src/index.ts`、Forge i18n、`kernel/api/forge_runtime.go`、`kernel/util/forge_supervisor.go`、`kernel/mcp/tools/forge.go`、`app/scripts/forge-runtime-supervisor.js` 及对应测试。
+  - **验证证据**：`go test ./api ./mcp/tools ./util -count=1` 通过；Supervisor `39/39` 通过；前端 Forge Runtime `8/8` 通过；主应用 development one-shot 构建成功；`git diff --check` 无差异错误。完整 `pnpm typecheck` 仍被 AppFacade、异步迁移、Protyle 等现有全局诊断阻断，但本次 `forgeRuntime` 文件与新增测试的筛选诊断已归零，未将全量类型检查记为通过。真实提交门禁、审批弹窗和 Kernel 热切换仍属于 Phase 6/7 待验收项。
 
 - [x] **2026-07-22：现状调查与架构决策**
   - **完成情况**：确认 Forge 父进程当前不保活；确认现有 Agent 确认机制可扩展但“始终允许”需要对重启单独禁用；确认 `s-code` 使用交替不可变产物；确定采用 Supervisor 控制面而非 Kernel 自行覆盖并拉起自身。

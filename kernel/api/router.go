@@ -651,6 +651,10 @@ func ServeAPI(ginServer *gin.Engine) {
 	// ========== S-forge 扩展接口 ==========
 	// 以下接口为 S-forge 额外扩展，官方 siyuan-note/siyuan 中不存在
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/shutdown", forgeRuntimeShutdown)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/status", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeStatus)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/restart", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeRestart)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/approveProtectedTests", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeApproveProtectedTests)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/rejectProtectedTests", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeRejectProtectedTests)
 
 	// 向量数据库
 	ginServer.Handle("POST", "/api/vector/collections/build", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, vectorBuildCollection)

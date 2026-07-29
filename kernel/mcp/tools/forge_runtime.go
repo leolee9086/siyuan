@@ -1,15 +1,11 @@
 package tools
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -19,12 +15,9 @@ const (
 	ForgeRuntimeRestartToolName      = "forge_runtime_restart"
 	ForgeRuntimeApproveTestsToolName = "forge_runtime_approve_tests"
 	forgeRuntimeApprovalArg          = "_forgeRuntimeApproval"
-	forgeRuntimeMaxResponse          = 2 * 1024 * 1024
 )
 
 type forgeRuntimeApproval struct{}
-
-var forgeRuntimeHTTPClient = &http.Client{Timeout: 10 * time.Second}
 
 var ForgeRuntimeStatusTool = &Tool{
 	Name:        ForgeRuntimeStatusToolName,
@@ -102,44 +95,13 @@ func callForgeSupervisor(method, endpoint string, body interface{}) (CallToolRes
 	if configuredRoot == "" || !sameForgeRuntimePath(root, configuredRoot) {
 		return forgeError("当前 Kernel 不是由此源码仓库的 Forge Supervisor 启动")
 	}
-	controlURL, token, ok := util.ForgeSupervisorConnection()
-	if !ok {
-		return forgeError("Forge Supervisor 控制面未连接")
-	}
-	var requestBody io.Reader
-	if body != nil {
-		encoded, encodeErr := json.Marshal(body)
-		if encodeErr != nil {
-			return forgeError(fmt.Sprintf("编码 Supervisor 请求失败: %v", encodeErr))
-		}
-		requestBody = bytes.NewReader(encoded)
-	}
-	request, err := http.NewRequest(method, controlURL+endpoint, requestBody)
+	data, err := util.CallForgeSupervisor(method, endpoint, body)
 	if err != nil {
-		return forgeError(fmt.Sprintf("创建 Supervisor 请求失败: %v", err))
-	}
-	request.Header.Set(util.ForgeSupervisorTokenHeader, token)
-	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	response, err := forgeRuntimeHTTPClient.Do(request)
-	if err != nil {
-		return forgeError(fmt.Sprintf("连接 Forge Supervisor 失败: %v", err))
-	}
-	defer response.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(response.Body, forgeRuntimeMaxResponse+1))
-	if err != nil {
-		return forgeError(fmt.Sprintf("读取 Supervisor 响应失败: %v", err))
-	}
-	if len(data) > forgeRuntimeMaxResponse {
-		return forgeError("Forge Supervisor 响应超过大小限制")
+		return forgeError(err.Error())
 	}
 	var payload interface{}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return forgeError(fmt.Sprintf("Forge Supervisor 返回无效 JSON: %v", err))
-	}
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return forgeError(fmt.Sprintf("Forge Supervisor 请求失败 [HTTP %d]: %s", response.StatusCode, strings.TrimSpace(string(data))))
+		return forgeError("Forge Supervisor 返回无法解码的 JSON")
 	}
 	return forgeResult(payload, nil)
 }

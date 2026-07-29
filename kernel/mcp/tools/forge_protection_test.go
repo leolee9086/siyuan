@@ -103,6 +103,8 @@ func TestForgeCommandsCannotControlRuntimeOrReadSupervisorCredentials(t *testing
 		"go run . serve --mode=forge",
 		"go build -o candidate.exe .; .\\candidate.exe serve --mode=forge",
 		"Invoke-RestMethod http://127.0.0.1:6806/api/system/exit",
+		"Invoke-RestMethod http://127.0.0.1:6806/api/s-forge/forge/runtime/restart -Method Post",
+		"node -e \"fetch('http://127.0.0.1:6806/api/s-forge/forge/runtime/approveProtectedTests')\"",
 		"Get-ChildItem Env:S_FORGE_SUPERVISOR_TOKEN",
 		"Get-Content .forge-runtime/supervisor.json",
 		"Get-Content .forge-runtime/commit-runtime-gate.json",
