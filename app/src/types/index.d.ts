@@ -571,7 +571,7 @@ interface INotebook {
 interface ISiyuan {
     zIndex: number
     transactions: IOperation[]
-    storage: {
+    storage?: {
         [key: string]: any
     },
     closedTabs?: ILayoutJSON[]
@@ -580,10 +580,10 @@ interface ISiyuan {
     },
     editorIsFullscreen?: boolean,
     hideBreadcrumb?: boolean,
-    notebooks: INotebook[],
+    notebooks?: INotebook[],
     emojis?: IEmoji[],
-    backStack: IBackStack[],
-    mobile: {
+    backStack?: IBackStack[],
+    mobile?: {
         touchRange?: Range
         size: {
             isLandscape?: boolean,
@@ -651,14 +651,14 @@ interface ISiyuan {
     currentDragOverTabHeadersElement?: HTMLElement
     touchDragActive?: boolean,
     touchDragGhost?: HTMLElement | null,
-    layout: {
+    layout?: {
         layout?: import("../layout").Layout,
         centerLayout?: import("../layout").Layout,
         leftDock?: import("../layout/dock").Dock,
         rightDock?: import("../layout/dock").Dock,
         bottomDock?: import("../layout/dock").Dock,
     }
-    config: Config.IConf;
+    config?: Config.IConf;
     ws: import("../layout/Model").Model<import("../app/AppFacade.types").AppFacade>,
     ctrlIsPressed?: boolean,
     altIsPressed?: boolean,
@@ -671,7 +671,7 @@ interface ISiyuan {
         screenX: number,
         screenY: number,
     },
-    menus: import("../menus").Menus
+    menus?: import("../menus").Menus
     languages: {
         [key: string]: any;
     }
