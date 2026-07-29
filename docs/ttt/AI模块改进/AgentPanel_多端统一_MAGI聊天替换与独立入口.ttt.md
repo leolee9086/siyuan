@@ -106,6 +106,7 @@ interface AgentPanelHandle {
   - [x] 缺失宿主 Port 时隐藏相关动作并保持聊天闭环。
 
 - [ ] **Phase 6：专业界面与多端验收**
+  - [x] 修复 Agent Protyle Composer 输入 `/` 后技能 hint 错位并撑大面板滚动区域：EVA 主题的 `backdrop-filter` 会使输入区成为 fixed containing block，现由 Tiptap 与 Protyle 共用的 viewport overlay 实现将固定浮层挂到 `body`，并在 Composer 销毁时清理。
   - [ ] 完成全视口、Dock、Tab、浮窗和移动端响应式样式。
   - [x] MAGI desktop/mobile 使用独立布局入口，移动端 CHAT/MONITOR 使用 Tab 切换。
   - [x] 移动 MONITOR 使用等半径四组六边形选择器，贤者内容区无 SVG 框架和卡片背景。
@@ -187,3 +188,4 @@ interface AgentPanelHandle {
 - [x] 2026-07-21：从普通 Agent 切回 MAGI 后，身份缺失错误完整显示且交互恢复，宿主自动打开 `/stage/build/magi-identity/`；Identity Access 页面非空，`LOGIN & ACTIVATE` 入口存在。已登录 MAGI 多轮对话仍待具备有效 Guardian Armor 会话后验收。
 - [x] 2026-07-21：独立入口调整为配置、语言、主题、图标和 Lute bootstrap 完成后再加载面板核心；懒加载控制器与浏览器 capability 通过单一 `panel-runtime` 入口合并，避免两个 5.54 MiB 重复 chunk。
 - [x] 2026-07-21：`build:agent-app` 通过，初始 ESM 由 5.55 MiB 降至 6.76 KiB，核心保持单一 5.54 MiB chunk；独立入口目录网关通过定向 ESLint，ESM 浏览器契约测试通过且无语言字典提前求值警告，仅保留既有核心 chunk 体积警告。
+- [x] 2026-07-30：主应用 EVA dark Agent Dock 实测输入 `/` 后 hint 的直接父节点为 `BODY`，矩形为 `x=695.45, y=590, 322x49` 且完整位于 `1280x720` 视口；Composer 保持 `y=557, 529x40`，Agent 根容器 `scrollHeight=clientHeight=646`、`scrollTop=0`，不再出现布局跳动或异常空白。`pnpm test:agent-panel` 共 29 个文件、91 项通过，Composer 专项 6/6 通过，并覆盖 Hint 缺失时销毁半初始化 Protyle 后显式失败；全量 `pnpm typecheck` 仍被本次未修改代码行上的既有 Composer 严格类型诊断及其它项目基线错误阻断，未计为通过，也未在类型收口前转向 lint。

@@ -9,6 +9,7 @@ import {History} from "@tiptap/extension-history";
 import {getIconByType} from "../../../editor/getIcon";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {ComposerHistory} from "./AgentComposer.history";
+import {mountComposerViewportOverlay, unmountComposerViewportOverlay} from "./AgentComposer.overlay";
 import type {ComposerChangeCallback, ComposerHandle} from "./AgentComposer.types";
 
 interface BlockHit {
@@ -29,7 +30,7 @@ export function mountTiptapComposer(host: HTMLElement, onSend: () => void, onCha
 
     const closeMenu = () => {
         if (suggestionMenu) {
-            suggestionMenu.remove();
+            unmountComposerViewportOverlay(suggestionMenu);
             suggestionMenu = null;
         }
         selectedIndex = 0;
@@ -69,7 +70,7 @@ export function mountTiptapComposer(host: HTMLElement, onSend: () => void, onCha
             suggestionMenu.firstElementChild.appendChild(row);
         }
 
-        document.body.appendChild(suggestionMenu);
+        mountComposerViewportOverlay(suggestionMenu);
         suggestionCommand = command;
         suggestionItems = items;
         selectedIndex = 0;

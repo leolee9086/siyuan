@@ -6,6 +6,7 @@ import {hintRef} from "../../../protyle/hint/extend.hintRef";
 import {genEmptyElement} from "../../../block/element.factory";
 import {blockRender} from "../../../protyle/render/blockRender";
 import {ComposerHistory} from "./AgentComposer.history";
+import {mountComposerViewportOverlay, unmountComposerViewportOverlay} from "./AgentComposer.overlay";
 import type {ComposerChangeCallback, ComposerHandle} from "./AgentComposer.types";
 
 const resetEmbedBlocks = (element: HTMLElement) => {
@@ -91,6 +92,13 @@ export function mountProtyleComposer(
     // 类方法（focus/insert/destroy）在 Protyle 实例上，内部数据属性在 IProtyle 上。
     const p = protyle.protyle;
     const wysiwyg = p.wysiwyg!;
+    const hint = p.hint;
+    // Agent 的 `/` 技能入口依赖 Hint；缺失时立即清理半初始化编辑器并暴露配置错误。
+    if (!hint) {
+        protyle.destroy();
+        throw new Error("Agent Protyle Composer requires a Hint runtime");
+    }
+    const hintElement = hint.element;
 
     const resetToEmpty = () => {
         wysiwyg.element.innerHTML = "";
@@ -179,11 +187,17 @@ export function mountProtyleComposer(
         return clone.innerHTML;
     };
 
+    mountComposerViewportOverlay(hintElement);
+
     return {
         focus: () => protyle.focus(),
         destroy: () => {
             contentObserver.disconnect();
-            protyle.destroy();
+            try {
+                protyle.destroy();
+            } finally {
+                unmountComposerViewportOverlay(hintElement);
+            }
         },
         getSendData: () => {
             const references: { id: string; title: string }[] = [];
