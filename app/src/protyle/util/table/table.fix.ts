@@ -1,6 +1,7 @@
 /**
  * 表格修复主调度器
  *
+ * 替代关系：本模块是原 `protyle/util/table.ts` 中 `fixTable` 的唯一现行所有者。
  * 意图：将原始的单体fixTable函数拆分为中间件链模式，
  *       每个子模块处理特定类别的表格快捷键操作
  * 调用时机：由keydown.table.ts中的fixTableMiddleware调用

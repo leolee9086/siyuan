@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块是原 `protyle/util/table.ts` 中行插入、删除和移动动作的唯一现行所有者。
+ */
 import {scrollToView} from "./table.helpers";
 import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {
@@ -76,11 +79,7 @@ export const insertRow = (protyle: IProtyle, range: Range, cellElement: HTMLElem
         range.collapse(true);
     }
     focusByRange(range);
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
     scrollToView(nodeElement, newRowElement, protyle);
 };
 
@@ -136,11 +135,7 @@ export const insertRowAbove = (protyle: IProtyle, range: Range, cellElement: HTM
         range.collapse(true);
     }
     focusByRange(range);
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
     scrollToView(nodeElement, newRowElement, protyle);
 };
 
@@ -196,11 +191,7 @@ export const deleteRow = (protyle: IProtyle, range: Range, cellElement: HTMLElem
         focusByRange(range);
         scrollToView(nodeElement, previousTrElement, protyle);
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
 };
 
 /**
@@ -236,11 +227,7 @@ export const moveRowToUp = (protyle: IProtyle, range: Range, cellElement: HTMLEl
     if (!rowElement.previousElementSibling) {
         swapRowUpToThead(rowElement);
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
     focusByWbr(nodeElement, range);
     scrollCenter(protyle, rowElement);
 };
@@ -281,11 +268,7 @@ export const moveRowToDown = (protyle: IProtyle, range: Range, cellElement: HTML
     if (!rowElement.nextElementSibling && rowElement.parentElement.nextElementSibling) {
         swapRowDownToTbody(rowElement);
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
     focusByWbr(nodeElement, range);
     scrollCenter(protyle, rowElement);
 };

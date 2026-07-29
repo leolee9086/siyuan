@@ -108,8 +108,7 @@ const finishShiftEnter = (
     controller: AbortController,
 ) => {
     scrollCenter(protyle);
-    const nodeId = nodeElement.getAttribute("data-node-id") ?? "";
-    updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHTML);
+    updateTransaction(protyle, nodeElement, oldHTML);
     event.preventDefault();
     controller.abort("表格软换行");
 };

@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块是原 `protyle/util/table.ts` 中列索引、对齐和单元格清理动作的唯一现行所有者。
+ */
 import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {focusByWbr} from "../selection";
 import * as dayjs from "dayjs";
@@ -84,11 +87,7 @@ export const setTableAlign = (protyle: IProtyle, cellElements: HTMLElement[], no
             cell?.setAttribute("align", type);
         }
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, html);
-    }
+    updateTransaction(protyle, nodeElement, html);
     focusByWbr(tableElement, range);
 };
 
@@ -143,10 +142,6 @@ export const clearTableCell = (protyle: IProtyle, tableBlockElement: HTMLElement
     for (const cell of selectCellElements) {
         cell.innerHTML = "";
     }
-    const nodeId = tableBlockElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, tableBlockElement.outerHTML, oldHTML);
-    }
+    updateTransaction(protyle, tableBlockElement, oldHTML);
 };
 

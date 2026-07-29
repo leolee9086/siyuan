@@ -24,14 +24,18 @@ const ensureGridRow = (state: TableGridBuildState, row: number) => {
         state.occupiedCells.push([]);
         state.sectionOfRow.push("");
     }
+    const occupiedRow = state.occupiedCells[row];
+    if (!occupiedRow) {
+        throw new Error(`table grid row ${row} was not initialized`);
+    }
+    return occupiedRow;
 };
 
 /** 将物理单元格跨度写入占用网格。 */
 const occupyGrid = (state: TableGridBuildState, info: TableGridCell) => {
     for (let rowOffset = 0; rowOffset < info.rowspan; rowOffset++) {
         const targetRow = info.row + rowOffset;
-        ensureGridRow(state, targetRow);
-        const occupiedRow = state.occupiedCells[targetRow];
+        const occupiedRow = ensureGridRow(state, targetRow);
         for (let columnOffset = 0; columnOffset < info.colspan; columnOffset++) {
             occupiedRow[info.col + columnOffset] = info.cell;
         }
@@ -45,7 +49,7 @@ const collectRowCells = (
     state: TableGridBuildState
 ) => {
     let column = 0;
-    const occupiedRow = state.occupiedCells[row];
+    const occupiedRow = ensureGridRow(state, row);
     for (const cell of rowElement.querySelectorAll<HTMLTableCellElement>("th, td")) {
         // `fn__none` 是合并单元格占位，不代表可编辑的物理单元格。
         if (cell.classList.contains("fn__none")) {

@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块是原 `protyle/util/table.ts` 中 `updateTableTitle` 的唯一现行所有者。
+ */
 import { Dialog } from "../../runtime/dialog.port";
 import { isMobile } from "../../../util/platform/functions";
 import { getSiyuanLanguages } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -97,13 +100,7 @@ export const handleTitleConfirm = (
     if (!title) {
         nodeElement.removeAttribute("caption");
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // data-node-id 不存在时无法提交事务
-    if (!nodeId) {
-        dialog.destroy();
-        return;
-    }
-    updateTransaction(protyle, nodeId, nodeElement.outerHTML, originalHTML);
+    updateTransaction(protyle, nodeElement, originalHTML);
     dialog.destroy();
 };
 

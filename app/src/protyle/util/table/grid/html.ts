@@ -63,6 +63,9 @@ const markCoveredSlots = (outputGrid: OutputTableGrid, outputCell: OutputTableCe
     for (let rowOffset = 0; rowOffset < outputCell.newRowspan; rowOffset++) {
         const row = outputCell.newRow + rowOffset;
         const coveredRow = outputGrid.coveredSlots[row];
+        if (!coveredRow) {
+            throw new Error(`table output coverage row ${row} was not initialized`);
+        }
         for (let colOffset = 0; colOffset < outputCell.newColspan; colOffset++) {
             if (rowOffset === 0 && colOffset === 0) {
                 continue;
@@ -86,6 +89,9 @@ const buildOutputGrid = (outputCells: OutputTableCell[]) => {
     outputCells.sort((left, right) => left.newRow - right.newRow || left.newCol - right.newCol);
     for (const outputCell of outputCells) {
         const outputRow = cells[outputCell.newRow];
+        if (!outputRow) {
+            throw new Error(`table output cell row ${outputCell.newRow} was not initialized`);
+        }
         outputRow[outputCell.newCol] = outputCell;
         markCoveredSlots(outputGrid, outputCell);
     }
@@ -127,6 +133,9 @@ const renderOutputRow = (outputGrid: OutputTableGrid, row: number, section: "the
     let html = "<tr>";
     const cellRow = outputGrid.cells[row];
     const coveredRow = outputGrid.coveredSlots[row];
+    if (!cellRow || !coveredRow) {
+        throw new Error(`table output row ${row} was not initialized`);
+    }
     for (let col = 0; col <= outputGrid.maxCol; col++) {
         const outputCell = cellRow[col];
         if (outputCell) {

@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块是原 `protyle/util/table.ts` 中列插入、删除和移动动作的唯一现行所有者。
+ */
 import {updateTransaction} from "../../wysiwyg/transaction/update";
 import {
     focusByWbr,
@@ -64,11 +67,7 @@ export const insertColumn = (protyle: IProtyle, nodeElement: Element, cellElemen
         colEl.insertAdjacentHTML(type, "<col style='min-width: 60px;'>".repeat(count));
     }
     focusByWbr(nodeElement, range);
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHtml);
-    }
+    updateTransaction(protyle, nodeElement, oldHtml);
 };
 
 /**
@@ -129,11 +128,7 @@ export const deleteColumn = (protyle: IProtyle, range: Range, nodeElement: Eleme
     const allCols = nodeElement.querySelectorAll("col");
     const targetCol = allCols[index];
     targetCol?.remove();
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHtml);
-    }
+    updateTransaction(protyle, nodeElement, oldHtml);
     focusByRange(range);
 };
 
@@ -178,11 +173,7 @@ export const moveColumnToLeft = (protyle: IProtyle, range: Range, cellElement: H
     if (currentCol && leftCol) {
         currentCol.after(leftCol);
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHtml);
-    }
+    updateTransaction(protyle, nodeElement, oldHtml);
     focusByWbr(nodeElement, range);
 };
 
@@ -227,10 +218,6 @@ export const moveColumnToRight = (protyle: IProtyle, range: Range, cellElement: 
     if (currentCol && rightCol) {
         currentCol.before(rightCol);
     }
-    const nodeId = nodeElement.getAttribute("data-node-id");
-    // 提交事务记录操作
-    if (nodeId) {
-        updateTransaction(protyle, nodeId, nodeElement.outerHTML, oldHtml);
-    }
+    updateTransaction(protyle, nodeElement, oldHtml);
     focusByWbr(nodeElement, range);
 };
