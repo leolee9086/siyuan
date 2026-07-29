@@ -2,7 +2,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getEditorRange } from "../util/selection";
 import { hasClosestByTag } from "../util/hasClosest";
 import {tableMenu} from "../../menus/protyleMenus/tableMenu/tableMenu";
-import { IMenu } from "../../menus/Menu";
+import type {IMenu} from "siyuan";
 
 
 /**
