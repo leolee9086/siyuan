@@ -21,6 +21,8 @@ import {getAgentLute} from "../../../protyle/render/setLute";
 import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
 import {setPosition} from "../../../util/DOM/positioning/setPosition";
 import {fetchPost} from "../../../util/network/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
+import {bindAgentComposerBlockDrop} from "./AgentComposer.drop";
 import * as dayjs from "dayjs";
 import {
     findAgentUserEntryIndex,
@@ -744,6 +746,27 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         if (this.composer && mentions.length > 0) {
             this.composer.insertMentions(mentions);
         }
+    }
+
+    // 独立宿主的 Tiptap Composer 不经过 Protyle 拖放链，因此在面板边界恢复
+    // 原 AgentChat 的块标/文档拖放语义。完整 App 仍由 Protyle 自身处理。
+    private bindComposerDragDrop() {
+        bindAgentComposerBlockDrop({
+            host: this.composerHost,
+            insertMentions: (mentions) => this.insertBlockMentions(mentions),
+            resolveLabel: async (id) => {
+                const response = await fetchSyncPost("/api/block/getRefText", {id});
+                if (response.code !== 0 || typeof response.data !== "string") {
+                    throw new Error(`getRefText returned invalid data for block ${id}: ${response.msg}`);
+                }
+                return response.data;
+            },
+            reportError: (error) => {
+                console.error("[AgentChat] block reference drop failed", error);
+                const message = error instanceof Error ? error.message : String(error);
+                this.capabilities.message?.show(message, 5000);
+            },
+        });
     }
 
     // 从 window.siyuan.config.ai 重新计算可用模型列表，幂等可重复调用。
