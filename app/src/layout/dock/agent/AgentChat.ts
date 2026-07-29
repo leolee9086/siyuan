@@ -68,7 +68,6 @@ import type {
     AgentPanelConversation,
     AgentPanelConversationKind,
 } from "./runtime/agentPanel.ports.types";
-
 setAgentOwnerTokenProvider(() => {
     const session = getActiveMagiArmorSession();
     return session?.routeClass === "guardian" && session.channel === "magi-main-ui" ? session.armorToken : "";
@@ -112,20 +111,22 @@ type SessionEntry =
     | (EntryBase & { type: "snapshot"; snapshotID: string })
     | (EntryBase & { type: "rollback"; snapshotID: string });
 
-export class AgentChat extends Model<AppFacade, Tab> {
-    private messagesContainer: HTMLElement;
-    private composerHost: HTMLElement;
+export class AgentChat extends Model<AppFacade | undefined, Tab> {
+    public override parent: Tab;
+
+    private messagesContainer!: HTMLElement;
+    private composerHost!: HTMLElement;
     private composer: ReturnType<typeof mountComposer> | null = null;
-    private sendBtn: HTMLElement;
-    private stopBtn: HTMLElement;
-    private newSessionBtn: HTMLElement;
-    private guardianAuthBtn: HTMLElement;
-    private identityLabelElement: HTMLElement;
-    private titleElement: HTMLElement;
-    private sessionMenuBtn: HTMLElement;
-    private floatingBtn: HTMLElement;
-    private tabBtn: HTMLElement;
-    private sessionPanel: AgentSessionPanelController;
+    private sendBtn!: HTMLElement;
+    private stopBtn!: HTMLElement;
+    private newSessionBtn!: HTMLElement;
+    private guardianAuthBtn!: HTMLElement;
+    private identityLabelElement!: HTMLElement;
+    private titleElement!: HTMLElement;
+    private sessionMenuBtn!: HTMLElement;
+    private floatingBtn!: HTMLElement;
+    private tabBtn!: HTMLElement;
+    private sessionPanel!: AgentSessionPanelController;
     private sessionId = "";
     private sessionTitle = "";
     private pendingSessionTitle: string | null = null;
@@ -153,7 +154,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
     private tokenPopupResizeHandler: (() => void) | null = null;
     private sessionCreatedAt = 0;
     private requestStartTime = 0;
-    private tokenDisplayEl: HTMLElement;
+    private tokenDisplayEl!: HTMLElement;
     private defaultTitle = "";
     private currentToolCalls: Array<{
         id?: string;
@@ -183,13 +184,13 @@ export class AgentChat extends Model<AppFacade, Tab> {
     private pendingConfirms: SessionEntry[] = [];
     private renderedToolNames: Record<string, boolean> = {};
     private hasInterveningCard = false;
-    private modelSelect: HTMLSelectElement;
-    private targetSelect: HTMLSelectElement;
-    private selectedModel: string;
+    private modelSelect!: HTMLSelectElement;
+    private targetSelect!: HTMLSelectElement;
+    private selectedModel = "";
     private modelOptions: Array<{ id: string; name: string }> = [];
     private modelOptionsSignature = "";
     // 推理努力度（iconBrain + 原生 select），仅实例记忆，刷新后回到默认。
-    private reasoningEffortSelect: HTMLSelectElement;
+    private reasoningEffortSelect!: HTMLSelectElement;
     private selectedReasoningEffort = "";
     private userScrolledUp = false;
     private programmaticScroll = false;
@@ -202,8 +203,8 @@ export class AgentChat extends Model<AppFacade, Tab> {
     private layoutVisible = true;
     private layoutResizeObserver: ResizeObserver | null = null;
     private settingDialogObserver: MutationObserver | null = null;
-    private scrollBottomBtn: HTMLElement;
-    private navRail: HTMLElement;
+    private scrollBottomBtn!: HTMLElement;
+    private navRail!: HTMLElement;
     private navExpandTimer = 0;
     // 镜像态：当前会话正由其他实例流式对话，本实例处于只读占位锁定，期间不重绘当前视图。
     // 由 ws 的 streamStart/streamEnd 事件驱动，与发起者的 isStreaming 互斥（发起者走 SSE）。
@@ -225,7 +226,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
     private capabilities: AgentPanelCapabilities;
     private enableSessionWebSocket: boolean;
     private initialSessionId: string;
-    private capabilitiesFactory?: (tab: Tab) => AgentPanelCapabilities;
+    private capabilitiesFactory: ((tab: Tab) => AgentPanelCapabilities) | undefined;
     private magiIdentityId = "";
     private magiConversationLoading = false;
     private magiConversationLoadVersion = 0;
@@ -237,7 +238,7 @@ export class AgentChat extends Model<AppFacade, Tab> {
         enableSessionWebSocket?: boolean;
         capabilitiesFactory?: (tab: Tab) => AgentPanelCapabilities;
     } = {}) {
-        super({app: app as AppFacade});
+        super({app});
         this.parent = tab;
         this.capabilities = options.capabilities ?? {};
         this.capabilitiesFactory = options.capabilitiesFactory;
@@ -325,13 +326,17 @@ export class AgentChat extends Model<AppFacade, Tab> {
     private resolveTargetPolicy() {
         const identity = getActiveMagiArmorSession();
         const magiIdentityReady = identity?.routeClass === "guardian" && identity.channel === "magi-main-ui";
-        return resolveAgentPanelTargetPolicy({
+        const input: Parameters<typeof resolveAgentPanelTargetPolicy>[0] = {
             kind: this.conversationKind,
             nativeTitle: window.siyuan.languages.agentChat || "Agent",
-            magiIdentityDisplayName: identity?.displayName || identity?.nickname,
             magiIdentityReady,
             magiConversationLoading: this.magiConversationLoading,
-        });
+        };
+        const magiIdentityDisplayName = identity?.displayName || identity?.nickname;
+        if (magiIdentityDisplayName) {
+            input.magiIdentityDisplayName = magiIdentityDisplayName;
+        }
+        return resolveAgentPanelTargetPolicy(input);
     }
 
     private updateGuardianAuthButton() {
