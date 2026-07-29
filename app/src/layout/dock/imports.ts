@@ -20,7 +20,7 @@ import type {ProtyleDomain} from "../../protyle/protyle.types";
 export type {ProtyleDomain};
 
 /** 用途：Tree 构造器。使用范围：Dock 组合工厂创建自定义列表树；其余模块应依赖 TreeDomain。解耦评估：具体 class 仅在初始化边界加载。 */
-import {Tree} from "../../util/file/Tree";
+import {Tree} from "../../util/file/tree/Tree";
 /** 导出 Tree 构造器，供 Dock 组合边界使用。 */
 export {Tree};
 

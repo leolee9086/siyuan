@@ -1,7 +1,7 @@
 import { Model } from "../../Model";
 /** 用途：提供 Outline 所属页签的布局领域抽象；使用范围：Model 父级和构造参数；解耦评估：依赖布局根契约可切断对具体 Tab class 的类型边，具体 Tab 仅在组合根传入。 */
 import type {LayoutTab} from "../../layout.types";
-import { Tree } from "../../../util/file/Tree";
+import { Tree } from "../../../util/file/tree/Tree";
 import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { escapeHtml } from "../../../util/DOM/escape";

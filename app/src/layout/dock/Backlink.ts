@@ -1,6 +1,6 @@
 import type {LayoutTab} from "../layout.types";
 import { Model } from "../Model";
-import { Tree } from "../../util/file/Tree";
+import { Tree } from "../../util/file/tree/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import {getDockByType} from "./imports";
 import { fetchPost } from "../../util/network/fetch";

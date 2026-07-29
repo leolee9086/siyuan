@@ -7,7 +7,7 @@
  *   2. 避免 Forwardlink.helpers.ts 超过 300 行限制
  */
 
-import { Tree } from "../../../util/file/Tree";
+import { Tree } from "../../../util/file/tree/Tree";
 import { Constants } from "../../../constants";
 import type { AppFacade } from "../../../app/AppFacade.types";
 import type {ForwardlinkDomain} from "./Forwardlink.types";

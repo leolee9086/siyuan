@@ -8,15 +8,23 @@ import type {Layout} from "../../src/layout";
 import type {DockDomain} from "../../src/layout/dock/dock.types";
 import type {LayoutDomain, LayoutTab, LayoutWindow} from "../../src/layout/layout.types";
 import type {OutlineDomain} from "../../src/layout/dock/outline/types";
-import type {PublicInstanceLooksLike} from "../../src/util/types/LooksLike.types";
+import type {
+    IsAssignable,
+    PublicInstance,
+    PublicInstanceLooksLike,
+    StrictEqual,
+} from "../../src/util/types/LooksLike.types";
 import type {Graph} from "../../src/layout/dock/Graph";
 import type {GraphDomain} from "../../src/layout/dock/graph/graph.types";
 import type {AppFacade} from "../../src/app/AppFacade.types";
 import type {CustomLists} from "../../src/layout/dock/customBlockLists/CustomLists";
 import type {CustomListsDomain} from "../../src/layout/dock/customBlockLists/customLists.types";
-import type {Tree} from "../../src/util/file/Tree";
+import type {Tree} from "../../src/util/file/tree/Tree";
+import type {Tree as SiyuanTree} from "siyuan";
+import type {IBlock} from "siyuan";
+import type {IBlockTree} from "siyuan";
 import type {Protyle} from "../../src/protyle";
-import type {TreeDomain} from "../../src/util/file/tree.types";
+import type {TreeDomain, TreeNodeData} from "../../src/util/file/tree.types";
 import type {ProtyleDomain} from "../../src/protyle/protyle.types";
 import type {Model} from "../../src/layout/Model";
 import type {ModelDomain} from "../../src/layout/lifecycle/model.types";
@@ -69,6 +77,13 @@ type CustomListsContract = PublicInstanceLooksLike<
     CustomListsDomain
 >;
 type TreeContract = PublicInstanceLooksLike<typeof Tree, TreeDomain>;
+type TreePublicSurface = PublicInstance<typeof Tree>;
+type TreeKeyContract = StrictEqual<keyof TreePublicSurface, keyof TreeDomain>;
+type TreeImplementationContract = IsAssignable<TreePublicSurface, TreeDomain>;
+type TreeAbstractionContract = IsAssignable<TreeDomain, TreePublicSurface>;
+type TreeUpstreamContract = IsAssignable<TreePublicSurface, PublicInstance<typeof SiyuanTree>>;
+type TreeNodeUpstreamContract = IsAssignable<IBlockTree, TreeNodeData>;
+type TreeBlockUpstreamContract = IsAssignable<IBlock, NonNullable<TreeNodeData["blocks"]>[number]>;
 type ProtyleContract = PublicInstanceLooksLike<typeof Protyle, ProtyleDomain>;
 type ModelContract = PublicInstanceLooksLike<typeof Model, ModelDomain>;
 type BacklinkContract = PublicInstanceLooksLike<typeof Backlink, BacklinkDomain<AppFacade, LayoutTab>>;
@@ -95,6 +110,12 @@ const layoutContract: LayoutContract = true;
 const graphContract: GraphContract = true;
 const customListsContract: CustomListsContract = true;
 const treeContract: TreeContract = true;
+const treeKeyContract: TreeKeyContract = true;
+const treeImplementationContract: TreeImplementationContract = true;
+const treeAbstractionContract: TreeAbstractionContract = true;
+const treeUpstreamContract: TreeUpstreamContract = true;
+const treeNodeUpstreamContract: TreeNodeUpstreamContract = true;
+const treeBlockUpstreamContract: TreeBlockUpstreamContract = true;
 const protyleContract: ProtyleContract = true;
 const modelContract: ModelContract = true;
 const backlinkContract: BacklinkContract = true;
@@ -120,6 +141,12 @@ describe("layout domain contracts", () => {
         assert.equal(graphContract, true);
         assert.equal(customListsContract, true);
         assert.equal(treeContract, true);
+        assert.equal(treeKeyContract, true);
+        assert.equal(treeImplementationContract, true);
+        assert.equal(treeAbstractionContract, true);
+        assert.equal(treeUpstreamContract, true);
+        assert.equal(treeNodeUpstreamContract, true);
+        assert.equal(treeBlockUpstreamContract, true);
         assert.equal(protyleContract, true);
         assert.equal(modelContract, true);
         assert.equal(backlinkContract, true);
