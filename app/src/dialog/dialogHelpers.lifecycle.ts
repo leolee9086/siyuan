@@ -96,8 +96,9 @@ export function 初始化对话框内容(
         closeButtonPosition,
         hasTitle
     });
-    const fullscreenButtonHtml = 生成全屏按钮HTML(hasTitle, closeButtonPosition);
-    const headerPaddingRight = 计算标题栏样式(hasTitle, closeButtonPosition);
+    const hasCloseButton = closeButtonHtml.length > 0;
+    const fullscreenButtonHtml = 生成全屏按钮HTML(hasTitle, closeButtonPosition, hasCloseButton);
+    const headerPaddingRight = 计算标题栏样式(hasTitle, closeButtonPosition, hasCloseButton);
 
     element.innerHTML = 生成对话框HTML({
         zIndex: incrementSiyuanZIndex(),

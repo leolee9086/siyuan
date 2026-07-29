@@ -80,18 +80,15 @@ export function 生成关闭按钮HTML(options: {
     if (options.disableClose || options.hideCloseIcon) {
         return "";
     }
-    if (options.closeButtonPosition === "outside") {
-        return isMobile()
-            ? "<svg class=\"b3-dialog__close\"><use xlink:href=\"#iconCloseRound\"></use></svg>"
-            : "";
-    }
-    if (options.closeButtonPosition === "inside" && options.hasTitle) {
-        return "<svg class=\"b3-dialog__close b3-dialog__close--inside\" style=\"position: absolute; top: 50%; right: 0px; transform: translateY(-50%);\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
-    }
-    if (options.closeButtonPosition === "inside-body") {
-        return "<svg class=\"b3-dialog__close b3-dialog__close--inside-body\" style=\"position: absolute; top: 10px; right: 10px; z-index: 1;\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
-    }
-    return "";
+    const mobileTitleStyle = isMobile() && options.hasTitle ? ' style="top:0;right:0;"' : "";
+    const htmlByPosition = {
+        outside: `<svg${mobileTitleStyle} class="b3-dialog__close"><use xlink:href="#iconCloseRound"></use></svg>`,
+        inside: options.hasTitle
+            ? "<svg class=\"b3-dialog__close b3-dialog__close--inside\" style=\"position: absolute; top: 50%; right: 0px; transform: translateY(-50%);\"><use xlink:href=\"#iconCloseRound\"></use></svg>"
+            : "",
+        "inside-body": "<svg class=\"b3-dialog__close b3-dialog__close--inside-body\" style=\"position: absolute; top: 10px; right: 10px; z-index: 1;\"><use xlink:href=\"#iconCloseRound\"></use></svg>",
+    } as const;
+    return htmlByPosition[options.closeButtonPosition];
 }
 
 /**
@@ -106,13 +103,21 @@ export function 生成关闭按钮HTML(options: {
 /**
  * @同步豁免: UI构建 - HTML生成操作必须同步执行
  */
-export function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: string) {
+export function 生成全屏按钮HTML(
+    hasTitle: boolean,
+    closeButtonPosition: NonNullable<IDialogOptions["closeButtonPosition"]>,
+    hasCloseButton: boolean,
+) {
     if (!hasTitle) {
         return "";
     }
-    const fullscreenButtonStyle = (closeButtonPosition === "inside" && hasTitle)
-        ? "position: absolute; top: 50%; right: 30px; transform: translateY(-50%);"
-        : "position: absolute; top: 50%; right: 10px; transform: translateY(-50%);";
+    const rightByClosePosition = {
+        outside: 42,
+        inside: 38,
+        "inside-body": 10,
+    } as const;
+    const right = hasCloseButton ? rightByClosePosition[closeButtonPosition] : 10;
+    const fullscreenButtonStyle = `position: absolute; top: 50%; right: ${right}px; transform: translateY(-50%);`;
     return `<svg class="b3-dialog__fullscreen" style="${fullscreenButtonStyle}" title="全屏"><use xlink:href="#iconFullscreen"></use></svg>`;
 }
 
@@ -128,16 +133,21 @@ export function 生成全屏按钮HTML(hasTitle: boolean, closeButtonPosition: s
 /**
  * @同步豁免: UI构建 - 样式计算必须同步执行
  */
-export function 计算标题栏样式(hasTitle: boolean, closeButtonPosition: string) {
+export function 计算标题栏样式(
+    hasTitle: boolean,
+    closeButtonPosition: NonNullable<IDialogOptions["closeButtonPosition"]>,
+    hasCloseButton: boolean,
+) {
     if (!hasTitle) {
         return "";
     }
-    if (isMobile() && closeButtonPosition === "outside") {
-        return "position: relative; padding-right: 38px;";
-    }
-    return closeButtonPosition === "inside"
-        ? "position: relative; padding-right: 60px;"
-        : "position: relative; padding-right: 30px;";
+    const paddingRightByClosePosition = {
+        outside: 82,
+        inside: 78,
+        "inside-body": 50,
+    } as const;
+    const paddingRight = hasCloseButton ? paddingRightByClosePosition[closeButtonPosition] : 50;
+    return `position: relative; padding-right: ${paddingRight}px;`;
 }
 
 /**

@@ -114,6 +114,8 @@ const openSettingDialog = (app: AppFacade, initialTab: TSettingTab = "editor") =
                 focusByRange(range);
             }
         },
+        // 设置面板没有模态语义，打开期间仍应能操作主界面；透明穿透遮罩不承担关闭动作。
+        // 退出统一交给 Dialog 的显式关闭按钮和全局 Esc 路径。
         transparent: true,
         disableScrimClose: true,
         scrimPointerEvents: true,
