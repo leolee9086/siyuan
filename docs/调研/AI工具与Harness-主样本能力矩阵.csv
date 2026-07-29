@@ -1,0 +1,53 @@
+id,tool,ecosystem,provider,memory,hitl,async,browser,sandbox,channels,retrieval,observability,maintenance,role_relevance,confidence,basis,notes
+T01,OpenAI Agents SDK,orchestration,multi-provider,session,yes,partial,no,no,no,tools/resources,tracing,active,adjacent,high,T01 C01,official sessions guardrails tracing
+T02,LangGraph,stateful orchestration,multi-provider,persistent state,yes,yes,no,no,no,partial,tracing,active,adjacent,high,T02 C02,durable execution and memory are official claims
+T03,LlamaIndex,data agent/RAG,multi-provider,vector/index,partial,yes,no,partial,no,vector/RAG,partial,active,adjacent,high,T03 C03,code execution and memory boundaries need separate audit
+T04,Haystack,RAG pipeline,multi-provider,partial,partial,partial,no,no,no,hybrid RAG,hooks/logs,active,adjacent,high,T04 C04,lifecycle hooks and token usage are official
+T05,Semantic Kernel,enterprise orchestration,multi-provider,persistent/partial,partial,yes,partial,no,no,vector/plugins,logs,transition,adjacent,medium,T05 C05,Agent Framework successor status is a migration variable
+T06,AutoGen,multi-agent,multi-provider,session,yes,yes,partial,partial,no,tools,logs,maintenance-mode,adjacent,high,T06 C06,official migration notice and action-receipt issue
+T07,CrewAI,multi-agent/workflow,multi-provider,persistent/partial,partial,yes,partial,partial,no,tools/RAG,tracing,active,adjacent,high,T07 C07,Crews and Flows have different control semantics
+T08,PydanticAI,typed agent,multi-provider,session,partial,yes,no,no,no,none,logs,active,adjacent,high,T08 C08,structured outputs are capability not memory
+T09,Google ADK,agent/workflow,multi-provider,session/event,yes,yes,yes,partial,no,tools/search,tracing,active,adjacent,high,T09 C09,computer use and browser support require runtime checks
+T10,Strands Agents,model-driven harness,multi-provider,session,partial,partial,partial,no,no,tools/MCP,partial-trace,active,adjacent,medium,T10 C10,orphaned tool result issue limits confidence
+T11,Letta,persistent memory agent,multi-provider,memory blocks,partial,partial,no,no,API,FTS/vector,logs,active,direct,high,T11 C11,blocks are official product concept
+T12,Mem0,memory layer,multi-provider,persistent user/session/agent,partial,partial,no,no,API,vector/graph,partial,active,direct,high,T12 C12,metadata filtering issue limits recall confidence
+T13,Graphiti,temporal memory graph,multi-provider,temporal graph,no,yes,no,no,API,graph,partial,active,direct,high,T13 C13,non-convergence issue needs iteration cap
+T14,LangMem,memory tooling,multi-provider,persistent/manager,partial,yes,no,no,no,vector/store,partial,active,direct,medium,T14 C14,background manager is official claim
+T15,DSPy,program optimization,multi-provider,none/partial,no,partial,no,no,no,partial,eval traces,active,adjacent,medium,T15 C15,policy learning only in offline plane
+T16,OpenHands,coding/always-on,multi-provider,session,yes,yes,yes,yes,webhook/schedule,repo/RAG,logs,active,adjacent,high,T16 C16,sandbox startup is a known failure surface
+T17,SWE-agent,coding benchmark,multi-provider,session,partial,partial,partial,yes,no,repo map,trajectory,transition,adjacent,medium,T17 C17,mini-SWE-agent migration noted
+T18,Aider,terminal coding,multi-provider,git/session,yes,no,partial,partial,no,repo map,git/diff,active,adjacent,high,T18 C18,undo and commits are explicit artifacts
+T19,Browser Use,browser agent,multi-provider,session,partial,yes,yes,partial,no,web,logs,active,adjacent,high,T19 C19,browser state machine is core capability
+T20,Claude Code,coding CLI,Claude,project/session,yes,partial,partial,yes,no,repo/search,partial,active,adjacent,high,T20 C20,quota and provider policy are external state
+T21,Gemini CLI,terminal agent,Gemini,session/checkpoint,yes,partial,yes,partial,no,search/MCP,logs,active,adjacent,high,T21 C21,checkpoint and search grounding are official
+T22,Dify,visual workflow,multi-provider,knowledge/session,yes,yes,partial,partial,API/channels,RAG/knowledge,logs,active,adjacent,high,T22 C22,knowledge migration issue requires rebuild path
+T23,MCP Specification,protocol,provider-agnostic,none,partial,yes,partial,unknown,protocol channels,resources/tools,protocol trace,active,infra,high,T23 C23,async operation proposal is not universal implementation
+T24,OpenClaw,always-on personal,multi-provider,persistent FTS/session,partial,yes,yes,partial,WhatsApp/Telegram/Discord/etc,FTS/skills,gateway events,active,direct,high,T24 C24,community reports installation and channel drift
+T25,Pi Agent,coding harness,multi-provider,session/branches,partial,partial,partial,container,none,session search,session share,active,adjacent,medium,T25 C25,stream reliability issue limits capability certainty
+T26,Hermes Agent,personal self-improving,multi-provider,persistent FTS5,partial,yes,partial,isolated subagents,Telegram/Discord/Slack/etc,FTS5/session,logs,active,direct,high,T26 C26,stream null issue and memory claims separated
+T27,OpenCode,coding harness,multi-provider,session,yes,partial,partial,partial,no,repo/tools,trace/telemetry,active,adjacent,high,T27 C27,plan/build agents and provider failures are explicit
+T28,SillyTavern,roleplay frontend,multi-provider,character/lore/chat,manual,partial,partial,no,frontend integrations,lorebook/vector,chat logs,active,direct,high,T28 C28,documentation warns token budget and lore non-use
+T29,Cline,IDE coding,multi-provider,workspace/session,yes,partial,yes,partial,no,code/workspace,checkpoints,active,adjacent,high,T29 C29,terminal capture issue requires result reconciliation
+T30,Roo Code,IDE coding,multi-provider,workspace/session,yes,partial,yes,partial,no,code/MCP,logs,transition,adjacent,medium,T30 C30,extension/provider migration is a risk
+T31,Continue,IDE/CLI coding,multi-provider,workspace/session,yes,partial,no,no,no,code/context,logs,active,adjacent,medium,T31 C31,provider and extension failures are community evidence
+T32,Open WebUI,local AI workbench,multi-provider,persistent memory,partial,yes,partial,partial,channels,hybrid RAG,usage analytics,active,direct,high,T32 C32,official memory and automation claims
+T33,LibreChat,multi-provider UI,multi-provider,session/projects,partial,partial,partial,partial,no,file search/MCP,logs,active,adjacent,medium,T33 C33,project context sharing remains requested
+T34,AnythingLLM,document/agent workbench,multi-provider,workspace/docs,partial,yes,partial,partial,API,vector/RAG,logs,active,adjacent,high,T34 C34,local backend capability varies by hardware
+T35,RAGFlow,RAG context engine,multi-provider,knowledge base,partial,partial,no,no,no,deep RAG,process partial,active,adjacent,high,T35 C35,processing trace is a user request
+T36,Crush,terminal coding,multi-provider,session,partial,partial,no,partial,no,LSP/MCP,logs,active,adjacent,medium,T36 C36,local provider support is community-led
+T37,KoboldCpp,local roleplay backend,local GGUF,chat/world memory,manual,no,no,no,no,lore/chat,logs,active,direct,medium,T37 C37,hardware and long-chat regressions are open
+T38,Goose,general agent/workflow,multi-provider,session,yes,yes,partial,partial,desktop/CLI/API,files/MCP,logs,active,adjacent,medium,T38 C38,capability mismatch errors need contract metadata
+T39,n8n,workflow platform,multi-provider,workflow data,yes,yes,partial,partial,many integrations,RAG/tools,audit/tracing,active,adjacent,high,T39 C39,license and approval semantics are separate concerns
+T40,Flowise,visual orchestration,multi-provider,session/vector,partial,yes,partial,partial,API,vector/tools,partial,active,adjacent,medium,T40 C40,configured nodes may not execute
+T41,Langflow,visual agent/MCP,multi-provider,session/RAG,partial,yes,partial,partial,API/MCP,vector/RAG,observability,active,adjacent,high,T41 C41,SSO and identity are deployment constraints
+T42,LobeHub/LobeChat,multi-agent workbench,multi-provider,persistent/agent,partial,yes,partial,partial,API/channels,RAG/files,reports,active,adjacent,medium,T42 C42,operator scheduling and deployment identity need audit
+T43,Ollama,local model runtime,local models,none,none,none,no,no,API,embeddings,logs,active,infra,high,T43 C43,backend capability and hardware determine behavior
+T44,KoboldAI,local writing frontend,local/remote,memory/world info,manual,no,no,no,no,lore/world info,chat logs,unclear,direct,medium,T44 C44,legacy maintenance and low-memory constraints
+T45,text-generation-webui,local AI workbench,local/multi,chat/session,manual,no,partial,partial,API,web search,logs,active,adjacent,medium,T45 C45,template/context boundary failures are known
+T46,OpenAI Codex CLI,terminal coding,OpenAI,session/repo,yes,partial,partial,yes,app/web handoff,repo/search,traces,active,adjacent,high,T46 C46,quota is a continuity variable
+T47,Cursor,closed IDE,multi-provider,project/rules,yes,partial,partial,local shell,none,code/index,logs,closed baseline,adjacent,medium,T47 C47,prompt injection evidence is low-volume
+T48,Windsurf/Devin,closed IDE/agent,proprietary,sessions,yes,yes,yes,cloud/local,none,code/context,command center,brand migration,adjacent,medium,T48 C48,ownership and product migration affect continuity
+T49,GitHub Copilot Agent,enterprise agent,multi-provider,repo/session,yes,yes,yes,cloud,GitHub,code/search/MCP,audit/approvals,active,adjacent,high,T49 C49,governance and token costs are explicit
+T50,Kilo Code,IDE/CLI agent,multi-provider,workspace/session,yes,yes,yes,partial,none,code/MCP,logs,active,adjacent,medium,T50 C50,local model timeout is a known issue
+T51,Jan,local desktop AI,local/cloud,session,partial,partial,partial,local,none,files/MCP,health/logs,active,adjacent,medium,T51 C51,model lifecycle readiness must be visible
+T52,LM Studio,local model workbench,local/cloud,session,none,partial,no,no,API,none,server logs,active,infra,medium,T52 C52,local model discovery and hardware state are external variables
