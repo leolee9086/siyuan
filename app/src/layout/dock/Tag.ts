@@ -23,6 +23,8 @@ import type {TreeDomain} from "../../util/file/tree.types";
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 
 export class Tag extends Model<AppFacade, Tab> {
+    public override parent: Tab;
+
     public get [tagModelBrand]() {
         return "Tag" as const;
     }
@@ -40,6 +42,7 @@ export class Tag extends Model<AppFacade, Tab> {
 
     constructor(app: AppFacade, tab: Tab) {
         super({app});
+        this.parent = tab;
         this.connect({
             id: tab.id,
             type: "tag",

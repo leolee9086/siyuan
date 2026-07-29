@@ -18,6 +18,8 @@ import {graphModelBrand} from "./graph/graph.types";
 declare const vis: any;
 
 export class Graph extends Model<AppFacade, Tab> {
+    public override parent: Tab;
+
     public get [graphModelBrand]() {
         return "Graph" as const;
     }
@@ -44,6 +46,7 @@ export class Graph extends Model<AppFacade, Tab> {
         type: "local" | "pin" | "global"
     }) {
         super({app: options.app});
+        this.parent = options.tab;
         this.connect({
             id: options.tab.id,
             type: "graph",

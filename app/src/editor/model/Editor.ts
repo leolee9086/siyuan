@@ -101,7 +101,7 @@ export class Editor<
 > {
     public readonly layoutModel = true as const;
     public readonly [editorModelBrand] = "Editor" as const;
-    declare public parent: LayoutTab;
+    public parent: LayoutTab;
     public element: HTMLElement;
     public editor: TEditor;
     public headElement: HTMLElement;
@@ -121,6 +121,7 @@ export class Editor<
         enterFullscreen: (element: Element) => void;
     }) {
         this.app = options.app;
+        this.parent = options.tab;
         this.headElement = options.tab.headElement;
         this.element = options.tab.panelElement;
         // “始终在当前页签打开”模式依赖该标记阻止初始化页签被误判为已更新。

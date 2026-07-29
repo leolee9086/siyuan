@@ -2,6 +2,7 @@
 import type {ModelDomain} from "../../lifecycle/model.types";
 /** 用途：参数化 Graph 父宿主；使用范围：Graph 领域根；解耦评估：保持抽象宿主身份，不导入 Tab class。 */
 import type {ILayoutModelHost} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 用途：描述公开连接动作；使用范围：Graph 领域根；解耦评估：复用模型生命周期完整请求类型。 */
 
 /** Graph 模型的稳定运行时身份；布局分类无需加载具体 class。 */
@@ -23,6 +24,7 @@ export interface GraphDomain<
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ModelDomain<TApplication, TParent> {
     readonly [graphModelBrand]: "Graph";
+    parent: TParent;
     inputElement: HTMLInputElement;
     blockId: string;
     rootId: string;
@@ -37,5 +39,5 @@ export interface GraphDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 GraphDomain。
  */
-export const isGraphDomain = (model: object): model is GraphDomain =>
-    graphModelBrand in model && model[graphModelBrand] === "Graph";
+export const isGraphDomain = (model: object | undefined): model is GraphDomain =>
+    hasLayoutModelBrand(model, graphModelBrand, "Graph");

@@ -20,6 +20,8 @@ import type {ProtyleDomain} from "../../protyle/protyle.types";
 import type {TreeDomain} from "../../util/file/tree.types";
 
 export class Bookmark extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [bookmarkModelBrand]() {
         return "Bookmark" as const;
     }
@@ -36,6 +38,7 @@ export class Bookmark extends Model<AppFacade, LayoutTab> {
 
     constructor(app: AppFacade, tab: LayoutTab) {
         super({app});
+        this.parent = tab;
         this.connect({id: tab.id, type: "bookmark", msgCallback: (data) => this._处理消息(data)});
         this.element = tab.panelElement;
         this._初始化外观();

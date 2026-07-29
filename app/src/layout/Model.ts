@@ -7,7 +7,7 @@ import {createModelWebSocket} from "./modelWebSocket.factory";
 
 /** 布局模型基类，统一管理 App 引用、WebSocket 传输及可停止的重连生命周期。 */
 export class Model<
-    TApplication extends object = object,
+    TApplication extends object | undefined = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > implements ILayoutModel {
     public readonly layoutModel = true as const;

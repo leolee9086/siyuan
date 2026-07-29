@@ -39,7 +39,7 @@ export interface IModelConnectOptions {
 
 /** Model class 跨构造、挂载、连接和首次发送阶段的完整公共领域表面。 */
 export interface ModelDomain<
-    TApplication extends object = object,
+    TApplication extends object | undefined = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ILayoutModel {
     readonly layoutModel: true;

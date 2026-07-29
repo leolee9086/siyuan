@@ -8,6 +8,7 @@ import type {LayoutTab} from "../../layout.types";
 import type {AppFacade} from "../../../app/AppFacade.types";
 /** 用途：模型完整公共根。使用范围：Outline 生命周期。解耦评估：不加载 Model class。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 用途：Tree 完整领域根。使用范围：Outline 树状态和行为。解耦评估：不加载 Tree class。 */
 import type {TreeDomain} from "../../../util/file/tree.types";
 /** 用途：完整 Protyle 领域根。使用范围：Outline 编辑上下文将事务交还编辑器所有者。 */
@@ -66,6 +67,7 @@ export interface OutlineDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [outlineModelBrand]: "Outline";
+    parent: TParent;
     element: HTMLElement;
     headerElement: HTMLElement;
     tree: TreeDomain;
@@ -99,5 +101,5 @@ export interface OutlineDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 OutlineDomain。
  */
-export const isOutlineDomain = (model: object): model is OutlineDomain =>
-    outlineModelBrand in model && model[outlineModelBrand] === "Outline";
+export const isOutlineDomain = (model: object | undefined): model is OutlineDomain =>
+    hasLayoutModelBrand(model, outlineModelBrand, "Outline");

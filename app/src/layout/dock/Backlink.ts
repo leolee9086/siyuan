@@ -17,6 +17,8 @@ import type {ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
 import {backlinkModelBrand} from "./backlink/backlink.types";
 
 export class Backlink extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [backlinkModelBrand]() {
         return "Backlink" as const;
     }
@@ -50,6 +52,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         type: "pin" | "local"
     }) {
         super({app: options.app});
+        this.parent = options.tab;
 
         this.connect({
             id: options.tab.id,

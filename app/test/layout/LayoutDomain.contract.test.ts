@@ -85,7 +85,7 @@ type TreeUpstreamContract = IsAssignable<TreePublicSurface, PublicInstance<typeo
 type TreeNodeUpstreamContract = IsAssignable<IBlockTree, TreeNodeData>;
 type TreeBlockUpstreamContract = IsAssignable<IBlock, NonNullable<TreeNodeData["blocks"]>[number]>;
 type ProtyleContract = PublicInstanceLooksLike<typeof Protyle, ProtyleDomain>;
-type ModelContract = PublicInstanceLooksLike<typeof Model, ModelDomain>;
+type ModelContract = PublicInstanceLooksLike<typeof Model, ModelDomain<object | undefined>>;
 type BacklinkContract = PublicInstanceLooksLike<typeof Backlink, BacklinkDomain<AppFacade, LayoutTab>>;
 type ForwardlinkContract = PublicInstanceLooksLike<typeof Forwardlink, ForwardlinkDomain<AppFacade, Tab>>;
 type FilesContract = PublicInstanceLooksLike<typeof Files, FilesDomain<AppFacade, Tab>>;
@@ -182,5 +182,21 @@ describe("layout domain contracts", () => {
         assert.equal(isEditorDomain({[editorModelBrand]: "Editor"}), true);
         assert.equal(isMobileFilesDomain({[mobileFilesModelBrand]: "MobileFiles"}), true);
         assert.equal(isMobileFilesDomain({layoutModel: true}), false);
+    });
+
+    it("treats an unmounted Tab model as outside every branded model domain", () => {
+        assert.equal(isAssetDomain(undefined), false);
+        assert.equal(isGraphDomain(undefined), false);
+        assert.equal(isOutlineDomain(undefined), false);
+        assert.equal(isBacklinkDomain(undefined), false);
+        assert.equal(isFilesDomain(undefined), false);
+        assert.equal(isForwardlinkDomain(undefined), false);
+        assert.equal(isBookmarkDomain(undefined), false);
+        assert.equal(isCronjobDomain(undefined), false);
+        assert.equal(isCustomDomain(undefined), false);
+        assert.equal(isTagDomain(undefined), false);
+        assert.equal(isSearchDomain(undefined), false);
+        assert.equal(isEditorDomain(undefined), false);
+        assert.equal(isMobileFilesDomain(undefined), false);
     });
 });

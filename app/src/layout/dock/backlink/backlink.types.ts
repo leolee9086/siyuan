@@ -2,6 +2,7 @@
 import type {ILayoutModelHost} from "../../lifecycle/model.types";
 /** 用途：模型完整公共根。使用范围：Backlink 领域生命周期。解耦评估：不加载 Model 实现。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 用途：Tree 完整领域根。使用范围：Backlink 的两棵链接树。解耦评估：不加载 Tree 实现。 */
 import type {TreeDomain} from "../../../util/file/tree.types";
 /** 用途：Protyle 完整领域根。使用范围：Backlink 内嵌编辑器集合。解耦评估：不加载 Protyle 实现。 */
@@ -40,6 +41,7 @@ export interface BacklinkDomain<
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ModelDomain<TApplication, TParent> {
     readonly [backlinkModelBrand]: "Backlink";
+    parent: TParent;
     element: HTMLElement;
     inputsElement: NodeListOf<HTMLInputElement>;
     type: "pin" | "local";
@@ -58,5 +60,5 @@ export interface BacklinkDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 BacklinkDomain。
  */
-export const isBacklinkDomain = (model: object): model is BacklinkDomain =>
-    backlinkModelBrand in model && model[backlinkModelBrand] === "Backlink";
+export const isBacklinkDomain = (model: object | undefined): model is BacklinkDomain =>
+    hasLayoutModelBrand(model, backlinkModelBrand, "Backlink");

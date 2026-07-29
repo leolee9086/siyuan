@@ -17,6 +17,8 @@ import {assetModelBrand} from "./asset.types";
 
 /** 资产页签模型的具体运行时实现。 */
 export class Asset extends Model<AppFacade, LayoutTab> {
+  public override parent: LayoutTab;
+
   public get [assetModelBrand]() {
     return "Asset" as const;
   }
@@ -32,7 +34,8 @@ export class Asset extends Model<AppFacade, LayoutTab> {
   }
 
   constructor(options: { app: AppFacade, tab: LayoutTab, path: string, page?: number | string }) {
-    super({ app: options.app, id: options.tab.id });
+    super({app: options.app});
+    this.parent = options.tab;
     if (window.siyuan.config?.fileTree?.openFilesUseCurrentTab) {
       options.tab.headElement.classList.add("item--unupdate");
     }

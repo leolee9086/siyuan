@@ -2,6 +2,7 @@
 import type {AppFacade} from "../../../app/AppFacade.types";
 /** 用途：Model class 的完整公共领域根；使用范围：移动文件树继承的连接与资源生命周期；解耦评估：不加载具体 Model。 */
 import type {ModelDomain} from "../../../layout/lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../../layout/lifecycle/modelBrand.guard";
 
 /** 移动文件树稳定身份；只用于完整领域根的运行时判别，不保存状态。 */
 export const mobileFilesModelBrand = Symbol("MobileFilesModel");
@@ -30,5 +31,5 @@ export interface MobileFilesDomain extends ModelDomain<AppFacade> {
 
 /** @同步豁免: 类型守卫 */
 /** 按稳定厂牌收窄为完整移动文件树领域根。 @显式返回类型原因：类型谓词必须显式声明才能向调用方提供领域收窄。 */
-export const isMobileFilesDomain = (model: object): model is MobileFilesDomain =>
-    mobileFilesModelBrand in model && model[mobileFilesModelBrand] === "MobileFiles";
+export const isMobileFilesDomain = (model: object | undefined): model is MobileFilesDomain =>
+    hasLayoutModelBrand(model, mobileFilesModelBrand, "MobileFiles");

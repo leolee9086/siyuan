@@ -27,6 +27,8 @@ import type {CustomInit} from "./custom.types";
  * 布局模型身份和生命周期语义的必要实现边界，而不是为无状态工具引入面向对象包装。
  * @允许继承: 框架要求 (FrameworkRequired) */
 export class Custom<TData = unknown> extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [customModelBrand]() {
         return "Custom" as const;
     }
@@ -54,6 +56,7 @@ export class Custom<TData = unknown> extends Model<AppFacade, LayoutTab> {
         init: CustomInit<TData>
     } & ThisType<CustomDomain<TData>>) {
         super({app: options.app});
+        this.parent = options.tab;
         // 始终复用当前页签时，标记新模型尚未完成内容更新，避免布局误用旧页签状态。
         if (window.siyuan.config?.fileTree.openFilesUseCurrentTab) {
             options.tab.headElement?.classList.add("item--unupdate");

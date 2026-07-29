@@ -8,6 +8,7 @@ import type {TreeDomain} from "../../../util/file/tree.types";
 import type {LayoutTab} from "../../layout.types";
 /** 用途：继承模型生命周期完整公共表面；使用范围：Bookmark 领域根。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 
 /** Bookmark 模型的稳定运行时身份；布局分类无需加载具体 class。 */
 export const bookmarkModelBrand = Symbol("BookmarkModel");
@@ -18,6 +19,7 @@ export interface BookmarkDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [bookmarkModelBrand]: "Bookmark";
+    parent: TParent;
     tree: TreeDomain;
     editors: ProtyleDomain[];
     update(data?: IBlockTree[]): void;
@@ -27,5 +29,5 @@ export interface BookmarkDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 BookmarkDomain。
  */
-export const isBookmarkDomain = (model: object): model is BookmarkDomain =>
-    bookmarkModelBrand in model && model[bookmarkModelBrand] === "Bookmark";
+export const isBookmarkDomain = (model: object | undefined): model is BookmarkDomain =>
+    hasLayoutModelBrand(model, bookmarkModelBrand, "Bookmark");

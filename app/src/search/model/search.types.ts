@@ -6,6 +6,7 @@ import type {ProtyleDomain} from "../../protyle/protyle.types";
 import type {LayoutTab} from "../../layout/layout.types";
 /** 用途：Search 继承的完整模型生命周期。使用范围：Search 领域根的公共状态与生命周期方法。 */
 import type {ModelDomain} from "../../layout/lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../layout/lifecycle/modelBrand.guard";
 
 /** Search 模型的稳定运行时身份；布局分类无需加载具体 class。 */
 export const searchModelBrand = Symbol("SearchModel");
@@ -16,6 +17,7 @@ export interface SearchDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [searchModelBrand]: "Search";
+    parent: TParent;
     element: HTMLElement;
     config: Config.IUILayoutTabSearchConfig;
     editors: {edit: ProtyleDomain; unRefEdit: ProtyleDomain};
@@ -26,5 +28,5 @@ export interface SearchDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 SearchDomain。
  */
-export const isSearchDomain = (model: object): model is SearchDomain =>
-    searchModelBrand in model && model[searchModelBrand] === "Search";
+export const isSearchDomain = (model: object | undefined): model is SearchDomain =>
+    hasLayoutModelBrand(model, searchModelBrand, "Search");

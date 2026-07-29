@@ -21,7 +21,7 @@ export class Tab {
     public headElement: HTMLElement;
     public panelElement: HTMLElement;
     public callback: (tab: LayoutTab) => void;
-    public model: ILayoutModel;
+    public model: ILayoutModel | undefined;
     public title: string;
     public icon: string;
     public docIcon: string;

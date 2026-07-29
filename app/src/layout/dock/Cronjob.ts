@@ -226,6 +226,8 @@ function 处理点击(cronjob: Cronjob, event: MouseEvent) {
  * 定时任务侧边栏面板
  */
 export class Cronjob extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [cronjobModelBrand]() {
         return "Cronjob" as const;
     }
@@ -243,6 +245,7 @@ export class Cronjob extends Model<AppFacade, LayoutTab> {
      */
     constructor(app: AppFacade, tab: LayoutTab) {
         super({app});
+        this.parent = tab;
         this.connect({
             id: tab.id,
             /**

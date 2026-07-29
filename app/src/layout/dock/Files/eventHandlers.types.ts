@@ -2,6 +2,7 @@
 import type {LayoutTab} from "../../layout.types";
 /** 用途：模型完整公共根。使用范围：Files 模型生命周期。解耦评估：不加载 Model class。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 对外复用 Files 的完整页签宿主身份。 */
 export type {LayoutTab};
 
@@ -65,8 +66,8 @@ export interface FilesDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 FilesDomain。
  */
-export const isFilesDomain = (model: object): model is FilesDomain =>
-    filesModelBrand in model && model[filesModelBrand] === "Files";
+export const isFilesDomain = (model: object | undefined): model is FilesDomain =>
+    hasLayoutModelBrand(model, filesModelBrand, "Files");
 
 // ============================================================================
 // 事件处理器相关类型

@@ -6,6 +6,7 @@ import type {ProtyleDomain} from "../../protyle/protyle.types";
 import type {LayoutTab} from "../../layout/layout.types";
 /** 用途：布局模型身份。使用范围：Editor 作为 Tab 模型参与挂载和分类。 */
 import type {ILayoutModel} from "../../layout/lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../layout/lifecycle/modelBrand.guard";
 
 /** Editor 模型的稳定运行时身份；消费方无需加载具体 class。 */
 export const editorModelBrand = Symbol("EditorModel");
@@ -32,5 +33,5 @@ export interface EditorDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 EditorDomain。
  */
-export const isEditorDomain = (model: object): model is EditorDomain =>
-    editorModelBrand in model && model[editorModelBrand] === "Editor";
+export const isEditorDomain = (model: object | undefined): model is EditorDomain =>
+    hasLayoutModelBrand(model, editorModelBrand, "Editor");

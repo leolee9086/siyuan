@@ -37,6 +37,8 @@ import {forwardlinkModelBrand} from "./Forwardlink.types";
  */
 // @允许继承: 框架要求 (FrameworkRequired)
 export class Forwardlink extends Model<AppFacade, Tab> {
+    public override parent: Tab;
+
     public get [forwardlinkModelBrand]() {
         return "Forwardlink" as const;
     }
@@ -59,6 +61,7 @@ export class Forwardlink extends Model<AppFacade, Tab> {
         type: "pin" | "local"
     }) {
         super({app: options.app});
+        this.parent = options.tab;
 
         this.blockId = options.blockId;
         this.rootId = options.rootId || options.blockId;

@@ -4,6 +4,7 @@ import type {AppFacade} from "../../../app/AppFacade.types";
 import type {LayoutTab} from "../../layout.types";
 /** 用途：完整模型生命周期；使用范围：Cronjob 领域根继承。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 用途：定时任务运行数据；使用范围：Cronjob 公开任务集合。 */
 import type {任务运行时信息} from "../../../util/network/types";
 
@@ -16,6 +17,7 @@ export interface CronjobDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [cronjobModelBrand]: "Cronjob";
+    parent: TParent;
     element: HTMLElement;
     tasks: 任务运行时信息[];
     refreshTimer: number | null;
@@ -25,5 +27,5 @@ export interface CronjobDomain<
 
 /** @同步豁免: 类型守卫 */
 /** @显式返回类型原因：类型谓词负责将通用模型收窄为完整 CronjobDomain。 */
-export const isCronjobDomain = (model: object): model is CronjobDomain =>
-    cronjobModelBrand in model && model[cronjobModelBrand] === "Cronjob";
+export const isCronjobDomain = (model: object | undefined): model is CronjobDomain =>
+    hasLayoutModelBrand(model, cronjobModelBrand, "Cronjob");

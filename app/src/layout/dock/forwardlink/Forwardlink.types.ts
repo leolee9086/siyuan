@@ -1,5 +1,6 @@
 /** 用途：模型完整公共根。使用范围：Forwardlink 领域生命周期。解耦评估：不加载 Model 实现。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 /** 用途：布局页签完整领域根。使用范围：Forwardlink 宿主生命周期。解耦评估：不加载 Tab 实现。 */
 import type {LayoutTab} from "../../layout.types";
 /** 用途：应用完整抽象外观。使用范围：Forwardlink 调用编辑器与宿主能力。解耦评估：不加载 App 实现。 */
@@ -101,6 +102,7 @@ export interface ForwardlinkDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [forwardlinkModelBrand]: "Forwardlink";
+    parent: TParent;
     element: HTMLElement;
     inputsElement: NodeListOf<HTMLInputElement>;
     type: "pin" | "local";
@@ -119,5 +121,5 @@ export interface ForwardlinkDomain<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 ForwardlinkDomain。
  */
-export const isForwardlinkDomain = (model: object): model is ForwardlinkDomain =>
-    forwardlinkModelBrand in model && model[forwardlinkModelBrand] === "Forwardlink";
+export const isForwardlinkDomain = (model: object | undefined): model is ForwardlinkDomain =>
+    hasLayoutModelBrand(model, forwardlinkModelBrand, "Forwardlink");

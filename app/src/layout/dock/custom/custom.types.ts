@@ -6,6 +6,7 @@ import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import type {LayoutTab} from "../../layout.types";
 /** 用途：继承模型生命周期完整公共表面；使用范围：Custom 领域根。 */
 import type {ModelDomain} from "../../lifecycle/model.types";
+import {hasLayoutModelBrand} from "../../lifecycle/modelBrand.guard";
 
 /** Custom 模型的稳定运行时身份；布局分类无需加载具体 class。 */
 export const customModelBrand = Symbol("CustomModel");
@@ -17,6 +18,7 @@ export interface CustomDomain<
     TParent extends LayoutTab = LayoutTab,
 > extends ModelDomain<TApplication, TParent> {
     readonly [customModelBrand]: "Custom";
+    parent: TParent;
     element: Element;
     tab: TParent;
     data: TData;
@@ -44,5 +46,5 @@ export type CustomInit<
  * @同步豁免: 类型守卫
  * @显式返回类型原因：类型谓词负责把通用布局模型收窄为完整 CustomDomain。
  */
-export const isCustomDomain = (model: object): model is CustomDomain =>
-    customModelBrand in model && model[customModelBrand] === "Custom";
+export const isCustomDomain = (model: object | undefined): model is CustomDomain =>
+    hasLayoutModelBrand(model, customModelBrand, "Custom");

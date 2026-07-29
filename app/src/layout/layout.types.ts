@@ -44,7 +44,7 @@ export interface LayoutTab {
     headElement: HTMLElement;
     panelElement: HTMLElement;
     callback: (tab: LayoutTab) => void;
-    model: ILayoutModel;
+    model: ILayoutModel | undefined;
     title: string;
     icon: string;
     docIcon: string;

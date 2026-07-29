@@ -26,6 +26,8 @@ import type {OutlineDomain} from "./types";
 import type {TreeDomain} from "./types";
 import {outlineModelBrand} from "./types";
 export class Outline extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [outlineModelBrand]() {
         return "Outline" as const;
     }
@@ -91,6 +93,7 @@ export class Outline extends Model<AppFacade, LayoutTab> {
      */
     constructor(options: { app: AppFacade, tab: LayoutTab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
         super({app: options.app});
+        this.parent = options.tab;
         this.connect({
             id: options.tab.id,
             type: "outline",

@@ -71,6 +71,8 @@ const selectInputField = (element: HTMLElement) => {
 /** 用途：搜索面板，管理搜索界面的生命周期和事件。使用范围：布局系统初始化搜索面板时实例化。 */
 // @允许继承: 框架要求 (FrameworkRequired)
 class Search extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public readonly [searchModelBrand] = "Search" as const;
     public element: HTMLElement;
     public config: Config.IUILayoutTabSearchConfig;
@@ -80,6 +82,7 @@ class Search extends Model<AppFacade, LayoutTab> {
         super({
             app: options.app,
         });
+        this.parent = options.tab;
         // 设置 Tab 未更新标记（当启用"使用当前标签页打开文件"时）
         if (getSiyuanConfig().fileTree.openFilesUseCurrentTab) {
             options.tab.headElement?.classList.add("item--unupdate");

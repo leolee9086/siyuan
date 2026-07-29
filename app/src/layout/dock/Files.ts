@@ -30,6 +30,8 @@ import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/so
 import {filesModelBrand} from "./Files/eventHandlers.types";
 
 export class Files extends Model<AppFacade, LayoutTab> {
+    public override parent: LayoutTab;
+
     public get [filesModelBrand]() {
         return "Files" as const;
     }
@@ -42,6 +44,7 @@ export class Files extends Model<AppFacade, LayoutTab> {
 
     constructor(options: { tab: LayoutTab; app: AppFacade }) {
         super({app: options.app});
+        this.parent = options.tab;
         this.connect({
             type: "filetree",
             id: options.tab.id,
