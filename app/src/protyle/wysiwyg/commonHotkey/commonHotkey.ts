@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块承接原 `wysiwyg/commonHotkey.ts` 的通用快捷键、块复制、范围解析和首页导航动作。
+ */
 import { matchHotKey } from "../../util/hotKey";
 import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { writeText } from "../../util/compatibility";

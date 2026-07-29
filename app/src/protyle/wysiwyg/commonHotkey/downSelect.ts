@@ -1,3 +1,4 @@
+/** 替代关系：本模块承接原 `wysiwyg/commonHotkey.ts` 的向下扩展选区动作。 */
 import { countBlockWord } from "../../runtime/status.port";
 import { hideElements } from "../../ui/hideElements";
 import { handleSelectDownEmpty } from "./commonHotkeySelect";

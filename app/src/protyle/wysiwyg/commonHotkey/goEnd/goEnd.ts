@@ -1,3 +1,4 @@
+/** 替代关系：本模块承接原 `wysiwyg/commonHotkey.ts` 的文档末尾导航动作。 */
 import {fetchPost} from "./imports";
 import {getSiyuanConfig} from "./imports";
 import {focusBlock} from "./imports";

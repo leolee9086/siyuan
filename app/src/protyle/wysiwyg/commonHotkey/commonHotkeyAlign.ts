@@ -1,6 +1,8 @@
 /**
  * 图片对齐相关的帮助函数
- * 
+ *
+ * 替代关系：本模块承接原 `wysiwyg/commonHotkey.ts` 的图片对齐动作。
+ *
  * 本模块提供编辑器中图片/资源的对齐功能，配合快捷键和右键菜单使用。
  */
 import * as dayjs from "dayjs";
