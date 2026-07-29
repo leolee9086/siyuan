@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/upstream-sync/audit-manifest.mjs",
+  "cycleId": "siyuan-dev-28e38647fb02",
+  "upstreamRemote": "https://github.com/siyuan-note/siyuan.git",
+  "upstreamBranch": "dev",
+  "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
+  "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
+  "upstreamTip": "28e38647fb02ef126002633f33f9d3fcccb8c167",
+  "candidateBranch": "sync/upstream-dev-28e38647fb02",
+  "candidateHead": "ddc21df46e3edf597c714318a1bfc5340ec4dcba",
+  "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
+  "frozenAt": "2026-07-29T20:02:23+08:00",
+  "requiredGates": [
+    "kernel: go test -short -tags fts5 ./...",
+    "kernel: go vet -tags fts5 ./...",
+    "app: pnpm typecheck",
+    "app: pnpm test",
+    "app: pnpm test:browser",
+    "app: pnpm build"
+  ],
+  "procedure": {
+    "blockId": "20260729083130-vaxfqpr",
+    "updatedAt": "20260729202117",
+    "kramdownSha256": "27c80bb4519050180fd10017cc066677f9241b7a1477d54816d27d0f15639c6f",
+    "mirrorSha256": "d74e025abfcbd954a64aadf8a7a8d040acec5c91c8038780f44c8ed7f1fced9c"
+  },
+  "commitCount": 440,
+  "mergeCommitCount": 33,
+  "revertCommitCount": 0,
+  "stablePatchIdCount": 407,
+  "mappedUpstreamCommitCount": 4,
+  "auditGrouping": {
+    "mode": "optional",
+    "fixedSize": null,
+    "note": "Grouping is an execution aid and never a completion boundary."
+  }
+}

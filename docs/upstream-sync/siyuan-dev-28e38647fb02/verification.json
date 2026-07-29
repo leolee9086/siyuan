@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "cycleId": "siyuan-dev-28e38647fb02",
+  "status": "in-progress",
+  "candidateHead": "ddc21df46e3edf597c714318a1bfc5340ec4dcba",
+  "manifest": {
+    "status": "passed",
+    "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+    "commitCount": 440,
+    "uniqueCommitCount": 440,
+    "mergeCommitCount": 33,
+    "revertCommitCount": 0,
+    "stablePatchIdCount": 407,
+    "mappedUpstreamCommitCount": 4,
+    "verifiedAuditCount": 4,
+    "pendingAuditCount": 436
+  },
+  "focusedChecks": [
+    {
+      "name": "audit manifest tooling",
+      "status": "passed",
+      "command": "node --test scripts/upstream-sync/audit-manifest.test.mjs",
+      "evidence": "2 tests passed; covers DAG, merge, revert, stable regeneration, audit preservation and local trailer mappings"
+    },
+    {
+      "name": "search exact ranking",
+      "status": "passed",
+      "command": "go test ./model -count=1",
+      "evidence": "model package passed; local and upstream stable patch ID both 02e40f1a7f2578b05b8f533101be70a5b1d075b6"
+    },
+    {
+      "name": "attribute view UI",
+      "status": "passed",
+      "command": "pnpm exec vitest run test/protyle/av",
+      "evidence": "19 test files and 46 tests passed"
+    },
+    {
+      "name": "desktop and mobile Sass",
+      "status": "passed",
+      "command": "pnpm exec sass --no-source-map --quiet-deps src/assets/scss/base.scss; pnpm exec sass --no-source-map --quiet-deps src/assets/scss/mobile.scss",
+      "evidence": "both entry points compiled"
+    }
+  ],
+  "globalGates": [
+    {"name": "kernel tests", "command": "go test -short -tags fts5 ./...", "status": "pending"},
+    {"name": "kernel vet", "command": "go vet -tags fts5 ./...", "status": "pending"},
+    {"name": "app typecheck", "command": "pnpm typecheck", "status": "pending"},
+    {"name": "app tests", "command": "pnpm test", "status": "pending"},
+    {"name": "browser contracts", "command": "pnpm test:browser", "status": "pending"},
+    {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
+  ],
+  "failures": [
+    {
+      "stage": "manifest generation",
+      "result": "failed-explicitly",
+      "message": "Missing --candidate-head",
+      "resolution": "Added the frozen candidate head argument required by the strengthened generator contract."
+    },
+    {
+      "stage": "manifest generation",
+      "result": "failed-explicitly",
+      "message": "Missing --candidate-created-at",
+      "resolution": "Derived the branch creation time from its reflog and supplied it explicitly."
+    },
+    {
+      "stage": "manifest regeneration",
+      "result": "failed-explicitly",
+      "message": "Not a valid commit name ddc21df4653c8c5f04ab98e8b40e14e45f7aa8ef",
+      "resolution": "Read the authoritative full HEAD with git rev-parse and regenerated from ddc21df46e3edf597c714318a1bfc5340ec4dcba."
+    }
+  ]
+}
