@@ -1,5 +1,5 @@
 import { matchHotKey, isIncludesHotKey } from "../util/hotKey";
-import { addSubList } from "./list.addSubList";
+import { addSubList } from "./list";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { updateCalloutType } from "./callout";
 import { calibur } from "calibur-router";

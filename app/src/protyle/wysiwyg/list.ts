@@ -3,7 +3,7 @@ import {transaction} from "./transaction/submit";
 import {turnsIntoOneTransaction} from "./transaction.turns";
 import {updateTransaction} from "./transaction/update";
 import { genEmptyBlock } from "../../block/element.factory";
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 import { Constants } from "../../constants";
 import {moveToPrevious} from "./remove/focus";
 import { hasClosestByClassName, isBlockElement } from "../util/hasClosest";
@@ -11,6 +11,7 @@ import { setFold } from "../util/blockFold";
 import {getEmbedChildOperationContext, getParentBlock, getPreviousBlockSibling} from "./getBlock";
 import { updateListOrder } from "./list.updateOrder";
 import { scrollCenter } from "../../util/DOM/highlightById";
+import {requireTransactionIdentity} from "./transaction/identity";
 
 const getLastChildBlock = (element: Element) => {
     if (!element || !element.lastElementChild) {
@@ -64,17 +65,29 @@ export const genListItemElement = (listItemElement: Element, offset = 0, wbr = f
     const element = document.createElement("template");
     const type = listItemElement.getAttribute("data-subtype");
     if (type === "o") {
-        const index = startIndex !== undefined ? startIndex : parseInt(listItemElement.getAttribute("data-marker")) + offset + 1;
+        const marker = requireTransactionIdentity(
+            listItemElement.getAttribute("data-marker"),
+            "ordered list item marker",
+        );
+        const parsedMarker = Number.parseInt(marker, 10);
+        if (!Number.isFinite(parsedMarker)) {
+            throw new Error(`Ordered list item requires a numeric marker, received ${marker}`);
+        }
+        const index = startIndex !== undefined ? startIndex : parsedMarker + offset + 1;
         element.innerHTML = `<div data-marker="${index}." data-subtype="o" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div contenteditable="false" class="protyle-action protyle-action--order" draggable="true">${index}.</div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else if (type === "t") {
         element.innerHTML = `<div data-task=" " data-marker="*" data-subtype="t" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action protyle-action--task" draggable="true"><svg><use xlink:href="#iconUncheck"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     } else {
         element.innerHTML = `<div data-marker="*" data-subtype="u" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"><div class="protyle-action" draggable="true"><svg><use xlink:href="#iconDot"></use></svg></div>${genEmptyBlock(false, wbr)}<div class="protyle-attr" contenteditable="false"></div></div>`;
     }
-    return element.content.firstElementChild as HTMLElement;
+    const listItem = element.content.firstElementChild;
+    if (!(listItem instanceof HTMLElement)) {
+        throw new Error("List item template did not produce an HTMLElement");
+    }
+    return listItem;
 };
 
-export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range) => {
+export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range): boolean => {
     const parentItemElement = hasClosestByClassName(nodeElement, "li");
     if (!parentItemElement) {
         return false;
@@ -89,19 +102,27 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
         const id = Lute.NewNodeID();
         const newListItemElement = genListItemElement(parentItemElement, 0, true, 1);
         const newListHTML = `<div data-subtype="${parentItemElement.getAttribute("data-subtype")}" data-node-id="${id}" data-type="NodeList" class="list" updated="${dayjs().format("YYYYMMDDHHmmss")}">${newListItemElement.outerHTML}<div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+        const previousID = requireTransactionIdentity(
+            lastElement.getAttribute("data-node-id"),
+            "sublist previous block ID",
+        );
         lastElement.insertAdjacentHTML("afterend", newListHTML);
+        const insertedListElement = lastElement.nextElementSibling;
+        if (!(insertedListElement instanceof HTMLElement) || insertedListElement.dataset.nodeId !== id) {
+            throw new Error(`Sublist ${id} was not inserted after its previous block`);
+        }
         unfoldElements(protyle, [parentItemElement]);
         transaction(protyle, [{
             action: "insert",
             id,
             data: newListHTML,
-            previousID: lastElement.getAttribute("data-node-id"),
+            previousID,
         }], [{
             action: "delete",
             id,
         }]);
-        focusByWbr(lastElement.nextElementSibling, range);
-        scrollCenter(protyle, lastElement.nextElementSibling);
+        focusByWbr(insertedListElement, range);
+        scrollCenter(protyle, insertedListElement);
         return true;
     }
 
@@ -111,14 +132,19 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
         return false;
     }
     const newListElement = genListItemElement(lastSubItem, 0, true);
-    const id = newListElement.getAttribute("data-node-id");
+    const id = requireTransactionIdentity(newListElement.getAttribute("data-node-id"), "new list item ID");
+    const previousID = requireTransactionIdentity(lastSubItem.getAttribute("data-node-id"), "previous list item ID");
+    const subList = lastSubItem.parentElement;
+    if (!subList) {
+        throw new Error(`Previous list item ${previousID} has no parent list`);
+    }
     lastSubItem.after(newListElement);
-    unfoldElements(protyle, [lastSubItem.parentElement, parentItemElement]);
+    unfoldElements(protyle, [subList, parentItemElement]);
     transaction(protyle, [{
         action: "insert",
         id,
         data: newListElement.outerHTML,
-        previousID: lastSubItem.getAttribute("data-node-id"),
+        previousID,
     }], [{
         action: "delete",
         id,
@@ -619,14 +645,6 @@ export const listOutdent = async (protyle: IProtyle, liItemElements: Element[], 
                 topUndoOperations.push({
                     action: "delete",
                     id: newId
-                });
-            }
-            if (lastBlockElement) {
-                topDoOperations.push({
-                    action: "move",
-                    id: nextElement ? (nextElement.getAttribute("data-node-id") || "") : "",
-                    previousID: topOldPreviousID || (lastBlockElement.lastElementChild && lastBlockElement.lastElementChild.previousElementSibling ? lastBlockElement.lastElementChild.previousElementSibling.getAttribute("data-node-id") : "") || "",
-                    parentID: lastBlockElement.getAttribute("data-node-id") || ""
                 });
             }
         }
